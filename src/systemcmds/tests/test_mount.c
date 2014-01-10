@@ -32,21 +32,21 @@
  ****************************************************************************/
 
 /**
- * @file test_file.c
+ * @file test_mount.c
  *
- * File write test.
+ * Device mount / unmount stress test
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #include <sys/stat.h>
-#include <poll.h>
 #include <dirent.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <systemlib/err.h>
+#include <systemlib/systemlib.h>
 #include <systemlib/perf_counter.h>
 #include <string.h>
 
@@ -54,43 +54,17 @@
 
 #include "tests.h"
 
-int check_user_abort();
-
-int check_user_abort() {
-	/* check if user wants to abort */
-	char c;
-
-	struct pollfd fds;
-	int ret;
-	fds.fd = 0; /* stdin */
-	fds.events = POLLIN;
-	ret = poll(&fds, 1, 0);
-
-	if (ret > 0) {
-
-		read(0, &c, 1);
-
-		switch (c) {
-		case 0x03: // ctrl-c
-		case 0x1b: // esc
-		case 'c':
-		case 'q':
-		{
-			warnx("Test aborted.");
-			return OK;
-			/* not reached */
-			}
-		}
-	}
-
-	return 1;
-}
+const int fsync_tries = 1;
+const int abort_tries = 10;
 
 int
-test_file(int argc, char *argv[])
+test_mount(int argc, char *argv[])
 {
-	const unsigned iterations = 100;
-	const unsigned alignments = 65;
+	const unsigned iterations = 2000;
+	const unsigned alignments = 10;
+
+	const char* cmd_filename = "/fs/microsd/mount_test_cmds.txt";
+
 
 	/* check if microSD card is mounted */
 	struct stat buffer;
@@ -99,17 +73,114 @@ test_file(int argc, char *argv[])
 		return 1;
 	}
 
+	/* list directory */
+	DIR		*d;
+	struct dirent	*dir;
+	d = opendir("/fs/microsd");
+	if (d) {
+
+		while ((dir = readdir(d)) != NULL) {
+			//printf("%s\n", dir->d_name);
+		}
+
+		closedir(d);
+
+		warnx("directory listing ok (FS mounted and readable)");
+
+	} else {
+		/* failed opening dir */
+		warnx("FAILED LISTING MICROSD ROOT DIRECTORY");
+
+		if (stat(cmd_filename, &buffer) == OK) {
+			(void)unlink(cmd_filename);
+		}
+
+		return 1;
+	}
+
+	/* read current test status from file, write test instructions for next round */
+
+	/* initial values */
+	int it_left_fsync = fsync_tries;
+	int it_left_abort = abort_tries;
+
+	int cmd_fd;
+	if (stat(cmd_filename, &buffer) == OK) {
+
+		/* command file exists, read off state */
+		cmd_fd = open(cmd_filename, O_RDWR | O_NONBLOCK);
+		char buf[64];
+		int ret = read(cmd_fd, buf, sizeof(buf));
+
+		if (ret > 0) {
+			int count = 0;
+			ret = sscanf(buf, "TEST: %u %u %n", &it_left_fsync, &it_left_abort, &count);
+		} else {
+			buf[0] = '\0';
+		}
+
+		if (it_left_fsync > fsync_tries)
+			it_left_fsync = fsync_tries;
+
+		if (it_left_abort > abort_tries)
+			it_left_abort = abort_tries;
+
+		warnx("Iterations left: #%d / #%d of %d / %d\n(%s)", it_left_fsync, it_left_abort,
+			fsync_tries, abort_tries, buf);
+
+		int it_left_fsync_prev = it_left_fsync;
+
+		/* now write again what to do next */
+		if (it_left_fsync > 0)
+			it_left_fsync--;
+
+		if (it_left_fsync == 0 && it_left_abort > 0) {
+
+			it_left_abort--;
+
+			/* announce mode switch */
+			if (it_left_fsync_prev != it_left_fsync && it_left_fsync == 0) {
+				warnx("\n SUCCESSFULLY PASSED FSYNC'ED WRITES, CONTINUTING WITHOUT FSYNC");
+				fsync(stdout);
+				fsync(stderr);
+				usleep(20000);
+			}
+
+		}
+
+		if (it_left_abort == 0) {
+			(void)unlink(cmd_filename);
+			return 0;
+		}
+
+	} else {
+
+		/* this must be the first iteration, do something */
+		cmd_fd = open(cmd_filename, O_TRUNC | O_WRONLY | O_CREAT);
+
+		warnx("First iteration of file test\n");
+	}
+
+	char buf[64];
+	int wret = sprintf(buf, "TEST: %d %d ", it_left_fsync, it_left_abort);
+	lseek(cmd_fd, 0, SEEK_SET);
+	write(cmd_fd, buf, strlen(buf) + 1);
+	fsync(cmd_fd);
+
 	/* perform tests for a range of chunk sizes */
-	unsigned chunk_sizes[] = {1, 5, 8, 13, 16, 32, 33, 64, 70, 128, 133, 256, 300, 512, 555, 1024, 1500};
+	unsigned chunk_sizes[] = {32, 64, 128, 256, 512, 600, 1200};
 
 	for (unsigned c = 0; c < (sizeof(chunk_sizes) / sizeof(chunk_sizes[0])); c++) {
 
-		printf("\n====== FILE TEST: %u bytes chunks ======\n", chunk_sizes[c]);
+		printf("\n\n====== FILE TEST: %u bytes chunks (%s) ======\n", chunk_sizes[c], (it_left_fsync > 0) ? "FSYNC" : "NO FSYNC");
+		printf("unpower the system immediately (within 0.5s) when the hash (#) sign appears\n");
+		fsync(stdout);
+		fsync(stderr);
+		usleep(50000);
 
 		for (unsigned a = 0; a < alignments; a++) {
 
-			printf("\n");
-			warnx("----- alignment test: %u bytes -----", a);
+			printf(".");
 
 			uint8_t write_buf[chunk_sizes[c] + alignments] __attribute__((aligned(64)));
 
@@ -124,10 +195,9 @@ test_file(int argc, char *argv[])
 
 			int fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
 
-			warnx("testing unaligned writes - please wait..");
-
 			start = hrt_absolute_time();
 			for (unsigned i = 0; i < iterations; i++) {
+
 				int wret = write(fd, write_buf + a, chunk_sizes[c]);
 
 				if (wret != chunk_sizes[c]) {
@@ -137,14 +207,27 @@ test_file(int argc, char *argv[])
 						warnx("memory is unaligned, align shift: %d", a);
 
 					return 1;
+
 				}
 
-				fsync(fd);
-
-				if (!check_user_abort())
-					return OK;
-
+				if (it_left_fsync > 0) {
+					fsync(fd);
+				} else {
+					printf("#");
+					fsync(stdout);
+					fsync(stderr);
+				}
 			}
+
+			if (it_left_fsync > 0) {
+				printf("#");
+			}
+
+			printf(".");
+			fsync(stdout);
+			fsync(stderr);
+			usleep(200000);
+
 			end = hrt_absolute_time();
 
 			close(fd);
@@ -175,146 +258,32 @@ test_file(int argc, char *argv[])
 					return 1;
 				}
 
-				if (!check_user_abort())
-					return OK;
-
 			}
 
-			/*
-			 * ALIGNED WRITES AND UNALIGNED READS
-			 */
-
-			close(fd);
 			int ret = unlink("/fs/microsd/testfile");
-			fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
-
-			warnx("testing aligned writes - please wait.. (CTRL^C to abort)");
-
-			start = hrt_absolute_time();
-			for (unsigned i = 0; i < iterations; i++) {
-				int wret = write(fd, write_buf, chunk_sizes[c]);
-
-				if (wret != chunk_sizes[c]) {
-					warnx("WRITE ERROR!");
-					return 1;
-				}
-
-				if (!check_user_abort())
-					return OK;
-
-			}
-
-			fsync(fd);
-
-			warnx("reading data aligned..");
-
-			close(fd);
-			fd = open("/fs/microsd/testfile", O_RDONLY);
-
-			bool align_read_ok = true;
-
-			/* read back data unaligned */
-			for (unsigned i = 0; i < iterations; i++) {
-				int rret = read(fd, read_buf, chunk_sizes[c]);
-
-				if (rret != chunk_sizes[c]) {
-					warnx("READ ERROR!");
-					return 1;
-				}
-				
-				/* compare value */
-				bool compare_ok = true;
-
-				for (int j = 0; j < chunk_sizes[c]; j++) {
-					if (read_buf[j] != write_buf[j]) {
-						warnx("COMPARISON ERROR: byte %d: %u != %u", j, (unsigned int)read_buf[j], (unsigned int)write_buf[j]);
-						align_read_ok = false;
-						break;
-					}
-
-					if (!check_user_abort())
-						return OK;
-				}
-
-				if (!align_read_ok) {
-					warnx("ABORTING FURTHER COMPARISON DUE TO ERROR");
-					return 1;
-				}
-
-			}
-
-			warnx("align read result: %s\n", (align_read_ok) ? "OK" : "ERROR");
-
-			warnx("reading data unaligned..");
-
-			close(fd);
-			fd = open("/fs/microsd/testfile", O_RDONLY);
-
-			bool unalign_read_ok = true;
-			int unalign_read_err_count = 0;
-
-			memset(read_buf, 0, sizeof(read_buf));
-
-			/* read back data unaligned */
-			for (unsigned i = 0; i < iterations; i++) {
-				int rret = read(fd, read_buf + a, chunk_sizes[c]);
-
-				if (rret != chunk_sizes[c]) {
-					warnx("READ ERROR!");
-					return 1;
-				}
-
-				for (int j = 0; j < chunk_sizes[c]; j++) {
-
-					if ((read_buf + a)[j] != write_buf[j]) {
-						warnx("COMPARISON ERROR: byte %d, align shift: %d: %u != %u", j, a, (unsigned int)read_buf[j + a], (unsigned int)write_buf[j]);
-						unalign_read_ok = false;
-						unalign_read_err_count++;
-						
-						if (unalign_read_err_count > 10)
-							break;
-					}
-
-					if (!check_user_abort())
-						return OK;
-				}
-
-				if (!unalign_read_ok) {
-					warnx("ABORTING FURTHER COMPARISON DUE TO ERROR");
-					return 1;
-				}
-
-			}
-
-			ret = unlink("/fs/microsd/testfile");
 			close(fd);
 
 			if (ret) {
 				warnx("UNLINKING FILE FAILED");
 				return 1;
 			}
+
 		}
 	}
 
-	/* list directory */
-	DIR		*d;
-	struct dirent	*dir;
-	d = opendir("/fs/microsd");
-	if (d) {
+	fsync(stdout);
+	fsync(stderr);
+	usleep(20000);
 
-		while ((dir = readdir(d)) != NULL) {
-			//printf("%s\n", dir->d_name);
-		}
 
-		closedir(d);
 
-		warnx("directory listing ok (FS mounted and readable)");
+	/* we always reboot for the next test if we get here */
+	warnx("Iteration done, rebooting..");
+	fsync(stdout);
+	fsync(stderr);
+	usleep(50000);
+	systemreset(false);
 
-	} else {
-		/* failed opening dir */
-		warnx("FAILED LISTING MICROSD ROOT DIRECTORY");
-		return 1;
-	}
-
+	/* never going to get here */
 	return 0;
 }
