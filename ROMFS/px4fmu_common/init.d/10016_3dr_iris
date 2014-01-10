@@ -1,11 +1,9 @@
 #!nsh
-
+#
+# 3DR Iris Quadcopter
+#
 # Maintainers: Anton Babushkin <anton.babushkin@me.com>
-
-echo "[init] 3DR Iris Quad"
-
-# Use generic wide arm quad X PWM as base
-sh /etc/init.d/10001_quad_w
+#
 
 if [ $DO_AUTOCONFIG == yes ]
 then
@@ -41,3 +39,8 @@ then
 	param set MPC_Z_VEL_MAX 2
 	param set MPC_Z_VEL_P 0.20
 fi
+
+set VEHICLE_TYPE mc
+set FRAME_GEOMETRY quad_w
+
+set PWM_RATE 400

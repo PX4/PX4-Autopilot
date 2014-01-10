@@ -1,8 +1,9 @@
 #!nsh
-
+#
+# DJI Flame Wheel F450 Quadcopter
+#
 # Maintainers: Lorenz Meier <lm@inf.ethz.ch>
-
-echo "[init] DJI F450"
+#
 
 if [ $DO_AUTOCONFIG == yes ]
 then

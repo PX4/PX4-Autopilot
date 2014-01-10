@@ -1,6 +1,9 @@
 #!nsh
-
-echo "[init] PX4FMU v1, v2 with or without IO on HIL Quad"
+#
+# HIL Quadcopter X
+#
+# Maintainers: Anton Babushkin <anton.babushkin@me.com>
+#
 
 if [ $DO_AUTOCONFIG == yes ]
 then

@@ -1,8 +1,9 @@
 #!nsh
-
-# Maintainers: Anton Babushkin <anton.babushkin@me.com>
-
-echo "[init] Team Blacksheep Discovery Quad"
+#
+# Team Blacksheep Discovery Quadcopter
+#
+# Maintainers: Simon Wilks <sjwilks@gmail.com>
+#
 
 if [ $DO_AUTOCONFIG == yes ]
 then

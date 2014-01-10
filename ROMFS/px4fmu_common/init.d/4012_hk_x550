@@ -1,8 +1,9 @@
 #!nsh
-
+#
+# HobbyKing X550 Quadcopter
+#
 # Maintainers: Todd Stellanova <tstellanova@gmail.com>
-
-echo "[init] PX4FMU v1, v2 with or without IO on HobbyKing X550"
+#
 
 if [ $DO_AUTOCONFIG == yes ]
 then
@@ -21,6 +22,8 @@ then
 	param set MC_YAWRATE_P 0.08
 	param set MC_YAWRATE_I 0
 	param set MC_YAWRATE_D 0
+
+	# TODO add default MPC parameters
 fi
 
 set VEHICLE_TYPE mc

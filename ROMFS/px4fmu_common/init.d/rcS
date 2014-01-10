@@ -13,17 +13,30 @@ set logfile /fs/microsd/bootlog.txt
 #
 # Try to mount the microSD card.
 #
-echo "[init] looking for microSD..."
+echo "[init] Looking for microSD..."
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
-	echo "[init] card mounted at /fs/microsd"
+	echo "[init] microSD card mounted at /fs/microsd"
 	# Start playing the startup tune
 	tone_alarm start
 else
-	echo "[init] no microSD card found"
+	echo "[init] No microSD card found"
 	# Play SOS
 	tone_alarm error
 fi
+
+#
+# Set default values here, can be overriden in rc.txt from SD card
+#
+set HIL no
+set VEHICLE_TYPE none
+set FRAME_GEOMETRY none
+set OUTPUT_MODE none
+set VEHICLE_TYPE none
+set PWM_RATE none
+set PWM_DISARMED none
+set PWM_MIN none
+set PWM_MAX none
 
 #
 # Look for an init script on the microSD card.
@@ -70,27 +83,18 @@ then
 	uorb start
 	
 	#
-	# Load microSD params
+	# Load parameters
 	#
-	#if ramtron start
-	#then
-	#	param select /ramtron/params
-	#	if [ -f /ramtron/params ]
-	#	then
-	#		param load /ramtron/params
-	#	fi
-	#else
-		param select /fs/microsd/params
-		if [ -f /fs/microsd/params ]
+	param select /fs/microsd/params
+	if [ -f /fs/microsd/params ]
+	then
+		if param load /fs/microsd/params
 		then
-			if param load /fs/microsd/params
-			then
-				echo "[init] Parameters loaded"
-			else
-				echo "[init] Parameter file corrupt - ignoring"
-			fi
+			echo "[init] Parameters loaded"
+		else
+			echo "[init] Parameter file corrupt - ignoring"
 		fi
-	#fi
+	fi
 	
 	#
 	# Start system state indicator
@@ -104,13 +108,9 @@ then
 			blinkm systemstate
 		fi
 	fi
-
-	# Use FMU PWM output by default
-	set OUTPUT_MODE fmu_pwm
-	set IO_PRESENT no
 	
 	#
-	# Upgrade PX4IO firmware
+	# Check if PX4IO present and update firmware if needed
 	#
 	if [ -f /etc/extras/px4io-v2_default.bin ]
 	then
@@ -119,15 +119,14 @@ then
 		set io_file /etc/extras/px4io-v1_default.bin
 	fi
 
+	set IO_PRESENT no
+	
 	if px4io checkcrc $io_file
 	then
 		echo "[init] PX4IO CRC OK"
 		echo "PX4IO CRC OK" >> $logfile
 
 		set IO_PRESENT yes
-		
-		# If PX4IO present, use it as primary PWM output by default
-		set OUTPUT_MODE io_pwm
 	else
 		echo "[init] PX4IO CRC failure"
 		echo "PX4IO CRC failure" >> $logfile
@@ -142,9 +141,6 @@ then
 				tone_alarm MSPAA
 
 				set IO_PRESENT yes
-
-				# If PX4IO present, use it as primary PWM output by default
-				set OUTPUT_MODE io_pwm
 			else
 				echo "[init] PX4IO restart failed"
 				echo "PX4IO restart failed" >> $logfile
@@ -164,16 +160,27 @@ then
 			fi
 		fi
 	fi
-	
-	set HIL no
-	set FRAME_TYPE none
-	set PWM_RATE none
-	set PWM_DISARMED none
-	set PWM_MIN none
-	set PWM_MAX none
+
+	#
+	# Set default output if it was not defined in rc.txt
+	#
+	if [ $OUTPUT_MODE == none ]
+	then
+		if [ $IO_PRESENT == yes ]
+		then
+			# If PX4IO present, use it as primary PWM output by default
+			set OUTPUT_MODE io_pwm
+		else
+			# Else use PX4FMU PWM output
+			set OUTPUT_MODE fmu_pwm
+		fi
+	fi
 	
 	set EXIT_ON_END no
 	
+	#
+	# Set DO_AUTOCONFIG flag to use it in AUTOSTART scripts
+	#
 	if param compare SYS_AUTOCONFIG 1
 	then
 		set DO_AUTOCONFIG yes
@@ -182,40 +189,34 @@ then
 	fi
 	
 	#
-	# Start the Commander (needs to be this early for in-air-restarts)
-	#
-	commander start
-	
-	#
 	# Set parameters and env variables for selected AUTOSTART
 	#
 	sh /etc/init.d/rc.autostart
 
-	# Custom configuration
-	if [ -f /fs/microsd/etc/rc.conf ]
-	then
-		sh /fs/microsd/etc/rc.conf
-	fi
-
-	if [ $HIL == yes ]
-	then
-		set OUTPUT_MODE hil
-	else
-		# Try to get an USB console if not in HIL mode
-		nshterm /dev/ttyACM0 &
-	fi
-	
-	#
-	# If autoconfig parameter was set, reset it and save parameters
-	#
-	if [ $DO_AUTOCONFIG == yes ]
-	then
-		param set SYS_AUTOCONFIG 0
-		param save
-	fi
-
 	if [ $MODE == autostart ]
 	then	
+		if [ $HIL == yes ]
+		then
+			set OUTPUT_MODE hil
+		else
+			# Try to get an USB console if not in HIL mode
+			nshterm /dev/ttyACM0 &
+		fi
+		
+		#
+		# If autoconfig parameter was set, reset it and save parameters
+		#
+		if [ $DO_AUTOCONFIG == yes ]
+		then
+			param set SYS_AUTOCONFIG 0
+			param save
+		fi
+
+		#
+		# Start the Commander (needs to be this early for in-air-restarts)
+		#
+		commander start
+		
 		#
 		# Start primary output
 		#
@@ -224,29 +225,47 @@ then
 			echo "[init] Use PX4IO PWM as primary output"
 			if px4io start
 			then
-				echo "[init] PX4IO OK"
-				echo "PX4IO OK" >> $logfile
+				echo "[init] PX4IO started"
 				sh /etc/init.d/rc.io
 			else
 				echo "[init] PX4IO start error"
-				echo "PX4IO start error" >> $logfile
 				tone_alarm MNGGG
 			fi
 		fi
 		if [ $OUTPUT_MODE == fmu_pwm ]
 		then
 			echo "[init] Use PX4FMU PWM as primary output"
-			fmu mode_pwm
+			if fmu mode_pwm
+			then
+				echo "[init] PX4FMU PWM output started"
+				sh /etc/init.d/rc.io
+			else
+				echo "[init] PX4FMU PWM output start error"
+				tone_alarm MNGGG
+			fi
 		fi
 		if [ $OUTPUT_MODE == mkblctrl ]
 		then
 			echo "[init] Use MKBLCTRL as primary output"
-		    mkblctrl
+			if mkblctrl
+			then
+				echo "[init] MKBLCTRL started"
+			else
+				echo "[init] MKBLCTRL start error"
+				tone_alarm MNGGG
+			fi
+			
 		fi		
 		if [ $OUTPUT_MODE == hil ]
 		then
 			echo "[init] Use HIL as primary output"
-			hil mode_pwm
+			if hil mode_pwm
+			then
+				echo "[init] HIL output started"
+			else
+				echo "[init] HIL output error"
+				tone_alarm MNGGG
+			fi
 		fi
 		
 		#
@@ -257,12 +276,10 @@ then
 			echo "[init] Use PX4IO PWM as secondary output"
 			if px4io start
 			then
-				echo "[init] PX4IO OK"
-				echo "PX4IO OK" >> $logfile
+				echo "[init] PX4IO started"
 				sh /etc/init.d/rc.io
 			else
 				echo "[init] PX4IO start error"
-				echo "PX4IO start error" >> $logfile
 				tone_alarm MNGGG
 			fi
 		fi
@@ -270,18 +287,24 @@ then
 		#
 		# MAVLink
 		#
-		if [ $OUTPUT_MODE == fmu_pwm -a hw_ver compare PX4FMU_V1 ]
+		if [ $HIL == yes ]
 		then
-			# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as PWM output
-			mavlink start -d /dev/ttyS0
+			mavlink start -b 230400 -d /dev/ttyACM0 
 			usleep 5000
-			
-			# Exit from nsh to free port for mavlink
-			set EXIT_ON_END yes
 		else
-			# Start MAVLink on default port: ttyS1
-			mavlink start
-			usleep 5000
+			if [ $OUTPUT_MODE == fmu_pwm -a hw_ver compare PX4FMU_V1 ]
+			then
+				# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as PWM output
+				mavlink start -d /dev/ttyS0
+				usleep 5000
+				
+				# Exit from nsh to free port for mavlink
+				set EXIT_ON_END yes
+			else
+				# Start MAVLink on default port: ttyS1
+				mavlink start
+				usleep 5000
+			fi
 		fi
 		
 		#
@@ -294,10 +317,7 @@ then
 		then
 			echo "[init] Start logging"
 			sh /etc/init.d/rc.logging
-		fi
-
-		if [ $HIL == no ]
-		then
+			
 			echo "[init] Start GPS"
 			gps start
 		fi
@@ -336,6 +356,7 @@ then
 		if [ $VEHICLE_TYPE == none ]
 		then
 			echo "[init] Vehicle type: GENERIC"
+			
 			attitude_estimator_ekf start
 			position_estimator_inav start
 		fi
