@@ -175,7 +175,6 @@ private:
 	/* takeoff/launch states */
 	bool launch_detected;
 	bool usePreTakeoffThrust;
-	bool launch_detection_message_sent;
 
 	/* Landingslope object */
 	Landingslope landingslope;
@@ -397,8 +396,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_mavlink_fd(-1),
 	launchDetector(),
 	launch_detected(false),
-	usePreTakeoffThrust(false),
-	launch_detection_message_sent(false)
+	usePreTakeoffThrust(false)
 {
 	/* safely initialize structs */
 	vehicle_attitude_s			_att = {0};
@@ -985,10 +983,11 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 //			warnx("Launch detection running");
 			if(!launch_detected) { //do not do further checks once a launch was detected
 				if (launchDetector.launchDetectionEnabled()) {
-//					warnx("Launch detection enabled");
-					if(!launch_detection_message_sent) {
+					static hrt_abstime last_sent = 0;
+					if(hrt_absolute_time() - last_sent > 4e6) {
+//						warnx("Launch detection running");
 						mavlink_log_info(_mavlink_fd, "#audio: Launchdetection running");
-						launch_detection_message_sent = true;
+						last_sent = hrt_absolute_time();
 					}
 					launchDetector.update(_sensor_combined.accelerometer_m_s2[0]);
 					if (launchDetector.getLaunchDetected()) {
@@ -1057,7 +1056,6 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 		if (mission_item_triplet.current.nav_cmd != NAV_CMD_TAKEOFF) {
 			launch_detected = false;
 			usePreTakeoffThrust = false;
-			launch_detection_message_sent = false;
 		}
 
 		if (was_circle_mode && !_l1_control.circle_mode()) {
