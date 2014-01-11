@@ -38,7 +38,7 @@ else
 fi
 mixer load $OUTPUT_DEV $MIXER
 
-if [ $OUTPUT_MODE == fmu_pwm -o $OUTPUT_MODE == io_pwm ]
+if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == io ]
 then
 	#
 	# Set PWM output frequency

@@ -97,81 +97,19 @@ then
 	fi
 	
 	#
-	# Check if PX4IO present and update firmware if needed
-	#
-	if [ -f /etc/extras/px4io-v2_default.bin ]
-	then
-		set IO_FILE /etc/extras/px4io-v2_default.bin
-	else
-		set IO_FILE /etc/extras/px4io-v1_default.bin
-	fi
-
-	set IO_PRESENT no
-	
-	if px4io checkcrc $IO_FILE
-	then
-		echo "[init] PX4IO CRC OK"
-		echo "PX4IO CRC OK" >> $LOG_FILE
-
-		set IO_PRESENT yes
-	else
-		echo "[init] PX4IO CRC failure"
-		echo "PX4IO CRC failure" >> $LOG_FILE
-		tone_alarm MBABGP
-		if px4io forceupdate 14662 $IO_FILE
-		then
-			usleep 500000
-			if px4io start
-			then
-				echo "[init] PX4IO restart OK"
-				echo "PX4IO restart OK" >> $LOG_FILE
-				tone_alarm MSPAA
-
-				set IO_PRESENT yes
-			else
-				echo "[init] PX4IO restart failed"
-				echo "PX4IO restart failed" >> $LOG_FILE
-				if hw_ver compare PX4FMU_V2
-				then
-					tone_alarm MNGGG
-					sleep 10
-					reboot
-				fi
-			fi
-		else
-			echo "[init] PX4IO update failed"
-			echo "PX4IO update failed" >> $LOG_FILE
-			if hw_ver compare PX4FMU_V2
-			then
-				tone_alarm MNGGG
-			fi
-		fi
-	fi
-	
-	#
 	# Set default values
 	#
 	set HIL no
 	set VEHICLE_TYPE none
 	set FRAME_GEOMETRY none
+	set USE_IO yes
+	set OUTPUT_MODE none
 	set PWM_RATE none
 	set PWM_DISARMED none
 	set PWM_MIN none
 	set PWM_MAX none
-	
-	#
-	# Set default output
-	#
-	if [ $IO_PRESENT == yes ]
-	then
-		# If PX4IO present, use it as primary PWM output by default
-		set OUTPUT_MODE io_pwm
-	else
-		# Else use PX4FMU PWM output
-		set OUTPUT_MODE fmu_pwm
-	fi
-	
-	set EXIT_ON_END no
+	set MKBLCTRL_MODE none
+	set FMU_MODE pwm
 	
 	#
 	# Set DO_AUTOCONFIG flag to use it in AUTOSTART scripts
@@ -182,7 +120,7 @@ then
 	else
 		set DO_AUTOCONFIG no
 	fi
-	
+		
 	#
 	# Set parameters and env variables for selected AUTOSTART
 	#
@@ -204,6 +142,82 @@ then
 		echo "[init] Config file not found: $CONFIG_FILE"
 	fi
 
+	#
+	# If autoconfig parameter was set, reset it and save parameters
+	#
+	if [ $DO_AUTOCONFIG == yes ]
+	then
+		param set SYS_AUTOCONFIG 0
+		param save
+	fi
+	
+	set IO_PRESENT no
+	
+	if [ $USE_IO == yes ]
+	then
+		#
+		# Check if PX4IO present and update firmware if needed
+		#
+		if [ -f /etc/extras/px4io-v2_default.bin ]
+		then
+			set IO_FILE /etc/extras/px4io-v2_default.bin
+		else
+			set IO_FILE /etc/extras/px4io-v1_default.bin
+		fi
+		
+		if px4io checkcrc $IO_FILE
+		then
+			echo "[init] PX4IO CRC OK"
+			echo "PX4IO CRC OK" >> $LOG_FILE
+	
+			set IO_PRESENT yes
+		else
+			echo "[init] PX4IO CRC failure"
+			echo "PX4IO CRC failure" >> $LOG_FILE
+			tone_alarm MBABGP
+			if px4io forceupdate 14662 $IO_FILE
+			then
+				usleep 500000
+				if px4io checkcrc $IO_FILE
+				then
+					echo "[init] PX4IO CRC OK after updating"
+					echo "PX4IO CRC OK after updating" >> $LOG_FILE
+					tone_alarm MSPAA
+	
+					set IO_PRESENT yes
+				else
+					echo "[init] PX4IO update failed"
+					echo "PX4IO update failed" >> $LOG_FILE
+				fi
+			else
+				echo "[init] PX4IO update failed"
+				echo "PX4IO update failed" >> $LOG_FILE
+			fi
+		fi
+		
+		if [ $IO_PRESENT == no ]
+		then
+			echo "[init] ERROR: PX4IO not found, set vehicle type to NONE"
+			tone_alarm MNGGG
+			set VEHICLE_TYPE none
+		fi
+	fi
+	
+	#
+	# Set default output if not set
+	#
+	if [ $OUTPUT_MODE == none ]
+	then
+		if [ $IO_PRESENT == yes ]
+		then
+			# If PX4IO present, use it as primary PWM output by default
+			set OUTPUT_MODE io
+		else
+			# Else use PX4FMU PWM output
+			set OUTPUT_MODE fmu
+		fi
+	fi
+
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
@@ -213,15 +227,6 @@ then
 	fi
 	
 	#
-	# If autoconfig parameter was set, reset it and save parameters
-	#
-	if [ $DO_AUTOCONFIG == yes ]
-	then
-		param set SYS_AUTOCONFIG 0
-		param save
-	fi
-
-	#
 	# Start the Commander (needs to be this early for in-air-restarts)
 	#
 	commander start
@@ -229,7 +234,9 @@ then
 	#
 	# Start primary output
 	#
-	if [ $OUTPUT_MODE == io_pwm ]
+	set TTYS1_BUSY no
+	
+	if [ $OUTPUT_MODE == io ]
 	then
 		echo "[init] Use PX4IO PWM as primary output"
 		if px4io start
@@ -241,21 +248,43 @@ then
 			tone_alarm MNGGG
 		fi
 	fi
-	if [ $OUTPUT_MODE == fmu_pwm ]
+	if [ $OUTPUT_MODE == fmu ]
 	then
-		echo "[init] Use PX4FMU PWM as primary output"
-		if fmu mode_pwm
+		echo "[init] Use FMU PWM as primary output"
+		if fmu mode_$FMU_MODE
 		then
-			echo "[init] PX4FMU PWM output started"
+			echo "[init] FMU mode_$FMU_MODE started"
 		else
-			echo "[init] PX4FMU PWM output start error"
+			echo "[init] FMU mode_$FMU_MODE start error"
 			tone_alarm MNGGG
+		fi
+		
+		if hw_ver compare PX4FMU_V1
+		then
+			if [ $FMU_MODE == pwm -o $FMU_MODE == gpio ]
+			then
+				set TTYS1_BUSY yes
+			fi
+			if [ $FMU_MODE == pwm_gpio ]
+			then
+				set TTYS1_BUSY yes
+			fi
 		fi
 	fi
 	if [ $OUTPUT_MODE == mkblctrl ]
 	then
 		echo "[init] Use MKBLCTRL as primary output"
-		if mkblctrl
+		set MKBLCTRL_ARG ""
+		if [ $MKBLCTRL_MODE == x ]
+		then
+			set MKBLCTRL_ARG "-mkmode x"
+		fi
+		if [ $MKBLCTRL_MODE == + ]
+		then
+			set MKBLCTRL_ARG "-mkmode +"
+		fi
+		
+		if mkblctrl $MKBLCTRL_ARG
 		then
 			echo "[init] MKBLCTRL started"
 		else
@@ -277,32 +306,55 @@ then
 	fi
 	
 	#
-	# Start PX4IO as secondary output if needed
+	# Start IO or FMU for RC PPM input if needed
 	#
-	if [ $IO_PRESENT == yes -a $OUTPUT_MODE != io_pwm ]
+	if [ $IO_PRESENT == yes ]
 	then
-		echo "[init] Use PX4IO PWM as secondary output"
-		if px4io start
+		if [ $OUTPUT_MODE != io ]
 		then
-			echo "[init] PX4IO started"
-			sh /etc/init.d/rc.io
-		else
-			echo "[init] PX4IO start error"
-			tone_alarm MNGGG
+			if px4io start
+			then
+				echo "[init] PX4IO started"
+				sh /etc/init.d/rc.io
+			else
+				echo "[init] PX4IO start error"
+				tone_alarm MNGGG
+			fi
+		fi
+	else
+		if [ $OUTPUT_MODE != fmu ]
+		then
+			if fmu mode_$FMU_MODE
+			then
+				echo "[init] FMU mode_$FMU_MODE started"
+			else
+				echo "[init] FMU mode_$FMU_MODE start error"
+				tone_alarm MNGGG
+			fi
+
+			if hw_ver compare PX4FMU_V1
+			then
+				if [ $FMU_MODE == pwm -o $FMU_MODE == gpio -o $FMU_MODE == pwm_gpio ]
+				then
+					set TTYS1_BUSY yes
+				fi
+			fi
 		fi
 	fi
 
 	#
 	# MAVLink
 	#
+	set EXIT_ON_END no
+	
 	if [ $HIL == yes ]
 	then
 		mavlink start -b 230400 -d /dev/ttyACM0 
 		usleep 5000
 	else
-		if [ $OUTPUT_MODE == fmu_pwm -a hw_ver compare PX4FMU_V1 ]
+		if [ $TTYS1_BUSY == yes ]
 		then
-			# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as PWM output
+			# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
 			mavlink start -d /dev/ttyS0
 			usleep 5000
 			
