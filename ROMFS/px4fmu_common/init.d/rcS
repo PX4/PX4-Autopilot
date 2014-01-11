@@ -247,7 +247,6 @@ then
 		if fmu mode_pwm
 		then
 			echo "[init] PX4FMU PWM output started"
-			sh /etc/init.d/rc.io
 		else
 			echo "[init] PX4FMU PWM output start error"
 			tone_alarm MNGGG
