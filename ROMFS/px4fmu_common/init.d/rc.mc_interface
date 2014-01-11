@@ -29,14 +29,21 @@ fi
 #
 echo "[init] Frame geometry: $FRAME_GEOMETRY"
 set MIXER /etc/mixers/FMU_$FRAME_GEOMETRY.mix
-echo "[init] Loading mixer: $MIXER"
+
 if [ $OUTPUT_MODE == mkblctrl ]
 then
 	set OUTPUT_DEV /dev/mkblctrl
 else
 	set OUTPUT_DEV /dev/pwm_output
 fi
-mixer load $OUTPUT_DEV $MIXER
+
+if mixer load $OUTPUT_DEV $MIXER
+then
+	echo "[init] Mixer loaded: $MIXER"
+else
+	echo "[init] Error loading mixer: $MIXER"
+	tone_alarm $TUNE_OUT_ERROR
+fi
 
 if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == io ]
 then

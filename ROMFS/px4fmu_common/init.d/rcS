@@ -13,6 +13,7 @@ set RC_FILE /fs/microsd/etc/rc.txt
 set CONFIG_FILE /fs/microsd/etc/config.txt
 set EXTRAS_FILE /fs/microsd/etc/extras.txt
 
+set TUNE_OUT_ERROR ML<<CP4CP4CP4CP4CP4
 #
 # Try to mount the microSD card.
 #
@@ -174,7 +175,9 @@ then
 		else
 			echo "[init] PX4IO CRC failure"
 			echo "PX4IO CRC failure" >> $LOG_FILE
-			tone_alarm MBABGP
+			
+			tone_alarm MLL32CP8MB
+			
 			if px4io forceupdate 14662 $IO_FILE
 			then
 				usleep 500000
@@ -182,7 +185,7 @@ then
 				then
 					echo "[init] PX4IO CRC OK after updating"
 					echo "PX4IO CRC OK after updating" >> $LOG_FILE
-					tone_alarm MSPAA
+					tone_alarm MLL8CDE
 	
 					set IO_PRESENT yes
 				else
@@ -197,9 +200,8 @@ then
 		
 		if [ $IO_PRESENT == no ]
 		then
-			echo "[init] ERROR: PX4IO not found, set vehicle type to NONE"
-			tone_alarm MNGGG
-			set VEHICLE_TYPE none
+			echo "[init] ERROR: PX4IO not found"
+			tone_alarm $TUNE_OUT_ERROR
 		fi
 	fi
 	
@@ -245,7 +247,7 @@ then
 			sh /etc/init.d/rc.io
 		else
 			echo "[init] PX4IO start error"
-			tone_alarm MNGGG
+			tone_alarm $TUNE_OUT_ERROR
 		fi
 	fi
 	if [ $OUTPUT_MODE == fmu ]
@@ -256,7 +258,7 @@ then
 			echo "[init] FMU mode_$FMU_MODE started"
 		else
 			echo "[init] FMU mode_$FMU_MODE start error"
-			tone_alarm MNGGG
+			tone_alarm $TUNE_OUT_ERROR
 		fi
 		
 		if hw_ver compare PX4FMU_V1
@@ -289,7 +291,7 @@ then
 			echo "[init] MKBLCTRL started"
 		else
 			echo "[init] MKBLCTRL start error"
-			tone_alarm MNGGG
+			tone_alarm $TUNE_OUT_ERROR
 		fi
 		
 	fi		
@@ -301,7 +303,7 @@ then
 			echo "[init] HIL output started"
 		else
 			echo "[init] HIL output error"
-			tone_alarm MNGGG
+			tone_alarm $TUNE_OUT_ERROR
 		fi
 	fi
 	
@@ -318,7 +320,7 @@ then
 				sh /etc/init.d/rc.io
 			else
 				echo "[init] PX4IO start error"
-				tone_alarm MNGGG
+				tone_alarm $TUNE_OUT_ERROR
 			fi
 		fi
 	else
@@ -329,7 +331,7 @@ then
 				echo "[init] FMU mode_$FMU_MODE started"
 			else
 				echo "[init] FMU mode_$FMU_MODE start error"
-				tone_alarm MNGGG
+				tone_alarm $TUNE_OUT_ERROR
 			fi
 
 			if hw_ver compare PX4FMU_V1

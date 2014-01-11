@@ -14,5 +14,11 @@ param set MAV_TYPE 1
 #
 echo "[init] Frame geometry: $FRAME_GEOMETRY"
 set MIXER /etc/mixers/FMU_$FRAME_GEOMETRY.mix
-echo "[init] Loading mixer: $MIXER"
-mixer load /dev/pwm_output $MIXER
+
+if mixer load /dev/pwm_output $MIXER
+then
+	echo "[init] Mixer loaded: $MIXER"
+else
+	echo "[init] Error loading mixer: $MIXER"
+	tone_alarm $TUNE_OUT_ERROR
+fi
