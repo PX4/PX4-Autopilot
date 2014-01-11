@@ -30,7 +30,13 @@ fi
 echo "[init] Frame geometry: $FRAME_GEOMETRY"
 set MIXER /etc/mixers/FMU_$FRAME_GEOMETRY.mix
 echo "[init] Loading mixer: $MIXER"
-mixer load /dev/pwm_output $MIXER
+if [ $OUTPUT_MODE == mkblctrl ]
+then
+	set OUTPUT_DEV /dev/mkblctrl
+else
+	set OUTPUT_DEV /dev/pwm_output
+fi
+mixer load $OUTPUT_DEV $MIXER
 
 if [ $OUTPUT_MODE == fmu_pwm -o $OUTPUT_MODE == io_pwm ]
 then
