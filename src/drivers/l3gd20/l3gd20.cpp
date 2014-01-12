@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -379,12 +379,6 @@ L3GD20::init()
 		goto out;
 
 	_class_instance = register_class_devname(GYRO_DEVICE_PATH);
-        if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		/* advertise sensor topic */
-		struct gyro_report zero_report;
-		memset(&zero_report, 0, sizeof(zero_report));
-		_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &zero_report);
-        }
 
 	reset();
 
@@ -894,8 +888,19 @@ L3GD20::measure()
 	poll_notify(POLLIN);
 
 	/* publish for subscribers */
-	if (_gyro_topic > 0)
-		orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &report);
+	if (_class_instance == CLASS_DEVICE_PRIMARY && !(_pub_blocked)) {
+
+		if (_gyro_topic > 0) {
+			/* publish it */
+			orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &report);
+		} else {
+			_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &report);
+
+			if (_gyro_topic < 0)
+				debug("failed to create sensor_gyro publication");
+		}
+
+	}
 
 	_read++;
 
