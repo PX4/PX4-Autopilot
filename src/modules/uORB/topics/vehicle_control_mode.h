@@ -38,7 +38,7 @@
 /**
  * @file vehicle_control_mode.h
  * Definition of the vehicle_control_mode uORB topic.
- * 
+ *
  * All control apps should depend their actions based on the flags set here.
  */
 
@@ -59,8 +59,7 @@
  *
  * Encodes the complete system state and is set by the commander app.
  */
-struct vehicle_control_mode_s
-{
+struct vehicle_control_mode_s {
 	uint64_t timestamp; /**< in microseconds since system start, is set whenever the writing thread stores new data */
 
 	bool flag_armed;

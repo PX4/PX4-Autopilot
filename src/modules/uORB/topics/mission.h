@@ -67,8 +67,7 @@ enum NAV_CMD {
  * This is the position the MAV is heading towards. If it of type loiter,
  * the MAV is circling around it with the given loiter radius in meters.
  */
-struct mission_item_s
-{
+struct mission_item_s {
 	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
 	double lat;			/**< latitude in degrees * 1E7				*/
 	double lon;			/**< longitude in degrees * 1E7				*/
@@ -83,8 +82,7 @@ struct mission_item_s
 	float param4;
 };
 
-struct mission_s
-{
+struct mission_s {
 	struct mission_item_s *items;
 	unsigned count;
 };

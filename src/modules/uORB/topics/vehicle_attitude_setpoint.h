@@ -52,8 +52,7 @@
 /**
  * vehicle attitude setpoint.
  */
-struct vehicle_attitude_setpoint_s
-{
+struct vehicle_attitude_setpoint_s {
 	uint64_t timestamp;		/**< in microseconds since system start, is set whenever the writing thread stores new data */
 
 	float roll_body;				/**< body angle in NED frame		*/

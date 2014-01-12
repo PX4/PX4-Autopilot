@@ -53,11 +53,10 @@
 /**
  * GPS home position in WGS84 coordinates.
  */
-struct home_position_s
-{
+struct home_position_s {
 	uint64_t timestamp;             /**< Timestamp (microseconds since system boot)   */
 	uint64_t time_gps_usec;         /**< Timestamp (microseconds in GPS format), this is the timestamp from the gps module   */
-	
+
 	int32_t lat;                    /**< Latitude in 1E7 degrees */
 	int32_t lon;                    /**< Longitude in 1E7 degrees */
 	int32_t alt;                    /**< Altitude in 1E3 meters (millimeters) above MSL */

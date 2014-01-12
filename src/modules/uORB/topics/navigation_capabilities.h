@@ -52,7 +52,7 @@
  * Airspeed
  */
 struct navigation_capabilities_s {
-    float turn_distance;    /**< the optimal distance to a waypoint to switch to the next */
+	float turn_distance;    /**< the optimal distance to a waypoint to switch to the next */
 };
 
 /**

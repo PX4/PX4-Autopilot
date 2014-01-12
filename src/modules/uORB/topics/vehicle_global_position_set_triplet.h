@@ -58,8 +58,7 @@
  *
  * This are the three next waypoints (or just the next two or one).
  */
-struct vehicle_global_position_set_triplet_s
-{
+struct vehicle_global_position_set_triplet_s {
 	bool previous_valid;					/**< flag indicating previous position is valid */
 	bool next_valid;					/**< flag indicating next position is valid */
 

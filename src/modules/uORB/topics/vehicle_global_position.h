@@ -51,16 +51,15 @@
  * @{
  */
 
- /**
- * Fused global position in WGS84.
- *
- * This struct contains the system's believ about its position. It is not the raw GPS
- * measurement (@see vehicle_gps_position). This topic is usually published by the position
- * estimator, which will take more sources of information into account than just GPS,
- * e.g. control inputs of the vehicle in a Kalman-filter implementation.
- */
-struct vehicle_global_position_s
-{
+/**
+* Fused global position in WGS84.
+*
+* This struct contains the system's believ about its position. It is not the raw GPS
+* measurement (@see vehicle_gps_position). This topic is usually published by the position
+* estimator, which will take more sources of information into account than just GPS,
+* e.g. control inputs of the vehicle in a Kalman-filter implementation.
+*/
+struct vehicle_global_position_s {
 	uint64_t timestamp;		/**< time of this estimate, in microseconds since system start */
 	uint64_t time_gps_usec; 	/**< GPS timestamp in microseconds							   */
 	bool valid;			/**< true if position satisfies validity criteria of estimator */
