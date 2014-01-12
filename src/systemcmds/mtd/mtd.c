@@ -81,10 +81,10 @@ static void	mtd_test(void);
 static bool attached = false;
 static bool started = false;
 static struct mtd_dev_s *mtd_dev;
-static const int n_partitions_default = 2;
 
 /* note, these will be equally sized */
-static char *partition_names_default[n_partitions] = {"/dev/mtd_params", "/dev/mtd_waypoints"};
+static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints"};
+static const int n_partitions_default = sizeof(partition_names_default) / sizeof(partition_names_default[0]);
 
 int mtd_main(int argc, char *argv[])
 {
@@ -108,7 +108,8 @@ int mtd_main(int argc, char *argv[])
 }
 
 struct mtd_dev_s *ramtron_initialize(FAR struct spi_dev_s *dev);
-
+struct mtd_dev_s *mtd_partition(FAR struct mtd_dev_s *mtd,
+                                    off_t firstblock, off_t nblocks);
 
 static void
 mtd_attach(void)
@@ -157,7 +158,7 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 		mtd_attach();
 
 	if (!mtd_dev) {
-		warnx("ERROR: Failed to create RAMTRON FRAM MTD instance\n");
+		warnx("ERROR: Failed to create RAMTRON FRAM MTD instance");
 		exit(1);
 	}
 
@@ -166,17 +167,17 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 
 	FAR struct mtd_geometry_s geo;
 
-	ret = mtd_dev->ioctl(master, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo));
+	ret = mtd_dev->ioctl(mtd_dev, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo));
 
 	if (ret < 0) {
-		fdbg("ERROR: mtd->ioctl failed: %d\n", ret);
+		warnx("ERROR: mtd->ioctl failed: %d", ret);
 		exit(3);
 	}
 
-	warnx("Flash Geometry:\n");
-	warnx("  blocksize:      %lu\n", (unsigned long)geo.blocksize);
-	warnx("  erasesize:      %lu\n", (unsigned long)geo.erasesize);
-	warnx("  neraseblocks:   %lu\n", (unsigned long)geo.neraseblocks);
+	warnx("Flash Geometry:");
+	warnx("  blocksize:      %lu", (unsigned long)geo.blocksize);
+	warnx("  erasesize:      %lu", (unsigned long)geo.erasesize);
+	warnx("  neraseblocks:   %lu", (unsigned long)geo.neraseblocks);
 
 	/* Determine the size of each partition.  Make each partition an even
 	 * multiple of the erase block size (perhaps not using some space at the
@@ -187,18 +188,21 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 	unsigned nblocks     = (geo.neraseblocks / n_partitions) * blkpererase;
 	unsigned partsize    = nblocks * geo.blocksize;
 
-	warnx("  No. partitions: %u\n", n_partitions);
-	warnx("  Partition size: %lu Blocks (%lu bytes)\n", nblocks, partsize);
+	warnx("  No. partitions: %u", n_partitions);
+	warnx("  Partition size: %lu Blocks (%lu bytes)", nblocks, partsize);
 
 	/* Now create MTD FLASH partitions */
 
-	warnx("Creating partitions\n");
+	warnx("Creating partitions");
 	FAR struct mtd_dev_s *part[n_partitions];
 	char blockname[32];
 
-	for (unsigned offset = 0, unsigned i = 0; i < n_partitions; offset += nblocks, i++) {
+	unsigned offset;
+	unsigned i;
 
-		warnx("  Partition %d. Block offset=%lu, size=%lu\n",
+	for (offset = 0, i = 0; i < n_partitions; offset += nblocks, i++) {
+
+		warnx("  Partition %d. Block offset=%lu, size=%lu",
 		      i, (unsigned long)offset, (unsigned long)nblocks);
 
 		/* Create the partition */
@@ -206,7 +210,7 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 		part[i] = mtd_partition(mtd_dev, offset, nblocks);
 
 		if (!part[i]) {
-			warnx("ERROR: mtd_partition failed. offset=%lu nblocks=%lu\n",
+			warnx("ERROR: mtd_partition failed. offset=%lu nblocks=%lu",
 			      (unsigned long)offset, (unsigned long)nblocks);
 			fsync(stderr);
 			exit(4);
@@ -219,7 +223,7 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 		ret = ftl_initialize(i, part[i]);
 
 		if (ret < 0) {
-			warnx("ERROR: ftl_initialize %s failed: %d\n", blockname, ret);
+			warnx("ERROR: ftl_initialize %s failed: %d", blockname, ret);
 			fsync(stderr);
 			exit(5);
 		}
@@ -229,7 +233,7 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 		ret = bchdev_register(blockname, partition_names[i], false);
 
 		if (ret < 0) {
-			warnx("ERROR: bchdev_register %s failed: %d\n", charname, ret);
+			warnx("ERROR: bchdev_register %s failed: %d", partition_names[i], ret);
 			fsync(stderr);
 			exit(6);
 		}

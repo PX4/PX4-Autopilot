@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -512,6 +512,22 @@ param_save_default(void)
 	int fd;
 
 	const char *filename = param_get_default_file();
+
+	/* write parameters to temp file */
+	fd = open(filename, O_WRONLY);
+
+	if (fd < 0) {
+		warn("failed to open param file: %s", filename);
+		res = ERROR;
+	}
+
+	if (res == OK) {
+		res = param_export(fd, false);
+	}
+
+	close(fd);
+
+#if 0
 	const char *filename_tmp = malloc(strlen(filename) + 5);
 	sprintf(filename_tmp, "%s.tmp", filename);
 
@@ -563,6 +579,7 @@ param_save_default(void)
 	}
 
 	free(filename_tmp);
+#endif
 
 	return res;
 }
@@ -573,9 +590,9 @@ param_save_default(void)
 int
 param_load_default(void)
 {
-	int fd = open(param_get_default_file(), O_RDONLY);
+	int fd_load = open(param_get_default_file(), O_RDONLY);
 
-	if (fd < 0) {
+	if (fd_load < 0) {
 		/* no parameter file is OK, otherwise this is an error */
 		if (errno != ENOENT) {
 			warn("open '%s' for reading failed", param_get_default_file());
@@ -584,8 +601,8 @@ param_load_default(void)
 		return 1;
 	}
 
-	int result = param_load(fd);
-	close(fd);
+	int result = param_load(fd_load);
+	close(fd_load);
 
 	if (result != 0) {
 		warn("error reading parameters from '%s'", param_get_default_file());
