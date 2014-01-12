@@ -203,11 +203,38 @@ do_show_print(void *arg, param_t param)
 	int32_t i;
 	float f;
 	const char *search_string = (const char*)arg;
+	const char *p_name = (const char*)param_name(param);
 
 	/* print nothing if search string is invalid and not matching */
-	if (!(arg == NULL || (!strcmp(search_string, param_name(param))))) {
-		/* param not found */
-		return;
+	if (!(arg == NULL)) {
+
+		/* start search */
+		char *ss = search_string;
+		char *pp = p_name;
+		bool mismatch = false;
+
+		/* XXX this comparison is only ok for trailing wildcards */
+		while (*ss != '\0' && *pp != '\0') {
+
+			if (*ss == *pp) {
+				ss++;
+				pp++;
+			} else if (*ss == '*') {
+				if (*(ss + 1) != '\0') {
+					warnx("* symbol only allowed at end of search string.");
+					exit(1);
+				}
+
+				pp++;
+			} else {
+				/* param not found */
+				return;
+			}
+		}
+
+		/* the search string must have been consumed */
+		if (!(*ss == '\0' || *ss == '*'))
+			return;
 	}
 
 	printf("%c %s: ",
