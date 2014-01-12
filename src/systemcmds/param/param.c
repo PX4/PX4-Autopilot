@@ -72,7 +72,12 @@ param_main(int argc, char *argv[])
 			if (argc >= 3) {
 				do_save(argv[2]);
 			} else {
-				do_save(param_get_default_file());
+				if (param_save_default()) {
+					warnx("Param export failed.");
+					exit(1);
+				} else {
+					exit(0);
+				}
 			}
 		}
 
@@ -133,11 +138,8 @@ param_main(int argc, char *argv[])
 static void
 do_save(const char* param_file_name)
 {
-	/* delete the parameter file in case it exists */
-	unlink(param_file_name);
-
 	/* create the file */
-	int fd = open(param_file_name, O_WRONLY | O_CREAT | O_EXCL);
+	int fd = open(param_file_name, O_WRONLY | O_CREAT);
 
 	if (fd < 0)
 		err(1, "opening '%s' failed", param_file_name);
@@ -146,7 +148,7 @@ do_save(const char* param_file_name)
 	close(fd);
 
 	if (result < 0) {
-		unlink(param_file_name);
+		(void)unlink(param_file_name);
 		errx(1, "error exporting to '%s'", param_file_name);
 	}
 

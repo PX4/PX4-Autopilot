@@ -407,6 +407,9 @@ bson_encoder_fini(bson_encoder_t encoder)
 		memcpy(encoder->buf, &len, sizeof(len));
 	}
 
+	/* sync file */
+	fsync(encoder->fd);
+
 	return 0;
 }
 

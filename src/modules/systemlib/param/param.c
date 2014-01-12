@@ -61,7 +61,7 @@
 #include "uORB/uORB.h"
 #include "uORB/topics/parameter_update.h"
 
-#if 1
+#if 0
 # define debug(fmt, args...)		do { warnx(fmt, ##args); } while(0)
 #else
 # define debug(fmt, args...)		do { } while(0)
@@ -514,18 +514,24 @@ param_save_default(void)
 	const char *filename = param_get_default_file();
 
 	/* write parameters to temp file */
-	fd = open(filename, O_WRONLY);
+	fd = open(filename, O_WRONLY | O_CREAT);
 
 	if (fd < 0) {
 		warn("failed to open param file: %s", filename);
-		res = ERROR;
+		return ERROR;
 	}
 
 	if (res == OK) {
 		res = param_export(fd, false);
+
+	        if (res != OK) {
+	            warnx("failed to write parameters to file: %s", filename);
+	        }
 	}
 
 	close(fd);
+
+	return res;
 
 #if 0
 	const char *filename_tmp = malloc(strlen(filename) + 5);
@@ -579,9 +585,9 @@ param_save_default(void)
 	}
 
 	free(filename_tmp);
-#endif
 
 	return res;
+#endif
 }
 
 /**
