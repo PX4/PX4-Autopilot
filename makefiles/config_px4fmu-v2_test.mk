@@ -22,6 +22,7 @@ MODULES		+= systemcmds/perf
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/nshterm
+MODULES		+= systemcmds/mtd
 
 #
 # Library modules
