@@ -50,9 +50,17 @@
 #include <poll.h>
 #include <time.h>
 #include <drivers/drv_hrt.h>
+
+#define SENSOR_COMBINED_SUB
+
+
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
+#include <drivers/drv_baro.h>
+#ifdef SENSOR_COMBINED_SUB
+#include <uORB/topics/sensor_combined.h>
+#endif
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/airspeed.h>
@@ -60,14 +68,9 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/mission.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <geo/geo.h>
@@ -76,6 +79,8 @@
 #include <mathlib/mathlib.h>
 
 #include "../../../InertialNav/code/estimator.h"
+
+
 
 /**
  * estimator app start / stop handling function
@@ -118,12 +123,15 @@ private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	int		_estimator_task;			/**< task handle for sensor task */
-
+#ifndef SENSOR_COMBINED_SUB
 	int		_gyro_sub;			/**< gyro sensor subscription */
 	int		_accel_sub;			/**< accel sensor subscription */
 	int		_mag_sub;			/**< mag sensor subscription */
-	int		_attitude_sub;			/**< raw rc channels data subscription */
+	#else
+	int		_sensor_combined_sub;
+	#endif
 	int		_airspeed_sub;			/**< airspeed subscription */
+	int		_baro_sub;			/**< barometer subscription */
 	int		_gps_sub;			/**< GPS subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
@@ -135,12 +143,11 @@ private:
 	orb_advert_t	_local_pos_pub;			/**< position in local frame */
 
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
-	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
-	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
 	struct gyro_report				_gyro;
 	struct accel_report				_accel;
 	struct mag_report				_mag;
 	struct airspeed_s				_airspeed;		/**< airspeed */
+	struct baro_report				_baro;			/**< baro readings */
 	struct vehicle_status_s				_vstatus;		/**< vehicle status */
 	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
 	struct vehicle_local_position_s			_local_pos;		/**< local vehicle position */
@@ -149,6 +156,10 @@ private:
 	struct gyro_scale				_gyro_offsets;
 	struct accel_scale				_accel_offsets;
 	struct mag_scale				_mag_offsets;
+
+#ifdef SENSOR_COMBINED_SUB
+	struct sensor_combined_s			_sensor_combined;
+#endif
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_perf_gyro;			///<local performance counter for gyro updates
@@ -220,10 +231,15 @@ FixedwingEstimator::FixedwingEstimator() :
 	_estimator_task(-1),
 
 /* subscriptions */
+	#ifndef SENSOR_COMBINED_SUB
 	_gyro_sub(-1),
 	_accel_sub(-1),
 	_mag_sub(-1),
+	#else
+	_sensor_combined_sub(-1),
+	#endif
 	_airspeed_sub(-1),
+	_baro_sub(-1),
 	_gps_sub(-1),
 	_vstatus_sub(-1),
 	_params_sub(-1),
@@ -350,22 +366,29 @@ FixedwingEstimator::task_main()
 	/*
 	 * do subscriptions
 	 */
-	_gyro_sub = orb_subscribe(ORB_ID(sensor_gyro));
-	_accel_sub = orb_subscribe(ORB_ID(sensor_accel));
-	_mag_sub = orb_subscribe(ORB_ID(sensor_mag));
-	//_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
+	_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
-	/* rate limit gyro updates to 50 Hz */
 
+	#ifndef SENSOR_COMBINED_SUB
+
+	_gyro_sub = orb_subscribe(ORB_ID(sensor_gyro));
+	_accel_sub = orb_subscribe(ORB_ID(sensor_accel));
+	_mag_sub = orb_subscribe(ORB_ID(sensor_mag));
+
+	/* rate limit gyro updates to 50 Hz */
 	/* XXX remove this!, BUT increase the data buffer size! */
 	orb_set_interval(_gyro_sub, 17);
+	#else
+	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
+	/* XXX remove this!, BUT increase the data buffer size! */
+	orb_set_interval(_sensor_combined_sub, 17);
+	#endif
 
 	parameters_update();
 
@@ -384,8 +407,13 @@ FixedwingEstimator::task_main()
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
 	fds[0].events = POLLIN;
+	#ifndef SENSOR_COMBINED_SUB
 	fds[1].fd = _gyro_sub;
 	fds[1].events = POLLIN;
+	#else
+	fds[1].fd = _sensor_combined_sub;
+	fds[1].events = POLLIN;
+	#endif
 
 	hrt_abstime start_time = hrt_absolute_time();
 
@@ -422,17 +450,23 @@ FixedwingEstimator::task_main()
 			/* check vehicle status for changes to publication state */
 			vehicle_status_poll();
 
-			/* load local copies */
-			orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &_gyro);
+			bool accel_updated;
+			bool mag_updated;
+
 			perf_count(_perf_gyro);
 
-			bool accel_updated;
+			/* load local copies */
+			#ifndef SENSOR_COMBINED_SUB
+			orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &_gyro);
+			
+
 			orb_check(_accel_sub, &accel_updated);
 
 			if (accel_updated) {
 				perf_count(_perf_accel);
 				orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
 			}
+
 
 			IMUmsec = _gyro.timestamp / 1e3f;
 
@@ -461,6 +495,54 @@ FixedwingEstimator::task_main()
 			dVelIMU = 0.5f * (accel + lastAccel) * dtIMU;
 			lastAccel = accel;
 
+
+			#else
+			orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
+
+			static hrt_abstime last_accel = 0;
+			static hrt_abstime last_mag = 0;
+
+			if (last_accel != _sensor_combined.accelerometer_timestamp) {
+				accel_updated = true;
+			}
+			last_accel = _sensor_combined.accelerometer_timestamp;
+
+
+			// Copy gyro and accel
+
+			IMUmsec = _sensor_combined.timestamp / 1e3f;
+
+			float deltaT = (_sensor_combined.timestamp - last_run) / 1e6f;
+			last_run = _sensor_combined.timestamp;
+
+			/* guard against too large deltaT's */
+			if (deltaT > 1.0f)
+				deltaT = 0.01f;
+
+			// Always store data, independent of init status
+			/* fill in last data set */
+			dtIMU = deltaT;
+
+			angRate.x = _sensor_combined.gyro_rad_s[0];
+			angRate.y = _sensor_combined.gyro_rad_s[1];
+			angRate.z = _sensor_combined.gyro_rad_s[2];
+
+			accel.x = _sensor_combined.accelerometer_m_s2[0];
+			accel.y = _sensor_combined.accelerometer_m_s2[1];
+			accel.z = _sensor_combined.accelerometer_m_s2[2];
+
+			dAngIMU = 0.5f * (angRate + lastAngRate) * dtIMU;
+			lastAngRate = angRate;
+			dVelIMU = 0.5f * (accel + lastAccel) * dtIMU;
+			lastAccel = accel;
+
+			if (last_mag != _sensor_combined.magnetometer_timestamp) {
+				mag_updated = true;
+			}
+			last_mag = _sensor_combined.magnetometer_timestamp;
+
+			#endif
+
 			if (_initialized) {
 
 				/* predict states and covariances */
@@ -488,6 +570,14 @@ FixedwingEstimator::task_main()
 					summedDelVel = summedDelVel.zero();
 					dt = 0.0f;
 				}
+			}
+
+			bool baro_updated;
+			orb_check(_baro_sub, &baro_updated);
+			if (baro_updated) {
+				orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
+
+				/* XXX leverage baro */
 			}
 
 			bool gps_updated;
@@ -554,11 +644,15 @@ FixedwingEstimator::task_main()
 				fuseHgtData = false;
 			}
 
-			bool mag_updated;
+			#ifndef SENSOR_COMBINED_SUB
 			orb_check(_mag_sub, &mag_updated);
+			#endif
 			if (mag_updated) {
-				orb_copy(ORB_ID(sensor_mag), _mag_sub, &_mag);
+
 				perf_count(_perf_mag);
+
+				#ifndef SENSOR_COMBINED_SUB
+				orb_copy(ORB_ID(sensor_mag), _mag_sub, &_mag);
 
 				// XXX we compensate the offsets upfront - should be close to zero.
 				// XXX the purpose of the 0.001 factor is unclear
@@ -571,6 +665,22 @@ FixedwingEstimator::task_main()
 
 				magData.z = 0.001f * _mag.z;
 				magBias.z = 0.0f; // _mag_offsets.y_offset
+				
+				#else
+
+				// XXX we compensate the offsets upfront - should be close to zero.
+				// XXX the purpose of the 0.001 factor is unclear
+				// 0.001f
+				magData.x = 0.001f * _sensor_combined.magnetometer_ga[0];
+				magBias.x = 0.0f; // _mag_offsets.x_offset
+
+				magData.y = 0.001f * _sensor_combined.magnetometer_ga[1];
+				magBias.y = 0.0f; // _mag_offsets.y_offset
+
+				magData.z = 0.001f * _sensor_combined.magnetometer_ga[2];
+				magBias.z = 0.0f; // _mag_offsets.y_offset
+
+				#endif
 
 				if (_initialized) {
 
