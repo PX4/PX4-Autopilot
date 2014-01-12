@@ -13,7 +13,17 @@ param set MAV_TYPE 1
 # Load mixer
 #
 echo "[init] Frame geometry: $FRAME_GEOMETRY"
-set MIXER /etc/mixers/FMU_$FRAME_GEOMETRY.mix
+set MIXERSD /fs/microsd/etc/mixers/FMU_$FRAME_GEOMETRY.mix
+
+#Use the mixer file from the sd-card if it exists
+if [ -f $MIXERSD ]
+then
+	set MIXER MIXERSD
+else
+	set MIXER /etc/mixers/FMU_$FRAME_GEOMETRY.mix
+fi
+
+
 
 if mixer load /dev/pwm_output $MIXER
 then
