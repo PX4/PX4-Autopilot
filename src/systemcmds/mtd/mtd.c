@@ -66,7 +66,7 @@ __EXPORT int mtd_main(int argc, char *argv[]);
 
 #ifndef CONFIG_MTD_RAMTRON
 
-/* create a fake command with decent message to not confuse users */
+/* create a fake command with decent warnx to not confuse users */
 int mtd_main(int argc, char *argv[])
 {
 	errx(1, "RAMTRON not enabled, skipping.");
@@ -75,24 +75,30 @@ int mtd_main(int argc, char *argv[])
 #else
 
 static void	mtd_attach(void);
-static void	mtd_start(void);
-static void	mtd_erase(void);
-static void	mtd_ioctl(unsigned operation);
-static void	mtd_save(const char *name);
-static void	mtd_load(const char *name);
+static void	mtd_start(char *partition_names[], unsigned n_partitions);
 static void	mtd_test(void);
 
 static bool attached = false;
 static bool started = false;
 static struct mtd_dev_s *mtd_dev;
-static char *_mtdname = "/dev/mtd_params";
-static char *_wpname = "/dev/mtd_waypoints";
+static const int n_partitions_default = 2;
+
+/* note, these will be equally sized */
+static char *partition_names_default[n_partitions] = {"/dev/mtd_params", "/dev/mtd_waypoints"};
 
 int mtd_main(int argc, char *argv[])
 {
 	if (argc >= 2) {
-		if (!strcmp(argv[1], "start"))
-			mtd_start();
+		if (!strcmp(argv[1], "start")) {
+
+			/* start mapping according to user request */
+			if (argc > 3) {
+				mtd_start(argv + 2, argc - 2);
+
+			} else {
+				mtd_start(partition_names_default, n_partitions_default);
+			}
+		}
 
 		if (!strcmp(argv[1], "test"))
 			mtd_test();
@@ -140,7 +146,7 @@ mtd_attach(void)
 }
 
 static void
-mtd_start(void)
+mtd_start(char *partition_names[], unsigned n_partitions)
 {
 	int ret;
 
@@ -155,62 +161,89 @@ mtd_start(void)
 		exit(1);
 	}
 
-	/* Initialize to provide an FTL block driver on the MTD FLASH interface.
-	 *
-	 * NOTE:  We could just skip all of this FTL and BCH stuff.  We could
-	 * instead just use the MTD drivers bwrite and bread to perform this
-	 * test.  Creating the character drivers, however, makes this test more
-	 * interesting.
-	 */
 
-	ret = ftl_initialize(0, mtd_dev);
+	/* Get the geometry of the FLASH device */
+
+	FAR struct mtd_geometry_s geo;
+
+	ret = mtd_dev->ioctl(master, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo));
 
 	if (ret < 0) {
-		warnx("Creating /dev/mtdblock0 failed: %d\n", ret);
-		exit(2);
-	}
-
-	/* Now create a character device on the block device */
-
-	ret = bchdev_register("/dev/mtdblock0", _mtdname, false);
-
-	if (ret < 0) {
-		warnx("ERROR: bchdev_register %s failed: %d\n", _mtdname, ret);
+		fdbg("ERROR: mtd->ioctl failed: %d\n", ret);
 		exit(3);
 	}
 
-	/* mount the mtd */
-	ret = mount(NULL, "/mtd", "nxffs", 0, NULL);
+	warnx("Flash Geometry:\n");
+	warnx("  blocksize:      %lu\n", (unsigned long)geo.blocksize);
+	warnx("  erasesize:      %lu\n", (unsigned long)geo.erasesize);
+	warnx("  neraseblocks:   %lu\n", (unsigned long)geo.neraseblocks);
 
-	if (ret < 0)
-		errx(1, "failed to mount /mtd - erase mtd to reformat");
+	/* Determine the size of each partition.  Make each partition an even
+	 * multiple of the erase block size (perhaps not using some space at the
+	 * end of the FLASH).
+	 */
+
+	unsigned blkpererase = geo.erasesize / geo.blocksize;
+	unsigned nblocks     = (geo.neraseblocks / n_partitions) * blkpererase;
+	unsigned partsize    = nblocks * geo.blocksize;
+
+	warnx("  No. partitions: %u\n", n_partitions);
+	warnx("  Partition size: %lu Blocks (%lu bytes)\n", nblocks, partsize);
+
+	/* Now create MTD FLASH partitions */
+
+	warnx("Creating partitions\n");
+	FAR struct mtd_dev_s *part[n_partitions];
+	char blockname[32];
+
+	for (unsigned offset = 0, unsigned i = 0; i < n_partitions; offset += nblocks, i++) {
+
+		warnx("  Partition %d. Block offset=%lu, size=%lu\n",
+		      i, (unsigned long)offset, (unsigned long)nblocks);
+
+		/* Create the partition */
+
+		part[i] = mtd_partition(mtd_dev, offset, nblocks);
+
+		if (!part[i]) {
+			warnx("ERROR: mtd_partition failed. offset=%lu nblocks=%lu\n",
+			      (unsigned long)offset, (unsigned long)nblocks);
+			fsync(stderr);
+			exit(4);
+		}
+
+		/* Initialize to provide an FTL block driver on the MTD FLASH interface */
+
+		snprintf(blockname, 32, "/dev/mtdblock%d", i);
+
+		ret = ftl_initialize(i, part[i]);
+
+		if (ret < 0) {
+			warnx("ERROR: ftl_initialize %s failed: %d\n", blockname, ret);
+			fsync(stderr);
+			exit(5);
+		}
+
+		/* Now create a character device on the block device */
+
+		ret = bchdev_register(blockname, partition_names[i], false);
+
+		if (ret < 0) {
+			warnx("ERROR: bchdev_register %s failed: %d\n", charname, ret);
+			fsync(stderr);
+			exit(6);
+		}
+	}
 
 	started = true;
-	warnx("mounted mtd at /mtd");
-	exit(0);
-}
-
-static void
-mtd_ioctl(unsigned operation)
-{
-	int fd;
-
-	fd = open("/mtd/.", 0);
-
-	if (fd < 0)
-		err(1, "open /mtd");
-
-	if (ioctl(fd, operation, 0) < 0)
-		err(1, "ioctl");
-
 	exit(0);
 }
 
 static void
 mtd_test(void)
 {
-//	at24c_test();
-	exit(0);
+	warnx("This test routine does not test anything yet!");
+	exit(1);
 }
 
 #endif
