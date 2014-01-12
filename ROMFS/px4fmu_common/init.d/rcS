@@ -94,7 +94,7 @@ then
 				echo "Parameter file corrupt - ignoring"
 			fi
 		fi
-	#fi
+	fi
 	
 	#
 	# Start system state indicator
