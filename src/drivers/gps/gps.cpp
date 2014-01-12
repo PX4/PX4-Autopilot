@@ -289,11 +289,13 @@ GPS::task_main()
 
 			//no time and satellite information simulated
 
-			if (_report_pub > 0) {
-				orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
+			if (!(_pub_blocked)) {
+				if (_report_pub > 0) {
+					orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
 
-			} else {
-				_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report);
+				} else {
+					_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report);
+				}
 			}
 
 			usleep(2e5);
@@ -330,11 +332,14 @@ GPS::task_main()
 				while (_Helper->receive(TIMEOUT_5HZ) > 0 && !_task_should_exit) {
 	//				lock();
 					/* opportunistic publishing - else invalid data would end up on the bus */
-					if (_report_pub > 0) {
-						orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
 
-					} else {
-						_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report);
+					if (!(_pub_blocked)) {
+						if (_report_pub > 0) {
+							orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
+
+						} else {
+							_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report);
+						}
 					}
 
 					last_rate_count++;
