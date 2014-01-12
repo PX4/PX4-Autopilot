@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -132,6 +132,8 @@ protected:
 
 	orb_advert_t		_baro_topic;
 
+	int			_class_instance;
+
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_measure_perf;
 	perf_counter_t		_comms_errors;
@@ -204,6 +206,7 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf) :
 	_SENS(0),
 	_msl_pressure(101325),
 	_baro_topic(-1),
+	_class_instance(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ms5611_read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, "ms5611_measure")),
 	_comms_errors(perf_alloc(PC_COUNT, "ms5611_comms_errors")),
@@ -217,6 +220,9 @@ MS5611::~MS5611()
 {
 	/* make sure we are truly inactive */
 	stop_cycle();
+
+	if (_class_instance != -1)
+		unregister_class_devname(BARO_DEVICE_PATH, _class_instance);
 
 	/* free any existing reports */
 	if (_reports != nullptr)
@@ -251,16 +257,8 @@ MS5611::init()
 		goto out;
 	}
 
-	/* get a publish handle on the baro topic */
-	struct baro_report zero_report;
-	memset(&zero_report, 0, sizeof(zero_report));
-	_baro_topic = orb_advertise(ORB_ID(sensor_baro), &zero_report);
-
-	if (_baro_topic < 0) {
-		debug("failed to create sensor_baro object");
-		ret = -ENOSPC;
-		goto out;
-	}
+	/* register alternate interfaces if we have to */
+	_class_instance = register_class_devname(BARO_DEVICE_PATH);
 
 	ret = OK;
 out:
@@ -670,7 +668,18 @@ MS5611::collect()
 		report.altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
 
 		/* publish it */
-		orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
+		if (_class_instance == CLASS_DEVICE_PRIMARY && !(_pub_blocked)) {
+
+			if (_baro_topic > 0) {
+				/* publish it */
+				orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
+			} else {
+				_baro_topic = orb_advertise(ORB_ID(sensor_baro), &report);
+
+				if (_baro_topic < 0)
+					debug("failed to create sensor_baro publication");
+			}
+		}
 
 		if (_reports->force(&report)) {
 			perf_count(_buffer_overflows);
