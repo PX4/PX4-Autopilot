@@ -181,33 +181,33 @@ l_sensor_combined(const struct listener *l)
 
 	/* mark individual fields as changed */
 	uint16_t fields_updated = 0;
-	static unsigned accel_counter = 0;
-	static unsigned gyro_counter = 0;
-	static unsigned mag_counter = 0;
-	static unsigned baro_counter = 0;
+	static hrt_abstime accel_counter = 0;
+	static hrt_abstime gyro_counter = 0;
+	static hrt_abstime mag_counter = 0;
+	static hrt_abstime baro_counter = 0;
 
-	if (accel_counter != raw.accelerometer_counter) {
+	if (accel_counter != raw.accelerometer_timestamp) {
 		/* mark first three dimensions as changed */
 		fields_updated |= (1 << 0) | (1 << 1) | (1 << 2);
-		accel_counter = raw.accelerometer_counter;
+		accel_counter = raw.accelerometer_timestamp;
 	}
 
-	if (gyro_counter != raw.gyro_counter) {
+	if (gyro_counter != raw.timestamp) {
 		/* mark second group dimensions as changed */
 		fields_updated |= (1 << 3) | (1 << 4) | (1 << 5);
-		gyro_counter = raw.gyro_counter;
+		gyro_counter = raw.timestamp;
 	}
 
-	if (mag_counter != raw.magnetometer_counter) {
+	if (mag_counter != raw.magnetometer_timestamp) {
 		/* mark third group dimensions as changed */
 		fields_updated |= (1 << 6) | (1 << 7) | (1 << 8);
-		mag_counter = raw.magnetometer_counter;
+		mag_counter = raw.magnetometer_timestamp;
 	}
 
-	if (baro_counter != raw.baro_counter) {
+	if (baro_counter != raw.baro_timestamp) {
 		/* mark last group dimensions as changed */
 		fields_updated |= (1 << 9) | (1 << 11) | (1 << 12);
-		baro_counter = raw.baro_counter;
+		baro_counter = raw.baro_timestamp;
 	}
 
 	if (gcs_link)

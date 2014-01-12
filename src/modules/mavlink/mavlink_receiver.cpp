@@ -388,7 +388,6 @@ handle_message(mavlink_message_t *msg)
 			hil_sensors.gyro_rad_s[0] = imu.xgyro;
 			hil_sensors.gyro_rad_s[1] = imu.ygyro;
 			hil_sensors.gyro_rad_s[2] = imu.zgyro;
-			hil_sensors.gyro_counter = hil_counter;
 
 			/* accelerometer */
 			static const float mg2ms2 = 9.8f / 1000.0f;
@@ -400,7 +399,7 @@ handle_message(mavlink_message_t *msg)
 			hil_sensors.accelerometer_m_s2[2] = imu.zacc;
 			hil_sensors.accelerometer_mode = 0; // TODO what is this?
 			hil_sensors.accelerometer_range_m_s2 = 32.7f; // int16
-			hil_sensors.accelerometer_counter = hil_counter;
+			hil_sensors.accelerometer_timestamp = hil_sensors.timestamp;
 
 			/* adc */
 			hil_sensors.adc_voltage_v[0] = 0.0f;
@@ -418,17 +417,17 @@ handle_message(mavlink_message_t *msg)
 			hil_sensors.magnetometer_range_ga = 32.7f; // int16
 			hil_sensors.magnetometer_mode = 0; // TODO what is this
 			hil_sensors.magnetometer_cuttoff_freq_hz = 50.0f;
-			hil_sensors.magnetometer_counter = hil_counter;
+			hil_sensors.magnetometer_timestamp = hil_sensors.timestamp;
 
 			/* baro */
 			hil_sensors.baro_pres_mbar = imu.abs_pressure;
 			hil_sensors.baro_alt_meter = imu.pressure_alt;
 			hil_sensors.baro_temp_celcius = imu.temperature;
-			hil_sensors.baro_counter = hil_counter;
+			hil_sensors.baro_timestamp = hil_sensors.timestamp;
 
 			/* differential pressure */
 			hil_sensors.differential_pressure_pa = imu.diff_pressure * 1e2f; //from hPa to Pa
-			hil_sensors.differential_pressure_counter = hil_counter;
+			hil_sensors.differential_pressure_timestamp = hil_sensors.timestamp;
 
 			/* airspeed from differential pressure, ambient pressure and temp */
 			struct airspeed_s airspeed;
@@ -829,7 +828,7 @@ receive_thread(void *arg)
 
 	while (!thread_should_exit) {
 		if (poll(fds, 1, timeout) > 0) {
-			if (nread < sizeof(buf)) {
+			if (nread < (ssize_t)sizeof(buf)) {
 				/* to avoid reading very small chunks wait for data before reading */
 				usleep(1000);
 			}

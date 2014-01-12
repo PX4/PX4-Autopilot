@@ -177,8 +177,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	hrt_abstime landed_time = 0;
 	bool flag_armed = false;
 
-	uint32_t accel_counter = 0;
-	uint32_t baro_counter = 0;
+	hrt_abstime accel_timestamp = 0;
+	hrt_abstime baro_timestamp = 0;
 
 	/* declare and safely initialize all structs */
 	struct actuator_controls_s actuator;
@@ -242,8 +242,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (fds_init[0].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (wait_baro && sensor.baro_counter != baro_counter) {
-					baro_counter = sensor.baro_counter;
+				if (wait_baro && sensor.baro_timestamp != baro_timestamp) {
+					baro_timestamp = sensor.baro_timestamp;
 
 					/* mean calculation over several measurements */
 					if (baro_init_cnt < baro_init_num) {
@@ -354,7 +354,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (fds[4].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (sensor.accelerometer_counter != accel_counter) {
+				if (sensor.accelerometer_timestamp != accel_timestamp) {
 					if (att.R_valid) {
 						/* correct accel bias, now only for Z */
 						sensor.accelerometer_m_s2[2] -= accel_bias[2];
@@ -376,13 +376,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						memset(accel_corr, 0, sizeof(accel_corr));
 					}
 
-					accel_counter = sensor.accelerometer_counter;
+					accel_timestamp = sensor.accelerometer_timestamp;
 					accel_updates++;
 				}
 
-				if (sensor.baro_counter != baro_counter) {
+				if (sensor.baro_timestamp != baro_timestamp) {
 					baro_corr = - sensor.baro_alt_meter - z_est[0];
-					baro_counter = sensor.baro_counter;
+					baro_timestamp = sensor.baro_timestamp;
 					baro_updates++;
 				}
 			}
