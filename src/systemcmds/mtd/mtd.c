@@ -189,7 +189,7 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 	unsigned partsize    = nblocks * geo.blocksize;
 
 	warnx("  No. partitions: %u", n_partitions);
-	warnx("  Partition size: %lu Blocks (%lu bytes)", nblocks, partsize);
+	warnx("  Partition size: %lu Blocks (%lu bytes)", (unsigned long)nblocks, (unsigned long)partsize);
 
 	/* Now create MTD FLASH partitions */
 
@@ -212,7 +212,6 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 		if (!part[i]) {
 			warnx("ERROR: mtd_partition failed. offset=%lu nblocks=%lu",
 			      (unsigned long)offset, (unsigned long)nblocks);
-			fsync(stderr);
 			exit(4);
 		}
 
@@ -224,7 +223,6 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 
 		if (ret < 0) {
 			warnx("ERROR: ftl_initialize %s failed: %d", blockname, ret);
-			fsync(stderr);
 			exit(5);
 		}
 
@@ -234,7 +232,6 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 
 		if (ret < 0) {
 			warnx("ERROR: bchdev_register %s failed: %d", partition_names[i], ret);
-			fsync(stderr);
 			exit(6);
 		}
 	}
