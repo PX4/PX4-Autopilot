@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -443,7 +443,6 @@ int
 MPU6000::init()
 {
 	int ret;
-	int gyro_ret;
 
 	/* do SPI init (and probe) first */
 	ret = SPI::init();
@@ -488,16 +487,7 @@ MPU6000::init()
 		return ret;
 	}
 
-	/* fetch an initial set of measurements for advertisement */
-	measure();
-
 	_accel_class_instance = register_class_devname(ACCEL_DEVICE_PATH);
-	if (_accel_class_instance == CLASS_DEVICE_PRIMARY) {
-		/* advertise accel topic */
-		accel_report ar;
-		_accel_reports->get(&ar);
-		_accel_topic = orb_advertise(ORB_ID(sensor_accel), &ar);
-	}		
 
 out:
 	return ret;
@@ -1307,11 +1297,32 @@ MPU6000::measure()
 	poll_notify(POLLIN);
 	_gyro->parent_poll_notify();
 
-	if (_accel_topic != -1) {
-		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
+	if (_accel_class_instance == CLASS_DEVICE_PRIMARY && !(_pub_blocked)) {
+
+		if (_accel_topic > 0) {
+			/* publish it */
+			orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
+		} else {
+			_accel_topic = orb_advertise(ORB_ID(sensor_accel), &arb);
+
+			if (_accel_topic < 0)
+				debug("failed to create sensor_accel publication");
+		}
+
 	}
-	if (_gyro->_gyro_topic != -1) {
-		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
+
+	if (_gyro->_gyro_class_instance == CLASS_DEVICE_PRIMARY && !(_pub_blocked)) {
+
+		if (_gyro->_gyro_topic > 0) {
+			/* publish it */
+			orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
+		} else {
+			_gyro->_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &grb);
+
+			if (_gyro->_gyro_topic < 0)
+				debug("failed to create sensor_gyro publication");
+		}
+
 	}
 
 	/* stop measuring */
@@ -1356,11 +1367,6 @@ MPU6000_gyro::init()
 	}
 
 	_gyro_class_instance = register_class_devname(GYRO_DEVICE_PATH);
-	if (_gyro_class_instance == CLASS_DEVICE_PRIMARY) {
-		gyro_report gr;
-		memset(&gr, 0, sizeof(gr));
-		_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &gr);
-	}
 
 out:
 	return ret;
