@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,24 +32,10 @@
 ############################################################################
 
 #
-# System utility library
+# FrSky telemetry application.
 #
 
-SRCS		 = err.c \
-		   hx_stream.c \
-		   perf_counter.c \
-		   param/param.c \
-		   bson/tinybson.c \
-		   conversions.c \
-		   cpuload.c \
-		   getopt_long.c \
-		   up_cxxinitialize.c \
-		   pid/pid.c \
-		   systemlib.c \
-		   airspeed.c \
-		   system_params.c \
-		   mavlink_log.c \
-		   rc_check.c \
-		   otp.c \
-		   board_serial.c
+MODULE_COMMAND	= frsky_telemetry
 
+SRCS		= frsky_data.c \
+              frsky_telemetry.c
