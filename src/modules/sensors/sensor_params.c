@@ -372,15 +372,14 @@ PARAM_DEFINE_INT32(RC_DSM_BIND, -1); /* -1 = Idle, 0 = Start DSM2 bind, 1 = Star
 PARAM_DEFINE_INT32(BAT_V_SCALE_IO, 10000);
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.0082f);
-PARAM_DEFINE_FLOAT(BAT_C_SCALING, 0.001f);	// TODO set correct default value
 #else
 /* default is conversion factor for the PX4IO / PX4IOAR board, the factor for PX4FMU standalone is different */
 /* PX4IOAR: 0.00838095238 */
 /* FMU standalone: 1/(10 / (47+10)) * (3.3 / 4095) = 0.00459340659 */
 /* FMU with PX4IOAR: (3.3f * 52.0f / 5.0f / 4095.0f) */
 PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.00459340659f);
-PARAM_DEFINE_FLOAT(BAT_C_SCALING, 0.001f);	// TODO set correct default value
 #endif
+PARAM_DEFINE_FLOAT(BAT_C_SCALING, 0.0124);	/* scaling for 3DR power brick */
 
 PARAM_DEFINE_INT32(RC_MAP_ROLL, 1);
 PARAM_DEFINE_INT32(RC_MAP_PITCH, 2);
