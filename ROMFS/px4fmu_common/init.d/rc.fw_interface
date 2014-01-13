@@ -18,7 +18,7 @@ set MIXERSD /fs/microsd/etc/mixers/FMU_$FRAME_GEOMETRY.mix
 #Use the mixer file from the sd-card if it exists
 if [ -f $MIXERSD ]
 then
-	set MIXER MIXERSD
+	set MIXER $MIXERSD
 else
 	set MIXER /etc/mixers/FMU_$FRAME_GEOMETRY.mix
 fi
