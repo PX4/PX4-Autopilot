@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
  * @file px4io.cpp
  * Driver for the PX4IO board.
  *
- * PX4IO is connected via I2C.
+ * PX4IO is connected via I2C or DMA enabled high-speed UART.
  */
 
 #include <nuttx/config.h>
@@ -1690,6 +1690,9 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 
 		int ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, (sizeof(px4io_mixdata) + 2) / 2);
 
+		if (ret)
+			return ret;
+
 		retries--;
 
 		log("mixer sent");
@@ -2420,6 +2423,69 @@ detect(int argc, char *argv[])
 }
 
 void
+checkcrc(int argc, char *argv[])
+{
+	bool keep_running = false;
+
+	if (g_dev == nullptr) {
+		/* allocate the interface */
+		device::Device *interface = get_interface();
+
+		/* create the driver - it will set g_dev */
+		(void)new PX4IO(interface);
+
+		if (g_dev == nullptr)
+			errx(1, "driver alloc failed");
+	} else {
+		/* its already running, don't kill the driver */
+		keep_running = true;
+	}
+
+	/*
+	  check IO CRC against CRC of a file
+	 */
+	if (argc < 2) {
+		printf("usage: px4io checkcrc filename\n");
+		exit(1);
+	}
+	int fd = open(argv[1], O_RDONLY);
+	if (fd == -1) {
+		printf("open of %s failed - %d\n", argv[1], errno);
+		exit(1);			
+	}
+	const uint32_t app_size_max = 0xf000;
+	uint32_t fw_crc = 0;
+	uint32_t nbytes = 0;
+	while (true) {
+		uint8_t buf[16];
+		int n = read(fd, buf, sizeof(buf));
+		if (n <= 0) break;
+		fw_crc = crc32part(buf, n, fw_crc);
+		nbytes += n;
+	}
+	close(fd);
+	while (nbytes < app_size_max) {
+		uint8_t b = 0xff;
+		fw_crc = crc32part(&b, 1, fw_crc);			
+		nbytes++;
+	}
+
+	int ret = g_dev->ioctl(nullptr, PX4IO_CHECK_CRC, fw_crc);
+
+	if (!keep_running) {
+		delete g_dev;
+		g_dev = nullptr;
+	}
+
+	if (ret != OK) {
+		printf("check CRC failed - %d\n", ret);
+		exit(1);			
+	}
+	printf("CRCs match\n");
+	exit(0);
+}
+
+void
 bind(int argc, char *argv[])
 {
 	int pulses;
@@ -2613,6 +2679,9 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "detect"))
 		detect(argc - 1, argv + 1);
 
+	if (!strcmp(argv[1], "checkcrc"))
+		checkcrc(argc - 1, argv + 1);
+
 	if (!strcmp(argv[1], "update")) {
 
 		if (g_dev != nullptr) {
@@ -2795,49 +2864,6 @@ px4io_main(int argc, char *argv[])
 		}
 
 		printf("SET_DEBUG %u OK\n", (unsigned)level);
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "checkcrc")) {
-		/*
-		  check IO CRC against CRC of a file
-		 */
-		if (argc <= 2) {
-			printf("usage: px4io checkcrc filename\n");
-			exit(1);
-		}
-		if (g_dev == nullptr) {
-			printf("px4io is not started\n");
-			exit(1);
-		}
-		int fd = open(argv[2], O_RDONLY);
-		if (fd == -1) {
-			printf("open of %s failed - %d\n", argv[2], errno);
-			exit(1);			
-		}
-		const uint32_t app_size_max = 0xf000;
-		uint32_t fw_crc = 0;
-		uint32_t nbytes = 0;
-		while (true) {
-			uint8_t buf[16];
-			int n = read(fd, buf, sizeof(buf));
-			if (n <= 0) break;
-			fw_crc = crc32part(buf, n, fw_crc);
-			nbytes += n;
-		}
-		close(fd);
-		while (nbytes < app_size_max) {
-			uint8_t b = 0xff;
-			fw_crc = crc32part(&b, 1, fw_crc);			
-			nbytes++;
-		}
-
-		int ret = g_dev->ioctl(nullptr, PX4IO_CHECK_CRC, fw_crc);
-		if (ret != OK) {
-			printf("check CRC failed - %d\n", ret);
-			exit(1);			
-		}
-		printf("CRCs match\n");
 		exit(0);
 	}
 
