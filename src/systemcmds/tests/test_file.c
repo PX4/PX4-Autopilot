@@ -54,9 +54,9 @@
 
 #include "tests.h"
 
-int check_user_abort();
+int check_user_abort(int fd);
 
-int check_user_abort() {
+int check_user_abort(int fd) {
 	/* check if user wants to abort */
 	char c;
 
@@ -77,6 +77,8 @@ int check_user_abort() {
 		case 'q':
 		{
 			warnx("Test aborted.");
+			fsync(fd);
+			close(fd);
 			return OK;
 			/* not reached */
 			}
@@ -141,7 +143,7 @@ test_file(int argc, char *argv[])
 
 				fsync(fd);
 
-				if (!check_user_abort())
+				if (!check_user_abort(fd))
 					return OK;
 
 			}
@@ -175,7 +177,7 @@ test_file(int argc, char *argv[])
 					return 1;
 				}
 
-				if (!check_user_abort())
+				if (!check_user_abort(fd))
 					return OK;
 
 			}
@@ -199,7 +201,7 @@ test_file(int argc, char *argv[])
 					return 1;
 				}
 
-				if (!check_user_abort())
+				if (!check_user_abort(fd))
 					return OK;
 
 			}
@@ -232,7 +234,7 @@ test_file(int argc, char *argv[])
 						break;
 					}
 
-					if (!check_user_abort())
+					if (!check_user_abort(fd))
 						return OK;
 				}
 
@@ -275,7 +277,7 @@ test_file(int argc, char *argv[])
 							break;
 					}
 
-					if (!check_user_abort())
+					if (!check_user_abort(fd))
 						return OK;
 				}
 
