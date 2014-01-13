@@ -875,12 +875,16 @@ int fw_att_pos_estimator_main(int argc, char *argv[])
 			math::Quaternion q(states[0], states[1], states[2], states[3]);
 			math::EulerAngles euler(q);
 
-			printf("attitude: roll: %8.4f, pitch %8.4f, yaw: %8.4f degrees",
+			printf("attitude: roll: %8.4f, pitch %8.4f, yaw: %8.4f degrees\n",
 				(double)math::degrees(euler.getPhi()), (double)math::degrees(euler.getTheta()), (double)math::degrees(euler.getPsi()));
 
-			printf("states [1-3]: %8.4f, %8.4f, %8.4f\n", (double)states[0], (double)states[1], (double)states[2]);
-			printf("states [4-6]: %8.4f, %8.4f, %8.4f\n", (double)states[3], (double)states[4], (double)states[5]);
-			printf("states [7-9]: %8.4f, %8.4f, %8.4f\n", (double)states[6], (double)states[7], (double)states[8]);
+			printf("states   [1-4]: %8.4f, %8.4f, %8.4f, %8.4f\n", (double)states[0], (double)states[1], (double)states[2], (double)states[3]);
+			printf("states   [5-7]: %8.4f, %8.4f, %8.4f\n", (double)states[4], (double)states[5], (double)states[6]);
+			printf("states  [8-10]: %8.4f, %8.4f, %8.4f\n", (double)states[7], (double)states[8], (double)states[9]);
+			printf("states [11-13]: %8.4f, %8.4f, %8.4f\n", (double)states[10], (double)states[11], (double)states[12]);
+			printf("states [14-16]: %8.4f, %8.4f, %8.4f\n", (double)states[13], (double)states[14], (double)states[15]);
+			printf("states [17-19]: %8.4f, %8.4f, %8.4f\n", (double)states[16], (double)states[17], (double)states[18]);
+			printf("states [20-21]: %8.4f, %8.4f\n", (double)states[19], (double)states[20]);
 			exit(0);
 
 		} else {
