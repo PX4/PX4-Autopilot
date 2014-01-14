@@ -90,6 +90,7 @@ static const int ERROR = -1;
 /* internal conversion time: 9.17 ms, so should not be read at rates higher than 100 Hz */
 #define MS5611_CONVERSION_INTERVAL	10000	/* microseconds */
 #define MS5611_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
+#define MS5611_BARO_DEVICE_PATH		"/dev/ms5611"
 
 class MS5611 : public device::CDev
 {
@@ -194,7 +195,7 @@ protected:
 extern "C" __EXPORT int ms5611_main(int argc, char *argv[]);
 
 MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf) :
-	CDev("MS5611", BARO_DEVICE_PATH),
+	CDev("MS5611", MS5611_BARO_DEVICE_PATH),
 	_interface(interface),
 	_prom(prom_buf.s),
 	_measure_ticks(0),
@@ -222,7 +223,7 @@ MS5611::~MS5611()
 	stop_cycle();
 
 	if (_class_instance != -1)
-		unregister_class_devname(BARO_DEVICE_PATH, _class_instance);
+		unregister_class_devname(MS5611_BARO_DEVICE_PATH, _class_instance);
 
 	/* free any existing reports */
 	if (_reports != nullptr)
@@ -260,7 +261,54 @@ MS5611::init()
 	/* register alternate interfaces if we have to */
 	_class_instance = register_class_devname(BARO_DEVICE_PATH);
 
-	ret = OK;
+	struct baro_report brp;
+	/* do a first measurement cycle to populate reports with valid data */
+	_measure_phase = 0;
+	_reports->flush();
+
+	/* this do..while is goto without goto */
+	do {
+		/* do temperature first */
+		if (OK != measure()) {
+			ret = -EIO;
+			break;
+		}
+
+		usleep(MS5611_CONVERSION_INTERVAL);
+
+		if (OK != collect()) {
+			ret = -EIO;
+			break;
+		}
+
+		/* now do a pressure measurement */
+		if (OK != measure()) {
+			ret = -EIO;
+			break;
+		}
+
+		usleep(MS5611_CONVERSION_INTERVAL);
+
+		if (OK != collect()) {
+			ret = -EIO;
+			break;
+		}
+
+		/* state machine will have generated a report, copy it out */
+		_reports->get(&brp);
+
+		ret = OK;
+
+		if (_class_instance == CLASS_DEVICE_PRIMARY) {
+
+			_baro_topic = orb_advertise(ORB_ID(sensor_baro), &brp);
+
+			if (_baro_topic < 0)
+				debug("failed to create sensor_baro publication");
+		}
+
+	} while (0);
+
 out:
 	return ret;
 }
@@ -668,17 +716,9 @@ MS5611::collect()
 		report.altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
 
 		/* publish it */
-		if (_class_instance == CLASS_DEVICE_PRIMARY && !(_pub_blocked)) {
-
-			if (_baro_topic > 0) {
-				/* publish it */
-				orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
-			} else {
-				_baro_topic = orb_advertise(ORB_ID(sensor_baro), &report);
-
-				if (_baro_topic < 0)
-					debug("failed to create sensor_baro publication");
-			}
+		if (_baro_topic > 0 && !(_pub_blocked)) {
+			/* publish it */
+			orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
 		}
 
 		if (_reports->force(&report)) {
@@ -821,7 +861,7 @@ start()
 		goto fail;
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(BARO_DEVICE_PATH, O_RDONLY);
+	fd = open(MS5611_BARO_DEVICE_PATH, O_RDONLY);
 	if (fd < 0) {
 		warnx("can't open baro device");
 		goto fail;
@@ -855,10 +895,10 @@ test()
 	ssize_t sz;
 	int ret;
 
-	int fd = open(BARO_DEVICE_PATH, O_RDONLY);
+	int fd = open(MS5611_BARO_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0)
-		err(1, "%s open failed (try 'ms5611 start' if the driver is not running)", BARO_DEVICE_PATH);
+		err(1, "%s open failed (try 'ms5611 start' if the driver is not running)", MS5611_BARO_DEVICE_PATH);
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
@@ -914,7 +954,7 @@ test()
 void
 reset()
 {
-	int fd = open(BARO_DEVICE_PATH, O_RDONLY);
+	int fd = open(MS5611_BARO_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0)
 		err(1, "failed ");
@@ -953,10 +993,10 @@ calibrate(unsigned altitude)
 	float	pressure;
 	float	p1;
 
-	int fd = open(BARO_DEVICE_PATH, O_RDONLY);
+	int fd = open(MS5611_BARO_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0)
-		err(1, "%s open failed (try 'ms5611 start' if the driver is not running)", BARO_DEVICE_PATH);
+		err(1, "%s open failed (try 'ms5611 start' if the driver is not running)", MS5611_BARO_DEVICE_PATH);
 
 	/* start the sensor polling at max */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX))

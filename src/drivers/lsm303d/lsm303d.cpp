@@ -597,7 +597,38 @@ LSM303D::init()
 		goto out;
 	}
 
+	/* fill report structures */
+	measure();
+
+	if (_mag->_mag_class_instance == CLASS_DEVICE_PRIMARY) {
+
+		/* advertise sensor topic, measure manually to initialize valid report */
+		struct mag_report mrp;
+		_mag_reports->get(&mrp);
+
+		/* measurement will have generated a report, publish */
+		_mag->_mag_topic = orb_advertise(ORB_ID(sensor_mag), &mrp);
+
+		if (_mag->_mag_topic < 0)
+			debug("failed to create sensor_mag publication");
+
+	}
+
 	_accel_class_instance = register_class_devname(ACCEL_DEVICE_PATH);
+
+	if (_accel_class_instance == CLASS_DEVICE_PRIMARY) {
+
+		/* advertise sensor topic, measure manually to initialize valid report */
+		struct accel_report arp;
+		_accel_reports->get(&arp);
+
+		/* measurement will have generated a report, publish */
+		_accel_topic = orb_advertise(ORB_ID(sensor_accel), &arp);
+
+		if (_accel_topic < 0)
+			debug("failed to create sensor_accel publication");
+
+	}
 
 out:
 	return ret;
@@ -1510,18 +1541,9 @@ LSM303D::measure()
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
-	if (_accel_class_instance == CLASS_DEVICE_PRIMARY && !(_pub_blocked)) {
-
-		if (_accel_topic > 0) {
-			/* publish it */
-			orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
-		} else {
-			_accel_topic = orb_advertise(ORB_ID(sensor_accel), &accel_report);
-
-			if (_accel_topic < 0)
-				debug("failed to create sensor_accel publication");
-		}
-
+	if (_accel_topic > 0 && !(_pub_blocked)) {
+		/* publish it */
+		orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
 	}
 
 	_accel_read++;
@@ -1593,18 +1615,9 @@ LSM303D::mag_measure()
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
-	if (_mag->_mag_class_instance == CLASS_DEVICE_PRIMARY && !(_pub_blocked)) {
-
-		if (_mag->_mag_topic > 0) {
-			/* publish it */
-			orb_publish(ORB_ID(sensor_mag), _mag->_mag_topic, &mag_report);
-		} else {
-			_mag->_mag_topic = orb_advertise(ORB_ID(sensor_mag), &mag_report);
-
-			if (_mag->_mag_topic < 0)
-				debug("failed to create sensor_mag publication");
-		}
-
+	if (_mag->_mag_topic > 0 && !(_pub_blocked)) {
+		/* publish it */
+		orb_publish(ORB_ID(sensor_mag), _mag->_mag_topic, &mag_report);
 	}
 
 	_mag_read++;

@@ -133,8 +133,20 @@ Airspeed::init()
 	/* register alternate interfaces if we have to */
 	_class_instance = register_class_devname(AIRSPEED_DEVICE_PATH);
 
-	if (_airspeed_pub < 0)
-		warnx("failed to create airspeed sensor object. Did you start uOrb?");
+	/* publication init */
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+
+		/* advertise sensor topic, measure manually to initialize valid report */
+		struct differential_pressure_s arp;
+		measure();
+		_reports->get(&arp);
+
+		/* measurement will have generated a report, publish */
+		_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &arp);
+
+		if (_airspeed_pub < 0)
+			warnx("failed to create airspeed sensor object. uORB started?");
+	}
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */

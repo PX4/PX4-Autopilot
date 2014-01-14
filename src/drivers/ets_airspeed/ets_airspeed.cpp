@@ -184,18 +184,9 @@ ETSAirspeed::collect()
 	report.voltage = 0;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
-	/* announce the airspeed if needed, just publish else */
-	if (_class_instance == CLASS_DEVICE_PRIMARY && !(_pub_blocked)) {
-
-		if (_airspeed_pub > 0) {
-			/* publish it */
-			orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
-		} else {
-			_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &report);
-
-			if (_airspeed_pub < 0)
-				debug("failed to create differential_pressure publication");
-		}
+	if (_airspeed_pub > 0 && !(_pub_blocked)) {
+		/* publish it */
+		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
 	}
 
 	new_report(report);
