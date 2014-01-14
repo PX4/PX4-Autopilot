@@ -261,6 +261,7 @@ CDev::ioctl(struct file *filp, int cmd, unsigned long arg)
 		break;
 	case DEVIOCSPUBBLOCK:
 		_pub_blocked = (arg != 0);
+		return OK;
 		break;
 	case DEVIOCGPUBBLOCK:
 		return _pub_blocked;
