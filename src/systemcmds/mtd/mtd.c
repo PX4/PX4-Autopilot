@@ -225,7 +225,7 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 
 		/* Initialize to provide an FTL block driver on the MTD FLASH interface */
 
-		snprintf(blockname, 32, "/dev/mtdblock%d", i);
+		snprintf(blockname, sizeof(blockname), "/dev/mtdblock%d", i);
 
 		ret = ftl_initialize(i, part[i]);
 
