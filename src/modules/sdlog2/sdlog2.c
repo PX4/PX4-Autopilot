@@ -990,7 +990,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (fds[ifds++].revents & POLLIN) {
 				/* don't orb_copy, it's already done few lines above */
 				/* copy control mode here to construct STAT message */
-				orb_copy(ORB_ID(vehicle_control_mode), subs.control_mode_sub, &buf.control_mode);
+				if (fds[ifds].revents & POLLIN) {
+					orb_copy(ORB_ID(vehicle_control_mode), subs.control_mode_sub, &buf.control_mode);
+				}
 				log_msg.msg_type = LOG_STAT_MSG;
 				log_msg.body.log_STAT.main_state = (uint8_t) buf.control_mode.main_state;
 				log_msg.body.log_STAT.navigation_state = (uint8_t) buf.control_mode.nav_state;
