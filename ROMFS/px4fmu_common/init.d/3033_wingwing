@@ -40,4 +40,4 @@ then
 fi
 
 set VEHICLE_TYPE fw
-set FRAME_GEOMETRY Q
+set MIXER FMU_Q

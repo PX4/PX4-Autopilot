@@ -41,10 +41,10 @@ then
 fi
 
 set VEHICLE_TYPE mc
-set FRAME_GEOMETRY quad_x
+set MIXER FMU_quad_x
 
+set PWM_OUTPUTS 1234
 set PWM_RATE 400
-
 # DJI ESC range
 set PWM_DISARMED 900
 set PWM_MIN 1200

@@ -14,6 +14,7 @@ set CONFIG_FILE /fs/microsd/etc/config.txt
 set EXTRAS_FILE /fs/microsd/etc/extras.txt
 
 set TUNE_OUT_ERROR ML<<CP4CP4CP4CP4CP4
+
 #
 # Try to mount the microSD card.
 #
@@ -73,26 +74,22 @@ then
 	#
 	# Load parameters
 	#
-	if mtd start
+	set PARAM_FILE /fs/microsd/params
+	if hw_ver compare PX4FMU_V2
 	then
-		param select /fs/mtd_params
-		if param load /fs/mtd_params
+		if mtd start
 		then
-		else
-			echo "FAILED LOADING PARAMS"
+			set PARAM_FILE /fs/mtd_params
 		fi
+	fi
+	
+	param select $PARAM_FILE
+	if param load
+	then
+		echo "[init] Parameters loaded: $PARAM_FILE"
 	else
-		param select /fs/microsd/params
-		if [ -f /fs/microsd/params ]
-		then
-			if param load /fs/microsd/params
-			then
-				echo "Parameters loaded"
-			else
-				echo "Parameter file corrupt - ignoring"
-			fi
-		fi
-	fi	
+		echo "[init] ERROR: Parameters loading failed: $PARAM_FILE"
+	fi
 	
 	#
 	# Start system state indicator
@@ -103,6 +100,7 @@ then
 	else
 		if blinkm start
 		then
+			echo "[init] Using blinkm"
 			blinkm systemstate
 		fi
 	fi
@@ -112,15 +110,17 @@ then
 	#
 	set HIL no
 	set VEHICLE_TYPE none
-	set FRAME_GEOMETRY none
+	set MIXER none
 	set USE_IO yes
 	set OUTPUT_MODE none
+	set PWM_OUTPUTS none
 	set PWM_RATE none
 	set PWM_DISARMED none
 	set PWM_MIN none
 	set PWM_MAX none
 	set MKBLCTRL_MODE none
 	set FMU_MODE pwm
+	set MAV_TYPE none
 	
 	#
 	# Set DO_AUTOCONFIG flag to use it in AUTOSTART scripts
@@ -183,7 +183,7 @@ then
 	
 			set IO_PRESENT yes
 		else
-			echo "[init] PX4IO CRC failure"
+			echo "[init] PX4IO CRC failure, trying to update"
 			echo "PX4IO CRC failure" >> $LOG_FILE
 			
 			tone_alarm MLL32CP8MB
@@ -193,17 +193,17 @@ then
 				usleep 500000
 				if px4io checkcrc $IO_FILE
 				then
-					echo "[init] PX4IO CRC OK after updating"
+					echo "[init] PX4IO CRC OK, update successful"
 					echo "PX4IO CRC OK after updating" >> $LOG_FILE
 					tone_alarm MLL8CDE
 	
 					set IO_PRESENT yes
 				else
-					echo "[init] PX4IO update failed"
+					echo "[init] ERROR: PX4IO update failed"
 					echo "PX4IO update failed" >> $LOG_FILE
 				fi
 			else
-				echo "[init] PX4IO update failed"
+				echo "[init] ERROR: PX4IO update failed"
 				echo "PX4IO update failed" >> $LOG_FILE
 			fi
 		fi
@@ -220,13 +220,24 @@ then
 	#
 	if [ $OUTPUT_MODE == none ]
 	then
-		if [ $IO_PRESENT == yes ]
+		if [ $USE_IO == yes ]
 		then
-			# If PX4IO present, use it as primary PWM output by default
 			set OUTPUT_MODE io
 		else
-			# Else use PX4FMU PWM output
 			set OUTPUT_MODE fmu
+		fi
+	fi
+
+	if [ $OUTPUT_MODE == io -a $IO_PRESENT != yes ]
+	then
+		# Need IO for output but it not present, disable output
+		set OUTPUT_MODE none
+		echo "[init] ERROR: PX4IO not found, disabling output"
+		
+		# Avoid using ttyS0 for MAVLink on FMUv1
+		if hw_ver compare PX4FMU_V1
+		then
+			set FMU_MODE serial
 		fi
 	fi
 
@@ -256,7 +267,7 @@ then
 			echo "[init] PX4IO started"
 			sh /etc/init.d/rc.io
 		else
-			echo "[init] PX4IO start error"
+			echo "[init] ERROR: PX4IO start failed"
 			tone_alarm $TUNE_OUT_ERROR
 		fi
 	fi
@@ -267,7 +278,7 @@ then
 		then
 			echo "[init] FMU mode_$FMU_MODE started"
 		else
-			echo "[init] FMU mode_$FMU_MODE start error"
+			echo "[init] ERROR: FMU mode_$FMU_MODE start failed"
 			tone_alarm $TUNE_OUT_ERROR
 		fi
 		
@@ -300,7 +311,7 @@ then
 		then
 			echo "[init] MKBLCTRL started"
 		else
-			echo "[init] MKBLCTRL start error"
+			echo "[init] ERROR: MKBLCTRL start failed"
 			tone_alarm $TUNE_OUT_ERROR
 		fi
 		
@@ -312,7 +323,7 @@ then
 		then
 			echo "[init] HIL output started"
 		else
-			echo "[init] HIL output error"
+			echo "[init] ERROR: HIL output start failed"
 			tone_alarm $TUNE_OUT_ERROR
 		fi
 	fi
@@ -329,7 +340,7 @@ then
 				echo "[init] PX4IO started"
 				sh /etc/init.d/rc.io
 			else
-				echo "[init] PX4IO start error"
+				echo "[init] ERROR: PX4IO start failed"
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 		fi
@@ -340,13 +351,17 @@ then
 			then
 				echo "[init] FMU mode_$FMU_MODE started"
 			else
-				echo "[init] FMU mode_$FMU_MODE start error"
+				echo "[init] ERROR: FMU mode_$FMU_MODE start failed"
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 
 			if hw_ver compare PX4FMU_V1
 			then
-				if [ $FMU_MODE == pwm -o $FMU_MODE == gpio -o $FMU_MODE == pwm_gpio ]
+				if [ $FMU_MODE == pwm -o $FMU_MODE == gpio ]
+				then
+					set TTYS1_BUSY yes
+				fi
+				if [ $FMU_MODE == pwm_gpio ]
 				then
 					set TTYS1_BUSY yes
 				fi
@@ -401,14 +416,22 @@ then
 	then
 		echo "[init] Vehicle type: FIXED WING"
 		
-		if [ $FRAME_GEOMETRY == none ]
+		if [ $MIXER == none ]
 		then
-			# Set default frame geometry for fixed wing
-			set FRAME_GEOMETRY AERT
+			# Set default mixer for fixed wing if not defined
+			set MIXER FMU_AERT
 		fi
 		
+		if [ $MAV_TYPE == none ]
+		then
+			# Use MAV_TYPE = 1 (fixed wing) if not defined
+			set MAV_TYPE 1
+		fi
+		
+		param set MAV_TYPE $MAV_TYPE
+		
 		# Load mixer and configure outputs
-		sh /etc/init.d/rc.fw_interface
+		sh /etc/init.d/rc.interface
 		
 		# Start standard fixedwing apps
 		sh /etc/init.d/rc.fw_apps
@@ -420,15 +443,37 @@ then
 	if [ $VEHICLE_TYPE == mc ]
 	then
 		echo "[init] Vehicle type: MULTICOPTER"
-		
-		if [ $FRAME_GEOMETRY == none ]
+
+		if [ $MIXER == none ]
 		then
-			# Set default frame geometry for multicopter
-			set FRAME_GEOMETRY quad_x
+			# Set default mixer for multicopter if not defined
+			set MIXER quad_x
 		fi
+
+		if [ $MAV_TYPE == none ]
+		then
+			# Use MAV_TYPE = 2 (quadcopter) if not defined
+			set MAV_TYPE 2
+			
+			# Use mixer to detect vehicle type
+			if [ $MIXER == FMU_hex_x -o $MIXER == FMU_hex_+ ]
+			then
+				param set MAV_TYPE 13
+			fi
+			if [ $MIXER == FMU_octo_x -o $MIXER == FMU_octo_+ ]
+			then
+				param set MAV_TYPE 14
+			fi
+			if [ $MIXER == FMU_octo_cox ]
+			then
+				param set MAV_TYPE 14
+			fi
+		fi
+
+	    param set MAV_TYPE $MAV_TYPE
 		
 		# Load mixer and configure outputs
-		sh /etc/init.d/rc.mc_interface
+		sh /etc/init.d/rc.interface
 		
 		# Start standard multicopter apps
 		sh /etc/init.d/rc.mc_apps
@@ -440,9 +485,9 @@ then
 	if [ $VEHICLE_TYPE == none ]
 	then
 		echo "[init] Vehicle type: GENERIC"
-		
-		attitude_estimator_ekf start
-		position_estimator_inav start
+
+		# Load mixer and configure outputs
+		sh /etc/init.d/rc.interface
 	fi
 
 	# Start any custom addons

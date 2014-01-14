@@ -44,10 +44,10 @@ then
 fi
 
 set VEHICLE_TYPE mc
-set FRAME_GEOMETRY quad_w
+set MIXER FMU_quad_w
 
+set PWM_OUTPUTS 1234
 set PWM_RATE 400
-
 set PWM_DISARMED 900
 set PWM_MIN 1000
 set PWM_MAX 2000

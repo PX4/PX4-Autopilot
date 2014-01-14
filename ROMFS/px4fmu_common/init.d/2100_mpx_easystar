@@ -36,4 +36,4 @@ then
 fi
  
 set VEHICLE_TYPE fw
-set FRAME_GEOMETRY RET
+set MIXER FMU_RET

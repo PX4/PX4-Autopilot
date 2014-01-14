@@ -9,11 +9,13 @@
 px4io recovery
 
 #
-# Adjust px4io topic limiting
+# Adjust PX4IO update rate limit
 #
+set PX4IO_LIMIT 400
 if hw_ver compare PX4FMU_V1
 then
-	px4io limit 200
-else
-	px4io limit 400
+	set PX4IO_LIMIT 200
 fi
+
+echo "[init] Set PX4IO update rate limit: $PX4IO_LIMIT Hz"
+px4io limit $PX4IO_LIMIT

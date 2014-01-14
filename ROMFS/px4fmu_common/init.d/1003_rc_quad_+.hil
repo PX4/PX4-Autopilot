@@ -43,4 +43,4 @@ fi
 set HIL yes
 
 set VEHICLE_TYPE mc
-set FRAME_GEOMETRY quad_+
+set MIXER FMU_quad_+
