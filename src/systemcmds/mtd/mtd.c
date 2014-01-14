@@ -77,6 +77,7 @@ int mtd_main(int argc, char *argv[])
 static void	mtd_attach(void);
 static void	mtd_start(char *partition_names[], unsigned n_partitions);
 static void	mtd_test(void);
+static void	mtd_erase(char *partition_names[], unsigned n_partitions);
 
 static bool attached = false;
 static bool started = false;
@@ -102,9 +103,16 @@ int mtd_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "test"))
 			mtd_test();
+
+		if (!strcmp(argv[1], "erase")) {
+			if (argc < 3) {
+				errx(1, "usage: mtd erase <PARTITION_PATH..>");
+			}
+			mtd_erase(argv + 2, argc - 2);
+                }
 	}
 
-	errx(1, "expected a command, try 'start' or 'test'");
+	errx(1, "expected a command, try 'start', 'erase' or 'test'");
 }
 
 struct mtd_dev_s *ramtron_initialize(FAR struct spi_dev_s *dev);
@@ -245,6 +253,27 @@ mtd_test(void)
 {
 	warnx("This test routine does not test anything yet!");
 	exit(1);
+}
+
+static void
+mtd_erase(char *partition_names[], unsigned n_partitions)
+{
+	uint8_t v[64];
+	memset(v, 0xFF, sizeof(v));
+	for (uint8_t i = 0; i < n_partitions; i++) {
+		uint32_t count = 0;
+		printf("Erasing %s\n", partition_names[i]);
+		int fd = open(partition_names[i], O_WRONLY);
+		if (fd == -1) {
+			errx(1, "Failed to open partition");
+		}
+		while (write(fd, &v, sizeof(v)) == sizeof(v)) {
+			count += sizeof(v);
+		}
+		printf("Erased %lu bytes\n", (unsigned long)count);
+		close(fd);
+	}
+	exit(0);
 }
 
 #endif
