@@ -75,14 +75,15 @@ then
 	#
 	# Load microSD params
 	#
-	#if ramtron start
-	#then
-	#	param select /ramtron/params
-	#	if [ -f /ramtron/params ]
-	#	then
-	#		param load /ramtron/params
-	#	fi
-	#else
+	if mtd start
+	then
+		param select /fs/mtd_params
+		if param load /fs/mtd_params
+		then
+		else
+			echo "FAILED LOADING PARAMS"
+		fi
+	else
 		param select /fs/microsd/params
 		if [ -f /fs/microsd/params ]
 		then
@@ -93,7 +94,7 @@ then
 				echo "Parameter file corrupt - ignoring"
 			fi
 		fi
-	#fi
+	fi
 	
 	#
 	# Start system state indicator
