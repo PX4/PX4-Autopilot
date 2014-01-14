@@ -29,6 +29,9 @@ MODULES		+= systemcmds/nshterm
 MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
+LIBRARIES	+= lib/mathlib/CMSIS
+MODULES		+= lib/mathlib
+MODULES		+= lib/mathlib/math/filter
 
 #
 # Transitional support - add commands from the NuttX export archive.
