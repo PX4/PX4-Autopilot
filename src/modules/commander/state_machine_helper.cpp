@@ -505,12 +505,11 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 
 					while ((direntry = readdir(d)) != NULL) {
 
-						bool blocked = false;
 						int sensfd = ::open(direntry->d_name, 0);
-						::ioctl(sensfd, DEVIOCSPUBBLOCK, 0);
+						int block_ret = ::ioctl(sensfd, DEVIOCSPUBBLOCK, 0);
 						close(sensfd);
 
-						printf("Disabling %s\n: %s", direntry->d_name, (blocked) ? "OK" : "FAIL");
+						printf("Disabling %s\n: %s", direntry->d_name, (!block_ret) ? "OK" : "FAIL");
 					}
 
 					closedir(d);
