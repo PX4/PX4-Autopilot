@@ -500,8 +500,8 @@ CONFIG_MTD=y
 #
 # MTD Configuration
 #
-# CONFIG_MTD_PARTITION is not set
-# CONFIG_MTD_BYTE_WRITE is not set
+CONFIG_MTD_PARTITION=y
+CONFIG_MTD_BYTE_WRITE=y
 
 #
 # MTD Device Drivers

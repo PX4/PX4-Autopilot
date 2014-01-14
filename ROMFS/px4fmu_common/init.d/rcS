@@ -59,20 +59,6 @@ fi
 if [ $MODE == autostart ]
 then
 	echo "[init] AUTOSTART mode"
-	
-	#
-	# Load parameters
-	#
-	param select /fs/microsd/params
-	if [ -f /fs/microsd/params ]
-	then
-		if param load /fs/microsd/params
-		then
-			echo "[init] Parameters loaded"
-		else
-			echo "[init] Parameter file corrupt - ignoring"
-		fi
-	fi
 
 	#
 	# Start CDC/ACM serial driver
@@ -83,6 +69,30 @@ then
 	# Start the ORB (first app to start)
 	#
 	uorb start
+	
+	#
+	# Load parameters
+	#
+	if mtd start
+	then
+		param select /fs/mtd_params
+		if param load /fs/mtd_params
+		then
+		else
+			echo "FAILED LOADING PARAMS"
+		fi
+	else
+		param select /fs/microsd/params
+		if [ -f /fs/microsd/params ]
+		then
+			if param load /fs/microsd/params
+			then
+				echo "Parameters loaded"
+			else
+				echo "Parameter file corrupt - ignoring"
+			fi
+		fi
+	fi	
 	
 	#
 	# Start system state indicator
