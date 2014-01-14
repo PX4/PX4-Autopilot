@@ -251,13 +251,13 @@ FixedwingEstimator::FixedwingEstimator() :
 	_local_pos_pub(-1),
 
 /* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "fw_att_pos_estimator")),
-	_perf_gyro(perf_alloc(PC_ELAPSED, "fw_ekf_gyro_upd")),
-	_perf_accel(perf_alloc(PC_ELAPSED, "fw_ekf_accel_upd")),
-	_perf_mag(perf_alloc(PC_ELAPSED, "fw_ekf_mag_upd")),
-	_perf_gps(perf_alloc(PC_ELAPSED, "fw_ekf_gps_upd")),
-	_perf_baro(perf_alloc(PC_ELAPSED, "fw_ekf_baro_upd")),
-	_perf_airspeed(perf_alloc(PC_ELAPSED, "fw_ekf_aspd_upd")),
+	_loop_perf(perf_alloc(PC_COUNT, "fw_att_pos_estimator")),
+	_perf_gyro(perf_alloc(PC_COUNT, "fw_ekf_gyro_upd")),
+	_perf_accel(perf_alloc(PC_COUNT, "fw_ekf_accel_upd")),
+	_perf_mag(perf_alloc(PC_COUNT, "fw_ekf_mag_upd")),
+	_perf_gps(perf_alloc(PC_COUNT, "fw_ekf_gps_upd")),
+	_perf_baro(perf_alloc(PC_COUNT, "fw_ekf_baro_upd")),
+	_perf_airspeed(perf_alloc(PC_COUNT, "fw_ekf_aspd_upd")),
 
 /* states */
 	_initialized(false)
