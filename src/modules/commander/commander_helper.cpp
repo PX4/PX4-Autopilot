@@ -44,6 +44,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <fcntl.h>
+#include <math.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
@@ -251,36 +252,47 @@ void rgbled_set_pattern(rgbled_pattern_t *pattern)
 		ioctl(rgbleds, RGBLED_SET_PATTERN, (unsigned long)pattern);
 }
 
-float battery_remaining_estimate_voltage(float voltage)
+float battery_remaining_estimate_voltage(float voltage, float discharged)
 {
 	float ret = 0;
-	static param_t bat_volt_empty;
-	static param_t bat_volt_full;
-	static param_t bat_n_cells;
+	static param_t bat_v_empty_h;
+	static param_t bat_v_full_h;
+	static param_t bat_n_cells_h;
+	static param_t bat_capacity_h;
+	static float bat_v_empty = 3.2f;
+	static float bat_v_full = 4.0f;
+	static int bat_n_cells = 3;
+	static float bat_capacity = -1.0f;
 	static bool initialized = false;
 	static unsigned int counter = 0;
-	static float ncells = 3;
-	// XXX change cells to int (and param to INT32)
 
 	if (!initialized) {
-		bat_volt_empty = param_find("BAT_V_EMPTY");
-		bat_volt_full = param_find("BAT_V_FULL");
-		bat_n_cells = param_find("BAT_N_CELLS");
+		bat_v_empty_h = param_find("BAT_V_EMPTY");
+		bat_v_full_h = param_find("BAT_V_FULL");
+		bat_n_cells_h = param_find("BAT_N_CELLS");
+		bat_capacity_h = param_find("BAT_CAPACITY");
 		initialized = true;
 	}
 
-	static float chemistry_voltage_empty = 3.2f;
-	static float chemistry_voltage_full = 4.05f;
-
 	if (counter % 100 == 0) {
-		param_get(bat_volt_empty, &chemistry_voltage_empty);
-		param_get(bat_volt_full, &chemistry_voltage_full);
-		param_get(bat_n_cells, &ncells);
+		param_get(bat_v_empty_h, &bat_v_empty);
+		param_get(bat_v_full_h, &bat_v_full);
+		param_get(bat_n_cells_h, &bat_n_cells);
+		param_get(bat_capacity_h, &bat_capacity);
 	}
 
 	counter++;
 
-	ret = (voltage - ncells * chemistry_voltage_empty) / (ncells * (chemistry_voltage_full - chemistry_voltage_empty));
+	/* remaining charge estimate based on voltage */
+	float remaining_voltage = (voltage - bat_n_cells * bat_v_empty) / (bat_n_cells * (bat_v_full - bat_v_empty));
+
+	if (bat_capacity > 0.0f) {
+		/* if battery capacity is known, use discharged current for estimate, but don't show more than voltage estimate */
+		ret = fminf(remaining_voltage, 1.0f - discharged / bat_capacity);
+	} else {
+		/* else use voltage */
+		ret = remaining_voltage;
+	}
 
 	/* limit to sane values */
 	ret = (ret < 0.0f) ? 0.0f : ret;
