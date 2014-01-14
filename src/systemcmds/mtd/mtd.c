@@ -64,17 +64,20 @@
 
 __EXPORT int mtd_main(int argc, char *argv[]);
 
-#ifndef CONFIG_MTD_RAMTRON
+#ifndef CONFIG_MTD
 
 /* create a fake command with decent warnx to not confuse users */
 int mtd_main(int argc, char *argv[])
 {
-	errx(1, "RAMTRON not enabled, skipping.");
+	errx(1, "MTD not enabled, skipping.");
 }
 
 #else
 
-static void	mtd_attach(void);
+#ifdef CONFIG_MTD_RAMTRON
+static void	ramtron_attach(void);
+#endif
+static void	at24xxx_attach(void);
 static void	mtd_start(char *partition_names[], unsigned n_partitions);
 static void	mtd_test(void);
 static void	mtd_erase(char *partition_names[], unsigned n_partitions);
@@ -119,8 +122,9 @@ struct mtd_dev_s *ramtron_initialize(FAR struct spi_dev_s *dev);
 struct mtd_dev_s *mtd_partition(FAR struct mtd_dev_s *mtd,
                                     off_t firstblock, off_t nblocks);
 
+#ifdef CONFIG_MTD_RAMTRON
 static void
-mtd_attach(void)
+ramtron_attach(void)
 {
 	/* find the right spi */
 	struct spi_dev_s *spi = up_spiinitialize(2);
@@ -133,7 +137,7 @@ mtd_attach(void)
 	if (spi == NULL)
 		errx(1, "failed to locate spi bus");
 
-	/* start the MTD driver, attempt 5 times */
+	/* start the RAMTRON driver, attempt 5 times */
 	for (int i = 0; i < 5; i++) {
 		mtd_dev = ramtron_initialize(spi);
 
@@ -153,6 +157,37 @@ mtd_attach(void)
 
 	attached = true;
 }
+#endif
+
+static void
+at24xxx_attach(void)
+{
+	/* find the right I2C */
+	struct i2c_dev_s *i2c = up_i2cinitialize(PX4_I2C_BUS_ONBOARD);
+	/* this resets the I2C bus, set correct bus speed again */
+	I2C_SETFREQUENCY(i2c, 400000);
+
+	if (i2c == NULL)
+		errx(1, "failed to locate I2C bus");
+
+	/* start the MTD driver, attempt 5 times */
+	for (int i = 0; i < 5; i++) {
+		mtd_dev = at24c_initialize(i2c);
+		if (mtd_dev) {
+			/* abort on first valid result */
+			if (i > 0) {
+				warnx("warning: EEPROM needed %d attempts to attach", i+1);
+			}
+			break;
+		}
+	}
+
+	/* if last attempt is still unsuccessful, abort */
+	if (mtd_dev == NULL)
+		errx(1, "failed to initialize EEPROM driver");
+
+	attached = true;
+}
 
 static void
 mtd_start(char *partition_names[], unsigned n_partitions)
@@ -162,8 +197,13 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 	if (started)
 		errx(1, "mtd already mounted");
 
-	if (!attached)
-		mtd_attach();
+	if (!attached) {
+		#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+		at24xxx_attach();
+		#else
+		ramtron_attach();
+		#endif
+	}
 
 	if (!mtd_dev) {
 		warnx("ERROR: Failed to create RAMTRON FRAM MTD instance");
