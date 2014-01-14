@@ -62,6 +62,8 @@
 #include "systemlib/param/param.h"
 #include "systemlib/err.h"
 
+#include <board_config.h>
+
 __EXPORT int mtd_main(int argc, char *argv[]);
 
 #ifndef CONFIG_MTD
@@ -76,15 +78,25 @@ int mtd_main(int argc, char *argv[])
 
 #ifdef CONFIG_MTD_RAMTRON
 static void	ramtron_attach(void);
+#else
+
+#ifndef PX4_I2C_BUS_ONBOARD
+#  error PX4_I2C_BUS_ONBOARD not defined, cannot locate onboard EEPROM
 #endif
+
 static void	at24xxx_attach(void);
+#endif
 static void	mtd_start(char *partition_names[], unsigned n_partitions);
 static void	mtd_test(void);
 static void	mtd_erase(char *partition_names[], unsigned n_partitions);
+static void	mtd_print_info();
+static int	mtd_get_geometry(unsigned long *blocksize, unsigned long *erasesize, unsigned long *neraseblocks, 
+	unsigned *blkpererase, unsigned *nblocks, unsigned *partsize, unsigned n_partitions);
 
 static bool attached = false;
 static bool started = false;
 static struct mtd_dev_s *mtd_dev;
+static unsigned n_partitions_current = 0;
 
 /* note, these will be equally sized */
 static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints"};
@@ -106,6 +118,9 @@ int mtd_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "test"))
 			mtd_test();
+
+		if (!strcmp(argv[1], "status"))
+			mtd_status();
 
 		if (!strcmp(argv[1], "erase")) {
 			if (argc < 3) {
@@ -157,7 +172,7 @@ ramtron_attach(void)
 
 	attached = true;
 }
-#endif
+#else
 
 static void
 at24xxx_attach(void)
@@ -188,6 +203,7 @@ at24xxx_attach(void)
 
 	attached = true;
 }
+#endif
 
 static void
 mtd_start(char *partition_names[], unsigned n_partitions)
@@ -210,34 +226,12 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 		exit(1);
 	}
 
+	unsigned long blocksize, erasesize, neraseblocks;
+	unsigned blkpererase, nblocks, partsize;
 
-	/* Get the geometry of the FLASH device */
-
-	FAR struct mtd_geometry_s geo;
-
-	ret = mtd_dev->ioctl(mtd_dev, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo));
-
-	if (ret < 0) {
-		warnx("ERROR: mtd->ioctl failed: %d", ret);
+	ret = mtd_get_geometry(&blocksize, &erasesize, &neraseblocks, &blkpererase, &nblocks, &partsize, n_partitions);
+	if (ret)
 		exit(3);
-	}
-
-	warnx("Flash Geometry:");
-	warnx("  blocksize:      %lu", (unsigned long)geo.blocksize);
-	warnx("  erasesize:      %lu", (unsigned long)geo.erasesize);
-	warnx("  neraseblocks:   %lu", (unsigned long)geo.neraseblocks);
-
-	/* Determine the size of each partition.  Make each partition an even
-	 * multiple of the erase block size (perhaps not using some space at the
-	 * end of the FLASH).
-	 */
-
-	unsigned blkpererase = geo.erasesize / geo.blocksize;
-	unsigned nblocks     = (geo.neraseblocks / n_partitions) * blkpererase;
-	unsigned partsize    = nblocks * geo.blocksize;
-
-	warnx("  No. partitions: %u", n_partitions);
-	warnx("  Partition size: %lu Blocks (%lu bytes)", (unsigned long)nblocks, (unsigned long)partsize);
 
 	/* Now create MTD FLASH partitions */
 
@@ -284,18 +278,83 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 		}
 	}
 
+	n_partitions_current = n_partitions;
+
 	started = true;
 	exit(0);
 }
 
-static void
+int mtd_get_geometry(unsigned long *blocksize, unsigned long *erasesize, unsigned long *neraseblocks, 
+	unsigned *blkpererase, unsigned *nblocks, unsigned *partsize, unsigned n_partitions)
+{
+		/* Get the geometry of the FLASH device */
+
+	FAR struct mtd_geometry_s geo;
+
+	int ret = mtd_dev->ioctl(mtd_dev, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo));
+
+	if (ret < 0) {
+		warnx("ERROR: mtd->ioctl failed: %d", ret);
+		return ret;
+	}
+
+	*blocksize = geo.blocksize;
+	*erasesize = geo.blocksize;
+	*neraseblocks = geo.neraseblocks;
+
+	/* Determine the size of each partition.  Make each partition an even
+	 * multiple of the erase block size (perhaps not using some space at the
+	 * end of the FLASH).
+	 */
+
+	*blkpererase = geo.erasesize / geo.blocksize;
+	*nblocks     = (geo.neraseblocks / n_partitions) * *blkpererase;
+	*partsize    = *nblocks * geo.blocksize;
+
+	return ret;
+}
+
+void mtd_print_info()
+{
+	if (!attached)
+		exit(1);
+
+	unsigned long blocksize, erasesize, neraseblocks;
+	unsigned blkpererase, nblocks, partsize;
+
+	int ret = mtd_get_geometry(&blocksize, &erasesize, &neraseblocks, &blkpererase, &nblocks, &partsize, n_partitions_current);
+	if (ret)
+		exit(3);
+
+	warnx("Flash Geometry:");
+
+	printf("  blocksize:      %lu\n", blocksize);
+	printf("  erasesize:      %lu\n", erasesize);
+	printf("  neraseblocks:   %lu\n", neraseblocks);
+	printf("  No. partitions: %u\n", n_partitions_current);
+	printf("  Partition size: %u Blocks (%u bytes)\n", nblocks, partsize);
+	printf("  TOTAL SIZE: %u KiB\n", neraseblocks * erasesize / 1024);
+
+}
+
+void
 mtd_test(void)
 {
 	warnx("This test routine does not test anything yet!");
 	exit(1);
 }
 
-static void
+void
+mtd_status(void)
+{
+	if (!attached)
+		errx(1, "MTD driver not started");
+
+	mtd_print_info();
+	exit(0);
+}
+
+void
 mtd_erase(char *partition_names[], unsigned n_partitions)
 {
 	uint8_t v[64];
