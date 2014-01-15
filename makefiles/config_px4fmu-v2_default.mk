@@ -46,7 +46,6 @@ MODULES		+= modules/sensors
 #
 # System commands
 #
-MODULES		+= systemcmds/ramtron
 MODULES		+= systemcmds/bl_update
 MODULES		+= systemcmds/boardinfo
 MODULES		+= systemcmds/mixer
