@@ -282,7 +282,7 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
 	up_udelay(20);
 
-	message("[boot] Successfully initialized SPI port 1\n");
+	message("[boot] Initialized SPI port 1 (SENSORS)\n");
 
 	/* Get the SPI port for the FRAM */
 
@@ -294,20 +294,23 @@ __EXPORT int nsh_archinitialize(void)
 		return -ENODEV;
 	}
 
-	/* Default SPI2 to 37.5 MHz (F4 max) and de-assert the known chip selects. */
-	SPI_SETFREQUENCY(spi2, 375000000);
+	/* Default SPI2 to 37.5 MHz (40 MHz rounded to nearest valid divider, F4 max)
+	 * and de-assert the known chip selects. */
+
+	// XXX start with 10.4 MHz in FRAM usage and go up to 37.5 once validated
+	SPI_SETFREQUENCY(spi2, 12 * 1000 * 1000);
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_FLASH, false);
 
-	message("[boot] Successfully initialized SPI port 2\n");
+	message("[boot] Initialized SPI port 2 (RAMTRON FRAM)\n");
 
 	#ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */
 
 	sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
 	if (!sdio) {
-		message("nsh_archinitialize: Failed to initialize SDIO slot %d\n",
+		message("[boot] Failed to initialize SDIO slot %d\n",
 			CONFIG_NSH_MMCSDSLOTNO);
 		return -ENODEV;
 	}
@@ -315,7 +318,7 @@ __EXPORT int nsh_archinitialize(void)
 	/* Now bind the SDIO interface to the MMC/SD driver */
 	int ret = mmcsd_slotinitialize(CONFIG_NSH_MMCSDMINOR, sdio);
 	if (ret != OK) {
-		message("nsh_archinitialize: Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
+		message("[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
 		return ret;
 	}
 

@@ -36,6 +36,7 @@ MODULES		+= drivers/roboclaw
 MODULES		+= drivers/airspeed
 MODULES		+= drivers/ets_airspeed
 MODULES		+= drivers/meas_airspeed
+MODULES		+= drivers/frsky_telemetry
 MODULES		+= modules/sensors
 
 # Needs to be burned to the ground and re-written; for now,
@@ -45,7 +46,6 @@ MODULES		+= modules/sensors
 #
 # System commands
 #
-MODULES		+= systemcmds/ramtron
 MODULES		+= systemcmds/bl_update
 MODULES		+= systemcmds/boardinfo
 MODULES		+= systemcmds/mixer
@@ -59,6 +59,7 @@ MODULES		+= systemcmds/top
 MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/config
 MODULES		+= systemcmds/nshterm
+MODULES		+= systemcmds/mtd
 
 #
 # General system control

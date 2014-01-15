@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,54 +32,29 @@
  ****************************************************************************/
 
 /**
- * @file commander_helper.h
- * Commander helper functions definitions
+ * @file board_serial.h
+ * Read off the board serial
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author David "Buzz" Bussenschutt <davidbuzz@gmail.com>
+ *
  */
 
-#ifndef COMMANDER_HELPER_H_
-#define COMMANDER_HELPER_H_
+#include "otp.h"
+#include "board_config.h"
+#include "board_serial.h"
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <drivers/drv_rgbled.h>
+int get_board_serial(char *serialid)
+{
+	const volatile unsigned *udid_ptr = (const unsigned *)UDID_START;
+	union udid id;
+	val_read((unsigned *)&id, udid_ptr, sizeof(id));
 
 
-bool is_multirotor(const struct vehicle_status_s *current_status);
-bool is_rotary_wing(const struct vehicle_status_s *current_status);
+	/* Copy the serial from the chips non-write memory and swap endianess */
+	serialid[0] = id.data[3];   serialid[1] = id.data[2];  serialid[2] = id.data[1];  serialid[3] = id.data[0];
+	serialid[4] = id.data[7];   serialid[5] = id.data[6];  serialid[6] = id.data[5];  serialid[7] = id.data[4];
+	serialid[8] = id.data[11];   serialid[9] = id.data[10];  serialid[10] = id.data[9];  serialid[11] = id.data[8];
 
-int buzzer_init(void);
-void buzzer_deinit(void);
-
-void tune_error(void);
-void tune_positive(void);
-void tune_neutral(void);
-void tune_negative(void);
-int tune_arm(void);
-int tune_low_bat(void);
-int tune_critical_bat(void);
-void tune_stop(void);
-int blink_msg_state();
-
-int led_init(void);
-void led_deinit(void);
-int led_toggle(int led);
-int led_on(int led);
-int led_off(int led);
-
-void rgbled_set_color(rgbled_color_t color);
-void rgbled_set_mode(rgbled_mode_t mode);
-void rgbled_set_pattern(rgbled_pattern_t *pattern);
-
-/**
- * Estimate remaining battery charge.
- *
- * Use integral of current if battery capacity known (BAT_CAPACITY parameter set),
- * else use simple estimate based on voltage.
- *
- * @return the estimated remaining capacity in 0..1
- */
-float battery_remaining_estimate_voltage(float voltage, float discharged);
-
-#endif /* COMMANDER_HELPER_H_ */
+	return 0;
+}

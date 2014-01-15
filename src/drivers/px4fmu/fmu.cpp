@@ -65,6 +65,7 @@
 #include <systemlib/err.h>
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
+#include <systemlib/board_serial.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_rc_input.h>
 
@@ -224,10 +225,10 @@ PX4FMU::PX4FMU() :
 	_armed(false),
 	_pwm_on(false),
 	_mixers(nullptr),
-	_failsafe_pwm( {0}),
-	       _disarmed_pwm( {0}),
-	       _num_failsafe_set(0),
-	       _num_disarmed_set(0)
+	_failsafe_pwm({0}),
+	      _disarmed_pwm({0}),
+	      _num_failsafe_set(0),
+	      _num_disarmed_set(0)
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		_min_pwm[i] = PWM_DEFAULT_MIN;
@@ -575,7 +576,7 @@ PX4FMU::task_main()
 						if (i >= outputs.noutputs ||
 						    !isfinite(outputs.output[i]) ||
 						    outputs.output[i] < -1.0f ||
-						outputs.output[i] > 1.0f) {
+						    outputs.output[i] > 1.0f) {
 							/*
 							 * Value is NaN, INF or out of band - set to the minimum value.
 							 * This will be clearly visible on the servo status and will limit the risk of accidentally
@@ -933,7 +934,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-		/* FALLTHROUGH */
+	/* FALLTHROUGH */
 	case PWM_SERVO_SET(3):
 	case PWM_SERVO_SET(2):
 		if (_mode < MODE_4PWM) {
@@ -941,7 +942,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-		/* FALLTHROUGH */
+	/* FALLTHROUGH */
 	case PWM_SERVO_SET(1):
 	case PWM_SERVO_SET(0):
 		if (arg <= 2100) {
@@ -960,7 +961,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-		/* FALLTHROUGH */
+	/* FALLTHROUGH */
 	case PWM_SERVO_GET(3):
 	case PWM_SERVO_GET(2):
 		if (_mode < MODE_4PWM) {
@@ -968,7 +969,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-		/* FALLTHROUGH */
+	/* FALLTHROUGH */
 	case PWM_SERVO_GET(1):
 	case PWM_SERVO_GET(0):
 		*(servo_position_t *)arg = up_pwm_servo_get(cmd - PWM_SERVO_GET(0));
@@ -1107,10 +1108,12 @@ PX4FMU::sensor_reset(int ms)
 	stm32_configgpio(GPIO_SPI_CS_GYRO_OFF);
 	stm32_configgpio(GPIO_SPI_CS_ACCEL_MAG_OFF);
 	stm32_configgpio(GPIO_SPI_CS_BARO_OFF);
+	stm32_configgpio(GPIO_SPI_CS_MPU_OFF);
 
 	stm32_gpiowrite(GPIO_SPI_CS_GYRO_OFF, 0);
 	stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG_OFF, 0);
 	stm32_gpiowrite(GPIO_SPI_CS_BARO_OFF, 0);
+	stm32_gpiowrite(GPIO_SPI_CS_MPU_OFF, 0);
 
 	stm32_configgpio(GPIO_SPI1_SCK_OFF);
 	stm32_configgpio(GPIO_SPI1_MISO_OFF);
@@ -1123,10 +1126,12 @@ PX4FMU::sensor_reset(int ms)
 	stm32_configgpio(GPIO_GYRO_DRDY_OFF);
 	stm32_configgpio(GPIO_MAG_DRDY_OFF);
 	stm32_configgpio(GPIO_ACCEL_DRDY_OFF);
+	stm32_configgpio(GPIO_EXTI_MPU_DRDY_OFF);
 
 	stm32_gpiowrite(GPIO_GYRO_DRDY_OFF, 0);
 	stm32_gpiowrite(GPIO_MAG_DRDY_OFF, 0);
 	stm32_gpiowrite(GPIO_ACCEL_DRDY_OFF, 0);
+	stm32_gpiowrite(GPIO_EXTI_MPU_DRDY_OFF, 0);
 
 	/* set the sensor rail off */
 	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
@@ -1159,6 +1164,13 @@ PX4FMU::sensor_reset(int ms)
 	stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
 	stm32_gpiowrite(GPIO_SPI_CS_BARO, 1);
 	stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);
+
+	// // XXX bring up the EXTI pins again
+	// stm32_configgpio(GPIO_GYRO_DRDY);
+	// stm32_configgpio(GPIO_MAG_DRDY);
+	// stm32_configgpio(GPIO_ACCEL_DRDY);
+	// stm32_configgpio(GPIO_EXTI_MPU_DRDY);
+
 #endif
 #endif
 }
@@ -1591,6 +1603,15 @@ fmu_main(int argc, char *argv[])
 		errx(0, "FMU driver stopped");
 	}
 
+	if (!strcmp(verb, "id")) {
+		char id[12];
+		(void)get_board_serial(id);
+
+		errx(0, "Board serial:\n %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X",
+		     (unsigned)id[0], (unsigned)id[1], (unsigned)id[2], (unsigned)id[3], (unsigned)id[4], (unsigned)id[5],
+		     (unsigned)id[6], (unsigned)id[7], (unsigned)id[8], (unsigned)id[9], (unsigned)id[10], (unsigned)id[11]);
+	}
+
 
 	if (fmu_start() != OK)
 		errx(1, "failed to start the FMU driver");
@@ -1647,6 +1668,7 @@ fmu_main(int argc, char *argv[])
 			sensor_reset(0);
 			warnx("resettet default time");
 		}
+
 		exit(0);
 	}
 

@@ -5,23 +5,33 @@ class DokuWikiOutput(output.Output):
         result = ""
         for group in groups:
             result += "==== %s ====\n\n" % group.GetName()
+            result += "^ Name            ^ Description    ^ Min    ^ Max    ^ Default   ^ Comment    ^\n"
             for param in group.GetParams():
                 code = param.GetFieldValue("code")
                 name = param.GetFieldValue("short_desc")
-                if code != name:
-                    name = "%s (%s)" % (name, code)
-                result += "=== %s ===\n\n" % name
-                long_desc = param.GetFieldValue("long_desc")
-                if long_desc is not None:
-                    result += "%s\n\n" % long_desc
+                name = name.replace("\n", "")
+                result += "| %s   | %s  " % (code, name)
                 min_val = param.GetFieldValue("min")
                 if min_val is not None:
-                    result += "* Minimal value: %s\n" % min_val
+                    result += "| %s  " % min_val
+                else:
+                    result += "|"
                 max_val = param.GetFieldValue("max")
                 if max_val is not None:
-                    result += "* Maximal value: %s\n" % max_val
+                    result += "| %s  " % max_val
+                else:
+                    result += "|"
                 def_val = param.GetFieldValue("default")
                 if def_val is not None:
-                    result += "* Default value: %s\n" % def_val
-                result += "\n"
+                    result += "| %s  " % def_val
+                else:
+                    result += "|"
+                long_desc = param.GetFieldValue("long_desc")
+                if long_desc is not None:
+                    long_desc = long_desc.replace("\n", "")
+                    result += "| %s  " % long_desc
+                else:
+                    result += "|"
+                result += "|\n"
+            result += "\n"
         return result

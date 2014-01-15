@@ -518,16 +518,11 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			// check the magic value
 			if (value != PX4IO_REBOOT_BL_MAGIC)
 				break;
-                        
-                        // note that we don't set BL_WAIT_MAGIC in
-                        // BKP_DR1 as that is not necessary given the
-                        // timing of the forceupdate command. The
-                        // bootloader on px4io waits for enough time
-                        // anyway, and this method works with older
-                        // bootloader versions (tested with both
-                        // revision 3 and revision 4).
 
-			up_systemreset();
+                        // we schedule a reboot rather than rebooting
+                        // immediately to allow the IO board to ACK
+                        // the reboot command
+                        schedule_reboot(100000);
 			break;
 
 		case PX4IO_P_SETUP_DSM:

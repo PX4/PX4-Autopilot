@@ -107,6 +107,7 @@ const struct {
 	{"mixer",		test_mixer,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"rc",			test_rc,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"conv",		test_conv,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"mount",		test_mount,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"help",		test_help,	OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST},
 	{NULL,			NULL, 		0}
 };

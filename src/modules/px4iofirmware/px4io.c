@@ -125,6 +125,25 @@ heartbeat_blink(void)
 	LED_BLUE(heartbeat = !heartbeat);
 }
 
+static uint64_t reboot_time;
+
+/**
+   schedule a reboot in time_delta_usec microseconds
+ */
+void schedule_reboot(uint32_t time_delta_usec)
+{
+    reboot_time = hrt_absolute_time() + time_delta_usec;
+}
+
+/**
+   check for a scheduled reboot
+ */
+static void check_reboot(void)
+{
+    if (reboot_time != 0 && hrt_absolute_time() > reboot_time) {
+        up_systemreset();
+    }
+}
 
 static void
 calculate_fw_crc(void)
@@ -248,6 +267,8 @@ user_start(int argc, char *argv[])
                     last_heartbeat_time = hrt_absolute_time();
                     heartbeat_blink();
                 }
+
+                check_reboot();
 
 #if 0
 		/* check for debug activity */

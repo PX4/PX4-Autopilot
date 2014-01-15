@@ -75,14 +75,15 @@ then
 	#
 	# Load microSD params
 	#
-	#if ramtron start
-	#then
-	#	param select /ramtron/params
-	#	if [ -f /ramtron/params ]
-	#	then
-	#		param load /ramtron/params
-	#	fi
-	#else
+	if mtd start
+	then
+		param select /fs/mtd_params
+		if param load /fs/mtd_params
+		then
+		else
+			echo "FAILED LOADING PARAMS"
+		fi
+	else
 		param select /fs/microsd/params
 		if [ -f /fs/microsd/params ]
 		then
@@ -93,7 +94,7 @@ then
 				echo "Parameter file corrupt - ignoring"
 			fi
 		fi
-	#fi
+	fi
 	
 	#
 	# Start system state indicator
@@ -213,7 +214,9 @@ then
 	#  7000	..	 7999		Hexa +
 	#  8000	..	 8999		Octo X
 	#  9000	..	 9999		Octo +
-	# 10000	..	19999		Wide arm / H frame
+	# 10000	..	10999		Wide arm / H frame
+	# 11000	..	11999		Hexa Cox
+	# 12000	..	12999		Octo Cox
 	
 	if param compare SYS_AUTOSTART 4008 8
 	then
@@ -274,6 +277,13 @@ then
 	if param compare SYS_AUTOSTART 9001
 	then
 		set MIXER /etc/mixers/FMU_octo_+.mix
+		sh /etc/init.d/rc.octo
+		set MODE custom
+	fi
+
+	if param compare SYS_AUTOSTART 12001
+	then
+		set MIXER /etc/mixers/FMU_octo_cox.mix
 		sh /etc/init.d/rc.octo
 		set MODE custom
 	fi

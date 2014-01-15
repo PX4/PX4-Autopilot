@@ -1,8 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Author: Stefan Rado <px4@sradonia.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,54 +33,19 @@
  ****************************************************************************/
 
 /**
- * @file commander_helper.h
- * Commander helper functions definitions
- */
-
-#ifndef COMMANDER_HELPER_H_
-#define COMMANDER_HELPER_H_
-
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <drivers/drv_rgbled.h>
-
-
-bool is_multirotor(const struct vehicle_status_s *current_status);
-bool is_rotary_wing(const struct vehicle_status_s *current_status);
-
-int buzzer_init(void);
-void buzzer_deinit(void);
-
-void tune_error(void);
-void tune_positive(void);
-void tune_neutral(void);
-void tune_negative(void);
-int tune_arm(void);
-int tune_low_bat(void);
-int tune_critical_bat(void);
-void tune_stop(void);
-int blink_msg_state();
-
-int led_init(void);
-void led_deinit(void);
-int led_toggle(int led);
-int led_on(int led);
-int led_off(int led);
-
-void rgbled_set_color(rgbled_color_t color);
-void rgbled_set_mode(rgbled_mode_t mode);
-void rgbled_set_pattern(rgbled_pattern_t *pattern);
-
-/**
- * Estimate remaining battery charge.
+ * @file frsky_data.h
+ * @author Stefan Rado <px4@sradonia.net>
  *
- * Use integral of current if battery capacity known (BAT_CAPACITY parameter set),
- * else use simple estimate based on voltage.
+ * FrSky telemetry implementation.
  *
- * @return the estimated remaining capacity in 0..1
  */
-float battery_remaining_estimate_voltage(float voltage, float discharged);
+#ifndef _FRSKY_DATA_H
+#define _FRSKY_DATA_H
 
-#endif /* COMMANDER_HELPER_H_ */
+// Public functions
+void frsky_init(void);
+void frsky_send_frame1(int uart);
+void frsky_send_frame2(int uart);
+void frsky_send_frame3(int uart);
+
+#endif /* _FRSKY_TELEMETRY_H */
