@@ -51,5 +51,6 @@ SRCS		 = err.c \
 		   mavlink_log.c \
 		   rc_check.c \
 		   otp.c \
-		   board_serial.c
+		   board_serial.c \
+		   pwm_limit/pwm_limit.c
 
