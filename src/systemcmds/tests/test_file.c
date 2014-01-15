@@ -54,7 +54,7 @@
 
 #include "tests.h"
 
-int check_user_abort(int fd);
+static int check_user_abort(int fd);
 
 int check_user_abort(int fd) {
 	/* check if user wants to abort */

@@ -30,4 +30,5 @@ SRCS			 = test_adc.c \
 			   test_ppm_loopback.c \
 			   test_rc.c \
 			   test_conv.cpp \
-			   test_mount.c
+			   test_mount.c \
+			   test_mtd.c
