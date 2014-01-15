@@ -108,9 +108,8 @@ int mtd_main(int argc, char *argv[])
 		if (!strcmp(argv[1], "start")) {
 
 			/* start mapping according to user request */
-			if (argc > 3) {
+			if (argc >= 3) {
 				mtd_start(argv + 2, argc - 2);
-
 			} else {
 				mtd_start(partition_names_default, n_partitions_default);
 			}
@@ -123,10 +122,11 @@ int mtd_main(int argc, char *argv[])
 			mtd_status();
 
 		if (!strcmp(argv[1], "erase")) {
-			if (argc < 3) {
-				errx(1, "usage: mtd erase <PARTITION_PATH..>");
+			if (argc >= 3) {
+				mtd_erase(argv + 2, argc - 2);
+			} else {
+				mtd_erase(partition_names_default, n_partitions_default);
 			}
-			mtd_erase(argv + 2, argc - 2);
                 }
 	}
 
