@@ -144,7 +144,7 @@ ramtron_attach(void)
 	/* find the right spi */
 	struct spi_dev_s *spi = up_spiinitialize(2);
 	/* this resets the spi bus, set correct bus speed again */
-	SPI_SETFREQUENCY(spi, 40 * 1000 * 1000);
+	SPI_SETFREQUENCY(spi, 10 * 1000 * 1000);
 	SPI_SETBITS(spi, 8);
 	SPI_SETMODE(spi, SPIDEV_MODE3);
 	SPI_SELECT(spi, SPIDEV_FLASH, false);
@@ -169,6 +169,10 @@ ramtron_attach(void)
 	/* if last attempt is still unsuccessful, abort */
 	if (mtd_dev == NULL)
 		errx(1, "failed to initialize mtd driver");
+
+	int ret = mtd_dev->ioctl(mtd_dev, MTDIOC_SETSPEED, (unsigned long)10*1000*1000);
+        if (ret != OK)
+            warnx(1, "failed to set bus speed");
 
 	attached = true;
 }
