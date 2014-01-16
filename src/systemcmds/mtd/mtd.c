@@ -89,6 +89,8 @@ static void	at24xxx_attach(void);
 static void	mtd_start(char *partition_names[], unsigned n_partitions);
 static void	mtd_test(void);
 static void	mtd_erase(char *partition_names[], unsigned n_partitions);
+static void	mtd_readtest(char *partition_names[], unsigned n_partitions);
+static void	mtd_rwtest(char *partition_names[], unsigned n_partitions);
 static void	mtd_print_info();
 static int	mtd_get_geometry(unsigned long *blocksize, unsigned long *erasesize, unsigned long *neraseblocks, 
 	unsigned *blkpererase, unsigned *nblocks, unsigned *partsize, unsigned n_partitions);
@@ -118,6 +120,22 @@ int mtd_main(int argc, char *argv[])
 		if (!strcmp(argv[1], "test"))
 			mtd_test();
 
+		if (!strcmp(argv[1], "readtest")) {
+			if (argc >= 3) {
+				mtd_readtest(argv + 2, argc - 2);
+			} else {
+				mtd_readtest(partition_names_default, n_partitions_default);
+			}
+                }
+
+		if (!strcmp(argv[1], "rwtest")) {
+			if (argc >= 3) {
+				mtd_rwtest(argv + 2, argc - 2);
+			} else {
+				mtd_rwtest(partition_names_default, n_partitions_default);
+			}
+                }
+
 		if (!strcmp(argv[1], "status"))
 			mtd_status();
 
@@ -130,7 +148,7 @@ int mtd_main(int argc, char *argv[])
                 }
 	}
 
-	errx(1, "expected a command, try 'start', 'erase' or 'test'");
+	errx(1, "expected a command, try 'start', 'erase', 'status', 'readtest', 'rwtest' or 'test'");
 }
 
 struct mtd_dev_s *ramtron_initialize(FAR struct spi_dev_s *dev);
@@ -318,6 +336,21 @@ int mtd_get_geometry(unsigned long *blocksize, unsigned long *erasesize, unsigne
 	return ret;
 }
 
+/*
+  get partition size in bytes
+ */
+static ssize_t mtd_get_partition_size(void)
+{
+	unsigned long blocksize, erasesize, neraseblocks;
+	unsigned blkpererase, nblocks, partsize = 0;
+
+	int ret = mtd_get_geometry(&blocksize, &erasesize, &neraseblocks, &blkpererase, &nblocks, &partsize, n_partitions_current);
+	if (ret != OK) {
+		errx(1, "Failed to get geometry");
+	}
+	return partsize;
+}
+
 void mtd_print_info()
 {
 	if (!attached)
@@ -370,12 +403,90 @@ mtd_erase(char *partition_names[], unsigned n_partitions)
 		if (fd == -1) {
 			errx(1, "Failed to open partition");
 		}
-		while (write(fd, &v, sizeof(v)) == sizeof(v)) {
+		while (write(fd, v, sizeof(v)) == sizeof(v)) {
 			count += sizeof(v);
 		}
 		printf("Erased %lu bytes\n", (unsigned long)count);
 		close(fd);
 	}
+	exit(0);
+}
+
+/*
+  readtest is useful during startup to validate the device is
+  responding on the bus. It relies on the driver returning an error on
+  bad reads (the ramtron driver does return an error)
+ */
+void
+mtd_readtest(char *partition_names[], unsigned n_partitions)
+{
+	ssize_t expected_size = mtd_get_partition_size();
+
+	uint8_t v[128];
+	for (uint8_t i = 0; i < n_partitions; i++) {
+		uint32_t count = 0;
+		printf("reading %s expecting %u bytes\n", partition_names[i], expected_size);
+		int fd = open(partition_names[i], O_RDONLY);
+		if (fd == -1) {
+			errx(1, "Failed to open partition");
+		}
+		while (read(fd, v, sizeof(v)) == sizeof(v)) {
+			count += sizeof(v);
+		}
+		if (count != expected_size) {
+			errx(1,"Failed to read partition - got %u/%u bytes", count, expected_size);
+		}
+		close(fd);
+	}
+	printf("readtest OK\n");
+	exit(0);
+}
+
+/*
+  rwtest is useful during startup to validate the device is
+  responding on the bus for both reads and writes. It reads data in
+  blocks and writes the data back, then reads it again, failing if the
+  data isn't the same
+ */
+void
+mtd_rwtest(char *partition_names[], unsigned n_partitions)
+{
+	ssize_t expected_size = mtd_get_partition_size();
+
+	uint8_t v[128], v2[128];
+	for (uint8_t i = 0; i < n_partitions; i++) {
+		uint32_t count = 0;
+                off_t offset = 0;
+		printf("rwtest %s testing %u bytes\n", partition_names[i], expected_size);
+		int fd = open(partition_names[i], O_RDWR);
+		if (fd == -1) {
+			errx(1, "Failed to open partition");
+		}
+		while (read(fd, v, sizeof(v)) == sizeof(v)) {
+			count += sizeof(v);
+                        if (lseek(fd, offset, SEEK_SET) != offset) {
+                            errx(1, "seek failed");                            
+                        }
+                        if (write(fd, v, sizeof(v)) != sizeof(v)) {
+                            errx(1, "write failed");
+                        }
+                        if (lseek(fd, offset, SEEK_SET) != offset) {
+                            errx(1, "seek failed");                            
+                        }
+                        if (read(fd, v2, sizeof(v2)) != sizeof(v2)) {
+                            errx(1, "read failed");
+                        }
+                        if (memcmp(v, v2, sizeof(v2)) != 0) {
+                            errx(1, "memcmp failed");
+                        }
+                        offset += sizeof(v);
+		}
+		if (count != expected_size) {
+			errx(1,"Failed to read partition - got %u/%u bytes", count, expected_size);
+		}
+		close(fd);
+	}
+	printf("rwtest OK\n");
 	exit(0);
 }
 
