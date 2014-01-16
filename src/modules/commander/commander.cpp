@@ -154,6 +154,16 @@ static bool on_usb_power = false;
 
 static float takeoff_alt = 5.0f;
 
+static struct vehicle_status_s status;
+
+/* armed topic */
+static struct actuator_armed_s armed;
+
+static struct safety_s safety;
+
+/* flags for control apps */
+struct vehicle_control_mode_s control_mode;
+
 /* tasks waiting for low prio thread */
 typedef enum {
 	LOW_PRIO_TASK_NONE = 0,
@@ -209,6 +219,9 @@ void print_reject_mode(const char *msg);
 void print_reject_arm(const char *msg);
 
 void print_status();
+
+int arm();
+int disarm();
 
 transition_result_t check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_control_mode_s *control_mode, struct vehicle_local_position_s *local_pos);
 
@@ -274,6 +287,16 @@ int commander_main(int argc, char *argv[])
 			warnx("\tcommander not started");
 		}
 
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "arm")) {
+		arm();
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "disarm")) {
+		disarm();
 		exit(0);
 	}
 
@@ -343,6 +366,30 @@ void print_status()
 
 static orb_advert_t control_mode_pub;
 static orb_advert_t status_pub;
+
+int arm()
+{
+	int arming_res = arming_state_transition(&status, &safety, &control_mode, ARMING_STATE_ARMED, &armed);
+
+	if (arming_res == TRANSITION_CHANGED) {
+		mavlink_log_info(mavlink_fd, "[cmd] ARMED by commandline");
+		return 0;
+	} else {
+		return 1;
+	}
+}
+
+int disarm()
+{
+	int arming_res = arming_state_transition(&status, &safety, &control_mode, ARMING_STATE_STANDBY, &armed);
+
+	if (arming_res == TRANSITION_CHANGED) {
+		mavlink_log_info(mavlink_fd, "[cmd] ARMED by commandline");
+		return 0;
+	} else {
+		return 1;
+	}
+}
 
 void handle_command(struct vehicle_status_s *status, const struct safety_s *safety, struct vehicle_control_mode_s *control_mode, struct vehicle_command_s *cmd, struct actuator_armed_s *armed)
 {
@@ -536,16 +583,6 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 	}
 
 }
-
-static struct vehicle_status_s status;
-
-/* armed topic */
-static struct actuator_armed_s armed;
-
-static struct safety_s safety;
-
-/* flags for control apps */
-struct vehicle_control_mode_s control_mode;
 
 int commander_thread_main(int argc, char *argv[])
 {
