@@ -213,6 +213,7 @@ private:
 	math::Matrix	_board_rotation;		/**< rotation matrix for the orientation that the board is mounted */
 	math::Matrix	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
 	bool		_mag_is_external;		/**< true if the active mag is on an external board */
+	float		actual_temp;			/**< temperature holder for mag tem drift since hmc does not measure temp*/
 
 	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
 	hrt_abstime _battery_current_timestamp;	/**< timestamp of last battery current reading */
@@ -942,7 +943,19 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		raw.accelerometer_raw[0] = accel_report.x_raw;
 		raw.accelerometer_raw[1] = accel_report.y_raw;
 		raw.accelerometer_raw[2] = accel_report.z_raw;
-
+		float temp2 = accel_report.temperature*accel_report.temperature;
+		actual_temp = accel_report.temperature;
+		
+		/* Temperature dependent bias removal */
+		if (raw.accelerometer_counter == 0) {
+			raw.accelerometer_m_s2[0] -= (0.0022f*temp2 -0.1515*accel_report.temperature + 2.4136f);
+			raw.accelerometer_m_s2[1] -= (0.0012f*temp2 - 0.0779*accel_report.temperature + 1.0254f);
+			raw.accelerometer_m_s2[2] -= (-0.0013f *temp2 + 0.0751f*accel_report.temperature - 1.4120f);
+		} else {
+			raw.accelerometer_m_s2[0] -= (0.000002009740357f*accel_report.temperature*temp2  -0.000147643961232f*temp2   +0.004931806802857f*accel_report.temperature  -0.190058191137731f);
+			raw.accelerometer_m_s2[1] -= (0.000000397675415f*accel_report.temperature*temp2  -0.000001592520660f*temp2  -0.000287706047319f*accel_report.temperature  -0.274821944505745f);
+			raw.accelerometer_m_s2[2] -= (0.000000776703550f*accel_report.temperature*temp2 + 0.000207068934906f*temp2  -0.025617446487848*accel_report.temperature  + 0.167558012554972f);
+		}
 		raw.accelerometer_counter++;
 	}
 }
@@ -968,6 +981,17 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		raw.gyro_raw[0] = gyro_report.x_raw;
 		raw.gyro_raw[1] = gyro_report.y_raw;
 		raw.gyro_raw[2] = gyro_report.z_raw;
+		/* Temperature dependent bias removal */
+		float temp2 = gyro_report.temperature*gyro_report.temperature;
+		if (raw.gyro_counter == 0) {
+			raw.gyro_rad_s[0] -= (0.000055425930400f*temp2 -0.004075956154366f*gyro_report.temperature + 0.085366219514962f);
+			raw.gyro_rad_s[1] -= (-0.000005567674036f*temp2 + 0.000839702932195f*gyro_report.temperature - 0.065739035349845f);
+			raw.gyro_rad_s[2] -= (-0.000073464814027f*temp2 + 0.004924881192685f*gyro_report.temperature - 0.084499780869753f);
+		} else {
+			raw.gyro_rad_s[0] -= (0.000000062570231f*gyro_report.temperature*temp2 - 0.000001799339758f*temp2  -0.000024029790236f*gyro_report.temperature + 0.016591361977959f);
+			raw.gyro_rad_s[1] -= (-0.000000123381945f*gyro_report.temperature*temp2 + 0.000009671574216f*temp2 +   0.000218825643111f*gyro_report.temperature  -0.056303070040114);
+			raw.gyro_rad_s[2] -= (0.000000175604451f*gyro_report.temperature*temp2 - 0.000013530233594f*temp2 +   0.000035242897428f*gyro_report.temperature + 0.004631857778054f); 
+		}
 
 		raw.gyro_counter++;
 	}
@@ -999,6 +1023,17 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 		raw.magnetometer_raw[1] = mag_report.y_raw;
 		raw.magnetometer_raw[2] = mag_report.z_raw;
 
+		/* Temperature dependent bias removal */
+		float temp2 = actual_temp*actual_temp;
+		if (raw.magnetometer_counter == 0) {
+			raw.magnetometer_ga[0] -= (-0.000236015442842f*temp2 + 0.015569319291120f*actual_temp - 0.123382312678398f);
+			raw.magnetometer_ga[1] -= (0.000043553379846f*temp2 - 0.002197575815649f*actual_temp - 0.139263537446551f);
+			raw.magnetometer_ga[2] -= (0.000220090700604f*temp2 - 0.015844240839318f*actual_temp + 0.649187231827989f);
+		} else {
+			raw.magnetometer_ga[0] -= (0.000000203700897f*actual_temp*temp2 - 0.000005315748064f*temp2  -0.000896600935799f*actual_temp + 0.227371902164616f);
+	  		raw.magnetometer_ga[1] -= (-0.000000025283904f*actual_temp*temp2 - 0.000002915329599f*temp2 + 0.000335201580725f*actual_temp  -0.020057623998944f);
+	   		raw.magnetometer_ga[2] -= (0.000000008343298f*actual_temp*temp2 + 0.000006474392606f*temp2  -0.001472204076163f*actual_temp + 0.404222196533657f); 
+		}
 		raw.magnetometer_counter++;
 	}
 }

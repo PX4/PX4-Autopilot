@@ -1293,7 +1293,8 @@ MPU6000::measure()
 	grb.x = _gyro_filter_x.apply(x_gyro_in_new);
 	grb.y = _gyro_filter_y.apply(y_gyro_in_new);
 	grb.z = _gyro_filter_z.apply(z_gyro_in_new);
-
+	//float tmpmoses = 67.897f; //671.0f/361.0f + 35.0f;
+//printf("gyro is %2.3f %2.3f\n",9.23f,87.45f);
 	grb.scaling = _gyro_range_scale;
 	grb.range_rad_s = _gyro_range_rad_s;
 
