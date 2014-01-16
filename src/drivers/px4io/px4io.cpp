@@ -76,6 +76,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/safety.h>
+#include <uORB/topics/rc_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/rc_channels.h>
@@ -252,6 +253,7 @@ private:
 	/* cached IO state */
 	uint16_t		_status;		///< Various IO status flags
 	uint16_t		_alarms;		///< Various IO alarms
+	uint16_t		_rc_lost_frames;	///<lost RC frame counter
 
 	/* subscribed topics */
 	int			_t_actuator_controls_0;	///< actuator controls group 0 topic
@@ -269,6 +271,7 @@ private:
 	orb_advert_t		_to_battery;		///< battery status / voltage
 	orb_advert_t		_to_servorail;		///< servorail status
 	orb_advert_t		_to_safety;		///< status of safety
+	orb_advert_t		_to_rc_status;		///< rc status
 
 	actuator_outputs_s	_outputs;		///<mixed outputs
 
@@ -475,6 +478,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_perf_chan_count(perf_alloc(PC_COUNT, "io rc #")),
 	_status(0),
 	_alarms(0),
+	_rc_lost_frames(0),
 	_t_actuator_controls_0(-1),
 	_t_actuator_controls_1(-1),
 	_t_actuator_controls_2(-1),
@@ -488,6 +492,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_to_battery(0),
 	_to_servorail(0),
 	_to_safety(0),
+	_to_rc_status(0),
 	_primary_pwm_device(false),
 	_battery_amp_per_volt(90.0f / 5.0f), // this matches the 3DR current sensor
 	_battery_amp_bias(0),
@@ -1234,7 +1239,8 @@ PX4IO::io_handle_status(uint16_t status)
 	 * Get and handle the safety status
 	 */
 	struct safety_s safety;
-	safety.timestamp = hrt_absolute_time();
+	uint64_t ts = hrt_absolute_time();
+	safety.timestamp = ts;
 
 	if (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
 		safety.safety_off = true;
@@ -1252,6 +1258,26 @@ PX4IO::io_handle_status(uint16_t status)
 	} else {
 		_to_safety = orb_advertise(ORB_ID(safety), &safety);
 	}
+
+
+	/**
+	 * Check RC status updates
+	 */
+	if (status & PX4IO_P_STATUS_FLAGS_RC_FRAME_LOST)
+		_rc_lost_frames++;
+
+	struct rc_status_s rc_status;
+	rc_status.timestamp = ts;
+	rc_status.rc_failsafe = status & PX4IO_P_STATUS_FLAGS_RC_FAILSAFE;
+	rc_status.rc_lost = !(status & PX4IO_P_STATUS_FLAGS_RC_OK);
+	rc_status.rc_lost_frames = _rc_lost_frames;
+
+        if (_to_rc_status > 0) {
+                orb_publish(ORB_ID(rc_status), _to_rc_status, &rc_status);
+
+        } else {
+                _to_rc_status = orb_advertise(ORB_ID(rc_status), &rc_status);
+        }
 
 	return ret;
 }
@@ -1279,7 +1305,6 @@ PX4IO::io_handle_alarms(uint16_t alarms)
 {
 
 	/* XXX handle alarms */
-
 
 	/* set new alarms state */
 	_alarms = alarms;
@@ -1740,6 +1765,8 @@ PX4IO::print_status()
 	       ((flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ? " SAFETY_OFF" : " SAFETY_SAFE"),
 	       ((flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? " OVERRIDE" : ""),
 	       ((flags & PX4IO_P_STATUS_FLAGS_RC_OK)    ? " RC_OK" : " RC_FAIL"),
+	       ((flags & PX4IO_P_STATUS_FLAGS_RC_FAILSAFE) ? " RC_FAILSAFE" : ""),
+	       ((flags & PX4IO_P_STATUS_FLAGS_RC_FRAME_LOST) ? " RC_FRAME_LOST" : ""),
 	       ((flags & PX4IO_P_STATUS_FLAGS_RC_PPM)   ? " PPM" : ""),
 	       (((flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (!(flags & PX4IO_P_STATUS_FLAGS_RC_DSM11))) ? " DSM10" : ""),
 	       (((flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (flags & PX4IO_P_STATUS_FLAGS_RC_DSM11)) ? " DSM11" : ""),
@@ -1800,6 +1827,9 @@ PX4IO::print_status()
 		printf(" %u", io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE + i));
 
 	printf("\n");
+
+	if (_rc_lost_frames)
+		printf("WARNING! %u lost RC frames\n", _rc_lost_frames);
 
 	if (raw_inputs > 0) {
 		int frame_len = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_RC_DATA);

@@ -112,6 +112,8 @@
 #define PX4IO_P_STATUS_FLAGS_FAILSAFE		(1 << 11) /* failsafe is active */
 #define PX4IO_P_STATUS_FLAGS_SAFETY_OFF		(1 << 12) /* safety is off */
 #define PX4IO_P_STATUS_FLAGS_RC_DSM11		(1 << 13) /* DSM input is 11 bit data */
+#define PX4IO_P_STATUS_FLAGS_RC_FRAME_LOST	(1 << 14) /* Lost frame detected */
+#define PX4IO_P_STATUS_FLAGS_RC_FAILSAFE	(1 << 15) /* Failsafe detected (RC input is still valid) */
 
 #define PX4IO_P_STATUS_ALARMS			3	 /* alarm flags - alarms latch, write 1 to a bit to clear it */
 #define PX4IO_P_STATUS_ALARMS_VBATT_LOW		(1 << 0) /* [1] VBatt is very close to regulator dropout */
@@ -122,6 +124,7 @@
 #define PX4IO_P_STATUS_ALARMS_RC_LOST		(1 << 5) /* timed out waiting for RC input */
 #define PX4IO_P_STATUS_ALARMS_PWM_ERROR		(1 << 6) /* PWM configuration or output was bad */
 #define PX4IO_P_STATUS_ALARMS_VSERVO_FAULT	(1 << 7) /* [2] VServo was out of the valid range (2.5 - 5.5 V) */
+#define PX4IO_P_STATUS_ALARMS_RC_WEAK		(1 << 8) /* encountered lost frames or failsafes */
 
 #define PX4IO_P_STATUS_VBATT			4	/* [1] battery voltage in mV */
 #define PX4IO_P_STATUS_IBATT			5	/* [1] battery current (raw ADC) */
