@@ -180,117 +180,27 @@ test_mtd(int argc, char *argv[])
 
 		}
 
+
 		close(fd);
 
 		printf("RESULT: OK! No readback errors.\n\n");
-
-		// /*
-		//  * ALIGNED WRITES AND UNALIGNED READS
-		//  */
-
-		
-		// fd = open(PARAM_FILE_NAME, O_WRONLY);
-
-		// warnx("testing aligned writes - please wait.. (CTRL^C to abort)");
-
-		// start = hrt_absolute_time();
-		// for (unsigned i = 0; i < iterations; i++) {
-		// 	int wret = write(fd, write_buf, chunk_sizes[c]);
-
-		// 	if (wret != chunk_sizes[c]) {
-		// 		warnx("WRITE ERROR!");
-		// 		return 1;
-		// 	}
-
-		// 	if (!check_user_abort(fd))
-		// 		return OK;
-
-		// }
-
-		// fsync(fd);
-
-		// warnx("reading data aligned..");
-
-		// close(fd);
-		// fd = open(PARAM_FILE_NAME, O_RDONLY);
-
-		// bool align_read_ok = true;
-
-		// /* read back data unaligned */
-		// for (unsigned i = 0; i < iterations; i++) {
-		// 	int rret = read(fd, read_buf, chunk_sizes[c]);
-
-		// 	if (rret != chunk_sizes[c]) {
-		// 		warnx("READ ERROR!");
-		// 		return 1;
-		// 	}
-			
-		// 	/* compare value */
-		// 	bool compare_ok = true;
-
-		// 	for (int j = 0; j < chunk_sizes[c]; j++) {
-		// 		if (read_buf[j] != write_buf[j]) {
-		// 			warnx("COMPARISON ERROR: byte %d: %u != %u", j, (unsigned int)read_buf[j], (unsigned int)write_buf[j]);
-		// 			align_read_ok = false;
-		// 			break;
-		// 		}
-
-		// 		if (!check_user_abort(fd))
-		// 			return OK;
-		// 	}
-
-		// 	if (!align_read_ok) {
-		// 		warnx("ABORTING FURTHER COMPARISON DUE TO ERROR");
-		// 		return 1;
-		// 	}
-
-		// }
-
-		// warnx("align read result: %s\n", (align_read_ok) ? "OK" : "ERROR");
-
-		// warnx("reading data unaligned..");
-
-		// close(fd);
-		// fd = open(PARAM_FILE_NAME, O_RDONLY);
-
-		// bool unalign_read_ok = true;
-		// int unalign_read_err_count = 0;
-
-		// memset(read_buf, 0, sizeof(read_buf));
-
-		// /* read back data unaligned */
-		// for (unsigned i = 0; i < iterations; i++) {
-		// 	int rret = read(fd, read_buf + a, chunk_sizes[c]);
-
-		// 	if (rret != chunk_sizes[c]) {
-		// 		warnx("READ ERROR!");
-		// 		return 1;
-		// 	}
-
-		// 	for (int j = 0; j < chunk_sizes[c]; j++) {
-
-		// 		if ((read_buf + a)[j] != write_buf[j]) {
-		// 			warnx("COMPARISON ERROR: byte %d, align shift: %d: %u != %u", j, a, (unsigned int)read_buf[j + a], (unsigned int)write_buf[j]);
-		// 			unalign_read_ok = false;
-		// 			unalign_read_err_count++;
-					
-		// 			if (unalign_read_err_count > 10)
-		// 				break;
-		// 		}
-
-		// 		if (!check_user_abort(fd))
-		// 			return OK;
-		// 	}
-
-		// 	if (!unalign_read_ok) {
-		// 		warnx("ABORTING FURTHER COMPARISON DUE TO ERROR");
-		// 		return 1;
-		// 	}
-
-		// }
-
-		// close(fd);
 	}
+
+	/* fill the file with 0xFF to make it look new again */
+	char ffbuf[64];
+	memset(ffbuf, 0xFF, sizeof(ffbuf));
+	int fd = open(PARAM_FILE_NAME, O_WRONLY);
+	for (int i = 0; i < file_size / sizeof(ffbuf); i++) {
+		int ret = write(fd, ffbuf, sizeof(ffbuf));
+
+		if (ret) {
+			warnx("ERROR! Could not fill file with 0xFF");
+			close(fd);
+			return 1;
+		}
+	}
+
+	(void)close(fd);
 
 	return 0;
 }
