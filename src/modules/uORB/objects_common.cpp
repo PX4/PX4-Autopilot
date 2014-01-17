@@ -84,9 +84,6 @@ ORB_DEFINE(vehicle_status, struct vehicle_status_s);
 #include "topics/safety.h"
 ORB_DEFINE(safety, struct safety_s);
 
-#include "topics/rc_status.h"
-ORB_DEFINE(rc_status, struct rc_status_s);
-
 #include "topics/battery_status.h"
 ORB_DEFINE(battery_status, struct battery_status_s);
 

@@ -76,7 +76,6 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/safety.h>
-#include <uORB/topics/rc_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/rc_channels.h>
@@ -335,6 +334,15 @@ private:
 	 * @return		OK if data was returned.
 	 */
 	int			io_get_raw_rc_input(rc_input_values &input_rc);
+
+	/**
+	 * Fetch RC status from IO.
+	 *
+	 * @param input_rc	Input structure to populate.
+	 * @param status	current status word
+	 * @return		OK if not RC_LOST
+	 */
+	int			io_get_raw_rc_status(rc_input_values &input_rc, uint16_t status);
 
 	/**
 	 * Fetch and publish raw RC input data.
@@ -1259,26 +1267,6 @@ PX4IO::io_handle_status(uint16_t status)
 		_to_safety = orb_advertise(ORB_ID(safety), &safety);
 	}
 
-
-	/**
-	 * Check RC status updates
-	 */
-	if (status & PX4IO_P_STATUS_FLAGS_RC_FRAME_LOST)
-		_rc_lost_frames++;
-
-	struct rc_status_s rc_status;
-	rc_status.timestamp = ts;
-	rc_status.rc_failsafe = status & PX4IO_P_STATUS_FLAGS_RC_FAILSAFE;
-	rc_status.rc_lost = !(status & PX4IO_P_STATUS_FLAGS_RC_OK);
-	rc_status.rc_lost_frames = _rc_lost_frames;
-
-        if (_to_rc_status > 0) {
-                orb_publish(ORB_ID(rc_status), _to_rc_status, &rc_status);
-
-        } else {
-                _to_rc_status = orb_advertise(ORB_ID(rc_status), &rc_status);
-        }
-
 	return ret;
 }
 
@@ -1446,33 +1434,50 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 }
 
 int
+PX4IO::io_get_raw_rc_status(rc_input_values &input_rc, uint16_t status)
+{
+	if (status & PX4IO_P_STATUS_FLAGS_RC_FRAME_LOST) {
+		/* count lost frames, skip 0 on overflow */
+		_rc_lost_frames++;
+		if (!_rc_lost_frames)
+			_rc_lost_frames++;
+	}
+
+	input_rc.timestamp_link_state = hrt_absolute_time();
+
+	input_rc.rc_failsafe = status & PX4IO_P_STATUS_FLAGS_RC_FAILSAFE;
+	input_rc.rc_lost = !(status & PX4IO_P_STATUS_FLAGS_RC_OK);
+	input_rc.rc_lost_frames = _rc_lost_frames;
+
+	return !input_rc.rc_lost ? OK : -EINVAL;
+}
+
+int
 PX4IO::io_publish_raw_rc()
 {
-	/* if no raw RC, just don't publish */
-	if (!(_status & PX4IO_P_STATUS_FLAGS_RC_OK))
-		return OK;
+	/* remember the last values (including timestamp), perhaps we wont get some new soon  */
+	static rc_input_values	rc_val;
 
-	/* fetch values from IO */
-	rc_input_values	rc_val;
-	rc_val.timestamp = hrt_absolute_time();
+	/* update rc status, return if not OK (possibly lost contact to PX4IO) */
+	int ret = io_get_raw_rc_status(rc_val, _status);
 
-	int ret = io_get_raw_rc_input(rc_val);
+	/* fetch values from IO only if not RC_LOST, otherwise keep values and timestamp */
+	if (ret == OK) {
+		io_get_raw_rc_input(rc_val);
 
-	if (ret != OK)
-		return ret;
+		/* sort out the source of the values */
+		if (_status & PX4IO_P_STATUS_FLAGS_RC_PPM) {
+			rc_val.input_source = RC_INPUT_SOURCE_PX4IO_PPM;
 
-	/* sort out the source of the values */
-	if (_status & PX4IO_P_STATUS_FLAGS_RC_PPM) {
-		rc_val.input_source = RC_INPUT_SOURCE_PX4IO_PPM;
+		} else if (_status & PX4IO_P_STATUS_FLAGS_RC_DSM) {
+			rc_val.input_source = RC_INPUT_SOURCE_PX4IO_SPEKTRUM;
 
-	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_DSM) {
-		rc_val.input_source = RC_INPUT_SOURCE_PX4IO_SPEKTRUM;
+		} else if (_status & PX4IO_P_STATUS_FLAGS_RC_SBUS) {
+			rc_val.input_source = RC_INPUT_SOURCE_PX4IO_SBUS;
 
-	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_SBUS) {
-		rc_val.input_source = RC_INPUT_SOURCE_PX4IO_SBUS;
-
-	} else {
-		rc_val.input_source = RC_INPUT_SOURCE_UNKNOWN;
+		} else {
+			rc_val.input_source = RC_INPUT_SOURCE_UNKNOWN;
+		}
 	}
 
 	/* lazily advertise on first publication */

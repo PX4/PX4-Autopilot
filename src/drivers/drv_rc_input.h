@@ -83,14 +83,35 @@ enum RC_INPUT_SOURCE {
  * on the board involved.
  */
 struct rc_input_values {
-	/** decoding time */
-	uint64_t		timestamp;
+	/** last frame received from RC receiver */
+//	uint64_t		timestamp_values_received;
+	uint64_t		timestamp; // @TODO: change name!!!
+
+	/** last check for a new RC frame and link status flags update */
+	uint16_t		timestamp_link_state;
 
 	/** number of channels actually being seen */
 	uint32_t		channel_count;
 
 	/** receive signal strength indicator (RSSI): < 0: Undefined, 0: no signal, 255: full reception */
 	int32_t			rssi;
+
+	/**
+	 * explicit failsafe flag: true on TX failure or TX out of range , false otherwise.
+	 * Only the true state is reliable, as there are some (PPM) receivers on the market going
+	 * into failsafe without telling us explicitly.
+	 * */
+	bool			rc_failsafe;
+
+	/**
+	 * RC receiver connection status: True,if no frame has arrived in the expected time, false otherwise.
+	 * True usally means that the receiver has been disconnected, but can also indicate a radio link loss on "stupid" systems.
+	 * Will remain false, if a RX with failsafe option continues to transmit frames after a link loss.
+	 * */
+	bool			rc_lost;
+
+	/** lost frame counter: incremented on every missed frame, either by frame timeout or by explicit information contained in the frame */
+	uint16_t		rc_lost_frames;
 
 	/** Input source */
 	enum RC_INPUT_SOURCE 	input_source;
