@@ -42,8 +42,7 @@ MODULES		+= modules/sensors
 #
 # System commands
 #
-MODULES		+= systemcmds/eeprom
-MODULES		+= systemcmds/ramtron
+MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/bl_update
 MODULES		+= systemcmds/boardinfo
 MODULES		+= systemcmds/i2c

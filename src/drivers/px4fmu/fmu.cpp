@@ -1108,10 +1108,12 @@ PX4FMU::sensor_reset(int ms)
 	stm32_configgpio(GPIO_SPI_CS_GYRO_OFF);
 	stm32_configgpio(GPIO_SPI_CS_ACCEL_MAG_OFF);
 	stm32_configgpio(GPIO_SPI_CS_BARO_OFF);
+	stm32_configgpio(GPIO_SPI_CS_MPU_OFF);
 
 	stm32_gpiowrite(GPIO_SPI_CS_GYRO_OFF, 0);
 	stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG_OFF, 0);
 	stm32_gpiowrite(GPIO_SPI_CS_BARO_OFF, 0);
+	stm32_gpiowrite(GPIO_SPI_CS_MPU_OFF, 0);
 
 	stm32_configgpio(GPIO_SPI1_SCK_OFF);
 	stm32_configgpio(GPIO_SPI1_MISO_OFF);
@@ -1124,10 +1126,12 @@ PX4FMU::sensor_reset(int ms)
 	stm32_configgpio(GPIO_GYRO_DRDY_OFF);
 	stm32_configgpio(GPIO_MAG_DRDY_OFF);
 	stm32_configgpio(GPIO_ACCEL_DRDY_OFF);
+	stm32_configgpio(GPIO_EXTI_MPU_DRDY_OFF);
 
 	stm32_gpiowrite(GPIO_GYRO_DRDY_OFF, 0);
 	stm32_gpiowrite(GPIO_MAG_DRDY_OFF, 0);
 	stm32_gpiowrite(GPIO_ACCEL_DRDY_OFF, 0);
+	stm32_gpiowrite(GPIO_EXTI_MPU_DRDY_OFF, 0);
 
 	/* set the sensor rail off */
 	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
@@ -1160,6 +1164,13 @@ PX4FMU::sensor_reset(int ms)
 	stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
 	stm32_gpiowrite(GPIO_SPI_CS_BARO, 1);
 	stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);
+
+	// // XXX bring up the EXTI pins again
+	// stm32_configgpio(GPIO_GYRO_DRDY);
+	// stm32_configgpio(GPIO_MAG_DRDY);
+	// stm32_configgpio(GPIO_ACCEL_DRDY);
+	// stm32_configgpio(GPIO_EXTI_MPU_DRDY);
+
 #endif
 #endif
 }

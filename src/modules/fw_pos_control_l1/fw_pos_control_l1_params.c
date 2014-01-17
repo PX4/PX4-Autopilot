@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,21 +48,75 @@
  *
  */
 
+/**
+ * L1 period
+ *
+ * This is the L1 distance and defines the tracking
+ * point ahead of the aircraft its following.
+ * A value of 25 meters works for most aircraft. Shorten
+ * slowly during tuning until response is sharp without oscillation.
+ *
+ * @min 1.0
+ * @max 100.0
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 25.0f);
 
-
+/**
+ * L1 damping
+ *
+ * Damping factor for L1 control.
+ *
+ * @min 0.6
+ * @max 0.9
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
 
-
+/**
+ * Default Loiter Radius
+ *
+ * This radius is used when no other loiter radius is set.
+ *
+ * @min 10.0
+ * @max 100.0
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_LOITER_R, 50.0f);
 
-
+/**
+ * Cruise throttle
+ *
+ * This is the throttle setting required to achieve the desired cruise speed. Most airframes have a value of 0.5-0.7.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.7f);
 
-
+/**
+ * Negative pitch limit
+ *
+ * The minimum negative pitch the controller will output.
+ *
+ * @unit degrees
+ * @min -60.0
+ * @max 0.0
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -45.0f);
 
-
+/**
+ * Positive pitch limit
+ *
+ * The maximum positive pitch the controller will output.
+ *
+ * @unit degrees
+ * @min 0.0
+ * @max 60.0
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 45.0f);
 
 

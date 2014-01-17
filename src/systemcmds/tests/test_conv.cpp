@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,47 +32,45 @@
  ****************************************************************************/
 
 /**
- * @file pwm_limit.h
+ * @file test_conv.cpp
+ * Tests conversions used across the system.
  *
- * Lib to limit PWM output
- *
- * @author Julian Oes <joes@student.ethz.ch>
  */
 
-#ifndef PWM_LIMIT_H_
-#define PWM_LIMIT_H_
+#include <nuttx/config.h>
 
-#include <stdint.h>
-#include <stdbool.h>
+#include <sys/types.h>
 
-__BEGIN_DECLS
+#include <stdio.h>
+#include <poll.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
 
-/*
- * time for the ESCs to initialize
- * (this is not actually needed if PWM is sent right after boot)
- */
-#define INIT_TIME_US 500000
-/*
- * time to slowly ramp up the ESCs
- */
-#define RAMP_TIME_US 2500000
+#include "tests.h"
 
-enum pwm_limit_state {
-	PWM_LIMIT_STATE_OFF = 0,
-	PWM_LIMIT_STATE_INIT,
-	PWM_LIMIT_STATE_RAMP,
-	PWM_LIMIT_STATE_ON
-};
+#include <math.h>
+#include <float.h>
 
-typedef struct {
-	enum pwm_limit_state state;
-	uint64_t time_armed;
-} pwm_limit_t;
+#include <systemlib/err.h>
+#include <unit_test/unit_test.h>
+#include <px4iofirmware/protocol.h>
 
-__EXPORT void pwm_limit_init(pwm_limit_t *limit);
+int test_conv(int argc, char *argv[])
+{
+	warnx("Testing system conversions");
 
-__EXPORT void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_t *disarmed_pwm, const uint16_t *min_pwm, const uint16_t *max_pwm, const float *output, uint16_t *effective_pwm, pwm_limit_t *limit);
+	for (int i = -10000; i <= 10000; i+=1) {
+		float f = i/10000.0f;
+		float fres = REG_TO_FLOAT(FLOAT_TO_REG(f));
+		if (fabsf(f - fres) > 0.0001f) {
+			warnx("conversion fail: input: %8.4f, intermediate: %d, result: %8.4f", f, REG_TO_SIGNED(FLOAT_TO_REG(f)), fres);
+			return 1;
+		}
+	}
 
-__END_DECLS
+	warnx("All conversions clean");
 
-#endif /* PWM_LIMIT_H_ */
+	return 0;
+}

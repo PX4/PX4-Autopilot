@@ -148,8 +148,6 @@ struct log_STAT_s {
 	uint8_t main_state;
 	uint8_t navigation_state;
 	uint8_t arming_state;
-	float battery_voltage;
-	float battery_current;
 	float battery_remaining;
 	uint8_t battery_warning;
 	uint8_t landed;
@@ -247,6 +245,15 @@ struct log_GVSP_s {
 	float vz;
 };
 
+/* --- BATT - BATTERY --- */
+#define LOG_BATT_MSG 20
+struct log_BATT_s {
+	float voltage;
+	float voltage_filtered;
+	float current;
+	float discharged;
+};
+
 /* --- TIME - TIME STAMP --- */
 #define LOG_TIME_MSG 129
 struct log_TIME_s {
@@ -280,7 +287,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(LPSP, "ffff", "X,Y,Z,Yaw"),
 	LOG_FORMAT(GPS, "QBffLLfffff", "GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
 	LOG_FORMAT(ATTC, "ffff", "Roll,Pitch,Yaw,Thrust"),
-	LOG_FORMAT(STAT, "BBBfffBB", "MainState,NavState,ArmState,BatV,BatC,BatRem,BatWarn,Landed"),
+	LOG_FORMAT(STAT, "BBBfBB", "MainState,NavState,ArmState,BatRem,BatWarn,Landed"),
 	LOG_FORMAT(RC, "ffffffffB", "Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,Count"),
 	LOG_FORMAT(OUT0, "ffffffff", "Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 	LOG_FORMAT(AIRS, "ff", "IndSpeed,TrueSpeed"),
@@ -290,6 +297,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPSP, "BLLffBfbfff", "AltRel,Lat,Lon,Alt,Yaw,NavCmd,LoitR,LoitDir,AccR,TimeIn,PitMin"),
 	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
+	LOG_FORMAT(BATT, "ffff", "V,VFilt,C,Discharged"),
 	/* system-level messages, ID >= 0x80 */
 	// FMT: don't write format of format message, it's useless
 	LOG_FORMAT(TIME, "Q", "StartTime"),
