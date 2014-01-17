@@ -241,6 +241,7 @@ then
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
+		set FMU_MODE serial
 	else
 		# Try to get an USB console if not in HIL mode
 		nshterm /dev/ttyACM0 &
@@ -373,6 +374,7 @@ then
 	
 	if [ $HIL == yes ]
 	then
+		sleep 1
 		mavlink start -b 230400 -d /dev/ttyACM0 
 		usleep 5000
 	else
