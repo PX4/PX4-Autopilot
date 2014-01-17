@@ -75,12 +75,9 @@ then
 	# Load parameters
 	#
 	set PARAM_FILE /fs/microsd/params
-	if hw_ver compare PX4FMU_V2
+	if mtd start
 	then
-		if mtd start
-		then
-			set PARAM_FILE /fs/mtd_params
-		fi
+		set PARAM_FILE /fs/mtd_params
 	fi
 	
 	param select $PARAM_FILE
