@@ -392,6 +392,16 @@ then
 	fi
 	
 	#
+	# Start the datamanager
+	#
+	dataman start
+	
+	#
+	# Start the navigator
+	#
+	navigator start
+	
+	#
 	# Sensors, Logging, GPS
 	#
 	echo "[init] Start sensors"
