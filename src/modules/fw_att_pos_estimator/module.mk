@@ -39,4 +39,4 @@ MODULE_COMMAND	= fw_att_pos_estimator
 
 SRCS		= fw_att_pos_estimator_main.cpp \
 		  fw_att_pos_estimator_params.c \
-		  ../../../../InertialNav/code/estimator.cpp
+		  estimator.cpp

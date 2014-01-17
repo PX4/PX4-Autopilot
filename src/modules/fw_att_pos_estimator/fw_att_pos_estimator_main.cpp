@@ -78,7 +78,7 @@
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
 
-#include "../../../InertialNav/code/estimator.h"
+#include "estimator.h"
 
 
 
