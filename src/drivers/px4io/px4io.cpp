@@ -1454,7 +1454,7 @@ PX4IO::io_publish_raw_rc()
 	/* set RSSI */
 
 	// XXX the correct scaling needs to be validated here
-	rc_val.rssi = _servorail_status.rssi_v / 3.3f;
+	rc_val.rssi = (_servorail_status.rssi_v / 3.3f) * UINT8_MAX;
 
 	/* lazily advertise on first publication */
 	if (_to_input_rc == 0) {
