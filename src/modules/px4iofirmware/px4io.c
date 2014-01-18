@@ -196,6 +196,11 @@ user_start(int argc, char *argv[])
 	POWER_SERVO(true);
 #endif
 
+	/* turn off S.Bus out (if supported) */
+#ifdef ENABLE_SBUS_OUT
+	ENABLE_SBUS_OUT(false);
+#endif
+
 	/* start the safety switch handler */
 	safety_init();
 
