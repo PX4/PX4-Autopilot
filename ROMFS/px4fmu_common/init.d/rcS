@@ -241,7 +241,10 @@ then
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
-		set FMU_MODE serial
+		if hw_ver compare PX4FMU_V1
+		then
+			set FMU_MODE serial
+		fi
 	else
 		# Try to get an USB console if not in HIL mode
 		nshterm /dev/ttyACM0 &
@@ -257,82 +260,12 @@ then
 	#
 	set TTYS1_BUSY no
 	
-	if [ $OUTPUT_MODE == io ]
+	# If OUTPUT_MODE == none then something is wrong with setup and we shouldn't try to enable output
+	if [ $OUTPUT_MODE != none ]
 	then
-		echo "[init] Use PX4IO PWM as primary output"
-		if px4io start
+		if [ $OUTPUT_MODE == io ]
 		then
-			echo "[init] PX4IO started"
-			sh /etc/init.d/rc.io
-		else
-			echo "[init] ERROR: PX4IO start failed"
-			tone_alarm $TUNE_OUT_ERROR
-		fi
-	fi
-	if [ $OUTPUT_MODE == fmu ]
-	then
-		echo "[init] Use FMU PWM as primary output"
-		if fmu mode_$FMU_MODE
-		then
-			echo "[init] FMU mode_$FMU_MODE started"
-		else
-			echo "[init] ERROR: FMU mode_$FMU_MODE start failed"
-			tone_alarm $TUNE_OUT_ERROR
-		fi
-		
-		if hw_ver compare PX4FMU_V1
-		then
-			if [ $FMU_MODE == pwm -o $FMU_MODE == gpio ]
-			then
-				set TTYS1_BUSY yes
-			fi
-			if [ $FMU_MODE == pwm_gpio ]
-			then
-				set TTYS1_BUSY yes
-			fi
-		fi
-	fi
-	if [ $OUTPUT_MODE == mkblctrl ]
-	then
-		echo "[init] Use MKBLCTRL as primary output"
-		set MKBLCTRL_ARG ""
-		if [ $MKBLCTRL_MODE == x ]
-		then
-			set MKBLCTRL_ARG "-mkmode x"
-		fi
-		if [ $MKBLCTRL_MODE == + ]
-		then
-			set MKBLCTRL_ARG "-mkmode +"
-		fi
-		
-		if mkblctrl $MKBLCTRL_ARG
-		then
-			echo "[init] MKBLCTRL started"
-		else
-			echo "[init] ERROR: MKBLCTRL start failed"
-			tone_alarm $TUNE_OUT_ERROR
-		fi
-		
-	fi		
-	if [ $OUTPUT_MODE == hil ]
-	then
-		echo "[init] Use HIL as primary output"
-		if hil mode_pwm
-		then
-			echo "[init] HIL output started"
-		else
-			echo "[init] ERROR: HIL output start failed"
-			tone_alarm $TUNE_OUT_ERROR
-		fi
-	fi
-	
-	#
-	# Start IO or FMU for RC PPM input if needed
-	#
-	if [ $IO_PRESENT == yes ]
-	then
-		if [ $OUTPUT_MODE != io ]
-		then
+			echo "[init] Use PX4IO PWM as primary output"
 			if px4io start
 			then
 				echo "[init] PX4IO started"
@@ -342,9 +275,9 @@ then
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 		fi
-	else
-		if [ $OUTPUT_MODE != fmu ]
+		if [ $OUTPUT_MODE == fmu ]
 		then
+			echo "[init] Use FMU PWM as primary output"
 			if fmu mode_$FMU_MODE
 			then
 				echo "[init] FMU mode_$FMU_MODE started"
@@ -352,7 +285,7 @@ then
 				echo "[init] ERROR: FMU mode_$FMU_MODE start failed"
 				tone_alarm $TUNE_OUT_ERROR
 			fi
-
+			
 			if hw_ver compare PX4FMU_V1
 			then
 				if [ $FMU_MODE == pwm -o $FMU_MODE == gpio ]
@@ -365,8 +298,82 @@ then
 				fi
 			fi
 		fi
+		if [ $OUTPUT_MODE == mkblctrl ]
+		then
+			echo "[init] Use MKBLCTRL as primary output"
+			set MKBLCTRL_ARG ""
+			if [ $MKBLCTRL_MODE == x ]
+			then
+				set MKBLCTRL_ARG "-mkmode x"
+			fi
+			if [ $MKBLCTRL_MODE == + ]
+			then
+				set MKBLCTRL_ARG "-mkmode +"
+			fi
+			
+			if mkblctrl $MKBLCTRL_ARG
+			then
+				echo "[init] MKBLCTRL started"
+			else
+				echo "[init] ERROR: MKBLCTRL start failed"
+				tone_alarm $TUNE_OUT_ERROR
+			fi
+			
+		fi		
+		if [ $OUTPUT_MODE == hil ]
+		then
+			echo "[init] Use HIL as primary output"
+			if hil mode_pwm
+			then
+				echo "[init] HIL output started"
+			else
+				echo "[init] ERROR: HIL output start failed"
+				tone_alarm $TUNE_OUT_ERROR
+			fi
+		fi
+		
+		#
+		# Start IO or FMU for RC PPM input if needed
+		#
+		if [ $IO_PRESENT == yes ]
+		then
+			if [ $OUTPUT_MODE != io ]
+			then
+				if px4io start
+				then
+					echo "[init] PX4IO started"
+					sh /etc/init.d/rc.io
+				else
+					echo "[init] ERROR: PX4IO start failed"
+					tone_alarm $TUNE_OUT_ERROR
+				fi
+			fi
+		else
+			if [ $OUTPUT_MODE != fmu ]
+			then
+				if fmu mode_$FMU_MODE
+				then
+					echo "[init] FMU mode_$FMU_MODE started"
+				else
+					echo "[init] ERROR: FMU mode_$FMU_MODE start failed"
+					tone_alarm $TUNE_OUT_ERROR
+				fi
+	
+				if hw_ver compare PX4FMU_V1
+				then
+					if [ $FMU_MODE == pwm -o $FMU_MODE == gpio ]
+					then
+						set TTYS1_BUSY yes
+					fi
+					if [ $FMU_MODE == pwm_gpio ]
+					then
+						set TTYS1_BUSY yes
+					fi
+				fi
+			fi
+		fi
 	fi
-
+	
 	#
 	# MAVLink
 	#
