@@ -5,6 +5,6 @@
 # Maintainers: Anton Babushkin <anton.babushkin@me.com>
 #
 
-sh /etc/ini.d/1001_rc_quad_x.hil
+sh /etc/init.d/1001_rc_quad_x.hil
 
 set MIXER FMU_quad_+
