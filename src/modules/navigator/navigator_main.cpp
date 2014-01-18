@@ -180,6 +180,8 @@ private:
 
 	uint64_t	_set_nav_state_timestamp;		/**< timestamp of last handled navigation state request */
 
+	char *nav_states_str[NAV_STATE_MAX];
+
 	struct {
 		float min_altitude;
 		float acceptance_radius;
@@ -414,6 +416,12 @@ Navigator::Navigator() :
 	memset(&_mission_item_triplet.next, 0, sizeof(struct mission_item_s));
 
 	memset(&_mission_result, 0, sizeof(struct mission_result_s));
+
+	nav_states_str[0] = "NONE";
+	nav_states_str[1] = "READY";
+	nav_states_str[2] = "LOITER";
+	nav_states_str[3] = "MISSION";
+	nav_states_str[4] = "RTL";
 
 	/* Initialize state machine */
 	myState = NAV_STATE_NONE;
@@ -788,7 +796,7 @@ Navigator::task_main()
 
 		/* notify user about state changes */
 		if (myState != prevState) {
-			mavlink_log_info(_mavlink_fd, "[navigator] nav state %d -> %d", prevState, myState);
+			mavlink_log_info(_mavlink_fd, "[navigator] nav state: %s -> %s", nav_states_str[prevState], nav_states_str[myState]);
 			prevState = myState;
 			pub_control_mode = true;
 		}
@@ -881,7 +889,7 @@ StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 	},
 	{	
 							/* STATE_READY */
-		/* EVENT_NONE_REQUESTED */		{NO_ACTION, NAV_STATE_NONE},
+		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), NAV_STATE_NONE},
 		/* EVENT_READY_REQUESTED */		{NO_ACTION, NAV_STATE_READY},
 		/* EVENT_LOITER_REQUESTED */		{NO_ACTION, NAV_STATE_READY},
 		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
@@ -917,7 +925,7 @@ StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
 		/* EVENT_RTL_REQUESTED */		{NO_ACTION, NAV_STATE_RTL},
 		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_RTL},
-		/* EVENT_HOME_POSITION_CHANGED */	{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
+		/* EVENT_HOME_POSITION_CHANGED */	{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},	// TODO need to reset rtl_state
 	},
 };
 
@@ -945,8 +953,8 @@ Navigator::start_ready()
 	_reset_loiter_pos = true;
 	_do_takeoff = false;
 
-	// TODO check
 	if (_rtl_state != RTL_STATE_LAND) {
+		/* allow RTL if landed not at home */
 		_rtl_state = RTL_STATE_NONE;
 	}
 
@@ -976,6 +984,11 @@ Navigator::start_loiter()
 		} else {
 			_mission_item_triplet.current.altitude = _global_pos.alt;
 			mavlink_log_info(_mavlink_fd, "[navigator] loiter at current altitude");
+		}
+
+		if (_rtl_state == RTL_STATE_LAND) {
+			/* if RTL landing was interrupted, avoid landing from MIN_ALT on next RTL */
+			_rtl_state = RTL_STATE_DESCEND;
 		}
 	}
 
@@ -1103,11 +1116,19 @@ Navigator::advance_mission()
 void
 Navigator::start_rtl()
 {
-	_reset_loiter_pos = true;
 	_do_takeoff = false;
-	if (_rtl_state == RTL_STATE_NONE)
-		_rtl_state = RTL_STATE_CLIMB;
-
+	if (_rtl_state == RTL_STATE_NONE) {
+		if (_global_pos.alt < _home_pos.altitude + _parameters.rtl_alt) {
+			_rtl_state = RTL_STATE_CLIMB;
+		} else {
+			_rtl_state = RTL_STATE_RETURN;
+			if (_reset_loiter_pos) {
+				_mission_item_triplet.current.altitude_is_relative = false;
+				_mission_item_triplet.current.altitude = _global_pos.alt;
+			}
+		}
+	}
+	_reset_loiter_pos = true;
 	mavlink_log_info(_mavlink_fd, "[navigator] RTL started");
 	set_rtl_item();
 }
@@ -1150,7 +1171,6 @@ Navigator::set_rtl_item()
 		_mission_item_triplet.current_valid = true;
 		_mission_item_triplet.next_valid = false;
 
-		_mission_item_triplet.current.altitude_is_relative = false;
 		_mission_item_triplet.current.lat = _home_pos.lat;
 		_mission_item_triplet.current.lon = _home_pos.lon;
 		// don't change altitude setpoint
