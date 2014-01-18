@@ -114,6 +114,7 @@
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 #define ADC_BATTERY_VOLTAGE_CHANNEL	10
+#define ADC_BATTERY_CURRENT_CHANNEL	-1
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL	11
 #endif
 
@@ -124,10 +125,8 @@
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL	15
 #endif
 
-#define BAT_VOL_INITIAL 0.f
-#define BAT_VOL_LOWPASS_1 0.99f
-#define BAT_VOL_LOWPASS_2 0.01f
-#define VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS 3.5f
+#define BATT_V_LOWPASS 0.001f
+#define BATT_V_IGNORE_THRESHOLD 3.5f
 
 /**
  * HACK - true temperature is much less than indicated temperature in baro,
@@ -165,7 +164,7 @@ public:
 	int		start();
 
 private:
-	static const unsigned _rc_max_chan_count = RC_CHANNELS_MAX;	/**< maximum number of r/c channels we handle */
+	static const unsigned _rc_max_chan_count = RC_INPUT_MAX_CHANNELS;	/**< maximum number of r/c channels we handle */
 
 	hrt_abstime	_rc_last_valid;		/**< last time we got a valid RC signal */
 
@@ -215,6 +214,9 @@ private:
 	math::Matrix	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
 	bool		_mag_is_external;		/**< true if the active mag is on an external board */
 
+	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
+	hrt_abstime _battery_current_timestamp;	/**< timestamp of last battery current reading */
+
 	struct {
 		float min[_rc_max_chan_count];
 		float trim[_rc_max_chan_count];
@@ -260,7 +262,12 @@ private:
 		float rc_scale_yaw;
 		float rc_scale_flaps;
 
+		int rc_fs_ch;
+		int rc_fs_mode;
+		float rc_fs_thr;
+
 		float battery_voltage_scaling;
+		float battery_current_scaling;
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -305,7 +312,12 @@ private:
 		param_t rc_scale_yaw;
 		param_t rc_scale_flaps;
 
+		param_t rc_fs_ch;
+		param_t rc_fs_mode;
+		param_t rc_fs_thr;
+
 		param_t battery_voltage_scaling;
+		param_t battery_current_scaling;
 
 		param_t board_rotation;
 		param_t external_mag_rotation;
@@ -459,7 +471,9 @@ Sensors::Sensors() :
 
 	_board_rotation(3, 3),
 	_external_mag_rotation(3, 3),
-	_mag_is_external(false)
+	_mag_is_external(false),
+	_battery_discharged(0),
+	_battery_current_timestamp(0)
 {
 
 	/* basic r/c parameters */
@@ -517,6 +531,11 @@ Sensors::Sensors() :
 	_parameter_handles.rc_scale_yaw = param_find("RC_SCALE_YAW");
 	_parameter_handles.rc_scale_flaps = param_find("RC_SCALE_FLAPS");
 
+	/* RC failsafe */
+	_parameter_handles.rc_fs_ch = param_find("RC_FS_CH");
+	_parameter_handles.rc_fs_mode = param_find("RC_FS_MODE");
+	_parameter_handles.rc_fs_thr = param_find("RC_FS_THR");
+
 	/* gyro offsets */
 	_parameter_handles.gyro_offset[0] = param_find("SENS_GYRO_XOFF");
 	_parameter_handles.gyro_offset[1] = param_find("SENS_GYRO_YOFF");
@@ -547,6 +566,7 @@ Sensors::Sensors() :
 	_parameter_handles.diff_pres_analog_enabled = param_find("SENS_DPRES_ANA");
 
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
+	_parameter_handles.battery_current_scaling = param_find("BAT_C_SCALING");
 
 	/* rotations */
 	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
@@ -589,7 +609,7 @@ Sensors::parameters_update()
 	float tmpRevFactor = 0.0f;
 
 	/* rc values */
-	for (unsigned int i = 0; i < RC_CHANNELS_MAX; i++) {
+	for (unsigned int i = 0; i < _rc_max_chan_count; i++) {
 
 		param_get(_parameter_handles.min[i], &(_parameters.min[i]));
 		param_get(_parameter_handles.trim[i], &(_parameters.trim[i]));
@@ -668,6 +688,9 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_scale_pitch, &(_parameters.rc_scale_pitch));
 	param_get(_parameter_handles.rc_scale_yaw, &(_parameters.rc_scale_yaw));
 	param_get(_parameter_handles.rc_scale_flaps, &(_parameters.rc_scale_flaps));
+	param_get(_parameter_handles.rc_fs_ch, &(_parameters.rc_fs_ch));
+	param_get(_parameter_handles.rc_fs_mode, &(_parameters.rc_fs_mode));
+	param_get(_parameter_handles.rc_fs_thr, &(_parameters.rc_fs_thr));
 
 	/* update RC function mappings */
 	_rc.function[THROTTLE] = _parameters.rc_map_throttle - 1;
@@ -722,6 +745,11 @@ Sensors::parameters_update()
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
 		warnx("Failed updating voltage scaling param");
+	}
+
+	/* scaling of ADC ticks to battery current */
+	if (param_get(_parameter_handles.battery_current_scaling, &(_parameters.battery_current_scaling)) != OK) {
+		warnx("Failed updating current scaling param");
 	}
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
@@ -1121,6 +1149,7 @@ Sensors::parameter_update_poll(bool forced)
 
 			if (OK != ioctl(fd, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale))
 				warn("WARNING: failed to set scale / offsets for airspeed sensor");
+			close(fd);
 		}
 
 #if 0
@@ -1140,17 +1169,16 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 	if (!_publishing)
 		return;
 
+	hrt_abstime t = hrt_absolute_time();
 	/* rate limit to 100 Hz */
-	if (hrt_absolute_time() - _last_adc >= 10000) {
+	if (t - _last_adc >= 10000) {
 		/* make space for a maximum of eight channels */
 		struct adc_msg_s buf_adc[8];
 		/* read all channels available */
 		int ret = read(_fd_adc, &buf_adc, sizeof(buf_adc));
 
-		for (unsigned i = 0; i < sizeof(buf_adc) / sizeof(buf_adc[0]); i++) {
-
-			if (ret >= (int)sizeof(buf_adc[0])) {
-
+		if (ret >= (int)sizeof(buf_adc[0])) {
+			for (unsigned i = 0; i < sizeof(buf_adc) / sizeof(buf_adc[0]); i++) {
 				/* Save raw voltage values */
 				if (i < (sizeof(raw.adc_voltage_v)) / sizeof(raw.adc_voltage_v[0])) {
 					raw.adc_voltage_v[i] = buf_adc[i].am_data / (4096.0f / 3.3f);
@@ -1161,27 +1189,40 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					/* Voltage in volts */
 					float voltage = (buf_adc[i].am_data * _parameters.battery_voltage_scaling);
 
-					if (voltage > VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS) {
-
+					if (voltage > BATT_V_IGNORE_THRESHOLD) {
+						_battery_status.voltage_v = voltage;
 						/* one-time initialization of low-pass value to avoid long init delays */
-						if (_battery_status.voltage_v < 3.0f) {
-							_battery_status.voltage_v = voltage;
+						if (_battery_status.voltage_filtered_v < BATT_V_IGNORE_THRESHOLD) {
+							_battery_status.voltage_filtered_v = voltage;
 						}
 
-						_battery_status.timestamp = hrt_absolute_time();
-						_battery_status.voltage_v = (BAT_VOL_LOWPASS_1 * (_battery_status.voltage_v + BAT_VOL_LOWPASS_2 * voltage));;
-						/* current and discharge are unknown */
-						_battery_status.current_a = -1.0f;
-						_battery_status.discharged_mah = -1.0f;
+						_battery_status.timestamp = t;
+						_battery_status.voltage_filtered_v += (voltage - _battery_status.voltage_filtered_v) * BATT_V_LOWPASS;
 
-						/* announce the battery voltage if needed, just publish else */
-						if (_battery_pub > 0) {
-							orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
+					} else {
+						/* mark status as invalid */
+						_battery_status.voltage_v = -1.0f;
+						_battery_status.voltage_filtered_v = -1.0f;
+					}
 
-						} else {
-							_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
+				} else if (ADC_BATTERY_CURRENT_CHANNEL == buf_adc[i].am_channel) {
+					/* handle current only if voltage is valid */
+					if (_battery_status.voltage_v > 0.0f) {
+						float current = (buf_adc[i].am_data * _parameters.battery_current_scaling);
+						/* check measured current value */
+						if (current >= 0.0f) {
+							_battery_status.timestamp = t;
+							_battery_status.current_a = current;
+							if (_battery_current_timestamp != 0) {
+								/* initialize discharged value */
+								if (_battery_status.discharged_mah < 0.0f)
+									_battery_status.discharged_mah = 0.0f;
+								_battery_discharged += current * (t - _battery_current_timestamp);
+								_battery_status.discharged_mah = ((float) _battery_discharged) / 3600000.0f;
+							}
 						}
 					}
+					_battery_current_timestamp = t;
 
 				} else if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 
@@ -1197,7 +1238,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 						float diff_pres_pa = voltage * 1000.0f - _parameters.diff_pres_offset_pa; //for MPXV7002DP sensor
 
-						_diff_pres.timestamp = hrt_absolute_time();
+						_diff_pres.timestamp = t;
 						_diff_pres.differential_pressure_pa = diff_pres_pa;
 						_diff_pres.voltage = voltage;
 
@@ -1210,8 +1251,16 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 						}
 					}
 				}
+			}
+			_last_adc = t;
+			if (_battery_status.voltage_v > 0.0f) {
+				/* announce the battery status if needed, just publish else */
+				if (_battery_pub > 0) {
+					orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
 
-				_last_adc = hrt_absolute_time();
+				} else {
+					_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
+				}
 			}
 		}
 	}
@@ -1254,6 +1303,18 @@ Sensors::rc_poll()
 		/* require at least four channels to consider the signal valid */
 		if (rc_input.channel_count < 4)
 			return;
+
+		/* failsafe check */
+		if (_parameters.rc_fs_ch != 0) {
+			if (_parameters.rc_fs_mode == 0) {
+				if (rc_input.values[_parameters.rc_fs_ch - 1] < _parameters.rc_fs_thr)
+					return;
+
+			} else if (_parameters.rc_fs_mode == 1) {
+				if (rc_input.values[_parameters.rc_fs_ch - 1] > _parameters.rc_fs_thr)
+					return;
+			}
+		}
 
 		unsigned channel_limit = rc_input.channel_count;
 
@@ -1487,7 +1548,10 @@ Sensors::task_main()
 	raw.adc_voltage_v[3] = 0.0f;
 
 	memset(&_battery_status, 0, sizeof(_battery_status));
-	_battery_status.voltage_v = BAT_VOL_INITIAL;
+	_battery_status.voltage_v = 0.0f;
+	_battery_status.voltage_filtered_v = 0.0f;
+	_battery_status.current_a = -1.0f;
+	_battery_status.discharged_mah = -1.0f;
 
 	/* get a set of initial values */
 	accel_poll(raw);

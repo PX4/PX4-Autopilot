@@ -1,11 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
- *           Lorenz Meier <lm@inf.ethz.ch>
- *           Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
- *           Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +35,11 @@
  * @file commander.cpp
  * Main system state machine implementation.
  *
+ * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <nuttx/config.h>
@@ -107,14 +107,11 @@ static const int ERROR = -1;
 
 extern struct system_load_s system_load;
 
-#define LOW_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS 1000.0f
-#define CRITICAL_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS 100.0f
-
 /* Decouple update interval and hysteris counters, all depends on intervals */
 #define COMMANDER_MONITORING_INTERVAL 50000
 #define COMMANDER_MONITORING_LOOPSPERMSEC (1/(COMMANDER_MONITORING_INTERVAL/1000.0f))
-#define LOW_VOLTAGE_BATTERY_COUNTER_LIMIT (LOW_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
-#define CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT (CRITICAL_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
+
+#define MAVLINK_OPEN_INTERVAL 50000
 
 #define STICK_ON_OFF_LIMIT 0.75f
 #define STICK_THRUST_RANGE 1.0f
@@ -582,16 +579,6 @@ int commander_thread_main(int argc, char *argv[])
 
 	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
-	if (mavlink_fd < 0) {
-		/* try again later */
-		usleep(20000);
-		mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
-
-		if (mavlink_fd < 0) {
-			warnx("ERROR: Failed to open MAVLink log stream again, start mavlink app first.");
-		}
-	}
-
 	/* Main state machine */
 	/* make sure we are in preflight state */
 	memset(&status, 0, sizeof(status));
@@ -674,8 +661,6 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Start monitoring loop */
 	unsigned counter = 0;
-	unsigned low_voltage_counter = 0;
-	unsigned critical_voltage_counter = 0;
 	unsigned stick_off_counter = 0;
 	unsigned stick_on_counter = 0;
 
@@ -753,7 +738,6 @@ int commander_thread_main(int argc, char *argv[])
 	int battery_sub = orb_subscribe(ORB_ID(battery_status));
 	struct battery_status_s battery;
 	memset(&battery, 0, sizeof(battery));
-	battery.voltage_v = 0.0f;
 
 	/* Subscribe to subsystem info topic */
 	int subsys_sub = orb_subscribe(ORB_ID(subsystem_info));
@@ -769,6 +753,11 @@ int commander_thread_main(int argc, char *argv[])
 	start_time = hrt_absolute_time();
 
 	while (!thread_should_exit) {
+
+		if (mavlink_fd < 0 && counter % (1000000 / MAVLINK_OPEN_INTERVAL) == 0) {
+			/* try to open the mavlink log device every once in a while */
+			mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+		}
 
 		/* update parameters */
 		orb_check(param_changed_sub, &updated);
@@ -874,7 +863,7 @@ int commander_thread_main(int argc, char *argv[])
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid, &(status.condition_local_position_valid), &status_changed);
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid, &(status.condition_local_altitude_valid), &status_changed);
 
-		if (status.condition_local_altitude_valid) {
+		if (status.is_rotary_wing && status.condition_local_altitude_valid) {
 			if (status.condition_landed != local_position.landed) {
 				status.condition_landed = local_position.landed;
 				status_changed = true;
@@ -893,14 +882,12 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
-
-			// warnx("bat v: %2.2f", battery.voltage_v);
-
-			/* only consider battery voltage if system has been running 2s and battery voltage is higher than 4V */
-			if (hrt_absolute_time() > start_time + 2000000 && battery.voltage_v > 4.0f) {
-				status.battery_voltage = battery.voltage_v;
+			/* only consider battery voltage if system has been running 2s and battery voltage is valid */
+			if (hrt_absolute_time() > start_time + 2000000 && battery.voltage_filtered_v > 0.0f) {
+				status.battery_voltage = battery.voltage_filtered_v;
+				status.battery_current = battery.current_a;
 				status.condition_battery_voltage_valid = true;
-				status.battery_remaining = battery_remaining_estimate_voltage(status.battery_voltage);
+				status.battery_remaining = battery_remaining_estimate_voltage(battery.voltage_filtered_v, battery.discharged_mah);
 			}
 		}
 
@@ -953,46 +940,29 @@ int commander_thread_main(int argc, char *argv[])
 			//on_usb_power = (stat("/dev/ttyACM0", &statbuf) == 0);
 		}
 
-		// XXX remove later
-		//warnx("bat remaining: %2.2f", status.battery_remaining);
-
 		/* if battery voltage is getting lower, warn using buzzer, etc. */
 		if (status.condition_battery_voltage_valid && status.battery_remaining < 0.25f && !low_battery_voltage_actions_done) {
-			//TODO: add filter, or call emergency after n measurements < VOLTAGE_BATTERY_MINIMAL_MILLIVOLTS
-			if (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT) {
-				low_battery_voltage_actions_done = true;
-				mavlink_log_critical(mavlink_fd, "#audio: WARNING: LOW BATTERY");
-				status.battery_warning = VEHICLE_BATTERY_WARNING_LOW;
-				status_changed = true;
-				battery_tune_played = false;
-			}
-
-			low_voltage_counter++;
+			low_battery_voltage_actions_done = true;
+			mavlink_log_critical(mavlink_fd, "#audio: WARNING: LOW BATTERY");
+			status.battery_warning = VEHICLE_BATTERY_WARNING_LOW;
+			status_changed = true;
+			battery_tune_played = false;
 
 		} else if (status.condition_battery_voltage_valid && status.battery_remaining < 0.1f && !critical_battery_voltage_actions_done && low_battery_voltage_actions_done) {
 			/* critical battery voltage, this is rather an emergency, change state machine */
-			if (critical_voltage_counter > CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT) {
-				critical_battery_voltage_actions_done = true;
-				mavlink_log_critical(mavlink_fd, "#audio: EMERGENCY: CRITICAL BATTERY");
-				status.battery_warning = VEHICLE_BATTERY_WARNING_CRITICAL;
-				battery_tune_played = false;
+			critical_battery_voltage_actions_done = true;
+			mavlink_log_critical(mavlink_fd, "#audio: EMERGENCY: CRITICAL BATTERY");
+			status.battery_warning = VEHICLE_BATTERY_WARNING_CRITICAL;
+			battery_tune_played = false;
 
-				if (armed.armed) {
-					arming_state_transition(mavlink_fd, &status, &safety, &control_mode, ARMING_STATE_ARMED_ERROR, &armed);
+			if (armed.armed) {
+				arming_state_transition(&status, &safety, &control_mode, ARMING_STATE_ARMED_ERROR, &armed);
 
-				} else {
-					arming_state_transition(mavlink_fd, &status, &safety, &control_mode, ARMING_STATE_STANDBY_ERROR, &armed);
-				}
-
-				status_changed = true;
+			} else {
+				arming_state_transition(&status, &safety, &control_mode, ARMING_STATE_STANDBY_ERROR, &armed);
 			}
 
-			critical_voltage_counter++;
-
-		} else {
-
-			low_voltage_counter = 0;
-			critical_voltage_counter = 0;
+			status_changed = true;
 		}
 
 		/* End battery voltage check */
@@ -1542,7 +1512,8 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 			// TODO AUTO_LAND handling
 			if (status->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
 				/* don't switch to other states until takeoff not completed */
-				if (local_pos->z > -takeoff_alt || status->condition_landed) {
+				// XXX: only respect the condition_landed when the local position is actually valid
+				if (status->is_rotary_wing && status->condition_local_altitude_valid && (local_pos->z > -takeoff_alt || status->condition_landed)) {
 					return TRANSITION_NOT_CHANGED;
 				}
 			}
@@ -1552,7 +1523,7 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 			    status->navigation_state != NAVIGATION_STATE_AUTO_MISSION &&
 			    status->navigation_state != NAVIGATION_STATE_AUTO_RTL) {
 				/* possibly on ground, switch to TAKEOFF if needed */
-				if (local_pos->z > -takeoff_alt || status->condition_landed) {
+				if (status->is_rotary_wing && status->condition_local_altitude_valid && (local_pos->z > -takeoff_alt || status->condition_landed)) {
 					res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_TAKEOFF, control_mode);
 					return res;
 				}
@@ -1600,8 +1571,8 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 			/* switch to failsafe mode */
 			bool manual_control_old = control_mode->flag_control_manual_enabled;
 
-			if (!status->condition_landed) {
-				/* in air: try to hold position */
+			if (!status->condition_landed && status->condition_local_position_valid) {
+				/* in air: try to hold position if possible */
 				res = navigation_state_transition(status, NAVIGATION_STATE_VECTOR, control_mode);
 
 			} else {

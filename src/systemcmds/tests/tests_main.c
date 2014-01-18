@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +34,8 @@
 /**
  * @file tests_main.c
  * Tests main file, loads individual tests.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #include <nuttx/config.h>
@@ -56,14 +57,6 @@
 #include <systemlib/perf_counter.h>
 
 #include "tests.h"
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Private Types
- ****************************************************************************/
 
 /****************************************************************************
  * Private Function Prototypes
@@ -94,6 +87,7 @@ const struct {
 	{"hrt",			test_hrt,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"ppm",			test_ppm,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"servo",		test_servo,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"ppm_loopback",	test_ppm_loopback,	OPT_NOALLTEST},
 	{"adc",			test_adc,	OPT_NOJIGTEST},
 	{"jig_voltages",	test_jig_voltages,	OPT_NOALLTEST},
 	{"uart_loopback",	test_uart_loopback,	OPT_NOJIGTEST | OPT_NOALLTEST},
@@ -111,6 +105,10 @@ const struct {
 	{"bson",		test_bson,	0},
 	{"file",		test_file,	0},
 	{"mixer",		test_mixer,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"rc",			test_rc,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"conv",		test_conv,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"mount",		test_mount,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"mtd",			test_mtd,	0},
 	{"help",		test_help,	OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST},
 	{NULL,			NULL, 		0}
 };

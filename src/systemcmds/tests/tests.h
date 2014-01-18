@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,6 +33,12 @@
 
 #ifndef __APPS_PX4_TESTS_H
 #define __APPS_PX4_TESTS_H
+
+/**
+ * @file tests.h
+ * Tests declaration file.
+ *
+ */
 
 /****************************************************************************
  * Included Files
@@ -88,6 +94,7 @@ extern int	test_int(int argc, char *argv[]);
 extern int	test_float(int argc, char *argv[]);
 extern int	test_ppm(int argc, char *argv[]);
 extern int	test_servo(int argc, char *argv[]);
+extern int	test_ppm_loopback(int argc, char *argv[]);
 extern int	test_uart_loopback(int argc, char *argv[]);
 extern int	test_uart_baudchange(int argc, char *argv[]);
 extern int	test_cpuload(int argc, char *argv[]);
@@ -101,6 +108,10 @@ extern int	test_param(int argc, char *argv[]);
 extern int	test_bson(int argc, char *argv[]);
 extern int	test_file(int argc, char *argv[]);
 extern int	test_mixer(int argc, char *argv[]);
+extern int	test_rc(int argc, char *argv[]);
+extern int	test_conv(int argc, char *argv[]);
+extern int	test_mount(int argc, char *argv[]);
+extern int	test_mtd(int argc, char *argv[]);
 
 __END_DECLS
 

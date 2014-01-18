@@ -1,0 +1,51 @@
+#!nsh
+
+echo "[init] PX4FMU v1, v2 init to log only
+
+#
+# Load default params for this platform
+#
+if param compare SYS_AUTOCONFIG 1
+then
+	# Set all params here, then disable autoconfig
+	param set SYS_AUTOCONFIG 0
+	
+	param save
+fi
+
+#
+# Start and configure PX4IO or FMU interface
+#
+if px4io detect
+then
+	# Start MAVLink (depends on orb)
+	mavlink start
+	usleep 5000
+
+	sh /etc/init.d/rc.io
+	# Set PWM values for DJI ESCs
+else
+	# Start MAVLink (on UART1 / ttyS0)
+	mavlink start -d /dev/ttyS0
+	usleep 5000
+	param set BAT_V_SCALING 0.004593
+	set EXIT_ON_END yes
+fi
+
+sh /etc/init.d/rc.sensors
+
+gps start
+
+attitude_estimator_ekf start
+
+position_estimator_inav start
+
+if [ -d /fs/microsd ]
+then
+	if [ $BOARD == fmuv1 ]
+	then
+		sdlog2 start -r 50 -e -b 16
+	else
+		sdlog2 start -r 200 -e -b 16
+	fi
+fi

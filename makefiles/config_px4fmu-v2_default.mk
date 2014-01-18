@@ -21,6 +21,7 @@ MODULES		+= drivers/px4fmu
 MODULES		+= drivers/px4io
 MODULES		+= drivers/boards/px4fmu-v2
 MODULES		+= drivers/rgbled
+MODULES		+= drivers/mpu6000
 MODULES		+= drivers/lsm303d
 MODULES		+= drivers/l3gd20
 MODULES		+= drivers/hmc5883
@@ -35,6 +36,7 @@ MODULES		+= drivers/roboclaw
 MODULES		+= drivers/airspeed
 MODULES		+= drivers/ets_airspeed
 MODULES		+= drivers/meas_airspeed
+MODULES		+= drivers/frsky_telemetry
 MODULES		+= modules/sensors
 
 # Needs to be burned to the ground and re-written; for now,
@@ -44,7 +46,6 @@ MODULES		+= modules/sensors
 #
 # System commands
 #
-MODULES		+= systemcmds/ramtron
 MODULES		+= systemcmds/bl_update
 MODULES		+= systemcmds/boardinfo
 MODULES		+= systemcmds/mixer
@@ -58,6 +59,7 @@ MODULES		+= systemcmds/top
 MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/config
 MODULES		+= systemcmds/nshterm
+MODULES		+= systemcmds/mtd
 
 #
 # General system control
@@ -68,9 +70,10 @@ MODULES		+= modules/mavlink
 MODULES		+= modules/mavlink_onboard
 
 #
-# Estimation modules (EKF / other filters)
+# Estimation modules (EKF/ SO3 / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
+MODULES		+= modules/attitude_estimator_so3
 MODULES		+= modules/att_pos_estimator_ekf
 MODULES		+= modules/position_estimator_inav
 MODULES		+= examples/flow_position_estimator
