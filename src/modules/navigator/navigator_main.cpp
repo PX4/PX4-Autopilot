@@ -309,7 +309,7 @@ private:
 	/**
 	 * Move to next waypoint
 	 */
-	void		advance_mission();
+	void		set_mission_item();
 
 	/**
 	 * Switch to next RTL state
@@ -1007,11 +1007,11 @@ Navigator::start_mission()
 	_need_takeoff = true;
 
 	mavlink_log_info(_mavlink_fd, "[navigator] mission started");
-	advance_mission();
+	set_mission_item();
 }
 
 void
-Navigator::advance_mission()
+Navigator::set_mission_item()
 {
 	/* copy current mission to previous item */
 	memcpy(&_mission_item_triplet.previous, &_mission_item_triplet.current, sizeof(mission_item_s));
@@ -1350,7 +1350,7 @@ Navigator::on_mission_item_reached()
 		}
 
 		if (_mission.current_mission_available()) {
-			advance_mission();
+			set_mission_item();
 		} else {
 			/* if no more mission items available then finish mission */
 			/* loiter at last waypoint */
