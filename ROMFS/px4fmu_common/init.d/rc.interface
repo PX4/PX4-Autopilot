@@ -33,7 +33,7 @@ then
 		tone_alarm $TUNE_OUT_ERROR
 	fi
 else
-	echo "[init] Mixer not defined
+	echo "[init] Mixer not defined"
 	tone_alarm $TUNE_OUT_ERROR
 fi
 
