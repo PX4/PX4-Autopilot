@@ -1259,7 +1259,13 @@ Navigator::check_mission_item_reached()
 	}
 
 	if (_mission_item_triplet.current.nav_cmd == NAV_CMD_LAND) {
-		return _vstatus.condition_landed;
+		if (_vstatus.is_rotary_wing) {
+			return _vstatus.condition_landed;
+		} else {
+			/* For fw there is currently no landing detector:
+			 * make sure control is not stopped when overshooting the landing waypoint */
+			return false;
+		}
 	}
 
 	/* XXX TODO count turns */
