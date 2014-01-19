@@ -301,12 +301,15 @@ int create_log_dir()
 		int n = snprintf(log_dir, sizeof(log_dir), "%s/", log_root);
 		strftime(log_dir + n, sizeof(log_dir) - n, "%Y-%m-%d", &t);
 		mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
+
 		if (mkdir_ret == OK) {
 			warnx("log dir created: %s", log_dir);
+
 		} else if (errno != EEXIST) {
 			warn("failed creating new dir: %s", log_dir);
 			return -1;
 		}
+
 	} else {
 		/* look for the next dir that does not exist */
 		while (dir_number <= MAX_NO_LOGFOLDER) {
@@ -317,10 +320,12 @@ int create_log_dir()
 			if (mkdir_ret == 0) {
 				warnx("log dir created: %s", log_dir);
 				break;
+
 			} else if (errno != EEXIST) {
 				warn("failed creating new dir: %s", log_dir);
 				return -1;
 			}
+
 			/* dir exists already */
 			dir_number++;
 			continue;
@@ -352,8 +357,10 @@ int open_log_file()
 		gmtime_r(&gps_time_sec, &t);
 		strftime(log_file_name, sizeof(log_file_name), "%H_%M_%S.bin", &t);
 		snprintf(log_file_path, sizeof(log_file_path), "%s/%s", log_dir, log_file_name);
+
 	} else {
 		uint16_t file_number = 1; // start with file log001
+
 		/* look for the next file that does not exist */
 		while (file_number <= MAX_NO_LOGFILE) {
 			/* format log file path: e.g. /fs/microsd/sess001/log001.bin */
@@ -363,6 +370,7 @@ int open_log_file()
 			if (!file_exist(log_file_path)) {
 				break;
 			}
+
 			file_number++;
 		}
 
@@ -378,6 +386,7 @@ int open_log_file()
 	if (fd < 0) {
 		warn("failed opening log: %s", log_file_name);
 		mavlink_log_info(mavlink_fd, "[sdlog2] failed opening log: %s", log_file_name);
+
 	} else {
 		warnx("log file: %s", log_file_name);
 		mavlink_log_info(mavlink_fd, "[sdlog2] log file: %s", log_file_name);
@@ -605,8 +614,8 @@ int write_parameters(int fd)
 			}
 
 		case PARAM_TYPE_FLOAT:
-				param_get(param, &value);
-				break;
+			param_get(param, &value);
+			break;
 
 		default:
 			break;
@@ -700,6 +709,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	/* create log root dir */
 	int mkdir_ret = mkdir(log_root, S_IRWXU | S_IRWXG | S_IRWXO);
+
 	if (mkdir_ret != 0 && errno != EEXIST) {
 		err("failed creating log root dir: %s", log_root);
 	}
@@ -708,9 +718,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 	const char *converter_in = "/etc/logging/conv.zip";
 	char *converter_out = malloc(64);
 	snprintf(converter_out, 64, "%s/conv.zip", log_root);
+
 	if (file_copy(converter_in, converter_out) != OK) {
 		warn("unable to copy conversion scripts");
 	}
+
 	free(converter_out);
 
 	/* initialize log buffer with specified size */
@@ -969,6 +981,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				gps_time = buf.gps_pos.time_gps_usec;
 			}
 		}
+
 		sdlog2_start_log();
 	}
 
