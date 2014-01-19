@@ -683,7 +683,7 @@ MulticopterAttitudeControl::start()
 	ASSERT(_control_task == -1);
 
 	/* start the task */
-	_control_task = task_spawn_cmd("mc_att_control_vector",
+	_control_task = task_spawn_cmd("mc_att_control",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
 				       2048,
@@ -701,7 +701,7 @@ MulticopterAttitudeControl::start()
 int mc_att_control_main(int argc, char *argv[])
 {
 	if (argc < 1)
-		errx(1, "usage: mc_att_control_vector {start|stop|status}");
+		errx(1, "usage: mc_att_control {start|stop|status}");
 
 	if (!strcmp(argv[1], "start")) {
 
