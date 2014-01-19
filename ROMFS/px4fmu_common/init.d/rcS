@@ -323,7 +323,7 @@ then
 		if [ $OUTPUT_MODE == hil ]
 		then
 			echo "[init] Use HIL as primary output"
-			if hil mode_pwm
+			if hil mode_port2_pwm8
 			then
 				echo "[init] HIL output started"
 			else
@@ -474,15 +474,15 @@ then
 			# Use mixer to detect vehicle type
 			if [ $MIXER == FMU_hex_x -o $MIXER == FMU_hex_+ ]
 			then
-				param set MAV_TYPE 13
+				set MAV_TYPE 13
 			fi
 			if [ $MIXER == FMU_octo_x -o $MIXER == FMU_octo_+ ]
 			then
-				param set MAV_TYPE 14
+				set MAV_TYPE 14
 			fi
 			if [ $MIXER == FMU_octo_cox ]
 			then
-				param set MAV_TYPE 14
+				set MAV_TYPE 14
 			fi
 		fi
 
