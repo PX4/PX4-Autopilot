@@ -270,7 +270,8 @@ private:
 	orb_advert_t		_to_servorail;		///< servorail status
 	orb_advert_t		_to_safety;		///< status of safety
 
-	actuator_outputs_s	_outputs;		///<mixed outputs
+	actuator_outputs_s	_outputs;		///< mixed outputs
+	servorail_status_s	_servorail_status;	///< servorail status
 
 	bool			_primary_pwm_device;	///< true if we are the default PWM output
 
@@ -505,6 +506,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
 
 	_debug_enabled = true;
+	_servorail_status.rssi_v = 0;
 }
 
 PX4IO::~PX4IO()
@@ -1331,19 +1333,18 @@ PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 void
 PX4IO::io_handle_vservo(uint16_t vservo, uint16_t vrssi)
 {
-	servorail_status_s servorail_status;
-	servorail_status.timestamp = hrt_absolute_time();
+	_servorail_status.timestamp = hrt_absolute_time();
 
 	/* voltage is scaled to mV */
-	servorail_status.voltage_v = vservo * 0.001f;
-	servorail_status.rssi_v    = vrssi * 0.001f;
+	_servorail_status.voltage_v = vservo * 0.001f;
+	_servorail_status.rssi_v    = vrssi * 0.001f;
 
 	/* lazily publish the servorail voltages */
 	if (_to_servorail > 0) {
-		orb_publish(ORB_ID(servorail_status), _to_servorail, &servorail_status);
+		orb_publish(ORB_ID(servorail_status), _to_servorail, &_servorail_status);
 
 	} else {
-		_to_servorail = orb_advertise(ORB_ID(servorail_status), &servorail_status);
+		_to_servorail = orb_advertise(ORB_ID(servorail_status), &_servorail_status);
 	}
 }
 
@@ -1449,6 +1450,11 @@ PX4IO::io_publish_raw_rc()
 	} else {
 		rc_val.input_source = RC_INPUT_SOURCE_UNKNOWN;
 	}
+
+	/* set RSSI */
+
+	// XXX the correct scaling needs to be validated here
+	rc_val.rssi = (_servorail_status.rssi_v / 3.3f) * UINT8_MAX;
 
 	/* lazily advertise on first publication */
 	if (_to_input_rc == 0) {

@@ -8,9 +8,9 @@ then
 	if hw_ver compare PX4FMU_V1
 	then
 		echo "Start sdlog2 at 50Hz"
-		sdlog2 start -r 50 -a -b 16
+		sdlog2 start -r 50 -a -b 16 -t
 	else
 		echo "Start sdlog2 at 200Hz"
-		sdlog2 start -r 200 -a -b 16
+		sdlog2 start -r 200 -a -b 16 -t
 	fi
 fi
