@@ -108,7 +108,7 @@ static bool main_thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;			/**< Deamon status flag */
 static int deamon_task;						/**< Handle of deamon task / thread */
 static bool logwriter_should_exit = false;	/**< Logwriter thread exit flag */
-static const int MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log folders */
+static const int MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
 static const int MAX_NO_LOGFILE = 999;		/**< Maximum number of log files */
 static const int LOG_BUFFER_SIZE_DEFAULT = 8192;
 static const int MAX_WRITE_CHUNK = 512;
@@ -122,13 +122,16 @@ struct logbuffer_s lb;
 static pthread_mutex_t logbuffer_mutex;
 static pthread_cond_t logbuffer_cond;
 
-static char folder_path[64];
+static char log_dir[32];
 
 /* statistics counters */
-static unsigned long log_bytes_written = 0;
 static uint64_t start_time = 0;
+static unsigned long log_bytes_written = 0;
 static unsigned long log_msgs_written = 0;
 static unsigned long log_msgs_skipped = 0;
+
+/* GPS time, used for log files naming */
+static uint64_t gps_time = 0;
 
 /* current state of logging */
 static bool logging_enabled = false;
@@ -138,11 +141,14 @@ static bool log_on_start = false;
 static bool log_when_armed = false;
 /* delay = 1 / rate (rate defined by -r option) */
 static useconds_t sleep_delay = 0;
+/* use date/time for naming directories and files (-t option) */
+static bool log_name_timestamp = false;
 
 /* helper flag to track system state changes */
 static bool flag_system_armed = false;
 
 static pthread_t logwriter_pthread = 0;
+static pthread_attr_t logwriter_attr;
 
 /**
  * Log buffer writing thread. Open and close file here.
@@ -203,9 +209,9 @@ static void handle_command(struct vehicle_command_s *cmd);
 static void handle_status(struct vehicle_status_s *cmd);
 
 /**
- * Create folder for current logging session. Store folder name in 'log_folder'.
+ * Create dir for current logging session. Store dir name in 'log_dir'.
  */
-static int create_logfolder(void);
+static int create_logdir(void);
 
 /**
  * Select first free log file name and open it.
@@ -218,11 +224,12 @@ sdlog2_usage(const char *reason)
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
 
-	errx(1, "usage: sdlog2 {start|stop|status} [-r <log rate>] [-b <buffer size>] -e -a\n"
+	errx(1, "usage: sdlog2 {start|stop|status} [-r <log rate>] [-b <buffer size>] -e -a -t\n"
 	     "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
 	     "\t-b\tLog buffer size in KiB, default is 8\n"
 	     "\t-e\tEnable logging by default (if not, can be started by command)\n"
-	     "\t-a\tLog only when armed (can be still overriden by command)\n");
+	     "\t-a\tLog only when armed (can be still overriden by command)\n"
+	     "\t-t\tUse date/time for naming log directories and files\n");
 }
 
 /**
@@ -280,82 +287,101 @@ int sdlog2_main(int argc, char *argv[])
 	exit(1);
 }
 
-int create_logfolder()
+int create_log_dir()
 {
-	/* make folder on sdcard */
-	uint16_t folder_number = 1; // start with folder sess001
+	/* create dir on sdcard if needed */
+	uint16_t dir_number = 1; // start with dir sess001
 	int mkdir_ret;
 
-	/* look for the next folder that does not exist */
-	while (folder_number <= MAX_NO_LOGFOLDER) {
-		/* set up folder path: e.g. /fs/microsd/sess001 */
-		sprintf(folder_path, "%s/sess%03u", mountpoint, folder_number);
-		mkdir_ret = mkdir(folder_path, S_IRWXU | S_IRWXG | S_IRWXO);
-		/* the result is -1 if the folder exists */
+	if (log_name_timestamp && gps_time != 0) {
+		/* use GPS date for log dir naming: e.g. /fs/microsd/2014-01-19 */
+		time_t gps_time_sec = gps_time / 1000000;
+		struct tm t;
+		gmtime_r(&gps_time_sec, &t);
+		int n = snprintf(log_dir, sizeof(log_dir), "%s/", mountpoint);
+		strftime(log_dir + n, sizeof(log_dir) - n, "%Y-%m-%d", &t);
+		mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
+		if (mkdir_ret != 0 && errno != EEXIST) {
+			warn("failed creating new dir");
+			return -1;
+		}
+	} else {
+		/* look for the next dir that does not exist */
+		while (dir_number <= MAX_NO_LOGFOLDER) {
+			/* format log dir: e.g. /fs/microsd/sess001 */
+			sprintf(log_dir, "%s/sess%03u", mountpoint, dir_number);
+			mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
-		if (mkdir_ret == 0) {
-			/* folder does not exist, success */
+			if (mkdir_ret != 0) {
+				if (errno == EEXIST) {
+					/* dir exists already */
+					dir_number++;
+					continue;
+				} else {
+					warn("failed creating new dir");
+					return -1;
+				}
+			}
+			/* dir does not exist, success */
 			break;
+		}
 
-		} else if (mkdir_ret == -1) {
-			/* folder exists already */
-			folder_number++;
-			continue;
-
-		} else {
-			warn("failed creating new folder");
+		if (dir_number >= MAX_NO_LOGFOLDER) {
+			/* we should not end up here, either we have more than MAX_NO_LOGFOLDER on the SD card, or another problem */
+			warnx("all %d possible dirs exist already.", MAX_NO_LOGFOLDER);
 			return -1;
 		}
 	}
 
-	if (folder_number >= MAX_NO_LOGFOLDER) {
-		/* we should not end up here, either we have more than MAX_NO_LOGFOLDER on the SD card, or another problem */
-		warnx("all %d possible folders exist already.", MAX_NO_LOGFOLDER);
-		return -1;
-	}
-
+	/* print logging path, important to find log file later */
+	warnx("logging to dir: %s", log_dir);
+	mavlink_log_info(mavlink_fd, "[sdlog2] logging to dir: %s", log_dir);
 	return 0;
 }
 
 int open_logfile()
 {
-	/* make folder on sdcard */
-	uint16_t file_number = 1; // start with file log001
-
 	/* string to hold the path to the log */
-	char path_buf[64] = "";
+	char log_file[64] = "";
 
-	int fd = 0;
+	if (log_name_timestamp && gps_time != 0) {
+		/* use GPS time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
+		int n = snprintf(log_file, sizeof(log_file), "%s/", log_dir);
+		time_t gps_time_sec = gps_time / 1000000;
+		struct tm t;
+		gmtime_r(&gps_time_sec, &t);
+		n += strftime(log_file + n, sizeof(log_file) - n, "%H_%M_%S.bin", &t);
+	} else {
+		uint16_t file_number = 1; // start with file log001
+		/* look for the next file that does not exist */
+		while (file_number <= MAX_NO_LOGFILE) {
+			/* format log file path: e.g. /fs/microsd/sess001/log001.bin */
+			snprintf(log_file, sizeof(log_file), "%s/log%03u.bin", log_dir, file_number);
 
-	/* look for the next file that does not exist */
-	while (file_number <= MAX_NO_LOGFILE) {
-		/* set up file path: e.g. /fs/microsd/sess001/log001.bin */
-		sprintf(path_buf, "%s/log%03u.bin", folder_path, file_number);
-
-		if (file_exist(path_buf)) {
+			if (!file_exist(log_file)) {
+				break;
+			}
 			file_number++;
-			continue;
 		}
 
-		fd = open(path_buf, O_CREAT | O_WRONLY | O_DSYNC);
-
-		if (fd == 0) {
-			warn("opening %s failed", path_buf);
+		if (file_number > MAX_NO_LOGFILE) {
+			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
+			warnx("all %d possible files exist already.", MAX_NO_LOGFILE);
+			return -1;
 		}
-
-		warnx("logging to: %s.", path_buf);
-		mavlink_log_info(mavlink_fd, "[sdlog2] log: %s", path_buf);
-
-		return fd;
 	}
 
-	if (file_number > MAX_NO_LOGFILE) {
-		/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
-		warnx("all %d possible files exist already.", MAX_NO_LOGFILE);
-		return -1;
+	int fd = open(log_file, O_CREAT | O_WRONLY | O_DSYNC);
+
+	if (fd < 0) {
+		warn("failed opening %s", log_file);
+		mavlink_log_info(mavlink_fd, "[sdlog2] failed opening %s", log_file);
+	} else {
+		warnx("logging to: %s", log_file);
+		mavlink_log_info(mavlink_fd, "[sdlog2] log: %s", log_file);
 	}
 
-	return 0;
+	return fd;
 }
 
 static void *logwriter_thread(void *arg)
@@ -363,9 +389,12 @@ static void *logwriter_thread(void *arg)
 	/* set name */
 	prctl(PR_SET_NAME, "sdlog2_writer", 0);
 
-	struct logbuffer_s *logbuf = (struct logbuffer_s *)arg;
-
 	int log_fd = open_logfile();
+
+	if (log_fd < 0)
+		return;
+
+	struct logbuffer_s *logbuf = (struct logbuffer_s *)arg;
 
 	/* write log messages formats, version and parameters */
 	log_bytes_written += write_formats(log_fd);
@@ -443,13 +472,29 @@ static void *logwriter_thread(void *arg)
 	fsync(log_fd);
 	close(log_fd);
 
-	return OK;
+	return;
 }
 
 void sdlog2_start_log()
 {
 	warnx("start logging.");
 	mavlink_log_info(mavlink_fd, "[sdlog2] start logging");
+
+	/* create log dir if needed */
+	if (create_log_dir() != 0) {
+		mavlink_log_critical(mavlink_fd, "[sdlog2] error creating log dir");
+		errx(1, "error creating log dir");
+	}
+
+	const char *converter_in = "/etc/logging/conv.zip";
+	char *converter_out = malloc(120);
+	sprintf(converter_out, "%s/conv.zip", log_dir);
+
+	if (file_copy(converter_in, converter_out)) {
+		warnx("unable to copy conversion scripts");
+	}
+
+	free(converter_out);
 
 	/* initialize statistics counter */
 	log_bytes_written = 0;
@@ -458,25 +503,23 @@ void sdlog2_start_log()
 	log_msgs_skipped = 0;
 
 	/* initialize log buffer emptying thread */
-	pthread_attr_t receiveloop_attr;
-	pthread_attr_init(&receiveloop_attr);
+	pthread_attr_init(&logwriter_attr);
 
 	struct sched_param param;
 	/* low priority, as this is expensive disk I/O */
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 40;
-	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
+	(void)pthread_attr_setschedparam(&logwriter_attr, &param);
 
-	pthread_attr_setstacksize(&receiveloop_attr, 2048);
+	pthread_attr_setstacksize(&logwriter_attr, 2048);
 
 	logwriter_should_exit = false;
 
 	/* start log buffer emptying thread */
-	if (0 != pthread_create(&logwriter_pthread, &receiveloop_attr, logwriter_thread, &lb)) {
+	if (0 != pthread_create(&logwriter_pthread, &logwriter_attr, logwriter_thread, &lb)) {
 		errx(1, "error creating logwriter thread");
 	}
 
 	logging_enabled = true;
-	// XXX we have to destroy the attr at some point
 }
 
 void sdlog2_stop_log()
@@ -501,6 +544,7 @@ void sdlog2_stop_log()
 	}
 
 	logwriter_pthread = 0;
+	pthread_attr_destroy(&logwriter_attr);
 
 	sdlog2_status();
 }
@@ -594,12 +638,19 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* log buffer size */
 	int log_buffer_size = LOG_BUFFER_SIZE_DEFAULT;
 
+	logging_enabled = false;
+	log_on_start = false;
+	log_when_armed = false;
+	log_name_timestamp = false;
+
+	flag_system_armed = false;
+
 	/* work around some stupidity in task_create's argv handling */
 	argc -= 2;
 	argv += 2;
 	int ch;
 
-	while ((ch = getopt(argc, argv, "r:b:ea")) != EOF) {
+	while ((ch = getopt(argc, argv, "r:b:eat")) != EOF) {
 		switch (ch) {
 		case 'r': {
 				unsigned long r = strtoul(optarg, NULL, 10);
@@ -632,6 +683,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_when_armed = true;
 			break;
 
+		case 't':
+			log_name_timestamp = true;
+			break;
+
 		case '?':
 			if (optopt == 'c') {
 				warnx("Option -%c requires an argument.", optopt);
@@ -649,26 +704,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 	}
 
+	gps_time = 0;
+
 	if (!file_exist(mountpoint)) {
 		errx(1, "logging mount point %s not present, exiting.", mountpoint);
 	}
-
-	if (create_logfolder()) {
-		errx(1, "unable to create logging folder, exiting.");
-	}
-
-	const char *converter_in = "/etc/logging/conv.zip";
-	char *converter_out = malloc(120);
-	sprintf(converter_out, "%s/conv.zip", folder_path);
-
-	if (file_copy(converter_in, converter_out)) {
-		errx(1, "unable to copy conversion scripts, exiting.");
-	}
-
-	free(converter_out);
-
-	/* only print logging path, important to find log file later */
-	warnx("logging to directory: %s", folder_path);
 
 	/* initialize log buffer with specified size */
 	warnx("log buffer size: %i bytes.", log_buffer_size);
@@ -919,15 +959,22 @@ int sdlog2_thread_main(int argc, char *argv[])
 	uint16_t differential_pressure_counter = 0;
 
 	/* enable logging on start if needed */
-	if (log_on_start)
+	if (log_on_start) {
+		/* check GPS topic to get GPS time */
+		if (log_name_timestamp) {
+			if (OK == orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos)) {
+				gps_time = buf.gps_pos.time_gps_usec;
+			}
+		}
 		sdlog2_start_log();
+	}
 
 	while (!main_thread_should_exit) {
 		/* decide use usleep() or blocking poll() */
 		bool use_sleep = sleep_delay > 0 && logging_enabled;
 
 		/* poll all topics if logging enabled or only management (first 2) if not */
-		int poll_ret = poll(fds, logging_enabled ? fdsc_count : 2, use_sleep ? 0 : poll_timeout);
+		int poll_ret = poll(fds, logging_enabled ? fdsc_count : 3, use_sleep ? 0 : poll_timeout);
 
 		/* handle the poll result */
 		if (poll_ret < 0) {
@@ -955,6 +1002,17 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 				if (log_when_armed) {
 					handle_status(&buf_status);
+				}
+
+				handled_topics++;
+			}
+
+			/* --- GPS POSITION - LOG MANAGEMENT --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
+
+				if (log_name_timestamp) {
+					gps_time = buf.gps_pos.time_gps_usec;
 				}
 
 				handled_topics++;
@@ -988,7 +1046,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 			/* --- GPS POSITION --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
+				// Don't orb_copy, it's already done few lines above
 				log_msg.msg_type = LOG_GPS_MSG;
 				log_msg.body.log_GPS.gps_time = buf.gps_pos.time_gps_usec;
 				log_msg.body.log_GPS.fix_type = buf.gps_pos.fix_type;
