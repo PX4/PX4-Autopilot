@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Author: @author Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,8 +34,12 @@
 
 /**
  * @file mc_pos_control_main.cpp
+ * Multicopter position controller.
  *
- * Multirotor position controller.
+ * The controller has two loops: P loop for position error and PID loop for velocity error.
+ * Output of velocity controller is thrust vector that splitted to thrust direction
+ * (i.e. rotation matrix for multicopter orientation) and thrust module (i.e. multicopter thrust itself).
+ * Controller doesn't use Euler angles for work, they generated only for more human-friendly control and logging.
  */
 
 #include <nuttx/config.h>

@@ -1,9 +1,10 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *           @author Jean Cyr <jean.m.cyr@gmail.com>
  *           @author Julian Oes <joes@student.ethz.ch>
+ *           @author Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,6 +40,11 @@
  *
  * Handles missions, geo fencing and failsafe navigation behavior.
  * Published the mission item triplet for the position controller.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Jean Cyr <jean.m.cyr@gmail.com>
+ * @author Julian Oes <joes@student.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <nuttx/config.h>

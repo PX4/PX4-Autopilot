@@ -1,9 +1,9 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
- *   Author: 	Tobias Naegeli <naegelit@student.ethz.ch>
- *   			Lorenz Meier <lm@inf.ethz.ch>
- *   			Anton Babushkin <anton.babushkin@me.com>
+ *   Author: @author Tobias Naegeli <naegelit@student.ethz.ch>
+ *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *           @author Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,7 +36,16 @@
 
 /**
  * @file mc_att_control_main.c
- * Implementation of a multicopter attitude controller based on desired rotation matrix.
+ * Multicopter attitude controller.
+ *
+ * The controller has two loops: P loop for angular error and PD loop for angular rate error.
+ * Desired rotation calculated keeping in mind that yaw response is normally slower than roll/pitch.
+ * For small deviations controller rotates copter to have shortest path of thrust vector and independently rotates around yaw,
+ * so actual rotation axis is not constant. For large deviations controller rotates copter around fixed axis.
+ * These two approaches fused seamlessly with weight depending on angular error.
+ * When thrust vector directed near-horizontally (e.g. roll ~= PI/2) yaw setpoint ignored because of singularity.
+ * Controller doesn't use Euler angles for work, they generated only for more human-friendly control and logging.
+ * If rotation matrix setpoint is invalid it will be generated from Euler angles for compatibility with old position controllers.
  */
 
 #include <nuttx/config.h>
