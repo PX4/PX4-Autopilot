@@ -1,9 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Author: @author Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,46 +31,67 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file vehicle_global_position_setpoint.h
- * Definition of the global WGS84 position setpoint uORB topic.
+ * @file navigator_mission.h
+ * Helper class to access missions
  */
 
-#ifndef TOPIC_VEHICLE_GLOBAL_POSITION_SET_TRIPLET_H_
-#define TOPIC_VEHICLE_GLOBAL_POSITION_SET_TRIPLET_H_
+#ifndef NAVIGATOR_MISSION_H
+#define NAVIGATOR_MISSION_H
 
-#include <stdint.h>
-#include <stdbool.h>
-#include "../uORB.h"
+#include <uORB/topics/mission.h>
 
-#include "vehicle_global_position_setpoint.h"
 
-/**
- * @addtogroup topics
- * @{
- */
-
-/**
- * Global position setpoint triplet in WGS84 coordinates.
- *
- * This are the three next waypoints (or just the next two or one).
- */
-struct vehicle_global_position_set_triplet_s
+class __EXPORT Mission
 {
-	bool previous_valid;					/**< flag indicating previous position is valid */
-	bool next_valid;					/**< flag indicating next position is valid */
+public:
+	/**
+	 * Constructor
+	 */
+	Mission();
 
-	struct vehicle_global_position_setpoint_s previous;
-	struct vehicle_global_position_setpoint_s current;
-	struct vehicle_global_position_setpoint_s next;
+	/**
+	 * Destructor, also kills the sensors task.
+	 */
+	~Mission();
+
+	void		set_offboard_dataman_id(int new_id);
+	void		set_current_offboard_mission_index(int new_index);
+	void		set_current_onboard_mission_index(int new_index);
+	void		set_offboard_mission_count(unsigned new_count);
+	void		set_onboard_mission_count(unsigned new_count);
+
+	void		set_onboard_mission_allowed(bool allowed);
+
+	bool		current_mission_available();
+	bool		next_mission_available();
+
+	int		get_current_mission_item(struct mission_item_s *mission_item, bool *onboard, unsigned *index);
+	int		get_next_mission_item(struct mission_item_s *mission_item);
+
+	void		move_to_next();
+
+	void		add_home_pos(struct mission_item_s *new_mission_item);
+
+private:
+	bool		current_onboard_mission_available();
+	bool		current_offboard_mission_available();
+	bool		next_onboard_mission_available();
+	bool		next_offboard_mission_available();
+
+	int 		_offboard_dataman_id;
+	unsigned	_current_offboard_mission_index;
+	unsigned	_current_onboard_mission_index;
+	unsigned	_offboard_mission_item_count;		/** number of offboard mission items available */
+	unsigned	_onboard_mission_item_count;		/** number of onboard mission items available */
+
+	bool		_onboard_mission_allowed;
+
+	enum {
+		MISSION_TYPE_NONE,
+		MISSION_TYPE_ONBOARD,
+		MISSION_TYPE_OFFBOARD,
+	} 		_current_mission_type;
 };
-
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(vehicle_global_position_set_triplet);
 
 #endif

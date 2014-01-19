@@ -104,6 +104,7 @@ MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/controllib
 MODULES		+= modules/uORB
+MODULES		+= modules/dataman
 
 #
 # Libraries
@@ -115,6 +116,7 @@ MODULES		+= lib/ecl
 MODULES		+= lib/external_lgpl
 MODULES		+= lib/geo
 MODULES		+= lib/conversion
+MODULES		+= lib/launchdetection
 
 #
 # Demo apps

@@ -62,6 +62,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -72,7 +73,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_global_position_setpoint.h>
+#include <uORB/topics/mission_item_triplet.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
@@ -684,6 +685,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* warning! using union here to save memory, elements should be used separately! */
 	union {
 		struct vehicle_command_s cmd;
+		struct vehicle_control_mode_s control_mode;
 		struct sensor_combined_s sensor;
 		struct vehicle_attitude_s att;
 		struct vehicle_attitude_setpoint_s att_sp;
@@ -693,7 +695,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_local_position_s local_pos;
 		struct vehicle_local_position_setpoint_s local_pos_sp;
 		struct vehicle_global_position_s global_pos;
-		struct vehicle_global_position_setpoint_s global_pos_sp;
+		struct mission_item_triplet_s triplet;
 		struct vehicle_gps_position_s gps_pos;
 		struct vehicle_vicon_position_s vicon_pos;
 		struct optical_flow_s flow;
@@ -710,6 +712,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	struct {
 		int cmd_sub;
 		int status_sub;
+		int control_mode_sub;
 		int sensor_sub;
 		int att_sub;
 		int att_sp_sub;
@@ -719,7 +722,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int local_pos_sub;
 		int local_pos_sp_sub;
 		int global_pos_sub;
-		int global_pos_sp_sub;
+		int triplet_sub;
 		int gps_pos_sub;
 		int vicon_pos_sub;
 		int flow_sub;
@@ -779,6 +782,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* --- VEHICLE STATUS --- */
 	subs.status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	fds[fdsc_count].fd = subs.status_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- VEHICLE CONTROL MODE --- */
+	subs.control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+	fds[fdsc_count].fd = subs.control_mode_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -843,8 +852,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fdsc_count++;
 
 	/* --- GLOBAL POSITION SETPOINT--- */
-	subs.global_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
-	fds[fdsc_count].fd = subs.global_pos_sp_sub;
+	subs.triplet_sub = orb_subscribe(ORB_ID(mission_item_triplet));
+	fds[fdsc_count].fd = subs.triplet_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -975,16 +984,21 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 			/* --- VEHICLE STATUS --- */
 			if (fds[ifds++].revents & POLLIN) {
-				// Don't orb_copy, it's already done few lines above
+				/* don't orb_copy, it's already done few lines above */
+				/* copy control mode here to construct STAT message */
+				if (fds[ifds].revents & POLLIN) {
+					orb_copy(ORB_ID(vehicle_control_mode), subs.control_mode_sub, &buf.control_mode);
+				}
 				log_msg.msg_type = LOG_STAT_MSG;
-				log_msg.body.log_STAT.main_state = (uint8_t) buf_status.main_state;
-				log_msg.body.log_STAT.navigation_state = (uint8_t) buf_status.navigation_state;
+				log_msg.body.log_STAT.main_state = (uint8_t) buf.control_mode.main_state;
+				log_msg.body.log_STAT.navigation_state = (uint8_t) buf.control_mode.nav_state;
 				log_msg.body.log_STAT.arming_state = (uint8_t) buf_status.arming_state;
 				log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
 				log_msg.body.log_STAT.battery_warning = (uint8_t) buf_status.battery_warning;
 				log_msg.body.log_STAT.landed = (uint8_t) buf_status.condition_landed;
 				LOGBUFFER_WRITE_AND_COUNT(STAT);
 			}
+			ifds++;	// skip CONTROL MODE, already copied
 
 			/* --- GPS POSITION --- */
 			if (fds[ifds++].revents & POLLIN) {
@@ -1157,20 +1171,19 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 			/* --- GLOBAL POSITION SETPOINT --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(vehicle_global_position_setpoint), subs.global_pos_sp_sub, &buf.global_pos_sp);
+				orb_copy(ORB_ID(mission_item_triplet), subs.triplet_sub, &buf.triplet);
 				log_msg.msg_type = LOG_GPSP_MSG;
-				log_msg.body.log_GPSP.altitude_is_relative = buf.global_pos_sp.altitude_is_relative;
-				log_msg.body.log_GPSP.lat = buf.global_pos_sp.lat;
-				log_msg.body.log_GPSP.lon = buf.global_pos_sp.lon;
-				log_msg.body.log_GPSP.altitude = buf.global_pos_sp.altitude;
-				log_msg.body.log_GPSP.yaw = buf.global_pos_sp.yaw;
-				log_msg.body.log_GPSP.loiter_radius = buf.global_pos_sp.loiter_radius;
-				log_msg.body.log_GPSP.loiter_direction = buf.global_pos_sp.loiter_direction;
-				log_msg.body.log_GPSP.nav_cmd = buf.global_pos_sp.nav_cmd;
-				log_msg.body.log_GPSP.param1 = buf.global_pos_sp.param1;
-				log_msg.body.log_GPSP.param2 = buf.global_pos_sp.param2;
-				log_msg.body.log_GPSP.param3 = buf.global_pos_sp.param3;
-				log_msg.body.log_GPSP.param4 = buf.global_pos_sp.param4;
+				log_msg.body.log_GPSP.altitude_is_relative = buf.triplet.current.altitude_is_relative;
+				log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * 1e7d);
+				log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * 1e7d);
+				log_msg.body.log_GPSP.altitude = buf.triplet.current.altitude;
+				log_msg.body.log_GPSP.yaw = buf.triplet.current.yaw;
+				log_msg.body.log_GPSP.nav_cmd = buf.triplet.current.nav_cmd;				
+				log_msg.body.log_GPSP.loiter_radius = buf.triplet.current.loiter_radius;
+				log_msg.body.log_GPSP.loiter_direction = buf.triplet.current.loiter_direction;
+				log_msg.body.log_GPSP.acceptance_radius = buf.triplet.current.acceptance_radius;
+				log_msg.body.log_GPSP.time_inside = buf.triplet.current.time_inside;
+				log_msg.body.log_GPSP.pitch_min = buf.triplet.current.pitch_min;
 				LOGBUFFER_WRITE_AND_COUNT(GPSP);
 			}
 

@@ -60,7 +60,6 @@
 
 #include "waypoints.h"
 #include "orb_topics.h"
-#include "missionlib.h"
 #include "mavlink_hil.h"
 #include "util.h"
 
@@ -70,6 +69,7 @@ struct vehicle_global_position_s global_pos;
 struct vehicle_local_position_s local_pos;
 struct navigation_capabilities_s nav_cap;
 struct vehicle_status_s v_status;
+struct vehicle_control_mode_s control_mode;
 struct rc_channels_s rc;
 struct rc_input_values rc_raw;
 struct actuator_armed_s armed;
@@ -126,6 +126,7 @@ static void	l_vehicle_rates_setpoint(const struct listener *l);
 static void	l_home(const struct listener *l);
 static void	l_airspeed(const struct listener *l);
 static void	l_nav_cap(const struct listener *l);
+static void	l_control_mode(const struct listener *l);
 
 static const struct listener listeners[] = {
 	{l_sensor_combined,		&mavlink_subs.sensor_sub,	0},
@@ -136,7 +137,7 @@ static const struct listener listeners[] = {
 	{l_input_rc,			&mavlink_subs.input_rc_sub,	0},
 	{l_global_position,		&mavlink_subs.global_pos_sub,	0},
 	{l_local_position,		&mavlink_subs.local_pos_sub,	0},
-	{l_global_position_setpoint,	&mavlink_subs.spg_sub,		0},
+	{l_global_position_setpoint,	&mavlink_subs.triplet_sub,	0},
 	{l_local_position_setpoint,	&mavlink_subs.spl_sub,		0},
 	{l_attitude_setpoint,		&mavlink_subs.spa_sub,		0},
 	{l_actuator_outputs,		&mavlink_subs.act_0_sub,	0},
@@ -152,6 +153,7 @@ static const struct listener listeners[] = {
 	{l_home,			&mavlink_subs.home_sub,		0},
 	{l_airspeed,			&mavlink_subs.airspeed_sub,		0},
 	{l_nav_cap,			&mavlink_subs.navigation_capabilities_sub,		0},
+	{l_control_mode,			&mavlink_subs.control_mode_sub,		0},
 };
 
 static const unsigned n_listeners = sizeof(listeners) / sizeof(listeners[0]);
@@ -408,23 +410,24 @@ l_local_position(const struct listener *l)
 void
 l_global_position_setpoint(const struct listener *l)
 {
-	struct vehicle_global_position_setpoint_s global_sp;
-
-	/* copy local position data into local buffer */
-	orb_copy(ORB_ID(vehicle_global_position_setpoint), mavlink_subs.spg_sub, &global_sp);
+	struct mission_item_triplet_s triplet;
+	orb_copy(ORB_ID(mission_item_triplet), mavlink_subs.triplet_sub, &triplet);
 
 	uint8_t coordinate_frame = MAV_FRAME_GLOBAL;
+	
+	if (!triplet.current_valid)
+		return;
 
-	if (global_sp.altitude_is_relative)
+	if (triplet.current.altitude_is_relative)
 		coordinate_frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
 
 	if (gcs_link)
 		mavlink_msg_global_position_setpoint_int_send(MAVLINK_COMM_0,
 				coordinate_frame,
-				global_sp.lat,
-				global_sp.lon,
-				global_sp.altitude * 1000.0f,
-				global_sp.yaw * M_RAD_TO_DEG_F * 100.0f);
+				(int32_t)(triplet.current.lat * 1e7d),
+				(int32_t)(triplet.current.lon * 1e7d),
+				(int32_t)(triplet.current.altitude * 1e3f),
+				(int16_t)(triplet.current.yaw * M_RAD_TO_DEG_F * 1e2f));
 }
 
 void
@@ -663,7 +666,7 @@ l_home(const struct listener *l)
 
 	orb_copy(ORB_ID(home_position), mavlink_subs.home_sub, &home);
 
-	mavlink_msg_gps_global_origin_send(MAVLINK_COMM_0, home.lat, home.lon, home.alt);
+	mavlink_msg_gps_global_origin_send(MAVLINK_COMM_0, (int32_t)(home.lat*1e7d), (int32_t)(home.lon*1e7d), (int32_t)(home.altitude)*1e3f);
 }
 
 void
@@ -683,6 +686,26 @@ l_nav_cap(const struct listener *l)
 				   "turn dist",
 				   nav_cap.turn_distance);
 
+}
+
+void
+l_control_mode(const struct listener *l)
+{
+	orb_copy(ORB_ID(vehicle_control_mode), mavlink_subs.control_mode_sub, &control_mode);
+
+	/* translate the current syste state to mavlink state and mode */
+	uint8_t mavlink_state = 0;
+	uint8_t mavlink_base_mode = 0;
+	uint32_t mavlink_custom_mode = 0;
+	get_mavlink_mode_and_state(&mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
+
+	/* send heartbeat */
+	mavlink_msg_heartbeat_send(chan,
+				   mavlink_system.type,
+				   MAV_AUTOPILOT_PX4,
+				   mavlink_base_mode,
+				   mavlink_custom_mode,
+				   mavlink_state);
 }
 
 static void *
@@ -760,6 +783,10 @@ uorb_receive_start(void)
 	status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	orb_set_interval(status_sub, 300);		/* max 3.33 Hz updates */
 
+	/* --- CONTROL MODE --- */
+	mavlink_subs.control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+	orb_set_interval(mavlink_subs.control_mode_sub, 300);		/* max 3.33 Hz updates */
+
 	/* --- RC CHANNELS VALUE --- */
 	rc_sub = orb_subscribe(ORB_ID(rc_channels));
 	orb_set_interval(rc_sub, 100);			/* 10Hz updates */
@@ -777,9 +804,9 @@ uorb_receive_start(void)
 	orb_set_interval(mavlink_subs.local_pos_sub, 1000);	/* 1Hz active updates */
 
 	/* --- GLOBAL SETPOINT VALUE --- */
-	mavlink_subs.spg_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
-	orb_set_interval(mavlink_subs.spg_sub, 2000);	/* 0.5 Hz updates */
-
+	mavlink_subs.triplet_sub = orb_subscribe(ORB_ID(mission_item_triplet));
+	orb_set_interval(mavlink_subs.triplet_sub, 2000);	/* 0.5 Hz updates */
+	
 	/* --- LOCAL SETPOINT VALUE --- */
 	mavlink_subs.spl_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	orb_set_interval(mavlink_subs.spl_sub, 2000);	/* 0.5 Hz updates */

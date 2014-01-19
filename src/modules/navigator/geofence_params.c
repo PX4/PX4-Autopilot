@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -18,7 +18,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -33,20 +33,23 @@
  ****************************************************************************/
 
 /**
- * @file missionlib.h
- * MAVLink mission helper library
+ * @file geofence_params.c
+ *
+ * Parameters for geofence
+ *
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#pragma once
+#include <nuttx/config.h>
 
-#include "mavlink_bridge_header.h"
+#include <systemlib/param/param.h>
 
-//extern void	mavlink_wpm_send_message(mavlink_message_t *msg);
-//extern void	mavlink_wpm_send_gcs_string(const char *string);
-//extern uint64_t	mavlink_wpm_get_system_timestamp(void);
-extern int	mavlink_missionlib_send_message(mavlink_message_t *msg);
-extern int	mavlink_missionlib_send_gcs_string(const char *string);
-extern uint64_t	mavlink_missionlib_get_system_timestamp(void);
-extern void	mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
-		float param2, float param3, float param4, float param5_lat_x,
-		float param6_lon_y, float param7_alt_z, uint8_t frame, uint16_t command);
+/*
+ * geofence parameters, accessible via MAVLink
+ *
+ */
+
+// @DisplayName		Switch to enable geofence
+// @Description		if set to 1 geofence is enabled, defaults to 1 because geofence is only enabled when the geofence.txt file is present
+// @Range		0 or 1
+PARAM_DEFINE_INT32(GF_ON, 1);

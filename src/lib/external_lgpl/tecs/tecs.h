@@ -180,6 +180,14 @@ public:
 		_indicated_airspeed_max = airspeed;
 	}
 
+	void set_heightrate_p(float heightrate_p) {
+		_heightrate_p = heightrate_p;
+	}
+
+	void set_speedrate_p(float speedrate_p) {
+		_speedrate_p = speedrate_p;
+	}
+
 private:
 	// Last time update_50Hz was called
 	uint64_t _update_50hz_last_usec;
@@ -203,6 +211,8 @@ private:
 	float _vertAccLim;
 	float _rollComp;
 	float _spdWeight;
+	float _heightrate_p;
+	float _speedrate_p;
 
 	// throttle demand in the range from 0.0 to 1.0
 	float _throttle_dem;
@@ -329,7 +339,7 @@ private:
 	void _update_speed_demand(void);
 
 	// Update the demanded height
-	void _update_height_demand(float demand);
+	void _update_height_demand(float demand, float state);
 
 	// Detect an underspeed condition
 	void _detect_underspeed(void);

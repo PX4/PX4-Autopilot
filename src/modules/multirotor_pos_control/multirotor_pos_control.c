@@ -61,8 +61,8 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/vehicle_global_position_setpoint.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
+#include <uORB/topics/mission_item_triplet.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/pid/pid.h>
 #include <mavlink/mavlink_log.h>
@@ -190,12 +190,12 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	memset(&manual, 0, sizeof(manual));
 	struct vehicle_local_position_s local_pos;
 	memset(&local_pos, 0, sizeof(local_pos));
-	struct vehicle_local_position_setpoint_s local_pos_sp;
-	memset(&local_pos_sp, 0, sizeof(local_pos_sp));
-	struct vehicle_global_position_setpoint_s global_pos_sp;
-	memset(&global_pos_sp, 0, sizeof(global_pos_sp));
+	struct mission_item_triplet_s triplet;
+	memset(&triplet, 0, sizeof(triplet));
 	struct vehicle_global_velocity_setpoint_s global_vel_sp;
 	memset(&global_vel_sp, 0, sizeof(global_vel_sp));
+	struct vehicle_local_position_setpoint_s local_pos_sp;
+	memset(&local_pos_sp, 0, sizeof(local_pos_sp));
 
 	/* subscribe to attitude, motor setpoints and system state */
 	int param_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -203,9 +203,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	int local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
-	int local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	int global_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
+	int mission_triplet_sub = orb_subscribe(ORB_ID(mission_item_triplet));
 
 	/* publish setpoint */
 	orb_advert_t local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &local_pos_sp);
@@ -292,11 +290,11 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_control_mode), control_mode_sub, &control_mode);
 		}
 
-		orb_check(global_pos_sp_sub, &updated);
+		orb_check(mission_triplet_sub, &updated);
 
 		if (updated) {
-			orb_copy(ORB_ID(vehicle_global_position_setpoint), global_pos_sp_sub, &global_pos_sp);
-			global_pos_sp_valid = true;
+			orb_copy(ORB_ID(mission_item_triplet), mission_triplet_sub, &triplet);
+			global_pos_sp_valid = triplet.current_valid;
 			reset_mission_sp = true;
 		}
 
@@ -329,7 +327,6 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
 			orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 			orb_copy(ORB_ID(vehicle_attitude_setpoint), att_sp_sub, &att_sp);
-			orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
 
 			float z_sp_offs_max = params.z_vel_max / params.z_p * 2.0f;
 			float xy_sp_offs_max = params.xy_vel_max / params.xy_p * 2.0f;
@@ -418,142 +415,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 				/* force reprojection of global setpoint after manual mode */
 				reset_mission_sp = true;
-
-			} else if (control_mode.flag_control_auto_enabled) {
-				/* AUTO mode, use global setpoint */
-				if (control_mode.auto_state == NAVIGATION_STATE_AUTO_READY) {
-					reset_auto_sp_xy = true;
-					reset_auto_sp_z = true;
-
-				} else if (control_mode.auto_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
-					if (reset_takeoff_sp) {
-						reset_takeoff_sp = false;
-						local_pos_sp.x = local_pos.x;
-						local_pos_sp.y = local_pos.y;
-						local_pos_sp.z = - params.takeoff_alt - params.takeoff_gap;
-						att_sp.yaw_body = att.yaw;
-						mavlink_log_info(mavlink_fd, "[mpc] takeoff sp: %.2f %.2f %.2f", (double)local_pos_sp.x, (double)local_pos_sp.y, (double) - local_pos_sp.z);
-					}
-
-					reset_auto_sp_xy = false;
-					reset_auto_sp_z = true;
-
-				} else if (control_mode.auto_state == NAVIGATION_STATE_AUTO_RTL) {
-					// TODO
-					reset_auto_sp_xy = true;
-					reset_auto_sp_z = true;
-
-				} else if (control_mode.auto_state == NAVIGATION_STATE_AUTO_MISSION) {
-					/* init local projection using local position ref */
-					if (local_pos.ref_timestamp != local_ref_timestamp) {
-						reset_mission_sp = true;
-						local_ref_timestamp = local_pos.ref_timestamp;
-						double lat_home = local_pos.ref_lat * 1e-7;
-						double lon_home = local_pos.ref_lon * 1e-7;
-						map_projection_init(lat_home, lon_home);
-						mavlink_log_info(mavlink_fd, "[mpc] local pos ref: %.7f, %.7f", (double)lat_home, (double)lon_home);
-					}
-
-					if (reset_mission_sp) {
-						reset_mission_sp = false;
-						/* update global setpoint projection */
-
-						if (global_pos_sp_valid) {
-							/* global position setpoint valid, use it */
-							double sp_lat = global_pos_sp.lat * 1e-7;
-							double sp_lon = global_pos_sp.lon * 1e-7;
-							/* project global setpoint to local setpoint */
-							map_projection_project(sp_lat, sp_lon, &(local_pos_sp.x), &(local_pos_sp.y));
-
-							if (global_pos_sp.altitude_is_relative) {
-								local_pos_sp.z = -global_pos_sp.altitude;
-
-							} else {
-								local_pos_sp.z = local_pos.ref_alt - global_pos_sp.altitude;
-							}
-							/* update yaw setpoint only if value is valid */
-							if (isfinite(global_pos_sp.yaw) && fabsf(global_pos_sp.yaw) < M_TWOPI) {
-								att_sp.yaw_body = global_pos_sp.yaw;
-							}
-
-							mavlink_log_info(mavlink_fd, "[mpc] new sp: %.7f, %.7f (%.2f, %.2f)", (double)sp_lat, sp_lon, (double)local_pos_sp.x, (double)local_pos_sp.y);
-
-						} else {
-							if (reset_auto_sp_xy) {
-								reset_auto_sp_xy = false;
-								/* local position setpoint is invalid,
-								 * use current position as setpoint for loiter */
-								local_pos_sp.x = local_pos.x;
-								local_pos_sp.y = local_pos.y;
-								local_pos_sp.yaw = att.yaw;
-							}
-
-							if (reset_auto_sp_z) {
-								reset_auto_sp_z = false;
-								local_pos_sp.z = local_pos.z;
-							}
-
-							mavlink_log_info(mavlink_fd, "[mpc] no global pos sp, loiter: %.2f, %.2f", (double)local_pos_sp.x, (double)local_pos_sp.y);
-						}
-					}
-
-					reset_auto_sp_xy = true;
-					reset_auto_sp_z = true;
-				}
-
-				if (control_mode.auto_state != NAVIGATION_STATE_AUTO_TAKEOFF) {
-					reset_takeoff_sp = true;
-				}
-
-				if (control_mode.auto_state != NAVIGATION_STATE_AUTO_MISSION) {
-					reset_mission_sp = true;
-				}
-
-				/* copy yaw setpoint to vehicle_local_position_setpoint topic */
-				local_pos_sp.yaw = att_sp.yaw_body;
-
-				/* reset setpoints after AUTO mode */
-				reset_man_sp_xy = true;
-				reset_man_sp_z = true;
-
-			} else {
-				/* no control (failsafe), loiter or stay on ground */
-				if (local_pos.landed) {
-					/* landed: move setpoint down */
-					/* in air: hold altitude */
-					if (local_pos_sp.z < 5.0f) {
-						/* set altitude setpoint to 5m under ground,
-						 * don't set it too deep to avoid unexpected landing in case of false "landed" signal */
-						local_pos_sp.z = 5.0f;
-						mavlink_log_info(mavlink_fd, "[mpc] landed, set alt: %.2f", (double) - local_pos_sp.z);
-					}
-
-					reset_man_sp_z = true;
-
-				} else {
-					/* in air: hold altitude */
-					if (reset_man_sp_z) {
-						reset_man_sp_z = false;
-						local_pos_sp.z = local_pos.z;
-						mavlink_log_info(mavlink_fd, "[mpc] set loiter alt: %.2f", (double) - local_pos_sp.z);
-					}
-
-					reset_auto_sp_z = false;
-				}
-
-				if (control_mode.flag_control_position_enabled) {
-					if (reset_man_sp_xy) {
-						reset_man_sp_xy = false;
-						local_pos_sp.x = local_pos.x;
-						local_pos_sp.y = local_pos.y;
-						local_pos_sp.yaw = att.yaw;
-						att_sp.yaw_body = att.yaw;
-						mavlink_log_info(mavlink_fd, "[mpc] set loiter pos: %.2f %.2f", (double)local_pos_sp.x, (double)local_pos_sp.y);
-					}
-
-					reset_auto_sp_xy = false;
-				}
 			}
+			/* AUTO not implemented */
 
 			/* publish local position setpoint */
 			orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
