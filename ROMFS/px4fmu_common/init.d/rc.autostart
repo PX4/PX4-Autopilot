@@ -43,7 +43,7 @@ fi
 
 if param compare SYS_AUTOSTART 1004
 then
-	#sh /etc/init.d/1004_rc_fw_Rascal110.hil
+	sh /etc/init.d/1004_rc_fw_Rascal110.hil
 fi
 
 #
@@ -84,7 +84,7 @@ fi
 
 if param compare SYS_AUTOSTART 3032
 then
-	#sh /etc/init.d/3032_skywalker_x5
+	sh /etc/init.d/3032_skywalker_x5
 fi
 
 if param compare SYS_AUTOSTART 3033
