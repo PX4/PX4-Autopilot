@@ -16,7 +16,7 @@ position_estimator_inav start
 #
 # Start attitude control
 #
-mc_att_control_vector start
+mc_att_control start
 
 #
 # Start position control

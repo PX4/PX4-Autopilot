@@ -82,7 +82,7 @@ MODULES		+= modules/position_estimator_inav
 #
 MODULES		+= modules/fw_pos_control_l1
 MODULES		+= modules/fw_att_control
-MODULES		+= modules/mc_att_control_vector
+MODULES		+= modules/mc_att_control
 MODULES		+= modules/mc_pos_control
 #MODULES		+= examples/flow_position_control
 #MODULES		+= examples/flow_speed_control

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
 # Multirotor attitude controller (vector based, no Euler singularities)
 #
 
-MODULE_COMMAND	= mc_att_control_vector
+MODULE_COMMAND	= mc_att_control
 
-SRCS		= mc_att_control_vector_main.cpp \
-			  mc_att_control_vector_params.c
+SRCS		= mc_att_control_main.cpp \
+			  mc_att_control_params.c

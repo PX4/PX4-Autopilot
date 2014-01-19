@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *   Author: 	Tobias Naegeli <naegelit@student.ethz.ch>
  *   			Lorenz Meier <lm@inf.ethz.ch>
  *   			Anton Babushkin <anton.babushkin@me.com>
@@ -35,17 +35,8 @@
  ****************************************************************************/
 
 /**
- * @file mc_att_control_vector_main.c
+ * @file mc_att_control_main.c
  * Implementation of a multicopter attitude controller based on desired rotation matrix.
- *
- * References
- *  [1] Daniel Mellinger and Vijay Kumar, "Minimum Snap Trajectory Generation and Control for Quadrotors",
- *  	http://www.seas.upenn.edu/~dmel/mellingerICRA11.pdf
- *
- * @author Tobias Naegeli <naegelit@student.ethz.ch>
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
- *
  */
 
 #include <nuttx/config.h>
@@ -82,7 +73,7 @@
  *
  * @ingroup apps
  */
-extern "C" __EXPORT int mc_att_control_vector_main(int argc, char *argv[]);
+extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 
 #define MIN_TAKEOFF_THROTTLE	0.3f
 #define YAW_DEADZONE	0.01f
@@ -698,7 +689,7 @@ MulticopterAttitudeControl::start()
 	return OK;
 }
 
-int mc_att_control_vector_main(int argc, char *argv[])
+int mc_att_control_main(int argc, char *argv[])
 {
 	if (argc < 1)
 		errx(1, "usage: mc_att_control_vector {start|stop|status}");
