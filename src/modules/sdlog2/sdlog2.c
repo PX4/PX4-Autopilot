@@ -114,7 +114,7 @@ static const int LOG_BUFFER_SIZE_DEFAULT = 8192;
 static const int MAX_WRITE_CHUNK = 512;
 static const int MIN_BYTES_TO_WRITE = 512;
 
-static const char *mountpoint = "/fs/microsd";
+static const char *log_root = "/fs/microsd/log";
 static int mavlink_fd = -1;
 struct logbuffer_s lb;
 
@@ -211,12 +211,12 @@ static void handle_status(struct vehicle_status_s *cmd);
 /**
  * Create dir for current logging session. Store dir name in 'log_dir'.
  */
-static int create_logdir(void);
+static int create_log_dir(void);
 
 /**
  * Select first free log file name and open it.
  */
-static int open_logfile(void);
+static int open_log_file(void);
 
 static void
 sdlog2_usage(const char *reason)
@@ -298,67 +298,69 @@ int create_log_dir()
 		time_t gps_time_sec = gps_time / 1000000;
 		struct tm t;
 		gmtime_r(&gps_time_sec, &t);
-		int n = snprintf(log_dir, sizeof(log_dir), "%s/", mountpoint);
+		int n = snprintf(log_dir, sizeof(log_dir), "%s/", log_root);
 		strftime(log_dir + n, sizeof(log_dir) - n, "%Y-%m-%d", &t);
 		mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
-		if (mkdir_ret != 0 && errno != EEXIST) {
-			warn("failed creating new dir");
+		if (mkdir_ret == OK) {
+			warnx("log dir created: %s", log_dir);
+		} else if (errno != EEXIST) {
+			warn("failed creating new dir: %s", log_dir);
 			return -1;
 		}
 	} else {
 		/* look for the next dir that does not exist */
 		while (dir_number <= MAX_NO_LOGFOLDER) {
 			/* format log dir: e.g. /fs/microsd/sess001 */
-			sprintf(log_dir, "%s/sess%03u", mountpoint, dir_number);
+			sprintf(log_dir, "%s/sess%03u", log_root, dir_number);
 			mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
-			if (mkdir_ret != 0) {
-				if (errno == EEXIST) {
-					/* dir exists already */
-					dir_number++;
-					continue;
-				} else {
-					warn("failed creating new dir");
-					return -1;
-				}
+			if (mkdir_ret == 0) {
+				warnx("log dir created: %s", log_dir);
+				break;
+			} else if (errno != EEXIST) {
+				warn("failed creating new dir: %s", log_dir);
+				return -1;
 			}
-			/* dir does not exist, success */
-			break;
+			/* dir exists already */
+			dir_number++;
+			continue;
 		}
 
 		if (dir_number >= MAX_NO_LOGFOLDER) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFOLDER on the SD card, or another problem */
-			warnx("all %d possible dirs exist already.", MAX_NO_LOGFOLDER);
+			warnx("all %d possible dirs exist already", MAX_NO_LOGFOLDER);
 			return -1;
 		}
 	}
 
 	/* print logging path, important to find log file later */
-	warnx("logging to dir: %s", log_dir);
-	mavlink_log_info(mavlink_fd, "[sdlog2] logging to dir: %s", log_dir);
+	warnx("log dir: %s", log_dir);
+	mavlink_log_info(mavlink_fd, "[sdlog2] log dir: %s", log_dir);
 	return 0;
 }
 
-int open_logfile()
+int open_log_file()
 {
 	/* string to hold the path to the log */
-	char log_file[64] = "";
+	char log_file_name[16] = "";
+	char log_file_path[48] = "";
 
 	if (log_name_timestamp && gps_time != 0) {
 		/* use GPS time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
-		int n = snprintf(log_file, sizeof(log_file), "%s/", log_dir);
 		time_t gps_time_sec = gps_time / 1000000;
 		struct tm t;
 		gmtime_r(&gps_time_sec, &t);
-		n += strftime(log_file + n, sizeof(log_file) - n, "%H_%M_%S.bin", &t);
+		strftime(log_file_name, sizeof(log_file_name), "%H_%M_%S.bin", &t);
+		snprintf(log_file_path, sizeof(log_file_path), "%s/%s", log_dir, log_file_name);
 	} else {
 		uint16_t file_number = 1; // start with file log001
 		/* look for the next file that does not exist */
 		while (file_number <= MAX_NO_LOGFILE) {
 			/* format log file path: e.g. /fs/microsd/sess001/log001.bin */
-			snprintf(log_file, sizeof(log_file), "%s/log%03u.bin", log_dir, file_number);
+			snprintf(log_file_name, sizeof(log_file_name), "log%03u.bin", file_number);
+			snprintf(log_file_path, sizeof(log_file_path), "%s/%s", log_dir, log_file_name);
 
-			if (!file_exist(log_file)) {
+			if (!file_exist(log_file_path)) {
 				break;
 			}
 			file_number++;
@@ -366,19 +368,19 @@ int open_logfile()
 
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
-			warnx("all %d possible files exist already.", MAX_NO_LOGFILE);
+			warnx("all %d possible files exist already", MAX_NO_LOGFILE);
 			return -1;
 		}
 	}
 
-	int fd = open(log_file, O_CREAT | O_WRONLY | O_DSYNC);
+	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC);
 
 	if (fd < 0) {
-		warn("failed opening %s", log_file);
-		mavlink_log_info(mavlink_fd, "[sdlog2] failed opening %s", log_file);
+		warn("failed opening log: %s", log_file_name);
+		mavlink_log_info(mavlink_fd, "[sdlog2] failed opening log: %s", log_file_name);
 	} else {
-		warnx("logging to: %s", log_file);
-		mavlink_log_info(mavlink_fd, "[sdlog2] log: %s", log_file);
+		warnx("log file: %s", log_file_name);
+		mavlink_log_info(mavlink_fd, "[sdlog2] log file: %s", log_file_name);
 	}
 
 	return fd;
@@ -389,7 +391,7 @@ static void *logwriter_thread(void *arg)
 	/* set name */
 	prctl(PR_SET_NAME, "sdlog2_writer", 0);
 
-	int log_fd = open_logfile();
+	int log_fd = open_log_file();
 
 	if (log_fd < 0)
 		return;
@@ -477,7 +479,7 @@ static void *logwriter_thread(void *arg)
 
 void sdlog2_start_log()
 {
-	warnx("start logging.");
+	warnx("start logging");
 	mavlink_log_info(mavlink_fd, "[sdlog2] start logging");
 
 	/* create log dir if needed */
@@ -485,16 +487,6 @@ void sdlog2_start_log()
 		mavlink_log_critical(mavlink_fd, "[sdlog2] error creating log dir");
 		errx(1, "error creating log dir");
 	}
-
-	const char *converter_in = "/etc/logging/conv.zip";
-	char *converter_out = malloc(120);
-	sprintf(converter_out, "%s/conv.zip", log_dir);
-
-	if (file_copy(converter_in, converter_out)) {
-		warnx("unable to copy conversion scripts");
-	}
-
-	free(converter_out);
 
 	/* initialize statistics counter */
 	log_bytes_written = 0;
@@ -524,7 +516,7 @@ void sdlog2_start_log()
 
 void sdlog2_stop_log()
 {
-	warnx("stop logging.");
+	warnx("stop logging");
 	mavlink_log_info(mavlink_fd, "[sdlog2] stop logging");
 
 	logging_enabled = false;
@@ -632,7 +624,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
 	if (mavlink_fd < 0) {
-		warnx("failed to open MAVLink log stream, start mavlink app first.");
+		warnx("failed to open MAVLink log stream, start mavlink app first");
 	}
 
 	/* log buffer size */
@@ -689,32 +681,43 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		case '?':
 			if (optopt == 'c') {
-				warnx("Option -%c requires an argument.", optopt);
+				warnx("option -%c requires an argument", optopt);
 
 			} else if (isprint(optopt)) {
-				warnx("Unknown option `-%c'.", optopt);
+				warnx("unknown option `-%c'", optopt);
 
 			} else {
-				warnx("Unknown option character `\\x%x'.", optopt);
+				warnx("unknown option character `\\x%x'", optopt);
 			}
 
 		default:
 			sdlog2_usage("unrecognized flag");
-			errx(1, "exiting.");
+			errx(1, "exiting");
 		}
 	}
 
 	gps_time = 0;
 
-	if (!file_exist(mountpoint)) {
-		errx(1, "logging mount point %s not present, exiting.", mountpoint);
+	/* create log root dir */
+	int mkdir_ret = mkdir(log_root, S_IRWXU | S_IRWXG | S_IRWXO);
+	if (mkdir_ret != 0 && errno != EEXIST) {
+		err("failed creating log root dir: %s", log_root);
 	}
 
+	/* copy conversion scripts */
+	const char *converter_in = "/etc/logging/conv.zip";
+	char *converter_out = malloc(64);
+	snprintf(converter_out, 64, "%s/conv.zip", log_root);
+	if (file_copy(converter_in, converter_out) != OK) {
+		warn("unable to copy conversion scripts");
+	}
+	free(converter_out);
+
 	/* initialize log buffer with specified size */
-	warnx("log buffer size: %i bytes.", log_buffer_size);
+	warnx("log buffer size: %i bytes", log_buffer_size);
 
 	if (OK != logbuffer_init(&lb, log_buffer_size)) {
-		errx(1, "can't allocate log buffer, exiting.");
+		errx(1, "can't allocate log buffer, exiting");
 	}
 
 	struct vehicle_status_s buf_status;
@@ -935,7 +938,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	 * differs from the number of messages in the above list.
 	 */
 	if (fdsc_count > fdsc) {
-		warn("WARNING: Not enough space for poll fds allocated. Check %s:%d.", __FILE__, __LINE__);
+		warn("WARNING: Not enough space for poll fds allocated. Check %s:%d", __FILE__, __LINE__);
 		fdsc_count = fdsc;
 	}
 
@@ -978,7 +981,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		/* handle the poll result */
 		if (poll_ret < 0) {
-			warnx("ERROR: poll error, stop logging.");
+			warnx("ERROR: poll error, stop logging");
 			main_thread_should_exit = true;
 
 		} else if (poll_ret > 0) {
@@ -1337,7 +1340,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	free(lb.data);
 
-	warnx("exiting.");
+	warnx("exiting");
 
 	thread_running = false;
 
@@ -1350,8 +1353,8 @@ void sdlog2_status()
 	float mebibytes = kibibytes / 1024.0f;
 	float seconds = ((float)(hrt_absolute_time() - start_time)) / 1000000.0f;
 
-	warnx("wrote %lu msgs, %4.2f MiB (average %5.3f KiB/s), skipped %lu msgs.", log_msgs_written, (double)mebibytes, (double)(kibibytes / seconds), log_msgs_skipped);
-	mavlink_log_info(mavlink_fd, "[sdlog2] wrote %lu msgs, skipped %lu msgs.", log_msgs_written, log_msgs_skipped);
+	warnx("wrote %lu msgs, %4.2f MiB (average %5.3f KiB/s), skipped %lu msgs", log_msgs_written, (double)mebibytes, (double)(kibibytes / seconds), log_msgs_skipped);
+	mavlink_log_info(mavlink_fd, "[sdlog2] wrote %lu msgs, skipped %lu msgs", log_msgs_written, log_msgs_skipped);
 }
 
 /**
@@ -1370,7 +1373,7 @@ int file_copy(const char *file_old, const char *file_new)
 	int ret = 0;
 
 	if (source == NULL) {
-		warnx("failed opening input file to copy.");
+		warnx("failed opening input file to copy");
 		return 1;
 	}
 
@@ -1378,7 +1381,7 @@ int file_copy(const char *file_old, const char *file_new)
 
 	if (target == NULL) {
 		fclose(source);
-		warnx("failed to open output file to copy.");
+		warnx("failed to open output file to copy");
 		return 1;
 	}
 
@@ -1389,7 +1392,7 @@ int file_copy(const char *file_old, const char *file_new)
 		ret = fwrite(buf, 1, nread, target);
 
 		if (ret <= 0) {
-			warnx("error writing file.");
+			warnx("error writing file");
 			ret = 1;
 			break;
 		}
