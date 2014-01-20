@@ -642,6 +642,7 @@ MulticopterAttitudeControl::task_main()
 			/* update integral */
 			for (int i = 0; i < 3; i++) {
 				float rate_i = rates_int(i) + _K_rate_i(i) * rates_err(i) * dt;
+
 				if (isfinite(rate_i)) {
 					if (rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT && control(i) > -RATES_I_LIMIT && control(i) < RATES_I_LIMIT) {
 						rates_int(i) = rate_i;
@@ -670,6 +671,7 @@ MulticopterAttitudeControl::task_main()
 				_actuators.control[2] = (isfinite(control(2))) ? control(2) : 0.0f;
 				_actuators.control[3] = (isfinite(_rates_sp.thrust)) ? _rates_sp.thrust : 0.0f;
 				_actuators.timestamp = hrt_absolute_time();
+
 			} else {
 				/* controller disabled, publish zero attitude controls */
 				_actuators.control[0] = 0.0f;
