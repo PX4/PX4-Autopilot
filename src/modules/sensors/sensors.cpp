@@ -213,7 +213,10 @@ private:
 	math::Matrix	_board_rotation;		/**< rotation matrix for the orientation that the board is mounted */
 	math::Matrix	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
 	bool		_mag_is_external;		/**< true if the active mag is on an external board */
+<<<<<<< HEAD
 	float		actual_temp;			/**< temperature holder for mag tem drift since hmc does not measure temp*/
+=======
+>>>>>>> added sensor
 
 	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
 	hrt_abstime _battery_current_timestamp;	/**< timestamp of last battery current reading */
@@ -943,6 +946,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		raw.accelerometer_raw[0] = accel_report.x_raw;
 		raw.accelerometer_raw[1] = accel_report.y_raw;
 		raw.accelerometer_raw[2] = accel_report.z_raw;
+<<<<<<< HEAD
 		float temp2 = accel_report.temperature*accel_report.temperature;
 		actual_temp = accel_report.temperature;
 		
@@ -956,6 +960,9 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 			raw.accelerometer_m_s2[1] -= (0.000000397675415f*accel_report.temperature*temp2  -0.000001592520660f*temp2  -0.000287706047319f*accel_report.temperature  -0.274821944505745f);
 			raw.accelerometer_m_s2[2] -= (0.000000776703550f*accel_report.temperature*temp2 + 0.000207068934906f*temp2  -0.025617446487848*accel_report.temperature  + 0.167558012554972f);
 		}
+=======
+
+>>>>>>> added sensor
 		raw.accelerometer_counter++;
 	}
 }
@@ -981,6 +988,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		raw.gyro_raw[0] = gyro_report.x_raw;
 		raw.gyro_raw[1] = gyro_report.y_raw;
 		raw.gyro_raw[2] = gyro_report.z_raw;
+<<<<<<< HEAD
 		/* Temperature dependent bias removal */
 		float temp2 = gyro_report.temperature*gyro_report.temperature;
 		if (raw.gyro_counter == 0) {
@@ -992,6 +1000,8 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 			raw.gyro_rad_s[1] -= (-0.000000123381945f*gyro_report.temperature*temp2 + 0.000009671574216f*temp2 +   0.000218825643111f*gyro_report.temperature  -0.056303070040114);
 			raw.gyro_rad_s[2] -= (0.000000175604451f*gyro_report.temperature*temp2 - 0.000013530233594f*temp2 +   0.000035242897428f*gyro_report.temperature + 0.004631857778054f); 
 		}
+=======
+>>>>>>> added sensor
 
 		raw.gyro_counter++;
 	}
@@ -1023,6 +1033,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 		raw.magnetometer_raw[1] = mag_report.y_raw;
 		raw.magnetometer_raw[2] = mag_report.z_raw;
 
+<<<<<<< HEAD
 		/* Temperature dependent bias removal */
 		float temp2 = actual_temp*actual_temp;
 		if (raw.magnetometer_counter == 0) {
@@ -1034,6 +1045,8 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 	  		raw.magnetometer_ga[1] -= (-0.000000025283904f*actual_temp*temp2 - 0.000002915329599f*temp2 + 0.000335201580725f*actual_temp  -0.020057623998944f);
 	   		raw.magnetometer_ga[2] -= (0.000000008343298f*actual_temp*temp2 + 0.000006474392606f*temp2  -0.001472204076163f*actual_temp + 0.404222196533657f); 
 		}
+=======
+>>>>>>> added sensor
 		raw.magnetometer_counter++;
 	}
 }
@@ -1727,3 +1740,7 @@ int sensors_main(int argc, char *argv[])
 	return 1;
 }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> added sensor
