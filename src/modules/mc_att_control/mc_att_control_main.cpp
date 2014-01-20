@@ -134,11 +134,6 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	math::Vector<3> _K_p;					/**< P gain for position error */
-	math::Vector<3> _K_rate_p;				/**< P gain for angular rate error */
-	math::Vector<3> _K_rate_i;				/**< I gain for angular rate error */
-	math::Vector<3> _K_rate_d;				/**< D gain for angular rate error */
-
 	math::Vector<3> _rates_prev;			/**< angular rates on previous step */
 
 	struct {
@@ -150,7 +145,14 @@ private:
 		param_t yaw_rate_p;
 		param_t yaw_rate_i;
 		param_t yaw_rate_d;
-	}		_parameter_handles;		/**< handles for interesting parameters */
+	}		_params_handles;		/**< handles for interesting parameters */
+
+	struct {
+		math::Vector<3> p;					/**< P gain for angular error */
+		math::Vector<3> rate_p;				/**< P gain for angular rate error */
+		math::Vector<3> rate_i;				/**< I gain for angular rate error */
+		math::Vector<3> rate_d;				/**< D gain for angular rate error */
+	}		_params;
 
 	/**
 	 * Update our local parameter cache.
@@ -233,20 +235,21 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	memset(&_control_mode, 0, sizeof(_control_mode));
 	memset(&_arming, 0, sizeof(_arming));
 
-	_K_p.zero();
-	_K_rate_p.zero();
-	_K_rate_d.zero();
+	_params.p.zero();
+	_params.rate_p.zero();
+	_params.rate_i.zero();
+	_params.rate_d.zero();
 
 	_rates_prev.zero();
 
-	_parameter_handles.att_p		= 	param_find("MC_ATT_P");
-	_parameter_handles.yaw_p		=	param_find("MC_YAW_P");
-	_parameter_handles.att_rate_p	= 	param_find("MC_ATTRATE_P");
-	_parameter_handles.att_rate_i	= 	param_find("MC_ATTRATE_I");
-	_parameter_handles.att_rate_d	= 	param_find("MC_ATTRATE_D");
-	_parameter_handles.yaw_rate_p	= 	param_find("MC_YAWRATE_P");
-	_parameter_handles.yaw_rate_i	= 	param_find("MC_YAWRATE_I");
-	_parameter_handles.yaw_rate_d	= 	param_find("MC_YAWRATE_D");
+	_params_handles.att_p		= 	param_find("MC_ATT_P");
+	_params_handles.yaw_p		=	param_find("MC_YAW_P");
+	_params_handles.att_rate_p	= 	param_find("MC_ATTRATE_P");
+	_params_handles.att_rate_i	= 	param_find("MC_ATTRATE_I");
+	_params_handles.att_rate_d	= 	param_find("MC_ATTRATE_D");
+	_params_handles.yaw_rate_p	= 	param_find("MC_YAWRATE_P");
+	_params_handles.yaw_rate_i	= 	param_find("MC_YAWRATE_I");
+	_params_handles.yaw_rate_d	= 	param_find("MC_YAWRATE_D");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -281,29 +284,29 @@ MulticopterAttitudeControl::parameters_update()
 {
 	float v;
 
-	param_get(_parameter_handles.att_p, &v);
-	_K_p(0) = v;
-	_K_p(1) = v;
-	param_get(_parameter_handles.yaw_p, &v);
-	_K_p(2) = v;
+	param_get(_params_handles.att_p, &v);
+	_params.p(0) = v;
+	_params.p(1) = v;
+	param_get(_params_handles.yaw_p, &v);
+	_params.p(2) = v;
 
-	param_get(_parameter_handles.att_rate_p, &v);
-	_K_rate_p(0) = v;
-	_K_rate_p(1) = v;
-	param_get(_parameter_handles.yaw_rate_p, &v);
-	_K_rate_p(2) = v;
+	param_get(_params_handles.att_rate_p, &v);
+	_params.rate_p(0) = v;
+	_params.rate_p(1) = v;
+	param_get(_params_handles.yaw_rate_p, &v);
+	_params.rate_p(2) = v;
 
-	param_get(_parameter_handles.att_rate_i, &v);
-	_K_rate_i(0) = v;
-	_K_rate_i(1) = v;
-	param_get(_parameter_handles.yaw_rate_i, &v);
-	_K_rate_i(2) = v;
+	param_get(_params_handles.att_rate_i, &v);
+	_params.rate_i(0) = v;
+	_params.rate_i(1) = v;
+	param_get(_params_handles.yaw_rate_i, &v);
+	_params.rate_i(2) = v;
 
-	param_get(_parameter_handles.att_rate_d, &v);
-	_K_rate_d(0) = v;
-	_K_rate_d(1) = v;
-	param_get(_parameter_handles.yaw_rate_d, &v);
-	_K_rate_d(2) = v;
+	param_get(_params_handles.att_rate_d, &v);
+	_params.rate_d(0) = v;
+	_params.rate_d(1) = v;
+	param_get(_params_handles.yaw_rate_d, &v);
+	_params.rate_d(2) = v;
 
 	return OK;
 }
@@ -631,17 +634,17 @@ MulticopterAttitudeControl::task_main()
 			}
 
 			/* angular rates setpoint*/
-			math::Vector<3> rates_sp = _K_p.emult(e_R);
+			math::Vector<3> rates_sp = _params.p.emult(e_R);
 
 			/* feed forward yaw setpoint rate */
 			rates_sp(2) += yaw_sp_move_rate * yaw_w;
 			math::Vector<3> rates_err = rates_sp - rates;
-			math::Vector<3> control = _K_rate_p.emult(rates_err) + _K_rate_d.emult(_rates_prev - rates) / fmaxf(dt, 0.003f) + rates_int;
+			math::Vector<3> control = _params.rate_p.emult(rates_err) + _params.rate_d.emult(_rates_prev - rates) / fmaxf(dt, 0.003f) + rates_int;
 			_rates_prev = rates;
 
 			/* update integral */
 			for (int i = 0; i < 3; i++) {
-				float rate_i = rates_int(i) + _K_rate_i(i) * rates_err(i) * dt;
+				float rate_i = rates_int(i) + _params.rate_i(i) * rates_err(i) * dt;
 
 				if (isfinite(rate_i)) {
 					if (rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT && control(i) > -RATES_I_LIMIT && control(i) < RATES_I_LIMIT) {
