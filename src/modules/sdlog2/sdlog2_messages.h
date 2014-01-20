@@ -57,6 +57,9 @@ struct log_ATT_s {
 	float roll_rate;
 	float pitch_rate;
 	float yaw_rate;
+	float gx;
+	float gy;
+	float gz;
 };
 
 /* --- ATSP - ATTITUDE SET POINT --- */
@@ -289,7 +292,7 @@ struct log_PARM_s {
 /* construct list of all message formats */
 static const struct log_format_s log_formats[] = {
 	/* business-level messages, ID < 0x80 */
-	LOG_FORMAT(ATT, "ffffff", "Roll,Pitch,Yaw,RollRate,PitchRate,YawRate"),
+	LOG_FORMAT(ATT, "fffffffff", "Roll,Pitch,Yaw,RollRate,PitchRate,YawRate,GX,GY,GZ"),
 	LOG_FORMAT(ATSP, "ffff", "RollSP,PitchSP,YawSP,ThrustSP"),
 	LOG_FORMAT(IMU, "fffffffff", "AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
 	LOG_FORMAT(SENS, "ffff", "BaroPres,BaroAlt,BaroTemp,DiffPres"),

@@ -410,7 +410,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 							vel(2) = gps.vel_d_m_s;
 						}
 
-					} else if (ekf_params.acc_comp == 2 && global_pos_updated && global_pos.valid && hrt_absolute_time() < global_pos.timestamp + 500000) {
+					} else if (ekf_params.acc_comp == 2 && global_pos.valid && hrt_absolute_time() < global_pos.timestamp + 500000) {
 						vel_valid = true;
 						if (global_pos_updated) {
 							vel_t = global_pos.timestamp;
@@ -531,6 +531,10 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					att.rollacc = x_aposteriori[3];
 					att.pitchacc = x_aposteriori[4];
 					att.yawacc = x_aposteriori[5];
+
+					att.g_comp[0] = raw.accelerometer_m_s2[0] - acc(0);
+					att.g_comp[1] = raw.accelerometer_m_s2[1] - acc(1);
+					att.g_comp[2] = raw.accelerometer_m_s2[2] - acc(2);
 
 					/* copy offsets */
 					memcpy(&att.rate_offsets, &(x_aposteriori[3]), sizeof(att.rate_offsets));

@@ -798,12 +798,29 @@ MulticopterPositionControl::task_main()
 					}
 				}
 
-				if (tilt > tilt_max && thr_min >= 0.0f) {
-					/* crop horizontal component */
-					float k = tanf(tilt_max) / tanf(tilt);
-					thrust_sp(0) *= k;
-					thrust_sp(1) *= k;
-					saturation_xy = true;
+				if (_control_mode.flag_control_velocity_enabled) {
+					if (tilt > tilt_max && thr_min >= 0.0f) {
+						/* crop horizontal component */
+						float k = tanf(tilt_max) / tanf(tilt);
+						thrust_sp(0) *= k;
+						thrust_sp(1) *= k;
+						saturation_xy = true;
+					}
+				} else {
+					/* thrust compensation for altitude only control mode */
+					float att_comp;
+
+					if (_att.R[2][2] > TILT_COS_MAX) {
+						att_comp = 1.0f / _att.R[2][2];
+					} else if (_att.R[2][2] > 0.0f) {
+						att_comp = ((1.0f / TILT_COS_MAX - 1.0f) / TILT_COS_MAX) * _att.R[2][2] + 1.0f;
+						saturation_z = true;
+					} else {
+						att_comp = 1.0f;
+						saturation_z = true;
+					}
+
+					thrust_sp(2) *= att_comp;
 				}
 
 				/* limit max thrust */
@@ -854,7 +871,7 @@ MulticopterPositionControl::task_main()
 						thrust_int(2) = 0.0f;
 				}
 
-				/* calculate attitude and thrust from thrust vector */
+				/* calculate attitude setpoint from thrust vector */
 				if (_control_mode.flag_control_velocity_enabled) {
 					/* desired body_z axis = -normalize(thrust_vector) */
 					math::Vector<3> body_x;
@@ -910,19 +927,6 @@ MulticopterPositionControl::task_main()
 					_att_sp.roll_body = euler(0);
 					_att_sp.pitch_body = euler(1);
 					/* yaw already used to construct rot matrix, but actual rotation matrix can have different yaw near singularity */
-
-				} else {
-					/* thrust compensation for altitude only control mode */
-					float att_comp;
-
-					if (_att.R[2][2] > TILT_COS_MAX)
-						att_comp = 1.0f / _att.R[2][2];
-					else if (_att.R[2][2] > 0.0f)
-						att_comp = ((1.0f / TILT_COS_MAX - 1.0f) / TILT_COS_MAX) * _att.R[2][2] + 1.0f;
-					else
-						att_comp = 1.0f;
-
-					thrust_abs *= att_comp;
 				}
 
 				_att_sp.thrust = thrust_abs;
