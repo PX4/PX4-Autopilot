@@ -10,41 +10,42 @@
 ms5611 start
 adc start
 
-# mag might be external
+# Mag might be external
 if hmc5883 start
 then
-	echo "using HMC5883"
+	echo "[init] Using HMC5883"
 fi
 
 if mpu6000 start
 then
-	echo "using MPU6000"
+	echo "[init] Using MPU6000"
 fi
 
 if l3gd20 start
 then
-	echo "using L3GD20(H)"
+	echo "[init] Using L3GD20(H)"
 fi
 
-if lsm303d start
+if hw_ver compare PX4FMU_V2
 then
-	set BOARD fmuv2
-else
-	set BOARD fmuv1
+	if lsm303d start
+	then
+		echo "[init] Using LSM303D"
+	fi
 fi
 
 # Start airspeed sensors
 if meas_airspeed start
 then
-	echo "using MEAS airspeed sensor"
+	echo "[init] Using MEAS airspeed sensor"
 else
 	if ets_airspeed start
 	then
-		echo "using ETS airspeed sensor (bus 3)"
+		echo "[init] Using ETS airspeed sensor (bus 3)"
 	else
 		if ets_airspeed start -b 1
 		then
-			echo "Using ETS airspeed sensor (bus 1)"
+			echo "[init] Using ETS airspeed sensor (bus 1)"
 		fi
 	fi
 fi

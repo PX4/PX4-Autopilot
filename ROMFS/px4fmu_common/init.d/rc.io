@@ -1,23 +1,21 @@
 #
-# Start PX4IO interface (depends on orb, commander)
+# Init PX4IO interface
 #
-if px4io start
-then
-	#
-	# Allow PX4IO to recover from midair restarts.
-	# this is very unlikely, but quite safe and robust.
-	px4io recovery
 
-	#
-	# Disable px4io topic limiting
-	#
-	if [ $BOARD == fmuv1 ]
-	then
-		px4io limit 200
-	else
-		px4io limit 400
-	fi
-else
-	# SOS
-	tone_alarm error
+#
+# Allow PX4IO to recover from midair restarts.
+# this is very unlikely, but quite safe and robust.
+#
+px4io recovery
+
+#
+# Adjust PX4IO update rate limit
+#
+set PX4IO_LIMIT 400
+if hw_ver compare PX4FMU_V1
+then
+	set PX4IO_LIMIT 200
 fi
+
+echo "[init] Set PX4IO update rate limit: $PX4IO_LIMIT Hz"
+px4io limit $PX4IO_LIMIT
