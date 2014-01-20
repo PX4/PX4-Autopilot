@@ -150,6 +150,7 @@ private:
 		param_t xy_ff;
 		param_t tilt_max;
 		param_t land_speed;
+		param_t land_tilt_max;
 
 		param_t rc_scale_pitch;
 		param_t rc_scale_roll;
@@ -161,6 +162,7 @@ private:
 		float thr_max;
 		float tilt_max;
 		float land_speed;
+		float land_tilt_max;
 
 		float rc_scale_pitch;
 		float rc_scale_roll;
@@ -281,6 +283,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.xy_ff		= param_find("MPC_XY_FF");
 	_params_handles.tilt_max	= param_find("MPC_TILT_MAX");
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
+	_params_handles.land_tilt_max	= param_find("MPC_LAND_TILT_MAX");
 	_params_handles.rc_scale_pitch	= param_find("RC_SCALE_PITCH");
 	_params_handles.rc_scale_roll	= param_find("RC_SCALE_ROLL");
 	_params_handles.rc_scale_yaw	= param_find("RC_SCALE_YAW");
@@ -329,6 +332,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.thr_max, &_params.thr_max);
 		param_get(_params_handles.tilt_max, &_params.tilt_max);
 		param_get(_params_handles.land_speed, &_params.land_speed);
+		param_get(_params_handles.land_tilt_max, &_params.land_tilt_max);
 		param_get(_params_handles.rc_scale_pitch, &_params.rc_scale_pitch);
 		param_get(_params_handles.rc_scale_roll, &_params.rc_scale_roll);
 		param_get(_params_handles.rc_scale_yaw, &_params.rc_scale_yaw);
@@ -784,10 +788,19 @@ MulticopterPositionControl::task_main()
 
 				/* limit max tilt */
 				float tilt = atan2f(math::Vector<2>(thrust_sp(0), thrust_sp(1)).length(), -thrust_sp(2));
+				float tilt_max = _params.tilt_max;
+				if (!_control_mode.flag_control_manual_enabled) {
+					if (_mission_items.current_valid && _mission_items.current.nav_cmd == NAV_CMD_LAND) {
+						/* limit max tilt and min lift when landing */
+						tilt_max = _params.land_tilt_max;
+						if (thr_min < 0.0f)
+							thr_min = 0.0f;
+					}
+				}
 
-				if (tilt > _params.tilt_max && _params.thr_min >= 0.0f) {
+				if (tilt > tilt_max && thr_min >= 0.0f) {
 					/* crop horizontal component */
-					float k = tanf(_params.tilt_max) / tanf(tilt);
+					float k = tanf(tilt_max) / tanf(tilt);
 					thrust_sp(0) *= k;
 					thrust_sp(1) *= k;
 					saturation_xy = true;
