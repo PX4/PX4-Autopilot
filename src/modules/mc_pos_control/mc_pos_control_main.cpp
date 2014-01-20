@@ -828,16 +828,18 @@ MulticopterPositionControl::task_main()
 				}
 
 				/* update integrals */
-				math::Vector<3> m;
-				m(0) = (_control_mode.flag_control_velocity_enabled && !saturation_xy) ? 1.0f : 0.0f;
-				m(1) = m(0);
-				m(2) = (_control_mode.flag_control_climb_rate_enabled && !saturation_z) ? 1.0f : 0.0f;
+				if (_control_mode.flag_control_velocity_enabled && !saturation_xy) {
+					thrust_int(0) += vel_err(0) * _params.vel_i(0) * dt;
+					thrust_int(1) += vel_err(1) * _params.vel_i(1) * dt;
+				}
 
-				thrust_int += vel_err.emult(_params.vel_i) * dt;
+				if (_control_mode.flag_control_climb_rate_enabled && !saturation_z) {
+					thrust_int(2) += vel_err(2) * _params.vel_i(2) * dt;
 
-				/* protection against flipping on ground when landing */
-				if (thrust_int(2) > 0.0f)
-					thrust_int(2) = 0.0f;
+					/* protection against flipping on ground when landing */
+					if (thrust_int(2) > 0.0f)
+						thrust_int(2) = 0.0f;
+				}
 
 				/* calculate attitude and thrust from thrust vector */
 				if (_control_mode.flag_control_velocity_enabled) {
