@@ -213,14 +213,10 @@ private:
 	math::Matrix	_board_rotation;		/**< rotation matrix for the orientation that the board is mounted */
 	math::Matrix	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
 	bool		_mag_is_external;		/**< true if the active mag is on an external board */
-<<<<<<< HEAD
-	float		actual_temp;			/**< temperature holder for mag tem drift since hmc does not measure temp*/
-=======
->>>>>>> added sensor
 
 	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
 	hrt_abstime _battery_current_timestamp;	/**< timestamp of last battery current reading */
-
+	float		actual_temp;			/**< temperature holder for mag tem drift since hmc does not measure temp*/
 	struct {
 		float min[_rc_max_chan_count];
 		float trim[_rc_max_chan_count];
@@ -933,6 +929,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 	if (accel_updated) {
 		struct accel_report	accel_report;
+		struct accel_scale	accel_scale;
 
 		orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
 
@@ -946,6 +943,19 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		raw.accelerometer_raw[0] = accel_report.x_raw;
 		raw.accelerometer_raw[1] = accel_report.y_raw;
 		raw.accelerometer_raw[2] = accel_report.z_raw;
+		float temp2 = accel_report.temperature*accel_report.temperature;
+		actual_temp = accel_report.temperature;
+		
+		/* Temperature dependent bias removal */
+		if (raw.accelerometer_counter == 0) {
+			raw.accelerometer_m_s2[0] -= (accel_scale.tempb_cx[0]*temp2 + accel_scale.tempb_cx[1]*accel_report.temperature + accel_scale.tempb_cx[2]);
+			raw.accelerometer_m_s2[1] -= (accel_scale.tempb_cy[0]*temp2 + accel_scale.tempb_cy[1]*accel_report.temperature + accel_scale.tempb_cy[2]);
+			raw.accelerometer_m_s2[2] -= (accel_scale.tempb_cz[0]*temp2 + accel_scale.tempb_cz[1]*accel_report.temperature + accel_scale.tempb_cz[2]);
+		} else {
+			raw.accelerometer_m_s2[0] -= (accel_scale.temp_cx[0]*accel_report.temperature*temp2 + accel_scale.temp_cx[1]*temp2 + accel_scale.temp_cx[2]*accel_report.temperature + accel_scale.temp_cx[3]);
+			raw.accelerometer_m_s2[1] -= (accel_scale.temp_cy[0]*accel_report.temperature*temp2 + accel_scale.temp_cy[1]*temp2 + accel_scale.temp_cy[2]*accel_report.temperature + accel_scale.temp_cy[3]);
+			raw.accelerometer_m_s2[2] -= (accel_scale.temp_cz[0]*accel_report.temperature*temp2 + accel_scale.temp_cz[1]*temp2 + accel_scale.temp_cz[2]*accel_report.temperature + accel_scale.temp_cz[3]);
+		}
 
 		raw.accelerometer_counter++;
 	}
@@ -959,7 +969,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 
 	if (gyro_updated) {
 		struct gyro_report	gyro_report;
-
+		struct gyro_scale	gyro_scale;
 		orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &gyro_report);
 
 		math::Vector3 vect = {gyro_report.x, gyro_report.y, gyro_report.z};
@@ -973,6 +983,20 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		raw.gyro_raw[1] = gyro_report.y_raw;
 		raw.gyro_raw[2] = gyro_report.z_raw;
 
+		/* Temperature dependent bias removal */
+		float temp2 = gyro_report.temperature*gyro_report.temperature;
+
+		if (raw.gyro_counter == 0) {
+			raw.gyro_rad_s[0] -= (gyro_scale.tempb_cx[0]*temp2 + gyro_scale.tempb_cx[1]*gyro_report.temperature + gyro_scale.tempb_cx[2]);
+			raw.gyro_rad_s[1] -= (gyro_scale.tempb_cy[0]*temp2 + gyro_scale.tempb_cy[1]*gyro_report.temperature + gyro_scale.tempb_cy[2]);
+			raw.gyro_rad_s[2] -= (gyro_scale.tempb_cz[0]*temp2 + gyro_scale.tempb_cz[1]*gyro_report.temperature + gyro_scale.tempb_cz[2]);
+		} else {
+			raw.gyro_rad_s[0] -= (gyro_scale.temp_cx[0]*gyro_report.temperature*temp2 + gyro_scale.temp_cx[1]*temp2   + gyro_scale.temp_cx[2]*gyro_report.temperature + gyro_scale.temp_cx[3]);
+			raw.gyro_rad_s[1] -= (gyro_scale.temp_cy[0]*gyro_report.temperature*temp2 + gyro_scale.temp_cy[1]*temp2   + gyro_scale.temp_cy[2]*gyro_report.temperature + gyro_scale.temp_cy[3]);
+			raw.gyro_rad_s[2] -= (gyro_scale.temp_cz[0]*gyro_report.temperature*temp2 + gyro_scale.temp_cz[1]*temp2   + gyro_scale.temp_cz[2]*gyro_report.temperature + gyro_scale.temp_cz[3]);
+		}
+
+
 		raw.gyro_counter++;
 	}
 }
@@ -985,7 +1009,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 
 	if (mag_updated) {
 		struct mag_report	mag_report;
-
+		struct mag_scale	mag_scale;
 		orb_copy(ORB_ID(sensor_mag), _mag_sub, &mag_report);
 
 		math::Vector3 vect = {mag_report.x, mag_report.y, mag_report.z};
@@ -1002,6 +1026,18 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 		raw.magnetometer_raw[0] = mag_report.x_raw;
 		raw.magnetometer_raw[1] = mag_report.y_raw;
 		raw.magnetometer_raw[2] = mag_report.z_raw;
+
+		/* Temperature dependent bias removal */
+		float temp2 = actual_temp*actual_temp;
+		if (raw.magnetometer_counter == 0) {
+			raw.magnetometer_ga[0] -= (mag_scale.tempb_cx[0]*temp2 + mag_scale.tempb_cx[1]*actual_temp + mag_scale.tempb_cx[2]);
+			raw.magnetometer_ga[1] -= (mag_scale.tempb_cy[0]*temp2 + mag_scale.tempb_cy[1]*actual_temp + mag_scale.tempb_cy[2]);
+			raw.magnetometer_ga[2] -= (mag_scale.tempb_cz[0]*temp2 + mag_scale.tempb_cz[1]*actual_temp + mag_scale.tempb_cz[2]);
+		} else {
+			raw.magnetometer_ga[0] -= (mag_scale.temp_cx[0]*actual_temp*temp2 + mag_scale.temp_cx[1]*temp2 + mag_scale.temp_cx[2]*actual_temp + mag_scale.temp_cx[3]);
+			raw.magnetometer_ga[1] -= (mag_scale.temp_cy[0]*actual_temp*temp2 + mag_scale.temp_cy[1]*temp2 + mag_scale.temp_cy[2]*actual_temp + mag_scale.temp_cy[3]);
+			raw.magnetometer_ga[2] -= (mag_scale.temp_cz[0]*actual_temp*temp2 + mag_scale.temp_cz[1]*temp2 + mag_scale.temp_cz[2]*actual_temp + mag_scale.temp_cz[3]);
+		}
 
 		raw.magnetometer_counter++;
 	}
@@ -1695,3 +1731,5 @@ int sensors_main(int argc, char *argv[])
 	warnx("unrecognized command");
 	return 1;
 }
+
+
