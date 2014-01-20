@@ -1302,6 +1302,7 @@ PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 
 	/* voltage is scaled to mV */
 	battery_status.voltage_v = vbatt / 1000.0f;
+	battery_status.voltage_filtered_v = vbatt / 1000.0f;
 
 	/*
 	  ibatt contains the raw ADC count, as 12 bit ADC

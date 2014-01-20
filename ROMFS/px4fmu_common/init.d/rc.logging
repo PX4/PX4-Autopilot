@@ -1,6 +1,6 @@
 #!nsh
 #
-# Initialise logging services.
+# Initialize logging services.
 #
 
 if [ -d /fs/microsd ]
