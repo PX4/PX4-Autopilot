@@ -638,6 +638,14 @@ MulticopterAttitudeControl::task_main()
 
 			/* feed forward yaw setpoint rate */
 			rates_sp(2) += yaw_sp_move_rate * yaw_w;
+
+			/* reset integral if disarmed */
+			// TODO add LANDED flag here
+			if (!_arming.armed) {
+				rates_int.zero();
+			}
+
+			/* rate controller */
 			math::Vector<3> rates_err = rates_sp - rates;
 			math::Vector<3> control = _params.rate_p.emult(rates_err) + _params.rate_d.emult(_rates_prev - rates) / fmaxf(dt, 0.003f) + rates_int;
 			_rates_prev = rates;
