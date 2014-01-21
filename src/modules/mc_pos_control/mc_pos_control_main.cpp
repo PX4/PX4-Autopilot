@@ -283,7 +283,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.xy_ff		= param_find("MPC_XY_FF");
 	_params_handles.tilt_max	= param_find("MPC_TILT_MAX");
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
-	_params_handles.land_tilt_max	= param_find("MPC_LAND_TILT_MAX");
+	_params_handles.land_tilt_max	= param_find("MPC_LAND_TILT");
 	_params_handles.rc_scale_pitch	= param_find("RC_SCALE_PITCH");
 	_params_handles.rc_scale_roll	= param_find("RC_SCALE_ROLL");
 	_params_handles.rc_scale_yaw	= param_find("RC_SCALE_YAW");
