@@ -1133,12 +1133,17 @@ int commander_thread_main(int argc, char *argv[])
 					mavlink_log_critical(mavlink_fd, "#audio: CRITICAL: RC SIGNAL LOST");
 					status.rc_signal_lost = true;
 					status_changed = true;
-					if (status.main_state != MAIN_STATE_AUTO && armed.armed) {
-						transition_result_t res = main_state_transition(&status, MAIN_STATE_AUTO);
+				}
+				if (status.main_state != MAIN_STATE_AUTO && armed.armed) {
+					transition_result_t res = main_state_transition(&status, MAIN_STATE_AUTO);
+					if (res == TRANSITION_CHANGED) {
+						mavlink_log_critical(mavlink_fd, "#audio: failsafe, switching to RTL mode");
+						status.set_nav_state = NAV_STATE_RTL;
+						status.set_nav_state_timestamp = hrt_absolute_time();
+					} else if (status.main_state != MAIN_STATE_SEATBELT) {
+						res = main_state_transition(&status, MAIN_STATE_SEATBELT);
 						if (res == TRANSITION_CHANGED) {
-							mavlink_log_critical(mavlink_fd, "#audio: switching to RTL mode");
-							status.set_nav_state = NAV_STATE_RTL;
-							status.set_nav_state_timestamp = hrt_absolute_time();
+							mavlink_log_critical(mavlink_fd, "#audio: failsafe, switching to SEATBELT mode");
 						}
 					}
 				}
