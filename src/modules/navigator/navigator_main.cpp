@@ -1463,11 +1463,11 @@ Navigator::publish_control_mode()
 	_control_mode.flag_external_manual_override_ok = !_vstatus.is_rotary_wing;
 	_control_mode.flag_system_hil_enabled = _vstatus.hil_state == HIL_STATE_ON;
 
-	_control_mode.flag_control_offboard_enabled = false;
 	_control_mode.flag_control_flighttermination_enabled = false;
 
 	switch (_vstatus.main_state) {
 	case MAIN_STATE_MANUAL:
+		_control_mode.flag_control_offboard_enabled = false;
 		_control_mode.flag_control_manual_enabled = true;
 		_control_mode.flag_control_rates_enabled = _vstatus.is_rotary_wing;
 		_control_mode.flag_control_attitude_enabled = _vstatus.is_rotary_wing;
@@ -1478,6 +1478,7 @@ Navigator::publish_control_mode()
 		break;
 
 	case MAIN_STATE_SEATBELT:
+		_control_mode.flag_control_offboard_enabled = false;
 		_control_mode.flag_control_manual_enabled = true;
 		_control_mode.flag_control_rates_enabled = true;
 		_control_mode.flag_control_attitude_enabled = true;
@@ -1488,6 +1489,7 @@ Navigator::publish_control_mode()
 		break;
 
 	case MAIN_STATE_EASY:
+		_control_mode.flag_control_offboard_enabled = false;
 		_control_mode.flag_control_manual_enabled = true;
 		_control_mode.flag_control_rates_enabled = true;
 		_control_mode.flag_control_attitude_enabled = true;
@@ -1498,6 +1500,7 @@ Navigator::publish_control_mode()
 		break;
 
 	case MAIN_STATE_AUTO:
+		_control_mode.flag_control_offboard_enabled = false;
 		_control_mode.flag_control_manual_enabled = false;
 		if (myState == NAV_STATE_READY) {
 			/* disable all controllers, armed but idle */
@@ -1515,6 +1518,17 @@ Navigator::publish_control_mode()
 			_control_mode.flag_control_altitude_enabled = true;
 			_control_mode.flag_control_climb_rate_enabled = true;
 		}
+		break;
+
+	case MAIN_STATE_OFFBOARD:
+		_control_mode.flag_control_offboard_enabled = true;
+		_control_mode.flag_control_manual_enabled = false;
+		_control_mode.flag_control_rates_enabled = false;
+		_control_mode.flag_control_attitude_enabled = false;
+		_control_mode.flag_control_altitude_enabled = false;
+		_control_mode.flag_control_climb_rate_enabled = false;
+		_control_mode.flag_control_position_enabled = false;
+		_control_mode.flag_control_velocity_enabled = false;
 		break;
 
 	default:

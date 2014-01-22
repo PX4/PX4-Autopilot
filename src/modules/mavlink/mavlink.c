@@ -231,6 +231,8 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, u
 		} else if (control_mode.nav_state == NAV_STATE_RTL) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
 		}
+	} else if (v_status.main_state == MAIN_STATE_OFFBOARD) {
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_OFFBOARD;
 	}
 	*mavlink_custom_mode = custom_mode.data;
 

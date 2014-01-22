@@ -480,64 +480,73 @@ MulticopterAttitudeControl::task_main()
 			float yaw_sp_move_rate = 0.0f;
 			bool publish_att_sp = false;
 
-			/* define which input is the dominating control input */
-			if (_control_mode.flag_control_manual_enabled) {
-				/* manual input */
-				if (!_control_mode.flag_control_climb_rate_enabled) {
-					/* pass throttle directly if not in altitude control mode */
-					_att_sp.thrust = _manual.throttle;
-				}
+			if (_control_mode.flag_control_offboard_enabled) {
+				/* offboard control */
+				// TODO set _att_sp or _rates_sp here depending on offboard control mode
+				// TODO _control_mode.flag_control_XXX flags are all false, set it according to ofboard control mode
+				// but it's not very beautiful, need to think how to do it better
 
-				if (!_arming.armed) {
-					/* reset yaw setpoint when disarmed */
-					reset_yaw_sp = true;
-				}
+			} else {
+				/* onboard control */
+				/* define which input is the dominating control input */
+				if (_control_mode.flag_control_manual_enabled) {
+					/* manual input */
+					if (!_control_mode.flag_control_climb_rate_enabled) {
+						/* pass throttle directly if not in altitude control mode */
+						_att_sp.thrust = _manual.throttle;
+					}
 
-				if (_control_mode.flag_control_attitude_enabled) {
-					/* control attitude, update attitude setpoint depending on mode */
+					if (!_arming.armed) {
+						/* reset yaw setpoint when disarmed */
+						reset_yaw_sp = true;
+					}
 
-					if (_att_sp.thrust < 0.1f) {
-						// TODO
-						//if (_status.condition_landed) {
-						/* reset yaw setpoint if on ground */
-						//	reset_yaw_sp = true;
-						//}
-					} else {
-						if (_manual.yaw < -YAW_DEADZONE || YAW_DEADZONE < _manual.yaw) {
-							/* move yaw setpoint */
-							yaw_sp_move_rate = _manual.yaw;
-							_att_sp.yaw_body = _wrap_pi(_att_sp.yaw_body + yaw_sp_move_rate * dt);
+					if (_control_mode.flag_control_attitude_enabled) {
+						/* control attitude, update attitude setpoint depending on mode */
+
+						if (_att_sp.thrust < 0.1f) {
+							// TODO
+							//if (_status.condition_landed) {
+							/* reset yaw setpoint if on ground */
+							//	reset_yaw_sp = true;
+							//}
+						} else {
+							if (_manual.yaw < -YAW_DEADZONE || YAW_DEADZONE < _manual.yaw) {
+								/* move yaw setpoint */
+								yaw_sp_move_rate = _manual.yaw;
+								_att_sp.yaw_body = _wrap_pi(_att_sp.yaw_body + yaw_sp_move_rate * dt);
+								_att_sp.R_valid = false;
+								publish_att_sp = true;
+							}
+						}
+
+						/* reset yaw setpint to current position if needed */
+						if (reset_yaw_sp) {
+							reset_yaw_sp = false;
+							_att_sp.yaw_body = _att.yaw;
 							_att_sp.R_valid = false;
 							publish_att_sp = true;
 						}
-					}
 
-					/* reset yaw setpint to current position if needed */
-					if (reset_yaw_sp) {
-						reset_yaw_sp = false;
-						_att_sp.yaw_body = _att.yaw;
-						_att_sp.R_valid = false;
-						publish_att_sp = true;
-					}
+						if (!_control_mode.flag_control_velocity_enabled) {
+							/* update attitude setpoint if not in position control mode */
+							_att_sp.roll_body = _manual.roll;
+							_att_sp.pitch_body = _manual.pitch;
+							_att_sp.R_valid = false;
+							publish_att_sp = true;
+						}
 
-					if (!_control_mode.flag_control_velocity_enabled) {
-						/* update attitude setpoint if not in position control mode */
-						_att_sp.roll_body = _manual.roll;
-						_att_sp.pitch_body = _manual.pitch;
-						_att_sp.R_valid = false;
-						publish_att_sp = true;
+					} else {
+						/* manual rate inputs (ACRO) */
+						// TODO
+						/* reset yaw setpoint after ACRO */
+						reset_yaw_sp = true;
 					}
 
 				} else {
-					/* manual rate inputs (ACRO) */
-					// TODO
-					/* reset yaw setpoint after ACRO */
+					/* reset yaw setpoint after non-manual control */
 					reset_yaw_sp = true;
 				}
-
-			} else {
-				/* reset yaw setpoint after non-manual control */
-				reset_yaw_sp = true;
 			}
 
 			if (_att_sp.R_valid) {

@@ -411,42 +411,52 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 			/* set main state */
 			transition_result_t main_res = TRANSITION_DENIED;
 
-			if (base_mode & MAV_MODE_FLAG_CUSTOM_MODE_ENABLED) {
-				/* use autopilot-specific mode */
-				if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_MANUAL) {
-					/* MANUAL */
-					main_res = main_state_transition(status, MAIN_STATE_MANUAL);
+			if (status->rc_signal_lost) {
+				/* allow mode switching by command only if no RC signal */
+				if (base_mode & MAV_MODE_FLAG_CUSTOM_MODE_ENABLED) {
+					/* use autopilot-specific mode */
+					if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_MANUAL) {
+						/* MANUAL */
+						main_res = main_state_transition(status, MAIN_STATE_MANUAL);
 
-				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_SEATBELT) {
-					/* SEATBELT */
-					main_res = main_state_transition(status, MAIN_STATE_SEATBELT);
+					} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_SEATBELT) {
+						/* SEATBELT */
+						main_res = main_state_transition(status, MAIN_STATE_SEATBELT);
 
-				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_EASY) {
-					/* EASY */
-					main_res = main_state_transition(status, MAIN_STATE_EASY);
-
-				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
-					/* AUTO */
-					main_res = main_state_transition(status, MAIN_STATE_AUTO);
-				}
-
-			} else {
-				/* use base mode */
-				if (base_mode & MAV_MODE_FLAG_AUTO_ENABLED) {
-					/* AUTO */
-					main_res = main_state_transition(status, MAIN_STATE_AUTO);
-
-				} else if (base_mode & MAV_MODE_FLAG_MANUAL_INPUT_ENABLED) {
-					if (base_mode & MAV_MODE_FLAG_GUIDED_ENABLED) {
+					} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_EASY) {
 						/* EASY */
 						main_res = main_state_transition(status, MAIN_STATE_EASY);
 
-					} else if (base_mode & MAV_MODE_FLAG_STABILIZE_ENABLED) {
-						/* MANUAL */
-						main_res = main_state_transition(status, MAIN_STATE_MANUAL);
+					} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
+						/* AUTO */
+						main_res = main_state_transition(status, MAIN_STATE_AUTO);
+
+					} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_OFFBOARD) {
+						/* OFFBOARD */
+						main_res = main_state_transition(status, MAIN_STATE_OFFBOARD);
+					}
+
+				} else {
+					/* use base mode */
+					if (base_mode & MAV_MODE_FLAG_AUTO_ENABLED) {
+						/* AUTO */
+						main_res = main_state_transition(status, MAIN_STATE_AUTO);
+
+					} else if (base_mode & MAV_MODE_FLAG_MANUAL_INPUT_ENABLED) {
+						if (base_mode & MAV_MODE_FLAG_GUIDED_ENABLED) {
+							/* EASY */
+							main_res = main_state_transition(status, MAIN_STATE_EASY);
+
+						} else if (base_mode & MAV_MODE_FLAG_STABILIZE_ENABLED) {
+							/* MANUAL */
+							main_res = main_state_transition(status, MAIN_STATE_MANUAL);
+						}
 					}
 				}
+			} else {
+				mavlink_log_info(mavlink_fd, "RC signal is valid, ignoring set mode cmd");
 			}
+
 			if (main_res == TRANSITION_CHANGED)
 				ret = true;
 
