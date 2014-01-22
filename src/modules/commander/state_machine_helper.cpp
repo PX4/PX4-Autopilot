@@ -263,6 +263,12 @@ main_state_transition(struct vehicle_status_s *current_state, main_state_t new_m
 			}
 
 			break;
+
+		case MAIN_STATE_OFFBOARD:
+
+			ret = TRANSITION_CHANGED;
+
+			break;
 		}
 
 		if (ret == TRANSITION_CHANGED) {

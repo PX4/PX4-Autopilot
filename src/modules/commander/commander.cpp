@@ -1429,56 +1429,62 @@ check_main_state_machine(struct vehicle_status_s *current_status)
 	/* evaluate the main state machine */
 	transition_result_t res = TRANSITION_DENIED;
 
-	switch (current_status->mode_switch) {
-	case MODE_SWITCH_MANUAL:
-		res = main_state_transition(current_status, MAIN_STATE_MANUAL);
-		// TRANSITION_DENIED is not possible here
-		break;
+	if (current_status->offboard_switch == OFFBOARD_SWITCH_OFFBOARD) {
+		/* offboard switch overrides main switch */
+		res = main_state_transition(current_status, MAIN_STATE_OFFBOARD);
 
-	case MODE_SWITCH_ASSISTED:
-		if (current_status->assisted_switch == ASSISTED_SWITCH_EASY) {
-			res = main_state_transition(current_status, MAIN_STATE_EASY);
+	} else {
+		switch (current_status->mode_switch) {
+		case MODE_SWITCH_MANUAL:
+			res = main_state_transition(current_status, MAIN_STATE_MANUAL);
+			// TRANSITION_DENIED is not possible here
+			break;
+
+		case MODE_SWITCH_ASSISTED:
+			if (current_status->assisted_switch == ASSISTED_SWITCH_EASY) {
+				res = main_state_transition(current_status, MAIN_STATE_EASY);
+
+				if (res != TRANSITION_DENIED)
+					break;	// changed successfully or already in this state
+
+				// else fallback to SEATBELT
+				print_reject_mode("EASY");
+			}
+
+			res = main_state_transition(current_status, MAIN_STATE_SEATBELT);
+
+			if (res != TRANSITION_DENIED)
+				break;	// changed successfully or already in this mode
+
+			if (current_status->assisted_switch != ASSISTED_SWITCH_EASY)	// don't print both messages
+				print_reject_mode("SEATBELT");
+
+			// else fallback to MANUAL
+			res = main_state_transition(current_status, MAIN_STATE_MANUAL);
+			// TRANSITION_DENIED is not possible here
+			break;
+
+		case MODE_SWITCH_AUTO:
+			res = main_state_transition(current_status, MAIN_STATE_AUTO);
 
 			if (res != TRANSITION_DENIED)
 				break;	// changed successfully or already in this state
 
-			// else fallback to SEATBELT
-			print_reject_mode("EASY");
+			// else fallback to SEATBELT (EASY likely will not work too)
+			print_reject_mode("AUTO");
+			res = main_state_transition(current_status, MAIN_STATE_SEATBELT);
+
+			if (res != TRANSITION_DENIED)
+				break;	// changed successfully or already in this state
+
+			// else fallback to MANUAL
+			res = main_state_transition(current_status, MAIN_STATE_MANUAL);
+			// TRANSITION_DENIED is not possible here
+			break;
+
+		default:
+			break;
 		}
-
-		res = main_state_transition(current_status, MAIN_STATE_SEATBELT);
-
-		if (res != TRANSITION_DENIED)
-			break;	// changed successfully or already in this mode
-
-		if (current_status->assisted_switch != ASSISTED_SWITCH_EASY)	// don't print both messages
-			print_reject_mode("SEATBELT");
-
-		// else fallback to MANUAL
-		res = main_state_transition(current_status, MAIN_STATE_MANUAL);
-		// TRANSITION_DENIED is not possible here
-		break;
-
-	case MODE_SWITCH_AUTO:
-		res = main_state_transition(current_status, MAIN_STATE_AUTO);
-
-		if (res != TRANSITION_DENIED)
-			break;	// changed successfully or already in this state
-
-		// else fallback to SEATBELT (EASY likely will not work too)
-		print_reject_mode("AUTO");
-		res = main_state_transition(current_status, MAIN_STATE_SEATBELT);
-
-		if (res != TRANSITION_DENIED)
-			break;	// changed successfully or already in this state
-
-		// else fallback to MANUAL
-		res = main_state_transition(current_status, MAIN_STATE_MANUAL);
-		// TRANSITION_DENIED is not possible here
-		break;
-
-	default:
-		break;
 	}
 
 	return res;
