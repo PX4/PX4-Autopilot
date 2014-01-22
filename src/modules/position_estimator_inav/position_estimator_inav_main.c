@@ -166,6 +166,19 @@ int position_estimator_inav_main(int argc, char *argv[])
 	exit(1);
 }
 
+void write_debug_log(const char *msg, float dt, float x_est[3], float y_est[3], float z_est[3], float corr_acc[3], float corr_gps[3][2], float w_xy_gps_p, float w_xy_gps_v) {
+	FILE *f = fopen("/fs/microsd/inav.log", "a");
+	if (f) {
+		char *s = malloc(256);
+		snprintf(s, 256, "%llu %s\n\tdt=%.5f x_est=[%.5f %.5f %.5f] y_est=[%.5f %.5f %.5f] z_est=[%.5f %.5f %.5f]\n", hrt_absolute_time(), msg, dt, x_est[0], x_est[1], x_est[2], y_est[0], y_est[1], y_est[2], z_est[0], z_est[1], z_est[2]);
+		fputs(f, s);
+		snprintf(s, 256, "\tacc_corr=[%.5f %.5f %.5f] gps_pos_corr=[%.5f %.5f %.5f] gps_vel_corr=[%.5f %.5f %.5f] w_xy_gps_p=%.5f w_xy_gps_v=%.5f\n", corr_acc[0], corr_acc[1], corr_acc[2], corr_gps[0][0], corr_gps[1][0], corr_gps[2][0], corr_gps[0][1], corr_gps[1][1], corr_gps[2][1], w_xy_gps_p, w_xy_gps_v);
+		fputs(f, s);
+		free(s);
+	}
+	fclose(f);
+}
+
 /****************************************************************************
  * main
  ****************************************************************************/
@@ -715,7 +728,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			inertial_filter_predict(dt, y_est);
 
 			if (!isfinite(x_est[0]) || !isfinite(y_est[0])) {
-				warnx("BAD ESTIMATE AFTER PREDICTION %.6f x: %.3f %.3f %.3f y: %.3f %.3f %.3f", dt, x_est[0], x_est[1], x_est[2], y_est[0], y_est[1], y_est[2]);
+				write_debug_log("BAD ESTIMATE AFTER PREDICTION", dt, x_est, y_est, z_est, corr_acc, corr_gps, w_xy_gps_p, w_xy_gps_v);
 				thread_should_exit = true;
 			}
 
@@ -730,7 +743,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (use_gps_xy) {
 				inertial_filter_correct(corr_gps[0][0], dt, x_est, 0, w_xy_gps_p);
-				inertial_filter_correct(corr_gps[1][0], dt, y_est, 0, w_xy_gps_v);
+				inertial_filter_correct(corr_gps[1][0], dt, y_est, 0, w_xy_gps_p);
 
 				if (gps.vel_ned_valid && t < gps.timestamp_velocity + gps_topic_timeout) {
 					inertial_filter_correct(corr_gps[0][1], dt, x_est, 1, w_xy_gps_v);
@@ -739,8 +752,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 
 			if (!isfinite(x_est[0]) || !isfinite(y_est[0])) {
-				warnx("BAD ESTIMATE AFTER CORRECTION dt: %.6f x: %.3f %.3f %.3f y: %.3f %.3f %.3f", dt, x_est[0], x_est[1], x_est[2], y_est[0], y_est[1], y_est[2]);
-				warnx("BAD ESTIMATE AFTER CORRECTION acc: %.3f %.3f gps x: %.3f %.3f gps y: %.3f %.3f", corr_acc[0], corr_acc[1], corr_gps[0][0], corr_gps[0][1], corr_gps[1][0], corr_gps[1][1]);
+				write_debug_log("BAD ESTIMATE AFTER CORRECTION", dt, x_est, y_est, z_est, corr_acc, corr_gps, w_xy_gps_p, w_xy_gps_v);
 				thread_should_exit = true;
 			}
 		}
