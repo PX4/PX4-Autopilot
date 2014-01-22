@@ -1410,6 +1410,17 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 	} else {
 		current_status->mission_switch = MISSION_SWITCH_MISSION;
 	}
+
+	/* offboard switch  */
+	if (!isfinite(sp_man->offboard_switch)) {
+		current_status->offboard_switch = OFFBOARD_SWITCH_NONE;
+
+	} else if (sp_man->offboard_switch > STICK_ON_OFF_LIMIT) {
+		current_status->offboard_switch = OFFBOARD_SWITCH_OFFBOARD;
+
+	} else {
+		current_status->offboard_switch = OFFBOARD_SWITCH_ONBOARD;
+	}
 }
 
 transition_result_t

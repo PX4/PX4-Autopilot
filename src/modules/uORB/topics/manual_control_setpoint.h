@@ -60,14 +60,12 @@ struct manual_control_setpoint_s {
 	float return_switch;			/**< land 2 position switch (mandatory): land, no effect */
 	float assisted_switch;			/**< assisted 2 position switch (optional): seatbelt, simple */
 	float mission_switch;		/**< mission 2 position switch (optional): mission, loiter */
+	float offboard_switch;		/**< offboard switch (optional): offboard, onboard */
 
 	/**
 	 * Any of the channels below may not be available and be set to NaN
 	 * to indicate that it does not contain valid data.
 	 */
-
-	// XXX needed or parameter?
-	//float auto_offboard_input_switch;	/**< controller setpoint source (0 = onboard, 1 = offboard) */
 
 	float flaps;				/**< flap position */
 

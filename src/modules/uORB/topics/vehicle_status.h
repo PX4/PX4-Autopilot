@@ -64,6 +64,7 @@ typedef enum {
 	MAIN_STATE_SEATBELT,
 	MAIN_STATE_EASY,
 	MAIN_STATE_AUTO,
+	MAIN_STATE_OFFBOARD,
 } main_state_t;
 
 typedef enum {
@@ -108,6 +109,12 @@ typedef enum {
 	MISSION_SWITCH_LOITER,
 	MISSION_SWITCH_MISSION
 } mission_switch_pos_t;
+
+typedef enum {
+	OFFBOARD_SWITCH_NONE = 0,
+	OFFBOARD_SWITCH_OFFBOARD,
+	OFFBOARD_SWITCH_ONBOARD
+} offboard_switch_pos_t;
 
 enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_SAFETY_ARMED = 128,
@@ -184,6 +191,7 @@ struct vehicle_status_s
 	return_switch_pos_t return_switch;
 	assisted_switch_pos_t assisted_switch;
 	mission_switch_pos_t mission_switch;
+	offboard_switch_pos_t offboard_switch;
 
 	bool condition_battery_voltage_valid;
 	bool condition_system_in_air_restore;	/**< true if we can restore in mid air */
