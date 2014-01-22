@@ -637,7 +637,7 @@ FixedwingAttitudeControl::task_main()
 
 				/* if airspeed is smaller than min, the sensor is not giving good readings */
 				if (!_airspeed_valid ||
-				    (_airspeed.indicated_airspeed_m_s < 0.1f * _parameters.airspeed_min) ||
+				    (_airspeed.indicated_airspeed_m_s < 0.5f * _parameters.airspeed_min) ||
 				    !isfinite(_airspeed.indicated_airspeed_m_s)) {
 					airspeed = _parameters.airspeed_trim;
 
