@@ -613,7 +613,7 @@ MulticopterPositionControl::task_main()
 					pos_sp_offs(1) = (_pos_sp(1) - _pos(1)) / _params.sp_offs_max(1);
 				}
 
-				if (!_control_mode.flag_control_altitude_enabled) {
+				if (_control_mode.flag_control_altitude_enabled) {
 					pos_sp_offs(2) = (_pos_sp(2) - _pos(2)) / _params.sp_offs_max(2);
 				}
 
