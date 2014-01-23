@@ -242,7 +242,7 @@ user_start(int argc, char *argv[])
 		}
 
 		phase = !phase;
-		usleep(300000);
+		up_udelay(300000);
 	}
 
 	/*
