@@ -123,7 +123,9 @@ controls_tick() {
 
 	/* switch S.Bus output pin as needed */
 	if (sbus_status != (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS)) {
+		#ifdef ENABLE_SBUS_OUT
 		ENABLE_SBUS_OUT((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS));
+		#endif
 	}
 
 	perf_end(c_gather_sbus);
