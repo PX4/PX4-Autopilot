@@ -199,10 +199,12 @@ then
 				else
 					echo "[init] ERROR: PX4IO update failed"
 					echo "PX4IO update failed" >> $LOG_FILE
+					tone_alarm $TUNE_OUT_ERROR
 				fi
 			else
 				echo "[init] ERROR: PX4IO update failed"
 				echo "PX4IO update failed" >> $LOG_FILE
+				tone_alarm $TUNE_OUT_ERROR
 			fi
 		fi
 		
