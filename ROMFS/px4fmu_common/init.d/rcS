@@ -182,7 +182,7 @@ then
 			set IO_PRESENT yes
 		else
 			echo "[init] Trying to update"
-			echo "PX4IO CRC failure" >> $LOG_FILE
+			echo "PX4IO Trying to update" >> $LOG_FILE
 			
 			tone_alarm MLL32CP8MB
 			
