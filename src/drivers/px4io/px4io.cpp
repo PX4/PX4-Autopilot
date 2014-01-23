@@ -2367,8 +2367,10 @@ start(int argc, char *argv[])
 	/* create the driver - it will set g_dev */
 	(void)new PX4IO(interface);
 
-	if (g_dev == nullptr)
+	if (g_dev == nullptr) {
+		delete interface;
 		errx(1, "driver alloc failed");
+	}
 
 	if (OK != g_dev->init()) {
 		delete g_dev;
@@ -2769,17 +2771,34 @@ px4io_main(int argc, char *argv[])
 		}
 		if (g_dev == nullptr) {
 			warnx("px4io is not started, still attempting upgrade");
-		} else {
-			uint16_t arg = atol(argv[2]);
-			int ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, arg);
-			if (ret != OK) {
-				printf("reboot failed - %d\n", ret);
-				exit(1);
+
+			/* allocate the interface */
+			device::Device *interface = get_interface();
+
+			/* create the driver - it will set g_dev */
+			(void)new PX4IO(interface);
+
+			if (g_dev == nullptr) {
+				delete interface;
+				errx(1, "driver alloc failed");
 			}
 
-			// tear down the px4io instance
-			delete g_dev;
+			if (OK != g_dev->init()) {
+				delete g_dev;
+				g_dev = nullptr;
+				errx(1, "driver init failed");
+			}
 		}
+
+		uint16_t arg = atol(argv[2]);
+		int ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, arg);
+		if (ret != OK) {
+			printf("reboot failed - %d\n", ret);
+			exit(1);
+		}
+
+		// tear down the px4io instance
+		delete g_dev;
 
 		// upload the specified firmware
 		const char *fn[2];
