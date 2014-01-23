@@ -63,6 +63,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -118,6 +119,7 @@ private:
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
 	int 	_params_sub;			/**< notification of parameter updates */
 	int 	_manual_sub;			/**< notification of manual control updates */
+	int 	_offboard_sub;			/**< notification of offboard control updates */
 	int		_arming_sub;			/**< arming status of outputs */
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
@@ -127,6 +129,7 @@ private:
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s	_att_sp;		/**< vehicle attitude setpoint */
 	struct manual_control_setpoint_s	_manual;		/**< r/c channel data */
+	struct offboard_control_setpoint_s	_offboard;		/**< offboard data */
 	struct vehicle_control_mode_s		_control_mode;	/**< vehicle control mode */
 	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
 	struct actuator_armed_s				_arming;		/**< actuator arming status */
@@ -173,6 +176,11 @@ private:
 	 * Check for changes in manual inputs.
 	 */
 	void		vehicle_manual_poll();
+	
+	/**
+	 * Check for changes in offboard inputs.
+	 */
+	void		vehicle_offboard_poll();
 
 	/**
 	 * Check for set triplet updates.
@@ -340,6 +348,23 @@ MulticopterAttitudeControl::vehicle_manual_poll()
 }
 
 void
+MulticopterAttitudeControl::vehicle_offboard_poll()
+{
+	bool offboard_updated;	
+	
+	/* get offboard inputs */
+	orb_check(_offboard_sub, &offboard_updated);
+	
+	if (offboard_updated) {
+
+		orb_copy(ORB_ID(offboard_control_setpoint), _offboard_sub, &_offboard);
+	}
+
+}
+
+
+
+void
 MulticopterAttitudeControl::vehicle_setpoint_poll()
 {
 	/* check if there is a new setpoint */
@@ -362,6 +387,8 @@ MulticopterAttitudeControl::arming_status_poll()
 		orb_copy(ORB_ID(actuator_armed), _arming_sub, &_arming);
 	}
 }
+
+
 
 void
 MulticopterAttitudeControl::task_main_trampoline(int argc, char *argv[])
@@ -476,15 +503,49 @@ MulticopterAttitudeControl::task_main()
 			vehicle_control_mode_poll();
 			arming_status_poll();
 			vehicle_manual_poll();
+			vehicle_offboard_poll();
 
 			float yaw_sp_move_rate = 0.0f;
 			bool publish_att_sp = false;
 
 			if (_control_mode.flag_control_offboard_enabled) {
-				/* offboard control */
-				// TODO set _att_sp or _rates_sp here depending on offboard control mode
+				/* offboard control */				
+				// TODO set _att_sp or _rates_sp here depending on offboard control mode	
 				// TODO _control_mode.flag_control_XXX flags are all false, set it according to ofboard control mode
 				// but it's not very beautiful, need to think how to do it better
+				
+				// If control mode is rates set _rates_sp
+				if(_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_RATES)	{
+					_rates_sp.roll = _offboard.p1;
+					_rates_sp.pitch = _offboard.p2;
+					_rates_sp.yaw = _offboard.p3;
+					_rates_sp.roll = _offboard.p4;					
+				
+				// If control mode is atitude set _att_sp
+				} else if (_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE) {
+					_control_mode.flag_control_attitude_enabled = true;
+					
+					
+					/* pass throttle directly if not in altitude control mode */
+					if (!_control_mode.flag_control_climb_rate_enabled) {						
+						_att_sp.thrust = _offboard.p4;
+					}
+					
+					if (!_arming.armed) {
+						/* reset yaw setpoint when disarmed */
+						_att_sp.yaw_body = _att.yaw;
+					}
+					else{
+						_att_sp.yaw_body = _offboard.p3;
+					}
+										
+					_att_sp.roll_body = _offboard.p1;
+					_att_sp.pitch_body = _offboard.p2;
+					
+					_att_sp.R_valid = false;
+					publish_att_sp = true;
+				}
+				
 
 			} else {
 				/* onboard control */
@@ -565,7 +626,7 @@ MulticopterAttitudeControl::task_main()
 			if (publish_att_sp) {
 				/* publish the attitude setpoint */
 				_att_sp.timestamp = hrt_absolute_time();
-
+printf("att_sp RPYT: %.2f %.2f %.2f %.2f", _att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body, _att_sp.thrust)
 				if (_att_sp_pub > 0) {
 					orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
 
