@@ -2646,17 +2646,17 @@ monitor(void)
 			read(0, &c, 1);
 
 			if (cancels-- == 0) {
-				printf("\033[H"); /* move cursor home and clear screen */
+				printf("\033[2J\033[H"); /* move cursor home and clear screen */
 				exit(0);
 			}
 		}
 
 		if (g_dev != nullptr) {
 
-			printf("\033[H"); /* move cursor home and clear screen */
+			printf("\033[2J\033[H"); /* move cursor home and clear screen */
 			(void)g_dev->print_status();
 			(void)g_dev->print_debug();
-			printf("[ Use 'px4io debug <N>' for more output. Hit <enter> three times to exit monitor mode ]\n");
+			printf("\n\n\n[ Use 'px4io debug <N>' for more output. Hit <enter> three times to exit monitor mode ]\n");
 
 		} else {
 			errx(1, "driver not loaded, exiting");

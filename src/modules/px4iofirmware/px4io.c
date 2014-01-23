@@ -210,6 +210,9 @@ user_start(int argc, char *argv[])
 	/* initialise the control inputs */
 	controls_init();
 
+	/* set up the ADC */
+	adc_init();
+
 	/* start the FMU interface */
 	interface_init();
 
