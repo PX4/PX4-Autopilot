@@ -2784,9 +2784,7 @@ px4io_main(int argc, char *argv[])
 			}
 
 			if (OK != g_dev->init()) {
-				delete g_dev;
-				g_dev = nullptr;
-				errx(1, "driver init failed");
+				warnx("driver init failed, still trying..");
 			}
 		}
 
