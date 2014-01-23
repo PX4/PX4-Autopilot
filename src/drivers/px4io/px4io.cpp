@@ -252,6 +252,7 @@ private:
 	/* cached IO state */
 	uint16_t		_status;		///< Various IO status flags
 	uint16_t		_alarms;		///< Various IO alarms
+	uint16_t		_rc_lost_frames;	///<lost RC frame counter
 
 	/* subscribed topics */
 	int			_t_actuator_controls_0;	///< actuator controls group 0 topic
@@ -269,6 +270,7 @@ private:
 	orb_advert_t		_to_battery;		///< battery status / voltage
 	orb_advert_t		_to_servorail;		///< servorail status
 	orb_advert_t		_to_safety;		///< status of safety
+	orb_advert_t		_to_rc_status;		///< rc status
 
 	actuator_outputs_s	_outputs;		///< mixed outputs
 	servorail_status_s	_servorail_status;	///< servorail status
@@ -333,6 +335,15 @@ private:
 	 * @return		OK if data was returned.
 	 */
 	int			io_get_raw_rc_input(rc_input_values &input_rc);
+
+	/**
+	 * Fetch RC status from IO.
+	 *
+	 * @param input_rc	Input structure to populate.
+	 * @param status	current status word
+	 * @return		OK if not RC_LOST
+	 */
+	int			io_get_raw_rc_status(rc_input_values &input_rc, uint16_t status);
 
 	/**
 	 * Fetch and publish raw RC input data.
@@ -476,6 +487,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_perf_chan_count(perf_alloc(PC_COUNT, "io rc #")),
 	_status(0),
 	_alarms(0),
+	_rc_lost_frames(0),
 	_t_actuator_controls_0(-1),
 	_t_actuator_controls_1(-1),
 	_t_actuator_controls_2(-1),
@@ -489,6 +501,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_to_battery(0),
 	_to_servorail(0),
 	_to_safety(0),
+	_to_rc_status(0),
 	_primary_pwm_device(false),
 	_battery_amp_per_volt(90.0f / 5.0f), // this matches the 3DR current sensor
 	_battery_amp_bias(0),
@@ -1236,7 +1249,8 @@ PX4IO::io_handle_status(uint16_t status)
 	 * Get and handle the safety status
 	 */
 	struct safety_s safety;
-	safety.timestamp = hrt_absolute_time();
+	uint64_t ts = hrt_absolute_time();
+	safety.timestamp = ts;
 
 	if (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
 		safety.safety_off = true;
@@ -1281,7 +1295,6 @@ PX4IO::io_handle_alarms(uint16_t alarms)
 {
 
 	/* XXX handle alarms */
-
 
 	/* set new alarms state */
 	_alarms = alarms;
@@ -1423,33 +1436,50 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 }
 
 int
+PX4IO::io_get_raw_rc_status(rc_input_values &input_rc, uint16_t status)
+{
+	if (status & PX4IO_P_STATUS_FLAGS_RC_FRAME_LOST) {
+		/* count lost frames, skip 0 on overflow */
+		_rc_lost_frames++;
+		if (!_rc_lost_frames)
+			_rc_lost_frames++;
+	}
+
+	input_rc.timestamp_link_state = hrt_absolute_time();
+
+	input_rc.rc_failsafe = status & PX4IO_P_STATUS_FLAGS_RC_FAILSAFE;
+	input_rc.rc_lost = !(status & PX4IO_P_STATUS_FLAGS_RC_OK);
+	input_rc.rc_lost_frames = _rc_lost_frames;
+
+	return !input_rc.rc_lost ? OK : -EINVAL;
+}
+
+int
 PX4IO::io_publish_raw_rc()
 {
-	/* if no raw RC, just don't publish */
-	if (!(_status & PX4IO_P_STATUS_FLAGS_RC_OK))
-		return OK;
+	/* remember the last values (including timestamp), perhaps we wont get some new soon  */
+	static rc_input_values	rc_val;
 
-	/* fetch values from IO */
-	rc_input_values	rc_val;
-	rc_val.timestamp = hrt_absolute_time();
+	/* update rc status, return if not OK (possibly lost contact to PX4IO) */
+	int ret = io_get_raw_rc_status(rc_val, _status);
 
-	int ret = io_get_raw_rc_input(rc_val);
+	/* fetch values from IO only if not RC_LOST, otherwise keep values and timestamp */
+	if (ret == OK) {
+		io_get_raw_rc_input(rc_val);
 
-	if (ret != OK)
-		return ret;
+		/* sort out the source of the values */
+		if (_status & PX4IO_P_STATUS_FLAGS_RC_PPM) {
+			rc_val.input_source = RC_INPUT_SOURCE_PX4IO_PPM;
 
-	/* sort out the source of the values */
-	if (_status & PX4IO_P_STATUS_FLAGS_RC_PPM) {
-		rc_val.input_source = RC_INPUT_SOURCE_PX4IO_PPM;
+		} else if (_status & PX4IO_P_STATUS_FLAGS_RC_DSM) {
+			rc_val.input_source = RC_INPUT_SOURCE_PX4IO_SPEKTRUM;
 
-	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_DSM) {
-		rc_val.input_source = RC_INPUT_SOURCE_PX4IO_SPEKTRUM;
+		} else if (_status & PX4IO_P_STATUS_FLAGS_RC_SBUS) {
+			rc_val.input_source = RC_INPUT_SOURCE_PX4IO_SBUS;
 
-	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_SBUS) {
-		rc_val.input_source = RC_INPUT_SOURCE_PX4IO_SBUS;
-
-	} else {
-		rc_val.input_source = RC_INPUT_SOURCE_UNKNOWN;
+		} else {
+			rc_val.input_source = RC_INPUT_SOURCE_UNKNOWN;
+		}
 	}
 
 	/* set RSSI */
@@ -1747,6 +1777,8 @@ PX4IO::print_status()
 	       ((flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ? " SAFETY_OFF" : " SAFETY_SAFE"),
 	       ((flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? " OVERRIDE" : ""),
 	       ((flags & PX4IO_P_STATUS_FLAGS_RC_OK)    ? " RC_OK" : " RC_FAIL"),
+	       ((flags & PX4IO_P_STATUS_FLAGS_RC_FAILSAFE) ? " RC_FAILSAFE" : ""),
+	       ((flags & PX4IO_P_STATUS_FLAGS_RC_FRAME_LOST) ? " RC_FRAME_LOST" : ""),
 	       ((flags & PX4IO_P_STATUS_FLAGS_RC_PPM)   ? " PPM" : ""),
 	       (((flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (!(flags & PX4IO_P_STATUS_FLAGS_RC_DSM11))) ? " DSM10" : ""),
 	       (((flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (flags & PX4IO_P_STATUS_FLAGS_RC_DSM11)) ? " DSM11" : ""),
@@ -1807,6 +1839,9 @@ PX4IO::print_status()
 		printf(" %u", io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE + i));
 
 	printf("\n");
+
+	if (_rc_lost_frames)
+		printf("WARNING! %u lost RC frames\n", _rc_lost_frames);
 
 	if (raw_inputs > 0) {
 		int frame_len = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_RC_DATA);

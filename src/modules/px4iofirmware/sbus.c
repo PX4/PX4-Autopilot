@@ -87,7 +87,7 @@ static unsigned partial_frame_count;
 
 unsigned sbus_frame_drops;
 
-static bool sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, uint16_t *rssi, uint16_t max_channels);
+static bool sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, uint16_t *rssi, uint16_t *rx_flags, uint16_t max_channels);
 
 int
 sbus_init(const char *device)
@@ -118,7 +118,7 @@ sbus_init(const char *device)
 }
 
 bool
-sbus_input(uint16_t *values, uint16_t *num_values, uint16_t *rssi, uint16_t max_channels)
+sbus_input(uint16_t *values, uint16_t *num_values, uint16_t *rssi, uint16_t *rx_flags, uint16_t max_channels)
 {
 	ssize_t		ret;
 	hrt_abstime	now;
@@ -175,7 +175,7 @@ sbus_input(uint16_t *values, uint16_t *num_values, uint16_t *rssi, uint16_t max_
 	 * decode it.
 	 */
 	partial_frame_count = 0;
-	return sbus_decode(now, values, num_values, rssi, max_channels);
+	return sbus_decode(now, values, num_values, rssi, rx_flags, max_channels);
 }
 
 /*
@@ -215,7 +215,7 @@ static const struct sbus_bit_pick sbus_decoder[SBUS_INPUT_CHANNELS][3] = {
 };
 
 static bool
-sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, uint16_t *rssi, uint16_t max_values)
+sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, uint16_t *rssi, uint16_t *rx_flags, uint16_t max_values)
 {
 	/* check frame boundary markers to avoid out-of-sync cases */
 	if ((frame[0] != 0x0f) || (frame[24] != 0x00)) {
@@ -266,21 +266,25 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, uint
 
 	/* decode and handle failsafe and frame-lost flags */
 	if (frame[SBUS_FLAGS_BYTE] & (1 << SBUS_FAILSAFE_BIT)) { /* failsafe */
-		/* report that we failed to read anything valid off the receiver */
-		*rssi = 0;
-		return false;
+		/* report that we were able to read valid channel values off the receiver, but the failsafe bit was set
+		 * this branch is not responsible for handling a total RX failure (done by controls_tick if we return false) */
+
+		*rssi = 1;
+		*rx_flags |= PX4IO_P_STATUS_FLAGS_RC_FAILSAFE;
 	}
 	else if (frame[SBUS_FLAGS_BYTE] & (1 << SBUS_FRAMELOST_BIT)) { /* a frame was lost */
-		/* set a special warning flag or try to calculate some kind of RSSI information - to be implemented 
+		/* set a special warning flag
 		 * 
 		 * Attention! This flag indicates a skipped frame only, not a total link loss! Handling this 
 		 * condition as fail-safe greatly reduces the reliability and range of the radio link, 
 		 * e.g. by prematurely issueing return-to-launch!!! */
 
-		*rssi = 100; // XXX magic number indicating bad signal, but not a signal loss (yet)
+		*rssi = 100; // XXX magic number indicating weak signal, but not a signal loss (yet)
+		*rx_flags |= PX4IO_P_STATUS_FLAGS_RC_FRAME_LOST;
 	}
-
-	*rssi = 255;
+	else {
+		*rssi = 255;
+	}
 
 	return true;
 }

@@ -46,7 +46,7 @@
 
 #include "px4io.h"
 
-#define RC_FAILSAFE_TIMEOUT		2000000		/**< two seconds failsafe timeout */
+#define RC_LOST_TIMEOUT		2000000		/**< two seconds failsafe timeout - seems to be unused */
 #define RC_CHANNEL_HIGH_THRESH		5000
 #define RC_CHANNEL_LOW_THRESH		-5000
 
@@ -97,6 +97,9 @@ controls_tick() {
 	/* receive signal strenght indicator (RSSI). 0 = no connection, 255: perfect connection */
 	uint16_t rssi = 0;
 
+	/* rx status flags */
+	uint16_t rx_flags = 0;
+
 	perf_begin(c_gather_dsm);
 	uint16_t temp_count = r_raw_rc_count;
 	bool dsm_updated = dsm_input(r_raw_rc_values, &temp_count);
@@ -113,9 +116,16 @@ controls_tick() {
 	perf_end(c_gather_dsm);
 
 	perf_begin(c_gather_sbus);
-	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &rssi, PX4IO_RC_INPUT_CHANNELS);
+	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &rssi, &rx_flags, PX4IO_CONTROL_CHANNELS);
 	if (sbus_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SBUS;
+
+		r_status_flags &= ~( PX4IO_P_STATUS_FLAGS_RC_FAILSAFE | PX4IO_P_STATUS_FLAGS_RC_FRAME_LOST );
+		r_status_flags |= rx_flags;
+
+		/* set latching alarm flag on failsafes or lost frames */
+		if (rx_flags)
+		r_status_alarms |= PX4IO_P_STATUS_ALARMS_RC_WEAK;
 	}
 	perf_end(c_gather_sbus);
 
@@ -272,6 +282,9 @@ controls_tick() {
 		r_status_flags &= ~(
 			PX4IO_P_STATUS_FLAGS_OVERRIDE |
 			PX4IO_P_STATUS_FLAGS_RC_OK);
+
+		/* set lost frame flag to support counting short breaks that do not trigger failsafe timeout */
+		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_FRAME_LOST;
 
 		/* Set the RC_LOST alarm */
 		r_status_alarms |= PX4IO_P_STATUS_ALARMS_RC_LOST;
