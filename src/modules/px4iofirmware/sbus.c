@@ -241,9 +241,8 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, uint
 		case 0xE3:
 		break;
 		default:
-		/* we expect one of these, else abort */
-		sbus_frame_drops++;
-		return false;
+		/* we expect one of the bits above, but there are some we don't know yet */
+		break;
 	}
 
 	/* we have received something we think is a frame */
