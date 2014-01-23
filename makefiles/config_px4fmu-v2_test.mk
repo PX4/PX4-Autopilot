@@ -33,6 +33,11 @@ MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
 
 #
+# Libraries
+#
+LIBRARIES	+= lib/mathlib/CMSIS
+
+#
 # Transitional support - add commands from the NuttX export archive.
 #
 # In general, these should move to modules over time.
