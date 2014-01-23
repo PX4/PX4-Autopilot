@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -228,7 +228,6 @@ user_start(int argc, char *argv[])
 	/* initialize PWM limit lib */
 	pwm_limit_init(&pwm_limit);
 
-#if 0
 	/* not enough memory, lock down */
 	if (minfo.mxordblk < 500) {
 		lowsyslog("ERR: not enough MEM");
@@ -245,7 +244,6 @@ user_start(int argc, char *argv[])
 		phase = !phase;
 		usleep(300000);
 	}
-#endif
 
 	/*
 	 * Run everything in a tight loop.
@@ -275,7 +273,6 @@ user_start(int argc, char *argv[])
 
                 check_reboot();
 
-#if 0
 		/* check for debug activity */
 		show_debug_messages();
 
@@ -292,7 +289,6 @@ user_start(int argc, char *argv[])
 				  (unsigned)minfo.mxordblk);
 			last_debug_time = hrt_absolute_time();
 		}
-#endif
 	}
 }
 
