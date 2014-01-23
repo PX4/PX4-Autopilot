@@ -972,10 +972,10 @@ Navigator::start_loiter()
 
 		/* use current altitude if above min altitude set by parameter */
 		if (_global_pos.alt < min_alt_amsl) {
-			_pos_sp_triplet.current.altitude = min_alt_amsl;
+			_pos_sp_triplet.current.alt = min_alt_amsl;
 			mavlink_log_info(_mavlink_fd, "[navigator] loiter %.1fm higher", (double)(min_alt_amsl - _global_pos.alt));
 		} else {
-			_pos_sp_triplet.current.altitude = _global_pos.alt;
+			_pos_sp_triplet.current.alt = _global_pos.alt;
 			mavlink_log_info(_mavlink_fd, "[navigator] loiter at current altitude");
 		}
 
@@ -987,6 +987,8 @@ Navigator::start_loiter()
 		}
 	}
 
+	_pos_sp_triplet.current.loiter_radius = _parameters.loiter_radius;
+	_pos_sp_triplet.current.loiter_direction = 1;
 	_pos_sp_triplet.previous.valid = false;
 	_pos_sp_triplet.current.valid = true;
 	_pos_sp_triplet.next.valid = false;
@@ -1052,7 +1054,7 @@ Navigator::set_mission_item()
 				}
 
 				/* check if we really need takeoff */
-				if (_vstatus.condition_landed || _global_pos.alt < takeoff_alt_amsl - item.acceptance_radius) {
+				if (_vstatus.condition_landed || _global_pos.alt < takeoff_alt_amsl - _mission_item.acceptance_radius) {
 					/* force TAKEOFF if landed or waypoint altitude is more than current */
 					_do_takeoff = true;
 
@@ -1067,14 +1069,14 @@ Navigator::set_mission_item()
 					_pos_sp_triplet.current.yaw = NAN;
 					_pos_sp_triplet.current.type = SETPOINT_TYPE_TAKEOFF;
 				}
-			} else if (item.nav_cmd == NAV_CMD_LAND) {
+			} else if (_mission_item.nav_cmd == NAV_CMD_LAND) {
 				/* will need takeoff after landing */
 				_need_takeoff = true;
 			}
 		}
 
 		if (_do_takeoff) {
-			mavlink_log_info(_mavlink_fd, "[navigator] takeoff to %.1fm AMSL", _pos_sp_triplet.current.altitude);
+			mavlink_log_info(_mavlink_fd, "[navigator] takeoff to %.1fm AMSL", _pos_sp_triplet.current.alt);
 		} else {
 			if (onboard) {
 				mavlink_log_info(_mavlink_fd, "[navigator] heading to onboard WP %d", index);
@@ -1207,7 +1209,7 @@ Navigator::set_rtl_item()
 
 		_pos_sp_triplet.next.valid = false;
 
-		mavlink_log_info(_mavlink_fd, "[navigator] RTL: descend to %.1fm", descend_alt - _home_pos.altitude);
+		mavlink_log_info(_mavlink_fd, "[navigator] RTL: descend to %.1fm AMSL", _mission_item.altitude);
 		break;
 	}
 	case RTL_STATE_LAND: {
@@ -1258,9 +1260,12 @@ Navigator::position_setpoint_from_mission_item(position_setpoint_s *sp, mission_
 	} else {
 		sp->lat = item->lat;
 		sp->lon = item->lon;
-		sp->alt = item->altitude_is_relative ? item->alt + _home_pos.altitude : item->alt;
+		sp->alt = item->altitude_is_relative ? item->altitude + _home_pos.altitude : item->altitude;
 	}
 	sp->yaw = item->yaw;
+	sp->loiter_radius = item->loiter_radius;
+	sp->loiter_direction = item->loiter_direction;
+	sp->pitch_min = item->pitch_min;
 	if (item->nav_cmd == NAV_CMD_TAKEOFF) {
 		sp->type = SETPOINT_TYPE_TAKEOFF;
 	} else if (item->nav_cmd == NAV_CMD_LAND) {
@@ -1320,7 +1325,7 @@ Navigator::check_mission_item_reached()
 		/* current relative or AMSL altitude depending on mission item altitude_is_relative flag */
 		float wp_alt_amsl = _mission_item.altitude;
 		if (_mission_item.altitude_is_relative)
-			_mission_itemt.altitude += _home_pos.altitude;
+			wp_alt_amsl += _home_pos.altitude;
 
 		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, wp_alt_amsl,
 										  (double)_global_pos.lat / 1e7d, (double)_global_pos.lon / 1e7d, _global_pos.alt,

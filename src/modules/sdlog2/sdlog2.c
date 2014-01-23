@@ -73,7 +73,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/mission_item_triplet.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
@@ -908,7 +908,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fdsc_count++;
 
 	/* --- GLOBAL POSITION SETPOINT--- */
-	subs.triplet_sub = orb_subscribe(ORB_ID(mission_item_triplet));
+	subs.triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	fds[fdsc_count].fd = subs.triplet_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
@@ -1263,18 +1263,15 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 			/* --- GLOBAL POSITION SETPOINT --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(mission_item_triplet), subs.triplet_sub, &buf.triplet);
+				orb_copy(ORB_ID(position_setpoint_triplet), subs.triplet_sub, &buf.triplet);
 				log_msg.msg_type = LOG_GPSP_MSG;
-				log_msg.body.log_GPSP.altitude_is_relative = buf.triplet.current.altitude_is_relative;
 				log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * 1e7d);
 				log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * 1e7d);
-				log_msg.body.log_GPSP.altitude = buf.triplet.current.altitude;
+				log_msg.body.log_GPSP.alt = buf.triplet.current.alt;
 				log_msg.body.log_GPSP.yaw = buf.triplet.current.yaw;
-				log_msg.body.log_GPSP.nav_cmd = buf.triplet.current.nav_cmd;				
+				log_msg.body.log_GPSP.type = buf.triplet.current.type;
 				log_msg.body.log_GPSP.loiter_radius = buf.triplet.current.loiter_radius;
 				log_msg.body.log_GPSP.loiter_direction = buf.triplet.current.loiter_direction;
-				log_msg.body.log_GPSP.acceptance_radius = buf.triplet.current.acceptance_radius;
-				log_msg.body.log_GPSP.time_inside = buf.triplet.current.time_inside;
 				log_msg.body.log_GPSP.pitch_min = buf.triplet.current.pitch_min;
 				LOGBUFFER_WRITE_AND_COUNT(GPSP);
 			}

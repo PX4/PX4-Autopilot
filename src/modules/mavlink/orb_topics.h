@@ -51,9 +51,8 @@
 #include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/mission_item_triplet.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_vicon_position.h>
-#include <uORB/topics/mission_item_triplet.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>

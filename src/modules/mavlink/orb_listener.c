@@ -411,22 +411,17 @@ void
 l_global_position_setpoint(const struct listener *l)
 {
 	struct position_setpoint_triplet_s triplet;
-	orb_copy(ORB_ID(mission_item_triplet), mavlink_subs.triplet_sub, &triplet);
+	orb_copy(ORB_ID(position_setpoint_triplet), mavlink_subs.triplet_sub, &triplet);
 
-	uint8_t coordinate_frame = MAV_FRAME_GLOBAL;
-	
-	if (!triplet.current_valid)
+	if (!triplet.current.valid)
 		return;
-
-	if (triplet.current.altitude_is_relative)
-		coordinate_frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
 
 	if (gcs_link)
 		mavlink_msg_global_position_setpoint_int_send(MAVLINK_COMM_0,
-				coordinate_frame,
+				MAV_FRAME_GLOBAL,
 				(int32_t)(triplet.current.lat * 1e7d),
 				(int32_t)(triplet.current.lon * 1e7d),
-				(int32_t)(triplet.current.altitude * 1e3f),
+				(int32_t)(triplet.current.alt * 1e3f),
 				(int16_t)(triplet.current.yaw * M_RAD_TO_DEG_F * 1e2f));
 }
 
@@ -804,7 +799,7 @@ uorb_receive_start(void)
 	orb_set_interval(mavlink_subs.local_pos_sub, 1000);	/* 1Hz active updates */
 
 	/* --- GLOBAL SETPOINT VALUE --- */
-	mavlink_subs.triplet_sub = orb_subscribe(ORB_ID(mission_item_triplet));
+	mavlink_subs.triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	orb_set_interval(mavlink_subs.triplet_sub, 2000);	/* 0.5 Hz updates */
 	
 	/* --- LOCAL SETPOINT VALUE --- */

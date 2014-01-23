@@ -828,7 +828,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_att_sp.roll_body = _l1_control.nav_roll();
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
-			_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _pos_sp_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_trim),
+			_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _pos_sp_triplet.current.alt, calculate_target_airspeed(_parameters.airspeed_trim),
 						    _airspeed.indicated_airspeed_m_s, eas2tas,
 						    false, math::radians(_parameters.pitch_limit_min),
 						    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
@@ -845,7 +845,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				/* heading hold, along the line connecting this and the last waypoint */
 
 				if (!land_noreturn_horizontal) {//set target_bearing in first occurrence
-					if (pos_sp_triplet.previous_valid) {
+					if (pos_sp_triplet.previous.valid) {
 						target_bearing = get_bearing_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1));
 					} else {
 						target_bearing = _att.yaw;
@@ -877,7 +877,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 //				/* do not go down too early */
 //				if (wp_distance > 50.0f) {
-//					altitude_error = (_global_triplet.current.altitude + 25.0f) - _global_pos.alt;
+//					altitude_error = (_global_triplet.current.alt + 25.0f) - _global_pos.alt;
 //				}
 			/* apply minimum pitch (flare) and limit roll if close to touch down, altitude error is negative (going down) */
 			// XXX this could make a great param
@@ -888,12 +888,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			float airspeed_approach = 1.3f * _parameters.airspeed_min;
 
 			float L_wp_distance = get_distance_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1)) * _parameters.land_slope_length;
-			float L_altitude = landingslope.getLandingSlopeAbsoluteAltitude(L_wp_distance, _pos_sp_triplet.current.altitude);//getLandingSlopeAbsoluteAltitude(L_wp_distance, _pos_sp_triplet.current.altitude, landing_slope_angle_rad, horizontal_slope_displacement);
-			float landing_slope_alt_desired = landingslope.getLandingSlopeAbsoluteAltitude(wp_distance, _pos_sp_triplet.current.altitude);//getLandingSlopeAbsoluteAltitude(wp_distance, _pos_sp_triplet.current.altitude, landing_slope_angle_rad, horizontal_slope_displacement);
+			float L_altitude = landingslope.getLandingSlopeAbsoluteAltitude(L_wp_distance, _pos_sp_triplet.current.alt);//getLandingSlopeAbsoluteAltitude(L_wp_distance, _pos_sp_triplet.current.alt, landing_slope_angle_rad, horizontal_slope_displacement);
+			float landing_slope_alt_desired = landingslope.getLandingSlopeAbsoluteAltitude(wp_distance, _pos_sp_triplet.current.alt);//getLandingSlopeAbsoluteAltitude(wp_distance, _pos_sp_triplet.current.alt, landing_slope_angle_rad, horizontal_slope_displacement);
 
 
 
-			if ( (_global_pos.alt < _pos_sp_triplet.current.altitude + landingslope.flare_relative_alt()) || land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
+			if ( (_global_pos.alt < _pos_sp_triplet.current.alt + landingslope.flare_relative_alt()) || land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
 
 				/* land with minimal speed */
 
@@ -912,12 +912,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 				 }
 
-				float flare_curve_alt = landingslope.getFlareCurveAltitude(wp_distance, _pos_sp_triplet.current.altitude);
+				float flare_curve_alt = landingslope.getFlareCurveAltitude(wp_distance, _pos_sp_triplet.current.alt);
 
 				/* avoid climbout */
 				if (flare_curve_alt_last < flare_curve_alt && land_noreturn_vertical || land_stayonground)
 				{
-					flare_curve_alt = pos_sp_triplet.current.altitude;
+					flare_curve_alt = pos_sp_triplet.current.alt;
 					land_stayonground = true;
 				}
 
@@ -1009,7 +1009,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				if (altitude_error > 15.0f) {
 
 					/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _pos_sp_triplet.current.altitude, calculate_target_airspeed(1.3f * _parameters.airspeed_min),
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _pos_sp_triplet.current.alt, calculate_target_airspeed(1.3f * _parameters.airspeed_min),
 									_airspeed.indicated_airspeed_m_s, eas2tas,
 									true, math::max(math::radians(pos_sp_triplet.current.pitch_min), math::radians(10.0f)),
 									_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
@@ -1020,7 +1020,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 				} else {
 
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _pos_sp_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_trim),
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _pos_sp_triplet.current.alt, calculate_target_airspeed(_parameters.airspeed_trim),
 									_airspeed.indicated_airspeed_m_s, eas2tas,
 									false, math::radians(_parameters.pitch_limit_min),
 									_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
@@ -1042,7 +1042,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		_loiter_hold = false;
 
 		/* reset land state */
-		if (pos_sp_triplet.current.nav_cmd != NAV_CMD_LAND) {
+		if (pos_sp_triplet.current.type != SETPOINT_TYPE_LAND) {
 			land_noreturn_horizontal = false;
 			land_noreturn_vertical = false;
 			land_stayonground = false;
@@ -1051,7 +1051,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 
 		/* reset takeoff/launch state */
-		if (pos_sp_triplet.current.nav_cmd != NAV_CMD_TAKEOFF) {
+		if (pos_sp_triplet.current.type != SETPOINT_TYPE_TAKEOFF) {
 			launch_detected = false;
 			usePreTakeoffThrust = false;
 		}
@@ -1283,7 +1283,7 @@ FixedwingPositionControl::task_main()
 				}
 
 				/* XXX check if radius makes sense here */
-				float turn_distance = _l1_control.switch_distance(_pos_sp_triplet.current.acceptance_radius);
+				float turn_distance = _l1_control.switch_distance(100.0f);
 
 				/* lazily publish navigation capabilities */
 				if (turn_distance != _nav_capabilities.turn_distance && turn_distance > 0) {

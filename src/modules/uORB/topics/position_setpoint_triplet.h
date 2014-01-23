@@ -61,12 +61,15 @@ enum SETPOINT_TYPE
 
 struct position_setpoint_s
 {
-	bool valid;					/**< true if point is valid */
+	bool valid;					/**< true if setpoint is valid */
+	enum SETPOINT_TYPE type;	/**< setpoint type to adjust behavior of position controller */
 	double lat;					/**< latitude, in deg */
 	double lon;					/**< longitude, in deg */
 	float alt;					/**< altitude AMSL, in m */
-	float yaw;					/**< yaw (only for multirotors), in rad [-PI..PI), NaN to hold current yaw */
-	enum SETPOINT_TYPE type;	/**< setpoint type to adjust behavior of position controller */
+	float yaw;					/**< yaw (only for multirotors), in rad [-PI..PI), NaN = hold current yaw */
+	float loiter_radius;		/**< loiter radius (only for fixed wing), in m */
+	int8_t loiter_direction;	/**< loiter direction: 1 = CW, -1 = CCW */
+	float pitch_min;			/**< minimal pitch angle for fixed wing takeoff waypoints */
 };
 
 /**

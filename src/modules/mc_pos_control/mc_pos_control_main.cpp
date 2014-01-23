@@ -65,7 +65,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/mission_item_triplet.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
@@ -117,7 +117,7 @@ private:
 	int 	_manual_sub;			/**< notification of manual control updates */
 	int		_arming_sub;			/**< arming status of outputs */
 	int		_local_pos_sub;			/**< vehicle local position */
-	int		_pos_sp_triplet_sub;		/**< mission item triplet */
+	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
 
 	orb_advert_t	_local_pos_sp_pub;		/**< local position setpoint publication */
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
@@ -687,7 +687,7 @@ MulticopterPositionControl::task_main()
 
 			if (!_control_mode.flag_control_manual_enabled) {
 				/* use constant descend rate when landing, ignore altitude setpoint */
-				if (_pos_sp_triplet.current_valid && _pos_sp_triplet.current.nav_cmd == NAV_CMD_LAND) {
+				if (_pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
 					_vel_sp(2) = _params.land_speed;
 				}
 
@@ -789,7 +789,7 @@ MulticopterPositionControl::task_main()
 				float tilt = atan2f(math::Vector<2>(thrust_sp(0), thrust_sp(1)).length(), -thrust_sp(2));
 				float tilt_max = _params.tilt_max;
 				if (!_control_mode.flag_control_manual_enabled) {
-					if (_pos_sp_triplet.current_valid && _pos_sp_triplet.current.nav_cmd == NAV_CMD_LAND) {
+					if (_pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
 						/* limit max tilt and min lift when landing */
 						tilt_max = _params.land_tilt_max;
 						if (thr_min < 0.0f)
