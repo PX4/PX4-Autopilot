@@ -1548,8 +1548,8 @@ Sensors::task_main()
 	raw.adc_voltage_v[3] = 0.0f;
 
 	memset(&_battery_status, 0, sizeof(_battery_status));
-	_battery_status.voltage_v = 0.0f;
-	_battery_status.voltage_filtered_v = 0.0f;
+	_battery_status.voltage_v = -1.0f;
+	_battery_status.voltage_filtered_v = -1.0f;
 	_battery_status.current_a = -1.0f;
 	_battery_status.discharged_mah = -1.0f;
 
