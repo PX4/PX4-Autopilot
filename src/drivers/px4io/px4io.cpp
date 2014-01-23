@@ -1454,8 +1454,10 @@ PX4IO::io_publish_raw_rc()
 
 	/* set RSSI */
 
-	// XXX the correct scaling needs to be validated here
-	rc_val.rssi = (_servorail_status.rssi_v / 3.3f) * UINT8_MAX;
+	if (rc_val.input_source != RC_INPUT_SOURCE_PX4IO_SBUS) {
+		// XXX the correct scaling needs to be validated here
+		rc_val.rssi = (_servorail_status.rssi_v / 3.3f) * UINT8_MAX;
+	}
 
 	/* lazily advertise on first publication */
 	if (_to_input_rc == 0) {
@@ -1808,7 +1810,7 @@ PX4IO::print_status()
 
 	printf("\n");
 
-	if (raw_inputs > 0) {
+	if ((flags & PX4IO_P_STATUS_FLAGS_RC_PPM)) {
 		int frame_len = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_RC_DATA);
 		printf("RC data (PPM frame len) %u us\n", frame_len);
 
@@ -2365,8 +2367,10 @@ start(int argc, char *argv[])
 	/* create the driver - it will set g_dev */
 	(void)new PX4IO(interface);
 
-	if (g_dev == nullptr)
+	if (g_dev == nullptr) {
+		delete interface;
 		errx(1, "driver alloc failed");
+	}
 
 	if (OK != g_dev->init()) {
 		delete g_dev;
@@ -2642,17 +2646,17 @@ monitor(void)
 			read(0, &c, 1);
 
 			if (cancels-- == 0) {
-				printf("\033[H"); /* move cursor home and clear screen */
+				printf("\033[2J\033[H"); /* move cursor home and clear screen */
 				exit(0);
 			}
 		}
 
 		if (g_dev != nullptr) {
 
-			printf("\033[H"); /* move cursor home and clear screen */
+			printf("\033[2J\033[H"); /* move cursor home and clear screen */
 			(void)g_dev->print_status();
 			(void)g_dev->print_debug();
-			printf("[ Use 'px4io debug <N>' for more output. Hit <enter> three times to exit monitor mode ]\n");
+			printf("\n\n\n[ Use 'px4io debug <N>' for more output. Hit <enter> three times to exit monitor mode ]\n");
 
 		} else {
 			errx(1, "driver not loaded, exiting");
@@ -2767,17 +2771,32 @@ px4io_main(int argc, char *argv[])
 		}
 		if (g_dev == nullptr) {
 			warnx("px4io is not started, still attempting upgrade");
-		} else {
-			uint16_t arg = atol(argv[2]);
-			int ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, arg);
-			if (ret != OK) {
-				printf("reboot failed - %d\n", ret);
-				exit(1);
+
+			/* allocate the interface */
+			device::Device *interface = get_interface();
+
+			/* create the driver - it will set g_dev */
+			(void)new PX4IO(interface);
+
+			if (g_dev == nullptr) {
+				delete interface;
+				errx(1, "driver alloc failed");
 			}
 
-			// tear down the px4io instance
-			delete g_dev;
+			if (OK != g_dev->init()) {
+				warnx("driver init failed, still trying..");
+			}
 		}
+
+		uint16_t arg = atol(argv[2]);
+		int ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, arg);
+		if (ret != OK) {
+			printf("reboot failed - %d\n", ret);
+			exit(1);
+		}
+
+		// tear down the px4io instance
+		delete g_dev;
 
 		// upload the specified firmware
 		const char *fn[2];

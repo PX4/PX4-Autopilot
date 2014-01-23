@@ -1006,6 +1006,40 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 		break;
 
+	case PWM_SERVO_SET_COUNT: {
+		/* change the number of outputs that are enabled for
+		 * PWM. This is used to change the split between GPIO
+		 * and PWM under control of the flight config
+		 * parameters. Note that this does not allow for
+		 * changing a set of pins to be used for serial on
+		 * FMUv1 
+		 */
+		switch (arg) {
+		case 0:
+			set_mode(MODE_NONE);
+			break;
+
+		case 2:
+			set_mode(MODE_2PWM);
+			break;
+
+		case 4:
+			set_mode(MODE_4PWM);
+			break;
+
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+		case 6:
+			set_mode(MODE_6PWM);
+			break;
+#endif
+
+		default:
+			ret = -EINVAL;
+			break;
+		}
+		break;
+	}
+
 	case MIXERIOCRESET:
 		if (_mixers != nullptr) {
 			delete _mixers;
@@ -1443,7 +1477,6 @@ void
 sensor_reset(int ms)
 {
 	int	 fd;
-	int	 ret;
 
 	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
 

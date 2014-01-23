@@ -8,7 +8,6 @@
 #
 set MODE autostart
 
-set LOG_FILE /fs/microsd/bootlog.txt
 set RC_FILE /fs/microsd/etc/rc.txt
 set CONFIG_FILE /fs/microsd/etc/config.txt
 set EXTRAS_FILE /fs/microsd/etc/extras.txt
@@ -21,10 +20,12 @@ set TUNE_OUT_ERROR ML<<CP4CP4CP4CP4CP4
 echo "[init] Looking for microSD..."
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
+	set LOG_FILE /fs/microsd/bootlog.txt
 	echo "[init] microSD card mounted at /fs/microsd"
 	# Start playing the startup tune
 	tone_alarm start
 else
+	set LOG_FILE /dev/null
 	echo "[init] No microSD card found"
 	# Play SOS
 	tone_alarm error
@@ -180,8 +181,8 @@ then
 	
 			set IO_PRESENT yes
 		else
-			echo "[init] PX4IO CRC failure, trying to update"
-			echo "PX4IO CRC failure" >> $LOG_FILE
+			echo "[init] Trying to update"
+			echo "PX4IO Trying to update" >> $LOG_FILE
 			
 			tone_alarm MLL32CP8MB
 			
@@ -198,10 +199,12 @@ then
 				else
 					echo "[init] ERROR: PX4IO update failed"
 					echo "PX4IO update failed" >> $LOG_FILE
+					tone_alarm $TUNE_OUT_ERROR
 				fi
 			else
 				echo "[init] ERROR: PX4IO update failed"
 				echo "PX4IO update failed" >> $LOG_FILE
+				tone_alarm $TUNE_OUT_ERROR
 			fi
 		fi
 		
