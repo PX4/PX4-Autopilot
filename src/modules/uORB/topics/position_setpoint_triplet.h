@@ -46,31 +46,39 @@
 #include <stdbool.h>
 #include "../uORB.h"
 
-#include "mission.h"
-
 /**
  * @addtogroup topics
  * @{
  */
+
+enum SETPOINT_TYPE
+{
+	SETPOINT_TYPE_NORMAL = 0,
+	SETPOINT_TYPE_LOITER,
+	SETPOINT_TYPE_TAKEOFF,
+	SETPOINT_TYPE_LAND,
+};
+
+struct position_setpoint_s
+{
+	bool valid;					/**< true if point is valid */
+	double lat;					/**< latitude, in deg */
+	double lon;					/**< longitude, in deg */
+	float alt;					/**< altitude AMSL, in m */
+	float yaw;					/**< yaw (only for multirotors), in rad [-PI..PI), NaN to hold current yaw */
+	enum SETPOINT_TYPE type;	/**< setpoint type to adjust behavior of position controller */
+};
 
 /**
  * Global position setpoint triplet in WGS84 coordinates.
  *
  * This are the three next waypoints (or just the next two or one).
  */
-struct mission_item_triplet_s
+struct position_setpoint_triplet_s
 {
-	bool previous_valid;
-	bool current_valid;				/**< flag indicating previous mission item is valid */
-	bool next_valid;					/**< flag indicating next mission item is valid */
-
-	struct mission_item_s previous;
-	struct mission_item_s current;
-	struct mission_item_s next;
-
-	int previous_index;
-	int current_index;
-	int next_index;
+	struct position_setpoint_s previous;
+	struct position_setpoint_s current;
+	struct position_setpoint_s next;
 };
 
 /**
@@ -78,6 +86,6 @@ struct mission_item_triplet_s
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(mission_item_triplet);
+ORB_DECLARE(position_setpoint_triplet);
 
 #endif

@@ -54,8 +54,8 @@ BlockWaypointGuidance::~BlockWaypointGuidance() {};
 
 void BlockWaypointGuidance::update(vehicle_global_position_s &pos,
 				   vehicle_attitude_s &att,
-				   mission_item_s &missionCmd,
-				   mission_item_s &lastMissionCmd)
+				   position_setpoint_s &missionCmd,
+				   position_setpoint_s &lastMissionCmd)
 {
 
 	// heading to waypoint
@@ -86,7 +86,7 @@ BlockUorbEnabledAutopilot::BlockUorbEnabledAutopilot(SuperBlock *parent, const c
 	_attCmd(&getSubscriptions(), ORB_ID(vehicle_attitude_setpoint), 20),
 	_ratesCmd(&getSubscriptions(), ORB_ID(vehicle_rates_setpoint), 20),
 	_pos(&getSubscriptions() , ORB_ID(vehicle_global_position), 20),
-	_missionCmd(&getSubscriptions(), ORB_ID(mission_item_triplet), 20),
+	_missionCmd(&getSubscriptions(), ORB_ID(position_setpoint_triplet), 20),
 	_manual(&getSubscriptions(), ORB_ID(manual_control_setpoint), 20),
 	_status(&getSubscriptions(), ORB_ID(vehicle_status), 20),
 	_param_update(&getSubscriptions(), ORB_ID(parameter_update), 1000), // limit to 1 Hz

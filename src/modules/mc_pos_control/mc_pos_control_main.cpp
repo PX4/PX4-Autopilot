@@ -117,7 +117,7 @@ private:
 	int 	_manual_sub;			/**< notification of manual control updates */
 	int		_arming_sub;			/**< arming status of outputs */
 	int		_local_pos_sub;			/**< vehicle local position */
-	int		_mission_items_sub;		/**< mission item triplet */
+	int		_pos_sp_triplet_sub;		/**< mission item triplet */
 
 	orb_advert_t	_local_pos_sp_pub;		/**< local position setpoint publication */
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
@@ -130,7 +130,7 @@ private:
 	struct actuator_armed_s				_arming;		/**< actuator arming status */
 	struct vehicle_local_position_s		_local_pos;		/**< vehicle local position */
 	struct vehicle_local_position_setpoint_s		_local_pos_sp;		/**< vehicle local position */
-	struct mission_item_triplet_s		_mission_items;	/**< vehicle global position setpoint */
+	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;	/**< vehicle global velocity setpoint */
 
 	struct {
@@ -236,7 +236,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_manual_sub(-1),
 	_arming_sub(-1),
 	_local_pos_sub(-1),
-	_mission_items_sub(-1),
+	_pos_sp_triplet_sub(-1),
 
 /* publications */
 	_local_pos_sp_pub(-1),
@@ -250,7 +250,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	memset(&_arming, 0, sizeof(_arming));
 	memset(&_local_pos, 0, sizeof(_local_pos));
 	memset(&_local_pos_sp, 0, sizeof(_local_pos_sp));
-	memset(&_mission_items, 0, sizeof(_mission_items));
+	memset(&_pos_sp_triplet, 0, sizeof(_pos_sp_triplet));
 	memset(&_global_vel_sp, 0, sizeof(_global_vel_sp));
 
 	_params.pos_p.zero();
@@ -405,10 +405,10 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated)
 		orb_copy(ORB_ID(actuator_armed), _arming_sub, &_arming);
 
-	orb_check(_mission_items_sub, &updated);
+	orb_check(_pos_sp_triplet_sub, &updated);
 
 	if (updated)
-		orb_copy(ORB_ID(mission_item_triplet), _mission_items_sub, &_mission_items);
+		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
 }
 
 float
@@ -450,7 +450,7 @@ MulticopterPositionControl::task_main()
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_arming_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_mission_items_sub = orb_subscribe(ORB_ID(mission_item_triplet));
+	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 
 	parameters_update(true);
 
@@ -626,16 +626,15 @@ MulticopterPositionControl::task_main()
 
 			} else {
 				/* AUTO */
-				if (_mission_items.current_valid) {
-					struct mission_item_s item = _mission_items.current;
+				if (_pos_sp_triplet.current.valid) {
+					struct position_setpoint_s current_sp = _pos_sp_triplet.current;
 
-					// TODO home altitude can be != ref_alt, check home_position topic
-					_pos_sp(2) = -(item.altitude_is_relative ? item.altitude : item.altitude - ref_alt);
+					_pos_sp(2) = -(current_sp.alt - ref_alt);
 
-					map_projection_project(item.lat, item.lon, &_pos_sp(0), &_pos_sp(1));
+					map_projection_project(current_sp.lat, current_sp.lon, &_pos_sp(0), &_pos_sp(1));
 
-					if (isfinite(_mission_items.current.yaw)) {
-						_att_sp.yaw_body = _mission_items.current.yaw;
+					if (isfinite(current_sp.yaw)) {
+						_att_sp.yaw_body = current_sp.yaw;
 					}
 
 					/* in case of interrupted mission don't go to waypoint but stay at current position */
@@ -688,7 +687,7 @@ MulticopterPositionControl::task_main()
 
 			if (!_control_mode.flag_control_manual_enabled) {
 				/* use constant descend rate when landing, ignore altitude setpoint */
-				if (_mission_items.current_valid && _mission_items.current.nav_cmd == NAV_CMD_LAND) {
+				if (_pos_sp_triplet.current_valid && _pos_sp_triplet.current.nav_cmd == NAV_CMD_LAND) {
 					_vel_sp(2) = _params.land_speed;
 				}
 
@@ -790,7 +789,7 @@ MulticopterPositionControl::task_main()
 				float tilt = atan2f(math::Vector<2>(thrust_sp(0), thrust_sp(1)).length(), -thrust_sp(2));
 				float tilt_max = _params.tilt_max;
 				if (!_control_mode.flag_control_manual_enabled) {
-					if (_mission_items.current_valid && _mission_items.current.nav_cmd == NAV_CMD_LAND) {
+					if (_pos_sp_triplet.current_valid && _pos_sp_triplet.current.nav_cmd == NAV_CMD_LAND) {
 						/* limit max tilt and min lift when landing */
 						tilt_max = _params.land_tilt_max;
 						if (thr_min < 0.0f)

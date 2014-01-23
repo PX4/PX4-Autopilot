@@ -410,7 +410,7 @@ l_local_position(const struct listener *l)
 void
 l_global_position_setpoint(const struct listener *l)
 {
-	struct mission_item_triplet_s triplet;
+	struct position_setpoint_triplet_s triplet;
 	orb_copy(ORB_ID(mission_item_triplet), mavlink_subs.triplet_sub, &triplet);
 
 	uint8_t coordinate_frame = MAV_FRAME_GLOBAL;
