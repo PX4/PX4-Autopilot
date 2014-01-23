@@ -184,6 +184,7 @@ extern void	mixer_handle_text(const void *buffer, size_t length);
  * Safety switch/LED.
  */
 extern void	safety_init(void);
+extern void	failsafe_led_init(void);
 
 /**
  * FMU communications
