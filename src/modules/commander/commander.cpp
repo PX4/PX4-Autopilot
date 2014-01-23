@@ -119,6 +119,7 @@ extern struct system_load_s system_load;
 
 #define POSITION_TIMEOUT 1000000 /**< consider the local or global position estimate invalid after 1s */
 #define RC_TIMEOUT 100000
+#define OFFBOARD_TIMEOUT 200000
 #define DIFFPRESS_TIMEOUT 2000000
 
 #define PRINT_INTERVAL	5000000
@@ -699,9 +700,9 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&sp_man, 0, sizeof(sp_man));
 
 	/* Subscribe to offboard control data */
-	int sp_offboard_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
-	struct offboard_control_setpoint_s sp_offboard;
-	memset(&sp_offboard, 0, sizeof(sp_offboard));
+	int offboard_sp_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
+	struct offboard_control_setpoint_s offboard_sp;
+	memset(&offboard_sp, 0, sizeof(offboard_sp));
 
 	/* Subscribe to global position */
 	int global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
@@ -815,10 +816,10 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
 		}
 
-		orb_check(sp_offboard_sub, &updated);
+		orb_check(offboard_sp_sub, &updated);
 
 		if (updated) {
-			orb_copy(ORB_ID(offboard_control_setpoint), sp_offboard_sub, &sp_offboard);
+			orb_copy(ORB_ID(offboard_control_setpoint), offboard_sp_sub, &offboard_sp);
 		}
 
 		orb_check(sensor_sub, &updated);
@@ -1040,123 +1041,161 @@ int commander_thread_main(int argc, char *argv[])
 			}
 		}
 
-		/* ignore RC signals if in offboard control mode */
-		if (!status.offboard_control_signal_found_once && sp_man.timestamp != 0) {
-			/* start RC input check */
-			if (hrt_absolute_time() < sp_man.timestamp + RC_TIMEOUT) {
-				/* handle the case where RC signal was regained */
-				if (!status.rc_signal_found_once) {
-					status.rc_signal_found_once = true;
-					mavlink_log_critical(mavlink_fd, "#audio: detected RC signal first time");
+		/* start RC input check */
+		if (hrt_absolute_time() < sp_man.timestamp + RC_TIMEOUT) {
+			/* handle the case where RC signal was regained */
+			if (!status.rc_signal_found_once) {
+				status.rc_signal_found_once = true;
+				mavlink_log_critical(mavlink_fd, "#audio: detected RC signal first time");
+				status_changed = true;
+
+			} else {
+				if (status.rc_signal_lost) {
+					mavlink_log_critical(mavlink_fd, "#audio: RC signal regained");
 					status_changed = true;
-
-				} else {
-					if (status.rc_signal_lost) {
-						mavlink_log_critical(mavlink_fd, "#audio: RC signal regained");
-						status_changed = true;
-					}
 				}
+			}
 
-				status.rc_signal_lost = false;
+			status.rc_signal_lost = false;
 
-				transition_result_t res;	// store all transitions results here
+			transition_result_t res;	// store all transitions results here
 
-				/* arm/disarm by RC */
-				res = TRANSITION_NOT_CHANGED;
+			/* arm/disarm by RC */
+			res = TRANSITION_NOT_CHANGED;
 
-				/* check if left stick is in lower left position and we are in MANUAL or AUTO_READY mode or (ASSISTED mode and landed) -> disarm
-				 * do it only for rotary wings */
-				if (status.is_rotary_wing &&
-				    (status.arming_state == ARMING_STATE_ARMED || status.arming_state == ARMING_STATE_ARMED_ERROR) &&
-				    (status.main_state == MAIN_STATE_MANUAL || status.condition_landed) &&
-				    sp_man.yaw < -STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
+			/* check if left stick is in lower left position and we are in MANUAL or AUTO_READY mode or (ASSISTED mode and landed) -> disarm
+			 * do it only for rotary wings */
+			if (status.is_rotary_wing &&
+				(status.arming_state == ARMING_STATE_ARMED || status.arming_state == ARMING_STATE_ARMED_ERROR) &&
+				(status.main_state == MAIN_STATE_MANUAL || status.condition_landed) &&
+				sp_man.yaw < -STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
 
-					if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-						/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
-						arming_state_t new_arming_state = (status.arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
-						res = arming_state_transition(&status, &safety, new_arming_state, &armed);
-						stick_off_counter = 0;
-
-					} else {
-						stick_off_counter++;
-					}
-
-				} else {
+				if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
+					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
+					arming_state_t new_arming_state = (status.arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
+					res = arming_state_transition(&status, &safety, new_arming_state, &armed);
 					stick_off_counter = 0;
-				}
-
-				/* check if left stick is in lower right position and we're in MANUAL mode -> arm */
-				if (status.arming_state == ARMING_STATE_STANDBY &&
-				    sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
-					if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-						if (safety.safety_switch_available && !safety.safety_off) {
-							print_reject_arm("NOT ARMING: Press safety switch first.");
-
-						} else if (status.main_state != MAIN_STATE_MANUAL) {
-							print_reject_arm("NOT ARMING: Switch to MANUAL mode first.");
-
-						} else {
-							res = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed);
-						}
-
-						stick_on_counter = 0;
-
-					} else {
-						stick_on_counter++;
-					}
 
 				} else {
-					stick_on_counter = 0;
-				}
-
-				if (res == TRANSITION_CHANGED) {
-					if (status.arming_state == ARMING_STATE_ARMED) {
-						mavlink_log_info(mavlink_fd, "[cmd] ARMED by RC");
-
-					} else {
-						mavlink_log_info(mavlink_fd, "[cmd] DISARMED by RC");
-					}
-
-				} else if (res == TRANSITION_DENIED) {
-					warnx("ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
-					mavlink_log_critical(mavlink_fd, "#audio: ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
-				}
-
-				/* fill current_status according to mode switches */
-				check_mode_switches(&sp_man, &status);
-
-				/* evaluate the main state machine */
-				res = check_main_state_machine(&status);
-
-				if (res == TRANSITION_CHANGED) {
-					//mavlink_log_info(mavlink_fd, "[cmd] main state: %d", status.main_state);
-					tune_positive();
-
-				} else if (res == TRANSITION_DENIED) {
-					/* DENIED here indicates bug in the commander */
-					warnx("ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
-					mavlink_log_critical(mavlink_fd, "#audio: ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
+					stick_off_counter++;
 				}
 
 			} else {
-				if (!status.rc_signal_lost) {
-					mavlink_log_critical(mavlink_fd, "#audio: CRITICAL: RC SIGNAL LOST");
-					status.rc_signal_lost = true;
-					status_changed = true;
+				stick_off_counter = 0;
+			}
+
+			/* check if left stick is in lower right position and we're in MANUAL mode -> arm */
+			if (status.arming_state == ARMING_STATE_STANDBY &&
+				sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
+				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
+					if (safety.safety_switch_available && !safety.safety_off) {
+						print_reject_arm("NOT ARMING: Press safety switch first.");
+
+					} else if (status.main_state != MAIN_STATE_MANUAL) {
+						print_reject_arm("NOT ARMING: Switch to MANUAL mode first.");
+
+					} else {
+						res = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed);
+					}
+
+					stick_on_counter = 0;
+
+				} else {
+					stick_on_counter++;
 				}
-				if (status.main_state != MAIN_STATE_AUTO && armed.armed) {
-					transition_result_t res = main_state_transition(&status, MAIN_STATE_AUTO);
+
+			} else {
+				stick_on_counter = 0;
+			}
+
+			if (res == TRANSITION_CHANGED) {
+				if (status.arming_state == ARMING_STATE_ARMED) {
+					mavlink_log_info(mavlink_fd, "[cmd] ARMED by RC");
+
+				} else {
+					mavlink_log_info(mavlink_fd, "[cmd] DISARMED by RC");
+				}
+
+			} else if (res == TRANSITION_DENIED) {
+				warnx("ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
+				mavlink_log_critical(mavlink_fd, "#audio: ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
+			}
+
+			/* fill current_status according to mode switches */
+			check_mode_switches(&sp_man, &status);
+
+			/* evaluate the main state machine */
+			res = check_main_state_machine(&status);
+
+			if (res == TRANSITION_CHANGED) {
+				//mavlink_log_info(mavlink_fd, "[cmd] main state: %d", status.main_state);
+				tune_positive();
+
+			} else if (res == TRANSITION_DENIED) {
+				/* DENIED here indicates bug in the commander */
+				warnx("ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
+				mavlink_log_critical(mavlink_fd, "#audio: ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
+			}
+
+		} else {
+			if (!status.rc_signal_lost) {
+				mavlink_log_critical(mavlink_fd, "#audio: CRITICAL: RC SIGNAL LOST");
+				status.rc_signal_lost = true;
+				status_changed = true;
+			}
+			if (status.main_state != MAIN_STATE_AUTO && armed.armed) {
+				transition_result_t res = main_state_transition(&status, MAIN_STATE_AUTO);
+				if (res == TRANSITION_CHANGED) {
+					mavlink_log_critical(mavlink_fd, "#audio: failsafe, switching to RTL mode");
+					status.set_nav_state = NAV_STATE_RTL;
+					status.set_nav_state_timestamp = hrt_absolute_time();
+				} else if (status.main_state != MAIN_STATE_SEATBELT) {
+					res = main_state_transition(&status, MAIN_STATE_SEATBELT);
 					if (res == TRANSITION_CHANGED) {
-						mavlink_log_critical(mavlink_fd, "#audio: failsafe, switching to RTL mode");
-						status.set_nav_state = NAV_STATE_RTL;
-						status.set_nav_state_timestamp = hrt_absolute_time();
-					} else if (status.main_state != MAIN_STATE_SEATBELT) {
-						res = main_state_transition(&status, MAIN_STATE_SEATBELT);
-						if (res == TRANSITION_CHANGED) {
-							mavlink_log_critical(mavlink_fd, "#audio: failsafe, switching to SEATBELT mode");
-						}
+						mavlink_log_critical(mavlink_fd, "#audio: failsafe, switching to SEATBELT mode");
 					}
 				}
+			}
+		}
+
+		/* check offboard signal */
+		if (hrt_absolute_time() < offboard_sp.timestamp + OFFBOARD_TIMEOUT) {
+			if (!status.offboard_control_signal_found_once) {
+				status.offboard_control_signal_found_once = true;
+				mavlink_log_info(mavlink_fd, "[cmd] detected offboard signal first time");
+				status_changed = true;
+
+			} else {
+				if (status.offboard_control_signal_lost) {
+					mavlink_log_info(mavlink_fd, "[cmd] offboard signal regained");
+					status_changed = true;
+				}
+			}
+
+			status.offboard_control_signal_lost = false;
+
+			if (status.main_state == MAIN_STATE_OFFBOARD) {
+				if (offboard_sp.armed && !armed.armed) {
+					if (!safety.safety_switch_available || safety.safety_off) {
+						transition_result_t res = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed);
+						if (res == TRANSITION_CHANGED) {
+							mavlink_log_info(mavlink_fd, "[cmd] ARMED by offboard signal");
+						}
+					}
+				} else if (!offboard_sp.armed && armed.armed) {
+					arming_state_t new_arming_state = (status.arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
+					transition_result_t res = arming_state_transition(&status, &safety, new_arming_state, &armed);
+					if (res == TRANSITION_CHANGED) {
+						mavlink_log_info(mavlink_fd, "[cmd] DISARMED by offboard signal");
+					}
+				}
+			}
+
+		} else {
+			if (!status.offboard_control_signal_lost) {
+				mavlink_log_critical(mavlink_fd, "[cmd[ CRITICAL: OFFBOARD SIGNAL LOST");
+				status.offboard_control_signal_lost = true;
+				status_changed = true;
 			}
 		}
 
@@ -1264,7 +1303,7 @@ int commander_thread_main(int argc, char *argv[])
 	led_deinit();
 	buzzer_deinit();
 	close(sp_man_sub);
-	close(sp_offboard_sub);
+	close(offboard_sp_sub);
 	close(local_position_sub);
 	close(global_position_sub);
 	close(gps_sub);

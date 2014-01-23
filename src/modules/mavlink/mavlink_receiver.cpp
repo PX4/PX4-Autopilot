@@ -97,6 +97,7 @@ static mavlink_status_t status;
 static struct vehicle_vicon_position_s vicon_position;
 static struct vehicle_command_s vcmd;
 static struct offboard_control_setpoint_s offboard_control_sp;
+static struct vehicle_attitude_setpoint_s att_sp;
 
 struct vehicle_global_position_s hil_global_pos;
 struct vehicle_local_position_s hil_local_pos;
@@ -125,6 +126,7 @@ static orb_advert_t cmd_pub = -1;
 static orb_advert_t flow_pub = -1;
 
 static orb_advert_t offboard_control_sp_pub = -1;
+static orb_advert_t att_sp_pub = -1;
 static orb_advert_t vicon_position_pub = -1;
 static orb_advert_t telemetry_status_pub = -1;
 
@@ -266,8 +268,8 @@ handle_message(mavlink_message_t *msg)
 	/* Handle quadrotor motor setpoints */
 
 	if (msg->msgid == MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST) {
-		mavlink_set_quad_swarm_roll_pitch_yaw_thrust_t quad_motors_setpoint;
-		mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_decode(msg, &quad_motors_setpoint);
+		mavlink_set_quad_swarm_roll_pitch_yaw_thrust_t quad_swarm_setpoint;
+		mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_decode(msg, &quad_swarm_setpoint);
 
 		if (mavlink_system.sysid < 4) {
 
@@ -281,7 +283,7 @@ handle_message(mavlink_message_t *msg)
 			uint8_t ml_mode = 0;
 			bool ml_armed = false;
 
-			switch (quad_motors_setpoint.mode) {
+			switch (quad_swarm_setpoint.mode) {
 			case 0:
 				ml_armed = false;
 				break;
@@ -307,12 +309,12 @@ handle_message(mavlink_message_t *msg)
 				break;
 			}
 
-			offboard_control_sp.p1 = (float)quad_motors_setpoint.roll[mavlink_system.sysid - 1]   / (float)INT16_MAX;
-			offboard_control_sp.p2 = (float)quad_motors_setpoint.pitch[mavlink_system.sysid - 1]  / (float)INT16_MAX;
-			offboard_control_sp.p3 = (float)quad_motors_setpoint.yaw[mavlink_system.sysid - 1]    / (float)INT16_MAX;
-			offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid - 1] / (float)UINT16_MAX;
+			offboard_control_sp.p1 = (float)quad_swarm_setpoint.roll[mavlink_system.sysid - 1]   / (float)INT16_MAX;
+			offboard_control_sp.p2 = (float)quad_swarm_setpoint.pitch[mavlink_system.sysid - 1]  / (float)INT16_MAX;
+			offboard_control_sp.p3 = (float)quad_swarm_setpoint.yaw[mavlink_system.sysid - 1]    / (float)INT16_MAX;
+			offboard_control_sp.p4 = (float)quad_swarm_setpoint.thrust[mavlink_system.sysid - 1] / (float)UINT16_MAX;
 
-			if (quad_motors_setpoint.thrust[mavlink_system.sysid - 1] == 0) {
+			if (quad_swarm_setpoint.thrust[mavlink_system.sysid - 1] == 0) {
 				ml_armed = false;
 			}
 
@@ -326,8 +328,36 @@ handle_message(mavlink_message_t *msg)
 				offboard_control_sp_pub = orb_advertise(ORB_ID(offboard_control_setpoint), &offboard_control_sp);
 
 			} else {
-				/* Publish */
+				/* publish */
 				orb_publish(ORB_ID(offboard_control_setpoint), offboard_control_sp_pub, &offboard_control_sp);
+			}
+
+			if (v_status.main_state == MAIN_STATE_OFFBOARD) {
+				/* in offboard mode also publish setpoint directly */
+				switch (offboard_control_sp.mode) {
+				case OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE:
+					att_sp.timestamp = hrt_absolute_time();
+					att_sp.roll_body = offboard_control_sp.p1;
+					att_sp.pitch_body = offboard_control_sp.p2;
+					att_sp.yaw_body = offboard_control_sp.p3;
+					att_sp.thrust = offboard_control_sp.p4;
+					att_sp.R_valid = false;
+					att_sp.q_d_valid = false;
+					att_sp.q_e_valid = false;
+					att_sp.roll_reset_integral = false;
+
+					/* check if topic has to be advertised */
+					if (att_sp_pub <= 0) {
+						att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
+
+					} else {
+						/* publish */
+						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+					}
+					break;
+				default:
+					break;
+				}
 			}
 		}
 	}

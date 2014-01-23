@@ -72,6 +72,7 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
 #include <uORB/topics/navigation_capabilities.h>
+#include <uORB/topics/offboard_control_setpoint.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/state_table.h>
@@ -149,8 +150,9 @@ private:
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int		_params_sub;			/**< notification of parameter updates */
 	int		_offboard_mission_sub;		/**< notification of offboard mission updates */
-	int 		_onboard_mission_sub;		/**< notification of onboard mission updates */
+	int		_onboard_mission_sub;		/**< notification of onboard mission updates */
 	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
+	int		_offboard_sub;			/**< offboard control setpoint subscription */
 
 	orb_advert_t	_triplet_pub;			/**< publish position setpoint triplet */
 	orb_advert_t	_mission_result_pub;		/**< publish mission result topic */
@@ -162,6 +164,7 @@ private:
 	struct home_position_s				_home_pos;		/**< home position for RTL */
 	struct mission_item_triplet_s			_mission_item_triplet;	/**< triplet of mission items */
 	struct mission_result_s				_mission_result;	/**< mission result for commander/mavlink */
+	struct offboard_control_setpoint_s	_offboard;		/**< offboard control setpoint, to get desired offboard control mode only */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	
@@ -383,6 +386,7 @@ Navigator::Navigator() :
 	_offboard_mission_sub(-1),
 	_onboard_mission_sub(-1),
 	_capabilities_sub(-1),
+	_offboard_sub(-1),
 
 /* publications */
 	_triplet_pub(-1),
@@ -422,6 +426,7 @@ Navigator::Navigator() :
 	memset(&_mission_item_triplet.next, 0, sizeof(struct mission_item_s));
 
 	memset(&_mission_result, 0, sizeof(struct mission_result_s));
+	memset(&_offboard, 0, sizeof(_offboard));
 
 	nav_states_str[0] = "NONE";
 	nav_states_str[1] = "READY";
@@ -591,6 +596,7 @@ Navigator::task_main()
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
+	_offboard_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
 	
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -1523,12 +1529,49 @@ Navigator::publish_control_mode()
 	case MAIN_STATE_OFFBOARD:
 		_control_mode.flag_control_offboard_enabled = true;
 		_control_mode.flag_control_manual_enabled = false;
-		_control_mode.flag_control_rates_enabled = false;
-		_control_mode.flag_control_attitude_enabled = false;
-		_control_mode.flag_control_altitude_enabled = false;
-		_control_mode.flag_control_climb_rate_enabled = false;
-		_control_mode.flag_control_position_enabled = false;
-		_control_mode.flag_control_velocity_enabled = false;
+
+		switch (_offboard.mode) {
+		case OFFBOARD_CONTROL_MODE_DIRECT_RATES:
+			_control_mode.flag_control_rates_enabled = true;
+			_control_mode.flag_control_attitude_enabled = false;
+			_control_mode.flag_control_altitude_enabled = false;
+			_control_mode.flag_control_climb_rate_enabled = false;
+			_control_mode.flag_control_position_enabled = false;
+			_control_mode.flag_control_velocity_enabled = false;
+			break;
+		case OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE:
+			_control_mode.flag_control_rates_enabled = true;
+			_control_mode.flag_control_attitude_enabled = true;
+			_control_mode.flag_control_altitude_enabled = false;
+			_control_mode.flag_control_climb_rate_enabled = false;
+			_control_mode.flag_control_position_enabled = false;
+			_control_mode.flag_control_velocity_enabled = false;
+			break;
+		case OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY:
+			_control_mode.flag_control_rates_enabled = true;
+			_control_mode.flag_control_attitude_enabled = true;
+			_control_mode.flag_control_altitude_enabled = false;
+			_control_mode.flag_control_climb_rate_enabled = true;
+			_control_mode.flag_control_position_enabled = false;
+			_control_mode.flag_control_velocity_enabled = true;
+			break;
+		case OFFBOARD_CONTROL_MODE_DIRECT_POSITION:
+			_control_mode.flag_control_rates_enabled = true;
+			_control_mode.flag_control_attitude_enabled = true;
+			_control_mode.flag_control_altitude_enabled = true;
+			_control_mode.flag_control_climb_rate_enabled = true;
+			_control_mode.flag_control_position_enabled = true;
+			_control_mode.flag_control_velocity_enabled = true;
+			break;
+		default:
+			_control_mode.flag_control_rates_enabled = false;
+			_control_mode.flag_control_attitude_enabled = false;
+			_control_mode.flag_control_altitude_enabled = false;
+			_control_mode.flag_control_climb_rate_enabled = false;
+			_control_mode.flag_control_position_enabled = false;
+			_control_mode.flag_control_velocity_enabled = false;
+			break;
+		}
 		break;
 
 	default:
