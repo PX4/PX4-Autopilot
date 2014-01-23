@@ -83,6 +83,14 @@ adc_init(void)
 {
 	adc_perf = perf_alloc(PC_ELAPSED, "adc");
 
+	/* put the ADC into power-down mode */
+	rCR2 &= ~ADC_CR2_ADON;
+	up_udelay(10);
+
+	/* bring the ADC out of power-down mode */
+	rCR2 |= ADC_CR2_ADON;
+	up_udelay(10);
+
 	/* do calibration if supported */
 #ifdef ADC_CR2_CAL
 	rCR2 |= ADC_CR2_RSTCAL;
@@ -96,41 +104,25 @@ adc_init(void)
 
 	if (rCR2 & ADC_CR2_CAL)
 		return -1;
-
 #endif
 
-	/* arbitrarily configure all channels for 55 cycle sample time */
-	rSMPR1 = 0b00000011011011011011011011011011;
+	/*
+	 * Configure sampling time.
+	 * 
+	 * For electrical protection reasons, we want to be able to have
+	 * 10K in series with ADC inputs that leave the board. At 12MHz this
+	 * means we need 28.5 cycles of sampling time (per table 43 in the
+	 * datasheet).
+	 */
+	rSMPR1 = 0b00000000011011011011011011011011;
 	rSMPR2 = 0b00011011011011011011011011011011;
 
-	/* XXX for F2/4, might want to select 12-bit mode? */
-	rCR1 = 0;
-
-	/* enable the temperature sensor / Vrefint channel if supported*/
-	rCR2 =
-#ifdef ADC_CR2_TSVREFE
-		/* enable the temperature sensor in CR2 */
-		ADC_CR2_TSVREFE |
-#endif
-		0;
-
-#ifdef ADC_CCR_TSVREFE
-	/* enable temperature sensor in CCR */
-	rCCR = ADC_CCR_TSVREFE;
-#endif
+	rCR2 |=	ADC_CR2_TSVREFE;		/* enable the temperature sensor / Vrefint channel */
 
 	/* configure for a single-channel sequence */
 	rSQR1 = 0;
 	rSQR2 = 0;
-	rSQR3 = 0;	/* will be updated with the channel each tick */
-
-	/* power-cycle the ADC and turn it on */
-	rCR2 &= ~ADC_CR2_ADON;
-	up_udelay(10);
-	rCR2 |= ADC_CR2_ADON;
-	up_udelay(10);
-	rCR2 |= ADC_CR2_ADON;
-	up_udelay(10);
+	rSQR3 = 0;	/* will be updated with the channel at conversion time */
 
 	return 0;
 }
@@ -141,11 +133,12 @@ adc_init(void)
 uint16_t
 adc_measure(unsigned channel)
 {
+
 	perf_begin(adc_perf);
 
 	/* clear any previous EOC */
-	if (rSR & ADC_SR_EOC)
-		rSR &= ~ADC_SR_EOC;
+	rSR = 0;
+	(void)rDR;
 
 	/* run a single conversion right now - should take about 60 cycles (a few microseconds) max */
 	rSQR3 = channel;
@@ -158,7 +151,6 @@ adc_measure(unsigned channel)
 
 		/* never spin forever - this will give a bogus result though */
 		if (hrt_elapsed_time(&now) > 100) {
-			debug("adc timeout");
 			perf_end(adc_perf);
 			return 0xffff;
 		}
@@ -166,6 +158,7 @@ adc_measure(unsigned channel)
 
 	/* read the result and clear EOC */
 	uint16_t result = rDR;
+	rSR = 0;
 
 	perf_end(adc_perf);
 	return result;
