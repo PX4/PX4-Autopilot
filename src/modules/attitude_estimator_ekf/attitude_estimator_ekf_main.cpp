@@ -414,9 +414,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						vel_valid = true;
 						if (global_pos_updated) {
 							vel_t = global_pos.timestamp;
-							vel(0) = global_pos.vx;
-							vel(1) = global_pos.vy;
-							vel(2) = global_pos.vz;
+							vel(0) = global_pos.vel_n;
+							vel(1) = global_pos.vel_e;
+							vel(2) = global_pos.vel_d;
 						}
 					}
 

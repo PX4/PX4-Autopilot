@@ -833,11 +833,11 @@ Navigator::status()
 {
 	warnx("Global position is %svalid", _global_pos.valid ? "" : "in");
 	if (_global_pos.valid) {
-		warnx("Longitude %5.5f degrees, latitude %5.5f degrees", _global_pos.lon / 1e7d, _global_pos.lat / 1e7d);
+		warnx("Longitude %5.5f degrees, latitude %5.5f degrees", _global_pos.lon, _global_pos.lat);
 		warnx("Altitude %5.5f meters, altitude above home %5.5f meters",
-			(double)_global_pos.alt, (double)_global_pos.relative_alt);
-		warnx("Ground velocity in m/s, x %5.5f, y %5.5f, z %5.5f",
-			(double)_global_pos.vx, (double)_global_pos.vy, (double)_global_pos.vz);
+			(double)_global_pos.alt, (double)(_global_pos.alt - _home_pos.alt));
+		warnx("Ground velocity in m/s, N %5.5f, E %5.5f, D %5.5f",
+			(double)_global_pos.vel_n, (double)_global_pos.vel_e, (double)_global_pos.vel_d);
 		warnx("Compass heading in degrees %5.5f", (double)(_global_pos.yaw * M_RAD_TO_DEG_F));
 	}
 	if (_fence_valid) {
@@ -964,11 +964,11 @@ Navigator::start_loiter()
 	if (_reset_loiter_pos || !_pos_sp_triplet.current.valid) {
 		_reset_loiter_pos = false;
 
-		_pos_sp_triplet.current.lat = (double)_global_pos.lat / 1e7d;
-		_pos_sp_triplet.current.lon = (double)_global_pos.lon / 1e7d;
+		_pos_sp_triplet.current.lat = _global_pos.lat;
+		_pos_sp_triplet.current.lon = _global_pos.lon;
 		_pos_sp_triplet.current.yaw = NAN;	// NAN means to use current yaw
 
-		float min_alt_amsl = _parameters.min_altitude + _home_pos.altitude;
+		float min_alt_amsl = _parameters.min_altitude + _home_pos.alt;
 
 		/* use current altitude if above min altitude set by parameter */
 		if (_global_pos.alt < min_alt_amsl) {
@@ -1063,8 +1063,8 @@ Navigator::set_mission_item()
 
 					/* set current setpoint to takeoff */
 
-					_pos_sp_triplet.current.lat = (double)_global_pos.lat / 1e7d;
-					_pos_sp_triplet.current.lon = (double)_global_pos.lon / 1e7d;
+					_pos_sp_triplet.current.lat = _global_pos.lat;
+					_pos_sp_triplet.current.lon = _global_pos.lon;
 					_pos_sp_triplet.current.alt = takeoff_alt_amsl;
 					_pos_sp_triplet.current.yaw = NAN;
 					_pos_sp_triplet.current.type = SETPOINT_TYPE_TAKEOFF;
@@ -1111,7 +1111,7 @@ Navigator::start_rtl()
 {
 	_do_takeoff = false;
 	if (_rtl_state == RTL_STATE_NONE) {
-		if (_global_pos.alt < _home_pos.altitude + _parameters.rtl_alt) {
+		if (_global_pos.alt < _home_pos.alt + _parameters.rtl_alt) {
 			_rtl_state = RTL_STATE_CLIMB;
 		} else {
 			_rtl_state = RTL_STATE_RETURN;
@@ -1133,15 +1133,15 @@ Navigator::set_rtl_item()
 	case RTL_STATE_CLIMB: {
 		memcpy(&_pos_sp_triplet.previous, &_pos_sp_triplet.current, sizeof(position_setpoint_s));
 
-		float climb_alt = _home_pos.altitude + _parameters.rtl_alt;
+		float climb_alt = _home_pos.alt + _parameters.rtl_alt;
 		if (_vstatus.condition_landed) {
 			climb_alt = fmaxf(climb_alt, _global_pos.alt + _parameters.rtl_alt);
 		}
 
 		_mission_item_valid = true;
 
-		_mission_item.lat = (double)_global_pos.lat / 1e7d;
-		_mission_item.lon = (double)_global_pos.lon / 1e7d;
+		_mission_item.lat = _global_pos.lat;
+		_mission_item.lon = _global_pos.lon;
 		_mission_item.altitude_is_relative = false;
 		_mission_item.altitude = climb_alt;
 		_mission_item.yaw = NAN;
@@ -1158,7 +1158,7 @@ Navigator::set_rtl_item()
 
 		_pos_sp_triplet.next.valid = false;
 
-		mavlink_log_info(_mavlink_fd, "[navigator] RTL: climb to %.1fm", climb_alt - _home_pos.altitude);
+		mavlink_log_info(_mavlink_fd, "[navigator] RTL: climb to %.1fm", climb_alt - _home_pos.alt);
 		break;
 	}
 	case RTL_STATE_RETURN: {
@@ -1194,7 +1194,7 @@ Navigator::set_rtl_item()
 		_mission_item.lat = _home_pos.lat;
 		_mission_item.lon = _home_pos.lon;
 		_mission_item.altitude_is_relative = false;
-		_mission_item.altitude = _home_pos.altitude + _parameters.land_alt;
+		_mission_item.altitude = _home_pos.alt + _parameters.land_alt;
 		_mission_item.yaw = NAN;
 		_mission_item.loiter_radius = _parameters.loiter_radius;
 		_mission_item.loiter_direction = 1;
@@ -1220,7 +1220,7 @@ Navigator::set_rtl_item()
 		_mission_item.lat = _home_pos.lat;
 		_mission_item.lon = _home_pos.lon;
 		_mission_item.altitude_is_relative = false;
-		_mission_item.altitude = _home_pos.altitude;
+		_mission_item.altitude = _home_pos.alt;
 		_mission_item.yaw = NAN;
 		_mission_item.loiter_radius = _parameters.loiter_radius;
 		_mission_item.loiter_direction = 1;
@@ -1256,11 +1256,11 @@ Navigator::position_setpoint_from_mission_item(position_setpoint_s *sp, mission_
 		/* set home position for RTL item */
 		sp->lat = _home_pos.lat;
 		sp->lon = _home_pos.lon;
-		sp->alt = _home_pos.altitude + _parameters.rtl_alt;
+		sp->alt = _home_pos.alt + _parameters.rtl_alt;
 	} else {
 		sp->lat = item->lat;
 		sp->lon = item->lon;
-		sp->alt = item->altitude_is_relative ? item->altitude + _home_pos.altitude : item->altitude;
+		sp->alt = item->altitude_is_relative ? item->altitude + _home_pos.alt : item->altitude;
 	}
 	sp->yaw = item->yaw;
 	sp->loiter_radius = item->loiter_radius;
@@ -1325,10 +1325,10 @@ Navigator::check_mission_item_reached()
 		/* current relative or AMSL altitude depending on mission item altitude_is_relative flag */
 		float wp_alt_amsl = _mission_item.altitude;
 		if (_mission_item.altitude_is_relative)
-			wp_alt_amsl += _home_pos.altitude;
+			wp_alt_amsl += _home_pos.alt;
 
 		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, wp_alt_amsl,
-										  (double)_global_pos.lat / 1e7d, (double)_global_pos.lon / 1e7d, _global_pos.alt,
+										  (double)_global_pos.lat, (double)_global_pos.lon, _global_pos.alt,
 										  &dist_xy, &dist_z);
 
 		if (_do_takeoff) {

@@ -840,19 +840,15 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (local_pos.xy_global) {
 				double est_lat, est_lon;
 				map_projection_reproject(local_pos.x, local_pos.y, &est_lat, &est_lon);
-				global_pos.lat = (int32_t)(est_lat * 1e7d);
-				global_pos.lon = (int32_t)(est_lon * 1e7d);
+				global_pos.lat = est_lat;
+				global_pos.lon = est_lon;
 				global_pos.time_gps_usec = gps.time_gps_usec;
 			}
 
 			/* set valid values even if position is not valid */
 			if (local_pos.v_xy_valid) {
-				global_pos.vx = local_pos.vx;
-				global_pos.vy = local_pos.vy;
-			}
-
-			if (local_pos.z_valid) {
-				global_pos.relative_alt = -local_pos.z;
+				global_pos.vel_n = local_pos.vx;
+				global_pos.vel_e = local_pos.vy;
 			}
 
 			if (local_pos.z_global) {
@@ -860,7 +856,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 
 			if (local_pos.v_z_valid) {
-				global_pos.vz = local_pos.vz;
+				global_pos.vel_d = local_pos.vz;
 			}
 
 			global_pos.yaw = local_pos.yaw;

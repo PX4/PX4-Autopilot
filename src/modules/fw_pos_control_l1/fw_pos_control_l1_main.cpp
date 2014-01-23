@@ -1262,7 +1262,7 @@ FixedwingPositionControl::task_main()
 			vehicle_airspeed_poll();
 			// vehicle_baro_poll();
 
-			math::Vector<2> ground_speed(_global_pos.vx, _global_pos.vy);
+			math::Vector<2> ground_speed(_global_pos.vel_n, _global_pos.vel_e);
 			math::Vector<2> current_position(_global_pos.lat / 1e7f, _global_pos.lon / 1e7f);
 
 			/*

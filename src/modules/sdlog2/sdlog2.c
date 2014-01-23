@@ -1252,12 +1252,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_global_position), subs.global_pos_sub, &buf.global_pos);
 				log_msg.msg_type = LOG_GPOS_MSG;
-				log_msg.body.log_GPOS.lat = buf.global_pos.lat;
-				log_msg.body.log_GPOS.lon = buf.global_pos.lon;
+				log_msg.body.log_GPOS.lat = buf.global_pos.lat * 1e7;
+				log_msg.body.log_GPOS.lon = buf.global_pos.lon * 1e7;
 				log_msg.body.log_GPOS.alt = buf.global_pos.alt;
-				log_msg.body.log_GPOS.vel_n = buf.global_pos.vx;
-				log_msg.body.log_GPOS.vel_e = buf.global_pos.vy;
-				log_msg.body.log_GPOS.vel_d = buf.global_pos.vz;
+				log_msg.body.log_GPOS.vel_n = buf.global_pos.vel_n;
+				log_msg.body.log_GPOS.vel_e = buf.global_pos.vel_e;
+				log_msg.body.log_GPOS.vel_d = buf.global_pos.vel_d;
 				LOGBUFFER_WRITE_AND_COUNT(GPOS);
 			}
 

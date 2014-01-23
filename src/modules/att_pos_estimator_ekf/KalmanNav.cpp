@@ -318,10 +318,9 @@ void KalmanNav::updatePublications()
 	_pos.lat = getLatDegE7();
 	_pos.lon = getLonDegE7();
 	_pos.alt = float(alt);
-	_pos.relative_alt = float(alt); // TODO, make relative
-	_pos.vx = vN;
-	_pos.vy = vE;
-	_pos.vz = vD;
+	_pos.vel_n = vN;
+	_pos.vel_e = vE;
+	_pos.vel_d = vD;
 	_pos.yaw = psi;
 
 	// local position publication

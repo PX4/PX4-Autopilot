@@ -67,6 +67,7 @@ extern bool gcs_link;
 
 struct vehicle_global_position_s global_pos;
 struct vehicle_local_position_s local_pos;
+struct home_position_s home;
 struct navigation_capabilities_s nav_cap;
 struct vehicle_status_s v_status;
 struct vehicle_control_mode_s control_mode;
@@ -247,10 +248,10 @@ l_vehicle_attitude(const struct listener *l)
 		hrt_abstime t = hrt_absolute_time();
 		if (t >= last_sent_vfr + 100000) {
 			last_sent_vfr = t;
-			float groundspeed = sqrtf(global_pos.vx * global_pos.vx + global_pos.vy * global_pos.vy);
+			float groundspeed = sqrtf(global_pos.vel_n * global_pos.vel_n + global_pos.vel_e * global_pos.vel_e);
 			uint16_t heading = _wrap_2pi(att.yaw) * M_RAD_TO_DEG_F;
 			float throttle = armed.armed ? actuators_0.control[3] * 100.0f : 0.0f;
-			mavlink_msg_vfr_hud_send(MAVLINK_COMM_0, airspeed.true_airspeed_m_s, groundspeed, heading, throttle, global_pos.alt, -global_pos.vz);
+			mavlink_msg_vfr_hud_send(MAVLINK_COMM_0, airspeed.true_airspeed_m_s, groundspeed, heading, throttle, global_pos.alt, -global_pos.vel_d);
 		}
 		
 		/* send quaternion values if it exists */
@@ -380,13 +381,13 @@ l_global_position(const struct listener *l)
 
 	mavlink_msg_global_position_int_send(MAVLINK_COMM_0,
 						 global_pos.timestamp / 1000,
-					     global_pos.lat,
-					     global_pos.lon,
+					     global_pos.lat * 1e7,
+					     global_pos.lon * 1e7,
 					     global_pos.alt * 1000.0f,
-					     global_pos.relative_alt * 1000.0f,
-					     global_pos.vx * 100.0f,
-					     global_pos.vy * 100.0f,
-					     global_pos.vz * 100.0f,
+					     (global_pos.alt - home.alt) * 1000.0f,
+					     global_pos.vel_n * 100.0f,
+					     global_pos.vel_e * 100.0f,
+					     global_pos.vel_d * 100.0f,
 					     _wrap_2pi(global_pos.yaw) * M_RAD_TO_DEG_F * 100.0f);
 }
 
@@ -657,11 +658,9 @@ l_optical_flow(const struct listener *l)
 void
 l_home(const struct listener *l)
 {
-	struct home_position_s home;
-
 	orb_copy(ORB_ID(home_position), mavlink_subs.home_sub, &home);
 
-	mavlink_msg_gps_global_origin_send(MAVLINK_COMM_0, (int32_t)(home.lat*1e7d), (int32_t)(home.lon*1e7d), (int32_t)(home.altitude)*1e3f);
+	mavlink_msg_gps_global_origin_send(MAVLINK_COMM_0, (int32_t)(home.lat*1e7d), (int32_t)(home.lon*1e7d), (int32_t)(home.alt)*1e3f);
 }
 
 void
