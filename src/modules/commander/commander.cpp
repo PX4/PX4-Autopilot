@@ -372,6 +372,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 					mavlink_log_info(mavlink_fd, "[cmd] HIL: FAILED resetting armed state");
 				}
 			}
+
 			if (hil_ret == OK)
 				ret = true;
 
@@ -406,6 +407,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 					arming_res = TRANSITION_NOT_CHANGED;
 				}
 			}
+
 			if (arming_res == TRANSITION_CHANGED)
 				ret = true;
 
@@ -454,6 +456,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 						}
 					}
 				}
+
 			} else {
 				mavlink_log_info(mavlink_fd, "RC signal is valid, ignoring set mode cmd");
 			}
@@ -497,8 +500,9 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		break;
 
 	case VEHICLE_CMD_OVERRIDE_GOTO: {
-		// TODO listen vehicle_command topic directly from navigator (?)
+			// TODO listen vehicle_command topic directly from navigator (?)
 			unsigned int mav_goto = cmd->param1;
+
 			if (mav_goto == 0) {	// MAV_GOTO_DO_HOLD
 				status->set_nav_state = NAV_STATE_LOITER;
 				status->set_nav_state_timestamp = hrt_absolute_time();
@@ -519,7 +523,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		}
 		break;
 
-	/* Flight termination */
+		/* Flight termination */
 	case VEHICLE_CMD_DO_SET_SERVO: { //xxx: needs its own mavlink command
 
 			if (armed->armed && cmd->param3 > 0.5) { //xxx: for safety only for now, param3 is unused by VEHICLE_CMD_DO_SET_SERVO
@@ -891,6 +895,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
+
 			/* only consider battery voltage if system has been running 2s and battery voltage is valid */
 			if (hrt_absolute_time() > start_time + 2000000 && battery.voltage_filtered_v > 0.0f) {
 				status.battery_voltage = battery.voltage_filtered_v;
@@ -1066,9 +1071,9 @@ int commander_thread_main(int argc, char *argv[])
 			/* check if left stick is in lower left position and we are in MANUAL or AUTO_READY mode or (ASSISTED mode and landed) -> disarm
 			 * do it only for rotary wings */
 			if (status.is_rotary_wing &&
-				(status.arming_state == ARMING_STATE_ARMED || status.arming_state == ARMING_STATE_ARMED_ERROR) &&
-				(status.main_state == MAIN_STATE_MANUAL || status.condition_landed) &&
-				sp_man.yaw < -STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
+			    (status.arming_state == ARMING_STATE_ARMED || status.arming_state == ARMING_STATE_ARMED_ERROR) &&
+			    (status.main_state == MAIN_STATE_MANUAL || status.condition_landed) &&
+			    sp_man.yaw < -STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
 
 				if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
@@ -1086,7 +1091,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* check if left stick is in lower right position and we're in MANUAL mode -> arm */
 			if (status.arming_state == ARMING_STATE_STANDBY &&
-				sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
+			    sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
 				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 					if (safety.safety_switch_available && !safety.safety_off) {
 						print_reject_arm("NOT ARMING: Press safety switch first.");
@@ -1143,14 +1148,18 @@ int commander_thread_main(int argc, char *argv[])
 				status.rc_signal_lost = true;
 				status_changed = true;
 			}
+
 			if (status.main_state != MAIN_STATE_AUTO && armed.armed) {
 				transition_result_t res = main_state_transition(&status, MAIN_STATE_AUTO);
+
 				if (res == TRANSITION_CHANGED) {
 					mavlink_log_critical(mavlink_fd, "#audio: failsafe, switching to RTL mode");
 					status.set_nav_state = NAV_STATE_RTL;
 					status.set_nav_state_timestamp = hrt_absolute_time();
+
 				} else if (status.main_state != MAIN_STATE_SEATBELT) {
 					res = main_state_transition(&status, MAIN_STATE_SEATBELT);
+
 					if (res == TRANSITION_CHANGED) {
 						mavlink_log_critical(mavlink_fd, "#audio: failsafe, switching to SEATBELT mode");
 					}
@@ -1178,13 +1187,16 @@ int commander_thread_main(int argc, char *argv[])
 				if (offboard_sp.armed && !armed.armed) {
 					if (!safety.safety_switch_available || safety.safety_off) {
 						transition_result_t res = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed);
+
 						if (res == TRANSITION_CHANGED) {
 							mavlink_log_info(mavlink_fd, "[cmd] ARMED by offboard signal");
 						}
 					}
+
 				} else if (!offboard_sp.armed && armed.armed) {
 					arming_state_t new_arming_state = (status.arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
 					transition_result_t res = arming_state_transition(&status, &safety, new_arming_state, &armed);
+
 					if (res == TRANSITION_CHANGED) {
 						mavlink_log_info(mavlink_fd, "[cmd] DISARMED by offboard signal");
 					}
@@ -1202,9 +1214,11 @@ int commander_thread_main(int argc, char *argv[])
 		/*  Flight termination in manual mode if assisted switch is on easy position //xxx hack! */
 		if (armed.armed && status.main_state == MAIN_STATE_MANUAL && sp_man.assisted_switch > STICK_ON_OFF_LIMIT) {
 			transition_result_t flighttermination_res = flighttermination_state_transition(&status, FLIGHTTERMINATION_STATE_ON);
+
 			if (flighttermination_res == TRANSITION_CHANGED) {
 				tune_positive();
 			}
+
 		} else {
 			flighttermination_state_transition(&status, FLIGHTTERMINATION_STATE_OFF);
 		}

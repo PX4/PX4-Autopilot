@@ -67,7 +67,7 @@ static bool flighttermination_state_changed = true;
 
 transition_result_t
 arming_state_transition(struct vehicle_status_s *status, const struct safety_s *safety,
-	arming_state_t new_arming_state, struct actuator_armed_s *armed)
+			arming_state_t new_arming_state, struct actuator_armed_s *armed)
 {
 	/*
 	 * Perform an atomic state update
@@ -85,6 +85,7 @@ arming_state_transition(struct vehicle_status_s *status, const struct safety_s *
 		/* enforce lockdown in HIL */
 		if (status->hil_state == HIL_STATE_ON) {
 			armed->lockdown = true;
+
 		} else {
 			armed->lockdown = false;
 		}
@@ -238,8 +239,8 @@ main_state_transition(struct vehicle_status_s *current_state, main_state_t new_m
 
 			/* need at minimum altitude estimate */
 			if (!current_state->is_rotary_wing ||
-				(current_state->condition_local_altitude_valid ||
-				current_state->condition_global_position_valid)) {
+			    (current_state->condition_local_altitude_valid ||
+			     current_state->condition_global_position_valid)) {
 				ret = TRANSITION_CHANGED;
 			}
 
@@ -249,7 +250,7 @@ main_state_transition(struct vehicle_status_s *current_state, main_state_t new_m
 
 			/* need at minimum local position estimate */
 			if (current_state->condition_local_position_valid ||
-				current_state->condition_global_position_valid) {
+			    current_state->condition_global_position_valid) {
 				ret = TRANSITION_CHANGED;
 			}
 
@@ -373,35 +374,36 @@ transition_result_t flighttermination_state_transition(struct vehicle_status_s *
 {
 	transition_result_t ret = TRANSITION_DENIED;
 
-		/* only check transition if the new state is actually different from the current one */
-		if (new_flighttermination_state == status->flighttermination_state) {
-			ret = TRANSITION_NOT_CHANGED;
+	/* only check transition if the new state is actually different from the current one */
+	if (new_flighttermination_state == status->flighttermination_state) {
+		ret = TRANSITION_NOT_CHANGED;
 
-		} else {
+	} else {
 
-			switch (new_flighttermination_state) {
-			case FLIGHTTERMINATION_STATE_ON:
-				ret = TRANSITION_CHANGED;
-				status->flighttermination_state = FLIGHTTERMINATION_STATE_ON;
-				warnx("state machine helper: change to FLIGHTTERMINATION_STATE_ON");
-				break;
-			case FLIGHTTERMINATION_STATE_OFF:
-				ret = TRANSITION_CHANGED;
-				status->flighttermination_state = FLIGHTTERMINATION_STATE_OFF;
-				break;
+		switch (new_flighttermination_state) {
+		case FLIGHTTERMINATION_STATE_ON:
+			ret = TRANSITION_CHANGED;
+			status->flighttermination_state = FLIGHTTERMINATION_STATE_ON;
+			warnx("state machine helper: change to FLIGHTTERMINATION_STATE_ON");
+			break;
 
-			default:
-				break;
-			}
+		case FLIGHTTERMINATION_STATE_OFF:
+			ret = TRANSITION_CHANGED;
+			status->flighttermination_state = FLIGHTTERMINATION_STATE_OFF;
+			break;
 
-			if (ret == TRANSITION_CHANGED) {
-				flighttermination_state_changed = true;
-				// TODO
-				//control_mode->flag_control_flighttermination_enabled = status->flighttermination_state == FLIGHTTERMINATION_STATE_ON;
-			}
+		default:
+			break;
 		}
 
-		return ret;
+		if (ret == TRANSITION_CHANGED) {
+			flighttermination_state_changed = true;
+			// TODO
+			//control_mode->flag_control_flighttermination_enabled = status->flighttermination_state == FLIGHTTERMINATION_STATE_ON;
+		}
+	}
+
+	return ret;
 }
 
 
