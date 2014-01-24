@@ -1843,7 +1843,7 @@ PX4IO::print_status()
 
 	printf("\n");
 
-	printf("RC frame loss ratio: %.2f\n", _rc_lost_frame_ratio/10000.);
+	printf("RC frame loss ratio: %.2f\%\n", _rc_lost_frame_ratio/100.);
 
 	if (raw_inputs > 0) {
 		int frame_len = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_RC_DATA);
