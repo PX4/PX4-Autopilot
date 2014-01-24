@@ -252,7 +252,9 @@ private:
 	/* cached IO state */
 	uint16_t		_status;		///< Various IO status flags
 	uint16_t		_alarms;		///< Various IO alarms
-	uint16_t		_rc_lost_frames;	///<lost RC frame counter
+	uint32_t		_rc_lost_frames;	///<lost RC frame counter
+	uint32_t		_rc_good_frames;	///<good RC frame counter
+	uint16_t		_rc_lost_frame_ratio;	///<good RC frame counter
 
 	/* subscribed topics */
 	int			_t_actuator_controls_0;	///< actuator controls group 0 topic
@@ -487,6 +489,8 @@ PX4IO::PX4IO(device::Device *interface) :
 	_status(0),
 	_alarms(0),
 	_rc_lost_frames(0),
+	_rc_good_frames(0),
+	_rc_lost_frame_ratio(0),
 	_t_actuator_controls_0(-1),
 	_t_actuator_controls_1(-1),
 	_t_actuator_controls_2(-1),
@@ -1429,6 +1433,7 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 
 	input_rc.channel_count = channel_count;
 	memcpy(input_rc.values, &regs[prolog], channel_count * 2);
+	_rc_good_frames++;
 
 	return ret;
 }
@@ -1436,18 +1441,23 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 int
 PX4IO::io_get_raw_rc_status(rc_input_values &input_rc, uint16_t status)
 {
-	if (status & PX4IO_P_STATUS_FLAGS_RC_FRAME_LOST) {
-		/* count lost frames, skip 0 on overflow */
+	/* count good and bad frames, range is good uptime of almost 1000 days @ 50Hz */
+	if (status & PX4IO_P_STATUS_FLAGS_RC_FRAME_LOST)
 		_rc_lost_frames++;
-		if (!_rc_lost_frames)
-			_rc_lost_frames++;
-	}
+	else
+		_rc_good_frames++;
+
+	uint64_t frames = _rc_good_frames + _rc_lost_frames;
+	if (frames)
+		_rc_lost_frame_ratio = uint16_t( (uint64_t(_rc_lost_frames) * 10000) / frames) ;
+	else
+		_rc_lost_frame_ratio = 10000;
 
 	input_rc.timestamp_link_state = hrt_absolute_time();
 
 	input_rc.rc_failsafe = status & PX4IO_P_STATUS_FLAGS_RC_FAILSAFE;
 	input_rc.rc_lost = !(status & PX4IO_P_STATUS_FLAGS_RC_OK);
-	input_rc.rc_lost_frames = _rc_lost_frames;
+	input_rc.rc_lost_frame_ratio = _rc_lost_frame_ratio;
 
 	return !input_rc.rc_lost ? OK : -EINVAL;
 }
@@ -1833,8 +1843,7 @@ PX4IO::print_status()
 
 	printf("\n");
 
-	if (_rc_lost_frames)
-		printf("WARNING! %u lost RC frames\n", _rc_lost_frames);
+	printf("RC frame loss ratio: %.2f\n", _rc_lost_frame_ratio/10000.);
 
 	if (raw_inputs > 0) {
 		int frame_len = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_RC_DATA);

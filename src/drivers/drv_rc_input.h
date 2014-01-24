@@ -110,8 +110,12 @@ struct rc_input_values {
 	 * */
 	bool			rc_lost;
 
-	/** lost frame counter: incremented on every missed frame, either by frame timeout or by explicit information contained in the frame */
-	uint16_t		rc_lost_frames;
+	/** 
+	 * lost frame ratio: ratio of lost frames in steps of 0.0001, 0: no lost frames, 10000: all frames lost, > 10000: undefined
+	 * Note: intended purpose: observe the radio link quality if RSSI is not available
+	 * This value must not be used to trigger any failsafe-alike funtionality.
+	 * */
+	uint16_t		rc_lost_frame_ratio;
 
 	/** Input source */
 	enum RC_INPUT_SOURCE 	input_source;
