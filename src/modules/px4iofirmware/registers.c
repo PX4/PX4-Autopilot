@@ -89,7 +89,9 @@ uint16_t		r_page_status[] = {
 	[PX4IO_P_STATUS_IBATT]			= 0,
 	[PX4IO_P_STATUS_VSERVO]			= 0,
 	[PX4IO_P_STATUS_VRSSI]			= 0,
-	[PX4IO_P_STATUS_PRSSI]			= 0
+	[PX4IO_P_STATUS_PRSSI]			= 0,
+	[PX4IO_P_STATUS_NRSSI]			= 0,
+	[PX4IO_P_STATUS_RC_DATA]		= 0
 };
 
 /**
@@ -600,7 +602,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 				if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] == UINT8_MAX) {
 					disabled = true;
-                } else if (REG_TO_SIGNED(conf[PX4IO_P_RC_CONFIG_ASSIGNMENT]) < 0 || conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= PX4IO_RC_MAPPED_CONTROL_CHANNELS) {
+				} else if ((int)(conf[PX4IO_P_RC_CONFIG_ASSIGNMENT]) < 0 || conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= PX4IO_RC_MAPPED_CONTROL_CHANNELS) {
 					count++;
 				}
 
