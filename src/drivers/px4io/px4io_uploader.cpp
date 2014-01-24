@@ -121,8 +121,15 @@ PX4IO_Uploader::upload(const char *filenames[])
 	cfsetspeed(&t, 115200);
 	tcsetattr(_io_fd, TCSANOW, &t);
 
-	/* look for the bootloader */
-	ret = sync();
+	/* look for the bootloader for 150 ms */
+	for (int i = 0; i < 15; i++) {
+		ret = sync();
+		if (ret == OK) {
+			break;
+		} else {
+			usleep(10000);
+		}
+	}
 
 	if (ret != OK) {
 		/* this is immediately fatal */
