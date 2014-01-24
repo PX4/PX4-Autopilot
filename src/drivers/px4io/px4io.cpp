@@ -505,7 +505,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	/* open MAVLink text channel */
 	_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
 
-	_debug_enabled = true;
+	_debug_enabled = false;
 	_servorail_status.rssi_v = 0;
 }
 
