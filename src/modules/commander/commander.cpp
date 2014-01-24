@@ -1149,7 +1149,7 @@ int commander_thread_main(int argc, char *argv[])
 				status_changed = true;
 			}
 
-			if (status.main_state != MAIN_STATE_AUTO && armed.armed) {
+			if (status.main_state != MAIN_STATE_AUTO && armed.armed && status.main_state != MAIN_STATE_OFFBOARD) {
 				transition_result_t res = main_state_transition(&status, MAIN_STATE_AUTO);
 
 				if (res == TRANSITION_CHANGED) {
