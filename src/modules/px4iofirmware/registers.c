@@ -382,7 +382,10 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 
 		/* handle text going to the mixer parser */
 	case PX4IO_PAGE_MIXERLOAD:
-		mixer_handle_text(values, num_values * sizeof(*values));
+		if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ||
+				    (r_status_flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
+			return mixer_handle_text(values, num_values * sizeof(*values));
+		}
 		break;
 
 	default:
@@ -509,8 +512,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 		case PX4IO_P_SETUP_REBOOT_BL:
 			if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ||
-			    (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ||
-			    (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+			    (r_status_flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
 				// don't allow reboot while armed
 				break;
 			}
@@ -540,8 +542,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		 * do not allow a RC config change while outputs armed
 		 */
 		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ||
-			(r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ||
-			(r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+			    (r_status_flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
 			break;
 		}
 

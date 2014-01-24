@@ -797,7 +797,6 @@ Sensors::accel_init()
 
 #endif
 
-		warnx("using system accel");
 		close(fd);
 	}
 }
@@ -837,7 +836,6 @@ Sensors::gyro_init()
 
 #endif
 
-		warnx("using system gyro");
 		close(fd);
 	}
 }
@@ -1506,9 +1504,6 @@ Sensors::task_main_trampoline(int argc, char *argv[])
 void
 Sensors::task_main()
 {
-
-	/* inform about start */
-	warnx("Initializing..");
 
 	/* start individual sensors */
 	accel_init();
