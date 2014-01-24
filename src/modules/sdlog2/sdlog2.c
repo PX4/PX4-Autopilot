@@ -73,6 +73,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/target_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_vicon_position.h>
@@ -760,6 +761,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct esc_status_s esc;
 		struct vehicle_global_velocity_setpoint_s global_vel_sp;
 		struct battery_status_s battery;
+		struct target_global_position_s target_pos;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -786,6 +788,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int esc_sub;
 		int global_vel_sp_sub;
 		int battery_sub;
+		int target_pos_sub;
 	} subs;
 
 	/* log message buffer: header + body */
@@ -814,6 +817,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_GVSP_s log_GVSP;
 			struct log_BATT_s log_BATT;
 			struct log_DIST_s log_DIST;
+			struct log_TPOS_s log_TPOS;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -952,6 +956,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* --- BATTERY --- */
 	subs.battery_sub = orb_subscribe(ORB_ID(battery_status));
 	fds[fdsc_count].fd = subs.battery_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- TARGET GLOBAL POSITION --- */
+	subs.target_pos_sub = orb_subscribe(ORB_ID(target_global_position));
+	fds[fdsc_count].fd = subs.target_pos_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -1356,6 +1366,19 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_BATT.current = buf.battery.current_a;
 				log_msg.body.log_BATT.discharged = buf.battery.discharged_mah;
 				LOGBUFFER_WRITE_AND_COUNT(BATT);
+			}
+
+			/* --- TARGET GLOBAL POSITION --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(target_global_position), subs.target_pos_sub, &buf.target_pos);
+				log_msg.msg_type = LOG_TPOS_MSG;
+				log_msg.body.log_TPOS.lat = buf.target_pos.lat * 1e7d;
+				log_msg.body.log_TPOS.lon = buf.target_pos.lon * 1e7d;
+				log_msg.body.log_TPOS.alt = buf.target_pos.alt;
+				log_msg.body.log_TPOS.vel_n = buf.target_pos.vel_n;
+				log_msg.body.log_TPOS.vel_e = buf.target_pos.vel_e;
+				log_msg.body.log_TPOS.vel_d = buf.target_pos.vel_d;
+				LOGBUFFER_WRITE_AND_COUNT(TPOS);
 			}
 
 			/* signal the other thread new data, but not yet unlock */

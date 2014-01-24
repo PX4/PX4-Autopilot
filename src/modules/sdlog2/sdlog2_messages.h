@@ -262,6 +262,18 @@ struct log_DIST_s {
 	uint8_t flags;
 };
 
+/* --- TPOS - TARGET GLOBAL POSITION --- */
+#define LOG_TPOS_MSG 22
+struct log_TPOS_s {
+	uint8_t sysid;
+	int32_t lat;
+	int32_t lon;
+	float alt;
+	float vel_n;
+	float vel_e;
+	float vel_d;
+};
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -309,6 +321,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
 	LOG_FORMAT(BATT, "ffff", "V,VFilt,C,Discharged"),
 	LOG_FORMAT(DIST, "ffB", "Bottom,BottomRate,Flags"),
+	LOG_FORMAT(TPOS, "BLLffff", "SysID,Lat,Lon,Alt,VelN,VelE,VelD"),
 	/* system-level messages, ID >= 0x80 */
 	// FMT: don't write format of format message, it's useless
 	LOG_FORMAT(TIME, "Q", "StartTime"),
