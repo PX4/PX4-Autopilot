@@ -295,10 +295,12 @@ user_start(int argc, char *argv[])
 
                 check_reboot();
 
-		/* check for debug activity */
+		/* check for debug activity (default: none) */
 		show_debug_messages();
 
-		/* post debug state at ~1Hz */
+		/* post debug state at ~1Hz - this is via an auxiliary serial port
+		 * DEFAULTS TO OFF!
+		 */
 		if (hrt_absolute_time() - last_debug_time > (1000 * 1000)) {
 
 			struct mallinfo minfo = mallinfo();

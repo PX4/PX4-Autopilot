@@ -178,7 +178,7 @@ extern pwm_limit_t pwm_limit;
  * Mixer
  */
 extern void	mixer_tick(void);
-extern void	mixer_handle_text(const void *buffer, size_t length);
+extern int	mixer_handle_text(const void *buffer, size_t length);
 
 /**
  * Safety switch/LED.
