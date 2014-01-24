@@ -1,13 +1,13 @@
-# Compiled Object files
-*.slo
-*.lo
+# Build outputs
 *.o
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-
-# Compiled Static libraries
-*.lai
-*.la
+lib*.so
+lib*.so.*
 *.a
+*/build
+.dep
+
+# Eclipse
+.metadata/*
+.settings/*
+.project
+.cproject
