@@ -51,6 +51,7 @@
 #include <poll.h>
 #include <termios.h>
 #include <sys/stat.h>
+#include <nuttx/arch.h>
 
 #include <crc32.h>
 
@@ -226,6 +227,11 @@ PX4IO_Uploader::upload(const char *filenames[])
 	close(_fw_fd);
 	close(_io_fd);
 	_io_fd = -1;
+
+        // sleep for enough time for the IO chip to boot. This makes
+        // forceupdate more reliably startup IO again after update
+        up_udelay(100*1000);
+
 	return ret;
 }
 
