@@ -63,7 +63,7 @@ static const int ERROR = -1;
 
 static bool arming_state_changed = true;
 static bool main_state_changed = true;
-static bool flighttermination_state_changed = true;
+static bool failsafe_state_changed = true;
 
 transition_result_t
 arming_state_transition(struct vehicle_status_s *status, const struct safety_s *safety,
@@ -287,10 +287,10 @@ check_main_state_changed()
 }
 
 bool
-check_flighttermination_state_changed()
+check_failsafe_state_changed()
 {
-	if (flighttermination_state_changed) {
-		flighttermination_state_changed = false;
+	if (failsafe_state_changed) {
+		failsafe_state_changed = false;
 		return true;
 
 	} else {
@@ -361,41 +361,39 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 
 
 /**
-* Transition from one flightermination state to another
+* Transition from one failsafe state to another
 */
-transition_result_t flighttermination_state_transition(struct vehicle_status_s *status, flighttermination_state_t new_flighttermination_state)
+transition_result_t failsafe_state_transition(struct vehicle_status_s *status, failsafe_state_t new_failsafe_state)
 {
 	transition_result_t ret = TRANSITION_DENIED;
 
-		/* only check transition if the new state is actually different from the current one */
-		if (new_flighttermination_state == status->flighttermination_state) {
-			ret = TRANSITION_NOT_CHANGED;
+	/* only check transition if the new state is actually different from the current one */
+	if (new_failsafe_state == status->failsafe_state) {
+		ret = TRANSITION_NOT_CHANGED;
 
-		} else {
+	} else if (status->failsafe_state != FAILSAFE_STATE_TERMINATION) {
+		switch (new_failsafe_state) {
+		case FAILSAFE_STATE_NORMAL:
+			ret = TRANSITION_CHANGED;
+			break;
+		case FAILSAFE_STATE_RTL:
+			ret = TRANSITION_CHANGED;
+			break;
+		case FAILSAFE_STATE_TERMINATION:
+			ret = TRANSITION_CHANGED;
+			break;
 
-			switch (new_flighttermination_state) {
-			case FLIGHTTERMINATION_STATE_ON:
-				ret = TRANSITION_CHANGED;
-				status->flighttermination_state = FLIGHTTERMINATION_STATE_ON;
-				warnx("state machine helper: change to FLIGHTTERMINATION_STATE_ON");
-				break;
-			case FLIGHTTERMINATION_STATE_OFF:
-				ret = TRANSITION_CHANGED;
-				status->flighttermination_state = FLIGHTTERMINATION_STATE_OFF;
-				break;
-
-			default:
-				break;
-			}
-
-			if (ret == TRANSITION_CHANGED) {
-				flighttermination_state_changed = true;
-				// TODO
-				//control_mode->flag_control_flighttermination_enabled = status->flighttermination_state == FLIGHTTERMINATION_STATE_ON;
-			}
+		default:
+			break;
 		}
 
-		return ret;
+		if (ret == TRANSITION_CHANGED) {
+			status->failsafe_state = new_failsafe_state;
+			failsafe_state_changed = true;
+		}
+	}
+
+	return ret;
 }
 
 

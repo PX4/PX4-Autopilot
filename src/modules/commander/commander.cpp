@@ -512,7 +512,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 	case VEHICLE_CMD_DO_SET_SERVO: { //xxx: needs its own mavlink command
 
 			if (armed->armed && cmd->param3 > 0.5) { //xxx: for safety only for now, param3 is unused by VEHICLE_CMD_DO_SET_SERVO
-				transition_result_t flighttermination_res = flighttermination_state_transition(status, FLIGHTTERMINATION_STATE_ON);
+				transition_result_t failsafe_res = failsafe_state_transition(status, FAILSAFE_STATE_TERMINATION);
 				result = VEHICLE_CMD_RESULT_ACCEPTED;
 				ret = true;
 
@@ -1112,6 +1112,14 @@ int commander_thread_main(int argc, char *argv[])
 					mavlink_log_critical(mavlink_fd, "#audio: ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
 				}
 
+				if (status.failsafe_state != FAILSAFE_STATE_NORMAL) {
+					/* recover from failsafe */
+					transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_NORMAL);
+					if (res == TRANSITION_CHANGED) {
+						mavlink_log_critical(mavlink_fd, "#audio: recover from failsafe");
+					}
+				}
+
 				/* fill current_status according to mode switches */
 				check_mode_switches(&sp_man, &status);
 
@@ -1135,31 +1143,22 @@ int commander_thread_main(int argc, char *argv[])
 					status_changed = true;
 				}
 				if (status.main_state != MAIN_STATE_AUTO && armed.armed) {
-					transition_result_t res = main_state_transition(&status, MAIN_STATE_AUTO);
+					transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_RTL);
 					if (res == TRANSITION_CHANGED) {
-						mavlink_log_critical(mavlink_fd, "#audio: failsafe, switching to RTL mode");
-						status.set_nav_state = NAV_STATE_RTL;
-						status.set_nav_state_timestamp = hrt_absolute_time();
-					} else if (status.main_state != MAIN_STATE_SEATBELT) {
-						res = main_state_transition(&status, MAIN_STATE_SEATBELT);
-						if (res == TRANSITION_CHANGED) {
-							mavlink_log_critical(mavlink_fd, "#audio: failsafe, switching to SEATBELT mode");
-						}
+						mavlink_log_critical(mavlink_fd, "#audio: failsafe: RTL");
 					}
+					// TODO add other failsafe modes if position estimate not available
 				}
 			}
 		}
 
-		/*  Flight termination in manual mode if assisted switch is on easy position //xxx hack! */
-		if (armed.armed && status.main_state == MAIN_STATE_MANUAL && sp_man.assisted_switch > STICK_ON_OFF_LIMIT) {
-			transition_result_t flighttermination_res = flighttermination_state_transition(&status, FLIGHTTERMINATION_STATE_ON);
-			if (flighttermination_res == TRANSITION_CHANGED) {
+		// TODO remove this hack
+		/* flight termination in manual mode if assisted switch is on easy position */
+		if (!status.is_rotary_wing && armed.armed && status.main_state == MAIN_STATE_MANUAL && sp_man.assisted_switch > STICK_ON_OFF_LIMIT) {
+			if (TRANSITION_CHANGED == failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION)) {
 				tune_positive();
 			}
-		} else {
-			flighttermination_state_transition(&status, FLIGHTTERMINATION_STATE_OFF);
 		}
-
 
 		/* handle commands last, as the system needs to be updated to handle them */
 		orb_check(cmd_sub, &updated);
@@ -1176,12 +1175,12 @@ int commander_thread_main(int argc, char *argv[])
 		/* check which state machines for changes, clear "changed" flag */
 		bool arming_state_changed = check_arming_state_changed();
 		bool main_state_changed = check_main_state_changed();
-		bool flighttermination_state_changed = check_flighttermination_state_changed();
+		bool failsafe_state_changed = check_failsafe_state_changed();
 
 		hrt_abstime t1 = hrt_absolute_time();
 
-		if (arming_state_changed || main_state_changed) {
-			mavlink_log_info(mavlink_fd, "[cmd] state: arm %d, main %d", status.arming_state, status.main_state);
+		if (arming_state_changed || main_state_changed || failsafe_state_changed) {
+			mavlink_log_info(mavlink_fd, "[cmd] state: arm %d, main %d, fs %d", status.arming_state, status.main_state, status.failsafe_state);
 			status_changed = true;
 		}
 

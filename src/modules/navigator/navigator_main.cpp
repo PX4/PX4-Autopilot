@@ -643,87 +643,101 @@ Navigator::task_main()
 			vehicle_status_update();
 			pub_control_mode = true;
 
-			/* Evaluate state machine from commander and set the navigator mode accordingly */
-			if (_vstatus.main_state == MAIN_STATE_AUTO &&
-					(_vstatus.arming_state == ARMING_STATE_ARMED || _vstatus.arming_state == ARMING_STATE_ARMED_ERROR)) {
-				bool stick_mode = false;
-				if (!_vstatus.rc_signal_lost) {
-					/* RC signal available, use control switches to set mode */
-					/* RETURN switch, overrides MISSION switch */
-					if (_vstatus.return_switch == RETURN_SWITCH_RETURN) {
-						if (myState != NAV_STATE_READY || _rtl_state != RTL_STATE_LAND) {
-							dispatch(EVENT_RTL_REQUESTED);
+			/* evaluate state machine from commander and set the navigator mode accordingly */
+			if (_vstatus.arming_state == ARMING_STATE_ARMED || _vstatus.arming_state == ARMING_STATE_ARMED_ERROR) {
+				if (_vstatus.failsafe_state == FAILSAFE_STATE_NORMAL) {
+					if (_vstatus.main_state == MAIN_STATE_AUTO) {
+						bool stick_mode = false;
+						if (!_vstatus.rc_signal_lost) {
+							/* RC signal available, use control switches to set mode */
+							/* RETURN switch, overrides MISSION switch */
+							if (_vstatus.return_switch == RETURN_SWITCH_RETURN) {
+								if (myState != NAV_STATE_READY || _rtl_state != RTL_STATE_LAND) {
+									dispatch(EVENT_RTL_REQUESTED);
+								}
+								stick_mode = true;
+							} else {
+								/* MISSION switch */
+								if (_vstatus.mission_switch == MISSION_SWITCH_LOITER) {
+									dispatch(EVENT_LOITER_REQUESTED);
+									stick_mode = true;
+								} else if (_vstatus.mission_switch == MISSION_SWITCH_MISSION) {
+									/* switch to mission only if available */
+									if (_mission.current_mission_available()) {
+										dispatch(EVENT_MISSION_REQUESTED);
+									} else {
+										dispatch(EVENT_LOITER_REQUESTED);
+									}
+									stick_mode = true;
+								}
+								if (!stick_mode && _vstatus.return_switch == RETURN_SWITCH_NORMAL && myState == NAV_STATE_RTL) {
+									/* RETURN switch is in normal mode, no MISSION switch mapped, interrupt if in RTL state */
+									dispatch(EVENT_LOITER_REQUESTED);
+									stick_mode = true;
+								}
+							}
 						}
-						stick_mode = true;
+
+						if (!stick_mode) {
+							if (_vstatus.set_nav_state_timestamp != _set_nav_state_timestamp) {
+								/* commander requested new navigation mode, try to set it */
+								_set_nav_state_timestamp = _vstatus.set_nav_state_timestamp;
+
+								switch (_vstatus.set_nav_state) {
+								case NAV_STATE_NONE:
+									/* nothing to do */
+									break;
+
+								case NAV_STATE_LOITER:
+									dispatch(EVENT_LOITER_REQUESTED);
+									break;
+
+								case NAV_STATE_MISSION:
+									if (_mission.current_mission_available()) {
+										dispatch(EVENT_MISSION_REQUESTED);
+									} else {
+										dispatch(EVENT_LOITER_REQUESTED);
+									}
+									break;
+
+								case NAV_STATE_RTL:
+									if (myState != NAV_STATE_READY || _rtl_state != RTL_STATE_LAND) {
+										dispatch(EVENT_RTL_REQUESTED);
+									}
+									break;
+
+								default:
+									warnx("ERROR: Requested navigation state not supported");
+									break;
+								}
+
+							} else {
+								/* on first switch to AUTO try mission by default, if none is available fallback to loiter */
+								if (myState == NAV_STATE_NONE) {
+									if (_mission.current_mission_available()) {
+										dispatch(EVENT_MISSION_REQUESTED);
+									} else {
+										dispatch(EVENT_LOITER_REQUESTED);
+									}
+								}
+							}
+						}
 					} else {
-						/* MISSION switch */
-						if (_vstatus.mission_switch == MISSION_SWITCH_LOITER) {
-							dispatch(EVENT_LOITER_REQUESTED);
-							stick_mode = true;
-						} else if (_vstatus.mission_switch == MISSION_SWITCH_MISSION) {
-							/* switch to mission only if available */
-							if (_mission.current_mission_available()) {
-								dispatch(EVENT_MISSION_REQUESTED);
-							} else {
-								dispatch(EVENT_LOITER_REQUESTED);
-							}
-							stick_mode = true;
-						}
-						if (!stick_mode && _vstatus.return_switch == RETURN_SWITCH_NORMAL && myState == NAV_STATE_RTL) {
-							/* RETURN switch is in normal mode, no MISSION switch mapped, interrupt if in RTL state */
-							dispatch(EVENT_LOITER_REQUESTED);
-							stick_mode = true;
-						}
+						/* not in AUTO mode */
+						dispatch(EVENT_NONE_REQUESTED);
 					}
-				}
 
-				if (!stick_mode) {
-					if (_vstatus.set_nav_state_timestamp != _set_nav_state_timestamp) {
-						/* commander requested new navigation mode, try to set it */
-						_set_nav_state_timestamp = _vstatus.set_nav_state_timestamp;
+				} else if (_vstatus.failsafe_state == FAILSAFE_STATE_RTL) {
+					/* RTL on failsafe */
+					dispatch(EVENT_RTL_REQUESTED);
 
-						switch (_vstatus.set_nav_state) {
-						case NAV_STATE_NONE:
-							/* nothing to do */
-							break;
-
-						case NAV_STATE_LOITER:
-							dispatch(EVENT_LOITER_REQUESTED);
-							break;
-
-						case NAV_STATE_MISSION:
-							if (_mission.current_mission_available()) {
-								dispatch(EVENT_MISSION_REQUESTED);
-							} else {
-								dispatch(EVENT_LOITER_REQUESTED);
-							}
-							break;
-
-						case NAV_STATE_RTL:
-							if (myState != NAV_STATE_READY || _rtl_state != RTL_STATE_LAND) {
-								dispatch(EVENT_RTL_REQUESTED);
-							}
-							break;
-
-						default:
-							warnx("ERROR: Requested navigation state not supported");
-							break;
-						}
-
-					} else {
-						/* on first switch to AUTO try mission by default, if none is available fallback to loiter */
-						if (myState == NAV_STATE_NONE) {
-							if (_mission.current_mission_available()) {
-								dispatch(EVENT_MISSION_REQUESTED);
-							} else {
-								dispatch(EVENT_LOITER_REQUESTED);
-							}
-						}
-					}
+				} else {
+					/* shouldn't act */
+					dispatch(EVENT_NONE_REQUESTED);
 				}
 
 			} else {
-				/* not in AUTO */
+				/* not armed */
 				dispatch(EVENT_NONE_REQUESTED);
 			}
 		}
@@ -1442,40 +1456,74 @@ Navigator::publish_control_mode()
 	_control_mode.flag_system_hil_enabled = _vstatus.hil_state == HIL_STATE_ON;
 
 	_control_mode.flag_control_offboard_enabled = false;
-	_control_mode.flag_control_flighttermination_enabled = false;
+	_control_mode.flag_control_termination_enabled = false;
 
-	switch (_vstatus.main_state) {
-	case MAIN_STATE_MANUAL:
-		_control_mode.flag_control_manual_enabled = true;
-		_control_mode.flag_control_rates_enabled = _vstatus.is_rotary_wing;
-		_control_mode.flag_control_attitude_enabled = _vstatus.is_rotary_wing;
+	/* set this flag when navigator has control */
+	bool navigator_enabled = false;
+
+	switch (_vstatus.failsafe_state) {
+	case FAILSAFE_STATE_NORMAL:
+		switch (_vstatus.main_state) {
+		case MAIN_STATE_MANUAL:
+			_control_mode.flag_control_manual_enabled = true;
+			_control_mode.flag_control_rates_enabled = _vstatus.is_rotary_wing;
+			_control_mode.flag_control_attitude_enabled = _vstatus.is_rotary_wing;
+			_control_mode.flag_control_altitude_enabled = false;
+			_control_mode.flag_control_climb_rate_enabled = false;
+			_control_mode.flag_control_position_enabled = false;
+			_control_mode.flag_control_velocity_enabled = false;
+			break;
+
+		case MAIN_STATE_SEATBELT:
+			_control_mode.flag_control_manual_enabled = true;
+			_control_mode.flag_control_rates_enabled = true;
+			_control_mode.flag_control_attitude_enabled = true;
+			_control_mode.flag_control_altitude_enabled = true;
+			_control_mode.flag_control_climb_rate_enabled = true;
+			_control_mode.flag_control_position_enabled = false;
+			_control_mode.flag_control_velocity_enabled = false;
+			break;
+
+		case MAIN_STATE_EASY:
+			_control_mode.flag_control_manual_enabled = true;
+			_control_mode.flag_control_rates_enabled = true;
+			_control_mode.flag_control_attitude_enabled = true;
+			_control_mode.flag_control_altitude_enabled = true;
+			_control_mode.flag_control_climb_rate_enabled = true;
+			_control_mode.flag_control_position_enabled = true;
+			_control_mode.flag_control_velocity_enabled = true;
+			break;
+
+		case MAIN_STATE_AUTO:
+			navigator_enabled = true;
+
+		default:
+			break;
+		}
+		break;
+
+	case FAILSAFE_STATE_RTL:
+		navigator_enabled = true;
+		break;
+
+	case FAILSAFE_STATE_TERMINATION:
+		navigator_enabled = true;
+		/* disable all controllers on termination */
+		_control_mode.flag_control_rates_enabled = false;
+		_control_mode.flag_control_attitude_enabled = false;
+		_control_mode.flag_control_position_enabled = false;
+		_control_mode.flag_control_velocity_enabled = false;
 		_control_mode.flag_control_altitude_enabled = false;
 		_control_mode.flag_control_climb_rate_enabled = false;
-		_control_mode.flag_control_position_enabled = false;
-		_control_mode.flag_control_velocity_enabled = false;
+		_control_mode.flag_control_termination_enabled = true;
 		break;
 
-	case MAIN_STATE_SEATBELT:
-		_control_mode.flag_control_manual_enabled = true;
-		_control_mode.flag_control_rates_enabled = true;
-		_control_mode.flag_control_attitude_enabled = true;
-		_control_mode.flag_control_altitude_enabled = true;
-		_control_mode.flag_control_climb_rate_enabled = true;
-		_control_mode.flag_control_position_enabled = false;
-		_control_mode.flag_control_velocity_enabled = false;
+	default:
 		break;
+	}
 
-	case MAIN_STATE_EASY:
-		_control_mode.flag_control_manual_enabled = true;
-		_control_mode.flag_control_rates_enabled = true;
-		_control_mode.flag_control_attitude_enabled = true;
-		_control_mode.flag_control_altitude_enabled = true;
-		_control_mode.flag_control_climb_rate_enabled = true;
-		_control_mode.flag_control_position_enabled = true;
-		_control_mode.flag_control_velocity_enabled = true;
-		break;
-
-	case MAIN_STATE_AUTO:
+	/* navigator has control, set control mode flags according to nav state*/
+	if (navigator_enabled) {
 		_control_mode.flag_control_manual_enabled = false;
 		if (myState == NAV_STATE_READY) {
 			/* disable all controllers, armed but idle */
@@ -1493,10 +1541,6 @@ Navigator::publish_control_mode()
 			_control_mode.flag_control_altitude_enabled = true;
 			_control_mode.flag_control_climb_rate_enabled = true;
 		}
-		break;
-
-	default:
-		break;
 	}
 
 	_control_mode.timestamp = hrt_absolute_time();
