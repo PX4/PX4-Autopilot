@@ -802,7 +802,7 @@ Navigator::task_main()
 
 		/* notify user about state changes */
 		if (myState != prevState) {
-			mavlink_log_info(_mavlink_fd, "[navigator] nav state: %s -> %s", nav_states_str[prevState], nav_states_str[myState]);
+			mavlink_log_info(_mavlink_fd, "[navigator] nav state: %s", nav_states_str[myState]);
 			prevState = myState;
 			pub_control_mode = true;
 		}

@@ -64,6 +64,7 @@ typedef enum {
 	MAIN_STATE_SEATBELT,
 	MAIN_STATE_EASY,
 	MAIN_STATE_AUTO,
+	MAIN_STATE_MAX
 } main_state_t;
 
 typedef enum {
@@ -73,7 +74,8 @@ typedef enum {
 	ARMING_STATE_ARMED_ERROR,
 	ARMING_STATE_STANDBY_ERROR,
 	ARMING_STATE_REBOOT,
-	ARMING_STATE_IN_AIR_RESTORE
+	ARMING_STATE_IN_AIR_RESTORE,
+	ARMING_STATE_MAX
 } arming_state_t;
 
 typedef enum {

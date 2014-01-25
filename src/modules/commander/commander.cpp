@@ -575,6 +575,26 @@ int commander_thread_main(int argc, char *argv[])
 	/* welcome user */
 	warnx("starting");
 
+	char *main_states_str[MAIN_STATE_MAX];
+	main_states_str[0] = "MANUAL";
+	main_states_str[1] = "SEATBELT";
+	main_states_str[2] = "EASY";
+	main_states_str[3] = "AUTO";
+
+	char *arming_states_str[ARMING_STATE_MAX];
+	arming_states_str[0] = "INIT";
+	arming_states_str[1] = "STANDBY";
+	arming_states_str[2] = "ARMED";
+	arming_states_str[3] = "ARMED_ERROR";
+	arming_states_str[4] = "STANDBY_ERROR";
+	arming_states_str[5] = "REBOOT";
+	arming_states_str[6] = "IN_AIR_RESTORE";
+
+	char *failsafe_states_str[FAILSAFE_STATE_MAX];
+	failsafe_states_str[0] = "NORMAL";
+	failsafe_states_str[1] = "RTL";
+	failsafe_states_str[2] = "TERMINATION";
+
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
 
@@ -1108,8 +1128,8 @@ int commander_thread_main(int argc, char *argv[])
 					}
 
 				} else if (res == TRANSITION_DENIED) {
-					warnx("ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
-					mavlink_log_critical(mavlink_fd, "#audio: ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
+					/* DENIED here indicates bug in the commander */
+					mavlink_log_critical(mavlink_fd, "ERROR: arming state transition denied");
 				}
 
 				if (status.failsafe_state != FAILSAFE_STATE_NORMAL) {
@@ -1127,13 +1147,11 @@ int commander_thread_main(int argc, char *argv[])
 				res = check_main_state_machine(&status);
 
 				if (res == TRANSITION_CHANGED) {
-					//mavlink_log_info(mavlink_fd, "[cmd] main state: %d", status.main_state);
 					tune_positive();
 
 				} else if (res == TRANSITION_DENIED) {
 					/* DENIED here indicates bug in the commander */
-					warnx("ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
-					mavlink_log_critical(mavlink_fd, "#audio: ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
+					mavlink_log_critical(mavlink_fd, "ERROR: main state transition denied");
 				}
 
 			} else {
@@ -1179,9 +1197,20 @@ int commander_thread_main(int argc, char *argv[])
 
 		hrt_abstime t1 = hrt_absolute_time();
 
-		if (arming_state_changed || main_state_changed || failsafe_state_changed) {
-			mavlink_log_info(mavlink_fd, "[cmd] state: arm %d, main %d, fs %d", status.arming_state, status.main_state, status.failsafe_state);
+		/* print new state */
+		if (arming_state_changed) {
 			status_changed = true;
+			mavlink_log_info(mavlink_fd, "[cmd] arming state: %s", arming_states_str[status.arming_state]);
+		}
+
+		if (main_state_changed) {
+			status_changed = true;
+			mavlink_log_info(mavlink_fd, "[cmd] main state: %s", main_states_str[status.main_state]);
+		}
+
+		if (failsafe_state_changed) {
+			status_changed = true;
+			mavlink_log_info(mavlink_fd, "[cmd] failsafe state: %s", failsafe_states_str[status.failsafe_state]);
 		}
 
 		/* publish states (armed, control mode, vehicle status) at least with 5 Hz */
