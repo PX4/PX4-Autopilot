@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,75 +31,67 @@
  *
  ****************************************************************************/
 
-/*
- * @file px4fmu_pwm_servo.c
+/**
+ * @file px4discovery_led.c
  *
- * Configuration data for the stm32 pwm_servo driver.
- *
- * Note that these arrays must always be fully-sized.
+ * PX4-stm32f4discovery LED backend.
  */
 
-#include <stdint.h>
+#include <nuttx/config.h>
 
-#include <stm32.h>
-#include <stm32_gpio.h>
-#include <stm32_tim.h>
+#include <stdbool.h>
 
-#include <drivers/stm32/drv_pwm_servo.h>
-#include <drivers/drv_pwm_output.h>
-
+#include "stm32.h"
 #include "board_config.h"
 
-__EXPORT const struct pwm_servo_timer pwm_timers[PWM_SERVO_MAX_TIMERS] = {
-	{
-		.base = STM32_TIM1_BASE,
-		.clock_register = STM32_RCC_APB2ENR,
-		.clock_bit = RCC_APB2ENR_TIM1EN,
-		.clock_freq = STM32_APB2_TIM1_CLKIN
-	},
-	{
-		.base = STM32_TIM4_BASE,
-		.clock_register = STM32_RCC_APB1ENR,
-		.clock_bit = RCC_APB1ENR_TIM4EN,
-		.clock_freq = STM32_APB1_TIM4_CLKIN
-	}
-};
+#include <arch/board/board.h>
 
-__EXPORT const struct pwm_servo_channel pwm_channels[PWM_SERVO_MAX_CHANNELS] = {
+/*
+ * Ideally we'd be able to get these from up_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
+ */
+__BEGIN_DECLS
+extern void led_init();
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
+__END_DECLS
+
+__EXPORT void led_init()
+{
+	/* Configure LED1 GPIO for output */
+
+	stm32_configgpio(GPIO_LED1);
+}
+
+__EXPORT void led_on(int led)
+{
+	if (led == 1)
 	{
-		.gpio = GPIO_TIM1_CH4OUT,
-		.timer_index = 0,
-		.timer_channel = 4,
-		.default_value = 1000,
-	},
-	{
-		.gpio = GPIO_TIM1_CH3OUT,
-		.timer_index = 0,
-		.timer_channel = 3,
-		.default_value = 1000,
-	},
-	{
-		.gpio = GPIO_TIM1_CH2OUT,
-		.timer_index = 0,
-		.timer_channel = 2,
-		.default_value = 1000,
-	},
-	{
-		.gpio = GPIO_TIM1_CH1OUT,
-		.timer_index = 0,
-		.timer_channel = 1,
-		.default_value = 1000,
-	},
-	{
-		.gpio = GPIO_TIM4_CH2OUT,
-		.timer_index = 1,
-		.timer_channel = 2,
-		.default_value = 1000,
-	},
-	{
-		.gpio = GPIO_TIM4_CH3OUT,
-		.timer_index = 1,
-		.timer_channel = 3,
-		.default_value = 1000,
+		/* Pull down to switch on */
+		stm32_gpiowrite(GPIO_LED1, false);
 	}
-};
+}
+
+__EXPORT void led_off(int led)
+{
+	if (led == 1)
+	{
+		/* Pull up to switch off */
+		stm32_gpiowrite(GPIO_LED1, true);
+	}
+}
+
+__EXPORT void led_toggle(int led)
+{
+	if (led == 1)
+	{
+		if (stm32_gpioread(GPIO_LED1))
+			stm32_gpiowrite(GPIO_LED1, false);
+		else
+			stm32_gpiowrite(GPIO_LED1, true);
+	}
+}

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4fmu_usb.c
+ * @file px4discovery_usb.c
  *
  * Board-specific USB functions.
  */
