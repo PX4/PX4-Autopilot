@@ -160,6 +160,7 @@ extern pwm_limit_t pwm_limit;
 
 # define PX4IO_RELAY_CHANNELS		0
 # define POWER_SPEKTRUM(_s)		stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (_s))
+# define ENABLE_SBUS_OUT(_s)		stm32_gpiowrite(GPIO_SBUS_OENABLE, !(_s))
 
 # define VDD_SERVO_FAULT		(!stm32_gpioread(GPIO_SERVO_FAULT_DETECT))
 
@@ -177,12 +178,13 @@ extern pwm_limit_t pwm_limit;
  * Mixer
  */
 extern void	mixer_tick(void);
-extern void	mixer_handle_text(const void *buffer, size_t length);
+extern int	mixer_handle_text(const void *buffer, size_t length);
 
 /**
  * Safety switch/LED.
  */
 extern void	safety_init(void);
+extern void	failsafe_led_init(void);
 
 /**
  * FMU communications
