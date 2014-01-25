@@ -7,7 +7,7 @@
 # the ROMFS if it's available
 #
 ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/px4fmu_common
-ROMFS_OPTIONAL_FILES = $(PX4_BASE)/Images/px4io-v2_default.bin
+ROMFS_OPTIONAL_FILES = 
 
 #
 # Board support modules
@@ -15,15 +15,7 @@ ROMFS_OPTIONAL_FILES = $(PX4_BASE)/Images/px4io-v2_default.bin
 MODULES		+= drivers/device
 MODULES		+= drivers/stm32
 MODULES		+= drivers/led
-MODULES		+= drivers/px4fmu
-MODULES		+= drivers/boards/stm32f4discovery
-MODULES		+= drivers/gps
-MODULES		+= drivers/hil
-MODULES		+= modules/sensors
-
-# Needs to be burned to the ground and re-written; for now,
-# just don't build it.
-#MODULES		+= drivers/mkblctrl
+MODULES		+= drivers/boards/px4-stm32f4discovery
 
 #
 # System commands
@@ -33,53 +25,12 @@ MODULES		+= systemcmds/boardinfo
 MODULES		+= systemcmds/mixer
 MODULES		+= systemcmds/param
 MODULES		+= systemcmds/perf
-MODULES		+= systemcmds/preflight_check
-MODULES		+= systemcmds/pwm
-MODULES		+= systemcmds/esc_calib
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/top
 MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/config
 MODULES		+= systemcmds/nshterm
-MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/hw_ver
-
-#
-# General system control
-#
-MODULES		+= modules/commander
-MODULES		+= modules/navigator
-MODULES		+= modules/mavlink
-MODULES		+= modules/mavlink_onboard
-
-#
-# Estimation modules (EKF/ SO3 / other filters)
-#
-MODULES		+= modules/attitude_estimator_ekf
-MODULES		+= modules/attitude_estimator_so3
-MODULES		+= modules/att_pos_estimator_ekf
-MODULES		+= modules/position_estimator_inav
-MODULES		+= examples/flow_position_estimator
-
-#
-# Vehicle Control
-#
-#MODULES		+= modules/segway # XXX Needs GCC 4.7 fix
-MODULES		+= modules/fw_pos_control_l1
-MODULES		+= modules/fw_att_control
-MODULES		+= modules/multirotor_att_control
-MODULES		+= modules/multirotor_pos_control
-
-#
-# Logging
-#
-MODULES		+= modules/sdlog2
-
-#
-# Unit tests
-#
-#MODULES 	+= modules/unit_test
-#MODULES 	+= modules/commander/commander_tests
 
 #
 # Library modules

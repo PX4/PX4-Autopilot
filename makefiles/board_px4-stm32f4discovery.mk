@@ -6,6 +6,6 @@
 # Configure the toolchain
 #
 CONFIG_ARCH			 = CORTEXM4F
-CONFIG_BOARD			 = PX4FMU_V2
+CONFIG_BOARD			 = PX4_STM32F4DISCOVERY
 
 include $(PX4_MK_DIR)/toolchain_gnu-arm-eabi.mk
