@@ -444,7 +444,7 @@ private:
 	 * @param vservo	vservo register
 	 * @param vrssi 	vrssi register
 	 */
-	void			io_handle_vservo(uint16_t vbatt, uint16_t ibatt);
+	void			io_handle_vservo(uint16_t vservo, uint16_t vrssi);
 
 };
 
@@ -1357,7 +1357,10 @@ PX4IO::io_get_status()
 	uint16_t	regs[6];
 	int		ret;
 
-	/* get STATUS_FLAGS, STATUS_ALARMS, STATUS_VBATT, STATUS_IBATT in that order */
+	/* get
+	 * STATUS_FLAGS, STATUS_ALARMS, STATUS_VBATT, STATUS_IBATT,
+	 * STATUS_VSERVO, STATUS_VRSSI, STATUS_PRSSI
+	 * in that order */
 	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, &regs[0], sizeof(regs) / sizeof(regs[0]));
 
 	if (ret != OK)
