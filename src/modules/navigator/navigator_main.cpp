@@ -729,7 +729,9 @@ Navigator::task_main()
 
 				} else if (_vstatus.failsafe_state == FAILSAFE_STATE_RTL) {
 					/* RTL on failsafe */
-					dispatch(EVENT_RTL_REQUESTED);
+					if (myState != NAV_STATE_READY || _rtl_state != RTL_STATE_LAND) {
+						dispatch(EVENT_RTL_REQUESTED);
+					}
 
 				} else {
 					/* shouldn't act */
