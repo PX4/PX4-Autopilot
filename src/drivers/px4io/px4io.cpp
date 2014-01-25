@@ -1457,13 +1457,6 @@ PX4IO::io_publish_raw_rc()
 		rc_val.input_source = RC_INPUT_SOURCE_UNKNOWN;
 	}
 
-	/* set RSSI */
-
-	if (rc_val.input_source != RC_INPUT_SOURCE_PX4IO_SBUS) {
-		// XXX the correct scaling needs to be validated here
-		rc_val.rssi = (_servorail_status.rssi_v / 3.3f) * UINT8_MAX;
-	}
-
 	/* lazily advertise on first publication */
 	if (_to_input_rc == 0) {
 		_to_input_rc = orb_advertise(ORB_ID(input_rc), &rc_val);
