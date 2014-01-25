@@ -97,7 +97,7 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 #define r_raw_rc_count		r_page_raw_rc_input[PX4IO_P_RAW_RC_COUNT]
 #define r_raw_rc_values		(&r_page_raw_rc_input[PX4IO_P_RAW_RC_BASE])
 #define r_rc_valid		r_page_rc_input[PX4IO_P_RC_VALID]
-#define r_rc_values		(&r_page_rc_input[PX4IO_P_RAW_RC_BASE])
+#define r_rc_values		(&r_page_rc_input[PX4IO_P_RC_BASE])
 
 #define r_setup_features	r_page_setup[PX4IO_P_SETUP_FEATURES]
 #define r_setup_arming		r_page_setup[PX4IO_P_SETUP_ARMING]
