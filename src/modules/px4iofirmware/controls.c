@@ -97,28 +97,57 @@ controls_tick() {
 	/* receive signal strenght indicator (RSSI). 0 = no connection, 255: perfect connection */
 	uint16_t rssi = 0;
 
+#ifdef ADC_RSSI
+	unsigned counts = adc_measure(ADC_RSSI);
+	if (counts != 0xffff) {
+		/* use 1:1 scaling on 3.3V ADC input */
+		unsigned mV = counts * 3300 / 4096;
+
+		/* scale to 0..253 */
+		rssi = mV / 13;
+	}
+#endif
+
 	perf_begin(c_gather_dsm);
 	uint16_t temp_count = r_raw_rc_count;
 	bool dsm_updated = dsm_input(r_raw_rc_values, &temp_count);
 	if (dsm_updated) {
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM;
+		r_raw_rc_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM;
 		r_raw_rc_count = temp_count & 0x7fff;
 		if (temp_count & 0x8000)
-			r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM11;
+			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
 		else
-			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RC_DSM11;
+			r_raw_rc_flags &= ~PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
 
-		rssi = 255;
 	}
 	perf_end(c_gather_dsm);
 
 	perf_begin(c_gather_sbus);
-	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &rssi, PX4IO_RC_INPUT_CHANNELS);
 
 	bool sbus_status = (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS);
 
+	bool sbus_failsafe, sbus_frame_drop;
+	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &sbus_failsafe, &sbus_frame_drop, PX4IO_RC_INPUT_CHANNELS);
+
 	if (sbus_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SBUS;
+
+		rssi = 255;
+
+		if (sbus_frame_drop) {
+			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FRAME_DROP;
+			rssi = 100;
+		} else {
+			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
+		}
+
+		if (sbus_failsafe) {
+			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FAILSAFE;
+			rssi = 0;
+		} else {
+			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+		}
+
 	}
 
 	/* switch S.Bus output pin as needed */
@@ -136,11 +165,8 @@ controls_tick() {
 	 * disable the PPM decoder completely if we have S.bus signal.
 	 */
 	perf_begin(c_gather_ppm);
-	bool ppm_updated = ppm_input(r_raw_rc_values, &r_raw_rc_count, &r_page_status[PX4IO_P_STATUS_RC_DATA]);
+	bool ppm_updated = ppm_input(r_raw_rc_values, &r_raw_rc_count, &r_page_raw_rc_input[PX4IO_P_RAW_RC_DATA]);
 	if (ppm_updated) {
-
-		/* XXX sample RSSI properly here */
-		rssi = 255;
 
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_PPM;
 	}
@@ -149,6 +175,9 @@ controls_tick() {
 	/* limit number of channels to allowable data size */
 	if (r_raw_rc_count > PX4IO_RC_INPUT_CHANNELS)
 		r_raw_rc_count = PX4IO_RC_INPUT_CHANNELS;
+
+	/* store RSSI */
+	r_page_raw_rc_input[PX4IO_P_RAW_RC_NRSSI] = rssi;
 
 	/*
 	 * In some cases we may have received a frame, but input has still
@@ -247,7 +276,7 @@ controls_tick() {
 		 * This might happen if a protocol-based receiver returns an update
 		 * that contains no channels that we have mapped.
 		 */
-		if (assigned_channels == 0 || rssi == 0) {
+		if (assigned_channels == 0 || (r_raw_rc_flags & (PX4IO_P_RAW_RC_FLAGS_FAILSAFE))) {
 			rc_input_lost = true;
 		} else {
 			/* set RC OK flag */
