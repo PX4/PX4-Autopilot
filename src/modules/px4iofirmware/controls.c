@@ -98,13 +98,15 @@ controls_tick() {
 	uint16_t rssi = 0;
 
 #ifdef ADC_RSSI
-	unsigned counts = adc_measure(ADC_RSSI);
-	if (counts != 0xffff) {
-		/* use 1:1 scaling on 3.3V ADC input */
-		unsigned mV = counts * 3300 / 4096;
+	if (r_setup_features & PX4IO_P_SETUP_FEATURES_ADC_RSSI) {
+		unsigned counts = adc_measure(ADC_RSSI);
+		if (counts != 0xffff) {
+			/* use 1:1 scaling on 3.3V ADC input */
+			unsigned mV = counts * 3300 / 4096;
 
-		/* scale to 0..253 */
-		rssi = mV / 13;
+			/* scale to 0..253 */
+			rssi = mV / 13;
+		}
 	}
 #endif
 
@@ -148,13 +150,6 @@ controls_tick() {
 			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 		}
 
-	}
-
-	/* switch S.Bus output pin as needed */
-	if (sbus_status != (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS)) {
-		#ifdef ENABLE_SBUS_OUT
-		ENABLE_SBUS_OUT((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS));
-		#endif
 	}
 
 	perf_end(c_gather_sbus);
