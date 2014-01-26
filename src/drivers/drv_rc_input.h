@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -135,8 +135,12 @@ ORB_DECLARE(input_rc);
 #define _RC_INPUT_BASE		0x2b00
 
 /** Fetch R/C input values into (rc_input_values *)arg */
-
 #define RC_INPUT_GET			_IOC(_RC_INPUT_BASE, 0)
 
+/** Enable RSSI input via ADC */
+#define RC_INPUT_ENABLE_RSSI_ANALOG	_IOC(_RC_INPUT_BASE, 1)
+
+/** Enable RSSI input via PWM signal */
+#define RC_INPUT_ENABLE_RSSI_PWM	_IOC(_RC_INPUT_BASE, 2)
 
 #endif /* _DRV_RC_INPUT_H */

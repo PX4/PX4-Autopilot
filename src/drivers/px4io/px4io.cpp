@@ -61,6 +61,7 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
+#include <drivers/drv_sbus.h>
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
@@ -1824,9 +1825,11 @@ PX4IO::print_status()
 	uint16_t raw_inputs = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT);
 	printf("%d raw R/C inputs", raw_inputs);
 	flags = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_FLAGS);
-	printf("status 0x%04x%s", flags,
+	printf("status 0x%04x%s%s%s%s", flags,
 		(((io_status_flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (!(flags & PX4IO_P_RAW_RC_FLAGS_RC_DSM11))) ? " DSM10" : ""),
-		(((io_status_flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (flags & PX4IO_P_RAW_RC_FLAGS_RC_DSM11)) ? " DSM11" : "")
+		(((io_status_flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (flags & PX4IO_P_RAW_RC_FLAGS_RC_DSM11)) ? " DSM11" : ""),
+		((flags & PX4IO_P_RAW_RC_FLAGS_FRAME_DROP) ? " FRAME_DROP" : ""),
+		((flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE) ? " FAILSAFE" : "")
 	       );
 
 	for (unsigned i = 0; i < raw_inputs; i++)
@@ -1861,7 +1864,13 @@ PX4IO::print_status()
 	printf("\n");
 
 	/* setup and state */
-	printf("features 0x%04x\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES));
+	uint16_t features = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES);
+	printf("features 0x%04x%s%s\n", features,
+		((features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) ? " S.BUS1_OUT" : ""),
+		((features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) ? " S.BUS2_OUT" : ""),
+		((features & PX4IO_P_SETUP_FEATURES_PWM_RSSI) ? " RSSI_PWM" : ""),
+		((features & PX4IO_P_SETUP_FEATURES_ADC_RSSI) ? " RSSI_ADC" : "")
+		);
 	uint16_t arming = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
 	printf("arming 0x%04x%s%s%s%s%s%s\n",
 	       arming,
@@ -2279,6 +2288,38 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 
 		} else {
 			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK, 0);
+		}
+
+		break;
+
+	case RC_INPUT_ENABLE_RSSI_ANALOG:
+
+		if (arg) {
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_ADC_RSSI);
+		} else {
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, PX4IO_P_SETUP_FEATURES_ADC_RSSI, 0);
+		}
+
+		break;
+
+	case RC_INPUT_ENABLE_RSSI_PWM:
+
+		if (arg) {
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_PWM_RSSI);
+		} else {
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, PX4IO_P_SETUP_FEATURES_PWM_RSSI, 0);
+		}
+
+		break;
+
+	case SBUS_SET_PROTO_VERSION:
+
+		if (arg == 1) {
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS1_OUT);
+		} else if (arg == 2) {
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
+		} else {
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT), 0);
 		}
 
 		break;
@@ -2932,6 +2973,60 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "bind"))
 		bind(argc, argv);
 
+	if (!strcmp(argv[1], "sbus1_out")) {
+		/* we can cheat and call the driver directly, as it
+		 * doesn't reference filp in ioctl()
+		 */
+		int ret = g_dev->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 1);
+
+		if (ret != 0) {
+			errx(ret, "S.BUS v1 failed");
+		}
+
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "sbus2_out")) {
+		/* we can cheat and call the driver directly, as it
+		 * doesn't reference filp in ioctl()
+		 */
+		int ret = g_dev->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 2);
+
+		if (ret != 0) {
+			errx(ret, "S.BUS v2 failed");
+		}
+
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "rssi_analog")) {
+		/* we can cheat and call the driver directly, as it
+		 * doesn't reference filp in ioctl()
+		 */
+		int ret = g_dev->ioctl(nullptr, RC_INPUT_ENABLE_RSSI_ANALOG, 1);
+
+		if (ret != 0) {
+			errx(ret, "RSSI analog failed");
+		}
+
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "rssi_pwm")) {
+		/* we can cheat and call the driver directly, as it
+		 * doesn't reference filp in ioctl()
+		 */
+		int ret = g_dev->ioctl(nullptr, RC_INPUT_ENABLE_RSSI_PWM, 1);
+
+		if (ret != 0) {
+			errx(ret, "RSSI PWM failed");
+		}
+
+		exit(0);
+	}
+
 out:
-	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug',\n 'recovery', 'limit', 'current', 'bind', 'checkcrc', 'forceupdate' or 'update'");
+	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug <level>',\n"
+	        "'recovery', 'limit <rate>', 'current', 'bind', 'checkcrc',\n"
+	        "'forceupdate', 'update', 'sbus1_out', 'sbus2_out', 'rssi_analog' or 'rssi_pwm'");
 }
