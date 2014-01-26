@@ -223,51 +223,50 @@ main_state_transition(struct vehicle_status_s *current_state, main_state_t new_m
 {
 	transition_result_t ret = TRANSITION_DENIED;
 
-	/* only check transition if the new state is actually different from the current one */
-	if (new_main_state == current_state->main_state) {
-		ret = TRANSITION_NOT_CHANGED;
+	/* transition may be denied even if requested the same state because conditions may be changed */
+	switch (new_main_state) {
+	case MAIN_STATE_MANUAL:
+		ret = TRANSITION_CHANGED;
+		break;
 
-	} else {
+	case MAIN_STATE_SEATBELT:
 
-		switch (new_main_state) {
-		case MAIN_STATE_MANUAL:
+		/* need at minimum altitude estimate */
+		if (!current_state->is_rotary_wing ||
+			(current_state->condition_local_altitude_valid ||
+			current_state->condition_global_position_valid)) {
 			ret = TRANSITION_CHANGED;
-			break;
-
-		case MAIN_STATE_SEATBELT:
-
-			/* need at minimum altitude estimate */
-			if (!current_state->is_rotary_wing ||
-				(current_state->condition_local_altitude_valid ||
-				current_state->condition_global_position_valid)) {
-				ret = TRANSITION_CHANGED;
-			}
-
-			break;
-
-		case MAIN_STATE_EASY:
-
-			/* need at minimum local position estimate */
-			if (current_state->condition_local_position_valid ||
-				current_state->condition_global_position_valid) {
-				ret = TRANSITION_CHANGED;
-			}
-
-			break;
-
-		case MAIN_STATE_AUTO:
-
-			/* need global position estimate */
-			if (current_state->condition_global_position_valid) {
-				ret = TRANSITION_CHANGED;
-			}
-
-			break;
 		}
 
-		if (ret == TRANSITION_CHANGED) {
+		break;
+
+	case MAIN_STATE_EASY:
+
+		/* need at minimum local position estimate */
+		if (current_state->condition_local_position_valid ||
+			current_state->condition_global_position_valid) {
+			ret = TRANSITION_CHANGED;
+		}
+
+		break;
+
+	case MAIN_STATE_AUTO:
+
+		/* need global position estimate */
+		if (current_state->condition_global_position_valid) {
+			ret = TRANSITION_CHANGED;
+		}
+
+		break;
+	}
+
+	if (ret == TRANSITION_CHANGED) {
+		if (current_state->main_state != new_main_state) {
 			current_state->main_state = new_main_state;
 			main_state_changed = true;
+
+		} else {
+			ret = TRANSITION_NOT_CHANGED;
 		}
 	}
 
@@ -367,17 +366,22 @@ transition_result_t failsafe_state_transition(struct vehicle_status_s *status, f
 {
 	transition_result_t ret = TRANSITION_DENIED;
 
-	/* only check transition if the new state is actually different from the current one */
-	if (new_failsafe_state == status->failsafe_state) {
-		ret = TRANSITION_NOT_CHANGED;
+	/* transition may be denied even if requested the same state because conditions may be changed */
+	if (status->failsafe_state == FAILSAFE_STATE_TERMINATION) {
+		/* transitions from TERMINATION to other states not allowed */
+		if (new_failsafe_state == FAILSAFE_STATE_TERMINATION) {
+			ret = TRANSITION_NOT_CHANGED;
+		}
 
-	} else if (status->failsafe_state != FAILSAFE_STATE_TERMINATION) {
+	} else {
 		switch (new_failsafe_state) {
 		case FAILSAFE_STATE_NORMAL:
 			ret = TRANSITION_CHANGED;
 			break;
 		case FAILSAFE_STATE_RTL:
-			ret = TRANSITION_CHANGED;
+			if (status->condition_global_position_valid) {
+				ret = TRANSITION_CHANGED;
+			}
 			break;
 		case FAILSAFE_STATE_TERMINATION:
 			ret = TRANSITION_CHANGED;
@@ -388,8 +392,13 @@ transition_result_t failsafe_state_transition(struct vehicle_status_s *status, f
 		}
 
 		if (ret == TRANSITION_CHANGED) {
-			status->failsafe_state = new_failsafe_state;
-			failsafe_state_changed = true;
+			if (status->failsafe_state != new_failsafe_state) {
+				status->failsafe_state = new_failsafe_state;
+				failsafe_state_changed = true;
+
+			} else {
+				ret = TRANSITION_NOT_CHANGED;
+			}
 		}
 	}
 

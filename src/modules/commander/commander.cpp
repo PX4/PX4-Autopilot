@@ -1143,7 +1143,7 @@ int commander_thread_main(int argc, char *argv[])
 				/* fill current_status according to mode switches */
 				check_mode_switches(&sp_man, &status);
 
-				/* evaluate the main state machine */
+				/* evaluate the main state machine according to mode switches */
 				res = check_main_state_machine(&status);
 
 				if (res == TRANSITION_CHANGED) {
@@ -1160,12 +1160,41 @@ int commander_thread_main(int argc, char *argv[])
 					status.rc_signal_lost = true;
 					status_changed = true;
 				}
-				if (status.main_state != MAIN_STATE_AUTO && armed.armed) {
+
+				if (status.main_state == MAIN_STATE_AUTO) {
+					/* check if AUTO mode still allowed */
+					transition_result_t res = main_state_transition(&status, MAIN_STATE_AUTO);
+					if (res == TRANSITION_DENIED) {
+						/* AUTO mode denied, don't try RTL, switch to failsafe state LAND */
+						res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
+						if (res == TRANSITION_CHANGED) {
+							mavlink_log_critical(mavlink_fd, "#audio: failsafe: LAND");
+						} else if (res == TRANSITION_DENIED) {
+							/* LAND mode denied, switch to failsafe state TERMINATION */
+							transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
+							if (res == TRANSITION_CHANGED) {
+								mavlink_log_critical(mavlink_fd, "#audio: failsafe: TERMINATION");
+							}
+						}
+					}
+
+				} else if (armed.armed) {
+					/* failsafe for manual modes */
 					transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_RTL);
 					if (res == TRANSITION_CHANGED) {
 						mavlink_log_critical(mavlink_fd, "#audio: failsafe: RTL");
+					} else if (res == TRANSITION_DENIED) {
+						/* RTL not allowed (no global position estimate), try LAND */
+						res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
+						if (res == TRANSITION_CHANGED) {
+							mavlink_log_critical(mavlink_fd, "#audio: failsafe: LAND");
+						} else if (res == TRANSITION_DENIED) {
+							res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
+							if (res == TRANSITION_CHANGED) {
+								mavlink_log_critical(mavlink_fd, "#audio: failsafe: TERMINATION");
+							}
+						}
 					}
-					// TODO add other failsafe modes if position estimate not available
 				}
 			}
 		}

@@ -84,9 +84,10 @@ typedef enum {
 } hil_state_t;
 
 typedef enum {
-	FAILSAFE_STATE_NORMAL = 0,
-	FAILSAFE_STATE_RTL,
-	FAILSAFE_STATE_TERMINATION,
+	FAILSAFE_STATE_NORMAL = 0,		/**< Normal operation */
+	FAILSAFE_STATE_RTL,				/**< Return To Launch */
+	FAILSAFE_STATE_LAND,			/**< Land without position control */
+	FAILSAFE_STATE_TERMINATION,		/**< Disable motors and use parachute, can't be recovered */
 	FAILSAFE_STATE_MAX
 } failsafe_state_t;
 
