@@ -61,8 +61,8 @@ controls_init(void)
 {
 	/* no channels */
 	r_raw_rc_count = 0;
-	rc_channels_timestamp_received = 0;
-	rc_channels_timestamp_valid = 0;
+	system_state.rc_channels_timestamp_received = 0;
+	system_state.rc_channels_timestamp_valid = 0;
 
 	/* DSM input (USART1) */
 	dsm_init("/dev/ttyS0");
