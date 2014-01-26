@@ -76,61 +76,42 @@
 __BEGIN_DECLS
 
 #include "mavlink_bridge_header.h"
-#include "waypoints.h"
-#include "orb_topics.h"
-#include "mavlink_parameters.h"
+// #include "waypoints.h"
+#include "mavlink_receiver.h"
+#include "mavlink_main.h"
 #include "util.h"
 
 __END_DECLS
 
-/* XXX should be in a header somewhere */
-extern "C" pthread_t receive_start(int uart);
+void MavlinkReceiver::MavlinkReceiver() :
+	pub_hil_global_pos(-1),
+	pub_hil_local_pos(-1),
+	pub_hil_attitude(-1),
+	pub_hil_gps(-1),
+	pub_hil_sensors(-1),
+	pub_hil_gyro(-1),
+	pub_hil_accel(-1),
+	pub_hil_mag(-1),
+	pub_hil_baro(-1),
+	pub_hil_airspeed(-1),
+	pub_hil_battery(-1),
+	hil_counter(0),
+	hil_frames(0),
+	old_timestamp(0),
+	cmd_pub(-1),
+	flow_pub(-1),
+	offboard_control_sp_pub(-1),
+	vicon_position_pub(-1),
+	telemetry_status_pub(-1),
+	lat0(0),
+	lon0(0),
+	alt0(0)
+{
 
-static void handle_message(mavlink_message_t *msg);
-static void *receive_thread(void *arg);
+}
 
-static mavlink_status_t status;
-static struct vehicle_vicon_position_s vicon_position;
-static struct vehicle_command_s vcmd;
-static struct offboard_control_setpoint_s offboard_control_sp;
-
-struct vehicle_global_position_s hil_global_pos;
-struct vehicle_local_position_s hil_local_pos;
-struct vehicle_attitude_s hil_attitude;
-struct vehicle_gps_position_s hil_gps;
-struct sensor_combined_s hil_sensors;
-struct battery_status_s	hil_battery_status;
-static orb_advert_t pub_hil_global_pos = -1;
-static orb_advert_t pub_hil_local_pos = -1;
-static orb_advert_t pub_hil_attitude = -1;
-static orb_advert_t pub_hil_gps = -1;
-static orb_advert_t pub_hil_sensors = -1;
-static orb_advert_t pub_hil_gyro = -1;
-static orb_advert_t pub_hil_accel = -1;
-static orb_advert_t pub_hil_mag = -1;
-static orb_advert_t pub_hil_baro = -1;
-static orb_advert_t pub_hil_airspeed = -1;
-static orb_advert_t pub_hil_battery = -1;
-
-/* packet counter */
-static int hil_counter = 0;
-static int hil_frames = 0;
-static uint64_t old_timestamp = 0;
-
-static orb_advert_t cmd_pub = -1;
-static orb_advert_t flow_pub = -1;
-
-static orb_advert_t offboard_control_sp_pub = -1;
-static orb_advert_t vicon_position_pub = -1;
-static orb_advert_t telemetry_status_pub = -1;
-
-// variables for HIL reference position
-static int32_t lat0 = 0;
-static int32_t lon0 = 0;
-static double alt0 = 0;
-
-static void
-handle_message(mavlink_message_t *msg)
+void
+MavlinkReceiver::handle_message(mavlink_message_t *msg)
 {
 	if (msg->msgid == MAVLINK_MSG_ID_COMMAND_LONG) {
 
@@ -804,8 +785,8 @@ handle_message(mavlink_message_t *msg)
 /**
  * Receive data from UART.
  */
-static void *
-receive_thread(void *arg)
+void *
+MavlinkReceiver::receive_thread(void *arg)
 {
 	int uart_fd = *((int *)arg);
 
@@ -851,8 +832,13 @@ receive_thread(void *arg)
 	return NULL;
 }
 
+void MavlinkReceiver::print_status()
+{
+
+}
+
 pthread_t
-receive_start(int uart)
+MavlinkReceiver::receive_start(int uart)
 {
 	pthread_attr_t receiveloop_attr;
 	pthread_attr_init(&receiveloop_attr);

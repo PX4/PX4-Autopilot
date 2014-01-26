@@ -55,17 +55,20 @@ public:
 	 */
 	~MavlinkOrbListener();
 
-	/**
-	* Start the mavlink task.
-	 *
-	 * @return		OK on success.
-	 */
-	int		start();
+	// *
+	// * Start the mavlink task.
+	//  *
+	//  * @return		OK on success.
+	 
+	// int		start();
 
 	/**
 	 * Display the mavlink status.
 	 */
 	void		status();
+
+	pthread_t uorb_receive_start(void);
+	void * uorb_receive_thread(void *arg);
 
 private:
 
@@ -122,8 +125,6 @@ private:
 	struct vehicle_attitude_s att;
 	struct airspeed_s airspeed;
 
-	struct mavlink_subscriptions mavlink_subs;
-
 	int status_sub;
 	int rc_sub;
 
@@ -138,6 +139,6 @@ private:
 	 */
 	uint64_t last_sensor_timestamp;
 
-	hrt_abstime last_sent_vfr = 0;
+	hrt_abstime last_sent_vfr;
 
 };

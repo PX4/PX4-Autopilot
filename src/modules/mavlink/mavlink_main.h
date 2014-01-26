@@ -73,6 +73,70 @@
 #include <drivers/drv_rc_input.h>
 #include <uORB/topics/navigation_capabilities.h>
 
+
+#include <nuttx/fs/fs.h>
+
+ // FIXME XXX - TO BE MOVED TO XML
+enum MAVLINK_WPM_STATES {
+        MAVLINK_WPM_STATE_IDLE = 0,
+        MAVLINK_WPM_STATE_SENDLIST,
+        MAVLINK_WPM_STATE_SENDLIST_SENDWPS,
+        MAVLINK_WPM_STATE_GETLIST,
+        MAVLINK_WPM_STATE_GETLIST_GETWPS,
+        MAVLINK_WPM_STATE_GETLIST_GOTALL,
+        MAVLINK_WPM_STATE_ENUM_END
+};
+
+enum MAVLINK_WPM_CODES {
+        MAVLINK_WPM_CODE_OK = 0,
+        MAVLINK_WPM_CODE_ERR_WAYPOINT_ACTION_NOT_SUPPORTED,
+        MAVLINK_WPM_CODE_ERR_WAYPOINT_FRAME_NOT_SUPPORTED,
+        MAVLINK_WPM_CODE_ERR_WAYPOINT_OUT_OF_BOUNDS,
+        MAVLINK_WPM_CODE_ERR_WAYPOINT_MAX_NUMBER_EXCEEDED,
+        MAVLINK_WPM_CODE_ENUM_END
+};
+
+
+/* WAYPOINT MANAGER - MISSION LIB */
+
+#define MAVLINK_WPM_MAX_WP_COUNT 15
+#define MAVLINK_WPM_CONFIG_IN_FLIGHT_UPDATE                                  ///< Enable double buffer and in-flight updates
+#ifndef MAVLINK_WPM_TEXT_FEEDBACK
+#define MAVLINK_WPM_TEXT_FEEDBACK 0                                                  ///< Report back status information as text
+#endif
+#define MAVLINK_WPM_PROTOCOL_TIMEOUT_DEFAULT 5000000         ///< Protocol communication timeout in useconds
+#define MAVLINK_WPM_SETPOINT_DELAY_DEFAULT 1000000           ///< When to send a new setpoint
+#define MAVLINK_WPM_PROTOCOL_DELAY_DEFAULT 40000
+
+
+struct mavlink_wpm_storage {
+        mavlink_mission_item_t waypoints[MAVLINK_WPM_MAX_WP_COUNT];      ///< Currently active waypoints
+#ifdef MAVLINK_WPM_CONFIG_IN_FLIGHT_UPDATE
+        mavlink_mission_item_t rcv_waypoints[MAVLINK_WPM_MAX_WP_COUNT];  ///< Receive buffer for next waypoints
+#endif
+        uint16_t size;
+        uint16_t max_size;
+        uint16_t rcv_size;
+        enum MAVLINK_WPM_STATES current_state;
+        int16_t current_wp_id;                                                        ///< Waypoint in current transmission
+        int16_t current_active_wp_id;                                        ///< Waypoint the system is currently heading towards
+        uint16_t current_count;
+        uint8_t current_partner_sysid;
+        uint8_t current_partner_compid;
+        uint64_t timestamp_lastaction;
+        uint64_t timestamp_last_send_setpoint;
+        uint64_t timestamp_firstinside_orbit;
+        uint64_t timestamp_lastoutside_orbit;
+        uint32_t timeout;
+        uint32_t delay_setpoint;
+        float accept_range_yaw;
+        float accept_range_distance;
+        bool yaw_reached;
+        bool pos_reached;
+        bool idle;
+        int current_dataman_id;
+};
+
 class Mavlink
 {
 public:
@@ -103,6 +167,8 @@ public:
 	static Mavlink* new_instance(const char *port, unsigned baud_rate);
 
 	static Mavlink* get_instance(unsigned instance);
+
+	static int get_uart_fd(unsigned index);
 
 	struct mavlink_subscriptions {
 		int sensor_sub;
@@ -149,12 +215,19 @@ public:
 	/** Actuator armed state */
 	struct actuator_armed_s armed;
 
+protected:
+	/**
+	 * Pointer to the default cdev file operations table; useful for
+	 * registering clone devices etc.
+	 */
+	struct file_operations	fops;
+	int		_mavlink_fd;
+
 private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	int		_mavlink_task;			/**< task handle for sensor task */
 
-	int		_mavlink_fd;
 	int		_mavlink_incoming_fd;		/**< file descriptor on which to receive incoming strings */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
@@ -165,10 +238,45 @@ private:
 
 	int		_params_sub;
 
-	orb_advert_t mission_pub = -1;
-struct mission_s mission;
+	orb_advert_t	mission_pub;
+	struct mission_s mission;
+	uint8_t missionlib_msg_buf[300]; //XXX MAGIC NUMBER
+	bool thread_running;
+	bool thread_should_exit;
 
-uint8_t mavlink_wpm_comp_id = MAV_COMP_ID_MISSIONPLANNER;
+	uint8_t mavlink_wpm_comp_id;
+	mavlink_channel_t chan;
+
+//  XXX probably should be in a header... 
+// extern pthread_t receive_start(int uart);
+
+	pthread_t receive_thread;
+	pthread_t uorb_receive_thread;
+
+	/* Allocate storage space for waypoints */
+	mavlink_wpm_storage wpm_s;
+	mavlink_wpm_storage *wpm;
+
+	bool verbose;
+	bool mavlink_hil_enabled;
+	int uart;
+	int baudrate;
+	bool gcs_link;
+	/**
+	 * If the queue index is not at 0, the queue sending
+	 * logic will send parameters from the current index
+	 * to len - 1, the end of the param list.
+	 */
+	unsigned int mavlink_param_queue_index;
+
+	/* interface mode */
+	enum {
+		MAVLINK_INTERFACE_MODE_OFFBOARD,
+		MAVLINK_INTERFACE_MODE_ONBOARD
+	} mavlink_link_mode;
+
+	struct mavlink_logbuffer lb;
+	bool mavlink_link_termination_allowed;
 	
 	/**
 	 * Update our local parameter cache.
@@ -240,7 +348,38 @@ uint8_t mavlink_wpm_comp_id = MAV_COMP_ID_MISSIONPLANNER;
 	 * mavlink_pm_queued_send().
 	 * @see 		mavlink_pm_queued_send()
 	 */
-	void mavlink_pm_start_queued_send(void);
+	void mavlink_pm_start_queued_send();
+
+	void mavlink_update_system();
+
+	void mavlink_wpm_message_handler(const mavlink_message_t *msg);
+	void mavlink_waypoint_eventloop(uint64_t now);
+	void mavlink_wpm_send_waypoint_reached(uint16_t seq);
+	void mavlink_wpm_send_waypoint_request(uint8_t sysid, uint8_t compid, uint16_t seq);
+	void mavlink_wpm_send_waypoint(uint8_t sysid, uint8_t compid, uint16_t seq);
+	void mavlink_wpm_send_waypoint_count(uint8_t sysid, uint8_t compid, uint16_t count);
+	void mavlink_wpm_send_waypoint_current(uint16_t seq);
+	void mavlink_wpm_send_waypoint_ack(uint8_t sysid, uint8_t compid, uint8_t type);
+	void mavlink_wpm_init(mavlink_wpm_storage *state);
+	int map_mission_item_to_mavlink_mission_item(const struct mission_item_s *mission_item, mavlink_mission_item_t *mavlink_mission_item);
+	int map_mavlink_mission_item_to_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item);
+	void publish_mission();
+
+	void mavlink_missionlib_send_message(mavlink_message_t *msg);
+	int mavlink_missionlib_send_gcs_string(const char *string);
+
+	int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
+
+	int set_mavlink_interval_limit(struct mavlink_subscriptions *subs, int mavlink_msg_id, int min_interval);
+
+	void get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode);
+
+	/**
+	 * Callback for param interface.
+	 */
+	static void mavlink_pm_callback(void *arg, param_t param);
+
+	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -248,8 +387,8 @@ uint8_t mavlink_wpm_comp_id = MAV_COMP_ID_MISSIONPLANNER;
 	void		task_main_trampoline(int argc, char *argv[]);
 
 	/**
-	 * Main sensor collection task.
+	 * Main mavlink task.
 	 */
-	void		task_main() __attribute__((noreturn));
+	int		task_main(int argc, char *argv[]) __attribute__((noreturn));
 
 };

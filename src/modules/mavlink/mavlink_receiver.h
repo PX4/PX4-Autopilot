@@ -40,6 +40,36 @@
 
 #pragma once
 
+#include <systemlib/perf_counter.h>
+#include <uORB/uORB.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/rc_channels.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/offboard_control_setpoint.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/mission_item_triplet.h>
+#include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/mission_item_triplet.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/actuator_controls_effective.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/debug_key_value.h>
+#include <uORB/topics/airspeed.h>
+#include <uORB/topics/battery_status.h>
+
 class Mavlink;
 
 class MavlinkReceiver
@@ -65,7 +95,9 @@ public:
 	/**
 	 * Display the mavlink status.
 	 */
-	void		status();
+	void		print_status();
+
+	pthread_t receive_start(int uart);
 
 private:
 
@@ -75,14 +107,41 @@ private:
 
 	Mavlink*	_mavlink;
 
-	/**
-	 * Shim for calling task_main from task_create.
-	 */
-	void		task_main_trampoline(int argc, char *argv[]);
 
-	/**
-	 * Main sensor collection task.
-	 */
-	void		task_main() __attribute__((noreturn));
+	void handle_message(mavlink_message_t *msg);
+	void *receive_thread(void *arg);
+
+	mavlink_status_t status;
+	struct vehicle_vicon_position_s vicon_position;
+	struct vehicle_command_s vcmd;
+	struct offboard_control_setpoint_s offboard_control_sp;
+	struct vehicle_global_position_s hil_global_pos;
+	struct vehicle_local_position_s hil_local_pos;
+	struct vehicle_attitude_s hil_attitude;
+	struct vehicle_gps_position_s hil_gps;
+	struct sensor_combined_s hil_sensors;
+	struct battery_status_s	hil_battery_status;
+	orb_advert_t pub_hil_global_pos;
+	orb_advert_t pub_hil_local_pos;
+	orb_advert_t pub_hil_attitude;
+	orb_advert_t pub_hil_gps;
+	orb_advert_t pub_hil_sensors;
+	orb_advert_t pub_hil_gyro;
+	orb_advert_t pub_hil_accel;
+	orb_advert_t pub_hil_mag;
+	orb_advert_t pub_hil_baro;
+	orb_advert_t pub_hil_airspeed;
+	orb_advert_t pub_hil_battery;
+	int hil_counter;
+	int hil_frames;
+	uint64_t old_timestamp;
+	orb_advert_t cmd_pub;
+	orb_advert_t flow_pub;
+	orb_advert_t offboard_control_sp_pub;
+	orb_advert_t vicon_position_pub;
+	orb_advert_t telemetry_status_pub;
+	int32_t lat0;
+	int32_t lon0;
+	double alt0;
 
 };

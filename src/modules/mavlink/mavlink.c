@@ -86,42 +86,6 @@ mavlink_system_t mavlink_system = {
 }; // System ID, 1-255, Component/Subsystem ID, 1-255
 
 /*
- * Internal function to send the bytes through the right serial port
- */
-void
-mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length)
-{
-	int uart = -1;
-
-	switch (channel) {
-		case MAVLINK_COMM_0:
-			uart = Mavlink::get_uart_fd(0);
-		break;
-		case MAVLINK_COMM_1:
-			uart = Mavlink::get_uart_fd(1);
-		break;
-		case MAVLINK_COMM_2:
-			uart = Mavlink::get_uart_fd(2);
-		break;
-		case MAVLINK_COMM_3:
-			uart = Mavlink::get_uart_fd(3);
-		break;
-		case MAVLINK_COMM_4:
-			uart = Mavlink::get_uart_fd(4);
-		break;
-		case MAVLINK_COMM_5:
-			uart = Mavlink::get_uart_fd(5);
-		break;
-		case MAVLINK_COMM_6:
-			uart = Mavlink::get_uart_fd(6);
-		break;
-	}
-
-	write(uart, ch, (size_t)(sizeof(uint8_t) * length));
-
-}
-
-/*
  * Internal function to give access to the channel status for each channel
  */
 extern mavlink_status_t *mavlink_get_channel_status(uint8_t channel)

@@ -661,8 +661,8 @@ MavlinkOrbListener::l_control_mode(const struct listener *l)
 				   mavlink_state);
 }
 
-static void *
-uorb_receive_thread(void *arg)
+void *
+MavlinkOrbListener::uorb_receive_thread(void *arg)
 {
 	/* Set thread name */
 	prctl(PR_SET_NAME, "mavlink_orb_rcv", getpid());
@@ -712,7 +712,7 @@ uorb_receive_thread(void *arg)
 }
 
 pthread_t
-uorb_receive_start(void)
+MavlinkOrbListener::uorb_receive_start(void)
 {
 	/* --- SENSORS RAW VALUE --- */
 	mavlink_subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
