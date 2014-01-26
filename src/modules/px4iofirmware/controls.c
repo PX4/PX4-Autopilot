@@ -59,6 +59,11 @@ static perf_counter_t c_gather_ppm;
 void
 controls_init(void)
 {
+	/* no channels */
+	r_raw_rc_count = 0;
+	rc_channels_timestamp_received = 0;
+	rc_channels_timestamp_valid = 0;
+
 	/* DSM input (USART1) */
 	dsm_init("/dev/ttyS0");
 
@@ -121,6 +126,9 @@ controls_tick() {
 		else
 			r_raw_rc_flags &= ~PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
 
+		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
+		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+
 	}
 	perf_end(c_gather_dsm);
 
@@ -164,6 +172,8 @@ controls_tick() {
 	if (ppm_updated) {
 
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_PPM;
+		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
+		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 	}
 	perf_end(c_gather_ppm);
 
@@ -185,97 +195,100 @@ controls_tick() {
 	 */
 	if (dsm_updated || sbus_updated || ppm_updated) {
 
-		/* update RC-received timestamp */
-		system_state.rc_channels_timestamp = hrt_absolute_time();
-
 		/* record a bitmask of channels assigned */
 		unsigned assigned_channels = 0;
 
-		/* map raw inputs to mapped inputs */
-		/* XXX mapping should be atomic relative to protocol */
-		for (unsigned i = 0; i < r_raw_rc_count; i++) {
+		/* update RC-received timestamp */
+		system_state.rc_channels_timestamp_received = hrt_absolute_time();
 
-			/* map the input channel */
-			uint16_t *conf = &r_page_rc_input_config[i * PX4IO_P_RC_CONFIG_STRIDE];
+		/* do not command anything in failsafe, kick in the RC loss counter */
+		if (!(r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE)) {
 
-			if (conf[PX4IO_P_RC_CONFIG_OPTIONS] & PX4IO_P_RC_CONFIG_OPTIONS_ENABLED) {
+			/* update RC-received timestamp */
+			system_state.rc_channels_timestamp_valid = system_state.rc_channels_timestamp_received;
 
-				uint16_t raw = r_raw_rc_values[i];
+			/* map raw inputs to mapped inputs */
+			/* XXX mapping should be atomic relative to protocol */
+			for (unsigned i = 0; i < r_raw_rc_count; i++) {
 
-				int16_t scaled;
+				/* map the input channel */
+				uint16_t *conf = &r_page_rc_input_config[i * PX4IO_P_RC_CONFIG_STRIDE];
 
-				/*
-				 * 1) Constrain to min/max values, as later processing depends on bounds.
-				 */
-				if (raw < conf[PX4IO_P_RC_CONFIG_MIN])
-					raw = conf[PX4IO_P_RC_CONFIG_MIN];
-				if (raw > conf[PX4IO_P_RC_CONFIG_MAX])
-					raw = conf[PX4IO_P_RC_CONFIG_MAX];
+				if (conf[PX4IO_P_RC_CONFIG_OPTIONS] & PX4IO_P_RC_CONFIG_OPTIONS_ENABLED) {
 
-				/*
-				 * 2) Scale around the mid point differently for lower and upper range.
-				 *
-				 * This is necessary as they don't share the same endpoints and slope.
-				 *
-				 * First normalize to 0..1 range with correct sign (below or above center),
-				 * then scale to 20000 range (if center is an actual center, -10000..10000,
-				 * if parameters only support half range, scale to 10000 range, e.g. if
-				 * center == min 0..10000, if center == max -10000..0).
-				 *
-				 * As the min and max bounds were enforced in step 1), division by zero
-				 * cannot occur, as for the case of center == min or center == max the if
-				 * statement is mutually exclusive with the arithmetic NaN case.
-				 *
-				 * DO NOT REMOVE OR ALTER STEP 1!
-				 */
-				if (raw > (conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
-					scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_MAX] - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]));
+					uint16_t raw = r_raw_rc_values[i];
 
-				} else if (raw < (conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
-					scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE] - conf[PX4IO_P_RC_CONFIG_MIN]));
+					int16_t scaled;
 
-				} else {
-					/* in the configured dead zone, output zero */
-					scaled = 0;
-				}
+					/*
+					 * 1) Constrain to min/max values, as later processing depends on bounds.
+					 */
+					if (raw < conf[PX4IO_P_RC_CONFIG_MIN])
+						raw = conf[PX4IO_P_RC_CONFIG_MIN];
+					if (raw > conf[PX4IO_P_RC_CONFIG_MAX])
+						raw = conf[PX4IO_P_RC_CONFIG_MAX];
 
-				/* invert channel if requested */
-				if (conf[PX4IO_P_RC_CONFIG_OPTIONS] & PX4IO_P_RC_CONFIG_OPTIONS_REVERSE)
-					scaled = -scaled;
+					/*
+					 * 2) Scale around the mid point differently for lower and upper range.
+					 *
+					 * This is necessary as they don't share the same endpoints and slope.
+					 *
+					 * First normalize to 0..1 range with correct sign (below or above center),
+					 * then scale to 20000 range (if center is an actual center, -10000..10000,
+					 * if parameters only support half range, scale to 10000 range, e.g. if
+					 * center == min 0..10000, if center == max -10000..0).
+					 *
+					 * As the min and max bounds were enforced in step 1), division by zero
+					 * cannot occur, as for the case of center == min or center == max the if
+					 * statement is mutually exclusive with the arithmetic NaN case.
+					 *
+					 * DO NOT REMOVE OR ALTER STEP 1!
+					 */
+					if (raw > (conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
+						scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_MAX] - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]));
 
-				/* and update the scaled/mapped version */
-				unsigned mapped = conf[PX4IO_P_RC_CONFIG_ASSIGNMENT];
-				if (mapped < PX4IO_CONTROL_CHANNELS) {
+					} else if (raw < (conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
+						scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE] - conf[PX4IO_P_RC_CONFIG_MIN]));
 
-					/* invert channel if pitch - pulling the lever down means pitching up by convention */
-					if (mapped == 1) /* roll, pitch, yaw, throttle, override is the standard order */
+					} else {
+						/* in the configured dead zone, output zero */
+						scaled = 0;
+					}
+
+					/* invert channel if requested */
+					if (conf[PX4IO_P_RC_CONFIG_OPTIONS] & PX4IO_P_RC_CONFIG_OPTIONS_REVERSE)
 						scaled = -scaled;
 
-					r_rc_values[mapped] = SIGNED_TO_REG(scaled);
-					assigned_channels |= (1 << mapped);
+					/* and update the scaled/mapped version */
+					unsigned mapped = conf[PX4IO_P_RC_CONFIG_ASSIGNMENT];
+					if (mapped < PX4IO_CONTROL_CHANNELS) {
 
+						/* invert channel if pitch - pulling the lever down means pitching up by convention */
+						if (mapped == 1) /* roll, pitch, yaw, throttle, override is the standard order */
+							scaled = -scaled;
+
+						r_rc_values[mapped] = SIGNED_TO_REG(scaled);
+						assigned_channels |= (1 << mapped);
+
+					}
 				}
 			}
-		}
 
-		/* set un-assigned controls to zero */
-		for (unsigned i = 0; i < PX4IO_CONTROL_CHANNELS; i++) {
-			if (!(assigned_channels & (1 << i)))
-				r_rc_values[i] = 0;
-		}
+			/* set un-assigned controls to zero */
+			for (unsigned i = 0; i < PX4IO_CONTROL_CHANNELS; i++) {
+				if (!(assigned_channels & (1 << i)))
+					r_rc_values[i] = 0;
+			}
 
-		/*
-		 * If we got an update with zero channels, treat it as 
-		 * a loss of input.
-		 *
-		 * This might happen if a protocol-based receiver returns an update
-		 * that contains no channels that we have mapped.
-		 */
-		if (assigned_channels == 0 || (r_raw_rc_flags & (PX4IO_P_RAW_RC_FLAGS_FAILSAFE))) {
-			rc_input_lost = true;
-		} else {
-			/* set RC OK flag */
+			/* set RC OK flag, as we got an update */
 			r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_OK;
+
+			/* if we have enough channels (5) to control the vehicle, the mapping is ok */
+			if (assigned_channels > 4) {
+				r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_MAPPING_OK;
+			} else {
+				r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_MAPPING_OK);
+			}
 		}
 
 		/*
@@ -288,7 +301,7 @@ controls_tick() {
 	 * If we haven't seen any new control data in 200ms, assume we
 	 * have lost input.
 	 */
-	if (hrt_elapsed_time(&system_state.rc_channels_timestamp) > 200000) {
+	if (hrt_elapsed_time(&system_state.rc_channels_timestamp_received) > 200000) {
 		rc_input_lost = true;
 
 		/* clear the input-kind flags here */
@@ -296,24 +309,32 @@ controls_tick() {
 			PX4IO_P_STATUS_FLAGS_RC_PPM |
 			PX4IO_P_STATUS_FLAGS_RC_DSM |
 			PX4IO_P_STATUS_FLAGS_RC_SBUS);
+
 	}
 
 	/*
 	 * Handle losing RC input
 	 */
-	if (rc_input_lost) {
 
+	/* this kicks in if the receiver is gone or the system went to failsafe */
+	if (rc_input_lost || (r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE)) {
 		/* Clear the RC input status flag, clear manual override flag */
 		r_status_flags &= ~(
 			PX4IO_P_STATUS_FLAGS_OVERRIDE |
 			PX4IO_P_STATUS_FLAGS_RC_OK);
 
+		/* Mark all channels as invalid, as we just lost the RX */
+		r_rc_valid = 0;
+
 		/* Set the RC_LOST alarm */
 		r_status_alarms |= PX4IO_P_STATUS_ALARMS_RC_LOST;
+	}
 
-		/* Mark the arrays as empty */
+	/* this kicks in if the receiver is completely gone */
+	if (rc_input_lost) {
+
+		/* Set channel count to zero */
 		r_raw_rc_count = 0;
-		r_rc_valid = 0;
 	}
 
 	/*
