@@ -291,7 +291,6 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool
 		/* report that we failed to read anything valid off the receiver */
 		*sbus_failsafe = true;
 		*sbus_frame_drop = true;
-		return false;
 	}
 	else if (frame[SBUS_FLAGS_BYTE] & (1 << SBUS_FRAMELOST_BIT)) { /* a frame was lost */
 		/* set a special warning flag
