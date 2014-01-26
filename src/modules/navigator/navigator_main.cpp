@@ -1072,7 +1072,6 @@ Navigator::start_mission()
 {
 	_need_takeoff = true;
 
-	mavlink_log_info(_mavlink_fd, "[navigator] mission started");
 	set_mission_item();
 }
 
@@ -1201,7 +1200,6 @@ Navigator::start_rtl()
 	}
 
 	_reset_loiter_pos = true;
-	mavlink_log_info(_mavlink_fd, "[navigator] RTL started");
 	set_rtl_item();
 }
 
@@ -1222,8 +1220,6 @@ Navigator::start_land()
 	_pos_sp_triplet.current.loiter_direction = 1;
 	_pos_sp_triplet.current.loiter_radius = _parameters.loiter_radius;
 	_pos_sp_triplet.current.yaw = NAN;
-
-	mavlink_log_info(_mavlink_fd, "[navigator] land started");
 }
 
 void
@@ -1259,7 +1255,7 @@ Navigator::set_rtl_item()
 
 			_pos_sp_triplet.next.valid = false;
 
-			mavlink_log_info(_mavlink_fd, "[navigator] RTL: climb to %.1fm", climb_alt - _home_pos.alt);
+			mavlink_log_info(_mavlink_fd, "[navigator] RTL: climb to %.1fm above home", climb_alt - _home_pos.alt);
 			break;
 		}
 
@@ -1312,7 +1308,7 @@ Navigator::set_rtl_item()
 
 			_pos_sp_triplet.next.valid = false;
 
-			mavlink_log_info(_mavlink_fd, "[navigator] RTL: descend to %.1fm AMSL", _mission_item.altitude);
+			mavlink_log_info(_mavlink_fd, "[navigator] RTL: descend to %.1fm above home", _mission_item.altitude - _home_pos.alt);
 			break;
 		}
 

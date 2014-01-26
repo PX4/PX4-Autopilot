@@ -1080,9 +1080,9 @@ int commander_thread_main(int argc, char *argv[])
 			/* check if left stick is in lower left position and we are in MANUAL or AUTO_READY mode or (ASSISTED mode and landed) -> disarm
 			 * do it only for rotary wings */
 			if (status.is_rotary_wing &&
-				(status.arming_state == ARMING_STATE_ARMED || status.arming_state == ARMING_STATE_ARMED_ERROR) &&
-				(status.main_state == MAIN_STATE_MANUAL || status.condition_landed) &&
-				sp_man.yaw < -STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
+			    (status.arming_state == ARMING_STATE_ARMED || status.arming_state == ARMING_STATE_ARMED_ERROR) &&
+			    (status.main_state == MAIN_STATE_MANUAL || status.condition_landed) &&
+			    sp_man.yaw < -STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
 
 				if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
@@ -1100,7 +1100,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* check if left stick is in lower right position and we're in MANUAL mode -> arm */
 			if (status.arming_state == ARMING_STATE_STANDBY &&
-				sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
+			    sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
 				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 					if (safety.safety_switch_available && !safety.safety_off) {
 						print_reject_arm("NOT ARMING: Press safety switch first.");
@@ -1138,10 +1138,6 @@ int commander_thread_main(int argc, char *argv[])
 			if (status.failsafe_state != FAILSAFE_STATE_NORMAL) {
 				/* recover from failsafe */
 				transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_NORMAL);
-
-				if (res == TRANSITION_CHANGED) {
-					mavlink_log_critical(mavlink_fd, "#audio: recover from failsafe");
-				}
 			}
 
 			/* fill current_status according to mode switches */
@@ -1165,47 +1161,40 @@ int commander_thread_main(int argc, char *argv[])
 				status_changed = true;
 			}
 
-			if (status.main_state == MAIN_STATE_AUTO) {
-				/* check if AUTO mode still allowed */
-				transition_result_t res = main_state_transition(&status, MAIN_STATE_AUTO);
+			if (armed.armed) {
+				if (status.main_state == MAIN_STATE_AUTO) {
+					/* check if AUTO mode still allowed */
+					transition_result_t res = main_state_transition(&status, MAIN_STATE_AUTO);
 
-				if (res == TRANSITION_DENIED) {
-					/* AUTO mode denied, don't try RTL, switch to failsafe state LAND */
-					res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
+					if (res == TRANSITION_DENIED) {
+						/* AUTO mode denied, don't try RTL, switch to failsafe state LAND */
+						res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
 
-					if (res == TRANSITION_CHANGED) {
-						mavlink_log_critical(mavlink_fd, "#audio: failsafe: LAND");
+						if (res == TRANSITION_DENIED) {
+							/* LAND not allowed, set TERMINATION state */
+							transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
+						}
+					}
 
-					} else if (res == TRANSITION_DENIED) {
-						/* LAND mode denied, switch to failsafe state TERMINATION */
-						transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
+				} else {
+					/* failsafe for manual modes */
+					transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_RTL);
 
-						if (res == TRANSITION_CHANGED) {
-							mavlink_log_critical(mavlink_fd, "#audio: failsafe: TERMINATION");
+					if (res == TRANSITION_DENIED) {
+						/* RTL not allowed (no global position estimate), try LAND */
+						res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
+
+						if (res == TRANSITION_DENIED) {
+							/* LAND not allowed, set TERMINATION state */
+							res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
 						}
 					}
 				}
 
-			} else if (armed.armed) {
-				/* failsafe for manual modes */
-				transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_RTL);
-				if (res == TRANSITION_CHANGED) {
-					mavlink_log_critical(mavlink_fd, "#audio: failsafe: RTL");
-
-				} else if (res == TRANSITION_DENIED) {
-					/* RTL not allowed (no global position estimate), try LAND */
-					res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
-
-					if (res == TRANSITION_CHANGED) {
-						mavlink_log_critical(mavlink_fd, "#audio: failsafe: LAND");
-
-					} else if (res == TRANSITION_DENIED) {
-						res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
-
-						if (res == TRANSITION_CHANGED) {
-							mavlink_log_critical(mavlink_fd, "#audio: failsafe: TERMINATION");
-						}
-					}
+			} else {
+				if (status.failsafe_state != FAILSAFE_STATE_NORMAL) {
+					/* reset failsafe when disarmed */
+					transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_NORMAL);
 				}
 			}
 		}
