@@ -1850,14 +1850,15 @@ PX4IO::print_status()
 	printf("\n");
 
 	flags = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_FLAGS);
-	printf("status 0x%04x%s%s%s%s", flags,
+	printf("R/C flags: 0x%04x%s%s%s%s%s\n", flags,
 		(((io_status_flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (!(flags & PX4IO_P_RAW_RC_FLAGS_RC_DSM11))) ? " DSM10" : ""),
 		(((io_status_flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (flags & PX4IO_P_RAW_RC_FLAGS_RC_DSM11)) ? " DSM11" : ""),
 		((flags & PX4IO_P_RAW_RC_FLAGS_FRAME_DROP) ? " FRAME_DROP" : ""),
-		((flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE) ? " FAILSAFE" : "")
+		((flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE) ? " FAILSAFE" : ""),
+		((flags & PX4IO_P_RAW_RC_FLAGS_MAPPING_OK) ? " MAPPING_OK" : "")
 	       );
 
-	if ((flags & PX4IO_P_STATUS_FLAGS_RC_PPM)) {
+	if ((io_status_flags & PX4IO_P_STATUS_FLAGS_RC_PPM)) {
 		int frame_len = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_DATA);
 		printf("RC data (PPM frame len) %u us\n", frame_len);
 
@@ -2717,7 +2718,7 @@ monitor(void)
 	/* clear screen */
 	printf("\033[2J");
 
-	unsigned cancels = 3;
+	unsigned cancels = 2;
 
 	for (;;) {
 		pollfd fds[1];
