@@ -565,7 +565,6 @@ int commander_thread_main(int argc, char *argv[])
 {
 	/* not yet initialized */
 	commander_initialized = false;
-	bool home_position_set = false;
 
 	bool battery_tune_played = false;
 	bool arm_tune_played = false;
@@ -597,7 +596,8 @@ int commander_thread_main(int argc, char *argv[])
 	char *failsafe_states_str[FAILSAFE_STATE_MAX];
 	failsafe_states_str[0] = "NORMAL";
 	failsafe_states_str[1] = "RTL";
-	failsafe_states_str[2] = "TERMINATION";
+	failsafe_states_str[2] = "LAND";
+	failsafe_states_str[3] = "TERMINATION";
 
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
@@ -628,6 +628,7 @@ int commander_thread_main(int argc, char *argv[])
 	status.set_nav_state_timestamp = 0;
 	status.arming_state = ARMING_STATE_INIT;
 	status.hil_state = HIL_STATE_OFF;
+	status.failsafe_state = FAILSAFE_STATE_NORMAL;
 
 	/* neither manual nor offboard control commands have been received */
 	status.offboard_control_signal_found_once = false;
@@ -1027,13 +1028,12 @@ int commander_thread_main(int argc, char *argv[])
 			 * position to the current position.
 			 */
 
-			if (!home_position_set && gps_position.fix_type >= 3 &&
-			    (gps_position.eph_m < hdop_threshold_m) && (gps_position.epv_m < vdop_threshold_m) &&	// XXX note that vdop is 0 for mtk
+			if (!status.condition_home_position_valid && gps_position.fix_type >= 3 &&
+			    (gps_position.eph_m < hdop_threshold_m) && (gps_position.epv_m < vdop_threshold_m) &&
 			    (hrt_absolute_time() < gps_position.timestamp_position + POSITION_TIMEOUT) && !armed.armed
 			    && global_position.valid) {
+
 				/* copy position data to uORB home message, store it locally as well */
-
-
 				home.lat = global_position.lat;
 				home.lon = global_position.lon;
 				home.alt = global_position.alt;
@@ -1050,164 +1050,160 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 				/* mark home position as set */
-				home_position_set = true;
+				status.condition_home_position_valid = true;
 				tune_positive();
 			}
 		}
 
-		/* ignore RC signals if in offboard control mode */
-		if (!status.offboard_control_signal_found_once && sp_man.timestamp != 0) {
-			/* start RC input check */
-			if (hrt_absolute_time() < sp_man.timestamp + RC_TIMEOUT) {
-				/* handle the case where RC signal was regained */
-				if (!status.rc_signal_found_once) {
-					status.rc_signal_found_once = true;
-					mavlink_log_critical(mavlink_fd, "#audio: detected RC signal first time");
+		/* start RC input check */
+		if (sp_man.timestamp != 0 && hrt_absolute_time() < sp_man.timestamp + RC_TIMEOUT) {
+			/* handle the case where RC signal was regained */
+			if (!status.rc_signal_found_once) {
+				status.rc_signal_found_once = true;
+				mavlink_log_critical(mavlink_fd, "#audio: detected RC signal first time");
+				status_changed = true;
+
+			} else {
+				if (status.rc_signal_lost) {
+					mavlink_log_critical(mavlink_fd, "#audio: RC signal regained");
 					status_changed = true;
-
-				} else {
-					if (status.rc_signal_lost) {
-						mavlink_log_critical(mavlink_fd, "#audio: RC signal regained");
-						status_changed = true;
-					}
 				}
+			}
 
-				status.rc_signal_lost = false;
+			status.rc_signal_lost = false;
 
-				transition_result_t res;	// store all transitions results here
+			transition_result_t res;	// store all transitions results here
 
-				/* arm/disarm by RC */
-				res = TRANSITION_NOT_CHANGED;
+			/* arm/disarm by RC */
+			res = TRANSITION_NOT_CHANGED;
 
-				/* check if left stick is in lower left position and we are in MANUAL or AUTO_READY mode or (ASSISTED mode and landed) -> disarm
-				 * do it only for rotary wings */
-				if (status.is_rotary_wing &&
-				    (status.arming_state == ARMING_STATE_ARMED || status.arming_state == ARMING_STATE_ARMED_ERROR) &&
-				    (status.main_state == MAIN_STATE_MANUAL || status.condition_landed) &&
-				    sp_man.yaw < -STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
+			/* check if left stick is in lower left position and we are in MANUAL or AUTO_READY mode or (ASSISTED mode and landed) -> disarm
+			 * do it only for rotary wings */
+			if (status.is_rotary_wing &&
+				(status.arming_state == ARMING_STATE_ARMED || status.arming_state == ARMING_STATE_ARMED_ERROR) &&
+				(status.main_state == MAIN_STATE_MANUAL || status.condition_landed) &&
+				sp_man.yaw < -STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
 
-					if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-						/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
-						arming_state_t new_arming_state = (status.arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
-						res = arming_state_transition(&status, &safety, new_arming_state, &armed);
-						stick_off_counter = 0;
-
-					} else {
-						stick_off_counter++;
-					}
-
-				} else {
+				if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
+					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
+					arming_state_t new_arming_state = (status.arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
+					res = arming_state_transition(&status, &safety, new_arming_state, &armed);
 					stick_off_counter = 0;
-				}
-
-				/* check if left stick is in lower right position and we're in MANUAL mode -> arm */
-				if (status.arming_state == ARMING_STATE_STANDBY &&
-				    sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
-					if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-						if (safety.safety_switch_available && !safety.safety_off) {
-							print_reject_arm("NOT ARMING: Press safety switch first.");
-
-						} else if (status.main_state != MAIN_STATE_MANUAL) {
-							print_reject_arm("NOT ARMING: Switch to MANUAL mode first.");
-
-						} else {
-							res = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed);
-						}
-
-						stick_on_counter = 0;
-
-					} else {
-						stick_on_counter++;
-					}
 
 				} else {
-					stick_on_counter = 0;
-				}
-
-				if (res == TRANSITION_CHANGED) {
-					if (status.arming_state == ARMING_STATE_ARMED) {
-						mavlink_log_info(mavlink_fd, "[cmd] ARMED by RC");
-
-					} else {
-						mavlink_log_info(mavlink_fd, "[cmd] DISARMED by RC");
-					}
-
-				} else if (res == TRANSITION_DENIED) {
-					/* DENIED here indicates bug in the commander */
-					mavlink_log_critical(mavlink_fd, "ERROR: arming state transition denied");
-				}
-
-				if (status.failsafe_state != FAILSAFE_STATE_NORMAL) {
-					/* recover from failsafe */
-					transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_NORMAL);
-
-					if (res == TRANSITION_CHANGED) {
-						mavlink_log_critical(mavlink_fd, "#audio: recover from failsafe");
-					}
-				}
-
-				/* fill current_status according to mode switches */
-				check_mode_switches(&sp_man, &status);
-
-				/* evaluate the main state machine according to mode switches */
-				res = check_main_state_machine(&status);
-
-				if (res == TRANSITION_CHANGED) {
-					tune_positive();
-
-				} else if (res == TRANSITION_DENIED) {
-					/* DENIED here indicates bug in the commander */
-					mavlink_log_critical(mavlink_fd, "ERROR: main state transition denied");
+					stick_off_counter++;
 				}
 
 			} else {
-				if (!status.rc_signal_lost) {
-					mavlink_log_critical(mavlink_fd, "#audio: CRITICAL: RC SIGNAL LOST");
-					status.rc_signal_lost = true;
-					status_changed = true;
-				}
+				stick_off_counter = 0;
+			}
 
-				if (status.main_state == MAIN_STATE_AUTO) {
-					/* check if AUTO mode still allowed */
-					transition_result_t res = main_state_transition(&status, MAIN_STATE_AUTO);
+			/* check if left stick is in lower right position and we're in MANUAL mode -> arm */
+			if (status.arming_state == ARMING_STATE_STANDBY &&
+				sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
+				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
+					if (safety.safety_switch_available && !safety.safety_off) {
+						print_reject_arm("NOT ARMING: Press safety switch first.");
 
-					if (res == TRANSITION_DENIED) {
-						/* AUTO mode denied, don't try RTL, switch to failsafe state LAND */
-						res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
+					} else if (status.main_state != MAIN_STATE_MANUAL) {
+						print_reject_arm("NOT ARMING: Switch to MANUAL mode first.");
 
-						if (res == TRANSITION_CHANGED) {
-							mavlink_log_critical(mavlink_fd, "#audio: failsafe: LAND");
-
-						} else if (res == TRANSITION_DENIED) {
-							/* LAND mode denied, switch to failsafe state TERMINATION */
-							transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
-
-							if (res == TRANSITION_CHANGED) {
-								mavlink_log_critical(mavlink_fd, "#audio: failsafe: TERMINATION");
-							}
-						}
+					} else {
+						res = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed);
 					}
 
-				} else if (armed.armed) {
-					/* failsafe for manual modes */
-					transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_RTL);
+					stick_on_counter = 0;
+
+				} else {
+					stick_on_counter++;
+				}
+
+			} else {
+				stick_on_counter = 0;
+			}
+
+			if (res == TRANSITION_CHANGED) {
+				if (status.arming_state == ARMING_STATE_ARMED) {
+					mavlink_log_info(mavlink_fd, "[cmd] ARMED by RC");
+
+				} else {
+					mavlink_log_info(mavlink_fd, "[cmd] DISARMED by RC");
+				}
+
+			} else if (res == TRANSITION_DENIED) {
+				/* DENIED here indicates bug in the commander */
+				mavlink_log_critical(mavlink_fd, "ERROR: arming state transition denied");
+			}
+
+			if (status.failsafe_state != FAILSAFE_STATE_NORMAL) {
+				/* recover from failsafe */
+				transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_NORMAL);
+
+				if (res == TRANSITION_CHANGED) {
+					mavlink_log_critical(mavlink_fd, "#audio: recover from failsafe");
+				}
+			}
+
+			/* fill current_status according to mode switches */
+			check_mode_switches(&sp_man, &status);
+
+			/* evaluate the main state machine according to mode switches */
+			res = check_main_state_machine(&status);
+
+			if (res == TRANSITION_CHANGED) {
+				tune_positive();
+
+			} else if (res == TRANSITION_DENIED) {
+				/* DENIED here indicates bug in the commander */
+				mavlink_log_critical(mavlink_fd, "ERROR: main state transition denied");
+			}
+
+		} else {
+			if (!status.rc_signal_lost) {
+				mavlink_log_critical(mavlink_fd, "#audio: CRITICAL: RC SIGNAL LOST");
+				status.rc_signal_lost = true;
+				status_changed = true;
+			}
+
+			if (status.main_state == MAIN_STATE_AUTO) {
+				/* check if AUTO mode still allowed */
+				transition_result_t res = main_state_transition(&status, MAIN_STATE_AUTO);
+
+				if (res == TRANSITION_DENIED) {
+					/* AUTO mode denied, don't try RTL, switch to failsafe state LAND */
+					res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
 
 					if (res == TRANSITION_CHANGED) {
-						mavlink_log_critical(mavlink_fd, "#audio: failsafe: RTL");
+						mavlink_log_critical(mavlink_fd, "#audio: failsafe: LAND");
 
 					} else if (res == TRANSITION_DENIED) {
-						/* RTL not allowed (no global position estimate), try LAND */
-						res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
+						/* LAND mode denied, switch to failsafe state TERMINATION */
+						transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
 
 						if (res == TRANSITION_CHANGED) {
-							mavlink_log_critical(mavlink_fd, "#audio: failsafe: LAND");
+							mavlink_log_critical(mavlink_fd, "#audio: failsafe: TERMINATION");
+						}
+					}
+				}
 
-						} else if (res == TRANSITION_DENIED) {
-							res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
+			} else if (armed.armed) {
+				/* failsafe for manual modes */
+				transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_RTL);
+				if (res == TRANSITION_CHANGED) {
+					mavlink_log_critical(mavlink_fd, "#audio: failsafe: RTL");
 
-							if (res == TRANSITION_CHANGED) {
-								mavlink_log_critical(mavlink_fd, "#audio: failsafe: TERMINATION");
-							}
+				} else if (res == TRANSITION_DENIED) {
+					/* RTL not allowed (no global position estimate), try LAND */
+					res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
+
+					if (res == TRANSITION_CHANGED) {
+						mavlink_log_critical(mavlink_fd, "#audio: failsafe: LAND");
+
+					} else if (res == TRANSITION_DENIED) {
+						res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
+
+						if (res == TRANSITION_CHANGED) {
+							mavlink_log_critical(mavlink_fd, "#audio: failsafe: TERMINATION");
 						}
 					}
 				}

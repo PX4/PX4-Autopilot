@@ -411,11 +411,13 @@ Navigator::Navigator() :
 	memset(&_mission_result, 0, sizeof(struct mission_result_s));
 	memset(&_mission_item, 0, sizeof(struct mission_item_s));
 
+	memset(&nav_states_str, 0, sizeof(nav_states_str));
 	nav_states_str[0] = "NONE";
 	nav_states_str[1] = "READY";
 	nav_states_str[2] = "LOITER";
 	nav_states_str[3] = "MISSION";
 	nav_states_str[4] = "RTL";
+	nav_states_str[5] = "LAND";
 
 	/* Initialize state machine */
 	myState = NAV_STATE_NONE;
@@ -750,6 +752,7 @@ Navigator::task_main()
 				} else if (_vstatus.failsafe_state == FAILSAFE_STATE_RTL) {
 					/* RTL on failsafe */
 					if (myState != NAV_STATE_READY || _rtl_state != RTL_STATE_LAND) {
+
 						dispatch(EVENT_RTL_REQUESTED);
 					}
 
@@ -981,7 +984,7 @@ StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), NAV_STATE_LOITER},
 		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
 		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
-		/* EVENT_LAND_REQUESTED */		{ACTION(&Navigator::start_land), NAV_STATE_LAND},
+		/* EVENT_LAND_REQUESTED */		{NO_ACTION, NAV_STATE_LAND},
 		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_RTL},
 		/* EVENT_HOME_POSITION_CHANGED */	{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
 	},
@@ -1220,7 +1223,7 @@ Navigator::start_land()
 	_pos_sp_triplet.current.loiter_radius = _parameters.loiter_radius;
 	_pos_sp_triplet.current.yaw = NAN;
 
-	mavlink_log_info(_mavlink_fd, "[navigator] LAND started");
+	mavlink_log_info(_mavlink_fd, "[navigator] land started");
 }
 
 void
@@ -1616,14 +1619,7 @@ Navigator::publish_control_mode()
 		break;
 
 	case FAILSAFE_STATE_LAND:
-		/* land with or without position control */
-		_control_mode.flag_control_manual_enabled = false;
-		_control_mode.flag_control_rates_enabled = true;
-		_control_mode.flag_control_attitude_enabled = true;
-		_control_mode.flag_control_position_enabled = _vstatus.condition_global_position_valid;
-		_control_mode.flag_control_velocity_enabled = _vstatus.condition_global_position_valid;
-		_control_mode.flag_control_altitude_enabled = true;
-		_control_mode.flag_control_climb_rate_enabled = true;
+		navigator_enabled = true;
 		break;
 
 	case FAILSAFE_STATE_TERMINATION:
@@ -1647,7 +1643,8 @@ Navigator::publish_control_mode()
 	if (navigator_enabled) {
 		_control_mode.flag_control_manual_enabled = false;
 
-		if (myState == NAV_STATE_READY) {
+		switch (myState) {
+		case NAV_STATE_READY:
 			/* disable all controllers, armed but idle */
 			_control_mode.flag_control_rates_enabled = false;
 			_control_mode.flag_control_attitude_enabled = false;
@@ -1655,14 +1652,27 @@ Navigator::publish_control_mode()
 			_control_mode.flag_control_velocity_enabled = false;
 			_control_mode.flag_control_altitude_enabled = false;
 			_control_mode.flag_control_climb_rate_enabled = false;
+			break;
 
-		} else {
+		case NAV_STATE_LAND:
+			/* land with or without position control */
+			_control_mode.flag_control_manual_enabled = false;
+			_control_mode.flag_control_rates_enabled = true;
+			_control_mode.flag_control_attitude_enabled = true;
+			_control_mode.flag_control_position_enabled = _vstatus.condition_global_position_valid;
+			_control_mode.flag_control_velocity_enabled = _vstatus.condition_global_position_valid;
+			_control_mode.flag_control_altitude_enabled = true;
+			_control_mode.flag_control_climb_rate_enabled = true;
+			break;
+
+		default:
 			_control_mode.flag_control_rates_enabled = true;
 			_control_mode.flag_control_attitude_enabled = true;
 			_control_mode.flag_control_position_enabled = true;
 			_control_mode.flag_control_velocity_enabled = true;
 			_control_mode.flag_control_altitude_enabled = true;
 			_control_mode.flag_control_climb_rate_enabled = true;
+			break;
 		}
 	}
 
