@@ -67,7 +67,7 @@ static bool failsafe_state_changed = true;
 
 transition_result_t
 arming_state_transition(struct vehicle_status_s *status, const struct safety_s *safety,
-	arming_state_t new_arming_state, struct actuator_armed_s *armed)
+			arming_state_t new_arming_state, struct actuator_armed_s *armed)
 {
 	/*
 	 * Perform an atomic state update
@@ -85,6 +85,7 @@ arming_state_transition(struct vehicle_status_s *status, const struct safety_s *
 		/* enforce lockdown in HIL */
 		if (status->hil_state == HIL_STATE_ON) {
 			armed->lockdown = true;
+
 		} else {
 			armed->lockdown = false;
 		}
@@ -219,7 +220,7 @@ check_arming_state_changed()
 }
 
 transition_result_t
-main_state_transition(struct vehicle_status_s *current_state, main_state_t new_main_state)
+main_state_transition(struct vehicle_status_s *status, main_state_t new_main_state)
 {
 	transition_result_t ret = TRANSITION_DENIED;
 
@@ -232,9 +233,9 @@ main_state_transition(struct vehicle_status_s *current_state, main_state_t new_m
 	case MAIN_STATE_SEATBELT:
 
 		/* need at minimum altitude estimate */
-		if (!current_state->is_rotary_wing ||
-			(current_state->condition_local_altitude_valid ||
-			current_state->condition_global_position_valid)) {
+		if (!status->is_rotary_wing ||
+		    (status->condition_local_altitude_valid ||
+		     status->condition_global_position_valid)) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -243,8 +244,8 @@ main_state_transition(struct vehicle_status_s *current_state, main_state_t new_m
 	case MAIN_STATE_EASY:
 
 		/* need at minimum local position estimate */
-		if (current_state->condition_local_position_valid ||
-			current_state->condition_global_position_valid) {
+		if (status->condition_local_position_valid ||
+		    status->condition_global_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -253,7 +254,7 @@ main_state_transition(struct vehicle_status_s *current_state, main_state_t new_m
 	case MAIN_STATE_AUTO:
 
 		/* need global position estimate */
-		if (current_state->condition_global_position_valid) {
+		if (status->condition_global_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -261,8 +262,8 @@ main_state_transition(struct vehicle_status_s *current_state, main_state_t new_m
 	}
 
 	if (ret == TRANSITION_CHANGED) {
-		if (current_state->main_state != new_main_state) {
-			current_state->main_state = new_main_state;
+		if (status->main_state != new_main_state) {
+			status->main_state = new_main_state;
 			main_state_changed = true;
 
 		} else {
@@ -378,11 +379,14 @@ transition_result_t failsafe_state_transition(struct vehicle_status_s *status, f
 		case FAILSAFE_STATE_NORMAL:
 			ret = TRANSITION_CHANGED;
 			break;
+
 		case FAILSAFE_STATE_RTL:
 			if (status->condition_global_position_valid) {
 				ret = TRANSITION_CHANGED;
 			}
+
 			break;
+
 		case FAILSAFE_STATE_TERMINATION:
 			ret = TRANSITION_CHANGED;
 			break;

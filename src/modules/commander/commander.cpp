@@ -371,6 +371,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 					mavlink_log_info(mavlink_fd, "[cmd] HIL: FAILED resetting armed state");
 				}
 			}
+
 			if (hil_ret == OK)
 				ret = true;
 
@@ -405,6 +406,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 					arming_res = TRANSITION_NOT_CHANGED;
 				}
 			}
+
 			if (arming_res == TRANSITION_CHANGED)
 				ret = true;
 
@@ -447,6 +449,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 					}
 				}
 			}
+
 			if (main_res == TRANSITION_CHANGED)
 				ret = true;
 
@@ -486,8 +489,9 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		break;
 
 	case VEHICLE_CMD_OVERRIDE_GOTO: {
-		// TODO listen vehicle_command topic directly from navigator (?)
+			// TODO listen vehicle_command topic directly from navigator (?)
 			unsigned int mav_goto = cmd->param1;
+
 			if (mav_goto == 0) {	// MAV_GOTO_DO_HOLD
 				status->set_nav_state = NAV_STATE_LOITER;
 				status->set_nav_state_timestamp = hrt_absolute_time();
@@ -508,7 +512,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		}
 		break;
 
-	/* Flight termination */
+		/* Flight termination */
 	case VEHICLE_CMD_DO_SET_SERVO: { //xxx: needs its own mavlink command
 
 			if (armed->armed && cmd->param3 > 0.5) { //xxx: for safety only for now, param3 is unused by VEHICLE_CMD_DO_SET_SERVO
@@ -900,6 +904,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
+
 			/* only consider battery voltage if system has been running 2s and battery voltage is valid */
 			if (hrt_absolute_time() > start_time + 2000000 && battery.voltage_filtered_v > 0.0f) {
 				status.battery_voltage = battery.voltage_filtered_v;
@@ -1135,6 +1140,7 @@ int commander_thread_main(int argc, char *argv[])
 				if (status.failsafe_state != FAILSAFE_STATE_NORMAL) {
 					/* recover from failsafe */
 					transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_NORMAL);
+
 					if (res == TRANSITION_CHANGED) {
 						mavlink_log_critical(mavlink_fd, "#audio: recover from failsafe");
 					}
@@ -1164,14 +1170,18 @@ int commander_thread_main(int argc, char *argv[])
 				if (status.main_state == MAIN_STATE_AUTO) {
 					/* check if AUTO mode still allowed */
 					transition_result_t res = main_state_transition(&status, MAIN_STATE_AUTO);
+
 					if (res == TRANSITION_DENIED) {
 						/* AUTO mode denied, don't try RTL, switch to failsafe state LAND */
 						res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
+
 						if (res == TRANSITION_CHANGED) {
 							mavlink_log_critical(mavlink_fd, "#audio: failsafe: LAND");
+
 						} else if (res == TRANSITION_DENIED) {
 							/* LAND mode denied, switch to failsafe state TERMINATION */
 							transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
+
 							if (res == TRANSITION_CHANGED) {
 								mavlink_log_critical(mavlink_fd, "#audio: failsafe: TERMINATION");
 							}
@@ -1181,15 +1191,20 @@ int commander_thread_main(int argc, char *argv[])
 				} else if (armed.armed) {
 					/* failsafe for manual modes */
 					transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_RTL);
+
 					if (res == TRANSITION_CHANGED) {
 						mavlink_log_critical(mavlink_fd, "#audio: failsafe: RTL");
+
 					} else if (res == TRANSITION_DENIED) {
 						/* RTL not allowed (no global position estimate), try LAND */
 						res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
+
 						if (res == TRANSITION_CHANGED) {
 							mavlink_log_critical(mavlink_fd, "#audio: failsafe: LAND");
+
 						} else if (res == TRANSITION_DENIED) {
 							res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
+
 							if (res == TRANSITION_CHANGED) {
 								mavlink_log_critical(mavlink_fd, "#audio: failsafe: TERMINATION");
 							}
