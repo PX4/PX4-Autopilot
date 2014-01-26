@@ -377,17 +377,28 @@ transition_result_t failsafe_state_transition(struct vehicle_status_s *status, f
 	} else {
 		switch (new_failsafe_state) {
 		case FAILSAFE_STATE_NORMAL:
+			/* always allowed (except from TERMINATION state) */
 			ret = TRANSITION_CHANGED;
 			break;
 
 		case FAILSAFE_STATE_RTL:
-			if (status->condition_global_position_valid) {
+			/* global position and home position required for RTL */
+			if (status->condition_global_position_valid && status->condition_home_position_valid) {
+				ret = TRANSITION_CHANGED;
+			}
+
+			break;
+
+		case FAILSAFE_STATE_LAND:
+			/* at least relative altitude estimate required for landing */
+			if (status->condition_local_altitude_valid || status->condition_global_position_valid) {
 				ret = TRANSITION_CHANGED;
 			}
 
 			break;
 
 		case FAILSAFE_STATE_TERMINATION:
+			/* always allowed */
 			ret = TRANSITION_CHANGED;
 			break;
 
