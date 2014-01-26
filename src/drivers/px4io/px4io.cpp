@@ -239,6 +239,7 @@ private:
 	unsigned 		_update_interval;	///< Subscription interval limiting send rate
 	bool			_rc_handling_disabled;	///< If set, IO does not evaluate, but only forward the RC values
 	unsigned		_rc_chan_count;		///< Internal copy of the last seen number of RC channels
+	uint64_t		_rc_last_valid;		///< last valid timestamp
 
 	volatile int		_task;			///< worker task id
 	volatile bool		_task_should_exit;	///< worker terminate flag
@@ -468,6 +469,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_update_interval(0),
 	_rc_handling_disabled(false),
 	_rc_chan_count(0),
+	_rc_last_valid(0),
 	_task(-1),
 	_task_should_exit(false),
 	_mavlink_fd(-1),
@@ -1398,7 +1400,8 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	 *
 	 * This should be the common case (9 channel R/C control being a reasonable upper bound).
 	 */
-	input_rc.timestamp = hrt_absolute_time();
+	input_rc.timestamp_publication = hrt_absolute_time();
+
 	ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT, &regs[0], prolog + 9);
 
 	if (ret != OK)
@@ -1408,12 +1411,24 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	 * Get the channel count any any extra channels. This is no more expensive than reading the
 	 * channel count once.
 	 */
-	channel_count = regs[0];
+	channel_count = regs[PX4IO_P_RAW_RC_COUNT];
 
 	if (channel_count != _rc_chan_count)
 		perf_count(_perf_chan_count);
 
 	_rc_chan_count = channel_count;
+
+	input_rc.rc_ppm_frame_length = regs[PX4IO_P_RAW_RC_DATA];
+	input_rc.rssi = regs[PX4IO_P_RAW_RC_NRSSI];
+	input_rc.rc_failsafe = (regs[PX4IO_P_RAW_RC_FLAGS] & PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+	input_rc.rc_lost_frame_count = regs[PX4IO_P_RAW_LOST_FRAME_COUNT];
+	input_rc.rc_total_frame_count = regs[PX4IO_P_RAW_FRAME_COUNT];
+
+	/* rc_lost has to be set before the call to this function */
+	if (!input_rc.rc_lost && !input_rc.rc_failsafe)
+		_rc_last_valid = input_rc.timestamp_publication;
+
+	input_rc.timestamp_last_signal = _rc_last_valid;
 
 	if (channel_count > 9) {
 		ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE + 9, &regs[prolog + 9], channel_count - 9);
@@ -1431,13 +1446,12 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 int
 PX4IO::io_publish_raw_rc()
 {
-	/* if no raw RC, just don't publish */
-	if (!(_status & PX4IO_P_STATUS_FLAGS_RC_OK))
-		return OK;
 
 	/* fetch values from IO */
 	rc_input_values	rc_val;
-	rc_val.timestamp = hrt_absolute_time();
+
+	/* set the RC status flag ORDER MATTERS! */
+	rc_val.rc_lost = !(_status & PX4IO_P_STATUS_FLAGS_RC_OK);
 
 	int ret = io_get_raw_rc_input(rc_val);
 
@@ -1456,6 +1470,11 @@ PX4IO::io_publish_raw_rc()
 
 	} else {
 		rc_val.input_source = RC_INPUT_SOURCE_UNKNOWN;
+
+		/* we do not know the RC input, only publish if RC OK flag is set */
+		/* if no raw RC, just don't publish */
+		if (!(_status & PX4IO_P_STATUS_FLAGS_RC_OK))
+			return OK;
 	}
 
 	/* lazily advertise on first publication */

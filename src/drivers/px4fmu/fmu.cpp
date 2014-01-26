@@ -626,7 +626,7 @@ PX4FMU::task_main()
 #ifdef HRT_PPM_CHANNEL
 
 		// see if we have new PPM input data
-		if (ppm_last_valid_decode != rc_in.timestamp) {
+		if (ppm_last_valid_decode != rc_in.timestamp_last_signal) {
 			// we have a new PPM frame. Publish it.
 			rc_in.channel_count = ppm_decoded_channels;
 
@@ -638,7 +638,15 @@ PX4FMU::task_main()
 				rc_in.values[i] = ppm_buffer[i];
 			}
 
-			rc_in.timestamp = ppm_last_valid_decode;
+			rc_in.timestamp_publication = ppm_last_valid_decode;
+			rc_in.timestamp_last_signal = ppm_last_valid_decode;
+
+			rc_in.rc_ppm_frame_length = ppm_frame_length;
+			rc_in.rssi = RC_INPUT_RSSI_MAX;
+			rc_in.rc_failsafe = false;
+			rc_in.rc_lost = false;
+			rc_in.rc_lost_frame_count = 0;
+			rc_in.rc_total_frame_count = 0;
 
 			/* lazily advertise on first publication */
 			if (to_input_rc == 0) {
