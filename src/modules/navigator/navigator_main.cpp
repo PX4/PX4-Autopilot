@@ -1150,7 +1150,7 @@ Navigator::set_mission_item()
 		}
 
 		if (_do_takeoff) {
-			mavlink_log_info(_mavlink_fd, "[navigator] takeoff to %.1fm AMSL", _pos_sp_triplet.current.alt);
+			mavlink_log_info(_mavlink_fd, "[navigator] takeoff to %.1fm above home", _pos_sp_triplet.current.alt - _home_pos.alt);
 
 		} else {
 			if (onboard) {
@@ -1435,7 +1435,7 @@ Navigator::check_mission_item_reached()
 		float dist_xy = -1.0f;
 		float dist_z = -1.0f;
 
-		/* current relative or AMSL altitude depending on mission item altitude_is_relative flag */
+		/* calculate AMSL altitude for this waypoint */
 		float wp_alt_amsl = _mission_item.altitude;
 
 		if (_mission_item.altitude_is_relative)
