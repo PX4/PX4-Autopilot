@@ -189,6 +189,8 @@ private:
 
 	uint64_t	_set_nav_state_timestamp;		/**< timestamp of last handled navigation state request */
 
+	bool		_pos_sp_triplet_updated;
+
 	char *nav_states_str[NAV_STATE_MAX];
 
 	struct {
@@ -399,6 +401,7 @@ Navigator::Navigator() :
 	_mission_item_valid(false),
 	_need_takeoff(true),
 	_do_takeoff(false),
+	_pos_sp_triplet_updated(false),
 	_geofence_violation_warning_sent(false)
 {
 	_parameter_handles.min_altitude = param_find("NAV_MIN_ALT");
@@ -835,6 +838,11 @@ Navigator::task_main()
 			}
 		}
 
+		/* publish position setpoint triplet if updated */
+		if (_pos_sp_triplet_updated) {
+			publish_position_setpoint_triplet();
+		}
+
 		/* notify user about state changes */
 		if (myState != prevState) {
 			mavlink_log_info(_mavlink_fd, "[navigator] nav state: %s", nav_states_str[myState]);
@@ -999,7 +1007,7 @@ Navigator::start_none()
 	_do_takeoff = false;
 	_rtl_state = RTL_STATE_NONE;
 
-	publish_position_setpoint_triplet();
+	_pos_sp_triplet_updated = true;
 }
 
 void
@@ -1018,7 +1026,7 @@ Navigator::start_ready()
 		_rtl_state = RTL_STATE_NONE;
 	}
 
-	publish_position_setpoint_triplet();
+	_pos_sp_triplet_updated = true;
 }
 
 void
@@ -1061,7 +1069,7 @@ Navigator::start_loiter()
 	_pos_sp_triplet.next.valid = false;
 	_mission_item_valid = false;
 
-	publish_position_setpoint_triplet();
+	_pos_sp_triplet_updated = true;
 }
 
 void
@@ -1174,7 +1182,7 @@ Navigator::set_mission_item()
 		}
 	}
 
-	publish_position_setpoint_triplet();
+	_pos_sp_triplet_updated = true;
 }
 
 void
@@ -1280,7 +1288,7 @@ Navigator::set_rtl_item()
 
 			_pos_sp_triplet.next.valid = false;
 
-			mavlink_log_info(_mavlink_fd, "[navigator] RTL: return at %.1fm above home", climb_alt - _home_pos.alt);
+			mavlink_log_info(_mavlink_fd, "[navigator] RTL: return at %.1fm above home", _mission_item.altitude - _home_pos.alt);
 			break;
 		}
 
@@ -1345,7 +1353,7 @@ Navigator::set_rtl_item()
 		}
 	}
 
-	publish_position_setpoint_triplet();
+	_pos_sp_triplet_updated = true;
 }
 
 void
@@ -1540,9 +1548,12 @@ Navigator::on_mission_item_reached()
 void
 Navigator::publish_position_setpoint_triplet()
 {
-	/* lazily publish the mission triplet only once available */
+	/* update navigation state */
+	_pos_sp_triplet.nav_state = static_cast<nav_state_t>(myState);
+
+	/* lazily publish the position setpoint triplet only once available */
 	if (_pos_sp_triplet_pub > 0) {
-		/* publish the mission triplet */
+		/* publish the position setpoint triplet */
 		orb_publish(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_pub, &_pos_sp_triplet);
 
 	} else {
