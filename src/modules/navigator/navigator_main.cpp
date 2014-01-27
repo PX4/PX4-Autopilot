@@ -271,6 +271,11 @@ private:
 	 * Retrieve vehicle status
 	 */
 	void		vehicle_status_update();
+	
+	/**
+	 * Retrieve offboard setpoint
+	 */
+	void		offboard_update();
 
 
 	/**
@@ -503,6 +508,11 @@ Navigator::navigation_capabilities_update()
 	orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
 }
 
+void
+Navigator::offboard_update()
+{
+	orb_copy(ORB_ID(offboard_control_setpoint), _offboard_sub, &_offboard);
+}
 
 void
 Navigator::offboard_mission_update(bool isrotaryWing)
@@ -613,6 +623,7 @@ Navigator::task_main()
 	navigation_capabilities_update();
 	offboard_mission_update(_vstatus.is_rotary_wing);
 	onboard_mission_update();
+	offboard_update();
 
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
@@ -623,7 +634,7 @@ Navigator::task_main()
 	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source(s) */
-	struct pollfd fds[7];
+	struct pollfd fds[8];
 
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
@@ -640,6 +651,9 @@ Navigator::task_main()
 	fds[5].events = POLLIN;
 	fds[6].fd = _vstatus_sub;
 	fds[6].events = POLLIN;
+	fds[7].fd = _offboard_sub;
+	fds[7].events = POLLIN;
+	
 
 	while (!_task_should_exit) {
 
@@ -825,6 +839,11 @@ Navigator::task_main()
 			}
 		}
 
+		/* offboard setpoint updated */
+		if (fds[7].revents & POLLIN) {
+			offboard_update();
+		}
+		
 		/* notify user about state changes */
 		if (myState != prevState) {
 			mavlink_log_info(_mavlink_fd, "[navigator] nav state: %s -> %s", nav_states_str[prevState], nav_states_str[myState]);
