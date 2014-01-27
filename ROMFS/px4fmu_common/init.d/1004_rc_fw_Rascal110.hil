@@ -43,4 +43,3 @@ set HIL yes
 
 set VEHICLE_TYPE fw
 set MIXER FMU_AERT
-
