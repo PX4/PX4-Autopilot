@@ -1182,18 +1182,20 @@ Navigator::start_rtl()
 {
 	_do_takeoff = false;
 
+	/* decide if we need climb */
 	if (_rtl_state == RTL_STATE_NONE) {
 		if (_global_pos.alt < _home_pos.alt + _parameters.rtl_alt) {
 			_rtl_state = RTL_STATE_CLIMB;
 
 		} else {
 			_rtl_state = RTL_STATE_RETURN;
-
-			if (_reset_loiter_pos) {
-				_mission_item.altitude_is_relative = false;
-				_mission_item.altitude = _global_pos.alt;
-			}
 		}
+	}
+
+	/* if switching directly to return state, reset altitude setpoint */
+	if (_rtl_state == RTL_STATE_RETURN) {
+		_mission_item.altitude_is_relative = false;
+		_mission_item.altitude = _global_pos.alt;
 	}
 
 	_reset_loiter_pos = true;
@@ -1278,7 +1280,7 @@ Navigator::set_rtl_item()
 
 			_pos_sp_triplet.next.valid = false;
 
-			mavlink_log_info(_mavlink_fd, "[navigator] RTL: return");
+			mavlink_log_info(_mavlink_fd, "[navigator] RTL: return at %.1fm above home", climb_alt - _home_pos.alt);
 			break;
 		}
 
