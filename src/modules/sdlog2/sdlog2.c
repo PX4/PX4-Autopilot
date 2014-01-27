@@ -62,7 +62,6 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -740,7 +739,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* warning! using union here to save memory, elements should be used separately! */
 	union {
 		struct vehicle_command_s cmd;
-		struct vehicle_control_mode_s control_mode;
 		struct sensor_combined_s sensor;
 		struct vehicle_attitude_s att;
 		struct vehicle_attitude_setpoint_s att_sp;
@@ -767,7 +765,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	struct {
 		int cmd_sub;
 		int status_sub;
-		int control_mode_sub;
 		int sensor_sub;
 		int att_sub;
 		int att_sp_sub;
@@ -844,12 +841,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* --- GPS POSITION --- */
 	subs.gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	fds[fdsc_count].fd = subs.gps_pos_sub;
-	fds[fdsc_count].events = POLLIN;
-	fdsc_count++;
-
-	/* --- VEHICLE CONTROL MODE --- */
-	subs.control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	fds[fdsc_count].fd = subs.control_mode_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -1002,7 +993,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* decide use usleep() or blocking poll() */
 		bool use_sleep = sleep_delay > 0 && logging_enabled;
 
-		/* poll all topics if logging enabled or only management (first 2) if not */
+		/* poll all topics if logging enabled or only management (first 3) if not */
 		int poll_ret = poll(fds, logging_enabled ? fdsc_count : 3, use_sleep ? 0 : poll_timeout);
 
 		/* handle the poll result */
@@ -1064,11 +1055,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* --- VEHICLE STATUS --- */
 			if (fds[ifds++].revents & POLLIN) {
 				/* don't orb_copy, it's already done few lines above */
-				/* copy VEHICLE CONTROL MODE control mode here to construct STAT message */
-				orb_copy(ORB_ID(vehicle_control_mode), subs.control_mode_sub, &buf.control_mode);
 				log_msg.msg_type = LOG_STAT_MSG;
 				log_msg.body.log_STAT.main_state = (uint8_t) buf_status.main_state;
-				//log_msg.body.log_STAT.navigation_state = (uint8_t) buf.control_mode.nav_state;
 				log_msg.body.log_STAT.arming_state = (uint8_t) buf_status.arming_state;
 				log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
 				log_msg.body.log_STAT.battery_warning = (uint8_t) buf_status.battery_warning;
@@ -1078,7 +1066,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 			/* --- GPS POSITION --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
+				/* don't orb_copy, it's already done few lines above */
 				log_msg.msg_type = LOG_GPS_MSG;
 				log_msg.body.log_GPS.gps_time = buf.gps_pos.time_gps_usec;
 				log_msg.body.log_GPS.fix_type = buf.gps_pos.fix_type;
@@ -1093,8 +1081,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_GPS.cog = buf.gps_pos.cog_rad;
 				LOGBUFFER_WRITE_AND_COUNT(GPS);
 			}
-
-			ifds++;	// skip CONTROL MODE, already handled
 
 			/* --- SENSOR COMBINED --- */
 			if (fds[ifds++].revents & POLLIN) {
@@ -1265,6 +1251,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(position_setpoint_triplet), subs.triplet_sub, &buf.triplet);
 				log_msg.msg_type = LOG_GPSP_MSG;
+				log_msg.body.log_GPSP.nav_state = buf.triplet.nav_state;
 				log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * 1e7d);
 				log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * 1e7d);
 				log_msg.body.log_GPSP.alt = buf.triplet.current.alt;
