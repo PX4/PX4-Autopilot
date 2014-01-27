@@ -198,6 +198,7 @@ private:
 		float takeoff_alt;
 		float land_alt;
 		float rtl_alt;
+		float rtl_land_delay;
 	}		_parameters;			/**< local copies of parameters */
 
 	struct {
@@ -208,6 +209,7 @@ private:
 		param_t takeoff_alt;
 		param_t land_alt;
 		param_t rtl_alt;
+		param_t rtl_land_delay;
 	}		_parameter_handles;		/**< handles for parameters */
 
 	enum Event {
@@ -406,6 +408,7 @@ Navigator::Navigator() :
 	_parameter_handles.takeoff_alt = param_find("NAV_TAKEOFF_ALT");
 	_parameter_handles.land_alt = param_find("NAV_LAND_ALT");
 	_parameter_handles.rtl_alt = param_find("NAV_RTL_ALT");
+	_parameter_handles.rtl_land_delay = param_find("NAV_RTL_LAND_T");
 
 	memset(&_pos_sp_triplet, 0, sizeof(struct position_setpoint_triplet_s));
 	memset(&_mission_result, 0, sizeof(struct mission_result_s));
@@ -463,6 +466,7 @@ Navigator::parameters_update()
 	param_get(_parameter_handles.takeoff_alt, &(_parameters.takeoff_alt));
 	param_get(_parameter_handles.land_alt, &(_parameters.land_alt));
 	param_get(_parameter_handles.rtl_alt, &(_parameters.rtl_alt));
+	param_get(_parameter_handles.rtl_land_delay, &(_parameters.rtl_land_delay));
 
 	_mission.set_onboard_mission_allowed((bool)_parameter_handles.onboard_mission_enabled);
 
@@ -1299,9 +1303,9 @@ Navigator::set_rtl_item()
 			_mission_item.loiter_direction = 1;
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.acceptance_radius = _parameters.acceptance_radius;
-			_mission_item.time_inside = 0.0f;
+			_mission_item.time_inside = _parameters.rtl_land_delay < 0.0 ? 0.0f : _parameters.rtl_land_delay;
 			_mission_item.pitch_min = 0.0f;
-			_mission_item.autocontinue = true;
+			_mission_item.autocontinue = _parameters.rtl_land_delay > -0.001f;
 			_mission_item.origin = ORIGIN_ONBOARD;
 
 			position_setpoint_from_mission_item(&_pos_sp_triplet.current, &_mission_item);
