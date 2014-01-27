@@ -199,9 +199,9 @@ void control_status_leds(vehicle_status_s *status, const actuator_armed_s *actua
 
 void check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *valid_out, bool *changed);
 
-void check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_status_s *current_status);
+void check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_status_s *status);
 
-transition_result_t check_main_state_machine(struct vehicle_status_s *current_status);
+transition_result_t set_main_state_rc(struct vehicle_status_s *status);
 
 void print_reject_mode(const char *msg);
 
@@ -1140,11 +1140,11 @@ int commander_thread_main(int argc, char *argv[])
 				transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_NORMAL);
 			}
 
-			/* fill current_status according to mode switches */
+			/* fill status according to mode switches */
 			check_mode_switches(&sp_man, &status);
 
 			/* evaluate the main state machine according to mode switches */
-			res = check_main_state_machine(&status);
+			res = set_main_state_rc(&status);
 
 			if (res == TRANSITION_CHANGED) {
 				tune_positive();
@@ -1418,72 +1418,72 @@ control_status_leds(vehicle_status_s *status, const actuator_armed_s *actuator_a
 }
 
 void
-check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_status_s *current_status)
+check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_status_s *status)
 {
 	/* main mode switch */
 	if (!isfinite(sp_man->mode_switch)) {
 		warnx("mode sw not finite");
-		current_status->mode_switch = MODE_SWITCH_MANUAL;
+		status->mode_switch = MODE_SWITCH_MANUAL;
 
 	} else if (sp_man->mode_switch > STICK_ON_OFF_LIMIT) {
-		current_status->mode_switch = MODE_SWITCH_AUTO;
+		status->mode_switch = MODE_SWITCH_AUTO;
 
 	} else if (sp_man->mode_switch < -STICK_ON_OFF_LIMIT) {
-		current_status->mode_switch = MODE_SWITCH_MANUAL;
+		status->mode_switch = MODE_SWITCH_MANUAL;
 
 	} else {
-		current_status->mode_switch = MODE_SWITCH_ASSISTED;
+		status->mode_switch = MODE_SWITCH_ASSISTED;
 	}
 
 	/* return switch */
 	if (!isfinite(sp_man->return_switch)) {
-		current_status->return_switch = RETURN_SWITCH_NONE;
+		status->return_switch = RETURN_SWITCH_NONE;
 
 	} else if (sp_man->return_switch > STICK_ON_OFF_LIMIT) {
-		current_status->return_switch = RETURN_SWITCH_RETURN;
+		status->return_switch = RETURN_SWITCH_RETURN;
 
 	} else {
-		current_status->return_switch = RETURN_SWITCH_NORMAL;
+		status->return_switch = RETURN_SWITCH_NORMAL;
 	}
 
 	/* assisted switch */
 	if (!isfinite(sp_man->assisted_switch)) {
-		current_status->assisted_switch = ASSISTED_SWITCH_SEATBELT;
+		status->assisted_switch = ASSISTED_SWITCH_SEATBELT;
 
 	} else if (sp_man->assisted_switch > STICK_ON_OFF_LIMIT) {
-		current_status->assisted_switch = ASSISTED_SWITCH_EASY;
+		status->assisted_switch = ASSISTED_SWITCH_EASY;
 
 	} else {
-		current_status->assisted_switch = ASSISTED_SWITCH_SEATBELT;
+		status->assisted_switch = ASSISTED_SWITCH_SEATBELT;
 	}
 
 	/* mission switch  */
 	if (!isfinite(sp_man->mission_switch)) {
-		current_status->mission_switch = MISSION_SWITCH_NONE;
+		status->mission_switch = MISSION_SWITCH_NONE;
 
 	} else if (sp_man->mission_switch > STICK_ON_OFF_LIMIT) {
-		current_status->mission_switch = MISSION_SWITCH_LOITER;
+		status->mission_switch = MISSION_SWITCH_LOITER;
 
 	} else {
-		current_status->mission_switch = MISSION_SWITCH_MISSION;
+		status->mission_switch = MISSION_SWITCH_MISSION;
 	}
 }
 
 transition_result_t
-check_main_state_machine(struct vehicle_status_s *current_status)
+set_main_state_rc(struct vehicle_status_s *status)
 {
 	/* evaluate the main state machine */
 	transition_result_t res = TRANSITION_DENIED;
 
-	switch (current_status->mode_switch) {
+	switch (status->mode_switch) {
 	case MODE_SWITCH_MANUAL:
-		res = main_state_transition(current_status, MAIN_STATE_MANUAL);
+		res = main_state_transition(status, MAIN_STATE_MANUAL);
 		// TRANSITION_DENIED is not possible here
 		break;
 
 	case MODE_SWITCH_ASSISTED:
-		if (current_status->assisted_switch == ASSISTED_SWITCH_EASY) {
-			res = main_state_transition(current_status, MAIN_STATE_EASY);
+		if (status->assisted_switch == ASSISTED_SWITCH_EASY) {
+			res = main_state_transition(status, MAIN_STATE_EASY);
 
 			if (res != TRANSITION_DENIED)
 				break;	// changed successfully or already in this state
@@ -1492,34 +1492,34 @@ check_main_state_machine(struct vehicle_status_s *current_status)
 			print_reject_mode("EASY");
 		}
 
-		res = main_state_transition(current_status, MAIN_STATE_SEATBELT);
+		res = main_state_transition(status, MAIN_STATE_SEATBELT);
 
 		if (res != TRANSITION_DENIED)
 			break;	// changed successfully or already in this mode
 
-		if (current_status->assisted_switch != ASSISTED_SWITCH_EASY)	// don't print both messages
+		if (status->assisted_switch != ASSISTED_SWITCH_EASY)	// don't print both messages
 			print_reject_mode("SEATBELT");
 
 		// else fallback to MANUAL
-		res = main_state_transition(current_status, MAIN_STATE_MANUAL);
+		res = main_state_transition(status, MAIN_STATE_MANUAL);
 		// TRANSITION_DENIED is not possible here
 		break;
 
 	case MODE_SWITCH_AUTO:
-		res = main_state_transition(current_status, MAIN_STATE_AUTO);
+		res = main_state_transition(status, MAIN_STATE_AUTO);
 
 		if (res != TRANSITION_DENIED)
 			break;	// changed successfully or already in this state
 
 		// else fallback to SEATBELT (EASY likely will not work too)
 		print_reject_mode("AUTO");
-		res = main_state_transition(current_status, MAIN_STATE_SEATBELT);
+		res = main_state_transition(status, MAIN_STATE_SEATBELT);
 
 		if (res != TRANSITION_DENIED)
 			break;	// changed successfully or already in this state
 
 		// else fallback to MANUAL
-		res = main_state_transition(current_status, MAIN_STATE_MANUAL);
+		res = main_state_transition(status, MAIN_STATE_MANUAL);
 		// TRANSITION_DENIED is not possible here
 		break;
 
