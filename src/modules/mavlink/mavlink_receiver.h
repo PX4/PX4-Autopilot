@@ -96,7 +96,9 @@ public:
 	 */
 	void		print_status();
 
-	pthread_t receive_start(int uart);
+	static pthread_t receive_start(Mavlink* mavlink);
+
+	static void * start_helper(void *context);
 
 private:
 

@@ -83,7 +83,8 @@ __BEGIN_DECLS
 
 __END_DECLS
 
-void MavlinkReceiver::MavlinkReceiver() :
+MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
+	_mavlink(parent),
 	pub_hil_global_pos(-1),
 	pub_hil_local_pos(-1),
 	pub_hil_attitude(-1),
@@ -790,7 +791,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 void *
 MavlinkReceiver::receive_thread(void *arg)
 {
-	int uart_fd = *((int *)arg);
+	int uart_fd = _mavlink->get_uart_fd();
 
 	const int timeout = 1000;
 	uint8_t buf[32];
@@ -822,10 +823,10 @@ MavlinkReceiver::receive_thread(void *arg)
 					handle_message(&msg);
 
 					/* handle packet with waypoint component */
-					mavlink_wpm_message_handler(&msg);
+					_mavlink->mavlink_wpm_message_handler(&msg);
 
 					/* handle packet with parameter component */
-					mavlink_pm_message_handler(MAVLINK_COMM_0, &msg);
+					_mavlink->mavlink_pm_message_handler(MAVLINK_COMM_0, &msg);
 				}
 			}
 		}
@@ -839,15 +840,22 @@ void MavlinkReceiver::print_status()
 
 }
 
-pthread_t
-MavlinkReceiver::receive_start(int uart)
+void * MavlinkReceiver::start_helper(void *context)
 {
+	return ((MavlinkReceiver *)context)->receive_thread(NULL);
+}
+
+pthread_t
+MavlinkReceiver::receive_start(Mavlink *mavlink)
+{
+	MavlinkReceiver *rcv = new MavlinkReceiver(mavlink);
+
 	pthread_attr_t receiveloop_attr;
 	pthread_attr_init(&receiveloop_attr);
 
 	// set to non-blocking read
-	int flags = fcntl(uart, F_GETFL, 0);
-	fcntl(uart, F_SETFL, flags | O_NONBLOCK);
+	int flags = fcntl(mavlink->get_uart_fd(), F_GETFL, 0);
+	fcntl(mavlink->get_uart_fd(), F_SETFL, flags | O_NONBLOCK);
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&receiveloop_attr, &param);
@@ -857,7 +865,7 @@ MavlinkReceiver::receive_start(int uart)
 	pthread_attr_setstacksize(&receiveloop_attr, 3000);
 
 	pthread_t thread;
-	pthread_create(&thread, &receiveloop_attr, receive_thread, &uart);
+	pthread_create(&thread, &receiveloop_attr, MavlinkReceiver::start_helper, rcv);
 
 	pthread_attr_destroy(&receiveloop_attr);
 	return thread;

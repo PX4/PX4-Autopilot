@@ -54,9 +54,7 @@
 #include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/mission_item_triplet.h>
 #include <uORB/topics/vehicle_vicon_position.h>
-#include <uORB/topics/mission_item_triplet.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -72,7 +70,8 @@
 #include <uORB/topics/battery_status.h>
 #include <drivers/drv_rc_input.h>
 #include <uORB/topics/navigation_capabilities.h>
-
+#include <uORB/topics/mission.h>
+#include <systemlib/param/param.h>
 
 #include <nuttx/fs/fs.h>
 
@@ -139,6 +138,7 @@ struct mavlink_wpm_storage {
 
 class Mavlink
 {
+
 public:
 	/**
 	 * Constructor
@@ -170,6 +170,31 @@ public:
 
 	static int get_uart_fd(unsigned index);
 
+	int get_uart_fd() { return _mavlink_fd; }
+
+	enum MAVLINK_MODE {
+		MODE_TX_HEARTBEAT_ONLY=0,
+		MODE_OFFBOARD,
+		MODE_ONBOARD,
+		MODE_HIL
+	};
+
+	void		set_mode(enum MAVLINK_MODE);
+	enum MAVLINK_MODE		get_mode();
+
+	bool		hil_enabled() { return _mavlink_hil_enabled; };
+
+	/**
+	 * Handle waypoint related messages.
+	 */
+	void mavlink_wpm_message_handler(const mavlink_message_t *msg);
+
+	/**
+	 * Handle parameter related messages.
+	 */
+	void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_message_t *msg);
+
+
 	struct mavlink_subscriptions {
 		int sensor_sub;
 		int att_sub;
@@ -196,9 +221,14 @@ public:
 		int airspeed_sub;
 		int navigation_capabilities_sub;
 		int control_mode_sub;
+		int rc_sub;
+		int status_sub;
 	};
 
 	struct mavlink_subscriptions subs;
+
+	struct mavlink_subscriptions* get_subs() { return &subs; }
+	mavlink_channel_t get_chan() { return chan; }
 
 	/** Global position */
 	struct vehicle_global_position_s global_pos;
@@ -243,6 +273,7 @@ private:
 	uint8_t missionlib_msg_buf[300]; //XXX MAGIC NUMBER
 	bool thread_running;
 	bool thread_should_exit;
+	MAVLINK_MODE _mode;
 
 	uint8_t mavlink_wpm_comp_id;
 	mavlink_channel_t chan;
@@ -269,12 +300,6 @@ private:
 	 */
 	unsigned int mavlink_param_queue_index;
 
-	/* interface mode */
-	enum {
-		MAVLINK_INTERFACE_MODE_OFFBOARD,
-		MAVLINK_INTERFACE_MODE_ONBOARD
-	} mavlink_link_mode;
-
 	struct mavlink_logbuffer lb;
 	bool mavlink_link_termination_allowed;
 	
@@ -292,12 +317,6 @@ private:
 	 *			redundant.
 	 */
 	int		set_hil_on_off(bool hil_enabled);
-
-
-	/**
-	 * Handle parameter related messages.
-	 */
-	void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_message_t *msg);
 
 	/**
 	 * Send all parameters at once.
@@ -352,7 +371,6 @@ private:
 
 	void mavlink_update_system();
 
-	void mavlink_wpm_message_handler(const mavlink_message_t *msg);
 	void mavlink_waypoint_eventloop(uint64_t now);
 	void mavlink_wpm_send_waypoint_reached(uint16_t seq);
 	void mavlink_wpm_send_waypoint_request(uint8_t sysid, uint8_t compid, uint16_t seq);

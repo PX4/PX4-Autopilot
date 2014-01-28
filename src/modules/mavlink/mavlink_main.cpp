@@ -56,7 +56,6 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/mission_item_triplet.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -194,6 +193,11 @@ Mavlink::~Mavlink()
 			}
 		} while (_mavlink_task != -1);
 	}
+}
+
+void Mavlink::set_mode(enum MAVLINK_MODE mode)
+{
+	_mode = mode;
 }
 
 int Mavlink::instance_count()
@@ -1506,7 +1510,7 @@ Mavlink::task_main(int argc, char *argv[])
 			break;
 
 		case 'o':
-			mavlink_link_mode = MAVLINK_INTERFACE_MODE_ONBOARD;
+			_mode = MODE_ONBOARD;
 			break;
 
 		default:
@@ -1523,7 +1527,7 @@ Mavlink::task_main(int argc, char *argv[])
 	warnx("MAVLink v1.0 serial interface starting...");
 
 	/* inform about mode */
-	warnx((mavlink_link_mode == MAVLINK_INTERFACE_MODE_ONBOARD) ? "ONBOARD MODE" : "DOWNLINK MODE");
+	warnx((_mode == MODE_ONBOARD) ? "ONBOARD MODE" : "DOWNLINK MODE");
 
 	/* Flush stdout in case MAVLink is about to take it over */
 	fflush(stdout);
@@ -1541,12 +1545,12 @@ Mavlink::task_main(int argc, char *argv[])
 	mavlink_update_system();
 
 	/* start the MAVLink receiver */
-	MavlinkReceiver rcv(this);
-	receive_thread = rcv.receive_start(uart);
+	// MavlinkReceiver rcv(this);
+	receive_thread = MavlinkReceiver::receive_start(this);
 
 	/* start the ORB receiver */
-	MavlinkOrbListener listener(this);
-	uorb_receive_thread = listener.uorb_receive_start();
+	//MavlinkOrbListener listener(this);
+	uorb_receive_thread = MavlinkOrbListener::uorb_receive_start(this);
 
 	/* initialize waypoint manager */
 	mavlink_wpm_init(wpm);
