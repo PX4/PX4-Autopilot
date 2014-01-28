@@ -1,15 +1,14 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
-"""draw_fsm_diagram.py: Create dot code from a state transition table
+"""draw_fsm_diagram.py: Create dot code and dokuwiki table from a state transition table
 
 convert dot code to png using graphviz:
 
 dot fsm.dot -Tpng -o fsm.png
 """
 
-from optparse import OptionParser
+import argparse
 import re
-import subprocess
 
 __author__      = "Julian Oes"
 
@@ -27,16 +26,16 @@ def get_dot_footer():
 def main():
 
     # parse input arguments
-    parser = OptionParser()
-    parser.add_option("-i", "--input-file", default=None, help="choose file to parse")
-    parser.add_option("-d", "--dot-file", default=None, help="choose file for output dot file")
-    parser.add_option("-t", "--table-file", default=None, help="choose file for output of table")
-    (options, args) = parser.parse_args()
+    parser = argparse.ArgumentParser(description='Create dot code and dokuwiki table from a state transition table.')
+    parser.add_argument("-i", "--input-file", default=None, help="choose file to parse")
+    parser.add_argument("-d", "--dot-file", default=None, help="choose file for output dot file")
+    parser.add_argument("-t", "--table-file", default=None, help="choose file for output of table")
+    args = parser.parse_args()
     
     # open source file
-    if options.input_file == None:
+    if args.input_file == None:
         exit('please specify file')
-    f = open(options.input_file,'r')
+    f = open(args.input_file,'r')
     source = f.read()
 
     # search for state transition table and extract the table itself
@@ -157,8 +156,8 @@ def main():
     dot_code = get_dot_header() + dot_code + get_dot_footer()
     
     # write or print dot file
-    if options.dot_file:
-        f = open(options.dot_file,'w')
+    if args.dot_file:
+        f = open(args.dot_file,'w')
         f.write(dot_code)
         print('Wrote dot file')
     else:
@@ -183,8 +182,8 @@ def main():
         table_code += '\n'
 
     # write or print wiki table
-    if options.table_file:
-        f = open(options.table_file,'w')
+    if args.table_file:
+        f = open(args.table_file,'w')
         f.write(table_code)
         print('Wrote table file')
     else:
