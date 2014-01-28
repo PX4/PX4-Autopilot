@@ -685,7 +685,8 @@ Navigator::task_main()
 					/* RC signal available, use control switches to set mode */
 					/* RETURN switch, overrides MISSION switch */
 					if (_vstatus.return_switch == RETURN_SWITCH_RETURN) {
-						if (myState != NAV_STATE_READY || _rtl_state != RTL_STATE_LAND) {
+						/* switch to RTL if not already landed after RTL and home position set */
+						if ((myState != NAV_STATE_READY || _rtl_state != RTL_STATE_LAND) && _vstatus.condition_home_position_valid) {
 							dispatch(EVENT_RTL_REQUESTED);
 						}
 
@@ -742,7 +743,7 @@ Navigator::task_main()
 							break;
 
 						case NAV_STATE_RTL:
-							if (myState != NAV_STATE_READY || _rtl_state != RTL_STATE_LAND) {
+							if ((myState != NAV_STATE_READY || _rtl_state != RTL_STATE_LAND) && _vstatus.condition_home_position_valid) {
 								dispatch(EVENT_RTL_REQUESTED);
 							}
 
@@ -814,6 +815,11 @@ Navigator::task_main()
 		/* global position updated */
 		if (fds[1].revents & POLLIN) {
 			global_position_update();
+
+			/* publish position setpoint triplet on each position update if navigator active */
+			if (_control_mode.flag_armed && _control_mode.flag_control_auto_enabled) {
+				_pos_sp_triplet_updated = true;
+			}
 
 			/* only check if waypoint has been reached in MISSION and RTL modes */
 			if (myState == NAV_STATE_MISSION || myState == NAV_STATE_RTL) {
