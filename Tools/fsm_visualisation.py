@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""draw_fsm_diagram.py: Create dot code and dokuwiki table from a state transition table
+"""fsm_visualisation.py: Create dot code and dokuwiki table from a state transition table
 
 convert dot code to png using graphviz:
 
