@@ -381,14 +381,73 @@ PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.00459340659f);
 #endif
 PARAM_DEFINE_FLOAT(BAT_C_SCALING, 0.0124);	/* scaling for 3DR power brick */
 
+/**
+ * Roll control channel mapping.
+ *
+ * The channel index (starting from 1 for channel 1) indicates
+ * which channel should be used for reading roll inputs from.
+ * A value of zero indicates the switch is not assigned.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_INT32(RC_MAP_ROLL, 1);
+
+/**
+ * Pitch control channel mapping.
+ *
+ * The channel index (starting from 1 for channel 1) indicates
+ * which channel should be used for reading pitch inputs from.
+ * A value of zero indicates the switch is not assigned.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_INT32(RC_MAP_PITCH, 2);
+
+/**
+ * Throttle control channel mapping.
+ *
+ * The channel index (starting from 1 for channel 1) indicates
+ * which channel should be used for reading throttle inputs from.
+ * A value of zero indicates the switch is not assigned.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_INT32(RC_MAP_THROTTLE, 3);
+
+/**
+ * Yaw control channel mapping.
+ *
+ * The channel index (starting from 1 for channel 1) indicates
+ * which channel should be used for reading yaw inputs from.
+ * A value of zero indicates the switch is not assigned.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_INT32(RC_MAP_YAW, 4);
 
-PARAM_DEFINE_INT32(RC_MAP_MODE_SW, 5);
+/**
+ * Mode switch channel mapping.
+ *
+ * This is the main flight mode selector.
+ * The channel index (starting from 1 for channel 1) indicates
+ * which channel should be used for deciding about the main mode.
+ * A value of zero indicates the switch is not assigned.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_MAP_MODE_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_RETURN_SW, 0);
-PARAM_DEFINE_INT32(RC_MAP_ASSIST_SW, 6);
+PARAM_DEFINE_INT32(RC_MAP_ASSIST_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_MISSIO_SW, 0);
 
 //PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);

@@ -45,6 +45,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "../uORB.h"
+#include <navigator/navigator_state.h>
 
 /**
  * @addtogroup topics
@@ -82,6 +83,8 @@ struct position_setpoint_triplet_s
 	struct position_setpoint_s previous;
 	struct position_setpoint_s current;
 	struct position_setpoint_s next;
+
+	nav_state_t nav_state;		/**< navigation state */
 };
 
 /**

@@ -451,7 +451,7 @@ private:
 namespace
 {
 
-PX4IO	*g_dev;
+PX4IO	*g_dev = nullptr;
 
 }
 
@@ -505,7 +505,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	/* open MAVLink text channel */
 	_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
 
-	_debug_enabled = true;
+	_debug_enabled = false;
 	_servorail_status.rssi_v = 0;
 }
 
@@ -579,6 +579,12 @@ PX4IO::init()
 
 	/* get some parameters */
 	unsigned protocol = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
+
+	if (protocol == _io_reg_get_error) {
+		log("failed to communicate with IO");
+		mavlink_log_emergency(_mavlink_fd, "[IO] failed to communicate with IO, abort.");
+		return -1;
+	}
 
 	if (protocol != PX4IO_PROTOCOL_VERSION) {
 		log("protocol/firmware mismatch");
@@ -774,8 +780,6 @@ PX4IO::task_main()
 	hrt_abstime poll_last = 0;
 	hrt_abstime orb_check_last = 0;
 
-	log("starting");
-
 	_thread_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
 
 	/*
@@ -808,8 +812,6 @@ PX4IO::task_main()
 	pollfd fds[1];
 	fds[0].fd = _t_actuator_controls_0;
 	fds[0].events = POLLIN;
-
-	log("ready");
 
 	/* lock against the ioctl handler */
 	lock();
@@ -1673,7 +1675,18 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 				total_len++;
 			}
 
-			int ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, total_len / 2);
+			int ret;
+
+			for (int i = 0; i < 30; i++) {
+				/* failed, but give it a 2nd shot */
+				ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, total_len / 2);
+
+				if (ret) {
+					usleep(333);
+				} else {
+					break;
+				}
+			}
 
 			/* print mixer chunk */
 			if (debuglevel > 5 || ret) {
@@ -1697,7 +1710,18 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 		msg->text[0] = '\n';
 		msg->text[1] = '\0';
 
-		int ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, (sizeof(px4io_mixdata) + 2) / 2);
+		int ret;
+
+		for (int i = 0; i < 30; i++) {
+			/* failed, but give it a 2nd shot */
+			ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, (sizeof(px4io_mixdata) + 2) / 2);
+
+			if (ret) {
+				usleep(333);
+			} else {
+				break;
+			}
+		}
 
 		if (ret)
 			return ret;
@@ -2699,6 +2723,7 @@ px4io_main(int argc, char *argv[])
 			printf("[px4io] loaded, detaching first\n");
 			/* stop the driver */
 			delete g_dev;
+			g_dev = nullptr;
 		}
 
 		PX4IO_Uploader *up;
@@ -2782,10 +2807,6 @@ px4io_main(int argc, char *argv[])
 				delete interface;
 				errx(1, "driver alloc failed");
 			}
-
-			if (OK != g_dev->init()) {
-				warnx("driver init failed, still trying..");
-			}
 		}
 
 		uint16_t arg = atol(argv[2]);
@@ -2797,6 +2818,7 @@ px4io_main(int argc, char *argv[])
 
 		// tear down the px4io instance
 		delete g_dev;
+		g_dev = nullptr;
 
 		// upload the specified firmware
 		const char *fn[2];
@@ -2855,6 +2877,7 @@ px4io_main(int argc, char *argv[])
 
 		/* stop the driver */
 		delete g_dev;
+		g_dev = nullptr;
 		exit(0);
 	}
 

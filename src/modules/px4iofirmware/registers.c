@@ -89,7 +89,9 @@ uint16_t		r_page_status[] = {
 	[PX4IO_P_STATUS_IBATT]			= 0,
 	[PX4IO_P_STATUS_VSERVO]			= 0,
 	[PX4IO_P_STATUS_VRSSI]			= 0,
-	[PX4IO_P_STATUS_PRSSI]			= 0
+	[PX4IO_P_STATUS_PRSSI]			= 0,
+	[PX4IO_P_STATUS_NRSSI]			= 0,
+	[PX4IO_P_STATUS_RC_DATA]		= 0
 };
 
 /**
@@ -380,7 +382,10 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 
 		/* handle text going to the mixer parser */
 	case PX4IO_PAGE_MIXERLOAD:
-		mixer_handle_text(values, num_values * sizeof(*values));
+		if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ||
+				    (r_status_flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
+			return mixer_handle_text(values, num_values * sizeof(*values));
+		}
 		break;
 
 	default:
@@ -507,8 +512,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 		case PX4IO_P_SETUP_REBOOT_BL:
 			if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ||
-			    (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ||
-			    (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+			    (r_status_flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
 				// don't allow reboot while armed
 				break;
 			}
@@ -538,8 +542,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		 * do not allow a RC config change while outputs armed
 		 */
 		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ||
-			(r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ||
-			(r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+			    (r_status_flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
 			break;
 		}
 
@@ -599,7 +602,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 				if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] == UINT8_MAX) {
 					disabled = true;
-                } else if (REG_TO_SIGNED(conf[PX4IO_P_RC_CONFIG_ASSIGNMENT]) < 0 || conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= PX4IO_RC_MAPPED_CONTROL_CHANNELS) {
+				} else if ((int)(conf[PX4IO_P_RC_CONFIG_ASSIGNMENT]) < 0 || conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= PX4IO_RC_MAPPED_CONTROL_CHANNELS) {
 					count++;
 				}
 

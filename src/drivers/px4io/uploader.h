@@ -91,7 +91,7 @@ private:
 	void			drain();
 	int			send(uint8_t c);
 	int			send(uint8_t *p, unsigned count);
-	int			get_sync(unsigned timeout = 1000);
+	int			get_sync(unsigned timeout = 40);
 	int			sync();
 	int			get_info(int param, uint32_t &val);
 	int			erase();
