@@ -59,7 +59,7 @@ def main():
     # first get all states and events
     for table_line in table_source.split('\n'):
 
-        match = re.search(r'/\*\s+STATE_(\w+)\s+\*/', table_line)
+        match = re.search(r'/\*\s+\w+_STATE_(\w+)\s+\*/', table_line)
         if match:
             states.append(str(match.group(1)))
             # go to next line
@@ -86,9 +86,9 @@ def main():
     for table_line in table_source.split('\n'):
         
         # get states
-        #     from: /* STATE_NONE */
+        #     from: /* NAV_STATE_NONE */
         #     extract only "NONE"
-        match = re.search(r'/\*\s+STATE_(\w+)\s+\*/', table_line)
+        match = re.search(r'/\*\s+\w+_STATE_(\w+)\s+\*/', table_line)
         if match:
             state = match.group(1)
             state_index = states.index(state)
@@ -100,14 +100,14 @@ def main():
             continue
 
         # get event and next state
-        #     from /* EVENT_READY_REQUESTED */      {ACTION(&Navigator::start_ready), STATE_READY}
+        #     from /* EVENT_READY_REQUESTED */      {ACTION(&Navigator::start_ready), NAV_STATE_READY}
         #     extract "READY_REQUESTED" and "READY" if there is ACTION
-        match_action = re.search(r'/\*\s+EVENT_(\w+)\s+\*/\s+\{ACTION\((?:.|\n)*STATE_(\w+)', table_line)
+        match_action = re.search(r'/\*\s+EVENT_(\w+)\s+\*/\s+\{ACTION\((?:.|\n)*\w+_STATE_(\w+)', table_line)
 
         # get event and next state
-        #     from      /* EVENT_NONE_REQUESTED */      {NO_ACTION, STATE_NONE},
-        #     extract "NONE_REQUESTED" and "STATE_NONE" if there is NO_ACTION
-        match_no_action = re.search(r'/\*\s+EVENT_(\w+)\s+\*/\s+\{NO_ACTION(?:.|\n)*STATE_(\w+)', table_line)
+        #     from      /* EVENT_NONE_REQUESTED */      {NO_ACTION, NAV_STATE_NONE},
+        #     extract "NONE_REQUESTED" and "NAV_STATE_NONE" if there is NO_ACTION
+        match_no_action = re.search(r'/\*\s+EVENT_(\w+)\s+\*/\s+\{NO_ACTION(?:.|\n)*\w+_STATE_(\w+)', table_line)
         
         # ignore lines with brackets only
         if match_action or match_no_action:
