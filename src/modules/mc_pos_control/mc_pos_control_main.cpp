@@ -182,6 +182,7 @@ private:
 
 	bool _reset_lat_lon_sp;
 	bool _reset_alt_sp;
+	bool _use_global_alt;			/**< switch between global (AMSL) and barometric altitudes */
 
 	math::Vector<3> _vel;
 	math::Vector<3> _vel_sp;
@@ -213,6 +214,11 @@ private:
 	 * Reset altitude setpoint to current altitude
 	 */
 	void		reset_alt_sp();
+
+	/**
+	 * Select between barometric and global (AMSL) altitudes
+	 */
+	void		select_alt(bool global);
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -263,7 +269,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_alt_sp(0.0f),
 
 	_reset_lat_lon_sp(true),
-	_reset_alt_sp(true)
+	_reset_alt_sp(true),
+	_use_global_alt(false)
 {
 	memset(&_att, 0, sizeof(_att));
 	memset(&_att_sp, 0, sizeof(_att_sp));
@@ -466,8 +473,23 @@ MulticopterPositionControl::reset_alt_sp()
 {
 	if (_reset_alt_sp) {
 		_reset_alt_sp = false;
-		_alt_sp = _global_pos.alt;
-		mavlink_log_info(_mavlink_fd, "[mpc] reset alt sp: %.2f", (double)_alt_sp);
+		_alt_sp = _use_global_alt ? _global_pos.alt : _global_pos.baro_alt;
+		mavlink_log_info(_mavlink_fd, "[mpc] reset alt (%s) sp: %.2f", _use_global_alt ? "AMSL" : "baro", (double)_alt_sp);
+	}
+}
+
+void
+MulticopterPositionControl::select_alt(bool global)
+{
+	if (global != _use_global_alt) {
+		_use_global_alt = global;
+		if (global) {
+			/* switch from barometric to global altitude */
+			_alt_sp += _global_pos.alt - _global_pos.baro_alt;
+		} else {
+			/* switch from global to barometric altitude */
+			_alt_sp += _global_pos.baro_alt - _global_pos.alt;
+		}
 	}
 }
 
@@ -565,8 +587,16 @@ MulticopterPositionControl::task_main()
 
 			sp_move_rate.zero();
 
+			float alt = _global_pos.alt;
+
 			/* select control source */
 			if (_control_mode.flag_control_manual_enabled) {
+				/* select altitude source and update setpoint */
+				select_alt(_global_pos.global_valid);
+				if (!_use_global_alt) {
+					alt = _global_pos.baro_alt;
+				}
+
 				/* manual control */
 				if (_control_mode.flag_control_altitude_enabled) {
 					/* reset alt setpoint to current altitude if needed */
@@ -612,7 +642,7 @@ MulticopterPositionControl::task_main()
 				}
 
 				if (_control_mode.flag_control_altitude_enabled) {
-					pos_sp_offs(2) = -(_alt_sp - _global_pos.alt) / _params.sp_offs_max(2);
+					pos_sp_offs(2) = -(_alt_sp - alt) / _params.sp_offs_max(2);
 				}
 
 				float pos_sp_offs_norm = pos_sp_offs.length();
@@ -620,7 +650,7 @@ MulticopterPositionControl::task_main()
 				if (pos_sp_offs_norm > 1.0f) {
 					pos_sp_offs /= pos_sp_offs_norm;
 					add_vector_to_global_position(_lat_sp, _lon_sp, pos_sp_offs(0) * _params.sp_offs_max(0), pos_sp_offs(1) * _params.sp_offs_max(1), &_lat_sp, &_lon_sp);
-					_alt_sp = _global_pos.alt - pos_sp_offs(2) * _params.sp_offs_max(2);
+					_alt_sp = alt - pos_sp_offs(2) * _params.sp_offs_max(2);
 				}
 
 				/* fill position setpoint triplet */
@@ -647,6 +677,9 @@ MulticopterPositionControl::task_main()
 				}
 
 			} else if (_control_mode.flag_control_auto_enabled) {
+				/* always use AMSL altitude for AUTO */
+				select_alt(true);
+
 				/* AUTO */
 				bool updated;
 				orb_check(_pos_sp_triplet_sub, &updated);
@@ -678,7 +711,7 @@ MulticopterPositionControl::task_main()
 			math::Vector<3> pos_err;
 			float err_x, err_y;
 			get_vector_to_next_waypoint_fast(_global_pos.lat, _global_pos.lon, _lat_sp, _lon_sp, &pos_err.data[0], &pos_err.data[1]);
-			pos_err(2) = -(_alt_sp - _global_pos.alt);
+			pos_err(2) = -(_alt_sp - alt);
 
 			_vel_sp = pos_err.emult(_params.pos_p) + sp_move_rate.emult(_params.vel_ff);
 

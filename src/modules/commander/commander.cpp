@@ -871,7 +871,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* update condition_global_position_valid */
-		check_valid(global_position.timestamp, POSITION_TIMEOUT, global_position.valid, &(status.condition_global_position_valid), &status_changed);
+		check_valid(global_position.timestamp, POSITION_TIMEOUT, global_position.global_valid, &(status.condition_global_position_valid), &status_changed);
 
 		/* update local position estimate */
 		orb_check(local_position_sub, &updated);
@@ -1030,7 +1030,7 @@ int commander_thread_main(int argc, char *argv[])
 			if (!status.condition_home_position_valid && gps_position.fix_type >= 3 &&
 			    (gps_position.eph_m < hdop_threshold_m) && (gps_position.epv_m < vdop_threshold_m) &&
 			    (hrt_absolute_time() < gps_position.timestamp_position + POSITION_TIMEOUT) && !armed.armed
-			    && global_position.valid) {
+			    && global_position.global_valid) {
 
 				/* copy position data to uORB home message, store it locally as well */
 				home.lat = global_position.lat;

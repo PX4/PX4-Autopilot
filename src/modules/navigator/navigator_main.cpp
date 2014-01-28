@@ -840,6 +840,7 @@ Navigator::task_main()
 
 		/* publish position setpoint triplet if updated */
 		if (_pos_sp_triplet_updated) {
+			_pos_sp_triplet_updated = false;
 			publish_position_setpoint_triplet();
 		}
 
@@ -882,9 +883,9 @@ Navigator::start()
 void
 Navigator::status()
 {
-	warnx("Global position is %svalid", _global_pos.valid ? "" : "in");
+	warnx("Global position is %svalid", _global_pos.global_valid ? "" : "in");
 
-	if (_global_pos.valid) {
+	if (_global_pos.global_valid) {
 		warnx("Longitude %5.5f degrees, latitude %5.5f degrees", _global_pos.lon, _global_pos.lat);
 		warnx("Altitude %5.5f meters, altitude above home %5.5f meters",
 		      (double)_global_pos.alt, (double)(_global_pos.alt - _home_pos.alt));

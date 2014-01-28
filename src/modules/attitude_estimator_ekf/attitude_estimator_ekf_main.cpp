@@ -410,7 +410,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 							vel(2) = gps.vel_d_m_s;
 						}
 
-					} else if (ekf_params.acc_comp == 2 && global_pos.valid && hrt_absolute_time() < global_pos.timestamp + 500000) {
+					} else if (ekf_params.acc_comp == 2 && global_pos.global_valid && hrt_absolute_time() < global_pos.timestamp + 500000) {
 						vel_valid = true;
 						if (global_pos_updated) {
 							vel_t = global_pos.timestamp;

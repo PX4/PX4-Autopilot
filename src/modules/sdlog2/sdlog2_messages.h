@@ -204,6 +204,8 @@ struct log_GPOS_s {
 	float vel_n;
 	float vel_e;
 	float vel_d;
+	float baro_alt;
+	uint8_t flags;
 };
 
 /* --- GPSP - GLOBAL POSITION SETPOINT --- */
@@ -303,7 +305,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(AIRS, "ff", "IndSpeed,TrueSpeed"),
 	LOG_FORMAT(ARSP, "fff", "RollRateSP,PitchRateSP,YawRateSP"),
 	LOG_FORMAT(FLOW, "hhfffBB", "RawX,RawY,CompX,CompY,Dist,Q,SensID"),
-	LOG_FORMAT(GPOS, "LLffff", "Lat,Lon,Alt,VelN,VelE,VelD"),
+	LOG_FORMAT(GPOS, "LLfffffB", "Lat,Lon,Alt,VelN,VelE,VelD,BaroAlt,Flags"),
 	LOG_FORMAT(GPSP, "BLLffBfbf", "NavState,Lat,Lon,Alt,Yaw,Type,LoitR,LoitDir,PitMin"),
 	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
