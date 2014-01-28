@@ -296,11 +296,11 @@ MavlinkOrbListener::l_vehicle_status(const struct listener *l)
 }
 
 void
-MavlinkOrbListener::l_rc__mavlink->get_chan()nels(const struct listener *l)
+MavlinkOrbListener::l_rc_channels(const struct listener *l)
 {
-	/* copy rc _mavlink->get_chan()nels into local buffer */
-	orb_copy(ORB_ID(rc__mavlink->get_chan()nels), rc_sub, &rc);
-	// XXX Add RC _mavlink->get_chan()nels scaled message here
+	/* copy rc channels into local buffer */
+	orb_copy(ORB_ID(rc_channels), l->mavlink->get_subs()->rc_sub, &l->listener->rc);
+	// XXX Add RC channels scaled message here
 }
 
 void
@@ -315,7 +315,7 @@ MavlinkOrbListener::l_input_rc(const struct listener *l)
 
 		for (unsigned i = 0; (i * port_width) < (l->listener->rc_raw.channel_count + port_width); i++) {
 			/* Channels are sent in MAVLink main loop at a fixed interval */
-			mavlink_msg_rc_channels_raw_send(_mavlink->get_chan(),
+			mavlink_msg_rc_channels_raw_send(l->mavlink->get_chan(),
 							 l->listener->rc_raw.timestamp / 1000,
 							 i,
 							 (l->listener->rc_raw.channel_count > (i * port_width) + 0) ? l->listener->rc_raw.values[(i * port_width) + 0] : UINT16_MAX,
@@ -335,7 +335,7 @@ void
 MavlinkOrbListener::l_global_position(const struct listener *l)
 {
 	/* copy global position data into local buffer */
-	orb_copy(ORB_ID(vehicle_global_position), _mavlink->get_subs()->global_pos_sub, l->listener->global_pos);
+	orb_copy(ORB_ID(vehicle_global_position), l->mavlink->get_subs()->global_pos_sub, &l->listener->global_pos);
 
 	mavlink_msg_global_position_int_send(l->mavlink->get_chan(),
 						 l->listener->global_pos.timestamp / 1000,
@@ -353,7 +353,7 @@ void
 MavlinkOrbListener::l_local_position(const struct listener *l)
 {
 	/* copy local position data into local buffer */
-	orb_copy(ORB_ID(vehicle_local_position), _mavlink->get_subs()->local_pos_sub, l->listener->local_pos);
+	orb_copy(ORB_ID(vehicle_local_position), l->mavlink->get_subs()->local_pos_sub, &l->listener->local_pos);
 
 	if (l->mavlink->get_mode() == Mavlink::MODE_OFFBOARD)
 		mavlink_msg_local_position_ned_send(l->mavlink->get_chan(),
@@ -407,7 +407,7 @@ MavlinkOrbListener::l_attitude_setpoint(const struct listener *l)
 	struct vehicle_attitude_setpoint_s att_sp;
 
 	/* copy local position data into local buffer */
-	orb_copy(ORB_ID(vehicle_attitude_setpoint), _mavlink->get_subs()->spa_sub, &att_sp);
+	orb_copy(ORB_ID(vehicle_attitude_setpoint), l->mavlink->get_subs()->spa_sub, &att_sp);
 
 	if (l->mavlink->get_mode() == Mavlink::MODE_OFFBOARD)
 		mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(l->mavlink->get_chan(),
@@ -464,13 +464,13 @@ MavlinkOrbListener::l_actuator_outputs(const struct listener *l)
 						  act_outputs.output[7]);
 
 		/* only send in HIL mode and only send first group for HIL */
-		if (l->listener->mavlink_hil_enabled && l->listener->armed.armed && ids[l->arg] == ORB_ID(actuator_outputs_0)) {
+		if (l->mavlink->hil_enabled() && l->listener->armed.armed && ids[l->arg] == ORB_ID(actuator_outputs_0)) {
 
 			/* translate the current syste state to mavlink state and mode */
 			uint8_t mavlink_state = 0;
 			uint8_t mavlink_base_mode = 0;
 			uint32_t mavlink_custom_mode = 0;
-			get_mavlink_mode_and_state(&mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
+			l->mavlink->get_mavlink_mode_and_state(&mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
 
 			/* HIL message as per MAVLink spec */
 
@@ -616,9 +616,9 @@ MavlinkOrbListener::l_optical_flow(const struct listener *l)
 void
 MavlinkOrbListener::l_home(const struct listener *l)
 {
-	orb_copy(ORB_ID(home_position), l->mavlink->get_subs()->home_sub, &home);
+	orb_copy(ORB_ID(home_position), l->mavlink->get_subs()->home_sub, &l->listener->home);
 
-	mavlink_msg_gps_global_origin_send(l->mavlink->get_chan(), (int32_t)(home.lat*1e7d), (int32_t)(home.lon*1e7d), (int32_t)(home.alt)*1e3f);
+	mavlink_msg_gps_global_origin_send(l->mavlink->get_chan(), (int32_t)(l->listener->home.lat*1e7d), (int32_t)(l->listener->home.lon*1e7d), (int32_t)(l->listener->home.alt)*1e3f);
 }
 
 void

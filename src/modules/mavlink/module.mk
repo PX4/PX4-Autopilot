@@ -39,7 +39,6 @@ MODULE_COMMAND	 = mavlink
 SRCS		 += mavlink_main.cpp \
 			mavlink.c \
 			mavlink_receiver.cpp \
-			mavlink_orb_listener.cpp \
-			waypoints.cpp
+			mavlink_orb_listener.cpp
 
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink

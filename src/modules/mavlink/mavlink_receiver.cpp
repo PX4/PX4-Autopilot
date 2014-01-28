@@ -106,7 +106,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	telemetry_status_pub(-1),
 	lat0(0),
 	lon0(0),
-	alt0(0)
+	alt0(0),
+	thread_should_exit(false)
 {
 
 }
@@ -818,7 +819,7 @@ MavlinkReceiver::receive_thread(void *arg)
 
 			/* if read failed, this loop won't execute */
 			for (ssize_t i = 0; i < nread; i++) {
-				if (mavlink_parse_char(chan, buf[i], &msg, &status)) {
+				if (mavlink_parse_char(_mavlink->get_chan(), buf[i], &msg, &status)) {
 					/* handle generic messages and commands */
 					handle_message(&msg);
 

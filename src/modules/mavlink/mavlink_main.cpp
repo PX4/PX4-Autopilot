@@ -97,6 +97,8 @@
 #endif
 static const int ERROR = -1;
 
+static Mavlink* _head = nullptr;
+
 /**
  * mavlink app start / stop handling function
  *
@@ -203,10 +205,10 @@ void Mavlink::set_mode(enum MAVLINK_MODE mode)
 int Mavlink::instance_count()
 {
 	/* note: a local buffer count will help if this ever is called often */
-	Mavlink* inst = _head;
+	Mavlink* inst = ::_head;
 	unsigned inst_index = 0;
-	while (inst->_head != nullptr) {
-		inst = inst->_head;
+	while (inst->_next != nullptr) {
+		inst = inst->_next;
 		inst_index++;
 	}
 
@@ -216,22 +218,22 @@ int Mavlink::instance_count()
 Mavlink* Mavlink::new_instance(const char *port, unsigned baud_rate)
 {
 	Mavlink* inst = new Mavlink(port, baud_rate);
-	Mavlink* parent = _head;
-	while (parent->_head != nullptr)
-		parent = parent->_head;
+	Mavlink* parent = ::_head;
+	while (parent->_next != nullptr)
+		parent = parent->_next;
 
 	/* now parent points to a null pointer, fill it */
-	parent->_head = inst;
+	parent->_next = inst;
 
 	return inst;
 }
 
 Mavlink* Mavlink::get_instance(unsigned instance)
 {
-	Mavlink* inst = _head;
+	Mavlink* inst = ::_head;
 	unsigned inst_index = 0;
-	while (inst->_head != nullptr && inst_index < instance) {
-		inst = inst->_head;
+	while (inst->_next != nullptr && inst_index < instance) {
+		inst = inst->_next;
 		inst_index++;
 	}
 
@@ -428,9 +430,9 @@ Mavlink::set_hil_on_off(bool hil_enabled)
 	int ret = OK;
 
 	/* Enable HIL */
-	if (hil_enabled && !mavlink_hil_enabled) {
+	if (hil_enabled && !_mavlink_hil_enabled) {
 
-		mavlink_hil_enabled = true;
+		_mavlink_hil_enabled = true;
 
 		/* ramp up some HIL-related subscriptions */
 		unsigned hil_rate_interval;
@@ -456,8 +458,8 @@ Mavlink::set_hil_on_off(bool hil_enabled)
 		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, hil_rate_interval);
 	}
 
-	if (!hil_enabled && mavlink_hil_enabled) {
-		mavlink_hil_enabled = false;
+	if (!hil_enabled && _mavlink_hil_enabled) {
+		_mavlink_hil_enabled = false;
 		orb_set_interval(subs.spa_sub, 200);
 
 	} else {
@@ -1426,12 +1428,6 @@ Mavlink::mavlink_missionlib_send_gcs_string(const char *string)
 	}
 }
 
-void
-Mavlink::task_main_trampoline(int argc, char *argv[])
-{
-	mavlink::g_mavlink->task_main(argc, argv);
-}
-
 int
 Mavlink::task_main(int argc, char *argv[])
 {
@@ -1481,43 +1477,43 @@ Mavlink::task_main(int argc, char *argv[])
 
 
 	/* initialize mavlink text message buffering */
-	mavlink_logbuffer_init(&lb, 10);
+	// mavlink_logbuffer_init(&lb, 10);
 
 	int ch;
 	char *device_name = "/dev/ttyS1";
 	baudrate = 57600;
 
-	/* work around some stupidity in task_create's argv handling */
-	argc -= 2;
-	argv += 2;
+	// /* work around some stupidity in task_create's argv handling */
+	// argc -= 2;
+	// argv += 2;
 
-	while ((ch = getopt(argc, argv, "b:d:eo")) != EOF) {
-		switch (ch) {
-		case 'b':
-			baudrate = strtoul(optarg, NULL, 10);
+	// while ((ch = getopt(argc, argv, "b:d:eo")) != EOF) {
+	// 	switch (ch) {
+	// 	case 'b':
+	// 		baudrate = strtoul(optarg, NULL, 10);
 
-			if (baudrate < 9600 || baudrate > 921600)
-				errx(1, "invalid baud rate '%s'", optarg);
+	// 		if (baudrate < 9600 || baudrate > 921600)
+	// 			errx(1, "invalid baud rate '%s'", optarg);
 
-			break;
+	// 		break;
 
-		case 'd':
-			device_name = optarg;
-			break;
+	// 	case 'd':
+	// 		device_name = optarg;
+	// 		break;
 
-		case 'e':
-			mavlink_link_termination_allowed = true;
-			break;
+	// 	case 'e':
+	// 		mavlink_link_termination_allowed = true;
+	// 		break;
 
-		case 'o':
-			_mode = MODE_ONBOARD;
-			break;
+	// 	case 'o':
+	// 		_mode = MODE_ONBOARD;
+	// 		break;
 
-		default:
-			usage();
-			break;
-		}
-	}
+	// 	default:
+	// 		usage();
+	// 		break;
+	// 	}
+	// }
 
 	struct termios uart_config_original;
 
@@ -1699,15 +1695,15 @@ Mavlink::task_main(int argc, char *argv[])
 		/* sleep 10 ms */
 		usleep(10000);
 
-		/* send one string at 10 Hz */
-		if (!mavlink_logbuffer_is_empty(&lb)) {
-			struct mavlink_logmessage msg;
-			int lb_ret = mavlink_logbuffer_read(&lb, &msg);
+		// /* send one string at 10 Hz */
+		// if (!mavlink_logbuffer_is_empty(&lb)) {
+		// 	struct mavlink_logmessage msg;
+		// 	int lb_ret = mavlink_logbuffer_read(&lb, &msg);
 
-			if (lb_ret == OK) {
-				mavlink_missionlib_send_gcs_string(msg.text);
-			}
-		}
+		// 	if (lb_ret == OK) {
+		// 		mavlink_missionlib_send_gcs_string(msg.text);
+		// 	}
+		// }
 
 		/* sleep 15 ms */
 		usleep(15000);
@@ -1742,27 +1738,32 @@ Mavlink::task_main(int argc, char *argv[])
 	_exit(0);
 }
 
-int
-Mavlink::start()
+int Mavlink::start_helper(int argc, char *argv[])
 {
-	ASSERT(_mavlink_task == -1);
+	// This is beyond evil.. and needs a lock to be safe
+	return Mavlink::get_instance(Mavlink::instance_count() - 1)->task_main(argc, argv);
+}
+
+int
+Mavlink::start(Mavlink* mavlink)
+{
 
 	/* start the task */
 	char buf[32];
 	sprintf(buf, "mavlink if%d", Mavlink::instance_count());
 
-	_mavlink_task = task_spawn_cmd(buf,
+	mavlink->_mavlink_task = task_spawn_cmd(buf,
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 5,
 					 2048,
-					 (main_t)&Mavlink::task_main_trampoline,
-					 nullptr);
+					 (main_t)&Mavlink::start_helper,
+					 NULL);
 
 	// while (!this->is_running()) {
 	// 		usleep(200);
 	// }
 
-	if (_mavlink_task < 0) {
+	if (mavlink->_mavlink_task < 0) {
 		warn("task start failed");
 		return -errno;
 	}
@@ -1793,6 +1794,9 @@ int mavlink_main(int argc, char *argv[])
 
 		if (mavlink::g_mavlink == nullptr)
 			mavlink::g_mavlink = instance;
+
+		// Instantiate thread
+		Mavlink::start(instance);
 
 		// if (mavlink::g_mavlink != nullptr) {
 		// 	errx(1, "already running");

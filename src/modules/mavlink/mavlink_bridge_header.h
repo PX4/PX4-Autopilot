@@ -42,6 +42,8 @@
 #ifndef MAVLINK_BRIDGE_HEADER_H
 #define MAVLINK_BRIDGE_HEADER_H
 
+__BEGIN_DECLS
+
 #define MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
 /* use efficient approach, see mavlink_helpers.h */
@@ -72,11 +74,13 @@ extern mavlink_system_t mavlink_system;
  * @param chan MAVLink channel to use, usually MAVLINK_COMM_0 = UART0
  * @param ch Character to send
  */
-extern void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length);
+void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length);
 
 extern mavlink_status_t *mavlink_get_channel_status(uint8_t chan);
 extern mavlink_message_t *mavlink_get_channel_buffer(uint8_t chan);
 
 #include <v1.0/common/mavlink.h>
+
+__END_DECLS
 
 #endif /* MAVLINK_BRIDGE_HEADER_H */

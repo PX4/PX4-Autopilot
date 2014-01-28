@@ -170,6 +170,7 @@ private:
 	struct actuator_controls_s actuators_0;
 	struct vehicle_attitude_s att;
 	struct airspeed_s airspeed;
+	struct home_position_s home;
 
 	int status_sub;
 	int rc_sub;

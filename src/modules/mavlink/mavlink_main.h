@@ -155,7 +155,7 @@ public:
 	 *
 	 * @return		OK on success.
 	 */
-	int		start();
+	static int		start(Mavlink* mavlink);
 
 	/**
 	 * Display the mavlink status.
@@ -170,7 +170,7 @@ public:
 
 	static int get_uart_fd(unsigned index);
 
-	int get_uart_fd() { return _mavlink_fd; }
+	int get_uart_fd() { return uart; }
 
 	enum MAVLINK_MODE {
 		MODE_TX_HEARTBEAT_ONLY=0,
@@ -180,7 +180,7 @@ public:
 	};
 
 	void		set_mode(enum MAVLINK_MODE);
-	enum MAVLINK_MODE		get_mode();
+	enum MAVLINK_MODE		get_mode() { return _mode; }
 
 	bool		hil_enabled() { return _mavlink_hil_enabled; };
 
@@ -189,11 +189,24 @@ public:
 	 */
 	void mavlink_wpm_message_handler(const mavlink_message_t *msg);
 
+	static int start_helper(int argc, char *argv[]);
+
 	/**
 	 * Handle parameter related messages.
 	 */
 	void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_message_t *msg);
 
+	void get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode);
+
+	/**
+	 * Enable / disable Hardware in the Loop simulation mode.
+	 *
+	 * @param hil_enabled	The new HIL enable/disable state.
+	 * @return		OK if the HIL state changed, ERROR if the
+	 *			requested change could not be made or was
+	 *			redundant.
+	 */
+	int		set_hil_on_off(bool hil_enabled);
 
 	struct mavlink_subscriptions {
 		int sensor_sub;
@@ -217,12 +230,13 @@ public:
 		int input_rc_sub;
 		int optical_flow;
 		int rates_setpoint_sub;
-		int home_sub;
+		int get_sub;
 		int airspeed_sub;
 		int navigation_capabilities_sub;
 		int control_mode_sub;
 		int rc_sub;
 		int status_sub;
+		int home_sub;
 	};
 
 	struct mavlink_subscriptions subs;
@@ -252,6 +266,7 @@ protected:
 	 */
 	struct file_operations	fops;
 	int		_mavlink_fd;
+	Mavlink*	_next;
 
 private:
 
@@ -264,7 +279,6 @@ private:
 
 	/* states */
 	bool		_mavlink_hil_enabled;		/**< Hardware in the loop mode */
-	static Mavlink*	_head;
 
 	int		_params_sub;
 
@@ -289,7 +303,6 @@ private:
 	mavlink_wpm_storage *wpm;
 
 	bool verbose;
-	bool mavlink_hil_enabled;
 	int uart;
 	int baudrate;
 	bool gcs_link;
@@ -307,16 +320,6 @@ private:
 	 * Update our local parameter cache.
 	 */
 	void		parameters_update();
-
-	/**
-	 * Enable / disable Hardware in the Loop simulation mode.
-	 *
-	 * @param hil_enabled	The new HIL enable/disable state.
-	 * @return		OK if the HIL state changed, ERROR if the
-	 *			requested change could not be made or was
-	 *			redundant.
-	 */
-	int		set_hil_on_off(bool hil_enabled);
 
 	/**
 	 * Send all parameters at once.
@@ -390,19 +393,12 @@ private:
 
 	int set_mavlink_interval_limit(struct mavlink_subscriptions *subs, int mavlink_msg_id, int min_interval);
 
-	void get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode);
-
 	/**
 	 * Callback for param interface.
 	 */
 	static void mavlink_pm_callback(void *arg, param_t param);
 
 	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
-
-	/**
-	 * Shim for calling task_main from task_create.
-	 */
-	void		task_main_trampoline(int argc, char *argv[]);
 
 	/**
 	 * Main mavlink task.
