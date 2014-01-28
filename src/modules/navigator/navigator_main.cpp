@@ -989,8 +989,8 @@ StateTable::Tran const Navigator::myTable[MAX_STATE][MAX_EVENT] = {
 		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), STATE_MISSION},
 		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), STATE_RTL},
 		/* EVENT_LAND_REQUESTED */		{NO_ACTION, STATE_LAND},
-		/* EVENT_MISSION_CHANGED */		{NO_ACTION, STATE_RTL},
-		/* EVENT_HOME_POSITION_CHANGED */	{ACTION(&Navigator::start_rtl), STATE_RTL},
+		/* EVENT_MISSION_CHANGED */		{NO_ACTION, STATE_LAND},
+		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, STATE_LAND},
 	},
 };
 
@@ -1607,6 +1607,7 @@ Navigator::publish_control_mode()
 
 		case MAIN_STATE_AUTO:
 			navigator_enabled = true;
+			break;
 
 		default:
 			break;
