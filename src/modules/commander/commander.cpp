@@ -493,14 +493,14 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 			unsigned int mav_goto = cmd->param1;
 
 			if (mav_goto == 0) {	// MAV_GOTO_DO_HOLD
-				status->set_nav_state = NAV_STATE_LOITER;
+				status->set_nav_state = STATE_LOITER;
 				status->set_nav_state_timestamp = hrt_absolute_time();
 				mavlink_log_critical(mavlink_fd, "#audio: pause mission cmd");
 				result = VEHICLE_CMD_RESULT_ACCEPTED;
 				ret = true;
 
 			} else if (mav_goto == 1) {	// MAV_GOTO_DO_CONTINUE
-				status->set_nav_state = NAV_STATE_MISSION;
+				status->set_nav_state = STATE_MISSION;
 				status->set_nav_state_timestamp = hrt_absolute_time();
 				mavlink_log_critical(mavlink_fd, "#audio: continue mission cmd");
 				result = VEHICLE_CMD_RESULT_ACCEPTED;
@@ -624,7 +624,7 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&armed, 0, sizeof(armed));
 
 	status.main_state = MAIN_STATE_MANUAL;
-	status.set_nav_state = NAV_STATE_NONE;
+	status.set_nav_state = STATE_NONE;
 	status.set_nav_state_timestamp = 0;
 	status.arming_state = ARMING_STATE_INIT;
 	status.hil_state = HIL_STATE_OFF;

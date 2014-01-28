@@ -62,13 +62,13 @@
  */
 
 typedef enum {
-	NAV_STATE_NONE = 0,
-	NAV_STATE_READY,
-	NAV_STATE_LOITER,
-	NAV_STATE_MISSION,
-	NAV_STATE_RTL,
-	NAV_STATE_LAND,
-	NAV_STATE_MAX
+	STATE_NONE = 0,
+	STATE_READY,
+	STATE_LOITER,
+	STATE_MISSION,
+	STATE_RTL,
+	STATE_LAND,
+	MAX_STATE
 } nav_state_t;
 
 struct vehicle_control_mode_s
