@@ -756,7 +756,7 @@ PX4IO::init()
 	}
 
 	/* start the IO interface task */
-	_task = task_create("px4io", SCHED_PRIORITY_ACTUATOR_OUTPUTS, 2048, (main_t)&PX4IO::task_main_trampoline, nullptr);
+	_task = task_create("px4io", SCHED_PRIORITY_ACTUATOR_OUTPUTS, 1024, (main_t)&PX4IO::task_main_trampoline, nullptr);
 
 	if (_task < 0) {
 		debug("task start failed: %d", errno);
