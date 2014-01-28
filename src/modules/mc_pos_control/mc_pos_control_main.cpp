@@ -628,6 +628,7 @@ MulticopterPositionControl::task_main()
 				_pos_sp_triplet.current.valid = true;
 				_pos_sp_triplet.next.valid = true;
 
+				_pos_sp_triplet.nav_state = NAV_STATE_NONE;
 				_pos_sp_triplet.current.type = SETPOINT_TYPE_NORMAL;
 				_pos_sp_triplet.current.lat = _lat_sp;
 				_pos_sp_triplet.current.lon = _lon_sp;
