@@ -188,7 +188,7 @@ private:
 
 	uint64_t	_set_nav_state_timestamp;		/**< timestamp of last handled navigation state request */
 
-	char *nav_states_str[MAX_STATE];
+	char *nav_states_str[NAV_STATE_MAX];
 
 	struct {
 		float min_altitude;
@@ -227,7 +227,7 @@ private:
 	/**
 	 * State machine transition table
 	 */
-	static StateTable::Tran const myTable[MAX_STATE][MAX_EVENT];
+	static StateTable::Tran const myTable[NAV_STATE_MAX][MAX_EVENT];
 
 	enum RTLState {
 		RTL_STATE_NONE = 0,
@@ -363,7 +363,7 @@ Navigator	*g_navigator;
 Navigator::Navigator() :
 
 /* state machine transition table */
-	StateTable(&myTable[0][0], MAX_STATE, MAX_EVENT),
+	StateTable(&myTable[0][0], NAV_STATE_MAX, MAX_EVENT),
 
 	_task_should_exit(false),
 	_navigator_task(-1),
@@ -423,7 +423,7 @@ Navigator::Navigator() :
 	nav_states_str[5] = "LAND";
 
 	/* Initialize state machine */
-	myState = STATE_NONE;
+	myState = NAV_STATE_NONE;
 	start_none();
 }
 
@@ -604,7 +604,7 @@ Navigator::task_main()
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
 
-	unsigned prevState = STATE_NONE;
+	unsigned prevState = NAV_STATE_NONE;
 	bool pub_control_mode = true;
 	hrt_abstime mavlink_open_time = 0;
 	const hrt_abstime mavlink_open_interval = 500000;
@@ -667,7 +667,7 @@ Navigator::task_main()
 							/* RC signal available, use control switches to set mode */
 							/* RETURN switch, overrides MISSION switch */
 							if (_vstatus.return_switch == RETURN_SWITCH_RETURN) {
-								if (myState != STATE_READY || _rtl_state != RTL_STATE_LAND) {
+								if (myState != NAV_STATE_READY || _rtl_state != RTL_STATE_LAND) {
 									dispatch(EVENT_RTL_REQUESTED);
 								}
 
@@ -691,7 +691,7 @@ Navigator::task_main()
 									stick_mode = true;
 								}
 
-								if (!stick_mode && _vstatus.return_switch == RETURN_SWITCH_NORMAL && myState == STATE_RTL) {
+								if (!stick_mode && _vstatus.return_switch == RETURN_SWITCH_NORMAL && myState == NAV_STATE_RTL) {
 									/* RETURN switch is in normal mode, no MISSION switch mapped, interrupt if in RTL state */
 									dispatch(EVENT_LOITER_REQUESTED);
 									stick_mode = true;
@@ -705,15 +705,15 @@ Navigator::task_main()
 								_set_nav_state_timestamp = _vstatus.set_nav_state_timestamp;
 
 								switch (_vstatus.set_nav_state) {
-								case STATE_NONE:
+								case NAV_STATE_NONE:
 									/* nothing to do */
 									break;
 
-								case STATE_LOITER:
+								case NAV_STATE_LOITER:
 									dispatch(EVENT_LOITER_REQUESTED);
 									break;
 
-								case STATE_MISSION:
+								case NAV_STATE_MISSION:
 									if (_mission.current_mission_available()) {
 										dispatch(EVENT_MISSION_REQUESTED);
 
@@ -723,8 +723,8 @@ Navigator::task_main()
 
 									break;
 
-								case STATE_RTL:
-									if (myState != STATE_READY || _rtl_state != RTL_STATE_LAND) {
+								case NAV_STATE_RTL:
+									if (myState != NAV_STATE_READY || _rtl_state != RTL_STATE_LAND) {
 										dispatch(EVENT_RTL_REQUESTED);
 									}
 
@@ -737,7 +737,7 @@ Navigator::task_main()
 
 							} else {
 								/* on first switch to AUTO try mission by default, if none is available fallback to loiter */
-								if (myState == STATE_NONE) {
+								if (myState == NAV_STATE_NONE) {
 									if (_mission.current_mission_available()) {
 										dispatch(EVENT_MISSION_REQUESTED);
 
@@ -755,14 +755,14 @@ Navigator::task_main()
 
 				} else if (_vstatus.failsafe_state == FAILSAFE_STATE_RTL) {
 					/* RTL on failsafe */
-					if (myState != STATE_READY || _rtl_state != RTL_STATE_LAND) {
+					if (myState != NAV_STATE_READY || _rtl_state != RTL_STATE_LAND) {
 
 						dispatch(EVENT_RTL_REQUESTED);
 					}
 
 				} else if (_vstatus.failsafe_state == FAILSAFE_STATE_LAND) {
 					/* LAND on failsafe */
-					if (myState != STATE_READY) {
+					if (myState != NAV_STATE_READY) {
 						dispatch(EVENT_LAND_REQUESTED);
 					}
 
@@ -814,7 +814,7 @@ Navigator::task_main()
 			global_position_update();
 
 			/* only check if waypoint has been reached in MISSION and RTL modes */
-			if (myState == STATE_MISSION || myState == STATE_RTL) {
+			if (myState == NAV_STATE_MISSION || myState == NAV_STATE_RTL) {
 				if (check_mission_item_reached()) {
 					on_mission_item_reached();
 				}
@@ -903,19 +903,19 @@ Navigator::status()
 	}
 
 	switch (myState) {
-	case STATE_NONE:
+	case NAV_STATE_NONE:
 		warnx("State: None");
 		break;
 
-	case STATE_LOITER:
+	case NAV_STATE_LOITER:
 		warnx("State: Loiter");
 		break;
 
-	case STATE_MISSION:
+	case NAV_STATE_MISSION:
 		warnx("State: Mission");
 		break;
 
-	case STATE_RTL:
+	case NAV_STATE_RTL:
 		warnx("State: RTL");
 		break;
 
@@ -925,72 +925,72 @@ Navigator::status()
 	}
 }
 
-StateTable::Tran const Navigator::myTable[MAX_STATE][MAX_EVENT] = {
+StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 	{
-		/* STATE_NONE */
-		/* EVENT_NONE_REQUESTED */		{NO_ACTION, STATE_NONE},
-		/* EVENT_READY_REQUESTED */		{ACTION(&Navigator::start_ready), STATE_READY},
-		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), STATE_LOITER},
-		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), STATE_MISSION},
-		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), STATE_RTL},
-		/* EVENT_LAND_REQUESTED */		{ACTION(&Navigator::start_land), STATE_LAND},
-		/* EVENT_MISSION_CHANGED */		{NO_ACTION, STATE_NONE},
-		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, STATE_NONE},
+		/* NAV_STATE_NONE */
+		/* EVENT_NONE_REQUESTED */		{NO_ACTION, NAV_STATE_NONE},
+		/* EVENT_READY_REQUESTED */		{ACTION(&Navigator::start_ready), NAV_STATE_READY},
+		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), NAV_STATE_LOITER},
+		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
+		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
+		/* EVENT_LAND_REQUESTED */		{ACTION(&Navigator::start_land), NAV_STATE_LAND},
+		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_NONE},
+		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, NAV_STATE_NONE},
 	},
 	{
-		/* STATE_READY */
-		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), STATE_NONE},
-		/* EVENT_READY_REQUESTED */		{NO_ACTION, STATE_READY},
-		/* EVENT_LOITER_REQUESTED */		{NO_ACTION, STATE_READY},
-		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), STATE_MISSION},
-		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), STATE_RTL},
-		/* EVENT_LAND_REQUESTED */		{NO_ACTION, STATE_READY},
-		/* EVENT_MISSION_CHANGED */		{NO_ACTION, STATE_READY},
-		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, STATE_READY},
+		/* NAV_STATE_READY */
+		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), NAV_STATE_NONE},
+		/* EVENT_READY_REQUESTED */		{NO_ACTION, NAV_STATE_READY},
+		/* EVENT_LOITER_REQUESTED */		{NO_ACTION, NAV_STATE_READY},
+		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
+		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
+		/* EVENT_LAND_REQUESTED */		{NO_ACTION, NAV_STATE_READY},
+		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_READY},
+		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, NAV_STATE_READY},
 	},
 	{
-		/* STATE_LOITER */
-		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), STATE_NONE},
-		/* EVENT_READY_REQUESTED */		{NO_ACTION, STATE_LOITER},
-		/* EVENT_LOITER_REQUESTED */		{NO_ACTION, STATE_LOITER},
-		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), STATE_MISSION},
-		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), STATE_RTL},
-		/* EVENT_LAND_REQUESTED */		{ACTION(&Navigator::start_land), STATE_LAND},
-		/* EVENT_MISSION_CHANGED */		{NO_ACTION, STATE_LOITER},
-		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, STATE_LOITER},
+		/* NAV_STATE_LOITER */
+		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), NAV_STATE_NONE},
+		/* EVENT_READY_REQUESTED */		{NO_ACTION, NAV_STATE_LOITER},
+		/* EVENT_LOITER_REQUESTED */		{NO_ACTION, NAV_STATE_LOITER},
+		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
+		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
+		/* EVENT_LAND_REQUESTED */		{ACTION(&Navigator::start_land), NAV_STATE_LAND},
+		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_LOITER},
+		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, NAV_STATE_LOITER},
 	},
 	{
-		/* STATE_MISSION */
-		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), STATE_NONE},
-		/* EVENT_READY_REQUESTED */		{ACTION(&Navigator::start_ready), STATE_READY},
-		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), STATE_LOITER},
-		/* EVENT_MISSION_REQUESTED */		{NO_ACTION, STATE_MISSION},
-		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), STATE_RTL},
-		/* EVENT_LAND_REQUESTED */		{ACTION(&Navigator::start_land), STATE_LAND},
-		/* EVENT_MISSION_CHANGED */		{ACTION(&Navigator::start_mission), STATE_MISSION},
-		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, STATE_MISSION},
+		/* NAV_STATE_MISSION */
+		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), NAV_STATE_NONE},
+		/* EVENT_READY_REQUESTED */		{ACTION(&Navigator::start_ready), NAV_STATE_READY},
+		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), NAV_STATE_LOITER},
+		/* EVENT_MISSION_REQUESTED */		{NO_ACTION, NAV_STATE_MISSION},
+		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
+		/* EVENT_LAND_REQUESTED */		{ACTION(&Navigator::start_land), NAV_STATE_LAND},
+		/* EVENT_MISSION_CHANGED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
+		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, NAV_STATE_MISSION},
 	},
 	{
-		/* STATE_RTL */
-		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), STATE_NONE},
-		/* EVENT_READY_REQUESTED */		{ACTION(&Navigator::start_ready), STATE_READY},
-		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), STATE_LOITER},
-		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), STATE_MISSION},
-		/* EVENT_RTL_REQUESTED */		{NO_ACTION, STATE_RTL},
-		/* EVENT_LAND_REQUESTED */		{ACTION(&Navigator::start_land), STATE_LAND},
-		/* EVENT_MISSION_CHANGED */		{NO_ACTION, STATE_RTL},
-		/* EVENT_HOME_POSITION_CHANGED */	{ACTION(&Navigator::start_rtl), STATE_RTL},	// TODO need to reset rtl_state
+		/* NAV_STATE_RTL */
+		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), NAV_STATE_NONE},
+		/* EVENT_READY_REQUESTED */		{ACTION(&Navigator::start_ready), NAV_STATE_READY},
+		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), NAV_STATE_LOITER},
+		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
+		/* EVENT_RTL_REQUESTED */		{NO_ACTION, NAV_STATE_RTL},
+		/* EVENT_LAND_REQUESTED */		{ACTION(&Navigator::start_land), NAV_STATE_LAND},
+		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_RTL},
+		/* EVENT_HOME_POSITION_CHANGED */	{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},	// TODO need to reset rtl_state
 	},
 	{
-		/* STATE_LAND */
-		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), STATE_NONE},
-		/* EVENT_READY_REQUESTED */		{ACTION(&Navigator::start_ready), STATE_READY},
-		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), STATE_LOITER},
-		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), STATE_MISSION},
-		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), STATE_RTL},
-		/* EVENT_LAND_REQUESTED */		{NO_ACTION, STATE_LAND},
-		/* EVENT_MISSION_CHANGED */		{NO_ACTION, STATE_LAND},
-		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, STATE_LAND},
+		/* NAV_STATE_LAND */
+		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), NAV_STATE_NONE},
+		/* EVENT_READY_REQUESTED */		{ACTION(&Navigator::start_ready), NAV_STATE_READY},
+		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), NAV_STATE_LOITER},
+		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
+		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
+		/* EVENT_LAND_REQUESTED */		{NO_ACTION, NAV_STATE_LAND},
+		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_LAND},
+		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, NAV_STATE_LAND},
 	},
 };
 
@@ -1499,7 +1499,7 @@ Navigator::check_mission_item_reached()
 void
 Navigator::on_mission_item_reached()
 {
-	if (myState == STATE_MISSION) {
+	if (myState == NAV_STATE_MISSION) {
 		if (_do_takeoff) {
 			/* takeoff completed */
 			_do_takeoff = false;
@@ -1645,7 +1645,7 @@ Navigator::publish_control_mode()
 		_control_mode.flag_control_manual_enabled = false;
 
 		switch (myState) {
-		case STATE_READY:
+		case NAV_STATE_READY:
 			/* disable all controllers, armed but idle */
 			_control_mode.flag_control_rates_enabled = false;
 			_control_mode.flag_control_attitude_enabled = false;
@@ -1655,7 +1655,7 @@ Navigator::publish_control_mode()
 			_control_mode.flag_control_climb_rate_enabled = false;
 			break;
 
-		case STATE_LAND:
+		case NAV_STATE_LAND:
 			/* land with or without position control */
 			_control_mode.flag_control_manual_enabled = false;
 			_control_mode.flag_control_rates_enabled = true;
