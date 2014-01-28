@@ -67,7 +67,7 @@ flow_position_estimator start
 #
 # Fire up the multi rotor attitude controller
 #
-multirotor_att_control start
+mc_att_control_vector start
 
 #
 # Fire up the flow position controller

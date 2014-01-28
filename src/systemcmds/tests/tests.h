@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -109,6 +109,10 @@ extern int	test_bson(int argc, char *argv[]);
 extern int	test_file(int argc, char *argv[]);
 extern int	test_mixer(int argc, char *argv[]);
 extern int	test_rc(int argc, char *argv[]);
+extern int	test_conv(int argc, char *argv[]);
+extern int	test_mount(int argc, char *argv[]);
+extern int	test_mtd(int argc, char *argv[]);
+extern int	test_mathlib(int argc, char *argv[]);
 
 __END_DECLS
 

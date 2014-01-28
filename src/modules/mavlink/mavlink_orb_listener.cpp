@@ -59,7 +59,6 @@
 
 #include "mavlink_orb_listener.h"
 #include "mavlink_main.h"
-//#include "util.h"
 
 	void		*uorb_receive_thread(void *arg);
 
@@ -200,10 +199,10 @@ MavlinkOrbListener::l_vehicle_attitude(const struct listener *l)
 		hrt_abstime t = hrt_absolute_time();
 		if (t >= last_sent_vfr + 100000) {
 			last_sent_vfr = t;
-			float groundspeed = sqrtf(global_pos.vx * global_pos.vx + global_pos.vy * global_pos.vy);
+			float groundspeed = sqrtf(global_pos.vel_n * global_pos.vel_n + global_pos.vel_e * global_pos.vel_e);
 			uint16_t heading = _wrap_2pi(att.yaw) * M_RAD_TO_DEG_F;
 			float throttle = armed.armed ? actuators_0.control[3] * 100.0f : 0.0f;
-			mavlink_msg_vfr_hud_send(_mavlink->get_mavlink_chan(), airspeed.true_airspeed_m_s, groundspeed, heading, throttle, global_pos.alt, -global_pos.vz);
+			mavlink_msg_vfr_hud_send(_mavlink->get_mavlink_chan(), airspeed.true_airspeed_m_s, groundspeed, heading, throttle, global_pos.alt, -global_pos.vel_d);
 		}
 		
 		/* send quaternion values if it exists */
@@ -333,13 +332,13 @@ MavlinkOrbListener::l_global_position(const struct listener *l)
 
 	mavlink_msg_global_position_int_send(_mavlink->get_mavlink_chan(),
 						 global_pos.timestamp / 1000,
-					     global_pos.lat,
-					     global_pos.lon,
+					     global_pos.lat * 1e7,
+					     global_pos.lon * 1e7,
 					     global_pos.alt * 1000.0f,
-					     global_pos.relative_alt * 1000.0f,
-					     global_pos.vx * 100.0f,
-					     global_pos.vy * 100.0f,
-					     global_pos.vz * 100.0f,
+					     (global_pos.alt - home.alt) * 1000.0f,
+					     global_pos.vel_n * 100.0f,
+					     global_pos.vel_e * 100.0f,
+					     global_pos.vel_d * 100.0f,
 					     _wrap_2pi(global_pos.yaw) * M_RAD_TO_DEG_F * 100.0f);
 }
 
@@ -363,23 +362,18 @@ MavlinkOrbListener::l_local_position(const struct listener *l)
 void
 MavlinkOrbListener::l_global_position_setpoint(const struct listener *l)
 {
-	struct mission_item_triplet_s triplet;
-	orb_copy(ORB_ID(mission_item_triplet), mavlink_subs.triplet_sub, &triplet);
+	struct position_setpoint_triplet_s triplet;
+	orb_copy(ORB_ID(position_setpoint_triplet), mavlink_subs.triplet_sub, &triplet);
 
-	uint8_t coordinate_frame = MAV_FRAME_GLOBAL;
-	
-	if (!triplet.current_valid)
+	if (!triplet.current.valid)
 		return;
-
-	if (triplet.current.altitude_is_relative)
-		coordinate_frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
 
 	if (gcs_link)
 		mavlink_msg_global_position_setpoint_int_send(_mavlink->get_mavlink_chan(),
-				coordinate_frame,
+				MAV_FRAME_GLOBAL,
 				(int32_t)(triplet.current.lat * 1e7d),
 				(int32_t)(triplet.current.lon * 1e7d),
-				(int32_t)(triplet.current.altitude * 1e3f),
+				(int32_t)(triplet.current.alt * 1e3f),
 				(int16_t)(triplet.current.yaw * M_RAD_TO_DEG_F * 1e2f));
 }
 
@@ -615,11 +609,9 @@ MavlinkOrbListener::l_optical_flow(const struct listener *l)
 void
 MavlinkOrbListener::l_home(const struct listener *l)
 {
-	struct home_position_s home;
-
 	orb_copy(ORB_ID(home_position), mavlink_subs.home_sub, &home);
 
-	mavlink_msg_gps_global_origin_send(_mavlink->get_mavlink_chan(), (int32_t)(home.lat*1e7d), (int32_t)(home.lon*1e7d), (int32_t)(home.altitude)*1e3f);
+	mavlink_msg_gps_global_origin_send(_mavlink->get_mavlink_chan(), (int32_t)(home.lat*1e7d), (int32_t)(home.lon*1e7d), (int32_t)(home.alt)*1e3f);
 }
 
 void
@@ -757,7 +749,7 @@ MavlinkOrbListener::uorb_receive_start(void)
 	orb_set_interval(mavlink_subs.local_pos_sub, 1000);	/* 1Hz active updates */
 
 	/* --- GLOBAL SETPOINT VALUE --- */
-	mavlink_subs.triplet_sub = orb_subscribe(ORB_ID(mission_item_triplet));
+	mavlink_subs.triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	orb_set_interval(mavlink_subs.triplet_sub, 2000);	/* 0.5 Hz updates */
 	
 	/* --- LOCAL SETPOINT VALUE --- */

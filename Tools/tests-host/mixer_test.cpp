@@ -9,4 +9,6 @@ int main(int argc, char *argv[]) {
 				 "../../ROMFS/px4fmu_common/mixers/FMU_quad_w.mix"};
 
 	test_mixer(3, args);
+
+	test_conv(1, args);
 }

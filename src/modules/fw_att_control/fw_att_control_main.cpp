@@ -619,7 +619,7 @@ FixedwingAttitudeControl::task_main()
 			}
 
 			/* Simple handling of failsafe: deploy parachute if failsafe is on */
-			if (_vcontrol_mode.flag_control_flighttermination_enabled) {
+			if (_vcontrol_mode.flag_control_termination_enabled) {
 				_actuators_airframe.control[1] = 1.0f;
 //				warnx("_actuators_airframe.control[1] = 1.0f;");
 			} else {
@@ -637,7 +637,7 @@ FixedwingAttitudeControl::task_main()
 
 				/* if airspeed is smaller than min, the sensor is not giving good readings */
 				if (!_airspeed_valid ||
-				    (_airspeed.indicated_airspeed_m_s < 0.1f * _parameters.airspeed_min) ||
+				    (_airspeed.indicated_airspeed_m_s < 0.5f * _parameters.airspeed_min) ||
 				    !isfinite(_airspeed.indicated_airspeed_m_s)) {
 					airspeed = _parameters.airspeed_trim;
 
@@ -704,9 +704,9 @@ FixedwingAttitudeControl::task_main()
 				float speed_body_v = 0.0f;
 				float speed_body_w = 0.0f;
 				if(_att.R_valid) 	{
-					speed_body_u = _att.R[0][0] * _global_pos.vx + _att.R[1][0] * _global_pos.vy + _att.R[2][0] * _global_pos.vz;
-					speed_body_v = _att.R[0][1] * _global_pos.vx + _att.R[1][1] * _global_pos.vy + _att.R[2][1] * _global_pos.vz;
-					speed_body_w = _att.R[0][2] * _global_pos.vx + _att.R[1][2] * _global_pos.vy + _att.R[2][2] * _global_pos.vz;
+					speed_body_u = _att.R[0][0] * _global_pos.vel_n + _att.R[1][0] * _global_pos.vel_e + _att.R[2][0] * _global_pos.vel_d;
+					speed_body_v = _att.R[0][1] * _global_pos.vel_n + _att.R[1][1] * _global_pos.vel_e + _att.R[2][1] * _global_pos.vel_d;
+					speed_body_w = _att.R[0][2] * _global_pos.vel_n + _att.R[1][2] * _global_pos.vel_e + _att.R[2][2] * _global_pos.vel_d;
 				} else	{
 					warnx("Did not get a valid R\n");
 				}

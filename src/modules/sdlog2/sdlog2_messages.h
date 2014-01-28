@@ -57,6 +57,9 @@ struct log_ATT_s {
 	float roll_rate;
 	float pitch_rate;
 	float yaw_rate;
+	float gx;
+	float gy;
+	float gz;
 };
 
 /* --- ATSP - ATTITUDE SET POINT --- */
@@ -148,8 +151,6 @@ struct log_STAT_s {
 	uint8_t main_state;
 	uint8_t navigation_state;
 	uint8_t arming_state;
-	float battery_voltage;
-	float battery_current;
 	float battery_remaining;
 	uint8_t battery_warning;
 	uint8_t landed;
@@ -209,16 +210,13 @@ struct log_GPOS_s {
 /* --- GPSP - GLOBAL POSITION SETPOINT --- */
 #define LOG_GPSP_MSG 17
 struct log_GPSP_s {
-	uint8_t altitude_is_relative;
 	int32_t lat;
 	int32_t lon;
-	float altitude;
+	float alt;
 	float yaw;
-	uint8_t nav_cmd;
+	uint8_t type;
 	float loiter_radius;
 	int8_t loiter_direction;
-	float acceptance_radius;
-	float time_inside;
 	float pitch_min;
 };
 
@@ -247,6 +245,25 @@ struct log_GVSP_s {
 	float vz;
 };
 
+/* --- BATT - BATTERY --- */
+#define LOG_BATT_MSG 20
+struct log_BATT_s {
+	float voltage;
+	float voltage_filtered;
+	float current;
+	float discharged;
+};
+
+/* --- DIST - DISTANCE TO SURFACE --- */
+#define LOG_DIST_MSG 21
+struct log_DIST_s {
+	float bottom;
+	float bottom_rate;
+	uint8_t flags;
+};
+
+/********** SYSTEM MESSAGES, ID > 0x80 **********/
+
 /* --- TIME - TIME STAMP --- */
 #define LOG_TIME_MSG 129
 struct log_TIME_s {
@@ -272,7 +289,7 @@ struct log_PARM_s {
 /* construct list of all message formats */
 static const struct log_format_s log_formats[] = {
 	/* business-level messages, ID < 0x80 */
-	LOG_FORMAT(ATT, "ffffff", "Roll,Pitch,Yaw,RollRate,PitchRate,YawRate"),
+	LOG_FORMAT(ATT, "fffffffff", "Roll,Pitch,Yaw,RollRate,PitchRate,YawRate,GX,GY,GZ"),
 	LOG_FORMAT(ATSP, "ffff", "RollSP,PitchSP,YawSP,ThrustSP"),
 	LOG_FORMAT(IMU, "fffffffff", "AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
 	LOG_FORMAT(SENS, "ffff", "BaroPres,BaroAlt,BaroTemp,DiffPres"),
@@ -280,16 +297,18 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(LPSP, "ffff", "X,Y,Z,Yaw"),
 	LOG_FORMAT(GPS, "QBffLLfffff", "GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
 	LOG_FORMAT(ATTC, "ffff", "Roll,Pitch,Yaw,Thrust"),
-	LOG_FORMAT(STAT, "BBBfffBB", "MainState,NavState,ArmState,BatV,BatC,BatRem,BatWarn,Landed"),
+	LOG_FORMAT(STAT, "BBBfBB", "MainState,NavState,ArmState,BatRem,BatWarn,Landed"),
 	LOG_FORMAT(RC, "ffffffffB", "Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,Count"),
 	LOG_FORMAT(OUT0, "ffffffff", "Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 	LOG_FORMAT(AIRS, "ff", "IndSpeed,TrueSpeed"),
 	LOG_FORMAT(ARSP, "fff", "RollRateSP,PitchRateSP,YawRateSP"),
 	LOG_FORMAT(FLOW, "hhfffBB", "RawX,RawY,CompX,CompY,Dist,Q,SensID"),
 	LOG_FORMAT(GPOS, "LLffff", "Lat,Lon,Alt,VelN,VelE,VelD"),
-	LOG_FORMAT(GPSP, "BLLffBfbfff", "AltRel,Lat,Lon,Alt,Yaw,NavCmd,LoitR,LoitDir,AccR,TimeIn,PitMin"),
+	LOG_FORMAT(GPSP, "LLffBfbf", "Lat,Lon,Alt,Yaw,Type,LoitR,LoitDir,PitMin"),
 	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
+	LOG_FORMAT(BATT, "ffff", "V,VFilt,C,Discharged"),
+	LOG_FORMAT(DIST, "ffB", "Bottom,BottomRate,Flags"),
 	/* system-level messages, ID >= 0x80 */
 	// FMT: don't write format of format message, it's useless
 	LOG_FORMAT(TIME, "Q", "StartTime"),

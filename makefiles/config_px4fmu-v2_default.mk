@@ -36,6 +36,7 @@ MODULES		+= drivers/roboclaw
 MODULES		+= drivers/airspeed
 MODULES		+= drivers/ets_airspeed
 MODULES		+= drivers/meas_airspeed
+MODULES		+= drivers/frsky_telemetry
 MODULES		+= modules/sensors
 
 # Needs to be burned to the ground and re-written; for now,
@@ -45,7 +46,6 @@ MODULES		+= modules/sensors
 #
 # System commands
 #
-MODULES		+= systemcmds/ramtron
 MODULES		+= systemcmds/bl_update
 MODULES		+= systemcmds/boardinfo
 MODULES		+= systemcmds/mixer
@@ -59,6 +59,8 @@ MODULES		+= systemcmds/top
 MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/config
 MODULES		+= systemcmds/nshterm
+MODULES		+= systemcmds/mtd
+MODULES		+= systemcmds/hw_ver
 
 #
 # General system control
@@ -83,8 +85,8 @@ MODULES		+= examples/flow_position_estimator
 #MODULES		+= modules/segway # XXX Needs GCC 4.7 fix
 MODULES		+= modules/fw_pos_control_l1
 MODULES		+= modules/fw_att_control
-MODULES		+= modules/multirotor_att_control
-MODULES		+= modules/multirotor_pos_control
+MODULES		+= modules/mc_att_control
+MODULES		+= modules/mc_pos_control
 
 #
 # Logging

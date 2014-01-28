@@ -114,9 +114,20 @@ controls_tick() {
 
 	perf_begin(c_gather_sbus);
 	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &rssi, PX4IO_RC_INPUT_CHANNELS);
+
+	bool sbus_status = (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS);
+
 	if (sbus_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SBUS;
 	}
+
+	/* switch S.Bus output pin as needed */
+	if (sbus_status != (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS)) {
+		#ifdef ENABLE_SBUS_OUT
+		ENABLE_SBUS_OUT((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS));
+		#endif
+	}
+
 	perf_end(c_gather_sbus);
 
 	/*

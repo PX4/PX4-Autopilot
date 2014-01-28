@@ -36,13 +36,13 @@ MODULES		+= drivers/mkblctrl
 MODULES		+= drivers/airspeed
 MODULES		+= drivers/ets_airspeed
 MODULES		+= drivers/meas_airspeed
+MODULES		+= drivers/frsky_telemetry
 MODULES		+= modules/sensors
 
 #
 # System commands
 #
-MODULES		+= systemcmds/eeprom
-MODULES		+= systemcmds/ramtron
+MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/bl_update
 MODULES		+= systemcmds/boardinfo
 MODULES		+= systemcmds/i2c
@@ -57,6 +57,7 @@ MODULES		+= systemcmds/top
 MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/config
 MODULES		+= systemcmds/nshterm
+MODULES		+= systemcmds/hw_ver
 
 #
 # General system control
@@ -81,8 +82,8 @@ MODULES		+= modules/position_estimator_inav
 #
 MODULES		+= modules/fw_pos_control_l1
 MODULES		+= modules/fw_att_control
-MODULES		+= modules/multirotor_att_control
-MODULES		+= modules/multirotor_pos_control
+MODULES		+= modules/mc_att_control
+MODULES		+= modules/mc_pos_control
 #MODULES		+= examples/flow_position_control
 #MODULES		+= examples/flow_speed_control
 

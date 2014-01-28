@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -218,9 +218,31 @@ static bool
 sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, uint16_t *rssi, uint16_t max_values)
 {
 	/* check frame boundary markers to avoid out-of-sync cases */
-	if ((frame[0] != 0x0f) || (frame[24] != 0x00)) {
+	if ((frame[0] != 0x0f)) {
 		sbus_frame_drops++;
 		return false;
+	}
+
+	switch (frame[24]) {
+		case 0x00:
+		/* this is S.BUS 1 */
+		break;
+		case 0x03:
+		/* S.BUS 2 SLOT0: RX battery and external voltage */
+		break;
+		case 0x83:
+		/* S.BUS 2 SLOT1 */
+		break;
+		case 0x43:
+		case 0xC3:
+		case 0x23:
+		case 0xA3:
+		case 0x63:
+		case 0xE3:
+		break;
+		default:
+		/* we expect one of the bits above, but there are some we don't know yet */
+		break;
 	}
 
 	/* we have received something we think is a frame */

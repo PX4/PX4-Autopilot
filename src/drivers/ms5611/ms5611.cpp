@@ -124,6 +124,8 @@ protected:
 	int32_t			_TEMP;
 	int64_t			_OFF;
 	int64_t			_SENS;
+	float			_P;
+	float			_T;
 
 	/* altitude conversion calibration */
 	unsigned		_msl_pressure;	/* in kPa */
@@ -623,6 +625,8 @@ MS5611::collect()
 
 		/* pressure calculation, result in Pa */
 		int32_t P = (((raw * _SENS) >> 21) - _OFF) >> 15;
+		_P = P * 0.01f;
+		_T = _TEMP * 0.01f;
 
 		/* generate a new report */
 		report.temperature = _TEMP / 100.0f;
@@ -695,6 +699,8 @@ MS5611::print_info()
 	printf("TEMP:           %d\n", _TEMP);
 	printf("SENS:           %lld\n", _SENS);
 	printf("OFF:            %lld\n", _OFF);
+	printf("P:              %.3f\n", _P);
+	printf("T:              %.3f\n", _T);
 	printf("MSL pressure:   %10.4f\n", (double)(_msl_pressure / 100.f));
 
 	printf("factory_setup             %u\n", _prom.factory_setup);

@@ -6,22 +6,36 @@
 # Use the configuration's ROMFS.
 #
 ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/px4fmu_test
+ROMFS_OPTIONAL_FILES = $(PX4_BASE)/Images/px4io-v2_default.bin
 
 #
 # Board support modules
 #
 MODULES		+= drivers/device
 MODULES		+= drivers/stm32
+MODULES		+= drivers/stm32/adc
+MODULES		+= drivers/stm32/tone_alarm
 MODULES		+= drivers/led
 MODULES		+= drivers/boards/px4fmu-v2
+MODULES		+= drivers/px4io
 MODULES		+= systemcmds/perf
 MODULES		+= systemcmds/reboot
+MODULES		+= systemcmds/tests
+MODULES		+= systemcmds/nshterm
+MODULES		+= systemcmds/mtd
+MODULES		+= systemcmds/hw_ver
 
 #
 # Library modules
 #
 MODULES		+= modules/systemlib
+MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
+
+#
+# Libraries
+#
+LIBRARIES	+= lib/mathlib/CMSIS
 
 #
 # Transitional support - add commands from the NuttX export archive.

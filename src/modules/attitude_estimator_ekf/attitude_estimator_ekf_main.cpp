@@ -58,8 +58,12 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
+
+#include <lib/mathlib/mathlib.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/perf_counter.h>
@@ -214,6 +218,10 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 	struct sensor_combined_s raw;
 	memset(&raw, 0, sizeof(raw));
+	struct vehicle_gps_position_s gps;
+	memset(&gps, 0, sizeof(gps));
+	struct vehicle_global_position_s global_pos;
+	memset(&global_pos, 0, sizeof(global_pos));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
 	struct vehicle_control_mode_s control_mode;
@@ -221,11 +229,31 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 	uint64_t last_data = 0;
 	uint64_t last_measurement = 0;
+	uint64_t last_vel_t = 0;
+
+	/* current velocity */
+	math::Vector<3> vel;
+	vel.zero();
+	/* previous velocity */
+	math::Vector<3> vel_prev;
+	vel_prev.zero();
+	/* actual acceleration (by GPS velocity) in body frame */
+	math::Vector<3> acc;
+	acc.zero();
+	/* rotation matrix */
+	math::Matrix<3, 3> R;
+	R.identity();
 
 	/* subscribe to raw data */
 	int sub_raw = orb_subscribe(ORB_ID(sensor_combined));
 	/* rate-limit raw data updates to 333 Hz (sensors app publishes at 200, so this is just paranoid) */
 	orb_set_interval(sub_raw, 3);
+
+	/* subscribe to GPS */
+	int sub_gps = orb_subscribe(ORB_ID(vehicle_gps_position));
+
+	/* subscribe to GPS */
+	int sub_global_pos = orb_subscribe(ORB_ID(vehicle_global_position));
 
 	/* subscribe to param changes */
 	int sub_params = orb_subscribe(ORB_ID(parameter_update));
@@ -265,6 +293,10 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	float gyro_offsets[3] = { 0.0f, 0.0f, 0.0f };
 	unsigned offset_count = 0;
 
+	/* rotation matrix for magnetic declination */
+	math::Matrix<3, 3> R_decl;
+	R_decl.identity();
+
 	/* register the perf counter */
 	perf_counter_t ekf_loop_perf = perf_alloc(PC_ELAPSED, "attitude_estimator_ekf");
 
@@ -299,6 +331,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 				/* update parameters */
 				parameters_update(&ekf_param_handles, &ekf_params);
+
+				/* update mag declination rotation matrix */
+				R_decl.from_euler(0.0f, 0.0f, ekf_params.mag_decl);
 			}
 
 			/* only run filter if sensor values changed */
@@ -306,6 +341,18 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 				/* get latest measurements */
 				orb_copy(ORB_ID(sensor_combined), sub_raw, &raw);
+
+				bool gps_updated;
+				orb_check(sub_gps, &gps_updated);
+				if (gps_updated) {
+					orb_copy(ORB_ID(vehicle_gps_position), sub_gps, &gps);
+				}
+
+				bool global_pos_updated;
+				orb_check(sub_global_pos, &global_pos_updated);
+				if (global_pos_updated) {
+					orb_copy(ORB_ID(vehicle_global_position), sub_global_pos, &global_pos);
+				}
 
 				if (!initialized) {
 					// XXX disabling init for now
@@ -352,9 +399,50 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						sensor_last_timestamp[1] = raw.timestamp;
 					}
 
-					z_k[3] = raw.accelerometer_m_s2[0];
-					z_k[4] = raw.accelerometer_m_s2[1];
-					z_k[5] = raw.accelerometer_m_s2[2];
+					hrt_abstime vel_t = 0;
+					bool vel_valid = false;
+					if (ekf_params.acc_comp == 1 && gps.fix_type >= 3 && gps.eph_m < 10.0f && gps.vel_ned_valid && hrt_absolute_time() < gps.timestamp_velocity + 500000) {
+						vel_valid = true;
+						if (gps_updated) {
+							vel_t = gps.timestamp_velocity;
+							vel(0) = gps.vel_n_m_s;
+							vel(1) = gps.vel_e_m_s;
+							vel(2) = gps.vel_d_m_s;
+						}
+
+					} else if (ekf_params.acc_comp == 2 && global_pos.valid && hrt_absolute_time() < global_pos.timestamp + 500000) {
+						vel_valid = true;
+						if (global_pos_updated) {
+							vel_t = global_pos.timestamp;
+							vel(0) = global_pos.vel_n;
+							vel(1) = global_pos.vel_e;
+							vel(2) = global_pos.vel_d;
+						}
+					}
+
+					if (vel_valid) {
+						/* velocity is valid */
+						if (vel_t != 0) {
+							/* velocity updated */
+							if (last_vel_t != 0 && vel_t != last_vel_t) {
+								float vel_dt = (vel_t - last_vel_t) / 1000000.0f;
+								/* calculate acceleration in body frame */
+								acc = R.transposed() * ((vel - vel_prev) / vel_dt);
+							}
+							last_vel_t = vel_t;
+							vel_prev = vel;
+						}
+
+					} else {
+						/* velocity is valid, reset acceleration */
+						acc.zero();
+						vel_prev.zero();
+						last_vel_t = 0;
+					}
+
+					z_k[3] = raw.accelerometer_m_s2[0] - acc(0);
+					z_k[4] = raw.accelerometer_m_s2[1] - acc(1);
+					z_k[5] = raw.accelerometer_m_s2[2] - acc(2);
 
 					/* update magnetometer measurements */
 					if (sensor_last_count[2] != raw.magnetometer_counter) {
@@ -425,7 +513,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						continue;
 					}
 
-					if (last_data > 0 && raw.timestamp - last_data > 12000)
+					if (last_data > 0 && raw.timestamp - last_data > 30000)
 						printf("[attitude estimator ekf] sensor data missed! (%llu)\n", raw.timestamp - last_data);
 
 					last_data = raw.timestamp;
@@ -433,10 +521,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					/* send out */
 					att.timestamp = raw.timestamp;
 
-					// XXX Apply the same transformation to the rotation matrix
-					att.roll = euler[0] - ekf_params.roll_off;
-					att.pitch = euler[1] - ekf_params.pitch_off;
-					att.yaw = euler[2] - ekf_params.yaw_off;
+					att.roll = euler[0];
+					att.pitch = euler[1];
+					att.yaw = euler[2] + ekf_params.mag_decl;
 
 					att.rollspeed = x_aposteriori[0];
 					att.pitchspeed = x_aposteriori[1];
@@ -445,12 +532,20 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					att.pitchacc = x_aposteriori[4];
 					att.yawacc = x_aposteriori[5];
 
-					//att.yawspeed =z_k[2] ;
+					att.g_comp[0] = raw.accelerometer_m_s2[0] - acc(0);
+					att.g_comp[1] = raw.accelerometer_m_s2[1] - acc(1);
+					att.g_comp[2] = raw.accelerometer_m_s2[2] - acc(2);
+
 					/* copy offsets */
 					memcpy(&att.rate_offsets, &(x_aposteriori[3]), sizeof(att.rate_offsets));
 
+					/* magnetic declination */
+
+					math::Matrix<3, 3> R_body = (&Rot_matrix[0]);
+					R = R_decl * R_body;
+
 					/* copy rotation matrix */
-					memcpy(&att.R, Rot_matrix, sizeof(Rot_matrix));
+					memcpy(&att.R[0][0], &R.data[0][0], sizeof(att.R));
 					att.R_valid = true;
 
 					if (isfinite(att.roll) && isfinite(att.pitch) && isfinite(att.yaw)) {
