@@ -178,6 +178,7 @@ private:
 
 	class 		Mission				_mission;
 
+	bool		_global_pos_valid;				/**< track changes of global_position.global_valid flag */
 	bool		_reset_loiter_pos;				/**< if true then loiter position should be set to current position */
 	bool		_waypoint_position_reached;
 	bool		_waypoint_yaw_reached;
@@ -393,6 +394,7 @@ Navigator::Navigator() :
 	_fence_valid(false),
 	_inside_fence(true),
 	_mission(),
+	_global_pos_valid(false),
 	_reset_loiter_pos(true),
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
@@ -819,12 +821,19 @@ Navigator::task_main()
 			/* publish position setpoint triplet on each position update if navigator active */
 			if (_control_mode.flag_armed && _control_mode.flag_control_auto_enabled) {
 				_pos_sp_triplet_updated = true;
-			}
 
-			/* only check if waypoint has been reached in MISSION and RTL modes */
-			if (myState == NAV_STATE_MISSION || myState == NAV_STATE_RTL) {
-				if (check_mission_item_reached()) {
-					on_mission_item_reached();
+				if (myState == NAV_STATE_LAND && _global_pos.global_valid && !_global_pos_valid) {
+					/* got global position when landing, update setpoint */
+					start_land();
+				}
+
+				_global_pos_valid = _global_pos.global_valid;
+
+				/* check if waypoint has been reached in MISSION, RTL and LAND modes */
+				if (myState == NAV_STATE_MISSION || myState == NAV_STATE_RTL || myState == NAV_STATE_LAND) {
+					if (check_mission_item_reached()) {
+						on_mission_item_reached();
+					}
 				}
 			}
 
