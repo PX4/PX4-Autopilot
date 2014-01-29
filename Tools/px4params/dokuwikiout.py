@@ -9,7 +9,7 @@ class DokuWikiOutput(output.Output):
                   <params>
               <param> 
                 <value>
-                  <string>:dev:parameters:reference</string>
+                  <string>:firmware:parameters</string>
                 </value>
               </param> 
                   <param> 
