@@ -90,6 +90,8 @@
 
 #include "uploader.h"
 
+#include "dataman/dataman.h"
+
 extern device::Device *PX4IO_i2c_interface() weak_function;
 extern device::Device *PX4IO_serial_interface() weak_function;
 
@@ -720,6 +722,8 @@ PX4IO::init()
 			/* keep waiting for state change for 2 s */
 		} while (!safety.armed);
 
+		dm_restart(DM_INIT_REASON_IN_FLIGHT); /* clear the volatile data manager entries */
+
 		/* regular boot, no in-air restart, init IO */
 
 	} else {
@@ -744,6 +748,8 @@ PX4IO::init()
 				return ret;
 			}
 		}
+
+		dm_restart(DM_INIT_REASON_POWER_ON); /* clear the volatile data manager entries */
 
 	}
 

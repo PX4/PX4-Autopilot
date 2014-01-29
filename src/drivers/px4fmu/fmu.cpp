@@ -73,6 +73,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 
+#include "dataman/dataman.h"
 
 #ifdef HRT_PPM_CHANNEL
 # include <systemlib/ppm_decode.h>
@@ -289,6 +290,8 @@ PX4FMU::init()
 
 	/* reset GPIOs */
 	gpio_reset();
+
+	dm_restart(DM_INIT_REASON_POWER_ON); /* clear the volatile data manager entries */
 
 	/* start the IO interface task */
 	_task = task_spawn_cmd("fmuservo",

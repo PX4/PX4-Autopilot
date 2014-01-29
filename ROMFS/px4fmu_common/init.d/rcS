@@ -259,6 +259,11 @@ then
 	commander start
 	
 	#
+	# Start the datamanager (before px4io or fmu)
+	#
+	dataman start
+	
+	#
 	# Start primary output
 	#
 	set TTYS1_BUSY no
@@ -402,11 +407,6 @@ then
 			usleep 5000
 		fi
 	fi
-	
-	#
-	# Start the datamanager
-	#
-	dataman start
 	
 	#
 	# Start the navigator
