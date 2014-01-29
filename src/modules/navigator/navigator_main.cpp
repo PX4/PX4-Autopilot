@@ -865,6 +865,9 @@ Navigator::task_main()
 		if (myState != prevState) {
 			mavlink_log_info(_mavlink_fd, "[navigator] nav state: %s", nav_states_str[myState]);
 			prevState = myState;
+
+			/* reset time counter on state changes */
+			_time_first_inside_orbit = 0;
 		}
 
 		perf_end(_loop_perf);
@@ -1112,6 +1115,9 @@ Navigator::set_mission_item()
 	ret = _mission.get_current_mission_item(&_mission_item, &onboard, &index);
 
 	if (ret == OK) {
+		/* reset time counter for new item */
+		_time_first_inside_orbit = 0;
+
 		_mission_item_valid = true;
 		position_setpoint_from_mission_item(&_pos_sp_triplet.current, &_mission_item);
 
@@ -1290,6 +1296,9 @@ Navigator::start_land_home()
 void
 Navigator::set_rtl_item()
 {
+	/*reset time counter for new RTL item */
+	_time_first_inside_orbit = 0;
+
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB: {
 			memcpy(&_pos_sp_triplet.previous, &_pos_sp_triplet.current, sizeof(position_setpoint_s));
