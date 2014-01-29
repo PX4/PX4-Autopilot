@@ -61,22 +61,9 @@
  * Encodes the complete system state and is set by the commander app.
  */
 
-typedef enum {
-	NAV_STATE_NONE = 0,
-	NAV_STATE_READY,
-	NAV_STATE_LOITER,
-	NAV_STATE_MISSION,
-	NAV_STATE_RTL,
-	NAV_STATE_LAND,
-	NAV_STATE_MAX
-} nav_state_t;
-
 struct vehicle_control_mode_s
 {
 	uint64_t timestamp; /**< in microseconds since system start, is set whenever the writing thread stores new data */
-
-	main_state_t main_state;
-	nav_state_t nav_state;
 
 	bool flag_armed;
 
@@ -86,14 +73,14 @@ struct vehicle_control_mode_s
 	bool flag_system_hil_enabled;
 
 	bool flag_control_manual_enabled;		/**< true if manual input is mixed in */
-	bool flag_control_offboard_enabled;		/**< true if offboard control input is on */
+	bool flag_control_auto_enabled;			/**< true if onboard autopilot should act */
 	bool flag_control_rates_enabled;		/**< true if rates are stabilized */
 	bool flag_control_attitude_enabled;		/**< true if attitude stabilization is mixed in */
 	bool flag_control_velocity_enabled;		/**< true if horizontal velocity (implies direction) is controlled */
 	bool flag_control_position_enabled;		/**< true if position is controlled */
 	bool flag_control_altitude_enabled;		/**< true if altitude is controlled */
-	bool flag_control_climb_rate_enabled;		/**< true if climb rate is controlled */
-	bool flag_control_termination_enabled;   /**< true if flighttermination is enabled */
+	bool flag_control_climb_rate_enabled;	/**< true if climb rate is controlled */
+	bool flag_control_termination_enabled;	/**< true if flighttermination is enabled */
 };
 
 /**

@@ -94,7 +94,7 @@ struct mavlink_subscriptions {
 	int home_sub;
 	int airspeed_sub;
 	int navigation_capabilities_sub;
-	int control_mode_sub;
+	int position_setpoint_triplet_sub;
 };
 
 extern struct mavlink_subscriptions mavlink_subs;
@@ -111,8 +111,8 @@ extern struct navigation_capabilities_s nav_cap;
 /** Vehicle status */
 extern struct vehicle_status_s v_status;
 
-/** Vehicle control mode */
-extern struct vehicle_control_mode_s control_mode;
+/** Position setpoint triplet */
+extern struct position_setpoint_triplet_s pos_sp_triplet;
 
 /** RC channels */
 extern struct rc_channels_s rc;

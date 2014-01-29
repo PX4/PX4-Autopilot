@@ -54,6 +54,8 @@
 #include <stdbool.h>
 #include "../uORB.h"
 
+#include <navigator/navigator_state.h>
+
 /**
  * @addtogroup topics @{
  */

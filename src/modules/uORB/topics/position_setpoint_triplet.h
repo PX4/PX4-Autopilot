@@ -45,6 +45,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "../uORB.h"
+#include <navigator/navigator_state.h>
 
 /**
  * @addtogroup topics
@@ -53,10 +54,11 @@
 
 enum SETPOINT_TYPE
 {
-	SETPOINT_TYPE_NORMAL = 0,
-	SETPOINT_TYPE_LOITER,
-	SETPOINT_TYPE_TAKEOFF,
-	SETPOINT_TYPE_LAND,
+	SETPOINT_TYPE_NORMAL = 0,	/**< normal setpoint */
+	SETPOINT_TYPE_LOITER,		/**< loiter setpoint */
+	SETPOINT_TYPE_TAKEOFF,		/**< takeoff setpoint */
+	SETPOINT_TYPE_LAND,			/**< land setpoint, altitude must be ignored, vehicle must descend until landing */
+	SETPOINT_TYPE_IDLE,			/**< do nothing, switch off motors or keep at idle speed (MC) */
 };
 
 struct position_setpoint_s
@@ -82,6 +84,8 @@ struct position_setpoint_triplet_s
 	struct position_setpoint_s previous;
 	struct position_setpoint_s current;
 	struct position_setpoint_s next;
+
+	nav_state_t nav_state;		/**< navigation state */
 };
 
 /**

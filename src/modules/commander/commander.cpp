@@ -203,6 +203,8 @@ void check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicl
 
 transition_result_t set_main_state_rc(struct vehicle_status_s *status);
 
+void set_control_mode();
+
 void print_reject_mode(const char *msg);
 
 void print_reject_arm(const char *msg);
@@ -555,10 +557,8 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 }
 
 static struct vehicle_status_s status;
-
-/* armed topic */
+static struct vehicle_control_mode_s control_mode;
 static struct actuator_armed_s armed;
-
 static struct safety_s safety;
 
 int commander_thread_main(int argc, char *argv[])
@@ -613,16 +613,9 @@ int commander_thread_main(int argc, char *argv[])
 
 	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
-	/* Main state machine */
-	/* make sure we are in preflight state */
+	/* vehicle status topic */
 	memset(&status, 0, sizeof(status));
 	status.condition_landed = true;	// initialize to safe value
-
-	/* armed topic */
-	orb_advert_t armed_pub;
-	/* Initialize armed with all false */
-	memset(&armed, 0, sizeof(armed));
-
 	status.main_state = MAIN_STATE_MANUAL;
 	status.set_nav_state = NAV_STATE_NONE;
 	status.set_nav_state_timestamp = 0;
@@ -645,14 +638,20 @@ int commander_thread_main(int argc, char *argv[])
 	// XXX for now just set sensors as initialized
 	status.condition_system_sensors_initialized = true;
 
-	/* advertise to ORB */
-	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
-	/* publish current state machine */
-
-	/* publish initial state */
 	status.counter++;
 	status.timestamp = hrt_absolute_time();
-	orb_publish(ORB_ID(vehicle_status), status_pub, &status);
+
+	/* publish initial state */
+	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
+
+	/* armed topic */
+	orb_advert_t armed_pub;
+	/* Initialize armed with all false */
+	memset(&armed, 0, sizeof(armed));
+
+	/* vehicle control mode topic */
+	memset(&control_mode, 0, sizeof(control_mode));
+	orb_advert_t control_mode_pub = orb_advertise(ORB_ID(vehicle_control_mode), &control_mode);
 
 	armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
 
@@ -872,7 +871,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* update condition_global_position_valid */
-		check_valid(global_position.timestamp, POSITION_TIMEOUT, global_position.valid, &(status.condition_global_position_valid), &status_changed);
+		check_valid(global_position.timestamp, POSITION_TIMEOUT, global_position.global_valid, &(status.condition_global_position_valid), &status_changed);
 
 		/* update local position estimate */
 		orb_check(local_position_sub, &updated);
@@ -1031,7 +1030,7 @@ int commander_thread_main(int argc, char *argv[])
 			if (!status.condition_home_position_valid && gps_position.fix_type >= 3 &&
 			    (gps_position.eph_m < hdop_threshold_m) && (gps_position.epv_m < vdop_threshold_m) &&
 			    (hrt_absolute_time() < gps_position.timestamp_position + POSITION_TIMEOUT) && !armed.armed
-			    && global_position.valid) {
+			    && global_position.global_valid) {
 
 				/* copy position data to uORB home message, store it locally as well */
 				home.lat = global_position.lat;
@@ -1244,8 +1243,13 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* publish states (armed, control mode, vehicle status) at least with 5 Hz */
 		if (counter % (200000 / COMMANDER_MONITORING_INTERVAL) == 0 || status_changed) {
+			set_control_mode();
+			control_mode.timestamp = t1;
+			orb_publish(ORB_ID(vehicle_control_mode), control_mode_pub, &control_mode);
+
 			status.timestamp = t1;
 			orb_publish(ORB_ID(vehicle_status), status_pub, &status);
+
 			armed.timestamp = t1;
 			orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 		}
@@ -1472,7 +1476,7 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 transition_result_t
 set_main_state_rc(struct vehicle_status_s *status)
 {
-	/* evaluate the main state machine */
+	/* set main state according to RC switches */
 	transition_result_t res = TRANSITION_DENIED;
 
 	switch (status->mode_switch) {
@@ -1528,6 +1532,102 @@ set_main_state_rc(struct vehicle_status_s *status)
 	}
 
 	return res;
+}
+
+void
+set_control_mode()
+{
+	/* set vehicle_control_mode according to main state and failsafe state */
+	control_mode.flag_armed = armed.armed;
+	control_mode.flag_external_manual_override_ok = !status.is_rotary_wing;
+	control_mode.flag_system_hil_enabled = status.hil_state == HIL_STATE_ON;
+
+	control_mode.flag_control_termination_enabled = false;
+
+	/* set this flag when navigator should act */
+	bool navigator_enabled = false;
+
+	switch (status.failsafe_state) {
+	case FAILSAFE_STATE_NORMAL:
+		switch (status.main_state) {
+		case MAIN_STATE_MANUAL:
+			control_mode.flag_control_manual_enabled = true;
+			control_mode.flag_control_auto_enabled = false;
+			control_mode.flag_control_rates_enabled = status.is_rotary_wing;
+			control_mode.flag_control_attitude_enabled = status.is_rotary_wing;
+			control_mode.flag_control_altitude_enabled = false;
+			control_mode.flag_control_climb_rate_enabled = false;
+			control_mode.flag_control_position_enabled = false;
+			control_mode.flag_control_velocity_enabled = false;
+			break;
+
+		case MAIN_STATE_SEATBELT:
+			control_mode.flag_control_manual_enabled = true;
+			control_mode.flag_control_auto_enabled = false;
+			control_mode.flag_control_rates_enabled = true;
+			control_mode.flag_control_attitude_enabled = true;
+			control_mode.flag_control_altitude_enabled = true;
+			control_mode.flag_control_climb_rate_enabled = true;
+			control_mode.flag_control_position_enabled = false;
+			control_mode.flag_control_velocity_enabled = false;
+			break;
+
+		case MAIN_STATE_EASY:
+			control_mode.flag_control_manual_enabled = true;
+			control_mode.flag_control_auto_enabled = false;
+			control_mode.flag_control_rates_enabled = true;
+			control_mode.flag_control_attitude_enabled = true;
+			control_mode.flag_control_altitude_enabled = true;
+			control_mode.flag_control_climb_rate_enabled = true;
+			control_mode.flag_control_position_enabled = true;
+			control_mode.flag_control_velocity_enabled = true;
+			break;
+
+		case MAIN_STATE_AUTO:
+			navigator_enabled = true;
+
+		default:
+			break;
+		}
+
+		break;
+
+	case FAILSAFE_STATE_RTL:
+		navigator_enabled = true;
+		break;
+
+	case FAILSAFE_STATE_LAND:
+		navigator_enabled = true;
+		break;
+
+	case FAILSAFE_STATE_TERMINATION:
+		/* disable all controllers on termination */
+		control_mode.flag_control_manual_enabled = false;
+		control_mode.flag_control_auto_enabled = false;
+		control_mode.flag_control_rates_enabled = false;
+		control_mode.flag_control_attitude_enabled = false;
+		control_mode.flag_control_position_enabled = false;
+		control_mode.flag_control_velocity_enabled = false;
+		control_mode.flag_control_altitude_enabled = false;
+		control_mode.flag_control_climb_rate_enabled = false;
+		control_mode.flag_control_termination_enabled = true;
+		break;
+
+	default:
+		break;
+	}
+
+	/* navigator has control, set control mode flags according to nav state*/
+	if (navigator_enabled) {
+		control_mode.flag_control_manual_enabled = false;
+		control_mode.flag_control_auto_enabled = true;
+		control_mode.flag_control_rates_enabled = true;
+		control_mode.flag_control_attitude_enabled = true;
+		control_mode.flag_control_position_enabled = true;
+		control_mode.flag_control_velocity_enabled = true;
+		control_mode.flag_control_altitude_enabled = true;
+		control_mode.flag_control_climb_rate_enabled = true;
+	}
 }
 
 void
