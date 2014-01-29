@@ -85,7 +85,7 @@
 extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 
 #define MIN_TAKEOFF_THROTTLE	0.3f
-#define YAW_DEADZONE	0.01f
+#define YAW_DEADZONE	0.05f
 #define RATES_I_LIMIT	0.5f
 
 class MulticopterAttitudeControl
