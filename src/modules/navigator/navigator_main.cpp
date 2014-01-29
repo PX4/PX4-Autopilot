@@ -1030,8 +1030,11 @@ void
 Navigator::start_ready()
 {
 	_pos_sp_triplet.previous.valid = false;
-	_pos_sp_triplet.current.valid = false;
+	_pos_sp_triplet.current.valid = true;
 	_pos_sp_triplet.next.valid = false;
+
+	_pos_sp_triplet.current.type = SETPOINT_TYPE_IDLE;
+
 	_mission_item_valid = false;
 
 	_reset_loiter_pos = true;
@@ -1229,20 +1232,32 @@ Navigator::start_rtl()
 void
 Navigator::start_land()
 {
+	/* this state can be requested by commander even if no global position available,
+	 * in his case controller must perform landing without position control */
 	_do_takeoff = false;
 	_reset_loiter_pos = true;
 
-	_pos_sp_triplet.previous.valid = false;
-	_pos_sp_triplet.next.valid = false;
+	memcpy(&_pos_sp_triplet.previous, &_pos_sp_triplet.current, sizeof(position_setpoint_s));
 
-	_pos_sp_triplet.current.valid = true;
-	_pos_sp_triplet.current.type = SETPOINT_TYPE_LAND;
-	_pos_sp_triplet.current.lat = _global_pos.lat;
-	_pos_sp_triplet.current.lon = _global_pos.lon;
-	_pos_sp_triplet.current.alt = _global_pos.alt;
-	_pos_sp_triplet.current.loiter_direction = 1;
-	_pos_sp_triplet.current.loiter_radius = _parameters.loiter_radius;
-	_pos_sp_triplet.current.yaw = NAN;
+	_mission_item_valid = true;
+
+	_mission_item.lat = _global_pos.lat;
+	_mission_item.lon = _global_pos.lon;
+	_mission_item.altitude_is_relative = false;
+	_mission_item.altitude = _global_pos.alt;
+	_mission_item.yaw = NAN;
+	_mission_item.loiter_radius = _parameters.loiter_radius;
+	_mission_item.loiter_direction = 1;
+	_mission_item.nav_cmd = NAV_CMD_LAND;
+	_mission_item.acceptance_radius = _parameters.acceptance_radius;
+	_mission_item.time_inside = 0.0f;
+	_mission_item.pitch_min = 0.0f;
+	_mission_item.autocontinue = true;
+	_mission_item.origin = ORIGIN_ONBOARD;
+
+	position_setpoint_from_mission_item(&_pos_sp_triplet.current, &_mission_item);
+
+	_pos_sp_triplet.next.valid = false;
 }
 
 void
@@ -1546,8 +1561,8 @@ Navigator::on_mission_item_reached()
 			}
 		}
 
-	} else {
-		/* RTL finished */
+	} else if (myState == NAV_STATE_RTL) {
+		/* RTL completed */
 		if (_rtl_state == RTL_STATE_LAND) {
 			/* landed at home position */
 			mavlink_log_info(_mavlink_fd, "[navigator] RTL completed, landed");
@@ -1558,6 +1573,11 @@ Navigator::on_mission_item_reached()
 			_rtl_state = (RTLState)(_rtl_state + 1);
 			set_rtl_item();
 		}
+
+	} else if (myState == NAV_STATE_LAND) {
+		/* landing completed */
+		mavlink_log_info(_mavlink_fd, "[navigator] landing completed");
+		dispatch(EVENT_READY_REQUESTED);
 	}
 }
 
