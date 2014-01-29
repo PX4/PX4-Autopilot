@@ -1478,8 +1478,8 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 	if (!isfinite(sp_man->offboard_switch)) {
 		current_status->offboard_switch = OFFBOARD_SWITCH_NONE;
 
-	} else if (sp_man->offboard_switch > STICK_ON_OFF_LIMIT) {
-		current_status->offboard_switch = OFFBOARD_SWITCH_OFFBOARD;
+	} else if (sp_man->offboard_switch > STICK_ON_OFF_LIMIT  && !status.offboard_control_signal_lost) {		
+		current_status->offboard_switch = OFFBOARD_SWITCH_OFFBOARD;		
 
 	} else {
 		current_status->offboard_switch = OFFBOARD_SWITCH_ONBOARD;
