@@ -1,14 +1,13 @@
 #!nsh
 #
-# USB HIL start
+# HIL Rascal 110 (Flightgear)
+#
+# Maintainers: Thomas Gubler <thomasgubler@gmail.com>
 #
 
-echo "[HIL] HILStar starting in state-HIL mode.."
+echo "HIL Rascal 110 starting.."
 
-#
-# Load default params for this platform
-#
-if param compare SYS_AUTOCONFIG 1
+if [ $DO_AUTOCONFIG == yes ]
 then
 	# Set all params here, then disable autoconfig
 	
@@ -32,48 +31,15 @@ then
 	param set FW_T_SINK_MAX 5.0
 	param set FW_T_SINK_MIN 4.0
 	param set FW_Y_ROLLFF 1.1
+	param set FW_L1_PERIOD 16
+	param set RC_SCALE_ROLL 1.0
+	param set RC_SCALE_PITCH 1.0
 
 	param set SYS_AUTOCONFIG 0
 	param save
 fi
 
-# Allow USB some time to come up
-sleep 1
-# Tell MAVLink that this link is "fast"
-mavlink start -b 230400 -d /dev/ttyACM0
+set HIL yes
 
-# Create a fake HIL /dev/pwm_output interface
-hil mode_pwm
-
-#
-# Force some key parameters to sane values
-# MAV_TYPE     1 = fixed wing, 2 = quadrotor, 13 = hexarotor
-#              see https://pixhawk.ethz.ch/mavlink/
-#
-param set MAV_TYPE 1
-
-#
-# Check if we got an IO
-#
-if px4io start
-then
-	echo "IO started"
-else
-	fmu mode_serial
-	echo "FMU started"
-fi
-
-#
-# Start the sensors (depends on orb, px4io)
-#
-sh /etc/init.d/rc.sensors
- 
-#
-# Load mixer and start controllers (depends on px4io)
-#
-mixer load /dev/pwm_output /etc/mixers/FMU_AET.mix
-fw_pos_control_l1 start
-fw_att_control start
-
-echo "[HIL] setup done, running"
-
+set VEHICLE_TYPE fw
+set MIXER FMU_AERT
