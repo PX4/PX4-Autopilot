@@ -127,6 +127,9 @@ protected:
 	int64_t			_SENS;
 	float			_P;
 	float			_T;
+	float			_Alt;
+	uint32_t                _D1;
+	uint32_t                _D2;
 
 	/* altitude conversion calibration */
 	unsigned		_msl_pressure;	/* in kPa */
@@ -637,6 +640,17 @@ MS5611::collect()
 		return ret;
 	}
 
+	// report the raw D1/D2 values to help diagnose problems with
+	// transfers at higher temperatures
+	if (_measure_phase == 0) {
+		_D1 = raw;
+	} else {
+		_D2 = raw;
+	}
+
+        report.ms5611_D1 = _D1;
+        report.ms5611_D2 = _D2;
+
 	/* handle a measurement */
 	if (_measure_phase == 0) {
 
@@ -717,6 +731,7 @@ MS5611::collect()
 		 *                   a
 		 */
 		report.altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
+		_Alt = report.altitude;
 
 		/* publish it */
 		if (_baro_topic > 0 && !(_pub_blocked)) {
@@ -753,6 +768,7 @@ MS5611::print_info()
 	printf("OFF:            %lld\n", _OFF);
 	printf("P:              %.3f\n", _P);
 	printf("T:              %.3f\n", _T);
+	printf("alt:            %.3f\n", _Alt);
 	printf("MSL pressure:   %10.4f\n", (double)(_msl_pressure / 100.f));
 
 	printf("factory_setup             %u\n", _prom.factory_setup);
@@ -775,6 +791,7 @@ MS5611	*g_dev;
 
 void	start();
 void	test();
+void	test2();
 void	reset();
 void	info();
 void	calibrate(unsigned altitude);
@@ -952,6 +969,82 @@ test()
 }
 
 /**
+ * Perform some basic functional tests on the driver;
+ * make sure we can collect data from the sensor in polled
+ * and automatic modes.
+ */
+void
+test2()
+{
+	struct baro_report report;
+	ssize_t sz;
+	int ret;
+
+	int fd = open(BARO_DEVICE_PATH, O_RDONLY);
+
+	if (fd < 0)
+		err(1, "%s open failed (try 'ms5611 start' if the driver is not running)", BARO_DEVICE_PATH);
+
+	/* set the queue depth to 20 */
+	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 20))
+		errx(1, "failed to set queue depth");
+
+	/* start the sensor polling at max speed */
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX))
+		errx(1, "failed to set 2Hz poll rate");
+
+        hrt_abstime last_report = hrt_absolute_time();
+        uint32_t last_D1=0, last_D2=0;
+
+	/* read the sensor for 5 mins, reporting large D1 jumps and data at 1Hz */
+        while (true) {
+		struct pollfd fds;
+
+		/* wait for data to be ready */
+		fds.fd = fd;
+		fds.events = POLLIN;
+		ret = poll(&fds, 1, 2000);
+
+		if (ret != 1)
+			errx(1, "timed out waiting for sensor data");
+
+		/* now go get it */
+		sz = read(fd, &report, sizeof(report));
+
+		if (sz != sizeof(report))
+			err(1, "periodic read failed");
+
+                int32_t d1_diff = abs((int32_t)last_D1 - (int32_t)report.ms5611_D1);
+                if (last_D1 != 0 && d1_diff >= 0x10000) {
+                    printf("jump D1=0x%08x/0x%08x D2=0x%08x/0x%08x\n", 
+                           (unsigned)last_D1, (unsigned)report.ms5611_D1,
+                           (unsigned)last_D2, (unsigned)report.ms5611_D2);
+                }
+
+                if (hrt_elapsed_time(&last_report) >= 1000*1000) {
+                    printf("temp %u press %u D1=0x%08x D2=0x%08x alt=%u\n", 
+                           (unsigned)(report.temperature*100.0),
+                           (unsigned)(report.pressure*1000.0),
+                           (unsigned)report.ms5611_D1,
+                           (unsigned)report.ms5611_D2,
+                           (unsigned)report.altitude);
+                    last_report = hrt_absolute_time();
+                }
+                last_D1 = report.ms5611_D1;
+                last_D2 = report.ms5611_D2;
+
+		fds.fd = 0;
+		fds.events = POLLIN;
+		if (poll(&fds, 1, 0) == 1) {
+                    // user input
+                    break;
+                }                
+	}
+
+	errx(0, "PASS");
+}
+
+/**
  * Reset the driver.
  */
 void
@@ -1070,6 +1163,12 @@ ms5611_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[1], "test"))
 		ms5611::test();
+
+	/*
+	 * Test the driver/device for 300 seconds
+	 */
+	if (!strcmp(argv[1], "test2"))
+		ms5611::test2();
 
 	/*
 	 * Reset the driver.
