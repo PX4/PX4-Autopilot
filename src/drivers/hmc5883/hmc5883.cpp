@@ -849,41 +849,23 @@ HMC5883::collect()
 
 	/* scale values for output */
 
-	/*
-	 * 1) Scale raw value to SI units using scaling from datasheet.
-	 * 2) Subtract static offset (in SI units)
-	 * 3) Scale the statically calibrated values with a linear
-	 *    dynamically obtained factor
-	 *
-	 * Note: the static sensor offset is the number the sensor outputs
-	 * 	 at a nominally 'zero' input. Therefore the offset has to
-	 * 	 be subtracted.
-	 *
-	 *	 Example: A gyro outputs a value of 74 at zero angular rate
-	 *	 	  the offset is 74 from the origin and subtracting
-	 *		  74 from all measurements centers them around zero.
-	 */
-
 #ifdef PX4_I2C_BUS_ONBOARD
 	if (_bus == PX4_I2C_BUS_ONBOARD) {
-		/* to align the sensor axes with the board, x and y need to be flipped */
-		new_report.x = ((report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
-		/* flip axes and negate value for y */
-		new_report.y = ((-report.x * _range_scale) - _scale.y_offset) * _scale.y_scale;
-		/* z remains z */
-		new_report.z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
-	} else {
+		// convert onboard so it matches offboard for the
+		// scaling below
+		report.y = -report.y;
+		report.x = -report.x;
+        }
 #endif
-		/* the standard external mag by 3DR has x pointing to the right, y pointing backwards, and z down,
-		 * therefore switch x and y and invert y */
-		new_report.x = ((-report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
-		/* flip axes and negate value for y */
-		new_report.y = ((report.x * _range_scale) - _scale.y_offset) * _scale.y_scale;
-		/* z remains z */
-		new_report.z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
-#ifdef PX4_I2C_BUS_ONBOARD
-	}
-#endif
+
+	/* the standard external mag by 3DR has x pointing to the
+	 * right, y pointing backwards, and z down, therefore switch x
+	 * and y and invert y */
+	new_report.x = ((-report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
+	/* flip axes and negate value for y */
+	new_report.y = ((report.x * _range_scale) - _scale.y_offset) * _scale.y_scale;
+	/* z remains z */
+	new_report.z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
 
 	if (_mag_topic != -1) {
 		/* publish it */
@@ -910,6 +892,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 	struct mag_report report;
 	ssize_t sz;
 	int ret = 1;
+	uint8_t good_count = 0;
 
 	// XXX do something smarter here
 	int fd = (int)enable;
@@ -932,31 +915,16 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		1.0f,
 	};
 
-	float avg_excited[3] = {0.0f, 0.0f, 0.0f};
-	unsigned i;
+	float sum_excited[3] = {0.0f, 0.0f, 0.0f};
+
+	/* expected axis scaling. The datasheet says that 766 will
+	 * be places in the X and Y axes and 713 in the Z
+	 * axis. Experiments show that in fact 766 is placed in X,
+	 * and 713 in Y and Z. This is relative to a base of 660
+	 * LSM/Ga, giving 1.16 and 1.08 */
+	float expected_cal[3] = { 1.16f, 1.08f, 1.08f };
 
 	warnx("starting mag scale calibration");
-
-	/* do a simple demand read */
-	sz = read(filp, (char *)&report, sizeof(report));
-
-	if (sz != sizeof(report)) {
-		warn("immediate read failed");
-		ret = 1;
-		goto out;
-	}
-
-	warnx("current measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
-	warnx("time:        %lld", report.timestamp);
-	warnx("sampling 500 samples for scaling offset");
-
-	/* set the queue depth to 10 */
-	/* don't do this for now, it can lead to a crash in start() respectively work_queue() */
-//	if (OK != ioctl(filp, SENSORIOCSQUEUEDEPTH, 10)) {
-//		warn("failed to set queue depth");
-//		ret = 1;
-//		goto out;
-//	}
 
 	/* start the sensor polling at 50 Hz */
 	if (OK != ioctl(filp, SENSORIOCSPOLLRATE, 50)) {
@@ -965,8 +933,9 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		goto out;
 	}
 
-	/* Set to 2.5 Gauss */
-	if (OK != ioctl(filp, MAGIOCSRANGE, 2)) {
+	/* Set to 2.5 Gauss. We ask for 3 to get the right part of
+         * the chained if statement above. */
+	if (OK != ioctl(filp, MAGIOCSRANGE, 3)) {
 		warnx("failed to set 2.5 Ga range");
 		ret = 1;
 		goto out;
@@ -990,8 +959,8 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		goto out;
 	}
 
-	/* read the sensor 10x and report each value */
-	for (i = 0; i < 500; i++) {
+	// discard 10 samples to let the sensor settle
+	for (uint8_t i = 0; i < 10; i++) {
 		struct pollfd fds;
 
 		/* wait for data to be ready */
@@ -1009,32 +978,69 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 
 		if (sz != sizeof(report)) {
 			warn("periodic read failed");
+			ret = -EIO;
 			goto out;
+		}
+	}
 
-		} else {
-			avg_excited[0] += report.x;
-			avg_excited[1] += report.y;
-			avg_excited[2] += report.z;
+	/* read the sensor up to 50x, stopping when we have 10 good values */
+	for (uint8_t i = 0; i < 50 && good_count < 10; i++) {
+		struct pollfd fds;
+
+		/* wait for data to be ready */
+		fds.fd = fd;
+		fds.events = POLLIN;
+		ret = ::poll(&fds, 1, 2000);
+
+		if (ret != 1) {
+			warn("timed out waiting for sensor data");
+			goto out;
+		}
+
+		/* now go get it */
+		sz = ::read(fd, &report, sizeof(report));
+
+		if (sz != sizeof(report)) {
+			warn("periodic read failed");
+			ret = -EIO;
+			goto out;
+		}
+		float cal[3] = {fabsf(expected_cal[0] / report.x), 
+				fabsf(expected_cal[1] / report.y), 
+				fabsf(expected_cal[2] / report.z)};
+
+		if (cal[0] > 0.7f && cal[0] < 1.35f &&
+		    cal[1] > 0.7f && cal[1] < 1.35f &&
+		    cal[2] > 0.7f && cal[2] < 1.35f) {
+			good_count++;
+			sum_excited[0] += cal[0];
+			sum_excited[1] += cal[1];
+			sum_excited[2] += cal[2];
 		}
 
 		//warnx("periodic read %u", i);
 		//warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
+		//warnx("cal: %.6f  %.6f  %.6f", (double)cal[0], (double)cal[1], (double)cal[2]);
 	}
 
-	avg_excited[0] /= i;
-	avg_excited[1] /= i;
-	avg_excited[2] /= i;
+	if (good_count < 5) {
+		warn("failed calibration");
+		ret = -EIO;
+		goto out;
+	}
 
-	warnx("done. Performed %u reads", i);
-	warnx("measurement avg: %.6f  %.6f  %.6f", (double)avg_excited[0], (double)avg_excited[1], (double)avg_excited[2]);
+#if 0
+	warnx("measurement avg: %.6f  %.6f  %.6f", 
+	      (double)sum_excited[0]/good_count, 
+	      (double)sum_excited[1]/good_count, 
+	      (double)sum_excited[2]/good_count);
+#endif
 
 	float scaling[3];
 
-	/* calculate axis scaling */
-	scaling[0] = fabsf(1.16f / avg_excited[0]);
-	/* second axis inverted */
-	scaling[1] = fabsf(1.16f / -avg_excited[1]);
-	scaling[2] = fabsf(1.08f / avg_excited[2]);
+	scaling[0] = sum_excited[0] / good_count;
+	scaling[1] = sum_excited[1] / good_count;
+	scaling[2] = sum_excited[2] / good_count;
 
 	warnx("axes scaling: %.6f  %.6f  %.6f", (double)scaling[0], (double)scaling[1], (double)scaling[2]);
 
@@ -1165,6 +1171,8 @@ int HMC5883::set_excitement(unsigned enable)
 		conf_reg &= ~0x03;
 	}
 
+        // ::printf("set_excitement enable=%d regA=0x%x\n", (int)enable, (unsigned)conf_reg);
+
 	ret = write_reg(ADDR_CONF_A, conf_reg);
 
 	if (OK != ret)
@@ -1172,6 +1180,8 @@ int HMC5883::set_excitement(unsigned enable)
 
 	uint8_t conf_reg_ret;
 	read_reg(ADDR_CONF_A, conf_reg_ret);
+
+	//print_info();
 
 	return !(conf_reg == conf_reg_ret);
 }
@@ -1211,6 +1221,10 @@ HMC5883::print_info()
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
+	printf("offsets (%.2f %.2f %.2f)\n", (double)_scale.x_offset, (double)_scale.y_offset, (double)_scale.z_offset);
+	printf("scaling (%.2f %.2f %.2f) 1/range_scale %.2f range_ga %.2f\n", 
+	       (double)_scale.x_scale, (double)_scale.y_scale, (double)_scale.z_scale,
+	       (double)1.0/_range_scale, (double)_range_ga);
 	_reports->print_info("report queue");
 }
 

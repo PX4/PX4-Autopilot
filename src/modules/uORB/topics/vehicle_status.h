@@ -54,6 +54,8 @@
 #include <stdbool.h>
 #include "../uORB.h"
 
+#include <navigator/navigator_state.h>
+
 /**
  * @addtogroup topics @{
  */
@@ -65,6 +67,7 @@ typedef enum {
 	MAIN_STATE_EASY,
 	MAIN_STATE_AUTO,
 	MAIN_STATE_OFFBOARD,
+	MAIN_STATE_MAX
 } main_state_t;
 
 typedef enum {
@@ -74,7 +77,8 @@ typedef enum {
 	ARMING_STATE_ARMED_ERROR,
 	ARMING_STATE_STANDBY_ERROR,
 	ARMING_STATE_REBOOT,
-	ARMING_STATE_IN_AIR_RESTORE
+	ARMING_STATE_IN_AIR_RESTORE,
+	ARMING_STATE_MAX
 } arming_state_t;
 
 typedef enum {
@@ -83,9 +87,12 @@ typedef enum {
 } hil_state_t;
 
 typedef enum {
-	FLIGHTTERMINATION_STATE_OFF = 0,
-	FLIGHTTERMINATION_STATE_ON
-} flighttermination_state_t;
+	FAILSAFE_STATE_NORMAL = 0,		/**< Normal operation */
+	FAILSAFE_STATE_RTL,				/**< Return To Launch */
+	FAILSAFE_STATE_LAND,			/**< Land without position control */
+	FAILSAFE_STATE_TERMINATION,		/**< Disable motors and use parachute, can't be recovered */
+	FAILSAFE_STATE_MAX
+} failsafe_state_t;
 
 typedef enum {
 	MODE_SWITCH_MANUAL = 0,
@@ -180,6 +187,7 @@ struct vehicle_status_s
 	uint64_t set_nav_state_timestamp;	/**< timestamp of latest change of set_nav_state */
 	arming_state_t arming_state;			/**< current arming state */
 	hil_state_t hil_state;					/**< current hil state */
+	failsafe_state_t failsafe_state;		/**< current failsafe state */
 
 	int32_t system_type;				/**< system type, inspired by MAVLink's VEHICLE_TYPE enum */
 	int32_t	system_id;				/**< system id, inspired by MAVLink's system ID field */
@@ -231,8 +239,6 @@ struct vehicle_status_s
 	uint16_t errors_count2;
 	uint16_t errors_count3;
 	uint16_t errors_count4;
-
-	flighttermination_state_t flighttermination_state;
 };
 
 /**

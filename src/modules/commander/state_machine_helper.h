@@ -67,11 +67,11 @@ transition_result_t main_state_transition(struct vehicle_status_s *current_state
 
 bool check_main_state_changed();
 
-transition_result_t flighttermination_state_transition(struct vehicle_status_s *status, flighttermination_state_t new_flighttermination_state);
+transition_result_t failsafe_state_transition(struct vehicle_status_s *status, failsafe_state_t new_failsafe_state);
 
 bool check_navigation_state_changed();
 
-bool check_flighttermination_state_changed();
+bool check_failsafe_state_changed();
 
 void set_navigation_state_changed();
 

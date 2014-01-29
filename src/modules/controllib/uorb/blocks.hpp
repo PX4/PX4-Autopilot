@@ -43,7 +43,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/mission_item_triplet.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
@@ -82,8 +82,8 @@ public:
 	virtual ~BlockWaypointGuidance();
 	void update(vehicle_global_position_s &pos,
 		    vehicle_attitude_s &att,
-		    mission_item_s &missionCmd,
-		    mission_item_s &lastMissionCmd);
+		    position_setpoint_s &missionCmd,
+		    position_setpoint_s &lastMissionCmd);
 	float getPsiCmd() { return _psiCmd; }
 };
 
@@ -98,7 +98,7 @@ protected:
 	UOrbSubscription<vehicle_attitude_setpoint_s> _attCmd;
 	UOrbSubscription<vehicle_rates_setpoint_s> _ratesCmd;
 	UOrbSubscription<vehicle_global_position_s> _pos;
-	UOrbSubscription<mission_item_triplet_s> _missionCmd;
+	UOrbSubscription<position_setpoint_triplet_s> _missionCmd;
 	UOrbSubscription<manual_control_setpoint_s> _manual;
 	UOrbSubscription<vehicle_status_s> _status;
 	UOrbSubscription<parameter_update_s> _param_update;

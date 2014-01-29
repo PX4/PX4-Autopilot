@@ -45,32 +45,47 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "../uORB.h"
-
-#include "mission.h"
+#include <navigator/navigator_state.h>
 
 /**
  * @addtogroup topics
  * @{
  */
 
+enum SETPOINT_TYPE
+{
+	SETPOINT_TYPE_NORMAL = 0,	/**< normal setpoint */
+	SETPOINT_TYPE_LOITER,		/**< loiter setpoint */
+	SETPOINT_TYPE_TAKEOFF,		/**< takeoff setpoint */
+	SETPOINT_TYPE_LAND,			/**< land setpoint, altitude must be ignored, vehicle must descend until landing */
+	SETPOINT_TYPE_IDLE,			/**< do nothing, switch off motors or keep at idle speed (MC) */
+};
+
+struct position_setpoint_s
+{
+	bool valid;					/**< true if setpoint is valid */
+	enum SETPOINT_TYPE type;	/**< setpoint type to adjust behavior of position controller */
+	double lat;					/**< latitude, in deg */
+	double lon;					/**< longitude, in deg */
+	float alt;					/**< altitude AMSL, in m */
+	float yaw;					/**< yaw (only for multirotors), in rad [-PI..PI), NaN = hold current yaw */
+	float loiter_radius;		/**< loiter radius (only for fixed wing), in m */
+	int8_t loiter_direction;	/**< loiter direction: 1 = CW, -1 = CCW */
+	float pitch_min;			/**< minimal pitch angle for fixed wing takeoff waypoints */
+};
+
 /**
  * Global position setpoint triplet in WGS84 coordinates.
  *
  * This are the three next waypoints (or just the next two or one).
  */
-struct mission_item_triplet_s
+struct position_setpoint_triplet_s
 {
-	bool previous_valid;
-	bool current_valid;				/**< flag indicating previous mission item is valid */
-	bool next_valid;					/**< flag indicating next mission item is valid */
+	struct position_setpoint_s previous;
+	struct position_setpoint_s current;
+	struct position_setpoint_s next;
 
-	struct mission_item_s previous;
-	struct mission_item_s current;
-	struct mission_item_s next;
-
-	int previous_index;
-	int current_index;
-	int next_index;
+	nav_state_t nav_state;		/**< navigation state */
 };
 
 /**
@@ -78,6 +93,6 @@ struct mission_item_triplet_s
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(mission_item_triplet);
+ORB_DECLARE(position_setpoint_triplet);
 
 #endif
