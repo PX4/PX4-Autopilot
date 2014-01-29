@@ -237,8 +237,7 @@ private:
 		RTL_STATE_NONE = 0,
 		RTL_STATE_CLIMB,
 		RTL_STATE_RETURN,
-		RTL_STATE_DESCEND,
-		RTL_STATE_LAND
+		RTL_STATE_DESCEND
 	};
 
 	enum RTLState _rtl_state;
@@ -304,6 +303,7 @@ private:
 	void		start_mission();
 	void		start_rtl();
 	void		start_land();
+	void		start_land_home();
 
 	/**
 	 * Guards offboard mission
@@ -688,7 +688,8 @@ Navigator::task_main()
 					/* RETURN switch, overrides MISSION switch */
 					if (_vstatus.return_switch == RETURN_SWITCH_RETURN) {
 						/* switch to RTL if not already landed after RTL and home position set */
-						if ((myState != NAV_STATE_READY || _rtl_state != RTL_STATE_LAND) && _vstatus.condition_home_position_valid) {
+						if (!(_rtl_state == RTL_STATE_DESCEND && (myState == NAV_STATE_READY || myState == NAV_STATE_LAND)) &&
+								_vstatus.condition_home_position_valid) {
 							dispatch(EVENT_RTL_REQUESTED);
 						}
 
@@ -745,7 +746,8 @@ Navigator::task_main()
 							break;
 
 						case NAV_STATE_RTL:
-							if ((myState != NAV_STATE_READY || _rtl_state != RTL_STATE_LAND) && _vstatus.condition_home_position_valid) {
+							if (!(_rtl_state == RTL_STATE_DESCEND && (myState == NAV_STATE_READY || myState == NAV_STATE_LAND)) &&
+									_vstatus.condition_home_position_valid) {
 								dispatch(EVENT_RTL_REQUESTED);
 							}
 
@@ -994,7 +996,7 @@ StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), NAV_STATE_LOITER},
 		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
 		/* EVENT_RTL_REQUESTED */		{NO_ACTION, NAV_STATE_RTL},
-		/* EVENT_LAND_REQUESTED */		{ACTION(&Navigator::start_land), NAV_STATE_LAND},
+		/* EVENT_LAND_REQUESTED */		{ACTION(&Navigator::start_land_home), NAV_STATE_LAND},
 		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_RTL},
 		/* EVENT_HOME_POSITION_CHANGED */	{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},	// TODO need to reset rtl_state
 	},
@@ -1040,8 +1042,8 @@ Navigator::start_ready()
 	_reset_loiter_pos = true;
 	_do_takeoff = false;
 
-	if (_rtl_state != RTL_STATE_LAND) {
-		/* allow RTL if landed not at home */
+	if (_rtl_state != RTL_STATE_DESCEND) {
+		/* reset RTL state if landed not at home */
 		_rtl_state = RTL_STATE_NONE;
 	}
 
@@ -1074,11 +1076,6 @@ Navigator::start_loiter()
 		}
 
 		_pos_sp_triplet.current.type = SETPOINT_TYPE_NORMAL;
-
-		if (_rtl_state == RTL_STATE_LAND) {
-			/* if RTL landing was interrupted, avoid landing from MIN_ALT on next RTL */
-			_rtl_state = RTL_STATE_DESCEND;
-		}
 	}
 
 	_pos_sp_triplet.current.loiter_radius = _parameters.loiter_radius;
@@ -1261,6 +1258,36 @@ Navigator::start_land()
 }
 
 void
+Navigator::start_land_home()
+{
+	/* land to home position, should be called when hovering above home, from RTL state */
+	_do_takeoff = false;
+	_reset_loiter_pos = true;
+
+	memcpy(&_pos_sp_triplet.previous, &_pos_sp_triplet.current, sizeof(position_setpoint_s));
+
+	_mission_item_valid = true;
+
+	_mission_item.lat = _home_pos.lat;
+	_mission_item.lon = _home_pos.lon;
+	_mission_item.altitude_is_relative = false;
+	_mission_item.altitude = _home_pos.alt;
+	_mission_item.yaw = NAN;
+	_mission_item.loiter_radius = _parameters.loiter_radius;
+	_mission_item.loiter_direction = 1;
+	_mission_item.nav_cmd = NAV_CMD_LAND;
+	_mission_item.acceptance_radius = _parameters.acceptance_radius;
+	_mission_item.time_inside = 0.0f;
+	_mission_item.pitch_min = 0.0f;
+	_mission_item.autocontinue = true;
+	_mission_item.origin = ORIGIN_ONBOARD;
+
+	position_setpoint_from_mission_item(&_pos_sp_triplet.current, &_mission_item);
+
+	_pos_sp_triplet.next.valid = false;
+}
+
+void
 Navigator::set_rtl_item()
 {
 	switch (_rtl_state) {
@@ -1347,33 +1374,6 @@ Navigator::set_rtl_item()
 			_pos_sp_triplet.next.valid = false;
 
 			mavlink_log_info(_mavlink_fd, "[navigator] RTL: descend to %.1fm above home", _mission_item.altitude - _home_pos.alt);
-			break;
-		}
-
-	case RTL_STATE_LAND: {
-			memcpy(&_pos_sp_triplet.previous, &_pos_sp_triplet.current, sizeof(position_setpoint_s));
-
-			_mission_item_valid = true;
-
-			_mission_item.lat = _home_pos.lat;
-			_mission_item.lon = _home_pos.lon;
-			_mission_item.altitude_is_relative = false;
-			_mission_item.altitude = _home_pos.alt;
-			_mission_item.yaw = NAN;
-			_mission_item.loiter_radius = _parameters.loiter_radius;
-			_mission_item.loiter_direction = 1;
-			_mission_item.nav_cmd = NAV_CMD_LAND;
-			_mission_item.acceptance_radius = _parameters.acceptance_radius;
-			_mission_item.time_inside = 0.0f;
-			_mission_item.pitch_min = 0.0f;
-			_mission_item.autocontinue = true;
-			_mission_item.origin = ORIGIN_ONBOARD;
-
-			position_setpoint_from_mission_item(&_pos_sp_triplet.current, &_mission_item);
-
-			_pos_sp_triplet.next.valid = false;
-
-			mavlink_log_info(_mavlink_fd, "[navigator] RTL: land");
 			break;
 		}
 
@@ -1563,10 +1563,15 @@ Navigator::on_mission_item_reached()
 
 	} else if (myState == NAV_STATE_RTL) {
 		/* RTL completed */
-		if (_rtl_state == RTL_STATE_LAND) {
-			/* landed at home position */
-			mavlink_log_info(_mavlink_fd, "[navigator] RTL completed, landed");
-			dispatch(EVENT_READY_REQUESTED);
+		if (_rtl_state == RTL_STATE_DESCEND) {
+			/* hovering above home position, land if needed or loiter */
+			mavlink_log_info(_mavlink_fd, "[navigator] RTL completed");
+			if (_mission_item.autocontinue) {
+				dispatch(EVENT_LAND_REQUESTED);
+
+			} else {
+				dispatch(EVENT_LOITER_REQUESTED);
+			}
 
 		} else {
 			/* next RTL step */
