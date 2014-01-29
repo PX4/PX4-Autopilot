@@ -1,10 +1,24 @@
 import output
+from xml.sax.saxutils import escape
 
 class DokuWikiOutput(output.Output):
     def Generate(self, groups):
-        result = ""
+        pre_text = """<?xml version='1.0'?>
+            <methodCall>
+              <methodName>wiki.putPage</methodName>
+                  <params>
+              <param> 
+                <value>
+                  <string>:dev:parameters:reference</string>
+                </value>
+              </param> 
+                  <param> 
+                <value>
+                  <string>"""
+        result = "====== Parameter Reference ======\nThis list is auto-generated every few minutes and contains the most recent parameter names and default values."
         for group in groups:
             result += "==== %s ====\n\n" % group.GetName()
+            result += "|< 100% 20% 20% 10% 10% 10% 30%>|\n"
             result += "^ Name            ^ Description    ^ Min    ^ Max    ^ Default   ^ Comment    ^\n"
             for param in group.GetParams():
                 code = param.GetFieldValue("code")
@@ -34,4 +48,15 @@ class DokuWikiOutput(output.Output):
                     result += "|"
                 result += "|\n"
             result += "\n"
-        return result
+        post_text = """</string>
+        </value>
+      </param> 
+           <param> 
+        <value>
+            <name>sum</name>
+            <string>Updated parameters automagically from code.</string>
+        </value>
+      </param> 
+    </params> 
+    </methodCall>"""
+        return pre_text + escape(result) + post_text
