@@ -27,26 +27,26 @@ class DokuWikiOutput(output.Output):
                 result += "| %s   | %s  " % (code, name)
                 min_val = param.GetFieldValue("min")
                 if min_val is not None:
-                    result += "| %s  " % min_val
+                    result += " | %s  " % min_val
                 else:
-                    result += "|"
+                    result += " | "
                 max_val = param.GetFieldValue("max")
                 if max_val is not None:
-                    result += "| %s  " % max_val
+                    result += " | %s  " % max_val
                 else:
-                    result += "|"
+                    result += " | "
                 def_val = param.GetFieldValue("default")
                 if def_val is not None:
                     result += "| %s  " % def_val
                 else:
-                    result += "|"
+                    result += " | "
                 long_desc = param.GetFieldValue("long_desc")
                 if long_desc is not None:
                     long_desc = long_desc.replace("\n", "")
                     result += "| %s  " % long_desc
                 else:
-                    result += "|"
-                result += "|\n"
+                    result += " | "
+                result += " |\n"
             result += "\n"
         post_text = """</string>
         </value>
