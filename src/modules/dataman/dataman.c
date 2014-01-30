@@ -187,21 +187,6 @@ create_work_item(void)
 }
 
 /* Work queue management functions */
-static void
-enqueue_work_item(work_q_item_t *item)
-{
-	/* put the work item on the work queue */
-	lock_queue(&g_work_q);
-	sq_addlast(&item->link, &(g_work_q.q));
-
-	if (++g_work_q.size > g_work_q.max_size)
-		g_work_q.max_size = g_work_q.size;
-
-	unlock_queue(&g_work_q);
-
-	/* tell the work thread that work is available */
-	sem_post(&g_work_queued_sema);
-}
 
 static void
 destroy_work_item(work_q_item_t *item)
@@ -227,6 +212,31 @@ dequeue_work_item(void)
 
 	unlock_queue(&g_work_q);
 	return work;
+}
+
+static int
+enqueue_work_item_and_wait_for_result(work_q_item_t *item)
+{
+	/* put the work item on the work queue */
+	lock_queue(&g_work_q);
+	sq_addlast(&item->link, &(g_work_q.q));
+
+	if (++g_work_q.size > g_work_q.max_size)
+		g_work_q.max_size = g_work_q.size;
+
+	unlock_queue(&g_work_q);
+
+	/* tell the work thread that work is available */
+	sem_post(&g_work_queued_sema);
+
+	/* wait for the result */
+	sem_wait(&item->wait_sem);
+
+	int result = item->result;
+
+	destroy_work_item(item);
+
+	return result;
 }
 
 /* Calculate the offset in file of specific item */
@@ -455,9 +465,8 @@ dm_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const
 	if ((g_fd < 0) || g_task_should_exit)
 		return -1;
 
-	/* Will return with queues locked */
 	if ((work = create_work_item()) == NULL) 
-		return -1; /* queues unlocked on failure */
+		return -1;
 
 	work->func = dm_write_func;
 	work->write_params.item = item;
@@ -465,12 +474,8 @@ dm_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const
 	work->write_params.persistence = persistence;
 	work->write_params.buf = buf;
 	work->write_params.count = count;
-	enqueue_work_item(work);
 
-	sem_wait(&work->wait_sem);
-	ssize_t result = work->result;
-	destroy_work_item(work);
-	return result;
+	return (ssize_t)enqueue_work_item_and_wait_for_result(work);
 }
 
 /* Retrieve from the data manager file */
@@ -482,21 +487,16 @@ dm_read(dm_item_t item, unsigned char index, void *buf, size_t count)
 	if ((g_fd < 0) || g_task_should_exit)
 		return -1;
 
-	/* Will return with queues locked */
 	if ((work = create_work_item()) == NULL)
-		return -1; /* queues unlocked on failure */
+		return -1;
 
 	work->func = dm_read_func;
 	work->read_params.item = item;
 	work->read_params.index = index;
 	work->read_params.buf = buf;
 	work->read_params.count = count;
-	enqueue_work_item(work);
-
-	sem_wait(&work->wait_sem);
-	ssize_t result = work->result;
-	destroy_work_item(work);
-	return result;
+	
+	return (ssize_t)enqueue_work_item_and_wait_for_result(work);
 }
 
 __EXPORT int
@@ -507,18 +507,13 @@ dm_clear(dm_item_t item)
 	if ((g_fd < 0) || g_task_should_exit)
 		return -1;
 
-	/* Will return with queues locked */
 	if ((work = create_work_item()) == NULL)
-		return -1; /* queues unlocked on failure */
+		return -1;
 
 	work->func = dm_clear_func;
 	work->clear_params.item = item;
-	enqueue_work_item(work);
-
-	sem_wait(&work->wait_sem);
-	int result = work->result;
-	destroy_work_item(work);
-	return result;
+	
+	return enqueue_work_item_and_wait_for_result(work);
 }
 
 /* Tell the data manager about the type of the last reset */
@@ -530,18 +525,13 @@ dm_restart(dm_reset_reason reason)
 	if ((g_fd < 0) || g_task_should_exit)
 		return -1;
 
-	/* Will return with queues locked */
 	if ((work = create_work_item()) == NULL)
-		return -1; /* queues unlocked on failure */
+		return -1;
 
 	work->func = dm_restart_func;
 	work->restart_params.reason = reason;
-	enqueue_work_item(work);
-
-	sem_wait(&work->wait_sem);
-	int result = work->result;
-	destroy_work_item(work);
-	return result;
+	
+	return enqueue_work_item_and_wait_for_result(work);
 }
 
 static int
