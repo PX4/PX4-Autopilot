@@ -209,7 +209,7 @@ GPS::init()
 		goto out;
 
 	/* start the GPS driver worker task */
-	_task = task_create("gps", SCHED_PRIORITY_SLOW_DRIVER, 1280, (main_t)&GPS::task_main_trampoline, nullptr);
+	_task = task_create("gps", SCHED_PRIORITY_SLOW_DRIVER, 2048, (main_t)&GPS::task_main_trampoline, nullptr);
 
 	if (_task < 0) {
 		warnx("task start failed: %d", errno);
