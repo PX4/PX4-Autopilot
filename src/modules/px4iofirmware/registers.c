@@ -90,8 +90,6 @@ uint16_t		r_page_status[] = {
 	[PX4IO_P_STATUS_VSERVO]			= 0,
 	[PX4IO_P_STATUS_VRSSI]			= 0,
 	[PX4IO_P_STATUS_PRSSI]			= 0,
-	[PX4IO_P_STATUS_NRSSI]			= 0,
-	[PX4IO_P_STATUS_RC_DATA]		= 0
 };
 
 /**
@@ -116,6 +114,12 @@ uint16_t		r_page_servos[PX4IO_SERVO_COUNT];
 uint16_t		r_page_raw_rc_input[] =
 {
 	[PX4IO_P_RAW_RC_COUNT]			= 0,
+	[PX4IO_P_RAW_RC_FLAGS]			= 0,
+	[PX4IO_P_RAW_RC_NRSSI]			= 0,
+	[PX4IO_P_RAW_RC_DATA]			= 0,
+	[PX4IO_P_RAW_FRAME_COUNT]		= 0,
+	[PX4IO_P_RAW_LOST_FRAME_COUNT]		= 0,
+	[PX4IO_P_RAW_RC_DATA]			= 0,
 	[PX4IO_P_RAW_RC_BASE ... (PX4IO_P_RAW_RC_BASE + PX4IO_RC_INPUT_CHANNELS)] = 0
 };
 
@@ -144,7 +148,12 @@ uint16_t		r_page_scratch[32];
  */
 volatile uint16_t	r_page_setup[] =
 {
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
+	/* default to RSSI ADC functionality */
+	[PX4IO_P_SETUP_FEATURES]		= PX4IO_P_SETUP_FEATURES_ADC_RSSI,
+#else
 	[PX4IO_P_SETUP_FEATURES]		= 0,
+#endif
 	[PX4IO_P_SETUP_ARMING]			= 0,
 	[PX4IO_P_SETUP_PWM_RATES]		= 0,
 	[PX4IO_P_SETUP_PWM_DEFAULTRATE]		= 50,
@@ -162,7 +171,14 @@ volatile uint16_t	r_page_setup[] =
 	[PX4IO_P_SETUP_CRC ... (PX4IO_P_SETUP_CRC+1)] = 0,
 };
 
-#define PX4IO_P_SETUP_FEATURES_VALID	(0)
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
+#define PX4IO_P_SETUP_FEATURES_VALID	(PX4IO_P_SETUP_FEATURES_SBUS1_OUT | \
+					 PX4IO_P_SETUP_FEATURES_SBUS2_OUT | \
+					 PX4IO_P_SETUP_FEATURES_ADC_RSSI | \
+					 PX4IO_P_SETUP_FEATURES_PWM_RSSI)
+#else
+#define PX4IO_P_SETUP_FEATURES_VALID	0
+#endif
 #define PX4IO_P_SETUP_ARMING_VALID	(PX4IO_P_SETUP_ARMING_FMU_ARMED | \
 					 PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK | \
 					 PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK | \
@@ -438,9 +454,35 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_FEATURES:
 
 			value &= PX4IO_P_SETUP_FEATURES_VALID;
-			r_setup_features = value;
 
-			/* no implemented feature selection at this point */
+			/* some of the options conflict - give S.BUS out precedence, then ADC RSSI, then PWM RSSI */
+
+			/* switch S.Bus output pin as needed */
+			#ifdef ENABLE_SBUS_OUT
+			ENABLE_SBUS_OUT(value & (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT));
+
+			/* disable the conflicting options */
+			if (value & (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT)) {
+				value &= ~(PX4IO_P_SETUP_FEATURES_PWM_RSSI | PX4IO_P_SETUP_FEATURES_ADC_RSSI);
+			}
+			#endif
+
+			/* disable the conflicting options with ADC RSSI */
+			if (value & (PX4IO_P_SETUP_FEATURES_ADC_RSSI)) {
+				value &= ~(PX4IO_P_SETUP_FEATURES_PWM_RSSI |
+					PX4IO_P_SETUP_FEATURES_SBUS1_OUT |
+					PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
+			}
+
+			/* disable the conflicting options with PWM RSSI (without effect here, but for completeness) */
+			if (value & (PX4IO_P_SETUP_FEATURES_PWM_RSSI)) {
+				value &= ~(PX4IO_P_SETUP_FEATURES_ADC_RSSI |
+					PX4IO_P_SETUP_FEATURES_SBUS1_OUT |
+					PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
+			}
+
+			/* apply changes */
+			r_setup_features = value;
 
 			break;
 
