@@ -694,7 +694,7 @@ stop(void)
 static void
 usage(void)
 {
-	errx(1, "usage: dataman {start|stop|status}");
+	errx(1, "usage: dataman {start|stop|status|poweronrestart|inflightrestart}");
 }
 
 int
@@ -721,8 +721,12 @@ dataman_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop"))
 		stop();
-	else if (!strcmp(argv[1], "status"))
-		status();
+    else if (!strcmp(argv[1], "status"))
+        status();
+    else if (!strcmp(argv[1], "poweronrestart"))
+        dm_restart(DM_INIT_REASON_POWER_ON);
+    else if (!strcmp(argv[1], "inflightrestart"))
+        dm_restart(DM_INIT_REASON_IN_FLIGHT);
 	else
 		usage();
 

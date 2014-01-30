@@ -28,7 +28,6 @@ MODULES		+= systemcmds/hw_ver
 #
 # Library modules
 #
-MODULES		+= modules/dataman
 MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
