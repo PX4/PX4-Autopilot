@@ -156,6 +156,9 @@ private:
 		param_t yaw_rate_p;
 		param_t yaw_rate_i;
 		param_t yaw_rate_d;
+		param_t yaw_ff;
+
+		param_t rc_scale_yaw;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -163,6 +166,9 @@ private:
 		math::Vector<3> rate_p;				/**< P gain for angular rate error */
 		math::Vector<3> rate_i;				/**< I gain for angular rate error */
 		math::Vector<3> rate_d;				/**< D gain for angular rate error */
+		float yaw_ff;						/**< yaw control feed-forward */
+
+		float rc_scale_yaw;
 	}		_params;
 
 	/**
@@ -284,6 +290,9 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.yaw_rate_p	= 	param_find("MC_YAWRATE_P");
 	_params_handles.yaw_rate_i	= 	param_find("MC_YAWRATE_I");
 	_params_handles.yaw_rate_d	= 	param_find("MC_YAWRATE_D");
+	_params_handles.yaw_ff		= 	param_find("MC_YAW_FF");
+
+	_params_handles.rc_scale_yaw	= 	param_find("RC_SCALE_YAW");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -341,6 +350,10 @@ MulticopterAttitudeControl::parameters_update()
 	_params.rate_d(1) = v;
 	param_get(_params_handles.yaw_rate_d, &v);
 	_params.rate_d(2) = v;
+
+	param_get(_params_handles.yaw_ff, &_params.yaw_ff);
+
+	param_get(_params_handles.rc_scale_yaw, &_params.rc_scale_yaw);
 
 	return OK;
 }
@@ -461,9 +474,16 @@ MulticopterAttitudeControl::control_attitude(float dt)
 			//	reset_yaw_sp = true;
 			//}
 		} else {
-			if (_manual_control_sp.yaw < -YAW_DEADZONE || YAW_DEADZONE < _manual_control_sp.yaw) {
+			float yaw_dz_scaled = YAW_DEADZONE * _params.rc_scale_yaw;
+			if (_params.rc_scale_yaw > 0.001f && fabs(_manual_control_sp.yaw) > yaw_dz_scaled) {
 				/* move yaw setpoint */
-				yaw_sp_move_rate = _manual_control_sp.yaw;
+				yaw_sp_move_rate = _manual_control_sp.yaw / _params.rc_scale_yaw;
+				if (_manual_control_sp.yaw > 0.0f) {
+					yaw_sp_move_rate -= YAW_DEADZONE;
+				} else {
+					yaw_sp_move_rate += YAW_DEADZONE;
+				}
+				yaw_sp_move_rate *= _params.rc_scale_yaw;
 				_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + yaw_sp_move_rate * dt);
 				_v_att_sp.R_valid = false;
 				publish_att_sp = true;
@@ -592,7 +612,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	_rates_sp = _params.p.emult(e_R);
 
 	/* feed forward yaw setpoint rate */
-	_rates_sp(2) += yaw_sp_move_rate * yaw_w;
+	_rates_sp(2) += yaw_sp_move_rate * yaw_w * _params.yaw_ff;
 }
 
 /*
