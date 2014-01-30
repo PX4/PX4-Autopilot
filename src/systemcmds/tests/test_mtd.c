@@ -90,6 +90,16 @@ int check_user_abort(int fd) {
 	return 1;
 }
 
+void print_fail()
+{
+	printf("<[T]: MTD: FAIL>\n");
+}
+
+void print_success()
+{
+	printf("<[T]: MTD: OK>\n");
+}
+
 int
 test_mtd(int argc, char *argv[])
 {
@@ -99,6 +109,7 @@ test_mtd(int argc, char *argv[])
 	struct stat buffer;
 	if (stat(PARAM_FILE_NAME, &buffer)) {
 		warnx("file %s not found, aborting MTD test", PARAM_FILE_NAME);
+		print_fail();
 		return 1;
 	}
 
@@ -123,9 +134,17 @@ test_mtd(int argc, char *argv[])
 		uint8_t read_buf[chunk_sizes[c]] __attribute__((aligned(64)));
 		hrt_abstime start, end;
 
-		int fd = open(PARAM_FILE_NAME, O_WRONLY);
+		int fd = open(PARAM_FILE_NAME, O_RDONLY);
+		int rret = read(fd, read_buf, chunk_sizes[c]);
+		close(fd);
 
-		warnx("testing unaligned writes - please wait..");
+		fd = open(PARAM_FILE_NAME, O_WRONLY);
+
+		printf("printing 2 percent of the first chunk:\n");
+		for (int i = 0; i < sizeof(read_buf) / 50; i++) {
+			printf("%02X", read_buf[i]);
+		}
+		printf("\n");
 
 		iterations = file_size / chunk_sizes[c];
 
@@ -133,9 +152,9 @@ test_mtd(int argc, char *argv[])
 		for (unsigned i = 0; i < iterations; i++) {
 			int wret = write(fd, write_buf, chunk_sizes[c]);
 
-			if (wret != chunk_sizes[c]) {
+			if (wret != (int)chunk_sizes[c]) {
 				warn("WRITE ERROR!");
-
+				print_fail();
 				return 1;
 			}
 
@@ -156,6 +175,7 @@ test_mtd(int argc, char *argv[])
 
 			if (rret != chunk_sizes[c]) {
 				warnx("READ ERROR!");
+				print_fail();
 				return 1;
 			}
 			
@@ -165,6 +185,7 @@ test_mtd(int argc, char *argv[])
 			for (int j = 0; j < chunk_sizes[c]; j++) {
 				if (read_buf[j] != write_buf[j]) {
 					warnx("COMPARISON ERROR: byte %d", j);
+					print_fail();
 					compare_ok = false;
 					break;
 				}
@@ -172,6 +193,7 @@ test_mtd(int argc, char *argv[])
 
 			if (!compare_ok) {
 				warnx("ABORTING FURTHER COMPARISON DUE TO ERROR");
+				print_fail();
 				return 1;
 			}
 
@@ -183,7 +205,6 @@ test_mtd(int argc, char *argv[])
 
 		close(fd);
 
-		printf("RESULT: OK! No readback errors.\n\n");
 	}
 
 	/* fill the file with 0xFF to make it look new again */
@@ -193,14 +214,16 @@ test_mtd(int argc, char *argv[])
 	for (int i = 0; i < file_size / sizeof(ffbuf); i++) {
 		int ret = write(fd, ffbuf, sizeof(ffbuf));
 
-		if (ret) {
+		if (ret != sizeof(ffbuf)) {
 			warnx("ERROR! Could not fill file with 0xFF");
 			close(fd);
+			print_fail();
 			return 1;
 		}
 	}
 
 	(void)close(fd);
+	print_success();
 
 	return 0;
 }

@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,30 +32,42 @@
  ****************************************************************************/
 
 /**
- * @file sdlog2_version.h
+ * @file hw_ver.c
  *
- * Tools for system version detection.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * Show and test hardware version.
  */
 
-#ifndef SDLOG2_VERSION_H_
-#define SDLOG2_VERSION_H_
+#include <nuttx/config.h>
 
-/*
- GIT_VERSION is defined at build time via a Makefile call to the
- git command line.
- */
-#define FREEZE_STR(s) #s
-#define STRINGIFY(s) FREEZE_STR(s)
-#define FW_GIT STRINGIFY(GIT_VERSION)
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
+#include <version/version.h>
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define	HW_ARCH "PX4FMU_V1"
-#endif
+__EXPORT int hw_ver_main(int argc, char *argv[]);
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define	HW_ARCH "PX4FMU_V2"
-#endif
+int
+hw_ver_main(int argc, char *argv[])
+{
+	if (argc >= 2) {
+		if (!strcmp(argv[1], "show")) {
+			printf(HW_ARCH "\n");
+			exit(0);
+		}
 
-#endif /* SDLOG2_VERSION_H_ */
+		if (!strcmp(argv[1], "compare")) {
+			if (argc >= 3) {
+				int ret = strcmp(HW_ARCH, argv[2]) != 0;
+				if (ret == 0) {
+					printf("hw_ver match: %s\n", HW_ARCH);
+				}
+				exit(ret);
+
+			} else {
+				errx(1, "not enough arguments, try 'compare PX4FMU_1'");
+			}
+		}
+	}
+
+	errx(1, "expected a command, try 'show' or 'compare'");
+}

@@ -45,7 +45,6 @@
 #include "px4io.h"
 
 static struct hrt_call arming_call;
-static struct hrt_call heartbeat_call;
 static struct hrt_call failsafe_call;
 
 /*
@@ -84,7 +83,11 @@ safety_init(void)
 {
 	/* arrange for the button handler to be called at 10Hz */
 	hrt_call_every(&arming_call, 1000, 100000, safety_check_button, NULL);
+}
 
+void
+failsafe_led_init(void)
+{
 	/* arrange for the failsafe blinker to be called at 8Hz */
 	hrt_call_every(&failsafe_call, 1000, 125000, failsafe_blink, NULL);
 }
@@ -165,8 +168,8 @@ failsafe_blink(void *arg)
 	/* indicate that a serious initialisation error occured */
 	if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)) {
 		LED_AMBER(true);
-	    return;
-    }
+		return;
+	}
 
 	static bool failsafe = false;
 

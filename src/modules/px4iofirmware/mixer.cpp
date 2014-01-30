@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -71,6 +71,7 @@ extern "C" {
 static bool mixer_servos_armed = false;
 static bool should_arm = false;
 static bool should_always_enable_pwm = false;
+static volatile bool in_mixer = false;
 
 /* selected control values and count for mixing */
 enum mixer_source {
@@ -95,6 +96,7 @@ static void mixer_set_failsafe();
 void
 mixer_tick(void)
 {
+
 	/* check that we are receiving fresh data from the FMU */
 	if (hrt_elapsed_time(&system_state.fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
 
@@ -199,13 +201,17 @@ mixer_tick(void)
 		}
 
 
-	} else if (source != MIX_NONE) {
+	} else if (source != MIX_NONE && (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
 
 		float	outputs[PX4IO_SERVO_COUNT];
 		unsigned mixed;
 
 		/* mix */
+
+		/* poor mans mutex */
+		in_mixer = true;
 		mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT);
+		in_mixer = false;
 
 		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
 
@@ -308,12 +314,17 @@ mixer_callback(uintptr_t handle,
 static char mixer_text[256];		/* large enough for one mixer */
 static unsigned mixer_text_length = 0;
 
-void
+int
 mixer_handle_text(const void *buffer, size_t length)
 {
 	/* do not allow a mixer change while safety off */
 	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)) {
-		return;
+		return 1;
+	}
+
+	/* abort if we're in the mixer */
+	if (in_mixer) {
+		return 1;
 	}
 
 	px4io_mixdata	*msg = (px4io_mixdata *)buffer;
@@ -321,7 +332,7 @@ mixer_handle_text(const void *buffer, size_t length)
 	isr_debug(2, "mix txt %u", length);
 
 	if (length < sizeof(px4io_mixdata))
-		return;
+		return 0;
 
 	unsigned	text_length = length - sizeof(px4io_mixdata);
 
@@ -339,13 +350,16 @@ mixer_handle_text(const void *buffer, size_t length)
 	case F2I_MIXER_ACTION_APPEND:
 		isr_debug(2, "append %d", length);
 
+		/* disable mixing during the update */
+		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_MIXER_OK;
+
 		/* check for overflow - this would be really fatal */
 		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text)) {
 			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_MIXER_OK;
-			return;
+			return 0;
 		}
 
-		/* append mixer text and nul-terminate */
+		/* append mixer text and nul-terminate, guard against overflow */
 		memcpy(&mixer_text[mixer_text_length], msg->text, text_length);
 		mixer_text_length += text_length;
 		mixer_text[mixer_text_length] = '\0';
@@ -380,6 +394,8 @@ mixer_handle_text(const void *buffer, size_t length)
 
 		break;
 	}
+
+	return 0;
 }
 
 static void

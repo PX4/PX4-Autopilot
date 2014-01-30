@@ -250,7 +250,7 @@ int commander_main(int argc, char *argv[])
 		daemon_task = task_spawn_cmd("commander",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_MAX - 40,
-					     3000,
+					     2088,
 					     commander_thread_main,
 					     (argv) ? (const char **)&argv[2] : (const char **)NULL);
 
@@ -685,7 +685,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	pthread_attr_t commander_low_prio_attr;
 	pthread_attr_init(&commander_low_prio_attr);
-	pthread_attr_setstacksize(&commander_low_prio_attr, 2992);
+	pthread_attr_setstacksize(&commander_low_prio_attr, 1728);
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&commander_low_prio_attr, &param);
