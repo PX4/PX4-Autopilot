@@ -355,7 +355,7 @@ l_input_rc(const struct listener *l)
 		for (unsigned i = 0; (i * port_width) < rc_raw.channel_count; i++) {
 			/* Channels are sent in MAVLink main loop at a fixed interval */
 			mavlink_msg_rc_channels_raw_send(chan,
-							 rc_raw.timestamp / 1000,
+							 rc_raw.timestamp_publication / 1000,
 							 i,
 							 (rc_raw.channel_count > (i * port_width) + 0) ? rc_raw.values[(i * port_width) + 0] : UINT16_MAX,
 							 (rc_raw.channel_count > (i * port_width) + 1) ? rc_raw.values[(i * port_width) + 1] : UINT16_MAX,
@@ -838,7 +838,7 @@ uorb_receive_start(void)
 	pthread_attr_init(&uorb_attr);
 
 	/* Set stack size, needs less than 2k */
-	pthread_attr_setstacksize(&uorb_attr, 2048);
+	pthread_attr_setstacksize(&uorb_attr, 1648);
 
 	pthread_t thread;
 	pthread_create(&thread, &uorb_attr, uorb_receive_thread, NULL);

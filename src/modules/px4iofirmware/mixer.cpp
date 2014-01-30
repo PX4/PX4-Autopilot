@@ -223,14 +223,25 @@ mixer_tick(void)
 		}
 	}
 
-	if ((should_arm || should_always_enable_pwm) && !mixer_servos_armed) {
+	/* set arming */
+	bool needs_to_arm = (should_arm || should_always_enable_pwm);
+
+	/* check any conditions that prevent arming */
+	if (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN) {
+		needs_to_arm = false;
+	}
+	if (!should_arm && !should_always_enable_pwm) {
+		needs_to_arm = false;
+	}
+
+	if (needs_to_arm && !mixer_servos_armed) {
 		/* need to arm, but not armed */
 		up_pwm_servo_arm(true);
 		mixer_servos_armed = true;
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED;
 		isr_debug(5, "> PWM enabled");
 
-	} else if ((!should_arm && !should_always_enable_pwm) && mixer_servos_armed) {
+	} else if (!needs_to_arm && mixer_servos_armed) {
 		/* armed but need to disarm */
 		up_pwm_servo_arm(false);
 		mixer_servos_armed = false;
