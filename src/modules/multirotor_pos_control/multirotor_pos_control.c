@@ -126,7 +126,7 @@ int multirotor_pos_control_main(int argc, char *argv[])
 		deamon_task = task_spawn_cmd("multirotor_pos_control",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_MAX - 60,
-					     4096,
+					     2408,
 					     multirotor_pos_control_thread_main,
 					     (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
