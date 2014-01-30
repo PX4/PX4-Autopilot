@@ -276,6 +276,7 @@ private:
 	servorail_status_s	_servorail_status;	///< servorail status
 
 	bool			_primary_pwm_device;	///< true if we are the default PWM output
+	bool			_lockdown_override;	///< allow to override the safety lockdown
 
 	float			_battery_amp_per_volt;	///< current sensor amps/volt
 	float			_battery_amp_bias;	///< current sensor bias
@@ -493,6 +494,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_to_servorail(0),
 	_to_safety(0),
 	_primary_pwm_device(false),
+	_lockdown_override(false),
 	_battery_amp_per_volt(90.0f / 5.0f), // this matches the 3DR current sensor
 	_battery_amp_bias(0),
 	_battery_mamphour_total(0),
@@ -1050,11 +1052,17 @@ PX4IO::io_set_arming_state()
 	uint16_t set = 0;
 	uint16_t clear = 0;
 
-	if (armed.armed && !armed.lockdown) {
+	if (armed.armed) {
 		set |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
 
 	} else {
 		clear |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
+	}
+
+	if (armed.lockdown && !_lockdown_override) {
+		set |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
+	} else {
+		clear |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
 	}
 
 	if (armed.ready_to_arm) {
@@ -1893,14 +1901,15 @@ PX4IO::print_status()
 		((features & PX4IO_P_SETUP_FEATURES_ADC_RSSI) ? " RSSI_ADC" : "")
 		);
 	uint16_t arming = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
-	printf("arming 0x%04x%s%s%s%s%s%s\n",
+	printf("arming 0x%04x%s%s%s%s%s%s%s\n",
 	       arming,
-	       ((arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)          ? " FMU_ARMED" : " FMU_DISARMED"),
-	       ((arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)	    ? " IO_ARM_OK" : " IO_ARM_DENIED"),
-	       ((arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) ? " MANUAL_OVERRIDE_OK" : ""),
-	       ((arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM)   ? " FAILSAFE_CUSTOM" : ""),
-	       ((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)   ? " INAIR_RESTART_OK" : ""),
-	       ((arming & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE)  ? " ALWAYS_PWM_ENABLE" : ""));
+	       ((arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)		? " FMU_ARMED" : " FMU_DISARMED"),
+	       ((arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)		? " IO_ARM_OK" : " IO_ARM_DENIED"),
+	       ((arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK)	? " MANUAL_OVERRIDE_OK" : ""),
+	       ((arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM)		? " FAILSAFE_CUSTOM" : ""),
+	       ((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)	? " INAIR_RESTART_OK" : ""),
+	       ((arming & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE)	? " ALWAYS_PWM_ENABLE" : ""),
+	       ((arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)		? " LOCKDOWN" : ""));
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	printf("rates 0x%04x default %u alt %u relays 0x%04x\n",
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES),
@@ -2095,6 +2104,14 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 
 	case PWM_SERVO_GET_COUNT:
 		*(unsigned *)arg = _max_actuators;
+		break;
+
+	case PWM_SERVO_SET_DISABLE_LOCKDOWN:
+		_lockdown_override = arg;
+		break;
+
+	case PWM_SERVO_GET_DISABLE_LOCKDOWN:
+		*(unsigned *)arg = _lockdown_override;
 		break;
 
 	case DSM_BIND_START:
@@ -2754,11 +2771,70 @@ void
 if_test(unsigned mode)
 {
 	device::Device *interface = get_interface();
+	int result;
 
-	int result = interface->ioctl(1, mode); /* XXX magic numbers */
-	delete interface;
+	if (interface) {
+		result = interface->ioctl(1, mode); /* XXX magic numbers */
+		delete interface;
+	} else {
+		errx(1, "interface not loaded, exiting");
+	}
 
 	errx(0, "test returned %d", result);
+}
+
+void
+lockdown(int argc, char *argv[])
+{
+	if (g_dev != nullptr) {
+
+			if (argc > 2 && !strcmp(argv[2], "disable")) {
+
+				warnx("WARNING: ACTUATORS WILL BE LIVE IN HIL! PROCEED?");
+				warnx("Press 'y' to enable, any other key to abort.");
+
+				/* check if user wants to abort */
+				char c;
+
+				struct pollfd fds;
+				int ret;
+				hrt_abstime start = hrt_absolute_time();
+				const unsigned long timeout = 5000000;
+
+				while (hrt_elapsed_time(&start) < timeout) {
+					fds.fd = 0; /* stdin */
+					fds.events = POLLIN;
+					ret = poll(&fds, 1, 0);
+
+					if (ret > 0) {
+
+						read(0, &c, 1);
+
+						if (c != 'y') {
+							exit(0);
+						} else if (c == 'y') {
+							break;
+						}
+					}
+
+					usleep(10000);
+				}
+
+				if (hrt_elapsed_time(&start) > timeout)
+					errx(1, "TIMEOUT! ABORTED WITHOUT CHANGES.");
+
+				(void)g_dev->ioctl(0, PWM_SERVO_SET_DISABLE_LOCKDOWN, 1);
+
+				warnx("WARNING: ACTUATORS ARE NOW LIVE IN HIL!");
+			} else {
+				(void)g_dev->ioctl(0, PWM_SERVO_SET_DISABLE_LOCKDOWN, 0);
+				warnx("ACTUATORS ARE NOW SAFE IN HIL.");
+			}
+			
+		} else {
+			errx(1, "driver not loaded, exiting");
+		}
+	exit(0);
 }
 
 } /* namespace */
@@ -2993,6 +3069,9 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "bind"))
 		bind(argc, argv);
+
+	if (!strcmp(argv[1], "lockdown"))
+		lockdown(argc, argv);
 
 	if (!strcmp(argv[1], "sbus1_out")) {
 		/* we can cheat and call the driver directly, as it

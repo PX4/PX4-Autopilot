@@ -185,7 +185,8 @@ volatile uint16_t	r_page_setup[] =
 					 PX4IO_P_SETUP_ARMING_IO_ARM_OK | \
 					 PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM | \
 					 PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE | \
-					 PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED)
+					 PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED | \
+					 PX4IO_P_SETUP_ARMING_LOCKDOWN)
 #define PX4IO_P_SETUP_RATES_VALID	((1 << PX4IO_SERVO_COUNT) - 1)
 #define PX4IO_P_SETUP_RELAYS_VALID	((1 << PX4IO_RELAY_CHANNELS) - 1)
 
@@ -497,11 +498,6 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			 * so that an in-air reset of FMU can not lead to a
 			 * lockup of the IO arming state.
 			 */
-
-			// XXX do not reset IO's safety state by FMU for now
-			// if ((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) && !(value & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
-			// 	r_status_flags &= ~PX4IO_P_STATUS_FLAGS_ARMED;
-			// }
 
 			if (value & PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED) {
 				r_status_flags |= PX4IO_P_STATUS_FLAGS_INIT_OK;
