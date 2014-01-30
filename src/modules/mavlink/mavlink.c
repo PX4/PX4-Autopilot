@@ -794,7 +794,7 @@ int mavlink_main(int argc, char *argv[])
 		mavlink_task = task_spawn_cmd("mavlink",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_DEFAULT,
-					  1200,
+					  2048,
 					  mavlink_thread_main,
 					  (const char **)argv);
 
