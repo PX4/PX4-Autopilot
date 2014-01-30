@@ -153,7 +153,6 @@ private:
 
 		param_t rc_scale_pitch;
 		param_t rc_scale_roll;
-		param_t rc_scale_yaw;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -165,7 +164,6 @@ private:
 
 		float rc_scale_pitch;
 		float rc_scale_roll;
-		float rc_scale_yaw;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -312,7 +310,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.land_tilt_max	= param_find("MPC_LAND_TILT");
 	_params_handles.rc_scale_pitch	= param_find("RC_SCALE_PITCH");
 	_params_handles.rc_scale_roll	= param_find("RC_SCALE_ROLL");
-	_params_handles.rc_scale_yaw	= param_find("RC_SCALE_YAW");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -361,7 +358,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.land_tilt_max, &_params.land_tilt_max);
 		param_get(_params_handles.rc_scale_pitch, &_params.rc_scale_pitch);
 		param_get(_params_handles.rc_scale_roll, &_params.rc_scale_roll);
-		param_get(_params_handles.rc_scale_yaw, &_params.rc_scale_yaw);
 
 		float v;
 		param_get(_params_handles.xy_p, &v);
