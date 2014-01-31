@@ -1,0 +1,12 @@
+#!nsh
+#
+# Generic 10” Octo X geometry
+#
+# Maintainers: Lorenz Meier <lm@inf.ethz.ch>, Anton Babushkin <anton.babushkin@me.com>
+#
+
+sh /etc/init.d/4001_quad_x
+
+set MIXER FMU_octo_x
+
+set PWM_OUTPUTS 12345678

@@ -1,0 +1,10 @@
+#!nsh
+#
+# Generic 10” Hexa + geometry
+#
+# Maintainers: Lorenz Meier <lm@inf.ethz.ch>, Anton Babushkin <anton.babushkin@me.com>
+#
+
+sh /etc/init.d/6001_hexa_x
+
+set MIXER FMU_hexa_+
