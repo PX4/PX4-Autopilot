@@ -117,6 +117,9 @@ extern float gpsLon;
 extern float gpsHgt;
 extern uint8_t GPSstatus;
 
+// Baro input
+extern float baroHgt;
+
 extern bool statesInitialised;
 
 const float covTimeStepMax = 0.07f; // maximum time allowed between covariance predictions
