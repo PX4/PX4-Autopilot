@@ -456,6 +456,8 @@ FixedwingEstimator::task_main()
 
 			perf_count(_perf_gyro);
 
+			hrt_abstime last_sensor_timestamp;
+
 			/* load local copies */
 			#ifndef SENSOR_COMBINED_SUB
 			orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &_gyro);
@@ -468,7 +470,7 @@ FixedwingEstimator::task_main()
 				orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
 			}
 
-
+			last_sensor_timestamp = _gyro.timestamp;
 			IMUmsec = _gyro.timestamp / 1e3f;
 
 			float deltaT = (_gyro.timestamp - last_run) / 1e6f;
@@ -510,7 +512,7 @@ FixedwingEstimator::task_main()
 
 
 			// Copy gyro and accel
-
+			last_sensor_timestamp = _sensor_combined.timestamp;
 			IMUmsec = _sensor_combined.timestamp / 1e3f;
 
 			float deltaT = (_sensor_combined.timestamp - last_run) / 1e6f;
@@ -737,7 +739,7 @@ FixedwingEstimator::task_main()
 				for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
 					_att.R[i][j] = R(i, j);
 
-				_att.timestamp = _gyro.timestamp;
+				_att.timestamp = last_sensor_timestamp;
 				_att.q[0] = states[0];
 				_att.q[1] = states[1];
 				_att.q[2] = states[2];
@@ -745,7 +747,7 @@ FixedwingEstimator::task_main()
 				_att.q_valid = true;
 				_att.R_valid = true;
 
-				_att.timestamp = _gyro.timestamp;
+				_att.timestamp = last_sensor_timestamp;
 				_att.roll = euler.getPhi();
 				_att.pitch = euler.getTheta();
 				_att.yaw = euler.getPsi();
@@ -768,7 +770,7 @@ FixedwingEstimator::task_main()
 					_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &_att);
 				}
 
-				_local_pos.timestamp = _gyro.timestamp;
+				_local_pos.timestamp = last_sensor_timestamp;
 				_local_pos.x = states[7];
 				_local_pos.y = states[8];
 				_local_pos.z = states[9];
