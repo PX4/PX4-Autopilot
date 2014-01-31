@@ -148,11 +148,15 @@ private:
 	bool	_reset_yaw_sp;			/**< reset yaw setpoint flag */
 
 	struct {
-		param_t att_p;
+		param_t roll_p;
+		param_t roll_rate_p;
+		param_t roll_rate_i;
+		param_t roll_rate_d;
+		param_t pitch_p;
+		param_t pitch_rate_p;
+		param_t pitch_rate_i;
+		param_t pitch_rate_d;
 		param_t yaw_p;
-		param_t att_rate_p;
-		param_t att_rate_i;
-		param_t att_rate_d;
 		param_t yaw_rate_p;
 		param_t yaw_rate_i;
 		param_t yaw_rate_d;
@@ -162,7 +166,7 @@ private:
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
-		math::Vector<3> p;					/**< P gain for angular error */
+		math::Vector<3> att_p;					/**< P gain for angular error */
 		math::Vector<3> rate_p;				/**< P gain for angular rate error */
 		math::Vector<3> rate_i;				/**< I gain for angular rate error */
 		math::Vector<3> rate_d;				/**< D gain for angular rate error */
@@ -267,7 +271,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	memset(&_v_control_mode, 0, sizeof(_v_control_mode));
 	memset(&_armed, 0, sizeof(_armed));
 
-	_params.p.zero();
+	_params.att_p.zero();
 	_params.rate_p.zero();
 	_params.rate_i.zero();
 	_params.rate_d.zero();
@@ -282,15 +286,19 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 	I.identity();
 
-	_params_handles.att_p		= 	param_find("MC_ATT_P");
-	_params_handles.yaw_p		=	param_find("MC_YAW_P");
-	_params_handles.att_rate_p	= 	param_find("MC_ATTRATE_P");
-	_params_handles.att_rate_i	= 	param_find("MC_ATTRATE_I");
-	_params_handles.att_rate_d	= 	param_find("MC_ATTRATE_D");
-	_params_handles.yaw_rate_p	= 	param_find("MC_YAWRATE_P");
-	_params_handles.yaw_rate_i	= 	param_find("MC_YAWRATE_I");
-	_params_handles.yaw_rate_d	= 	param_find("MC_YAWRATE_D");
-	_params_handles.yaw_ff		= 	param_find("MC_YAW_FF");
+	_params_handles.roll_p			= 	param_find("MC_ROLL_P");
+	_params_handles.roll_rate_p		= 	param_find("MC_ROLLRATE_P");
+	_params_handles.roll_rate_i		= 	param_find("MC_ROLLRATE_I");
+	_params_handles.roll_rate_d		= 	param_find("MC_ROLLRATE_D");
+	_params_handles.pitch_p			= 	param_find("MC_PITCH_P");
+	_params_handles.pitch_rate_p	= 	param_find("MC_PITCHRATE_P");
+	_params_handles.pitch_rate_i	= 	param_find("MC_PITCHRATE_I");
+	_params_handles.pitch_rate_d	= 	param_find("MC_PITCHRATE_D");
+	_params_handles.yaw_p			=	param_find("MC_YAW_P");
+	_params_handles.yaw_rate_p		= 	param_find("MC_YAWRATE_P");
+	_params_handles.yaw_rate_i		= 	param_find("MC_YAWRATE_I");
+	_params_handles.yaw_rate_d		= 	param_find("MC_YAWRATE_D");
+	_params_handles.yaw_ff			= 	param_find("MC_YAW_FF");
 
 	_params_handles.rc_scale_yaw	= 	param_find("RC_SCALE_YAW");
 
@@ -327,27 +335,33 @@ MulticopterAttitudeControl::parameters_update()
 {
 	float v;
 
-	param_get(_params_handles.att_p, &v);
-	_params.p(0) = v;
-	_params.p(1) = v;
-	param_get(_params_handles.yaw_p, &v);
-	_params.p(2) = v;
-
-	param_get(_params_handles.att_rate_p, &v);
+	/* roll */
+	param_get(_params_handles.roll_p, &v);
+	_params.att_p(0) = v;
+	param_get(_params_handles.roll_rate_p, &v);
 	_params.rate_p(0) = v;
+	param_get(_params_handles.roll_rate_i, &v);
+	_params.rate_i(0) = v;
+	param_get(_params_handles.roll_rate_d, &v);
+	_params.rate_d(0) = v;
+
+	/* pitch */
+	param_get(_params_handles.pitch_p, &v);
+	_params.att_p(1) = v;
+	param_get(_params_handles.pitch_rate_p, &v);
 	_params.rate_p(1) = v;
+	param_get(_params_handles.pitch_rate_i, &v);
+	_params.rate_i(1) = v;
+	param_get(_params_handles.pitch_rate_d, &v);
+	_params.rate_d(1) = v;
+
+	/* yaw */
+	param_get(_params_handles.yaw_p, &v);
+	_params.att_p(2) = v;
 	param_get(_params_handles.yaw_rate_p, &v);
 	_params.rate_p(2) = v;
-
-	param_get(_params_handles.att_rate_i, &v);
-	_params.rate_i(0) = v;
-	_params.rate_i(1) = v;
 	param_get(_params_handles.yaw_rate_i, &v);
 	_params.rate_i(2) = v;
-
-	param_get(_params_handles.att_rate_d, &v);
-	_params.rate_d(0) = v;
-	_params.rate_d(1) = v;
 	param_get(_params_handles.yaw_rate_d, &v);
 	_params.rate_d(2) = v;
 
@@ -609,7 +623,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	}
 
 	/* calculate angular rates setpoint */
-	_rates_sp = _params.p.emult(e_R);
+	_rates_sp = _params.att_p.emult(e_R);
 
 	/* feed forward yaw setpoint rate */
 	_rates_sp(2) += yaw_sp_move_rate * yaw_w * _params.yaw_ff;
