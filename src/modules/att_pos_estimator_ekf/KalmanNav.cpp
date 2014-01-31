@@ -90,6 +90,7 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	// state
 	phi(0), theta(0), psi(0),
 	vN(0), vE(0), vD(0),
+	vN_gps(0), vN_gps(0), vN_gps(0),
 	lat(0), lon(0), alt(0),
 	lat0(0), lon0(0), alt0(0),
 	// parameters for ground station
