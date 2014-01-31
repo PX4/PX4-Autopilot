@@ -400,6 +400,7 @@ FixedwingEstimator::task_main()
 	fuseHgtData = false;
 	fuseMagData = false;
 	fuseVtasData = false;
+	statesInitialised = false;
 
 	/* wakeup source(s) */
 	struct pollfd fds[2];
@@ -577,7 +578,7 @@ FixedwingEstimator::task_main()
 			if (baro_updated) {
 				orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
 
-				/* XXX leverage baro */
+				baroHgt = _baro.altitude;
 			}
 
 			bool gps_updated;
@@ -601,6 +602,7 @@ FixedwingEstimator::task_main()
 					if (hrt_elapsed_time(&start_time) > 500000 && !_initialized) {
 						InitialiseFilter();
 						_initialized = true;
+
 						warnx("init done.");
 						continue;
 					}
