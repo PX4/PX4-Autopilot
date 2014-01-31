@@ -107,14 +107,9 @@ static const int ERROR = -1;
 
 extern struct system_load_s system_load;
 
-#define LOW_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS 1000.0f
-#define CRITICAL_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS 100.0f
-
 /* Decouple update interval and hysteris counters, all depends on intervals */
 #define COMMANDER_MONITORING_INTERVAL 50000
 #define COMMANDER_MONITORING_LOOPSPERMSEC (1/(COMMANDER_MONITORING_INTERVAL/1000.0f))
-#define LOW_VOLTAGE_BATTERY_COUNTER_LIMIT (LOW_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
-#define CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT (CRITICAL_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
 #define MAVLINK_OPEN_INTERVAL 50000
 
@@ -158,6 +153,16 @@ static uint64_t last_print_mode_reject_time = 0;
 static bool on_usb_power = false;
 
 static float takeoff_alt = 5.0f;
+
+static struct vehicle_status_s status;
+
+/* armed topic */
+static struct actuator_armed_s armed;
+
+static struct safety_s safety;
+
+/* flags for control apps */
+struct vehicle_control_mode_s control_mode;
 
 /* tasks waiting for low prio thread */
 typedef enum {
@@ -214,6 +219,9 @@ void print_reject_mode(const char *msg);
 void print_reject_arm(const char *msg);
 
 void print_status();
+
+int arm();
+int disarm();
 
 transition_result_t check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_control_mode_s *control_mode, struct vehicle_local_position_s *local_pos);
 
@@ -279,6 +287,16 @@ int commander_main(int argc, char *argv[])
 			warnx("\tcommander not started");
 		}
 
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "arm")) {
+		arm();
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "disarm")) {
+		disarm();
 		exit(0);
 	}
 
@@ -348,6 +366,30 @@ void print_status()
 
 static orb_advert_t control_mode_pub;
 static orb_advert_t status_pub;
+
+int arm()
+{
+	int arming_res = arming_state_transition(&status, &safety, &control_mode, ARMING_STATE_ARMED, &armed);
+
+	if (arming_res == TRANSITION_CHANGED) {
+		mavlink_log_info(mavlink_fd, "[cmd] ARMED by commandline");
+		return 0;
+	} else {
+		return 1;
+	}
+}
+
+int disarm()
+{
+	int arming_res = arming_state_transition(&status, &safety, &control_mode, ARMING_STATE_STANDBY, &armed);
+
+	if (arming_res == TRANSITION_CHANGED) {
+		mavlink_log_info(mavlink_fd, "[cmd] ARMED by commandline");
+		return 0;
+	} else {
+		return 1;
+	}
+}
 
 void handle_command(struct vehicle_status_s *status, const struct safety_s *safety, struct vehicle_control_mode_s *control_mode, struct vehicle_command_s *cmd, struct actuator_armed_s *armed)
 {
@@ -542,16 +584,6 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 
 }
 
-static struct vehicle_status_s status;
-
-/* armed topic */
-static struct actuator_armed_s armed;
-
-static struct safety_s safety;
-
-/* flags for control apps */
-struct vehicle_control_mode_s control_mode;
-
 int commander_thread_main(int argc, char *argv[])
 {
 	/* not yet initialized */
@@ -666,8 +698,6 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Start monitoring loop */
 	unsigned counter = 0;
-	unsigned low_voltage_counter = 0;
-	unsigned critical_voltage_counter = 0;
 	unsigned stick_off_counter = 0;
 	unsigned stick_on_counter = 0;
 
@@ -745,7 +775,6 @@ int commander_thread_main(int argc, char *argv[])
 	int battery_sub = orb_subscribe(ORB_ID(battery_status));
 	struct battery_status_s battery;
 	memset(&battery, 0, sizeof(battery));
-	battery.voltage_v = 0.0f;
 
 	/* Subscribe to subsystem info topic */
 	int subsys_sub = orb_subscribe(ORB_ID(subsystem_info));
@@ -890,14 +919,12 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
-
-			// warnx("bat v: %2.2f", battery.voltage_v);
-
-			/* only consider battery voltage if system has been running 2s and battery voltage is higher than 4V */
-			if (hrt_absolute_time() > start_time + 2000000 && battery.voltage_v > 4.0f) {
-				status.battery_voltage = battery.voltage_v;
+			/* only consider battery voltage if system has been running 2s and battery voltage is valid */
+			if (hrt_absolute_time() > start_time + 2000000 && battery.voltage_filtered_v > 0.0f) {
+				status.battery_voltage = battery.voltage_filtered_v;
+				status.battery_current = battery.current_a;
 				status.condition_battery_voltage_valid = true;
-				status.battery_remaining = battery_remaining_estimate_voltage(status.battery_voltage);
+				status.battery_remaining = battery_remaining_estimate_voltage(battery.voltage_filtered_v, battery.discharged_mah);
 			}
 		}
 
@@ -950,46 +977,29 @@ int commander_thread_main(int argc, char *argv[])
 			//on_usb_power = (stat("/dev/ttyACM0", &statbuf) == 0);
 		}
 
-		// XXX remove later
-		//warnx("bat remaining: %2.2f", status.battery_remaining);
-
 		/* if battery voltage is getting lower, warn using buzzer, etc. */
 		if (status.condition_battery_voltage_valid && status.battery_remaining < 0.25f && !low_battery_voltage_actions_done) {
-			//TODO: add filter, or call emergency after n measurements < VOLTAGE_BATTERY_MINIMAL_MILLIVOLTS
-			if (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT) {
-				low_battery_voltage_actions_done = true;
-				mavlink_log_critical(mavlink_fd, "#audio: WARNING: LOW BATTERY");
-				status.battery_warning = VEHICLE_BATTERY_WARNING_LOW;
-				status_changed = true;
-				battery_tune_played = false;
-			}
-
-			low_voltage_counter++;
+			low_battery_voltage_actions_done = true;
+			mavlink_log_critical(mavlink_fd, "#audio: WARNING: LOW BATTERY");
+			status.battery_warning = VEHICLE_BATTERY_WARNING_LOW;
+			status_changed = true;
+			battery_tune_played = false;
 
 		} else if (status.condition_battery_voltage_valid && status.battery_remaining < 0.1f && !critical_battery_voltage_actions_done && low_battery_voltage_actions_done) {
 			/* critical battery voltage, this is rather an emergency, change state machine */
-			if (critical_voltage_counter > CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT) {
-				critical_battery_voltage_actions_done = true;
-				mavlink_log_critical(mavlink_fd, "#audio: EMERGENCY: CRITICAL BATTERY");
-				status.battery_warning = VEHICLE_BATTERY_WARNING_CRITICAL;
-				battery_tune_played = false;
+			critical_battery_voltage_actions_done = true;
+			mavlink_log_critical(mavlink_fd, "#audio: EMERGENCY: CRITICAL BATTERY");
+			status.battery_warning = VEHICLE_BATTERY_WARNING_CRITICAL;
+			battery_tune_played = false;
 
-				if (armed.armed) {
-					arming_state_transition(&status, &safety, &control_mode, ARMING_STATE_ARMED_ERROR, &armed);
+			if (armed.armed) {
+				arming_state_transition(&status, &safety, &control_mode, ARMING_STATE_ARMED_ERROR, &armed);
 
-				} else {
-					arming_state_transition(&status, &safety, &control_mode, ARMING_STATE_STANDBY_ERROR, &armed);
-				}
-
-				status_changed = true;
+			} else {
+				arming_state_transition(&status, &safety, &control_mode, ARMING_STATE_STANDBY_ERROR, &armed);
 			}
 
-			critical_voltage_counter++;
-
-		} else {
-
-			low_voltage_counter = 0;
-			critical_voltage_counter = 0;
+			status_changed = true;
 		}
 
 		/* End battery voltage check */

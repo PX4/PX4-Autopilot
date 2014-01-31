@@ -1,73 +1,53 @@
 #!nsh
-
-echo "[init] 3DR Iris Quad"
-
 #
-# Load default params for this platform
+# 3DR Iris Quadcopter
 #
-if param compare SYS_AUTOCONFIG 1
+# Maintainers: Anton Babushkin <anton.babushkin@me.com>
+#
+
+if [ $DO_AUTOCONFIG == yes ]
 then
-	# Set all params here, then disable autoconfig
-	param set SYS_AUTOCONFIG 0
-
-	param set MC_ATTRATE_D 0.004
-	param set MC_ATTRATE_I 0.0
-	param set MC_ATTRATE_P 0.13
-	param set MC_ATT_D 0.0
-	param set MC_ATT_I 0.0
+	#
+	# Default parameters for this platform
+	#
 	param set MC_ATT_P 9.0
-	param set MC_YAWPOS_D 0.0
-	param set MC_YAWPOS_I 0.15
+	param set MC_ATT_I 0.0
+	param set MC_ATT_D 0.0
+	param set MC_ATTRATE_P 0.13
+	param set MC_ATTRATE_I 0.0
+	param set MC_ATTRATE_D 0.004
 	param set MC_YAWPOS_P 0.5
-	param set MC_YAWRATE_D 0.0
-	param set MC_YAWRATE_I 0.0
+	param set MC_YAWPOS_I 0.15
+	param set MC_YAWPOS_D 0.0
 	param set MC_YAWRATE_P 0.2
+	param set MC_YAWRATE_I 0.0
+	param set MC_YAWRATE_D 0.0
+	
+	param set MPC_TILT_MAX 0.5
+	param set MPC_THR_MAX 0.8
+	param set MPC_THR_MIN 0.2
+	param set MPC_XY_D 0
+	param set MPC_XY_P 0.5
+	param set MPC_XY_VEL_D 0
+	param set MPC_XY_VEL_I 0
+	param set MPC_XY_VEL_MAX 3
+	param set MPC_XY_VEL_P 0.2
+	param set MPC_Z_D 0
+	param set MPC_Z_P 1
+	param set MPC_Z_VEL_D 0
+	param set MPC_Z_VEL_I 0.1
+	param set MPC_Z_VEL_MAX 2
+	param set MPC_Z_VEL_P 0.20
 
-	param save
+	param set BAT_V_SCALING 0.00989
+	param set BAT_C_SCALING 0.0124
 fi
 
-#
-# Force some key parameters to sane values
-# MAV_TYPE     2 = quadrotor
-#
-param set MAV_TYPE 2
+set VEHICLE_TYPE mc
+set MIXER FMU_quad_w
 
-#
-# Start and configure PX4IO or FMU interface
-#
-if px4io detect
-then
-	# Start MAVLink (depends on orb)
-	mavlink start
-	usleep 5000
-
-	sh /etc/init.d/rc.io
-else
-	# Start MAVLink (on UART1 / ttyS0)
-	mavlink start -d /dev/ttyS0
-	usleep 5000
-	fmu mode_pwm
-	param set BAT_V_SCALING 0.0098
-	set EXIT_ON_END yes
-fi
-
-#
-# Load the mixer for a quad with wide arms
-#
-mixer load /dev/pwm_output /etc/mixers/FMU_quad_w.mix
-
-#
-# Set PWM output frequency
-#
-pwm rate -c 1234 -r 400
-
-#
-# Set disarmed, min and max PWM signals
-#
-pwm disarmed -c 1234 -p 900
-pwm min -c 1234 -p 1050
-
-#
-# Start common for all multirotors apps
-#
-sh /etc/init.d/rc.multirotor
+set PWM_OUTPUTS 1234
+set PWM_RATE 400
+set PWM_DISARMED 900
+set PWM_MIN 1000
+set PWM_MAX 2000

@@ -5,7 +5,7 @@ echo "[init] PX4FMU v1, v2 with or without IO on 3DR SkyWalker"
 #
 # Load default params for this platform
 #
-if param compare SYS_AUTOCONFIG 1
+if [ $DO_AUTOCONFIG == yes ]
 then
 	# Set all params here, then disable autoconfig
 	param set FW_P_D 0
@@ -35,48 +35,6 @@ then
 	param set SYS_AUTOCONFIG 0
 	param save
 fi
- 
-#
-# Force some key parameters to sane values
-# MAV_TYPE     1 = fixed wing
-#
-param set MAV_TYPE 1
 
-#
-# Start and configure PX4IO or FMU interface
-#
-if px4io detect
-then
-	# Start MAVLink (depends on orb)
-	mavlink start
-
-	sh /etc/init.d/rc.io
-	# Limit to 100 Hz updates and (implicit) 50 Hz PWM
-	px4io limit 100
-else
-	# Start MAVLink (on UART1 / ttyS0)
-	mavlink start -d /dev/ttyS0
-
-	fmu mode_pwm
-	param set BAT_V_SCALING 0.004593
-	set EXIT_ON_END yes
-fi
-
-pwm disarmed -c 3 -p 1056
-
-#
-# Load mixer and start controllers (depends on px4io)
-#
-if [ -f /fs/microsd/etc/mixers/FMU_AERT.mix ]
-then
-	echo "Using /fs/microsd/etc/mixers/FMU_AERT.mix"
-	mixer load /dev/pwm_output /fs/microsd/etc/mixers/FMU_AETR.mix
-else
-	echo "Using /etc/mixers/FMU_Q.mix"
-	mixer load /dev/pwm_output /etc/mixers/FMU_AETR.mix
-fi
-
-#
-# Start common fixedwing apps
-#
-sh /etc/init.d/rc.fixedwing
+set VEHICLE_TYPE fw
+set MIXER FMU_AERT

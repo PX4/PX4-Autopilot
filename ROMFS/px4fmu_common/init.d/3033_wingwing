@@ -1,0 +1,43 @@
+#!nsh
+#
+# Wing Wing (aka Z-84) Flying Wing
+#
+# Maintainers: Simon Wilks <sjwilks@gmail.com>
+#
+
+if [ $DO_AUTOCONFIG == yes ]
+then
+	#
+	# Default parameters for this platform
+	#
+	param set FW_AIRSPD_MIN 7
+	param set FW_AIRSPD_TRIM 9
+	param set FW_AIRSPD_MAX 14
+	param set FW_L1_PERIOD 10
+	param set FW_P_D 0
+	param set FW_P_I 0
+	param set FW_P_IMAX 20
+	param set FW_P_LIM_MAX 30
+	param set FW_P_LIM_MIN -20
+	param set FW_P_P 30
+	param set FW_P_RMAX_NEG 0
+	param set FW_P_RMAX_POS 0
+	param set FW_P_ROLLFF 2
+	param set FW_R_D 0
+	param set FW_R_I 5
+	param set FW_R_IMAX 20
+	param set FW_R_P 60
+	param set FW_R_RMAX 60
+	param set FW_THR_CRUISE 0.65
+	param set FW_THR_MAX 0.7
+	param set FW_THR_MIN 0
+	param set FW_T_SINK_MAX 5
+	param set FW_T_SINK_MIN 2
+	param set FW_T_TIME_CONST 9
+	param set FW_Y_ROLLFF 2.0
+	param set RC_SCALE_ROLL 1.0
+	param set RC_SCALE_PITCH 1.0
+fi
+
+set VEHICLE_TYPE fw
+set MIXER FMU_Q
