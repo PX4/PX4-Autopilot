@@ -654,13 +654,15 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	_rates_prev = rates;
 
 	/* update integral only if not saturated on low limit */
-	if (_thrust_sp > 0.1f && _att_control.length() < _thrust_sp) {
+	if (_thrust_sp > 0.1f) {
 		for (int i = 0; i < 3; i++) {
-			float rate_i = _rates_int(i) + _params.rate_i(i) * rates_err(i) * dt;
+			if (fabsf(_att_control(i)) < _thrust_sp) {
+				float rate_i = _rates_int(i) + _params.rate_i(i) * rates_err(i) * dt;
 
-			if (isfinite(rate_i) && rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT &&
-			    _att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT) {
-				_rates_int(i) = rate_i;
+				if (isfinite(rate_i) && rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT &&
+					_att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT) {
+					_rates_int(i) = rate_i;
+				}
 			}
 		}
 	}
