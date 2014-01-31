@@ -596,7 +596,7 @@ FixedwingEstimator::task_main()
 					gpsGndSpd = sqrtf(_gps.vel_n_m_s * _gps.vel_n_m_s + _gps.vel_e_m_s * _gps.vel_e_m_s);
 					gpsVelD = _gps.vel_d_m_s;
 					gpsLat = math::radians(_gps.lat / (double)1e7);
-					gpsLon = math::radians(_gps.lon / (double)1e7);
+					gpsLon = math::radians(_gps.lon / (double)1e7)  - M_PI;
 					gpsHgt = _gps.alt / 1e3f;
 
 					if (hrt_elapsed_time(&start_time) > 500000 && !_initialized) {
@@ -610,7 +610,9 @@ FixedwingEstimator::task_main()
 					if (_initialized) {
 
 						/* convert GPS measurements to horizontal NE, altitude and 3D velocity NED */
-						calcvelNED(velNED, gpsCourse, gpsGndSpd, gpsVelD);
+						velNED[0] = _gps.vel_n_m_s;
+						velNED[1] = _gps.vel_e_m_s;
+						velNED[2] = _gps.vel_d_m_s;
 						calcposNED(posNED, gpsLat, gpsLon, gpsHgt, latRef, lonRef, hgtRef);
 
 						posNE[0] = posNED[0];
@@ -657,30 +659,28 @@ FixedwingEstimator::task_main()
 				orb_copy(ORB_ID(sensor_mag), _mag_sub, &_mag);
 
 				// XXX we compensate the offsets upfront - should be close to zero.
-				// XXX the purpose of the 0.001 factor is unclear
 				// 0.001f
-				magData.x = 0.001f * _mag.x;
-				magBias.x = 0.0f; // _mag_offsets.x_offset
+				magData.x = _mag.x;
+				magBias.x = 0.0001f; // _mag_offsets.x_offset
 
-				magData.y = 0.001f * _mag.y;
-				magBias.y = 0.0f; // _mag_offsets.y_offset
+				magData.y = _mag.y;
+				magBias.y = 0.0001f; // _mag_offsets.y_offset
 
-				magData.z = 0.001f * _mag.z;
-				magBias.z = 0.0f; // _mag_offsets.y_offset
+				magData.z = _mag.z;
+				magBias.z = 0.0001f; // _mag_offsets.y_offset
 				
 				#else
 
 				// XXX we compensate the offsets upfront - should be close to zero.
-				// XXX the purpose of the 0.001 factor is unclear
 				// 0.001f
-				magData.x = 0.001f * _sensor_combined.magnetometer_ga[0];
-				magBias.x = 0.0f; // _mag_offsets.x_offset
+				magData.x = _sensor_combined.magnetometer_ga[0];
+				magBias.x = 0.0001f; // _mag_offsets.x_offset
 
-				magData.y = 0.001f * _sensor_combined.magnetometer_ga[1];
-				magBias.y = 0.0f; // _mag_offsets.y_offset
+				magData.y = _sensor_combined.magnetometer_ga[1];
+				magBias.y = 0.0001f; // _mag_offsets.y_offset
 
-				magData.z = 0.001f * _sensor_combined.magnetometer_ga[2];
-				magBias.z = 0.0f; // _mag_offsets.y_offset
+				magData.z = _sensor_combined.magnetometer_ga[2];
+				magBias.z = 0.0001f; // _mag_offsets.y_offset
 
 				#endif
 
@@ -749,14 +749,14 @@ FixedwingEstimator::task_main()
 				_att.roll = euler.getPhi();
 				_att.pitch = euler.getTheta();
 				_att.yaw = euler.getPsi();
-				// XXX find the right state
-				_att.rollspeed = _gyro.x - states[11];
-				_att.pitchspeed = _gyro.y - states[12];
-				_att.yawspeed = _gyro.z - states[13];
+
+				_att.rollspeed = angRate.x - states[10];
+				_att.pitchspeed = angRate.y - states[11];
+				_att.yawspeed = angRate.z - states[12];
 				// gyro offsets
-				_att.rate_offsets[0] = states[11];
-				_att.rate_offsets[1] = states[12];
-				_att.rate_offsets[2] = states[13];
+				_att.rate_offsets[0] = states[10];
+				_att.rate_offsets[1] = states[11];
+				_att.rate_offsets[2] = states[12];
 
 				/* lazily publish the attitude only once available */
 				if (_att_pub > 0) {
@@ -880,13 +880,22 @@ int fw_att_pos_estimator_main(int argc, char *argv[])
 			printf("attitude: roll: %8.4f, pitch %8.4f, yaw: %8.4f degrees\n",
 				(double)math::degrees(euler.getPhi()), (double)math::degrees(euler.getTheta()), (double)math::degrees(euler.getPsi()));
 
-			printf("states (quat)  [1-4]: %8.4f, %8.4f, %8.4f, %8.4f\n", (double)states[0], (double)states[1], (double)states[2], (double)states[3]);
-			printf("states (vel)   [5-7]: %8.4f, %8.4f, %8.4f\n", (double)states[4], (double)states[5], (double)states[6]);
-			printf("states (pos)  [8-10]: %8.4f, %8.4f, %8.4f\n", (double)states[7], (double)states[8], (double)states[9]);
-			printf("states [11-13]: %8.4f, %8.4f, %8.4f\n", (double)states[10], (double)states[11], (double)states[12]);
-			printf("states [14-16]: %8.4f, %8.4f, %8.4f\n", (double)states[13], (double)states[14], (double)states[15]);
-			printf("states [17-19]: %8.4f, %8.4f, %8.4f\n", (double)states[16], (double)states[17], (double)states[18]);
-			printf("states [20-21]: %8.4f, %8.4f\n", (double)states[19], (double)states[20]);
+			// State vector:
+			// 0-3: quaternions (q0, q1, q2, q3)
+			// 4-6: Velocity - m/sec (North, East, Down)
+			// 7-9: Position - m (North, East, Down)
+			// 10-12: Delta Angle bias - rad (X,Y,Z)
+			// 13-14: Wind Vector  - m/sec (North,East)
+			// 15-17: Earth Magnetic Field Vector - milligauss (North, East, Down)
+			// 18-20: Body Magnetic Field Vector - milligauss (X,Y,Z)
+
+			printf("states (quat)        [1-4]: %8.4f, %8.4f, %8.4f, %8.4f\n", (double)states[0], (double)states[1], (double)states[2], (double)states[3]);
+			printf("states (vel m/s)     [5-7]: %8.4f, %8.4f, %8.4f\n", (double)states[4], (double)states[5], (double)states[6]);
+			printf("states (pos m)      [8-10]: %8.4f, %8.4f, %8.4f\n", (double)states[7], (double)states[8], (double)states[9]);
+			printf("states (delta ang) [11-13]: %8.4f, %8.4f, %8.4f\n", (double)states[10], (double)states[11], (double)states[12]);
+			printf("states (wind)      [14-15]: %8.4f, %8.4f\n", (double)states[13], (double)states[14]);
+			printf("states (earth mag) [16-18]: %8.4f, %8.4f, %8.4f\n", (double)states[15], (double)states[16], (double)states[17]);
+			printf("states (body mag)  [19-21]: %8.4f, %8.4f, %8.4f\n", (double)states[18], (double)states[19], (double)states[20]);
 			exit(0);
 
 		} else {
