@@ -392,8 +392,6 @@ FixedwingEstimator::task_main()
 
 	parameters_update();
 
-	Vector3f lastAngRate;
-	Vector3f lastAccel;
 	/* set initial filter state */
 	fuseVelData = false;
 	fusePosData = false;
@@ -401,6 +399,11 @@ FixedwingEstimator::task_main()
 	fuseMagData = false;
 	fuseVtasData = false;
 	statesInitialised = false;
+
+	/* initialize measurement data */
+	VtasMeas = 0.0f;
+	Vector3f lastAngRate = {0.0f, 0.0f, 0.0f};
+	Vector3f lastAccel = {0.0f, 0.0f, 0.0f};
 
 	/* wakeup source(s) */
 	struct pollfd fds[2];
