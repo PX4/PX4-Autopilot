@@ -161,7 +161,12 @@ private:
 		param_t yaw_rate_i;
 		param_t yaw_rate_d;
 		param_t yaw_ff;
+		param_t roll_scale_acro;
+		param_t pitch_scale_acro;
+		param_t yaw_scale_acro;
 
+		param_t rc_scale_roll;
+		param_t rc_scale_pitch;
 		param_t rc_scale_yaw;
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -171,8 +176,9 @@ private:
 		math::Vector<3> rate_i;				/**< I gain for angular rate error */
 		math::Vector<3> rate_d;				/**< D gain for angular rate error */
 		float yaw_ff;						/**< yaw control feed-forward */
+		math::Vector<3> scale_acro;			/**< scale for ACRO mode */
 
-		float rc_scale_yaw;
+		math::Vector<3> rc_scale;			/**< scale for MANUAL mode */
 	}		_params;
 
 	/**
@@ -275,6 +281,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.rate_p.zero();
 	_params.rate_i.zero();
 	_params.rate_d.zero();
+	_params.scale_acro.zero();
+	_params.rc_scale.zero();
 
 	_R_sp.identity();
 	_R.identity();
@@ -286,21 +294,26 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 	I.identity();
 
-	_params_handles.roll_p			= 	param_find("MC_ROLL_P");
-	_params_handles.roll_rate_p		= 	param_find("MC_ROLLRATE_P");
-	_params_handles.roll_rate_i		= 	param_find("MC_ROLLRATE_I");
-	_params_handles.roll_rate_d		= 	param_find("MC_ROLLRATE_D");
-	_params_handles.pitch_p			= 	param_find("MC_PITCH_P");
-	_params_handles.pitch_rate_p	= 	param_find("MC_PITCHRATE_P");
-	_params_handles.pitch_rate_i	= 	param_find("MC_PITCHRATE_I");
-	_params_handles.pitch_rate_d	= 	param_find("MC_PITCHRATE_D");
-	_params_handles.yaw_p			=	param_find("MC_YAW_P");
-	_params_handles.yaw_rate_p		= 	param_find("MC_YAWRATE_P");
-	_params_handles.yaw_rate_i		= 	param_find("MC_YAWRATE_I");
-	_params_handles.yaw_rate_d		= 	param_find("MC_YAWRATE_D");
-	_params_handles.yaw_ff			= 	param_find("MC_YAW_FF");
+	_params_handles.roll_p				= 	param_find("MC_ROLL_P");
+	_params_handles.roll_rate_p			= 	param_find("MC_ROLLRATE_P");
+	_params_handles.roll_rate_i			= 	param_find("MC_ROLLRATE_I");
+	_params_handles.roll_rate_d			= 	param_find("MC_ROLLRATE_D");
+	_params_handles.pitch_p				= 	param_find("MC_PITCH_P");
+	_params_handles.pitch_rate_p		= 	param_find("MC_PITCHRATE_P");
+	_params_handles.pitch_rate_i		= 	param_find("MC_PITCHRATE_I");
+	_params_handles.pitch_rate_d		= 	param_find("MC_PITCHRATE_D");
+	_params_handles.yaw_p				=	param_find("MC_YAW_P");
+	_params_handles.yaw_rate_p			= 	param_find("MC_YAWRATE_P");
+	_params_handles.yaw_rate_i			= 	param_find("MC_YAWRATE_I");
+	_params_handles.yaw_rate_d			= 	param_find("MC_YAWRATE_D");
+	_params_handles.yaw_ff				= 	param_find("MC_YAW_FF");
+	_params_handles.roll_scale_acro		= 	param_find("MC_ROLL_S_ACRO");
+	_params_handles.pitch_scale_acro	= 	param_find("MC_PITCH_S_ACRO");
+	_params_handles.yaw_scale_acro		= 	param_find("MC_YAW_S_ACRO");
 
-	_params_handles.rc_scale_yaw	= 	param_find("RC_SCALE_YAW");
+	_params_handles.rc_scale_roll		= 	param_find("RC_SCALE_ROLL");
+	_params_handles.rc_scale_pitch		= 	param_find("RC_SCALE_PITCH");
+	_params_handles.rc_scale_yaw		= 	param_find("RC_SCALE_YAW");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -344,6 +357,10 @@ MulticopterAttitudeControl::parameters_update()
 	_params.rate_i(0) = v;
 	param_get(_params_handles.roll_rate_d, &v);
 	_params.rate_d(0) = v;
+	param_get(_params_handles.roll_scale_acro, &v);
+	_params.scale_acro(0) = v;
+	param_get(_params_handles.rc_scale_roll, &v);
+	_params.rc_scale(0) = v;
 
 	/* pitch */
 	param_get(_params_handles.pitch_p, &v);
@@ -354,6 +371,10 @@ MulticopterAttitudeControl::parameters_update()
 	_params.rate_i(1) = v;
 	param_get(_params_handles.pitch_rate_d, &v);
 	_params.rate_d(1) = v;
+	param_get(_params_handles.pitch_scale_acro, &v);
+	_params.scale_acro(1) = v;
+	param_get(_params_handles.rc_scale_pitch, &v);
+	_params.rc_scale(1) = v;
 
 	/* yaw */
 	param_get(_params_handles.yaw_p, &v);
@@ -364,10 +385,11 @@ MulticopterAttitudeControl::parameters_update()
 	_params.rate_i(2) = v;
 	param_get(_params_handles.yaw_rate_d, &v);
 	_params.rate_d(2) = v;
-
 	param_get(_params_handles.yaw_ff, &_params.yaw_ff);
-
-	param_get(_params_handles.rc_scale_yaw, &_params.rc_scale_yaw);
+	param_get(_params_handles.yaw_scale_acro, &v);
+	_params.scale_acro(2) = v;
+	param_get(_params_handles.rc_scale_yaw, &v);
+	_params.rc_scale(2) = v;
 
 	return OK;
 }
@@ -463,6 +485,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 	if (_v_control_mode.flag_control_manual_enabled) {
 		/* manual input, set or modify attitude setpoint */
+		vehicle_manual_poll();
 
 		if (_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_climb_rate_enabled) {
 			/* in assisted modes poll 'vehicle_attitude_setpoint' topic and modify it */
@@ -488,16 +511,16 @@ MulticopterAttitudeControl::control_attitude(float dt)
 			//	reset_yaw_sp = true;
 			//}
 		} else {
-			float yaw_dz_scaled = YAW_DEADZONE * _params.rc_scale_yaw;
-			if (_params.rc_scale_yaw > 0.001f && fabs(_manual_control_sp.yaw) > yaw_dz_scaled) {
+			float yaw_dz_scaled = YAW_DEADZONE * _params.rc_scale(2);
+			if (_params.rc_scale(2) > 0.001f && fabs(_manual_control_sp.yaw) > yaw_dz_scaled) {
 				/* move yaw setpoint */
-				yaw_sp_move_rate = _manual_control_sp.yaw / _params.rc_scale_yaw;
+				yaw_sp_move_rate = _manual_control_sp.yaw / _params.rc_scale(2);
 				if (_manual_control_sp.yaw > 0.0f) {
 					yaw_sp_move_rate -= YAW_DEADZONE;
 				} else {
 					yaw_sp_move_rate += YAW_DEADZONE;
 				}
-				yaw_sp_move_rate *= _params.rc_scale_yaw;
+				yaw_sp_move_rate *= _params.rc_scale(2);
 				_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + yaw_sp_move_rate * dt);
 				_v_att_sp.R_valid = false;
 				publish_att_sp = true;
@@ -743,7 +766,6 @@ MulticopterAttitudeControl::task_main()
 			parameter_update_poll();
 			vehicle_control_mode_poll();
 			arming_status_poll();
-			vehicle_manual_poll();
 
 			if (_v_control_mode.flag_control_attitude_enabled) {
 				control_attitude(dt);
@@ -764,9 +786,37 @@ MulticopterAttitudeControl::task_main()
 
 			} else {
 				/* attitude controller disabled */
-				// TODO poll 'attitude_rates_setpoint' topic
-				_rates_sp.zero();
-				_thrust_sp = 0.0f;
+				if (_v_control_mode.flag_control_manual_enabled) {
+					/* manual rates control, ACRO mode */
+					vehicle_manual_poll();
+
+					_rates_sp(0) = _manual_control_sp.roll;
+					_rates_sp(1) = _manual_control_sp.pitch;
+					_rates_sp(2) = _manual_control_sp.yaw;
+
+					/* rescale controls for ACRO mode */
+					_rates_sp = _rates_sp.edivide(_params.rc_scale).emult(_params.scale_acro);
+					_thrust_sp = _manual_control_sp.throttle;
+
+					/* publish attitude rates setpoint */
+					_v_rates_sp.roll = _rates_sp(0);
+					_v_rates_sp.pitch = _rates_sp(1);
+					_v_rates_sp.yaw = _rates_sp(2);
+					_v_rates_sp.thrust = _thrust_sp;
+					_v_rates_sp.timestamp = hrt_absolute_time();
+
+					if (_v_rates_sp_pub > 0) {
+						orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
+
+					} else {
+						_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_v_rates_sp);
+					}
+
+				} else {
+					// TODO poll 'attitude_rates_setpoint' topic
+					_rates_sp.zero();
+					_thrust_sp = 0.0f;
+				}
 			}
 
 			if (_v_control_mode.flag_control_rates_enabled) {

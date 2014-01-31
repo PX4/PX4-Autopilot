@@ -619,9 +619,10 @@ int commander_thread_main(int argc, char *argv[])
 
 	char *main_states_str[MAIN_STATE_MAX];
 	main_states_str[0] = "MANUAL";
-	main_states_str[1] = "SEATBELT";
-	main_states_str[2] = "EASY";
-	main_states_str[3] = "AUTO";
+	main_states_str[1] = "ACRO";
+	main_states_str[2] = "SEATBELT";
+	main_states_str[3] = "EASY";
+	main_states_str[4] = "AUTO";
 
 	char *arming_states_str[ARMING_STATE_MAX];
 	arming_states_str[0] = "INIT";
@@ -1510,6 +1511,17 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 	} else {
 		status->mission_switch = MISSION_SWITCH_MISSION;
 	}
+
+	/* acro switch  */
+	if (!isfinite(sp_man->acro_switch)) {
+		status->acro_switch = ACRO_SWITCH_NONE;
+
+	} else if (sp_man->acro_switch > STICK_ON_OFF_LIMIT) {
+		status->acro_switch = ACRO_SWITCH_ACRO;
+
+	} else {
+		status->acro_switch = ACRO_SWITCH_NORMAL;
+	}
 }
 
 transition_result_t
@@ -1520,7 +1532,11 @@ set_main_state_rc(struct vehicle_status_s *status)
 
 	switch (status->mode_switch) {
 	case MODE_SWITCH_MANUAL:
-		res = main_state_transition(status, MAIN_STATE_MANUAL);
+		if (status->acro_switch == ACRO_SWITCH_ACRO) {
+			res = main_state_transition(status, MAIN_STATE_ACRO);
+		} else {
+			res = main_state_transition(status, MAIN_STATE_MANUAL);
+		}
 		// TRANSITION_DENIED is not possible here
 		break;
 
@@ -1594,6 +1610,17 @@ set_control_mode()
 			control_mode.flag_control_auto_enabled = false;
 			control_mode.flag_control_rates_enabled = status.is_rotary_wing;
 			control_mode.flag_control_attitude_enabled = status.is_rotary_wing;
+			control_mode.flag_control_altitude_enabled = false;
+			control_mode.flag_control_climb_rate_enabled = false;
+			control_mode.flag_control_position_enabled = false;
+			control_mode.flag_control_velocity_enabled = false;
+			break;
+
+		case MAIN_STATE_ACRO:
+			control_mode.flag_control_manual_enabled = true;
+			control_mode.flag_control_auto_enabled = false;
+			control_mode.flag_control_rates_enabled = true;
+			control_mode.flag_control_attitude_enabled = false;
 			control_mode.flag_control_altitude_enabled = false;
 			control_mode.flag_control_climb_rate_enabled = false;
 			control_mode.flag_control_position_enabled = false;

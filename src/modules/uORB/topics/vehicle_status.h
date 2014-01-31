@@ -63,6 +63,7 @@
 /* main state machine */
 typedef enum {
 	MAIN_STATE_MANUAL = 0,
+	MAIN_STATE_ACRO,
 	MAIN_STATE_SEATBELT,
 	MAIN_STATE_EASY,
 	MAIN_STATE_AUTO,
@@ -115,6 +116,12 @@ typedef enum {
 	MISSION_SWITCH_LOITER,
 	MISSION_SWITCH_MISSION
 } mission_switch_pos_t;
+
+typedef enum {
+	ACRO_SWITCH_NONE = 0,
+	ACRO_SWITCH_NORMAL,
+	ACRO_SWITCH_ACRO
+} acro_switch_pos_t;
 
 enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_SAFETY_ARMED = 128,
@@ -192,6 +199,7 @@ struct vehicle_status_s
 	return_switch_pos_t return_switch;
 	assisted_switch_pos_t assisted_switch;
 	mission_switch_pos_t mission_switch;
+	acro_switch_pos_t acro_switch;
 
 	bool condition_battery_voltage_valid;
 	bool condition_system_in_air_restore;	/**< true if we can restore in mid air */
