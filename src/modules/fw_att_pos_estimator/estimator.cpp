@@ -1730,6 +1730,7 @@ void calcEarthRateNED(Vector3f &omega, float latitude)
 void CovarianceInit()
 {
     // Calculate the initial covariance matrix P
+    P[0][0]   = 0.25f*sq(1.0f*deg2rad);
     P[1][1]   = 0.25f*sq(1.0f*deg2rad);
     P[2][2]   = 0.25f*sq(1.0f*deg2rad);
     P[3][3]   = 0.25f*sq(10.0f*deg2rad);
