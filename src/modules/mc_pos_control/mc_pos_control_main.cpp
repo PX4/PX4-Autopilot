@@ -645,7 +645,7 @@ MulticopterPositionControl::task_main()
 
 				if (pos_sp_offs_norm > 1.0f) {
 					pos_sp_offs /= pos_sp_offs_norm;
-					add_vector_to_global_position(_lat_sp, _lon_sp, pos_sp_offs(0) * _params.sp_offs_max(0), pos_sp_offs(1) * _params.sp_offs_max(1), &_lat_sp, &_lon_sp);
+					add_vector_to_global_position(_global_pos.lat, _global_pos.lon, pos_sp_offs(0) * _params.sp_offs_max(0), pos_sp_offs(1) * _params.sp_offs_max(1), &_lat_sp, &_lon_sp);
 					_alt_sp = alt - pos_sp_offs(2) * _params.sp_offs_max(2);
 				}
 
