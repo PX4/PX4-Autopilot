@@ -1,5 +1,8 @@
 #include "estimator.h"
 
+// For debugging only
+#include <stdio.h>
+
 // Global variables
 float KH[n_states][n_states]; //  intermediate result used for covariance updates
 float KHP[n_states][n_states]; // intermediate result used for covariance updates
@@ -32,14 +35,15 @@ float posNED[3]; // North, East Down position (m)
 float statesAtVelTime[n_states]; // States at the effective measurement time for posNE and velNED measurements
 float statesAtPosTime[n_states]; // States at the effective measurement time for posNE and velNED measurements
 float statesAtHgtTime[n_states]; // States at the effective measurement time for the hgtMea measurement
+float statesAtMagMeasTime[n_states]; // filter satates at the effective measurement time
+float statesAtVtasMeasTime[n_states]; // filter states at the effective measurement time
+
 float innovMag[3]; // innovation output
 float varInnovMag[3]; // innovation variance output
 Vector3f magData; // magnetometer flux radings in X,Y,Z body axes
-float statesAtMagMeasTime[n_states]; // filter satates at the effective measurement time
 float innovVtas; // innovation output
 float varInnovVtas; // innovation variance output
 float VtasMeas; // true airspeed measurement (m/s)
-float statesAtVtasMeasTime[n_states]; // filter states at the effective measurement time
 float latRef; // WGS-84 latitude of reference point (rad)
 float lonRef; // WGS-84 longitude of reference point (rad)
 float hgtRef; // WGS-84 height of reference point (m)
@@ -1125,6 +1129,8 @@ void FuseVelposNED()
             }
         }
     }
+
+    //printf("velh: %s, posh: %s, hgth: %s\n", ((velHealth) ? "OK" : "FAIL"), ((posHealth) ? "OK" : "FAIL"), ((hgtHealth) ? "OK" : "FAIL"));
 }
 
 void FuseMagnetometer()
@@ -1586,13 +1592,15 @@ float sq(float valIn)
 }
 
 // Store states in a history array along with time stamp
-void StoreStates()
+void StoreStates(uint64_t timestamp_ms)
 {
     static uint8_t storeIndex = 0;
-    if (storeIndex == data_buffer_size) storeIndex = 0;
-    for (uint8_t i=0; i<=n_states; i++) storedStates[i][storeIndex] = states[i];
-    statetimeStamp[storeIndex] = millis();
-    storeIndex = storeIndex + 1;
+    for (unsigned i=0; i<n_states; i++)
+        storedStates[i][storeIndex] = states[i];
+    statetimeStamp[storeIndex] = timestamp_ms;
+    storeIndex++;
+    if (storeIndex == data_buffer_size)
+        storeIndex = 0;
 }
 
 // Output the state vector stored at the time that best matches that specified by msec
@@ -1791,8 +1799,29 @@ void AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, fl
     initQuat[3] = cosRoll * cosPitch * sinHeading - sinRoll * sinPitch * cosHeading;
 }
 
-void InitialiseFilter()
+void InitialiseFilter(float initvelNED[3])
 {
+    // Do the data structure init
+    for (unsigned i = 0; i < n_states; i++) {
+        for (unsigned j = 0; j < n_states; j++) {
+            KH[i][j] = 0.0f; //  intermediate result used for covariance updates
+            KHP[i][j] = 0.0f; // intermediate result used for covariance updates
+            P[i][j] = 0.0f; // covariance matrix
+        }
+
+        Kfusion[i] = 0.0f; // Kalman gains
+        states[i] = 0.0f; // state matrix
+    }
+
+    for (unsigned i = 0; i < data_buffer_size; i++) {
+
+        for (unsigned j = 0; j < n_states; j++) {
+
+        }
+
+        statetimeStamp[i] = 0;
+    }
+
     // Calculate initial filter quaternion states from raw measurements
     float initQuat[4];
     Vector3f initMagXYZ;
@@ -1808,10 +1837,6 @@ void InitialiseFilter()
     initMagNED.x = DCM.x.x*initMagXYZ.x + DCM.x.y*initMagXYZ.y + DCM.x.z*initMagXYZ.z;
     initMagNED.y = DCM.y.x*initMagXYZ.x + DCM.y.y*initMagXYZ.y + DCM.y.z*initMagXYZ.z;
     initMagNED.z = DCM.z.x*initMagXYZ.x + DCM.z.y*initMagXYZ.y + DCM.z.z*initMagXYZ.z;
-
-    // calculate initial velocities
-    float initvelNED[3];
-    calcvelNED(initvelNED, gpsCourse, gpsGndSpd, gpsVelD);
 
     //store initial lat,long and height
     latRef = gpsLat;

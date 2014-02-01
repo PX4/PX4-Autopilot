@@ -92,7 +92,7 @@ extern "C" __EXPORT int fw_att_pos_estimator_main(int argc, char *argv[]);
 __EXPORT uint32_t millis();
 
 static uint64_t last_run = 0;
-static uint32_t IMUmsec = 0;
+static uint64_t IMUmsec = 0;
 
 uint32_t millis()
 {
@@ -383,11 +383,11 @@ FixedwingEstimator::task_main()
 
 	/* rate limit gyro updates to 50 Hz */
 	/* XXX remove this!, BUT increase the data buffer size! */
-	orb_set_interval(_gyro_sub, 17);
+	orb_set_interval(_gyro_sub, 6);
 	#else
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	/* XXX remove this!, BUT increase the data buffer size! */
-	orb_set_interval(_sensor_combined_sub, 17);
+	orb_set_interval(_sensor_combined_sub, 6);
 	#endif
 
 	parameters_update();
@@ -459,6 +459,12 @@ FixedwingEstimator::task_main()
 
 			perf_count(_perf_gyro);
 
+			/**
+			 *    PART ONE: COLLECT ALL DATA
+			 **/
+
+			hrt_abstime last_sensor_timestamp;
+
 			/* load local copies */
 			#ifndef SENSOR_COMBINED_SUB
 			orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &_gyro);
@@ -471,7 +477,7 @@ FixedwingEstimator::task_main()
 				orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
 			}
 
-
+			last_sensor_timestamp = _gyro.timestamp;
 			IMUmsec = _gyro.timestamp / 1e3f;
 
 			float deltaT = (_gyro.timestamp - last_run) / 1e6f;
@@ -496,7 +502,10 @@ FixedwingEstimator::task_main()
 
 			dAngIMU = 0.5f * (angRate + lastAngRate) * dtIMU;
 			lastAngRate = angRate;
-			dVelIMU = 0.5f * (accel + lastAccel) * dtIMU;
+			// dVelIMU = 0.5f * (accel + lastAccel) * dtIMU;
+			dVelIMU.x = 0.0f;
+			dVelIMU.y = 0.0f;
+			dVelIMU.z = 0.0f;
 			lastAccel = accel;
 
 
@@ -513,14 +522,14 @@ FixedwingEstimator::task_main()
 
 
 			// Copy gyro and accel
-
+			last_sensor_timestamp = _sensor_combined.timestamp;
 			IMUmsec = _sensor_combined.timestamp / 1e3f;
 
 			float deltaT = (_sensor_combined.timestamp - last_run) / 1e6f;
 			last_run = _sensor_combined.timestamp;
 
 			/* guard against too large deltaT's */
-			if (deltaT > 1.0f)
+			if (deltaT > 1.0f || deltaT < 0.000001f)
 				deltaT = 0.01f;
 
 			// Always store data, independent of init status
@@ -547,41 +556,13 @@ FixedwingEstimator::task_main()
 
 			#endif
 
-			if (_initialized) {
+			bool airspeed_updated;
+			orb_check(_airspeed_sub, &airspeed_updated);
+			if (airspeed_updated) {
+				orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
+				perf_count(_perf_airspeed);
 
-				/* predict states and covariances */
-
-				/* run the strapdown INS every sensor update */
-				UpdateStrapdownEquationsNED();
-
-				/* store the predictions */
-				StoreStates();
-
-				/* evaluate if on ground */
-				OnGroundCheck();
-
-				/* prepare the delta angles and time used by the covariance prediction */
-				summedDelAng = summedDelAng + correctedDelAng;
-				summedDelVel = summedDelVel + correctedDelVel;
-				dt += dtIMU;
-
-				/* predict the covairance if the total delta angle has exceeded the threshold
-				 * or the time limit will be exceeded on the next measurement update
-				 */
-				if ((dt >= (covTimeStepMax - dtIMU)) || (summedDelAng.length() > covDelAngMax)) {
-					CovariancePrediction();
-					summedDelAng = summedDelAng.zero();
-					summedDelVel = summedDelVel.zero();
-					dt = 0.0f;
-				}
-			}
-
-			bool baro_updated;
-			orb_check(_baro_sub, &baro_updated);
-			if (baro_updated) {
-				orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
-
-				baroHgt = _baro.altitude;
+				VtasMeas = _airspeed.true_airspeed_m_s;
 			}
 
 			bool gps_updated;
@@ -590,65 +571,36 @@ FixedwingEstimator::task_main()
 				orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &_gps);
 				perf_count(_perf_gps);
 
-				if (_gps.fix_type > 2) {
+				if (_gps.fix_type < 3) {
+					gps_updated = false;
+				} else {
 					/* fuse GPS updates */
 
 					//_gps.timestamp / 1e3;
 					GPSstatus = _gps.fix_type;
-					gpsCourse = _gps.cog_rad;
-					gpsGndSpd = sqrtf(_gps.vel_n_m_s * _gps.vel_n_m_s + _gps.vel_e_m_s * _gps.vel_e_m_s);
-					gpsVelD = _gps.vel_d_m_s;
+					velNED[0] = _gps.vel_n_m_s;
+					velNED[1] = _gps.vel_e_m_s;
+					velNED[2] = _gps.vel_d_m_s;
+
+					// warnx("GPS updated: status: %d, vel: %8.4f %8.4f %8.4f", (int)GPSstatus, velNED[0], velNED[1], velNED[2]);
+
 					gpsLat = math::radians(_gps.lat / (double)1e7);
 					gpsLon = math::radians(_gps.lon / (double)1e7)  - M_PI;
 					gpsHgt = _gps.alt / 1e3f;
 
-					if (hrt_elapsed_time(&start_time) > 500000 && !_initialized) {
-						InitialiseFilter();
-						_initialized = true;
-
-						warnx("init done.");
-						continue;
-					}
-
-					if (_initialized) {
-
-						/* convert GPS measurements to horizontal NE, altitude and 3D velocity NED */
-						velNED[0] = _gps.vel_n_m_s;
-						velNED[1] = _gps.vel_e_m_s;
-						velNED[2] = _gps.vel_d_m_s;
-						calcposNED(posNED, gpsLat, gpsLon, gpsHgt, latRef, lonRef, hgtRef);
-
-						posNE[0] = posNED[0];
-						posNE[1] = posNED[1];
-						hgtMea =  -posNED[2];
-
-						// set flags for further processing 
-						fuseVelData = true;
-						fusePosData = true;
-						fuseHgtData = true;
-
-						/* recall states after adjusting for delays */
-						RecallStates(statesAtVelTime, (IMUmsec - _parameters.vel_delay_ms));
-						RecallStates(statesAtPosTime, (IMUmsec - _parameters.pos_delay_ms));
-						RecallStates(statesAtHgtTime, (IMUmsec - _parameters.height_delay_ms));
-
-						/* run the actual fusion */
-						FuseVelposNED();
-					}
-
-				} else {
-
-					/* do not fuse anything, we got no position / vel update */
-					fuseVelData = false;
-					fusePosData = false;
-					fuseHgtData = false;
 				}
 
-			} else {
-				/* do not fuse anything, we got no position / vel update */
-				fuseVelData = false;
-				fusePosData = false;
-				fuseHgtData = false;
+			}
+
+			bool baro_updated;
+			orb_check(_baro_sub, &baro_updated);
+			if (baro_updated) {
+				orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
+
+				baroHgt = _baro.altitude;
+
+				// Could use a blend of GPS and baro alt data if desired
+				hgtMea = 1.0f*baroHgt + 0.0f*gpsHgt;
 			}
 
 			#ifndef SENSOR_COMBINED_SUB
@@ -687,41 +639,107 @@ FixedwingEstimator::task_main()
 
 				#endif
 
-				if (_initialized) {
+			}
 
-					fuseMagData = true;
-					RecallStates(statesAtMagMeasTime, (IMUmsec - _parameters.mag_delay_ms));
-					FuseMagnetometer();
+
+			/**
+			 *    PART TWO: EXECUTE THE FILTER
+			 **/
+
+			if (hrt_elapsed_time(&start_time) > 500000 && !_initialized && (GPSstatus == 3)) {
+				InitialiseFilter(velNED);
+				_initialized = true;
+
+				warnx("init done.");
+			}
+
+			if (_initialized) {
+
+				/* predict states and covariances */
+
+				/* run the strapdown INS every sensor update */
+				UpdateStrapdownEquationsNED();
+
+				/* store the predictions */
+				StoreStates(IMUmsec);
+
+				/* evaluate if on ground */
+				OnGroundCheck();
+
+				/* prepare the delta angles and time used by the covariance prediction */
+				summedDelAng = summedDelAng + correctedDelAng;
+				summedDelVel = summedDelVel + correctedDelVel;
+				dt += dtIMU;
+
+				/* predict the covairance if the total delta angle has exceeded the threshold
+				 * or the time limit will be exceeded on the next measurement update
+				 */
+				if ((dt >= (covTimeStepMax - dtIMU)) || (summedDelAng.length() > covDelAngMax)) {
+					CovariancePrediction();
+					summedDelAng = summedDelAng.zero();
+					summedDelVel = summedDelVel.zero();
+					dt = 0.0f;
 				}
+			}
+
+
+			if (gps_updated && _initialized) {
+
+				/* convert GPS measurements to horizontal NE, altitude and 3D velocity NED */
+				calcposNED(posNED, gpsLat, gpsLon, gpsHgt, latRef, lonRef, hgtRef);
+
+				posNE[0] = posNED[0];
+				posNE[1] = posNED[1];
+
+				// set flags for further processing 
+				fuseVelData = true;
+				fusePosData = true;
+
+				/* recall states after adjusting for delays */
+				RecallStates(statesAtVelTime, (IMUmsec - _parameters.vel_delay_ms));
+				RecallStates(statesAtPosTime, (IMUmsec - _parameters.pos_delay_ms));
+
+				/* run the actual fusion */
+				FuseVelposNED();
+			} else {
+				fuseVelData = false;
+				fusePosData = false;
+			}
+
+			if (baro_updated && _initialized) {
+
+				fuseHgtData = true;
+				// recall states stored at time of measurement after adjusting for delays
+				RecallStates(statesAtHgtTime, (IMUmsec - _parameters.height_delay_ms));
+				// run the fusion step
+				FuseVelposNED();
+			} else {
+				fuseHgtData = false;
+			}
+
+			if (mag_updated && _initialized) {
+				fuseMagData = true;
+				RecallStates(statesAtMagMeasTime, (IMUmsec - _parameters.mag_delay_ms));
 
 			} else {
 				fuseMagData = false;
 			}
 
-			bool airspeed_updated;
-			orb_check(_airspeed_sub, &airspeed_updated);
-			if (airspeed_updated && _initialized) {
-				orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
-				perf_count(_perf_airspeed);
+			if (_initialized) {
+				FuseMagnetometer();
+			}
 
-				if (_airspeed.true_airspeed_m_s > 8.0f /* XXX magic number */) {
+			if (airspeed_updated && _initialized
+				&& _airspeed.true_airspeed_m_s > 8.0f /* XXX magic number */) {
 
-					VtasMeas = _airspeed.true_airspeed_m_s;
-
-					if (_initialized) {
-
-						fuseVtasData = true;
-						RecallStates(statesAtVtasMeasTime, (IMUmsec - _parameters.tas_delay_ms)); // assume 100 msec avg delay for airspeed data
-						FuseAirspeed();
-					}
-				} else {
-					fuseVtasData = false;
-				}
-
+				fuseVtasData = true;
+				RecallStates(statesAtVtasMeasTime, (IMUmsec - _parameters.tas_delay_ms)); // assume 100 msec avg delay for airspeed data
+				FuseAirspeed();
 			} else {
 				fuseVtasData = false;
 			}
 
+			// Publish results
 			if (_initialized) {
 
 				// State vector:
@@ -740,7 +758,7 @@ FixedwingEstimator::task_main()
 				for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
 					_att.R[i][j] = R(i, j);
 
-				_att.timestamp = _gyro.timestamp;
+				_att.timestamp = last_sensor_timestamp;
 				_att.q[0] = states[0];
 				_att.q[1] = states[1];
 				_att.q[2] = states[2];
@@ -748,7 +766,7 @@ FixedwingEstimator::task_main()
 				_att.q_valid = true;
 				_att.R_valid = true;
 
-				_att.timestamp = _gyro.timestamp;
+				_att.timestamp = last_sensor_timestamp;
 				_att.roll = euler.getPhi();
 				_att.pitch = euler.getTheta();
 				_att.yaw = euler.getPsi();
@@ -771,7 +789,7 @@ FixedwingEstimator::task_main()
 					_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &_att);
 				}
 
-				_local_pos.timestamp = _gyro.timestamp;
+				_local_pos.timestamp = last_sensor_timestamp;
 				_local_pos.x = states[7];
 				_local_pos.y = states[8];
 				_local_pos.z = states[9];
@@ -892,6 +910,7 @@ int fw_att_pos_estimator_main(int argc, char *argv[])
 			// 15-17: Earth Magnetic Field Vector - milligauss (North, East, Down)
 			// 18-20: Body Magnetic Field Vector - milligauss (X,Y,Z)
 
+			printf("dt: %8.6f\n", dtIMU);
 			printf("states (quat)        [1-4]: %8.4f, %8.4f, %8.4f, %8.4f\n", (double)states[0], (double)states[1], (double)states[2], (double)states[3]);
 			printf("states (vel m/s)     [5-7]: %8.4f, %8.4f, %8.4f\n", (double)states[4], (double)states[5], (double)states[6]);
 			printf("states (pos m)      [8-10]: %8.4f, %8.4f, %8.4f\n", (double)states[7], (double)states[8], (double)states[9]);
