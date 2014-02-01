@@ -110,7 +110,6 @@ extern float EAS2TAS; // ratio f true to equivalent airspeed
 
 // GPS input data variables
 extern float gpsCourse;
-extern float gpsGndSpd;
 extern float gpsVelD;
 extern float gpsLat;
 extern float gpsLon;
@@ -122,7 +121,7 @@ extern float baroHgt;
 
 extern bool statesInitialised;
 
-const float covTimeStepMax = 0.07f; // maximum time allowed between covariance predictions
+const float covTimeStepMax = 0.02f; // maximum time allowed between covariance predictions
 const float covDelAngMax = 0.05f; // maximum delta angle between covariance predictions
 
 void  UpdateStrapdownEquationsNED();
@@ -144,7 +143,7 @@ float sq(float valIn);
 void quatNorm(float quatOut[4], float quatIn[4]);
 
 // store staes along with system time stamp in msces
-void StoreStates();
+void StoreStates(uint64_t timestamp_ms);
 
 // recall stste vector stored at closest time to the one specified by msec
 void RecallStates(float statesForFusion[n_states], uint32_t msec);
@@ -169,7 +168,7 @@ void OnGroundCheck();
 
 void CovarianceInit();
 
-void InitialiseFilter();
+void InitialiseFilter(float initvelNED[3]);
 
 uint32_t millis();
 
