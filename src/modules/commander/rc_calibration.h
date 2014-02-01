@@ -41,6 +41,6 @@
 
 #include <stdint.h>
 
-int do_rc_calibration(int mavlink_fd);
+int do_trim_calibration(int mavlink_fd);
 
 #endif /* RC_CALIBRATION_H_ */
