@@ -30,7 +30,9 @@ struct CanFrame
     CanFrame()
     : id(0)
     , dlc(0)
-    { }
+    {
+        std::memset(data, 0, sizeof(data));
+    }
 
     CanFrame(uint32_t id, const uint8_t* data, unsigned int dlc)
     : id(id)

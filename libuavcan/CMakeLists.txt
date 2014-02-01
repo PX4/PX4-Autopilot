@@ -26,7 +26,7 @@ add_library(uavcan SHARED ${LIBUAVCAN_CXX_FILES})
 # TODO installation rules
 
 #
-# Test
+# Unit tests with gtest (optional)
 #
 find_package(GTest QUIET)
 if (GTEST_FOUND)
@@ -47,8 +47,15 @@ if (GTEST_FOUND)
     # Tests run automatically upon successful build
     # If failing tests need to be investigated with debugger, use 'make --ignore-errors'
     add_custom_command(TARGET libuavcan_test POST_BUILD
-                       COMMAND "./libuavcan_test"
+                       COMMAND ./libuavcan_test
                        WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 else (GTEST_FOUND)
     message(">> Google test library is not found, you will not be able to run tests")
 endif (GTEST_FOUND)
+
+#
+# Static analysis with cppcheck (required), both library and unit test sources
+#
+add_custom_command(TARGET uavcan PRE_BUILD
+                   COMMAND ./cppcheck.sh
+                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

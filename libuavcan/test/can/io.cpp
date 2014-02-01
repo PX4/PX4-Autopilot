@@ -82,7 +82,10 @@ public:
         return 1;
     }
 
+    // cppcheck-suppress unusedFunction
+    // cppcheck-suppress functionConst
     int configureFilters(const uavcan::CanFilterConfig* filter_configs, int num_configs) { return -1; }
+    // cppcheck-suppress unusedFunction
     int getNumFilters() const { return 0; }
     uint64_t getNumErrors() const { return num_errors; }
 };
