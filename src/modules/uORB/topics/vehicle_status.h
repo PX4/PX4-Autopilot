@@ -208,6 +208,7 @@ struct vehicle_status_s
 
 	bool rc_signal_found_once;
 	bool rc_signal_lost;				/**< true if RC reception lost */
+	bool rc_input_blocked;				/**< set if RC input should be ignored */
 
 	bool offboard_control_signal_found_once;
 	bool offboard_control_signal_lost;
