@@ -1078,7 +1078,7 @@ Navigator::start_loiter()
 			mavlink_log_info(_mavlink_fd, "[navigator] loiter at current altitude");
 		}
 
-		_pos_sp_triplet.current.type = SETPOINT_TYPE_NORMAL;
+		_pos_sp_triplet.current.type = SETPOINT_TYPE_LOITER;
 	}
 
 	_pos_sp_triplet.current.loiter_radius = _parameters.loiter_radius;
