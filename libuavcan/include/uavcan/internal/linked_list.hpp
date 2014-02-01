@@ -1,6 +1,6 @@
 /*
  * Singly-linked list.
- * Copyright (C) 2013 Pavel Kirienko <pavel.kirienko@gmail.com>
+ * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
 #pragma once
@@ -46,6 +46,7 @@ public:
     { }
 
     T* get() const { return root_; }
+    bool isEmpty() const { return get() == NULL; }
 
     unsigned int length() const
     {
@@ -61,9 +62,38 @@ public:
 
     void insert(T* node)
     {
+        assert(node);
         remove(node);  // Making sure there will be no loops
         node->setNextListNode(root_);
         root_ = node;
+    }
+
+    /**
+     * Inserts node A immediately before the node B where
+     *  predicate(B) -> true.
+     */
+    template <typename Predicate>
+    void insertBefore(T* node, Predicate predicate)
+    {
+        assert(node);
+        remove(node);
+
+        if (root_ == NULL || predicate(root_))
+        {
+            insert(node);
+        }
+        else
+        {
+            T* p = root_;
+            while (p->getNextListNode())
+            {
+                if (predicate(p->getNextListNode()))
+                    break;
+                p = p->getNextListNode();
+            }
+            node->setNextListNode(p->getNextListNode());
+            p->setNextListNode(node);
+        }
     }
 
     bool remove(const T* node)
@@ -89,17 +119,6 @@ public:
                 p = p->getNextListNode();
             }
             return false;
-        }
-    }
-
-    template <typename Fun>
-    void map(Fun& fun)
-    {
-        T* node = root_;
-        while (node)
-        {
-            fun(node);
-            node = node->getNextListNode();
         }
     }
 };

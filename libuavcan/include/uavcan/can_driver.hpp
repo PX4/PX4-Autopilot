@@ -1,19 +1,21 @@
 /*
  * CAN bus driver interface.
- * Copyright (C) 2013 Pavel Kirienko <pavel.kirienko@gmail.com>
+ * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
 #pragma once
 
 #include <cassert>
-#include <cstdint>
+#include <stdint.h>
 #include <cstring>
+#include <string>
 
 namespace uavcan
 {
 /**
  * Raw CAN frame, as passed to/from the CAN driver.
  */
+#pragma pack(push, 1)
 struct CanFrame
 {
     static const uint32_t MASK_STDID = 0x000007FF;
@@ -25,12 +27,12 @@ struct CanFrame
     uint8_t data[8];
     uint8_t dlc;        ///< Data Length Code
 
-    Frame()
+    CanFrame()
     : id(0)
     , dlc(0)
     { }
 
-    Frame(uint32_t id, const uint8_t* data, uint8_t dlc)
+    CanFrame(uint32_t id, const uint8_t* data, unsigned int dlc)
     : id(id)
     , dlc(dlc)
     {
@@ -38,9 +40,30 @@ struct CanFrame
         std::memmove(this->data, data, dlc);
     }
 
+    bool operator!=(const CanFrame& rhs) const { return !operator==(rhs); }
+    bool operator==(const CanFrame& rhs) const
+    {
+        return (id == rhs.id) && (dlc == rhs.dlc) && (memcmp(data, rhs.data, dlc) == 0);
+    }
+
     bool isExtended() const { return id & FLAG_EFF; }
     bool isRemoteTransmissionRequest() const { return id & FLAG_RTR; }
+
+    enum StringRepresentation { STR_TIGHT, STR_ALIGNED };
+    std::string toString(StringRepresentation mode = STR_TIGHT) const;
+
+    // TODO: priority comparison for EXT vs STD frames
+    bool priorityHigherThan(const CanFrame& rhs) const
+    {
+        return (id & CanFrame::MASK_EXTID) < (rhs.id & CanFrame::MASK_EXTID);
+    }
+
+    bool priorityLowerThan(const CanFrame& rhs) const
+    {
+        return (id & CanFrame::MASK_EXTID) > (rhs.id & CanFrame::MASK_EXTID);
+    }
 };
+#pragma pack(pop)
 
 /**
  * CAN hardware filter config struct. @ref ICanDriver::filter().
@@ -64,20 +87,20 @@ public:
      * If the frame wasn't transmitted upon TX timeout expiration, the driver should discard it.
      * @return 1 = one frame transmitted, 0 = TX buffer full, negative for error.
      */
-    virtual int send(const Frame& frame, uint64_t tx_timeout_usec) = 0;
+    virtual int send(const CanFrame& frame, uint64_t tx_timeout_usec) = 0;
 
     /**
      * Non-blocking reception.
      * out_utc_timestamp_usec must be provided by the driver, ideally by the hardware CAN controller; 0 if unknown.
      * @return 1 = one frame received, 0 = RX buffer empty, negative for error.
      */
-    virtual int receive(Frame& out_frame, uint64_t& out_utc_timestamp_usec) = 0;
+    virtual int receive(CanFrame& out_frame, uint64_t& out_utc_timestamp_usec) = 0;
 
     /**
      * Configure the hardware CAN filters. @ref CanFilterConfig.
      * @return 0 = success, negative for error.
      */
-    virtual int filter(const CanFilterConfig* filter_configs, int num_configs) = 0;
+    virtual int configureFilters(const CanFilterConfig* filter_configs, int num_configs) = 0;
 
     /**
      * Number of available hardware filters.

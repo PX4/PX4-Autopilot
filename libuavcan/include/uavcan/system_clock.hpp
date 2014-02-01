@@ -1,11 +1,11 @@
 /*
  * System clock driver interface.
- * Copyright (C) 2013 Pavel Kirienko <pavel.kirienko@gmail.com>
+ * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 
 namespace uavcan
 {
@@ -17,6 +17,7 @@ namespace uavcan
  */
 class ISystemClock
 {
+public:
     /**
      * Monototic system clock in microseconds.
      * This shall never jump during UTC timestamp adjustments; the base time is irrelevant.

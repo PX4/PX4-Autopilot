@@ -1,14 +1,36 @@
 /*
- * Copyright (C) 2013 Pavel Kirienko <pavel.kirienko@gmail.com>
+ * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
 #include <gtest/gtest.h>
-#include <uavcan/linked_list.hpp>
+#include <uavcan/internal/linked_list.hpp>
 
 struct ListItem : uavcan::LinkedListNode<ListItem>
 {
     int value;
-    ListItem() : value(0) { }
+
+    ListItem(int value = 0)
+    : value(value)
+    { }
+
+    struct GreaterThanComparator
+    {
+        const int compare_with;
+
+        GreaterThanComparator(int compare_with)
+        : compare_with(compare_with)
+        { }
+
+        bool operator()(const ListItem* item) const
+        {
+            return item->value > compare_with;
+        }
+    };
+
+    void insort(uavcan::LinkedListRoot<ListItem>& root)
+    {
+        root.insertBefore(this, GreaterThanComparator(value));
+    }
 };
 
 TEST(LinkedList, Basic)
@@ -77,29 +99,27 @@ TEST(LinkedList, Basic)
     EXPECT_EQ(0, root.length());
 }
 
-struct Summator
-{
-    long sum;
-    Summator() : sum(0) { }
-    void operator()(const ListItem* item)
-    {
-        sum += item->value;
-    }
-};
-
-TEST(LinkedList, Predicate)
+TEST(LinkedList, Sorting)
 {
     uavcan::LinkedListRoot<ListItem> root;
-    ListItem items[5];
-    for (int i = 0 ; i < 5; i++)
-    {
-        EXPECT_FALSE(root.remove(items + i));  // Just to make sure that there's no such item
-        root.insert(items + i);
-        items[i].value = i;
-    }
-    EXPECT_EQ(5, root.length());
+    ListItem items[] = {0, 1, 2, 3, 4, 5};
 
-    Summator sum;
-    root.map(sum);
-    EXPECT_EQ(10, sum.sum);
+    items[2].insort(root);
+    items[3].insort(root);
+    items[0].insort(root);
+    items[4].insort(root);
+    items[1].insort(root);
+    items[5].insort(root);
+
+    EXPECT_EQ(6, root.length());
+
+    int prev_val = -100500;
+    const ListItem* item = root.get();
+    while (item)
+    {
+        //std::cout << item->value << std::endl;
+        EXPECT_LT(prev_val, item->value);
+        prev_val = item->value;
+        item = item->getNextListNode();
+    }
 }

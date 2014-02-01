@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Pavel Kirienko <pavel.kirienko@gmail.com>
+ * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
 #include <gtest/gtest.h>

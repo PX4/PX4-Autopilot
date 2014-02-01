@@ -13,14 +13,17 @@ project(libuavcan)
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O1 -g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O1 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG "-g3 -DUAVCAN_DEBUG=1")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++03 -Wall -Wextra -Werror -pedantic")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++03 -Wall -Wextra -Werror -pedantic -Wno-variadic-macros")
 
 include_directories(include)
 
 #
 # libuavcan
 #
-# TODO
+file(GLOB_RECURSE LIBUAVCAN_CXX_FILES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp")
+add_library(uavcan SHARED ${LIBUAVCAN_CXX_FILES})
+
+# TODO installation rules
 
 #
 # Test
@@ -32,14 +35,14 @@ if (GTEST_FOUND)
 
     file(GLOB_RECURSE TEST_CXX_FILES RELATIVE ${CMAKE_SOURCE_DIR} "test/*.cpp")
     add_executable(libuavcan_test ${TEST_CXX_FILES})
-    #add_dependencies(libuavcan_test libuavcan)
+    add_dependencies(libuavcan_test uavcan)
 
     set_target_properties(libuavcan_test PROPERTIES
-        COMPILE_FLAGS "-Wno-unused-parameter -Wno-unused-function"
+        COMPILE_FLAGS "-fno-rtti -fno-exceptions -Wno-unused-parameter -Wno-unused-function"
     )
 
     target_link_libraries(libuavcan_test ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-    #target_link_libraries(libuavcan_test ${CMAKE_BINARY_DIR}/libuavcan.so)
+    target_link_libraries(libuavcan_test ${CMAKE_BINARY_DIR}/libuavcan.so)
 
     add_custom_command(TARGET libuavcan_test POST_BUILD
                        COMMAND "./libuavcan_test"
