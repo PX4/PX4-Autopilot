@@ -1,27 +1,20 @@
 /*
- * Copyright (C) 2014 <pavel.kirienko@gmail.com>
+ * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#include <cassert>
 #include <uavcan/internal/transport/transfer.hpp>
 
 namespace uavcan
 {
 
-//static Frame Frame::parse(const CanFrame& can_frame)
-//{
-//}
-
-int Frame::subtractTransferID(int rhs) const
+int TransferID::forwardDistance(TransferID rhs) const
 {
-    static const int RANGE = MAX_TRANSFER_ID + 1;  //  16  256
-    static const int NEGATIVE = -RANGE / 2;        // -8  -128 (two's complement)
-    static const int POSITIVE = (-NEGATIVE) - 1;   //  7   127
+    int d = int(rhs.get()) - int(get());
+    if (d < 0)
+        d += 1 << BITLEN;
 
-    const int d = int(this->transfer_id) - rhs;
-    if (d <= NEGATIVE)
-        return RANGE + d;
-    else if (d >= POSITIVE)
-        return d - RANGE;
+    assert(((get() + d) & MAX) == rhs.get());
     return d;
 }
 

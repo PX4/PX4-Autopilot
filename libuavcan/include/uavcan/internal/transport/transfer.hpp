@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 <pavel.kirienko@gmail.com>
+ * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
 #pragma once
@@ -19,21 +19,60 @@ enum TransferType
     MESSAGE_UNICAST   = 3
 };
 
+
+class TransferID
+{
+    uint_fast8_t value_;
+
+public:
+    enum { BITLEN = 4 };
+    enum { MAX = (1 << BITLEN) - 1 };
+
+    TransferID()
+    : value_(0)
+    { }
+
+    TransferID(uint_fast8_t value)    // implicit
+    : value_(value)
+    {
+        value_ &= MAX;
+        assert(value == value_);
+    }
+
+    bool operator!=(TransferID rhs) const { return !operator==(rhs); }
+    bool operator==(TransferID rhs) const { return get() == rhs.get(); }
+
+    void increment()
+    {
+        value_ = (value_ + 1) & MAX;
+    }
+
+    uint_fast8_t get() const
+    {
+        assert(value_ <= MAX);
+        return value_;
+    }
+
+    /**
+     * Amount of increment() calls to reach rhs value.
+     */
+    int forwardDistance(TransferID rhs) const;
+};
+
+
 struct Frame
 {
-    enum { MAX_TRANSFER_ID = 15 };
-
     uint8_t payload[8];
     TransferType transfer_type;
     uint_fast16_t data_type_id;
     uint_fast8_t payload_len;
     uint_fast8_t source_node_id;
     uint_fast8_t frame_index;
-    uint_fast8_t transfer_id;
+    TransferID transfer_id;
     bool last_frame;
 
     Frame(const uint8_t* payload, uint_fast8_t payload_len, uint_fast16_t data_type_id, TransferType transfer_type,
-          uint_fast8_t source_node_id, uint_fast8_t frame_index, uint_fast8_t transfer_id, bool last_frame)
+          uint_fast8_t source_node_id, uint_fast8_t frame_index, TransferID transfer_id, bool last_frame)
     : transfer_type(transfer_type)
     , data_type_id(data_type_id)
     , payload_len(payload_len)
@@ -48,11 +87,7 @@ struct Frame
 
     static Frame parse(const CanFrame& can_frame);
 
-    /**
-     * Difference computed from (this.transfer_id - rhs.transfer_id) with proper overflow handling.
-     */
-    int subtractTransferID(const Frame& rhs) const { return subtractTransferID(rhs.transfer_id); }
-    int subtractTransferID(int rhs) const;
+    CanFrame compile() const;
 
     bool operator!=(const Frame& rhs) const { return !operator==(rhs); }
     bool operator==(const Frame& rhs) const
@@ -68,6 +103,7 @@ struct Frame
             std::equal(payload, payload + payload_len, rhs.payload);
     }
 };
+
 
 struct RxFrame
 {
