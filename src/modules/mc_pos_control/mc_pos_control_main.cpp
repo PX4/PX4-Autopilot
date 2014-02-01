@@ -508,9 +508,9 @@ MulticopterPositionControl::reset_follow_offset()
 	if (_reset_follow_offset) {
 		_reset_follow_offset = false;
 		get_vector_to_next_waypoint_fast(
+			_target_pos.lat, _target_pos.lon,
 			_reset_lat_lon_sp ? _global_pos.lat : _lat_sp,
 			_reset_lat_lon_sp ? _global_pos.lon : _lon_sp,
-			_target_pos.lat, _target_pos.lon,
 			&_follow_offset.data[0], &_follow_offset.data[1]);
 		_follow_offset(2) = - ((_reset_alt_sp ? _global_pos.alt : _alt_sp) - _target_pos.alt);
 		mavlink_log_info(_mavlink_fd, "[mpc] reset follow offs: %.2f, %.2f, %.2f", _follow_offset(0), _follow_offset(1), _follow_offset(2));
@@ -555,6 +555,7 @@ MulticopterPositionControl::task_main()
 	_arming_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
+	_target_pos_sub = orb_subscribe(ORB_ID(target_global_position));
 
 	parameters_update(true);
 
@@ -679,7 +680,7 @@ MulticopterPositionControl::task_main()
 					/* follow target, change offset from target instead of moving setpoint directly */
 					reset_follow_offset();
 					_follow_offset += sp_move_rate * dt;
-					add_vector_to_global_position(_global_pos.lat, _global_pos.lon, _follow_offset(0), _follow_offset(1), &_lat_sp, &_lon_sp);
+					add_vector_to_global_position(_target_pos.lat, _target_pos.lon, _follow_offset(0), _follow_offset(1), &_lat_sp, &_lon_sp);
 					_alt_sp = _target_pos.alt - _follow_offset(2);
 
 					math::Vector<3> vel_target(_target_pos.vel_n, _target_pos.vel_e, _target_pos.vel_d);
