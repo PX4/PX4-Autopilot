@@ -354,10 +354,10 @@ l_input_rc(const struct listener *l)
 
 		const unsigned port_width = 8;
 
-		for (unsigned i = 0; (i * port_width) < (rc_raw.channel_count + port_width); i++) {
+		for (unsigned i = 0; (i * port_width) < rc_raw.channel_count; i++) {
 			/* Channels are sent in MAVLink main loop at a fixed interval */
 			mavlink_msg_rc_channels_raw_send(chan,
-							 rc_raw.timestamp / 1000,
+							 rc_raw.timestamp_publication / 1000,
 							 i,
 							 (rc_raw.channel_count > (i * port_width) + 0) ? rc_raw.values[(i * port_width) + 0] : UINT16_MAX,
 							 (rc_raw.channel_count > (i * port_width) + 1) ? rc_raw.values[(i * port_width) + 1] : UINT16_MAX,

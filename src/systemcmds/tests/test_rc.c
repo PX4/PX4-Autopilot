@@ -121,7 +121,7 @@ int test_rc(int argc, char *argv[])
 						return ERROR;
 					}
 
-					if (hrt_absolute_time() - rc_input.timestamp > 100000) {
+					if (hrt_absolute_time() - rc_input.timestamp_last_signal > 100000) {
 						warnx("TIMEOUT, less than 10 Hz updates");
 						(void)close(_rc_sub);
 						return ERROR;

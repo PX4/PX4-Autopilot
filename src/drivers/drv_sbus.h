@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,35 +31,28 @@
  *
  ****************************************************************************/
 
-#pragma once
+/**
+ * @file drv_sbus.h
+ *
+ * Futaba S.BUS / S.BUS 2 compatible interface.
+ */
 
-#ifdef CONFIG_SCHED_INSTRUMENTATION
+#ifndef _DRV_SBUS_H
+#define _DRV_SBUS_H
 
-__BEGIN_DECLS
+#include <stdint.h>
+#include <sys/ioctl.h>
 
-#include <nuttx/sched.h>
+#include "drv_orb_dev.h"
 
-struct system_load_taskinfo_s {
-	uint64_t total_runtime;			///< Runtime since start (start_time - total_runtime)/(start_time - current_time) = load
-	uint64_t curr_start_time;		///< Start time of the current scheduling slot
-	uint64_t start_time;			///< FIRST start time of task
-	FAR struct tcb_s *tcb;			///<
-	bool valid;						///< Task is currently active / valid
-};
+/**
+ * Path for the default S.BUS device
+ */
+#define SBUS_DEVICE_PATH	"/dev/sbus"
 
-struct system_load_s {
-	uint64_t start_time;			///< Global start time of measurements
-	struct system_load_taskinfo_s tasks[CONFIG_MAX_TASKS];
-	uint8_t initialized;
-	int total_count;
-	int running_count;
-	int sleeping_count;
-};
+#define _SBUS_BASE		0x2c00
 
-__EXPORT extern struct system_load_s system_load;
+/** Enable S.BUS version 1 / 2 output (0 to disable) */
+#define SBUS_SET_PROTO_VERSION		_IOC(_SBUS_BASE, 0)
 
-__EXPORT void cpuload_initialize_once(void);
-
-__END_DECLS
-
-#endif
+#endif /* _DRV_SBUS_H */
