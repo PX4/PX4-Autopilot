@@ -2,7 +2,7 @@
 #
 # HIL Malolo 1 (Flightgear)
 #
-# Maintainers: Thomas Gubler <thomasgubler@gmail.com>
+# Thomas Gubler <thomasgubler@gmail.com>
 #
 
 echo "HIL Malolo 1 starting.."
@@ -49,6 +49,9 @@ then
 	param set FW_YR_IMAX 0.2
 	param set FW_YR_P	 0.0
 	param set FW_Y_RMAX 0
+	param set NAV_LAND_ALT 90
+	param set NAV_RTL_ALT 100
+	param set NAV_RTL_LAND_T -1
 
 	param set SYS_AUTOCONFIG 0
 	param save

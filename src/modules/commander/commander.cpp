@@ -943,10 +943,12 @@ int commander_thread_main(int argc, char *argv[])
 		/* update condition_target_position_valid */
 		check_valid(target_position.timestamp, POSITION_TIMEOUT, target_position.valid, &(status.condition_target_position_valid), &status_changed);
 
+		static bool published_condition_landed_fw = false;
 		if (status.is_rotary_wing && status.condition_local_altitude_valid) {
 			if (status.condition_landed != local_position.landed) {
 				status.condition_landed = local_position.landed;
 				status_changed = true;
+				published_condition_landed_fw = false; //make sure condition_landed is published again if the system type changes
 
 				if (status.condition_landed) {
 					mavlink_log_critical(mavlink_fd, "#audio: LANDED");
@@ -954,6 +956,12 @@ int commander_thread_main(int argc, char *argv[])
 				} else {
 					mavlink_log_critical(mavlink_fd, "#audio: IN AIR");
 				}
+			}
+		} else {
+			if (!published_condition_landed_fw) {
+				status.condition_landed = false; // Fixedwing does not have a landing detector currently
+				published_condition_landed_fw = true;
+				status_changed = true;
 			}
 		}
 

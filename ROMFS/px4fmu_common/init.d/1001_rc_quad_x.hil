@@ -2,7 +2,7 @@
 #
 # HIL Quadcopter X
 #
-# Maintainers: Anton Babushkin <anton.babushkin@me.com>
+# Anton Babushkin <anton.babushkin@me.com>
 #
 
 sh /etc/init.d/4001_quad_x

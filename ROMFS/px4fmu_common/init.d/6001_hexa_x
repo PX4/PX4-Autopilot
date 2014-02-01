@@ -2,7 +2,7 @@
 #
 # Generic 10” Hexa X geometry
 #
-# Maintainers: Lorenz Meier <lm@inf.ethz.ch>, Anton Babushkin <anton.babushkin@me.com>
+# Anton Babushkin <anton.babushkin@me.com>
 #
 
 sh /etc/init.d/4001_quad_x

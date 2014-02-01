@@ -2,7 +2,7 @@
 #
 # DJI Flame Wheel F450 Quadcopter
 #
-# Maintainers: Lorenz Meier <lm@inf.ethz.ch>
+# Lorenz Meier <lm@inf.ethz.ch>
 #
 
 if [ $DO_AUTOCONFIG == yes ]

@@ -4,7 +4,6 @@
 
 #
 # Allow PX4IO to recover from midair restarts.
-# this is very unlikely, but quite safe and robust.
 #
 px4io recovery
 

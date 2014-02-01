@@ -2,7 +2,7 @@
 #
 # Team Blacksheep Discovery Quadcopter
 #
-# Maintainers: Simon Wilks <sjwilks@gmail.com>
+# Simon Wilks <sjwilks@gmail.com>
 #
 
 if [ $DO_AUTOCONFIG == yes ]
