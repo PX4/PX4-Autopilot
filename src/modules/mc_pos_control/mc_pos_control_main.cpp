@@ -153,6 +153,7 @@ private:
 		param_t tilt_max;
 		param_t land_speed;
 		param_t land_tilt_max;
+		param_t follow_ff;
 
 		param_t rc_scale_pitch;
 		param_t rc_scale_roll;
@@ -164,9 +165,7 @@ private:
 		float tilt_max;
 		float land_speed;
 		float land_tilt_max;
-
-		float rc_scale_pitch;
-		float rc_scale_roll;
+		float follow_ff;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -175,6 +174,9 @@ private:
 		math::Vector<3> vel_ff;
 		math::Vector<3> vel_max;
 		math::Vector<3> sp_offs_max;
+
+		float rc_scale_pitch;
+		float rc_scale_roll;
 	}		_params;
 
 	double _lat_sp;
@@ -325,6 +327,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.tilt_max	= param_find("MPC_TILT_MAX");
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
 	_params_handles.land_tilt_max	= param_find("MPC_LAND_TILT");
+	_params_handles.follow_ff	= param_find("MPC_FOLLOW_FF");
+
 	_params_handles.rc_scale_pitch	= param_find("RC_SCALE_PITCH");
 	_params_handles.rc_scale_roll	= param_find("RC_SCALE_ROLL");
 
@@ -373,8 +377,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.tilt_max, &_params.tilt_max);
 		param_get(_params_handles.land_speed, &_params.land_speed);
 		param_get(_params_handles.land_tilt_max, &_params.land_tilt_max);
-		param_get(_params_handles.rc_scale_pitch, &_params.rc_scale_pitch);
-		param_get(_params_handles.rc_scale_roll, &_params.rc_scale_roll);
+		param_get(_params_handles.follow_ff, &_params.follow_ff);
 
 		float v;
 		param_get(_params_handles.xy_p, &v);
@@ -409,6 +412,9 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.vel_ff(2) = v;
 
 		_params.sp_offs_max = _params.vel_max.edivide(_params.pos_p) * 2.0f;
+
+		param_get(_params_handles.rc_scale_pitch, &_params.rc_scale_pitch);
+		param_get(_params_handles.rc_scale_roll, &_params.rc_scale_roll);
 	}
 
 	return OK;
@@ -570,6 +576,8 @@ MulticopterPositionControl::task_main()
 
 	math::Vector<3> sp_move_rate;
 	sp_move_rate.zero();
+	math::Vector<3> vel_ff;
+	vel_ff.zero();
 	math::Vector<3> thrust_int;
 	thrust_int.zero();
 	math::Matrix<3, 3> R;
@@ -624,11 +632,13 @@ MulticopterPositionControl::task_main()
 			_vel(2) = _global_pos.vel_d;
 
 			sp_move_rate.zero();
+			vel_ff.zero();
 
 			float alt = _global_pos.alt;
 
 			/* select control source */
 			if (_control_mode.flag_control_manual_enabled) {
+				/* manual control */
 				/* select altitude source and update setpoint */
 				select_alt(_global_pos.global_valid);
 
@@ -636,7 +646,6 @@ MulticopterPositionControl::task_main()
 					alt = _global_pos.baro_alt;
 				}
 
-				/* manual control */
 				if (_control_mode.flag_control_altitude_enabled) {
 					/* reset alt setpoint to current altitude if needed */
 					reset_alt_sp();
@@ -673,12 +682,22 @@ MulticopterPositionControl::task_main()
 					add_vector_to_global_position(_global_pos.lat, _global_pos.lon, _follow_offset(0), _follow_offset(1), &_lat_sp, &_lon_sp);
 					_alt_sp = _target_pos.alt - _follow_offset(2);
 
+					math::Vector<3> vel_target(_target_pos.vel_n, _target_pos.vel_e, _target_pos.vel_d);
+
+					/* add to setpoint move rate */
+					sp_move_rate += vel_target;
+
+					/* feed forward target velocity */
+					vel_ff += vel_target * _params.follow_ff;
+
 				} else {
 					/* normal node, move position setpoint */
 					add_vector_to_global_position(_lat_sp, _lon_sp, sp_move_rate(0) * dt, sp_move_rate(1) * dt, &_lat_sp, &_lon_sp);
 					_alt_sp -= sp_move_rate(2) * dt;
 					_reset_follow_offset = true;
 				}
+
+				vel_ff += sp_move_rate.emult(_params.vel_ff);
 
 				/* check if position setpoint is too far from actual position */
 				math::Vector<3> pos_sp_offs;
@@ -788,7 +807,7 @@ MulticopterPositionControl::task_main()
 				get_vector_to_next_waypoint_fast(_global_pos.lat, _global_pos.lon, _lat_sp, _lon_sp, &pos_err.data[0], &pos_err.data[1]);
 				pos_err(2) = -(_alt_sp - alt);
 
-				_vel_sp = pos_err.emult(_params.pos_p) + sp_move_rate.emult(_params.vel_ff);
+				_vel_sp = pos_err.emult(_params.pos_p) + vel_ff;
 
 				if (!_control_mode.flag_control_altitude_enabled) {
 					_reset_alt_sp = true;
@@ -868,7 +887,7 @@ MulticopterPositionControl::task_main()
 					/* velocity error */
 					math::Vector<3> vel_err = _vel_sp - _vel;
 
-					/* derivative of velocity error, not includes setpoint acceleration */
+					/* derivative of velocity error */
 					math::Vector<3> vel_err_d = (sp_move_rate - _vel).emult(_params.pos_p) - (_vel - _vel_prev) / dt;
 					_vel_prev = _vel;
 
