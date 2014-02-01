@@ -46,6 +46,11 @@ then
 	sh /etc/init.d/1004_rc_fw_Rascal110.hil
 fi
 
+if param compare SYS_AUTOSTART 1005
+then
+	sh /etc/init.d/1005_rc_fw_Malolo1.hil
+fi
+
 #
 # Standard plane
 #
