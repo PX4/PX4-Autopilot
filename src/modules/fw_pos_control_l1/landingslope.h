@@ -49,7 +49,7 @@ private:
 	/* see Documentation/fw_landing.png for a plot of the landing slope */
 	float _landing_slope_angle_rad;			/**< phi in the plot */
 	float _flare_relative_alt;				/**< h_flare,rel in the plot */
-	float _motor_lim_horizontal_distance;
+	float _motor_lim_relative_alt;
 	float _H1_virt;							/**< H1 in the plot */
 	float _H0;								/**< h_flare,rel + H1 in the plot */
 	float _d1;								/**< d1 in the plot */
@@ -63,7 +63,18 @@ public:
 	Landingslope() {}
 	~Landingslope() {}
 
-	float getLandingSlopeAbsoluteAltitude(float wp_landing_distance, float wp_landing_altitude);
+	/**
+	 *
+	 * @return Absolute altitude of point on landing slope at distance to landing waypoint=wp_landing_distance
+	 */
+	float getLandingSlopeAbsoluteAltitude(float wp_distance, float wp_altitude);
+
+	/**
+	 *
+	 * @return Absolute altitude of point on landing slope at distance to landing waypoint=wp_landing_distance
+	 * Performs check if aircraft is in front of waypoint to avoid climbout
+	 */
+	float getLandingSlopeAbsoluteAltitudeSave(float wp_landing_distance, float bearing_lastwp_currwp, float bearing_airplane_currwp, float wp_landing_altitude);
 
 	/**
 	 *
@@ -85,17 +96,17 @@ public:
 	}
 
 
-	float getFlareCurveAltitude(float wp_distance, float wp_altitude);
+	float getFlareCurveAltitudeSave(float wp_distance, float bearing_lastwp_currwp, float bearing_airplane_currwp, float wp_altitude);
 
 	void update(float landing_slope_angle_rad,
 			float flare_relative_alt,
-			float motor_lim_horizontal_distance,
+			float motor_lim_relative_alt,
 			float H1_virt);
 
 
 	inline float landing_slope_angle_rad() {return _landing_slope_angle_rad;}
 	inline float flare_relative_alt() {return _flare_relative_alt;}
-	inline float motor_lim_horizontal_distance() {return _motor_lim_horizontal_distance;}
+	inline float motor_lim_relative_alt() {return _motor_lim_relative_alt;}
 	inline float H1_virt() {return _H1_virt;}
 	inline float H0() {return _H0;}
 	inline float d1() {return _d1;}
