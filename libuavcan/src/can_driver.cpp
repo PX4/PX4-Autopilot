@@ -20,7 +20,7 @@ std::string CanFrame::toString(StringRepresentation mode) const
 
     char buf[50];
     char* wpos = buf, *epos = buf + sizeof(buf);
-    memset(buf, 0, sizeof(buf));
+    std::fill(buf, buf + sizeof(buf), 0);
 
     if (id & FLAG_EFF)
     {

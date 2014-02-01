@@ -3,7 +3,33 @@
  */
 
 #include <gtest/gtest.h>
-#include "common.hpp"
+#include <uavcan/internal/transport/can_io.hpp>
+#include "../../common.hpp"
+
+
+static int getQueueLength(uavcan::CanTxQueue& queue)
+{
+    const uavcan::CanTxQueue::Entry* p = queue.peek();
+    int length = 0;
+    while (p)
+    {
+        length++;
+        p = p->getNextListNode();
+    }
+    return length;
+}
+
+static bool isInQueue(uavcan::CanTxQueue& queue, const uavcan::CanFrame& frame)
+{
+    const uavcan::CanTxQueue::Entry* p = queue.peek();
+    while (p)
+    {
+        if (frame == p->frame)
+            return true;
+        p = p->getNextListNode();
+    }
+    return false;
+}
 
 TEST(CanTxQueue, Qos)
 {

@@ -18,6 +18,8 @@ namespace uavcan
 class ISystemClock
 {
 public:
+    virtual ~ISystemClock() { }
+
     /**
      * Monototic system clock in microseconds.
      * This shall never jump during UTC timestamp adjustments; the base time is irrelevant.

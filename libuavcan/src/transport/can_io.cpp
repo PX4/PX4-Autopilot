@@ -5,7 +5,7 @@
 
 #include <algorithm>
 #include <limits>
-#include <uavcan/internal/can_io.hpp>
+#include <uavcan/internal/transport/can_io.hpp>
 #include <uavcan/internal/debug.hpp>
 
 namespace uavcan

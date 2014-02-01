@@ -1,10 +1,12 @@
 /*
- * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
+ * Copyright (C) 2014 <pavel.kirienko@gmail.com>
  */
 
 #pragma once
 
-#include <uavcan/internal/can_io.hpp>
+#include <cassert>
+#include <uavcan/can_driver.hpp>
+#include <uavcan/system_clock.hpp>
 
 class SystemClockMock : public uavcan::ISystemClock
 {
@@ -46,33 +48,4 @@ static uavcan::CanFrame makeFrame(uint32_t id, const std::string& str_data, Fram
 {
     id |= (type == EXT) ? uavcan::CanFrame::FLAG_EFF : 0;
     return uavcan::CanFrame(id, reinterpret_cast<const uint8_t*>(str_data.c_str()), str_data.length());
-}
-
-namespace
-{
-
-int getQueueLength(uavcan::CanTxQueue& queue)
-{
-    const uavcan::CanTxQueue::Entry* p = queue.peek();
-    int length = 0;
-    while (p)
-    {
-        length++;
-        p = p->getNextListNode();
-    }
-    return length;
-}
-
-bool isInQueue(uavcan::CanTxQueue& queue, const uavcan::CanFrame& frame)
-{
-    const uavcan::CanTxQueue::Entry* p = queue.peek();
-    while (p)
-    {
-        if (frame == p->frame)
-            return true;
-        p = p->getNextListNode();
-    }
-    return false;
-}
-
 }

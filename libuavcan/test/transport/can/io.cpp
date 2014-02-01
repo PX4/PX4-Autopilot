@@ -5,7 +5,9 @@
 #include <queue>
 #include <vector>
 #include <gtest/gtest.h>
-#include "common.hpp"
+#include <uavcan/internal/transport/can_io.hpp>
+#include "../../common.hpp"
+
 
 class CanIfaceMock : public uavcan::ICanIface
 {

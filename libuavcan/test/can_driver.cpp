@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 #include "common.hpp"
+#include <uavcan/can_driver.hpp>
 
 TEST(CanFrame, FrameProperties)
 {

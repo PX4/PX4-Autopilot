@@ -7,7 +7,7 @@
 
 #include <cassert>
 #include <stdint.h>
-#include <cstring>
+#include <algorithm>
 #include <string>
 
 namespace uavcan
@@ -31,7 +31,7 @@ struct CanFrame
     : id(0)
     , dlc(0)
     {
-        std::memset(data, 0, sizeof(data));
+        std::fill(data, data + sizeof(data), 0);
     }
 
     CanFrame(uint32_t id, const uint8_t* data, unsigned int dlc)
@@ -39,13 +39,13 @@ struct CanFrame
     , dlc(dlc)
     {
         assert(data && dlc <= 8);
-        std::memmove(this->data, data, dlc);
+        std::copy(data, data + dlc, this->data);
     }
 
     bool operator!=(const CanFrame& rhs) const { return !operator==(rhs); }
     bool operator==(const CanFrame& rhs) const
     {
-        return (id == rhs.id) && (dlc == rhs.dlc) && (memcmp(data, rhs.data, dlc) == 0);
+        return (id == rhs.id) && (dlc == rhs.dlc) && std::equal(data, data + dlc, rhs.data);
     }
 
     bool isExtended() const { return id & FLAG_EFF; }
