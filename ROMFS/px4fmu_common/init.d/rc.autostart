@@ -31,11 +31,6 @@ then
 	sh /etc/init.d/1001_rc_quad_x.hil
 fi
 
-if param compare SYS_AUTOSTART 1002
-then
-	sh /etc/init.d/1002_rc_fw_state.hil
-fi
-
 if param compare SYS_AUTOSTART 1003
 then
 	sh /etc/init.d/1003_rc_quad_+.hil

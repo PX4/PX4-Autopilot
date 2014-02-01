@@ -2,7 +2,7 @@
 #
 # Skywalker X5 Flying Wing
 #
-# Maintainers: Thomas Gubler <thomasgubler@gmail.com>, Julian Oes <joes@student.ethz.ch>
+# Thomas Gubler <thomasgubler@gmail.com>, Julian Oes <joes@student.ethz.ch>
 #
 
 if [ $DO_AUTOCONFIG == yes ]

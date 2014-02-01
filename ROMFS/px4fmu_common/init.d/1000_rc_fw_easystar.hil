@@ -26,8 +26,6 @@ then
 	param set FW_R_P 100
 	param set FW_R_RMAX 100
 	param set FW_THR_CRUISE 0.65
-	param set FW_THR_MAX 1
-	param set FW_THR_MIN 0
 	param set FW_T_SINK_MAX 5.0
 	param set FW_T_SINK_MIN 4.0
 	param set FW_Y_ROLLFF 1.1
