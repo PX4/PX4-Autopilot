@@ -1475,7 +1475,7 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 {
 	/* main mode switch */
 	if (!isfinite(sp_man->mode_switch)) {
-		warnx("mode sw not finite");
+		/* default to manual if signal is invalid */
 		status->mode_switch = MODE_SWITCH_MANUAL;
 
 	} else if (sp_man->mode_switch > STICK_ON_OFF_LIMIT) {
