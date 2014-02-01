@@ -251,6 +251,16 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 		break;
 
+	case MAIN_STATE_FOLLOW:
+
+		/* need at minimum local position estimate */
+		if (status->condition_target_position_valid &&
+				(status->condition_local_position_valid || status->condition_global_position_valid)) {
+			ret = TRANSITION_CHANGED;
+		}
+
+		break;
+
 	case MAIN_STATE_AUTO:
 
 		/* need global position estimate */

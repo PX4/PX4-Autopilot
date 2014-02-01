@@ -69,6 +69,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/target_global_position.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
@@ -768,6 +769,11 @@ int commander_thread_main(int argc, char *argv[])
 	struct vehicle_local_position_s local_position;
 	memset(&local_position, 0, sizeof(local_position));
 
+	/* Subscribe to target position data */
+	int target_position_sub = orb_subscribe(ORB_ID(target_global_position));
+	struct target_global_position_s target_position;
+	memset(&target_position, 0, sizeof(target_position));
+
 	/*
 	 * The home position is set based on GPS only, to prevent a dependency between
 	 * position estimator and commander. RAW GPS is more than good enough for a
@@ -925,6 +931,17 @@ int commander_thread_main(int argc, char *argv[])
 		/* update condition_local_position_valid and condition_local_altitude_valid */
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid, &(status.condition_local_position_valid), &status_changed);
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid, &(status.condition_local_altitude_valid), &status_changed);
+
+		/* update target position estimate */
+		orb_check(target_position_sub, &updated);
+
+		if (updated) {
+			/* target position changed */
+			orb_copy(ORB_ID(target_global_position), target_position_sub, &target_position);
+		}
+
+		/* update condition_target_position_valid */
+		check_valid(target_position.timestamp, POSITION_TIMEOUT, target_position.valid, &(status.condition_target_position_valid), &status_changed);
 
 		if (status.is_rotary_wing && status.condition_local_altitude_valid) {
 			if (status.condition_landed != local_position.landed) {
@@ -1496,10 +1513,13 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 		status->assisted_switch = ASSISTED_SWITCH_SEATBELT;
 
 	} else if (sp_man->assisted_switch > STICK_ON_OFF_LIMIT) {
-		status->assisted_switch = ASSISTED_SWITCH_EASY;
+		status->assisted_switch = ASSISTED_SWITCH_FOLLOW;
+
+	} else if (sp_man->assisted_switch < -STICK_ON_OFF_LIMIT) {
+		status->assisted_switch = ASSISTED_SWITCH_SEATBELT;
 
 	} else {
-		status->assisted_switch = ASSISTED_SWITCH_SEATBELT;
+		status->assisted_switch = ASSISTED_SWITCH_EASY;
 	}
 
 	/* mission switch  */
@@ -1527,6 +1547,16 @@ set_main_state_rc(struct vehicle_status_s *status)
 		break;
 
 	case MODE_SWITCH_ASSISTED:
+		if (status->assisted_switch == ASSISTED_SWITCH_FOLLOW) {
+			res = main_state_transition(status, MAIN_STATE_FOLLOW);
+
+			if (res != TRANSITION_DENIED)
+				break;	// changed successfully or already in this state
+
+			// else fallback to SEATBELT
+			print_reject_mode("FOLLOW");
+		}
+
 		if (status->assisted_switch == ASSISTED_SWITCH_EASY) {
 			res = main_state_transition(status, MAIN_STATE_EASY);
 
@@ -1583,6 +1613,7 @@ set_control_mode()
 	control_mode.flag_external_manual_override_ok = !status.is_rotary_wing;
 	control_mode.flag_system_hil_enabled = status.hil_state == HIL_STATE_ON;
 
+	control_mode.flag_follow_target = false;
 	control_mode.flag_control_termination_enabled = false;
 
 	/* set this flag when navigator should act */
@@ -1622,6 +1653,18 @@ set_control_mode()
 			control_mode.flag_control_climb_rate_enabled = true;
 			control_mode.flag_control_position_enabled = true;
 			control_mode.flag_control_velocity_enabled = true;
+			break;
+
+		case MAIN_STATE_FOLLOW:
+			control_mode.flag_control_manual_enabled = true;
+			control_mode.flag_control_auto_enabled = false;
+			control_mode.flag_control_rates_enabled = true;
+			control_mode.flag_control_attitude_enabled = true;
+			control_mode.flag_control_altitude_enabled = true;
+			control_mode.flag_control_climb_rate_enabled = true;
+			control_mode.flag_control_position_enabled = true;
+			control_mode.flag_control_velocity_enabled = true;
+			control_mode.flag_follow_target = true;
 			break;
 
 		case MAIN_STATE_AUTO:
