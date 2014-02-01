@@ -672,7 +672,7 @@ MulticopterPositionControl::task_main()
 					_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet), &_pos_sp_triplet);
 				}
 
-			} else if (_control_mode.flag_control_auto_enabled) {
+			} else {
 				/* always use AMSL altitude for AUTO */
 				select_alt(true);
 
@@ -703,13 +703,9 @@ MulticopterPositionControl::task_main()
 					reset_lat_lon_sp();
 					reset_alt_sp();
 				}
-			} else {
-				/* no control, reset setpoint */
-				reset_lat_lon_sp();
-				reset_alt_sp();
 			}
 
-			if (_control_mode.flag_control_auto_enabled && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_IDLE) {
+			if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_IDLE) {
 				/* idle state, don't run controller and set zero thrust */
 				R.identity();
 				memcpy(&_att_sp.R_body[0][0], R.data, sizeof(_att_sp.R_body));
@@ -751,7 +747,7 @@ MulticopterPositionControl::task_main()
 				}
 
 				/* use constant descend rate when landing, ignore altitude setpoint */
-				if (_control_mode.flag_control_auto_enabled && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
+				if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
 					_vel_sp(2) = _params.land_speed;
 				}
 
@@ -848,7 +844,7 @@ MulticopterPositionControl::task_main()
 					float tilt_max = _params.tilt_max;
 
 					/* adjust limits for landing mode */
-					if (_control_mode.flag_control_auto_enabled && _pos_sp_triplet.current.valid &&
+					if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
 							_pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
 						/* limit max tilt and min lift when landing */
 						tilt_max = _params.land_tilt_max;
