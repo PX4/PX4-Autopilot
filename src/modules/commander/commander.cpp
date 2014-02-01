@@ -1864,6 +1864,10 @@ void *commander_low_prio_loop(void *arg)
 				break;
 			}
 
+		case VEHICLE_CMD_START_RX_PAIR:
+		/* handled in the IO driver */
+		break;
+
 		default:
 			answer_command(cmd, VEHICLE_CMD_RESULT_UNSUPPORTED);
 			break;
