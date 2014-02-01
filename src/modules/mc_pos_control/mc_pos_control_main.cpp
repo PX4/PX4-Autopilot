@@ -479,9 +479,11 @@ MulticopterPositionControl::select_alt(bool global)
 {
 	if (global != _use_global_alt) {
 		_use_global_alt = global;
+
 		if (global) {
 			/* switch from barometric to global altitude */
 			_alt_sp += _global_pos.alt - _global_pos.baro_alt;
+
 		} else {
 			/* switch from global to barometric altitude */
 			_alt_sp += _global_pos.baro_alt - _global_pos.alt;
@@ -589,6 +591,7 @@ MulticopterPositionControl::task_main()
 			if (_control_mode.flag_control_manual_enabled) {
 				/* select altitude source and update setpoint */
 				select_alt(_global_pos.global_valid);
+
 				if (!_use_global_alt) {
 					alt = _global_pos.baro_alt;
 				}
@@ -845,9 +848,10 @@ MulticopterPositionControl::task_main()
 
 					/* adjust limits for landing mode */
 					if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
-							_pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
+					    _pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
 						/* limit max tilt and min lift when landing */
 						tilt_max = _params.land_tilt_max;
+
 						if (thr_min < 0.0f)
 							thr_min = 0.0f;
 					}
@@ -863,9 +867,11 @@ MulticopterPositionControl::task_main()
 						if (thr_min >= 0.0f && tilt_max < M_PI / 2 - 0.05f) {
 							/* absolute horizontal thrust */
 							float thrust_sp_xy_len = math::Vector<2>(thrust_sp(0), thrust_sp(1)).length();
+
 							if (thrust_sp_xy_len > 0.01f) {
 								/* max horizontal thrust for given vertical thrust*/
 								float thrust_xy_max = -thrust_sp(2) * tanf(tilt_max);
+
 								if (thrust_sp_xy_len > thrust_xy_max) {
 									float k = thrust_xy_max / thrust_sp_xy_len;
 									thrust_sp(0) *= k;
@@ -874,15 +880,18 @@ MulticopterPositionControl::task_main()
 								}
 							}
 						}
+
 					} else {
 						/* thrust compensation for altitude only control mode */
 						float att_comp;
 
 						if (_att.R[2][2] > TILT_COS_MAX) {
 							att_comp = 1.0f / _att.R[2][2];
+
 						} else if (_att.R[2][2] > 0.0f) {
 							att_comp = ((1.0f / TILT_COS_MAX - 1.0f) / TILT_COS_MAX) * _att.R[2][2] + 1.0f;
 							saturation_z = true;
+
 						} else {
 							att_comp = 1.0f;
 							saturation_z = true;

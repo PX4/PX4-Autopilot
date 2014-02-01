@@ -689,7 +689,7 @@ Navigator::task_main()
 					if (_vstatus.return_switch == RETURN_SWITCH_RETURN) {
 						/* switch to RTL if not already landed after RTL and home position set */
 						if (!(_rtl_state == RTL_STATE_DESCEND && (myState == NAV_STATE_READY || myState == NAV_STATE_LAND)) &&
-								_vstatus.condition_home_position_valid) {
+						    _vstatus.condition_home_position_valid) {
 							dispatch(EVENT_RTL_REQUESTED);
 						}
 
@@ -747,7 +747,7 @@ Navigator::task_main()
 
 						case NAV_STATE_RTL:
 							if (!(_rtl_state == RTL_STATE_DESCEND && (myState == NAV_STATE_READY || myState == NAV_STATE_LAND)) &&
-									_vstatus.condition_home_position_valid) {
+							    _vstatus.condition_home_position_valid) {
 								dispatch(EVENT_RTL_REQUESTED);
 							}
 
@@ -1575,6 +1575,7 @@ Navigator::on_mission_item_reached()
 		if (_rtl_state == RTL_STATE_DESCEND) {
 			/* hovering above home position, land if needed or loiter */
 			mavlink_log_info(_mavlink_fd, "[navigator] RTL completed");
+
 			if (_mission_item.autocontinue) {
 				dispatch(EVENT_LAND_REQUESTED);
 
