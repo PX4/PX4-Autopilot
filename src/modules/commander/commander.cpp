@@ -624,7 +624,8 @@ int commander_thread_main(int argc, char *argv[])
 	main_states_str[0] = "MANUAL";
 	main_states_str[1] = "SEATBELT";
 	main_states_str[2] = "EASY";
-	main_states_str[3] = "AUTO";
+	main_states_str[3] = "FOLLOW";
+	main_states_str[4] = "AUTO";
 
 	char *arming_states_str[ARMING_STATE_MAX];
 	arming_states_str[0] = "INIT";
