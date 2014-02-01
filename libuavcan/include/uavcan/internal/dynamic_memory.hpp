@@ -7,6 +7,8 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
+#include <algorithm>
+#include <limits>
 #include <stdint.h>
 
 namespace uavcan
@@ -27,6 +29,7 @@ class IPoolAllocator : public IAllocator
 {
 public:
     virtual bool isInPool(const void* ptr) const = 0;
+    virtual std::size_t getBlockSize() const = 0;
 };
 
 
@@ -34,6 +37,13 @@ template <int MAX_POOLS>
 class PoolManager : public IAllocator
 {
     IPoolAllocator* pools_[MAX_POOLS];
+
+    static bool sortComparePoolAllocators(const IPoolAllocator* a, const IPoolAllocator* b)
+    {
+        const std::size_t a_size = a ? a->getBlockSize() : std::numeric_limits<std::size_t>::max();
+        const std::size_t b_size = b ? b->getBlockSize() : std::numeric_limits<std::size_t>::max();
+        return a_size < b_size;
+    }
 
 public:
     PoolManager()
@@ -44,16 +54,20 @@ public:
     bool addPool(IPoolAllocator* pool)
     {
         assert(pool);
+        bool retval = false;
         for (int i = 0; i < MAX_POOLS; i++)
         {
             assert(pools_[i] != pool);
             if (pools_[i] == NULL || pools_[i] == pool)
             {
                 pools_[i] = pool;
-                return true;
+                retval = true;
+                break;
             }
         }
-        return false;
+        // We need to keep the pools in order, so that smallest blocks go first
+        std::sort(pools_, pools_ + MAX_POOLS, &PoolManager::sortComparePoolAllocators);
+        return retval;
     }
 
     void* allocate(std::size_t size)
@@ -143,6 +157,8 @@ public:
             ptr >= pool_ &&
             ptr < (pool_ + POOL_SIZE);
     }
+
+    std::size_t getBlockSize() const { return BLOCK_SIZE; }
 
     int getNumFreeBlocks() const
     {

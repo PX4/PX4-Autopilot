@@ -16,8 +16,8 @@ TEST(DynamicMemory, Basic)
     EXPECT_EQ(4, pool128.getNumFreeBlocks());
 
     uavcan::PoolManager<2> poolmgr;
+    EXPECT_TRUE(poolmgr.addPool(&pool64));   // Order of insertion shall not matter
     EXPECT_TRUE(poolmgr.addPool(&pool32));
-    EXPECT_TRUE(poolmgr.addPool(&pool64));
     EXPECT_FALSE(poolmgr.addPool(&pool128));
 
     const void* ptr1 = poolmgr.allocate(16);
@@ -54,8 +54,8 @@ TEST(DynamicMemory, OutOfMemory)
     EXPECT_EQ(2, pool64.getNumFreeBlocks());
 
     uavcan::PoolManager<4> poolmgr;
-    EXPECT_TRUE(poolmgr.addPool(&pool32));
     EXPECT_TRUE(poolmgr.addPool(&pool64));
+    EXPECT_TRUE(poolmgr.addPool(&pool32));
 
     const void* ptr1 = poolmgr.allocate(32);
     EXPECT_TRUE(ptr1);
