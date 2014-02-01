@@ -839,30 +839,38 @@ MulticopterPositionControl::task_main()
 						thr_min = 0.0f;
 					}
 
+					float tilt_max = _params.tilt_max;
+
+					/* adjust limits for landing mode */
+					if (_control_mode.flag_control_auto_enabled && _pos_sp_triplet.current.valid &&
+							_pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
+						/* limit max tilt and min lift when landing */
+						tilt_max = _params.land_tilt_max;
+						if (thr_min < 0.0f)
+							thr_min = 0.0f;
+					}
+
+					/* limit min lift */
 					if (-thrust_sp(2) < thr_min) {
 						thrust_sp(2) = -thr_min;
 						saturation_z = true;
 					}
 
-					/* limit max tilt */
-					float tilt = atan2f(math::Vector<2>(thrust_sp(0), thrust_sp(1)).length(), -thrust_sp(2));
-					float tilt_max = _params.tilt_max;
-					if (!_control_mode.flag_control_manual_enabled) {
-						if (_pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
-							/* limit max tilt and min lift when landing */
-							tilt_max = _params.land_tilt_max;
-							if (thr_min < 0.0f)
-								thr_min = 0.0f;
-						}
-					}
-
 					if (_control_mode.flag_control_velocity_enabled) {
-						if (tilt > tilt_max && thr_min >= 0.0f) {
-							/* crop horizontal component */
-							float k = tanf(tilt_max) / tanf(tilt);
-							thrust_sp(0) *= k;
-							thrust_sp(1) *= k;
-							saturation_xy = true;
+						/* limit max tilt */
+						if (thr_min >= 0.0f && tilt_max < M_PI / 2 - 0.05f) {
+							/* absolute horizontal thrust */
+							float thrust_sp_xy_len = math::Vector<2>(thrust_sp(0), thrust_sp(1)).length();
+							if (thrust_sp_xy_len > 0.01f) {
+								/* max horizontal thrust for given vertical thrust*/
+								float thrust_xy_max = -thrust_sp(2) * tanf(tilt_max);
+								if (thrust_sp_xy_len > thrust_xy_max) {
+									float k = thrust_xy_max / thrust_sp_xy_len;
+									thrust_sp(0) *= k;
+									thrust_sp(1) *= k;
+									saturation_xy = true;
+								}
+							}
 						}
 					} else {
 						/* thrust compensation for altitude only control mode */
