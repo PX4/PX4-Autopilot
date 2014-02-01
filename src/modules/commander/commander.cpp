@@ -369,6 +369,7 @@ int arm()
 	if (arming_res == TRANSITION_CHANGED) {
 		mavlink_log_info(mavlink_fd, "[cmd] ARMED by commandline");
 		return 0;
+
 	} else {
 		return 1;
 	}
@@ -381,6 +382,7 @@ int disarm()
 	if (arming_res == TRANSITION_CHANGED) {
 		mavlink_log_info(mavlink_fd, "[cmd] ARMED by commandline");
 		return 0;
+
 	} else {
 		return 1;
 	}

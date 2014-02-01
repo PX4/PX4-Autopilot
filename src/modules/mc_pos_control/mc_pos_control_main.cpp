@@ -479,9 +479,11 @@ MulticopterPositionControl::select_alt(bool global)
 {
 	if (global != _use_global_alt) {
 		_use_global_alt = global;
+
 		if (global) {
 			/* switch from barometric to global altitude */
 			_alt_sp += _global_pos.alt - _global_pos.baro_alt;
+
 		} else {
 			/* switch from global to barometric altitude */
 			_alt_sp += _global_pos.baro_alt - _global_pos.alt;
@@ -589,6 +591,7 @@ MulticopterPositionControl::task_main()
 			if (_control_mode.flag_control_manual_enabled) {
 				/* select altitude source and update setpoint */
 				select_alt(_global_pos.global_valid);
+
 				if (!_use_global_alt) {
 					alt = _global_pos.baro_alt;
 				}
@@ -672,7 +675,7 @@ MulticopterPositionControl::task_main()
 					_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet), &_pos_sp_triplet);
 				}
 
-			} else if (_control_mode.flag_control_auto_enabled) {
+			} else {
 				/* always use AMSL altitude for AUTO */
 				select_alt(true);
 
@@ -688,22 +691,24 @@ MulticopterPositionControl::task_main()
 					_reset_lat_lon_sp = true;
 					_reset_alt_sp = true;
 
+					/* update position setpoint */
 					_lat_sp = _pos_sp_triplet.current.lat;
 					_lon_sp = _pos_sp_triplet.current.lon;
 					_alt_sp = _pos_sp_triplet.current.alt;
+
+					/* update yaw setpoint if needed */
+					if (isfinite(_pos_sp_triplet.current.yaw)) {
+						_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
+					}
 
 				} else {
 					/* no waypoint, loiter, reset position setpoint if needed */
 					reset_lat_lon_sp();
 					reset_alt_sp();
 				}
-			} else {
-				/* no control, reset setpoint */
-				reset_lat_lon_sp();
-				reset_alt_sp();
 			}
 
-			if (_control_mode.flag_control_auto_enabled && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_IDLE) {
+			if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_IDLE) {
 				/* idle state, don't run controller and set zero thrust */
 				R.identity();
 				memcpy(&_att_sp.R_body[0][0], R.data, sizeof(_att_sp.R_body));
@@ -711,7 +716,7 @@ MulticopterPositionControl::task_main()
 
 				_att_sp.roll_body = 0.0f;
 				_att_sp.pitch_body = 0.0f;
-				_att_sp.yaw_body = 0.0f;
+				_att_sp.yaw_body = _att.yaw;
 				_att_sp.thrust = 0.0f;
 
 				_att_sp.timestamp = hrt_absolute_time();
@@ -745,7 +750,7 @@ MulticopterPositionControl::task_main()
 				}
 
 				/* use constant descend rate when landing, ignore altitude setpoint */
-				if (_control_mode.flag_control_auto_enabled && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
+				if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
 					_vel_sp(2) = _params.land_speed;
 				}
 
@@ -839,40 +844,54 @@ MulticopterPositionControl::task_main()
 						thr_min = 0.0f;
 					}
 
+					float tilt_max = _params.tilt_max;
+
+					/* adjust limits for landing mode */
+					if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
+					    _pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
+						/* limit max tilt and min lift when landing */
+						tilt_max = _params.land_tilt_max;
+
+						if (thr_min < 0.0f)
+							thr_min = 0.0f;
+					}
+
+					/* limit min lift */
 					if (-thrust_sp(2) < thr_min) {
 						thrust_sp(2) = -thr_min;
 						saturation_z = true;
 					}
 
-					/* limit max tilt */
-					float tilt = atan2f(math::Vector<2>(thrust_sp(0), thrust_sp(1)).length(), -thrust_sp(2));
-					float tilt_max = _params.tilt_max;
-					if (!_control_mode.flag_control_manual_enabled) {
-						if (_pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
-							/* limit max tilt and min lift when landing */
-							tilt_max = _params.land_tilt_max;
-							if (thr_min < 0.0f)
-								thr_min = 0.0f;
-						}
-					}
-
 					if (_control_mode.flag_control_velocity_enabled) {
-						if (tilt > tilt_max && thr_min >= 0.0f) {
-							/* crop horizontal component */
-							float k = tanf(tilt_max) / tanf(tilt);
-							thrust_sp(0) *= k;
-							thrust_sp(1) *= k;
-							saturation_xy = true;
+						/* limit max tilt */
+						if (thr_min >= 0.0f && tilt_max < M_PI / 2 - 0.05f) {
+							/* absolute horizontal thrust */
+							float thrust_sp_xy_len = math::Vector<2>(thrust_sp(0), thrust_sp(1)).length();
+
+							if (thrust_sp_xy_len > 0.01f) {
+								/* max horizontal thrust for given vertical thrust*/
+								float thrust_xy_max = -thrust_sp(2) * tanf(tilt_max);
+
+								if (thrust_sp_xy_len > thrust_xy_max) {
+									float k = thrust_xy_max / thrust_sp_xy_len;
+									thrust_sp(0) *= k;
+									thrust_sp(1) *= k;
+									saturation_xy = true;
+								}
+							}
 						}
+
 					} else {
 						/* thrust compensation for altitude only control mode */
 						float att_comp;
 
 						if (_att.R[2][2] > TILT_COS_MAX) {
 							att_comp = 1.0f / _att.R[2][2];
+
 						} else if (_att.R[2][2] > 0.0f) {
 							att_comp = ((1.0f / TILT_COS_MAX - 1.0f) / TILT_COS_MAX) * _att.R[2][2] + 1.0f;
 							saturation_z = true;
+
 						} else {
 							att_comp = 1.0f;
 							saturation_z = true;

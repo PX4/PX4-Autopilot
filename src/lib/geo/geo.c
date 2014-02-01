@@ -436,22 +436,22 @@ __EXPORT float mavlink_wpm_distance_to_point_local(float x_now, float y_now, flo
 __EXPORT float _wrap_pi(float bearing)
 {
 	/* value is inf or NaN */
-	if (!isfinite(bearing) || bearing == 0) {
+	if (!isfinite(bearing)) {
 		return bearing;
 	}
 
 	int c = 0;
-
-	while (bearing > M_PI_F && c < 30) {
+	while (bearing > M_PI_F) {
 		bearing -= M_TWOPI_F;
-		c++;
+		if (c++ > 3)
+			return NAN;
 	}
 
 	c = 0;
-
-	while (bearing <=  -M_PI_F && c < 30) {
+	while (bearing <= -M_PI_F) {
 		bearing += M_TWOPI_F;
-		c++;
+		if (c++ > 3)
+			return NAN;
 	}
 
 	return bearing;
@@ -464,12 +464,18 @@ __EXPORT float _wrap_2pi(float bearing)
 		return bearing;
 	}
 
-	while (bearing >= M_TWOPI_F) {
-		bearing = bearing - M_TWOPI_F;
+	int c = 0;
+	while (bearing > M_TWOPI_F) {
+		bearing -= M_TWOPI_F;
+		if (c++ > 3)
+			return NAN;
 	}
 
-	while (bearing <  0.0f) {
-		bearing = bearing + M_TWOPI_F;
+	c = 0;
+	while (bearing <= 0.0f) {
+		bearing += M_TWOPI_F;
+		if (c++ > 3)
+			return NAN;
 	}
 
 	return bearing;
@@ -482,12 +488,18 @@ __EXPORT float _wrap_180(float bearing)
 		return bearing;
 	}
 
+	int c = 0;
 	while (bearing > 180.0f) {
-		bearing = bearing - 360.0f;
+		bearing -= 360.0f;
+		if (c++ > 3)
+			return NAN;
 	}
 
-	while (bearing <=  -180.0f) {
-		bearing = bearing + 360.0f;
+	c = 0;
+	while (bearing <= -180.0f) {
+		bearing += 360.0f;
+		if (c++ > 3)
+			return NAN;
 	}
 
 	return bearing;
@@ -500,12 +512,18 @@ __EXPORT float _wrap_360(float bearing)
 		return bearing;
 	}
 
-	while (bearing >= 360.0f) {
-		bearing = bearing - 360.0f;
+	int c = 0;
+	while (bearing > 360.0f) {
+		bearing -= 360.0f;
+		if (c++ > 3)
+			return NAN;
 	}
 
-	while (bearing <  0.0f) {
-		bearing = bearing + 360.0f;
+	c = 0;
+	while (bearing <= 0.0f) {
+		bearing += 360.0f;
+		if (c++ > 3)
+			return NAN;
 	}
 
 	return bearing;

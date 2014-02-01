@@ -489,14 +489,18 @@ MulticopterAttitudeControl::control_attitude(float dt)
 			//}
 		} else {
 			float yaw_dz_scaled = YAW_DEADZONE * _params.rc_scale_yaw;
+
 			if (_params.rc_scale_yaw > 0.001f && fabs(_manual_control_sp.yaw) > yaw_dz_scaled) {
 				/* move yaw setpoint */
 				yaw_sp_move_rate = _manual_control_sp.yaw / _params.rc_scale_yaw;
+
 				if (_manual_control_sp.yaw > 0.0f) {
 					yaw_sp_move_rate -= YAW_DEADZONE;
+
 				} else {
 					yaw_sp_move_rate += YAW_DEADZONE;
 				}
+
 				yaw_sp_move_rate *= _params.rc_scale_yaw;
 				_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + yaw_sp_move_rate * dt);
 				_v_att_sp.R_valid = false;
@@ -660,7 +664,7 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 				float rate_i = _rates_int(i) + _params.rate_i(i) * rates_err(i) * dt;
 
 				if (isfinite(rate_i) && rate_i > -RATES_I_LIMIT && rate_i < RATES_I_LIMIT &&
-					_att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT) {
+				    _att_control(i) > -RATES_I_LIMIT && _att_control(i) < RATES_I_LIMIT) {
 					_rates_int(i) = rate_i;
 				}
 			}
