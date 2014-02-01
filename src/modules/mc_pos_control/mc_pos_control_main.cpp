@@ -688,9 +688,15 @@ MulticopterPositionControl::task_main()
 					_reset_lat_lon_sp = true;
 					_reset_alt_sp = true;
 
+					/* update position setpoint */
 					_lat_sp = _pos_sp_triplet.current.lat;
 					_lon_sp = _pos_sp_triplet.current.lon;
 					_alt_sp = _pos_sp_triplet.current.alt;
+
+					/* update yaw setpoint if needed */
+					if (isfinite(_pos_sp_triplet.current.yaw)) {
+						_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
+					}
 
 				} else {
 					/* no waypoint, loiter, reset position setpoint if needed */
@@ -711,7 +717,7 @@ MulticopterPositionControl::task_main()
 
 				_att_sp.roll_body = 0.0f;
 				_att_sp.pitch_body = 0.0f;
-				_att_sp.yaw_body = 0.0f;
+				_att_sp.yaw_body = _att.yaw;
 				_att_sp.thrust = 0.0f;
 
 				_att_sp.timestamp = hrt_absolute_time();
