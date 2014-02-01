@@ -101,14 +101,9 @@ fi
 # Quad X
 #
 
-if param compare SYS_AUTOSTART 4008 8
+if param compare SYS_AUTOSTART 4001
 then
-	#sh /etc/init.d/4008_ardrone
-fi
-
-if param compare SYS_AUTOSTART 4009 9
-then
-	#sh /etc/init.d/4009_ardrone_flow
+	sh /etc/init.d/4001_quad_x
 fi
 
 if param compare SYS_AUTOSTART 4010 10
@@ -132,7 +127,7 @@ fi
 
 if param compare SYS_AUTOSTART 5001
 then
-	sh /etc/init.d/5001_quad_+_pwm
+	sh /etc/init.d/5001_quad_+
 fi
 
 #
@@ -141,7 +136,7 @@ fi
 
 if param compare SYS_AUTOSTART 6001
 then
-	sh /etc/init.d/6001_hexa_x_pwm
+	sh /etc/init.d/6001_hexa_x
 fi
 
 #
@@ -150,7 +145,7 @@ fi
 
 if param compare SYS_AUTOSTART 7001
 then
-	sh /etc/init.d/7001_hexa_+_pwm
+	sh /etc/init.d/7001_hexa_+
 fi
 
 #
@@ -159,7 +154,7 @@ fi
 
 if param compare SYS_AUTOSTART 8001
 then
-	sh /etc/init.d/8001_octo_x_pwm
+	sh /etc/init.d/8001_octo_x
 fi
 
 #
@@ -168,7 +163,7 @@ fi
 
 if param compare SYS_AUTOSTART 9001
 then
-	sh /etc/init.d/9001_octo_+_pwm
+	sh /etc/init.d/9001_octo_+
 fi
 
 #
@@ -191,5 +186,5 @@ fi
 
 if param compare SYS_AUTOSTART 12001
 then
-	sh /etc/init.d/12001_octo_cox_pwm
+	sh /etc/init.d/12001_octo_cox
 fi
