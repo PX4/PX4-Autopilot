@@ -44,9 +44,11 @@ if (GTEST_FOUND)
     target_link_libraries(libuavcan_test ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
     target_link_libraries(libuavcan_test ${CMAKE_BINARY_DIR}/libuavcan.so)
 
+    # Tests run automatically upon successful build
+    # If failing tests need to be investigated with debugger, use 'make --ignore-errors'
     add_custom_command(TARGET libuavcan_test POST_BUILD
                        COMMAND "./libuavcan_test"
                        WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 else (GTEST_FOUND)
-    message(">> Google test is not found, you will not be able to run libuavcan_test")
+    message(">> Google test library is not found, you will not be able to run tests")
 endif (GTEST_FOUND)
