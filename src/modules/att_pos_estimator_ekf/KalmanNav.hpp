@@ -160,6 +160,7 @@ protected:
 	enum {PHI = 0, THETA, PSI, VN, VE, VD, LAT, LON, ALT};  /**< state enumeration */
 	float phi, theta, psi;                  /**< 3-2-1 euler angles */
 	float vN, vE, vD;                       /**< navigation velocity, m/s */
+	float vN_gps, vE_gps, vD_gps;           /**< navigation velocity, m/s */
 	double lat, lon;                   	/**< lat, lon radians */
 	// parameters
 	float alt;                   		/**< altitude, meters */

@@ -90,6 +90,7 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	// state
 	phi(0), theta(0), psi(0),
 	vN(0), vE(0), vD(0),
+	vN_gps(0), vN_gps(0), vN_gps(0),
 	lat(0), lon(0), alt(0),
 	lat0(0), lon0(0), alt0(0),
 	// parameters for ground station
@@ -245,6 +246,9 @@ void KalmanNav::update()
 		vN = _gps.vel_n_m_s;
 		vE = _gps.vel_e_m_s;
 		vD = _gps.vel_d_m_s;
+		vN_gps = _gps.vel_n_m_s;
+		vE_gps = _gps.vel_e_m_s;
+		vD_gps = _gps.vel_d_m_s;
 		setLatDegE7(_gps.lat);
 		setLonDegE7(_gps.lon);
 		setAltE3(_gps.alt);
@@ -325,9 +329,9 @@ void KalmanNav::updatePublications()
 	_pos.lon = getLonDegE7();
 	_pos.alt = float(alt);
 	_pos.relative_alt = float(alt); // TODO, make relative
-	_pos.vx = vN;
-	_pos.vy = vE;
-	_pos.vz = vD;
+	_pos.vx = vN_gps;
+	_pos.vy = vE_gps;
+	_pos.vz = vD_gps;
 	_pos.yaw = psi;
 
 	// local position publication
