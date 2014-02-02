@@ -676,6 +676,9 @@ MulticopterPositionControl::task_main()
 				R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
 				sp_move_rate = R_yaw_sp * sp_move_rate.emult(_params.vel_max);
 
+				/* feed forward manual setpoint move rate with weight vel_ff */
+				vel_ff = sp_move_rate.emult(_params.vel_ff);
+
 				if (_control_mode.flag_follow_target) {
 					/* follow target, change offset from target instead of moving setpoint directly */
 					reset_follow_offset();
@@ -685,11 +688,11 @@ MulticopterPositionControl::task_main()
 
 					math::Vector<3> vel_target(_target_pos.vel_n, _target_pos.vel_e, _target_pos.vel_d);
 
-					/* add to setpoint move rate */
+					/* add target velocity to setpoint move rate */
 					sp_move_rate += vel_target;
 
 					/* feed forward target velocity */
-					vel_ff += vel_target * _params.follow_ff;
+					vel_ff = vel_target * _params.follow_ff;
 
 				} else {
 					/* normal node, move position setpoint */
@@ -697,8 +700,6 @@ MulticopterPositionControl::task_main()
 					_alt_sp -= sp_move_rate(2) * dt;
 					_reset_follow_offset = true;
 				}
-
-				vel_ff += sp_move_rate.emult(_params.vel_ff);
 
 				/* check if position setpoint is too far from actual position */
 				math::Vector<3> pos_sp_offs;
