@@ -1564,18 +1564,19 @@ set_main_state_rc(struct vehicle_status_s *status)
 			if (res != TRANSITION_DENIED)
 				break;	// changed successfully or already in this state
 
-			// else fallback to SEATBELT
-			print_reject_mode("FOLLOW");
+			// else fallback to EASY
+			print_reject_mode(status, "FOLLOW");
 		}
 
-		if (status->assisted_switch == ASSISTED_SWITCH_EASY) {
+		if (status->assisted_switch == ASSISTED_SWITCH_SEATBELT || status->assisted_switch == ASSISTED_SWITCH_FOLLOW) {
 			res = main_state_transition(status, MAIN_STATE_EASY);
 
 			if (res != TRANSITION_DENIED)
 				break;	// changed successfully or already in this state
 
 			// else fallback to SEATBELT
-			print_reject_mode(status, "EASY");
+			if (status->assisted_switch == ASSISTED_SWITCH_EASY)	// don't print both messages
+				print_reject_mode(status, "EASY");
 		}
 
 		res = main_state_transition(status, MAIN_STATE_SEATBELT);
@@ -1583,7 +1584,7 @@ set_main_state_rc(struct vehicle_status_s *status)
 		if (res != TRANSITION_DENIED)
 			break;	// changed successfully or already in this mode
 
-		if (status->assisted_switch != ASSISTED_SWITCH_EASY)	// don't print both messages
+		if (status->assisted_switch == ASSISTED_SWITCH_SEATBELT)	// don't print both messages
 			print_reject_mode(status, "SEATBELT");
 
 		// else fallback to MANUAL
