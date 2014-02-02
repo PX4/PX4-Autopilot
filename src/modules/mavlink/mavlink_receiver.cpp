@@ -843,13 +843,13 @@ void MavlinkReceiver::print_status()
 
 void * MavlinkReceiver::start_helper(void *context)
 {
-	return ((MavlinkReceiver *)context)->receive_thread(NULL);
+	MavlinkReceiver *rcv = new MavlinkReceiver(((Mavlink *)context));
+	return rcv->receive_thread(NULL);
 }
 
 pthread_t
 MavlinkReceiver::receive_start(Mavlink *mavlink)
 {
-	MavlinkReceiver *rcv = new MavlinkReceiver(mavlink);
 
 	pthread_attr_t receiveloop_attr;
 	pthread_attr_init(&receiveloop_attr);
@@ -866,7 +866,7 @@ MavlinkReceiver::receive_start(Mavlink *mavlink)
 	pthread_attr_setstacksize(&receiveloop_attr, 3000);
 
 	pthread_t thread;
-	pthread_create(&thread, &receiveloop_attr, MavlinkReceiver::start_helper, rcv);
+	pthread_create(&thread, &receiveloop_attr, MavlinkReceiver::start_helper, mavlink);
 
 	pthread_attr_destroy(&receiveloop_attr);
 	return thread;
