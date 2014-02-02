@@ -1575,6 +1575,7 @@ Navigator::on_mission_item_reached()
 				dispatch(EVENT_LAND_REQUESTED);
 
 			} else {
+				_reset_loiter_pos = false;
 				dispatch(EVENT_LOITER_REQUESTED);
 			}
 
