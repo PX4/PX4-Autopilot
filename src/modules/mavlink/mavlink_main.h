@@ -270,7 +270,8 @@ protected:
 
 private:
 
-	bool		_task_should_exit;		/**< if true, sensor task should exit */
+	bool		_task_should_exit;		/**< if true, mavlink task should exit */
+	bool		thread_running;
 	int		_mavlink_task;			/**< task handle for sensor task */
 
 	int		_mavlink_incoming_fd;		/**< file descriptor on which to receive incoming strings */
@@ -285,8 +286,6 @@ private:
 	orb_advert_t	mission_pub;
 	struct mission_s mission;
 	uint8_t missionlib_msg_buf[300]; //XXX MAGIC NUMBER
-	bool thread_running;
-	bool thread_should_exit;
 	MAVLINK_MODE _mode;
 
 	uint8_t mavlink_wpm_comp_id;
@@ -304,7 +303,7 @@ private:
 
 	bool verbose;
 	int uart;
-	int baudrate;
+	int _baudrate;
 	bool gcs_link;
 	/**
 	 * If the queue index is not at 0, the queue sending

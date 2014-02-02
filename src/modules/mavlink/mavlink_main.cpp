@@ -159,6 +159,7 @@ namespace mavlink
 Mavlink::Mavlink(const char *port, unsigned baud_rate) : 
 
 	_task_should_exit(false),
+	thread_running(false),
 	_mavlink_task(-1),
 	_mavlink_fd(-1),
 	_mavlink_incoming_fd(-1),
@@ -207,23 +208,23 @@ int Mavlink::instance_count()
 	/* note: a local buffer count will help if this ever is called often */
 	Mavlink* inst = ::_head;
 	unsigned inst_index = 0;
-	while (inst->_next != nullptr) {
+	while (inst != nullptr) {
 		inst = inst->_next;
 		inst_index++;
 	}
 
-	return inst_index + 1;
+	return inst_index;
 }
 
 Mavlink* Mavlink::new_instance(const char *port, unsigned baud_rate)
 {
 	Mavlink* inst = new Mavlink(port, baud_rate);
-	Mavlink* parent = ::_head;
-	while (parent->_next != nullptr)
-		parent = parent->_next;
+	Mavlink* next = ::_head;
+	while (next != nullptr)
+		next = next->_next;
 
-	/* now parent points to a null pointer, fill it */
-	parent->_next = inst;
+	/* now parent has a null pointer, fill it */
+	next = inst;
 
 	return inst;
 }
@@ -377,7 +378,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 	case 921600: speed = B921600; break;
 
 	default:
-		warnx("ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\n\t9600\n19200\n38400\n57600\n115200\n230400\n460800\n921600\n\n", baud);
+		warnx("ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600\t\n115200\n230400\n460800\n921600\n", baud);
 		return -EINVAL;
 	}
 
@@ -437,15 +438,15 @@ Mavlink::set_hil_on_off(bool hil_enabled)
 		/* ramp up some HIL-related subscriptions */
 		unsigned hil_rate_interval;
 
-		if (baudrate < 19200) {
+		if (_baudrate < 19200) {
 			/* 10 Hz */
 			hil_rate_interval = 100;
 
-		} else if (baudrate < 38400) {
+		} else if (_baudrate < 38400) {
 			/* 10 Hz */
 			hil_rate_interval = 100;
 
-		} else if (baudrate < 115200) {
+		} else if (_baudrate < 115200) {
 			/* 20 Hz */
 			hil_rate_interval = 50;
 
@@ -1438,82 +1439,48 @@ Mavlink::task_main(int argc, char *argv[])
 	/* initialize logging device */
 	// YYY
 
-	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+	_mavlink_fd = 0;//open(MAVLINK_LOG_DEVICE, 0);
 
-	mavlink_log_info(_mavlink_fd, "[mavlink] started");
-
-	/* wakeup source(s) */
-	struct pollfd fds[1];
-
-	/* Setup of loop */
-	fds[0].fd = _params_sub;
-	fds[0].events = POLLIN;
-
-	while (!_task_should_exit) {
-
-		/* wait for up to 100ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
-
-		/* timed out - periodic check for _task_should_exit, etc. */
-		if (pret == 0) {
-			continue;
-		}
-
-		/* this is undesirable but not much we can do - might want to flag unhappy status */
-		if (pret < 0) {
-			warn("poll error %d, %d", pret, errno);
-			continue;
-		}
-
-		perf_begin(_loop_perf);
-
-		/* parameters updated */
-		if (fds[0].revents & POLLIN) {
-			parameters_update();
-		}
-
-
-
-
+	//mavlink_log_info(_mavlink_fd, "[mavlink] started");
 
 	/* initialize mavlink text message buffering */
 	// mavlink_logbuffer_init(&lb, 10);
 
 	int ch;
 	char *device_name = "/dev/ttyS1";
-	baudrate = 57600;
+	_baudrate = 57600;
 
-	// /* work around some stupidity in task_create's argv handling */
-	// argc -= 2;
-	// argv += 2;
+	/* work around some stupidity in task_create's argv handling */
+	argc -= 2;
+	argv += 2;
 
-	// while ((ch = getopt(argc, argv, "b:d:eo")) != EOF) {
-	// 	switch (ch) {
-	// 	case 'b':
-	// 		baudrate = strtoul(optarg, NULL, 10);
+	while ((ch = getopt(argc, argv, "b:d:eo")) != EOF) {
+		switch (ch) {
+		case 'b':
+			_baudrate = strtoul(optarg, NULL, 10);
 
-	// 		if (baudrate < 9600 || baudrate > 921600)
-	// 			errx(1, "invalid baud rate '%s'", optarg);
+			if (_baudrate < 9600 || _baudrate > 921600)
+				errx(1, "invalid baud rate '%s'", optarg);
 
-	// 		break;
+			break;
 
-	// 	case 'd':
-	// 		device_name = optarg;
-	// 		break;
+		case 'd':
+			device_name = optarg;
+			break;
 
-	// 	case 'e':
-	// 		mavlink_link_termination_allowed = true;
-	// 		break;
+		case 'e':
+			mavlink_link_termination_allowed = true;
+			break;
 
-	// 	case 'o':
-	// 		_mode = MODE_ONBOARD;
-	// 		break;
+		case 'o':
+			_mode = MODE_ONBOARD;
+			break;
 
-	// 	default:
-	// 		usage();
-	// 		break;
-	// 	}
-	// }
+		default:
+			usage();
+			break;
+		}
+	}
 
 	struct termios uart_config_original;
 
@@ -1529,13 +1496,13 @@ Mavlink::task_main(int argc, char *argv[])
 	fflush(stdout);
 
 	/* default values for arguments */
-	uart = mavlink_open_uart(baudrate, device_name, &uart_config_original, &usb_uart);
+	uart = mavlink_open_uart(_baudrate, device_name, &uart_config_original, &usb_uart);
 
 	if (uart < 0)
 		err(1, "could not open %s", device_name);
 
 	/* create the device node that's used for sending text log messages, etc. */
-	register_driver(MAVLINK_LOG_DEVICE, &fops, 0666, NULL);
+	//register_driver(MAVLINK_LOG_DEVICE, &fops, 0666, NULL);
 
 	/* Initialize system properties */
 	mavlink_update_system();
@@ -1552,7 +1519,7 @@ Mavlink::task_main(int argc, char *argv[])
 	mavlink_wpm_init(wpm);
 
 	/* all subscriptions are now active, set up initial guess about rate limits */
-	if (baudrate >= 230400) {
+	if (_baudrate >= 230400) {
 		/* 200 Hz / 5 ms */
 		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_HIGHRES_IMU, 20);
 		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_RAW_IMU, 20);
@@ -1566,7 +1533,7 @@ Mavlink::task_main(int argc, char *argv[])
 		/* 10 Hz */
 		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 100);
 
-	} else if (baudrate >= 115200) {
+	} else if (_baudrate >= 115200) {
 		/* 20 Hz / 50 ms */
 		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_HIGHRES_IMU, 50);
 		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_RAW_IMU, 50);
@@ -1579,7 +1546,7 @@ Mavlink::task_main(int argc, char *argv[])
 		/* 2 Hz */
 		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 500);
 
-	} else if (baudrate >= 57600) {
+	} else if (_baudrate >= 57600) {
 		/* 10 Hz / 100 ms */
 		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_RAW_IMU, 300);
 		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_HIGHRES_IMU, 300);
@@ -1616,7 +1583,35 @@ Mavlink::task_main(int argc, char *argv[])
 	/* arm counter to go off immediately */
 	unsigned lowspeed_counter = 10;
 
-	while (!thread_should_exit) {
+		/* wakeup source(s) */
+	struct pollfd fds[1];
+
+	/* Setup of loop */
+	fds[0].fd = _params_sub;
+	fds[0].events = POLLIN;
+
+	while (!_task_should_exit) {
+
+		/* wait for up to 100ms for data */
+		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+
+		/* timed out - periodic check for _task_should_exit, etc. */
+		if (pret == 0) {
+			continue;
+		}
+
+		/* this is undesirable but not much we can do - might want to flag unhappy status */
+		if (pret < 0) {
+			warn("poll error %d, %d", pret, errno);
+			continue;
+		}
+
+		perf_begin(_loop_perf);
+
+		/* parameters updated */
+		if (fds[0].revents & POLLIN) {
+			parameters_update();
+		}
 
 		/* 1 Hz */
 		if (lowspeed_counter == 10) {
@@ -1670,30 +1665,19 @@ Mavlink::task_main(int argc, char *argv[])
 
 		mavlink_waypoint_eventloop(hrt_absolute_time());
 
-		/* sleep quarter the time */
-		usleep(25000);
-
 		/* check if waypoint has been reached against the last positions */
 		mavlink_waypoint_eventloop(hrt_absolute_time());
 
-		/* sleep quarter the time */
-		usleep(25000);
 
 		/* send parameters at 20 Hz (if queued for sending) */
 		mavlink_pm_queued_send();
 		mavlink_waypoint_eventloop(hrt_absolute_time());
 
-		/* sleep quarter the time */
-		usleep(25000);
-
 		mavlink_waypoint_eventloop(hrt_absolute_time());
 
-		if (baudrate > 57600) {
+		if (_baudrate > 57600) {
 			mavlink_pm_queued_send();
 		}
-
-		/* sleep 10 ms */
-		usleep(10000);
 
 		// /* send one string at 10 Hz */
 		// if (!mavlink_logbuffer_is_empty(&lb)) {
@@ -1705,8 +1689,7 @@ Mavlink::task_main(int argc, char *argv[])
 		// 	}
 		// }
 
-		/* sleep 15 ms */
-		usleep(15000);
+		perf_end(_loop_perf);
 	}
 
 	/* wait for threads to complete */
@@ -1720,17 +1703,6 @@ Mavlink::task_main(int argc, char *argv[])
 	//mavlink_logbuffer_destroy(&lb);
 
 	thread_running = false;
-
-	return 0;
-
-
-
-
-
-
-
-		perf_end(_loop_perf);
-	}
 
 	warnx("exiting.");
 
@@ -1755,7 +1727,7 @@ Mavlink::start(Mavlink* mavlink)
 	mavlink->_mavlink_task = task_spawn_cmd(buf,
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 5,
-					 2048,
+					 4096,
 					 (main_t)&Mavlink::start_helper,
 					 NULL);
 
