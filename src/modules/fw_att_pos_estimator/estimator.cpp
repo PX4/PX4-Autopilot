@@ -326,7 +326,7 @@ void CovariancePrediction()
     float SF[14];
     float SG[8];
     float SQ[11];
-    float SPP[13];
+    float SPP[13] = {0};
     float nextP[21][21];
 
     // calculate covariance prediction process noise
