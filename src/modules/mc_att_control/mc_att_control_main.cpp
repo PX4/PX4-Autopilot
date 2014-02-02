@@ -802,6 +802,8 @@ MulticopterAttitudeControl::task_main()
 					_rates_sp = _rates_sp.edivide(_params.rc_scale).emult(_params.scale_acro);
 					_thrust_sp = _manual_control_sp.throttle;
 
+					_reset_yaw_sp = true;
+
 					/* publish attitude rates setpoint */
 					_v_rates_sp.roll = _rates_sp(0);
 					_v_rates_sp.pitch = _rates_sp(1);
