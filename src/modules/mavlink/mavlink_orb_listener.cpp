@@ -726,13 +726,13 @@ MavlinkOrbListener::uorb_receive_thread(void *arg)
 
 void * MavlinkOrbListener::uorb_start_helper(void *context)
 {
-	return ((MavlinkOrbListener *)context)->uorb_receive_thread(NULL);
+	MavlinkOrbListener* urcv = new MavlinkOrbListener(((Mavlink *)context));
+	return urcv->uorb_receive_thread(NULL);
 }
 
 pthread_t
 MavlinkOrbListener::uorb_receive_start(Mavlink* mavlink)
 {
-	MavlinkOrbListener* urcv = new MavlinkOrbListener(mavlink);
 
 	/* --- SENSORS RAW VALUE --- */
 	mavlink->get_subs()->sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
@@ -840,7 +840,7 @@ MavlinkOrbListener::uorb_receive_start(Mavlink* mavlink)
 	pthread_attr_setstacksize(&uorb_attr, 2048);
 
 	pthread_t thread;
-	pthread_create(&thread, &uorb_attr, MavlinkOrbListener::uorb_start_helper, urcv);
+	pthread_create(&thread, &uorb_attr, MavlinkOrbListener::uorb_start_helper, mavlink);
 
 	pthread_attr_destroy(&uorb_attr);
 	return thread;

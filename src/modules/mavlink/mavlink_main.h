@@ -143,7 +143,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	Mavlink(const char *port, unsigned baud_rate);
+	Mavlink();
 
 	/**
 	 * Destructor, also kills the mavlinks task.
@@ -155,7 +155,7 @@ public:
 	 *
 	 * @return		OK on success.
 	 */
-	static int		start(Mavlink* mavlink);
+	static int		start();
 
 	/**
 	 * Display the mavlink status.
@@ -164,7 +164,7 @@ public:
 
 	static int	instance_count();
 
-	static Mavlink* new_instance(const char *port, unsigned baud_rate);
+	static Mavlink* new_instance();
 
 	static Mavlink* get_instance(unsigned instance);
 

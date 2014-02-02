@@ -156,7 +156,7 @@ namespace mavlink
 	Mavlink	*g_mavlink;
 }
 
-Mavlink::Mavlink(const char *port, unsigned baud_rate) : 
+Mavlink::Mavlink() : 
 
 	_task_should_exit(false),
 	thread_running(false),
@@ -216,9 +216,9 @@ int Mavlink::instance_count()
 	return inst_index;
 }
 
-Mavlink* Mavlink::new_instance(const char *port, unsigned baud_rate)
+Mavlink* Mavlink::new_instance()
 {
-	Mavlink* inst = new Mavlink(port, baud_rate);
+	Mavlink* inst = new Mavlink();
 	Mavlink* next = ::_head;
 	while (next != nullptr)
 		next = next->_next;
@@ -1712,22 +1712,24 @@ Mavlink::task_main(int argc, char *argv[])
 
 int Mavlink::start_helper(int argc, char *argv[])
 {
-	// This is beyond evil.. and needs a lock to be safe
-	return Mavlink::get_instance(Mavlink::instance_count() - 1)->task_main(argc, argv);
+	// Create the instance in task context
+	Mavlink *instance = Mavlink::new_instance();
+	// This will actually only return once MAVLink exits
+	return instance->task_main(argc, argv);
 }
 
 int
-Mavlink::start(Mavlink* mavlink)
+Mavlink::start()
 {
 
 	/* start the task */
 	char buf[32];
 	sprintf(buf, "mavlink if%d", Mavlink::instance_count());
 
-	mavlink->_mavlink_task = task_spawn_cmd(buf,
+	/*mavlink->_mavlink_task = */task_spawn_cmd(buf,
 					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 5,
-					 4096,
+					 SCHED_PRIORITY_DEFAULT,
+					 2048,
 					 (main_t)&Mavlink::start_helper,
 					 NULL);
 
@@ -1735,10 +1737,10 @@ Mavlink::start(Mavlink* mavlink)
 	// 		usleep(200);
 	// }
 
-	if (mavlink->_mavlink_task < 0) {
-		warn("task start failed");
-		return -errno;
-	}
+	// if (mavlink->_mavlink_task < 0) {
+	// 	warn("task start failed");
+	// 	return -errno;
+	// }
 
 	return OK;
 }
@@ -1762,13 +1764,8 @@ int mavlink_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		Mavlink *instance = Mavlink::new_instance("/dev/ttyS0", 57600);
-
-		if (mavlink::g_mavlink == nullptr)
-			mavlink::g_mavlink = instance;
-
 		// Instantiate thread
-		Mavlink::start(instance);
+		Mavlink::start();
 
 		// if (mavlink::g_mavlink != nullptr) {
 		// 	errx(1, "already running");
