@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012,2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2014 PX4 Development Team. All rights reserved.
  *   Author: Marco Bauer <marco@wtns.de>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -93,6 +93,9 @@
 #define MOTOR_SPINUP_COUNTER			30
 #define ESC_UORB_PUBLISH_DELAY		500000
 
+
+
+
 class MK : public device::I2C
 {
 public:
@@ -181,6 +184,7 @@ private:
 	static const unsigned	_ngpio;
 
 	void		gpio_reset(void);
+	void		sensor_reset(int ms);
 	void		gpio_set_function(uint32_t gpios, int function);
 	void		gpio_write(uint32_t gpios, int function);
 	uint32_t	gpio_read(void);
@@ -196,6 +200,7 @@ private:
 };
 
 const MK::GPIOConfig MK::_gpio_tab[] = {
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	{GPIO_GPIO0_INPUT, GPIO_GPIO0_OUTPUT, 0},
 	{GPIO_GPIO1_INPUT, GPIO_GPIO1_OUTPUT, 0},
 	{GPIO_GPIO2_INPUT, GPIO_GPIO2_OUTPUT, GPIO_USART2_CTS_1},
@@ -204,6 +209,22 @@ const MK::GPIOConfig MK::_gpio_tab[] = {
 	{GPIO_GPIO5_INPUT, GPIO_GPIO5_OUTPUT, GPIO_USART2_RX_1},
 	{GPIO_GPIO6_INPUT, GPIO_GPIO6_OUTPUT, GPIO_CAN2_TX_2},
 	{GPIO_GPIO7_INPUT, GPIO_GPIO7_OUTPUT, GPIO_CAN2_RX_2},
+#endif
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+	{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0},
+	{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0},
+	{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,       0},
+	{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,       0},
+	{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0},
+	{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0},
+
+	{0,                      GPIO_VDD_5V_PERIPH_EN,   0},
+	{0,                      GPIO_VDD_3V3_SENSORS_EN, 0},
+	{GPIO_VDD_BRICK_VALID,   0,                       0},
+	{GPIO_VDD_SERVO_VALID,   0,                       0},
+	{GPIO_VDD_5V_HIPOWER_OC, 0,                       0},
+	{GPIO_VDD_5V_PERIPH_OC,  0,                       0},
+#endif
 };
 
 const unsigned MK::_ngpio = sizeof(MK::_gpio_tab) / sizeof(MK::_gpio_tab[0]);
@@ -623,9 +644,11 @@ MK::task_main()
 
 					if(!_overrideSecurityChecks) {
 						/* don't go under BLCTRL_MIN_VALUE */
+
 						if (outputs.output[i] < BLCTRL_MIN_VALUE) {
 							outputs.output[i] = BLCTRL_MIN_VALUE;
 						}
+
 					}
 
 					/* output to BLCtrl's */
@@ -1075,6 +1098,10 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		ret = OK;
 		break;
 
+	case PWM_SERVO_GET_UPDATE_RATE:
+		*(uint32_t *)arg = 400;
+		break;
+
 	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
 		ret = OK;
 		break;
@@ -1199,22 +1226,114 @@ MK::write(file *filp, const char *buffer, size_t len)
 }
 
 void
+MK::sensor_reset(int ms)
+{
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+
+	if (ms < 1) {
+		ms = 1;
+	}
+
+	/* disable SPI bus */
+	stm32_configgpio(GPIO_SPI_CS_GYRO_OFF);
+	stm32_configgpio(GPIO_SPI_CS_ACCEL_MAG_OFF);
+	stm32_configgpio(GPIO_SPI_CS_BARO_OFF);
+	stm32_configgpio(GPIO_SPI_CS_MPU_OFF);
+
+	stm32_gpiowrite(GPIO_SPI_CS_GYRO_OFF, 0);
+	stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG_OFF, 0);
+	stm32_gpiowrite(GPIO_SPI_CS_BARO_OFF, 0);
+	stm32_gpiowrite(GPIO_SPI_CS_MPU_OFF, 0);
+
+	stm32_configgpio(GPIO_SPI1_SCK_OFF);
+	stm32_configgpio(GPIO_SPI1_MISO_OFF);
+	stm32_configgpio(GPIO_SPI1_MOSI_OFF);
+
+	stm32_gpiowrite(GPIO_SPI1_SCK_OFF, 0);
+	stm32_gpiowrite(GPIO_SPI1_MISO_OFF, 0);
+	stm32_gpiowrite(GPIO_SPI1_MOSI_OFF, 0);
+
+	stm32_configgpio(GPIO_GYRO_DRDY_OFF);
+	stm32_configgpio(GPIO_MAG_DRDY_OFF);
+	stm32_configgpio(GPIO_ACCEL_DRDY_OFF);
+	stm32_configgpio(GPIO_EXTI_MPU_DRDY_OFF);
+
+	stm32_gpiowrite(GPIO_GYRO_DRDY_OFF, 0);
+	stm32_gpiowrite(GPIO_MAG_DRDY_OFF, 0);
+	stm32_gpiowrite(GPIO_ACCEL_DRDY_OFF, 0);
+	stm32_gpiowrite(GPIO_EXTI_MPU_DRDY_OFF, 0);
+
+	/* set the sensor rail off */
+	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
+
+	/* wait for the sensor rail to reach GND */
+	usleep(ms * 1000);
+	warnx("reset done, %d ms", ms);
+
+	/* re-enable power */
+
+	/* switch the sensor rail back on */
+	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
+
+	/* wait a bit before starting SPI, different times didn't influence results */
+	usleep(100);
+
+	/* reconfigure the SPI pins */
+#ifdef CONFIG_STM32_SPI1
+	stm32_configgpio(GPIO_SPI_CS_GYRO);
+	stm32_configgpio(GPIO_SPI_CS_ACCEL_MAG);
+	stm32_configgpio(GPIO_SPI_CS_BARO);
+	stm32_configgpio(GPIO_SPI_CS_MPU);
+
+	/* De-activate all peripherals,
+	 * required for some peripheral
+	 * state machines
+	 */
+	stm32_gpiowrite(GPIO_SPI_CS_GYRO, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_BARO, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);
+
+	// // XXX bring up the EXTI pins again
+	// stm32_configgpio(GPIO_GYRO_DRDY);
+	// stm32_configgpio(GPIO_MAG_DRDY);
+	// stm32_configgpio(GPIO_ACCEL_DRDY);
+	// stm32_configgpio(GPIO_EXTI_MPU_DRDY);
+
+#endif
+#endif
+}
+
+
+void
 MK::gpio_reset(void)
 {
 	/*
-	 * Setup default GPIO config - all pins as GPIOs, GPIO driver chip
-	 * to input mode.
+	 * Setup default GPIO config - all pins as GPIOs, input if
+	 * possible otherwise output if possible.
 	 */
-	for (unsigned i = 0; i < _ngpio; i++)
-		stm32_configgpio(_gpio_tab[i].input);
+	for (unsigned i = 0; i < _ngpio; i++) {
+		if (_gpio_tab[i].input != 0) {
+			stm32_configgpio(_gpio_tab[i].input);
 
+		} else if (_gpio_tab[i].output != 0) {
+			stm32_configgpio(_gpio_tab[i].output);
+		}
+	}
+
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
+	/* if we have a GPIO direction control, set it to zero (input) */
 	stm32_gpiowrite(GPIO_GPIO_DIR, 0);
 	stm32_configgpio(GPIO_GPIO_DIR);
+#endif
 }
 
 void
 MK::gpio_set_function(uint32_t gpios, int function)
 {
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
+
 	/*
 	 * GPIOs 0 and 1 must have the same direction as they are buffered
 	 * by a shared 2-port driver.  Any attempt to set either sets both.
@@ -1226,6 +1345,8 @@ MK::gpio_set_function(uint32_t gpios, int function)
 		if (GPIO_SET_OUTPUT == function)
 			stm32_gpiowrite(GPIO_GPIO_DIR, 1);
 	}
+
+#endif
 
 	/* configure selected GPIOs as required */
 	for (unsigned i = 0; i < _ngpio; i++) {
@@ -1248,9 +1369,13 @@ MK::gpio_set_function(uint32_t gpios, int function)
 		}
 	}
 
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
+
 	/* flip buffer to input mode if required */
 	if ((GPIO_SET_INPUT == function) && (gpios & 3))
 		stm32_gpiowrite(GPIO_GPIO_DIR, 0);
+
+#endif
 }
 
 void
@@ -1418,6 +1543,20 @@ mk_start(unsigned bus, unsigned motors, char *device_path)
 	return ret;
 }
 
+void
+sensor_reset(int ms)
+{
+	int	 fd;
+
+	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
+
+	if (fd < 0)
+		errx(1, "open fail");
+
+	if (ioctl(fd, GPIO_SENSOR_RAIL_RESET, ms) < 0)
+		err(1, "servo arm failed");
+
+}
 
 int
 mk_check_for_i2c_esc_bus(char *device_path, int motors)
@@ -1426,6 +1565,7 @@ mk_check_for_i2c_esc_bus(char *device_path, int motors)
 
 	if (g_mk == nullptr) {
 
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 		g_mk = new MK(3, device_path);
 
 		if (g_mk == nullptr) {
@@ -1441,7 +1581,7 @@ mk_check_for_i2c_esc_bus(char *device_path, int motors)
 			}
 
 		}
-
+#endif
 
 		g_mk = new MK(1, device_path);
 
