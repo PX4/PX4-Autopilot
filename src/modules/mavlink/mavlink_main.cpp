@@ -144,7 +144,11 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 		#endif
 	}
 
-	write(uart, ch, (size_t)(sizeof(uint8_t) * length));
+	size_t desired = (size_t)(sizeof(uint8_t) * length);
+	int ret = write(uart, ch, desired);
+
+	if (ret != desired)
+		warn("write err");
 
 }
 
@@ -1509,11 +1513,11 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* start the MAVLink receiver */
 	// MavlinkReceiver rcv(this);
-	receive_thread = MavlinkReceiver::receive_start(this);
+	//receive_thread = MavlinkReceiver::receive_start(this);
 
 	/* start the ORB receiver */
 	//MavlinkOrbListener listener(this);
-	uorb_receive_thread = MavlinkOrbListener::uorb_receive_start(this);
+	//uorb_receive_thread = MavlinkOrbListener::uorb_receive_start(this);
 
 	/* initialize waypoint manager */
 	mavlink_wpm_init(wpm);
@@ -1594,11 +1598,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* wait for up to 100ms for data */
 		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
-
-		/* timed out - periodic check for _task_should_exit, etc. */
-		if (pret == 0) {
-			continue;
-		}
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
@@ -1722,26 +1721,6 @@ int
 Mavlink::start()
 {
 
-	/* start the task */
-	char buf[32];
-	sprintf(buf, "mavlink if%d", Mavlink::instance_count());
-
-	/*mavlink->_mavlink_task = */task_spawn_cmd(buf,
-					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_DEFAULT,
-					 2048,
-					 (main_t)&Mavlink::start_helper,
-					 NULL);
-
-	// while (!this->is_running()) {
-	// 		usleep(200);
-	// }
-
-	// if (mavlink->_mavlink_task < 0) {
-	// 	warn("task start failed");
-	// 	return -errno;
-	// }
-
 	return OK;
 }
 
@@ -1765,7 +1744,24 @@ int mavlink_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		// Instantiate thread
-		Mavlink::start();
+		char buf[32];
+		sprintf(buf, "mavlink if%d", Mavlink::instance_count());
+
+		/*mavlink->_mavlink_task = */task_spawn_cmd(buf,
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_DEFAULT,
+						 2048,
+						 (main_t)&Mavlink::start_helper,
+						 (const char **)argv);
+
+		// while (!this->is_running()) {
+		// 		usleep(200);
+		// }
+
+		// if (mavlink->_mavlink_task < 0) {
+		// 	warn("task start failed");
+		// 	return -errno;
+		// }
 
 		// if (mavlink::g_mavlink != nullptr) {
 		// 	errx(1, "already running");
