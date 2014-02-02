@@ -33,8 +33,8 @@ static bool isInQueue(uavcan::CanTxQueue& queue, const uavcan::CanFrame& frame)
 
 TEST(CanTxQueue, Qos)
 {
-    uavcan::CanTxQueue::Entry e1(makeFrame(100, "", EXT), 1000, uavcan::CanTxQueue::VOLATILE);
-    uavcan::CanTxQueue::Entry e2(makeFrame(100, "", EXT), 1000, uavcan::CanTxQueue::VOLATILE);
+    uavcan::CanTxQueue::Entry e1(makeCanFrame(100, "", EXT), 1000, uavcan::CanTxQueue::VOLATILE);
+    uavcan::CanTxQueue::Entry e2(makeCanFrame(100, "", EXT), 1000, uavcan::CanTxQueue::VOLATILE);
 
     EXPECT_FALSE(e1.qosHigherThan(e2));
     EXPECT_FALSE(e2.qosHigherThan(e1));
@@ -74,14 +74,14 @@ TEST(CanTxQueue, TxQueue)
     EXPECT_TRUE(queue.isEmpty());
 
     // Descending priority
-    const CanFrame f0 = makeFrame(0, "f0", EXT);
-    const CanFrame f1 = makeFrame(10, "f1", EXT);
-    const CanFrame f2 = makeFrame(20, "f2", EXT);
-    const CanFrame f3 = makeFrame(100, "f3", EXT);
-    const CanFrame f4 = makeFrame(10000, "f4", EXT);
-    const CanFrame f5 = makeFrame(99999, "f5", EXT);
-    const CanFrame f5a = makeFrame(99999, "f5a", EXT);
-    const CanFrame f6 = makeFrame(999999, "f6", EXT);
+    const CanFrame f0 = makeCanFrame(0, "f0", EXT);
+    const CanFrame f1 = makeCanFrame(10, "f1", EXT);
+    const CanFrame f2 = makeCanFrame(20, "f2", EXT);
+    const CanFrame f3 = makeCanFrame(100, "f3", EXT);
+    const CanFrame f4 = makeCanFrame(10000, "f4", EXT);
+    const CanFrame f5 = makeCanFrame(99999, "f5", EXT);
+    const CanFrame f5a = makeCanFrame(99999, "f5a", EXT);
+    const CanFrame f6 = makeCanFrame(999999, "f6", EXT);
 
     /*
      * Priority insertion

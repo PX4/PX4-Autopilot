@@ -20,6 +20,11 @@ struct CanRxFrame
     CanFrame frame;
     uint64_t timestamp;
     uint8_t iface_index;
+
+    CanRxFrame()
+    : timestamp(0)
+    , iface_index(0)
+    { }
 };
 
 

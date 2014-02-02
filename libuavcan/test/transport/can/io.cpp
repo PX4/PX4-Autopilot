@@ -170,7 +170,7 @@ TEST(CanIOManager, CanDriverMock)
     EXPECT_EQ(100, clockmock.utc);
 
     // No WR, #1 RD
-    const CanFrame fr1 = makeFrame(123, "foo", EXT);
+    const CanFrame fr1 = makeCanFrame(123, "foo", EXT);
     driver.ifaces.at(1).pushRx(fr1);
     mask_wr = 7;
     mask_rd = 6;
@@ -232,8 +232,8 @@ TEST(CanIOManager, Reception)
      * Non empty from multiple ifaces
      */
     const uavcan::CanFrame frames[2][3] = {
-        { makeFrame(1, "a0", EXT),    makeFrame(99, "a1", EXT),  makeFrame(803, "a2", STD) },
-        { makeFrame(6341, "b0", EXT), makeFrame(196, "b1", STD), makeFrame(73, "b2", EXT) },
+        { makeCanFrame(1, "a0", EXT),    makeCanFrame(99, "a1", EXT),  makeCanFrame(803, "a2", STD) },
+        { makeCanFrame(6341, "b0", EXT), makeCanFrame(196, "b1", STD), makeCanFrame(73, "b2", EXT) },
     };
 
     clockmock.advance(10);
@@ -307,7 +307,7 @@ TEST(CanIOManager, Transmission)
     const int ALL_IFACES_MASK = 3;
 
     const uavcan::CanFrame frames[] = {
-        makeFrame(1, "a0", EXT),    makeFrame(99, "a1", EXT),  makeFrame(803, "a2", STD)
+        makeCanFrame(1, "a0", EXT),    makeCanFrame(99, "a1", EXT),  makeCanFrame(803, "a2", STD)
     };
 
     /*
@@ -396,7 +396,7 @@ TEST(CanIOManager, Transmission)
     // Preparing the driver mock for receive() call
     driver.ifaces.at(0).writeable = true;
     driver.ifaces.at(1).writeable = true;
-    const uavcan::CanFrame rx_frames[] = { makeFrame(123, "rx0", STD), makeFrame(321, "rx1", EXT) };
+    const uavcan::CanFrame rx_frames[] = { makeCanFrame(123, "rx0", STD), makeCanFrame(321, "rx1", EXT) };
     driver.ifaces.at(0).pushRx(rx_frames[0]);
     driver.ifaces.at(1).pushRx(rx_frames[1]);
 

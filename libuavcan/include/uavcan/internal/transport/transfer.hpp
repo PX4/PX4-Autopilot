@@ -22,7 +22,7 @@ enum TransferType
 
 class TransferID
 {
-    uint_fast8_t value_;
+    uint8_t value_;
 
 public:
     enum { BITLEN = 4 };
@@ -32,7 +32,7 @@ public:
     : value_(0)
     { }
 
-    TransferID(uint_fast8_t value)    // implicit
+    TransferID(uint8_t value)    // implicit
     : value_(value)
     {
         value_ &= MAX;
@@ -47,7 +47,7 @@ public:
         value_ = (value_ + 1) & MAX;
     }
 
-    uint_fast8_t get() const
+    uint8_t get() const
     {
         assert(value_ <= MAX);
         return value_;
@@ -62,6 +62,10 @@ public:
 
 struct Frame
 {
+    enum { DATA_TYPE_ID_MAX = 1023 };
+    enum { NODE_ID_MAX = 127 };
+    enum { FRAME_INDEX_MAX = 31 };
+
     uint8_t payload[8];
     TransferType transfer_type;
     uint_fast16_t data_type_id;
@@ -70,6 +74,18 @@ struct Frame
     uint_fast8_t frame_index;
     TransferID transfer_id;
     bool last_frame;
+
+    Frame()
+    : transfer_type(TransferType(0))
+    , data_type_id(0)
+    , payload_len(0)
+    , source_node_id(0)
+    , frame_index(0)
+    , transfer_id(0)
+    , last_frame(false)
+    {
+        std::fill(payload, payload + sizeof(payload), 0);
+    }
 
     Frame(const uint8_t* payload, uint_fast8_t payload_len, uint_fast16_t data_type_id, TransferType transfer_type,
           uint_fast8_t source_node_id, uint_fast8_t frame_index, TransferID transfer_id, bool last_frame)
@@ -81,11 +97,14 @@ struct Frame
     , transfer_id(transfer_id)
     , last_frame(last_frame)
     {
-        assert(payload && payload_len <= 8);
+        assert(data_type_id <= DATA_TYPE_ID_MAX);
+        assert(source_node_id <= NODE_ID_MAX);
+        assert(frame_index <= FRAME_INDEX_MAX);
+        assert(payload && payload_len <= sizeof(payload));
         std::copy(payload, payload + payload_len, this->payload);
     }
 
-    static Frame parse(const CanFrame& can_frame);
+    bool parse(const CanFrame& can_frame);
 
     CanFrame compile() const;
 
@@ -111,15 +130,18 @@ struct RxFrame
     Frame frame;
     uint_fast8_t iface_index;
 
-    RxFrame(const Frame& frame, uint_fast64_t timestamp, uint_fast8_t iface_index)
-    : timestamp(timestamp)
-    , frame(frame)
-    , iface_index(iface_index)
+    RxFrame()
+    : timestamp(0)
+    , iface_index(0)
     { }
 
-    static RxFrame parse(const CanRxFrame& can_frame)
+    bool parse(const CanRxFrame& can_frame)
     {
-        return RxFrame(Frame::parse(can_frame.frame), can_frame.timestamp, can_frame.iface_index);
+        if (!frame.parse(can_frame.frame))
+            return false;
+        timestamp = can_frame.timestamp;
+        iface_index = can_frame.iface_index;
+        return true;
     }
 };
 

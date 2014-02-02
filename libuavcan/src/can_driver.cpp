@@ -10,6 +10,12 @@
 namespace uavcan
 {
 
+const uint32_t CanFrame::MASK_STDID;
+const uint32_t CanFrame::MASK_EXTID;
+const uint32_t CanFrame::FLAG_EFF;
+const uint32_t CanFrame::FLAG_RTR;
+
+
 std::string CanFrame::toString(StringRepresentation mode) const
 {
     using std::snprintf;

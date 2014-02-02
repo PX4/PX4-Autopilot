@@ -44,7 +44,7 @@ public:
 };
 
 enum FrameType { STD, EXT };
-static uavcan::CanFrame makeFrame(uint32_t id, const std::string& str_data, FrameType type)
+static uavcan::CanFrame makeCanFrame(uint32_t id, const std::string& str_data, FrameType type)
 {
     id |= (type == EXT) ? uavcan::CanFrame::FLAG_EFF : 0;
     return uavcan::CanFrame(id, reinterpret_cast<const uint8_t*>(str_data.c_str()), str_data.length());
