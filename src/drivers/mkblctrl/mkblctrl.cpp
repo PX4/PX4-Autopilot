@@ -65,7 +65,6 @@
 
 #include <drivers/device/device.h>
 #include <drivers/drv_pwm_output.h>
-//#include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
 
@@ -99,13 +98,6 @@
 class MK : public device::I2C
 {
 public:
-	enum Mode {
-		MODE_NONE,
-		MODE_2PWM,
-		MODE_4PWM,
-		MODE_6PWM,
-	};
-
 	enum MappingMode {
 		MAPPING_MK = 0,
 		MAPPING_PX4,
@@ -1207,11 +1199,11 @@ mk_check_for_i2c_esc_bus(char *device_path, int motors)
 {
 	int ret;
 
-	g_mk = new MK(1, device_path);
+	// try bus 3 first
+	warnx("scanning i2c3...");
+	g_mk = new MK(3, device_path);
 
-	if (g_mk == nullptr) {
-		return -1;
-	} else if (OK != g_mk) {
+	if (g_mk != nullptr && OK != g_mk->init(motors)) {
 		delete g_mk;
 		g_mk = nullptr;
 	} else {
@@ -1223,10 +1215,13 @@ mk_check_for_i2c_esc_bus(char *device_path, int motors)
 		}
 	}
 
+	// fallback to bus 1
+	warnx("scanning i2c1...");
 	g_mk = new MK(1, device_path);
 
-	if (g_mk == nullptr) {
-		return -1;
+	if (g_mk != nullptr && OK != g_mk->init(motors)) {
+		delete g_mk;
+		g_mk = nullptr;
 	} else {
 		ret = g_mk->mk_check_for_blctrl(8, false, true);
 		delete g_mk;
@@ -1238,7 +1233,6 @@ mk_check_for_i2c_esc_bus(char *device_path, int motors)
 
 	return -1;
 }
-
 
 
 } // namespace
@@ -1348,31 +1342,33 @@ mkblctrl_main(int argc, char *argv[])
 
 
 	if (!motortest) {
-   	if (g_mk == nullptr) {
-      	if (bus == -1) {
-      		bus = mk_check_for_i2c_esc_bus(devicepath, motorcount);
-      	}
+		if (g_mk == nullptr) {
+			if (bus == -1) {
+				bus = mk_check_for_i2c_esc_bus(devicepath, motorcount);
 
-      	if (bus != -1) {
+
+			}
+
+			if (bus != -1) {
      			if (mk_start(bus, motorcount, devicepath) != OK) {
      				errx(1, "failed to start the MK-BLCtrl driver");
      			}
-      	} else {
-      		errx(1, "failed to start the MK-BLCtrl driver (cannot find i2c esc's)");
-      	}
+			} else {
+				errx(1, "failed to start the MK-BLCtrl driver (cannot find i2c esc's)");
+			}
 
-      	/* parameter set ? */
-      	if (newMode) {
-      		/* switch parameter */
-      		return mk_new_mode(pwm_update_rate_in_hz, motorcount, motortest, px4mode, frametype, overrideSecurityChecks);
-      	}
+			/* parameter set ? */
+			if (newMode) {
+				/* switch parameter */
+				return mk_new_mode(pwm_update_rate_in_hz, motorcount, motortest, px4mode, frametype, overrideSecurityChecks);
+			}
 
-      	exit(0);
-      } else {
-         errx(1, "MK-BLCtrl driver already running");
-      }
+			exit(0);
+		} else {
+			errx(1, "MK-BLCtrl driver already running");
+		}
 
-   } else {
+	} else {
       if (g_mk == nullptr) {
          errx(1, "MK-BLCtrl driver not running. You have to start it first.");
 
