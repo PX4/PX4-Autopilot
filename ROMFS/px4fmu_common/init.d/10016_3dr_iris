@@ -2,7 +2,7 @@
 #
 # 3DR Iris Quadcopter
 #
-# Maintainers: Anton Babushkin <anton.babushkin@me.com>
+# Anton Babushkin <anton.babushkin@me.com>
 #
 
 if [ $DO_AUTOCONFIG == yes ]

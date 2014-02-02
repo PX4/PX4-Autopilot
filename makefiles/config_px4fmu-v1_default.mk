@@ -21,7 +21,6 @@ MODULES		+= drivers/px4fmu
 MODULES		+= drivers/boards/px4fmu-v1
 MODULES		+= drivers/ardrone_interface
 MODULES		+= drivers/l3gd20
-#MODULES		+= drivers/bma180
 MODULES		+= drivers/mpu6000
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
@@ -44,7 +43,6 @@ MODULES		+= modules/sensors
 #
 MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/bl_update
-MODULES		+= systemcmds/boardinfo
 MODULES		+= systemcmds/i2c
 MODULES		+= systemcmds/mixer
 MODULES		+= systemcmds/param
@@ -65,14 +63,12 @@ MODULES		+= systemcmds/hw_ver
 MODULES		+= modules/commander
 MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
-MODULES		+= modules/mavlink_onboard
 MODULES		+= modules/gpio_led
 
 #
 # Estimation modules (EKF/ SO3 / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
-MODULES		+= modules/attitude_estimator_so3
 MODULES		+= modules/att_pos_estimator_ekf
 MODULES		+= modules/position_estimator_inav
 #MODULES		+= examples/flow_position_estimator

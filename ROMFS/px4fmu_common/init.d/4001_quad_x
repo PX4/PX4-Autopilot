@@ -2,7 +2,7 @@
 #
 # Generic 10” Quad X geometry
 #
-# Maintainers: Lorenz Meier <lm@inf.ethz.ch>, Anton Babushkin <anton.babushkin@me.com>
+# Lorenz Meier <lm@inf.ethz.ch>
 #
 
 if [ $DO_AUTOCONFIG == yes ]

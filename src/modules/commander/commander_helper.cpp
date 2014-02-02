@@ -124,10 +124,15 @@ void tune_neutral()
 
 void tune_negative()
 {
+	led_negative();
+	ioctl(buzzer, TONE_SET_ALARM, TONE_NOTIFY_NEGATIVE_TUNE);
+}
+
+void led_negative()
+{
 	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
 	rgbled_set_color(RGBLED_COLOR_RED);
 	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
-	ioctl(buzzer, TONE_SET_ALARM, TONE_NOTIFY_NEGATIVE_TUNE);
 }
 
 int tune_arm()

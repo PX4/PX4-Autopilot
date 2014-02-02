@@ -210,7 +210,7 @@ transition_result_t set_main_state_rc(struct vehicle_status_s *status);
 
 void set_control_mode();
 
-void print_reject_mode(const char *msg);
+void print_reject_mode(struct vehicle_status_s *current_status, const char *msg);
 
 void print_reject_arm(const char *msg);
 
@@ -658,6 +658,8 @@ int commander_thread_main(int argc, char *argv[])
 	/* vehicle status topic */
 	memset(&status, 0, sizeof(status));
 	status.condition_landed = true;	// initialize to safe value
+	// We want to accept RC inputs as default
+	status.rc_input_blocked = false;
 	status.main_state = MAIN_STATE_MANUAL;
 	status.set_nav_state = NAV_STATE_NONE;
 	status.set_nav_state_timestamp = 0;
@@ -927,10 +929,12 @@ int commander_thread_main(int argc, char *argv[])
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid, &(status.condition_local_position_valid), &status_changed);
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid, &(status.condition_local_altitude_valid), &status_changed);
 
+		static bool published_condition_landed_fw = false;
 		if (status.is_rotary_wing && status.condition_local_altitude_valid) {
 			if (status.condition_landed != local_position.landed) {
 				status.condition_landed = local_position.landed;
 				status_changed = true;
+				published_condition_landed_fw = false; //make sure condition_landed is published again if the system type changes
 
 				if (status.condition_landed) {
 					mavlink_log_critical(mavlink_fd, "#audio: LANDED");
@@ -938,6 +942,12 @@ int commander_thread_main(int argc, char *argv[])
 				} else {
 					mavlink_log_critical(mavlink_fd, "#audio: IN AIR");
 				}
+			}
+		} else {
+			if (!published_condition_landed_fw) {
+				status.condition_landed = false; // Fixedwing does not have a landing detector currently
+				published_condition_landed_fw = true;
+				status_changed = true;
 			}
 		}
 
@@ -1097,7 +1107,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* start RC input check */
-		if (sp_man.timestamp != 0 && hrt_absolute_time() < sp_man.timestamp + RC_TIMEOUT) {
+		if (!status.rc_input_blocked && sp_man.timestamp != 0 && hrt_absolute_time() < sp_man.timestamp + RC_TIMEOUT) {
 			/* handle the case where RC signal was regained */
 			if (!status.rc_signal_found_once) {
 				status.rc_signal_found_once = true;
@@ -1468,7 +1478,7 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 {
 	/* main mode switch */
 	if (!isfinite(sp_man->mode_switch)) {
-		warnx("mode sw not finite");
+		/* default to manual if signal is invalid */
 		status->mode_switch = MODE_SWITCH_MANUAL;
 
 	} else if (sp_man->mode_switch > STICK_ON_OFF_LIMIT) {
@@ -1550,7 +1560,7 @@ set_main_state_rc(struct vehicle_status_s *status)
 				break;	// changed successfully or already in this state
 
 			// else fallback to SEATBELT
-			print_reject_mode("EASY");
+			print_reject_mode(status, "EASY");
 		}
 
 		res = main_state_transition(status, MAIN_STATE_SEATBELT);
@@ -1559,7 +1569,7 @@ set_main_state_rc(struct vehicle_status_s *status)
 			break;	// changed successfully or already in this mode
 
 		if (status->assisted_switch != ASSISTED_SWITCH_EASY)	// don't print both messages
-			print_reject_mode("SEATBELT");
+			print_reject_mode(status, "SEATBELT");
 
 		// else fallback to MANUAL
 		res = main_state_transition(status, MAIN_STATE_MANUAL);
@@ -1573,7 +1583,7 @@ set_main_state_rc(struct vehicle_status_s *status)
 			break;	// changed successfully or already in this state
 
 		// else fallback to SEATBELT (EASY likely will not work too)
-		print_reject_mode("AUTO");
+		print_reject_mode(status, "AUTO");
 		res = main_state_transition(status, MAIN_STATE_SEATBELT);
 
 		if (res != TRANSITION_DENIED)
@@ -1592,6 +1602,7 @@ set_main_state_rc(struct vehicle_status_s *status)
 }
 
 void
+
 set_control_mode()
 {
 	/* set vehicle_control_mode according to main state and failsafe state */
@@ -1699,16 +1710,25 @@ set_control_mode()
 }
 
 void
-print_reject_mode(const char *msg)
+print_reject_mode(struct vehicle_status_s *status, const char *msg)
 {
 	hrt_abstime t = hrt_absolute_time();
 
 	if (t - last_print_mode_reject_time > PRINT_MODE_REJECT_INTERVAL) {
 		last_print_mode_reject_time = t;
 		char s[80];
-		sprintf(s, "#audio: warning: reject %s", msg);
+		sprintf(s, "#audio: REJECT %s", msg);
 		mavlink_log_critical(mavlink_fd, s);
-		tune_negative();
+
+		// only buzz if armed, because else we're driving people nuts indoors
+		// they really need to look at the leds as well.
+		if (status->arming_state == ARMING_STATE_ARMED) {
+			tune_negative();
+		} else {
+
+			// Always show the led indication
+			led_negative();
+		}
 	}
 }
 
@@ -1856,7 +1876,15 @@ void *commander_low_prio_loop(void *arg)
 				} else if ((int)(cmd.param4) == 1) {
 					/* RC calibration */
 					answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
-					calib_ret = do_rc_calibration(mavlink_fd);
+					/* disable RC control input completely */
+					status.rc_input_blocked = true;
+					calib_ret = OK;
+					mavlink_log_info(mavlink_fd, "CAL: Disabling RC IN");
+
+				} else if ((int)(cmd.param4) == 2) {
+					/* RC trim calibration */
+					answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
+					calib_ret = do_trim_calibration(mavlink_fd);
 
 				} else if ((int)(cmd.param5) == 1) {
 					/* accelerometer calibration */
@@ -1867,6 +1895,18 @@ void *commander_low_prio_loop(void *arg)
 					/* airspeed calibration */
 					answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 					calib_ret = do_airspeed_calibration(mavlink_fd);
+				} else if ((int)(cmd.param4) == 0) {
+					/* RC calibration ended - have we been in one worth confirming? */
+					if (status.rc_input_blocked) {
+						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
+						/* enable RC control input */
+						status.rc_input_blocked = false;
+						mavlink_log_info(mavlink_fd, "CAL: Re-enabling RC IN");
+					}
+
+					/* this always succeeds */
+					calib_ret = OK;
+
 				}
 
 				if (calib_ret == OK)

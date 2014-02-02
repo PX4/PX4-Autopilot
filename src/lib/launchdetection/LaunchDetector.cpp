@@ -83,14 +83,10 @@ bool LaunchDetector::getLaunchDetected()
 
 void LaunchDetector::updateParams() {
 
-	warnx(" LaunchDetector::updateParams()");
 	launchdetection_on.update();
 	throttlePreTakeoff.update();
 
 	for (uint8_t i = 0; i < sizeof(launchMethods)/sizeof(LaunchMethod); i++) {
 		launchMethods[i]->updateParams();
-		warnx("updating component %d", i);
 	}
-
-	warnx(" LaunchDetector::updateParams() ended");
 }
