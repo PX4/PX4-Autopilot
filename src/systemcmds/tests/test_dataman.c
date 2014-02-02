@@ -89,7 +89,7 @@ task_main(int argc, char *argv[])
 		unsigned hash = i ^ my_id;
 		unsigned len = (hash & 63) + 2;
 
-		int ret = dm_write(DM_KEY_WAYPOINTS_OFFBOARD, hash, DM_PERSIST_IN_FLIGHT_RESET, buffer, len);
+		int ret = dm_write(DM_KEY_WAYPOINTS_OFFBOARD_1, hash, DM_PERSIST_IN_FLIGHT_RESET, buffer, len);
 		warnx("ret: %d", ret);
 		if (ret != len) {
 			warnx("%d write failed, index %d, length %d", my_id, hash, len);
@@ -103,7 +103,7 @@ task_main(int argc, char *argv[])
 	for (unsigned i = 0; i < NUM_MISSIONS_SUPPORTED; i++) {
 		unsigned hash = i ^ my_id;
 		unsigned len2, len = (hash & 63) + 2;
-		if ((len2 = dm_read(DM_KEY_WAYPOINTS_OFFBOARD, hash, buffer, sizeof(buffer))) < 2) {
+		if ((len2 = dm_read(DM_KEY_WAYPOINTS_OFFBOARD_1, hash, buffer, sizeof(buffer))) < 2) {
 			warnx("%d read failed length test, index %d", my_id, hash);
 			goto fail;
 		}
@@ -163,7 +163,7 @@ int test_dataman(int argc, char *argv[])
 	free(sems);
 	dm_restart(DM_INIT_REASON_IN_FLIGHT);
 	for (i = 0; i < NUM_MISSIONS_SUPPORTED; i++) {
-		if (dm_read(DM_KEY_WAYPOINTS_OFFBOARD, i, buffer, sizeof(buffer)) != 0)
+		if (dm_read(DM_KEY_WAYPOINTS_OFFBOARD_1, i, buffer, sizeof(buffer)) != 0)
 			break;
 	}
 	if (i >= NUM_MISSIONS_SUPPORTED) {
@@ -173,7 +173,7 @@ int test_dataman(int argc, char *argv[])
 	}
 	dm_restart(DM_INIT_REASON_POWER_ON);
 	for (i = 0; i < NUM_MISSIONS_SUPPORTED; i++) {
-		if (dm_read(DM_KEY_WAYPOINTS_OFFBOARD, i, buffer, sizeof(buffer)) != 0) {
+		if (dm_read(DM_KEY_WAYPOINTS_OFFBOARD_1, i, buffer, sizeof(buffer)) != 0) {
 			warnx("Restart power-on failed");
 			return -1;
 		}
