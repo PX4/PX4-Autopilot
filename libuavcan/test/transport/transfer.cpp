@@ -131,7 +131,7 @@ TEST(Transfer, FrameParseCompile)
 }
 
 
-TEST(Transfer, RxFrameParseCompile)
+TEST(Transfer, RxFrameParse)
 {
     using uavcan::Frame;
     using uavcan::RxFrame;
@@ -153,7 +153,15 @@ TEST(Transfer, RxFrameParseCompile)
     // Custom
     can_rx_frame.timestamp = 123;
     can_rx_frame.iface_index = 2;
+
+    Frame frame;
+    frame.data_type_id = 456;
+    frame.transfer_type = uavcan::MESSAGE_BROADCAST;
+    *static_cast<CanFrame*>(&can_rx_frame) = frame.compile();
+
     ASSERT_TRUE(rx_frame.parse(can_rx_frame));
     ASSERT_EQ(123, rx_frame.timestamp);
     ASSERT_EQ(2, rx_frame.iface_index);
+    ASSERT_EQ(456, rx_frame.data_type_id);
+    ASSERT_EQ(uavcan::MESSAGE_BROADCAST, rx_frame.transfer_type);
 }
