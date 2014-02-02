@@ -124,10 +124,9 @@ struct Frame
 };
 
 
-struct RxFrame
+struct RxFrame : public Frame
 {
     uint_fast64_t timestamp;
-    Frame frame;
     uint_fast8_t iface_index;
 
     RxFrame()
@@ -137,7 +136,7 @@ struct RxFrame
 
     bool parse(const CanRxFrame& can_frame)
     {
-        if (!frame.parse(can_frame))
+        if (!Frame::parse(can_frame))
             return false;
         timestamp = can_frame.timestamp;
         iface_index = can_frame.iface_index;
