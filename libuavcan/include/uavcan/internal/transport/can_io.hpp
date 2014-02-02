@@ -15,9 +15,8 @@
 namespace uavcan
 {
 
-struct CanRxFrame
+struct CanRxFrame : public CanFrame
 {
-    CanFrame frame;
     uint64_t timestamp;
     uint8_t iface_index;
 

@@ -145,7 +145,7 @@ TEST(Transfer, RxFrameParseCompile)
     ASSERT_FALSE(rx_frame.parse(can_rx_frame));
 
     // Default
-    can_rx_frame.frame.id = CanFrame::FLAG_EFF;
+    can_rx_frame.id = CanFrame::FLAG_EFF;
     ASSERT_TRUE(rx_frame.parse(can_rx_frame));
     ASSERT_EQ(0, rx_frame.timestamp);
     ASSERT_EQ(0, rx_frame.iface_index);

@@ -347,7 +347,7 @@ int CanIOManager::receive(CanRxFrame& frame, uint64_t monotonic_deadline)
                     assert(0);   // Nonexistent interface
                     continue;
                 }
-                const int res = iface->receive(frame.frame, frame.timestamp);
+                const int res = iface->receive(frame, frame.timestamp);
                 if (res == 0)
                 {
                     assert(0);   // select() reported that iface has pending RX frames, but receive() returned none

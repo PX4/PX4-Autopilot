@@ -137,7 +137,7 @@ struct RxFrame
 
     bool parse(const CanRxFrame& can_frame)
     {
-        if (!frame.parse(can_frame.frame))
+        if (!frame.parse(can_frame))
             return false;
         timestamp = can_frame.timestamp;
         iface_index = can_frame.iface_index;

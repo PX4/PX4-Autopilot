@@ -196,13 +196,14 @@ TEST(CanIOManager, CanDriverMock)
 static bool rxFrameEquals(const uavcan::CanRxFrame& rxframe, const uavcan::CanFrame& frame,
                           uint64_t timestamp, int iface_index)
 {
-    if (rxframe.frame != frame)
+    if (static_cast<const uavcan::CanFrame&>(rxframe) != frame)
     {
         std::cout << "Frame mismatch:\n"
-                  << "    " << rxframe.frame.toString(uavcan::CanFrame::STR_ALIGNED) << "\n"
+                  << "    " << rxframe.toString(uavcan::CanFrame::STR_ALIGNED) << "\n"
                   << "    " << frame.toString(uavcan::CanFrame::STR_ALIGNED) << std::endl;
     }
-    return (rxframe.frame == frame) && (rxframe.timestamp == timestamp) && (rxframe.iface_index == iface_index);
+    return (static_cast<const uavcan::CanFrame&>(rxframe) == frame) &&
+        (rxframe.timestamp == timestamp) && (rxframe.iface_index == iface_index);
 }
 
 TEST(CanIOManager, Reception)
