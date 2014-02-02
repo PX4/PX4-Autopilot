@@ -686,6 +686,11 @@ MulticopterPositionControl::task_main()
 					add_vector_to_global_position(_target_pos.lat, _target_pos.lon, _follow_offset(0), _follow_offset(1), &_lat_sp, &_lon_sp);
 					_alt_sp = _target_pos.alt - _follow_offset(2);
 
+					/* position prediction */
+					float target_dt = (t - _target_pos.timestamp) / 1000000.0f;
+					add_vector_to_global_position(_lat_sp, _lon_sp, _target_pos.vel_n * target_dt, _target_pos.vel_e * target_dt, &_lat_sp, &_lon_sp);
+					_alt_sp -= _target_pos.vel_d * target_dt;
+
 					math::Vector<3> vel_target(_target_pos.vel_n, _target_pos.vel_e, _target_pos.vel_d);
 
 					/* add target velocity to setpoint move rate */
