@@ -1568,7 +1568,7 @@ set_main_state_rc(struct vehicle_status_s *status)
 			print_reject_mode(status, "FOLLOW");
 		}
 
-		if (status->assisted_switch == ASSISTED_SWITCH_SEATBELT || status->assisted_switch == ASSISTED_SWITCH_FOLLOW) {
+		if (status->assisted_switch == ASSISTED_SWITCH_EASY || status->assisted_switch == ASSISTED_SWITCH_FOLLOW) {
 			res = main_state_transition(status, MAIN_STATE_EASY);
 
 			if (res != TRANSITION_DENIED)
