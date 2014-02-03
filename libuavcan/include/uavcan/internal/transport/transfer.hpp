@@ -11,12 +11,20 @@
 namespace uavcan
 {
 
+enum NodeIDConstants
+{
+    NODE_ID_BROADCAST = 0,
+    NODE_ID_MAX       = 127,
+    NODE_ID_INVALID   = 255
+};
+
 enum TransferType
 {
     SERVICE_RESPONSE  = 0,
     SERVICE_REQUEST   = 1,
     MESSAGE_BROADCAST = 2,
-    MESSAGE_UNICAST   = 3
+    MESSAGE_UNICAST   = 3,
+    NUM_TRANSFER_TYPES = 4
 };
 
 
