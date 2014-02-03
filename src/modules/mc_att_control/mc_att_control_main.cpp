@@ -480,40 +480,42 @@ MulticopterAttitudeControl::control_attitude(float dt)
 			_reset_yaw_sp = true;
 		}
 
-		/* move yaw setpoint in all modes */
-		if (_v_att_sp.thrust < 0.1f) {
-			// TODO
-			//if (_status.condition_landed) {
-			/* reset yaw setpoint if on ground */
-			//	reset_yaw_sp = true;
-			//}
-		} else {
-			float yaw_dz_scaled = YAW_DEADZONE * _params.rc_scale_yaw;
+		/* move yaw setpoint in all modes except follow */
+		if (!_v_control_mode.flag_follow_target) {
+			if (_v_att_sp.thrust < 0.1f) {
+				// TODO
+				//if (_status.condition_landed) {
+				/* reset yaw setpoint if on ground */
+				//	reset_yaw_sp = true;
+				//}
+			} else {
+				float yaw_dz_scaled = YAW_DEADZONE * _params.rc_scale_yaw;
 
-			if (_params.rc_scale_yaw > 0.001f && fabs(_manual_control_sp.yaw) > yaw_dz_scaled) {
-				/* move yaw setpoint */
-				yaw_sp_move_rate = _manual_control_sp.yaw / _params.rc_scale_yaw;
+				if (_params.rc_scale_yaw > 0.001f && fabs(_manual_control_sp.yaw) > yaw_dz_scaled) {
+					/* move yaw setpoint */
+					yaw_sp_move_rate = _manual_control_sp.yaw / _params.rc_scale_yaw;
 
-				if (_manual_control_sp.yaw > 0.0f) {
-					yaw_sp_move_rate -= YAW_DEADZONE;
+					if (_manual_control_sp.yaw > 0.0f) {
+						yaw_sp_move_rate -= YAW_DEADZONE;
 
-				} else {
-					yaw_sp_move_rate += YAW_DEADZONE;
+					} else {
+						yaw_sp_move_rate += YAW_DEADZONE;
+					}
+
+					yaw_sp_move_rate *= _params.rc_scale_yaw;
+					_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + yaw_sp_move_rate * dt);
+					_v_att_sp.R_valid = false;
+					publish_att_sp = true;
 				}
+			}
 
-				yaw_sp_move_rate *= _params.rc_scale_yaw;
-				_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + yaw_sp_move_rate * dt);
+			/* reset yaw setpint to current position if needed */
+			if (_reset_yaw_sp) {
+				_reset_yaw_sp = false;
+				_v_att_sp.yaw_body = _v_att.yaw;
 				_v_att_sp.R_valid = false;
 				publish_att_sp = true;
 			}
-		}
-
-		/* reset yaw setpint to current position if needed */
-		if (_reset_yaw_sp) {
-			_reset_yaw_sp = false;
-			_v_att_sp.yaw_body = _v_att.yaw;
-			_v_att_sp.R_valid = false;
-			publish_att_sp = true;
 		}
 
 		if (!_v_control_mode.flag_control_velocity_enabled) {
