@@ -193,6 +193,7 @@ private:
 	math::Vector<3> _vel_prev;			/**< velocity on previous step */
 
 	math::Vector<3> _follow_offset;		/**< offset from target for FOLLOW mode, vector in NED frame */
+	float _follow_yaw_offset;			/**< yaw offset from direction to target in FOLLOW mode */
 
 	/**
 	 * Update our local parameter cache.
@@ -309,6 +310,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	/* initialize to safe value to avoid flying into target */
 	_follow_offset.zero();
 	_follow_offset(2) = -20.0f;
+	_follow_yaw_offset = 0.0f;
 
 	_params_handles.thr_min		= param_find("MPC_THR_MIN");
 	_params_handles.thr_max		= param_find("MPC_THR_MAX");
@@ -513,6 +515,7 @@ MulticopterPositionControl::reset_follow_offset()
 			_reset_lat_lon_sp ? _global_pos.lon : _lon_sp,
 			&_follow_offset.data[0], &_follow_offset.data[1]);
 		_follow_offset(2) = - ((_reset_alt_sp ? _global_pos.alt : _alt_sp) - _target_pos.alt);
+		_follow_yaw_offset = atan2f(_follow_offset(1), _follow_offset(0));
 		mavlink_log_info(_mavlink_fd, "[mpc] reset follow offs: %.2f, %.2f, %.2f", _follow_offset(0), _follow_offset(1), _follow_offset(2));
 	}
 }
@@ -691,9 +694,24 @@ MulticopterPositionControl::task_main()
 					add_vector_to_global_position(_lat_sp, _lon_sp, _target_pos.vel_n * target_dt, _target_pos.vel_e * target_dt, &_lat_sp, &_lon_sp);
 					_alt_sp -= _target_pos.vel_d * target_dt;
 
-					math::Vector<3> vel_target(_target_pos.vel_n, _target_pos.vel_e, _target_pos.vel_d);
+					/* change yaw to keep direction to target */
+					math::Vector<2> current_offset_xy;
+					get_vector_to_next_waypoint_fast(_target_pos.lat, _target_pos.lon, _global_pos.lat, _global_pos.lon, &current_offset_xy.data[0], &current_offset_xy.data[1]);
+
+					/* use position prediction */
+					current_offset_xy(0) -= _target_pos.vel_n * target_dt;
+					current_offset_xy(1) -= _target_pos.vel_e * target_dt;
+
+					/* change yaw offset with yaw stick */
+					_follow_yaw_offset += _manual.yaw * dt;
+
+					/* don't try to rotate near singularity */
+					if (current_offset_xy.length() > 1.0f) {
+						_att_sp.yaw_body = atan2f(current_offset_xy(1), current_offset_xy(0)) + _follow_yaw_offset;
+					}
 
 					/* add target velocity to setpoint move rate */
+					math::Vector<3> vel_target(_target_pos.vel_n, _target_pos.vel_e, _target_pos.vel_d);
 					sp_move_rate += vel_target;
 
 					/* feed forward target velocity */
