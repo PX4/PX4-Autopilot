@@ -154,6 +154,7 @@ private:
 		param_t land_speed;
 		param_t land_tilt_max;
 		param_t follow_ff;
+		param_t follow_dist;
 
 		param_t rc_scale_pitch;
 		param_t rc_scale_roll;
@@ -166,6 +167,7 @@ private:
 		float land_speed;
 		float land_tilt_max;
 		float follow_ff;
+		float follow_dist;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -299,8 +301,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params.vel_p.zero();
 	_params.vel_i.zero();
 	_params.vel_d.zero();
-	_params.vel_max.zero();
 	_params.vel_ff.zero();
+	_params.vel_max.zero();
 	_params.sp_offs_max.zero();
 
 	_vel.zero();
@@ -330,6 +332,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
 	_params_handles.land_tilt_max	= param_find("MPC_LAND_TILT");
 	_params_handles.follow_ff	= param_find("MPC_FOLLOW_FF");
+	_params_handles.follow_dist	= param_find("MPC_FOLLOW_DIST");
 
 	_params_handles.rc_scale_pitch	= param_find("RC_SCALE_PITCH");
 	_params_handles.rc_scale_roll	= param_find("RC_SCALE_ROLL");
@@ -380,6 +383,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.land_speed, &_params.land_speed);
 		param_get(_params_handles.land_tilt_max, &_params.land_tilt_max);
 		param_get(_params_handles.follow_ff, &_params.follow_ff);
+		param_get(_params_handles.follow_dist, &_params.follow_dist);
 
 		float v;
 		param_get(_params_handles.xy_p, &v);
@@ -686,6 +690,14 @@ MulticopterPositionControl::task_main()
 					/* follow target, change offset from target instead of moving setpoint directly */
 					reset_follow_offset();
 					_follow_offset += sp_move_rate * dt;
+
+					/* don't allow to get closer than MC_FOLLOW_DIST */
+					float follow_offset_len = _follow_offset.length();
+					if (follow_offset_len < _params.follow_dist && follow_offset_len > 0.001f) {
+						_follow_offset *= _params.follow_dist / follow_offset_len;
+					}
+
+					/* calculate position setpoint */
 					add_vector_to_global_position(_target_pos.lat, _target_pos.lon, _follow_offset(0), _follow_offset(1), &_lat_sp, &_lon_sp);
 					_alt_sp = _target_pos.alt - _follow_offset(2);
 
