@@ -8,7 +8,6 @@
 
 namespace uavcan
 {
-
 /**
  * Usage:
  *  StaticAssert<expression>::check();
@@ -26,5 +25,11 @@ struct StaticAssert<true>
 {
     static void check() { }
 };
+
+/**
+ * Usage:
+ *  ShowIntegerAsError<integer_expression>::foobar();
+ */
+template<long N> struct ShowIntegerAsError;
 
 }

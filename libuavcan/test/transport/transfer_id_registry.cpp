@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 <pavel.kirienko@gmail.com>
+ * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
 #include <gtest/gtest.h>
@@ -26,7 +26,7 @@ TEST(TransferIDRegistry, Basic)
     typedef TransferIDRegistry::Entry Entry;
 
     static const int POOL_BLOCKS = 8;
-    uavcan::PoolAllocator<32 * POOL_BLOCKS, 32> pool;
+    uavcan::PoolAllocator<uavcan::MEM_POOL_BLOCK_SIZE * POOL_BLOCKS, uavcan::MEM_POOL_BLOCK_SIZE> pool;
     uavcan::PoolManager<2> poolmgr;
     poolmgr.addPool(&pool);
 

@@ -9,7 +9,7 @@
 #include <stdint.h>
 #include <uavcan/internal/linked_list.hpp>
 #include <uavcan/internal/dynamic_memory.hpp>
-#include <uavcan/internal/static_assert.hpp>
+#include <uavcan/internal/impl_constants.hpp>
 #include <uavcan/can_driver.hpp>
 #include <uavcan/system_clock.hpp>
 
@@ -33,8 +33,7 @@ class CanTxQueue
 public:
     enum Qos { VOLATILE, PERSISTENT };
 
-#pragma pack(push, 1)
-    struct Entry : public LinkedListNode<Entry>
+    struct Entry : public LinkedListNode<Entry>  // Not required to be packed - fits the block in any case
     {
         uint64_t monotonic_deadline;
         CanFrame frame;
@@ -46,7 +45,7 @@ public:
         , qos(uint8_t(qos))
         {
             assert(qos == VOLATILE || qos == PERSISTENT);
-            StaticAssert<sizeof(Entry) <= 32>::check();
+            AssertDynamicallyAllocatable<Entry>::check();
         }
 
         bool isExpired(uint64_t monotonic_timestamp) const { return monotonic_timestamp > monotonic_deadline; }
@@ -58,7 +57,6 @@ public:
 
         std::string toString() const;
     };
-#pragma pack(pop)
 
 private:
     class PriorityInsertionComparator

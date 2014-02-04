@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <uavcan/internal/transport/transfer.hpp>
 #include <uavcan/internal/linked_list.hpp>
-#include <uavcan/internal/static_assert.hpp>
+#include <uavcan/internal/impl_constants.hpp>
 #include <uavcan/internal/dynamic_memory.hpp>
 
 namespace uavcan
@@ -81,13 +81,13 @@ private:
     {
         enum
         {
-            NUM_ENTRIES = (32 - sizeof(LinkedListNode<StorageEntryGroup>)) / sizeof(StorageEntry)
+            NUM_ENTRIES = (MEM_POOL_BLOCK_SIZE - sizeof(LinkedListNode<StorageEntryGroup>)) / sizeof(StorageEntry)
         };
         StorageEntry entries[NUM_ENTRIES];
 
         StorageEntryGroup()
         {
-            StaticAssert<sizeof(StorageEntryGroup) <= 32>::check();
+            AssertDynamicallyAllocatable<StorageEntryGroup>::check();
             StaticAssert<NUM_ENTRIES >= 2>::check();
         }
     };
