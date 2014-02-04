@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *   Author: @author Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,29 +33,46 @@
  ****************************************************************************/
 
 /**
- * @file mc_pos_control_params.c
- * Multicopter position controller parameters.
+ * @file target_global_position.h
+ * Definition of the global fused WGS84 target position uORB topic.
  */
 
-#include <systemlib/param/param.h>
+#ifndef TARGET_GLOBAL_POSITION_T_H_
+#define TARGET_GLOBAL_POSITION_T_H_
 
-PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.0f);
-PARAM_DEFINE_FLOAT(MPC_THR_MAX, 1.0f);
-PARAM_DEFINE_FLOAT(MPC_Z_P, 1.0f);
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_P, 0.1f);
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_I, 0.02f);
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_D, 0.0f);
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX, 5.0f);
-PARAM_DEFINE_FLOAT(MPC_Z_FF, 0.5f);
-PARAM_DEFINE_FLOAT(MPC_XY_P, 1.0f);
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_P, 0.1f);
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_I, 0.02f);
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 5.0f);
-PARAM_DEFINE_FLOAT(MPC_XY_FF, 0.5f);
-PARAM_DEFINE_FLOAT(MPC_TILT_MAX, 1.0f);
-PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 1.0f);
-PARAM_DEFINE_FLOAT(MPC_LAND_TILT, 0.3f);
-PARAM_DEFINE_FLOAT(MPC_FOLLOW_FF, 0.0f);
-PARAM_DEFINE_FLOAT(MPC_FOLLOW_DIST, 10.0f);
-PARAM_DEFINE_FLOAT(MPC_FOLLOW_AOFF, 0.0f);
+#include <stdint.h>
+#include <stdbool.h>
+#include "../uORB.h"
+
+/**
+ * @addtogroup topics
+ * @{
+ */
+
+ /**
+ * Target global position in WGS84.
+ */
+struct target_global_position_s
+{
+	uint64_t timestamp;	/**< time of this estimate, in microseconds since system start */
+	uint8_t sysid;		/**< sysid of target */
+	uint64_t time_gps_usec; 	/**< GPS timestamp in microseconds							   */
+	bool valid;			/**< true if position satisfies validity criteria of estimator */
+
+	double lat;			/**< Latitude in degrees							 	   */
+	double lon;			/**< Longitude in degrees							 	   */
+	float alt;			/**< Altitude in meters								 	   */
+	float vel_n; 		/**< Ground north velocity, m/s				 			   */
+	float vel_e;		/**< Ground east velocity, m/s							   */
+	float vel_d;		/**< Ground downside velocity, m/s						   */
+	float yaw; 			/**< Yaw in radians -PI..+PI.							   */
+};
+
+/**
+ * @}
+ */
+
+/* register this as object request broker structure */
+ORB_DECLARE(target_global_position);
+
+#endif

@@ -102,6 +102,9 @@ ORB_DEFINE(vehicle_vicon_position, struct vehicle_vicon_position_s);
 #include "topics/vehicle_rates_setpoint.h"
 ORB_DEFINE(vehicle_rates_setpoint, struct vehicle_rates_setpoint_s);
 
+#include "topics/target_global_position.h"
+ORB_DEFINE(target_global_position, struct target_global_position_s);
+
 #include "topics/rc_channels.h"
 ORB_DEFINE(rc_channels, struct rc_channels_s);
 

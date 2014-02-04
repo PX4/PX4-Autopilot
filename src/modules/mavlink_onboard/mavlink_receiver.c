@@ -85,9 +85,9 @@ orb_advert_t pub_hil_attitude = -1;
 
 static orb_advert_t cmd_pub = -1;
 static orb_advert_t flow_pub = -1;
-
 static orb_advert_t offboard_control_sp_pub = -1;
 static orb_advert_t vicon_position_pub = -1;
+static orb_advert_t target_pos_pub = -1;
 
 extern bool gcs_link;
 
@@ -213,7 +213,6 @@ handle_message(mavlink_message_t *msg)
 	}
 
 	/* Handle quadrotor motor setpoints */
-
 	if (msg->msgid == MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST) {
 		mavlink_set_quad_swarm_roll_pitch_yaw_thrust_t quad_motors_setpoint;
 		mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_decode(msg, &quad_motors_setpoint);
@@ -281,6 +280,33 @@ handle_message(mavlink_message_t *msg)
 		}
 	}
 
+	/* Handle global position */
+	if (msg->msgid == MAVLINK_MSG_ID_GLOBAL_POSITION_INT) {
+		mavlink_global_position_int_t pos;
+		mavlink_msg_global_position_int_decode(msg, &pos);
+
+		struct target_global_position_s target_pos;
+
+		target_pos.timestamp = hrt_absolute_time();
+		target_pos.sysid = msg->sysid;
+		target_pos.valid = true;
+		target_pos.lat = pos.lat / 1e7d;
+		target_pos.lon = pos.lon / 1e7d;
+		target_pos.alt = pos.alt / 1000.0f;
+		target_pos.vel_n = pos.vx / 100.0f;
+		target_pos.vel_e = pos.vy / 100.0f;
+		target_pos.vel_d = pos.vz / 100.0f;
+		target_pos.yaw = _wrap_pi(pos.hdg / (float)(18000.0f * M_PI));
+
+		/* check if topic is advertised */
+		if (target_pos_pub <= 0) {
+			target_pos_pub = orb_advertise(ORB_ID(target_global_position), &target_pos);
+
+		} else {
+			/* publish */
+			orb_publish(ORB_ID(target_global_position), target_pos_pub, &target_pos);
+		}
+	}
 }
 
 

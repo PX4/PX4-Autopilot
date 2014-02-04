@@ -66,6 +66,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
+#include <uORB/topics/target_global_position.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/pid/pid.h>
@@ -116,8 +117,9 @@ private:
 	int 	_params_sub;			/**< notification of parameter updates */
 	int 	_manual_sub;			/**< notification of manual control updates */
 	int		_arming_sub;			/**< arming status of outputs */
-	int		_global_pos_sub;			/**< vehicle local position */
+	int		_global_pos_sub;			/**< vehicle global position */
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
+	int		_target_pos_sub;			/**< target global position subscription */
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_pos_sp_triplet_pub;	/**< position setpoint triplet publication */
@@ -131,6 +133,7 @@ private:
 	struct vehicle_global_position_s		_global_pos;	/**< vehicle global position */
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;	/**< vehicle global velocity setpoint */
+	struct target_global_position_s		_target_pos;	/**< target global position */
 
 	struct {
 		param_t thr_min;
@@ -150,6 +153,9 @@ private:
 		param_t tilt_max;
 		param_t land_speed;
 		param_t land_tilt_max;
+		param_t follow_ff;
+		param_t follow_dist;
+		param_t follow_alt_offs;
 
 		param_t rc_scale_pitch;
 		param_t rc_scale_roll;
@@ -161,9 +167,9 @@ private:
 		float tilt_max;
 		float land_speed;
 		float land_tilt_max;
-
-		float rc_scale_pitch;
-		float rc_scale_roll;
+		float follow_ff;
+		float follow_dist;
+		float follow_alt_offs;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -172,19 +178,27 @@ private:
 		math::Vector<3> vel_ff;
 		math::Vector<3> vel_max;
 		math::Vector<3> sp_offs_max;
+
+		float rc_scale_pitch;
+		float rc_scale_roll;
 	}		_params;
 
 	double _lat_sp;
 	double _lon_sp;
 	float _alt_sp;
+	float _target_alt_offs;		/**< target altitude offset, add this value to target altitude */
 
 	bool _reset_lat_lon_sp;
 	bool _reset_alt_sp;
+	bool _reset_follow_offset;
 	bool _use_global_alt;			/**< switch between global (AMSL) and barometric altitudes */
 
 	math::Vector<3> _vel;
 	math::Vector<3> _vel_sp;
 	math::Vector<3> _vel_prev;			/**< velocity on previous step */
+
+	math::Vector<3> _follow_offset;		/**< offset from target for FOLLOW mode, vector in NED frame */
+	float _follow_yaw_offset;			/**< yaw offset from direction to target in FOLLOW mode */
 
 	/**
 	 * Update our local parameter cache.
@@ -212,6 +226,11 @@ private:
 	 * Reset altitude setpoint to current altitude
 	 */
 	void		reset_alt_sp();
+
+	/**
+	 * Reset follow offset to current offset.
+	 */
+	void		reset_follow_offset();
 
 	/**
 	 * Select between barometric and global (AMSL) altitudes
@@ -265,9 +284,11 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_lat_sp(0.0),
 	_lon_sp(0.0),
 	_alt_sp(0.0f),
+	_target_alt_offs(0.0f),
 
 	_reset_lat_lon_sp(true),
 	_reset_alt_sp(true),
+	_reset_follow_offset(true),
 	_use_global_alt(false)
 {
 	memset(&_att, 0, sizeof(_att));
@@ -278,18 +299,24 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	memset(&_global_pos, 0, sizeof(_global_pos));
 	memset(&_pos_sp_triplet, 0, sizeof(_pos_sp_triplet));
 	memset(&_global_vel_sp, 0, sizeof(_global_vel_sp));
+	memset(&_target_pos, 0, sizeof(_target_pos));
 
 	_params.pos_p.zero();
 	_params.vel_p.zero();
 	_params.vel_i.zero();
 	_params.vel_d.zero();
-	_params.vel_max.zero();
 	_params.vel_ff.zero();
+	_params.vel_max.zero();
 	_params.sp_offs_max.zero();
 
 	_vel.zero();
 	_vel_sp.zero();
 	_vel_prev.zero();
+
+	/* initialize to safe value to avoid flying into target */
+	_follow_offset.zero();
+	_follow_offset(2) = -20.0f;
+	_follow_yaw_offset = 0.0f;
 
 	_params_handles.thr_min		= param_find("MPC_THR_MIN");
 	_params_handles.thr_max		= param_find("MPC_THR_MAX");
@@ -308,6 +335,10 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.tilt_max	= param_find("MPC_TILT_MAX");
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
 	_params_handles.land_tilt_max	= param_find("MPC_LAND_TILT");
+	_params_handles.follow_ff	= param_find("MPC_FOLLOW_FF");
+	_params_handles.follow_dist	= param_find("MPC_FOLLOW_DIST");
+	_params_handles.follow_alt_offs	= param_find("MPC_FOLLOW_AOFF");
+
 	_params_handles.rc_scale_pitch	= param_find("RC_SCALE_PITCH");
 	_params_handles.rc_scale_roll	= param_find("RC_SCALE_ROLL");
 
@@ -356,8 +387,9 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.tilt_max, &_params.tilt_max);
 		param_get(_params_handles.land_speed, &_params.land_speed);
 		param_get(_params_handles.land_tilt_max, &_params.land_tilt_max);
-		param_get(_params_handles.rc_scale_pitch, &_params.rc_scale_pitch);
-		param_get(_params_handles.rc_scale_roll, &_params.rc_scale_roll);
+		param_get(_params_handles.follow_ff, &_params.follow_ff);
+		param_get(_params_handles.follow_dist, &_params.follow_dist);
+		param_get(_params_handles.follow_alt_offs, &_params.follow_alt_offs);
 
 		float v;
 		param_get(_params_handles.xy_p, &v);
@@ -392,6 +424,9 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.vel_ff(2) = v;
 
 		_params.sp_offs_max = _params.vel_max.edivide(_params.pos_p) * 2.0f;
+
+		param_get(_params_handles.rc_scale_pitch, &_params.rc_scale_pitch);
+		param_get(_params_handles.rc_scale_roll, &_params.rc_scale_roll);
 	}
 
 	return OK;
@@ -431,6 +466,11 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated)
 		orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
+
+	orb_check(_target_pos_sub, &updated);
+
+	if (updated)
+		orb_copy(ORB_ID(target_global_position), _target_pos_sub, &_target_pos);
 }
 
 float
@@ -475,19 +515,37 @@ MulticopterPositionControl::reset_alt_sp()
 }
 
 void
+MulticopterPositionControl::reset_follow_offset()
+{
+	if (_reset_follow_offset) {
+		_reset_follow_offset = false;
+		get_vector_to_next_waypoint_fast(
+			_target_pos.lat, _target_pos.lon,
+			_reset_lat_lon_sp ? _global_pos.lat : _lat_sp,
+			_reset_lat_lon_sp ? _global_pos.lon : _lon_sp,
+			&_follow_offset.data[0], &_follow_offset.data[1]);
+		_follow_offset(2) = - ((_reset_alt_sp ? _global_pos.alt : _alt_sp) - _target_pos.alt - _target_alt_offs);
+		_follow_yaw_offset = _wrap_pi(_att_sp.yaw_body - atan2f(_follow_offset(1), _follow_offset(0)));
+		mavlink_log_info(_mavlink_fd, "[mpc] reset follow offs: %.2f, %.2f, %.2f", _follow_offset(0), _follow_offset(1), _follow_offset(2));
+	}
+}
+
+
+void
 MulticopterPositionControl::select_alt(bool global)
 {
 	if (global != _use_global_alt) {
 		_use_global_alt = global;
 
-		if (global) {
-			/* switch from barometric to global altitude */
-			_alt_sp += _global_pos.alt - _global_pos.baro_alt;
+		/* switch from barometric to global altitude or vise versa */
+		float change = _global_pos.baro_alt - _global_pos.alt;
 
-		} else {
-			/* switch from global to barometric altitude */
-			_alt_sp += _global_pos.baro_alt - _global_pos.alt;
+		if (global) {
+			change = -change;
 		}
+
+		_alt_sp += change;
+		_follow_offset(2) += change;
 	}
 }
 
@@ -510,6 +568,7 @@ MulticopterPositionControl::task_main()
 	_arming_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
+	_target_pos_sub = orb_subscribe(ORB_ID(target_global_position));
 
 	parameters_update(true);
 
@@ -531,6 +590,8 @@ MulticopterPositionControl::task_main()
 
 	math::Vector<3> sp_move_rate;
 	sp_move_rate.zero();
+	math::Vector<3> vel_ff;
+	vel_ff.zero();
 	math::Vector<3> thrust_int;
 	thrust_int.zero();
 	math::Matrix<3, 3> R;
@@ -568,8 +629,14 @@ MulticopterPositionControl::task_main()
 			/* reset setpoints and integrals on arming */
 			_reset_lat_lon_sp = true;
 			_reset_alt_sp = true;
+			_reset_follow_offset = true;
 			reset_int_z = true;
 			reset_int_xy = true;
+			if (_target_pos.valid && _target_pos.timestamp < hrt_absolute_time() + 1000000) {
+				_target_alt_offs = _global_pos.alt - _target_pos.alt - _params.follow_alt_offs;
+			} else {
+				_target_alt_offs = 0.0f;
+			}
 		}
 
 		was_armed = _control_mode.flag_armed;
@@ -584,11 +651,13 @@ MulticopterPositionControl::task_main()
 			_vel(2) = _global_pos.vel_d;
 
 			sp_move_rate.zero();
+			vel_ff.zero();
 
 			float alt = _global_pos.alt;
 
 			/* select control source */
 			if (_control_mode.flag_control_manual_enabled) {
+				/* manual control */
 				/* select altitude source and update setpoint */
 				select_alt(_global_pos.global_valid);
 
@@ -596,7 +665,6 @@ MulticopterPositionControl::task_main()
 					alt = _global_pos.baro_alt;
 				}
 
-				/* manual control */
 				if (_control_mode.flag_control_altitude_enabled) {
 					/* reset alt setpoint to current altitude if needed */
 					reset_alt_sp();
@@ -626,9 +694,59 @@ MulticopterPositionControl::task_main()
 				R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
 				sp_move_rate = R_yaw_sp * sp_move_rate.emult(_params.vel_max);
 
-				/* move position setpoint */
-				add_vector_to_global_position(_lat_sp, _lon_sp, sp_move_rate(0) * dt, sp_move_rate(1) * dt, &_lat_sp, &_lon_sp);
-				_alt_sp -= sp_move_rate(2) * dt;
+				/* feed forward manual setpoint move rate with weight vel_ff */
+				vel_ff = sp_move_rate.emult(_params.vel_ff);
+
+				if (_control_mode.flag_follow_target) {
+					/* follow target, change offset from target instead of moving setpoint directly */
+					reset_follow_offset();
+					math::Vector<3> follow_offset_new = _follow_offset + sp_move_rate * dt;
+
+					/* don't allow to get closer than MC_FOLLOW_DIST */
+					float follow_offset_len = _follow_offset.length();
+					float follow_offset_new_len = follow_offset_new.length();
+					if (follow_offset_new_len > _params.follow_dist || follow_offset_new_len > follow_offset_len) {
+						_follow_offset = follow_offset_new;
+					}
+
+					/* calculate position setpoint */
+					add_vector_to_global_position(_target_pos.lat, _target_pos.lon, _follow_offset(0), _follow_offset(1), &_lat_sp, &_lon_sp);
+					_alt_sp = _target_pos.alt + _target_alt_offs - _follow_offset(2);
+
+					/* position prediction */
+					float target_dt = (t - _target_pos.timestamp) / 1000000.0f;
+					add_vector_to_global_position(_lat_sp, _lon_sp, _target_pos.vel_n * target_dt, _target_pos.vel_e * target_dt, &_lat_sp, &_lon_sp);
+					_alt_sp -= _target_pos.vel_d * target_dt;
+
+					/* change yaw to keep direction to target */
+					math::Vector<2> current_offset_xy;
+					get_vector_to_next_waypoint_fast(_target_pos.lat, _target_pos.lon, _global_pos.lat, _global_pos.lon, &current_offset_xy.data[0], &current_offset_xy.data[1]);
+
+					/* use position prediction */
+					current_offset_xy(0) -= _target_pos.vel_n * target_dt;
+					current_offset_xy(1) -= _target_pos.vel_e * target_dt;
+
+					/* change yaw offset with yaw stick */
+					_follow_yaw_offset += _manual.yaw * dt;
+
+					/* don't try to rotate near singularity */
+					if (current_offset_xy.length() > 1.0f) {
+						_att_sp.yaw_body = _wrap_pi(atan2f(current_offset_xy(1), current_offset_xy(0)) + _follow_yaw_offset);
+					}
+
+					/* add target velocity to setpoint move rate */
+					math::Vector<3> vel_target(_target_pos.vel_n, _target_pos.vel_e, _target_pos.vel_d);
+					sp_move_rate += vel_target;
+
+					/* feed forward target velocity */
+					vel_ff = vel_target * _params.follow_ff;
+
+				} else {
+					/* normal node, move position setpoint */
+					add_vector_to_global_position(_lat_sp, _lon_sp, sp_move_rate(0) * dt, sp_move_rate(1) * dt, &_lat_sp, &_lon_sp);
+					_alt_sp -= sp_move_rate(2) * dt;
+					_reset_follow_offset = true;
+				}
 
 				/* check if position setpoint is too far from actual position */
 				math::Vector<3> pos_sp_offs;
@@ -690,6 +808,7 @@ MulticopterPositionControl::task_main()
 					/* in case of interrupted mission don't go to waypoint but stay at current position */
 					_reset_lat_lon_sp = true;
 					_reset_alt_sp = true;
+					_reset_follow_offset = true;
 
 					/* update position setpoint */
 					_lat_sp = _pos_sp_triplet.current.lat;
@@ -705,6 +824,7 @@ MulticopterPositionControl::task_main()
 					/* no waypoint, loiter, reset position setpoint if needed */
 					reset_lat_lon_sp();
 					reset_alt_sp();
+					reset_follow_offset();
 				}
 			}
 
@@ -736,7 +856,7 @@ MulticopterPositionControl::task_main()
 				get_vector_to_next_waypoint_fast(_global_pos.lat, _global_pos.lon, _lat_sp, _lon_sp, &pos_err.data[0], &pos_err.data[1]);
 				pos_err(2) = -(_alt_sp - alt);
 
-				_vel_sp = pos_err.emult(_params.pos_p) + sp_move_rate.emult(_params.vel_ff);
+				_vel_sp = pos_err.emult(_params.pos_p) + vel_ff;
 
 				if (!_control_mode.flag_control_altitude_enabled) {
 					_reset_alt_sp = true;
@@ -816,7 +936,7 @@ MulticopterPositionControl::task_main()
 					/* velocity error */
 					math::Vector<3> vel_err = _vel_sp - _vel;
 
-					/* derivative of velocity error, not includes setpoint acceleration */
+					/* derivative of velocity error */
 					math::Vector<3> vel_err_d = (sp_move_rate - _vel).emult(_params.pos_p) - (_vel - _vel_prev) / dt;
 					_vel_prev = _vel;
 
@@ -1027,6 +1147,7 @@ MulticopterPositionControl::task_main()
 			/* position controller disabled, reset setpoints */
 			_reset_alt_sp = true;
 			_reset_lat_lon_sp = true;
+			_reset_follow_offset = true;
 			reset_int_z = true;
 			reset_int_xy = true;
 		}
