@@ -45,7 +45,7 @@ public:
         , qos(uint8_t(qos))
         {
             assert(qos == VOLATILE || qos == PERSISTENT);
-            AssertDynamicallyAllocatable<Entry>::check();
+            IsDynamicallyAllocatable<Entry>::check();
         }
 
         bool isExpired(uint64_t monotonic_timestamp) const { return monotonic_timestamp > monotonic_deadline; }

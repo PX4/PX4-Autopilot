@@ -25,7 +25,7 @@ enum { MEM_POOL_ALIGNMENT = 8 };
 typedef char _alignment_check_for_MEM_POOL_BLOCK_SIZE[((MEM_POOL_BLOCK_SIZE & (MEM_POOL_ALIGNMENT - 1)) == 0) ? 1 : -1];
 
 template <typename T>
-struct AssertDynamicallyAllocatable
+struct IsDynamicallyAllocatable
 {
     static void check() { StaticAssert<sizeof(T) <= MEM_POOL_BLOCK_SIZE>::check(); }
 };

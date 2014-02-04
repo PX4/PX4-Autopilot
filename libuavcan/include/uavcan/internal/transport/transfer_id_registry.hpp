@@ -87,7 +87,7 @@ private:
 
         StorageEntryGroup()
         {
-            AssertDynamicallyAllocatable<StorageEntryGroup>::check();
+            IsDynamicallyAllocatable<StorageEntryGroup>::check();
             StaticAssert<NUM_ENTRIES >= 2>::check();
         }
     };
