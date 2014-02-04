@@ -1938,6 +1938,10 @@ void *commander_low_prio_loop(void *arg)
 				break;
 			}
 
+		case VEHICLE_CMD_START_RX_PAIR:
+		/* handled in the IO driver */
+		break;
+
 		default:
 			/* don't answer on unsupported commands, it will be done in main loop */
 			break;
