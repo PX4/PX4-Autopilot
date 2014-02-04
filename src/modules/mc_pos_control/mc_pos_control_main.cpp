@@ -155,6 +155,7 @@ private:
 		param_t land_tilt_max;
 		param_t follow_ff;
 		param_t follow_dist;
+		param_t follow_alt_offs;
 
 		param_t rc_scale_pitch;
 		param_t rc_scale_roll;
@@ -168,6 +169,7 @@ private:
 		float land_tilt_max;
 		float follow_ff;
 		float follow_dist;
+		float follow_alt_offs;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -184,6 +186,7 @@ private:
 	double _lat_sp;
 	double _lon_sp;
 	float _alt_sp;
+	float _target_alt_offs;		/**< target altitude offset, add this value to target altitude */
 
 	bool _reset_lat_lon_sp;
 	bool _reset_alt_sp;
@@ -281,6 +284,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_lat_sp(0.0),
 	_lon_sp(0.0),
 	_alt_sp(0.0f),
+	_target_alt_offs(0.0f),
 
 	_reset_lat_lon_sp(true),
 	_reset_alt_sp(true),
@@ -333,6 +337,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.land_tilt_max	= param_find("MPC_LAND_TILT");
 	_params_handles.follow_ff	= param_find("MPC_FOLLOW_FF");
 	_params_handles.follow_dist	= param_find("MPC_FOLLOW_DIST");
+	_params_handles.follow_alt_offs	= param_find("MPC_FOLLOW_AOFF");
 
 	_params_handles.rc_scale_pitch	= param_find("RC_SCALE_PITCH");
 	_params_handles.rc_scale_roll	= param_find("RC_SCALE_ROLL");
@@ -384,6 +389,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.land_tilt_max, &_params.land_tilt_max);
 		param_get(_params_handles.follow_ff, &_params.follow_ff);
 		param_get(_params_handles.follow_dist, &_params.follow_dist);
+		param_get(_params_handles.follow_alt_offs, &_params.follow_alt_offs);
 
 		float v;
 		param_get(_params_handles.xy_p, &v);
@@ -518,7 +524,7 @@ MulticopterPositionControl::reset_follow_offset()
 			_reset_lat_lon_sp ? _global_pos.lat : _lat_sp,
 			_reset_lat_lon_sp ? _global_pos.lon : _lon_sp,
 			&_follow_offset.data[0], &_follow_offset.data[1]);
-		_follow_offset(2) = - ((_reset_alt_sp ? _global_pos.alt : _alt_sp) - _target_pos.alt);
+		_follow_offset(2) = - ((_reset_alt_sp ? _global_pos.alt : _alt_sp) - _target_pos.alt - _target_alt_offs);
 		_follow_yaw_offset = _wrap_pi(_att_sp.yaw_body - atan2f(_follow_offset(1), _follow_offset(0)));
 		mavlink_log_info(_mavlink_fd, "[mpc] reset follow offs: %.2f, %.2f, %.2f", _follow_offset(0), _follow_offset(1), _follow_offset(2));
 	}
@@ -626,6 +632,11 @@ MulticopterPositionControl::task_main()
 			_reset_follow_offset = true;
 			reset_int_z = true;
 			reset_int_xy = true;
+			if (_target_pos.valid && _target_pos.timestamp < hrt_absolute_time() + 1000000) {
+				_target_alt_offs = _global_pos.alt - _target_pos.alt - _params.follow_alt_offs;
+			} else {
+				_target_alt_offs = 0.0f;
+			}
 		}
 
 		was_armed = _control_mode.flag_armed;
@@ -700,7 +711,7 @@ MulticopterPositionControl::task_main()
 
 					/* calculate position setpoint */
 					add_vector_to_global_position(_target_pos.lat, _target_pos.lon, _follow_offset(0), _follow_offset(1), &_lat_sp, &_lon_sp);
-					_alt_sp = _target_pos.alt - _follow_offset(2);
+					_alt_sp = _target_pos.alt + _target_alt_offs - _follow_offset(2);
 
 					/* position prediction */
 					float target_dt = (t - _target_pos.timestamp) / 1000000.0f;
