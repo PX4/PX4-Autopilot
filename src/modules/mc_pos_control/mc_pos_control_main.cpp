@@ -519,7 +519,7 @@ MulticopterPositionControl::reset_follow_offset()
 			_reset_lat_lon_sp ? _global_pos.lon : _lon_sp,
 			&_follow_offset.data[0], &_follow_offset.data[1]);
 		_follow_offset(2) = - ((_reset_alt_sp ? _global_pos.alt : _alt_sp) - _target_pos.alt);
-		_follow_yaw_offset = atan2f(_follow_offset(1), _follow_offset(0));
+		_follow_yaw_offset = _wrap_pi(_att_sp.yaw_body - atan2f(_follow_offset(1), _follow_offset(0)));
 		mavlink_log_info(_mavlink_fd, "[mpc] reset follow offs: %.2f, %.2f, %.2f", _follow_offset(0), _follow_offset(1), _follow_offset(2));
 	}
 }
@@ -719,7 +719,7 @@ MulticopterPositionControl::task_main()
 
 					/* don't try to rotate near singularity */
 					if (current_offset_xy.length() > 1.0f) {
-						_att_sp.yaw_body = atan2f(current_offset_xy(1), current_offset_xy(0)) + _follow_yaw_offset;
+						_att_sp.yaw_body = _wrap_pi(atan2f(current_offset_xy(1), current_offset_xy(0)) + _follow_yaw_offset);
 					}
 
 					/* add target velocity to setpoint move rate */
