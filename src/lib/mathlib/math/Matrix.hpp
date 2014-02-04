@@ -352,6 +352,58 @@ public:
 };
 
 template <>
+class __EXPORT Matrix<2, 2> : public MatrixBase<2, 2>
+{
+public:
+	using MatrixBase<2, 2>::operator *;
+
+	Matrix() : MatrixBase<2, 2>() {}
+
+	Matrix(const Matrix<2, 2> &m) : MatrixBase<2, 2>(m) {}
+
+	Matrix(const float *d) : MatrixBase<2, 2>(d) {}
+
+	Matrix(const float d[2][2]) : MatrixBase<2, 2>(d) {}
+
+	/**
+	 * set to value
+	 */
+	const Matrix<2, 2> &operator =(const Matrix<2, 2> &m) {
+		memcpy(this->data, m.data, sizeof(this->data));
+		return *this;
+	}
+
+	/**
+	 * multiplication by a vector
+	 */
+	Vector<2> operator *(const Vector<2> &v) const {
+		Vector<2> res(data[0][0] * v.data[0] + data[0][1] * v.data[1],
+			      data[1][0] * v.data[0] + data[1][1] * v.data[1]);
+		return res;
+	}
+
+	/**
+	 * create a rotation matrix from given angle
+	 */
+	void from_angle(float a) {
+		float ca = cosf(a);
+		float sa = sinf(a);
+
+		data[0][0] = ca;
+		data[0][1] = -sa;
+		data[1][0] = sa;
+		data[1][1] = ca;
+	}
+
+	/**
+	 * get angle from rotation matrix
+	 */
+	float to_angle(void) const {
+		return atan2f(data[1][0], data[0][0]);
+	}
+};
+
+template <>
 class __EXPORT Matrix<3, 3> : public MatrixBase<3, 3>
 {
 public:
