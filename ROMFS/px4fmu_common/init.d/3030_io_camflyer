@@ -1,7 +1,5 @@
 #!nsh
 
-echo "[init] PX4FMU v1, v2 with or without IO on Camflyer"
-
 if [ $DO_AUTOCONFIG == yes ]
 then
 	#
@@ -26,7 +24,7 @@ then
 	param set FW_R_P 60
 	param set FW_R_RMAX 60
 	param set FW_THR_CRUISE 0.65
-	param set FW_THR_MAX 0.7
+	param set FW_THR_MAX 1.0
 	param set FW_THR_MIN 0
 	param set FW_T_SINK_MAX 5
 	param set FW_T_SINK_MIN 2

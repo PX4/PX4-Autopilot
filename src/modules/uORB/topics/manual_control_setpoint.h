@@ -60,6 +60,7 @@ struct manual_control_setpoint_s {
 	float return_switch;			/**< land 2 position switch (mandatory): land, no effect */
 	float assisted_switch;			/**< assisted 2 position switch (optional): seatbelt, simple */
 	float mission_switch;		/**< mission 2 position switch (optional): mission, loiter */
+	float acro_switch;			/**< acro 2 position switch (optional): normal, acro */
 
 	/**
 	 * Any of the channels below may not be available and be set to NaN

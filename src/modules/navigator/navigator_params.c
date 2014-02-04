@@ -1,7 +1,9 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *           @author Julian Oes <joes@student.ethz.ch>
+ *           @author Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +40,8 @@
  * Parameters defined by the navigator task.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <nuttx/config.h>
@@ -49,5 +53,11 @@
  *
  */
 
-PARAM_DEFINE_FLOAT(NAV_DUMMY, 0.0f);
-
+PARAM_DEFINE_FLOAT(NAV_MIN_ALT, 50.0f);
+PARAM_DEFINE_FLOAT(NAV_ACCEPT_RAD, 10.0f);
+PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 100.0f);
+PARAM_DEFINE_INT32(NAV_ONB_MIS_EN, 0);
+PARAM_DEFINE_FLOAT(NAV_TAKEOFF_ALT, 10.0f);	// default TAKEOFF altitude
+PARAM_DEFINE_FLOAT(NAV_LAND_ALT, 5.0f);		// slow descend from this altitude when landing
+PARAM_DEFINE_FLOAT(NAV_RTL_ALT, 30.0f);		// min altitude for going home in RTL mode
+PARAM_DEFINE_FLOAT(NAV_RTL_LAND_T, -1.0f);	// delay after descend before landing, if set to -1 the system will not land but loiter at NAV_LAND_ALT

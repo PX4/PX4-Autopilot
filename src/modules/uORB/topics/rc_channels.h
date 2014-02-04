@@ -68,11 +68,12 @@ enum RC_CHANNELS_FUNCTION
   ASSISTED = 6,
   MISSION = 7,
   OFFBOARD_MODE = 8,
-  FLAPS   = 9,
-  AUX_1   = 10,
-  AUX_2   = 11,
-  AUX_3   = 12,
-  AUX_4   = 13,
+  ACRO	= 9,
+  FLAPS   = 10,
+  AUX_1   = 11,
+  AUX_2   = 12,
+  AUX_3   = 13,
+  AUX_4   = 14,
   AUX_5   = 14,
   RC_CHANNELS_FUNCTION_MAX /**< indicates the number of functions. There can be more functions than RC channels. */
 };

@@ -299,7 +299,7 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 					orb_copy(ORB_ID(vehicle_global_position_setpoint), global_setpoint_sub, &global_setpoint);
 					start_pos = global_pos; //for now using the current position as the startpoint (= approx. last waypoint because the setpoint switch occurs at the waypoint)
 					global_sp_updated_set_once = true;
-					psi_track = get_bearing_to_next_waypoint((double)global_pos.lat / (double)1e7d, (double)global_pos.lon / (double)1e7d,
+					psi_track = get_bearing_to_next_waypoint(global_pos.lat, global_pos.lon,
 							(double)global_setpoint.lat / (double)1e7d, (double)global_setpoint.lon / (double)1e7d);
 
 					printf("next wp direction: %0.4f\n", (double)psi_track);
