@@ -689,12 +689,13 @@ MulticopterPositionControl::task_main()
 				if (_control_mode.flag_follow_target) {
 					/* follow target, change offset from target instead of moving setpoint directly */
 					reset_follow_offset();
-					_follow_offset += sp_move_rate * dt;
+					math::Vector<3> follow_offset_new = _follow_offset + sp_move_rate * dt;
 
 					/* don't allow to get closer than MC_FOLLOW_DIST */
 					float follow_offset_len = _follow_offset.length();
-					if (follow_offset_len < _params.follow_dist && follow_offset_len > 0.001f) {
-						_follow_offset *= _params.follow_dist / follow_offset_len;
+					float follow_offset_new_len = follow_offset_new.length();
+					if (follow_offset_new_len > _params.follow_dist || follow_offset_new_len > follow_offset_len) {
+						_follow_offset = follow_offset_new;
 					}
 
 					/* calculate position setpoint */
