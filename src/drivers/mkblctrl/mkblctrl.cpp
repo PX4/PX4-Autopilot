@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012,2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2014 PX4 Development Team. All rights reserved.
  *   Author: Marco Bauer <marco@wtns.de>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,7 +65,6 @@
 
 #include <drivers/device/device.h>
 #include <drivers/drv_pwm_output.h>
-#include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
 
@@ -93,16 +92,12 @@
 #define MOTOR_SPINUP_COUNTER			30
 #define ESC_UORB_PUBLISH_DELAY		500000
 
+
+
+
 class MK : public device::I2C
 {
 public:
-	enum Mode {
-		MODE_NONE,
-		MODE_2PWM,
-		MODE_4PWM,
-		MODE_6PWM,
-	};
-
 	enum MappingMode {
 		MAPPING_MK = 0,
 		MAPPING_PX4,
@@ -120,8 +115,7 @@ public:
 	virtual int	init(unsigned motors);
 	virtual ssize_t	write(file *filp, const char *buffer, size_t len);
 
-	int		set_mode(Mode mode);
-	int		set_pwm_rate(unsigned rate);
+	int		set_update_rate(unsigned rate);
 	int		set_motor_count(unsigned count);
 	int		set_motor_test(bool motortest);
 	int		set_overrideSecurityChecks(bool overrideSecurityChecks);
@@ -133,7 +127,6 @@ private:
 	static const unsigned _max_actuators = MAX_MOTORS;
 	static const bool	showDebug = false;
 
-	Mode		_mode;
 	int 		_update_rate;
 	int 		_current_update_rate;
 	int		_task;
@@ -180,33 +173,15 @@ private:
 	static const GPIOConfig	_gpio_tab[];
 	static const unsigned	_ngpio;
 
-	void		gpio_reset(void);
-	void		gpio_set_function(uint32_t gpios, int function);
-	void		gpio_write(uint32_t gpios, int function);
-	uint32_t	gpio_read(void);
-	int		gpio_ioctl(file *filp, int cmd, unsigned long arg);
 	int			mk_servo_arm(bool status);
-
 	int 		mk_servo_set(unsigned int chan, short val);
 	int 		mk_servo_set_value(unsigned int chan, short val);
 	int 		mk_servo_test(unsigned int chan);
 	short		scaling(float val, float inMin, float inMax, float outMin, float outMax);
-
-
 };
 
-const MK::GPIOConfig MK::_gpio_tab[] = {
-	{GPIO_GPIO0_INPUT, GPIO_GPIO0_OUTPUT, 0},
-	{GPIO_GPIO1_INPUT, GPIO_GPIO1_OUTPUT, 0},
-	{GPIO_GPIO2_INPUT, GPIO_GPIO2_OUTPUT, GPIO_USART2_CTS_1},
-	{GPIO_GPIO3_INPUT, GPIO_GPIO3_OUTPUT, GPIO_USART2_RTS_1},
-	{GPIO_GPIO4_INPUT, GPIO_GPIO4_OUTPUT, GPIO_USART2_TX_1},
-	{GPIO_GPIO5_INPUT, GPIO_GPIO5_OUTPUT, GPIO_USART2_RX_1},
-	{GPIO_GPIO6_INPUT, GPIO_GPIO6_OUTPUT, GPIO_CAN2_TX_2},
-	{GPIO_GPIO7_INPUT, GPIO_GPIO7_OUTPUT, GPIO_CAN2_RX_2},
-};
 
-const unsigned MK::_ngpio = sizeof(MK::_gpio_tab) / sizeof(MK::_gpio_tab[0]);
+
 
 const int blctrlAddr_quad_plus[] = { 2, 2, -2, -2, 0, 0, 0, 0 };	// Addresstranslator for Quad + configuration
 const int blctrlAddr_hexa_plus[] = { 0, 2, 2, -2, 1, -3, 0, 0 };	// Addresstranslator for Hexa + configuration
@@ -247,8 +222,7 @@ MK	*g_mk;
 
 MK::MK(int bus, const char *_device_path) :
 	I2C("mkblctrl", "/dev/mkblctrl", bus, 0, I2C_BUS_SPEED),
-	_mode(MODE_NONE),
-	_update_rate(50),
+	_update_rate(400),
 	_task(-1),
 	_t_actuators(-1),
 	_t_actuator_armed(-1),
@@ -327,9 +301,6 @@ MK::init(unsigned motors)
 
    }
 
-	/* reset GPIOs */
-	gpio_reset();
-
 	/* start the IO interface task */
 	_task = task_spawn_cmd("mkblctrl",
 			   SCHED_DEFAULT,
@@ -354,43 +325,7 @@ MK::task_main_trampoline(int argc, char *argv[])
 }
 
 int
-MK::set_mode(Mode mode)
-{
-	/*
-	 * Configure for PWM output.
-	 *
-	 * Note that regardless of the configured mode, the task is always
-	 * listening and mixing; the mode just selects which of the channels
-	 * are presented on the output pins.
-	 */
-	switch (mode) {
-	case MODE_2PWM:
-		up_pwm_servo_deinit();
-		_update_rate = UPDATE_RATE;	/* default output rate */
-		break;
-
-	case MODE_4PWM:
-		up_pwm_servo_deinit();
-		_update_rate = UPDATE_RATE;	/* default output rate */
-		break;
-
-	case MODE_NONE:
-		debug("MODE_NONE");
-		/* disable servo outputs and set a very low update rate */
-		up_pwm_servo_deinit();
-		_update_rate = UPDATE_RATE;
-		break;
-
-	default:
-		return -EINVAL;
-	}
-
-	_mode = mode;
-	return OK;
-}
-
-int
-MK::set_pwm_rate(unsigned rate)
+MK::set_update_rate(unsigned rate)
 {
 	if ((rate > 500) || (rate < 10))
 		return -EINVAL;
@@ -623,9 +558,11 @@ MK::task_main()
 
 					if(!_overrideSecurityChecks) {
 						/* don't go under BLCTRL_MIN_VALUE */
+
 						if (outputs.output[i] < BLCTRL_MIN_VALUE) {
 							outputs.output[i] = BLCTRL_MIN_VALUE;
 						}
+
 					}
 
 					/* output to BLCtrl's */
@@ -1019,28 +956,6 @@ MK::ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret;
 
-	// XXX disabled, confusing users
-
-	/* try it as a GPIO ioctl first */
-	ret = gpio_ioctl(filp, cmd, arg);
-
-	if (ret != -ENOTTY)
-		return ret;
-
-	/* if we are in valid PWM mode, try it as a PWM ioctl as well */
-	/*
-	switch (_mode) {
-	case MODE_2PWM:
-	case MODE_4PWM:
-	case MODE_6PWM:
-		ret = pwm_ioctl(filp, cmd, arg);
-		break;
-
-	default:
-		debug("not in a PWM mode");
-		break;
-	}
-	*/
 	ret = pwm_ioctl(filp, cmd, arg);
 
 	/* if nobody wants it, let CDev have it */
@@ -1073,6 +988,10 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case PWM_SERVO_SET_UPDATE_RATE:
 		ret = OK;
+		break;
+
+	case PWM_SERVO_GET_UPDATE_RATE:
+		*(uint32_t *)arg = _update_rate;
 		break;
 
 	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
@@ -1198,138 +1117,9 @@ MK::write(file *filp, const char *buffer, size_t len)
 	return count * 2;
 }
 
-void
-MK::gpio_reset(void)
-{
-	/*
-	 * Setup default GPIO config - all pins as GPIOs, GPIO driver chip
-	 * to input mode.
-	 */
-	for (unsigned i = 0; i < _ngpio; i++)
-		stm32_configgpio(_gpio_tab[i].input);
-
-	stm32_gpiowrite(GPIO_GPIO_DIR, 0);
-	stm32_configgpio(GPIO_GPIO_DIR);
-}
-
-void
-MK::gpio_set_function(uint32_t gpios, int function)
-{
-	/*
-	 * GPIOs 0 and 1 must have the same direction as they are buffered
-	 * by a shared 2-port driver.  Any attempt to set either sets both.
-	 */
-	if (gpios & 3) {
-		gpios |= 3;
-
-		/* flip the buffer to output mode if required */
-		if (GPIO_SET_OUTPUT == function)
-			stm32_gpiowrite(GPIO_GPIO_DIR, 1);
-	}
-
-	/* configure selected GPIOs as required */
-	for (unsigned i = 0; i < _ngpio; i++) {
-		if (gpios & (1 << i)) {
-			switch (function) {
-			case GPIO_SET_INPUT:
-				stm32_configgpio(_gpio_tab[i].input);
-				break;
-
-			case GPIO_SET_OUTPUT:
-				stm32_configgpio(_gpio_tab[i].output);
-				break;
-
-			case GPIO_SET_ALT_1:
-				if (_gpio_tab[i].alt != 0)
-					stm32_configgpio(_gpio_tab[i].alt);
-
-				break;
-			}
-		}
-	}
-
-	/* flip buffer to input mode if required */
-	if ((GPIO_SET_INPUT == function) && (gpios & 3))
-		stm32_gpiowrite(GPIO_GPIO_DIR, 0);
-}
-
-void
-MK::gpio_write(uint32_t gpios, int function)
-{
-	int value = (function == GPIO_SET) ? 1 : 0;
-
-	for (unsigned i = 0; i < _ngpio; i++)
-		if (gpios & (1 << i))
-			stm32_gpiowrite(_gpio_tab[i].output, value);
-}
-
-uint32_t
-MK::gpio_read(void)
-{
-	uint32_t bits = 0;
-
-	for (unsigned i = 0; i < _ngpio; i++)
-		if (stm32_gpioread(_gpio_tab[i].input))
-			bits |= (1 << i);
-
-	return bits;
-}
-
-int
-MK::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-	int	ret = OK;
-
-	lock();
-
-	switch (cmd) {
-
-	case GPIO_RESET:
-		gpio_reset();
-		break;
-
-	case GPIO_SET_OUTPUT:
-	case GPIO_SET_INPUT:
-	case GPIO_SET_ALT_1:
-		gpio_set_function(arg, cmd);
-		break;
-
-	case GPIO_SET_ALT_2:
-	case GPIO_SET_ALT_3:
-	case GPIO_SET_ALT_4:
-		ret = -EINVAL;
-		break;
-
-	case GPIO_SET:
-	case GPIO_CLEAR:
-		gpio_write(arg, cmd);
-		break;
-
-	case GPIO_GET:
-		*(uint32_t *)arg = gpio_read();
-		break;
-
-	default:
-		ret = -ENOTTY;
-	}
-
-	unlock();
-
-	return ret;
-}
 
 namespace
 {
-
-enum PortMode {
-	PORT_MODE_UNSET = 0,
-	PORT_FULL_GPIO,
-	PORT_FULL_SERIAL,
-	PORT_FULL_PWM,
-	PORT_GPIO_AND_SERIAL,
-	PORT_PWM_AND_SERIAL,
-	PORT_PWM_AND_GPIO,
-};
 
 enum MappingMode {
 	MAPPING_MK = 0,
@@ -1341,20 +1131,11 @@ enum FrameType {
 	FRAME_X,
 };
 
-PortMode g_port_mode;
 
 int
-mk_new_mode(PortMode new_mode, int update_rate, int motorcount, bool motortest, int px4mode, int frametype, bool overrideSecurityChecks)
+mk_new_mode(int update_rate, int motorcount, bool motortest, int px4mode, int frametype, bool overrideSecurityChecks)
 {
-	uint32_t gpio_bits;
 	int shouldStop = 0;
-	MK::Mode servo_mode;
-
-	/* reset to all-inputs */
-	g_mk->ioctl(0, GPIO_RESET, 0);
-
-	gpio_bits = 0;
-	servo_mode = MK::MODE_NONE;
 
 	/* native PX4 addressing) */
 	g_mk->set_px4mode(px4mode);
@@ -1367,7 +1148,6 @@ mk_new_mode(PortMode new_mode, int update_rate, int motorcount, bool motortest, 
 
 	/* ovveride security checks if enabled */
 	g_mk->set_overrideSecurityChecks(overrideSecurityChecks);
-
 
 	/* count used motors */
 	do {
@@ -1383,86 +1163,46 @@ mk_new_mode(PortMode new_mode, int update_rate, int motorcount, bool motortest, 
 
 	g_mk->set_motor_count(g_mk->mk_check_for_blctrl(8, true, false));
 
-	/* (re)set the PWM output mode */
-	g_mk->set_mode(servo_mode);
-
-
-	if ((servo_mode != MK::MODE_NONE) && (update_rate != 0))
-		g_mk->set_pwm_rate(update_rate);
+	g_mk->set_update_rate(update_rate);
 
 	return OK;
 }
 
 int
-mk_start(unsigned bus, unsigned motors, char *device_path)
-{
-	int ret = OK;
-
-	if (g_mk == nullptr) {
-
-		g_mk = new MK(bus, device_path);
-
-		if (g_mk == nullptr) {
-			ret = -ENOMEM;
-
-		} else {
-			ret = g_mk->init(motors);
-
-			if (ret != OK) {
-				delete g_mk;
-				g_mk = nullptr;
-			}
-		}
-	}
-
-	return ret;
-}
-
-
-int
-mk_check_for_i2c_esc_bus(char *device_path, int motors)
+mk_start(unsigned motors, char *device_path)
 {
 	int ret;
 
-	if (g_mk == nullptr) {
+  	// try i2c3 first
+  	g_mk = new MK(3, device_path);
 
-		g_mk = new MK(3, device_path);
+   if (g_mk && OK == g_mk->init(motors)) {
+     	fprintf(stderr, "[mkblctrl] scanning i2c3...\n");
+  		ret = g_mk->mk_check_for_blctrl(8, false, true);
+  		if (ret > 0) {
+  			return OK;
+  		}
+   }
 
-		if (g_mk == nullptr) {
-			return -1;
+	delete g_mk;
+	g_mk = nullptr;
 
-		} else {
-			ret = g_mk->mk_check_for_blctrl(8, false, true);
-			delete g_mk;
-			g_mk = nullptr;
+	// fallback to bus 1
+	g_mk = new MK(1, device_path);
 
-			if (ret > 0) {
-				return 3;
-			}
+   if (g_mk && OK == g_mk->init(motors)) {
+     	fprintf(stderr, "[mkblctrl] scanning i2c1...\n");
+  		ret = g_mk->mk_check_for_blctrl(8, false, true);
+  		if (ret > 0) {
+  			return OK;
+  		}
+   }
 
-		}
+	delete g_mk;
+	g_mk = nullptr;
 
-
-		g_mk = new MK(1, device_path);
-
-		if (g_mk == nullptr) {
-			return -1;
-
-		} else {
-			ret = g_mk->mk_check_for_blctrl(8, false, true);
-			delete g_mk;
-			g_mk = nullptr;
-
-			if (ret > 0) {
-				return 1;
-			}
-
-		}
-	}
-
-	return -1;
+	return -ENOMEM;
 }
-
 
 
 } // namespace
@@ -1472,10 +1212,8 @@ extern "C" __EXPORT int mkblctrl_main(int argc, char *argv[]);
 int
 mkblctrl_main(int argc, char *argv[])
 {
-	PortMode port_mode = PORT_FULL_PWM;
 	int pwm_update_rate_in_hz = UPDATE_RATE;
 	int motorcount = 8;
-	int bus = -1;
 	int px4mode = MAPPING_PX4;
 	int frametype = FRAME_PLUS;	// + plus is default
 	bool motortest = false;
@@ -1488,18 +1226,6 @@ mkblctrl_main(int argc, char *argv[])
 	 * optional parameters
 	 */
 	for (int i = 1; i < argc; i++) {
-
-		/* look for the optional i2c bus parameter */
-		if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--bus") == 0) {
-			if (argc > i + 1) {
-				bus = atoi(argv[i + 1]);
-				newMode = true;
-
-			} else {
-				errx(1, "missing argument for i2c bus (-b)");
-				return 1;
-			}
-		}
 
 		/* look for the optional frame parameter */
 		if (strcmp(argv[i], "-mkmode") == 0 || strcmp(argv[i], "--mkmode") == 0) {
@@ -1560,7 +1286,6 @@ mkblctrl_main(int argc, char *argv[])
 		fprintf(stderr, "mkblctrl: help:\n");
 		fprintf(stderr, "  [-mkmode {+/x}] [-b i2c_bus_number] [-d devicename] [--override-security-checks] [-h / --help]\n\n");
 		fprintf(stderr, "\t -mkmode {+/x} \t\t Type of frame, if Mikrokopter motor order is used.\n");
-		fprintf(stderr, "\t -b {i2c_bus_number} \t\t Set the i2c bus where the ESCs are connected to (default autoscan).\n");
 		fprintf(stderr, "\t -d {devicepath & name}\t\t Create alternate pwm device.\n");
 		fprintf(stderr, "\t --override-security-checks \t\t Disable all security checks (arming and number of ESCs). Used to test single Motors etc. (DANGER !!!)\n");
 		fprintf(stderr, "\n");
@@ -1573,31 +1298,23 @@ mkblctrl_main(int argc, char *argv[])
 
 
 	if (!motortest) {
-   	if (g_mk == nullptr) {
-      	if (bus == -1) {
-      		bus = mk_check_for_i2c_esc_bus(devicepath, motorcount);
-      	}
+		if (g_mk == nullptr) {
+  			if (mk_start(motorcount, devicepath) != OK) {
+  				errx(1, "failed to start the MK-BLCtrl driver");
+  			}
 
-      	if (bus != -1) {
-     			if (mk_start(bus, motorcount, devicepath) != OK) {
-     				errx(1, "failed to start the MK-BLCtrl driver");
-     			}
-      	} else {
-      		errx(1, "failed to start the MK-BLCtrl driver (cannot find i2c esc's)");
-      	}
+			/* parameter set ? */
+			if (newMode) {
+				/* switch parameter */
+				return mk_new_mode(pwm_update_rate_in_hz, motorcount, motortest, px4mode, frametype, overrideSecurityChecks);
+			}
 
-      	/* parameter set ? */
-      	if (newMode) {
-      		/* switch parameter */
-      		return mk_new_mode(port_mode, pwm_update_rate_in_hz, motorcount, motortest, px4mode, frametype, overrideSecurityChecks);
-      	}
+			exit(0);
+		} else {
+			errx(1, "MK-BLCtrl driver already running");
+		}
 
-      	exit(0);
-      } else {
-         errx(1, "MK-BLCtrl driver already running");
-      }
-
-   } else {
+	} else {
       if (g_mk == nullptr) {
          errx(1, "MK-BLCtrl driver not running. You have to start it first.");
 
