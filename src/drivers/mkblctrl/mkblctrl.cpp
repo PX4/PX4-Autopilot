@@ -1169,69 +1169,39 @@ mk_new_mode(int update_rate, int motorcount, bool motortest, int px4mode, int fr
 }
 
 int
-mk_start(unsigned bus, unsigned motors, char *device_path)
-{
-	int ret = OK;
-
-	if (g_mk == nullptr) {
-
-		g_mk = new MK(bus, device_path);
-
-		if (g_mk == nullptr) {
-			ret = -ENOMEM;
-
-		} else {
-			ret = g_mk->init(motors);
-
-			if (ret != OK) {
-				delete g_mk;
-				g_mk = nullptr;
-			}
-		}
-	}
-
-	return ret;
-}
-
-
-int
-mk_check_for_i2c_esc_bus(char *device_path, int motors)
+mk_start(unsigned motors, char *device_path)
 {
 	int ret;
 
-	// try bus 3 first
-	warnx("scanning i2c3...");
-	g_mk = new MK(3, device_path);
+  	// try i2c3 first
+  	g_mk = new MK(3, device_path);
 
-	if (g_mk != nullptr && OK != g_mk->init(motors)) {
-		delete g_mk;
-		g_mk = nullptr;
-	} else {
-		ret = g_mk->mk_check_for_blctrl(8, false, true);
-		delete g_mk;
-		g_mk = nullptr;
-		if (ret > 0) {
-			return 3;
-		}
-	}
+   if (g_mk && OK == g_mk->init(motors)) {
+     	fprintf(stderr, "[mkblctrl] scanning i2c3...\n");
+  		ret = g_mk->mk_check_for_blctrl(8, false, true);
+  		if (ret > 0) {
+  			return OK;
+  		}
+   }
+
+	delete g_mk;
+	g_mk = nullptr;
 
 	// fallback to bus 1
-	warnx("scanning i2c1...");
 	g_mk = new MK(1, device_path);
 
-	if (g_mk != nullptr && OK != g_mk->init(motors)) {
-		delete g_mk;
-		g_mk = nullptr;
-	} else {
-		ret = g_mk->mk_check_for_blctrl(8, false, true);
-		delete g_mk;
-		g_mk = nullptr;
-		if (ret > 0) {
-			return 1;
-		}
-	}
+   if (g_mk && OK == g_mk->init(motors)) {
+     	fprintf(stderr, "[mkblctrl] scanning i2c1...\n");
+  		ret = g_mk->mk_check_for_blctrl(8, false, true);
+  		if (ret > 0) {
+  			return OK;
+  		}
+   }
 
-	return -1;
+	delete g_mk;
+	g_mk = nullptr;
+
+	return -ENOMEM;
 }
 
 
@@ -1244,7 +1214,6 @@ mkblctrl_main(int argc, char *argv[])
 {
 	int pwm_update_rate_in_hz = UPDATE_RATE;
 	int motorcount = 8;
-	int bus = -1;
 	int px4mode = MAPPING_PX4;
 	int frametype = FRAME_PLUS;	// + plus is default
 	bool motortest = false;
@@ -1257,18 +1226,6 @@ mkblctrl_main(int argc, char *argv[])
 	 * optional parameters
 	 */
 	for (int i = 1; i < argc; i++) {
-
-		/* look for the optional i2c bus parameter */
-		if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--bus") == 0) {
-			if (argc > i + 1) {
-				bus = atoi(argv[i + 1]);
-				newMode = true;
-
-			} else {
-				errx(1, "missing argument for i2c bus (-b)");
-				return 1;
-			}
-		}
 
 		/* look for the optional frame parameter */
 		if (strcmp(argv[i], "-mkmode") == 0 || strcmp(argv[i], "--mkmode") == 0) {
@@ -1329,7 +1286,6 @@ mkblctrl_main(int argc, char *argv[])
 		fprintf(stderr, "mkblctrl: help:\n");
 		fprintf(stderr, "  [-mkmode {+/x}] [-b i2c_bus_number] [-d devicename] [--override-security-checks] [-h / --help]\n\n");
 		fprintf(stderr, "\t -mkmode {+/x} \t\t Type of frame, if Mikrokopter motor order is used.\n");
-		fprintf(stderr, "\t -b {i2c_bus_number} \t\t Set the i2c bus where the ESCs are connected to (default autoscan).\n");
 		fprintf(stderr, "\t -d {devicepath & name}\t\t Create alternate pwm device.\n");
 		fprintf(stderr, "\t --override-security-checks \t\t Disable all security checks (arming and number of ESCs). Used to test single Motors etc. (DANGER !!!)\n");
 		fprintf(stderr, "\n");
@@ -1343,19 +1299,9 @@ mkblctrl_main(int argc, char *argv[])
 
 	if (!motortest) {
 		if (g_mk == nullptr) {
-			if (bus == -1) {
-				bus = mk_check_for_i2c_esc_bus(devicepath, motorcount);
-
-
-			}
-
-			if (bus != -1) {
-     			if (mk_start(bus, motorcount, devicepath) != OK) {
-     				errx(1, "failed to start the MK-BLCtrl driver");
-     			}
-			} else {
-				errx(1, "failed to start the MK-BLCtrl driver (cannot find i2c esc's)");
-			}
+  			if (mk_start(motorcount, devicepath) != OK) {
+  				errx(1, "failed to start the MK-BLCtrl driver");
+  			}
 
 			/* parameter set ? */
 			if (newMode) {
