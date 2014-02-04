@@ -674,7 +674,7 @@ Sensors::parameters_update()
 	}
 
 	if (param_get(_parameter_handles.rc_map_acro_sw, &(_parameters.rc_map_acro_sw)) != OK) {
-		warnx("Failed getting acro sw chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_flaps, &(_parameters.rc_map_flaps)) != OK) {
