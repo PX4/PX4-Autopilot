@@ -161,6 +161,7 @@ int blink_msg_state()
 		return 0;
 
 	} else if (hrt_absolute_time() > blink_msg_end) {
+		blink_msg_end = 0;
 		return 2;
 
 	} else {
