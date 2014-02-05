@@ -17,7 +17,7 @@ namespace uavcan
 #if UAVCAN_MEM_POOL_BLOCK_SIZE
 enum { MEM_POOL_BLOCK_SIZE = UAVCAN_MEM_POOL_BLOCK_SIZE };
 #else
-enum { MEM_POOL_BLOCK_SIZE = 48 };
+enum { MEM_POOL_BLOCK_SIZE = 32 + sizeof(void*) * 2 };
 #endif
 
 enum { MEM_POOL_ALIGNMENT = 8 };
