@@ -144,6 +144,7 @@ TEST(DynamicTransferBuffer, Basic)
 
     // Bulk write
     const int max_size = buf.write(0, test_data_ptr, TEST_DATA.length());
+    std::cout << "Dynamic buffer contains " << max_size << " bytes" << std::endl;
     ASSERT_LE(max_size, TEST_DATA.length());
     ASSERT_GT(max_size, 0);
 
@@ -162,6 +163,7 @@ TEST(DynamicTransferBuffer, Basic)
     ASSERT_EQ(0, buf.read(0, local_buffer, 0));
     ASSERT_EQ(0, buf.read(0, local_buffer, 999));
     ASSERT_TRUE(allEqual(local_buffer));
+    ASSERT_EQ(0, pool.getNumUsedBlocks());
 
     // Random write
     ASSERT_EQ(21, buf.write(12, test_data_ptr + 12, 21));
@@ -180,4 +182,9 @@ TEST(DynamicTransferBuffer, Basic)
 
     ASSERT_EQ(21, buf.write(0, test_data_ptr, 21));
     ASSERT_TRUE(matchAgainstTestData(buf, 0));
+
+    // Reset
+    ASSERT_LT(0, pool.getNumUsedBlocks());
+    buf.reset();
+    ASSERT_EQ(0, pool.getNumUsedBlocks());
 }
