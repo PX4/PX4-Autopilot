@@ -186,12 +186,18 @@ int led_init()
 		return ERROR;
 	}
 
+	/* switch blue off */
+	led_off(LED_BLUE);
+
 #endif
 
 	if (ioctl(leds, LED_ON, LED_AMBER)) {
 		warnx("Amber LED: ioctl fail\n");
 		return ERROR;
 	}
+
+	/* switch amber off */
+	led_off(LED_AMBER);
 
 	/* then try RGB LEDs, this can fail on FMUv1*/
 	rgbleds = open(RGBLED_DEVICE_PATH, 0);
