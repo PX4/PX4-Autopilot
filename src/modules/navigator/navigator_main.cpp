@@ -688,8 +688,9 @@ Navigator::task_main()
 					/* RETURN switch, overrides MISSION switch */
 					if (_vstatus.return_switch == RETURN_SWITCH_RETURN) {
 						/* switch to RTL if not already landed after RTL and home position set */
-						if (!(_rtl_state == RTL_STATE_DESCEND && (myState == NAV_STATE_READY || myState == NAV_STATE_LAND)) &&
-								_vstatus.condition_home_position_valid) {
+						if (!(_rtl_state == RTL_STATE_DESCEND &&
+						      (myState == NAV_STATE_READY || myState == NAV_STATE_LAND || myState == NAV_STATE_LOITER)) &&
+						    _vstatus.condition_home_position_valid) {
 							dispatch(EVENT_RTL_REQUESTED);
 						}
 
@@ -746,8 +747,9 @@ Navigator::task_main()
 							break;
 
 						case NAV_STATE_RTL:
-							if (!(_rtl_state == RTL_STATE_DESCEND && (myState == NAV_STATE_READY || myState == NAV_STATE_LAND)) &&
-									_vstatus.condition_home_position_valid) {
+							if (!(_rtl_state == RTL_STATE_DESCEND &&
+							      (myState == NAV_STATE_READY || myState == NAV_STATE_LAND || myState == NAV_STATE_LOITER)) &&
+							    _vstatus.condition_home_position_valid) {
 								dispatch(EVENT_RTL_REQUESTED);
 							}
 
@@ -1078,7 +1080,7 @@ Navigator::start_loiter()
 			mavlink_log_info(_mavlink_fd, "[navigator] loiter at current altitude");
 		}
 
-		_pos_sp_triplet.current.type = SETPOINT_TYPE_NORMAL;
+		_pos_sp_triplet.current.type = SETPOINT_TYPE_LOITER;
 	}
 
 	_pos_sp_triplet.current.loiter_radius = _parameters.loiter_radius;
@@ -1443,14 +1445,7 @@ Navigator::check_mission_item_reached()
 	}
 
 	if (_mission_item.nav_cmd == NAV_CMD_LAND) {
-		if (_vstatus.is_rotary_wing) {
-			return _vstatus.condition_landed;
-
-		} else {
-			/* For fw there is currently no landing detector:
-			 * make sure control is not stopped when overshooting the landing waypoint */
-			return false;
-		}
+		return _vstatus.condition_landed;
 	}
 
 	/* XXX TODO count turns */
@@ -1575,10 +1570,12 @@ Navigator::on_mission_item_reached()
 		if (_rtl_state == RTL_STATE_DESCEND) {
 			/* hovering above home position, land if needed or loiter */
 			mavlink_log_info(_mavlink_fd, "[navigator] RTL completed");
+
 			if (_mission_item.autocontinue) {
 				dispatch(EVENT_LAND_REQUESTED);
 
 			} else {
+				_reset_loiter_pos = false;
 				dispatch(EVENT_LOITER_REQUESTED);
 			}
 

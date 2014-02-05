@@ -785,26 +785,26 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		_tecs.set_speed_weight(_parameters.speed_weight);
 
 		/* current waypoint (the one currently heading for) */
-		math::Vector<2> next_wp(pos_sp_triplet.current.lat, pos_sp_triplet.current.lon);
+		math::Vector<2> next_wp((float)pos_sp_triplet.current.lat, (float)pos_sp_triplet.current.lon);
 
 		/* current waypoint (the one currently heading for) */
-		math::Vector<2> curr_wp(pos_sp_triplet.current.lat, pos_sp_triplet.current.lon);
+		math::Vector<2> curr_wp((float)pos_sp_triplet.current.lat, (float)pos_sp_triplet.current.lon);
 
 
 		/* previous waypoint */
 		math::Vector<2> prev_wp;
 
 		if (pos_sp_triplet.previous.valid) {
-			prev_wp(0) = pos_sp_triplet.previous.lat;
-			prev_wp(1) = pos_sp_triplet.previous.lon;
+			prev_wp(0) = (float)pos_sp_triplet.previous.lat;
+			prev_wp(1) = (float)pos_sp_triplet.previous.lon;
 
 		} else {
 			/*
 			 * No valid previous waypoint, go for the current wp.
 			 * This is automatically handled by the L1 library.
 			 */
-			prev_wp(0) = pos_sp_triplet.current.lat;
-			prev_wp(1) = pos_sp_triplet.current.lon;
+			prev_wp(0) = (float)pos_sp_triplet.current.lat;
+			prev_wp(1) = (float)pos_sp_triplet.current.lon;
 
 		}
 
@@ -1263,7 +1263,7 @@ FixedwingPositionControl::task_main()
 			// vehicle_baro_poll();
 
 			math::Vector<2> ground_speed(_global_pos.vel_n, _global_pos.vel_e);
-			math::Vector<2> current_position(_global_pos.lat / 1e7f, _global_pos.lon / 1e7f);
+			math::Vector<2> current_position((float)_global_pos.lat, (float)_global_pos.lon);
 
 			/*
 			 * Attempt to control position, on success (= sensors present and not in manual mode),

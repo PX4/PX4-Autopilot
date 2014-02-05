@@ -53,17 +53,16 @@
 #endif
 static const int ERROR = -1;
 
-int do_rc_calibration(int mavlink_fd)
+int do_trim_calibration(int mavlink_fd)
 {
-	mavlink_log_info(mavlink_fd, "trim calibration starting");
-
 	int sub_man = orb_subscribe(ORB_ID(manual_control_setpoint));
+	usleep(200000);
 	struct manual_control_setpoint_s sp;
 	bool changed;
 	orb_check(sub_man, &changed);
 
 	if (!changed) {
-		mavlink_log_critical(mavlink_fd, "no manual control, aborting");
+		mavlink_log_critical(mavlink_fd, "no inputs, aborting");
 		return ERROR;
 	}
 
@@ -82,12 +81,12 @@ int do_rc_calibration(int mavlink_fd)
 	int save_ret = param_save_default();
 
 	if (save_ret != 0) {
-		mavlink_log_critical(mavlink_fd, "TRIM CAL: WARN: auto-save of params failed");
+		mavlink_log_critical(mavlink_fd, "TRIM: SAVE FAIL");
 		close(sub_man);
 		return ERROR;
 	}
 
-	mavlink_log_info(mavlink_fd, "trim calibration done");
+	mavlink_log_info(mavlink_fd, "trim cal done");
 	close(sub_man);
 	return OK;
 }

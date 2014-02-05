@@ -2,7 +2,7 @@
 #
 # Phantom FPV Flying Wing
 #
-# Maintainers: Simon Wilks <sjwilks@gmail.com>
+# Simon Wilks <sjwilks@gmail.com>
 #
 
 if [ $DO_AUTOCONFIG == yes ]

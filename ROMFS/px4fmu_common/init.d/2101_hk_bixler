@@ -1,10 +1,5 @@
 #!nsh
 
-echo "[init] PX4FMU v1, v2 with or without IO on 3DR SkyWalker"
-
-#
-# Load default params for this platform
-#
 if [ $DO_AUTOCONFIG == yes ]
 then
 	# Set all params here, then disable autoconfig
