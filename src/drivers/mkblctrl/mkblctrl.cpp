@@ -291,23 +291,23 @@ MK::init(unsigned motors)
 
 	usleep(500000);
 
-   if (sizeof(_device) > 0) {
-	   ret = register_driver(_device, &fops, 0666, (void *)this);
+	if (sizeof(_device) > 0) {
+		ret = register_driver(_device, &fops, 0666, (void *)this);
 
-	   if (ret == OK) {
+		if (ret == OK) {
 			log("creating alternate output device");
 			_primary_pwm_device = true;
 		}
 
-   }
+	}
 
 	/* start the IO interface task */
 	_task = task_spawn_cmd("mkblctrl",
-			   SCHED_DEFAULT,
-			   SCHED_PRIORITY_MAX - 20,
-			   2048,
-			   (main_t)&MK::task_main_trampoline,
-			   nullptr);
+			       SCHED_DEFAULT,
+			       SCHED_PRIORITY_MAX - 20,
+			       2048,
+			       (main_t)&MK::task_main_trampoline,
+			       nullptr);
 
 
 	if (_task < 0) {
@@ -556,7 +556,7 @@ MK::task_main()
 						}
 					}
 
-					if(!_overrideSecurityChecks) {
+					if (!_overrideSecurityChecks) {
 						/* don't go under BLCTRL_MIN_VALUE */
 
 						if (outputs.output[i] < BLCTRL_MIN_VALUE) {
@@ -612,21 +612,24 @@ MK::task_main()
 				esc.esc[i].esc_current = (uint16_t) Motor[i].Current;
 				esc.esc[i].esc_rpm = (uint16_t) 0;
 				esc.esc[i].esc_setpoint = (float) Motor[i].SetPoint_PX4;
+
 				if (Motor[i].Version == 1) {
 					// BLCtrl 2.0 (11Bit)
-					esc.esc[i].esc_setpoint_raw = (uint16_t) (Motor[i].SetPoint<<3) | Motor[i].SetPointLowerBits;
+					esc.esc[i].esc_setpoint_raw = (uint16_t)(Motor[i].SetPoint << 3) | Motor[i].SetPointLowerBits;
+
 				} else {
 					// BLCtrl < 2.0 (8Bit)
 					esc.esc[i].esc_setpoint_raw = (uint16_t) Motor[i].SetPoint;
 				}
+
 				esc.esc[i].esc_temperature = (uint16_t) Motor[i].Temperature;
 				esc.esc[i].esc_state = (uint16_t) Motor[i].State;
 				esc.esc[i].esc_errorcount = (uint16_t) 0;
 
-   			// if motortest is requested - do it...
-   			if (_motortest == true) {
-	   		   mk_servo_test(i);
-			   }
+				// if motortest is requested - do it...
+				if (_motortest == true) {
+					mk_servo_test(i);
+				}
 
 			}
 
@@ -665,7 +668,7 @@ MK::mk_servo_arm(bool status)
 unsigned int
 MK::mk_check_for_blctrl(unsigned int count, bool showOutput, bool initI2C)
 {
-	if(initI2C) {
+	if (initI2C) {
 		I2C::init();
 	}
 
@@ -718,8 +721,8 @@ MK::mk_check_for_blctrl(unsigned int count, bool showOutput, bool initI2C)
 			fprintf(stderr, "[mkblctrl] blctrl[%i] : found=%i\tversion=%i\tcurrent=%i\tmaxpwm=%i\ttemperature=%i\n", i, Motor[i].State, Motor[i].Version, Motor[i].Current, Motor[i].MaxPWM, Motor[i].Temperature);
 		}
 
-		
-		if(!_overrideSecurityChecks) {
+
+		if (!_overrideSecurityChecks) {
 			if (foundMotorCount != 4 && foundMotorCount != 6 && foundMotorCount != 8) {
 				_task_should_exit = true;
 			}
@@ -748,8 +751,8 @@ MK::mk_servo_set(unsigned int chan, short val)
 		tmpVal = 0;
 	}
 
-	Motor[chan].SetPoint = (uint8_t)(tmpVal>>3)&0xff;
-	Motor[chan].SetPointLowerBits = ((uint8_t)tmpVal%8)&0x07;
+	Motor[chan].SetPoint = (uint8_t)(tmpVal >> 3) & 0xff;
+	Motor[chan].SetPointLowerBits = ((uint8_t)tmpVal % 8) & 0x07;
 
 	if (_armed == false) {
 		Motor[chan].SetPoint = 0;
@@ -1003,6 +1006,7 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		if (arg < 2150) {
 			Motor[cmd - PWM_SERVO_SET(0)].RawPwmValue = (unsigned short)arg;
 			mk_servo_set(cmd - PWM_SERVO_SET(0), scaling(arg, 1010, 2100, 0, 2047));
+
 		} else {
 			ret = -EINVAL;
 		}
@@ -1173,19 +1177,20 @@ mk_start(unsigned motors, char *device_path)
 {
 	int ret;
 
-  	// try i2c3 first
-  	g_mk = new MK(3, device_path);
+	// try i2c3 first
+	g_mk = new MK(3, device_path);
 
-  	if (!g_mk)
-  		return -ENOMEM;
+	if (!g_mk)
+		return -ENOMEM;
 
-   if (OK == g_mk->init(motors)) {
-     	warnx("[mkblctrl] scanning i2c3...\n");
-  		ret = g_mk->mk_check_for_blctrl(8, false, true);
-  		if (ret > 0) {
-  			return OK;
-  		}
-   }
+	if (OK == g_mk->init(motors)) {
+		warnx("[mkblctrl] scanning i2c3...\n");
+		ret = g_mk->mk_check_for_blctrl(8, false, true);
+
+		if (ret > 0) {
+			return OK;
+		}
+	}
 
 	delete g_mk;
 	g_mk = nullptr;
@@ -1194,15 +1199,16 @@ mk_start(unsigned motors, char *device_path)
 	g_mk = new MK(1, device_path);
 
 	if (!g_mk)
-  		return -ENOMEM;
+		return -ENOMEM;
 
-   if (OK == g_mk->init(motors)) {
-     	warnx("[mkblctrl] scanning i2c1...\n");
-  		ret = g_mk->mk_check_for_blctrl(8, false, true);
-  		if (ret > 0) {
-  			return OK;
-  		}
-   }
+	if (OK == g_mk->init(motors)) {
+		warnx("[mkblctrl] scanning i2c1...\n");
+		ret = g_mk->mk_check_for_blctrl(8, false, true);
+
+		if (ret > 0) {
+			return OK;
+		}
+	}
 
 	delete g_mk;
 	g_mk = nullptr;
@@ -1298,16 +1304,16 @@ mkblctrl_main(int argc, char *argv[])
 		fprintf(stderr, "Motortest:\n");
 		fprintf(stderr, "First you have to start mkblctrl, the you can enter Motortest Mode with:\n");
 		fprintf(stderr, "mkblctrl -t\n");
-      fprintf(stderr, "This will spin up once every motor in order of motoraddress. (DANGER !!!)\n");
+		fprintf(stderr, "This will spin up once every motor in order of motoraddress. (DANGER !!!)\n");
 		exit(1);
 	}
 
 
 	if (!motortest) {
 		if (g_mk == nullptr) {
-  			if (mk_start(motorcount, devicepath) != OK) {
-  				errx(1, "failed to start the MK-BLCtrl driver");
-  			}
+			if (mk_start(motorcount, devicepath) != OK) {
+				errx(1, "failed to start the MK-BLCtrl driver");
+			}
 
 			/* parameter set ? */
 			if (newMode) {
@@ -1316,18 +1322,19 @@ mkblctrl_main(int argc, char *argv[])
 			}
 
 			exit(0);
+
 		} else {
 			errx(1, "MK-BLCtrl driver already running");
 		}
 
 	} else {
-      if (g_mk == nullptr) {
-         errx(1, "MK-BLCtrl driver not running. You have to start it first.");
+		if (g_mk == nullptr) {
+			errx(1, "MK-BLCtrl driver not running. You have to start it first.");
 
-      } else {
-         g_mk->set_motor_test(motortest);
-         exit(0);
+		} else {
+			g_mk->set_motor_test(motortest);
+			exit(0);
 
-      }
-   }
+		}
+	}
 }
