@@ -134,41 +134,39 @@ void FuseMagnetometer();
 
 void FuseAirspeed();
 
-void zeroRows(float covMat[n_states][n_states], uint8_t first, uint8_t last);
+void zeroRows(float (&covMat)[n_states][n_states], uint8_t first, uint8_t last);
 
-void zeroCols(float covMat[n_states][n_states], uint8_t first, uint8_t last);
+void zeroCols(float (&covMat)[n_states][n_states], uint8_t first, uint8_t last);
 
 float sq(float valIn);
 
-void quatNorm(float quatOut[4], float quatIn[4]);
+void quatNorm(float (&quatOut)[4], const float quatIn[4]);
 
 // store staes along with system time stamp in msces
 void StoreStates(uint64_t timestamp_ms);
 
 // recall stste vector stored at closest time to the one specified by msec
-void RecallStates(float statesForFusion[n_states], uint32_t msec);
+void RecallStates(float (&statesForFusion)[n_states], uint32_t msec);
 
-void quat2Tnb(Mat3f &Tnb, float quat[4]);
-
-void quat2Tbn(Mat3f &Tbn, float quat[4]);
+void quat2Tbn(Mat3f &Tbn, const float (&quat)[4]);
 
 void calcEarthRateNED(Vector3f &omega, float latitude);
 
-void eul2quat(float quat[4], float eul[3]);
+void eul2quat(float (&quat)[4], const float (&eul)[3]);
 
-void quat2eul(float eul[3],float quat[4]);
+void quat2eul(float (&eul)[3], const float (&quat)[4]);
 
-void calcvelNED(float velNED[3], float gpsCourse, float gpsGndSpd, float gpsVelD);
+void calcvelNED(float (&velNED)[3], float gpsCourse, float gpsGndSpd, float gpsVelD);
 
-void calcposNED(float posNED[3], float lat, float lon, float hgt, float latRef, float lonRef, float hgtRef);
+void calcposNED(float (&posNED)[3], float lat, float lon, float hgt, float latRef, float lonRef, float hgtRef);
 
-void calcLLH(float posNED[3], float lat, float lon, float hgt, float latRef, float lonRef, float hgtRef);
+void calcLLH(float (&posNED)[3], float lat, float lon, float hgt, float latRef, float lonRef, float hgtRef);
 
 void OnGroundCheck();
 
 void CovarianceInit();
 
-void InitialiseFilter(float initvelNED[3]);
+void InitialiseFilter(float (&initvelNED)[3]);
 
 uint32_t millis();
 

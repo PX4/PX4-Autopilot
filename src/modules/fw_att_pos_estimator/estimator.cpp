@@ -53,7 +53,6 @@ float EAS2TAS = 1.0f; // ratio f true to equivalent airspeed
 
 // GPS input data variables
 float gpsCourse;
-float gpsGndSpd;
 float gpsVelD;
 float gpsLat;
 float gpsLon;
@@ -1560,7 +1559,7 @@ void FuseAirspeed()
     }
 }
 
-void zeroRows(float covMat[n_states][n_states], uint8_t first, uint8_t last)
+void zeroRows(float (&covMat)[n_states][n_states], uint8_t first, uint8_t last)
 {
     uint8_t row;
     uint8_t col;
@@ -1573,7 +1572,7 @@ void zeroRows(float covMat[n_states][n_states], uint8_t first, uint8_t last)
     }
 }
 
-void zeroCols(float covMat[n_states][n_states], uint8_t first, uint8_t last)
+void zeroCols(float (&covMat)[n_states][n_states], uint8_t first, uint8_t last)
 {
     uint8_t row;
     uint8_t col;
@@ -1604,7 +1603,7 @@ void StoreStates(uint64_t timestamp_ms)
 }
 
 // Output the state vector stored at the time that best matches that specified by msec
-void RecallStates(float statesForFusion[n_states], uint32_t msec)
+void RecallStates(float (&statesForFusion)[n_states], uint32_t msec)
 {
     long int timeDelta;
     long int bestTimeDelta = 200;
@@ -1630,7 +1629,7 @@ void RecallStates(float statesForFusion[n_states], uint32_t msec)
     }
 }
 
-void quat2Tnb(Mat3f &Tnb, float quat[4])
+void quat2Tnb(Mat3f &Tnb, const float (&quat)[4])
 {
     // Calculate the nav to body cosine matrix
     float q00 = sq(quat[0]);
@@ -1655,7 +1654,7 @@ void quat2Tnb(Mat3f &Tnb, float quat[4])
     Tnb.y.z = 2*(q23 + q01);
 }
 
-void quat2Tbn(Mat3f &Tbn, float quat[4])
+void quat2Tbn(Mat3f &Tbn, const float (&quat)[4])
 {
     // Calculate the body to nav cosine matrix
     float q00 = sq(quat[0]);
@@ -1680,7 +1679,7 @@ void quat2Tbn(Mat3f &Tbn, float quat[4])
     Tbn.z.y = 2*(q23 + q01);
 }
 
-void eul2quat(float quat[4], float eul[3])
+void eul2quat(float (&quat)[4], const float (&eul)[3])
 {
     float u1 = cos(0.5f*eul[0]);
     float u2 = cos(0.5f*eul[1]);
@@ -1694,28 +1693,28 @@ void eul2quat(float quat[4], float eul[3])
     quat[3] = u1*u2*u6-u4*u5*u3;
 }
 
-void quat2eul(float y[3], float u[4])
+void quat2eul(float (&y)[3], const float (&u)[4])
 {
     y[0] = atan2((2.0*(u[2]*u[3]+u[0]*u[1])) , (u[0]*u[0]-u[1]*u[1]-u[2]*u[2]+u[3]*u[3]));
     y[1] = -asin(2.0*(u[1]*u[3]-u[0]*u[2]));
     y[2] = atan2((2.0*(u[1]*u[2]+u[0]*u[3])) , (u[0]*u[0]+u[1]*u[1]-u[2]*u[2]-u[3]*u[3]));
 }
 
-void calcvelNED(float velNED[3], float gpsCourse, float gpsGndSpd, float gpsVelD)
+void calcvelNED(float (&velNED)[3], float gpsCourse, float gpsGndSpd, float gpsVelD)
 {
     velNED[0] = gpsGndSpd*cos(gpsCourse);
     velNED[1] = gpsGndSpd*sin(gpsCourse);
     velNED[2] = gpsVelD;
 }
 
-void calcposNED(float posNED[3], float lat, float lon, float hgt, float latRef, float lonRef, float hgtRef)
+void calcposNED(float (&posNED)[3], float lat, float lon, float hgt, float latRef, float lonRef, float hgtRef)
 {
     posNED[0] = earthRadius * (lat - latRef);
     posNED[1] = earthRadius * cos(latRef) * (lon - lonRef);
     posNED[2] = -(hgt - hgtRef);
 }
 
-void calcLLH(float posNED[3], float lat, float lon, float hgt, float latRef, float lonRef, float hgtRef)
+void calcLLH(float (&posNED)[3], float lat, float lon, float hgt, float latRef, float lonRef, float hgtRef)
 {
     lat = latRef + posNED[0] * earthRadiusInv;
     lon = lonRef + posNED[1] * earthRadiusInv / cos(latRef);
@@ -1799,7 +1798,7 @@ void AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, fl
     initQuat[3] = cosRoll * cosPitch * sinHeading - sinRoll * sinPitch * cosHeading;
 }
 
-void InitialiseFilter(float initvelNED[3])
+void InitialiseFilter(float (&initvelNED)[3])
 {
     // Do the data structure init
     for (unsigned i = 0; i < n_states; i++) {
