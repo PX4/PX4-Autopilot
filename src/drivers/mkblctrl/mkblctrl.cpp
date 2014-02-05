@@ -1176,8 +1176,11 @@ mk_start(unsigned motors, char *device_path)
   	// try i2c3 first
   	g_mk = new MK(3, device_path);
 
-   if (g_mk && OK == g_mk->init(motors)) {
-     	fprintf(stderr, "[mkblctrl] scanning i2c3...\n");
+  	if (!g_mk)
+  		return -ENOMEM;
+
+   if (OK == g_mk->init(motors)) {
+     	warnx("[mkblctrl] scanning i2c3...\n");
   		ret = g_mk->mk_check_for_blctrl(8, false, true);
   		if (ret > 0) {
   			return OK;
@@ -1190,8 +1193,11 @@ mk_start(unsigned motors, char *device_path)
 	// fallback to bus 1
 	g_mk = new MK(1, device_path);
 
-   if (g_mk && OK == g_mk->init(motors)) {
-     	fprintf(stderr, "[mkblctrl] scanning i2c1...\n");
+	if (!g_mk)
+  		return -ENOMEM;
+
+   if (OK == g_mk->init(motors)) {
+     	warnx("[mkblctrl] scanning i2c1...\n");
   		ret = g_mk->mk_check_for_blctrl(8, false, true);
   		if (ret > 0) {
   			return OK;
@@ -1201,7 +1207,7 @@ mk_start(unsigned motors, char *device_path)
 	delete g_mk;
 	g_mk = nullptr;
 
-	return -ENOMEM;
+	return -ENXIO;
 }
 
 
