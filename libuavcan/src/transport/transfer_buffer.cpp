@@ -62,6 +62,26 @@ void DynamicTransferBuffer::Block::write(const uint8_t*& inptr, unsigned int tar
 /*
  * DynamicTransferBuffer
  */
+DynamicTransferBuffer* DynamicTransferBuffer::instantiate(IAllocator* allocator)
+{
+    assert(allocator);
+    void* const praw = allocator->allocate(sizeof(DynamicTransferBuffer));
+    if (praw == NULL)
+        return NULL;
+    return new (praw) DynamicTransferBuffer(allocator);
+}
+
+void DynamicTransferBuffer::destroy(DynamicTransferBuffer*& obj, IAllocator* allocator)
+{
+    assert(allocator);
+    if (obj != NULL)
+    {
+        obj->~DynamicTransferBuffer();
+        allocator->deallocate(obj);
+        obj = NULL;
+    }
+}
+
 void DynamicTransferBuffer::resetImpl()
 {
     max_write_pos_ = 0;
