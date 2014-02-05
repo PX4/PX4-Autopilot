@@ -465,7 +465,7 @@ then
 			set MAV_TYPE 2
 			
 			# Use mixer to detect vehicle type
-			if [ $MIXER == FMU_hex_x -o $MIXER == FMU_hex_+ ]
+			if [ $MIXER == FMU_hexa_x -o $MIXER == FMU_hexa_+ ]
 			then
 				set MAV_TYPE 13
 			fi
