@@ -183,8 +183,8 @@ TEST(DynamicTransferBuffer, Basic)
     ASSERT_EQ(21, buf.write(0, test_data_ptr, 21));
     ASSERT_TRUE(matchAgainstTestData(buf, 0));
 
-    // Reset
+    // Destroying the object; memory should be released
     ASSERT_LT(0, pool.getNumUsedBlocks());
-    buf.reset();
+    buf.~DynamicTransferBuffer();
     ASSERT_EQ(0, pool.getNumUsedBlocks());
 }

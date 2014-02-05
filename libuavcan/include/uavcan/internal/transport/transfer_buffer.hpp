@@ -96,6 +96,11 @@ public:
         IsDynamicallyAllocatable<DynamicTransferBuffer>::check();
     }
 
+    ~DynamicTransferBuffer()
+    {
+        resetImpl();
+    }
+
     int read(unsigned int offset, uint8_t* data, unsigned int len) const;
     int write(unsigned int offset, const uint8_t* data, unsigned int len);
 };
