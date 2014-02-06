@@ -363,15 +363,21 @@ TEST(CanIOManager, Transmission)
     // Sending to #1, both writeable
     driver.ifaces.at(0).writeable = true;
     driver.ifaces.at(1).writeable = true;
-    EXPECT_LT(0, iomgr.send(frames[0], 999, 500, 2, CanTxQueue::PERSISTENT));
+    EXPECT_LT(0, iomgr.send(frames[0], 999, 500, 2, CanTxQueue::PERSISTENT)); // One frame per each iface will be sent
     EXPECT_TRUE(driver.ifaces.at(0).matchAndPopTx(frames[1], 777));   // Note that frame[0] on iface #0 has expired
-    EXPECT_TRUE(driver.ifaces.at(0).matchAndPopTx(frames[2], 888));
     EXPECT_TRUE(driver.ifaces.at(1).matchAndPopTx(frames[0], 999));   // In different order due to prioritization
+    EXPECT_TRUE(driver.ifaces.at(0).tx.empty());
+    EXPECT_TRUE(driver.ifaces.at(1).tx.empty());
+
+    // Calling receive() to flush the rest two frames
+    uavcan::CanRxFrame dummy_rx_frame;
+    EXPECT_EQ(0, iomgr.receive(dummy_rx_frame, 0));
+    EXPECT_TRUE(driver.ifaces.at(0).matchAndPopTx(frames[2], 888));
     EXPECT_TRUE(driver.ifaces.at(1).matchAndPopTx(frames[1], 777));
 
     // Final checks
-    ASSERT_EQ(0, driver.ifaces.at(0).tx.size());
-    ASSERT_EQ(0, driver.ifaces.at(1).tx.size());
+    EXPECT_TRUE(driver.ifaces.at(0).tx.empty());
+    EXPECT_TRUE(driver.ifaces.at(1).tx.empty());
     EXPECT_EQ(0, pool.getNumUsedBlocks());          // Make sure the memory was properly released
     EXPECT_EQ(1, iomgr.getNumErrors(0));            // This is because of expired frame[0]
     EXPECT_EQ(0, iomgr.getNumErrors(1));

@@ -255,9 +255,9 @@ int CanIOManager::send(const CanFrame& frame, uint64_t monotonic_tx_deadline, ui
 
     while (true)
     {
-        int write_mask = iface_mask | makePendingTxMask();
-        if (write_mask == 0)
+        if (iface_mask == 0)
             break;
+        int write_mask = iface_mask | makePendingTxMask();
 
         const uint64_t timeout = getTimeUntilMonotonicDeadline(monotonic_blocking_deadline);
         {
