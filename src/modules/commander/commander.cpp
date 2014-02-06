@@ -1624,7 +1624,7 @@ set_main_state_rc(struct vehicle_status_s *status)
 	if (status->offboard_switch == OFFBOARD_SWITCH_OFFBOARD) {
 		res = main_state_transition(status, MAIN_STATE_OFFBOARD);
 		if (res == TRANSITION_DENIED) {
-			print_reject_mode("OFFBOARD");
+			print_reject_mode(status, "OFFBOARD");
 
 		} else {
 			return res;
