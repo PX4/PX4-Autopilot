@@ -45,3 +45,6 @@ PARAM_DEFINE_INT32(SYS_AUTOSTART, 0);
 
 // Automatically configure default values
 PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
+
+// Select primary output (0 = IO PWM, 1 = FMU PWM, 2 = MKBLCTRL)
+PARAM_DEFINE_INT32(SYS_OUTPUT, 0);
