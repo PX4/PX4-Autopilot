@@ -7,6 +7,7 @@
 #include <cassert>
 #include <stdint.h>
 #include <uavcan/internal/transport/transfer.hpp>
+#include <uavcan/internal/data_type.hpp>
 #include <uavcan/internal/linked_list.hpp>
 #include <uavcan/internal/impl_constants.hpp>
 #include <uavcan/internal/dynamic_memory.hpp>
