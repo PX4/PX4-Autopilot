@@ -20,7 +20,7 @@ TEST(TransferIDRegistry, Basic)
 {
     using uavcan::Frame;
     using uavcan::TransferID;
-    using uavcan::TransferType;
+    using uavcan::DataTypeKind;
     using uavcan::TransferIDRegistry;
     typedef TransferIDRegistry::Key Key;
     typedef TransferIDRegistry::Entry Entry;
@@ -32,7 +32,7 @@ TEST(TransferIDRegistry, Basic)
 
     TransferIDRegistry reg(&poolmgr);
 
-    ASSERT_EQ(NULL, reg.access(Key(0, uavcan::MESSAGE_BROADCAST, 0)));
+    ASSERT_EQ(NULL, reg.access(Key(0, uavcan::DATA_TYPE_KIND_MESSAGE, 0)));
 
     static const int NUM_ITEMS = 100;    // Just to make sure it will be enough
     Key keys[NUM_ITEMS];
@@ -44,7 +44,7 @@ TEST(TransferIDRegistry, Basic)
     {
         keys[i].data_type_id = i * (Frame::DATA_TYPE_ID_MAX / NUM_ITEMS);
         keys[i].node_id = i * (uavcan::NODE_ID_MAX / NUM_ITEMS);
-        keys[i].transfer_type = TransferType(i % uavcan::NUM_TRANSFER_TYPES);
+        keys[i].data_type_kind = DataTypeKind(i % uavcan::NUM_DATA_TYPE_KINDS);
 
         entries[i].timestamp = i * 10000000;
         entries[i].transfer_id = TransferID(i % TransferID::MAX);

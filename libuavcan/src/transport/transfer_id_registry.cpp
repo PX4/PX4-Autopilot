@@ -101,33 +101,33 @@ void TransferIDRegistry::List::compact(IAllocator* allocator)
  */
 TransferIDRegistry::Entry* TransferIDRegistry::access(const Key& key)
 {
-    if (key.node_id > NODE_ID_MAX || key.transfer_type >= NUM_TRANSFER_TYPES)
+    if (key.node_id > NODE_ID_MAX || key.data_type_kind >= NUM_DATA_TYPE_KINDS)
     {
         assert(0);
         return NULL;
     }
-    return static_cast<Entry*>(lists_by_transfer_type_[key.transfer_type].find(key));
+    return static_cast<Entry*>(lists_by_data_type_kind_[key.data_type_kind].find(key));
 }
 
 bool TransferIDRegistry::create(const Key& key, const Entry& entry)
 {
-    if (key.node_id > NODE_ID_MAX || key.transfer_type >= NUM_TRANSFER_TYPES)
+    if (key.node_id > NODE_ID_MAX || key.data_type_kind >= NUM_DATA_TYPE_KINDS)
     {
         assert(0);
         return false;
     }
-    return lists_by_transfer_type_[key.transfer_type].create(
+    return lists_by_data_type_kind_[key.data_type_kind].create(
         StorageEntry(key.node_id, key.data_type_id, entry), allocator_);
 }
 
 void TransferIDRegistry::remove(const Key& key)
 {
-    if (key.node_id > NODE_ID_MAX || key.transfer_type >= NUM_TRANSFER_TYPES)
+    if (key.node_id > NODE_ID_MAX || key.data_type_kind >= NUM_DATA_TYPE_KINDS)
     {
         assert(0);
         return;
     }
-    lists_by_transfer_type_[key.transfer_type].remove(key, allocator_);
+    lists_by_data_type_kind_[key.data_type_kind].remove(key, allocator_);
 }
 
 }

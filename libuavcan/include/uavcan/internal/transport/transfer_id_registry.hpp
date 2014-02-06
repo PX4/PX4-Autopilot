@@ -19,18 +19,18 @@ class TransferIDRegistry
 public:
     struct Key
     {
-        TransferType transfer_type;
+        DataTypeKind data_type_kind;
         uint16_t data_type_id;
         uint8_t node_id;
 
         Key()
-        : transfer_type(TransferType(0))
+        : data_type_kind(DataTypeKind(0))
         , data_type_id(0)
         , node_id(NODE_ID_INVALID)
         { }
 
-        Key(uint8_t node_id, TransferType transfer_type, uint16_t data_type_id)
-        : transfer_type(transfer_type)
+        Key(uint8_t node_id, DataTypeKind data_type_kind, uint16_t data_type_id)
+        : data_type_kind(data_type_kind)
         , data_type_id(data_type_id)
         , node_id(node_id)
         { }
@@ -105,7 +105,7 @@ private:
         void compact(IAllocator* allocator);
     };
 
-    List lists_by_transfer_type_[NUM_TRANSFER_TYPES];
+    List lists_by_data_type_kind_[NUM_DATA_TYPE_KINDS];
     IAllocator* const allocator_;
 
 public:
@@ -128,9 +128,9 @@ public:
     template <typename Predicate>
     void removeWhere(Predicate predicate)
     {
-        for (int transfer_type = 0; transfer_type < NUM_TRANSFER_TYPES; transfer_type++)
+        for (int data_type_kind = 0; data_type_kind < NUM_DATA_TYPE_KINDS; data_type_kind++)
         {
-            StorageEntryGroup* p = lists_by_transfer_type_[transfer_type].getHead();
+            StorageEntryGroup* p = lists_by_data_type_kind_[data_type_kind].getHead();
             while (p)
             {
                 for (int i = 0; i < StorageEntryGroup::NUM_ENTRIES; i++)
@@ -138,7 +138,7 @@ public:
                     const StorageEntry* const entry = p->entries + i;
                     if (!entry->isEmpty())
                     {
-                        const Key key(entry->node_id, TransferType(transfer_type), entry->data_type_id);
+                        const Key key(entry->node_id, DataTypeKind(data_type_kind), entry->data_type_id);
                         const bool result = predicate(key, static_cast<const Entry&>(*entry));
                         if (result)
                             p->entries[i] = StorageEntry();
@@ -146,7 +146,7 @@ public:
                 }
                 p = p->getNextListNode();
             }
-            lists_by_transfer_type_[transfer_type].compact(allocator_);
+            lists_by_data_type_kind_[data_type_kind].compact(allocator_);
         }
     }
 };

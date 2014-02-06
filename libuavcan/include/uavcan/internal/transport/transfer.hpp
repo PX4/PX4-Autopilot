@@ -27,6 +27,12 @@ enum TransferType
     NUM_TRANSFER_TYPES = 4
 };
 
+enum DataTypeKind
+{
+    DATA_TYPE_KIND_SERVICE,
+    DATA_TYPE_KIND_MESSAGE,
+    NUM_DATA_TYPE_KINDS
+};
 
 class TransferID
 {
