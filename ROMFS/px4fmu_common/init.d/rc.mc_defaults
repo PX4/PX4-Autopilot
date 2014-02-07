@@ -5,7 +5,7 @@ set VEHICLE_TYPE fw
 if [ $DO_AUTOCONFIG == yes ]
 then
 	#
-	# Default parameters for this platform
+	# Default parameters for MC
 	#
 	param set MC_ROLL_P 7.0
 	param set MC_ROLLRATE_P 0.12
