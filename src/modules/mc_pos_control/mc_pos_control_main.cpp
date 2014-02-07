@@ -593,6 +593,8 @@ MulticopterPositionControl::task_main()
 	sp_move_rate.zero();
 	math::Vector<3> vel_ff;
 	vel_ff.zero();
+	math::Vector<3> att_rates_ff;
+	att_rates_ff.zero();
 	math::Vector<3> thrust_int;
 	thrust_int.zero();
 	math::Matrix<3, 3> R;
@@ -655,6 +657,7 @@ MulticopterPositionControl::task_main()
 
 			sp_move_rate.zero();
 			vel_ff.zero();
+			att_rates_ff.zero();
 
 			float alt = _global_pos.alt;
 
@@ -757,30 +760,12 @@ MulticopterPositionControl::task_main()
 						sp_move_rate.zero();
 					}
 
-					/* calculate position setpoint */
-					add_vector_to_global_position(_target_pos.lat, _target_pos.lon, _follow_offset(0), _follow_offset(1), &_lat_sp, &_lon_sp);
-					_alt_sp = _target_pos.alt + _target_alt_offs - _follow_offset(2);
-
-					/* position prediction */
+					/* calculate position setpoint with position prediction */
 					float target_dt = (t - _target_pos.timestamp) / 1000000.0f;
-					add_vector_to_global_position(_lat_sp, _lon_sp, _target_pos.vel_n * target_dt, _target_pos.vel_e * target_dt, &_lat_sp, &_lon_sp);
-					_alt_sp -= _target_pos.vel_d * target_dt;
-
-					/* change yaw to keep direction to target */
-					math::Vector<2> current_offset_xy;
-					get_vector_to_next_waypoint_fast(_target_pos.lat, _target_pos.lon, _global_pos.lat, _global_pos.lon, &current_offset_xy.data[0], &current_offset_xy.data[1]);
-
-					/* use position prediction */
-					current_offset_xy(0) -= _target_pos.vel_n * target_dt;
-					current_offset_xy(1) -= _target_pos.vel_e * target_dt;
-
-					/* change yaw offset with yaw stick */
-					_follow_yaw_offset += _manual.yaw * dt;
-
-					/* don't try to rotate near singularity */
-					if (current_offset_xy.length() > FOLLOW_OFFS_XY_MIN) {
-						_att_sp.yaw_body = _wrap_pi(atan2f(current_offset_xy(1), current_offset_xy(0)) + _follow_yaw_offset);
-					}
+					add_vector_to_global_position(_target_pos.lat, _target_pos.lon,
+							_follow_offset(0) + _target_pos.vel_n * target_dt, _follow_offset(1) + _target_pos.vel_e * target_dt,
+							&_lat_sp, &_lon_sp);
+					_alt_sp = _target_pos.alt - _target_pos.vel_d * target_dt + _target_alt_offs - _follow_offset(2);
 
 					/* feed forward manual setpoint move rate with weight vel_ff */
 					vel_ff = sp_move_rate.emult(_params.vel_ff);
@@ -791,6 +776,29 @@ MulticopterPositionControl::task_main()
 
 					/* feed forward target velocity */
 					vel_ff += vel_target * _params.follow_ff;
+
+					/* change yaw offset with yaw stick */
+					_follow_yaw_offset += _manual.yaw * dt;
+
+					/* change yaw to keep direction to target */
+					/* calculate current offset (not offset setpoint) */
+					math::Vector<2> current_offset_xy;
+					get_vector_to_next_waypoint_fast(_target_pos.lat, _target_pos.lon, _global_pos.lat, _global_pos.lon, &current_offset_xy.data[0], &current_offset_xy.data[1]);
+
+					/* use position prediction */
+					current_offset_xy(0) -= _target_pos.vel_n * target_dt;
+					current_offset_xy(1) -= _target_pos.vel_e * target_dt;
+
+					/* don't try to rotate near singularity */
+					float current_offset_xy_len = current_offset_xy.length();
+					if (current_offset_xy_len > FOLLOW_OFFS_XY_MIN) {
+						/* calculate yaw setpoint from current positions */
+						_att_sp.yaw_body = _wrap_pi(atan2f(current_offset_xy(1), current_offset_xy(0)) + _follow_yaw_offset);
+
+						/* feed forward attitude rates */
+						math::Vector<2> offs_vel_xy(_vel(0) - vel_target(0), _vel(1) - vel_target(1));
+						att_rates_ff(2) = (current_offset_xy % offs_vel_xy) / current_offset_xy_len / current_offset_xy_len;
+					}
 
 				} else {
 					/* normal node, move position setpoint */
@@ -897,6 +905,9 @@ MulticopterPositionControl::task_main()
 				_att_sp.pitch_body = 0.0f;
 				_att_sp.yaw_body = _att.yaw;
 				_att_sp.thrust = 0.0f;
+				_att_sp.rollrate_ff = 0.0f;
+				_att_sp.pitchrate_ff = 0.0f;
+				_att_sp.yawrate_ff = 0.0f;
 
 				_att_sp.timestamp = hrt_absolute_time();
 
@@ -1185,6 +1196,12 @@ MulticopterPositionControl::task_main()
 						/* yaw already used to construct rot matrix, but actual rotation matrix can have different yaw near singularity */
 					}
 
+					/* convert attitude rates from NED to body frame */
+					att_rates_ff = R.transposed() * att_rates_ff;
+
+					_att_sp.rollrate_ff = att_rates_ff(0);
+					_att_sp.pitchrate_ff = att_rates_ff(1);
+					_att_sp.yawrate_ff = att_rates_ff(2);
 					_att_sp.thrust = thrust_abs;
 
 					_att_sp.timestamp = hrt_absolute_time();
