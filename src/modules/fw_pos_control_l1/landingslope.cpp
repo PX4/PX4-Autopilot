@@ -48,13 +48,13 @@
 
 void Landingslope::update(float landing_slope_angle_rad,
 		float flare_relative_alt,
-		float motor_lim_horizontal_distance,
+		float motor_lim_relative_alt,
 		float H1_virt)
 {
 
 	_landing_slope_angle_rad = landing_slope_angle_rad;
 	_flare_relative_alt = flare_relative_alt;
-	_motor_lim_horizontal_distance = motor_lim_horizontal_distance;
+	_motor_lim_relative_alt = motor_lim_relative_alt;
 	_H1_virt = H1_virt;
 
 	calculateSlopeValues();
@@ -74,9 +74,21 @@ float Landingslope::getLandingSlopeAbsoluteAltitude(float wp_distance, float wp_
 	return Landingslope::getLandingSlopeAbsoluteAltitude(wp_distance, wp_altitude, _horizontal_slope_displacement, _landing_slope_angle_rad);
 }
 
-float Landingslope::getFlareCurveAltitude(float wp_landing_distance, float wp_landing_altitude)
+float Landingslope::getLandingSlopeAbsoluteAltitudeSave(float wp_distance, float bearing_lastwp_currwp, float bearing_airplane_currwp, float wp_altitude)
 {
-	return wp_landing_altitude + _H0 * expf(-math::max(0.0f, _flare_length - wp_landing_distance)/_flare_constant) - _H1_virt;
+	/* If airplane is in front of waypoint return slope altitude, else return waypoint altitude */
+	if (fabsf(bearing_airplane_currwp - bearing_lastwp_currwp) < math::radians(90.0f))
+		return getLandingSlopeAbsoluteAltitude(wp_distance, wp_altitude);
+	else
+		return wp_altitude;
+}
 
+float Landingslope::getFlareCurveAltitudeSave(float wp_landing_distance, float bearing_lastwp_currwp, float bearing_airplane_currwp, float wp_landing_altitude)
+{
+	/* If airplane is in front of waypoint return flare curve altitude, else return waypoint altitude */
+	if (fabsf(bearing_airplane_currwp - bearing_lastwp_currwp) < math::radians(90.0f))
+		return wp_landing_altitude + _H0 * expf(-math::max(0.0f, _flare_length - wp_landing_distance)/_flare_constant) - _H1_virt;
+	else
+		return wp_landing_altitude;
 }
 
