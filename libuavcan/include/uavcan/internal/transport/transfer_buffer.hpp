@@ -351,7 +351,7 @@ public:
 
     void remove(uint8_t node_id)
     {
-        assert((node_id <= NODE_ID_MAX && node_id != NODE_ID_INVALID));
+        assert((node_id <= NODE_ID_MAX) && (node_id != NODE_ID_INVALID));
 
         TransferBufferManagerEntry* const tbme = findFirstStatic(node_id);
         if (tbme)
