@@ -20,20 +20,8 @@ namespace uavcan
  */
 class TransferBufferBase : Noncopyable
 {
-    uint64_t update_timestamp_;
-
-protected:
-    void reset() { update_timestamp_ = 0; }
-
 public:
-    TransferBufferBase()
-    : update_timestamp_(0)
-    { }
-
     virtual ~TransferBufferBase() { }
-
-    uint64_t getUpdateTimestamp() const { return update_timestamp_; }
-    void setUpdateTimestamp(uint64_t val) { update_timestamp_ = val; }
 
     virtual int read(unsigned int offset, uint8_t* data, unsigned int len) const = 0;
     virtual int write(unsigned int offset, const uint8_t* data, unsigned int len) = 0;
@@ -60,7 +48,6 @@ public:
     void reset(uint8_t node_id = NODE_ID_INVALID)
     {
         node_id_ = node_id;
-        TransferBufferBase::reset();
         resetImpl();
     }
 };
@@ -183,7 +170,6 @@ public:
 
         // Resetting self and moving all data from the source
         reset(tbme->getNodeID());
-        setUpdateTimestamp(tbme->getUpdateTimestamp());
         const int res = tbme->read(0, data_, SIZE);
         if (res < 0)
         {
@@ -215,7 +201,6 @@ public:
     virtual TransferBufferBase* access(uint8_t node_id) = 0;
     virtual TransferBufferBase* create(uint8_t node_id) = 0;
     virtual void remove(uint8_t node_id) = 0;
-    virtual void cleanup(uint64_t oldest_timestamp) = 0;
 };
 
 /**
@@ -267,7 +252,6 @@ class TransferBufferManager : public ITransferBufferManager, Noncopyable
             if (sb->migrateFrom(dyn))
             {
                 assert(!dyn->isEmpty());
-                assert(dyn->getUpdateTimestamp() == sb->getUpdateTimestamp());
                 UAVCAN_TRACE("TransferBufferManager", "Storage optimization: Migrated NID %i", int(dyn->getNodeID()));
                 dynamic_buffers_.remove(dyn);
                 DynamicTransferBuffer::destroy(dyn, allocator_);
@@ -293,7 +277,14 @@ public:
 
     ~TransferBufferManager()
     {
-        cleanup(std::numeric_limits<uint64_t>::max());
+        DynamicTransferBuffer* dyn = dynamic_buffers_.get();
+        while (dyn)
+        {
+            DynamicTransferBuffer* const next = dyn->getNextListNode();
+            dynamic_buffers_.remove(dyn);
+            DynamicTransferBuffer::destroy(dyn, allocator_);
+            dyn = next;
+        }
     }
 
     unsigned int getNumDynamicBuffers() const { return dynamic_buffers_.length(); }
@@ -367,40 +358,6 @@ public:
             dynamic_buffers_.remove(dyn);
             DynamicTransferBuffer::destroy(dyn, allocator_);
         }
-    }
-
-    void cleanup(uint64_t oldest_timestamp)
-    {
-        int num_released_statics = 0;
-        for (unsigned int i = 0; i < NUM_STATIC_BUFS; i++)
-        {
-            TransferBufferManagerEntry* const buf = static_buffers_ + i;
-            if (buf->isEmpty())
-                continue;
-            if (buf->getUpdateTimestamp() <= oldest_timestamp)
-            {
-                UAVCAN_TRACE("TransferBufferManager", "Cleanup: Dead static buffer, NID %i", int(buf->getNodeID()));
-                buf->reset();
-                num_released_statics++;
-            }
-        }
-
-        DynamicTransferBuffer* dyn = dynamic_buffers_.get();
-        while (dyn)
-        {
-            assert(!dyn->isEmpty());
-            DynamicTransferBuffer* const next = dyn->getNextListNode();
-            if (dyn->getUpdateTimestamp() <= oldest_timestamp)
-            {
-                UAVCAN_TRACE("TransferBufferManager", "Cleanup: Dead dynamic buffer, NID %i", int(dyn->getNodeID()));
-                dynamic_buffers_.remove(dyn);
-                DynamicTransferBuffer::destroy(dyn, allocator_);
-            }
-            dyn = next;
-        }
-
-        if (num_released_statics > 0)
-            optimizeStorage();
     }
 };
 

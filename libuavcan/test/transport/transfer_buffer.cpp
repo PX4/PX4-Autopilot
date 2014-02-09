@@ -250,13 +250,11 @@ TEST(TransferBufferManager, Basic)
 
     // Static 0
     ASSERT_TRUE((tbb = mgr->create(0)));
-    tbb->setUpdateTimestamp(1234);
     ASSERT_EQ(MGR_STATIC_BUFFER_SIZE, fillTestData(MGR_TEST_DATA[0], tbb));
     ASSERT_EQ(1, mgr->getNumStaticBuffers());
 
     // Static 1
     ASSERT_TRUE((tbb = mgr->create(1)));
-    tbb->setUpdateTimestamp(2345);
     ASSERT_EQ(MGR_STATIC_BUFFER_SIZE, fillTestData(MGR_TEST_DATA[1], tbb));
     ASSERT_EQ(2, mgr->getNumStaticBuffers());
     ASSERT_EQ(0, mgr->getNumDynamicBuffers());
@@ -265,7 +263,6 @@ TEST(TransferBufferManager, Basic)
     // Dynamic 0
     ASSERT_TRUE((tbb = mgr->create(2)));
     ASSERT_EQ(1, pool.getNumUsedBlocks());      // Empty dynamic buffer occupies one block
-    tbb->setUpdateTimestamp(3456);
     ASSERT_EQ(MGR_TEST_DATA[2].length(), fillTestData(MGR_TEST_DATA[2], tbb));
     ASSERT_EQ(2, mgr->getNumStaticBuffers());
     ASSERT_EQ(1, mgr->getNumDynamicBuffers());
@@ -276,7 +273,6 @@ TEST(TransferBufferManager, Basic)
     // Dynamic 2
     ASSERT_TRUE((tbb = mgr->create(127)));
     ASSERT_EQ(0, pool.getNumFreeBlocks());      // The test assumes that the memory must be exhausted now
-    tbb->setUpdateTimestamp(4567);
 
     ASSERT_EQ(0, fillTestData(MGR_TEST_DATA[3], tbb));
     ASSERT_EQ(2, mgr->getNumStaticBuffers());
@@ -289,19 +285,15 @@ TEST(TransferBufferManager, Basic)
 
     // Making sure all buffers contain proper data
     ASSERT_TRUE((tbb = mgr->access(0)));
-    ASSERT_EQ(1234, tbb->getUpdateTimestamp());
     ASSERT_TRUE(matchAgainst(MGR_TEST_DATA[0], *tbb));
 
     ASSERT_TRUE((tbb = mgr->access(1)));
-    ASSERT_EQ(2345, tbb->getUpdateTimestamp());
     ASSERT_TRUE(matchAgainst(MGR_TEST_DATA[1], *tbb));
 
     ASSERT_TRUE((tbb = mgr->access(2)));
-    ASSERT_EQ(3456, tbb->getUpdateTimestamp());
     ASSERT_TRUE(matchAgainst(MGR_TEST_DATA[2], *tbb));
 
     ASSERT_TRUE((tbb = mgr->access(127)));
-    ASSERT_EQ(4567, tbb->getUpdateTimestamp());
     ASSERT_TRUE(matchAgainst(MGR_TEST_DATA[3], *tbb));
 
     // Freeing one static buffer; one dynamic must migrate
@@ -311,19 +303,17 @@ TEST(TransferBufferManager, Basic)
     ASSERT_EQ(1, mgr->getNumDynamicBuffers());   // One migrated to the static
     ASSERT_LT(0, pool.getNumFreeBlocks());
 
-    // Cleanup must remove NodeID 0 due to low timestamp; migration should fail due to oversized data
-    mgr->cleanup(2000);
+    // Removing NodeID 0; migration should fail due to oversized data
+    mgr->remove(0);
     ASSERT_FALSE(mgr->access(0));
     ASSERT_EQ(1, mgr->getNumStaticBuffers());
     ASSERT_EQ(1, mgr->getNumDynamicBuffers());   // Migration failed
 
     // At this time we have the following NodeID: 2, 127
     ASSERT_TRUE((tbb = mgr->access(2)));
-    ASSERT_EQ(3456, tbb->getUpdateTimestamp());
     ASSERT_TRUE(matchAgainst(MGR_TEST_DATA[2], *tbb));
 
     ASSERT_TRUE((tbb = mgr->access(127)));
-    ASSERT_EQ(4567, tbb->getUpdateTimestamp());
     ASSERT_TRUE(matchAgainst(MGR_TEST_DATA[3], *tbb));
 
     // These were deleted: 0, 1
