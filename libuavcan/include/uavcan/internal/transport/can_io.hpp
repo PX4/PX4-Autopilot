@@ -10,6 +10,7 @@
 #include <uavcan/internal/linked_list.hpp>
 #include <uavcan/internal/dynamic_memory.hpp>
 #include <uavcan/internal/impl_constants.hpp>
+#include <uavcan/internal/util.hpp>
 #include <uavcan/can_driver.hpp>
 #include <uavcan/system_clock.hpp>
 
@@ -28,7 +29,7 @@ struct CanRxFrame : public CanFrame
 };
 
 
-class CanTxQueue
+class CanTxQueue : Noncopyable
 {
 public:
     enum Qos { VOLATILE, PERSISTENT };
@@ -109,7 +110,7 @@ public:
 };
 
 
-class CanIOManager
+class CanIOManager : Noncopyable
 {
 public:
     enum { MAX_IFACES = 3 };

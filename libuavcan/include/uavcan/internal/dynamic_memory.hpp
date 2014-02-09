@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <limits>
 #include <stdint.h>
+#include <uavcan/internal/util.hpp>
 
 namespace uavcan
 {
@@ -34,7 +35,7 @@ public:
 
 
 template <int MAX_POOLS>
-class PoolManager : public IAllocator
+class PoolManager : public IAllocator, Noncopyable
 {
     IPoolAllocator* pools_[MAX_POOLS];
 
@@ -103,7 +104,7 @@ public:
 
 
 template <std::size_t POOL_SIZE, std::size_t BLOCK_SIZE>
-class PoolAllocator : public IPoolAllocator
+class PoolAllocator : public IPoolAllocator, Noncopyable
 {
     union Node
     {

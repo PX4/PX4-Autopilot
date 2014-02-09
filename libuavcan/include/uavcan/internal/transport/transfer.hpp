@@ -73,8 +73,9 @@ struct Frame
     enum { DATA_TYPE_ID_MAX = 1023 };
     enum { NODE_ID_MAX = 127 };
     enum { FRAME_INDEX_MAX = 31 };
+    enum { PAYLOAD_LEN_MAX = 8 };
 
-    uint8_t payload[8];
+    uint8_t payload[PAYLOAD_LEN_MAX];
     TransferType transfer_type;
     uint_fast16_t data_type_id;
     uint_fast8_t payload_len;

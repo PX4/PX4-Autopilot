@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <uavcan/internal/static_assert.hpp>
+#include <uavcan/internal/util.hpp>
 
 namespace uavcan
 {

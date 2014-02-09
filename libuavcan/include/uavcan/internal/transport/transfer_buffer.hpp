@@ -18,7 +18,7 @@ namespace uavcan
 /**
  * API for transfer buffer users.
  */
-class TransferBufferBase
+class TransferBufferBase : Noncopyable
 {
     uint64_t update_timestamp_;
 
@@ -222,7 +222,7 @@ public:
  * Buffer manager implementation.
  */
 template <unsigned int STATIC_BUF_SIZE, unsigned int NUM_STATIC_BUFS>
-class TransferBufferManager : public ITransferBufferManager
+class TransferBufferManager : public ITransferBufferManager, Noncopyable
 {
     typedef StaticTransferBuffer<STATIC_BUF_SIZE> StaticBufferType;
 

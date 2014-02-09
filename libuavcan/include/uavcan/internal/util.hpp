@@ -13,12 +13,7 @@ namespace uavcan
  *  StaticAssert<expression>::check();
  */
 template <bool VALUE>
-struct StaticAssert
-{
-#if __CDT_PARSER__
-    static void check() { assert(0); }
-#endif
-};
+struct StaticAssert;
 
 template <>
 struct StaticAssert<true>
@@ -31,5 +26,14 @@ struct StaticAssert<true>
  *  ShowIntegerAsError<integer_expression>::foobar();
  */
 template<long N> struct ShowIntegerAsError;
+
+
+class Noncopyable
+{
+    Noncopyable(const Noncopyable&);
+    Noncopyable& operator=(const Noncopyable&);
+protected:
+    Noncopyable() { }
+};
 
 }

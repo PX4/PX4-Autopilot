@@ -9,6 +9,7 @@
 #include <uavcan/internal/linked_list.hpp>
 #include <uavcan/internal/impl_constants.hpp>
 #include <uavcan/internal/dynamic_memory.hpp>
+#include <uavcan/internal/util.hpp>
 
 namespace uavcan
 {
@@ -20,8 +21,8 @@ namespace uavcan
  *  Key's default constructor must initialize the object into invalid state.
  *  Size of Key + Value + padding must not exceed MEM_POOL_BLOCK_SIZE.
  */
-template <typename Key, typename Value, unsigned int NUM_STATIC_ENTRIES = 1>
-class Map
+template <typename Key, typename Value, unsigned int NUM_STATIC_ENTRIES>
+class Map : Noncopyable
 {
 #pragma pack(push, 1)
     struct KVPair
