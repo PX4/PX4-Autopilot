@@ -189,6 +189,24 @@ ORB_DECLARE(output_pwm);
 /** get the maximum PWM value the output will send */
 #define PWM_SERVO_GET_MAX_PWM	_IOC(_PWM_SERVO_BASE, 19)
 
+/** set the number of servos in (unsigned)arg - allows change of
+ * split between servos and GPIO */
+#define PWM_SERVO_SET_COUNT	_IOC(_PWM_SERVO_BASE, 20)
+
+/** set the lockdown override flag to enable outputs in HIL */
+#define PWM_SERVO_SET_DISABLE_LOCKDOWN		_IOC(_PWM_SERVO_BASE, 21)
+
+/** get the lockdown override flag to enable outputs in HIL */
+#define PWM_SERVO_GET_DISABLE_LOCKDOWN		_IOC(_PWM_SERVO_BASE, 22)
+
+/*
+ *
+ *
+ * WARNING WARNING WARNING! DO NOT EXCEED 31 IN IOC INDICES HERE!
+ *
+ *
+ */
+
 /** set a single servo to a specific value */
 #define PWM_SERVO_SET(_servo)	_IOC(_PWM_SERVO_BASE, 0x20 + _servo)
 

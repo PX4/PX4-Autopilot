@@ -92,7 +92,7 @@ Airspeed::Airspeed(int bus, int address, unsigned conversion_interval) :
 	_comms_errors(perf_alloc(PC_COUNT, "airspeed_comms_errors"))
 {
 	// enable debug() calls
-	_debug_enabled = true;
+	_debug_enabled = false;
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));

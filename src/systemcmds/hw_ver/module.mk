@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2014 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,8 +32,12 @@
 ############################################################################
 
 #
-# EEPROM file system driver
+# Show and test hardware version
 #
 
-MODULE_COMMAND	 = eeprom
-SRCS		 = 24xxxx_mtd.c eeprom.c
+MODULE_COMMAND	 = hw_ver
+SRCS		 = hw_ver.c
+
+MODULE_STACKSIZE = 1024
+
+MAXOPTIMIZATION	 = -Os

@@ -797,7 +797,6 @@ Sensors::accel_init()
 
 #endif
 
-		warnx("using system accel");
 		close(fd);
 	}
 }
@@ -837,7 +836,6 @@ Sensors::gyro_init()
 
 #endif
 
-		warnx("using system gyro");
 		close(fd);
 	}
 }
@@ -1278,6 +1276,9 @@ Sensors::rc_poll()
 
 		orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
 
+		if (rc_input.rc_lost)
+			return;
+
 		struct manual_control_setpoint_s manual_control;
 		struct actuator_controls_s actuator_group_3;
 
@@ -1322,7 +1323,7 @@ Sensors::rc_poll()
 			channel_limit = _rc_max_chan_count;
 
 		/* we are accepting this message */
-		_rc_last_valid = rc_input.timestamp;
+		_rc_last_valid = rc_input.timestamp_last_signal;
 
 		/* Read out values from raw message */
 		for (unsigned int i = 0; i < channel_limit; i++) {
@@ -1371,9 +1372,9 @@ Sensors::rc_poll()
 		}
 
 		_rc.chan_count = rc_input.channel_count;
-		_rc.timestamp = rc_input.timestamp;
+		_rc.timestamp = rc_input.timestamp_last_signal;
 
-		manual_control.timestamp = rc_input.timestamp;
+		manual_control.timestamp = rc_input.timestamp_last_signal;
 
 		/* roll input - rolling right is stick-wise and rotation-wise positive */
 		manual_control.roll = limit_minus_one_to_one(_rc.chan[_rc.function[ROLL]].scaled);
@@ -1404,18 +1405,6 @@ Sensors::rc_poll()
 			manual_control.yaw *= _parameters.rc_scale_yaw;
 		}
 
-		/* mode switch input */
-		manual_control.mode_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MODE]].scaled);
-
-		/* land switch input */
-		manual_control.return_switch = limit_minus_one_to_one(_rc.chan[_rc.function[RETURN]].scaled);
-
-		/* assisted switch input */
-		manual_control.assisted_switch = limit_minus_one_to_one(_rc.chan[_rc.function[ASSISTED]].scaled);
-
-		/* mission switch input */
-		manual_control.mission_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MISSION]].scaled);
-
 		/* flaps */
 		if (_rc.function[FLAPS] >= 0) {
 
@@ -1432,6 +1421,16 @@ Sensors::rc_poll()
 
 		if (_rc.function[MISSION] >= 0) {
 			manual_control.mission_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MISSION]].scaled);
+		}
+
+		/* land switch input */
+		if (_rc.function[RETURN] >= 0) {
+			manual_control.return_switch = limit_minus_one_to_one(_rc.chan[_rc.function[RETURN]].scaled);
+		}
+
+		/* assisted switch input */
+		if (_rc.function[ASSISTED] >= 0) {
+			manual_control.assisted_switch = limit_minus_one_to_one(_rc.chan[_rc.function[ASSISTED]].scaled);
 		}
 
 //		if (_rc.function[OFFBOARD_MODE] >= 0) {
@@ -1507,9 +1506,6 @@ void
 Sensors::task_main()
 {
 
-	/* inform about start */
-	warnx("Initializing..");
-
 	/* start individual sensors */
 	accel_init();
 	gyro_init();
@@ -1548,8 +1544,8 @@ Sensors::task_main()
 	raw.adc_voltage_v[3] = 0.0f;
 
 	memset(&_battery_status, 0, sizeof(_battery_status));
-	_battery_status.voltage_v = 0.0f;
-	_battery_status.voltage_filtered_v = 0.0f;
+	_battery_status.voltage_v = -1.0f;
+	_battery_status.voltage_filtered_v = -1.0f;
 	_battery_status.current_a = -1.0f;
 	_battery_status.discharged_mah = -1.0f;
 
