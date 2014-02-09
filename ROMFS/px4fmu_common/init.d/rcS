@@ -122,11 +122,11 @@ then
 	#
 	# Select output by SYS_OUTPUT parameter
 	#
-	if param compare SYS_AUTOCONFIG 1
+	if param compare SYS_OUTPUT 1
 	then
 		set OUTPUT_MODE fmu
 	fi
-	if param compare SYS_AUTOCONFIG 2
+	if param compare SYS_OUTPUT 2
 	then
 		set OUTPUT_MODE mkblctrl
 	fi
