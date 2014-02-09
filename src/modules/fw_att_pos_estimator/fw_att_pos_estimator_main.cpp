@@ -918,6 +918,17 @@ int fw_att_pos_estimator_main(int argc, char *argv[])
 			printf("states (wind)      [14-15]: %8.4f, %8.4f\n", (double)states[13], (double)states[14]);
 			printf("states (earth mag) [16-18]: %8.4f, %8.4f, %8.4f\n", (double)states[15], (double)states[16], (double)states[17]);
 			printf("states (body mag)  [19-21]: %8.4f, %8.4f, %8.4f\n", (double)states[18], (double)states[19], (double)states[20]);
+			printf("states: %s %s %s %s",
+				(statesInitialised) ? "INITIALIZED" : "NON_INIT",
+				(onGround) ? "ON_GROUND" : "AIRBORNE",
+				(fuseVelData) ? "FUSE_VEL" : "INH_VEL",
+				(fusePosData) ? "FUSE_POS" : "INH_POS",
+				(fuseHgtData) ? "FUSE_HGT" : "INH_HGT");
+				(fuseMagData) ? "FUSE_MAG" : "INH_MAG",
+				(fuseVtasData) ? "FUSE_VTAS" : "INH_VTAS");
+				(useAirspeed) ? "USE_AIRSPD" : "IGN_AIRSPD",
+				(useCompass) ? "USE_COMPASS" : "IGN_COMPASS");
+
 			exit(0);
 
 		} else {
