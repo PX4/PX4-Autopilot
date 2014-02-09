@@ -381,7 +381,7 @@ class uploader(object):
                     for byte in range(0,32*6,4):
                         x = self.__getOTP(byte)
                         self.otp  = self.otp + x
-                        print(binascii.hexlify(x).decode('utf-8') + ' ', end='')
+                        print(binascii.hexlify(x).decode('Latin-1') + ' ', end='')
                     # see src/modules/systemlib/otp.h in px4 code:
                     self.otp_id = self.otp[0:4]
                     self.otp_idtype = self.otp[4:5]
@@ -389,17 +389,17 @@ class uploader(object):
                     self.otp_pid = self.otp[12:8:-1]
                     self.otp_coa = self.otp[32:160]
                     # show user:
-                    print("type: " + self.otp_id.decode('utf-8'))
-                    print("idtype: " + binascii.b2a_qp(self.otp_idtype).decode('utf-8'))
-                    print("vid: " + binascii.hexlify(self.otp_vid).decode('utf-8'))
-                    print("pid: "+ binascii.hexlify(self.otp_pid).decode('utf-8'))
-                    print("coa: "+ binascii.b2a_base64(self.otp_coa).decode('utf-8'))
+                    print("type: " + self.otp_id.decode('Latin-1'))
+                    print("idtype: " + binascii.b2a_qp(self.otp_idtype).decode('Latin-1'))
+                    print("vid: " + binascii.hexlify(self.otp_vid).decode('Latin-1'))
+                    print("pid: "+ binascii.hexlify(self.otp_pid).decode('Latin-1'))
+                    print("coa: "+ binascii.b2a_base64(self.otp_coa).decode('Latin-1'))
                     print("sn: ", end='')
                     for byte in range(0,12,4):
                         x = self.__getSN(byte)
                         x = x[::-1]  # reverse the bytes
                         self.sn  = self.sn + x
-                        print(binascii.hexlify(x).decode('utf-8'), end='') # show user
+                        print(binascii.hexlify(x).decode('Latin-1'), end='') # show user
                     print('')
                 print("erase...")
                 self.__erase()
