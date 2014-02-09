@@ -68,7 +68,6 @@ extern Vector3f correctedDelVel; // delta velocities along the XYZ body axes cor
 extern Vector3f summedDelAng; // summed delta angles about the xyz body axes corrected for errors (rad)
 extern Vector3f summedDelVel; // summed delta velocities along the XYZ body axes corrected for errors (m/s)
 
-extern float dt; // time lapsed since last covariance prediction
 extern float dtIMU; // time lapsed since the last IMU measurement or covariance update (sec)
 
 extern bool onGround; // boolean true when the flight vehicle is on the ground (not flying)
@@ -126,7 +125,7 @@ const float covDelAngMax = 0.05f; // maximum delta angle between covariance pred
 
 void  UpdateStrapdownEquationsNED();
 
-void CovariancePrediction();
+void CovariancePrediction(float dt);
 
 void FuseVelposNED();
 

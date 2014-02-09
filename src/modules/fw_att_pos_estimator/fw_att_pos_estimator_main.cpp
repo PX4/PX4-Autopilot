@@ -405,6 +405,8 @@ FixedwingEstimator::task_main()
 	Vector3f lastAngRate = {0.0f, 0.0f, 0.0f};
 	Vector3f lastAccel = {0.0f, 0.0f, 0.0f};
 
+	float dt = 0.0f; // time lapsed since last covariance prediction
+
 	/* wakeup source(s) */
 	struct pollfd fds[2];
 
@@ -675,7 +677,7 @@ FixedwingEstimator::task_main()
 				 * or the time limit will be exceeded on the next measurement update
 				 */
 				if ((dt >= (covTimeStepMax - dtIMU)) || (summedDelAng.length() > covDelAngMax)) {
-					CovariancePrediction();
+					CovariancePrediction(dt);
 					summedDelAng = summedDelAng.zero();
 					summedDelVel = summedDelVel.zero();
 					dt = 0.0f;
