@@ -1,0 +1,188 @@
+/*
+ * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
+ */
+
+#include <cstdlib>
+#include <cstdio>
+#include <cassert>
+#include <algorithm>
+#include <uavcan/internal/debug.hpp>
+#include <uavcan/internal/transport/transfer_receiver.hpp>
+
+namespace uavcan
+{
+
+const uint64_t TransferReceiver::DEFAULT_TRANSFER_INTERVAL;
+const uint64_t TransferReceiver::MIN_TRANSFER_INTERVAL;
+const uint64_t TransferReceiver::MAX_TRANSFER_INTERVAL;
+
+TransferReceiver::TidRelation TransferReceiver::getTidRelation(const RxFrame& frame) const
+{
+    const int distance = tid_.forwardDistance(frame.transfer_id);
+    if (distance == 0)
+        return TID_SAME;
+    if (distance < ((1 << TransferID::BITLEN) / 2))
+        return TID_FUTURE;
+    return TID_REPEAT;
+}
+
+void TransferReceiver::updateTransferTimings()
+{
+    assert(this_transfer_timestamp_ > 0);
+
+    const uint64_t prev_prev_ts = prev_transfer_timestamp_;
+    prev_transfer_timestamp_ = this_transfer_timestamp_;
+
+    if ((prev_prev_ts != 0) &&
+        (prev_transfer_timestamp_ != 0) &&
+        (prev_transfer_timestamp_ >= prev_prev_ts))
+    {
+        uint64_t interval = prev_transfer_timestamp_ - prev_prev_ts;
+        interval = std::max(std::min(interval, MAX_TRANSFER_INTERVAL), MIN_TRANSFER_INTERVAL);
+        transfer_interval_ = (transfer_interval_ * 7 + interval) / 8;
+    }
+}
+
+void TransferReceiver::prepareForNextTransfer()
+{
+    tid_.increment();
+    next_frame_index_ = 0;
+}
+
+bool TransferReceiver::validate(const RxFrame& frame) const
+{
+    if (iface_index_ != frame.iface_index)
+        return false;
+
+    if (frame.source_node_id == 0)
+    {
+        UAVCAN_TRACE("TransferReceiver", "Invalid frame NID, %s", frame.toString().c_str());
+        return false;
+    }
+
+    if (frame.frame_index != next_frame_index_)
+    {
+        UAVCAN_TRACE("TransferReceiver", "Unexpected frame index, %s", frame.toString().c_str());
+        return false;
+    }
+
+    if (!frame.last_frame && frame.payload_len != Frame::PAYLOAD_LEN_MAX)
+    {
+        UAVCAN_TRACE("TransferReceiver", "Unexpected payload len, %s", frame.toString().c_str());
+        return false;
+    }
+
+    if (!frame.last_frame && frame.frame_index == Frame::FRAME_INDEX_MAX)
+    {
+        UAVCAN_TRACE("TransferReceiver", "Expected end of transfer, %s", frame.toString().c_str());
+        return false;
+    }
+
+    if (getTidRelation(frame) != TID_SAME)
+    {
+        UAVCAN_TRACE("TransferReceiver", "Unexpected TID, %s", frame.toString().c_str());
+        return false;
+    }
+    return true;
+}
+
+TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame)
+{
+    if (frame.frame_index == 0)
+        this_transfer_timestamp_ = frame.timestamp;
+
+    if ((frame.frame_index == 0) && frame.last_frame)  // Single-frame transfer
+    {
+        bufmgr_->remove(node_id_);
+        updateTransferTimings();
+        prepareForNextTransfer();
+        return RESULT_SINGLE_FRAME;
+    }
+
+    TransferBufferBase* buf = bufmgr_->access(node_id_);
+    if (buf == NULL)
+        buf = bufmgr_->create(node_id_);
+    if (buf == NULL)
+    {
+        UAVCAN_TRACE("TransferReceiver", "Failed to access the buffer, %s", frame.toString().c_str());
+        prepareForNextTransfer();
+        return RESULT_NOT_COMPLETE;
+    }
+
+    const int res = buf->write(Frame::PAYLOAD_LEN_MAX * frame.frame_index, frame.payload, frame.payload_len);
+    if (res != frame.payload_len)
+    {
+        UAVCAN_TRACE("TransferReceiver", "Buffer write failure [%i], %s", res, frame.toString().c_str());
+        bufmgr_->remove(node_id_);
+        prepareForNextTransfer();
+        return RESULT_NOT_COMPLETE;
+    }
+    next_frame_index_++;
+
+    if (frame.last_frame)
+    {
+        updateTransferTimings();
+        prepareForNextTransfer();
+        return RESULT_COMPLETE;
+    }
+    return RESULT_NOT_COMPLETE;
+}
+
+bool TransferReceiver::isTimedOut(uint64_t timestamp) const
+{
+    static const int INTERVAL_MULT = (1 << TransferID::BITLEN) / 2 - 1;
+    const uint64_t ts = this_transfer_timestamp_;
+    if (timestamp <= ts)
+        return false;
+    return (timestamp - ts) > (transfer_interval_ * INTERVAL_MULT);
+}
+
+TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame)
+{
+    assert(bufmgr_);
+    assert(node_id_ == frame.source_node_id);
+
+    if ((frame.timestamp == 0) ||
+        (frame.timestamp < prev_transfer_timestamp_) ||
+        (frame.timestamp < this_transfer_timestamp_))
+    {
+        return RESULT_NOT_COMPLETE;
+    }
+
+    const bool not_initialized = !isInitialized();
+    const bool iface_timed_out = (frame.timestamp - this_transfer_timestamp_) > (transfer_interval_ * 2);
+    const bool receiver_timed_out = isTimedOut(frame.timestamp);
+    const bool same_iface = frame.iface_index == iface_index_;
+    const bool first_fame = frame.frame_index == 0;
+    const TidRelation tid_rel = getTidRelation(frame);
+
+    const bool need_restart = // FSM, the hard way
+        (not_initialized) ||
+        (receiver_timed_out && first_fame) ||
+        (same_iface && first_fame && (tid_rel == TID_FUTURE)) ||
+        (iface_timed_out && first_fame && (tid_rel == TID_FUTURE || tid_rel == TID_SAME));
+
+    if (need_restart)
+    {
+        UAVCAN_TRACE("TransferReceiver",
+            "Restart [not_inited=%i, iface_timeout=%i, recv_timeout=%i, same_iface=%i, first_frame=%i, tid_rel=%i], %s",
+            int(not_initialized), int(iface_timed_out), int(receiver_timed_out), int(same_iface), int(first_fame),
+            int(tid_rel), frame.toString().c_str());
+        bufmgr_->remove(node_id_);
+        iface_index_ = frame.iface_index;
+        tid_ = frame.transfer_id;
+        next_frame_index_ = 0;
+        if (!first_fame)
+        {
+            tid_.increment();
+            return RESULT_NOT_COMPLETE;
+        }
+    }
+
+    if (!validate(frame))
+        return RESULT_NOT_COMPLETE;
+
+    return receive(frame);
+}
+
+}
