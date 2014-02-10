@@ -22,7 +22,6 @@ Vector3f accel; // acceleration vector in XYZ body axes measured by the IMU (m/s
 Vector3f dVelIMU;
 Vector3f dAngIMU;
 float dtIMU; // time lapsed since the last IMU measurement or covariance update (sec)
-float dt; // time lapsed since last covariance prediction
 uint8_t fusionModeGPS = 0; // 0 = GPS outputs 3D velocity, 1 = GPS outputs 2D velocity, 2 = GPS outputs no velocity
 float innovVelPos[6]; // innovation output
 float varInnovVelPos[6]; // innovation variance output
@@ -292,7 +291,7 @@ void  UpdateStrapdownEquationsNED()
 
 }
 
-void CovariancePrediction()
+void CovariancePrediction(float dt)
 {
     // scalars
     float windVelSigma;
@@ -1868,5 +1867,4 @@ void InitialiseFilter(float (&initvelNED)[3])
     summedDelVel.x = 0.0f;
     summedDelVel.y = 0.0f;
     summedDelVel.z = 0.0f;
-    dt = 0.0f;
 }
