@@ -177,18 +177,18 @@ TEST(TransferReceiver, Basic)
      * Timeouts
      */
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "qwe",      0, true, 9, 100000))); // Wrong iface - ignored
-    CHECK_SINGLE_FRAME(rcv.addFrame(gen(1, "qwe",      0, true, 9, 600000))); // Accepted due to iface timeout
+    CHECK_SINGLE_FRAME(rcv.addFrame(gen(1, "qwe",      0, true, 10, 600000))); // Accepted due to iface timeout
     ASSERT_EQ(600000, rcv.getLastTransferTimestamp());
 
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "qwe",      0, true, 10, 600100)));// Ignored - old iface 0
-    CHECK_SINGLE_FRAME(rcv.addFrame(gen(1, "qwe",      0, true, 10, 600100)));
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "qwe",      0, true, 11, 600100)));// Ignored - old iface 0
+    CHECK_SINGLE_FRAME(rcv.addFrame(gen(1, "qwe",      0, true, 11, 600100)));
     ASSERT_EQ(600100, rcv.getLastTransferTimestamp());
 
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "qwe",      0, true, 10, 600100)));// Old TID
-    CHECK_SINGLE_FRAME(rcv.addFrame(gen(0, "qwe",      0, true, 10, 100000000)));
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "qwe",      0, true, 11, 600100)));// Old TID
+    CHECK_SINGLE_FRAME(rcv.addFrame(gen(0, "qwe",      0, true, 11, 100000000)));// Accepted - global timeout
     ASSERT_EQ(100000000, rcv.getLastTransferTimestamp());
 
-    CHECK_SINGLE_FRAME(rcv.addFrame(gen(0, "qwe",      0, true, 11, 100000100)));
+    CHECK_SINGLE_FRAME(rcv.addFrame(gen(0, "qwe",      0, true, 12, 100000100)));
     ASSERT_EQ(100000100, rcv.getLastTransferTimestamp());
 
     ASSERT_TRUE(rcv.isTimedOut(900000000));
@@ -310,4 +310,43 @@ TEST(TransferReceiver, IntervalMeasurement)
     }
 
     ASSERT_EQ(INTERVAL, rcv.getInterval());
+}
+
+
+TEST(TransferReceiver, Restart)
+{
+    Context<32> context;
+    RxFrameGenerator gen(789, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST);
+    uavcan::TransferReceiver& rcv = context.receiver;
+    uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
+
+    /*
+     * This transfer looks complete, but must be ignored because of large delay after the first frame
+     */
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "--------", 0, false, 0, 100)));      // Begin
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "--------", 1, false, 0, 10000100))); // Continue 10 sec later, expired
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "--------", 2, true,  0, 10000200))); // Ignored
+
+    /*
+     * Begins immediately after, gets an iface timeout but completes OK
+     */
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "12345678", 0, false, 0, 10000300))); // Begin
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "12345678", 1, false, 0, 13000300))); // Continue 3 sec later, iface timeout
+    CHECK_COMPLETE(    rcv.addFrame(gen(1, "12345678", 2, true,  0, 13000400))); // OK nevertheless
+
+    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.source_node_id), "123456781234567812345678"));
+
+    /*
+     * Begins OK, gets an iface timeout, switches to another iface
+     */
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "--------", 0, false, 1, 13000500))); // Begin
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "--------", 1, false, 1, 16000500))); // Continue 3 sec later, iface timeout
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "--------", 1, false, 1, 16000600))); // Same TID on another iface - ignore
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "--------", 1, false, 2, 16000700))); // Not first frame - ignore
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "12345678", 0, false, 2, 16000800))); // First frame, another iface - restart
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "--------", 2, true,  1, 16000600))); // Old iface - ignore
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "12345678", 1, false, 2, 16000900))); // Continuing
+    CHECK_COMPLETE(    rcv.addFrame(gen(0, "12345678", 2, true,  2, 16000910))); // Done
+
+    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.source_node_id), "123456781234567812345678"));
 }

@@ -164,9 +164,9 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame)
 
     const bool need_restart = // FSM, the hard way
         (not_initialized) ||
-        (receiver_timed_out && first_fame) ||
+        (receiver_timed_out) ||
         (same_iface && first_fame && (tid_rel == TID_FUTURE)) ||
-        (iface_timed_out && first_fame && (tid_rel == TID_FUTURE || tid_rel == TID_SAME));
+        (iface_timed_out && first_fame && (tid_rel == TID_FUTURE));
 
     if (need_restart)
     {
