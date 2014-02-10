@@ -18,7 +18,7 @@ namespace uavcan
 /**
  * API for transfer buffer users.
  */
-class TransferBufferBase : Noncopyable
+class TransferBufferBase
 {
 public:
     virtual ~TransferBufferBase() { }
@@ -30,7 +30,7 @@ public:
 /**
  * Internal for TransferBufferManager
  */
-class TransferBufferManagerEntry : public TransferBufferBase
+class TransferBufferManagerEntry : public TransferBufferBase, Noncopyable
 {
     uint8_t node_id_;
 
