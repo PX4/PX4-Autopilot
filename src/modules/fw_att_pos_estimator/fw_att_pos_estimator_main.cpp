@@ -357,6 +357,8 @@ FixedwingEstimator::task_main_trampoline(int argc, char *argv[])
 	estimator::g_estimator->task_main();
 }
 
+static float dt = 0.0f; // time lapsed since last covariance prediction
+
 void
 FixedwingEstimator::task_main()
 {
@@ -406,8 +408,6 @@ FixedwingEstimator::task_main()
 	VtasMeas = 0.0f;
 	Vector3f lastAngRate = {0.0f, 0.0f, 0.0f};
 	Vector3f lastAccel = {0.0f, 0.0f, 0.0f};
-
-	float dt = 0.0f; // time lapsed since last covariance prediction
 
 	/* wakeup source(s) */
 	struct pollfd fds[2];
