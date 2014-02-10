@@ -35,7 +35,8 @@
 # Build the device driver framework.
 #
 
-SRCS		= cdev.cpp \
+SRCS		= bdev.cpp \
+		  cdev.cpp \
 		  device.cpp \
 		  i2c.cpp \
 		  pio.cpp \
