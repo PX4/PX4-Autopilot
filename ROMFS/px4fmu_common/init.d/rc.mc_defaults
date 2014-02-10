@@ -1,6 +1,6 @@
 #!nsh
 
-set VEHICLE_TYPE fw
+set VEHICLE_TYPE mc
 
 if [ $DO_AUTOCONFIG == yes ]
 then
