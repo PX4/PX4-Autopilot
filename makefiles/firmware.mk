@@ -348,7 +348,12 @@ ROMFS_DEPS		+= $(ROMFS_FILES)
 ROMFS_EXTRA_FILES	+= $(wildcard $(ROMFS_OPTIONAL_FILES))
 ROMFS_DEPS		+= $(ROMFS_EXTRA_FILES)
 
+# Optional ROMFS compression (simplify this later...)
 ROMFS_IMG		 = romfs.img
+ifneq ($(findstring zromdisk,$(MODULES)),)
+ROMFS_COMPRESSOR	 = zromdisk_compress
+endif
+
 ROMFS_SCRATCH		 = romfs_scratch
 ROMFS_CSRC		 = $(ROMFS_IMG:.img=.c)
 ROMFS_OBJ		 = $(ROMFS_CSRC:.c=.o)
@@ -359,10 +364,25 @@ LINK_DEPS		+= $(ROMFS_OBJ)
 $(ROMFS_OBJ): $(ROMFS_IMG) $(GLOBAL_DEPS)
 	$(call BIN_TO_OBJ,$<,$@,romfs_img)
 
+ifeq ($(ROMFS_COMPRESSOR),)
 # Generate the ROMFS image from the root
 $(ROMFS_IMG): $(ROMFS_SCRATCH) $(ROMFS_DEPS) $(GLOBAL_DEPS)
 	@$(ECHO) "ROMFS:   $@"
 	$(Q) $(GENROMFS) -f $@ -d $(ROMFS_SCRATCH) -V "NSHInitVol"
+else
+# Generate the compressed ROMFS
+# Generate the ROMFS image from the root
+$(ROMFS_IMG): $(ROMFS_SCRATCH) $(ROMFS_DEPS) $(ROMFS_COMPRESSOR) $(GLOBAL_DEPS)
+	@$(ECHO) "ZROMFS:  $@"
+	$(Q) $(GENROMFS) -f $@.tmp -d $(ROMFS_SCRATCH) -V "NSHInitVol"
+	$(Q) ./$(ROMFS_COMPRESSOR) e $@.tmp $@
+
+$(info **** compressor)
+
+# build the compressor - XXX this needs to be done some other way...
+$(ROMFS_COMPRESSOR):	$(PX4_MODULE_SRC)/drivers/zromdisk/$(ROMFS_COMPRESSOR).c $(GLOBAL_DEPS)
+	cc -o $@ $<
+endif
 
 # Construct the ROMFS scratch root from the canonical root
 $(ROMFS_SCRATCH): $(ROMFS_DEPS) $(GLOBAL_DEPS)
