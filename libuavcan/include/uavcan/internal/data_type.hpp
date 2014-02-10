@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <stdint.h>
 #include <algorithm>
 
 namespace uavcan

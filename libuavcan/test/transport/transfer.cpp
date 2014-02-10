@@ -165,3 +165,39 @@ TEST(Transfer, RxFrameParse)
     ASSERT_EQ(456, rx_frame.data_type_id);
     ASSERT_EQ(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, rx_frame.transfer_type);
 }
+
+
+TEST(Transfer, FrameToString)
+{
+    using uavcan::Frame;
+    using uavcan::RxFrame;
+
+    // RX frame default
+    RxFrame rx_frame;
+    EXPECT_EQ("dtid=0 tt=0 snid=0 idx=0 last=0 tid=0 payload=[] ts=0 iface=0", rx_frame.toString());
+
+    // RX frame max len
+    rx_frame.data_type_id = Frame::DATA_TYPE_ID_MAX;
+    rx_frame.transfer_type = uavcan::TransferType(uavcan::NUM_TRANSFER_TYPES - 1);
+    rx_frame.source_node_id = uavcan::NODE_ID_MAX;
+    rx_frame.frame_index = Frame::FRAME_INDEX_MAX;
+    rx_frame.last_frame = true;
+    rx_frame.transfer_id = uavcan::TransferID::MAX;
+    rx_frame.payload_len = Frame::PAYLOAD_LEN_MAX;
+    for (int i = 0; i < rx_frame.payload_len; i++)
+        rx_frame.payload[i] = i;
+    rx_frame.timestamp = 0xFFFFFFFFFFFFFFFF;
+    rx_frame.iface_index = 3;
+
+    EXPECT_EQ(
+    "dtid=1023 tt=3 snid=127 idx=31 last=1 tid=15 payload=[00 01 02 03 04 05 06 07] ts=18446744073709551615 iface=3",
+    rx_frame.toString());
+
+    // Plain frame default
+    Frame frame;
+    EXPECT_EQ("dtid=0 tt=0 snid=0 idx=0 last=0 tid=0 payload=[]", frame.toString());
+
+    // Plain frame max len
+    frame = rx_frame;
+    EXPECT_EQ("dtid=1023 tt=3 snid=127 idx=31 last=1 tid=15 payload=[00 01 02 03 04 05 06 07]", frame.toString());
+}

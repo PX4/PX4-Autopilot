@@ -3,6 +3,8 @@
  */
 
 #include <cassert>
+#include <cstdio>
+#include <sstream>
 #include <uavcan/internal/transport/transfer.hpp>
 
 namespace uavcan
@@ -72,6 +74,40 @@ CanFrame Frame::compile() const
     frame.dlc = payload_len;
     std::copy(payload, payload + payload_len, frame.data);
     return frame;
+}
+
+std::string Frame::toString() const
+{
+    /*
+     * Frame ID fields, according to UAVCAN specs:
+     *  - Data Type ID
+     *  - Transfer Type
+     *  - Source Node ID
+     *  - Frame Index
+     *  - Last Frame
+     *  - Transfer ID
+     */
+    static const int BUFLEN = 100;
+    char buf[BUFLEN];
+    int ofs = std::snprintf(buf, BUFLEN, "dtid=%i tt=%i snid=%i idx=%i last=%i tid=%i payload=[",
+                            int(data_type_id), int(transfer_type), int(source_node_id), int(frame_index),
+                            int(last_frame), int(transfer_id.get()));
+
+    for (int i = 0; i < payload_len; i++)
+    {
+        ofs += std::snprintf(buf + ofs, BUFLEN - ofs, "%02x", payload[i]);
+        if ((i + 1) < payload_len)
+            ofs += std::snprintf(buf + ofs, BUFLEN - ofs, " ");
+    }
+    ofs += std::snprintf(buf + ofs, BUFLEN - ofs, "]");
+    return std::string(buf);
+}
+
+std::string RxFrame::toString() const
+{
+    std::ostringstream os;  // C++03 doesn't support long long, so we need ostream to print the timestamp
+    os << Frame::toString() << " ts=" << timestamp << " iface=" << int(iface_index);
+    return os.str();
 }
 
 }

@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <algorithm>
+#include <string>
 #include <uavcan/internal/transport/can_io.hpp>
 
 namespace uavcan
@@ -71,7 +72,6 @@ public:
 struct Frame
 {
     enum { DATA_TYPE_ID_MAX = 1023 };
-    enum { NODE_ID_MAX = 127 };
     enum { FRAME_INDEX_MAX = 31 };
     enum { PAYLOAD_LEN_MAX = 8 };
 
@@ -130,6 +130,8 @@ struct Frame
             (payload_len == rhs.payload_len) &&
             std::equal(payload, payload + payload_len, rhs.payload);
     }
+
+    std::string toString() const;
 };
 
 
@@ -151,6 +153,8 @@ struct RxFrame : public Frame
         iface_index = can_frame.iface_index;
         return true;
     }
+
+    std::string toString() const;
 };
 
 }
