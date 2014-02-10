@@ -18,6 +18,12 @@ MODULES		+= drivers/stm32/tone_alarm
 MODULES		+= drivers/led
 MODULES		+= drivers/boards/px4fmu-v2
 MODULES		+= drivers/px4io
+MODULES		+= drivers/rgbled
+MODULES		+= drivers/mpu6000
+MODULES		+= drivers/lsm303d
+MODULES		+= drivers/l3gd20
+MODULES		+= drivers/hmc5883
+MODULES		+= drivers/ms5611
 MODULES		+= systemcmds/perf
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/tests
@@ -31,6 +37,9 @@ MODULES		+= systemcmds/hw_ver
 MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
+LIBRARIES	+= lib/mathlib/CMSIS
+MODULES		+= lib/mathlib
+MODULES		+= lib/mathlib/math/filter
 
 #
 # Transitional support - add commands from the NuttX export archive.

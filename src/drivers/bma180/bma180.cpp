@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -153,6 +153,7 @@ private:
 	float			_accel_range_scale;
 	float			_accel_range_m_s2;
 	orb_advert_t		_accel_topic;
+	int			_class_instance;
 
 	unsigned		_current_lowpass;
 	unsigned		_current_range;
@@ -238,6 +239,7 @@ BMA180::BMA180(int bus, spi_dev_e device) :
 	_accel_range_scale(0.0f),
 	_accel_range_m_s2(0.0f),
 	_accel_topic(-1),
+	_class_instance(-1),
 	_current_lowpass(0),
 	_current_range(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "bma180_read"))
@@ -282,11 +284,6 @@ BMA180::init()
 	if (_reports == nullptr)
 		goto out;
 
-	/* advertise sensor topic */
-	struct accel_report zero_report;
-	memset(&zero_report, 0, sizeof(zero_report));
-	_accel_topic = orb_advertise(ORB_ID(sensor_accel), &zero_report);
-
 	/* perform soft reset (p48) */
 	write_reg(ADDR_RESET, SOFT_RESET);
 
@@ -320,6 +317,19 @@ BMA180::init()
 
 	} else {
 		ret = ERROR;
+	}
+
+	_class_instance = register_class_devname(ACCEL_DEVICE_PATH);
+
+	/* advertise sensor topic, measure manually to initialize valid report */
+	measure();
+
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+		struct accel_report arp;
+		_reports->get(&arp);
+
+		/* measurement will have generated a report, publish */
+		_accel_topic = orb_advertise(ORB_ID(sensor_accel), &arp);
 	}
 
 out:
@@ -723,7 +733,8 @@ BMA180::measure()
 	poll_notify(POLLIN);
 
 	/* publish for subscribers */
-	orb_publish(ORB_ID(sensor_accel), _accel_topic, &report);
+	if (_accel_topic > 0 && !(_pub_blocked))
+		orb_publish(ORB_ID(sensor_accel), _accel_topic, &report);
 
 	/* stop the perf counter */
 	perf_end(_sample_perf);
