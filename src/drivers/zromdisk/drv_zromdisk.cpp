@@ -29,20 +29,6 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ****************************************************************************
- *
- * Portions of this module are derived from code attributed:
- * **************************************************************
- *        LZSS.C -- A Data Compression Program
- * ***************************************************************
- *        4/6/1989 Haruhiko Okumura
- *        Use, distribute, and modify this program freely.
- *        Please send me your improved versions.
- *                PC-VAN          SCIENCE
- *                NIFTY-Serve     PAF01022
- *                CompuServe      74050,1022
- * **************************************************************
- *
  ****************************************************************************/
 
 /**
@@ -64,6 +50,7 @@
 
 #include <drivers/device/device.h>
 #include <systemlib/perf_counter.h>
+#include <systemlib/lzss.h>
 
 #ifdef CONFIG_FS_WRITABLE
 # define REGISTER_FUNCTION ramdisk_register
@@ -96,37 +83,12 @@ public:
 	virtual int	geometry(struct inode *inode, struct geometry *g);
 
 private:
-	struct State 
-	{
-		unsigned	discard;
-		unsigned	resid;
-		const unsigned char *src;
-		unsigned char	*dst;
-		unsigned char	*text_buf;
-
-		int		_getc()      { return *src++; }
-		void		_putc(int c) 
-		{
-			if (discard > 0) {
-				discard--;
-			} else if (resid > 0) {
-				*dst++ = c;
-				resid--;
-			}
-		}
-	};
-
 	static const unsigned	_magic = 'Z';
 
 	const ZRDHeader		*const _hdr;
 	const unsigned		_sectorsize;
 	const unsigned		_image_size;
 	perf_counter_t		_read_perf;
-	perf_counter_t		_seq;
-	State			*_s;
-	unsigned		_next;
-
-	void			_lzss_decode(State &s);
 };
 
 
@@ -135,10 +97,7 @@ ZROMDisk::ZROMDisk(const char *devname, const unsigned char *image, unsigned ima
 	_hdr(reinterpret_cast<const ZRDHeader *>(image)),
 	_sectorsize(sectorsize),
 	_image_size(image_size),
-	_read_perf(perf_alloc(PC_ELAPSED, "zromdisk read")),
-	_seq(perf_alloc(PC_COUNT, "zromdisk sequential")),
-	_s(nullptr),
-	_next(0xffffffff)
+	_read_perf(perf_alloc(PC_ELAPSED, "zromdisk read"))
 {
 	log("@%p ss%u", image, sectorsize);
 }
@@ -165,15 +124,10 @@ ssize_t
 ZROMDisk::read(struct inode *inode, unsigned char *buffer, size_t start_sector, size_t nsectors)
 {
 	ssize_t result;
-	State s;
+	struct lzss_decomp d;
 
 	lock();
-	_s = &s;
 	perf_begin(_read_perf);
-
-	if (start_sector == _next)
-		perf_count(_seq);
-	_next = start_sector + nsectors;
 
 	/* read entirely outside device */
 	if ((start_sector * _sectorsize) > _hdr->uncomp_len) {
@@ -186,28 +140,19 @@ ZROMDisk::read(struct inode *inode, unsigned char *buffer, size_t start_sector, 
 		nsectors = (_hdr->uncomp_len / _sectorsize) - start_sector;
 	}
 
-	s.discard = start_sector * _sectorsize;
-	s.resid = nsectors * _sectorsize;
-	s.src = &_hdr->data[0];
-	s.dst = buffer;
+	d.discard = start_sector * _sectorsize;
+	d.resid = nsectors * _sectorsize;
+	d.src = &_hdr->data[0];
+	d.dst = buffer;
 
-	{
-		unsigned buffer_size = (1 << _hdr->log_n) + _hdr->f - 1;
-		s.text_buf = (unsigned char *)malloc(buffer_size);
+	d.N = (1 << _hdr->log_n);
+	d.F = _hdr->f;
+	d.THRESHOLD = _hdr->threshold;
 
-		if (s.text_buf == nullptr) {
-			log("can't get %u bytes", buffer_size);
-			result = -ENOMEM;
-			goto out;
-		}
-	}
+	result = lzss_decompress(&d);
 
-	_lzss_decode(s);
-
-	free(s.text_buf);
-
-	if (s.resid > 0) {
-		log("short read by %u", s.resid);
+	if (d.resid > 0) {
+		log("short read by %u", d.resid);
 		result = -EIO;
 	} else {
 		result = nsectors;
@@ -234,49 +179,6 @@ ZROMDisk::geometry(struct inode *inode, struct geometry *g)
 	g->geo_sectorsize = _sectorsize;
 
 	return OK;
-}
-
-void
-ZROMDisk::_lzss_decode(State &s)
-{
-	int  i, j, k, r, c;
-	unsigned int  flags;
-	unsigned N = (1 << _hdr->log_n);
-	unsigned F = _hdr->f;
-	unsigned THRESHOLD = _hdr->threshold;
-
-	r = N - F;
-	memset(s.text_buf, ' ', r);
-	flags = 0;
-
-	while (s.resid > 0) {
-		if (((flags >>= 1) & 256) == 0) {
-			c = s._getc();
-			flags = c | 0xff00;             /* uses higher byte cleverly */
-		}                                       /* to count eight */
-
-		if (flags & 1) {
-			c = s._getc();
-			s._putc(c);
-			s.text_buf[r++] = c;
-			r &= (N - 1);
-
-		} else {
-			i = s._getc();
-			j = s._getc();
-
-			i |= ((j & 0xf0) << 4);
-			j = (j & 0x0f) + THRESHOLD;
-
-			for (k = 0; k <= j; k++) {
-				c = s.text_buf[(i + k) & (N - 1)];
-
-				s._putc(c);
-				s.text_buf[r++] = c;
-				r &= (N - 1);
-			}
-		}
-	}
 }
 
 ZROMDisk *zrd;
