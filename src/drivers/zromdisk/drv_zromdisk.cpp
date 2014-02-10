@@ -63,17 +63,6 @@ extern "C" __EXPORT int REGISTER_FUNCTION (int minor, uint8_t *buffer, uint32_t 
 class ZROMDisk : public device::BDev
 {
 public:
-	/*
-	 * Header structure identifying the characteristics of the compressed data.
-	 */
-	struct ZRDHeader {
-		uint8_t		magic;
-		uint8_t		log_n;
-		uint8_t		f;
-		uint8_t		threshold;
-		uint32_t	uncomp_len;
-		unsigned char	data[];
-	};
 
 	ZROMDisk(const char *devname, const unsigned char *image, uint32_t image_size, uint32_t sectorsize);
 	~ZROMDisk();
@@ -83,12 +72,30 @@ public:
 	virtual int	geometry(struct inode *inode, struct geometry *g);
 
 private:
+	struct ZRDChunk {
+		uint32_t	skip;
+		unsigned char	data[];
+	};
+
+	struct ZRDHeader {
+		uint8_t		magic;
+		uint8_t		log_n;
+		uint8_t		f;
+		uint8_t		threshold;
+		uint32_t	chunksize;
+		uint32_t	uncomp_len;
+		ZRDChunk	chunk0;
+	};
+
 	static const unsigned	_magic = 'Z';
 
 	const ZRDHeader		*const _hdr;
 	const unsigned		_sectorsize;
 	const unsigned		_image_size;
 	perf_counter_t		_read_perf;
+
+	ssize_t			_read(unsigned char *buffer, size_t start_sector, size_t nsectors);
+	const ZRDChunk		*_chunkdata(unsigned chunk);
 };
 
 
@@ -123,39 +130,28 @@ ZROMDisk::open(struct inode *inode)
 ssize_t
 ZROMDisk::read(struct inode *inode, unsigned char *buffer, size_t start_sector, size_t nsectors)
 {
-	ssize_t result;
-	struct lzss_decomp d;
-
+	ssize_t result = 0;
 	lock();
 	perf_begin(_read_perf);
 
 	/* read entirely outside device */
-	if ((start_sector * _sectorsize) > _hdr->uncomp_len) {
-		result = 0;
+	if ((start_sector * _sectorsize) > _hdr->uncomp_len)
 		goto out;
-	}
 
 	/* read overlaps end of device - shorten it up */
 	if (((start_sector + nsectors) * _sectorsize) > _hdr->uncomp_len) {
 		nsectors = (_hdr->uncomp_len / _sectorsize) - start_sector;
 	}
 
-	d.discard = start_sector * _sectorsize;
-	d.resid = nsectors * _sectorsize;
-	d.src = &_hdr->data[0];
-	d.dst = buffer;
+	while (result < (ssize_t)nsectors) {
+		ssize_t partial = _read(buffer, start_sector, nsectors - result);
 
-	d.N = (1 << _hdr->log_n);
-	d.F = _hdr->f;
-	d.THRESHOLD = _hdr->threshold;
+		if (partial <= 0)
+			break;
 
-	result = lzss_decompress(&d);
-
-	if (d.resid > 0) {
-		log("short read by %u", d.resid);
-		result = -EIO;
-	} else {
-		result = nsectors;
+		result += partial;
+		start_sector += partial;
+		buffer += partial * _sectorsize;
 	}
 
 out:
@@ -163,6 +159,56 @@ out:
 	unlock();
 
 	return result;
+}
+
+ssize_t
+ZROMDisk::_read(unsigned char *buffer, size_t start_sector, size_t nsectors)
+{
+	unsigned chunk = (start_sector * _sectorsize) / _hdr->chunksize;
+	unsigned offset = (start_sector * _sectorsize) % _hdr->chunksize;
+	unsigned space = _hdr->chunksize - offset;
+	if (nsectors > (space / _sectorsize))
+		nsectors = space / _sectorsize;
+
+	/* find the chunk containing the start of the operation */
+	const ZRDChunk *cp = _chunkdata(chunk);
+
+	/* no chunk -> no data */
+	if (cp == nullptr)
+		return 0;
+
+	struct lzss_decomp decomp;
+
+	decomp.discard = offset;
+	decomp.resid = nsectors * _sectorsize;
+	decomp.src = &cp->data[0];
+	decomp.dst = buffer;
+
+	decomp.N = (1 << _hdr->log_n);
+	decomp.F = _hdr->f;
+	decomp.THRESHOLD = _hdr->threshold;
+
+	if (lzss_decompress(&decomp) != OK)
+		return -1;
+
+	/* we could support short reads here, but it shouldn't happen so the complexity isn't worth it */
+	return (decomp.resid > 0) ? 0 : nsectors;
+}
+
+const ZROMDisk::ZRDChunk *
+ZROMDisk::_chunkdata(unsigned chunk)
+{
+	const ZRDChunk *cp = &_hdr->chunk0;
+
+	while (chunk--) {
+		if (cp->skip == 0)
+			return nullptr;
+
+		const unsigned char *p = reinterpret_cast<const unsigned char *>(cp);
+		p += cp->skip;
+		cp = reinterpret_cast<const ZRDChunk *>(p);
+	}
+	return cp;
 }
 
 int

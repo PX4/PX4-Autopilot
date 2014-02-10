@@ -19,7 +19,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <sys/stat.h>
+
+#ifndef O_BINARY
+# define O_BINARY	0
+#endif
 
 #define logN		   10
 #define N         (1 << logN)   /* size of ring buffer */
@@ -27,6 +33,8 @@
 #define THRESHOLD           2   /* encode string into position and length   
                                    if match_length is greater than this */
 #define NIL                 N   /* index for root of binary search trees */
+
+#define CHUNKSIZE	 4096
 
 unsigned long int
 textsize = 0,   /* text size counter */
@@ -39,7 +47,41 @@ int             match_position, match_length,  /* of longest match.  These are
                         set by the InsertNode() procedure. */
 		lson[N + 1], rson[N + 257], dad[N + 1];  /* left & right children &
                         parents -- These constitute binary search trees. */
-FILE    *infile, *outfile;  /* input & output files */
+int infile, outfile;
+
+unsigned getc_limit = 0;
+
+int _getc(void)
+{
+	if (getc_limit == 0)
+		return EOF;
+	getc_limit--;
+
+	unsigned char c;
+	if (read(infile, &c, sizeof(c)) != sizeof(c))
+		return EOF;
+	return c;
+}
+
+int _getw(void)
+{
+	int w;
+
+	if (read(infile, &w, sizeof(w)) != sizeof(w))
+		return EOF;
+	return w;
+}
+
+void _putc(int c)
+{
+	char b = c;
+	write(outfile, &b, sizeof(b));
+}
+
+void _putw(int w)
+{
+	write(outfile, &w, sizeof(w));
+}
 
 void InitTree(void)  /* initialize trees */
 {
@@ -134,22 +176,6 @@ void Encode(void)
 	int  i, c, len, r, s, last_match_length, code_buf_ptr;
 	unsigned char  code_buf[17], mask;
 
-	/* write the ZROMDisk header */
-	off_t file_size;
-	fseek(infile, 0, SEEK_END);
-	file_size = ftell(infile);
-	fseek(infile, 0, SEEK_SET);
-	if ((file_size >> 32) > 0) return;
-
-	putc('Z', outfile);
-	putc(logN, outfile);
-	putc(F, outfile);
-	putc(THRESHOLD, outfile);
-	putc(file_size & 0xff, outfile);
-	putc((file_size >> 8) & 0xff, outfile);
-	putc((file_size >> 16) & 0xff, outfile);
-	putc((file_size >> 24) & 0xff, outfile);
-
 	InitTree();  /* initialize trees */
 	code_buf[0] = 0;  /* code_buf[1..16] saves eight units of code, and
                 code_buf[0] works as eight flags, "1" representing that the unit
@@ -162,7 +188,7 @@ void Encode(void)
 
                 any character that will appear often. */
 
-	for (len = 0; len < F && (c = getc(infile)) != EOF; len++)
+	for (len = 0; len < F && (c = _getc()) != EOF; len++)
 		text_buf[r + len] = c;  /* Read F bytes into the last F bytes of
 
                         the buffer */
@@ -197,7 +223,7 @@ void Encode(void)
 
 		if ((mask <<= 1) == 0) {  /* Shift mask left one bit. */
 			for (i = 0; i < code_buf_ptr; i++)  /* Send at most 8 units of */
-				putc(code_buf[i], outfile);     /* code together */
+				_putc(code_buf[i]);     /* code together */
 
 			codesize += code_buf_ptr;
 			code_buf[0] = 0;  code_buf_ptr = mask = 1;
@@ -206,7 +232,7 @@ void Encode(void)
 		last_match_length = match_length;
 
 		for (i = 0; i < last_match_length &&
-		     (c = getc(infile)) != EOF; i++) {
+		     (c = _getc()) != EOF; i++) {
 			DeleteNode(s);          /* Delete old strings and */
 			text_buf[s] = c;        /* read new bytes */
 
@@ -235,14 +261,10 @@ void Encode(void)
 	} while (len > 0);      /* until length of string to be processed is zero */
 
 	if (code_buf_ptr > 1) {         /* Send remaining code. */
-		for (i = 0; i < code_buf_ptr; i++) putc(code_buf[i], outfile);
+		for (i = 0; i < code_buf_ptr; i++) _putc(code_buf[i]);
 
 		codesize += code_buf_ptr;
 	}
-
-	printf("In : %ld bytes\n", textsize);   /* Encoding is done. */
-	printf("Out: %ld bytes\n", codesize);
-	printf("Out/In: %.3f\n", (double)codesize / textsize);
 }
 
 void Decode(void)       /* Just the reverse of Encode(). */
@@ -250,50 +272,112 @@ void Decode(void)       /* Just the reverse of Encode(). */
 	int  i, j, k, r, c;
 	unsigned int  flags;
 
-	/* validate and discard the header */
-	c = getc(infile);
-	if (c != 'Z') return;
-	c = getc(infile);
-	if (c != logN) return;
-	c = getc(infile);
-	if (c != F) return;
-	c = getc(infile);
-	if (c != THRESHOLD) return;
-
-	getc(infile);
-	getc(infile);
-	getc(infile);
-	getc(infile);
-
 	for (i = 0; i < N - F; i++) text_buf[i] = ' ';
 
 	r = N - F;  flags = 0;
 
 	for (; ;) {
 		if (((flags >>= 1) & 256) == 0) {
-			if ((c = getc(infile)) == EOF) break;
+			if ((c = _getc()) == EOF) break;
 
 			flags = c | 0xff00;             /* uses higher byte cleverly */
 		}                                                       /* to count eight */
 
 		if (flags & 1) {
-			if ((c = getc(infile)) == EOF) break;
+			if ((c = _getc()) == EOF) break;
 
-			putc(c, outfile);  text_buf[r++] = c;  r &= (N - 1);
+			_putc(c);  text_buf[r++] = c;  r &= (N - 1);
 
 		} else {
-			if ((i = getc(infile)) == EOF) break;
+			if ((i = _getc()) == EOF) break;
 
-			if ((j = getc(infile)) == EOF) break;
+			if ((j = _getc()) == EOF) break;
 
 			i |= ((j & 0xf0) << 4);  j = (j & 0x0f) + THRESHOLD;
 
 			for (k = 0; k <= j; k++) {
 				c = text_buf[(i + k) & (N - 1)];
-				putc(c, outfile);  text_buf[r++] = c;  r &= (N - 1);
+				_putc(c);  text_buf[r++] = c;  r &= (N - 1);
 			}
 		}
 	}
+}
+
+int write_file_header(void)
+{
+	/* write the ZROMDisk header */
+	off_t file_size;
+	file_size = lseek(infile, 0, SEEK_END);
+	lseek(infile, 0, SEEK_SET);
+	if ((file_size >> 32) > 0) return -1;
+
+	_putc('Z');
+	_putc(logN);
+	_putc(F);
+	_putc(THRESHOLD);
+	_putw(CHUNKSIZE);
+	_putw((int)file_size);	/* yes, this limits the filesystem size to 2GiB */
+
+	return 0;
+}
+
+int write_chunk_header(void)
+{
+	static off_t prev_header = 0;
+	off_t current = lseek(outfile, 0, SEEK_CUR);
+	int delta = current - prev_header;
+
+	if (prev_header != 0) {
+		//printf("chunk: %d %lld - %lld\n", delta, current, prev_header);
+		/* rewind the file and write the distance from the last header to this one */
+		lseek(outfile, -delta, SEEK_CUR);
+		_putw(delta);
+		lseek(outfile, current, SEEK_SET);
+	}
+
+	/* now write a placeholder header and remember where it is */
+	prev_header = current;
+	_putw(0);
+
+	/* and set the number of characters we'll process until the next boundary */
+	getc_limit = CHUNKSIZE;
+
+	return delta;
+}
+
+int read_file_header(void)
+{
+	int c;
+
+	/* avoid bailing out early... */
+	getc_limit = 0xffffffff;
+
+	/* validate and discard the header */
+	c = _getc();
+	if (c != 'Z') return -1;
+	c = _getc();
+	if (c != logN) return -1;
+	c = _getc();
+	if (c != F) return -1;
+	c = _getc();
+	if (c != THRESHOLD) return -1;
+
+	if (_getw() != CHUNKSIZE)
+		return -1;
+	_getw();	/* ignore the file size */
+
+	return 0;
+}
+
+int read_chunk_header()
+{
+	/* read the length of the next compressed chunk */
+	getc_limit = _getw() - 4;
+
+	/* if it's a placeholder or we ran out of input, stop */
+	if ((getc_limit == 0) || (getc_limit == EOF))
+		return EOF;
+	return 0;
 }
 
 int main(int argc, char *argv[])
@@ -301,19 +385,42 @@ int main(int argc, char *argv[])
 	char  *s;
 
 	if (argc != 4) {
-		printf("'lzss e file1 file2' encodes file1 into file2.\n"
-		       "'lzss d file2 file1' decodes file2 into file1.\n");
+		printf("'%s e file1 file2' encodes file1 into file2.\n"
+		       "'%s d file2 file1' decodes file2 into file1.\n", argv[0], argv[0]);
 		return EXIT_FAILURE;
 	}
 
 	if ((s = argv[1], s[1] || strpbrk(s, "DEde") == NULL)
-	    || (s = argv[2], (infile  = fopen(s, "rb")) == NULL)
-	    || (s = argv[3], (outfile = fopen(s, "wb")) == NULL)) {
+	    || (s = argv[2], (infile  = open(s, O_RDONLY|O_BINARY)) < 0)
+	    || (s = argv[3], (outfile = open(s, O_RDWR|O_BINARY|O_CREAT|O_TRUNC, 0666)) < 0)) {
 		printf("??? %s\n", s);  return EXIT_FAILURE;
 	}
 
-	if (toupper(*argv[1]) == 'E') Encode();  else Decode();
+	if (toupper(*argv[1]) == 'E') {
+		write_file_header();
+		write_chunk_header();
+		for (;;) {
+			/* write a chunk */
+			Encode();
 
-	fclose(infile);  fclose(outfile);
+			/* fix up its header and write the padding for the next */
+			if (write_chunk_header() <= 4)
+				break;
+		}
+		printf("In : %ld bytes\n", (long)lseek(infile, 0, SEEK_CUR));
+		printf("Out: %ld bytes\n", (long)lseek(outfile, 0, SEEK_CUR));
+
+	} else {
+		read_file_header();
+		for (;;) {
+			if (read_chunk_header() == EOF)
+				break;
+			Decode();
+		}
+	}
+
+	close(infile);  
+	close(outfile);
+
 	return EXIT_SUCCESS;
 }
