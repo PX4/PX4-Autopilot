@@ -5,6 +5,8 @@
 # Lorenz Meier <lm@inf.ethz.ch>, Anton Babushkin <anton.babushkin@me.com>
 #
 
-sh /etc/init.d/8001_octo_x
+sh /etc/init.d/rc.mc_defaults
 
 set MIXER FMU_octo_cox
+
+set PWM_OUTPUTS 12345678
