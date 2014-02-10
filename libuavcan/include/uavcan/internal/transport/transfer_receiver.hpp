@@ -34,6 +34,8 @@ private:
 
     bool isInitialized() const { return iface_index_ != IFACE_INDEX_NOTSET; }
 
+    void cleanup();
+
     TidRelation getTidRelation(const RxFrame& frame) const;
 
     void updateTransferTimings();
@@ -41,6 +43,8 @@ private:
 
     bool validate(const RxFrame& frame) const;
     ResultCode receive(const RxFrame& frame);
+
+    TransferReceiver(const TransferReceiver&); // = delete (not needed)
 
 public:
     TransferReceiver()
@@ -68,10 +72,20 @@ public:
         assert(node_id != NODE_ID_BROADCAST);
     }
 
-    ~TransferReceiver()
+    ~TransferReceiver() { cleanup(); }
+
+    TransferReceiver& operator=(const TransferReceiver& rhs)
     {
-        if (bufmgr_ != NULL && node_id_ != NODE_ID_INVALID)
-            bufmgr_->remove(node_id_);
+        cleanup();
+        prev_transfer_timestamp_ = rhs.prev_transfer_timestamp_;
+        this_transfer_timestamp_ = rhs.this_transfer_timestamp_;
+        transfer_interval_ = rhs.transfer_interval_;
+        bufmgr_ = rhs.bufmgr_;
+        tid_ = rhs.tid_;
+        node_id_ = rhs.node_id_;
+        iface_index_ = rhs.iface_index_;
+        next_frame_index_ = rhs.next_frame_index_;
+        return *this;
     }
 
     bool isTimedOut(uint64_t timestamp) const;

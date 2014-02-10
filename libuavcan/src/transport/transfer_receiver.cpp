@@ -16,6 +16,12 @@ const uint64_t TransferReceiver::DEFAULT_TRANSFER_INTERVAL;
 const uint64_t TransferReceiver::MIN_TRANSFER_INTERVAL;
 const uint64_t TransferReceiver::MAX_TRANSFER_INTERVAL;
 
+void TransferReceiver::cleanup()
+{
+    if (bufmgr_ != NULL && node_id_ != NODE_ID_INVALID)
+        bufmgr_->remove(node_id_);
+}
+
 TransferReceiver::TidRelation TransferReceiver::getTidRelation(const RxFrame& frame) const
 {
     const int distance = tid_.forwardDistance(frame.transfer_id);

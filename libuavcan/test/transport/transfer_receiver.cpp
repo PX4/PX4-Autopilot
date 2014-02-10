@@ -203,6 +203,14 @@ TEST(TransferReceiver, Basic)
     ASSERT_LT(TransferReceiver::DEFAULT_TRANSFER_INTERVAL, rcv.getInterval());
     ASSERT_LE(TransferReceiver::MIN_TRANSFER_INTERVAL, rcv.getInterval());
     ASSERT_GE(TransferReceiver::MAX_TRANSFER_INTERVAL, rcv.getInterval());
+    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.source_node_id), "12345678qwe"));
+
+    /*
+     * Buffer cleanup
+     */
+    ASSERT_TRUE(bufmgr.access(gen.source_node_id));
+    context.receiver = TransferReceiver();
+    ASSERT_FALSE(bufmgr.access(gen.source_node_id));
 }
 
 
