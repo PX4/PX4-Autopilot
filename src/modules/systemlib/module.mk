@@ -52,5 +52,6 @@ SRCS		 = err.c \
 		   rc_check.c \
 		   otp.c \
 		   board_serial.c \
-		   pwm_limit/pwm_limit.c
+		   pwm_limit/pwm_limit.c \
+		   lzss_decompress.c 
 
