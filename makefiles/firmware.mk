@@ -343,7 +343,7 @@ $(error ROMFS_ROOT $(ROMFS_ROOT) specifies a directory containing no files)
 endif
 ROMFS_DEPS		+= $(ROMFS_FILES)
 
-# Extra files that may be copied into the ROMFS /extras directory
+# Extra files that may be copied into the ROMFS /~extras directory
 # ROMFS_EXTRA_FILES are required, ROMFS_OPTIONAL_FILES are optional
 ROMFS_EXTRA_FILES	+= $(wildcard $(ROMFS_OPTIONAL_FILES))
 ROMFS_DEPS		+= $(ROMFS_EXTRA_FILES)
@@ -389,8 +389,8 @@ $(ROMFS_SCRATCH): $(ROMFS_DEPS) $(GLOBAL_DEPS)
 	$(Q) $(MKDIR) -p $(ROMFS_SCRATCH)
 	$(Q) $(COPYDIR) $(ROMFS_ROOT)/* $(ROMFS_SCRATCH)
 ifneq ($(ROMFS_EXTRA_FILES),)
-	$(Q) $(MKDIR) -p $(ROMFS_SCRATCH)/extras
-	$(Q) $(COPY) $(ROMFS_EXTRA_FILES) $(ROMFS_SCRATCH)/extras
+	$(Q) $(MKDIR) -p $(ROMFS_SCRATCH)/~extras
+	$(Q) $(COPY) $(ROMFS_EXTRA_FILES) $(ROMFS_SCRATCH)/~extras
 endif
 
 EXTRA_CLEANS		+= $(ROMGS_OBJ) $(ROMFS_IMG)
