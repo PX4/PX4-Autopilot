@@ -1101,7 +1101,7 @@ int commander_thread_main(int argc, char *argv[])
 
 				/* mark home position as set */
 				status.condition_home_position_valid = true;
-				tune_positive();
+				tune_positive(true);
 			}
 		}
 
@@ -1196,8 +1196,9 @@ int commander_thread_main(int argc, char *argv[])
 			/* evaluate the main state machine according to mode switches */
 			res = set_main_state_rc(&status);
 
+			/* play tune on mode change only if armed, blink LED always */
 			if (res == TRANSITION_CHANGED) {
-				tune_positive();
+				tune_positive(armed.armed);
 
 			} else if (res == TRANSITION_DENIED) {
 				/* DENIED here indicates bug in the commander */
@@ -1253,7 +1254,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* flight termination in manual mode if assisted switch is on easy position */
 		if (!status.is_rotary_wing && armed.armed && status.main_state == MAIN_STATE_MANUAL && sp_man.assisted_switch > STICK_ON_OFF_LIMIT) {
 			if (TRANSITION_CHANGED == failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION)) {
-				tune_positive();
+				tune_positive(armed.armed);
 			}
 		}
 
@@ -1308,21 +1309,18 @@ int commander_thread_main(int argc, char *argv[])
 		/* play arming and battery warning tunes */
 		if (!arm_tune_played && armed.armed && (!safety.safety_switch_available || (safety.safety_switch_available && safety.safety_off))) {
 			/* play tune when armed */
-			if (tune_arm() == OK)
-				arm_tune_played = true;
+			set_tune(TONE_ARMING_WARNING_TUNE);
 
 		} else if (status.battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
 			/* play tune on battery warning */
-			if (tune_low_bat() == OK)
-				battery_tune_played = true;
+			set_tune(TONE_BATTERY_WARNING_SLOW_TUNE);
 
 		} else if (status.battery_warning == VEHICLE_BATTERY_WARNING_CRITICAL) {
 			/* play tune on battery critical */
-			if (tune_critical_bat() == OK)
-				battery_tune_played = true;
+			set_tune(TONE_BATTERY_WARNING_FAST_TUNE);
 
 		} else if (battery_tune_played) {
-			tune_stop();
+			set_tune(TONE_STOP_TUNE);
 			battery_tune_played = false;
 		}
 
@@ -1693,15 +1691,9 @@ print_reject_mode(struct vehicle_status_s *status, const char *msg)
 		sprintf(s, "#audio: REJECT %s", msg);
 		mavlink_log_critical(mavlink_fd, s);
 
-		// only buzz if armed, because else we're driving people nuts indoors
-		// they really need to look at the leds as well.
-		if (status->arming_state == ARMING_STATE_ARMED) {
-			tune_negative();
-		} else {
-
-			// Always show the led indication
-			led_negative();
-		}
+		/* only buzz if armed, because else we're driving people nuts indoors
+		they really need to look at the leds as well. */
+		tune_negative(armed.armed);
 	}
 }
 
@@ -1715,7 +1707,7 @@ print_reject_arm(const char *msg)
 		char s[80];
 		sprintf(s, "#audio: %s", msg);
 		mavlink_log_critical(mavlink_fd, s);
-		tune_negative();
+		tune_negative(true);
 	}
 }
 
@@ -1723,27 +1715,27 @@ void answer_command(struct vehicle_command_s &cmd, enum VEHICLE_CMD_RESULT resul
 {
 	switch (result) {
 	case VEHICLE_CMD_RESULT_ACCEPTED:
-			tune_positive();
+			tune_positive(true);
 		break;
 
 	case VEHICLE_CMD_RESULT_DENIED:
 		mavlink_log_critical(mavlink_fd, "#audio: command denied: %u", cmd.command);
-		tune_negative();
+		tune_negative(true);
 		break;
 
 	case VEHICLE_CMD_RESULT_FAILED:
 		mavlink_log_critical(mavlink_fd, "#audio: command failed: %u", cmd.command);
-		tune_negative();
+		tune_negative(true);
 		break;
 
 	case VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:
 		mavlink_log_critical(mavlink_fd, "#audio: command temporarily rejected: %u", cmd.command);
-		tune_negative();
+		tune_negative(true);
 		break;
 
 	case VEHICLE_CMD_RESULT_UNSUPPORTED:
 		mavlink_log_critical(mavlink_fd, "#audio: command unsupported: %u", cmd.command);
-		tune_negative();
+		tune_negative(true);
 		break;
 
 	default:
@@ -1883,9 +1875,9 @@ void *commander_low_prio_loop(void *arg)
 				}
 
 				if (calib_ret == OK)
-					tune_positive();
+					tune_positive(true);
 				else
-					tune_negative();
+					tune_negative(true);
 
 				arming_state_transition(&status, &safety, ARMING_STATE_STANDBY, &armed);
 
