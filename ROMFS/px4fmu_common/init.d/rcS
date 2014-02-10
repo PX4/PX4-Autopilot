@@ -10,7 +10,7 @@ set MODE autostart
 
 set RC_FILE /fs/microsd/etc/rc.txt
 set CONFIG_FILE /fs/microsd/etc/config.txt
-set EXTRAS_FILE /fs/microsd/etc/~extras.txt
+set EXTRAS_FILE /fs/microsd/etc/extras.txt
 
 set TUNE_OUT_ERROR ML<<CP4CP4CP4CP4CP4
 
@@ -167,11 +167,11 @@ then
 		#
 		# Check if PX4IO present and update firmware if needed
 		#
-		if [ -f /etc/~extras/px4io-v2_default.bin ]
+		if [ -f /etc/extras/px4io-v2_default.bin ]
 		then
-			set IO_FILE /etc/~extras/px4io-v2_default.bin
+			set IO_FILE /etc/extras/px4io-v2_default.bin
 		else
-			set IO_FILE /etc/~extras/px4io-v1_default.bin
+			set IO_FILE /etc/extras/px4io-v1_default.bin
 		fi
 		
 		if px4io checkcrc $IO_FILE
