@@ -37,8 +37,6 @@ private:
 
     bool isInitialized() const { return iface_index_ != IFACE_INDEX_NOTSET; }
 
-    void cleanup();
-
     TidRelation getTidRelation(const RxFrame& frame) const;
 
     void updateTransferTimings();
@@ -72,23 +70,6 @@ public:
     {
         assert(bufmgr);
         assert(bufmgr_key.getNodeID() != NODE_ID_BROADCAST);
-    }
-
-    ~TransferReceiver() { cleanup(); }
-
-    TransferReceiver& operator=(const TransferReceiver& rhs)
-    {
-        cleanup();
-        prev_transfer_ts_monotonic_ = rhs.prev_transfer_ts_monotonic_;
-        this_transfer_ts_monotonic_ = rhs.this_transfer_ts_monotonic_;
-        first_frame_ts_utc_ = rhs.first_frame_ts_utc_;
-        transfer_interval_ = rhs.transfer_interval_;
-        bufmgr_ = rhs.bufmgr_;
-        tid_ = rhs.tid_;
-        bufmgr_key_ = rhs.bufmgr_key_;
-        iface_index_ = rhs.iface_index_;
-        next_frame_index_ = rhs.next_frame_index_;
-        return *this;
     }
 
     bool isTimedOut(uint64_t ts_monotonic) const;

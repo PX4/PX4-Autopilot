@@ -206,11 +206,11 @@ TEST(TransferReceiver, Basic)
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "12345678qwe"));
 
     /*
-     * Buffer cleanup
+     * Destruction
      */
     ASSERT_TRUE(bufmgr.access(gen.bufmgr_key));
-    context.receiver = TransferReceiver();
-    ASSERT_FALSE(bufmgr.access(gen.bufmgr_key));
+    context.receiver.~TransferReceiver();         // TransferReceiver does not own the buffer, it must not be released!
+    ASSERT_TRUE(bufmgr.access(gen.bufmgr_key));   // Making sure that the buffer is still there
 }
 
 
