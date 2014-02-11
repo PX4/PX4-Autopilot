@@ -335,7 +335,11 @@ class TransferBufferManager : public ITransferBufferManager, Noncopyable
 public:
     TransferBufferManager(IAllocator* allocator)
     : allocator_(allocator)
-    { }
+    {
+        assert(allocator);
+        StaticAssert<(MAX_BUF_SIZE > 0)>::check();
+        StaticAssert<(NUM_STATIC_BUFS > 0)>::check();
+    }
 
     ~TransferBufferManager()
     {
@@ -422,6 +426,33 @@ public:
                 res++;
         }
         return res;
+    }
+};
+
+template <>
+class TransferBufferManager<0, 0> : public ITransferBufferManager
+{
+public:
+    TransferBufferManager(IAllocator* allocator)
+    {
+        (void)allocator;
+    }
+
+    TransferBufferBase* access(const TransferBufferManagerKey& key)
+    {
+        (void)key;
+        return NULL;
+    }
+
+    TransferBufferBase* create(const TransferBufferManagerKey& key)
+    {
+        (void)key;
+        return NULL;
+    }
+
+    void remove(const TransferBufferManagerKey& key)
+    {
+        (void)key;
     }
 };
 

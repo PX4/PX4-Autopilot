@@ -338,3 +338,11 @@ TEST(TransferBufferManager, Basic)
     mgr.reset();
     ASSERT_EQ(0, pool.getNumUsedBlocks());
 }
+
+
+TEST(TransferBufferManager, EmptySpecialization)
+{
+    uavcan::TransferBufferManager<0, 0> mgr(NULL);
+    (void)mgr;
+    ASSERT_GE(sizeof(void*), sizeof(mgr));
+}
