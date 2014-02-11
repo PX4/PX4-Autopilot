@@ -125,17 +125,17 @@ public:
 	virtual void updateParams();
 protected:
 	// kalman filter
-	math::Matrix F;             /**< Jacobian(f,x), where dx/dt = f(x,u) */
-	math::Matrix G;             /**< noise shaping matrix for gyro/accel */
-	math::Matrix P;             /**< state covariance matrix */
-	math::Matrix P0;            /**< initial state covariance matrix */
-	math::Matrix V;             /**< gyro/ accel noise matrix */
-	math::Matrix HAtt;          /**< attitude measurement matrix */
-	math::Matrix RAtt;          /**< attitude measurement noise matrix */
-	math::Matrix HPos;          /**< position measurement jacobian matrix */
-	math::Matrix RPos;          /**< position measurement noise matrix */
+	math::Matrix<9,9> F;             /**< Jacobian(f,x), where dx/dt = f(x,u) */
+	math::Matrix<9,6> G;             /**< noise shaping matrix for gyro/accel */
+	math::Matrix<9,9> P;             /**< state covariance matrix */
+	math::Matrix<9,9> P0;            /**< initial state covariance matrix */
+	math::Matrix<6,6> V;             /**< gyro/ accel noise matrix */
+	math::Matrix<4,9> HAtt;          /**< attitude measurement matrix */
+	math::Matrix<4,4> RAtt;          /**< attitude measurement noise matrix */
+	math::Matrix<6,9> HPos;          /**< position measurement jacobian matrix */
+	math::Matrix<6,6> RPos;          /**< position measurement noise matrix */
 	// attitude
-	math::Dcm C_nb;             /**< direction cosine matrix from body to nav frame */
+	math::Matrix<3,3> C_nb;             /**< direction cosine matrix from body to nav frame */
 	math::Quaternion q;         /**< quaternion from body to nav frame */
 	// subscriptions
 	control::UOrbSubscription<sensor_combined_s> _sensors;          /**< sensors sub. */

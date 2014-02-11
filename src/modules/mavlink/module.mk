@@ -37,7 +37,6 @@
 
 MODULE_COMMAND	 = mavlink
 SRCS		 += mavlink.c \
-			   missionlib.c \
 			   mavlink_parameters.c \
 			   mavlink_receiver.cpp \
 			   orb_listener.c \

@@ -3,10 +3,6 @@
 # Standard startup script for PX4FMU onboard sensor drivers.
 #
 
-#
-# Start sensor drivers here.
-#
-
 ms5611 start
 adc start
 
