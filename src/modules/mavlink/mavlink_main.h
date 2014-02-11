@@ -170,7 +170,7 @@ public:
 
 	static int get_uart_fd(unsigned index);
 
-	int get_uart_fd() { return uart; }
+	int get_uart_fd() { return _uart; }
 
 	enum MAVLINK_MODE {
 		MODE_TX_HEARTBEAT_ONLY=0,
@@ -265,7 +265,6 @@ protected:
 	 * registering clone devices etc.
 	 */
 	struct file_operations	fops;
-	int		_mavlink_fd;
 	Mavlink*	_next;
 
 private:
@@ -302,7 +301,7 @@ private:
 	mavlink_wpm_storage *wpm;
 
 	bool verbose;
-	int uart;
+	int _uart;
 	int _baudrate;
 	bool gcs_link;
 	/**
@@ -390,7 +389,7 @@ private:
 
 	int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
 
-	int set_mavlink_interval_limit(struct mavlink_subscriptions *subs, int mavlink_msg_id, int min_interval);
+	int set_mavlink_interval_limit(int mavlink_msg_id, int min_interval);
 
 	/**
 	 * Callback for param interface.

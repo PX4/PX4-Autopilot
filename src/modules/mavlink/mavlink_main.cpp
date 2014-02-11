@@ -135,9 +135,6 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 		#endif
 	}
 
-	warnx("uart: %d", uart);
-	warnx("channel: %d", channel);
-
 	ssize_t desired = (sizeof(uint8_t) * length);
 	ssize_t ret = write(uart, ch, desired);
 
@@ -155,7 +152,7 @@ namespace mavlink
 }
 
 Mavlink::Mavlink() :
-	_mavlink_fd(-1),
+//	_mavlink_fd(-1),
 	_task_should_exit(false),
 	thread_running(false),
 	_mavlink_task(-1),
@@ -217,12 +214,18 @@ Mavlink* Mavlink::new_instance()
 {
 	Mavlink* inst = new Mavlink();
 	Mavlink* next = ::_head;
-	while (next != nullptr)
-		next = next->_next;
 
-	/* now parent has a null pointer, fill it */
-	next = inst;
-
+	/* create the first instance at _head */
+	if (::_head == nullptr) {
+		::_head = inst;
+	/* afterwards follow the next and append the instance */
+	} else {
+		while (next != nullptr) {
+			next = next->_next;
+		}
+		/* now parent has a null pointer, fill it */
+		next = inst;
+	}
 	return inst;
 }
 
@@ -246,7 +249,7 @@ int Mavlink::get_uart_fd(unsigned index)
 {
 	Mavlink* inst = get_instance(index);
 	if (inst)
-		return inst->_mavlink_fd;
+		return inst->get_uart_fd();
 
 	return -1;
 }
@@ -379,7 +382,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 
 	/* open uart */
 	warnx("UART is %s, baudrate is %d\n", uart_name, baud);
-	uart = open(uart_name, O_RDWR | O_NOCTTY);
+	_uart = open(uart_name, O_RDWR | O_NOCTTY);
 
 	/* Try to set baud rate */
 	struct termios uart_config;
@@ -387,14 +390,14 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 	*is_usb = false;
 
 	/* Back up the original uart configuration to restore it after exit */
-	if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
+	if ((termios_state = tcgetattr(_uart, uart_config_original)) < 0) {
 		warnx("ERROR get termios config %s: %d\n", uart_name, termios_state);
-		close(uart);
+		close(_uart);
 		return -1;
 	}
 
 	/* Fill the struct for the new configuration */
-	tcgetattr(uart, &uart_config);
+	tcgetattr(_uart, &uart_config);
 
 	/* Clear ONLCR flag (which appends a CR for every LF) */
 	uart_config.c_oflag &= ~ONLCR;
@@ -405,19 +408,19 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 		/* Set baud rate */
 		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
 			warnx("ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
-			close(uart);
+			close(_uart);
 			return -1;
 		}
 
 	}
 
-	if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
+	if ((termios_state = tcsetattr(_uart, TCSANOW, &uart_config)) < 0) {
 		warnx("ERROR setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
-		close(uart);
+		close(_uart);
 		return -1;
 	}
 
-	return uart;
+	return _uart;
 }
 
 int
@@ -451,7 +454,7 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 		}
 
 		orb_set_interval(subs.spa_sub, hil_rate_interval);
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, hil_rate_interval);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, hil_rate_interval);
 	}
 
 	if (!hil_enabled && _mavlink_hil_enabled) {
@@ -541,50 +544,50 @@ Mavlink::get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_bas
 }
 
 
-int Mavlink::set_mavlink_interval_limit(struct mavlink_subscriptions *subs, int mavlink_msg_id, int min_interval)
+int Mavlink::set_mavlink_interval_limit(int mavlink_msg_id, int min_interval)
 {
 	int ret = OK;
 
 	switch (mavlink_msg_id) {
 	case MAVLINK_MSG_ID_SCALED_IMU:
 		/* sensor sub triggers scaled IMU */
-		orb_set_interval(subs->sensor_sub, min_interval);
+		orb_set_interval(subs.sensor_sub, min_interval);
 		break;
 
 	case MAVLINK_MSG_ID_HIGHRES_IMU:
 		/* sensor sub triggers highres IMU */
-		orb_set_interval(subs->sensor_sub, min_interval);
+		orb_set_interval(subs.sensor_sub, min_interval);
 		break;
 
 	case MAVLINK_MSG_ID_RAW_IMU:
 		/* sensor sub triggers RAW IMU */
-		orb_set_interval(subs->sensor_sub, min_interval);
+		orb_set_interval(subs.sensor_sub, min_interval);
 		break;
 
 	case MAVLINK_MSG_ID_ATTITUDE:
 		/* attitude sub triggers attitude */
-		orb_set_interval(subs->att_sub, min_interval);
+		orb_set_interval(subs.att_sub, min_interval);
 		break;
 
 	case MAVLINK_MSG_ID_SERVO_OUTPUT_RAW:
 		/* actuator_outputs triggers this message */
-		orb_set_interval(subs->act_0_sub, min_interval);
-		orb_set_interval(subs->act_1_sub, min_interval);
-		orb_set_interval(subs->act_2_sub, min_interval);
-		orb_set_interval(subs->act_3_sub, min_interval);
-		orb_set_interval(subs->actuators_sub, min_interval);
-		orb_set_interval(subs->actuators_effective_sub, min_interval);
-		orb_set_interval(subs->spa_sub, min_interval);
-		orb_set_interval(subs->rates_setpoint_sub, min_interval);
+		orb_set_interval(subs.act_0_sub, min_interval);
+		orb_set_interval(subs.act_1_sub, min_interval);
+		orb_set_interval(subs.act_2_sub, min_interval);
+		orb_set_interval(subs.act_3_sub, min_interval);
+		orb_set_interval(subs.actuators_sub, min_interval);
+		orb_set_interval(subs.actuators_effective_sub, min_interval);
+		orb_set_interval(subs.spa_sub, min_interval);
+		orb_set_interval(subs.rates_setpoint_sub, min_interval);
 		break;
 
 	case MAVLINK_MSG_ID_MANUAL_CONTROL:
 		/* manual_control_setpoint triggers this message */
-		orb_set_interval(subs->man_control_sp_sub, min_interval);
+		orb_set_interval(subs.man_control_sp_sub, min_interval);
 		break;
 
 	case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
-		orb_set_interval(subs->debug_key_value, min_interval);
+		orb_set_interval(subs.debug_key_value, min_interval);
 		break;
 
 	default:
@@ -1433,7 +1436,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* initialize logging device */
 	// TODO
-	_mavlink_fd = -1;//open(MAVLINK_LOG_DEVICE, 0);
+//	_mavlink_fd = -1;//open(MAVLINK_LOG_DEVICE, 0);
 
 	//mavlink_log_info(_mavlink_fd, "[mavlink] started");
 
@@ -1491,9 +1494,9 @@ Mavlink::task_main(int argc, char *argv[])
 	fflush(stdout);
 
 	/* default values for arguments */
-	uart = mavlink_open_uart(_baudrate, device_name, &uart_config_original, &usb_uart);
+	_uart = mavlink_open_uart(_baudrate, device_name, &uart_config_original, &usb_uart);
 
-	if (uart < 0)
+	if (_uart < 0)
 		err(1, "could not open %s", device_name);
 
 	/* create the device node that's used for sending text log messages, etc. */
@@ -1516,57 +1519,57 @@ Mavlink::task_main(int argc, char *argv[])
 	/* all subscriptions are now active, set up initial guess about rate limits */
 	if (_baudrate >= 230400) {
 		/* 200 Hz / 5 ms */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_HIGHRES_IMU, 20);
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_RAW_IMU, 20);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_HIGHRES_IMU, 20);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_RAW_IMU, 20);
 		/* 50 Hz / 20 ms */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_ATTITUDE, 30);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 30);
 		/* 20 Hz / 50 ms */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 10);
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 50);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 10);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 50);
 		/* 10 Hz */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_GPS_RAW_INT, 100);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_GPS_RAW_INT, 100);
 		/* 10 Hz */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 100);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_MANUAL_CONTROL, 100);
 
 	} else if (_baudrate >= 115200) {
 		/* 20 Hz / 50 ms */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_HIGHRES_IMU, 50);
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_RAW_IMU, 50);
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_ATTITUDE, 50);
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 50);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_HIGHRES_IMU, 50);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_RAW_IMU, 50);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 50);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 50);
 		/* 5 Hz / 200 ms */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 200);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 200);
 		/* 5 Hz / 200 ms */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_GPS_RAW_INT, 200);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_GPS_RAW_INT, 200);
 		/* 2 Hz */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 500);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_MANUAL_CONTROL, 500);
 
 	} else if (_baudrate >= 57600) {
 		/* 10 Hz / 100 ms */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_RAW_IMU, 300);
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_HIGHRES_IMU, 300);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_RAW_IMU, 300);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_HIGHRES_IMU, 300);
 		/* 10 Hz / 100 ms ATTITUDE */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_ATTITUDE, 200);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 200);
 		/* 5 Hz / 200 ms */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 200);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 200);
 		/* 5 Hz / 200 ms */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 500);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 500);
 		/* 2 Hz */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 500);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_MANUAL_CONTROL, 500);
 		/* 2 Hz */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_GPS_RAW_INT, 500);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_GPS_RAW_INT, 500);
 
 	} else {
 		/* very low baud rate, limit to 1 Hz / 1000 ms */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_RAW_IMU, 1000);
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_ATTITUDE, 1000);
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_HIGHRES_IMU, 1000);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_RAW_IMU, 1000);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 1000);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_HIGHRES_IMU, 1000);
 		/* 1 Hz / 1000 ms */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 1000);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 1000);
 		/* 0.5 Hz */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 2000);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 2000);
 		/* 0.1 Hz */
-		set_mavlink_interval_limit(&subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 10000);
+		set_mavlink_interval_limit(MAVLINK_MSG_ID_MANUAL_CONTROL, 10000);
 	}
 
 	int mission_result_sub = orb_subscribe(ORB_ID(mission_result));
@@ -1580,6 +1583,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* wakeup source(s) */
 	struct pollfd fds[1];
+
+	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
@@ -1614,7 +1619,6 @@ Mavlink::task_main(int argc, char *argv[])
 			get_mavlink_mode_and_state(&mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
 
 			/* send heartbeat */
-			warnx("send heartbeat, chan: %d", _chan);
 			mavlink_msg_heartbeat_send(_chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_base_mode, mavlink_custom_mode, mavlink_state);
 
 			/* switch HIL mode if required */
@@ -1688,7 +1692,7 @@ Mavlink::task_main(int argc, char *argv[])
 	pthread_join(uorb_receive_thread, NULL);
 
 	/* Reset the UART flags to original state */
-	tcsetattr(uart, TCSANOW, &uart_config_original);
+	tcsetattr(_uart, TCSANOW, &uart_config_original);
 
 	/* destroy log buffer */
 	//mavlink_logbuffer_destroy(&lb);
