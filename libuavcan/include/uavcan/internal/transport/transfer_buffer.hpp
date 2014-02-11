@@ -326,19 +326,6 @@ public:
         }
     }
 
-    unsigned int getNumDynamicBuffers() const { return dynamic_buffers_.length(); }
-
-    unsigned int getNumStaticBuffers() const
-    {
-        unsigned int res = 0;
-        for (unsigned int i = 0; i < NUM_STATIC_BUFS; i++)
-        {
-            if (!static_buffers_[i].isEmpty())
-                res++;
-        }
-        return res;
-    }
-
     TransferBufferBase* access(const TransferBufferManagerKey& key)
     {
         if (key.isEmpty())
@@ -397,6 +384,21 @@ public:
             dynamic_buffers_.remove(dyn);
             DynamicTransferBuffer::destroy(dyn, allocator_);
         }
+    }
+
+    bool isEmpty() const { return (getNumStaticBuffers() == 0) && (getNumDynamicBuffers() == 0); }
+
+    unsigned int getNumDynamicBuffers() const { return dynamic_buffers_.length(); }
+
+    unsigned int getNumStaticBuffers() const
+    {
+        unsigned int res = 0;
+        for (unsigned int i = 0; i < NUM_STATIC_BUFS; i++)
+        {
+            if (!static_buffers_[i].isEmpty())
+                res++;
+        }
+        return res;
     }
 };
 
