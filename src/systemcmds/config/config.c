@@ -56,6 +56,7 @@
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
+#include <drivers/drv_device.h>
 
 #include "systemlib/systemlib.h"
 #include "systemlib/err.h"
@@ -65,6 +66,7 @@ __EXPORT int config_main(int argc, char *argv[]);
 static void	do_gyro(int argc, char *argv[]);
 static void	do_accel(int argc, char *argv[]);
 static void	do_mag(int argc, char *argv[]);
+static void	do_device(int argc, char *argv[]);
 
 int
 config_main(int argc, char *argv[])
@@ -72,18 +74,58 @@ config_main(int argc, char *argv[])
 	if (argc >= 2) {
 		if (!strcmp(argv[1], "gyro")) {
 			do_gyro(argc - 2, argv + 2);
-		}
-
-		if (!strcmp(argv[1], "accel")) {
+		} else if (!strcmp(argv[1], "accel")) {
 			do_accel(argc - 2, argv + 2);
-		}
-
-		if (!strcmp(argv[1], "mag")) {
+		} else if (!strcmp(argv[1], "mag")) {
 			do_mag(argc - 2, argv + 2);
+		} else {
+			do_device(argc - 1, argv + 1);
 		}
 	}
 	
 	errx(1, "expected a command, try 'gyro', 'accel', 'mag'");
+}
+
+static void
+do_device(int argc, char *argv[])
+{
+	if (argc < 2) {
+		errx(1, "no device path provided and command provided.");
+	}
+
+	int	fd;
+	int	ret;
+
+	fd = open(argv[0], 0);
+
+	if (fd < 0) {
+		warn("%s", argv[0]);
+		errx(1, "FATAL: no device found");
+
+	} else {
+
+		if (argc == 2 && !strcmp(argv[1], "block")) {
+
+			/* disable the device publications */
+			ret = ioctl(fd, DEVIOCSPUBBLOCK, 1);
+
+			if (ret)
+				errx(ret,"uORB publications could not be blocked");
+
+		} else if (argc == 2 && !strcmp(argv[1], "unblock")) {
+
+			/* enable the device publications */
+			ret = ioctl(fd, DEVIOCSPUBBLOCK, 0);
+
+			if (ret)
+				errx(ret,"uORB publications could not be unblocked");
+
+		} else {
+			errx("no valid command: %s", argv[1]);
+		}
+	}
+
+	exit(0);
 }
 
 static void
@@ -124,7 +166,7 @@ do_gyro(int argc, char *argv[])
 			if (ret)
 				errx(ret,"range could not be set");
 
-		} else if(argc == 1 && !strcmp(argv[0], "check")) {
+		} else if (argc == 1 && !strcmp(argv[0], "check")) {
 			ret = ioctl(fd, GYROIOCSELFTEST, 0);
 
 			if (ret) {
