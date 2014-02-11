@@ -4,8 +4,6 @@
 
 #include <algorithm>
 #include <gtest/gtest.h>
-#include <memory>
-#include <stdexcept>
 #include <uavcan/internal/transport/transfer_receiver.hpp>
 
 
