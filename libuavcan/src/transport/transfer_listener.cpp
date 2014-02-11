@@ -41,26 +41,21 @@ int SingleFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsign
  * MultiFrameIncomingTransfer
  */
 MultiFrameIncomingTransfer::MultiFrameIncomingTransfer(const RxFrame& last_frame, uint8_t buffer_offset,
-                                                       ITransferBufferManager* bufmgr,
-                                                       const TransferBufferManagerKey& bufmgr_key)
+                                                       TransferBufferAccessor& tba)
 : IncomingTransfer(last_frame.ts_monotonic, last_frame.ts_utc, last_frame.transfer_type,
                    last_frame.transfer_id, last_frame.source_node_id)
-, bufmgr_(bufmgr)
-, bufmgr_key_(bufmgr_key)
+, buf_acc_(tba)
 , buffer_offset_(buffer_offset)
 {
-    assert(bufmgr);
-    assert(!bufmgr_key.isEmpty());
     assert(last_frame.last_frame);
 }
 
 int MultiFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsigned int len) const
 {
-    const TransferBufferBase* const tbb = const_cast<ITransferBufferManager*>(bufmgr_)->access(bufmgr_key_);
+    const TransferBufferBase* const tbb = const_cast<TransferBufferAccessor&>(buf_acc_).access();
     if (tbb == NULL)
     {
-        UAVCAN_TRACE("MultiFrameIncomingTransfer", "Read failed: no such buffer %s",
-            bufmgr_key_.toString().c_str());
+        UAVCAN_TRACE("MultiFrameIncomingTransfer", "Read failed: no such buffer");
         return -1;
     }
     return tbb->read(offset + buffer_offset_, data, len);
@@ -70,10 +65,30 @@ int MultiFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsigne
  * TransferListenerBase
  */
 void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxFrame& frame,
-                                           const TransferBufferManagerKey& bufmgr_key)
+                                           TransferBufferAccessor& tba)
 {
-    const TransferReceiver::ResultCode result = receiver.addFrame(frame, bufmgr_key);
-    (void)result;
+    const TransferReceiver::ResultCode result = receiver.addFrame(frame, tba);
+    switch (result)
+    {
+    case TransferReceiver::RESULT_NOT_COMPLETE:
+        break;
+
+    case TransferReceiver::RESULT_SINGLE_FRAME:
+    {
+        SingleFrameIncomingTransfer it(frame);
+        handleIncomingTransfer(it);
+        break;
+    }
+    case TransferReceiver::RESULT_COMPLETE:
+    {
+        // TODO: check CRC
+        // TODO: select the buffer offset
+        const int buffer_offset = 123;
+        MultiFrameIncomingTransfer it(frame, buffer_offset, tba);
+        handleIncomingTransfer(it);
+        break;
+    }
+    }
 }
 
 }

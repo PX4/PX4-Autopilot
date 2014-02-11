@@ -76,8 +76,9 @@ TEST(MultiFrameIncomingTransfer, Basic)
 
     const RxFrame frame = makeFrame();
     uavcan::TransferBufferManagerKey bufmgr_key(frame.source_node_id, frame.transfer_type);
+    uavcan::TransferBufferAccessor tba(&bufmgr, bufmgr_key);
 
-    MultiFrameIncomingTransfer it(frame, 3, &bufmgr, bufmgr_key);
+    MultiFrameIncomingTransfer it(frame, 3, tba);
 
     /*
      * Empty read must fail

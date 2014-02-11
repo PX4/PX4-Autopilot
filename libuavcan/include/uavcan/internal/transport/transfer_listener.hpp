@@ -74,18 +74,16 @@ public:
  */
 class MultiFrameIncomingTransfer : public IncomingTransfer, Noncopyable
 {
-    ITransferBufferManager* const bufmgr_;
-    const TransferBufferManagerKey bufmgr_key_;
+    TransferBufferAccessor& buf_acc_;
     const uint8_t buffer_offset_;               ///< Number of bytes to skip from the beginning of the buffer space
 public:
-    MultiFrameIncomingTransfer(const RxFrame& last_frame, uint8_t buffer_offset, ITransferBufferManager* bufmgr,
-                               const TransferBufferManagerKey& bufmgr_key);
+    MultiFrameIncomingTransfer(const RxFrame& last_frame, uint8_t buffer_offset, TransferBufferAccessor& tba);
     int read(unsigned int offset, uint8_t* data, unsigned int len) const;
-    void release() { bufmgr_->remove(bufmgr_key_); }
+    void release() { buf_acc_.remove(); }
 };
 
 /**
- * Transport internal, for dispatcher.
+ * Internal, refer to transport dispatcher.
  */
 class TransferListenerBase : public LinkedListNode<TransferListenerBase>
 {
@@ -100,7 +98,7 @@ protected:
 
     virtual ~TransferListenerBase() { }
 
-    void handleReception(TransferReceiver& receiver, const RxFrame& frame);
+    void handleReception(TransferReceiver& receiver, const RxFrame& frame, TransferBufferAccessor& tba);
 
     virtual void handleIncomingTransfer(IncomingTransfer& transfer) = 0;
 
@@ -112,36 +110,80 @@ public:
 /**
  * This class should be derived by transfer receivers (subscribers, servers, callers).
  */
-template <unsigned int STATIC_BUF_SIZE, unsigned int NUM_STATIC_BUFS>
+template <unsigned int MAX_BUF_SIZE, unsigned int NUM_STATIC_BUFS, unsigned int NUM_STATIC_RECEIVERS>
 class TransferListener : protected TransferListenerBase, Noncopyable
 {
-    TransferBufferManager<STATIC_BUF_SIZE, NUM_STATIC_BUFS> bufmgr_;
-    Map<TransferBufferManagerKey, TransferReceiver, NUM_STATIC_BUFS> receivers_;
+    typedef TransferBufferManager<MAX_BUF_SIZE, NUM_STATIC_BUFS> BufferManager;
+    BufferManager bufmgr_;
+    Map<TransferBufferManagerKey, TransferReceiver, NUM_STATIC_RECEIVERS> receivers_;
 
     void handleFrame(const RxFrame& frame)
     {
-        // TODO
+        const TransferBufferManagerKey key(frame.source_node_id, frame.transfer_type);
+
+        TransferReceiver* recv = receivers_.access(key);
+        if (recv == NULL)
+        {
+            if (frame.frame_index != 0)   // We don't want to add registrations mid-transfer, that's pointless
+                return;
+
+            TransferReceiver new_recv;
+            recv = receivers_.insert(key, new_recv);
+            if (recv == NULL)
+            {
+                UAVCAN_TRACE("TransferListener", "Receiver registration failed; frame %s", frame.toString().c_str());
+                return;
+            }
+        }
+        TransferBufferAccessor tba(&bufmgr_, key);
+        handleReception(*recv, frame, tba);
     }
 
-    struct TimedOutReceiverPredicate
+    class TimedOutReceiverPredicate
     {
-        const uint64_t ts_monotonic;
-        TimedOutReceiverPredicate(uint64_t ts_monotonic) : ts_monotonic(ts_monotonic) { }
+        const uint64_t ts_monotonic_;
+        BufferManager& bufmgr_;
+
+    public:
+        TimedOutReceiverPredicate(uint64_t ts_monotonic, BufferManager& bufmgr)
+        : ts_monotonic_(ts_monotonic)
+        , bufmgr_(bufmgr)
+        { }
+
         bool operator()(const TransferBufferManagerKey& key, const TransferReceiver& value) const
         {
-            (void)key;
-            return value.isTimedOut(ts_monotonic);
+            if (value.isTimedOut(ts_monotonic_))
+            {
+                /*
+                 * TransferReceivers do not own their buffers - this helps the Map<> container to copy them
+                 * around quickly and safely (using default operator==()). Downside is that we need to destroy
+                 * the buffers manually.
+                 * Maybe it is not good that the predicate is being using as mapping functor, but I ran out
+                 * of better ideas.
+                 */
+                bufmgr_.remove(key);
+                return true;
+            }
+            return false;
         }
     };
 
     void cleanup(uint64_t ts_monotonic)
     {
-        receivers_.removeWhere(TimedOutReceiverPredicate(ts_monotonic));
+        receivers_.removeWhere(TimedOutReceiverPredicate(ts_monotonic, bufmgr_));
+#if UAVCAN_DEBUG
+        if (receivers_.isEmpty())
+        {
+            assert(bufmgr_.isEmpty());
+        }
+#endif
     }
 
 public:
-    TransferListener(const DataTypeDescriptor* data_type)
+    TransferListener(const DataTypeDescriptor* data_type, IAllocator* allocator)
     : TransferListenerBase(data_type)
+    , bufmgr_(allocator)
+    , receivers_(allocator)
     { }
 
     ~TransferListener()
