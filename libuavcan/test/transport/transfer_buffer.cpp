@@ -232,6 +232,7 @@ static int fillTestData(const std::string& data, uavcan::TransferBufferBase* tbb
 TEST(TransferBufferManager, Basic)
 {
     using uavcan::TransferBufferManager;
+    using uavcan::TransferBufferManagerKey;
     using uavcan::TransferBufferBase;
 
     static const int POOL_BLOCKS = 8;
@@ -243,25 +244,34 @@ TEST(TransferBufferManager, Basic)
     std::auto_ptr<TransferBufferManagerType> mgr(new TransferBufferManagerType(&poolmgr));
 
     // Empty
-    ASSERT_FALSE(mgr->access(0));
-    ASSERT_FALSE(mgr->access(uavcan::NODE_ID_MAX));
+    ASSERT_FALSE(mgr->access(TransferBufferManagerKey(0, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST)));
+    ASSERT_FALSE(mgr->access(TransferBufferManagerKey(uavcan::NODE_ID_MAX, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST)));
 
     TransferBufferBase* tbb = NULL;
 
+    const TransferBufferManagerKey keys[5] =
+    {
+        TransferBufferManagerKey(0, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST),
+        TransferBufferManagerKey(1, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST),
+        TransferBufferManagerKey(2, uavcan::TRANSFER_TYPE_SERVICE_REQUEST),
+        TransferBufferManagerKey(127, uavcan::TRANSFER_TYPE_SERVICE_RESPONSE),
+        TransferBufferManagerKey(64, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST)
+    };
+
     // Static 0
-    ASSERT_TRUE((tbb = mgr->create(0)));
+    ASSERT_TRUE((tbb = mgr->create(keys[0])));
     ASSERT_EQ(MGR_STATIC_BUFFER_SIZE, fillTestData(MGR_TEST_DATA[0], tbb));
     ASSERT_EQ(1, mgr->getNumStaticBuffers());
 
     // Static 1
-    ASSERT_TRUE((tbb = mgr->create(1)));
+    ASSERT_TRUE((tbb = mgr->create(keys[1])));
     ASSERT_EQ(MGR_STATIC_BUFFER_SIZE, fillTestData(MGR_TEST_DATA[1], tbb));
     ASSERT_EQ(2, mgr->getNumStaticBuffers());
     ASSERT_EQ(0, mgr->getNumDynamicBuffers());
     ASSERT_EQ(0, pool.getNumUsedBlocks());
 
     // Dynamic 0
-    ASSERT_TRUE((tbb = mgr->create(2)));
+    ASSERT_TRUE((tbb = mgr->create(keys[2])));
     ASSERT_EQ(1, pool.getNumUsedBlocks());      // Empty dynamic buffer occupies one block
     ASSERT_EQ(MGR_TEST_DATA[2].length(), fillTestData(MGR_TEST_DATA[2], tbb));
     ASSERT_EQ(2, mgr->getNumStaticBuffers());
@@ -271,7 +281,7 @@ TEST(TransferBufferManager, Basic)
     std::cout << "TransferBufferManager - Basic: Pool usage: " << pool.getNumUsedBlocks() << std::endl;
 
     // Dynamic 2
-    ASSERT_TRUE((tbb = mgr->create(127)));
+    ASSERT_TRUE((tbb = mgr->create(keys[3])));
     ASSERT_EQ(0, pool.getNumFreeBlocks());      // The test assumes that the memory must be exhausted now
 
     ASSERT_EQ(0, fillTestData(MGR_TEST_DATA[3], tbb));
@@ -279,46 +289,46 @@ TEST(TransferBufferManager, Basic)
     ASSERT_EQ(2, mgr->getNumDynamicBuffers());
 
     // Dynamic 3 - will fail due to OOM
-    ASSERT_FALSE((tbb = mgr->create(64)));
+    ASSERT_FALSE((tbb = mgr->create(keys[4])));
     ASSERT_EQ(2, mgr->getNumStaticBuffers());
     ASSERT_EQ(2, mgr->getNumDynamicBuffers());
 
     // Making sure all buffers contain proper data
-    ASSERT_TRUE((tbb = mgr->access(0)));
+    ASSERT_TRUE((tbb = mgr->access(keys[0])));
     ASSERT_TRUE(matchAgainst(MGR_TEST_DATA[0], *tbb));
 
-    ASSERT_TRUE((tbb = mgr->access(1)));
+    ASSERT_TRUE((tbb = mgr->access(keys[1])));
     ASSERT_TRUE(matchAgainst(MGR_TEST_DATA[1], *tbb));
 
-    ASSERT_TRUE((tbb = mgr->access(2)));
+    ASSERT_TRUE((tbb = mgr->access(keys[2])));
     ASSERT_TRUE(matchAgainst(MGR_TEST_DATA[2], *tbb));
 
-    ASSERT_TRUE((tbb = mgr->access(127)));
+    ASSERT_TRUE((tbb = mgr->access(keys[3])));
     ASSERT_TRUE(matchAgainst(MGR_TEST_DATA[3], *tbb));
 
     // Freeing one static buffer; one dynamic must migrate
-    mgr->remove(1);
-    ASSERT_FALSE(mgr->access(1));
+    mgr->remove(keys[1]);
+    ASSERT_FALSE(mgr->access(keys[1]));
     ASSERT_EQ(2, mgr->getNumStaticBuffers());
     ASSERT_EQ(1, mgr->getNumDynamicBuffers());   // One migrated to the static
     ASSERT_LT(0, pool.getNumFreeBlocks());
 
     // Removing NodeID 0; migration should fail due to oversized data
-    mgr->remove(0);
-    ASSERT_FALSE(mgr->access(0));
+    mgr->remove(keys[0]);
+    ASSERT_FALSE(mgr->access(keys[0]));
     ASSERT_EQ(1, mgr->getNumStaticBuffers());
     ASSERT_EQ(1, mgr->getNumDynamicBuffers());   // Migration failed
 
     // At this time we have the following NodeID: 2, 127
-    ASSERT_TRUE((tbb = mgr->access(2)));
+    ASSERT_TRUE((tbb = mgr->access(keys[2])));
     ASSERT_TRUE(matchAgainst(MGR_TEST_DATA[2], *tbb));
 
-    ASSERT_TRUE((tbb = mgr->access(127)));
+    ASSERT_TRUE((tbb = mgr->access(keys[3])));
     ASSERT_TRUE(matchAgainst(MGR_TEST_DATA[3], *tbb));
 
     // These were deleted: 0, 1
-    ASSERT_FALSE(mgr->access(1));
-    ASSERT_FALSE(mgr->access(0));
+    ASSERT_FALSE(mgr->access(keys[1]));
+    ASSERT_FALSE(mgr->access(keys[0]));
 
     // Deleting the object; all memory must be freed
     ASSERT_NE(0, pool.getNumUsedBlocks());

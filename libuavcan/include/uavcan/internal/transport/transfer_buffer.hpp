@@ -30,24 +30,63 @@ public:
 /**
  * Internal for TransferBufferManager
  */
-class TransferBufferManagerEntry : public TransferBufferBase, Noncopyable
+class TransferBufferManagerKey
 {
     uint8_t node_id_;
+    uint8_t transfer_type_;
+
+public:
+    TransferBufferManagerKey()
+    : node_id_(NODE_ID_INVALID)
+    , transfer_type_(TransferType(0))
+    {
+        assert(isEmpty());
+    }
+
+    TransferBufferManagerKey(uint8_t node_id, TransferType ttype)
+    : node_id_(node_id)
+    , transfer_type_(ttype)
+    {
+        assert(node_id <= NODE_ID_MAX && node_id != NODE_ID_INVALID);
+        assert(!isEmpty());
+    }
+
+    bool operator==(const TransferBufferManagerKey& rhs) const
+    {
+        return node_id_ == rhs.node_id_ && transfer_type_ == rhs.transfer_type_;
+    }
+
+    bool isEmpty() const { return node_id_ == NODE_ID_INVALID; }
+
+    uint8_t getNodeID() const { return node_id_; }
+    TransferType getTransferType() const { return TransferType(transfer_type_); }
+
+    std::string toString() const;
+};
+
+/**
+ * Internal for TransferBufferManager
+ */
+class TransferBufferManagerEntry : public TransferBufferBase, Noncopyable
+{
+    TransferBufferManagerKey key_;
 
 protected:
     virtual void resetImpl() = 0;
 
 public:
-    TransferBufferManagerEntry(uint8_t node_id = NODE_ID_INVALID)
-    : node_id_(node_id)
+    TransferBufferManagerEntry() { }
+
+    TransferBufferManagerEntry(const TransferBufferManagerKey& key)
+    : key_(key)
     { }
 
-    uint8_t getNodeID() const { return node_id_; }
-    bool isEmpty() const { return node_id_ == NODE_ID_INVALID; }
+    const TransferBufferManagerKey& getKey() const { return key_; }
+    bool isEmpty() const { return key_.isEmpty(); }
 
-    void reset(uint8_t node_id = NODE_ID_INVALID)
+    void reset(const TransferBufferManagerKey& key = TransferBufferManagerKey())
     {
-        node_id_ = node_id;
+        key_ = key;
         resetImpl();
     }
 };
@@ -169,7 +208,7 @@ public:
         }
 
         // Resetting self and moving all data from the source
-        reset(tbme->getNodeID());
+        reset(tbme->getKey());
         const int res = tbme->read(0, data_, SIZE);
         if (res < 0)
         {
@@ -198,9 +237,9 @@ class ITransferBufferManager
 {
 public:
     virtual ~ITransferBufferManager() { }
-    virtual TransferBufferBase* access(uint8_t node_id) = 0;
-    virtual TransferBufferBase* create(uint8_t node_id) = 0;
-    virtual void remove(uint8_t node_id) = 0;
+    virtual TransferBufferBase* access(const TransferBufferManagerKey& key) = 0;
+    virtual TransferBufferBase* create(const TransferBufferManagerKey& key) = 0;
+    virtual void remove(const TransferBufferManagerKey& key) = 0;
 };
 
 /**
@@ -215,24 +254,23 @@ class TransferBufferManager : public ITransferBufferManager, Noncopyable
     LinkedListRoot<DynamicTransferBuffer> dynamic_buffers_;
     IAllocator* const allocator_;
 
-    StaticBufferType* findFirstStatic(uint8_t node_id)
+    StaticBufferType* findFirstStatic(const TransferBufferManagerKey& key)
     {
-        assert((node_id == NODE_ID_INVALID) || (node_id <= NODE_ID_MAX));
         for (unsigned int i = 0; i < NUM_STATIC_BUFS; i++)
         {
-            if (static_buffers_[i].getNodeID() == node_id)
+            if (static_buffers_[i].getKey() == key)
                 return static_buffers_ + i;
         }
         return NULL;
     }
 
-    DynamicTransferBuffer* findFirstDynamic(uint8_t node_id)
+    DynamicTransferBuffer* findFirstDynamic(const TransferBufferManagerKey& key)
     {
         DynamicTransferBuffer* dyn = dynamic_buffers_.get();
         while (dyn)
         {
             assert(!dyn->isEmpty());
-            if (dyn->getNodeID() == node_id)
+            if (dyn->getKey() == key)
                 return dyn;
             dyn = dyn->getNextListNode();
         }
@@ -243,7 +281,7 @@ class TransferBufferManager : public ITransferBufferManager, Noncopyable
     {
         while (!dynamic_buffers_.isEmpty())
         {
-            StaticBufferType* const sb = findFirstStatic(NODE_ID_INVALID);
+            StaticBufferType* const sb = findFirstStatic(TransferBufferManagerKey());
             if (sb == NULL)
                 break;
             DynamicTransferBuffer* dyn = dynamic_buffers_.get();
@@ -252,7 +290,8 @@ class TransferBufferManager : public ITransferBufferManager, Noncopyable
             if (sb->migrateFrom(dyn))
             {
                 assert(!dyn->isEmpty());
-                UAVCAN_TRACE("TransferBufferManager", "Storage optimization: Migrated NID %i", int(dyn->getNodeID()));
+                UAVCAN_TRACE("TransferBufferManager", "Storage optimization: Migrated %s",
+                             dyn->getKey().toString().c_str());
                 dynamic_buffers_.remove(dyn);
                 DynamicTransferBuffer::destroy(dyn, allocator_);
             }
@@ -262,8 +301,8 @@ class TransferBufferManager : public ITransferBufferManager, Noncopyable
                  * than STATIC_BUF_SIZE). This means that there is probably something wrong with the network. Logic
                  * that uses this class should explicitly ensure the proper maximum data size.
                  */
-                UAVCAN_TRACE("TransferBufferManager", "Storage optimization: MIGRATION FAILURE NID %i BUFSIZE %u",
-                    int(dyn->getNodeID()), STATIC_BUF_SIZE);
+                UAVCAN_TRACE("TransferBufferManager", "Storage optimization: MIGRATION FAILURE %s BUFSIZE %u",
+                    dyn->getKey().toString().c_str(), STATIC_BUF_SIZE);
                 sb->reset();
                 break;         // Probably we should try to migrate the rest?
             }
@@ -300,29 +339,29 @@ public:
         return res;
     }
 
-    TransferBufferBase* access(uint8_t node_id)
+    TransferBufferBase* access(const TransferBufferManagerKey& key)
     {
-        if (node_id > NODE_ID_MAX || node_id == NODE_ID_INVALID)
+        if (key.isEmpty())
         {
             assert(0);
             return NULL;
         }
-        TransferBufferManagerEntry* tbme = findFirstStatic(node_id);
+        TransferBufferManagerEntry* tbme = findFirstStatic(key);
         if (tbme)
             return tbme;
-        return findFirstDynamic(node_id);
+        return findFirstDynamic(key);
     }
 
-    TransferBufferBase* create(uint8_t node_id)
+    TransferBufferBase* create(const TransferBufferManagerKey& key)
     {
-        if (node_id > NODE_ID_MAX || node_id == NODE_ID_INVALID)
+        if (key.isEmpty())
         {
             assert(0);
             return NULL;
         }
-        remove(node_id);
+        remove(key);
 
-        TransferBufferManagerEntry* tbme = findFirstStatic(NODE_ID_INVALID);
+        TransferBufferManagerEntry* tbme = findFirstStatic(TransferBufferManagerKey());
         if (tbme == NULL)
         {
             DynamicTransferBuffer* dyn = DynamicTransferBuffer::instantiate(allocator_);
@@ -335,16 +374,16 @@ public:
         if (tbme)
         {
             assert(tbme->isEmpty());
-            tbme->reset(node_id);
+            tbme->reset(key);
         }
         return tbme;
     }
 
-    void remove(uint8_t node_id)
+    void remove(const TransferBufferManagerKey& key)
     {
-        assert((node_id <= NODE_ID_MAX) && (node_id != NODE_ID_INVALID));
+        assert(!key.isEmpty());
 
-        TransferBufferManagerEntry* const tbme = findFirstStatic(node_id);
+        TransferBufferManagerEntry* const tbme = findFirstStatic(key);
         if (tbme)
         {
             tbme->reset();
@@ -352,7 +391,7 @@ public:
             return;
         }
 
-        DynamicTransferBuffer* dyn = findFirstDynamic(node_id);
+        DynamicTransferBuffer* dyn = findFirstDynamic(key);
         if (dyn)
         {
             dynamic_buffers_.remove(dyn);

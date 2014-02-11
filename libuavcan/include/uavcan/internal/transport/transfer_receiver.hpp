@@ -27,8 +27,8 @@ private:
     uint64_t this_transfer_timestamp_;
     uint64_t transfer_interval_;
     ITransferBufferManager* bufmgr_;
+    TransferBufferManagerKey bufmgr_key_;
     TransferID tid_;
-    uint8_t node_id_;
     uint8_t iface_index_;
     uint8_t next_frame_index_;
 
@@ -52,24 +52,21 @@ public:
     , this_transfer_timestamp_(0)
     , transfer_interval_(DEFAULT_TRANSFER_INTERVAL)
     , bufmgr_(NULL)
-    , node_id_(NODE_ID_INVALID)
     , iface_index_(IFACE_INDEX_NOTSET)
     , next_frame_index_(0)
     { }
 
-    TransferReceiver(ITransferBufferManager* bufmgr, uint8_t node_id)
+    TransferReceiver(ITransferBufferManager* bufmgr, const TransferBufferManagerKey& bufmgr_key)
     : prev_transfer_timestamp_(0)
     , this_transfer_timestamp_(0)
     , transfer_interval_(DEFAULT_TRANSFER_INTERVAL)
     , bufmgr_(bufmgr)
-    , node_id_(node_id)
+    , bufmgr_key_(bufmgr_key)
     , iface_index_(IFACE_INDEX_NOTSET)
     , next_frame_index_(0)
     {
         assert(bufmgr);
-        assert(node_id <= NODE_ID_MAX);
-        assert(node_id != NODE_ID_INVALID);
-        assert(node_id != NODE_ID_BROADCAST);
+        assert(bufmgr_key.getNodeID() != NODE_ID_BROADCAST);
     }
 
     ~TransferReceiver() { cleanup(); }
@@ -82,7 +79,7 @@ public:
         transfer_interval_ = rhs.transfer_interval_;
         bufmgr_ = rhs.bufmgr_;
         tid_ = rhs.tid_;
-        node_id_ = rhs.node_id_;
+        bufmgr_key_ = rhs.bufmgr_key_;
         iface_index_ = rhs.iface_index_;
         next_frame_index_ = rhs.next_frame_index_;
         return *this;

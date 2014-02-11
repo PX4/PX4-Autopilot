@@ -11,16 +11,15 @@
 
 struct RxFrameGenerator
 {
-    static const uint8_t DEFAULT_NODE_ID = 42;
+    static const uavcan::TransferBufferManagerKey DEFAULT_KEY;
 
     uint16_t data_type_id;
-    uavcan::TransferType ttype;
-    uint8_t source_node_id;
+    uavcan::TransferBufferManagerKey bufmgr_key;
 
-    RxFrameGenerator(uint16_t data_type_id, uavcan::TransferType ttype, uint8_t source_node_id = DEFAULT_NODE_ID)
+    RxFrameGenerator(uint16_t data_type_id, uavcan::TransferType ttype,
+                     const uavcan::TransferBufferManagerKey& bufmgr_key = DEFAULT_KEY)
     : data_type_id(data_type_id)
-    , ttype(ttype)
-    , source_node_id(source_node_id)
+    , bufmgr_key(bufmgr_key)
     { }
 
     uavcan::RxFrame operator()(int iface_index, const std::string& data, uint8_t frame_index, bool last,
@@ -42,13 +41,15 @@ struct RxFrameGenerator
         frm.last_frame = last;
         std::copy(data.begin(), data.end(), frm.payload);
         frm.payload_len = data.length();
-        frm.source_node_id = source_node_id;
+        frm.source_node_id = bufmgr_key.getNodeID();
         frm.transfer_id = uavcan::TransferID(transfer_id);
-        frm.transfer_type = ttype;
+        frm.transfer_type = bufmgr_key.getTransferType();
 
         return frm;
     }
 };
+
+const uavcan::TransferBufferManagerKey RxFrameGenerator::DEFAULT_KEY(42, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST);
 
 
 template <unsigned int BUFSIZE>
@@ -62,7 +63,7 @@ struct Context
     : bufmgr(&poolmgr)
     {
         assert(poolmgr.allocate(1) == NULL);
-        receiver = uavcan::TransferReceiver(&bufmgr, RxFrameGenerator::DEFAULT_NODE_ID);
+        receiver = uavcan::TransferReceiver(&bufmgr, RxFrameGenerator::DEFAULT_KEY);
     }
 
     ~Context()
@@ -125,7 +126,7 @@ TEST(TransferReceiver, Basic)
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "12345678", 0, false, 0, 100)));
     CHECK_COMPLETE(rcv.addFrame(gen(0, "foo", 1, true, 0, 200)));
 
-    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.source_node_id), "12345678foo"));
+    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "12345678foo"));
     ASSERT_EQ(TransferReceiver::DEFAULT_TRANSFER_INTERVAL, rcv.getInterval());           // Not initialized yet
     ASSERT_EQ(100, rcv.getLastTransferTimestamp());
 
@@ -142,7 +143,7 @@ TEST(TransferReceiver, Basic)
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "",         31,true,  1, 1300)));  // Unexpected FI
     CHECK_COMPLETE(    rcv.addFrame(gen(0, "",         2, true,  1, 1300)));
 
-    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.source_node_id), "12345678abcdefgh"));
+    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "12345678abcdefgh"));
     ASSERT_GT(TransferReceiver::DEFAULT_TRANSFER_INTERVAL, rcv.getInterval());
     ASSERT_LT(TransferReceiver::MIN_TRANSFER_INTERVAL, rcv.getInterval());
     ASSERT_EQ(1000, rcv.getLastTransferTimestamp());
@@ -157,7 +158,7 @@ TEST(TransferReceiver, Basic)
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "qwe",      0, true, 2, 2100)));   // Wrong iface
     CHECK_SINGLE_FRAME(rcv.addFrame(gen(0, "qwe",      0, true, 2, 2200)));
 
-    ASSERT_FALSE(bufmgr.access(RxFrameGenerator::DEFAULT_NODE_ID));          // Buffer must be removed
+    ASSERT_FALSE(bufmgr.access(gen.bufmgr_key));          // Buffer must be removed
     ASSERT_GT(TransferReceiver::DEFAULT_TRANSFER_INTERVAL, rcv.getInterval());
     ASSERT_EQ(2200, rcv.getLastTransferTimestamp());
 
@@ -203,14 +204,14 @@ TEST(TransferReceiver, Basic)
     ASSERT_LT(TransferReceiver::DEFAULT_TRANSFER_INTERVAL, rcv.getInterval());
     ASSERT_LE(TransferReceiver::MIN_TRANSFER_INTERVAL, rcv.getInterval());
     ASSERT_GE(TransferReceiver::MAX_TRANSFER_INTERVAL, rcv.getInterval());
-    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.source_node_id), "12345678qwe"));
+    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "12345678qwe"));
 
     /*
      * Buffer cleanup
      */
-    ASSERT_TRUE(bufmgr.access(gen.source_node_id));
+    ASSERT_TRUE(bufmgr.access(gen.bufmgr_key));
     context.receiver = TransferReceiver();
-    ASSERT_FALSE(bufmgr.access(gen.source_node_id));
+    ASSERT_FALSE(bufmgr.access(gen.bufmgr_key));
 }
 
 
@@ -231,7 +232,7 @@ TEST(TransferReceiver, OutOfBufferSpace_32bytes)
     CHECK_COMPLETE(    rcv.addFrame(gen(1, "",         4, true,  10, 100000400))); // 32
 
     ASSERT_EQ(100000000, rcv.getLastTransferTimestamp());
-    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.source_node_id), "12345678123456781234567812345678"));
+    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "12345678123456781234567812345678"));
 
     /*
      * Transfer longer than available buffer space
@@ -243,7 +244,7 @@ TEST(TransferReceiver, OutOfBufferSpace_32bytes)
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "12345678", 4, true,  11, 100001300))); // 40 // EOT, ignored - lost sync
 
     ASSERT_EQ(100000000, rcv.getLastTransferTimestamp());
-    ASSERT_FALSE(bufmgr.access(gen.source_node_id));          // Buffer should be removed
+    ASSERT_FALSE(bufmgr.access(gen.bufmgr_key));          // Buffer should be removed
 }
 
 
@@ -262,7 +263,7 @@ TEST(TransferReceiver, UnterminatedTransfer)
     }
     CHECK_COMPLETE(rcv.addFrame(gen(1, "12345678", uavcan::Frame::FRAME_INDEX_MAX, true, 0, 1100)));
     ASSERT_EQ(1000, rcv.getLastTransferTimestamp());
-    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.source_node_id), content));
+    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), content));
 }
 
 
@@ -281,7 +282,7 @@ TEST(TransferReceiver, OutOfOrderFrames)
     CHECK_COMPLETE(    rcv.addFrame(gen(1, "abcd",     2, true,  10, 100000400)));
 
     ASSERT_EQ(100000000, rcv.getLastTransferTimestamp());
-    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.source_node_id), "12345678qwertyuiabcd"));
+    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "12345678qwertyuiabcd"));
 }
 
 
@@ -302,7 +303,7 @@ TEST(TransferReceiver, IntervalMeasurement)
         CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "qwertyui", 1, false, tid.get(), timestamp)));
         CHECK_COMPLETE(    rcv.addFrame(gen(1, "abcd",     2, true,  tid.get(), timestamp)));
 
-        ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.source_node_id), "12345678qwertyuiabcd"));
+        ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "12345678qwertyuiabcd"));
         ASSERT_EQ(timestamp, rcv.getLastTransferTimestamp());
 
         timestamp += INTERVAL;
@@ -334,7 +335,7 @@ TEST(TransferReceiver, Restart)
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "12345678", 1, false, 0, 13000300))); // Continue 3 sec later, iface timeout
     CHECK_COMPLETE(    rcv.addFrame(gen(1, "12345678", 2, true,  0, 13000400))); // OK nevertheless
 
-    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.source_node_id), "123456781234567812345678"));
+    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "123456781234567812345678"));
 
     /*
      * Begins OK, gets an iface timeout, switches to another iface
@@ -348,5 +349,5 @@ TEST(TransferReceiver, Restart)
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "12345678", 1, false, 2, 16000900))); // Continuing
     CHECK_COMPLETE(    rcv.addFrame(gen(0, "12345678", 2, true,  2, 16000910))); // Done
 
-    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.source_node_id), "123456781234567812345678"));
+    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "123456781234567812345678"));
 }

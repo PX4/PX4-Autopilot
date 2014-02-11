@@ -18,8 +18,8 @@ const uint64_t TransferReceiver::MAX_TRANSFER_INTERVAL;
 
 void TransferReceiver::cleanup()
 {
-    if (bufmgr_ != NULL && node_id_ != NODE_ID_INVALID)
-        bufmgr_->remove(node_id_);
+    if (bufmgr_ != NULL && !bufmgr_key_.isEmpty())
+        bufmgr_->remove(bufmgr_key_);
 }
 
 TransferReceiver::TidRelation TransferReceiver::getTidRelation(const RxFrame& frame) const
@@ -99,15 +99,15 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame)
 
     if ((frame.frame_index == 0) && frame.last_frame)  // Single-frame transfer
     {
-        bufmgr_->remove(node_id_);
+        bufmgr_->remove(bufmgr_key_);
         updateTransferTimings();
         prepareForNextTransfer();
         return RESULT_SINGLE_FRAME;
     }
 
-    TransferBufferBase* buf = bufmgr_->access(node_id_);
+    TransferBufferBase* buf = bufmgr_->access(bufmgr_key_);
     if (buf == NULL)
-        buf = bufmgr_->create(node_id_);
+        buf = bufmgr_->create(bufmgr_key_);
     if (buf == NULL)
     {
         UAVCAN_TRACE("TransferReceiver", "Failed to access the buffer, %s", frame.toString().c_str());
@@ -119,7 +119,7 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame)
     if (res != frame.payload_len)
     {
         UAVCAN_TRACE("TransferReceiver", "Buffer write failure [%i], %s", res, frame.toString().c_str());
-        bufmgr_->remove(node_id_);
+        bufmgr_->remove(bufmgr_key_);
         prepareForNextTransfer();
         return RESULT_NOT_COMPLETE;
     }
@@ -146,7 +146,8 @@ bool TransferReceiver::isTimedOut(uint64_t timestamp) const
 TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame)
 {
     assert(bufmgr_);
-    assert(node_id_ == frame.source_node_id);
+    assert(bufmgr_key_.getNodeID() == frame.source_node_id);
+    assert(bufmgr_key_.getTransferType() == frame.transfer_type);
 
     if ((frame.timestamp == 0) ||
         (frame.timestamp < prev_transfer_timestamp_) ||
@@ -174,7 +175,7 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame)
             "Restart [not_inited=%i, iface_timeout=%i, recv_timeout=%i, same_iface=%i, first_frame=%i, tid_rel=%i], %s",
             int(not_initialized), int(iface_timed_out), int(receiver_timed_out), int(same_iface), int(first_fame),
             int(tid_rel), frame.toString().c_str());
-        bufmgr_->remove(node_id_);
+        bufmgr_->remove(bufmgr_key_);
         iface_index_ = frame.iface_index;
         tid_ = frame.transfer_id;
         next_frame_index_ = 0;
