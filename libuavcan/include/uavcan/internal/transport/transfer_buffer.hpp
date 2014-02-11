@@ -243,6 +243,27 @@ public:
 };
 
 /**
+ * Convinience class.
+ */
+class TransferBufferAccessor
+{
+    ITransferBufferManager* const bufmgr_;
+    const TransferBufferManagerKey key_;
+
+public:
+    TransferBufferAccessor(ITransferBufferManager* bufmgr, TransferBufferManagerKey key)
+    : bufmgr_(bufmgr)
+    , key_(key)
+    {
+        assert(bufmgr);
+        assert(!key.isEmpty());
+    }
+    TransferBufferBase* access() { return bufmgr_->access(key_); }
+    TransferBufferBase* create() { return bufmgr_->create(key_); }
+    void remove() { bufmgr_->remove(key_); }
+};
+
+/**
  * Buffer manager implementation.
  */
 template <unsigned int STATIC_BUF_SIZE, unsigned int NUM_STATIC_BUFS>

@@ -29,7 +29,6 @@ private:
     uint64_t this_transfer_ts_monotonic_;
     uint64_t first_frame_ts_utc_;
     uint32_t transfer_interval_;
-    ITransferBufferManager* bufmgr_;
     TransferID tid_;
     uint8_t iface_index_;
     uint8_t next_frame_index_;
@@ -42,7 +41,7 @@ private:
     void prepareForNextTransfer();
 
     bool validate(const RxFrame& frame) const;
-    ResultCode receive(const RxFrame& frame, const TransferBufferManagerKey& bufmgr_key);
+    ResultCode receive(const RxFrame& frame, TransferBufferAccessor& tba);
 
     TransferReceiver(const TransferReceiver&); // = delete (not needed)
 
@@ -52,26 +51,13 @@ public:
     , this_transfer_ts_monotonic_(0)
     , first_frame_ts_utc_(0)
     , transfer_interval_(DEFAULT_TRANSFER_INTERVAL)
-    , bufmgr_(NULL)
     , iface_index_(IFACE_INDEX_NOTSET)
     , next_frame_index_(0)
     { }
 
-    TransferReceiver(ITransferBufferManager* bufmgr)
-    : prev_transfer_ts_monotonic_(0)
-    , this_transfer_ts_monotonic_(0)
-    , first_frame_ts_utc_(0)
-    , transfer_interval_(DEFAULT_TRANSFER_INTERVAL)
-    , bufmgr_(bufmgr)
-    , iface_index_(IFACE_INDEX_NOTSET)
-    , next_frame_index_(0)
-    {
-        assert(bufmgr);
-    }
-
     bool isTimedOut(uint64_t ts_monotonic) const;
 
-    ResultCode addFrame(const RxFrame& frame, const TransferBufferManagerKey& bufmgr_key);
+    ResultCode addFrame(const RxFrame& frame, TransferBufferAccessor& tba);
 
     uint64_t getLastTransferTimestampMonotonic() const { return prev_transfer_ts_monotonic_; }
     uint64_t getLastTransferTimestampUtc() const { return first_frame_ts_utc_; }

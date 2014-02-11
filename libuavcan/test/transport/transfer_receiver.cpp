@@ -62,7 +62,6 @@ struct Context
     : bufmgr(&poolmgr)
     {
         assert(poolmgr.allocate(1) == NULL);
-        receiver = uavcan::TransferReceiver(&bufmgr);
     }
 
     ~Context()
@@ -101,10 +100,10 @@ TEST(TransferReceiver, Basic)
 {
     using uavcan::TransferReceiver;
     Context<32> context;
-    const uavcan::TransferBufferManagerKey bk = RxFrameGenerator::DEFAULT_KEY;
     RxFrameGenerator gen(789, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
+    uavcan::TransferBufferAccessor bk(&context.bufmgr, RxFrameGenerator::DEFAULT_KEY);
 
     /*
      * Empty
@@ -218,10 +217,10 @@ TEST(TransferReceiver, Basic)
 TEST(TransferReceiver, OutOfBufferSpace_32bytes)
 {
     Context<32> context;
-    const uavcan::TransferBufferManagerKey bk = RxFrameGenerator::DEFAULT_KEY;
     RxFrameGenerator gen(789, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
+    uavcan::TransferBufferAccessor bk(&context.bufmgr, RxFrameGenerator::DEFAULT_KEY);
 
     /*
      * Simple transfer, maximum buffer length
@@ -252,10 +251,10 @@ TEST(TransferReceiver, OutOfBufferSpace_32bytes)
 TEST(TransferReceiver, UnterminatedTransfer)
 {
     Context<256> context;
-    const uavcan::TransferBufferManagerKey bk = RxFrameGenerator::DEFAULT_KEY;
     RxFrameGenerator gen(789, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
+    uavcan::TransferBufferAccessor bk(&context.bufmgr, RxFrameGenerator::DEFAULT_KEY);
 
     std::string content;
     for (int i = 0; i <= uavcan::Frame::FRAME_INDEX_MAX; i++)
@@ -272,10 +271,10 @@ TEST(TransferReceiver, UnterminatedTransfer)
 TEST(TransferReceiver, OutOfOrderFrames)
 {
     Context<32> context;
-    const uavcan::TransferBufferManagerKey bk = RxFrameGenerator::DEFAULT_KEY;
     RxFrameGenerator gen(789, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
+    uavcan::TransferBufferAccessor bk(&context.bufmgr, RxFrameGenerator::DEFAULT_KEY);
 
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "12345678", 0, false, 10, 100000000), bk));
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "--------", 3, false, 10, 100000100), bk));  // Out of order
@@ -292,10 +291,10 @@ TEST(TransferReceiver, OutOfOrderFrames)
 TEST(TransferReceiver, IntervalMeasurement)
 {
     Context<32> context;
-    const uavcan::TransferBufferManagerKey bk = RxFrameGenerator::DEFAULT_KEY;
     RxFrameGenerator gen(789, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
+    uavcan::TransferBufferAccessor bk(&context.bufmgr, RxFrameGenerator::DEFAULT_KEY);
 
     static const int INTERVAL = 1000;
     uavcan::TransferID tid;
@@ -321,10 +320,10 @@ TEST(TransferReceiver, IntervalMeasurement)
 TEST(TransferReceiver, Restart)
 {
     Context<32> context;
-    const uavcan::TransferBufferManagerKey bk = RxFrameGenerator::DEFAULT_KEY;
     RxFrameGenerator gen(789, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
+    uavcan::TransferBufferAccessor bk(&context.bufmgr, RxFrameGenerator::DEFAULT_KEY);
 
     /*
      * This transfer looks complete, but must be ignored because of large delay after the first frame
@@ -361,10 +360,10 @@ TEST(TransferReceiver, Restart)
 TEST(TransferReceiver, UtcTransferTimestamping)
 {
     Context<32> context;
-    const uavcan::TransferBufferManagerKey bk = RxFrameGenerator::DEFAULT_KEY;
     RxFrameGenerator gen(789, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
+    uavcan::TransferBufferAccessor bk(&context.bufmgr, RxFrameGenerator::DEFAULT_KEY);
 
     /*
      * Zero UTC timestamp must be preserved
