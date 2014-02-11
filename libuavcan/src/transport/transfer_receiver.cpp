@@ -86,7 +86,8 @@ bool TransferReceiver::validate(const RxFrame& frame) const
     return true;
 }
 
-TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame)
+TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame,
+                                                       const TransferBufferManagerKey& bufmgr_key)
 {
     if (frame.frame_index == 0)
     {
@@ -96,15 +97,15 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame)
 
     if ((frame.frame_index == 0) && frame.last_frame)  // Single-frame transfer
     {
-        bufmgr_->remove(bufmgr_key_);
+        bufmgr_->remove(bufmgr_key);
         updateTransferTimings();
         prepareForNextTransfer();
         return RESULT_SINGLE_FRAME;
     }
 
-    TransferBufferBase* buf = bufmgr_->access(bufmgr_key_);
+    TransferBufferBase* buf = bufmgr_->access(bufmgr_key);
     if (buf == NULL)
-        buf = bufmgr_->create(bufmgr_key_);
+        buf = bufmgr_->create(bufmgr_key);
     if (buf == NULL)
     {
         UAVCAN_TRACE("TransferReceiver", "Failed to access the buffer, %s", frame.toString().c_str());
@@ -116,7 +117,7 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame)
     if (res != frame.payload_len)
     {
         UAVCAN_TRACE("TransferReceiver", "Buffer write failure [%i], %s", res, frame.toString().c_str());
-        bufmgr_->remove(bufmgr_key_);
+        bufmgr_->remove(bufmgr_key);
         prepareForNextTransfer();
         return RESULT_NOT_COMPLETE;
     }
@@ -140,11 +141,12 @@ bool TransferReceiver::isTimedOut(uint64_t ts_monotonic) const
     return (ts_monotonic - ts) > (uint64_t(transfer_interval_) * INTERVAL_MULT);
 }
 
-TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame)
+TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame,
+                                                        const TransferBufferManagerKey& bufmgr_key)
 {
     assert(bufmgr_);
-    assert(bufmgr_key_.getNodeID() == frame.source_node_id);
-    assert(bufmgr_key_.getTransferType() == frame.transfer_type);
+    assert(bufmgr_key.getNodeID() == frame.source_node_id);
+    assert(bufmgr_key.getTransferType() == frame.transfer_type);
 
     if ((frame.ts_monotonic == 0) ||
         (frame.ts_monotonic < prev_transfer_ts_monotonic_) ||
@@ -172,7 +174,7 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame)
             "Restart [not_inited=%i, iface_timeout=%i, recv_timeout=%i, same_iface=%i, first_frame=%i, tid_rel=%i], %s",
             int(not_initialized), int(iface_timed_out), int(receiver_timed_out), int(same_iface), int(first_fame),
             int(tid_rel), frame.toString().c_str());
-        bufmgr_->remove(bufmgr_key_);
+        bufmgr_->remove(bufmgr_key);
         iface_index_ = frame.iface_index;
         tid_ = frame.transfer_id;
         next_frame_index_ = 0;
@@ -186,7 +188,7 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame)
     if (!validate(frame))
         return RESULT_NOT_COMPLETE;
 
-    return receive(frame);
+    return receive(frame, bufmgr_key);
 }
 
 }
