@@ -5,6 +5,10 @@
 # Anton Babushkin <anton.babushkin@me.com>
 #
 
-sh /etc/init.d/6001_hexa_x
+sh /etc/init.d/rc.mc_defaults
 
 set MIXER FMU_hexa_+
+
+# We only can run one channel group with one rate,
+# so all 8 at 400 Hz
+set PWM_OUTPUTS 12345678

@@ -181,6 +181,15 @@ then
 fi
 
 #
+# Hexa Coaxial
+#
+
+if param compare SYS_AUTOSTART 11001
+then
+	sh /etc/init.d/11001_hexa_cox
+fi
+
+#
 # Octo Coaxial
 #
 

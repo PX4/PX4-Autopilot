@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -414,6 +414,8 @@ protected:
 	 * @return		  OK on success, -errno otherwise
 	 */
 	virtual int unregister_class_devname(const char *class_devname, unsigned class_instance);
+
+	bool		_pub_blocked;		/**< true if publishing should be blocked */
 
 private:
 	static const unsigned _max_pollwaiters = 8;

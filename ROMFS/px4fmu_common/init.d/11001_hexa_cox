@@ -1,6 +1,8 @@
 #!nsh
 #
-# Generic 10” Octo coaxial geometry
+# UNTESTED UNTESTED!
+#
+# Generic 10” Hexa coaxial geometry
 #
 # Lorenz Meier <lm@inf.ethz.ch>
 #
@@ -27,7 +29,7 @@ then
 fi
 
 set VEHICLE_TYPE mc
-set MIXER FMU_octo_cox
+set MIXER hexa_cox
 
 set PWM_OUTPUTS 12345678
 set PWM_RATE 400

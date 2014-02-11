@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,29 +32,31 @@
  ****************************************************************************/
 
 /**
- * @file navigator_params.c
+ * @file drv_device.h
  *
- * Parameters defined by the navigator task.
- *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * Generic device / sensor interface.
  */
 
-#include <nuttx/config.h>
+#ifndef _DRV_DEVICE_H
+#define _DRV_DEVICE_H
 
-#include <systemlib/param/param.h>
+#include <stdint.h>
+#include <sys/ioctl.h>
+
+#include "drv_sensor.h"
+#include "drv_orb_dev.h"
 
 /*
- * Navigator parameters, accessible via MAVLink
- *
+ * ioctl() definitions
  */
 
-PARAM_DEFINE_FLOAT(NAV_MIN_ALT, 50.0f);
-PARAM_DEFINE_FLOAT(NAV_ACCEPT_RAD, 10.0f);
-PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
-PARAM_DEFINE_INT32(NAV_ONB_MIS_EN, 0);
-PARAM_DEFINE_FLOAT(NAV_TAKEOFF_ALT, 10.0f);	// default TAKEOFF altitude
-PARAM_DEFINE_FLOAT(NAV_LAND_ALT, 5.0f);		// slow descend from this altitude when landing
-PARAM_DEFINE_FLOAT(NAV_RTL_ALT, 30.0f);		// min altitude for going home in RTL mode
-PARAM_DEFINE_FLOAT(NAV_RTL_LAND_T, -1.0f);	// delay after descend before landing, if set to -1 the system will not land but loiter at NAV_LAND_ALT
+#define _DEVICEIOCBASE		(0x100)
+#define _DEVICEIOC(_n)		(_IOC(_DEVICEIOCBASE, _n))
+
+/** ask device to stop publishing */
+#define DEVIOCSPUBBLOCK	_DEVICEIOC(0)
+
+/** check publication block status */
+#define DEVIOCGPUBBLOCK	_DEVICEIOC(1)
+
+#endif /* _DRV_DEVICE_H */

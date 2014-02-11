@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -277,15 +277,15 @@ private:
 	unsigned		_mag_samplerate;
 
 	orb_advert_t		_accel_topic;
-	int			_class_instance;
+	int			_accel_class_instance;
 
 	unsigned		_accel_read;
 	unsigned		_mag_read;
 
 	perf_counter_t		_accel_sample_perf;
 	perf_counter_t		_mag_sample_perf;
-	perf_counter_t		_reg7_resets;
 	perf_counter_t		_reg1_resets;
+	perf_counter_t		_reg7_resets;
 	perf_counter_t		_extreme_values;
 	perf_counter_t		_accel_reschedules;
 
@@ -295,8 +295,8 @@ private:
 
 	// expceted values of reg1 and reg7 to catch in-flight
 	// brownouts of the sensor
-	uint8_t			_reg7_expected;
 	uint8_t			_reg1_expected;
+	uint8_t			_reg7_expected;
 
 	// accel logging
 	int			_accel_log_fd;
@@ -500,7 +500,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_mag_range_scale(0.0f),
 	_mag_samplerate(0),
 	_accel_topic(-1),
-	_class_instance(-1),
+	_accel_class_instance(-1),
 	_accel_read(0),
 	_mag_read(0),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_accel_read")),
@@ -551,8 +551,8 @@ LSM303D::~LSM303D()
 	if (_mag_reports != nullptr)
 		delete _mag_reports;
 
-	if (_class_instance != -1)
-		unregister_class_devname(ACCEL_DEVICE_PATH, _class_instance);
+	if (_accel_class_instance != -1)
+		unregister_class_devname(ACCEL_DEVICE_PATH, _accel_class_instance);
 
 	delete _mag;
 
@@ -562,13 +562,13 @@ LSM303D::~LSM303D()
 	perf_free(_reg1_resets);
 	perf_free(_reg7_resets);
 	perf_free(_extreme_values);
+	perf_free(_accel_reschedules);
 }
 
 int
 LSM303D::init()
 {
 	int ret = ERROR;
-	int mag_ret;
 
 	/* do SPI init (and probe) first */
 	if (SPI::init() != OK) {
@@ -597,13 +597,37 @@ LSM303D::init()
 		goto out;
 	}
 
-	_class_instance = register_class_devname(ACCEL_DEVICE_PATH);
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		// we are the primary accel device, so advertise to
-		// the ORB
-		struct accel_report zero_report;
-		memset(&zero_report, 0, sizeof(zero_report));
-		_accel_topic = orb_advertise(ORB_ID(sensor_accel), &zero_report);
+	/* fill report structures */
+	measure();
+
+	if (_mag->_mag_class_instance == CLASS_DEVICE_PRIMARY) {
+
+		/* advertise sensor topic, measure manually to initialize valid report */
+		struct mag_report mrp;
+		_mag_reports->get(&mrp);
+
+		/* measurement will have generated a report, publish */
+		_mag->_mag_topic = orb_advertise(ORB_ID(sensor_mag), &mrp);
+
+		if (_mag->_mag_topic < 0)
+			debug("failed to create sensor_mag publication");
+
+	}
+
+	_accel_class_instance = register_class_devname(ACCEL_DEVICE_PATH);
+
+	if (_accel_class_instance == CLASS_DEVICE_PRIMARY) {
+
+		/* advertise sensor topic, measure manually to initialize valid report */
+		struct accel_report arp;
+		_accel_reports->get(&arp);
+
+		/* measurement will have generated a report, publish */
+		_accel_topic = orb_advertise(ORB_ID(sensor_accel), &arp);
+
+		if (_accel_topic < 0)
+			debug("failed to create sensor_accel publication");
+
 	}
 
 out:
@@ -727,7 +751,7 @@ LSM303D::check_extremes(const accel_report *arb)
 		_last_log_us = now;
 		::dprintf(_accel_log_fd, "ARB %llu %.3f %.3f %.3f %d %d %d boot_ok=%u\r\n",
 			  (unsigned long long)arb->timestamp, 
-			  arb->x, arb->y, arb->z,
+			  (double)arb->x, (double)arb->y, (double)arb->z,
 			  (int)arb->x_raw,
 			  (int)arb->y_raw,
 			  (int)arb->z_raw,
@@ -1517,8 +1541,8 @@ LSM303D::measure()
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
-	if (_accel_topic != -1) {
-		/* publish for subscribers */
+	if (_accel_topic > 0 && !(_pub_blocked)) {
+		/* publish it */
 		orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
 	}
 
@@ -1591,8 +1615,8 @@ LSM303D::mag_measure()
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
-	if (_mag->_mag_topic != -1) {
-		/* publish for subscribers */
+	if (_mag->_mag_topic > 0 && !(_pub_blocked)) {
+		/* publish it */
 		orb_publish(ORB_ID(sensor_mag), _mag->_mag_topic, &mag_report);
 	}
 
@@ -1707,13 +1731,6 @@ LSM303D_mag::init()
 		goto out;
 
 	_mag_class_instance = register_class_devname(MAG_DEVICE_PATH);
-	if (_mag_class_instance == CLASS_DEVICE_PRIMARY) {
-		// we are the primary mag device, so advertise to
-		// the ORB
-		struct mag_report zero_report;
-		memset(&zero_report, 0, sizeof(zero_report));
-		_mag_topic = orb_advertise(ORB_ID(sensor_mag), &zero_report);
-	}
 
 out:
 	return ret;
