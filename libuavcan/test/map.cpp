@@ -43,17 +43,17 @@ TEST(Map, Basic)
     ASSERT_EQ(0, pool.getNumUsedBlocks());
 
     // Static insertion
-    ASSERT_TRUE(map->insert("1", "a"));
-    ASSERT_TRUE(map->insert("2", "b"));
+    ASSERT_EQ("a", *map->insert("1", "a"));
+    ASSERT_EQ("b", *map->insert("2", "b"));
     ASSERT_EQ(0, pool.getNumUsedBlocks());
     ASSERT_EQ(2, map->getNumStaticPairs());
     ASSERT_EQ(0, map->getNumDynamicPairs());
 
     // Dynamic insertion
-    ASSERT_TRUE(map->insert("3", "c"));
+    ASSERT_EQ("c", *map->insert("3", "c"));
     ASSERT_EQ(1, pool.getNumUsedBlocks());
 
-    ASSERT_TRUE(map->insert("4", "d"));
+    ASSERT_EQ("d", *map->insert("4", "d"));
     ASSERT_EQ(1, pool.getNumUsedBlocks());       // Assuming that at least 2 items fit one block
     ASSERT_EQ(2, map->getNumStaticPairs());
     ASSERT_EQ(2, map->getNumDynamicPairs());
@@ -104,11 +104,15 @@ TEST(Map, Basic)
     {
         const std::string key   = toString(i);
         const std::string value = toString(i);
-        const bool res = map->insert(key, value);  // Will override some from the above
-        if (!res)
+        std::string* res = map->insert(key, value);  // Will override some from the above
+        if (res == NULL)
         {
             ASSERT_LT(2, i);
             break;
+        }
+        else
+        {
+            ASSERT_EQ(value, *res);
         }
         max_key_integer = i;
     }

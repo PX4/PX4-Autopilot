@@ -5,6 +5,7 @@
 #pragma once
 
 #include <cassert>
+#include <cstdlib>
 #include <stdint.h>
 #include <uavcan/internal/linked_list.hpp>
 #include <uavcan/internal/impl_constants.hpp>
@@ -173,7 +174,7 @@ public:
     }
 
     /// If entry with the same key already exists, it will be replaced
-    bool insert(const Key& key, const Value& value)
+    Value* insert(const Key& key, const Value& value)
     {
         assert(!(key == Key()));
         remove(key);
@@ -182,18 +183,18 @@ public:
         if (kv)
         {
             *kv = KVPair(key, value);
-            return true;
+            return &kv->value;
         }
 
         void* const praw = allocator_->allocate(sizeof(KVGroup));
         if (praw == NULL)
-            return false;
+            return NULL;
 
         KVGroup* const kvg = new (praw) KVGroup();
         assert(kvg);
         kvg->kvs[0] = KVPair(key, value);
         list_.insert(kvg);
-        return true;
+        return &kvg->kvs[0].value;
     }
 
     void remove(const Key& key)
