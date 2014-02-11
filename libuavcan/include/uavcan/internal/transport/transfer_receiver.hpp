@@ -91,7 +91,7 @@ public:
         return *this;
     }
 
-    bool isTimedOut(uint64_t timestamp) const;
+    bool isTimedOut(uint64_t ts_monotonic) const;
 
     ResultCode addFrame(const RxFrame& frame);
 

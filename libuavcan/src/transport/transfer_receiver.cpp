@@ -137,13 +137,13 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame)
     return RESULT_NOT_COMPLETE;
 }
 
-bool TransferReceiver::isTimedOut(uint64_t timestamp) const
+bool TransferReceiver::isTimedOut(uint64_t ts_monotonic) const
 {
     static const uint64_t INTERVAL_MULT = (1 << TransferID::BITLEN) / 2 - 1;
     const uint64_t ts = this_transfer_ts_monotonic_;
-    if (timestamp <= ts)
+    if (ts_monotonic <= ts)
         return false;
-    return (timestamp - ts) > (uint64_t(transfer_interval_) * INTERVAL_MULT);
+    return (ts_monotonic - ts) > (uint64_t(transfer_interval_) * INTERVAL_MULT);
 }
 
 TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame)
