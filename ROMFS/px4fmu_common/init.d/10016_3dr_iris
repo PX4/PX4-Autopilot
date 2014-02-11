@@ -9,9 +9,20 @@ sh /etc/init.d/rc.mc_defaults
 
 if [ $DO_AUTOCONFIG == yes ]
 then
-	#
-	# Default parameters for this platform
-	#
+	# TODO tune roll/pitch separately
+	param set MC_ROLL_P 9.0
+	param set MC_ROLLRATE_P 0.13
+	param set MC_ROLLRATE_I 0.0
+	param set MC_ROLLRATE_D 0.004
+	param set MC_PITCH_P 9.0
+	param set MC_PITCHRATE_P 0.13
+	param set MC_PITCHRATE_I 0.0
+	param set MC_PITCHRATE_D 0.004
+	param set MC_YAW_P 0.5
+	param set MC_YAWRATE_P 0.2
+	param set MC_YAWRATE_I 0.0
+	param set MC_YAWRATE_D 0.0
+
 	param set BAT_V_SCALING 0.00989
 	param set BAT_C_SCALING 0.0124
 fi
