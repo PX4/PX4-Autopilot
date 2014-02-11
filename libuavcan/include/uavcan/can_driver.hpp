@@ -93,10 +93,17 @@ public:
 
     /**
      * Non-blocking reception.
-     * out_utc_timestamp_usec must be provided by the driver, ideally by the hardware CAN controller; 0 if unknown.
+     * Timestamps should be provided by the CAN driver, ideally by the hardware CAN controller.
+     * Monotonic timestamp is required and can be not precise since it is needed only for
+     * protocol timing validation (transfer timeouts and inter-transfer intervals).
+     * UTC timestamp is optional, if available it will be used for precise time synchronization;
+     * must be set to zero if not available.
+     * Refer to @ref ISystemClock to learn more about timestamps.
+     * @param [out] out_ts_monotonic_usec Monotonic timestamp, usec, mandatory.
+     * @param [out] out_ts_utc_usec       UTC timestamp, usec, optional, zero if unknown.
      * @return 1 = one frame received, 0 = RX buffer empty, negative for error.
      */
-    virtual int receive(CanFrame& out_frame, uint64_t& out_utc_timestamp_usec) = 0;
+    virtual int receive(CanFrame& out_frame, uint64_t& out_ts_monotonic_usec, uint64_t& out_ts_utc_usec) = 0;
 
     /**
      * Configure the hardware CAN filters. @ref CanFilterConfig.

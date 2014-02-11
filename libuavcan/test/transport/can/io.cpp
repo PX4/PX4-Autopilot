@@ -69,7 +69,7 @@ public:
         return 1;
     }
 
-    int receive(uavcan::CanFrame& out_frame, uint64_t& out_utc_timestamp_usec)
+    int receive(uavcan::CanFrame& out_frame, uint64_t& out_ts_monotonic_usec, uint64_t& out_ts_utc_usec)
     {
         assert(this);
         EXPECT_TRUE(rx.size());        // Shall never be called when not readable
@@ -80,7 +80,8 @@ public:
         const FrameWithTime frame = rx.front();
         rx.pop();
         out_frame = frame.frame;
-        out_utc_timestamp_usec = frame.time;
+        out_ts_monotonic_usec = frame.time;
+        out_ts_utc_usec = 0;
         return 1;
     }
 
@@ -178,10 +179,11 @@ TEST(CanIOManager, CanDriverMock)
     EXPECT_EQ(0, mask_wr);
     EXPECT_EQ(2, mask_rd);
     CanFrame fr2;
-    uint64_t timestamp;
-    EXPECT_EQ(1, driver.getIface(1)->receive(fr2, timestamp));
+    uint64_t ts_monotonic, ts_utc;
+    EXPECT_EQ(1, driver.getIface(1)->receive(fr2, ts_monotonic, ts_utc));
     EXPECT_EQ(fr1, fr2);
-    EXPECT_EQ(100, timestamp);
+    EXPECT_EQ(100, ts_monotonic);
+    EXPECT_EQ(0, ts_utc);
 
     // #0 WR, #1 RD, Select failure
     driver.ifaces.at(0).writeable = true;
@@ -203,7 +205,7 @@ static bool rxFrameEquals(const uavcan::CanRxFrame& rxframe, const uavcan::CanFr
                   << "    " << frame.toString(uavcan::CanFrame::STR_ALIGNED) << std::endl;
     }
     return (static_cast<const uavcan::CanFrame&>(rxframe) == frame) &&
-        (rxframe.timestamp == timestamp) && (rxframe.iface_index == iface_index);
+        (rxframe.ts_monotonic == timestamp) && (rxframe.iface_index == iface_index);
 }
 
 TEST(CanIOManager, Reception)

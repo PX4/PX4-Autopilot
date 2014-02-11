@@ -106,7 +106,7 @@ std::string Frame::toString() const
 std::string RxFrame::toString() const
 {
     std::ostringstream os;  // C++03 doesn't support long long, so we need ostream to print the timestamp
-    os << Frame::toString() << " ts=" << timestamp << " iface=" << int(iface_index);
+    os << Frame::toString() << " ts_m=" << ts_monotonic << " ts_utc=" << ts_utc << " iface=" << int(iface_index);
     return os.str();
 }
 

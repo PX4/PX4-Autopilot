@@ -147,11 +147,11 @@ TEST(Transfer, RxFrameParse)
     // Default
     can_rx_frame.id = CanFrame::FLAG_EFF;
     ASSERT_TRUE(rx_frame.parse(can_rx_frame));
-    ASSERT_EQ(0, rx_frame.timestamp);
+    ASSERT_EQ(0, rx_frame.ts_monotonic);
     ASSERT_EQ(0, rx_frame.iface_index);
 
     // Custom
-    can_rx_frame.timestamp = 123;
+    can_rx_frame.ts_monotonic = 123;
     can_rx_frame.iface_index = 2;
 
     Frame frame;
@@ -160,7 +160,7 @@ TEST(Transfer, RxFrameParse)
     *static_cast<CanFrame*>(&can_rx_frame) = frame.compile();
 
     ASSERT_TRUE(rx_frame.parse(can_rx_frame));
-    ASSERT_EQ(123, rx_frame.timestamp);
+    ASSERT_EQ(123, rx_frame.ts_monotonic);
     ASSERT_EQ(2, rx_frame.iface_index);
     ASSERT_EQ(456, rx_frame.data_type_id);
     ASSERT_EQ(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, rx_frame.transfer_type);
@@ -174,7 +174,7 @@ TEST(Transfer, FrameToString)
 
     // RX frame default
     RxFrame rx_frame;
-    EXPECT_EQ("dtid=0 tt=0 snid=0 idx=0 last=0 tid=0 payload=[] ts=0 iface=0", rx_frame.toString());
+    EXPECT_EQ("dtid=0 tt=0 snid=0 idx=0 last=0 tid=0 payload=[] ts_m=0 ts_utc=0 iface=0", rx_frame.toString());
 
     // RX frame max len
     rx_frame.data_type_id = Frame::DATA_TYPE_ID_MAX;
@@ -186,11 +186,12 @@ TEST(Transfer, FrameToString)
     rx_frame.payload_len = Frame::PAYLOAD_LEN_MAX;
     for (int i = 0; i < rx_frame.payload_len; i++)
         rx_frame.payload[i] = i;
-    rx_frame.timestamp = 0xFFFFFFFFFFFFFFFF;
+    rx_frame.ts_monotonic = 0xFFFFFFFFFFFFFFFF;
+    rx_frame.ts_utc = 0xFFFFFFFFFFFFFFFF;
     rx_frame.iface_index = 3;
 
     EXPECT_EQ(
-    "dtid=1023 tt=3 snid=127 idx=31 last=1 tid=15 payload=[00 01 02 03 04 05 06 07] ts=18446744073709551615 iface=3",
+    "dtid=1023 tt=3 snid=127 idx=31 last=1 tid=15 payload=[00 01 02 03 04 05 06 07] ts_m=18446744073709551615 ts_utc=18446744073709551615 iface=3",
     rx_frame.toString());
 
     // Plain frame default

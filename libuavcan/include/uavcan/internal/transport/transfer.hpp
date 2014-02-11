@@ -137,11 +137,13 @@ struct Frame
 
 struct RxFrame : public Frame
 {
-    uint_fast64_t timestamp;
+    uint_fast64_t ts_monotonic;
+    uint_fast64_t ts_utc;
     uint_fast8_t iface_index;
 
     RxFrame()
-    : timestamp(0)
+    : ts_monotonic(0)
+    , ts_utc(0)
     , iface_index(0)
     { }
 
@@ -149,7 +151,8 @@ struct RxFrame : public Frame
     {
         if (!Frame::parse(can_frame))
             return false;
-        timestamp = can_frame.timestamp;
+        ts_monotonic = can_frame.ts_monotonic;
+        ts_utc = can_frame.ts_utc;
         iface_index = can_frame.iface_index;
         return true;
     }

@@ -34,16 +34,16 @@ TransferReceiver::TidRelation TransferReceiver::getTidRelation(const RxFrame& fr
 
 void TransferReceiver::updateTransferTimings()
 {
-    assert(this_transfer_timestamp_ > 0);
+    assert(this_transfer_ts_monotonic_ > 0);
 
-    const uint64_t prev_prev_ts = prev_transfer_timestamp_;
-    prev_transfer_timestamp_ = this_transfer_timestamp_;
+    const uint64_t prev_prev_ts = prev_transfer_ts_monotonic_;
+    prev_transfer_ts_monotonic_ = this_transfer_ts_monotonic_;
 
     if ((prev_prev_ts != 0) &&
-        (prev_transfer_timestamp_ != 0) &&
-        (prev_transfer_timestamp_ >= prev_prev_ts))
+        (prev_transfer_ts_monotonic_ != 0) &&
+        (prev_transfer_ts_monotonic_ >= prev_prev_ts))
     {
-        uint64_t interval = prev_transfer_timestamp_ - prev_prev_ts;
+        uint64_t interval = prev_transfer_ts_monotonic_ - prev_prev_ts;
         interval = std::max(std::min(interval, MAX_TRANSFER_INTERVAL), MIN_TRANSFER_INTERVAL);
         transfer_interval_ = (transfer_interval_ * 7 + interval) / 8;
     }
@@ -95,7 +95,10 @@ bool TransferReceiver::validate(const RxFrame& frame) const
 TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame)
 {
     if (frame.frame_index == 0)
-        this_transfer_timestamp_ = frame.timestamp;
+    {
+        this_transfer_ts_monotonic_ = frame.ts_monotonic;
+        first_frame_ts_utc_ = frame.ts_utc;
+    }
 
     if ((frame.frame_index == 0) && frame.last_frame)  // Single-frame transfer
     {
@@ -137,7 +140,7 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame)
 bool TransferReceiver::isTimedOut(uint64_t timestamp) const
 {
     static const int INTERVAL_MULT = (1 << TransferID::BITLEN) / 2 - 1;
-    const uint64_t ts = this_transfer_timestamp_;
+    const uint64_t ts = this_transfer_ts_monotonic_;
     if (timestamp <= ts)
         return false;
     return (timestamp - ts) > (transfer_interval_ * INTERVAL_MULT);
@@ -149,16 +152,16 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame)
     assert(bufmgr_key_.getNodeID() == frame.source_node_id);
     assert(bufmgr_key_.getTransferType() == frame.transfer_type);
 
-    if ((frame.timestamp == 0) ||
-        (frame.timestamp < prev_transfer_timestamp_) ||
-        (frame.timestamp < this_transfer_timestamp_))
+    if ((frame.ts_monotonic == 0) ||
+        (frame.ts_monotonic < prev_transfer_ts_monotonic_) ||
+        (frame.ts_monotonic < this_transfer_ts_monotonic_))
     {
         return RESULT_NOT_COMPLETE;
     }
 
     const bool not_initialized = !isInitialized();
-    const bool iface_timed_out = (frame.timestamp - this_transfer_timestamp_) > (transfer_interval_ * 2);
-    const bool receiver_timed_out = isTimedOut(frame.timestamp);
+    const bool iface_timed_out = (frame.ts_monotonic - this_transfer_ts_monotonic_) > (transfer_interval_ * 2);
+    const bool receiver_timed_out = isTimedOut(frame.ts_monotonic);
     const bool same_iface = frame.iface_index == iface_index_;
     const bool first_fame = frame.frame_index == 0;
     const TidRelation tid_rel = getTidRelation(frame);

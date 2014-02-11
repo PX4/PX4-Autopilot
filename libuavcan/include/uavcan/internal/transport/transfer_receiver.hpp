@@ -23,9 +23,10 @@ private:
     enum TidRelation { TID_SAME, TID_REPEAT, TID_FUTURE };
     enum { IFACE_INDEX_NOTSET = 0xFF };
 
-    uint64_t prev_transfer_timestamp_;
-    uint64_t this_transfer_timestamp_;
-    uint64_t transfer_interval_;
+    uint64_t prev_transfer_ts_monotonic_;
+    uint64_t this_transfer_ts_monotonic_;
+    uint64_t first_frame_ts_utc_;
+    uint64_t transfer_interval_;            // TODO: make 32 bit
     ITransferBufferManager* bufmgr_;
     TransferBufferManagerKey bufmgr_key_;
     TransferID tid_;
@@ -48,8 +49,9 @@ private:
 
 public:
     TransferReceiver()
-    : prev_transfer_timestamp_(0)
-    , this_transfer_timestamp_(0)
+    : prev_transfer_ts_monotonic_(0)
+    , this_transfer_ts_monotonic_(0)
+    , first_frame_ts_utc_(0)
     , transfer_interval_(DEFAULT_TRANSFER_INTERVAL)
     , bufmgr_(NULL)
     , iface_index_(IFACE_INDEX_NOTSET)
@@ -57,8 +59,9 @@ public:
     { }
 
     TransferReceiver(ITransferBufferManager* bufmgr, const TransferBufferManagerKey& bufmgr_key)
-    : prev_transfer_timestamp_(0)
-    , this_transfer_timestamp_(0)
+    : prev_transfer_ts_monotonic_(0)
+    , this_transfer_ts_monotonic_(0)
+    , first_frame_ts_utc_(0)
     , transfer_interval_(DEFAULT_TRANSFER_INTERVAL)
     , bufmgr_(bufmgr)
     , bufmgr_key_(bufmgr_key)
@@ -74,8 +77,9 @@ public:
     TransferReceiver& operator=(const TransferReceiver& rhs)
     {
         cleanup();
-        prev_transfer_timestamp_ = rhs.prev_transfer_timestamp_;
-        this_transfer_timestamp_ = rhs.this_transfer_timestamp_;
+        prev_transfer_ts_monotonic_ = rhs.prev_transfer_ts_monotonic_;
+        this_transfer_ts_monotonic_ = rhs.this_transfer_ts_monotonic_;
+        first_frame_ts_utc_ = rhs.first_frame_ts_utc_;
         transfer_interval_ = rhs.transfer_interval_;
         bufmgr_ = rhs.bufmgr_;
         tid_ = rhs.tid_;
@@ -89,7 +93,8 @@ public:
 
     ResultCode addFrame(const RxFrame& frame);
 
-    uint64_t getLastTransferTimestamp() const { return prev_transfer_timestamp_; }
+    uint64_t getLastTransferTimestampMonotonic() const { return prev_transfer_ts_monotonic_; }
+    uint64_t getLastTransferTimestampUtc() const { return first_frame_ts_utc_; }
 
     uint64_t getInterval() const { return transfer_interval_; }
 };

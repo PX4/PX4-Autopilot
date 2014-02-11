@@ -19,11 +19,13 @@ namespace uavcan
 
 struct CanRxFrame : public CanFrame
 {
-    uint64_t timestamp;
+    uint64_t ts_monotonic;
+    uint64_t ts_utc;
     uint8_t iface_index;
 
     CanRxFrame()
-    : timestamp(0)
+    : ts_monotonic(0)
+    , ts_utc(0)
     , iface_index(0)
     { }
 };
