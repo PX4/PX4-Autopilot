@@ -112,16 +112,16 @@ class DynamicTransferBuffer : public TransferBufferManagerEntry, public LinkedLi
                    unsigned int& total_offset, unsigned int& left_to_write);
     };
 
-    unsigned int max_write_pos_;
     IAllocator* allocator_;
     LinkedListRoot<Block> blocks_;    // Blocks are ordered from lower to higher buffer offset
+    unsigned int max_write_pos_;
 
     void resetImpl();
 
 public:
     DynamicTransferBuffer(IAllocator* allocator)
-    : max_write_pos_(0)
-    , allocator_(allocator)
+    : allocator_(allocator)
+    , max_write_pos_(0)
     {
         StaticAssert<(Block::SIZE > 8)>::check();
         IsDynamicallyAllocatable<Block>::check();

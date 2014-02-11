@@ -12,9 +12,9 @@
 namespace uavcan
 {
 
-const uint64_t TransferReceiver::DEFAULT_TRANSFER_INTERVAL;
-const uint64_t TransferReceiver::MIN_TRANSFER_INTERVAL;
-const uint64_t TransferReceiver::MAX_TRANSFER_INTERVAL;
+const uint32_t TransferReceiver::DEFAULT_TRANSFER_INTERVAL;
+const uint32_t TransferReceiver::MIN_TRANSFER_INTERVAL;
+const uint32_t TransferReceiver::MAX_TRANSFER_INTERVAL;
 
 void TransferReceiver::cleanup()
 {
@@ -44,8 +44,8 @@ void TransferReceiver::updateTransferTimings()
         (prev_transfer_ts_monotonic_ >= prev_prev_ts))
     {
         uint64_t interval = prev_transfer_ts_monotonic_ - prev_prev_ts;
-        interval = std::max(std::min(interval, MAX_TRANSFER_INTERVAL), MIN_TRANSFER_INTERVAL);
-        transfer_interval_ = (transfer_interval_ * 7 + interval) / 8;
+        interval = std::max(std::min(interval, uint64_t(MAX_TRANSFER_INTERVAL)), uint64_t(MIN_TRANSFER_INTERVAL));
+        transfer_interval_ = static_cast<uint32_t>((uint64_t(transfer_interval_) * 7 + interval) / 8);
     }
 }
 
@@ -139,11 +139,11 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame)
 
 bool TransferReceiver::isTimedOut(uint64_t timestamp) const
 {
-    static const int INTERVAL_MULT = (1 << TransferID::BITLEN) / 2 - 1;
+    static const uint64_t INTERVAL_MULT = (1 << TransferID::BITLEN) / 2 - 1;
     const uint64_t ts = this_transfer_ts_monotonic_;
     if (timestamp <= ts)
         return false;
-    return (timestamp - ts) > (transfer_interval_ * INTERVAL_MULT);
+    return (timestamp - ts) > (uint64_t(transfer_interval_) * INTERVAL_MULT);
 }
 
 TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame)
@@ -160,7 +160,7 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame)
     }
 
     const bool not_initialized = !isInitialized();
-    const bool iface_timed_out = (frame.ts_monotonic - this_transfer_ts_monotonic_) > (transfer_interval_ * 2);
+    const bool iface_timed_out = (frame.ts_monotonic - this_transfer_ts_monotonic_) > (uint64_t(transfer_interval_) * 2);
     const bool receiver_timed_out = isTimedOut(frame.ts_monotonic);
     const bool same_iface = frame.iface_index == iface_index_;
     const bool first_fame = frame.frame_index == 0;

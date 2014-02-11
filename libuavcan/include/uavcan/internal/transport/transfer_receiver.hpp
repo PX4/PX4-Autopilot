@@ -4,20 +4,22 @@
 
 #pragma once
 
+#include <cstdlib>
 #include <uavcan/internal/transport/transfer.hpp>
 #include <uavcan/internal/transport/transfer_buffer.hpp>
 
 namespace uavcan
 {
 
+#pragma pack(push, 1)
 class TransferReceiver
 {
 public:
     enum ResultCode { RESULT_NOT_COMPLETE, RESULT_COMPLETE, RESULT_SINGLE_FRAME };
 
-    static const uint64_t DEFAULT_TRANSFER_INTERVAL = 500 * 1000;
-    static const uint64_t MIN_TRANSFER_INTERVAL     = 1   * 1000;
-    static const uint64_t MAX_TRANSFER_INTERVAL     = 10  * 1000 * 1000;
+    static const uint32_t DEFAULT_TRANSFER_INTERVAL = 500 * 1000UL;
+    static const uint32_t MIN_TRANSFER_INTERVAL     = 1   * 1000UL;
+    static const uint32_t MAX_TRANSFER_INTERVAL     = 10  * 1000 * 1000UL;
 
 private:
     enum TidRelation { TID_SAME, TID_REPEAT, TID_FUTURE };
@@ -26,7 +28,7 @@ private:
     uint64_t prev_transfer_ts_monotonic_;
     uint64_t this_transfer_ts_monotonic_;
     uint64_t first_frame_ts_utc_;
-    uint64_t transfer_interval_;            // TODO: make 32 bit
+    uint32_t transfer_interval_;
     ITransferBufferManager* bufmgr_;
     TransferBufferManagerKey bufmgr_key_;
     TransferID tid_;
@@ -96,7 +98,8 @@ public:
     uint64_t getLastTransferTimestampMonotonic() const { return prev_transfer_ts_monotonic_; }
     uint64_t getLastTransferTimestampUtc() const { return first_frame_ts_utc_; }
 
-    uint64_t getInterval() const { return transfer_interval_; }
+    uint32_t getInterval() const { return transfer_interval_; }
 };
+#pragma pack(pop)
 
 }
