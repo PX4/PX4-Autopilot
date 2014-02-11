@@ -23,7 +23,7 @@ struct RxFrameGenerator
     { }
 
     uavcan::RxFrame operator()(int iface_index, const std::string& data, uint8_t frame_index, bool last,
-                               uint8_t transfer_id, uint64_t timestamp)
+                               uint8_t transfer_id, uint64_t ts_monotonic, uint64_t ts_utc = 0)
     {
         if (data.length() > uavcan::Frame::PAYLOAD_LEN_MAX)
         {
@@ -34,7 +34,8 @@ struct RxFrameGenerator
         uavcan::RxFrame frm;
 
         frm.iface_index = iface_index;
-        frm.ts_monotonic = timestamp;
+        frm.ts_monotonic = ts_monotonic;
+        frm.ts_utc = ts_utc;
 
         frm.data_type_id = data_type_id;
         frm.frame_index = frame_index;
@@ -350,4 +351,53 @@ TEST(TransferReceiver, Restart)
     CHECK_COMPLETE(    rcv.addFrame(gen(0, "12345678", 2, true,  2, 16000910))); // Done
 
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "123456781234567812345678"));
+}
+
+
+TEST(TransferReceiver, UtcTransferTimestamping)
+{
+    Context<32> context;
+    RxFrameGenerator gen(789, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST);
+    uavcan::TransferReceiver& rcv = context.receiver;
+    uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
+
+    /*
+     * Zero UTC timestamp must be preserved
+     */
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "12345678", 0, false, 0, 1, 0)));
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "qwertyui", 1, false, 0, 2, 0)));
+    CHECK_COMPLETE(    rcv.addFrame(gen(1, "abcd",     2, true,  0, 3, 0)));
+
+    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "12345678qwertyuiabcd"));
+    ASSERT_EQ(1, rcv.getLastTransferTimestampMonotonic());
+    ASSERT_EQ(0, rcv.getLastTransferTimestampUtc());
+
+    /*
+     * Non-zero UTC timestamp
+     */
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "12345678", 0, false, 1, 4, 123))); // This UTC is going to be preserved
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "qwertyui", 1, false, 1, 5, 0)));   // Following are ignored
+    CHECK_COMPLETE(    rcv.addFrame(gen(1, "abcd",     2, true,  1, 6, 42)));
+
+    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "12345678qwertyuiabcd"));
+    ASSERT_EQ(4, rcv.getLastTransferTimestampMonotonic());
+    ASSERT_EQ(123, rcv.getLastTransferTimestampUtc());
+
+    /*
+     * Single-frame transfers
+     */
+    CHECK_SINGLE_FRAME(rcv.addFrame(gen(1, "abc", 0, true, 2, 10, 100000000))); // Exact value is irrelevant (100kk ok)
+    ASSERT_EQ(10, rcv.getLastTransferTimestampMonotonic());
+    ASSERT_EQ(100000000, rcv.getLastTransferTimestampUtc());
+
+    /*
+     * Restart recovery
+     */
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "12345678", 0, false, 1, 100000000, 800000000)));
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "qwertyui", 1, false, 1, 100000001, 300000000)));
+    CHECK_COMPLETE(    rcv.addFrame(gen(0, "abcd",     2, true,  1, 100000002, 900000000)));
+
+    ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "12345678qwertyuiabcd"));
+    ASSERT_EQ(100000000, rcv.getLastTransferTimestampMonotonic());
+    ASSERT_EQ(800000000, rcv.getLastTransferTimestampUtc());
 }
