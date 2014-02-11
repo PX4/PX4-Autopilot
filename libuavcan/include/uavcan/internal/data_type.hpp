@@ -20,23 +20,23 @@ enum DataTypeKind
 
 struct DataTypeHash
 {
-    enum { BYTES = 16 };
-    uint8_t value[BYTES];
+    enum { NUM_BYTES = 16 };
+    uint8_t value[NUM_BYTES];
 
     DataTypeHash()
     {
-        std::fill(value, value + BYTES, 0);
+        std::fill(value, value + NUM_BYTES, 0);
     }
 
-    DataTypeHash(const uint8_t source[BYTES])
+    DataTypeHash(const uint8_t source[NUM_BYTES])
     {
-        std::copy(source, source + BYTES, value);
+        std::copy(source, source + NUM_BYTES, value);
     }
 
     bool operator!=(const DataTypeHash& rhs) const { return !operator==(rhs); }
     bool operator==(const DataTypeHash& rhs) const
     {
-        return std::equal(value, value + BYTES, rhs.value);
+        return std::equal(value, value + NUM_BYTES, rhs.value);
     }
 };
 
