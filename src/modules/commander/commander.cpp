@@ -607,7 +607,6 @@ int commander_thread_main(int argc, char *argv[])
 	/* not yet initialized */
 	commander_initialized = false;
 
-	bool battery_tune_played = false;
 	bool arm_tune_played = false;
 
 	/* set parameters */
@@ -1020,14 +1019,12 @@ int commander_thread_main(int argc, char *argv[])
 			mavlink_log_critical(mavlink_fd, "#audio: WARNING: LOW BATTERY");
 			status.battery_warning = VEHICLE_BATTERY_WARNING_LOW;
 			status_changed = true;
-			battery_tune_played = false;
 
 		} else if (status.condition_battery_voltage_valid && status.battery_remaining < 0.1f && !critical_battery_voltage_actions_done && low_battery_voltage_actions_done) {
 			/* critical battery voltage, this is rather an emergency, change state machine */
 			critical_battery_voltage_actions_done = true;
 			mavlink_log_critical(mavlink_fd, "#audio: EMERGENCY: CRITICAL BATTERY");
 			status.battery_warning = VEHICLE_BATTERY_WARNING_CRITICAL;
-			battery_tune_played = false;
 
 			if (armed.armed) {
 				arming_state_transition(&status, &safety, ARMING_STATE_ARMED_ERROR, &armed);
@@ -1310,6 +1307,7 @@ int commander_thread_main(int argc, char *argv[])
 		if (!arm_tune_played && armed.armed && (!safety.safety_switch_available || (safety.safety_switch_available && safety.safety_off))) {
 			/* play tune when armed */
 			set_tune(TONE_ARMING_WARNING_TUNE);
+			arm_tune_played = true;
 
 		} else if (status.battery_warning == VEHICLE_BATTERY_WARNING_CRITICAL) {
 			/* play tune on battery critical */
@@ -1319,13 +1317,12 @@ int commander_thread_main(int argc, char *argv[])
 			/* play tune on battery warning or failsafe */
 			set_tune(TONE_BATTERY_WARNING_SLOW_TUNE);
 
-		} else if (battery_tune_played) {
+		} else {
 			set_tune(TONE_STOP_TUNE);
-			battery_tune_played = false;
 		}
 
 		/* reset arm_tune_played when disarmed */
-		if (status.arming_state != ARMING_STATE_ARMED || (safety.safety_switch_available && !safety.safety_off)) {
+		if (!armed.armed || (safety.safety_switch_available && !safety.safety_off)) {
 			arm_tune_played = false;
 		}
 
