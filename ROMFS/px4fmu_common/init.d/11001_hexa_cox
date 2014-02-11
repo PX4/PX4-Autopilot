@@ -1,8 +1,10 @@
 #!nsh
 #
-# Generic 10” Octo coaxial geometry
+# UNTESTED UNTESTED!
 #
-# Maintainers: Lorenz Meier <lm@inf.ethz.ch>
+# Generic 10” Hexa coaxial geometry
+#
+# Lorenz Meier <lm@inf.ethz.ch>
 #
 
 if [ $DO_AUTOCONFIG == yes ]
@@ -27,9 +29,9 @@ then
 fi
 
 set VEHICLE_TYPE mc
-set MIXER FMU_octo_cox
+set MIXER hexa_cox
 
-set PWM_OUTPUTS 1234
+set PWM_OUTPUTS 12345678
 set PWM_RATE 400
 # DJI ESC range
 set PWM_DISARMED 900

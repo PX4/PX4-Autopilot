@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,36 +32,31 @@
  ****************************************************************************/
 
 /**
- * @file gps_helper.h
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * @file drv_device.h
+ *
+ * Generic device / sensor interface.
  */
 
-#ifndef GPS_HELPER_H
-#define GPS_HELPER_H
+#ifndef _DRV_DEVICE_H
+#define _DRV_DEVICE_H
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <stdint.h>
+#include <sys/ioctl.h>
 
-class GPS_Helper
-{
-public:
-	virtual int			configure(unsigned &baud) = 0;
-	virtual int 			receive(unsigned timeout) = 0;
-	int 				set_baudrate(const int &fd, unsigned baud);
-	float				get_position_update_rate();
-	float				get_velocity_update_rate();
-	float				reset_update_rates();
-	float				store_update_rates();
+#include "drv_sensor.h"
+#include "drv_orb_dev.h"
 
-protected:
-	uint8_t _rate_count_lat_lon;
-	uint8_t _rate_count_vel;
+/*
+ * ioctl() definitions
+ */
 
-	float _rate_lat_lon;
-	float _rate_vel;
+#define _DEVICEIOCBASE		(0x100)
+#define _DEVICEIOC(_n)		(_IOC(_DEVICEIOCBASE, _n))
 
-	uint64_t _interval_rate_start;
-};
+/** ask device to stop publishing */
+#define DEVIOCSPUBBLOCK	_DEVICEIOC(0)
 
-#endif /* GPS_HELPER_H */
+/** check publication block status */
+#define DEVIOCGPUBBLOCK	_DEVICEIOC(1)
+
+#endif /* _DRV_DEVICE_H */

@@ -1,8 +1,8 @@
 #!nsh
 #
-# Generic 10” Hexa X geometry
+# Generic 10” Octo coaxial geometry
 #
-# Maintainers: Lorenz Meier <lm@inf.ethz.ch>
+# Lorenz Meier <lm@inf.ethz.ch>
 #
 
 if [ $DO_AUTOCONFIG == yes ]
@@ -27,7 +27,7 @@ then
 fi
 
 set VEHICLE_TYPE mc
-set MIXER FMU_hexa_x
+set MIXER FMU_octo_cox
 
 set PWM_OUTPUTS 12345678
 set PWM_RATE 400
