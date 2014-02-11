@@ -9,9 +9,7 @@
 
 TEST(Crc16, Correctness)
 {
-    using uavcan::Crc16;
-
-    Crc16 crc;
+    uavcan::Crc16 crc;
 
     ASSERT_EQ(0x0000, crc.get());
 
@@ -22,4 +20,7 @@ TEST(Crc16, Correctness)
 
     crc.add(reinterpret_cast<const uint8_t*>("Foobar"), 6);
     ASSERT_EQ(53881, crc.get());
+
+    // Initializing constructor
+    ASSERT_EQ(crc.get(), uavcan::Crc16(reinterpret_cast<const uint8_t*>("123Foobar"), 9).get());
 }

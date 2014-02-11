@@ -24,6 +24,12 @@ public:
     : value_(0x0000)
     { }
 
+    Crc16(const uint8_t* bytes, int len)
+    : value_(0x0000)
+    {
+        add(bytes, len);
+    }
+
     uint16_t add(uint8_t byte);
     uint16_t add(const uint8_t* bytes, int len);
 
