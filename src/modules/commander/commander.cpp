@@ -1311,13 +1311,13 @@ int commander_thread_main(int argc, char *argv[])
 			/* play tune when armed */
 			set_tune(TONE_ARMING_WARNING_TUNE);
 
-		} else if (status.battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
-			/* play tune on battery warning */
-			set_tune(TONE_BATTERY_WARNING_SLOW_TUNE);
-
 		} else if (status.battery_warning == VEHICLE_BATTERY_WARNING_CRITICAL) {
 			/* play tune on battery critical */
 			set_tune(TONE_BATTERY_WARNING_FAST_TUNE);
+
+		} else if (status.battery_warning == VEHICLE_BATTERY_WARNING_LOW || status.failsafe_state != FAILSAFE_STATE_NORMAL) {
+			/* play tune on battery warning or failsafe */
+			set_tune(TONE_BATTERY_WARNING_SLOW_TUNE);
 
 		} else if (battery_tune_played) {
 			set_tune(TONE_STOP_TUNE);
@@ -1420,11 +1420,8 @@ control_status_leds(vehicle_status_s *status, const actuator_armed_s *actuator_a
 
 		if (set_normal_color) {
 			/* set color */
-			if (status->battery_warning != VEHICLE_BATTERY_WARNING_NONE) {
-				if (status->battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
-					rgbled_set_color(RGBLED_COLOR_AMBER);
-				}
-
+			if (status->battery_warning == VEHICLE_BATTERY_WARNING_LOW || status->failsafe_state != FAILSAFE_STATE_NORMAL) {
+				rgbled_set_color(RGBLED_COLOR_AMBER);
 				/* VEHICLE_BATTERY_WARNING_CRITICAL handled as ARMING_STATE_ARMED_ERROR / ARMING_STATE_STANDBY_ERROR */
 
 			} else {
