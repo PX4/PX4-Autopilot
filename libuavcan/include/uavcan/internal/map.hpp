@@ -261,6 +261,8 @@ public:
         removeWhere(YesPredicate());
     }
 
+    bool isEmpty() const { return (getNumStaticPairs() == 0) && (getNumDynamicPairs() == 0); }
+
     /// For testing
     unsigned int getNumStaticPairs() const
     {

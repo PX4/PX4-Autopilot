@@ -2,6 +2,7 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#include <cstdlib>
 #include <uavcan/internal/transport/transfer_listener.hpp>
 
 namespace uavcan
@@ -68,10 +69,11 @@ int MultiFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsigne
 /*
  * TransferListenerBase
  */
-void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxFrame& frame)
+void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxFrame& frame,
+                                           const TransferBufferManagerKey& bufmgr_key)
 {
-    (void)receiver;
-    (void)frame;
+    const TransferReceiver::ResultCode result = receiver.addFrame(frame, bufmgr_key);
+    (void)result;
 }
 
 }
