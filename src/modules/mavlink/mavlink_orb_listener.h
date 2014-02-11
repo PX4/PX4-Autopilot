@@ -36,6 +36,7 @@
  * MAVLink 1.0 protocol interface definition.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
  */
 
 #include <systemlib/perf_counter.h>
@@ -106,7 +107,7 @@ public:
 		void	(*callback)(const struct listener *l);
 		int		*subp;
 		uintptr_t	arg;
-		struct listener* next;
+		struct listener *next;
 		Mavlink		*mavlink;
 		MavlinkOrbListener* listener;
 	};
@@ -171,9 +172,6 @@ private:
 	struct vehicle_attitude_s att;
 	struct airspeed_s airspeed;
 	struct home_position_s home;
-
-	int status_sub;
-	int rc_sub;
 
 	unsigned int sensors_raw_counter;
 	unsigned int attitude_counter;

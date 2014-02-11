@@ -153,6 +153,7 @@ namespace mavlink
 
 Mavlink::Mavlink() :
 //	_mavlink_fd(-1),
+	_next(nullptr),
 	_task_should_exit(false),
 	thread_running(false),
 	_mavlink_task(-1),
@@ -1448,6 +1449,8 @@ Mavlink::task_main(int argc, char *argv[])
 	_baudrate = 57600;
 	_chan = MAVLINK_COMM_0;
 
+	_mode = MODE_OFFBOARD;
+
 	/* work around some stupidity in task_create's argv handling */
 	argc -= 2;
 	argv += 2;
@@ -1488,7 +1491,23 @@ Mavlink::task_main(int argc, char *argv[])
 	warnx("MAVLink v1.0 serial interface starting...");
 
 	/* inform about mode */
-	warnx((_mode == MODE_ONBOARD) ? "ONBOARD MODE" : "DOWNLINK MODE");
+	switch (_mode) {
+		case MODE_TX_HEARTBEAT_ONLY:
+			warnx("MODE_TX_HEARTBEAT_ONLY");
+			break;
+		case MODE_OFFBOARD:
+			warnx("MODE_OFFBOARD");
+			break;
+		case MODE_ONBOARD:
+			warnx("MODE_ONBOARD");
+			break;
+		case MODE_HIL:
+			warnx("MODE_HIL");
+			break;
+		default:
+			warnx("Error: Unknown mode");
+			break;
+	}
 
 	/* Flush stdout in case MAVLink is about to take it over */
 	fflush(stdout);
@@ -1506,12 +1525,12 @@ Mavlink::task_main(int argc, char *argv[])
 	mavlink_update_system();
 
 	/* start the MAVLink receiver */
-	// MavlinkReceiver rcv(this);
-	//receive_thread = MavlinkReceiver::receive_start(this);
+//	MavlinkReceiver rcv(this);
+	receive_thread = MavlinkReceiver::receive_start(this);
 
 	/* start the ORB receiver */
-	//MavlinkOrbListener listener(this);
-	//uorb_receive_thread = MavlinkOrbListener::uorb_receive_start(this);
+//	MavlinkOrbListener listener(this);
+	uorb_receive_thread = MavlinkOrbListener::uorb_receive_start(this);
 
 	/* initialize waypoint manager */
 	mavlink_wpm_init(wpm);

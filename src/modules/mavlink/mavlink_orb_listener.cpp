@@ -36,6 +36,7 @@
  * Monitors ORB topics and sends update messages as appropriate.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
  */
 
 // XXX trim includes
@@ -80,7 +81,7 @@ cm_uint16_from_m_float(float m)
 	return (uint16_t)(m * 100.0f);
 }
 
-MavlinkOrbListener::MavlinkOrbListener(Mavlink* parent) : 
+MavlinkOrbListener::MavlinkOrbListener(Mavlink* parent) :
 
 	thread_should_exit(false),
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink orb")),
@@ -88,31 +89,31 @@ MavlinkOrbListener::MavlinkOrbListener(Mavlink* parent) :
 	_listeners(nullptr),
 	_n_listeners(0)
 {
-	add_listener(MavlinkOrbListener::l_sensor_combined,		&_mavlink->get_subs()->sensor_sub,			0);
-	add_listener(MavlinkOrbListener::l_vehicle_attitude,		&_mavlink->get_subs()->att_sub,			0);
-	add_listener(MavlinkOrbListener::l_vehicle_gps_position,	&_mavlink->get_subs()->gps_sub,				0);
-	add_listener(MavlinkOrbListener::l_vehicle_status,		&status_sub,						0);
-	add_listener(MavlinkOrbListener::l_rc_channels,			&rc_sub,			0);
-	add_listener(MavlinkOrbListener::l_input_rc,			&_mavlink->get_subs()->input_rc_sub,		0);
-	add_listener(MavlinkOrbListener::l_global_position,		&_mavlink->get_subs()->global_pos_sub,			0);
-	add_listener(MavlinkOrbListener::l_local_position,		&_mavlink->get_subs()->local_pos_sub,			0);
-	add_listener(MavlinkOrbListener::l_global_position_setpoint,	&_mavlink->get_subs()->triplet_sub,		0);
-	add_listener(MavlinkOrbListener::l_local_position_setpoint,	&_mavlink->get_subs()->spl_sub,				0);
-	add_listener(MavlinkOrbListener::l_attitude_setpoint,		&_mavlink->get_subs()->spa_sub,			0);
-	add_listener(MavlinkOrbListener::l_actuator_outputs,		&_mavlink->get_subs()->act_0_sub,		0);
-	add_listener(MavlinkOrbListener::l_actuator_outputs,		&_mavlink->get_subs()->act_1_sub,		1);
-	add_listener(MavlinkOrbListener::l_actuator_outputs,		&_mavlink->get_subs()->act_2_sub,		2);
-	add_listener(MavlinkOrbListener::l_actuator_outputs,		&_mavlink->get_subs()->act_3_sub,		3);
-	add_listener(MavlinkOrbListener::l_actuator_armed,		&_mavlink->get_subs()->armed_sub,			0);
-	add_listener(MavlinkOrbListener::l_manual_control_setpoint,	&_mavlink->get_subs()->man_control_sp_sub, 		0);
-	add_listener(MavlinkOrbListener::l_vehicle_attitude_controls,	&_mavlink->get_subs()->actuators_sub,		0);
-	add_listener(MavlinkOrbListener::l_debug_key_value,		&_mavlink->get_subs()->debug_key_value,			0);
-	add_listener(MavlinkOrbListener::l_optical_flow,		&_mavlink->get_subs()->optical_flow,			0);
-	add_listener(MavlinkOrbListener::l_vehicle_rates_setpoint,	&_mavlink->get_subs()->rates_setpoint_sub,		0);
-	add_listener(MavlinkOrbListener::l_home,			&_mavlink->get_subs()->home_sub,			0);
-	add_listener(MavlinkOrbListener::l_airspeed,		&_mavlink->get_subs()->airspeed_sub,			0);
-	add_listener(MavlinkOrbListener::l_nav_cap,			&_mavlink->get_subs()->navigation_capabilities_sub,	0);
-	add_listener(MavlinkOrbListener::l_control_mode,		&_mavlink->get_subs()->control_mode_sub,		0);
+	add_listener(MavlinkOrbListener::l_sensor_combined,		&(_mavlink->get_subs()->sensor_sub),			0);
+	add_listener(MavlinkOrbListener::l_vehicle_attitude,		&(_mavlink->get_subs()->att_sub),			0);
+	add_listener(MavlinkOrbListener::l_vehicle_gps_position,	&(_mavlink->get_subs()->gps_sub),			0);
+	add_listener(MavlinkOrbListener::l_vehicle_status,		&(_mavlink->get_subs()->status_sub),			0);
+	add_listener(MavlinkOrbListener::l_home,			&(_mavlink->get_subs()->home_sub),			0);
+	add_listener(MavlinkOrbListener::l_control_mode,		&(_mavlink->get_subs()->control_mode_sub),		0);
+	add_listener(MavlinkOrbListener::l_rc_channels,			&(_mavlink->get_subs()->rc_sub),			0);
+	add_listener(MavlinkOrbListener::l_input_rc,			&(_mavlink->get_subs()->input_rc_sub),			0);
+	add_listener(MavlinkOrbListener::l_global_position,		&(_mavlink->get_subs()->global_pos_sub),		0);
+	add_listener(MavlinkOrbListener::l_local_position,		&(_mavlink->get_subs()->local_pos_sub),			0);
+	add_listener(MavlinkOrbListener::l_global_position_setpoint,	&(_mavlink->get_subs()->triplet_sub),			0);
+	add_listener(MavlinkOrbListener::l_local_position_setpoint,	&(_mavlink->get_subs()->spl_sub),			0);
+	add_listener(MavlinkOrbListener::l_attitude_setpoint,		&(_mavlink->get_subs()->spa_sub),			0);
+	add_listener(MavlinkOrbListener::l_actuator_outputs,		&(_mavlink->get_subs()->act_0_sub),			0);
+	add_listener(MavlinkOrbListener::l_actuator_outputs,		&(_mavlink->get_subs()->act_1_sub),			1);
+	add_listener(MavlinkOrbListener::l_actuator_outputs,		&(_mavlink->get_subs()->act_2_sub),			2);
+	add_listener(MavlinkOrbListener::l_actuator_outputs,		&(_mavlink->get_subs()->act_3_sub),			3);
+	add_listener(MavlinkOrbListener::l_actuator_armed,		&(_mavlink->get_subs()->armed_sub),			0);
+	add_listener(MavlinkOrbListener::l_manual_control_setpoint,	&(_mavlink->get_subs()->man_control_sp_sub), 		0);
+	add_listener(MavlinkOrbListener::l_vehicle_attitude_controls,	&(_mavlink->get_subs()->actuators_sub),			0);
+	add_listener(MavlinkOrbListener::l_debug_key_value,		&(_mavlink->get_subs()->debug_key_value),		0);
+	add_listener(MavlinkOrbListener::l_optical_flow,		&(_mavlink->get_subs()->optical_flow),			0);
+	add_listener(MavlinkOrbListener::l_vehicle_rates_setpoint,	&(_mavlink->get_subs()->rates_setpoint_sub),		0);
+	add_listener(MavlinkOrbListener::l_airspeed,			&(_mavlink->get_subs()->airspeed_sub),			0);
+	add_listener(MavlinkOrbListener::l_nav_cap,			&(_mavlink->get_subs()->navigation_capabilities_sub),	0);
 
 }
 
@@ -124,15 +125,18 @@ void MavlinkOrbListener::add_listener(void (*callback)(const struct listener *l)
 	nl->subp = subp;
 	nl->arg = arg;
 	nl->next = nullptr;
+	nl->mavlink = _mavlink;
+	nl->listener = this;
 
-	// Register it
-	struct listener *next = _listeners;
-	while (next->next != nullptr) {
-		next = next->next;
+	if (_listeners == nullptr) {
+		_listeners = nl;
+	} else {
+		struct listener *next = _listeners;
+		while (next->next != nullptr) {
+			next = next->next;
+		}
+		next->next = nl;
 	}
-
-	// Attach
-	next->next = nl;
 	_n_listeners++;
 }
 
@@ -271,7 +275,7 @@ void
 MavlinkOrbListener::l_vehicle_status(const struct listener *l)
 {
 	/* immediately communicate state _mavlink->get_chan()ges back to user */
-	orb_copy(ORB_ID(vehicle_status), l->listener->status_sub, &l->listener->v_status);
+	orb_copy(ORB_ID(vehicle_status), l->mavlink->get_subs()->status_sub, &(l->mavlink->v_status));
 	orb_copy(ORB_ID(actuator_armed), l->mavlink->get_subs()->armed_sub, &l->listener->armed);
 
 	/* enable or disable HIL */
