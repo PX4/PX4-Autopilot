@@ -132,12 +132,13 @@ TEST(DynamicTransferBuffer, Basic)
 {
     using uavcan::DynamicTransferBuffer;
 
+    static const int MAX_SIZE = TEST_BUFFER_SIZE;
     static const int POOL_BLOCKS = 8;
     uavcan::PoolAllocator<uavcan::MEM_POOL_BLOCK_SIZE * POOL_BLOCKS, uavcan::MEM_POOL_BLOCK_SIZE> pool;
     uavcan::PoolManager<2> poolmgr;
     poolmgr.addPool(&pool);
 
-    DynamicTransferBuffer buf(&poolmgr);
+    DynamicTransferBuffer buf(&poolmgr, MAX_SIZE);
 
     uint8_t local_buffer[TEST_BUFFER_SIZE * 2];
     const uint8_t* const test_data_ptr = reinterpret_cast<const uint8_t*>(TEST_DATA.c_str());
@@ -150,12 +151,9 @@ TEST(DynamicTransferBuffer, Basic)
     ASSERT_TRUE(allEqual(local_buffer));
 
     // Bulk write
-    const int max_size = buf.write(0, test_data_ptr, TEST_DATA.length());
-    std::cout << "Dynamic buffer contains " << max_size << " bytes" << std::endl;
-    ASSERT_LE(max_size, TEST_DATA.length());
-    ASSERT_GT(max_size, 0);
+    ASSERT_EQ(MAX_SIZE, buf.write(0, test_data_ptr, TEST_DATA.length()));
 
-    ASSERT_EQ(0, pool.getNumFreeBlocks());      // Making sure all memory was used up
+    ASSERT_LT(0, pool.getNumUsedBlocks());      // Making sure some memory was used
 
     ASSERT_TRUE(matchAgainstTestData(buf, 0));
     ASSERT_TRUE(matchAgainstTestData(buf, TEST_BUFFER_SIZE));
@@ -213,13 +211,13 @@ static const std::string MGR_TEST_DATA[4] =
     "How would you decide which of them was to die? I ask you?"
 };
 
-static const int MGR_STATIC_BUFFER_SIZE = 100;
+static const int MGR_MAX_BUFFER_SIZE = 100;
 
 TEST(TransferBufferManager, TestDataValidation)
 {
     for (unsigned int i = 0; i < sizeof(MGR_TEST_DATA) / sizeof(MGR_TEST_DATA[0]); i++)
     {
-        ASSERT_LT(MGR_STATIC_BUFFER_SIZE, MGR_TEST_DATA[i].length());
+        ASSERT_LT(MGR_MAX_BUFFER_SIZE, MGR_TEST_DATA[i].length());
     }
 }
 
@@ -240,7 +238,7 @@ TEST(TransferBufferManager, Basic)
     uavcan::PoolManager<1> poolmgr;
     poolmgr.addPool(&pool);
 
-    typedef TransferBufferManager<MGR_STATIC_BUFFER_SIZE, 2> TransferBufferManagerType;
+    typedef TransferBufferManager<MGR_MAX_BUFFER_SIZE, 2> TransferBufferManagerType;
     std::auto_ptr<TransferBufferManagerType> mgr(new TransferBufferManagerType(&poolmgr));
 
     // Empty
@@ -260,12 +258,12 @@ TEST(TransferBufferManager, Basic)
 
     // Static 0
     ASSERT_TRUE((tbb = mgr->create(keys[0])));
-    ASSERT_EQ(MGR_STATIC_BUFFER_SIZE, fillTestData(MGR_TEST_DATA[0], tbb));
+    ASSERT_EQ(MGR_MAX_BUFFER_SIZE, fillTestData(MGR_TEST_DATA[0], tbb));
     ASSERT_EQ(1, mgr->getNumStaticBuffers());
 
     // Static 1
     ASSERT_TRUE((tbb = mgr->create(keys[1])));
-    ASSERT_EQ(MGR_STATIC_BUFFER_SIZE, fillTestData(MGR_TEST_DATA[1], tbb));
+    ASSERT_EQ(MGR_MAX_BUFFER_SIZE, fillTestData(MGR_TEST_DATA[1], tbb));
     ASSERT_EQ(2, mgr->getNumStaticBuffers());
     ASSERT_EQ(0, mgr->getNumDynamicBuffers());
     ASSERT_EQ(0, pool.getNumUsedBlocks());
@@ -273,7 +271,7 @@ TEST(TransferBufferManager, Basic)
     // Dynamic 0
     ASSERT_TRUE((tbb = mgr->create(keys[2])));
     ASSERT_EQ(1, pool.getNumUsedBlocks());      // Empty dynamic buffer occupies one block
-    ASSERT_EQ(MGR_TEST_DATA[2].length(), fillTestData(MGR_TEST_DATA[2], tbb));
+    ASSERT_EQ(MGR_MAX_BUFFER_SIZE, fillTestData(MGR_TEST_DATA[2], tbb));
     ASSERT_EQ(2, mgr->getNumStaticBuffers());
     ASSERT_EQ(1, mgr->getNumDynamicBuffers());
     ASSERT_LT(1, pool.getNumUsedBlocks());
@@ -282,9 +280,9 @@ TEST(TransferBufferManager, Basic)
 
     // Dynamic 2
     ASSERT_TRUE((tbb = mgr->create(keys[3])));
-    ASSERT_EQ(0, pool.getNumFreeBlocks());      // The test assumes that the memory must be exhausted now
+    ASSERT_LT(0, pool.getNumUsedBlocks());
 
-    ASSERT_EQ(0, fillTestData(MGR_TEST_DATA[3], tbb));
+    ASSERT_LT(0, fillTestData(MGR_TEST_DATA[3], tbb));
     ASSERT_EQ(2, mgr->getNumStaticBuffers());
     ASSERT_EQ(2, mgr->getNumDynamicBuffers());
 
@@ -313,11 +311,11 @@ TEST(TransferBufferManager, Basic)
     ASSERT_EQ(1, mgr->getNumDynamicBuffers());   // One migrated to the static
     ASSERT_LT(0, pool.getNumFreeBlocks());
 
-    // Removing NodeID 0; migration should fail due to oversized data
+    // Removing NodeID 0; one dynamic must migrate
     mgr->remove(keys[0]);
     ASSERT_FALSE(mgr->access(keys[0]));
-    ASSERT_EQ(1, mgr->getNumStaticBuffers());
-    ASSERT_EQ(1, mgr->getNumDynamicBuffers());   // Migration failed
+    ASSERT_EQ(2, mgr->getNumStaticBuffers());
+    ASSERT_EQ(0, mgr->getNumDynamicBuffers());
 
     // At this time we have the following NodeID: 2, 127
     ASSERT_TRUE((tbb = mgr->access(keys[2])));
@@ -326,9 +324,14 @@ TEST(TransferBufferManager, Basic)
     ASSERT_TRUE((tbb = mgr->access(keys[3])));
     ASSERT_TRUE(matchAgainst(MGR_TEST_DATA[3], *tbb));
 
-    // These were deleted: 0, 1
+    // These were deleted: 0, 1; 3 is still there
     ASSERT_FALSE(mgr->access(keys[1]));
     ASSERT_FALSE(mgr->access(keys[0]));
+    ASSERT_TRUE(mgr->access(keys[3]));
+
+    // Filling the memory again in order to check the destruction below
+    ASSERT_TRUE((tbb = mgr->create(keys[1])));
+    ASSERT_LT(0, fillTestData(MGR_TEST_DATA[1], tbb));
 
     // Deleting the object; all memory must be freed
     ASSERT_NE(0, pool.getNumUsedBlocks());

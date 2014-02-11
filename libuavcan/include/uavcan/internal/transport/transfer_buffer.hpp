@@ -115,13 +115,15 @@ class DynamicTransferBuffer : public TransferBufferManagerEntry, public LinkedLi
     IAllocator* allocator_;
     LinkedListRoot<Block> blocks_;    // Blocks are ordered from lower to higher buffer offset
     unsigned int max_write_pos_;
+    const unsigned int max_size_;
 
     void resetImpl();
 
 public:
-    DynamicTransferBuffer(IAllocator* allocator)
+    DynamicTransferBuffer(IAllocator* allocator, unsigned int max_size)
     : allocator_(allocator)
     , max_write_pos_(0)
+    , max_size_(max_size)
     {
         StaticAssert<(Block::SIZE > 8)>::check();
         IsDynamicallyAllocatable<Block>::check();
@@ -133,7 +135,7 @@ public:
         resetImpl();
     }
 
-    static DynamicTransferBuffer* instantiate(IAllocator* allocator);
+    static DynamicTransferBuffer* instantiate(IAllocator* allocator, unsigned int max_size);
     static void destroy(DynamicTransferBuffer*& obj, IAllocator* allocator);
 
     int read(unsigned int offset, uint8_t* data, unsigned int len) const;
@@ -266,10 +268,10 @@ public:
 /**
  * Buffer manager implementation.
  */
-template <unsigned int STATIC_BUF_SIZE, unsigned int NUM_STATIC_BUFS>
+template <unsigned int MAX_BUF_SIZE, unsigned int NUM_STATIC_BUFS>
 class TransferBufferManager : public ITransferBufferManager, Noncopyable
 {
-    typedef StaticTransferBuffer<STATIC_BUF_SIZE> StaticBufferType;
+    typedef StaticTransferBuffer<MAX_BUF_SIZE> StaticBufferType;
 
     StaticBufferType static_buffers_[NUM_STATIC_BUFS];
     LinkedListRoot<DynamicTransferBuffer> dynamic_buffers_;
@@ -318,14 +320,14 @@ class TransferBufferManager : public ITransferBufferManager, Noncopyable
             }
             else
             {
-                /* Migration can fail if a dynamic buffer contains more data than a static buffer can accomodate (more
-                 * than STATIC_BUF_SIZE). This means that there is probably something wrong with the network. Logic
-                 * that uses this class should explicitly ensure the proper maximum data size.
+                /* Migration can fail if a dynamic buffer contains more data than a static buffer can accomodate.
+                 * This should never happen during normal operation because dynamic buffers are limited in growth.
                  */
-                UAVCAN_TRACE("TransferBufferManager", "Storage optimization: MIGRATION FAILURE %s BUFSIZE %u",
-                    dyn->getKey().toString().c_str(), STATIC_BUF_SIZE);
+                UAVCAN_TRACE("TransferBufferManager", "Storage optimization: MIGRATION FAILURE %s MAXSIZE %u",
+                    dyn->getKey().toString().c_str(), MAX_BUF_SIZE);
+                assert(0);
                 sb->reset();
-                break;         // Probably we should try to migrate the rest?
+                break;
             }
         }
     }
@@ -372,7 +374,7 @@ public:
         TransferBufferManagerEntry* tbme = findFirstStatic(TransferBufferManagerKey());
         if (tbme == NULL)
         {
-            DynamicTransferBuffer* dyn = DynamicTransferBuffer::instantiate(allocator_);
+            DynamicTransferBuffer* dyn = DynamicTransferBuffer::instantiate(allocator_, MAX_BUF_SIZE);
             tbme = dyn;
             if (dyn == NULL)
                 return NULL;     // Epic fail.
