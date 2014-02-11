@@ -182,7 +182,7 @@ public:
 	void		set_mode(enum MAVLINK_MODE);
 	enum MAVLINK_MODE		get_mode() { return _mode; }
 
-	bool		hil_enabled() { return _mavlink_hil_enabled; };
+	bool		get_hil_enabled() { return _mavlink_hil_enabled; };
 
 	/**
 	 * Handle waypoint related messages.
@@ -206,7 +206,7 @@ public:
 	 *			requested change could not be made or was
 	 *			redundant.
 	 */
-	int		set_hil_on_off(bool hil_enabled);
+	int		set_hil_enabled(bool hil_enabled);
 
 	struct mavlink_subscriptions {
 		int sensor_sub;
@@ -242,7 +242,7 @@ public:
 	struct mavlink_subscriptions subs;
 
 	struct mavlink_subscriptions* get_subs() { return &subs; }
-	mavlink_channel_t get_chan() { return chan; }
+	mavlink_channel_t get_chan() { return _chan; }
 
 	/** Global position */
 	struct vehicle_global_position_s global_pos;
@@ -289,7 +289,7 @@ private:
 	MAVLINK_MODE _mode;
 
 	uint8_t mavlink_wpm_comp_id;
-	mavlink_channel_t chan;
+	mavlink_channel_t _chan;
 
 //  XXX probably should be in a header... 
 // extern pthread_t receive_start(int uart);

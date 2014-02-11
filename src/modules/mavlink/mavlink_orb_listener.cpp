@@ -276,9 +276,9 @@ MavlinkOrbListener::l_vehicle_status(const struct listener *l)
 
 	/* enable or disable HIL */
 	if (l->listener->v_status.hil_state == HIL_STATE_ON)
-		l->mavlink->set_hil_on_off(true);
+		l->mavlink->set_hil_enabled(true);
 	else if (l->listener->v_status.hil_state == HIL_STATE_OFF)
-		l->mavlink->set_hil_on_off(false);
+		l->mavlink->set_hil_enabled(false);
 
 	/* translate the current syste state to mavlink state and mode */
 	uint8_t mavlink_state = 0;
@@ -464,7 +464,7 @@ MavlinkOrbListener::l_actuator_outputs(const struct listener *l)
 						  act_outputs.output[7]);
 
 		/* only send in HIL mode and only send first group for HIL */
-		if (l->mavlink->hil_enabled() && l->listener->armed.armed && ids[l->arg] == ORB_ID(actuator_outputs_0)) {
+		if (l->mavlink->get_hil_enabled() && l->listener->armed.armed && ids[l->arg] == ORB_ID(actuator_outputs_0)) {
 
 			/* translate the current syste state to mavlink state and mode */
 			uint8_t mavlink_state = 0;
@@ -683,7 +683,6 @@ MavlinkOrbListener::uorb_receive_thread(void *arg)
 
 	struct listener* next = _listeners;
 	unsigned i = 0;
-
 	while (next != nullptr) {
 
 		fds[i].fd = *next->subp;
@@ -708,7 +707,7 @@ MavlinkOrbListener::uorb_receive_thread(void *arg)
 
 		} else {
 
-			unsigned i = 0;
+			i = 0;
 			struct listener* cb = _listeners;
 			while (cb != nullptr) {
 

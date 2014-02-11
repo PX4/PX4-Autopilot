@@ -36,15 +36,18 @@
  * MAVLink 1.0 protocol implementation.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
  */
 
 #include <nuttx/config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <assert.h>
 #include <math.h>
 #include <poll.h>
 #include <termios.h>
@@ -66,27 +69,15 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <geo/geo.h>
+#include <dataman/dataman.h>
 #include <mathlib/mathlib.h>
 #include <mavlink/mavlink_log.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <commander/px4_custom_mode.h>
 
-
 #include "mavlink_bridge_header.h"
-#include <uORB/uORB.h>
 #include "math.h" /* isinf / isnan checks */
-#include <assert.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdbool.h>
-#include <string.h>
-#include <errno.h>
-#include <systemlib/param/param.h>
-#include <systemlib/err.h>
-#include <sys/stat.h>
-#include <dataman/dataman.h>
 #include "mavlink_main.h"
 #include "mavlink_orb_listener.h"
 #include "mavlink_receiver.h"
@@ -144,8 +135,11 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 		#endif
 	}
 
-	size_t desired = (size_t)(sizeof(uint8_t) * length);
-	int ret = write(uart, ch, desired);
+	warnx("uart: %d", uart);
+	warnx("channel: %d", channel);
+
+	ssize_t desired = (sizeof(uint8_t) * length);
+	ssize_t ret = write(uart, ch, desired);
 
 	if (ret != desired)
 		warn("write err");
@@ -160,12 +154,11 @@ namespace mavlink
 	Mavlink	*g_mavlink;
 }
 
-Mavlink::Mavlink() : 
-
+Mavlink::Mavlink() :
+	_mavlink_fd(-1),
 	_task_should_exit(false),
 	thread_running(false),
 	_mavlink_task(-1),
-	_mavlink_fd(-1),
 	_mavlink_incoming_fd(-1),
 
 /* performance counters */
@@ -276,8 +269,6 @@ Mavlink::parameters_update()
 int
 Mavlink::mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 {
-	static unsigned int total_counter = 0;
-
 	switch (cmd) {
 	case (int)MAVLINK_IOC_SEND_TEXT_INFO:
 	case (int)MAVLINK_IOC_SEND_TEXT_CRITICAL:
@@ -430,7 +421,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 }
 
 int
-Mavlink::set_hil_on_off(bool hil_enabled)
+Mavlink::set_hil_enabled(bool hil_enabled)
 {
 	int ret = OK;
 
@@ -1398,7 +1389,7 @@ Mavlink::mavlink_missionlib_send_message(mavlink_message_t *msg)
 {
 	uint16_t len = mavlink_msg_to_send_buffer(missionlib_msg_buf, msg);
 
-	mavlink_send_uart_bytes(chan, missionlib_msg_buf, len);
+	mavlink_send_uart_bytes(_chan, missionlib_msg_buf, len);
 }
 
 
@@ -1441,9 +1432,8 @@ Mavlink::task_main(int argc, char *argv[])
 	fflush(stdout);
 
 	/* initialize logging device */
-	// YYY
-
-	_mavlink_fd = 0;//open(MAVLINK_LOG_DEVICE, 0);
+	// TODO
+	_mavlink_fd = -1;//open(MAVLINK_LOG_DEVICE, 0);
 
 	//mavlink_log_info(_mavlink_fd, "[mavlink] started");
 
@@ -1451,8 +1441,9 @@ Mavlink::task_main(int argc, char *argv[])
 	// mavlink_logbuffer_init(&lb, 10);
 
 	int ch;
-	char *device_name = "/dev/ttyS1";
+	const char *device_name = "/dev/ttyS1";
 	_baudrate = 57600;
+	_chan = MAVLINK_COMM_0;
 
 	/* work around some stupidity in task_create's argv handling */
 	argc -= 2;
@@ -1587,7 +1578,7 @@ Mavlink::task_main(int argc, char *argv[])
 	/* arm counter to go off immediately */
 	unsigned lowspeed_counter = 10;
 
-		/* wakeup source(s) */
+	/* wakeup source(s) */
 	struct pollfd fds[1];
 
 	/* Setup of loop */
@@ -1623,16 +1614,17 @@ Mavlink::task_main(int argc, char *argv[])
 			get_mavlink_mode_and_state(&mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
 
 			/* send heartbeat */
-			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_base_mode, mavlink_custom_mode, mavlink_state);
+			warnx("send heartbeat, chan: %d", _chan);
+			mavlink_msg_heartbeat_send(_chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_base_mode, mavlink_custom_mode, mavlink_state);
 
 			/* switch HIL mode if required */
 			if (v_status.hil_state == HIL_STATE_ON)
-				set_hil_on_off(true);
+				set_hil_enabled(true);
 			else if (v_status.hil_state == HIL_STATE_OFF)
-				set_hil_on_off(false);
+				set_hil_enabled(false);
 
 			/* send status (values already copied in the section above) */
-			mavlink_msg_sys_status_send(chan,
+			mavlink_msg_sys_status_send(_chan,
 						    v_status.onboard_control_sensors_present,
 						    v_status.onboard_control_sensors_enabled,
 						    v_status.onboard_control_sensors_health,

@@ -346,7 +346,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	 * COMMAND_LONG message or a SET_MODE message
 	 */
 
-	if (_mavlink->hil_enabled()) {
+	if (_mavlink->get_hil_enabled()) {
 
 		uint64_t timestamp = hrt_absolute_time();
 
