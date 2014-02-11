@@ -99,6 +99,8 @@ uint32_t millis()
 	return IMUmsec;
 }
 
+static void print_status();
+
 class FixedwingEstimator
 {
 public:
@@ -355,6 +357,8 @@ FixedwingEstimator::task_main_trampoline(int argc, char *argv[])
 	estimator::g_estimator->task_main();
 }
 
+static float dt = 0.0f; // time lapsed since last covariance prediction
+
 void
 FixedwingEstimator::task_main()
 {
@@ -383,11 +387,11 @@ FixedwingEstimator::task_main()
 
 	/* rate limit gyro updates to 50 Hz */
 	/* XXX remove this!, BUT increase the data buffer size! */
-	orb_set_interval(_gyro_sub, 6);
+	orb_set_interval(_gyro_sub, 4);
 	#else
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	/* XXX remove this!, BUT increase the data buffer size! */
-	orb_set_interval(_sensor_combined_sub, 6);
+	orb_set_interval(_sensor_combined_sub, 4);
 	#endif
 
 	parameters_update();
@@ -404,8 +408,6 @@ FixedwingEstimator::task_main()
 	VtasMeas = 0.0f;
 	Vector3f lastAngRate = {0.0f, 0.0f, 0.0f};
 	Vector3f lastAccel = {0.0f, 0.0f, 0.0f};
-
-	float dt = 0.0f; // time lapsed since last covariance prediction
 
 	/* wakeup source(s) */
 	struct pollfd fds[2];
@@ -504,10 +506,7 @@ FixedwingEstimator::task_main()
 
 			dAngIMU = 0.5f * (angRate + lastAngRate) * dtIMU;
 			lastAngRate = angRate;
-			// dVelIMU = 0.5f * (accel + lastAccel) * dtIMU;
-			dVelIMU.x = 0.0f;
-			dVelIMU.y = 0.0f;
-			dVelIMU.z = 0.0f;
+			dVelIMU = 0.5f * (accel + lastAccel) * dtIMU;
 			lastAccel = accel;
 
 
@@ -587,7 +586,7 @@ FixedwingEstimator::task_main()
 					// warnx("GPS updated: status: %d, vel: %8.4f %8.4f %8.4f", (int)GPSstatus, velNED[0], velNED[1], velNED[2]);
 
 					gpsLat = math::radians(_gps.lat / (double)1e7);
-					gpsLon = math::radians(_gps.lon / (double)1e7)  - M_PI;
+					gpsLon = math::radians(_gps.lon / (double)1e7) - M_PI;
 					gpsHgt = _gps.alt / 1e3f;
 
 				}
@@ -618,26 +617,26 @@ FixedwingEstimator::task_main()
 				// XXX we compensate the offsets upfront - should be close to zero.
 				// 0.001f
 				magData.x = _mag.x;
-				magBias.x = 0.0001f; // _mag_offsets.x_offset
+				magBias.x = 0.000001f; // _mag_offsets.x_offset
 
 				magData.y = _mag.y;
-				magBias.y = 0.0001f; // _mag_offsets.y_offset
+				magBias.y = 0.000001f; // _mag_offsets.y_offset
 
 				magData.z = _mag.z;
-				magBias.z = 0.0001f; // _mag_offsets.y_offset
+				magBias.z = 0.000001f; // _mag_offsets.y_offset
 				
 				#else
 
 				// XXX we compensate the offsets upfront - should be close to zero.
 				// 0.001f
 				magData.x = _sensor_combined.magnetometer_ga[0];
-				magBias.x = 0.0001f; // _mag_offsets.x_offset
+				magBias.x = 0.000001f; // _mag_offsets.x_offset
 
 				magData.y = _sensor_combined.magnetometer_ga[1];
-				magBias.y = 0.0001f; // _mag_offsets.y_offset
+				magBias.y = 0.000001f; // _mag_offsets.y_offset
 
 				magData.z = _sensor_combined.magnetometer_ga[2];
-				magBias.z = 0.0001f; // _mag_offsets.y_offset
+				magBias.z = 0.000001f; // _mag_offsets.y_offset
 
 				#endif
 
@@ -666,11 +665,13 @@ FixedwingEstimator::task_main()
 				StoreStates(IMUmsec);
 
 				/* evaluate if on ground */
-				OnGroundCheck();
+				// OnGroundCheck();
+				onGround = false;
 
 				/* prepare the delta angles and time used by the covariance prediction */
 				summedDelAng = summedDelAng + correctedDelAng;
 				summedDelVel = summedDelVel + correctedDelVel;
+				
 				dt += dtIMU;
 
 				/* predict the covairance if the total delta angle has exceeded the threshold
@@ -682,6 +683,7 @@ FixedwingEstimator::task_main()
 					summedDelVel = summedDelVel.zero();
 					dt = 0.0f;
 				}
+
 			}
 
 
@@ -732,7 +734,7 @@ FixedwingEstimator::task_main()
 			}
 
 			if (airspeed_updated && _initialized
-				&& _airspeed.true_airspeed_m_s > 8.0f /* XXX magic number */) {
+				&& _airspeed.true_airspeed_m_s > 6.0f /* XXX magic number */) {
 
 				fuseVtasData = true;
 				RecallStates(statesAtVtasMeasTime, (IMUmsec - _parameters.tas_delay_ms)); // assume 100 msec avg delay for airspeed data
@@ -743,6 +745,8 @@ FixedwingEstimator::task_main()
 
 			// Publish results
 			if (_initialized) {
+
+
 
 				// State vector:
 				// 0-3: quaternions (q0, q1, q2, q3)
@@ -860,6 +864,45 @@ FixedwingEstimator::start()
 	return OK;
 }
 
+void print_status()
+{
+	math::Quaternion q(states[0], states[1], states[2], states[3]);
+	math::EulerAngles euler(q);
+
+	printf("attitude: roll: %8.4f, pitch %8.4f, yaw: %8.4f degrees\n",
+		(double)math::degrees(euler.getPhi()), (double)math::degrees(euler.getTheta()), (double)math::degrees(euler.getPsi()));
+
+	// State vector:
+	// 0-3: quaternions (q0, q1, q2, q3)
+	// 4-6: Velocity - m/sec (North, East, Down)
+	// 7-9: Position - m (North, East, Down)
+	// 10-12: Delta Angle bias - rad (X,Y,Z)
+	// 13-14: Wind Vector  - m/sec (North,East)
+	// 15-17: Earth Magnetic Field Vector - milligauss (North, East, Down)
+	// 18-20: Body Magnetic Field Vector - milligauss (X,Y,Z)
+
+	printf("dtIMU: %8.6f dt: %8.6f IMUmsec: %d\n", dtIMU, dt, (int)IMUmsec);
+	printf("dvel: %8.6f %8.6f %8.6f accel: %8.6f %8.6f %8.6f\n", (double)dVelIMU.x, (double)dVelIMU.y, (double)dVelIMU.z, (double)accel.x, (double)accel.y, (double)accel.z);
+	printf("dang: %8.4f %8.4f %8.4f dang corr: %8.4f %8.4f %8.4f\n" , (double)dAngIMU.x, (double)dAngIMU.y, (double)dAngIMU.z, (double)correctedDelAng.x, (double)correctedDelAng.y, (double)correctedDelAng.z);
+	printf("states (quat)        [1-4]: %8.4f, %8.4f, %8.4f, %8.4f\n", (double)states[0], (double)states[1], (double)states[2], (double)states[3]);
+	printf("states (vel m/s)     [5-7]: %8.4f, %8.4f, %8.4f\n", (double)states[4], (double)states[5], (double)states[6]);
+	printf("states (pos m)      [8-10]: %8.4f, %8.4f, %8.4f\n", (double)states[7], (double)states[8], (double)states[9]);
+	printf("states (delta ang) [11-13]: %8.4f, %8.4f, %8.4f\n", (double)states[10], (double)states[11], (double)states[12]);
+	printf("states (wind)      [14-15]: %8.4f, %8.4f\n", (double)states[13], (double)states[14]);
+	printf("states (earth mag) [16-18]: %8.4f, %8.4f, %8.4f\n", (double)states[15], (double)states[16], (double)states[17]);
+	printf("states (body mag)  [19-21]: %8.4f, %8.4f, %8.4f\n", (double)states[18], (double)states[19], (double)states[20]);
+	printf("states: %s %s %s %s %s %s %s %s %s\n",
+		(statesInitialised) ? "INITIALIZED" : "NON_INIT",
+		(onGround) ? "ON_GROUND" : "AIRBORNE",
+		(fuseVelData) ? "FUSE_VEL" : "INH_VEL",
+		(fusePosData) ? "FUSE_POS" : "INH_POS",
+		(fuseHgtData) ? "FUSE_HGT" : "INH_HGT",
+		(fuseMagData) ? "FUSE_MAG" : "INH_MAG",
+		(fuseVtasData) ? "FUSE_VTAS" : "INH_VTAS",
+		(useAirspeed) ? "USE_AIRSPD" : "IGN_AIRSPD",
+		(useCompass) ? "USE_COMPASS" : "IGN_COMPASS");
+}
+
 int fw_att_pos_estimator_main(int argc, char *argv[])
 {
 	if (argc < 1)
@@ -897,39 +940,7 @@ int fw_att_pos_estimator_main(int argc, char *argv[])
 		if (estimator::g_estimator) {
 			warnx("running");
 
-			math::Quaternion q(states[0], states[1], states[2], states[3]);
-			math::EulerAngles euler(q);
-
-			printf("attitude: roll: %8.4f, pitch %8.4f, yaw: %8.4f degrees\n",
-				(double)math::degrees(euler.getPhi()), (double)math::degrees(euler.getTheta()), (double)math::degrees(euler.getPsi()));
-
-			// State vector:
-			// 0-3: quaternions (q0, q1, q2, q3)
-			// 4-6: Velocity - m/sec (North, East, Down)
-			// 7-9: Position - m (North, East, Down)
-			// 10-12: Delta Angle bias - rad (X,Y,Z)
-			// 13-14: Wind Vector  - m/sec (North,East)
-			// 15-17: Earth Magnetic Field Vector - milligauss (North, East, Down)
-			// 18-20: Body Magnetic Field Vector - milligauss (X,Y,Z)
-
-			printf("dt: %8.6f\n", dtIMU);
-			printf("states (quat)        [1-4]: %8.4f, %8.4f, %8.4f, %8.4f\n", (double)states[0], (double)states[1], (double)states[2], (double)states[3]);
-			printf("states (vel m/s)     [5-7]: %8.4f, %8.4f, %8.4f\n", (double)states[4], (double)states[5], (double)states[6]);
-			printf("states (pos m)      [8-10]: %8.4f, %8.4f, %8.4f\n", (double)states[7], (double)states[8], (double)states[9]);
-			printf("states (delta ang) [11-13]: %8.4f, %8.4f, %8.4f\n", (double)states[10], (double)states[11], (double)states[12]);
-			printf("states (wind)      [14-15]: %8.4f, %8.4f\n", (double)states[13], (double)states[14]);
-			printf("states (earth mag) [16-18]: %8.4f, %8.4f, %8.4f\n", (double)states[15], (double)states[16], (double)states[17]);
-			printf("states (body mag)  [19-21]: %8.4f, %8.4f, %8.4f\n", (double)states[18], (double)states[19], (double)states[20]);
-			printf("states: %s %s %s %s %s %s %s %s %s",
-				(statesInitialised) ? "INITIALIZED" : "NON_INIT",
-				(onGround) ? "ON_GROUND" : "AIRBORNE",
-				(fuseVelData) ? "FUSE_VEL" : "INH_VEL",
-				(fusePosData) ? "FUSE_POS" : "INH_POS",
-				(fuseHgtData) ? "FUSE_HGT" : "INH_HGT",
-				(fuseMagData) ? "FUSE_MAG" : "INH_MAG",
-				(fuseVtasData) ? "FUSE_VTAS" : "INH_VTAS",
-				(useAirspeed) ? "USE_AIRSPD" : "IGN_AIRSPD",
-				(useCompass) ? "USE_COMPASS" : "IGN_COMPASS");
+			print_status();
 
 			exit(0);
 

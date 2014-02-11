@@ -120,7 +120,7 @@ extern float baroHgt;
 
 extern bool statesInitialised;
 
-const float covTimeStepMax = 0.02f; // maximum time allowed between covariance predictions
+const float covTimeStepMax = 0.2f; // maximum time allowed between covariance predictions
 const float covDelAngMax = 0.05f; // maximum delta angle between covariance predictions
 
 void  UpdateStrapdownEquationsNED();
