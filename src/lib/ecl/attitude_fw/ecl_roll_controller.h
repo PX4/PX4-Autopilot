@@ -36,6 +36,7 @@
  * Definition of a simple orthogonal roll PID controller.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  *
  * Acknowledgements:
  *
@@ -51,13 +52,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-class __EXPORT ECL_RollController
+class __EXPORT ECL_RollController //XXX: create controller superclass
 {
 public:
 	ECL_RollController();
 
-	float control(float roll_setpoint, float roll, float roll_rate,
-		      float scaler = 1.0f, bool lock_integrator = false, float airspeed_min = 0.0f, float airspeed_max = 0.0f, float airspeed = (0.0f / 0.0f));
+	float control_attitude(float roll_setpoint, float roll);
+
+	float control_bodyrate(float pitch,
+			float roll_rate, float yaw_rate,
+			float yaw_rate_setpoint,
+			float airspeed_min = 0.0f, float airspeed_max = 0.0f, float airspeed = (0.0f / 0.0f), float scaler = 1.0f, bool lock_integrator = false);
 
 	void reset_integrator();
 
@@ -66,18 +71,23 @@ public:
 			_tc = time_constant;
 		}
 	}
+
 	void set_k_p(float k_p) {
 		_k_p = k_p;
 	}
+
 	void set_k_i(float k_i) {
 		_k_i = k_i;
 	}
-	void set_k_d(float k_d) {
-		_k_d = k_d;
+
+	void set_k_ff(float k_ff) {
+		_k_ff = k_ff;
 	}
+
 	void set_integrator_max(float max) {
 		_integrator_max = max;
 	}
+
 	void set_max_rate(float max_rate) {
 		_max_rate = max_rate;
 	}
@@ -90,19 +100,23 @@ public:
 		return _rate_setpoint;
 	}
 
+	float get_desired_bodyrate() {
+		return _bodyrate_setpoint;
+	}
+
 private:
 	uint64_t _last_run;
 	float _tc;
 	float _k_p;
 	float _k_i;
-	float _k_d;
+	float _k_ff;
 	float _integrator_max;
 	float _max_rate;
 	float _last_output;
 	float _integrator;
 	float _rate_error;
 	float _rate_setpoint;
-	float _max_deflection_rad;
+	float _bodyrate_setpoint;
 };
 
 #endif // ECL_ROLL_CONTROLLER_H

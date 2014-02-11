@@ -225,16 +225,16 @@ void frsky_send_frame2(int uart)
 	float course = 0, lat = 0, lon = 0, speed = 0, alt = 0;
 	char lat_ns = 0, lon_ew = 0;
 	int sec = 0;
-	if (global_pos.valid) {
+	if (global_pos.global_valid) {
 		time_t time_gps = global_pos.time_gps_usec / 1000000;
 		struct tm *tm_gps = gmtime(&time_gps);
 
 		course = (global_pos.yaw + M_PI_F) / M_PI_F * 180.0f;
-		lat    = frsky_format_gps(abs(global_pos.lat) / 10000000.0f);
+		lat    = frsky_format_gps(abs(global_pos.lat));
 		lat_ns = (global_pos.lat < 0) ? 'S' : 'N';
-		lon    = frsky_format_gps(abs(global_pos.lon) / 10000000.0f);
+		lon    = frsky_format_gps(abs(global_pos.lon));
 		lon_ew = (global_pos.lon < 0) ? 'W' : 'E';
-		speed  = sqrtf(global_pos.vx * global_pos.vx + global_pos.vy * global_pos.vy)
+		speed  = sqrtf(global_pos.vel_n * global_pos.vel_n + global_pos.vel_e * global_pos.vel_e)
 				* 25.0f / 46.0f;
 		alt    = global_pos.alt;
 		sec    = tm_gps->tm_sec;
