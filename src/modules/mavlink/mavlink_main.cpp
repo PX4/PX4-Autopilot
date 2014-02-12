@@ -90,6 +90,12 @@ static const int ERROR = -1;
 
 static Mavlink* _head = nullptr;
 
+/* TODO: if this is a class member it crashes */
+static struct file_operations fops;
+
+static struct mavlink_logbuffer lb;
+static unsigned int total_counter;
+
 /**
  * mavlink app start / stop handling function
  *
@@ -152,7 +158,7 @@ namespace mavlink
 }
 
 Mavlink::Mavlink() :
-//	_mavlink_fd(-1),
+	_mavlink_fd(-1),
 	_next(nullptr),
 	_task_should_exit(false),
 	thread_running(false),
@@ -277,14 +283,15 @@ Mavlink::mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 	case (int)MAVLINK_IOC_SEND_TEXT_INFO:
 	case (int)MAVLINK_IOC_SEND_TEXT_CRITICAL:
 	case (int)MAVLINK_IOC_SEND_TEXT_EMERGENCY: {
-			const char *txt = (const char *)arg;
-			printf("logmsg: %s\n", txt);
-			//struct mavlink_logmessage msg;
-			//strncpy(msg.text, txt, sizeof(msg.text));
-			//mavlink_logbuffer_write(&lb, &msg);
-			//total_counter++;
-			return OK;
-		}
+
+		const char *txt = (const char *)arg;
+//		printf("logmsg: %s\n", txt);
+		struct mavlink_logmessage msg;
+		strncpy(msg.text, txt, sizeof(msg.text));
+		mavlink_logbuffer_write(&lb, &msg);
+		total_counter++;
+		return OK;
+	}
 
 	default:
 		return ENOTTY;
@@ -1435,14 +1442,8 @@ Mavlink::task_main(int argc, char *argv[])
 	warnx("Initializing..");
 	fflush(stdout);
 
-	/* initialize logging device */
-	// TODO
-//	_mavlink_fd = -1;//open(MAVLINK_LOG_DEVICE, 0);
-
-	//mavlink_log_info(_mavlink_fd, "[mavlink] started");
-
 	/* initialize mavlink text message buffering */
-	// mavlink_logbuffer_init(&lb, 10);
+	mavlink_logbuffer_init(&lb, 10);
 
 	int ch;
 	const char *device_name = "/dev/ttyS1";
@@ -1519,7 +1520,12 @@ Mavlink::task_main(int argc, char *argv[])
 		err(1, "could not open %s", device_name);
 
 	/* create the device node that's used for sending text log messages, etc. */
-	//register_driver(MAVLINK_LOG_DEVICE, &fops, 0666, NULL);
+	register_driver(MAVLINK_LOG_DEVICE, &fops, 0666, NULL);
+
+	/* initialize logging device */
+	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+
+	mavlink_log_info(_mavlink_fd, "[mavlink] started");
 
 	/* Initialize system properties */
 	mavlink_update_system();
@@ -1693,15 +1699,15 @@ Mavlink::task_main(int argc, char *argv[])
 			mavlink_pm_queued_send();
 		}
 
-		// /* send one string at 10 Hz */
-		// if (!mavlink_logbuffer_is_empty(&lb)) {
-		// 	struct mavlink_logmessage msg;
-		// 	int lb_ret = mavlink_logbuffer_read(&lb, &msg);
+		 /* send one string at 10 Hz */
+		 if (!mavlink_logbuffer_is_empty(&lb)) {
+		 	struct mavlink_logmessage msg;
+		 	int lb_ret = mavlink_logbuffer_read(&lb, &msg);
 
-		// 	if (lb_ret == OK) {
-		// 		mavlink_missionlib_send_gcs_string(msg.text);
-		// 	}
-		// }
+		 	if (lb_ret == OK) {
+		 		mavlink_missionlib_send_gcs_string(msg.text);
+		 	}
+		 }
 
 		perf_end(_loop_perf);
 	}

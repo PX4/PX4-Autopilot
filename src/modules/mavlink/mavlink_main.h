@@ -264,11 +264,11 @@ protected:
 	 * Pointer to the default cdev file operations table; useful for
 	 * registering clone devices etc.
 	 */
-	struct file_operations	fops;
+
 	Mavlink*	_next;
 
 private:
-
+	int		_mavlink_fd;
 	bool		_task_should_exit;		/**< if true, mavlink task should exit */
 	bool		thread_running;
 	int		_mavlink_task;			/**< task handle for sensor task */
@@ -311,7 +311,6 @@ private:
 	 */
 	unsigned int mavlink_param_queue_index;
 
-	struct mavlink_logbuffer lb;
 	bool mavlink_link_termination_allowed;
 	
 	/**
