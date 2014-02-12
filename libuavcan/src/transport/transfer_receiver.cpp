@@ -47,6 +47,7 @@ void TransferReceiver::prepareForNextTransfer()
 {
     tid_.increment();
     next_frame_index_ = 0;
+    buffer_write_pos_ = 0;
 }
 
 bool TransferReceiver::validate(const RxFrame& frame) const
@@ -86,22 +87,71 @@ bool TransferReceiver::validate(const RxFrame& frame) const
     return true;
 }
 
+bool TransferReceiver::writePayload(const RxFrame& frame, TransferBufferBase& buf)
+{
+    if (frame.frame_index == 0)
+    {
+        unsigned int payload_offset = 0;
+        unsigned int crc_offset = 0;
+
+        switch (frame.transfer_type)
+        {
+        case TRANSFER_TYPE_MESSAGE_BROADCAST:
+            payload_offset = 2;
+            crc_offset = 0;
+            break;
+        case TRANSFER_TYPE_SERVICE_RESPONSE:  // Addressed transfers have 1-byte overhead for Destination Node ID
+        case TRANSFER_TYPE_SERVICE_REQUEST:
+        case TRANSFER_TYPE_MESSAGE_UNICAST:
+            payload_offset = 3;
+            crc_offset = 1;
+            break;
+        default:
+            UAVCAN_TRACE("TransferReceiver", "Invalid transfer type, %s", frame.toString().c_str());
+            return RESULT_NOT_COMPLETE;
+        }
+
+        this_transfer_crc_ =
+            (frame.payload[crc_offset] & 0xFF) |
+            (uint16_t(frame.payload[crc_offset + 1] & 0xFF) << 8); // little endian
+
+        const int effective_payload_len = frame.payload_len - payload_offset;
+        const int res = buf.write(buffer_write_pos_, frame.payload + payload_offset, effective_payload_len);
+        const bool success = res == effective_payload_len;
+        if (success)
+            buffer_write_pos_ += effective_payload_len;
+        return success;
+    }
+    else
+    {
+        const int res = buf.write(buffer_write_pos_, frame.payload, frame.payload_len);
+        const bool success = res == frame.payload_len;
+        if (success)
+            buffer_write_pos_ += frame.payload_len;
+        return success;
+    }
+}
+
 TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame, TransferBufferAccessor& tba)
 {
+    // Transfer timestamps are derived from the first frame
     if (frame.frame_index == 0)
     {
         this_transfer_ts_monotonic_ = frame.ts_monotonic;
         first_frame_ts_utc_ = frame.ts_utc;
     }
 
-    if ((frame.frame_index == 0) && frame.last_frame)  // Single-frame transfer
+    // Single-frame transfer
+    if ((frame.frame_index == 0) && frame.last_frame)
     {
         tba.remove();
         updateTransferTimings();
         prepareForNextTransfer();
+        this_transfer_crc_ = 0;         // SFT has no CRC
         return RESULT_SINGLE_FRAME;
     }
 
+    // Payload write
     TransferBufferBase* buf = tba.access();
     if (buf == NULL)
         buf = tba.create();
@@ -111,11 +161,9 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame, Tra
         prepareForNextTransfer();
         return RESULT_NOT_COMPLETE;
     }
-
-    const int res = buf->write(Frame::PAYLOAD_LEN_MAX * frame.frame_index, frame.payload, frame.payload_len);
-    if (res != frame.payload_len)
+    if (!writePayload(frame, *buf))
     {
-        UAVCAN_TRACE("TransferReceiver", "Buffer write failure [%i], %s", res, frame.toString().c_str());
+        UAVCAN_TRACE("TransferReceiver", "Payload write failed, %s", frame.toString().c_str());
         tba.remove();
         prepareForNextTransfer();
         return RESULT_NOT_COMPLETE;
@@ -172,6 +220,8 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, Tr
         iface_index_ = frame.iface_index;
         tid_ = frame.transfer_id;
         next_frame_index_ = 0;
+        buffer_write_pos_ = 0;
+        this_transfer_crc_ = 0;
         if (!first_fame)
         {
             tid_.increment();
@@ -183,6 +233,39 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, Tr
         return RESULT_NOT_COMPLETE;
 
     return receive(frame, tba);
+}
+
+bool TransferReceiver::extractSingleFrameTransferPayload(const RxFrame& frame, uint8_t* out_data,
+                                                         unsigned int& out_len)
+{
+    if (out_data == NULL)
+    {
+        assert(0);
+        return false;
+    }
+
+    out_len = 0;
+    unsigned int offset = 0;
+    switch (frame.transfer_type)
+    {
+    case TRANSFER_TYPE_MESSAGE_BROADCAST:
+        offset = 0;
+        break;
+    case TRANSFER_TYPE_SERVICE_RESPONSE:  // Addressed transfers have 1-byte overhead for Destination Node ID
+    case TRANSFER_TYPE_SERVICE_REQUEST:
+    case TRANSFER_TYPE_MESSAGE_UNICAST:
+        offset = 1;
+        break;
+    default:
+        return false;
+    }
+
+    if (frame.payload_len < offset)
+        return false;
+
+    out_len = frame.payload_len - offset;
+    std::copy(frame.payload + offset, frame.payload + offset + out_len, out_data);
+    return true;
 }
 
 }

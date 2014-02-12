@@ -29,6 +29,8 @@ private:
     uint64_t this_transfer_ts_monotonic_;
     uint64_t first_frame_ts_utc_;
     uint32_t transfer_interval_;
+    uint16_t this_transfer_crc_;
+    uint16_t buffer_write_pos_;
     TransferID tid_;
     uint8_t iface_index_;
     uint8_t next_frame_index_;
@@ -41,6 +43,7 @@ private:
     void prepareForNextTransfer();
 
     bool validate(const RxFrame& frame) const;
+    bool writePayload(const RxFrame& frame, TransferBufferBase& buf);
     ResultCode receive(const RxFrame& frame, TransferBufferAccessor& tba);
 
     TransferReceiver(const TransferReceiver&); // = delete (not needed)
@@ -51,6 +54,8 @@ public:
     , this_transfer_ts_monotonic_(0)
     , first_frame_ts_utc_(0)
     , transfer_interval_(DEFAULT_TRANSFER_INTERVAL)
+    , this_transfer_crc_(0)
+    , buffer_write_pos_(0)
     , iface_index_(IFACE_INDEX_NOTSET)
     , next_frame_index_(0)
     { }
@@ -62,7 +67,11 @@ public:
     uint64_t getLastTransferTimestampMonotonic() const { return prev_transfer_ts_monotonic_; }
     uint64_t getLastTransferTimestampUtc() const { return first_frame_ts_utc_; }
 
+    uint16_t getLastTransferCrc() const { return this_transfer_crc_; }
+
     uint32_t getInterval() const { return transfer_interval_; }
+
+    static bool extractSingleFrameTransferPayload(const RxFrame& frame, uint8_t* out_data, unsigned int& out_len);
 };
 #pragma pack(pop)
 
