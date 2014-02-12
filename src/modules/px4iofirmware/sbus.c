@@ -117,7 +117,7 @@ sbus_init(const char *device)
 	ENABLE_SBUS_OUT(true);
 
 	while (1) {
-		const char* hello = 'HELLO WORLD';
+		const char* hello = "HELLO WORLD";
 		if (write(sbus_fd, hello, strlen(hello)) != strlen(hello))
 			break;
 	}
