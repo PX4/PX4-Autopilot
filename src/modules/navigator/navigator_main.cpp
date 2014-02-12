@@ -1343,7 +1343,14 @@ Navigator::set_rtl_item()
 			_mission_item.lat = _home_pos.lat;
 			_mission_item.lon = _home_pos.lon;
 			// don't change altitude
-			_mission_item.yaw = NAN;	// TODO set heading to home
+			if (_pos_sp_triplet.previous.valid) {
+				/* if previous setpoint is valid then use it to calculate heading to home */
+				_mission_item.yaw = get_bearing_to_next_waypoint(_pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon, _mission_item.lat, _mission_item.lon);
+
+			} else {
+				/* else use current position */
+				_mission_item.yaw = get_bearing_to_next_waypoint(_global_pos.lat, _global_pos.lon, _mission_item.lat, _mission_item.lon);
+			}
 			_mission_item.loiter_radius = _parameters.loiter_radius;
 			_mission_item.loiter_direction = 1;
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
@@ -1409,16 +1416,27 @@ Navigator::position_setpoint_from_mission_item(position_setpoint_s *sp, mission_
 		sp->lon = _home_pos.lon;
 		sp->alt = _home_pos.alt + _parameters.rtl_alt;
 
+		if (_pos_sp_triplet.previous.valid) {
+			/* if previous setpoint is valid then use it to calculate heading to home */
+			sp->yaw = get_bearing_to_next_waypoint(_pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon, sp->lat, sp->lon);
+
+		} else {
+			/* else use current position */
+			sp->yaw = get_bearing_to_next_waypoint(_global_pos.lat, _global_pos.lon, sp->lat, sp->lon);
+		}
+		sp->loiter_radius = _parameters.loiter_radius;
+		sp->loiter_direction = 1;
+		sp->pitch_min = 0.0f;
+
 	} else {
 		sp->lat = item->lat;
 		sp->lon = item->lon;
 		sp->alt = item->altitude_is_relative ? item->altitude + _home_pos.alt : item->altitude;
+		sp->yaw = item->yaw;
+		sp->loiter_radius = item->loiter_radius;
+		sp->loiter_direction = item->loiter_direction;
+		sp->pitch_min = item->pitch_min;
 	}
-
-	sp->yaw = item->yaw;
-	sp->loiter_radius = item->loiter_radius;
-	sp->loiter_direction = item->loiter_direction;
-	sp->pitch_min = item->pitch_min;
 
 	if (item->nav_cmd == NAV_CMD_TAKEOFF) {
 		sp->type = SETPOINT_TYPE_TAKEOFF;
