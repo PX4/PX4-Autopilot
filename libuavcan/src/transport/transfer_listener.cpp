@@ -117,6 +117,7 @@ void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxF
         MultiFrameIncomingTransfer it(receiver.getLastTransferTimestampMonotonic(),
                                       receiver.getLastTransferTimestampUtc(), frame, tba);
         handleIncomingTransfer(it);
+        it.release();
         return;
     }
 
