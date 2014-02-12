@@ -60,7 +60,7 @@ TEST(SingleFrameIncomingTransfer, Basic)
     using uavcan::SingleFrameIncomingTransfer;
 
     const RxFrame frame = makeFrame();
-    SingleFrameIncomingTransfer it(frame);
+    SingleFrameIncomingTransfer it(frame, frame.payload, frame.payload_len);
 
     ASSERT_TRUE(match(it, frame, frame.payload, frame.payload_len));
 }

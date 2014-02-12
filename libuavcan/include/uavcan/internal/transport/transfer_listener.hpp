@@ -62,10 +62,10 @@ public:
  */
 class SingleFrameIncomingTransfer : public IncomingTransfer
 {
-    uint8_t payload_[Frame::PAYLOAD_LEN_MAX];
+    const uint8_t* const payload_;
     const uint8_t payload_len_;
 public:
-    SingleFrameIncomingTransfer(const RxFrame& frm);
+    SingleFrameIncomingTransfer(const RxFrame& frm, const uint8_t* payload, unsigned int payload_len);
     int read(unsigned int offset, uint8_t* data, unsigned int len) const;
 };
 
@@ -88,6 +88,8 @@ public:
 class TransferListenerBase : public LinkedListNode<TransferListenerBase>
 {
     const Crc16 crc_base_;     ///< Pre-initialized with data type hash, thus constant
+
+    bool checkPayloadCrc(const uint16_t compare_with, const TransferBufferBase& tbb) const;
 
 protected:
     TransferListenerBase(const DataTypeDescriptor* data_type)

@@ -11,15 +11,12 @@ namespace uavcan
 /*
  * SingleFrameIncomingTransfer
  */
-SingleFrameIncomingTransfer::SingleFrameIncomingTransfer(const RxFrame& frm)
+SingleFrameIncomingTransfer::SingleFrameIncomingTransfer(const RxFrame& frm, const uint8_t* payload,
+                                                         unsigned int payload_len)
 : IncomingTransfer(frm.ts_monotonic, frm.ts_utc, frm.transfer_type, frm.transfer_id, frm.source_node_id)
-, payload_len_(frm.payload_len)
-{
-    assert(frm.payload_len <= Frame::PAYLOAD_LEN_MAX);
-    assert(frm.frame_index == 0);
-    assert(frm.last_frame);
-    std::copy(frm.payload, frm.payload + frm.payload_len, payload_);
-}
+, payload_(payload)
+, payload_len_(payload_len)
+{ }
 
 int SingleFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsigned int len) const
 {
@@ -62,29 +59,70 @@ int MultiFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsigne
 /*
  * TransferListenerBase
  */
+bool TransferListenerBase::checkPayloadCrc(const uint16_t compare_with, const TransferBufferBase& tbb) const
+{
+    Crc16 crc = crc_base_;
+    unsigned int offset = 0;
+    while (true)
+    {
+        uint8_t buf[16];
+        const int res = tbb.read(offset, buf, sizeof(buf));
+        if (res == 0)
+            break;
+        crc.add(buf, res);
+    }
+    return crc.get() == compare_with;
+}
+
 void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxFrame& frame,
                                            TransferBufferAccessor& tba)
 {
-    const TransferReceiver::ResultCode result = receiver.addFrame(frame, tba);
-    switch (result)
+    switch (receiver.addFrame(frame, tba))
     {
     case TransferReceiver::RESULT_NOT_COMPLETE:
-        break;
+        return;
 
     case TransferReceiver::RESULT_SINGLE_FRAME:
     {
-        SingleFrameIncomingTransfer it(frame);
+        uint8_t payload[Frame::PAYLOAD_LEN_MAX];
+        unsigned int payload_len = 0;
+        const bool success = TransferReceiver::extractSingleFrameTransferPayload(frame, payload, payload_len);
+        if (!success)
+        {
+            UAVCAN_TRACE("TransferListenerBase", "SFT payload extraction failed, frame: %s", frame.toString().c_str());
+            return;
+        }
+        assert(payload_len <= Frame::PAYLOAD_LEN_MAX);
+
+        SingleFrameIncomingTransfer it(frame, payload, payload_len);
         handleIncomingTransfer(it);
-        break;
+        return;
     }
+
     case TransferReceiver::RESULT_COMPLETE:
     {
-        // TODO: check CRC
+        const TransferBufferBase* tbb = tba.access();
+        if (tbb == NULL)
+        {
+            UAVCAN_TRACE("TransferListenerBase", "Buffer access failure, last frame: %s", frame.toString().c_str());
+            return;
+        }
+
+        if (!checkPayloadCrc(receiver.getLastTransferCrc(), *tbb))
+        {
+            UAVCAN_TRACE("TransferListenerBase", "CRC mismatch, last frame: %s", frame.toString().c_str());
+            return;
+        }
+
         MultiFrameIncomingTransfer it(receiver.getLastTransferTimestampMonotonic(),
                                       receiver.getLastTransferTimestampUtc(), frame, tba);
         handleIncomingTransfer(it);
-        break;
+        return;
     }
+
+    default:
+        assert(0);
+        break;
     }
 }
 
