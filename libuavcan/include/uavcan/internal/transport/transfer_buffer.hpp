@@ -454,6 +454,8 @@ public:
     {
         (void)key;
     }
+
+    bool isEmpty() const { return true; }
 };
 
 }
