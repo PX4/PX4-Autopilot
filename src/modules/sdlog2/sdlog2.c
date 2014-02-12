@@ -82,6 +82,7 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/telemetry_status.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -758,6 +759,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct esc_status_s esc;
 		struct vehicle_global_velocity_setpoint_s global_vel_sp;
 		struct battery_status_s battery;
+		struct telemetry_status_s telemetry;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -783,6 +785,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int esc_sub;
 		int global_vel_sp_sub;
 		int battery_sub;
+		int telemetry_sub;
 	} subs;
 
 	/* log message buffer: header + body */
@@ -811,6 +814,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_GVSP_s log_GVSP;
 			struct log_BATT_s log_BATT;
 			struct log_DIST_s log_DIST;
+			struct log_TELE_s log_TELE;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -943,6 +947,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* --- BATTERY --- */
 	subs.battery_sub = orb_subscribe(ORB_ID(battery_status));
 	fds[fdsc_count].fd = subs.battery_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- TELEMETRY STATUS --- */
+	subs.telemetry_sub = orb_subscribe(ORB_ID(telemetry_status));
+	fds[fdsc_count].fd = subs.telemetry_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -1345,6 +1355,20 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_BATT.current = buf.battery.current_a;
 				log_msg.body.log_BATT.discharged = buf.battery.discharged_mah;
 				LOGBUFFER_WRITE_AND_COUNT(BATT);
+			}
+
+			/* --- TELEMETRY --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(telemetry_status), subs.telemetry_sub, &buf.telemetry);
+				log_msg.msg_type = LOG_TELE_MSG;
+				log_msg.body.log_TELE.rssi = buf.telemetry.rssi;
+				log_msg.body.log_TELE.remote_rssi = buf.telemetry.remote_rssi;
+				log_msg.body.log_TELE.noise = buf.telemetry.noise;
+				log_msg.body.log_TELE.remote_noise = buf.telemetry.remote_noise;
+				log_msg.body.log_TELE.rxerrors = buf.telemetry.rxerrors;
+				log_msg.body.log_TELE.fixed = buf.telemetry.fixed;
+				log_msg.body.log_TELE.txbuf = buf.telemetry.txbuf;
+				LOGBUFFER_WRITE_AND_COUNT(TELE);
 			}
 
 			/* signal the other thread new data, but not yet unlock */
