@@ -293,6 +293,9 @@ private:
 //  XXX probably should be in a header... 
 // extern pthread_t receive_start(int uart);
 
+	struct mavlink_logbuffer lb;
+	unsigned int total_counter;
+
 	pthread_t receive_thread;
 	pthread_t uorb_receive_thread;
 

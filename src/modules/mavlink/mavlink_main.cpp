@@ -93,9 +93,6 @@ static Mavlink* _head = nullptr;
 /* TODO: if this is a class member it crashes */
 static struct file_operations fops;
 
-static struct mavlink_logbuffer lb;
-static unsigned int total_counter;
-
 /**
  * mavlink app start / stop handling function
  *
@@ -227,11 +224,11 @@ Mavlink* Mavlink::new_instance()
 		::_head = inst;
 	/* afterwards follow the next and append the instance */
 	} else {
-		while (next != nullptr) {
+		while (next->_next != nullptr) {
 			next = next->_next;
 		}
 		/* now parent has a null pointer, fill it */
-		next = inst;
+		next->_next = inst;
 	}
 	return inst;
 }
@@ -288,8 +285,15 @@ Mavlink::mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 //		printf("logmsg: %s\n", txt);
 		struct mavlink_logmessage msg;
 		strncpy(msg.text, txt, sizeof(msg.text));
-		mavlink_logbuffer_write(&lb, &msg);
-		total_counter++;
+
+		Mavlink* inst = ::_head;
+		while (inst != nullptr) {
+
+			mavlink_logbuffer_write(&inst->lb, &msg);
+			inst->total_counter++;
+			inst = inst->_next;
+
+		}
 		return OK;
 	}
 
@@ -1451,7 +1455,7 @@ Mavlink::task_main(int argc, char *argv[])
 	fflush(stdout);
 
 	/* initialize mavlink text message buffering */
-	mavlink_logbuffer_init(&lb, 10);
+	mavlink_logbuffer_init(&lb, 5);
 
 	int ch;
 	const char *device_name = "/dev/ttyS1";
