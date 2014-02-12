@@ -155,6 +155,7 @@ namespace mavlink
 }
 
 Mavlink::Mavlink() :
+	device_name("/dev/ttyS1"),
 	_mavlink_fd(-1),
 	_next(nullptr),
 	_task_should_exit(false),
@@ -247,6 +248,19 @@ Mavlink* Mavlink::get_instance(unsigned instance)
 	}
 
 	return inst;
+}
+
+bool Mavlink::instance_exists(const char *device_name, Mavlink *self)
+{
+	Mavlink* inst = ::_head;
+	while (inst != nullptr) {
+
+		/* don't compare with itself */
+		if (inst != self && !strcmp(device_name, inst->device_name))
+			return true;
+		inst = inst->_next;
+	}
+	return false;
 }
 
 int Mavlink::get_uart_fd(unsigned index)
@@ -1458,7 +1472,6 @@ Mavlink::task_main(int argc, char *argv[])
 	mavlink_logbuffer_init(&lb, 5);
 
 	int ch;
-	const char *device_name = "/dev/ttyS1";
 	_baudrate = 57600;
 	_chan = MAVLINK_COMM_0;
 
@@ -1494,6 +1507,10 @@ Mavlink::task_main(int argc, char *argv[])
 			usage();
 			break;
 		}
+	}
+
+	if (Mavlink::instance_exists(device_name, this)) {
+		errx(1, "mavlink instance for %s already running", device_name);
 	}
 
 	struct termios uart_config_original;

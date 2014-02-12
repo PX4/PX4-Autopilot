@@ -168,9 +168,13 @@ public:
 
 	static Mavlink* get_instance(unsigned instance);
 
+	static bool	instance_exists(const char *device_name, Mavlink *self);
+
 	static int get_uart_fd(unsigned index);
 
 	int get_uart_fd() { return _uart; }
+
+	const char *device_name;
 
 	enum MAVLINK_MODE {
 		MODE_TX_HEARTBEAT_ONLY=0,
