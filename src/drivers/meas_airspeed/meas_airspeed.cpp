@@ -85,6 +85,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/subsystem_info.h>
+#include <uORB/topics/system_power.h>
 
 #include <drivers/airspeed/airspeed.h>
 
@@ -116,6 +117,11 @@ protected:
 	virtual int	measure();
 	virtual int	collect();
 
+	// correct for 5V rail voltage
+	void voltage_correction(float &diff_pres_pa);
+
+	int _t_system_power;
+	struct system_power_s system_power;
 };
 
 /*
@@ -124,9 +130,10 @@ protected:
 extern "C" __EXPORT int meas_airspeed_main(int argc, char *argv[]);
 
 MEASAirspeed::MEASAirspeed(int bus, int address, const char *path) : Airspeed(bus, address,
-			CONVERSION_INTERVAL, path)
+                                                                              CONVERSION_INTERVAL, path),
+                                                                     _t_system_power(-1)
 {
-
+	memset(&system_power, 0, sizeof(system_power));
 }
 
 int
@@ -200,6 +207,9 @@ MEASAirspeed::collect()
 	if (diff_press_pa < 0.0f) {
 		diff_press_pa = 0.0f;
 	}
+
+        // correct for 5V rail voltage if possible
+        voltage_correction(diff_press_pa);
 
 	struct differential_pressure_s report;
 
@@ -278,6 +288,49 @@ MEASAirspeed::cycle()
 		   (worker_t)&Airspeed::cycle_trampoline,
 		   this,
 		   USEC2TICK(CONVERSION_INTERVAL));
+}
+
+/**
+   correct for 5V rail voltage if the system_power ORB topic is
+   available
+   
+   See http://uav.tridgell.net/MS4525/MS4525-offset.png for a graph of
+   offset versus voltage for 3 sensors
+ */
+void
+MEASAirspeed::voltage_correction(float &diff_press_pa)
+{
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+	if (_t_system_power == -1) {
+		_t_system_power = orb_subscribe(ORB_ID(system_power));
+	}
+	if (_t_system_power == -1) {
+		// not available
+		return;
+	}
+	bool updated = false;
+	orb_check(_t_system_power, &updated);
+	if (updated) {
+		orb_copy(ORB_ID(system_power), _t_system_power, &system_power);
+	}
+	if (system_power.voltage5V_v < 3.0f || system_power.voltage5V_v > 6.0f) {
+		// not valid, skip correction
+		return;
+	}
+
+	const float slope = 70.0f;
+	/*
+	  apply a piecewise linear correction, flattening at 0.5V from 5V
+	 */
+	float voltage_diff = system_power.voltage5V_v - 5.0f;
+	if (voltage_diff > 0.5f) {
+		voltage_diff = 0.5f;
+	}
+	if (voltage_diff < -0.5f) {
+		voltage_diff = -0.5f;
+	}
+	diff_press_pa -= voltage_diff * slope;
+#endif // CONFIG_ARCH_BOARD_PX4FMU_V2
 }
 
 /**
