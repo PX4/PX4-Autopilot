@@ -40,12 +40,10 @@ int SingleFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsign
 /*
  * MultiFrameIncomingTransfer
  */
-MultiFrameIncomingTransfer::MultiFrameIncomingTransfer(const RxFrame& last_frame, uint8_t buffer_offset,
-                                                       TransferBufferAccessor& tba)
-: IncomingTransfer(last_frame.ts_monotonic, last_frame.ts_utc, last_frame.transfer_type,
-                   last_frame.transfer_id, last_frame.source_node_id)
+MultiFrameIncomingTransfer::MultiFrameIncomingTransfer(uint64_t ts_monotonic, uint64_t ts_utc,
+                                                       const RxFrame& last_frame, TransferBufferAccessor& tba)
+: IncomingTransfer(ts_monotonic, ts_utc, last_frame.transfer_type, last_frame.transfer_id, last_frame.source_node_id)
 , buf_acc_(tba)
-, buffer_offset_(buffer_offset)
 {
     assert(last_frame.last_frame);
 }
@@ -58,7 +56,7 @@ int MultiFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsigne
         UAVCAN_TRACE("MultiFrameIncomingTransfer", "Read failed: no such buffer");
         return -1;
     }
-    return tbb->read(offset + buffer_offset_, data, len);
+    return tbb->read(offset, data, len);
 }
 
 /*
@@ -82,9 +80,8 @@ void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxF
     case TransferReceiver::RESULT_COMPLETE:
     {
         // TODO: check CRC
-        // TODO: select the buffer offset
-        const int buffer_offset = 123;
-        MultiFrameIncomingTransfer it(frame, buffer_offset, tba);
+        MultiFrameIncomingTransfer it(receiver.getLastTransferTimestampMonotonic(),
+                                      receiver.getLastTransferTimestampUtc(), frame, tba);
         handleIncomingTransfer(it);
         break;
     }

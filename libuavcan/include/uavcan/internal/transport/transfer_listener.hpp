@@ -75,9 +75,9 @@ public:
 class MultiFrameIncomingTransfer : public IncomingTransfer, Noncopyable
 {
     TransferBufferAccessor& buf_acc_;
-    const uint8_t buffer_offset_;               ///< Number of bytes to skip from the beginning of the buffer space
 public:
-    MultiFrameIncomingTransfer(const RxFrame& last_frame, uint8_t buffer_offset, TransferBufferAccessor& tba);
+    MultiFrameIncomingTransfer(uint64_t ts_monotonic, uint64_t ts_utc, const RxFrame& last_frame,
+                               TransferBufferAccessor& tba);
     int read(unsigned int offset, uint8_t* data, unsigned int len) const;
     void release() { buf_acc_.remove(); }
 };

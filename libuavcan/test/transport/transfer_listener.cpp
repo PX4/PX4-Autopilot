@@ -78,7 +78,7 @@ TEST(MultiFrameIncomingTransfer, Basic)
     uavcan::TransferBufferManagerKey bufmgr_key(frame.source_node_id, frame.transfer_type);
     uavcan::TransferBufferAccessor tba(&bufmgr, bufmgr_key);
 
-    MultiFrameIncomingTransfer it(frame, 3, tba);
+    MultiFrameIncomingTransfer it(frame.ts_monotonic, frame.ts_utc, frame, tba);
 
     /*
      * Empty read must fail
@@ -97,9 +97,8 @@ TEST(MultiFrameIncomingTransfer, Basic)
 
     /*
      * Check
-     * Offset 3 comes from the MultiFrameIncomingTransfer initialization
      */
-    ASSERT_TRUE(match(it, frame, data_ptr + 3, data.length() - 3));
+    ASSERT_TRUE(match(it, frame, data_ptr, data.length()));
 
     /*
      * Buffer release
