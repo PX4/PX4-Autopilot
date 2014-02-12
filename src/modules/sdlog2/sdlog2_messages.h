@@ -149,7 +149,6 @@ struct log_ATTC_s {
 #define LOG_STAT_MSG 10
 struct log_STAT_s {
 	uint8_t main_state;
-	uint8_t navigation_state;
 	uint8_t arming_state;
 	float battery_remaining;
 	uint8_t battery_warning;
@@ -205,11 +204,14 @@ struct log_GPOS_s {
 	float vel_n;
 	float vel_e;
 	float vel_d;
+	float baro_alt;
+	uint8_t flags;
 };
 
 /* --- GPSP - GLOBAL POSITION SETPOINT --- */
 #define LOG_GPSP_MSG 17
 struct log_GPSP_s {
+	uint8_t nav_state;
 	int32_t lat;
 	int32_t lon;
 	float alt;
@@ -262,6 +264,18 @@ struct log_DIST_s {
 	uint8_t flags;
 };
 
+/* --- TELE - TELEMETRY STATUS --- */
+#define LOG_TELE_MSG 22
+struct log_TELE_s {
+    uint8_t rssi;
+    uint8_t remote_rssi;
+    uint8_t noise;
+    uint8_t remote_noise;
+    uint16_t rxerrors;
+    uint16_t fixed;
+    uint8_t txbuf;
+};
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -297,18 +311,20 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(LPSP, "ffff", "X,Y,Z,Yaw"),
 	LOG_FORMAT(GPS, "QBffLLfffff", "GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
 	LOG_FORMAT(ATTC, "ffff", "Roll,Pitch,Yaw,Thrust"),
-	LOG_FORMAT(STAT, "BBBfBB", "MainState,NavState,ArmState,BatRem,BatWarn,Landed"),
+	LOG_FORMAT(STAT, "BBfBB", "MainState,ArmState,BatRem,BatWarn,Landed"),
 	LOG_FORMAT(RC, "ffffffffB", "Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,Count"),
 	LOG_FORMAT(OUT0, "ffffffff", "Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 	LOG_FORMAT(AIRS, "ff", "IndSpeed,TrueSpeed"),
 	LOG_FORMAT(ARSP, "fff", "RollRateSP,PitchRateSP,YawRateSP"),
 	LOG_FORMAT(FLOW, "hhfffBB", "RawX,RawY,CompX,CompY,Dist,Q,SensID"),
-	LOG_FORMAT(GPOS, "LLffff", "Lat,Lon,Alt,VelN,VelE,VelD"),
-	LOG_FORMAT(GPSP, "LLffBfbf", "Lat,Lon,Alt,Yaw,Type,LoitR,LoitDir,PitMin"),
+	LOG_FORMAT(GPOS, "LLfffffB", "Lat,Lon,Alt,VelN,VelE,VelD,BaroAlt,Flags"),
+	LOG_FORMAT(GPSP, "BLLffBfbf", "NavState,Lat,Lon,Alt,Yaw,Type,LoitR,LoitDir,PitMin"),
 	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
 	LOG_FORMAT(BATT, "ffff", "V,VFilt,C,Discharged"),
 	LOG_FORMAT(DIST, "ffB", "Bottom,BottomRate,Flags"),
+	LOG_FORMAT(TELE, "BBBBHHB", "RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf"),
+
 	/* system-level messages, ID >= 0x80 */
 	// FMT: don't write format of format message, it's useless
 	LOG_FORMAT(TIME, "Q", "StartTime"),

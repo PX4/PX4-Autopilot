@@ -57,7 +57,7 @@
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls_effective.h>
@@ -233,7 +233,7 @@ public:
 		int get_sub;
 		int airspeed_sub;
 		int navigation_capabilities_sub;
-		int control_mode_sub;
+		int position_setpoint_triplet_sub;
 		int rc_sub;
 		int status_sub;
 		int home_sub;
@@ -252,12 +252,12 @@ public:
 	struct navigation_capabilities_s nav_cap;
 	/** Vehicle status */
 	struct vehicle_status_s v_status;
-	/** Vehicle control mode */
-	struct vehicle_control_mode_s control_mode;
 	/** RC channels */
 	struct rc_channels_s rc;
 	/** Actuator armed state */
 	struct actuator_armed_s armed;
+	/** Position setpoint triplet */
+	struct position_setpoint_triplet_s pos_sp_triplet;
 
 protected:
 	/**

@@ -202,8 +202,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	bool landed = true;
 	hrt_abstime landed_time = 0;
 
-	bool flag_armed = false;
-
 	uint32_t accel_counter = 0;
 	uint32_t baro_counter = 0;
 
@@ -329,6 +327,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						mavlink_log_info(mavlink_fd, "[inav] baro offs: %.2f", baro_offset);
 						local_pos.z_valid = true;
 						local_pos.v_z_valid = true;
+						global_pos.baro_valid = true;
 					}
 				}
 			}
@@ -379,17 +378,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (updated) {
 				orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
-
-				/* reset ground level on arm */
-				if (armed.armed && !flag_armed) {
-					flag_armed = armed.armed;
-					baro_offset -= z_est[0];
-					corr_baro = 0.0f;
-					local_pos.ref_alt -= z_est[0];
-					local_pos.ref_timestamp = t;
-					z_est[0] = 0.0f;
-					alt_avg = 0.0f;
-				}
 			}
 
 			/* sensor combined */
@@ -539,13 +527,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				if (gps.fix_type >= 3) {
 					/* hysteresis for GPS quality */
 					if (gps_valid) {
-						if (gps.eph_m > 10.0f || gps.epv_m > 10.0f) {
+						if (gps.eph_m > 10.0f || gps.epv_m > 20.0f) {
 							gps_valid = false;
 							mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
 						}
 
 					} else {
-						if (gps.eph_m < 5.0f && gps.epv_m < 5.0f) {
+						if (gps.eph_m < 5.0f && gps.epv_m < 10.0f) {
 							gps_valid = true;
 							mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
 						}
@@ -601,8 +589,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							corr_gps[2][1] = 0.0f;
 						}
 
-						w_gps_xy = 1.0f / fmaxf(1.0f, gps.eph_m);
-						w_gps_z = 1.0f / fmaxf(1.0f, gps.epv_m);
+						w_gps_xy = 2.0f / fmaxf(2.0f, gps.eph_m);
+						w_gps_z = 4.0f / fmaxf(4.0f, gps.epv_m);
 					}
 
 				} else {
@@ -637,6 +625,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		float dt = t_prev > 0 ? (t - t_prev) / 1000000.0f : 0.0f;
+		dt = fmaxf(fminf(0.02, dt), 0.005);
 		t_prev = t;
 
 		/* use GPS if it's valid and reference position initialized */
@@ -679,7 +668,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		if (use_gps_z) {
 			float offs_corr = corr_gps[2][0] * w_z_gps_p * dt;
 			baro_offset += offs_corr;
-			baro_counter += offs_corr;
+			corr_baro += offs_corr;
 		}
 
 		/* accelerometer bias correction */
@@ -835,7 +824,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			orb_publish(ORB_ID(vehicle_local_position), vehicle_local_position_pub, &local_pos);
 
 			/* publish global position */
-			global_pos.valid = local_pos.xy_global;
+			global_pos.global_valid = local_pos.xy_global;
 
 			if (local_pos.xy_global) {
 				double est_lat, est_lon;
@@ -853,6 +842,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (local_pos.z_global) {
 				global_pos.alt = local_pos.ref_alt - local_pos.z;
+			}
+
+			if (local_pos.z_valid) {
+				global_pos.baro_alt = baro_offset - local_pos.z;
 			}
 
 			if (local_pos.v_z_valid) {

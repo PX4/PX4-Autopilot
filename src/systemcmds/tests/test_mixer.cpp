@@ -65,20 +65,20 @@ static int	mixer_callback(uintptr_t handle,
 
 const unsigned output_max = 8;
 static float actuator_controls[output_max];
-static bool should_arm = false;
-uint16_t r_page_servo_disarmed[output_max];
-uint16_t r_page_servo_control_min[output_max];
-uint16_t r_page_servo_control_max[output_max];
-uint16_t r_page_servos[output_max];
-uint16_t servo_predicted[output_max];
-
-/*
- * PWM limit structure
- */
-pwm_limit_t pwm_limit;
 
 int test_mixer(int argc, char *argv[])
 {
+	/*
+	 * PWM limit structure
+	 */
+	pwm_limit_t pwm_limit;
+	static bool should_arm = false;
+	uint16_t r_page_servo_disarmed[output_max];
+	uint16_t r_page_servo_control_min[output_max];
+	uint16_t r_page_servo_control_max[output_max];
+	uint16_t r_page_servos[output_max];
+	uint16_t servo_predicted[output_max];
+
 	warnx("testing mixer");
 
 	char *filename = "/etc/mixers/IO_pass.mix";

@@ -94,7 +94,6 @@ MavlinkOrbListener::MavlinkOrbListener(Mavlink* parent) :
 	add_listener(MavlinkOrbListener::l_vehicle_gps_position,	&(_mavlink->get_subs()->gps_sub),			0);
 	add_listener(MavlinkOrbListener::l_vehicle_status,		&(_mavlink->get_subs()->status_sub),			0);
 	add_listener(MavlinkOrbListener::l_home,			&(_mavlink->get_subs()->home_sub),			0);
-	add_listener(MavlinkOrbListener::l_control_mode,		&(_mavlink->get_subs()->control_mode_sub),		0);
 	add_listener(MavlinkOrbListener::l_rc_channels,			&(_mavlink->get_subs()->rc_sub),			0);
 	add_listener(MavlinkOrbListener::l_input_rc,			&(_mavlink->get_subs()->input_rc_sub),			0);
 	add_listener(MavlinkOrbListener::l_global_position,		&(_mavlink->get_subs()->global_pos_sub),		0);
@@ -277,6 +276,7 @@ MavlinkOrbListener::l_vehicle_status(const struct listener *l)
 	/* immediately communicate state _mavlink->get_chan()ges back to user */
 	orb_copy(ORB_ID(vehicle_status), l->mavlink->get_subs()->status_sub, &(l->mavlink->v_status));
 	orb_copy(ORB_ID(actuator_armed), l->mavlink->get_subs()->armed_sub, &l->listener->armed);
+	orb_copy(ORB_ID(position_setpoint_triplet), l->mavlink->get_subs()->position_setpoint_triplet_sub, &(l->mavlink->pos_sp_triplet));
 
 	/* enable or disable HIL */
 	if (l->listener->v_status.hil_state == HIL_STATE_ON)
@@ -317,10 +317,10 @@ MavlinkOrbListener::l_input_rc(const struct listener *l)
 
 		const unsigned port_width = 8;
 
-		for (unsigned i = 0; (i * port_width) < (l->listener->rc_raw.channel_count + port_width); i++) {
+		for (unsigned i = 0; (i * port_width) < l->listener->rc_raw.channel_count; i++) {
 			/* Channels are sent in MAVLink main loop at a fixed interval */
 			mavlink_msg_rc_channels_raw_send(l->mavlink->get_chan(),
-							 l->listener->rc_raw.timestamp / 1000,
+							 l->listener->rc_raw.timestamp_publication / 1000,
 							 i,
 							 (l->listener->rc_raw.channel_count > (i * port_width) + 0) ? l->listener->rc_raw.values[(i * port_width) + 0] : UINT16_MAX,
 							 (l->listener->rc_raw.channel_count > (i * port_width) + 1) ? l->listener->rc_raw.values[(i * port_width) + 1] : UINT16_MAX,
@@ -644,26 +644,6 @@ MavlinkOrbListener::l_nav_cap(const struct listener *l)
 
 }
 
-void
-MavlinkOrbListener::l_control_mode(const struct listener *l)
-{
-	orb_copy(ORB_ID(vehicle_control_mode), l->mavlink->get_subs()->control_mode_sub, &l->listener->control_mode);
-
-	/* translate the current syste state to mavlink state and mode */
-	uint8_t mavlink_state = 0;
-	uint8_t mavlink_base_mode = 0;
-	uint32_t mavlink_custom_mode = 0;
-	l->mavlink->get_mavlink_mode_and_state(&mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
-
-	/* send heartbeat */
-	mavlink_msg_heartbeat_send(l->mavlink->get_chan(),
-				   mavlink_system.type,
-				   MAV_AUTOPILOT_PX4,
-				   mavlink_base_mode,
-				   mavlink_custom_mode,
-				   mavlink_state);
-}
-
 void *
 MavlinkOrbListener::uorb_receive_thread(void *arg)
 {
@@ -759,9 +739,9 @@ MavlinkOrbListener::uorb_receive_start(Mavlink* mavlink)
 	mavlink->get_subs()->status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	orb_set_interval(mavlink->get_subs()->status_sub, 300);		/* max 3.33 Hz updates */
 
-	/* --- CONTROL MODE --- */
-	mavlink->get_subs()->control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	orb_set_interval(mavlink->get_subs()->control_mode_sub, 300);		/* max 3.33 Hz updates */
+	/* --- POSITION SETPOINT TRIPLET --- */
+	mavlink->get_subs()->position_setpoint_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
+	orb_set_interval(mavlink->get_subs()->position_setpoint_triplet_sub, 0);		/* not polled, don't limit */
 
 	/* --- RC CHANNELS VALUE --- */
 	mavlink->get_subs()->rc_sub = orb_subscribe(ORB_ID(rc_channels));

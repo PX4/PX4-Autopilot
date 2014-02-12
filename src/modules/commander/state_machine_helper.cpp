@@ -42,6 +42,8 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <dirent.h>
+#include <fcntl.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
@@ -50,6 +52,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_device.h>
 #include <mavlink/mavlink_log.h>
 
 #include "state_machine_helper.h"
@@ -332,6 +335,33 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 
 				mavlink_log_critical(mavlink_fd, "Switched to ON hil state");
 				valid_transition = true;
+
+				// Disable publication of all attached sensors
+
+				/* list directory */
+				DIR		*d;
+				struct dirent	*direntry;
+				d = opendir("/dev");
+				if (d) {
+
+					while ((direntry = readdir(d)) != NULL) {
+
+						int sensfd = ::open(direntry->d_name, 0);
+						int block_ret = ::ioctl(sensfd, DEVIOCSPUBBLOCK, 0);
+						close(sensfd);
+
+						printf("Disabling %s\n: %s", direntry->d_name, (!block_ret) ? "OK" : "FAIL");
+					}
+
+					closedir(d);
+
+					warnx("directory listing ok (FS mounted and readable)");
+
+				} else {
+					/* failed opening dir */
+					warnx("FAILED LISTING DEVICE ROOT DIRECTORY");
+					return 1;
+				}
 			}
 
 			break;
@@ -382,16 +412,22 @@ transition_result_t failsafe_state_transition(struct vehicle_status_s *status, f
 			break;
 
 		case FAILSAFE_STATE_RTL:
+
 			/* global position and home position required for RTL */
 			if (status->condition_global_position_valid && status->condition_home_position_valid) {
+				status->set_nav_state = NAV_STATE_RTL;
+				status->set_nav_state_timestamp = hrt_absolute_time();
 				ret = TRANSITION_CHANGED;
 			}
 
 			break;
 
 		case FAILSAFE_STATE_LAND:
+
 			/* at least relative altitude estimate required for landing */
 			if (status->condition_local_altitude_valid || status->condition_global_position_valid) {
+				status->set_nav_state = NAV_STATE_LAND;
+				status->set_nav_state_timestamp = hrt_absolute_time();
 				ret = TRANSITION_CHANGED;
 			}
 

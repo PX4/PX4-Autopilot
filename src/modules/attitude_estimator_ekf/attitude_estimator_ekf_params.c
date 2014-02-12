@@ -68,7 +68,7 @@ PARAM_DEFINE_FLOAT(ATT_YAW_OFF3, 0.0f);
 /* magnetic declination, in degrees */
 PARAM_DEFINE_FLOAT(ATT_MAG_DECL, 0.0f);
 
-PARAM_DEFINE_INT32(ATT_ACC_COMP, 0);
+PARAM_DEFINE_INT32(ATT_ACC_COMP, 2);
 
 int parameters_init(struct attitude_estimator_ekf_param_handles *h)
 {

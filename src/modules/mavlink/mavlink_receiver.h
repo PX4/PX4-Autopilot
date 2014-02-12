@@ -57,7 +57,6 @@
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls_effective.h>
@@ -122,6 +121,7 @@ private:
 	struct vehicle_gps_position_s hil_gps;
 	struct sensor_combined_s hil_sensors;
 	struct battery_status_s	hil_battery_status;
+	struct position_setpoint_triplet_s pos_sp_triplet;
 	orb_advert_t pub_hil_global_pos;
 	orb_advert_t pub_hil_local_pos;
 	orb_advert_t pub_hil_attitude;

@@ -2,9 +2,11 @@
 #
 # HIL Quadcopter +
 #
-# Maintainers: Anton Babushkin <anton.babushkin@me.com>
+# Anton Babushkin <anton.babushkin@me.com>
 #
 
-sh /etc/init.d/1001_rc_quad_x.hil
+sh /etc/init.d/rc.mc_defaults
 
 set MIXER FMU_quad_+
+
+set HIL yes

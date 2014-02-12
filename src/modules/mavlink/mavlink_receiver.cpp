@@ -330,7 +330,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		tstatus.rxerrors = rstatus.rxerrors;
 		tstatus.fixed = rstatus.fixed;
 
-		if (telemetry_status_pub == 0) {
+		if (telemetry_status_pub <= 0) {
 			telemetry_status_pub = orb_advertise(ORB_ID(telemetry_status), &tstatus);
 
 		} else {
@@ -613,7 +613,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 				orb_publish(ORB_ID(vehicle_global_position), pub_hil_global_pos, &hil_global_pos);
 				// global position packet
 				hil_global_pos.timestamp = timestamp;
-				hil_global_pos.valid = true;
+				hil_global_pos.global_valid = true;
 				hil_global_pos.lat = hil_state.lat;
 				hil_global_pos.lon = hil_state.lon;
 				hil_global_pos.alt = hil_state.alt / 1000.0f;

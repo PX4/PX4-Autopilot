@@ -56,7 +56,7 @@
 // #include <stdlib.h>
 // #include <poll.h>
 
-// 
+//
 // #include <systemlib/systemlib.h>
 // #include <systemlib/err.h>
 // #include <mavlink/mavlink_log.h>

@@ -61,7 +61,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/mission.h>
 #include <systemlib/param/param.h>
@@ -502,28 +502,36 @@ Mavlink::get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_bas
 	*mavlink_base_mode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
 	union px4_custom_mode custom_mode;
 	custom_mode.data = 0;
-	if (v_status.main_state == MAIN_STATE_MANUAL) {
-		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (v_status.is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
-	} else if (v_status.main_state == MAIN_STATE_SEATBELT) {
-		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_SEATBELT;
-	} else if (v_status.main_state == MAIN_STATE_EASY) {
-		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_EASY;
-	} else if (v_status.main_state == MAIN_STATE_AUTO) {
+	if (pos_sp_triplet.nav_state == NAV_STATE_NONE) {
+	/* use main state when navigator is not active */
+		if (v_status.main_state == MAIN_STATE_MANUAL) {
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (v_status.is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+		} else if (v_status.main_state == MAIN_STATE_SEATBELT) {
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_SEATBELT;
+		} else if (v_status.main_state == MAIN_STATE_EASY) {
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_EASY;
+		} else if (v_status.main_state == MAIN_STATE_AUTO) {
+			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
+		}
+	} else {
+		/* use navigation state when navigator is active */
 		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-		if (control_mode.nav_state == NAV_STATE_NONE) {	// failsafe, shouldn't happen
+		if (pos_sp_triplet.nav_state == NAV_STATE_READY) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
-		} else if (control_mode.nav_state == NAV_STATE_READY) {
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
-		} else if (control_mode.nav_state == NAV_STATE_LOITER) {
+		} else if (pos_sp_triplet.nav_state == NAV_STATE_LOITER) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
-		} else if (control_mode.nav_state == NAV_STATE_MISSION) {
+		} else if (pos_sp_triplet.nav_state == NAV_STATE_MISSION) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
-		} else if (control_mode.nav_state == NAV_STATE_RTL) {
+		} else if (pos_sp_triplet.nav_state == NAV_STATE_RTL) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
+		} else if (pos_sp_triplet.nav_state == NAV_STATE_LAND) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
 		}
 	}
 	*mavlink_custom_mode = custom_mode.data;

@@ -57,7 +57,6 @@
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls_effective.h>
@@ -158,13 +157,11 @@ private:
 	static void		l_home(const struct listener *l);
 	static void		l_airspeed(const struct listener *l);
 	static void		l_nav_cap(const struct listener *l);
-	static void		l_control_mode(const struct listener *l);
 
 	struct vehicle_global_position_s global_pos;
 	struct vehicle_local_position_s local_pos;
 	struct navigation_capabilities_s nav_cap;
 	struct vehicle_status_s v_status;
-	struct vehicle_control_mode_s control_mode;
 	struct rc_channels_s rc;
 	struct rc_input_values rc_raw;
 	struct actuator_armed_s armed;
