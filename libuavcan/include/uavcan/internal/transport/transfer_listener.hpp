@@ -87,13 +87,15 @@ public:
  */
 class TransferListenerBase : public LinkedListNode<TransferListenerBase>
 {
-    const Crc16 crc_base_;     ///< Pre-initialized with data type hash, thus constant
+    const DataTypeDescriptor* const data_type_;
+    const Crc16 crc_base_;                      ///< Pre-initialized with data type hash, thus constant
 
     bool checkPayloadCrc(const uint16_t compare_with, const TransferBufferBase& tbb) const;
 
 protected:
     TransferListenerBase(const DataTypeDescriptor* data_type)
-    : crc_base_(data_type->hash.value, DataTypeHash::NUM_BYTES)
+    : data_type_(data_type)
+    , crc_base_(data_type->hash.value, DataTypeHash::NUM_BYTES)
     {
         assert(data_type);
     }
@@ -105,6 +107,8 @@ protected:
     virtual void handleIncomingTransfer(IncomingTransfer& transfer) = 0;
 
 public:
+    const DataTypeDescriptor* getDataTypeDescriptor() const { return data_type_; }
+
     virtual void handleFrame(const RxFrame& frame) = 0;
     virtual void cleanup(uint64_t ts_monotonic) = 0;
 };

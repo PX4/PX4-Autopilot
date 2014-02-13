@@ -241,6 +241,11 @@ TEST(TransferListener, TestingEnvironmentSFTSerialization)
 }
 
 
+/**
+ * This subscriber accepts any types of transfers - this makes testing easier.
+ * In reality, uavcan::TransferListener should accept only specific transfer types
+ * which are dispatched/filtered by uavcan::Dispatcher.
+ */
 template <unsigned int MAX_BUF_SIZE, unsigned int NUM_STATIC_BUFS, unsigned int NUM_STATIC_RECEIVERS>
 class TestSubscriber : public uavcan::TransferListener<MAX_BUF_SIZE, NUM_STATIC_BUFS, NUM_STATIC_RECEIVERS>
 {
