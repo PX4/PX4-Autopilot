@@ -113,7 +113,7 @@ public:
  * This class should be derived by transfer receivers (subscribers, servers, callers).
  */
 template <unsigned int MAX_BUF_SIZE, unsigned int NUM_STATIC_BUFS, unsigned int NUM_STATIC_RECEIVERS>
-class TransferListener : protected TransferListenerBase, Noncopyable
+class TransferListener : public TransferListenerBase, Noncopyable
 {
     typedef TransferBufferManager<MAX_BUF_SIZE, NUM_STATIC_BUFS> BufferManager;
     BufferManager bufmgr_;
@@ -186,7 +186,9 @@ public:
     : TransferListenerBase(data_type)
     , bufmgr_(allocator)
     , receivers_(allocator)
-    { }
+    {
+        StaticAssert<(NUM_STATIC_RECEIVERS >= NUM_STATIC_BUFS)>::check();  // Otherwise it would be meaningless
+    }
 
     ~TransferListener()
     {

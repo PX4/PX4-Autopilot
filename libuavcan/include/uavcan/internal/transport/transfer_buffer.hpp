@@ -383,6 +383,13 @@ public:
             if (dyn == NULL)
                 return NULL;     // Epic fail.
             dynamic_buffers_.insert(dyn);
+            UAVCAN_TRACE("TransferBufferManager", "Dynamic buffer created [st=%u, dyn=%u], %s",
+                         getNumStaticBuffers(), getNumDynamicBuffers(), key.toString().c_str());
+        }
+        else
+        {
+            UAVCAN_TRACE("TransferBufferManager", "Static buffer created [st=%u, dyn=%u], %s",
+                         getNumStaticBuffers(), getNumDynamicBuffers(), key.toString().c_str());
         }
 
         if (tbme)
@@ -400,6 +407,7 @@ public:
         TransferBufferManagerEntry* const tbme = findFirstStatic(key);
         if (tbme)
         {
+            UAVCAN_TRACE("TransferBufferManager", "Static buffer deleted, %s", key.toString().c_str());
             tbme->reset();
             optimizeStorage();
             return;
@@ -408,6 +416,7 @@ public:
         DynamicTransferBuffer* dyn = findFirstDynamic(key);
         if (dyn)
         {
+            UAVCAN_TRACE("TransferBufferManager", "Dynamic buffer deleted, %s", key.toString().c_str());
             dynamic_buffers_.remove(dyn);
             DynamicTransferBuffer::destroy(dyn, allocator_);
         }

@@ -67,8 +67,14 @@ bool TransferListenerBase::checkPayloadCrc(const uint16_t compare_with, const Tr
     {
         uint8_t buf[16];
         const int res = tbb.read(offset, buf, sizeof(buf));
+        if (res < 0)
+        {
+            UAVCAN_TRACE("TransferListenerBase", "Failed to check CRC: Buffer read failure %i", res);
+            return false;
+        }
         if (res == 0)
             break;
+        offset += res;
         crc.add(buf, res);
     }
     return crc.get() == compare_with;
@@ -110,7 +116,7 @@ void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxF
 
         if (!checkPayloadCrc(receiver.getLastTransferCrc(), *tbb))
         {
-            UAVCAN_TRACE("TransferListenerBase", "CRC mismatch, last frame: %s", frame.toString().c_str());
+            UAVCAN_TRACE("TransferListenerBase", "CRC error, last frame: %s", frame.toString().c_str());
             return;
         }
 

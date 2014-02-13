@@ -46,8 +46,6 @@ private:
     bool writePayload(const RxFrame& frame, TransferBufferBase& buf);
     ResultCode receive(const RxFrame& frame, TransferBufferAccessor& tba);
 
-    TransferReceiver(const TransferReceiver&); // = delete (not needed)
-
 public:
     TransferReceiver()
     : prev_transfer_ts_monotonic_(0)

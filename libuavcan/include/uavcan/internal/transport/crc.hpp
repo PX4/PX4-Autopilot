@@ -17,7 +17,7 @@ namespace uavcan
 class Crc16
 {
     static const uint16_t TABLE[256];
-    uint_fast16_t value_;
+    uint16_t value_;
 
 public:
     Crc16()

@@ -17,7 +17,7 @@ namespace uavcan
 /**
  * Slow but memory efficient KV container.
  * Type requirements:
- *  Both key and value must be copyable and default constructible.
+ *  Both key and value must be copyable, assignable and default constructible.
  *  Key must implement a comparison operator.
  *  Key's default constructor must initialize the object into invalid state.
  *  Size of Key + Value + padding must not exceed MEM_POOL_BLOCK_SIZE.
