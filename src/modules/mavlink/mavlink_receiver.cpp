@@ -129,7 +129,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 				usleep(50000);
 
 				/* terminate other threads and this thread */
-				thread_should_exit = true;
+				_mavlink->_task_should_exit = true;
 
 			} else {
 
