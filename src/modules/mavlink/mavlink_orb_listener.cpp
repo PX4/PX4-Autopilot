@@ -83,7 +83,6 @@ cm_uint16_from_m_float(float m)
 
 MavlinkOrbListener::MavlinkOrbListener(Mavlink* parent) :
 
-	thread_should_exit(false),
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink orb")),
 	_mavlink(parent),
 	_listeners(nullptr),
@@ -678,7 +677,7 @@ MavlinkOrbListener::uorb_receive_thread(void *arg)
 		/* Invoke callback to set initial state */
 		//listeners[i].callback(&listener[i]);
 
-	while (!thread_should_exit) {
+	while (!_mavlink->_task_should_exit) {
 
 		int poll_ret = poll(fds, _n_listeners, timeout);
 

@@ -250,6 +250,43 @@ Mavlink* Mavlink::get_instance(unsigned instance)
 	return inst;
 }
 
+int Mavlink::destroy_all_instances()
+{
+	/* start deleting from the end */
+	Mavlink *inst_to_del = nullptr;
+	Mavlink *next_inst = ::_head;
+
+	unsigned iterations = 0;
+
+	warnx("waiting for instances to stop");
+	while (next_inst != nullptr) {
+
+		inst_to_del = next_inst;
+		next_inst = inst_to_del->_next;
+
+		/* set flag to stop thread and wait for all threads to finish */
+		inst_to_del->_task_should_exit = true;
+		while (inst_to_del->thread_running) {
+			printf(".");
+			usleep(10000);
+			iterations++;
+
+			if (iterations > 10000) {
+				warnx("ERROR: Couldn't stop all mavlink instances.");
+				return ERROR;
+			}
+		}
+		delete inst_to_del;
+	}
+
+	/* reset head */
+	::_head = nullptr;
+
+	printf("\n");
+	warnx("all instances stopped");
+	return OK;
+}
+
 bool Mavlink::instance_exists(const char *device_name, Mavlink *self)
 {
 	Mavlink* inst = ::_head;
@@ -1495,9 +1532,9 @@ Mavlink::task_main(int argc, char *argv[])
 			device_name = optarg;
 			break;
 
-		case 'e':
-			mavlink_link_termination_allowed = true;
-			break;
+//		case 'e':
+//			mavlink_link_termination_allowed = true;
+//			break;
 
 		case 'o':
 			_mode = MODE_ONBOARD;
@@ -1749,7 +1786,7 @@ Mavlink::task_main(int argc, char *argv[])
 	tcsetattr(_uart, TCSANOW, &uart_config_original);
 
 	/* destroy log buffer */
-	//mavlink_logbuffer_destroy(&lb);
+	mavlink_logbuffer_destroy(&lb);
 
 	thread_running = false;
 
@@ -1782,7 +1819,7 @@ Mavlink::status()
 
 static void usage()
 {
-	errx(1, "usage: mavlink {start|stop|status}");
+	errx(1, "usage: mavlink {start|stop|status} [-d device] [-b baudrate] [-o]");
 }
 
 int mavlink_main(int argc, char *argv[])
@@ -1830,21 +1867,16 @@ int mavlink_main(int argc, char *argv[])
 		// }
 
 		return 0;
-	}
 
-	// if (mavlink::g_mavlink == nullptr)
-	// 	errx(1, "not running");
-
-	// if (!strcmp(argv[1], "stop")) {
-	// 	delete mavlink::g_mavlink;
-	// 	mavlink::g_mavlink = nullptr;
+	} else if (!strcmp(argv[1], "stop")) {
+		return Mavlink::destroy_all_instances();
 
 	// } else if (!strcmp(argv[1], "status")) {
 	// 	mavlink::g_mavlink->status();
 
-	// } else {
-	// 	usage();
-	// }
+	 } else {
+	 	usage();
+	 }
 
 	return 0;
 }

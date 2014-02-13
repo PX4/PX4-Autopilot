@@ -116,8 +116,6 @@ public:
 
 private:
 
-	bool		thread_should_exit;		/**< if true, sensor task should exit */
-
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	Mavlink*	_mavlink;

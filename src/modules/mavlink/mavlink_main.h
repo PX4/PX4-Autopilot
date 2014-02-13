@@ -168,6 +168,8 @@ public:
 
 	static Mavlink* get_instance(unsigned instance);
 
+	static int	destroy_all_instances();
+
 	static bool	instance_exists(const char *device_name, Mavlink *self);
 
 	static int get_uart_fd(unsigned index);
@@ -263,6 +265,8 @@ public:
 	/** Position setpoint triplet */
 	struct position_setpoint_triplet_s pos_sp_triplet;
 
+	bool		_task_should_exit;		/**< if true, mavlink task should exit */
+
 protected:
 	/**
 	 * Pointer to the default cdev file operations table; useful for
@@ -273,7 +277,6 @@ protected:
 
 private:
 	int		_mavlink_fd;
-	bool		_task_should_exit;		/**< if true, mavlink task should exit */
 	bool		thread_running;
 	int		_mavlink_task;			/**< task handle for sensor task */
 

@@ -106,8 +106,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	telemetry_status_pub(-1),
 	lat0(0),
 	lon0(0),
-	alt0(0),
-	thread_should_exit(false)
+	alt0(0)
 {
 
 }
@@ -807,7 +806,7 @@ MavlinkReceiver::receive_thread(void *arg)
 
 	ssize_t nread = 0;
 
-	while (!thread_should_exit) {
+	while (!_mavlink->_task_should_exit) {
 		if (poll(fds, 1, timeout) > 0) {
 			if (nread < sizeof(buf)) {
 				/* to avoid reading very small chunks wait for data before reading */
