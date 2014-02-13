@@ -1,8 +1,0 @@
-#!nsh
-#
-# HobbyKing X550 Quadcopter
-#
-# Todd Stellanova <tstellanova@gmail.com>
-#
-
-sh /etc/init.d/4001_quad_x

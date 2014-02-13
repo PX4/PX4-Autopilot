@@ -267,8 +267,20 @@ struct log_DIST_s {
 	uint8_t flags;
 };
 
+/* --- TELE - TELEMETRY STATUS --- */
+#define LOG_TELE_MSG 22
+struct log_TELE_s {
+    uint8_t rssi;
+    uint8_t remote_rssi;
+    uint8_t noise;
+    uint8_t remote_noise;
+    uint16_t rxerrors;
+    uint16_t fixed;
+    uint8_t txbuf;
+};
+
 /* --- TPOS - TARGET GLOBAL POSITION --- */
-#define LOG_TPOS_MSG 22
+#define LOG_TPOS_MSG 23
 struct log_TPOS_s {
 	uint8_t sysid;
 	int32_t lat;
@@ -326,6 +338,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
 	LOG_FORMAT(BATT, "ffff", "V,VFilt,C,Discharged"),
 	LOG_FORMAT(DIST, "ffB", "Bottom,BottomRate,Flags"),
+	LOG_FORMAT(TELE, "BBBBHHB", "RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf"),
 	LOG_FORMAT(TPOS, "BLLffff", "SysID,Lat,Lon,Alt,VelN,VelE,VelD"),
 	/* system-level messages, ID >= 0x80 */
 	// FMT: don't write format of format message, it's useless
