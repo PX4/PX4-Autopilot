@@ -113,17 +113,6 @@ sbus_init(const char *device)
 	} else {
 		debug("S.Bus: open failed");
 	}
-
-	stm32_configgpio(GPIO_SBUS_OENABLE);
-
-	while (1) {
-		ENABLE_SBUS_OUT(true);
-		const char* hello = "HELLO WORLD";
-		if (write(sbus_fd, hello, strlen(hello)) != strlen(hello))
-			break;
-		ENABLE_SBUS_OUT(false);
-	}
-
 	return sbus_fd;
 }
 
