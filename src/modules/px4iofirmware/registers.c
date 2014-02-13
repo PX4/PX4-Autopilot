@@ -462,9 +462,18 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			#ifdef ENABLE_SBUS_OUT
 			ENABLE_SBUS_OUT(value & (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT));
 
-			/* disable the conflicting options */
-			if (value & (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT)) {
-				value &= ~(PX4IO_P_SETUP_FEATURES_PWM_RSSI | PX4IO_P_SETUP_FEATURES_ADC_RSSI);
+			/* disable the conflicting options with SBUS 1 */
+			if (value & (PX4IO_P_SETUP_FEATURES_SBUS1_OUT)) {
+				value &= ~(PX4IO_P_SETUP_FEATURES_PWM_RSSI |
+					PX4IO_P_SETUP_FEATURES_ADC_RSSI |
+					PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
+			}
+
+			/* disable the conflicting options with SBUS 2 */
+			if (value & (PX4IO_P_SETUP_FEATURES_SBUS2_OUT)) {
+				value &= ~(PX4IO_P_SETUP_FEATURES_PWM_RSSI |
+					PX4IO_P_SETUP_FEATURES_ADC_RSSI |
+					PX4IO_P_SETUP_FEATURES_SBUS1_OUT);
 			}
 			#endif
 
