@@ -412,8 +412,13 @@ __EXPORT float get_distance_to_point_global_wgs84(double lat_now, double lon_now
 	float dxy = CONSTANTS_RADIUS_OF_EARTH * c;
 	float dz = alt_now - alt_next;
 
-	*dist_xy = fabsf(dxy);
-	*dist_z = fabsf(dz);
+	if (dist_xy != NULL) {
+		*dist_xy = fabsf(dxy);
+	}
+
+	if (dist_z != NULL) {
+		*dist_z = fabsf(dz);
+	}
 
 	return sqrtf(dxy * dxy + dz * dz);
 }
