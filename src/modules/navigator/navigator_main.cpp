@@ -63,6 +63,7 @@
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/target_global_position.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/mission_result.h>
@@ -146,6 +147,7 @@ private:
 	int		_mavlink_fd;
 
 	int		_global_pos_sub;		/**< global position subscription */
+	int		_target_pos_sub;		/**< target position subscription */
 	int		_home_pos_sub;			/**< home position subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int		_params_sub;			/**< notification of parameter updates */
@@ -160,11 +162,25 @@ private:
 	struct vehicle_status_s				_vstatus;		/**< vehicle status */
 	struct vehicle_control_mode_s		_control_mode;		/**< vehicle control mode */
 	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
+	struct target_global_position_s		_target_pos;		/**< target global position */
 	struct home_position_s				_home_pos;		/**< home position for RTL */
 	struct position_setpoint_triplet_s			_pos_sp_triplet;	/**< triplet of position setpoints */
 	struct mission_result_s				_mission_result;	/**< mission result for commander/mavlink */
 	struct mission_item_s				_mission_item;	/**< current mission item */
 	bool		_mission_item_valid;	/**< current mission item valid */
+
+	struct mission_item_s				_roi_item;	/**< ROI mission item */
+
+	struct follow_offset_s {
+		bool valid;
+		double lat;		/**< latitude of target */
+		double lon;		/**< longitude of target */
+		float alt;		/**< altitude of target */
+		math::Vector<3> offset;		/**< offset from target */
+	};
+
+	struct follow_offset_s	_follow_offset_prev;		/**< offset from target for previous "follow" waypoint */
+	struct follow_offset_s	_follow_offset_next;		/**< offset from target for next "follow" waypoint */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -251,6 +267,11 @@ private:
 	 * Retrieve global position
 	 */
 	void		global_position_update();
+
+	/**
+	 * Retrieve target position
+	 */
+	void		target_position_update();
 
 	/**
 	 * Retrieve home position
@@ -374,6 +395,7 @@ Navigator::Navigator() :
 
 /* subscriptions */
 	_global_pos_sub(-1),
+	_target_pos_sub(-1),
 	_home_pos_sub(-1),
 	_vstatus_sub(-1),
 	_control_mode_sub(-1),
@@ -418,6 +440,10 @@ Navigator::Navigator() :
 	memset(&_pos_sp_triplet, 0, sizeof(struct position_setpoint_triplet_s));
 	memset(&_mission_result, 0, sizeof(struct mission_result_s));
 	memset(&_mission_item, 0, sizeof(struct mission_item_s));
+	memset(&_roi_item, 0, sizeof(_roi_item));
+	memset(&_follow_offset_prev, 0, sizeof(_follow_offset_prev));
+	memset(&_follow_offset_next, 0, sizeof(_follow_offset_next));
+	memset(&_target_pos, 0, sizeof(_target_pos));
 
 	memset(&nav_states_str, 0, sizeof(nav_states_str));
 	nav_states_str[0] = "NONE";
@@ -482,6 +508,12 @@ void
 Navigator::global_position_update()
 {
 	orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
+}
+
+void
+Navigator::target_position_update()
+{
+	orb_copy(ORB_ID(target_global_position), _target_pos_sub, &_target_pos);
 }
 
 void
@@ -600,6 +632,7 @@ Navigator::task_main()
 	 * do subscriptions
 	 */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	_target_pos_sub = orb_subscribe(ORB_ID(target_global_position));
 	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
@@ -618,15 +651,12 @@ Navigator::task_main()
 	offboard_mission_update(_vstatus.is_rotary_wing);
 	onboard_mission_update();
 
-	/* rate limit position updates to 50 Hz */
-	orb_set_interval(_global_pos_sub, 20);
-
 	unsigned prevState = NAV_STATE_NONE;
 	hrt_abstime mavlink_open_time = 0;
 	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source(s) */
-	struct pollfd fds[8];
+	struct pollfd fds[9];
 
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
@@ -645,6 +675,8 @@ Navigator::task_main()
 	fds[6].events = POLLIN;
 	fds[7].fd = _control_mode_sub;
 	fds[7].events = POLLIN;
+	fds[8].fd = _target_pos_sub;
+	fds[8].events = POLLIN;
 
 	while (!_task_should_exit) {
 
@@ -801,6 +833,11 @@ Navigator::task_main()
 		if (fds[4].revents & POLLIN) {
 			offboard_mission_update(_vstatus.is_rotary_wing);
 			// XXX check if mission really changed
+
+			/* reset offsets on mission changes */
+			_follow_offset_prev.valid = false;
+			_follow_offset_next.valid = false;
+
 			dispatch(EVENT_MISSION_CHANGED);
 		}
 
@@ -808,6 +845,11 @@ Navigator::task_main()
 		if (fds[5].revents & POLLIN) {
 			onboard_mission_update();
 			// XXX check if mission really changed
+
+			/* reset offsets on mission changes */
+			_follow_offset_prev.valid = false;
+			_follow_offset_next.valid = false;
+
 			dispatch(EVENT_MISSION_CHANGED);
 		}
 
@@ -855,6 +897,11 @@ Navigator::task_main()
 				/* Reset the _geofence_violation_warning_sent field */
 				_geofence_violation_warning_sent = false;
 			}
+		}
+
+		/* target position updated */
+		if (fds[8].revents & POLLIN) {
+			target_position_update();
 		}
 
 		/* publish position setpoint triplet if updated */
@@ -1110,103 +1157,142 @@ Navigator::set_mission_item()
 	_reset_loiter_pos = true;
 	_do_takeoff = false;
 
-	int ret;
-	bool onboard;
-	unsigned index;
+	int ret = ERROR;
+	bool roi_item_valid = false;
 
-	ret = _mission.get_current_mission_item(&_mission_item, &onboard, &index);
-
-	if (ret == OK) {
-		/* reset time counter for new item */
-		_time_first_inside_orbit = 0;
-
-		_mission_item_valid = true;
-		position_setpoint_from_mission_item(&_pos_sp_triplet.current, &_mission_item);
-
-		if (_mission_item.nav_cmd != NAV_CMD_RETURN_TO_LAUNCH &&
-		    _mission_item.nav_cmd != NAV_CMD_LOITER_TIME_LIMIT &&
-		    _mission_item.nav_cmd != NAV_CMD_LOITER_TURN_COUNT &&
-		    _mission_item.nav_cmd != NAV_CMD_LOITER_UNLIMITED) {
-			/* don't reset RTL state on RTL or LOITER items */
-			_rtl_state = RTL_STATE_NONE;
-		}
-
-		if (_vstatus.is_rotary_wing) {
-			if (_need_takeoff && (
-				    _mission_item.nav_cmd == NAV_CMD_TAKEOFF ||
-				    _mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
-				    _mission_item.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH ||
-				    _mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-				    _mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-				    _mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED
-			    )) {
-				/* do special TAKEOFF handling for VTOL */
-				_need_takeoff = false;
-
-				/* calculate desired takeoff altitude AMSL */
-				float takeoff_alt_amsl = _pos_sp_triplet.current.alt;
-
-				if (_vstatus.condition_landed) {
-					/* takeoff to at least NAV_TAKEOFF_ALT from ground if landed */
-					takeoff_alt_amsl = fmaxf(takeoff_alt_amsl, _global_pos.alt + _parameters.takeoff_alt);
-				}
-
-				/* check if we really need takeoff */
-				if (_vstatus.condition_landed || _global_pos.alt < takeoff_alt_amsl - _mission_item.acceptance_radius) {
-					/* force TAKEOFF if landed or waypoint altitude is more than current */
-					_do_takeoff = true;
-
-					/* move current position setpoint to next */
-					memcpy(&_pos_sp_triplet.next, &_pos_sp_triplet.current, sizeof(position_setpoint_s));
-
-					/* set current setpoint to takeoff */
-
-					_pos_sp_triplet.current.lat = _global_pos.lat;
-					_pos_sp_triplet.current.lon = _global_pos.lon;
-					_pos_sp_triplet.current.alt = takeoff_alt_amsl;
-					_pos_sp_triplet.current.yaw = NAN;
-					_pos_sp_triplet.current.type = SETPOINT_TYPE_TAKEOFF;
-				}
-
-			} else if (_mission_item.nav_cmd == NAV_CMD_LAND) {
-				/* will need takeoff after landing */
-				_need_takeoff = true;
-			}
-		}
-
-		if (_do_takeoff) {
-			mavlink_log_info(_mavlink_fd, "[navigator] takeoff to %.1fm above home", _pos_sp_triplet.current.alt - _home_pos.alt);
-
-		} else {
-			if (onboard) {
-				mavlink_log_info(_mavlink_fd, "[navigator] heading to onboard WP %d", index);
-
-			} else {
-				mavlink_log_info(_mavlink_fd, "[navigator] heading to offboard WP %d", index);
-			}
-		}
-
-	} else {
-		/* since a mission is not advanced without WPs available, this is not supposed to happen */
-		_mission_item_valid = false;
-		_pos_sp_triplet.current.valid = false;
-		warnx("ERROR: current WP can't be set");
-	}
-
-	if (!_do_takeoff) {
-		mission_item_s item_next;
-		ret = _mission.get_next_mission_item(&item_next);
+	while (_mission.current_mission_available()) {
+		bool onboard = false;
+		unsigned index = 0;
+		ret = _mission.get_current_mission_item(&_mission_item, &onboard, &index);
 
 		if (ret == OK) {
-			position_setpoint_from_mission_item(&_pos_sp_triplet.next, &item_next);
+			/* reset time counter for new item */
+			_mission_item_valid = true;
+			_time_first_inside_orbit = 0;
+
+			if (_mission_item.nav_cmd == NAV_CMD_ROI) {
+				/* save ROI item */
+				memcpy(&_roi_item, &_mission_item, sizeof(_mission_item));
+				roi_item_valid = true;
+				mavlink_log_info(_mavlink_fd, "[navigator] ROI item found");
+
+				/* get next item */
+				_mission.move_to_next();
+				continue;
+			}
+
+			if (roi_item_valid && _mission_item.nav_cmd == NAV_CMD_WAYPOINT) {
+				/* save previous follow offset */
+				memcpy(&_follow_offset_prev, &_follow_offset_next, sizeof(_follow_offset_prev));
+
+				/* set offset for target following items */
+				_follow_offset_next.valid = true;
+				_follow_offset_next.lat = _roi_item.lat;
+				_follow_offset_next.lon = _roi_item.lon;
+				_follow_offset_next.alt = _roi_item.altitude;
+				get_vector_to_next_waypoint_fast(
+						_roi_item.lat, _roi_item.lon,
+						_mission_item.lat, _mission_item.lon,
+						&_follow_offset_next.offset.data[0], &_follow_offset_next.offset.data[1]);
+				_follow_offset_next.offset(2) = -(_mission_item.altitude - _roi_item.altitude);
+				mavlink_log_info(_mavlink_fd, "[navigator] follow offs: %.2f %.2f %.2f", _follow_offset_next.offset(0), _follow_offset_next.offset(1), _follow_offset_next.offset(2));
+
+			} else {
+				_follow_offset_prev.valid = false;
+				_follow_offset_next.valid = false;
+			}
+
+			/* ROI item only valid for one following waypoint */
+			roi_item_valid = false;
+
+			position_setpoint_from_mission_item(&_pos_sp_triplet.current, &_mission_item);
+
+			if (_mission_item.nav_cmd != NAV_CMD_RETURN_TO_LAUNCH &&
+				_mission_item.nav_cmd != NAV_CMD_LOITER_TIME_LIMIT &&
+				_mission_item.nav_cmd != NAV_CMD_LOITER_TURN_COUNT &&
+				_mission_item.nav_cmd != NAV_CMD_LOITER_UNLIMITED) {
+				/* don't reset RTL state on RTL or LOITER items */
+				_rtl_state = RTL_STATE_NONE;
+			}
+
+			if (_vstatus.is_rotary_wing) {
+				if (_need_takeoff && (
+						_mission_item.nav_cmd == NAV_CMD_TAKEOFF ||
+						_mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
+						_mission_item.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH ||
+						_mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+						_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
+						_mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED
+					)) {
+					/* do special TAKEOFF handling for VTOL */
+					_need_takeoff = false;
+
+					/* calculate desired takeoff altitude AMSL */
+					float takeoff_alt_amsl = _pos_sp_triplet.current.alt;
+
+					if (_vstatus.condition_landed) {
+						/* takeoff to at least NAV_TAKEOFF_ALT from ground if landed */
+						takeoff_alt_amsl = fmaxf(takeoff_alt_amsl, _global_pos.alt + _parameters.takeoff_alt);
+					}
+
+					/* check if we really need takeoff */
+					if (_vstatus.condition_landed || _global_pos.alt < takeoff_alt_amsl - _mission_item.acceptance_radius) {
+						/* force TAKEOFF if landed or waypoint altitude is more than current */
+						_do_takeoff = true;
+
+						/* move current position setpoint to next */
+						memcpy(&_pos_sp_triplet.next, &_pos_sp_triplet.current, sizeof(position_setpoint_s));
+
+						/* set current setpoint to takeoff */
+
+						_pos_sp_triplet.current.lat = _global_pos.lat;
+						_pos_sp_triplet.current.lon = _global_pos.lon;
+						_pos_sp_triplet.current.alt = takeoff_alt_amsl;
+						_pos_sp_triplet.current.yaw = NAN;
+						_pos_sp_triplet.current.type = SETPOINT_TYPE_TAKEOFF;
+					}
+
+				} else if (_mission_item.nav_cmd == NAV_CMD_LAND) {
+					/* will need takeoff after landing */
+					_need_takeoff = true;
+				}
+			}
+
+			if (_do_takeoff) {
+				mavlink_log_info(_mavlink_fd, "[navigator] takeoff to %.1fm above home", _pos_sp_triplet.current.alt - _home_pos.alt);
+
+			} else {
+				if (onboard) {
+					mavlink_log_info(_mavlink_fd, "[navigator] heading to onboard WP %d", index);
+
+				} else {
+					mavlink_log_info(_mavlink_fd, "[navigator] heading to offboard WP %d", index);
+				}
+			}
 
 		} else {
-			/* this will fail for the last WP */
-			_pos_sp_triplet.next.valid = false;
+			/* since a mission is not advanced without WPs available, this is not supposed to happen */
+			_mission_item_valid = false;
+			_pos_sp_triplet.current.valid = false;
+			warnx("ERROR: current WP can't be set");
 		}
-	}
 
-	_pos_sp_triplet_updated = true;
+		if (!_do_takeoff) {
+			mission_item_s item_next;
+			ret = _mission.get_next_mission_item(&item_next);
+
+			if (ret == OK) {
+				position_setpoint_from_mission_item(&_pos_sp_triplet.next, &item_next);
+
+			} else {
+				/* this will fail for the last WP */
+				_pos_sp_triplet.next.valid = false;
+			}
+		}
+
+		_pos_sp_triplet_updated = true;
+		break;
+	}
 }
 
 void
@@ -1470,28 +1556,38 @@ Navigator::check_mission_item_reached()
 		}
 
 		float dist = -1.0f;
-		float dist_xy = -1.0f;
-		float dist_z = -1.0f;
 
-		/* calculate AMSL altitude for this waypoint */
-		float wp_alt_amsl = _mission_item.altitude;
-
-		if (_mission_item.altitude_is_relative)
-			wp_alt_amsl += _home_pos.alt;
-
-		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, wp_alt_amsl,
-				(double)_global_pos.lat, (double)_global_pos.lon, _global_pos.alt,
-				&dist_xy, &dist_z);
-
-		if (_do_takeoff) {
-			if (_global_pos.alt > wp_alt_amsl - acceptance_radius) {
-				/* require only altitude for takeoff */
+		if (myState == NAV_STATE_MISSION && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_NORMAL && _follow_offset_next.valid) {
+			/* follow target waypoint */
+			dist = get_distance_to_point_global_wgs84(_follow_offset_next.lat, _follow_offset_next.lon, _follow_offset_next.alt,
+					(double)_target_pos.lat, (double)_target_pos.lon, _target_pos.alt,
+					NULL, NULL);
+			if (dist >= 0.0f && dist <= acceptance_radius) {
 				_waypoint_position_reached = true;
 			}
 
 		} else {
-			if (dist >= 0.0f && dist <= acceptance_radius) {
-				_waypoint_position_reached = true;
+
+			/* calculate AMSL altitude for this waypoint */
+			float wp_alt_amsl = _mission_item.altitude;
+
+			if (_mission_item.altitude_is_relative)
+				wp_alt_amsl += _home_pos.alt;
+
+			dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, wp_alt_amsl,
+					(double)_global_pos.lat, (double)_global_pos.lon, _global_pos.alt,
+					NULL, NULL);
+
+			if (_do_takeoff) {
+				if (_global_pos.alt > wp_alt_amsl - acceptance_radius) {
+					/* require only altitude for takeoff */
+					_waypoint_position_reached = true;
+				}
+
+			} else {
+				if (dist >= 0.0f && dist <= acceptance_radius) {
+					_waypoint_position_reached = true;
+				}
 			}
 		}
 	}
@@ -1555,6 +1651,7 @@ Navigator::on_mission_item_reached()
 			/* if no more mission items available then finish mission */
 			/* loiter at last waypoint */
 			_reset_loiter_pos = false;
+			_follow_offset_next.valid = false;
 			mavlink_log_info(_mavlink_fd, "[navigator] mission completed");
 
 			if (_vstatus.condition_landed) {
@@ -1597,6 +1694,52 @@ Navigator::publish_position_setpoint_triplet()
 {
 	/* update navigation state */
 	_pos_sp_triplet.nav_state = static_cast<nav_state_t>(myState);
+
+	/* update position setpoint when following target */
+	if (myState == NAV_STATE_MISSION && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_NORMAL && (_follow_offset_prev.valid || _follow_offset_next.valid)) {
+		_pos_sp_triplet.current.valid = true;
+		_pos_sp_triplet.current.type = SETPOINT_TYPE_NORMAL;
+
+		/* calculate current desired offset from target position */
+		math::Vector<3> offset;
+		if (!_follow_offset_prev.valid) {
+			offset = _follow_offset_next.offset;
+
+		} else if (!_follow_offset_next.valid) {
+			offset = _follow_offset_prev.offset;
+
+		} else {
+			float dist_prev = get_distance_to_point_global_wgs84(
+					_target_pos.lat, _target_pos.lon, _target_pos.alt,
+					_follow_offset_prev.lat, _follow_offset_prev.lon, _follow_offset_prev.alt,
+					NULL, NULL);
+			float dist_next = get_distance_to_point_global_wgs84(
+					_target_pos.lat, _target_pos.lon, _target_pos.alt,
+					_follow_offset_next.lat, _follow_offset_next.lon, _follow_offset_next.alt,
+					NULL, NULL);
+			float progress = dist_prev / (dist_prev + dist_next);
+			offset = _follow_offset_prev.offset + (_follow_offset_next.offset - _follow_offset_prev.offset) * progress;
+		}
+
+		/* add offset to target position */
+		add_vector_to_global_position(
+				_target_pos.lat, _target_pos.lon,
+				offset(0), offset(1),
+				&_pos_sp_triplet.current.lat, &_pos_sp_triplet.current.lon);
+		_pos_sp_triplet.current.alt = _target_pos.alt - offset(2);
+
+		/* calculate direction to target */
+		// TODO add yaw offset, use actual position instead of offset
+		_pos_sp_triplet.current.yaw = atan2f(-offset(1), -offset(0));
+
+		_pos_sp_triplet.current.vel_n = _target_pos.vel_n;
+		_pos_sp_triplet.current.vel_e = _target_pos.vel_e;
+		_pos_sp_triplet.current.vel_d = _target_pos.vel_d;
+
+		_pos_sp_triplet.current.loiter_radius = _parameters.loiter_radius;
+		_pos_sp_triplet.current.loiter_direction = 1;
+		_pos_sp_triplet.current.pitch_min = 0.0f;
+	}
 
 	/* lazily publish the position setpoint triplet only once available */
 	if (_pos_sp_triplet_pub > 0) {

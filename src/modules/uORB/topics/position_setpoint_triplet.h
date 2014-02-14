@@ -72,6 +72,9 @@ struct position_setpoint_s
 	float loiter_radius;		/**< loiter radius (only for fixed wing), in m */
 	int8_t loiter_direction;	/**< loiter direction: 1 = CW, -1 = CCW */
 	float pitch_min;			/**< minimal pitch angle for fixed wing takeoff waypoints */
+	float vel_n;				/**< feed forward North velocity */
+	float vel_e;				/**< feed forward East velocity */
+	float vel_d;				/**< feed forward Downside velocity */
 };
 
 /**
