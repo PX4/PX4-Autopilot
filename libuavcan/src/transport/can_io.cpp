@@ -4,12 +4,24 @@
  */
 
 #include <algorithm>
+#include <sstream>
 #include <limits>
 #include <uavcan/internal/transport/can_io.hpp>
 #include <uavcan/internal/debug.hpp>
 
 namespace uavcan
 {
+/*
+ * CanRxFrame
+ */
+std::string CanRxFrame::toString(StringRepresentation mode) const
+{
+    std::ostringstream os;
+    os << CanFrame::toString(mode)
+        << " ts_m=" << ts_monotonic << " ts_utc=" << ts_utc << " iface=" << int(iface_index);
+    return os.str();
+}
+
 /*
  * CanTxQueue::Entry
  */

@@ -28,6 +28,8 @@ struct CanRxFrame : public CanFrame
     , ts_utc(0)
     , iface_index(0)
     { }
+
+    std::string toString(StringRepresentation mode = STR_TIGHT) const;
 };
 
 
