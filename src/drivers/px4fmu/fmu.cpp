@@ -626,7 +626,7 @@ PX4FMU::task_main()
 #ifdef HRT_PPM_CHANNEL
 
 		// see if we have new PPM input data
-		if (ppm_last_valid_decode != rc_in.timestamp) {
+		if (ppm_last_valid_decode != rc_in.timestamp_last_signal) {
 			// we have a new PPM frame. Publish it.
 			rc_in.channel_count = ppm_decoded_channels;
 
@@ -638,7 +638,15 @@ PX4FMU::task_main()
 				rc_in.values[i] = ppm_buffer[i];
 			}
 
-			rc_in.timestamp = ppm_last_valid_decode;
+			rc_in.timestamp_publication = ppm_last_valid_decode;
+			rc_in.timestamp_last_signal = ppm_last_valid_decode;
+
+			rc_in.rc_ppm_frame_length = ppm_frame_length;
+			rc_in.rssi = RC_INPUT_RSSI_MAX;
+			rc_in.rc_failsafe = false;
+			rc_in.rc_lost = false;
+			rc_in.rc_lost_frame_count = 0;
+			rc_in.rc_total_frame_count = 0;
 
 			/* lazily advertise on first publication */
 			if (to_input_rc == 0) {
@@ -1005,6 +1013,40 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		}
 
 		break;
+
+	case PWM_SERVO_SET_COUNT: {
+		/* change the number of outputs that are enabled for
+		 * PWM. This is used to change the split between GPIO
+		 * and PWM under control of the flight config
+		 * parameters. Note that this does not allow for
+		 * changing a set of pins to be used for serial on
+		 * FMUv1 
+		 */
+		switch (arg) {
+		case 0:
+			set_mode(MODE_NONE);
+			break;
+
+		case 2:
+			set_mode(MODE_2PWM);
+			break;
+
+		case 4:
+			set_mode(MODE_4PWM);
+			break;
+
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+		case 6:
+			set_mode(MODE_6PWM);
+			break;
+#endif
+
+		default:
+			ret = -EINVAL;
+			break;
+		}
+		break;
+	}
 
 	case MIXERIOCRESET:
 		if (_mixers != nullptr) {
@@ -1443,7 +1485,6 @@ void
 sensor_reset(int ms)
 {
 	int	 fd;
-	int	 ret;
 
 	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
 

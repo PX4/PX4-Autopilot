@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -633,37 +632,39 @@ Sensors::parameters_update()
 	if (!rc_valid)
 		warnx("WARNING     WARNING     WARNING\n\nRC CALIBRATION NOT SANE!\n\n");
 
+	const char *paramerr = "FAIL PARM LOAD";
+
 	/* channel mapping */
 	if (param_get(_parameter_handles.rc_map_roll, &(_parameters.rc_map_roll)) != OK) {
-		warnx("Failed getting roll chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_pitch, &(_parameters.rc_map_pitch)) != OK) {
-		warnx("Failed getting pitch chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_yaw, &(_parameters.rc_map_yaw)) != OK) {
-		warnx("Failed getting yaw chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_throttle, &(_parameters.rc_map_throttle)) != OK) {
-		warnx("Failed getting throttle chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_mode_sw, &(_parameters.rc_map_mode_sw)) != OK) {
-		warnx("Failed getting mode sw chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_return_sw, &(_parameters.rc_map_return_sw)) != OK) {
-		warnx("Failed getting return sw chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_assisted_sw, &(_parameters.rc_map_assisted_sw)) != OK) {
-		warnx("Failed getting assisted sw chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_mission_sw, &(_parameters.rc_map_mission_sw)) != OK) {
-		warnx("Failed getting mission sw chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_offboard_sw, &(_parameters.rc_map_offboard_sw)) != OK) {
@@ -671,7 +672,7 @@ Sensors::parameters_update()
 	}
 
 	if (param_get(_parameter_handles.rc_map_flaps, &(_parameters.rc_map_flaps)) != OK) {
-		warnx("Failed getting flaps chan index");
+		warnx(paramerr);
 	}
 
 	param_get(_parameter_handles.rc_map_aux1, &(_parameters.rc_map_aux1));
@@ -738,12 +739,12 @@ Sensors::parameters_update()
 
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
-		warnx("Failed updating voltage scaling param");
+		warnx(paramerr);
 	}
 
 	/* scaling of ADC ticks to battery current */
 	if (param_get(_parameter_handles.battery_current_scaling, &(_parameters.battery_current_scaling)) != OK) {
-		warnx("Failed updating current scaling param");
+		warnx(paramerr);
 	}
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
@@ -791,7 +792,6 @@ Sensors::accel_init()
 
 #endif
 
-		warnx("using system accel");
 		close(fd);
 	}
 }
@@ -831,7 +831,6 @@ Sensors::gyro_init()
 
 #endif
 
-		warnx("using system gyro");
 		close(fd);
 	}
 }
@@ -1272,6 +1271,9 @@ Sensors::rc_poll()
 
 		orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
 
+		if (rc_input.rc_lost)
+			return;
+
 		struct manual_control_setpoint_s manual_control;
 		struct actuator_controls_s actuator_group_3;
 
@@ -1316,7 +1318,7 @@ Sensors::rc_poll()
 			channel_limit = _rc_max_chan_count;
 
 		/* we are accepting this message */
-		_rc_last_valid = rc_input.timestamp;
+		_rc_last_valid = rc_input.timestamp_last_signal;
 
 		/* Read out values from raw message */
 		for (unsigned int i = 0; i < channel_limit; i++) {
@@ -1365,9 +1367,9 @@ Sensors::rc_poll()
 		}
 
 		_rc.chan_count = rc_input.channel_count;
-		_rc.timestamp = rc_input.timestamp;
+		_rc.timestamp = rc_input.timestamp_last_signal;
 
-		manual_control.timestamp = rc_input.timestamp;
+		manual_control.timestamp = rc_input.timestamp_last_signal;
 
 		/* roll input - rolling right is stick-wise and rotation-wise positive */
 		manual_control.roll = limit_minus_one_to_one(_rc.chan[_rc.function[ROLL]].scaled);
@@ -1501,9 +1503,6 @@ Sensors::task_main_trampoline(int argc, char *argv[])
 void
 Sensors::task_main()
 {
-
-	/* inform about start */
-	warnx("Initializing..");
 
 	/* start individual sensors */
 	accel_init();
@@ -1649,17 +1648,17 @@ int sensors_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (sensors::g_sensors != nullptr)
-			errx(0, "sensors task already running");
+			errx(0, "already running");
 
 		sensors::g_sensors = new Sensors;
 
 		if (sensors::g_sensors == nullptr)
-			errx(1, "sensors task alloc failed");
+			errx(1, "alloc failed");
 
 		if (OK != sensors::g_sensors->start()) {
 			delete sensors::g_sensors;
 			sensors::g_sensors = nullptr;
-			err(1, "sensors task start failed");
+			err(1, "start failed");
 		}
 
 		exit(0);
@@ -1667,7 +1666,7 @@ int sensors_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (sensors::g_sensors == nullptr)
-			errx(1, "sensors task not running");
+			errx(1, "not running");
 
 		delete sensors::g_sensors;
 		sensors::g_sensors = nullptr;
@@ -1676,10 +1675,10 @@ int sensors_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (sensors::g_sensors) {
-			errx(0, "task is running");
+			errx(0, "is running");
 
 		} else {
-			errx(1, "task is not running");
+			errx(1, "not running");
 		}
 	}
 

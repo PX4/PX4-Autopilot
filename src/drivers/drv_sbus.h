@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,49 +32,27 @@
  ****************************************************************************/
 
 /**
- * @file mission_item_triplet.h
- * Definition of the global WGS84 position setpoint uORB topic.
+ * @file drv_sbus.h
+ *
+ * Futaba S.BUS / S.BUS 2 compatible interface.
  */
 
-#ifndef TOPIC_MISSION_ITEM_TRIPLET_H_
-#define TOPIC_MISSION_ITEM_TRIPLET_H_
+#ifndef _DRV_SBUS_H
+#define _DRV_SBUS_H
 
 #include <stdint.h>
-#include <stdbool.h>
-#include "../uORB.h"
+#include <sys/ioctl.h>
 
-#include "mission.h"
-
-/**
- * @addtogroup topics
- * @{
- */
+#include "drv_orb_dev.h"
 
 /**
- * Global position setpoint triplet in WGS84 coordinates.
- *
- * This are the three next waypoints (or just the next two or one).
+ * Path for the default S.BUS device
  */
-struct mission_item_triplet_s
-{
-	bool previous_valid;
-	bool current_valid;				/**< flag indicating previous mission item is valid */
-	bool next_valid;					/**< flag indicating next mission item is valid */
+#define SBUS_DEVICE_PATH	"/dev/sbus"
 
-	struct mission_item_s previous;
-	struct mission_item_s current;
-	struct mission_item_s next;
+#define _SBUS_BASE		0x2c00
 
-	int previous_index;
-	int current_index;
-	int next_index;
-};
+/** Enable S.BUS version 1 / 2 output (0 to disable) */
+#define SBUS_SET_PROTO_VERSION		_IOC(_SBUS_BASE, 0)
 
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(mission_item_triplet);
-
-#endif
+#endif /* _DRV_SBUS_H */

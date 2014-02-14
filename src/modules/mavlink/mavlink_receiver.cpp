@@ -379,7 +379,7 @@ handle_message(mavlink_message_t *msg)
 		tstatus.rxerrors = rstatus.rxerrors;
 		tstatus.fixed = rstatus.fixed;
 
-		if (telemetry_status_pub == 0) {
+		if (telemetry_status_pub <= 0) {
 			telemetry_status_pub = orb_advertise(ORB_ID(telemetry_status), &tstatus);
 
 		} else {
@@ -662,13 +662,13 @@ handle_message(mavlink_message_t *msg)
 				orb_publish(ORB_ID(vehicle_global_position), pub_hil_global_pos, &hil_global_pos);
 				// global position packet
 				hil_global_pos.timestamp = timestamp;
-				hil_global_pos.valid = true;
+				hil_global_pos.global_valid = true;
 				hil_global_pos.lat = hil_state.lat;
 				hil_global_pos.lon = hil_state.lon;
 				hil_global_pos.alt = hil_state.alt / 1000.0f;
-				hil_global_pos.vx = hil_state.vx / 100.0f;
-				hil_global_pos.vy = hil_state.vy / 100.0f;
-				hil_global_pos.vz = hil_state.vz / 100.0f;
+				hil_global_pos.vel_n = hil_state.vx / 100.0f;
+				hil_global_pos.vel_e = hil_state.vy / 100.0f;
+				hil_global_pos.vel_d = hil_state.vz / 100.0f;
 
 			} else {
 				pub_hil_global_pos = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -86,12 +86,13 @@ Airspeed::Airspeed(int bus, int address, unsigned conversion_interval) :
 	_collect_phase(false),
 	_diff_pres_offset(0.0f),
 	_airspeed_pub(-1),
+	_class_instance(-1),
 	_conversion_interval(conversion_interval),
 	_sample_perf(perf_alloc(PC_ELAPSED, "airspeed_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "airspeed_comms_errors"))
 {
 	// enable debug() calls
-	_debug_enabled = true;
+	_debug_enabled = false;
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -101,6 +102,9 @@ Airspeed::~Airspeed()
 {
 	/* make sure we are truly inactive */
 	stop();
+
+	if (_class_instance != -1)
+		unregister_class_devname(AIRSPEED_DEVICE_PATH, _class_instance);
 
 	/* free any existing reports */
 	if (_reports != nullptr)
@@ -126,13 +130,23 @@ Airspeed::init()
 	if (_reports == nullptr)
 		goto out;
 
-	/* get a publish handle on the airspeed topic */
-	differential_pressure_s zero_report;
-	memset(&zero_report, 0, sizeof(zero_report));
-	_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &zero_report);
+	/* register alternate interfaces if we have to */
+	_class_instance = register_class_devname(AIRSPEED_DEVICE_PATH);
 
-	if (_airspeed_pub < 0)
-		warnx("failed to create airspeed sensor object. Did you start uOrb?");
+	/* publication init */
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+
+		/* advertise sensor topic, measure manually to initialize valid report */
+		struct differential_pressure_s arp;
+		measure();
+		_reports->get(&arp);
+
+		/* measurement will have generated a report, publish */
+		_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &arp);
+
+		if (_airspeed_pub < 0)
+			warnx("failed to create airspeed sensor object. uORB started?");
+	}
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */

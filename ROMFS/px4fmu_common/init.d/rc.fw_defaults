@@ -1,0 +1,14 @@
+#!nsh
+
+set VEHICLE_TYPE fw
+
+if [ $DO_AUTOCONFIG == yes ]
+then
+#
+# Default parameters for FW
+#
+	param set NAV_LAND_ALT 90
+	param set NAV_RTL_ALT 100
+	param set NAV_RTL_LAND_T -1
+	param set NAV_ACCEPT_RAD 50
+fi

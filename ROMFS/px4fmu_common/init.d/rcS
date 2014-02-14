@@ -3,12 +3,10 @@
 # PX4FMU startup script.
 
 #
-# Default to auto-start mode.  An init script on the microSD card
-# can change this to prevent automatic startup of the flight script.
+# Default to auto-start mode.
 #
 set MODE autostart
 
-set LOG_FILE /fs/microsd/bootlog.txt
 set RC_FILE /fs/microsd/etc/rc.txt
 set CONFIG_FILE /fs/microsd/etc/config.txt
 set EXTRAS_FILE /fs/microsd/etc/extras.txt
@@ -21,10 +19,12 @@ set TUNE_OUT_ERROR ML<<CP4CP4CP4CP4CP4
 echo "[init] Looking for microSD..."
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
+	set LOG_FILE /fs/microsd/bootlog.txt
 	echo "[init] microSD card mounted at /fs/microsd"
 	# Start playing the startup tune
 	tone_alarm start
 else
+	set LOG_FILE /dev/null
 	echo "[init] No microSD card found"
 	# Play SOS
 	tone_alarm error
@@ -180,8 +180,8 @@ then
 	
 			set IO_PRESENT yes
 		else
-			echo "[init] PX4IO CRC failure, trying to update"
-			echo "PX4IO CRC failure" >> $LOG_FILE
+			echo "[init] Trying to update"
+			echo "PX4IO Trying to update" >> $LOG_FILE
 			
 			tone_alarm MLL32CP8MB
 			
@@ -198,10 +198,12 @@ then
 				else
 					echo "[init] ERROR: PX4IO update failed"
 					echo "PX4IO update failed" >> $LOG_FILE
+					tone_alarm $TUNE_OUT_ERROR
 				fi
 			else
 				echo "[init] ERROR: PX4IO update failed"
 				echo "PX4IO update failed" >> $LOG_FILE
+				tone_alarm $TUNE_OUT_ERROR
 			fi
 		fi
 		
@@ -462,17 +464,25 @@ then
 
 		if [ $MIXER == none ]
 		then
-			# Set default mixer for multicopter if not defined
-			set MIXER quad_x
+			echo "Default mixer for multicopter not defined"
 		fi
 
 		if [ $MAV_TYPE == none ]
 		then
-			# Use MAV_TYPE = 2 (quadcopter) if not defined
-			set MAV_TYPE 2
-			
 			# Use mixer to detect vehicle type
-			if [ $MIXER == FMU_hex_x -o $MIXER == FMU_hex_+ ]
+			if [ $MIXER == FMU_quad_x -o $MIXER == FMU_quad_+ ]
+			then
+				set MAV_TYPE 2
+			fi
+			if [ $MIXER == FMU_quad_w ]
+			then
+				set MAV_TYPE 2
+			fi
+			if [ $MIXER == FMU_hexa_x -o $MIXER == FMU_hexa_+ ]
+			then
+				set MAV_TYPE 13
+			fi
+			if [ $MIXER == hexa_cox ]
 			then
 				set MAV_TYPE 13
 			fi
@@ -485,8 +495,14 @@ then
 				set MAV_TYPE 14
 			fi
 		fi
-
-	    param set MAV_TYPE $MAV_TYPE
+		
+		# Still no MAV_TYPE found
+		if [ $MAV_TYPE == none ]
+		then
+			echo "Unknown MAV_TYPE"
+		else
+			param set MAV_TYPE $MAV_TYPE
+		fi
 		
 		# Load mixer and configure outputs
 		sh /etc/init.d/rc.interface
@@ -500,10 +516,8 @@ then
 	#
 	if [ $VEHICLE_TYPE == none ]
 	then
-		echo "[init] Vehicle type: GENERIC"
+		echo "[init] Vehicle type: No autostart ID found"
 
-		# Load mixer and configure outputs
-		sh /etc/init.d/rc.interface
 	fi
 
 	# Start any custom addons
