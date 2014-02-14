@@ -761,11 +761,6 @@ int commander_thread_main(int argc, char *argv[])
 	struct manual_control_setpoint_s sp_man;
 	memset(&sp_man, 0, sizeof(sp_man));
 
-    /* Subscribe to offboard control data */
-    int offboard_sp_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
-    struct offboard_control_setpoint_s offboard_sp;
-    memset(&offboard_sp, 0, sizeof(offboard_sp));
-
 	/* Subscribe to offboard control data */
 	int sp_offboard_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
 	struct offboard_control_setpoint_s sp_offboard;
@@ -881,10 +876,6 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
-		}
-
-		if (updated) {
-			orb_copy(ORB_ID(offboard_control_setpoint), offboard_sp_sub, &offboard_sp);
 		}
 
 		orb_check(sp_offboard_sub, &updated);
@@ -1285,7 +1276,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* check offboard signal */
-		if (offboard_sp.timestamp != 0 && hrt_absolute_time() < offboard_sp.timestamp + OFFBOARD_TIMEOUT) {
+		if (sp_offboard.timestamp != 0 && hrt_absolute_time() < sp_offboard.timestamp + OFFBOARD_TIMEOUT) {
 			if (!status.offboard_control_signal_found_once) {
 				status.offboard_control_signal_found_once = true;
 				mavlink_log_info(mavlink_fd, "[cmd] detected offboard signal first time");
@@ -1301,7 +1292,7 @@ int commander_thread_main(int argc, char *argv[])
 			status.offboard_control_signal_lost = false;
 
 			if (status.main_state == MAIN_STATE_OFFBOARD) {
-				if (offboard_sp.armed && !armed.armed) {
+				if (sp_offboard.armed && !armed.armed) {
 					if (!safety.safety_switch_available || safety.safety_off) {
 						transition_result_t res = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed);
 
@@ -1310,7 +1301,7 @@ int commander_thread_main(int argc, char *argv[])
 						}
 					}
 
-				} else if (!offboard_sp.armed && armed.armed) {
+				} else if (!sp_offboard.armed && armed.armed) {
 					arming_state_t new_arming_state = (status.arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
 					transition_result_t res = arming_state_transition(&status, &safety, new_arming_state, &armed);
 
