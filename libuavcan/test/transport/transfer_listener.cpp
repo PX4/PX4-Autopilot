@@ -489,3 +489,59 @@ TEST(TransferListener, BasicSFT)
 
     ASSERT_TRUE(subscriber.isEmpty());
 }
+
+
+TEST(TransferListener, Cleanup)
+{
+    uavcan::DataTypeDescriptor type(uavcan::DATA_TYPE_KIND_MESSAGE, 123, uavcan::DataTypeHash());
+    for (int i = 0; i < uavcan::DataTypeHash::NUM_BYTES; i++)
+        type.hash.value[i] = i | (i << 4);
+
+    uavcan::PoolManager<1> poolmgr;                         // No dynamic memory
+    TestSubscriber<256, 1, 2> subscriber(&type, &poolmgr);  // Static buffer only, 1 entry
+
+    /*
+     * Generating transfers
+     */
+    Emulator emulator(subscriber, type);
+    const Transfer tr_mft = emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 42, "123456789abcdefghik");
+    const Transfer tr_sft = emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST, 11, "abcd");
+
+    const std::vector<uavcan::RxFrame> ser_mft = serializeTransfer(tr_mft, 0, type);
+    const std::vector<uavcan::RxFrame> ser_sft = serializeTransfer(tr_sft, 9, type);
+
+    ASSERT_TRUE(ser_mft.size() > 1);
+    ASSERT_TRUE(ser_sft.size() == 1);
+
+    const std::vector<uavcan::RxFrame> ser_mft_begin(ser_mft.begin(), ser_mft.begin() + 1);
+
+    /*
+     * Sending the first part and SFT
+     */
+    std::vector<std::vector<uavcan::RxFrame> > sers;
+    sers.push_back(ser_mft_begin);      // Only the first part
+    sers.push_back(ser_sft);
+
+    emulator.send(sers);
+
+    ASSERT_TRUE(subscriber.matchAndPop(tr_sft));
+    ASSERT_TRUE(subscriber.isEmpty());
+
+    /*
+     * Cleanup with huge timestamp value will remove all entries
+     */
+    static_cast<uavcan::TransferListenerBase&>(subscriber).cleanup(100000000);
+
+    /*
+     * Sending the same transfers again - they will be accepted since registres were cleared
+     */
+    sers.clear();
+    sers.push_back(ser_mft);   // Complete transfer
+    sers.push_back(ser_sft);
+
+    emulator.send(sers);
+
+    ASSERT_TRUE(subscriber.matchAndPop(tr_sft));
+    ASSERT_TRUE(subscriber.matchAndPop(tr_mft));
+    ASSERT_TRUE(subscriber.isEmpty());
+}

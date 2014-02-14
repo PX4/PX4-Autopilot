@@ -177,12 +177,7 @@ class TransferListener : public TransferListenerBase, Noncopyable
     void cleanup(uint64_t ts_monotonic)
     {
         receivers_.removeWhere(TimedOutReceiverPredicate(ts_monotonic, bufmgr_));
-#if UAVCAN_DEBUG
-        if (receivers_.isEmpty())
-        {
-            assert(bufmgr_.isEmpty());
-        }
-#endif
+        assert(receivers_.isEmpty() ? bufmgr_.isEmpty() : 1);
     }
 
 public:
