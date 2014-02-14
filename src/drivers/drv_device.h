@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,45 +32,31 @@
  ****************************************************************************/
 
 /**
- * @file telemetry_status.h
+ * @file drv_device.h
  *
- * Telemetry status topics - radio status outputs
+ * Generic device / sensor interface.
  */
 
-#ifndef TOPIC_TELEMETRY_STATUS_H
-#define TOPIC_TELEMETRY_STATUS_H
+#ifndef _DRV_DEVICE_H
+#define _DRV_DEVICE_H
 
 #include <stdint.h>
-#include "../uORB.h"
+#include <sys/ioctl.h>
 
-enum TELEMETRY_STATUS_RADIO_TYPE {
-    TELEMETRY_STATUS_RADIO_TYPE_GENERIC = 0,
-    TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO,
-    TELEMETRY_STATUS_RADIO_TYPE_UBIQUITY_BULLET,
-    TELEMETRY_STATUS_RADIO_TYPE_WIRE
-};
+#include "drv_sensor.h"
+#include "drv_orb_dev.h"
 
-/**
- * @addtogroup topics
- * @{
+/*
+ * ioctl() definitions
  */
 
-struct telemetry_status_s {
-	uint64_t timestamp;
-    enum TELEMETRY_STATUS_RADIO_TYPE type;  /**< type of the radio hardware     */
-    uint8_t rssi;              /**< local signal strength                      */
-    uint8_t remote_rssi;       /**< remote signal strength                     */
-    uint16_t rxerrors;          /**< receive errors                             */
-    uint16_t fixed;             /**< count of error corrected packets           */
-    uint8_t noise;              /**< background noise level                     */
-    uint8_t remote_noise;       /**< remote background noise level              */
-    uint8_t txbuf;              /**< how full the tx buffer is as a percentage  */
-};
+#define _DEVICEIOCBASE		(0x100)
+#define _DEVICEIOC(_n)		(_IOC(_DEVICEIOCBASE, _n))
 
-/**
- * @}
- */
+/** ask device to stop publishing */
+#define DEVIOCSPUBBLOCK	_DEVICEIOC(0)
 
-ORB_DECLARE(telemetry_status);
+/** check publication block status */
+#define DEVIOCGPUBBLOCK	_DEVICEIOC(1)
 
-#endif /* TOPIC_TELEMETRY_STATUS_H */
+#endif /* _DRV_DEVICE_H */

@@ -381,7 +381,7 @@ handle_message(mavlink_message_t *msg)
 		tstatus.rxerrors = rstatus.rxerrors;
 		tstatus.fixed = rstatus.fixed;
 
-		if (telemetry_status_pub == 0) {
+		if (telemetry_status_pub <= 0) {
 			telemetry_status_pub = orb_advertise(ORB_ID(telemetry_status), &tstatus);
 
 		} else {

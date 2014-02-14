@@ -153,6 +153,7 @@ static uint64_t last_print_mode_reject_time = 0;
 static bool on_usb_power = false;
 
 static float takeoff_alt = 5.0f;
+static int parachute_enabled = 0;
 
 static struct vehicle_status_s status;
 static struct actuator_armed_s armed;
@@ -568,7 +569,9 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		/* Flight termination */
 	case VEHICLE_CMD_DO_SET_SERVO: { //xxx: needs its own mavlink command
 
-			if (armed->armed && cmd->param3 > 0.5) { //xxx: for safety only for now, param3 is unused by VEHICLE_CMD_DO_SET_SERVO
+			//XXX: to enable the parachute, a param needs to be set
+			//xxx: for safety only for now, param3 is unused by VEHICLE_CMD_DO_SET_SERVO
+			if (armed->armed && cmd->param3 > 0.5 && parachute_enabled) {
 				transition_result_t failsafe_res = failsafe_state_transition(status, FAILSAFE_STATE_TERMINATION);
 				result = VEHICLE_CMD_RESULT_ACCEPTED;
 				ret = true;
@@ -620,6 +623,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_system_id = param_find("MAV_SYS_ID");
 	param_t _param_component_id = param_find("MAV_COMP_ID");
 	param_t _param_takeoff_alt = param_find("NAV_TAKEOFF_ALT");
+	param_t _param_enable_parachute = param_find("NAV_PARACHUTE_EN");
 
 	/* welcome user */
 	warnx("starting");
@@ -866,10 +870,10 @@ int commander_thread_main(int argc, char *argv[])
 
 				/* re-check RC calibration */
 				rc_calibration_ok = (OK == rc_calibration_check(mavlink_fd));
-
-				/* navigation parameters */
-				param_get(_param_takeoff_alt, &takeoff_alt);
 			}
+			/* navigation parameters */
+			param_get(_param_takeoff_alt, &takeoff_alt);
+			param_get(_param_enable_parachute, &parachute_enabled);
 		}
 
 		orb_check(sp_man_sub, &updated);
@@ -1321,7 +1325,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		// TODO remove this hack
 		/* flight termination in manual mode if assisted switch is on easy position */
-		if (!status.is_rotary_wing && armed.armed && status.main_state == MAIN_STATE_MANUAL && sp_man.assisted_switch > STICK_ON_OFF_LIMIT) {
+		if (!status.is_rotary_wing && parachute_enabled && armed.armed && status.main_state == MAIN_STATE_MANUAL && sp_man.assisted_switch > STICK_ON_OFF_LIMIT) {
 			if (TRANSITION_CHANGED == failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION)) {
 				tune_positive();
 			}

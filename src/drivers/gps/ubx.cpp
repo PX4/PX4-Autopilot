@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
- *           Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,8 +37,13 @@
  * U-Blox protocol implementation. Following u-blox 6/7 Receiver Description
  * including Prototol Specification.
  *
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
+ *
  * @see http://www.u-blox.com/images/downloads/Product_Docs/u-blox6_ReceiverDescriptionProtocolSpec_%28GPS.G6-SW-10018%29.pdf
  */
+
 #include <assert.h>
 #include <math.h>
 #include <poll.h>
