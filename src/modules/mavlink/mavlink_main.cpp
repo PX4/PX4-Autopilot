@@ -1842,7 +1842,7 @@ Mavlink::status()
 
 static void usage()
 {
-	errx(1, "usage: mavlink {start|stop|status} [-d device] [-b baudrate] [-o]");
+	errx(1, "usage: mavlink {start|stop-all} [-d device] [-b baudrate] [-o]");
 }
 
 int mavlink_main(int argc, char *argv[])
@@ -1892,6 +1892,10 @@ int mavlink_main(int argc, char *argv[])
 		return 0;
 
 	} else if (!strcmp(argv[1], "stop")) {
+		warnx("mavlink stop is deprecated, use stop-all instead");
+		usage();
+
+	} else if (!strcmp(argv[1], "stop-all")) {
 		return Mavlink::destroy_all_instances();
 
 	// } else if (!strcmp(argv[1], "status")) {
