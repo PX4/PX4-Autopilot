@@ -798,7 +798,10 @@ MavlinkReceiver::receive_thread(void *arg)
 
 	mavlink_message_t msg;
 
-	prctl(PR_SET_NAME, "mavlink_uart_rcv", getpid());
+	/* Set thread name */
+	char thread_name[18];
+	sprintf(thread_name, "mavlink_uart_rcv_%d", _mavlink->get_channel());
+	prctl(PR_SET_NAME, thread_name, getpid());
 
 	struct pollfd fds[1];
 	fds[0].fd = uart_fd;
@@ -842,20 +845,19 @@ void MavlinkReceiver::print_status()
 
 void * MavlinkReceiver::start_helper(void *context)
 {
-	MavlinkReceiver *rcv = new MavlinkReceiver(((Mavlink *)context));
+	MavlinkReceiver *rcv = new MavlinkReceiver((Mavlink*)context);
 	return rcv->receive_thread(NULL);
 }
 
 pthread_t
-MavlinkReceiver::receive_start(Mavlink *mavlink)
+MavlinkReceiver::receive_start(Mavlink *parent)
 {
-
 	pthread_attr_t receiveloop_attr;
 	pthread_attr_init(&receiveloop_attr);
 
 	// set to non-blocking read
-	int flags = fcntl(mavlink->get_uart_fd(), F_GETFL, 0);
-	fcntl(mavlink->get_uart_fd(), F_SETFL, flags | O_NONBLOCK);
+	int flags = fcntl(parent->get_uart_fd(), F_GETFL, 0);
+	fcntl(parent->get_uart_fd(), F_SETFL, flags | O_NONBLOCK);
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&receiveloop_attr, &param);
@@ -865,7 +867,7 @@ MavlinkReceiver::receive_start(Mavlink *mavlink)
 	pthread_attr_setstacksize(&receiveloop_attr, 3000);
 
 	pthread_t thread;
-	pthread_create(&thread, &receiveloop_attr, MavlinkReceiver::start_helper, mavlink);
+	pthread_create(&thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void*)parent);
 
 	pthread_attr_destroy(&receiveloop_attr);
 	return thread;

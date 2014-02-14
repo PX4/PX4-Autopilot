@@ -96,45 +96,26 @@ enum MAVLINK_WPM_CODES {
 };
 
 
-/* WAYPOINT MANAGER - MISSION LIB */
-
-#define MAVLINK_WPM_MAX_WP_COUNT 15
-#define MAVLINK_WPM_CONFIG_IN_FLIGHT_UPDATE                                  ///< Enable double buffer and in-flight updates
-#ifndef MAVLINK_WPM_TEXT_FEEDBACK
-#define MAVLINK_WPM_TEXT_FEEDBACK 0                                                  ///< Report back status information as text
-#endif
-#define MAVLINK_WPM_PROTOCOL_TIMEOUT_DEFAULT 5000000         ///< Protocol communication timeout in useconds
-#define MAVLINK_WPM_SETPOINT_DELAY_DEFAULT 1000000           ///< When to send a new setpoint
+#define MAVLINK_WPM_MAX_WP_COUNT 255
+#define MAVLINK_WPM_PROTOCOL_TIMEOUT_DEFAULT 5000000 ///< Protocol communication timeout in useconds
+#define MAVLINK_WPM_SETPOINT_DELAY_DEFAULT 1000000 ///< When to send a new setpoint
 #define MAVLINK_WPM_PROTOCOL_DELAY_DEFAULT 40000
 
 
 struct mavlink_wpm_storage {
-        mavlink_mission_item_t waypoints[MAVLINK_WPM_MAX_WP_COUNT];      ///< Currently active waypoints
-#ifdef MAVLINK_WPM_CONFIG_IN_FLIGHT_UPDATE
-        mavlink_mission_item_t rcv_waypoints[MAVLINK_WPM_MAX_WP_COUNT];  ///< Receive buffer for next waypoints
-#endif
-        uint16_t size;
-        uint16_t max_size;
-        uint16_t rcv_size;
-        enum MAVLINK_WPM_STATES current_state;
-        int16_t current_wp_id;                                                        ///< Waypoint in current transmission
-        int16_t current_active_wp_id;                                        ///< Waypoint the system is currently heading towards
-        uint16_t current_count;
-        uint8_t current_partner_sysid;
-        uint8_t current_partner_compid;
-        uint64_t timestamp_lastaction;
-        uint64_t timestamp_last_send_setpoint;
-        uint64_t timestamp_firstinside_orbit;
-        uint64_t timestamp_lastoutside_orbit;
-        uint32_t timeout;
-        uint32_t delay_setpoint;
-        float accept_range_yaw;
-        float accept_range_distance;
-        bool yaw_reached;
-        bool pos_reached;
-        bool idle;
-        int current_dataman_id;
+	uint16_t size;
+	uint16_t max_size;
+	enum MAVLINK_WPM_STATES current_state;
+	int16_t current_wp_id;	///< Waypoint in current transmission
+	uint16_t current_count;
+	uint8_t current_partner_sysid;
+	uint8_t current_partner_compid;
+	uint64_t timestamp_lastaction;
+	uint64_t timestamp_last_send_setpoint;
+	uint32_t timeout;
+	int current_dataman_id;
 };
+
 
 class Mavlink
 {
@@ -174,7 +155,9 @@ public:
 
 	static int get_uart_fd(unsigned index);
 
-	int get_uart_fd() { return _uart; }
+	int get_uart_fd();
+
+	int get_channel();
 
 	const char *device_name;
 
@@ -294,7 +277,7 @@ private:
 	uint8_t missionlib_msg_buf[300]; //XXX MAGIC NUMBER
 	MAVLINK_MODE _mode;
 
-	uint8_t mavlink_wpm_comp_id;
+	uint8_t _mavlink_wpm_comp_id;
 	mavlink_channel_t _chan;
 
 //  XXX probably should be in a header... 

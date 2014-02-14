@@ -55,13 +55,13 @@
 #include <stdlib.h>
 #include <poll.h>
 #include <lib/geo/geo.h>
+#include <systemlib/err.h>
+
 
 #include <mavlink/mavlink_log.h>
 
 #include "mavlink_orb_listener.h"
 #include "mavlink_main.h"
-
-	void		*uorb_receive_thread(void *arg);
 
 
 
@@ -647,9 +647,9 @@ void *
 MavlinkOrbListener::uorb_receive_thread(void *arg)
 {
 	/* Set thread name */
-	char buf[32];
-	sprintf(buf, "mavlink rcv%d", Mavlink::instance_count());
-	prctl(PR_SET_NAME, buf, getpid());
+	char thread_name[18];
+	sprintf(thread_name, "mavlink_uorb_rcv_%d", _mavlink->get_channel());
+	prctl(PR_SET_NAME, thread_name, getpid());
 
 	/*
 	 * set up poll to block for new data,
@@ -822,7 +822,7 @@ MavlinkOrbListener::uorb_receive_start(Mavlink* mavlink)
 	pthread_attr_setstacksize(&uorb_attr, 2048);
 
 	pthread_t thread;
-	pthread_create(&thread, &uorb_attr, MavlinkOrbListener::uorb_start_helper, mavlink);
+	pthread_create(&thread, &uorb_attr, MavlinkOrbListener::uorb_start_helper, (void*)mavlink);
 
 	pthread_attr_destroy(&uorb_attr);
 	return thread;

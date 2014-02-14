@@ -87,20 +87,7 @@ public:
 	 */
 	~MavlinkOrbListener();
 
-	// *
-	// * Start the mavlink task.
-	//  *
-	//  * @return		OK on success.
-	 
-	// int		start();
-
-	/**
-	 * Display the mavlink status.
-	 */
-	void		status();
-
 	static pthread_t uorb_receive_start(Mavlink *mavlink);
-	void * uorb_receive_thread(void *arg);
 
 	struct listener {
 		void	(*callback)(const struct listener *l);
@@ -124,15 +111,7 @@ private:
 	unsigned	_n_listeners;
 	static const unsigned _max_listeners = 32;
 
-	/**
-	 * Shim for calling task_main from task_create.
-	 */
-	void		task_main_trampoline(int argc, char *argv[]);
-
-	/**
-	 * Main sensor collection task.
-	 */
-	void		task_main() __attribute__((noreturn));
+	void *uorb_receive_thread(void *arg);
 
 	static void		l_sensor_combined(const struct listener *l);
 	static void		l_vehicle_attitude(const struct listener *l);
