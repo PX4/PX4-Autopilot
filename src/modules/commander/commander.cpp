@@ -1491,7 +1491,6 @@ check_main_state_machine(struct vehicle_status_s *current_status)
 {
 	/* evaluate the main state machine */
 	transition_result_t res = TRANSITION_DENIED;
-
 	if (current_status->offboard_switch == OFFBOARD_SWITCH_OFFBOARD) {
 		/* offboard switch overrides main switch */
 		res = main_state_transition(current_status, MAIN_STATE_OFFBOARD);

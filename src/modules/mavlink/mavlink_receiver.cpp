@@ -288,23 +288,21 @@ handle_message(mavlink_message_t *msg)
 				ml_armed = false;
 				break;
 
-			case 1:
+			case OFFBOARD_CONTROL_MODE_DIRECT_RATES:
 				ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_RATES;
 				ml_armed = true;
-
 				break;
 
-			case 2:
+			case OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE:
 				ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE;
 				ml_armed = true;
-
 				break;
 
-			case 3:
+			case OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY:
 				ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY;
 				break;
 
-			case 4:
+			case OFFBOARD_CONTROL_MODE_DIRECT_POSITION:
 				ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_POSITION;
 				break;
 			}
