@@ -16,7 +16,7 @@ namespace uavcan
 std::string TransferBufferManagerKey::toString() const
 {
     char buf[24];
-    std::snprintf(buf, sizeof(buf), "nid:%i tt:%i", int(node_id_), int(transfer_type_));
+    std::snprintf(buf, sizeof(buf), "nid=%i tt=%i", int(node_id_), int(transfer_type_));
     return std::string(buf);
 }
 

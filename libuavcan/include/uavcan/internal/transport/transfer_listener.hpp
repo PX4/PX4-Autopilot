@@ -160,6 +160,7 @@ class TransferListener : public TransferListenerBase, Noncopyable
         {
             if (value.isTimedOut(ts_monotonic_))
             {
+                UAVCAN_TRACE("TransferListener", "Timed out receiver: %s", key.toString().c_str());
                 /*
                  * TransferReceivers do not own their buffers - this helps the Map<> container to copy them
                  * around quickly and safely (using default assignment operator). Downside is that we need to
