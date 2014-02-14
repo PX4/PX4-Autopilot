@@ -1,0 +1,118 @@
+/*
+ * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
+ */
+
+#pragma once
+
+#include <cassert>
+#include <stdint.h>
+#include <uavcan/internal/map.hpp>
+#include <uavcan/internal/debug.hpp>
+#include <uavcan/internal/transport/transfer.hpp>
+
+namespace uavcan
+{
+
+#pragma pack(push, 1)
+class OutgoingTransferRegistryKey
+{
+    uint16_t data_type_id_;
+    uint8_t transfer_type_;
+    uint8_t destination_node_id_;  ///< Not applicable for message broadcasting
+
+public:
+    OutgoingTransferRegistryKey()
+    : data_type_id_(0xFFFF)
+    , transfer_type_(0xFF)
+    , destination_node_id_(NODE_ID_INVALID)
+    { }
+
+    OutgoingTransferRegistryKey(uint16_t data_type_id, TransferType transfer_type, uint8_t destination_node_id)
+    : data_type_id_(data_type_id)
+    , transfer_type_(transfer_type)
+    , destination_node_id_(destination_node_id)
+    {
+        assert(destination_node_id != NODE_ID_INVALID);
+        assert((transfer_type == TRANSFER_TYPE_MESSAGE_BROADCAST) == (destination_node_id == NODE_ID_BROADCAST));
+
+        /* Service response transfers must use the same Transfer ID as matching service request transfer,
+         * so this registry is not applicable for service response transfers at all.
+         */
+        assert(transfer_type != TRANSFER_TYPE_SERVICE_RESPONSE);
+    }
+
+    bool operator==(const OutgoingTransferRegistryKey& rhs) const
+    {
+        return
+            (data_type_id_        == rhs.data_type_id_) &&
+            (transfer_type_       == rhs.transfer_type_) &&
+            (destination_node_id_ == rhs.destination_node_id_);
+    }
+};
+#pragma pack(pop)
+
+
+class IOutgoingTransferRegistry
+{
+public:
+    virtual ~IOutgoingTransferRegistry() { }
+    virtual TransferID* accessOrCreate(const OutgoingTransferRegistryKey& key, uint64_t new_monotonic_deadline) = 0;
+    virtual void cleanup(uint64_t monotonic_deadline) = 0;
+};
+
+
+template <int NUM_STATIC_ENTRIES>
+class OutgoingTransferRegistry : public IOutgoingTransferRegistry, Noncopyable
+{
+#pragma pack(push, 1)
+    struct Value
+    {
+        uint64_t monotonic_deadline;
+        TransferID tid;
+        Value() : monotonic_deadline(0) { }
+    };
+#pragma pack(pop)
+
+    class DeadlineExpiredPredicate
+    {
+        const uint64_t ts_monotonic_;
+
+    public:
+        DeadlineExpiredPredicate(uint64_t ts_monotonic)
+        : ts_monotonic_(ts_monotonic)
+        { }
+
+        bool operator()(const OutgoingTransferRegistryKey& key, const Value& value) const
+        {
+            (void)key;
+            assert(value.monotonic_deadline > 0);
+            return value.monotonic_deadline <= ts_monotonic_;
+        }
+    };
+
+    Map<OutgoingTransferRegistryKey, Value, NUM_STATIC_ENTRIES> map_;
+
+public:
+    OutgoingTransferRegistry(IAllocator* allocator)
+    : map_(allocator)
+    { }
+
+    TransferID* accessOrCreate(const OutgoingTransferRegistryKey& key, uint64_t new_monotonic_deadline)
+    {
+        assert(new_monotonic_deadline > 0);
+        Value* p = map_.access(key);
+        if (p == NULL)
+            p = map_.insert(key, Value());
+        if (p == NULL)
+            return NULL;
+        p->monotonic_deadline = new_monotonic_deadline;
+        return &p->tid;
+    }
+
+    void cleanup(uint64_t ts_monotonic)
+    {
+        map_.removeWhere(DeadlineExpiredPredicate(ts_monotonic));
+    }
+};
+
+}
