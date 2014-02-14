@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -96,8 +96,9 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 
 #define r_raw_rc_count		r_page_raw_rc_input[PX4IO_P_RAW_RC_COUNT]
 #define r_raw_rc_values		(&r_page_raw_rc_input[PX4IO_P_RAW_RC_BASE])
+#define r_raw_rc_flags		r_page_raw_rc_input[PX4IO_P_RAW_RC_FLAGS]
 #define r_rc_valid		r_page_rc_input[PX4IO_P_RC_VALID]
-#define r_rc_values		(&r_page_rc_input[PX4IO_P_RAW_RC_BASE])
+#define r_rc_values		(&r_page_rc_input[PX4IO_P_RC_BASE])
 
 #define r_setup_features	r_page_setup[PX4IO_P_SETUP_FEATURES]
 #define r_setup_arming		r_page_setup[PX4IO_P_SETUP_ARMING]
@@ -115,7 +116,8 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
  */
 struct sys_state_s {
 
-	volatile uint64_t	rc_channels_timestamp;
+	volatile uint64_t	rc_channels_timestamp_received;
+	volatile uint64_t	rc_channels_timestamp_valid;
 
 	/**
 	 * Last FMU receive time, in microseconds since system boot
@@ -215,7 +217,7 @@ extern int	dsm_init(const char *device);
 extern bool	dsm_input(uint16_t *values, uint16_t *num_values);
 extern void	dsm_bind(uint16_t cmd, int pulses);
 extern int	sbus_init(const char *device);
-extern bool	sbus_input(uint16_t *values, uint16_t *num_values, uint16_t *rssi, uint16_t max_channels);
+extern bool	sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_channels);
 
 /** global debug level for isr_debug() */
 extern volatile uint8_t debug_level;

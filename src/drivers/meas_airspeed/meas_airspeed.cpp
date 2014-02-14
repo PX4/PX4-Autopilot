@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -77,7 +77,6 @@
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
-#include <mathlib/mathlib.h>
 
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
@@ -178,24 +177,17 @@ MEASAirspeed::collect()
 		return ret;                
 	}
 
-	//uint16_t diff_pres_pa = (val[1]) | ((val[0] & ~(0xC0)) << 8);
-	uint16_t temp = (val[3] & 0xE0) << 8 | val[2];
-
-	// XXX leaving this in until new calculation method has been cross-checked
-	//diff_pres_pa = abs(diff_pres_pa - (16384 / 2.0f));
-	//diff_pres_pa -= _diff_pres_offset;
 	int16_t dp_raw = 0, dT_raw = 0;
 	dp_raw = (val[0] << 8) + val[1];
-	dp_raw = 0x3FFF & dp_raw; //mask the used bits
+	/* mask the used bits */
+	dp_raw = 0x3FFF & dp_raw;
 	dT_raw = (val[2] << 8) + val[3];
 	dT_raw = (0xFFE0 & dT_raw) >> 5;
 	float temperature = ((200 * dT_raw) / 2047) - 50;
 
-	// XXX we may want to smooth out the readings to remove noise.
-
-	// Calculate differential pressure. As its centered around 8000
-	// and can go positive or negative, enforce absolute value
-//	uint16_t diff_press_pa = abs(dp_raw - (16384 / 2.0f));
+	/* calculate differential pressure. As its centered around 8000
+	 * and can go positive or negative, enforce absolute value
+	*/
 	const float P_min = -1.0f;
 	const float P_max = 1.0f;
 	float diff_press_pa = fabsf( ( ((float)dp_raw - 0.1f*16383.0f) * (P_max-P_min)/(0.8f*16383.0f) + P_min) * 6894.8f) - _diff_pres_offset;
@@ -204,7 +196,7 @@ MEASAirspeed::collect()
 
 	struct differential_pressure_s report;
 
-	// Track maximum differential pressure measured (so we can work out top speed).
+	/* track maximum differential pressure measured (so we can work out top speed). */
 	if (diff_press_pa > _max_differential_pressure_pa) {
 	    _max_differential_pressure_pa = diff_press_pa;
 	}
@@ -216,8 +208,10 @@ MEASAirspeed::collect()
 	report.voltage = 0;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
-	/* announce the airspeed if needed, just publish else */
-	orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
+	if (_airspeed_pub > 0 && !(_pub_blocked)) {
+		/* publish it */
+		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
+	}
 
 	new_report(report);
 
@@ -392,7 +386,7 @@ test()
 		err(1, "immediate read failed");
 
 	warnx("single read");
-	warnx("diff pressure: %d pa", report.differential_pressure_pa);
+	warnx("diff pressure: %d pa", (double)report.differential_pressure_pa);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2))

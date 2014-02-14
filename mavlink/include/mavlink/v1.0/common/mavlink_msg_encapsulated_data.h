@@ -1,6 +1,6 @@
 // MESSAGE ENCAPSULATED_DATA PACKING
 
-#define MAVLINK_MSG_ID_ENCAPSULATED_DATA 194
+#define MAVLINK_MSG_ID_ENCAPSULATED_DATA 131
 
 typedef struct __mavlink_encapsulated_data_t
 {
@@ -9,10 +9,10 @@ typedef struct __mavlink_encapsulated_data_t
 } mavlink_encapsulated_data_t;
 
 #define MAVLINK_MSG_ID_ENCAPSULATED_DATA_LEN 255
-#define MAVLINK_MSG_ID_194_LEN 255
+#define MAVLINK_MSG_ID_131_LEN 255
 
 #define MAVLINK_MSG_ID_ENCAPSULATED_DATA_CRC 223
-#define MAVLINK_MSG_ID_194_CRC 223
+#define MAVLINK_MSG_ID_131_CRC 223
 
 #define MAVLINK_MSG_ENCAPSULATED_DATA_FIELD_DATA_LEN 253
 
