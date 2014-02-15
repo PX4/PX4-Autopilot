@@ -1195,15 +1195,10 @@ Navigator::set_mission_item()
 						_mission_item.lat, _mission_item.lon,
 						&_follow_offset_next.offset.data[0], &_follow_offset_next.offset.data[1]);
 				_follow_offset_next.offset(2) = -(_mission_item.altitude - _roi_item.altitude);
-				mavlink_log_info(_mavlink_fd, "[navigator] follow offs: %.2f %.2f %.2f", _follow_offset_next.offset(0), _follow_offset_next.offset(1), _follow_offset_next.offset(2));
-
-			} else {
-				_follow_offset_prev.valid = false;
-				_follow_offset_next.valid = false;
+				mavlink_log_info(_mavlink_fd, "f offs: %d %.2f %.2f %.2f -> %d %.2f %.2f %.2f",
+						_follow_offset_prev.valid, _follow_offset_prev.offset(0), _follow_offset_prev.offset(1), _follow_offset_prev.offset(2),
+						_follow_offset_next.valid, _follow_offset_next.offset(0), _follow_offset_next.offset(1), _follow_offset_next.offset(2));
 			}
-
-			/* ROI item only valid for one following waypoint */
-			roi_item_valid = false;
 
 			position_setpoint_from_mission_item(&_pos_sp_triplet.current, &_mission_item);
 
@@ -1566,6 +1561,8 @@ Navigator::check_mission_item_reached()
 				_waypoint_position_reached = true;
 			}
 
+			_waypoint_yaw_reached = true;
+
 		} else {
 
 			/* calculate AMSL altitude for this waypoint */
@@ -1590,19 +1587,19 @@ Navigator::check_mission_item_reached()
 				}
 			}
 		}
-	}
 
-	if (!_waypoint_yaw_reached) {
-		if (_vstatus.is_rotary_wing && !_do_takeoff && isfinite(_mission_item.yaw)) {
-			/* check yaw if defined only for rotary wing except takeoff */
-			float yaw_err = _wrap_pi(_mission_item.yaw - _global_pos.yaw);
+		if (!_waypoint_yaw_reached) {
+			if (_vstatus.is_rotary_wing && !_do_takeoff && isfinite(_mission_item.yaw)) {
+				/* check yaw if defined only for rotary wing except takeoff */
+				float yaw_err = _wrap_pi(_mission_item.yaw - _global_pos.yaw);
 
-			if (fabsf(yaw_err) < 0.05f) { /* XXX get rid of magic number */
+				if (fabsf(yaw_err) < 0.05f) { /* XXX get rid of magic number */
+					_waypoint_yaw_reached = true;
+				}
+
+			} else {
 				_waypoint_yaw_reached = true;
 			}
-
-		} else {
-			_waypoint_yaw_reached = true;
 		}
 	}
 
