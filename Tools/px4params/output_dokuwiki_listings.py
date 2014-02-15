@@ -1,7 +1,6 @@
-import output
 
-class DokuWikiOutput(output.Output):
-    def Generate(self, groups):
+class DokuWikiListingsOutput():
+    def __init__(self, groups):
         result = ""
         for group in groups:
             result += "==== %s ====\n\n" % group.GetName()
@@ -24,4 +23,8 @@ class DokuWikiOutput(output.Output):
                 if def_val is not None:
                     result += "* Default value: %s\n" % def_val
                 result += "\n"
-        return result
+        self.output = result
+
+    def Save(self, filename):
+        with open(filename, 'w') as f:
+            f.write(self.output)

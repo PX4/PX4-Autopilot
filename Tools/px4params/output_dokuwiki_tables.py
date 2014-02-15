@@ -1,21 +1,8 @@
-import output
 from xml.sax.saxutils import escape
 
-class DokuWikiOutput(output.Output):
-    def Generate(self, groups):
-        pre_text = """<?xml version='1.0'?>
-            <methodCall>
-              <methodName>wiki.putPage</methodName>
-                  <params>
-              <param> 
-                <value>
-                  <string>:firmware:parameters</string>
-                </value>
-              </param> 
-                  <param> 
-                <value>
-                  <string>"""
-        result = "====== Parameter Reference ======\nThis list is auto-generated every few minutes and contains the most recent parameter names and default values."
+class DokuWikiTablesOutput():
+    def __init__(self, groups):
+        result = "====== Parameter Reference ======\nThis list is auto-generated every few minutes and contains the most recent parameter names and default values.\n\n"
         for group in groups:
             result += "==== %s ====\n\n" % group.GetName()
             result += "|< 100% 20% 20% 10% 10% 10% 30%>|\n"
@@ -54,15 +41,35 @@ class DokuWikiOutput(output.Output):
 
                 result += "\n"
             result += "\n"
-        post_text = """</string>
-        </value>
-      </param> 
-           <param> 
-        <value>
-            <name>sum</name>
-            <string>Updated parameters automagically from code.</string>
-        </value>
-      </param> 
-    </params> 
-    </methodCall>"""
-        return pre_text + escape(result) + post_text
+        self.output = result;
+
+    def Save(self, filename):
+        with open(filename, 'w') as f:
+            f.write(self.output)
+
+    def SaveRpc(self, filename):
+        with open(filename, 'w') as f:
+            f.write("""<?xml version='1.0'?>
+<methodCall>
+  <methodName>wiki.putPage</methodName>
+      <params>
+          <param> 
+            <value>
+              <string>:firmware:parameters</string>
+            </value>
+          </param>
+          <param> 
+            <value>
+              <string>""")
+            f.write(escape(self.output))
+            f.write("""</string>
+            </value>
+        </param>
+        <param> 
+            <value>
+                <name>sum</name>
+                <string>Updated parameters automagically from code.</string>
+            </value>
+        </param>
+    </params>
+</methodCall>""")
