@@ -50,6 +50,7 @@
  *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
  */
 
+
 #include <nuttx/config.h>
 
 #include <drivers/device/i2c.h>
@@ -386,7 +387,7 @@ test()
 		err(1, "immediate read failed");
 
 	warnx("single read");
-	warnx("diff pressure: %d pa", (double)report.differential_pressure_pa);
+	warnx("diff pressure: %8.4f pa", (double)report.differential_pressure_pa);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2))
@@ -411,7 +412,7 @@ test()
 			err(1, "periodic read failed");
 
 		warnx("periodic read %u", i);
-		warnx("diff pressure: %d pa", report.differential_pressure_pa);
+		warnx("diff pressure: %8.4f pa", (double)report.differential_pressure_pa);
 		warnx("temperature: %d C (0x%02x)", (int)report.temperature, (unsigned) report.temperature);
 	}
 
