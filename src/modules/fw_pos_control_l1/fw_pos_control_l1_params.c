@@ -247,7 +247,7 @@ PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
 PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f);
 
 
-*/
+/*
  * Complementary filter "omega" parameter for height
  *
  * This is the cross-over frequency (in radians/second) of the complementary 
