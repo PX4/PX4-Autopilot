@@ -40,12 +40,10 @@
  */
 
 #include <nuttx/config.h>
-
 #include <systemlib/param/param.h>
 
 /*
  * Controller parameters, accessible via MAVLink
- *
  */
 
 /**
@@ -119,7 +117,6 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -45.0f);
  */
 PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 45.0f);
 
-
 /**
  * Controller roll limit
  *
@@ -131,17 +128,18 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 45.0f);
  */
 PARAM_DEFINE_FLOAT(FW_R_LIM, 45.0f);
 
-/*
+/**
  * Throttle limit max
  *
  * This is the maximum throttle % that can be used by the controller. 
  * For overpowered aircraft, this should be reduced to a value that 
  * provides sufficient thrust to climb at the maximum pitch angle PTCH_MAX.
  *
-*/
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
 
-/*
+/**
  * Throttle limit min
  *
  * This is the minimum throttle % that can be used by the controller. 
@@ -152,19 +150,22 @@ PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
  *
  * For aircraft with internal combustion engine this parameter should be set
  * for desired idle rpm.
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
 
-/*
+/**
  * Throttle limit value before flare
  *
  * This throttle value will be set as throttle limit at FW_LND_TLALT, 
  * before arcraft will flare.
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_THR_LND_MAX, 1.0f);
 
-
-/*
+/**
  * Maximum climb rate
  *
  * This is the best climb rate that the aircraft can achieve with 
@@ -179,21 +180,23 @@ PARAM_DEFINE_FLOAT(FW_THR_LND_MAX, 1.0f);
  * demand required to climb and maintain speed is noticeably less than 
  * FW_THR_MAX, then either FW_T_CLMB_MAX should be increased or 
  * FW_THR_MAX reduced.
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
 
-
-/*
+/**
  * Minimum descent rate
  *
  * This is the sink rate of the aircraft with the throttle 
  * set to THR_MIN and flown at the same airspeed as used 
  * to measure FW_T_CLMB_MAX.
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
 
-
-/*
+/**
  * Maximum descent rate
  *
  * This sets the maximum descent rate that the controller will use. 
@@ -201,41 +204,45 @@ PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
  * This should be set to a value that can be achieved without 
  * exceeding the lower pitch angle limit and without over-speeding 
  * the aircraft.
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f);
 
-
-/*
+/**
  * TECS time constant
  *
  * This is the time constant of the TECS control algorithm (in seconds). 
  * Smaller values make it faster to respond, larger values make it slower
  * to respond.
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_T_TIME_CONST, 5.0f);
 
-
-/*
+/**
  * Throttle damping factor
  *
  * This is the damping gain for the throttle demand loop. 
  * Increase to add damping to correct for oscillations in speed and height.
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.5f);
 
-
-/*
+/**
  * Integrator gain
  *
  * This is the integrator gain on the control loop. 
  * Increasing this gain increases the speed at which speed 
  * and height offsets are trimmed out, but reduces damping and 
  * increases overshoot.
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
 
-
-/*
+/**
  * Maximum vertical acceleration
  *
  * This is the maximum vertical acceleration (in metres/second^2) 
@@ -243,11 +250,12 @@ PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
  * or height errors. The default value of 7 m/s/s (equivalent to +- 0.7 g) 
  * allows for reasonably aggressive pitch changes if required to recover 
  * from under-speed conditions.
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f);
 
-
-/*
+/**
  * Complementary filter "omega" parameter for height
  *
  * This is the cross-over frequency (in radians/second) of the complementary 
@@ -255,12 +263,12 @@ PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f);
  * an estimate of height rate and height. Increasing this frequency weights 
  * the solution more towards use of the barometer, whilst reducing it weights 
  * the solution more towards use of the accelerometer data.
-
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_T_HGT_OMEGA, 3.0f);
 
-
-/*
+/**
  * Complementary filter "omega" parameter for speed
  *
  * This is the cross-over frequency (in radians/second) of the complementary 
@@ -268,11 +276,12 @@ PARAM_DEFINE_FLOAT(FW_T_HGT_OMEGA, 3.0f);
  * improved airspeed estimate. Increasing this frequency weights the solution
  * more towards use of the arispeed sensor, whilst reducing it weights the 
  * solution more towards use of the accelerometer data.
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_T_SPD_OMEGA, 2.0f);
 
-
-/*
+/**
  * Roll -> Throttle feedforward
  *
  * Increasing this gain turn increases the amount of throttle that will 
@@ -283,11 +292,12 @@ PARAM_DEFINE_FLOAT(FW_T_SPD_OMEGA, 2.0f);
  * aircraft initially gains energy in turns. Efficient high aspect-ratio 
  * aircraft (eg powered sailplanes) can use a lower value, whereas 
  * inefficient low aspect-ratio models (eg delta wings) can use a higher value.
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 10.0f);
 
-
-/*
+/**
  * Speed <--> Altitude priority
  *
  * This parameter adjusts the amount of weighting that the pitch control 
@@ -300,56 +310,75 @@ PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 10.0f);
  * control to simultaneously control height and speed. 
  * Note to Glider Pilots – set this parameter to 2.0 (The glider will 
  * adjust its pitch angle to maintain airspeed, ignoring changes in height).
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
 
-
-/*
+/**
  * Pitch damping factor
  *
  * This is the damping gain for the pitch demand loop. Increase to add 
  * damping to correct for oscillations in height. The default value of 0.0 
  * will work well provided the pitch to servo controller has been tuned 
  * properly.
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
 
-/*
+/**
  * Height rate P factor
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
 
-/*
+/**
  * Speed rate P factor
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.05f);
 
-/*
+/**
  * Landing slope angle
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_LND_ANG, 5.0f);
 
-/*
+/**
  * Landing slope length
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_LND_SLLR, 0.9f);
 
-/*
+/**
  *
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_LND_HVIRT, 10.0f);
 
-/*
+/**
  * Landing flare altitude (relative)
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_LND_FLALT, 15.0f);
 
-/*
+/**
  * Landing throttle limit altitude (relative)
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_LND_TLALT, 5.0f);
 
-/*
+/**
  * Landing heading hold horizontal distance
-*/
+ *
+ * @group L1 Control
+ */
 PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
