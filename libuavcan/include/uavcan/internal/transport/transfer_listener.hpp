@@ -130,7 +130,11 @@ class TransferListener : public TransferListenerBase, Noncopyable
         TransferReceiver* recv = receivers_.access(key);
         if (recv == NULL)
         {
-            if (frame.frame_index != 0)   // We don't want to add registrations mid-transfer, that's pointless
+            /* Adding new registrations mid-transfer (i.e. not upon first frame reception) is not only
+             * pointless, but plain wrong: non-first frames do not carry address information, so we
+             * have no chance to detect whether a transfer is addressed to our node or not.
+             */
+            if (frame.frame_index != 0)
                 return;
 
             TransferReceiver new_recv;
