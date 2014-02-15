@@ -293,7 +293,7 @@ private:
 	mavlink_wpm_storage wpm_s;
 	mavlink_wpm_storage *wpm;
 
-	bool verbose;
+	bool _verbose;
 	int _uart;
 	int _baudrate;
 	bool gcs_link;
