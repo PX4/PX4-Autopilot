@@ -103,7 +103,7 @@
 class MEASAirspeed : public Airspeed
 {
 public:
-	MEASAirspeed(int bus, int address = I2C_ADDRESS_MS4525DO);
+	MEASAirspeed(int bus, int address = I2C_ADDRESS_MS4525DO, const char* path = PATH_MS4525);
 
 protected:
 
@@ -315,7 +315,7 @@ start(int i2c_bus)
 	/* try the MS5525DSO next if init fails */
 	if (OK != g_dev->Airspeed::init()) {
 		delete g_dev;
-		g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS5525DSO, PATH_MS4425);
+		g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS5525DSO, PATH_MS5525);
 
 		/* check if the MS5525DSO was instantiated */
 		if (g_dev == nullptr)
