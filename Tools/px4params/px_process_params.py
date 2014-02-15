@@ -40,12 +40,12 @@
 #
 
 import scanner
-import parser
+import srcparser
 import xmlout
 import dokuwikiout
 
 # Initialize parser
-prs = parser.Parser()
+prs = srcparser.Parser()
 
 # Scan directories, and parse the files
 sc = scanner.Scanner()
