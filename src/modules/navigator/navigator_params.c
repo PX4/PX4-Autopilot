@@ -53,7 +53,7 @@
  */
 
 /**
- * Minimum altitude
+ * Minimum altitude (fixed wing only)
  *
  * @group Navigation
  */
@@ -67,32 +67,36 @@ PARAM_DEFINE_FLOAT(NAV_MIN_ALT, 50.0f);
 PARAM_DEFINE_FLOAT(NAV_ACCEPT_RAD, 10.0f);
 
 /**
- * Loiter radius.
+ * Loiter radius  (fixed wing only)
  *
  * @group Navigation
  */
 PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
 
 /**
+ * Enable onboard mission.
+ *
  * @group Navigation
  */
 PARAM_DEFINE_INT32(NAV_ONB_MIS_EN, 0);
 
 /**
- * Default take-off altitude.
+ * Take-off altitude.
+ *
+ * Even if first waypoint has altitude less then NAV_TAKEOFF_ALT, system will climb to NAV_TAKEOFF_ALT on takeoff, then go to waypoint.
  *
  * @group Navigation
  */
-PARAM_DEFINE_FLOAT(NAV_TAKEOFF_ALT, 10.0f);	// default TAKEOFF altitude
+PARAM_DEFINE_FLOAT(NAV_TAKEOFF_ALT, 10.0f);
 
 /**
  * Landing altitude.
  *
- * Slowly descend from this altitude when landing.
+ * Stay at this altitude after RTL descending. Slowly descend from this altitude if autolanding allowed.
  *
  * @group Navigation
  */
-PARAM_DEFINE_FLOAT(NAV_LAND_ALT, 5.0f);		// slow descend from this altitude when landing
+PARAM_DEFINE_FLOAT(NAV_LAND_ALT, 5.0f);
 
 /**
  * Return-to-land altitude.
@@ -101,12 +105,12 @@ PARAM_DEFINE_FLOAT(NAV_LAND_ALT, 5.0f);		// slow descend from this altitude when
  *
  * @group Navigation
  */
-PARAM_DEFINE_FLOAT(NAV_RTL_ALT, 30.0f);		// min altitude for going home in RTL mode
+PARAM_DEFINE_FLOAT(NAV_RTL_ALT, 30.0f);
 
 /**
  * Return-to-land delay.
  *
- * Delay after descend before landing.
+ * Delay after descend before landing in RTL mode.
  * If set to -1 the system will not land but loiter at NAV_LAND_ALT.
  *
  * @group Navigation
