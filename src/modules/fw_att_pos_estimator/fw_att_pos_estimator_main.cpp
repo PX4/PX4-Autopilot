@@ -357,7 +357,14 @@ FixedwingEstimator::task_main_trampoline(int argc, char *argv[])
 	estimator::g_estimator->task_main();
 }
 
-static float dt = 0.0f; // time lapsed since last covariance prediction
+float dt = 0.0f; // time lapsed since last covariance prediction
+
+// Estimated time delays (msec)
+uint32_t msecVelDelay = 230;
+uint32_t msecPosDelay = 210;
+uint32_t msecHgtDelay = 350;
+uint32_t msecMagDelay = 30;
+uint32_t msecTasDelay = 210;
 
 void
 FixedwingEstimator::task_main()
@@ -403,7 +410,13 @@ FixedwingEstimator::task_main()
 	/* initialize measurement data */
 	VtasMeas = 0.0f;
 	Vector3f lastAngRate = {0.0f, 0.0f, 0.0f};
-	Vector3f lastAccel = {0.0f, 0.0f, 0.0f};
+	Vector3f lastAccel = {0.0f, 0.0f, -9.81f};
+	dVelIMU.x = 0.0f;
+	dVelIMU.y = 0.0f;
+	dVelIMU.z = 0.0f;
+	dAngIMU.x = 0.0f;
+	dAngIMU.y = 0.0f;
+	dAngIMU.z = 0.0f;
 
 	/* wakeup source(s) */
 	struct pollfd fds[2];
@@ -420,6 +433,10 @@ FixedwingEstimator::task_main()
 	#endif
 
 	hrt_abstime start_time = hrt_absolute_time();
+
+	bool newDataGps = false;
+	bool newAdsData = false;
+	bool newDataMag = false;
 
 	while (!_task_should_exit) {
 
@@ -548,6 +565,9 @@ FixedwingEstimator::task_main()
 
 			if (last_mag != _sensor_combined.magnetometer_timestamp) {
 				mag_updated = true;
+				newDataMag = true;
+			} else {
+				newDataMag = false;
 			}
 			last_mag = _sensor_combined.magnetometer_timestamp;
 
@@ -560,6 +580,9 @@ FixedwingEstimator::task_main()
 				perf_count(_perf_airspeed);
 
 				VtasMeas = _airspeed.true_airspeed_m_s;
+				newAdsData = true;
+			} else {
+				newAdsData = false;
 			}
 
 			bool gps_updated;
@@ -570,6 +593,7 @@ FixedwingEstimator::task_main()
 
 				if (_gps.fix_type < 3) {
 					gps_updated = false;
+					newDataGps = false;
 				} else {
 					/* fuse GPS updates */
 
@@ -584,6 +608,7 @@ FixedwingEstimator::task_main()
 					gpsLat = math::radians(_gps.lat / (double)1e7);
 					gpsLon = math::radians(_gps.lon / (double)1e7) - M_PI;
 					gpsHgt = _gps.alt / 1e3f;
+					newDataGps = true;
 
 				}
 
@@ -636,6 +661,10 @@ FixedwingEstimator::task_main()
 
 				#endif
 
+				newDataMag = true;
+
+			} else {
+				newDataMag = false;
 			}
 
 
@@ -643,101 +672,210 @@ FixedwingEstimator::task_main()
 			 *    PART TWO: EXECUTE THE FILTER
 			 **/
 
-			if (hrt_elapsed_time(&start_time) > 100000 && !_initialized && (GPSstatus == 3)) {
-				InitialiseFilter(velNED);
-				_initialized = true;
+			if (/*(IMUmsec > msecAlignTime) &&*/ !statesInitialised && (GPSstatus == 3))
+			{
+                    velNED[0] = _gps.vel_n_m_s;
+                    velNED[1] = _gps.vel_e_m_s;
+                    velNED[2] = _gps.vel_d_m_s;
+                InitialiseFilter(velNED);
+            }
 
-				warnx("init done.");
-			}
+            // If valid IMU data and states initialised, predict states and covariances
+            if (statesInitialised)
+            {
+                // Run the strapdown INS equations every IMU update
+                UpdateStrapdownEquationsNED();
+                #if 0
+                // debug code - could be tunred into a filter mnitoring/watchdog function
+                float tempQuat[4];
+                for (uint8_t j=0; j<=3; j++) tempQuat[j] = states[j];
+                quat2eul(eulerEst, tempQuat);
+                for (uint8_t j=0; j<=2; j++) eulerDif[j] = eulerEst[j] - ahrsEul[j];
+                if (eulerDif[2] > pi) eulerDif[2] -= 2*pi;
+                if (eulerDif[2] < -pi) eulerDif[2] += 2*pi;
+                #endif
+                // store the predicted states for subsequent use by measurement fusion
+                StoreStates(IMUmsec);
+                // Check if on ground - status is used by covariance prediction
+                OnGroundCheck();
+                onGround = false;
+                // sum delta angles and time used by covariance prediction
+                summedDelAng = summedDelAng + correctedDelAng;
+                summedDelVel = summedDelVel + dVelIMU;
+                dt += dtIMU;
+                // perform a covariance prediction if the total delta angle has exceeded the limit
+                // or the time limit will be exceeded at the next IMU update
+                if ((dt >= (covTimeStepMax - dtIMU)) || (summedDelAng.length() > covDelAngMax))
+                {
+                    CovariancePrediction(dt);
+                    summedDelAng = summedDelAng.zero();
+                    summedDelVel = summedDelVel.zero();
+                    dt = 0.0f;
+                }
 
-			if (_initialized) {
+                _initialized = true;
+            }
 
-				/* predict states and covariances */
+            // Fuse GPS Measurements
+            if (newDataGps && statesInitialised)
+            {
+                // Convert GPS measurements to Pos NE, hgt and Vel NED
+                velNED[0] = _gps.vel_n_m_s;
+                velNED[1] = _gps.vel_e_m_s;
+                velNED[2] = _gps.vel_d_m_s;
+                calcposNED(posNED, gpsLat, gpsLon, gpsHgt, latRef, lonRef, hgtRef);
 
-				/* run the strapdown INS every sensor update */
-				UpdateStrapdownEquationsNED();
+                posNE[0] = posNED[0];
+                posNE[1] = posNED[1];
+                 // set fusion flags
+                fuseVelData = true;
+                fusePosData = true;
+                // recall states stored at time of measurement after adjusting for delays
+                RecallStates(statesAtVelTime, (IMUmsec - msecVelDelay));
+                RecallStates(statesAtPosTime, (IMUmsec - msecPosDelay));
+                // run the fusion step
+                FuseVelposNED();
+            }
+            else
+            {
+                fuseVelData = false;
+                fusePosData = false;
+            }
 
-				/* store the predictions */
-				StoreStates(IMUmsec);
+            if (newAdsData && statesInitialised)
+            {
+                // Could use a blend of GPS and baro alt data if desired
+                hgtMea = 1.0f*baroHgt + 0.0f*gpsHgt;
+                fuseHgtData = true;
+                // recall states stored at time of measurement after adjusting for delays
+                RecallStates(statesAtHgtTime, (IMUmsec - msecHgtDelay));
+                // run the fusion step
+                FuseVelposNED();
+            }
+            else
+            {
+                fuseHgtData = false;
+            }
 
-				/* evaluate if on ground */
-				// OnGroundCheck();
-				onGround = false;
+            // Fuse Magnetometer Measurements
+            if (newDataMag && statesInitialised)
+            {
+                fuseMagData = true;
+                RecallStates(statesAtMagMeasTime, (IMUmsec - msecMagDelay)); // Assume 50 msec avg delay for magnetometer data
+            }
+            else
+            {
+                fuseMagData = false;
+            }
+            if (statesInitialised) FuseMagnetometer();
 
-				/* prepare the delta angles and time used by the covariance prediction */
-				summedDelAng = summedDelAng + correctedDelAng;
-				summedDelVel = summedDelVel + correctedDelVel;
+            // Fuse Airspeed Measurements
+            if (newAdsData && statesInitialised && VtasMeas > 8.0f)
+            {
+                fuseVtasData = true;
+                RecallStates(statesAtVtasMeasTime, (IMUmsec - msecTasDelay)); // assume 100 msec avg delay for airspeed data
+                FuseAirspeed();
+            }
+            else
+            {
+                fuseVtasData = false;
+            }
+
+			// if (hrt_elapsed_time(&start_time) > 100000 && !_initialized && (GPSstatus == 3)) {
+			// 	InitialiseFilter(velNED);
+			// 	_initialized = true;
+
+			// 	warnx("init done.");
+			// }
+
+			// if (_initialized) {
+
+			// 	/* predict states and covariances */
+
+			// 	/* run the strapdown INS every sensor update */
+			// 	UpdateStrapdownEquationsNED();
+
+			// 	/* store the predictions */
+			// 	StoreStates(IMUmsec);
+
+			// 	/* evaluate if on ground */
+			// 	// OnGroundCheck();
+			// 	onGround = false;
+
+			// 	/* prepare the delta angles and time used by the covariance prediction */
+			// 	summedDelAng = summedDelAng + correctedDelAng;
+			// 	summedDelVel = summedDelVel + correctedDelVel;
 				
-				dt += dtIMU;
+			// 	dt += dtIMU;
 
-				/* predict the covairance if the total delta angle has exceeded the threshold
-				 * or the time limit will be exceeded on the next measurement update
-				 */
-				if ((dt >= (covTimeStepMax - dtIMU)) || (summedDelAng.length() > covDelAngMax)) {
-					CovariancePrediction(dt);
-					summedDelAng = summedDelAng.zero();
-					summedDelVel = summedDelVel.zero();
-					dt = 0.0f;
-				}
+			// 	/* predict the covairance if the total delta angle has exceeded the threshold
+			// 	 * or the time limit will be exceeded on the next measurement update
+			// 	 */
+			// 	if ((dt >= (covTimeStepMax - dtIMU)) || (summedDelAng.length() > covDelAngMax)) {
+			// 		CovariancePrediction(dt);
+			// 		summedDelAng = summedDelAng.zero();
+			// 		summedDelVel = summedDelVel.zero();
+			// 		dt = 0.0f;
+			// 	}
 
-			}
+			// }
 
 
-			if (gps_updated && _initialized) {
+			// if (gps_updated && _initialized) {
 
-				/* convert GPS measurements to horizontal NE, altitude and 3D velocity NED */
-				calcposNED(posNED, gpsLat, gpsLon, gpsHgt, latRef, lonRef, hgtRef);
+			// 	/* convert GPS measurements to horizontal NE, altitude and 3D velocity NED */
+			// 	calcposNED(posNED, gpsLat, gpsLon, gpsHgt, latRef, lonRef, hgtRef);
 
-				posNE[0] = posNED[0];
-				posNE[1] = posNED[1];
+			// 	posNE[0] = posNED[0];
+			// 	posNE[1] = posNED[1];
 
-				// set flags for further processing 
-				fuseVelData = true;
-				fusePosData = true;
+			// 	// set flags for further processing 
+			// 	fuseVelData = true;
+			// 	fusePosData = true;
 
-				/* recall states after adjusting for delays */
-				RecallStates(statesAtVelTime, (IMUmsec - _parameters.vel_delay_ms));
-				RecallStates(statesAtPosTime, (IMUmsec - _parameters.pos_delay_ms));
+			// 	/* recall states after adjusting for delays */
+			// 	RecallStates(statesAtVelTime, (IMUmsec - _parameters.vel_delay_ms));
+			// 	RecallStates(statesAtPosTime, (IMUmsec - _parameters.pos_delay_ms));
 
-				/* run the actual fusion */
-				FuseVelposNED();
-			} else {
-				fuseVelData = false;
-				fusePosData = false;
-			}
+			// 	/* run the actual fusion */
+			// 	FuseVelposNED();
+			// } else {
+			// 	fuseVelData = false;
+			// 	fusePosData = false;
+			// }
 
-			if (baro_updated && _initialized) {
+			// if (baro_updated && _initialized) {
 
-				fuseHgtData = true;
-				// recall states stored at time of measurement after adjusting for delays
-				RecallStates(statesAtHgtTime, (IMUmsec - _parameters.height_delay_ms));
-				// run the fusion step
-				FuseVelposNED();
-			} else {
-				fuseHgtData = false;
-			}
+			// 	fuseHgtData = true;
+			// 	// recall states stored at time of measurement after adjusting for delays
+			// 	RecallStates(statesAtHgtTime, (IMUmsec - _parameters.height_delay_ms));
+			// 	// run the fusion step
+			// 	FuseVelposNED();
+			// } else {
+			// 	fuseHgtData = false;
+			// }
 
-			if (mag_updated && _initialized) {
-				fuseMagData = true;
-				RecallStates(statesAtMagMeasTime, (IMUmsec - _parameters.mag_delay_ms));
+			// if (mag_updated && _initialized) {
+			// 	fuseMagData = true;
+			// 	RecallStates(statesAtMagMeasTime, (IMUmsec - _parameters.mag_delay_ms));
 
-			} else {
-				fuseMagData = false;
-			}
+			// } else {
+			// 	fuseMagData = false;
+			// }
 
-			if (_initialized) {
-				FuseMagnetometer();
-			}
+			// if (_initialized) {
+			// 	FuseMagnetometer();
+			// }
 
-			if (airspeed_updated && _initialized
-				&& _airspeed.true_airspeed_m_s > 6.0f /* XXX magic number */) {
+			// if (airspeed_updated && _initialized
+			// 	&& _airspeed.true_airspeed_m_s > 6.0f /* XXX magic number */) {
 
-				fuseVtasData = true;
-				RecallStates(statesAtVtasMeasTime, (IMUmsec - _parameters.tas_delay_ms)); // assume 100 msec avg delay for airspeed data
-				FuseAirspeed();
-			} else {
-				fuseVtasData = false;
-			}
+			// 	fuseVtasData = true;
+			// 	RecallStates(statesAtVtasMeasTime, (IMUmsec - _parameters.tas_delay_ms)); // assume 100 msec avg delay for airspeed data
+			// 	FuseAirspeed();
+			// } else {
+			// 	fuseVtasData = false;
+			// }
 
 			// Publish results
 			if (_initialized) {
