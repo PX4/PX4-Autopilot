@@ -40,22 +40,28 @@
 #
 
 import scanner
-import parser
-import xmlout
-import dokuwikiout
+import srcparser
+import output_xml
+import output_dokuwiki_tables
+import output_dokuwiki_listings
 
 # Initialize parser
-prs = parser.Parser()
+prs = srcparser.Parser()
 
 # Scan directories, and parse the files
 sc = scanner.Scanner()
 sc.ScanDir("../../src", prs)
-output = prs.GetParamGroups()
+groups = prs.GetParamGroups()
 
 # Output into XML
-out = xmlout.XMLOutput()
-out.Save(output, "parameters.xml")
+out = output_xml.XMLOutput(groups)
+out.Save("parameters.xml")
 
-# Output into DokuWiki
-out = dokuwikiout.DokuWikiOutput()
-out.Save(output, "parameters.wiki")
+# Output to DokuWiki listings
+#out = output_dokuwiki_listings.DokuWikiListingsOutput(groups)
+#out.Save("parameters.wiki")
+
+# Output to DokuWiki tables
+out = output_dokuwiki_tables.DokuWikiTablesOutput(groups)
+out.Save("parameters.wiki")
+out.SaveRpc("parameters.wikirpc.xml")
