@@ -363,10 +363,6 @@ void
 FixedwingEstimator::task_main()
 {
 
-	/* inform about start */
-	warnx("Initializing..");
-	fflush(stdout);
-
 	/*
 	 * do subscriptions
 	 */
@@ -647,7 +643,7 @@ FixedwingEstimator::task_main()
 			 *    PART TWO: EXECUTE THE FILTER
 			 **/
 
-			if (hrt_elapsed_time(&start_time) > 500000 && !_initialized && (GPSstatus == 3)) {
+			if (hrt_elapsed_time(&start_time) > 100000 && !_initialized && (GPSstatus == 3)) {
 				InitialiseFilter(velNED);
 				_initialized = true;
 
