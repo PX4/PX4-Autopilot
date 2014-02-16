@@ -306,6 +306,12 @@ private:
 	void		start_land_home();
 
 	/**
+	 * Fork for state transitions
+	 */
+	void		request_loiter_or_ready();
+	void		request_mission_if_available();
+
+	/**
 	 * Guards offboard mission
 	 */
 	bool		offboard_mission_available(unsigned relative_index);
@@ -699,24 +705,17 @@ Navigator::task_main()
 					} else {
 						/* MISSION switch */
 						if (_vstatus.mission_switch == MISSION_SWITCH_LOITER) {
-							dispatch(EVENT_LOITER_REQUESTED);
+							request_loiter_or_ready();
 							stick_mode = true;
 
 						} else if (_vstatus.mission_switch == MISSION_SWITCH_MISSION) {
-							/* switch to mission only if available */
-							if (_mission.current_mission_available()) {
-								dispatch(EVENT_MISSION_REQUESTED);
-
-							} else {
-								dispatch(EVENT_LOITER_REQUESTED);
-							}
-
+							request_mission_if_available();
 							stick_mode = true;
 						}
 
 						if (!stick_mode && _vstatus.return_switch == RETURN_SWITCH_NORMAL && myState == NAV_STATE_RTL) {
 							/* RETURN switch is in normal mode, no MISSION switch mapped, interrupt if in RTL state */
-							dispatch(EVENT_LOITER_REQUESTED);
+							request_mission_if_available();
 							stick_mode = true;
 						}
 					}
@@ -733,17 +732,11 @@ Navigator::task_main()
 							break;
 
 						case NAV_STATE_LOITER:
-							dispatch(EVENT_LOITER_REQUESTED);
+							request_loiter_or_ready();
 							break;
 
 						case NAV_STATE_MISSION:
-							if (_mission.current_mission_available()) {
-								dispatch(EVENT_MISSION_REQUESTED);
-
-							} else {
-								dispatch(EVENT_LOITER_REQUESTED);
-							}
-
+							request_mission_if_available();
 							break;
 
 						case NAV_STATE_RTL:
@@ -770,12 +763,7 @@ Navigator::task_main()
 					} else {
 						/* on first switch to AUTO try mission by default, if none is available fallback to loiter */
 						if (myState == NAV_STATE_NONE) {
-							if (_mission.current_mission_available()) {
-								dispatch(EVENT_MISSION_REQUESTED);
-
-							} else {
-								dispatch(EVENT_LOITER_REQUESTED);
-							}
+							request_mission_if_available();
 						}
 					}
 				}
@@ -1398,6 +1386,28 @@ Navigator::set_rtl_item()
 }
 
 void
+Navigator::request_loiter_or_ready()
+{
+	if (_vstatus.condition_landed) {
+		dispatch(EVENT_READY_REQUESTED);
+
+	} else {
+		dispatch(EVENT_LOITER_REQUESTED);
+	}
+}
+
+void
+Navigator::request_mission_if_available()
+{
+	if (_mission.current_mission_available()) {
+		dispatch(EVENT_MISSION_REQUESTED);
+
+	} else {
+		request_loiter_or_ready();
+	}
+}
+
+void
 Navigator::position_setpoint_from_mission_item(position_setpoint_s *sp, mission_item_s *item)
 {
 	sp->valid = true;
@@ -1555,13 +1565,7 @@ Navigator::on_mission_item_reached()
 			/* loiter at last waypoint */
 			_reset_loiter_pos = false;
 			mavlink_log_info(_mavlink_fd, "[navigator] mission completed");
-
-			if (_vstatus.condition_landed) {
-				dispatch(EVENT_READY_REQUESTED);
-
-			} else {
-				dispatch(EVENT_LOITER_REQUESTED);
-			}
+			request_loiter_or_ready();
 		}
 
 	} else if (myState == NAV_STATE_RTL) {
