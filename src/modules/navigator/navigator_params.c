@@ -50,15 +50,72 @@
 
 /*
  * Navigator parameters, accessible via MAVLink
- *
  */
 
+/**
+ * Minimum altitude
+ *
+ * @group Navigation
+ */
 PARAM_DEFINE_FLOAT(NAV_MIN_ALT, 50.0f);
+
+/**
+ * Waypoint acceptance radius.
+ *
+ * @group Navigation
+ */
 PARAM_DEFINE_FLOAT(NAV_ACCEPT_RAD, 10.0f);
+
+/**
+ * Loiter radius.
+ *
+ * @group Navigation
+ */
 PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
+
+/**
+ * @group Navigation
+ */
 PARAM_DEFINE_INT32(NAV_ONB_MIS_EN, 0);
+
+/**
+ * Default take-off altitude.
+ *
+ * @group Navigation
+ */
 PARAM_DEFINE_FLOAT(NAV_TAKEOFF_ALT, 10.0f);	// default TAKEOFF altitude
+
+/**
+ * Landing altitude.
+ *
+ * Slowly descend from this altitude when landing.
+ *
+ * @group Navigation
+ */
 PARAM_DEFINE_FLOAT(NAV_LAND_ALT, 5.0f);		// slow descend from this altitude when landing
+
+/**
+ * Return-to-land altitude.
+ *
+ * Minimum altitude for going home in RTL mode.
+ *
+ * @group Navigation
+ */
 PARAM_DEFINE_FLOAT(NAV_RTL_ALT, 30.0f);		// min altitude for going home in RTL mode
-PARAM_DEFINE_FLOAT(NAV_RTL_LAND_T, -1.0f);	// delay after descend before landing, if set to -1 the system will not land but loiter at NAV_LAND_ALT
-PARAM_DEFINE_INT32(NAV_PARACHUTE_EN, 0);	// enable parachute deployment
+
+/**
+ * Return-to-land delay.
+ *
+ * Delay after descend before landing.
+ * If set to -1 the system will not land but loiter at NAV_LAND_ALT.
+ *
+ * @group Navigation
+ */
+PARAM_DEFINE_FLOAT(NAV_RTL_LAND_T, -1.0f);
+
+/**
+ * Enable parachute deployment.
+ *
+ * @group Navigation
+ */
+PARAM_DEFINE_INT32(NAV_PARACHUTE_EN, 0);

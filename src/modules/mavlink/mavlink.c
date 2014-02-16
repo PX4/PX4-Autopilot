@@ -72,8 +72,20 @@
 // #include <uORB/topics/mission_result.h>
 
 /* define MAVLink specific parameters */
+/**
+ * MAVLink system ID
+ * @group MAVLink
+ */
 PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
+/**
+ * MAVLink component ID
+ * @group MAVLink
+ */
 PARAM_DEFINE_INT32(MAV_COMP_ID, 50);
+/**
+ * MAVLink type
+ * @group MAVLink
+ */
 PARAM_DEFINE_INT32(MAV_TYPE, MAV_TYPE_FIXED_WING);
 
 mavlink_system_t mavlink_system = {
