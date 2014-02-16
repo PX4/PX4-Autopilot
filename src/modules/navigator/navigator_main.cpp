@@ -1059,7 +1059,7 @@ Navigator::start_loiter()
 		float min_alt_amsl = _parameters.min_altitude + _home_pos.alt;
 
 		/* use current altitude if above min altitude set by parameter */
-		if (_global_pos.alt < min_alt_amsl) {
+		if (_global_pos.alt < min_alt_amsl && !_vstatus.is_rotary_wing) {
 			_pos_sp_triplet.current.alt = min_alt_amsl;
 			mavlink_log_info(_mavlink_fd, "[navigator] loiter %.1fm higher", (double)(min_alt_amsl - _global_pos.alt));
 
