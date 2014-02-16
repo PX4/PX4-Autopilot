@@ -140,6 +140,6 @@ private:
 	orb_advert_t telemetry_status_pub;
 	int32_t lat0;
 	int32_t lon0;
-	double alt0;
+	float alt0;
 
 };

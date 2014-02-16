@@ -52,7 +52,12 @@
 #include <poll.h>
 #include <termios.h>
 #include <time.h>
+#include <math.h> /* isinf / isnan checks */
+
 #include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
@@ -64,6 +69,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
@@ -72,12 +78,10 @@
 #include <dataman/dataman.h>
 #include <mathlib/mathlib.h>
 #include <mavlink/mavlink_log.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+
 #include <commander/px4_custom_mode.h>
 
 #include "mavlink_bridge_header.h"
-#include "math.h" /* isinf / isnan checks */
 #include "mavlink_main.h"
 #include "mavlink_orb_listener.h"
 #include "mavlink_receiver.h"
@@ -156,9 +160,9 @@ namespace mavlink
 
 Mavlink::Mavlink() :
 	device_name("/dev/ttyS1"),
-	_mavlink_fd(-1),
-	_next(nullptr),
 	_task_should_exit(false),
+	_next(nullptr),
+	_mavlink_fd(-1),
 	thread_running(false),
 	_mavlink_task(-1),
 	_mavlink_incoming_fd(-1),

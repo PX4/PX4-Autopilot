@@ -106,7 +106,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	telemetry_status_pub(-1),
 	lat0(0),
 	lon0(0),
-	alt0(0)
+	alt0(0.0)
 {
 
 }
@@ -605,8 +605,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 				orb_publish(ORB_ID(airspeed), pub_hil_airspeed, &airspeed);
 			}
 
-			uint64_t timestamp = hrt_absolute_time();
-
 			// publish global position	
 			if (pub_hil_global_pos > 0) {
 				orb_publish(ORB_ID(vehicle_global_position), pub_hil_global_pos, &hil_global_pos);
@@ -628,7 +626,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 			if (pub_hil_local_pos > 0) {
 				float x;
 				float y;
-				bool landed = hil_state.alt/1000.0f < (alt0 + 0.1); // XXX improve?
+				bool landed = (float)(hil_state.alt)/1000.0f < (alt0 + 0.1f); // XXX improve?
 				double lat = hil_state.lat*1e-7;
 				double lon = hil_state.lon*1e-7;
 				map_projection_project(lat, lon, &x, &y); 
@@ -811,13 +809,12 @@ MavlinkReceiver::receive_thread(void *arg)
 
 	while (!_mavlink->_task_should_exit) {
 		if (poll(fds, 1, timeout) > 0) {
-			if (nread < sizeof(buf)) {
+
+			/* non-blocking read. read may return negative values */
+			if ((nread = read(uart_fd, buf, sizeof(buf))) < (ssize_t)sizeof(buf)) {
 				/* to avoid reading very small chunks wait for data before reading */
 				usleep(1000);
 			}
-
-			/* non-blocking read. read may return negative values */
-			nread = read(uart_fd, buf, sizeof(buf));
 
 			/* if read failed, this loop won't execute */
 			for (ssize_t i = 0; i < nread; i++) {
