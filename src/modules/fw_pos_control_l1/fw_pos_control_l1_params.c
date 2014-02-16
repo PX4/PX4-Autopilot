@@ -308,7 +308,7 @@ PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 10.0f);
  * and ignore height errors. This will normally reduce airspeed errors, 
  * but give larger height errors. The default value of 1.0 allows the pitch 
  * control to simultaneously control height and speed. 
- * Note to Glider Pilots – set this parameter to 2.0 (The glider will 
+ * Note to Glider Pilots - set this parameter to 2.0 (The glider will 
  * adjust its pitch angle to maintain airspeed, ignoring changes in height).
  *
  * @group L1 Control
