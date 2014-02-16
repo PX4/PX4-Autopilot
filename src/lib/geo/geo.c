@@ -72,7 +72,6 @@ __EXPORT void map_projection_init(double lat_0, double lon_0) //lat_0, lon_0 are
 	/* calculate local scale by using the relation of true distance and the distance on plane */ //TODO: this is a quick solution, there are probably easier ways to determine the scale
 
 	/* 1) calculate true distance d on sphere to a point: http://www.movable-type.co.uk/scripts/latlong.html */
-	const double r_earth = 6371000;
 
 	double lat1 = phi_1;
 	double lon1 = lambda_0;
@@ -81,7 +80,7 @@ __EXPORT void map_projection_init(double lat_0, double lon_0) //lat_0, lon_0 are
 	double lon2 = lambda_0 + 0.5 / 180 * M_PI;
 	double sin_lat_2 = sin(lat2);
 	double cos_lat_2 = cos(lat2);
-	double d = acos(sin(lat1) * sin_lat_2 + cos(lat1) * cos_lat_2 * cos(lon2 - lon1)) * r_earth;
+	double d = acos(sin(lat1) * sin_lat_2 + cos(lat1) * cos_lat_2 * cos(lon2 - lon1)) * CONSTANTS_RADIUS_OF_EARTH;
 
 	/* 2) calculate distance rho on plane */
 	double k_bar = 0;
@@ -188,8 +187,7 @@ __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, dou
 	double a = sin(d_lat / 2.0d) * sin(d_lat / 2.0d) + sin(d_lon / 2.0d) * sin(d_lon / 2.0d) * cos(lat_now_rad) * cos(lat_next_rad);
 	double c = 2.0d * atan2(sqrt(a), sqrt(1.0d - a));
 
-	const double radius_earth = 6371000.0d;
-	return radius_earth * c; 
+	return CONSTANTS_RADIUS_OF_EARTH * c;
 }
 
 __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next)
@@ -209,7 +207,7 @@ __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, doub
 	return theta;
 }
 
-__EXPORT void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float* vx, float* vy)
+__EXPORT void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float* v_n, float* v_e)
 {
 	double lat_now_rad = lat_now * M_DEG_TO_RAD;
 	double lon_now_rad = lon_now * M_DEG_TO_RAD;
@@ -220,11 +218,11 @@ __EXPORT void get_vector_to_next_waypoint(double lat_now, double lon_now, double
 	double d_lon = lon_next_rad - lon_now_rad;
 
 	/* conscious mix of double and float trig function to maximize speed and efficiency */
-	*vy = CONSTANTS_RADIUS_OF_EARTH * sin(d_lon) * cos(lat_next_rad);
-	*vx = CONSTANTS_RADIUS_OF_EARTH * cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(d_lon);
+	*v_n = CONSTANTS_RADIUS_OF_EARTH * (cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(d_lon));
+	*v_e = CONSTANTS_RADIUS_OF_EARTH * sin(d_lon) * cos(lat_next_rad);
 }
 
-__EXPORT void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next, float* vx, float* vy)
+__EXPORT void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next, float* v_n, float* v_e)
 {
 	double lat_now_rad = lat_now * M_DEG_TO_RAD;
 	double lon_now_rad = lon_now * M_DEG_TO_RAD;
@@ -235,8 +233,17 @@ __EXPORT void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, d
 	double d_lon = lon_next_rad - lon_now_rad;
 
 	/* conscious mix of double and float trig function to maximize speed and efficiency */
-	*vy = CONSTANTS_RADIUS_OF_EARTH * d_lon;
-	*vx = CONSTANTS_RADIUS_OF_EARTH * cos(lat_now_rad);
+	*v_n = CONSTANTS_RADIUS_OF_EARTH * d_lat;
+	*v_e = CONSTANTS_RADIUS_OF_EARTH * d_lon * cos(lat_now_rad);
+}
+
+__EXPORT void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res, double *lon_res)
+{
+	double lat_now_rad = lat_now * M_DEG_TO_RAD;
+	double lon_now_rad = lon_now * M_DEG_TO_RAD;
+
+	*lat_res = (lat_now_rad + v_n / CONSTANTS_RADIUS_OF_EARTH) * M_RAD_TO_DEG;
+	*lon_res = (lon_now_rad + v_e / (CONSTANTS_RADIUS_OF_EARTH * cos(lat_now_rad))) * M_RAD_TO_DEG;
 }
 
 // Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu>
@@ -386,25 +393,64 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s * crosstrack_error, d
 	return return_value;
 }
 
+__EXPORT float get_distance_to_point_global_wgs84(double lat_now, double lon_now, float alt_now,
+	                                          double lat_next, double lon_next, float alt_next,
+	                                          float *dist_xy, float *dist_z)
+{
+	double current_x_rad = lat_next / 180.0 * M_PI;
+	double current_y_rad = lon_next / 180.0 * M_PI;
+	double x_rad = lat_now / 180.0 * M_PI;
+	double y_rad = lon_now / 180.0 * M_PI;
+
+	double d_lat = x_rad - current_x_rad;
+	double d_lon = y_rad - current_y_rad;
+
+	double a = sin(d_lat / 2.0) * sin(d_lat / 2.0) + sin(d_lon / 2.0) * sin(d_lon / 2.0f) * cos(current_x_rad) * cos(x_rad);
+	double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+
+	float dxy = CONSTANTS_RADIUS_OF_EARTH * c;
+	float dz = alt_now - alt_next;
+
+	*dist_xy = fabsf(dxy);
+	*dist_z = fabsf(dz);
+
+	return sqrtf(dxy * dxy + dz * dz);
+}
+
+
+__EXPORT float mavlink_wpm_distance_to_point_local(float x_now, float y_now, float z_now,
+	                                           float x_next, float y_next, float z_next,
+	                                           float *dist_xy, float *dist_z)
+{
+	float dx = x_now - x_next;
+	float dy = y_now - y_next;
+	float dz = z_now - z_next;
+
+	*dist_xy = sqrtf(dx * dx + dy * dy);
+	*dist_z = fabsf(dz);
+
+	return sqrtf(dx * dx + dy * dy + dz * dz);
+}
+
 __EXPORT float _wrap_pi(float bearing)
 {
 	/* value is inf or NaN */
-	if (!isfinite(bearing) || bearing == 0) {
+	if (!isfinite(bearing)) {
 		return bearing;
 	}
 
 	int c = 0;
-
-	while (bearing > M_PI_F && c < 30) {
+	while (bearing > M_PI_F) {
 		bearing -= M_TWOPI_F;
-		c++;
+		if (c++ > 3)
+			return NAN;
 	}
 
 	c = 0;
-
-	while (bearing <=  -M_PI_F && c < 30) {
+	while (bearing <= -M_PI_F) {
 		bearing += M_TWOPI_F;
-		c++;
+		if (c++ > 3)
+			return NAN;
 	}
 
 	return bearing;
@@ -417,12 +463,18 @@ __EXPORT float _wrap_2pi(float bearing)
 		return bearing;
 	}
 
-	while (bearing >= M_TWOPI_F) {
-		bearing = bearing - M_TWOPI_F;
+	int c = 0;
+	while (bearing > M_TWOPI_F) {
+		bearing -= M_TWOPI_F;
+		if (c++ > 3)
+			return NAN;
 	}
 
-	while (bearing <  0.0f) {
-		bearing = bearing + M_TWOPI_F;
+	c = 0;
+	while (bearing <= 0.0f) {
+		bearing += M_TWOPI_F;
+		if (c++ > 3)
+			return NAN;
 	}
 
 	return bearing;
@@ -435,12 +487,18 @@ __EXPORT float _wrap_180(float bearing)
 		return bearing;
 	}
 
+	int c = 0;
 	while (bearing > 180.0f) {
-		bearing = bearing - 360.0f;
+		bearing -= 360.0f;
+		if (c++ > 3)
+			return NAN;
 	}
 
-	while (bearing <=  -180.0f) {
-		bearing = bearing + 360.0f;
+	c = 0;
+	while (bearing <= -180.0f) {
+		bearing += 360.0f;
+		if (c++ > 3)
+			return NAN;
 	}
 
 	return bearing;
@@ -453,15 +511,19 @@ __EXPORT float _wrap_360(float bearing)
 		return bearing;
 	}
 
-	while (bearing >= 360.0f) {
-		bearing = bearing - 360.0f;
+	int c = 0;
+	while (bearing > 360.0f) {
+		bearing -= 360.0f;
+		if (c++ > 3)
+			return NAN;
 	}
 
-	while (bearing <  0.0f) {
-		bearing = bearing + 360.0f;
+	c = 0;
+	while (bearing <= 0.0f) {
+		bearing += 360.0f;
+		if (c++ > 3)
+			return NAN;
 	}
 
 	return bearing;
 }
-
-

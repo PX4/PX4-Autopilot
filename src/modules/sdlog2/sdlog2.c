@@ -72,7 +72,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_global_position_setpoint.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
@@ -82,6 +82,7 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/telemetry_status.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -748,7 +749,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_local_position_s local_pos;
 		struct vehicle_local_position_setpoint_s local_pos_sp;
 		struct vehicle_global_position_s global_pos;
-		struct vehicle_global_position_setpoint_s global_pos_sp;
+		struct position_setpoint_triplet_s triplet;
 		struct vehicle_gps_position_s gps_pos;
 		struct vehicle_vicon_position_s vicon_pos;
 		struct optical_flow_s flow;
@@ -758,6 +759,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct esc_status_s esc;
 		struct vehicle_global_velocity_setpoint_s global_vel_sp;
 		struct battery_status_s battery;
+		struct telemetry_status_s telemetry;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -774,7 +776,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int local_pos_sub;
 		int local_pos_sp_sub;
 		int global_pos_sub;
-		int global_pos_sp_sub;
+		int triplet_sub;
 		int gps_pos_sub;
 		int vicon_pos_sub;
 		int flow_sub;
@@ -783,6 +785,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int esc_sub;
 		int global_vel_sp_sub;
 		int battery_sub;
+		int telemetry_sub;
 	} subs;
 
 	/* log message buffer: header + body */
@@ -810,6 +813,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_ESC_s log_ESC;
 			struct log_GVSP_s log_GVSP;
 			struct log_BATT_s log_BATT;
+			struct log_DIST_s log_DIST;
+			struct log_TELE_s log_TELE;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -898,8 +903,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fdsc_count++;
 
 	/* --- GLOBAL POSITION SETPOINT--- */
-	subs.global_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
-	fds[fdsc_count].fd = subs.global_pos_sp_sub;
+	subs.triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
+	fds[fdsc_count].fd = subs.triplet_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -945,6 +950,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
+	/* --- TELEMETRY STATUS --- */
+	subs.telemetry_sub = orb_subscribe(ORB_ID(telemetry_status));
+	fds[fdsc_count].fd = subs.telemetry_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
 	/* WARNING: If you get the error message below,
 	 * then the number of registered messages (fdsc)
 	 * differs from the number of messages in the above list.
@@ -973,6 +984,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 	hrt_abstime barometer_timestamp = 0;
 	hrt_abstime differential_pressure_timestamp = 0;
 
+	/* track changes in distance status */
+	bool dist_bottom_present = false;
+
 	/* enable logging on start if needed */
 	if (log_on_start) {
 		/* check GPS topic to get GPS time */
@@ -989,7 +1003,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* decide use usleep() or blocking poll() */
 		bool use_sleep = sleep_delay > 0 && logging_enabled;
 
-		/* poll all topics if logging enabled or only management (first 2) if not */
+		/* poll all topics if logging enabled or only management (first 3) if not */
 		int poll_ret = poll(fds, logging_enabled ? fdsc_count : 3, use_sleep ? 0 : poll_timeout);
 
 		/* handle the poll result */
@@ -1008,6 +1022,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* --- VEHICLE COMMAND - LOG MANAGEMENT --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_command), subs.cmd_sub, &buf.cmd);
+
 				handle_command(&buf.cmd);
 				handled_topics++;
 			}
@@ -1038,7 +1053,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				continue;
 			}
 
-			ifds = 1;	// begin from fds[1] again
+			ifds = 1;	// begin from VEHICLE STATUS again
 
 			pthread_mutex_lock(&logbuffer_mutex);
 
@@ -1049,10 +1064,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 			/* --- VEHICLE STATUS --- */
 			if (fds[ifds++].revents & POLLIN) {
-				// Don't orb_copy, it's already done few lines above
+				/* don't orb_copy, it's already done few lines above */
 				log_msg.msg_type = LOG_STAT_MSG;
 				log_msg.body.log_STAT.main_state = (uint8_t) buf_status.main_state;
-				log_msg.body.log_STAT.navigation_state = (uint8_t) buf_status.navigation_state;
 				log_msg.body.log_STAT.arming_state = (uint8_t) buf_status.arming_state;
 				log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
 				log_msg.body.log_STAT.battery_warning = (uint8_t) buf_status.battery_warning;
@@ -1062,7 +1076,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 			/* --- GPS POSITION --- */
 			if (fds[ifds++].revents & POLLIN) {
-				// Don't orb_copy, it's already done few lines above
+				/* don't orb_copy, it's already done few lines above */
 				log_msg.msg_type = LOG_GPS_MSG;
 				log_msg.body.log_GPS.gps_time = buf.gps_pos.time_gps_usec;
 				log_msg.body.log_GPS.fix_type = buf.gps_pos.fix_type;
@@ -1143,6 +1157,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_ATT.roll_rate = buf.att.rollspeed;
 				log_msg.body.log_ATT.pitch_rate = buf.att.pitchspeed;
 				log_msg.body.log_ATT.yaw_rate = buf.att.yawspeed;
+				log_msg.body.log_ATT.gx = buf.att.g_comp[0];
+				log_msg.body.log_ATT.gy = buf.att.g_comp[1];
+				log_msg.body.log_ATT.gz = buf.att.g_comp[2];
 				LOGBUFFER_WRITE_AND_COUNT(ATT);
 			}
 
@@ -1203,6 +1220,17 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_LPOS.z_flags = (buf.local_pos.z_valid ? 1 : 0) | (buf.local_pos.v_z_valid ? 2 : 0) | (buf.local_pos.z_global ? 8 : 0);
 				log_msg.body.log_LPOS.landed = buf.local_pos.landed;
 				LOGBUFFER_WRITE_AND_COUNT(LPOS);
+
+				if (buf.local_pos.dist_bottom_valid) {
+					dist_bottom_present = true;
+				}
+				if (dist_bottom_present) {
+					log_msg.msg_type = LOG_DIST_MSG;
+					log_msg.body.log_DIST.bottom = buf.local_pos.dist_bottom;
+					log_msg.body.log_DIST.bottom_rate = buf.local_pos.dist_bottom_rate;
+					log_msg.body.log_DIST.flags = (buf.local_pos.dist_bottom_valid ? 1 : 0);
+					LOGBUFFER_WRITE_AND_COUNT(DIST);
+				}
 			}
 
 			/* --- LOCAL POSITION SETPOINT --- */
@@ -1220,31 +1248,30 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_global_position), subs.global_pos_sub, &buf.global_pos);
 				log_msg.msg_type = LOG_GPOS_MSG;
-				log_msg.body.log_GPOS.lat = buf.global_pos.lat;
-				log_msg.body.log_GPOS.lon = buf.global_pos.lon;
+				log_msg.body.log_GPOS.lat = buf.global_pos.lat * 1e7;
+				log_msg.body.log_GPOS.lon = buf.global_pos.lon * 1e7;
 				log_msg.body.log_GPOS.alt = buf.global_pos.alt;
-				log_msg.body.log_GPOS.vel_n = buf.global_pos.vx;
-				log_msg.body.log_GPOS.vel_e = buf.global_pos.vy;
-				log_msg.body.log_GPOS.vel_d = buf.global_pos.vz;
+				log_msg.body.log_GPOS.vel_n = buf.global_pos.vel_n;
+				log_msg.body.log_GPOS.vel_e = buf.global_pos.vel_e;
+				log_msg.body.log_GPOS.vel_d = buf.global_pos.vel_d;
+				log_msg.body.log_GPOS.baro_alt = buf.global_pos.baro_alt;
+				log_msg.body.log_GPOS.flags = (buf.global_pos.baro_valid ? 1 : 0) | (buf.global_pos.global_valid ? 2 : 0);
 				LOGBUFFER_WRITE_AND_COUNT(GPOS);
 			}
 
 			/* --- GLOBAL POSITION SETPOINT --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(vehicle_global_position_setpoint), subs.global_pos_sp_sub, &buf.global_pos_sp);
+				orb_copy(ORB_ID(position_setpoint_triplet), subs.triplet_sub, &buf.triplet);
 				log_msg.msg_type = LOG_GPSP_MSG;
-				log_msg.body.log_GPSP.altitude_is_relative = buf.global_pos_sp.altitude_is_relative;
-				log_msg.body.log_GPSP.lat = buf.global_pos_sp.lat;
-				log_msg.body.log_GPSP.lon = buf.global_pos_sp.lon;
-				log_msg.body.log_GPSP.altitude = buf.global_pos_sp.altitude;
-				log_msg.body.log_GPSP.yaw = buf.global_pos_sp.yaw;
-				log_msg.body.log_GPSP.loiter_radius = buf.global_pos_sp.loiter_radius;
-				log_msg.body.log_GPSP.loiter_direction = buf.global_pos_sp.loiter_direction;
-				log_msg.body.log_GPSP.nav_cmd = buf.global_pos_sp.nav_cmd;
-				log_msg.body.log_GPSP.param1 = buf.global_pos_sp.param1;
-				log_msg.body.log_GPSP.param2 = buf.global_pos_sp.param2;
-				log_msg.body.log_GPSP.param3 = buf.global_pos_sp.param3;
-				log_msg.body.log_GPSP.param4 = buf.global_pos_sp.param4;
+				log_msg.body.log_GPSP.nav_state = buf.triplet.nav_state;
+				log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * 1e7d);
+				log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * 1e7d);
+				log_msg.body.log_GPSP.alt = buf.triplet.current.alt;
+				log_msg.body.log_GPSP.yaw = buf.triplet.current.yaw;
+				log_msg.body.log_GPSP.type = buf.triplet.current.type;
+				log_msg.body.log_GPSP.loiter_radius = buf.triplet.current.loiter_radius;
+				log_msg.body.log_GPSP.loiter_direction = buf.triplet.current.loiter_direction;
+				log_msg.body.log_GPSP.pitch_min = buf.triplet.current.pitch_min;
 				LOGBUFFER_WRITE_AND_COUNT(GPSP);
 			}
 
@@ -1328,6 +1355,20 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_BATT.current = buf.battery.current_a;
 				log_msg.body.log_BATT.discharged = buf.battery.discharged_mah;
 				LOGBUFFER_WRITE_AND_COUNT(BATT);
+			}
+
+			/* --- TELEMETRY --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(telemetry_status), subs.telemetry_sub, &buf.telemetry);
+				log_msg.msg_type = LOG_TELE_MSG;
+				log_msg.body.log_TELE.rssi = buf.telemetry.rssi;
+				log_msg.body.log_TELE.remote_rssi = buf.telemetry.remote_rssi;
+				log_msg.body.log_TELE.noise = buf.telemetry.noise;
+				log_msg.body.log_TELE.remote_noise = buf.telemetry.remote_noise;
+				log_msg.body.log_TELE.rxerrors = buf.telemetry.rxerrors;
+				log_msg.body.log_TELE.fixed = buf.telemetry.fixed;
+				log_msg.body.log_TELE.txbuf = buf.telemetry.txbuf;
+				LOGBUFFER_WRITE_AND_COUNT(TELE);
 			}
 
 			/* signal the other thread new data, but not yet unlock */

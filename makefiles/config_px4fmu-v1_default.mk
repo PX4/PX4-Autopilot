@@ -21,7 +21,6 @@ MODULES		+= drivers/px4fmu
 MODULES		+= drivers/boards/px4fmu-v1
 MODULES		+= drivers/ardrone_interface
 MODULES		+= drivers/l3gd20
-#MODULES		+= drivers/bma180
 MODULES		+= drivers/mpu6000
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
@@ -44,7 +43,6 @@ MODULES		+= modules/sensors
 #
 MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/bl_update
-MODULES		+= systemcmds/boardinfo
 MODULES		+= systemcmds/i2c
 MODULES		+= systemcmds/mixer
 MODULES		+= systemcmds/param
@@ -65,14 +63,12 @@ MODULES		+= systemcmds/hw_ver
 MODULES		+= modules/commander
 MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
-MODULES		+= modules/mavlink_onboard
 MODULES		+= modules/gpio_led
 
 #
 # Estimation modules (EKF/ SO3 / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
-MODULES		+= modules/attitude_estimator_so3
 MODULES		+= modules/fw_att_pos_estimator
 MODULES		+= modules/position_estimator_inav
 #MODULES		+= examples/flow_position_estimator
@@ -82,8 +78,8 @@ MODULES		+= modules/position_estimator_inav
 #
 MODULES		+= modules/fw_pos_control_l1
 MODULES		+= modules/fw_att_control
-MODULES		+= modules/multirotor_att_control
-MODULES		+= modules/multirotor_pos_control
+MODULES		+= modules/mc_att_control
+MODULES		+= modules/mc_pos_control
 #MODULES		+= examples/flow_position_control
 #MODULES		+= examples/flow_speed_control
 
@@ -105,6 +101,7 @@ MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/controllib
 MODULES		+= modules/uORB
+MODULES		+= modules/dataman
 
 #
 # Libraries
@@ -116,6 +113,7 @@ MODULES		+= lib/ecl
 MODULES		+= lib/external_lgpl
 MODULES		+= lib/geo
 MODULES		+= lib/conversion
+MODULES		+= lib/launchdetection
 
 #
 # Demo apps

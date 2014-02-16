@@ -758,8 +758,8 @@ FixedwingEstimator::task_main()
 				// 18-20: Body Magnetic Field Vector - milligauss (X,Y,Z)
 
 				math::Quaternion q(states[0], states[1], states[2], states[3]);
-				math::Dcm R(q);
-				math::EulerAngles euler(R);
+				math::Matrix<3, 3> R = q.to_dcm();
+				math::Vector<3> euler = R.to_euler();
 
 				for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
 					_att.R[i][j] = R(i, j);
@@ -773,9 +773,9 @@ FixedwingEstimator::task_main()
 				_att.R_valid = true;
 
 				_att.timestamp = last_sensor_timestamp;
-				_att.roll = euler.getPhi();
-				_att.pitch = euler.getTheta();
-				_att.yaw = euler.getPsi();
+				_att.roll = euler(0);
+				_att.pitch = euler(1);
+				_att.yaw = euler(2);
 
 				_att.rollspeed = angRate.x - states[10];
 				_att.pitchspeed = angRate.y - states[11];
@@ -867,10 +867,11 @@ FixedwingEstimator::start()
 void print_status()
 {
 	math::Quaternion q(states[0], states[1], states[2], states[3]);
-	math::EulerAngles euler(q);
+	math::Matrix<3, 3> R = q.to_dcm();
+	math::Vector<3> euler = R.to_euler();
 
 	printf("attitude: roll: %8.4f, pitch %8.4f, yaw: %8.4f degrees\n",
-		(double)math::degrees(euler.getPhi()), (double)math::degrees(euler.getTheta()), (double)math::degrees(euler.getPsi()));
+		(double)math::degrees(euler(0)), (double)math::degrees(euler(1)), (double)math::degrees(euler(2)));
 
 	// State vector:
 	// 0-3: quaternions (q0, q1, q2, q3)

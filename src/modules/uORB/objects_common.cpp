@@ -117,17 +117,21 @@ ORB_DEFINE(vehicle_local_position_setpoint, struct vehicle_local_position_setpoi
 #include "topics/vehicle_bodyframe_speed_setpoint.h"
 ORB_DEFINE(vehicle_bodyframe_speed_setpoint, struct vehicle_bodyframe_speed_setpoint_s);
 
-#include "topics/vehicle_global_position_setpoint.h"
-ORB_DEFINE(vehicle_global_position_setpoint, struct vehicle_global_position_setpoint_s);
-
-#include "topics/vehicle_global_position_set_triplet.h"
-ORB_DEFINE(vehicle_global_position_set_triplet, struct vehicle_global_position_set_triplet_s);
+#include "topics/position_setpoint_triplet.h"
+ORB_DEFINE(position_setpoint_triplet, struct position_setpoint_triplet_s);
 
 #include "topics/vehicle_global_velocity_setpoint.h"
 ORB_DEFINE(vehicle_global_velocity_setpoint, struct vehicle_global_velocity_setpoint_s);
 
 #include "topics/mission.h"
 ORB_DEFINE(mission, struct mission_s);
+ORB_DEFINE(onboard_mission, struct mission_s);
+
+#include "topics/mission_result.h"
+ORB_DEFINE(mission_result, struct mission_result_s);
+
+#include "topics/fence.h"
+ORB_DEFINE(fence, unsigned);
 
 #include "topics/vehicle_attitude_setpoint.h"
 ORB_DEFINE(vehicle_attitude_setpoint, struct vehicle_attitude_setpoint_s);

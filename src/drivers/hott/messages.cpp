@@ -295,8 +295,8 @@ build_gps_response(uint8_t *buffer, size_t *size)
 			memset(&home, 0, sizeof(home));
 			orb_copy(ORB_ID(home_position), _home_sub, &home);
 
-			_home_lat = ((double)(home.lat))*1e-7d;
-			_home_lon = ((double)(home.lon))*1e-7d;
+			_home_lat = home.lat;
+			_home_lon = home.lon;
 			_home_position_set = true;
 		}
 

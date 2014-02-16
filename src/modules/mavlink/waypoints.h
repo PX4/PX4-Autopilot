@@ -46,18 +46,10 @@
  or in the same folder as this source file */
 
 #include <v1.0/mavlink_types.h>
-
-// #ifndef MAVLINK_SEND_UART_BYTES
-// #define MAVLINK_SEND_UART_BYTES(chan, buffer, len) mavlink_send_uart_bytes(chan, buffer, len)
-// #endif
-//extern mavlink_system_t mavlink_system;
 #include "mavlink_bridge_header.h"
 #include <stdbool.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/navigation_capabilities.h>
+#include <uORB/topics/mission.h>
 
-// FIXME XXX - TO BE MOVED TO XML
 enum MAVLINK_WPM_STATES {
 	MAVLINK_WPM_STATE_IDLE = 0,
 	MAVLINK_WPM_STATE_SENDLIST,
@@ -78,55 +70,43 @@ enum MAVLINK_WPM_CODES {
 };
 
 
-/* WAYPOINT MANAGER - MISSION LIB */
-
-#define MAVLINK_WPM_MAX_WP_COUNT 15
-#define MAVLINK_WPM_CONFIG_IN_FLIGHT_UPDATE				  ///< Enable double buffer and in-flight updates
-#ifndef MAVLINK_WPM_TEXT_FEEDBACK
-#define MAVLINK_WPM_TEXT_FEEDBACK 0						  ///< Report back status information as text
-#endif
+#define MAVLINK_WPM_MAX_WP_COUNT 255
 #define MAVLINK_WPM_PROTOCOL_TIMEOUT_DEFAULT 5000000         ///< Protocol communication timeout in useconds
 #define MAVLINK_WPM_SETPOINT_DELAY_DEFAULT 1000000           ///< When to send a new setpoint
 #define MAVLINK_WPM_PROTOCOL_DELAY_DEFAULT 40000
 
 
 struct mavlink_wpm_storage {
-	mavlink_mission_item_t waypoints[MAVLINK_WPM_MAX_WP_COUNT];      ///< Currently active waypoints
-#ifdef MAVLINK_WPM_CONFIG_IN_FLIGHT_UPDATE
-	mavlink_mission_item_t rcv_waypoints[MAVLINK_WPM_MAX_WP_COUNT];  ///< Receive buffer for next waypoints
-#endif
 	uint16_t size;
 	uint16_t max_size;
-	uint16_t rcv_size;
 	enum MAVLINK_WPM_STATES current_state;
 	int16_t current_wp_id;							///< Waypoint in current transmission
-	int16_t current_active_wp_id;					///< Waypoint the system is currently heading towards
 	uint16_t current_count;
 	uint8_t current_partner_sysid;
 	uint8_t current_partner_compid;
 	uint64_t timestamp_lastaction;
 	uint64_t timestamp_last_send_setpoint;
-	uint64_t timestamp_firstinside_orbit;
-	uint64_t timestamp_lastoutside_orbit;
 	uint32_t timeout;
-	uint32_t delay_setpoint;
-	float accept_range_yaw;
-	float accept_range_distance;
-	bool yaw_reached;
-	bool pos_reached;
-	bool idle;
+	int current_dataman_id;
 };
 
 typedef struct mavlink_wpm_storage mavlink_wpm_storage;
 
+int map_mavlink_mission_item_to_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item);
+int map_mission_item_to_mavlink_mission_item(const struct mission_item_s *mission_item, mavlink_mission_item_t *mavlink_mission_item);
+
+
 void mavlink_wpm_init(mavlink_wpm_storage *state);
-int mavlink_waypoint_eventloop(uint64_t now, const struct vehicle_global_position_s *global_position,
-			       struct vehicle_local_position_s *local_pos, struct navigation_capabilities_s *nav_cap);
-void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehicle_global_position_s *global_pos ,
-				 struct vehicle_local_position_s *local_pos);
+void mavlink_waypoint_eventloop(uint64_t now);
+void mavlink_wpm_message_handler(const mavlink_message_t *msg);
 
 extern void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		float param2, float param3, float param4, float param5_lat_x,
 		float param6_lon_y, float param7_alt_z, uint8_t frame, uint16_t command);
+
+static uint8_t missionlib_msg_buf[MAVLINK_MAX_PACKET_LEN];
+
+void mavlink_missionlib_send_message(mavlink_message_t *msg);
+int mavlink_missionlib_send_gcs_string(const char *string);
 
 #endif /* WAYPOINTS_H_ */
