@@ -1,4 +1,5 @@
 from xml.dom.minidom import getDOMImplementation
+import codecs
 
 class XMLOutput():
     def __init__(self, groups):
@@ -18,8 +19,8 @@ class XMLOutput():
                     xml_param.appendChild(xml_field)
                     xml_value = xml_document.createTextNode(value)
                     xml_field.appendChild(xml_value)
-        self.output = xml_document.toprettyxml(indent="    ", newl="\n", encoding="utf-8")
+        self.xml_document = xml_document
 
     def Save(self, filename):
-        with open(filename, 'wb') as f:
-            f.write(self.output)
+        with codecs.open(filename, 'w', 'utf-8') as f:
+            self.xml_document.writexml(f, indent="    ", addindent="    ", newl="\n")

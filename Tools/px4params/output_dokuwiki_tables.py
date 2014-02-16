@@ -1,4 +1,5 @@
 from xml.sax.saxutils import escape
+import codecs
 
 class DokuWikiTablesOutput():
     def __init__(self, groups):
@@ -44,11 +45,11 @@ class DokuWikiTablesOutput():
         self.output = result;
 
     def Save(self, filename):
-        with open(filename, 'w') as f:
+        with codecs.open(filename, 'w', 'utf-8') as f:
             f.write(self.output)
 
     def SaveRpc(self, filename):
-        with open(filename, 'w') as f:
+        with codecs.open(filename, 'w', 'utf-8') as f:
             f.write("""<?xml version='1.0'?>
 <methodCall>
   <methodName>wiki.putPage</methodName>
