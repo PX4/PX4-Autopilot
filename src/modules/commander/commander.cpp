@@ -1295,26 +1295,6 @@ int commander_thread_main(int argc, char *argv[])
 
 			status.offboard_control_signal_lost = false;
 
-			if (status.main_state == MAIN_STATE_OFFBOARD) {
-				if (sp_offboard.armed && !armed.armed) {
-					if (!safety.safety_switch_available || safety.safety_off) {
-						transition_result_t res = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed);
-
-						if (res == TRANSITION_CHANGED) {
-								mavlink_log_info(mavlink_fd, "[cmd] ARMED by offboard signal");
-						}
-					}
-
-				} else if (!sp_offboard.armed && armed.armed) {
-					arming_state_t new_arming_state = (status.arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
-					transition_result_t res = arming_state_transition(&status, &safety, new_arming_state, &armed);
-
-					if (res == TRANSITION_CHANGED) {
-						mavlink_log_info(mavlink_fd, "[cmd] DISARMED by offboard signal");
-					}
-				}
-			}
-
 		} else {
 			if (!status.offboard_control_signal_lost) {
 				mavlink_log_critical(mavlink_fd, "[cmd[ CRITICAL: OFFBOARD SIGNAL LOST");
