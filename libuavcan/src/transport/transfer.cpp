@@ -90,18 +90,6 @@ bool Frame::parse(const CanFrame& can_frame)
     data_type_id_  = bitunpack<19, 10>(id);
 
     /*
-     * Validation
-     */
-    if (frame_index_ > FRAME_INDEX_MAX)
-        return false;
-
-    if ((frame_index_ == FRAME_INDEX_MAX) && !last_frame_) // Unterminated transfer
-        return false;
-
-    if (!src_node_id_.isUnicast())
-        return false;
-
-    /*
      * CAN payload parsing
      */
     switch (transfer_type_)
@@ -119,11 +107,7 @@ bool Frame::parse(const CanFrame& can_frame)
             return false;
         if (can_frame.data[0] & 0x80)     // RESERVED, must be zero
             return false;
-
         dst_node_id_ = can_frame.data[0] & 0x7F;
-        if (!dst_node_id_.isUnicast() || (dst_node_id_ == src_node_id_))
-            return false;
-
         payload_len_ = can_frame.dlc - 1;
         std::copy(can_frame.data + 1, can_frame.data + can_frame.dlc, payload_);
         break;
@@ -131,7 +115,8 @@ bool Frame::parse(const CanFrame& can_frame)
     default:
         return false;
     }
-    return true;
+
+    return isValid();
 }
 
 template <int OFFSET, int WIDTH>
