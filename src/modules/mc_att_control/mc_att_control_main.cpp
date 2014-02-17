@@ -53,11 +53,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <errno.h>
 #include <math.h>
 #include <poll.h>
-#include <time.h>
 #include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
