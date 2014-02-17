@@ -1055,6 +1055,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		if (pos_sp_triplet.current.type != SETPOINT_TYPE_TAKEOFF) {
 			launch_detected = false;
 			usePreTakeoffThrust = false;
+			launchDetector.reset();
 		}
 
 		if (was_circle_mode && !_l1_control.circle_mode()) {
