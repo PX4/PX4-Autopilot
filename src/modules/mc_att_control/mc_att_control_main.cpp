@@ -761,10 +761,12 @@ MulticopterAttitudeControl::task_main()
 				}
 
 			} else {
-				/* attitude controller disabled */
-				// TODO poll 'attitude_rates_setpoint' topic
-				_rates_sp.zero();
-				_thrust_sp = 0.0f;
+				/* attitude controller disabled, poll rates setpoint topic */
+                vehicle_rates_setpoint_poll();
+                _rates_sp(0) = _v_rates_sp.roll;
+                _rates_sp(1) = _v_rates_sp.pitch;
+                _rates_sp(2) = _v_rates_sp.yaw;
+				_thrust_sp = _v_rates_sp.thrust;
 			}
 
 			if (_v_control_mode.flag_control_rates_enabled) {
