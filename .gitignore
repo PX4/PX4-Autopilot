@@ -35,3 +35,9 @@ mavlink/include/mavlink/v0.9/
 /Documentation/doxygen*objdb*tmp
 .tags
 .tags_sorted_by_file
+*.creator
+*.includes
+*.files
+*.config
+*.user
+*.autosave
