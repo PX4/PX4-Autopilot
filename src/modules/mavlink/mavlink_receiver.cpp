@@ -330,6 +330,7 @@ handle_message(mavlink_message_t *msg)
 				orb_publish(ORB_ID(offboard_control_setpoint), offboard_control_sp_pub, &offboard_control_sp);
 			}
 
+			// TODO use vehicle_control_mode.flag_control_offboard_enabled
 			if (v_status.main_state == MAIN_STATE_OFFBOARD) {
 				/* in offboard mode also publish setpoint directly */
 				switch (offboard_control_sp.mode) {

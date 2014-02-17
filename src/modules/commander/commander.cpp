@@ -159,6 +159,7 @@ static struct vehicle_status_s status;
 static struct actuator_armed_s armed;
 static struct safety_s safety;
 static struct vehicle_control_mode_s control_mode;
+static struct offboard_control_setpoint_s sp_offboard;
 
 /* tasks waiting for low prio thread */
 typedef enum {
@@ -767,7 +768,6 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Subscribe to offboard control data */
 	int sp_offboard_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
-	struct offboard_control_setpoint_s sp_offboard;
 	memset(&sp_offboard, 0, sizeof(sp_offboard));
 
 	/* Subscribe to global position */
@@ -1691,6 +1691,8 @@ set_control_mode()
 	control_mode.flag_external_manual_override_ok = !status.is_rotary_wing;
 	control_mode.flag_system_hil_enabled = status.hil_state == HIL_STATE_ON;
 
+	control_mode.flag_control_auto_enabled = false;
+	control_mode.flag_control_offboard_enabled = false;
 	control_mode.flag_control_termination_enabled = false;
 
 	/* set this flag when navigator should act */
@@ -1701,7 +1703,6 @@ set_control_mode()
 		switch (status.main_state) {
 		case MAIN_STATE_MANUAL:
 			control_mode.flag_control_manual_enabled = true;
-			control_mode.flag_control_auto_enabled = false;
 			control_mode.flag_control_rates_enabled = status.is_rotary_wing;
 			control_mode.flag_control_attitude_enabled = status.is_rotary_wing;
 			control_mode.flag_control_altitude_enabled = false;
@@ -1712,7 +1713,6 @@ set_control_mode()
 
 		case MAIN_STATE_SEATBELT:
 			control_mode.flag_control_manual_enabled = true;
-			control_mode.flag_control_auto_enabled = false;
 			control_mode.flag_control_rates_enabled = true;
 			control_mode.flag_control_attitude_enabled = true;
 			control_mode.flag_control_altitude_enabled = true;
@@ -1723,7 +1723,6 @@ set_control_mode()
 
 		case MAIN_STATE_EASY:
 			control_mode.flag_control_manual_enabled = true;
-			control_mode.flag_control_auto_enabled = false;
 			control_mode.flag_control_rates_enabled = true;
 			control_mode.flag_control_attitude_enabled = true;
 			control_mode.flag_control_altitude_enabled = true;
@@ -1734,6 +1733,31 @@ set_control_mode()
 
 		case MAIN_STATE_AUTO:
 			navigator_enabled = true;
+
+		case MAIN_STATE_OFFBOARD:
+			control_mode.flag_control_manual_enabled = false;
+			control_mode.flag_control_offboard_enabled = false;
+
+			switch (sp_offboard.mode) {
+			case OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE:
+				control_mode.flag_control_rates_enabled = true;
+				control_mode.flag_control_attitude_enabled = true;
+				control_mode.flag_control_altitude_enabled = false;
+				control_mode.flag_control_climb_rate_enabled = false;
+				control_mode.flag_control_position_enabled = false;
+				control_mode.flag_control_velocity_enabled = false;
+				break;
+
+			default:
+				control_mode.flag_control_rates_enabled = false;
+				control_mode.flag_control_attitude_enabled = false;
+				control_mode.flag_control_altitude_enabled = false;
+				control_mode.flag_control_climb_rate_enabled = false;
+				control_mode.flag_control_position_enabled = false;
+				control_mode.flag_control_velocity_enabled = false;
+			}
+
+			break;
 
 		default:
 			break;
