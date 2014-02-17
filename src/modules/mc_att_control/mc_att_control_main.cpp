@@ -692,9 +692,6 @@ MulticopterAttitudeControl::task_main()
 	_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
-	/* rate limit attitude updates to 200Hz, failsafe against spam, normally runs at the same rate as attitude estimator */
-	orb_set_interval(_v_att_sub, 5);
-
 	/* initialize parameters cache */
 	parameters_update();
 
