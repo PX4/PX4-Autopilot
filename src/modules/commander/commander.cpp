@@ -1736,7 +1736,7 @@ set_control_mode()
 
 		case MAIN_STATE_OFFBOARD:
 			control_mode.flag_control_manual_enabled = false;
-			control_mode.flag_control_offboard_enabled = false;
+			control_mode.flag_control_offboard_enabled = true;
 
 			switch (sp_offboard.mode) {
 			case OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE:
@@ -1776,7 +1776,6 @@ set_control_mode()
 	case FAILSAFE_STATE_TERMINATION:
 		/* disable all controllers on termination */
 		control_mode.flag_control_manual_enabled = false;
-		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = false;
 		control_mode.flag_control_attitude_enabled = false;
 		control_mode.flag_control_position_enabled = false;
