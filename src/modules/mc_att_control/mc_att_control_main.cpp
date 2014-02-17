@@ -531,6 +531,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 	/* construct attitude setpoint rotation matrix */
 	math::Matrix<3, 3> R_sp;
+
 	if (_v_att_sp.R_valid) {
 		/* rotation matrix in _att_sp is valid, use it */
 		R_sp.set(&_v_att_sp.R_body[0][0]);
@@ -762,10 +763,10 @@ MulticopterAttitudeControl::task_main()
 
 			} else {
 				/* attitude controller disabled, poll rates setpoint topic */
-                vehicle_rates_setpoint_poll();
-                _rates_sp(0) = _v_rates_sp.roll;
-                _rates_sp(1) = _v_rates_sp.pitch;
-                _rates_sp(2) = _v_rates_sp.yaw;
+				vehicle_rates_setpoint_poll();
+				_rates_sp(0) = _v_rates_sp.roll;
+				_rates_sp(1) = _v_rates_sp.pitch;
+				_rates_sp(2) = _v_rates_sp.yaw;
 				_thrust_sp = _v_rates_sp.thrust;
 			}
 
