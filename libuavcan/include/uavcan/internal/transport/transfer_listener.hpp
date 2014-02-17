@@ -130,7 +130,7 @@ class TransferListener : public TransferListenerBase, Noncopyable
         TransferReceiver* recv = receivers_.access(key);
         if (recv == NULL)
         {
-            if (!frame.isFirstFrame())
+            if (!frame.isFirst())
                 return;
 
             TransferReceiver new_recv;

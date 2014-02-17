@@ -254,12 +254,12 @@ TEST(TransferReceiver, UnterminatedTransfer)
     uavcan::TransferBufferAccessor bk(&context.bufmgr, RxFrameGenerator::DEFAULT_KEY);
 
     std::string content;
-    for (int i = 0; i <= uavcan::Frame::FRAME_INDEX_MAX; i++)
+    for (int i = 0; i <= uavcan::Frame::INDEX_MAX; i++)
     {
         CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "12345678", i, false, 0, 1000 + i), bk)); // Last one will be dropped
         content += "12345678";
     }
-    CHECK_COMPLETE(rcv.addFrame(gen(1, "12345678", uavcan::Frame::FRAME_INDEX_MAX, true, 0, 1100), bk));
+    CHECK_COMPLETE(rcv.addFrame(gen(1, "12345678", uavcan::Frame::INDEX_MAX, true, 0, 1100), bk));
     ASSERT_EQ(1000, rcv.getLastTransferTimestampMonotonic());
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), std::string(content, 2)));
     ASSERT_EQ(0x3231, rcv.getLastTransferCrc());

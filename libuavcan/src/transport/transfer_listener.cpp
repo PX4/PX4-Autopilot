@@ -48,7 +48,7 @@ MultiFrameIncomingTransfer::MultiFrameIncomingTransfer(uint64_t ts_monotonic, ui
 , buf_acc_(tba)
 {
     assert(last_frame.isValid());
-    assert(last_frame.isLastFrame());
+    assert(last_frame.isLast());
 }
 
 int MultiFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsigned int len) const

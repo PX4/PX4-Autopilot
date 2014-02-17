@@ -57,19 +57,19 @@ bool TransferReceiver::validate(const RxFrame& frame) const
     if (iface_index_ != frame.getIfaceIndex())
         return false;
 
-    if (frame.isFirstFrame() && !frame.isLastFrame() && (frame.getPayloadLen() < CRC_LEN))
+    if (frame.isFirst() && !frame.isLast() && (frame.getPayloadLen() < CRC_LEN))
     {
         UAVCAN_TRACE("TransferReceiver", "CRC expected, %s", frame.toString().c_str());
         return false;
     }
 
-    if ((frame.getFrameIndex() == Frame::FRAME_INDEX_MAX) && !frame.isLastFrame())
+    if ((frame.getIndex() == Frame::INDEX_MAX) && !frame.isLast())
     {
         UAVCAN_TRACE("TransferReceiver", "Unterminated transfer, %s", frame.toString().c_str());
         return false;
     }
 
-    if (frame.getFrameIndex() != next_frame_index_)
+    if (frame.getIndex() != next_frame_index_)
     {
         UAVCAN_TRACE("TransferReceiver", "Unexpected frame index (not %i), %s",
                      int(next_frame_index_), frame.toString().c_str());
@@ -89,7 +89,7 @@ bool TransferReceiver::writePayload(const RxFrame& frame, TransferBufferBase& bu
     const uint8_t* const payload = frame.getPayloadPtr();
     const int payload_len = frame.getPayloadLen();
 
-    if (frame.isFirstFrame())                  // First frame contains CRC, we need to extract it now
+    if (frame.isFirst())                  // First frame contains CRC, we need to extract it now
     {
         if (frame.getPayloadLen() < CRC_LEN)   // Must have been validated earlier though. I think I'm paranoid.
             return false;
@@ -116,13 +116,13 @@ bool TransferReceiver::writePayload(const RxFrame& frame, TransferBufferBase& bu
 TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame, TransferBufferAccessor& tba)
 {
     // Transfer timestamps are derived from the first frame
-    if (frame.isFirstFrame())
+    if (frame.isFirst())
     {
         this_transfer_ts_monotonic_ = frame.getMonotonicTimestamp();
         first_frame_ts_utc_         = frame.getUtcTimestamp();
     }
 
-    if (frame.isFirstFrame() && frame.isLastFrame())
+    if (frame.isFirst() && frame.isLast())
     {
         tba.remove();
         updateTransferTimings();
@@ -150,7 +150,7 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame, Tra
     }
     next_frame_index_++;
 
-    if (frame.isLastFrame())
+    if (frame.isLast())
     {
         updateTransferTimings();
         prepareForNextTransfer();
@@ -180,7 +180,7 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, Tr
     const bool not_initialized = !isInitialized();
     const bool receiver_timed_out = isTimedOut(frame.getMonotonicTimestamp());
     const bool same_iface = frame.getIfaceIndex() == iface_index_;
-    const bool first_fame = frame.isFirstFrame();
+    const bool first_fame = frame.isFirst();
     const TidRelation tid_rel = getTidRelation(frame);
     const bool iface_timed_out =
         (frame.getMonotonicTimestamp() - this_transfer_ts_monotonic_) > (uint64_t(transfer_interval_) * 2);

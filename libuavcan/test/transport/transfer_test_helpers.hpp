@@ -185,14 +185,14 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer, uavcan:
 
         offset += spres;
         frame_index++;
-        EXPECT_TRUE(uavcan::Frame::FRAME_INDEX_MAX >= frame_index);
+        EXPECT_TRUE(uavcan::Frame::INDEX_MAX >= frame_index);
 
         const uavcan::RxFrame rxfrm(frm, ts_monotonic, ts_utc, 0);
         ts_monotonic += 1;
         ts_utc += 1;
 
         output.push_back(rxfrm);
-        if (frm.isLastFrame())
+        if (frm.isLast())
             break;
     }
     return output;

@@ -110,7 +110,7 @@ class Frame
 
 public:
     enum { DATA_TYPE_ID_MAX = 1023 };
-    enum { FRAME_INDEX_MAX = 62 };        // 63 (or 0b111111) is reserved
+    enum { INDEX_MAX = 62 };        // 63 (or 0b111111) is reserved
 
     Frame()
     : transfer_type_(TransferType(NUM_TRANSFER_TYPES))  // That is invalid value
@@ -135,7 +135,7 @@ public:
         assert((transfer_type == TRANSFER_TYPE_MESSAGE_BROADCAST) == dst_node_id.isBroadcast());
         assert(data_type_id <= DATA_TYPE_ID_MAX);
         assert(src_node_id != dst_node_id);
-        assert(frame_index <= FRAME_INDEX_MAX);
+        assert(frame_index <= INDEX_MAX);
     }
 
     int getMaxPayloadLen() const;
@@ -149,12 +149,12 @@ public:
     NodeID getSrcNodeID()          const { return src_node_id_; }
     NodeID getDstNodeID()          const { return dst_node_id_; }
     TransferID getTransferID()     const { return transfer_id_; }
-    uint_fast8_t getFrameIndex()   const { return frame_index_; }
-    bool isLastFrame()             const { return last_frame_; }
+    uint_fast8_t getIndex()        const { return frame_index_; }
+    bool isLast()                  const { return last_frame_; }
 
     void makeLast() { last_frame_ = true; }
 
-    bool isFirstFrame() const { return frame_index_ == 0; }
+    bool isFirst() const { return frame_index_ == 0; }
 
     bool parse(const CanFrame& can_frame);
     bool compile(CanFrame& can_frame) const;

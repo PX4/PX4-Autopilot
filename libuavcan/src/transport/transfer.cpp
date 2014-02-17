@@ -168,8 +168,8 @@ bool Frame::isValid() const
 {
     // Refer to the specification for the detailed explanation of the checks
     const bool invalid =
-        (frame_index_ > FRAME_INDEX_MAX) ||
-        ((frame_index_ == FRAME_INDEX_MAX) && !last_frame_) ||
+        (frame_index_ > INDEX_MAX) ||
+        ((frame_index_ == INDEX_MAX) && !last_frame_) ||
         (!src_node_id_.isUnicast()) ||
         (!dst_node_id_.isValid()) ||
         (src_node_id_ == dst_node_id_) ||

@@ -79,8 +79,8 @@ TEST(Transfer, FrameParseCompile)
     ASSERT_TRUE(frame.parse(makeCanFrame(can_id, payload_string, EXT)));
 
     EXPECT_EQ(TransferID(2), frame.getTransferID());
-    EXPECT_TRUE(frame.isLastFrame());
-    EXPECT_EQ(29, frame.getFrameIndex());
+    EXPECT_TRUE(frame.isLast());
+    EXPECT_EQ(29, frame.getIndex());
     EXPECT_EQ(uavcan::NodeID(42), frame.getSrcNodeID());
     EXPECT_EQ(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, frame.getTransferType());
     EXPECT_EQ(456, frame.getDataTypeID());
@@ -163,7 +163,7 @@ TEST(Transfer, FrameToString)
 
     // RX frame max len
     rx_frame = RxFrame(Frame(Frame::DATA_TYPE_ID_MAX, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,
-                             uavcan::NodeID::MAX, uavcan::NodeID::MAX - 1, Frame::FRAME_INDEX_MAX,
+                             uavcan::NodeID::MAX, uavcan::NodeID::MAX - 1, Frame::INDEX_MAX,
                              uavcan::TransferID::MAX, true),
                        0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 3);
 
