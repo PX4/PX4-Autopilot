@@ -86,7 +86,7 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 
 #define MIN_TAKEOFF_THROTTLE	0.3f
 #define YAW_DEADZONE	0.05f
-#define RATES_I_LIMIT	0.5f
+#define RATES_I_LIMIT	0.3f
 
 class MulticopterAttitudeControl
 {
@@ -658,7 +658,7 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	_rates_prev = rates;
 
 	/* update integral only if not saturated on low limit */
-	if (_thrust_sp > 0.1f) {
+	if (_thrust_sp > 0.2f) {
 		for (int i = 0; i < 3; i++) {
 			if (fabsf(_att_control(i)) < _thrust_sp) {
 				float rate_i = _rates_int(i) + _params.rate_i(i) * rates_err(i) * dt;
