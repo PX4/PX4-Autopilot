@@ -12,6 +12,8 @@
 namespace uavcan
 {
 
+enum { MAX_TRANSFER_PAYLOAD_LEN = 439 }; ///< According to the standard
+
 enum TransferType
 {
     TRANSFER_TYPE_SERVICE_RESPONSE  = 0,

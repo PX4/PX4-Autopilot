@@ -265,3 +265,30 @@ TEST(TransferListener, Cleanup)
     ASSERT_TRUE(subscriber.matchAndPop(tr_mft));
     ASSERT_TRUE(subscriber.isEmpty());
 }
+
+
+TEST(TransferListener, MaximumTransferLength)
+{
+    uavcan::DataTypeDescriptor type(uavcan::DATA_TYPE_KIND_MESSAGE, 123, uavcan::DataTypeHash());
+    for (int i = 0; i < uavcan::DataTypeHash::NUM_BYTES; i++)
+        type.hash.value[i] = i | (i << 4);
+
+    uavcan::PoolManager<1> poolmgr;
+    TestSubscriber<uavcan::MAX_TRANSFER_PAYLOAD_LEN * 2, 2, 2> subscriber(&type, &poolmgr);
+
+    static const std::string DATA_OK(uavcan::MAX_TRANSFER_PAYLOAD_LEN, 'z');
+
+    Emulator emulator(subscriber, type);
+    const Transfer transfers[] =
+    {
+        emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,   1, DATA_OK),
+        emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 1, DATA_OK)
+    };
+
+    emulator.send(transfers);
+
+    ASSERT_TRUE(subscriber.matchAndPop(transfers[1]));    // Broadcast is shorter, so will complete first
+    ASSERT_TRUE(subscriber.matchAndPop(transfers[0]));
+
+    ASSERT_TRUE(subscriber.isEmpty());
+}

@@ -184,8 +184,8 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer, uavcan:
             frm.makeLast();
 
         offset += spres;
+        EXPECT_GE(uavcan::Frame::INDEX_MAX, frame_index);
         frame_index++;
-        EXPECT_TRUE(uavcan::Frame::INDEX_MAX >= frame_index);
 
         const uavcan::RxFrame rxfrm(frm, ts_monotonic, ts_utc, 0);
         ts_monotonic += 1;

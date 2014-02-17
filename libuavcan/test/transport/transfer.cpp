@@ -198,7 +198,7 @@ TEST(Transfer, FrameParsing)
     can.data[0] = 41;
     ASSERT_TRUE(frame.parse(can));
 
-    can.id = CanFrame::FLAG_EFF |
+    can.id = CanFrame::FLAG_EFF | // cppcheck-suppress duplicateExpression
         (2 << 0) | (1 << 3) | (0 << 4) | (0 << 10) | (uavcan::TRANSFER_TYPE_MESSAGE_UNICAST << 17) | (456 << 19);
     ASSERT_FALSE(frame.parse(can)); // Broadcast Src Node ID
 }
