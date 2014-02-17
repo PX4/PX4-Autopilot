@@ -55,70 +55,85 @@
 /**
  * Minimum altitude (fixed wing only)
  *
+ * Minimum altitude above home for LOITER.
+ *
+ * @unit meters
  * @group Navigation
  */
 PARAM_DEFINE_FLOAT(NAV_MIN_ALT, 50.0f);
 
 /**
- * Waypoint acceptance radius.
+ * Waypoint acceptance radius
  *
+ * Default value of acceptance radius (if not specified in mission item).
+ *
+ * @unit meters
+ * @min 0.0
  * @group Navigation
  */
 PARAM_DEFINE_FLOAT(NAV_ACCEPT_RAD, 10.0f);
 
 /**
- * Loiter radius  (fixed wing only)
+ * Loiter radius (fixed wing only)
  *
+ * Default value of loiter radius (if not specified in mission item).
+ *
+ * @unit meters
+ * @min 0.0
  * @group Navigation
  */
 PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
 
 /**
- * Enable onboard mission.
+ * Enable onboard mission
  *
  * @group Navigation
  */
 PARAM_DEFINE_INT32(NAV_ONB_MIS_EN, 0);
 
 /**
- * Take-off altitude.
+ * Take-off altitude
  *
- * Even if first waypoint has altitude less then NAV_TAKEOFF_ALT, system will climb to NAV_TAKEOFF_ALT on takeoff, then go to waypoint.
+ * Even if first waypoint has altitude less then NAV_TAKEOFF_ALT above home position, system will climb to NAV_TAKEOFF_ALT on takeoff, then go to waypoint.
  *
+ * @unit meters
  * @group Navigation
  */
 PARAM_DEFINE_FLOAT(NAV_TAKEOFF_ALT, 10.0f);
 
 /**
- * Landing altitude.
+ * Landing altitude
  *
- * Stay at this altitude after RTL descending. Slowly descend from this altitude if autolanding allowed.
+ * Stay at this altitude above home position after RTL descending. Land (i.e. slowly descend) from this altitude if autolanding allowed.
  *
+ * @unit meters
  * @group Navigation
  */
 PARAM_DEFINE_FLOAT(NAV_LAND_ALT, 5.0f);
 
 /**
- * Return-to-land altitude.
+ * Return-To-Launch altitude
  *
- * Minimum altitude for going home in RTL mode.
+ * Minimum altitude above home position for going home in RTL mode.
  *
+ * @unit meters
  * @group Navigation
  */
 PARAM_DEFINE_FLOAT(NAV_RTL_ALT, 30.0f);
 
 /**
- * Return-to-land delay.
+ * Return-To-Launch delay
  *
  * Delay after descend before landing in RTL mode.
  * If set to -1 the system will not land but loiter at NAV_LAND_ALT.
  *
+ * @unit seconds
  * @group Navigation
  */
 PARAM_DEFINE_FLOAT(NAV_RTL_LAND_T, -1.0f);
 
 /**
- * Enable parachute deployment.
+ * Enable parachute deployment
  *
  * @group Navigation
  */
