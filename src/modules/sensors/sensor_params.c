@@ -42,13 +42,10 @@
  */
 
 #include <nuttx/config.h>
-
 #include <systemlib/param/param.h>
 
 /**
- * Gyro X offset
- *
- * This is an X-axis offset for the gyro. Adjust it according to the calibration data.
+ * Gyro X-axis offset
  *
  * @min -10.0
  * @max 10.0
@@ -57,7 +54,7 @@
 PARAM_DEFINE_FLOAT(SENS_GYRO_XOFF, 0.0f);
 
 /**
- * Gyro Y offset
+ * Gyro Y-axis offset
  *
  * @min -10.0
  * @max 10.0
@@ -66,7 +63,7 @@ PARAM_DEFINE_FLOAT(SENS_GYRO_XOFF, 0.0f);
 PARAM_DEFINE_FLOAT(SENS_GYRO_YOFF, 0.0f);
 
 /**
- * Gyro Z offset
+ * Gyro Z-axis offset
  *
  * @min -5.0
  * @max 5.0
@@ -75,9 +72,7 @@ PARAM_DEFINE_FLOAT(SENS_GYRO_YOFF, 0.0f);
 PARAM_DEFINE_FLOAT(SENS_GYRO_ZOFF, 0.0f);
 
 /**
- * Gyro X scaling
- *
- * X-axis scaling.
+ * Gyro X-axis scaling factor
  *
  * @min -1.5
  * @max 1.5
@@ -86,9 +81,7 @@ PARAM_DEFINE_FLOAT(SENS_GYRO_ZOFF, 0.0f);
 PARAM_DEFINE_FLOAT(SENS_GYRO_XSCALE, 1.0f);
 
 /**
- * Gyro Y scaling
- *
- * Y-axis scaling.
+ * Gyro Y-axis scaling factor
  *
  * @min -1.5
  * @max 1.5
@@ -97,9 +90,7 @@ PARAM_DEFINE_FLOAT(SENS_GYRO_XSCALE, 1.0f);
 PARAM_DEFINE_FLOAT(SENS_GYRO_YSCALE, 1.0f);
 
 /**
- * Gyro Z scaling
- *
- * Z-axis scaling.
+ * Gyro Z-axis scaling factor
  *
  * @min -1.5
  * @max 1.5
@@ -107,10 +98,9 @@ PARAM_DEFINE_FLOAT(SENS_GYRO_YSCALE, 1.0f);
  */
 PARAM_DEFINE_FLOAT(SENS_GYRO_ZSCALE, 1.0f);
 
+
 /**
- * Magnetometer X offset
- *
- * This is an X-axis offset for the magnetometer.
+ * Magnetometer X-axis offset
  *
  * @min -500.0
  * @max 500.0
@@ -119,9 +109,7 @@ PARAM_DEFINE_FLOAT(SENS_GYRO_ZSCALE, 1.0f);
 PARAM_DEFINE_FLOAT(SENS_MAG_XOFF, 0.0f);
 
 /**
- * Magnetometer Y offset
- *
- * This is an Y-axis offset for the magnetometer.
+ * Magnetometer Y-axis offset
  *
  * @min -500.0
  * @max 500.0
@@ -130,9 +118,7 @@ PARAM_DEFINE_FLOAT(SENS_MAG_XOFF, 0.0f);
 PARAM_DEFINE_FLOAT(SENS_MAG_YOFF, 0.0f);
 
 /**
- * Magnetometer Z offset
- *
- * This is an Z-axis offset for the magnetometer.
+ * Magnetometer Z-axis offset
  *
  * @min -500.0
  * @max 500.0
@@ -140,23 +126,133 @@ PARAM_DEFINE_FLOAT(SENS_MAG_YOFF, 0.0f);
  */
 PARAM_DEFINE_FLOAT(SENS_MAG_ZOFF, 0.0f);
 
+/**
+ * Magnetometer X-axis scaling factor
+ *
+ * @group Sensor Calibration
+ */
 PARAM_DEFINE_FLOAT(SENS_MAG_XSCALE, 1.0f);
+
+/**
+ * Magnetometer Y-axis scaling factor
+ *
+ * @group Sensor Calibration
+ */
 PARAM_DEFINE_FLOAT(SENS_MAG_YSCALE, 1.0f);
+
+/**
+ * Magnetometer Z-axis scaling factor
+ *
+ * @group Sensor Calibration
+ */
 PARAM_DEFINE_FLOAT(SENS_MAG_ZSCALE, 1.0f);
 
+
+/**
+ * Accelerometer X-axis offset
+ *
+ * @group Sensor Calibration
+ */
 PARAM_DEFINE_FLOAT(SENS_ACC_XOFF, 0.0f);
+
+/**
+ * Accelerometer Y-axis offset
+ *
+ * @group Sensor Calibration
+ */
 PARAM_DEFINE_FLOAT(SENS_ACC_YOFF, 0.0f);
+
+/**
+ * Accelerometer Z-axis offset
+ *
+ * @group Sensor Calibration
+ */
 PARAM_DEFINE_FLOAT(SENS_ACC_ZOFF, 0.0f);
 
+/**
+ * Accelerometer X-axis scaling factor
+ *
+ * @group Sensor Calibration
+ */
 PARAM_DEFINE_FLOAT(SENS_ACC_XSCALE, 1.0f);
+
+/**
+ * Accelerometer Y-axis scaling factor
+ *
+ * @group Sensor Calibration
+ */
 PARAM_DEFINE_FLOAT(SENS_ACC_YSCALE, 1.0f);
+
+/**
+ * Accelerometer Z-axis scaling factor
+ *
+ * @group Sensor Calibration
+ */
 PARAM_DEFINE_FLOAT(SENS_ACC_ZSCALE, 1.0f);
 
+
+/**
+ * Differential pressure sensor offset
+ *
+ * @group Sensor Calibration
+ */
 PARAM_DEFINE_FLOAT(SENS_DPRES_OFF, 0.0f);
+
+/**
+ * Differential pressure sensor analog enabled
+ *
+ * @group Sensor Calibration
+ */
 PARAM_DEFINE_INT32(SENS_DPRES_ANA, 0);
 
+
+/**
+ * Board rotation
+ *
+ * This parameter defines the rotation of the FMU board relative to the platform.
+ * Possible values are:
+ *    0 = No rotation
+ *    1 = Yaw 45°
+ *    2 = Yaw 90°
+ *    3 = Yaw 135°
+ *    4 = Yaw 180°
+ *    5 = Yaw 225°
+ *    6 = Yaw 270°
+ *    7 = Yaw 315°
+ *    8 = Roll 180°
+ *    9 = Roll 180°, Yaw 45°
+ *   10 = Roll 180°, Yaw 90°
+ *   11 = Roll 180°, Yaw 135°
+ *   12 = Pitch 180°
+ *   13 = Roll 180°, Yaw 225°
+ *   14 = Roll 180°, Yaw 270°
+ *   15 = Roll 180°, Yaw 315°
+ *   16 = Roll 90°
+ *   17 = Roll 90°, Yaw 45°
+ *   18 = Roll 90°, Yaw 90°
+ *   19 = Roll 90°, Yaw 135°
+ *   20 = Roll 270°
+ *   21 = Roll 270°, Yaw 45°
+ *   22 = Roll 270°, Yaw 90°
+ *   23 = Roll 270°, Yaw 135°
+ *   24 = Pitch 90°
+ *   25 = Pitch 270°
+ *
+ * @group Sensor Calibration
+ */
 PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
+
+/**
+ * External magnetometer rotation
+ *
+ * This parameter defines the rotation of the external magnetometer relative
+ * to the platform (not relative to the FMU).
+ * See SENS_BOARD_ROT for possible values.
+ *
+ * @group Sensor Calibration
+ */
 PARAM_DEFINE_INT32(SENS_EXT_MAG_ROT, 0);
+
 
 /**
  * RC Channel 1 Minimum
@@ -367,19 +463,51 @@ PARAM_DEFINE_FLOAT(RC18_DZ, 0.0f);
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
 #endif
-PARAM_DEFINE_INT32(RC_DSM_BIND, -1); /* -1 = Idle, 0 = Start DSM2 bind, 1 = Start DSMX bind */
 
+/**
+ * DSM binding trigger.
+ *
+ * -1 = Idle, 0 = Start DSM2 bind, 1 = Start DSMX bind
+ *
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_DSM_BIND, -1);
+
+
+/**
+ * Scaling factor for battery voltage sensor on PX4IO.
+ *
+ * @group Battery Calibration
+ */
 PARAM_DEFINE_INT32(BAT_V_SCALE_IO, 10000);
+
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+/**
+ * Scaling factor for battery voltage sensor on FMU v2.
+ *
+ * @group Battery Calibration
+ */
 PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.0082f);
 #else
-/* default is conversion factor for the PX4IO / PX4IOAR board, the factor for PX4FMU standalone is different */
-/* PX4IOAR: 0.00838095238 */
-/* FMU standalone: 1/(10 / (47+10)) * (3.3 / 4095) = 0.00459340659 */
-/* FMU with PX4IOAR: (3.3f * 52.0f / 5.0f / 4095.0f) */
+/**
+ * Scaling factor for battery voltage sensor on FMU v1.
+ *
+ * FMUv1 standalone: 1/(10 / (47+10)) * (3.3 / 4095) = 0.00459340659
+ * FMUv1 with PX4IO: 0.00459340659
+ * FMUv1 with PX4IOAR: (3.3f * 52.0f / 5.0f / 4095.0f) = 0.00838095238
+ *
+ * @group Battery Calibration
+ */
 PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.00459340659f);
 #endif
+
+/**
+ * Scaling factor for battery current sensor.
+ *
+ * @group Battery Calibration
+ */
 PARAM_DEFINE_FLOAT(BAT_C_SCALING, 0.0124);	/* scaling for 3DR power brick */
+
 
 /**
  * Roll control channel mapping.
@@ -446,21 +574,126 @@ PARAM_DEFINE_INT32(RC_MAP_YAW, 4);
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_MAP_MODE_SW, 0);
+
+/**
+ * Return switch channel mapping.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_INT32(RC_MAP_RETURN_SW, 0);
+
+/**
+ * Assist switch channel mapping.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_INT32(RC_MAP_ASSIST_SW, 0);
+
+/**
+ * Mission switch channel mapping.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_INT32(RC_MAP_MISSIO_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
 
+/**
+ * Flaps channel mapping.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_INT32(RC_MAP_FLAPS, 0);
 
-PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);	/**< default function: camera pitch */
-PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);	/**< default function: camera roll */
-PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);	/**< default function: camera azimuth / yaw */
+/**
+ * Auxiliary switch 1 channel mapping.
+ *
+ * Default function: Camera pitch
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);
 
+/**
+ * Auxiliary switch 2 channel mapping.
+ *
+ * Default function: Camera roll
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);	/**< default function: camera roll */
+
+/**
+ * Auxiliary switch 3 channel mapping.
+ *
+ * Default function: Camera azimuth / yaw
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);
+
+
+/**
+ * Roll scaling factor
+ *
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC_SCALE_ROLL, 0.6f);
+
+/**
+ * Pitch scaling factor
+ *
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC_SCALE_PITCH, 0.6f);
+
+/**
+ * Yaw scaling factor
+ *
+ * @group Radio Calibration
+ */
 PARAM_DEFINE_FLOAT(RC_SCALE_YAW, 2.0f);
 
-PARAM_DEFINE_INT32(RC_FS_CH, 0);	/**< RC failsafe channel, 0 = disable */
-PARAM_DEFINE_INT32(RC_FS_MODE, 0);	/**< RC failsafe mode: 0 = too low means signal loss, 1 = too high means signal loss */
-PARAM_DEFINE_FLOAT(RC_FS_THR, 800);	/**< RC failsafe PWM threshold */
+
+/**
+ * Failsafe channel mapping.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_FS_CH, 0);
+
+/**
+ * Failsafe channel mode.
+ *
+ * 0 = too low means signal loss,
+ * 1 = too high means signal loss
+ *
+ * @min 0
+ * @max 1
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_FS_MODE, 0);
+
+/**
+ * Failsafe channel PWM threshold.
+ *
+ * @min 0
+ * @max 1
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_FLOAT(RC_FS_THR, 800);

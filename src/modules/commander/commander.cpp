@@ -432,7 +432,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 			arming_res = TRANSITION_NOT_CHANGED;
 
 			if (base_mode & MAV_MODE_FLAG_SAFETY_ARMED) {
-				if ((safety->safety_switch_available && !safety->safety_off) && status->hil_state == HIL_STATE_OFF) {
+				if (safety->safety_switch_available && !safety->safety_off && status->hil_state == HIL_STATE_OFF) {
 					print_reject_arm("NOT ARMING: Press safety switch first.");
 					arming_res = TRANSITION_DENIED;
 
@@ -522,7 +522,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 			transition_result_t arming_res = TRANSITION_NOT_CHANGED;
 
 			if (!armed->armed && ((int)(cmd->param1 + 0.5f)) == 1) {
-				if (safety->safety_switch_available && !safety->safety_off) {
+				if (safety->safety_switch_available && !safety->safety_off && status->hil_state == HIL_STATE_OFF) {
 					print_reject_arm("NOT ARMING: Press safety switch first.");
 					arming_res = TRANSITION_DENIED;
 
@@ -1162,7 +1162,7 @@ int commander_thread_main(int argc, char *argv[])
 			if (status.arming_state == ARMING_STATE_STANDBY &&
 			    sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
 				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-					if (safety.safety_switch_available && !safety.safety_off) {
+					if (safety.safety_switch_available && !safety.safety_off && status.hil_state == HIL_STATE_OFF) {
 						print_reject_arm("NOT ARMING: Press safety switch first.");
 
 					} else if (status.main_state != MAIN_STATE_MANUAL) {
