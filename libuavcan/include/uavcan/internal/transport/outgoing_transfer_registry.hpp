@@ -18,22 +18,20 @@ class OutgoingTransferRegistryKey
 {
     uint16_t data_type_id_;
     uint8_t transfer_type_;
-    uint8_t destination_node_id_;  ///< Not applicable for message broadcasting
+    NodeID destination_node_id_;  ///< Not applicable for message broadcasting
 
 public:
     OutgoingTransferRegistryKey()
     : data_type_id_(0xFFFF)
     , transfer_type_(0xFF)
-    , destination_node_id_(NODE_ID_INVALID)
     { }
 
-    OutgoingTransferRegistryKey(uint16_t data_type_id, TransferType transfer_type, uint8_t destination_node_id)
+    OutgoingTransferRegistryKey(uint16_t data_type_id, TransferType transfer_type, NodeID destination_node_id)
     : data_type_id_(data_type_id)
     , transfer_type_(transfer_type)
     , destination_node_id_(destination_node_id)
     {
-        assert(destination_node_id != NODE_ID_INVALID);
-        assert((transfer_type == TRANSFER_TYPE_MESSAGE_BROADCAST) == (destination_node_id == NODE_ID_BROADCAST));
+        assert((transfer_type == TRANSFER_TYPE_MESSAGE_BROADCAST) == destination_node_id.isBroadcast());
 
         /* Service response transfers must use the same Transfer ID as matching service request transfer,
          * so this registry is not applicable for service response transfers at all.

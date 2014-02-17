@@ -243,7 +243,7 @@ TEST(TransferBufferManager, Basic)
 
     // Empty
     ASSERT_FALSE(mgr->access(TransferBufferManagerKey(0, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST)));
-    ASSERT_FALSE(mgr->access(TransferBufferManagerKey(uavcan::NODE_ID_MAX, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST)));
+    ASSERT_FALSE(mgr->access(TransferBufferManagerKey(127, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST)));
 
     TransferBufferBase* tbb = NULL;
 

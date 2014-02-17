@@ -13,40 +13,29 @@ TEST(Transfer, TransferID)
     using uavcan::TransferID;
 
     // Tests below are based on this assumption
-    ASSERT_EQ(16, 1 << TransferID::BITLEN);
+    ASSERT_EQ(8, 1 << TransferID::BITLEN);
 
     /*
      * forwardDistance()
      */
     EXPECT_EQ(0, TransferID(0).forwardDistance(0));
     EXPECT_EQ(1, TransferID(0).forwardDistance(1));
-    EXPECT_EQ(15, TransferID(0).forwardDistance(15));
+    EXPECT_EQ(7, TransferID(0).forwardDistance(7));
 
     EXPECT_EQ(0, TransferID(7).forwardDistance(7));
-    EXPECT_EQ(15, TransferID(7).forwardDistance(6));
-    EXPECT_EQ(1, TransferID(7).forwardDistance(8));
+    EXPECT_EQ(7, TransferID(7).forwardDistance(6));
+    EXPECT_EQ(1, TransferID(7).forwardDistance(0));
 
-    EXPECT_EQ(9, TransferID(10).forwardDistance(3));
-    EXPECT_EQ(7, TransferID(3).forwardDistance(10));
-
-    EXPECT_EQ(8, TransferID(6).forwardDistance(14));
-    EXPECT_EQ(8, TransferID(14).forwardDistance(6));
-
-    EXPECT_EQ(1, TransferID(14).forwardDistance(15));
-    EXPECT_EQ(2, TransferID(14).forwardDistance(0));
-    EXPECT_EQ(4, TransferID(14).forwardDistance(2));
-
-    EXPECT_EQ(15, TransferID(15).forwardDistance(14));
-    EXPECT_EQ(14, TransferID(0).forwardDistance(14));
-    EXPECT_EQ(12, TransferID(2).forwardDistance(14));
+    EXPECT_EQ(7, TransferID(7).forwardDistance(6));
+    EXPECT_EQ(5, TransferID(0).forwardDistance(5));
 
     /*
      * Misc
      */
     EXPECT_TRUE(TransferID(2) == TransferID(2));
     EXPECT_FALSE(TransferID(2) != TransferID(2));
-    EXPECT_FALSE(TransferID(2) == TransferID(8));
-    EXPECT_TRUE(TransferID(2) != TransferID(8));
+    EXPECT_FALSE(TransferID(2) == TransferID(0));
+    EXPECT_TRUE(TransferID(2) != TransferID(0));
 
     TransferID tid;
     for (int i = 0; i < 999; i++)
@@ -55,7 +44,7 @@ TEST(Transfer, TransferID)
         const TransferID copy = tid;
         tid.increment();
         ASSERT_EQ(1, copy.forwardDistance(tid));
-        ASSERT_EQ(15, tid.forwardDistance(copy));
+        ASSERT_EQ(7, tid.forwardDistance(copy));
         ASSERT_EQ(0, tid.forwardDistance(tid));
     }
 }
@@ -71,10 +60,10 @@ TEST(Transfer, FrameParseCompile)
 
     const uint32_t can_id =
         (2 << 0)   |      //    Transfer ID
-        (1 << 4)   |      //    Last Frame
-        (29 << 5)  |      //    Frame Index
+        (1 << 3)   |      //    Last Frame
+        (29 << 4)  |      //    Frame Index
         (42 << 10) |      //    Source Node ID
-        (3 << 17)  |      //    Transfer Type
+        (uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST << 17)  |
         (456 << 19);      //    Data Type ID
 
     const std::string payload_string = "hello";
@@ -89,32 +78,24 @@ TEST(Transfer, FrameParseCompile)
     // Valid
     ASSERT_TRUE(frame.parse(makeCanFrame(can_id, payload_string, EXT)));
 
-    EXPECT_EQ(TransferID(2), frame.transfer_id);
-    EXPECT_TRUE(frame.last_frame);
-    EXPECT_EQ(29, frame.frame_index);
-    EXPECT_EQ(42, frame.source_node_id);
-    EXPECT_EQ(TransferType(3), frame.transfer_type);
-    EXPECT_EQ(456, frame.data_type_id);
+    EXPECT_EQ(TransferID(2), frame.getTransferID());
+    EXPECT_TRUE(frame.isLastFrame());
+    EXPECT_EQ(29, frame.getFrameIndex());
+    EXPECT_EQ(uavcan::NodeID(42), frame.getSrcNodeID());
+    EXPECT_EQ(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, frame.getTransferType());
+    EXPECT_EQ(456, frame.getDataTypeID());
 
-    EXPECT_EQ(payload_string.length(), frame.payload_len);
-    EXPECT_TRUE(std::equal(frame.payload, frame.payload + frame.payload_len, payload_string.begin()));
-
-    // Default
-    ASSERT_TRUE(frame.parse(CanFrame(CanFrame::FLAG_EFF, (const uint8_t*)"", 0)));
-    ASSERT_EQ(Frame(), frame);
+    EXPECT_EQ(payload_string.length(), frame.getPayloadLen());
+    EXPECT_TRUE(std::equal(frame.getPayloadPtr(), frame.getPayloadPtr() + frame.getPayloadLen(),
+                           payload_string.begin()));
 
     /*
      * Compile
      */
-    // Default
-    frame = Frame();
-    CanFrame can_frame = frame.compile();
-    ASSERT_EQ(can_frame.id, CanFrame::FLAG_EFF);
-
-    // Custom
+    CanFrame can_frame;
     ASSERT_TRUE(frame.parse(makeCanFrame(can_id, payload_string, EXT)));
 
-    can_frame = frame.compile();
+    ASSERT_TRUE(frame.compile(can_frame));
     ASSERT_EQ(can_frame, makeCanFrame(can_id, payload_string, EXT));
 
     EXPECT_EQ(payload_string.length(), can_frame.dlc);
@@ -144,26 +125,30 @@ TEST(Transfer, RxFrameParse)
     // Failure
     ASSERT_FALSE(rx_frame.parse(can_rx_frame));
 
-    // Default
-    can_rx_frame.id = CanFrame::FLAG_EFF;
-    ASSERT_TRUE(rx_frame.parse(can_rx_frame));
-    ASSERT_EQ(0, rx_frame.ts_monotonic);
-    ASSERT_EQ(0, rx_frame.iface_index);
+    // Valid
+    can_rx_frame.id = CanFrame::FLAG_EFF |
+        (2 << 0)   |      //    Transfer ID
+        (1 << 3)   |      //    Last Frame
+        (29 << 4)  |      //    Frame Index
+        (42 << 10) |      //    Source Node ID
+        (uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST << 17)  |
+        (456 << 19);      //    Data Type ID
 
-    // Custom
+    ASSERT_TRUE(rx_frame.parse(can_rx_frame));
+    ASSERT_EQ(0, rx_frame.getMonotonicTimestamp());
+    ASSERT_EQ(0, rx_frame.getIfaceIndex());
+
     can_rx_frame.ts_monotonic = 123;
     can_rx_frame.iface_index = 2;
 
-    Frame frame;
-    frame.data_type_id = 456;
-    frame.transfer_type = uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST;
-    *static_cast<CanFrame*>(&can_rx_frame) = frame.compile();
+    Frame frame(456, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 1, uavcan::NodeID::BROADCAST, 0, 0);
+    ASSERT_TRUE(frame.compile(can_rx_frame));
 
     ASSERT_TRUE(rx_frame.parse(can_rx_frame));
-    ASSERT_EQ(123, rx_frame.ts_monotonic);
-    ASSERT_EQ(2, rx_frame.iface_index);
-    ASSERT_EQ(456, rx_frame.data_type_id);
-    ASSERT_EQ(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, rx_frame.transfer_type);
+    ASSERT_EQ(123, rx_frame.getMonotonicTimestamp());
+    ASSERT_EQ(2, rx_frame.getIfaceIndex());
+    ASSERT_EQ(456, rx_frame.getDataTypeID());
+    ASSERT_EQ(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, rx_frame.getTransferType());
 }
 
 
@@ -174,31 +159,28 @@ TEST(Transfer, FrameToString)
 
     // RX frame default
     RxFrame rx_frame;
-    EXPECT_EQ("dtid=0 tt=0 snid=0 idx=0 last=0 tid=0 payload=[] ts_m=0 ts_utc=0 iface=0", rx_frame.toString());
+    EXPECT_EQ("dtid=0 tt=4 snid=255 dnid=255 idx=0 last=0 tid=0 payload=[] ts_m=0 ts_utc=0 iface=0", rx_frame.toString());
 
     // RX frame max len
-    rx_frame.data_type_id = Frame::DATA_TYPE_ID_MAX;
-    rx_frame.transfer_type = uavcan::TransferType(uavcan::NUM_TRANSFER_TYPES - 1);
-    rx_frame.source_node_id = uavcan::NODE_ID_MAX;
-    rx_frame.frame_index = Frame::FRAME_INDEX_MAX;
-    rx_frame.last_frame = true;
-    rx_frame.transfer_id = uavcan::TransferID::MAX;
-    rx_frame.payload_len = Frame::PAYLOAD_LEN_MAX;
-    for (int i = 0; i < rx_frame.payload_len; i++)
-        rx_frame.payload[i] = i;
-    rx_frame.ts_monotonic = 0xFFFFFFFFFFFFFFFF;
-    rx_frame.ts_utc = 0xFFFFFFFFFFFFFFFF;
-    rx_frame.iface_index = 3;
+    rx_frame = RxFrame(Frame(Frame::DATA_TYPE_ID_MAX, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,
+                             uavcan::NodeID::MAX, uavcan::NodeID::MAX - 1, Frame::FRAME_INDEX_MAX,
+                             uavcan::TransferID::MAX, true),
+                       0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 3);
+
+    uint8_t data[8];
+    for (unsigned int i = 0; i < sizeof(data); i++)
+        data[i] = i;
+    rx_frame.setPayload(data, sizeof(data));
 
     EXPECT_EQ(
-    "dtid=1023 tt=3 snid=127 idx=31 last=1 tid=15 payload=[00 01 02 03 04 05 06 07] ts_m=18446744073709551615 ts_utc=18446744073709551615 iface=3",
+    "dtid=1023 tt=3 snid=127 dnid=126 idx=62 last=1 tid=7 payload=[00 01 02 03 04 05 06] ts_m=18446744073709551615 ts_utc=18446744073709551615 iface=3",
     rx_frame.toString());
 
     // Plain frame default
     Frame frame;
-    EXPECT_EQ("dtid=0 tt=0 snid=0 idx=0 last=0 tid=0 payload=[]", frame.toString());
+    EXPECT_EQ("dtid=0 tt=4 snid=255 dnid=255 idx=0 last=0 tid=0 payload=[]", frame.toString());
 
     // Plain frame max len
     frame = rx_frame;
-    EXPECT_EQ("dtid=1023 tt=3 snid=127 idx=31 last=1 tid=15 payload=[00 01 02 03 04 05 06 07]", frame.toString());
+    EXPECT_EQ("dtid=1023 tt=3 snid=127 dnid=126 idx=62 last=1 tid=7 payload=[00 01 02 03 04 05 06]", frame.toString());
 }

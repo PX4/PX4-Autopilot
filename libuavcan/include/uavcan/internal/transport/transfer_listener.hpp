@@ -25,16 +25,16 @@ class IncomingTransfer
     uint64_t ts_utc_;
     TransferType transfer_type_;
     TransferID transfer_id_;
-    uint8_t source_node_id_;
+    NodeID src_node_id_;
 
 protected:
     IncomingTransfer(uint64_t ts_monotonic, uint64_t ts_utc, TransferType transfer_type,
-                     TransferID transfer_id, uint8_t source_node_id)
+                     TransferID transfer_id, NodeID source_node_id)
     : ts_monotonic_(ts_monotonic)
     , ts_utc_(ts_utc)
     , transfer_type_(transfer_type)
     , transfer_id_(transfer_id)
-    , source_node_id_(source_node_id)
+    , src_node_id_(source_node_id)
     { }
 
 public:
@@ -54,7 +54,7 @@ public:
     uint64_t getUtcTimestamp()       const { return ts_utc_; }
     TransferType getTransferType()   const { return transfer_type_; }
     TransferID getTransferID()       const { return transfer_id_; }
-    uint8_t getSourceNodeID()        const { return source_node_id_; }
+    NodeID getSrcNodeID()            const { return src_node_id_; }
 };
 
 /**
@@ -65,7 +65,7 @@ class SingleFrameIncomingTransfer : public IncomingTransfer
     const uint8_t* const payload_;
     const uint8_t payload_len_;
 public:
-    SingleFrameIncomingTransfer(const RxFrame& frm, const uint8_t* payload, unsigned int payload_len);
+    SingleFrameIncomingTransfer(const RxFrame& frm);
     int read(unsigned int offset, uint8_t* data, unsigned int len) const;
 };
 
@@ -125,16 +125,12 @@ class TransferListener : public TransferListenerBase, Noncopyable
 
     void handleFrame(const RxFrame& frame)
     {
-        const TransferBufferManagerKey key(frame.source_node_id, frame.transfer_type);
+        const TransferBufferManagerKey key(frame.getSrcNodeID(), frame.getTransferType());
 
         TransferReceiver* recv = receivers_.access(key);
         if (recv == NULL)
         {
-            /* Adding new registrations mid-transfer (i.e. not upon first frame reception) is not only
-             * pointless, but plain wrong: non-first frames do not carry address information, so we
-             * have no chance to detect whether a transfer is addressed to our node or not.
-             */
-            if (frame.frame_index != 0)
+            if (!frame.isFirstFrame())
                 return;
 
             TransferReceiver new_recv;

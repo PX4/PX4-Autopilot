@@ -3,7 +3,9 @@
  */
 
 #include <cstdlib>
+#include <cassert>
 #include <uavcan/internal/transport/transfer_listener.hpp>
+#include <uavcan/internal/debug.hpp>
 
 namespace uavcan
 {
@@ -11,12 +13,14 @@ namespace uavcan
 /*
  * SingleFrameIncomingTransfer
  */
-SingleFrameIncomingTransfer::SingleFrameIncomingTransfer(const RxFrame& frm, const uint8_t* payload,
-                                                         unsigned int payload_len)
-: IncomingTransfer(frm.ts_monotonic, frm.ts_utc, frm.transfer_type, frm.transfer_id, frm.source_node_id)
-, payload_(payload)
-, payload_len_(payload_len)
-{ }
+SingleFrameIncomingTransfer::SingleFrameIncomingTransfer(const RxFrame& frm)
+: IncomingTransfer(frm.getMonotonicTimestamp(), frm.getUtcTimestamp(), frm.getTransferType(),
+                   frm.getTransferID(), frm.getSrcNodeID())
+, payload_(frm.getPayloadPtr())
+, payload_len_(frm.getPayloadLen())
+{
+    assert(frm.isValid());
+}
 
 int SingleFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsigned int len) const
 {
@@ -39,10 +43,12 @@ int SingleFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsign
  */
 MultiFrameIncomingTransfer::MultiFrameIncomingTransfer(uint64_t ts_monotonic, uint64_t ts_utc,
                                                        const RxFrame& last_frame, TransferBufferAccessor& tba)
-: IncomingTransfer(ts_monotonic, ts_utc, last_frame.transfer_type, last_frame.transfer_id, last_frame.source_node_id)
+: IncomingTransfer(ts_monotonic, ts_utc, last_frame.getTransferType(), last_frame.getTransferID(),
+                   last_frame.getSrcNodeID())
 , buf_acc_(tba)
 {
-    assert(last_frame.last_frame);
+    assert(last_frame.isValid());
+    assert(last_frame.isLastFrame());
 }
 
 int MultiFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsigned int len) const
@@ -90,17 +96,7 @@ void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxF
 
     case TransferReceiver::RESULT_SINGLE_FRAME:
     {
-        uint8_t payload[Frame::PAYLOAD_LEN_MAX];
-        unsigned int payload_len = 0;
-        const bool success = TransferReceiver::extractSingleFrameTransferPayload(frame, payload, payload_len);
-        if (!success)
-        {
-            UAVCAN_TRACE("TransferListenerBase", "SFT payload extraction failed, frame: %s", frame.toString().c_str());
-            return;
-        }
-        assert(payload_len <= Frame::PAYLOAD_LEN_MAX);
-
-        SingleFrameIncomingTransfer it(frame, payload, payload_len);
+        SingleFrameIncomingTransfer it(frame);
         handleIncomingTransfer(it);
         return;
     }

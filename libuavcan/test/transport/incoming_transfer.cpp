@@ -9,16 +9,13 @@
 
 static uavcan::RxFrame makeFrame()
 {
-    uavcan::RxFrame frame;
-    frame.data_type_id = 123;
-    frame.last_frame = true;
-    frame.source_node_id = 42;
-    frame.transfer_id.increment();
-    frame.ts_monotonic = 123;
-    frame.ts_utc = 456;
-    frame.payload_len = uavcan::RxFrame::PAYLOAD_LEN_MAX;
-    for (int i = 0; i < uavcan::RxFrame::PAYLOAD_LEN_MAX; i++)
-        frame.payload[i] = i;
+    uavcan::RxFrame frame(
+        uavcan::Frame(123, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 1, uavcan::NodeID::BROADCAST, 0, 1, true),
+        123, 456, 0);
+    uint8_t data[8];
+    for (unsigned int i = 0; i < sizeof(data); i++)
+        data[i] = i;
+    frame.setPayload(data, sizeof(data));
     return frame;
 }
 
@@ -27,11 +24,11 @@ static bool match(const uavcan::IncomingTransfer& it, const uavcan::RxFrame& fra
                   const uint8_t* payload, unsigned int payload_len)
 {
     // Fields extracted from the frame struct
-    EXPECT_EQ(it.getMonotonicTimestamp(), frame.ts_monotonic);
-    EXPECT_EQ(it.getUtcTimestamp(), frame.ts_utc);
-    EXPECT_EQ(it.getSourceNodeID(), frame.source_node_id);
-    EXPECT_EQ(it.getTransferID(), frame.transfer_id);
-    EXPECT_EQ(it.getTransferType(), frame.transfer_type);
+    EXPECT_EQ(it.getMonotonicTimestamp(), frame.getMonotonicTimestamp());
+    EXPECT_EQ(it.getUtcTimestamp(),       frame.getUtcTimestamp());
+    EXPECT_EQ(it.getSrcNodeID(),          frame.getSrcNodeID());
+    EXPECT_EQ(it.getTransferID(),         frame.getTransferID());
+    EXPECT_EQ(it.getTransferType(),       frame.getTransferType());
 
     // Payload comparison
     static const unsigned int BUFLEN = 1024;
@@ -60,9 +57,9 @@ TEST(SingleFrameIncomingTransfer, Basic)
     using uavcan::SingleFrameIncomingTransfer;
 
     const RxFrame frame = makeFrame();
-    SingleFrameIncomingTransfer it(frame, frame.payload, frame.payload_len);
+    SingleFrameIncomingTransfer it(frame);
 
-    ASSERT_TRUE(match(it, frame, frame.payload, frame.payload_len));
+    ASSERT_TRUE(match(it, frame, frame.getPayloadPtr(), frame.getPayloadLen()));
 }
 
 
@@ -75,10 +72,10 @@ TEST(MultiFrameIncomingTransfer, Basic)
     uavcan::TransferBufferManager<256, 1> bufmgr(&poolmgr);
 
     const RxFrame frame = makeFrame();
-    uavcan::TransferBufferManagerKey bufmgr_key(frame.source_node_id, frame.transfer_type);
+    uavcan::TransferBufferManagerKey bufmgr_key(frame.getSrcNodeID(), frame.getTransferType());
     uavcan::TransferBufferAccessor tba(&bufmgr, bufmgr_key);
 
-    MultiFrameIncomingTransfer it(frame.ts_monotonic, frame.ts_utc, frame, tba);
+    MultiFrameIncomingTransfer it(frame.getMonotonicTimestamp(), frame.getUtcTimestamp(), frame, tba);
 
     /*
      * Empty read must fail

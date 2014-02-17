@@ -68,8 +68,6 @@ public:
     uint16_t getLastTransferCrc() const { return this_transfer_crc_; }
 
     uint32_t getInterval() const { return transfer_interval_; }
-
-    static bool extractSingleFrameTransferPayload(const RxFrame& frame, uint8_t* out_data, unsigned int& out_len);
 };
 #pragma pack(pop)
 

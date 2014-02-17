@@ -12,10 +12,11 @@ class Emulator
     const uavcan::DataTypeDescriptor type_;
     uint64_t ts_;
     uavcan::TransferID tid_;
-    uint8_t target_node_id_;
+    uavcan::NodeID target_node_id_;
 
 public:
-    Emulator(uavcan::TransferListenerBase& target, const uavcan::DataTypeDescriptor& type, uint8_t target_node_id = 127)
+    Emulator(uavcan::TransferListenerBase& target, const uavcan::DataTypeDescriptor& type,
+             uavcan::NodeID target_node_id = 127)
     : target_(target)
     , type_(type)
     , ts_(0)
@@ -55,7 +56,11 @@ public:
     {
         std::vector<std::vector<uavcan::RxFrame> > sers;
         while (num_transfers--)
-            sers.push_back(serializeTransfer(*transfers++, target_node_id_, type_));
+        {
+            const uavcan::NodeID dnid = (transfers->transfer_type == uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST)
+                ? uavcan::NodeID::BROADCAST : target_node_id_;
+            sers.push_back(serializeTransfer(*transfers++, dnid, type_));
+        }
         send(sers);
     }
 
@@ -146,8 +151,9 @@ TEST(TransferListener, CrcFailure)
     ASSERT_TRUE(ser_mft.size() > 1);
     ASSERT_TRUE(ser_sft.size() == 1);
 
-    ser_mft[1].payload[0] = ~ser_mft[1].payload[0];     // CRC is no longer valid
-    ser_sft[0].payload[2] = ~ser_sft[0].payload[2];     // SFT has no CRC, so the corruption will be undetected
+    // Fuck my brain.
+    const_cast<uint8_t*>(ser_mft[1].getPayloadPtr())[1] = ~ser_mft[1].getPayloadPtr()[1];// CRC is no longer valid
+    const_cast<uint8_t*>(ser_sft[0].getPayloadPtr())[2] = ~ser_sft[0].getPayloadPtr()[2];// no CRC - will be undetected
 
     /*
      * Sending and making sure that MFT was not received, but SFT was.
@@ -161,7 +167,7 @@ TEST(TransferListener, CrcFailure)
     emulator.send(sers);
 
     Transfer tr_sft_damaged = tr_sft;
-    tr_sft_damaged.payload[1] = ~tr_sft.payload[1];     // Damaging the data similarly, so that it can be matched
+    tr_sft_damaged.payload[2] = ~tr_sft.payload[2];     // Damaging the data similarly, so that it can be matched
 
     ASSERT_TRUE(subscriber.matchAndPop(tr_sft_damaged));
     ASSERT_TRUE(subscriber.isEmpty());
@@ -185,7 +191,6 @@ TEST(TransferListener, BasicSFT)
         emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,   2, ""),
         emulator.makeTransfer(uavcan::TRANSFER_TYPE_SERVICE_REQUEST,   3, "abc"),
         emulator.makeTransfer(uavcan::TRANSFER_TYPE_SERVICE_RESPONSE,  4, ""),
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_SERVICE_RESPONSE,  5, ""),      // New NID, ignored due to OOM
         emulator.makeTransfer(uavcan::TRANSFER_TYPE_SERVICE_RESPONSE,  2, ""),      // New TT, ignored due to OOM
         emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,   2, "foo"),   // Same as 2, not ignored
         emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,   2, "123456789abc"),// Same as 2, not SFT - ignore
@@ -199,8 +204,8 @@ TEST(TransferListener, BasicSFT)
     ASSERT_TRUE(subscriber.matchAndPop(transfers[2]));
     ASSERT_TRUE(subscriber.matchAndPop(transfers[3]));
     ASSERT_TRUE(subscriber.matchAndPop(transfers[4]));
-    ASSERT_TRUE(subscriber.matchAndPop(transfers[7]));
-    ASSERT_TRUE(subscriber.matchAndPop(transfers[9]));
+    ASSERT_TRUE(subscriber.matchAndPop(transfers[6]));
+    ASSERT_TRUE(subscriber.matchAndPop(transfers[8]));
 
     ASSERT_TRUE(subscriber.isEmpty());
 }

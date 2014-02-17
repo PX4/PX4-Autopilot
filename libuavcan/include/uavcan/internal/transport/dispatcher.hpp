@@ -49,13 +49,13 @@ class Dispatcher : Noncopyable
     ListenerRegister lsrv_req_;
     ListenerRegister lsrv_resp_;
 
-    const uint8_t self_node_id_;
+    const NodeID self_node_id_;
 
     void handleFrame(const CanRxFrame& can_frame);
 
 public:
     Dispatcher(ICanDriver* driver, IAllocator* allocator, ISystemClock* sysclock, IOutgoingTransferRegistry* otr,
-               uint8_t self_node_id)
+               NodeID self_node_id)
     : canio_(driver, allocator, sysclock)
     , sysclock_(sysclock)
     , outgoing_transfer_reg_(otr)
@@ -87,7 +87,7 @@ public:
 
     IOutgoingTransferRegistry* getOutgoingTransferRegistry() { return outgoing_transfer_reg_; }
 
-    uint8_t getSelfNodeID() const { return self_node_id_; }
+    NodeID getSelfNodeID() const { return self_node_id_; }
 };
 
 }

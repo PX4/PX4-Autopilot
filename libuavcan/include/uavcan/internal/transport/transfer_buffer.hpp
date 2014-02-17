@@ -32,22 +32,20 @@ public:
  */
 class TransferBufferManagerKey
 {
-    uint8_t node_id_;
+    NodeID node_id_;
     uint8_t transfer_type_;
 
 public:
     TransferBufferManagerKey()
-    : node_id_(NODE_ID_INVALID)
-    , transfer_type_(TransferType(0))
+    : transfer_type_(TransferType(0))
     {
         assert(isEmpty());
     }
 
-    TransferBufferManagerKey(uint8_t node_id, TransferType ttype)
+    TransferBufferManagerKey(NodeID node_id, TransferType ttype)
     : node_id_(node_id)
     , transfer_type_(ttype)
     {
-        assert(node_id <= NODE_ID_MAX && node_id != NODE_ID_INVALID);
         assert(!isEmpty());
     }
 
@@ -56,9 +54,9 @@ public:
         return node_id_ == rhs.node_id_ && transfer_type_ == rhs.transfer_type_;
     }
 
-    bool isEmpty() const { return node_id_ == NODE_ID_INVALID; }
+    bool isEmpty() const { return !node_id_.isValid(); }
 
-    uint8_t getNodeID() const { return node_id_; }
+    NodeID getNodeID() const { return node_id_; }
     TransferType getTransferType() const { return TransferType(transfer_type_); }
 
     std::string toString() const;

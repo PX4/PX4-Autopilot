@@ -12,13 +12,15 @@
 namespace uavcan
 {
 
+static const int CRC_LEN = 2;
+
 const uint32_t TransferReceiver::DEFAULT_TRANSFER_INTERVAL;
 const uint32_t TransferReceiver::MIN_TRANSFER_INTERVAL;
 const uint32_t TransferReceiver::MAX_TRANSFER_INTERVAL;
 
 TransferReceiver::TidRelation TransferReceiver::getTidRelation(const RxFrame& frame) const
 {
-    const int distance = tid_.forwardDistance(frame.transfer_id);
+    const int distance = tid_.forwardDistance(frame.getTransferID());
     if (distance == 0)
         return TID_SAME;
     if (distance < ((1 << TransferID::BITLEN) / 2))
@@ -52,36 +54,31 @@ void TransferReceiver::prepareForNextTransfer()
 
 bool TransferReceiver::validate(const RxFrame& frame) const
 {
-    if (iface_index_ != frame.iface_index)
+    if (iface_index_ != frame.getIfaceIndex())
         return false;
 
-    if (frame.source_node_id == 0)
+    if (frame.isFirstFrame() && !frame.isLastFrame() && (frame.getPayloadLen() < CRC_LEN))
     {
-        UAVCAN_TRACE("TransferReceiver", "Invalid frame NID, %s", frame.toString().c_str());
-        return false;
-    }
-
-    if (frame.frame_index != next_frame_index_)
-    {
-        UAVCAN_TRACE("TransferReceiver", "Unexpected frame index, %s", frame.toString().c_str());
+        UAVCAN_TRACE("TransferReceiver", "CRC expected, %s", frame.toString().c_str());
         return false;
     }
 
-    if (!frame.last_frame && frame.payload_len != Frame::PAYLOAD_LEN_MAX)
+    if ((frame.getFrameIndex() == Frame::FRAME_INDEX_MAX) && !frame.isLastFrame())
     {
-        UAVCAN_TRACE("TransferReceiver", "Unexpected payload len, %s", frame.toString().c_str());
+        UAVCAN_TRACE("TransferReceiver", "Unterminated transfer, %s", frame.toString().c_str());
         return false;
     }
 
-    if (!frame.last_frame && frame.frame_index == Frame::FRAME_INDEX_MAX)
+    if (frame.getFrameIndex() != next_frame_index_)
     {
-        UAVCAN_TRACE("TransferReceiver", "Expected end of transfer, %s", frame.toString().c_str());
+        UAVCAN_TRACE("TransferReceiver", "Unexpected frame index (not %i), %s",
+                     int(next_frame_index_), frame.toString().c_str());
         return false;
     }
 
     if (getTidRelation(frame) != TID_SAME)
     {
-        UAVCAN_TRACE("TransferReceiver", "Unexpected TID, %s", frame.toString().c_str());
+        UAVCAN_TRACE("TransferReceiver", "Unexpected TID (current %i), %s", tid_.get(), frame.toString().c_str());
         return false;
     }
     return true;
@@ -89,34 +86,18 @@ bool TransferReceiver::validate(const RxFrame& frame) const
 
 bool TransferReceiver::writePayload(const RxFrame& frame, TransferBufferBase& buf)
 {
-    if (frame.frame_index == 0)
+    const uint8_t* const payload = frame.getPayloadPtr();
+    const int payload_len = frame.getPayloadLen();
+
+    if (frame.isFirstFrame())                  // First frame contains CRC, we need to extract it now
     {
-        unsigned int payload_offset = 0;
-        unsigned int crc_offset = 0;
+        if (frame.getPayloadLen() < CRC_LEN)   // Must have been validated earlier though. I think I'm paranoid.
+            return false;
 
-        switch (frame.transfer_type)
-        {
-        case TRANSFER_TYPE_MESSAGE_BROADCAST:
-            payload_offset = 2;
-            crc_offset = 0;
-            break;
-        case TRANSFER_TYPE_SERVICE_RESPONSE:  // Addressed transfers have 1-byte overhead for Destination Node ID
-        case TRANSFER_TYPE_SERVICE_REQUEST:
-        case TRANSFER_TYPE_MESSAGE_UNICAST:
-            payload_offset = 3;
-            crc_offset = 1;
-            break;
-        default:
-            UAVCAN_TRACE("TransferReceiver", "Invalid transfer type, %s", frame.toString().c_str());
-            return RESULT_NOT_COMPLETE;
-        }
+        this_transfer_crc_ = (payload[0] & 0xFF) | (uint16_t(payload[1] & 0xFF) << 8); // Little endian.
 
-        this_transfer_crc_ =
-            (frame.payload[crc_offset] & 0xFF) |
-            (uint16_t(frame.payload[crc_offset + 1] & 0xFF) << 8); // little endian
-
-        const int effective_payload_len = frame.payload_len - payload_offset;
-        const int res = buf.write(buffer_write_pos_, frame.payload + payload_offset, effective_payload_len);
+        const int effective_payload_len = payload_len - CRC_LEN;
+        const int res = buf.write(buffer_write_pos_, payload + CRC_LEN, effective_payload_len);
         const bool success = res == effective_payload_len;
         if (success)
             buffer_write_pos_ += effective_payload_len;
@@ -124,10 +105,10 @@ bool TransferReceiver::writePayload(const RxFrame& frame, TransferBufferBase& bu
     }
     else
     {
-        const int res = buf.write(buffer_write_pos_, frame.payload, frame.payload_len);
-        const bool success = res == frame.payload_len;
+        const int res = buf.write(buffer_write_pos_, payload, payload_len);
+        const bool success = res == payload_len;
         if (success)
-            buffer_write_pos_ += frame.payload_len;
+            buffer_write_pos_ += payload_len;
         return success;
     }
 }
@@ -135,14 +116,13 @@ bool TransferReceiver::writePayload(const RxFrame& frame, TransferBufferBase& bu
 TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame, TransferBufferAccessor& tba)
 {
     // Transfer timestamps are derived from the first frame
-    if (frame.frame_index == 0)
+    if (frame.isFirstFrame())
     {
-        this_transfer_ts_monotonic_ = frame.ts_monotonic;
-        first_frame_ts_utc_ = frame.ts_utc;
+        this_transfer_ts_monotonic_ = frame.getMonotonicTimestamp();
+        first_frame_ts_utc_         = frame.getUtcTimestamp();
     }
 
-    // Single-frame transfer
-    if ((frame.frame_index == 0) && frame.last_frame)
+    if (frame.isFirstFrame() && frame.isLastFrame())
     {
         tba.remove();
         updateTransferTimings();
@@ -170,7 +150,7 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame, Tra
     }
     next_frame_index_++;
 
-    if (frame.last_frame)
+    if (frame.isLastFrame())
     {
         updateTransferTimings();
         prepareForNextTransfer();
@@ -181,7 +161,7 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame, Tra
 
 bool TransferReceiver::isTimedOut(uint64_t ts_monotonic) const
 {
-    static const uint64_t INTERVAL_MULT = (1 << TransferID::BITLEN) / 2 - 1;
+    static const uint64_t INTERVAL_MULT = (1 << TransferID::BITLEN) / 2 + 1;
     const uint64_t ts = this_transfer_ts_monotonic_;
     if (ts_monotonic <= ts)
         return false;
@@ -190,19 +170,20 @@ bool TransferReceiver::isTimedOut(uint64_t ts_monotonic) const
 
 TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, TransferBufferAccessor& tba)
 {
-    if ((frame.ts_monotonic == 0) ||
-        (frame.ts_monotonic < prev_transfer_ts_monotonic_) ||
-        (frame.ts_monotonic < this_transfer_ts_monotonic_))
+    if ((frame.getMonotonicTimestamp() == 0) ||
+        (frame.getMonotonicTimestamp() < prev_transfer_ts_monotonic_) ||
+        (frame.getMonotonicTimestamp() < this_transfer_ts_monotonic_))
     {
         return RESULT_NOT_COMPLETE;
     }
 
     const bool not_initialized = !isInitialized();
-    const bool iface_timed_out = (frame.ts_monotonic - this_transfer_ts_monotonic_) > (uint64_t(transfer_interval_) * 2);
-    const bool receiver_timed_out = isTimedOut(frame.ts_monotonic);
-    const bool same_iface = frame.iface_index == iface_index_;
-    const bool first_fame = frame.frame_index == 0;
+    const bool receiver_timed_out = isTimedOut(frame.getMonotonicTimestamp());
+    const bool same_iface = frame.getIfaceIndex() == iface_index_;
+    const bool first_fame = frame.isFirstFrame();
     const TidRelation tid_rel = getTidRelation(frame);
+    const bool iface_timed_out =
+        (frame.getMonotonicTimestamp() - this_transfer_ts_monotonic_) > (uint64_t(transfer_interval_) * 2);
 
     const bool need_restart = // FSM, the hard way
         (not_initialized) ||
@@ -217,8 +198,8 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, Tr
             int(not_initialized), int(iface_timed_out), int(receiver_timed_out), int(same_iface), int(first_fame),
             int(tid_rel), frame.toString().c_str());
         tba.remove();
-        iface_index_ = frame.iface_index;
-        tid_ = frame.transfer_id;
+        iface_index_ = frame.getIfaceIndex();
+        tid_ = frame.getTransferID();
         next_frame_index_ = 0;
         buffer_write_pos_ = 0;
         this_transfer_crc_ = 0;
@@ -233,39 +214,6 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, Tr
         return RESULT_NOT_COMPLETE;
 
     return receive(frame, tba);
-}
-
-bool TransferReceiver::extractSingleFrameTransferPayload(const RxFrame& frame, uint8_t* out_data,
-                                                         unsigned int& out_len)
-{
-    if (out_data == NULL)
-    {
-        assert(0);
-        return false;
-    }
-
-    out_len = 0;
-    unsigned int offset = 0;
-    switch (frame.transfer_type)
-    {
-    case TRANSFER_TYPE_MESSAGE_BROADCAST:
-        offset = 0;
-        break;
-    case TRANSFER_TYPE_SERVICE_RESPONSE:  // Addressed transfers have 1-byte overhead for Destination Node ID
-    case TRANSFER_TYPE_SERVICE_REQUEST:
-    case TRANSFER_TYPE_MESSAGE_UNICAST:
-        offset = 1;
-        break;
-    default:
-        return false;
-    }
-
-    if (frame.payload_len < offset)
-        return false;
-
-    out_len = frame.payload_len - offset;
-    std::copy(frame.payload + offset, frame.payload + offset + out_len, out_data);
-    return true;
 }
 
 }

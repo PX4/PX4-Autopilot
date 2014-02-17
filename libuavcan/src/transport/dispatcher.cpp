@@ -48,9 +48,9 @@ void Dispatcher::ListenerRegister::handleFrame(const RxFrame& frame)
     TransferListenerBase* p = list_.get();
     while (p)
     {
-        if (p->getDataTypeDescriptor()->id == frame.data_type_id)
+        if (p->getDataTypeDescriptor()->id == frame.getDataTypeID())
             p->handleFrame(frame);
-        else if (p->getDataTypeDescriptor()->id < frame.data_type_id)  // Listeners are ordered by data type id!
+        else if (p->getDataTypeDescriptor()->id < frame.getDataTypeID())  // Listeners are ordered by data type id!
             break;
         p = p->getNextListNode();
     }
@@ -68,39 +68,13 @@ void Dispatcher::handleFrame(const CanRxFrame& can_frame)
         return;
     }
 
-    /*
-     * Target Node ID checking
-     */
-    switch (frame.transfer_type)
+    if ((frame.getDstNodeID() != NodeID::BROADCAST) &&
+        (frame.getDstNodeID() != getSelfNodeID()))
     {
-    case TRANSFER_TYPE_MESSAGE_BROADCAST:
-        // Always accepted
-        break;
-
-    case TRANSFER_TYPE_SERVICE_RESPONSE:
-    case TRANSFER_TYPE_SERVICE_REQUEST:
-    case TRANSFER_TYPE_MESSAGE_UNICAST:
-        /* Here we drop transfer headers that aren't addressed to us. Non-first frames must be accepted in
-         * any case, because they lack address information in order to reduce payload overhead.
-         */
-        if (frame.frame_index == 0)
-        {
-            const uint8_t target_node_id = frame.payload[0];
-            if (target_node_id != getSelfNodeID())
-                return;
-        }
-        break;
-
-    default:
-        // This means that RxFrame::parse() accepted an invalid frame. Too bad!
-        assert(0);
         return;
     }
 
-    /*
-     * Target register selection
-     */
-    switch (frame.transfer_type)
+    switch (frame.getTransferType())
     {
     case TRANSFER_TYPE_MESSAGE_BROADCAST:
     case TRANSFER_TYPE_MESSAGE_UNICAST:
@@ -143,13 +117,19 @@ int Dispatcher::spin(uint64_t monotonic_deadline)
 int Dispatcher::send(const Frame& frame, uint64_t monotonic_tx_deadline, uint64_t monotonic_blocking_deadline,
                      CanTxQueue::Qos qos)
 {
-    if (frame.source_node_id != getSelfNodeID())
+    if (frame.getSrcNodeID() != getSelfNodeID())
     {
         assert(0);
         return -1;
     }
 
-    const CanFrame can_frame = frame.compile();
+    CanFrame can_frame;
+    if (!frame.compile(can_frame))
+    {
+        UAVCAN_TRACE("Dispatcher", "Unable to send: frame is malformed: %s", frame.toString().c_str());
+        assert(0);
+        return -1;
+    }
     const int iface_mask = (1 << canio_.getNumIfaces()) - 1;
 
     return canio_.send(can_frame, monotonic_tx_deadline, monotonic_blocking_deadline, iface_mask, qos);
