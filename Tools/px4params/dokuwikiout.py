@@ -47,30 +47,3 @@ class DokuWikiTablesOutput():
     def Save(self, filename):
         with codecs.open(filename, 'w', 'utf-8') as f:
             f.write(self.output)
-
-    def SaveRpc(self, filename):
-        with codecs.open(filename, 'w', 'utf-8') as f:
-            f.write("""<?xml version='1.0'?>
-<methodCall>
-  <methodName>wiki.putPage</methodName>
-      <params>
-          <param> 
-            <value>
-              <string>:firmware:parameters</string>
-            </value>
-          </param>
-          <param> 
-            <value>
-              <string>""")
-            f.write(escape(self.output))
-            f.write("""</string>
-            </value>
-        </param>
-        <param> 
-            <value>
-                <name>sum</name>
-                <string>Updated parameters automagically from code.</string>
-            </value>
-        </param>
-    </params>
-</methodCall>""")
