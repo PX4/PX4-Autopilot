@@ -117,7 +117,7 @@ BlockMultiModeBacksideAutopilot::BlockMultiModeBacksideAutopilot(SuperBlock *par
 	_vCmd(this, "V_CMD"),
 	_crMax(this, "CR_MAX"),
 	_attPoll(),
-	_lastPosCmd(),
+	_lastMissionCmd(),
 	_timeStamp(0)
 {
 	_attPoll.fd = _att.getHandle();
@@ -141,8 +141,8 @@ void BlockMultiModeBacksideAutopilot::update()
 	setDt(dt);
 
 	// store old position command before update if new command sent
-	if (_posCmd.updated()) {
-		_lastPosCmd = _posCmd.getData();
+	if (_missionCmd.updated()) {
+		_lastMissionCmd = _missionCmd.getData();
 	}
 
 	// check for new updates
@@ -159,7 +159,7 @@ void BlockMultiModeBacksideAutopilot::update()
 	if (_status.main_state == MAIN_STATE_AUTO) {
 		// TODO use vehicle_control_mode here?
 		// update guidance
-		_guide.update(_pos, _att, _posCmd.current, _lastPosCmd.current);
+		_guide.update(_pos, _att, _missionCmd.current, _lastMissionCmd.current);
 	}
 
 	// XXX handle STABILIZED (loiter on spot) as well
@@ -174,15 +174,15 @@ void BlockMultiModeBacksideAutopilot::update()
 		// of control we will limit the velocity feedback between
 		// the min/max velocity
 		float v = _vLimit.update(sqrtf(
-					_pos.vx * _pos.vx +
+					_pos.vel_n * _pos.vel_n +
 					_pos.vy * _pos.vy +
-					_pos.vz * _pos.vz));
+					_pos.vel_d * _pos.vel_d));
 
 		// limit velocity command between min/max velocity
 		float vCmd = _vLimit.update(_vCmd.get());
 
 		// altitude hold
-		float dThrottle = _h2Thr.update(_posCmd.current.altitude - _pos.alt);
+		float dThrottle = _h2Thr.update(_missionCmd.current.altitude - _pos.alt);
 
 		// heading hold
 		float psiError = _wrap_pi(_guide.getPsiCmd() - _att.yaw);
@@ -236,9 +236,9 @@ void BlockMultiModeBacksideAutopilot::update()
 		// for the purpose of control we will limit the velocity feedback between
 		// the min/max velocity
 		float v = _vLimit.update(sqrtf(
-					_pos.vx * _pos.vx +
+					_pos.vel_n * _pos.vel_n +
 					_pos.vy * _pos.vy +
-					_pos.vz * _pos.vz));
+					_pos.vel_d * _pos.vel_d));
 
 		// pitch channel -> rate of climb
 		// TODO, might want to put a gain on this, otherwise commanding

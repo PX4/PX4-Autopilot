@@ -441,7 +441,8 @@ int mavlink_thread_main(int argc, char *argv[])
 			get_mavlink_mode_and_state(&control_mode, &armed, &mavlink_state, &mavlink_mode);
 
 			/* send heartbeat */
-			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.navigation_state, mavlink_state);
+			// TODO fix navigation state, use control_mode topic
+			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_mode, 0, mavlink_state);
 
 			/* send status (values already copied in the section above) */
 			mavlink_msg_sys_status_send(chan,

@@ -53,6 +53,11 @@
  */
 struct navigation_capabilities_s {
     float turn_distance;    /**< the optimal distance to a waypoint to switch to the next */
+
+    /* Landing parameters: see fw_pos_control_l1/landingslope.h */
+    float landing_horizontal_slope_displacement;
+    float landing_slope_angle_rad;
+    float landing_flare_length;
 };
 
 /**
