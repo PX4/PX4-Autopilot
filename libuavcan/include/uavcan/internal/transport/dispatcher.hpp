@@ -43,6 +43,8 @@ class Dispatcher : Noncopyable
         void remove(TransferListenerBase* listener);
         void cleanup(uint64_t ts_monotonic);
         void handleFrame(const RxFrame& frame);
+
+        int getNumEntries() const { return list_.length(); }
     };
 
     ListenerRegister lmsg_;
@@ -84,6 +86,10 @@ public:
     void unregisterMessageListener(TransferListenerBase* listener);
     void unregisterServiceRequestListener(TransferListenerBase* listener);
     void unregisterServiceResponseListener(TransferListenerBase* listener);
+
+    int getNumMessageListeners()         const { return lmsg_.getNumEntries(); }
+    int getNumServiceRequestListeners()  const { return lsrv_req_.getNumEntries(); }
+    int getNumServiceResponseListeners() const { return lsrv_resp_.getNumEntries(); }
 
     IOutgoingTransferRegistry* getOutgoingTransferRegistry() { return outgoing_transfer_reg_; }
 

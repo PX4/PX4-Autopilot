@@ -129,6 +129,11 @@ TEST(Dispatcher, Reception)
     // Multiple service request listeners are not allowed
     ASSERT_FALSE(dispatcher.registerServiceRequestListener(subscribers[3].get()));
 
+    // Item count validation
+    ASSERT_EQ(3, dispatcher.getNumMessageListeners());
+    ASSERT_EQ(1, dispatcher.getNumServiceRequestListeners());
+    ASSERT_EQ(2, dispatcher.getNumServiceResponseListeners());
+
     for (int i = 0; i < NUM_SUBSCRIBERS; i++)
         ASSERT_TRUE(subscribers[i]->isEmpty());
 
@@ -181,6 +186,10 @@ TEST(Dispatcher, Reception)
     dispatcher.unregisterServiceRequestListener(subscribers[3].get());
     dispatcher.unregisterServiceResponseListener(subscribers[4].get());
     dispatcher.unregisterServiceResponseListener(subscribers[5].get());
+
+    ASSERT_EQ(0, dispatcher.getNumMessageListeners());
+    ASSERT_EQ(0, dispatcher.getNumServiceRequestListeners());
+    ASSERT_EQ(0, dispatcher.getNumServiceResponseListeners());
 }
 
 
