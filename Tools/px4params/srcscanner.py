@@ -2,7 +2,7 @@ import os
 import re
 import codecs
 
-class Scanner(object):
+class SourceScanner(object):
     """
     Traverses directory tree, reads all source files, and passes their contents
     to the Parser.

@@ -72,7 +72,7 @@ class Parameter(object):
         """
         return self.fields.get(code)
 
-class Parser(object):
+class SourceParser(object):
     """
     Parses provided data and stores all found parameters internally.
     """

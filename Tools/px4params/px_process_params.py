@@ -39,19 +39,19 @@
 # definitions, and outputs list of parameters in XML and DokuWiki formats.
 #
 
-import scanner
+import srcscanner
 import srcparser
 import output_xml
 import output_dokuwiki_tables
 import output_dokuwiki_listings
 
 # Initialize parser
-prs = srcparser.Parser()
+parser = srcparser.SourceParser()
 
 # Scan directories, and parse the files
-sc = scanner.Scanner()
-sc.ScanDir("../../src", prs)
-groups = prs.GetParamGroups()
+scanner = srcscanner.SourceScanner()
+scanner.ScanDir("../../src", parser)
+groups = parser.GetParamGroups()
 
 # Output into XML
 out = output_xml.XMLOutput(groups)
