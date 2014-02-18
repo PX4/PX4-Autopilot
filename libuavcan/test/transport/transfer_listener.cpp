@@ -12,21 +12,23 @@ class Emulator
     const uavcan::DataTypeDescriptor type_;
     uint64_t ts_;
     uavcan::TransferID tid_;
-    uavcan::NodeID target_node_id_;
+    uavcan::NodeID dst_node_id_;
 
 public:
     Emulator(uavcan::TransferListenerBase& target, const uavcan::DataTypeDescriptor& type,
-             uavcan::NodeID target_node_id = 127)
+             uavcan::NodeID dst_node_id = 127)
     : target_(target)
     , type_(type)
     , ts_(0)
-    , target_node_id_(target_node_id)
+    , dst_node_id_(dst_node_id)
     { }
 
     Transfer makeTransfer(uavcan::TransferType transfer_type, uint8_t source_node_id, const std::string& payload)
     {
         ts_ += 100;
-        const Transfer tr(ts_, ts_ + 1000000000ul, transfer_type, tid_, source_node_id, payload);
+        const uavcan::NodeID dst_node_id = (transfer_type == uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST)
+                    ? uavcan::NodeID::BROADCAST : dst_node_id_;
+        const Transfer tr(ts_, ts_ + 1000000000ul, transfer_type, tid_, source_node_id, dst_node_id, payload);
         tid_.increment();
         return tr;
     }
@@ -56,11 +58,7 @@ public:
     {
         std::vector<std::vector<uavcan::RxFrame> > sers;
         while (num_transfers--)
-        {
-            const uavcan::NodeID dnid = (transfers->transfer_type == uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST)
-                ? uavcan::NodeID::BROADCAST : target_node_id_;
-            sers.push_back(serializeTransfer(*transfers++, dnid, type_));
-        }
+            sers.push_back(serializeTransfer(*transfers++, type_));
         send(sers);
     }
 
@@ -145,8 +143,8 @@ TEST(TransferListener, CrcFailure)
     const Transfer tr_mft = emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 42, "123456789abcdefghik");
     const Transfer tr_sft = emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST, 11, "abcd");
 
-    std::vector<uavcan::RxFrame> ser_mft = serializeTransfer(tr_mft, 0, type);
-    std::vector<uavcan::RxFrame> ser_sft = serializeTransfer(tr_sft, 9, type);
+    std::vector<uavcan::RxFrame> ser_mft = serializeTransfer(tr_mft, type);
+    std::vector<uavcan::RxFrame> ser_sft = serializeTransfer(tr_sft, type);
 
     ASSERT_TRUE(ser_mft.size() > 1);
     ASSERT_TRUE(ser_sft.size() == 1);
@@ -227,8 +225,8 @@ TEST(TransferListener, Cleanup)
     const Transfer tr_mft = emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 42, "123456789abcdefghik");
     const Transfer tr_sft = emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST, 11, "abcd");
 
-    const std::vector<uavcan::RxFrame> ser_mft = serializeTransfer(tr_mft, 0, type);
-    const std::vector<uavcan::RxFrame> ser_sft = serializeTransfer(tr_sft, 9, type);
+    const std::vector<uavcan::RxFrame> ser_mft = serializeTransfer(tr_mft, type);
+    const std::vector<uavcan::RxFrame> ser_sft = serializeTransfer(tr_sft, type);
 
     ASSERT_TRUE(ser_mft.size() > 1);
     ASSERT_TRUE(ser_sft.size() == 1);
