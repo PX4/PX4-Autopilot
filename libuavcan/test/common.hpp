@@ -11,15 +11,17 @@
 class SystemClockMock : public uavcan::ISystemClock
 {
 public:
-    uint64_t monotonic;
-    uint64_t utc;
+    mutable uint64_t monotonic;
+    mutable uint64_t utc;
+    int64_t monotonic_auto_advance;
 
     SystemClockMock(uint64_t initial = 0)
     : monotonic(initial)
     , utc(initial)
+    , monotonic_auto_advance(0)
     { }
 
-    void advance(uint64_t usec)
+    void advance(uint64_t usec) const
     {
         monotonic += usec;
         utc += usec;
@@ -28,7 +30,9 @@ public:
     uint64_t getMonotonicMicroseconds() const
     {
         assert(this);
-        return monotonic;
+        const uint64_t res = monotonic;
+        advance(monotonic_auto_advance);
+        return res;
     }
 
     uint64_t getUtcMicroseconds() const

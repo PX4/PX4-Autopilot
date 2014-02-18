@@ -221,3 +221,26 @@ TEST(Dispatcher, Transmission)
     ASSERT_TRUE(driver.ifaces.at(0).tx.empty());
     ASSERT_TRUE(driver.ifaces.at(1).tx.empty());
 }
+
+
+TEST(Dispatcher, Spin)
+{
+    uavcan::PoolManager<1> poolmgr;
+
+    SystemClockMock clockmock(100);
+    CanDriverMock driver(2, clockmock);
+
+    uavcan::OutgoingTransferRegistry<8> out_trans_reg(&poolmgr);
+
+    uavcan::Dispatcher dispatcher(&driver, &poolmgr, &clockmock, &out_trans_reg, SELF_NODE_ID);
+
+    clockmock.monotonic_auto_advance = 100;
+
+    ASSERT_EQ(100, clockmock.monotonic);
+    ASSERT_EQ(0, dispatcher.spin(1000));
+    ASSERT_LE(1000, clockmock.monotonic);
+    ASSERT_EQ(0, dispatcher.spin(0));
+    ASSERT_LE(1000, clockmock.monotonic);
+    ASSERT_EQ(0, dispatcher.spin(1100));
+    ASSERT_LE(1100, clockmock.monotonic);
+}
