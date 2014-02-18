@@ -28,8 +28,7 @@ class ParameterGroup(object):
         state of the parser.
         """
         return sorted(self.params,
-                cmp=lambda x, y: cmp(x.GetFieldValue("code"),
-                    y.GetFieldValue("code")))
+                key=lambda x: x.GetFieldValue("code"))
 
 class Parameter(object):
     """
@@ -61,9 +60,10 @@ class Parameter(object):
         """
         Return list of existing field codes in convenient order
         """
-        return sorted(self.fields.keys(),
-                cmp=lambda x, y: cmp(self.priority.get(y, 0),
-                    self.priority.get(x, 0)) or cmp(x, y))
+        keys = self.fields.keys()
+        keys = sorted(keys)
+        keys = sorted(keys, key=lambda x: self.priority.get(x, 0), reverse=True)
+        return keys
 
     def GetFieldValue(self, code):
         """
@@ -197,7 +197,7 @@ class Parser(object):
                             if tag == "group":
                                 group = tags[tag]
                             elif tag not in self.valid_tags:
-                                sys.stderr.write("Skipping invalid"
+                                sys.stderr.write("Skipping invalid "
                                         "documentation tag: '%s'\n" % tag)
                             else:
                                 param.SetField(tag, tags[tag])
@@ -214,7 +214,7 @@ class Parser(object):
         object. Note that returned object is not a copy. Modifications affect
         state of the parser.
         """
-        return sorted(self.param_groups.values(),
-                cmp=lambda x, y: cmp(self.priority.get(y.GetName(), 0),
-                    self.priority.get(x.GetName(), 0)) or cmp(x.GetName(),
-                        y.GetName()))
+        groups = self.param_groups.values()
+        groups = sorted(groups, key=lambda x: x.GetName())
+        groups = sorted(groups, key=lambda x: self.priority.get(x.GetName(), 0), reverse=True)
+        return groups

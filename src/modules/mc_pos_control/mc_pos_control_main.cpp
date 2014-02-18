@@ -51,7 +51,6 @@
 #include <errno.h>
 #include <math.h>
 #include <poll.h>
-#include <time.h>
 #include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
@@ -68,7 +67,6 @@
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
-#include <systemlib/pid/pid.h>
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
 #include <lib/geo/geo.h>

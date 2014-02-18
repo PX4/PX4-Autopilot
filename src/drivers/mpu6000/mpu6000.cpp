@@ -1353,6 +1353,7 @@ MPU6000::print_info()
 MPU6000_gyro::MPU6000_gyro(MPU6000 *parent) :
 	CDev("MPU6000_gyro", MPU_DEVICE_PATH_GYRO),
 	_parent(parent),
+	_gyro_topic(-1),
 	_gyro_class_instance(-1)
 {
 }
