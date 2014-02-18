@@ -130,23 +130,23 @@ private:
 	int		_att_sub;			/**< vehicle attitude subscription */
 	int		_attitude_sub;			/**< raw rc channels data subscription */
 	int		_airspeed_sub;			/**< airspeed subscription */
-	int		_control_mode_sub;			/**< vehicle status subscription */
+	int		_control_mode_sub;		/**< vehicle status subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_control_sub;		/**< notification of manual control updates */
-	int		_sensor_combined_sub;			/**< for body frame accelerations */
+	int		_sensor_combined_sub;		/**< for body frame accelerations */
 
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint */
 	orb_advert_t	_nav_capabilities_pub;		/**< navigation capabilities publication */
 
-	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
-	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
-	struct navigation_capabilities_s		_nav_capabilities;	/**< navigation capabilities */
-	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
-	struct airspeed_s				_airspeed;		/**< airspeed */
-	struct vehicle_control_mode_s				_control_mode;		/**< vehicle status */
-	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
-	struct position_setpoint_triplet_s			_pos_sp_triplet;		/**< triplet of mission items */
-	struct sensor_combined_s				_sensor_combined;			/**< for body frame accelerations */
+	struct vehicle_attitude_s			_att;				/**< vehicle attitude */
+	struct vehicle_attitude_setpoint_s		_att_sp;			/**< vehicle attitude setpoint */
+	struct navigation_capabilities_s		_nav_capabilities;		/**< navigation capabilities */
+	struct manual_control_setpoint_s		_manual;			/**< r/c channel data */
+	struct airspeed_s				_airspeed;			/**< airspeed */
+	struct vehicle_control_mode_s			_control_mode;			/**< vehicle status */
+	struct vehicle_global_position_s		_global_pos;			/**< global vehicle position */
+	struct position_setpoint_triplet_s		_pos_sp_triplet;		/**< triplet of mission items */
+	struct sensor_combined_s			_sensor_combined;		/**< for body frame accelerations */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -192,7 +192,7 @@ private:
 	uint64_t _airspeed_last_valid;			///< last time airspeed was valid. Used to detect sensor failures
 	float _groundspeed_undershoot;			///< ground speed error to min. speed in m/s
 	bool _global_pos_valid;				///< global position is valid
-	math::Matrix<3, 3> _R_nb;				///< current attitude
+	math::Matrix<3, 3> _R_nb;			///< current attitude
 
 	ECL_L1_Pos_Controller				_l1_control;
 	TECS						_tecs;
@@ -406,8 +406,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	airspeed_s				_airspeed = {0};
 	vehicle_control_mode_s			_control_mode = {0};
 	vehicle_global_position_s		_global_pos = {0};
-	position_setpoint_triplet_s			_pos_sp_triplet = {0};
-	sensor_combined_s				_sensor_combined = {0};
+	position_setpoint_triplet_s		_pos_sp_triplet = {0};
+	sensor_combined_s			_sensor_combined = {0};
 
 
 
@@ -587,8 +587,8 @@ FixedwingPositionControl::vehicle_control_mode_poll()
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 
 		if (!was_armed && _control_mode.flag_armed) {
-			_launch_lat = _global_pos.lat / 1e7f;
-			_launch_lon = _global_pos.lon / 1e7f;
+			_launch_lat = _global_pos.lat / 1e7d;
+			_launch_lon = _global_pos.lon / 1e7d;
 			_launch_alt = _global_pos.alt;
 			_launch_valid = true;
 		}
