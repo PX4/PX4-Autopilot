@@ -2112,14 +2112,24 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		break;
 
 	case DSM_BIND_START:
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down);
-		usleep(500000);
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_out);
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
-		usleep(72000);
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_send_pulses | (arg << 4));
-		usleep(50000);
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_reinit_uart);
+
+		/* only allow DSM2, DSM-X and DSM-X with more than 7 channels */
+		if (arg == DSM2_BIND_PULSES ||
+		    arg == DSMX_BIND_PULSES ||
+		    arg == DSMX8_BIND_PULSES) {
+			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down);
+			usleep(500000);
+			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_out);
+			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
+			usleep(72000);
+			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_send_pulses | (arg << 4));
+			usleep(50000);
+			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_reinit_uart);
+
+			ret = OK;
+		} else {
+			ret = -EINVAL;
+		}
 		break;
 
 	case DSM_BIND_POWER_UP:
@@ -2612,7 +2622,7 @@ bind(int argc, char *argv[])
 #endif
 
 	if (argc < 3)
-		errx(0, "needs argument, use dsm2 or dsmx");
+		errx(0, "needs argument, use dsm2, dsmx or dsmx8");
 
 	if (!strcmp(argv[2], "dsm2"))
 		pulses = DSM2_BIND_PULSES;
@@ -2621,7 +2631,7 @@ bind(int argc, char *argv[])
 	else if (!strcmp(argv[2], "dsmx8"))
 		pulses = DSMX8_BIND_PULSES;
 	else 
-		errx(1, "unknown parameter %s, use dsm2 or dsmx", argv[2]);
+		errx(1, "unknown parameter %s, use dsm2, dsmx or dsmx8", argv[2]);
 	// Test for custom pulse parameter
 	if (argc > 3)
 		pulses = atoi(argv[3]);
