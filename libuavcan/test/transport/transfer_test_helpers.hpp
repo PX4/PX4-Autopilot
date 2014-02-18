@@ -72,6 +72,7 @@ struct Transfer
             (transfer_id   == rhs.transfer_id) &&
             (src_node_id   == rhs.src_node_id) &&
             (dst_node_id.isValid() ? (dst_node_id == rhs.dst_node_id) : true) &&
+            (data_type     == rhs.data_type) &&
             (payload       == rhs.payload);
     }
 
