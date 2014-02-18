@@ -129,9 +129,9 @@ private:
 	int		_gyro_sub;			/**< gyro sensor subscription */
 	int		_accel_sub;			/**< accel sensor subscription */
 	int		_mag_sub;			/**< mag sensor subscription */
-	#else
+#else
 	int		_sensor_combined_sub;
-	#endif
+#endif
 	int		_airspeed_sub;			/**< airspeed subscription */
 	int		_baro_sub;			/**< barometer subscription */
 	int		_gps_sub;			/**< GPS subscription */
@@ -233,13 +233,13 @@ FixedwingEstimator::FixedwingEstimator() :
 	_estimator_task(-1),
 
 /* subscriptions */
-	#ifndef SENSOR_COMBINED_SUB
+#ifndef SENSOR_COMBINED_SUB
 	_gyro_sub(-1),
 	_accel_sub(-1),
 	_mag_sub(-1),
-	#else
+#else
 	_sensor_combined_sub(-1),
-	#endif
+#endif
 	_airspeed_sub(-1),
 	_baro_sub(-1),
 	_gps_sub(-1),
@@ -382,7 +382,7 @@ FixedwingEstimator::task_main()
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
 
-	#ifndef SENSOR_COMBINED_SUB
+#ifndef SENSOR_COMBINED_SUB
 
 	_gyro_sub = orb_subscribe(ORB_ID(sensor_gyro));
 	_accel_sub = orb_subscribe(ORB_ID(sensor_accel));
@@ -391,11 +391,11 @@ FixedwingEstimator::task_main()
 	/* rate limit gyro updates to 50 Hz */
 	/* XXX remove this!, BUT increase the data buffer size! */
 	orb_set_interval(_gyro_sub, 4);
-	#else
+#else
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	/* XXX remove this!, BUT increase the data buffer size! */
 	orb_set_interval(_sensor_combined_sub, 4);
-	#endif
+#endif
 
 	parameters_update();
 
@@ -424,13 +424,13 @@ FixedwingEstimator::task_main()
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
 	fds[0].events = POLLIN;
-	#ifndef SENSOR_COMBINED_SUB
+#ifndef SENSOR_COMBINED_SUB
 	fds[1].fd = _gyro_sub;
 	fds[1].events = POLLIN;
-	#else
+#else
 	fds[1].fd = _sensor_combined_sub;
 	fds[1].events = POLLIN;
-	#endif
+#endif
 
 	hrt_abstime start_time = hrt_absolute_time();
 
@@ -483,9 +483,9 @@ FixedwingEstimator::task_main()
 			hrt_abstime last_sensor_timestamp;
 
 			/* load local copies */
-			#ifndef SENSOR_COMBINED_SUB
+#ifndef SENSOR_COMBINED_SUB
 			orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &_gyro);
-			
+
 
 			orb_check(_accel_sub, &accel_updated);
 
@@ -523,7 +523,7 @@ FixedwingEstimator::task_main()
 			lastAccel = accel;
 
 
-			#else
+#else
 			orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
 
 			static hrt_abstime last_accel = 0;
@@ -532,6 +532,7 @@ FixedwingEstimator::task_main()
 			if (last_accel != _sensor_combined.accelerometer_timestamp) {
 				accel_updated = true;
 			}
+
 			last_accel = _sensor_combined.accelerometer_timestamp;
 
 
@@ -566,27 +567,32 @@ FixedwingEstimator::task_main()
 			if (last_mag != _sensor_combined.magnetometer_timestamp) {
 				mag_updated = true;
 				newDataMag = true;
+
 			} else {
 				newDataMag = false;
 			}
+
 			last_mag = _sensor_combined.magnetometer_timestamp;
 
-			#endif
+#endif
 
 			bool airspeed_updated;
 			orb_check(_airspeed_sub, &airspeed_updated);
+
 			if (airspeed_updated) {
 				orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
 				perf_count(_perf_airspeed);
 
 				VtasMeas = _airspeed.true_airspeed_m_s;
 				newAdsData = true;
+
 			} else {
 				newAdsData = false;
 			}
 
 			bool gps_updated;
 			orb_check(_gps_sub, &gps_updated);
+
 			if (gps_updated) {
 				orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &_gps);
 				perf_count(_perf_gps);
@@ -594,6 +600,7 @@ FixedwingEstimator::task_main()
 				if (_gps.fix_type < 3) {
 					gps_updated = false;
 					newDataGps = false;
+
 				} else {
 					/* fuse GPS updates */
 
@@ -616,23 +623,25 @@ FixedwingEstimator::task_main()
 
 			bool baro_updated;
 			orb_check(_baro_sub, &baro_updated);
+
 			if (baro_updated) {
 				orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
 
 				baroHgt = _baro.altitude;
 
 				// Could use a blend of GPS and baro alt data if desired
-				hgtMea = 1.0f*baroHgt + 0.0f*gpsHgt;
+				hgtMea = 1.0f * baroHgt + 0.0f * gpsHgt;
 			}
 
-			#ifndef SENSOR_COMBINED_SUB
+#ifndef SENSOR_COMBINED_SUB
 			orb_check(_mag_sub, &mag_updated);
-			#endif
+#endif
+
 			if (mag_updated) {
 
 				perf_count(_perf_mag);
 
-				#ifndef SENSOR_COMBINED_SUB
+#ifndef SENSOR_COMBINED_SUB
 				orb_copy(ORB_ID(sensor_mag), _mag_sub, &_mag);
 
 				// XXX we compensate the offsets upfront - should be close to zero.
@@ -645,8 +654,8 @@ FixedwingEstimator::task_main()
 
 				magData.z = _mag.z;
 				magBias.z = 0.000001f; // _mag_offsets.y_offset
-				
-				#else
+
+#else
 
 				// XXX we compensate the offsets upfront - should be close to zero.
 				// 0.001f
@@ -659,7 +668,7 @@ FixedwingEstimator::task_main()
 				magData.z = _sensor_combined.magnetometer_ga[2];
 				magBias.z = 0.000001f; // _mag_offsets.y_offset
 
-				#endif
+#endif
 
 				newDataMag = true;
 
@@ -672,114 +681,111 @@ FixedwingEstimator::task_main()
 			 *    PART TWO: EXECUTE THE FILTER
 			 **/
 
-			if (/*(IMUmsec > msecAlignTime) &&*/ !statesInitialised && (GPSstatus == 3))
-			{
-                    velNED[0] = _gps.vel_n_m_s;
-                    velNED[1] = _gps.vel_e_m_s;
-                    velNED[2] = _gps.vel_d_m_s;
-                InitialiseFilter(velNED);
-            }
+			if (/*(IMUmsec > msecAlignTime) &&*/ !statesInitialised && (GPSstatus == 3)) {
+				velNED[0] = _gps.vel_n_m_s;
+				velNED[1] = _gps.vel_e_m_s;
+				velNED[2] = _gps.vel_d_m_s;
+				InitialiseFilter(velNED);
+			}
 
-            // If valid IMU data and states initialised, predict states and covariances
-            if (statesInitialised)
-            {
-                // Run the strapdown INS equations every IMU update
-                UpdateStrapdownEquationsNED();
-                #if 0
-                // debug code - could be tunred into a filter mnitoring/watchdog function
-                float tempQuat[4];
-                for (uint8_t j=0; j<=3; j++) tempQuat[j] = states[j];
-                quat2eul(eulerEst, tempQuat);
-                for (uint8_t j=0; j<=2; j++) eulerDif[j] = eulerEst[j] - ahrsEul[j];
-                if (eulerDif[2] > pi) eulerDif[2] -= 2*pi;
-                if (eulerDif[2] < -pi) eulerDif[2] += 2*pi;
-                #endif
-                // store the predicted states for subsequent use by measurement fusion
-                StoreStates(IMUmsec);
-                // Check if on ground - status is used by covariance prediction
-                OnGroundCheck();
-                onGround = false;
-                // sum delta angles and time used by covariance prediction
-                summedDelAng = summedDelAng + correctedDelAng;
-                summedDelVel = summedDelVel + dVelIMU;
-                dt += dtIMU;
-                // perform a covariance prediction if the total delta angle has exceeded the limit
-                // or the time limit will be exceeded at the next IMU update
-                if ((dt >= (covTimeStepMax - dtIMU)) || (summedDelAng.length() > covDelAngMax))
-                {
-                    CovariancePrediction(dt);
-                    summedDelAng = summedDelAng.zero();
-                    summedDelVel = summedDelVel.zero();
-                    dt = 0.0f;
-                }
+			// If valid IMU data and states initialised, predict states and covariances
+			if (statesInitialised) {
+				// Run the strapdown INS equations every IMU update
+				UpdateStrapdownEquationsNED();
+#if 0
+				// debug code - could be tunred into a filter mnitoring/watchdog function
+				float tempQuat[4];
 
-                _initialized = true;
-            }
+				for (uint8_t j = 0; j <= 3; j++) tempQuat[j] = states[j];
 
-            // Fuse GPS Measurements
-            if (newDataGps && statesInitialised)
-            {
-                // Convert GPS measurements to Pos NE, hgt and Vel NED
-                velNED[0] = _gps.vel_n_m_s;
-                velNED[1] = _gps.vel_e_m_s;
-                velNED[2] = _gps.vel_d_m_s;
-                calcposNED(posNED, gpsLat, gpsLon, gpsHgt, latRef, lonRef, hgtRef);
+				quat2eul(eulerEst, tempQuat);
 
-                posNE[0] = posNED[0];
-                posNE[1] = posNED[1];
-                 // set fusion flags
-                fuseVelData = true;
-                fusePosData = true;
-                // recall states stored at time of measurement after adjusting for delays
-                RecallStates(statesAtVelTime, (IMUmsec - msecVelDelay));
-                RecallStates(statesAtPosTime, (IMUmsec - msecPosDelay));
-                // run the fusion step
-                FuseVelposNED();
-            }
-            else
-            {
-                fuseVelData = false;
-                fusePosData = false;
-            }
+				for (uint8_t j = 0; j <= 2; j++) eulerDif[j] = eulerEst[j] - ahrsEul[j];
 
-            if (newAdsData && statesInitialised)
-            {
-                // Could use a blend of GPS and baro alt data if desired
-                hgtMea = 1.0f*baroHgt + 0.0f*gpsHgt;
-                fuseHgtData = true;
-                // recall states stored at time of measurement after adjusting for delays
-                RecallStates(statesAtHgtTime, (IMUmsec - msecHgtDelay));
-                // run the fusion step
-                FuseVelposNED();
-            }
-            else
-            {
-                fuseHgtData = false;
-            }
+				if (eulerDif[2] > pi) eulerDif[2] -= 2 * pi;
 
-            // Fuse Magnetometer Measurements
-            if (newDataMag && statesInitialised)
-            {
-                fuseMagData = true;
-                RecallStates(statesAtMagMeasTime, (IMUmsec - msecMagDelay)); // Assume 50 msec avg delay for magnetometer data
-            }
-            else
-            {
-                fuseMagData = false;
-            }
-            if (statesInitialised) FuseMagnetometer();
+				if (eulerDif[2] < -pi) eulerDif[2] += 2 * pi;
 
-            // Fuse Airspeed Measurements
-            if (newAdsData && statesInitialised && VtasMeas > 8.0f)
-            {
-                fuseVtasData = true;
-                RecallStates(statesAtVtasMeasTime, (IMUmsec - msecTasDelay)); // assume 100 msec avg delay for airspeed data
-                FuseAirspeed();
-            }
-            else
-            {
-                fuseVtasData = false;
-            }
+#endif
+				// store the predicted states for subsequent use by measurement fusion
+				StoreStates(IMUmsec);
+				// Check if on ground - status is used by covariance prediction
+				OnGroundCheck();
+				onGround = false;
+				// sum delta angles and time used by covariance prediction
+				summedDelAng = summedDelAng + correctedDelAng;
+				summedDelVel = summedDelVel + dVelIMU;
+				dt += dtIMU;
+
+				// perform a covariance prediction if the total delta angle has exceeded the limit
+				// or the time limit will be exceeded at the next IMU update
+				if ((dt >= (covTimeStepMax - dtIMU)) || (summedDelAng.length() > covDelAngMax)) {
+					CovariancePrediction(dt);
+					summedDelAng = summedDelAng.zero();
+					summedDelVel = summedDelVel.zero();
+					dt = 0.0f;
+				}
+
+				_initialized = true;
+			}
+
+			// Fuse GPS Measurements
+			if (newDataGps && statesInitialised) {
+				// Convert GPS measurements to Pos NE, hgt and Vel NED
+				velNED[0] = _gps.vel_n_m_s;
+				velNED[1] = _gps.vel_e_m_s;
+				velNED[2] = _gps.vel_d_m_s;
+				calcposNED(posNED, gpsLat, gpsLon, gpsHgt, latRef, lonRef, hgtRef);
+
+				posNE[0] = posNED[0];
+				posNE[1] = posNED[1];
+				// set fusion flags
+				fuseVelData = true;
+				fusePosData = true;
+				// recall states stored at time of measurement after adjusting for delays
+				RecallStates(statesAtVelTime, (IMUmsec - msecVelDelay));
+				RecallStates(statesAtPosTime, (IMUmsec - msecPosDelay));
+				// run the fusion step
+				FuseVelposNED();
+
+			} else {
+				fuseVelData = false;
+				fusePosData = false;
+			}
+
+			if (newAdsData && statesInitialised) {
+				// Could use a blend of GPS and baro alt data if desired
+				hgtMea = 1.0f * baroHgt + 0.0f * gpsHgt;
+				fuseHgtData = true;
+				// recall states stored at time of measurement after adjusting for delays
+				RecallStates(statesAtHgtTime, (IMUmsec - msecHgtDelay));
+				// run the fusion step
+				FuseVelposNED();
+
+			} else {
+				fuseHgtData = false;
+			}
+
+			// Fuse Magnetometer Measurements
+			if (newDataMag && statesInitialised) {
+				fuseMagData = true;
+				RecallStates(statesAtMagMeasTime, (IMUmsec - msecMagDelay)); // Assume 50 msec avg delay for magnetometer data
+
+			} else {
+				fuseMagData = false;
+			}
+
+			if (statesInitialised) FuseMagnetometer();
+
+			// Fuse Airspeed Measurements
+			if (newAdsData && statesInitialised && VtasMeas > 8.0f) {
+				fuseVtasData = true;
+				RecallStates(statesAtVtasMeasTime, (IMUmsec - msecTasDelay)); // assume 100 msec avg delay for airspeed data
+				FuseAirspeed();
+
+			} else {
+				fuseVtasData = false;
+			}
 
 			// if (hrt_elapsed_time(&start_time) > 100000 && !_initialized && (GPSstatus == 3)) {
 			// 	InitialiseFilter(velNED);
@@ -805,7 +811,7 @@ FixedwingEstimator::task_main()
 			// 	/* prepare the delta angles and time used by the covariance prediction */
 			// 	summedDelAng = summedDelAng + correctedDelAng;
 			// 	summedDelVel = summedDelVel + correctedDelVel;
-				
+
 			// 	dt += dtIMU;
 
 			// 	/* predict the covairance if the total delta angle has exceeded the threshold
@@ -829,7 +835,7 @@ FixedwingEstimator::task_main()
 			// 	posNE[0] = posNED[0];
 			// 	posNE[1] = posNED[1];
 
-			// 	// set flags for further processing 
+			// 	// set flags for further processing
 			// 	fuseVelData = true;
 			// 	fusePosData = true;
 
@@ -896,7 +902,7 @@ FixedwingEstimator::task_main()
 				math::Vector<3> euler = R.to_euler();
 
 				for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
-					_att.R[i][j] = R(i, j);
+						_att.R[i][j] = R(i, j);
 
 				_att.timestamp = last_sensor_timestamp;
 				_att.q[0] = states[0];
@@ -1005,7 +1011,7 @@ void print_status()
 	math::Vector<3> euler = R.to_euler();
 
 	printf("attitude: roll: %8.4f, pitch %8.4f, yaw: %8.4f degrees\n",
-		(double)math::degrees(euler(0)), (double)math::degrees(euler(1)), (double)math::degrees(euler(2)));
+	       (double)math::degrees(euler(0)), (double)math::degrees(euler(1)), (double)math::degrees(euler(2)));
 
 	// State vector:
 	// 0-3: quaternions (q0, q1, q2, q3)
@@ -1027,15 +1033,15 @@ void print_status()
 	printf("states (earth mag) [16-18]: %8.4f, %8.4f, %8.4f\n", (double)states[15], (double)states[16], (double)states[17]);
 	printf("states (body mag)  [19-21]: %8.4f, %8.4f, %8.4f\n", (double)states[18], (double)states[19], (double)states[20]);
 	printf("states: %s %s %s %s %s %s %s %s %s\n",
-		(statesInitialised) ? "INITIALIZED" : "NON_INIT",
-		(onGround) ? "ON_GROUND" : "AIRBORNE",
-		(fuseVelData) ? "FUSE_VEL" : "INH_VEL",
-		(fusePosData) ? "FUSE_POS" : "INH_POS",
-		(fuseHgtData) ? "FUSE_HGT" : "INH_HGT",
-		(fuseMagData) ? "FUSE_MAG" : "INH_MAG",
-		(fuseVtasData) ? "FUSE_VTAS" : "INH_VTAS",
-		(useAirspeed) ? "USE_AIRSPD" : "IGN_AIRSPD",
-		(useCompass) ? "USE_COMPASS" : "IGN_COMPASS");
+	       (statesInitialised) ? "INITIALIZED" : "NON_INIT",
+	       (onGround) ? "ON_GROUND" : "AIRBORNE",
+	       (fuseVelData) ? "FUSE_VEL" : "INH_VEL",
+	       (fusePosData) ? "FUSE_POS" : "INH_POS",
+	       (fuseHgtData) ? "FUSE_HGT" : "INH_HGT",
+	       (fuseMagData) ? "FUSE_MAG" : "INH_MAG",
+	       (fuseVtasData) ? "FUSE_VTAS" : "INH_VTAS",
+	       (useAirspeed) ? "USE_AIRSPD" : "IGN_AIRSPD",
+	       (useCompass) ? "USE_COMPASS" : "IGN_COMPASS");
 }
 
 int fw_att_pos_estimator_main(int argc, char *argv[])
