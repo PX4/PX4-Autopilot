@@ -48,7 +48,7 @@ public:
     T* get() const { return root_; }
     bool isEmpty() const { return get() == NULL; }
 
-    unsigned int length() const
+    unsigned int getLength() const
     {
         T* node = root_;
         unsigned int cnt = 0;

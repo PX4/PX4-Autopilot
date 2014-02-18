@@ -40,23 +40,23 @@ TEST(LinkedList, Basic)
     /*
      * Insert/remove
      */
-    EXPECT_EQ(0, root.length());
+    EXPECT_EQ(0, root.getLength());
 
     ListItem item1;
     root.insert(&item1);
     root.insert(&item1);         // Insert twice - second will be ignored
-    EXPECT_EQ(1, root.length());
+    EXPECT_EQ(1, root.getLength());
 
     EXPECT_TRUE(root.remove(&item1));
     EXPECT_FALSE(root.remove(&item1));
-    EXPECT_EQ(0, root.length());
+    EXPECT_EQ(0, root.getLength());
 
     ListItem items[3];
     root.insert(&item1);
     root.insert(items + 0);
     root.insert(items + 1);
     root.insert(items + 2);
-    EXPECT_EQ(4, root.length());
+    EXPECT_EQ(4, root.getLength());
 
     /*
      * Order persistence
@@ -75,7 +75,7 @@ TEST(LinkedList, Basic)
     EXPECT_TRUE(root.remove(items + 0));
     EXPECT_TRUE(root.remove(items + 2));
     EXPECT_FALSE(root.remove(items + 2));
-    EXPECT_EQ(2, root.length());
+    EXPECT_EQ(2, root.getLength());
 
     const int expected_values2[] = {11, 0};
     node = root.get();
@@ -86,7 +86,7 @@ TEST(LinkedList, Basic)
     }
 
     root.insert(items + 2);
-    EXPECT_EQ(3, root.length());
+    EXPECT_EQ(3, root.getLength());
     EXPECT_EQ(12, root.get()->value);
 
     /*
@@ -96,7 +96,7 @@ TEST(LinkedList, Basic)
     EXPECT_FALSE(root.remove(items + 0));
     EXPECT_TRUE(root.remove(items + 1));
     EXPECT_TRUE(root.remove(items + 2));
-    EXPECT_EQ(0, root.length());
+    EXPECT_EQ(0, root.getLength());
 }
 
 TEST(LinkedList, Sorting)
@@ -111,7 +111,7 @@ TEST(LinkedList, Sorting)
     items[1].insort(root);
     items[5].insort(root);
 
-    EXPECT_EQ(6, root.length());
+    EXPECT_EQ(6, root.getLength());
 
     int prev_val = -100500;
     const ListItem* item = root.get();

@@ -44,7 +44,7 @@ class Dispatcher : Noncopyable
         void cleanup(uint64_t ts_monotonic);
         void handleFrame(const RxFrame& frame);
 
-        int getNumEntries() const { return list_.length(); }
+        int getNumEntries() const { return list_.getLength(); }
     };
 
     ListenerRegister lmsg_;

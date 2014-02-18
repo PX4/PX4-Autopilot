@@ -422,7 +422,7 @@ public:
 
     bool isEmpty() const { return (getNumStaticBuffers() == 0) && (getNumDynamicBuffers() == 0); }
 
-    unsigned int getNumDynamicBuffers() const { return dynamic_buffers_.length(); }
+    unsigned int getNumDynamicBuffers() const { return dynamic_buffers_.getLength(); }
 
     unsigned int getNumStaticBuffers() const
     {
