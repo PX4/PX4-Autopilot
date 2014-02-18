@@ -31,11 +31,6 @@ then
 	sh /etc/init.d/1001_rc_quad_x.hil
 fi
 
-if param compare SYS_AUTOSTART 1002
-then
-	sh /etc/init.d/1002_rc_fw_state.hil
-fi
-
 if param compare SYS_AUTOSTART 1003
 then
 	sh /etc/init.d/1003_rc_quad_+.hil
@@ -44,6 +39,11 @@ fi
 if param compare SYS_AUTOSTART 1004
 then
 	sh /etc/init.d/1004_rc_fw_Rascal110.hil
+fi
+
+if param compare SYS_AUTOSTART 1005
+then
+	sh /etc/init.d/1005_rc_fw_Malolo1.hil
 fi
 
 #
@@ -101,14 +101,9 @@ fi
 # Quad X
 #
 
-if param compare SYS_AUTOSTART 4008 8
+if param compare SYS_AUTOSTART 4001
 then
-	#sh /etc/init.d/4008_ardrone
-fi
-
-if param compare SYS_AUTOSTART 4009 9
-then
-	#sh /etc/init.d/4009_ardrone_flow
+	sh /etc/init.d/4001_quad_x
 fi
 
 if param compare SYS_AUTOSTART 4010 10
@@ -121,18 +116,13 @@ then
 	sh /etc/init.d/4011_dji_f450
 fi
 
-if param compare SYS_AUTOSTART 4012 12
-then
-	sh /etc/init.d/4012_hk_x550
-fi
-
 #
 # Quad +
 #
 
 if param compare SYS_AUTOSTART 5001
 then
-	sh /etc/init.d/5001_quad_+_pwm
+	sh /etc/init.d/5001_quad_+
 fi
 
 #
@@ -141,7 +131,7 @@ fi
 
 if param compare SYS_AUTOSTART 6001
 then
-	sh /etc/init.d/6001_hexa_x_pwm
+	sh /etc/init.d/6001_hexa_x
 fi
 
 #
@@ -150,7 +140,7 @@ fi
 
 if param compare SYS_AUTOSTART 7001
 then
-	sh /etc/init.d/7001_hexa_+_pwm
+	sh /etc/init.d/7001_hexa_+
 fi
 
 #
@@ -159,7 +149,7 @@ fi
 
 if param compare SYS_AUTOSTART 8001
 then
-	sh /etc/init.d/8001_octo_x_pwm
+	sh /etc/init.d/8001_octo_x
 fi
 
 #
@@ -168,7 +158,7 @@ fi
 
 if param compare SYS_AUTOSTART 9001
 then
-	sh /etc/init.d/9001_octo_+_pwm
+	sh /etc/init.d/9001_octo_+
 fi
 
 #

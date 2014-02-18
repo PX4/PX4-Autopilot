@@ -61,7 +61,6 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_bodyframe_speed_setpoint.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/filtered_bottom_flow.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/perf_counter.h>

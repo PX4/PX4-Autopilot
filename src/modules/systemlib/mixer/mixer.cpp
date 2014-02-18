@@ -171,7 +171,6 @@ NullMixer *
 NullMixer::from_text(const char *buf, unsigned &buflen)
 {
 	NullMixer *nm = nullptr;
-	const char *end = buf + buflen;
 
 	/* enforce that the mixer ends with space or a new line */
 	for (int i = buflen - 1; i >= 0; i--) {

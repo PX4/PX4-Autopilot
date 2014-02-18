@@ -107,7 +107,7 @@ int att_pos_estimator_ekf_main(int argc, char *argv[])
 		daemon_task = task_spawn_cmd("att_pos_estimator_ekf",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 30,
-					 4096,
+					 8192,
 					 kalman_demo_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);

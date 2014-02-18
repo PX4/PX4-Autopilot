@@ -68,15 +68,28 @@
 
 #include "waypoints.h"
 #include "orb_topics.h"
-#include "missionlib.h"
 #include "mavlink_hil.h"
 #include "util.h"
 #include "waypoints.h"
 #include "mavlink_parameters.h"
 
+#include <uORB/topics/mission_result.h>
+
 /* define MAVLink specific parameters */
+/**
+ * MAVLink system ID
+ * @group MAVLink
+ */
 PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
+/**
+ * MAVLink component ID
+ * @group MAVLink
+ */
 PARAM_DEFINE_INT32(MAV_COMP_ID, 50);
+/**
+ * MAVLink type
+ * @group MAVLink
+ */
 PARAM_DEFINE_INT32(MAV_TYPE, MAV_TYPE_FIXED_WING);
 
 __EXPORT int mavlink_main(int argc, char *argv[]);
@@ -198,8 +211,7 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, u
 	}
 
 	/* arming state */
-	if (v_status.arming_state == ARMING_STATE_ARMED
-			|| v_status.arming_state == ARMING_STATE_ARMED_ERROR) {
+	if (armed.armed) {
 		*mavlink_base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 	}
 
@@ -207,29 +219,35 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, u
 	*mavlink_base_mode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
 	union px4_custom_mode custom_mode;
 	custom_mode.data = 0;
-	if (v_status.main_state == MAIN_STATE_MANUAL) {
-		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (v_status.is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
-	} else if (v_status.main_state == MAIN_STATE_SEATBELT) {
-		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_SEATBELT;
-	} else if (v_status.main_state == MAIN_STATE_EASY) {
-		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_EASY;
-	} else if (v_status.main_state == MAIN_STATE_AUTO) {
+	if (pos_sp_triplet.nav_state == NAV_STATE_NONE) {
+		/* use main state when navigator is not active */
+		if (v_status.main_state == MAIN_STATE_MANUAL) {
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (v_status.is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+		} else if (v_status.main_state == MAIN_STATE_SEATBELT) {
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_SEATBELT;
+		} else if (v_status.main_state == MAIN_STATE_EASY) {
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_EASY;
+		} else if (v_status.main_state == MAIN_STATE_AUTO) {
+			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
+		}
+	} else {
+		/* use navigation state when navigator is active */
 		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-		if (v_status.navigation_state == NAVIGATION_STATE_AUTO_READY) {
+		if (pos_sp_triplet.nav_state == NAV_STATE_READY) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
-		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF;
-		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_LOITER) {
+		} else if (pos_sp_triplet.nav_state == NAV_STATE_LOITER) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
-		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_MISSION) {
+		} else if (pos_sp_triplet.nav_state == NAV_STATE_MISSION) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
-		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_RTL) {
+		} else if (pos_sp_triplet.nav_state == NAV_STATE_RTL) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
-		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_LAND) {
+		} else if (pos_sp_triplet.nav_state == NAV_STATE_LAND) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
 		}
 	}
@@ -644,6 +662,10 @@ int mavlink_thread_main(int argc, char *argv[])
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 10000);
 	}
 
+	int mission_result_sub = orb_subscribe(ORB_ID(mission_result));
+	struct mission_result_s mission_result;
+	memset(&mission_result, 0, sizeof(mission_result));
+
 	thread_running = true;
 
 	/* arm counter to go off immediately */
@@ -690,25 +712,36 @@ int mavlink_thread_main(int argc, char *argv[])
 
 		lowspeed_counter++;
 
-		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
+		bool updated;
+		orb_check(mission_result_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(mission_result), mission_result_sub, &mission_result);
+
+			if (mission_result.mission_reached) {
+				mavlink_wpm_send_waypoint_reached((uint16_t)mission_result.mission_index);
+			}
+		}
+
+		mavlink_waypoint_eventloop(hrt_absolute_time());
 
 		/* sleep quarter the time */
 		usleep(25000);
 
 		/* check if waypoint has been reached against the last positions */
-		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
+		mavlink_waypoint_eventloop(hrt_absolute_time());
 
 		/* sleep quarter the time */
 		usleep(25000);
 
 		/* send parameters at 20 Hz (if queued for sending) */
 		mavlink_pm_queued_send();
-		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
+		mavlink_waypoint_eventloop(hrt_absolute_time());
 
 		/* sleep quarter the time */
 		usleep(25000);
 
-		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
+		mavlink_waypoint_eventloop(hrt_absolute_time());
 
 		if (baudrate > 57600) {
 			mavlink_pm_queued_send();
