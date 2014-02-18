@@ -14,9 +14,9 @@ public:
     uint64_t monotonic;
     uint64_t utc;
 
-    SystemClockMock()
-    : monotonic(0)
-    , utc(0)
+    SystemClockMock(uint64_t initial = 0)
+    : monotonic(initial)
+    , utc(initial)
     { }
 
     void advance(uint64_t usec)

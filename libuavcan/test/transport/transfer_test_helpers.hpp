@@ -67,11 +67,11 @@ struct Transfer
     {
         return
             (ts_monotonic  == rhs.ts_monotonic) &&
-            (ts_utc        == rhs.ts_utc) &&
+            ((ts_utc && rhs.ts_utc) ? (ts_utc == rhs.ts_utc) : true) &&
             (transfer_type == rhs.transfer_type) &&
             (transfer_id   == rhs.transfer_id) &&
             (src_node_id   == rhs.src_node_id) &&
-            (dst_node_id.isValid() ? (dst_node_id == rhs.dst_node_id) : true) &&
+            ((dst_node_id.isValid() && rhs.dst_node_id.isValid()) ? (dst_node_id == rhs.dst_node_id) : true) &&
             (data_type     == rhs.data_type) &&
             (payload       == rhs.payload);
     }
@@ -227,11 +227,13 @@ public:
     virtual ~IncomingTransferEmulatorBase() { }
 
     Transfer makeTransfer(uavcan::TransferType transfer_type, uint8_t source_node_id, const std::string& payload,
-                          const uavcan::DataTypeDescriptor& type)
+                          const uavcan::DataTypeDescriptor& type,
+                          uavcan::NodeID dst_node_id_override = uavcan::NodeID())
     {
         ts_ += 100;
         const uavcan::NodeID dst_node_id = (transfer_type == uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST)
-                    ? uavcan::NodeID::BROADCAST : dst_node_id_;
+                    ? uavcan::NodeID::BROADCAST
+                    : (dst_node_id_override.isValid() ? dst_node_id_override : dst_node_id_);
         const Transfer tr(ts_, ts_ + 1000000000ul, transfer_type, tid_, source_node_id, dst_node_id, payload, type);
         tid_.increment();
         return tr;

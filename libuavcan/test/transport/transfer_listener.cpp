@@ -6,13 +6,13 @@
 #include "transfer_test_helpers.hpp"
 
 
-class Emulator : public IncomingTransferEmulatorBase
+class TransferListenerEmulator : public IncomingTransferEmulatorBase
 {
     uavcan::TransferListenerBase& target_;
     const uavcan::DataTypeDescriptor data_type_;
 
 public:
-    Emulator(uavcan::TransferListenerBase& target, const uavcan::DataTypeDescriptor& type,
+    TransferListenerEmulator(uavcan::TransferListenerBase& target, const uavcan::DataTypeDescriptor& type,
              uavcan::NodeID dst_node_id = 127)
     : IncomingTransferEmulatorBase(dst_node_id)
     , target_(target)
@@ -59,7 +59,7 @@ TEST(TransferListener, BasicMFT)
         "BEWARE JET BLAST"
     };
 
-    Emulator emulator(subscriber, type);
+    TransferListenerEmulator emulator(subscriber, type);
     const Transfer transfers[] =
     {
         emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 1, DATA[0]),
@@ -97,7 +97,7 @@ TEST(TransferListener, CrcFailure)
     /*
      * Generating transfers with damaged payload (CRC is not valid)
      */
-    Emulator emulator(subscriber, type);
+    TransferListenerEmulator emulator(subscriber, type);
     const Transfer tr_mft = emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 42, "123456789abcdefghik");
     const Transfer tr_sft = emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST, 11, "abcd");
 
@@ -139,7 +139,7 @@ TEST(TransferListener, BasicSFT)
     uavcan::PoolManager<1> poolmgr;                         // No dynamic memory. At all.
     TestSubscriber<0, 0, 5> subscriber(&type, &poolmgr);    // Max buf size is 0, i.e. SFT-only
 
-    Emulator emulator(subscriber, type);
+    TransferListenerEmulator emulator(subscriber, type);
     const Transfer transfers[] =
     {
         emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 1, "123"),
@@ -179,7 +179,7 @@ TEST(TransferListener, Cleanup)
     /*
      * Generating transfers
      */
-    Emulator emulator(subscriber, type);
+    TransferListenerEmulator emulator(subscriber, type);
     const Transfer tr_mft = emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 42, "123456789abcdefghik");
     const Transfer tr_sft = emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST, 11, "abcd");
 
@@ -234,7 +234,7 @@ TEST(TransferListener, MaximumTransferLength)
 
     static const std::string DATA_OK(uavcan::MAX_TRANSFER_PAYLOAD_LEN, 'z');
 
-    Emulator emulator(subscriber, type);
+    TransferListenerEmulator emulator(subscriber, type);
     const Transfer transfers[] =
     {
         emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,   1, DATA_OK),
