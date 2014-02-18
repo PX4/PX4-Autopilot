@@ -154,13 +154,13 @@ private:
 
 	/** manual control states */
 	float		_seatbelt_hold_heading;		/**< heading the system should hold in seatbelt mode */
-	float		_loiter_hold_lat;
-	float		_loiter_hold_lon;
+	double		_loiter_hold_lat;
+	double		_loiter_hold_lon;
 	float		_loiter_hold_alt;
 	bool		_loiter_hold;
 
-	float		_launch_lat;
-	float		_launch_lon;
+	double		_launch_lat;
+	double		_launch_lon;
 	float		_launch_alt;
 	bool		_launch_valid;
 
@@ -587,8 +587,8 @@ FixedwingPositionControl::vehicle_control_mode_poll()
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 
 		if (!was_armed && _control_mode.flag_armed) {
-			_launch_lat = _global_pos.lat / 1e7d;
-			_launch_lon = _global_pos.lon / 1e7d;
+			_launch_lat = _global_pos.lat;
+			_launch_lon = _global_pos.lon;
 			_launch_alt = _global_pos.alt;
 			_launch_valid = true;
 		}
