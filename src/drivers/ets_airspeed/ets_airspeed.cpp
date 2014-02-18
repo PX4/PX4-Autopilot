@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -77,6 +77,7 @@
 
 /* I2C bus address */
 #define I2C_ADDRESS	0x75	/* 7-bit address. 8-bit address is 0xEA */
+#define ETS_PATH	"/dev/ets_airspeed"
 
 /* Register address */
 #define READ_CMD	0x07	/* Read the data */
@@ -93,7 +94,7 @@
 class ETSAirspeed : public Airspeed
 {
 public:
-	ETSAirspeed(int bus, int address = I2C_ADDRESS);
+	ETSAirspeed(int bus, int address = I2C_ADDRESS, const char* path = ETS_PATH);
 
 protected:
 
@@ -112,8 +113,8 @@ protected:
  */
 extern "C" __EXPORT int ets_airspeed_main(int argc, char *argv[]);
 
-ETSAirspeed::ETSAirspeed(int bus, int address) : Airspeed(bus, address,
-	CONVERSION_INTERVAL)
+ETSAirspeed::ETSAirspeed(int bus, int address, const char* path) : Airspeed(bus, address,
+	CONVERSION_INTERVAL, path)
 {
 
 }
@@ -184,8 +185,10 @@ ETSAirspeed::collect()
 	report.voltage = 0;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
-	/* announce the airspeed if needed, just publish else */
-	orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
+	if (_airspeed_pub > 0 && !(_pub_blocked)) {
+		/* publish it */
+		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
+	}
 
 	new_report(report);
 

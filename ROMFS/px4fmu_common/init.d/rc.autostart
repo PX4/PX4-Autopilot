@@ -116,11 +116,6 @@ then
 	sh /etc/init.d/4011_dji_f450
 fi
 
-if param compare SYS_AUTOSTART 4012 12
-then
-	sh /etc/init.d/4012_hk_x550
-fi
-
 #
 # Quad +
 #
@@ -178,6 +173,15 @@ fi
 if param compare SYS_AUTOSTART 10016 16
 then
 	sh /etc/init.d/10016_3dr_iris
+fi
+
+#
+# Hexa Coaxial
+#
+
+if param compare SYS_AUTOSTART 11001
+then
+	sh /etc/init.d/11001_hexa_cox
 fi
 
 #

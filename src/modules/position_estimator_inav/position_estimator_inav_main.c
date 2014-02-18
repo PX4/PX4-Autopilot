@@ -42,14 +42,11 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <fcntl.h>
-#include <float.h>
 #include <string.h>
 #include <nuttx/config.h>
 #include <nuttx/sched.h>
 #include <sys/prctl.h>
 #include <termios.h>
-#include <errno.h>
-#include <limits.h>
 #include <math.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
@@ -527,13 +524,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				if (gps.fix_type >= 3) {
 					/* hysteresis for GPS quality */
 					if (gps_valid) {
-						if (gps.eph_m > 10.0f || gps.epv_m > 10.0f) {
+						if (gps.eph_m > 10.0f || gps.epv_m > 20.0f) {
 							gps_valid = false;
 							mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
 						}
 
 					} else {
-						if (gps.eph_m < 5.0f && gps.epv_m < 5.0f) {
+						if (gps.eph_m < 5.0f && gps.epv_m < 10.0f) {
 							gps_valid = true;
 							mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
 						}
@@ -589,8 +586,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							corr_gps[2][1] = 0.0f;
 						}
 
-						w_gps_xy = 1.0f / fmaxf(1.0f, gps.eph_m);
-						w_gps_z = 1.0f / fmaxf(1.0f, gps.epv_m);
+						w_gps_xy = 2.0f / fmaxf(2.0f, gps.eph_m);
+						w_gps_z = 4.0f / fmaxf(4.0f, gps.epv_m);
 					}
 
 				} else {

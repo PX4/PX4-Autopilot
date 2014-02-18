@@ -5,10 +5,9 @@
 # Anton Babushkin <anton.babushkin@me.com>
 #
 
-sh /etc/init.d/4001_quad_x
+sh /etc/init.d/rc.mc_defaults
 
 set MIXER FMU_hexa_x
 
-# We only can run one channel group with one rate,
-# so all 8 at 400 Hz
+# We only can run one channel group with one rate, so set all 8 channels
 set PWM_OUTPUTS 12345678

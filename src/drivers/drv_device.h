@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -18,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -33,58 +32,31 @@
  ****************************************************************************/
 
 /**
- * @file launchdetection_params.c
+ * @file drv_device.h
  *
- * Parameters for launchdetection
- *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * Generic device / sensor interface.
  */
 
-#include <nuttx/config.h>
+#ifndef _DRV_DEVICE_H
+#define _DRV_DEVICE_H
 
-#include <systemlib/param/param.h>
+#include <stdint.h>
+#include <sys/ioctl.h>
+
+#include "drv_sensor.h"
+#include "drv_orb_dev.h"
 
 /*
- * Catapult launch detection parameters, accessible via MAVLink
- *
+ * ioctl() definitions
  */
 
-/**
- * Enable launch detection.
- *
- * @min 0
- * @max 1
- * @group Launch detection
- */
-PARAM_DEFINE_INT32(LAUN_ALL_ON, 0);
+#define _DEVICEIOCBASE		(0x100)
+#define _DEVICEIOC(_n)		(_IOC(_DEVICEIOCBASE, _n))
 
-/**
- * Catapult accelerometer theshold.
- *
- * LAUN_CAT_A * LAUN_CAT_T serves as threshold to trigger launch detection.
- *
- * @min 0
- * @group Launch detection
- */
-PARAM_DEFINE_FLOAT(LAUN_CAT_A, 30.0f);
+/** ask device to stop publishing */
+#define DEVIOCSPUBBLOCK	_DEVICEIOC(0)
 
-/**
- * Catapult time theshold.
- *
- * LAUN_CAT_A * LAUN_CAT_T serves as threshold to trigger launch detection.
- *
- * @min 0
- * @group Launch detection
- */
-PARAM_DEFINE_FLOAT(LAUN_CAT_T, 0.05f);
+/** check publication block status */
+#define DEVIOCGPUBBLOCK	_DEVICEIOC(1)
 
-/**
- * Throttle setting while detecting launch.
- *
- * The throttle is set to this value while the system is waiting for the take-off.
- *
- * @min 0
- * @max 1
- * @group Launch detection
- */
-PARAM_DEFINE_FLOAT(LAUN_THR_PRE, 0.0f);
+#endif /* _DRV_DEVICE_H */
