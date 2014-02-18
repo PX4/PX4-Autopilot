@@ -8,6 +8,7 @@
 #include <vector>
 #include <gtest/gtest.h>
 #include <uavcan/internal/transport/can_io.hpp>
+#include <uavcan/internal/transport/transfer.hpp>
 #include "../../common.hpp"
 
 
@@ -41,9 +42,16 @@ public:
     , clockmock(clockmock)
     { }
 
-    void pushRx(uavcan::CanFrame frame)
+    void pushRx(const uavcan::CanFrame& frame)
     {
         rx.push(FrameWithTime(frame, clockmock.monotonic));
+    }
+
+    void pushRx(const uavcan::RxFrame& frame)
+    {
+        uavcan::CanFrame can_frame;
+        EXPECT_TRUE(frame.compile(can_frame));
+        rx.push(FrameWithTime(can_frame, frame.getMonotonicTimestamp()));
     }
 
     bool matchAndPopTx(const uavcan::CanFrame& frame, uint64_t tx_deadline)

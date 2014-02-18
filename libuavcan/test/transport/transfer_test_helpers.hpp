@@ -205,3 +205,64 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer, const u
 
 }
 
+
+class IncomingTransferEmulatorBase
+{
+    const uavcan::DataTypeDescriptor type_;
+    uint64_t ts_;
+    uavcan::TransferID tid_;
+    uavcan::NodeID dst_node_id_;
+
+public:
+    IncomingTransferEmulatorBase(const uavcan::DataTypeDescriptor& type, uavcan::NodeID dst_node_id = 127)
+    : type_(type)
+    , ts_(0)
+    , dst_node_id_(dst_node_id)
+    { }
+
+    virtual ~IncomingTransferEmulatorBase() { }
+
+    Transfer makeTransfer(uavcan::TransferType transfer_type, uint8_t source_node_id, const std::string& payload)
+    {
+        ts_ += 100;
+        const uavcan::NodeID dst_node_id = (transfer_type == uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST)
+                    ? uavcan::NodeID::BROADCAST : dst_node_id_;
+        const Transfer tr(ts_, ts_ + 1000000000ul, transfer_type, tid_, source_node_id, dst_node_id, payload);
+        tid_.increment();
+        return tr;
+    }
+
+    virtual void sendOneFrame(const uavcan::RxFrame& frame) = 0;
+
+    void send(const std::vector<std::vector<uavcan::RxFrame> >& sers)
+    {
+        unsigned int index = 0;
+        while (true)
+        {
+            // Sending all transfers concurrently
+            bool all_empty = true;
+            for (std::vector<std::vector<uavcan::RxFrame> >::const_iterator it = sers.begin(); it != sers.end(); ++it)
+            {
+                if (it->size() <= index)
+                    continue;
+                all_empty = false;
+                std::cout << "Incoming Transfer Emulator: Sending: " << it->at(index).toString() << std::endl;
+                sendOneFrame(it->at(index));
+            }
+            index++;
+            if (all_empty)
+                break;
+        }
+    }
+
+    void send(const Transfer* transfers, unsigned int num_transfers)
+    {
+        std::vector<std::vector<uavcan::RxFrame> > sers;
+        while (num_transfers--)
+            sers.push_back(serializeTransfer(*transfers++, type_));
+        send(sers);
+    }
+
+    template <int SIZE> void send(const Transfer (&transfers)[SIZE]) { send(transfers, SIZE); }
+};
+
