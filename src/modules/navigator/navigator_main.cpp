@@ -1533,7 +1533,7 @@ Navigator::check_mission_item_reached()
 		}
 	}
 
-	if (!_waypoint_yaw_reached) {
+	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 		if (_vstatus.is_rotary_wing && !_do_takeoff && isfinite(_mission_item.yaw)) {
 			/* check yaw if defined only for rotary wing except takeoff */
 			float yaw_err = _wrap_pi(_mission_item.yaw - _global_pos.yaw);
