@@ -681,11 +681,26 @@ FixedwingEstimator::task_main()
 			 *    PART TWO: EXECUTE THE FILTER
 			 **/
 
-			if (/*(IMUmsec > msecAlignTime) &&*/ !statesInitialised && (GPSstatus == 3)) {
-				velNED[0] = _gps.vel_n_m_s;
-				velNED[1] = _gps.vel_e_m_s;
-				velNED[2] = _gps.vel_d_m_s;
-				InitialiseFilter(velNED);
+			// Wait long enough to ensure all sensors updated once
+			// XXX we rather want to check all updated
+
+
+			if (hrt_elapsed_time(&start_time) > 100000) {
+
+				if (!_gps_initialized && (GPSstatus == 3)) {
+					velNED[0] = _gps.vel_n_m_s;
+					velNED[1] = _gps.vel_e_m_s;
+					velNED[2] = _gps.vel_d_m_s;
+					InitialiseFilter(velNED);
+
+					_gps_initialized = true;
+
+				} else if (!statesInitialised) {
+					velNED[0] = _gps.vel_n_m_s;
+					velNED[1] = _gps.vel_e_m_s;
+					velNED[2] = _gps.vel_d_m_s;
+					InitialiseFilter(velNED);
+				}
 			}
 
 			// If valid IMU data and states initialised, predict states and covariances
@@ -730,7 +745,7 @@ FixedwingEstimator::task_main()
 			}
 
 			// Fuse GPS Measurements
-			if (newDataGps && statesInitialised) {
+			if (newDataGps && _gps_initialized) {
 				// Convert GPS measurements to Pos NE, hgt and Vel NED
 				velNED[0] = _gps.vel_n_m_s;
 				velNED[1] = _gps.vel_e_m_s;
@@ -748,6 +763,25 @@ FixedwingEstimator::task_main()
 				// run the fusion step
 				FuseVelposNED();
 
+			} else if (statesInitialised) {
+				// Convert GPS measurements to Pos NE, hgt and Vel NED
+				velNED[0] = 0.0f;
+				velNED[1] = 0.0f;
+				velNED[2] = 0.0f;
+				posNED[0] = 0.0f;
+				posNED[1] = 0.0f;
+				posNED[2] = 0.0f;
+
+				posNE[0] = posNED[0];
+				posNE[1] = posNED[1];
+				// set fusion flags
+				fuseVelData = true;
+				fusePosData = true;
+				// recall states stored at time of measurement after adjusting for delays
+				RecallStates(statesAtVelTime, (IMUmsec - msecVelDelay));
+				RecallStates(statesAtPosTime, (IMUmsec - msecPosDelay));
+				// run the fusion step
+				FuseVelposNED();
 			} else {
 				fuseVelData = false;
 				fusePosData = false;
