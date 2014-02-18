@@ -43,7 +43,7 @@ public:
 
     void pushRx(uavcan::CanFrame frame)
     {
-        rx.push(FrameWithTime(frame, clockmock.utc));
+        rx.push(FrameWithTime(frame, clockmock.monotonic));
     }
 
     bool matchAndPopTx(const uavcan::CanFrame& frame, uint64_t tx_deadline)
