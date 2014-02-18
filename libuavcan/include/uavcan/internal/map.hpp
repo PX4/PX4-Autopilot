@@ -46,6 +46,26 @@ class Map : Noncopyable
             IsDynamicallyAllocatable<KVGroup>::check();
         }
 
+        static KVGroup* instantiate(IAllocator* allocator)
+        {
+            assert(allocator);
+            void* const praw = allocator->allocate(sizeof(KVGroup));
+            if (praw == NULL)
+                return NULL;
+            return new (praw) KVGroup();
+        }
+
+        static void destroy(KVGroup*& obj, IAllocator* allocator)
+        {
+            assert(allocator);
+            if (obj != NULL)
+            {
+                obj->~KVGroup();
+                allocator->deallocate(obj);
+                obj = NULL;
+            }
+        }
+
         KVPair* find(const Key& key)
         {
             for (int i = 0; i < NUM_KV; i++)
@@ -140,8 +160,7 @@ class Map : Noncopyable
             if (remove_this)
             {
                 list_.remove(p);
-                p->~KVGroup();
-                allocator_->deallocate(p);
+                KVGroup::destroy(p, allocator_);
             }
             p = next;
         }
@@ -186,14 +205,11 @@ public:
             return &kv->value;
         }
 
-        void* const praw = allocator_->allocate(sizeof(KVGroup));
-        if (praw == NULL)
+        KVGroup* const kvg = KVGroup::instantiate(allocator_);
+        if (kvg == NULL)
             return NULL;
-
-        KVGroup* const kvg = new (praw) KVGroup();
-        assert(kvg);
-        kvg->kvs[0] = KVPair(key, value);
         list_.insert(kvg);
+        kvg->kvs[0] = KVPair(key, value);
         return &kvg->kvs[0].value;
     }
 

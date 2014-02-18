@@ -53,6 +53,8 @@ public:
             IsDynamicallyAllocatable<Entry>::check();
         }
 
+        static void destroy(Entry*& obj, IAllocator* allocator);
+
         bool isExpired(uint64_t monotonic_timestamp) const { return monotonic_timestamp > monotonic_deadline; }
 
         bool qosHigherThan(const CanFrame& rhs_frame, Qos rhs_qos) const;
@@ -104,7 +106,7 @@ public:
     void push(const CanFrame& frame, uint64_t monotonic_tx_deadline, Qos qos);
 
     Entry* peek();               // Modifier
-    void remove(Entry* entry);
+    void remove(Entry*& entry);
 
     bool topPriorityHigherOrEqual(const CanFrame& rhs_frame) const;
 

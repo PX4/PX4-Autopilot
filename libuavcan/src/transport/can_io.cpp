@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <cassert>
 #include <limits>
 #include <uavcan/internal/transport/can_io.hpp>
 #include <uavcan/internal/debug.hpp>
@@ -25,6 +26,17 @@ std::string CanRxFrame::toString(StringRepresentation mode) const
 /*
  * CanTxQueue::Entry
  */
+void CanTxQueue::Entry::destroy(Entry*& obj, IAllocator* allocator)
+{
+    assert(allocator);
+    if (obj != NULL)
+    {
+        obj->~Entry();
+        allocator->deallocate(obj);
+        obj = NULL;
+    }
+}
+
 bool CanTxQueue::Entry::qosHigherThan(const CanFrame& rhs_frame, Qos rhs_qos) const
 {
     if (qos != rhs_qos)
@@ -161,7 +173,7 @@ CanTxQueue::Entry* CanTxQueue::peek()
     return NULL;
 }
 
-void CanTxQueue::remove(Entry* entry)
+void CanTxQueue::remove(Entry*& entry)
 {
     if (entry == NULL)
     {
@@ -169,8 +181,7 @@ void CanTxQueue::remove(Entry* entry)
         return;
     }
     queue_.remove(entry);
-    entry->~Entry();
-    allocator_->deallocate(entry);
+    Entry::destroy(entry, allocator_);
 }
 
 bool CanTxQueue::topPriorityHigherOrEqual(const CanFrame& rhs_frame) const
@@ -207,7 +218,7 @@ int CanIOManager::sendToIface(int iface_index, const CanFrame& frame, uint64_t m
 int CanIOManager::sendFromTxQueue(int iface_index)
 {
     assert(iface_index >= 0 && iface_index < MAX_IFACES);
-    CanTxQueue::Entry* const entry = tx_queues_[iface_index].peek();
+    CanTxQueue::Entry* entry = tx_queues_[iface_index].peek();
     if (entry == NULL)
         return 0;
     const int res = sendToIface(iface_index, entry->frame, entry->monotonic_deadline);

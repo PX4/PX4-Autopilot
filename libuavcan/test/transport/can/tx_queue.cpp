@@ -190,10 +190,19 @@ TEST(CanTxQueue, TxQueue)
     EXPECT_TRUE(isInQueue(queue, f4));
     EXPECT_EQ(f4, queue.peek()->frame);
 
-    queue.remove(queue.peek());
+    CanTxQueue::Entry* entry = queue.peek();
+    EXPECT_TRUE(entry);
+    queue.remove(entry);
+    EXPECT_FALSE(entry);
+
     EXPECT_FALSE(isInQueue(queue, f4));
     EXPECT_TRUE(isInQueue(queue, f5));
-    queue.remove(queue.peek());
+
+    entry = queue.peek();
+    EXPECT_TRUE(entry);
+    queue.remove(entry);
+    EXPECT_FALSE(entry);
+
     EXPECT_FALSE(isInQueue(queue, f5));
 
     EXPECT_EQ(0, getQueueLength(queue));           // Final state checks
