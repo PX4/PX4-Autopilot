@@ -182,3 +182,42 @@ TEST(Dispatcher, Reception)
     dispatcher.unregisterServiceResponseListener(subscribers[4].get());
     dispatcher.unregisterServiceResponseListener(subscribers[5].get());
 }
+
+
+TEST(Dispatcher, Transmission)
+{
+    uavcan::PoolAllocator<uavcan::MEM_POOL_BLOCK_SIZE * 8, uavcan::MEM_POOL_BLOCK_SIZE> pool;
+    uavcan::PoolManager<1> poolmgr;
+    poolmgr.addPool(&pool);
+
+    SystemClockMock clockmock(100);
+    CanDriverMock driver(2, clockmock);
+
+    uavcan::OutgoingTransferRegistry<8> out_trans_reg(&poolmgr);
+
+    uavcan::Dispatcher dispatcher(&driver, &poolmgr, &clockmock, &out_trans_reg, SELF_NODE_ID);
+
+    /*
+     * Transmission
+     */
+    static const int TX_DEADLINE = 123456;
+
+    // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
+    // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame = false
+    uavcan::Frame frame(123, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST, SELF_NODE_ID, 2, 0, 0, true);
+    frame.setPayload(reinterpret_cast<const uint8_t*>("123"), 3);
+
+    ASSERT_EQ(2, dispatcher.send(frame, TX_DEADLINE, 0, uavcan::CanTxQueue::VOLATILE));
+
+    /*
+     * Validation
+     */
+    uavcan::CanFrame expected_can_frame;
+    ASSERT_TRUE(frame.compile(expected_can_frame));
+
+    ASSERT_TRUE(driver.ifaces.at(0).matchAndPopTx(expected_can_frame, TX_DEADLINE));
+    ASSERT_TRUE(driver.ifaces.at(1).matchAndPopTx(expected_can_frame, TX_DEADLINE));
+
+    ASSERT_TRUE(driver.ifaces.at(0).tx.empty());
+    ASSERT_TRUE(driver.ifaces.at(1).tx.empty());
+}
