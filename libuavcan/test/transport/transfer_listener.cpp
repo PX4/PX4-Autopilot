@@ -9,15 +9,22 @@
 class Emulator : public IncomingTransferEmulatorBase
 {
     uavcan::TransferListenerBase& target_;
+    const uavcan::DataTypeDescriptor data_type_;
 
 public:
     Emulator(uavcan::TransferListenerBase& target, const uavcan::DataTypeDescriptor& type,
              uavcan::NodeID dst_node_id = 127)
-    : IncomingTransferEmulatorBase(type, dst_node_id)
+    : IncomingTransferEmulatorBase(dst_node_id)
     , target_(target)
+    , data_type_(type)
     { }
 
     void sendOneFrame(const uavcan::RxFrame& frame) { target_.handleFrame(frame); }
+
+    Transfer makeTransfer(uavcan::TransferType transfer_type, uint8_t source_node_id, const std::string& payload)
+    {
+        return IncomingTransferEmulatorBase::makeTransfer(transfer_type, source_node_id, payload, data_type_);
+    }
 };
 
 
@@ -94,8 +101,8 @@ TEST(TransferListener, CrcFailure)
     const Transfer tr_mft = emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 42, "123456789abcdefghik");
     const Transfer tr_sft = emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST, 11, "abcd");
 
-    std::vector<uavcan::RxFrame> ser_mft = serializeTransfer(tr_mft, type);
-    std::vector<uavcan::RxFrame> ser_sft = serializeTransfer(tr_sft, type);
+    std::vector<uavcan::RxFrame> ser_mft = serializeTransfer(tr_mft);
+    std::vector<uavcan::RxFrame> ser_sft = serializeTransfer(tr_sft);
 
     ASSERT_TRUE(ser_mft.size() > 1);
     ASSERT_TRUE(ser_sft.size() == 1);
@@ -176,8 +183,8 @@ TEST(TransferListener, Cleanup)
     const Transfer tr_mft = emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 42, "123456789abcdefghik");
     const Transfer tr_sft = emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST, 11, "abcd");
 
-    const std::vector<uavcan::RxFrame> ser_mft = serializeTransfer(tr_mft, type);
-    const std::vector<uavcan::RxFrame> ser_sft = serializeTransfer(tr_sft, type);
+    const std::vector<uavcan::RxFrame> ser_mft = serializeTransfer(tr_mft);
+    const std::vector<uavcan::RxFrame> ser_sft = serializeTransfer(tr_sft);
 
     ASSERT_TRUE(ser_mft.size() > 1);
     ASSERT_TRUE(ser_sft.size() == 1);

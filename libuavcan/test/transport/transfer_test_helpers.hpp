@@ -10,7 +10,9 @@
 #include <gtest/gtest.h>
 #include <uavcan/internal/transport/transfer_listener.hpp>
 
-
+/**
+ * UAVCAN transfer representation used in various tests.
+ */
 struct Transfer
 {
     uint64_t ts_monotonic;
@@ -19,15 +21,17 @@ struct Transfer
     uavcan::TransferID transfer_id;
     uavcan::NodeID src_node_id;
     uavcan::NodeID dst_node_id;
+    uavcan::DataTypeDescriptor data_type;
     std::string payload;
 
-    Transfer(const uavcan::IncomingTransfer& tr)
+    Transfer(const uavcan::IncomingTransfer& tr, const uavcan::DataTypeDescriptor& data_type)
     : ts_monotonic(tr.getMonotonicTimestamp())
     , ts_utc(tr.getUtcTimestamp())
     , transfer_type(tr.getTransferType())
     , transfer_id(tr.getTransferID())
     , src_node_id(tr.getSrcNodeID())
     , dst_node_id() // default is invalid
+    , data_type(data_type)
     {
         unsigned int offset = 0;
         while (true)
@@ -48,13 +52,14 @@ struct Transfer
 
     Transfer(uint64_t ts_monotonic, uint64_t ts_utc, uavcan::TransferType transfer_type,
              uavcan::TransferID transfer_id, uavcan::NodeID src_node_id, uavcan::NodeID dst_node_id,
-             const std::string& payload)
+             const std::string& payload, const uavcan::DataTypeDescriptor& data_type)
     : ts_monotonic(ts_monotonic)
     , ts_utc(ts_utc)
     , transfer_type(transfer_type)
     , transfer_id(transfer_id)
     , src_node_id(src_node_id)
     , dst_node_id(dst_node_id)
+    , data_type(data_type)
     , payload(payload)
     { }
 
@@ -103,7 +108,7 @@ public:
 
     void handleIncomingTransfer(uavcan::IncomingTransfer& transfer)
     {
-        const Transfer rx(transfer);
+        const Transfer rx(transfer, *Base::getDataTypeDescriptor());
         transfers_.push(rx);
         std::cout << "Received transfer: " << rx.toString() << std::endl;
     }
@@ -137,7 +142,7 @@ public:
 namespace
 {
 
-std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer, const uavcan::DataTypeDescriptor& type)
+std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
 {
     bool need_crc = false;
     switch (transfer.transfer_type)
@@ -158,7 +163,7 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer, const u
     std::vector<uint8_t> raw_payload;
     if (need_crc)
     {
-        uavcan::Crc16 payload_crc(type.hash.value, uavcan::DataTypeHash::NUM_BYTES);
+        uavcan::Crc16 payload_crc(transfer.data_type.hash.value, uavcan::DataTypeHash::NUM_BYTES);
         payload_crc.add(reinterpret_cast<const uint8_t*>(transfer.payload.c_str()), transfer.payload.length());
         // Little endian
         raw_payload.push_back(payload_crc.get() & 0xFF);
@@ -177,8 +182,8 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer, const u
         const int bytes_left = raw_payload.size() - offset;
         EXPECT_TRUE(bytes_left >= 0);
 
-        uavcan::Frame frm(type.id, transfer.transfer_type, transfer.src_node_id, transfer.dst_node_id, frame_index,
-                          transfer.transfer_id);
+        uavcan::Frame frm(transfer.data_type.id, transfer.transfer_type, transfer.src_node_id, transfer.dst_node_id,
+                          frame_index, transfer.transfer_id);
         const int spres = frm.setPayload(&*(raw_payload.begin() + offset), bytes_left);
         if (spres < 0)
         {
@@ -208,26 +213,25 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer, const u
 
 class IncomingTransferEmulatorBase
 {
-    const uavcan::DataTypeDescriptor type_;
     uint64_t ts_;
     uavcan::TransferID tid_;
     uavcan::NodeID dst_node_id_;
 
 public:
-    IncomingTransferEmulatorBase(const uavcan::DataTypeDescriptor& type, uavcan::NodeID dst_node_id = 127)
-    : type_(type)
-    , ts_(0)
+    IncomingTransferEmulatorBase(uavcan::NodeID dst_node_id)
+    : ts_(0)
     , dst_node_id_(dst_node_id)
     { }
 
     virtual ~IncomingTransferEmulatorBase() { }
 
-    Transfer makeTransfer(uavcan::TransferType transfer_type, uint8_t source_node_id, const std::string& payload)
+    Transfer makeTransfer(uavcan::TransferType transfer_type, uint8_t source_node_id, const std::string& payload,
+                          const uavcan::DataTypeDescriptor& type)
     {
         ts_ += 100;
         const uavcan::NodeID dst_node_id = (transfer_type == uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST)
                     ? uavcan::NodeID::BROADCAST : dst_node_id_;
-        const Transfer tr(ts_, ts_ + 1000000000ul, transfer_type, tid_, source_node_id, dst_node_id, payload);
+        const Transfer tr(ts_, ts_ + 1000000000ul, transfer_type, tid_, source_node_id, dst_node_id, payload, type);
         tid_.increment();
         return tr;
     }
@@ -259,7 +263,7 @@ public:
     {
         std::vector<std::vector<uavcan::RxFrame> > sers;
         while (num_transfers--)
-            sers.push_back(serializeTransfer(*transfers++, type_));
+            sers.push_back(serializeTransfer(*transfers++));
         send(sers);
     }
 
