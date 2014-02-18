@@ -908,11 +908,13 @@ int commander_thread_main(int argc, char *argv[])
 		if (updated) {
 			orb_copy(ORB_ID(safety), safety_sub, &safety);
 
-			// XXX this would be the right approach to do it, but do we *WANT* this?
-			// /* disarm if safety is now on and still armed */
-			// if (safety.safety_switch_available && !safety.safety_off) {
-			// 	(void)arming_state_transition(&status, &safety, ARMING_STATE_STANDBY, &armed);
-			// }
+			/* disarm if safety is now on and still armed */
+			if (safety.safety_switch_available && !safety.safety_off && armed.armed) {
+				arming_state_t new_arming_state = (status.arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
+				if (TRANSITION_CHANGED == arming_state_transition(&status, &safety, new_arming_state, &armed)) {
+					mavlink_log_info(mavlink_fd, "[cmd] DISARMED by safety switch");
+				}
+			}
 		}
 
 		/* update global position estimate */
