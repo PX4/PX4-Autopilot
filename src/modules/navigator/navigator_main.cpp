@@ -322,6 +322,11 @@ private:
 	bool		onboard_mission_available(unsigned relative_index);
 
 	/**
+	 * Reset all "reached" flags.
+	 */
+	void		reset_reached();
+
+	/**
 	 * Check if current mission item has been reached.
 	 */
 	bool		check_mission_item_reached();
@@ -855,9 +860,6 @@ Navigator::task_main()
 		if (myState != prevState) {
 			mavlink_log_info(_mavlink_fd, "[navigator] nav state: %s", nav_states_str[myState]);
 			prevState = myState;
-
-			/* reset time counter on state changes */
-			_time_first_inside_orbit = 0;
 		}
 
 		perf_end(_loop_perf);
@@ -1009,6 +1011,8 @@ StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 void
 Navigator::start_none()
 {
+	reset_reached();
+
 	_pos_sp_triplet.previous.valid = false;
 	_pos_sp_triplet.current.valid = false;
 	_pos_sp_triplet.next.valid = false;
@@ -1024,6 +1028,8 @@ Navigator::start_none()
 void
 Navigator::start_ready()
 {
+	reset_reached();
+
 	_pos_sp_triplet.previous.valid = false;
 	_pos_sp_triplet.current.valid = true;
 	_pos_sp_triplet.next.valid = false;
@@ -1046,6 +1052,8 @@ Navigator::start_ready()
 void
 Navigator::start_loiter()
 {
+	reset_reached();
+
 	_do_takeoff = false;
 
 	/* set loiter position if needed */
@@ -1091,6 +1099,8 @@ Navigator::start_mission()
 void
 Navigator::set_mission_item()
 {
+	reset_reached();
+
 	/* copy current mission to previous item */
 	memcpy(&_pos_sp_triplet.previous, &_pos_sp_triplet.current, sizeof(position_setpoint_s));
 
@@ -1104,9 +1114,6 @@ Navigator::set_mission_item()
 	ret = _mission.get_current_mission_item(&_mission_item, &onboard, &index);
 
 	if (ret == OK) {
-		/* reset time counter for new item */
-		_time_first_inside_orbit = 0;
-
 		_mission_item_valid = true;
 		position_setpoint_from_mission_item(&_pos_sp_triplet.current, &_mission_item);
 
@@ -1224,6 +1231,8 @@ Navigator::start_rtl()
 void
 Navigator::start_land()
 {
+	reset_reached();
+
 	/* this state can be requested by commander even if no global position available,
 	 * in his case controller must perform landing without position control */
 	_do_takeoff = false;
@@ -1255,6 +1264,8 @@ Navigator::start_land()
 void
 Navigator::start_land_home()
 {
+	reset_reached();
+
 	/* land to home position, should be called when hovering above home, from RTL state */
 	_do_takeoff = false;
 	_reset_loiter_pos = true;
@@ -1285,8 +1296,7 @@ Navigator::start_land_home()
 void
 Navigator::set_rtl_item()
 {
-	/*reset time counter for new RTL item */
-	_time_first_inside_orbit = 0;
+	reset_reached();
 
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB: {
@@ -1550,14 +1560,21 @@ Navigator::check_mission_item_reached()
 		/* check if the MAV was long enough inside the waypoint orbit */
 		if ((now - _time_first_inside_orbit >= (uint64_t)_mission_item.time_inside * 1e6)
 		    || _mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
-			_time_first_inside_orbit = 0;
-			_waypoint_yaw_reached = false;
-			_waypoint_position_reached = false;
+			reset_reached();
 			return true;
 		}
 	}
 
 	return false;
+
+}
+
+void
+Navigator::reset_reached()
+{
+	_time_first_inside_orbit = 0;
+	_waypoint_position_reached = false;
+	_waypoint_yaw_reached = false;
 
 }
 
