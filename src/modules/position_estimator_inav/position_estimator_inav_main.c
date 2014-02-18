@@ -42,14 +42,11 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <fcntl.h>
-#include <float.h>
 #include <string.h>
 #include <nuttx/config.h>
 #include <nuttx/sched.h>
 #include <sys/prctl.h>
 #include <termios.h>
-#include <errno.h>
-#include <limits.h>
 #include <math.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
