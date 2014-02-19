@@ -233,7 +233,6 @@ private:
 		float speedrate_p;
 
 		float land_slope_angle;
-		float land_slope_length;
 		float land_H1_virt;
 		float land_flare_alt_relative;
 		float land_thrust_lim_alt_relative;
@@ -278,7 +277,6 @@ private:
 		param_t speedrate_p;
 
 		param_t land_slope_angle;
-		param_t land_slope_length;
 		param_t land_H1_virt;
 		param_t land_flare_alt_relative;
 		param_t land_thrust_lim_alt_relative;
@@ -431,7 +429,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.throttle_land_max = param_find("FW_THR_LND_MAX");
 
 	_parameter_handles.land_slope_angle = param_find("FW_LND_ANG");
-	_parameter_handles.land_slope_length = param_find("FW_LND_SLLR");
 	_parameter_handles.land_H1_virt = param_find("FW_LND_HVIRT");
 	_parameter_handles.land_flare_alt_relative = param_find("FW_LND_FLALT");
 	_parameter_handles.land_thrust_lim_alt_relative = param_find("FW_LND_TLALT");
@@ -520,7 +517,6 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.speedrate_p, &(_parameters.speedrate_p));
 
 	param_get(_parameter_handles.land_slope_angle, &(_parameters.land_slope_angle));
-	param_get(_parameter_handles.land_slope_length, &(_parameters.land_slope_length));
 	param_get(_parameter_handles.land_H1_virt, &(_parameters.land_H1_virt));
 	param_get(_parameter_handles.land_flare_alt_relative, &(_parameters.land_flare_alt_relative));
 	param_get(_parameter_handles.land_thrust_lim_alt_relative, &(_parameters.land_thrust_lim_alt_relative));
@@ -889,7 +885,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			float airspeed_land = 1.3f * _parameters.airspeed_min;
 			float airspeed_approach = 1.3f * _parameters.airspeed_min;
 
-			float L_wp_distance = get_distance_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1)) * _parameters.land_slope_length;
+			float L_wp_distance = get_distance_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1)) * 0.9f;
 			float L_altitude = landingslope.getLandingSlopeAbsoluteAltitude(L_wp_distance, _pos_sp_triplet.current.alt);
 			float bearing_airplane_currwp = get_bearing_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
 			float landing_slope_alt_desired = landingslope.getLandingSlopeAbsoluteAltitudeSave(wp_distance, bearing_lastwp_currwp, bearing_airplane_currwp, _pos_sp_triplet.current.alt);
