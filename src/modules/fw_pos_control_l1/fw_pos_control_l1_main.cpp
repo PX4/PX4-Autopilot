@@ -885,7 +885,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			float airspeed_land = 1.3f * _parameters.airspeed_min;
 			float airspeed_approach = 1.3f * _parameters.airspeed_min;
 
-			float L_wp_distance = get_distance_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1)) * 0.9f;
+			float L_wp_distance = get_distance_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1));
 			float L_altitude = landingslope.getLandingSlopeAbsoluteAltitude(L_wp_distance, _pos_sp_triplet.current.alt);
 			float bearing_airplane_currwp = get_bearing_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
 			float landing_slope_alt_desired = landingslope.getLandingSlopeAbsoluteAltitudeSave(wp_distance, bearing_lastwp_currwp, bearing_airplane_currwp, _pos_sp_triplet.current.alt);
@@ -931,34 +931,24 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				//warnx("Landing:  flare, _global_pos.alt  %.1f, flare_curve_alt %.1f, flare_curve_alt_last %.1f, flare_length %.1f, wp_distance %.1f", _global_pos.alt, flare_curve_alt, flare_curve_alt_last, flare_length, wp_distance);
 
 				flare_curve_alt_last = flare_curve_alt;
-
-			} else if (wp_distance < L_wp_distance) {
-
-				/* minimize speed to approach speed, stay on landing slope */
-				_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, landing_slope_alt_desired, calculate_target_airspeed(airspeed_approach),
-							    _airspeed.indicated_airspeed_m_s, eas2tas,
-							    false, flare_pitch_angle_rad,
-							    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
-							    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
-				//warnx("Landing: stay on slope, alt_desired: %.1f (wp_distance: %.1f), calculate_target_airspeed(airspeed_land) %.1f, horizontal_slope_displacement %.1f, d1 %.1f, flare_length %.1f", landing_slope_alt_desired, wp_distance, calculate_target_airspeed(airspeed_land), horizontal_slope_displacement, d1, flare_length);
-
-				if (!land_onslope) {
-
-					mavlink_log_info(_mavlink_fd, "#audio: Landing, on slope");
-					land_onslope = true;
-				}
-
 			} else {
 
 				 /* intersect glide slope:
-				 * if current position is higher or within 10m of slope follow the glide slope
-				 * if current position is below slope -10m continue on maximum of previous wp altitude or L_altitude until the intersection with the slope
-				 * */
+				  * minimize speed to approach speed
+				  * if current position is higher or within 10m of slope follow the glide slope
+				  * if current position is below slope -10m continue on maximum of previous wp altitude or L_altitude until the intersection with the slope
+				  * */
 				float altitude_desired = _global_pos.alt;
 				if (_global_pos.alt > landing_slope_alt_desired - 10.0f) {
 					/* stay on slope */
 					altitude_desired = landing_slope_alt_desired;
 					//warnx("Landing: before L, stay on landing slope, alt_desired: %.1f (wp_distance: %.1f, L_wp_distance %.1f), calculate_target_airspeed(airspeed_land) %.1f, horizontal_slope_displacement %.1f", altitude_desired, wp_distance, L_wp_distance, calculate_target_airspeed(airspeed_land), horizontal_slope_displacement);
+
+					if (!land_onslope) {
+						mavlink_log_info(_mavlink_fd, "#audio: Landing, on slope");
+						land_onslope = true;
+					}
+
 				} else {
 					/* continue horizontally */
 					altitude_desired =  math::max(_global_pos.alt, L_altitude);
