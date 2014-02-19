@@ -85,6 +85,7 @@ struct Transfer
             << " tid="    << int(transfer_id.get())
             << " snid="   << int(src_node_id.get())
             << " dnid="   << int(dst_node_id.get())
+            << " dtid="   << int(data_type.id)
             << "\n\t'" << payload << "'";
         return os.str();
     }
