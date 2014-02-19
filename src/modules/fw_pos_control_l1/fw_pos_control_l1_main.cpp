@@ -885,8 +885,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			float airspeed_land = 1.3f * _parameters.airspeed_min;
 			float airspeed_approach = 1.3f * _parameters.airspeed_min;
 
+			/* Calculate distance (to landing waypoint) and altitude of last ordinary waypoint L */
 			float L_wp_distance = get_distance_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1));
 			float L_altitude = landingslope.getLandingSlopeAbsoluteAltitude(L_wp_distance, _pos_sp_triplet.current.alt);
+
 			float bearing_airplane_currwp = get_bearing_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
 			float landing_slope_alt_desired = landingslope.getLandingSlopeAbsoluteAltitudeSave(wp_distance, bearing_lastwp_currwp, bearing_airplane_currwp, _pos_sp_triplet.current.alt);
 
