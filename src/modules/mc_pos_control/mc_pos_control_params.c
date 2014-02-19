@@ -39,20 +39,164 @@
 
 #include <systemlib/param/param.h>
 
-PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.0f);
+/**
+ * Minimum thrust
+ *
+ * Minimum vertical thrust. It's recommended to set it > 0 to avoid free fall with zero thrust.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.1f);
+
+/**
+ * Maximum thrust
+ *
+ * Limit max allowed thrust.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group Multicopter Position Control
+ */
 PARAM_DEFINE_FLOAT(MPC_THR_MAX, 1.0f);
+
+/**
+ * Proportional gain for vertical position error
+ *
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
 PARAM_DEFINE_FLOAT(MPC_Z_P, 1.0f);
+
+/**
+ * Proportional gain for vertical velocity error
+ *
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_P, 0.1f);
+
+/**
+ * Integral gain for vertical velocity error
+ *
+ * Non zero value allows hovering thrust estimation on stabilized or autonomous takeoff.
+ *
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_I, 0.02f);
+
+/**
+ * Differential gain for vertical velocity error
+ *
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_D, 0.0f);
+
+/**
+ * Maximum vertical velocity
+ *
+ * Maximum vertical velocity in AUTO mode and endpoint for stabilized modes (SEATBELT, EASY).
+ *
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX, 5.0f);
+
+/**
+ * Vertical velocity feed forward
+ *
+ * Feed forward weight for altitude control in stabilized modes (SEATBELT, EASY). 0 will give slow responce and no overshot, 1 - fast responce and big overshot.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group Multicopter Position Control
+ */
 PARAM_DEFINE_FLOAT(MPC_Z_FF, 0.5f);
+
+/**
+ * Proportional gain for horizontal position error
+ *
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
 PARAM_DEFINE_FLOAT(MPC_XY_P, 1.0f);
+
+/**
+ * Proportional gain for horizontal velocity error
+ *
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_P, 0.1f);
+
+/**
+ * Integral gain for horizontal velocity error
+ *
+ * Non-zero value allows to resist wind.
+ *
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_I, 0.02f);
+
+/**
+ * Differential gain for horizontal velocity error. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+ *
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
+
+/**
+ * Maximum horizontal velocity
+ *
+ * Maximum horizontal velocity in AUTO mode and endpoint for position stabilized mode (EASY).
+ *
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 5.0f);
+
+/**
+ * Horizontal velocity feed forward
+ *
+ * Feed forward weight for position control in position control mode (EASY). 0 will give slow responce and no overshot, 1 - fast responce and big overshot.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group Multicopter Position Control
+ */
 PARAM_DEFINE_FLOAT(MPC_XY_FF, 0.5f);
+
+/**
+ * Maximum tilt
+ *
+ * Limits maximum tilt in AUTO and EASY modes.
+ *
+ * @min 0.0
+ * @max 1.57
+ * @group Multicopter Position Control
+ */
 PARAM_DEFINE_FLOAT(MPC_TILT_MAX, 1.0f);
+
+/**
+ * Landing descend rate
+ *
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
 PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 1.0f);
+
+/**
+ * Maximum landing tilt
+ *
+ * Limits maximum tilt on landing.
+ *
+ * @min 0.0
+ * @max 1.57
+ * @group Multicopter Position Control
+ */
 PARAM_DEFINE_FLOAT(MPC_LAND_TILT, 0.3f);
