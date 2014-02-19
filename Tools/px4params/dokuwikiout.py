@@ -3,11 +3,14 @@ import codecs
 
 class DokuWikiTablesOutput():
     def __init__(self, groups):
-        result = "====== Parameter Reference ======\nThis list is auto-generated every few minutes and contains the most recent parameter names and default values.\n\n"
+        result = ("====== Parameter Reference ======\n"
+                  "<note>**This list is auto-generated from the source code** and contains the most recent parameter documentation.</note>\n"
+                  "\n")
         for group in groups:
             result += "==== %s ====\n\n" % group.GetName()
-            result += "|< 100% 20% 20% 10% 10% 10% 30%>|\n"
-            result += "^ Name ^ Description ^  Min ^  Max ^  Default ^ Comment ^\n"
+            result += "|< 100% 25% 45% 10% 10% 10% >|\n"
+            result += "^ Name ^ Description ^  Min ^  Max ^  Default ^\n"
+            result += "^ :::  ^ Comment ^^^^\n"
             for param in group.GetParams():
                 code = param.GetFieldValue("code")
                 name = param.GetFieldValue("short_desc")
@@ -16,31 +19,23 @@ class DokuWikiTablesOutput():
                 def_val = param.GetFieldValue("default")
                 long_desc = param.GetFieldValue("long_desc")
 
-                name = name.replace("\n", " ")
-                result += "| %s | %s |" % (code, name)
-
-                if min_val is not None:
-                    result += "  %s |" % min_val
+                if name == code:
+                    name = ""
                 else:
-                    result += " |"
+                    name = name.replace("\n", " ")
+                    name = name.replace("|", "%%|%%")
+                    name = name.replace("^", "%%^%%")
 
-                if max_val is not None:
-                    result += "  %s |" % max_val
-                else:
-                    result += " |"
-
-                if def_val is not None:
-                    result += "  %s |" % def_val
-                else:
-                    result += " |"
+                result += "| **%s** |" % code
+                result += " %s |" % name
+                result += "  %s |" % (min_val or "")
+                result += "  %s |" % (max_val or "")
+                result += "  %s |" % (def_val or "")
+                result += "\n"
 
                 if long_desc is not None:
-                    long_desc = long_desc.replace("\n", " ")
-                    result += " %s |" % long_desc
-                else:
-                    result += " |"
+                    result += "| ::: | <div>%s</div> ||||\n" % long_desc
 
-                result += "\n"
             result += "\n"
         self.output = result;
 
