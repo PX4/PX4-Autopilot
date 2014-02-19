@@ -397,20 +397,17 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_airspeed_error(0.0f),
 	_airspeed_valid(false),
 	_groundspeed_undershoot(0.0f),
-	_global_pos_valid(false)
+	_global_pos_valid(false),
+	_att(),
+	_att_sp(),
+	_nav_capabilities(),
+	_manual(),
+	_airspeed(),
+	_control_mode(),
+	_global_pos(),
+	_pos_sp_triplet(),
+	_sensor_combined()
 {
-	/* safely initialize structs */
-	memset(&_att, 0, sizeof(vehicle_attitude_s));
-	memset(&_att_sp, 0, sizeof(vehicle_attitude_setpoint_s));
-	memset(&_nav_capabilities, 0, sizeof(navigation_capabilities_s));
-	memset(&_manual, 0, sizeof(manual_control_setpoint_s));
-	memset(&_airspeed, 0, sizeof(airspeed_s));
-	memset(&_control_mode, 0, sizeof(vehicle_control_mode_s));
-	memset(&_global_pos, 0, sizeof(vehicle_global_position_s));
-	memset(&_pos_sp_triplet, 0, sizeof(position_setpoint_triplet_s));
-	memset(&_sensor_combined, 0, sizeof(sensor_combined_s));
-
-
 	_nav_capabilities.turn_distance = 0.0f;
 
 	_parameter_handles.l1_period = param_find("FW_L1_PERIOD");
