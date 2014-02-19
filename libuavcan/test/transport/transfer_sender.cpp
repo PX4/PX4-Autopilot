@@ -35,7 +35,6 @@ TEST(TransferSender, Basic)
 
     uavcan::OutgoingTransferRegistry<8> out_trans_reg(&poolmgr);
 
-
     static const uavcan::NodeID TX_NODE_ID(64);
     static const uavcan::NodeID RX_NODE_ID(65);
     uavcan::Dispatcher dispatcher_tx(&driver, &poolmgr, &clockmock, &out_trans_reg, TX_NODE_ID);

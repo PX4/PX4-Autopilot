@@ -65,7 +65,7 @@ struct Context
 };
 
 
-static bool matchBufferContent(const uavcan::TransferBufferBase* tbb, const std::string& content)
+static bool matchBufferContent(const uavcan::ITransferBuffer* tbb, const std::string& content)
 {
     uint8_t data[1024];
     std::fill(data, data + sizeof(data), 0);

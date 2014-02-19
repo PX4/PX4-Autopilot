@@ -29,7 +29,7 @@ static void fill(const T a, int value)
         a[i] = value;
 }
 
-static bool matchAgainst(const std::string& data, const uavcan::TransferBufferBase& tbb,
+static bool matchAgainst(const std::string& data, const uavcan::ITransferBuffer& tbb,
                          unsigned int offset = 0, int len = -1)
 {
     uint8_t local_buffer[1024];
@@ -68,7 +68,7 @@ static bool matchAgainst(const std::string& data, const uavcan::TransferBufferBa
     return equals;
 }
 
-static bool matchAgainstTestData(const uavcan::TransferBufferBase& tbb, unsigned int offset, int len = -1)
+static bool matchAgainstTestData(const uavcan::ITransferBuffer& tbb, unsigned int offset, int len = -1)
 {
     return matchAgainst(TEST_DATA, tbb, offset, len);
 }
@@ -222,7 +222,7 @@ TEST(TransferBufferManager, TestDataValidation)
 }
 
 
-static int fillTestData(const std::string& data, uavcan::TransferBufferBase* tbb)
+static int fillTestData(const std::string& data, uavcan::ITransferBuffer* tbb)
 {
     return tbb->write(0, reinterpret_cast<const uint8_t*>(data.c_str()), data.length());
 }
@@ -231,7 +231,7 @@ TEST(TransferBufferManager, Basic)
 {
     using uavcan::TransferBufferManager;
     using uavcan::TransferBufferManagerKey;
-    using uavcan::TransferBufferBase;
+    using uavcan::ITransferBuffer;
 
     static const int POOL_BLOCKS = 8;
     uavcan::PoolAllocator<uavcan::MEM_POOL_BLOCK_SIZE * POOL_BLOCKS, uavcan::MEM_POOL_BLOCK_SIZE> pool;
@@ -245,7 +245,7 @@ TEST(TransferBufferManager, Basic)
     ASSERT_FALSE(mgr->access(TransferBufferManagerKey(0, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST)));
     ASSERT_FALSE(mgr->access(TransferBufferManagerKey(127, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST)));
 
-    TransferBufferBase* tbb = NULL;
+    ITransferBuffer* tbb = NULL;
 
     const TransferBufferManagerKey keys[5] =
     {

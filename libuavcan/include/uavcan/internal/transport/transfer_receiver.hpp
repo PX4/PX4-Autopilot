@@ -43,7 +43,7 @@ private:
     void prepareForNextTransfer();
 
     bool validate(const RxFrame& frame) const;
-    bool writePayload(const RxFrame& frame, TransferBufferBase& buf);
+    bool writePayload(const RxFrame& frame, ITransferBuffer& buf);
     ResultCode receive(const RxFrame& frame, TransferBufferAccessor& tba);
 
 public:

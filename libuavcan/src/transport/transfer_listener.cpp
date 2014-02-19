@@ -53,7 +53,7 @@ MultiFrameIncomingTransfer::MultiFrameIncomingTransfer(uint64_t ts_monotonic, ui
 
 int MultiFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsigned int len) const
 {
-    const TransferBufferBase* const tbb = const_cast<TransferBufferAccessor&>(buf_acc_).access();
+    const ITransferBuffer* const tbb = const_cast<TransferBufferAccessor&>(buf_acc_).access();
     if (tbb == NULL)
     {
         UAVCAN_TRACE("MultiFrameIncomingTransfer", "Read failed: no such buffer");
@@ -65,7 +65,7 @@ int MultiFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsigne
 /*
  * TransferListenerBase
  */
-bool TransferListenerBase::checkPayloadCrc(const uint16_t compare_with, const TransferBufferBase& tbb) const
+bool TransferListenerBase::checkPayloadCrc(const uint16_t compare_with, const ITransferBuffer& tbb) const
 {
     Crc16 crc = crc_base_;
     unsigned int offset = 0;
@@ -109,7 +109,7 @@ void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxF
 
     case TransferReceiver::RESULT_COMPLETE:
     {
-        const TransferBufferBase* tbb = tba.access();
+        const ITransferBuffer* tbb = tba.access();
         if (tbb == NULL)
         {
             UAVCAN_TRACE("TransferListenerBase", "Buffer access failure, last frame: %s", frame.toString().c_str());

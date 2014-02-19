@@ -10,7 +10,6 @@
 #include <uavcan/internal/transport/crc.hpp>
 #include <uavcan/internal/transport/transfer.hpp>
 #include <uavcan/internal/transport/dispatcher.hpp>
-#include <uavcan/internal/transport/transfer_buffer.hpp>
 
 namespace uavcan
 {

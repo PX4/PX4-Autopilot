@@ -18,10 +18,10 @@ namespace uavcan
 /**
  * API for transfer buffer users.
  */
-class TransferBufferBase
+class ITransferBuffer
 {
 public:
-    virtual ~TransferBufferBase() { }
+    virtual ~ITransferBuffer() { }
 
     virtual int read(unsigned int offset, uint8_t* data, unsigned int len) const = 0;
     virtual int write(unsigned int offset, const uint8_t* data, unsigned int len) = 0;
@@ -65,7 +65,7 @@ public:
 /**
  * Internal for TransferBufferManager
  */
-class TransferBufferManagerEntry : public TransferBufferBase, Noncopyable
+class TransferBufferManagerEntry : public ITransferBuffer, Noncopyable
 {
     TransferBufferManagerKey key_;
 
@@ -237,8 +237,8 @@ class ITransferBufferManager
 {
 public:
     virtual ~ITransferBufferManager() { }
-    virtual TransferBufferBase* access(const TransferBufferManagerKey& key) = 0;
-    virtual TransferBufferBase* create(const TransferBufferManagerKey& key) = 0;
+    virtual ITransferBuffer* access(const TransferBufferManagerKey& key) = 0;
+    virtual ITransferBuffer* create(const TransferBufferManagerKey& key) = 0;
     virtual void remove(const TransferBufferManagerKey& key) = 0;
 };
 
@@ -258,8 +258,8 @@ public:
         assert(bufmgr);
         assert(!key.isEmpty());
     }
-    TransferBufferBase* access() { return bufmgr_->access(key_); }
-    TransferBufferBase* create() { return bufmgr_->create(key_); }
+    ITransferBuffer* access() { return bufmgr_->access(key_); }
+    ITransferBuffer* create() { return bufmgr_->create(key_); }
     void remove() { bufmgr_->remove(key_); }
 };
 
@@ -351,7 +351,7 @@ public:
         }
     }
 
-    TransferBufferBase* access(const TransferBufferManagerKey& key)
+    ITransferBuffer* access(const TransferBufferManagerKey& key)
     {
         if (key.isEmpty())
         {
@@ -364,7 +364,7 @@ public:
         return findFirstDynamic(key);
     }
 
-    TransferBufferBase* create(const TransferBufferManagerKey& key)
+    ITransferBuffer* create(const TransferBufferManagerKey& key)
     {
         if (key.isEmpty())
         {
@@ -445,13 +445,13 @@ public:
         (void)allocator;
     }
 
-    TransferBufferBase* access(const TransferBufferManagerKey& key)
+    ITransferBuffer* access(const TransferBufferManagerKey& key)
     {
         (void)key;
         return NULL;
     }
 
-    TransferBufferBase* create(const TransferBufferManagerKey& key)
+    ITransferBuffer* create(const TransferBufferManagerKey& key)
     {
         (void)key;
         return NULL;

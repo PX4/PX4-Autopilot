@@ -90,7 +90,7 @@ class TransferListenerBase : public LinkedListNode<TransferListenerBase>
     const DataTypeDescriptor* const data_type_;
     const Crc16 crc_base_;                      ///< Pre-initialized with data type hash, thus constant
 
-    bool checkPayloadCrc(const uint16_t compare_with, const TransferBufferBase& tbb) const;
+    bool checkPayloadCrc(const uint16_t compare_with, const ITransferBuffer& tbb) const;
 
 protected:
     TransferListenerBase(const DataTypeDescriptor* data_type)

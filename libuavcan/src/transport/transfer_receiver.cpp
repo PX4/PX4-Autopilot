@@ -84,7 +84,7 @@ bool TransferReceiver::validate(const RxFrame& frame) const
     return true;
 }
 
-bool TransferReceiver::writePayload(const RxFrame& frame, TransferBufferBase& buf)
+bool TransferReceiver::writePayload(const RxFrame& frame, ITransferBuffer& buf)
 {
     const uint8_t* const payload = frame.getPayloadPtr();
     const int payload_len = frame.getPayloadLen();
@@ -132,7 +132,7 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame, Tra
     }
 
     // Payload write
-    TransferBufferBase* buf = tba.access();
+    ITransferBuffer* buf = tba.access();
     if (buf == NULL)
         buf = tba.create();
     if (buf == NULL)
