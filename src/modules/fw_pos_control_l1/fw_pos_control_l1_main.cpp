@@ -912,7 +912,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				float flare_curve_alt = landingslope.getFlareCurveAltitudeSave(wp_distance, bearing_lastwp_currwp, bearing_airplane_currwp, _pos_sp_triplet.current.alt);
 
 				/* avoid climbout */
-				if (flare_curve_alt_last < flare_curve_alt && land_noreturn_vertical || land_stayonground)
+				if ((flare_curve_alt_last < flare_curve_alt && land_noreturn_vertical) || land_stayonground)
 				{
 					flare_curve_alt = pos_sp_triplet.current.alt;
 					land_stayonground = true;
