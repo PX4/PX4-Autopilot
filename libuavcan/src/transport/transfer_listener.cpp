@@ -83,7 +83,13 @@ bool TransferListenerBase::checkPayloadCrc(const uint16_t compare_with, const Tr
         offset += res;
         crc.add(buf, res);
     }
-    return crc.get() == compare_with;
+    if (crc.get() != compare_with)
+    {
+        UAVCAN_TRACE("TransferListenerBase", "CRC mismatch, expected=0x%04x, got=0x%04x",
+                     int(compare_with), int(crc.get()));
+        return false;
+    }
+    return true;
 }
 
 void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxFrame& frame,
