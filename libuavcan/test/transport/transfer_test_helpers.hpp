@@ -209,6 +209,17 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
     return output;
 }
 
+uavcan::DataTypeDescriptor makeDataType(uavcan::DataTypeKind kind, uint16_t id)
+{
+    uavcan::DataTypeDescriptor dtd(kind, id, uavcan::DataTypeHash());
+    for (int i = 0; i < uavcan::DataTypeHash::NUM_BYTES; i += 2)
+    {
+        dtd.hash.value[i] = id & 0xFF;
+        dtd.hash.value[i + 1] = id >> 8;
+    }
+    return dtd;
+}
+
 }
 
 
@@ -272,4 +283,3 @@ public:
 
     template <int SIZE> void send(const Transfer (&transfers)[SIZE]) { send(transfers, SIZE); }
 };
-
