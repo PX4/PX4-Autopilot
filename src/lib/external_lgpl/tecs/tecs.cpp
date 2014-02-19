@@ -3,12 +3,9 @@
 #include "tecs.h"
 #include <ecl/ecl.h>
 #include <systemlib/err.h>
+#include <geo/geo.h>
 
 using namespace math;
-
-#ifndef CONSTANTS_ONE_G
-#define CONSTANTS_ONE_G GRAVITY
-#endif
 
 /**
  * @file tecs.cpp
