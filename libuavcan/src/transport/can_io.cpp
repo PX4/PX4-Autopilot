@@ -26,13 +26,12 @@ std::string CanRxFrame::toString(StringRepresentation mode) const
 /*
  * CanTxQueue::Entry
  */
-void CanTxQueue::Entry::destroy(Entry*& obj, IAllocator* allocator)
+void CanTxQueue::Entry::destroy(Entry*& obj, IAllocator& allocator)
 {
-    assert(allocator);
     if (obj != NULL)
     {
         obj->~Entry();
-        allocator->deallocate(obj);
+        allocator.deallocate(obj);
         obj = NULL;
     }
 }
@@ -181,7 +180,7 @@ void CanTxQueue::remove(Entry*& entry)
         return;
     }
     queue_.remove(entry);
-    Entry::destroy(entry, allocator_);
+    Entry::destroy(entry, *allocator_);
 }
 
 bool CanTxQueue::topPriorityHigherOrEqual(const CanFrame& rhs_frame) const
@@ -198,13 +197,13 @@ bool CanTxQueue::topPriorityHigherOrEqual(const CanFrame& rhs_frame) const
 int CanIOManager::sendToIface(int iface_index, const CanFrame& frame, uint64_t monotonic_tx_deadline)
 {
     assert(iface_index >= 0 && iface_index < MAX_IFACES);
-    ICanIface* const iface = driver_->getIface(iface_index);
+    ICanIface* const iface = driver_.getIface(iface_index);
     if (iface == NULL)
     {
         assert(0);   // Nonexistent interface
         return -1;
     }
-    const uint64_t timestamp = sysclock_->getMonotonicMicroseconds();
+    const uint64_t timestamp = sysclock_.getMonotonicMicroseconds();
     const uint64_t timeout = (timestamp >= monotonic_tx_deadline) ? 0 : (monotonic_tx_deadline - timestamp);
     const int res = iface->send(frame, timeout);
     if (res != 1)
@@ -240,20 +239,20 @@ int CanIOManager::makePendingTxMask() const
 
 uint64_t CanIOManager::getTimeUntilMonotonicDeadline(uint64_t monotonic_deadline) const
 {
-    const uint64_t timestamp = sysclock_->getMonotonicMicroseconds();
+    const uint64_t timestamp = sysclock_.getMonotonicMicroseconds();
     return (timestamp >= monotonic_deadline) ? 0 : (monotonic_deadline - timestamp);
 }
 
 int CanIOManager::getNumIfaces() const
 {
-    const int num = driver_->getNumIfaces();
+    const int num = driver_.getNumIfaces();
     assert(num > 0 && num <= MAX_IFACES);
     return std::min(std::max(num, 0), (int)MAX_IFACES);
 }
 
 uint64_t CanIOManager::getNumErrors(int iface_index) const
 {
-    ICanIface* const iface = driver_->getIface(iface_index);
+    ICanIface* const iface = driver_.getIface(iface_index);
     if (iface == NULL || iface_index >= MAX_IFACES || iface_index < 0)
     {
         assert(0);
@@ -285,7 +284,7 @@ int CanIOManager::send(const CanFrame& frame, uint64_t monotonic_tx_deadline, ui
         const uint64_t timeout = getTimeUntilMonotonicDeadline(monotonic_blocking_deadline);
         {
             int read_mask = 0;
-            const int select_res = driver_->select(write_mask, read_mask, timeout);
+            const int select_res = driver_.select(write_mask, read_mask, timeout);
             if (select_res < 0)
                 return select_res;
         }
@@ -321,7 +320,7 @@ int CanIOManager::send(const CanFrame& frame, uint64_t monotonic_tx_deadline, ui
         // Timeout. Enqueue the frame if wasn't transmitted and leave.
         if (write_mask == 0 || timeout == 0)
         {
-            if ((timeout > 0) && (sysclock_->getMonotonicMicroseconds() < monotonic_blocking_deadline))
+            if ((timeout > 0) && (sysclock_.getMonotonicMicroseconds() < monotonic_blocking_deadline))
             {
                 UAVCAN_TRACE("CanIOManager", "Send: Premature timeout in select(), will try again");
                 continue;
@@ -347,7 +346,7 @@ int CanIOManager::receive(CanRxFrame& frame, uint64_t monotonic_deadline)
         int read_mask = (1 << num_ifaces) - 1;
         const uint64_t timeout = getTimeUntilMonotonicDeadline(monotonic_deadline);
         {
-            const int select_res = driver_->select(write_mask, read_mask, timeout);
+            const int select_res = driver_.select(write_mask, read_mask, timeout);
             if (select_res < 0)
                 return select_res;
         }
@@ -364,7 +363,7 @@ int CanIOManager::receive(CanRxFrame& frame, uint64_t monotonic_deadline)
         {
             if (read_mask & (1 << i))
             {
-                ICanIface* const iface = driver_->getIface(i);
+                ICanIface* const iface = driver_.getIface(i);
                 if (iface == NULL)
                 {
                     assert(0);   // Nonexistent interface

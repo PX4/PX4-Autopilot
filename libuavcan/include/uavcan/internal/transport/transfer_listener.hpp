@@ -87,18 +87,16 @@ public:
  */
 class TransferListenerBase : public LinkedListNode<TransferListenerBase>
 {
-    const DataTypeDescriptor* const data_type_;
+    const DataTypeDescriptor& data_type_;
     const Crc16 crc_base_;                      ///< Pre-initialized with data type hash, thus constant
 
     bool checkPayloadCrc(const uint16_t compare_with, const ITransferBuffer& tbb) const;
 
 protected:
-    TransferListenerBase(const DataTypeDescriptor* data_type)
+    TransferListenerBase(const DataTypeDescriptor& data_type)
     : data_type_(data_type)
-    , crc_base_(data_type->hash.value, DataTypeHash::NUM_BYTES)
-    {
-        assert(data_type);
-    }
+    , crc_base_(data_type.hash.value, DataTypeHash::NUM_BYTES)
+    { }
 
     virtual ~TransferListenerBase() { }
 
@@ -107,7 +105,7 @@ protected:
     virtual void handleIncomingTransfer(IncomingTransfer& transfer) = 0;
 
 public:
-    const DataTypeDescriptor* getDataTypeDescriptor() const { return data_type_; }
+    const DataTypeDescriptor& getDataTypeDescriptor() const { return data_type_; }
 
     virtual void handleFrame(const RxFrame& frame) = 0;
     virtual void cleanup(uint64_t ts_monotonic) = 0;
@@ -141,7 +139,7 @@ class TransferListener : public TransferListenerBase, Noncopyable
                 return;
             }
         }
-        TransferBufferAccessor tba(&bufmgr_, key);
+        TransferBufferAccessor tba(bufmgr_, key);
         handleReception(*recv, frame, tba);
     }
 
@@ -182,7 +180,7 @@ class TransferListener : public TransferListenerBase, Noncopyable
     }
 
 public:
-    TransferListener(const DataTypeDescriptor* data_type, IAllocator* allocator)
+    TransferListener(const DataTypeDescriptor& data_type, IAllocator& allocator)
     : TransferListenerBase(data_type)
     , bufmgr_(allocator)
     , receivers_(allocator)

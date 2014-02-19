@@ -31,7 +31,7 @@ TEST(CanIOManager, Reception)
     CanDriverMock driver(2, clockmock);
 
     // IO Manager
-    uavcan::CanIOManager iomgr(&driver, &poolmgr, &clockmock);
+    uavcan::CanIOManager iomgr(driver, poolmgr, clockmock);
     ASSERT_EQ(2, iomgr.getNumIfaces());
 
     /*
@@ -115,7 +115,7 @@ TEST(CanIOManager, Transmission)
     CanDriverMock driver(2, clockmock);
 
     // IO Manager
-    CanIOManager iomgr(&driver, &poolmgr, &clockmock);
+    CanIOManager iomgr(driver, poolmgr, clockmock);
     ASSERT_EQ(2, iomgr.getNumIfaces());
 
     const int ALL_IFACES_MASK = 3;

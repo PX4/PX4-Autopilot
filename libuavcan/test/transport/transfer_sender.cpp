@@ -33,12 +33,12 @@ TEST(TransferSender, Basic)
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(&poolmgr);
+    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
 
     static const uavcan::NodeID TX_NODE_ID(64);
     static const uavcan::NodeID RX_NODE_ID(65);
-    uavcan::Dispatcher dispatcher_tx(&driver, &poolmgr, &clockmock, &out_trans_reg, TX_NODE_ID);
-    uavcan::Dispatcher dispatcher_rx(&driver, &poolmgr, &clockmock, &out_trans_reg, RX_NODE_ID);
+    uavcan::Dispatcher dispatcher_tx(driver, poolmgr, clockmock, out_trans_reg, TX_NODE_ID);
+    uavcan::Dispatcher dispatcher_rx(driver, poolmgr, clockmock, out_trans_reg, RX_NODE_ID);
 
     /*
      * Test environment
@@ -109,9 +109,9 @@ TEST(TransferSender, Basic)
         }
     }
 
-    TestSubscriber<512, 2, 2> sub_msg(TYPES + 0, &poolmgr);
-    TestSubscriber<512, 2, 2> sub_srv_req(TYPES + 1, &poolmgr);
-    TestSubscriber<512, 2, 2> sub_srv_resp(TYPES + 1, &poolmgr);
+    TestSubscriber<512, 2, 2> sub_msg(TYPES[0], poolmgr);
+    TestSubscriber<512, 2, 2> sub_srv_req(TYPES[1], poolmgr);
+    TestSubscriber<512, 2, 2> sub_srv_resp(TYPES[1], poolmgr);
 
     dispatcher_rx.registerMessageListener(&sub_msg);
     dispatcher_rx.registerServiceRequestListener(&sub_srv_req);

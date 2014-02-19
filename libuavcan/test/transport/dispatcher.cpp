@@ -41,9 +41,9 @@ TEST(Dispatcher, Reception)
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(&poolmgr);
+    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
 
-    uavcan::Dispatcher dispatcher(&driver, &poolmgr, &clockmock, &out_trans_reg, SELF_NODE_ID);
+    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg, SELF_NODE_ID);
 
     DispatcherTransferEmulator emulator(driver, SELF_NODE_ID);
 
@@ -63,12 +63,12 @@ TEST(Dispatcher, Reception)
     static const int NUM_SUBSCRIBERS = 6;
     SubscriberPtr subscribers[NUM_SUBSCRIBERS] =
     {
-        SubscriberPtr(new Subscriber(TYPES + 0, &poolmgr)),  // msg
-        SubscriberPtr(new Subscriber(TYPES + 0, &poolmgr)),  // msg // Two similar, yes
-        SubscriberPtr(new Subscriber(TYPES + 1, &poolmgr)),  // msg
-        SubscriberPtr(new Subscriber(TYPES + 2, &poolmgr)),  // srv
-        SubscriberPtr(new Subscriber(TYPES + 3, &poolmgr)),  // srv
-        SubscriberPtr(new Subscriber(TYPES + 3, &poolmgr))   // srv // Repeat again
+        SubscriberPtr(new Subscriber(TYPES[0], poolmgr)),  // msg
+        SubscriberPtr(new Subscriber(TYPES[0], poolmgr)),  // msg // Two similar, yes
+        SubscriberPtr(new Subscriber(TYPES[1], poolmgr)),  // msg
+        SubscriberPtr(new Subscriber(TYPES[2], poolmgr)),  // srv
+        SubscriberPtr(new Subscriber(TYPES[3], poolmgr)),  // srv
+        SubscriberPtr(new Subscriber(TYPES[3], poolmgr))   // srv // Repeat again
     };
 
     static const std::string DATA[6] =
@@ -190,9 +190,9 @@ TEST(Dispatcher, Transmission)
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(&poolmgr);
+    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
 
-    uavcan::Dispatcher dispatcher(&driver, &poolmgr, &clockmock, &out_trans_reg, SELF_NODE_ID);
+    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg, SELF_NODE_ID);
 
     /*
      * Transmission
@@ -227,9 +227,9 @@ TEST(Dispatcher, Spin)
     SystemClockMock clockmock(100);
     CanDriverMock driver(2, clockmock);
 
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(&poolmgr);
+    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
 
-    uavcan::Dispatcher dispatcher(&driver, &poolmgr, &clockmock, &out_trans_reg, SELF_NODE_ID);
+    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg, SELF_NODE_ID);
 
     clockmock.monotonic_auto_advance = 100;
 

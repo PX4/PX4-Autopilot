@@ -35,7 +35,7 @@ TEST(Map, Basic)
     poolmgr.addPool(&pool);
 
     typedef Map<std::string, std::string, 2> MapType;
-    std::auto_ptr<MapType> map(new MapType(&poolmgr));
+    std::auto_ptr<MapType> map(new MapType(poolmgr));
 
     // Empty
     ASSERT_FALSE(map->access("hi"));

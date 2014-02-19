@@ -12,8 +12,8 @@ TEST(TransferTestHelpers, Transfer)
     uavcan::PoolManager<1> poolmgr;
     poolmgr.addPool(&pool);
 
-    uavcan::TransferBufferManager<128, 1> mgr(&poolmgr);
-    uavcan::TransferBufferAccessor tba(&mgr, uavcan::TransferBufferManagerKey(0, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST));
+    uavcan::TransferBufferManager<128, 1> mgr(poolmgr);
+    uavcan::TransferBufferAccessor tba(mgr, uavcan::TransferBufferManagerKey(0, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST));
 
     uavcan::RxFrame frame(uavcan::Frame(123, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 1, 0, 0, 0, true), 0, 0, 0);
     uavcan::MultiFrameIncomingTransfer mfit(10, 1000, frame, tba);

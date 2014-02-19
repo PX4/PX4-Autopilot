@@ -53,7 +53,7 @@ public:
             IsDynamicallyAllocatable<Entry>::check();
         }
 
-        static void destroy(Entry*& obj, IAllocator* allocator);
+        static void destroy(Entry*& obj, IAllocator& allocator);
 
         bool isExpired(uint64_t monotonic_timestamp) const { return monotonic_timestamp > monotonic_deadline; }
 
@@ -96,10 +96,7 @@ public:
     : allocator_(allocator)
     , sysclock_(sysclock)
     , rejected_frames_cnt_(0)
-    {
-        assert(allocator);
-        assert(sysclock);
-    }
+    { }
 
     ~CanTxQueue();
 
@@ -122,8 +119,8 @@ public:
     enum { MAX_IFACES = 3 };
 
 private:
-    ICanDriver* const driver_;
-    ISystemClock* const sysclock_;
+    ICanDriver& driver_;
+    ISystemClock& sysclock_;
 
     CanTxQueue tx_queues_[MAX_IFACES];
 
@@ -137,19 +134,16 @@ private:
     uint64_t getTimeUntilMonotonicDeadline(uint64_t monotonic_deadline) const;
 
 public:
-    CanIOManager(ICanDriver* driver, IAllocator* allocator, ISystemClock* sysclock)
+    CanIOManager(ICanDriver& driver, IAllocator& allocator, ISystemClock& sysclock)
     : driver_(driver)
     , sysclock_(sysclock)
     {
-        assert(driver);
-        assert(allocator);
-        assert(sysclock);
-        assert(driver->getNumIfaces() <= MAX_IFACES);
+        assert(driver.getNumIfaces() <= MAX_IFACES);
         // We can't initialize member array with non-default constructors in C++03
         for (int i = 0; i < MAX_IFACES; i++)
         {
             tx_queues_[i].~CanTxQueue();
-            new (tx_queues_ + i) CanTxQueue(allocator, sysclock);
+            new (tx_queues_ + i) CanTxQueue(&allocator, &sysclock);
         }
     }
 

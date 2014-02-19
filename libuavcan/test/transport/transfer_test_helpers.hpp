@@ -104,13 +104,13 @@ class TestSubscriber : public uavcan::TransferListener<MAX_BUF_SIZE, NUM_STATIC_
     std::queue<Transfer> transfers_;
 
 public:
-    TestSubscriber(const uavcan::DataTypeDescriptor* data_type, uavcan::IAllocator* allocator)
+    TestSubscriber(const uavcan::DataTypeDescriptor& data_type, uavcan::IAllocator& allocator)
     : Base(data_type, allocator)
     { }
 
     void handleIncomingTransfer(uavcan::IncomingTransfer& transfer)
     {
-        const Transfer rx(transfer, *Base::getDataTypeDescriptor());
+        const Transfer rx(transfer, Base::getDataTypeDescriptor());
         transfers_.push(rx);
         std::cout << "Received transfer: " << rx.toString() << std::endl;
     }

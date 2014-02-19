@@ -92,7 +92,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, uint64_t monot
     assert(monotonic_tx_deadline > 0);
     const uint64_t otr_deadline = monotonic_tx_deadline + max_transfer_interval_;
 
-    TransferID* const tid = dispatcher_.getOutgoingTransferRegistry()->accessOrCreate(otr_key, otr_deadline);
+    TransferID* const tid = dispatcher_.getOutgoingTransferRegistry().accessOrCreate(otr_key, otr_deadline);
     if (tid == NULL)
     {
         UAVCAN_TRACE("TransferSender", "OTR access failure, dtid=%i tt=%i", int(data_type_.id), int(transfer_type));

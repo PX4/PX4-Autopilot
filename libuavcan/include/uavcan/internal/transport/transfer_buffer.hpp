@@ -101,8 +101,8 @@ class DynamicTransferBuffer : public TransferBufferManagerEntry, public LinkedLi
         enum { SIZE = MEM_POOL_BLOCK_SIZE - sizeof(LinkedListNode<Block>) };
         uint8_t data[SIZE];
 
-        static Block* instantiate(IAllocator* allocator);
-        static void destroy(Block*& obj, IAllocator* allocator);
+        static Block* instantiate(IAllocator& allocator);
+        static void destroy(Block*& obj, IAllocator& allocator);
 
         void read(uint8_t*& outptr, unsigned int target_offset,
                   unsigned int& total_offset, unsigned int& left_to_read);
@@ -110,7 +110,7 @@ class DynamicTransferBuffer : public TransferBufferManagerEntry, public LinkedLi
                    unsigned int& total_offset, unsigned int& left_to_write);
     };
 
-    IAllocator* allocator_;
+    IAllocator& allocator_;
     LinkedListRoot<Block> blocks_;    // Blocks are ordered from lower to higher buffer offset
     unsigned int max_write_pos_;
     const unsigned int max_size_;
@@ -118,7 +118,7 @@ class DynamicTransferBuffer : public TransferBufferManagerEntry, public LinkedLi
     void resetImpl();
 
 public:
-    DynamicTransferBuffer(IAllocator* allocator, unsigned int max_size)
+    DynamicTransferBuffer(IAllocator& allocator, unsigned int max_size)
     : allocator_(allocator)
     , max_write_pos_(0)
     , max_size_(max_size)
@@ -133,8 +133,8 @@ public:
         resetImpl();
     }
 
-    static DynamicTransferBuffer* instantiate(IAllocator* allocator, unsigned int max_size);
-    static void destroy(DynamicTransferBuffer*& obj, IAllocator* allocator);
+    static DynamicTransferBuffer* instantiate(IAllocator& allocator, unsigned int max_size);
+    static void destroy(DynamicTransferBuffer*& obj, IAllocator& allocator);
 
     int read(unsigned int offset, uint8_t* data, unsigned int len) const;
     int write(unsigned int offset, const uint8_t* data, unsigned int len);
@@ -247,20 +247,19 @@ public:
  */
 class TransferBufferAccessor
 {
-    ITransferBufferManager* const bufmgr_;
+    ITransferBufferManager& bufmgr_;
     const TransferBufferManagerKey key_;
 
 public:
-    TransferBufferAccessor(ITransferBufferManager* bufmgr, TransferBufferManagerKey key)
+    TransferBufferAccessor(ITransferBufferManager& bufmgr, TransferBufferManagerKey key)
     : bufmgr_(bufmgr)
     , key_(key)
     {
-        assert(bufmgr);
         assert(!key.isEmpty());
     }
-    ITransferBuffer* access() { return bufmgr_->access(key_); }
-    ITransferBuffer* create() { return bufmgr_->create(key_); }
-    void remove() { bufmgr_->remove(key_); }
+    ITransferBuffer* access() { return bufmgr_.access(key_); }
+    ITransferBuffer* create() { return bufmgr_.create(key_); }
+    void remove() { bufmgr_.remove(key_); }
 };
 
 /**
@@ -273,7 +272,7 @@ class TransferBufferManager : public ITransferBufferManager, Noncopyable
 
     StaticBufferType static_buffers_[NUM_STATIC_BUFS];
     LinkedListRoot<DynamicTransferBuffer> dynamic_buffers_;
-    IAllocator* const allocator_;
+    IAllocator& allocator_;
 
     StaticBufferType* findFirstStatic(const TransferBufferManagerKey& key)
     {
@@ -331,10 +330,9 @@ class TransferBufferManager : public ITransferBufferManager, Noncopyable
     }
 
 public:
-    TransferBufferManager(IAllocator* allocator)
+    TransferBufferManager(IAllocator& allocator)
     : allocator_(allocator)
     {
-        assert(allocator);
         StaticAssert<(MAX_BUF_SIZE > 0)>::check();
         StaticAssert<(NUM_STATIC_BUFS > 0)>::check();
     }
@@ -440,7 +438,8 @@ template <>
 class TransferBufferManager<0, 0> : public ITransferBufferManager
 {
 public:
-    TransferBufferManager(IAllocator* allocator)
+    TransferBufferManager() { }
+    TransferBufferManager(IAllocator& allocator)
     {
         (void)allocator;
     }

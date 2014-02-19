@@ -11,7 +11,7 @@ TEST(OutgoingTransferRegistry, Basic)
 {
     using uavcan::OutgoingTransferRegistryKey;
     uavcan::PoolManager<1> poolmgr;  // Empty
-    uavcan::OutgoingTransferRegistry<4> otr(&poolmgr);
+    uavcan::OutgoingTransferRegistry<4> otr(poolmgr);
 
     otr.cleanup(1000);
 

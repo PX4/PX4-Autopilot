@@ -18,13 +18,13 @@ bool Dispatcher::ListenerRegister::add(TransferListenerBase* listener, Mode mode
         TransferListenerBase* p = list_.get();
         while (p)
         {
-            if (p->getDataTypeDescriptor()->id == listener->getDataTypeDescriptor()->id)
+            if (p->getDataTypeDescriptor().id == listener->getDataTypeDescriptor().id)
                 return false;
             p = p->getNextListNode();
         }
     }
     // Objective is to arrange entries by Data Type ID in ascending order from root.
-    list_.insertBefore(listener, DataTypeIDInsertionComparator(listener->getDataTypeDescriptor()->id));
+    list_.insertBefore(listener, DataTypeIDInsertionComparator(listener->getDataTypeDescriptor().id));
     return true;
 }
 
@@ -48,9 +48,9 @@ void Dispatcher::ListenerRegister::handleFrame(const RxFrame& frame)
     TransferListenerBase* p = list_.get();
     while (p)
     {
-        if (p->getDataTypeDescriptor()->id == frame.getDataTypeID())
+        if (p->getDataTypeDescriptor().id == frame.getDataTypeID())
             p->handleFrame(frame);
-        else if (p->getDataTypeDescriptor()->id < frame.getDataTypeID())  // Listeners are ordered by data type id!
+        else if (p->getDataTypeDescriptor().id < frame.getDataTypeID())  // Listeners are ordered by data type id!
             break;
         p = p->getNextListNode();
     }
@@ -109,7 +109,7 @@ int Dispatcher::spin(uint64_t monotonic_deadline)
             handleFrame(frame);
         }
     }
-    while (sysclock_->getMonotonicMicroseconds() < monotonic_deadline);
+    while (sysclock_.getMonotonicMicroseconds() < monotonic_deadline);
 
     return num_frames_processed;
 }
@@ -137,7 +137,7 @@ int Dispatcher::send(const Frame& frame, uint64_t monotonic_tx_deadline, uint64_
 
 void Dispatcher::cleanup(uint64_t ts_monotonic)
 {
-    outgoing_transfer_reg_->cleanup(ts_monotonic);
+    outgoing_transfer_reg_.cleanup(ts_monotonic);
     lmsg_.cleanup(ts_monotonic);
     lsrv_req_.cleanup(ts_monotonic);
     lsrv_resp_.cleanup(ts_monotonic);
@@ -145,7 +145,7 @@ void Dispatcher::cleanup(uint64_t ts_monotonic)
 
 bool Dispatcher::registerMessageListener(TransferListenerBase* listener)
 {
-    if (listener->getDataTypeDescriptor()->kind != DATA_TYPE_KIND_MESSAGE)
+    if (listener->getDataTypeDescriptor().kind != DATA_TYPE_KIND_MESSAGE)
     {
         assert(0);
         return false;
@@ -155,7 +155,7 @@ bool Dispatcher::registerMessageListener(TransferListenerBase* listener)
 
 bool Dispatcher::registerServiceRequestListener(TransferListenerBase* listener)
 {
-    if (listener->getDataTypeDescriptor()->kind != DATA_TYPE_KIND_SERVICE)
+    if (listener->getDataTypeDescriptor().kind != DATA_TYPE_KIND_SERVICE)
     {
         assert(0);
         return false;
@@ -165,7 +165,7 @@ bool Dispatcher::registerServiceRequestListener(TransferListenerBase* listener)
 
 bool Dispatcher::registerServiceResponseListener(TransferListenerBase* listener)
 {
-    if (listener->getDataTypeDescriptor()->kind != DATA_TYPE_KIND_SERVICE)
+    if (listener->getDataTypeDescriptor().kind != DATA_TYPE_KIND_SERVICE)
     {
         assert(0);
         return false;

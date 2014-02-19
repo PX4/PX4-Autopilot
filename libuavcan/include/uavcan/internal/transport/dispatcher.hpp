@@ -17,8 +17,8 @@ namespace uavcan
 class Dispatcher : Noncopyable
 {
     CanIOManager canio_;
-    ISystemClock* const sysclock_;
-    IOutgoingTransferRegistry* const outgoing_transfer_reg_;
+    ISystemClock& sysclock_;
+    IOutgoingTransferRegistry& outgoing_transfer_reg_;
 
     class ListenerRegister
     {
@@ -32,7 +32,7 @@ class Dispatcher : Noncopyable
             bool operator()(const TransferListenerBase* listener) const
             {
                 assert(listener);
-                return id_ > listener->getDataTypeDescriptor()->id;
+                return id_ > listener->getDataTypeDescriptor().id;
             }
         };
 
@@ -56,18 +56,13 @@ class Dispatcher : Noncopyable
     void handleFrame(const CanRxFrame& can_frame);
 
 public:
-    Dispatcher(ICanDriver* driver, IAllocator* allocator, ISystemClock* sysclock, IOutgoingTransferRegistry* otr,
+    Dispatcher(ICanDriver& driver, IAllocator& allocator, ISystemClock& sysclock, IOutgoingTransferRegistry& otr,
                NodeID self_node_id)
     : canio_(driver, allocator, sysclock)
     , sysclock_(sysclock)
     , outgoing_transfer_reg_(otr)
     , self_node_id_(self_node_id)
-    {
-        assert(driver);
-        assert(allocator);
-        assert(sysclock);
-        assert(otr);
-    }
+    { }
 
     int spin(uint64_t monotonic_deadline);
 
@@ -91,7 +86,7 @@ public:
     int getNumServiceRequestListeners()  const { return lsrv_req_.getNumEntries(); }
     int getNumServiceResponseListeners() const { return lsrv_resp_.getNumEntries(); }
 
-    IOutgoingTransferRegistry* getOutgoingTransferRegistry() { return outgoing_transfer_reg_; }
+    IOutgoingTransferRegistry& getOutgoingTransferRegistry() { return outgoing_transfer_reg_; }
 
     NodeID getSelfNodeID() const { return self_node_id_; }
 };

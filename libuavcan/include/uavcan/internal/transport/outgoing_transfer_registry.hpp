@@ -91,7 +91,7 @@ class OutgoingTransferRegistry : public IOutgoingTransferRegistry, Noncopyable
     Map<OutgoingTransferRegistryKey, Value, NUM_STATIC_ENTRIES> map_;
 
 public:
-    OutgoingTransferRegistry(IAllocator* allocator)
+    OutgoingTransferRegistry(IAllocator& allocator)
     : map_(allocator)
     { }
 

@@ -39,7 +39,7 @@ TEST(TransferListener, BasicMFT)
     uavcan::PoolManager<1> poolmgr;
     poolmgr.addPool(&pool);
 
-    TestSubscriber<256, 1, 1> subscriber(&type, &poolmgr);
+    TestSubscriber<256, 1, 1> subscriber(type, poolmgr);
 
     /*
      * Test data
@@ -92,7 +92,7 @@ TEST(TransferListener, CrcFailure)
         type.hash.value[i] = i | (i << 4);
 
     uavcan::PoolManager<1> poolmgr;                         // No dynamic memory
-    TestSubscriber<256, 2, 2> subscriber(&type, &poolmgr);  // Static buffer only, 2 entries
+    TestSubscriber<256, 2, 2> subscriber(type, poolmgr);  // Static buffer only, 2 entries
 
     /*
      * Generating transfers with damaged payload (CRC is not valid)
@@ -137,7 +137,7 @@ TEST(TransferListener, BasicSFT)
         type.hash.value[i] = i | (i << 4);
 
     uavcan::PoolManager<1> poolmgr;                         // No dynamic memory. At all.
-    TestSubscriber<0, 0, 5> subscriber(&type, &poolmgr);    // Max buf size is 0, i.e. SFT-only
+    TestSubscriber<0, 0, 5> subscriber(type, poolmgr);    // Max buf size is 0, i.e. SFT-only
 
     TransferListenerEmulator emulator(subscriber, type);
     const Transfer transfers[] =
@@ -174,7 +174,7 @@ TEST(TransferListener, Cleanup)
         type.hash.value[i] = i | (i << 4);
 
     uavcan::PoolManager<1> poolmgr;                         // No dynamic memory
-    TestSubscriber<256, 1, 2> subscriber(&type, &poolmgr);  // Static buffer only, 1 entry
+    TestSubscriber<256, 1, 2> subscriber(type, poolmgr);  // Static buffer only, 1 entry
 
     /*
      * Generating transfers
@@ -230,7 +230,7 @@ TEST(TransferListener, MaximumTransferLength)
         type.hash.value[i] = i | (i << 4);
 
     uavcan::PoolManager<1> poolmgr;
-    TestSubscriber<uavcan::MAX_TRANSFER_PAYLOAD_LEN * 2, 2, 2> subscriber(&type, &poolmgr);
+    TestSubscriber<uavcan::MAX_TRANSFER_PAYLOAD_LEN * 2, 2, 2> subscriber(type, poolmgr);
 
     static const std::string DATA_OK(uavcan::MAX_TRANSFER_PAYLOAD_LEN, 'z');
 

@@ -23,22 +23,20 @@ std::string TransferBufferManagerKey::toString() const
 /*
  * DynamicTransferBuffer::Block
  */
-DynamicTransferBuffer::Block* DynamicTransferBuffer::Block::instantiate(IAllocator* allocator)
+DynamicTransferBuffer::Block* DynamicTransferBuffer::Block::instantiate(IAllocator& allocator)
 {
-    assert(allocator);
-    void* const praw = allocator->allocate(sizeof(Block));
+    void* const praw = allocator.allocate(sizeof(Block));
     if (praw == NULL)
         return NULL;
     return new (praw) Block;
 }
 
-void DynamicTransferBuffer::Block::destroy(Block*& obj, IAllocator* allocator)
+void DynamicTransferBuffer::Block::destroy(Block*& obj, IAllocator& allocator)
 {
-    assert(allocator);
     if (obj != NULL)
     {
         obj->~Block();
-        allocator->deallocate(obj);
+        allocator.deallocate(obj);
         obj = NULL;
     }
 }
@@ -74,22 +72,20 @@ void DynamicTransferBuffer::Block::write(const uint8_t*& inptr, unsigned int tar
 /*
  * DynamicTransferBuffer
  */
-DynamicTransferBuffer* DynamicTransferBuffer::instantiate(IAllocator* allocator, unsigned int max_size)
+DynamicTransferBuffer* DynamicTransferBuffer::instantiate(IAllocator& allocator, unsigned int max_size)
 {
-    assert(allocator);
-    void* const praw = allocator->allocate(sizeof(DynamicTransferBuffer));
+    void* const praw = allocator.allocate(sizeof(DynamicTransferBuffer));
     if (praw == NULL)
         return NULL;
     return new (praw) DynamicTransferBuffer(allocator, max_size);
 }
 
-void DynamicTransferBuffer::destroy(DynamicTransferBuffer*& obj, IAllocator* allocator)
+void DynamicTransferBuffer::destroy(DynamicTransferBuffer*& obj, IAllocator& allocator)
 {
-    assert(allocator);
     if (obj != NULL)
     {
         obj->~DynamicTransferBuffer();
-        allocator->deallocate(obj);
+        allocator.deallocate(obj);
         obj = NULL;
     }
 }

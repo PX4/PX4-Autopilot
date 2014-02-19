@@ -138,7 +138,7 @@ TEST(DynamicTransferBuffer, Basic)
     uavcan::PoolManager<2> poolmgr;
     poolmgr.addPool(&pool);
 
-    DynamicTransferBuffer buf(&poolmgr, MAX_SIZE);
+    DynamicTransferBuffer buf(poolmgr, MAX_SIZE);
 
     uint8_t local_buffer[TEST_BUFFER_SIZE * 2];
     const uint8_t* const test_data_ptr = reinterpret_cast<const uint8_t*>(TEST_DATA.c_str());
@@ -239,7 +239,7 @@ TEST(TransferBufferManager, Basic)
     poolmgr.addPool(&pool);
 
     typedef TransferBufferManager<MGR_MAX_BUFFER_SIZE, 2> TransferBufferManagerType;
-    std::auto_ptr<TransferBufferManagerType> mgr(new TransferBufferManagerType(&poolmgr));
+    std::auto_ptr<TransferBufferManagerType> mgr(new TransferBufferManagerType(poolmgr));
 
     // Empty
     ASSERT_FALSE(mgr->access(TransferBufferManagerKey(0, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST)));
@@ -342,7 +342,7 @@ TEST(TransferBufferManager, Basic)
 
 TEST(TransferBufferManager, EmptySpecialization)
 {
-    uavcan::TransferBufferManager<0, 0> mgr(NULL);
+    uavcan::TransferBufferManager<0, 0> mgr;
     (void)mgr;
     ASSERT_GE(sizeof(void*), sizeof(mgr));
 }
