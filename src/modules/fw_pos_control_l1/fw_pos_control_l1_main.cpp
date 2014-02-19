@@ -942,17 +942,13 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				if (_global_pos.alt > landing_slope_alt_desired - 10.0f) {
 					/* stay on slope */
 					altitude_desired = landing_slope_alt_desired;
-					//warnx("Landing: before L, stay on landing slope, alt_desired: %.1f (wp_distance: %.1f, L_wp_distance %.1f), calculate_target_airspeed(airspeed_land) %.1f, horizontal_slope_displacement %.1f", altitude_desired, wp_distance, L_wp_distance, calculate_target_airspeed(airspeed_land), horizontal_slope_displacement);
-
 					if (!land_onslope) {
 						mavlink_log_info(_mavlink_fd, "#audio: Landing, on slope");
 						land_onslope = true;
 					}
-
 				} else {
 					/* continue horizontally */
 					altitude_desired =  math::max(_global_pos.alt, L_altitude);
-					//warnx("Landing: before L,continue at: %.4f, (landing_slope_alt_desired %.4f, wp_distance: %.4f, L_altitude: %.4f L_wp_distance: %.4f)", altitude_desired, landing_slope_alt_desired, wp_distance, L_altitude, L_wp_distance);
 				}
 
 				_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, altitude_desired, calculate_target_airspeed(airspeed_approach),
