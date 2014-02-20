@@ -34,6 +34,14 @@ class BitStream
     }
 
 public:
+    enum { MAX_BITS_PER_RW = MAX_BYTES_PER_RW * 8 };
+
+    enum
+    {
+        RESULT_OUT_OF_BUFFER = 0,
+        RESULT_OK            = 1
+    };
+
     BitStream(ITransferBuffer& buf)
     : buf_(buf)
     , bit_offset_(0)
@@ -48,6 +56,10 @@ public:
      *   Hex:     55       2d
      *   Bits:    01010101 00101101
      *   Indices: 0  ..  7 8  ..  15
+     * Return values:
+     *   Negative - Error
+     *   Zero     - Out of buffer space
+     *   Positive - OK
      */
     int write(const uint8_t* bytes, const int bitlen);
     int read(uint8_t* bytes, const int bitlen);

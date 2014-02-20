@@ -18,21 +18,21 @@ TEST(BitStream, ToString)
         const uint8_t data[] = {0xad};   // 10101101
         uavcan::StaticTransferBuffer<8> buf;
         uavcan::BitStream bs(buf);
-        ASSERT_EQ(0, bs.write(data, 8)); // all 8
+        ASSERT_EQ(1, bs.write(data, 8)); // all 8
         ASSERT_EQ("10101101", bs.toString());
     }
     {
         const uint8_t data[] = {0xad, 0xbe};  // 10101101 10111110
         uavcan::StaticTransferBuffer<8> buf;
         uavcan::BitStream bs(buf);
-        ASSERT_EQ(0, bs.write(data, 16));     // all 16
+        ASSERT_EQ(1, bs.write(data, 16));     // all 16
         ASSERT_EQ("10101101 10111110", bs.toString());
     }
     {
         const uint8_t data[] = {0xad, 0xbe, 0xfc};  // 10101101 10111110 11111100
         uavcan::StaticTransferBuffer<8> buf;
         uavcan::BitStream bs(buf);
-        ASSERT_EQ(0, bs.write(data, 20));           // 10101101 10111110 1111
+        ASSERT_EQ(1, bs.write(data, 20));           // 10101101 10111110 1111
         ASSERT_EQ("10101101 10111110 11110000", bs.toString());
     }
 }
@@ -52,14 +52,14 @@ TEST(BitStream, BitOrderSimple)
     {   // Write
         const uint8_t data[] = {0xad, 0xbe};            // adbe
         uavcan::BitStream bs(buf);
-        ASSERT_EQ(0, bs.write(data, 12));               // adb0
+        ASSERT_EQ(1, bs.write(data, 12));               // adb0
         ASSERT_EQ("10101101 10110000", bs.toString());  // adb0
     }
     {   // Read
         uavcan::BitStream bs(buf);
         ASSERT_EQ("10101101 10110000", bs.toString());  // Same data
         uint8_t data[] = {0xFF, 0xFF};                  // Uninitialized
-        ASSERT_EQ(0, bs.read(data, 12));
+        ASSERT_EQ(1, bs.read(data, 12));
         ASSERT_EQ(0xad, data[0]);
         ASSERT_EQ(0xb0, data[1]);
     }
@@ -80,15 +80,15 @@ TEST(BitStream, BitOrderComplex)
                                  0x9a, 0xbc, 0xde, 0xf0};  // 10011010 10111100 11011110 11110000
 
         uavcan::BitStream bs(buf);
-        ASSERT_EQ(0, bs.write(data1, 11));  // 10101101 101
+        ASSERT_EQ(1, bs.write(data1, 11));  // 10101101 101
         std::cout << bs.toString() << std::endl;
-        ASSERT_EQ(0, bs.write(data2, 6));   //             11111 1
+        ASSERT_EQ(1, bs.write(data2, 6));   //             11111 1
         std::cout << bs.toString() << std::endl;
-        ASSERT_EQ(0, bs.write(data3, 25));  //                    1101111 01010110 11011111 01
+        ASSERT_EQ(1, bs.write(data3, 25));  //                    1101111 01010110 11011111 01
         std::cout << bs.toString() << std::endl;
-        ASSERT_EQ(0, bs.write(data4, 64));  // all 64, total 42 + 64 = 106
+        ASSERT_EQ(1, bs.write(data4, 64));  // all 64, total 42 + 64 = 106
         std::cout << bs.toString() << std::endl;
-        ASSERT_EQ(0, bs.write(data4, 4));   // 0001
+        ASSERT_EQ(1, bs.write(data4, 4));   // 0001
         std::cout << bs.toString() << std::endl;
 
         std::cout << "Reference:\n" << REFERENCE << std::endl;
@@ -101,20 +101,20 @@ TEST(BitStream, BitOrderComplex)
         uavcan::BitStream bs(buf);
         ASSERT_EQ(REFERENCE, bs.toString());
 
-        ASSERT_EQ(0, bs.read(data, 11));     // 10101101 10100000
+        ASSERT_EQ(1, bs.read(data, 11));     // 10101101 10100000
         ASSERT_EQ(0xad, data[0]);
         ASSERT_EQ(0xa0, data[1]);
 
-        ASSERT_EQ(0, bs.read(data, 6));      // 11111100
+        ASSERT_EQ(1, bs.read(data, 6));      // 11111100
         ASSERT_EQ(0xfc, data[0]);
 
-        ASSERT_EQ(0, bs.read(data, 25));     // 11011110 10101101 10111110 10000000
+        ASSERT_EQ(1, bs.read(data, 25));     // 11011110 10101101 10111110 10000000
         ASSERT_EQ(0xde, data[0]);
         ASSERT_EQ(0xad, data[1]);
         ASSERT_EQ(0xbe, data[2]);
         ASSERT_EQ(0x80, data[3]);
 
-        ASSERT_EQ(0, bs.read(data, 64));     // Data - see above
+        ASSERT_EQ(1, bs.read(data, 64));     // Data - see above
         ASSERT_EQ(0x12, data[0]);
         ASSERT_EQ(0x34, data[1]);
         ASSERT_EQ(0x56, data[2]);
@@ -142,7 +142,7 @@ TEST(BitStream, BitByBit)
             const bool value = counter % 3 == 0;
             binary_string.push_back(value ? '1' : '0');
             const uint8_t data[] = { value << 7 };
-            ASSERT_EQ(0, bs_wr.write(data, 1));
+            ASSERT_EQ(1, bs_wr.write(data, 1));
         }
         binary_string.push_back(' ');
     }
@@ -152,7 +152,7 @@ TEST(BitStream, BitByBit)
      * Currently we have no free buffer space, so next write() must fail
      */
     const uint8_t dummy_data_wr[] = { 0xFF };
-    ASSERT_EQ(-1, bs_wr.write(dummy_data_wr, 1));
+    ASSERT_EQ(0, bs_wr.write(dummy_data_wr, 1));
 
     /*
      * Bitstream content validation
@@ -172,7 +172,7 @@ TEST(BitStream, BitByBit)
         {
             const bool value = counter % 3 == 0;
             uint8_t data[1];
-            ASSERT_EQ(0, bs_rd.read(data, 1));
+            ASSERT_EQ(1, bs_rd.read(data, 1));
             if (value)
             {
                 ASSERT_EQ(0x80, data[0]);
@@ -188,6 +188,6 @@ TEST(BitStream, BitByBit)
      * Making sure that reading out of buffer range will fail with error
      */
     uint8_t dummy_data_rd[] = { 0xFF };
-    ASSERT_EQ(-1, bs_wr.read(dummy_data_rd, 1));
+    ASSERT_EQ(0, bs_wr.read(dummy_data_rd, 1));
     ASSERT_EQ(0xFF, dummy_data_rd[0]);
 }

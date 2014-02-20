@@ -38,11 +38,11 @@ int BitStream::write(const uint8_t* bytes, const int bitlen)
     const int write_res = buf_.write(bit_offset_ / 8, tmp, bytelen);
     if (write_res < 0)
         return write_res;
-    if (write_res != bytelen)
-        return -1;
+    if (write_res < bytelen)
+        return RESULT_OUT_OF_BUFFER;
 
     bit_offset_ = new_bit_offset;
-    return 0;
+    return RESULT_OK;
 }
 
 int BitStream::read(uint8_t* bytes, const int bitlen)
@@ -55,13 +55,13 @@ int BitStream::read(uint8_t* bytes, const int bitlen)
     const int read_res = buf_.read(bit_offset_ / 8, tmp, bytelen);
     if (read_res < 0)
         return read_res;
-    if (read_res != bytelen)
-        return -1;
+    if (read_res < bytelen)
+        return RESULT_OUT_OF_BUFFER;
 
     std::fill(bytes, bytes + bitlenToBytelen(bitlen), 0);
     copyBitArray(tmp, bit_offset_ % 8, bitlen, bytes, 0);
     bit_offset_ += bitlen;
-    return 0;
+    return RESULT_OK;
 }
 
 std::string BitStream::toString() const
