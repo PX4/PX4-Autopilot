@@ -85,8 +85,8 @@ static const int TEST_BUFFER_SIZE = 200;
 
 TEST(StaticTransferBuffer, Basic)
 {
-    using uavcan::StaticTransferBuffer;
-    StaticTransferBuffer<TEST_BUFFER_SIZE> buf;
+    using uavcan::StaticTransferBufferManagerEntry;
+    StaticTransferBufferManagerEntry<TEST_BUFFER_SIZE> buf;
 
     uint8_t local_buffer[TEST_BUFFER_SIZE * 2];
     const uint8_t* const test_data_ptr = reinterpret_cast<const uint8_t*>(TEST_DATA.c_str());

@@ -142,21 +142,13 @@ public:
 #pragma pack(pop)
 
 /**
- * Statically allocated storage
+ * Standalone static buffer
  */
 template <unsigned int SIZE>
-class StaticTransferBuffer : public TransferBufferManagerEntry
+class StaticTransferBuffer : public ITransferBuffer
 {
     uint8_t data_[SIZE];
     unsigned int max_write_pos_;
-
-    void resetImpl()
-    {
-        max_write_pos_ = 0;
-#if UAVCAN_DEBUG
-        std::fill(data_, data_ + SIZE, 0);
-#endif
-    }
 
 public:
     StaticTransferBuffer()
@@ -199,6 +191,42 @@ public:
         return len;
     }
 
+    void reset()
+    {
+        max_write_pos_ = 0;
+#if UAVCAN_DEBUG
+        std::fill(data_, data_ + SIZE, 0);
+#endif
+    }
+
+    uint8_t* getRawPtr() { return data_; }
+    void setMaxWritePos(unsigned int value) { max_write_pos_ = value; }
+};
+
+/**
+ * Statically allocated storage for buffer manager
+ */
+template <unsigned int SIZE>
+class StaticTransferBufferManagerEntry : public TransferBufferManagerEntry
+{
+    StaticTransferBuffer<SIZE> buf_;
+
+    void resetImpl()
+    {
+        buf_.reset();
+    }
+
+public:
+    int read(unsigned int offset, uint8_t* data, unsigned int len) const
+    {
+        return buf_.read(offset, data, len);
+    }
+
+    int write(unsigned int offset, const uint8_t* data, unsigned int len)
+    {
+        return buf_.write(offset, data, len);
+    }
+
     bool migrateFrom(const TransferBufferManagerEntry* tbme)
     {
         if (tbme == NULL || tbme->isEmpty())
@@ -208,14 +236,14 @@ public:
         }
 
         // Resetting self and moving all data from the source
-        reset(tbme->getKey());
-        const int res = tbme->read(0, data_, SIZE);
+        TransferBufferManagerEntry::reset(tbme->getKey());
+        const int res = tbme->read(0, buf_.getRawPtr(), SIZE);
         if (res < 0)
         {
-            reset();
+            TransferBufferManagerEntry::reset();
             return false;
         }
-        max_write_pos_ = res;
+        buf_.setMaxWritePos(res);
         if (res < int(SIZE))
             return true;
 
@@ -223,7 +251,7 @@ public:
         uint8_t dummy = 0;
         if (tbme->read(SIZE, &dummy, 1) > 0)
         {
-            reset();            // Damn, the buffer was too large
+            TransferBufferManagerEntry::reset();            // Damn, the buffer was too large
             return false;
         }
         return true;
@@ -268,7 +296,7 @@ public:
 template <unsigned int MAX_BUF_SIZE, unsigned int NUM_STATIC_BUFS>
 class TransferBufferManager : public ITransferBufferManager, Noncopyable
 {
-    typedef StaticTransferBuffer<MAX_BUF_SIZE> StaticBufferType;
+    typedef StaticTransferBufferManagerEntry<MAX_BUF_SIZE> StaticBufferType;
 
     StaticBufferType static_buffers_[NUM_STATIC_BUFS];
     LinkedListRoot<DynamicTransferBuffer> dynamic_buffers_;
