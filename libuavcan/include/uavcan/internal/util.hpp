@@ -36,4 +36,11 @@ protected:
     Noncopyable() { }
 };
 
+
+template<bool B, typename T = void>
+struct EnableIf { };
+
+template<typename T>
+struct EnableIf<true, T> { typedef T Type; };
+
 }
