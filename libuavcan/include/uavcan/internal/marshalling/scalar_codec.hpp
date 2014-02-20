@@ -40,6 +40,12 @@ class ScalarCodec
         u.l = 1;
         const bool big_endian = u.c[sizeof(long int) - 1] == 1;
 #endif
+        /*
+         * I didn't have any big endian machine nearby, so big endian support wasn't tested yet.
+         * It is likely to be OK anyway, so feel free to remove this assert() as needed.
+         */
+        assert(big_endian == false);
+
         if (big_endian)
             swapByteOrder(bytes);
     }

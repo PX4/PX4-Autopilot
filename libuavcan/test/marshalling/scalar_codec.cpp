@@ -74,8 +74,23 @@ TEST(ScalarCodec, Basic)
     CHECK(64, u64, std::numeric_limits<uint64_t>::max());
 
 #undef CHECK
+
+    ASSERT_EQ(0, sc_rd.decode<64>(u64)); // Out of buffer space
 }
 
 TEST(ScalarCodec, RepresentationCorrectness)
 {
+    uavcan::StaticTransferBuffer<4> buf;
+    uavcan::BitStream bs_wr(buf);
+    uavcan::ScalarCodec sc_wr(bs_wr);
+
+    ASSERT_EQ(1, sc_wr.encode<12>((uint16_t)0xbeda));    // --> 0xeda
+    ASSERT_EQ(1, sc_wr.encode<3>((int8_t)-1));
+    ASSERT_EQ(1, sc_wr.encode<4>((int8_t)-5));
+    ASSERT_EQ(1, sc_wr.encode<2>((int16_t)-1));
+    ASSERT_EQ(1, sc_wr.encode<4>((uint8_t)0x88));        // --> 8
+
+    // This representation was carefully crafted and triple checked:
+    static const std::string REFERENCE = "11011010 11101111 01111100 00000000";
+    ASSERT_EQ(REFERENCE, bs_wr.toString());
 }
