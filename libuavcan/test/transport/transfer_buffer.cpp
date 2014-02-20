@@ -128,9 +128,9 @@ TEST(StaticTransferBuffer, Basic)
 }
 
 
-TEST(DynamicTransferBuffer, Basic)
+TEST(DynamicTransferBufferManagerEntry, Basic)
 {
-    using uavcan::DynamicTransferBuffer;
+    using uavcan::DynamicTransferBufferManagerEntry;
 
     static const int MAX_SIZE = TEST_BUFFER_SIZE;
     static const int POOL_BLOCKS = 8;
@@ -138,7 +138,7 @@ TEST(DynamicTransferBuffer, Basic)
     uavcan::PoolManager<2> poolmgr;
     poolmgr.addPool(&pool);
 
-    DynamicTransferBuffer buf(poolmgr, MAX_SIZE);
+    DynamicTransferBufferManagerEntry buf(poolmgr, MAX_SIZE);
 
     uint8_t local_buffer[TEST_BUFFER_SIZE * 2];
     const uint8_t* const test_data_ptr = reinterpret_cast<const uint8_t*>(TEST_DATA.c_str());
@@ -190,7 +190,7 @@ TEST(DynamicTransferBuffer, Basic)
 
     // Destroying the object; memory should be released
     ASSERT_LT(0, pool.getNumUsedBlocks());
-    buf.~DynamicTransferBuffer();
+    buf.~DynamicTransferBufferManagerEntry();
     ASSERT_EQ(0, pool.getNumUsedBlocks());
 }
 

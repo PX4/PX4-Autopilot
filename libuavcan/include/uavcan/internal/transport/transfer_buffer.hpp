@@ -94,7 +94,8 @@ public:
  * reset() call releases all memory blocks.
  * Supports unordered write operations - from higher to lower offsets
  */
-class DynamicTransferBuffer : public TransferBufferManagerEntry, public LinkedListNode<DynamicTransferBuffer>
+class DynamicTransferBufferManagerEntry : public TransferBufferManagerEntry,
+                                          public LinkedListNode<DynamicTransferBufferManagerEntry>
 {
     struct Block : LinkedListNode<Block>
     {
@@ -118,23 +119,23 @@ class DynamicTransferBuffer : public TransferBufferManagerEntry, public LinkedLi
     void resetImpl();
 
 public:
-    DynamicTransferBuffer(IAllocator& allocator, unsigned int max_size)
+    DynamicTransferBufferManagerEntry(IAllocator& allocator, unsigned int max_size)
     : allocator_(allocator)
     , max_write_pos_(0)
     , max_size_(max_size)
     {
         StaticAssert<(Block::SIZE > 8)>::check();
         IsDynamicallyAllocatable<Block>::check();
-        IsDynamicallyAllocatable<DynamicTransferBuffer>::check();
+        IsDynamicallyAllocatable<DynamicTransferBufferManagerEntry>::check();
     }
 
-    ~DynamicTransferBuffer()
+    ~DynamicTransferBufferManagerEntry()
     {
         resetImpl();
     }
 
-    static DynamicTransferBuffer* instantiate(IAllocator& allocator, unsigned int max_size);
-    static void destroy(DynamicTransferBuffer*& obj, IAllocator& allocator);
+    static DynamicTransferBufferManagerEntry* instantiate(IAllocator& allocator, unsigned int max_size);
+    static void destroy(DynamicTransferBufferManagerEntry*& obj, IAllocator& allocator);
 
     int read(unsigned int offset, uint8_t* data, unsigned int len) const;
     int write(unsigned int offset, const uint8_t* data, unsigned int len);
@@ -299,7 +300,7 @@ class TransferBufferManager : public ITransferBufferManager, Noncopyable
     typedef StaticTransferBufferManagerEntry<MAX_BUF_SIZE> StaticBufferType;
 
     StaticBufferType static_buffers_[NUM_STATIC_BUFS];
-    LinkedListRoot<DynamicTransferBuffer> dynamic_buffers_;
+    LinkedListRoot<DynamicTransferBufferManagerEntry> dynamic_buffers_;
     IAllocator& allocator_;
 
     StaticBufferType* findFirstStatic(const TransferBufferManagerKey& key)
@@ -312,9 +313,9 @@ class TransferBufferManager : public ITransferBufferManager, Noncopyable
         return NULL;
     }
 
-    DynamicTransferBuffer* findFirstDynamic(const TransferBufferManagerKey& key)
+    DynamicTransferBufferManagerEntry* findFirstDynamic(const TransferBufferManagerKey& key)
     {
-        DynamicTransferBuffer* dyn = dynamic_buffers_.get();
+        DynamicTransferBufferManagerEntry* dyn = dynamic_buffers_.get();
         while (dyn)
         {
             assert(!dyn->isEmpty());
@@ -332,7 +333,7 @@ class TransferBufferManager : public ITransferBufferManager, Noncopyable
             StaticBufferType* const sb = findFirstStatic(TransferBufferManagerKey());
             if (sb == NULL)
                 break;
-            DynamicTransferBuffer* dyn = dynamic_buffers_.get();
+            DynamicTransferBufferManagerEntry* dyn = dynamic_buffers_.get();
             assert(dyn);
             assert(!dyn->isEmpty());
             if (sb->migrateFrom(dyn))
@@ -341,7 +342,7 @@ class TransferBufferManager : public ITransferBufferManager, Noncopyable
                 UAVCAN_TRACE("TransferBufferManager", "Storage optimization: Migrated %s",
                              dyn->getKey().toString().c_str());
                 dynamic_buffers_.remove(dyn);
-                DynamicTransferBuffer::destroy(dyn, allocator_);
+                DynamicTransferBufferManagerEntry::destroy(dyn, allocator_);
             }
             else
             {
@@ -367,12 +368,12 @@ public:
 
     ~TransferBufferManager()
     {
-        DynamicTransferBuffer* dyn = dynamic_buffers_.get();
+        DynamicTransferBufferManagerEntry* dyn = dynamic_buffers_.get();
         while (dyn)
         {
-            DynamicTransferBuffer* const next = dyn->getNextListNode();
+            DynamicTransferBufferManagerEntry* const next = dyn->getNextListNode();
             dynamic_buffers_.remove(dyn);
-            DynamicTransferBuffer::destroy(dyn, allocator_);
+            DynamicTransferBufferManagerEntry::destroy(dyn, allocator_);
             dyn = next;
         }
     }
@@ -402,7 +403,7 @@ public:
         TransferBufferManagerEntry* tbme = findFirstStatic(TransferBufferManagerKey());
         if (tbme == NULL)
         {
-            DynamicTransferBuffer* dyn = DynamicTransferBuffer::instantiate(allocator_, MAX_BUF_SIZE);
+            DynamicTransferBufferManagerEntry* dyn = DynamicTransferBufferManagerEntry::instantiate(allocator_, MAX_BUF_SIZE);
             tbme = dyn;
             if (dyn == NULL)
                 return NULL;     // Epic fail.
@@ -437,12 +438,12 @@ public:
             return;
         }
 
-        DynamicTransferBuffer* dyn = findFirstDynamic(key);
+        DynamicTransferBufferManagerEntry* dyn = findFirstDynamic(key);
         if (dyn)
         {
             UAVCAN_TRACE("TransferBufferManager", "Dynamic buffer deleted, %s", key.toString().c_str());
             dynamic_buffers_.remove(dyn);
-            DynamicTransferBuffer::destroy(dyn, allocator_);
+            DynamicTransferBufferManagerEntry::destroy(dyn, allocator_);
         }
     }
 
