@@ -42,6 +42,13 @@ public:
         StaticAssert<sizeof(uint8_t) == 1>::check();
     }
 
+    /**
+     * Write/read calls interpret bytes as bit arrays, 8 bits per byte, where the most
+     * significant bits have lower index, i.e.:
+     *   Hex:     55       2d
+     *   Bits:    01010101 00101101
+     *   Indices: 0  ..  7 8  ..  15
+     */
     int write(const uint8_t* bytes, const int bitlen);
     int read(uint8_t* bytes, const int bitlen);
 
