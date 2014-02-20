@@ -36,11 +36,13 @@ int BitStream::write(const uint8_t* bytes, const int bitlen)
      * within the next write() operation.
      */
     const int write_res = buf_.write(bit_offset_ / 8, tmp, bytelen);
-    bit_offset_ = new_bit_offset;  // TODO: DO NOT UPDATE ON FAILURE
-
     if (write_res < 0)
         return write_res;
-    return (write_res == bytelen) ? 0 : -1;
+    if (write_res != bytelen)
+        return -1;
+
+    bit_offset_ = new_bit_offset;
+    return 0;
 }
 
 int BitStream::read(uint8_t* bytes, const int bitlen)
