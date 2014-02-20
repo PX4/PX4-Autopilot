@@ -2,6 +2,7 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#include <cassert>
 #include <sstream>
 #include <uavcan/internal/marshalling/bit_stream.hpp>
 
@@ -18,6 +19,7 @@ int BitStream::write(const uint8_t* bytes, const int bitlen)
     assert(MAX_BYTES_PER_RW >= bytelen);
     tmp[0] = tmp[bytelen - 1] = 0;
 
+    std::fill(tmp, tmp + bytelen, 0);
     copyBitArray(bytes, 0, bitlen, tmp, bit_offset_ % 8);
 
     const int new_bit_offset = bit_offset_ + bitlen;
@@ -34,11 +36,30 @@ int BitStream::write(const uint8_t* bytes, const int bitlen)
      * within the next write() operation.
      */
     const int write_res = buf_.write(bit_offset_ / 8, tmp, bytelen);
-    bit_offset_ = new_bit_offset;
+    bit_offset_ = new_bit_offset;  // TODO: DO NOT UPDATE ON FAILURE
 
     if (write_res < 0)
         return write_res;
     return (write_res == bytelen) ? 0 : -1;
+}
+
+int BitStream::read(uint8_t* bytes, const int bitlen)
+{
+    uint8_t tmp[MAX_BYTES_PER_RW + 1];
+
+    const int bytelen = bitlenToBytelen(bitlen + (bit_offset_ % 8));
+    assert(MAX_BYTES_PER_RW >= bytelen);
+
+    const int read_res = buf_.read(bit_offset_ / 8, tmp, bytelen);
+    if (read_res < 0)
+        return read_res;
+    if (read_res != bytelen)
+        return -1;
+
+    std::fill(bytes, bytes + bitlenToBytelen(bitlen), 0);
+    copyBitArray(tmp, bit_offset_ % 8, bitlen, bytes, 0);
+    bit_offset_ += bitlen;
+    return 0;
 }
 
 std::string BitStream::toString() const

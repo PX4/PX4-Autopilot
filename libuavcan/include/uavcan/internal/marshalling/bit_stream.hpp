@@ -43,6 +43,7 @@ public:
     }
 
     int write(const uint8_t* bytes, const int bitlen);
+    int read(uint8_t* bytes, const int bitlen);
 
     std::string toString() const;
 };
