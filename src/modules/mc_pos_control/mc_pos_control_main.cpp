@@ -51,7 +51,6 @@
 #include <errno.h>
 #include <math.h>
 #include <poll.h>
-#include <time.h>
 #include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
@@ -68,7 +67,6 @@
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
-#include <systemlib/pid/pid.h>
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
 #include <lib/geo/geo.h>
@@ -732,7 +730,6 @@ MulticopterPositionControl::task_main()
 			} else {
 				/* run position & altitude controllers, calculate velocity setpoint */
 				math::Vector<3> pos_err;
-				float err_x, err_y;
 				get_vector_to_next_waypoint_fast(_global_pos.lat, _global_pos.lon, _lat_sp, _lon_sp, &pos_err.data[0], &pos_err.data[1]);
 				pos_err(2) = -(_alt_sp - alt);
 
