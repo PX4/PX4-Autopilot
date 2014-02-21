@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -162,6 +162,7 @@ dsm_guess_format(bool reset)
 		0xff,	/* 8 channels (DX8) */
 		0x1ff,	/* 9 channels (DX9, etc.) */
 		0x3ff,	/* 10 channels (DX10) */
+		0x1fff,	/* 13 channels (DX10t) */
 		0x3fff	/* 18 channels (DX10) */
 	};
 	unsigned votes10 = 0;
@@ -374,31 +375,18 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 
 		value += 998;
 
-		/*
-		 * Store the decoded channel into the R/C input buffer, taking into
-		 * account the different ideas about channel assignement that we have.
-		 *
-		 * Specifically, the first four channels in rc_channel_data are roll, pitch, thrust, yaw,
-		 * but the first four channels from the DSM receiver are thrust, roll, pitch, yaw.
-		 */
-		switch (channel) {
-		case 0:
-			channel = 2;
-			break;
-
-		case 1:
-			channel = 0;
-			break;
-
-		case 2:
-			channel = 1;
-
-		default:
-			break;
-		}
-
+		/* Store the decoded channel into the R/C input buffer */
 		values[channel] = value;
 	}
+
+	/*
+	 * Spektrum likes to send junk in higher channel numbers to fill
+	 * their packets. We don't know about a 13 channel model in their TX
+	 * lines, so if we get a channel count of 13, we'll return 12 (the last
+	 * data index that is stable).
+	 */
+	if (*num_values == 13)
+		*num_values = 12;
 
 	if (dsm_channel_shift == 11) {
 		/* Set the 11-bit data indicator */
