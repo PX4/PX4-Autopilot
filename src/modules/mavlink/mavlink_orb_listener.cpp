@@ -340,15 +340,14 @@ MavlinkOrbListener::l_global_position(const struct listener *l)
 	/* copy global position data into local buffer */
 	orb_copy(ORB_ID(vehicle_global_position), l->mavlink->get_subs()->global_pos_sub, &l->listener->global_pos);
 
-	mavlink_msg_global_position_int_send(l->mavlink->get_chan(),
-						 l->listener->global_pos.timestamp / 1000,
+	mavlink_msg_global_position_time_int_send(l->mavlink->get_chan(),
+						 l->listener->global_pos.time_gps_usec,
 					     l->listener->global_pos.lat * 1e7,
 					     l->listener->global_pos.lon * 1e7,
-					     l->listener->global_pos.alt * 1000.0f,
-					     (l->listener->global_pos.alt - l->listener->home.alt) * 1000.0f,
-					     l->listener->global_pos.vel_n * 100.0f,
-					     l->listener->global_pos.vel_e * 100.0f,
-					     l->listener->global_pos.vel_d * 100.0f,
+					     l->listener->global_pos.alt,
+					     l->listener->global_pos.vel_n,
+					     l->listener->global_pos.vel_e,
+					     l->listener->global_pos.vel_d,
 					     _wrap_2pi(l->listener->global_pos.yaw) * M_RAD_TO_DEG_F * 100.0f);
 }
 
