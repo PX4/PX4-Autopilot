@@ -387,7 +387,7 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 		 */
 
 		/* scaled integer for decent accuracy while staying efficient */
-		value = (((value - 1024) * 1000) / 1700) + 1500;
+		value = ((((int)value - 1024) * 1000) / 1700) + 1500;
 
 		/*
 		 * Store the decoded channel into the R/C input buffer, taking into
