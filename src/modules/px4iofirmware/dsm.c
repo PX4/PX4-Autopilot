@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -400,6 +400,15 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 
 		values[channel] = value;
 	}
+
+	/*
+	 * Spektrum likes to send junk in higher channel numbers to fill
+	 * their packets. We don't know about a 13 channel model in their TX
+	 * lines, so if we get a channel count of 13, we'll return 12 (the last
+	 * data index that is stable).
+	 */
+	if (*num_values == 13)
+		*num_values = 12;
 
 	if (dsm_channel_shift == 11) {
 		/* Set the 11-bit data indicator */
