@@ -78,7 +78,7 @@ class ScalarCodec
     static typename EnableIf<((sizeof(T) * 8) > BITLEN)>::Type
     clearExtraBits(T& value)
     {
-        value &= (1 << BITLEN) - 1;  // Signedness doesn't matter
+        value &= (T(1) << BITLEN) - 1;  // Signedness doesn't matter
     }
 
     template <int BITLEN, typename T>
