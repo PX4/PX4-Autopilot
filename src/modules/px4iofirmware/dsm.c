@@ -162,6 +162,7 @@ dsm_guess_format(bool reset)
 		0xff,	/* 8 channels (DX8) */
 		0x1ff,	/* 9 channels (DX9, etc.) */
 		0x3ff,	/* 10 channels (DX10) */
+		0x1fff,	/* 13 channels (DX10t) */
 		0x3fff	/* 18 channels (DX10) */
 	};
 	unsigned votes10 = 0;
