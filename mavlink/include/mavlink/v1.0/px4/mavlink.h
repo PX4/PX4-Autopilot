@@ -1,5 +1,5 @@
 /** @file
- *	@brief MAVLink comm protocol built from autoquad.xml
+ *	@brief MAVLink comm protocol built from px4.xml
  *	@see http://pixhawk.ethz.ch/software/mavlink
  */
 #ifndef MAVLINK_H
@@ -22,6 +22,6 @@
 #endif
 
 #include "version.h"
-#include "autoquad.h"
+#include "px4.h"
 
 #endif // MAVLINK_H
