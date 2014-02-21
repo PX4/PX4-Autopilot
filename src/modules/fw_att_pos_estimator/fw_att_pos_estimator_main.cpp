@@ -694,13 +694,20 @@ FixedwingEstimator::task_main()
 					velNED[1] = _gps.vel_e_m_s;
 					velNED[2] = _gps.vel_d_m_s;
 					InitialiseFilter(velNED);
+					warnx("GPS REINIT");
 
 					_gps_initialized = true;
 
 				} else if (!statesInitialised) {
-					velNED[0] = _gps.vel_n_m_s;
-					velNED[1] = _gps.vel_e_m_s;
-					velNED[2] = _gps.vel_d_m_s;
+					velNED[0] = 0.0f;
+					velNED[1] = 0.0f;
+					velNED[2] = 0.0f;
+					posNED[0] = 0.0f;
+					posNED[1] = 0.0f;
+					posNED[2] = 0.0f;
+
+					posNE[0] = posNED[0];
+					posNE[1] = posNED[1];
 					InitialiseFilter(velNED);
 				}
 			}
@@ -970,7 +977,14 @@ FixedwingEstimator::task_main()
 					/* advertise and publish */
 					_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &_att);
 				}
+			}
 
+			if (!isfinite(states[0])) {
+				print_status();
+				_exit(0);
+			}
+
+			if (_gps_initialized) {
 				_local_pos.timestamp = last_sensor_timestamp;
 				_local_pos.x = states[7];
 				_local_pos.y = states[8];
