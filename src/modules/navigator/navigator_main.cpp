@@ -66,7 +66,6 @@
 #include <uORB/topics/target_global_position.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/mission_result.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/parameter_update.h>
@@ -309,9 +308,9 @@ private:
 	static void	task_main_trampoline(int argc, char *argv[]);
 
 	/**
-	 * Main sensor collection task.
+	 * Main task.
 	 */
-	void		task_main() __attribute__((noreturn));
+	void		task_main();
 
 	void		publish_safepoints(unsigned points);
 
@@ -412,7 +411,6 @@ Navigator::Navigator() :
 
 /* publications */
 	_pos_sp_triplet_pub(-1),
-	_mission_result_pub(-1),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
@@ -444,7 +442,6 @@ Navigator::Navigator() :
 	_parameter_handles.rtl_land_delay = param_find("NAV_RTL_LAND_T");
 
 	memset(&_pos_sp_triplet, 0, sizeof(struct position_setpoint_triplet_s));
-	memset(&_mission_result, 0, sizeof(struct mission_result_s));
 	memset(&_mission_item, 0, sizeof(struct mission_item_s));
 	memset(&_roi_item, 0, sizeof(_roi_item));
 	memset(&_follow_offset_prev, 0, sizeof(_follow_offset_prev));
@@ -556,13 +553,16 @@ Navigator::offboard_mission_update(bool isrotaryWing)
 		missionFeasiblityChecker.checkMissionFeasible(isrotaryWing, dm_current, (size_t)offboard_mission.count, _geofence);
 
 		_mission.set_offboard_dataman_id(offboard_mission.dataman_id);
-		_mission.set_current_offboard_mission_index(offboard_mission.current_index);
+
 		_mission.set_offboard_mission_count(offboard_mission.count);
+		_mission.set_current_offboard_mission_index(offboard_mission.current_index);
 
 	} else {
-		_mission.set_current_offboard_mission_index(0);
 		_mission.set_offboard_mission_count(0);
+		_mission.set_current_offboard_mission_index(0);
 	}
+
+	_mission.publish_mission_result();
 }
 
 void
@@ -572,12 +572,12 @@ Navigator::onboard_mission_update()
 
 	if (orb_copy(ORB_ID(mission), _onboard_mission_sub, &onboard_mission) == OK) {
 
-		_mission.set_current_onboard_mission_index(onboard_mission.current_index);
 		_mission.set_onboard_mission_count(onboard_mission.count);
+		_mission.set_current_onboard_mission_index(onboard_mission.current_index);
 
 	} else {
-		_mission.set_current_onboard_mission_index(0);
 		_mission.set_onboard_mission_count(0);
+		_mission.set_current_onboard_mission_index(0);
 	}
 }
 
@@ -1152,10 +1152,12 @@ Navigator::set_mission_item()
 		unsigned index = 0;
 		ret = _mission.get_current_mission_item(&_mission_item, &onboard, &index);
 
-		if (ret == OK) {
-			/* reset time counter for new item */
-			_mission_item_valid = true;
-			_time_first_inside_orbit = 0;
+	if (ret == OK) {
+
+		_mission.report_current_mission_item();
+
+		/* reset time counter for new item */
+		_time_first_inside_orbit = 0;
 
 			if (_mission_item.nav_cmd == NAV_CMD_ROI) {
 				/* save ROI item */
@@ -1640,6 +1642,9 @@ void
 Navigator::on_mission_item_reached()
 {
 	if (myState == NAV_STATE_MISSION) {
+
+		_mission.report_mission_item_reached();
+
 		if (_do_takeoff) {
 			/* takeoff completed */
 			_do_takeoff = false;
@@ -1687,6 +1692,7 @@ Navigator::on_mission_item_reached()
 		mavlink_log_info(_mavlink_fd, "[navigator] landing completed");
 		dispatch(EVENT_READY_REQUESTED);
 	}
+	_mission.publish_mission_result();
 }
 
 void

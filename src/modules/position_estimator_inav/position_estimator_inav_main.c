@@ -824,11 +824,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			global_pos.global_valid = local_pos.xy_global;
 
 			if (local_pos.xy_global) {
-				double est_lat, est_lon;
-				map_projection_reproject(local_pos.x, local_pos.y, &est_lat, &est_lon);
-				global_pos.lat = est_lat;
-				global_pos.lon = est_lon;
-				global_pos.time_gps_usec = gps.time_gps_usec;
+				map_projection_reproject(local_pos.x, local_pos.y, &global_pos.lat, &global_pos.lon);
+				global_pos.time_gps_usec = gps.time_gps_usec + t - gps.timestamp_time;
 			}
 
 			/* set valid values even if position is not valid */

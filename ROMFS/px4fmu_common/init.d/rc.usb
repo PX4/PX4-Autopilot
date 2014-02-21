@@ -5,38 +5,7 @@
 
 echo "Starting MAVLink on this USB console"
 
-# Stop tone alarm
-tone_alarm stop
-
-#
-# Check for UORB
-#
-if uorb start
-then
-	echo "uORB started"
-fi
-
-# Tell MAVLink that this link is "fast"
-if mavlink stop
-then
-	echo "stopped other MAVLink instance"
-fi
 mavlink start -b 230400 -d /dev/ttyACM0
-
-# Stop commander
-if commander stop
-then
-	echo "Commander stopped"
-fi
-sleep 1
-
-# Start the commander
-if commander start
-then
-	echo "Commander started"
-fi
-
-echo "MAVLink started, exiting shell.."
 
 # Exit shell to make it available to MAVLink
 exit 
