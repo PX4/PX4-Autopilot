@@ -1,9 +1,5 @@
 #include "estimator.h"
 
-// For debugging only
-#include <cstdlib>
-#include <stdio.h>
-
 // Global variables
 float KH[n_states][n_states]; //  intermediate result used for covariance updates
 float KHP[n_states][n_states]; // intermediate result used for covariance updates
@@ -1840,8 +1836,6 @@ void InitialiseFilter(float (&initvelNED)[3])
     Vector3f initMagXYZ;
     initMagXYZ   = magData - magBias;
     AttitudeInit(accel.x, accel.y, accel.z, initMagXYZ.x, initMagXYZ.y, initMagXYZ.z, initQuat);
-        printf("initializing: accel: %8.4f %8.4f %8.4f, mag: %8.4f %8.4f %8.4f q: %8.4f %8.4f %8.4f %8.4f\n",
-        accel.x, accel.y, accel.z, initMagXYZ.x, initMagXYZ.y, initMagXYZ.z, initQuat[0], initQuat[1], initQuat[2], initQuat[3]);
 
     // Calculate initial Tbn matrix and rotate Mag measurements into NED
     // to set initial NED magnetic field states

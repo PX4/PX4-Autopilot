@@ -172,6 +172,7 @@ private:
 	perf_counter_t	_perf_airspeed;			///<local performance counter for airspeed updates
 
 	bool						_initialized;
+	bool						_gps_initialized;
 
 	struct {
 		float		throttle_cruise;
@@ -262,7 +263,8 @@ FixedwingEstimator::FixedwingEstimator() :
 	_perf_airspeed(perf_alloc(PC_COUNT, "fw_ekf_aspd_upd")),
 
 /* states */
-	_initialized(false)
+	_initialized(false),
+	_gps_initialized(false)
 {
 
 	_parameter_handles.throttle_cruise = param_find("NAV_DUMMY");
