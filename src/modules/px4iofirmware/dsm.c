@@ -375,29 +375,7 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 
 		value += 998;
 
-		/*
-		 * Store the decoded channel into the R/C input buffer, taking into
-		 * account the different ideas about channel assignement that we have.
-		 *
-		 * Specifically, the first four channels in rc_channel_data are roll, pitch, thrust, yaw,
-		 * but the first four channels from the DSM receiver are thrust, roll, pitch, yaw.
-		 */
-		switch (channel) {
-		case 0:
-			channel = 2;
-			break;
-
-		case 1:
-			channel = 0;
-			break;
-
-		case 2:
-			channel = 1;
-
-		default:
-			break;
-		}
-
+		/* Store the decoded channel into the R/C input buffer */
 		values[channel] = value;
 	}
 
