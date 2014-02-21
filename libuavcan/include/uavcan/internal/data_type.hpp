@@ -12,31 +12,31 @@ namespace uavcan
 
 enum DataTypeKind
 {
-    DATA_TYPE_KIND_SERVICE,
-    DATA_TYPE_KIND_MESSAGE,
-    NUM_DATA_TYPE_KINDS
+    DataTypeKindService,
+    DataTypeKindMessage,
+    NumDataTypeKinds
 };
 
 
 struct DataTypeHash
 {
-    enum { NUM_BYTES = 16 };
-    uint8_t value[NUM_BYTES];
+    enum { NumBytes = 16 };
+    uint8_t value[NumBytes];
 
     DataTypeHash()
     {
-        std::fill(value, value + NUM_BYTES, 0);
+        std::fill(value, value + NumBytes, 0);
     }
 
-    DataTypeHash(const uint8_t source[NUM_BYTES])
+    DataTypeHash(const uint8_t source[NumBytes])
     {
-        std::copy(source, source + NUM_BYTES, value);
+        std::copy(source, source + NumBytes, value);
     }
 
     bool operator!=(const DataTypeHash& rhs) const { return !operator==(rhs); }
     bool operator==(const DataTypeHash& rhs) const
     {
-        return std::equal(value, value + NUM_BYTES, rhs.value);
+        return std::equal(value, value + NumBytes, rhs.value);
     }
 };
 

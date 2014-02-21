@@ -18,7 +18,7 @@ extern "C" void bitarray_copy(const unsigned char *src_org, int src_offset, int 
 
 class BitStream
 {
-    enum { MAX_BYTES_PER_RW = 16 };
+    enum { MaxBytesPerRW = 16 };
 
     ITransferBuffer& buf_;
     int bit_offset_;
@@ -34,12 +34,12 @@ class BitStream
     }
 
 public:
-    enum { MAX_BITS_PER_RW = MAX_BYTES_PER_RW * 8 };
+    enum { MaxBitsPerRW = MaxBytesPerRW * 8 };
 
     enum
     {
-        RESULT_OUT_OF_BUFFER = 0,
-        RESULT_OK            = 1
+        ResultOutOfBuffer = 0,
+        ResultOk          = 1
     };
 
     BitStream(ITransferBuffer& buf)

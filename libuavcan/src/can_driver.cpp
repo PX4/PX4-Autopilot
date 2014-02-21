@@ -10,17 +10,17 @@
 namespace uavcan
 {
 
-const uint32_t CanFrame::MASK_STDID;
-const uint32_t CanFrame::MASK_EXTID;
-const uint32_t CanFrame::FLAG_EFF;
-const uint32_t CanFrame::FLAG_RTR;
+const uint32_t CanFrame::MaskStdID;
+const uint32_t CanFrame::MaskExtID;
+const uint32_t CanFrame::FlagEFF;
+const uint32_t CanFrame::FlagRTR;
 
 
 std::string CanFrame::toString(StringRepresentation mode) const
 {
     using std::snprintf;
 
-    assert(mode == STR_TIGHT || mode == STR_ALIGNED);
+    assert(mode == StrTight || mode == StrAligned);
 
     static const int ASCII_COLUMN_OFFSET = 36;
 
@@ -28,17 +28,17 @@ std::string CanFrame::toString(StringRepresentation mode) const
     char* wpos = buf, *epos = buf + sizeof(buf);
     std::fill(buf, buf + sizeof(buf), 0);
 
-    if (id & FLAG_EFF)
+    if (id & FlagEFF)
     {
-        wpos += snprintf(wpos, epos - wpos, "0x%08x  ", (unsigned int)(id & MASK_EXTID));
+        wpos += snprintf(wpos, epos - wpos, "0x%08x  ", (unsigned int)(id & MaskExtID));
     }
     else
     {
-        const char* const fmt = (mode == STR_ALIGNED) ? "     0x%03x  " : "0x%03x  ";
-        wpos += snprintf(wpos, epos - wpos, fmt, (unsigned int)(id & MASK_STDID));
+        const char* const fmt = (mode == StrAligned) ? "     0x%03x  " : "0x%03x  ";
+        wpos += snprintf(wpos, epos - wpos, fmt, (unsigned int)(id & MaskStdID));
     }
 
-    if (id & FLAG_RTR)
+    if (id & FlagRTR)
     {
         wpos += snprintf(wpos, epos - wpos, " RTR");
     }
@@ -47,7 +47,7 @@ std::string CanFrame::toString(StringRepresentation mode) const
         for (int dlen = 0; dlen < dlc; dlen++)                                 // hex bytes
             wpos += snprintf(wpos, epos - wpos, " %02x", (unsigned int)data[dlen]);
 
-        while (mode == STR_ALIGNED && wpos < buf + ASCII_COLUMN_OFFSET)        // alignment
+        while (mode == StrAligned && wpos < buf + ASCII_COLUMN_OFFSET)        // alignment
             *wpos++ = ' ';
 
         wpos += snprintf(wpos, epos - wpos, "  \'");                           // ascii

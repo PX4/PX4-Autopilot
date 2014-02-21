@@ -18,10 +18,10 @@ namespace uavcan
 #pragma pack(push, 1)
 struct CanFrame
 {
-    static const uint32_t MASK_STDID = 0x000007FF;
-    static const uint32_t MASK_EXTID = 0x1FFFFFFF;
-    static const uint32_t FLAG_EFF = 1 << 31;                  ///< Extended frame format
-    static const uint32_t FLAG_RTR = 1 << 30;                  ///< Remote transmission request
+    static const uint32_t MaskStdID = 0x000007FF;
+    static const uint32_t MaskExtID = 0x1FFFFFFF;
+    static const uint32_t FlagEFF = 1 << 31;                  ///< Extended frame format
+    static const uint32_t FlagRTR = 1 << 30;                  ///< Remote transmission request
 
     uint32_t id;        ///< CAN ID with flags (above)
     uint8_t data[8];
@@ -48,21 +48,21 @@ struct CanFrame
         return (id == rhs.id) && (dlc == rhs.dlc) && std::equal(data, data + dlc, rhs.data);
     }
 
-    bool isExtended() const { return id & FLAG_EFF; }
-    bool isRemoteTransmissionRequest() const { return id & FLAG_RTR; }
+    bool isExtended() const { return id & FlagEFF; }
+    bool isRemoteTransmissionRequest() const { return id & FlagRTR; }
 
-    enum StringRepresentation { STR_TIGHT, STR_ALIGNED };
-    std::string toString(StringRepresentation mode = STR_TIGHT) const;
+    enum StringRepresentation { StrTight, StrAligned };
+    std::string toString(StringRepresentation mode = StrTight) const;
 
     // TODO: priority comparison for EXT vs STD frames
     bool priorityHigherThan(const CanFrame& rhs) const
     {
-        return (id & CanFrame::MASK_EXTID) < (rhs.id & CanFrame::MASK_EXTID);
+        return (id & CanFrame::MaskExtID) < (rhs.id & CanFrame::MaskExtID);
     }
 
     bool priorityLowerThan(const CanFrame& rhs) const
     {
-        return (id & CanFrame::MASK_EXTID) > (rhs.id & CanFrame::MASK_EXTID);
+        return (id & CanFrame::MaskExtID) > (rhs.id & CanFrame::MaskExtID);
     }
 };
 #pragma pack(pop)

@@ -37,7 +37,7 @@ class Dispatcher : Noncopyable
         };
 
     public:
-        enum Mode { UNIQUE_LISTENER, MANY_LISTENERS };
+        enum Mode { UniqueListener, ManyListeners };
 
         bool add(TransferListenerBase* listener, Mode mode);
         void remove(TransferListenerBase* listener);

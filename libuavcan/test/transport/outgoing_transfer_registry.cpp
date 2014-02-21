@@ -18,11 +18,11 @@ TEST(OutgoingTransferRegistry, Basic)
     static const int NUM_KEYS = 5;
     const OutgoingTransferRegistryKey keys[NUM_KEYS] =
     {
-        OutgoingTransferRegistryKey(123, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,   42),
-        OutgoingTransferRegistryKey(123, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 0),
-        OutgoingTransferRegistryKey(123, uavcan::TRANSFER_TYPE_SERVICE_REQUEST,   2),
-        OutgoingTransferRegistryKey(123, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,   4),
-        OutgoingTransferRegistryKey(456, uavcan::TRANSFER_TYPE_SERVICE_REQUEST,   2)
+        OutgoingTransferRegistryKey(123, uavcan::TransferTypeMessageUnicast,   42),
+        OutgoingTransferRegistryKey(123, uavcan::TransferTypeMessageBroadcast, 0),
+        OutgoingTransferRegistryKey(123, uavcan::TransferTypeServiceRequest,   2),
+        OutgoingTransferRegistryKey(123, uavcan::TransferTypeMessageUnicast,   4),
+        OutgoingTransferRegistryKey(456, uavcan::TransferTypeServiceRequest,   2)
     };
 
     ASSERT_EQ(0, otr.accessOrCreate(keys[0], 1000000)->get());

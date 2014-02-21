@@ -75,7 +75,7 @@ static bool matchAgainstTestData(const uavcan::ITransferBuffer& tbb, unsigned in
 
 TEST(TransferBuffer, TestDataValidation)
 {
-    ASSERT_LE(4, TEST_DATA.length() / uavcan::MEM_POOL_BLOCK_SIZE);
+    ASSERT_LE(4, TEST_DATA.length() / uavcan::MemPoolBlockSize);
     uint8_t local_buffer[50];
     std::copy(TEST_DATA.begin(), TEST_DATA.begin() + sizeof(local_buffer), local_buffer);
     ASSERT_FALSE(allEqual(local_buffer));
@@ -134,7 +134,7 @@ TEST(DynamicTransferBufferManagerEntry, Basic)
 
     static const int MAX_SIZE = TEST_BUFFER_SIZE;
     static const int POOL_BLOCKS = 8;
-    uavcan::PoolAllocator<uavcan::MEM_POOL_BLOCK_SIZE * POOL_BLOCKS, uavcan::MEM_POOL_BLOCK_SIZE> pool;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
     uavcan::PoolManager<2> poolmgr;
     poolmgr.addPool(&pool);
 
@@ -234,7 +234,7 @@ TEST(TransferBufferManager, Basic)
     using uavcan::ITransferBuffer;
 
     static const int POOL_BLOCKS = 8;
-    uavcan::PoolAllocator<uavcan::MEM_POOL_BLOCK_SIZE * POOL_BLOCKS, uavcan::MEM_POOL_BLOCK_SIZE> pool;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
     uavcan::PoolManager<1> poolmgr;
     poolmgr.addPool(&pool);
 
@@ -242,18 +242,18 @@ TEST(TransferBufferManager, Basic)
     std::auto_ptr<TransferBufferManagerType> mgr(new TransferBufferManagerType(poolmgr));
 
     // Empty
-    ASSERT_FALSE(mgr->access(TransferBufferManagerKey(0, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST)));
-    ASSERT_FALSE(mgr->access(TransferBufferManagerKey(127, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST)));
+    ASSERT_FALSE(mgr->access(TransferBufferManagerKey(0, uavcan::TransferTypeMessageUnicast)));
+    ASSERT_FALSE(mgr->access(TransferBufferManagerKey(127, uavcan::TransferTypeMessageUnicast)));
 
     ITransferBuffer* tbb = NULL;
 
     const TransferBufferManagerKey keys[5] =
     {
-        TransferBufferManagerKey(0, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST),
-        TransferBufferManagerKey(1, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST),
-        TransferBufferManagerKey(2, uavcan::TRANSFER_TYPE_SERVICE_REQUEST),
-        TransferBufferManagerKey(127, uavcan::TRANSFER_TYPE_SERVICE_RESPONSE),
-        TransferBufferManagerKey(64, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST)
+        TransferBufferManagerKey(0, uavcan::TransferTypeMessageUnicast),
+        TransferBufferManagerKey(1, uavcan::TransferTypeMessageBroadcast),
+        TransferBufferManagerKey(2, uavcan::TransferTypeServiceRequest),
+        TransferBufferManagerKey(127, uavcan::TransferTypeServiceResponse),
+        TransferBufferManagerKey(64, uavcan::TransferTypeMessageBroadcast)
     };
 
     // Static 0

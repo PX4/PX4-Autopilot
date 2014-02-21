@@ -99,8 +99,8 @@ class DynamicTransferBufferManagerEntry : public TransferBufferManagerEntry,
 {
     struct Block : LinkedListNode<Block>
     {
-        enum { SIZE = MEM_POOL_BLOCK_SIZE - sizeof(LinkedListNode<Block>) };
-        uint8_t data[SIZE];
+        enum { Size = MemPoolBlockSize - sizeof(LinkedListNode<Block>) };
+        uint8_t data[Size];
 
         static Block* instantiate(IAllocator& allocator);
         static void destroy(Block*& obj, IAllocator& allocator);
@@ -124,7 +124,7 @@ public:
     , max_write_pos_(0)
     , max_size_(max_size)
     {
-        StaticAssert<(Block::SIZE > 8)>::check();
+        StaticAssert<(Block::Size > 8)>::check();
         IsDynamicallyAllocatable<Block>::check();
         IsDynamicallyAllocatable<DynamicTransferBufferManagerEntry>::check();
     }
@@ -145,18 +145,18 @@ public:
 /**
  * Standalone static buffer
  */
-template <unsigned int SIZE>
+template <unsigned int Size>
 class StaticTransferBuffer : public ITransferBuffer
 {
-    uint8_t data_[SIZE];
+    uint8_t data_[Size];
     unsigned int max_write_pos_;
 
 public:
     StaticTransferBuffer()
     : max_write_pos_(0)
     {
-        StaticAssert<(SIZE > 0)>::check();
-        std::fill(data_, data_ + SIZE, 0);
+        StaticAssert<(Size > 0)>::check();
+        std::fill(data_, data_ + Size, 0);
     }
 
     int read(unsigned int offset, uint8_t* data, unsigned int len) const
@@ -182,11 +182,11 @@ public:
             assert(0);
             return -1;
         }
-        if (offset >= SIZE)
+        if (offset >= Size)
             return 0;
-        if ((offset + len) > SIZE)
-            len = SIZE - offset;
-        assert((offset + len) <= SIZE);
+        if ((offset + len) > Size)
+            len = Size - offset;
+        assert((offset + len) <= Size);
         std::copy(data, data + len, data_ + offset);
         max_write_pos_ = std::max(offset + len, max_write_pos_);
         return len;
@@ -196,7 +196,7 @@ public:
     {
         max_write_pos_ = 0;
 #if UAVCAN_DEBUG
-        std::fill(data_, data_ + SIZE, 0);
+        std::fill(data_, data_ + Size, 0);
 #endif
     }
 
@@ -207,10 +207,10 @@ public:
 /**
  * Statically allocated storage for buffer manager
  */
-template <unsigned int SIZE>
+template <unsigned int Size>
 class StaticTransferBufferManagerEntry : public TransferBufferManagerEntry
 {
-    StaticTransferBuffer<SIZE> buf_;
+    StaticTransferBuffer<Size> buf_;
 
     void resetImpl()
     {
@@ -238,19 +238,19 @@ public:
 
         // Resetting self and moving all data from the source
         TransferBufferManagerEntry::reset(tbme->getKey());
-        const int res = tbme->read(0, buf_.getRawPtr(), SIZE);
+        const int res = tbme->read(0, buf_.getRawPtr(), Size);
         if (res < 0)
         {
             TransferBufferManagerEntry::reset();
             return false;
         }
         buf_.setMaxWritePos(res);
-        if (res < int(SIZE))
+        if (res < int(Size))
             return true;
 
         // Now we need to make sure that all data can fit the storage
         uint8_t dummy = 0;
-        if (tbme->read(SIZE, &dummy, 1) > 0)
+        if (tbme->read(Size, &dummy, 1) > 0)
         {
             TransferBufferManagerEntry::reset();            // Damn, the buffer was too large
             return false;
@@ -294,18 +294,18 @@ public:
 /**
  * Buffer manager implementation.
  */
-template <unsigned int MAX_BUF_SIZE, unsigned int NUM_STATIC_BUFS>
+template <unsigned int MaxBufSize, unsigned int NumStaticBufs>
 class TransferBufferManager : public ITransferBufferManager, Noncopyable
 {
-    typedef StaticTransferBufferManagerEntry<MAX_BUF_SIZE> StaticBufferType;
+    typedef StaticTransferBufferManagerEntry<MaxBufSize> StaticBufferType;
 
-    StaticBufferType static_buffers_[NUM_STATIC_BUFS];
+    StaticBufferType static_buffers_[NumStaticBufs];
     LinkedListRoot<DynamicTransferBufferManagerEntry> dynamic_buffers_;
     IAllocator& allocator_;
 
     StaticBufferType* findFirstStatic(const TransferBufferManagerKey& key)
     {
-        for (unsigned int i = 0; i < NUM_STATIC_BUFS; i++)
+        for (unsigned int i = 0; i < NumStaticBufs; i++)
         {
             if (static_buffers_[i].getKey() == key)
                 return static_buffers_ + i;
@@ -350,7 +350,7 @@ class TransferBufferManager : public ITransferBufferManager, Noncopyable
                  * This should never happen during normal operation because dynamic buffers are limited in growth.
                  */
                 UAVCAN_TRACE("TransferBufferManager", "Storage optimization: MIGRATION FAILURE %s MAXSIZE %u",
-                    dyn->getKey().toString().c_str(), MAX_BUF_SIZE);
+                    dyn->getKey().toString().c_str(), MaxBufSize);
                 assert(0);
                 sb->reset();
                 break;
@@ -362,8 +362,8 @@ public:
     TransferBufferManager(IAllocator& allocator)
     : allocator_(allocator)
     {
-        StaticAssert<(MAX_BUF_SIZE > 0)>::check();
-        StaticAssert<(NUM_STATIC_BUFS > 0)>::check();
+        StaticAssert<(MaxBufSize > 0)>::check();
+        StaticAssert<(NumStaticBufs > 0)>::check();
     }
 
     ~TransferBufferManager()
@@ -403,7 +403,7 @@ public:
         TransferBufferManagerEntry* tbme = findFirstStatic(TransferBufferManagerKey());
         if (tbme == NULL)
         {
-            DynamicTransferBufferManagerEntry* dyn = DynamicTransferBufferManagerEntry::instantiate(allocator_, MAX_BUF_SIZE);
+            DynamicTransferBufferManagerEntry* dyn = DynamicTransferBufferManagerEntry::instantiate(allocator_, MaxBufSize);
             tbme = dyn;
             if (dyn == NULL)
                 return NULL;     // Epic fail.
@@ -454,7 +454,7 @@ public:
     unsigned int getNumStaticBuffers() const
     {
         unsigned int res = 0;
-        for (unsigned int i = 0; i < NUM_STATIC_BUFS; i++)
+        for (unsigned int i = 0; i < NumStaticBufs; i++)
         {
             if (!static_buffers_[i].isEmpty())
                 res++;

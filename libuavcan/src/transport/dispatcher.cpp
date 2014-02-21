@@ -13,7 +13,7 @@ namespace uavcan
  */
 bool Dispatcher::ListenerRegister::add(TransferListenerBase* listener, Mode mode)
 {
-    if (mode == UNIQUE_LISTENER)
+    if (mode == UniqueListener)
     {
         TransferListenerBase* p = list_.get();
         while (p)
@@ -68,7 +68,7 @@ void Dispatcher::handleFrame(const CanRxFrame& can_frame)
         return;
     }
 
-    if ((frame.getDstNodeID() != NodeID::BROADCAST) &&
+    if ((frame.getDstNodeID() != NodeID::Broadcast) &&
         (frame.getDstNodeID() != getSelfNodeID()))
     {
         return;
@@ -76,16 +76,16 @@ void Dispatcher::handleFrame(const CanRxFrame& can_frame)
 
     switch (frame.getTransferType())
     {
-    case TRANSFER_TYPE_MESSAGE_BROADCAST:
-    case TRANSFER_TYPE_MESSAGE_UNICAST:
+    case TransferTypeMessageBroadcast:
+    case TransferTypeMessageUnicast:
         lmsg_.handleFrame(frame);
         break;
 
-    case TRANSFER_TYPE_SERVICE_REQUEST:
+    case TransferTypeServiceRequest:
         lsrv_req_.handleFrame(frame);
         break;
 
-    case TRANSFER_TYPE_SERVICE_RESPONSE:
+    case TransferTypeServiceResponse:
         lsrv_resp_.handleFrame(frame);
         break;
 
@@ -145,32 +145,32 @@ void Dispatcher::cleanup(uint64_t ts_monotonic)
 
 bool Dispatcher::registerMessageListener(TransferListenerBase* listener)
 {
-    if (listener->getDataTypeDescriptor().kind != DATA_TYPE_KIND_MESSAGE)
+    if (listener->getDataTypeDescriptor().kind != DataTypeKindMessage)
     {
         assert(0);
         return false;
     }
-    return lmsg_.add(listener, ListenerRegister::MANY_LISTENERS);       // Multiple subscribers are OK
+    return lmsg_.add(listener, ListenerRegister::ManyListeners);       // Multiple subscribers are OK
 }
 
 bool Dispatcher::registerServiceRequestListener(TransferListenerBase* listener)
 {
-    if (listener->getDataTypeDescriptor().kind != DATA_TYPE_KIND_SERVICE)
+    if (listener->getDataTypeDescriptor().kind != DataTypeKindService)
     {
         assert(0);
         return false;
     }
-    return lsrv_req_.add(listener, ListenerRegister::UNIQUE_LISTENER);  // Only one server per data type
+    return lsrv_req_.add(listener, ListenerRegister::UniqueListener);  // Only one server per data type
 }
 
 bool Dispatcher::registerServiceResponseListener(TransferListenerBase* listener)
 {
-    if (listener->getDataTypeDescriptor().kind != DATA_TYPE_KIND_SERVICE)
+    if (listener->getDataTypeDescriptor().kind != DataTypeKindService)
     {
         assert(0);
         return false;
     }
-    return lsrv_resp_.add(listener, ListenerRegister::MANY_LISTENERS);  // Multiple callers may call same srv
+    return lsrv_resp_.add(listener, ListenerRegister::ManyListeners);  // Multiple callers may call same srv
 }
 
 void Dispatcher::unregisterMessageListener(TransferListenerBase* listener)

@@ -30,7 +30,7 @@ TEST(Map, Basic)
     using uavcan::Map;
 
     static const int POOL_BLOCKS = 3;
-    uavcan::PoolAllocator<uavcan::MEM_POOL_BLOCK_SIZE * POOL_BLOCKS, uavcan::MEM_POOL_BLOCK_SIZE> pool;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
     uavcan::PoolManager<2> poolmgr;
     poolmgr.addPool(&pool);
 

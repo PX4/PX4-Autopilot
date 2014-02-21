@@ -34,10 +34,10 @@ public:
 };
 
 
-template <int MAX_POOLS>
+template <int MaxPools>
 class PoolManager : public IAllocator, Noncopyable
 {
-    IPoolAllocator* pools_[MAX_POOLS];
+    IPoolAllocator* pools_[MaxPools];
 
     static bool sortComparePoolAllocators(const IPoolAllocator* a, const IPoolAllocator* b)
     {
@@ -56,7 +56,7 @@ public:
     {
         assert(pool);
         bool retval = false;
-        for (int i = 0; i < MAX_POOLS; i++)
+        for (int i = 0; i < MaxPools; i++)
         {
             assert(pools_[i] != pool);
             if (pools_[i] == NULL || pools_[i] == pool)
@@ -67,13 +67,13 @@ public:
             }
         }
         // We need to keep the pools in order, so that smallest blocks go first
-        std::sort(pools_, pools_ + MAX_POOLS, &PoolManager::sortComparePoolAllocators);
+        std::sort(pools_, pools_ + MaxPools, &PoolManager::sortComparePoolAllocators);
         return retval;
     }
 
     void* allocate(std::size_t size)
     {
-        for (int i = 0; i < MAX_POOLS; i++)
+        for (int i = 0; i < MaxPools; i++)
         {
             if (pools_[i] == NULL)
                 break;
@@ -86,7 +86,7 @@ public:
 
     void deallocate(const void* ptr)
     {
-        for (int i = 0; i < MAX_POOLS; i++)
+        for (int i = 0; i < MaxPools; i++)
         {
             if (pools_[i] == NULL)
             {
@@ -103,37 +103,37 @@ public:
 };
 
 
-template <std::size_t POOL_SIZE, std::size_t BLOCK_SIZE>
+template <std::size_t PoolSize, std::size_t BlockSize>
 class PoolAllocator : public IPoolAllocator, Noncopyable
 {
     union Node
     {
-        uint8_t data[BLOCK_SIZE];
+        uint8_t data[BlockSize];
         Node* next;
     };
 
     Node* free_list_;
-    uint8_t pool_[POOL_SIZE] __attribute__((aligned(16)));  // TODO: compiler-independent alignment
+    uint8_t pool_[PoolSize] __attribute__((aligned(16)));  // TODO: compiler-independent alignment
 
     // Noncopyable
     PoolAllocator(const PoolAllocator&);
     PoolAllocator& operator=(const PoolAllocator&);
 
 public:
-    static const int NUM_BLOCKS = int(POOL_SIZE / BLOCK_SIZE);
+    static const int NumBlocks = int(PoolSize / BlockSize);
 
     PoolAllocator()
     : free_list_(reinterpret_cast<Node*>(pool_)) // TODO: alignment
     {
-        memset(pool_, 0, POOL_SIZE);
-        for (int i = 0; i < NUM_BLOCKS - 1; i++)
+        memset(pool_, 0, PoolSize);
+        for (int i = 0; i < NumBlocks - 1; i++)
             free_list_[i].next = free_list_ + i + 1;
-        free_list_[NUM_BLOCKS - 1].next = NULL;
+        free_list_[NumBlocks - 1].next = NULL;
     }
 
     void* allocate(std::size_t size)
     {
-        if (free_list_ == NULL || size > BLOCK_SIZE)
+        if (free_list_ == NULL || size > BlockSize)
             return NULL;
         void* pmem = free_list_;
         free_list_ = free_list_->next;
@@ -156,10 +156,10 @@ public:
     {
         return
             ptr >= pool_ &&
-            ptr < (pool_ + POOL_SIZE);
+            ptr < (pool_ + PoolSize);
     }
 
-    std::size_t getBlockSize() const { return BLOCK_SIZE; }
+    std::size_t getBlockSize() const { return BlockSize; }
 
     int getNumFreeBlocks() const
     {
@@ -168,7 +168,7 @@ public:
         while (p)
         {
             num++;
-            assert(num <= NUM_BLOCKS);
+            assert(num <= NumBlocks);
             p = p->next;
         }
         return num;
@@ -176,7 +176,7 @@ public:
 
     int getNumUsedBlocks() const
     {
-        return NUM_BLOCKS - getNumFreeBlocks();
+        return NumBlocks - getNumFreeBlocks();
     }
 };
 

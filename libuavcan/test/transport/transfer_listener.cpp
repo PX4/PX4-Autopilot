@@ -30,12 +30,12 @@ public:
 
 TEST(TransferListener, BasicMFT)
 {
-    uavcan::DataTypeDescriptor type(uavcan::DATA_TYPE_KIND_MESSAGE, 123, uavcan::DataTypeHash());
-    for (int i = 0; i < uavcan::DataTypeHash::NUM_BYTES; i++)
+    uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeHash());
+    for (int i = 0; i < uavcan::DataTypeHash::NumBytes; i++)
         type.hash.value[i] = i | (i << 4);
 
     static const int NUM_POOL_BLOCKS = 12;    // This number is just enough to pass the test
-    uavcan::PoolAllocator<uavcan::MEM_POOL_BLOCK_SIZE * NUM_POOL_BLOCKS, uavcan::MEM_POOL_BLOCK_SIZE> pool;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * NUM_POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
     uavcan::PoolManager<1> poolmgr;
     poolmgr.addPool(&pool);
 
@@ -62,11 +62,11 @@ TEST(TransferListener, BasicMFT)
     TransferListenerEmulator emulator(subscriber, type);
     const Transfer transfers[] =
     {
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 1, DATA[0]),
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,   1, DATA[1]),   // Same NID
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,   2, DATA[2]),
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_SERVICE_REQUEST,   3, DATA[3]),
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_SERVICE_RESPONSE,  4, DATA[4]),
+        emulator.makeTransfer(uavcan::TransferTypeMessageBroadcast, 1, DATA[0]),
+        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   1, DATA[1]),   // Same NID
+        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   2, DATA[2]),
+        emulator.makeTransfer(uavcan::TransferTypeServiceRequest,   3, DATA[3]),
+        emulator.makeTransfer(uavcan::TransferTypeServiceResponse,  4, DATA[4]),
     };
 
     /*
@@ -87,8 +87,8 @@ TEST(TransferListener, BasicMFT)
 
 TEST(TransferListener, CrcFailure)
 {
-    uavcan::DataTypeDescriptor type(uavcan::DATA_TYPE_KIND_MESSAGE, 123, uavcan::DataTypeHash());
-    for (int i = 0; i < uavcan::DataTypeHash::NUM_BYTES; i++)
+    uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeHash());
+    for (int i = 0; i < uavcan::DataTypeHash::NumBytes; i++)
         type.hash.value[i] = i | (i << 4);
 
     uavcan::PoolManager<1> poolmgr;                         // No dynamic memory
@@ -98,8 +98,8 @@ TEST(TransferListener, CrcFailure)
      * Generating transfers with damaged payload (CRC is not valid)
      */
     TransferListenerEmulator emulator(subscriber, type);
-    const Transfer tr_mft = emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 42, "123456789abcdefghik");
-    const Transfer tr_sft = emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST, 11, "abcd");
+    const Transfer tr_mft = emulator.makeTransfer(uavcan::TransferTypeMessageBroadcast, 42, "123456789abcdefghik");
+    const Transfer tr_sft = emulator.makeTransfer(uavcan::TransferTypeMessageUnicast, 11, "abcd");
 
     std::vector<uavcan::RxFrame> ser_mft = serializeTransfer(tr_mft);
     std::vector<uavcan::RxFrame> ser_sft = serializeTransfer(tr_sft);
@@ -132,8 +132,8 @@ TEST(TransferListener, CrcFailure)
 
 TEST(TransferListener, BasicSFT)
 {
-    uavcan::DataTypeDescriptor type(uavcan::DATA_TYPE_KIND_MESSAGE, 123, uavcan::DataTypeHash());
-    for (int i = 0; i < uavcan::DataTypeHash::NUM_BYTES; i++)
+    uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeHash());
+    for (int i = 0; i < uavcan::DataTypeHash::NumBytes; i++)
         type.hash.value[i] = i | (i << 4);
 
     uavcan::PoolManager<1> poolmgr;                         // No dynamic memory. At all.
@@ -142,15 +142,15 @@ TEST(TransferListener, BasicSFT)
     TransferListenerEmulator emulator(subscriber, type);
     const Transfer transfers[] =
     {
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 1, "123"),
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,   1, "456"),   // Same NID
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,   2, ""),
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_SERVICE_REQUEST,   3, "abc"),
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_SERVICE_RESPONSE,  4, ""),
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_SERVICE_RESPONSE,  2, ""),      // New TT, ignored due to OOM
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,   2, "foo"),   // Same as 2, not ignored
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,   2, "123456789abc"),// Same as 2, not SFT - ignore
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,   2, "bar"),   // Same as 2, not ignored
+        emulator.makeTransfer(uavcan::TransferTypeMessageBroadcast, 1, "123"),
+        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   1, "456"),   // Same NID
+        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   2, ""),
+        emulator.makeTransfer(uavcan::TransferTypeServiceRequest,   3, "abc"),
+        emulator.makeTransfer(uavcan::TransferTypeServiceResponse,  4, ""),
+        emulator.makeTransfer(uavcan::TransferTypeServiceResponse,  2, ""),      // New TT, ignored due to OOM
+        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   2, "foo"),   // Same as 2, not ignored
+        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   2, "123456789abc"),// Same as 2, not SFT - ignore
+        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   2, "bar"),   // Same as 2, not ignored
     };
 
     emulator.send(transfers);
@@ -169,8 +169,8 @@ TEST(TransferListener, BasicSFT)
 
 TEST(TransferListener, Cleanup)
 {
-    uavcan::DataTypeDescriptor type(uavcan::DATA_TYPE_KIND_MESSAGE, 123, uavcan::DataTypeHash());
-    for (int i = 0; i < uavcan::DataTypeHash::NUM_BYTES; i++)
+    uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeHash());
+    for (int i = 0; i < uavcan::DataTypeHash::NumBytes; i++)
         type.hash.value[i] = i | (i << 4);
 
     uavcan::PoolManager<1> poolmgr;                         // No dynamic memory
@@ -180,8 +180,8 @@ TEST(TransferListener, Cleanup)
      * Generating transfers
      */
     TransferListenerEmulator emulator(subscriber, type);
-    const Transfer tr_mft = emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 42, "123456789abcdefghik");
-    const Transfer tr_sft = emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST, 11, "abcd");
+    const Transfer tr_mft = emulator.makeTransfer(uavcan::TransferTypeMessageBroadcast, 42, "123456789abcdefghik");
+    const Transfer tr_sft = emulator.makeTransfer(uavcan::TransferTypeMessageUnicast, 11, "abcd");
 
     const std::vector<uavcan::RxFrame> ser_mft = serializeTransfer(tr_mft);
     const std::vector<uavcan::RxFrame> ser_sft = serializeTransfer(tr_sft);
@@ -225,20 +225,20 @@ TEST(TransferListener, Cleanup)
 
 TEST(TransferListener, MaximumTransferLength)
 {
-    uavcan::DataTypeDescriptor type(uavcan::DATA_TYPE_KIND_MESSAGE, 123, uavcan::DataTypeHash());
-    for (int i = 0; i < uavcan::DataTypeHash::NUM_BYTES; i++)
+    uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeHash());
+    for (int i = 0; i < uavcan::DataTypeHash::NumBytes; i++)
         type.hash.value[i] = i | (i << 4);
 
     uavcan::PoolManager<1> poolmgr;
-    TestSubscriber<uavcan::MAX_TRANSFER_PAYLOAD_LEN * 2, 2, 2> subscriber(type, poolmgr);
+    TestSubscriber<uavcan::MaxTransferPayloadLen * 2, 2, 2> subscriber(type, poolmgr);
 
-    static const std::string DATA_OK(uavcan::MAX_TRANSFER_PAYLOAD_LEN, 'z');
+    static const std::string DATA_OK(uavcan::MaxTransferPayloadLen, 'z');
 
     TransferListenerEmulator emulator(subscriber, type);
     const Transfer transfers[] =
     {
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,   1, DATA_OK),
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 1, DATA_OK)
+        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   1, DATA_OK),
+        emulator.makeTransfer(uavcan::TransferTypeMessageBroadcast, 1, DATA_OK)
     };
 
     emulator.send(transfers);

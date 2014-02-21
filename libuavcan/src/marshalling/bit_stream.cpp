@@ -12,11 +12,11 @@ namespace uavcan
 int BitStream::write(const uint8_t* bytes, const int bitlen)
 {
     // Temporary buffer is needed to merge new bits with cached unaligned bits from the last write() (see byte_cache_)
-    uint8_t tmp[MAX_BYTES_PER_RW + 1];
+    uint8_t tmp[MaxBytesPerRW + 1];
 
     // Tmp space must be large enough to accomodate new bits AND unaligned bits from the last write()
     const int bytelen = bitlenToBytelen(bitlen + (bit_offset_ % 8));
-    assert(MAX_BYTES_PER_RW >= bytelen);
+    assert(MaxBytesPerRW >= bytelen);
     tmp[0] = tmp[bytelen - 1] = 0;
 
     std::fill(tmp, tmp + bytelen, 0);
@@ -39,29 +39,29 @@ int BitStream::write(const uint8_t* bytes, const int bitlen)
     if (write_res < 0)
         return write_res;
     if (write_res < bytelen)
-        return RESULT_OUT_OF_BUFFER;
+        return ResultOutOfBuffer;
 
     bit_offset_ = new_bit_offset;
-    return RESULT_OK;
+    return ResultOk;
 }
 
 int BitStream::read(uint8_t* bytes, const int bitlen)
 {
-    uint8_t tmp[MAX_BYTES_PER_RW + 1];
+    uint8_t tmp[MaxBytesPerRW + 1];
 
     const int bytelen = bitlenToBytelen(bitlen + (bit_offset_ % 8));
-    assert(MAX_BYTES_PER_RW >= bytelen);
+    assert(MaxBytesPerRW >= bytelen);
 
     const int read_res = buf_.read(bit_offset_ / 8, tmp, bytelen);
     if (read_res < 0)
         return read_res;
     if (read_res < bytelen)
-        return RESULT_OUT_OF_BUFFER;
+        return ResultOutOfBuffer;
 
     std::fill(bytes, bytes + bitlenToBytelen(bitlen), 0);
     copyBitArray(tmp, bit_offset_ % 8, bitlen, bytes, 0);
     bit_offset_ += bitlen;
-    return RESULT_OK;
+    return ResultOk;
 }
 
 std::string BitStream::toString() const

@@ -12,7 +12,7 @@ namespace uavcan
  * Usage:
  *  StaticAssert<expression>::check();
  */
-template <bool VALUE>
+template <bool Value>
 struct StaticAssert;
 
 template <>
@@ -44,7 +44,7 @@ template<typename T>
 struct EnableIf<true, T> { typedef T Type; };
 
 
-template <bool COND, typename TrueType, typename FalseType>
+template <bool Condition, typename TrueType, typename FalseType>
 struct StaticIf;
 
 template <typename TrueType, typename FalseType>

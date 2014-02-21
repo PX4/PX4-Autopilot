@@ -149,12 +149,12 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
     bool need_crc = false;
     switch (transfer.transfer_type)
     {
-    case uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST:
+    case uavcan::TransferTypeMessageBroadcast:
         need_crc = transfer.payload.length() > sizeof(uavcan::CanFrame::data);
         break;
-    case uavcan::TRANSFER_TYPE_SERVICE_RESPONSE:
-    case uavcan::TRANSFER_TYPE_SERVICE_REQUEST:
-    case uavcan::TRANSFER_TYPE_MESSAGE_UNICAST:
+    case uavcan::TransferTypeServiceResponse:
+    case uavcan::TransferTypeServiceRequest:
+    case uavcan::TransferTypeMessageUnicast:
         need_crc = transfer.payload.length() > (sizeof(uavcan::CanFrame::data) - 1);
         break;
     default:
@@ -165,7 +165,7 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
     std::vector<uint8_t> raw_payload;
     if (need_crc)
     {
-        uavcan::Crc16 payload_crc(transfer.data_type.hash.value, uavcan::DataTypeHash::NUM_BYTES);
+        uavcan::Crc16 payload_crc(transfer.data_type.hash.value, uavcan::DataTypeHash::NumBytes);
         payload_crc.add(reinterpret_cast<const uint8_t*>(transfer.payload.c_str()), transfer.payload.length());
         // Little endian
         raw_payload.push_back(payload_crc.get() & 0xFF);
@@ -196,7 +196,7 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
             frm.makeLast();
 
         offset += spres;
-        EXPECT_GE(uavcan::Frame::INDEX_MAX, frame_index);
+        EXPECT_GE(uavcan::Frame::MaxIndex, frame_index);
         frame_index++;
 
         const uavcan::RxFrame rxfrm(frm, ts_monotonic, ts_utc, 0);
@@ -213,7 +213,7 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
 uavcan::DataTypeDescriptor makeDataType(uavcan::DataTypeKind kind, uint16_t id)
 {
     uavcan::DataTypeDescriptor dtd(kind, id, uavcan::DataTypeHash());
-    for (int i = 0; i < uavcan::DataTypeHash::NUM_BYTES; i += 2)
+    for (int i = 0; i < uavcan::DataTypeHash::NumBytes; i += 2)
     {
         dtd.hash.value[i] = id & 0xFF;
         dtd.hash.value[i + 1] = id >> 8;
@@ -243,8 +243,8 @@ public:
                           uavcan::NodeID dst_node_id_override = uavcan::NodeID())
     {
         ts_ += 100;
-        const uavcan::NodeID dst_node_id = (transfer_type == uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST)
-                    ? uavcan::NodeID::BROADCAST
+        const uavcan::NodeID dst_node_id = (transfer_type == uavcan::TransferTypeMessageBroadcast)
+                    ? uavcan::NodeID::Broadcast
                     : (dst_node_id_override.isValid() ? dst_node_id_override : dst_node_id_);
         const Transfer tr(ts_, ts_ + 1000000000ul, transfer_type, tid_, source_node_id, dst_node_id, payload, type);
         tid_.increment();

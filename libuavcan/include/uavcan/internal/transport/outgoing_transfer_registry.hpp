@@ -31,12 +31,12 @@ public:
     , transfer_type_(transfer_type)
     , destination_node_id_(destination_node_id)
     {
-        assert((transfer_type == TRANSFER_TYPE_MESSAGE_BROADCAST) == destination_node_id.isBroadcast());
+        assert((transfer_type == TransferTypeMessageBroadcast) == destination_node_id.isBroadcast());
 
         /* Service response transfers must use the same Transfer ID as matching service request transfer,
          * so this registry is not applicable for service response transfers at all.
          */
-        assert(transfer_type != TRANSFER_TYPE_SERVICE_RESPONSE);
+        assert(transfer_type != TransferTypeServiceResponse);
     }
 
     bool operator==(const OutgoingTransferRegistryKey& rhs) const
@@ -59,7 +59,7 @@ public:
 };
 
 
-template <int NUM_STATIC_ENTRIES>
+template <int NumStaticEntries>
 class OutgoingTransferRegistry : public IOutgoingTransferRegistry, Noncopyable
 {
 #pragma pack(push, 1)
@@ -88,7 +88,7 @@ class OutgoingTransferRegistry : public IOutgoingTransferRegistry, Noncopyable
         }
     };
 
-    Map<OutgoingTransferRegistryKey, Value, NUM_STATIC_ENTRIES> map_;
+    Map<OutgoingTransferRegistryKey, Value, NumStaticEntries> map_;
 
 public:
     OutgoingTransferRegistry(IAllocator& allocator)

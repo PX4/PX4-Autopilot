@@ -97,17 +97,17 @@ void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxF
 {
     switch (receiver.addFrame(frame, tba))
     {
-    case TransferReceiver::RESULT_NOT_COMPLETE:
+    case TransferReceiver::ResultNotComplete:
         return;
 
-    case TransferReceiver::RESULT_SINGLE_FRAME:
+    case TransferReceiver::ResultSingleFrame:
     {
         SingleFrameIncomingTransfer it(frame);
         handleIncomingTransfer(it);
         return;
     }
 
-    case TransferReceiver::RESULT_COMPLETE:
+    case TransferReceiver::ResultComplete:
     {
         const ITransferBuffer* tbb = tba.access();
         if (tbb == NULL)

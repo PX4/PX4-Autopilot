@@ -16,10 +16,12 @@ namespace uavcan
  */
 class Crc16
 {
-    static const uint16_t TABLE[256];
+    static const uint16_t Table[256];
     uint16_t value_;
 
 public:
+    enum { NumBytes = 2 };
+
     Crc16()
     : value_(0x0000)
     { }

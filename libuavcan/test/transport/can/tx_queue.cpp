@@ -33,22 +33,22 @@ static bool isInQueue(uavcan::CanTxQueue& queue, const uavcan::CanFrame& frame)
 
 TEST(CanTxQueue, Qos)
 {
-    uavcan::CanTxQueue::Entry e1(makeCanFrame(100, "", EXT), 1000, uavcan::CanTxQueue::VOLATILE);
-    uavcan::CanTxQueue::Entry e2(makeCanFrame(100, "", EXT), 1000, uavcan::CanTxQueue::VOLATILE);
+    uavcan::CanTxQueue::Entry e1(makeCanFrame(100, "", EXT), 1000, uavcan::CanTxQueue::Volatile);
+    uavcan::CanTxQueue::Entry e2(makeCanFrame(100, "", EXT), 1000, uavcan::CanTxQueue::Volatile);
 
     EXPECT_FALSE(e1.qosHigherThan(e2));
     EXPECT_FALSE(e2.qosHigherThan(e1));
     EXPECT_FALSE(e1.qosLowerThan(e2));
     EXPECT_FALSE(e2.qosLowerThan(e1));
 
-    e2.qos = uavcan::CanTxQueue::PERSISTENT;
+    e2.qos = uavcan::CanTxQueue::Persistent;
 
     EXPECT_FALSE(e1.qosHigherThan(e2));
     EXPECT_TRUE(e2.qosHigherThan(e1));
     EXPECT_TRUE(e1.qosLowerThan(e2));
     EXPECT_FALSE(e2.qosLowerThan(e1));
 
-    e1.qos = uavcan::CanTxQueue::PERSISTENT;
+    e1.qos = uavcan::CanTxQueue::Persistent;
     e1.frame.id -= 1;
 
     EXPECT_TRUE(e1.qosHigherThan(e2));
@@ -86,7 +86,7 @@ TEST(CanTxQueue, TxQueue)
     /*
      * Priority insertion
      */
-    queue.push(f4, 100, CanTxQueue::PERSISTENT);
+    queue.push(f4, 100, CanTxQueue::Persistent);
     EXPECT_FALSE(queue.isEmpty());
     EXPECT_EQ(1, pool32.getNumUsedBlocks());
     EXPECT_EQ(f4, queue.peek()->frame);
@@ -94,13 +94,13 @@ TEST(CanTxQueue, TxQueue)
     EXPECT_TRUE(queue.topPriorityHigherOrEqual(f4)); // Equal
     EXPECT_FALSE(queue.topPriorityHigherOrEqual(f3));
 
-    queue.push(f3, 200, CanTxQueue::PERSISTENT);
+    queue.push(f3, 200, CanTxQueue::Persistent);
     EXPECT_EQ(f3, queue.peek()->frame);
 
-    queue.push(f0, 300, CanTxQueue::VOLATILE);
+    queue.push(f0, 300, CanTxQueue::Volatile);
     EXPECT_EQ(f0, queue.peek()->frame);
 
-    queue.push(f1, 400, CanTxQueue::VOLATILE);
+    queue.push(f1, 400, CanTxQueue::Volatile);
     EXPECT_EQ(f0, queue.peek()->frame);              // Still f0, since it is highest
     EXPECT_TRUE(queue.topPriorityHigherOrEqual(f0)); // Equal
     EXPECT_TRUE(queue.topPriorityHigherOrEqual(f1));
@@ -125,28 +125,28 @@ TEST(CanTxQueue, TxQueue)
      * QoS
      */
     EXPECT_FALSE(isInQueue(queue, f2));
-    queue.push(f2, 100, CanTxQueue::VOLATILE);     // Non preempting, will be rejected
+    queue.push(f2, 100, CanTxQueue::Volatile);     // Non preempting, will be rejected
     EXPECT_FALSE(isInQueue(queue, f2));
 
-    queue.push(f2, 500, CanTxQueue::PERSISTENT);   // Will override f1 (f3 and f4 are presistent)
+    queue.push(f2, 500, CanTxQueue::Persistent);   // Will override f1 (f3 and f4 are presistent)
     EXPECT_TRUE(isInQueue(queue, f2));
     EXPECT_FALSE(isInQueue(queue, f1));
     EXPECT_EQ(4, getQueueLength(queue));
     EXPECT_EQ(2, queue.getNumRejectedFrames());
     EXPECT_EQ(f0, queue.peek()->frame);            // Check the priority
 
-    queue.push(f5, 600, CanTxQueue::PERSISTENT);   // Will override f0 (rest are presistent)
+    queue.push(f5, 600, CanTxQueue::Persistent);   // Will override f0 (rest are presistent)
     EXPECT_TRUE(isInQueue(queue, f5));
     EXPECT_FALSE(isInQueue(queue, f0));
     EXPECT_EQ(f2, queue.peek()->frame);            // Check the priority
 
     // No volatile frames left now
 
-    queue.push(f5a, 700, CanTxQueue::PERSISTENT);   // Will override f5 (same frame, same QoS)
+    queue.push(f5a, 700, CanTxQueue::Persistent);   // Will override f5 (same frame, same QoS)
     EXPECT_TRUE(isInQueue(queue, f5a));
     EXPECT_FALSE(isInQueue(queue, f5));
 
-    queue.push(f6, 700, CanTxQueue::PERSISTENT);    // Will be rejected (lowest QoS)
+    queue.push(f6, 700, CanTxQueue::Persistent);    // Will be rejected (lowest QoS)
     EXPECT_FALSE(isInQueue(queue, f6));
 
     EXPECT_FALSE(queue.topPriorityHigherOrEqual(f0));
@@ -165,19 +165,19 @@ TEST(CanTxQueue, TxQueue)
      * Expiration
      */
     clockmock.monotonic = 101;
-    queue.push(f0, 800, CanTxQueue::VOLATILE);     // Will replace f4 which is expired now
+    queue.push(f0, 800, CanTxQueue::Volatile);     // Will replace f4 which is expired now
     EXPECT_TRUE(isInQueue(queue, f0));
     EXPECT_FALSE(isInQueue(queue, f4));
     EXPECT_EQ(6, queue.getNumRejectedFrames());
 
     clockmock.monotonic = 1001;
-    queue.push(f5, 2000, CanTxQueue::VOLATILE);    // Entire queue is expired
+    queue.push(f5, 2000, CanTxQueue::Volatile);    // Entire queue is expired
     EXPECT_TRUE(isInQueue(queue, f5));
     EXPECT_EQ(1, getQueueLength(queue));           // Just one entry left - f5
     EXPECT_EQ(1, pool32.getNumUsedBlocks());       // Make sure there is no leaks
     EXPECT_EQ(10, queue.getNumRejectedFrames());
 
-    queue.push(f0, 1000, CanTxQueue::PERSISTENT);  // This entry is already expired
+    queue.push(f0, 1000, CanTxQueue::Persistent);  // This entry is already expired
     EXPECT_EQ(1, getQueueLength(queue));
     EXPECT_EQ(1, pool32.getNumUsedBlocks());
     EXPECT_EQ(11, queue.getNumRejectedFrames());
@@ -185,7 +185,7 @@ TEST(CanTxQueue, TxQueue)
     /*
      * Removing
      */
-    queue.push(f4, 5000, CanTxQueue::VOLATILE);
+    queue.push(f4, 5000, CanTxQueue::Volatile);
     EXPECT_EQ(2, getQueueLength(queue));
     EXPECT_TRUE(isInQueue(queue, f4));
     EXPECT_EQ(f4, queue.peek()->frame);

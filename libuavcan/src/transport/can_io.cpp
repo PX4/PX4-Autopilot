@@ -55,10 +55,10 @@ std::string CanTxQueue::Entry::toString() const
     std::string str_qos;
     switch (qos)
     {
-    case VOLATILE:
+    case Volatile:
         str_qos = "<volat> ";
         break;
-    case PERSISTENT:
+    case Persistent:
         str_qos = "<perst> ";
         break;
     default:
@@ -196,7 +196,7 @@ bool CanTxQueue::topPriorityHigherOrEqual(const CanFrame& rhs_frame) const
  */
 int CanIOManager::sendToIface(int iface_index, const CanFrame& frame, uint64_t monotonic_tx_deadline)
 {
-    assert(iface_index >= 0 && iface_index < MAX_IFACES);
+    assert(iface_index >= 0 && iface_index < MaxIfaces);
     ICanIface* const iface = driver_.getIface(iface_index);
     if (iface == NULL)
     {
@@ -216,7 +216,7 @@ int CanIOManager::sendToIface(int iface_index, const CanFrame& frame, uint64_t m
 
 int CanIOManager::sendFromTxQueue(int iface_index)
 {
-    assert(iface_index >= 0 && iface_index < MAX_IFACES);
+    assert(iface_index >= 0 && iface_index < MaxIfaces);
     CanTxQueue::Entry* entry = tx_queues_[iface_index].peek();
     if (entry == NULL)
         return 0;
@@ -246,14 +246,14 @@ uint64_t CanIOManager::getTimeUntilMonotonicDeadline(uint64_t monotonic_deadline
 int CanIOManager::getNumIfaces() const
 {
     const int num = driver_.getNumIfaces();
-    assert(num > 0 && num <= MAX_IFACES);
-    return std::min(std::max(num, 0), (int)MAX_IFACES);
+    assert(num > 0 && num <= MaxIfaces);
+    return std::min(std::max(num, 0), (int)MaxIfaces);
 }
 
 uint64_t CanIOManager::getNumErrors(int iface_index) const
 {
     ICanIface* const iface = driver_.getIface(iface_index);
-    if (iface == NULL || iface_index >= MAX_IFACES || iface_index < 0)
+    if (iface == NULL || iface_index >= MaxIfaces || iface_index < 0)
     {
         assert(0);
         return std::numeric_limits<uint64_t>::max();

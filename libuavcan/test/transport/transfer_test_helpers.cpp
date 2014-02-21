@@ -8,14 +8,14 @@
 
 TEST(TransferTestHelpers, Transfer)
 {
-    uavcan::PoolAllocator<uavcan::MEM_POOL_BLOCK_SIZE * 8, uavcan::MEM_POOL_BLOCK_SIZE> pool;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 8, uavcan::MemPoolBlockSize> pool;
     uavcan::PoolManager<1> poolmgr;
     poolmgr.addPool(&pool);
 
     uavcan::TransferBufferManager<128, 1> mgr(poolmgr);
-    uavcan::TransferBufferAccessor tba(mgr, uavcan::TransferBufferManagerKey(0, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST));
+    uavcan::TransferBufferAccessor tba(mgr, uavcan::TransferBufferManagerKey(0, uavcan::TransferTypeMessageUnicast));
 
-    uavcan::RxFrame frame(uavcan::Frame(123, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 1, 0, 0, 0, true), 0, 0, 0);
+    uavcan::RxFrame frame(uavcan::Frame(123, uavcan::TransferTypeMessageBroadcast, 1, 0, 0, 0, true), 0, 0, 0);
     uavcan::MultiFrameIncomingTransfer mfit(10, 1000, frame, tba);
 
     // Filling the buffer with data
@@ -32,12 +32,12 @@ TEST(TransferTestHelpers, Transfer)
 
 TEST(TransferTestHelpers, MFTSerialization)
 {
-    uavcan::DataTypeDescriptor type(uavcan::DATA_TYPE_KIND_MESSAGE, 123, uavcan::DataTypeHash());
-    for (int i = 0; i < uavcan::DataTypeHash::NUM_BYTES; i++)
+    uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeHash());
+    for (int i = 0; i < uavcan::DataTypeHash::NumBytes; i++)
         type.hash.value[i] = i;
 
     static const std::string DATA = "To go wrong in one's own way is better than to go right in someone else's.";
-    const Transfer transfer(1, 100000, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST, 2, 42, 127, DATA, type);
+    const Transfer transfer(1, 100000, uavcan::TransferTypeMessageUnicast, 2, 42, 127, DATA, type);
 
     const std::vector<uavcan::RxFrame> ser = serializeTransfer(transfer);
 
@@ -63,30 +63,30 @@ TEST(TransferTestHelpers, MFTSerialization)
 
 TEST(TransferTestHelpers, SFTSerialization)
 {
-    uavcan::DataTypeDescriptor type(uavcan::DATA_TYPE_KIND_MESSAGE, 123, uavcan::DataTypeHash());
-    for (int i = 0; i < uavcan::DataTypeHash::NUM_BYTES; i++)
+    uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeHash());
+    for (int i = 0; i < uavcan::DataTypeHash::NumBytes; i++)
         type.hash.value[i] = i;
 
     {
-        const Transfer transfer(1, 100000, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 7, 42, 0, "Nvrfrget", type);
+        const Transfer transfer(1, 100000, uavcan::TransferTypeMessageBroadcast, 7, 42, 0, "Nvrfrget", type);
         const std::vector<uavcan::RxFrame> ser = serializeTransfer(transfer);
         ASSERT_EQ(1, ser.size());
         std::cout << "Serialized transfer:\n\t" << ser[0].toString() << "\n";
     }
     {
-        const Transfer transfer(1, 100000, uavcan::TRANSFER_TYPE_SERVICE_REQUEST, 7, 42, 127, "7-chars", type);
+        const Transfer transfer(1, 100000, uavcan::TransferTypeServiceRequest, 7, 42, 127, "7-chars", type);
         const std::vector<uavcan::RxFrame> ser = serializeTransfer(transfer);
         ASSERT_EQ(1, ser.size());
         std::cout << "Serialized transfer:\n\t" << ser[0].toString() << "\n";
     }
     {
-        const Transfer transfer(1, 100000, uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 7, 42, 0, "", type);
+        const Transfer transfer(1, 100000, uavcan::TransferTypeMessageBroadcast, 7, 42, 0, "", type);
         const std::vector<uavcan::RxFrame> ser = serializeTransfer(transfer);
         ASSERT_EQ(1, ser.size());
         std::cout << "Serialized transfer:\n\t" << ser[0].toString() << "\n";
     }
     {
-        const Transfer transfer(1, 100000, uavcan::TRANSFER_TYPE_SERVICE_RESPONSE, 7, 42, 127, "", type);
+        const Transfer transfer(1, 100000, uavcan::TransferTypeServiceResponse, 7, 42, 127, "", type);
         const std::vector<uavcan::RxFrame> ser = serializeTransfer(transfer);
         ASSERT_EQ(1, ser.size());
         std::cout << "Serialized transfer:\n\t" << ser[0].toString() << "\n";

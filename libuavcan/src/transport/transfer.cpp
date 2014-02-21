@@ -12,7 +12,7 @@ namespace uavcan
 /**
  * NodeID
  */
-const NodeID NodeID::BROADCAST(VALUE_BROADCAST);
+const NodeID NodeID::Broadcast(ValueBroadcast);
 
 /**
  * TransferID
@@ -21,9 +21,9 @@ int TransferID::forwardDistance(TransferID rhs) const
 {
     int d = int(rhs.get()) - int(get());
     if (d < 0)
-        d += 1 << BITLEN;
+        d += 1 << BitLen;
 
-    assert(((get() + d) & MAX) == rhs.get());
+    assert(((get() + d) & Max) == rhs.get());
     return d;
 }
 
@@ -34,13 +34,13 @@ int Frame::getMaxPayloadLen() const
 {
     switch (getTransferType())
     {
-    case TRANSFER_TYPE_MESSAGE_BROADCAST:
+    case TransferTypeMessageBroadcast:
         return sizeof(payload_);
         break;
 
-    case TRANSFER_TYPE_SERVICE_RESPONSE:
-    case TRANSFER_TYPE_SERVICE_REQUEST:
-    case TRANSFER_TYPE_MESSAGE_UNICAST:
+    case TransferTypeServiceResponse:
+    case TransferTypeServiceRequest:
+    case TransferTypeMessageUnicast:
         return sizeof(payload_) - 1;
         break;
 
@@ -69,7 +69,7 @@ inline static uint32_t bitunpack(uint32_t val)
 
 bool Frame::parse(const CanFrame& can_frame)
 {
-    if ((can_frame.id & CanFrame::FLAG_RTR) || !(can_frame.id & CanFrame::FLAG_EFF))
+    if ((can_frame.id & CanFrame::FlagRTR) || !(can_frame.id & CanFrame::FlagEFF))
         return false;
 
     if (can_frame.dlc > sizeof(CanFrame::data))
@@ -81,7 +81,7 @@ bool Frame::parse(const CanFrame& can_frame)
     /*
      * CAN ID parsing
      */
-    const uint32_t id = can_frame.id & CanFrame::MASK_EXTID;
+    const uint32_t id = can_frame.id & CanFrame::MaskExtID;
     transfer_id_   = bitunpack<0, 3>(id);
     last_frame_    = bitunpack<3, 1>(id);
     frame_index_   = bitunpack<4, 6>(id);
@@ -94,15 +94,15 @@ bool Frame::parse(const CanFrame& can_frame)
      */
     switch (transfer_type_)
     {
-    case TRANSFER_TYPE_MESSAGE_BROADCAST:
-        dst_node_id_ = NodeID::BROADCAST;
+    case TransferTypeMessageBroadcast:
+        dst_node_id_ = NodeID::Broadcast;
         payload_len_ = can_frame.dlc;
         std::copy(can_frame.data, can_frame.data + can_frame.dlc, payload_);
         break;
 
-    case TRANSFER_TYPE_SERVICE_RESPONSE:
-    case TRANSFER_TYPE_SERVICE_REQUEST:
-    case TRANSFER_TYPE_MESSAGE_UNICAST:
+    case TransferTypeServiceResponse:
+    case TransferTypeServiceRequest:
+    case TransferTypeMessageUnicast:
         if (can_frame.dlc < 1)
             return false;
         if (can_frame.data[0] & 0x80)     // RESERVED, must be zero
@@ -133,7 +133,7 @@ bool Frame::compile(CanFrame& out_can_frame) const
         return false;
     }
 
-    out_can_frame.id = CanFrame::FLAG_EFF |
+    out_can_frame.id = CanFrame::FlagEFF |
         bitpack<0, 3>(transfer_id_.get()) |
         bitpack<3, 1>(last_frame_) |
         bitpack<4, 6>(frame_index_) |
@@ -143,14 +143,14 @@ bool Frame::compile(CanFrame& out_can_frame) const
 
     switch (transfer_type_)
     {
-    case TRANSFER_TYPE_MESSAGE_BROADCAST:
+    case TransferTypeMessageBroadcast:
         out_can_frame.dlc = payload_len_;
         std::copy(payload_, payload_ + payload_len_, out_can_frame.data);
         break;
 
-    case TRANSFER_TYPE_SERVICE_RESPONSE:
-    case TRANSFER_TYPE_SERVICE_REQUEST:
-    case TRANSFER_TYPE_MESSAGE_UNICAST:
+    case TransferTypeServiceResponse:
+    case TransferTypeServiceRequest:
+    case TransferTypeMessageUnicast:
         assert((payload_len_ + 1) <= sizeof(CanFrame::data));
         out_can_frame.data[0] = dst_node_id_.get();
         out_can_frame.dlc = payload_len_ + 1;
@@ -168,15 +168,15 @@ bool Frame::isValid() const
 {
     // Refer to the specification for the detailed explanation of the checks
     const bool invalid =
-        (frame_index_ > INDEX_MAX) ||
-        ((frame_index_ == INDEX_MAX) && !last_frame_) ||
+        (frame_index_ > MaxIndex) ||
+        ((frame_index_ == MaxIndex) && !last_frame_) ||
         (!src_node_id_.isUnicast()) ||
         (!dst_node_id_.isValid()) ||
         (src_node_id_ == dst_node_id_) ||
-        ((transfer_type_ == TRANSFER_TYPE_MESSAGE_BROADCAST) != dst_node_id_.isBroadcast()) ||
-        (transfer_type_ >= NUM_TRANSFER_TYPES) ||
+        ((transfer_type_ == TransferTypeMessageBroadcast) != dst_node_id_.isBroadcast()) ||
+        (transfer_type_ >= NumTransferTypes) ||
         (payload_len_ > getMaxPayloadLen()) ||
-        (data_type_id_ > DATA_TYPE_ID_MAX);
+        (data_type_id_ > MaxDataTypeID);
 
     return !invalid;
 }

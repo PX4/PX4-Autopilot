@@ -20,9 +20,9 @@ namespace uavcan
  *  Both key and value must be copyable, assignable and default constructible.
  *  Key must implement a comparison operator.
  *  Key's default constructor must initialize the object into invalid state.
- *  Size of Key + Value + padding must not exceed MEM_POOL_BLOCK_SIZE.
+ *  Size of Key + Value + padding must not exceed MemPoolBlockSize.
  */
-template <typename Key, typename Value, unsigned int NUM_STATIC_ENTRIES>
+template <typename Key, typename Value, unsigned int NumStaticEntries>
 class Map : Noncopyable
 {
 #pragma pack(push, 1)
@@ -37,7 +37,7 @@ class Map : Noncopyable
 
     struct KVGroup : LinkedListNode<KVGroup>
     {
-        enum { NUM_KV = (MEM_POOL_BLOCK_SIZE - sizeof(LinkedListNode<KVGroup>)) / sizeof(KVPair) };
+        enum { NUM_KV = (MemPoolBlockSize - sizeof(LinkedListNode<KVGroup>)) / sizeof(KVPair) };
         KVPair kvs[NUM_KV];
 
         KVGroup()
@@ -76,11 +76,11 @@ class Map : Noncopyable
 
     LinkedListRoot<KVGroup> list_;
     IAllocator& allocator_;
-    KVPair static_[NUM_STATIC_ENTRIES];
+    KVPair static_[NumStaticEntries];
 
     KVPair* find(const Key& key)
     {
-        for (unsigned int i = 0; i < NUM_STATIC_ENTRIES; i++)
+        for (unsigned int i = 0; i < NumStaticEntries; i++)
             if (static_[i].match(key))
                 return static_ + i;
 
@@ -101,7 +101,7 @@ class Map : Noncopyable
         {
             // Looking for first EMPTY static entry
             KVPair* stat = NULL;
-            for (unsigned int i = 0; i < NUM_STATIC_ENTRIES; i++)
+            for (unsigned int i = 0; i < NumStaticEntries; i++)
             {
                 if (static_[i].match(Key()))
                 {
@@ -232,7 +232,7 @@ public:
     {
         unsigned int num_removed = 0;
 
-        for (unsigned int i = 0; i < NUM_STATIC_ENTRIES; i++)
+        for (unsigned int i = 0; i < NumStaticEntries; i++)
         {
             if (!static_[i].match(Key()))
             {
@@ -280,7 +280,7 @@ public:
     unsigned int getNumStaticPairs() const
     {
         unsigned int num = 0;
-        for (unsigned int i = 0; i < NUM_STATIC_ENTRIES; i++)
+        for (unsigned int i = 0; i < NumStaticEntries; i++)
             if (!static_[i].match(Key()))
                 num++;
         return num;

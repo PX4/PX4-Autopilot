@@ -34,7 +34,7 @@ static const uavcan::NodeID SELF_NODE_ID(64);
 
 TEST(Dispatcher, Reception)
 {
-    uavcan::PoolAllocator<uavcan::MEM_POOL_BLOCK_SIZE * 8, uavcan::MEM_POOL_BLOCK_SIZE> pool;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 8, uavcan::MemPoolBlockSize> pool;
     uavcan::PoolManager<1> poolmgr;
     poolmgr.addPool(&pool);
 
@@ -52,10 +52,10 @@ TEST(Dispatcher, Reception)
      */
     static const uavcan::DataTypeDescriptor TYPES[4] =
     {
-        makeDataType(uavcan::DATA_TYPE_KIND_MESSAGE, 1),
-        makeDataType(uavcan::DATA_TYPE_KIND_MESSAGE, 2),
-        makeDataType(uavcan::DATA_TYPE_KIND_SERVICE, 1),
-        makeDataType(uavcan::DATA_TYPE_KIND_SERVICE, 1)
+        makeDataType(uavcan::DataTypeKindMessage, 1),
+        makeDataType(uavcan::DataTypeKindMessage, 2),
+        makeDataType(uavcan::DataTypeKindService, 1),
+        makeDataType(uavcan::DataTypeKindService, 1)
     };
 
     typedef TestSubscriber<512, 2, 2> Subscriber;
@@ -92,16 +92,16 @@ TEST(Dispatcher, Reception)
 
     const Transfer transfers[9] =
     {
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 10, DATA[0], TYPES[0]),
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,   11, DATA[1], TYPES[1]),
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_SERVICE_REQUEST,   12, DATA[2], TYPES[2]),
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_SERVICE_RESPONSE,  13, DATA[3], TYPES[3]),
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,   14, DATA[4], TYPES[0]),
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_BROADCAST, 15, DATA[5], TYPES[1]),
+        emulator.makeTransfer(uavcan::TransferTypeMessageBroadcast, 10, DATA[0], TYPES[0]),
+        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   11, DATA[1], TYPES[1]),
+        emulator.makeTransfer(uavcan::TransferTypeServiceRequest,   12, DATA[2], TYPES[2]),
+        emulator.makeTransfer(uavcan::TransferTypeServiceResponse,  13, DATA[3], TYPES[3]),
+        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   14, DATA[4], TYPES[0]),
+        emulator.makeTransfer(uavcan::TransferTypeMessageBroadcast, 15, DATA[5], TYPES[1]),
         // Wrongly addressed:
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_SERVICE_RESPONSE,  10, DATA[0], TYPES[3], 100),
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_SERVICE_REQUEST,   11, DATA[1], TYPES[2], 101),
-        emulator.makeTransfer(uavcan::TRANSFER_TYPE_MESSAGE_UNICAST,   12, DATA[2], TYPES[1], 102)
+        emulator.makeTransfer(uavcan::TransferTypeServiceResponse,  10, DATA[0], TYPES[3], 100),
+        emulator.makeTransfer(uavcan::TransferTypeServiceRequest,   11, DATA[1], TYPES[2], 101),
+        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   12, DATA[2], TYPES[1], 102)
     };
 
     /*
@@ -183,7 +183,7 @@ TEST(Dispatcher, Reception)
 
 TEST(Dispatcher, Transmission)
 {
-    uavcan::PoolAllocator<uavcan::MEM_POOL_BLOCK_SIZE * 8, uavcan::MEM_POOL_BLOCK_SIZE> pool;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 8, uavcan::MemPoolBlockSize> pool;
     uavcan::PoolManager<1> poolmgr;
     poolmgr.addPool(&pool);
 
@@ -201,10 +201,10 @@ TEST(Dispatcher, Transmission)
 
     // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
     // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame = false
-    uavcan::Frame frame(123, uavcan::TRANSFER_TYPE_MESSAGE_UNICAST, SELF_NODE_ID, 2, 0, 0, true);
+    uavcan::Frame frame(123, uavcan::TransferTypeMessageUnicast, SELF_NODE_ID, 2, 0, 0, true);
     frame.setPayload(reinterpret_cast<const uint8_t*>("123"), 3);
 
-    ASSERT_EQ(2, dispatcher.send(frame, TX_DEADLINE, 0, uavcan::CanTxQueue::VOLATILE));
+    ASSERT_EQ(2, dispatcher.send(frame, TX_DEADLINE, 0, uavcan::CanTxQueue::Volatile));
 
     /*
      * Validation

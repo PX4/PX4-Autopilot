@@ -12,15 +12,15 @@
 namespace uavcan
 {
 
-enum { MAX_TRANSFER_PAYLOAD_LEN = 439 }; ///< According to the standard
+enum { MaxTransferPayloadLen = 439 }; ///< According to the standard
 
 enum TransferType
 {
-    TRANSFER_TYPE_SERVICE_RESPONSE  = 0,
-    TRANSFER_TYPE_SERVICE_REQUEST   = 1,
-    TRANSFER_TYPE_MESSAGE_BROADCAST = 2,
-    TRANSFER_TYPE_MESSAGE_UNICAST   = 3,
-    NUM_TRANSFER_TYPES = 4
+    TransferTypeServiceResponse  = 0,
+    TransferTypeServiceRequest   = 1,
+    TransferTypeMessageBroadcast = 2,
+    TransferTypeMessageUnicast   = 3,
+    NumTransferTypes = 4
 };
 
 
@@ -28,18 +28,18 @@ class NodeID
 {
     enum
     {
-        VALUE_BROADCAST = 0,
-        VALUE_INVALID = 0xFF
+        ValueBroadcast = 0,
+        ValueInvalid = 0xFF
     };
     uint8_t value_;
 
 public:
-    enum { BITLEN = 7 };
-    enum { MAX = (1 << BITLEN) - 1 };
+    enum { BitLen = 7 };
+    enum { Max = (1 << BitLen) - 1 };
 
-    static const NodeID BROADCAST;
+    static const NodeID Broadcast;
 
-    NodeID() : value_(VALUE_INVALID) { }
+    NodeID() : value_(ValueInvalid) { }
 
     NodeID(uint8_t value)
     : value_(value)
@@ -49,9 +49,9 @@ public:
 
     uint8_t get() const { return value_; }
 
-    bool isValid() const     { return value_ <= MAX; }
-    bool isBroadcast() const { return value_ == VALUE_BROADCAST; }
-    bool isUnicast() const   { return (value_ <= MAX) && (value_ != VALUE_BROADCAST); }
+    bool isValid() const     { return value_ <= Max; }
+    bool isBroadcast() const { return value_ == ValueBroadcast; }
+    bool isUnicast() const   { return (value_ <= Max) && (value_ != ValueBroadcast); }
 
     bool operator!=(NodeID rhs) const { return !operator==(rhs); }
     bool operator==(NodeID rhs) const { return value_ == rhs.value_; }
@@ -63,8 +63,8 @@ class TransferID
     uint8_t value_;
 
 public:
-    enum { BITLEN = 3 };
-    enum { MAX = (1 << BITLEN) - 1 };
+    enum { BitLen = 3 };
+    enum { Max = (1 << BitLen) - 1 };
 
     TransferID()
     : value_(0)
@@ -73,7 +73,7 @@ public:
     TransferID(uint8_t value)    // implicit
     : value_(value)
     {
-        value_ &= MAX;
+        value_ &= Max;
         assert(value == value_);
     }
 
@@ -82,12 +82,12 @@ public:
 
     void increment()
     {
-        value_ = (value_ + 1) & MAX;
+        value_ = (value_ + 1) & Max;
     }
 
     uint8_t get() const
     {
-        assert(value_ <= MAX);
+        assert(value_ <= Max);
         return value_;
     }
 
@@ -111,11 +111,11 @@ class Frame
     bool last_frame_;
 
 public:
-    enum { DATA_TYPE_ID_MAX = 1023 };
-    enum { INDEX_MAX = 62 };        // 63 (or 0b111111) is reserved
+    enum { MaxDataTypeID = 1023 };
+    enum { MaxIndex = 62 };        // 63 (or 0b111111) is reserved
 
     Frame()
-    : transfer_type_(TransferType(NUM_TRANSFER_TYPES))  // That is invalid value
+    : transfer_type_(TransferType(NumTransferTypes))  // That is invalid value
     , data_type_id_(0)
     , payload_len_(0)
     , frame_index_(0)
@@ -134,10 +134,10 @@ public:
     , transfer_id_(transfer_id)
     , last_frame_(last_frame)
     {
-        assert((transfer_type == TRANSFER_TYPE_MESSAGE_BROADCAST) == dst_node_id.isBroadcast());
-        assert(data_type_id <= DATA_TYPE_ID_MAX);
+        assert((transfer_type == TransferTypeMessageBroadcast) == dst_node_id.isBroadcast());
+        assert(data_type_id <= MaxDataTypeID);
         assert(src_node_id != dst_node_id);
-        assert(frame_index <= INDEX_MAX);
+        assert(frame_index <= MaxIndex);
     }
 
     int getMaxPayloadLen() const;

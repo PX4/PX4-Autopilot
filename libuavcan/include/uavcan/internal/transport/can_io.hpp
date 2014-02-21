@@ -29,14 +29,14 @@ struct CanRxFrame : public CanFrame
     , iface_index(0)
     { }
 
-    std::string toString(StringRepresentation mode = STR_TIGHT) const;
+    std::string toString(StringRepresentation mode = StrTight) const;
 };
 
 
 class CanTxQueue : Noncopyable
 {
 public:
-    enum Qos { VOLATILE, PERSISTENT };
+    enum Qos { Volatile, Persistent };
 
     struct Entry : public LinkedListNode<Entry>  // Not required to be packed - fits the block in any case
     {
@@ -49,7 +49,7 @@ public:
         , frame(frame)
         , qos(uint8_t(qos))
         {
-            assert(qos == VOLATILE || qos == PERSISTENT);
+            assert(qos == Volatile || qos == Persistent);
             IsDynamicallyAllocatable<Entry>::check();
         }
 
@@ -116,13 +116,13 @@ public:
 class CanIOManager : Noncopyable
 {
 public:
-    enum { MAX_IFACES = 3 };
+    enum { MaxIfaces = 3 };
 
 private:
     ICanDriver& driver_;
     ISystemClock& sysclock_;
 
-    CanTxQueue tx_queues_[MAX_IFACES];
+    CanTxQueue tx_queues_[MaxIfaces];
 
     // Noncopyable
     CanIOManager(CanIOManager&);
@@ -138,9 +138,9 @@ public:
     : driver_(driver)
     , sysclock_(sysclock)
     {
-        assert(driver.getNumIfaces() <= MAX_IFACES);
+        assert(driver.getNumIfaces() <= MaxIfaces);
         // We can't initialize member array with non-default constructors in C++03
-        for (int i = 0; i < MAX_IFACES; i++)
+        for (int i = 0; i < MaxIfaces; i++)
         {
             tx_queues_[i].~CanTxQueue();
             new (tx_queues_ + i) CanTxQueue(&allocator, &sysclock);

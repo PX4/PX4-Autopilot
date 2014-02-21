@@ -18,10 +18,10 @@ class ScalarCodec
 {
     BitStream& stream_;
 
-    template <int SIZE>
-    static void swapByteOrder(uint8_t (&bytes)[SIZE])
+    template <int Size>
+    static void swapByteOrder(uint8_t (&bytes)[Size])
     {
-        for (int i = 0, j = SIZE - 1; i < j; i++, j--)
+        for (int i = 0, j = Size - 1; i < j; i++, j--)
         {
             const uint8_t c = bytes[i];
             bytes[i] = bytes[j];
@@ -29,9 +29,9 @@ class ScalarCodec
         }
     }
 
-    template <int BITLEN, int SIZE>
-    static typename EnableIf<(BITLEN > 8)>::Type
-    convertByteOrder(uint8_t (&bytes)[SIZE])
+    template <int BitLen, int Size>
+    static typename EnableIf<(BitLen > 8)>::Type
+    convertByteOrder(uint8_t (&bytes)[Size])
     {
 #if defined(BYTE_ORDER) && defined(BIG_ENDIAN)
         static const bool big_endian = BYTE_ORDER == BIG_ENDIAN;
@@ -50,50 +50,50 @@ class ScalarCodec
             swapByteOrder(bytes);
     }
 
-    template <int BITLEN, int SIZE>
-    static typename EnableIf<(BITLEN <= 8)>::Type
-    convertByteOrder(uint8_t (&bytes)[SIZE])
+    template <int BitLen, int Size>
+    static typename EnableIf<(BitLen <= 8)>::Type
+    convertByteOrder(uint8_t (&bytes)[Size])
     {
         (void)bytes;
     }
 
-    template <int BITLEN, typename T>
-    static typename EnableIf<std::numeric_limits<T>::is_signed && ((sizeof(T) * 8) > BITLEN)>::Type
+    template <int BitLen, typename T>
+    static typename EnableIf<std::numeric_limits<T>::is_signed && ((sizeof(T) * 8) > BitLen)>::Type
     fixTwosComplement(T& value)
     {
         StaticAssert<std::numeric_limits<T>::is_integer>::check(); // Not applicable to floating point types
 
-        if (value & (T(1) << (BITLEN - 1)))                        // The most significant bit is set --> negative
-            value |= 0xFFFFFFFFFFFFFFFF & ~((T(1) << BITLEN) - 1);
+        if (value & (T(1) << (BitLen - 1)))                        // The most significant bit is set --> negative
+            value |= 0xFFFFFFFFFFFFFFFF & ~((T(1) << BitLen) - 1);
     }
 
-    template <int BITLEN, typename T>
-    static typename EnableIf<!std::numeric_limits<T>::is_signed || ((sizeof(T) * 8) == BITLEN)>::Type
+    template <int BitLen, typename T>
+    static typename EnableIf<!std::numeric_limits<T>::is_signed || ((sizeof(T) * 8) == BitLen)>::Type
     fixTwosComplement(T& value)
     {
         (void)value;
     }
 
-    template <int BITLEN, typename T>
-    static typename EnableIf<((sizeof(T) * 8) > BITLEN)>::Type
+    template <int BitLen, typename T>
+    static typename EnableIf<((sizeof(T) * 8) > BitLen)>::Type
     clearExtraBits(T& value)
     {
-        value &= (T(1) << BITLEN) - 1;  // Signedness doesn't matter
+        value &= (T(1) << BitLen) - 1;  // Signedness doesn't matter
     }
 
-    template <int BITLEN, typename T>
-    static typename EnableIf<((sizeof(T) * 8) == BITLEN)>::Type
+    template <int BitLen, typename T>
+    static typename EnableIf<((sizeof(T) * 8) == BitLen)>::Type
     clearExtraBits(T& value)
     {
         (void)value;
     }
 
-    template <int BITLEN, typename T>
+    template <int BitLen, typename T>
     void validate()
     {
-        StaticAssert<((sizeof(T) * 8) >= BITLEN)>::check();
-        StaticAssert<(BITLEN <= BitStream::MAX_BITS_PER_RW)>::check();
-        StaticAssert<std::numeric_limits<T>::is_signed ? (BITLEN > 1) : 1>::check();
+        StaticAssert<((sizeof(T) * 8) >= BitLen)>::check();
+        StaticAssert<(BitLen <= BitStream::MaxBitsPerRW)>::check();
+        StaticAssert<std::numeric_limits<T>::is_signed ? (BitLen > 1) : 1>::check();
     }
 
 public:
@@ -101,10 +101,10 @@ public:
     : stream_(stream)
     { }
 
-    template <int BITLEN, typename T>
+    template <int BitLen, typename T>
     int encode(const T value)
     {
-        validate<BITLEN, T>();
+        validate<BitLen, T>();
         union ByteUnion
         {
             T value;
@@ -112,19 +112,19 @@ public:
         } byte_union;
         byte_union.value = value;
 
-        clearExtraBits<BITLEN>(byte_union.value);
-        convertByteOrder<BITLEN>(byte_union.bytes);
+        clearExtraBits<BitLen>(byte_union.value);
+        convertByteOrder<BitLen>(byte_union.bytes);
 
         // Underlying stream class assumes that more significant bits have lower index, so we need to shift some.
-        byte_union.bytes[BITLEN / 8] <<= (8 - (BITLEN % 8)) & 7;
+        byte_union.bytes[BitLen / 8] <<= (8 - (BitLen % 8)) & 7;
 
-        return stream_.write(byte_union.bytes, BITLEN);
+        return stream_.write(byte_union.bytes, BitLen);
     }
 
-    template <int BITLEN, typename T>
+    template <int BitLen, typename T>
     int decode(T& value)
     {
-        validate<BITLEN, T>();
+        validate<BitLen, T>();
         union ByteUnion
         {
             T value;
@@ -132,14 +132,14 @@ public:
         } byte_union;
         std::fill(byte_union.bytes, byte_union.bytes + sizeof(T), 0);
 
-        const int read_res = stream_.read(byte_union.bytes, BITLEN);
+        const int read_res = stream_.read(byte_union.bytes, BitLen);
         if (read_res <= 0)
             return read_res;
 
-        byte_union.bytes[BITLEN / 8] >>= (8 - (BITLEN % 8)) & 7;  // As in encode(), vice versa
+        byte_union.bytes[BitLen / 8] >>= (8 - (BitLen % 8)) & 7;  // As in encode(), vice versa
 
-        convertByteOrder<BITLEN>(byte_union.bytes);
-        fixTwosComplement<BITLEN>(byte_union.value);
+        convertByteOrder<BitLen>(byte_union.bytes);
+        fixTwosComplement<BitLen>(byte_union.value);
 
         value = byte_union.value;
         return read_res;

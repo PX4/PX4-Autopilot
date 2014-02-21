@@ -45,7 +45,7 @@ void DynamicTransferBufferManagerEntry::Block::read(uint8_t*& outptr, unsigned i
                                         unsigned int& total_offset, unsigned int& left_to_read)
 {
     assert(outptr);
-    for (int i = 0; (i < Block::SIZE) && (left_to_read > 0); i++, total_offset++)
+    for (int i = 0; (i < Block::Size) && (left_to_read > 0); i++, total_offset++)
     {
         if (total_offset >= target_offset)
         {
@@ -59,7 +59,7 @@ void DynamicTransferBufferManagerEntry::Block::write(const uint8_t*& inptr, unsi
                                          unsigned int& total_offset, unsigned int& left_to_write)
 {
     assert(inptr);
-    for (int i = 0; (i < Block::SIZE) && (left_to_write > 0); i++, total_offset++)
+    for (int i = 0; (i < Block::Size) && (left_to_write > 0); i++, total_offset++)
     {
         if (total_offset >= target_offset)
         {

@@ -95,7 +95,7 @@ class TransferListenerBase : public LinkedListNode<TransferListenerBase>
 protected:
     TransferListenerBase(const DataTypeDescriptor& data_type)
     : data_type_(data_type)
-    , crc_base_(data_type.hash.value, DataTypeHash::NUM_BYTES)
+    , crc_base_(data_type.hash.value, DataTypeHash::NumBytes)
     { }
 
     virtual ~TransferListenerBase() { }
@@ -114,12 +114,12 @@ public:
 /**
  * This class should be derived by transfer receivers (subscribers, servers, callers).
  */
-template <unsigned int MAX_BUF_SIZE, unsigned int NUM_STATIC_BUFS, unsigned int NUM_STATIC_RECEIVERS>
+template <unsigned int MaxBufSize, unsigned int NumStaticBufs, unsigned int NumStaticReceivers>
 class TransferListener : public TransferListenerBase, Noncopyable
 {
-    typedef TransferBufferManager<MAX_BUF_SIZE, NUM_STATIC_BUFS> BufferManager;
+    typedef TransferBufferManager<MaxBufSize, NumStaticBufs> BufferManager;
     BufferManager bufmgr_;
-    Map<TransferBufferManagerKey, TransferReceiver, NUM_STATIC_RECEIVERS> receivers_;
+    Map<TransferBufferManagerKey, TransferReceiver, NumStaticReceivers> receivers_;
 
     void handleFrame(const RxFrame& frame)
     {
@@ -185,7 +185,7 @@ public:
     , bufmgr_(allocator)
     , receivers_(allocator)
     {
-        StaticAssert<(NUM_STATIC_RECEIVERS >= NUM_STATIC_BUFS)>::check();  // Otherwise it would be meaningless
+        StaticAssert<(NumStaticReceivers >= NumStaticBufs)>::check();  // Otherwise it would be meaningless
     }
 
     ~TransferListener()

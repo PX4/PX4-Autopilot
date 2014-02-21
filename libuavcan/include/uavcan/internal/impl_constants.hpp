@@ -15,19 +15,19 @@ namespace uavcan
  * fit this size; otherwise compilation fails.
  */
 #if UAVCAN_MEM_POOL_BLOCK_SIZE
-enum { MEM_POOL_BLOCK_SIZE = UAVCAN_MEM_POOL_BLOCK_SIZE };
+enum { MemPoolBlockSize = UAVCAN_MEM_POOL_BLOCK_SIZE };
 #else
-enum { MEM_POOL_BLOCK_SIZE = 32 + sizeof(void*) * 2 };
+enum { MemPoolBlockSize = 32 + sizeof(void*) * 2 };
 #endif
 
-enum { MEM_POOL_ALIGNMENT = 8 };
+enum { MemPoolAlignment = 8 };
 
-typedef char _alignment_check_for_MEM_POOL_BLOCK_SIZE[((MEM_POOL_BLOCK_SIZE & (MEM_POOL_ALIGNMENT - 1)) == 0) ? 1 : -1];
+typedef char _alignment_check_for_MEM_POOL_BLOCK_SIZE[((MemPoolBlockSize & (MemPoolAlignment - 1)) == 0) ? 1 : -1];
 
 template <typename T>
 struct IsDynamicallyAllocatable
 {
-    static void check() { StaticAssert<sizeof(T) <= MEM_POOL_BLOCK_SIZE>::check(); }
+    static void check() { StaticAssert<sizeof(T) <= MemPoolBlockSize>::check(); }
 };
 
 }
