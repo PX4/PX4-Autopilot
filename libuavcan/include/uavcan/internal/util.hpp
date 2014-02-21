@@ -43,4 +43,21 @@ struct EnableIf { };
 template<typename T>
 struct EnableIf<true, T> { typedef T Type; };
 
+
+template <bool COND, typename TrueType, typename FalseType>
+struct StaticIf;
+
+template <typename TrueType, typename FalseType>
+struct StaticIf<true, TrueType, FalseType>
+{
+    typedef TrueType Result;
+};
+
+template <typename TrueType, typename FalseType>
+struct StaticIf<false, TrueType, FalseType>
+{
+    typedef FalseType Result;
+};
+
+
 }
