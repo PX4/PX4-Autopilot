@@ -1,7 +1,7 @@
-import output
+import codecs
 
-class DokuWikiOutput(output.Output):
-    def Generate(self, groups):
+class DokuWikiListingsOutput():
+    def __init__(self, groups):
         result = ""
         for group in groups:
             result += "==== %s ====\n\n" % group.GetName()
@@ -24,4 +24,8 @@ class DokuWikiOutput(output.Output):
                 if def_val is not None:
                     result += "* Default value: %s\n" % def_val
                 result += "\n"
-        return result
+        self.output = result
+
+    def Save(self, filename):
+        with codecs.open(filename, 'w', 'utf-8') as f:
+            f.write(self.output)

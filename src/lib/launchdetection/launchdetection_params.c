@@ -45,28 +45,46 @@
 #include <systemlib/param/param.h>
 
 /*
- * Launch detection parameters, accessible via MAVLink
+ * Catapult launch detection parameters, accessible via MAVLink
  *
  */
 
-/* Catapult Launch detection */
-
-// @DisplayName		Switch to enable launchdetection
-// @Description		if set to 1 launchdetection is enabled
-// @Range		0 or 1
+/**
+ * Enable launch detection.
+ *
+ * @min 0
+ * @max 1
+ * @group Launch detection
+ */
 PARAM_DEFINE_INT32(LAUN_ALL_ON, 0);
 
-// @DisplayName		Catapult Accelerometer Threshold
-// @Description		LAUN_CAT_A * LAUN_CAT_T serves as threshold to trigger launch detection
-// @Range		> 0
+/**
+ * Catapult accelerometer theshold.
+ *
+ * LAUN_CAT_A * LAUN_CAT_T serves as threshold to trigger launch detection.
+ *
+ * @min 0
+ * @group Launch detection
+ */
 PARAM_DEFINE_FLOAT(LAUN_CAT_A, 30.0f);
 
-// @DisplayName		Catapult Time Threshold
-// @Description		LAUN_CAT_A * LAUN_CAT_T serves as threshold to trigger launch detection
-// @Range		> 0, in seconds
+/**
+ * Catapult time theshold.
+ *
+ * LAUN_CAT_A * LAUN_CAT_T serves as threshold to trigger launch detection.
+ *
+ * @min 0
+ * @group Launch detection
+ */
 PARAM_DEFINE_FLOAT(LAUN_CAT_T, 0.05f);
 
-// @DisplayName		Throttle setting while detecting the launch
-// @Description		The throttle is set to this value while the system is waiting for the takeoff
-// @Range		0 to 1
+/**
+ * Throttle setting while detecting launch.
+ *
+ * The throttle is set to this value while the system is waiting for the take-off.
+ *
+ * @min 0
+ * @max 1
+ * @group Launch detection
+ */
 PARAM_DEFINE_FLOAT(LAUN_THR_PRE, 0.0f);
