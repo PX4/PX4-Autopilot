@@ -369,11 +369,25 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 		if (channel >= *num_values)
 			*num_values = channel + 1;
 
-		/* convert 0-1024 / 0-2048 values to 1000-2000 ppm encoding in a very sloppy fashion */
-		if (dsm_channel_shift == 11)
-			value /= 2;
+		/* convert 0-1024 / 0-2048 values to 1000-2000 ppm encoding. */
+		if (dsm_channel_shift == 10)
+			value *= 2;
 
-		value += 998;
+		/*
+		 * Spektrum scaling is special. There are these basic considerations
+		 *
+		 *   * Midpoint is 1520 us
+		 *   * 100% travel channels are +- 400 us
+		 *
+		 * We obey the original Spektrum scaling (so a default setup will scale from
+		 * 1100 - 1900 us), but we do not obey the weird 1520 us center point
+		 * and instead (correctly) center the center around 1500 us. This is in order
+		 * to get something useful without requiring the user to calibrate on a digital
+		 * link for no reason.
+		 */
+
+		/* scaled integer for decent accuracy while staying efficient */
+		value = (((value - 1024) * 1000) / 1700) + 1500;
 
 		/*
 		 * Store the decoded channel into the R/C input buffer, taking into
