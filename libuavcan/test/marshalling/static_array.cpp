@@ -96,8 +96,8 @@ TEST(StaticArray, Basic)
     {
         ASSERT_EQ(0, it->a);
         ASSERT_EQ(0, it->b);
-        for (A3::ValueType::C::const_iterator it2 = it->c.begin(); it2 != it->c.end(); ++it2)
-            ASSERT_EQ(0, *it2);
+        for (int i = 0; i < 8; i++)
+            ASSERT_EQ(0, it->c[i]);
     }
 
     /*

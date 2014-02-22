@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <bitset>
 #include <algorithm>
 #include <stdexcept>
 #include <uavcan/internal/impl_constants.hpp>
@@ -114,6 +115,44 @@ public:
     typedef ValueType* iterator;
     typedef const ValueType* const_iterator;
 };
+
+
+/// Special case - bit array
+template <unsigned int Size_, CastMode CastMode>
+class StaticArray<IntegerSpec<1, SignednessUnsigned, CastMode>, Size_ > : public std::bitset<Size_>
+{
+public:
+    enum { IsDynamic = 0 };
+    enum { Size = Size_ };
+
+    typedef IntegerSpec<1, SignednessUnsigned, CastMode> RawValueType;
+    typedef typename StorageType<RawValueType>::Type ValueType;
+
+    static int encode(const StaticArray<RawValueType, Size>& array, ScalarCodec& codec)
+    {
+        for (std::size_t i = 0; i < Size; i++)
+        {
+            const int res = RawValueType::encode(bool(array[i]), codec);
+            if (res <= 0)
+                return res;
+        }
+        return 1;
+    }
+
+    static int decode(StaticArray<RawValueType, Size>& array, ScalarCodec& codec)
+    {
+        for (std::size_t i = 0; i < Size; i++)
+        {
+            ValueType value = 0;
+            const int res = RawValueType::decode(value, codec);
+            array[i] = value;
+            if (res <= 0)
+                return res;
+        }
+        return 1;
+    }
+};
+
 
 template <typename T> class StaticArray<T, 0>;  // Invalid instantiation
 
