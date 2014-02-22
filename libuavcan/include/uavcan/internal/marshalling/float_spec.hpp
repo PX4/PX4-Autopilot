@@ -31,7 +31,7 @@ class IEEE754Converter
     static uint16_t nativeNonIeeeToHalf(float value);
     static float halfToNativeNonIeee(uint16_t value);
 
-    IEEE754Converter() { }
+    IEEE754Converter();
 
 public:
     /// UAVCAN requires rounding to nearest for all float conversions
@@ -62,18 +62,17 @@ public:
     }
 };
 template <>
-typename IntegerSpec<16, SignednessUnsigned, CastModeTruncate>::StorageType
+inline typename IntegerSpec<16, SignednessUnsigned, CastModeTruncate>::StorageType
 IEEE754Converter::toIeee<16>(typename NativeFloatSelector<16>::Type value)
 {
     return nativeNonIeeeToHalf(value);
 }
 template <>
-typename NativeFloatSelector<16>::Type
+inline typename NativeFloatSelector<16>::Type
 IEEE754Converter::toNative<16>(typename IntegerSpec<16, SignednessUnsigned, CastModeTruncate>::StorageType value)
 {
     return halfToNativeNonIeee(value);
 }
-
 
 template <unsigned int BitLen> struct IEEE754Limits;
 template <> struct IEEE754Limits<16>
@@ -96,7 +95,7 @@ template <> struct IEEE754Limits<64>
 template <unsigned int BitLen_, CastMode CastMode>
 class FloatSpec : public IEEE754Limits<BitLen_>
 {
-    FloatSpec() { }
+    FloatSpec();
 
 public:
     enum { BitLen = BitLen_ };

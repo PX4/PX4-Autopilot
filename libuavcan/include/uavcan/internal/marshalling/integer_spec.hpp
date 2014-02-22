@@ -34,7 +34,7 @@ public:
 private:
     typedef typename IntegerSpec<BitLen, SignednessUnsigned, CastMode>::StorageType UnsignedStorageType;
 
-    IntegerSpec() { }
+    IntegerSpec();
 
     struct ExactSizeLimits
     {

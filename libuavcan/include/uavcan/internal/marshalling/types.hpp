@@ -6,12 +6,13 @@
 
 #include <uavcan/internal/util.hpp>
 #include <uavcan/internal/marshalling/integer_spec.hpp>
+#include <uavcan/internal/marshalling/float_spec.hpp>
 
 namespace uavcan
 {
 
 template <typename T, typename Enable = void>
-struct StorageTypeImpl { typedef T StorageType; };
+struct StorageTypeImpl { typedef T Type; };
 
 template <typename T>
 struct StorageTypeImpl<T, typename EnableIfType<typename T::StorageType>::Type>
@@ -20,8 +21,10 @@ struct StorageTypeImpl<T, typename EnableIfType<typename T::StorageType>::Type>
 };
 
 template <typename T>
-struct StorageType : public T
+class StorageType : public T
 {
+    StorageType();
+public:
     typedef typename StorageTypeImpl<T>::Type Type;
 };
 
