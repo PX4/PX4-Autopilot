@@ -77,6 +77,7 @@ extern uint16_t			r_page_servos[];	/* PX4IO_PAGE_SERVOS */
 extern uint16_t			r_page_raw_rc_input[];	/* PX4IO_PAGE_RAW_RC_INPUT */
 extern uint16_t			r_page_rc_input[];	/* PX4IO_PAGE_RC_INPUT */
 extern uint16_t			r_page_adc[];		/* PX4IO_PAGE_RAW_ADC_INPUT */
+extern uint16_t			r_page_safelink[];	/* PX4IO_PAGE_SAFELINK */
 
 extern volatile uint16_t	r_page_setup[];		/* PX4IO_PAGE_SETUP */
 extern volatile uint16_t	r_page_controls[];	/* PX4IO_PAGE_CONTROLS */
@@ -110,6 +111,8 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 #endif
 
 #define r_control_values	(&r_page_controls[0])
+#define r_safelink_values	(&r_page_safelink[PX4IO_P_SAFELINK_BASE])
+#define r_safelink_count	r_page_safelink[PX4IO_P_SAFELINK_COUNT]
 
 /*
  * System state structure.
@@ -221,6 +224,10 @@ extern bool	sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsa
 
 extern void	sbus1_output(uint16_t *values, uint16_t num_values);
 extern void	sbus2_output(uint16_t *values, uint16_t num_values);
+
+extern int	safelink_init(int fd);
+extern void	safelink_output(uint16_t *values, uint16_t num_values);
+extern bool	safelink_input(uint16_t *values, uint16_t *num_values, bool *failsafe, uint16_t max_channels);
 
 /** global debug level for isr_debug() */
 extern volatile uint8_t debug_level;

@@ -111,6 +111,7 @@
 #define PX4IO_P_STATUS_FLAGS_INIT_OK		(1 << 10) /* initialisation of the IO completed without error */
 #define PX4IO_P_STATUS_FLAGS_FAILSAFE		(1 << 11) /* failsafe is active */
 #define PX4IO_P_STATUS_FLAGS_SAFETY_OFF		(1 << 12) /* safety is off */
+#define PX4IO_P_STATUS_FLAGS_SAFELINK_FS	(1 << 13) /* SAFELINK failsave is active */
 
 #define PX4IO_P_STATUS_ALARMS			3	 /* alarm flags - alarms latch, write 1 to a bit to clear it */
 #define PX4IO_P_STATUS_ALARMS_VBATT_LOW		(1 << 0) /* [1] VBatt is very close to regulator dropout */
@@ -161,6 +162,10 @@
 #define PX4IO_PAGE_PWM_INFO		7
 #define PX4IO_RATE_MAP_BASE			0	/* 0..CONFIG_ACTUATOR_COUNT bitmaps of PWM rate groups */
 
+#define PX4IO_PAGE_SAFELINK			8	/**< redundancy link page */
+#define PX4IO_P_SAFELINK_COUNT			0	/**< number of inputs */
+#define PX4IO_P_SAFELINK_BASE			1	/**< index of safelink actuator zero */
+
 /* setup page */
 #define PX4IO_PAGE_SETUP		50
 #define PX4IO_P_SETUP_FEATURES			0
@@ -168,6 +173,8 @@
 #define PX4IO_P_SETUP_FEATURES_SBUS2_OUT	(1 << 1) /* enable S.Bus v2 output */
 #define PX4IO_P_SETUP_FEATURES_PWM_RSSI		(1 << 2) /* enable PWM RSSI parsing */
 #define PX4IO_P_SETUP_FEATURES_ADC_RSSI		(1 << 3) /* enable ADC RSSI parsing */
+#define PX4IO_P_SETUP_FEATURES_SAFELINK_IN	(1 << 4) /* enable SAFELINK input parsing on S.BUS port */
+#define PX4IO_P_SETUP_FEATURES_SAFELINK_OUT	(1 << 5) /* enable SAFELINK output on S.BUS port */
 
 #define PX4IO_P_SETUP_ARMING			1	 /* arming controls */
 #define PX4IO_P_SETUP_ARMING_IO_ARM_OK		(1 << 0) /* OK to arm the IO side */

@@ -142,6 +142,16 @@ uint16_t		r_page_rc_input[] = {
 uint16_t		r_page_scratch[32];
 
 /**
+ * PAGE 8
+ *
+ * Inputs from redundant autopilot
+ */
+uint16_t		r_page_safelink[] = {
+	[PX4IO_P_SAFELINK_COUNT]		= 0,
+	[PX4IO_P_SAFELINK_BASE ... (PX4IO_P_SAFELINK_BASE + PX4IO_SERVO_COUNT)] = 0
+};
+
+/**
  * PAGE 100
  *
  * Setup registers
