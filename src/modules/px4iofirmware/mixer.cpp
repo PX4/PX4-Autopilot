@@ -179,7 +179,7 @@ mixer_tick(void)
 							    ((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)
 		/* and there is valid input via or mixer */         &&   (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) )
 		/* or direct PWM is set */               || (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)
-		/* or failsafe was set manually */	 || (r_setup_arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM)
+		/* or failsafe was set manually */	 || ((r_setup_arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM) && !(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK))
 						     )
 	);
 
