@@ -126,7 +126,6 @@ public:
     enum { Size = Size_ };
 
     typedef IntegerSpec<1, SignednessUnsigned, CastMode> RawValueType;
-    typedef typename StorageType<RawValueType>::Type ValueType;
 
     static int encode(const StaticArray<RawValueType, Size>& array, ScalarCodec& codec)
     {
@@ -143,7 +142,7 @@ public:
     {
         for (std::size_t i = 0; i < Size; i++)
         {
-            ValueType value = 0;
+            typename StorageType<RawValueType>::Type value = 0;
             const int res = RawValueType::decode(value, codec);
             array[i] = value;
             if (res <= 0)
