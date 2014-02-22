@@ -213,9 +213,9 @@ sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sb
 			/* fall through */
 			case SBUS2_DECODE_STATE_SBUS2_SYNC:
 				{
-					/* decode whatever we got and expect */
+					/* decode whatever we got */
 					if (partial_frame_count < SBUS_FRAME_SIZE)
-						decode_ret = true;
+						decode_ret = false;
 
 					/*
 					 * Great, it looks like we might have a frame.  Go ahead and
