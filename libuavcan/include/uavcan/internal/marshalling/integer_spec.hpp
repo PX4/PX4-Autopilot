@@ -8,7 +8,7 @@
 #include <limits>
 #include <uavcan/internal/util.hpp>
 #include <uavcan/internal/marshalling/scalar_codec.hpp>
-#include <uavcan/internal/marshalling/types.hpp>
+#include <uavcan/internal/marshalling/cast_mode.hpp>
 
 namespace uavcan
 {
@@ -16,7 +16,7 @@ namespace uavcan
 enum Signedness { SignednessUnsigned, SignednessSigned };
 
 template <unsigned int BitLen_, Signedness Signedness, CastMode CastMode>
-class IntegerInfo
+class IntegerSpec
 {
     enum { IsSigned = Signedness == SignednessSigned };
 
@@ -32,9 +32,9 @@ public:
                               ErrorNoSuchInteger>::Result>::Result>::Result>::Result StorageType;
 
 private:
-    typedef typename IntegerInfo<BitLen, SignednessUnsigned, CastMode>::StorageType UnsignedStorageType;
+    typedef typename IntegerSpec<BitLen, SignednessUnsigned, CastMode>::StorageType UnsignedStorageType;
 
-    IntegerInfo() { }
+    IntegerSpec() { }
 
     struct ExactSizeLimits
     {
@@ -98,6 +98,6 @@ public:
 };
 
 template <CastMode CastMode>
-class IntegerInfo<1, SignednessSigned, CastMode>;   // Invalid instantiation
+class IntegerSpec<1, SignednessSigned, CastMode>;   // Invalid instantiation
 
 }
