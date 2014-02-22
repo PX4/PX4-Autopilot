@@ -10,6 +10,15 @@ namespace uavcan
 {
 
 /**
+ * UAVCAN can be explicitly told to ignore exceptions, or it can be detected automatically.
+ */
+#ifndef UAVCAN_EXCEPTIONS
+# if defined(__EXCEPTIONS) || defined(_HAS_EXCEPTIONS)
+#  define UAVCAN_EXCEPTIONS 1
+# endif
+#endif
+
+/**
  * Should be OK for any target arch up to AMD64 and any compiler.
  * The library leverages compile-time checks to ensure that all types that are subject to dynamic allocation
  * fit this size; otherwise compilation fails.

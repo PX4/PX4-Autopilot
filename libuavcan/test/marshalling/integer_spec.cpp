@@ -88,7 +88,7 @@ TEST(IntegerSpec, Basic)
 
 #define CHECK(IntType, expected_value) \
     do { \
-        StorageType<IntType>::Type var(IntType::init()); \
+        StorageType<IntType>::Type var = StorageType<IntType>::Type(); \
         ASSERT_EQ(1, IntType::decode(var, sc_rd)); \
         ASSERT_EQ(expected_value, var); \
     } while (0)

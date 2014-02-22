@@ -64,4 +64,11 @@ struct StaticIf<false, TrueType, FalseType>
 };
 
 
+template<bool> struct BooleanType { };
+typedef BooleanType<true> TrueType;
+typedef BooleanType<false> FalseType;
+
 }
+
+/// Ensure that conditional comilation macros are present
+#include <uavcan/internal/impl_constants.hpp>

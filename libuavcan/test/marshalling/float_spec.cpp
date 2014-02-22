@@ -21,17 +21,14 @@ TEST(FloatSpec, Limits)
     typedef FloatSpec<64, CastModeTruncate> F64T;
 
     ASSERT_FALSE(F16S::IsExactRepresentation);
-    ASSERT_EQ(0, F16S::init());
     ASSERT_FLOAT_EQ(65504.0, F16S::max());
     ASSERT_FLOAT_EQ(9.77e-04, F16S::epsilon());
 
     ASSERT_TRUE(F32T::IsExactRepresentation);
-    ASSERT_EQ(0, F32T::init());
     ASSERT_FLOAT_EQ(std::numeric_limits<float>::max(), F32T::max());
     ASSERT_FLOAT_EQ(std::numeric_limits<float>::epsilon(), F32T::epsilon());
 
     ASSERT_TRUE(F64S::IsExactRepresentation);
-    ASSERT_EQ(0, F64S::init());
     ASSERT_FLOAT_EQ(std::numeric_limits<double>::max(), F64S::max());
     ASSERT_FLOAT_EQ(std::numeric_limits<double>::epsilon(), F64S::epsilon());
 }
@@ -125,7 +122,7 @@ TEST(FloatSpec, Basic)
 
 #define CHECK(FloatType, expected_value) \
     do { \
-        StorageType<FloatType>::Type var(FloatType::init()); \
+        StorageType<FloatType>::Type var = StorageType<FloatType>::Type(); \
         ASSERT_EQ(1, FloatType::decode(var, sc_rd)); \
         if (!isnan(expected_value)) \
             ASSERT_FLOAT_EQ(expected_value, var); \

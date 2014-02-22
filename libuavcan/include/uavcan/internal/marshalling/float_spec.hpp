@@ -107,12 +107,10 @@ public:
 
     using IEEE754Limits<BitLen>::max;
     using IEEE754Limits<BitLen>::epsilon;
-    static StorageType init() { return 0.0; }
     static std::float_round_style roundstyle() { return IEEE754Converter::roundstyle(); }
 
-    static int encode(StorageType value, ScalarCodec& codec, bool enable_tail_array_optimization = false)
+    static int encode(StorageType value, ScalarCodec& codec)
     {
-        (void)enable_tail_array_optimization;
         // cppcheck-suppress duplicateExpression
         if (CastMode == CastModeSaturate)
             saturate(value);
@@ -121,9 +119,8 @@ public:
         return codec.encode<BitLen>(IEEE754Converter::toIeee<BitLen>(value));
     }
 
-    static int decode(StorageType& out_value, ScalarCodec& codec, bool enable_tail_array_optimization = false)
+    static int decode(StorageType& out_value, ScalarCodec& codec)
     {
-        (void)enable_tail_array_optimization;
         typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType ieee = 0;
         const int res = codec.decode<BitLen>(ieee);
         if (res <= 0)

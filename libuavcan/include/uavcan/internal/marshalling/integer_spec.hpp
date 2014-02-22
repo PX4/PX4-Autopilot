@@ -77,11 +77,8 @@ public:
     // cppcheck-suppress duplicateExpression
     static StorageType min() { return Limits::min(); }
 
-    static StorageType init() { return 0; }
-
-    static int encode(StorageType value, ScalarCodec& codec, bool enable_tail_array_optimization = false)
+    static int encode(StorageType value, ScalarCodec& codec)
     {
-        (void)enable_tail_array_optimization;
         // cppcheck-suppress duplicateExpression
         if (CastMode == CastModeSaturate)
             saturate(value);
@@ -90,9 +87,8 @@ public:
         return codec.encode<BitLen>(value);
     }
 
-    static int decode(StorageType& out_value, ScalarCodec& codec, bool enable_tail_array_optimization = false)
+    static int decode(StorageType& out_value, ScalarCodec& codec)
     {
-        (void)enable_tail_array_optimization;
         return codec.decode<BitLen>(out_value);
     }
 };
