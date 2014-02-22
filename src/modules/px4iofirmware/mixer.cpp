@@ -79,7 +79,8 @@ enum mixer_source {
 	MIX_FMU,
 	MIX_OVERRIDE,
 	MIX_FAILSAFE,
-	MIX_OVERRIDE_FMU_OK
+	MIX_OVERRIDE_FMU_OK,
+	MIX_SAFELINK
 };
 static mixer_source source;
 
@@ -159,6 +160,18 @@ mixer_tick(void)
 	 */
 	if (source == MIX_FAILSAFE) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FAILSAFE;
+
+		/*
+		 * Check if we can fall back in safelink failsave
+		 */
+
+		if ((r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SAFELINK_OUT) && (r_safelink_count > 0)) {
+			source = MIX_SAFELINK;
+			r_status_flags |= PX4IO_P_STATUS_FLAGS_SAFELINK_FS;
+		} else {
+			r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_SAFELINK_FS);
+		}
+
 	} else {
 		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_FAILSAFE);
 	}
@@ -192,7 +205,19 @@ mixer_tick(void)
 	/*
 	 * Run the mixers.
 	 */
-	if (source == MIX_FAILSAFE) {
+	if (source == MIX_SAFELINK) {
+
+		actuator_count = r_safelink_count;
+
+		/* copy failsafe values to the servo outputs */
+		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
+			r_page_servos[i] = r_safelink_values[i];
+
+			/* safe actuators for FMU feedback */
+			r_page_actuators[i] = FLOAT_TO_REG((r_page_servos[i] - 1500) / 600.0f);
+		}
+
+	} else if (source == MIX_FAILSAFE) {
 
 		actuator_count = 0;
 
@@ -273,6 +298,11 @@ mixer_tick(void)
 			sbus2_output(r_page_servos, actuator_count);
 		}
 
+		/* update safelink outputs */
+		if (source != MIX_FAILSAFE && r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SAFELINK_OUT) {
+			safelink_output(r_page_servos, actuator_count);
+		}
+
 	} else if (mixer_servos_armed && should_always_enable_pwm) {
 		/* set the disarmed servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++)
@@ -286,6 +316,11 @@ mixer_tick(void)
 		/* update S.BUS2 outputs */
 		if (r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
 			sbus2_output(r_page_servos, actuator_count);
+		}
+
+		/* update safelink outputs */
+		if (source != MIX_FAILSAFE && r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SAFELINK_OUT) {
+			safelink_output(r_page_servos, actuator_count);
 		}
 	}
 }
