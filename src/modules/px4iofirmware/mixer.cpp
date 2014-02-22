@@ -187,14 +187,22 @@ mixer_tick(void)
 						&& (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
 						&& (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK);
 
+	unsigned actuator_count = 0;
+
 	/*
 	 * Run the mixers.
 	 */
 	if (source == MIX_FAILSAFE) {
 
+		actuator_count = 0;
+
 		/* copy failsafe values to the servo outputs */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			r_page_servos[i] = r_page_servo_failsafe[i];
+
+			/* get the count of the last valid actuator */
+			if ((r_page_servos[i] != 0) && ((i + 1) > actuator_count))
+				actuator_count = i + 1;
 
 			/* safe actuators for FMU feedback */
 			r_page_actuators[i] = FLOAT_TO_REG((r_page_servos[i] - 1500) / 600.0f);
@@ -211,6 +219,7 @@ mixer_tick(void)
 		/* poor mans mutex */
 		in_mixer = true;
 		mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT);
+		actuator_count = mixed;
 		in_mixer = false;
 
 		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
@@ -254,10 +263,30 @@ mixer_tick(void)
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++)
 			up_pwm_servo_set(i, r_page_servos[i]);
 
+		/* update S.BUS1 outputs */
+		if (r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
+			sbus1_output(r_page_servos, actuator_count);
+		}
+
+		/* update S.BUS2 outputs */
+		if (r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
+			sbus2_output(r_page_servos, actuator_count);
+		}
+
 	} else if (mixer_servos_armed && should_always_enable_pwm) {
 		/* set the disarmed servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++)
 			up_pwm_servo_set(i, r_page_servo_disarmed[i]);
+
+		/* update S.BUS1 outputs */
+		if (r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
+			sbus1_output(r_page_servos, actuator_count);
+		}
+
+		/* update S.BUS2 outputs */
+		if (r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
+			sbus2_output(r_page_servos, actuator_count);
+		}
 	}
 }
 
