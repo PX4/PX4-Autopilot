@@ -7,7 +7,7 @@
 #include <uavcan/internal/marshalling/types.hpp>
 
 
-TEST(Integer, Limits)
+TEST(IntegerSpec, Limits)
 {
     using uavcan::IntegerSpec;
     using uavcan::SignednessSigned;
@@ -48,7 +48,7 @@ TEST(Integer, Limits)
 }
 
 
-TEST(Integer, Basic)
+TEST(IntegerSpec, Basic)
 {
     using uavcan::IntegerSpec;
     using uavcan::SignednessSigned;
