@@ -52,7 +52,10 @@
 #include "protocol.h"
 #include "debug.h"
 
-#define SBUS_FRAME_SIZE		25
+#define SBUS_FRAME_SIZE			25
+#define SBUS2_FRAME_SIZE_RX_VOLTAGE	3
+#define SBUS2_FRAME_SIZE_GPS_DIGIT	3
+
 #define SBUS_INPUT_CHANNELS	16
 #define SBUS_FLAGS_BYTE		23
 #define SBUS_FAILSAFE_BIT	3
@@ -81,7 +84,15 @@ static int sbus_fd = -1;
 static hrt_abstime last_rx_time;
 static hrt_abstime last_frame_time;
 
-static uint8_t	frame[SBUS_FRAME_SIZE];
+static enum SBUS2_DECODE_STATE {
+	SBUS2_DECODE_STATE_DESYNC = 0xFFF,
+	SBUS2_DECODE_STATE_SBUS1_SYNC = 0x00,
+	SBUS2_DECODE_STATE_SBUS2_SYNC = 0x1FF,
+	SBUS2_DECODE_STATE_SBUS2_RX_VOLTAGE = 0x04,
+	SBUS2_DECODE_STATE_SBUS2_GPS = 0x14
+} sbus_decode_state;
+
+static uint8_t	frame[SBUS_FRAME_SIZE + (SBUS_FRAME_SIZE / 2)];
 
 static unsigned partial_frame_count;
 
@@ -114,7 +125,29 @@ sbus_init(const char *device)
 		debug("S.Bus: open failed");
 	}
 
+	sbus_decode_state = SBUS2_DECODE_STATE_DESYNC;
+
 	return sbus_fd;
+}
+
+void
+sbus1_output(uint16_t *values, uint16_t num_values)
+{
+	/*
+	 * S.BUS2 outputs are defined as:
+	 *
+	 */
+	 #warning SBUS1 output is not yet implemented
+}
+
+void
+sbus2_output(uint16_t *values, uint16_t num_values)
+{
+	/*
+	 * S.BUS2 outputs are defined as:
+	 *
+	 */
+	#warning SBUS2 output is not yet implemented
 }
 
 bool
@@ -124,7 +157,7 @@ sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sb
 	hrt_abstime	now;
 
 	/*
-	 * The S.bus protocol doesn't provide reliable framing,
+	 * The S.BUS protocol doesn't provide reliable framing,
 	 * so we detect frame boundaries by the inter-frame delay.
 	 *
 	 * The minimum frame spacing is 7ms; with 25 bytes at 100000bps
@@ -164,18 +197,99 @@ sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sb
 	 */
 	partial_frame_count += ret;
 
-	/*
-	 * If we don't have a full frame, return
+	/* this is set by the decoding state machine and will default to false
+	 * once everything that was decodable has been decoded.
 	 */
-	if (partial_frame_count < SBUS_FRAME_SIZE)
-		return false;
+	bool decode_ret = true;
 
-	/*
-	 * Great, it looks like we might have a frame.  Go ahead and
-	 * decode it.
-	 */
-	partial_frame_count = 0;
-	return sbus_decode(now, values, num_values, sbus_failsafe, sbus_frame_drop, max_channels);
+	/* keep decoding until we have consumed the buffer or have given up */
+	for (unsigned d = 0; (d < 10) && (partial_frame_count > 0) && (decode_ret); d++) {
+		unsigned n_consumed = 0;
+
+		switch (sbus_decode_state) {
+			case SBUS2_DECODE_STATE_DESYNC:
+			/* fall through */
+			case SBUS2_DECODE_STATE_SBUS1_SYNC:
+			/* fall through */
+			case SBUS2_DECODE_STATE_SBUS2_SYNC:
+				{
+					/* decode whatever we got and expect */
+					if (partial_frame_count < SBUS_FRAME_SIZE)
+						decode_ret = true;
+
+					/*
+					 * Great, it looks like we might have a frame.  Go ahead and
+					 * decode it.
+					 */
+					n_consumed = SBUS_FRAME_SIZE;
+					return sbus_decode(now, values, num_values, sbus_failsafe, sbus_frame_drop, max_channels);
+				}
+				break;
+			case SBUS2_DECODE_STATE_SBUS2_RX_VOLTAGE:
+				{
+					if (partial_frame_count < SBUS2_FRAME_SIZE_RX_VOLTAGE)
+						decode_ret = false;
+
+					/* find out which payload we're dealing with in this slot */
+					switch(frame[0]) {
+						case 0x03:
+							{
+								uint16_t rx_voltage = (frame[1] << 8) | frame[2];
+								n_consumed = 3;
+							}
+							break;
+						case 0x0F:
+							/* the battery slot is unused and followed by a normal frame */
+							sbus_decode_state = SBUS2_DECODE_STATE_SBUS2_SYNC;
+							break;
+						default:
+							/* this is not what we expect it to be, go back to sync */
+							sbus_decode_state = SBUS2_DECODE_STATE_DESYNC;
+							/* throw unknown bytes away */
+							n_consumed = 3;
+					}
+				}
+				break;
+			case SBUS2_DECODE_STATE_SBUS2_GPS:
+				{
+					if (partial_frame_count < SBUS2_FRAME_SIZE_GPS_DIGIT)
+						decode_ret = false;
+
+					/* find out which payload we're dealing with in this slot */
+					switch(frame[0]) {
+						case 0x13:
+							{
+								uint16_t gps_something = (frame[1] << 8) | frame[2];
+								n_consumed = 3;
+							}
+							break;
+						case 0x0F:
+							/* the GPS slot is unused and followed by a normal frame */
+							sbus_decode_state = SBUS2_DECODE_STATE_SBUS2_SYNC;
+							break;
+						default:
+							/* this is not what we expect it to be, go back to sync */
+							sbus_decode_state = SBUS2_DECODE_STATE_DESYNC;
+							/* throw unknown bytes away */
+							n_consumed = 3;
+					}
+				}
+				break;
+			default:
+				decode_ret = false;
+		}
+
+		/* move buffer to start after this step, keep decoding if any bytes remain */
+
+		/* XXX should be still more efficient than single-byte ringbuffer accesses */
+		uint8_t frame_buf[SBUS_FRAME_SIZE]; 
+		memcpy(&frame_buf[0], &frame[n_consumed], partial_frame_count - n_consumed);
+		memcpy(&frame[0], &frame_buf[0], partial_frame_count - n_consumed);
+		partial_frame_count = partial_frame_count - n_consumed;
+	}
+
+	/* return false as default */
+	return decode_ret;
 }
 
 /*
@@ -225,24 +339,27 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool
 
 	switch (frame[24]) {
 		case 0x00:
-		/* this is S.BUS 1 */
-		break;
-		case 0x03:
-		/* S.BUS 2 SLOT0: RX battery and external voltage */
-		break;
-		case 0x83:
-		/* S.BUS 2 SLOT1 */
-		break;
-		case 0x43:
-		case 0xC3:
-		case 0x23:
-		case 0xA3:
-		case 0x63:
-		case 0xE3:
-		break;
+			/* this is S.BUS 1 */
+			sbus_decode_state = SBUS2_DECODE_STATE_SBUS1_SYNC;
+			break;
+		case 0x04:
+			/* receiver voltage */
+			sbus_decode_state = SBUS2_DECODE_STATE_SBUS2_RX_VOLTAGE;
+			break;
+		case 0x14:
+			/* GPS / baro */
+			sbus_decode_state = SBUS2_DECODE_STATE_SBUS2_GPS;
+			break;
+		case 0x24:
+			/* Unknown SBUS2 data */
+			sbus_decode_state = SBUS2_DECODE_STATE_SBUS2_SYNC;
+			break;
+		case 0x34:
+			/* Unknown SBUS2 data */
+			sbus_decode_state = SBUS2_DECODE_STATE_SBUS2_SYNC;
+			break;
 		default:
-		/* we expect one of the bits above, but there are some we don't know yet */
-		break;
+			return false;
 	}
 
 	/* we have received something we think is a frame */
