@@ -1805,7 +1805,8 @@ PX4IO::print_status()
 	       ((flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) ? " MIXER_OK" : " MIXER_FAIL"),
 	       ((flags & PX4IO_P_STATUS_FLAGS_ARM_SYNC) ? " ARM_SYNC" : " ARM_NO_SYNC"),
 	       ((flags & PX4IO_P_STATUS_FLAGS_INIT_OK)  ? " INIT_OK" : " INIT_FAIL"),
-	       ((flags & PX4IO_P_STATUS_FLAGS_FAILSAFE)  ? " FAILSAFE" : ""));
+	       ((flags & PX4IO_P_STATUS_FLAGS_FAILSAFE)  ? " FAILSAFE" : ""),
+	       ((flags & PX4IO_P_STATUS_FLAGS_SAFELINK_FS) ? " SAFELINK_FAILSAFE" : ""));
 	uint16_t alarms = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS);
 	printf("alarms 0x%04x%s%s%s%s%s%s%s%s\n",
 	       alarms,
@@ -1898,7 +1899,9 @@ PX4IO::print_status()
 		((features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) ? " S.BUS1_OUT" : ""),
 		((features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) ? " S.BUS2_OUT" : ""),
 		((features & PX4IO_P_SETUP_FEATURES_PWM_RSSI) ? " RSSI_PWM" : ""),
-		((features & PX4IO_P_SETUP_FEATURES_ADC_RSSI) ? " RSSI_ADC" : "")
+		((features & PX4IO_P_SETUP_FEATURES_ADC_RSSI) ? " RSSI_ADC" : ""),
+		((features & PX4IO_P_SETUP_FEATURES_SAFELINK_IN) ? " SAFELINK_IN" : ""),
+		((features & PX4IO_P_SETUP_FEATURES_SAFELINK_OUT) ? " SAFELINK_OUT" : "")
 		);
 	uint16_t arming = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
 	printf("arming 0x%04x%s%s%s%s%s%s%s\n",
@@ -2358,6 +2361,26 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
 		} else {
 			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT), 0);
+		}
+
+		break;
+
+	case SAFELINK_CONTROL_INPUT:
+
+		if (arg == 1) {
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SAFELINK_IN);
+		} else {
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, PX4IO_P_SETUP_FEATURES_SAFELINK_IN, 0);
+		}
+
+		break;
+
+	case SAFELINK_CONTROL_OUTPUT:
+
+		if (arg == 1) {
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SAFELINK_OUT);
+		} else {
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, PX4IO_P_SETUP_FEATURES_SAFELINK_OUT, 0);
 		}
 
 		break;
@@ -3094,6 +3117,32 @@ px4io_main(int argc, char *argv[])
 
 		if (ret != 0) {
 			errx(ret, "S.BUS v2 failed");
+		}
+
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "safelink_in")) {
+		/* we can cheat and call the driver directly, as it
+		 * doesn't reference filp in ioctl()
+		 */
+		int ret = g_dev->ioctl(nullptr, SAFELINK_CONTROL_INPUT, 1);
+
+		if (ret != 0) {
+			errx(ret, "SAFELINK input failed");
+		}
+
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "safelink_out")) {
+		/* we can cheat and call the driver directly, as it
+		 * doesn't reference filp in ioctl()
+		 */
+		int ret = g_dev->ioctl(nullptr, SAFELINK_CONTROL_OUTPUT, 1);
+
+		if (ret != 0) {
+			errx(ret, "SAFELINK output failed");
 		}
 
 		exit(0);

@@ -199,6 +199,10 @@ ORB_DECLARE(output_pwm);
 /** get the lockdown override flag to enable outputs in HIL */
 #define PWM_SERVO_GET_DISABLE_LOCKDOWN		_IOC(_PWM_SERVO_BASE, 22)
 
+#define SAFELINK_CONTROL_INPUT	_IOC(_PWM_SERVO_BASE, 23)
+
+#define SAFELINK_CONTROL_OUTPUT	_IOC(_PWM_SERVO_BASE, 24)
+
 /*
  *
  *
