@@ -67,8 +67,11 @@ controls_init(void)
 	/* DSM input (USART1) */
 	dsm_init("/dev/ttyS0");
 
-	/* S.bus input (USART3) */
-	sbus_init("/dev/ttyS2");
+	/* S.BUS input (USART3) */
+	int sbus_fd = sbus_init("/dev/ttyS2");
+
+	/* Safelink init (USART3) */
+	safelink_init(sbus_fd);
 
 	/* default to a 1:1 input map, all enabled */
 	for (unsigned i = 0; i < PX4IO_RC_INPUT_CHANNELS; i++) {
@@ -132,35 +135,44 @@ controls_tick() {
 	}
 	perf_end(c_gather_dsm);
 
-	perf_begin(c_gather_sbus);
+	bool sbus_updated;
 
-	bool sbus_status = (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS);
+	if (r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SAFELINK_IN) {
+		bool safelink_failsafe;
+		bool safelink_updated = safelink_input(r_safelink_values, &r_safelink_count, &safelink_failsafe, PX4IO_SERVO_COUNT);
+	} else {
 
-	bool sbus_failsafe, sbus_frame_drop;
-	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &sbus_failsafe, &sbus_frame_drop, PX4IO_RC_INPUT_CHANNELS);
+		perf_begin(c_gather_sbus);
 
-	if (sbus_updated) {
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SBUS;
+		bool sbus_status = (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS);
 
-		rssi = 255;
+		bool sbus_failsafe, sbus_frame_drop;
 
-		if (sbus_frame_drop) {
-			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FRAME_DROP;
-			rssi = 100;
-		} else {
-			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
+		sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &sbus_failsafe, &sbus_frame_drop, PX4IO_RC_INPUT_CHANNELS);
+
+		if (sbus_updated) {
+			r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SBUS;
+
+			rssi = 255;
+
+			if (sbus_frame_drop) {
+				r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FRAME_DROP;
+				rssi = 100;
+			} else {
+				r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
+			}
+
+			if (sbus_failsafe) {
+				r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FAILSAFE;
+				rssi = 0;
+			} else {
+				r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+			}
+
 		}
 
-		if (sbus_failsafe) {
-			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FAILSAFE;
-			rssi = 0;
-		} else {
-			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
-		}
-
+		perf_end(c_gather_sbus);
 	}
-
-	perf_end(c_gather_sbus);
 
 	/*
 	 * XXX each S.bus frame will cause a PPM decoder interrupt
