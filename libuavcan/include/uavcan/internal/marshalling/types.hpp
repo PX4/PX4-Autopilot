@@ -4,28 +4,7 @@
 
 #pragma once
 
-#include <uavcan/internal/util.hpp>
 #include <uavcan/internal/marshalling/integer_spec.hpp>
 #include <uavcan/internal/marshalling/float_spec.hpp>
-
-namespace uavcan
-{
-
-template <typename T, typename Enable = void>
-struct StorageTypeImpl { typedef T Type; };
-
-template <typename T>
-struct StorageTypeImpl<T, typename EnableIfType<typename T::StorageType>::Type>
-{
-    typedef typename T::StorageType Type;
-};
-
-template <typename T>
-class StorageType : public T
-{
-    StorageType();
-public:
-    typedef typename StorageTypeImpl<T>::Type Type;
-};
-
-}
+#include <uavcan/internal/marshalling/static_array.hpp>
+#include <uavcan/internal/marshalling/type_util.hpp>

@@ -3,7 +3,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <uavcan/internal/marshalling/float_spec.hpp>
 #include <uavcan/internal/marshalling/types.hpp>
 
 

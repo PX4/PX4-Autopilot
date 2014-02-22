@@ -9,7 +9,7 @@
 #include <stdexcept>
 #include <uavcan/internal/impl_constants.hpp>
 #include <uavcan/internal/util.hpp>
-#include <uavcan/internal/marshalling/types.hpp>
+#include <uavcan/internal/marshalling/type_util.hpp>
 
 namespace uavcan
 {

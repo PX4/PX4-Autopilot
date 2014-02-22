@@ -8,7 +8,7 @@
 #include <limits>
 #include <math.h>            // Needed for isfinite
 #include <uavcan/internal/util.hpp>
-#include <uavcan/internal/marshalling/cast_mode.hpp>
+#include <uavcan/internal/marshalling/type_util.hpp>
 #include <uavcan/internal/marshalling/integer_spec.hpp>
 
 namespace uavcan

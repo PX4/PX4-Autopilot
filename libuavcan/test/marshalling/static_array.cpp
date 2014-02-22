@@ -3,9 +3,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <uavcan/internal/marshalling/static_array.hpp>
-#include <uavcan/internal/marshalling/integer_spec.hpp>
-#include <uavcan/internal/marshalling/float_spec.hpp>
 #include <uavcan/internal/marshalling/types.hpp>
 
 

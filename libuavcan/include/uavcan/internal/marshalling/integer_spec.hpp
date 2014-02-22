@@ -8,7 +8,7 @@
 #include <limits>
 #include <uavcan/internal/util.hpp>
 #include <uavcan/internal/marshalling/scalar_codec.hpp>
-#include <uavcan/internal/marshalling/cast_mode.hpp>
+#include <uavcan/internal/marshalling/type_util.hpp>
 
 namespace uavcan
 {
