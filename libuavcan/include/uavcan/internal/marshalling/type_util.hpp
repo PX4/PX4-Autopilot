@@ -12,6 +12,12 @@ namespace uavcan
 enum CastMode { CastModeSaturate, CastModeTruncate };
 
 
+template <unsigned long Num>
+struct IntegerBitLen    { enum { Result = 1 + IntegerBitLen<(Num >> 1)>::Result }; };
+template <>
+struct IntegerBitLen<0> { enum { Result = 0 }; };
+
+
 template <typename T, typename Enable = void>
 struct StorageTypeImpl { typedef T Type; };
 

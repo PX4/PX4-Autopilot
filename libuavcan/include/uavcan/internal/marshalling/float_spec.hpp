@@ -99,6 +99,7 @@ class FloatSpec : public IEEE754Limits<BitLen_>
 
 public:
     enum { BitLen = BitLen_ };
+    enum { MinBitLen = BitLen };
 
     typedef typename NativeFloatSelector<BitLen>::Type StorageType;
 

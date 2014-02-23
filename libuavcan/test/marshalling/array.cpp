@@ -10,7 +10,11 @@ struct CustomType
 {
     typedef uavcan::IntegerSpec<8, uavcan::SignednessSigned, uavcan::CastModeTruncate> A;
     typedef uavcan::FloatSpec<16, uavcan::CastModeSaturate> B;
-    typedef uavcan::StaticArray<uavcan::IntegerSpec<1, uavcan::SignednessUnsigned, uavcan::CastModeSaturate>, 8> C;
+    // Dynamic array of max len 5 --> 3 bits for len, 5 bits for data --> 1 byte max len
+    typedef uavcan::Array<uavcan::IntegerSpec<1, uavcan::SignednessUnsigned, uavcan::CastModeSaturate>,
+                          uavcan::ArrayModeDynamic, 5> C;
+
+    enum { MinBitLen = A::MinBitLen + B::MinBitLen + C::MinBitLen };
 
     uavcan::StorageType<A>::Type a;
     uavcan::StorageType<B>::Type b;
@@ -60,9 +64,23 @@ struct CustomType
 };
 
 
+TEST(StaticArray, IntegerBitLen)
+{
+    using uavcan::IntegerBitLen;
+
+    ASSERT_EQ(0, IntegerBitLen<0>::Result);
+    ASSERT_EQ(1, IntegerBitLen<1>::Result);
+    ASSERT_EQ(6, IntegerBitLen<42>::Result);
+    ASSERT_EQ(8, IntegerBitLen<232>::Result);
+    ASSERT_EQ(32, IntegerBitLen<0x81234567>::Result);
+}
+
+
 TEST(StaticArray, Basic)
 {
-    using uavcan::StaticArray;
+    using uavcan::Array;
+    using uavcan::ArrayModeDynamic;
+    using uavcan::ArrayModeStatic;
     using uavcan::IntegerSpec;
     using uavcan::FloatSpec;
     using uavcan::SignednessSigned;
@@ -70,9 +88,9 @@ TEST(StaticArray, Basic)
     using uavcan::CastModeSaturate;
     using uavcan::CastModeTruncate;
 
-    typedef StaticArray<IntegerSpec<8, SignednessSigned, CastModeTruncate>, 4> A1;
-    typedef StaticArray<FloatSpec<16, CastModeSaturate>, 2> A2;
-    typedef StaticArray<CustomType, 2> A3;
+    typedef Array<IntegerSpec<8, SignednessSigned, CastModeTruncate>, ArrayModeStatic, 4> A1;
+    typedef Array<FloatSpec<16, CastModeSaturate>, ArrayModeStatic, 2> A2;
+    typedef Array<CustomType, ArrayModeStatic, 2> A3;
 
     A1 a1;
     A2 a2;
@@ -93,8 +111,7 @@ TEST(StaticArray, Basic)
     {
         ASSERT_EQ(0, it->a);
         ASSERT_EQ(0, it->b);
-        for (int i = 0; i < 8; i++)
-            ASSERT_EQ(0, it->c[i]);
+        ASSERT_EQ(0, it->c.size());
     }
 
     /*
@@ -110,8 +127,8 @@ TEST(StaticArray, Basic)
     {
         a3[i].a = i;
         a3[i].b = i;
-        for (int i2 = 0; i2 < 8; i2++)
-            a3[i].c[i2] = i2 & 1;
+        for (int i2 = 0; i2 < 5; i2++)
+            a3[i].c.push_back(i2 & 1);
     }
 
     /*
@@ -130,8 +147,8 @@ TEST(StaticArray, Basic)
     static const std::string Reference =
         "00000000 00000001 00000010 00000011 " // A1 (0, 1, 2, 3)
         "00000000 00000000 00000000 00111100 " // A2 (0, 1)
-        "00000000 00000000 00000000 01010101 " // A3[0] (0, 0, bool[8])
-        "00000001 00000000 00111100 01010101"; // A3[1] (1, 1, bool[8])
+        "00000000 00000000 00000000 10101010 " // A3[0] (0, 0, bool[5])
+        "00000001 00000000 00111100 10101010"; // A3[1] (1, 1, bool[5])
 
     ASSERT_EQ(Reference, bs_wr.toString());
 
