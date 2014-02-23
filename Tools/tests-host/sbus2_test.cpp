@@ -2,10 +2,11 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
-#include <px4iofirmware/px4io.h>
+#include <px4iofirmware/sbus.h>
 #include "../../src/systemcmds/tests/tests.h"
 
 int main(int argc, char *argv[]) {
@@ -13,6 +14,15 @@ int main(int argc, char *argv[]) {
 
 	if (argc < 2)
 		errx(1, "Need a filename for the input file");
+
+	int byte_offset = 7;
+
+	if (argc > 2) {
+		char* end;
+		byte_offset = strtol(argv[2],&end,10);
+	}
+
+	warnx("RUNNING TEST WITH BYTE OFFSET OF: %d", byte_offset);
 
 	warnx("loading data from: %s", argv[1]);
 
@@ -33,37 +43,70 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Init the parser
-	uint8_t frame[30];
+	uint8_t frame[SBUS_BUFFER_SIZE];
 	unsigned partial_frame_count = 0;
 	uint16_t rc_values[18];
 	uint16_t num_values;
+	uint16_t sbus_frame_drops = 0;
+	unsigned sbus_frame_resets = 0;
 	bool sbus_failsafe;
 	bool sbus_frame_drop;
 	uint16_t max_channels = sizeof(rc_values) / sizeof(rc_values[0]);
 
 	float last_time = 0;
 
+	int rate_limiter = 0;
+
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
-		if (((f - last_time) * 1000 * 1000) > 3000) {
+
+		unsigned last_drop = sbus_frame_drops + sbus_frame_resets;
+
+		unsigned interval_us = ((f - last_time) * 1000 * 1000);
+
+		if (interval_us > SBUS_INTER_FRAME_TIMEOUT) {
+			if (partial_frame_count != 0) {
+				warnx("[ %08.4fs ] INTERVAL: %u - FRAME RESET, DROPPED %d bytes",
+					interval_us, f, partial_frame_count);
+
+				printf("\t\tdropped: ");
+				for (int i = 0; i < partial_frame_count; i++) {
+					printf("%02X ", frame[i]);
+				}
+				printf("\n");
+
+				sbus_frame_resets++;
+			}
+
 			partial_frame_count = 0;
-			warnx("FRAME RESET\n\n");
 		}
+
+		last_time = f;
 
 		frame[partial_frame_count] = x;
 		partial_frame_count++;
 
 		//warnx("%f: 0x%02x, first: 0x%02x, last: 0x%02x, pcount: %u", (double)f, x, frame[0], frame[24], partial_frame_count);
 
-		if (partial_frame_count == sizeof(frame))
+		if (partial_frame_count == sizeof(frame)) {
 			partial_frame_count = 0;
-
-		last_time = f;
+			warnx("FRAME SIZE OVERFLOW!\n\n\n");
+		}
 
 		// Pipe the data into the parser
 		hrt_abstime now = hrt_absolute_time();
 
-		if (partial_frame_count % 25 == 0)
-			sbus_parse(now, frame, &partial_frame_count, rc_values, &num_values, &sbus_failsafe, &sbus_frame_drop, max_channels);
+		if (rate_limiter % byte_offset == 0) {
+			bool result = sbus_parse(now, frame, &partial_frame_count, rc_values, &num_values,
+				&sbus_failsafe, &sbus_frame_drop, &sbus_frame_drops, max_channels);
+
+			if (result)
+				warnx("decoded packet");
+		}
+
+		if (last_drop != (sbus_frame_drops + sbus_frame_resets))
+			warnx("frame dropped, now #%d", (sbus_frame_drops + sbus_frame_resets));
+
+		rate_limiter++;
 	}
 
 	if (ret == EOF) {

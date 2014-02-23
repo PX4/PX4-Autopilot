@@ -55,6 +55,8 @@ extern "C" {
 #include "px4io.h"
 }
 
+#include "sbus.h"
+
 /*
  * Maximum interval in us before FMU signal is considered lost
  */

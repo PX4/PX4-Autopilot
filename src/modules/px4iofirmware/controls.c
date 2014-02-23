@@ -43,8 +43,8 @@
 #include <drivers/drv_hrt.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/ppm_decode.h>
-
 #include "px4io.h"
+#include "sbus.h"
 
 #define RC_FAILSAFE_TIMEOUT		2000000		/**< two seconds failsafe timeout */
 #define RC_CHANNEL_HIGH_THRESH		5000
@@ -137,7 +137,14 @@ controls_tick() {
 	bool sbus_status = (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS);
 
 	bool sbus_failsafe, sbus_frame_drop;
-	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &sbus_failsafe, &sbus_frame_drop, PX4IO_RC_INPUT_CHANNELS);
+
+	/* 
+	 * These are decoding errors on the serial link between the RX and us,
+	 * not wireless frame drops
+	 */
+	uint16_t sbus_serial_frame_drops;
+	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count,
+		&sbus_failsafe, &sbus_frame_drop, &sbus_serial_frame_drops, PX4IO_RC_INPUT_CHANNELS);
 
 	if (sbus_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SBUS;
