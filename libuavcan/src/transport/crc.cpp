@@ -51,7 +51,7 @@ uint16_t Crc16::add(uint8_t byte)
     return value_;
 }
 
-uint16_t Crc16::add(const uint8_t* bytes, int len)
+uint16_t Crc16::add(const uint8_t* bytes, unsigned int len)
 {
     assert(bytes);
     while (len--)

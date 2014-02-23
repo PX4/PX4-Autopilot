@@ -26,14 +26,14 @@ public:
     : value_(0x0000)
     { }
 
-    Crc16(const uint8_t* bytes, int len)
+    Crc16(const uint8_t* bytes, unsigned int len)
     : value_(0x0000)
     {
         add(bytes, len);
     }
 
     uint16_t add(uint8_t byte);
-    uint16_t add(const uint8_t* bytes, int len);
+    uint16_t add(const uint8_t* bytes, unsigned int len);
 
     uint16_t get() const { return value_; }
 };
