@@ -104,6 +104,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	offboard_control_sp_pub(-1),
 	vicon_position_pub(-1),
 	telemetry_status_pub(-1),
+	target_pos_pub(-1),
 	lat0(0),
 	lon0(0),
 	alt0(0.0)
@@ -782,25 +783,26 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	}
 
 	/* Handle global position */
-	if (msg->msgid == MAVLINK_MSG_ID_GLOBAL_POSITION_INT) {
-		mavlink_global_position_int_t pos;
-		mavlink_msg_global_position_int_decode(msg, &pos);
+	if (msg->msgid == MAVLINK_MSG_ID_GLOBAL_POSITION_TIME_INT) {
+		mavlink_global_position_time_int_t pos;
+		mavlink_msg_global_position_time_int_decode(msg, &pos);
 
 		struct target_global_position_s target_pos;
 
 		target_pos.timestamp = hrt_absolute_time();
 		target_pos.sysid = msg->sysid;
 		target_pos.valid = true;
+		target_pos.time_gps_usec = pos.time;
 		target_pos.lat = pos.lat / 1e7d;
 		target_pos.lon = pos.lon / 1e7d;
-		target_pos.alt = pos.alt / 1000.0f;
-		target_pos.vel_n = pos.vx / 100.0f;
-		target_pos.vel_e = pos.vy / 100.0f;
-		target_pos.vel_d = pos.vz / 100.0f;
+		target_pos.alt = pos.alt;
+		target_pos.vel_n = pos.vx;
+		target_pos.vel_e = pos.vy;
+		target_pos.vel_d = pos.vz;
 		target_pos.yaw = _wrap_pi(pos.hdg / (float)(18000.0f * M_PI));
 
 		/* check if topic is advertised */
-		if (target_pos_pub <= 0) {
+		if (target_pos_pub < 0) {
 			target_pos_pub = orb_advertise(ORB_ID(target_global_position), &target_pos);
 
 		} else {

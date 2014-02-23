@@ -138,6 +138,7 @@ private:
 	orb_advert_t offboard_control_sp_pub;
 	orb_advert_t vicon_position_pub;
 	orb_advert_t telemetry_status_pub;
+	orb_advert_t target_pos_pub;
 	int32_t lat0;
 	int32_t lon0;
 	float alt0;

@@ -71,6 +71,7 @@
 #include <drivers/drv_rc_input.h>
 #include <uORB/topics/navigation_capabilities.h>
 #include <uORB/topics/mission.h>
+#include <uORB/topics/target_global_position.h>
 #include <systemlib/param/param.h>
 
 #include <nuttx/fs/fs.h>
