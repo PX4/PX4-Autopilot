@@ -47,6 +47,7 @@
 #include "protocol.h"
 
 #include <systemlib/pwm_limit/pwm_limit.h>
+#include <drivers/drv_hrt.h>
 
 /*
  * Constants and limits.
@@ -218,6 +219,8 @@ extern bool	dsm_input(uint16_t *values, uint16_t *num_values);
 extern void	dsm_bind(uint16_t cmd, int pulses);
 extern int	sbus_init(const char *device);
 extern bool	sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_channels);
+extern bool	sbus_parse(hrt_abstime now, uint8_t *frame, unsigned *partial_count, uint16_t *values,
+	uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_channels);
 
 extern void	sbus1_output(uint16_t *values, uint16_t num_values);
 extern void	sbus2_output(uint16_t *values, uint16_t num_values);
