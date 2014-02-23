@@ -130,23 +130,23 @@ private:
 	int		_att_sub;			/**< vehicle attitude subscription */
 	int		_attitude_sub;			/**< raw rc channels data subscription */
 	int		_airspeed_sub;			/**< airspeed subscription */
-	int		_control_mode_sub;			/**< vehicle status subscription */
+	int		_control_mode_sub;		/**< vehicle status subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_control_sub;		/**< notification of manual control updates */
-	int		_sensor_combined_sub;			/**< for body frame accelerations */
+	int		_sensor_combined_sub;		/**< for body frame accelerations */
 
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint */
 	orb_advert_t	_nav_capabilities_pub;		/**< navigation capabilities publication */
 
-	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
-	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
-	struct navigation_capabilities_s		_nav_capabilities;	/**< navigation capabilities */
-	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
-	struct airspeed_s				_airspeed;		/**< airspeed */
-	struct vehicle_control_mode_s				_control_mode;		/**< vehicle status */
-	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
-	struct position_setpoint_triplet_s			_pos_sp_triplet;		/**< triplet of mission items */
-	struct sensor_combined_s				_sensor_combined;			/**< for body frame accelerations */
+	struct vehicle_attitude_s			_att;				/**< vehicle attitude */
+	struct vehicle_attitude_setpoint_s		_att_sp;			/**< vehicle attitude setpoint */
+	struct navigation_capabilities_s		_nav_capabilities;		/**< navigation capabilities */
+	struct manual_control_setpoint_s		_manual;			/**< r/c channel data */
+	struct airspeed_s				_airspeed;			/**< airspeed */
+	struct vehicle_control_mode_s			_control_mode;			/**< vehicle status */
+	struct vehicle_global_position_s		_global_pos;			/**< global vehicle position */
+	struct position_setpoint_triplet_s		_pos_sp_triplet;		/**< triplet of mission items */
+	struct sensor_combined_s			_sensor_combined;		/**< for body frame accelerations */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -154,13 +154,13 @@ private:
 
 	/** manual control states */
 	float		_seatbelt_hold_heading;		/**< heading the system should hold in seatbelt mode */
-	float		_loiter_hold_lat;
-	float		_loiter_hold_lon;
+	double		_loiter_hold_lat;
+	double		_loiter_hold_lon;
 	float		_loiter_hold_alt;
 	bool		_loiter_hold;
 
-	float		_launch_lat;
-	float		_launch_lon;
+	double		_launch_lat;
+	double		_launch_lon;
 	float		_launch_alt;
 	bool		_launch_valid;
 
@@ -192,7 +192,7 @@ private:
 	uint64_t _airspeed_last_valid;			///< last time airspeed was valid. Used to detect sensor failures
 	float _groundspeed_undershoot;			///< ground speed error to min. speed in m/s
 	bool _global_pos_valid;				///< global position is valid
-	math::Matrix<3, 3> _R_nb;				///< current attitude
+	math::Matrix<3, 3> _R_nb;			///< current attitude
 
 	ECL_L1_Pos_Controller				_l1_control;
 	TECS						_tecs;
@@ -362,6 +362,7 @@ FixedwingPositionControl	*g_control;
 
 FixedwingPositionControl::FixedwingPositionControl() :
 
+	_mavlink_fd(-1),
 	_task_should_exit(false),
 	_control_task(-1),
 
@@ -380,38 +381,33 @@ FixedwingPositionControl::FixedwingPositionControl() :
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
+
 /* states */
 	_setpoint_valid(false),
 	_loiter_hold(false),
-	_airspeed_error(0.0f),
-	_airspeed_valid(false),
-	_groundspeed_undershoot(0.0f),
-	_global_pos_valid(false),
 	land_noreturn_horizontal(false),
 	land_noreturn_vertical(false),
 	land_stayonground(false),
 	land_motor_lim(false),
 	land_onslope(false),
-	flare_curve_alt_last(0.0f),
-	_mavlink_fd(-1),
-	launchDetector(),
 	launch_detected(false),
-	usePreTakeoffThrust(false)
+	usePreTakeoffThrust(false),
+	flare_curve_alt_last(0.0f),
+	launchDetector(),
+	_airspeed_error(0.0f),
+	_airspeed_valid(false),
+	_groundspeed_undershoot(0.0f),
+	_global_pos_valid(false),
+	_att(),
+	_att_sp(),
+	_nav_capabilities(),
+	_manual(),
+	_airspeed(),
+	_control_mode(),
+	_global_pos(),
+	_pos_sp_triplet(),
+	_sensor_combined()
 {
-	/* safely initialize structs */
-	vehicle_attitude_s			_att = {0};
-	vehicle_attitude_setpoint_s		_att_sp = {0};
-	navigation_capabilities_s		_nav_capabilities = {0};
-	manual_control_setpoint_s		_manual = {0};
-	airspeed_s				_airspeed = {0};
-	vehicle_control_mode_s			_control_mode = {0};
-	vehicle_global_position_s		_global_pos = {0};
-	position_setpoint_triplet_s			_pos_sp_triplet = {0};
-	sensor_combined_s				_sensor_combined = {0};
-
-
-
-
 	_nav_capabilities.turn_distance = 0.0f;
 
 	_parameter_handles.l1_period = param_find("FW_L1_PERIOD");
@@ -587,8 +583,8 @@ FixedwingPositionControl::vehicle_control_mode_poll()
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 
 		if (!was_armed && _control_mode.flag_armed) {
-			_launch_lat = _global_pos.lat / 1e7f;
-			_launch_lon = _global_pos.lon / 1e7f;
+			_launch_lat = _global_pos.lat;
+			_launch_lon = _global_pos.lon;
 			_launch_alt = _global_pos.alt;
 			_launch_valid = true;
 		}
@@ -916,7 +912,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				float flare_curve_alt = landingslope.getFlareCurveAltitudeSave(wp_distance, bearing_lastwp_currwp, bearing_airplane_currwp, _pos_sp_triplet.current.alt);
 
 				/* avoid climbout */
-				if (flare_curve_alt_last < flare_curve_alt && land_noreturn_vertical || land_stayonground)
+				if ((flare_curve_alt_last < flare_curve_alt && land_noreturn_vertical) || land_stayonground)
 				{
 					flare_curve_alt = pos_sp_triplet.current.alt;
 					land_stayonground = true;
@@ -1074,13 +1070,15 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_seatbelt_hold_heading = _att.yaw + _manual.yaw;
 		}
 
-		/* climb out control */
-		bool climb_out = false;
+		//XXX not used
 
-		/* user wants to climb out */
-		if (_manual.pitch > 0.3f && _manual.throttle > 0.8f) {
-			climb_out = true;
-		}
+		/* climb out control */
+//		bool climb_out = false;
+//
+//		/* user wants to climb out */
+//		if (_manual.pitch > 0.3f && _manual.throttle > 0.8f) {
+//			climb_out = true;
+//		}
 
 		/* if in seatbelt mode, set airspeed based on manual control */
 
@@ -1287,7 +1285,7 @@ FixedwingPositionControl::task_main()
 				float turn_distance = _l1_control.switch_distance(100.0f);
 
 				/* lazily publish navigation capabilities */
-				if (turn_distance != _nav_capabilities.turn_distance && turn_distance > 0) {
+				if (fabsf(turn_distance - _nav_capabilities.turn_distance) > FLT_EPSILON && turn_distance > 0) {
 
 					/* set new turn distance */
 					_nav_capabilities.turn_distance = turn_distance;
