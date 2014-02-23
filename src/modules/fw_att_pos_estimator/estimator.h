@@ -3,7 +3,7 @@
 
 #pragma once
 
-#define GRAVITY_MSS 9.76f//9.80665f
+#define GRAVITY_MSS 9.80665f
 #define deg2rad 0.017453292f
 #define rad2deg 57.295780f
 #define pi 3.141592657f

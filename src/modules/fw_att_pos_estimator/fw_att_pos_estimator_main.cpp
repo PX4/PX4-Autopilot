@@ -735,7 +735,6 @@ FixedwingEstimator::task_main()
 				StoreStates(IMUmsec);
 				// Check if on ground - status is used by covariance prediction
 				OnGroundCheck();
-				onGround = false;
 				// sum delta angles and time used by covariance prediction
 				summedDelAng = summedDelAng + correctedDelAng;
 				summedDelVel = summedDelVel + dVelIMU;
