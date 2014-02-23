@@ -549,7 +549,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		rates_ff(2) = yaw_sp_move_rate * _params.yaw_ff;
 
 		/* convert rates from NED frame to body frame */
-		rates_ff = _R_sp.transposed() * rates_ff;
+		rates_ff = R_sp.transposed() * rates_ff;
 
 		/* copy rates to topic for logging */
 		_v_att_sp.rollrate_ff = rates_ff(0);
