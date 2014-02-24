@@ -93,7 +93,6 @@
 
 #define LOGBUFFER_WRITE_AND_COUNT(_msg) if (logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(_msg))) { \
 		log_msgs_written++; \
-
 	} else { \
 		log_msgs_skipped++; \
 	}
