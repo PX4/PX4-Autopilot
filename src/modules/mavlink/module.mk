@@ -39,6 +39,8 @@ MODULE_COMMAND	 = mavlink
 SRCS		 += mavlink_main.cpp \
 			mavlink.c \
 			mavlink_receiver.cpp \
-			mavlink_orb_listener.cpp
+			mavlink_orb_listener.cpp \
+			mavlink_orb_subscription.cpp \
+			mavlink_stream.cpp
 
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink

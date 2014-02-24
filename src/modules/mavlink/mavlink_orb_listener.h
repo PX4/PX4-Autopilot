@@ -40,8 +40,11 @@
  */
 
 #include <systemlib/perf_counter.h>
+#include <pthread.h>
 
 #pragma once
+
+#include <drivers/drv_rc_input.h>
 
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/rc_channels.h>
@@ -68,11 +71,14 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <drivers/drv_rc_input.h>
 #include <uORB/topics/navigation_capabilities.h>
 #include <uORB/topics/mission.h>
 
+#include "mavlink_orb_subscription.h"
+#include "mavlink_stream.h"
+
 class Mavlink;
+class MavlinkStream;
 
 class MavlinkOrbListener
 {
@@ -83,22 +89,14 @@ public:
 	MavlinkOrbListener(Mavlink* parent);
 
 	/**
-	 * Destructor, also kills the mavlinks task.
+	 * Destructor, closes all subscriptions.
 	 */
 	~MavlinkOrbListener();
 
 	static pthread_t uorb_receive_start(Mavlink *mavlink);
 
-	struct listener {
-		void	(*callback)(const struct listener *l);
-		int		*subp;
-		uintptr_t	arg;
-		struct listener *next;
-		Mavlink		*mavlink;
-		MavlinkOrbListener* listener;
-	};
-
-	void add_listener(void (*callback)(const struct listener *l), int *subp, uintptr_t arg);
+	MavlinkOrbSubscription *add_subscription(const struct orb_metadata *meta, size_t size, const MavlinkStream *stream, const unsigned int interval);
+	void add_stream(void (*callback)(const MavlinkStream *), const unsigned int subs_n, const struct orb_metadata **metas, const size_t *sizes, const uintptr_t arg, const unsigned int interval);
 	static void * uorb_start_helper(void *context);
 
 private:
@@ -107,57 +105,34 @@ private:
 
 	Mavlink*	_mavlink;
 
-	struct listener *_listeners;
-	unsigned	_n_listeners;
-	static const unsigned _max_listeners = 32;
+	MavlinkOrbSubscription *_subscriptions;
+	static const unsigned _max_subscriptions = 32;
+	MavlinkStream *_streams;
 
 	void *uorb_receive_thread(void *arg);
 
-	static void		l_sensor_combined(const struct listener *l);
-	static void		l_vehicle_attitude(const struct listener *l);
-	static void		l_vehicle_gps_position(const struct listener *l);
-	static void		l_vehicle_status(const struct listener *l);
-	static void		l_rc_channels(const struct listener *l);
-	static void		l_input_rc(const struct listener *l);
-	static void		l_global_position(const struct listener *l);
-	static void		l_local_position(const struct listener *l);
-	static void		l_global_position_setpoint(const struct listener *l);
-	static void		l_local_position_setpoint(const struct listener *l);
-	static void		l_attitude_setpoint(const struct listener *l);
-	static void		l_actuator_outputs(const struct listener *l);
-	static void		l_actuator_armed(const struct listener *l);
-	static void		l_manual_control_setpoint(const struct listener *l);
-	static void		l_vehicle_attitude_controls(const struct listener *l);
-	static void		l_debug_key_value(const struct listener *l);
-	static void		l_optical_flow(const struct listener *l);
-	static void		l_vehicle_rates_setpoint(const struct listener *l);
-	static void		l_home(const struct listener *l);
-	static void		l_airspeed(const struct listener *l);
-	static void		l_nav_cap(const struct listener *l);
+	static void msg_heartbeat(const MavlinkStream *stream);
 
-	struct vehicle_global_position_s global_pos;
-	struct vehicle_local_position_s local_pos;
-	struct navigation_capabilities_s nav_cap;
-	struct vehicle_status_s v_status;
-	struct rc_channels_s rc;
-	struct rc_input_values rc_raw;
-	struct actuator_armed_s armed;
-	struct actuator_controls_s actuators_0;
-	struct vehicle_attitude_s att;
-	struct airspeed_s airspeed;
-	struct home_position_s home;
-
-	unsigned int sensors_raw_counter;
-	unsigned int attitude_counter;
-	unsigned int gps_counter;
-
-	/*
-	 * Last sensor loop time
-	 * some outputs are better timestamped
-	 * with this "global" reference.
-	 */
-	uint64_t last_sensor_timestamp;
-
-	hrt_abstime last_sent_vfr;
+//	static void		l_sensor_combined(const struct listener *l);
+//	static void		l_vehicle_attitude(const struct listener *l);
+//	static void		l_vehicle_gps_position(const struct listener *l);
+//	static void		l_vehicle_status(const struct listener *l);
+//	static void		l_rc_channels(const struct listener *l);
+//	static void		l_input_rc(const struct listener *l);
+//	static void		l_global_position(const struct listener *l);
+//	static void		l_local_position(const struct listener *l);
+//	static void		l_global_position_setpoint(const struct listener *l);
+//	static void		l_local_position_setpoint(const struct listener *l);
+//	static void		l_attitude_setpoint(const struct listener *l);
+//	static void		l_actuator_outputs(const struct listener *l);
+//	static void		l_actuator_armed(const struct listener *l);
+//	static void		l_manual_control_setpoint(const struct listener *l);
+//	static void		l_vehicle_attitude_controls(const struct listener *l);
+//	static void		l_debug_key_value(const struct listener *l);
+//	static void		l_optical_flow(const struct listener *l);
+//	static void		l_vehicle_rates_setpoint(const struct listener *l);
+//	static void		l_home(const struct listener *l);
+//	static void		l_airspeed(const struct listener *l);
+//	static void		l_nav_cap(const struct listener *l);
 
 };
