@@ -1105,7 +1105,7 @@ Navigator::set_mission_item()
 
 	if (ret == OK) {
 
-		_mission.report_current_mission_item();
+		_mission.report_current_offboard_mission_item();
 
 		/* reset time counter for new item */
 		_time_first_inside_orbit = 0;

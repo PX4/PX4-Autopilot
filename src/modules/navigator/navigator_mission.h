@@ -73,7 +73,7 @@ public:
 	void		move_to_next();
 
 	void		report_mission_item_reached();
-	void		report_current_mission_item();
+	void		report_current_offboard_mission_item();
 	void		publish_mission_result();
 
 private:
