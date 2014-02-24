@@ -144,6 +144,8 @@ bool MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, 
 			}
 		}
 	}
+
+	return true;
 }
 
 bool MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size_t nMissionItems)
