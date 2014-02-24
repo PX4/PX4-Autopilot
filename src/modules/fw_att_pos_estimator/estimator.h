@@ -147,7 +147,7 @@ void quatNorm(float (&quatOut)[4], const float quatIn[4]);
 void StoreStates(uint64_t timestamp_ms);
 
 // recall stste vector stored at closest time to the one specified by msec
-void RecallStates(float (&statesForFusion)[n_states], uint32_t msec);
+void RecallStates(float (&statesForFusion)[n_states], uint64_t msec);
 
 void quat2Tbn(Mat3f &Tbn, const float (&quat)[4]);
 

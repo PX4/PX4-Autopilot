@@ -6,8 +6,6 @@ float KHP[n_states][n_states]; // intermediate result used for covariance update
 float P[n_states][n_states]; // covariance matrix
 float Kfusion[n_states]; // Kalman gains
 float states[n_states]; // state matrix
-float storedStates[n_states][data_buffer_size]; // state vectors stored for the last 50 time steps
-uint32_t statetimeStamp[data_buffer_size]; // time stamp for each state vector stored
 Vector3f correctedDelAng; // delta angles about the xyz body axes corrected for errors (rad)
 Vector3f correctedDelVel; // delta velocities along the XYZ body axes corrected for errors (m/s)
 Vector3f summedDelAng; // summed delta angles about the xyz body axes corrected for errors (rad)
@@ -54,6 +52,9 @@ float gpsLat;
 float gpsLon;
 float gpsHgt;
 uint8_t GPSstatus;
+
+float storedStates[n_states][data_buffer_size]; // state vectors stored for the last 50 time steps
+uint32_t statetimeStamp[data_buffer_size]; // time stamp for each state vector stored
 
 // Baro input
 float baroHgt;
@@ -1614,14 +1615,13 @@ void StoreStates(uint64_t timestamp_ms)
 }
 
 // Output the state vector stored at the time that best matches that specified by msec
-void RecallStates(float (&statesForFusion)[n_states], uint32_t msec)
+void RecallStates(float (&statesForFusion)[n_states], uint64_t msec)
 {
     long int bestTimeDelta = 200;
-    uint8_t storeIndex;
-    uint8_t bestStoreIndex = 0;
-    for (storeIndex=0; storeIndex < data_buffer_size; storeIndex++)
+    unsigned bestStoreIndex = 0;
+    for (unsigned storeIndex = 0; storeIndex < data_buffer_size; storeIndex++)
     {
-        long int timeDelta = msec - statetimeStamp[storeIndex];
+        int64_t timeDelta = (int64_t)msec - statetimeStamp[storeIndex];
         if (timeDelta < 0) timeDelta = -timeDelta;
         if (timeDelta < bestTimeDelta)
         {
@@ -1629,14 +1629,14 @@ void RecallStates(float (&statesForFusion)[n_states], uint32_t msec)
             bestTimeDelta = timeDelta;
         }
     }
-    // if (bestTimeDelta < 200) // only output stored state if < 200 msec retrieval error
-    // {
-    //     for (uint8_t i=0; i < n_states; i++) statesForFusion[i] = storedStates[i][bestStoreIndex];
-    // }
-    // else // otherwise output current state
-    // {
+    if (bestTimeDelta < 200) // only output stored state if < 200 msec retrieval error
+    {
+        for (uint8_t i=0; i < n_states; i++) statesForFusion[i] = storedStates[i][bestStoreIndex];
+    }
+    else // otherwise output current state
+    {
         for (uint8_t i=0; i < n_states; i++) statesForFusion[i] = states[i];
-    // }
+    }
 }
 
 void quat2Tnb(Mat3f &Tnb, const float (&quat)[4])
@@ -1825,7 +1825,7 @@ void InitialiseFilter(float (&initvelNED)[3])
     for (unsigned i = 0; i < data_buffer_size; i++) {
 
         for (unsigned j = 0; j < n_states; j++) {
-
+            storedStates[j][i] = 0.0f;
         }
 
         statetimeStamp[i] = 0;
