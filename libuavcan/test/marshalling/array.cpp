@@ -99,6 +99,10 @@ TEST(Array, Basic)
 
     ASSERT_EQ(1, A3::ValueType::C::RawValueType::BitLen);
 
+    ASSERT_EQ(8 * 4, A1::MaxBitLen);
+    ASSERT_EQ(16 * 2, A2::MaxBitLen);
+    ASSERT_EQ((8 + 16 + 5 + 3) * 2, A3::MaxBitLen);
+
     /*
      * Zero initialization check
      */
@@ -248,6 +252,9 @@ TEST(Array, Dynamic)
 
     A a;
     B b;
+
+    ASSERT_EQ(3 + 5, A::MaxBitLen);
+    ASSERT_EQ(8 + 255 * 8, B::MaxBitLen);
 
     ASSERT_TRUE(a.empty());
     ASSERT_TRUE(b.empty());

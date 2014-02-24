@@ -21,6 +21,7 @@ template <unsigned int Size>
 class StaticArrayBase
 {
 public:
+    enum { SizeBitLen = 0 };
     typedef unsigned int SizeType;
     SizeType size()     const { return Size; }
     SizeType capacity() const { return Size; }
@@ -85,6 +86,8 @@ protected:
     }
 
 public:
+    enum { SizeBitLen = RawSizeType::BitLen };
+
     SizeType size() const
     {
         assert(size_ ? ((size_ - 1u) <= (MaxSize - 1u)) : 1); // -Werror=type-limits
@@ -212,7 +215,7 @@ public:
     enum { IsDynamic = ArrayMode == ArrayModeDynamic };
     enum { MaxSize = MaxSize_ };
     enum { MinBitLen = IsDynamic ? 0 : (RawValueType::MinBitLen * MaxSize) };
-    enum { MaxBitLen = RawValueType::MaxBitLen * MaxSize };
+    enum { MaxBitLen = (RawValueType::MaxBitLen * MaxSize) + (IsDynamic ? Base::SizeBitLen : 0) };
 
     static int encode(const SelfType& array, ScalarCodec& codec)
     {
