@@ -25,6 +25,7 @@ class IntegerSpec
 public:
     enum { BitLen = BitLen_ };
     enum { MinBitLen = BitLen };
+    enum { MaxBitLen = BitLen };
 
     typedef typename StaticIf<(BitLen <= 8),  typename StaticIf<IsSigned, int8_t,  uint8_t>::Result,
             typename StaticIf<(BitLen <= 16), typename StaticIf<IsSigned, int16_t, uint16_t>::Result,

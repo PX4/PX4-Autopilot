@@ -15,6 +15,7 @@ struct CustomType
                           uavcan::ArrayModeDynamic, 5> C;
 
     enum { MinBitLen = A::MinBitLen + B::MinBitLen + C::MinBitLen };
+    enum { MaxBitLen = A::MaxBitLen + B::MaxBitLen + C::MaxBitLen };
 
     uavcan::StorageType<A>::Type a;
     uavcan::StorageType<B>::Type b;
@@ -64,7 +65,7 @@ struct CustomType
 };
 
 
-TEST(StaticArray, IntegerBitLen)
+TEST(Array, IntegerBitLen)
 {
     using uavcan::IntegerBitLen;
 
@@ -76,7 +77,7 @@ TEST(StaticArray, IntegerBitLen)
 }
 
 
-TEST(StaticArray, Basic)
+TEST(Array, Basic)
 {
     using uavcan::Array;
     using uavcan::ArrayModeDynamic;
@@ -101,9 +102,11 @@ TEST(StaticArray, Basic)
     /*
      * Zero initialization check
      */
+    ASSERT_FALSE(a1.empty());
     for (A1::const_iterator it = a1.begin(); it != a1.end(); ++it)
         ASSERT_EQ(0, *it);
 
+    ASSERT_FALSE(a2.empty());
     for (A2::const_iterator it = a2.begin(); it != a2.end(); ++it)
         ASSERT_EQ(0, *it);
 
@@ -112,6 +115,7 @@ TEST(StaticArray, Basic)
         ASSERT_EQ(0, it->a);
         ASSERT_EQ(0, it->b);
         ASSERT_EQ(0, it->c.size());
+        ASSERT_TRUE(it->c.empty());
     }
 
     /*
@@ -129,6 +133,8 @@ TEST(StaticArray, Basic)
         a3[i].b = i;
         for (int i2 = 0; i2 < 5; i2++)
             a3[i].c.push_back(i2 & 1);
+        ASSERT_EQ(5, a3[i].c.size());
+        ASSERT_FALSE(a3[i].c.empty());
     }
 
     /*
@@ -202,4 +208,128 @@ TEST(StaticArray, Basic)
     ASSERT_FALSE(a1 == v1);
     ASSERT_TRUE(a1 != v1);
     ASSERT_TRUE(a1 < v1);
+
+    ASSERT_EQ(0, a1.front());
+    ASSERT_EQ(3, a1.back());
+
+    // Boolean vector
+    std::vector<bool> v2;
+    v2.push_back(false);
+    v2.push_back(true);
+    v2.push_back(false);
+    v2.push_back(true);
+    v2.push_back(false);
+
+    ASSERT_TRUE(a3[0].c == v2);
+    ASSERT_FALSE(a3[0].c == v1);
+    ASSERT_FALSE(a3[0].c != v2);
+    ASSERT_TRUE(a3[0].c != v1);
+
+    v2[0] = true;
+    ASSERT_TRUE(a3[0].c != v2);
+    ASSERT_FALSE(a3[0].c == v2);
+}
+
+
+TEST(Array, Dynamic)
+{
+    using uavcan::Array;
+    using uavcan::ArrayModeDynamic;
+    using uavcan::ArrayModeStatic;
+    using uavcan::IntegerSpec;
+    using uavcan::FloatSpec;
+    using uavcan::SignednessSigned;
+    using uavcan::SignednessUnsigned;
+    using uavcan::CastModeSaturate;
+    using uavcan::CastModeTruncate;
+
+    typedef Array<IntegerSpec<1, SignednessUnsigned, CastModeSaturate>, ArrayModeDynamic, 5> A;
+    typedef Array<IntegerSpec<8, SignednessSigned, CastModeSaturate>, ArrayModeDynamic, 255> B;
+
+    A a;
+    B b;
+
+    ASSERT_TRUE(a.empty());
+    ASSERT_TRUE(b.empty());
+
+    {
+        uavcan::StaticTransferBuffer<16> buf;
+        uavcan::BitStream bs_wr(buf);
+        uavcan::ScalarCodec sc_wr(bs_wr);
+
+        ASSERT_EQ(1, A::encode(a, sc_wr));
+        ASSERT_EQ(1, B::encode(b, sc_wr));
+
+        ASSERT_EQ("000" "00000 000" "00000", bs_wr.toString());
+
+        uavcan::BitStream bs_rd(buf);
+        uavcan::ScalarCodec sc_rd(bs_rd);
+
+        ASSERT_EQ(1, A::decode(a, sc_rd));
+        ASSERT_EQ(1, B::decode(b, sc_rd));
+
+        ASSERT_TRUE(a.empty());
+        ASSERT_TRUE(b.empty());
+    }
+
+    a.push_back(true);
+    a.push_back(false);
+    a.push_back(true);
+    a.push_back(false);
+    a.push_back(true);
+
+    b.push_back(42);
+    b.push_back(-42);
+
+    {
+        uavcan::StaticTransferBuffer<16> buf;
+        uavcan::BitStream bs_wr(buf);
+        uavcan::ScalarCodec sc_wr(bs_wr);
+
+        ASSERT_EQ(1, A::encode(a, sc_wr));
+        ASSERT_EQ(1, B::encode(b, sc_wr));
+
+        ASSERT_EQ("10110101 00000010 00101010 11010110", bs_wr.toString());
+
+        uavcan::BitStream bs_rd(buf);
+        uavcan::ScalarCodec sc_rd(bs_rd);
+
+        a.clear();
+        b.clear();
+        ASSERT_TRUE(a.empty());
+        ASSERT_TRUE(b.empty());
+
+        ASSERT_EQ(1, A::decode(a, sc_rd));
+        ASSERT_EQ(1, B::decode(b, sc_rd));
+
+        ASSERT_TRUE(a[0]);
+        ASSERT_FALSE(a[1]);
+        ASSERT_TRUE(a[2]);
+        ASSERT_FALSE(a[3]);
+        ASSERT_TRUE(a[4]);
+
+        ASSERT_EQ(42, b[0]);
+        ASSERT_EQ(-42, b[1]);
+    }
+
+    ASSERT_FALSE(a == b);
+    ASSERT_FALSE(b == a);
+    ASSERT_TRUE(a != b);
+    ASSERT_TRUE(b != a);
+
+    a.resize(0);
+    b.resize(0);
+    ASSERT_TRUE(a.empty());
+    ASSERT_TRUE(b.empty());
+
+    a.resize(5, true);
+    b.resize(255, 72);
+    ASSERT_EQ(5, a.size());
+    ASSERT_EQ(255, b.size());
+
+    for (int i = 0; i < 5; i++)
+        ASSERT_TRUE(a[i]);
+
+    for (int i = 0; i < 255; i++)
+        ASSERT_EQ(72, b[i]);
 }

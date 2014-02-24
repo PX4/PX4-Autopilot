@@ -87,7 +87,7 @@ protected:
 public:
     SizeType size() const
     {
-        assert(size_ <= MaxSize);
+        assert(size_ ? ((size_ - 1u) <= (MaxSize - 1u)) : 1); // -Werror=type-limits
         return size_;
     }
 
@@ -212,6 +212,7 @@ public:
     enum { IsDynamic = ArrayMode == ArrayModeDynamic };
     enum { MaxSize = MaxSize_ };
     enum { MinBitLen = IsDynamic ? 0 : (RawValueType::MinBitLen * MaxSize) };
+    enum { MaxBitLen = RawValueType::MaxBitLen * MaxSize };
 
     static int encode(const SelfType& array, ScalarCodec& codec)
     {

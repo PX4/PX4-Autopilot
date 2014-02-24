@@ -18,6 +18,7 @@ template <>
 struct IntegerBitLen<0> { enum { Result = 0 }; };
 
 
+// TODO: fix
 template <typename T, typename Enable = void>
 struct StorageTypeImpl { typedef T Type; };
 
