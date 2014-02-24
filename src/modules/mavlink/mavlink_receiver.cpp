@@ -79,7 +79,6 @@ __BEGIN_DECLS
 #include "mavlink_bridge_header.h"
 #include "waypoints.h"
 #include "orb_topics.h"
-#include "missionlib.h"
 #include "mavlink_hil.h"
 #include "mavlink_parameters.h"
 #include "util.h"
@@ -352,7 +351,7 @@ handle_message(mavlink_message_t *msg)
 		tstatus.rxerrors = rstatus.rxerrors;
 		tstatus.fixed = rstatus.fixed;
 
-		if (telemetry_status_pub == 0) {
+		if (telemetry_status_pub <= 0) {
 			telemetry_status_pub = orb_advertise(ORB_ID(telemetry_status), &tstatus);
 
 		} else {
@@ -388,7 +387,6 @@ handle_message(mavlink_message_t *msg)
 			hil_sensors.gyro_rad_s[0] = imu.xgyro;
 			hil_sensors.gyro_rad_s[1] = imu.ygyro;
 			hil_sensors.gyro_rad_s[2] = imu.zgyro;
-			hil_sensors.gyro_counter = hil_counter;
 
 			/* accelerometer */
 			static const float mg2ms2 = 9.8f / 1000.0f;
@@ -400,7 +398,7 @@ handle_message(mavlink_message_t *msg)
 			hil_sensors.accelerometer_m_s2[2] = imu.zacc;
 			hil_sensors.accelerometer_mode = 0; // TODO what is this?
 			hil_sensors.accelerometer_range_m_s2 = 32.7f; // int16
-			hil_sensors.accelerometer_counter = hil_counter;
+			hil_sensors.accelerometer_timestamp = hil_sensors.timestamp;
 
 			/* adc */
 			hil_sensors.adc_voltage_v[0] = 0.0f;
@@ -418,17 +416,17 @@ handle_message(mavlink_message_t *msg)
 			hil_sensors.magnetometer_range_ga = 32.7f; // int16
 			hil_sensors.magnetometer_mode = 0; // TODO what is this
 			hil_sensors.magnetometer_cuttoff_freq_hz = 50.0f;
-			hil_sensors.magnetometer_counter = hil_counter;
+			hil_sensors.magnetometer_timestamp = hil_sensors.timestamp;
 
 			/* baro */
 			hil_sensors.baro_pres_mbar = imu.abs_pressure;
 			hil_sensors.baro_alt_meter = imu.pressure_alt;
 			hil_sensors.baro_temp_celcius = imu.temperature;
-			hil_sensors.baro_counter = hil_counter;
+			hil_sensors.baro_timestamp = hil_sensors.timestamp;
 
 			/* differential pressure */
 			hil_sensors.differential_pressure_pa = imu.diff_pressure * 1e2f; //from hPa to Pa
-			hil_sensors.differential_pressure_counter = hil_counter;
+			hil_sensors.differential_pressure_timestamp = hil_sensors.timestamp;
 
 			/* airspeed from differential pressure, ambient pressure and temp */
 			struct airspeed_s airspeed;
@@ -579,6 +577,7 @@ handle_message(mavlink_message_t *msg)
 			hil_gps.alt = gps.alt;
 			hil_gps.eph_m = (float)gps.eph * 1e-2f; // from cm to m
 			hil_gps.epv_m = (float)gps.epv * 1e-2f; // from cm to m
+			hil_gps.timestamp_variance = gps.time_usec;
 			hil_gps.s_variance_m_s = 5.0f;
 			hil_gps.p_variance_m = hil_gps.eph_m * hil_gps.eph_m;
 			hil_gps.vel_m_s = (float)gps.vel * 1e-2f; // from cm/s to m/s
@@ -590,6 +589,7 @@ handle_message(mavlink_message_t *msg)
 			if (heading_rad > M_PI_F)
 				heading_rad -= 2.0f * M_PI_F;
 
+			hil_gps.timestamp_velocity = gps.time_usec;
 			hil_gps.vel_n_m_s = gps.vn * 1e-2f; // from cm to m
 			hil_gps.vel_e_m_s = gps.ve * 1e-2f; // from cm to m
 			hil_gps.vel_d_m_s = gps.vd * 1e-2f; // from cm to m
@@ -633,13 +633,13 @@ handle_message(mavlink_message_t *msg)
 				orb_publish(ORB_ID(vehicle_global_position), pub_hil_global_pos, &hil_global_pos);
 				// global position packet
 				hil_global_pos.timestamp = timestamp;
-				hil_global_pos.valid = true;
+				hil_global_pos.global_valid = true;
 				hil_global_pos.lat = hil_state.lat;
 				hil_global_pos.lon = hil_state.lon;
 				hil_global_pos.alt = hil_state.alt / 1000.0f;
-				hil_global_pos.vx = hil_state.vx / 100.0f;
-				hil_global_pos.vy = hil_state.vy / 100.0f;
-				hil_global_pos.vz = hil_state.vz / 100.0f;
+				hil_global_pos.vel_n = hil_state.vx / 100.0f;
+				hil_global_pos.vel_e = hil_state.vy / 100.0f;
+				hil_global_pos.vel_d = hil_state.vz / 100.0f;
 
 			} else {
 				pub_hil_global_pos = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
@@ -683,8 +683,8 @@ handle_message(mavlink_message_t *msg)
 
 			/* Calculate Rotation Matrix */
 			math::Quaternion q(hil_state.attitude_quaternion);
-			math::Dcm C_nb(q);
-			math::EulerAngles euler(C_nb);
+			math::Matrix<3,3> C_nb = q.to_dcm();
+			math::Vector<3> euler = C_nb.to_euler();
 
 			/* set rotation matrix */
 			for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
@@ -699,9 +699,9 @@ handle_message(mavlink_message_t *msg)
 			hil_attitude.q[3] = q(3);
 			hil_attitude.q_valid = true;
 
-			hil_attitude.roll = euler.getPhi();
-			hil_attitude.pitch = euler.getTheta();
-			hil_attitude.yaw = euler.getPsi();
+			hil_attitude.roll = euler(0);
+			hil_attitude.pitch = euler(1);
+			hil_attitude.yaw = euler(2);
 			hil_attitude.rollspeed = hil_state.rollspeed;
 			hil_attitude.pitchspeed = hil_state.pitchspeed;
 			hil_attitude.yawspeed = hil_state.yawspeed;
@@ -829,7 +829,7 @@ receive_thread(void *arg)
 
 	while (!thread_should_exit) {
 		if (poll(fds, 1, timeout) > 0) {
-			if (nread < sizeof(buf)) {
+			if (nread < (ssize_t)sizeof(buf)) {
 				/* to avoid reading very small chunks wait for data before reading */
 				usleep(1000);
 			}
@@ -844,7 +844,7 @@ receive_thread(void *arg)
 					handle_message(&msg);
 
 					/* handle packet with waypoint component */
-					mavlink_wpm_message_handler(&msg, &global_pos, &local_pos);
+					mavlink_wpm_message_handler(&msg);
 
 					/* handle packet with parameter component */
 					mavlink_pm_message_handler(MAVLINK_COMM_0, &msg);

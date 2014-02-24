@@ -54,6 +54,8 @@
 #include <stdbool.h>
 #include "../uORB.h"
 
+#include <navigator/navigator_state.h>
+
 /**
  * @addtogroup topics @{
  */
@@ -64,21 +66,8 @@ typedef enum {
 	MAIN_STATE_SEATBELT,
 	MAIN_STATE_EASY,
 	MAIN_STATE_AUTO,
+	MAIN_STATE_MAX
 } main_state_t;
-
-/* navigation state machine */
-typedef enum {
-	NAVIGATION_STATE_DIRECT = 0,		// true manual control, no any stabilization
-	NAVIGATION_STATE_STABILIZE,		// attitude stabilization
-	NAVIGATION_STATE_ALTHOLD,		// attitude + altitude stabilization
-	NAVIGATION_STATE_VECTOR,		// attitude + altitude + position stabilization
-	NAVIGATION_STATE_AUTO_READY,	// AUTO, landed, reeady for takeoff
-	NAVIGATION_STATE_AUTO_TAKEOFF,	// detect takeoff using land detector and switch to desired AUTO mode
-	NAVIGATION_STATE_AUTO_LOITER,	// pause mission
-	NAVIGATION_STATE_AUTO_MISSION,	// fly mission
-	NAVIGATION_STATE_AUTO_RTL,		// Return To Launch, when home position switch to LAND
-	NAVIGATION_STATE_AUTO_LAND		// land and switch to AUTO_READY when landed (detect using land detector)
-} navigation_state_t;
 
 typedef enum {
 	ARMING_STATE_INIT = 0,
@@ -87,13 +76,22 @@ typedef enum {
 	ARMING_STATE_ARMED_ERROR,
 	ARMING_STATE_STANDBY_ERROR,
 	ARMING_STATE_REBOOT,
-	ARMING_STATE_IN_AIR_RESTORE
+	ARMING_STATE_IN_AIR_RESTORE,
+	ARMING_STATE_MAX
 } arming_state_t;
 
 typedef enum {
 	HIL_STATE_OFF = 0,
 	HIL_STATE_ON
 } hil_state_t;
+
+typedef enum {
+	FAILSAFE_STATE_NORMAL = 0,		/**< Normal operation */
+	FAILSAFE_STATE_RTL,				/**< Return To Launch */
+	FAILSAFE_STATE_LAND,			/**< Land without position control */
+	FAILSAFE_STATE_TERMINATION,		/**< Disable motors and use parachute, can't be recovered */
+	FAILSAFE_STATE_MAX
+} failsafe_state_t;
 
 typedef enum {
 	MODE_SWITCH_MANUAL = 0,
@@ -108,11 +106,13 @@ typedef enum {
 
 typedef enum {
 	RETURN_SWITCH_NONE = 0,
+	RETURN_SWITCH_NORMAL,
 	RETURN_SWITCH_RETURN
 } return_switch_pos_t;
 
 typedef enum {
 	MISSION_SWITCH_NONE = 0,
+	MISSION_SWITCH_LOITER,
 	MISSION_SWITCH_MISSION
 } mission_switch_pos_t;
 
@@ -131,31 +131,31 @@ enum VEHICLE_MODE_FLAG {
  * Should match 1:1 MAVLink's MAV_TYPE ENUM
  */
 enum VEHICLE_TYPE {
-	VEHICLE_TYPE_GENERIC=0, /* Generic micro air vehicle. | */
-	VEHICLE_TYPE_FIXED_WING=1, /* Fixed wing aircraft. | */
-	VEHICLE_TYPE_QUADROTOR=2, /* Quadrotor | */
-	VEHICLE_TYPE_COAXIAL=3, /* Coaxial helicopter | */
-	VEHICLE_TYPE_HELICOPTER=4, /* Normal helicopter with tail rotor. | */
-	VEHICLE_TYPE_ANTENNA_TRACKER=5, /* Ground installation | */
-	VEHICLE_TYPE_GCS=6, /* Operator control unit / ground control station | */
-	VEHICLE_TYPE_AIRSHIP=7, /* Airship, controlled | */
-	VEHICLE_TYPE_FREE_BALLOON=8, /* Free balloon, uncontrolled | */
-	VEHICLE_TYPE_ROCKET=9, /* Rocket | */
-	VEHICLE_TYPE_GROUND_ROVER=10, /* Ground rover | */
-	VEHICLE_TYPE_SURFACE_BOAT=11, /* Surface vessel, boat, ship | */
-	VEHICLE_TYPE_SUBMARINE=12, /* Submarine | */
-	VEHICLE_TYPE_HEXAROTOR=13, /* Hexarotor | */
-	VEHICLE_TYPE_OCTOROTOR=14, /* Octorotor | */
-	VEHICLE_TYPE_TRICOPTER=15, /* Octorotor | */
-	VEHICLE_TYPE_FLAPPING_WING=16, /* Flapping wing | */
-	VEHICLE_TYPE_KITE=17, /* Kite | */
-	VEHICLE_TYPE_ENUM_END=18, /*  | */
+	VEHICLE_TYPE_GENERIC = 0, /* Generic micro air vehicle. | */
+	VEHICLE_TYPE_FIXED_WING = 1, /* Fixed wing aircraft. | */
+	VEHICLE_TYPE_QUADROTOR = 2, /* Quadrotor | */
+	VEHICLE_TYPE_COAXIAL = 3, /* Coaxial helicopter | */
+	VEHICLE_TYPE_HELICOPTER = 4, /* Normal helicopter with tail rotor. | */
+	VEHICLE_TYPE_ANTENNA_TRACKER = 5, /* Ground installation | */
+	VEHICLE_TYPE_GCS = 6, /* Operator control unit / ground control station | */
+	VEHICLE_TYPE_AIRSHIP = 7, /* Airship, controlled | */
+	VEHICLE_TYPE_FREE_BALLOON = 8, /* Free balloon, uncontrolled | */
+	VEHICLE_TYPE_ROCKET = 9, /* Rocket | */
+	VEHICLE_TYPE_GROUND_ROVER = 10, /* Ground rover | */
+	VEHICLE_TYPE_SURFACE_BOAT = 11, /* Surface vessel, boat, ship | */
+	VEHICLE_TYPE_SUBMARINE = 12, /* Submarine | */
+	VEHICLE_TYPE_HEXAROTOR = 13, /* Hexarotor | */
+	VEHICLE_TYPE_OCTOROTOR = 14, /* Octorotor | */
+	VEHICLE_TYPE_TRICOPTER = 15, /* Octorotor | */
+	VEHICLE_TYPE_FLAPPING_WING = 16, /* Flapping wing | */
+	VEHICLE_TYPE_KITE = 17, /* Kite | */
+	VEHICLE_TYPE_ENUM_END = 18, /*  | */
 };
 
 enum VEHICLE_BATTERY_WARNING {
-    VEHICLE_BATTERY_WARNING_NONE = 0,	/**< no battery low voltage warning active */
-    VEHICLE_BATTERY_WARNING_LOW,	/**< warning of low voltage */
-    VEHICLE_BATTERY_WARNING_CRITICAL	/**< alerting of critical voltage */
+	VEHICLE_BATTERY_WARNING_NONE = 0,	/**< no battery low voltage warning active */
+	VEHICLE_BATTERY_WARNING_LOW,	/**< warning of low voltage */
+	VEHICLE_BATTERY_WARNING_CRITICAL	/**< alerting of critical voltage */
 };
 
 /**
@@ -168,17 +168,18 @@ enum VEHICLE_BATTERY_WARNING {
  *
  * Encodes the complete system state and is set by the commander app.
  */
-struct vehicle_status_s
-{
+struct vehicle_status_s {
 	/* use of a counter and timestamp recommended (but not necessary) */
 
 	uint16_t counter;   /**< incremented by the writing thread everytime new data is stored */
 	uint64_t timestamp; /**< in microseconds since system start, is set whenever the writing thread stores new data */
 
 	main_state_t main_state;				/**< main state machine */
-	navigation_state_t navigation_state;	/**< navigation state machine */
+	unsigned int set_nav_state;	/**< set navigation state machine to specified value */
+	uint64_t set_nav_state_timestamp;	/**< timestamp of latest change of set_nav_state */
 	arming_state_t arming_state;			/**< current arming state */
 	hil_state_t hil_state;					/**< current hil state */
+	failsafe_state_t failsafe_state;		/**< current failsafe state */
 
 	int32_t system_type;				/**< system type, inspired by MAVLink's VEHICLE_TYPE enum */
 	int32_t	system_id;				/**< system id, inspired by MAVLink's system ID field */
@@ -217,7 +218,7 @@ struct vehicle_status_s
 	uint32_t onboard_control_sensors_present;
 	uint32_t onboard_control_sensors_enabled;
 	uint32_t onboard_control_sensors_health;
-	
+
 	float load;					/**< processor load from 0 to 1 */
 	float battery_voltage;
 	float battery_current;

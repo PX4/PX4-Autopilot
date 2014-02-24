@@ -264,7 +264,7 @@ private:
 	BlockParamFloat _crMax;
 
 	struct pollfd _attPoll;
-	vehicle_global_position_set_triplet_s _lastPosCmd;
+	position_setpoint_triplet_s _lastMissionCmd;
 	enum {CH_AIL, CH_ELV, CH_RDR, CH_THR};
 	uint64_t _timeStamp;
 public:

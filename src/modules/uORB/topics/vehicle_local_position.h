@@ -52,8 +52,7 @@
 /**
  * Fused local position in NED.
  */
-struct vehicle_local_position_s
-{
+struct vehicle_local_position_s {
 	uint64_t timestamp;		/**< Time of this estimate, in microseconds since system start */
 	bool xy_valid;			/**< true if x and y are valid */
 	bool z_valid;			/**< true if z is valid */
@@ -77,6 +76,11 @@ struct vehicle_local_position_s
 	int32_t ref_lon;		/**< Reference point longitude in 1E7 degrees */
 	float ref_alt;			/**< Reference altitude AMSL in meters, MUST be set to current (not at reference point!) ground level */
 	bool landed;			/**< true if vehicle is landed */
+	/* Distance to surface */
+	float dist_bottom;		/**< Distance to bottom surface (ground) */
+	float dist_bottom_rate;		/**< Distance to bottom surface (ground) change rate */
+	uint64_t surface_bottom_timestamp;		/**< Time when new bottom surface found */
+	bool dist_bottom_valid;	/**< true if distance to bottom surface is valid */
 };
 
 /**

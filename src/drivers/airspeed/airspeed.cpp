@@ -76,8 +76,8 @@
 
 #include <drivers/airspeed/airspeed.h>
 
-Airspeed::Airspeed(int bus, int address, unsigned conversion_interval) :
-	I2C("Airspeed", AIRSPEED_DEVICE_PATH, bus, address, 100000),
+Airspeed::Airspeed(int bus, int address, unsigned conversion_interval, const char* path) :
+	I2C("Airspeed", path, bus, address, 100000),
 	_reports(nullptr),
 	_buffer_overflows(perf_alloc(PC_COUNT, "airspeed_buffer_overflows")),
 	_max_differential_pressure_pa(0),

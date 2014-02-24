@@ -53,8 +53,7 @@
 /**
  * Filtered bottom flow in bodyframe.
  */
-struct filtered_bottom_flow_s
-{
+struct filtered_bottom_flow_s {
 	uint64_t timestamp;		/**< time of this estimate, in microseconds since system start */
 
 	float sumx;				/**< Integrated bodyframe x flow in meters					   */

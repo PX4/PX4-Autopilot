@@ -71,10 +71,10 @@ public:
 	// Update of the estimated height and height rate internal state
 	// Update of the inertial speed rate internal state
 	// Should be called at 50Hz or greater
-	void update_50hz(float baro_altitude, float airspeed, const math::Dcm &rotMat, const math::Vector3 &accel_body, const math::Vector3 &accel_earth);
+	void update_50hz(float baro_altitude, float airspeed, const math::Matrix<3,3> &rotMat, const math::Vector<3> &accel_body, const math::Vector<3> &accel_earth);
 
 	// Update the control loop calculations
-	void update_pitch_throttle(const math::Dcm &rotMat, float pitch, float baro_altitude, float hgt_dem, float EAS_dem, float indicated_airspeed, float EAS2TAS, bool climbOutDem, float ptchMinCO,
+	void update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, float baro_altitude, float hgt_dem, float EAS_dem, float indicated_airspeed, float EAS2TAS, bool climbOutDem, float ptchMinCO,
 				   float throttle_min, float throttle_max, float throttle_cruise,
 				   float pitch_limit_min, float pitch_limit_max);
 	// demanded throttle in percentage
@@ -180,6 +180,14 @@ public:
 		_indicated_airspeed_max = airspeed;
 	}
 
+	void set_heightrate_p(float heightrate_p) {
+		_heightrate_p = heightrate_p;
+	}
+
+	void set_speedrate_p(float speedrate_p) {
+		_speedrate_p = speedrate_p;
+	}
+
 private:
 	// Last time update_50Hz was called
 	uint64_t _update_50hz_last_usec;
@@ -203,6 +211,8 @@ private:
 	float _vertAccLim;
 	float _rollComp;
 	float _spdWeight;
+	float _heightrate_p;
+	float _speedrate_p;
 
 	// throttle demand in the range from 0.0 to 1.0
 	float _throttle_dem;
@@ -329,7 +339,7 @@ private:
 	void _update_speed_demand(void);
 
 	// Update the demanded height
-	void _update_height_demand(float demand);
+	void _update_height_demand(float demand, float state);
 
 	// Detect an underspeed condition
 	void _detect_underspeed(void);
@@ -338,7 +348,7 @@ private:
 	void _update_energies(void);
 
 	// Update Demanded Throttle
-	void _update_throttle(float throttle_cruise, const math::Dcm &rotMat);
+	void _update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotMat);
 
 	// Detect Bad Descent
 	void _detect_bad_descent(void);
