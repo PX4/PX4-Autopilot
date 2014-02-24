@@ -39,6 +39,8 @@
 #ifndef _SYSTEMLIB_PERF_COUNTER_H
 #define _SYSTEMLIB_PERF_COUNTER_H value
 
+#include <stdint.h>
+
 /**
  * Counter types.
  */
