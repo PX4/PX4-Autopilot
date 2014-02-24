@@ -89,7 +89,7 @@ Mission::set_current_offboard_mission_index(int new_index)
 			_current_offboard_mission_index = 0;
 		}
 	}
-	report_current_mission_item();
+	report_current_offboard_mission_item();
 }
 
 void
@@ -296,11 +296,9 @@ Mission::report_mission_item_reached()
 }
 
 void
-Mission::report_current_mission_item()
+Mission::report_current_offboard_mission_item()
 {
-	if (_current_mission_type == MISSION_TYPE_OFFBOARD) {
-		_mission_result.index_current_mission = _current_offboard_mission_index;
-	}
+	_mission_result.index_current_mission = _current_offboard_mission_index;
 }
 
 void

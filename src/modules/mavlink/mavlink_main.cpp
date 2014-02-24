@@ -169,8 +169,10 @@ Mavlink::Mavlink() :
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink")),
-	_mavlink_hil_enabled(false)
+	_mavlink_hil_enabled(false),
 	// _params_sub(-1)
+
+	mission_pub(-1)
 {
 	wpm = &wpm_s;
 	fops.ioctl = (int (*)(file*, int, long unsigned int))&mavlink_dev_ioctl;
@@ -985,7 +987,9 @@ void Mavlink::mavlink_wpm_send_waypoint_current(uint16_t seq)
 		mavlink_msg_mission_current_encode(mavlink_system.sysid, _mavlink_wpm_comp_id, &msg, &wpc);
 		mavlink_missionlib_send_message(&msg);
 
-		if (_verbose) warnx("Broadcasted new current waypoint %u", wpc.seq);
+	} else if (seq == 0 && wpm->size == 0) {
+
+		/* don't broadcast if no WPs */
 
 	} else {
 		mavlink_missionlib_send_gcs_string("ERROR: wp index out of bounds");
@@ -1139,7 +1143,8 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 						mission.current_index = wpc.seq;
 						publish_mission();
 						
-						mavlink_wpm_send_waypoint_current(wpc.seq);
+						/* don't answer yet, wait for the navigator to respond, then publish the mission_result */
+//						mavlink_wpm_send_waypoint_current(wpc.seq);
 
 					} else {
 						mavlink_missionlib_send_gcs_string("IGN WP CURR CMD: Not in list");
@@ -1534,7 +1539,7 @@ Mavlink::task_main(int argc, char *argv[])
 	argc -= 2;
 	argv += 2;
 
-	while ((ch = getopt(argc, argv, "b:d:eo")) != EOF) {
+	while ((ch = getopt(argc, argv, "b:d:eov")) != EOF) {
 		switch (ch) {
 		case 'b':
 			_baudrate = strtoul(optarg, NULL, 10);
@@ -1558,6 +1563,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 		case 'v':
 			_verbose = true;
+			break;
 
 		default:
 			usage();
@@ -1701,8 +1707,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	thread_running = true;
 
-	/* arm counter to go off immediately */
-	unsigned lowspeed_counter = 10;
+	unsigned lowspeed_counter = 0;
 
 	/* wakeup source(s) */
 	struct pollfd fds[1];
@@ -1732,7 +1737,7 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		/* 1 Hz */
-		if (lowspeed_counter == 10) {
+		if (lowspeed_counter % 10 == 0) {
 			mavlink_update_system();
 
 			/* translate the current system state to mavlink state and mode */
@@ -1765,7 +1770,12 @@ Mavlink::task_main(int argc, char *argv[])
 						    v_status.errors_count2,
 						    v_status.errors_count3,
 						    v_status.errors_count4);
-			lowspeed_counter = 0;
+		}
+
+		/* 0.5 Hz */
+		if (lowspeed_counter % 20 == 0) {
+
+			mavlink_wpm_send_waypoint_current((uint16_t)mission_result.index_current_mission);
 		}
 
 		lowspeed_counter++;
@@ -1776,10 +1786,11 @@ Mavlink::task_main(int argc, char *argv[])
 		if (updated) {
 			orb_copy(ORB_ID(mission_result), mission_result_sub, &mission_result);
 
-			if (_verbose) warnx("Got mission result");
+			if (_verbose) warnx("Got mission result: new current: %d", mission_result.index_current_mission);
 
-			if (mission_result.mission_reached)
+			if (mission_result.mission_reached) {
 				mavlink_wpm_send_waypoint_reached((uint16_t)mission_result.mission_index_reached);
+			}
 
 			mavlink_wpm_send_waypoint_current((uint16_t)mission_result.index_current_mission);
 		}
