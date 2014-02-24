@@ -1629,14 +1629,14 @@ void RecallStates(float (&statesForFusion)[n_states], uint32_t msec)
             bestTimeDelta = timeDelta;
         }
     }
-    if (bestTimeDelta < 200) // only output stored state if < 200 msec retrieval error
-    {
-        for (uint8_t i=0; i < n_states; i++) statesForFusion[i] = storedStates[i][bestStoreIndex];
-    }
-    else // otherwise output current state
-    {
+    // if (bestTimeDelta < 200) // only output stored state if < 200 msec retrieval error
+    // {
+    //     for (uint8_t i=0; i < n_states; i++) statesForFusion[i] = storedStates[i][bestStoreIndex];
+    // }
+    // else // otherwise output current state
+    // {
         for (uint8_t i=0; i < n_states; i++) statesForFusion[i] = states[i];
-    }
+    // }
 }
 
 void quat2Tnb(Mat3f &Tnb, const float (&quat)[4])
