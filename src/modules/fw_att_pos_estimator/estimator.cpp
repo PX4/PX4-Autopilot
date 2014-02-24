@@ -1617,11 +1617,11 @@ void StoreStates(uint64_t timestamp_ms)
 // Output the state vector stored at the time that best matches that specified by msec
 void RecallStates(float (&statesForFusion)[n_states], uint64_t msec)
 {
-    long int bestTimeDelta = 200;
+    int64_t bestTimeDelta = 200;
     unsigned bestStoreIndex = 0;
     for (unsigned storeIndex = 0; storeIndex < data_buffer_size; storeIndex++)
     {
-        int64_t timeDelta = (int64_t)msec - statetimeStamp[storeIndex];
+        int64_t timeDelta = (int)msec - statetimeStamp[storeIndex];
         if (timeDelta < 0) timeDelta = -timeDelta;
         if (timeDelta < bestTimeDelta)
         {
