@@ -135,10 +135,11 @@ bool MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, 
 		}
 
 		if (home_alt > missionitem.altitude) {
-			mavlink_log_info(_mavlink_fd, "#audio: warning waypoint %d below home", i);
 			if (throw_error) {
+				mavlink_log_info(_mavlink_fd, "Waypoint %d below home", i);
 				return false;
 			} else	{
+				mavlink_log_info(_mavlink_fd, "#audio: warning waypoint %d below home", i);
 				return true;
 			}
 		}
