@@ -853,7 +853,7 @@ Navigator::task_main()
 
 		/* notify user about state changes */
 		if (myState != prevState) {
-			mavlink_log_info(_mavlink_fd, "[navigator] nav state: %s", nav_states_str[myState]);
+			mavlink_log_info(_mavlink_fd, "#audio: navigation state: %s", nav_states_str[myState]);
 			prevState = myState;
 
 			/* reset time counter on state changes */
@@ -1061,11 +1061,11 @@ Navigator::start_loiter()
 		/* use current altitude if above min altitude set by parameter */
 		if (_global_pos.alt < min_alt_amsl && !_vstatus.is_rotary_wing) {
 			_pos_sp_triplet.current.alt = min_alt_amsl;
-			mavlink_log_info(_mavlink_fd, "[navigator] loiter %.1fm higher", (double)(min_alt_amsl - _global_pos.alt));
+			mavlink_log_info(_mavlink_fd, "#audio: loiter %.1fm higher", (double)(min_alt_amsl - _global_pos.alt));
 
 		} else {
 			_pos_sp_triplet.current.alt = _global_pos.alt;
-			mavlink_log_info(_mavlink_fd, "[navigator] loiter at current altitude");
+			mavlink_log_info(_mavlink_fd, "#audio: loiter at current altitude");
 		}
 
 	}
@@ -1162,14 +1162,14 @@ Navigator::set_mission_item()
 		}
 
 		if (_do_takeoff) {
-			mavlink_log_info(_mavlink_fd, "[navigator] takeoff to %.1fm above home", (double)(_pos_sp_triplet.current.alt - _home_pos.alt));
+			mavlink_log_info(_mavlink_fd, "#audio: takeoff to %.1fm above home", (double)(_pos_sp_triplet.current.alt - _home_pos.alt));
 
 		} else {
 			if (onboard) {
-				mavlink_log_info(_mavlink_fd, "[navigator] heading to onboard WP %d", index);
+				mavlink_log_info(_mavlink_fd, "#audio: heading to onboard WP %d", index);
 
 			} else {
-				mavlink_log_info(_mavlink_fd, "[navigator] heading to offboard WP %d", index);
+				mavlink_log_info(_mavlink_fd, "#audio: heading to offboard WP %d", index);
 			}
 		}
 
@@ -1318,7 +1318,7 @@ Navigator::set_rtl_item()
 
 			_pos_sp_triplet.next.valid = false;
 
-			mavlink_log_info(_mavlink_fd, "[navigator] RTL: climb to %.1fm above home", (double)(climb_alt - _home_pos.alt));
+			mavlink_log_info(_mavlink_fd, "#audio: RTL: climb to %.1fm above home", (double)(climb_alt - _home_pos.alt));
 			break;
 		}
 
@@ -1344,7 +1344,7 @@ Navigator::set_rtl_item()
 
 			_pos_sp_triplet.next.valid = false;
 
-			mavlink_log_info(_mavlink_fd, "[navigator] RTL: return at %.1fm above home", (double)(_mission_item.altitude - _home_pos.alt));
+			mavlink_log_info(_mavlink_fd, "#audio: RTL: return at %.1fm above home", (double)(_mission_item.altitude - _home_pos.alt));
 			break;
 		}
 
@@ -1371,12 +1371,12 @@ Navigator::set_rtl_item()
 
 			_pos_sp_triplet.next.valid = false;
 
-			mavlink_log_info(_mavlink_fd, "[navigator] RTL: descend to %.1fm above home", (double)(_mission_item.altitude - _home_pos.alt));
+			mavlink_log_info(_mavlink_fd, "#audio: RTL: descend to %.1fm above home", (double)(_mission_item.altitude - _home_pos.alt));
 			break;
 		}
 
 	default: {
-			mavlink_log_critical(_mavlink_fd, "[navigator] error: unknown RTL state: %d", _rtl_state);
+			mavlink_log_critical(_mavlink_fd, "#audio: [navigator] error: unknown RTL state: %d", _rtl_state);
 			start_loiter();
 			break;
 		}
@@ -1525,7 +1525,7 @@ Navigator::check_mission_item_reached()
 			_time_first_inside_orbit = now;
 
 			if (_mission_item.time_inside > 0.01f) {
-				mavlink_log_info(_mavlink_fd, "[navigator] waypoint reached, wait for %.1fs", (double)_mission_item.time_inside);
+				mavlink_log_info(_mavlink_fd, "#audio: waypoint reached, wait for %.1fs", (double)_mission_item.time_inside);
 			}
 		}
 
@@ -1550,7 +1550,7 @@ Navigator::on_mission_item_reached()
 		if (_do_takeoff) {
 			/* takeoff completed */
 			_do_takeoff = false;
-			mavlink_log_info(_mavlink_fd, "[navigator] takeoff completed");
+			mavlink_log_info(_mavlink_fd, "#audio: takeoff completed");
 
 		} else {
 			/* advance by one mission item */
