@@ -41,7 +41,7 @@ int MavlinkOrbSubscription::update(const hrt_abstime t)
 		bool updated;
 		orb_check(fd, &updated);
 		if (updated)
-			return orb_copy(meta, fd, &data);
+			return orb_copy(meta, fd, data);
 	}
 	return OK;
 }
