@@ -103,15 +103,15 @@ TEST(FloatSpec, Basic)
 
     for (int i = 0; i < NumValues; i++)
     {
-        ASSERT_EQ(1, F16S::encode(Values[i], sc_wr));
-        ASSERT_EQ(1, F16T::encode(Values[i], sc_wr));
-        ASSERT_EQ(1, F32S::encode(Values[i], sc_wr));
-        ASSERT_EQ(1, F32T::encode(Values[i], sc_wr));
-        ASSERT_EQ(1, F64S::encode(Values[i], sc_wr));
-        ASSERT_EQ(1, F64T::encode(Values[i], sc_wr));
+        ASSERT_EQ(1, F16S::encode(Values[i], sc_wr, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, F16T::encode(Values[i], sc_wr, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, F32S::encode(Values[i], sc_wr, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, F32T::encode(Values[i], sc_wr, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, F64S::encode(Values[i], sc_wr, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, F64T::encode(Values[i], sc_wr, uavcan::TailArrayOptDisabled));
     }
 
-    ASSERT_EQ(0, F16S::encode(0, sc_wr));  // Out of buffer space now
+    ASSERT_EQ(0, F16S::encode(0, sc_wr, uavcan::TailArrayOptDisabled));  // Out of buffer space now
 
     /*
      * Reading
@@ -122,7 +122,7 @@ TEST(FloatSpec, Basic)
 #define CHECK(FloatType, expected_value) \
     do { \
         StorageType<FloatType>::Type var = StorageType<FloatType>::Type(); \
-        ASSERT_EQ(1, FloatType::decode(var, sc_rd)); \
+        ASSERT_EQ(1, FloatType::decode(var, sc_rd, uavcan::TailArrayOptDisabled)); \
         if (!isnan(expected_value)) \
             ASSERT_FLOAT_EQ(expected_value, var); \
         else \
@@ -155,14 +155,14 @@ TEST(FloatSpec, Float16Representation)
     uavcan::BitStream bs_wr(buf);
     uavcan::ScalarCodec sc_wr(bs_wr);
 
-    ASSERT_EQ(1, F16S::encode(0.0, sc_wr));
-    ASSERT_EQ(1, F16S::encode(1.0, sc_wr));
-    ASSERT_EQ(1, F16S::encode(-2.0, sc_wr));
-    ASSERT_EQ(1, F16T::encode(999999, sc_wr));  // +inf
-    ASSERT_EQ(1, F16S::encode(-999999, sc_wr)); // -max
-    ASSERT_EQ(1, F16S::encode(nan(""), sc_wr)); // nan
+    ASSERT_EQ(1, F16S::encode(0.0, sc_wr, uavcan::TailArrayOptDisabled));
+    ASSERT_EQ(1, F16S::encode(1.0, sc_wr, uavcan::TailArrayOptDisabled));
+    ASSERT_EQ(1, F16S::encode(-2.0, sc_wr, uavcan::TailArrayOptDisabled));
+    ASSERT_EQ(1, F16T::encode(999999, sc_wr, uavcan::TailArrayOptDisabled));  // +inf
+    ASSERT_EQ(1, F16S::encode(-999999, sc_wr, uavcan::TailArrayOptDisabled)); // -max
+    ASSERT_EQ(1, F16S::encode(nan(""), sc_wr, uavcan::TailArrayOptDisabled)); // nan
 
-    ASSERT_EQ(0, F16S::encode(0, sc_wr));  // Out of buffer space now
+    ASSERT_EQ(0, F16S::encode(0, sc_wr, uavcan::TailArrayOptDisabled));  // Out of buffer space now
 
     static const std::string Reference =  // Keep in mind that this is LITTLE ENDIAN representation
         "00000000 00000000 " // 0.0

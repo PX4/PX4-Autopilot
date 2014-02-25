@@ -70,15 +70,15 @@ TEST(IntegerSpec, Basic)
     typedef IntegerSpec<10,   SignednessSigned, CastModeSaturate> SInt10S;
     typedef IntegerSpec<1,  SignednessUnsigned, CastModeSaturate> UInt1S;
 
-    ASSERT_EQ(1, UInt8S::encode(UInt8S::StorageType(123), sc_wr));
-    ASSERT_EQ(1, SInt4T::encode(SInt4T::StorageType(-0x44), sc_wr));
-    ASSERT_EQ(1, UInt32T::encode(UInt32T::StorageType(0xFFFFFFFF), sc_wr));
-    ASSERT_EQ(1, UInt40S::encode(UInt40S::StorageType(0xFFFFFFFFFFFFFFFF), sc_wr));
-    ASSERT_EQ(1, UInt64T::encode(UInt64T::StorageType(0xFFFFFFFFFFFFFFFF), sc_wr));
-    ASSERT_EQ(1, SInt58S::encode(SInt58S::StorageType(0xFFFFFFFFFFFFFFF), sc_wr));
-    ASSERT_EQ(1, UInt63S::encode(UInt63S::StorageType(0xFFFFFFFFFFFFFFFF), sc_wr));
-    ASSERT_EQ(1, SInt10S::encode(SInt10S::StorageType(-30000), sc_wr));
-    ASSERT_EQ(1, UInt1S::encode(UInt1S::StorageType(42), sc_wr));
+    ASSERT_EQ(1, UInt8S::encode(UInt8S::StorageType(123), sc_wr, uavcan::TailArrayOptDisabled));
+    ASSERT_EQ(1, SInt4T::encode(SInt4T::StorageType(-0x44), sc_wr, uavcan::TailArrayOptDisabled));
+    ASSERT_EQ(1, UInt32T::encode(UInt32T::StorageType(0xFFFFFFFF), sc_wr, uavcan::TailArrayOptDisabled));
+    ASSERT_EQ(1, UInt40S::encode(UInt40S::StorageType(0xFFFFFFFFFFFFFFFF), sc_wr, uavcan::TailArrayOptDisabled));
+    ASSERT_EQ(1, UInt64T::encode(UInt64T::StorageType(0xFFFFFFFFFFFFFFFF), sc_wr, uavcan::TailArrayOptDisabled));
+    ASSERT_EQ(1, SInt58S::encode(SInt58S::StorageType(0xFFFFFFFFFFFFFFF), sc_wr, uavcan::TailArrayOptDisabled));
+    ASSERT_EQ(1, UInt63S::encode(UInt63S::StorageType(0xFFFFFFFFFFFFFFFF), sc_wr, uavcan::TailArrayOptDisabled));
+    ASSERT_EQ(1, SInt10S::encode(SInt10S::StorageType(-30000), sc_wr, uavcan::TailArrayOptDisabled));
+    ASSERT_EQ(1, UInt1S::encode(UInt1S::StorageType(42), sc_wr, uavcan::TailArrayOptDisabled));
 
     std::cout << bs_wr.toString() << std::endl;
 
@@ -88,7 +88,7 @@ TEST(IntegerSpec, Basic)
 #define CHECK(IntType, expected_value) \
     do { \
         StorageType<IntType>::Type var = StorageType<IntType>::Type(); \
-        ASSERT_EQ(1, IntType::decode(var, sc_rd)); \
+        ASSERT_EQ(1, IntType::decode(var, sc_rd, uavcan::TailArrayOptDisabled)); \
         ASSERT_EQ(expected_value, var); \
     } while (0)
 
@@ -105,5 +105,5 @@ TEST(IntegerSpec, Basic)
 #undef CHECK
 
     StorageType<UInt1S>::Type var;
-    ASSERT_EQ(0, UInt1S::decode(var, sc_rd));
+    ASSERT_EQ(0, UInt1S::decode(var, sc_rd, uavcan::TailArrayOptDisabled));
 }

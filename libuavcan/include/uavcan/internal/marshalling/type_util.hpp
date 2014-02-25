@@ -11,6 +11,8 @@ namespace uavcan
 
 enum CastMode { CastModeSaturate, CastModeTruncate };
 
+enum TailArrayOptimizationMode { TailArrayOptDisabled, TailArrayOptEnabled };
+
 
 template <unsigned long Num>
 struct IntegerBitLen    { enum { Result = 1 + IntegerBitLen<(Num >> 1)>::Result }; };

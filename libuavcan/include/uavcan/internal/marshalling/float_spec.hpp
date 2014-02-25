@@ -110,7 +110,7 @@ public:
     using IEEE754Limits<BitLen>::epsilon;
     static std::float_round_style roundstyle() { return IEEE754Converter::roundstyle(); }
 
-    static int encode(StorageType value, ScalarCodec& codec)
+    static int encode(StorageType value, ScalarCodec& codec, TailArrayOptimizationMode)
     {
         // cppcheck-suppress duplicateExpression
         if (CastMode == CastModeSaturate)
@@ -120,7 +120,7 @@ public:
         return codec.encode<BitLen>(IEEE754Converter::toIeee<BitLen>(value));
     }
 
-    static int decode(StorageType& out_value, ScalarCodec& codec)
+    static int decode(StorageType& out_value, ScalarCodec& codec, TailArrayOptimizationMode)
     {
         typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType ieee = 0;
         const int res = codec.decode<BitLen>(ieee);

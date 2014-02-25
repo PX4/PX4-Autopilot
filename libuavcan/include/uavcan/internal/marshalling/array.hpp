@@ -189,20 +189,88 @@ class Array : public ArrayImpl<T, ArrayMode, MaxSize_>
     typedef ArrayImpl<T, ArrayMode, MaxSize_> Base;
     typedef Array<T, ArrayMode, MaxSize_> SelfType;
 
-    int encodeSize(ScalarCodec&, FalseType) const { return 1; }
-    int encodeSize(ScalarCodec& codec, TrueType) const // TODO: Tail array optimization
+    static bool isOptimizedTailArray(TailArrayOptimizationMode tao_mode)
     {
-        return Base::RawSizeType::encode(size(), codec);
+        return (T::MinBitLen >= 8) && (tao_mode == TailArrayOptEnabled);
     }
 
-    int decodeSize(ScalarCodec&, FalseType) { return 1; }
-    int decodeSize(ScalarCodec& codec, TrueType)
+    int encodeImpl(ScalarCodec& codec, const TailArrayOptimizationMode tao_mode, FalseType) const  /// Static
     {
-        typename StorageType<typename Base::RawSizeType>::Type sz = 0;
-        const int res = Base::RawSizeType::decode(sz, codec);
-        if (res > 0)
+        assert(size() > 0);
+        for (SizeType i = 0; i < size(); i++)
+        {
+            const bool last_item = i == (size() - 1);
+            const int res = RawValueType::encode(Base::at(i), codec, last_item ? tao_mode : TailArrayOptDisabled);
+            if (res <= 0)
+                return res;
+        }
+        return 1;
+    }
+
+    int encodeImpl(ScalarCodec& codec, const TailArrayOptimizationMode tao_mode, TrueType) const   /// Dynamic
+    {
+        StaticAssert<IsDynamic>::check();
+        const bool self_tao_enabled = isOptimizedTailArray(tao_mode);
+        if (!self_tao_enabled)
+        {
+            const int res_sz = Base::RawSizeType::encode(size(), codec, TailArrayOptDisabled);
+            if (res_sz <= 0)
+                return res_sz;
+        }
+        if (size() == 0)
+            return 1;
+        return encodeImpl(codec, self_tao_enabled ? TailArrayOptDisabled : tao_mode, FalseType());
+    }
+
+    int decodeImpl(ScalarCodec& codec, const TailArrayOptimizationMode tao_mode, FalseType)  /// Static
+    {
+        assert(size() > 0);
+        for (SizeType i = 0; i < size(); i++)
+        {
+            const bool last_item = i == (size() - 1);
+            ValueType value;                          // TODO: avoid extra copy
+            const int res = RawValueType::decode(value, codec, last_item ? tao_mode : TailArrayOptDisabled);
+            if (res <= 0)
+                return res;
+            Base::at(i) = value;
+        }
+        return 1;
+    }
+
+    int decodeImpl(ScalarCodec& codec, const TailArrayOptimizationMode tao_mode, TrueType)   /// Dynamic
+    {
+        StaticAssert<IsDynamic>::check();
+        clear();
+        if (isOptimizedTailArray(tao_mode))
+        {
+            while (true)
+            {
+                ValueType value;
+                const int res = RawValueType::decode(value, codec, TailArrayOptDisabled);
+                if (res < 0)
+                    return res;
+                if (res == 0)             // Success: End of stream reached (even if zero items were read)
+                    return 1;
+                if (size() == MaxSize_)   // Error: Max array length reached, but the end of stream is not
+                    return -1;
+                push_back(value);
+            }
+        }
+        else
+        {
+            typename StorageType<typename Base::RawSizeType>::Type sz = 0;
+            const int res_sz = Base::RawSizeType::decode(sz, codec, TailArrayOptDisabled);
+            if (res_sz <= 0)
+                return res_sz;
+            if ((sz > 0) && ((sz - 1u) > (MaxSize_ - 1u))) // -Werror=type-limits
+                return -1;
             resize(sz);
-        return res;
+            if (sz == 0)
+                return 1;
+            return decodeImpl(codec, tao_mode, FalseType());
+        }
+        assert(0); // Unreachable
+        return -1;
     }
 
 public:
@@ -215,37 +283,16 @@ public:
     enum { IsDynamic = ArrayMode == ArrayModeDynamic };
     enum { MaxSize = MaxSize_ };
     enum { MinBitLen = IsDynamic ? 0 : (RawValueType::MinBitLen * MaxSize) };
-    enum { MaxBitLen = (RawValueType::MaxBitLen * MaxSize) + (IsDynamic ? Base::SizeBitLen : 0) };
+    enum { MaxBitLen = Base::SizeBitLen + RawValueType::MaxBitLen * MaxSize };
 
-    static int encode(const SelfType& array, ScalarCodec& codec)
+    static int encode(const SelfType& array, ScalarCodec& codec, const TailArrayOptimizationMode tao_mode)
     {
-        const int res_sz = array.encodeSize(codec, BooleanType<IsDynamic>());
-        if (res_sz <= 0)
-            return res_sz;
-        for (SizeType i = 0; i < array.size(); i++)
-        {
-            const int res = RawValueType::encode(array[i], codec);
-            if (res <= 0)
-                return res;
-        }
-        return 1;
+        return array.encodeImpl(codec, tao_mode, BooleanType<IsDynamic>());
     }
 
-    static int decode(SelfType& array, ScalarCodec& codec)
+    static int decode(SelfType& array, ScalarCodec& codec, const TailArrayOptimizationMode tao_mode)
     {
-        const int res_sz = array.decodeSize(codec, BooleanType<IsDynamic>());
-        if (res_sz <= 0)
-            return res_sz;
-        for (SizeType i = 0; i < array.size(); i++)
-        {
-            // TODO: avoid excessive copy
-            ValueType value;
-            const int res = RawValueType::decode(value, codec);
-            array[i] = value;
-            if (res <= 0)
-                return res;
-        }
-        return 1;
+        return array.decodeImpl(codec, tao_mode, BooleanType<IsDynamic>());
     }
 
     bool empty() const { return size() == 0; }

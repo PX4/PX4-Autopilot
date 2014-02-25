@@ -79,7 +79,7 @@ public:
     // cppcheck-suppress duplicateExpression
     static StorageType min() { return Limits::min(); }
 
-    static int encode(StorageType value, ScalarCodec& codec)
+    static int encode(StorageType value, ScalarCodec& codec, TailArrayOptimizationMode)
     {
         // cppcheck-suppress duplicateExpression
         if (CastMode == CastModeSaturate)
@@ -89,7 +89,7 @@ public:
         return codec.encode<BitLen>(value);
     }
 
-    static int decode(StorageType& out_value, ScalarCodec& codec)
+    static int decode(StorageType& out_value, ScalarCodec& codec, TailArrayOptimizationMode)
     {
         return codec.decode<BitLen>(out_value);
     }

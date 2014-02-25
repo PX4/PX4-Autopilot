@@ -25,38 +25,40 @@ struct CustomType
 
     bool operator==(const CustomType& rhs) const { return a == rhs.a && b == rhs.b && c == rhs.c; }
 
-    static int encode(const CustomType& obj, uavcan::ScalarCodec& codec)
+    static int encode(const CustomType& obj, uavcan::ScalarCodec& codec,
+                      uavcan::TailArrayOptimizationMode tao_mode = uavcan::TailArrayOptEnabled)
     {
         int res = 0;
 
-        res = A::encode(obj.a, codec);
+        res = A::encode(obj.a, codec, uavcan::TailArrayOptDisabled);
         if (res <= 0)
             return res;
 
-        res = B::encode(obj.b, codec);
+        res = B::encode(obj.b, codec, uavcan::TailArrayOptDisabled);
         if (res <= 0)
             return res;
 
-        res = C::encode(obj.c, codec);
+        res = C::encode(obj.c, codec, tao_mode);
         if (res <= 0)
             return res;
 
         return 1;
     }
 
-    static int decode(CustomType& obj, uavcan::ScalarCodec& codec)
+    static int decode(CustomType& obj, uavcan::ScalarCodec& codec,
+                      uavcan::TailArrayOptimizationMode tao_mode = uavcan::TailArrayOptEnabled)
     {
         int res = 0;
 
-        res = A::decode(obj.a, codec);
+        res = A::decode(obj.a, codec, uavcan::TailArrayOptDisabled);
         if (res <= 0)
             return res;
 
-        res = B::decode(obj.b, codec);
+        res = B::decode(obj.b, codec, uavcan::TailArrayOptDisabled);
         if (res <= 0)
             return res;
 
-        res = C::decode(obj.c, codec);
+        res = C::decode(obj.c, codec, tao_mode);
         if (res <= 0)
             return res;
 
@@ -143,16 +145,17 @@ TEST(Array, Basic)
 
     /*
      * Representation check
+     * Note that TAO in A3 is not possible because A3::C has less than one byte per item
      */
     uavcan::StaticTransferBuffer<16> buf;
     uavcan::BitStream bs_wr(buf);
     uavcan::ScalarCodec sc_wr(bs_wr);
 
-    ASSERT_EQ(1, A1::encode(a1, sc_wr));
-    ASSERT_EQ(1, A2::encode(a2, sc_wr));
-    ASSERT_EQ(1, A3::encode(a3, sc_wr));
+    ASSERT_EQ(1, A1::encode(a1, sc_wr, uavcan::TailArrayOptDisabled));
+    ASSERT_EQ(1, A2::encode(a2, sc_wr, uavcan::TailArrayOptDisabled));
+    ASSERT_EQ(1, A3::encode(a3, sc_wr, uavcan::TailArrayOptEnabled));
 
-    ASSERT_EQ(0, A3::encode(a3, sc_wr));  // Out of buffer space
+    ASSERT_EQ(0, A3::encode(a3, sc_wr, uavcan::TailArrayOptEnabled));  // Out of buffer space
 
     static const std::string Reference =
         "00000000 00000001 00000010 00000011 " // A1 (0, 1, 2, 3)
@@ -172,9 +175,9 @@ TEST(Array, Basic)
     A2 a2_;
     A3 a3_;
 
-    ASSERT_EQ(1, A1::decode(a1_, sc_rd));
-    ASSERT_EQ(1, A2::decode(a2_, sc_rd));
-    ASSERT_EQ(1, A3::decode(a3_, sc_rd));
+    ASSERT_EQ(1, A1::decode(a1_, sc_rd, uavcan::TailArrayOptDisabled));
+    ASSERT_EQ(1, A2::decode(a2_, sc_rd, uavcan::TailArrayOptDisabled));
+    ASSERT_EQ(1, A3::decode(a3_, sc_rd, uavcan::TailArrayOptEnabled));
 
     ASSERT_EQ(a1_, a1);
     ASSERT_EQ(a2_, a2);
@@ -193,7 +196,7 @@ TEST(Array, Basic)
         ASSERT_EQ(a3[i].c, a3_[i].c);
     }
 
-    ASSERT_EQ(0, A3::decode(a3_, sc_rd));  // Out of buffer space
+    ASSERT_EQ(0, A3::decode(a3_, sc_rd, uavcan::TailArrayOptEnabled));  // Out of buffer space
 
     /*
      * STL compatibility
@@ -252,31 +255,36 @@ TEST(Array, Dynamic)
 
     A a;
     B b;
+    B b2;
 
     ASSERT_EQ(3 + 5, A::MaxBitLen);
     ASSERT_EQ(8 + 255 * 8, B::MaxBitLen);
 
     ASSERT_TRUE(a.empty());
     ASSERT_TRUE(b.empty());
+    ASSERT_TRUE(b2.empty());
 
     {
         uavcan::StaticTransferBuffer<16> buf;
         uavcan::BitStream bs_wr(buf);
         uavcan::ScalarCodec sc_wr(bs_wr);
 
-        ASSERT_EQ(1, A::encode(a, sc_wr));
-        ASSERT_EQ(1, B::encode(b, sc_wr));
+        ASSERT_EQ(1, A::encode(a, sc_wr, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, B::encode(b, sc_wr, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, B::encode(b2, sc_wr, uavcan::TailArrayOptEnabled));
 
-        ASSERT_EQ("000" "00000 000" "00000", bs_wr.toString());
+        ASSERT_EQ("000" "00000 000" "00000", bs_wr.toString()); // Last array was optimized away completely
 
         uavcan::BitStream bs_rd(buf);
         uavcan::ScalarCodec sc_rd(bs_rd);
 
-        ASSERT_EQ(1, A::decode(a, sc_rd));
-        ASSERT_EQ(1, B::decode(b, sc_rd));
+        ASSERT_EQ(1, A::decode(a, sc_rd, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, B::decode(b, sc_rd, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, B::decode(b2, sc_rd, uavcan::TailArrayOptEnabled));
 
         ASSERT_TRUE(a.empty());
         ASSERT_TRUE(b.empty());
+        ASSERT_TRUE(b2.empty());
     }
 
     a.push_back(true);
@@ -288,26 +296,38 @@ TEST(Array, Dynamic)
     b.push_back(42);
     b.push_back(-42);
 
+    b2.push_back(123);
+    b2.push_back(72);
+
     {
         uavcan::StaticTransferBuffer<16> buf;
         uavcan::BitStream bs_wr(buf);
         uavcan::ScalarCodec sc_wr(bs_wr);
 
-        ASSERT_EQ(1, A::encode(a, sc_wr));
-        ASSERT_EQ(1, B::encode(b, sc_wr));
+        ASSERT_EQ(1, A::encode(a, sc_wr, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, B::encode(b, sc_wr, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, B::encode(b2, sc_wr, uavcan::TailArrayOptEnabled));  // No length field
 
-        ASSERT_EQ("10110101 00000010 00101010 11010110", bs_wr.toString());
+        //         A        B len    B[0]     B[1]     B2[0]    B2[1]
+        ASSERT_EQ("10110101 00000010 00101010 11010110 01111011 01001000", bs_wr.toString());
 
         uavcan::BitStream bs_rd(buf);
         uavcan::ScalarCodec sc_rd(bs_rd);
 
         a.clear();
         b.clear();
+        b2.clear();
         ASSERT_TRUE(a.empty());
         ASSERT_TRUE(b.empty());
+        ASSERT_TRUE(b2.empty());
 
-        ASSERT_EQ(1, A::decode(a, sc_rd));
-        ASSERT_EQ(1, B::decode(b, sc_rd));
+        ASSERT_EQ(1, A::decode(a, sc_rd, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, B::decode(b, sc_rd, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, B::decode(b2, sc_rd, uavcan::TailArrayOptEnabled));
+
+        ASSERT_EQ(5, a.size());
+        ASSERT_EQ(2, b.size());
+        ASSERT_EQ(2, b2.size());
 
         ASSERT_TRUE(a[0]);
         ASSERT_FALSE(a[1]);
@@ -317,6 +337,9 @@ TEST(Array, Dynamic)
 
         ASSERT_EQ(42, b[0]);
         ASSERT_EQ(-42, b[1]);
+
+        ASSERT_EQ(123, b2[0]);
+        ASSERT_EQ(72, b2[1]);
     }
 
     ASSERT_FALSE(a == b);
