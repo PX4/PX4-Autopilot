@@ -95,6 +95,8 @@ public:
     }
 
     SizeType capacity() const { return MaxSize; }
+
+    void clear() { size_ = 0; }
 };
 
 /**
@@ -240,7 +242,7 @@ class Array : public ArrayImpl<T, ArrayMode, MaxSize_>
     int decodeImpl(ScalarCodec& codec, const TailArrayOptimizationMode tao_mode, TrueType)   /// Dynamic
     {
         StaticAssert<IsDynamic>::check();
-        clear();
+        Base::clear();
         if (isOptimizedTailArray(tao_mode))
         {
             while (true)
@@ -319,8 +321,6 @@ public:
                 pop_back();
         }
     }
-
-    void clear() { resize(0); }
 
     template <typename R>
     bool operator==(const R& rhs) const
