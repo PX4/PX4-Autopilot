@@ -17,9 +17,9 @@ struct CustomType
     enum { MinBitLen = A::MinBitLen + B::MinBitLen + C::MinBitLen };
     enum { MaxBitLen = A::MaxBitLen + B::MaxBitLen + C::MaxBitLen };
 
-    uavcan::StorageType<A>::Type a;
-    uavcan::StorageType<B>::Type b;
-    uavcan::StorageType<C>::Type c;
+    typename uavcan::StorageType<A>::Type a;
+    typename uavcan::StorageType<B>::Type b;
+    typename uavcan::StorageType<C>::Type c;
 
     CustomType() : a(), b(), c() { }
 
@@ -362,4 +362,223 @@ TEST(Array, Dynamic)
 
     for (int i = 0; i < 255; i++)
         ASSERT_EQ(72, b[i]);
+}
+
+
+template <typename B>
+struct CustomType2
+{
+    typedef uavcan::FloatSpec<16, uavcan::CastModeSaturate> A;
+
+    enum { MinBitLen = A::MinBitLen + B::MinBitLen };
+    enum { MaxBitLen = A::MaxBitLen + B::MaxBitLen };
+
+    typename uavcan::StorageType<A>::Type a;
+    typename uavcan::StorageType<B>::Type b;
+
+    CustomType2() : a(), b() { }
+
+    bool operator==(const CustomType2& rhs) const { return a == rhs.a && b == rhs.b; }
+
+    static int encode(const CustomType2& obj, uavcan::ScalarCodec& codec,
+                      uavcan::TailArrayOptimizationMode tao_mode = uavcan::TailArrayOptEnabled)
+    {
+        int res = 0;
+        res = A::encode(obj.a, codec, uavcan::TailArrayOptDisabled);
+        if (res <= 0)
+            return res;
+        res = B::encode(obj.b, codec, tao_mode);
+        if (res <= 0)
+            return res;
+        return 1;
+    }
+
+    static int decode(CustomType2& obj, uavcan::ScalarCodec& codec,
+                      uavcan::TailArrayOptimizationMode tao_mode = uavcan::TailArrayOptEnabled)
+    {
+        int res = 0;
+        res = A::decode(obj.a, codec, uavcan::TailArrayOptDisabled);
+        if (res <= 0)
+            return res;
+        res = B::decode(obj.b, codec, tao_mode);
+        if (res <= 0)
+            return res;
+        return 1;
+    }
+};
+
+
+template <typename T>
+static std::string runEncodeDecode(const typename uavcan::StorageType<T>::Type& value,
+                                   const uavcan::TailArrayOptimizationMode tao_mode)
+{
+    uavcan::StaticTransferBuffer<(T::MaxBitLen + 7) / 8> buf;
+    uavcan::BitStream bs_wr(buf);
+    uavcan::ScalarCodec sc_wr(bs_wr);
+    EXPECT_EQ(1, T::encode(value, sc_wr, tao_mode));
+
+    typename uavcan::StorageType<T>::Type value2 = typename uavcan::StorageType<T>::Type();
+    // Decode multiple times to make sure that the decoded type is being correctly de-initialized
+    for (int i = 0; i < 3; i++)
+    {
+        uavcan::BitStream bs_rd(buf);
+        uavcan::ScalarCodec sc_rd(bs_rd);
+        EXPECT_EQ(1, T::decode(value2, sc_rd, tao_mode));
+        EXPECT_EQ(value, value2);
+    }
+    return bs_wr.toString();
+}
+
+
+TEST(Array, TailArrayOptimization)
+{
+    using uavcan::Array;
+    using uavcan::ArrayModeDynamic;
+    using uavcan::ArrayModeStatic;
+    using uavcan::IntegerSpec;
+    using uavcan::FloatSpec;
+    using uavcan::SignednessSigned;
+    using uavcan::SignednessUnsigned;
+    using uavcan::CastModeSaturate;
+    using uavcan::CastModeTruncate;
+
+    typedef Array<IntegerSpec<1, SignednessUnsigned, CastModeSaturate>, ArrayModeDynamic, 5>   OneBitArray;
+    typedef Array<IntegerSpec<8, SignednessUnsigned, CastModeSaturate>, ArrayModeDynamic, 255> EightBitArray;
+    typedef CustomType2<Array<OneBitArray,   ArrayModeDynamic, 255> > A;
+    typedef CustomType2<Array<EightBitArray, ArrayModeDynamic, 255> > B;
+    typedef CustomType2<EightBitArray> C;
+
+    A a;
+    B b;
+    C c;
+
+    /*
+     * Empty
+     */
+    //         a LSB    a MSB    b len
+    ASSERT_EQ("00000000 00000000 00000000", runEncodeDecode<A>(a, uavcan::TailArrayOptEnabled));
+    ASSERT_EQ("00000000 00000000 00000000", runEncodeDecode<A>(a, uavcan::TailArrayOptDisabled));
+
+    //         a LSB    a MSB    b len
+    ASSERT_EQ("00000000 00000000 00000000", runEncodeDecode<B>(b, uavcan::TailArrayOptEnabled));
+    ASSERT_EQ("00000000 00000000 00000000", runEncodeDecode<B>(b, uavcan::TailArrayOptDisabled));
+
+    //         a LSB    a MSB
+    ASSERT_EQ("00000000 00000000",          runEncodeDecode<C>(c, uavcan::TailArrayOptEnabled));
+    ASSERT_EQ("00000000 00000000 00000000", runEncodeDecode<C>(c, uavcan::TailArrayOptDisabled));
+
+    /*
+     * A
+     */
+    a.b.resize(2);
+    a.b[0].push_back(true);
+    a.b[0].push_back(false);
+    // a.b[1] remains empty
+    //         a LSB    a MSB    b len    b: len(2), 1, 0, len(0)
+    ASSERT_EQ("00000000 00000000 00000010 01010000", runEncodeDecode<A>(a, uavcan::TailArrayOptEnabled));
+    ASSERT_EQ("00000000 00000000 00000010 01010000", runEncodeDecode<A>(a, uavcan::TailArrayOptDisabled));
+
+    /*
+     * B
+     */
+    b.b.resize(3);
+    b.b[0].push_back(42);
+    b.b[0].push_back(72);
+    // b.b[1] remains empty
+    b.b[2].push_back(123);
+    b.b[2].push_back(99);
+    //         a LSB    a MSB    b len    b[0]len  42       72       b[1]len  123      99      (b[2] len optimized out)
+    ASSERT_EQ("00000000 00000000 00000011 00000010 00101010 01001000 00000000 01111011 01100011",
+              runEncodeDecode<B>(b, uavcan::TailArrayOptEnabled));
+    // Same as above, but b[2] len is present                                 v here v
+    ASSERT_EQ("00000000 00000000 00000011 00000010 00101010 01001000 00000000 00000010 01111011 01100011",
+              runEncodeDecode<B>(b, uavcan::TailArrayOptDisabled));
+
+    /*
+     * C
+     */
+    c.a = 1;
+    c.b.push_back(1);
+    c.b.push_back(2);
+    c.b.push_back(3);
+    //         a LSB    a MSB    1        2        3
+    ASSERT_EQ("00000000 00111100 00000001 00000010 00000011",
+              runEncodeDecode<C>(c, uavcan::TailArrayOptEnabled));
+    //         a LSB    a MSB    b len    1        2        3
+    ASSERT_EQ("00000000 00111100 00000011 00000001 00000010 00000011",
+              runEncodeDecode<C>(c, uavcan::TailArrayOptDisabled));
+}
+
+
+TEST(Array, TailArrayOptimizationErrors)
+{
+    using uavcan::Array;
+    using uavcan::ArrayModeDynamic;
+    using uavcan::ArrayModeStatic;
+    using uavcan::IntegerSpec;
+    using uavcan::FloatSpec;
+    using uavcan::SignednessSigned;
+    using uavcan::SignednessUnsigned;
+    using uavcan::CastModeSaturate;
+    using uavcan::CastModeTruncate;
+
+    typedef Array<IntegerSpec<8, SignednessUnsigned, CastModeSaturate>, ArrayModeDynamic, 5> A;
+
+    A a;
+    ASSERT_TRUE(a.empty());
+    ASSERT_EQ("",         runEncodeDecode<A>(a, uavcan::TailArrayOptEnabled));
+    ASSERT_EQ("00000000", runEncodeDecode<A>(a, uavcan::TailArrayOptDisabled));
+
+    // Correct decode/encode
+    a.push_back(1);
+    a.push_back(126);
+    a.push_back(5);
+    ASSERT_FALSE(a.empty());
+    ASSERT_EQ("00000001 01111110 00000101",          runEncodeDecode<A>(a, uavcan::TailArrayOptEnabled));
+    ASSERT_EQ("01100000 00101111 11000000 10100000", runEncodeDecode<A>(a, uavcan::TailArrayOptDisabled));
+
+    // Invalid decode - length field is out of range
+    uavcan::StaticTransferBuffer<7> buf;
+    uavcan::BitStream bs_wr(buf);
+    uavcan::ScalarCodec sc_wr(bs_wr);
+
+    ASSERT_EQ(1, sc_wr.encode<3>(uint8_t(6)));  // Length - more than 5 items, error
+    ASSERT_EQ(1, sc_wr.encode<8>(uint8_t(42)));
+    ASSERT_EQ(1, sc_wr.encode<8>(uint8_t(72)));
+    ASSERT_EQ(1, sc_wr.encode<8>(uint8_t(126)));
+    ASSERT_EQ(1, sc_wr.encode<8>(uint8_t(1)));
+    ASSERT_EQ(1, sc_wr.encode<8>(uint8_t(2)));
+    ASSERT_EQ(1, sc_wr.encode<8>(uint8_t(3)));  // Out of range - only 5 items allowed
+
+    //         197      73       15       192      32       ...
+    ASSERT_EQ("11000101 01001001 00001111 11000000 00100000 01000000 01100000", bs_wr.toString());
+
+    {
+        uavcan::BitStream bs_rd(buf);
+        uavcan::ScalarCodec sc_rd(bs_rd);
+        A a2;
+        a2.push_back(56);   // Garbage
+        ASSERT_EQ(1, a2.size());
+        // Will fail - declared length is more than 5 items
+        ASSERT_EQ(-1, A::decode(a2, sc_rd, uavcan::TailArrayOptDisabled));
+        // Must be cleared
+        ASSERT_TRUE(a2.empty());
+    }
+    {
+        uavcan::BitStream bs_rd(buf);
+        uavcan::ScalarCodec sc_rd(bs_rd);
+        A a2;
+        a2.push_back(56);   // Garbage
+        ASSERT_EQ(1, a2.size());
+        // Will fail - no length field, but the stream is too long
+        ASSERT_EQ(-1, A::decode(a2, sc_rd, uavcan::TailArrayOptEnabled));
+        // Will contain some garbage
+        ASSERT_EQ(5, a2.size());
+        // Interpreted stream - see the values above
+        ASSERT_EQ(197, a2[0]);
+        ASSERT_EQ(73,  a2[1]);
+        ASSERT_EQ(15,  a2[2]);
+        ASSERT_EQ(192, a2[3]);
+        ASSERT_EQ(32,  a2[4]);
+    }
 }
