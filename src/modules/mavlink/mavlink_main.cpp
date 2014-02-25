@@ -79,11 +79,9 @@
 #include <mathlib/mathlib.h>
 #include <mavlink/mavlink_log.h>
 
-#include <commander/px4_custom_mode.h>
-
 #include "mavlink_bridge_header.h"
 #include "mavlink_main.h"
-#include "mavlink_orb_listener.h"
+#include "mavlink_messages.h"
 #include "mavlink_receiver.h"
 
 /* oddly, ERROR is not defined for c++ */
@@ -91,6 +89,8 @@
 # undef ERROR
 #endif
 static const int ERROR = -1;
+
+#define MAIN_LOOP_DELAY 10000	// 100 Hz
 
 static Mavlink* _head = nullptr;
 
@@ -170,7 +170,8 @@ Mavlink::Mavlink() :
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink")),
 	_mavlink_hil_enabled(false),
-	// _params_sub(-1)
+	_subscriptions(nullptr),
+	_streams(nullptr),
 
 	mission_pub(-1)
 {
@@ -323,17 +324,6 @@ int Mavlink::get_uart_fd()
 int Mavlink::get_channel()
 {
 	return (int)_chan;
-}
-
-void
-Mavlink::parameters_update()
-{
-	/* read from param to clear updated flag */
-	struct parameter_update_s update;
-	orb_copy(ORB_ID(parameter_update), _params_sub, &update);
-
-	// param_get(_parameter_handles.min_altitude, &(_parameters.min_altitude));
-
 }
 
 /****************************************************************************
@@ -532,173 +522,22 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 			hil_rate_interval = 5;
 		}
 
-		orb_set_interval(subs.spa_sub, hil_rate_interval);
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, hil_rate_interval);
+//		orb_set_interval(subs.spa_sub, hil_rate_interval);
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, hil_rate_interval);
 	}
 
 	if (!hil_enabled && _mavlink_hil_enabled) {
 		_mavlink_hil_enabled = false;
-		orb_set_interval(subs.spa_sub, 200);
+//		orb_set_interval(subs.spa_sub, 200);
 
 	} else {
 		ret = ERROR;
-	}
-
-	return ret;
-}
-
-void
-Mavlink::get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode)
-{
-	/* reset MAVLink mode bitfield */
-	*mavlink_base_mode = 0;
-	*mavlink_custom_mode = 0;
-
-	/**
-	 * Set mode flags
-	 **/
-
-	/* HIL */
-	if (v_status.hil_state == HIL_STATE_ON) {
-		*mavlink_base_mode |= MAV_MODE_FLAG_HIL_ENABLED;
-	}
-
-	/* arming state */
-	if (v_status.arming_state == ARMING_STATE_ARMED
-			|| v_status.arming_state == ARMING_STATE_ARMED_ERROR) {
-		*mavlink_base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
-	}
-
-	/* main state */
-	*mavlink_base_mode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
-	union px4_custom_mode custom_mode;
-	custom_mode.data = 0;
-	if (pos_sp_triplet.nav_state == NAV_STATE_NONE) {
-	/* use main state when navigator is not active */
-		if (v_status.main_state == MAIN_STATE_MANUAL) {
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (v_status.is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
-		} else if (v_status.main_state == MAIN_STATE_SEATBELT) {
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_SEATBELT;
-		} else if (v_status.main_state == MAIN_STATE_EASY) {
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_EASY;
-		} else if (v_status.main_state == MAIN_STATE_AUTO) {
-			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
-		}
-	} else {
-		/* use navigation state when navigator is active */
-		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-		if (pos_sp_triplet.nav_state == NAV_STATE_READY) {
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
-		} else if (pos_sp_triplet.nav_state == NAV_STATE_LOITER) {
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
-		} else if (pos_sp_triplet.nav_state == NAV_STATE_MISSION) {
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
-		} else if (pos_sp_triplet.nav_state == NAV_STATE_RTL) {
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
-		} else if (pos_sp_triplet.nav_state == NAV_STATE_LAND) {
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
-		}
-	}
-	*mavlink_custom_mode = custom_mode.data;
-
-	/**
-	 * Set mavlink state
-	 **/
-
-	/* set calibration state */
-	if (v_status.arming_state == ARMING_STATE_INIT
-			|| v_status.arming_state == ARMING_STATE_IN_AIR_RESTORE
-			|| v_status.arming_state == ARMING_STATE_STANDBY_ERROR) {	// TODO review
-		*mavlink_state = MAV_STATE_UNINIT;
-	} else if (v_status.arming_state == ARMING_STATE_ARMED) {
-		*mavlink_state = MAV_STATE_ACTIVE;
-	} else if (v_status.arming_state == ARMING_STATE_ARMED_ERROR) {
-		*mavlink_state = MAV_STATE_CRITICAL;
-	} else if (v_status.arming_state == ARMING_STATE_STANDBY) {
-		*mavlink_state = MAV_STATE_STANDBY;
-	} else if (v_status.arming_state == ARMING_STATE_REBOOT) {
-		*mavlink_state = MAV_STATE_POWEROFF;
-	} else {
-		warnx("Unknown mavlink state");
-		*mavlink_state = MAV_STATE_CRITICAL;
-	}
-}
-
-
-int Mavlink::set_mavlink_interval_limit(int mavlink_msg_id, int min_interval)
-{
-	int ret = OK;
-
-	switch (mavlink_msg_id) {
-	case MAVLINK_MSG_ID_SCALED_IMU:
-		/* sensor sub triggers scaled IMU */
-		orb_set_interval(subs.sensor_sub, min_interval);
-		break;
-
-	case MAVLINK_MSG_ID_HIGHRES_IMU:
-		/* sensor sub triggers highres IMU */
-		orb_set_interval(subs.sensor_sub, min_interval);
-		break;
-
-	case MAVLINK_MSG_ID_RAW_IMU:
-		/* sensor sub triggers RAW IMU */
-		orb_set_interval(subs.sensor_sub, min_interval);
-		break;
-
-	case MAVLINK_MSG_ID_ATTITUDE:
-		/* attitude sub triggers attitude */
-		orb_set_interval(subs.att_sub, min_interval);
-		break;
-
-	case MAVLINK_MSG_ID_SERVO_OUTPUT_RAW:
-		/* actuator_outputs triggers this message */
-		orb_set_interval(subs.act_0_sub, min_interval);
-		orb_set_interval(subs.act_1_sub, min_interval);
-		orb_set_interval(subs.act_2_sub, min_interval);
-		orb_set_interval(subs.act_3_sub, min_interval);
-		orb_set_interval(subs.actuators_sub, min_interval);
-		orb_set_interval(subs.actuators_effective_sub, min_interval);
-		orb_set_interval(subs.spa_sub, min_interval);
-		orb_set_interval(subs.rates_setpoint_sub, min_interval);
-		break;
-
-	case MAVLINK_MSG_ID_MANUAL_CONTROL:
-		/* manual_control_setpoint triggers this message */
-		orb_set_interval(subs.man_control_sp_sub, min_interval);
-		break;
-
-	case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
-		orb_set_interval(subs.debug_key_value, min_interval);
-		break;
-
-	default:
-		/* not found */
-		ret = ERROR;
-		break;
 	}
 
 	return ret;
 }
 
 extern mavlink_system_t mavlink_system;
-
-void Mavlink::mavlink_pm_callback(void *arg, param_t param)
-{
-	//mavlink_pm_send_param(param);
-	usleep(*(unsigned int *)arg);
-}
-
-void Mavlink::mavlink_pm_send_all_params(unsigned int delay)
-{
-	unsigned int dbuf = delay;
-	param_foreach(&mavlink_pm_callback, &dbuf, false);
-}
 
 int Mavlink::mavlink_pm_queued_send()
 {
@@ -1519,6 +1358,51 @@ Mavlink::mavlink_missionlib_send_gcs_string(const char *string)
 	}
 }
 
+MavlinkOrbSubscription *Mavlink::add_orb_subscription(const struct orb_metadata *topic, const size_t size)
+{
+	/* check if already subscribed to this topic */
+	MavlinkOrbSubscription *sub;
+
+	LL_FOREACH(_subscriptions, sub) {
+		if (sub->topic == topic) {
+			/* already subscribed */
+			return sub;
+		}
+	}
+
+	/* add new subscription */
+	MavlinkOrbSubscription *sub_new = new MavlinkOrbSubscription(topic, size);
+
+	LL_APPEND(_subscriptions, sub_new);
+
+	return sub_new;
+}
+
+int
+Mavlink::add_stream(const char *stream_name, const unsigned int interval)
+{
+	uintptr_t arg = 0;
+
+	unsigned int i = 0;
+	/* search for message with specified name */
+	while (msgs_list[i].name != nullptr) {
+		if (strcmp(stream_name, msgs_list[i].name) == 0) {
+			/* count topics, array is nullptr-terminated */
+			unsigned int topics_n;
+			for (topics_n = 0; topics_n < MAX_TOPICS_PER_MAVLINK_STREAM; topics_n++) {
+				if (msgs_list[i].topics[topics_n] == nullptr) {
+					break;
+				}
+			}
+			MavlinkStream *stream = new MavlinkStream(this, msgs_list[i].callback, topics_n, msgs_list[i].topics, msgs_list[i].sizes, arg, interval);
+			LL_APPEND(_streams, stream);
+			return OK;
+		}
+		i++;
+	}
+	return ERROR;
+}
+
 int
 Mavlink::task_main(int argc, char *argv[])
 {
@@ -1639,67 +1523,64 @@ Mavlink::task_main(int argc, char *argv[])
 	/* start the MAVLink receiver */
 	receive_thread = MavlinkReceiver::receive_start(this);
 
-	/* start the ORB receiver */
-	uorb_receive_thread = MavlinkOrbListener::uorb_receive_start(this);
-
 	/* initialize waypoint manager */
 	mavlink_wpm_init(wpm);
 
 	/* all subscriptions are now active, set up initial guess about rate limits */
-	if (_baudrate >= 230400) {
-		/* 200 Hz / 5 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_HIGHRES_IMU, 20);
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_RAW_IMU, 20);
-		/* 50 Hz / 20 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 30);
-		/* 20 Hz / 50 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 10);
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 50);
-		/* 10 Hz */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_GPS_RAW_INT, 100);
-		/* 10 Hz */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_MANUAL_CONTROL, 100);
-
-	} else if (_baudrate >= 115200) {
-		/* 20 Hz / 50 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_HIGHRES_IMU, 50);
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_RAW_IMU, 50);
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 50);
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 50);
-		/* 5 Hz / 200 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 200);
-		/* 5 Hz / 200 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_GPS_RAW_INT, 200);
-		/* 2 Hz */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_MANUAL_CONTROL, 500);
-
-	} else if (_baudrate >= 57600) {
-		/* 10 Hz / 100 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_RAW_IMU, 300);
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_HIGHRES_IMU, 300);
-		/* 10 Hz / 100 ms ATTITUDE */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 200);
-		/* 5 Hz / 200 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 200);
-		/* 5 Hz / 200 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 500);
-		/* 2 Hz */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_MANUAL_CONTROL, 500);
-		/* 2 Hz */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_GPS_RAW_INT, 500);
-
-	} else {
-		/* very low baud rate, limit to 1 Hz / 1000 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_RAW_IMU, 1000);
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 1000);
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_HIGHRES_IMU, 1000);
-		/* 1 Hz / 1000 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 1000);
-		/* 0.5 Hz */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 2000);
-		/* 0.1 Hz */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_MANUAL_CONTROL, 10000);
-	}
+//	if (_baudrate >= 230400) {
+//		/* 200 Hz / 5 ms */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_HIGHRES_IMU, 20);
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_RAW_IMU, 20);
+//		/* 50 Hz / 20 ms */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 30);
+//		/* 20 Hz / 50 ms */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 10);
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 50);
+//		/* 10 Hz */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_GPS_RAW_INT, 100);
+//		/* 10 Hz */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_MANUAL_CONTROL, 100);
+//
+//	} else if (_baudrate >= 115200) {
+//		/* 20 Hz / 50 ms */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_HIGHRES_IMU, 50);
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_RAW_IMU, 50);
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 50);
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 50);
+//		/* 5 Hz / 200 ms */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 200);
+//		/* 5 Hz / 200 ms */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_GPS_RAW_INT, 200);
+//		/* 2 Hz */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_MANUAL_CONTROL, 500);
+//
+//	} else if (_baudrate >= 57600) {
+//		/* 10 Hz / 100 ms */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_RAW_IMU, 300);
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_HIGHRES_IMU, 300);
+//		/* 10 Hz / 100 ms ATTITUDE */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 200);
+//		/* 5 Hz / 200 ms */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 200);
+//		/* 5 Hz / 200 ms */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 500);
+//		/* 2 Hz */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_MANUAL_CONTROL, 500);
+//		/* 2 Hz */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_GPS_RAW_INT, 500);
+//
+//	} else {
+//		/* very low baud rate, limit to 1 Hz / 1000 ms */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_RAW_IMU, 1000);
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 1000);
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_HIGHRES_IMU, 1000);
+//		/* 1 Hz / 1000 ms */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 1000);
+//		/* 0.5 Hz */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 2000);
+//		/* 0.1 Hz */
+//		set_mavlink_interval_limit(MAVLINK_MSG_ID_MANUAL_CONTROL, 10000);
+//	}
 
 	int mission_result_sub = orb_subscribe(ORB_ID(mission_result));
 	struct mission_result_s mission_result;
@@ -1709,72 +1590,42 @@ Mavlink::task_main(int argc, char *argv[])
 
 	unsigned lowspeed_counter = 0;
 
-	/* wakeup source(s) */
-	struct pollfd fds[1];
+	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update), sizeof(parameter_update_s));
+	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status), sizeof(vehicle_status_s));
 
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
+	struct vehicle_status_s *status = (struct vehicle_status_s *) status_sub->data;
 
-	/* Setup of loop */
-	fds[0].fd = _params_sub;
-	fds[0].events = POLLIN;
+	add_stream("HEARTBEAT", 1000);
+	add_stream("SYS_STATUS", 100);
 
 	while (!_task_should_exit) {
-
-		/* wait for up to 100ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
-
-		/* this is undesirable but not much we can do - might want to flag unhappy status */
-		if (pret < 0) {
-			warn("poll error %d, %d", pret, errno);
-			continue;
-		}
+		/* main loop */
+		usleep(MAIN_LOOP_DELAY);
 
 		perf_begin(_loop_perf);
 
-		/* parameters updated */
-		if (fds[0].revents & POLLIN) {
-			parameters_update();
+		hrt_abstime t = hrt_absolute_time();
+
+		if (param_sub->update(t)) {
+			/* parameters updated */
+			mavlink_update_system();
 		}
 
-		/* 1 Hz */
-		if (lowspeed_counter % 10 == 0) {
-			mavlink_update_system();
-
-			/* translate the current system state to mavlink state and mode */
-			uint8_t mavlink_state = 0;
-			uint8_t mavlink_base_mode = 0;
-			uint32_t mavlink_custom_mode = 0;
-			get_mavlink_mode_and_state(&mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
-
-			/* send heartbeat */
-			mavlink_msg_heartbeat_send(_chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_base_mode, mavlink_custom_mode, mavlink_state);
-
+		if (status_sub->update(t)) {
 			/* switch HIL mode if required */
-			if (v_status.hil_state == HIL_STATE_ON)
+			if (status->hil_state == HIL_STATE_ON)
 				set_hil_enabled(true);
-			else if (v_status.hil_state == HIL_STATE_OFF)
+			else if (status->hil_state == HIL_STATE_OFF)
 				set_hil_enabled(false);
+		}
 
-			/* send status (values already copied in the section above) */
-			mavlink_msg_sys_status_send(_chan,
-						    v_status.onboard_control_sensors_present,
-						    v_status.onboard_control_sensors_enabled,
-						    v_status.onboard_control_sensors_health,
-						    v_status.load * 1000.0f,
-						    v_status.battery_voltage * 1000.0f,
-						    v_status.battery_current * 1000.0f,
-						    v_status.battery_remaining,
-						    v_status.drop_rate_comm,
-						    v_status.errors_comm,
-						    v_status.errors_count1,
-						    v_status.errors_count2,
-						    v_status.errors_count3,
-						    v_status.errors_count4);
+		MavlinkStream *stream;
+		LL_FOREACH(_streams, stream) {
+			stream->update(t);
 		}
 
 		/* 0.5 Hz */
-		if (lowspeed_counter % 20 == 0) {
-
+		if (lowspeed_counter % (2000000 / MAIN_LOOP_DELAY) == 0) {
 			mavlink_wpm_send_waypoint_current((uint16_t)mission_result.index_current_mission);
 		}
 
@@ -1800,26 +1651,27 @@ Mavlink::task_main(int argc, char *argv[])
 		/* check if waypoint has been reached against the last positions */
 		mavlink_waypoint_eventloop(hrt_absolute_time());
 
-
-		/* send parameters at 20 Hz (if queued for sending) */
-		mavlink_pm_queued_send();
-		mavlink_waypoint_eventloop(hrt_absolute_time());
-
-		mavlink_waypoint_eventloop(hrt_absolute_time());
-
-		if (_baudrate > 57600) {
+		if (lowspeed_counter % (50000 / MAIN_LOOP_DELAY) == 0) {
+			/* send parameters at 20 Hz (if queued for sending) */
 			mavlink_pm_queued_send();
+			mavlink_waypoint_eventloop(hrt_absolute_time());
+
+			mavlink_waypoint_eventloop(hrt_absolute_time());
+
+			if (_baudrate > 57600) {
+				mavlink_pm_queued_send();
+			}
+
+			 /* send one string at 10 Hz */
+			 if (!mavlink_logbuffer_is_empty(&lb)) {
+				struct mavlink_logmessage msg;
+				int lb_ret = mavlink_logbuffer_read(&lb, &msg);
+
+				if (lb_ret == OK) {
+					mavlink_missionlib_send_gcs_string(msg.text);
+				}
+			 }
 		}
-
-		 /* send one string at 10 Hz */
-		 if (!mavlink_logbuffer_is_empty(&lb)) {
-		 	struct mavlink_logmessage msg;
-		 	int lb_ret = mavlink_logbuffer_read(&lb, &msg);
-
-		 	if (lb_ret == OK) {
-		 		mavlink_missionlib_send_gcs_string(msg.text);
-		 	}
-		 }
 
 		perf_end(_loop_perf);
 	}
@@ -1878,7 +1730,7 @@ int mavlink_main(int argc, char *argv[])
 
 		// Instantiate thread
 		char buf[32];
-		sprintf(buf, "mavlink if%d", Mavlink::instance_count());
+		sprintf(buf, "mavlink_if%d", Mavlink::instance_count());
 
 		/*mavlink->_mavlink_task = */task_spawn_cmd(buf,
 						 SCHED_DEFAULT,

@@ -41,6 +41,12 @@
 #pragma once
 
 #include <stdbool.h>
+#include <nuttx/fs/fs.h>
+#include <drivers/drv_rc_input.h>
+#include <systemlib/param/param.h>
+#include <systemlib/perf_counter.h>
+#include <pthread.h>
+#include <mavlink/mavlink_log.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
@@ -68,12 +74,12 @@
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
-#include <drivers/drv_rc_input.h>
 #include <uORB/topics/navigation_capabilities.h>
 #include <uORB/topics/mission.h>
-#include <systemlib/param/param.h>
 
-#include <nuttx/fs/fs.h>
+#include "mavlink_bridge_header.h"
+#include "mavlink_orb_subscription.h"
+#include "mavlink_stream.h"
 
  // FIXME XXX - TO BE MOVED TO XML
 enum MAVLINK_WPM_STATES {
@@ -185,7 +191,7 @@ public:
 	 */
 	void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_message_t *msg);
 
-	void get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode);
+	void get_mavlink_mode_and_state(struct vehicle_status_s *status, struct position_setpoint_triplet_s *pos_sp_triplet, uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode);
 
 	/**
 	 * Enable / disable Hardware in the Loop simulation mode.
@@ -197,56 +203,9 @@ public:
 	 */
 	int		set_hil_enabled(bool hil_enabled);
 
-	struct mavlink_subscriptions {
-		int sensor_sub;
-		int att_sub;
-		int global_pos_sub;
-		int act_0_sub;
-		int act_1_sub;
-		int act_2_sub;
-		int act_3_sub;
-		int gps_sub;
-		int man_control_sp_sub;
-		int safety_sub;
-		int actuators_sub;
-		int armed_sub;
-		int actuators_effective_sub;
-		int local_pos_sub;
-		int spa_sub;
-		int spl_sub;
-		int triplet_sub;
-		int debug_key_value;
-		int input_rc_sub;
-		int optical_flow;
-		int rates_setpoint_sub;
-		int get_sub;
-		int airspeed_sub;
-		int navigation_capabilities_sub;
-		int position_setpoint_triplet_sub;
-		int rc_sub;
-		int status_sub;
-		int home_sub;
-	};
+	MavlinkOrbSubscription *add_orb_subscription(const struct orb_metadata *topic, size_t size);
 
-	struct mavlink_subscriptions subs;
-
-	struct mavlink_subscriptions* get_subs() { return &subs; }
 	mavlink_channel_t get_chan() { return _chan; }
-
-	/** Global position */
-	struct vehicle_global_position_s global_pos;
-	/** Local position */
-	struct vehicle_local_position_s local_pos;
-	/** navigation capabilities */
-	struct navigation_capabilities_s nav_cap;
-	/** Vehicle status */
-	struct vehicle_status_s v_status;
-	/** RC channels */
-	struct rc_channels_s rc;
-	/** Actuator armed state */
-	struct actuator_armed_s armed;
-	/** Position setpoint triplet */
-	struct position_setpoint_triplet_s pos_sp_triplet;
 
 	bool		_task_should_exit;		/**< if true, mavlink task should exit */
 
@@ -270,7 +229,8 @@ private:
 	/* states */
 	bool		_mavlink_hil_enabled;		/**< Hardware in the loop mode */
 
-	int		_params_sub;
+	MavlinkOrbSubscription *_subscriptions;
+	MavlinkStream *_streams;
 
 	orb_advert_t	mission_pub;
 	struct mission_s mission;
@@ -306,21 +266,6 @@ private:
 
 	bool mavlink_link_termination_allowed;
 	
-	/**
-	 * Update our local parameter cache.
-	 */
-	void		parameters_update();
-
-	/**
-	 * Send all parameters at once.
-	 *
-	 * This function blocks until all parameters have been sent.
-	 * it delays each parameter by the passed amount of microseconds.
-	 *
-	 * @param delay		The delay in us between sending all parameters.
-	 */
-	void mavlink_pm_send_all_params(unsigned int delay);
-
 	/**
 	 * Send one parameter.
 	 *
@@ -381,12 +326,7 @@ private:
 
 	int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
 
-	int set_mavlink_interval_limit(int mavlink_msg_id, int min_interval);
-
-	/**
-	 * Callback for param interface.
-	 */
-	static void mavlink_pm_callback(void *arg, param_t param);
+	int add_stream(const char *stream_name, const unsigned int interval);
 
 	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
 

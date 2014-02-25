@@ -1,131 +1,138 @@
-/****************************************************************************
+/*
+ * mavlink_messages.cpp
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- ****************************************************************************/
-
-/**
- * @file orb_listener.cpp
- * Monitors ORB topics and sends update messages as appropriate.
- *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ *  Created on: 25.02.2014
+ *      Author: ton
  */
 
-// XXX trim includes
-#include <nuttx/config.h>
-#include <stdio.h>
-#include <math.h>
-#include <stdbool.h>
-#include <fcntl.h>
-#include <string.h>
-#include "mavlink_bridge_header.h"
-#include <drivers/drv_hrt.h>
-#include <time.h>
-#include <float.h>
-#include <unistd.h>
-#include <sys/prctl.h>
-#include <stdlib.h>
-#include <poll.h>
-#include <lib/geo/geo.h>
-#include <systemlib/err.h>
+#include <commander/px4_custom_mode.h>
 
-#include <mavlink/mavlink_log.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 
-#include "mavlink_orb_listener.h"
-#include "mavlink_main.h"
+#include "mavlink_messages.h"
 
 
-uint16_t cm_uint16_from_m_float(float m);
+struct msgs_list_s msgs_list[] = {
+		{
+				.name = "HEARTBEAT",
+				.callback = msg_heartbeat,
+				.topics = { ORB_ID(vehicle_status), ORB_ID(position_setpoint_triplet), nullptr },
+				.sizes = { sizeof(struct vehicle_status_s), sizeof(struct position_setpoint_triplet_s) }
+		},
+		{
+				.name = "SYS_STATUS",
+				.callback = msg_sys_status,
+				.topics = { ORB_ID(vehicle_status), nullptr },
+				.sizes = { sizeof(struct vehicle_status_s) }
+		},
+		{ .name = nullptr }
+};
 
-uint16_t
-cm_uint16_from_m_float(float m)
+void
+msg_heartbeat(const MavlinkStream *stream)
 {
-	if (m < 0.0f) {
-		return 0;
+	struct vehicle_status_s *status = (struct vehicle_status_s *)stream->subscriptions[0]->data;
+	struct position_setpoint_triplet_s *pos_sp_triplet = (struct position_setpoint_triplet_s *)stream->subscriptions[1]->data;
 
-	} else if (m > 655.35f) {
-		return 65535;
+	uint8_t mavlink_state = 0;
+	uint8_t mavlink_base_mode = 0;
+	uint32_t mavlink_custom_mode = 0;
+
+	/* HIL */
+	if (status->hil_state == HIL_STATE_ON) {
+		mavlink_base_mode |= MAV_MODE_FLAG_HIL_ENABLED;
 	}
 
-	return (uint16_t)(m * 100.0f);
-}
+	/* arming state */
+	if (status->arming_state == ARMING_STATE_ARMED
+			|| status->arming_state == ARMING_STATE_ARMED_ERROR) {
+		mavlink_base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+	}
 
-MavlinkOrbListener::MavlinkOrbListener(Mavlink* parent) :
-
-	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink orb")),
-	_mavlink(parent),
-	_subscriptions(nullptr),
-	_streams(nullptr)
-{
-
-}
-
-MavlinkOrbListener::~MavlinkOrbListener()
-{
-
-}
-
-MavlinkOrbSubscription *MavlinkOrbListener::add_subscription(const struct orb_metadata *meta, const size_t size, const MavlinkStream *stream, const unsigned int interval)
-{
-	/* check if already subscribed to this topic */
-	MavlinkOrbSubscription *sub;
-
-	LL_FOREACH(_subscriptions, sub) {
-		if (sub->meta == meta) {
-			/* already subscribed */
-			if (sub->interval > interval) {
-				/* subscribed with bigger interval, change interval */
-				sub->set_interval(interval);
-			}
-			return sub;
+	/* main state */
+	mavlink_base_mode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
+	union px4_custom_mode custom_mode;
+	custom_mode.data = 0;
+	if (pos_sp_triplet->nav_state == NAV_STATE_NONE) {
+	/* use main state when navigator is not active */
+		if (status->main_state == MAIN_STATE_MANUAL) {
+			mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+		} else if (status->main_state == MAIN_STATE_SEATBELT) {
+			mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_SEATBELT;
+		} else if (status->main_state == MAIN_STATE_EASY) {
+			mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_EASY;
+		} else if (status->main_state == MAIN_STATE_AUTO) {
+			mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
+		}
+	} else {
+		/* use navigation state when navigator is active */
+		mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		if (pos_sp_triplet->nav_state == NAV_STATE_READY) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
+		} else if (pos_sp_triplet->nav_state == NAV_STATE_LOITER) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
+		} else if (pos_sp_triplet->nav_state == NAV_STATE_MISSION) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
+		} else if (pos_sp_triplet->nav_state == NAV_STATE_RTL) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
+		} else if (pos_sp_triplet->nav_state == NAV_STATE_LAND) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
 		}
 	}
+	mavlink_custom_mode = custom_mode.data;
 
-	/* add new subscription */
-	MavlinkOrbSubscription *sub_new = new MavlinkOrbSubscription(meta, size);
+	/* set system state */
+	if (status->arming_state == ARMING_STATE_INIT
+			|| status->arming_state == ARMING_STATE_IN_AIR_RESTORE
+			|| status->arming_state == ARMING_STATE_STANDBY_ERROR) {	// TODO review
+		mavlink_state = MAV_STATE_UNINIT;
+	} else if (status->arming_state == ARMING_STATE_ARMED) {
+		mavlink_state = MAV_STATE_ACTIVE;
+	} else if (status->arming_state == ARMING_STATE_ARMED_ERROR) {
+		mavlink_state = MAV_STATE_CRITICAL;
+	} else if (status->arming_state == ARMING_STATE_STANDBY) {
+		mavlink_state = MAV_STATE_STANDBY;
+	} else if (status->arming_state == ARMING_STATE_REBOOT) {
+		mavlink_state = MAV_STATE_POWEROFF;
+	} else {
+		mavlink_state = MAV_STATE_CRITICAL;
+	}
 
-	sub_new->set_interval(interval);
-
-	LL_APPEND(_subscriptions, sub_new);
-
-	return sub_new;
+	/* send heartbeat */
+	mavlink_msg_heartbeat_send(stream->mavlink->get_chan(),
+				   mavlink_system.type,
+				   MAV_AUTOPILOT_PX4,
+				   mavlink_base_mode,
+				   mavlink_custom_mode,
+				   mavlink_state);
 }
 
-void MavlinkOrbListener::add_stream(void (*callback)(const MavlinkStream *), const unsigned int subs_n, const struct orb_metadata **metas, const size_t *sizes, const uintptr_t arg, const unsigned int interval)
+void
+msg_sys_status(const MavlinkStream *stream)
 {
-	MavlinkStream *stream = new MavlinkStream(this, callback, subs_n, metas, sizes, arg, interval);
+	struct vehicle_status_s *status = (struct vehicle_status_s *)stream->subscriptions[0]->data;
 
-	stream->mavlink = _mavlink;
-
-	LL_APPEND(_streams, stream);
+	mavlink_msg_sys_status_send(stream->mavlink->get_chan(),
+				    status->onboard_control_sensors_present,
+				    status->onboard_control_sensors_enabled,
+				    status->onboard_control_sensors_health,
+				    status->load * 1000.0f,
+				    status->battery_voltage * 1000.0f,
+				    status->battery_current * 1000.0f,
+				    status->battery_remaining,
+				    status->drop_rate_comm,
+				    status->errors_comm,
+				    status->errors_count1,
+				    status->errors_count2,
+				    status->errors_count3,
+				    status->errors_count4);
 }
 
 //void
@@ -259,25 +266,6 @@ void MavlinkOrbListener::add_stream(void (*callback)(const MavlinkStream *), con
 //	l->listener->gps_counter++;
 //}
 //
-
-void
-MavlinkOrbListener::msg_heartbeat(const MavlinkStream *stream)
-{
-	/* translate the current syste state to mavlink state and mode */
-	uint8_t mavlink_state = 0;
-	uint8_t mavlink_base_mode = 0;
-	uint32_t mavlink_custom_mode = 0;
-	//l->mavlink->get_mavlink_mode_and_state(&mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
-
-	/* send heartbeat */
-	mavlink_msg_heartbeat_send(stream->mavlink->get_chan(),
-				   mavlink_system.type,
-				   MAV_AUTOPILOT_PX4,
-				   mavlink_base_mode,
-				   mavlink_custom_mode,
-				   mavlink_state);
-}
-
 //
 //void
 //MavlinkOrbListener::l_rc_channels(const struct listener *l)
@@ -623,57 +611,3 @@ MavlinkOrbListener::msg_heartbeat(const MavlinkStream *stream)
 //				   l->listener->nav_cap.turn_distance);
 //
 //}
-
-void *
-MavlinkOrbListener::uorb_receive_thread(void *arg)
-{
-	/* set thread name */
-	char thread_name[18];
-	sprintf(thread_name, "mavlink_uorb_rcv_%d", _mavlink->get_channel());
-	prctl(PR_SET_NAME, thread_name, getpid());
-
-	/* add mavlink streams */
-	/* common buffer for topics and data sizes */
-	const struct orb_metadata *topics[1];
-	size_t sizes[1];
-
-	/* --- HEARTBEAT --- */
-	topics[0] = ORB_ID(vehicle_status);
-	sizes[0] = sizeof(vehicle_status_s);
-	add_stream(msg_heartbeat, 1, topics, sizes, 0, 500);
-
-	while (!_mavlink->_task_should_exit) {
-		/* check all streams each 1ms */
-		hrt_abstime t = hrt_absolute_time();
-		MavlinkStream *stream;
-		LL_FOREACH(_streams, stream) {
-			stream->update(t);
-		}
-		usleep(1000);
-	}
-
-	return NULL;
-}
-
-void * MavlinkOrbListener::uorb_start_helper(void *context)
-{
-	MavlinkOrbListener* urcv = new MavlinkOrbListener(((Mavlink *)context));
-	return urcv->uorb_receive_thread(NULL);
-}
-
-pthread_t
-MavlinkOrbListener::uorb_receive_start(Mavlink* mavlink)
-{
-	/* start the listener loop */
-	pthread_attr_t uorb_attr;
-	pthread_attr_init(&uorb_attr);
-
-	/* Set stack size, needs less than 2k */
-	pthread_attr_setstacksize(&uorb_attr, 2048);
-
-	pthread_t thread;
-	pthread_create(&thread, &uorb_attr, MavlinkOrbListener::uorb_start_helper, (void*)mavlink);
-
-	pthread_attr_destroy(&uorb_attr);
-	return thread;
-}

@@ -8,8 +8,13 @@
 #ifndef MAVLINK_STREAM_H_
 #define MAVLINK_STREAM_H_
 
+#include <drivers/drv_hrt.h>
+
 class Mavlink;
-class MavlinkOrbListener;
+class MavlinkStream;
+
+#include "mavlink_main.h"
+
 class MavlinkOrbSubscription;
 
 class MavlinkStream {
@@ -22,9 +27,8 @@ public:
 	unsigned int interval;
 	MavlinkStream *next;
 	Mavlink		*mavlink;
-	MavlinkOrbListener* listener;
 
-	MavlinkStream(MavlinkOrbListener *listener, void (*callback)(const MavlinkStream *), const unsigned int subs_n, const struct orb_metadata **metas, const size_t *sizes, const uintptr_t arg, const unsigned int interval);
+	MavlinkStream(Mavlink *mavlink, void (*callback)(const MavlinkStream *), const unsigned int subs_n, const struct orb_metadata **topics, const size_t *sizes, const uintptr_t arg, const unsigned int interval);
 	~MavlinkStream();
 	int update(const hrt_abstime t);
 };

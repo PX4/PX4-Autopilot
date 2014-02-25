@@ -16,14 +16,12 @@ public:
 	MavlinkOrbSubscription(const struct orb_metadata *meta, size_t size);
 	~MavlinkOrbSubscription();
 
-	int set_interval(const unsigned int interval);
-	int update(const hrt_abstime t);
+	bool update(const hrt_abstime t);
 
-	const struct orb_metadata *meta;
+	const struct orb_metadata *topic;
 	int fd;
 	void *data;
 	hrt_abstime last_update;
-	unsigned int interval;
 	MavlinkOrbSubscription *next;
 };
 

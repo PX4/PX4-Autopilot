@@ -7,20 +7,20 @@
 
 #include <stdlib.h>
 
-#include "mavlink_orb_listener.h"
+#include "mavlink_stream.h"
+#include "mavlink_main.h"
 
-MavlinkStream::MavlinkStream(MavlinkOrbListener *listener, void (*callback)(const MavlinkStream *), const unsigned int subs_n, const struct orb_metadata **metas, const size_t *sizes, const uintptr_t arg, const unsigned int interval)
+MavlinkStream::MavlinkStream(Mavlink *mavlink, void (*callback)(const MavlinkStream *), const unsigned int subs_n, const struct orb_metadata **topics, const size_t *sizes, const uintptr_t arg, const unsigned int interval)
 {
 	this->callback = callback;
 	this->arg = arg;
 	this->interval = interval * 1000;
 	this->mavlink = mavlink;
-	this->listener = listener;
 	this->subscriptions_n = subs_n;
 	this->subscriptions = (MavlinkOrbSubscription **) malloc(subs_n * sizeof(MavlinkOrbSubscription *));
 
 	for (int i = 0; i < subs_n; i++) {
-		this->subscriptions[i] = listener->add_subscription(metas[i], sizes[i], this, interval);
+		this->subscriptions[i] = mavlink->add_orb_subscription(topics[i], sizes[i]);
 	}
 }
 

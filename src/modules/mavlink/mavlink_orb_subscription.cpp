@@ -13,14 +13,13 @@
 
 #include "mavlink_orb_subscription.h"
 
-MavlinkOrbSubscription::MavlinkOrbSubscription(const struct orb_metadata *meta, size_t size)
+MavlinkOrbSubscription::MavlinkOrbSubscription(const struct orb_metadata *topic, size_t size)
 {
-	this->meta = meta;
+	this->topic = topic;
 	this->data = malloc(size);
 	memset(this->data, 0, size);
-	this->fd = orb_subscribe(meta);
+	this->fd = orb_subscribe(topic);
 	this->last_update = 0;
-	this->interval = 0;
 }
 
 MavlinkOrbSubscription::~MavlinkOrbSubscription()
@@ -29,19 +28,15 @@ MavlinkOrbSubscription::~MavlinkOrbSubscription()
 	free(data);
 }
 
-int MavlinkOrbSubscription::set_interval(const unsigned int interval)
-{
-	this->interval = interval;
-	return orb_set_interval(fd, interval);
-}
-
-int MavlinkOrbSubscription::update(const hrt_abstime t)
+bool MavlinkOrbSubscription::update(const hrt_abstime t)
 {
 	if (last_update != t) {
 		bool updated;
 		orb_check(fd, &updated);
-		if (updated)
-			return orb_copy(meta, fd, data);
+		if (updated) {
+			orb_copy(topic, fd, data);
+			return true;
+		}
 	}
-	return OK;
+	return false;
 }
