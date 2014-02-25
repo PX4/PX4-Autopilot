@@ -14,7 +14,7 @@ namespace uavcan
  * Initial value: 0x0000
  * Coefficient: 0x1021
  */
-class Crc16
+class TransportCRC
 {
     static const uint16_t Table[256];
     uint16_t value_;
@@ -22,11 +22,11 @@ class Crc16
 public:
     enum { NumBytes = 2 };
 
-    Crc16()
+    TransportCRC()
     : value_(0x0000)
     { }
 
-    Crc16(const uint8_t* bytes, unsigned int len)
+    TransportCRC(const uint8_t* bytes, unsigned int len)
     : value_(0x0000)
     {
         add(bytes, len);

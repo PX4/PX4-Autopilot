@@ -165,7 +165,7 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
     std::vector<uint8_t> raw_payload;
     if (need_crc)
     {
-        uavcan::Crc16 payload_crc(transfer.data_type.hash.value, uavcan::DataTypeHash::NumBytes);
+        uavcan::TransportCRC payload_crc(transfer.data_type.hash.value, uavcan::DataTypeHash::NumBytes);
         payload_crc.add(reinterpret_cast<const uint8_t*>(transfer.payload.c_str()), transfer.payload.length());
         // Little endian
         raw_payload.push_back(payload_crc.get() & 0xFF);

@@ -56,7 +56,7 @@ bool TransferReceiver::validate(const RxFrame& frame) const
     if (iface_index_ != frame.getIfaceIndex())
         return false;
 
-    if (frame.isFirst() && !frame.isLast() && (frame.getPayloadLen() < Crc16::NumBytes))
+    if (frame.isFirst() && !frame.isLast() && (frame.getPayloadLen() < TransportCRC::NumBytes))
     {
         UAVCAN_TRACE("TransferReceiver", "CRC expected, %s", frame.toString().c_str());
         return false;
@@ -90,13 +90,13 @@ bool TransferReceiver::writePayload(const RxFrame& frame, ITransferBuffer& buf)
 
     if (frame.isFirst())                  // First frame contains CRC, we need to extract it now
     {
-        if (frame.getPayloadLen() < Crc16::NumBytes) // Must have been validated earlier though. I think I'm paranoid.
+        if (frame.getPayloadLen() < TransportCRC::NumBytes) // Must have been validated earlier though. I think I'm paranoid.
             return false;
 
         this_transfer_crc_ = (payload[0] & 0xFF) | (uint16_t(payload[1] & 0xFF) << 8); // Little endian.
 
-        const int effective_payload_len = payload_len - Crc16::NumBytes;
-        const int res = buf.write(buffer_write_pos_, payload + Crc16::NumBytes, effective_payload_len);
+        const int effective_payload_len = payload_len - TransportCRC::NumBytes;
+        const int res = buf.write(buffer_write_pos_, payload + TransportCRC::NumBytes, effective_payload_len);
         const bool success = res == effective_payload_len;
         if (success)
             buffer_write_pos_ += effective_payload_len;

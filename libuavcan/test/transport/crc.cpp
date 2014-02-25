@@ -7,9 +7,9 @@
 #include <uavcan/internal/transport/crc.hpp>
 
 
-TEST(Crc16, Correctness)
+TEST(TransportCRC, Correctness)
 {
-    uavcan::Crc16 crc;
+    uavcan::TransportCRC crc;
 
     ASSERT_EQ(0x0000, crc.get());
 
@@ -22,5 +22,5 @@ TEST(Crc16, Correctness)
     ASSERT_EQ(53881, crc.get());
 
     // Initializing constructor
-    ASSERT_EQ(crc.get(), uavcan::Crc16(reinterpret_cast<const uint8_t*>("123Foobar"), 9).get());
+    ASSERT_EQ(crc.get(), uavcan::TransportCRC(reinterpret_cast<const uint8_t*>("123Foobar"), 9).get());
 }

@@ -9,7 +9,7 @@ namespace uavcan
 {
 
 // print ', '.join(map(lambda x: '%04x' % x, map(lambda x: int(x, 0), c.crc_ccitt_tab)))
-const uint16_t Crc16::Table[256] =
+const uint16_t TransportCRC::Table[256] =
 {
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
     0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef,
@@ -45,13 +45,13 @@ const uint16_t Crc16::Table[256] =
     0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0
 };
 
-uint16_t Crc16::add(uint8_t byte)
+uint16_t TransportCRC::add(uint8_t byte)
 {
     value_ = (value_ << 8) ^ Table[((value_ >> 8) ^ byte) & 0xFF];
     return value_;
 }
 
-uint16_t Crc16::add(const uint8_t* bytes, unsigned int len)
+uint16_t TransportCRC::add(const uint8_t* bytes, unsigned int len)
 {
     assert(bytes);
     while (len--)
