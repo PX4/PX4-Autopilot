@@ -1526,62 +1526,6 @@ Mavlink::task_main(int argc, char *argv[])
 	/* initialize waypoint manager */
 	mavlink_wpm_init(wpm);
 
-	/* all subscriptions are now active, set up initial guess about rate limits */
-//	if (_baudrate >= 230400) {
-//		/* 200 Hz / 5 ms */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_HIGHRES_IMU, 20);
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_RAW_IMU, 20);
-//		/* 50 Hz / 20 ms */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 30);
-//		/* 20 Hz / 50 ms */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 10);
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 50);
-//		/* 10 Hz */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_GPS_RAW_INT, 100);
-//		/* 10 Hz */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_MANUAL_CONTROL, 100);
-//
-//	} else if (_baudrate >= 115200) {
-//		/* 20 Hz / 50 ms */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_HIGHRES_IMU, 50);
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_RAW_IMU, 50);
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 50);
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 50);
-//		/* 5 Hz / 200 ms */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 200);
-//		/* 5 Hz / 200 ms */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_GPS_RAW_INT, 200);
-//		/* 2 Hz */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_MANUAL_CONTROL, 500);
-//
-//	} else if (_baudrate >= 57600) {
-//		/* 10 Hz / 100 ms */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_RAW_IMU, 300);
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_HIGHRES_IMU, 300);
-//		/* 10 Hz / 100 ms ATTITUDE */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 200);
-//		/* 5 Hz / 200 ms */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 200);
-//		/* 5 Hz / 200 ms */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 500);
-//		/* 2 Hz */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_MANUAL_CONTROL, 500);
-//		/* 2 Hz */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_GPS_RAW_INT, 500);
-//
-//	} else {
-//		/* very low baud rate, limit to 1 Hz / 1000 ms */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_RAW_IMU, 1000);
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 1000);
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_HIGHRES_IMU, 1000);
-//		/* 1 Hz / 1000 ms */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 1000);
-//		/* 0.5 Hz */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 2000);
-//		/* 0.1 Hz */
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_MANUAL_CONTROL, 10000);
-//	}
-
 	int mission_result_sub = orb_subscribe(ORB_ID(mission_result));
 	struct mission_result_s mission_result;
 	memset(&mission_result, 0, sizeof(mission_result));
@@ -1595,8 +1539,22 @@ Mavlink::task_main(int argc, char *argv[])
 
 	struct vehicle_status_s *status = (struct vehicle_status_s *) status_sub->data;
 
+
+	/* add default streams, intervals depend on baud rate */
+//	if (_baudrate >= 230400) {
+//	} else if (_baudrate >= 115200) {
+//	} else if (_baudrate >= 57600) {
+//	}
+
 	add_stream("HEARTBEAT", 1000);
-	add_stream("SYS_STATUS", 100);
+	add_stream("SYS_STATUS", 1000);
+	add_stream("HIGHRES_IMU", 300);
+	add_stream("RAW_IMU", 300);
+	add_stream("ATTITUDE", 200);
+	add_stream("NAMED_VALUE_FLOAT", 200);
+	add_stream("SERVO_OUTPUT_RAW", 500);
+	add_stream("GPS_RAW_INT", 500);
+	add_stream("MANUAL_CONTROL", 500);
 
 	while (!_task_should_exit) {
 		/* main loop */

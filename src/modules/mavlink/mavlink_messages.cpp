@@ -135,6 +135,23 @@ msg_sys_status(const MavlinkStream *stream)
 				    status->errors_count4);
 }
 
+void
+msg_highres_imu(const MavlinkStream *stream)
+{
+	struct sensor_combined_s *sensor = (struct sensor_combined_s *)stream->subscriptions[0]->data;
+
+	uint16_t fields_updated = 0;
+
+	if (stream->mavlink->get_mode() == Mavlink::MODE_OFFBOARD)
+		mavlink_msg_highres_imu_send(stream->mavlink->get_chan(), sensor->timestamp,
+					     sensor->accelerometer_m_s2[0], sensor->accelerometer_m_s2[1], sensor->accelerometer_m_s2[2],
+					     sensor->gyro_rad_s[0], sensor->gyro_rad_s[1], sensor->gyro_rad_s[2],
+					     sensor->magnetometer_ga[0], sensor->magnetometer_ga[1], sensor->magnetometer_ga[2],
+					     sensor->baro_pres_mbar, sensor->differential_pressure_pa,
+					     sensor->baro_alt_meter, sensor->baro_temp_celcius,
+					     fields_updated);
+}
+
 //void
 //MavlinkOrbListener::l_sensor_combined(const struct listener *l)
 //{

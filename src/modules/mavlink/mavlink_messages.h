@@ -23,6 +23,6 @@ extern struct msgs_list_s msgs_list[];
 
 static void msg_heartbeat(const MavlinkStream *stream);
 static void msg_sys_status(const MavlinkStream *stream);
-
+static void msg_highres_imu(const MavlinkStream *stream);
 
 #endif /* MAVLINK_MESSAGES_H_ */
