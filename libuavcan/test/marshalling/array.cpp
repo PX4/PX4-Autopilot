@@ -5,6 +5,15 @@
 #include <gtest/gtest.h>
 #include <uavcan/internal/marshalling/types.hpp>
 
+using uavcan::Array;
+using uavcan::ArrayModeDynamic;
+using uavcan::ArrayModeStatic;
+using uavcan::IntegerSpec;
+using uavcan::FloatSpec;
+using uavcan::SignednessSigned;
+using uavcan::SignednessUnsigned;
+using uavcan::CastModeSaturate;
+using uavcan::CastModeTruncate;
 
 struct CustomType
 {
@@ -81,16 +90,6 @@ TEST(Array, IntegerBitLen)
 
 TEST(Array, Basic)
 {
-    using uavcan::Array;
-    using uavcan::ArrayModeDynamic;
-    using uavcan::ArrayModeStatic;
-    using uavcan::IntegerSpec;
-    using uavcan::FloatSpec;
-    using uavcan::SignednessSigned;
-    using uavcan::SignednessUnsigned;
-    using uavcan::CastModeSaturate;
-    using uavcan::CastModeTruncate;
-
     typedef Array<IntegerSpec<8, SignednessSigned, CastModeTruncate>, ArrayModeStatic, 4> A1;
     typedef Array<FloatSpec<16, CastModeSaturate>, ArrayModeStatic, 2> A2;
     typedef Array<CustomType, ArrayModeStatic, 2> A3;
@@ -240,16 +239,6 @@ TEST(Array, Basic)
 
 TEST(Array, Dynamic)
 {
-    using uavcan::Array;
-    using uavcan::ArrayModeDynamic;
-    using uavcan::ArrayModeStatic;
-    using uavcan::IntegerSpec;
-    using uavcan::FloatSpec;
-    using uavcan::SignednessSigned;
-    using uavcan::SignednessUnsigned;
-    using uavcan::CastModeSaturate;
-    using uavcan::CastModeTruncate;
-
     typedef Array<IntegerSpec<1, SignednessUnsigned, CastModeSaturate>, ArrayModeDynamic, 5> A;
     typedef Array<IntegerSpec<8, SignednessSigned, CastModeSaturate>, ArrayModeDynamic, 255> B;
 
@@ -432,16 +421,6 @@ static std::string runEncodeDecode(const typename uavcan::StorageType<T>::Type& 
 
 TEST(Array, TailArrayOptimization)
 {
-    using uavcan::Array;
-    using uavcan::ArrayModeDynamic;
-    using uavcan::ArrayModeStatic;
-    using uavcan::IntegerSpec;
-    using uavcan::FloatSpec;
-    using uavcan::SignednessSigned;
-    using uavcan::SignednessUnsigned;
-    using uavcan::CastModeSaturate;
-    using uavcan::CastModeTruncate;
-
     typedef Array<IntegerSpec<1, SignednessUnsigned, CastModeSaturate>, ArrayModeDynamic, 5>   OneBitArray;
     typedef Array<IntegerSpec<8, SignednessUnsigned, CastModeSaturate>, ArrayModeDynamic, 255> EightBitArray;
     typedef CustomType2<Array<OneBitArray,   ArrayModeDynamic, 255> > A;
@@ -512,16 +491,6 @@ TEST(Array, TailArrayOptimization)
 
 TEST(Array, TailArrayOptimizationErrors)
 {
-    using uavcan::Array;
-    using uavcan::ArrayModeDynamic;
-    using uavcan::ArrayModeStatic;
-    using uavcan::IntegerSpec;
-    using uavcan::FloatSpec;
-    using uavcan::SignednessSigned;
-    using uavcan::SignednessUnsigned;
-    using uavcan::CastModeSaturate;
-    using uavcan::CastModeTruncate;
-
     typedef Array<IntegerSpec<8, SignednessUnsigned, CastModeSaturate>, ArrayModeDynamic, 5> A;
 
     A a;
@@ -580,5 +549,75 @@ TEST(Array, TailArrayOptimizationErrors)
         ASSERT_EQ(15,  a2[2]);
         ASSERT_EQ(192, a2[3]);
         ASSERT_EQ(32,  a2[4]);
+    }
+}
+
+
+TEST(Array, DynamicEncodeDecodeErrors)
+{
+    typedef CustomType2<Array<Array<IntegerSpec<8, SignednessUnsigned, CastModeSaturate>,
+                              ArrayModeDynamic, 255>,
+                        ArrayModeDynamic, 255> > A;
+    A a;
+    a.b.resize(2);
+    a.b[0].push_back(55);
+    a.b[0].push_back(66);
+    {
+        uavcan::StaticTransferBuffer<4> buf;
+        uavcan::BitStream bs_wr(buf);
+        uavcan::ScalarCodec sc_wr(bs_wr);
+        ASSERT_EQ(0, A::encode(a, sc_wr, uavcan::TailArrayOptEnabled));  // Not enough buffer space
+
+        uavcan::BitStream bs_rd(buf);
+        uavcan::ScalarCodec sc_rd(bs_rd);
+        ASSERT_EQ(0, A::decode(a, sc_rd, uavcan::TailArrayOptEnabled));
+    }
+    {
+        uavcan::StaticTransferBuffer<4> buf;
+        uavcan::BitStream bs_wr(buf);
+        uavcan::ScalarCodec sc_wr(bs_wr);
+        ASSERT_EQ(0, A::encode(a, sc_wr, uavcan::TailArrayOptDisabled));  // Not enough buffer space
+
+        uavcan::BitStream bs_rd(buf);
+        uavcan::ScalarCodec sc_rd(bs_rd);
+        ASSERT_EQ(0, A::decode(a, sc_rd, uavcan::TailArrayOptDisabled));
+    }
+}
+
+
+TEST(Array, StaticEncodeDecodeErrors)
+{
+    typedef CustomType2<Array<Array<IntegerSpec<8, SignednessUnsigned, CastModeSaturate>,
+                              ArrayModeStatic, 2>,
+                        ArrayModeStatic, 2> > A;
+    A a;
+    a.a = 1.0;
+    a.b[0][0] = 0x11;
+    a.b[0][1] = 0x22;
+    a.b[1][0] = 0x33;
+    a.b[1][1] = 0x44;
+    {   // Just enough buffer space - 6 bytes
+        uavcan::StaticTransferBuffer<6> buf;
+        uavcan::BitStream bs_wr(buf);
+        uavcan::ScalarCodec sc_wr(bs_wr);
+        ASSERT_EQ(1, A::encode(a, sc_wr, uavcan::TailArrayOptDisabled));
+
+        ASSERT_EQ("00000000 00111100 00010001 00100010 00110011 01000100", bs_wr.toString());
+
+        uavcan::BitStream bs_rd(buf);
+        uavcan::ScalarCodec sc_rd(bs_rd);
+        ASSERT_EQ(1, A::decode(a, sc_rd, uavcan::TailArrayOptEnabled));
+    }
+    {   // Not enough space
+        uavcan::StaticTransferBuffer<5> buf;
+        uavcan::BitStream bs_wr(buf);
+        uavcan::ScalarCodec sc_wr(bs_wr);
+        ASSERT_EQ(0, A::encode(a, sc_wr, uavcan::TailArrayOptDisabled));
+
+        ASSERT_EQ("00000000 00111100 00010001 00100010 00110011", bs_wr.toString());
+
+        uavcan::BitStream bs_rd(buf);
+        uavcan::ScalarCodec sc_rd(bs_rd);
+        ASSERT_EQ(0, A::decode(a, sc_rd, uavcan::TailArrayOptEnabled));
     }
 }
