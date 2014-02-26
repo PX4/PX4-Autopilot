@@ -558,7 +558,7 @@ JetdriveControl::task_main()
 			arming_status_poll();
 			vehicle_manual_poll();
 
-			if(_v_control_mode.flag_external_manual_override_ok)
+			if(!_v_control_mode.flag_control_offboard_enabled)
 			{
 				/* manual/direct control */
 				_actuators.control[0] = _manual_control_sp .roll;

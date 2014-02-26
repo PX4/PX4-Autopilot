@@ -1728,7 +1728,6 @@ set_control_mode()
 				control_mode.flag_control_climb_rate_enabled = false;
 				control_mode.flag_control_position_enabled = false;
 				control_mode.flag_control_velocity_enabled = false;
-				control_mode.flag_external_manual_override_ok = false;
 				break;
 			case OFFBOARD_CONTROL_MODE_DIRECT_RATES:
 				control_mode.flag_control_rates_enabled = true;
@@ -1737,7 +1736,6 @@ set_control_mode()
 				control_mode.flag_control_climb_rate_enabled = false;
 				control_mode.flag_control_position_enabled = false;
 				control_mode.flag_control_velocity_enabled = false;
-				control_mode.flag_external_manual_override_ok = false;
 				break;
 			default:
 				control_mode.flag_control_rates_enabled = false;

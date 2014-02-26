@@ -358,7 +358,7 @@ handle_message(mavlink_message_t *msg)
 
 					} else {
 						/* publish */
-						orb_publish(ORB_ID(vehicle_rates_setpoint), &rates_sp);
+						orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
 					}
 					break;
 				case OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE:
