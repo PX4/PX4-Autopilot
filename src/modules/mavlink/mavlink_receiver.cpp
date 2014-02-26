@@ -98,6 +98,7 @@ static struct vehicle_vicon_position_s vicon_position;
 static struct vehicle_command_s vcmd;
 static struct offboard_control_setpoint_s offboard_control_sp;
 static struct vehicle_attitude_setpoint_s att_sp;
+static struct vehicle_control_mode_s _v_control_mode;
 
 struct vehicle_global_position_s hil_global_pos;
 struct vehicle_local_position_s hil_local_pos;
@@ -116,6 +117,8 @@ static orb_advert_t pub_hil_mag = -1;
 static orb_advert_t pub_hil_baro = -1;
 static orb_advert_t pub_hil_airspeed = -1;
 static orb_advert_t pub_hil_battery = -1;
+
+static int _v_control_mode_sub = -1;
 
 /* packet counter */
 static int hil_counter = 0;
@@ -330,14 +333,14 @@ handle_message(mavlink_message_t *msg)
 				orb_publish(ORB_ID(offboard_control_setpoint), offboard_control_sp_pub, &offboard_control_sp);
 			}
 
-			static struct vehicle_control_mode_s _v_control_mode;
-			memset(&_v_control_mode, 0, sizeof(_v_control_mode));
-
-			/**< vehicle control mode subscription */
-			static int _v_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-
-			// TODO use vehicle_control_mode.flag_control_offboard_enabled			
-			if (v_status.main_state == MAIN_STATE_OFFBOARD) {
+			// TODO use vehicle_control_mode.flag_control_offboard_enabled
+			bool updated;
+			orb_check(_v_control_mode_sub, &updated);
+			if (updated) {
+				orb_copy(ORB_ID(vehicle_control_mode), _v_control_mode_sub, &_v_control_mode);
+			}
+			if(_v_control_mode.flag_control_offboard_enabled) {
+//			if (v_status.main_state == MAIN_STATE_OFFBOARD) {
 				/* in offboard mode also publish setpoint directly */
 				switch (offboard_control_sp.mode) {
 				case OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE:
@@ -862,6 +865,10 @@ receive_thread(void *arg)
 	fds[0].events = POLLIN;
 
 	ssize_t nread = 0;
+
+	// vehicle control mode subscription
+	memset(&_v_control_mode, 0, sizeof(_v_control_mode));
+	_v_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 
 	while (!thread_should_exit) {
 		if (poll(fds, 1, timeout) > 0) {
