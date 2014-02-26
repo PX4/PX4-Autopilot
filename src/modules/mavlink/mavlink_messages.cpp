@@ -38,7 +38,7 @@ protected:
 		status = (struct vehicle_status_s *)status_sub->get_data();
 
 		pos_sp_triplet_sub = mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet), sizeof(position_setpoint_triplet_s));
-		pos_sp_triplet = (struct position_setpoint_triplet_s *)status_sub->get_data();
+		pos_sp_triplet = (struct position_setpoint_triplet_s *)pos_sp_triplet_sub->get_data();
 	}
 
 	void send(const hrt_abstime t) {
@@ -62,6 +62,7 @@ protected:
 
 		/* main state */
 		mavlink_base_mode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
+
 		union px4_custom_mode custom_mode;
 		custom_mode.data = 0;
 		if (pos_sp_triplet->nav_state == NAV_STATE_NONE) {
@@ -96,7 +97,6 @@ protected:
 				custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
 			}
 		}
-		mavlink_custom_mode = custom_mode.data;
 
 		/* set system state */
 		if (status->arming_state == ARMING_STATE_INIT
@@ -119,7 +119,7 @@ protected:
 					   mavlink_system.type,
 					   MAV_AUTOPILOT_PX4,
 					   mavlink_base_mode,
-					   mavlink_custom_mode,
+					   custom_mode.data,
 					   mavlink_state);
 
 	}
