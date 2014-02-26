@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,12 +32,15 @@
  ****************************************************************************/
 
 /**
- * @file orb_topics.h
- * Common sets of topics subscribed to or published by the MAVLink driver,
- * and structures maintained by those subscriptions.
+ * @file mavlink_orb_listener.h
+ * MAVLink 1.0 uORB listener definition
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
+
 #pragma once
 
+#include <systemlib/perf_counter.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/rc_channels.h>
@@ -55,7 +57,6 @@
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls_effective.h>
@@ -66,59 +67,79 @@
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
-#include <drivers/drv_rc_input.h>
-#include <uORB/topics/navigation_capabilities.h>
 
-struct mavlink_subscriptions {
-	int sensor_sub;
-	int att_sub;
-	int global_pos_sub;
-	int act_0_sub;
-	int act_1_sub;
-	int act_2_sub;
-	int act_3_sub;
-	int gps_sub;
-	int man_control_sp_sub;
-	int safety_sub;
-	int actuators_sub;
-	int armed_sub;
-	int actuators_effective_sub;
-	int local_pos_sub;
-	int spa_sub;
-	int spl_sub;
-	int triplet_sub;
-	int debug_key_value;
-	int input_rc_sub;
-	int optical_flow;
-	int rates_setpoint_sub;
-	int home_sub;
-	int airspeed_sub;
-	int navigation_capabilities_sub;
-	int position_setpoint_triplet_sub;
+class Mavlink;
+
+class MavlinkReceiver
+{
+public:
+	/**
+	 * Constructor
+	 */
+	MavlinkReceiver(Mavlink *parent);
+
+	/**
+	 * Destructor, also kills the mavlinks task.
+	 */
+	~MavlinkReceiver();
+
+	/**
+	* Start the mavlink task.
+	 *
+	 * @return		OK on success.
+	 */
+	int		start();
+
+	/**
+	 * Display the mavlink status.
+	 */
+	void		print_status();
+
+	static pthread_t receive_start(Mavlink *parent);
+
+	static void * start_helper(void *context);
+
+private:
+
+	perf_counter_t	_loop_perf;			/**< loop performance counter */
+
+	Mavlink*	_mavlink;
+
+	void handle_message(mavlink_message_t *msg);
+	void *receive_thread(void *arg);
+
+	mavlink_status_t status;
+	struct vehicle_vicon_position_s vicon_position;
+	struct vehicle_command_s vcmd;
+	struct offboard_control_setpoint_s offboard_control_sp;
+	struct vehicle_global_position_s hil_global_pos;
+	struct vehicle_local_position_s hil_local_pos;
+	struct vehicle_attitude_s hil_attitude;
+	struct vehicle_gps_position_s hil_gps;
+	struct sensor_combined_s hil_sensors;
+	struct battery_status_s	hil_battery_status;
+	struct position_setpoint_triplet_s pos_sp_triplet;
+	orb_advert_t pub_hil_global_pos;
+	orb_advert_t pub_hil_local_pos;
+	orb_advert_t pub_hil_attitude;
+	orb_advert_t pub_hil_gps;
+	orb_advert_t pub_hil_sensors;
+	orb_advert_t pub_hil_gyro;
+	orb_advert_t pub_hil_accel;
+	orb_advert_t pub_hil_mag;
+	orb_advert_t pub_hil_baro;
+	orb_advert_t pub_hil_airspeed;
+	orb_advert_t pub_hil_battery;
+	int hil_counter;
+	int hil_frames;
+	uint64_t old_timestamp;
+	orb_advert_t cmd_pub;
+	orb_advert_t flow_pub;
+	orb_advert_t offboard_control_sp_pub;
+	orb_advert_t vicon_position_pub;
+	orb_advert_t telemetry_status_pub;
+	int32_t lat0;
+	int32_t lon0;
+	float alt0;
+
 };
-
-extern struct mavlink_subscriptions mavlink_subs;
-
-/** Global position */
-extern struct vehicle_global_position_s global_pos;
-
-/** Local position */
-extern struct vehicle_local_position_s local_pos;
-
-/** navigation capabilities */
-extern struct navigation_capabilities_s nav_cap;
-
-/** Vehicle status */
-extern struct vehicle_status_s v_status;
-
-/** Position setpoint triplet */
-extern struct position_setpoint_triplet_s pos_sp_triplet;
-
-/** RC channels */
-extern struct rc_channels_s rc;
-
-/** Actuator armed state */
-extern struct actuator_armed_s armed;
-
-/** Worker thread starter */
-extern pthread_t uorb_receive_start(void);
