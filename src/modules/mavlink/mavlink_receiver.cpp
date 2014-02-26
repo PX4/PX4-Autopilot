@@ -98,6 +98,7 @@ static struct vehicle_vicon_position_s vicon_position;
 static struct vehicle_command_s vcmd;
 static struct offboard_control_setpoint_s offboard_control_sp;
 static struct vehicle_attitude_setpoint_s att_sp;
+static struct vehicle_rates_setpoint_s rates_sp;
 static struct vehicle_control_mode_s _v_control_mode;
 
 struct vehicle_global_position_s hil_global_pos;
@@ -130,6 +131,7 @@ static orb_advert_t flow_pub = -1;
 
 static orb_advert_t offboard_control_sp_pub = -1;
 static orb_advert_t att_sp_pub = -1;
+static orb_advert_t rates_sp_pub = -1;
 static orb_advert_t vicon_position_pub = -1;
 static orb_advert_t telemetry_status_pub = -1;
 
@@ -343,6 +345,22 @@ handle_message(mavlink_message_t *msg)
 //			if (v_status.main_state == MAIN_STATE_OFFBOARD) {
 				/* in offboard mode also publish setpoint directly */
 				switch (offboard_control_sp.mode) {
+				case OFFBOARD_CONTROL_MODE_DIRECT_RATES:
+					rates_sp.timestamp = hrt_absolute_time();
+					rates_sp.roll = offboard_control_sp.p1;
+					rates_sp.pitch = offboard_control_sp.p2;
+					rates_sp.yaw = offboard_control_sp.p3;
+					rates_sp.thrust = offboard_control_sp.p4;
+
+					/* check if topic has to be advertised */
+					if(rates_sp_pub <= 0) {
+						rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &rates_sp);
+
+					} else {
+						/* publish */
+						orb_publish(ORB_ID(vehicle_rates_setpoint), &rates_sp);
+					}
+					break;
 				case OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE:
 					att_sp.timestamp = hrt_absolute_time();
 					att_sp.roll_body = offboard_control_sp.p1;
