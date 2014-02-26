@@ -19,3 +19,19 @@ TEST(DataTypeSignatureCRC, Correctness)
 
     ASSERT_EQ(0x62EC59E3F1A4F00A, crc.get());
 }
+
+
+TEST(DataTypeSignatureCRC, Extension)
+{
+    uavcan::DataTypeSignatureCRC crc1;
+
+    crc1.add('1');
+    crc1.add('2');
+    crc1.add('3');
+
+    uavcan::DataTypeSignatureCRC crc2 = uavcan::DataTypeSignatureCRC::extend(crc1.get());
+
+    crc2.add(reinterpret_cast<const uint8_t*>("456789"), 6);
+
+    ASSERT_EQ(0x62EC59E3F1A4F00A, crc2.get());
+}

@@ -32,6 +32,13 @@ class DataTypeSignatureCRC
     uint64_t crc_;
 
 public:
+    static DataTypeSignatureCRC extend(uint64_t crc)
+    {
+        DataTypeSignatureCRC ret;
+        ret.crc_ = crc ^ 0xFFFFFFFFFFFFFFFF;
+        return ret;
+    }
+
     DataTypeSignatureCRC() : crc_(0xFFFFFFFFFFFFFFFF) { }
 
     void add(uint8_t byte)
