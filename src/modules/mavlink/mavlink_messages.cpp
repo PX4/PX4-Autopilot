@@ -430,6 +430,42 @@ protected:
 };
 
 
+class MavlinkStreamGPSGlobalOrigin : public MavlinkStream {
+public:
+	const char *get_name()
+	{
+		return "GPS_GLOBAL_ORIGIN";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamGPSGlobalOrigin();
+	}
+
+private:
+	MavlinkOrbSubscription *home_sub;
+
+	struct home_position_s *home;
+
+protected:
+
+	void subscribe(Mavlink *mavlink)
+	{
+		home_sub = mavlink->add_orb_subscription(ORB_ID(home_position), sizeof(struct home_position_s));
+		home = (struct home_position_s *)home_sub->get_data();
+	}
+
+	void send(const hrt_abstime t) {
+		home_sub->update(t);
+
+		mavlink_msg_gps_global_origin_send(_channel,
+				(int32_t)(home->lat * 1e7),
+				(int32_t)(home->lon * 1e7),
+				(int32_t)(home->alt) * 1000.0f);
+	}
+};
+
+
 MavlinkStream *streams_list[] = {
 		new MavlinkStreamHeartbeat(),
 		new MavlinkStreamSysStatus(),
@@ -438,6 +474,7 @@ MavlinkStream *streams_list[] = {
 		new MavlinkStreamGPSRawInt(),
 		new MavlinkStreamGlobalPositionInt(),
 		new MavlinkStreamLocalPositionNED(),
+		new MavlinkStreamGPSGlobalOrigin(),
 		nullptr
 };
 
@@ -515,14 +552,6 @@ MavlinkStream *streams_list[] = {
 //	l->listener->gps_counter++;
 //}
 //
-//
-//void
-//MavlinkOrbListener::l_rc_channels(const struct listener *l)
-//{
-//	/* copy rc channels into local buffer */
-//	orb_copy(ORB_ID(rc_channels), l->mavlink->get_subs()->rc_sub, &l->listener->rc);
-//	// XXX Add RC channels scaled message here
-//}
 //
 //void
 //MavlinkOrbListener::l_input_rc(const struct listener *l)
@@ -798,14 +827,6 @@ MavlinkStream *streams_list[] = {
 //
 //	mavlink_msg_optical_flow_send(l->mavlink->get_chan(), flow.timestamp, flow.sensor_id, flow.flow_raw_x, flow.flow_raw_y,
 //				      flow.flow_comp_x_m, flow.flow_comp_y_m, flow.quality, flow.ground_distance_m);
-//}
-//
-//void
-//MavlinkOrbListener::l_home(const struct listener *l)
-//{
-//	orb_copy(ORB_ID(home_position), l->mavlink->get_subs()->home_sub, &l->listener->home);
-//
-//	mavlink_msg_gps_global_origin_send(l->mavlink->get_chan(), (int32_t)(l->listener->home.lat*1e7d), (int32_t)(l->listener->home.lon*1e7d), (int32_t)(l->listener->home.alt)*1e3f);
 //}
 //
 //void

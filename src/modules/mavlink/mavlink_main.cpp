@@ -1531,18 +1531,19 @@ Mavlink::task_main(int argc, char *argv[])
 	mavlink_log_info(_mavlink_fd, "[mavlink] started");
 
 	/* add default streams, intervals depend on baud rate */
-//	if (_baudrate >= 230400) {
-//	} else if (_baudrate >= 115200) {
-//	} else if (_baudrate >= 57600) {
-//	}
+	float rate_mult = _baudrate / 57600.0f;
+	if (rate_mult > 4.0f) {
+		rate_mult = 4.0f;
+	}
 
 	add_stream("HEARTBEAT", 1.0f);
-	add_stream("SYS_STATUS", 1.0f);
-	add_stream("HIGHRES_IMU", 1.0f);
-	add_stream("ATTITUDE", 10.0f);
-	add_stream("GPS_RAW_INT", 1.0f);
-	add_stream("GLOBAL_POSITION_INT", 5.0f);
-	add_stream("LOCAL_POSITION_NED", 5.0f);
+	add_stream("SYS_STATUS", 1.0f * rate_mult);
+	add_stream("GPS_GLOBAL_ORIGIN", 0.5f * rate_mult);
+	add_stream("HIGHRES_IMU", 1.0f * rate_mult);
+	add_stream("ATTITUDE", 10.0f * rate_mult);
+	add_stream("GPS_RAW_INT", 1.0f * rate_mult);
+	add_stream("GLOBAL_POSITION_INT", 5.0f * rate_mult);
+	add_stream("LOCAL_POSITION_NED", 5.0f * rate_mult);
 
 	while (!_task_should_exit) {
 		/* main loop */
