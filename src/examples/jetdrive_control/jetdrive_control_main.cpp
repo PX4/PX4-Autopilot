@@ -596,8 +596,9 @@ JetdriveControl::task_main()
 				} else {
 					/* attitude controller disabled */
 					// TODO poll 'attitude_rates_setpoint' topic
-					_rates_sp.zero();
-					_thrust_sp = 0.0f;
+					vehicle_rates_setpoint_poll();
+//					_rates_sp.zero();
+//					_thrust_sp = 0.0f;
 				}
 
 				if (_v_control_mode.flag_control_rates_enabled) {
