@@ -2,25 +2,34 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <algorithm>
 #include <gtest/gtest.h>
 #include <uavcan/internal/transport/crc.hpp>
 
+/*
+ import crcmod
+ crc = crcmod.predefined.Crc('crc-ccitt-false')
+ crc.update('123')
+ crc.hexdigest()
+'5BCE'
+ crc.update('456789')
+ crc.hexdigest()
+'29B1'
+ */
 
 TEST(TransportCRC, Correctness)
 {
     uavcan::TransportCRC crc;
 
-    ASSERT_EQ(0x0000, crc.get());
+    ASSERT_EQ(0xFFFF, crc.get());
 
     crc.add('1');
     crc.add('2');
     crc.add('3');
-    ASSERT_EQ(38738, crc.get());
+    ASSERT_EQ(0x5BCE, crc.get());
 
-    crc.add(reinterpret_cast<const uint8_t*>("Foobar"), 6);
-    ASSERT_EQ(53881, crc.get());
+    crc.add(reinterpret_cast<const uint8_t*>("456789"), 6);
+    ASSERT_EQ(0x29B1, crc.get());
 
     // Initializing constructor
-    ASSERT_EQ(crc.get(), uavcan::TransportCRC(reinterpret_cast<const uint8_t*>("123Foobar"), 9).get());
+    ASSERT_EQ(crc.get(), uavcan::TransportCRC(reinterpret_cast<const uint8_t*>("123456789"), 9).get());
 }

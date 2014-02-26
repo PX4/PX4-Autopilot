@@ -45,18 +45,4 @@ const uint16_t TransportCRC::Table[256] =
     0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0
 };
 
-uint16_t TransportCRC::add(uint8_t byte)
-{
-    value_ = (value_ << 8) ^ Table[((value_ >> 8) ^ byte) & 0xFF];
-    return value_;
-}
-
-uint16_t TransportCRC::add(const uint8_t* bytes, unsigned int len)
-{
-    assert(bytes);
-    while (len--)
-        add(*bytes++);
-    return value_;
-}
-
 }

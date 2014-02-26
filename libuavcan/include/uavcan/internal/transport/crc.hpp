@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cassert>
 #include <stdint.h>
 
 namespace uavcan
@@ -11,8 +12,16 @@ namespace uavcan
 
 /**
  * CRC-16-CCITT
- * Initial value: 0x0000
- * Coefficient: 0x1021
+ * Initial value: 0xFFFF
+ * Poly: 0x1021
+ * Reverse: no
+ * Output xor: 0
+ *
+ * import crcmod
+ * crc = crcmod.predefined.Crc('crc-ccitt-false')
+ * crc.update('123456789')
+ * crc.hexdigest()
+ * '29B1'
  */
 class TransportCRC
 {
@@ -23,17 +32,26 @@ public:
     enum { NumBytes = 2 };
 
     TransportCRC()
-    : value_(0x0000)
+    : value_(0xFFFF)
     { }
 
     TransportCRC(const uint8_t* bytes, unsigned int len)
-    : value_(0x0000)
+    : value_(0xFFFF)
     {
         add(bytes, len);
     }
 
-    uint16_t add(uint8_t byte);
-    uint16_t add(const uint8_t* bytes, unsigned int len);
+    void add(uint8_t byte)
+    {
+        value_ = ((value_ << 8) ^ Table[((value_ >> 8) ^ byte) & 0xFF]) & 0xFFFF;
+    }
+
+    void add(const uint8_t* bytes, unsigned int len)
+    {
+        assert(bytes);
+        while (len--)
+            add(*bytes++);
+    }
 
     uint16_t get() const { return value_; }
 };
