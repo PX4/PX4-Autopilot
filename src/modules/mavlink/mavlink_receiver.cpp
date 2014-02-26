@@ -277,7 +277,7 @@ handle_message(mavlink_message_t *msg)
 		if (mavlink_system.sysid < 4) {
 
 			/* switch to a receiving link mode */
-			gcs_link = false;
+//			gcs_link = false; // commented this because I wanted to still receive imu and attitude info when in offboard mode
 
 			/*
 			 * rate control mode - defined by MAVLink
