@@ -16,9 +16,9 @@
 '29B1'
  */
 
-TEST(TransportCRC, Correctness)
+TEST(TransferCRC, Correctness)
 {
-    uavcan::TransportCRC crc;
+    uavcan::TransferCRC crc;
 
     ASSERT_EQ(0xFFFF, crc.get());
 
@@ -31,5 +31,5 @@ TEST(TransportCRC, Correctness)
     ASSERT_EQ(0x29B1, crc.get());
 
     // Initializing constructor
-    ASSERT_EQ(crc.get(), uavcan::TransportCRC(reinterpret_cast<const uint8_t*>("123456789"), 9).get());
+    ASSERT_EQ(crc.get(), uavcan::TransferCRC(reinterpret_cast<const uint8_t*>("123456789"), 9).get());
 }

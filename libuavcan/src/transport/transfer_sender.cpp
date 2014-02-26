@@ -33,7 +33,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, uint64_t monot
     {
         int offset = 0;
         {
-            TransportCRC crc = crc_base_;
+            TransferCRC crc = crc_base_;
             crc.add(payload, payload_len);
 
             static const int BUFLEN = sizeof(CanFrame::data);

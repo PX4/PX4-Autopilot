@@ -23,7 +23,7 @@ namespace uavcan
  * crc.hexdigest()
  * '29B1'
  */
-class TransportCRC
+class TransferCRC
 {
     static const uint16_t Table[256];
     uint16_t value_;
@@ -31,11 +31,11 @@ class TransportCRC
 public:
     enum { NumBytes = 2 };
 
-    TransportCRC()
+    TransferCRC()
     : value_(0xFFFF)
     { }
 
-    TransportCRC(const uint8_t* bytes, unsigned int len)
+    TransferCRC(const uint8_t* bytes, unsigned int len)
     : value_(0xFFFF)
     {
         add(bytes, len);

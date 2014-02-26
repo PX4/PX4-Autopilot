@@ -9,7 +9,7 @@ namespace uavcan
 {
 
 // print ', '.join(map(lambda x: '%04x' % x, map(lambda x: int(x, 0), c.crc_ccitt_tab)))
-const uint16_t TransportCRC::Table[256] =
+const uint16_t TransferCRC::Table[256] =
 {
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
     0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef,

@@ -67,7 +67,7 @@ int MultiFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsigne
  */
 bool TransferListenerBase::checkPayloadCrc(const uint16_t compare_with, const ITransferBuffer& tbb) const
 {
-    TransportCRC crc = crc_base_;
+    TransferCRC crc = crc_base_;
     unsigned int offset = 0;
     while (true)
     {

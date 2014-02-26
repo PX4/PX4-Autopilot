@@ -21,7 +21,7 @@ class TransferSender
     const uint64_t max_transfer_interval_;
     const DataTypeDescriptor& data_type_;
     const CanTxQueue::Qos qos_;
-    const TransportCRC crc_base_;
+    const TransferCRC crc_base_;
 
     Dispatcher& dispatcher_;
 
