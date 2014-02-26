@@ -31,7 +31,7 @@ public:
     : max_transfer_interval_(max_transfer_interval)
     , data_type_(data_type)
     , qos_(qos)
-    , crc_base_(data_type.hash.value, DataTypeHash::NumBytes)
+    , crc_base_(data_type.signature.toTransferCRC())
     , dispatcher_(dispatcher)
     { }
 

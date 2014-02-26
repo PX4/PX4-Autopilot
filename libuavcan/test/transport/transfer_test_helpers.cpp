@@ -32,9 +32,7 @@ TEST(TransferTestHelpers, Transfer)
 
 TEST(TransferTestHelpers, MFTSerialization)
 {
-    uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeHash());
-    for (int i = 0; i < uavcan::DataTypeHash::NumBytes; i++)
-        type.hash.value[i] = i;
+    uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789));
 
     static const std::string DATA = "To go wrong in one's own way is better than to go right in someone else's.";
     const Transfer transfer(1, 100000, uavcan::TransferTypeMessageUnicast, 2, 42, 127, DATA, type);
@@ -63,9 +61,7 @@ TEST(TransferTestHelpers, MFTSerialization)
 
 TEST(TransferTestHelpers, SFTSerialization)
 {
-    uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeHash());
-    for (int i = 0; i < uavcan::DataTypeHash::NumBytes; i++)
-        type.hash.value[i] = i;
+    uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789));
 
     {
         const Transfer transfer(1, 100000, uavcan::TransferTypeMessageBroadcast, 7, 42, 0, "Nvrfrget", type);

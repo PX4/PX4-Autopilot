@@ -82,4 +82,12 @@ TEST(DataTypeSignature, Correctness)
         crc.add((old_signature >> i) & 0xFF);
 
     ASSERT_EQ(crc.get(), signature.get());
+
+    /*
+     * Comparison
+     */
+    ASSERT_TRUE(signature == DataTypeSignature(signature.get()));
+    ASSERT_FALSE(signature == DataTypeSignature::zero());
+    ASSERT_FALSE(signature != DataTypeSignature(signature.get()));
+    ASSERT_TRUE(signature != DataTypeSignature::zero());
 }

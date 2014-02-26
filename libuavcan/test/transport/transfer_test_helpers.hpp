@@ -165,7 +165,7 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
     std::vector<uint8_t> raw_payload;
     if (need_crc)
     {
-        uavcan::TransferCRC payload_crc(transfer.data_type.hash.value, uavcan::DataTypeHash::NumBytes);
+        uavcan::TransferCRC payload_crc = transfer.data_type.signature.toTransferCRC();
         payload_crc.add(reinterpret_cast<const uint8_t*>(transfer.payload.c_str()), transfer.payload.length());
         // Little endian
         raw_payload.push_back(payload_crc.get() & 0xFF);
@@ -212,13 +212,8 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
 
 uavcan::DataTypeDescriptor makeDataType(uavcan::DataTypeKind kind, uint16_t id)
 {
-    uavcan::DataTypeDescriptor dtd(kind, id, uavcan::DataTypeHash());
-    for (int i = 0; i < uavcan::DataTypeHash::NumBytes; i += 2)
-    {
-        dtd.hash.value[i] = id & 0xFF;
-        dtd.hash.value[i + 1] = id >> 8;
-    }
-    return dtd;
+    const uavcan::DataTypeSignature signature((uint64_t(kind) << 16) | (id << 8) | (id & 0xFF));
+    return uavcan::DataTypeDescriptor(kind, id, signature);
 }
 
 }

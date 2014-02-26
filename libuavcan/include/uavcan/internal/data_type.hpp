@@ -85,50 +85,28 @@ public:
 };
 
 
-struct DataTypeHash
-{
-    enum { NumBytes = 16 };
-    uint8_t value[NumBytes];
-
-    DataTypeHash()
-    {
-        std::fill(value, value + NumBytes, 0);
-    }
-
-    DataTypeHash(const uint8_t source[NumBytes])
-    {
-        std::copy(source, source + NumBytes, value);
-    }
-
-    bool operator!=(const DataTypeHash& rhs) const { return !operator==(rhs); }
-    bool operator==(const DataTypeHash& rhs) const
-    {
-        return std::equal(value, value + NumBytes, rhs.value);
-    }
-};
-
-
 struct DataTypeDescriptor
 {
     DataTypeKind kind;
     uint16_t id;
-    DataTypeHash hash;
+    DataTypeSignature signature;
 
     DataTypeDescriptor()
     : kind(DataTypeKind(0))
     , id(0)
+    , signature(DataTypeSignature::zero())
     { }
 
-    DataTypeDescriptor(DataTypeKind kind, uint16_t id, const DataTypeHash& hash)
+    DataTypeDescriptor(DataTypeKind kind, uint16_t id, const DataTypeSignature& signature)
     : kind(kind)
     , id(id)
-    , hash(hash)
+    , signature(signature)
     { }
 
     bool operator!=(const DataTypeDescriptor& rhs) const { return !operator==(rhs); }
     bool operator==(const DataTypeDescriptor& rhs) const
     {
-        return (kind == rhs.kind) && (id == rhs.id) && (hash == rhs.hash);
+        return (kind == rhs.kind) && (id == rhs.id) && (signature == rhs.signature);
     }
 };
 

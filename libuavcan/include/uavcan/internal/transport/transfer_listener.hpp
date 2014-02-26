@@ -95,7 +95,7 @@ class TransferListenerBase : public LinkedListNode<TransferListenerBase>
 protected:
     TransferListenerBase(const DataTypeDescriptor& data_type)
     : data_type_(data_type)
-    , crc_base_(data_type.hash.value, DataTypeHash::NumBytes)
+    , crc_base_(data_type.signature.toTransferCRC())
     { }
 
     virtual ~TransferListenerBase() { }

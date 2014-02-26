@@ -35,12 +35,6 @@ public:
     : value_(0xFFFF)
     { }
 
-    TransferCRC(const uint8_t* bytes, unsigned int len)
-    : value_(0xFFFF)
-    {
-        add(bytes, len);
-    }
-
     void add(uint8_t byte)
     {
         value_ = ((value_ << 8) ^ Table[((value_ >> 8) ^ byte) & 0xFF]) & 0xFFFF;

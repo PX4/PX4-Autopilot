@@ -29,7 +29,4 @@ TEST(TransferCRC, Correctness)
 
     crc.add(reinterpret_cast<const uint8_t*>("456789"), 6);
     ASSERT_EQ(0x29B1, crc.get());
-
-    // Initializing constructor
-    ASSERT_EQ(crc.get(), uavcan::TransferCRC(reinterpret_cast<const uint8_t*>("123456789"), 9).get());
 }

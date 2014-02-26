@@ -30,9 +30,7 @@ public:
 
 TEST(TransferListener, BasicMFT)
 {
-    uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeHash());
-    for (int i = 0; i < uavcan::DataTypeHash::NumBytes; i++)
-        type.hash.value[i] = i | (i << 4);
+    const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789));
 
     static const int NUM_POOL_BLOCKS = 12;    // This number is just enough to pass the test
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * NUM_POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
@@ -87,9 +85,7 @@ TEST(TransferListener, BasicMFT)
 
 TEST(TransferListener, CrcFailure)
 {
-    uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeHash());
-    for (int i = 0; i < uavcan::DataTypeHash::NumBytes; i++)
-        type.hash.value[i] = i | (i << 4);
+    const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789));
 
     uavcan::PoolManager<1> poolmgr;                         // No dynamic memory
     TestSubscriber<256, 2, 2> subscriber(type, poolmgr);  // Static buffer only, 2 entries
@@ -132,9 +128,7 @@ TEST(TransferListener, CrcFailure)
 
 TEST(TransferListener, BasicSFT)
 {
-    uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeHash());
-    for (int i = 0; i < uavcan::DataTypeHash::NumBytes; i++)
-        type.hash.value[i] = i | (i << 4);
+    const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789));
 
     uavcan::PoolManager<1> poolmgr;                         // No dynamic memory. At all.
     TestSubscriber<0, 0, 5> subscriber(type, poolmgr);    // Max buf size is 0, i.e. SFT-only
@@ -169,9 +163,7 @@ TEST(TransferListener, BasicSFT)
 
 TEST(TransferListener, Cleanup)
 {
-    uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeHash());
-    for (int i = 0; i < uavcan::DataTypeHash::NumBytes; i++)
-        type.hash.value[i] = i | (i << 4);
+    const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789));
 
     uavcan::PoolManager<1> poolmgr;                         // No dynamic memory
     TestSubscriber<256, 1, 2> subscriber(type, poolmgr);  // Static buffer only, 1 entry
@@ -225,9 +217,7 @@ TEST(TransferListener, Cleanup)
 
 TEST(TransferListener, MaximumTransferLength)
 {
-    uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeHash());
-    for (int i = 0; i < uavcan::DataTypeHash::NumBytes; i++)
-        type.hash.value[i] = i | (i << 4);
+    const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789));
 
     uavcan::PoolManager<1> poolmgr;
     TestSubscriber<uavcan::MaxTransferPayloadLen * 2, 2, 2> subscriber(type, poolmgr);
