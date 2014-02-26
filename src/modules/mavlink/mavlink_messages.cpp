@@ -6,11 +6,31 @@
  */
 
 #include <commander/px4_custom_mode.h>
+#include <lib/geo/geo.h>
 
+#include <uORB/uORB.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_combined.h>
 
 #include "mavlink_messages.h"
+
+
+uint16_t
+cm_uint16_from_m_float(float m)
+{
+	if (m < 0.0f) {
+		return 0;
+
+	} else if (m > 655.35f) {
+		return 65535;
+	}
+
+	return (uint16_t)(m * 100.0f);
+}
 
 class MavlinkStreamHeartbeat : public MavlinkStream {
 public:
@@ -279,11 +299,145 @@ protected:
 };
 
 
+class MavlinkStreamGPSRawInt : public MavlinkStream {
+public:
+	const char *get_name()
+	{
+		return "GPS_RAW_INT";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamGPSRawInt();
+	}
+
+private:
+	MavlinkOrbSubscription *gps_sub;
+
+	struct vehicle_gps_position_s *gps;
+
+protected:
+
+	void subscribe(Mavlink *mavlink)
+	{
+		gps_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_gps_position), sizeof(struct vehicle_gps_position_s));
+		gps = (struct vehicle_gps_position_s *)gps_sub->get_data();
+	}
+
+	void send(const hrt_abstime t) {
+		gps_sub->update(t);
+
+		mavlink_msg_gps_raw_int_send(_channel,
+				gps->timestamp_position,
+				gps->fix_type,
+				gps->lat,
+				gps->lon,
+				gps->alt,
+				cm_uint16_from_m_float(gps->eph_m),
+				cm_uint16_from_m_float(gps->epv_m),
+				gps->vel_m_s * 100.0f,
+				_wrap_2pi(gps->cog_rad) * M_RAD_TO_DEG_F * 1e2f,
+				gps->satellites_visible);
+	}
+};
+
+
+class MavlinkStreamGlobalPositionInt : public MavlinkStream {
+public:
+	const char *get_name()
+	{
+		return "GLOBAL_POSITION_INT";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamGlobalPositionInt();
+	}
+
+private:
+	MavlinkOrbSubscription *pos_sub;
+	MavlinkOrbSubscription *home_sub;
+
+	struct vehicle_global_position_s *pos;
+	struct home_position_s *home;
+
+protected:
+
+	void subscribe(Mavlink *mavlink)
+	{
+		pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_global_position), sizeof(struct vehicle_global_position_s));
+		pos = (struct vehicle_global_position_s *)pos_sub->get_data();
+
+		home_sub = mavlink->add_orb_subscription(ORB_ID(home_position), sizeof(struct home_position_s));
+		home = (struct home_position_s *)home_sub->get_data();
+	}
+
+	void send(const hrt_abstime t) {
+		pos_sub->update(t);
+		home_sub->update(t);
+
+		mavlink_msg_global_position_int_send(_channel,
+				pos->timestamp / 1000,
+				pos->lat * 1e7,
+				pos->lon * 1e7,
+				pos->alt * 1000.0f,
+				(pos->alt - home->alt) * 1000.0f,
+				pos->vel_n * 100.0f,
+				pos->vel_e * 100.0f,
+				pos->vel_d * 100.0f,
+				_wrap_2pi(pos->yaw) * M_RAD_TO_DEG_F * 100.0f);
+	}
+};
+
+
+class MavlinkStreamLocalPositionNED : public MavlinkStream {
+public:
+	const char *get_name()
+	{
+		return "LOCAL_POSITION_NED";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamLocalPositionNED();
+	}
+
+private:
+	MavlinkOrbSubscription *pos_sub;
+
+	struct vehicle_local_position_s *pos;
+
+protected:
+
+	void subscribe(Mavlink *mavlink)
+	{
+		pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_local_position), sizeof(struct vehicle_local_position_s));
+		pos = (struct vehicle_local_position_s *)pos_sub->get_data();
+	}
+
+	void send(const hrt_abstime t) {
+		pos_sub->update(t);
+
+		mavlink_msg_local_position_ned_send(_channel,
+				pos->timestamp / 1000,
+				pos->x,
+				pos->y,
+				pos->z,
+				pos->vx,
+				pos->vy,
+				pos->vz);
+	}
+};
+
+
 MavlinkStream *streams_list[] = {
 		new MavlinkStreamHeartbeat(),
 		new MavlinkStreamSysStatus(),
 		new MavlinkStreamHighresIMU(),
 		new MavlinkStreamAttitude(),
+		new MavlinkStreamGPSRawInt(),
+		new MavlinkStreamGlobalPositionInt(),
+		new MavlinkStreamLocalPositionNED(),
 		nullptr
 };
 
@@ -347,22 +501,6 @@ MavlinkStream *streams_list[] = {
 //	/* copy gps data into local buffer */
 //	orb_copy(ORB_ID(vehicle_gps_position), l->mavlink->get_subs()->gps_sub, &gps);
 //
-//	/* GPS COG is 0..2PI in degrees * 1e2 */
-//	float cog_deg = _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F;
-//
-//	/* GPS position */
-//	mavlink_msg_gps_raw_int_send(l->mavlink->get_chan(),
-//				     gps.timestamp_position,
-//				     gps.fix_type,
-//				     gps.lat,
-//				     gps.lon,
-//				     gps.alt,
-//				     cm_uint16_from_m_float(gps.eph_m),
-//				     cm_uint16_from_m_float(gps.epv_m),
-//				     gps.vel_m_s * 1e2f, // from m/s to cm/s
-//				     cog_deg * 1e2f, // from deg to deg * 100
-//				     gps.satellites_visible);
-//
 //	/* update SAT info every 10 seconds */
 //	if (gps.satellite_info_available && (l->listener->gps_counter % 50 == 0)) {
 //		mavlink_msg_gps_status_send(l->mavlink->get_chan(),
@@ -414,40 +552,6 @@ MavlinkStream *streams_list[] = {
 //	}
 //}
 //
-//void
-//MavlinkOrbListener::l_global_position(const struct listener *l)
-//{
-//	/* copy global position data into local buffer */
-//	orb_copy(ORB_ID(vehicle_global_position), l->mavlink->get_subs()->global_pos_sub, &l->listener->global_pos);
-//
-//	mavlink_msg_global_position_int_send(l->mavlink->get_chan(),
-//						 l->listener->global_pos.timestamp / 1000,
-//					     l->listener->global_pos.lat * 1e7,
-//					     l->listener->global_pos.lon * 1e7,
-//					     l->listener->global_pos.alt * 1000.0f,
-//					     (l->listener->global_pos.alt - l->listener->home.alt) * 1000.0f,
-//					     l->listener->global_pos.vel_n * 100.0f,
-//					     l->listener->global_pos.vel_e * 100.0f,
-//					     l->listener->global_pos.vel_d * 100.0f,
-//					     _wrap_2pi(l->listener->global_pos.yaw) * M_RAD_TO_DEG_F * 100.0f);
-//}
-//
-//void
-//MavlinkOrbListener::l_local_position(const struct listener *l)
-//{
-//	/* copy local position data into local buffer */
-//	orb_copy(ORB_ID(vehicle_local_position), l->mavlink->get_subs()->local_pos_sub, &l->listener->local_pos);
-//
-//	if (l->mavlink->get_mode() == Mavlink::MODE_OFFBOARD)
-//		mavlink_msg_local_position_ned_send(l->mavlink->get_chan(),
-//						    l->listener->local_pos.timestamp / 1000,
-//						    l->listener->local_pos.x,
-//						    l->listener->local_pos.y,
-//						    l->listener->local_pos.z,
-//						    l->listener->local_pos.vx,
-//						    l->listener->local_pos.vy,
-//						    l->listener->local_pos.vz);
-//}
 //
 //void
 //MavlinkOrbListener::l_global_position_setpoint(const struct listener *l)

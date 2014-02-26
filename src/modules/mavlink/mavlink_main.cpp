@@ -61,14 +61,6 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/mission.h>
-#include <uORB/topics/mission_result.h>
 
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
@@ -78,6 +70,10 @@
 #include <dataman/dataman.h>
 #include <mathlib/mathlib.h>
 #include <mavlink/mavlink_log.h>
+
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/mission.h>
+#include <uORB/topics/mission_result.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_main.h"
@@ -1542,13 +1538,11 @@ Mavlink::task_main(int argc, char *argv[])
 
 	add_stream("HEARTBEAT", 1.0f);
 	add_stream("SYS_STATUS", 1.0f);
-	add_stream("HIGHRES_IMU", 20.0f);
-//	add_stream("RAW_IMU", 10.0f);
-	add_stream("ATTITUDE", 20.0f);
-//	add_stream("NAMED_VALUE_FLOAT", 5.0f);
-//	add_stream("SERVO_OUTPUT_RAW", 2.0f);
-//	add_stream("GPS_RAW_INT", 2.0f);
-//	add_stream("MANUAL_CONTROL", 2.0f);
+	add_stream("HIGHRES_IMU", 1.0f);
+	add_stream("ATTITUDE", 10.0f);
+	add_stream("GPS_RAW_INT", 1.0f);
+	add_stream("GLOBAL_POSITION_INT", 5.0f);
+	add_stream("LOCAL_POSITION_NED", 5.0f);
 
 	while (!_task_should_exit) {
 		/* main loop */
@@ -1656,7 +1650,7 @@ Mavlink::start(int argc, char *argv[])
 	/*mavlink->_mavlink_task = */task_spawn_cmd(buf,
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT,
-					 4096,
+					 2048,
 					 (main_t)&Mavlink::start_helper,
 					 (const char **)argv);
 
