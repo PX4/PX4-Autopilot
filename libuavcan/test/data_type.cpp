@@ -35,3 +35,51 @@ TEST(DataTypeSignatureCRC, Extension)
 
     ASSERT_EQ(0x62EC59E3F1A4F00A, crc2.get());
 }
+
+
+TEST(DataTypeSignature, Correctness)
+{
+    using uavcan::DataTypeSignature;
+    using uavcan::DataTypeSignatureCRC;
+
+    DataTypeSignature signature = DataTypeSignature::zero();
+    ASSERT_EQ(0, signature.get());
+
+    /*
+     * First extension
+     */
+    signature.extend(DataTypeSignature(0x123456789abcdef0));
+
+    DataTypeSignatureCRC crc;
+    crc.add(0xF0);
+    crc.add(0xDE);
+    crc.add(0xBC);
+    crc.add(0x9A);
+    crc.add(0x78);
+    crc.add(0x56);
+    crc.add(0x34);
+    crc.add(0x12);
+    for (int i = 0; i < 8; i++)
+        crc.add(0);
+
+    ASSERT_EQ(crc.get(), signature.get());
+
+    const uint64_t old_signature = signature.get();
+
+    /*
+     * Second extension
+     */
+    signature.extend(DataTypeSignature(0xfedcba9876543210));
+    crc.add(0x10);
+    crc.add(0x32);
+    crc.add(0x54);
+    crc.add(0x76);
+    crc.add(0x98);
+    crc.add(0xba);
+    crc.add(0xdc);
+    crc.add(0xfe);
+    for (int i = 0; i < 64; i += 8)
+        crc.add((old_signature >> i) & 0xFF);
+
+    ASSERT_EQ(crc.get(), signature.get());
+}

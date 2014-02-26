@@ -7,6 +7,7 @@
 #include <cassert>
 #include <stdint.h>
 #include <algorithm>
+#include <uavcan/internal/transport/crc.hpp>
 
 namespace uavcan
 {
@@ -57,6 +58,30 @@ public:
     }
 
     uint64_t get() const { return crc_ ^ 0xFFFFFFFFFFFFFFFF; }
+};
+
+
+class DataTypeSignature
+{
+    uint64_t value_;
+
+    void mixin64(uint64_t x);
+
+    DataTypeSignature() : value_(0) { }
+
+public:
+    static DataTypeSignature zero() { return DataTypeSignature(); }
+
+    explicit DataTypeSignature(uint64_t value) : value_(value) { }
+
+    void extend(DataTypeSignature dts);
+
+    TransferCRC toTransferCRC() const;
+
+    uint64_t get() const { return value_; }
+
+    bool operator==(DataTypeSignature rhs) const { return value_ == rhs.value_; }
+    bool operator!=(DataTypeSignature rhs) const { return !operator==(rhs); }
 };
 
 
