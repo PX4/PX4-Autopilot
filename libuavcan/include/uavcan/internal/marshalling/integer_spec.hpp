@@ -33,31 +33,32 @@ public:
             typename StaticIf<(BitLen <= 64), typename StaticIf<IsSigned, int64_t, uint64_t>::Result,
                               ErrorNoSuchInteger>::Result>::Result>::Result>::Result StorageType;
 
-private:
     typedef typename IntegerSpec<BitLen, SignednessUnsigned, CastMode>::StorageType UnsignedStorageType;
 
+private:
     IntegerSpec();
 
-    struct ExactSizeLimits
-    {
-        static StorageType max() { return std::numeric_limits<StorageType>::max(); }
-        static StorageType min() { return std::numeric_limits<StorageType>::min(); }
-        static UnsignedStorageType mask() { return ~UnsignedStorageType(0); }
-    };
-
-    struct NonExactSizeLimits
+    struct LimitsImplGeneric
     {
         static StorageType max()
         {
-            return IsSigned ? ((StorageType(1) << (BitLen - 1)) - 1) : ((StorageType(1) << BitLen) - 1);
+            StaticAssert<(sizeof(uintmax_t) >= 8)>::check();
+            return StorageType(IsSigned ? ((uintmax_t(1) << (BitLen - 1)) - 1) : ((uintmax_t(1) << BitLen) - 1));
         }
-        static StorageType min() { return IsSigned ? -(StorageType(1) << (BitLen - 1)) : 0; }
-        static UnsignedStorageType mask() { return (UnsignedStorageType(1) << BitLen) - 1; }
+        static UnsignedStorageType mask()
+        {
+            StaticAssert<(sizeof(uintmax_t) >= 8)>::check();
+            return UnsignedStorageType((uintmax_t(1) << BitLen) - 1);
+        }
     };
 
-    enum { IsExactSize = (BitLen == 8) || (BitLen == 16) || (BitLen == 32) || (BitLen == 64) };
+    struct LimitsImpl64
+    {
+        static StorageType max() { return StorageType(IsSigned ? 0x7FFFFFFFFFFFFFFF : 0xFFFFFFFFFFFFFFFF); }
+        static UnsignedStorageType mask() { return 0xFFFFFFFFFFFFFFFF; }
+    };
 
-    typedef typename StaticIf<IsExactSize, ExactSizeLimits, NonExactSizeLimits>::Result Limits;
+    typedef typename StaticIf<(BitLen == 64), LimitsImpl64, LimitsImplGeneric>::Result Limits;
 
     static void saturate(StorageType& value)
     {
@@ -67,20 +68,23 @@ private:
             value = min();
     }
 
-    static void truncate(StorageType& value)
+    static void truncate(StorageType& value) { value &= mask(); }
+
+    static void validate()
     {
-        // cppcheck-suppress duplicateExpression
-        value &= Limits::mask();
+        StaticAssert<(BitLen <= (sizeof(StorageType) * 8))>::check();
+        assert(max() <= std::numeric_limits<StorageType>::max());
+        assert(min() >= std::numeric_limits<StorageType>::min());
     }
 
 public:
-    // cppcheck-suppress duplicateExpression
     static StorageType max() { return Limits::max(); }
-    // cppcheck-suppress duplicateExpression
-    static StorageType min() { return Limits::min(); }
+    static StorageType min() { return IsSigned ? StorageType(-max() - 1) : 0; }
+    static UnsignedStorageType mask() { return Limits::mask(); }
 
     static int encode(StorageType value, ScalarCodec& codec, TailArrayOptimizationMode)
     {
+        validate();
         // cppcheck-suppress duplicateExpression
         if (CastMode == CastModeSaturate)
             saturate(value);
@@ -91,11 +95,15 @@ public:
 
     static int decode(StorageType& out_value, ScalarCodec& codec, TailArrayOptimizationMode)
     {
+        validate();
         return codec.decode<BitLen>(out_value);
     }
 };
 
 template <CastMode CastMode>
 class IntegerSpec<1, SignednessSigned, CastMode>;   // Invalid instantiation
+
+template <Signedness Signedness, CastMode CastMode>
+class IntegerSpec<0, Signedness, CastMode>;         // Invalid instantiation
 
 }
