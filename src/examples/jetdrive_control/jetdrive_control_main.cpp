@@ -558,38 +558,13 @@ JetdriveControl::task_main()
 			arming_status_poll();
 			vehicle_manual_poll();
 
-			if (_v_control_mode.flag_control_attitude_enabled) {
-				control_attitude(dt);
-
-				/* publish attitude rates setpoint */
-				_v_rates_sp.roll = _rates_sp(0);
-				_v_rates_sp.pitch = _rates_sp(1);
-				_v_rates_sp.yaw = _rates_sp(2);
-				_v_rates_sp.thrust = _thrust_sp;
-				_v_rates_sp.timestamp = hrt_absolute_time();
-
-				if (_v_rates_sp_pub > 0) {
-					orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
-
-				} else {
-					_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_v_rates_sp);
-				}
-
-			} else {
-				/* attitude controller disabled */
-				// TODO poll 'attitude_rates_setpoint' topic
-				_rates_sp.zero();
-				_thrust_sp = 0.0f;
-			}
-
-			if (_v_control_mode.flag_control_rates_enabled) {
-				control_attitude_rates(dt);
-
-				/* publish actuator controls */
-				_actuators.control[0] = (isfinite(_att_control(0))) ? _att_control(0) : 0.0f;
-				_actuators.control[1] = (isfinite(_att_control(1))) ? _att_control(1) : 0.0f;
-				_actuators.control[2] = (isfinite(_att_control(2))) ? _att_control(2) : 0.0f;
-				_actuators.control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
+			if(_v_control_mode.flag_external_manual_override_ok)
+			{
+				/* manual/direct control */
+				_actuators.control[0] = _manual_control_sp .roll;
+				_actuators.control[1] = _manual_control_sp.pitch;
+				_actuators.control[2] = _manual_control_sp.yaw;
+				_actuators.control[3] = _manual_control_sp.throttle;
 				_actuators.timestamp = hrt_absolute_time();
 
 				if (_actuators_0_pub > 0) {
@@ -597,6 +572,50 @@ JetdriveControl::task_main()
 
 				} else {
 					_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
+				}
+			} else {
+				// FIX this: This is the atitude control logic for mc's
+
+				if (_v_control_mode.flag_control_attitude_enabled) {
+					control_attitude(dt);
+
+					/* publish attitude rates setpoint */
+					_v_rates_sp.roll = _rates_sp(0);
+					_v_rates_sp.pitch = _rates_sp(1);
+					_v_rates_sp.yaw = _rates_sp(2);
+					_v_rates_sp.thrust = _thrust_sp;
+					_v_rates_sp.timestamp = hrt_absolute_time();
+
+					if (_v_rates_sp_pub > 0) {
+						orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
+
+					} else {
+						_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_v_rates_sp);
+					}
+
+				} else {
+					/* attitude controller disabled */
+					// TODO poll 'attitude_rates_setpoint' topic
+					_rates_sp.zero();
+					_thrust_sp = 0.0f;
+				}
+
+				if (_v_control_mode.flag_control_rates_enabled) {
+					control_attitude_rates(dt);
+
+					/* publish actuator controls */
+					_actuators.control[0] = (isfinite(_att_control(0))) ? _att_control(0) : 0.0f;
+					_actuators.control[1] = (isfinite(_att_control(1))) ? _att_control(1) : 0.0f;
+					_actuators.control[2] = (isfinite(_att_control(2))) ? _att_control(2) : 0.0f;
+					_actuators.control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
+					_actuators.timestamp = hrt_absolute_time();
+
+					if (_actuators_0_pub > 0) {
+						orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
+
+					} else {
+						_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
+					}
 				}
 			}
 		}
