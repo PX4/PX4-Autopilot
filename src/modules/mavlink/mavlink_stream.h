@@ -15,22 +15,27 @@ class MavlinkStream;
 
 #include "mavlink_main.h"
 
-class MavlinkOrbSubscription;
-
 class MavlinkStream {
-public:
-	void	(*callback)(const MavlinkStream *);
-	uintptr_t	arg;
-	unsigned int subscriptions_n;
-	MavlinkOrbSubscription **subscriptions;
-	hrt_abstime last_sent;
-	unsigned int interval;
-	MavlinkStream *next;
-	Mavlink		*mavlink;
+private:
+	hrt_abstime _last_sent;
 
-	MavlinkStream(Mavlink *mavlink, void (*callback)(const MavlinkStream *), const unsigned int subs_n, const struct orb_metadata **topics, const size_t *sizes, const uintptr_t arg, const unsigned int interval);
+protected:
+	mavlink_channel_t _channel;
+	unsigned int _interval;
+
+	virtual void send(const hrt_abstime t) = 0;
+
+public:
+	MavlinkStream *next;
+
+	MavlinkStream();
 	~MavlinkStream();
+	void set_interval(const unsigned int interval);
+	void set_channel(mavlink_channel_t channel);
 	int update(const hrt_abstime t);
+	virtual MavlinkStream *new_instance() = 0;
+	virtual void subscribe(Mavlink *mavlink) = 0;
+	virtual const char *get_name() = 0;
 };
 
 

@@ -10,39 +10,42 @@
 #include "mavlink_stream.h"
 #include "mavlink_main.h"
 
-MavlinkStream::MavlinkStream(Mavlink *mavlink, void (*callback)(const MavlinkStream *), const unsigned int subs_n, const struct orb_metadata **topics, const size_t *sizes, const uintptr_t arg, const unsigned int interval)
+MavlinkStream::MavlinkStream() : _interval(1000), _last_sent(0), _channel(MAVLINK_COMM_0), next(nullptr)
 {
-	this->callback = callback;
-	this->arg = arg;
-	this->interval = interval * 1000;
-	this->mavlink = mavlink;
-	this->subscriptions_n = subs_n;
-	this->subscriptions = (MavlinkOrbSubscription **) malloc(subs_n * sizeof(MavlinkOrbSubscription *));
-
-	for (int i = 0; i < subs_n; i++) {
-		this->subscriptions[i] = mavlink->add_orb_subscription(topics[i], sizes[i]);
-	}
 }
 
 MavlinkStream::~MavlinkStream()
 {
-	free(subscriptions);
 }
 
 /**
- * Update mavlink stream, i.e. update subscriptions and send message if necessary
+ * Set messages interval in ms
  */
-int MavlinkStream::update(const hrt_abstime t)
+void
+MavlinkStream::set_interval(const unsigned int interval)
 {
-	uint64_t dt = t - last_sent;
-	if (dt > 0 && dt >= interval) {
-		/* interval expired, update all subscriptions */
-		for (unsigned int i = 0; i < subscriptions_n; i++) {
-			subscriptions[i]->update(t);
-		}
+	_interval = interval * 1000;
+}
 
-		/* format and send mavlink message */
-		callback(this);
-		last_sent = t;
+/**
+ * Set mavlink channel
+ */
+void
+MavlinkStream::set_channel(mavlink_channel_t channel)
+{
+	_channel = channel;
+}
+
+/**
+ * Update subscriptions and send message if necessary
+ */
+int
+MavlinkStream::update(const hrt_abstime t)
+{
+	uint64_t dt = t - _last_sent;
+	if (dt > 0 && dt >= _interval) {
+		/* interval expired, send message */
+		send(t);
+		_last_sent = (t / _interval) * _interval;
 	}
 }

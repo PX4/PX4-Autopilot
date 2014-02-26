@@ -818,7 +818,7 @@ MavlinkReceiver::receive_thread(void *arg)
 
 			/* if read failed, this loop won't execute */
 			for (ssize_t i = 0; i < nread; i++) {
-				if (mavlink_parse_char(_mavlink->get_chan(), buf[i], &msg, &status)) {
+				if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &status)) {
 					/* handle generic messages and commands */
 					handle_message(&msg);
 

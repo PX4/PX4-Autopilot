@@ -10,19 +10,6 @@
 
 #include "mavlink_stream.h"
 
-#define MAX_TOPICS_PER_MAVLINK_STREAM 4
-
-struct msgs_list_s {
-	char *name;
-	void (*callback)(const MavlinkStream *);
-	const struct orb_metadata *topics[MAX_TOPICS_PER_MAVLINK_STREAM+1];
-	size_t sizes[MAX_TOPICS_PER_MAVLINK_STREAM+1];
-};
-
-extern struct msgs_list_s msgs_list[];
-
-static void msg_heartbeat(const MavlinkStream *stream);
-static void msg_sys_status(const MavlinkStream *stream);
-static void msg_highres_imu(const MavlinkStream *stream);
+extern MavlinkStream *streams_list[];
 
 #endif /* MAVLINK_MESSAGES_H_ */

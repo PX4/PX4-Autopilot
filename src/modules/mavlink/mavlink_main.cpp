@@ -152,12 +152,6 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 
 static void usage(void);
 
-namespace mavlink
-{
-
-	Mavlink	*g_mavlink;
-}
-
 Mavlink::Mavlink() :
 	device_name("/dev/ttyS1"),
 	_task_should_exit(false),
@@ -166,14 +160,13 @@ Mavlink::Mavlink() :
 	thread_running(false),
 	_mavlink_task(-1),
 	_mavlink_incoming_fd(-1),
-
-/* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink")),
 	_mavlink_hil_enabled(false),
 	_subscriptions(nullptr),
 	_streams(nullptr),
+	mission_pub(-1),
 
-	mission_pub(-1)
+/* performance counters */
+	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink"))
 {
 	wpm = &wpm_s;
 	fops.ioctl = (int (*)(file*, int, long unsigned int))&mavlink_dev_ioctl;
@@ -204,12 +197,14 @@ Mavlink::~Mavlink()
 	}
 }
 
-void Mavlink::set_mode(enum MAVLINK_MODE mode)
+void
+Mavlink::set_mode(enum MAVLINK_MODE mode)
 {
 	_mode = mode;
 }
 
-int Mavlink::instance_count()
+int
+Mavlink::instance_count()
 {
 	/* note: a local buffer count will help if this ever is called often */
 	Mavlink* inst = ::_head;
@@ -222,10 +217,11 @@ int Mavlink::instance_count()
 	return inst_index;
 }
 
-Mavlink* Mavlink::new_instance()
+Mavlink *
+Mavlink::new_instance()
 {
-	Mavlink* inst = new Mavlink();
-	Mavlink* next = ::_head;
+	Mavlink *inst = new Mavlink();
+	Mavlink *next = ::_head;
 
 	/* create the first instance at _head */
 	if (::_head == nullptr) {
@@ -241,9 +237,10 @@ Mavlink* Mavlink::new_instance()
 	return inst;
 }
 
-Mavlink* Mavlink::get_instance(unsigned instance)
+Mavlink *
+Mavlink::get_instance(unsigned instance)
 {
-	Mavlink* inst = ::_head;
+	Mavlink *inst = ::_head;
 	unsigned inst_index = 0;
 	while (inst->_next != nullptr && inst_index < instance) {
 		inst = inst->_next;
@@ -257,7 +254,8 @@ Mavlink* Mavlink::get_instance(unsigned instance)
 	return inst;
 }
 
-int Mavlink::destroy_all_instances()
+int
+Mavlink::destroy_all_instances()
 {
 	/* start deleting from the end */
 	Mavlink *inst_to_del = nullptr;
@@ -294,7 +292,8 @@ int Mavlink::destroy_all_instances()
 	return OK;
 }
 
-bool Mavlink::instance_exists(const char *device_name, Mavlink *self)
+bool
+Mavlink::instance_exists(const char *device_name, Mavlink *self)
 {
 	Mavlink* inst = ::_head;
 	while (inst != nullptr) {
@@ -307,7 +306,8 @@ bool Mavlink::instance_exists(const char *device_name, Mavlink *self)
 	return false;
 }
 
-int Mavlink::get_uart_fd(unsigned index)
+int
+Mavlink::get_uart_fd(unsigned index)
 {
 	Mavlink* inst = get_instance(index);
 	if (inst)
@@ -316,14 +316,16 @@ int Mavlink::get_uart_fd(unsigned index)
 	return -1;
 }
 
-int Mavlink::get_uart_fd()
+int
+Mavlink::get_uart_fd()
 {
 	return _uart;
 }
 
-int Mavlink::get_channel()
+mavlink_channel_t
+Mavlink::get_channel()
 {
-	return (int)_chan;
+	return _chan;
 }
 
 /****************************************************************************
@@ -1364,7 +1366,7 @@ MavlinkOrbSubscription *Mavlink::add_orb_subscription(const struct orb_metadata 
 	MavlinkOrbSubscription *sub;
 
 	LL_FOREACH(_subscriptions, sub) {
-		if (sub->topic == topic) {
+		if (sub->get_topic() == topic) {
 			/* already subscribed */
 			return sub;
 		}
@@ -1379,26 +1381,19 @@ MavlinkOrbSubscription *Mavlink::add_orb_subscription(const struct orb_metadata 
 }
 
 int
-Mavlink::add_stream(const char *stream_name, const unsigned int interval)
+Mavlink::add_stream(const char *stream_name, const float rate)
 {
-	uintptr_t arg = 0;
-
-	unsigned int i = 0;
-	/* search for message with specified name */
-	while (msgs_list[i].name != nullptr) {
-		if (strcmp(stream_name, msgs_list[i].name) == 0) {
-			/* count topics, array is nullptr-terminated */
-			unsigned int topics_n;
-			for (topics_n = 0; topics_n < MAX_TOPICS_PER_MAVLINK_STREAM; topics_n++) {
-				if (msgs_list[i].topics[topics_n] == nullptr) {
-					break;
-				}
-			}
-			MavlinkStream *stream = new MavlinkStream(this, msgs_list[i].callback, topics_n, msgs_list[i].topics, msgs_list[i].sizes, arg, interval);
+	/* search for stream with specified name */
+	for (unsigned int i = 0; streams_list[i] != nullptr; i++) {
+		if (strcmp(stream_name, streams_list[i]->get_name()) == 0) {
+			/* create stream copy for each mavlink instance */
+			MavlinkStream *stream = streams_list[i]->new_instance();
+			stream->set_channel(get_channel());
+			stream->set_interval(1000.0f / rate);
+			stream->subscribe(this);
 			LL_APPEND(_streams, stream);
 			return OK;
 		}
-		i++;
 	}
 	return ERROR;
 }
@@ -1407,7 +1402,7 @@ int
 Mavlink::task_main(int argc, char *argv[])
 {
 	/* inform about start */
-	warnx("Initializing..");
+	warnx("start");
 	fflush(stdout);
 
 	/* initialize mavlink text message buffering */
@@ -1463,9 +1458,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 	bool usb_uart;
 
-	/* print welcome text */
-	warnx("MAVLink v1.0 serial interface starting...");
-
 	/* inform about mode */
 	switch (_mode) {
 		case MODE_TX_HEARTBEAT_ONLY:
@@ -1510,12 +1502,12 @@ Mavlink::task_main(int argc, char *argv[])
 		err(1, "could not open %s", device_name);
 
 	/* create the device node that's used for sending text log messages, etc. */
-	register_driver(MAVLINK_LOG_DEVICE, &fops, 0666, NULL);
+	if (instance_count() == 1) {
+		register_driver(MAVLINK_LOG_DEVICE, &fops, 0666, NULL);
+	}
 
 	/* initialize logging device */
 	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
-
-	mavlink_log_info(_mavlink_fd, "[mavlink] started");
 
 	/* Initialize system properties */
 	mavlink_update_system();
@@ -1537,8 +1529,10 @@ Mavlink::task_main(int argc, char *argv[])
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update), sizeof(parameter_update_s));
 	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status), sizeof(vehicle_status_s));
 
-	struct vehicle_status_s *status = (struct vehicle_status_s *) status_sub->data;
+	struct vehicle_status_s *status = (struct vehicle_status_s *) status_sub->get_data();
 
+	warnx("started");
+	mavlink_log_info(_mavlink_fd, "[mavlink] started");
 
 	/* add default streams, intervals depend on baud rate */
 //	if (_baudrate >= 230400) {
@@ -1546,15 +1540,15 @@ Mavlink::task_main(int argc, char *argv[])
 //	} else if (_baudrate >= 57600) {
 //	}
 
-	add_stream("HEARTBEAT", 1000);
-	add_stream("SYS_STATUS", 1000);
-	add_stream("HIGHRES_IMU", 300);
-	add_stream("RAW_IMU", 300);
-	add_stream("ATTITUDE", 200);
-	add_stream("NAMED_VALUE_FLOAT", 200);
-	add_stream("SERVO_OUTPUT_RAW", 500);
-	add_stream("GPS_RAW_INT", 500);
-	add_stream("MANUAL_CONTROL", 500);
+	add_stream("HEARTBEAT", 1.0f);
+	add_stream("SYS_STATUS", 1.0f);
+	add_stream("HIGHRES_IMU", 20.0f);
+//	add_stream("RAW_IMU", 10.0f);
+	add_stream("ATTITUDE", 20.0f);
+//	add_stream("NAMED_VALUE_FLOAT", 5.0f);
+//	add_stream("SERVO_OUTPUT_RAW", 2.0f);
+//	add_stream("GPS_RAW_INT", 2.0f);
+//	add_stream("MANUAL_CONTROL", 2.0f);
 
 	while (!_task_should_exit) {
 		/* main loop */
@@ -1604,31 +1598,24 @@ Mavlink::task_main(int argc, char *argv[])
 			mavlink_wpm_send_waypoint_current((uint16_t)mission_result.index_current_mission);
 		}
 
-		mavlink_waypoint_eventloop(hrt_absolute_time());
-
-		/* check if waypoint has been reached against the last positions */
-		mavlink_waypoint_eventloop(hrt_absolute_time());
-
 		if (lowspeed_counter % (50000 / MAIN_LOOP_DELAY) == 0) {
 			/* send parameters at 20 Hz (if queued for sending) */
 			mavlink_pm_queued_send();
-			mavlink_waypoint_eventloop(hrt_absolute_time());
-
 			mavlink_waypoint_eventloop(hrt_absolute_time());
 
 			if (_baudrate > 57600) {
 				mavlink_pm_queued_send();
 			}
 
-			 /* send one string at 10 Hz */
-			 if (!mavlink_logbuffer_is_empty(&lb)) {
+			 /* send one string at 20 Hz */
+			if (!mavlink_logbuffer_is_empty(&lb)) {
 				struct mavlink_logmessage msg;
 				int lb_ret = mavlink_logbuffer_read(&lb, &msg);
 
 				if (lb_ret == OK) {
 					mavlink_missionlib_send_gcs_string(msg.text);
 				}
-			 }
+			}
 		}
 
 		perf_end(_loop_perf);
@@ -1636,7 +1623,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* wait for threads to complete */
 	pthread_join(receive_thread, NULL);
-	pthread_join(uorb_receive_thread, NULL);
 
 	/* Reset the UART flags to original state */
 	tcsetattr(_uart, TCSANOW, &uart_config_original);
@@ -1654,15 +1640,50 @@ Mavlink::task_main(int argc, char *argv[])
 
 int Mavlink::start_helper(int argc, char *argv[])
 {
-	// Create the instance in task context
+	/* create the instance in task context */
 	Mavlink *instance = Mavlink::new_instance();
-	// This will actually only return once MAVLink exits
+	/* this will actually only return once MAVLink exits */
 	return instance->task_main(argc, argv);
 }
 
 int
-Mavlink::start()
+Mavlink::start(int argc, char *argv[])
 {
+	// Instantiate thread
+	char buf[32];
+	sprintf(buf, "mavlink_if%d", Mavlink::instance_count());
+
+	/*mavlink->_mavlink_task = */task_spawn_cmd(buf,
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_DEFAULT,
+					 4096,
+					 (main_t)&Mavlink::start_helper,
+					 (const char **)argv);
+
+	// while (!this->is_running()) {
+	// 		usleep(200);
+	// }
+
+	// if (mavlink->_mavlink_task < 0) {
+	// 	warn("task start failed");
+	// 	return -errno;
+	// }
+
+	// if (mavlink::g_mavlink != nullptr) {
+	// 	errx(1, "already running");
+	// }
+
+	// mavlink::g_mavlink = new Mavlink;
+
+	// if (mavlink::g_mavlink == nullptr) {
+	// 	errx(1, "alloc failed");
+	// }
+
+	// if (OK != mavlink::g_mavlink->start()) {
+	// 	delete mavlink::g_mavlink;
+	// 	mavlink::g_mavlink = nullptr;
+	// 	err(1, "start failed");
+	// }
 
 	return OK;
 }
@@ -1685,44 +1706,7 @@ int mavlink_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "start")) {
-
-		// Instantiate thread
-		char buf[32];
-		sprintf(buf, "mavlink_if%d", Mavlink::instance_count());
-
-		/*mavlink->_mavlink_task = */task_spawn_cmd(buf,
-						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_DEFAULT,
-						 2048,
-						 (main_t)&Mavlink::start_helper,
-						 (const char **)argv);
-
-		// while (!this->is_running()) {
-		// 		usleep(200);
-		// }
-
-		// if (mavlink->_mavlink_task < 0) {
-		// 	warn("task start failed");
-		// 	return -errno;
-		// }
-
-		// if (mavlink::g_mavlink != nullptr) {
-		// 	errx(1, "already running");
-		// }
-
-		// mavlink::g_mavlink = new Mavlink;
-
-		// if (mavlink::g_mavlink == nullptr) {
-		// 	errx(1, "alloc failed");
-		// }
-
-		// if (OK != mavlink::g_mavlink->start()) {
-		// 	delete mavlink::g_mavlink;
-		// 	mavlink::g_mavlink = nullptr;
-		// 	err(1, "start failed");
-		// }
-
-		return 0;
+		return Mavlink::start(argc, argv);
 
 	} else if (!strcmp(argv[1], "stop")) {
 		warnx("mavlink stop is deprecated, use stop-all instead");

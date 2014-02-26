@@ -12,195 +12,289 @@
 
 #include "mavlink_messages.h"
 
-
-struct msgs_list_s msgs_list[] = {
-		{
-				.name = "HEARTBEAT",
-				.callback = msg_heartbeat,
-				.topics = { ORB_ID(vehicle_status), ORB_ID(position_setpoint_triplet), nullptr },
-				.sizes = { sizeof(struct vehicle_status_s), sizeof(struct position_setpoint_triplet_s) }
-		},
-		{
-				.name = "SYS_STATUS",
-				.callback = msg_sys_status,
-				.topics = { ORB_ID(vehicle_status), nullptr },
-				.sizes = { sizeof(struct vehicle_status_s) }
-		},
-		{ .name = nullptr }
-};
-
-void
-msg_heartbeat(const MavlinkStream *stream)
-{
-	struct vehicle_status_s *status = (struct vehicle_status_s *)stream->subscriptions[0]->data;
-	struct position_setpoint_triplet_s *pos_sp_triplet = (struct position_setpoint_triplet_s *)stream->subscriptions[1]->data;
-
-	uint8_t mavlink_state = 0;
-	uint8_t mavlink_base_mode = 0;
-	uint32_t mavlink_custom_mode = 0;
-
-	/* HIL */
-	if (status->hil_state == HIL_STATE_ON) {
-		mavlink_base_mode |= MAV_MODE_FLAG_HIL_ENABLED;
+class MavlinkStreamHeartbeat : public MavlinkStream {
+public:
+	const char *get_name()
+	{
+		return "HEARTBEAT";
 	}
 
-	/* arming state */
-	if (status->arming_state == ARMING_STATE_ARMED
-			|| status->arming_state == ARMING_STATE_ARMED_ERROR) {
-		mavlink_base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamHeartbeat();
 	}
 
-	/* main state */
-	mavlink_base_mode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
-	union px4_custom_mode custom_mode;
-	custom_mode.data = 0;
-	if (pos_sp_triplet->nav_state == NAV_STATE_NONE) {
-	/* use main state when navigator is not active */
-		if (status->main_state == MAIN_STATE_MANUAL) {
-			mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
-		} else if (status->main_state == MAIN_STATE_SEATBELT) {
-			mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_SEATBELT;
-		} else if (status->main_state == MAIN_STATE_EASY) {
-			mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_EASY;
-		} else if (status->main_state == MAIN_STATE_AUTO) {
+private:
+	MavlinkOrbSubscription *status_sub;
+	MavlinkOrbSubscription *pos_sp_triplet_sub;
+
+	struct vehicle_status_s *status;
+	struct position_setpoint_triplet_s *pos_sp_triplet;
+
+protected:
+	void subscribe(Mavlink *mavlink)
+	{
+		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status), sizeof(struct vehicle_status_s));
+		status = (struct vehicle_status_s *)status_sub->get_data();
+
+		pos_sp_triplet_sub = mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet), sizeof(position_setpoint_triplet_s));
+		pos_sp_triplet = (struct position_setpoint_triplet_s *)status_sub->get_data();
+	}
+
+	void send(const hrt_abstime t) {
+		status_sub->update(t);
+		pos_sp_triplet_sub->update(t);
+
+		uint8_t mavlink_state = 0;
+		uint8_t mavlink_base_mode = 0;
+		uint32_t mavlink_custom_mode = 0;
+
+		/* HIL */
+		if (status->hil_state == HIL_STATE_ON) {
+			mavlink_base_mode |= MAV_MODE_FLAG_HIL_ENABLED;
+		}
+
+		/* arming state */
+		if (status->arming_state == ARMING_STATE_ARMED
+				|| status->arming_state == ARMING_STATE_ARMED_ERROR) {
+			mavlink_base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+		}
+
+		/* main state */
+		mavlink_base_mode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
+		union px4_custom_mode custom_mode;
+		custom_mode.data = 0;
+		if (pos_sp_triplet->nav_state == NAV_STATE_NONE) {
+		/* use main state when navigator is not active */
+			if (status->main_state == MAIN_STATE_MANUAL) {
+				mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
+				custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+			} else if (status->main_state == MAIN_STATE_SEATBELT) {
+				mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
+				custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_SEATBELT;
+			} else if (status->main_state == MAIN_STATE_EASY) {
+				mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+				custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_EASY;
+			} else if (status->main_state == MAIN_STATE_AUTO) {
+				mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+				custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+				custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
+			}
+		} else {
+			/* use navigation state when navigator is active */
 			mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
+			if (pos_sp_triplet->nav_state == NAV_STATE_READY) {
+				custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
+			} else if (pos_sp_triplet->nav_state == NAV_STATE_LOITER) {
+				custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
+			} else if (pos_sp_triplet->nav_state == NAV_STATE_MISSION) {
+				custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
+			} else if (pos_sp_triplet->nav_state == NAV_STATE_RTL) {
+				custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
+			} else if (pos_sp_triplet->nav_state == NAV_STATE_LAND) {
+				custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
+			}
 		}
-	} else {
-		/* use navigation state when navigator is active */
-		mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-		if (pos_sp_triplet->nav_state == NAV_STATE_READY) {
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
-		} else if (pos_sp_triplet->nav_state == NAV_STATE_LOITER) {
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
-		} else if (pos_sp_triplet->nav_state == NAV_STATE_MISSION) {
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
-		} else if (pos_sp_triplet->nav_state == NAV_STATE_RTL) {
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
-		} else if (pos_sp_triplet->nav_state == NAV_STATE_LAND) {
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
+		mavlink_custom_mode = custom_mode.data;
+
+		/* set system state */
+		if (status->arming_state == ARMING_STATE_INIT
+				|| status->arming_state == ARMING_STATE_IN_AIR_RESTORE
+				|| status->arming_state == ARMING_STATE_STANDBY_ERROR) {	// TODO review
+			mavlink_state = MAV_STATE_UNINIT;
+		} else if (status->arming_state == ARMING_STATE_ARMED) {
+			mavlink_state = MAV_STATE_ACTIVE;
+		} else if (status->arming_state == ARMING_STATE_ARMED_ERROR) {
+			mavlink_state = MAV_STATE_CRITICAL;
+		} else if (status->arming_state == ARMING_STATE_STANDBY) {
+			mavlink_state = MAV_STATE_STANDBY;
+		} else if (status->arming_state == ARMING_STATE_REBOOT) {
+			mavlink_state = MAV_STATE_POWEROFF;
+		} else {
+			mavlink_state = MAV_STATE_CRITICAL;
 		}
+
+		mavlink_msg_heartbeat_send(_channel,
+					   mavlink_system.type,
+					   MAV_AUTOPILOT_PX4,
+					   mavlink_base_mode,
+					   mavlink_custom_mode,
+					   mavlink_state);
+
 	}
-	mavlink_custom_mode = custom_mode.data;
+};
 
-	/* set system state */
-	if (status->arming_state == ARMING_STATE_INIT
-			|| status->arming_state == ARMING_STATE_IN_AIR_RESTORE
-			|| status->arming_state == ARMING_STATE_STANDBY_ERROR) {	// TODO review
-		mavlink_state = MAV_STATE_UNINIT;
-	} else if (status->arming_state == ARMING_STATE_ARMED) {
-		mavlink_state = MAV_STATE_ACTIVE;
-	} else if (status->arming_state == ARMING_STATE_ARMED_ERROR) {
-		mavlink_state = MAV_STATE_CRITICAL;
-	} else if (status->arming_state == ARMING_STATE_STANDBY) {
-		mavlink_state = MAV_STATE_STANDBY;
-	} else if (status->arming_state == ARMING_STATE_REBOOT) {
-		mavlink_state = MAV_STATE_POWEROFF;
-	} else {
-		mavlink_state = MAV_STATE_CRITICAL;
+
+class MavlinkStreamSysStatus : public MavlinkStream {
+public:
+	const char *get_name()
+	{
+		return "SYS_STATUS";
 	}
 
-	/* send heartbeat */
-	mavlink_msg_heartbeat_send(stream->mavlink->get_chan(),
-				   mavlink_system.type,
-				   MAV_AUTOPILOT_PX4,
-				   mavlink_base_mode,
-				   mavlink_custom_mode,
-				   mavlink_state);
-}
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamSysStatus();
+	}
 
-void
-msg_sys_status(const MavlinkStream *stream)
-{
-	struct vehicle_status_s *status = (struct vehicle_status_s *)stream->subscriptions[0]->data;
+private:
+	MavlinkOrbSubscription *status_sub;
 
-	mavlink_msg_sys_status_send(stream->mavlink->get_chan(),
-				    status->onboard_control_sensors_present,
-				    status->onboard_control_sensors_enabled,
-				    status->onboard_control_sensors_health,
-				    status->load * 1000.0f,
-				    status->battery_voltage * 1000.0f,
-				    status->battery_current * 1000.0f,
-				    status->battery_remaining,
-				    status->drop_rate_comm,
-				    status->errors_comm,
-				    status->errors_count1,
-				    status->errors_count2,
-				    status->errors_count3,
-				    status->errors_count4);
-}
+	struct vehicle_status_s *status;
 
-void
-msg_highres_imu(const MavlinkStream *stream)
-{
-	struct sensor_combined_s *sensor = (struct sensor_combined_s *)stream->subscriptions[0]->data;
+protected:
 
-	uint16_t fields_updated = 0;
+	void subscribe(Mavlink *mavlink)
+	{
+		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status), sizeof(struct vehicle_status_s));
+		status = (struct vehicle_status_s *)status_sub->get_data();
+	}
 
-	if (stream->mavlink->get_mode() == Mavlink::MODE_OFFBOARD)
-		mavlink_msg_highres_imu_send(stream->mavlink->get_chan(), sensor->timestamp,
-					     sensor->accelerometer_m_s2[0], sensor->accelerometer_m_s2[1], sensor->accelerometer_m_s2[2],
-					     sensor->gyro_rad_s[0], sensor->gyro_rad_s[1], sensor->gyro_rad_s[2],
-					     sensor->magnetometer_ga[0], sensor->magnetometer_ga[1], sensor->magnetometer_ga[2],
-					     sensor->baro_pres_mbar, sensor->differential_pressure_pa,
-					     sensor->baro_alt_meter, sensor->baro_temp_celcius,
-					     fields_updated);
-}
+	void send(const hrt_abstime t) {
+		status_sub->update(t);
 
-//void
-//MavlinkOrbListener::l_sensor_combined(const struct listener *l)
-//{
-//	struct sensor_combined_s raw;
-//
-//	/* copy sensors raw data into local buffer */
-//	orb_copy(ORB_ID(sensor_combined), l->mavlink->get_subs()->sensor_sub, &raw);
-//
-//	/* mark individual fields as _mavlink->get_chan()ged */
-//	uint16_t fields_updated = 0;
-//
-//	// if (accel_counter != raw.accelerometer_counter) {
-//	// 	/* mark first three dimensions as _mavlink->get_chan()ged */
-//	// 	fields_updated |= (1 << 0) | (1 << 1) | (1 << 2);
-//	// 	accel_counter = raw.accelerometer_counter;
-//	// }
-//
-//	// if (gyro_counter != raw.gyro_counter) {
-//	// 	/* mark second group dimensions as _mavlink->get_chan()ged */
-//	// 	fields_updated |= (1 << 3) | (1 << 4) | (1 << 5);
-//	// 	gyro_counter = raw.gyro_counter;
-//	// }
-//
-//	// if (mag_counter != raw.magnetometer_counter) {
-//	// 	/* mark third group dimensions as _mavlink->get_chan()ged */
-//	// 	fields_updated |= (1 << 6) | (1 << 7) | (1 << 8);
-//	// 	mag_counter = raw.magnetometer_counter;
-//	// }
-//
-//	// if (baro_counter != raw.baro_counter) {
-//	// 	/* mark last group dimensions as _mavlink->get_chan()ged */
-//	// 	fields_updated |= (1 << 9) | (1 << 11) | (1 << 12);
-//	// 	baro_counter = raw.baro_counter;
-//	// }
-//
-//	if (l->mavlink->get_mode() == Mavlink::MODE_OFFBOARD)
-//		mavlink_msg_highres_imu_send(l->mavlink->get_chan(), l->listener->last_sensor_timestamp,
-//					     raw.accelerometer_m_s2[0], raw.accelerometer_m_s2[1],
-//					     raw.accelerometer_m_s2[2], raw.gyro_rad_s[0],
-//					     raw.gyro_rad_s[1], raw.gyro_rad_s[2],
-//					     raw.magnetometer_ga[0],
-//					     raw.magnetometer_ga[1], raw.magnetometer_ga[2],
-//					     raw.baro_pres_mbar, raw.differential_pressure_pa,
-//					     raw.baro_alt_meter, raw.baro_temp_celcius,
-//					     fields_updated);
-//
-//	l->listener->sensors_raw_counter++;
-//}
-//
+		mavlink_msg_sys_status_send(_channel,
+				status->onboard_control_sensors_present,
+				status->onboard_control_sensors_enabled,
+				status->onboard_control_sensors_health,
+				status->load * 1000.0f,
+				status->battery_voltage * 1000.0f,
+				status->battery_current * 1000.0f,
+				status->battery_remaining,
+				status->drop_rate_comm,
+				status->errors_comm,
+				status->errors_count1,
+				status->errors_count2,
+				status->errors_count3,
+				status->errors_count4);
+	}
+};
+
+
+class MavlinkStreamHighresIMU : public MavlinkStream {
+public:
+	const char *get_name()
+	{
+		return "HIGHRES_IMU";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamHighresIMU();
+	}
+
+private:
+	MavlinkOrbSubscription *sensor_sub;
+
+	struct sensor_combined_s *sensor;
+
+	uint32_t accel_counter = 0;
+	uint32_t gyro_counter = 0;
+	uint32_t mag_counter = 0;
+	uint32_t baro_counter = 0;
+
+protected:
+
+	void subscribe(Mavlink *mavlink)
+	{
+		sensor_sub = mavlink->add_orb_subscription(ORB_ID(sensor_combined), sizeof(struct sensor_combined_s));
+		sensor = (struct sensor_combined_s *)sensor_sub->get_data();
+	}
+
+	void send(const hrt_abstime t) {
+		sensor_sub->update(t);
+
+		uint16_t fields_updated = 0;
+
+		if (accel_counter != sensor->accelerometer_counter) {
+			/* mark first three dimensions as changed */
+			fields_updated |= (1 << 0) | (1 << 1) | (1 << 2);
+			accel_counter = sensor->accelerometer_counter;
+		}
+
+		if (gyro_counter != sensor->gyro_counter) {
+			/* mark second group dimensions as changed */
+			fields_updated |= (1 << 3) | (1 << 4) | (1 << 5);
+			gyro_counter = sensor->gyro_counter;
+		}
+
+		if (mag_counter != sensor->magnetometer_counter) {
+			/* mark third group dimensions as changed */
+			fields_updated |= (1 << 6) | (1 << 7) | (1 << 8);
+			mag_counter = sensor->magnetometer_counter;
+		}
+
+		if (baro_counter != sensor->baro_counter) {
+			/* mark last group dimensions as changed */
+			fields_updated |= (1 << 9) | (1 << 11) | (1 << 12);
+			baro_counter = sensor->baro_counter;
+		}
+
+		mavlink_msg_highres_imu_send(_channel,
+				sensor->timestamp,
+				sensor->accelerometer_m_s2[0], sensor->accelerometer_m_s2[1], sensor->accelerometer_m_s2[2],
+				sensor->gyro_rad_s[0], sensor->gyro_rad_s[1], sensor->gyro_rad_s[2],
+				sensor->magnetometer_ga[0], sensor->magnetometer_ga[1], sensor->magnetometer_ga[2],
+				sensor->baro_pres_mbar, sensor->differential_pressure_pa,
+				sensor->baro_alt_meter, sensor->baro_temp_celcius,
+				fields_updated);
+	}
+};
+
+
+class MavlinkStreamAttitude : public MavlinkStream {
+public:
+	const char *get_name()
+	{
+		return "ATTITUDE";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamAttitude();
+	}
+
+private:
+	MavlinkOrbSubscription *att_sub;
+
+	struct vehicle_attitude_s *att;
+
+protected:
+
+	void subscribe(Mavlink *mavlink)
+	{
+		att_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_attitude), sizeof(struct vehicle_attitude_s));
+		att = (struct vehicle_attitude_s *)att_sub->get_data();
+	}
+
+	void send(const hrt_abstime t) {
+		att_sub->update(t);
+
+		mavlink_msg_attitude_send(_channel,
+				att->timestamp / 1000,
+				att->roll, att->pitch, att->yaw,
+				att->rollspeed, att->pitchspeed, att->yawspeed);
+	}
+};
+
+
+MavlinkStream *streams_list[] = {
+		new MavlinkStreamHeartbeat(),
+		new MavlinkStreamSysStatus(),
+		new MavlinkStreamHighresIMU(),
+		new MavlinkStreamAttitude(),
+		nullptr
+};
+
+
+
+
+
+
+
+
+
 //void
 //MavlinkOrbListener::l_vehicle_attitude(const struct listener *l)
 //{

@@ -13,28 +13,40 @@
 
 #include "mavlink_orb_subscription.h"
 
-MavlinkOrbSubscription::MavlinkOrbSubscription(const struct orb_metadata *topic, size_t size)
+MavlinkOrbSubscription::MavlinkOrbSubscription(const struct orb_metadata *topic, size_t size) : _topic(topic), _last_check(0), next(nullptr)
 {
-	this->topic = topic;
-	this->data = malloc(size);
-	memset(this->data, 0, size);
-	this->fd = orb_subscribe(topic);
-	this->last_update = 0;
+	_data = malloc(size);
+	memset(_data, 0, size);
+	_fd = orb_subscribe(_topic);
 }
 
 MavlinkOrbSubscription::~MavlinkOrbSubscription()
 {
-	close(fd);
-	free(data);
+	close(_fd);
+	free(_data);
 }
 
-bool MavlinkOrbSubscription::update(const hrt_abstime t)
+const struct orb_metadata *
+MavlinkOrbSubscription::get_topic()
 {
-	if (last_update != t) {
+	return _topic;
+}
+
+void *
+MavlinkOrbSubscription::get_data()
+{
+	return _data;
+}
+
+bool
+MavlinkOrbSubscription::update(const hrt_abstime t)
+{
+	if (_last_check != t) {
+		_last_check = t;
 		bool updated;
-		orb_check(fd, &updated);
+		orb_check(_fd, &updated);
 		if (updated) {
-			orb_copy(topic, fd, data);
+			orb_copy(_topic, _fd, _data);
 			return true;
 		}
 	}

@@ -11,18 +11,23 @@
 #include <systemlib/uthash/utlist.h>
 #include <drivers/drv_hrt.h>
 
+
 class MavlinkOrbSubscription {
 public:
-	MavlinkOrbSubscription(const struct orb_metadata *meta, size_t size);
+	MavlinkOrbSubscription *next;
+
+	MavlinkOrbSubscription(const struct orb_metadata *topic, size_t size);
 	~MavlinkOrbSubscription();
 
 	bool update(const hrt_abstime t);
+	void *get_data();
+	const struct orb_metadata *get_topic();
 
-	const struct orb_metadata *topic;
-	int fd;
-	void *data;
-	hrt_abstime last_update;
-	MavlinkOrbSubscription *next;
+private:
+	const struct orb_metadata *_topic;
+	int _fd;
+	void *_data;
+	hrt_abstime _last_check;
 };
 
 

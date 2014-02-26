@@ -142,7 +142,7 @@ public:
 	 *
 	 * @return		OK on success.
 	 */
-	static int		start();
+	static int		start(int argc, char *argv[]);
 
 	/**
 	 * Display the mavlink status.
@@ -162,8 +162,6 @@ public:
 	static int get_uart_fd(unsigned index);
 
 	int get_uart_fd();
-
-	int get_channel();
 
 	const char *device_name;
 
@@ -205,16 +203,11 @@ public:
 
 	MavlinkOrbSubscription *add_orb_subscription(const struct orb_metadata *topic, size_t size);
 
-	mavlink_channel_t get_chan() { return _chan; }
+	mavlink_channel_t get_channel();
 
 	bool		_task_should_exit;		/**< if true, mavlink task should exit */
 
 protected:
-	/**
-	 * Pointer to the default cdev file operations table; useful for
-	 * registering clone devices etc.
-	 */
-
 	Mavlink*	_next;
 
 private:
@@ -234,7 +227,7 @@ private:
 
 	orb_advert_t	mission_pub;
 	struct mission_s mission;
-	uint8_t missionlib_msg_buf[300]; //XXX MAGIC NUMBER
+	uint8_t missionlib_msg_buf[sizeof(mavlink_message_t)];
 	MAVLINK_MODE _mode;
 
 	uint8_t _mavlink_wpm_comp_id;
@@ -247,7 +240,6 @@ private:
 	unsigned int total_counter;
 
 	pthread_t receive_thread;
-	pthread_t uorb_receive_thread;
 
 	/* Allocate storage space for waypoints */
 	mavlink_wpm_storage wpm_s;
@@ -326,7 +318,7 @@ private:
 
 	int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
 
-	int add_stream(const char *stream_name, const unsigned int interval);
+	int add_stream(const char *stream_name, const float rate);
 
 	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
 
