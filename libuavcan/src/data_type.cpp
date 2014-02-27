@@ -2,7 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <cstdio>
+#include <sstream>
+#include <iomanip>
 #include <cassert>
 #include <uavcan/data_type.hpp>
 
@@ -32,6 +33,24 @@ TransferCRC DataTypeSignature::toTransferCRC() const
     for (int i = 0; i < 64; i += 8)    // LSB first
         tcrc.add((value_ >> i) & 0xFF);
     return tcrc;
+}
+
+/*
+ * DataTypeDescriptor
+ */
+std::string DataTypeDescriptor::toString() const
+{
+    char kindch = '?';
+    switch (kind_)
+    {
+    case DataTypeKindMessage: kindch = 'm'; break;
+    case DataTypeKindService: kindch = 's'; break;
+    default: assert(0);
+    }
+
+    std::ostringstream os;
+    os << name_ << ":" << id_ << kindch << ":" << std::hex << std::setfill('0') << std::setw(16) << signature_.get();
+    return os.str();
 }
 
 }

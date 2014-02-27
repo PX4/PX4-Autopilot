@@ -32,7 +32,7 @@ class Dispatcher : Noncopyable
             bool operator()(const TransferListenerBase* listener) const
             {
                 assert(listener);
-                return id_ > listener->getDataTypeDescriptor().id;
+                return id_ > listener->getDataTypeDescriptor().getID();
             }
         };
 

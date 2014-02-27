@@ -14,7 +14,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, uint64_t monot
                          uint64_t monotonic_blocking_deadline, TransferType transfer_type, NodeID dst_node_id,
                          TransferID tid)
 {
-    Frame frame(data_type_.id, transfer_type, dispatcher_.getSelfNodeID(), dst_node_id, 0, tid);
+    Frame frame(data_type_.getID(), transfer_type, dispatcher_.getSelfNodeID(), dst_node_id, 0, tid);
 
     if (frame.getMaxPayloadLen() >= payload_len)           // Single Frame Transfer
     {
@@ -87,7 +87,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, uint64_t monot
 int TransferSender::send(const uint8_t* payload, int payload_len, uint64_t monotonic_tx_deadline,
                          uint64_t monotonic_blocking_deadline, TransferType transfer_type, NodeID dst_node_id)
 {
-    const OutgoingTransferRegistryKey otr_key(data_type_.id, transfer_type, dst_node_id);
+    const OutgoingTransferRegistryKey otr_key(data_type_.getID(), transfer_type, dst_node_id);
 
     assert(monotonic_tx_deadline > 0);
     const uint64_t otr_deadline = monotonic_tx_deadline + max_transfer_interval_;
@@ -95,7 +95,8 @@ int TransferSender::send(const uint8_t* payload, int payload_len, uint64_t monot
     TransferID* const tid = dispatcher_.getOutgoingTransferRegistry().accessOrCreate(otr_key, otr_deadline);
     if (tid == NULL)
     {
-        UAVCAN_TRACE("TransferSender", "OTR access failure, dtid=%i tt=%i", int(data_type_.id), int(transfer_type));
+        UAVCAN_TRACE("TransferSender", "OTR access failure, dtd=%s tt=%i",
+                     data_type_.toString().c_str(), int(transfer_type));
         return -1;
     }
 

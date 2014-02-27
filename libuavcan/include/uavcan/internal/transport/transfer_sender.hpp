@@ -31,7 +31,7 @@ public:
     : max_transfer_interval_(max_transfer_interval)
     , data_type_(data_type)
     , qos_(qos)
-    , crc_base_(data_type.signature.toTransferCRC())
+    , crc_base_(data_type.getSignature().toTransferCRC())
     , dispatcher_(dispatcher)
     { }
 

@@ -85,7 +85,7 @@ struct Transfer
             << " tid="    << int(transfer_id.get())
             << " snid="   << int(src_node_id.get())
             << " dnid="   << int(dst_node_id.get())
-            << " dtid="   << int(data_type.id)
+            << " dtid="   << int(data_type.getID())
             << "\n\t'" << payload << "'";
         return os.str();
     }
@@ -165,7 +165,7 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
     std::vector<uint8_t> raw_payload;
     if (need_crc)
     {
-        uavcan::TransferCRC payload_crc = transfer.data_type.signature.toTransferCRC();
+        uavcan::TransferCRC payload_crc = transfer.data_type.getSignature().toTransferCRC();
         payload_crc.add(reinterpret_cast<const uint8_t*>(transfer.payload.c_str()), transfer.payload.length());
         // Little endian
         raw_payload.push_back(payload_crc.get() & 0xFF);
@@ -184,8 +184,8 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
         const int bytes_left = raw_payload.size() - offset;
         EXPECT_TRUE(bytes_left >= 0);
 
-        uavcan::Frame frm(transfer.data_type.id, transfer.transfer_type, transfer.src_node_id, transfer.dst_node_id,
-                          frame_index, transfer.transfer_id);
+        uavcan::Frame frm(transfer.data_type.getID(), transfer.transfer_type, transfer.src_node_id,
+                          transfer.dst_node_id, frame_index, transfer.transfer_id);
         const int spres = frm.setPayload(&*(raw_payload.begin() + offset), bytes_left);
         if (spres < 0)
         {
@@ -210,10 +210,10 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
     return output;
 }
 
-uavcan::DataTypeDescriptor makeDataType(uavcan::DataTypeKind kind, uint16_t id)
+uavcan::DataTypeDescriptor makeDataType(uavcan::DataTypeKind kind, uint16_t id, const char* name = "")
 {
     const uavcan::DataTypeSignature signature((uint64_t(kind) << 16) | (id << 8) | (id & 0xFF));
-    return uavcan::DataTypeDescriptor(kind, id, signature);
+    return uavcan::DataTypeDescriptor(kind, id, signature, name);
 }
 
 }

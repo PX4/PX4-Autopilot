@@ -87,33 +87,49 @@ public:
 };
 
 
-struct DataTypeDescriptor
+class DataTypeDescriptor
 {
+    DataTypeKind kind_;
+    uint16_t id_;
+    DataTypeSignature signature_;
+    const char* name_;
+
+public:
     enum { MaxDataTypeID = Frame::MaxDataTypeID };
 
-    DataTypeKind kind;
-    uint16_t id;
-    DataTypeSignature signature;
-
     DataTypeDescriptor()
-    : kind(DataTypeKind(0))
-    , id(0)
-    , signature(DataTypeSignature::zero())
+    : kind_(DataTypeKind(0))
+    , id_(0)
+    , signature_(DataTypeSignature::zero())
+    , name_("")
     { }
 
-    DataTypeDescriptor(DataTypeKind kind, uint16_t id, const DataTypeSignature& signature)
-    : kind(kind)
-    , id(id)
-    , signature(signature)
+    DataTypeDescriptor(DataTypeKind kind, uint16_t id, const DataTypeSignature& signature, const char* name)
+    : kind_(kind)
+    , id_(id)
+    , signature_(signature)
+    , name_(name)
     {
         assert(id <= MaxDataTypeID);
         assert(kind < NumDataTypeKinds);
+        assert(name);
     }
+
+    DataTypeKind getKind() const { return kind_; }
+    uint16_t getID() const { return id_; }
+    const DataTypeSignature& getSignature() const { return signature_; }
+    const char* getName() const { return name_; }
+
+    std::string toString() const;
 
     bool operator!=(const DataTypeDescriptor& rhs) const { return !operator==(rhs); }
     bool operator==(const DataTypeDescriptor& rhs) const
     {
-        return (kind == rhs.kind) && (id == rhs.id) && (signature == rhs.signature);
+        return
+            (kind_ == rhs.kind_) &&
+            (id_ == rhs.id_) &&
+            (signature_ == rhs.signature_) &&
+            !std::strcmp(name_, rhs.name_);
     }
 };
 

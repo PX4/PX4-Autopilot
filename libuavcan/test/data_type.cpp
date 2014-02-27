@@ -91,3 +91,14 @@ TEST(DataTypeSignature, Correctness)
     ASSERT_FALSE(signature != DataTypeSignature(signature.get()));
     ASSERT_TRUE(signature != DataTypeSignature::zero());
 }
+
+
+TEST(DataTypeDescriptor, ToString)
+{
+    uavcan::DataTypeDescriptor desc;
+    ASSERT_EQ(":0s:0000000000000000", desc.toString());
+
+    desc = uavcan::DataTypeDescriptor(uavcan::DataTypeKindMessage, 123,
+                                      uavcan::DataTypeSignature(0xdeadbeef1234), "Bar");
+    ASSERT_EQ("Bar:123m:0000deadbeef1234", desc.toString());
+}

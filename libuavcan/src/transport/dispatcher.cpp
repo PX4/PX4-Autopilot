@@ -18,13 +18,13 @@ bool Dispatcher::ListenerRegister::add(TransferListenerBase* listener, Mode mode
         TransferListenerBase* p = list_.get();
         while (p)
         {
-            if (p->getDataTypeDescriptor().id == listener->getDataTypeDescriptor().id)
+            if (p->getDataTypeDescriptor().getID() == listener->getDataTypeDescriptor().getID())
                 return false;
             p = p->getNextListNode();
         }
     }
     // Objective is to arrange entries by Data Type ID in ascending order from root.
-    list_.insertBefore(listener, DataTypeIDInsertionComparator(listener->getDataTypeDescriptor().id));
+    list_.insertBefore(listener, DataTypeIDInsertionComparator(listener->getDataTypeDescriptor().getID()));
     return true;
 }
 
@@ -48,9 +48,9 @@ void Dispatcher::ListenerRegister::handleFrame(const RxFrame& frame)
     TransferListenerBase* p = list_.get();
     while (p)
     {
-        if (p->getDataTypeDescriptor().id == frame.getDataTypeID())
+        if (p->getDataTypeDescriptor().getID() == frame.getDataTypeID())
             p->handleFrame(frame);
-        else if (p->getDataTypeDescriptor().id < frame.getDataTypeID())  // Listeners are ordered by data type id!
+        else if (p->getDataTypeDescriptor().getID() < frame.getDataTypeID())  // Listeners are ordered by data type id!
             break;
         p = p->getNextListNode();
     }
@@ -145,7 +145,7 @@ void Dispatcher::cleanup(uint64_t ts_monotonic)
 
 bool Dispatcher::registerMessageListener(TransferListenerBase* listener)
 {
-    if (listener->getDataTypeDescriptor().kind != DataTypeKindMessage)
+    if (listener->getDataTypeDescriptor().getKind() != DataTypeKindMessage)
     {
         assert(0);
         return false;
@@ -155,7 +155,7 @@ bool Dispatcher::registerMessageListener(TransferListenerBase* listener)
 
 bool Dispatcher::registerServiceRequestListener(TransferListenerBase* listener)
 {
-    if (listener->getDataTypeDescriptor().kind != DataTypeKindService)
+    if (listener->getDataTypeDescriptor().getKind() != DataTypeKindService)
     {
         assert(0);
         return false;
@@ -165,7 +165,7 @@ bool Dispatcher::registerServiceRequestListener(TransferListenerBase* listener)
 
 bool Dispatcher::registerServiceResponseListener(TransferListenerBase* listener)
 {
-    if (listener->getDataTypeDescriptor().kind != DataTypeKindService)
+    if (listener->getDataTypeDescriptor().getKind() != DataTypeKindService)
     {
         assert(0);
         return false;
