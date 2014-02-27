@@ -87,6 +87,8 @@ public:
 
 struct DataTypeDescriptor
 {
+    enum { MaxDataTypeID = Frame::MaxDataTypeID };
+
     DataTypeKind kind;
     uint16_t id;
     DataTypeSignature signature;
@@ -101,7 +103,10 @@ struct DataTypeDescriptor
     : kind(kind)
     , id(id)
     , signature(signature)
-    { }
+    {
+        assert(id <= MaxDataTypeID);
+        assert(kind < NumDataTypeKinds);
+    }
 
     bool operator!=(const DataTypeDescriptor& rhs) const { return !operator==(rhs); }
     bool operator==(const DataTypeDescriptor& rhs) const
