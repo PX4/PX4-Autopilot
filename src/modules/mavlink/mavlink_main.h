@@ -166,7 +166,7 @@ public:
 	const char *device_name;
 
 	enum MAVLINK_MODE {
-		MODE_TX_HEARTBEAT_ONLY=0,
+		MODE_CUSTOM=0,
 		MODE_OFFBOARD,
 		MODE_ONBOARD,
 		MODE_HIL
@@ -245,6 +245,7 @@ private:
 	bool _verbose;
 	int _uart;
 	int _baudrate;
+	int _datarate;
 
 	/**
 	 * If the queue index is not at 0, the queue sending

@@ -87,6 +87,7 @@
 #endif
 static const int ERROR = -1;
 
+#define MAX_DATA_RATE	10000	// max data rate in bytes/s
 #define MAIN_LOOP_DELAY 10000	// 100 Hz
 
 static Mavlink* _head = nullptr;
@@ -449,7 +450,6 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 	}
 
 	/* open uart */
-	warnx("UART is %s, baudrate is %d\n", uart_name, baud);
 	_uart = open(uart_name, O_RDWR | O_NOCTTY);
 
 	/* Try to set baud rate */
@@ -1407,6 +1407,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	int ch;
 	_baudrate = 57600;
+	_datarate = 0;
 	_channel = MAVLINK_COMM_0;
 
 	_mode = MODE_OFFBOARD;
@@ -1415,13 +1416,21 @@ Mavlink::task_main(int argc, char *argv[])
 	argc -= 2;
 	argv += 2;
 
-	while ((ch = getopt(argc, argv, "b:d:eov")) != EOF) {
+	while ((ch = getopt(argc, argv, "b:r:d:m:v")) != EOF) {
 		switch (ch) {
 		case 'b':
 			_baudrate = strtoul(optarg, NULL, 10);
 
 			if (_baudrate < 9600 || _baudrate > 921600)
 				errx(1, "invalid baud rate '%s'", optarg);
+
+			break;
+
+		case 'r':
+			_datarate = strtoul(optarg, NULL, 10);
+
+			if (_datarate < 10 || _datarate > MAX_DATA_RATE)
+				errx(1, "invalid data rate '%s'", optarg);
 
 			break;
 
@@ -1433,8 +1442,19 @@ Mavlink::task_main(int argc, char *argv[])
 //			mavlink_link_termination_allowed = true;
 //			break;
 
-		case 'o':
-			_mode = MODE_ONBOARD;
+		case 'm':
+			if (strcmp(optarg, "offboard") == 0) {
+				_mode = MODE_OFFBOARD;
+
+			} else if (strcmp(optarg, "onboard") == 0) {
+				_mode = MODE_ONBOARD;
+
+			} else if (strcmp(optarg, "hil") == 0) {
+				_mode = MODE_HIL;
+
+			} else if (strcmp(optarg, "custom") == 0) {
+				_mode = MODE_CUSTOM;
+			}
 			break;
 
 		case 'v':
@@ -1447,50 +1467,60 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 	}
 
+	if (_datarate == 0) {
+		/* convert bits to bytes and use 1/2 of bandwidth by default */
+		_datarate = _baudrate / 20;
+	}
+
+	if (_datarate > MAX_DATA_RATE) {
+		_datarate = MAX_DATA_RATE;
+	}
+
 	if (Mavlink::instance_exists(device_name, this)) {
 		errx(1, "mavlink instance for %s already running", device_name);
 	}
 
-	struct termios uart_config_original;
-
-	bool usb_uart;
-
 	/* inform about mode */
 	switch (_mode) {
-		case MODE_TX_HEARTBEAT_ONLY:
-			warnx("MODE_TX_HEARTBEAT_ONLY");
+		case MODE_CUSTOM:
+			warnx("mode: CUSTOM");
 			break;
 		case MODE_OFFBOARD:
-			warnx("MODE_OFFBOARD");
+			warnx("mode: OFFBOARD");
 			break;
 		case MODE_ONBOARD:
-			warnx("MODE_ONBOARD");
+			warnx("mode: ONBOARD");
 			break;
 		case MODE_HIL:
-			warnx("MODE_HIL");
+			warnx("mode: HIL");
 			break;
 		default:
-			warnx("Error: Unknown mode");
+			warnx("ERROR: Unknown mode");
 			break;
 	}
 
 	switch(_mode) {
 		case MODE_OFFBOARD:
 		case MODE_HIL:
+		case MODE_CUSTOM:
 			_mavlink_wpm_comp_id = MAV_COMP_ID_MISSIONPLANNER;
 			break;
 		case MODE_ONBOARD:
 			_mavlink_wpm_comp_id = MAV_COMP_ID_CAMERA;
 			break;
-		case MODE_TX_HEARTBEAT_ONLY:
 		default:
 			_mavlink_wpm_comp_id = MAV_COMP_ID_ALL;
-			warnx("Error: Unknown mode");
 			break;
 	}
 
-	/* Flush stdout in case MAVLink is about to take it over */
+	warnx("data rate: %d bytes/s", _datarate);
+	warnx("port: %s, baudrate: %d", device_name, _baudrate);
+
+	/* flush stdout in case MAVLink is about to take it over */
 	fflush(stdout);
+
+	struct termios uart_config_original;
+	bool usb_uart;
 
 	/* default values for arguments */
 	_uart = mavlink_open_uart(_baudrate, device_name, &uart_config_original, &usb_uart);
@@ -1529,17 +1559,14 @@ Mavlink::task_main(int argc, char *argv[])
 	warnx("started");
 	mavlink_log_info(_mavlink_fd, "[mavlink] started");
 
-	/* add default streams depending on mode, intervals depend on baud rate */
-	float rate_mult = _baudrate / 57600.0f;
-	if (rate_mult > 4.0f) {
-		rate_mult = 4.0f;
-	}
+	/* add default streams depending on mode and intervals depending on datarate */
+	float rate_mult = _datarate / 1000.0f;
 
 	add_stream("HEARTBEAT", 1.0f);
 
 	switch(_mode) {
 	case MODE_OFFBOARD:
-		add_stream("SYS_STATUS", 1.0f * rate_mult);
+		add_stream("SYS_STATUS", 1.0f);
 		add_stream("GPS_GLOBAL_ORIGIN", 0.5f * rate_mult);
 		add_stream("HIGHRES_IMU", 1.0f * rate_mult);
 		add_stream("ATTITUDE", 10.0f * rate_mult);
@@ -1550,13 +1577,14 @@ Mavlink::task_main(int argc, char *argv[])
 		break;
 
 	case MODE_HIL:
-		add_stream("SYS_STATUS", 1.0f * rate_mult);
+		add_stream("SYS_STATUS", 1.0f);
 		add_stream("GPS_GLOBAL_ORIGIN", 0.5f * rate_mult);
 		add_stream("HIGHRES_IMU", 1.0f * rate_mult);
 		add_stream("ATTITUDE", 10.0f * rate_mult);
 		add_stream("GPS_RAW_INT", 1.0f * rate_mult);
 		add_stream("GLOBAL_POSITION_INT", 5.0f * rate_mult);
 		add_stream("LOCAL_POSITION_NED", 5.0f * rate_mult);
+		add_stream("HIL_CONTROLS", 20.0f * rate_mult);
 		break;
 
 	default:
@@ -1703,7 +1731,12 @@ Mavlink::status()
 
 static void usage()
 {
-	errx(1, "usage: mavlink {start|stop-all} [-d device] [-b baudrate] [-o] [-v]");
+	errx(1, "usage: mavlink {start|stop-all} [-d device] [-b baudrate] [-r datarate] [-m mode] [-v]\n\n"
+			"Supported modes (-m):\n"
+			"\toffboard\tSend standard telemetry data to ground station (default)\n"
+			"\tonboard\tOnboard comminication mode, e.g. to connect PX4FLOW\n"
+			"\thil\tHardware In the Loop mode, send telemetry and HIL_CONTROLS\n"
+			"\tcustom\tCustom configuration, don't send anything by default, streams can be enabled by 'mavlink stream' command\n");
 }
 
 int mavlink_main(int argc, char *argv[])

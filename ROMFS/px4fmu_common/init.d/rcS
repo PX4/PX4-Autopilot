@@ -390,14 +390,14 @@ then
 		if [ $TTYS1_BUSY == yes ]
 		then
 			# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
-			mavlink start -d /dev/ttyS0
+			mavlink start -r 1000 -d /dev/ttyS0
 			usleep 5000
 			
 			# Exit from nsh to free port for mavlink
 			set EXIT_ON_END yes
 		else
 			# Start MAVLink on default port: ttyS1
-			mavlink start
+			mavlink start -r 1000
 			usleep 5000
 		fi
 	fi

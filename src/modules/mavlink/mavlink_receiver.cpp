@@ -250,7 +250,8 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		if (mavlink_system.sysid < 4) {
 
 			/* switch to a receiving link mode */
-			_mavlink->set_mode(Mavlink::MODE_TX_HEARTBEAT_ONLY);
+			//TODO why do we need this?
+			//_mavlink->set_mode(Mavlink::MODE_TX_HEARTBEAT_ONLY);
 
 			/*
 			 * rate control mode - defined by MAVLink
