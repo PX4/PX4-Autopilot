@@ -79,6 +79,7 @@
 #include "mavlink_main.h"
 #include "mavlink_messages.h"
 #include "mavlink_receiver.h"
+#include "mavlink_rate_limiter.h"
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -321,7 +322,7 @@ Mavlink::get_uart_fd()
 mavlink_channel_t
 Mavlink::get_channel()
 {
-	return _chan;
+	return _channel;
 }
 
 /****************************************************************************
@@ -1321,7 +1322,7 @@ Mavlink::mavlink_missionlib_send_message(mavlink_message_t *msg)
 {
 	uint16_t len = mavlink_msg_to_send_buffer(missionlib_msg_buf, msg);
 
-	mavlink_send_uart_bytes(_chan, missionlib_msg_buf, len);
+	mavlink_send_uart_bytes(_channel, missionlib_msg_buf, len);
 }
 
 
@@ -1356,7 +1357,7 @@ Mavlink::mavlink_missionlib_send_gcs_string(const char *string)
 	}
 }
 
-MavlinkOrbSubscription *Mavlink::add_orb_subscription(const struct orb_metadata *topic, const size_t size)
+MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, const size_t size)
 {
 	/* check if already subscribed to this topic */
 	MavlinkOrbSubscription *sub;
@@ -1406,7 +1407,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	int ch;
 	_baudrate = 57600;
-	_chan = MAVLINK_COMM_0;
+	_channel = MAVLINK_COMM_0;
 
 	_mode = MODE_OFFBOARD;
 
@@ -1520,8 +1521,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 	thread_running = true;
 
-	unsigned lowspeed_counter = 0;
-
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update), sizeof(parameter_update_s));
 	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status), sizeof(vehicle_status_s));
 
@@ -1530,20 +1529,42 @@ Mavlink::task_main(int argc, char *argv[])
 	warnx("started");
 	mavlink_log_info(_mavlink_fd, "[mavlink] started");
 
-	/* add default streams, intervals depend on baud rate */
+	/* add default streams depending on mode, intervals depend on baud rate */
 	float rate_mult = _baudrate / 57600.0f;
 	if (rate_mult > 4.0f) {
 		rate_mult = 4.0f;
 	}
 
 	add_stream("HEARTBEAT", 1.0f);
-	add_stream("SYS_STATUS", 1.0f * rate_mult);
-	add_stream("GPS_GLOBAL_ORIGIN", 0.5f * rate_mult);
-	add_stream("HIGHRES_IMU", 1.0f * rate_mult);
-	add_stream("ATTITUDE", 10.0f * rate_mult);
-	add_stream("GPS_RAW_INT", 1.0f * rate_mult);
-	add_stream("GLOBAL_POSITION_INT", 5.0f * rate_mult);
-	add_stream("LOCAL_POSITION_NED", 5.0f * rate_mult);
+
+	switch(_mode) {
+	case MODE_OFFBOARD:
+		add_stream("SYS_STATUS", 1.0f * rate_mult);
+		add_stream("GPS_GLOBAL_ORIGIN", 0.5f * rate_mult);
+		add_stream("HIGHRES_IMU", 1.0f * rate_mult);
+		add_stream("ATTITUDE", 10.0f * rate_mult);
+		add_stream("GPS_RAW_INT", 1.0f * rate_mult);
+		add_stream("GLOBAL_POSITION_INT", 5.0f * rate_mult);
+		add_stream("LOCAL_POSITION_NED", 5.0f * rate_mult);
+		add_stream("SERVO_OUTPUT_RAW_0", 1.0f * rate_mult);
+		break;
+
+	case MODE_HIL:
+		add_stream("SYS_STATUS", 1.0f * rate_mult);
+		add_stream("GPS_GLOBAL_ORIGIN", 0.5f * rate_mult);
+		add_stream("HIGHRES_IMU", 1.0f * rate_mult);
+		add_stream("ATTITUDE", 10.0f * rate_mult);
+		add_stream("GPS_RAW_INT", 1.0f * rate_mult);
+		add_stream("GLOBAL_POSITION_INT", 5.0f * rate_mult);
+		add_stream("LOCAL_POSITION_NED", 5.0f * rate_mult);
+		break;
+
+	default:
+		break;
+	}
+
+	MavlinkRateLimiter slow_rate_limiter(2000.0f / rate_mult);
+	MavlinkRateLimiter fast_rate_limiter(100.0f / rate_mult);
 
 	while (!_task_should_exit) {
 		/* main loop */
@@ -1571,13 +1592,6 @@ Mavlink::task_main(int argc, char *argv[])
 			stream->update(t);
 		}
 
-		/* 0.5 Hz */
-		if (lowspeed_counter % (2000000 / MAIN_LOOP_DELAY) == 0) {
-			mavlink_wpm_send_waypoint_current((uint16_t)mission_result.index_current_mission);
-		}
-
-		lowspeed_counter++;
-
 		bool updated;
 		orb_check(mission_result_sub, &updated);
 
@@ -1591,18 +1605,16 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 
 			mavlink_wpm_send_waypoint_current((uint16_t)mission_result.index_current_mission);
+		} else {
+			if (slow_rate_limiter.check(t)) {
+				mavlink_wpm_send_waypoint_current((uint16_t)mission_result.index_current_mission);
+			}
 		}
 
-		if (lowspeed_counter % (50000 / MAIN_LOOP_DELAY) == 0) {
-			/* send parameters at 20 Hz (if queued for sending) */
+		if (fast_rate_limiter.check(t)) {
 			mavlink_pm_queued_send();
 			mavlink_waypoint_eventloop(hrt_absolute_time());
 
-			if (_baudrate > 57600) {
-				mavlink_pm_queued_send();
-			}
-
-			 /* send one string at 20 Hz */
 			if (!mavlink_logbuffer_is_empty(&lb)) {
 				struct mavlink_logmessage msg;
 				int lb_ret = mavlink_logbuffer_read(&lb, &msg);

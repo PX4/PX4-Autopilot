@@ -13,7 +13,7 @@
 
 #include "mavlink_orb_subscription.h"
 
-MavlinkOrbSubscription::MavlinkOrbSubscription(const struct orb_metadata *topic, size_t size) : _topic(topic), _last_check(0), next(nullptr)
+MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic, size_t size) : _topic(topic), _last_check(0), next(nullptr)
 {
 	_data = malloc(size);
 	memset(_data, 0, size);

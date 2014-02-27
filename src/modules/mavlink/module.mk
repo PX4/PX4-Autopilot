@@ -41,6 +41,7 @@ SRCS		 += mavlink_main.cpp \
 			mavlink_receiver.cpp \
 			mavlink_orb_subscription.cpp \
 			mavlink_messages.cpp \
-			mavlink_stream.cpp
+			mavlink_stream.cpp \
+			mavlink_rate_limiter.cpp
 
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink

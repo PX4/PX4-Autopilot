@@ -201,7 +201,7 @@ public:
 	 */
 	int		set_hil_enabled(bool hil_enabled);
 
-	MavlinkOrbSubscription *add_orb_subscription(const struct orb_metadata *topic, size_t size);
+	MavlinkOrbSubscription *add_orb_subscription(const orb_id_t topic, size_t size);
 
 	mavlink_channel_t get_channel();
 
@@ -231,10 +231,7 @@ private:
 	MAVLINK_MODE _mode;
 
 	uint8_t _mavlink_wpm_comp_id;
-	mavlink_channel_t _chan;
-
-//  XXX probably should be in a header... 
-// extern pthread_t receive_start(int uart);
+	mavlink_channel_t _channel;
 
 	struct mavlink_logbuffer lb;
 	unsigned int total_counter;
@@ -248,7 +245,7 @@ private:
 	bool _verbose;
 	int _uart;
 	int _baudrate;
-	bool gcs_link;
+
 	/**
 	 * If the queue index is not at 0, the queue sending
 	 * logic will send parameters from the current index

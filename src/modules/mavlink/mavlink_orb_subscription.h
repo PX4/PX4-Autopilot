@@ -16,7 +16,7 @@ class MavlinkOrbSubscription {
 public:
 	MavlinkOrbSubscription *next;
 
-	MavlinkOrbSubscription(const struct orb_metadata *topic, size_t size);
+	MavlinkOrbSubscription(const orb_id_t topic, size_t size);
 	~MavlinkOrbSubscription();
 
 	bool update(const hrt_abstime t);
@@ -24,7 +24,7 @@ public:
 	const struct orb_metadata *get_topic();
 
 private:
-	const struct orb_metadata *_topic;
+	const orb_id_t _topic;
 	int _fd;
 	void *_data;
 	hrt_abstime _last_check;

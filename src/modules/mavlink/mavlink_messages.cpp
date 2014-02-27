@@ -5,6 +5,7 @@
  *      Author: ton
  */
 
+#include <stdio.h>
 #include <commander/px4_custom_mode.h>
 #include <lib/geo/geo.h>
 
@@ -19,6 +20,10 @@
 #include "mavlink_messages.h"
 
 
+static uint16_t cm_uint16_from_m_float(float m);
+static void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_setpoint_triplet_s *pos_sp_triplet,
+		uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode);
+
 uint16_t
 cm_uint16_from_m_float(float m)
 {
@@ -31,6 +36,83 @@ cm_uint16_from_m_float(float m)
 
 	return (uint16_t)(m * 100.0f);
 }
+
+void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_setpoint_triplet_s *pos_sp_triplet,
+		uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode)
+{
+	*mavlink_state = 0;
+	*mavlink_base_mode = 0;
+	*mavlink_custom_mode = 0;
+
+	/* HIL */
+	if (status->hil_state == HIL_STATE_ON) {
+		*mavlink_base_mode |= MAV_MODE_FLAG_HIL_ENABLED;
+	}
+
+	/* arming state */
+	if (status->arming_state == ARMING_STATE_ARMED
+			|| status->arming_state == ARMING_STATE_ARMED_ERROR) {
+		*mavlink_base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+	}
+
+	/* main state */
+	*mavlink_base_mode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
+
+	union px4_custom_mode custom_mode;
+	custom_mode.data = 0;
+	if (pos_sp_triplet->nav_state == NAV_STATE_NONE) {
+	/* use main state when navigator is not active */
+		if (status->main_state == MAIN_STATE_MANUAL) {
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+		} else if (status->main_state == MAIN_STATE_SEATBELT) {
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_SEATBELT;
+		} else if (status->main_state == MAIN_STATE_EASY) {
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_EASY;
+		} else if (status->main_state == MAIN_STATE_AUTO) {
+			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
+		}
+	} else {
+		/* use navigation state when navigator is active */
+		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		if (pos_sp_triplet->nav_state == NAV_STATE_READY) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
+		} else if (pos_sp_triplet->nav_state == NAV_STATE_LOITER) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
+		} else if (pos_sp_triplet->nav_state == NAV_STATE_MISSION) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
+		} else if (pos_sp_triplet->nav_state == NAV_STATE_RTL) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
+		} else if (pos_sp_triplet->nav_state == NAV_STATE_LAND) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
+		}
+	}
+
+	*mavlink_custom_mode = custom_mode.data;
+
+	/* set system state */
+	if (status->arming_state == ARMING_STATE_INIT
+			|| status->arming_state == ARMING_STATE_IN_AIR_RESTORE
+			|| status->arming_state == ARMING_STATE_STANDBY_ERROR) {	// TODO review
+		*mavlink_state = MAV_STATE_UNINIT;
+	} else if (status->arming_state == ARMING_STATE_ARMED) {
+		*mavlink_state = MAV_STATE_ACTIVE;
+	} else if (status->arming_state == ARMING_STATE_ARMED_ERROR) {
+		*mavlink_state = MAV_STATE_CRITICAL;
+	} else if (status->arming_state == ARMING_STATE_STANDBY) {
+		*mavlink_state = MAV_STATE_STANDBY;
+	} else if (status->arming_state == ARMING_STATE_REBOOT) {
+		*mavlink_state = MAV_STATE_POWEROFF;
+	} else {
+		*mavlink_state = MAV_STATE_CRITICAL;
+	}
+}
+
 
 class MavlinkStreamHeartbeat : public MavlinkStream {
 public:
@@ -68,78 +150,13 @@ protected:
 		uint8_t mavlink_state = 0;
 		uint8_t mavlink_base_mode = 0;
 		uint32_t mavlink_custom_mode = 0;
-
-		/* HIL */
-		if (status->hil_state == HIL_STATE_ON) {
-			mavlink_base_mode |= MAV_MODE_FLAG_HIL_ENABLED;
-		}
-
-		/* arming state */
-		if (status->arming_state == ARMING_STATE_ARMED
-				|| status->arming_state == ARMING_STATE_ARMED_ERROR) {
-			mavlink_base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
-		}
-
-		/* main state */
-		mavlink_base_mode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
-
-		union px4_custom_mode custom_mode;
-		custom_mode.data = 0;
-		if (pos_sp_triplet->nav_state == NAV_STATE_NONE) {
-		/* use main state when navigator is not active */
-			if (status->main_state == MAIN_STATE_MANUAL) {
-				mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
-				custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
-			} else if (status->main_state == MAIN_STATE_SEATBELT) {
-				mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
-				custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_SEATBELT;
-			} else if (status->main_state == MAIN_STATE_EASY) {
-				mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-				custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_EASY;
-			} else if (status->main_state == MAIN_STATE_AUTO) {
-				mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-				custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-				custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
-			}
-		} else {
-			/* use navigation state when navigator is active */
-			mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-			if (pos_sp_triplet->nav_state == NAV_STATE_READY) {
-				custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
-			} else if (pos_sp_triplet->nav_state == NAV_STATE_LOITER) {
-				custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
-			} else if (pos_sp_triplet->nav_state == NAV_STATE_MISSION) {
-				custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
-			} else if (pos_sp_triplet->nav_state == NAV_STATE_RTL) {
-				custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
-			} else if (pos_sp_triplet->nav_state == NAV_STATE_LAND) {
-				custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
-			}
-		}
-
-		/* set system state */
-		if (status->arming_state == ARMING_STATE_INIT
-				|| status->arming_state == ARMING_STATE_IN_AIR_RESTORE
-				|| status->arming_state == ARMING_STATE_STANDBY_ERROR) {	// TODO review
-			mavlink_state = MAV_STATE_UNINIT;
-		} else if (status->arming_state == ARMING_STATE_ARMED) {
-			mavlink_state = MAV_STATE_ACTIVE;
-		} else if (status->arming_state == ARMING_STATE_ARMED_ERROR) {
-			mavlink_state = MAV_STATE_CRITICAL;
-		} else if (status->arming_state == ARMING_STATE_STANDBY) {
-			mavlink_state = MAV_STATE_STANDBY;
-		} else if (status->arming_state == ARMING_STATE_REBOOT) {
-			mavlink_state = MAV_STATE_POWEROFF;
-		} else {
-			mavlink_state = MAV_STATE_CRITICAL;
-		}
+		get_mavlink_mode_state(status, pos_sp_triplet, &mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
 
 		mavlink_msg_heartbeat_send(_channel,
 					   mavlink_system.type,
 					   MAV_AUTOPILOT_PX4,
 					   mavlink_base_mode,
-					   custom_mode.data,
+					   mavlink_custom_mode,
 					   mavlink_state);
 
 	}
@@ -164,7 +181,6 @@ private:
 	struct vehicle_status_s *status;
 
 protected:
-
 	void subscribe(Mavlink *mavlink)
 	{
 		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status), sizeof(struct vehicle_status_s));
@@ -215,7 +231,6 @@ private:
 	uint32_t baro_counter = 0;
 
 protected:
-
 	void subscribe(Mavlink *mavlink)
 	{
 		sensor_sub = mavlink->add_orb_subscription(ORB_ID(sensor_combined), sizeof(struct sensor_combined_s));
@@ -281,7 +296,6 @@ private:
 	struct vehicle_attitude_s *att;
 
 protected:
-
 	void subscribe(Mavlink *mavlink)
 	{
 		att_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_attitude), sizeof(struct vehicle_attitude_s));
@@ -313,11 +327,9 @@ public:
 
 private:
 	MavlinkOrbSubscription *gps_sub;
-
 	struct vehicle_gps_position_s *gps;
 
 protected:
-
 	void subscribe(Mavlink *mavlink)
 	{
 		gps_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_gps_position), sizeof(struct vehicle_gps_position_s));
@@ -356,13 +368,12 @@ public:
 
 private:
 	MavlinkOrbSubscription *pos_sub;
-	MavlinkOrbSubscription *home_sub;
-
 	struct vehicle_global_position_s *pos;
+
+	MavlinkOrbSubscription *home_sub;
 	struct home_position_s *home;
 
 protected:
-
 	void subscribe(Mavlink *mavlink)
 	{
 		pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_global_position), sizeof(struct vehicle_global_position_s));
@@ -404,11 +415,9 @@ public:
 
 private:
 	MavlinkOrbSubscription *pos_sub;
-
 	struct vehicle_local_position_s *pos;
 
 protected:
-
 	void subscribe(Mavlink *mavlink)
 	{
 		pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_local_position), sizeof(struct vehicle_local_position_s));
@@ -444,11 +453,9 @@ public:
 
 private:
 	MavlinkOrbSubscription *home_sub;
-
 	struct home_position_s *home;
 
 protected:
-
 	void subscribe(Mavlink *mavlink)
 	{
 		home_sub = mavlink->add_orb_subscription(ORB_ID(home_position), sizeof(struct home_position_s));
@@ -466,6 +473,171 @@ protected:
 };
 
 
+class MavlinkStreamServoOutputRaw : public MavlinkStream {
+public:
+	MavlinkStreamServoOutputRaw(unsigned int n) : MavlinkStream(), _n(n)
+	{
+		sprintf(_name, "SERVO_OUTPUT_RAW_%d", _n);
+	}
+
+	const char *get_name()
+	{
+		return _name;
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamServoOutputRaw(_n);
+	}
+
+private:
+	MavlinkOrbSubscription *act_sub;
+	struct actuator_outputs_s *act;
+
+	char _name[20];
+	unsigned int _n;
+
+protected:
+	void subscribe(Mavlink *mavlink)
+	{
+		orb_id_t act_topics[] = {
+			ORB_ID(actuator_outputs_0),
+			ORB_ID(actuator_outputs_1),
+			ORB_ID(actuator_outputs_2),
+			ORB_ID(actuator_outputs_3)
+		};
+
+		act_sub = mavlink->add_orb_subscription(act_topics[_n], sizeof(struct actuator_outputs_s));
+		act = (struct actuator_outputs_s *)act_sub->get_data();
+	}
+
+	void send(const hrt_abstime t) {
+		act_sub->update(t);
+
+		mavlink_msg_servo_output_raw_send(_channel,
+				act->timestamp / 1000,
+				_n,
+				act->output[0],
+				act->output[1],
+				act->output[2],
+				act->output[3],
+				act->output[4],
+				act->output[5],
+				act->output[6],
+				act->output[7]);
+	}
+};
+
+
+class MavlinkStreamHILControls : public MavlinkStream {
+public:
+	const char *get_name()
+	{
+		return "HIL_CONTROLS";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamHILControls();
+	}
+
+private:
+	MavlinkOrbSubscription *status_sub;
+	struct vehicle_status_s *status;
+
+	MavlinkOrbSubscription *pos_sp_triplet_sub;
+	struct position_setpoint_triplet_s *pos_sp_triplet;
+
+	MavlinkOrbSubscription *act_sub;
+	struct actuator_outputs_s *act;
+
+protected:
+	void subscribe(Mavlink *mavlink)
+	{
+		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status), sizeof(struct vehicle_status_s));
+		status = (struct vehicle_status_s *)status_sub->get_data();
+
+		pos_sp_triplet_sub = mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet), sizeof(position_setpoint_triplet_s));
+		pos_sp_triplet = (struct position_setpoint_triplet_s *)pos_sp_triplet_sub->get_data();
+
+		act_sub = mavlink->add_orb_subscription(ORB_ID(actuator_outputs_0), sizeof(struct actuator_outputs_s));
+		act = (struct actuator_outputs_s *)act_sub->get_data();
+	}
+
+	void send(const hrt_abstime t) {
+		status_sub->update(t);
+		pos_sp_triplet_sub->update(t);
+		act_sub->update(t);
+
+		/* translate the current syste state to mavlink state and mode */
+		uint8_t mavlink_state;
+		uint8_t mavlink_base_mode;
+		uint32_t mavlink_custom_mode;
+		get_mavlink_mode_state(status, pos_sp_triplet, &mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
+
+		/* HIL message as per MAVLink spec */
+
+		/* scale / assign outputs depending on system type */
+		if (mavlink_system.type == MAV_TYPE_QUADROTOR) {
+			mavlink_msg_hil_controls_send(_channel,
+							  hrt_absolute_time(),
+							  ((act->output[0] - 900.0f) / 600.0f) / 2.0f,
+							  ((act->output[1] - 900.0f) / 600.0f) / 2.0f,
+							  ((act->output[2] - 900.0f) / 600.0f) / 2.0f,
+							  ((act->output[3] - 900.0f) / 600.0f) / 2.0f,
+							  -1,
+							  -1,
+							  -1,
+							  -1,
+							  mavlink_base_mode,
+							  0);
+
+		} else if (mavlink_system.type == MAV_TYPE_HEXAROTOR) {
+			mavlink_msg_hil_controls_send(_channel,
+							  hrt_absolute_time(),
+							  ((act->output[0] - 900.0f) / 600.0f) / 2.0f,
+							  ((act->output[1] - 900.0f) / 600.0f) / 2.0f,
+							  ((act->output[2] - 900.0f) / 600.0f) / 2.0f,
+							  ((act->output[3] - 900.0f) / 600.0f) / 2.0f,
+							  ((act->output[4] - 900.0f) / 600.0f) / 2.0f,
+							  ((act->output[5] - 900.0f) / 600.0f) / 2.0f,
+							  -1,
+							  -1,
+							  mavlink_base_mode,
+							  0);
+
+		} else if (mavlink_system.type == MAV_TYPE_OCTOROTOR) {
+			mavlink_msg_hil_controls_send(_channel,
+							  hrt_absolute_time(),
+							  ((act->output[0] - 900.0f) / 600.0f) / 2.0f,
+							  ((act->output[1] - 900.0f) / 600.0f) / 2.0f,
+							  ((act->output[2] - 900.0f) / 600.0f) / 2.0f,
+							  ((act->output[3] - 900.0f) / 600.0f) / 2.0f,
+							  ((act->output[4] - 900.0f) / 600.0f) / 2.0f,
+							  ((act->output[5] - 900.0f) / 600.0f) / 2.0f,
+							  ((act->output[6] - 900.0f) / 600.0f) / 2.0f,
+							  ((act->output[7] - 900.0f) / 600.0f) / 2.0f,
+							  mavlink_base_mode,
+							  0);
+
+		} else {
+			mavlink_msg_hil_controls_send(_channel,
+							  hrt_absolute_time(),
+							  (act->output[0] - 1500.0f) / 500.0f,
+							  (act->output[1] - 1500.0f) / 500.0f,
+							  (act->output[2] - 1500.0f) / 500.0f,
+							  (act->output[3] - 1000.0f) / 1000.0f,
+							  (act->output[4] - 1500.0f) / 500.0f,
+							  (act->output[5] - 1500.0f) / 500.0f,
+							  (act->output[6] - 1500.0f) / 500.0f,
+							  (act->output[7] - 1500.0f) / 500.0f,
+							  mavlink_base_mode,
+							  0);
+		}
+	}
+};
+
+
 MavlinkStream *streams_list[] = {
 		new MavlinkStreamHeartbeat(),
 		new MavlinkStreamSysStatus(),
@@ -475,10 +647,13 @@ MavlinkStream *streams_list[] = {
 		new MavlinkStreamGlobalPositionInt(),
 		new MavlinkStreamLocalPositionNED(),
 		new MavlinkStreamGPSGlobalOrigin(),
+		new MavlinkStreamServoOutputRaw(0),
+		new MavlinkStreamServoOutputRaw(1),
+		new MavlinkStreamServoOutputRaw(2),
+		new MavlinkStreamServoOutputRaw(3),
+		new MavlinkStreamHILControls(),
 		nullptr
 };
-
-
 
 
 
@@ -649,107 +824,6 @@ MavlinkStream *streams_list[] = {
 //				rates_sp.pitch,
 //				rates_sp.yaw,
 //				rates_sp.thrust);
-//}
-//
-//void
-//MavlinkOrbListener::l_actuator_outputs(const struct listener *l)
-//{
-//	struct actuator_outputs_s act_outputs;
-//
-//	orb_id_t ids[] = {
-//		ORB_ID(actuator_outputs_0),
-//		ORB_ID(actuator_outputs_1),
-//		ORB_ID(actuator_outputs_2),
-//		ORB_ID(actuator_outputs_3)
-//	};
-//
-//	/* copy actuator data into local buffer */
-//	orb_copy(ids[l->arg], *l->subp, &act_outputs);
-//
-//	if (l->mavlink->get_mode() == Mavlink::MODE_OFFBOARD) {
-//		mavlink_msg_servo_output_raw_send(l->mavlink->get_chan(), l->listener->last_sensor_timestamp / 1000,
-//						  l->arg /* port number - needs GCS support */,
-//							 /* QGC has port number support already */
-//						  act_outputs.output[0],
-//						  act_outputs.output[1],
-//						  act_outputs.output[2],
-//						  act_outputs.output[3],
-//						  act_outputs.output[4],
-//						  act_outputs.output[5],
-//						  act_outputs.output[6],
-//						  act_outputs.output[7]);
-//
-//		/* only send in HIL mode and only send first group for HIL */
-//		if (l->mavlink->get_hil_enabled() && l->listener->armed.armed && ids[l->arg] == ORB_ID(actuator_outputs_0)) {
-//
-//			/* translate the current syste state to mavlink state and mode */
-//			uint8_t mavlink_state = 0;
-//			uint8_t mavlink_base_mode = 0;
-//			uint32_t mavlink_custom_mode = 0;
-//			l->mavlink->get_mavlink_mode_and_state(&mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
-//
-//			/* HIL message as per MAVLink spec */
-//
-//			/* scale / assign outputs depending on system type */
-//
-//			if (mavlink_system.type == MAV_TYPE_QUADROTOR) {
-//				mavlink_msg_hil_controls_send(l->mavlink->get_chan(),
-//							      hrt_absolute_time(),
-//							      ((act_outputs.output[0] - 900.0f) / 600.0f) / 2.0f,
-//							      ((act_outputs.output[1] - 900.0f) / 600.0f) / 2.0f,
-//							      ((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f,
-//							      ((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f,
-//							      -1,
-//							      -1,
-//							      -1,
-//							      -1,
-//							      mavlink_base_mode,
-//							      0);
-//
-//			} else if (mavlink_system.type == MAV_TYPE_HEXAROTOR) {
-//				mavlink_msg_hil_controls_send(l->mavlink->get_chan(),
-//							      hrt_absolute_time(),
-//							      ((act_outputs.output[0] - 900.0f) / 600.0f) / 2.0f,
-//							      ((act_outputs.output[1] - 900.0f) / 600.0f) / 2.0f,
-//							      ((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f,
-//							      ((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f,
-//							      ((act_outputs.output[4] - 900.0f) / 600.0f) / 2.0f,
-//							      ((act_outputs.output[5] - 900.0f) / 600.0f) / 2.0f,
-//							      -1,
-//							      -1,
-//							      mavlink_base_mode,
-//							      0);
-//
-//			} else if (mavlink_system.type == MAV_TYPE_OCTOROTOR) {
-//				mavlink_msg_hil_controls_send(l->mavlink->get_chan(),
-//							      hrt_absolute_time(),
-//							      ((act_outputs.output[0] - 900.0f) / 600.0f) / 2.0f,
-//							      ((act_outputs.output[1] - 900.0f) / 600.0f) / 2.0f,
-//							      ((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f,
-//							      ((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f,
-//							      ((act_outputs.output[4] - 900.0f) / 600.0f) / 2.0f,
-//							      ((act_outputs.output[5] - 900.0f) / 600.0f) / 2.0f,
-//							      ((act_outputs.output[6] - 900.0f) / 600.0f) / 2.0f,
-//							      ((act_outputs.output[7] - 900.0f) / 600.0f) / 2.0f,
-//							      mavlink_base_mode,
-//							      0);
-//
-//			} else {
-//				mavlink_msg_hil_controls_send(l->mavlink->get_chan(),
-//							      hrt_absolute_time(),
-//							      (act_outputs.output[0] - 1500.0f) / 500.0f,
-//							      (act_outputs.output[1] - 1500.0f) / 500.0f,
-//							      (act_outputs.output[2] - 1500.0f) / 500.0f,
-//							      (act_outputs.output[3] - 1000.0f) / 1000.0f,
-//							      (act_outputs.output[4] - 1500.0f) / 500.0f,
-//							      (act_outputs.output[5] - 1500.0f) / 500.0f,
-//							      (act_outputs.output[6] - 1500.0f) / 500.0f,
-//							      (act_outputs.output[7] - 1500.0f) / 500.0f,
-//							      mavlink_base_mode,
-//							      0);
-//			}
-//		}
-//	}
 //}
 //
 //void
