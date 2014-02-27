@@ -87,6 +87,7 @@
 #endif
 static const int ERROR = -1;
 
+#define DEFAULT_DEVICE_NAME	"/dev/ttyS1"
 #define MAX_DATA_RATE	10000	// max data rate in bytes/s
 #define MAIN_LOOP_DELAY 10000	// 100 Hz
 
@@ -151,9 +152,9 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 static void usage(void);
 
 Mavlink::Mavlink() :
-	device_name("/dev/ttyS1"),
+	device_name(DEFAULT_DEVICE_NAME),
 	_task_should_exit(false),
-	_next(nullptr),
+	next(nullptr),
 	_mavlink_fd(-1),
 	thread_running(false),
 	_mavlink_task(-1),
@@ -208,7 +209,7 @@ Mavlink::instance_count()
 	Mavlink* inst = ::_head;
 	unsigned inst_index = 0;
 	while (inst != nullptr) {
-		inst = inst->_next;
+		inst = inst->next;
 		inst_index++;
 	}
 
@@ -226,11 +227,11 @@ Mavlink::new_instance()
 		::_head = inst;
 	/* afterwards follow the next and append the instance */
 	} else {
-		while (next->_next != nullptr) {
-			next = next->_next;
+		while (next->next != nullptr) {
+			next = next->next;
 		}
 		/* now parent has a null pointer, fill it */
-		next->_next = inst;
+		next->next = inst;
 	}
 	return inst;
 }
@@ -240,8 +241,8 @@ Mavlink::get_instance(unsigned instance)
 {
 	Mavlink *inst = ::_head;
 	unsigned inst_index = 0;
-	while (inst->_next != nullptr && inst_index < instance) {
-		inst = inst->_next;
+	while (inst->next != nullptr && inst_index < instance) {
+		inst = inst->next;
 		inst_index++;
 	}
 
@@ -250,6 +251,20 @@ Mavlink::get_instance(unsigned instance)
 	}
 
 	return inst;
+}
+
+Mavlink *
+Mavlink::get_instance_for_device(const char *device_name)
+{
+	Mavlink *inst;
+
+	LL_FOREACH(::_head, inst) {
+		if (strcmp(inst->device_name, device_name) == 0) {
+			return inst;
+		}
+	}
+
+	return nullptr;
 }
 
 int
@@ -265,7 +280,7 @@ Mavlink::destroy_all_instances()
 	while (next_inst != nullptr) {
 
 		inst_to_del = next_inst;
-		next_inst = inst_to_del->_next;
+		next_inst = inst_to_del->next;
 
 		/* set flag to stop thread and wait for all threads to finish */
 		inst_to_del->_task_should_exit = true;
@@ -299,7 +314,7 @@ Mavlink::instance_exists(const char *device_name, Mavlink *self)
 		/* don't compare with itself */
 		if (inst != self && !strcmp(device_name, inst->device_name))
 			return true;
-		inst = inst->_next;
+		inst = inst->next;
 	}
 	return false;
 }
@@ -348,7 +363,7 @@ Mavlink::mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 
 			mavlink_logbuffer_write(&inst->lb, &msg);
 			inst->total_counter++;
-			inst = inst->_next;
+			inst = inst->next;
 
 		}
 		return OK;
@@ -1378,20 +1393,47 @@ MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, cons
 }
 
 int
-Mavlink::add_stream(const char *stream_name, const float rate)
+Mavlink::configure_stream(const char *stream_name, const float rate)
 {
-	/* search for stream with specified name */
-	for (unsigned int i = 0; streams_list[i] != nullptr; i++) {
-		if (strcmp(stream_name, streams_list[i]->get_name()) == 0) {
-			/* create stream copy for each mavlink instance */
-			MavlinkStream *stream = streams_list[i]->new_instance();
-			stream->set_channel(get_channel());
-			stream->set_interval(1000.0f / rate);
-			stream->subscribe(this);
-			LL_APPEND(_streams, stream);
+	/* calculate interval in ms, 0 means disabled stream */
+	unsigned int interval = (rate > 0.0f) ? (1000.0f / rate) : 0;
+
+	/* search if stream exists */
+	MavlinkStream *stream;
+	LL_FOREACH(_streams, stream) {
+		if (strcmp(stream_name, stream->get_name()) == 0) {
+			if (interval > 0) {
+				/* set new interval */
+				stream->set_interval(interval);
+
+			} else {
+				/* delete stream */
+				LL_DELETE(_streams, stream);
+				delete stream;
+			}
 			return OK;
 		}
 	}
+
+	if (interval > 0) {
+		/* search for stream with specified name in supported streams list */
+		for (unsigned int i = 0; streams_list[i] != nullptr; i++) {
+			if (strcmp(stream_name, streams_list[i]->get_name()) == 0) {
+				/* create new instance */
+				stream = streams_list[i]->new_instance();
+				stream->set_channel(get_channel());
+				stream->set_interval(interval);
+				stream->subscribe(this);
+				LL_APPEND(_streams, stream);
+				return OK;
+			}
+		}
+
+	} else {
+		/* stream not found, nothing to disable */
+		return OK;
+	}
+
 	return ERROR;
 }
 
@@ -1416,22 +1458,26 @@ Mavlink::task_main(int argc, char *argv[])
 	argc -= 2;
 	argv += 2;
 
+	/* don't exit from getopt loop to leave getopt global variables in consistent state,
+	 * set error flag instead */
+	bool err_flag = false;
+
 	while ((ch = getopt(argc, argv, "b:r:d:m:v")) != EOF) {
 		switch (ch) {
 		case 'b':
 			_baudrate = strtoul(optarg, NULL, 10);
-
-			if (_baudrate < 9600 || _baudrate > 921600)
-				errx(1, "invalid baud rate '%s'", optarg);
-
+			if (_baudrate < 9600 || _baudrate > 921600) {
+				warnx("invalid baud rate '%s'", optarg);
+				err_flag = true;
+			}
 			break;
 
 		case 'r':
 			_datarate = strtoul(optarg, NULL, 10);
-
-			if (_datarate < 10 || _datarate > MAX_DATA_RATE)
-				errx(1, "invalid data rate '%s'", optarg);
-
+			if (_datarate < 10 || _datarate > MAX_DATA_RATE) {
+				warnx("invalid data rate '%s'", optarg);
+				err_flag = true;
+			}
 			break;
 
 		case 'd':
@@ -1462,9 +1508,14 @@ Mavlink::task_main(int argc, char *argv[])
 			break;
 
 		default:
-			usage();
+			err_flag = true;
 			break;
 		}
+	}
+
+	if (err_flag) {
+		usage();
+		exit(1);
 	}
 
 	if (_datarate == 0) {
@@ -1562,29 +1613,29 @@ Mavlink::task_main(int argc, char *argv[])
 	/* add default streams depending on mode and intervals depending on datarate */
 	float rate_mult = _datarate / 1000.0f;
 
-	add_stream("HEARTBEAT", 1.0f);
+	configure_stream("HEARTBEAT", 1.0f);
 
 	switch(_mode) {
 	case MODE_OFFBOARD:
-		add_stream("SYS_STATUS", 1.0f);
-		add_stream("GPS_GLOBAL_ORIGIN", 0.5f * rate_mult);
-		add_stream("HIGHRES_IMU", 1.0f * rate_mult);
-		add_stream("ATTITUDE", 10.0f * rate_mult);
-		add_stream("GPS_RAW_INT", 1.0f * rate_mult);
-		add_stream("GLOBAL_POSITION_INT", 5.0f * rate_mult);
-		add_stream("LOCAL_POSITION_NED", 5.0f * rate_mult);
-		add_stream("SERVO_OUTPUT_RAW_0", 1.0f * rate_mult);
+		configure_stream("SYS_STATUS", 1.0f);
+		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f * rate_mult);
+		configure_stream("HIGHRES_IMU", 1.0f * rate_mult);
+		configure_stream("ATTITUDE", 10.0f * rate_mult);
+		configure_stream("GPS_RAW_INT", 1.0f * rate_mult);
+		configure_stream("GLOBAL_POSITION_INT", 5.0f * rate_mult);
+		configure_stream("LOCAL_POSITION_NED", 5.0f * rate_mult);
+		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f * rate_mult);
 		break;
 
 	case MODE_HIL:
-		add_stream("SYS_STATUS", 1.0f);
-		add_stream("GPS_GLOBAL_ORIGIN", 0.5f * rate_mult);
-		add_stream("HIGHRES_IMU", 1.0f * rate_mult);
-		add_stream("ATTITUDE", 10.0f * rate_mult);
-		add_stream("GPS_RAW_INT", 1.0f * rate_mult);
-		add_stream("GLOBAL_POSITION_INT", 5.0f * rate_mult);
-		add_stream("LOCAL_POSITION_NED", 5.0f * rate_mult);
-		add_stream("HIL_CONTROLS", 20.0f * rate_mult);
+		configure_stream("SYS_STATUS", 1.0f);
+		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f * rate_mult);
+		configure_stream("HIGHRES_IMU", 1.0f * rate_mult);
+		configure_stream("ATTITUDE", 10.0f * rate_mult);
+		configure_stream("GPS_RAW_INT", 1.0f * rate_mult);
+		configure_stream("GLOBAL_POSITION_INT", 5.0f * rate_mult);
+		configure_stream("LOCAL_POSITION_NED", 5.0f * rate_mult);
+		configure_stream("HIL_CONTROLS", 20.0f * rate_mult);
 		break;
 
 	default:
@@ -1726,17 +1777,76 @@ Mavlink::start(int argc, char *argv[])
 void
 Mavlink::status() 
 {
-	warnx("Running");
+	warnx("running");
+}
+
+int
+Mavlink::stream(int argc, char *argv[])
+{
+	const char *device_name = DEFAULT_DEVICE_NAME;
+	float rate = -1.0f;
+	const char *stream_name = nullptr;
+	int ch;
+
+	argc -= 1;
+	argv += 1;
+
+	/* don't exit from getopt loop to leave getopt global variables in consistent state,
+	 * set error flag instead */
+	bool err_flag = false;
+
+	while ((ch = getopt(argc, argv, "r:d:s:")) != EOF) {
+		switch (ch) {
+		case 'r':
+			rate = strtod(optarg, nullptr);
+			if (rate < 0.0f) {
+				err_flag = true;
+			}
+			break;
+
+		case 'd':
+			device_name = optarg;
+			break;
+
+		case 's':
+			stream_name = optarg;
+			break;
+
+		default:
+			err_flag = true;
+			break;
+		}
+	}
+
+	if (!err_flag && rate >= 0.0 && stream_name != nullptr) {
+		Mavlink *inst = get_instance_for_device(device_name);
+		if (inst != nullptr) {
+			if (OK == inst->configure_stream(stream_name, rate)) {
+				if (rate > 0.0f) {
+					warnx("stream %s on device %s enabled with rate %.1f Hz", stream_name, device_name, rate);
+
+				} else {
+					warnx("stream %s on device %s disabled", stream_name, device_name);
+				}
+
+			} else {
+				warnx("stream %s not found", stream_name, device_name);
+			}
+
+		} else {
+			errx(1, "mavlink for device %s is not running", device_name);
+		}
+
+	} else {
+		errx(1, "usage: mavlink stream [-d device] -s stream -r rate");
+	}
+
+	return OK;
 }
 
 static void usage()
 {
-	errx(1, "usage: mavlink {start|stop-all} [-d device] [-b baudrate] [-r datarate] [-m mode] [-v]\n\n"
-			"Supported modes (-m):\n"
-			"\toffboard\tSend standard telemetry data to ground station (default)\n"
-			"\tonboard\tOnboard comminication mode, e.g. to connect PX4FLOW\n"
-			"\thil\tHardware In the Loop mode, send telemetry and HIL_CONTROLS\n"
-			"\tcustom\tCustom configuration, don't send anything by default, streams can be enabled by 'mavlink stream' command\n");
+	errx(1, "usage: mavlink {start|stop-all|stream} [-d device] [-b baudrate] [-r rate] [-m mode] [-s stream] [-v]");
 }
 
 int mavlink_main(int argc, char *argv[])
@@ -1757,6 +1867,9 @@ int mavlink_main(int argc, char *argv[])
 
 	// } else if (!strcmp(argv[1], "status")) {
 	// 	mavlink::g_mavlink->status();
+
+	} else if (!strcmp(argv[1], "stream")) {
+		return Mavlink::stream(argc, argv);
 
 	 } else {
 	 	usage();

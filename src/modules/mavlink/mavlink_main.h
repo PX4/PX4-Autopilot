@@ -149,11 +149,15 @@ public:
 	 */
 	void		status();
 
+	static int stream(int argc, char *argv[]);
+
 	static int	instance_count();
 
-	static Mavlink* new_instance();
+	static Mavlink *new_instance();
 
-	static Mavlink* get_instance(unsigned instance);
+	static Mavlink *get_instance(unsigned instance);
+
+	static Mavlink *get_instance_for_device(const char *device_name);
 
 	static int	destroy_all_instances();
 
@@ -208,7 +212,7 @@ public:
 	bool		_task_should_exit;		/**< if true, mavlink task should exit */
 
 protected:
-	Mavlink*	_next;
+	Mavlink*	next;
 
 private:
 	int		_mavlink_fd;
@@ -316,7 +320,7 @@ private:
 
 	int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
 
-	int add_stream(const char *stream_name, const float rate);
+	int configure_stream(const char *stream_name, const float rate);
 
 	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
 
