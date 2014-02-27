@@ -120,17 +120,12 @@ public:
     const DataTypeSignature& getSignature() const { return signature_; }
     const char* getName() const { return name_; }
 
+    bool match(DataTypeKind kind, const char* name) const;
+
     std::string toString() const;
 
     bool operator!=(const DataTypeDescriptor& rhs) const { return !operator==(rhs); }
-    bool operator==(const DataTypeDescriptor& rhs) const
-    {
-        return
-            (kind_ == rhs.kind_) &&
-            (id_ == rhs.id_) &&
-            (signature_ == rhs.signature_) &&
-            !std::strcmp(name_, rhs.name_);
-    }
+    bool operator==(const DataTypeDescriptor& rhs) const;
 };
 
 }

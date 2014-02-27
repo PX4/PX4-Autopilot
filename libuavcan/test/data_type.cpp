@@ -102,3 +102,13 @@ TEST(DataTypeDescriptor, ToString)
                                       uavcan::DataTypeSignature(0xdeadbeef1234), "Bar");
     ASSERT_EQ("Bar:123m:0000deadbeef1234", desc.toString());
 }
+
+
+TEST(DataTypeDescriptor, Match)
+{
+    uavcan::DataTypeDescriptor desc(uavcan::DataTypeKindMessage, 123,
+                                    uavcan::DataTypeSignature(0xdeadbeef1234), "namespace.TypeName");
+    ASSERT_TRUE(desc.match(uavcan::DataTypeKindMessage, "namespace.TypeName"));
+    ASSERT_FALSE(desc.match(uavcan::DataTypeKindMessage, "boo"));
+    ASSERT_FALSE(desc.match(uavcan::DataTypeKindService, "namespace.TypeName"));
+}

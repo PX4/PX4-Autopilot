@@ -3,6 +3,7 @@
  */
 
 #include <sstream>
+#include <cstring>
 #include <iomanip>
 #include <cassert>
 #include <uavcan/data_type.hpp>
@@ -38,6 +39,11 @@ TransferCRC DataTypeSignature::toTransferCRC() const
 /*
  * DataTypeDescriptor
  */
+bool DataTypeDescriptor::match(DataTypeKind kind, const char* name) const
+{
+    return (kind_ == kind) && !std::strcmp(name_, name);
+}
+
 std::string DataTypeDescriptor::toString() const
 {
     char kindch = '?';
@@ -51,6 +57,15 @@ std::string DataTypeDescriptor::toString() const
     std::ostringstream os;
     os << name_ << ":" << id_ << kindch << ":" << std::hex << std::setfill('0') << std::setw(16) << signature_.get();
     return os.str();
+}
+
+bool DataTypeDescriptor::operator==(const DataTypeDescriptor& rhs) const
+{
+    return
+        (kind_ == rhs.kind_) &&
+        (id_ == rhs.id_) &&
+        (signature_ == rhs.signature_) &&
+        !std::strcmp(name_, rhs.name_);
 }
 
 }
