@@ -4,7 +4,7 @@
 
 #include <cstdio>
 #include <cassert>
-#include <uavcan/internal/data_type.hpp>
+#include <uavcan/data_type.hpp>
 
 namespace uavcan
 {

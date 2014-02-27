@@ -3,7 +3,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <uavcan/internal/data_type.hpp>
+#include <uavcan/data_type.hpp>
 
 
 TEST(DataTypeSignatureCRC, Correctness)

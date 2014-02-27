@@ -6,7 +6,7 @@
 
 #include <cstdlib>
 #include <cassert>
-#include <uavcan/internal/data_type.hpp>
+#include <uavcan/data_type.hpp>
 #include <uavcan/internal/transport/crc.hpp>
 #include <uavcan/internal/transport/transfer.hpp>
 #include <uavcan/internal/transport/dispatcher.hpp>

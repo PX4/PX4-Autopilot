@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include <algorithm>
 #include <uavcan/internal/transport/crc.hpp>
+#include <uavcan/internal/transport/transfer.hpp>
+#include <uavcan/internal/marshalling/types.hpp>
 
 namespace uavcan
 {

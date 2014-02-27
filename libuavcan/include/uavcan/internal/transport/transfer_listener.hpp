@@ -11,8 +11,8 @@
 #include <uavcan/internal/linked_list.hpp>
 #include <uavcan/internal/map.hpp>
 #include <uavcan/internal/debug.hpp>
-#include <uavcan/internal/data_type.hpp>
 #include <uavcan/internal/transport/crc.hpp>
+#include <uavcan/data_type.hpp>
 
 namespace uavcan
 {
