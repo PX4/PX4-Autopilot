@@ -652,6 +652,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 	argv += 2;
 	int ch;
 
+	/* don't exit from getopt loop to leave getopt global variables in consistent state,
+	 * set error flag instead */
+	bool err_flag = false;
+
 	while ((ch = getopt(argc, argv, "r:b:eat")) != EOF) {
 		switch (ch) {
 		case 'r': {
@@ -699,11 +703,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 			} else {
 				warnx("unknown option character `\\x%x'", optopt);
 			}
+			err_flag = true;
+			break;
 
 		default:
-			sdlog2_usage("unrecognized flag");
-			errx(1, "exiting");
+			warnx("unrecognized flag");
+			err_flag = true;
+			break;
 		}
+	}
+
+	if (err_flag) {
+		sdlog2_usage(NULL);
 	}
 
 	gps_time = 0;
