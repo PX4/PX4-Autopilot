@@ -176,6 +176,8 @@ private:
 	bool launch_detected;
 	bool usePreTakeoffThrust;
 
+	bool last_manual;				///< true if the last iteration was in manual mode (used to determine when a reset is needed)
+
 	/* Landingslope object */
 	Landingslope landingslope;
 
@@ -346,6 +348,16 @@ private:
 	 * Main sensor collection task.
 	 */
 	void		task_main() __attribute__((noreturn));
+
+	/*
+	 * Reset takeoff state
+	 */
+	int reset_takeoff_state();
+
+	/*
+	 * Reset landing state
+	 */
+	int reset_landing_state();
 };
 
 namespace l1_control
@@ -396,7 +408,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_mavlink_fd(-1),
 	launchDetector(),
 	launch_detected(false),
-	usePreTakeoffThrust(false)
+	usePreTakeoffThrust(false),
+	last_manual(false)
 {
 	/* safely initialize structs */
 	vehicle_attitude_s			_att = {0};
@@ -1042,20 +1055,14 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		// mission is active
 		_loiter_hold = false;
 
-		/* reset land state */
+		/* reset landing state */
 		if (pos_sp_triplet.current.type != SETPOINT_TYPE_LAND) {
-			land_noreturn_horizontal = false;
-			land_noreturn_vertical = false;
-			land_stayonground = false;
-			land_motor_lim = false;
-			land_onslope = false;
+			reset_landing_state();
 		}
 
 		/* reset takeoff/launch state */
 		if (pos_sp_triplet.current.type != SETPOINT_TYPE_TAKEOFF) {
-			launch_detected = false;
-			usePreTakeoffThrust = false;
-			launchDetector.reset();
+			reset_takeoff_state();
 		}
 
 		if (was_circle_mode && !_l1_control.circle_mode()) {
@@ -1150,6 +1157,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		/* no flight mode applies, do not publish an attitude setpoint */
 		setpoint = false;
+
+		/* reset landing and takeoff state */
+		if (!last_manual) {
+			reset_landing_state();
+			reset_takeoff_state();
+		}
 	}
 
 	if (usePreTakeoffThrust) {
@@ -1159,6 +1172,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		_att_sp.thrust = math::min(_tecs.get_throttle_demand(), throttle_max);
 	}
 	_att_sp.pitch_body = _tecs.get_pitch_demand();
+
+	if (_control_mode.flag_control_position_enabled) {
+		last_manual = false;
+	} else {
+		last_manual = true;
+	}
 
 
 	return setpoint;
@@ -1308,6 +1327,22 @@ FixedwingPositionControl::task_main()
 
 	_control_task = -1;
 	_exit(0);
+}
+
+int FixedwingPositionControl::reset_takeoff_state()
+{
+	launch_detected = false;
+	usePreTakeoffThrust = false;
+	launchDetector.reset();
+}
+
+int FixedwingPositionControl::reset_landing_state()
+{
+	land_noreturn_horizontal = false;
+	land_noreturn_vertical = false;
+	land_stayonground = false;
+	land_motor_lim = false;
+	land_onslope = false;
 }
 
 int
