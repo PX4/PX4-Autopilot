@@ -47,12 +47,13 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::remove(Entry* dtd)
     if (!list)
         return RegistResultInvalidParams;
 
-    Entry* p = list->get();
+    list->remove(dtd);       // If this call came from regist<>(), that would be enough
+    Entry* p = list->get();  // But anyway
     while (p)
     {
         Entry* const next = p->getNextListNode();
         if (p->descriptor.match(dtd->descriptor.getKind(), dtd->descriptor.getName()))
-            list->remove(dtd);
+            list->remove(p);
         p = next;
     }
     return RegistResultOk;
