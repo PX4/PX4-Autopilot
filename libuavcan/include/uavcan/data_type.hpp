@@ -69,11 +69,8 @@ class DataTypeSignature
 
     void mixin64(uint64_t x);
 
-    DataTypeSignature() : value_(0) { }
-
 public:
-    static DataTypeSignature zero() { return DataTypeSignature(); }
-
+    DataTypeSignature() : value_(0) { }
     explicit DataTypeSignature(uint64_t value) : value_(value) { }
 
     void extend(DataTypeSignature dts);
@@ -100,7 +97,6 @@ public:
     DataTypeDescriptor()
     : kind_(DataTypeKind(0))
     , id_(0)
-    , signature_(DataTypeSignature::zero())
     , name_("")
     { }
 
@@ -121,6 +117,7 @@ public:
     const char* getName() const { return name_; }
 
     bool match(DataTypeKind kind, const char* name) const;
+    bool match(DataTypeKind kind, uint16_t id) const;
 
     std::string toString() const;
 

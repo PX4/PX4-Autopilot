@@ -31,6 +31,22 @@ namespace
         static const char* getDataTypeName() { return "my_namespace.DataTypeB"; }
     };
 
+    struct DataTypeC
+    {
+        enum { DefaultDataTypeID = 43 };
+        enum { DataTypeKind = uavcan::DataTypeKindMessage };
+        static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(654); }
+        static const char* getDataTypeName() { return "foo.DataTypeC"; }
+    };
+
+    struct DataTypeD
+    {
+        enum { DefaultDataTypeID = 43 };
+        enum { DataTypeKind = uavcan::DataTypeKindService };
+        static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(987); }
+        static const char* getDataTypeName() { return "foo.DataTypeD"; }
+    };
+
 
     template <typename Type>
     uavcan::DataTypeDescriptor extractDescriptor(uint16_t dtid = Type::DefaultDataTypeID)
@@ -44,13 +60,15 @@ namespace
 TEST(GlobalDataTypeRegistry, Basic)
 {
     using uavcan::GlobalDataTypeRegistry;
+    using uavcan::DataTypeIDMask;
+    using uavcan::DataTypeSignature;
 
     GlobalDataTypeRegistry::instance().reset();
     ASSERT_FALSE(GlobalDataTypeRegistry::instance().isFrozen());
     ASSERT_EQ(0, GlobalDataTypeRegistry::instance().getNumMessageTypes());
     ASSERT_EQ(0, GlobalDataTypeRegistry::instance().getNumServiceTypes());
 
-    uavcan::DataTypeIDMask dtmask;
+    DataTypeIDMask dtmask;
     dtmask.set();
     GlobalDataTypeRegistry::instance().getDataTypeIDMask(uavcan::DataTypeKindMessage, dtmask);
     ASSERT_FALSE(dtmask.any());
@@ -107,6 +125,25 @@ TEST(GlobalDataTypeRegistry, Basic)
     ASSERT_FALSE(dtmask.any());
 
     /*
+     * These types will be necessary for the aggregate signature test
+     */
+    ASSERT_TRUE(GlobalDataTypeRegistry::instance().assign<DataTypeC>(DataTypeC::DefaultDataTypeID));
+    uavcan::DefaultDataTypeRegistrator<DataTypeD> reg_DataTypeD;
+
+    GlobalDataTypeRegistry::instance().getDataTypeIDMask(uavcan::DataTypeKindMessage, dtmask);
+    ASSERT_TRUE(dtmask[0]);
+    ASSERT_TRUE(dtmask[741]);
+    ASSERT_TRUE(dtmask[43]);
+    dtmask[0] = dtmask[43] = dtmask[741] = false;
+    ASSERT_FALSE(dtmask.any());
+
+    GlobalDataTypeRegistry::instance().getDataTypeIDMask(uavcan::DataTypeKindService, dtmask);
+    ASSERT_TRUE(dtmask[147]);
+    ASSERT_TRUE(dtmask[43]);
+    dtmask[43] = dtmask[147] = false;
+    ASSERT_FALSE(dtmask.any());
+
+    /*
      * Frozen state
      */
     GlobalDataTypeRegistry::instance().freeze();
@@ -131,14 +168,76 @@ TEST(GlobalDataTypeRegistry, Basic)
 
     ASSERT_TRUE((pdtd = GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindService, "my_namespace.DataTypeA")));
     ASSERT_EQ(extractDescriptor<DataTypeAService>(147), *pdtd);
+}
 
-    /*
-     * Aggregate signature computation
-     */
-    // TODO: test
+
+TEST(GlobalDataTypeRegistry, AggregateSignature)
+{
+    using uavcan::GlobalDataTypeRegistry;
+    using uavcan::DataTypeIDMask;
+    using uavcan::DataTypeSignature;
+
+    ASSERT_TRUE(GlobalDataTypeRegistry::instance().isFrozen());
+
+    DataTypeIDMask mask;
+    DataTypeSignature sign;
+
+    // Zero - empty mask
+    sign = GlobalDataTypeRegistry::instance().computeAggregateSignature(uavcan::DataTypeKindMessage, mask);
+
+    ASSERT_EQ(DataTypeSignature(), sign);
+    ASSERT_FALSE(mask.any());
+
+    // All set
+    mask.set();
+    sign = GlobalDataTypeRegistry::instance().computeAggregateSignature(uavcan::DataTypeKindMessage, mask);
+    ASSERT_TRUE(mask[0]);     // DataTypeAMessage
+    ASSERT_TRUE(mask[43]);    // DataTypeC
+    ASSERT_TRUE(mask[741]);   // DataTypeB
+    mask[0] = mask[43] = mask[741] = false;
+    ASSERT_FALSE(mask.any());
+    {
+        DataTypeSignature check_signature(DataTypeAMessage::getDataTypeSignature()); // Order matters - low --> high
+        check_signature.extend(DataTypeC::getDataTypeSignature());
+        check_signature.extend(DataTypeB::getDataTypeSignature());
+        ASSERT_EQ(check_signature, sign);
+    }
+
+    mask.set();
+    sign = GlobalDataTypeRegistry::instance().computeAggregateSignature(uavcan::DataTypeKindService, mask);
+    ASSERT_TRUE(mask[43]);    // DataTypeD
+    ASSERT_TRUE(mask[147]);   // DataTypeAService
+    mask[43] = mask[147] = false;
+    ASSERT_FALSE(mask.any());
+    {
+        DataTypeSignature check_signature(DataTypeD::getDataTypeSignature());
+        check_signature.extend(DataTypeAService::getDataTypeSignature());
+        ASSERT_EQ(check_signature, sign);
+    }
+
+    // Random
+    mask[0] = mask[99] = mask[147] = mask[741] = mask[999] = true;
+    sign = GlobalDataTypeRegistry::instance().computeAggregateSignature(uavcan::DataTypeKindMessage, mask);
+    ASSERT_TRUE(mask[0]);     // DataTypeAMessage
+    ASSERT_TRUE(mask[741]);   // DataTypeB
+    mask[0] = mask[741] = false;
+    ASSERT_FALSE(mask.any());
+    {
+        DataTypeSignature check_signature(DataTypeAMessage::getDataTypeSignature()); // Order matters - low --> high
+        check_signature.extend(DataTypeB::getDataTypeSignature());
+        ASSERT_EQ(check_signature, sign);
+    }
+}
+
+
+TEST(GlobalDataTypeRegistry, Reset)
+{
+    using uavcan::GlobalDataTypeRegistry;
 
     /*
      * Since we're dealing with singleton, we need to reset it for other tests to use
      */
+    ASSERT_TRUE(GlobalDataTypeRegistry::instance().isFrozen());
     GlobalDataTypeRegistry::instance().reset();
+    ASSERT_FALSE(GlobalDataTypeRegistry::instance().isFrozen());
 }

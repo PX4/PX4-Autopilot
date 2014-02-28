@@ -42,7 +42,7 @@ TEST(DataTypeSignature, Correctness)
     using uavcan::DataTypeSignature;
     using uavcan::DataTypeSignatureCRC;
 
-    DataTypeSignature signature = DataTypeSignature::zero();
+    DataTypeSignature signature;
     ASSERT_EQ(0, signature.get());
 
     /*
@@ -87,9 +87,9 @@ TEST(DataTypeSignature, Correctness)
      * Comparison
      */
     ASSERT_TRUE(signature == DataTypeSignature(signature.get()));
-    ASSERT_FALSE(signature == DataTypeSignature::zero());
+    ASSERT_FALSE(signature == DataTypeSignature());
     ASSERT_FALSE(signature != DataTypeSignature(signature.get()));
-    ASSERT_TRUE(signature != DataTypeSignature::zero());
+    ASSERT_TRUE(signature != DataTypeSignature());
 }
 
 

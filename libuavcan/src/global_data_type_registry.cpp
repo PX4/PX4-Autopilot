@@ -91,12 +91,55 @@ const DataTypeDescriptor* GlobalDataTypeRegistry::find(DataTypeKind kind, const 
     return NULL;
 }
 
-DataTypeSignature GlobalDataTypeRegistry::computeAggregateSignature(const DataTypeIDMask& msgs,
-                                                                    const DataTypeIDMask& srvs) const
+DataTypeSignature GlobalDataTypeRegistry::computeAggregateSignature(DataTypeKind kind,
+                                                                    DataTypeIDMask& inout_id_mask) const
 {
-    (void)msgs;
-    (void)srvs;
-    return DataTypeSignature::zero(); // TODO: implementation
+    const List* list = selectList(kind);
+    if (list == NULL)
+    {
+        assert(0);
+        return DataTypeSignature();
+    }
+
+    DataTypeSignature signature;
+    bool signature_initialized = false;
+
+    for (int id = 0; id <= DataTypeDescriptor::MaxDataTypeID; id++)
+    {
+        if (!inout_id_mask[id])
+            continue;
+
+        // TODO: do it faster - no need to traverse the list on each iteration
+        const DataTypeDescriptor* desc = NULL;
+        {
+            Entry* p = list->get();
+            while (p)
+            {
+                if (p->decriptor.match(kind, id))
+                {
+                    desc = &p->decriptor;
+                    break;
+                }
+                p = p->getNextListNode();
+            }
+        }
+
+        if (desc)
+        {
+            if (signature_initialized)
+            {
+                signature.extend(desc->getSignature());
+            }
+            else
+            {
+                signature_initialized = true;
+                signature = DataTypeSignature(desc->getSignature());
+            }
+        }
+        else
+            inout_id_mask[id] = false;
+    }
+    return signature;
 }
 
 void GlobalDataTypeRegistry::getDataTypeIDMask(DataTypeKind kind, DataTypeIDMask& mask) const

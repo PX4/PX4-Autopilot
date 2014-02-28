@@ -44,6 +44,11 @@ bool DataTypeDescriptor::match(DataTypeKind kind, const char* name) const
     return (kind_ == kind) && !std::strcmp(name_, name);
 }
 
+bool DataTypeDescriptor::match(DataTypeKind kind, uint16_t id) const
+{
+    return (kind_ == kind) && (id_ == id);
+}
+
 std::string DataTypeDescriptor::toString() const
 {
     char kindch = '?';

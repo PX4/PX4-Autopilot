@@ -64,7 +64,7 @@ public:
 
     const DataTypeDescriptor* find(DataTypeKind kind, const char* name) const;
 
-    DataTypeSignature computeAggregateSignature(const DataTypeIDMask& msgs, const DataTypeIDMask& srvs) const;
+    DataTypeSignature computeAggregateSignature(DataTypeKind kind, DataTypeIDMask& inout_id_mask) const;
 
     void getDataTypeIDMask(DataTypeKind kind, DataTypeIDMask& mask) const;
 
