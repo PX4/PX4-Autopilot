@@ -77,6 +77,7 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
+#include <mavlink/mavlink_log.h>
 
 #include "estimator.h"
 
@@ -174,18 +175,22 @@ private:
 	bool						_initialized;
 	bool						_gps_initialized;
 
+	int						_mavlink_fd;
+
 	struct {
-		float		throttle_cruise;
-		uint32_t	vel_delay_ms;
-		uint32_t	pos_delay_ms;
-		uint32_t	height_delay_ms;
-		uint32_t	mag_delay_ms;
-		uint32_t	tas_delay_ms;
+		int32_t	vel_delay_ms;
+		int32_t	pos_delay_ms;
+		int32_t	height_delay_ms;
+		int32_t	mag_delay_ms;
+		int32_t	tas_delay_ms;
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
-		param_t throttle_cruise;
-
+		param_t vel_delay_ms;
+		param_t	pos_delay_ms;
+		param_t	height_delay_ms;
+		param_t	mag_delay_ms;
+		param_t	tas_delay_ms;
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -264,10 +269,17 @@ FixedwingEstimator::FixedwingEstimator() :
 
 /* states */
 	_initialized(false),
-	_gps_initialized(false)
+	_gps_initialized(false),
+	_mavlink_fd(-1)
 {
 
-	_parameter_handles.throttle_cruise = param_find("NAV_DUMMY");
+	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+
+	_parameter_handles.vel_delay_ms = param_find("PE_VEL_DELAY_MS");
+	_parameter_handles.pos_delay_ms = param_find("PE_POS_DELAY_MS");
+	_parameter_handles.height_delay_ms = param_find("PE_HGT_DELAY_MS");
+	_parameter_handles.mag_delay_ms = param_find("PE_MAG_DELAY_MS");
+	_parameter_handles.tas_delay_ms = param_find("PE_TAS_DELAY_MS");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -327,14 +339,11 @@ int
 FixedwingEstimator::parameters_update()
 {
 
-	// XXX NEED TO GET HANDLES FIRST! NEEDS PARAM INIT
-	//param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
-
-	_parameters.vel_delay_ms = 230;
-	_parameters.pos_delay_ms = 210;
-	_parameters.height_delay_ms = 350;
-	_parameters.mag_delay_ms = 30;
-	_parameters.tas_delay_ms = 210;
+	param_get(_parameter_handles.vel_delay_ms, &(_parameters.vel_delay_ms));
+	param_get(_parameter_handles.pos_delay_ms, &(_parameters.pos_delay_ms));
+	param_get(_parameter_handles.height_delay_ms, &(_parameters.height_delay_ms));
+	param_get(_parameter_handles.mag_delay_ms, &(_parameters.mag_delay_ms));
+	param_get(_parameter_handles.tas_delay_ms, &(_parameters.tas_delay_ms));
 
 	return OK;
 }
@@ -360,13 +369,6 @@ FixedwingEstimator::task_main_trampoline(int argc, char *argv[])
 }
 
 float dt = 0.0f; // time lapsed since last covariance prediction
-
-// Estimated time delays (msec)
-uint32_t msecVelDelay = 230;
-uint32_t msecPosDelay = 210;
-uint32_t msecHgtDelay = 350;
-uint32_t msecMagDelay = 30;
-uint32_t msecTasDelay = 210;
 
 void
 FixedwingEstimator::task_main()
