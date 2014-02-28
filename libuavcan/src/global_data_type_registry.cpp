@@ -63,7 +63,33 @@ bool GlobalDataTypeRegistry::add(Entry* dtd)
     if (!list)
         return false;
 
-    list->insert(dtd);
+    {   // Collision check
+        Entry* p = list->get();
+        while (p)
+        {
+            if (p->decriptor.getID() == dtd->decriptor.getID()) // ID collision
+                return false;
+            p = p->getNextListNode();
+        }
+    }
+    list->insertBefore(dtd, EntryInsertionComparator(dtd));
+
+#if UAVCAN_DEBUG
+    {   // Order check
+        Entry* p = list->get();
+        int id = -1;
+        while (p)
+        {
+            if (id >= p->decriptor.getID())
+            {
+                assert(0);
+                std::abort();
+            }
+            id = p->decriptor.getID();
+            p = p->getNextListNode();
+        }
+    }
+#endif
     return true;
 }
 

@@ -127,6 +127,7 @@ TEST(GlobalDataTypeRegistry, Basic)
     /*
      * These types will be necessary for the aggregate signature test
      */
+    ASSERT_FALSE(GlobalDataTypeRegistry::instance().assign<DataTypeC>(741));               // COLLISION - error
     ASSERT_TRUE(GlobalDataTypeRegistry::instance().assign<DataTypeC>(DataTypeC::DefaultDataTypeID));
     uavcan::DefaultDataTypeRegistrator<DataTypeD> reg_DataTypeD;
 

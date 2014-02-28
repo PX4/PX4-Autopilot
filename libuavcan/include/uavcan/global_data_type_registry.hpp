@@ -30,6 +30,17 @@ class GlobalDataTypeRegistry : Noncopyable
         { }
     };
 
+    struct EntryInsertionComparator
+    {
+        const uint16_t id;
+        EntryInsertionComparator(Entry* dtd) : id(dtd->decriptor.getID()) { }
+        bool operator()(const Entry* entry) const
+        {
+            assert(entry);
+            return entry->decriptor.getID() > id;
+        }
+    };
+
     typedef LinkedListRoot<Entry> List;
     List msgs_;
     List srvs_;
