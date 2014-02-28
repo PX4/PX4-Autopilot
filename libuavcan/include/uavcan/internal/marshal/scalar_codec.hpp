@@ -9,7 +9,7 @@
 #include <limits>
 #include <string>
 #include <uavcan/internal/util.hpp>
-#include <uavcan/internal/marshalling/bit_stream.hpp>
+#include <uavcan/internal/marshal/bit_stream.hpp>
 
 namespace uavcan
 {

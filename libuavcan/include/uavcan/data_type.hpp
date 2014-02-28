@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <uavcan/internal/transport/crc.hpp>
 #include <uavcan/internal/transport/transfer.hpp>
-#include <uavcan/internal/marshalling/types.hpp>
+#include <uavcan/internal/marshal/types.hpp>
 
 namespace uavcan
 {

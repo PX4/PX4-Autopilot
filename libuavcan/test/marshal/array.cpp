@@ -3,7 +3,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <uavcan/internal/marshalling/types.hpp>
+#include <uavcan/internal/marshal/types.hpp>
 
 using uavcan::Array;
 using uavcan::ArrayModeDynamic;

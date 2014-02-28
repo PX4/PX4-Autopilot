@@ -3,7 +3,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <uavcan/internal/marshalling/bit_stream.hpp>
+#include <uavcan/internal/marshal/bit_stream.hpp>
 
 
 TEST(BitStream, ToString)

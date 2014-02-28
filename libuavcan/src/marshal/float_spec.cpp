@@ -2,7 +2,7 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <uavcan/internal/marshalling/float_spec.hpp>
+#include <uavcan/internal/marshal/float_spec.hpp>
 #include <cmath>
 
 namespace uavcan

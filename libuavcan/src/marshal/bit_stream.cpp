@@ -4,7 +4,7 @@
 
 #include <cassert>
 #include <sstream>
-#include <uavcan/internal/marshalling/bit_stream.hpp>
+#include <uavcan/internal/marshal/bit_stream.hpp>
 
 namespace uavcan
 {

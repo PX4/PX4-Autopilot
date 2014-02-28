@@ -3,7 +3,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <uavcan/internal/marshalling/scalar_codec.hpp>
+#include <uavcan/internal/marshal/scalar_codec.hpp>
 
 
 TEST(ScalarCodec, Basic)

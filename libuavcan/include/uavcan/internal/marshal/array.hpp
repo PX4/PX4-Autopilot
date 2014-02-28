@@ -10,7 +10,7 @@
 #include <typeinfo>
 #include <uavcan/internal/impl_constants.hpp>
 #include <uavcan/internal/util.hpp>
-#include <uavcan/internal/marshalling/type_util.hpp>
+#include <uavcan/internal/marshal/type_util.hpp>
 
 namespace uavcan
 {

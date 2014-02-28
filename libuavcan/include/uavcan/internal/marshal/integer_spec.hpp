@@ -7,8 +7,8 @@
 #include <stdint.h>
 #include <limits>
 #include <uavcan/internal/util.hpp>
-#include <uavcan/internal/marshalling/scalar_codec.hpp>
-#include <uavcan/internal/marshalling/type_util.hpp>
+#include <uavcan/internal/marshal/scalar_codec.hpp>
+#include <uavcan/internal/marshal/type_util.hpp>
 
 namespace uavcan
 {
