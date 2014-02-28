@@ -89,7 +89,7 @@ class DataTypeDescriptor
     DataTypeKind kind_;
     uint16_t id_;
     DataTypeSignature signature_;
-    const char* name_;
+    const char* full_name_;
 
 public:
     enum { MaxDataTypeID = Frame::MaxDataTypeID };
@@ -97,14 +97,14 @@ public:
     DataTypeDescriptor()
     : kind_(DataTypeKind(0))
     , id_(0)
-    , name_("")
+    , full_name_("")
     { }
 
     DataTypeDescriptor(DataTypeKind kind, uint16_t id, const DataTypeSignature& signature, const char* name)
     : kind_(kind)
     , id_(id)
     , signature_(signature)
-    , name_(name)
+    , full_name_(name)
     {
         assert(id <= MaxDataTypeID);
         assert(kind < NumDataTypeKinds);
@@ -114,7 +114,7 @@ public:
     DataTypeKind getKind() const { return kind_; }
     uint16_t getID() const { return id_; }
     const DataTypeSignature& getSignature() const { return signature_; }
-    const char* getName() const { return name_; }
+    const char* getFullName() const { return full_name_; }
 
     bool match(DataTypeKind kind, const char* name) const;
     bool match(DataTypeKind kind, uint16_t id) const;

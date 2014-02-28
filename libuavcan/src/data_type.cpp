@@ -41,7 +41,7 @@ TransferCRC DataTypeSignature::toTransferCRC() const
  */
 bool DataTypeDescriptor::match(DataTypeKind kind, const char* name) const
 {
-    return (kind_ == kind) && !std::strcmp(name_, name);
+    return (kind_ == kind) && !std::strcmp(full_name_, name);
 }
 
 bool DataTypeDescriptor::match(DataTypeKind kind, uint16_t id) const
@@ -60,7 +60,7 @@ std::string DataTypeDescriptor::toString() const
     }
 
     std::ostringstream os;
-    os << name_ << ":" << id_ << kindch << ":" << std::hex << std::setfill('0') << std::setw(16) << signature_.get();
+    os << full_name_ << ":" << id_ << kindch << ":" << std::hex << std::setfill('0') << std::setw(16) << signature_.get();
     return os.str();
 }
 
@@ -70,7 +70,7 @@ bool DataTypeDescriptor::operator==(const DataTypeDescriptor& rhs) const
         (kind_ == rhs.kind_) &&
         (id_ == rhs.id_) &&
         (signature_ == rhs.signature_) &&
-        !std::strcmp(name_, rhs.name_);
+        !std::strcmp(full_name_, rhs.full_name_);
 }
 
 }

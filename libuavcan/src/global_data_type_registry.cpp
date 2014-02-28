@@ -52,7 +52,7 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::remove(Entry* dtd)
     while (p)
     {
         Entry* const next = p->getNextListNode();
-        if (p->descriptor.match(dtd->descriptor.getKind(), dtd->descriptor.getName()))
+        if (p->descriptor.match(dtd->descriptor.getKind(), dtd->descriptor.getFullName()))
             list->remove(p);
         p = next;
     }
@@ -79,7 +79,7 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::registImpl(Entry* d
         {
             if (p->descriptor.getID() == dtd->descriptor.getID()) // ID collision
                 return RegistResultCollision;
-            if (p->descriptor.match(dtd->descriptor.getName())) // Name collision
+            if (p->descriptor.match(dtd->descriptor.getFullName())) // Name collision
                 return RegistResultCollision;
             p = p->getNextListNode();
         }

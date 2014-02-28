@@ -12,7 +12,7 @@ namespace
         enum { DefaultDataTypeID = 0 };
         enum { DataTypeKind = uavcan::DataTypeKindMessage };
         static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(123); }
-        static const char* getDataTypeName() { return "my_namespace.DataTypeA"; }
+        static const char* getDataTypeFullName() { return "my_namespace.DataTypeA"; }
     };
 
     struct DataTypeAService
@@ -20,7 +20,7 @@ namespace
         enum { DefaultDataTypeID = 0 };
         enum { DataTypeKind = uavcan::DataTypeKindService };
         static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(789); }
-        static const char* getDataTypeName() { return "my_namespace.DataTypeA"; }
+        static const char* getDataTypeFullName() { return "my_namespace.DataTypeA"; }
     };
 
     struct DataTypeB
@@ -28,7 +28,7 @@ namespace
         enum { DefaultDataTypeID = 42 };
         enum { DataTypeKind = uavcan::DataTypeKindMessage };
         static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(456); }
-        static const char* getDataTypeName() { return "my_namespace.DataTypeB"; }
+        static const char* getDataTypeFullName() { return "my_namespace.DataTypeB"; }
     };
 
     struct DataTypeC
@@ -36,7 +36,7 @@ namespace
         enum { DefaultDataTypeID = 1023 };
         enum { DataTypeKind = uavcan::DataTypeKindMessage };
         static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(654); }
-        static const char* getDataTypeName() { return "foo.DataTypeC"; }
+        static const char* getDataTypeFullName() { return "foo.DataTypeC"; }
     };
 
     struct DataTypeD
@@ -44,7 +44,7 @@ namespace
         enum { DefaultDataTypeID = 43 };
         enum { DataTypeKind = uavcan::DataTypeKindService };
         static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(987); }
-        static const char* getDataTypeName() { return "foo.DataTypeD"; }
+        static const char* getDataTypeFullName() { return "foo.DataTypeD"; }
     };
 
     struct DataTypeBNameCollision
@@ -52,7 +52,7 @@ namespace
         enum { DefaultDataTypeID = 999 };
         enum { DataTypeKind = uavcan::DataTypeKindMessage };
         static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(963); }
-        static const char* getDataTypeName() { return "my_namespace.DataTypeB"; }
+        static const char* getDataTypeFullName() { return "my_namespace.DataTypeB"; }
     };
 
 
@@ -60,7 +60,7 @@ namespace
     uavcan::DataTypeDescriptor extractDescriptor(uint16_t dtid = Type::DefaultDataTypeID)
     {
         return uavcan::DataTypeDescriptor(uavcan::DataTypeKind(Type::DataTypeKind), dtid,
-                                          Type::getDataTypeSignature(), Type::getDataTypeName());
+                                          Type::getDataTypeSignature(), Type::getDataTypeFullName());
     }
 }
 

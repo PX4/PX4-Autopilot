@@ -79,7 +79,7 @@ public:
         if (remove_res != RegistResultOk)
             return remove_res;
 
-        entry = Entry(DataTypeKind(Type::DataTypeKind), id, Type::getDataTypeSignature(), Type::getDataTypeName());
+        entry = Entry(DataTypeKind(Type::DataTypeKind), id, Type::getDataTypeSignature(), Type::getDataTypeFullName());
         return registImpl(&entry);
     }
 
