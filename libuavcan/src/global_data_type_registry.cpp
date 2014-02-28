@@ -141,44 +141,35 @@ DataTypeSignature GlobalDataTypeRegistry::computeAggregateSignature(DataTypeKind
         return DataTypeSignature();
     }
 
+    int prev_dtid = -1;
     DataTypeSignature signature;
     bool signature_initialized = false;
-
-    for (int id = 0; id <= DataTypeDescriptor::MaxDataTypeID; id++)
+    Entry* p = list->get();
+    while (p)
     {
-        if (!inout_id_mask[id])
-            continue;
+        const DataTypeDescriptor& desc = p->descriptor;
 
-        // TODO: do it faster - no need to traverse the list on each iteration
-        const DataTypeDescriptor* desc = NULL;
-        {
-            Entry* p = list->get();
-            while (p)
-            {
-                if (p->descriptor.match(kind, id))
-                {
-                    desc = &p->descriptor;
-                    break;
-                }
-                p = p->getNextListNode();
-            }
-        }
-
-        if (desc)
+        if (inout_id_mask[desc.getID()])
         {
             if (signature_initialized)
-            {
-                signature.extend(desc->getSignature());
-            }
+                signature.extend(desc.getSignature());
             else
-            {
-                signature_initialized = true;
-                signature = DataTypeSignature(desc->getSignature());
-            }
+                signature = DataTypeSignature(desc.getSignature());
+            signature_initialized = true;
         }
-        else
-            inout_id_mask[id] = false;
+
+        assert(prev_dtid < desc.getID());  // Making sure that list is ordered properly
+        prev_dtid++;
+        while (prev_dtid < desc.getID())
+            inout_id_mask[prev_dtid++] = false; // Erasing bits for missing types
+        assert(prev_dtid == desc.getID());
+
+        p = p->getNextListNode();
     }
+    prev_dtid++;
+    while (prev_dtid <= DataTypeDescriptor::MaxDataTypeID)
+        inout_id_mask[prev_dtid++] = false;
+
     return signature;
 }
 

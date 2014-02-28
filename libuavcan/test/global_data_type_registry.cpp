@@ -249,6 +249,14 @@ TEST(GlobalDataTypeRegistry, AggregateSignature)
         check_signature.extend(DataTypeB::getDataTypeSignature());
         ASSERT_EQ(check_signature, sign);
     }
+
+    // One
+    mask[1] = mask[43] = true;
+    sign = GlobalDataTypeRegistry::instance().computeAggregateSignature(uavcan::DataTypeKindService, mask);
+    ASSERT_TRUE(mask[43]);   // DataTypeD
+    mask[43] = false;
+    ASSERT_FALSE(mask.any());
+    ASSERT_EQ(DataTypeD::getDataTypeSignature(), sign);
 }
 
 
