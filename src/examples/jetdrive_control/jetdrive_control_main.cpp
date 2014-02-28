@@ -95,19 +95,19 @@ JetdriveControl::JetdriveControl() :
 
 	I.identity();
 
-	_params_handles.roll_p			= 	param_find("MC_ROLL_P");
-	_params_handles.roll_rate_p		= 	param_find("MC_ROLLRATE_P");
-	_params_handles.roll_rate_i		= 	param_find("MC_ROLLRATE_I");
-	_params_handles.roll_rate_d		= 	param_find("MC_ROLLRATE_D");
-	_params_handles.pitch_p			= 	param_find("MC_PITCH_P");
-	_params_handles.pitch_rate_p	= 	param_find("MC_PITCHRATE_P");
-	_params_handles.pitch_rate_i	= 	param_find("MC_PITCHRATE_I");
-	_params_handles.pitch_rate_d	= 	param_find("MC_PITCHRATE_D");
-	_params_handles.yaw_p			=	param_find("MC_YAW_P");
-	_params_handles.yaw_rate_p		= 	param_find("MC_YAWRATE_P");
-	_params_handles.yaw_rate_i		= 	param_find("MC_YAWRATE_I");
-	_params_handles.yaw_rate_d		= 	param_find("MC_YAWRATE_D");
-	_params_handles.yaw_ff			= 	param_find("MC_YAW_FF");
+	_params_handles.roll_p			= 	param_find("JC_ROLL_P");
+	_params_handles.roll_rate_p		= 	param_find("JC_ROLLRATE_P");
+	_params_handles.roll_rate_i		= 	param_find("JC_ROLLRATE_I");
+	_params_handles.roll_rate_d		= 	param_find("JC_ROLLRATE_D");
+	_params_handles.pitch_p			= 	param_find("JC_PITCH_P");
+	_params_handles.pitch_rate_p	= 	param_find("JC_PITCHRATE_P");
+	_params_handles.pitch_rate_i	= 	param_find("JC_PITCHRATE_I");
+	_params_handles.pitch_rate_d	= 	param_find("JC_PITCHRATE_D");
+	_params_handles.yaw_p			=	param_find("JC_YAW_P");
+	_params_handles.yaw_rate_p		= 	param_find("JC_YAWRATE_P");
+	_params_handles.yaw_rate_i		= 	param_find("JC_YAWRATE_I");
+	_params_handles.yaw_rate_d		= 	param_find("JC_YAWRATE_D");
+	_params_handles.yaw_ff			= 	param_find("JC_YAW_FF");
 
 	_params_handles.rc_scale_yaw	= 	param_find("RC_SCALE_YAW");
 
@@ -463,6 +463,11 @@ JetdriveControl::control_attitude_rates(float dt)
 
 	/* angular rates error */
 	math::Vector<3> rates_err = _rates_sp - rates;
+
+	// _att_control will be loaded to controls
+	//
+	// _att_control = (JC_XXXRATE_P * rates_err) + (JC_XXXRATE_D * (_rates_prev - rate) / dt) + _rates_int;
+
 	_att_control = _params.rate_p.emult(rates_err) + _params.rate_d.emult(_rates_prev - rates) / dt + _rates_int;
 	_rates_prev = rates;
 
@@ -597,6 +602,10 @@ JetdriveControl::task_main()
 					/* attitude controller disabled */
 					// TODO poll 'attitude_rates_setpoint' topic
 					vehicle_rates_setpoint_poll();
+					_rates_sp(0) = _v_rates_sp.roll;
+					_rates_sp(1) = _v_rates_sp.pitch;
+					_rates_sp(2) = _v_rates_sp.yaw;
+					_thrust_sp = _v_rates_sp.thrust;					
 //					_rates_sp.zero();
 //					_thrust_sp = 0.0f;
 				}
