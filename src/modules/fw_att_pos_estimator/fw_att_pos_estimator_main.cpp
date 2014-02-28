@@ -164,7 +164,8 @@ private:
 	struct sensor_combined_s			_sensor_combined;
 #endif
 
-	float						_baro_ref;	/**< barometer reference altitude */
+	float						_baro_ref;		/**< barometer reference altitude */
+	float						_baro_gps_offset;	/**< offset between GPS and baro */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_perf_gyro;			///<local performance counter for gyro updates
@@ -261,6 +262,7 @@ FixedwingEstimator::FixedwingEstimator() :
 	_local_pos_pub(-1),
 
 	_baro_ref(0.0f),
+	_baro_gps_offset(0.0f),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_COUNT, "fw_att_pos_estimator")),
@@ -709,6 +711,7 @@ FixedwingEstimator::task_main()
 
 					// Store 
 					_baro_ref = baroHgt;
+					_baro_gps_offset = baroHgt - _gps.alt;
 
 					// XXX this is not multithreading safe
 					double lat = _gps.lat * 1e-7;
@@ -963,7 +966,7 @@ FixedwingEstimator::task_main()
 				_global_pos.alt = _local_pos.ref_alt - _local_pos.z;
 
 				if (_local_pos.z_valid) {
-					_global_pos.baro_alt = _baro_ref - _local_pos.z;
+					_global_pos.baro_alt = _baro_ref - _baro_gps_offset - _local_pos.z;
 				}
 
 				if (_local_pos.v_z_valid) {
