@@ -39,7 +39,7 @@ void GlobalDataTypeRegistry::remove(Entry* dtd)
     if (isFrozen())
         return;
 
-    List* list = selectList(dtd->decriptor.getKind());
+    List* list = selectList(dtd->descriptor.getKind());
     if (!list)
         return;
 
@@ -47,7 +47,7 @@ void GlobalDataTypeRegistry::remove(Entry* dtd)
     while (p)
     {
         Entry* const next = p->getNextListNode();
-        if (p->decriptor.match(dtd->decriptor.getKind(), dtd->decriptor.getName()))
+        if (p->descriptor.match(dtd->descriptor.getKind(), dtd->descriptor.getName()))
             list->remove(dtd);
         p = next;
     }
@@ -59,7 +59,7 @@ bool GlobalDataTypeRegistry::add(Entry* dtd)
     if (isFrozen())
         return false;
 
-    List* list = selectList(dtd->decriptor.getKind());
+    List* list = selectList(dtd->descriptor.getKind());
     if (!list)
         return false;
 
@@ -67,7 +67,7 @@ bool GlobalDataTypeRegistry::add(Entry* dtd)
         Entry* p = list->get();
         while (p)
         {
-            if (p->decriptor.getID() == dtd->decriptor.getID()) // ID collision
+            if (p->descriptor.getID() == dtd->descriptor.getID()) // ID collision
                 return false;
             p = p->getNextListNode();
         }
@@ -80,12 +80,12 @@ bool GlobalDataTypeRegistry::add(Entry* dtd)
         int id = -1;
         while (p)
         {
-            if (id >= p->decriptor.getID())
+            if (id >= p->descriptor.getID())
             {
                 assert(0);
                 std::abort();
             }
-            id = p->decriptor.getID();
+            id = p->descriptor.getID();
             p = p->getNextListNode();
         }
     }
@@ -110,8 +110,8 @@ const DataTypeDescriptor* GlobalDataTypeRegistry::find(DataTypeKind kind, const 
     Entry* p = list->get();
     while (p)
     {
-        if (p->decriptor.match(kind, name))
-            return &p->decriptor;
+        if (p->descriptor.match(kind, name))
+            return &p->descriptor;
         p = p->getNextListNode();
     }
     return NULL;
@@ -143,9 +143,9 @@ DataTypeSignature GlobalDataTypeRegistry::computeAggregateSignature(DataTypeKind
             Entry* p = list->get();
             while (p)
             {
-                if (p->decriptor.match(kind, id))
+                if (p->descriptor.match(kind, id))
                 {
-                    desc = &p->decriptor;
+                    desc = &p->descriptor;
                     break;
                 }
                 p = p->getNextListNode();
@@ -182,8 +182,8 @@ void GlobalDataTypeRegistry::getDataTypeIDMask(DataTypeKind kind, DataTypeIDMask
     Entry* p = list->get();
     while (p)
     {
-        assert(p->decriptor.getKind() == kind);
-        mask[p->decriptor.getID()] = true;
+        assert(p->descriptor.getKind() == kind);
+        mask[p->descriptor.getID()] = true;
         p = p->getNextListNode();
     }
 }

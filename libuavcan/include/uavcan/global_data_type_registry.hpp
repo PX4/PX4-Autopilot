@@ -21,23 +21,23 @@ class GlobalDataTypeRegistry : Noncopyable
 {
     struct Entry : public LinkedListNode<Entry>
     {
-        DataTypeDescriptor decriptor;
+        DataTypeDescriptor descriptor;
 
         Entry() { }
 
         Entry(DataTypeKind kind, uint16_t id, const DataTypeSignature& signature, const char* name)
-        : decriptor(kind, id, signature, name)
+        : descriptor(kind, id, signature, name)
         { }
     };
 
     struct EntryInsertionComparator
     {
         const uint16_t id;
-        EntryInsertionComparator(Entry* dtd) : id(dtd->decriptor.getID()) { }
+        EntryInsertionComparator(Entry* dtd) : id(dtd->descriptor.getID()) { }
         bool operator()(const Entry* entry) const
         {
             assert(entry);
-            return entry->decriptor.getID() > id;
+            return entry->descriptor.getID() > id;
         }
     };
 
