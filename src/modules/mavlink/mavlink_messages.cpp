@@ -10,12 +10,33 @@
 #include <lib/geo/geo.h>
 
 #include <uORB/uORB.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/rc_channels.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/offboard_control_setpoint.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/actuator_controls_effective.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/debug_key_value.h>
+#include <uORB/topics/airspeed.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/navigation_capabilities.h>
+#include <drivers/drv_rc_input.h>
 
 #include "mavlink_messages.h"
 
@@ -128,9 +149,9 @@ public:
 
 private:
 	MavlinkOrbSubscription *status_sub;
-	MavlinkOrbSubscription *pos_sp_triplet_sub;
-
 	struct vehicle_status_s *status;
+
+	MavlinkOrbSubscription *pos_sp_triplet_sub;
 	struct position_setpoint_triplet_s *pos_sp_triplet;
 
 protected:
@@ -177,7 +198,6 @@ public:
 
 private:
 	MavlinkOrbSubscription *status_sub;
-
 	struct vehicle_status_s *status;
 
 protected:
@@ -210,6 +230,10 @@ protected:
 
 class MavlinkStreamHighresIMU : public MavlinkStream {
 public:
+	MavlinkStreamHighresIMU() : MavlinkStream(), accel_counter(0), gyro_counter(0), mag_counter(0), baro_counter(0)
+	{
+	}
+
 	const char *get_name()
 	{
 		return "HIGHRES_IMU";
@@ -222,13 +246,12 @@ public:
 
 private:
 	MavlinkOrbSubscription *sensor_sub;
-
 	struct sensor_combined_s *sensor;
 
-	uint32_t accel_counter = 0;
-	uint32_t gyro_counter = 0;
-	uint32_t mag_counter = 0;
-	uint32_t baro_counter = 0;
+	uint32_t accel_counter;
+	uint32_t gyro_counter;
+	uint32_t mag_counter;
+	uint32_t baro_counter;
 
 protected:
 	void subscribe(Mavlink *mavlink)
@@ -292,7 +315,6 @@ public:
 
 private:
 	MavlinkOrbSubscription *att_sub;
-
 	struct vehicle_attitude_s *att;
 
 protected:
@@ -309,6 +331,75 @@ protected:
 				att->timestamp / 1000,
 				att->roll, att->pitch, att->yaw,
 				att->rollspeed, att->pitchspeed, att->yawspeed);
+	}
+};
+
+
+class MavlinkStreamVFRHUD : public MavlinkStream {
+public:
+	const char *get_name()
+	{
+		return "VFR_HUD";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamVFRHUD();
+	}
+
+private:
+	MavlinkOrbSubscription *att_sub;
+	struct vehicle_attitude_s *att;
+
+	MavlinkOrbSubscription *pos_sub;
+	struct vehicle_global_position_s *pos;
+
+	MavlinkOrbSubscription *armed_sub;
+	struct actuator_armed_s *armed;
+
+	MavlinkOrbSubscription *act_sub;
+	struct actuator_controls_s *act;
+
+	MavlinkOrbSubscription *airspeed_sub;
+	struct airspeed_s *airspeed;
+
+protected:
+	void subscribe(Mavlink *mavlink)
+	{
+		att_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_attitude), sizeof(struct vehicle_attitude_s));
+		att = (struct vehicle_attitude_s *)att_sub->get_data();
+
+		pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_global_position), sizeof(struct vehicle_global_position_s));
+		pos = (struct vehicle_global_position_s *)pos_sub->get_data();
+
+		armed_sub = mavlink->add_orb_subscription(ORB_ID(actuator_armed), sizeof(struct actuator_armed_s));
+		armed = (struct actuator_armed_s *)armed_sub->get_data();
+
+		act_sub = mavlink->add_orb_subscription(ORB_ID(actuator_controls_0), sizeof(struct actuator_controls_s));
+		act = (struct actuator_controls_s *)act_sub->get_data();
+
+		airspeed_sub = mavlink->add_orb_subscription(ORB_ID(airspeed), sizeof(struct airspeed_s));
+		airspeed = (struct airspeed_s *)airspeed_sub->get_data();
+	}
+
+	void send(const hrt_abstime t) {
+		att_sub->update(t);
+		pos_sub->update(t);
+		armed_sub->update(t);
+		act_sub->update(t);
+		airspeed_sub->update(t);
+
+		float groundspeed = sqrtf(pos->vel_n * pos->vel_n + pos->vel_e * pos->vel_e);
+		uint16_t heading = _wrap_2pi(att->yaw) * M_RAD_TO_DEG_F;
+		float throttle = armed->armed ? act->control[3] * 100.0f : 0.0f;
+
+		mavlink_msg_vfr_hud_send(_channel,
+				airspeed->true_airspeed_m_s,
+				groundspeed,
+				heading,
+				throttle,
+				pos->alt,
+				-pos->vel_d);
 	}
 };
 
@@ -638,11 +729,203 @@ protected:
 };
 
 
+class MavlinkStreamGlobalPositionSetpointInt : public MavlinkStream {
+public:
+	const char *get_name()
+	{
+		return "GLOBAL_POSITION_SETPOINT_INT";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamGlobalPositionSetpointInt();
+	}
+
+private:
+	MavlinkOrbSubscription *pos_sp_triplet_sub;
+	struct position_setpoint_triplet_s *pos_sp_triplet;
+
+protected:
+	void subscribe(Mavlink *mavlink)
+	{
+		pos_sp_triplet_sub = mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet), sizeof(position_setpoint_triplet_s));
+		pos_sp_triplet = (struct position_setpoint_triplet_s *)pos_sp_triplet_sub->get_data();
+	}
+
+	void send(const hrt_abstime t) {
+		pos_sp_triplet_sub->update(t);
+
+		mavlink_msg_global_position_setpoint_int_send(_channel,
+				MAV_FRAME_GLOBAL,
+				(int32_t)(pos_sp_triplet->current.lat * 1e7),
+				(int32_t)(pos_sp_triplet->current.lon * 1e7),
+				(int32_t)(pos_sp_triplet->current.alt * 1000),
+				(int16_t)(pos_sp_triplet->current.yaw * M_RAD_TO_DEG_F * 100.0f));
+	}
+};
+
+
+class MavlinkStreamLocalPositionSetpoint : public MavlinkStream {
+public:
+	const char *get_name()
+	{
+		return "LOCAL_POSITION_SETPOINT";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamLocalPositionSetpoint();
+	}
+
+private:
+	MavlinkOrbSubscription *pos_sp_sub;
+	struct vehicle_local_position_setpoint_s *pos_sp;
+
+protected:
+	void subscribe(Mavlink *mavlink)
+	{
+		pos_sp_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_local_position_setpoint), sizeof(vehicle_local_position_setpoint_s));
+		pos_sp = (struct vehicle_local_position_setpoint_s *)pos_sp_sub->get_data();
+	}
+
+	void send(const hrt_abstime t) {
+		pos_sp_sub->update(t);
+
+		mavlink_msg_local_position_setpoint_send(_channel,
+				MAV_FRAME_LOCAL_NED,
+				pos_sp->x,
+				pos_sp->y,
+				pos_sp->z,
+				pos_sp->yaw);
+	}
+};
+
+
+class MavlinkStreamRollPitchYawThrustSetpoint : public MavlinkStream {
+public:
+	const char *get_name()
+	{
+		return "ROLL_PITCH_YAW_THRUST_SETPOINT";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamRollPitchYawThrustSetpoint();
+	}
+
+private:
+	MavlinkOrbSubscription *att_sp_sub;
+	struct vehicle_attitude_setpoint_s *att_sp;
+
+protected:
+	void subscribe(Mavlink *mavlink)
+	{
+		att_sp_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_attitude_setpoint), sizeof(vehicle_attitude_setpoint_s));
+		att_sp = (struct vehicle_attitude_setpoint_s *)att_sp_sub->get_data();
+	}
+
+	void send(const hrt_abstime t) {
+		att_sp_sub->update(t);
+
+		mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(_channel,
+				att_sp->timestamp / 1000,
+				att_sp->roll_body,
+				att_sp->pitch_body,
+				att_sp->yaw_body,
+				att_sp->thrust);
+	}
+};
+
+
+class MavlinkStreamRollPitchYawRatesThrustSetpoint : public MavlinkStream {
+public:
+	const char *get_name()
+	{
+		return "ROLL_PITCH_YAW_RATES_THRUST_SETPOINT";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamRollPitchYawRatesThrustSetpoint();
+	}
+
+private:
+	MavlinkOrbSubscription *att_rates_sp_sub;
+	struct vehicle_rates_setpoint_s *att_rates_sp;
+
+protected:
+	void subscribe(Mavlink *mavlink)
+	{
+		att_rates_sp_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_rates_setpoint), sizeof(vehicle_rates_setpoint_s));
+		att_rates_sp = (struct vehicle_rates_setpoint_s *)att_rates_sp_sub->get_data();
+	}
+
+	void send(const hrt_abstime t) {
+		att_rates_sp_sub->update(t);
+
+		mavlink_msg_roll_pitch_yaw_rates_thrust_setpoint_send(_channel,
+				att_rates_sp->timestamp / 1000,
+				att_rates_sp->roll,
+				att_rates_sp->pitch,
+				att_rates_sp->yaw,
+				att_rates_sp->thrust);
+	}
+};
+
+
+class MavlinkStreamRCChannelsRaw : public MavlinkStream {
+public:
+	const char *get_name()
+	{
+		return "RC_CHANNELS_RAW";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamRCChannelsRaw();
+	}
+
+private:
+	MavlinkOrbSubscription *rc_sub;
+	struct rc_input_values *rc;
+
+protected:
+	void subscribe(Mavlink *mavlink)
+	{
+		rc_sub = mavlink->add_orb_subscription(ORB_ID(input_rc), sizeof(struct rc_input_values));
+		rc = (struct rc_input_values *)rc_sub->get_data();
+	}
+
+	void send(const hrt_abstime t) {
+		rc_sub->update(t);
+
+		const unsigned port_width = 8;
+
+		for (unsigned i = 0; (i * port_width) < rc->channel_count; i++) {
+			/* Channels are sent in MAVLink main loop at a fixed interval */
+			mavlink_msg_rc_channels_raw_send(_channel,
+					rc->timestamp_publication / 1000,
+					i,
+					(rc->channel_count > (i * port_width) + 0) ? rc->values[(i * port_width) + 0] : UINT16_MAX,
+					(rc->channel_count > (i * port_width) + 1) ? rc->values[(i * port_width) + 1] : UINT16_MAX,
+					(rc->channel_count > (i * port_width) + 2) ? rc->values[(i * port_width) + 2] : UINT16_MAX,
+					(rc->channel_count > (i * port_width) + 3) ? rc->values[(i * port_width) + 3] : UINT16_MAX,
+					(rc->channel_count > (i * port_width) + 4) ? rc->values[(i * port_width) + 4] : UINT16_MAX,
+					(rc->channel_count > (i * port_width) + 5) ? rc->values[(i * port_width) + 5] : UINT16_MAX,
+					(rc->channel_count > (i * port_width) + 6) ? rc->values[(i * port_width) + 6] : UINT16_MAX,
+					(rc->channel_count > (i * port_width) + 7) ? rc->values[(i * port_width) + 7] : UINT16_MAX,
+					rc->rssi);
+		}
+	}
+};
+
+
 MavlinkStream *streams_list[] = {
 		new MavlinkStreamHeartbeat(),
 		new MavlinkStreamSysStatus(),
 		new MavlinkStreamHighresIMU(),
 		new MavlinkStreamAttitude(),
+		new MavlinkStreamVFRHUD(),
 		new MavlinkStreamGPSRawInt(),
 		new MavlinkStreamGlobalPositionInt(),
 		new MavlinkStreamLocalPositionNED(),
@@ -652,6 +935,11 @@ MavlinkStream *streams_list[] = {
 		new MavlinkStreamServoOutputRaw(2),
 		new MavlinkStreamServoOutputRaw(3),
 		new MavlinkStreamHILControls(),
+		new MavlinkStreamGlobalPositionSetpointInt(),
+		new MavlinkStreamLocalPositionSetpoint(),
+		new MavlinkStreamRollPitchYawThrustSetpoint(),
+		new MavlinkStreamRollPitchYawRatesThrustSetpoint(),
+		new MavlinkStreamRCChannelsRaw(),
 		nullptr
 };
 
@@ -705,132 +993,9 @@ MavlinkStream *streams_list[] = {
 //	l->listener->attitude_counter++;
 //}
 //
-//void
-//MavlinkOrbListener::l_vehicle_gps_position(const struct listener *l)
-//{
-//	struct vehicle_gps_position_s gps;
-//
-//	/* copy gps data into local buffer */
-//	orb_copy(ORB_ID(vehicle_gps_position), l->mavlink->get_subs()->gps_sub, &gps);
-//
-//	/* update SAT info every 10 seconds */
-//	if (gps.satellite_info_available && (l->listener->gps_counter % 50 == 0)) {
-//		mavlink_msg_gps_status_send(l->mavlink->get_chan(),
-//					    gps.satellites_visible,
-//					    gps.satellite_prn,
-//					    gps.satellite_used,
-//					    gps.satellite_elevation,
-//					    gps.satellite_azimuth,
-//					    gps.satellite_snr);
-//	}
-//
-//	l->listener->gps_counter++;
-//}
 //
 //
-//void
-//MavlinkOrbListener::l_input_rc(const struct listener *l)
-//{
-//	/* copy rc _mavlink->get_chan()nels into local buffer */
-//	orb_copy(ORB_ID(input_rc), l->mavlink->get_subs()->input_rc_sub, &l->listener->rc_raw);
 //
-//	if (l->mavlink->get_mode() == Mavlink::MODE_OFFBOARD) {
-//
-//		const unsigned port_width = 8;
-//
-//		for (unsigned i = 0; (i * port_width) < l->listener->rc_raw.channel_count; i++) {
-//			/* Channels are sent in MAVLink main loop at a fixed interval */
-//			mavlink_msg_rc_channels_raw_send(l->mavlink->get_chan(),
-//							 l->listener->rc_raw.timestamp_publication / 1000,
-//							 i,
-//							 (l->listener->rc_raw.channel_count > (i * port_width) + 0) ? l->listener->rc_raw.values[(i * port_width) + 0] : UINT16_MAX,
-//							 (l->listener->rc_raw.channel_count > (i * port_width) + 1) ? l->listener->rc_raw.values[(i * port_width) + 1] : UINT16_MAX,
-//							 (l->listener->rc_raw.channel_count > (i * port_width) + 2) ? l->listener->rc_raw.values[(i * port_width) + 2] : UINT16_MAX,
-//							 (l->listener->rc_raw.channel_count > (i * port_width) + 3) ? l->listener->rc_raw.values[(i * port_width) + 3] : UINT16_MAX,
-//							 (l->listener->rc_raw.channel_count > (i * port_width) + 4) ? l->listener->rc_raw.values[(i * port_width) + 4] : UINT16_MAX,
-//							 (l->listener->rc_raw.channel_count > (i * port_width) + 5) ? l->listener->rc_raw.values[(i * port_width) + 5] : UINT16_MAX,
-//							 (l->listener->rc_raw.channel_count > (i * port_width) + 6) ? l->listener->rc_raw.values[(i * port_width) + 6] : UINT16_MAX,
-//							 (l->listener->rc_raw.channel_count > (i * port_width) + 7) ? l->listener->rc_raw.values[(i * port_width) + 7] : UINT16_MAX,
-//							  l->listener->rc_raw.rssi);
-//		}
-//	}
-//}
-//
-//
-//void
-//MavlinkOrbListener::l_global_position_setpoint(const struct listener *l)
-//{
-//	struct position_setpoint_triplet_s triplet;
-//	orb_copy(ORB_ID(position_setpoint_triplet), l->mavlink->get_subs()->triplet_sub, &triplet);
-//
-//	if (!triplet.current.valid)
-//		return;
-//
-//	if (l->mavlink->get_mode() == Mavlink::MODE_OFFBOARD)
-//		mavlink_msg_global_position_setpoint_int_send(l->mavlink->get_chan(),
-//				MAV_FRAME_GLOBAL,
-//				(int32_t)(triplet.current.lat * 1e7d),
-//				(int32_t)(triplet.current.lon * 1e7d),
-//				(int32_t)(triplet.current.alt * 1e3f),
-//				(int16_t)(triplet.current.yaw * M_RAD_TO_DEG_F * 1e2f));
-//}
-//
-//void
-//MavlinkOrbListener::l_local_position_setpoint(const struct listener *l)
-//{
-//	struct vehicle_local_position_setpoint_s local_sp;
-//
-//	/* copy local position data into local buffer */
-//	orb_copy(ORB_ID(vehicle_local_position_setpoint), l->mavlink->get_subs()->spl_sub, &local_sp);
-//
-//	if (l->mavlink->get_mode() == Mavlink::MODE_OFFBOARD)
-//		mavlink_msg_local_position_setpoint_send(l->mavlink->get_chan(),
-//				MAV_FRAME_LOCAL_NED,
-//				local_sp.x,
-//				local_sp.y,
-//				local_sp.z,
-//				local_sp.yaw);
-//}
-//
-//void
-//MavlinkOrbListener::l_attitude_setpoint(const struct listener *l)
-//{
-//	struct vehicle_attitude_setpoint_s att_sp;
-//
-//	/* copy local position data into local buffer */
-//	orb_copy(ORB_ID(vehicle_attitude_setpoint), l->mavlink->get_subs()->spa_sub, &att_sp);
-//
-//	if (l->mavlink->get_mode() == Mavlink::MODE_OFFBOARD)
-//		mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(l->mavlink->get_chan(),
-//				att_sp.timestamp / 1000,
-//				att_sp.roll_body,
-//				att_sp.pitch_body,
-//				att_sp.yaw_body,
-//				att_sp.thrust);
-//}
-//
-//void
-//MavlinkOrbListener::l_vehicle_rates_setpoint(const struct listener *l)
-//{
-//	struct vehicle_rates_setpoint_s rates_sp;
-//
-//	/* copy local position data into local buffer */
-//	orb_copy(ORB_ID(vehicle_rates_setpoint), l->mavlink->get_subs()->rates_setpoint_sub, &rates_sp);
-//
-//	if (l->mavlink->get_mode() == Mavlink::MODE_OFFBOARD)
-//		mavlink_msg_roll_pitch_yaw_rates_thrust_setpoint_send(l->mavlink->get_chan(),
-//				rates_sp.timestamp / 1000,
-//				rates_sp.roll,
-//				rates_sp.pitch,
-//				rates_sp.yaw,
-//				rates_sp.thrust);
-//}
-//
-//void
-//MavlinkOrbListener::l_actuator_armed(const struct listener *l)
-//{
-//	orb_copy(ORB_ID(actuator_armed), l->mavlink->get_subs()->armed_sub, &l->listener->armed);
-//}
 //
 //void
 //MavlinkOrbListener::l_manual_control_setpoint(const struct listener *l)
