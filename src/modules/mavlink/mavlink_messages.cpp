@@ -335,6 +335,45 @@ protected:
 };
 
 
+class MavlinkStreamAttitudeQuaternion : public MavlinkStream {
+public:
+	const char *get_name()
+	{
+		return "ATTITUDE_QUATERNION";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamAttitudeQuaternion();
+	}
+
+private:
+	MavlinkOrbSubscription *att_sub;
+	struct vehicle_attitude_s *att;
+
+protected:
+	void subscribe(Mavlink *mavlink)
+	{
+		att_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_attitude), sizeof(struct vehicle_attitude_s));
+		att = (struct vehicle_attitude_s *)att_sub->get_data();
+	}
+
+	void send(const hrt_abstime t) {
+		att_sub->update(t);
+
+		mavlink_msg_attitude_quaternion_send(_channel,
+				att->timestamp / 1000,
+				att->q[0],
+				att->q[1],
+				att->q[2],
+				att->q[3],
+				att->rollspeed,
+				att->pitchspeed,
+				att->yawspeed);
+	}
+};
+
+
 class MavlinkStreamVFRHUD : public MavlinkStream {
 public:
 	const char *get_name()
@@ -920,11 +959,49 @@ protected:
 };
 
 
+class MavlinkStreamManualControl : public MavlinkStream {
+public:
+	const char *get_name()
+	{
+		return "MANUAL_CONTROL";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamManualControl();
+	}
+
+private:
+	MavlinkOrbSubscription *manual_sub;
+	struct manual_control_setpoint_s *manual;
+
+protected:
+	void subscribe(Mavlink *mavlink)
+	{
+		manual_sub = mavlink->add_orb_subscription(ORB_ID(manual_control_setpoint), sizeof(struct manual_control_setpoint_s));
+		manual = (struct manual_control_setpoint_s *)manual_sub->get_data();
+	}
+
+	void send(const hrt_abstime t) {
+		manual_sub->update(t);
+
+		mavlink_msg_manual_control_send(_channel,
+				mavlink_system.sysid,
+				manual->roll * 1000,
+				manual->pitch * 1000,
+				manual->yaw * 1000,
+				manual->throttle * 1000,
+				0);
+	}
+};
+
+
 MavlinkStream *streams_list[] = {
 		new MavlinkStreamHeartbeat(),
 		new MavlinkStreamSysStatus(),
 		new MavlinkStreamHighresIMU(),
 		new MavlinkStreamAttitude(),
+		new MavlinkStreamAttitudeQuaternion(),
 		new MavlinkStreamVFRHUD(),
 		new MavlinkStreamGPSRawInt(),
 		new MavlinkStreamGlobalPositionInt(),
@@ -940,6 +1017,7 @@ MavlinkStream *streams_list[] = {
 		new MavlinkStreamRollPitchYawThrustSetpoint(),
 		new MavlinkStreamRollPitchYawRatesThrustSetpoint(),
 		new MavlinkStreamRCChannelsRaw(),
+		new MavlinkStreamManualControl(),
 		nullptr
 };
 
@@ -949,71 +1027,11 @@ MavlinkStream *streams_list[] = {
 
 
 
-//void
-//MavlinkOrbListener::l_vehicle_attitude(const struct listener *l)
-//{
-//	/* copy attitude data into local buffer */
-//	orb_copy(ORB_ID(vehicle_attitude), l->mavlink->get_subs()->att_sub, &l->listener->att);
-//
-//	if (l->mavlink->get_mode() == Mavlink::MODE_OFFBOARD) {
-//		/* send sensor values */
-//		mavlink_msg_attitude_send(l->mavlink->get_chan(),
-//					  l->listener->last_sensor_timestamp / 1000,
-//					  l->listener->att.roll,
-//					  l->listener->att.pitch,
-//					  l->listener->att.yaw,
-//					  l->listener->att.rollspeed,
-//					  l->listener->att.pitchspeed,
-//					  l->listener->att.yawspeed);
-//
-//		/* limit VFR message rate to 10Hz */
-//		hrt_abstime t = hrt_absolute_time();
-//		if (t >= l->listener->last_sent_vfr + 100000) {
-//			l->listener->last_sent_vfr = t;
-//			float groundspeed = sqrtf(l->listener->global_pos.vel_n * l->listener->global_pos.vel_n + l->listener->global_pos.vel_e * l->listener->global_pos.vel_e);
-//			uint16_t heading = _wrap_2pi(l->listener->att.yaw) * M_RAD_TO_DEG_F;
-//			float throttle = l->listener->armed.armed ? l->listener->actuators_0.control[3] * 100.0f : 0.0f;
-//			mavlink_msg_vfr_hud_send(l->mavlink->get_chan(), l->listener->airspeed.true_airspeed_m_s, groundspeed, heading, throttle, l->listener->global_pos.alt, -l->listener->global_pos.vel_d);
-//		}
-//
-//		/* send quaternion values if it exists */
-//		if(l->listener->att.q_valid) {
-//			mavlink_msg_attitude_quaternion_send(l->mavlink->get_chan(),
-//												l->listener->last_sensor_timestamp / 1000,
-//												l->listener->att.q[0],
-//												l->listener->att.q[1],
-//												l->listener->att.q[2],
-//												l->listener->att.q[3],
-//												l->listener->att.rollspeed,
-//												l->listener->att.pitchspeed,
-//												l->listener->att.yawspeed);
-//		}
-//	}
-//
-//	l->listener->attitude_counter++;
-//}
 //
 //
 //
 //
 //
-//void
-//MavlinkOrbListener::l_manual_control_setpoint(const struct listener *l)
-//{
-//	struct manual_control_setpoint_s man_control;
-//
-//	/* copy manual control data into local buffer */
-//	orb_copy(ORB_ID(manual_control_setpoint), l->mavlink->get_subs()->man_control_sp_sub, &man_control);
-//
-//	if (l->mavlink->get_mode() == Mavlink::MODE_OFFBOARD)
-//		mavlink_msg_manual_control_send(l->mavlink->get_chan(),
-//						mavlink_system.sysid,
-//						man_control.roll * 1000,
-//						man_control.pitch * 1000,
-//						man_control.yaw * 1000,
-//						man_control.throttle * 1000,
-//						0);
-//}
 //
 //void
 //MavlinkOrbListener::l_vehicle_attitude_controls(const struct listener *l)
@@ -1066,12 +1084,6 @@ MavlinkStream *streams_list[] = {
 //
 //	mavlink_msg_optical_flow_send(l->mavlink->get_chan(), flow.timestamp, flow.sensor_id, flow.flow_raw_x, flow.flow_raw_y,
 //				      flow.flow_comp_x_m, flow.flow_comp_y_m, flow.quality, flow.ground_distance_m);
-//}
-//
-//void
-//MavlinkOrbListener::l_airspeed(const struct listener *l)
-//{
-//	orb_copy(ORB_ID(airspeed), l->mavlink->get_subs()->airspeed_sub, &l->listener->airspeed);
 //}
 //
 //void
