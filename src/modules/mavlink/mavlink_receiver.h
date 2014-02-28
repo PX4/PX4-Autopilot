@@ -97,13 +97,13 @@ public:
 
 	static pthread_t receive_start(Mavlink *parent);
 
-	static void * start_helper(void *context);
+	static void *start_helper(void *context);
 
 private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	Mavlink*	_mavlink;
+	Mavlink	*_mavlink;
 
 	void handle_message(mavlink_message_t *msg);
 	void *receive_thread(void *arg);

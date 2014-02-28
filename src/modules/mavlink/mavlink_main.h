@@ -36,6 +36,7 @@
  * MAVLink 1.0 protocol interface definition.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #pragma once
@@ -55,24 +56,24 @@
 #include "mavlink_stream.h"
 #include "mavlink_messages.h"
 
- // FIXME XXX - TO BE MOVED TO XML
+// FIXME XXX - TO BE MOVED TO XML
 enum MAVLINK_WPM_STATES {
-        MAVLINK_WPM_STATE_IDLE = 0,
-        MAVLINK_WPM_STATE_SENDLIST,
-        MAVLINK_WPM_STATE_SENDLIST_SENDWPS,
-        MAVLINK_WPM_STATE_GETLIST,
-        MAVLINK_WPM_STATE_GETLIST_GETWPS,
-        MAVLINK_WPM_STATE_GETLIST_GOTALL,
-        MAVLINK_WPM_STATE_ENUM_END
+	MAVLINK_WPM_STATE_IDLE = 0,
+	MAVLINK_WPM_STATE_SENDLIST,
+	MAVLINK_WPM_STATE_SENDLIST_SENDWPS,
+	MAVLINK_WPM_STATE_GETLIST,
+	MAVLINK_WPM_STATE_GETLIST_GETWPS,
+	MAVLINK_WPM_STATE_GETLIST_GOTALL,
+	MAVLINK_WPM_STATE_ENUM_END
 };
 
 enum MAVLINK_WPM_CODES {
-        MAVLINK_WPM_CODE_OK = 0,
-        MAVLINK_WPM_CODE_ERR_WAYPOINT_ACTION_NOT_SUPPORTED,
-        MAVLINK_WPM_CODE_ERR_WAYPOINT_FRAME_NOT_SUPPORTED,
-        MAVLINK_WPM_CODE_ERR_WAYPOINT_OUT_OF_BOUNDS,
-        MAVLINK_WPM_CODE_ERR_WAYPOINT_MAX_NUMBER_EXCEEDED,
-        MAVLINK_WPM_CODE_ENUM_END
+	MAVLINK_WPM_CODE_OK = 0,
+	MAVLINK_WPM_CODE_ERR_WAYPOINT_ACTION_NOT_SUPPORTED,
+	MAVLINK_WPM_CODE_ERR_WAYPOINT_FRAME_NOT_SUPPORTED,
+	MAVLINK_WPM_CODE_ERR_WAYPOINT_OUT_OF_BOUNDS,
+	MAVLINK_WPM_CODE_ERR_WAYPOINT_MAX_NUMBER_EXCEEDED,
+	MAVLINK_WPM_CODE_ENUM_END
 };
 
 
@@ -144,7 +145,7 @@ public:
 	const char *device_name;
 
 	enum MAVLINK_MODE {
-		MODE_CUSTOM=0,
+		MODE_CUSTOM = 0,
 		MODE_OFFBOARD,
 		MODE_ONBOARD,
 		MODE_HIL
@@ -186,7 +187,7 @@ public:
 	bool		_task_should_exit;		/**< if true, mavlink task should exit */
 
 protected:
-	Mavlink*	next;
+	Mavlink	*next;
 
 private:
 	int		_mavlink_fd;
@@ -233,7 +234,7 @@ private:
 	unsigned int mavlink_param_queue_index;
 
 	bool mavlink_link_termination_allowed;
-	
+
 	/**
 	 * Send one parameter.
 	 *
