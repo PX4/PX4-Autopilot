@@ -33,7 +33,7 @@ namespace
 
     struct DataTypeC
     {
-        enum { DefaultDataTypeID = 43 };
+        enum { DefaultDataTypeID = 1023 };
         enum { DataTypeKind = uavcan::DataTypeKindMessage };
         static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(654); }
         static const char* getDataTypeName() { return "foo.DataTypeC"; }
@@ -133,8 +133,8 @@ TEST(GlobalDataTypeRegistry, Basic)
     GlobalDataTypeRegistry::instance().getDataTypeIDMask(uavcan::DataTypeKindMessage, dtmask);
     ASSERT_TRUE(dtmask[0]);
     ASSERT_TRUE(dtmask[741]);
-    ASSERT_TRUE(dtmask[43]);
-    dtmask[0] = dtmask[43] = dtmask[741] = false;
+    ASSERT_TRUE(dtmask[1023]);
+    dtmask[0] = dtmask[1023] = dtmask[741] = false;
     ASSERT_FALSE(dtmask.any());
 
     GlobalDataTypeRegistry::instance().getDataTypeIDMask(uavcan::DataTypeKindService, dtmask);
@@ -192,14 +192,14 @@ TEST(GlobalDataTypeRegistry, AggregateSignature)
     mask.set();
     sign = GlobalDataTypeRegistry::instance().computeAggregateSignature(uavcan::DataTypeKindMessage, mask);
     ASSERT_TRUE(mask[0]);     // DataTypeAMessage
-    ASSERT_TRUE(mask[43]);    // DataTypeC
     ASSERT_TRUE(mask[741]);   // DataTypeB
-    mask[0] = mask[43] = mask[741] = false;
+    ASSERT_TRUE(mask[1023]);  // DataTypeC
+    mask[0] = mask[741] = mask[1023] = false;
     ASSERT_FALSE(mask.any());
     {
         DataTypeSignature check_signature(DataTypeAMessage::getDataTypeSignature()); // Order matters - low --> high
-        check_signature.extend(DataTypeC::getDataTypeSignature());
         check_signature.extend(DataTypeB::getDataTypeSignature());
+        check_signature.extend(DataTypeC::getDataTypeSignature());
         ASSERT_EQ(check_signature, sign);
     }
 
@@ -216,7 +216,7 @@ TEST(GlobalDataTypeRegistry, AggregateSignature)
     }
 
     // Random
-    mask[0] = mask[99] = mask[147] = mask[741] = mask[999] = true;
+    mask[0] = mask[99] = mask[147] = mask[741] = mask[999] = mask[1022] = true;
     sign = GlobalDataTypeRegistry::instance().computeAggregateSignature(uavcan::DataTypeKindMessage, mask);
     ASSERT_TRUE(mask[0]);     // DataTypeAMessage
     ASSERT_TRUE(mask[741]);   // DataTypeB

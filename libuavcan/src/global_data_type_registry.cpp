@@ -94,6 +94,8 @@ const DataTypeDescriptor* GlobalDataTypeRegistry::find(DataTypeKind kind, const 
 DataTypeSignature GlobalDataTypeRegistry::computeAggregateSignature(DataTypeKind kind,
                                                                     DataTypeIDMask& inout_id_mask) const
 {
+    assert(isFrozen());  // Computing the signature if the registry is not frozen is pointless
+
     const List* list = selectList(kind);
     if (list == NULL)
     {
