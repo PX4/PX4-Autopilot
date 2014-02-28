@@ -48,5 +48,70 @@
  *
  */
 
-PARAM_DEFINE_FLOAT(NAV_DUMMY, 0.0f);
+/**
+ * Velocity estimate delay
+ *
+ * The delay in milliseconds of the velocity estimate from GPS.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_VEL_DELAY_MS, 230);
+
+/**
+ * Position estimate delay
+ *
+ * The delay in milliseconds of the position estimate from GPS.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_POS_DELAY_MS, 210);
+
+/**
+ * Height estimate delay
+ *
+ * The delay in milliseconds of the height estimate from the barometer.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_HGT_DELAY_MS, 350);
+
+/**
+ * Mag estimate delay
+ *
+ * The delay in milliseconds of the magnetic field estimate from
+ * the magnetometer.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_MAG_DELAY_MS, 30);
+
+/**
+ * True airspeeed estimate delay
+ *
+ * The delay in milliseconds of the airspeed estimate.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_TAS_DELAY_MS, 210);
+
+/**
+ * GPS vs. barometric altitude update weight
+ *
+ * RE-CHECK this.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group Position Estimator
+ */
+PARAM_DEFINE_FLOAT(PE_GPS_ALT_WGT, 0.9f);
 
