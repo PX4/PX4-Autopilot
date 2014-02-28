@@ -27,7 +27,9 @@ struct StaticAssert<true>
  */
 template<long N> struct ShowIntegerAsError;
 
-
+/**
+ * Prevents copying when inherited
+ */
 class Noncopyable
 {
     Noncopyable(const Noncopyable&);
@@ -36,7 +38,9 @@ protected:
     Noncopyable() { }
 };
 
-
+/**
+ * Compile time conditions
+ */
 template<bool B, typename T = void>
 struct EnableIf { };
 
@@ -63,7 +67,9 @@ struct StaticIf<false, TrueType, FalseType>
     typedef FalseType Result;
 };
 
-
+/**
+ * Value types
+ */
 template<bool> struct BooleanType { };
 typedef BooleanType<true> TrueType;
 typedef BooleanType<false> FalseType;
