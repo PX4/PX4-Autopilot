@@ -33,15 +33,19 @@ GlobalDataTypeRegistry::List* GlobalDataTypeRegistry::selectList(DataTypeKind ki
     }
 }
 
-void GlobalDataTypeRegistry::remove(Entry* dtd)
+GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::remove(Entry* dtd)
 {
-    assert(dtd);
+    if (!dtd)
+    {
+        assert(0);
+        return RegistResultInvalidParams;
+    }
     if (isFrozen())
-        return;
+        return RegistResultFrozen;
 
     List* list = selectList(dtd->descriptor.getKind());
     if (!list)
-        return;
+        return RegistResultInvalidParams;
 
     Entry* p = list->get();
     while (p)
@@ -51,24 +55,31 @@ void GlobalDataTypeRegistry::remove(Entry* dtd)
             list->remove(dtd);
         p = next;
     }
+    return RegistResultOk;
 }
 
-bool GlobalDataTypeRegistry::add(Entry* dtd)
+GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::registImpl(Entry* dtd)
 {
-    assert(dtd);
+    if (!dtd || (dtd->descriptor.getID() > DataTypeDescriptor::MaxDataTypeID))
+    {
+        assert(0);
+        return RegistResultInvalidParams;
+    }
     if (isFrozen())
-        return false;
+        return RegistResultFrozen;
 
     List* list = selectList(dtd->descriptor.getKind());
     if (!list)
-        return false;
+        return RegistResultInvalidParams;
 
     {   // Collision check
         Entry* p = list->get();
         while (p)
         {
             if (p->descriptor.getID() == dtd->descriptor.getID()) // ID collision
-                return false;
+                return RegistResultCollision;
+            if (p->descriptor.match(dtd->descriptor.getName())) // Name collision
+                return RegistResultCollision;
             p = p->getNextListNode();
         }
     }
@@ -90,7 +101,7 @@ bool GlobalDataTypeRegistry::add(Entry* dtd)
         }
     }
 #endif
-    return true;
+    return RegistResultOk;
 }
 
 GlobalDataTypeRegistry& GlobalDataTypeRegistry::instance()
@@ -102,7 +113,7 @@ GlobalDataTypeRegistry& GlobalDataTypeRegistry::instance()
 const DataTypeDescriptor* GlobalDataTypeRegistry::find(DataTypeKind kind, const char* name) const
 {
     const List* list = selectList(kind);
-    if (list == NULL)
+    if (!list)
     {
         assert(0);
         return NULL;
@@ -123,7 +134,7 @@ DataTypeSignature GlobalDataTypeRegistry::computeAggregateSignature(DataTypeKind
     assert(isFrozen());  // Computing the signature if the registry is not frozen is pointless
 
     const List* list = selectList(kind);
-    if (list == NULL)
+    if (!list)
     {
         assert(0);
         return DataTypeSignature();
@@ -174,7 +185,7 @@ void GlobalDataTypeRegistry::getDataTypeIDMask(DataTypeKind kind, DataTypeIDMask
 {
     mask.reset();
     const List* list = selectList(kind);
-    if (list == NULL)
+    if (!list)
     {
         assert(0);
         return;

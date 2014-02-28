@@ -47,6 +47,14 @@ namespace
         static const char* getDataTypeName() { return "foo.DataTypeD"; }
     };
 
+    struct DataTypeBNameCollision
+    {
+        enum { DefaultDataTypeID = 999 };
+        enum { DataTypeKind = uavcan::DataTypeKindMessage };
+        static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(963); }
+        static const char* getDataTypeName() { return "my_namespace.DataTypeB"; }
+    };
+
 
     template <typename Type>
     uavcan::DataTypeDescriptor extractDescriptor(uint16_t dtid = Type::DefaultDataTypeID)
@@ -94,7 +102,8 @@ TEST(GlobalDataTypeRegistry, Basic)
     /*
      * Runtime registrations
      */
-    ASSERT_TRUE(GlobalDataTypeRegistry::instance().assign<DataTypeAService>(DataTypeAService::DefaultDataTypeID));
+    ASSERT_EQ(GlobalDataTypeRegistry::RegistResultOk,
+              GlobalDataTypeRegistry::instance().regist<DataTypeAService>(DataTypeAService::DefaultDataTypeID));
 
     ASSERT_EQ(2, GlobalDataTypeRegistry::instance().getNumMessageTypes());
     ASSERT_EQ(1, GlobalDataTypeRegistry::instance().getNumServiceTypes());
@@ -107,8 +116,8 @@ TEST(GlobalDataTypeRegistry, Basic)
     /*
      * Runtime re-registration
      */
-    ASSERT_TRUE(GlobalDataTypeRegistry::instance().assign<DataTypeAService>(147));
-    ASSERT_TRUE(GlobalDataTypeRegistry::instance().assign<DataTypeB>(741));
+    ASSERT_EQ(GlobalDataTypeRegistry::RegistResultOk, GlobalDataTypeRegistry::instance().regist<DataTypeAService>(147));
+    ASSERT_EQ(GlobalDataTypeRegistry::RegistResultOk, GlobalDataTypeRegistry::instance().regist<DataTypeB>(741));
 
     ASSERT_EQ(2, GlobalDataTypeRegistry::instance().getNumMessageTypes());
     ASSERT_EQ(1, GlobalDataTypeRegistry::instance().getNumServiceTypes());
@@ -127,8 +136,15 @@ TEST(GlobalDataTypeRegistry, Basic)
     /*
      * These types will be necessary for the aggregate signature test
      */
-    ASSERT_FALSE(GlobalDataTypeRegistry::instance().assign<DataTypeC>(741));               // COLLISION - error
-    ASSERT_TRUE(GlobalDataTypeRegistry::instance().assign<DataTypeC>(DataTypeC::DefaultDataTypeID));
+    ASSERT_EQ(GlobalDataTypeRegistry::RegistResultCollision,
+              GlobalDataTypeRegistry::instance().regist<DataTypeC>(741));                        // ID COLLISION
+
+    ASSERT_EQ(GlobalDataTypeRegistry::RegistResultCollision,
+              GlobalDataTypeRegistry::instance().regist<DataTypeBNameCollision>(
+                                                    DataTypeBNameCollision::DefaultDataTypeID)); // NAME COLLISION
+
+    ASSERT_EQ(GlobalDataTypeRegistry::RegistResultOk,
+              GlobalDataTypeRegistry::instance().regist<DataTypeC>(DataTypeC::DefaultDataTypeID));
     uavcan::DefaultDataTypeRegistrator<DataTypeD> reg_DataTypeD;
 
     GlobalDataTypeRegistry::instance().getDataTypeIDMask(uavcan::DataTypeKindMessage, dtmask);
@@ -149,9 +165,14 @@ TEST(GlobalDataTypeRegistry, Basic)
      */
     GlobalDataTypeRegistry::instance().freeze();
 
-    ASSERT_FALSE(GlobalDataTypeRegistry::instance().assign<DataTypeAService>(555)); // Rejected
-    ASSERT_FALSE(GlobalDataTypeRegistry::instance().assign<DataTypeAMessage>(999)); // Rejected
-    ASSERT_FALSE(GlobalDataTypeRegistry::instance().assign<DataTypeB>(888));        // Rejected
+    ASSERT_EQ(GlobalDataTypeRegistry::RegistResultFrozen,
+              GlobalDataTypeRegistry::instance().regist<DataTypeAService>(555)); // Rejected
+
+    ASSERT_EQ(GlobalDataTypeRegistry::RegistResultFrozen,
+              GlobalDataTypeRegistry::instance().regist<DataTypeAMessage>(999)); // Rejected
+
+    ASSERT_EQ(GlobalDataTypeRegistry::RegistResultFrozen,
+              GlobalDataTypeRegistry::instance().regist<DataTypeB>(888));        // Rejected
 
     /*
      * Searching

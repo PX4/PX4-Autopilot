@@ -41,6 +41,16 @@ class GlobalDataTypeRegistry : Noncopyable
         }
     };
 
+public:
+    enum RegistResult
+    {
+        RegistResultOk,
+        RegistResultCollision,
+        RegistResultInvalidParams,
+        RegistResultFrozen
+    };
+
+private:
     typedef LinkedListRoot<Entry> List;
     List msgs_;
     List srvs_;
@@ -51,25 +61,29 @@ class GlobalDataTypeRegistry : Noncopyable
     const List* selectList(DataTypeKind kind) const;
     List* selectList(DataTypeKind kind);
 
-    void remove(Entry* dtd);
-    bool add(Entry* dtd);
+    RegistResult remove(Entry* dtd);
+    RegistResult registImpl(Entry* dtd);
 
 public:
     static GlobalDataTypeRegistry& instance();
 
     /// Last call wins
     template <typename Type>
-    bool assign(uint16_t id)
+    RegistResult regist(uint16_t id)
     {
         if (isFrozen())
-            return false;
+            return RegistResultFrozen;
+
         static Entry entry;
-        remove(&entry);
+        const RegistResult remove_res = remove(&entry);
+        if (remove_res != RegistResultOk)
+            return remove_res;
+
         entry = Entry(DataTypeKind(Type::DataTypeKind), id, Type::getDataTypeSignature(), Type::getDataTypeName());
-        return add(&entry);
+        return registImpl(&entry);
     }
 
-    /// Further calls to add() will fail
+    /// Further calls to regist<>() will fail
     void freeze() { frozen_ = true; }
     bool isFrozen() const { return frozen_; }
 
@@ -101,7 +115,10 @@ struct DefaultDataTypeRegistrator
 {
     DefaultDataTypeRegistrator()
     {
-        if (!GlobalDataTypeRegistry::instance().assign<Type>(Type::DefaultDataTypeID))
+        const GlobalDataTypeRegistry::RegistResult res =
+            GlobalDataTypeRegistry::instance().regist<Type>(Type::DefaultDataTypeID);
+
+        if (res != GlobalDataTypeRegistry::RegistResultOk)
         {
 #if UAVCAN_EXCEPTIONS
             throw std::logic_error("Type registration failed");
