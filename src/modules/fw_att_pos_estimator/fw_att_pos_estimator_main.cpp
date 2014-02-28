@@ -164,6 +164,8 @@ private:
 	struct sensor_combined_s			_sensor_combined;
 #endif
 
+	float						_baro_ref;	/**< barometer reference altitude */
+
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_perf_gyro;			///<local performance counter for gyro updates
 	perf_counter_t	_perf_accel;			///<local performance counter for accel updates
@@ -257,6 +259,8 @@ FixedwingEstimator::FixedwingEstimator() :
 	_att_pub(-1),
 	_global_pos_pub(-1),
 	_local_pos_pub(-1),
+
+	_baro_ref(0.0f),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_COUNT, "fw_att_pos_estimator")),
@@ -631,7 +635,7 @@ FixedwingEstimator::task_main()
 			if (baro_updated) {
 				orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
 
-				baroHgt = _baro.altitude;
+				baroHgt = _baro.altitude - _baro_ref;
 
 				// Could use a blend of GPS and baro alt data if desired
 				hgtMea = 1.0f * baroHgt + 0.0f * gpsHgt;
@@ -696,7 +700,23 @@ FixedwingEstimator::task_main()
 					velNED[1] = _gps.vel_e_m_s;
 					velNED[2] = _gps.vel_d_m_s;
 					InitialiseFilter(velNED);
-					warnx("GPS REINIT");
+
+					// Initialize projection
+					_local_pos.ref_lat = _gps.lat;
+					_local_pos.ref_lon = _gps.lon;
+					_local_pos.ref_alt = _gps.alt;
+					_local_pos.ref_timestamp = _gps.timestamp_position;
+
+					// Store 
+					_baro_ref = baroHgt;
+
+					// XXX this is not multithreading safe
+					double lat = _gps.lat * 1e-7;
+					double lon = _gps.lon * 1e-7;
+					float alt = _gps.alt * 1e-3;
+
+					map_projection_init(lat, lon);
+					mavlink_log_info(_mavlink_fd, "[position estimator] init ref: lat=%.7f, lon=%.7f, alt=%.2f", lat, lon, alt);
 
 					_gps_initialized = true;
 
@@ -768,8 +788,8 @@ FixedwingEstimator::task_main()
 				fuseVelData = true;
 				fusePosData = true;
 				// recall states stored at time of measurement after adjusting for delays
-				RecallStates(statesAtVelTime, (IMUmsec - msecVelDelay));
-				RecallStates(statesAtPosTime, (IMUmsec - msecPosDelay));
+				RecallStates(statesAtVelTime, (IMUmsec - _parameters.vel_delay_ms));
+				RecallStates(statesAtPosTime, (IMUmsec - _parameters.pos_delay_ms));
 				// run the fusion step
 				FuseVelposNED();
 
@@ -788,8 +808,8 @@ FixedwingEstimator::task_main()
 				fuseVelData = true;
 				fusePosData = true;
 				// recall states stored at time of measurement after adjusting for delays
-				RecallStates(statesAtVelTime, (IMUmsec - msecVelDelay));
-				RecallStates(statesAtPosTime, (IMUmsec - msecPosDelay));
+				RecallStates(statesAtVelTime, (IMUmsec - _parameters.vel_delay_ms));
+				RecallStates(statesAtPosTime, (IMUmsec - _parameters.pos_delay_ms));
 				// run the fusion step
 				FuseVelposNED();
 
@@ -803,7 +823,7 @@ FixedwingEstimator::task_main()
 				hgtMea = 1.0f * baroHgt + 0.0f * gpsHgt;
 				fuseHgtData = true;
 				// recall states stored at time of measurement after adjusting for delays
-				RecallStates(statesAtHgtTime, (IMUmsec - msecHgtDelay));
+				RecallStates(statesAtHgtTime, (IMUmsec - _parameters.height_delay_ms));
 				// run the fusion step
 				FuseVelposNED();
 
@@ -814,7 +834,7 @@ FixedwingEstimator::task_main()
 			// Fuse Magnetometer Measurements
 			if (newDataMag && statesInitialised) {
 				fuseMagData = true;
-				RecallStates(statesAtMagMeasTime, (IMUmsec - msecMagDelay)); // Assume 50 msec avg delay for magnetometer data
+				RecallStates(statesAtMagMeasTime, (IMUmsec - _parameters.mag_delay_ms)); // Assume 50 msec avg delay for magnetometer data
 
 			} else {
 				fuseMagData = false;
@@ -825,7 +845,7 @@ FixedwingEstimator::task_main()
 			// Fuse Airspeed Measurements
 			if (newAdsData && statesInitialised && VtasMeas > 8.0f) {
 				fuseVtasData = true;
-				RecallStates(statesAtVtasMeasTime, (IMUmsec - msecTasDelay)); // assume 100 msec avg delay for airspeed data
+				RecallStates(statesAtVtasMeasTime, (IMUmsec - _parameters.tas_delay_ms)); // assume 100 msec avg delay for airspeed data
 				FuseAirspeed();
 
 			} else {
@@ -900,10 +920,13 @@ FixedwingEstimator::task_main()
 				_local_pos.vy = states[5];
 				_local_pos.vz = states[6];
 
-				_local_pos.xy_valid = true;
+				_local_pos.xy_valid = _gps_initialized;
 				_local_pos.z_valid = true;
-				_local_pos.v_xy_valid = true;
+				_local_pos.v_xy_valid = _gps_initialized;
 				_local_pos.v_z_valid = true;
+				_local_pos.xy_global = true;
+
+				_local_pos.z_global = false;
 
 				/* lazily publish the local position only once available */
 				if (_local_pos_pub > 0) {
@@ -915,17 +938,51 @@ FixedwingEstimator::task_main()
 					_local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &_local_pos);
 				}
 
-				_global_pos.timestamp = _gyro.timestamp;
+				_global_pos.timestamp = _local_pos.timestamp;
 
-				// /* lazily publish the global position only once available */
-				// if (_global_pos_pub > 0) {
-				// 	/* publish the attitude setpoint */
-				// 	orb_publish(ORB_ID(vehicle_global_position), _global_pos_pub, &_global_pos);
+				_global_pos.baro_valid = true;
+				_global_pos.global_valid = true;
 
-				// } else {
-				// 	/* advertise and publish */
-				// 	_global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &_global_pos);
-				// }
+				if (_local_pos.xy_global) {
+					double est_lat, est_lon;
+					map_projection_reproject(_local_pos.x, _local_pos.y, &est_lat, &est_lon);
+					_global_pos.lat = est_lat;
+					_global_pos.lon = est_lon;
+					_global_pos.time_gps_usec = _gps.time_gps_usec;
+				}
+
+				/* set valid values even if position is not valid */
+				if (_local_pos.v_xy_valid) {
+					_global_pos.vel_n = _local_pos.vx;
+					_global_pos.vel_e = _local_pos.vy;
+				} else {
+					_global_pos.vel_n = 0.0f;
+					_global_pos.vel_e = 0.0f;
+				}
+
+				_global_pos.alt = _local_pos.ref_alt - _local_pos.z;
+
+				if (_local_pos.z_valid) {
+					_global_pos.baro_alt = _baro_ref - _local_pos.z;
+				}
+
+				if (_local_pos.v_z_valid) {
+					_global_pos.vel_d = _local_pos.vz;
+				}
+
+				_global_pos.yaw = _local_pos.yaw;
+
+				_global_pos.timestamp = _local_pos.timestamp;
+
+				/* lazily publish the global position only once available */
+				if (_global_pos_pub > 0) {
+					/* publish the attitude setpoint */
+					orb_publish(ORB_ID(vehicle_global_position), _global_pos_pub, &_global_pos);
+
+				} else {
+					/* advertise and publish */
+					_global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &_global_pos);
+				}
 			}
 
 		}
