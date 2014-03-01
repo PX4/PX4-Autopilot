@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name APL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,12 +32,54 @@
  ****************************************************************************/
 
 /**
- * @file ecl.h
- * Adapter / shim layer for system calls needed by ECL
+ * @file mavlink_stream.cpp
+ * Mavlink messages stream implementation.
  *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <drivers/drv_hrt.h>
+#include <stdlib.h>
 
-#define ecl_absolute_time hrt_absolute_time
-#define ecl_elapsed_time hrt_elapsed_time
+#include "mavlink_stream.h"
+#include "mavlink_main.h"
+
+MavlinkStream::MavlinkStream() : _interval(1000000), _last_sent(0), _channel(MAVLINK_COMM_0), next(nullptr)
+{
+}
+
+MavlinkStream::~MavlinkStream()
+{
+}
+
+/**
+ * Set messages interval in ms
+ */
+void
+MavlinkStream::set_interval(const unsigned int interval)
+{
+	_interval = interval;
+}
+
+/**
+ * Set mavlink channel
+ */
+void
+MavlinkStream::set_channel(mavlink_channel_t channel)
+{
+	_channel = channel;
+}
+
+/**
+ * Update subscriptions and send message if necessary
+ */
+int
+MavlinkStream::update(const hrt_abstime t)
+{
+	uint64_t dt = t - _last_sent;
+
+	if (dt > 0 && dt >= _interval) {
+		/* interval expired, send message */
+		send(t);
+		_last_sent = (t / _interval) * _interval;
+	}
+}

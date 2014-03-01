@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name APL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,12 +32,17 @@
  ****************************************************************************/
 
 /**
- * @file ecl.h
- * Adapter / shim layer for system calls needed by ECL
+ * @file mavlink_messages.h
+ * MAVLink 1.0 message formatters definition.
  *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <drivers/drv_hrt.h>
+#ifndef MAVLINK_MESSAGES_H_
+#define MAVLINK_MESSAGES_H_
 
-#define ecl_absolute_time hrt_absolute_time
-#define ecl_elapsed_time hrt_elapsed_time
+#include "mavlink_stream.h"
+
+extern MavlinkStream *streams_list[];
+
+#endif /* MAVLINK_MESSAGES_H_ */

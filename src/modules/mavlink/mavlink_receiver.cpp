@@ -251,7 +251,8 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		if (mavlink_system.sysid < 4) {
 
 			/* switch to a receiving link mode */
-			_mavlink->set_mode(Mavlink::MODE_TX_HEARTBEAT_ONLY);
+			//TODO why do we need this?
+			//_mavlink->set_mode(Mavlink::MODE_TX_HEARTBEAT_ONLY);
 
 			/*
 			 * rate control mode - defined by MAVLink
@@ -566,8 +567,9 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 			float heading_rad = gps.cog * M_DEG_TO_RAD_F * 1e-2f;
 
 			/* go back to -PI..PI */
-			if (heading_rad > M_PI_F)
+			if (heading_rad > M_PI_F) {
 				heading_rad -= 2.0f * M_PI_F;
+			}
 
 			hil_gps.timestamp_velocity = gps.time_usec;
 			hil_gps.vel_n_m_s = gps.vn * 1e-2f; // from cm to m
@@ -606,7 +608,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 				orb_publish(ORB_ID(airspeed), pub_hil_airspeed, &airspeed);
 			}
 
-			// publish global position	
+			// publish global position
 			if (pub_hil_global_pos > 0) {
 				orb_publish(ORB_ID(vehicle_global_position), pub_hil_global_pos, &hil_global_pos);
 				// global position packet
@@ -627,10 +629,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 			if (pub_hil_local_pos > 0) {
 				float x;
 				float y;
-				bool landed = (float)(hil_state.alt)/1000.0f < (alt0 + 0.1f); // XXX improve?
-				double lat = hil_state.lat*1e-7;
-				double lon = hil_state.lon*1e-7;
-				map_projection_project(lat, lon, &x, &y); 
+				bool landed = (float)(hil_state.alt) / 1000.0f < (alt0 + 0.1f); // XXX improve?
+				double lat = hil_state.lat * 1e-7;
+				double lon = hil_state.lon * 1e-7;
+				map_projection_project(lat, lon, &x, &y);
 				hil_local_pos.timestamp = timestamp;
 				hil_local_pos.xy_valid = true;
 				hil_local_pos.z_valid = true;
@@ -638,10 +640,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 				hil_local_pos.v_z_valid = true;
 				hil_local_pos.x = x;
 				hil_local_pos.y = y;
-				hil_local_pos.z = alt0 - hil_state.alt/1000.0f;
-				hil_local_pos.vx = hil_state.vx/100.0f;
-				hil_local_pos.vy = hil_state.vy/100.0f;
-				hil_local_pos.vz = hil_state.vz/100.0f;
+				hil_local_pos.z = alt0 - hil_state.alt / 1000.0f;
+				hil_local_pos.vx = hil_state.vx / 100.0f;
+				hil_local_pos.vy = hil_state.vy / 100.0f;
+				hil_local_pos.vz = hil_state.vz / 100.0f;
 				hil_local_pos.yaw = hil_attitude.yaw;
 				hil_local_pos.xy_global = true;
 				hil_local_pos.z_global = true;
@@ -651,6 +653,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 				hil_local_pos.ref_alt = alt0;
 				hil_local_pos.landed = landed;
 				orb_publish(ORB_ID(vehicle_local_position), pub_hil_local_pos, &hil_local_pos);
+
 			} else {
 				pub_hil_local_pos = orb_advertise(ORB_ID(vehicle_local_position), &hil_local_pos);
 				lat0 = hil_state.lat;
@@ -661,12 +664,13 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 			/* Calculate Rotation Matrix */
 			math::Quaternion q(hil_state.attitude_quaternion);
-			math::Matrix<3,3> C_nb = q.to_dcm();
+			math::Matrix<3, 3> C_nb = q.to_dcm();
 			math::Vector<3> euler = C_nb.to_euler();
 
 			/* set rotation matrix */
-			for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
+			for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++) {
 					hil_attitude.R[i][j] = C_nb(i, j);
+				}
 
 			hil_attitude.R_valid = true;
 
@@ -821,7 +825,7 @@ MavlinkReceiver::receive_thread(void *arg)
 {
 	int uart_fd = _mavlink->get_uart_fd();
 
-	const int timeout = 1000;
+	const int timeout = 500;
 	uint8_t buf[32];
 
 	mavlink_message_t msg;
@@ -848,7 +852,7 @@ MavlinkReceiver::receive_thread(void *arg)
 
 			/* if read failed, this loop won't execute */
 			for (ssize_t i = 0; i < nread; i++) {
-				if (mavlink_parse_char(_mavlink->get_chan(), buf[i], &msg, &status)) {
+				if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &status)) {
 					/* handle generic messages and commands */
 					handle_message(&msg);
 
@@ -870,9 +874,9 @@ void MavlinkReceiver::print_status()
 
 }
 
-void * MavlinkReceiver::start_helper(void *context)
+void *MavlinkReceiver::start_helper(void *context)
 {
-	MavlinkReceiver *rcv = new MavlinkReceiver((Mavlink*)context);
+	MavlinkReceiver *rcv = new MavlinkReceiver((Mavlink *)context);
 	return rcv->receive_thread(NULL);
 }
 
@@ -894,7 +898,7 @@ MavlinkReceiver::receive_start(Mavlink *parent)
 	pthread_attr_setstacksize(&receiveloop_attr, 3000);
 
 	pthread_t thread;
-	pthread_create(&thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void*)parent);
+	pthread_create(&thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void *)parent);
 
 	pthread_attr_destroy(&receiveloop_attr);
 	return thread;

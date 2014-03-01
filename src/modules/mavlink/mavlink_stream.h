@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,23 +32,45 @@
  ****************************************************************************/
 
 /**
- * @file util.h
- * Utility and helper functions and data.
+ * @file mavlink_stream.cpp
+ * Mavlink messages stream definition.
+ *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#pragma once
+#ifndef MAVLINK_STREAM_H_
+#define MAVLINK_STREAM_H_
 
-#include "orb_topics.h"
+#include <drivers/drv_hrt.h>
 
-/** MAVLink communications channel */
-extern uint8_t chan;
+class Mavlink;
+class MavlinkStream;
 
-/** Shutdown marker */
-extern volatile bool thread_should_exit;
+#include "mavlink_main.h"
 
-/**
- * Translate the custom state into standard mavlink modes and state.
- */
-extern void
-get_mavlink_mode_and_state(const struct vehicle_control_mode_s *control_mode, const struct actuator_armed_s *armed,
-	uint8_t *mavlink_state, uint8_t *mavlink_mode);
+class MavlinkStream
+{
+private:
+	hrt_abstime _last_sent;
+
+protected:
+	mavlink_channel_t _channel;
+	unsigned int _interval;
+
+	virtual void send(const hrt_abstime t) = 0;
+
+public:
+	MavlinkStream *next;
+
+	MavlinkStream();
+	~MavlinkStream();
+	void set_interval(const unsigned int interval);
+	void set_channel(mavlink_channel_t channel);
+	int update(const hrt_abstime t);
+	virtual MavlinkStream *new_instance() = 0;
+	virtual void subscribe(Mavlink *mavlink) = 0;
+	virtual const char *get_name() = 0;
+};
+
+
+#endif /* MAVLINK_STREAM_H_ */

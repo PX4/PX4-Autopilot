@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name APL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,12 +32,58 @@
  ****************************************************************************/
 
 /**
- * @file ecl.h
- * Adapter / shim layer for system calls needed by ECL
+ * @file mavlink_orb_subscription.cpp
+ * uORB subscription implementation.
  *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <drivers/drv_hrt.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <uORB/uORB.h>
+#include <stdio.h>
 
-#define ecl_absolute_time hrt_absolute_time
-#define ecl_elapsed_time hrt_elapsed_time
+#include "mavlink_orb_subscription.h"
+
+MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic) : _topic(topic), _last_check(0), next(nullptr)
+{
+	_data = malloc(topic->o_size);
+	memset(_data, 0, topic->o_size);
+	_fd = orb_subscribe(_topic);
+}
+
+MavlinkOrbSubscription::~MavlinkOrbSubscription()
+{
+	close(_fd);
+	free(_data);
+}
+
+const orb_id_t
+MavlinkOrbSubscription::get_topic()
+{
+	return _topic;
+}
+
+void *
+MavlinkOrbSubscription::get_data()
+{
+	return _data;
+}
+
+bool
+MavlinkOrbSubscription::update(const hrt_abstime t)
+{
+	if (_last_check != t) {
+		_last_check = t;
+		bool updated;
+		orb_check(_fd, &updated);
+
+		if (updated) {
+			orb_copy(_topic, _fd, _data);
+			return true;
+		}
+	}
+
+	return false;
+}

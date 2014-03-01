@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name APL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,12 +32,37 @@
  ****************************************************************************/
 
 /**
- * @file ecl.h
- * Adapter / shim layer for system calls needed by ECL
+ * @file mavlink_orb_subscription.h
+ * uORB subscription definition.
  *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
+#ifndef MAVLINK_ORB_SUBSCRIPTION_H_
+#define MAVLINK_ORB_SUBSCRIPTION_H_
+
+#include <systemlib/uthash/utlist.h>
 #include <drivers/drv_hrt.h>
 
-#define ecl_absolute_time hrt_absolute_time
-#define ecl_elapsed_time hrt_elapsed_time
+
+class MavlinkOrbSubscription
+{
+public:
+	MavlinkOrbSubscription *next;
+
+	MavlinkOrbSubscription(const orb_id_t topic);
+	~MavlinkOrbSubscription();
+
+	bool update(const hrt_abstime t);
+	void *get_data();
+	const orb_id_t get_topic();
+
+private:
+	const orb_id_t _topic;
+	int _fd;
+	void *_data;
+	hrt_abstime _last_check;
+};
+
+
+#endif /* MAVLINK_ORB_SUBSCRIPTION_H_ */
