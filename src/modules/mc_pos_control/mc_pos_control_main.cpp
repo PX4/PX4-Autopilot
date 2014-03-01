@@ -758,8 +758,9 @@ MulticopterPositionControl::task_main()
 						sp_move_rate.zero();
 					}
 
-					/* calculate position setpoint with position prediction */
-					float target_dt = (t - _target_pos.timestamp) / 1000000.0f;
+					/* calculate position setpoint with position prediction using GPS time */
+					float target_dt = math::constrain((_global_pos.time_gps_usec - _target_pos.time_gps_usec) / 1000000.0f, 0.0f, 1.0f);
+
 					add_vector_to_global_position(_target_pos.lat, _target_pos.lon,
 							_follow_offset(0) + _target_pos.vel_n * target_dt, _follow_offset(1) + _target_pos.vel_e * target_dt,
 							&_lat_sp, &_lon_sp);
