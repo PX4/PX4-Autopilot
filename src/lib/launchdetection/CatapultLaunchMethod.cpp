@@ -42,7 +42,7 @@
 #include <systemlib/err.h>
 
 CatapultLaunchMethod::CatapultLaunchMethod() :
-	last_timestamp(0),
+	last_timestamp(hrt_absolute_time()),
 	integrator(0.0f),
 	launchDetected(false),
 	threshold_accel(NULL, "LAUN_CAT_A", false),
@@ -87,4 +87,10 @@ void CatapultLaunchMethod::updateParams()
 {
 	threshold_accel.update();
 	threshold_time.update();
+}
+
+void CatapultLaunchMethod::reset()
+{
+	integrator = 0.0f;
+	launchDetected = false;
 }
