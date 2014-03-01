@@ -57,7 +57,7 @@ MavlinkStream::~MavlinkStream()
 void
 MavlinkStream::set_interval(const unsigned int interval)
 {
-	_interval = interval * 1000;
+	_interval = interval;
 }
 
 /**

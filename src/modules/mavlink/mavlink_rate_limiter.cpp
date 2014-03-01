@@ -44,7 +44,7 @@ MavlinkRateLimiter::MavlinkRateLimiter() : _last_sent(0), _interval(1000000)
 {
 }
 
-MavlinkRateLimiter::MavlinkRateLimiter(unsigned int interval) : _last_sent(0), _interval(interval * 1000)
+MavlinkRateLimiter::MavlinkRateLimiter(unsigned int interval) : _last_sent(0), _interval(interval)
 {
 }
 
@@ -55,7 +55,7 @@ MavlinkRateLimiter::~MavlinkRateLimiter()
 void
 MavlinkRateLimiter::set_interval(unsigned int interval)
 {
-	_interval = interval * 1000;
+	_interval = interval;
 }
 
 bool

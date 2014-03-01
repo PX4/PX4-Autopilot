@@ -1462,8 +1462,8 @@ MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic)
 int
 Mavlink::configure_stream(const char *stream_name, const float rate)
 {
-	/* calculate interval in ms, 0 means disabled stream */
-	unsigned int interval = (rate > 0.0f) ? (1000.0f / rate) : 0;
+	/* calculate interval in us, 0 means disabled stream */
+	unsigned int interval = (rate > 0.0f) ? (1000000.0f / rate) : 0;
 
 	/* search if stream exists */
 	MavlinkStream *stream;
@@ -1752,8 +1752,8 @@ Mavlink::task_main(int argc, char *argv[])
 	/* don't send parameters on startup without request */
 	_mavlink_param_queue_index = param_count();
 
-	MavlinkRateLimiter slow_rate_limiter(2000.0f / rate_mult);
-	MavlinkRateLimiter fast_rate_limiter(100.0f / rate_mult);
+	MavlinkRateLimiter slow_rate_limiter(2000000.0f / rate_mult);
+	MavlinkRateLimiter fast_rate_limiter(100000.0f / rate_mult);
 
 	/* set main loop delay depending on data rate to minimize CPU overhead */
 	_main_loop_delay = MAIN_LOOP_DELAY / rate_mult;
