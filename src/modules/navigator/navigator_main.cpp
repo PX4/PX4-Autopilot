@@ -1386,7 +1386,8 @@ Navigator::set_rtl_item()
 void
 Navigator::request_loiter_or_ready()
 {
-	if (_vstatus.condition_landed) {
+	/* XXX workaround: no landing detector for fixedwing yet */
+	if (_vstatus.condition_landed && _vstatus.is_rotary_wing) {
 		dispatch(EVENT_READY_REQUESTED);
 
 	} else {
