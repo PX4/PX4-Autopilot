@@ -171,6 +171,9 @@ Mavlink::Mavlink() :
 	_subscriptions(nullptr),
 	_streams(nullptr),
 	mission_pub(-1),
+	mavlink_param_queue_index(0),
+	_subscribe_to_stream(nullptr),
+	_subscribe_to_stream_rate(0.0f),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink"))
@@ -301,6 +304,7 @@ Mavlink::destroy_all_instances()
 
 		while (inst_to_del->thread_running) {
 			printf(".");
+			fflush(stdout);
 			usleep(10000);
 			iterations++;
 
@@ -1443,7 +1447,7 @@ Mavlink::mavlink_missionlib_send_gcs_string(const char *string)
 	}
 }
 
-MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, const size_t size)
+MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic)
 {
 	/* check if already subscribed to this topic */
 	MavlinkOrbSubscription *sub;
@@ -1456,7 +1460,7 @@ MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, cons
 	}
 
 	/* add new subscription */
-	MavlinkOrbSubscription *sub_new = new MavlinkOrbSubscription(topic, size);
+	MavlinkOrbSubscription *sub_new = new MavlinkOrbSubscription(topic);
 
 	LL_APPEND(_subscriptions, sub_new);
 
@@ -1507,6 +1511,34 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	}
 
 	return ERROR;
+}
+
+void
+Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
+{
+	/* orb subscription must be done from the main thread,
+	 * set _subscribe_to_stream and _subscribe_to_stream_rate fields
+	 * which polled in mavlink main loop */
+	if (!_task_should_exit) {
+		/* wait for previous subscription completion */
+		while (_subscribe_to_stream != nullptr) {
+			usleep(MAIN_LOOP_DELAY / 2);
+		}
+
+		/* copy stream name */
+		unsigned n = strlen(stream_name) + 1;
+		char *s = new char[n];
+		memcpy(s, stream_name, n);
+
+		/* set subscription task */
+		_subscribe_to_stream_rate = rate;
+		_subscribe_to_stream = s;
+
+		/* wait for subscription */
+		do {
+			usleep(MAIN_LOOP_DELAY / 2);
+		} while (_subscribe_to_stream != nullptr);
+	}
 }
 
 int
@@ -1686,8 +1718,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 	thread_running = true;
 
-	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update), sizeof(parameter_update_s));
-	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status), sizeof(vehicle_status_s));
+	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
+	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status));
 
 	struct vehicle_status_s *status = (struct vehicle_status_s *) status_sub->get_data();
 
@@ -1726,6 +1758,9 @@ Mavlink::task_main(int argc, char *argv[])
 		break;
 	}
 
+	/* don't send parameters on startup without request */
+	mavlink_param_queue_index = param_count();
+
 	MavlinkRateLimiter slow_rate_limiter(2000.0f / rate_mult);
 	MavlinkRateLimiter fast_rate_limiter(100.0f / rate_mult);
 
@@ -1752,6 +1787,24 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 		}
 
+		/* check for requested subscriptions */
+		if (_subscribe_to_stream != nullptr) {
+			if (OK == configure_stream(_subscribe_to_stream, _subscribe_to_stream_rate)) {
+				if (_subscribe_to_stream_rate > 0.0f) {
+					warnx("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, device_name, _subscribe_to_stream_rate);
+
+				} else {
+					warnx("stream %s on device %s disabled", _subscribe_to_stream, device_name);
+				}
+
+			} else {
+				warnx("stream %s not found", _subscribe_to_stream, device_name);
+			}
+			delete _subscribe_to_stream;
+			_subscribe_to_stream = nullptr;
+		}
+
+		/* update streams */
 		MavlinkStream *stream;
 		LL_FOREACH(_streams, stream) {
 			stream->update(t);
@@ -1793,6 +1846,9 @@ Mavlink::task_main(int argc, char *argv[])
 
 		perf_end(_loop_perf);
 	}
+
+	delete _subscribe_to_stream;
+	_subscribe_to_stream = nullptr;
 
 	/* wait for threads to complete */
 	pthread_join(receive_thread, NULL);
@@ -1911,17 +1967,7 @@ Mavlink::stream(int argc, char *argv[])
 		Mavlink *inst = get_instance_for_device(device_name);
 
 		if (inst != nullptr) {
-			if (OK == inst->configure_stream(stream_name, rate)) {
-				if (rate > 0.0f) {
-					warnx("stream %s on device %s enabled with rate %.1f Hz", stream_name, device_name, rate);
-
-				} else {
-					warnx("stream %s on device %s disabled", stream_name, device_name);
-				}
-
-			} else {
-				warnx("stream %s not found", stream_name, device_name);
-			}
+			inst->configure_stream_threadsafe(stream_name, rate);
 
 		} else {
 			errx(1, "mavlink for device %s is not running", device_name);

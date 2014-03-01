@@ -207,10 +207,10 @@ private:
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
-		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status), sizeof(struct vehicle_status_s));
+		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status));
 		status = (struct vehicle_status_s *)status_sub->get_data();
 
-		pos_sp_triplet_sub = mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet), sizeof(position_setpoint_triplet_s));
+		pos_sp_triplet_sub = mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet));
 		pos_sp_triplet = (struct position_setpoint_triplet_s *)pos_sp_triplet_sub->get_data();
 	}
 
@@ -255,7 +255,7 @@ private:
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
-		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status), sizeof(struct vehicle_status_s));
+		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status));
 		status = (struct vehicle_status_s *)status_sub->get_data();
 	}
 
@@ -310,7 +310,7 @@ private:
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
-		sensor_sub = mavlink->add_orb_subscription(ORB_ID(sensor_combined), sizeof(struct sensor_combined_s));
+		sensor_sub = mavlink->add_orb_subscription(ORB_ID(sensor_combined));
 		sensor = (struct sensor_combined_s *)sensor_sub->get_data();
 	}
 
@@ -376,7 +376,7 @@ private:
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
-		att_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_attitude), sizeof(struct vehicle_attitude_s));
+		att_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_attitude));
 		att = (struct vehicle_attitude_s *)att_sub->get_data();
 	}
 
@@ -412,7 +412,7 @@ private:
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
-		att_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_attitude), sizeof(struct vehicle_attitude_s));
+		att_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_attitude));
 		att = (struct vehicle_attitude_s *)att_sub->get_data();
 	}
 
@@ -465,19 +465,19 @@ private:
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
-		att_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_attitude), sizeof(struct vehicle_attitude_s));
+		att_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_attitude));
 		att = (struct vehicle_attitude_s *)att_sub->get_data();
 
-		pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_global_position), sizeof(struct vehicle_global_position_s));
+		pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_global_position));
 		pos = (struct vehicle_global_position_s *)pos_sub->get_data();
 
-		armed_sub = mavlink->add_orb_subscription(ORB_ID(actuator_armed), sizeof(struct actuator_armed_s));
+		armed_sub = mavlink->add_orb_subscription(ORB_ID(actuator_armed));
 		armed = (struct actuator_armed_s *)armed_sub->get_data();
 
-		act_sub = mavlink->add_orb_subscription(ORB_ID(actuator_controls_0), sizeof(struct actuator_controls_s));
+		act_sub = mavlink->add_orb_subscription(ORB_ID(actuator_controls_0));
 		act = (struct actuator_controls_s *)act_sub->get_data();
 
-		airspeed_sub = mavlink->add_orb_subscription(ORB_ID(airspeed), sizeof(struct airspeed_s));
+		airspeed_sub = mavlink->add_orb_subscription(ORB_ID(airspeed));
 		airspeed = (struct airspeed_s *)airspeed_sub->get_data();
 	}
 
@@ -524,7 +524,7 @@ private:
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
-		gps_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_gps_position), sizeof(struct vehicle_gps_position_s));
+		gps_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_gps_position));
 		gps = (struct vehicle_gps_position_s *)gps_sub->get_data();
 	}
 
@@ -570,10 +570,10 @@ private:
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
-		pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_global_position), sizeof(struct vehicle_global_position_s));
+		pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_global_position));
 		pos = (struct vehicle_global_position_s *)pos_sub->get_data();
 
-		home_sub = mavlink->add_orb_subscription(ORB_ID(home_position), sizeof(struct home_position_s));
+		home_sub = mavlink->add_orb_subscription(ORB_ID(home_position));
 		home = (struct home_position_s *)home_sub->get_data();
 	}
 
@@ -616,7 +616,7 @@ private:
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
-		pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_local_position), sizeof(struct vehicle_local_position_s));
+		pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_local_position));
 		pos = (struct vehicle_local_position_s *)pos_sub->get_data();
 	}
 
@@ -656,7 +656,7 @@ private:
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
-		home_sub = mavlink->add_orb_subscription(ORB_ID(home_position), sizeof(struct home_position_s));
+		home_sub = mavlink->add_orb_subscription(ORB_ID(home_position));
 		home = (struct home_position_s *)home_sub->get_data();
 	}
 
@@ -707,7 +707,7 @@ protected:
 			ORB_ID(actuator_outputs_3)
 		};
 
-		act_sub = mavlink->add_orb_subscription(act_topics[_n], sizeof(struct actuator_outputs_s));
+		act_sub = mavlink->add_orb_subscription(act_topics[_n]);
 		act = (struct actuator_outputs_s *)act_sub->get_data();
 	}
 
@@ -756,13 +756,13 @@ private:
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
-		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status), sizeof(struct vehicle_status_s));
+		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status));
 		status = (struct vehicle_status_s *)status_sub->get_data();
 
-		pos_sp_triplet_sub = mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet), sizeof(position_setpoint_triplet_s));
+		pos_sp_triplet_sub = mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet));
 		pos_sp_triplet = (struct position_setpoint_triplet_s *)pos_sp_triplet_sub->get_data();
 
-		act_sub = mavlink->add_orb_subscription(ORB_ID(actuator_outputs_0), sizeof(struct actuator_outputs_s));
+		act_sub = mavlink->add_orb_subscription(ORB_ID(actuator_outputs_0));
 		act = (struct actuator_outputs_s *)act_sub->get_data();
 	}
 
@@ -861,7 +861,7 @@ private:
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
-		pos_sp_triplet_sub = mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet), sizeof(position_setpoint_triplet_s));
+		pos_sp_triplet_sub = mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet));
 		pos_sp_triplet = (struct position_setpoint_triplet_s *)pos_sp_triplet_sub->get_data();
 	}
 
@@ -899,7 +899,7 @@ private:
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
-		pos_sp_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_local_position_setpoint), sizeof(vehicle_local_position_setpoint_s));
+		pos_sp_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_local_position_setpoint));
 		pos_sp = (struct vehicle_local_position_setpoint_s *)pos_sp_sub->get_data();
 	}
 
@@ -937,7 +937,7 @@ private:
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
-		att_sp_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_attitude_setpoint), sizeof(vehicle_attitude_setpoint_s));
+		att_sp_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_attitude_setpoint));
 		att_sp = (struct vehicle_attitude_setpoint_s *)att_sp_sub->get_data();
 	}
 
@@ -975,7 +975,7 @@ private:
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
-		att_rates_sp_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_rates_setpoint), sizeof(vehicle_rates_setpoint_s));
+		att_rates_sp_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_rates_setpoint));
 		att_rates_sp = (struct vehicle_rates_setpoint_s *)att_rates_sp_sub->get_data();
 	}
 
@@ -1013,7 +1013,7 @@ private:
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
-		rc_sub = mavlink->add_orb_subscription(ORB_ID(input_rc), sizeof(struct rc_input_values));
+		rc_sub = mavlink->add_orb_subscription(ORB_ID(input_rc));
 		rc = (struct rc_input_values *)rc_sub->get_data();
 	}
 
@@ -1062,7 +1062,7 @@ private:
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
-		manual_sub = mavlink->add_orb_subscription(ORB_ID(manual_control_setpoint), sizeof(struct manual_control_setpoint_s));
+		manual_sub = mavlink->add_orb_subscription(ORB_ID(manual_control_setpoint));
 		manual = (struct manual_control_setpoint_s *)manual_sub->get_data();
 	}
 

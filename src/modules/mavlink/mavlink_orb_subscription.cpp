@@ -42,13 +42,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <uORB/uORB.h>
+#include <stdio.h>
 
 #include "mavlink_orb_subscription.h"
 
-MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic, size_t size) : _topic(topic), _last_check(0), next(nullptr)
+MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic) : _topic(topic), _last_check(0), next(nullptr)
 {
-	_data = malloc(size);
-	memset(_data, 0, size);
+	_data = malloc(topic->o_size);
+	memset(_data, 0, topic->o_size);
 	_fd = orb_subscribe(_topic);
 }
 
@@ -58,7 +59,7 @@ MavlinkOrbSubscription::~MavlinkOrbSubscription()
 	free(_data);
 }
 
-const struct orb_metadata *
+const orb_id_t
 MavlinkOrbSubscription::get_topic()
 {
 	return _topic;

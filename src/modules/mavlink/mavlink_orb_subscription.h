@@ -50,12 +50,12 @@ class MavlinkOrbSubscription
 public:
 	MavlinkOrbSubscription *next;
 
-	MavlinkOrbSubscription(const orb_id_t topic, size_t size);
+	MavlinkOrbSubscription(const orb_id_t topic);
 	~MavlinkOrbSubscription();
 
 	bool update(const hrt_abstime t);
 	void *get_data();
-	const struct orb_metadata *get_topic();
+	const orb_id_t get_topic();
 
 private:
 	const orb_id_t _topic;

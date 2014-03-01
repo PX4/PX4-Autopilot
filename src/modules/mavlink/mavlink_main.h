@@ -180,7 +180,7 @@ public:
 	 */
 	int		set_hil_enabled(bool hil_enabled);
 
-	MavlinkOrbSubscription *add_orb_subscription(const orb_id_t topic, size_t size);
+	MavlinkOrbSubscription *add_orb_subscription(const orb_id_t topic);
 
 	mavlink_channel_t get_channel();
 
@@ -234,6 +234,9 @@ private:
 	unsigned int mavlink_param_queue_index;
 
 	bool mavlink_link_termination_allowed;
+
+	char *	_subscribe_to_stream;
+	float	_subscribe_to_stream_rate;
 
 	/**
 	 * Send one parameter.
@@ -296,6 +299,7 @@ private:
 	int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
 
 	int configure_stream(const char *stream_name, const float rate);
+	void configure_stream_threadsafe(const char *stream_name, const float rate);
 
 	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
 
