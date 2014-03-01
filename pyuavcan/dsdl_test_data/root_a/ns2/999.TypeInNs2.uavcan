@@ -1,0 +1,6 @@
+int32 int32
+truncated int2 truncated
+saturated bool A = false
+truncated bool B = true
+bool C
+bool c

@@ -1,0 +1,6 @@
+ #
+# Test file
+#
+
+root_b.TypeInRootB type_in_root_b
+root_a.ns2.TypeInNs2[<256] type_in_ns_2
