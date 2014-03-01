@@ -16,4 +16,5 @@ astyle \
     --ignore-exclude-errors-x	\
     --lineend=linux		\
     --exclude=EASTL		\
+    --add-brackets \
     $*

@@ -349,13 +349,6 @@ PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.05f);
 PARAM_DEFINE_FLOAT(FW_LND_ANG, 5.0f);
 
 /**
- * Landing slope length
- *
- * @group L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_LND_SLLR, 0.9f);
-
-/**
  *
  *
  * @group L1 Control

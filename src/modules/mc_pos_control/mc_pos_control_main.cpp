@@ -730,7 +730,6 @@ MulticopterPositionControl::task_main()
 			} else {
 				/* run position & altitude controllers, calculate velocity setpoint */
 				math::Vector<3> pos_err;
-				float err_x, err_y;
 				get_vector_to_next_waypoint_fast(_global_pos.lat, _global_pos.lon, _lat_sp, _lon_sp, &pos_err.data[0], &pos_err.data[1]);
 				pos_err(2) = -(_alt_sp - alt);
 
