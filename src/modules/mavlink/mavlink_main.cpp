@@ -92,7 +92,7 @@ static const int ERROR = -1;
 #define MAX_DATA_RATE	10000	// max data rate in bytes/s
 #define MAIN_LOOP_DELAY 10000	// 100 Hz
 
-static Mavlink *_head = nullptr;
+static Mavlink *_mavlink_instances = nullptr;
 
 /* TODO: if this is a class member it crashes */
 static struct file_operations fops;
@@ -160,35 +160,30 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 static void usage(void);
 
 Mavlink::Mavlink() :
-	device_name(DEFAULT_DEVICE_NAME),
-	_task_should_exit(false),
 	next(nullptr),
+	_device_name(DEFAULT_DEVICE_NAME),
+	_task_should_exit(false),
 	_mavlink_fd(-1),
-	thread_running(false),
-	_mavlink_task(-1),
-	_mavlink_incoming_fd(-1),
+	_task_running(false),
 	_mavlink_hil_enabled(false),
 	_subscriptions(nullptr),
 	_streams(nullptr),
-	mission_pub(-1),
-	mavlink_param_queue_index(0),
+	_mission_pub(-1),
+	_mavlink_param_queue_index(0),
 	_subscribe_to_stream(nullptr),
 	_subscribe_to_stream_rate(0.0f),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink"))
 {
-	wpm = &wpm_s;
+	_wpm = &_wpm_s;
 	fops.ioctl = (int (*)(file *, int, long unsigned int))&mavlink_dev_ioctl;
-	// _parameter_handles.min_altitude = param_find("NAV_MIN_ALT");
-
 }
 
 Mavlink::~Mavlink()
 {
-	if (_mavlink_task != -1) {
-
-		/* task wakes up every 100ms or so at the longest */
+	if (_task_running) {
+		/* task wakes up every 10ms or so at the longest */
 		_task_should_exit = true;
 
 		/* wait for a second for the task to quit at our request */
@@ -200,10 +195,11 @@ Mavlink::~Mavlink()
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
-				task_delete(_mavlink_task);
+				//TODO store main task handle in Mavlink instance to allow killing task
+				//task_delete(_mavlink_task);
 				break;
 			}
-		} while (_mavlink_task != -1);
+		} while (_task_running);
 	}
 }
 
@@ -216,12 +212,10 @@ Mavlink::set_mode(enum MAVLINK_MODE mode)
 int
 Mavlink::instance_count()
 {
-	/* note: a local buffer count will help if this ever is called often */
-	Mavlink *inst = ::_head;
 	unsigned inst_index = 0;
+	Mavlink *inst;
 
-	while (inst != nullptr) {
-		inst = inst->next;
+	LL_FOREACH(::_mavlink_instances, inst) {
 		inst_index++;
 	}
 
@@ -232,11 +226,11 @@ Mavlink *
 Mavlink::new_instance()
 {
 	Mavlink *inst = new Mavlink();
-	Mavlink *next = ::_head;
+	Mavlink *next = ::_mavlink_instances;
 
 	/* create the first instance at _head */
-	if (::_head == nullptr) {
-		::_head = inst;
+	if (::_mavlink_instances == nullptr) {
+		::_mavlink_instances = inst;
 		/* afterwards follow the next and append the instance */
 
 	} else {
@@ -254,19 +248,17 @@ Mavlink::new_instance()
 Mavlink *
 Mavlink::get_instance(unsigned instance)
 {
-	Mavlink *inst = ::_head;
+	Mavlink *inst;
 	unsigned inst_index = 0;
+	LL_FOREACH(::_mavlink_instances, inst) {
+		if (instance == inst_index) {
+			return inst;
+		}
 
-	while (inst->next != nullptr && inst_index < instance) {
-		inst = inst->next;
 		inst_index++;
 	}
 
-	if (inst_index < instance) {
-		inst = nullptr;
-	}
-
-	return inst;
+	return nullptr;
 }
 
 Mavlink *
@@ -274,8 +266,8 @@ Mavlink::get_instance_for_device(const char *device_name)
 {
 	Mavlink *inst;
 
-	LL_FOREACH(::_head, inst) {
-		if (strcmp(inst->device_name, device_name) == 0) {
+	LL_FOREACH(::_mavlink_instances, inst) {
+		if (strcmp(inst->_device_name, device_name) == 0) {
 			return inst;
 		}
 	}
@@ -288,21 +280,20 @@ Mavlink::destroy_all_instances()
 {
 	/* start deleting from the end */
 	Mavlink *inst_to_del = nullptr;
-	Mavlink *next_inst = ::_head;
+	Mavlink *next_inst = ::_mavlink_instances;
 
 	unsigned iterations = 0;
 
 	warnx("waiting for instances to stop");
 
 	while (next_inst != nullptr) {
-
 		inst_to_del = next_inst;
 		next_inst = inst_to_del->next;
 
 		/* set flag to stop thread and wait for all threads to finish */
 		inst_to_del->_task_should_exit = true;
 
-		while (inst_to_del->thread_running) {
+		while (inst_to_del->_task_running) {
 			printf(".");
 			fflush(stdout);
 			usleep(10000);
@@ -318,7 +309,7 @@ Mavlink::destroy_all_instances()
 	}
 
 	/* reset head */
-	::_head = nullptr;
+	::_mavlink_instances = nullptr;
 
 	printf("\n");
 	warnx("all instances stopped");
@@ -328,12 +319,12 @@ Mavlink::destroy_all_instances()
 bool
 Mavlink::instance_exists(const char *device_name, Mavlink *self)
 {
-	Mavlink *inst = ::_head;
+	Mavlink *inst = ::_mavlink_instances;
 
 	while (inst != nullptr) {
 
 		/* don't compare with itself */
-		if (inst != self && !strcmp(device_name, inst->device_name)) {
+		if (inst != self && !strcmp(device_name, inst->_device_name)) {
 			return true;
 		}
 
@@ -358,7 +349,7 @@ Mavlink::get_uart_fd(unsigned index)
 int
 Mavlink::get_uart_fd()
 {
-	return _uart;
+	return _uart_fd;
 }
 
 mavlink_channel_t
@@ -384,12 +375,12 @@ Mavlink::mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 			struct mavlink_logmessage msg;
 			strncpy(msg.text, txt, sizeof(msg.text));
 
-			Mavlink *inst = ::_head;
+			Mavlink *inst = ::_mavlink_instances;
 
 			while (inst != nullptr) {
 
-				mavlink_logbuffer_write(&inst->lb, &msg);
-				inst->total_counter++;
+				mavlink_logbuffer_write(&inst->_logbuffer, &msg);
+				inst->_total_counter++;
 				inst = inst->next;
 
 			}
@@ -493,7 +484,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 	}
 
 	/* open uart */
-	_uart = open(uart_name, O_RDWR | O_NOCTTY);
+	_uart_fd = open(uart_name, O_RDWR | O_NOCTTY);
 
 	/* Try to set baud rate */
 	struct termios uart_config;
@@ -501,14 +492,14 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 	*is_usb = false;
 
 	/* Back up the original uart configuration to restore it after exit */
-	if ((termios_state = tcgetattr(_uart, uart_config_original)) < 0) {
+	if ((termios_state = tcgetattr(_uart_fd, uart_config_original)) < 0) {
 		warnx("ERROR get termios config %s: %d\n", uart_name, termios_state);
-		close(_uart);
+		close(_uart_fd);
 		return -1;
 	}
 
 	/* Fill the struct for the new configuration */
-	tcgetattr(_uart, &uart_config);
+	tcgetattr(_uart_fd, &uart_config);
 
 	/* Clear ONLCR flag (which appends a CR for every LF) */
 	uart_config.c_oflag &= ~ONLCR;
@@ -519,19 +510,19 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 		/* Set baud rate */
 		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
 			warnx("ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
-			close(_uart);
+			close(_uart_fd);
 			return -1;
 		}
 
 	}
 
-	if ((termios_state = tcsetattr(_uart, TCSANOW, &uart_config)) < 0) {
+	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
 		warnx("ERROR setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
-		close(_uart);
+		close(_uart_fd);
 		return -1;
 	}
 
-	return _uart;
+	return _uart_fd;
 }
 
 int
@@ -583,9 +574,9 @@ extern mavlink_system_t mavlink_system;
 
 int Mavlink::mavlink_pm_queued_send()
 {
-	if (mavlink_param_queue_index < param_count()) {
-		mavlink_pm_send_param(param_for_index(mavlink_param_queue_index));
-		mavlink_param_queue_index++;
+	if (_mavlink_param_queue_index < param_count()) {
+		mavlink_pm_send_param(param_for_index(_mavlink_param_queue_index));
+		_mavlink_param_queue_index++;
 		return 0;
 
 	} else {
@@ -595,7 +586,7 @@ int Mavlink::mavlink_pm_queued_send()
 
 void Mavlink::mavlink_pm_start_queued_send()
 {
-	mavlink_param_queue_index = 0;
+	_mavlink_param_queue_index = 0;
 }
 
 int Mavlink::mavlink_pm_send_param_for_index(uint16_t index)
@@ -730,11 +721,11 @@ void Mavlink::mavlink_pm_message_handler(const mavlink_channel_t chan, const mav
 void Mavlink::publish_mission()
 {
 	/* Initialize mission publication if necessary */
-	if (mission_pub < 0) {
-		mission_pub = orb_advertise(ORB_ID(mission), &mission);
+	if (_mission_pub < 0) {
+		_mission_pub = orb_advertise(ORB_ID(mission), &mission);
 
 	} else {
-		orb_publish(ORB_ID(mission), mission_pub, &mission);
+		orb_publish(ORB_ID(mission), _mission_pub, &mission);
 	}
 }
 
@@ -863,7 +854,7 @@ void Mavlink::mavlink_wpm_send_waypoint_ack(uint8_t sysid, uint8_t compid, uint8
  */
 void Mavlink::mavlink_wpm_send_waypoint_current(uint16_t seq)
 {
-	if (seq < wpm->size) {
+	if (seq < _wpm->size) {
 		mavlink_message_t msg;
 		mavlink_mission_current_t wpc;
 
@@ -872,7 +863,7 @@ void Mavlink::mavlink_wpm_send_waypoint_current(uint16_t seq)
 		mavlink_msg_mission_current_encode(mavlink_system.sysid, _mavlink_wpm_comp_id, &msg, &wpc);
 		mavlink_missionlib_send_message(&msg);
 
-	} else if (seq == 0 && wpm->size == 0) {
+	} else if (seq == 0 && _wpm->size == 0) {
 
 		/* don't broadcast if no WPs */
 
@@ -906,7 +897,7 @@ void Mavlink::mavlink_wpm_send_waypoint(uint8_t sysid, uint8_t compid, uint16_t 
 
 	dm_item_t dm_current;
 
-	if (wpm->current_dataman_id == 0) {
+	if (_wpm->current_dataman_id == 0) {
 		dm_current = DM_KEY_WAYPOINTS_OFFBOARD_0;
 
 	} else {
@@ -929,7 +920,7 @@ void Mavlink::mavlink_wpm_send_waypoint(uint8_t sysid, uint8_t compid, uint16_t 
 		if (_verbose) { warnx("Sent waypoint %u to ID %u", wp.seq, wp.target_system); }
 
 	} else {
-		mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, MAV_MISSION_ERROR);
+		mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ERROR);
 
 		if (_verbose) { warnx("ERROR: could not read WP%u", seq); }
 	}
@@ -937,7 +928,7 @@ void Mavlink::mavlink_wpm_send_waypoint(uint8_t sysid, uint8_t compid, uint16_t 
 
 void Mavlink::mavlink_wpm_send_waypoint_request(uint8_t sysid, uint8_t compid, uint16_t seq)
 {
-	if (seq < wpm->max_size) {
+	if (seq < _wpm->max_size) {
 		mavlink_message_t msg;
 		mavlink_mission_request_t wpr;
 		wpr.target_system = sysid;
@@ -978,15 +969,15 @@ void Mavlink::mavlink_wpm_send_waypoint_reached(uint16_t seq)
 void Mavlink::mavlink_waypoint_eventloop(uint64_t now)
 {
 	/* check for timed-out operations */
-	if (now - wpm->timestamp_lastaction > wpm->timeout && wpm->current_state != MAVLINK_WPM_STATE_IDLE) {
+	if (now - _wpm->timestamp_lastaction > _wpm->timeout && _wpm->current_state != MAVLINK_WPM_STATE_IDLE) {
 
 		mavlink_missionlib_send_gcs_string("Operation timeout");
 
-		if (_verbose) { warnx("Last operation (state=%u) timed out, changing state to MAVLINK_WPM_STATE_IDLE", wpm->current_state); }
+		if (_verbose) { warnx("Last operation (state=%u) timed out, changing state to MAVLINK_WPM_STATE_IDLE", _wpm->current_state); }
 
-		wpm->current_state = MAVLINK_WPM_STATE_IDLE;
-		wpm->current_partner_sysid = 0;
-		wpm->current_partner_compid = 0;
+		_wpm->current_state = MAVLINK_WPM_STATE_IDLE;
+		_wpm->current_partner_sysid = 0;
+		_wpm->current_partner_compid = 0;
 	}
 }
 
@@ -1001,14 +992,14 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 			mavlink_mission_ack_t wpa;
 			mavlink_msg_mission_ack_decode(msg, &wpa);
 
-			if ((msg->sysid == wpm->current_partner_sysid && msg->compid == wpm->current_partner_compid) && (wpa.target_system == mavlink_system.sysid /*&& wpa.target_component == mavlink_wpm_comp_id*/)) {
-				wpm->timestamp_lastaction = now;
+			if ((msg->sysid == _wpm->current_partner_sysid && msg->compid == _wpm->current_partner_compid) && (wpa.target_system == mavlink_system.sysid /*&& wpa.target_component == mavlink_wpm_comp_id*/)) {
+				_wpm->timestamp_lastaction = now;
 
-				if (wpm->current_state == MAVLINK_WPM_STATE_SENDLIST || wpm->current_state == MAVLINK_WPM_STATE_SENDLIST_SENDWPS) {
-					if (wpm->current_wp_id == wpm->size - 1) {
+				if (_wpm->current_state == MAVLINK_WPM_STATE_SENDLIST || _wpm->current_state == MAVLINK_WPM_STATE_SENDLIST_SENDWPS) {
+					if (_wpm->current_wp_id == _wpm->size - 1) {
 
-						wpm->current_state = MAVLINK_WPM_STATE_IDLE;
-						wpm->current_wp_id = 0;
+						_wpm->current_state = MAVLINK_WPM_STATE_IDLE;
+						_wpm->current_wp_id = 0;
 					}
 				}
 
@@ -1026,10 +1017,10 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 			mavlink_msg_mission_set_current_decode(msg, &wpc);
 
 			if (wpc.target_system == mavlink_system.sysid /*&& wpc.target_component == mavlink_wpm_comp_id*/) {
-				wpm->timestamp_lastaction = now;
+				_wpm->timestamp_lastaction = now;
 
-				if (wpm->current_state == MAVLINK_WPM_STATE_IDLE) {
-					if (wpc.seq < wpm->size) {
+				if (_wpm->current_state == MAVLINK_WPM_STATE_IDLE) {
+					if (wpc.seq < _wpm->size) {
 
 						mission.current_index = wpc.seq;
 						publish_mission();
@@ -1064,22 +1055,22 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 			mavlink_msg_mission_request_list_decode(msg, &wprl);
 
 			if (wprl.target_system == mavlink_system.sysid /*&& wprl.target_component == mavlink_wpm_comp_id*/) {
-				wpm->timestamp_lastaction = now;
+				_wpm->timestamp_lastaction = now;
 
-				if (wpm->current_state == MAVLINK_WPM_STATE_IDLE || wpm->current_state == MAVLINK_WPM_STATE_SENDLIST) {
-					if (wpm->size > 0) {
+				if (_wpm->current_state == MAVLINK_WPM_STATE_IDLE || _wpm->current_state == MAVLINK_WPM_STATE_SENDLIST) {
+					if (_wpm->size > 0) {
 
-						wpm->current_state = MAVLINK_WPM_STATE_SENDLIST;
-						wpm->current_wp_id = 0;
-						wpm->current_partner_sysid = msg->sysid;
-						wpm->current_partner_compid = msg->compid;
+						_wpm->current_state = MAVLINK_WPM_STATE_SENDLIST;
+						_wpm->current_wp_id = 0;
+						_wpm->current_partner_sysid = msg->sysid;
+						_wpm->current_partner_compid = msg->compid;
 
 					} else {
 						if (_verbose) { warnx("No waypoints send"); }
 					}
 
-					wpm->current_count = wpm->size;
-					mavlink_wpm_send_waypoint_count(msg->sysid, msg->compid, wpm->current_count);
+					_wpm->current_count = _wpm->size;
+					mavlink_wpm_send_waypoint_count(msg->sysid, msg->compid, _wpm->current_count);
 
 				} else {
 					mavlink_missionlib_send_gcs_string("IGN REQUEST LIST: Busy");
@@ -1100,10 +1091,10 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 			mavlink_mission_request_t wpr;
 			mavlink_msg_mission_request_decode(msg, &wpr);
 
-			if (msg->sysid == wpm->current_partner_sysid && msg->compid == wpm->current_partner_compid && wpr.target_system == mavlink_system.sysid /*&& wpr.target_component == mavlink_wpm_comp_id*/) {
-				wpm->timestamp_lastaction = now;
+			if (msg->sysid == _wpm->current_partner_sysid && msg->compid == _wpm->current_partner_compid && wpr.target_system == mavlink_system.sysid /*&& wpr.target_component == mavlink_wpm_comp_id*/) {
+				_wpm->timestamp_lastaction = now;
 
-				if (wpr.seq >= wpm->size) {
+				if (wpr.seq >= _wpm->size) {
 
 					mavlink_missionlib_send_gcs_string("REJ. WP CMD: Req. WP not in list");
 
@@ -1116,12 +1107,12 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 				 * Ensure that we are in the correct state and that the first request has id 0
 				 * and the following requests have either the last id (re-send last waypoint) or last_id+1 (next waypoint)
 				 */
-				if (wpm->current_state == MAVLINK_WPM_STATE_SENDLIST) {
+				if (_wpm->current_state == MAVLINK_WPM_STATE_SENDLIST) {
 
 					if (wpr.seq == 0) {
 						if (_verbose) { warnx("Got MAVLINK_MSG_ID_MISSION_ITEM_REQUEST of waypoint %u from %u changing state to MAVLINK_WPM_STATE_SENDLIST_SENDWPS", wpr.seq, msg->sysid); }
 
-						wpm->current_state = MAVLINK_WPM_STATE_SENDLIST_SENDWPS;
+						_wpm->current_state = MAVLINK_WPM_STATE_SENDLIST_SENDWPS;
 
 					} else {
 						mavlink_missionlib_send_gcs_string("REJ. WP CMD: First id != 0");
@@ -1131,20 +1122,20 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 						break;
 					}
 
-				} else if (wpm->current_state == MAVLINK_WPM_STATE_SENDLIST_SENDWPS) {
+				} else if (_wpm->current_state == MAVLINK_WPM_STATE_SENDLIST_SENDWPS) {
 
-					if (wpr.seq == wpm->current_wp_id) {
+					if (wpr.seq == _wpm->current_wp_id) {
 
 						if (_verbose) { warnx("Got MAVLINK_MSG_ID_MISSION_ITEM_REQUEST of waypoint %u (again) from %u staying in state MAVLINK_WPM_STATE_SENDLIST_SENDWPS", wpr.seq, msg->sysid); }
 
-					} else if (wpr.seq == wpm->current_wp_id + 1) {
+					} else if (wpr.seq == _wpm->current_wp_id + 1) {
 
 						if (_verbose) { warnx("Got MAVLINK_MSG_ID_MISSION_ITEM_REQUEST of waypoint %u from %u staying in state MAVLINK_WPM_STATE_SENDLIST_SENDWPS", wpr.seq, msg->sysid); }
 
 					} else {
 						mavlink_missionlib_send_gcs_string("REJ. WP CMD: Req. WP was unexpected");
 
-						if (_verbose) { warnx("Ignored MAVLINK_MSG_ID_MISSION_ITEM_REQUEST because the requested waypoint ID (%u) was not the expected (%u or %u).", wpr.seq, wpm->current_wp_id, wpm->current_wp_id + 1); }
+						if (_verbose) { warnx("Ignored MAVLINK_MSG_ID_MISSION_ITEM_REQUEST because the requested waypoint ID (%u) was not the expected (%u or %u).", wpr.seq, _wpm->current_wp_id, _wpm->current_wp_id + 1); }
 
 						break;
 					}
@@ -1153,20 +1144,20 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 
 					mavlink_missionlib_send_gcs_string("REJ. WP CMD: Busy");
 
-					if (_verbose) { warnx("Ignored MAVLINK_MSG_ID_MISSION_ITEM_REQUEST because i'm doing something else already (state=%i).", wpm->current_state); }
+					if (_verbose) { warnx("Ignored MAVLINK_MSG_ID_MISSION_ITEM_REQUEST because i'm doing something else already (state=%i).", _wpm->current_state); }
 
 					break;
 				}
 
-				wpm->current_wp_id = wpr.seq;
-				wpm->current_state = MAVLINK_WPM_STATE_SENDLIST_SENDWPS;
+				_wpm->current_wp_id = wpr.seq;
+				_wpm->current_state = MAVLINK_WPM_STATE_SENDLIST_SENDWPS;
 
-				if (wpr.seq < wpm->size) {
+				if (wpr.seq < _wpm->size) {
 
-					mavlink_wpm_send_waypoint(wpm->current_partner_sysid, wpm->current_partner_compid, wpm->current_wp_id);
+					mavlink_wpm_send_waypoint(_wpm->current_partner_sysid, _wpm->current_partner_compid, _wpm->current_wp_id);
 
 				} else {
-					mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, MAV_MISSION_ERROR);
+					mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ERROR);
 
 					if (_verbose) { warnx("ERROR: Waypoint %u out of bounds", wpr.seq); }
 				}
@@ -1174,11 +1165,11 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 
 			} else {
 				//we we're target but already communicating with someone else
-				if ((wpr.target_system == mavlink_system.sysid /*&& wpr.target_component == mavlink_wpm_comp_id*/) && !(msg->sysid == wpm->current_partner_sysid && msg->compid == wpm->current_partner_compid)) {
+				if ((wpr.target_system == mavlink_system.sysid /*&& wpr.target_component == mavlink_wpm_comp_id*/) && !(msg->sysid == _wpm->current_partner_sysid && msg->compid == _wpm->current_partner_compid)) {
 
 					mavlink_missionlib_send_gcs_string("REJ. WP CMD: Busy");
 
-					if (_verbose) { warnx("Ignored MAVLINK_MSG_ID_MISSION_ITEM_REQUEST from ID %u because i'm already talking to ID %u.", msg->sysid, wpm->current_partner_sysid); }
+					if (_verbose) { warnx("Ignored MAVLINK_MSG_ID_MISSION_ITEM_REQUEST from ID %u because i'm already talking to ID %u.", msg->sysid, _wpm->current_partner_sysid); }
 
 				} else {
 
@@ -1196,14 +1187,14 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 			mavlink_msg_mission_count_decode(msg, &wpc);
 
 			if (wpc.target_system == mavlink_system.sysid/* && wpc.target_component == mavlink_wpm_comp_id*/) {
-				wpm->timestamp_lastaction = now;
+				_wpm->timestamp_lastaction = now;
 
-				if (wpm->current_state == MAVLINK_WPM_STATE_IDLE) {
+				if (_wpm->current_state == MAVLINK_WPM_STATE_IDLE) {
 
 					if (wpc.count > NUM_MISSIONS_SUPPORTED) {
 						if (_verbose) { warnx("Too many waypoints: %d, supported: %d", wpc.count, NUM_MISSIONS_SUPPORTED); }
 
-						mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, MAV_MISSION_NO_SPACE);
+						mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_NO_SPACE);
 						break;
 					}
 
@@ -1217,17 +1208,17 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 
 					if (_verbose) { warnx("Got MAVLINK_MSG_ID_MISSION_ITEM_COUNT (%u) from %u changing state to MAVLINK_WPM_STATE_GETLIST", wpc.count, msg->sysid); }
 
-					wpm->current_state = MAVLINK_WPM_STATE_GETLIST;
-					wpm->current_wp_id = 0;
-					wpm->current_partner_sysid = msg->sysid;
-					wpm->current_partner_compid = msg->compid;
-					wpm->current_count = wpc.count;
+					_wpm->current_state = MAVLINK_WPM_STATE_GETLIST;
+					_wpm->current_wp_id = 0;
+					_wpm->current_partner_sysid = msg->sysid;
+					_wpm->current_partner_compid = msg->compid;
+					_wpm->current_count = wpc.count;
 
-					mavlink_wpm_send_waypoint_request(wpm->current_partner_sysid, wpm->current_partner_compid, wpm->current_wp_id);
+					mavlink_wpm_send_waypoint_request(_wpm->current_partner_sysid, _wpm->current_partner_compid, _wpm->current_wp_id);
 
-				} else if (wpm->current_state == MAVLINK_WPM_STATE_GETLIST) {
+				} else if (_wpm->current_state == MAVLINK_WPM_STATE_GETLIST) {
 
-					if (wpm->current_wp_id == 0) {
+					if (_wpm->current_wp_id == 0) {
 						mavlink_missionlib_send_gcs_string("WP CMD OK AGAIN");
 
 						if (_verbose) { warnx("Got MAVLINK_MSG_ID_MISSION_ITEM_COUNT (%u) again from %u", wpc.count, msg->sysid); }
@@ -1235,7 +1226,7 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 					} else {
 						mavlink_missionlib_send_gcs_string("REJ. WP CMD: Busy");
 
-						if (_verbose) { warnx("Ignored MAVLINK_MSG_ID_MISSION_ITEM_COUNT because i'm already receiving waypoint %u.", wpm->current_wp_id); }
+						if (_verbose) { warnx("Ignored MAVLINK_MSG_ID_MISSION_ITEM_COUNT because i'm already receiving waypoint %u.", _wpm->current_wp_id); }
 					}
 
 				} else {
@@ -1259,14 +1250,14 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 
 			if (wp.target_system == mavlink_system.sysid && wp.target_component == _mavlink_wpm_comp_id) {
 
-				wpm->timestamp_lastaction = now;
+				_wpm->timestamp_lastaction = now;
 
 				/*
 				 * ensure that we are in the correct state and that the first waypoint has id 0
 				 * and the following waypoints have the correct ids
 				 */
 
-				if (wpm->current_state == MAVLINK_WPM_STATE_GETLIST) {
+				if (_wpm->current_state == MAVLINK_WPM_STATE_GETLIST) {
 
 					if (wp.seq != 0) {
 						mavlink_missionlib_send_gcs_string("Ignored MISSION_ITEM WP not 0");
@@ -1274,30 +1265,30 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 						break;
 					}
 
-				} else if (wpm->current_state == MAVLINK_WPM_STATE_GETLIST_GETWPS) {
+				} else if (_wpm->current_state == MAVLINK_WPM_STATE_GETLIST_GETWPS) {
 
-					if (wp.seq >= wpm->current_count) {
+					if (wp.seq >= _wpm->current_count) {
 						mavlink_missionlib_send_gcs_string("Ignored MISSION_ITEM WP out of bounds");
 						warnx("Ignored MAVLINK_MSG_ID_MISSION_ITEM because the waypoint ID (%u) was out of bounds.", wp.seq);
 						break;
 					}
 
-					if (wp.seq != wpm->current_wp_id) {
-						warnx("Ignored MAVLINK_MSG_ID_MISSION_ITEM because the waypoint ID (%u) was not the expected %u.", wp.seq, wpm->current_wp_id);
-						mavlink_wpm_send_waypoint_request(wpm->current_partner_sysid, wpm->current_partner_compid, wpm->current_wp_id);
+					if (wp.seq != _wpm->current_wp_id) {
+						warnx("Ignored MAVLINK_MSG_ID_MISSION_ITEM because the waypoint ID (%u) was not the expected %u.", wp.seq, _wpm->current_wp_id);
+						mavlink_wpm_send_waypoint_request(_wpm->current_partner_sysid, _wpm->current_partner_compid, _wpm->current_wp_id);
 						break;
 					}
 				}
 
-				wpm->current_state = MAVLINK_WPM_STATE_GETLIST_GETWPS;
+				_wpm->current_state = MAVLINK_WPM_STATE_GETLIST_GETWPS;
 
 				struct mission_item_s mission_item;
 
 				int ret = map_mavlink_mission_item_to_mission_item(&wp, &mission_item);
 
 				if (ret != OK) {
-					mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, ret);
-					wpm->current_state = MAVLINK_WPM_STATE_IDLE;
+					mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, ret);
+					_wpm->current_state = MAVLINK_WPM_STATE_IDLE;
 					break;
 				}
 
@@ -1305,7 +1296,7 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 
 				dm_item_t dm_next;
 
-				if (wpm->current_dataman_id == 0) {
+				if (_wpm->current_dataman_id == 0) {
 					dm_next = DM_KEY_WAYPOINTS_OFFBOARD_1;
 					mission.dataman_id = 1;
 
@@ -1315,8 +1306,8 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 				}
 
 				if (dm_write(dm_next, wp.seq, DM_PERSIST_IN_FLIGHT_RESET, &mission_item, len) != len) {
-					mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, MAV_MISSION_ERROR);
-					wpm->current_state = MAVLINK_WPM_STATE_IDLE;
+					mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ERROR);
+					_wpm->current_state = MAVLINK_WPM_STATE_IDLE;
 					break;
 				}
 
@@ -1327,25 +1318,25 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 				// XXX ignore current set
 				mission.current_index = -1;
 
-				wpm->current_wp_id = wp.seq + 1;
+				_wpm->current_wp_id = wp.seq + 1;
 
-				if (wpm->current_wp_id == wpm->current_count && wpm->current_state == MAVLINK_WPM_STATE_GETLIST_GETWPS) {
+				if (_wpm->current_wp_id == _wpm->current_count && _wpm->current_state == MAVLINK_WPM_STATE_GETLIST_GETWPS) {
 
-					if (_verbose) { warnx("Got all %u waypoints, changing state to MAVLINK_WPM_STATE_IDLE", wpm->current_count); }
+					if (_verbose) { warnx("Got all %u waypoints, changing state to MAVLINK_WPM_STATE_IDLE", _wpm->current_count); }
 
-					mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, MAV_MISSION_ACCEPTED);
+					mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ACCEPTED);
 
-					mission.count = wpm->current_count;
+					mission.count = _wpm->current_count;
 
 					publish_mission();
 
-					wpm->current_dataman_id = mission.dataman_id;
-					wpm->size = wpm->current_count;
+					_wpm->current_dataman_id = mission.dataman_id;
+					_wpm->size = _wpm->current_count;
 
-					wpm->current_state = MAVLINK_WPM_STATE_IDLE;
+					_wpm->current_state = MAVLINK_WPM_STATE_IDLE;
 
 				} else {
-					mavlink_wpm_send_waypoint_request(wpm->current_partner_sysid, wpm->current_partner_compid, wpm->current_wp_id);
+					mavlink_wpm_send_waypoint_request(_wpm->current_partner_sysid, _wpm->current_partner_compid, _wpm->current_wp_id);
 				}
 
 			} else {
@@ -1363,10 +1354,10 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 
 			if (wpca.target_system == mavlink_system.sysid /*&& wpca.target_component == mavlink_wpm_comp_id */) {
 
-				if (wpm->current_state == MAVLINK_WPM_STATE_IDLE) {
-					wpm->timestamp_lastaction = now;
+				if (_wpm->current_state == MAVLINK_WPM_STATE_IDLE) {
+					_wpm->timestamp_lastaction = now;
 
-					wpm->size = 0;
+					_wpm->size = 0;
 
 					/* prepare mission topic */
 					mission.dataman_id = -1;
@@ -1375,10 +1366,10 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 					publish_mission();
 
 					if (dm_clear(DM_KEY_WAYPOINTS_OFFBOARD_0) == OK && dm_clear(DM_KEY_WAYPOINTS_OFFBOARD_1) == OK) {
-						mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, MAV_MISSION_ACCEPTED);
+						mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ACCEPTED);
 
 					} else {
-						mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, MAV_MISSION_ERROR);
+						mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ERROR);
 					}
 
 
@@ -1389,7 +1380,7 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 				}
 
 
-			} else if (wpca.target_system == mavlink_system.sysid /*&& wpca.target_component == mavlink_wpm_comp_id */ && wpm->current_state != MAVLINK_WPM_STATE_IDLE) {
+			} else if (wpca.target_system == mavlink_system.sysid /*&& wpca.target_component == mavlink_wpm_comp_id */ && _wpm->current_state != MAVLINK_WPM_STATE_IDLE) {
 
 				mavlink_missionlib_send_gcs_string("REJ. WP CLERR CMD: target id mismatch");
 
@@ -1549,7 +1540,7 @@ Mavlink::task_main(int argc, char *argv[])
 	fflush(stdout);
 
 	/* initialize mavlink text message buffering */
-	mavlink_logbuffer_init(&lb, 5);
+	mavlink_logbuffer_init(&_logbuffer, 5);
 
 	int ch;
 	_baudrate = 57600;
@@ -1589,7 +1580,7 @@ Mavlink::task_main(int argc, char *argv[])
 			break;
 
 		case 'd':
-			device_name = optarg;
+			_device_name = optarg;
 			break;
 
 //		case 'e':
@@ -1636,8 +1627,8 @@ Mavlink::task_main(int argc, char *argv[])
 		_datarate = MAX_DATA_RATE;
 	}
 
-	if (Mavlink::instance_exists(device_name, this)) {
-		errx(1, "mavlink instance for %s already running", device_name);
+	if (Mavlink::instance_exists(_device_name, this)) {
+		errx(1, "mavlink instance for %s already running", _device_name);
 	}
 
 	/* inform about mode */
@@ -1680,7 +1671,7 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	warnx("data rate: %d bytes/s", _datarate);
-	warnx("port: %s, baudrate: %d", device_name, _baudrate);
+	warnx("port: %s, baudrate: %d", _device_name, _baudrate);
 
 	/* flush stdout in case MAVLink is about to take it over */
 	fflush(stdout);
@@ -1689,16 +1680,14 @@ Mavlink::task_main(int argc, char *argv[])
 	bool usb_uart;
 
 	/* default values for arguments */
-	_uart = mavlink_open_uart(_baudrate, device_name, &uart_config_original, &usb_uart);
+	_uart_fd = mavlink_open_uart(_baudrate, _device_name, &uart_config_original, &usb_uart);
 
-	if (_uart < 0) {
-		err(1, "could not open %s", device_name);
+	if (_uart_fd < 0) {
+		err(1, "could not open %s", _device_name);
 	}
 
 	/* create the device node that's used for sending text log messages, etc. */
-	if (instance_count() == 1) {
-		register_driver(MAVLINK_LOG_DEVICE, &fops, 0666, NULL);
-	}
+	register_driver(MAVLINK_LOG_DEVICE, &fops, 0666, NULL);
 
 	/* initialize logging device */
 	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
@@ -1707,16 +1696,16 @@ Mavlink::task_main(int argc, char *argv[])
 	mavlink_update_system();
 
 	/* start the MAVLink receiver */
-	receive_thread = MavlinkReceiver::receive_start(this);
+	_receive_thread = MavlinkReceiver::receive_start(this);
 
 	/* initialize waypoint manager */
-	mavlink_wpm_init(wpm);
+	mavlink_wpm_init(_wpm);
 
 	int mission_result_sub = orb_subscribe(ORB_ID(mission_result));
 	struct mission_result_s mission_result;
 	memset(&mission_result, 0, sizeof(mission_result));
 
-	thread_running = true;
+	_task_running = true;
 
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
 	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status));
@@ -1759,7 +1748,7 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	/* don't send parameters on startup without request */
-	mavlink_param_queue_index = param_count();
+	_mavlink_param_queue_index = param_count();
 
 	MavlinkRateLimiter slow_rate_limiter(2000.0f / rate_mult);
 	MavlinkRateLimiter fast_rate_limiter(100.0f / rate_mult);
@@ -1791,15 +1780,16 @@ Mavlink::task_main(int argc, char *argv[])
 		if (_subscribe_to_stream != nullptr) {
 			if (OK == configure_stream(_subscribe_to_stream, _subscribe_to_stream_rate)) {
 				if (_subscribe_to_stream_rate > 0.0f) {
-					warnx("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, device_name, _subscribe_to_stream_rate);
+					warnx("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, _device_name, _subscribe_to_stream_rate);
 
 				} else {
-					warnx("stream %s on device %s disabled", _subscribe_to_stream, device_name);
+					warnx("stream %s on device %s disabled", _subscribe_to_stream, _device_name);
 				}
 
 			} else {
-				warnx("stream %s not found", _subscribe_to_stream, device_name);
+				warnx("stream %s not found", _subscribe_to_stream, _device_name);
 			}
+
 			delete _subscribe_to_stream;
 			_subscribe_to_stream = nullptr;
 		}
@@ -1834,9 +1824,9 @@ Mavlink::task_main(int argc, char *argv[])
 			mavlink_pm_queued_send();
 			mavlink_waypoint_eventloop(hrt_absolute_time());
 
-			if (!mavlink_logbuffer_is_empty(&lb)) {
+			if (!mavlink_logbuffer_is_empty(&_logbuffer)) {
 				struct mavlink_logmessage msg;
-				int lb_ret = mavlink_logbuffer_read(&lb, &msg);
+				int lb_ret = mavlink_logbuffer_read(&_logbuffer, &msg);
 
 				if (lb_ret == OK) {
 					mavlink_missionlib_send_gcs_string(msg.text);
@@ -1850,25 +1840,23 @@ Mavlink::task_main(int argc, char *argv[])
 	delete _subscribe_to_stream;
 	_subscribe_to_stream = nullptr;
 
-	warnv("waiting for UART receive thread");
+	warnx("waiting for UART receive thread");
 
 	/* wait for threads to complete */
-	pthread_join(receive_thread, NULL);
+	pthread_join(_receive_thread, NULL);
 
 	/* reset the UART flags to original state */
-	tcsetattr(_uart, TCSANOW, &uart_config_original);
+	tcsetattr(_uart_fd, TCSANOW, &uart_config_original);
 
 	/* close UART */
-	close(_uart);
+	close(_uart_fd);
 
 	/* destroy log buffer */
-	mavlink_logbuffer_destroy(&lb);
-
-	thread_running = false;
+	mavlink_logbuffer_destroy(&_logbuffer);
 
 	warnx("exiting");
 
-	_mavlink_task = -1;
+	_task_running = false;
 	_exit(0);
 }
 
@@ -1876,6 +1864,7 @@ int Mavlink::start_helper(int argc, char *argv[])
 {
 	/* create the instance in task context */
 	Mavlink *instance = Mavlink::new_instance();
+
 	/* this will actually only return once MAVLink exits */
 	return instance->task_main(argc, argv);
 }
@@ -1887,37 +1876,12 @@ Mavlink::start(int argc, char *argv[])
 	char buf[32];
 	sprintf(buf, "mavlink_if%d", Mavlink::instance_count());
 
-	/*mavlink->_mavlink_task = */task_spawn_cmd(buf,
-			SCHED_DEFAULT,
-			SCHED_PRIORITY_DEFAULT,
-			2048,
-			(main_t)&Mavlink::start_helper,
-			(const char **)argv);
-
-	// while (!this->is_running()) {
-	// 		usleep(200);
-	// }
-
-	// if (mavlink->_mavlink_task < 0) {
-	// 	warn("task start failed");
-	// 	return -errno;
-	// }
-
-	// if (mavlink::g_mavlink != nullptr) {
-	// 	errx(1, "already running");
-	// }
-
-	// mavlink::g_mavlink = new Mavlink;
-
-	// if (mavlink::g_mavlink == nullptr) {
-	// 	errx(1, "alloc failed");
-	// }
-
-	// if (OK != mavlink::g_mavlink->start()) {
-	// 	delete mavlink::g_mavlink;
-	// 	mavlink::g_mavlink = nullptr;
-	// 	err(1, "start failed");
-	// }
+	task_spawn_cmd(buf,
+		       SCHED_DEFAULT,
+		       SCHED_PRIORITY_DEFAULT,
+		       2048,
+		       (main_t)&Mavlink::start_helper,
+		       (const char **)argv);
 
 	return OK;
 }

@@ -142,7 +142,7 @@ public:
 
 	int get_uart_fd();
 
-	const char *device_name;
+	const char *_device_name;
 
 	enum MAVLINK_MODE {
 		MODE_CUSTOM = 0,
@@ -191,10 +191,7 @@ protected:
 
 private:
 	int		_mavlink_fd;
-	bool		thread_running;
-	int		_mavlink_task;			/**< task handle for sensor task */
-
-	int		_mavlink_incoming_fd;		/**< file descriptor on which to receive incoming strings */
+	bool		_task_running;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -204,7 +201,7 @@ private:
 	MavlinkOrbSubscription *_subscriptions;
 	MavlinkStream *_streams;
 
-	orb_advert_t	mission_pub;
+	orb_advert_t	_mission_pub;
 	struct mission_s mission;
 	uint8_t missionlib_msg_buf[sizeof(mavlink_message_t)];
 	MAVLINK_MODE _mode;
@@ -212,17 +209,17 @@ private:
 	uint8_t _mavlink_wpm_comp_id;
 	mavlink_channel_t _channel;
 
-	struct mavlink_logbuffer lb;
-	unsigned int total_counter;
+	struct mavlink_logbuffer _logbuffer;
+	unsigned int _total_counter;
 
-	pthread_t receive_thread;
+	pthread_t _receive_thread;
 
 	/* Allocate storage space for waypoints */
-	mavlink_wpm_storage wpm_s;
-	mavlink_wpm_storage *wpm;
+	mavlink_wpm_storage _wpm_s;
+	mavlink_wpm_storage *_wpm;
 
 	bool _verbose;
-	int _uart;
+	int _uart_fd;
 	int _baudrate;
 	int _datarate;
 
@@ -231,11 +228,11 @@ private:
 	 * logic will send parameters from the current index
 	 * to len - 1, the end of the param list.
 	 */
-	unsigned int mavlink_param_queue_index;
+	unsigned int _mavlink_param_queue_index;
 
 	bool mavlink_link_termination_allowed;
 
-	char *	_subscribe_to_stream;
+	char 	*_subscribe_to_stream;
 	float	_subscribe_to_stream_rate;
 
 	/**

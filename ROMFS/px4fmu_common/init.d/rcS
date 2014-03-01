@@ -118,6 +118,7 @@ then
 	set MKBLCTRL_MODE none
 	set FMU_MODE pwm
 	set MAVLINK_FLAGS default
+	set EXIT_ON_END no
 	set MAV_TYPE none
 	
 	#
@@ -380,7 +381,6 @@ then
 	#
 	# MAVLink
 	#
-	set EXIT_ON_END no
 	
 	if [ $MAVLINK_FLAGS == default ]
 	then
@@ -539,6 +539,7 @@ then
 
 	if [ $EXIT_ON_END == yes ]
 	then
+		echo "[init] Exit from nsh"
 		exit
 	fi
 
