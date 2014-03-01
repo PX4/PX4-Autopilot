@@ -1727,10 +1727,10 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f);
 		configure_stream("HIGHRES_IMU", 1.0f * rate_mult);
 		configure_stream("ATTITUDE", 10.0f * rate_mult);
+		configure_stream("VFR_HUD", 10.0f * rate_mult);
 		configure_stream("GPS_RAW_INT", 1.0f * rate_mult);
-		configure_stream("GLOBAL_POSITION_INT", 5.0f * rate_mult);
-		configure_stream("LOCAL_POSITION_NED", 5.0f * rate_mult);
-		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f * rate_mult);
+		configure_stream("GLOBAL_POSITION_INT", 3.0f * rate_mult);
+		configure_stream("LOCAL_POSITION_NED", 3.0f * rate_mult);
 		break;
 
 	case MODE_HIL:
@@ -1739,6 +1739,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f);
 		configure_stream("HIGHRES_IMU", 1.0f * rate_mult);
 		configure_stream("ATTITUDE", 2.0f * rate_mult);
+		configure_stream("VFR_HUD", 2.0f * rate_mult);
 		configure_stream("GPS_RAW_INT", 1.0f * rate_mult);
 		configure_stream("GLOBAL_POSITION_INT", 1.0f * rate_mult);
 		configure_stream("LOCAL_POSITION_NED", 1.0f * rate_mult);
