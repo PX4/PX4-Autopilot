@@ -73,6 +73,8 @@
 #include <commander/px4_custom_mode.h>
 #include <geo/geo.h>
 
+#include <uORB/topics/target_global_position.h>
+
 __BEGIN_DECLS
 
 #include "mavlink_bridge_header.h"
@@ -787,9 +789,9 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	}
 
 	/* Handle global position */
-	if (msg->msgid == MAVLINK_MSG_ID_GLOBAL_POSITION_TIME_INT) {
-		mavlink_global_position_time_int_t pos;
-		mavlink_msg_global_position_time_int_decode(msg, &pos);
+	if (msg->msgid == MAVLINK_MSG_ID_GLOBAL_POSITION_TIME) {
+		mavlink_global_position_time_t pos;
+		mavlink_msg_global_position_time_decode(msg, &pos);
 
 		struct target_global_position_s target_pos;
 
@@ -803,7 +805,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		target_pos.vel_n = pos.vx;
 		target_pos.vel_e = pos.vy;
 		target_pos.vel_d = pos.vz;
-		target_pos.yaw = _wrap_pi(pos.hdg / (float)(18000.0f * M_PI));
+		target_pos.yaw = _wrap_pi(pos.hdg / 100.0f * M_DEG_TO_RAD_F);
 
 		/* check if topic is advertised */
 		if (target_pos_pub < 0) {

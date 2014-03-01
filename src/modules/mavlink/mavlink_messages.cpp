@@ -596,6 +596,54 @@ protected:
 };
 
 
+class MavlinkStreamGlobalPositionTime : public MavlinkStream
+{
+public:
+	const char *get_name()
+	{
+		return "GLOBAL_POSITION_TIME";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamGlobalPositionTime();
+	}
+
+private:
+	MavlinkOrbSubscription *pos_sub;
+	struct vehicle_global_position_s *pos;
+
+	MavlinkOrbSubscription *home_sub;
+	struct home_position_s *home;
+
+protected:
+	void subscribe(Mavlink *mavlink)
+	{
+		pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_global_position));
+		pos = (struct vehicle_global_position_s *)pos_sub->get_data();
+
+		home_sub = mavlink->add_orb_subscription(ORB_ID(home_position));
+		home = (struct home_position_s *)home_sub->get_data();
+	}
+
+	void send(const hrt_abstime t)
+	{
+		pos_sub->update(t);
+		home_sub->update(t);
+
+		mavlink_msg_global_position_time_send(_channel,
+						     pos->time_gps_usec,
+						     pos->lat * 1e7,
+						     pos->lon * 1e7,
+						     pos->alt,
+						     pos->vel_n,
+						     pos->vel_e,
+						     pos->vel_d,
+						     _wrap_2pi(pos->yaw) * M_RAD_TO_DEG_F * 100.0f);
+	}
+};
+
+
 class MavlinkStreamLocalPositionNED : public MavlinkStream
 {
 public:
@@ -1090,6 +1138,7 @@ MavlinkStream *streams_list[] = {
 	new MavlinkStreamVFRHUD(),
 	new MavlinkStreamGPSRawInt(),
 	new MavlinkStreamGlobalPositionInt(),
+	new MavlinkStreamGlobalPositionTime(),
 	new MavlinkStreamLocalPositionNED(),
 	new MavlinkStreamGPSGlobalOrigin(),
 	new MavlinkStreamServoOutputRaw(0),
