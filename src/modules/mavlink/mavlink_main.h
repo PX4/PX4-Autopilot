@@ -196,7 +196,9 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	/* states */
-	bool		_mavlink_hil_enabled;		/**< Hardware in the loop mode */
+	bool		_mavlink_hil_enabled;		/**< Hardware In the Loop mode */
+
+	unsigned	_main_loop_delay;		/**< mainloop delay, depends on data rate */
 
 	MavlinkOrbSubscription *_subscriptions;
 	MavlinkStream *_streams;

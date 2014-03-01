@@ -90,7 +90,7 @@ static const int ERROR = -1;
 
 #define DEFAULT_DEVICE_NAME	"/dev/ttyS1"
 #define MAX_DATA_RATE	10000	// max data rate in bytes/s
-#define MAIN_LOOP_DELAY 10000	// 100 Hz
+#define MAIN_LOOP_DELAY 10000	// 100 Hz @ 1000 bytes/s data rate
 
 static Mavlink *_mavlink_instances = nullptr;
 
@@ -166,6 +166,7 @@ Mavlink::Mavlink() :
 	_mavlink_fd(-1),
 	_task_running(false),
 	_mavlink_hil_enabled(false),
+	_main_loop_delay(1000),
 	_subscriptions(nullptr),
 	_streams(nullptr),
 	_mission_pub(-1),
@@ -1723,7 +1724,7 @@ Mavlink::task_main(int argc, char *argv[])
 	switch (_mode) {
 	case MODE_OFFBOARD:
 		configure_stream("SYS_STATUS", 1.0f);
-		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f * rate_mult);
+		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f);
 		configure_stream("HIGHRES_IMU", 1.0f * rate_mult);
 		configure_stream("ATTITUDE", 10.0f * rate_mult);
 		configure_stream("GPS_RAW_INT", 1.0f * rate_mult);
@@ -1733,14 +1734,15 @@ Mavlink::task_main(int argc, char *argv[])
 		break;
 
 	case MODE_HIL:
+		/* HIL mode normally runs at high data rate, rate_mult ~ 10 */
 		configure_stream("SYS_STATUS", 1.0f);
-		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f * rate_mult);
+		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f);
 		configure_stream("HIGHRES_IMU", 1.0f * rate_mult);
-		configure_stream("ATTITUDE", 10.0f * rate_mult);
+		configure_stream("ATTITUDE", 2.0f * rate_mult);
 		configure_stream("GPS_RAW_INT", 1.0f * rate_mult);
-		configure_stream("GLOBAL_POSITION_INT", 5.0f * rate_mult);
-		configure_stream("LOCAL_POSITION_NED", 5.0f * rate_mult);
-		configure_stream("HIL_CONTROLS", 20.0f * rate_mult);
+		configure_stream("GLOBAL_POSITION_INT", 1.0f * rate_mult);
+		configure_stream("LOCAL_POSITION_NED", 1.0f * rate_mult);
+		configure_stream("HIL_CONTROLS", 15.0f * rate_mult);
 		break;
 
 	default:
@@ -1753,9 +1755,12 @@ Mavlink::task_main(int argc, char *argv[])
 	MavlinkRateLimiter slow_rate_limiter(2000.0f / rate_mult);
 	MavlinkRateLimiter fast_rate_limiter(100.0f / rate_mult);
 
+	/* set main loop delay depending on data rate to minimize CPU overhead */
+	_main_loop_delay = MAIN_LOOP_DELAY / rate_mult;
+
 	while (!_task_should_exit) {
 		/* main loop */
-		usleep(MAIN_LOOP_DELAY);
+		usleep(_main_loop_delay);
 
 		perf_begin(_loop_perf);
 
