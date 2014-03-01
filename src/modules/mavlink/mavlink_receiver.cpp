@@ -76,7 +76,6 @@
 __BEGIN_DECLS
 
 #include "mavlink_bridge_header.h"
-// #include "waypoints.h"
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
 #include "util.h"
