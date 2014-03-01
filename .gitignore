@@ -11,3 +11,4 @@ lib*.so.*
 .settings/*
 .project
 .cproject
+.pydevproject
