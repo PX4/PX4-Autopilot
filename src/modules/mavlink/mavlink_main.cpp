@@ -308,7 +308,7 @@ Mavlink::destroy_all_instances()
 			usleep(10000);
 			iterations++;
 
-			if (iterations > 10000) {
+			if (iterations > 1000) {
 				warnx("ERROR: Couldn't stop all mavlink instances.");
 				return ERROR;
 			}
@@ -1850,18 +1850,23 @@ Mavlink::task_main(int argc, char *argv[])
 	delete _subscribe_to_stream;
 	_subscribe_to_stream = nullptr;
 
+	warnv("waiting for UART receive thread");
+
 	/* wait for threads to complete */
 	pthread_join(receive_thread, NULL);
 
-	/* Reset the UART flags to original state */
+	/* reset the UART flags to original state */
 	tcsetattr(_uart, TCSANOW, &uart_config_original);
+
+	/* close UART */
+	close(_uart);
 
 	/* destroy log buffer */
 	mavlink_logbuffer_destroy(&lb);
 
 	thread_running = false;
 
-	warnx("exiting.");
+	warnx("exiting");
 
 	_mavlink_task = -1;
 	_exit(0);

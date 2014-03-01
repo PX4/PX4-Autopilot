@@ -795,7 +795,7 @@ MavlinkReceiver::receive_thread(void *arg)
 {
 	int uart_fd = _mavlink->get_uart_fd();
 
-	const int timeout = 1000;
+	const int timeout = 500;
 	uint8_t buf[32];
 
 	mavlink_message_t msg;
