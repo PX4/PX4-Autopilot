@@ -48,16 +48,12 @@ class PrimitiveType(Type):
 
     def get_normalized_definition(self):
         cast_mode = 'saturated' if self.cast_mode == PrimitiveType.CAST_MODE_SATURATED else 'truncated'
-        if self.kind == PrimitiveType.KIND_BOOLEAN:
-            primary_type = 'bool'
-        elif self.kind == PrimitiveType.KIND_UNSIGNED_INT:
-            primary_type = 'uint' + str(self.bit_len)
-        elif self.kind == PrimitiveType.KIND_SIGNED_INT:
-            primary_type = 'int' + str(self.bit_len)
-        elif self.kind == PrimitiveType.KIND_FLOAT:
-            primary_type = 'float' + str(self.bit_len)
-        else:
-            raise DsdlException('Primitive type of unknown kind', self.kind)
+        primary_type = {
+            PrimitiveType.KIND_BOOLEAN: 'bool',
+            PrimitiveType.KIND_UNSIGNED_INT: 'uint' + str(self.bit_len),
+            PrimitiveType.KIND_SIGNED_INT: 'int' + str(self.bit_len),
+            PrimitiveType.KIND_FLOAT: 'float' + str(self.bit_len)
+        }[self.kind]
         return cast_mode + ' ' + primary_type
 
     def validate_value_range(self, value):
