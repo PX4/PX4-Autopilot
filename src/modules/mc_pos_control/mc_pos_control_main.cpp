@@ -874,7 +874,6 @@ MulticopterPositionControl::task_main()
 					/* in case of interrupted mission don't go to waypoint but stay at current position */
 					_reset_lat_lon_sp = true;
 					_reset_alt_sp = true;
-					_reset_follow_offset = true;
 
 					/* update position setpoint */
 					_lat_sp = _pos_sp_triplet.current.lat;
@@ -890,8 +889,9 @@ MulticopterPositionControl::task_main()
 					/* no waypoint, loiter, reset position setpoint if needed */
 					reset_lat_lon_sp();
 					reset_alt_sp();
-					reset_follow_offset();
 				}
+
+				_reset_follow_offset = true;
 			}
 
 			if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_IDLE) {
