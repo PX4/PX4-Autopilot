@@ -280,7 +280,7 @@ class Parser:
 
     def _parse_compound_type(self, filename, typedef):
         definition_filename = self._locate_compound_type_definition(filename, typedef)
-        self.log.info('Nested type [%s] is defined in [%s], parsing...', typedef, pretty_filename(definition_filename))
+        self.log.debug('Nested type [%s] is defined in [%s], parsing...', typedef, pretty_filename(definition_filename))
         t = self.parse(definition_filename)
         if t.kind == t.KIND_SERVICE:
             error('A service type can not be nested into another compound type')
