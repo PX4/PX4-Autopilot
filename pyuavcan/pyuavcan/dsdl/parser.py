@@ -484,18 +484,17 @@ def validate_data_struct_len(t):
                  'Max data structure length is invalid: %d bits, %d bytes', bitlen, bytelen)
 
 
-def parse_namespaces(directory_list):
+def parse_namespace(source_dir, search_dirs):
     def walk():
         import fnmatch
         from functools import partial
         def on_walk_error(directory, ex):
             raise DsdlException('OS error in [%s]: %s' % (directory, str(ex))) from ex
-        for directory in directory_list:
-            walker = os.walk(directory, onerror=partial(on_walk_error, directory), followlinks=True)
-            for root, _dirnames, filenames in walker:
-                for filename in fnmatch.filter(filenames, '*.uavcan'):
-                    filename = os.path.join(root, filename)
-                    yield filename
+        walker = os.walk(source_dir, onerror=partial(on_walk_error, source_dir), followlinks=True)
+        for root, _dirnames, filenames in walker:
+            for filename in fnmatch.filter(filenames, '*.uavcan'):
+                filename = os.path.join(root, filename)
+                yield filename
 
     all_default_dtid = {}  # (kind, dtid) : filename
     def ensure_unique_dtid(t, filename):
@@ -508,7 +507,7 @@ def parse_namespaces(directory_list):
             error('Default data type ID collision: [%s] [%s]', first, second)
         all_default_dtid[key] = filename
 
-    parser = Parser(directory_list)
+    parser = Parser([source_dir] + search_dirs)
     output_types = []
     for filename in walk():
         t = parser.parse(filename)
@@ -527,10 +526,10 @@ if __name__ == '__main__':
         test_dir = os.path.normpath(test_dir)
 #         parser = Parser([os.path.join(test_dir, 'root_a'), os.path.join(test_dir, 'root_b')])
 #         t = parser.parse(os.path.join(test_dir, 'root_a', 'ns1', 'ns9', '425.BeginFirmwareUpdate.uavcan'))
-        t = parse_namespaces([os.path.join(test_dir, 'root_a'), os.path.join(test_dir, 'root_b')])
+        t = parse_namespace(os.path.join(test_dir, 'root_a'), [os.path.join(test_dir, 'root_b')])
         print(len(t))
     else:
-        t = parse_namespaces(sys.argv[1:])
+        t = parse_namespace(sys.argv[1], sys.argv[2:])
         print(len(t))
 #         search_dirs = sys.argv[1:-1]
 #         filename = sys.argv[-1]
