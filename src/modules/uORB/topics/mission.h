@@ -61,6 +61,23 @@ enum NAV_CMD {
 	NAV_CMD_PATHPLANNING=81
 };
 
+/* compatible to mavlink MAV_ROI */
+enum ROI_MODE
+{
+	ROI_MODE_NONE=0, /* No region of interest. | */
+	ROI_MODE_WPNEXT=1, /* Point toward next MISSION. | */
+	ROI_MODE_WPINDEX=2, /* Point toward given MISSION. | */
+	ROI_MODE_LOCATION=3, /* Point toward fixed location. | */
+	ROI_MODE_TARGET=4, /* Point toward of given id. | */
+	ROI_MODE_FOLLOW=5, /* Follow system with given id. Position offset is the difference between ROI and following waypoint. | */
+};
+
+enum NAV_PATH_MODE {
+	NAV_PATH_MODE_NONE=0,		/**< simply go to specified waypoint */
+	NAV_PATH_MODE_LINEAR=1,		/**< go by line between previous and current waypoints */
+	NAV_PATH_MODE_SPLINE=2,		/**< build path between waypoints using spline */
+};
+
 enum ORIGIN {
 	ORIGIN_MAVLINK = 0,
 	ORIGIN_ONBOARD
@@ -90,6 +107,8 @@ struct mission_item_s
 	float acceptance_radius;	/**< default radius in which the mission is accepted as reached in meters */
 	float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
 	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
+	enum ROI_MODE roi_mode;		/**< ROI mode (MAV_ROI) */
+	enum NAV_PATH_MODE path_mode;	/**< path building mode */
 	bool autocontinue;		/**< true if next waypoint should follow after this one */
 	enum ORIGIN origin;		/**< where the waypoint has been generated		*/
 };

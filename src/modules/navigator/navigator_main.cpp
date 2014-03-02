@@ -170,6 +170,7 @@ private:
 	bool		_mission_item_valid;	/**< current mission item valid */
 
 	struct mission_item_s				_roi_item;	/**< ROI mission item */
+	bool								_roi_item_valid;
 
 	double	_target_lat;		/**< prediction for target latitude */
 	double	_target_lon;		/**< prediction for target longitude */
@@ -442,6 +443,7 @@ Navigator::Navigator() :
 	_do_takeoff(false),
 	_pos_sp_triplet_updated(false),
 	_geofence_violation_warning_sent(false),
+	_roi_item_valid(false),
 	_target_lat(0.0),
 	_target_lon(0.0),
 	_target_alt(0.0f)
@@ -834,6 +836,9 @@ Navigator::task_main()
 			offboard_mission_update(_vstatus.is_rotary_wing);
 			// XXX check if mission really changed
 
+			/* reset ROI item on mission changes */
+			 _roi_item_valid = false;
+
 			/* reset offsets on mission changes */
 			_follow_offset_prev.valid = false;
 			_follow_offset_next.valid = false;
@@ -846,7 +851,10 @@ Navigator::task_main()
 			onboard_mission_update();
 			// XXX check if mission really changed
 
-			/* reset offsets on mission changes */
+			/* reset ROI item on mission changes */
+			 _roi_item_valid = false;
+
+			 /* reset offsets on mission changes */
 			_follow_offset_prev.valid = false;
 			_follow_offset_next.valid = false;
 
@@ -1176,7 +1184,6 @@ Navigator::set_mission_item()
 	_do_takeoff = false;
 
 	int ret = ERROR;
-	bool roi_item_valid = false;
 
 	while (_mission.current_mission_available()) {
 		bool onboard = false;
@@ -1186,21 +1193,18 @@ Navigator::set_mission_item()
 		if (ret == OK) {
 			_mission_item_valid = true;
 
-			/* reset "reached" flags */
-			reset_reached();
-
 			if (_mission_item.nav_cmd == NAV_CMD_ROI) {
 				/* save ROI item */
 				memcpy(&_roi_item, &_mission_item, sizeof(_mission_item));
-				roi_item_valid = true;
-				mavlink_log_info(_mavlink_fd, "[navigator] ROI item found");
+				_roi_item_valid = true;
+				mavlink_log_info(_mavlink_fd, "[navigator] ROI mode: %d", _roi_item.roi_mode);
 
 				/* get next item */
 				_mission.move_to_next();
 				continue;
 			}
 
-			if (roi_item_valid && _mission_item.nav_cmd == NAV_CMD_WAYPOINT) {
+			if (_roi_item_valid && _roi_item.roi_mode == ROI_MODE_FOLLOW && _mission_item.nav_cmd == NAV_CMD_WAYPOINT) {
 				/* save previous follow offset */
 				memcpy(&_follow_offset_prev, &_follow_offset_next, sizeof(_follow_offset_prev));
 
@@ -1250,7 +1254,7 @@ Navigator::set_mission_item()
 					}
 
 					/* check if we really need takeoff */
-					if (_vstatus.condition_landed || _global_pos.alt < takeoff_alt_amsl - _mission_item.acceptance_radius) {
+					if (_vstatus.condition_landed || _global_pos.alt < takeoff_alt_amsl - _parameters.acceptance_radius) {
 						/* force TAKEOFF if landed or waypoint altitude is more than current */
 						_do_takeoff = true;
 
@@ -1602,50 +1606,53 @@ Navigator::check_mission_item_reached()
 
 	uint64_t now = hrt_absolute_time();
 
+	bool follow_mode = (myState == NAV_STATE_MISSION && _roi_item_valid && _roi_item.roi_mode == ROI_MODE_FOLLOW &&
+			_follow_offset_next.valid && _vstatus.condition_target_position_valid);
+
 	/* check if position reached */
 	if (!_waypoint_position_reached) {
 		float acceptance_radius;
-
-		if (_mission_item.nav_cmd == NAV_CMD_WAYPOINT && _mission_item.acceptance_radius > 0.01f) {
+		if (!_do_takeoff && _mission_item.nav_cmd == NAV_CMD_WAYPOINT && _mission_item.acceptance_radius > 0.01f) {
 			acceptance_radius = _mission_item.acceptance_radius;
 
 		} else {
 			acceptance_radius = _parameters.acceptance_radius;
 		}
 
-		if (myState == NAV_STATE_MISSION && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_NORMAL && _follow_offset_next.valid) {
-			/* follow target waypoint */
-			math::Vector<3> current_offset;
-			get_vector_to_next_waypoint_fast(_target_lat, _target_lon, _follow_offset_next.lat, _follow_offset_next.lon, &current_offset.data[0], &current_offset.data[1]);
-			current_offset(2) = -(_follow_offset_next.alt - _target_alt);
+		/* calculate AMSL altitude for this waypoint */
+		float wp_alt_amsl = _mission_item.altitude;
 
-			if (current_offset.length() <= acceptance_radius) {
+		if (_mission_item.altitude_is_relative)
+			wp_alt_amsl += _home_pos.alt;
+
+		if (_do_takeoff) {
+			/* require only altitude for takeoff */
+			if (_global_pos.alt > wp_alt_amsl - acceptance_radius) {
 				_waypoint_position_reached = true;
 			}
 
-			_waypoint_yaw_reached = true;
-
 		} else {
-			/* calculate AMSL altitude for this waypoint */
-			float wp_alt_amsl = _mission_item.altitude;
+			/* non-takeoff item */
+			if (follow_mode) {
+				/* follow target waypoint */
+				math::Vector<3> current_offset;
+				get_vector_to_next_waypoint_fast(_target_lat, _target_lon, _follow_offset_next.lat, _follow_offset_next.lon, &current_offset.data[0], &current_offset.data[1]);
+				current_offset(2) = -(_follow_offset_next.alt - _target_alt);
 
-			if (_mission_item.altitude_is_relative)
-				wp_alt_amsl += _home_pos.alt;
-
-			float dist_xy = -1.0f;
-			float dist_z = -1.0f;
-
-			float dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, wp_alt_amsl,
-					(double)_global_pos.lat, (double)_global_pos.lon, _global_pos.alt,
-					&dist_xy, &dist_z);
-
-			if (_do_takeoff) {
-				if (_global_pos.alt > wp_alt_amsl - acceptance_radius) {
-					/* require only altitude for takeoff */
+				if (current_offset.length() <= acceptance_radius) {
 					_waypoint_position_reached = true;
 				}
 
+				_waypoint_yaw_reached = true;
+
 			} else {
+				float dist_xy = -1.0f;
+				float dist_z = -1.0f;
+
+				float dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, wp_alt_amsl,
+						(double)_global_pos.lat, (double)_global_pos.lon, _global_pos.alt,
+						&dist_xy, &dist_z);
+
 				if (dist >= 0.0f && dist <= acceptance_radius) {
 					_waypoint_position_reached = true;
 				}
@@ -1655,8 +1662,8 @@ Navigator::check_mission_item_reached()
 
 	/* when position reached check yaw */
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
-		if (_vstatus.is_rotary_wing && !_do_takeoff && isfinite(_mission_item.yaw)) {
-			/* check yaw if defined only for rotary wing except takeoff */
+		if (_vstatus.is_rotary_wing && !_do_takeoff && isfinite(_mission_item.yaw) && !follow_mode) {
+			/* check yaw if defined only for rotary wing except takeoff and follow modes */
 			float yaw_err = _wrap_pi(_mission_item.yaw - _global_pos.yaw);
 
 			if (fabsf(yaw_err) < 0.05f) { /* XXX get rid of magic number */
@@ -1759,7 +1766,8 @@ Navigator::publish_position_setpoint_triplet()
 	_pos_sp_triplet.nav_state = static_cast<nav_state_t>(myState);
 
 	/* update position setpoint when following target */
-	if (myState == NAV_STATE_MISSION && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_NORMAL && (_follow_offset_prev.valid || _follow_offset_next.valid)) {
+	if (myState == NAV_STATE_MISSION && _roi_item_valid && _roi_item.roi_mode == ROI_MODE_FOLLOW &&
+			(_follow_offset_prev.valid || _follow_offset_next.valid) && _vstatus.condition_target_position_valid && !_do_takeoff) {
 		_pos_sp_triplet.current.valid = true;
 		_pos_sp_triplet.current.type = SETPOINT_TYPE_NORMAL;
 

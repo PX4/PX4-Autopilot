@@ -762,6 +762,11 @@ int Mavlink::map_mavlink_mission_item_to_mission_item(const mavlink_mission_item
 		mission_item->pitch_min = mavlink_mission_item->param2;
 		break;
 
+	case MAV_CMD_NAV_ROI:
+		mission_item->roi_mode = (enum ROI_MODE) (mavlink_mission_item->param1);
+		mission_item->path_mode = (enum NAV_PATH_MODE)(mavlink_mission_item->param4);
+		break;
+
 	default:
 		mission_item->acceptance_radius = mavlink_mission_item->param2;
 		break;
@@ -792,6 +797,11 @@ int Mavlink::map_mission_item_to_mavlink_mission_item(const struct mission_item_
 	switch (mission_item->nav_cmd) {
 	case NAV_CMD_TAKEOFF:
 		mavlink_mission_item->param2 = mission_item->pitch_min;
+		break;
+
+	case NAV_CMD_ROI:
+		mavlink_mission_item->param1 = mission_item->roi_mode;
+		mavlink_mission_item->param4 = mission_item->path_mode;
 		break;
 
 	default:
