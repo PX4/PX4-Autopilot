@@ -11,6 +11,7 @@ from .type_limits import get_unsigned_integer_range, get_signed_integer_range, g
 
 MAX_FULL_TYPE_NAME_LEN = 80
 DATA_TYPE_ID_MAX = 1023
+MAX_DATA_STRUCT_LEN_BYTES = 439
 
 class Type:
     CATEGORY_PRIMITIVE = 0
@@ -35,9 +36,9 @@ class PrimitiveType(Type):
     CAST_MODE_SATURATED = 0
     CAST_MODE_TRUNCATED = 1
 
-    def __init__(self, kind, bit_len, cast_mode):
+    def __init__(self, kind, bitlen, cast_mode):
         self.kind = kind
-        self.bit_len = bit_len
+        self.bitlen = bitlen
         self.cast_mode = cast_mode
         super().__init__(self.get_normalized_definition(), Type.CATEGORY_PRIMITIVE)
         self.value_range = {
@@ -45,15 +46,15 @@ class PrimitiveType(Type):
             PrimitiveType.KIND_UNSIGNED_INT: get_unsigned_integer_range,
             PrimitiveType.KIND_SIGNED_INT: get_signed_integer_range,
             PrimitiveType.KIND_FLOAT: get_float_range
-        }[self.kind](bit_len)
+        }[self.kind](bitlen)
 
     def get_normalized_definition(self):
         cast_mode = 'saturated' if self.cast_mode == PrimitiveType.CAST_MODE_SATURATED else 'truncated'
         primary_type = {
             PrimitiveType.KIND_BOOLEAN: 'bool',
-            PrimitiveType.KIND_UNSIGNED_INT: 'uint' + str(self.bit_len),
-            PrimitiveType.KIND_SIGNED_INT: 'int' + str(self.bit_len),
-            PrimitiveType.KIND_FLOAT: 'float' + str(self.bit_len)
+            PrimitiveType.KIND_UNSIGNED_INT: 'uint' + str(self.bitlen),
+            PrimitiveType.KIND_SIGNED_INT: 'int' + str(self.bitlen),
+            PrimitiveType.KIND_FLOAT: 'float' + str(self.bitlen)
         }[self.kind]
         return cast_mode + ' ' + primary_type
 
@@ -62,6 +63,9 @@ class PrimitiveType(Type):
             low, high = self.value_range
             if not low <= value <= high:
                 _error('Value [%s] is out of range %s', value, self.value_range)
+
+    def get_max_bitlen(self):
+        return self.bitlen
 
 class ArrayType(Type):
     MODE_STATIC = 0
@@ -77,6 +81,13 @@ class ArrayType(Type):
         typedef = self.value_type.get_normalized_definition()
         return ('%s[<=%d]' if self.mode == ArrayType.MODE_DYNAMIC else '%s[%d]') % (typedef, self.max_size)
 
+    def get_max_bitlen(self):
+        payload_max_bitlen = self.max_size * self.value_type.get_max_bitlen()
+        return {
+            self.MODE_DYNAMIC: payload_max_bitlen + self.max_size.bit_length(),
+            self.MODE_STATIC: payload_max_bitlen
+        }[self.mode]
+
 class CompoundType(Type):
     KIND_SERVICE = 0
     KIND_MESSAGE = 1
@@ -87,14 +98,18 @@ class CompoundType(Type):
         self.dsdl_path = dsdl_path
         self.default_dtid = default_dtid
         self.kind = kind
+        max_bitlen_sum = lambda fields: sum([x.type.get_max_bitlen() for x in fields])
         if kind == CompoundType.KIND_SERVICE:
             self.request_fields = []
             self.response_fields = []
             self.request_constants = []
             self.response_constants = []
+            self.get_max_bitlen_request = lambda: max_bitlen_sum(self.request_fields)
+            self.get_max_bitlen_response = lambda: max_bitlen_sum(self.response_fields)
         elif kind == CompoundType.KIND_MESSAGE:
             self.fields = []
             self.constants = []
+            self.get_max_bitlen = lambda: max_bitlen_sum(self.fields)
         else:
             _error('Compound type of unknown kind [%s]', kind)
 
@@ -144,6 +159,9 @@ def _enforce(cond, fmt, *args):
     if not cond:
         _error(fmt, *args)
 
+def bitlen_to_bytelen(x):
+    return int((x + 7) / 8)
+
 def evaluate_expression(expression):
     try:
         env = {
@@ -189,6 +207,17 @@ def validate_attribute_name(name):
 
 def validate_data_type_id(dtid):
     _enforce(0 <= dtid <= DATA_TYPE_ID_MAX, 'Invalid data type ID [%s]', dtid)
+
+def validate_data_struct_len(t):
+    _enforce(t.category == t.CATEGORY_COMPOUND, 'Data structure length can be enforced only for compound types')
+    if t.kind == t.KIND_MESSAGE:
+        bitlens = [t.get_max_bitlen()]
+    elif t.kind == t.KIND_SERVICE:
+        bitlens = t.get_max_bitlen_request(), t.get_max_bitlen_response()
+    for bitlen in bitlens:
+        bytelen = bitlen_to_bytelen(bitlen)
+        _enforce(0 <= bytelen <= MAX_DATA_STRUCT_LEN_BYTES,
+                 'Max data structure length is invalid: %d bits, %d bytes', bitlen, bytelen)
 
 def tokenize_dsdl_definition(text):
     for idx, line in enumerate(text.splitlines()):
@@ -275,7 +304,7 @@ class Parser:
                     if full_typename == fn_full_typename:
                         return fn
                 except Exception as ex:
-                    self.log.info('Unknown file [%s], skipping... [%s]', pretty_filename(fn), ex)
+                    self.log.debug('Unknown file [%s], skipping... [%s]', pretty_filename(fn), ex)
         _error('Type definition not found [%s]', typename)
 
     def _parse_array_type(self, filename, value_typedef, size_spec, cast_mode):
@@ -428,14 +457,19 @@ class Parser:
                 typedef.request_constants = constants
                 typedef.response_fields = resp_fields
                 typedef.response_constants = resp_constants
+                max_bitlen = typedef.get_max_bitlen_request(), typedef.get_max_bitlen_response()
+                max_bytelen = tuple(map(bitlen_to_bytelen, max_bitlen))
             else:
                 dsdl_signature = self._compute_dsdl_signature(full_typename, fields)
                 typedef = CompoundType(full_typename, CompoundType.KIND_MESSAGE, dsdl_signature, filename, default_dtid)
                 typedef.fields = fields
                 typedef.constants = constants
+                max_bitlen = typedef.get_max_bitlen()
+                max_bytelen = bitlen_to_bytelen(max_bitlen)
 
-            self.log.info('Type [%s], default DTID [%s], signature [%08x], interpretation:',
-                          full_typename, default_dtid, dsdl_signature)
+            validate_data_struct_len(typedef)
+            self.log.info('Type [%s], default DTID: %s, signature: %08x, maxbits: %s, maxbytes: %s, interpretation:',
+                          full_typename, default_dtid, dsdl_signature, max_bitlen, max_bytelen)
             for ln in typedef.get_normalized_attributes_definitions().splitlines():
                 self.log.info('    %s', ln)
             return typedef

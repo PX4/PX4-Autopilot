@@ -6,7 +6,7 @@
 
 float64  CONST  =  3.141592653589793  # 123
 
- float64[<1024] huge_array
+ float16[<12] huge_array
 
 bool a
 int2 a_
