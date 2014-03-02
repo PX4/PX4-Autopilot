@@ -6,21 +6,10 @@
 
 import os, re, logging
 from .signature import compute_signature
+from .common import DsdlException, pretty_filename
+from .type_limits import get_unsigned_integer_range, get_signed_integer_range, get_float_range
 
 MAX_FULL_TYPE_NAME_LEN = 80
-
-class ParserException(Exception):
-    def __init__(self, text, *args, file=None, line=None):
-        super().__init__(text, *args)
-        self.file = file
-        self.line = line
-
-    def __str__(self):
-        if self.file and self.line:
-            return '%s:%s: %s' % (_pretty_filename(self.file), self.line, super().__str__())
-        if self.file:
-            return '%s:?: %s' % (_pretty_filename(self.file), super().__str__())
-        return super().__str__()
 
 class Type:
     CATEGORY_PRIMITIVE = 0
@@ -50,6 +39,12 @@ class PrimitiveType(Type):
         self.bit_len = bit_len
         self.cast_mode = cast_mode
         super().__init__(self.get_normalized_definition(), Type.CATEGORY_PRIMITIVE)
+        self.value_range = {
+            PrimitiveType.KIND_BOOLEAN: get_unsigned_integer_range,
+            PrimitiveType.KIND_UNSIGNED_INT: get_unsigned_integer_range,
+            PrimitiveType.KIND_SIGNED_INT: get_signed_integer_range,
+            PrimitiveType.KIND_FLOAT: get_float_range
+        }[self.kind](bit_len)
 
     def get_normalized_definition(self):
         cast_mode = 'saturated' if self.cast_mode == PrimitiveType.CAST_MODE_SATURATED else 'truncated'
@@ -62,8 +57,13 @@ class PrimitiveType(Type):
         elif self.kind == PrimitiveType.KIND_FLOAT:
             primary_type = 'float' + str(self.bit_len)
         else:
-            raise ParserException('Primitive type of unknown kind', self.kind)
+            raise DsdlException('Primitive type of unknown kind', self.kind)
         return cast_mode + ' ' + primary_type
+
+    def validate_value_range(self, value):
+        low, high = self.value_range
+        if not low <= value <= high:
+            raise DsdlException('Value is out of range', value, self.value_range)
 
 class ArrayType(Type):
     MODE_STATIC = 0
@@ -98,7 +98,7 @@ class CompoundType(Type):
             self.fields = []
             self.constants = []
         else:
-            raise ParserException('Compound type of unknown kind', kind)
+            raise DsdlException('Compound type of unknown kind', kind)
 
     def get_normalized_definition(self):
         return self.full_name
@@ -129,25 +129,19 @@ class Field(Attribute):
         return '%s %s' % (self.type.get_normalized_definition(), self.name)
 
 class Constant(Attribute):
-    def __init__(self, type, name, init_expression):  # @ReservedAssignment
+    def __init__(self, type, name, init_expression, value):  # @ReservedAssignment
         super().__init__(type, name)
         self.init_expression = init_expression
+        self.value = value
+        self.string_value = repr(value)
 
     def get_normalized_definition(self):
         return '%s %s = %s' % (self.type.get_normalized_definition(), self.name, self.init_expression)
 
-    def evaluate_init_expression(self):
-        return evaluate_expression(self.init_expression)
-
 
 def _enforce(cond, *exception_args):
     if not cond:
-        raise ParserException(*exception_args)
-
-def _pretty_filename(filename):
-    a = os.path.abspath(filename)
-    r = os.path.relpath(filename)
-    return a if len(a) < len(r) else r
+        raise DsdlException(*exception_args)
 
 def evaluate_expression(expression):
     try:
@@ -160,7 +154,7 @@ def evaluate_expression(expression):
         }
         return eval(expression, env)
     except Exception as ex:
-        raise ParserException('Cannot evaluate expression', str(ex))
+        raise DsdlException('Cannot evaluate expression', str(ex))
 
 def validate_search_directories(dirnames):
     dirnames = set(dirnames)
@@ -215,13 +209,13 @@ class Parser:
                 ns = (root_ns + '.' + ns.replace(os.path.sep, '.').strip('.')).strip('.')
                 validate_namespace_name(ns)
                 return ns
-        raise ParserException('File was not found in search directories', filename)
+        raise DsdlException('File was not found in search directories', filename)
 
     def _full_typename_and_dtid_from_filename(self, filename):
         basename = os.path.basename(filename)
         items = basename.split('.')
         if (len(items) != 2 and len(items) != 3) or items[-1] != 'uavcan':
-            raise ParserException('Invalid file name', basename)
+            raise DsdlException('Invalid file name', basename)
         if len(items) == 2:
             default_dtid, name = None, items[0]
         else:
@@ -229,7 +223,7 @@ class Parser:
             try:
                 default_dtid = int(default_dtid)
             except ValueError:
-                raise ParserException('Invalid default data type ID', default_dtid)
+                raise DsdlException('Invalid default data type ID', default_dtid)
         full_name = self._namespace_from_filename(filename) + '.' + name
         validate_compound_type_full_name(full_name)
         return full_name, default_dtid
@@ -254,7 +248,7 @@ class Parser:
             for directory in self.search_dirs:
                 if directory.split(os.path.sep)[-1] == root_namespace:
                     return os.path.join(directory, *sub_namespace_components)
-            raise ParserException('Unknown namespace', namespace)
+            raise DsdlException('Unknown namespace', namespace)
 
         if '.' not in typename:
             current_namespace = self._namespace_from_filename(referencing_filename)
@@ -271,10 +265,10 @@ class Parser:
                 try:
                     fn_full_typename, _dtid = self._full_typename_and_dtid_from_filename(fn)
                 except Exception as ex:
-                    self.log.info('Unknown file [%s], skipping... [%s]', _pretty_filename(fn), ex)
+                    self.log.info('Unknown file [%s], skipping... [%s]', pretty_filename(fn), ex)
                 if full_typename == fn_full_typename:
                     return fn
-        raise ParserException('Type definition not found', typename)
+        raise DsdlException('Type definition not found', typename)
 
     def _parse_array_type(self, filename, value_typedef, size_spec, cast_mode):
         self.log.debug('Parsing the array value type [%s]...', value_typedef)
@@ -291,7 +285,7 @@ class Parser:
                 max_size = int(size_spec, 0)
                 mode = ArrayType.MODE_STATIC
         except ValueError:
-            raise ParserException('Invalid array size specifier (note: allowed [<=X], [<X], [X])', size_spec)
+            raise DsdlException('Invalid array size specifier (note: allowed [<=X], [<X], [X])', size_spec)
         _enforce(max_size > 0, 'Array size must be positive', max_size)
         return ArrayType(value_type, mode, max_size)
 
@@ -301,7 +295,7 @@ class Parser:
         elif cast_mode == 'truncated':
             cast_mode = PrimitiveType.CAST_MODE_TRUNCATED
         else:
-            raise ParserException('Invalid cast mode', cast_mode)
+            raise DsdlException('Invalid cast mode', cast_mode)
 
         if base_name == 'bool':
             return PrimitiveType(PrimitiveType.KIND_BOOLEAN, 1, cast_mode)
@@ -312,17 +306,17 @@ class Parser:
                 'float': PrimitiveType.KIND_FLOAT,
             }[base_name]
         except KeyError:
-            raise ParserException('Unknown primitive type (note: compound types must be in CamelCase)')
+            raise DsdlException('Unknown primitive type (note: compound types must be in CamelCase)')
 
         _enforce(2 <= bitlen <= 64, 'Invalid bit length (note: use bool instead of uint1)', bitlen)
         return PrimitiveType(kind, bitlen, cast_mode)
 
     def _parse_compound_type(self, filename, typedef):
         definition_filename = self._locate_compound_type_definition(filename, typedef)
-        self.log.info('Nested type [%s] is defined in [%s], parsing...', typedef, _pretty_filename(definition_filename))
+        self.log.info('Nested type [%s] is defined in [%s], parsing...', typedef, pretty_filename(definition_filename))
         t = self.parse(definition_filename)
         if t.kind == t.KIND_SERVICE:
-            raise ParserException('Service types can not be nested', t)
+            raise DsdlException('Service types can not be nested', t)
         self.log.info('Nested type [%s] parsed successfully', typedef)
         return t
 
@@ -347,13 +341,29 @@ class Parser:
             _enforce(cast_mode is None, 'Cast mode specifier is not applicable for compound types', cast_mode)
             return self._parse_compound_type(filename, typedef)
 
+    def _make_constant(self, attrtype, name, init_expression):
+        _enforce(attrtype.category == attrtype.CATEGORY_PRIMITIVE,
+                 'Only primitive types allowed for constants', attrtype)
+        value = evaluate_expression(init_expression)
+        if not isinstance(value, (float, int, bool)):
+            raise DsdlException('Invalid type of constant initialization expression', type(value).__name__)
+        value = {
+            attrtype.KIND_UNSIGNED_INT : int,
+            attrtype.KIND_SIGNED_INT : int,
+            attrtype.KIND_BOOLEAN : int,  # Not bool
+            attrtype.KIND_FLOAT : float
+        }[attrtype.kind](value)
+        self.log.debug('Constant init expression: [%s] --> %s', init_expression, repr(value))
+        attrtype.validate_value_range(value)
+        return Constant(attrtype, name, init_expression, value)
+
     def _parse_line(self, filename, tokens):
         cast_mode = None
         if tokens[0] == 'saturated' or tokens[0] == 'truncated':
             cast_mode, *tokens = tokens
 
         if len(tokens) < 2:
-            raise ParserException('Invalid attribute definition', tokens)
+            raise DsdlException('Invalid attribute definition', tokens)
 
         typename, attrname, *tokens = tokens
         validate_attribute_name(attrname)
@@ -361,12 +371,9 @@ class Parser:
 
         if len(tokens) > 0:
             if len(tokens) < 2 or tokens[0] != '=':
-                raise ParserException('Constant assignment expected', tokens)
-            if attrtype.category != Type.CATEGORY_PRIMITIVE:
-                raise ParserException('Only primitive types allowed for constants', attrtype)
+                raise DsdlException('Constant assignment expected', tokens)
             expression = ' '.join(tokens[1:])
-            evaluate_expression(expression)  # Validation
-            return Constant(attrtype, attrname, expression)
+            return self._make_constant(attrtype, attrname, expression)
         else:
             return Field(attrtype, attrname)
 
@@ -389,7 +396,7 @@ class Parser:
                     attr = self._parse_line(filename, tokens)
 
                     if attr.name in all_attributes_names:
-                        raise ParserException('Duplicated attribute name', attr.name)
+                        raise DsdlException('Duplicated attribute name', attr.name)
                     all_attributes_names.add(attr.name)
 
                     if isinstance(attr, Constant):
@@ -397,13 +404,13 @@ class Parser:
                     elif isinstance(attr, Field):
                         (resp_fields if response_part else fields).append(attr)
                     else:
-                        raise ParserException('Unknown attribute', attr)
-                except ParserException as ex:
+                        raise DsdlException('Unknown attribute', attr)
+                except DsdlException as ex:
                     if not ex.line:
                         ex.line = num
                     raise ex
                 except Exception as ex:
-                    raise ParserException('Internal error', str(ex), line=num) from ex
+                    raise DsdlException('Internal error', str(ex), line=num) from ex
 
             if response_part:
                 dsdl_signature = self._compute_dsdl_signature(full_typename, fields, resp_fields)
@@ -423,12 +430,12 @@ class Parser:
             for ln in typedef.get_normalized_attributes_definitions().splitlines():
                 self.log.info('    %s', ln)
             return typedef
-        except ParserException as ex:
+        except DsdlException as ex:
             if not ex.file:
                 ex.file = filename
             raise ex
         except Exception as ex:
-            raise ParserException('Internal error', str(ex), file=filename) from ex
+            raise DsdlException('Internal error', str(ex), file=filename) from ex
 
 
 if __name__ == '__main__':
