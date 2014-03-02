@@ -62,7 +62,7 @@ class PrimitiveType(Type):
         if math.isfinite(value):
             low, high = self.value_range
             if not low <= value <= high:
-                _error('Value [%s] is out of range %s', value, self.value_range)
+                error('Value [%s] is out of range %s', value, self.value_range)
 
     def get_max_bitlen(self):
         return self.bitlen
@@ -111,7 +111,7 @@ class CompoundType(Type):
             self.constants = []
             self.get_max_bitlen = lambda: max_bitlen_sum(self.fields)
         else:
-            _error('Compound type of unknown kind [%s]', kind)
+            error('Compound type of unknown kind [%s]', kind)
 
     def get_normalized_definition(self):
         return self.full_name
@@ -152,80 +152,6 @@ class Constant(Attribute):
         return '%s %s = %s' % (self.type.get_normalized_definition(), self.name, self.init_expression)
 
 
-def _error(fmt, *args):
-    raise DsdlException(fmt % args)
-
-def _enforce(cond, fmt, *args):
-    if not cond:
-        _error(fmt, *args)
-
-def bitlen_to_bytelen(x):
-    return int((x + 7) / 8)
-
-def evaluate_expression(expression):
-    try:
-        env = {
-            'locals': None,
-            'globals': None,
-            '__builtins__': None,
-            'true': 1,
-            'false': 0,
-            'inf': float('+inf'),
-            'nan': float('nan')
-        }
-        return eval(expression, env)
-    except Exception as ex:
-        _error('Cannot evaluate expression: %s', str(ex))
-
-def validate_search_directories(dirnames):
-    dirnames = set(dirnames)
-    dirnames = list(map(os.path.abspath, dirnames))
-    for d1 in dirnames:
-        for d2 in dirnames:
-            if d1 == d2:
-                continue
-            _enforce(not d1.startswith(d2), 'Nested search directories are not allowed [%s] [%s]', d1, d2)
-            _enforce(d1.split(os.path.sep)[-1] != d2.split(os.path.sep)[-1],
-                     'Namespace roots must be unique [%s] [%s]', d1, d2)
-    return dirnames
-
-def validate_namespace_name(name):
-    for component in name.split('.'):
-        _enforce(re.match(r'[a-z][a-z0-9_]*$', component), 'Invalid namespace name [%s]', name)
-    _enforce(len(name) <= MAX_FULL_TYPE_NAME_LEN, 'Namespace name is too long [%s]', name)
-
-def validate_compound_type_full_name(name):
-    _enforce('.' in name, 'Full type name must explicitly specify its namespace [%s]', name)
-    short_name = name.split('.')[-1]
-    namespace = '.'.join(name.split('.')[:-1])
-    validate_namespace_name(namespace)
-    _enforce(re.match(r'[A-Z][A-Za-z0-9_]*$', short_name), 'Invalid type name [%s]', name)
-    _enforce(len(name) <= MAX_FULL_TYPE_NAME_LEN, 'Type name is too long [%s]', name)
-
-def validate_attribute_name(name):
-    _enforce(re.match(r'[a-zA-Z][a-zA-Z0-9_]*$', name), 'Invalid attribute name [%s]', name)
-
-def validate_data_type_id(dtid):
-    _enforce(0 <= dtid <= DATA_TYPE_ID_MAX, 'Invalid data type ID [%s]', dtid)
-
-def validate_data_struct_len(t):
-    _enforce(t.category == t.CATEGORY_COMPOUND, 'Data structure length can be enforced only for compound types')
-    if t.kind == t.KIND_MESSAGE:
-        bitlens = [t.get_max_bitlen()]
-    elif t.kind == t.KIND_SERVICE:
-        bitlens = t.get_max_bitlen_request(), t.get_max_bitlen_response()
-    for bitlen in bitlens:
-        bytelen = bitlen_to_bytelen(bitlen)
-        _enforce(0 <= bytelen <= MAX_DATA_STRUCT_LEN_BYTES,
-                 'Max data structure length is invalid: %d bits, %d bytes', bitlen, bytelen)
-
-def tokenize_dsdl_definition(text):
-    for idx, line in enumerate(text.splitlines()):
-        line = re.sub('#.*', '', line).strip()  # Remove comments and leading/trailing whitespaces
-        if line:
-            tokens = [tk for tk in line.split() if tk]
-            yield idx + 1, tokens
-
 class Parser:
     LOGGER_NAME = 'dsdl_parser'
 
@@ -245,13 +171,13 @@ class Parser:
                 ns = (root_ns + '.' + ns.replace(os.path.sep, '.').strip('.')).strip('.')
                 validate_namespace_name(ns)
                 return ns
-        _error('File [%s] was not found in search directories', filename)
+        error('File [%s] was not found in search directories', filename)
 
     def _full_typename_and_dtid_from_filename(self, filename):
         basename = os.path.basename(filename)
         items = basename.split('.')
         if (len(items) != 2 and len(items) != 3) or items[-1] != 'uavcan':
-            _error('Invalid file name [%s]; expected pattern: [<default-dtid>.]<short-type-name>.uavcan', basename)
+            error('Invalid file name [%s]; expected pattern: [<default-dtid>.]<short-type-name>.uavcan', basename)
         if len(items) == 2:
             default_dtid, name = None, items[0]
         else:
@@ -259,7 +185,7 @@ class Parser:
             try:
                 default_dtid = int(default_dtid)
             except ValueError:
-                _error('Invalid default data type ID [%s]', default_dtid)
+                error('Invalid default data type ID [%s]', default_dtid)
             validate_data_type_id(default_dtid)
         full_name = self._namespace_from_filename(filename) + '.' + name
         validate_compound_type_full_name(full_name)
@@ -285,7 +211,7 @@ class Parser:
             for directory in self.search_dirs:
                 if directory.split(os.path.sep)[-1] == root_namespace:
                     return os.path.join(directory, *sub_namespace_components)
-            _error('Unknown namespace [%s]', namespace)
+            error('Unknown namespace [%s]', namespace)
 
         if '.' not in typename:
             current_namespace = self._namespace_from_filename(referencing_filename)
@@ -305,12 +231,12 @@ class Parser:
                         return fn
                 except Exception as ex:
                     self.log.debug('Unknown file [%s], skipping... [%s]', pretty_filename(fn), ex)
-        _error('Type definition not found [%s]', typename)
+        error('Type definition not found [%s]', typename)
 
     def _parse_array_type(self, filename, value_typedef, size_spec, cast_mode):
         self.log.debug('Parsing the array value type [%s]...', value_typedef)
         value_type = self._parse_type(filename, value_typedef, cast_mode)
-        _enforce(value_type.category != value_type.CATEGORY_ARRAY,
+        enforce(value_type.category != value_type.CATEGORY_ARRAY,
                  'Multidimensional arrays are not allowed (protip: use nested types)')
         try:
             if size_spec.startswith('<='):
@@ -323,8 +249,8 @@ class Parser:
                 max_size = int(size_spec, 0)
                 mode = ArrayType.MODE_STATIC
         except ValueError:
-            _error('Invalid array size specifier [%s] (valid patterns: [<=X], [<X], [X])', size_spec)
-        _enforce(max_size > 0, 'Array size must be positive, not %d', max_size)
+            error('Invalid array size specifier [%s] (valid patterns: [<=X], [<X], [X])', size_spec)
+        enforce(max_size > 0, 'Array size must be positive, not %d', max_size)
         return ArrayType(value_type, mode, max_size)
 
     def _parse_primitive_type(self, filename, base_name, bitlen, cast_mode):
@@ -333,7 +259,7 @@ class Parser:
         elif cast_mode == 'truncated':
             cast_mode = PrimitiveType.CAST_MODE_TRUNCATED
         else:
-            _error('Invalid cast mode [%s]', cast_mode)
+            error('Invalid cast mode [%s]', cast_mode)
 
         if base_name == 'bool':
             return PrimitiveType(PrimitiveType.KIND_BOOLEAN, 1, cast_mode)
@@ -344,12 +270,12 @@ class Parser:
                 'float': PrimitiveType.KIND_FLOAT,
             }[base_name]
         except KeyError:
-            _error('Unknown primitive type (note: compound types should be in CamelCase)')
+            error('Unknown primitive type (note: compound types should be in CamelCase)')
 
         if kind == PrimitiveType.KIND_FLOAT:
-            _enforce(bitlen in (16, 32, 64), 'Invalid bit length for float type [%d]', bitlen)
+            enforce(bitlen in (16, 32, 64), 'Invalid bit length for float type [%d]', bitlen)
         else:
-            _enforce(2 <= bitlen <= 64, 'Invalid bit length [%d] (note: use bool instead of uint1)', bitlen)
+            enforce(2 <= bitlen <= 64, 'Invalid bit length [%d] (note: use bool instead of uint1)', bitlen)
         return PrimitiveType(kind, bitlen, cast_mode)
 
     def _parse_compound_type(self, filename, typedef):
@@ -357,7 +283,7 @@ class Parser:
         self.log.info('Nested type [%s] is defined in [%s], parsing...', typedef, pretty_filename(definition_filename))
         t = self.parse(definition_filename)
         if t.kind == t.KIND_SERVICE:
-            _error('A service type can not be nested into another compound type')
+            error('A service type can not be nested into another compound type')
         return t
 
     def _parse_type(self, filename, typedef, cast_mode):
@@ -378,14 +304,14 @@ class Parser:
                 bitlen = int(primitive_match.group(2))
                 return self._parse_primitive_type(filename, base_name, bitlen, cast_mode)
         else:
-            _enforce(cast_mode is None, 'Cast mode specifier is not applicable for compound types [%s]', cast_mode)
+            enforce(cast_mode is None, 'Cast mode specifier is not applicable for compound types [%s]', cast_mode)
             return self._parse_compound_type(filename, typedef)
 
     def _make_constant(self, attrtype, name, init_expression):
-        _enforce(attrtype.category == attrtype.CATEGORY_PRIMITIVE, 'Invalid type for constant')
+        enforce(attrtype.category == attrtype.CATEGORY_PRIMITIVE, 'Invalid type for constant')
         value = evaluate_expression(init_expression)
         if not isinstance(value, (float, int, bool)):
-            _error('Invalid type of constant initialization expression [%s]', type(value).__name__)
+            error('Invalid type of constant initialization expression [%s]', type(value).__name__)
         value = {
             attrtype.KIND_UNSIGNED_INT : int,
             attrtype.KIND_SIGNED_INT : int,
@@ -402,7 +328,7 @@ class Parser:
             cast_mode, *tokens = tokens
 
         if len(tokens) < 2:
-            _error('Invalid attribute definition')
+            error('Invalid attribute definition')
 
         typename, attrname, *tokens = tokens
         validate_attribute_name(attrname)
@@ -410,11 +336,18 @@ class Parser:
 
         if len(tokens) > 0:
             if len(tokens) < 2 or tokens[0] != '=':
-                _error('Constant assignment expected')
+                error('Constant assignment expected')
             expression = ' '.join(tokens[1:])
             return self._make_constant(attrtype, attrname, expression)
         else:
             return Field(attrtype, attrname)
+
+    def _tokenize(self, text):
+        for idx, line in enumerate(text.splitlines()):
+            line = re.sub('#.*', '', line).strip()  # Remove comments and leading/trailing whitespaces
+            if line:
+                tokens = [tk for tk in line.split() if tk]
+                yield idx + 1, tokens
 
     def parse(self, filename):
         try:
@@ -423,7 +356,7 @@ class Parser:
                 text = f.read()
 
             full_typename, default_dtid = self._full_typename_and_dtid_from_filename(filename)
-            numbered_lines = list(tokenize_dsdl_definition(text))
+            numbered_lines = list(self._tokenize(text))
             all_attributes_names = set()
             fields, constants, resp_fields, resp_constants = [], [], [], []
             response_part = False
@@ -435,14 +368,14 @@ class Parser:
                 try:
                     attr = self._parse_line(filename, tokens)
                     if attr.name in all_attributes_names:
-                        _error('Duplicated attribute name [%s]', attr.name)
+                        error('Duplicated attribute name [%s]', attr.name)
                     all_attributes_names.add(attr.name)
                     if isinstance(attr, Constant):
                         (resp_constants if response_part else constants).append(attr)
                     elif isinstance(attr, Field):
                         (resp_fields if response_part else fields).append(attr)
                     else:
-                        _error('Unknown attribute type - internal error')
+                        error('Unknown attribute type - internal error')
                 except DsdlException as ex:
                     if not ex.line:
                         ex.line = num
@@ -483,6 +416,74 @@ class Parser:
             raise DsdlException('Internal error: %s' % str(ex), file=filename) from ex
 
 
+def error(fmt, *args):
+    raise DsdlException(fmt % args)
+
+def enforce(cond, fmt, *args):
+    if not cond:
+        error(fmt, *args)
+
+def bitlen_to_bytelen(x):
+    return int((x + 7) / 8)
+
+def evaluate_expression(expression):
+    try:
+        env = {
+            'locals': None,
+            'globals': None,
+            '__builtins__': None,
+            'true': 1,
+            'false': 0,
+            'inf': float('+inf'),
+            'nan': float('nan')
+        }
+        return eval(expression, env)
+    except Exception as ex:
+        error('Cannot evaluate expression: %s', str(ex))
+
+def validate_search_directories(dirnames):
+    dirnames = set(dirnames)
+    dirnames = list(map(os.path.abspath, dirnames))
+    for d1 in dirnames:
+        for d2 in dirnames:
+            if d1 == d2:
+                continue
+            enforce(not d1.startswith(d2), 'Nested search directories are not allowed [%s] [%s]', d1, d2)
+            enforce(d1.split(os.path.sep)[-1] != d2.split(os.path.sep)[-1],
+                     'Namespace roots must be unique [%s] [%s]', d1, d2)
+    return dirnames
+
+def validate_namespace_name(name):
+    for component in name.split('.'):
+        enforce(re.match(r'[a-z][a-z0-9_]*$', component), 'Invalid namespace name [%s]', name)
+    enforce(len(name) <= MAX_FULL_TYPE_NAME_LEN, 'Namespace name is too long [%s]', name)
+
+def validate_compound_type_full_name(name):
+    enforce('.' in name, 'Full type name must explicitly specify its namespace [%s]', name)
+    short_name = name.split('.')[-1]
+    namespace = '.'.join(name.split('.')[:-1])
+    validate_namespace_name(namespace)
+    enforce(re.match(r'[A-Z][A-Za-z0-9_]*$', short_name), 'Invalid type name [%s]', name)
+    enforce(len(name) <= MAX_FULL_TYPE_NAME_LEN, 'Type name is too long [%s]', name)
+
+def validate_attribute_name(name):
+    enforce(re.match(r'[a-zA-Z][a-zA-Z0-9_]*$', name), 'Invalid attribute name [%s]', name)
+
+def validate_data_type_id(dtid):
+    enforce(0 <= dtid <= DATA_TYPE_ID_MAX, 'Invalid data type ID [%s]', dtid)
+
+def validate_data_struct_len(t):
+    enforce(t.category == t.CATEGORY_COMPOUND, 'Data structure length can be enforced only for compound types')
+    if t.kind == t.KIND_MESSAGE:
+        bitlens = [t.get_max_bitlen()]
+    elif t.kind == t.KIND_SERVICE:
+        bitlens = t.get_max_bitlen_request(), t.get_max_bitlen_response()
+    for bitlen in bitlens:
+        bytelen = bitlen_to_bytelen(bitlen)
+        enforce(0 <= bytelen <= MAX_DATA_STRUCT_LEN_BYTES,
+                 'Max data structure length is invalid: %d bits, %d bytes', bitlen, bytelen)
+
+
 def parse_namespaces(directory_list):
     def walk():
         import fnmatch
@@ -504,7 +505,7 @@ def parse_namespaces(directory_list):
         if key in all_default_dtid:
             first = pretty_filename(all_default_dtid[key])
             second = pretty_filename(filename)
-            _error('Default data type ID collision: [%s] [%s]', first, second)
+            error('Default data type ID collision: [%s] [%s]', first, second)
         all_default_dtid[key] = filename
 
     parser = Parser(directory_list)
@@ -514,6 +515,7 @@ def parse_namespaces(directory_list):
         ensure_unique_dtid(t, filename)
         output_types.append(t)
     return output_types
+
 
 if __name__ == '__main__':
     import sys
