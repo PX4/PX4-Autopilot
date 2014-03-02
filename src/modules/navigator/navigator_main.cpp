@@ -171,6 +171,10 @@ private:
 
 	struct mission_item_s				_roi_item;	/**< ROI mission item */
 
+	double	_target_lat;		/**< prediction for target latitude */
+	double	_target_lon;		/**< prediction for target longitude */
+	float	_target_alt;		/**< prediction for target altitude */
+
 	struct follow_offset_s {
 		bool valid;
 		double lat;		/**< latitude of target */
@@ -437,7 +441,10 @@ Navigator::Navigator() :
 	_need_takeoff(true),
 	_do_takeoff(false),
 	_pos_sp_triplet_updated(false),
-	_geofence_violation_warning_sent(false)
+	_geofence_violation_warning_sent(false),
+	_target_lat(0.0),
+	_target_lon(0.0),
+	_target_alt(0.0f)
 {
 	_parameter_handles.min_altitude = param_find("NAV_MIN_ALT");
 	_parameter_handles.acceptance_radius = param_find("NAV_ACCEPT_RAD");
@@ -853,48 +860,62 @@ Navigator::task_main()
 			dispatch(EVENT_HOME_POSITION_CHANGED);
 		}
 
-		/* global position updated */
-		if (fds[1].revents & POLLIN) {
-			global_position_update();
-
-			/* publish position setpoint triplet on each position update if navigator active */
-			if (_control_mode.flag_armed && _control_mode.flag_control_auto_enabled) {
-				_pos_sp_triplet_updated = true;
-
-				if (myState == NAV_STATE_LAND && _global_pos.global_valid && !_global_pos_valid) {
-					/* got global position when landing, update setpoint */
-					start_land();
-				}
-
-				_global_pos_valid = _global_pos.global_valid;
-
-				/* check if waypoint has been reached in MISSION, RTL and LAND modes */
-				if (myState == NAV_STATE_MISSION || myState == NAV_STATE_RTL || myState == NAV_STATE_LAND) {
-					if (check_mission_item_reached()) {
-						on_mission_item_reached();
-					}
-				}
-			}
-
-			/* Check geofence violation */
-			if (!_geofence.inside(&_global_pos)) {
-				//xxx: publish geofence violation here (or change local flag depending on which app handles the flight termination)
-
-				/* Issue a warning about the geofence violation once */
-				if (!_geofence_violation_warning_sent) {
-					mavlink_log_critical(_mavlink_fd, "#audio: Geofence violation");
-					_geofence_violation_warning_sent = true;
-				}
-
-			} else {
-				/* Reset the _geofence_violation_warning_sent field */
-				_geofence_violation_warning_sent = false;
-			}
-		}
-
 		/* target position updated */
 		if (fds[8].revents & POLLIN) {
 			target_position_update();
+		}
+
+		/* global position updated */
+		if (fds[1].revents & POLLIN) {
+			global_position_update();
+		}
+
+		/* predict target position */
+		if (_vstatus.condition_target_position_valid) {
+			/* time interval between target and vehicle position estimates */
+			float target_dt = math::constrain((_global_pos.time_gps_usec - _target_pos.time_gps_usec) / 1000000.0f, 0.0f, 1.0f);
+
+			/* position change prediction */
+			math::Vector<3> dpos(_target_pos.vel_n, _target_pos.vel_e, _target_pos.vel_d);
+			dpos *= target_dt;
+
+			/* predict current target position */
+			add_vector_to_global_position(_target_pos.lat, _target_pos.lon, dpos(0), dpos(1), &_target_lat, &_target_lon);
+			_target_alt = _target_pos.alt - dpos(2);
+		}
+
+		/* publish position setpoint triplet on each position update if navigator active */
+		if (_control_mode.flag_armed && _control_mode.flag_control_auto_enabled) {
+			_pos_sp_triplet_updated = true;
+
+			if (myState == NAV_STATE_LAND && _global_pos.global_valid && !_global_pos_valid) {
+				/* got global position when landing, update setpoint */
+				start_land();
+			}
+
+			_global_pos_valid = _global_pos.global_valid;
+
+			/* check if waypoint has been reached in MISSION, RTL and LAND modes */
+			if (myState == NAV_STATE_MISSION || myState == NAV_STATE_RTL || myState == NAV_STATE_LAND) {
+				if (check_mission_item_reached()) {
+					on_mission_item_reached();
+				}
+			}
+		}
+
+		/* Check geofence violation */
+		if (!_geofence.inside(&_global_pos)) {
+			//xxx: publish geofence violation here (or change local flag depending on which app handles the flight termination)
+
+			/* Issue a warning about the geofence violation once */
+			if (!_geofence_violation_warning_sent) {
+				mavlink_log_critical(_mavlink_fd, "#audio: Geofence violation");
+				_geofence_violation_warning_sent = true;
+			}
+
+		} else {
+			/* Reset the _geofence_violation_warning_sent field */
+			_geofence_violation_warning_sent = false;
 		}
 
 		/* publish position setpoint triplet if updated */
@@ -1592,14 +1613,13 @@ Navigator::check_mission_item_reached()
 			acceptance_radius = _parameters.acceptance_radius;
 		}
 
-		float dist = -1.0f;
-
 		if (myState == NAV_STATE_MISSION && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_NORMAL && _follow_offset_next.valid) {
 			/* follow target waypoint */
-			dist = get_distance_to_point_global_wgs84(_follow_offset_next.lat, _follow_offset_next.lon, _follow_offset_next.alt,
-					(double)_target_pos.lat, (double)_target_pos.lon, _target_pos.alt,
-					NULL, NULL);
-			if (dist >= 0.0f && dist <= acceptance_radius) {
+			math::Vector<3> current_offset;
+			get_vector_to_next_waypoint_fast(_target_lat, _target_lon, _follow_offset_next.lat, _follow_offset_next.lon, &current_offset.data[0], &current_offset.data[1]);
+			current_offset(2) = -(_follow_offset_next.alt - _target_alt);
+
+			if (current_offset.length() <= acceptance_radius) {
 				_waypoint_position_reached = true;
 			}
 
@@ -1615,7 +1635,7 @@ Navigator::check_mission_item_reached()
 			float dist_xy = -1.0f;
 			float dist_z = -1.0f;
 
-			dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, wp_alt_amsl,
+			float dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, wp_alt_amsl,
 					(double)_global_pos.lat, (double)_global_pos.lon, _global_pos.alt,
 					&dist_xy, &dist_z);
 
@@ -1753,11 +1773,11 @@ Navigator::publish_position_setpoint_triplet()
 
 		} else {
 			float dist_prev = get_distance_to_point_global_wgs84(
-					_target_pos.lat, _target_pos.lon, _target_pos.alt,
+					_target_lat, _target_lon, _target_alt,
 					_follow_offset_prev.lat, _follow_offset_prev.lon, _follow_offset_prev.alt,
 					NULL, NULL);
 			float dist_next = get_distance_to_point_global_wgs84(
-					_target_pos.lat, _target_pos.lon, _target_pos.alt,
+					_target_lat, _target_lon, _target_alt,
 					_follow_offset_next.lat, _follow_offset_next.lon, _follow_offset_next.alt,
 					NULL, NULL);
 			float progress = dist_prev / (dist_prev + dist_next);
@@ -1766,10 +1786,10 @@ Navigator::publish_position_setpoint_triplet()
 
 		/* add offset to target position */
 		add_vector_to_global_position(
-				_target_pos.lat, _target_pos.lon,
+				_target_lat, _target_lon,
 				offset(0), offset(1),
 				&_pos_sp_triplet.current.lat, &_pos_sp_triplet.current.lon);
-		_pos_sp_triplet.current.alt = _target_pos.alt - offset(2);
+		_pos_sp_triplet.current.alt = _target_alt - offset(2);
 
 		/* calculate direction to target */
 		// TODO add yaw offset, use actual position instead of offset
