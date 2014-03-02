@@ -4,12 +4,13 @@
 # Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
 #
 
-import os, re, logging
+import os, re, logging, math
 from .signature import compute_signature
 from .common import DsdlException, pretty_filename
 from .type_limits import get_unsigned_integer_range, get_signed_integer_range, get_float_range
 
 MAX_FULL_TYPE_NAME_LEN = 80
+DATA_TYPE_ID_MAX = 1023
 
 class Type:
     CATEGORY_PRIMITIVE = 0
@@ -57,9 +58,10 @@ class PrimitiveType(Type):
         return cast_mode + ' ' + primary_type
 
     def validate_value_range(self, value):
-        low, high = self.value_range
-        if not low <= value <= high:
-            _error('Value [%s] is out of range %s', value, self.value_range)
+        if math.isfinite(value):
+            low, high = self.value_range
+            if not low <= value <= high:
+                _error('Value [%s] is out of range %s', value, self.value_range)
 
 class ArrayType(Type):
     MODE_STATIC = 0
@@ -149,7 +151,9 @@ def evaluate_expression(expression):
             'globals': None,
             '__builtins__': None,
             'true': 1,
-            'false': 0
+            'false': 0,
+            'inf': float('+inf'),
+            'nan': float('nan')
         }
         return eval(expression, env)
     except Exception as ex:
@@ -182,6 +186,9 @@ def validate_compound_type_full_name(name):
 
 def validate_attribute_name(name):
     _enforce(re.match(r'[a-zA-Z][a-zA-Z0-9_]*$', name), 'Invalid attribute name [%s]', name)
+
+def validate_data_type_id(dtid):
+    _enforce(0 <= dtid <= DATA_TYPE_ID_MAX, 'Invalid data type ID [%s]', dtid)
 
 def tokenize_dsdl_definition(text):
     for idx, line in enumerate(text.splitlines()):
@@ -224,6 +231,7 @@ class Parser:
                 default_dtid = int(default_dtid)
             except ValueError:
                 _error('Invalid default data type ID [%s]', default_dtid)
+            validate_data_type_id(default_dtid)
         full_name = self._namespace_from_filename(filename) + '.' + name
         validate_compound_type_full_name(full_name)
         return full_name, default_dtid
@@ -264,10 +272,10 @@ class Parser:
             if os.path.isfile(fn):
                 try:
                     fn_full_typename, _dtid = self._full_typename_and_dtid_from_filename(fn)
+                    if full_typename == fn_full_typename:
+                        return fn
                 except Exception as ex:
                     self.log.info('Unknown file [%s], skipping... [%s]', pretty_filename(fn), ex)
-                if full_typename == fn_full_typename:
-                    return fn
         _error('Type definition not found [%s]', typename)
 
     def _parse_array_type(self, filename, value_typedef, size_spec, cast_mode):
@@ -380,10 +388,11 @@ class Parser:
             return Field(attrtype, attrname)
 
     def parse(self, filename):
-        filename = os.path.abspath(filename)
-        with open(filename) as f:
-            text = f.read()
         try:
+            filename = os.path.abspath(filename)
+            with open(filename) as f:
+                text = f.read()
+
             full_typename, default_dtid = self._full_typename_and_dtid_from_filename(filename)
             numbered_lines = list(tokenize_dsdl_definition(text))
             all_attributes_names = set()
@@ -434,9 +443,43 @@ class Parser:
             if not ex.file:
                 ex.file = filename
             raise ex
+        except IOError as ex:
+            raise DsdlException('IO error: %s' % str(ex), file=filename) from ex
         except Exception as ex:
             raise DsdlException('Internal error: %s' % str(ex), file=filename) from ex
 
+
+def parse_namespaces(directory_list):
+    def walk():
+        import fnmatch
+        from functools import partial
+        def on_walk_error(directory, ex):
+            raise DsdlException('OS error in [%s]: %s' % (directory, str(ex))) from ex
+        for directory in directory_list:
+            walker = os.walk(directory, onerror=partial(on_walk_error, directory), followlinks=True)
+            for root, _dirnames, filenames in walker:
+                for filename in fnmatch.filter(filenames, '*.uavcan'):
+                    filename = os.path.join(root, filename)
+                    yield filename
+
+    all_default_dtid = {}  # (kind, dtid) : filename
+    def ensure_unique_dtid(t, filename):
+        if t.default_dtid is None:
+            return
+        key = t.kind, t.default_dtid
+        if key in all_default_dtid:
+            first = pretty_filename(all_default_dtid[key])
+            second = pretty_filename(filename)
+            _error('Default data type ID collision: [%s] [%s]', first, second)
+        all_default_dtid[key] = filename
+
+    parser = Parser(directory_list)
+    output_types = []
+    for filename in walk():
+        t = parser.parse(filename)
+        ensure_unique_dtid(t, filename)
+        output_types.append(t)
+    return output_types
 
 if __name__ == '__main__':
     import sys
@@ -446,12 +489,14 @@ if __name__ == '__main__':
         self_directory = os.path.dirname(__file__)
         test_dir = os.path.join(self_directory, '..', '..', 'dsdl_test_data')
         test_dir = os.path.normpath(test_dir)
-        parser = Parser([os.path.join(test_dir, 'root_a'), os.path.join(test_dir, 'root_b')])
-        parser.log.setLevel(logging.DEBUG)
-        t = parser.parse(os.path.join(test_dir, 'root_a', 'ns1', 'ns9', '425.BeginFirmwareUpdate.uavcan'))
+#         parser = Parser([os.path.join(test_dir, 'root_a'), os.path.join(test_dir, 'root_b')])
+#         t = parser.parse(os.path.join(test_dir, 'root_a', 'ns1', 'ns9', '425.BeginFirmwareUpdate.uavcan'))
+        t = parse_namespaces([os.path.join(test_dir, 'root_a'), os.path.join(test_dir, 'root_b')])
+        print(len(t))
     else:
-        search_dirs = sys.argv[1:-1]
-        filename = sys.argv[-1]
-        parser = Parser(search_dirs)
-        parser.log.setLevel(logging.DEBUG)
-        t = parser.parse(filename)
+        t = parse_namespaces(sys.argv[1:])
+        print(len(t))
+#         search_dirs = sys.argv[1:-1]
+#         filename = sys.argv[-1]
+#         parser = Parser(search_dirs)
+#         t = parser.parse(filename)
