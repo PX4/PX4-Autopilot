@@ -5,8 +5,8 @@
 import os
 
 class DsdlException(Exception):
-    def __init__(self, text, *args, file=None, line=None):
-        super().__init__(text, *args)
+    def __init__(self, text, file=None, line=None):
+        super().__init__(text)
         self.file = file
         self.line = line
 
@@ -14,7 +14,7 @@ class DsdlException(Exception):
         if self.file and self.line:
             return '%s:%s: %s' % (pretty_filename(self.file), self.line, super().__str__())
         if self.file:
-            return '%s:?: %s' % (pretty_filename(self.file), super().__str__())
+            return '%s: %s' % (pretty_filename(self.file), super().__str__())
         return super().__str__()
 
 

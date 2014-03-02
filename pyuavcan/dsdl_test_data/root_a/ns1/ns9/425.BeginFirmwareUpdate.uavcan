@@ -13,5 +13,7 @@ int2 a_
 
 ---
 
+bool a
+float32 CONST = 1.23
 bool ok
 uint7[<=128] optional_error_message

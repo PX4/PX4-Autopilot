@@ -8,7 +8,7 @@ from .common import DsdlException
 
 def get_unsigned_integer_range(bitlen):
     if not 1 <= bitlen <= 64:
-        raise DsdlException('Invalid bit length for integer type', bitlen)
+        raise DsdlException('Invalid bit length for integer type: %d' % bitlen)
     return 0, (1 << bitlen) - 1
 
 def get_signed_integer_range(bitlen):
@@ -23,5 +23,5 @@ def get_float_range(bitlen):
             64: 1.79769313486231570815e+308
         }[bitlen]
     except KeyError:
-        raise DsdlException('Invalid bit length for float type', bitlen)
+        raise DsdlException('Invalid bit length for float type: %d' % bitlen)
     return -maxvalue, maxvalue
