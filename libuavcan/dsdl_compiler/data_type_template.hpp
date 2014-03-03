@@ -16,14 +16,6 @@
 #include <${inc}>
 % endfor
 
-#if !defined(UAVCAN_CONSTEXPR)
-# if __cplusplus < 201100L
-#  define UAVCAN_CONSTEXPR const
-# else
-#  define UAVCAN_CONSTEXPR constexpr
-# endif
-#endif
-
 <%!
 indent = lambda text, idnt='    ': idnt + text.replace('\n', '\n' + idnt)
 %>
@@ -44,6 +36,8 @@ ${line}
 namespace ${nsc}
 {
 % endfor
+namespace
+{
 
 #if UAVCAN_PACK_STRUCTS
 UAVCAN_PACKED_BEGIN
@@ -83,8 +77,7 @@ struct ${t.short_name}
     % if a.cpp_use_enum:
     enum { ${a.name} = ${a.cpp_value} }; // ${a.init_expression}
     % else:
-    static UAVCAN_CONSTEXPR typename ::uavcan::StorageType< ConstantTypes::${a.name} >::Type
-        ${a.name} = ${a.cpp_value}; // ${a.init_expression}
+    static const typename ::uavcan::StorageType< ConstantTypes::${a.name} >::Type ${a.name}; // ${a.init_expression}
     %endif
 % endfor
 
@@ -161,7 +154,7 @@ ${'::uavcan::TailArrayOptDisabled' if (idx + 1) < len(fields) else 'tao_mode'});
 
     static ::uavcan::DataTypeSignature getDataTypeSignature()
     {
-        ::uavcan::DataTypeSignature signature(${hex(t.get_dsdl_signature())});
+        ::uavcan::DataTypeSignature signature(${hex(t.get_dsdl_signature())}UL);
 <%def name="extend_signature_per_field(scope_prefix, fields)">
     % for a in fields:
         ${scope_prefix}FieldTypes::${a.name}::extendDataTypeSignature(signature);
@@ -177,6 +170,21 @@ ${'::uavcan::TailArrayOptDisabled' if (idx + 1) < len(fields) else 'tao_mode'});
     }
 };
 
+<%def name="define_out_of_line_constants(scope_prefix, constants)">
+% for a in constants:
+    % if not a.cpp_use_enum:
+const typename ::uavcan::StorageType< ${scope_prefix}::ConstantTypes::${a.name} >::Type
+    ${scope_prefix}::${a.name} = ${a.cpp_value}; // ${a.init_expression}
+    %endif
+% endfor
+</%def>
+% if t.kind == t.KIND_SERVICE:
+${define_out_of_line_constants(t.short_name + '::Request', t.request_constants)}
+${define_out_of_line_constants(t.short_name + '::Response', t.response_constants)}
+% else:
+${define_out_of_line_constants(t.short_name, t.constants)}
+% endif
+
 #if UAVCAN_PACK_STRUCTS
 UAVCAN_PACKED_END
 #endif
@@ -184,14 +192,13 @@ UAVCAN_PACKED_END
 // TODO Stream operator
 
 % if t.has_default_dtid:
-namespace
-{
-::uavcan::DefaultDataTypeRegistrator< ${t.short_name} > _uavcan_gdtr_registrator_${t.short_name};
-}
+const ::uavcan::DefaultDataTypeRegistrator< ${t.short_name} > _uavcan_gdtr_registrator_${t.short_name};
 % else:
 // No default registration
 % endif
 
+} // Anonymous namespace
 % for nsc in t.cpp_namespace_components:
-}
+} // Namespace ${nsc}
 % endfor
+
