@@ -191,18 +191,25 @@ class Parser:
         validate_compound_type_full_name(full_name)
         return full_name, default_dtid
 
-    def _compute_dsdl_signature(self, full_typename, fields, response_fields=None):
+    def _compute_dsdl_signature(self, full_typename, fields, constants, response_fields=None, response_constants=None):
         text = full_typename + '\n'
-        text += '\n'.join([x.get_normalized_definition() for x in fields])
-        if response_fields is not None:
-            text += '\n---\n'
-            text += '\n'.join([x.get_normalized_definition() for x in response_fields])
-        text = text.replace('\n\n', '\n')
+        def adjoin(attrs):
+            nonlocal text
+            text += '\n'.join([x.get_normalized_definition() for x in attrs])
 
+        const_sort_key = lambda x: x.get_normalized_definition()
+        adjoin(fields)
+        adjoin(sorted(constants, key=const_sort_key))
+
+        if response_fields is not None or response_constants is not None:
+            text += '\n---\n'
+            adjoin(response_fields)
+            adjoin(sorted(response_constants, key=const_sort_key))
+
+        text = text.strip().replace('\n\n', '\n')
         self.log.debug('DSDL signature of [%s] will be computed from:', full_typename)
         for ln in text.splitlines():
             self.log.debug('    %s', ln)
-
         return compute_signature(text)
 
     def _locate_compound_type_definition(self, referencing_filename, typename):
@@ -309,6 +316,7 @@ class Parser:
 
     def _make_constant(self, attrtype, name, init_expression):
         enforce(attrtype.category == attrtype.CATEGORY_PRIMITIVE, 'Invalid type for constant')
+        init_expression = ''.join(init_expression.split())  # Remove spaces
         value = evaluate_expression(init_expression)
         if not isinstance(value, (float, int, bool)):
             error('Invalid type of constant initialization expression [%s]', type(value).__name__)
@@ -384,7 +392,8 @@ class Parser:
                     raise DsdlException('Internal error: %s' % str(ex), line=num) from ex
 
             if response_part:
-                dsdl_signature = self._compute_dsdl_signature(full_typename, fields, resp_fields)
+                dsdl_signature = self._compute_dsdl_signature(full_typename, fields, constants,
+                                                              resp_fields, resp_constants)
                 typedef = CompoundType(full_typename, CompoundType.KIND_SERVICE, dsdl_signature, filename, default_dtid)
                 typedef.request_fields = fields
                 typedef.request_constants = constants
@@ -393,7 +402,7 @@ class Parser:
                 max_bitlen = typedef.get_max_bitlen_request(), typedef.get_max_bitlen_response()
                 max_bytelen = tuple(map(bitlen_to_bytelen, max_bitlen))
             else:
-                dsdl_signature = self._compute_dsdl_signature(full_typename, fields)
+                dsdl_signature = self._compute_dsdl_signature(full_typename, fields, constants)
                 typedef = CompoundType(full_typename, CompoundType.KIND_MESSAGE, dsdl_signature, filename, default_dtid)
                 typedef.fields = fields
                 typedef.constants = constants
