@@ -311,7 +311,7 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 				 (double)accel_ref[orient][2]);
 
 		data_collected[orient] = true;
-		tune_neutral();
+		tune_neutral(true);
 	}
 
 	close(sensor_combined_sub);
