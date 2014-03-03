@@ -4,7 +4,7 @@
 # Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
 #
 
-import os, re, logging, math
+import os, re, logging
 from io import StringIO
 from .signature import compute_signature
 from .common import DsdlException, pretty_filename
@@ -60,10 +60,9 @@ class PrimitiveType(Type):
         return cast_mode + ' ' + primary_type
 
     def validate_value_range(self, value):
-        if math.isfinite(value):
-            low, high = self.value_range
-            if not low <= value <= high:
-                error('Value [%s] is out of range %s', value, self.value_range)
+        low, high = self.value_range
+        if not low <= value <= high:
+            error('Value [%s] is out of range %s', value, self.value_range)
 
     def get_max_bitlen(self):
         return self.bitlen
