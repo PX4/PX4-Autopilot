@@ -100,7 +100,6 @@ public:
 	static void *start_helper(void *context);
 
 private:
-
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	Mavlink	*_mavlink;
@@ -109,37 +108,29 @@ private:
 	void *receive_thread(void *arg);
 
 	mavlink_status_t status;
-	struct vehicle_vicon_position_s vicon_position;
-	struct vehicle_command_s vcmd;
-	struct offboard_control_setpoint_s offboard_control_sp;
-	struct vehicle_global_position_s hil_global_pos;
 	struct vehicle_local_position_s hil_local_pos;
-	struct vehicle_attitude_s hil_attitude;
-	struct vehicle_gps_position_s hil_gps;
-	struct sensor_combined_s hil_sensors;
-	struct battery_status_s	hil_battery_status;
-	struct position_setpoint_triplet_s pos_sp_triplet;
-	orb_advert_t pub_hil_global_pos;
-	orb_advert_t pub_hil_local_pos;
-	orb_advert_t pub_hil_attitude;
-	orb_advert_t pub_hil_gps;
-	orb_advert_t pub_hil_sensors;
-	orb_advert_t pub_hil_gyro;
-	orb_advert_t pub_hil_accel;
-	orb_advert_t pub_hil_mag;
-	orb_advert_t pub_hil_baro;
-	orb_advert_t pub_hil_airspeed;
-	orb_advert_t pub_hil_battery;
-	int hil_counter;
-	int hil_frames;
-	uint64_t old_timestamp;
-	orb_advert_t cmd_pub;
-	orb_advert_t flow_pub;
-	orb_advert_t offboard_control_sp_pub;
-	orb_advert_t vicon_position_pub;
-	orb_advert_t telemetry_status_pub;
-	int32_t lat0;
-	int32_t lon0;
-	float alt0;
-
+	int _manual_sub;
+	orb_advert_t _global_pos_pub;
+	orb_advert_t _local_pos_pub;
+	orb_advert_t _attitude_pub;
+	orb_advert_t _gps_pub;
+	orb_advert_t _sensors_pub;
+	orb_advert_t _gyro_pub;
+	orb_advert_t _accel_pub;
+	orb_advert_t _mag_pub;
+	orb_advert_t _baro_pub;
+	orb_advert_t _airspeed_pub;
+	orb_advert_t _battery_pub;
+	orb_advert_t _cmd_pub;
+	orb_advert_t _flow_pub;
+	orb_advert_t _offboard_control_sp_pub;
+	orb_advert_t _vicon_position_pub;
+	orb_advert_t _telemetry_status_pub;
+	orb_advert_t _rc_pub;
+	orb_advert_t _manual_pub;
+	int _hil_counter;
+	int _hil_frames;
+	uint64_t _old_timestamp;
+	bool _hil_local_proj_inited;
+	float _hil_local_alt0;
 };

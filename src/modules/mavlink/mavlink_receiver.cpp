@@ -82,39 +82,48 @@ __BEGIN_DECLS
 
 __END_DECLS
 
+static const float mg2ms2 = 9.8f / 1000.0f;
+
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
-	pub_hil_global_pos(-1),
-	pub_hil_local_pos(-1),
-	pub_hil_attitude(-1),
-	pub_hil_gps(-1),
-	pub_hil_sensors(-1),
-	pub_hil_gyro(-1),
-	pub_hil_accel(-1),
-	pub_hil_mag(-1),
-	pub_hil_baro(-1),
-	pub_hil_airspeed(-1),
-	pub_hil_battery(-1),
-	hil_counter(0),
-	hil_frames(0),
-	old_timestamp(0),
-	cmd_pub(-1),
-	flow_pub(-1),
-	offboard_control_sp_pub(-1),
-	vicon_position_pub(-1),
-	telemetry_status_pub(-1),
-	lat0(0),
-	lon0(0),
-	alt0(0.0)
-{
 
+	_manual_sub(-1),
+
+	_global_pos_pub(-1),
+	_local_pos_pub(-1),
+	_attitude_pub(-1),
+	_gps_pub(-1),
+	_sensors_pub(-1),
+	_gyro_pub(-1),
+	_accel_pub(-1),
+	_mag_pub(-1),
+	_baro_pub(-1),
+	_airspeed_pub(-1),
+	_battery_pub(-1),
+	_cmd_pub(-1),
+	_flow_pub(-1),
+	_offboard_control_sp_pub(-1),
+	_vicon_position_pub(-1),
+	_telemetry_status_pub(-1),
+	_rc_pub(-1),
+	_manual_pub(-1),
+
+	_hil_counter(0),
+	_hil_frames(0),
+	_old_timestamp(0),
+	_hil_local_proj_inited(0),
+	_hil_local_alt0(0.0)
+{
+	memset(&hil_local_pos, 0, sizeof(hil_local_pos));
 }
 
 void
 MavlinkReceiver::handle_message(mavlink_message_t *msg)
 {
-	if (msg->msgid == MAVLINK_MSG_ID_COMMAND_LONG) {
+	uint64_t timestamp = hrt_absolute_time();
 
+	if (msg->msgid == MAVLINK_MSG_ID_COMMAND_LONG) {
+		/* command */
 		mavlink_command_long_t cmd_mavlink;
 		mavlink_msg_command_long_decode(msg, &cmd_mavlink);
 
@@ -131,6 +140,8 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 				_mavlink->_task_should_exit = true;
 
 			} else {
+				struct vehicle_command_s vcmd;
+				memset(&vcmd, 0, sizeof(vcmd));
 
 				/* Copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
 				vcmd.param1 = cmd_mavlink.param1;
@@ -149,24 +160,25 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 				vcmd.confirmation =  cmd_mavlink.confirmation;
 
 				/* check if topic is advertised */
-				if (cmd_pub <= 0) {
-					cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+				if (_cmd_pub <= 0) {
+					_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
 
 				} else {
 					/* publish */
-					orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
+					orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
 				}
 			}
 		}
-	}
 
-	if (msg->msgid == MAVLINK_MSG_ID_OPTICAL_FLOW) {
+	} else if (msg->msgid == MAVLINK_MSG_ID_OPTICAL_FLOW) {
+		/* optical flow */
 		mavlink_optical_flow_t flow;
 		mavlink_msg_optical_flow_decode(msg, &flow);
 
 		struct optical_flow_s f;
+		memset(&f, 0, sizeof(f));
 
-		f.timestamp = flow.time_usec;
+		f.timestamp = timestamp;
 		f.flow_raw_x = flow.flow_x;
 		f.flow_raw_y = flow.flow_y;
 		f.flow_comp_x_m = flow.flow_comp_m_x;
@@ -175,20 +187,20 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		f.quality = flow.quality;
 		f.sensor_id = flow.sensor_id;
 
-		/* check if topic is advertised */
-		if (flow_pub <= 0) {
-			flow_pub = orb_advertise(ORB_ID(optical_flow), &f);
+		if (_flow_pub <= 0) {
+			_flow_pub = orb_advertise(ORB_ID(optical_flow), &f);
 
 		} else {
-			/* publish */
-			orb_publish(ORB_ID(optical_flow), flow_pub, &f);
+			orb_publish(ORB_ID(optical_flow), _flow_pub, &f);
 		}
-	}
 
-	if (msg->msgid == MAVLINK_MSG_ID_SET_MODE) {
-		/* Set mode on request */
+	} else if (msg->msgid == MAVLINK_MSG_ID_SET_MODE) {
+		/* set mode on request */
 		mavlink_set_mode_t new_mode;
 		mavlink_msg_set_mode_decode(msg, &new_mode);
+
+		struct vehicle_command_s vcmd;
+		memset(&vcmd, 0, sizeof(vcmd));
 
 		union px4_custom_mode custom_mode;
 		custom_mode.data = new_mode.custom_mode;
@@ -208,21 +220,22 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		vcmd.confirmation = 1;
 
 		/* check if topic is advertised */
-		if (cmd_pub <= 0) {
-			cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+		if (_cmd_pub <= 0) {
+			_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
 
 		} else {
 			/* create command */
-			orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
+			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
 		}
-	}
 
-	/* Handle Vicon position estimates */
-	if (msg->msgid == MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE) {
+	} else if (msg->msgid == MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE) {
+		/* vicon */
 		mavlink_vicon_position_estimate_t pos;
 		mavlink_msg_vicon_position_estimate_decode(msg, &pos);
 
-		vicon_position.timestamp = hrt_absolute_time();
+		struct vehicle_vicon_position_s vicon_position;
+		memset(&vicon_position, 0, sizeof(vicon_position));
+		vicon_position.timestamp = timestamp;
 
 		vicon_position.x = pos.x;
 		vicon_position.y = pos.y;
@@ -232,21 +245,21 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		vicon_position.pitch = pos.pitch;
 		vicon_position.yaw = pos.yaw;
 
-		if (vicon_position_pub <= 0) {
-			vicon_position_pub = orb_advertise(ORB_ID(vehicle_vicon_position), &vicon_position);
+		if (_vicon_position_pub <= 0) {
+			_vicon_position_pub = orb_advertise(ORB_ID(vehicle_vicon_position), &vicon_position);
 
 		} else {
-			orb_publish(ORB_ID(vehicle_vicon_position), vicon_position_pub, &vicon_position);
+			orb_publish(ORB_ID(vehicle_vicon_position), _vicon_position_pub, &vicon_position);
 		}
-	}
 
-	/* Handle quadrotor motor setpoints */
-
-	if (msg->msgid == MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST) {
+	} else if (msg->msgid == MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST) {
+		/* offboard control */
 		mavlink_set_quad_swarm_roll_pitch_yaw_thrust_t quad_motors_setpoint;
 		mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_decode(msg, &quad_motors_setpoint);
 
 		if (mavlink_system.sysid < 4) {
+			struct offboard_control_setpoint_s offboard_control_sp;
+			memset(&offboard_control_sp, 0, sizeof(offboard_control_sp));
 
 			/* switch to a receiving link mode */
 			//TODO why do we need this?
@@ -297,29 +310,25 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 			offboard_control_sp.armed = ml_armed;
 			offboard_control_sp.mode = static_cast<enum OFFBOARD_CONTROL_MODE>(ml_mode);
 
-			offboard_control_sp.timestamp = hrt_absolute_time();
+			offboard_control_sp.timestamp = timestamp;
 
-			/* check if topic has to be advertised */
-			if (offboard_control_sp_pub <= 0) {
-				offboard_control_sp_pub = orb_advertise(ORB_ID(offboard_control_setpoint), &offboard_control_sp);
+			if (_offboard_control_sp_pub <= 0) {
+				_offboard_control_sp_pub = orb_advertise(ORB_ID(offboard_control_setpoint), &offboard_control_sp);
 
 			} else {
-				/* Publish */
-				orb_publish(ORB_ID(offboard_control_setpoint), offboard_control_sp_pub, &offboard_control_sp);
+				orb_publish(ORB_ID(offboard_control_setpoint), _offboard_control_sp_pub, &offboard_control_sp);
 			}
 		}
-	}
 
-	/* handle status updates of the radio */
-	if (msg->msgid == MAVLINK_MSG_ID_RADIO_STATUS) {
-
-		struct telemetry_status_s tstatus;
-
+	} else if (msg->msgid == MAVLINK_MSG_ID_RADIO_STATUS) {
+		/* telemetry status */
 		mavlink_radio_status_t rstatus;
 		mavlink_msg_radio_status_decode(msg, &rstatus);
 
-		/* publish telemetry status topic */
-		tstatus.timestamp = hrt_absolute_time();
+		struct telemetry_status_s tstatus;
+		memset(&tstatus, 0, sizeof(tstatus));
+
+		tstatus.timestamp = timestamp;
 		tstatus.type = TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO;
 		tstatus.rssi = rstatus.rssi;
 		tstatus.remote_rssi = rstatus.remrssi;
@@ -329,11 +338,59 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		tstatus.rxerrors = rstatus.rxerrors;
 		tstatus.fixed = rstatus.fixed;
 
-		if (telemetry_status_pub <= 0) {
-			telemetry_status_pub = orb_advertise(ORB_ID(telemetry_status), &tstatus);
+		if (_telemetry_status_pub <= 0) {
+			_telemetry_status_pub = orb_advertise(ORB_ID(telemetry_status), &tstatus);
 
 		} else {
-			orb_publish(ORB_ID(telemetry_status), telemetry_status_pub, &tstatus);
+			orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
+		}
+
+	} else if (msg->msgid == MAVLINK_MSG_ID_MANUAL_CONTROL) {
+		/* manual control */
+		mavlink_manual_control_t man;
+		mavlink_msg_manual_control_decode(msg, &man);
+
+		/* rc channels */
+		{
+			struct rc_channels_s rc;
+			memset(&rc, 0, sizeof(rc));
+
+			rc.timestamp = timestamp;
+			rc.chan_count = 4;
+
+			rc.chan[0].scaled = man.x / 1000.0f;
+			rc.chan[1].scaled = man.y / 1000.0f;
+			rc.chan[2].scaled = man.r / 1000.0f;
+			rc.chan[3].scaled = man.z / 1000.0f;
+
+			if (_rc_pub == 0) {
+				_rc_pub = orb_advertise(ORB_ID(rc_channels), &rc);
+
+			} else {
+				orb_publish(ORB_ID(rc_channels), _rc_pub, &rc);
+			}
+		}
+
+		/* manual control */
+		{
+			struct manual_control_setpoint_s manual;
+			memset(&manual, 0, sizeof(manual));
+
+			/* get a copy first, to prevent altering values that are not sent by the mavlink command */
+			orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &manual);
+
+			manual.timestamp = timestamp;
+			manual.roll = man.x / 1000.0f;
+			manual.pitch = man.y / 1000.0f;
+			manual.yaw = man.r / 1000.0f;
+			manual.throttle = man.z / 1000.0f;
+
+			if (_manual_pub == 0) {
+				_manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
+
+			} else {
+				orb_publish(ORB_ID(manual_control_setpoint), _manual_pub, &manual);
+			}
 		}
 	}
 
@@ -346,270 +403,301 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	 */
 
 	if (_mavlink->get_hil_enabled()) {
-
-		uint64_t timestamp = hrt_absolute_time();
-
 		if (msg->msgid == MAVLINK_MSG_ID_HIL_SENSOR) {
-
+			/* HIL sensors */
 			mavlink_hil_sensor_t imu;
 			mavlink_msg_hil_sensor_decode(msg, &imu);
 
-			/* sensors general */
-			hil_sensors.timestamp = hrt_absolute_time();
+			/* airspeed */
+			{
+				struct airspeed_s airspeed;
+				memset(&airspeed, 0, sizeof(airspeed));
 
-			/* hil gyro */
-			static const float mrad2rad = 1.0e-3f;
-			hil_sensors.gyro_raw[0] = imu.xgyro / mrad2rad;
-			hil_sensors.gyro_raw[1] = imu.ygyro / mrad2rad;
-			hil_sensors.gyro_raw[2] = imu.zgyro / mrad2rad;
-			hil_sensors.gyro_rad_s[0] = imu.xgyro;
-			hil_sensors.gyro_rad_s[1] = imu.ygyro;
-			hil_sensors.gyro_rad_s[2] = imu.zgyro;
-			hil_sensors.gyro_counter = hil_counter;
+				float ias = calc_indicated_airspeed(imu.diff_pressure * 1e2f);
+				// XXX need to fix this
+				float tas = ias;
+
+				airspeed.timestamp = timestamp;
+				airspeed.indicated_airspeed_m_s = ias;
+				airspeed.true_airspeed_m_s = tas;
+
+				if (_airspeed_pub < 0) {
+					_airspeed_pub = orb_advertise(ORB_ID(airspeed), &airspeed);
+
+				} else {
+					orb_publish(ORB_ID(airspeed), _airspeed_pub, &airspeed);
+				}
+			}
+
+			/* gyro */
+			{
+				struct gyro_report gyro;
+				memset(&gyro, 0, sizeof(gyro));
+
+				gyro.timestamp = timestamp;
+				gyro.x_raw = imu.xgyro * 1000.0f;
+				gyro.y_raw = imu.ygyro * 1000.0f;
+				gyro.z_raw = imu.zgyro * 1000.0f;
+				gyro.x = imu.xgyro;
+				gyro.y = imu.ygyro;
+				gyro.z = imu.zgyro;
+				gyro.temperature = imu.temperature;
+
+				if (_gyro_pub < 0) {
+					_gyro_pub = orb_advertise(ORB_ID(sensor_gyro), &gyro);
+
+				} else {
+					orb_publish(ORB_ID(sensor_gyro), _gyro_pub, &gyro);
+				}
+			}
 
 			/* accelerometer */
-			static const float mg2ms2 = 9.8f / 1000.0f;
-			hil_sensors.accelerometer_raw[0] = imu.xacc / mg2ms2;
-			hil_sensors.accelerometer_raw[1] = imu.yacc / mg2ms2;
-			hil_sensors.accelerometer_raw[2] = imu.zacc / mg2ms2;
-			hil_sensors.accelerometer_m_s2[0] = imu.xacc;
-			hil_sensors.accelerometer_m_s2[1] = imu.yacc;
-			hil_sensors.accelerometer_m_s2[2] = imu.zacc;
-			hil_sensors.accelerometer_mode = 0; // TODO what is this?
-			hil_sensors.accelerometer_range_m_s2 = 32.7f; // int16
-			hil_sensors.accelerometer_counter = hil_counter;
+			{
+				struct accel_report accel;
+				memset(&accel, 0, sizeof(accel));
 
-			/* adc */
-			hil_sensors.adc_voltage_v[0] = 0.0f;
-			hil_sensors.adc_voltage_v[1] = 0.0f;
-			hil_sensors.adc_voltage_v[2] = 0.0f;
+				accel.timestamp = timestamp;
+				accel.x_raw = imu.xacc / mg2ms2;
+				accel.y_raw = imu.yacc / mg2ms2;
+				accel.z_raw = imu.zacc / mg2ms2;
+				accel.x = imu.xacc;
+				accel.y = imu.yacc;
+				accel.z = imu.zacc;
+				accel.temperature = imu.temperature;
+
+				if (_accel_pub < 0) {
+					_accel_pub = orb_advertise(ORB_ID(sensor_accel), &accel);
+
+				} else {
+					orb_publish(ORB_ID(sensor_accel), _accel_pub, &accel);
+				}
+			}
 
 			/* magnetometer */
-			float mga2ga = 1.0e-3f;
-			hil_sensors.magnetometer_raw[0] = imu.xmag / mga2ga;
-			hil_sensors.magnetometer_raw[1] = imu.ymag / mga2ga;
-			hil_sensors.magnetometer_raw[2] = imu.zmag / mga2ga;
-			hil_sensors.magnetometer_ga[0] = imu.xmag;
-			hil_sensors.magnetometer_ga[1] = imu.ymag;
-			hil_sensors.magnetometer_ga[2] = imu.zmag;
-			hil_sensors.magnetometer_range_ga = 32.7f; // int16
-			hil_sensors.magnetometer_mode = 0; // TODO what is this
-			hil_sensors.magnetometer_cuttoff_freq_hz = 50.0f;
-			hil_sensors.magnetometer_counter = hil_counter;
+			{
+				struct mag_report mag;
+				memset(&mag, 0, sizeof(mag));
+
+				mag.timestamp = timestamp;
+				mag.x_raw = imu.xmag * 1000.0f;
+				mag.y_raw = imu.ymag * 1000.0f;
+				mag.z_raw = imu.zmag * 1000.0f;
+				mag.x = imu.xmag;
+				mag.y = imu.ymag;
+				mag.z = imu.zmag;
+
+				if (_mag_pub < 0) {
+					_mag_pub = orb_advertise(ORB_ID(sensor_mag), &mag);
+
+				} else {
+					orb_publish(ORB_ID(sensor_mag), _mag_pub, &mag);
+				}
+			}
 
 			/* baro */
-			hil_sensors.baro_pres_mbar = imu.abs_pressure;
-			hil_sensors.baro_alt_meter = imu.pressure_alt;
-			hil_sensors.baro_temp_celcius = imu.temperature;
-			hil_sensors.baro_counter = hil_counter;
+			{
+				struct baro_report baro;
+				memset(&baro, 0, sizeof(baro));
 
-			/* differential pressure */
-			hil_sensors.differential_pressure_pa = imu.diff_pressure * 1e2f; //from hPa to Pa
-			hil_sensors.differential_pressure_counter = hil_counter;
+				baro.timestamp = timestamp;
+				baro.pressure = imu.abs_pressure;
+				baro.altitude = imu.pressure_alt;
+				baro.temperature = imu.temperature;
 
-			/* airspeed from differential pressure, ambient pressure and temp */
-			struct airspeed_s airspeed;
+				if (_baro_pub < 0) {
+					_baro_pub = orb_advertise(ORB_ID(sensor_baro), &baro);
 
-			float ias = calc_indicated_airspeed(hil_sensors.differential_pressure_pa);
-			// XXX need to fix this
-			float tas = ias;
-
-			airspeed.timestamp = hrt_absolute_time();
-			airspeed.indicated_airspeed_m_s = ias;
-			airspeed.true_airspeed_m_s = tas;
-
-			if (pub_hil_airspeed < 0) {
-				pub_hil_airspeed = orb_advertise(ORB_ID(airspeed), &airspeed);
-
-			} else {
-				orb_publish(ORB_ID(airspeed), pub_hil_airspeed, &airspeed);
+				} else {
+					orb_publish(ORB_ID(sensor_baro), _baro_pub, &baro);
+				}
 			}
 
-			//warnx("SENSOR: IAS: %6.2f TAS: %6.2f", airspeed.indicated_airspeed_m_s, airspeed.true_airspeed_m_s);
+			/* sensor combined */
+			{
+				struct sensor_combined_s hil_sensors;
+				memset(&hil_sensors, 0, sizeof(hil_sensors));
 
-			/* individual sensor publications */
-			struct gyro_report gyro;
-			gyro.x_raw = imu.xgyro / mrad2rad;
-			gyro.y_raw = imu.ygyro / mrad2rad;
-			gyro.z_raw = imu.zgyro / mrad2rad;
-			gyro.x = imu.xgyro;
-			gyro.y = imu.ygyro;
-			gyro.z = imu.zgyro;
-			gyro.temperature = imu.temperature;
-			gyro.timestamp = hrt_absolute_time();
+				hil_sensors.timestamp = timestamp;
 
-			if (pub_hil_gyro < 0) {
-				pub_hil_gyro = orb_advertise(ORB_ID(sensor_gyro), &gyro);
+				hil_sensors.gyro_raw[0] = imu.xgyro * 1000.0f;
+				hil_sensors.gyro_raw[1] = imu.ygyro * 1000.0f;
+				hil_sensors.gyro_raw[2] = imu.zgyro * 1000.0f;
+				hil_sensors.gyro_rad_s[0] = imu.xgyro;
+				hil_sensors.gyro_rad_s[1] = imu.ygyro;
+				hil_sensors.gyro_rad_s[2] = imu.zgyro;
+				hil_sensors.gyro_counter = _hil_counter;
 
-			} else {
-				orb_publish(ORB_ID(sensor_gyro), pub_hil_gyro, &gyro);
+				hil_sensors.accelerometer_raw[0] = imu.xacc / mg2ms2;
+				hil_sensors.accelerometer_raw[1] = imu.yacc / mg2ms2;
+				hil_sensors.accelerometer_raw[2] = imu.zacc / mg2ms2;
+				hil_sensors.accelerometer_m_s2[0] = imu.xacc;
+				hil_sensors.accelerometer_m_s2[1] = imu.yacc;
+				hil_sensors.accelerometer_m_s2[2] = imu.zacc;
+				hil_sensors.accelerometer_mode = 0; // TODO what is this?
+				hil_sensors.accelerometer_range_m_s2 = 32.7f; // int16
+				hil_sensors.accelerometer_counter = _hil_counter;
+
+				hil_sensors.adc_voltage_v[0] = 0.0f;
+				hil_sensors.adc_voltage_v[1] = 0.0f;
+				hil_sensors.adc_voltage_v[2] = 0.0f;
+
+				hil_sensors.magnetometer_raw[0] = imu.xmag * 1000.0f;
+				hil_sensors.magnetometer_raw[1] = imu.ymag * 1000.0f;
+				hil_sensors.magnetometer_raw[2] = imu.zmag * 1000.0f;
+				hil_sensors.magnetometer_ga[0] = imu.xmag;
+				hil_sensors.magnetometer_ga[1] = imu.ymag;
+				hil_sensors.magnetometer_ga[2] = imu.zmag;
+				hil_sensors.magnetometer_range_ga = 32.7f; // int16
+				hil_sensors.magnetometer_mode = 0; // TODO what is this
+				hil_sensors.magnetometer_cuttoff_freq_hz = 50.0f;
+				hil_sensors.magnetometer_counter = _hil_counter;
+
+				hil_sensors.baro_pres_mbar = imu.abs_pressure;
+				hil_sensors.baro_alt_meter = imu.pressure_alt;
+				hil_sensors.baro_temp_celcius = imu.temperature;
+				hil_sensors.baro_counter = _hil_counter;
+
+				hil_sensors.differential_pressure_pa = imu.diff_pressure * 1e2f; //from hPa to Pa
+				hil_sensors.differential_pressure_counter = _hil_counter;
+
+				/* publish combined sensor topic */
+				if (_sensors_pub > 0) {
+					orb_publish(ORB_ID(sensor_combined), _sensors_pub, &hil_sensors);
+
+				} else {
+					_sensors_pub = orb_advertise(ORB_ID(sensor_combined), &hil_sensors);
+				}
 			}
 
-			struct accel_report accel;
+			/* battery status */
+			{
+				struct battery_status_s hil_battery_status;
+				memset(&hil_battery_status, 0, sizeof(hil_battery_status));
 
-			accel.x_raw = imu.xacc / mg2ms2;
+				hil_battery_status.timestamp = timestamp;
+				hil_battery_status.voltage_v = 11.1f;
+				hil_battery_status.current_a = 10.0f;
 
-			accel.y_raw = imu.yacc / mg2ms2;
+				if (_battery_pub > 0) {
+					orb_publish(ORB_ID(battery_status), _battery_pub, &hil_battery_status);
 
-			accel.z_raw = imu.zacc / mg2ms2;
-
-			accel.x = imu.xacc;
-
-			accel.y = imu.yacc;
-
-			accel.z = imu.zacc;
-
-			accel.temperature = imu.temperature;
-
-			accel.timestamp = hrt_absolute_time();
-
-			if (pub_hil_accel < 0) {
-				pub_hil_accel = orb_advertise(ORB_ID(sensor_accel), &accel);
-
-			} else {
-				orb_publish(ORB_ID(sensor_accel), pub_hil_accel, &accel);
+				} else {
+					_baro_pub = orb_advertise(ORB_ID(battery_status), &hil_battery_status);
+				}
 			}
 
-			struct mag_report mag;
+			/* increment counters */
+			_hil_counter++;
+			_hil_frames++;
 
-			mag.x_raw = imu.xmag / mga2ga;
-
-			mag.y_raw = imu.ymag / mga2ga;
-
-			mag.z_raw = imu.zmag / mga2ga;
-
-			mag.x = imu.xmag;
-
-			mag.y = imu.ymag;
-
-			mag.z = imu.zmag;
-
-			mag.timestamp = hrt_absolute_time();
-
-			if (pub_hil_mag < 0) {
-				pub_hil_mag = orb_advertise(ORB_ID(sensor_mag), &mag);
-
-			} else {
-				orb_publish(ORB_ID(sensor_mag), pub_hil_mag, &mag);
+			/* print HIL sensors rate */
+			if ((timestamp - _old_timestamp) > 10000000) {
+				printf("receiving HIL sensors at %d hz\n", _hil_frames / 10);
+				_old_timestamp = timestamp;
+				_hil_frames = 0;
 			}
 
-			struct baro_report baro;
-
-			baro.pressure = imu.abs_pressure;
-
-			baro.altitude = imu.pressure_alt;
-
-			baro.temperature = imu.temperature;
-
-			baro.timestamp = hrt_absolute_time();
-
-			if (pub_hil_baro < 0) {
-				pub_hil_baro = orb_advertise(ORB_ID(sensor_baro), &baro);
-
-			} else {
-				orb_publish(ORB_ID(sensor_baro), pub_hil_baro, &baro);
-			}
-
-			/* publish combined sensor topic */
-			if (pub_hil_sensors > 0) {
-				orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
-
-			} else {
-				pub_hil_sensors = orb_advertise(ORB_ID(sensor_combined), &hil_sensors);
-			}
-
-			/* fill in HIL battery status */
-			hil_battery_status.timestamp = hrt_absolute_time();
-			hil_battery_status.voltage_v = 11.1f;
-			hil_battery_status.current_a = 10.0f;
-
-			/* lazily publish the battery voltage */
-			if (pub_hil_battery > 0) {
-				orb_publish(ORB_ID(battery_status), pub_hil_battery, &hil_battery_status);
-
-			} else {
-				pub_hil_battery = orb_advertise(ORB_ID(battery_status), &hil_battery_status);
-			}
-
-			// increment counters
-			hil_counter++;
-			hil_frames++;
-
-			// output
-			if ((timestamp - old_timestamp) > 10000000) {
-				printf("receiving hil sensor at %d hz\n", hil_frames / 10);
-				old_timestamp = timestamp;
-				hil_frames = 0;
-			}
-		}
-
-		if (msg->msgid == MAVLINK_MSG_ID_HIL_GPS) {
-
+		} else if (msg->msgid == MAVLINK_MSG_ID_HIL_GPS) {
+			/* HIL GPS */
 			mavlink_hil_gps_t gps;
 			mavlink_msg_hil_gps_decode(msg, &gps);
 
-			/* gps */
-			hil_gps.timestamp_position = gps.time_usec;
+			struct vehicle_gps_position_s hil_gps;
+			memset(&hil_gps, 0, sizeof(hil_gps));
+
+			hil_gps.timestamp_time = timestamp;
 			hil_gps.time_gps_usec = gps.time_usec;
+
+			hil_gps.timestamp_position = timestamp;
 			hil_gps.lat = gps.lat;
 			hil_gps.lon = gps.lon;
 			hil_gps.alt = gps.alt;
 			hil_gps.eph_m = (float)gps.eph * 1e-2f; // from cm to m
 			hil_gps.epv_m = (float)gps.epv * 1e-2f; // from cm to m
-			hil_gps.timestamp_variance = gps.time_usec;
+
+			hil_gps.timestamp_variance = timestamp;
 			hil_gps.s_variance_m_s = 5.0f;
 			hil_gps.p_variance_m = hil_gps.eph_m * hil_gps.eph_m;
+
+			hil_gps.timestamp_velocity = timestamp;
 			hil_gps.vel_m_s = (float)gps.vel * 1e-2f; // from cm/s to m/s
-
-			/* gps.cog is in degrees 0..360 * 100, heading is -PI..+PI */
-			float heading_rad = gps.cog * M_DEG_TO_RAD_F * 1e-2f;
-
-			/* go back to -PI..PI */
-			if (heading_rad > M_PI_F) {
-				heading_rad -= 2.0f * M_PI_F;
-			}
-
-			hil_gps.timestamp_velocity = gps.time_usec;
 			hil_gps.vel_n_m_s = gps.vn * 1e-2f; // from cm to m
 			hil_gps.vel_e_m_s = gps.ve * 1e-2f; // from cm to m
 			hil_gps.vel_d_m_s = gps.vd * 1e-2f; // from cm to m
 			hil_gps.vel_ned_valid = true;
-			/* COG (course over ground) is spec'ed as -PI..+PI */
-			hil_gps.cog_rad = heading_rad;
+			hil_gps.cog_rad = _wrap_pi(gps.cog * M_DEG_TO_RAD_F * 1e-2f);
+
+			hil_gps.timestamp_satellites = timestamp;
 			hil_gps.fix_type = gps.fix_type;
 			hil_gps.satellites_visible = gps.satellites_visible;
 
-			/* publish GPS measurement data */
-			if (pub_hil_gps > 0) {
-				orb_publish(ORB_ID(vehicle_gps_position), pub_hil_gps, &hil_gps);
+			if (_gps_pub > 0) {
+				orb_publish(ORB_ID(vehicle_gps_position), _gps_pub, &hil_gps);
 
 			} else {
-				pub_hil_gps = orb_advertise(ORB_ID(vehicle_gps_position), &hil_gps);
+				_gps_pub = orb_advertise(ORB_ID(vehicle_gps_position), &hil_gps);
 			}
 
-		}
-
-		if (msg->msgid == MAVLINK_MSG_ID_HIL_STATE_QUATERNION) {
-
+		} else if (msg->msgid == MAVLINK_MSG_ID_HIL_STATE_QUATERNION) {
+			/* HIL state quaternion */
 			mavlink_hil_state_quaternion_t hil_state;
 			mavlink_msg_hil_state_quaternion_decode(msg, &hil_state);
 
-			struct airspeed_s airspeed;
-			airspeed.timestamp = hrt_absolute_time();
-			airspeed.indicated_airspeed_m_s = hil_state.ind_airspeed * 1e-2f;
-			airspeed.true_airspeed_m_s = hil_state.true_airspeed * 1e-2f;
+			/* airspeed */
+			{
+				struct airspeed_s airspeed;
+				memset(&airspeed, 0, sizeof(airspeed));
 
-			if (pub_hil_airspeed < 0) {
-				pub_hil_airspeed = orb_advertise(ORB_ID(airspeed), &airspeed);
+				airspeed.timestamp = timestamp;
+				airspeed.indicated_airspeed_m_s = hil_state.ind_airspeed * 1e-2f;
+				airspeed.true_airspeed_m_s = hil_state.true_airspeed * 1e-2f;
 
-			} else {
-				orb_publish(ORB_ID(airspeed), pub_hil_airspeed, &airspeed);
+				if (_airspeed_pub < 0) {
+					_airspeed_pub = orb_advertise(ORB_ID(airspeed), &airspeed);
+
+				} else {
+					orb_publish(ORB_ID(airspeed), _airspeed_pub, &airspeed);
+				}
 			}
 
-			// publish global position
-			if (pub_hil_global_pos > 0) {
-				orb_publish(ORB_ID(vehicle_global_position), pub_hil_global_pos, &hil_global_pos);
-				// global position packet
+			/* attitude */
+			struct vehicle_attitude_s hil_attitude;
+			{
+				memset(&hil_attitude, 0, sizeof(hil_attitude));
+				math::Quaternion q(hil_state.attitude_quaternion);
+				math::Matrix<3, 3> C_nb = q.to_dcm();
+				math::Vector<3> euler = C_nb.to_euler();
+
+				hil_attitude.timestamp = timestamp;
+				memcpy(hil_attitude.R, C_nb.data, sizeof(hil_attitude.R));
+				hil_attitude.R_valid = true;
+
+				hil_attitude.q[0] = q(0);
+				hil_attitude.q[1] = q(1);
+				hil_attitude.q[2] = q(2);
+				hil_attitude.q[3] = q(3);
+				hil_attitude.q_valid = true;
+
+				hil_attitude.roll = euler(0);
+				hil_attitude.pitch = euler(1);
+				hil_attitude.yaw = euler(2);
+				hil_attitude.rollspeed = hil_state.rollspeed;
+				hil_attitude.pitchspeed = hil_state.pitchspeed;
+				hil_attitude.yawspeed = hil_state.yawspeed;
+
+				if (_attitude_pub > 0) {
+					orb_publish(ORB_ID(vehicle_attitude), _attitude_pub, &hil_attitude);
+
+				} else {
+					_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &hil_attitude);
+				}
+			}
+
+			/* global position */
+			{
+				struct vehicle_global_position_s hil_global_pos;
+				memset(&hil_global_pos, 0, sizeof(hil_global_pos));
+
 				hil_global_pos.timestamp = timestamp;
 				hil_global_pos.global_valid = true;
 				hil_global_pos.lat = hil_state.lat;
@@ -618,19 +706,31 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 				hil_global_pos.vel_n = hil_state.vx / 100.0f;
 				hil_global_pos.vel_e = hil_state.vy / 100.0f;
 				hil_global_pos.vel_d = hil_state.vz / 100.0f;
+				hil_global_pos.yaw = hil_attitude.yaw;
 
-			} else {
-				pub_hil_global_pos = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
+				if (_global_pos_pub > 0) {
+					orb_publish(ORB_ID(vehicle_global_position), _global_pos_pub, &hil_global_pos);
+
+				} else {
+					_global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
+				}
 			}
 
-			// publish local position
-			if (pub_hil_local_pos > 0) {
+			/* local position */
+			{
+				if (!_hil_local_proj_inited) {
+					_hil_local_proj_inited = true;
+					_hil_local_alt0 = hil_state.alt / 1000.0f;
+					map_projection_init(hil_state.lat, hil_state.lon);
+					hil_local_pos.ref_timestamp = timestamp;
+					hil_local_pos.ref_lat = hil_state.lat;
+					hil_local_pos.ref_lon = hil_state.lon;
+					hil_local_pos.ref_alt = _hil_local_alt0;
+				}
+
 				float x;
 				float y;
-				bool landed = (float)(hil_state.alt) / 1000.0f < (alt0 + 0.1f); // XXX improve?
-				double lat = hil_state.lat * 1e-7;
-				double lon = hil_state.lon * 1e-7;
-				map_projection_project(lat, lon, &x, &y);
+				map_projection_project(hil_state.lat * 1e-7, hil_state.lon * 1e-7, &x, &y);
 				hil_local_pos.timestamp = timestamp;
 				hil_local_pos.xy_valid = true;
 				hil_local_pos.z_valid = true;
@@ -638,148 +738,62 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 				hil_local_pos.v_z_valid = true;
 				hil_local_pos.x = x;
 				hil_local_pos.y = y;
-				hil_local_pos.z = alt0 - hil_state.alt / 1000.0f;
+				hil_local_pos.z = _hil_local_alt0 - hil_state.alt / 1000.0f;
 				hil_local_pos.vx = hil_state.vx / 100.0f;
 				hil_local_pos.vy = hil_state.vy / 100.0f;
 				hil_local_pos.vz = hil_state.vz / 100.0f;
 				hil_local_pos.yaw = hil_attitude.yaw;
 				hil_local_pos.xy_global = true;
 				hil_local_pos.z_global = true;
-				hil_local_pos.ref_timestamp = timestamp;
-				hil_local_pos.ref_lat = hil_state.lat;
-				hil_local_pos.ref_lon = hil_state.lon;
-				hil_local_pos.ref_alt = alt0;
+
+				bool landed = (float)(hil_state.alt) / 1000.0f < (_hil_local_alt0 + 0.1f); // XXX improve?
 				hil_local_pos.landed = landed;
-				orb_publish(ORB_ID(vehicle_local_position), pub_hil_local_pos, &hil_local_pos);
 
-			} else {
-				pub_hil_local_pos = orb_advertise(ORB_ID(vehicle_local_position), &hil_local_pos);
-				lat0 = hil_state.lat;
-				lon0 = hil_state.lon;
-				alt0 = hil_state.alt / 1000.0f;
-				map_projection_init(hil_state.lat, hil_state.lon);
-			}
+				if (_local_pos_pub > 0) {
+					orb_publish(ORB_ID(vehicle_local_position), _local_pos_pub, &hil_local_pos);
 
-			/* Calculate Rotation Matrix */
-			math::Quaternion q(hil_state.attitude_quaternion);
-			math::Matrix<3, 3> C_nb = q.to_dcm();
-			math::Vector<3> euler = C_nb.to_euler();
-
-			/* set rotation matrix */
-			for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++) {
-					hil_attitude.R[i][j] = C_nb(i, j);
+				} else {
+					_local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &hil_local_pos);
 				}
-
-			hil_attitude.R_valid = true;
-
-			/* set quaternion */
-			hil_attitude.q[0] = q(0);
-			hil_attitude.q[1] = q(1);
-			hil_attitude.q[2] = q(2);
-			hil_attitude.q[3] = q(3);
-			hil_attitude.q_valid = true;
-
-			hil_attitude.roll = euler(0);
-			hil_attitude.pitch = euler(1);
-			hil_attitude.yaw = euler(2);
-			hil_attitude.rollspeed = hil_state.rollspeed;
-			hil_attitude.pitchspeed = hil_state.pitchspeed;
-			hil_attitude.yawspeed = hil_state.yawspeed;
-
-			/* set timestamp and notify processes (broadcast) */
-			hil_attitude.timestamp = hrt_absolute_time();
-
-			if (pub_hil_attitude > 0) {
-				orb_publish(ORB_ID(vehicle_attitude), pub_hil_attitude, &hil_attitude);
-
-			} else {
-				pub_hil_attitude = orb_advertise(ORB_ID(vehicle_attitude), &hil_attitude);
 			}
 
-			struct accel_report accel;
+			/* accelerometer */
+			{
+				struct accel_report accel;
+				memset(&accel, 0, sizeof(accel));
 
-			accel.x_raw = hil_state.xacc / 9.81f * 1e3f;
+				accel.timestamp = timestamp;
+				accel.x_raw = hil_state.xacc / 9.81f * 1e3f;
+				accel.y_raw = hil_state.yacc / 9.81f * 1e3f;
+				accel.z_raw = hil_state.zacc / 9.81f * 1e3f;
+				accel.x = hil_state.xacc;
+				accel.y = hil_state.yacc;
+				accel.z = hil_state.zacc;
+				accel.temperature = 25.0f;
 
-			accel.y_raw = hil_state.yacc / 9.81f * 1e3f;
+				if (_accel_pub < 0) {
+					_accel_pub = orb_advertise(ORB_ID(sensor_accel), &accel);
 
-			accel.z_raw = hil_state.zacc / 9.81f * 1e3f;
-
-			accel.x = hil_state.xacc;
-
-			accel.y = hil_state.yacc;
-
-			accel.z = hil_state.zacc;
-
-			accel.temperature = 25.0f;
-
-			accel.timestamp = hrt_absolute_time();
-
-			if (pub_hil_accel < 0) {
-				pub_hil_accel = orb_advertise(ORB_ID(sensor_accel), &accel);
-
-			} else {
-				orb_publish(ORB_ID(sensor_accel), pub_hil_accel, &accel);
+				} else {
+					orb_publish(ORB_ID(sensor_accel), _accel_pub, &accel);
+				}
 			}
 
-			/* fill in HIL battery status */
-			hil_battery_status.timestamp = hrt_absolute_time();
-			hil_battery_status.voltage_v = 11.1f;
-			hil_battery_status.current_a = 10.0f;
+			/* battery status */
+			{
+				struct battery_status_s	hil_battery_status;
+				memset(&hil_battery_status, 0, sizeof(hil_battery_status));
 
-			/* lazily publish the battery voltage */
-			if (pub_hil_battery > 0) {
-				orb_publish(ORB_ID(battery_status), pub_hil_battery, &hil_battery_status);
+				hil_battery_status.timestamp = timestamp;
+				hil_battery_status.voltage_v = 11.1f;
+				hil_battery_status.current_a = 10.0f;
 
-			} else {
-				pub_hil_battery = orb_advertise(ORB_ID(battery_status), &hil_battery_status);
-			}
-		}
+				if (_battery_pub > 0) {
+					orb_publish(ORB_ID(battery_status), _battery_pub, &hil_battery_status);
 
-		if (msg->msgid == MAVLINK_MSG_ID_MANUAL_CONTROL) {
-			mavlink_manual_control_t man;
-			mavlink_msg_manual_control_decode(msg, &man);
-
-			struct rc_channels_s rc_hil;
-			memset(&rc_hil, 0, sizeof(rc_hil));
-			static orb_advert_t rc_pub = 0;
-
-			rc_hil.timestamp = hrt_absolute_time();
-			rc_hil.chan_count = 4;
-
-			rc_hil.chan[0].scaled = man.x / 1000.0f;
-			rc_hil.chan[1].scaled = man.y / 1000.0f;
-			rc_hil.chan[2].scaled = man.r / 1000.0f;
-			rc_hil.chan[3].scaled = man.z / 1000.0f;
-
-			struct manual_control_setpoint_s mc;
-			static orb_advert_t mc_pub = 0;
-
-			int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-
-			/* get a copy first, to prevent altering values that are not sent by the mavlink command */
-			orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &mc);
-
-			mc.timestamp = rc_hil.timestamp;
-			mc.roll = man.x / 1000.0f;
-			mc.pitch = man.y / 1000.0f;
-			mc.yaw = man.r / 1000.0f;
-			mc.throttle = man.z / 1000.0f;
-
-			/* fake RC channels with manual control input from simulator */
-
-
-			if (rc_pub == 0) {
-				rc_pub = orb_advertise(ORB_ID(rc_channels), &rc_hil);
-
-			} else {
-				orb_publish(ORB_ID(rc_channels), rc_pub, &rc_hil);
-			}
-
-			if (mc_pub == 0) {
-				mc_pub = orb_advertise(ORB_ID(manual_control_setpoint), &mc);
-
-			} else {
-				orb_publish(ORB_ID(manual_control_setpoint), mc_pub, &mc);
+				} else {
+					_battery_pub = orb_advertise(ORB_ID(battery_status), &hil_battery_status);
+				}
 			}
 		}
 	}
@@ -799,10 +813,12 @@ MavlinkReceiver::receive_thread(void *arg)
 
 	mavlink_message_t msg;
 
-	/* Set thread name */
+	/* set thread name */
 	char thread_name[18];
 	sprintf(thread_name, "mavlink_uart_rcv_%d", _mavlink->get_channel());
 	prctl(PR_SET_NAME, thread_name, getpid());
+
+	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	struct pollfd fds[1];
 	fds[0].fd = uart_fd;
