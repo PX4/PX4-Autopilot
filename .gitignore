@@ -12,3 +12,6 @@ lib*.so.*
 .project
 .cproject
 .pydevproject
+
+# libuavcan DSDL compiler default output directory
+*dsdlc_output

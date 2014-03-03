@@ -92,13 +92,14 @@ class CompoundType(Type):
     KIND_SERVICE = 0
     KIND_MESSAGE = 1
 
-    def __init__(self, full_name, kind, dsdl_signature, dsdl_path, default_dtid, filename):
+    def __init__(self, full_name, kind, dsdl_signature, dsdl_path, default_dtid, filename, source_text):
         super().__init__(full_name, Type.CATEGORY_COMPOUND)
         self.dsdl_signature = dsdl_signature
         self.dsdl_path = dsdl_path
         self.default_dtid = default_dtid
         self.kind = kind
         self.filename = filename
+        self.source_text = source_text
         max_bitlen_sum = lambda fields: sum([x.type.get_max_bitlen() for x in fields])
         if kind == CompoundType.KIND_SERVICE:
             self.request_fields = []
@@ -362,10 +363,10 @@ class Parser:
         try:
             filename = os.path.abspath(filename)
             with open(filename) as f:
-                text = f.read()
+                source_text = f.read()
 
             full_typename, default_dtid = self._full_typename_and_dtid_from_filename(filename)
-            numbered_lines = list(self._tokenize(text))
+            numbered_lines = list(self._tokenize(source_text))
             all_attributes_names = set()
             fields, constants, resp_fields, resp_constants = [], [], [], []
             response_part = False
@@ -396,7 +397,7 @@ class Parser:
                 dsdl_signature = self._compute_dsdl_signature(full_typename, fields, constants,
                                                               resp_fields, resp_constants)
                 typedef = CompoundType(full_typename, CompoundType.KIND_SERVICE, dsdl_signature, filename,
-                                       default_dtid, filename)
+                                       default_dtid, filename, source_text)
                 typedef.request_fields = fields
                 typedef.request_constants = constants
                 typedef.response_fields = resp_fields
@@ -406,7 +407,7 @@ class Parser:
             else:
                 dsdl_signature = self._compute_dsdl_signature(full_typename, fields, constants)
                 typedef = CompoundType(full_typename, CompoundType.KIND_MESSAGE, dsdl_signature, filename,
-                                       default_dtid, filename)
+                                       default_dtid, filename, source_text)
                 typedef.fields = fields
                 typedef.constants = constants
                 max_bitlen = typedef.get_max_bitlen()
