@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <algorithm>
 #include <string>
+#include <uavcan/internal/impl_constants.hpp>
 
 namespace uavcan
 {
