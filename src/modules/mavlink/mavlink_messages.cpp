@@ -632,14 +632,14 @@ protected:
 		home_sub->update(t);
 
 		mavlink_msg_global_position_time_send(_channel,
-						     pos->time_gps_usec,
-						     pos->lat * 1e7,
-						     pos->lon * 1e7,
-						     pos->alt,
-						     pos->vel_n,
-						     pos->vel_e,
-						     pos->vel_d,
-						     _wrap_2pi(pos->yaw) * M_RAD_TO_DEG_F * 100.0f);
+						      pos->time_gps_usec,
+						      pos->lat * 1e7,
+						      pos->lon * 1e7,
+						      pos->alt,
+						      pos->vel_n,
+						      pos->vel_e,
+						      pos->vel_d,
+						      _wrap_2pi(pos->yaw) * M_RAD_TO_DEG_F * 100.0f);
 	}
 };
 

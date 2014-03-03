@@ -763,7 +763,7 @@ int Mavlink::map_mavlink_mission_item_to_mission_item(const mavlink_mission_item
 		break;
 
 	case MAV_CMD_NAV_ROI:
-		mission_item->roi_mode = (enum ROI_MODE) (mavlink_mission_item->param1);
+		mission_item->roi_mode = (enum ROI_MODE)(mavlink_mission_item->param1);
 		mission_item->path_mode = (enum NAV_PATH_MODE)(mavlink_mission_item->param4);
 		break;
 
