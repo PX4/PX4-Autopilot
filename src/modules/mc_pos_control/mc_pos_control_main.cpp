@@ -791,7 +791,6 @@ MulticopterPositionControl::task_main()
 							}
 
 							thrust_int(2) = -i;
-							mavlink_log_info(_mavlink_fd, "[mpc] reset hovering thrust: %.2f", (double)i);
 						}
 
 					} else {
@@ -803,7 +802,6 @@ MulticopterPositionControl::task_main()
 							reset_int_xy = false;
 							thrust_int(0) = 0.0f;
 							thrust_int(1) = 0.0f;
-							mavlink_log_info(_mavlink_fd, "[mpc] reset xy vel integral");
 						}
 
 					} else {

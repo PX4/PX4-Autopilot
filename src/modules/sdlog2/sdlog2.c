@@ -1,8 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
- *           Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -451,6 +449,7 @@ static void *logwriter_thread(void *arg)
 				n = available;
 			}
 
+			lseek(log_fd, 0, SEEK_CUR);
 			n = write(log_fd, read_ptr, n);
 
 			should_wait = (n == available) && !is_part;
