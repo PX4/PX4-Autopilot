@@ -1112,6 +1112,8 @@ Navigator::set_mission_item()
 	ret = _mission.get_current_mission_item(&_mission_item, &onboard, &index);
 
 	if (ret == OK) {
+		_mission.report_current_offboard_mission_item();
+
 		_mission_item_valid = true;
 		position_setpoint_from_mission_item(&_pos_sp_triplet.current, &_mission_item);
 
