@@ -780,6 +780,7 @@ protected:
 
 		/* set number of valid outputs depending on vehicle type */
 		unsigned n;
+
 		switch (mavlink_system.type) {
 		case MAV_TYPE_QUADROTOR:
 			n = 4;
@@ -807,6 +808,7 @@ protected:
 					/* send 0 when disarmed */
 					out[i] = 0.0f;
 				}
+
 			} else {
 				out[i] = -1.0f;
 			}
