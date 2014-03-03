@@ -19,6 +19,17 @@ namespace uavcan
 #endif
 
 /**
+ * Struct layout control.
+ * Define UAVCAN_PACK_STRUCTS = 1 to reduce memory usage.
+ */
+#ifndef UAVCAN_PACKED_BEGIN
+# define UAVCAN_PACKED_BEGIN _Pragma("pack(push, 1)")
+#endif
+#ifndef UAVCAN_PACKED_END
+# define UAVCAN_PACKED_END _Pragma("pack(pop)")
+#endif
+
+/**
  * Should be OK for any target arch up to AMD64 and any compiler.
  * The library leverages compile-time checks to ensure that all types that are subject to dynamic allocation
  * fit this size; otherwise compilation fails.

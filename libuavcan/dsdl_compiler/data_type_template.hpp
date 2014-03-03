@@ -46,6 +46,10 @@ namespace ${nsc}
 {
 % endfor
 
+#if UAVCAN_PACK_STRUCTS
+UAVCAN_PACKED_BEGIN
+#endif
+
 struct ${t.short_name}
 {
 <%def name="generate_primary_body(type_name, max_bitlen, fields, constants)" buffered="True">
@@ -174,6 +178,10 @@ ${'::uavcan::TailArrayOptDisabled' if (idx + 1) < len(fields) else 'tao_mode'});
     }
 };
 
+#if UAVCAN_PACK_STRUCTS
+UAVCAN_PACKED_END
+#endif
+
 // TODO Stream operator
 
 % if t.has_default_dtid:
@@ -181,6 +189,8 @@ namespace
 {
 ::uavcan::DefaultDataTypeRegistrator<${t.short_name}> _uavcan_gdtr_registrator_${t.short_name};
 }
+% else:
+// No default registration
 % endif
 
 % for nsc in t.cpp_namespace_components:
