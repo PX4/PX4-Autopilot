@@ -322,6 +322,11 @@ private:
 	bool		onboard_mission_available(unsigned relative_index);
 
 	/**
+	 * Reset all "reached" flags.
+	 */
+	void		reset_reached();
+
+	/**
 	 * Check if current mission item has been reached.
 	 */
 	bool		check_mission_item_reached();
@@ -853,9 +858,6 @@ Navigator::task_main()
 		if (myState != prevState) {
 			mavlink_log_info(_mavlink_fd, "#audio: navigation state: %s", nav_states_str[myState]);
 			prevState = myState;
-
-			/* reset time counter on state changes */
-			_time_first_inside_orbit = 0;
 		}
 
 		perf_end(_loop_perf);
@@ -1007,6 +1009,8 @@ StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 void
 Navigator::start_none()
 {
+	reset_reached();
+
 	_pos_sp_triplet.previous.valid = false;
 	_pos_sp_triplet.current.valid = false;
 	_pos_sp_triplet.next.valid = false;
@@ -1022,6 +1026,8 @@ Navigator::start_none()
 void
 Navigator::start_ready()
 {
+	reset_reached();
+
 	_pos_sp_triplet.previous.valid = false;
 	_pos_sp_triplet.current.valid = true;
 	_pos_sp_triplet.next.valid = false;
@@ -1044,6 +1050,8 @@ Navigator::start_ready()
 void
 Navigator::start_loiter()
 {
+	reset_reached();
+
 	_do_takeoff = false;
 
 	/* set loiter position if needed */
@@ -1089,6 +1097,8 @@ Navigator::start_mission()
 void
 Navigator::set_mission_item()
 {
+	reset_reached();
+
 	/* copy current mission to previous item */
 	memcpy(&_pos_sp_triplet.previous, &_pos_sp_triplet.current, sizeof(position_setpoint_s));
 
@@ -1102,9 +1112,6 @@ Navigator::set_mission_item()
 	ret = _mission.get_current_mission_item(&_mission_item, &onboard, &index);
 
 	if (ret == OK) {
-		/* reset time counter for new item */
-		_time_first_inside_orbit = 0;
-
 		_mission_item_valid = true;
 		position_setpoint_from_mission_item(&_pos_sp_triplet.current, &_mission_item);
 
@@ -1222,6 +1229,8 @@ Navigator::start_rtl()
 void
 Navigator::start_land()
 {
+	reset_reached();
+
 	/* this state can be requested by commander even if no global position available,
 	 * in his case controller must perform landing without position control */
 	_do_takeoff = false;
@@ -1253,6 +1262,8 @@ Navigator::start_land()
 void
 Navigator::start_land_home()
 {
+	reset_reached();
+
 	/* land to home position, should be called when hovering above home, from RTL state */
 	_do_takeoff = false;
 	_reset_loiter_pos = true;
@@ -1283,8 +1294,7 @@ Navigator::start_land_home()
 void
 Navigator::set_rtl_item()
 {
-	/*reset time counter for new RTL item */
-	_time_first_inside_orbit = 0;
+	reset_reached();
 
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB: {
@@ -1328,7 +1338,14 @@ Navigator::set_rtl_item()
 			_mission_item.lat = _home_pos.lat;
 			_mission_item.lon = _home_pos.lon;
 			// don't change altitude
-			_mission_item.yaw = NAN;	// TODO set heading to home
+			if (_pos_sp_triplet.previous.valid) {
+				/* if previous setpoint is valid then use it to calculate heading to home */
+				_mission_item.yaw = get_bearing_to_next_waypoint(_pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon, _mission_item.lat, _mission_item.lon);
+
+			} else {
+				/* else use current position */
+				_mission_item.yaw = get_bearing_to_next_waypoint(_global_pos.lat, _global_pos.lon, _mission_item.lat, _mission_item.lon);
+			}
 			_mission_item.loiter_radius = _parameters.loiter_radius;
 			_mission_item.loiter_direction = 1;
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
@@ -1417,16 +1434,27 @@ Navigator::position_setpoint_from_mission_item(position_setpoint_s *sp, mission_
 		sp->lon = _home_pos.lon;
 		sp->alt = _home_pos.alt + _parameters.rtl_alt;
 
+		if (_pos_sp_triplet.previous.valid) {
+			/* if previous setpoint is valid then use it to calculate heading to home */
+			sp->yaw = get_bearing_to_next_waypoint(_pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon, sp->lat, sp->lon);
+
+		} else {
+			/* else use current position */
+			sp->yaw = get_bearing_to_next_waypoint(_global_pos.lat, _global_pos.lon, sp->lat, sp->lon);
+		}
+		sp->loiter_radius = _parameters.loiter_radius;
+		sp->loiter_direction = 1;
+		sp->pitch_min = 0.0f;
+
 	} else {
 		sp->lat = item->lat;
 		sp->lon = item->lon;
 		sp->alt = item->altitude_is_relative ? item->altitude + _home_pos.alt : item->altitude;
+		sp->yaw = item->yaw;
+		sp->loiter_radius = item->loiter_radius;
+		sp->loiter_direction = item->loiter_direction;
+		sp->pitch_min = item->pitch_min;
 	}
-
-	sp->yaw = item->yaw;
-	sp->loiter_radius = item->loiter_radius;
-	sp->loiter_direction = item->loiter_direction;
-	sp->pitch_min = item->pitch_min;
 
 	if (item->nav_cmd == NAV_CMD_TAKEOFF) {
 		sp->type = SETPOINT_TYPE_TAKEOFF;
@@ -1504,7 +1532,7 @@ Navigator::check_mission_item_reached()
 		}
 	}
 
-	if (!_waypoint_yaw_reached) {
+	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 		if (_vstatus.is_rotary_wing && !_do_takeoff && isfinite(_mission_item.yaw)) {
 			/* check yaw if defined only for rotary wing except takeoff */
 			float yaw_err = _wrap_pi(_mission_item.yaw - _global_pos.yaw);
@@ -1531,14 +1559,21 @@ Navigator::check_mission_item_reached()
 		/* check if the MAV was long enough inside the waypoint orbit */
 		if ((now - _time_first_inside_orbit >= (uint64_t)_mission_item.time_inside * 1e6)
 		    || _mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
-			_time_first_inside_orbit = 0;
-			_waypoint_yaw_reached = false;
-			_waypoint_position_reached = false;
+			reset_reached();
 			return true;
 		}
 	}
 
 	return false;
+
+}
+
+void
+Navigator::reset_reached()
+{
+	_time_first_inside_orbit = 0;
+	_waypoint_position_reached = false;
+	_waypoint_yaw_reached = false;
 
 }
 
