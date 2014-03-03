@@ -5,6 +5,7 @@
 #
 
 import os, re, logging, math
+from io import StringIO
 from .signature import compute_signature
 from .common import DsdlException, pretty_filename
 from .type_limits import get_unsigned_integer_range, get_signed_integer_range, get_float_range
@@ -92,13 +93,11 @@ class CompoundType(Type):
     KIND_SERVICE = 0
     KIND_MESSAGE = 1
 
-    def __init__(self, full_name, kind, dsdl_signature, dsdl_path, default_dtid, filename, source_text):
+    def __init__(self, full_name, kind, source_file, default_dtid, source_text):
         super().__init__(full_name, Type.CATEGORY_COMPOUND)
-        self.dsdl_signature = dsdl_signature
-        self.dsdl_path = dsdl_path
+        self.source_file = source_file
         self.default_dtid = default_dtid
         self.kind = kind
-        self.filename = filename
         self.source_text = source_text
         max_bitlen_sum = lambda fields: sum([x.type.get_max_bitlen() for x in fields])
         if kind == CompoundType.KIND_SERVICE:
@@ -115,18 +114,29 @@ class CompoundType(Type):
         else:
             error('Compound type of unknown kind [%s]', kind)
 
+    def get_dsdl_signature_source_definition(self):
+        txt = StringIO()
+        txt.write(self.full_name + '\n')
+        adjoin = lambda attrs: txt.write('\n'.join(x.get_normalized_definition() for x in attrs) + '\n')
+        const_sort_key = lambda x: x.get_normalized_definition()
+        if self.kind == CompoundType.KIND_SERVICE:
+            adjoin(self.request_fields)
+            adjoin(sorted(self.request_constants, key=const_sort_key))
+            txt.write('\n---\n')
+            adjoin(self.response_fields)
+            adjoin(sorted(self.response_constants, key=const_sort_key))
+        elif self.kind == CompoundType.KIND_MESSAGE:
+            adjoin(self.fields)
+            adjoin(sorted(self.constants, key=const_sort_key))
+        else:
+            error('Compound type of unknown kind [%s]', self.kind)
+        return txt.getvalue().strip().replace('\n\n\n', '\n').replace('\n\n', '\n')
+
+    def get_dsdl_signature(self):
+        return compute_signature(self.get_dsdl_signature_source_definition())
+
     def get_normalized_definition(self):
         return self.full_name
-
-    def get_normalized_attributes_definitions(self):
-        def normdef(attrs):
-            return '\n'.join([x.get_normalized_definition() for x in attrs])
-        if self.kind == self.KIND_MESSAGE:
-            return ('\n'.join([normdef(self.fields), normdef(self.constants)])).strip('\n')
-        elif self.kind == self.KIND_SERVICE:
-            rq = '\n'.join([normdef(self.request_fields), normdef(self.request_constants)])
-            rs = '\n'.join([normdef(self.response_fields), normdef(self.response_constants)])
-            return (rq + '\n---\n' + rs).strip('\n').replace('\n\n', '\n')
 
 
 class Attribute:
@@ -192,27 +202,6 @@ class Parser:
         full_name = self._namespace_from_filename(filename) + '.' + name
         validate_compound_type_full_name(full_name)
         return full_name, default_dtid
-
-    def _compute_dsdl_signature(self, full_typename, fields, constants, response_fields=None, response_constants=None):
-        text = full_typename + '\n'
-        def adjoin(attrs):
-            nonlocal text
-            text += '\n'.join([x.get_normalized_definition() for x in attrs])
-
-        const_sort_key = lambda x: x.get_normalized_definition()
-        adjoin(fields)
-        adjoin(sorted(constants, key=const_sort_key))
-
-        if response_fields is not None or response_constants is not None:
-            text += '\n---\n'
-            adjoin(response_fields)
-            adjoin(sorted(response_constants, key=const_sort_key))
-
-        text = text.strip().replace('\n\n', '\n')
-        self.log.debug('DSDL signature of [%s] will be computed from:', full_typename)
-        for ln in text.splitlines():
-            self.log.debug('    %s', ln)
-        return compute_signature(text)
 
     def _locate_compound_type_definition(self, referencing_filename, typename):
         def locate_namespace_directory(namespace):
@@ -394,31 +383,26 @@ class Parser:
                     raise DsdlException('Internal error: %s' % str(ex), line=num) from ex
 
             if response_part:
-                dsdl_signature = self._compute_dsdl_signature(full_typename, fields, constants,
-                                                              resp_fields, resp_constants)
-                typedef = CompoundType(full_typename, CompoundType.KIND_SERVICE, dsdl_signature, filename,
-                                       default_dtid, filename, source_text)
-                typedef.request_fields = fields
-                typedef.request_constants = constants
-                typedef.response_fields = resp_fields
-                typedef.response_constants = resp_constants
-                max_bitlen = typedef.get_max_bitlen_request(), typedef.get_max_bitlen_response()
+                t = CompoundType(full_typename, CompoundType.KIND_SERVICE, filename, default_dtid, source_text)
+                t.request_fields = fields
+                t.request_constants = constants
+                t.response_fields = resp_fields
+                t.response_constants = resp_constants
+                max_bitlen = t.get_max_bitlen_request(), t.get_max_bitlen_response()
                 max_bytelen = tuple(map(bitlen_to_bytelen, max_bitlen))
             else:
-                dsdl_signature = self._compute_dsdl_signature(full_typename, fields, constants)
-                typedef = CompoundType(full_typename, CompoundType.KIND_MESSAGE, dsdl_signature, filename,
-                                       default_dtid, filename, source_text)
-                typedef.fields = fields
-                typedef.constants = constants
-                max_bitlen = typedef.get_max_bitlen()
+                t = CompoundType(full_typename, CompoundType.KIND_MESSAGE, filename, default_dtid, source_text)
+                t.fields = fields
+                t.constants = constants
+                max_bitlen = t.get_max_bitlen()
                 max_bytelen = bitlen_to_bytelen(max_bitlen)
 
-            validate_data_struct_len(typedef)
-            self.log.info('Type [%s], default DTID: %s, signature: %08x, maxbits: %s, maxbytes: %s, interpretation:',
-                          full_typename, default_dtid, dsdl_signature, max_bitlen, max_bytelen)
-            for ln in typedef.get_normalized_attributes_definitions().splitlines():
+            validate_data_struct_len(t)
+            self.log.info('Type [%s], default DTID: %s, signature: %08x, maxbits: %s, maxbytes: %s, DSSD:',
+                          full_typename, default_dtid, t.get_dsdl_signature(), max_bitlen, max_bytelen)
+            for ln in t.get_dsdl_signature_source_definition().splitlines():
                 self.log.info('    %s', ln)
-            return typedef
+            return t
         except DsdlException as ex:
             if not ex.file:
                 ex.file = filename

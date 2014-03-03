@@ -63,6 +63,7 @@ def run_generator(types, dest_dir):
             dir_path = os.path.dirname(file_path)
             os.makedirs(dir_path, exist_ok=True)
             text = generate_one_type(t)
+            os.remove(file_path)
             with open(file_path, 'w') as f:
                 f.write(text)
             try:
