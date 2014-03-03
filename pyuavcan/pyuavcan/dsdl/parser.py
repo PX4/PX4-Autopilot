@@ -92,12 +92,13 @@ class CompoundType(Type):
     KIND_SERVICE = 0
     KIND_MESSAGE = 1
 
-    def __init__(self, full_name, kind, dsdl_signature, dsdl_path, default_dtid):
+    def __init__(self, full_name, kind, dsdl_signature, dsdl_path, default_dtid, filename):
         super().__init__(full_name, Type.CATEGORY_COMPOUND)
         self.dsdl_signature = dsdl_signature
         self.dsdl_path = dsdl_path
         self.default_dtid = default_dtid
         self.kind = kind
+        self.filename = filename
         max_bitlen_sum = lambda fields: sum([x.type.get_max_bitlen() for x in fields])
         if kind == CompoundType.KIND_SERVICE:
             self.request_fields = []
@@ -394,7 +395,8 @@ class Parser:
             if response_part:
                 dsdl_signature = self._compute_dsdl_signature(full_typename, fields, constants,
                                                               resp_fields, resp_constants)
-                typedef = CompoundType(full_typename, CompoundType.KIND_SERVICE, dsdl_signature, filename, default_dtid)
+                typedef = CompoundType(full_typename, CompoundType.KIND_SERVICE, dsdl_signature, filename,
+                                       default_dtid, filename)
                 typedef.request_fields = fields
                 typedef.request_constants = constants
                 typedef.response_fields = resp_fields
@@ -403,7 +405,8 @@ class Parser:
                 max_bytelen = tuple(map(bitlen_to_bytelen, max_bitlen))
             else:
                 dsdl_signature = self._compute_dsdl_signature(full_typename, fields, constants)
-                typedef = CompoundType(full_typename, CompoundType.KIND_MESSAGE, dsdl_signature, filename, default_dtid)
+                typedef = CompoundType(full_typename, CompoundType.KIND_MESSAGE, dsdl_signature, filename,
+                                       default_dtid, filename)
                 typedef.fields = fields
                 typedef.constants = constants
                 max_bitlen = typedef.get_max_bitlen()
