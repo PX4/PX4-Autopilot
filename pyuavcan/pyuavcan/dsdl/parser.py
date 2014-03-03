@@ -430,9 +430,7 @@ def evaluate_expression(expression):
             'globals': None,
             '__builtins__': None,
             'true': 1,
-            'false': 0,
-            'inf': float('+inf'),
-            'nan': float('nan')
+            'false': 0
         }
         return eval(expression, env)
     except Exception as ex:

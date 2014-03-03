@@ -84,14 +84,14 @@ struct ${t.short_name}
     % if a.cpp_use_enum:
     enum { ${a.name} = ${a.cpp_value} }; // ${a.init_expression}
     % else:
-    static UAVCAN_CONSTEXPR typename ::uavcan::StorageType<ConstantTypes::${a.name}>::Type
+    static UAVCAN_CONSTEXPR typename ::uavcan::StorageType< ConstantTypes::${a.name} >::Type
         ${a.name} = ${a.cpp_value}; // ${a.init_expression}
     %endif
 % endfor
 
     // Fields
 % for a in fields:
-    typename ::uavcan::StorageType<FieldTypes::${a.name}>::Type ${a.name};
+    typename ::uavcan::StorageType< FieldTypes::${a.name} >::Type ${a.name};
 % endfor
 
     ${type_name}()
@@ -129,12 +129,12 @@ ${'::uavcan::TailArrayOptDisabled' if (idx + 1) < len(fields) else 'tao_mode'});
 % if t.kind == t.KIND_SERVICE:
     struct Request
     {
-        ${generate_primary_body(t.short_name, t.get_max_bitlen_request(), t.request_fields, t.request_constants) | indent}
+        ${generate_primary_body('Request', t.get_max_bitlen_request(), t.request_fields, t.request_constants) | indent}
     };
 
     struct Response
     {
-        ${generate_primary_body(t.short_name, t.get_max_bitlen_response(), t.response_fields, t.response_constants) | indent}
+        ${generate_primary_body('Response', t.get_max_bitlen_response(), t.response_fields, t.response_constants) | indent}
     };
 % else:
     ${generate_primary_body(t.short_name, t.get_max_bitlen(), t.fields, t.constants)}
@@ -187,7 +187,7 @@ UAVCAN_PACKED_END
 % if t.has_default_dtid:
 namespace
 {
-::uavcan::DefaultDataTypeRegistrator<${t.short_name}> _uavcan_gdtr_registrator_${t.short_name};
+::uavcan::DefaultDataTypeRegistrator< ${t.short_name} > _uavcan_gdtr_registrator_${t.short_name};
 }
 % else:
 // No default registration

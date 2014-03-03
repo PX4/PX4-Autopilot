@@ -5,6 +5,7 @@ lib*.so.*
 *.a
 */build
 .dep
+__pycache__
 
 # Eclipse
 .metadata/*
@@ -14,4 +15,4 @@ lib*.so.*
 .pydevproject
 
 # libuavcan DSDL compiler default output directory
-*dsdlc_output
+dsdlc_output

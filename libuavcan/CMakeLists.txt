@@ -52,11 +52,11 @@ if (GTEST_FOUND)
 
     # DSDL compiler invocation
     add_custom_target(dsdlc dsdl_compiler/dsdlc.py -v
-                            test/dsdl_test/root_ns_a    # Input
-                            -Otest/dsdlc_output         # Output
-                            -Itest/dsdl_test/root_ns_b  # Include
+                            test/dsdl_test/root_ns_a test/dsdl_test/root_ns_b  # Inputs
+                            -Otest/dsdlc_output                                # Output
                        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     add_dependencies(libuavcan_test dsdlc)
+    include_directories(${CMAKE_SOURCE_DIR}/test/dsdlc_output)
 
     # Tests run automatically upon successful build
     # If failing tests need to be investigated with debugger, use 'make --ignore-errors'
