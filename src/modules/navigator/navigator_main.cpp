@@ -741,7 +741,7 @@ Navigator::task_main()
 					if (_vstatus.return_switch == RETURN_SWITCH_RETURN) {
 						/* switch to RTL if not already landed after RTL and home position set */
 						if (!(_rtl_state == RTL_STATE_DESCEND &&
-						      (myState == NAV_STATE_READY || myState == NAV_STATE_LAND || myState == NAV_STATE_LOITER)) &&
+						      (myState == NAV_STATE_LAND || myState == NAV_STATE_LOITER)) &&
 						    _vstatus.condition_home_position_valid) {
 							dispatch(EVENT_RTL_REQUESTED);
 						}
@@ -787,7 +787,7 @@ Navigator::task_main()
 
 						case NAV_STATE_RTL:
 							if (!(_rtl_state == RTL_STATE_DESCEND &&
-							      (myState == NAV_STATE_READY || myState == NAV_STATE_LAND || myState == NAV_STATE_LOITER)) &&
+							      (myState == NAV_STATE_LAND || myState == NAV_STATE_LOITER)) &&
 							    _vstatus.condition_home_position_valid) {
 								dispatch(EVENT_RTL_REQUESTED);
 							}
@@ -795,9 +795,7 @@ Navigator::task_main()
 							break;
 
 						case NAV_STATE_LAND:
-							if (myState != NAV_STATE_READY) {
-								dispatch(EVENT_LAND_REQUESTED);
-							}
+							dispatch(EVENT_LAND_REQUESTED);
 
 							break;
 
@@ -1033,7 +1031,7 @@ StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 		/* EVENT_READY_REQUESTED */		{NO_ACTION, NAV_STATE_READY},
 		/* EVENT_LOITER_REQUESTED */		{NO_ACTION, NAV_STATE_READY},
 		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
-		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
+		/* EVENT_RTL_REQUESTED */		{NO_ACTION, NAV_STATE_READY},
 		/* EVENT_LAND_REQUESTED */		{NO_ACTION, NAV_STATE_READY},
 		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_READY},
 		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, NAV_STATE_READY},
@@ -1191,6 +1189,8 @@ Navigator::set_mission_item()
 		ret = _mission.get_current_mission_item(&_mission_item, &onboard, &index);
 
 		if (ret == OK) {
+			_mission.report_current_offboard_mission_item();
+
 			_mission_item_valid = true;
 
 			if (_mission_item.nav_cmd == NAV_CMD_ROI) {
@@ -1515,7 +1515,8 @@ Navigator::set_rtl_item()
 void
 Navigator::request_loiter_or_ready()
 {
-	if (_vstatus.condition_landed) {
+	/* XXX workaround: no landing detector for fixedwing yet */
+	if (_vstatus.condition_landed && _vstatus.is_rotary_wing) {
 		dispatch(EVENT_READY_REQUESTED);
 
 	} else {
