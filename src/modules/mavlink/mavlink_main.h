@@ -36,63 +36,44 @@
  * MAVLink 1.0 protocol interface definition.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #pragma once
 
 #include <stdbool.h>
+#include <nuttx/fs/fs.h>
+#include <systemlib/param/param.h>
+#include <systemlib/perf_counter.h>
+#include <pthread.h>
+#include <mavlink/mavlink_log.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/rc_channels.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/offboard_control_setpoint.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/vehicle_vicon_position.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/optical_flow.h>
-#include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/actuator_controls_effective.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/telemetry_status.h>
-#include <uORB/topics/debug_key_value.h>
-#include <uORB/topics/airspeed.h>
-#include <uORB/topics/battery_status.h>
-#include <drivers/drv_rc_input.h>
-#include <uORB/topics/navigation_capabilities.h>
 #include <uORB/topics/mission.h>
-#include <systemlib/param/param.h>
 
-#include <nuttx/fs/fs.h>
+#include "mavlink_bridge_header.h"
+#include "mavlink_orb_subscription.h"
+#include "mavlink_stream.h"
+#include "mavlink_messages.h"
 
- // FIXME XXX - TO BE MOVED TO XML
+// FIXME XXX - TO BE MOVED TO XML
 enum MAVLINK_WPM_STATES {
-        MAVLINK_WPM_STATE_IDLE = 0,
-        MAVLINK_WPM_STATE_SENDLIST,
-        MAVLINK_WPM_STATE_SENDLIST_SENDWPS,
-        MAVLINK_WPM_STATE_GETLIST,
-        MAVLINK_WPM_STATE_GETLIST_GETWPS,
-        MAVLINK_WPM_STATE_GETLIST_GOTALL,
-        MAVLINK_WPM_STATE_ENUM_END
+	MAVLINK_WPM_STATE_IDLE = 0,
+	MAVLINK_WPM_STATE_SENDLIST,
+	MAVLINK_WPM_STATE_SENDLIST_SENDWPS,
+	MAVLINK_WPM_STATE_GETLIST,
+	MAVLINK_WPM_STATE_GETLIST_GETWPS,
+	MAVLINK_WPM_STATE_GETLIST_GOTALL,
+	MAVLINK_WPM_STATE_ENUM_END
 };
 
 enum MAVLINK_WPM_CODES {
-        MAVLINK_WPM_CODE_OK = 0,
-        MAVLINK_WPM_CODE_ERR_WAYPOINT_ACTION_NOT_SUPPORTED,
-        MAVLINK_WPM_CODE_ERR_WAYPOINT_FRAME_NOT_SUPPORTED,
-        MAVLINK_WPM_CODE_ERR_WAYPOINT_OUT_OF_BOUNDS,
-        MAVLINK_WPM_CODE_ERR_WAYPOINT_MAX_NUMBER_EXCEEDED,
-        MAVLINK_WPM_CODE_ENUM_END
+	MAVLINK_WPM_CODE_OK = 0,
+	MAVLINK_WPM_CODE_ERR_WAYPOINT_ACTION_NOT_SUPPORTED,
+	MAVLINK_WPM_CODE_ERR_WAYPOINT_FRAME_NOT_SUPPORTED,
+	MAVLINK_WPM_CODE_ERR_WAYPOINT_OUT_OF_BOUNDS,
+	MAVLINK_WPM_CODE_ERR_WAYPOINT_MAX_NUMBER_EXCEEDED,
+	MAVLINK_WPM_CODE_ENUM_END
 };
 
 
@@ -136,18 +117,22 @@ public:
 	 *
 	 * @return		OK on success.
 	 */
-	static int		start();
+	static int		start(int argc, char *argv[]);
 
 	/**
 	 * Display the mavlink status.
 	 */
 	void		status();
 
+	static int stream(int argc, char *argv[]);
+
 	static int	instance_count();
 
-	static Mavlink* new_instance();
+	static Mavlink *new_instance();
 
-	static Mavlink* get_instance(unsigned instance);
+	static Mavlink *get_instance(unsigned instance);
+
+	static Mavlink *get_instance_for_device(const char *device_name);
 
 	static int	destroy_all_instances();
 
@@ -157,12 +142,10 @@ public:
 
 	int get_uart_fd();
 
-	int get_channel();
-
-	const char *device_name;
+	const char *_device_name;
 
 	enum MAVLINK_MODE {
-		MODE_TX_HEARTBEAT_ONLY=0,
+		MODE_CUSTOM = 0,
 		MODE_OFFBOARD,
 		MODE_ONBOARD,
 		MODE_HIL
@@ -185,7 +168,7 @@ public:
 	 */
 	void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_message_t *msg);
 
-	void get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode);
+	void get_mavlink_mode_and_state(struct vehicle_status_s *status, struct position_setpoint_triplet_s *pos_sp_triplet, uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode);
 
 	/**
 	 * Enable / disable Hardware in the Loop simulation mode.
@@ -197,129 +180,62 @@ public:
 	 */
 	int		set_hil_enabled(bool hil_enabled);
 
-	struct mavlink_subscriptions {
-		int sensor_sub;
-		int att_sub;
-		int global_pos_sub;
-		int act_0_sub;
-		int act_1_sub;
-		int act_2_sub;
-		int act_3_sub;
-		int gps_sub;
-		int man_control_sp_sub;
-		int safety_sub;
-		int actuators_sub;
-		int armed_sub;
-		int actuators_effective_sub;
-		int local_pos_sub;
-		int spa_sub;
-		int spl_sub;
-		int triplet_sub;
-		int debug_key_value;
-		int input_rc_sub;
-		int optical_flow;
-		int rates_setpoint_sub;
-		int get_sub;
-		int airspeed_sub;
-		int navigation_capabilities_sub;
-		int position_setpoint_triplet_sub;
-		int rc_sub;
-		int status_sub;
-		int home_sub;
-	};
+	MavlinkOrbSubscription *add_orb_subscription(const orb_id_t topic);
 
-	struct mavlink_subscriptions subs;
-
-	struct mavlink_subscriptions* get_subs() { return &subs; }
-	mavlink_channel_t get_chan() { return _chan; }
-
-	/** Global position */
-	struct vehicle_global_position_s global_pos;
-	/** Local position */
-	struct vehicle_local_position_s local_pos;
-	/** navigation capabilities */
-	struct navigation_capabilities_s nav_cap;
-	/** Vehicle status */
-	struct vehicle_status_s v_status;
-	/** RC channels */
-	struct rc_channels_s rc;
-	/** Actuator armed state */
-	struct actuator_armed_s armed;
-	/** Position setpoint triplet */
-	struct position_setpoint_triplet_s pos_sp_triplet;
+	mavlink_channel_t get_channel();
 
 	bool		_task_should_exit;		/**< if true, mavlink task should exit */
 
 protected:
-	/**
-	 * Pointer to the default cdev file operations table; useful for
-	 * registering clone devices etc.
-	 */
-
-	Mavlink*	_next;
+	Mavlink	*next;
 
 private:
 	int		_mavlink_fd;
-	bool		thread_running;
-	int		_mavlink_task;			/**< task handle for sensor task */
-
-	int		_mavlink_incoming_fd;		/**< file descriptor on which to receive incoming strings */
+	bool		_task_running;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	/* states */
-	bool		_mavlink_hil_enabled;		/**< Hardware in the loop mode */
+	bool		_mavlink_hil_enabled;		/**< Hardware In the Loop mode */
 
-	int		_params_sub;
+	unsigned	_main_loop_delay;		/**< mainloop delay, depends on data rate */
 
-	orb_advert_t	mission_pub;
+	MavlinkOrbSubscription *_subscriptions;
+	MavlinkStream *_streams;
+
+	orb_advert_t	_mission_pub;
 	struct mission_s mission;
-	uint8_t missionlib_msg_buf[300]; //XXX MAGIC NUMBER
+	uint8_t missionlib_msg_buf[sizeof(mavlink_message_t)];
 	MAVLINK_MODE _mode;
 
 	uint8_t _mavlink_wpm_comp_id;
-	mavlink_channel_t _chan;
+	mavlink_channel_t _channel;
 
-//  XXX probably should be in a header... 
-// extern pthread_t receive_start(int uart);
+	struct mavlink_logbuffer _logbuffer;
+	unsigned int _total_counter;
 
-	struct mavlink_logbuffer lb;
-	unsigned int total_counter;
-
-	pthread_t receive_thread;
-	pthread_t uorb_receive_thread;
+	pthread_t _receive_thread;
 
 	/* Allocate storage space for waypoints */
-	mavlink_wpm_storage wpm_s;
-	mavlink_wpm_storage *wpm;
+	mavlink_wpm_storage _wpm_s;
+	mavlink_wpm_storage *_wpm;
 
 	bool _verbose;
-	int _uart;
+	int _uart_fd;
 	int _baudrate;
-	bool gcs_link;
+	int _datarate;
+
 	/**
 	 * If the queue index is not at 0, the queue sending
 	 * logic will send parameters from the current index
 	 * to len - 1, the end of the param list.
 	 */
-	unsigned int mavlink_param_queue_index;
+	unsigned int _mavlink_param_queue_index;
 
 	bool mavlink_link_termination_allowed;
-	
-	/**
-	 * Update our local parameter cache.
-	 */
-	void		parameters_update();
 
-	/**
-	 * Send all parameters at once.
-	 *
-	 * This function blocks until all parameters have been sent.
-	 * it delays each parameter by the passed amount of microseconds.
-	 *
-	 * @param delay		The delay in us between sending all parameters.
-	 */
-	void mavlink_pm_send_all_params(unsigned int delay);
+	char 	*_subscribe_to_stream;
+	float	_subscribe_to_stream_rate;
 
 	/**
 	 * Send one parameter.
@@ -381,12 +297,8 @@ private:
 
 	int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
 
-	int set_mavlink_interval_limit(int mavlink_msg_id, int min_interval);
-
-	/**
-	 * Callback for param interface.
-	 */
-	static void mavlink_pm_callback(void *arg, param_t param);
+	int configure_stream(const char *stream_name, const float rate);
+	void configure_stream_threadsafe(const char *stream_name, const float rate);
 
 	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
 

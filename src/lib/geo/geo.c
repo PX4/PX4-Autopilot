@@ -441,14 +441,14 @@ __EXPORT float _wrap_pi(float bearing)
 	}
 
 	int c = 0;
-	while (bearing > M_PI_F) {
+	while (bearing >= M_PI_F) {
 		bearing -= M_TWOPI_F;
 		if (c++ > 3)
 			return NAN;
 	}
 
 	c = 0;
-	while (bearing <= -M_PI_F) {
+	while (bearing < -M_PI_F) {
 		bearing += M_TWOPI_F;
 		if (c++ > 3)
 			return NAN;
@@ -465,14 +465,14 @@ __EXPORT float _wrap_2pi(float bearing)
 	}
 
 	int c = 0;
-	while (bearing > M_TWOPI_F) {
+	while (bearing >= M_TWOPI_F) {
 		bearing -= M_TWOPI_F;
 		if (c++ > 3)
 			return NAN;
 	}
 
 	c = 0;
-	while (bearing <= 0.0f) {
+	while (bearing < 0.0f) {
 		bearing += M_TWOPI_F;
 		if (c++ > 3)
 			return NAN;
@@ -489,14 +489,14 @@ __EXPORT float _wrap_180(float bearing)
 	}
 
 	int c = 0;
-	while (bearing > 180.0f) {
+	while (bearing >= 180.0f) {
 		bearing -= 360.0f;
 		if (c++ > 3)
 			return NAN;
 	}
 
 	c = 0;
-	while (bearing <= -180.0f) {
+	while (bearing < -180.0f) {
 		bearing += 360.0f;
 		if (c++ > 3)
 			return NAN;
@@ -513,14 +513,14 @@ __EXPORT float _wrap_360(float bearing)
 	}
 
 	int c = 0;
-	while (bearing > 360.0f) {
+	while (bearing >= 360.0f) {
 		bearing -= 360.0f;
 		if (c++ > 3)
 			return NAN;
 	}
 
 	c = 0;
-	while (bearing <= 0.0f) {
+	while (bearing < 0.0f) {
 		bearing += 360.0f;
 		if (c++ > 3)
 			return NAN;

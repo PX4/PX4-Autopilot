@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,51 +32,41 @@
  ****************************************************************************/
 
 /**
- * @file commander_helper.h
- * Commander helper functions definitions
+ * @file mavlink_rate_limiter.cpp
+ * Message rate limiter implementation.
+ *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#ifndef COMMANDER_HELPER_H_
-#define COMMANDER_HELPER_H_
+#include "mavlink_rate_limiter.h"
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <drivers/drv_rgbled.h>
+MavlinkRateLimiter::MavlinkRateLimiter() : _last_sent(0), _interval(1000000)
+{
+}
 
+MavlinkRateLimiter::MavlinkRateLimiter(unsigned int interval) : _last_sent(0), _interval(interval)
+{
+}
 
-bool is_multirotor(const struct vehicle_status_s *current_status);
-bool is_rotary_wing(const struct vehicle_status_s *current_status);
+MavlinkRateLimiter::~MavlinkRateLimiter()
+{
+}
 
-int buzzer_init(void);
-void buzzer_deinit(void);
+void
+MavlinkRateLimiter::set_interval(unsigned int interval)
+{
+	_interval = interval;
+}
 
-void set_tune(int tune);
-void tune_positive(bool use_buzzer);
-void tune_neutral(bool use_buzzer);
-void tune_negative(bool use_buzzer);
+bool
+MavlinkRateLimiter::check(hrt_abstime t)
+{
+	uint64_t dt = t - _last_sent;
 
-int blink_msg_state();
+	if (dt > 0 && dt >= _interval) {
+		_last_sent = (t / _interval) * _interval;
+		return true;
+	}
 
-int led_init(void);
-void led_deinit(void);
-int led_toggle(int led);
-int led_on(int led);
-int led_off(int led);
-
-void rgbled_set_color(rgbled_color_t color);
-void rgbled_set_mode(rgbled_mode_t mode);
-void rgbled_set_pattern(rgbled_pattern_t *pattern);
-
-/**
- * Estimate remaining battery charge.
- *
- * Use integral of current if battery capacity known (BAT_CAPACITY parameter set),
- * else use simple estimate based on voltage.
- *
- * @return the estimated remaining capacity in 0..1
- */
-float battery_remaining_estimate_voltage(float voltage, float discharged);
-
-#endif /* COMMANDER_HELPER_H_ */
+	return false;
+}

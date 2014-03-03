@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,51 +32,58 @@
  ****************************************************************************/
 
 /**
- * @file commander_helper.h
- * Commander helper functions definitions
+ * @file mavlink_orb_subscription.cpp
+ * uORB subscription implementation.
+ *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#ifndef COMMANDER_HELPER_H_
-#define COMMANDER_HELPER_H_
-
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <drivers/drv_rgbled.h>
+#include <stdio.h>
 
+#include "mavlink_orb_subscription.h"
 
-bool is_multirotor(const struct vehicle_status_s *current_status);
-bool is_rotary_wing(const struct vehicle_status_s *current_status);
+MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic) : _topic(topic), _last_check(0), next(nullptr)
+{
+	_data = malloc(topic->o_size);
+	memset(_data, 0, topic->o_size);
+	_fd = orb_subscribe(_topic);
+}
 
-int buzzer_init(void);
-void buzzer_deinit(void);
+MavlinkOrbSubscription::~MavlinkOrbSubscription()
+{
+	close(_fd);
+	free(_data);
+}
 
-void set_tune(int tune);
-void tune_positive(bool use_buzzer);
-void tune_neutral(bool use_buzzer);
-void tune_negative(bool use_buzzer);
+const orb_id_t
+MavlinkOrbSubscription::get_topic()
+{
+	return _topic;
+}
 
-int blink_msg_state();
+void *
+MavlinkOrbSubscription::get_data()
+{
+	return _data;
+}
 
-int led_init(void);
-void led_deinit(void);
-int led_toggle(int led);
-int led_on(int led);
-int led_off(int led);
+bool
+MavlinkOrbSubscription::update(const hrt_abstime t)
+{
+	if (_last_check != t) {
+		_last_check = t;
+		bool updated;
+		orb_check(_fd, &updated);
 
-void rgbled_set_color(rgbled_color_t color);
-void rgbled_set_mode(rgbled_mode_t mode);
-void rgbled_set_pattern(rgbled_pattern_t *pattern);
+		if (updated) {
+			orb_copy(_topic, _fd, _data);
+			return true;
+		}
+	}
 
-/**
- * Estimate remaining battery charge.
- *
- * Use integral of current if battery capacity known (BAT_CAPACITY parameter set),
- * else use simple estimate based on voltage.
- *
- * @return the estimated remaining capacity in 0..1
- */
-float battery_remaining_estimate_voltage(float voltage, float discharged);
-
-#endif /* COMMANDER_HELPER_H_ */
+	return false;
+}
