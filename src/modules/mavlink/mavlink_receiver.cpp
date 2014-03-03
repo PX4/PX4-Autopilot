@@ -109,6 +109,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_telemetry_status_pub(-1),
 	_rc_pub(-1),
 	_manual_pub(-1),
+	_target_pos_pub(-1),
 
 	_hil_counter(0),
 	_hil_frames(0),
@@ -394,7 +395,37 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 				orb_publish(ORB_ID(manual_control_setpoint), _manual_pub, &manual);
 			}
 		}
+
+	} else if (msg->msgid == MAVLINK_MSG_ID_GLOBAL_POSITION_TIME) {
+		/* target position */
+		mavlink_global_position_time_t pos;
+		mavlink_msg_global_position_time_decode(msg, &pos);
+
+		struct target_global_position_s target_pos;
+		memset(&target_pos, 0, sizeof(target_pos));
+
+		target_pos.timestamp = timestamp;
+		target_pos.sysid = msg->sysid;
+		target_pos.valid = true;
+		target_pos.time_gps_usec = pos.time;
+		target_pos.lat = pos.lat / 1e7d;
+		target_pos.lon = pos.lon / 1e7d;
+		target_pos.alt = pos.alt;
+		target_pos.vel_n = pos.vx;
+		target_pos.vel_e = pos.vy;
+		target_pos.vel_d = pos.vz;
+		target_pos.yaw = _wrap_pi(pos.hdg / 100.0f * M_DEG_TO_RAD_F);
+
+		/* check if topic is advertised */
+		if (_target_pos_pub < 0) {
+			_target_pos_pub = orb_advertise(ORB_ID(target_global_position), &target_pos);
+
+		} else {
+			/* publish */
+			orb_publish(ORB_ID(target_global_position), _target_pos_pub, &target_pos);
+		}
 	}
+
 
 	/*
 	 * Only decode hil messages in HIL mode.
@@ -797,35 +828,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 					_battery_pub = orb_advertise(ORB_ID(battery_status), &hil_battery_status);
 				}
 			}
-		}
-	}
-
-	/* Handle global position */
-	if (msg->msgid == MAVLINK_MSG_ID_GLOBAL_POSITION_TIME) {
-		mavlink_global_position_time_t pos;
-		mavlink_msg_global_position_time_decode(msg, &pos);
-
-		struct target_global_position_s target_pos;
-
-		target_pos.timestamp = hrt_absolute_time();
-		target_pos.sysid = msg->sysid;
-		target_pos.valid = true;
-		target_pos.time_gps_usec = pos.time;
-		target_pos.lat = pos.lat / 1e7d;
-		target_pos.lon = pos.lon / 1e7d;
-		target_pos.alt = pos.alt;
-		target_pos.vel_n = pos.vx;
-		target_pos.vel_e = pos.vy;
-		target_pos.vel_d = pos.vz;
-		target_pos.yaw = _wrap_pi(pos.hdg / 100.0f * M_DEG_TO_RAD_F);
-
-		/* check if topic is advertised */
-		if (target_pos_pub < 0) {
-			target_pos_pub = orb_advertise(ORB_ID(target_global_position), &target_pos);
-
-		} else {
-			/* publish */
-			orb_publish(ORB_ID(target_global_position), target_pos_pub, &target_pos);
 		}
 	}
 }
