@@ -1189,8 +1189,6 @@ Navigator::set_mission_item()
 		ret = _mission.get_current_mission_item(&_mission_item, &onboard, &index);
 
 		if (ret == OK) {
-			_mission.report_current_offboard_mission_item();
-
 			_mission_item_valid = true;
 
 			if (_mission_item.nav_cmd == NAV_CMD_ROI) {
@@ -1203,6 +1201,8 @@ Navigator::set_mission_item()
 				_mission.move_to_next();
 				continue;
 			}
+
+			_mission.report_current_offboard_mission_item();
 
 			if (_roi_item_valid && _roi_item.roi_mode == ROI_MODE_FOLLOW && _mission_item.nav_cmd == NAV_CMD_WAYPOINT) {
 				/* save previous follow offset */
