@@ -40,14 +40,27 @@ export PX4_BASE		 := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))/
 include $(PX4_BASE)makefiles/setup.mk
 
 #
-# Canned firmware configurations that we build.
+# Get a version string provided by git
+# This assumes that git command is available and that
+# the directory holding this file also contains .git directory
 #
-CONFIGS			?= $(subst config_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)config_*.mk))))
+GIT_DESC := $(shell git log -1 --pretty=format:%H)
+ifneq ($(words $(GIT_DESC)),1)
+    GIT_DESC := "unknown_git_version"
+endif
+export GIT_DESC
 
 #
-# Boards that we build NuttX export kits for.
+# Canned firmware configurations that we (know how to) build.
 #
-BOARDS			:= $(subst board_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)board_*.mk))))
+KNOWN_CONFIGS		:= $(subst config_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)config_*.mk))))
+CONFIGS			?= $(KNOWN_CONFIGS)
+
+#
+# Boards that we (know how to) build NuttX export kits for.
+#
+KNOWN_BOARDS		:= $(subst board_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)board_*.mk))))
+BOARDS			?= $(KNOWN_BOARDS)
 
 #
 # Debugging
@@ -87,10 +100,11 @@ endif
 #
 # Built products
 #
-STAGED_FIRMWARES	 = $(foreach config,$(CONFIGS),$(IMAGE_DIR)$(config).px4)
-FIRMWARES		 = $(foreach config,$(CONFIGS),$(BUILD_DIR)$(config).build/firmware.px4)
+DESIRED_FIRMWARES 	 = $(foreach config,$(CONFIGS),$(IMAGE_DIR)$(config).px4)
+STAGED_FIRMWARES	 = $(foreach config,$(KNOWN_CONFIGS),$(IMAGE_DIR)$(config).px4)
+FIRMWARES		 = $(foreach config,$(KNOWN_CONFIGS),$(BUILD_DIR)$(config).build/firmware.px4)
 
-all:			$(STAGED_FIRMWARES)
+all:			$(DESIRED_FIRMWARES)
 
 #
 # Copy FIRMWARES into the image directory.
@@ -100,7 +114,7 @@ all:			$(STAGED_FIRMWARES)
 #     is taken care of.
 #
 $(STAGED_FIRMWARES): $(IMAGE_DIR)%.px4: $(BUILD_DIR)%.build/firmware.px4
-	@echo %% Copying $@
+	@$(ECHO) %% Copying $@
 	$(Q) $(COPY) $< $@
 	$(Q) $(COPY) $(patsubst %.px4,%.bin,$<) $(patsubst %.px4,%.bin,$@)
 
@@ -111,15 +125,28 @@ $(STAGED_FIRMWARES): $(IMAGE_DIR)%.px4: $(BUILD_DIR)%.build/firmware.px4
 $(BUILD_DIR)%.build/firmware.px4: config   = $(patsubst $(BUILD_DIR)%.build/firmware.px4,%,$@)
 $(BUILD_DIR)%.build/firmware.px4: work_dir = $(BUILD_DIR)$(config).build/
 $(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:
-	@echo %%%%
-	@echo %%%% Building $(config) in $(work_dir)
-	@echo %%%%
-	$(Q) mkdir -p $(work_dir)
-	$(Q) make -r -C $(work_dir) \
+	@$(ECHO) %%%%
+	@$(ECHO) %%%% Building $(config) in $(work_dir)
+	@$(ECHO) %%%%
+	$(Q) $(MKDIR) -p $(work_dir)
+	$(Q) $(MAKE) -r -C $(work_dir) \
 		-f $(PX4_MK_DIR)firmware.mk \
 		CONFIG=$(config) \
 		WORK_DIR=$(work_dir) \
 		$(FIRMWARE_GOAL)
+
+#
+# Make FMU firmwares depend on the corresponding IO firmware.
+#
+# This is a pretty vile hack, since it hard-codes knowledge of the FMU->IO dependency
+# and forces the _default config in all cases. There has to be a better way to do this...
+#
+FMU_VERSION		 = $(patsubst px4fmu-%,%,$(word 1, $(subst _, ,$(1))))
+define FMU_DEP
+$(BUILD_DIR)$(1).build/firmware.px4: $(IMAGE_DIR)px4io-$(call FMU_VERSION,$(1))_default.px4
+endef
+FMU_CONFIGS		:= $(filter px4fmu%,$(CONFIGS))
+$(foreach config,$(FMU_CONFIGS),$(eval $(call FMU_DEP,$(config))))
 
 #
 # Build the NuttX export archives.
@@ -132,8 +159,6 @@ $(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:
 # XXX Should support fetching/unpacking from a separate directory to permit
 #     downloads of the prebuilt archives as well...
 #
-# XXX PX4IO configuration name is bad - NuttX configs should probably all be "px4"
-#
 NUTTX_ARCHIVES		 = $(foreach board,$(BOARDS),$(ARCHIVE_DIR)$(board).export)
 .PHONY:			archives
 archives:		$(NUTTX_ARCHIVES)
@@ -145,16 +170,55 @@ ifneq ($(filter archives,$(MAKECMDGOALS)),)
 endif
 
 $(ARCHIVE_DIR)%.export:	board = $(notdir $(basename $@))
-$(ARCHIVE_DIR)%.export:	configuration = $(if $(filter $(board),px4io),io,nsh)
-$(NUTTX_ARCHIVES): $(ARCHIVE_DIR)%.export: $(NUTTX_SRC) $(NUTTX_APPS)
-	@echo %% Configuring NuttX for $(board)
+$(ARCHIVE_DIR)%.export:	configuration = nsh
+$(NUTTX_ARCHIVES): $(ARCHIVE_DIR)%.export: $(NUTTX_SRC)
+	@$(ECHO) %% Configuring NuttX for $(board)
 	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
-	$(Q) make -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) distclean
+	$(Q) $(MAKE) -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) distclean
+	$(Q) (cd $(NUTTX_SRC)/configs && $(COPYDIR) $(PX4_BASE)nuttx-configs/$(board) .)
 	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(board)/$(configuration))
-	@echo %% Exporting NuttX for $(board)
-	$(Q) make -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) export
-	$(Q) mkdir -p $(dir $@)
+	@$(ECHO) %% Exporting NuttX for $(board)
+	$(Q) $(MAKE) -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) CONFIG_ARCH_BOARD=$(board) export
+	$(Q) $(MKDIR) -p $(dir $@)
 	$(Q) $(COPY) $(NUTTX_SRC)nuttx-export.zip $@
+	$(Q) (cd $(NUTTX_SRC)/configs && $(RMDIR) $(board))
+
+#
+# The user can run the NuttX 'menuconfig' tool for a single board configuration with
+# make BOARDS=<boardname> menuconfig
+#
+ifeq ($(MAKECMDGOALS),menuconfig)
+ifneq ($(words $(BOARDS)),1)
+$(error BOARDS must specify exactly one board for the menuconfig goal)
+endif
+BOARD			 = $(BOARDS)
+menuconfig: $(NUTTX_SRC)
+	@$(ECHO) %% Configuring NuttX for $(BOARD)
+	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
+	$(Q) $(MAKE) -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) distclean
+	$(Q) (cd $(NUTTX_SRC)/configs && $(COPYDIR) $(PX4_BASE)nuttx-configs/$(BOARD) .)
+	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(BOARD)/nsh)
+	@$(ECHO) %% Running menuconfig for $(BOARD)
+	$(Q) $(MAKE) -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) menuconfig
+	@$(ECHO) %% Saving configuration file
+	$(Q)$(COPY) $(NUTTX_SRC).config $(PX4_BASE)nuttx-configs/$(BOARD)/nsh/defconfig
+else
+menuconfig:
+	@$(ECHO) ""
+	@$(ECHO) "The menuconfig goal must be invoked without any other goal being specified"
+	@$(ECHO) ""
+endif
+
+$(NUTTX_SRC):
+	@$(ECHO) ""
+	@$(ECHO) "NuttX sources missing - clone https://github.com/PX4/NuttX.git and try again."
+	@$(ECHO) ""
+
+#
+# Testing targets
+#
+testbuild:
+	$(Q) (cd $(PX4_BASE) && $(MAKE) distclean && $(MAKE) archives && $(MAKE) -j8)
 
 #
 # Cleanup targets.  'clean' should remove all built products and force
@@ -169,47 +233,51 @@ clean:
 .PHONY:	distclean
 distclean: clean
 	$(Q) $(REMOVE) $(ARCHIVE_DIR)*.export
-	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) distclean
+	$(Q) $(MAKE) -C $(NUTTX_SRC) -r $(MQUIET) distclean
+	$(Q) (cd $(NUTTX_SRC)/configs && $(FIND) . -maxdepth 1 -type l -delete)
 
 #
 # Print some help text
 #
 .PHONY: help
 help:
-	@echo ""
-	@echo " PX4 firmware builder"
-	@echo " ===================="
-	@echo ""
-	@echo "  Available targets:"
-	@echo "  ------------------"
-	@echo ""
-	@echo "  archives"
-	@echo "    Build the NuttX RTOS archives that are used by the firmware build."
-	@echo ""
-	@echo "  all"
-	@echo "    Build all firmware configs: $(CONFIGS)"
-	@echo "    A limited set of configs can be built with CONFIGS=<list-of-configs>"
-	@echo ""
+	@$(ECHO) ""
+	@$(ECHO) " PX4 firmware builder"
+	@$(ECHO) " ===================="
+	@$(ECHO) ""
+	@$(ECHO) "  Available targets:"
+	@$(ECHO) "  ------------------"
+	@$(ECHO) ""
+	@$(ECHO) "  archives"
+	@$(ECHO) "    Build the NuttX RTOS archives that are used by the firmware build."
+	@$(ECHO) ""
+	@$(ECHO) "  all"
+	@$(ECHO) "    Build all firmware configs: $(CONFIGS)"
+	@$(ECHO) "    A limited set of configs can be built with CONFIGS=<list-of-configs>"
+	@$(ECHO) ""
 	@for config in $(CONFIGS); do \
-		echo "  $$config"; \
-		echo "    Build just the $$config firmware configuration."; \
-		echo ""; \
+		$(ECHO) "  $$config"; \
+		$(ECHO) "    Build just the $$config firmware configuration."; \
+		$(ECHO) ""; \
 	done
-	@echo "  clean"
-	@echo "    Remove all firmware build pieces."
-	@echo ""
-	@echo "  distclean"
-	@echo "    Remove all compilation products, including NuttX RTOS archives."
-	@echo ""
-	@echo "  upload"
-	@echo "    When exactly one config is being built, add this target to upload the"
-	@echo "    firmware to the board when the build is complete. Not supported for"
-	@echo "    all configurations."
-	@echo ""
-	@echo "  Common options:"
-	@echo "  ---------------"
-	@echo ""
-	@echo "  V=1"
-	@echo "    If V is set, more verbose output is printed during the build. This can"
-	@echo "    help when diagnosing issues with the build or toolchain."
-	@echo ""
+	@$(ECHO) "  clean"
+	@$(ECHO) "    Remove all firmware build pieces."
+	@$(ECHO) ""
+	@$(ECHO) "  distclean"
+	@$(ECHO) "    Remove all compilation products, including NuttX RTOS archives."
+	@$(ECHO) ""
+	@$(ECHO) "  upload"
+	@$(ECHO) "    When exactly one config is being built, add this target to upload the"
+	@$(ECHO) "    firmware to the board when the build is complete. Not supported for"
+	@$(ECHO) "    all configurations."
+	@$(ECHO) ""
+	@$(ECHO) "  testbuild"
+	@$(ECHO) "    Perform a complete clean build of the entire tree."
+	@$(ECHO) ""
+	@$(ECHO) "  Common options:"
+	@$(ECHO) "  ---------------"
+	@$(ECHO) ""
+	@$(ECHO) "  V=1"
+	@$(ECHO) "    If V is set, more verbose output is printed during the build. This can"
+	@$(ECHO) "    help when diagnosing issues with the build or toolchain."
+	@$(ECHO) ""

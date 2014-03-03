@@ -45,6 +45,12 @@ SRCS		 = err.c \
 		   getopt_long.c \
 		   up_cxxinitialize.c \
 		   pid/pid.c \
-		   geo/geo.c \
 		   systemlib.c \
-		   airspeed.c
+		   airspeed.c \
+		   system_params.c \
+		   mavlink_log.c \
+		   rc_check.c \
+		   otp.c \
+		   board_serial.c \
+		   pwm_limit/pwm_limit.c
+

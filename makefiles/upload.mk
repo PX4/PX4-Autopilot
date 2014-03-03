@@ -12,13 +12,13 @@ SYSTYPE			:= $(shell uname -s)
 # XXX The uploader should be smarter than this.
 #
 ifeq ($(SYSTYPE),Darwin)
-SERIAL_PORTS		?= "/dev/tty.usbmodemPX1,/dev/tty.usbmodemPX2,/dev/tty.usbmodemPX3,/dev/tty.usbmodemPX4,/dev/tty.usbmodem1,/dev/tty.usbmodem2,/dev/tty.usbmodem3,/dev/tty.usbmodem4"
+SERIAL_PORTS		?= "/dev/tty.usbmodemPX*,/dev/tty.usbmodem*"
 endif
 ifeq ($(SYSTYPE),Linux)
-SERIAL_PORTS		?= "/dev/ttyACM5,/dev/ttyACM4,/dev/ttyACM3,/dev/ttyACM2,/dev/ttyACM1,/dev/ttyACM0"
+SERIAL_PORTS		?= "/dev/serial/by-id/usb-3D_Robotics*"
 endif
 ifeq ($(SERIAL_PORTS),)
-SERIAL_PORTS		 = "\\\\.\\COM32,\\\\.\\COM31,\\\\.\\COM30,\\\\.\\COM29,\\\\.\\COM28,\\\\.\\COM27,\\\\.\\COM26,\\\\.\\COM25,\\\\.\\COM24,\\\\.\\COM23,\\\\.\\COM22,\\\\.\\COM21,\\\\.\\COM20,\\\\.\\COM19,\\\\.\\COM18,\\\\.\\COM17,\\\\.\\COM16,\\\\.\\COM15,\\\\.\\COM14,\\\\.\\COM13,\\\\.\\COM12,\\\\.\\COM11,\\\\.\\COM10,\\\\.\\COM9,\\\\.\\COM8,\\\\.\\COM7,\\\\.\\COM6,\\\\.\\COM5,\\\\.\\COM4,\\\\.\\COM3,\\\\.\\COM2,\\\\.\\COM1,\\\\.\\COM0"
+SERIAL_PORTS		 = "COM32,COM31,COM30,COM29,COM28,COM27,COM26,COM25,COM24,COM23,COM22,COM21,COM20,COM19,COM18,COM17,COM16,COM15,COM14,COM13,COM12,COM11,COM10,COM9,COM8,COM7,COM6,COM5,COM4,COM3,COM2,COM1,COM0"
 endif
 
 .PHONY:	all upload-$(METHOD)-$(BOARD)
@@ -27,7 +27,7 @@ all:	upload-$(METHOD)-$(BOARD)
 upload-serial-px4fmu-v1:	$(BUNDLE) $(UPLOADER)
 	$(Q) $(PYTHON) -u $(UPLOADER) --port $(SERIAL_PORTS) $(BUNDLE)
 
-upload-serial-px4fmuv2:	$(BUNDLE) $(UPLOADER)
+upload-serial-px4fmu-v2:	$(BUNDLE) $(UPLOADER)
 	$(Q) $(PYTHON) -u $(UPLOADER) --port $(SERIAL_PORTS) $(BUNDLE)
 
 #

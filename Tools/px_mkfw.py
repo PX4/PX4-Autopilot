@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -60,7 +60,7 @@ def mkdesc():
 	proto['description']	= ""
 	proto['git_identity']	= ""
 	proto['build_time']	= 0
-	proto['image']		= base64.b64encode(bytearray())
+	proto['image']		= bytes()
 	proto['image_size']	= 0
 	return proto
 
@@ -99,12 +99,12 @@ if args.description != None:
 if args.git_identity != None:
 	cmd = " ".join(["git", "--git-dir", args.git_identity + "/.git", "describe", "--always", "--dirty"])
 	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout
-	desc['git_identity']	= p.read().strip()
+	desc['git_identity']	= str(p.read().strip())
 	p.close()
 if args.image != None:
 	f = open(args.image, "rb")
 	bytes = f.read()
 	desc['image_size'] = len(bytes)
-	desc['image'] = base64.b64encode(zlib.compress(bytes,9))
+	desc['image'] = base64.b64encode(zlib.compress(bytes,9)).decode('utf-8')
 
 print(json.dumps(desc, indent=4))

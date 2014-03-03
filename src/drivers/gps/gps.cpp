@@ -85,7 +85,7 @@ static const int ERROR = -1;
 class GPS : public device::CDev
 {
 public:
-	GPS(const char* uart_path);
+	GPS(const char *uart_path, bool fake_gps);
 	virtual ~GPS();
 
 	virtual int			init();
@@ -112,6 +112,7 @@ private:
 	struct vehicle_gps_position_s 	_report;					///< uORB topic for gps position
 	orb_advert_t			_report_pub;					///< uORB pub for gps position
 	float				_rate;						///< position update rate
+	bool				_fake_gps;					///< fake gps output
 
 
 	/**
@@ -156,7 +157,7 @@ GPS	*g_dev;
 }
 
 
-GPS::GPS(const char* uart_path) :
+GPS::GPS(const char *uart_path, bool fake_gps) :
 	CDev("gps", GPS_DEVICE_PATH),
 	_task_should_exit(false),
 	_healthy(false),
@@ -164,7 +165,8 @@ GPS::GPS(const char* uart_path) :
 	_mode(GPS_DRIVER_MODE_UBX),
 	_Helper(nullptr),
 	_report_pub(-1),
-	_rate(0.0f)
+	_rate(0.0f),
+	_fake_gps(fake_gps)
 {
 	/* store port name */
 	strncpy(_port, uart_path, sizeof(_port));
@@ -192,6 +194,7 @@ GPS::~GPS()
 	/* well, kill it anyway, though this will probably crash */
 	if (_task != -1)
 		task_delete(_task);
+
 	g_dev = nullptr;
 
 }
@@ -263,84 +266,143 @@ GPS::task_main()
 	/* loop handling received serial bytes and also configuring in between */
 	while (!_task_should_exit) {
 
-		if (_Helper != nullptr) {
-			delete(_Helper);
-			/* set to zero to ensure parser is not used while not instantiated */
-			_Helper = nullptr;
-		}
+		if (_fake_gps) {
 
-		switch (_mode) {
-			case GPS_DRIVER_MODE_UBX:
-				_Helper = new UBX(_serial_fd, &_report);
-				break;
-			case GPS_DRIVER_MODE_MTK:
-				_Helper = new MTK(_serial_fd, &_report);
-				break;
-			case GPS_DRIVER_MODE_NMEA:
-				//_Helper = new NMEA(); //TODO: add NMEA
-				break;
-			default:
-				break;
-		}
-		unlock();
-		if (_Helper->configure(_baudrate) == 0) {
-			unlock();
+			_report.timestamp_position = hrt_absolute_time();
+			_report.lat = (int32_t)47.378301e7f;
+			_report.lon = (int32_t)8.538777e7f;
+			_report.alt = (int32_t)400e3f;
+			_report.timestamp_variance = hrt_absolute_time();
+			_report.s_variance_m_s = 10.0f;
+			_report.p_variance_m = 10.0f;
+			_report.c_variance_rad = 0.1f;
+			_report.fix_type = 3;
+			_report.eph_m = 10.0f;
+			_report.epv_m = 10.0f;
+			_report.timestamp_velocity = hrt_absolute_time();
+			_report.vel_n_m_s = 0.0f;
+			_report.vel_e_m_s = 0.0f;
+			_report.vel_d_m_s = 0.0f;
+			_report.vel_m_s = sqrtf(_report.vel_n_m_s * _report.vel_n_m_s + _report.vel_e_m_s * _report.vel_e_m_s + _report.vel_d_m_s * _report.vel_d_m_s);
+			_report.cog_rad = 0.0f;
+			_report.vel_ned_valid = true;
 
-			// GPS is obviously detected successfully, reset statistics
-			_Helper->reset_update_rates();
+			//no time and satellite information simulated
 
-			while (_Helper->receive(TIMEOUT_5HZ) > 0 && !_task_should_exit) {
-//				lock();
-				/* opportunistic publishing - else invalid data would end up on the bus */
+			if (!(_pub_blocked)) {
 				if (_report_pub > 0) {
 					orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
+
 				} else {
 					_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report);
 				}
-
-				last_rate_count++;
-
-				/* measure update rate every 5 seconds */
-				if (hrt_absolute_time() - last_rate_measurement > RATE_MEASUREMENT_PERIOD) {
-					_rate = last_rate_count / ((float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f);
-					last_rate_measurement = hrt_absolute_time();
-					last_rate_count = 0;
-					_Helper->store_update_rates();
-					_Helper->reset_update_rates();
-				}
-
-				if (!_healthy) {
-					warnx("module found");
-					_healthy = true;
-				}
 			}
-			if (_healthy) {
-				warnx("module lost");
-				_healthy = false;
-				_rate = 0.0f;
+
+			usleep(2e5);
+
+		} else {
+
+			if (_Helper != nullptr) {
+				delete(_Helper);
+				/* set to zero to ensure parser is not used while not instantiated */
+				_Helper = nullptr;
+			}
+
+			switch (_mode) {
+			case GPS_DRIVER_MODE_UBX:
+				_Helper = new UBX(_serial_fd, &_report);
+				break;
+
+			case GPS_DRIVER_MODE_MTK:
+				_Helper = new MTK(_serial_fd, &_report);
+				break;
+
+			default:
+				break;
+			}
+
+			unlock();
+
+			if (_Helper->configure(_baudrate) == 0) {
+				unlock();
+
+				// GPS is obviously detected successfully, reset statistics
+				_Helper->reset_update_rates();
+
+				while (_Helper->receive(TIMEOUT_5HZ) > 0 && !_task_should_exit) {
+	//				lock();
+					/* opportunistic publishing - else invalid data would end up on the bus */
+
+					if (!(_pub_blocked)) {
+						if (_report_pub > 0) {
+							orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
+
+						} else {
+							_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report);
+						}
+					}
+
+					last_rate_count++;
+
+					/* measure update rate every 5 seconds */
+					if (hrt_absolute_time() - last_rate_measurement > RATE_MEASUREMENT_PERIOD) {
+						_rate = last_rate_count / ((float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f);
+						last_rate_measurement = hrt_absolute_time();
+						last_rate_count = 0;
+						_Helper->store_update_rates();
+						_Helper->reset_update_rates();
+					}
+
+					if (!_healthy) {
+						char *mode_str = "unknown";
+
+						switch (_mode) {
+						case GPS_DRIVER_MODE_UBX:
+							mode_str = "UBX";
+							break;
+
+						case GPS_DRIVER_MODE_MTK:
+							mode_str = "MTK";
+							break;
+
+						default:
+							break;
+						}
+
+						warnx("module found: %s", mode_str);
+						_healthy = true;
+					}
+				}
+
+				if (_healthy) {
+					warnx("module lost");
+					_healthy = false;
+					_rate = 0.0f;
+				}
+
+				lock();
 			}
 
 			lock();
-		}
-		lock();
 
-		/* select next mode */
-		switch (_mode) {
+			/* select next mode */
+			switch (_mode) {
 			case GPS_DRIVER_MODE_UBX:
 				_mode = GPS_DRIVER_MODE_MTK;
 				break;
+
 			case GPS_DRIVER_MODE_MTK:
 				_mode = GPS_DRIVER_MODE_UBX;
 				break;
-		//				case GPS_DRIVER_MODE_NMEA:
-		//					_mode = GPS_DRIVER_MODE_UBX;
-		//					break;
+
 			default:
 				break;
+			}
 		}
 
 	}
-	debug("exiting");
+
+	warnx("exiting");
 
 	::close(_serial_fd);
 
@@ -361,23 +423,25 @@ void
 GPS::print_info()
 {
 	switch (_mode) {
-		case GPS_DRIVER_MODE_UBX:
-			warnx("protocol: UBX");
-			break;
-		case GPS_DRIVER_MODE_MTK:
-			warnx("protocol: MTK");
-			break;
-		case GPS_DRIVER_MODE_NMEA:
-			warnx("protocol: NMEA");
-			break;
-		default:
-			break;
+	case GPS_DRIVER_MODE_UBX:
+		warnx("protocol: UBX");
+		break;
+
+	case GPS_DRIVER_MODE_MTK:
+		warnx("protocol: MTK");
+		break;
+
+	default:
+		break;
 	}
+
 	warnx("port: %s, baudrate: %d, status: %s", _port, _baudrate, (_healthy) ? "OK" : "NOT OK");
+
 	if (_report.timestamp_position != 0) {
-		warnx("position lock: %dD, last update %4.2f seconds ago", (int)_report.fix_type,
-			(double)((float)(hrt_absolute_time() - _report.timestamp_position) / 1000000.0f));
+		warnx("position lock: %dD, satellites: %d, last update: %fms ago", (int)_report.fix_type,
+				_report.satellites_visible, (hrt_absolute_time() - _report.timestamp_position) / 1000.0f);
 		warnx("lat: %d, lon: %d, alt: %d", _report.lat, _report.lon, _report.alt);
+		warnx("eph: %.2fm, epv: %.2fm", _report.eph_m, _report.epv_m);
 		warnx("rate position: \t%6.2f Hz", (double)_Helper->get_position_update_rate());
 		warnx("rate velocity: \t%6.2f Hz", (double)_Helper->get_velocity_update_rate());
 		warnx("rate publication:\t%6.2f Hz", (double)_rate);
@@ -395,7 +459,7 @@ namespace gps
 
 GPS	*g_dev;
 
-void	start(const char *uart_path);
+void	start(const char *uart_path, bool fake_gps);
 void	stop();
 void	test();
 void	reset();
@@ -405,7 +469,7 @@ void	info();
  * Start the driver.
  */
 void
-start(const char *uart_path)
+start(const char *uart_path, bool fake_gps)
 {
 	int fd;
 
@@ -413,7 +477,7 @@ start(const char *uart_path)
 		errx(1, "already started");
 
 	/* create the driver */
-	g_dev = new GPS(uart_path);
+	g_dev = new GPS(uart_path, fake_gps);
 
 	if (g_dev == nullptr)
 		goto fail;
@@ -428,6 +492,7 @@ start(const char *uart_path)
 		errx(1, "Could not open device path: %s\n", GPS_DEVICE_PATH);
 		goto fail;
 	}
+
 	exit(0);
 
 fail:
@@ -503,7 +568,8 @@ gps_main(int argc, char *argv[])
 {
 
 	/* set to default */
-	char* device_name = GPS_DEFAULT_UART_PORT;
+	char *device_name = GPS_DEFAULT_UART_PORT;
+	bool fake_gps = false;
 
 	/*
 	 * Start/load the driver.
@@ -513,15 +579,24 @@ gps_main(int argc, char *argv[])
 		if (argc > 3) {
 			if (!strcmp(argv[2], "-d")) {
 				device_name = argv[3];
+
 			} else {
 				goto out;
 			}
 		}
-		gps::start(device_name);
+
+		/* Detect fake gps option */
+		for (int i = 2; i < argc; i++) {
+			if (!strcmp(argv[i], "-f"))
+				fake_gps = true;
+		}
+
+		gps::start(device_name, fake_gps);
 	}
 
 	if (!strcmp(argv[1], "stop"))
 		gps::stop();
+
 	/*
 	 * Test the driver/device.
 	 */
@@ -541,5 +616,5 @@ gps_main(int argc, char *argv[])
 		gps::info();
 
 out:
-	errx(1, "unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status' [-d /dev/ttyS0-n]");
+	errx(1, "unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status' [-d /dev/ttyS0-n][-f]");
 }

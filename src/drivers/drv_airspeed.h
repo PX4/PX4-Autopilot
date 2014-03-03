@@ -32,7 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file Airspeed driver interface.
+ * @file drv_airspeed.h
+ *
+ * Airspeed driver interface.
+ * 
  * @author Simon Wilks
  */
 
@@ -57,5 +60,14 @@
 #define _AIRSPEEDIOCBASE		(0x7700)
 #define __AIRSPEEDIOC(_n)		(_IOC(_AIRSPEEDIOCBASE, _n))
 
+#define AIRSPEEDIOCSSCALE		__AIRSPEEDIOC(0)
+#define AIRSPEEDIOCGSCALE		__AIRSPEEDIOC(1)
+
+
+/** airspeed scaling factors; out = (in * Vscale) + offset */
+struct airspeed_scale {
+	float	offset_pa;
+	float	scale;
+};
 
 #endif /* _DRV_AIRSPEED_H */

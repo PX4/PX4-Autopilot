@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,7 +46,7 @@
 /*
  * PX4FMU GPIO numbers.
  *
- * For shared pins, alternate function 1 selects the non-GPIO mode 
+ * For shared pins, alternate function 1 selects the non-GPIO mode
  * (USART2, CAN2, etc.)
  */
 # define GPIO_EXT_1		(1<<0)		/**< high-power GPIO 1 */
@@ -59,48 +59,47 @@
 # define GPIO_CAN_RX		(1<<7)		/**< CAN2 RX */
 
 /**
- * Default GPIO device - other devices may also support this protocol if
- * they also export GPIO-like things.  This is always the GPIOs on the
- * main board.
+ * Device paths for things that support the GPIO ioctl protocol.
  */
-# define GPIO_DEVICE_PATH	"/dev/px4fmu"
+# define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
+# define PX4IO_DEVICE_PATH	"/dev/px4io"
+
+#endif
+
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+/*
+ * PX4FMUv2 GPIO numbers.
+ *
+ * There are no alternate functions on this board.
+ */
+# define GPIO_SERVO_1		(1<<0)		/**< servo 1 output */
+# define GPIO_SERVO_2		(1<<1)		/**< servo 2 output */
+# define GPIO_SERVO_3		(1<<2)		/**< servo 3 output */
+# define GPIO_SERVO_4		(1<<3)		/**< servo 4 output */
+# define GPIO_SERVO_5		(1<<4)		/**< servo 5 output */
+# define GPIO_SERVO_6		(1<<5)		/**< servo 6 output */
+
+# define GPIO_5V_PERIPH_EN	(1<<6)		/**< PA8 - !VDD_5V_PERIPH_EN */
+# define GPIO_3V3_SENSORS_EN	(1<<7)		/**< PE3 - VDD_3V3_SENSORS_EN */
+# define GPIO_BRICK_VALID	(1<<8)		/**< PB5 - !VDD_BRICK_VALID */
+# define GPIO_SERVO_VALID	(1<<9)		/**< PB7 - !VDD_SERVO_VALID */
+# define GPIO_5V_HIPOWER_OC	(1<<10)		/**< PE10 - !VDD_5V_HIPOWER_OC */
+# define GPIO_5V_PERIPH_OC	(1<<11)		/**< PE10 - !VDD_5V_PERIPH_OC */
+
+/**
+ * Device paths for things that support the GPIO ioctl protocol.
+ */
+# define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
+# define PX4IO_DEVICE_PATH	"/dev/px4io"
 
 #endif
 
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V1
-/*
- * PX4IO GPIO numbers.
- *
- * XXX note that these are here for reference/future use; currently
- * there is no good way to wire these up without a common STM32 GPIO
- * driver, which isn't implemented yet.
- */
-/* outputs */
-# define GPIO_ACC1_POWER	(1<<0)		/**< accessory power 1 */
-# define GPIO_ACC2_POWER	(1<<1)		/**< accessory power 2 */
-# define GPIO_SERVO_POWER	(1<<2)		/**< servo power */
-# define GPIO_RELAY1		(1<<3)		/**< relay 1 */
-# define GPIO_RELAY2		(1<<4)		/**< relay 2 */
-# define GPIO_LED_BLUE		(1<<5)		/**< blue LED */
-# define GPIO_LED_AMBER		(1<<6)		/**< amber/red LED */
-# define GPIO_LED_SAFETY	(1<<7)		/**< safety LED */
-
-/* inputs */
-# define GPIO_ACC_OVERCURRENT	(1<<8)		/**< accessory 1/2 overcurrent detect */
-# define GPIO_SERVO_OVERCURRENT	(1<<9)		/**< servo overcurrent detect */
-# define GPIO_SAFETY_BUTTON	(1<<10)		/**< safety button pressed */
-
-/**
- * Default GPIO device - other devices may also support this protocol if
- * they also export GPIO-like things.  This is always the GPIOs on the
- * main board.
- */
-# define GPIO_DEVICE_PATH	"/dev/px4io"
-
+/* no GPIO driver on the PX4IOv1 board */
 #endif
 
-#ifndef GPIO_DEVICE_PATH
-#  error No GPIO support for this board.
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
+/* no GPIO driver on the PX4IOv2 board */
 #endif
 
 /*
@@ -144,5 +143,7 @@
 
 /** read all the GPIOs and return their values in *(uint32_t *)arg */
 #define GPIO_GET	GPIOC(12)
+
+#define GPIO_SENSOR_RAIL_RESET	GPIOC(13)
 
 #endif /* _DRV_GPIO_H */

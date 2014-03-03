@@ -57,7 +57,7 @@
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
 
@@ -126,7 +126,7 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 		attitude_estimator_ekf_task = task_spawn_cmd("attitude_estimator_ekf",
 					      SCHED_DEFAULT,
 					      SCHED_PRIORITY_MAX - 5,
-					      12400,
+					      14000,
 					      attitude_estimator_ekf_thread_main,
 					      (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
@@ -139,10 +139,12 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			printf("\tattitude_estimator_ekf app is running\n");
+			warnx("running");
+			exit(0);
 
 		} else {
-			printf("\tattitude_estimator_ekf app not started\n");
+			warnx("not started");
+			exit(1);
 		}
 
 		exit(0);
@@ -214,26 +216,25 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	memset(&raw, 0, sizeof(raw));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
-	struct vehicle_status_s state;
-	memset(&state, 0, sizeof(state));
+	struct vehicle_control_mode_s control_mode;
+	memset(&control_mode, 0, sizeof(control_mode));
 
 	uint64_t last_data = 0;
 	uint64_t last_measurement = 0;
 
 	/* subscribe to raw data */
 	int sub_raw = orb_subscribe(ORB_ID(sensor_combined));
-	/* rate-limit raw data updates to 200Hz */
-	orb_set_interval(sub_raw, 4);
+	/* rate-limit raw data updates to 333 Hz (sensors app publishes at 200, so this is just paranoid) */
+	orb_set_interval(sub_raw, 3);
 
 	/* subscribe to param changes */
 	int sub_params = orb_subscribe(ORB_ID(parameter_update));
 
-	/* subscribe to system state*/
-	int sub_state = orb_subscribe(ORB_ID(vehicle_status));
+	/* subscribe to control mode*/
+	int sub_control_mode = orb_subscribe(ORB_ID(vehicle_control_mode));
 
 	/* advertise attitude */
 	orb_advert_t pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
-
 
 	int loopcounter = 0;
 	int printcounter = 0;
@@ -281,9 +282,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 			/* XXX this is seriously bad - should be an emergency */
 		} else if (ret == 0) {
 			/* check if we're in HIL - not getting sensor data is fine then */
-			orb_copy(ORB_ID(vehicle_status), sub_state, &state);
+			orb_copy(ORB_ID(vehicle_control_mode), sub_control_mode, &control_mode);
 
-			if (!state.flag_hil_enabled) {
+			if (!control_mode.flag_system_hil_enabled) {
 				fprintf(stderr,
 					"[att ekf] WARNING: Not getting sensors - sensor app running?\n");
 			}
@@ -307,18 +308,20 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 				orb_copy(ORB_ID(sensor_combined), sub_raw, &raw);
 
 				if (!initialized) {
+					// XXX disabling init for now
+					initialized = true;
 
-					gyro_offsets[0] += raw.gyro_rad_s[0];
-					gyro_offsets[1] += raw.gyro_rad_s[1];
-					gyro_offsets[2] += raw.gyro_rad_s[2];
-					offset_count++;
+					// gyro_offsets[0] += raw.gyro_rad_s[0];
+					// gyro_offsets[1] += raw.gyro_rad_s[1];
+					// gyro_offsets[2] += raw.gyro_rad_s[2];
+					// offset_count++;
 
-					if (hrt_absolute_time() - start_time > 3000000LL) {
-						initialized = true;
-						gyro_offsets[0] /= offset_count;
-						gyro_offsets[1] /= offset_count;
-						gyro_offsets[2] /= offset_count;
-					}
+					// if (hrt_absolute_time() - start_time > 3000000LL) {
+					// 	initialized = true;
+					// 	gyro_offsets[0] /= offset_count;
+					// 	gyro_offsets[1] /= offset_count;
+					// 	gyro_offsets[2] /= offset_count;
+					// }
 
 				} else {
 
@@ -382,7 +385,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					static bool const_initialized = false;
 
 					/* initialize with good values once we have a reasonable dt estimate */
-					if (!const_initialized && dt < 0.05f && dt > 0.005f) {
+					if (!const_initialized && dt < 0.05f && dt > 0.001f) {
 						dt = 0.005f;
 						parameters_update(&ekf_param_handles, &ekf_params);
 
@@ -422,7 +425,8 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						continue;
 					}
 
-					if (last_data > 0 && raw.timestamp - last_data > 12000) printf("[attitude estimator ekf] sensor data missed! (%llu)\n", raw.timestamp - last_data);
+					if (last_data > 0 && raw.timestamp - last_data > 12000)
+						printf("[attitude estimator ekf] sensor data missed! (%llu)\n", raw.timestamp - last_data);
 
 					last_data = raw.timestamp;
 

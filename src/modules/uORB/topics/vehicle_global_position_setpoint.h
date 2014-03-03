@@ -45,6 +45,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "../uORB.h"
+#include "mission.h"
 
 /**
  * @addtogroup topics
@@ -65,7 +66,14 @@ struct vehicle_global_position_setpoint_s
 	float altitude;			/**< altitude in meters					*/
 	float yaw;			/**< in radians NED -PI..+PI 				*/
 	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
-	bool is_loiter;			/**< true if loitering is enabled			*/
+	int8_t loiter_direction;	/**< 1: positive / clockwise, -1, negative.		*/
+	enum NAV_CMD nav_cmd;		/**< true if loitering is enabled			*/
+	float param1;
+	float param2;
+	float param3;
+	float param4;
+	float turn_distance_xy;		/**< The distance on the plane which will mark this as reached */
+	float turn_distance_z;		/**< The distance in Z direction which will mark this as reached */
 };
 
 /**

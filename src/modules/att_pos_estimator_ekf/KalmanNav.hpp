@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,14 +47,19 @@
 #include <mathlib/mathlib.h>
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
-#include <controllib/block/UOrbSubscription.hpp>
-#include <controllib/block/UOrbPublication.hpp>
+#include <controllib/uorb/UOrbSubscription.hpp>
+#include <controllib/uorb/UOrbPublication.hpp>
 
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/parameter_update.h>
+
+#include <drivers/drv_accel.h>
+#include <drivers/drv_gyro.h>
+#include <drivers/drv_mag.h>
 
 #include <drivers/drv_hrt.h>
 #include <poll.h>
@@ -78,6 +83,9 @@ public:
 	 */
 
 	virtual ~KalmanNav() {};
+
+	math::Quaternion init(float ax, float ay, float az, float mx, float my, float mz);
+
 	/**
 	 * The main callback function for the class
 	 */
@@ -135,6 +143,7 @@ protected:
 	control::UOrbSubscription<parameter_update_s> _param_update;    /**< parameter update sub. */
 	// publications
 	control::UOrbPublication<vehicle_global_position_s> _pos;       /**< position pub. */
+	control::UOrbPublication<vehicle_local_position_s> _localPos;   /**< local position pub. */
 	control::UOrbPublication<vehicle_attitude_s> _att;              /**< attitude pub. */
 	// time stamps
 	uint64_t _pubTimeStamp;     /**< output data publication time stamp */
@@ -151,21 +160,24 @@ protected:
 	enum {PHI = 0, THETA, PSI, VN, VE, VD, LAT, LON, ALT};  /**< state enumeration */
 	float phi, theta, psi;                  /**< 3-2-1 euler angles */
 	float vN, vE, vD;                       /**< navigation velocity, m/s */
-	double lat, lon, alt;                   /**< lat, lon, alt, radians */
+	double lat, lon;                   	/**< lat, lon radians */
 	// parameters
-	control::BlockParam<float> _vGyro;      /**< gyro process noise */
-	control::BlockParam<float> _vAccel;     /**< accelerometer process noise  */
-	control::BlockParam<float> _rMag;       /**< magnetometer measurement noise  */
-	control::BlockParam<float> _rGpsVel;    /**< gps velocity measurement noise */
-	control::BlockParam<float> _rGpsPos;    /**< gps position measurement noise */
-	control::BlockParam<float> _rGpsAlt;    /**< gps altitude measurement noise */
-	control::BlockParam<float> _rPressAlt;  /**< press altitude measurement noise */
-	control::BlockParam<float> _rAccel;     /**< accelerometer measurement noise */
-	control::BlockParam<float> _magDip;     /**< magnetic inclination with level */
-	control::BlockParam<float> _magDec;     /**< magnetic declination, clockwise rotation */
-	control::BlockParam<float> _g;          /**< gravitational constant */
-	control::BlockParam<float> _faultPos;   /**< fault detection threshold for position */
-	control::BlockParam<float> _faultAtt;   /**< fault detection threshold for attitude */
+	float alt;                   		/**< altitude, meters */
+	double lat0, lon0;                   	/**< reference latitude and longitude */
+	float alt0;                   		/**<  refeerence altitude (ground height) */
+	control::BlockParamFloat _vGyro;      /**< gyro process noise */
+	control::BlockParamFloat _vAccel;     /**< accelerometer process noise  */
+	control::BlockParamFloat _rMag;       /**< magnetometer measurement noise  */
+	control::BlockParamFloat _rGpsVel;    /**< gps velocity measurement noise */
+	control::BlockParamFloat _rGpsPos;    /**< gps position measurement noise */
+	control::BlockParamFloat _rGpsAlt;    /**< gps altitude measurement noise */
+	control::BlockParamFloat _rPressAlt;  /**< press altitude measurement noise */
+	control::BlockParamFloat _rAccel;     /**< accelerometer measurement noise */
+	control::BlockParamFloat _magDip;     /**< magnetic inclination with level */
+	control::BlockParamFloat _magDec;     /**< magnetic declination, clockwise rotation */
+	control::BlockParamFloat _g;          /**< gravitational constant */
+	control::BlockParamFloat _faultPos;   /**< fault detection threshold for position */
+	control::BlockParamFloat _faultAtt;   /**< fault detection threshold for attitude */
 	// status
 	bool _attitudeInitialized;
 	bool _positionInitialized;

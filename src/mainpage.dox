@@ -1,0 +1,9 @@
+/**
+\mainpage PX4 Autopilot Flight Control Stack and Middleware
+
+This software repository offers a middleware for micro aerial vehicles capable of running efficiently on a 168 MHz Cortex M4F processor and a state of the art flight control stack supporting multicopter and fixed wing aircraft. It can be easily used for experimental air (and ground) vehicles as well, as the application on a spherical blimp shows.
+
+http://pixhawk.org
+
+
+*/

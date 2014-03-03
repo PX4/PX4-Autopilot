@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012,2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,6 +69,7 @@ static void		i2c_rx_setup(void);
 static void		i2c_tx_setup(void);
 static void		i2c_rx_complete(void);
 static void		i2c_tx_complete(void);
+static void		i2c_dump(void);
 
 static DMA_HANDLE	rx_dma;
 static DMA_HANDLE	tx_dma;
@@ -92,7 +93,7 @@ enum {
 } direction;
 
 void
-i2c_init(void)
+interface_init(void)
 {
 	debug("i2c init");
 
@@ -148,12 +149,12 @@ i2c_init(void)
 #endif
 }
 
-
 /*
   reset the I2C bus
   used to recover from lockups
  */
-void i2c_reset(void)
+void
+i2c_reset(void)
 {
 	rCR1 |= I2C_CR1_SWRST;
 	rCR1 = 0;
@@ -330,7 +331,7 @@ i2c_tx_complete(void)
 	i2c_tx_setup();
 }
 
-void
+static void
 i2c_dump(void)
 {
 	debug("CR1   0x%08x  CR2   0x%08x", rCR1,  rCR2);

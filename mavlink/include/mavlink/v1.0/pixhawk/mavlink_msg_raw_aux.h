@@ -16,6 +16,9 @@ typedef struct __mavlink_raw_aux_t
 #define MAVLINK_MSG_ID_RAW_AUX_LEN 16
 #define MAVLINK_MSG_ID_172_LEN 16
 
+#define MAVLINK_MSG_ID_RAW_AUX_CRC 182
+#define MAVLINK_MSG_ID_172_CRC 182
+
 
 
 #define MAVLINK_MESSAGE_INFO_RAW_AUX { \
@@ -51,7 +54,7 @@ static inline uint16_t mavlink_msg_raw_aux_pack(uint8_t system_id, uint8_t compo
 						       uint16_t adc1, uint16_t adc2, uint16_t adc3, uint16_t adc4, uint16_t vbat, int16_t temp, int32_t baro)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[16];
+	char buf[MAVLINK_MSG_ID_RAW_AUX_LEN];
 	_mav_put_int32_t(buf, 0, baro);
 	_mav_put_uint16_t(buf, 4, adc1);
 	_mav_put_uint16_t(buf, 6, adc2);
@@ -60,7 +63,7 @@ static inline uint16_t mavlink_msg_raw_aux_pack(uint8_t system_id, uint8_t compo
 	_mav_put_uint16_t(buf, 12, vbat);
 	_mav_put_int16_t(buf, 14, temp);
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 16);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_RAW_AUX_LEN);
 #else
 	mavlink_raw_aux_t packet;
 	packet.baro = baro;
@@ -71,18 +74,22 @@ static inline uint16_t mavlink_msg_raw_aux_pack(uint8_t system_id, uint8_t compo
 	packet.vbat = vbat;
 	packet.temp = temp;
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, 16);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_RAW_AUX_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_RAW_AUX;
-	return mavlink_finalize_message(msg, system_id, component_id, 16, 182);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_RAW_AUX_LEN, MAVLINK_MSG_ID_RAW_AUX_CRC);
+#else
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_RAW_AUX_LEN);
+#endif
 }
 
 /**
  * @brief Pack a raw_aux message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param adc1 ADC1 (J405 ADC3, LPC2148 AD0.6)
  * @param adc2 ADC2 (J405 ADC5, LPC2148 AD0.2)
@@ -98,7 +105,7 @@ static inline uint16_t mavlink_msg_raw_aux_pack_chan(uint8_t system_id, uint8_t 
 						           uint16_t adc1,uint16_t adc2,uint16_t adc3,uint16_t adc4,uint16_t vbat,int16_t temp,int32_t baro)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[16];
+	char buf[MAVLINK_MSG_ID_RAW_AUX_LEN];
 	_mav_put_int32_t(buf, 0, baro);
 	_mav_put_uint16_t(buf, 4, adc1);
 	_mav_put_uint16_t(buf, 6, adc2);
@@ -107,7 +114,7 @@ static inline uint16_t mavlink_msg_raw_aux_pack_chan(uint8_t system_id, uint8_t 
 	_mav_put_uint16_t(buf, 12, vbat);
 	_mav_put_int16_t(buf, 14, temp);
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 16);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_RAW_AUX_LEN);
 #else
 	mavlink_raw_aux_t packet;
 	packet.baro = baro;
@@ -118,15 +125,19 @@ static inline uint16_t mavlink_msg_raw_aux_pack_chan(uint8_t system_id, uint8_t 
 	packet.vbat = vbat;
 	packet.temp = temp;
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, 16);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_RAW_AUX_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_RAW_AUX;
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 16, 182);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_RAW_AUX_LEN, MAVLINK_MSG_ID_RAW_AUX_CRC);
+#else
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_RAW_AUX_LEN);
+#endif
 }
 
 /**
- * @brief Encode a raw_aux struct into a message
+ * @brief Encode a raw_aux struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -136,6 +147,20 @@ static inline uint16_t mavlink_msg_raw_aux_pack_chan(uint8_t system_id, uint8_t 
 static inline uint16_t mavlink_msg_raw_aux_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_raw_aux_t* raw_aux)
 {
 	return mavlink_msg_raw_aux_pack(system_id, component_id, msg, raw_aux->adc1, raw_aux->adc2, raw_aux->adc3, raw_aux->adc4, raw_aux->vbat, raw_aux->temp, raw_aux->baro);
+}
+
+/**
+ * @brief Encode a raw_aux struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param raw_aux C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_raw_aux_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_raw_aux_t* raw_aux)
+{
+	return mavlink_msg_raw_aux_pack_chan(system_id, component_id, chan, msg, raw_aux->adc1, raw_aux->adc2, raw_aux->adc3, raw_aux->adc4, raw_aux->vbat, raw_aux->temp, raw_aux->baro);
 }
 
 /**
@@ -155,7 +180,7 @@ static inline uint16_t mavlink_msg_raw_aux_encode(uint8_t system_id, uint8_t com
 static inline void mavlink_msg_raw_aux_send(mavlink_channel_t chan, uint16_t adc1, uint16_t adc2, uint16_t adc3, uint16_t adc4, uint16_t vbat, int16_t temp, int32_t baro)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[16];
+	char buf[MAVLINK_MSG_ID_RAW_AUX_LEN];
 	_mav_put_int32_t(buf, 0, baro);
 	_mav_put_uint16_t(buf, 4, adc1);
 	_mav_put_uint16_t(buf, 6, adc2);
@@ -164,7 +189,11 @@ static inline void mavlink_msg_raw_aux_send(mavlink_channel_t chan, uint16_t adc
 	_mav_put_uint16_t(buf, 12, vbat);
 	_mav_put_int16_t(buf, 14, temp);
 
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_RAW_AUX, buf, 16, 182);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_RAW_AUX, buf, MAVLINK_MSG_ID_RAW_AUX_LEN, MAVLINK_MSG_ID_RAW_AUX_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_RAW_AUX, buf, MAVLINK_MSG_ID_RAW_AUX_LEN);
+#endif
 #else
 	mavlink_raw_aux_t packet;
 	packet.baro = baro;
@@ -175,7 +204,11 @@ static inline void mavlink_msg_raw_aux_send(mavlink_channel_t chan, uint16_t adc
 	packet.vbat = vbat;
 	packet.temp = temp;
 
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_RAW_AUX, (const char *)&packet, 16, 182);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_RAW_AUX, (const char *)&packet, MAVLINK_MSG_ID_RAW_AUX_LEN, MAVLINK_MSG_ID_RAW_AUX_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_RAW_AUX, (const char *)&packet, MAVLINK_MSG_ID_RAW_AUX_LEN);
+#endif
 #endif
 }
 
@@ -271,6 +304,6 @@ static inline void mavlink_msg_raw_aux_decode(const mavlink_message_t* msg, mavl
 	raw_aux->vbat = mavlink_msg_raw_aux_get_vbat(msg);
 	raw_aux->temp = mavlink_msg_raw_aux_get_temp(msg);
 #else
-	memcpy(raw_aux, _MAV_PAYLOAD(msg), 16);
+	memcpy(raw_aux, _MAV_PAYLOAD(msg), MAVLINK_MSG_ID_RAW_AUX_LEN);
 #endif
 }

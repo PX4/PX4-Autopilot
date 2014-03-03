@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -104,7 +104,7 @@
 #include <math.h>
 #include <ctype.h>
 
-#include <arch/board/board.h>
+#include <board_config.h>
 #include <drivers/drv_hrt.h>
 
 #include <arch/stm32/chip.h>
@@ -116,10 +116,6 @@
 #include <stm32_tim.h>
 
 #include <systemlib/err.h>
-
-#ifndef CONFIG_HRT_TIMER
-# error This driver requires CONFIG_HRT_TIMER
-#endif
 
 /* Tone alarm configuration */
 #if   TONE_ALARM_TIMER == 2
@@ -234,12 +230,17 @@ public:
 
 	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
 	virtual ssize_t		write(file *filp, const char *buffer, size_t len);
+	inline const char	*name(int tune) {
+		return _tune_names[tune];
+	}
 
 private:
-	static const unsigned	_tune_max = 1024; // be reasonable about user tunes
-	static const char	* const _default_tunes[];
-	static const unsigned	_default_ntunes;
+	static const unsigned	_tune_max = 1024 * 8; // be reasonable about user tunes
+	const char		* _default_tunes[TONE_NUMBER_OF_TUNES];
+	const char		* _tune_names[TONE_NUMBER_OF_TUNES];
 	static const uint8_t	_note_tab[];
+
+	unsigned		_default_tune_number; // number of currently playing default tune (0 for none)
 
 	const char		*_user_tune;
 
@@ -306,160 +307,6 @@ private:
 
 };
 
-// predefined tune array
-const char * const ToneAlarm::_default_tunes[] = {
-	"MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc",		// startup tune
-	"MBT200a8a8a8PaaaP",					// ERROR tone
-	"MFT200e8a8a",						// NotifyPositive tone
-	"MFT200e8e",						// NotifyNeutral tone
-	"MFT200e8c8e8c8e8c8",					// NotifyNegative tone
-	"MFT90O3C16.C32C16.C32C16.C32G16.E32G16.E32G16.E32C16.C32C16.C32C16.C32G16.E32G16.E32G16.E32C4", // charge!
-	"MFT60O3C32O2A32F16F16F32G32A32A+32O3C16C16C16O2A16",	// dixie
-	"MFT90O2C16C16C16F8.A8C16C16C16F8.A4P16P8",		// cucuracha
-	"MNT150L8O2GGABGBADGGABL4GL8F+",			// yankee
-	"MFT200O3C4.O2A4.G4.F4.D8E8F8D4F8C2.O2G4.O3C4.O2A4.F4.D8E8F8G4A8G2P8", // daisy
-	"T200O2B4P8B16B16B4P8B16B16B8G+8E8G+8B8G+8B8O3E8"	// william tell
-	"O2B8G+8E8G+8B8G+8B8O3E8O2B4P8B16B16B4P8B16"
-	"O2B16B4P8B16B16B4P8B16B16B8B16B16B8B8B8B16"
-	"O2B16B8B8B8B16B16B8B8B8B16B16B8B8B2B2B8P8"
-	"P4P4P8O1B16B16B8B16B16B8B16B16O2E8F+8G+8"
-	"O1B16B16B8B16B16O2E8G+16G+16F+8D+8O1B8B16"
-	"O1B16B8B16B16B8B16B16O2E8F+8G+8E16G+16B4"
-	"O2B16A16G+16F+16E8G+8E8O3B16B16B8B16B16B8"
-	"O3B16B16O4E8F+8G+8O3B16B16B8B16B16O4E8G+16"
-	"O4G+16F+8D+8O3B8B16B16B8B16B16B8B16B16O4E8"
-	"O4F+8G+8E16G+16B4B16A16G+16F+16E8G+8E8O3G+16"
-	"O3G+16G+8G+16G+16G+8G+16G+16G+8O4C+8O3G+8"
-	"O4C+8O3G+8O4C+8O3G+8F+8E8D+8C+8G+16G+16G+8"
-	"O3G+16G+16G+8G+16G+16G+8O4C+8O3G+8O4C+8O3G+8"
-	"O4C+8O3B8A+8B8A+8B8G+16G+16G+8G+16G+16G+8"
-	"O3G+16G+16G+8O4C+8O3G+8O4C+8O3G+8O4C+8O3G+8"
-	"O3F+8E8D+8C+8G+16G+16G+8G+16G+16G+8G+16G+16"
-	"O3G+8O4C+8O3G+8O4C+8O3G+8O4C+8O3B8A+8B8O2B16"
-	"O2B16B8F+16F+16F+8F+16F+16F+8G+8A8F+4A8G+8"
-	"O2E4G+8F+8F+8F+8O3F+16F+16F+8F+16F+16F+8"
-	"O3G+8A8F+4A8G+8E4G+8F+8O2B16B16B8O1B16B16"
-	"O1B8B16B16B8B16B16O2E8F+8G+8O1B16B16B8B16"
-	"O1B16O2E8G+16G+16F+8D+8O1B8B16B16B8B16B16"
-	"O1B8B16B16O2E8F+8G+8E16G+16B4B16A16G+16F+16"
-	"O2E8G+8E8O3B16B16B8B16B16B8B16B16O4E8F+8"
-	"O4G+8O3B16B16B8B16B16O4E8G+16G+16F+8D+8O3B8"
-	"O3B16B16B8B16B16B8B16B16O4E8F+8G+8E16G+16"
-	"O4B4B16A16G+16F+16E8G+8E8O3E64F64G64A64B64"
-	"O4C64D64E8E16E16E8E8G+4.F+8E8D+8E8C+8O3B16"
-	"O4C+16O3B16O4C+16O3B16O4C+16D+16E16O3A16"
-	"O3B16A16B16A16B16O4C+16D+16O3G+16A16G+16"
-	"O3A16G+16A16B16O4C+16O3F+16G+16F+16G+16F+16"
-	"O3G+16F+16G+16F+16G+16F+16D+16O2B16O3B16"
-	"O4C+16D+16E8D+8E8C+8O3B16O4C+16O3B16O4C+16"
-	"O3B16O4C+16D+16E16O3A16B16A16B16A16B16O4C+16"
-	"O4D+16O3G+16A16G+16A16G+16A16B16O4C+16O3F+16"
-	"O3G+16F+16G+16F+16A16F+16E16E8P8C+4C+16O2C16"
-	"O3C+16O2C16O3D+16C+16O2B16A16A16G+16E16C+16"
-	"O2C+16C+16C+16C+16E16D+16O1C16G+16G+16G+16"
-	"O1G+16G+16G+16O2C+16E16G+16O3C+16C+16C+16"
-	"O3C+16C+16O2C16O3C+16O2C16O3D+16C+16O2B16"
-	"O2A16A16G+16E16C+16C+16C+16C+16C+16E16D+16"
-	"O1C16G+16G+16G+16G+16G+16G+16O2C+16E16G+16"
-	"O3C+16E16D+16C+16D+16O2C16G+16G+16G+16O3G+16"
-	"O3E16C+16D+16O2C16G+16G+16G+16O3G+16E16C+16"
-	"O3D+16O2B16G+16G+16A+16G16D+16D+16G+16G16"
-	"O2G+16G16G+16A16G+16F+16E16O1B16A+16B16O2E16"
-	"O1B16O2F+16O1B16O2G+16E16D+16E16G+16E16A16"
-	"O2F+16B16O3G+16F+16E16D+16F+16E16C+16O2B16"
-	"O3C+16O2B16O3C+16D+16E16F+16G+16O2A16B16"
-	"O2A16B16O3C+16D+16E16F+16O2G+16A16G+16A16"
-	"O2C16O3C+16D+16E16O2F+16G+16F+16G+16F+16"
-	"O2G+16F+16G+16F+16G+16F+16D+16O1B16C16O2C+16"
-	"O2D+16E16O1B16A+16B16O2E16O1B16O2F+16O1B16"
-	"O2G+16E16D+16E16G+16E16A16F+16B16O3G+16F+16"
-	"O3E16D+16F+16E16C+16O2B16O3C+16O2B16O3C+16"
-	"O3D+16E16F+16G+16O2A16B16A16B16O3C+16D+16"
-	"O3E16F+16O2G+16A16G+16A16B16O3C+16D+16E16"
-	"O2F+16O3C+16O2C16O3C+16D+16C+16O2A16F+16"
-	"O2E16O3E16F+16G+16A16B16O4C+16D+16E8E16E16"
-	"O4E8E8G+4.F8E8D+8E8C+8O3B16O4C+16O3B16O4C+16"
-	"O3B16O4C+16D+16E16O3A16B16A16B16A16B16O4C+16"
-	"O4D+16O3G+16A16G+16A16G+16A16B16O4C+16O3F+16"
-	"O3G+16F+16G+16F+16G+16F+16G+16F+16G+16F+16"
-	"O3D+16O2B16O3B16O4C+16D+16E8E16E16E8E8G+4."
-	"O4F+8E8D+8E8C+8O3B16O4C+16O3B16O4C+16O3B16"
-	"O4C+16D+16E16O3A16B16A16B16A16B16O4C+16D+16"
-	"O3G+16A16G+16A16G+16A16B16O4C+16O3F+16G+16"
-	"O3F+16G+16F+16A16G+16F+16E8O2B8O3E8G+16G+16"
-	"O3G+8G+16G+16G+8G+16G+16G+8O4C+8O3G+8O4C+8"
-	"O3G+8O4C+8O3G+8F+8E8D+8C+8G+16G+16G+8G+16"
-	"O3G+16G+8G+16G+16G+8O4C+8O3G+8O4C+8O3G+8"
-	"O4C+8O3B8A+8B8A+8B8G+16G+16G+8G+16G+16G+8"
-	"O3G+16G+16G+8O4C+8O3G+8O4C+8O3G+8O4C+8O3G+8"
-	"O3F+8E8D+8C+8G+16G+16G+8G+16G+16G+8G+16G+16"
-	"O3G+8O4C+8O3G+8O4C+8O3G+8O4C+8O3B8A+8B8A+8"
-	"O3B8O2F+16F+16F+8F+16F+16F+8G+8A8F+4A8G+8"
-	"O2E4G+8F+8B8O1B8O2F+16F+16F+8F+16F+16F+8"
-	"O2G+8A8F+4A8G+8E4G+8F+8B16B16B8O1B16B16B8"
-	"O1B16B16B8B16B16O2E8F+8G+8O1B16B16B8B16B16"
-	"O2E8G+16G+16F+8D+8O1B8B16B16B8B16B16B8B16"
-	"O1B16O2E8F+8G+8E16G+16B4B16A16G+16F+16E8"
-	"O1B8O2E8O3B16B16B8B16B16B8B16B16O4E8F+8G+8"
-	"O3B16B16B8B16B16O4E8G+16G+16F+8D+8O3B8B16"
-	"O3B16B8B16B16B8B16B16O4E8F+8G+8O3E16G+16"
-	"O3B4B16A16G+16F+16E16F+16G+16A16G+16A16B16"
-	"O4C+16O3B16O4C+16D+16E16D+16E16F+16G+16A16"
-	"O3B16O4A16O3B16O4A16O3B16O4A16O3B16O4A16"
-	"O3B16O4A16O3B16O4A16O3B16O4A16O3B16E16F+16"
-	"O3G+16A16G+16A16B16O4C+16O3B16O4C+16D+16"
-	"O4E16D+16E16F+16G+16A16O3B16O4A16O3B16O4A16"
-	"O3B16O4A16O3B16O4A16O3B16O4A16O3B16O4A16"
-	"O3B16O4A16O3B16P16G+16O4G+16O3G+16P16D+16"
-	"O4D+16O3D+16P16E16O4E16O3E16P16A16O4A16O3A16"
-	"P16O3G+16O4G+16O3G+16P16D+16O4D+16O3D+16"
-	"P16O3E16O4E16O3E16P16A16O4A16O3A16O4G16O3G16"
-	"O4G16O3G16O4G16O3G16O4G16O3G16O4G8E8C8E8"
-	"O4G+16O3G+16O4G+16O3G+16O4G+16O3G+16O4G+16"
-	"O3G+16O4G+8E8O3B8O4E8G+16O3G+16O4G+16O3G+16"
-	"O4G+16O3G+16O4G+16O3G+16O4G+8F8C+8F8A+16"
-	"O3A+16O4A+16O3A+16O4A+16O3A+16O4A+16O3A+16"
-	"O4A+8G8E8G8B8P16A+16P16A16P16G+16P16F+16"
-	"P16O4E16P16D+16P16C+16P16O3B16P16A+16P16"
-	"O3A16P16G+16P16F+16P16E16P16D+16P16F+16E16"
-	"O3F+16G+16A16G+16A16B16O4C+16O3B16O4C+16"
-	"O4D+16E16D+16E16F+16G+16A16O3B16O4A16O3B16"
-	"O4A16O3B16O4A16O3B16O4A16O3B16O4A16O3B16"
-	"O4A16O3B16O4A16O3B16E16F+16G+16A16G+16A16"
-	"O3B16O4C+16O3B16O4C+16D+16E16D+16E16F+16"
-	"O4G+16A16O3B16O4A16O3B16O4A16O3B16O4A16O3B16"
-	"O4A16O3B16O4A16O3B16O4A16O3B16O4A16O3B16"
-	"P16O3G+16O4G+16O3G+16P16D+16O4D+16O3D+16"
-	"P16O3E16O4E16O3E16P16A16O4A16O3A16P16G+16"
-	"O4G+16O3G+16P16D+16O4D+16O3D+16P16E16O4E16"
-	"O3E16P16A16O4A16O3A16O4G16O3G16O4G16O3G16"
-	"O4G16O3G16O4G16O3G16O4G8E8C8E8G+16O3G+16"
-	"O4G+16O3G+16O4G+16O3G+16O4G+16O3G+16O4G+8"
-	"O4E8O3B8O4E8G+16O3G+16O4G+16O3G+16O4G+16"
-	"O3G+16O4G+16O3G+16O4G+8F8C+8F8A+16O3A+16"
-	"O4A+16O3A+16O4A+16O3A+16O4A+16O3A+16O4A+8"
-	"O4G8E8G8B8P16A+16P16A16P16G+16P16F+16P16"
-	"O4E16P16D+16P16C+16P16O3B16P16A+16P16A16"
-	"P16O3G+16P16F+16P16E16P16D+16P16F16E16D+16"
-	"O3E16D+16E8B16B16B8B16B16B8B16B16O4E8F+8"
-	"O4G+8O3B16B16B8B16B16B8B16B16O4G+8A8B8P8"
-	"O4E8F+8G+8P8O3G+8A8B8P8P2O2B16C16O3C+16D16"
-	"O3D+16E16F16F+16G16G+16A16A+16B16C16O4C+16"
-	"O4D+16E16D+16F+16D+16E16D+16F+16D+16E16D+16"
-	"O4F+16D+16E16D+16F+16D+16E16D+16F+16D+16"
-	"O4E16D+16F+16D+16E16D+16F+16D+16E16D+16F+16"
-	"O4D+16E8E16O3E16O4E16O3E16O4E16O3E16O4E8"
-	"O3B16O2B16O3B16O2B16O3B16O2B16O3B8G+16O2G+16"
-	"O3G+16O2G+16O3G+16O2G+16O3G8E16O2E16O3E16"
-	"O2E16O3E16O2E16O3E8E16E16E8E8E8O2B16B16B8"
-	"O2B8B8G+16G+16G+8G+8G+8E16E16E8E8E8O1B8O2E8"
-	"O1B8O2G+8E8B8G+8O3E8O2B8O3E8O2B8O3G+8E8B8"
-	"O3G+8O4E4P8E16E16E8E8E8E8E4P8E16E4P8O2E16"
-	"O2E2P64",
-};
-
-const unsigned ToneAlarm::_default_ntunes = sizeof(_default_tunes) / sizeof(_default_tunes[0]);
-
 // semitone offsets from C for the characters 'A'-'G'
 const uint8_t ToneAlarm::_note_tab[] = {9, 11, 0, 2, 4, 5, 7};
 
@@ -470,13 +317,33 @@ extern "C" __EXPORT int tone_alarm_main(int argc, char *argv[]);
 
 
 ToneAlarm::ToneAlarm() :
-	CDev("tone_alarm", "/dev/tone_alarm"),
+	CDev("tone_alarm", TONEALARM_DEVICE_PATH),
+	_default_tune_number(0),
 	_user_tune(nullptr),
 	_tune(nullptr),
 	_next(nullptr)
 {
 	// enable debug() calls
 	//_debug_enabled = true;
+	_default_tunes[TONE_STARTUP_TUNE] = "MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc";		// startup tune
+	_default_tunes[TONE_ERROR_TUNE] = "MBT200a8a8a8PaaaP";						// ERROR tone
+	_default_tunes[TONE_NOTIFY_POSITIVE_TUNE] = "MFT200e8a8a";					// Notify Positive tone
+	_default_tunes[TONE_NOTIFY_NEUTRAL_TUNE] = "MFT200e8e";						// Notify Neutral tone
+	_default_tunes[TONE_NOTIFY_NEGATIVE_TUNE] = "MFT200e8c8e8c8e8c8";				// Notify Negative tone
+	_default_tunes[TONE_ARMING_WARNING_TUNE] = "MNT75L1O2G";					//arming warning
+	_default_tunes[TONE_BATTERY_WARNING_SLOW_TUNE] = "MBNT100a8";					//battery warning slow
+	_default_tunes[TONE_BATTERY_WARNING_FAST_TUNE] = "MBNT255a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8";	//battery warning fast
+	_default_tunes[TONE_GPS_WARNING_TUNE] = "MFT255L4AAAL1F#";					//gps warning slow
+
+	_tune_names[TONE_STARTUP_TUNE] = "startup";			// startup tune
+	_tune_names[TONE_ERROR_TUNE] = "error";				// ERROR tone
+	_tune_names[TONE_NOTIFY_POSITIVE_TUNE] = "positive";		// Notify Positive tone
+	_tune_names[TONE_NOTIFY_NEUTRAL_TUNE] = "neutral";		// Notify Neutral tone
+	_tune_names[TONE_NOTIFY_NEGATIVE_TUNE] = "negative";		// Notify Negative tone
+	_tune_names[TONE_ARMING_WARNING_TUNE] = "arming";		// arming warning
+	_tune_names[TONE_BATTERY_WARNING_SLOW_TUNE] = "slow_bat";	// battery warning slow
+	_tune_names[TONE_BATTERY_WARNING_FAST_TUNE] = "fast_bat";	// battery warning fast
+	_tune_names[TONE_GPS_WARNING_TUNE] = "gps_warning";	            // gps warning
 }
 
 ToneAlarm::~ToneAlarm()
@@ -803,8 +670,12 @@ tune_error:
 	// stop (and potentially restart) the tune
 tune_end:
 	stop_note();
-	if (_repeat)
+	if (_repeat) {
 		start_tune(_tune);
+	} else {
+		_tune = nullptr;
+		_default_tune_number = 0;
+	}
 	return;
 }
 
@@ -867,14 +738,20 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 	case TONE_SET_ALARM:
 		debug("TONE_SET_ALARM %u", arg);
 
-		if (arg <= _default_ntunes) {
-			if (arg == 0) {
+		if (arg < TONE_NUMBER_OF_TUNES) {
+			if (arg == TONE_STOP_TUNE) {
 				// stop the tune
 				_tune = nullptr;
 				_next = nullptr;
+				_repeat = false;
+				_default_tune_number = 0;
 			} else {
-				// play the selected tune
-				start_tune(_default_tunes[arg - 1]);
+				/* always interrupt alarms, unless they are repeating and already playing */
+				if (!(_repeat && _default_tune_number == arg)) {
+					/* play the selected tune */
+					_default_tune_number = arg;
+					start_tune(_default_tunes[arg]);
+				}
 			}
 		} else {
 			result = -EINVAL;
@@ -945,10 +822,10 @@ play_tune(unsigned tune)
 {
 	int	fd, ret;
 
-	fd = open("/dev/tone_alarm", 0);
+	fd = open(TONEALARM_DEVICE_PATH, 0);
 
 	if (fd < 0)
-		err(1, "/dev/tone_alarm");
+		err(1, TONEALARM_DEVICE_PATH);
 
 	ret = ioctl(fd, TONE_SET_ALARM, tune);
 	close(fd);
@@ -960,17 +837,20 @@ play_tune(unsigned tune)
 }
 
 int
-play_string(const char *str)
+play_string(const char *str, bool free_buffer)
 {
 	int	fd, ret;
 
-	fd = open("/dev/tone_alarm", O_WRONLY);
+	fd = open(TONEALARM_DEVICE_PATH, O_WRONLY);
 
 	if (fd < 0)
-		err(1, "/dev/tone_alarm");
+		err(1, TONEALARM_DEVICE_PATH);
 
 	ret = write(fd, str, strlen(str) + 1);
 	close(fd);
+
+	if (free_buffer)
+		free((void *)str);
 
 	if (ret < 0)
 		err(1, "play tune");
@@ -997,22 +877,50 @@ tone_alarm_main(int argc, char *argv[])
 		}
 	}
 
-	if ((argc > 1) && !strcmp(argv[1], "start"))
-		play_tune(1);
+	if (argc > 1) {
+		const char *argv1 = argv[1];
 
-	if ((argc > 1) && !strcmp(argv[1], "stop"))
-		play_tune(0);
+		if (!strcmp(argv1, "start"))
+			play_tune(TONE_STARTUP_TUNE);
 
-	if ((tune = strtol(argv[1], nullptr, 10)) != 0)
-		play_tune(tune);
+		if (!strcmp(argv1, "stop"))
+			play_tune(TONE_STOP_TUNE);
 
-	/* if it looks like a PLAY string... */
-	if (strlen(argv[1]) > 2) {
-		const char *str = argv[1];
-		if (str[0] == 'M') {
-			play_string(str);
+		if ((tune = strtol(argv1, nullptr, 10)) != 0)
+			play_tune(tune);
+
+		/* It might be a tune name */
+		for (tune = 1; tune < TONE_NUMBER_OF_TUNES; tune++)
+			if (!strcmp(g_dev->name(tune), argv1))
+				play_tune(tune);
+
+		/* If it is a file name then load and play it as a string */
+		if (*argv1 == '/') {
+			FILE *fd = fopen(argv1, "r");
+			int sz;
+			char *buffer;
+			if (fd == nullptr)
+				errx(1, "couldn't open '%s'", argv1);
+			fseek(fd, 0, SEEK_END);
+			sz = ftell(fd);
+			fseek(fd, 0, SEEK_SET);
+			buffer = (char *)malloc(sz + 1);
+			if (buffer == nullptr)
+				errx(1, "not enough memory memory");
+			fread(buffer, sz, 1, fd);
+			/* terminate the string */
+			buffer[sz] = 0;
+			play_string(buffer, true);
 		}
+
+		/* if it looks like a PLAY string... */
+		if (strlen(argv1) > 2) {
+			if (*argv1 == 'M') {
+				play_string(argv1, false);
+			}
+		}
+
 	}
 
-	errx(1, "unrecognised command, try 'start', 'stop' or an alarm number");
+	errx(1, "unrecognized command, try 'start', 'stop', an alarm number or name, or a file name starting with a '/'");
 }

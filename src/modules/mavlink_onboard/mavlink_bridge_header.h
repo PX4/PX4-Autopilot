@@ -78,4 +78,6 @@ extern void mavlink_send_uart_bytes(mavlink_channel_t chan, uint8_t *ch, int len
 mavlink_status_t* mavlink_get_channel_status(uint8_t chan);
 mavlink_message_t* mavlink_get_channel_buffer(uint8_t chan);
 
+#include <v1.0/common/mavlink.h>
+
 #endif /* MAVLINK_BRIDGE_HEADER_H */

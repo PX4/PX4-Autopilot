@@ -42,6 +42,7 @@
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
+#include <math.h>
 #include <mathlib/math/test/test.hpp>
 
 #include "block/Block.hpp"
@@ -73,8 +74,8 @@ public:
 	float getMax() { return _max.get(); }
 protected:
 // attributes
-	BlockParam<float> _min;
-	BlockParam<float> _max;
+	control::BlockParamFloat _min;
+	control::BlockParamFloat _max;
 };
 
 int __EXPORT blockLimitTest();
@@ -98,7 +99,7 @@ public:
 	float getMax() { return _max.get(); }
 protected:
 // attributes
-	BlockParam<float> _max;
+	control::BlockParamFloat _max;
 };
 
 int __EXPORT blockLimitSymTest();
@@ -125,7 +126,7 @@ public:
 protected:
 // attributes
 	float _state;
-	BlockParam<float> _fCut;
+	control::BlockParamFloat _fCut;
 };
 
 int __EXPORT blockLowPassTest();
@@ -156,7 +157,7 @@ protected:
 // attributes
 	float _u; /**< previous input */
 	float _y; /**< previous output */
-	BlockParam<float> _fCut; /**< cut-off frequency, Hz */
+	control::BlockParamFloat _fCut; /**< cut-off frequency, Hz */
 };
 
 int __EXPORT blockHighPassTest();
@@ -272,7 +273,7 @@ public:
 // accessors
 	float getKP() { return _kP.get(); }
 protected:
-	BlockParam<float> _kP;
+	control::BlockParamFloat _kP;
 };
 
 int __EXPORT blockPTest();
@@ -302,8 +303,8 @@ public:
 	BlockIntegral &getIntegral() { return _integral; }
 private:
 	BlockIntegral _integral;
-	BlockParam<float> _kP;
-	BlockParam<float> _kI;
+	control::BlockParamFloat _kP;
+	control::BlockParamFloat _kI;
 };
 
 int __EXPORT blockPITest();
@@ -333,8 +334,8 @@ public:
 	BlockDerivative &getDerivative() { return _derivative; }
 private:
 	BlockDerivative _derivative;
-	BlockParam<float> _kP;
-	BlockParam<float> _kD;
+	control::BlockParamFloat _kP;
+	control::BlockParamFloat _kD;
 };
 
 int __EXPORT blockPDTest();
@@ -371,9 +372,9 @@ private:
 // attributes
 	BlockIntegral _integral;
 	BlockDerivative _derivative;
-	BlockParam<float> _kP;
-	BlockParam<float> _kI;
-	BlockParam<float> _kD;
+	control::BlockParamFloat _kP;
+	control::BlockParamFloat _kI;
+	control::BlockParamFloat _kD;
 };
 
 int __EXPORT blockPIDTest();
@@ -403,7 +404,7 @@ public:
 	float get() { return _val; }
 private:
 // attributes
-	BlockParam<float> _trim;
+	control::BlockParamFloat _trim;
 	BlockLimit _limit;
 	float _val;
 };
@@ -438,8 +439,8 @@ public:
 	float getMax() { return _max.get(); }
 private:
 // attributes
-	BlockParam<float> _min;
-	BlockParam<float> _max;
+	control::BlockParamFloat _min;
+	control::BlockParamFloat _max;
 };
 
 int __EXPORT blockRandUniformTest();
@@ -485,8 +486,8 @@ public:
 	float getStdDev() { return _stdDev.get(); }
 private:
 // attributes
-	BlockParam<float> _mean;
-	BlockParam<float> _stdDev;
+	control::BlockParamFloat _mean;
+	control::BlockParamFloat _stdDev;
 };
 
 int __EXPORT blockRandGaussTest();

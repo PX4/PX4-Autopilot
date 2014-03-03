@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,6 +54,27 @@
 
 #define SBUS_FRAME_SIZE		25
 #define SBUS_INPUT_CHANNELS	16
+#define SBUS_FLAGS_BYTE		23
+#define SBUS_FAILSAFE_BIT	3
+#define SBUS_FRAMELOST_BIT	2
+
+/*
+  Measured values with Futaba FX-30/R6108SB:
+    -+100% on TX:  PCM 1.100/1.520/1.950ms -> SBus raw values: 350/1024/1700  (100% ATV)
+    -+140% on TX:  PCM 0.930/1.520/2.112ms -> SBus raw values:  78/1024/1964  (140% ATV)  
+    -+152% on TX:  PCM 0.884/1.520/2.160ms -> SBus raw values:   1/1024/2047  (140% ATV plus dirty tricks)
+*/
+
+/* define range mapping here, -+100% -> 1000..2000 */
+#define SBUS_RANGE_MIN 200.0f
+#define SBUS_RANGE_MAX 1800.0f
+
+#define SBUS_TARGET_MIN 1000.0f
+#define SBUS_TARGET_MAX 2000.0f
+
+/* pre-calculate the floating point stuff as far as possible at compile time */
+#define SBUS_SCALE_FACTOR ((SBUS_TARGET_MAX - SBUS_TARGET_MIN) / (SBUS_RANGE_MAX - SBUS_RANGE_MIN))
+#define SBUS_SCALE_OFFSET (int)(SBUS_TARGET_MIN - (SBUS_SCALE_FACTOR * SBUS_RANGE_MIN + 0.5f))
 
 static int sbus_fd = -1;
 
@@ -66,7 +87,7 @@ static unsigned partial_frame_count;
 
 unsigned sbus_frame_drops;
 
-static bool sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values);
+static bool sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_channels);
 
 int
 sbus_init(const char *device)
@@ -97,7 +118,7 @@ sbus_init(const char *device)
 }
 
 bool
-sbus_input(uint16_t *values, uint16_t *num_values)
+sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_channels)
 {
 	ssize_t		ret;
 	hrt_abstime	now;
@@ -154,7 +175,7 @@ sbus_input(uint16_t *values, uint16_t *num_values)
 	 * decode it.
 	 */
 	partial_frame_count = 0;
-	return sbus_decode(now, values, num_values);
+	return sbus_decode(now, values, num_values, sbus_failsafe, sbus_frame_drop, max_channels);
 }
 
 /*
@@ -194,28 +215,41 @@ static const struct sbus_bit_pick sbus_decoder[SBUS_INPUT_CHANNELS][3] = {
 };
 
 static bool
-sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
+sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_values)
 {
 	/* check frame boundary markers to avoid out-of-sync cases */
-	if ((frame[0] != 0x0f) || (frame[24] != 0x00)) {
+	if ((frame[0] != 0x0f)) {
 		sbus_frame_drops++;
 		return false;
 	}
 
-	/* if the failsafe or connection lost bit is set, we consider the frame invalid */
-	if ((frame[23] & (1 << 2)) && /* signal lost */
-	    (frame[23] & (1 << 3))) { /* failsafe */
-
-		/* actively announce signal loss */
-		*values = 0;
-		return false;
+	switch (frame[24]) {
+		case 0x00:
+		/* this is S.BUS 1 */
+		break;
+		case 0x03:
+		/* S.BUS 2 SLOT0: RX battery and external voltage */
+		break;
+		case 0x83:
+		/* S.BUS 2 SLOT1 */
+		break;
+		case 0x43:
+		case 0xC3:
+		case 0x23:
+		case 0xA3:
+		case 0x63:
+		case 0xE3:
+		break;
+		default:
+		/* we expect one of the bits above, but there are some we don't know yet */
+		break;
 	}
 
 	/* we have received something we think is a frame */
 	last_frame_time = frame_time;
 
-	unsigned chancount = (PX4IO_INPUT_CHANNELS > SBUS_INPUT_CHANNELS) ?
-			     SBUS_INPUT_CHANNELS : PX4IO_INPUT_CHANNELS;
+	unsigned chancount = (max_values > SBUS_INPUT_CHANNELS) ?
+			     SBUS_INPUT_CHANNELS : max_values;
 
 	/* use the decoder matrix to extract channel data */
 	for (unsigned channel = 0; channel < chancount; channel++) {
@@ -234,22 +268,43 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 			}
 		}
 
-		/* convert 0-2048 values to 1000-2000 ppm encoding in a very sloppy fashion */
-		values[channel] = (value / 2) + 998;
+
+		/* convert 0-2048 values to 1000-2000 ppm encoding in a not too sloppy fashion */
+		values[channel] = (uint16_t)(value * SBUS_SCALE_FACTOR +.5f) + SBUS_SCALE_OFFSET;
 	}
 
 	/* decode switch channels if data fields are wide enough */
-	if (PX4IO_INPUT_CHANNELS > 17 && chancount > 15) {
+	if (PX4IO_RC_INPUT_CHANNELS > 17 && chancount > 15) {
 		chancount = 18;
 
 		/* channel 17 (index 16) */
-		values[16] = (frame[23] & (1 << 0)) * 1000 + 998;
+		values[16] = (frame[SBUS_FLAGS_BYTE] & (1 << 0)) * 1000 + 998;
 		/* channel 18 (index 17) */
-		values[17] = (frame[23] & (1 << 1)) * 1000 + 998;
+		values[17] = (frame[SBUS_FLAGS_BYTE] & (1 << 1)) * 1000 + 998;
 	}
 
 	/* note the number of channels decoded */
 	*num_values = chancount;
+
+	/* decode and handle failsafe and frame-lost flags */
+	if (frame[SBUS_FLAGS_BYTE] & (1 << SBUS_FAILSAFE_BIT)) { /* failsafe */
+		/* report that we failed to read anything valid off the receiver */
+		*sbus_failsafe = true;
+		*sbus_frame_drop = true;
+	}
+	else if (frame[SBUS_FLAGS_BYTE] & (1 << SBUS_FRAMELOST_BIT)) { /* a frame was lost */
+		/* set a special warning flag
+		 * 
+		 * Attention! This flag indicates a skipped frame only, not a total link loss! Handling this 
+		 * condition as fail-safe greatly reduces the reliability and range of the radio link, 
+		 * e.g. by prematurely issueing return-to-launch!!! */
+
+		*sbus_failsafe = false;
+		*sbus_frame_drop = true;
+	} else {
+		*sbus_failsafe = false;
+		*sbus_frame_drop = false;
+	}
 
 	return true;
 }

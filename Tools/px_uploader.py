@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -49,6 +49,9 @@
 # board_revision
 #       Currently only used for informational purposes.
 #
+
+# for python2.7 compatibility
+from __future__ import print_function
 
 import sys
 import argparse
@@ -102,7 +105,7 @@ class firmware(object):
             0xaed16a4a, 0xd9d65adc, 0x40df0b66, 0x37d83bf0, 0xa9bcae53, 0xdebb9ec5, 0x47b2cf7f, 0x30b5ffe9,
             0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6, 0xbad03605, 0xcdd70693, 0x54de5729, 0x23d967bf,
             0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d])
-        crcpad = bytearray('\xff\xff\xff\xff')
+        crcpad = bytearray(b'\xff\xff\xff\xff')
 
         def __init__(self, path):
 
@@ -137,38 +140,48 @@ class uploader(object):
         '''Uploads a firmware file to the PX FMU bootloader'''
 
         # protocol bytes
-        INSYNC          = chr(0x12)
-        EOC             = chr(0x20)
+        INSYNC          = b'\x12'
+        EOC             = b'\x20'
 
         # reply bytes
-        OK              = chr(0x10)
-        FAILED          = chr(0x11)
-        INVALID         = chr(0x13)     # rev3+
+        OK              = b'\x10'
+        FAILED          = b'\x11'
+        INVALID         = b'\x13'     # rev3+
 
         # command bytes
-        NOP             = chr(0x00)     # guaranteed to be discarded by the bootloader
-        GET_SYNC        = chr(0x21)
-        GET_DEVICE      = chr(0x22)
-        CHIP_ERASE      = chr(0x23)
-        CHIP_VERIFY     = chr(0x24)     # rev2 only
-        PROG_MULTI      = chr(0x27)
-        READ_MULTI      = chr(0x28)     # rev2 only
-        GET_CRC         = chr(0x29)     # rev3+
-        REBOOT          = chr(0x30)
+        NOP             = b'\x00'     # guaranteed to be discarded by the bootloader
+        GET_SYNC        = b'\x21'
+        GET_DEVICE      = b'\x22'
+        CHIP_ERASE      = b'\x23'
+        CHIP_VERIFY     = b'\x24'     # rev2 only
+        PROG_MULTI      = b'\x27'
+        READ_MULTI      = b'\x28'     # rev2 only
+        GET_CRC         = b'\x29'     # rev3+
+        GET_OTP         = b'\x2a'     # rev4+  , get a word from OTP area
+        GET_SN          = b'\x2b'     # rev4+  , get a word from SN area
+        REBOOT          = b'\x30'
         
-        INFO_BL_REV     = chr(1)        # bootloader protocol revision
+        INFO_BL_REV     = b'\x01'        # bootloader protocol revision
         BL_REV_MIN      = 2             # minimum supported bootloader protocol 
-        BL_REV_MAX      = 3             # maximum supported bootloader protocol 
-        INFO_BOARD_ID   = chr(2)        # board type
-        INFO_BOARD_REV  = chr(3)        # board revision
-        INFO_FLASH_SIZE = chr(4)        # max firmware size in bytes
+        BL_REV_MAX      = 4             # maximum supported bootloader protocol 
+        INFO_BOARD_ID   = b'\x02'        # board type
+        INFO_BOARD_REV  = b'\x03'        # board revision
+        INFO_FLASH_SIZE = b'\x04'        # max firmware size in bytes
 
         PROG_MULTI_MAX  = 60            # protocol max is 255, must be multiple of 4
         READ_MULTI_MAX  = 60            # protocol max is 255, something overflows with >= 64
+        
+        NSH_INIT        = bytearray(b'\x0d\x0d\x0d')
+        NSH_REBOOT_BL   = b"reboot -b\n"
+        NSH_REBOOT      = b"reboot\n"
+        MAVLINK_REBOOT_ID1 = bytearray(b'\xfe\x21\x72\xff\x00\x4c\x00\x00\x80\x3f\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x01\x00\x00\x48\xf0')
+        MAVLINK_REBOOT_ID0 = bytearray(b'\xfe\x21\x45\xff\x00\x4c\x00\x00\x80\x3f\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x00\x00\x00\xd7\xac')
 
         def __init__(self, portname, baudrate):
                 # open the port, keep the default timeout short so we can poll quickly
                 self.port = serial.Serial(portname, baudrate, timeout=0.5)
+                self.otp = b''
+                self.sn = b''
 
         def close(self):
                 if self.port is not None:
@@ -176,7 +189,7 @@ class uploader(object):
 
         def __send(self, c):
 #               print("send " + binascii.hexlify(c))
-                self.port.write(str(c))
+                self.port.write(c)
 
         def __recv(self, count=1):
                 c = self.port.read(count)
@@ -192,9 +205,9 @@ class uploader(object):
 
         def __getSync(self):
                 self.port.flush()
-                c = self.__recv()
-                if c is not self.INSYNC:
-                        raise RuntimeError("unexpected 0x%x instead of INSYNC" % ord(c))
+                c = bytes(self.__recv())
+                if c != self.INSYNC:
+                        raise RuntimeError("unexpected %s instead of INSYNC" % c)
                 c = self.__recv()
                 if c == self.INVALID:
                         raise RuntimeError("bootloader reports INVALID OPERATION")
@@ -231,6 +244,22 @@ class uploader(object):
                 self.__getSync()
                 return value
 
+        # send the GET_OTP command and wait for an info parameter
+        def __getOTP(self, param):
+                t = struct.pack("I", param) # int param as 32bit ( 4 byte ) char array.
+                self.__send(uploader.GET_OTP + t + uploader.EOC)
+                value = self.__recv(4)
+                self.__getSync()
+                return value
+
+        # send the GET_OTP command and wait for an info parameter
+        def __getSN(self, param):
+                t = struct.pack("I", param) # int param as 32bit ( 4 byte ) char array.
+                self.__send(uploader.GET_SN + t + uploader.EOC)
+                value = self.__recv(4)
+                self.__getSync()
+                return value
+
         # send the CHIP_ERASE command and wait for the bootloader to become ready
         def __erase(self):
                 self.__send(uploader.CHIP_ERASE
@@ -249,17 +278,29 @@ class uploader(object):
 
         # send a PROG_MULTI command to write a collection of bytes
         def __program_multi(self, data):
-                self.__send(uploader.PROG_MULTI
-                            + chr(len(data)))
+                
+                if runningPython3 == True:
+                    length = len(data).to_bytes(1, byteorder='big')
+                else:
+                    length = chr(len(data))
+            
+                self.__send(uploader.PROG_MULTI)
+                self.__send(length)
                 self.__send(data)
                 self.__send(uploader.EOC)
                 self.__getSync()
 
         # verify multiple bytes in flash
         def __verify_multi(self, data):
-                self.__send(uploader.READ_MULTI
-                            + chr(len(data))
-                            + uploader.EOC)
+            
+                if runningPython3 == True:
+                    length = len(data).to_bytes(1, byteorder='big')
+                else:
+                    length = chr(len(data))
+                
+                self.__send(uploader.READ_MULTI)
+                self.__send(length)
+                self.__send(uploader.EOC)
                 self.port.flush()
                 programmed = self.__recv(len(data))
                 if programmed != data:
@@ -335,6 +376,31 @@ class uploader(object):
                 if self.fw_maxsize < fw.property('image_size'):
                         raise RuntimeError("Firmware image is too large for this board")
 
+                # OTP added in v4:
+                if self.bl_rev > 3:
+                    for byte in range(0,32*6,4):
+                        x = self.__getOTP(byte)
+                        self.otp  = self.otp + x
+                        print(binascii.hexlify(x).decode('Latin-1') + ' ', end='')
+                    # see src/modules/systemlib/otp.h in px4 code:
+                    self.otp_id = self.otp[0:4]
+                    self.otp_idtype = self.otp[4:5]
+                    self.otp_vid = self.otp[8:4:-1]
+                    self.otp_pid = self.otp[12:8:-1]
+                    self.otp_coa = self.otp[32:160]
+                    # show user:
+                    print("type: " + self.otp_id.decode('Latin-1'))
+                    print("idtype: " + binascii.b2a_qp(self.otp_idtype).decode('Latin-1'))
+                    print("vid: " + binascii.hexlify(self.otp_vid).decode('Latin-1'))
+                    print("pid: "+ binascii.hexlify(self.otp_pid).decode('Latin-1'))
+                    print("coa: "+ binascii.b2a_base64(self.otp_coa).decode('Latin-1'))
+                    print("sn: ", end='')
+                    for byte in range(0,12,4):
+                        x = self.__getSN(byte)
+                        x = x[::-1]  # reverse the bytes
+                        self.sn  = self.sn + x
+                        print(binascii.hexlify(x).decode('Latin-1'), end='') # show user
+                    print('')
                 print("erase...")
                 self.__erase()
 
@@ -350,7 +416,27 @@ class uploader(object):
                 print("done, rebooting.")
                 self.__reboot()
                 self.port.close()
+                
+        def send_reboot(self):
+                try:
+                    # try reboot via NSH first
+                    self.__send(uploader.NSH_INIT)
+                    self.__send(uploader.NSH_REBOOT_BL)
+                    self.__send(uploader.NSH_INIT)
+                    self.__send(uploader.NSH_REBOOT)
+                    # then try MAVLINK command
+                    self.__send(uploader.MAVLINK_REBOOT_ID1)
+                    self.__send(uploader.MAVLINK_REBOOT_ID0)
+                except:
+                    return
+                
+                
 
+# Detect python version
+if sys.version_info[0] < 3:
+    runningPython3 = False
+else:
+    runningPython3 = True
 
 # Parse commandline arguments
 parser = argparse.ArgumentParser(description="Firmware uploader for the PX autopilot system.")
@@ -365,7 +451,19 @@ print("Loaded firmware for %x,%x, waiting for the bootloader..." % (fw.property(
 
 # Spin waiting for a device to show up
 while True:
-        for port in args.port.split(","):
+        portlist = []
+        patterns = args.port.split(",")
+        # on unix-like platforms use glob to support wildcard ports. This allows
+        # the use of /dev/serial/by-id/usb-3D_Robotics on Linux, which prevents the upload from
+        # causing modem hangups etc
+        if "linux" in _platform or "darwin" in _platform:
+                import glob
+                for pattern in patterns:
+                        portlist += glob.glob(pattern)
+        else:
+                portlist = patterns
+
+        for port in portlist:
 
                 #print("Trying %s" % port)
 
@@ -383,7 +481,7 @@ while True:
                                 # Windows, don't open POSIX ports
                                 if not "/" in port:
                                         up = uploader(port, args.baud)
-                except:
+                except Exception:
                         # open failed, rate-limit our attempts
                         time.sleep(0.05)
 
@@ -396,8 +494,12 @@ while True:
                         up.identify()
                         print("Found board %x,%x bootloader rev %x on %s" % (up.board_type, up.board_rev, up.bl_rev, port))
 
-                except:
-                        # most probably a timeout talking to the port, no bootloader
+                except Exception:
+                        # most probably a timeout talking to the port, no bootloader, try to reboot the board
+                        print("attempting reboot on %s..." % port)
+                        up.send_reboot()
+                        # wait for the reboot, without we might run into Serial I/O Error 5 
+                        time.sleep(0.5)
                         continue
 
                 try:

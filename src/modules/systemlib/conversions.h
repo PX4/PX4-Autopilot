@@ -44,11 +44,6 @@
 #include <float.h>
 #include <stdint.h>
 
-#define CONSTANTS_ONE_G						9.80665f		// m/s^2
-#define CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C	1.225f			// kg/m^3
-#define CONSTANTS_AIR_GAS_CONST				287.1f 			// J/(kg * K)
-#define CONSTANTS_ABSOLUTE_NULL_CELSIUS		-273.15f		// °C
-
 __BEGIN_DECLS
 
 /**
@@ -60,34 +55,6 @@ __BEGIN_DECLS
  * Honeywell. ST micro devices tend to use a little endian representation.
  */
 __EXPORT int16_t int16_t_from_bytes(uint8_t bytes[]);
-
-/**
- * Converts a 3 x 3 rotation matrix to an unit quaternion.
- *
- * All orientations are expressed in NED frame.
- *
- * @param R rotation matrix to convert
- * @param Q quaternion to write back to
- */
-__EXPORT void rot2quat(const float R[9], float Q[4]);
-
-/**
- * Converts an unit quaternion to a 3 x 3 rotation matrix.
- *
- * All orientations are expressed in NED frame.
- *
- * @param Q quaternion to convert
- * @param R rotation matrix to write back to
- */
-__EXPORT void quat2rot(const float Q[4], float R[9]);
-
-/**
- * Calculates air density.
- *
- * @param static_pressure ambient pressure in millibar
- * @param temperature_celcius air / ambient temperature in celcius
- */
-__EXPORT float get_air_density(float static_pressure, float temperature_celsius);
 
 __END_DECLS
 

@@ -40,7 +40,6 @@
  */
 
 #include "mavlink_bridge_header.h"
-#include <v1.0/common/mavlink.h>
 #include "mavlink_parameters.h"
 #include <uORB/uORB.h>
 #include "math.h" /* isinf / isnan checks */

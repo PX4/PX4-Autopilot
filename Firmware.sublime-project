@@ -32,7 +32,8 @@
 	"settings":
 	{
 		"tab_size": 8,
-		"translate_tabs_to_spaces": false
+		"translate_tabs_to_spaces": false,
+	       "highlight_line": true
 	},
 	"build_systems":
 	[

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +38,7 @@
  */
 
 #include "device.h"
+#include "drivers/drv_device.h"
 
 #include <sys/ioctl.h>
 #include <arch/irq.h>
@@ -93,6 +94,7 @@ CDev::CDev(const char *name,
 	Device(name, irq),
 	// public
 	// protected
+	_pub_blocked(false),
 	// private
 	_devname(devname),
 	_registered(false),
@@ -109,23 +111,59 @@ CDev::~CDev()
 }
 
 int
+CDev::register_class_devname(const char *class_devname)
+{
+	if (class_devname == nullptr) {
+		return -EINVAL;
+	}
+	int class_instance = 0;
+	int ret = -ENOSPC;
+	while (class_instance < 4) {
+		if (class_instance == 0) {
+			ret = register_driver(class_devname, &fops, 0666, (void *)this);
+			if (ret == OK) break;
+		} else {
+			char name[32];
+			snprintf(name, sizeof(name), "%s%u", class_devname, class_instance);
+			ret = register_driver(name, &fops, 0666, (void *)this);
+			if (ret == OK) break;
+		}
+		class_instance++;
+	}
+	if (class_instance == 4)
+		return ret;
+	return class_instance;
+}
+
+int
+CDev::unregister_class_devname(const char *class_devname, unsigned class_instance)
+{
+	if (class_instance > 0) {
+		char name[32];
+		snprintf(name, sizeof(name), "%s%u", class_devname, class_instance);
+		return unregister_driver(name);
+	}
+	return unregister_driver(class_devname);
+}
+
+int
 CDev::init()
 {
-	int ret = OK;
-
 	// base class init first
-	ret = Device::init();
+	int ret = Device::init();
 
 	if (ret != OK)
 		goto out;
 
 	// now register the driver
-	ret = register_driver(_devname, &fops, 0666, (void *)this);
+	if (_devname != nullptr) {
+		ret = register_driver(_devname, &fops, 0666, (void *)this);
 
-	if (ret != OK)
-		goto out;
+		if (ret != OK)
+			goto out;
 
-	_registered = true;
+		_registered = true;
+	}
 
 out:
 	return ret;
@@ -220,6 +258,14 @@ CDev::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case DIOC_GETPRIV:
 		*(void **)(uintptr_t)arg = (void *)this;
 		return OK;
+		break;
+	case DEVIOCSPUBBLOCK:
+		_pub_blocked = (arg != 0);
+		return OK;
+		break;
+	case DEVIOCGPUBBLOCK:
+		return _pub_blocked;
+		break;
 	}
 
 	return -ENOTTY;

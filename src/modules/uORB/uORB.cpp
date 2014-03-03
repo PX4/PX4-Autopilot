@@ -249,8 +249,10 @@ ORBDevNode::close(struct file *filp)
 	} else {
 		SubscriberData *sd = filp_to_sd(filp);
 
-		if (sd != nullptr)
+		if (sd != nullptr) {
+			hrt_cancel(&sd->update_call);
 			delete sd;
+		}
 	}
 
 	return CDev::close(filp);

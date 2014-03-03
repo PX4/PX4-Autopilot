@@ -56,17 +56,18 @@ struct manual_control_setpoint_s {
 	float yaw;				/**< rudder / yaw rate / yaw */
 	float throttle;				/**< throttle / collective thrust / altitude */
 
-	float manual_override_switch;		/**< manual override mode (mandatory) */
-	float auto_mode_switch;			/**< auto mode switch (mandatory) */
+	float mode_switch;			/**< mode 3 position switch (mandatory): manual, assisted, auto */
+	float return_switch;			/**< land 2 position switch (mandatory): land, no effect */
+	float assisted_switch;			/**< assisted 2 position switch (optional): seatbelt, simple */
+	float mission_switch;		/**< mission 2 position switch (optional): mission, loiter */
 
 	/**
 	 * Any of the channels below may not be available and be set to NaN
 	 * to indicate that it does not contain valid data.
 	 */
-	float manual_mode_switch;		/**< manual mode (man, sas, alt) switch (optional) */
-	float manual_sas_switch;		/**< sas mode (rates / attitude) switch (optional) */
-	float return_to_launch_switch;		/**< return to launch switch (0 = disabled, 1 = enabled) */
-	float auto_offboard_input_switch;	/**< controller setpoint source (0 = onboard, 1 = offboard) */
+
+	// XXX needed or parameter?
+	//float auto_offboard_input_switch;	/**< controller setpoint source (0 = onboard, 1 = offboard) */
 
 	float flaps;				/**< flap position */
 

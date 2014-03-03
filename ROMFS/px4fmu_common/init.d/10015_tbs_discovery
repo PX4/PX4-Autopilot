@@ -1,0 +1,31 @@
+#!nsh
+#
+# Team Blacksheep Discovery Quadcopter
+#
+# Maintainers: Simon Wilks <sjwilks@gmail.com>
+#
+
+if [ $DO_AUTOCONFIG == yes ]
+then
+	#
+	# Default parameters for this platform
+	#
+	param set MC_ATT_P 5.0
+	param set MC_ATT_I 0.0
+	param set MC_ATT_D 0.0
+	param set MC_ATTRATE_P 0.17
+	param set MC_ATTRATE_I 0.0
+	param set MC_ATTRATE_D 0.006
+	param set MC_YAWPOS_P 0.5
+	param set MC_YAWPOS_I 0.15
+	param set MC_YAWPOS_D 0.0
+	param set MC_YAWRATE_P 0.2
+	param set MC_YAWRATE_I 0.0
+	param set MC_YAWRATE_D 0.0
+fi
+
+set VEHICLE_TYPE mc
+set MIXER FMU_quad_w
+
+set PWM_OUTPUTS 1234
+set PWM_RATE 400

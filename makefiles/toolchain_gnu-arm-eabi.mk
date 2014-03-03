@@ -50,7 +50,7 @@ OBJDUMP			 = $(CROSSDEV)objdump
 
 # XXX this is pulled pretty directly from the fmu Make.defs - needs cleanup
 
-MAXOPTIMIZATION		 = -O3
+MAXOPTIMIZATION		 ?= -O3
 
 # Base CPU flags for each of the supported architectures.
 #
@@ -70,12 +70,27 @@ ARCHCPUFLAGS_CORTEXM3	 = -mcpu=cortex-m3 \
 			   -march=armv7-m \
 			   -mfloat-abi=soft
 
+ARCHINSTRUMENTATIONDEFINES_CORTEXM4F = -finstrument-functions \
+			   -ffixed-r10
+
+ARCHINSTRUMENTATIONDEFINES_CORTEXM4 = -finstrument-functions \
+			   -ffixed-r10
+
+ARCHINSTRUMENTATIONDEFINES_CORTEXM3 = 
+
 # Pick the right set of flags for the architecture.
 #
 ARCHCPUFLAGS		 = $(ARCHCPUFLAGS_$(CONFIG_ARCH))
 ifeq ($(ARCHCPUFLAGS),)
 $(error Must set CONFIG_ARCH to one of CORTEXM4F, CORTEXM4 or CORTEXM3)
 endif
+
+# Set the board flags
+#
+ifeq ($(CONFIG_BOARD),)
+$(error Board config does not define CONFIG_BOARD)
+endif
+ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD)
 
 # optimisation flags
 #
@@ -91,8 +106,8 @@ ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
 
 # enable precise stack overflow tracking
 # note - requires corresponding support in NuttX
-INSTRUMENTATIONDEFINES	 = -finstrument-functions \
-			   -ffixed-r10
+INSTRUMENTATIONDEFINES	 = $(ARCHINSTRUMENTATIONDEFINES_$(CONFIG_ARCH))
+
 # Language-specific flags
 #
 ARCHCFLAGS		 = -std=gnu99
@@ -123,8 +138,7 @@ ARCHCWARNINGS		 = $(ARCHWARNINGS) \
 			   -Wold-style-declaration \
 			   -Wmissing-parameter-type \
 			   -Wmissing-prototypes \
-			   -Wnested-externs \
-			   -Wunsuffixed-float-constants
+			   -Wnested-externs
 
 # C++-specific warnings
 #

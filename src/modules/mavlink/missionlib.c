@@ -48,7 +48,6 @@
 #include <mqueue.h>
 #include <string.h>
 #include "mavlink_bridge_header.h"
-#include <v1.0/common/mavlink.h>
 #include <drivers/drv_hrt.h>
 #include <time.h>
 #include <float.h>
@@ -60,10 +59,12 @@
 #include <stdlib.h>
 #include <poll.h>
 
+#include <systemlib/err.h>
 #include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>
 #include <mavlink/mavlink_log.h>
 
+#include "geo/geo.h"
 #include "waypoints.h"
 #include "orb_topics.h"
 #include "missionlib.h"
@@ -73,6 +74,10 @@
 #include "mavlink_parameters.h"
 
 static uint8_t missionlib_msg_buf[MAVLINK_MAX_PACKET_LEN];
+static uint64_t loiter_start_time;
+
+static bool set_special_fields(float param1, float param2, float param3, float param4, uint16_t command,
+	struct vehicle_global_position_setpoint_s *sp);
 
 int
 mavlink_missionlib_send_message(mavlink_message_t *msg)
@@ -123,6 +128,74 @@ uint64_t mavlink_missionlib_get_system_timestamp()
 }
 
 /**
+ * Set special vehicle setpoint fields based on current mission item.
+ *
+ * @return true if the mission item could be interpreted
+ * successfully, it return false on failure.
+ */
+bool set_special_fields(float param1, float param2, float param3, float param4, uint16_t command,
+	struct vehicle_global_position_setpoint_s *sp)
+{
+	switch (command) {
+		case MAV_CMD_NAV_LOITER_UNLIM:
+			sp->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+			break;
+		case MAV_CMD_NAV_LOITER_TIME:
+			sp->nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
+			loiter_start_time = hrt_absolute_time();
+			break;
+		// case MAV_CMD_NAV_LOITER_TURNS:
+		// 	sp->nav_cmd = NAV_CMD_LOITER_TURN_COUNT;
+		// 	break;
+		case MAV_CMD_NAV_WAYPOINT:
+			sp->nav_cmd = NAV_CMD_WAYPOINT;
+			break;
+		case MAV_CMD_NAV_RETURN_TO_LAUNCH:
+			sp->nav_cmd = NAV_CMD_RETURN_TO_LAUNCH;
+			break;
+		case MAV_CMD_NAV_LAND:
+			sp->nav_cmd = NAV_CMD_LAND;
+			break;
+		case MAV_CMD_NAV_TAKEOFF:
+			sp->nav_cmd = NAV_CMD_TAKEOFF;
+			break;
+		default:
+			/* abort */
+			return false;
+	}
+
+	sp->loiter_radius = param3;
+	sp->loiter_direction = (param3 >= 0) ? 1 : -1;
+
+	sp->param1 = param1;
+	sp->param2 = param2;
+	sp->param3 = param3;
+	sp->param4 = param4;
+
+
+	/* define the turn distance */
+	float orbit = 15.0f;
+
+	if (command == (int)MAV_CMD_NAV_WAYPOINT) {
+
+		orbit = param2;
+
+	} else if (command == (int)MAV_CMD_NAV_LOITER_TURNS ||
+			command == (int)MAV_CMD_NAV_LOITER_TIME ||
+			command == (int)MAV_CMD_NAV_LOITER_UNLIM) {
+
+		orbit = param3;
+	} else {
+
+		// XXX set default orbit via param
+		// 15 initialized above
+	}
+
+	sp->turn_distance_xy = orbit;
+	sp->turn_distance_z = orbit;
+}
+
+/**
  * This callback is executed each time a waypoint changes.
  *
  * It publishes the vehicle_global_position_setpoint_s or the
@@ -133,8 +206,12 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		float param6_lon_y, float param7_alt_z, uint8_t frame, uint16_t command)
 {
 	static orb_advert_t global_position_setpoint_pub = -1;
+	static orb_advert_t global_position_set_triplet_pub = -1;
 	static orb_advert_t local_position_setpoint_pub = -1;
+	static unsigned last_waypoint_index = -1;
 	char buf[50] = {0};
+
+	// XXX include check if WP is supported, jump to next if not
 
 	/* Update controller setpoints */
 	if (frame == (int)MAV_FRAME_GLOBAL) {
@@ -144,14 +221,117 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		sp.lon = param6_lon_y * 1e7f;
 		sp.altitude = param7_alt_z;
 		sp.altitude_is_relative = false;
-		sp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
+		sp.yaw = _wrap_pi(param4 / 180.0f * M_PI_F);
+		set_special_fields(param1, param2, param3, param4, command, &sp);
 
-		/* Initialize publication if necessary */
+		/* Initialize setpoint publication if necessary */
 		if (global_position_setpoint_pub < 0) {
 			global_position_setpoint_pub = orb_advertise(ORB_ID(vehicle_global_position_setpoint), &sp);
 
 		} else {
 			orb_publish(ORB_ID(vehicle_global_position_setpoint), global_position_setpoint_pub, &sp);
+		}
+
+
+		/* fill triplet: previous, current, next waypoint */
+		struct vehicle_global_position_set_triplet_s triplet;
+
+		/* current waypoint is same as sp */
+		memcpy(&(triplet.current), &sp, sizeof(sp));
+
+		/*
+		 * Check if previous WP (in mission, not in execution order) 
+		 * is available and identify correct index
+		 */
+		int last_setpoint_index = -1;
+		bool last_setpoint_valid = false;
+
+		if (index > 0) {
+			last_setpoint_index = index - 1;
+		}
+
+		while (last_setpoint_index >= 0) {
+
+			if (wpm->waypoints[last_setpoint_index].frame == (int)MAV_FRAME_GLOBAL &&
+				(wpm->waypoints[last_setpoint_index].command == (int)MAV_CMD_NAV_WAYPOINT ||
+				wpm->waypoints[last_setpoint_index].command == (int)MAV_CMD_NAV_LOITER_TURNS ||
+				wpm->waypoints[last_setpoint_index].command == (int)MAV_CMD_NAV_LOITER_TIME ||
+				wpm->waypoints[last_setpoint_index].command == (int)MAV_CMD_NAV_LOITER_UNLIM)) {
+				last_setpoint_valid = true;
+				break;
+			}
+
+			last_setpoint_index--;
+		}
+
+		/*
+		 * Check if next WP (in mission, not in execution order) 
+		 * is available and identify correct index
+		 */
+		int next_setpoint_index = -1;
+		bool next_setpoint_valid = false;
+
+		/* next waypoint */
+		if (wpm->size > 1) {
+			next_setpoint_index = index + 1;
+		}
+
+		while (next_setpoint_index < wpm->size) {
+
+			if (wpm->waypoints[next_setpoint_index].frame == (int)MAV_FRAME_GLOBAL && (wpm->waypoints[next_setpoint_index].command == (int)MAV_CMD_NAV_WAYPOINT ||
+					wpm->waypoints[next_setpoint_index].command == (int)MAV_CMD_NAV_LOITER_TURNS ||
+					wpm->waypoints[next_setpoint_index].command == (int)MAV_CMD_NAV_LOITER_TIME ||
+					wpm->waypoints[next_setpoint_index].command == (int)MAV_CMD_NAV_LOITER_UNLIM)) {
+				next_setpoint_valid = true;
+				break;
+			}
+
+			next_setpoint_index++;
+		}
+
+		/* populate last and next */
+
+		triplet.previous_valid = false;
+		triplet.next_valid = false;
+
+		if (last_setpoint_valid) {
+			triplet.previous_valid = true;
+			struct vehicle_global_position_setpoint_s sp;
+			sp.lat = wpm->waypoints[last_setpoint_index].x * 1e7f;
+			sp.lon = wpm->waypoints[last_setpoint_index].y * 1e7f;
+			sp.altitude = wpm->waypoints[last_setpoint_index].z;
+			sp.altitude_is_relative = false;
+			sp.yaw = _wrap_pi(wpm->waypoints[last_setpoint_index].param4 / 180.0f * M_PI_F);
+			set_special_fields(wpm->waypoints[last_setpoint_index].param1,
+				wpm->waypoints[last_setpoint_index].param2,
+				wpm->waypoints[last_setpoint_index].param3,
+				wpm->waypoints[last_setpoint_index].param4,
+				wpm->waypoints[last_setpoint_index].command, &sp);
+			memcpy(&(triplet.previous), &sp, sizeof(sp));
+		}
+
+		if (next_setpoint_valid) {
+			triplet.next_valid = true;
+			struct vehicle_global_position_setpoint_s sp;
+			sp.lat = wpm->waypoints[next_setpoint_index].x * 1e7f;
+			sp.lon = wpm->waypoints[next_setpoint_index].y * 1e7f;
+			sp.altitude = wpm->waypoints[next_setpoint_index].z;
+			sp.altitude_is_relative = false;
+			sp.yaw = _wrap_pi(wpm->waypoints[next_setpoint_index].param4 / 180.0f * M_PI_F);
+			set_special_fields(wpm->waypoints[next_setpoint_index].param1,
+				wpm->waypoints[next_setpoint_index].param2,
+				wpm->waypoints[next_setpoint_index].param3,
+				wpm->waypoints[next_setpoint_index].param4,
+				wpm->waypoints[next_setpoint_index].command, &sp);
+			memcpy(&(triplet.next), &sp, sizeof(sp));
+		}
+
+		/* Initialize triplet publication if necessary */
+		if (global_position_set_triplet_pub < 0) {
+			global_position_set_triplet_pub = orb_advertise(ORB_ID(vehicle_global_position_set_triplet), &triplet);
+
+		} else {
+			orb_publish(ORB_ID(vehicle_global_position_set_triplet), global_position_set_triplet_pub, &triplet);
 		}
 
 		sprintf(buf, "[mp] WP#%i lat: % 3.6f/lon % 3.6f/alt % 4.6f/hdg %3.4f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
@@ -163,7 +343,8 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		sp.lon = param6_lon_y * 1e7f;
 		sp.altitude = param7_alt_z;
 		sp.altitude_is_relative = true;
-		sp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
+		sp.yaw = _wrap_pi(param4 / 180.0f * M_PI_F);
+		set_special_fields(param1, param2, param3, param4, command, &sp);
 
 		/* Initialize publication if necessary */
 		if (global_position_setpoint_pub < 0) {
@@ -173,6 +354,8 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 			orb_publish(ORB_ID(vehicle_global_position_setpoint), global_position_setpoint_pub, &sp);
 		}
 
+
+
 		sprintf(buf, "[mp] WP#%i (lat: %f/lon %f/rel alt %f/hdg %f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
 
 	} else if (frame == (int)MAV_FRAME_LOCAL_ENU || frame == (int)MAV_FRAME_LOCAL_NED) {
@@ -181,7 +364,7 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		sp.x = param5_lat_x;
 		sp.y = param6_lon_y;
 		sp.z = param7_alt_z;
-		sp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
+		sp.yaw = _wrap_pi(param4 / 180.0f * M_PI_F);
 
 		/* Initialize publication if necessary */
 		if (local_position_setpoint_pub < 0) {
@@ -192,7 +375,14 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		}
 
 		sprintf(buf, "[mp] WP#%i (x: %f/y %f/z %f/hdg %f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
+	} else {
+		warnx("non-navigation WP, ignoring");
+		mavlink_missionlib_send_gcs_string("[mp] Unknown waypoint type, ignoring.");
+		return;
 	}
+
+	/* only set this for known waypoint types (non-navigation types would have returned earlier) */
+	last_waypoint_index = index;
 
 	mavlink_missionlib_send_gcs_string(buf);
 	printf("%s\n", buf);

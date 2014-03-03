@@ -36,7 +36,7 @@
 #
 
 MODULE_COMMAND	 = mixer
-SRCS		 = mixer.c
+SRCS		 = mixer.cpp
 
 MODULE_STACKSIZE = 4096
 

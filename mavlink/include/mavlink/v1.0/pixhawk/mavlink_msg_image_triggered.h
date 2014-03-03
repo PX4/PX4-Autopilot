@@ -21,6 +21,9 @@ typedef struct __mavlink_image_triggered_t
 #define MAVLINK_MSG_ID_IMAGE_TRIGGERED_LEN 52
 #define MAVLINK_MSG_ID_152_LEN 52
 
+#define MAVLINK_MSG_ID_IMAGE_TRIGGERED_CRC 86
+#define MAVLINK_MSG_ID_152_CRC 86
+
 
 
 #define MAVLINK_MESSAGE_INFO_IMAGE_TRIGGERED { \
@@ -66,7 +69,7 @@ static inline uint16_t mavlink_msg_image_triggered_pack(uint8_t system_id, uint8
 						       uint64_t timestamp, uint32_t seq, float roll, float pitch, float yaw, float local_z, float lat, float lon, float alt, float ground_x, float ground_y, float ground_z)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[52];
+	char buf[MAVLINK_MSG_ID_IMAGE_TRIGGERED_LEN];
 	_mav_put_uint64_t(buf, 0, timestamp);
 	_mav_put_uint32_t(buf, 8, seq);
 	_mav_put_float(buf, 12, roll);
@@ -80,7 +83,7 @@ static inline uint16_t mavlink_msg_image_triggered_pack(uint8_t system_id, uint8
 	_mav_put_float(buf, 44, ground_y);
 	_mav_put_float(buf, 48, ground_z);
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 52);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_IMAGE_TRIGGERED_LEN);
 #else
 	mavlink_image_triggered_t packet;
 	packet.timestamp = timestamp;
@@ -96,18 +99,22 @@ static inline uint16_t mavlink_msg_image_triggered_pack(uint8_t system_id, uint8
 	packet.ground_y = ground_y;
 	packet.ground_z = ground_z;
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, 52);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_IMAGE_TRIGGERED_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_IMAGE_TRIGGERED;
-	return mavlink_finalize_message(msg, system_id, component_id, 52, 86);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_IMAGE_TRIGGERED_LEN, MAVLINK_MSG_ID_IMAGE_TRIGGERED_CRC);
+#else
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_IMAGE_TRIGGERED_LEN);
+#endif
 }
 
 /**
  * @brief Pack a image_triggered message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param timestamp Timestamp
  * @param seq IMU seq
@@ -128,7 +135,7 @@ static inline uint16_t mavlink_msg_image_triggered_pack_chan(uint8_t system_id, 
 						           uint64_t timestamp,uint32_t seq,float roll,float pitch,float yaw,float local_z,float lat,float lon,float alt,float ground_x,float ground_y,float ground_z)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[52];
+	char buf[MAVLINK_MSG_ID_IMAGE_TRIGGERED_LEN];
 	_mav_put_uint64_t(buf, 0, timestamp);
 	_mav_put_uint32_t(buf, 8, seq);
 	_mav_put_float(buf, 12, roll);
@@ -142,7 +149,7 @@ static inline uint16_t mavlink_msg_image_triggered_pack_chan(uint8_t system_id, 
 	_mav_put_float(buf, 44, ground_y);
 	_mav_put_float(buf, 48, ground_z);
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 52);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_IMAGE_TRIGGERED_LEN);
 #else
 	mavlink_image_triggered_t packet;
 	packet.timestamp = timestamp;
@@ -158,15 +165,19 @@ static inline uint16_t mavlink_msg_image_triggered_pack_chan(uint8_t system_id, 
 	packet.ground_y = ground_y;
 	packet.ground_z = ground_z;
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, 52);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_IMAGE_TRIGGERED_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_IMAGE_TRIGGERED;
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 52, 86);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_IMAGE_TRIGGERED_LEN, MAVLINK_MSG_ID_IMAGE_TRIGGERED_CRC);
+#else
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_IMAGE_TRIGGERED_LEN);
+#endif
 }
 
 /**
- * @brief Encode a image_triggered struct into a message
+ * @brief Encode a image_triggered struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -176,6 +187,20 @@ static inline uint16_t mavlink_msg_image_triggered_pack_chan(uint8_t system_id, 
 static inline uint16_t mavlink_msg_image_triggered_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_image_triggered_t* image_triggered)
 {
 	return mavlink_msg_image_triggered_pack(system_id, component_id, msg, image_triggered->timestamp, image_triggered->seq, image_triggered->roll, image_triggered->pitch, image_triggered->yaw, image_triggered->local_z, image_triggered->lat, image_triggered->lon, image_triggered->alt, image_triggered->ground_x, image_triggered->ground_y, image_triggered->ground_z);
+}
+
+/**
+ * @brief Encode a image_triggered struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param image_triggered C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_image_triggered_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_image_triggered_t* image_triggered)
+{
+	return mavlink_msg_image_triggered_pack_chan(system_id, component_id, chan, msg, image_triggered->timestamp, image_triggered->seq, image_triggered->roll, image_triggered->pitch, image_triggered->yaw, image_triggered->local_z, image_triggered->lat, image_triggered->lon, image_triggered->alt, image_triggered->ground_x, image_triggered->ground_y, image_triggered->ground_z);
 }
 
 /**
@@ -200,7 +225,7 @@ static inline uint16_t mavlink_msg_image_triggered_encode(uint8_t system_id, uin
 static inline void mavlink_msg_image_triggered_send(mavlink_channel_t chan, uint64_t timestamp, uint32_t seq, float roll, float pitch, float yaw, float local_z, float lat, float lon, float alt, float ground_x, float ground_y, float ground_z)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[52];
+	char buf[MAVLINK_MSG_ID_IMAGE_TRIGGERED_LEN];
 	_mav_put_uint64_t(buf, 0, timestamp);
 	_mav_put_uint32_t(buf, 8, seq);
 	_mav_put_float(buf, 12, roll);
@@ -214,7 +239,11 @@ static inline void mavlink_msg_image_triggered_send(mavlink_channel_t chan, uint
 	_mav_put_float(buf, 44, ground_y);
 	_mav_put_float(buf, 48, ground_z);
 
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_TRIGGERED, buf, 52, 86);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_TRIGGERED, buf, MAVLINK_MSG_ID_IMAGE_TRIGGERED_LEN, MAVLINK_MSG_ID_IMAGE_TRIGGERED_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_TRIGGERED, buf, MAVLINK_MSG_ID_IMAGE_TRIGGERED_LEN);
+#endif
 #else
 	mavlink_image_triggered_t packet;
 	packet.timestamp = timestamp;
@@ -230,7 +259,11 @@ static inline void mavlink_msg_image_triggered_send(mavlink_channel_t chan, uint
 	packet.ground_y = ground_y;
 	packet.ground_z = ground_z;
 
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_TRIGGERED, (const char *)&packet, 52, 86);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_TRIGGERED, (const char *)&packet, MAVLINK_MSG_ID_IMAGE_TRIGGERED_LEN, MAVLINK_MSG_ID_IMAGE_TRIGGERED_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_TRIGGERED, (const char *)&packet, MAVLINK_MSG_ID_IMAGE_TRIGGERED_LEN);
+#endif
 #endif
 }
 
@@ -381,6 +414,6 @@ static inline void mavlink_msg_image_triggered_decode(const mavlink_message_t* m
 	image_triggered->ground_y = mavlink_msg_image_triggered_get_ground_y(msg);
 	image_triggered->ground_z = mavlink_msg_image_triggered_get_ground_z(msg);
 #else
-	memcpy(image_triggered, _MAV_PAYLOAD(msg), 52);
+	memcpy(image_triggered, _MAV_PAYLOAD(msg), MAVLINK_MSG_ID_IMAGE_TRIGGERED_LEN);
 #endif
 }

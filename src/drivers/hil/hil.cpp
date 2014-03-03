@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,6 +75,7 @@
 #include <systemlib/mixer/mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
 
 #include <systemlib/err.h>
@@ -192,9 +193,10 @@ HIL::~HIL()
 		} while (_task != -1);
 	}
 
-	/* clean up the alternate device node */
-	if (_primary_pwm_device)
-		unregister_driver(PWM_OUTPUT_DEVICE_PATH);
+	// XXX already claimed with CDEV
+	// /* clean up the alternate device node */
+	// if (_primary_pwm_device)
+	// 	unregister_driver(PWM_OUTPUT_DEVICE_PATH);
 
 	g_hil = nullptr;
 }
@@ -403,7 +405,7 @@ HIL::task_main()
 				for (unsigned i = 0; i < num_outputs; i++) {
 
 					/* last resort: catch NaN, INF and out-of-band errors */
-					if (i < (unsigned)outputs.noutputs &&
+					if (i < outputs.noutputs &&
 						isfinite(outputs.output[i]) &&
 						outputs.output[i] >= -1.0f &&
 						outputs.output[i] <= 1.0f) {
@@ -516,7 +518,7 @@ HIL::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		g_hil->set_pwm_rate(arg);
 		break;
 
-	case PWM_SERVO_SELECT_UPDATE_RATE:
+	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
 		// HIL always outputs at the alternate (usually faster) rate 
 		break;
 

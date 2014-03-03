@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Nils Wenzler <wenzlern@student.ethz.ch>
- *           @author Ivan Ovinnikov <oivan@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,16 +43,14 @@
 #include "../uORB.h"
 
 /**
- * @addtogroup topics
- * @{
- */
-
-/**
  * The number of RC channel inputs supported.
- * Current (Q1/2013) radios support up to 18 channels,
- * leaving at a sane value of 14.
+ * Current (Q4/2013) radios support up to 18 channels,
+ * leaving at a sane value of 15.
+ * This number can be greater then number of RC channels,
+ * because single RC channel can be mapped to multiple
+ * functions, e.g. for various mode switches.
  */
-#define RC_CHANNELS_MAX   14
+#define RC_CHANNELS_MAPPED_MAX   15
 
 /** 
  * This defines the mapping of the RC functions.
@@ -68,20 +63,24 @@ enum RC_CHANNELS_FUNCTION
   ROLL     = 1,
   PITCH    = 2,
   YAW      = 3,
-  OVERRIDE = 4,
-  AUTO_MODE = 5,
-  MANUAL_MODE = 6,
-  SAS_MODE = 7,
-  RTL = 8,
-  OFFBOARD_MODE = 9,
-  FLAPS   = 10,
-  AUX_1   = 11,
-  AUX_2   = 12,
-  AUX_3   = 13,
-  AUX_4   = 14,
-  AUX_5   = 15,
+  MODE = 4,
+  RETURN = 5,
+  ASSISTED = 6,
+  MISSION = 7,
+  OFFBOARD_MODE = 8,
+  FLAPS   = 9,
+  AUX_1   = 10,
+  AUX_2   = 11,
+  AUX_3   = 12,
+  AUX_4   = 13,
+  AUX_5   = 14,
   RC_CHANNELS_FUNCTION_MAX /**< indicates the number of functions. There can be more functions than RC channels. */
 };
+
+/**
+ * @addtogroup topics
+ * @{
+ */
 
 struct rc_channels_s {
 
@@ -89,7 +88,7 @@ struct rc_channels_s {
   uint64_t timestamp_last_valid;      /**< timestamp of last valid RC signal. */
   struct {
     float scaled;                     /**< Scaled to -1..1 (throttle: 0..1) */
-  } chan[RC_CHANNELS_MAX];
+  } chan[RC_CHANNELS_MAPPED_MAX];
   uint8_t chan_count;                 /**< number of valid channels */
 
   /*String array to store the names of the functions*/

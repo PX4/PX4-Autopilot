@@ -18,6 +18,9 @@ typedef struct __mavlink_obs_position_t
 #define MAVLINK_MSG_ID_OBS_POSITION_LEN 12
 #define MAVLINK_MSG_ID_170_LEN 12
 
+#define MAVLINK_MSG_ID_OBS_POSITION_CRC 15
+#define MAVLINK_MSG_ID_170_CRC 15
+
 
 
 #define MAVLINK_MESSAGE_INFO_OBS_POSITION { \
@@ -51,30 +54,34 @@ static inline uint16_t mavlink_msg_obs_position_pack(uint8_t system_id, uint8_t 
 						       int32_t lon, int32_t lat, int32_t alt)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[12];
+	char buf[MAVLINK_MSG_ID_OBS_POSITION_LEN];
 	_mav_put_int32_t(buf, 0, lon);
 	_mav_put_int32_t(buf, 4, lat);
 	_mav_put_int32_t(buf, 8, alt);
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 12);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_OBS_POSITION_LEN);
 #else
 	mavlink_obs_position_t packet;
 	packet.lon = lon;
 	packet.lat = lat;
 	packet.alt = alt;
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, 12);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_OBS_POSITION_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_OBS_POSITION;
-	return mavlink_finalize_message(msg, system_id, component_id, 12, 15);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_OBS_POSITION_LEN, MAVLINK_MSG_ID_OBS_POSITION_CRC);
+#else
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_OBS_POSITION_LEN);
+#endif
 }
 
 /**
  * @brief Pack a obs_position message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param lon 
                 
@@ -92,27 +99,31 @@ static inline uint16_t mavlink_msg_obs_position_pack_chan(uint8_t system_id, uin
 						           int32_t lon,int32_t lat,int32_t alt)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[12];
+	char buf[MAVLINK_MSG_ID_OBS_POSITION_LEN];
 	_mav_put_int32_t(buf, 0, lon);
 	_mav_put_int32_t(buf, 4, lat);
 	_mav_put_int32_t(buf, 8, alt);
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 12);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_OBS_POSITION_LEN);
 #else
 	mavlink_obs_position_t packet;
 	packet.lon = lon;
 	packet.lat = lat;
 	packet.alt = alt;
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, 12);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_OBS_POSITION_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_OBS_POSITION;
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 12, 15);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_OBS_POSITION_LEN, MAVLINK_MSG_ID_OBS_POSITION_CRC);
+#else
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_OBS_POSITION_LEN);
+#endif
 }
 
 /**
- * @brief Encode a obs_position struct into a message
+ * @brief Encode a obs_position struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -122,6 +133,20 @@ static inline uint16_t mavlink_msg_obs_position_pack_chan(uint8_t system_id, uin
 static inline uint16_t mavlink_msg_obs_position_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_obs_position_t* obs_position)
 {
 	return mavlink_msg_obs_position_pack(system_id, component_id, msg, obs_position->lon, obs_position->lat, obs_position->alt);
+}
+
+/**
+ * @brief Encode a obs_position struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param obs_position C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_obs_position_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_obs_position_t* obs_position)
+{
+	return mavlink_msg_obs_position_pack_chan(system_id, component_id, chan, msg, obs_position->lon, obs_position->lat, obs_position->alt);
 }
 
 /**
@@ -143,19 +168,27 @@ static inline uint16_t mavlink_msg_obs_position_encode(uint8_t system_id, uint8_
 static inline void mavlink_msg_obs_position_send(mavlink_channel_t chan, int32_t lon, int32_t lat, int32_t alt)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[12];
+	char buf[MAVLINK_MSG_ID_OBS_POSITION_LEN];
 	_mav_put_int32_t(buf, 0, lon);
 	_mav_put_int32_t(buf, 4, lat);
 	_mav_put_int32_t(buf, 8, alt);
 
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_OBS_POSITION, buf, 12, 15);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_OBS_POSITION, buf, MAVLINK_MSG_ID_OBS_POSITION_LEN, MAVLINK_MSG_ID_OBS_POSITION_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_OBS_POSITION, buf, MAVLINK_MSG_ID_OBS_POSITION_LEN);
+#endif
 #else
 	mavlink_obs_position_t packet;
 	packet.lon = lon;
 	packet.lat = lat;
 	packet.alt = alt;
 
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_OBS_POSITION, (const char *)&packet, 12, 15);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_OBS_POSITION, (const char *)&packet, MAVLINK_MSG_ID_OBS_POSITION_LEN, MAVLINK_MSG_ID_OBS_POSITION_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_OBS_POSITION, (const char *)&packet, MAVLINK_MSG_ID_OBS_POSITION_LEN);
+#endif
 #endif
 }
 
@@ -213,6 +246,6 @@ static inline void mavlink_msg_obs_position_decode(const mavlink_message_t* msg,
 	obs_position->lat = mavlink_msg_obs_position_get_lat(msg);
 	obs_position->alt = mavlink_msg_obs_position_get_alt(msg);
 #else
-	memcpy(obs_position, _MAV_PAYLOAD(msg), 12);
+	memcpy(obs_position, _MAV_PAYLOAD(msg), MAVLINK_MSG_ID_OBS_POSITION_LEN);
 #endif
 }

@@ -47,14 +47,15 @@
 
 #include <v1.0/mavlink_types.h>
 
-#ifndef MAVLINK_SEND_UART_BYTES
-#define MAVLINK_SEND_UART_BYTES(chan, buffer, len) mavlink_send_uart_bytes(chan, buffer, len)
-#endif
-extern mavlink_system_t mavlink_system;
-#include <v1.0/common/mavlink.h>
+// #ifndef MAVLINK_SEND_UART_BYTES
+// #define MAVLINK_SEND_UART_BYTES(chan, buffer, len) mavlink_send_uart_bytes(chan, buffer, len)
+// #endif
+//extern mavlink_system_t mavlink_system;
+#include "mavlink_bridge_header.h"
 #include <stdbool.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/navigation_capabilities.h>
 
 // FIXME XXX - TO BE MOVED TO XML
 enum MAVLINK_WPM_STATES {
@@ -120,7 +121,7 @@ typedef struct mavlink_wpm_storage mavlink_wpm_storage;
 
 void mavlink_wpm_init(mavlink_wpm_storage *state);
 int mavlink_waypoint_eventloop(uint64_t now, const struct vehicle_global_position_s *global_position,
-			       struct vehicle_local_position_s *local_pos);
+			       struct vehicle_local_position_s *local_pos, struct navigation_capabilities_s *nav_cap);
 void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehicle_global_position_s *global_pos ,
 				 struct vehicle_local_position_s *local_pos);
 

@@ -17,6 +17,9 @@ typedef struct __mavlink_brief_feature_t
 #define MAVLINK_MSG_ID_BRIEF_FEATURE_LEN 53
 #define MAVLINK_MSG_ID_195_LEN 53
 
+#define MAVLINK_MSG_ID_BRIEF_FEATURE_CRC 88
+#define MAVLINK_MSG_ID_195_CRC 88
+
 #define MAVLINK_MSG_BRIEF_FEATURE_FIELD_DESCRIPTOR_LEN 32
 
 #define MAVLINK_MESSAGE_INFO_BRIEF_FEATURE { \
@@ -54,7 +57,7 @@ static inline uint16_t mavlink_msg_brief_feature_pack(uint8_t system_id, uint8_t
 						       float x, float y, float z, uint8_t orientation_assignment, uint16_t size, uint16_t orientation, const uint8_t *descriptor, float response)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[53];
+	char buf[MAVLINK_MSG_ID_BRIEF_FEATURE_LEN];
 	_mav_put_float(buf, 0, x);
 	_mav_put_float(buf, 4, y);
 	_mav_put_float(buf, 8, z);
@@ -63,7 +66,7 @@ static inline uint16_t mavlink_msg_brief_feature_pack(uint8_t system_id, uint8_t
 	_mav_put_uint16_t(buf, 18, orientation);
 	_mav_put_uint8_t(buf, 20, orientation_assignment);
 	_mav_put_uint8_t_array(buf, 21, descriptor, 32);
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 53);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_BRIEF_FEATURE_LEN);
 #else
 	mavlink_brief_feature_t packet;
 	packet.x = x;
@@ -74,18 +77,22 @@ static inline uint16_t mavlink_msg_brief_feature_pack(uint8_t system_id, uint8_t
 	packet.orientation = orientation;
 	packet.orientation_assignment = orientation_assignment;
 	mav_array_memcpy(packet.descriptor, descriptor, sizeof(uint8_t)*32);
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, 53);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_BRIEF_FEATURE_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_BRIEF_FEATURE;
-	return mavlink_finalize_message(msg, system_id, component_id, 53, 88);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_BRIEF_FEATURE_LEN, MAVLINK_MSG_ID_BRIEF_FEATURE_CRC);
+#else
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_BRIEF_FEATURE_LEN);
+#endif
 }
 
 /**
  * @brief Pack a brief_feature message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param x x position in m
  * @param y y position in m
@@ -102,7 +109,7 @@ static inline uint16_t mavlink_msg_brief_feature_pack_chan(uint8_t system_id, ui
 						           float x,float y,float z,uint8_t orientation_assignment,uint16_t size,uint16_t orientation,const uint8_t *descriptor,float response)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[53];
+	char buf[MAVLINK_MSG_ID_BRIEF_FEATURE_LEN];
 	_mav_put_float(buf, 0, x);
 	_mav_put_float(buf, 4, y);
 	_mav_put_float(buf, 8, z);
@@ -111,7 +118,7 @@ static inline uint16_t mavlink_msg_brief_feature_pack_chan(uint8_t system_id, ui
 	_mav_put_uint16_t(buf, 18, orientation);
 	_mav_put_uint8_t(buf, 20, orientation_assignment);
 	_mav_put_uint8_t_array(buf, 21, descriptor, 32);
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 53);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_BRIEF_FEATURE_LEN);
 #else
 	mavlink_brief_feature_t packet;
 	packet.x = x;
@@ -122,15 +129,19 @@ static inline uint16_t mavlink_msg_brief_feature_pack_chan(uint8_t system_id, ui
 	packet.orientation = orientation;
 	packet.orientation_assignment = orientation_assignment;
 	mav_array_memcpy(packet.descriptor, descriptor, sizeof(uint8_t)*32);
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, 53);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_BRIEF_FEATURE_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_BRIEF_FEATURE;
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 53, 88);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_BRIEF_FEATURE_LEN, MAVLINK_MSG_ID_BRIEF_FEATURE_CRC);
+#else
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_BRIEF_FEATURE_LEN);
+#endif
 }
 
 /**
- * @brief Encode a brief_feature struct into a message
+ * @brief Encode a brief_feature struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -140,6 +151,20 @@ static inline uint16_t mavlink_msg_brief_feature_pack_chan(uint8_t system_id, ui
 static inline uint16_t mavlink_msg_brief_feature_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_brief_feature_t* brief_feature)
 {
 	return mavlink_msg_brief_feature_pack(system_id, component_id, msg, brief_feature->x, brief_feature->y, brief_feature->z, brief_feature->orientation_assignment, brief_feature->size, brief_feature->orientation, brief_feature->descriptor, brief_feature->response);
+}
+
+/**
+ * @brief Encode a brief_feature struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param brief_feature C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_brief_feature_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_brief_feature_t* brief_feature)
+{
+	return mavlink_msg_brief_feature_pack_chan(system_id, component_id, chan, msg, brief_feature->x, brief_feature->y, brief_feature->z, brief_feature->orientation_assignment, brief_feature->size, brief_feature->orientation, brief_feature->descriptor, brief_feature->response);
 }
 
 /**
@@ -160,7 +185,7 @@ static inline uint16_t mavlink_msg_brief_feature_encode(uint8_t system_id, uint8
 static inline void mavlink_msg_brief_feature_send(mavlink_channel_t chan, float x, float y, float z, uint8_t orientation_assignment, uint16_t size, uint16_t orientation, const uint8_t *descriptor, float response)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[53];
+	char buf[MAVLINK_MSG_ID_BRIEF_FEATURE_LEN];
 	_mav_put_float(buf, 0, x);
 	_mav_put_float(buf, 4, y);
 	_mav_put_float(buf, 8, z);
@@ -169,7 +194,11 @@ static inline void mavlink_msg_brief_feature_send(mavlink_channel_t chan, float 
 	_mav_put_uint16_t(buf, 18, orientation);
 	_mav_put_uint8_t(buf, 20, orientation_assignment);
 	_mav_put_uint8_t_array(buf, 21, descriptor, 32);
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_BRIEF_FEATURE, buf, 53, 88);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_BRIEF_FEATURE, buf, MAVLINK_MSG_ID_BRIEF_FEATURE_LEN, MAVLINK_MSG_ID_BRIEF_FEATURE_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_BRIEF_FEATURE, buf, MAVLINK_MSG_ID_BRIEF_FEATURE_LEN);
+#endif
 #else
 	mavlink_brief_feature_t packet;
 	packet.x = x;
@@ -180,7 +209,11 @@ static inline void mavlink_msg_brief_feature_send(mavlink_channel_t chan, float 
 	packet.orientation = orientation;
 	packet.orientation_assignment = orientation_assignment;
 	mav_array_memcpy(packet.descriptor, descriptor, sizeof(uint8_t)*32);
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_BRIEF_FEATURE, (const char *)&packet, 53, 88);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_BRIEF_FEATURE, (const char *)&packet, MAVLINK_MSG_ID_BRIEF_FEATURE_LEN, MAVLINK_MSG_ID_BRIEF_FEATURE_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_BRIEF_FEATURE, (const char *)&packet, MAVLINK_MSG_ID_BRIEF_FEATURE_LEN);
+#endif
 #endif
 }
 
@@ -287,6 +320,6 @@ static inline void mavlink_msg_brief_feature_decode(const mavlink_message_t* msg
 	brief_feature->orientation_assignment = mavlink_msg_brief_feature_get_orientation_assignment(msg);
 	mavlink_msg_brief_feature_get_descriptor(msg, brief_feature->descriptor);
 #else
-	memcpy(brief_feature, _MAV_PAYLOAD(msg), 53);
+	memcpy(brief_feature, _MAV_PAYLOAD(msg), MAVLINK_MSG_ID_BRIEF_FEATURE_LEN);
 #endif
 }

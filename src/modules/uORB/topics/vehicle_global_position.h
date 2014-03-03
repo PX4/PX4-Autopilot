@@ -62,18 +62,17 @@
 struct vehicle_global_position_s
 {
 	uint64_t timestamp;		/**< time of this estimate, in microseconds since system start */
-	uint64_t time_gps_usec; /**< GPS timestamp in microseconds							  */
-	bool valid;				/**< true if position satisfies validity criteria of estimator */
+	uint64_t time_gps_usec; 	/**< GPS timestamp in microseconds							   */
+	bool valid;			/**< true if position satisfies validity criteria of estimator */
 
-	int32_t lat;			/**< Latitude in 1E7 degrees							LOGME */
-	int32_t lon;			/**< Longitude in 1E7 degrees							LOGME */
-	float alt;				/**< Altitude in meters									LOGME */
-	float relative_alt;		/**< Altitude above home position in meters, 			LOGME */
-	float vx; 				/**< Ground X Speed (Latitude), m/s in ENU				LOGME */
-	float vy;				/**< Ground Y Speed (Longitude), m/s in ENU				LOGME */
-	float vz;				/**< Ground Z Speed (Altitude), m/s	in ENU				LOGME */
-	float hdg; 				/**< Compass heading in radians -PI..+PI.					  */
-
+	int32_t lat;			/**< Latitude in 1E7 degrees							 	   */
+	int32_t lon;			/**< Longitude in 1E7 degrees							 	   */
+	float alt;			/**< Altitude in meters									 	   */
+	float relative_alt;		/**< Altitude above home position in meters, 				   */
+	float vx; 			/**< Ground X velocity, m/s in NED				 			   */
+	float vy;			/**< Ground Y velocity, m/s in NED							   */
+	float vz;			/**< Ground Z velocity, m/s	in NED 							   */
+	float yaw; 			/**< Compass heading in radians -PI..+PI.					   */
 };
 
 /**

@@ -1,0 +1,77 @@
+#!nsh
+#
+# PX4FMU startup script for test hackery.
+#
+uorb start
+
+if sercon
+then
+	echo "[init] USB interface connected"
+
+	# Try to get an USB console
+	nshterm /dev/ttyACM0 &
+fi
+
+#
+# Try to mount the microSD card.
+#
+echo "[init] looking for microSD..."
+if mount -t vfat /dev/mmcsd0 /fs/microsd
+then
+	echo "[init] card mounted at /fs/microsd"
+	# Start playing the startup tune
+	tone_alarm start
+else
+	echo "[init] no microSD card found"
+	# Play SOS
+	tone_alarm error
+fi
+
+#
+# Start a minimal system
+#
+
+if [ -f /etc/extras/px4io-v2_default.bin ]
+then
+	set io_file /etc/extras/px4io-v2_default.bin
+else
+	set io_file /etc/extras/px4io-v1_default.bin
+fi
+
+if px4io start
+then
+	echo "PX4IO OK"
+fi
+
+if px4io checkcrc $io_file
+then
+	echo "PX4IO CRC OK"
+else
+	echo "PX4IO CRC failure"
+	tone_alarm MBABGP
+	if px4io forceupdate 14662 $io_file
+	then
+		usleep 500000
+		if px4io start
+		then
+			echo "PX4IO restart OK"
+			tone_alarm MSPAA
+		else
+			echo "PX4IO restart failed"
+			tone_alarm MNGGG
+			sleep 5
+			reboot
+		fi
+	else
+		echo "PX4IO update failed"
+		tone_alarm MNGGG
+	fi
+fi
+
+#
+# The presence of this file suggests we're running a mount stress test
+#
+if [ -f /fs/microsd/mount_test_cmds.txt ]
+then
+	tests mount
+fi

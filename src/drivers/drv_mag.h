@@ -54,6 +54,7 @@
  */
 struct mag_report {
 	uint64_t timestamp;
+	uint64_t error_count;
 	float x;
 	float y;
 	float z;
@@ -90,25 +91,37 @@ ORB_DECLARE(sensor_mag);
 /** set the mag internal sample rate to at least (arg) Hz */
 #define MAGIOCSSAMPLERATE	_MAGIOC(0)
 
+/** return the mag internal sample rate in Hz */
+#define MAGIOCGSAMPLERATE	_MAGIOC(1)
+
 /** set the mag internal lowpass filter to no lower than (arg) Hz */
-#define MAGIOCSLOWPASS		_MAGIOC(1)
+#define MAGIOCSLOWPASS		_MAGIOC(2)
+
+/** return the mag internal lowpass filter in Hz */
+#define MAGIOCGLOWPASS		_MAGIOC(3)
 
 /** set the mag scaling constants to the structure pointed to by (arg) */
-#define MAGIOCSSCALE		_MAGIOC(2)
+#define MAGIOCSSCALE		_MAGIOC(4)
 
 /** copy the mag scaling constants to the structure pointed to by (arg) */
-#define MAGIOCGSCALE		_MAGIOC(3)
+#define MAGIOCGSCALE		_MAGIOC(5)
 
 /** set the measurement range to handle (at least) arg Gauss */
-#define MAGIOCSRANGE		_MAGIOC(4)
+#define MAGIOCSRANGE		_MAGIOC(6)
+
+/** return the current mag measurement range in Gauss */
+#define MAGIOCGRANGE		_MAGIOC(7)
 
 /** perform self-calibration, update scale factors to canonical units */
-#define MAGIOCCALIBRATE		_MAGIOC(5)
+#define MAGIOCCALIBRATE		_MAGIOC(8)
 
 /** excite strap */
-#define MAGIOCEXSTRAP		_MAGIOC(6)
+#define MAGIOCEXSTRAP		_MAGIOC(9)
 
 /** perform self test and report status */
-#define MAGIOCSELFTEST		_MAGIOC(7)
+#define MAGIOCSELFTEST		_MAGIOC(10)
+
+/** determine if mag is external or onboard */
+#define MAGIOCGEXTERNAL		_MAGIOC(11)
 
 #endif /* _DRV_MAG_H */
