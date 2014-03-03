@@ -18,6 +18,7 @@ from pyuavcan import dsdl
 
 MAX_BITLEN_FOR_ENUM = 31
 CPP_HEADER_EXTENSION = 'hpp'
+CPP_HEADER_PERMISSIONS = 0o444  # Read only for all
 TEMPLATE_FILENAME = os.path.join(os.path.dirname(__file__), 'data_type_template.hpp')
 
 # -----------------
@@ -64,8 +65,12 @@ def run_generator(types, dest_dir):
             text = generate_one_type(t)
             with open(file_path, 'w') as f:
                 f.write(text)
+            try:
+                os.chmod(file_path, CPP_HEADER_PERMISSIONS)
+            except (OSError, IOError) as ex:
+                logging.warning('Failed to set permissions for %s: %s', file_path, ex)
     except Exception as ex:
-        logging.info('Generator error', exc_info=True)
+        logging.info('Generator failure', exc_info=True)
         die(str(ex))
 
 def type_to_cpp_type(t):
