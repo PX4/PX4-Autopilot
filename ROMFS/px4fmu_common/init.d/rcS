@@ -385,7 +385,7 @@ then
 	then
 		sleep 1
 		mavlink start -b 230400 -d /dev/ttyACM0 
-		gps start -f
+		gps start
 		usleep 5000
 	else
 		if [ $TTYS1_BUSY == yes ]
