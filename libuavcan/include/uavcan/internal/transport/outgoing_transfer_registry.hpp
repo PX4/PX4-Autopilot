@@ -13,7 +13,7 @@
 namespace uavcan
 {
 
-#pragma pack(push, 1)
+UAVCAN_PACKED_BEGIN
 class OutgoingTransferRegistryKey
 {
     uint16_t data_type_id_;
@@ -47,7 +47,7 @@ public:
             (destination_node_id_ == rhs.destination_node_id_);
     }
 };
-#pragma pack(pop)
+UAVCAN_PACKED_END
 
 
 class IOutgoingTransferRegistry
@@ -62,14 +62,14 @@ public:
 template <int NumStaticEntries>
 class OutgoingTransferRegistry : public IOutgoingTransferRegistry, Noncopyable
 {
-#pragma pack(push, 1)
+UAVCAN_PACKED_BEGIN
     struct Value
     {
         uint64_t monotonic_deadline;
         TransferID tid;
         Value() : monotonic_deadline(0) { }
     };
-#pragma pack(pop)
+UAVCAN_PACKED_END
 
     class DeadlineExpiredPredicate
     {

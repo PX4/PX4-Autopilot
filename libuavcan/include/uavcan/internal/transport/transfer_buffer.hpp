@@ -14,7 +14,7 @@
 
 namespace uavcan
 {
-#pragma pack(push, 1)
+UAVCAN_PACKED_BEGIN
 /**
  * API for transfer buffer users.
  */
@@ -140,7 +140,7 @@ public:
     int read(unsigned int offset, uint8_t* data, unsigned int len) const;
     int write(unsigned int offset, const uint8_t* data, unsigned int len);
 };
-#pragma pack(pop)
+UAVCAN_PACKED_END
 
 /**
  * Standalone static buffer

@@ -25,7 +25,7 @@ namespace uavcan
 template <typename Key, typename Value, unsigned int NumStaticEntries>
 class Map : Noncopyable
 {
-#pragma pack(push, 1)
+UAVCAN_PACKED_BEGIN
     struct KVPair
     {
         Key key;
@@ -72,7 +72,7 @@ class Map : Noncopyable
             return NULL;
         }
     };
-#pragma pack(pop)
+UAVCAN_PACKED_END
 
     LinkedListRoot<KVGroup> list_;
     IAllocator& allocator_;

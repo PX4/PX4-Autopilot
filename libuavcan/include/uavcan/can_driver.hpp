@@ -15,7 +15,7 @@ namespace uavcan
 /**
  * Raw CAN frame, as passed to/from the CAN driver.
  */
-#pragma pack(push, 1)
+UAVCAN_PACKED_BEGIN
 struct CanFrame
 {
     static const uint32_t MaskStdID = 0x000007FF;
@@ -65,7 +65,7 @@ struct CanFrame
         return (id & CanFrame::MaskExtID) > (rhs.id & CanFrame::MaskExtID);
     }
 };
-#pragma pack(pop)
+UAVCAN_PACKED_END
 
 /**
  * CAN hardware filter config struct. @ref ICanDriver::filter().

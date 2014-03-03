@@ -11,7 +11,7 @@
 namespace uavcan
 {
 
-#pragma pack(push, 1)
+UAVCAN_PACKED_BEGIN
 class TransferReceiver
 {
 public:
@@ -69,6 +69,6 @@ public:
 
     uint32_t getInterval() const { return transfer_interval_; }
 };
-#pragma pack(pop)
+UAVCAN_PACKED_END
 
 }
