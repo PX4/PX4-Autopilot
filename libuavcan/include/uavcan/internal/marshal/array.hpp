@@ -298,6 +298,11 @@ public:
         return array.decodeImpl(codec, tao_mode, BooleanType<IsDynamic>());
     }
 
+    static void extendDataTypeSignature(DataTypeSignature& signature)
+    {
+        RawValueType::extendDataTypeSignature(signature);
+    }
+
     bool empty() const { return size() == 0; }
 
     void pop_back() { Base::shrink(); }

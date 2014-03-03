@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include <limits>
+#include <uavcan/data_type.hpp>
 #include <uavcan/internal/util.hpp>
 #include <uavcan/internal/marshal/scalar_codec.hpp>
 #include <uavcan/internal/marshal/type_util.hpp>
@@ -98,6 +99,8 @@ public:
         validate();
         return codec.decode<BitLen>(out_value);
     }
+
+    static void extendDataTypeSignature(DataTypeSignature&) { }
 };
 
 template <CastMode CastMode>
