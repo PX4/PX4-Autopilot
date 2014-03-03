@@ -701,23 +701,24 @@ FixedwingEstimator::task_main()
 					velNED[0] = _gps.vel_n_m_s;
 					velNED[1] = _gps.vel_e_m_s;
 					velNED[2] = _gps.vel_d_m_s;
+
+					double lat = _gps.lat * 1e-7;
+					double lon = _gps.lon * 1e-7;
+					float alt = _gps.alt * 1e-3;
+
 					InitialiseFilter(velNED);
 
 					// Initialize projection
 					_local_pos.ref_lat = _gps.lat;
 					_local_pos.ref_lon = _gps.lon;
-					_local_pos.ref_alt = _gps.alt;
+					_local_pos.ref_alt = alt;
 					_local_pos.ref_timestamp = _gps.timestamp_position;
 
 					// Store 
 					_baro_ref = baroHgt;
-					_baro_gps_offset = baroHgt - _gps.alt;
+					_baro_gps_offset = baroHgt - alt;
 
 					// XXX this is not multithreading safe
-					double lat = _gps.lat * 1e-7;
-					double lon = _gps.lon * 1e-7;
-					float alt = _gps.alt * 1e-3;
-
 					map_projection_init(lat, lon);
 					mavlink_log_info(_mavlink_fd, "[position estimator] init ref: lat=%.7f, lon=%.7f, alt=%.2f", lat, lon, alt);
 
