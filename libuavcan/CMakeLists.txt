@@ -50,6 +50,14 @@ if (GTEST_FOUND)
     target_link_libraries(libuavcan_test ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
     target_link_libraries(libuavcan_test ${CMAKE_BINARY_DIR}/libuavcan.so)
 
+    # DSDL compiler invocation
+    add_custom_target(dsdlc dsdl_compiler/dsdlc.py -v
+                            test/dsdl_test/root_ns_a    # Input
+                            -Otest/dsdlc_output         # Output
+                            -Itest/dsdl_test/root_ns_b  # Include
+                       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+    add_dependencies(libuavcan_test dsdlc)
+
     # Tests run automatically upon successful build
     # If failing tests need to be investigated with debugger, use 'make --ignore-errors'
     add_custom_command(TARGET libuavcan_test POST_BUILD

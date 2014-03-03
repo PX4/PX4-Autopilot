@@ -17,8 +17,8 @@ if RUNNING_FROM_SRC_DIR:
 from pyuavcan import dsdl
 
 MAX_BITLEN_FOR_ENUM = 31
-CPP_HEADER_EXTENSION = 'hpp'
-CPP_HEADER_PERMISSIONS = 0o444  # Read only for all
+OUTPUT_FILE_EXTENSION = 'hpp'
+OUTPUT_FILE_PERMISSIONS = 0o444  # Read only for all
 TEMPLATE_FILENAME = os.path.join(os.path.dirname(__file__), 'data_type_template.hpp')
 
 # -----------------
@@ -33,7 +33,7 @@ def pretty_filename(filename):
 
 def type_output_filename(t):
     assert t.category == t.CATEGORY_COMPOUND
-    return t.full_name.replace('.', os.path.sep) + '.' + CPP_HEADER_EXTENSION
+    return t.full_name.replace('.', os.path.sep) + '.' + OUTPUT_FILE_EXTENSION
 
 def die(text):
     print(text, file=sys.stderr)
@@ -50,7 +50,7 @@ def run_parser(source_dir, search_dirs):
     except dsdl.DsdlException as ex:
         errtext = str(ex)  # TODO: gcc-style formatting
         die(errtext)
-    logging.info('%d types from [%s] parsed successfully', len(types), source_dir)
+    logging.info('%d types from [%s]', len(types), source_dir)
     return types
 
 def run_generator(types, dest_dir):
@@ -59,20 +59,34 @@ def run_generator(types, dest_dir):
         os.makedirs(dest_dir, exist_ok=True)
         for t in types:
             logging.info('Generating type %s', t.full_name)
-            file_path = os.path.join(dest_dir, type_output_filename(t))
-            dir_path = os.path.dirname(file_path)
-            os.makedirs(dir_path, exist_ok=True)
+            filename = os.path.join(dest_dir, type_output_filename(t))
             text = generate_one_type(t)
-            os.remove(file_path)
-            with open(file_path, 'w') as f:
-                f.write(text)
-            try:
-                os.chmod(file_path, CPP_HEADER_PERMISSIONS)
-            except (OSError, IOError) as ex:
-                logging.warning('Failed to set permissions for %s: %s', file_path, ex)
+            write_generated_data(filename, text)
     except Exception as ex:
         logging.info('Generator failure', exc_info=True)
         die(str(ex))
+
+def write_generated_data(filename, data):
+    dirname = os.path.dirname(filename)
+    os.makedirs(dirname, exist_ok=True)
+
+    # Lazy update - file will not be rewritten if its content is not going to change
+    if os.path.exists(filename):
+        with open(filename) as f:
+            existing_data = f.read()
+        if data == existing_data:
+            logging.info('Up to date [%s]', pretty_filename(filename))
+            return
+        logging.info('Rewriting [%s]', pretty_filename(filename))
+        os.remove(filename)
+
+    # Full rewrite
+    with open(filename, 'w') as f:
+        f.write(data)
+    try:
+        os.chmod(filename, OUTPUT_FILE_PERMISSIONS)
+    except (OSError, IOError) as ex:
+        logging.warning('Failed to set permissions for %s: %s', pretty_filename(filename), ex)
 
 def type_to_cpp_type(t):
     if t.category == t.CATEGORY_PRIMITIVE:
@@ -151,6 +165,7 @@ def generate_one_type(t):
             else:
                 c.cpp_use_enum = c.value >= 0 and c.type.bitlen <= MAX_BITLEN_FOR_ENUM
                 c.cpp_value = c.string_value
+
     if t.kind == t.KIND_MESSAGE:
         inject_constant_info(t.constants)
     else:
