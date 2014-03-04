@@ -169,6 +169,11 @@ ${'::uavcan::TailArrayOptDisabled' if (idx + 1) < len(fields) else 'tao_mode'});
 % endif
         return signature;
     }
+
+% if t.kind == t.KIND_SERVICE:
+private:
+    ${t.short_name}(); // Don't create objects of this type. Use Request/Response instead.
+% endif
 };
 
 <%def name="define_out_of_line_constants(scope_prefix, constants)">
