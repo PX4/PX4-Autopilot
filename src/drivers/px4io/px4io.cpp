@@ -1921,7 +1921,7 @@ PX4IO::print_status()
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE));
 #endif
 	printf("debuglevel %u\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG));
-	for (unsigned group = 0; group < PX4IO_CONTROL_GROUPS; group++) {
+	for (unsigned group = 0; group < 4; group++) {
 		printf("controls %u:", group);
 
 		for (unsigned i = 0; i < _max_controls; i++)
