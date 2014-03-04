@@ -1063,6 +1063,45 @@ protected:
 };
 
 
+class MavlinkStreamOpticalFlow : public MavlinkStream
+{
+public:
+	const char *get_name()
+	{
+		return "OPTICAL_FLOW";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamOpticalFlow();
+	}
+
+private:
+	MavlinkOrbSubscription *flow_sub;
+	struct optical_flow_s *flow;
+
+protected:
+	void subscribe(Mavlink *mavlink)
+	{
+		flow_sub = mavlink->add_orb_subscription(ORB_ID(optical_flow));
+		flow = (struct optical_flow_s *)flow_sub->get_data();
+	}
+
+	void send(const hrt_abstime t)
+	{
+		flow_sub->update(t);
+
+		mavlink_msg_optical_flow_send(_channel,
+						flow->timestamp,
+						flow->sensor_id,
+						flow->flow_raw_x, flow->flow_raw_y,
+						flow->flow_comp_x_m, flow->flow_comp_y_m,
+						flow->quality,
+						flow->ground_distance_m);
+	}
+};
+
+
 MavlinkStream *streams_list[] = {
 	new MavlinkStreamHeartbeat(),
 	new MavlinkStreamSysStatus(),
@@ -1085,6 +1124,7 @@ MavlinkStream *streams_list[] = {
 	new MavlinkStreamRollPitchYawRatesThrustSetpoint(),
 	new MavlinkStreamRCChannelsRaw(),
 	new MavlinkStreamManualControl(),
+	new MavlinkStreamOpticalFlow(),
 	nullptr
 };
 
@@ -1140,17 +1180,6 @@ MavlinkStream *streams_list[] = {
 //					   l->listener->last_sensor_timestamp / 1000,
 //					   debug.key,
 //					   debug.value);
-//}
-//
-//void
-//MavlinkOrbListener::l_optical_flow(const struct listener *l)
-//{
-//	struct optical_flow_s flow;
-//
-//	orb_copy(ORB_ID(optical_flow), l->mavlink->get_subs()->optical_flow, &flow);
-//
-//	mavlink_msg_optical_flow_send(l->mavlink->get_chan(), flow.timestamp, flow.sensor_id, flow.flow_raw_x, flow.flow_raw_y,
-//				      flow.flow_comp_x_m, flow.flow_comp_y_m, flow.quality, flow.ground_distance_m);
 //}
 //
 //void
