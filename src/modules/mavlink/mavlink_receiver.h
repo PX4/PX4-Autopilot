@@ -105,6 +105,17 @@ private:
 	Mavlink	*_mavlink;
 
 	void handle_message(mavlink_message_t *msg);
+	void handle_message_command_long(mavlink_message_t *msg);
+	void handle_message_optical_flow(mavlink_message_t *msg);
+	void handle_message_set_mode(mavlink_message_t *msg);
+	void handle_message_vicon_position_estimate(mavlink_message_t *msg);
+	void handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message_t *msg);
+	void handle_message_radio_status(mavlink_message_t *msg);
+	void handle_message_manual_control(mavlink_message_t *msg);
+	void handle_message_hil_sensor(mavlink_message_t *msg);
+	void handle_message_hil_gps(mavlink_message_t *msg);
+	void handle_message_hil_state_quaternion(mavlink_message_t *msg);
+
 	void *receive_thread(void *arg);
 
 	mavlink_status_t status;
