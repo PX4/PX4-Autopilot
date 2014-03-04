@@ -1092,12 +1092,12 @@ protected:
 		flow_sub->update(t);
 
 		mavlink_msg_optical_flow_send(_channel,
-						flow->timestamp,
-						flow->sensor_id,
-						flow->flow_raw_x, flow->flow_raw_y,
-						flow->flow_comp_x_m, flow->flow_comp_y_m,
-						flow->quality,
-						flow->ground_distance_m);
+					      flow->timestamp,
+					      flow->sensor_id,
+					      flow->flow_raw_x, flow->flow_raw_y,
+					      flow->flow_comp_x_m, flow->flow_comp_y_m,
+					      flow->quality,
+					      flow->ground_distance_m);
 	}
 };
 
