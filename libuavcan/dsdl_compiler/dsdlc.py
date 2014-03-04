@@ -48,8 +48,8 @@ def run_parser(source_dir, search_dirs):
     try:
         types = dsdl.parse_namespace(source_dir, search_dirs)
     except dsdl.DsdlException as ex:
-        errtext = str(ex)  # TODO: gcc-style formatting
-        die(errtext)
+        logging.info('Parser failure', exc_info=True)
+        die(str(ex))
     return types
 
 def run_generator(types, dest_dir):

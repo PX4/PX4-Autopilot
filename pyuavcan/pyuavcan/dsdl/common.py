@@ -12,7 +12,7 @@ class DsdlException(Exception):
 
     def __str__(self):
         if self.file and self.line:
-            return '%s:%s: %s' % (pretty_filename(self.file), self.line, super().__str__())
+            return '%s:%d: %s' % (pretty_filename(self.file), self.line, super().__str__())
         if self.file:
             return '%s: %s' % (pretty_filename(self.file), super().__str__())
         return super().__str__()
