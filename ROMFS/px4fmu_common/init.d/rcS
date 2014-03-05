@@ -387,7 +387,7 @@ then
 		mavlink start -b 230400 -d /dev/ttyACM0 
 		usleep 5000
 	else
-		if [ $TTYS1_BUSY == yes -o $ARDRONE == yes]
+		if [ $TTYS1_BUSY == yes -o $ARDRONE == yes ]
 		then
 			# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
 			mavlink start -d /dev/ttyS0

@@ -11,24 +11,23 @@ sh /etc/init.d/rc.mc_defaults
 #
 # Load default params for this platform
 #
-if param compare SYS_AUTOCONFIG 1
+if [ $DO_AUTOCONFIG == yes ]
 then
     # Set all params here, then disable autoconfig
-    param set MC_ATTRATE_D 0
-    param set MC_ATTRATE_I 0
-    param set MC_ATTRATE_P 0.13
-    param set MC_ATT_D 0
-    param set MC_ATT_I 0.3
-    param set MC_ATT_P 5
-    param set MC_YAWPOS_D 0.1
-    param set MC_YAWPOS_I 0.15
-    param set MC_YAWPOS_P 1
-    param set MC_YAWRATE_D 0
-    param set MC_YAWRATE_I 0
+    param set MC_ROLL_P 5.0
+    param set MC_ROLLRATE_P 0.13
+    param set MC_ROLLRATE_I 0.0
+    param set MC_ROLLRATE_D 0.0
+    param set MC_PITCH_P 5.0
+    param set MC_PITCHRATE_P 0.13
+    param set MC_PITCHRATE_I 0.0
+    param set MC_PITCHRATE_D 0.0
+    param set MC_YAW_P 1.0
+    param set MC_YAW_D 0.1
     param set MC_YAWRATE_P 0.15
-
-    param set SYS_AUTOCONFIG 0
-    param save
+    param set MC_YAWRATE_I 0.0
+    param set MC_YAWRATE_D 0.0
+    param set MC_YAW_FF 0.15
 fi
 
 set FMU_MODE gpio_serial
