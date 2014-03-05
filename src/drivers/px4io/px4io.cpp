@@ -1925,7 +1925,7 @@ PX4IO::print_status()
 		printf("controls %u:", group);
 
 		for (unsigned i = 0; i < _max_controls; i++)
-			printf(" %u", io_reg_get(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT + i));
+			printf(" %d", (int16_t) io_reg_get(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT + i));
 
 		printf("\n");
 	}
