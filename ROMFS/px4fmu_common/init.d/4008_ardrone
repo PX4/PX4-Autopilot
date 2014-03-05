@@ -33,3 +33,4 @@ fi
 set FMU_MODE gpio_serial
 set OUTPUT_MODE fmu
 set ARDRONE yes
+set USE_IO no
