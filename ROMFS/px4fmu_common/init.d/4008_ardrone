@@ -3,6 +3,8 @@
 # ARDrone
 #
 
+echo "[init] 4008_ardrone: PX4FMU on PX4IOAR carrier board"
+
 # Just use the default multicopter settings.
 sh /etc/init.d/rc.mc_defaults
 
@@ -29,12 +31,6 @@ then
     param save
 fi
 
-set FMU_MODE gpio
-
-#
-# Force some key parameters to sane values
-# MAV_TYPE     2 = quadrotor
-#
-set MAV_TYPE 2
-set VEHICLE_TYPE mc
-param set BAT_V_SCALING 0.008381
+set FMU_MODE gpio_serial
+set OUTPUT_MODE fmu
+set ARDRONE yes

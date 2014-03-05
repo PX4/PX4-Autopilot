@@ -397,8 +397,10 @@ then
 			set EXIT_ON_END yes
 		else
 			# Start MAVLink on default port: ttyS1
-			mavlink start
+			mavlink start -d /dev/ttyS0
 			usleep 5000
+
+			set EXIT_ON_END yes
 		fi
 	fi
 	
@@ -427,6 +429,14 @@ then
 		gps start
 	fi
 	
+	#
+	# Start up ARDrone Motor interface
+	#
+	if [ $ARDRONE == yes ]
+	then
+		ardrone_interface start -d /dev/ttyS1
+	fi
+
 	#
 	# Fixed wing setup
 	#
