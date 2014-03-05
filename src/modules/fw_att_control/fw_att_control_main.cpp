@@ -170,8 +170,10 @@ private:
 		float trim_roll;
 		float trim_pitch;
 		float trim_yaw;
-		float rollsp_offset;
-		float pitchsp_offset;
+		float rollsp_offset_deg;			/**< Roll Setpoint Offset in deg */
+		float pitchsp_offset_deg;			/**< Pitch Setpoint Offset in deg */
+		float rollsp_offset_rad;			/**< Roll Setpoint Offset in rad */
+		float pitchsp_offset_rad;			/**< Pitch Setpoint Offset in rad */
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -208,8 +210,8 @@ private:
 		param_t trim_roll;
 		param_t trim_pitch;
 		param_t trim_yaw;
-		param_t rollsp_offset;
-		param_t pitchsp_offset;
+		param_t rollsp_offset_deg;
+		param_t pitchsp_offset_deg;
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -351,8 +353,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.trim_roll = param_find("TRIM_ROLL");
 	_parameter_handles.trim_pitch = param_find("TRIM_PITCH");
 	_parameter_handles.trim_yaw = param_find("TRIM_YAW");
-	_parameter_handles.rollsp_offset = param_find("FW_RSP_OFF");
-	_parameter_handles.pitchsp_offset = param_find("FW_PSP_OFF");
+	_parameter_handles.rollsp_offset_deg = param_find("FW_RSP_OFF");
+	_parameter_handles.pitchsp_offset_deg = param_find("FW_PSP_OFF");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -417,8 +419,10 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.trim_roll, &(_parameters.trim_roll));
 	param_get(_parameter_handles.trim_pitch, &(_parameters.trim_pitch));
 	param_get(_parameter_handles.trim_yaw, &(_parameters.trim_yaw));
-	param_get(_parameter_handles.rollsp_offset, &(_parameters.rollsp_offset));
-	param_get(_parameter_handles.pitchsp_offset, &(_parameters.pitchsp_offset));
+	param_get(_parameter_handles.rollsp_offset_deg, &(_parameters.rollsp_offset_deg));
+	param_get(_parameter_handles.pitchsp_offset_deg, &(_parameters.pitchsp_offset_deg));
+	_parameters.rollsp_offset_rad = math::radians(_parameters.rollsp_offset_deg);
+	_parameters.pitchsp_offset_rad = math::radians(_parameters.pitchsp_offset_deg);
 
 
 	/* pitch control parameters */
@@ -674,13 +678,13 @@ FixedwingAttitudeControl::task_main()
 				float airspeed_scaling = _parameters.airspeed_trim / airspeed;
 				//warnx("aspd scale: %6.2f act scale: %6.2f", airspeed_scaling, actuator_scaling);
 
-				float roll_sp = _parameters.rollsp_offset;
-				float pitch_sp = _parameters.pitchsp_offset;
+				float roll_sp = _parameters.rollsp_offset_rad;
+				float pitch_sp = _parameters.pitchsp_offset_rad;
 				float throttle_sp = 0.0f;
 
 				if (_vcontrol_mode.flag_control_velocity_enabled || _vcontrol_mode.flag_control_position_enabled) {
-					roll_sp = _att_sp.roll_body + _parameters.rollsp_offset;
-					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset;
+					roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
+					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
 					throttle_sp = _att_sp.thrust;
 
 					/* reset integrals where needed */
@@ -701,8 +705,8 @@ FixedwingAttitudeControl::task_main()
 					 * the intended attitude setpoint. Later, after the rate control step the
 					 * trim is added again to the control signal.
 					 */
-					roll_sp = (_manual.roll - _parameters.trim_roll) * 0.75f + _parameters.rollsp_offset;
-					pitch_sp = (_manual.pitch - _parameters.trim_pitch) * 0.75f + _parameters.pitchsp_offset;
+					roll_sp = (_manual.roll - _parameters.trim_roll) * 0.75f + _parameters.rollsp_offset_rad;
+					pitch_sp = (_manual.pitch - _parameters.trim_pitch) * 0.75f + _parameters.pitchsp_offset_rad;
 					throttle_sp = _manual.throttle;
 					_actuators.control[4] = _manual.flaps;
 
