@@ -262,8 +262,10 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 {
 	memset(&_v_att, 0, sizeof(_v_att));
 	memset(&_v_att_sp, 0, sizeof(_v_att_sp));
+	memset(&_v_rates_sp, 0, sizeof(_v_rates_sp));
 	memset(&_manual_control_sp, 0, sizeof(_manual_control_sp));
 	memset(&_v_control_mode, 0, sizeof(_v_control_mode));
+	memset(&_actuators, 0, sizeof(_actuators));
 	memset(&_armed, 0, sizeof(_armed));
 
 	_params.att_p.zero();
