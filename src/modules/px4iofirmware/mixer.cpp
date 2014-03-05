@@ -327,7 +327,7 @@ mixer_handle_text(const void *buffer, size_t length)
 		return 1;
 	}
 
-	px4io_mixdata	*msg = static_cast<px4io_mixdata *>(buffer);
+	px4io_mixdata	*msg = (px4io_mixdata *)buffer;
 
 	isr_debug(2, "mix txt %u", length);
 
