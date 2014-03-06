@@ -19,14 +19,14 @@ enum Signedness { SignednessUnsigned, SignednessSigned };
 template <unsigned int BitLen_, Signedness Signedness, CastMode CastMode>
 class IntegerSpec
 {
-    enum { IsSigned = Signedness == SignednessSigned };
-
     struct ErrorNoSuchInteger;
 
 public:
+    enum { IsSigned = Signedness == SignednessSigned };
     enum { BitLen = BitLen_ };
     enum { MinBitLen = BitLen };
     enum { MaxBitLen = BitLen };
+    enum { IsPrimitive = 1 };
 
     typedef typename StaticIf<(BitLen <= 8),  typename StaticIf<IsSigned, int8_t,  uint8_t>::Result,
             typename StaticIf<(BitLen <= 16), typename StaticIf<IsSigned, int16_t, uint16_t>::Result,
@@ -115,5 +115,22 @@ struct IsIntegerSpec { enum { Result = 0 }; };
 
 template <unsigned int BitLen, Signedness Signedness, CastMode CastMode>
 struct IsIntegerSpec<IntegerSpec<BitLen, Signedness, CastMode> > { enum { Result = 1 }; };
+
+
+template <unsigned int BitLen, Signedness Signedness, CastMode CastMode>
+struct YamlStreamer<IntegerSpec<BitLen, Signedness, CastMode> >
+{
+    typedef IntegerSpec<BitLen, Signedness, CastMode> RawType;
+    typedef typename RawType::StorageType StorageType;
+
+    template <typename Stream>
+    static void stream(Stream& s, const StorageType value, int)
+    {
+        // Get rid of character types - we want its integer representation, not ASCII code
+        typedef typename StaticIf<(sizeof(StorageType) >= sizeof(int)), StorageType,
+                typename StaticIf<RawType::IsSigned, int, unsigned int>::Result >::Result TempType;
+        s << TempType(value);
+    }
+};
 
 }

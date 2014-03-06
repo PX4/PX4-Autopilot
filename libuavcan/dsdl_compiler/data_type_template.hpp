@@ -198,8 +198,6 @@ ${define_out_of_line_constants(t.cpp_type_name, t.constants)}
 UAVCAN_PACKED_END
 #endif
 
-// TODO Stream operator
-
 % if t.has_default_dtid:
 const ::uavcan::DefaultDataTypeRegistrator< ${t.cpp_type_name} > _uavcan_gdtr_registrator_${t.cpp_type_name};
 % else:
@@ -212,4 +210,57 @@ typedef ${t.cpp_type_name} ${t.short_name};
 % for nsc in t.cpp_namespace_components:
 } // Namespace ${nsc}
 % endfor
+
+namespace uavcan
+{
+
+<%def name="define_yaml_streamer(type_name, fields)">
+template <>
+struct YamlStreamer< ${type_name} >
+{
+    template <typename Stream>
+    static void stream(Stream& s, ${type_name}::ParameterType obj, const int level)
+    {
+% for idx,a in enumerate(fields):
+    % if idx == 0:
+        if (level > 0)
+        {
+            s << '\n';
+            for (int pos = 0; pos < level; pos++)
+                s << "  ";
+        }
+    % else:
+        s << '\n';
+        for (int pos = 0; pos < level; pos++)
+            s << "  ";
+    % endif
+        s << "${a.name}: ";
+        YamlStreamer< ${type_name}::FieldTypes::${a.name} >::stream(s, obj.${a.name}, level + 1);
+% endfor
+    }
+};
+</%def>
+% if t.kind == t.KIND_SERVICE:
+${define_yaml_streamer(t.cpp_full_type_name + '::Request', t.request_fields)}
+${define_yaml_streamer(t.cpp_full_type_name + '::Response', t.response_fields)}
+% else:
+${define_yaml_streamer(t.cpp_full_type_name, t.fields)}
+% endif
+
+}
+
+<%def name="define_streaming_operator(type_name)">
+template <typename Stream>
+inline Stream& operator<<(Stream& s, ${type_name}::ParameterType obj)
+{
+    ::uavcan::YamlStreamer< ${type_name} >::stream(s, obj, 0);
+    return s;
+}
+</%def>
+% if t.kind == t.KIND_SERVICE:
+${define_streaming_operator(t.cpp_full_type_name + '::Request')}
+${define_streaming_operator(t.cpp_full_type_name + '::Response')}
+% else:
+${define_streaming_operator(t.cpp_full_type_name)}
+% endif
 

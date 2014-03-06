@@ -29,4 +29,25 @@ struct StorageType<T, typename EnableIfType<typename T::StorageType>::Type>
     typedef typename T::StorageType Type;
 };
 
+
+template <typename T>
+class IsPrimitiveType
+{
+    typedef char Yes;
+    struct No { Yes dummy[8]; };
+
+    template <typename U>
+    static typename EnableIf<U::IsPrimitive, Yes>::Type test(int);
+
+    template <typename>
+    static No test(...);
+
+public:
+    enum { Result = sizeof(test<T>(0)) == sizeof(Yes) };
+};
+
+
+template <typename T>
+struct YamlStreamer;
+
 }

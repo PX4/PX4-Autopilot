@@ -115,7 +115,11 @@ class ArrayImpl : public StaticIf<ArrayMode == ArrayModeDynamic,
                               StaticArrayBase<MaxSize> >::Result Base;
 
 public:
-    enum { IsStringLike = IsIntegerSpec<T>::Result && (T::MaxBitLen == 8 || T::MaxBitLen == 7) };
+    enum
+    {
+        IsStringLike = IsIntegerSpec<T>::Result && (T::MaxBitLen == 8 || T::MaxBitLen == 7)
+                    && (ArrayMode == ArrayModeDynamic)
+    };
 
 private:
     typedef typename StorageType<T>::Type BufferType[MaxSize + (IsStringLike ? 1 : 0)];
@@ -409,5 +413,115 @@ inline bool operator!=(const R& rhs, const Array<T, ArrayMode, MaxSize>& lhs)
 {
     return lhs.operator!=(rhs);
 }
+
+
+template <typename T, ArrayMode ArrayMode, unsigned int MaxSize>
+class YamlStreamer<Array<T, ArrayMode, MaxSize> >
+{
+    typedef Array<T, ArrayMode, MaxSize> ArrayType;
+
+    template <typename Stream>
+    static void streamPrimitives(Stream& s, const ArrayType& array)
+    {
+        s << '[';
+        for (std::size_t i = 0; i < array.size(); i++)
+        {
+            YamlStreamer<T>::stream(s, array.at(i), 0);
+            if ((i + 1) < array.size())
+                s << ", ";
+        }
+        s << ']';
+    }
+
+    template <typename Stream>
+    static void streamCharacters(Stream& s, const ArrayType& array)
+    {
+        s << '"';
+        for (std::size_t i = 0; i < array.size(); i++)
+        {
+            const unsigned int c = array.at(i);
+            if (c < 32 || c > 126)              // Non-printable characters
+            {
+                char nibbles[2] = {(c >> 4) & 0xF, c & 0xF};
+                for (int i = 0; i < 2; i++)
+                {
+                    nibbles[i] += '0';
+                    if (nibbles[i] > '9')
+                        nibbles[i] += 'A' - '9' - 1;
+                }
+                s << "\\x" << nibbles[0] << nibbles[1];
+            }
+            else
+            {
+                if (c == '"' || c == '\\')      // YAML requires to escape these two
+                    s << '\\';
+                s << char(c);
+            }
+        }
+        s << '"';
+    }
+
+    struct SelectorStringLike { };
+    struct SelectorPrimitives { };
+    struct SelectorObjects { };
+
+    template <typename Stream>
+    static void genericStreamImpl(Stream& s, const ArrayType& array, int, SelectorStringLike)
+    {
+        bool printable_only = true;
+        for (int i = 0; i < array.size(); i++)
+        {
+            if (array[i] < 32 || array[i] > 126)
+            {
+                printable_only = false;
+                break;
+            }
+        }
+        if (printable_only)
+        {
+            streamCharacters(s, array);
+        }
+        else
+        {
+            streamPrimitives(s, array);
+            s << " # ";
+            streamCharacters(s, array);
+        }
+    }
+
+    template <typename Stream>
+    static void genericStreamImpl(Stream& s, const ArrayType& array, int, SelectorPrimitives)
+    {
+        streamPrimitives(s, array);
+    }
+
+    template <typename Stream>
+    static void genericStreamImpl(Stream& s, const ArrayType& array, int level, SelectorObjects)
+    {
+        if (array.empty())
+        {
+            s << "[]";
+            return;
+        }
+        for (std::size_t i = 0; i < array.size(); i++)
+        {
+            s << '\n';
+            for (int pos = 0; pos < level; pos++)
+                s << "  ";
+            s << "- ";
+            YamlStreamer<T>::stream(s, array.at(i), level + 1);
+        }
+    }
+
+public:
+    template <typename Stream>
+    static void stream(Stream& s, const ArrayType& array, int level)
+    {
+        typedef typename StaticIf<ArrayType::IsStringLike, SelectorStringLike,
+                typename StaticIf<IsPrimitiveType<typename ArrayType::RawValueType>::Result, SelectorPrimitives,
+                                  SelectorObjects>::Result >::Result Type;
+        genericStreamImpl(s, array, level, Type());
+    }
+};
 
 }

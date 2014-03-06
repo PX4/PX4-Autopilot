@@ -102,6 +102,7 @@ public:
     enum { BitLen = BitLen_ };
     enum { MinBitLen = BitLen };
     enum { MaxBitLen = BitLen };
+    enum { IsPrimitive = 1 };
 
     typedef typename NativeFloatSelector<BitLen>::Type StorageType;
 
@@ -154,6 +155,19 @@ private:
             else if (value < -max())
                 value = -std::numeric_limits<StorageType>::infinity();
         }
+    }
+};
+
+
+template <unsigned int BitLen, CastMode CastMode>
+struct YamlStreamer<FloatSpec<BitLen, CastMode> >
+{
+    typedef typename FloatSpec<BitLen, CastMode>::StorageType StorageType;
+
+    template <typename Stream>
+    static void stream(Stream& s, const StorageType value, int)
+    {
+        s << value;
     }
 };
 

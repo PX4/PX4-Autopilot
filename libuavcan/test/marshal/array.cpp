@@ -710,3 +710,59 @@ TEST(Array, Strings)
     ASSERT_STREQ("Our sun is dying. 123456-789", a8.c_str());
     ASSERT_STREQ("456", a7.c_str());
 }
+
+
+TEST(Array, FlatStreaming)
+{
+    typedef Array<IntegerSpec<8, SignednessUnsigned, CastModeSaturate>, ArrayModeDynamic, 32> A8D;
+    typedef Array<FloatSpec<16, CastModeSaturate>, ArrayModeDynamic, 16> AF16D;
+    typedef Array<FloatSpec<16, CastModeSaturate>, ArrayModeStatic, 3> AF16S;
+
+    A8D a1;
+    a1 = "12\n3\x44\xa5\xde\xad\x79";
+    uavcan::YamlStreamer<A8D>::stream(std::cout, a1, 0);
+    std::cout << std::endl;
+
+    A8D a2;
+    a2 = "Hello";
+    uavcan::YamlStreamer<A8D>::stream(std::cout, a2, 0);
+    std::cout << std::endl;
+
+    AF16D af16d1;
+    af16d1.push_back(1.23);
+    af16d1.push_back(4.56);
+    uavcan::YamlStreamer<AF16D>::stream(std::cout, af16d1, 0);
+    std::cout << std::endl;
+
+    AF16D af16d2;
+    uavcan::YamlStreamer<AF16D>::stream(std::cout, af16d2, 0);
+    std::cout << std::endl;
+
+    AF16S af16s;
+    uavcan::YamlStreamer<AF16S>::stream(std::cout, af16s, 0);
+    std::cout << std::endl;
+}
+
+
+TEST(Array, MultidimensionalStreaming)
+{
+    typedef Array<FloatSpec<16, CastModeSaturate>, ArrayModeDynamic, 16> Float16Array;
+    typedef Array<Float16Array, ArrayModeDynamic, 8> TwoDimensional;
+    typedef Array<TwoDimensional, ArrayModeDynamic, 4> ThreeDimensional;
+
+    ThreeDimensional threedee;
+    threedee.resize(3);
+    for (int x = 0; x < threedee.size(); x++)
+    {
+        threedee[x].resize(3);
+        for (int y = 0; y < threedee[x].size(); y++)
+        {
+            threedee[x][y].resize(3);
+            for (int z = 0; z < threedee[x][y].size(); z++)
+                threedee[x][y][z] = 1.0 / (x + y + z + 1.0);
+        }
+    }
+
+    uavcan::YamlStreamer<ThreeDimensional>::stream(std::cout, threedee, 0);
+    std::cout << std::endl;
+}
