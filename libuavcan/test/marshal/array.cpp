@@ -208,6 +208,8 @@ TEST(Array, Basic)
 
     ASSERT_TRUE(a1 == v1);
     ASSERT_FALSE(a1 != v1);
+    ASSERT_TRUE(v1 == a1);
+    ASSERT_FALSE(v1 != a1);
     ASSERT_FALSE(a1 < v1);
 
     v1[0] = 9000;
@@ -620,4 +622,91 @@ TEST(Array, StaticEncodeDecodeErrors)
         uavcan::ScalarCodec sc_rd(bs_rd);
         ASSERT_EQ(0, A::decode(a, sc_rd, uavcan::TailArrayOptEnabled));
     }
+}
+
+
+TEST(Array, Copyability)
+{
+    typedef Array<IntegerSpec<1, SignednessUnsigned, CastModeSaturate>, ArrayModeDynamic, 5>   OneBitArray;
+    typedef Array<IntegerSpec<8, SignednessUnsigned, CastModeSaturate>, ArrayModeDynamic, 255> EightBitArray;
+    typedef Array<OneBitArray,   ArrayModeDynamic, 255> A;
+    typedef Array<EightBitArray, ArrayModeDynamic, 255> B;
+    typedef EightBitArray C;
+
+    A a;
+    B b;
+    C c;
+
+    A a2 = a;
+    B b2 = b;
+    C c2 = c;
+
+    ASSERT_TRUE(a == a2);
+    ASSERT_TRUE(b == b2);
+    ASSERT_TRUE(c == c2);
+
+    a.push_back(OneBitArray());
+    b.push_back(EightBitArray());
+    c.push_back(42);
+
+    ASSERT_TRUE(a != a2);
+    ASSERT_TRUE(b != b2);
+    ASSERT_TRUE(c != c2);
+
+    a2 = a;
+    b2 = b;
+    c2 = c;
+
+    ASSERT_TRUE(a2 == a);
+    ASSERT_TRUE(b2 == b);
+    ASSERT_TRUE(c2 == c);
+}
+
+
+TEST(Array, Strings)
+{
+    typedef Array<IntegerSpec<8, SignednessUnsigned, CastModeSaturate>, ArrayModeDynamic, 32> A8;
+    typedef Array<IntegerSpec<7, SignednessUnsigned, CastModeSaturate>, ArrayModeDynamic, 32> A7;
+
+    A8 a8;
+    A8 a8_2;
+    A7 a7;
+
+    ASSERT_TRUE(a8 == a7);
+    // cppcheck-suppress duplicateExpression
+    ASSERT_TRUE(a8 == a8);
+    // cppcheck-suppress duplicateExpression
+    ASSERT_TRUE(a7 == a7);
+    ASSERT_TRUE(a8 == "");
+    ASSERT_TRUE(a7 == "");
+
+    a8 = "Hello world!";
+    a7 = "123";
+    ASSERT_TRUE(a8 == "Hello world!");
+    ASSERT_TRUE(a7 == "123");
+
+    a8 = "Our sun is dying.";
+    a7 = "456";
+    ASSERT_TRUE("Our sun is dying." == a8);
+    ASSERT_TRUE("456" == a7);
+
+    a8 += " 123456";
+    a8 += "-789";
+    ASSERT_TRUE("Our sun is dying. 123456-789" == a8);
+
+    ASSERT_TRUE(a8_2 == "");
+    ASSERT_TRUE(a8_2.empty());
+    ASSERT_TRUE(a8_2 != a8);
+    a8_2 = a8;
+    ASSERT_TRUE(a8_2 == "Our sun is dying. 123456-789");
+    ASSERT_TRUE(a8_2 == a8);
+
+    /*
+     * c_str()
+     */
+    ASSERT_STREQ("", A8().c_str());
+    ASSERT_STREQ("", A7().c_str());
+    ASSERT_STREQ("Our sun is dying. 123456-789", a8_2.c_str());
+    ASSERT_STREQ("Our sun is dying. 123456-789", a8.c_str());
+    ASSERT_STREQ("456", a7.c_str());
 }

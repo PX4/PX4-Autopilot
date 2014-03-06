@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <typeinfo>
+#include <cstring>
 #include <uavcan/internal/impl_constants.hpp>
 #include <uavcan/internal/util.hpp>
 #include <uavcan/internal/marshal/type_util.hpp>
@@ -113,7 +114,12 @@ class ArrayImpl : public StaticIf<ArrayMode == ArrayModeDynamic,
                               DynamicArrayBase<MaxSize>,
                               StaticArrayBase<MaxSize> >::Result Base;
 
-    typename StorageType<T>::Type data_[MaxSize];
+public:
+    enum { IsStringLike = IsIntegerSpec<T>::Result && (T::MaxBitLen == 8 || T::MaxBitLen == 7) };
+
+private:
+    typedef typename StorageType<T>::Type BufferType[MaxSize + (IsStringLike ? 1 : 0)];
+    BufferType data_;
 
     template <typename U>
     typename EnableIf<sizeof(U(0) == U())>::Type initialize(int) { std::fill(data_, data_ + MaxSize, U()); }
@@ -127,6 +133,14 @@ public:
     using Base::capacity;
 
     ArrayImpl() { initialize<ValueType>(0); }
+
+    const char* c_str() const
+    {
+        StaticAssert<IsStringLike>::check();
+        assert(size() < (MaxSize + 1));
+        const_cast<BufferType&>(data_)[size()] = 0;  // Ad-hoc string termination
+        return reinterpret_cast<const char*>(data_);
+    }
 
     ValueType& at(SizeType pos)             { return data_[validateRange(pos)]; }
     const ValueType& at(SizeType pos) const { return data_[Base::validateRange(pos)]; }
@@ -167,6 +181,8 @@ class ArrayImpl<IntegerSpec<1, SignednessUnsigned, CastMode>, ArrayMode, MaxSize
                               StaticArrayBase<MaxSize> >::Result ArrayBase;
 
 public:
+    enum { IsStringLike = 0 };
+
     typedef typename std::bitset<MaxSize>::reference Reference;
     typedef typename ArrayBase::SizeType SizeType;
 
@@ -328,8 +344,12 @@ public:
         }
     }
 
+    /*
+     * Comparison operators
+     */
     template <typename R>
-    bool operator==(const R& rhs) const
+    typename EnableIf<sizeof(((const R*)(0U))->size()) && sizeof((*((const R*)(0U)))[0]), bool>::Type
+    operator==(const R& rhs) const
     {
         if (size() != rhs.size())
             return false;
@@ -338,10 +358,52 @@ public:
                 return false;
         return true;
     }
+
+    bool operator==(const char* ch) const
+    {
+        if (ch == NULL)
+            return false;
+        return std::strcmp(Base::c_str(), ch) == 0;
+    }
+
     template <typename R> bool operator!=(const R& rhs) const { return !operator==(rhs); }
+
+    /*
+     * Assign/append operators
+     */
+    SelfType& operator=(const char* ch)
+    {
+        StaticAssert<Base::IsStringLike>::check();
+        StaticAssert<IsDynamic>::check();
+        Base::clear();
+        while (*ch)
+            push_back(*ch++);
+        return *this;
+    }
+
+    SelfType& operator+=(const char* ch)
+    {
+        StaticAssert<Base::IsStringLike>::check();
+        StaticAssert<IsDynamic>::check();
+        while (*ch)
+            push_back(*ch++);
+        return *this;
+    }
 
     typedef ValueType value_type;
     typedef SizeType size_type;
 };
+
+template <typename R, typename T, ArrayMode ArrayMode, unsigned int MaxSize>
+inline bool operator==(const R& rhs, const Array<T, ArrayMode, MaxSize>& lhs)
+{
+    return lhs.operator==(rhs);
+}
+
+template <typename R, typename T, ArrayMode ArrayMode, unsigned int MaxSize>
+inline bool operator!=(const R& rhs, const Array<T, ArrayMode, MaxSize>& lhs)
+{
+    return lhs.operator!=(rhs);
+}
 
 }

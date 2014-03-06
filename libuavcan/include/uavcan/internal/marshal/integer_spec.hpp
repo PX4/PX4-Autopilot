@@ -109,4 +109,11 @@ class IntegerSpec<1, SignednessSigned, CastMode>;   // Invalid instantiation
 template <Signedness Signedness, CastMode CastMode>
 class IntegerSpec<0, Signedness, CastMode>;         // Invalid instantiation
 
+
+template <typename T>
+struct IsIntegerSpec { enum { Result = 0 }; };
+
+template <unsigned int BitLen, Signedness Signedness, CastMode CastMode>
+struct IsIntegerSpec<IntegerSpec<BitLen, Signedness, CastMode> > { enum { Result = 1 }; };
+
 }
