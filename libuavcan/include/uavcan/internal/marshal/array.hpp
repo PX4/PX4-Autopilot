@@ -122,7 +122,11 @@ private:
     BufferType data_;
 
     template <typename U>
-    typename EnableIf<sizeof(U(0) == U())>::Type initialize(int) { std::fill(data_, data_ + MaxSize, U()); }
+    typename EnableIf<sizeof(U(0) == U())>::Type initialize(int)
+    {
+        if (ArrayMode != ArrayModeDynamic)
+            std::fill(data_, data_ + MaxSize, U());
+    }
     template <typename> void initialize(...) { }
 
 public:
