@@ -28,16 +28,7 @@ class __EXPORT TECS
 {
 public:
 	TECS() :
-
-		_airspeed_enabled(false),
-		_throttle_slewrate(0.0f),
-		_climbOutDem(false),
-		_hgt_dem_prev(0.0f),
-		_hgt_dem_adj_last(0.0f),
-		_hgt_dem_in_old(0.0f),
-		_TAS_dem_last(0.0f),
-		_TAS_dem_adj(0.0f),
-		_TAS_dem(0.0f),
+		_pitch_dem(0.0f),
 		_integ1_state(0.0f),
 		_integ2_state(0.0f),
 		_integ3_state(0.0f),
@@ -45,8 +36,16 @@ public:
 		_integ5_state(0.0f),
 		_integ6_state(0.0f),
 		_integ7_state(0.0f),
-		_pitch_dem(0.0f),
 		_last_pitch_dem(0.0f),
+		_vel_dot(0.0f),
+		_TAS_dem(0.0f),
+		_TAS_dem_last(0.0f),
+		_hgt_dem_in_old(0.0f),
+		_hgt_dem_adj_last(0.0f),
+		_hgt_dem_prev(0.0f),
+		_TAS_dem_adj(0.0f),
+		_STEdotErrLast(0.0f),
+		_climbOutDem(false),
 		_SPE_dem(0.0f),
 		_SKE_dem(0.0f),
 		_SPEdot_dem(0.0f),
@@ -55,9 +54,9 @@ public:
 		_SKE_est(0.0f),
 		_SPEdot(0.0f),
 		_SKEdot(0.0f),
-		_vel_dot(0.0f),
-		_STEdotErrLast(0.0f) {
-
+		_airspeed_enabled(false),
+		_throttle_slewrate(0.0f)
+	{
 	}
 
 	bool airspeed_sensor_enabled() {
