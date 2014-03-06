@@ -282,7 +282,7 @@ then
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 		fi
-		if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE = ardrone ]
+		if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == ardrone ]
 		then
 			echo "[init] Use FMU as primary output"
 			if fmu mode_$FMU_MODE
