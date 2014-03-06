@@ -119,10 +119,16 @@ def type_to_cpp_type(t):
 def generate_one_type(t):
     t.short_name = t.full_name.split('.')[-1]
     t.cpp_type_name = t.short_name + '_'
+    t.cpp_full_type_name = '::' + t.full_name.replace('.', '::')
 
     # Dependencies (no duplicates)
     def fields_includes(fields):
-        return set(type_output_filename(x.type) for x in fields if x.type.category == x.type.CATEGORY_COMPOUND)
+        def detect_include(t):
+            if t.category == t.CATEGORY_COMPOUND:
+                return type_output_filename(t)
+            if t.category == t.CATEGORY_ARRAY:
+                return detect_include(t.value_type)
+        return set(filter(None, [detect_include(x.type) for x in fields]))
 
     if t.kind == t.KIND_MESSAGE:
         t.cpp_includes = fields_includes(t.fields)
