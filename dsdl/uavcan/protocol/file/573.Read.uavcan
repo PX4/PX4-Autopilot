@@ -1,0 +1,15 @@
+#
+# Read contents of the file from a remote node.
+# Use cases: Firmware update, log download.
+#
+
+int64 offset
+Path path
+
+---
+
+Errno result
+
+# Empty data means the offset is out of file boundaries.
+# Non-empty data means the end of file is not reached yet, even if the length is less than max.
+truncated uint8[<256] data

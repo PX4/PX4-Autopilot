@@ -1,0 +1,11 @@
+#
+# Time synchronization; publish frequency 0.5 Hz.
+# Should be UTC time, not GPS time nor local time.
+# Any node that publishes a timestamped data must use this time reference.
+# Multiple nodes can provide the time synchronization concurrently.
+#
+
+uint16 PUBLICATION_PERIOD_MS = 2000
+
+uavcan.Timestamp timestamp   # Must be known
+float16 timestamp_variance   # Units of the timestamp ^2

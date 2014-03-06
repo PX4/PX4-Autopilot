@@ -1,0 +1,7 @@
+#
+# Nested type.
+# Generic version information.
+#
+
+uint8 major
+uint8 minor

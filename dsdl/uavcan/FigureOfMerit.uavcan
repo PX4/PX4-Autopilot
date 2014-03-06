@@ -1,0 +1,8 @@
+#
+# Represents the quality of associated data, higher is better.
+#
+
+float16 UNKNOWN = -65504
+float16 MIN     = 0
+float16 MAX     = 65504
+float16 value

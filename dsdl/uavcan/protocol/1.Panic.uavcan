@@ -1,0 +1,17 @@
+#
+# This message must never be published during normal operation. This message may
+# be published with high frequency (~10..100 Hz) to inform the network participants
+# that the system has entered unrecoverable fault condition (e.g. mission critical
+# node failure) and is not capable of further operation.
+#
+# Typical reaction to this message may include emergency motor/power shutdown,
+# safety parachute deployment, etc. Nodes that are expected to react to this message
+# should wait for at least MIN_MESSAGES subsequent messages published with the
+# interval no higher than MAX_INTERVAL_MS before undertaking any emergency actions.
+#
+
+uint8 MIN_MESSAGES = 5
+uint16 MAX_INTERVAL_MS = 500
+
+# Short description that would fit into single CAN frame
+uint8[<=8] reason_text

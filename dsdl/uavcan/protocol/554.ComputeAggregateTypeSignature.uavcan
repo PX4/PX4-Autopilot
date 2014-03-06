@@ -1,0 +1,11 @@
+#
+# This service allows to detect type compatibility between two nodes in one request.
+#
+
+DataTypeIDMask known_ids
+DataTypeKind kind
+
+---
+
+DataTypeIDMask mutually_known_ids
+DataTypeSignature aggregate_signature

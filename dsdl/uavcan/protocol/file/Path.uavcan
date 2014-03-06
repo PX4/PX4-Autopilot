@@ -1,0 +1,7 @@
+#
+# Encoded FS path (ASCII/UTF8).
+#
+
+uint8 SEPARATOR = 47 # ASCII '/'
+
+uint8[<128] value

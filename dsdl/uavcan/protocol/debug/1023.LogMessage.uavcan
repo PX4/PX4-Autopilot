@@ -1,0 +1,12 @@
+#
+# Generic log message.
+#
+
+uint3 SEVERITY_DEBUG    = 0
+uint3 SEVERITY_INFO     = 1
+uint3 SEVERITY_WARNING  = 2
+uint3 SEVERITY_ERROR    = 3
+uint3 severity
+
+uint8[<32] source
+uint8[<128] text

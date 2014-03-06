@@ -1,0 +1,10 @@
+
+256..399 - high priority equipment
+
+500..519 - nav
+
+550..599 - protocol
+
+600..749 - low priority eqipment
+
+767 - MAVLink

@@ -1,0 +1,5 @@
+#
+# Data type ID mask; 1 - known, 0 - unknown.
+#
+
+bool[1024] value

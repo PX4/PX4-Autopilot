@@ -1,0 +1,5 @@
+#
+# Data type signature value, 64 bit.
+#
+
+uint64 value

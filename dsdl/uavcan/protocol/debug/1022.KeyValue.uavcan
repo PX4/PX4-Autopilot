@@ -1,0 +1,15 @@
+#
+# Generic named parameter (key/value pair).
+#
+
+uint3 TYPE_UNDEF   = 0
+uint3 TYPE_INTEGER = 1
+uint3 TYPE_FLOAT   = 2
+uint3 TYPE_STRING  = 3
+uint3 TYPE_BYTES   = 4
+uint3 type
+
+uint8[<64] key
+
+float64[<=1] numeric_value  # For type = INTEGER, FLOAT
+uint8[<256] binary_value    # For type = STRING, BYTES

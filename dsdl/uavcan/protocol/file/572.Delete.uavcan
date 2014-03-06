@@ -1,0 +1,9 @@
+#
+# Remote file deletion request.
+#
+
+Path path
+
+---
+
+Errno result

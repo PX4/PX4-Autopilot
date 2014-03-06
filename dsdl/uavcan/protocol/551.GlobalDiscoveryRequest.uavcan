@@ -1,0 +1,5 @@
+#
+# This message can be broadcasted in order to perform global network discovery.
+# Alternatively, it is possible to wait some time so each node of the network
+# transmits NodeStatus message at least once.
+#

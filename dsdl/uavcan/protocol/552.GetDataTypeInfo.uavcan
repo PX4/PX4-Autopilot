@@ -1,0 +1,17 @@
+#
+# Get the implementation details of a given data type.
+#
+
+uint16 id
+DataTypeKind kind
+
+---
+
+DataTypeSignature signature # Data type hash as computed by DSDL compiler (type name + each field)
+DataTypeName name           # Full data type name, e.g. "std.node.GetDataTypeInfo"
+
+uint8 MASK_KNOWN      = 1   # This data type is defined
+uint8 MASK_SUBSCRIBED = 2   # Subscribed to messages of this type
+uint8 MASK_PUBLISHING = 4   # Publishing messages of this type
+uint8 MASK_SERVING    = 8   # Providing service of this type
+uint8 mask

@@ -1,0 +1,7 @@
+#
+# Global timestamp in hectomicroseconds (1 = 100 usec), 6 bytes.
+#
+
+uint48 UNKNOWN = 0
+uint48 USEC_PER_LSB = 100  # Timestamp resolution
+truncated uint48 husec     # Hectomicroseconds (10^-4)

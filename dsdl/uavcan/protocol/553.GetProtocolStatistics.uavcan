@@ -1,0 +1,15 @@
+#
+# Get protocol statistics for CAN and UAVCAN.
+#
+
+---
+
+# CAN bus statistics, for each interface independently
+uint64[<=3] can_frames_tx
+uint64[<=3] can_frames_rx
+uint64[<=3] can_frames_errors
+
+# UAVCAN transport layer statistics
+uint64 transfers_tx
+uint64 transfers_rx
+uint32 transfers_rx_errors

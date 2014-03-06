@@ -1,0 +1,14 @@
+#
+# Full node info request.
+#
+
+---
+
+Version software_version
+Version hardware_version
+Version uavcan_version
+
+NodeStatus status
+
+# Human readable name, e.g. "pixhawk", "gnss_mag". Alphanumeric and underscores.
+uint8[<64] name

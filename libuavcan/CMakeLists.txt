@@ -52,8 +52,10 @@ if (GTEST_FOUND)
 
     # DSDL compiler invocation
     add_custom_target(dsdlc dsdl_compiler/dsdlc.py -v
-                            test/dsdl_test/root_ns_a test/dsdl_test/root_ns_b  # Inputs
-                            -Otest/dsdlc_output                                # Output
+                            test/dsdl_test/root_ns_a               # Input
+                            test/dsdl_test/root_ns_b               # Input
+                            ${CMAKE_SOURCE_DIR}/../dsdl/uavcan     # Input
+                            -Otest/dsdlc_output                    # Output
                        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     add_dependencies(libuavcan_test dsdlc)
     include_directories(${CMAKE_SOURCE_DIR}/test/dsdlc_output)

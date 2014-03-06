@@ -1,0 +1,16 @@
+#
+# This service initiates the firmware update procedure.
+#
+# Nodes are allowed to explicitly reject this request under some circumstances
+# (e.g. ESC should reject this if the motor is running).
+#
+# If the node accepts the request, initiator will get the response immediately,
+# before the update process actually begins.
+#
+
+Path image_file_remote_path
+
+---
+
+Errno result
+uint8[<64] error_message
