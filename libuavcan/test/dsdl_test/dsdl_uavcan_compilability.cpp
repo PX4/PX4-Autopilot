@@ -43,7 +43,7 @@ TEST(Dsdl, Streaming)
 
     mavlink.compid = 12;
     mavlink.seq = 42;
-    mavlink.payload = "Here goes payload";
+    mavlink.payload = "Here\tgoes\npayload";
     os << mavlink << std::endl << "==========" << std::endl;
 
     uavcan::protocol::GetNodeInfo::Response get_node_info_rsp;
@@ -63,7 +63,7 @@ TEST(Dsdl, Streaming)
         "sysid: 0\n"
         "compid: 12\n"
         "msgid: 0\n"
-        "payload: \"Here goes payload\"\n"
+        "payload: \"Here\\x09goes\\x0Apayload\"\n"
         "==========\n"
         "software_version: \n"
         "  major: 0\n"
@@ -117,5 +117,6 @@ TEST(Dsdl, Streaming)
         "    vector: [0, 0, 0, 0]\n"
         "    bools: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]\n"
         "==========\n";
+    std::cout << os.str();
     ASSERT_EQ(Reference, os.str());
 }

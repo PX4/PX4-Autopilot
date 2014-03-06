@@ -420,6 +420,17 @@ class YamlStreamer<Array<T, ArrayMode, MaxSize> >
 {
     typedef Array<T, ArrayMode, MaxSize> ArrayType;
 
+    static bool isNiceCharacter(int c)
+    {
+        if (c >= 32 && c <= 126)
+            return true;
+        static const char Good[] = {'\n', '\r', '\t'};
+        for (unsigned int i = 0; i < sizeof(Good) / sizeof(Good[0]); i++)
+            if (Good[i] == c)
+                return true;
+        return false;
+    }
+
     template <typename Stream>
     static void streamPrimitives(Stream& s, const ArrayType& array)
     {
@@ -439,8 +450,8 @@ class YamlStreamer<Array<T, ArrayMode, MaxSize> >
         s << '"';
         for (std::size_t i = 0; i < array.size(); i++)
         {
-            const unsigned int c = array.at(i);
-            if (c < 32 || c > 126)              // Non-printable characters
+            const int c = array.at(i);
+            if (c < 32 || c > 126)
             {
                 char nibbles[2] = {(c >> 4) & 0xF, c & 0xF};
                 for (int i = 0; i < 2; i++)
@@ -471,7 +482,7 @@ class YamlStreamer<Array<T, ArrayMode, MaxSize> >
         bool printable_only = true;
         for (int i = 0; i < array.size(); i++)
         {
-            if (array[i] < 32 || array[i] > 126)
+            if (!isNiceCharacter(array[i]))
             {
                 printable_only = false;
                 break;
