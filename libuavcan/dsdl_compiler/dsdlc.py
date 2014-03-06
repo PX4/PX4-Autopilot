@@ -118,6 +118,7 @@ def type_to_cpp_type(t):
 
 def generate_one_type(t):
     t.short_name = t.full_name.split('.')[-1]
+    t.cpp_type_name = t.short_name + '_'
 
     # Dependencies (no duplicates)
     def fields_includes(fields):

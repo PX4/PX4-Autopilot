@@ -9,6 +9,7 @@
 #include <root_ns_a/ReportBackSoldier.hpp>
 #include <root_ns_b/ServiceWithEmptyRequest.hpp>
 #include <root_ns_b/ServiceWithEmptyResponse.hpp>
+#include <root_ns_b/T.hpp>
 
 
 TEST(Dsdl, EmptyServices)
@@ -92,13 +93,11 @@ TEST(Dsdl, Registration)
     GlobalDataTypeRegistry::instance().getDataTypeIDMask(uavcan::DataTypeKindMessage, mask);
     ASSERT_TRUE(mask[8]);
     mask[8] = false;
-    ASSERT_FALSE(mask.any());
 
     GlobalDataTypeRegistry::instance().getDataTypeIDMask(uavcan::DataTypeKindService, mask);
     ASSERT_TRUE(mask[1]);
     ASSERT_TRUE(mask[3]);
     mask[1] = mask[3] = false;
-    ASSERT_FALSE(mask.any());
 
     /*
      * Reset

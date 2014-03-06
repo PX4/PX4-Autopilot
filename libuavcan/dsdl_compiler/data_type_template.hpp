@@ -44,7 +44,7 @@ namespace
 UAVCAN_PACKED_BEGIN
 #endif
 
-struct ${t.short_name}
+struct ${t.cpp_type_name}
 {
 <%def name="generate_primary_body(type_name, max_bitlen, fields, constants)" buffered="True">
     typedef const ${type_name}& ParameterType;
@@ -53,6 +53,9 @@ struct ${t.short_name}
 <%def name="expand_attr_types(group_name, attrs)">
     struct ${group_name}
     {
+% for a in attrs:
+        #undef ${a.name}
+% endfor
 % for a in attrs:
         typedef ${a.cpp_type} ${a.name};
 % endfor
@@ -130,7 +133,7 @@ ${'::uavcan::TailArrayOptDisabled' if (idx + 1) < len(fields) else 'tao_mode'});
         ${generate_primary_body('Response', t.get_max_bitlen_response(), t.response_fields, t.response_constants) | indent}
     };
 % else:
-    ${generate_primary_body(t.short_name, t.get_max_bitlen(), t.fields, t.constants)}
+    ${generate_primary_body(t.cpp_type_name, t.get_max_bitlen(), t.fields, t.constants)}
 % endif
 
     /*
@@ -172,7 +175,7 @@ ${'::uavcan::TailArrayOptDisabled' if (idx + 1) < len(fields) else 'tao_mode'});
 
 % if t.kind == t.KIND_SERVICE:
 private:
-    ${t.short_name}(); // Don't create objects of this type. Use Request/Response instead.
+    ${t.cpp_type_name}(); // Don't create objects of this type. Use Request/Response instead.
 % endif
 };
 
@@ -185,10 +188,10 @@ const typename ::uavcan::StorageType< ${scope_prefix}::ConstantTypes::${a.name} 
 % endfor
 </%def>
 % if t.kind == t.KIND_SERVICE:
-${define_out_of_line_constants(t.short_name + '::Request', t.request_constants)}
-${define_out_of_line_constants(t.short_name + '::Response', t.response_constants)}
+${define_out_of_line_constants(t.cpp_type_name + '::Request', t.request_constants)}
+${define_out_of_line_constants(t.cpp_type_name + '::Response', t.response_constants)}
 % else:
-${define_out_of_line_constants(t.short_name, t.constants)}
+${define_out_of_line_constants(t.cpp_type_name, t.constants)}
 % endif
 
 #if UAVCAN_PACK_STRUCTS
@@ -198,10 +201,12 @@ UAVCAN_PACKED_END
 // TODO Stream operator
 
 % if t.has_default_dtid:
-const ::uavcan::DefaultDataTypeRegistrator< ${t.short_name} > _uavcan_gdtr_registrator_${t.short_name};
+const ::uavcan::DefaultDataTypeRegistrator< ${t.cpp_type_name} > _uavcan_gdtr_registrator_${t.cpp_type_name};
 % else:
 // No default registration
 % endif
+
+typedef ${t.cpp_type_name} ${t.short_name};
 
 } // Anonymous namespace
 % for nsc in t.cpp_namespace_components:
