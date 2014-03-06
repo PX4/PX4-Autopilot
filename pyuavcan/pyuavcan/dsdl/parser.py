@@ -516,16 +516,9 @@ if __name__ == '__main__':
 
     if not sys.argv[1:]:
         self_directory = os.path.dirname(__file__)
-        test_dir = os.path.join(self_directory, '..', '..', 'dsdl_test_data')
-        test_dir = os.path.normpath(test_dir)
-#         parser = Parser([os.path.join(test_dir, 'root_a'), os.path.join(test_dir, 'root_b')])
-#         t = parser.parse(os.path.join(test_dir, 'root_a', 'ns1', 'ns9', '425.BeginFirmwareUpdate.uavcan'))
-        t = parse_namespace(os.path.join(test_dir, 'root_a'), [os.path.join(test_dir, 'root_b')])
+        test_dir = os.path.join(self_directory, '..', '..', '..', 'dsdl', 'uavcan')
+        t = parse_namespace(test_dir, [])
         print(len(t))
     else:
         t = parse_namespace(sys.argv[1], sys.argv[2:])
         print(len(t))
-#         search_dirs = sys.argv[1:-1]
-#         filename = sys.argv[-1]
-#         parser = Parser(search_dirs)
-#         t = parser.parse(filename)

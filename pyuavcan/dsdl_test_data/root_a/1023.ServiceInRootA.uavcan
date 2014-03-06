@@ -1,7 +1,0 @@
- #
-# Test file
-#
-
-root_b.TypeInRootB foo
----
-root_a.ns2.TypeInNs2[<12] foo
