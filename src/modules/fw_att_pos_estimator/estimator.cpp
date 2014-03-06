@@ -1617,12 +1617,18 @@ void StoreStates(uint64_t timestamp_ms)
 // Output the state vector stored at the time that best matches that specified by msec
 void RecallStates(float (&statesForFusion)[n_states], uint64_t msec)
 {
-    int64_t bestTimeDelta = 200;
+    int bestTimeDelta = 200;
     unsigned bestStoreIndex = 0;
     for (unsigned storeIndex = 0; storeIndex < data_buffer_size; storeIndex++)
     {
-        int64_t timeDelta = (int)msec - statetimeStamp[storeIndex];
-        if (timeDelta < 0) timeDelta = -timeDelta;
+        // The time delta can also end up as negative number,
+        // since we might compare future to past or past to future
+        // therefore cast to int64.
+        int timeDelta = (int64_t)msec - (int64_t)statetimeStamp[storeIndex];
+        if (timeDelta < 0) {
+            timeDelta = -timeDelta;
+        }
+
         if (timeDelta < bestTimeDelta)
         {
             bestStoreIndex = storeIndex;
@@ -1739,9 +1745,9 @@ void OnGroundCheck()
 void calcEarthRateNED(Vector3f &omega, float latitude)
 {
     //Define Earth rotation vector in the NED navigation frame
-    omega.x  = earthRate*cos(latitude);
-    omega.y  = 0.0;
-    omega.z  = -earthRate*sin(latitude);
+    omega.x  = earthRate*cosf(latitude);
+    omega.y  = 0.0f;
+    omega.z  = -earthRate*sinf(latitude);
 }
 
 void CovarianceInit()
