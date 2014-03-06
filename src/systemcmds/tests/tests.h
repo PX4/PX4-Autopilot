@@ -107,11 +107,13 @@ extern int	test_jig_voltages(int argc, char *argv[]);
 extern int	test_param(int argc, char *argv[]);
 extern int	test_bson(int argc, char *argv[]);
 extern int	test_file(int argc, char *argv[]);
+extern int	test_file2(int argc, char *argv[]);
 extern int	test_mixer(int argc, char *argv[]);
 extern int	test_rc(int argc, char *argv[]);
 extern int	test_conv(int argc, char *argv[]);
 extern int	test_mount(int argc, char *argv[]);
 extern int	test_mtd(int argc, char *argv[]);
+extern int	test_mathlib(int argc, char *argv[]);
 
 __END_DECLS
 
