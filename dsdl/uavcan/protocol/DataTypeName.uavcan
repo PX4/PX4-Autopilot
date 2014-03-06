@@ -1,5 +1,0 @@
-#
-# Full data type name.
-#
-
-uint8[<=80] value

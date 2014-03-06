@@ -5,6 +5,7 @@
 #pragma once
 
 #include <cassert>
+#include <cstring>
 #include <stdint.h>
 #include <algorithm>
 #include <uavcan/internal/transport/crc.hpp>
@@ -92,6 +93,7 @@ class DataTypeDescriptor
 
 public:
     enum { MaxDataTypeID = Frame::MaxDataTypeID };
+    enum { MaxFullNameLen = 80 };
 
     DataTypeDescriptor()
     : kind_(DataTypeKind(0))
@@ -108,6 +110,7 @@ public:
         assert(id <= MaxDataTypeID);
         assert(kind < NumDataTypeKinds);
         assert(name);
+        assert(std::strlen(name) <= MaxFullNameLen);
     }
 
     DataTypeKind getKind() const { return kind_; }

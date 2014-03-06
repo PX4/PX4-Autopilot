@@ -7,8 +7,8 @@ DataTypeKind kind
 
 ---
 
-DataTypeSignature signature # Data type hash as computed by DSDL compiler (type name + each field)
-DataTypeName name           # Full data type name, e.g. "std.node.GetDataTypeInfo"
+uint64 signature            # Data type signature
+uint8[<=80] name            # Full data type name, e.g. "uavcan.protocol.GetDataTypeInfo"
 
 uint8 MASK_KNOWN      = 1   # This data type is defined
 uint8 MASK_SUBSCRIBED = 2   # Subscribed to messages of this type
