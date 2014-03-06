@@ -482,11 +482,7 @@ test()
 		err(1, "immediate read failed");
 
 	warnx("single read");
-<<<<<<< HEAD
-	warnx("diff pressure: %d pa", (double)report.differential_pressure_pa);
-=======
-	warnx("diff pressure: %d pa", (int)report.differential_pressure_pa);
->>>>>>> 63cb8f2... airspeed: cope properly with reversed tubes on pitot tube
+	warnx("diff pressure: %8.4f pa", (double)report.differential_pressure_pa);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2))
