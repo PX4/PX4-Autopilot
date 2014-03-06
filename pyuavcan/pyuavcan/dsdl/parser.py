@@ -478,17 +478,18 @@ def validate_data_struct_len(t):
                  'Max data structure length is invalid: %d bits, %d bytes', bitlen, bytelen)
 
 
-def parse_namespace(source_dir, search_dirs):
+def parse_namespaces(source_dirs, search_dirs):
     def walk():
         import fnmatch
         from functools import partial
         def on_walk_error(directory, ex):
             raise DsdlException('OS error in [%s]: %s' % (directory, str(ex))) from ex
-        walker = os.walk(source_dir, onerror=partial(on_walk_error, source_dir), followlinks=True)
-        for root, _dirnames, filenames in walker:
-            for filename in fnmatch.filter(filenames, '*.uavcan'):
-                filename = os.path.join(root, filename)
-                yield filename
+        for source_dir in source_dirs:
+            walker = os.walk(source_dir, onerror=partial(on_walk_error, source_dir), followlinks=True)
+            for root, _dirnames, filenames in walker:
+                for filename in fnmatch.filter(filenames, '*.uavcan'):
+                    filename = os.path.join(root, filename)
+                    yield filename
 
     all_default_dtid = {}  # (kind, dtid) : filename
     def ensure_unique_dtid(t, filename):
@@ -501,7 +502,7 @@ def parse_namespace(source_dir, search_dirs):
             error('Default data type ID collision: [%s] [%s]', first, second)
         all_default_dtid[key] = filename
 
-    parser = Parser([source_dir] + search_dirs)
+    parser = Parser(source_dirs + search_dirs)
     output_types = []
     for filename in walk():
         t = parser.parse(filename)

@@ -44,9 +44,9 @@ def configure_logging(verbosity):
     level = { 0: logging.WARNING, 1: logging.INFO, 2: logging.DEBUG }.get(verbosity or 0, logging.DEBUG)
     logging.basicConfig(stream=sys.stderr, level=level, format=fmt)
 
-def run_parser(source_dir, search_dirs):
+def run_parser(source_dirs, search_dirs):
     try:
-        types = dsdl.parse_namespace(source_dir, search_dirs)
+        types = dsdl.parse_namespaces(source_dirs, search_dirs)
     except dsdl.DsdlException as ex:
         logging.info('Parser failure', exc_info=True)
         die(str(ex))
@@ -202,13 +202,9 @@ args = argparser.parse_args()
 
 configure_logging(args.verbose)
 
-types = []
-for srcdir in args.source_dir:
-    new_types = run_parser(srcdir, args.incdir + args.source_dir)
-    types += new_types
-    logging.info('%d types from [%s]', len(new_types), srcdir)
-
+types = run_parser(args.source_dir, args.incdir + args.source_dir)
 if not types:
     die('No type definitions were found')
+logging.info('%d types total', len(types))
 
 run_generator(types, args.outdir)
