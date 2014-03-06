@@ -518,8 +518,8 @@ if __name__ == '__main__':
     if not sys.argv[1:]:
         self_directory = os.path.dirname(__file__)
         test_dir = os.path.join(self_directory, '..', '..', '..', 'dsdl', 'uavcan')
-        t = parse_namespace(test_dir, [])
+        t = parse_namespaces([test_dir], [])
         print(len(t))
     else:
-        t = parse_namespace(sys.argv[1], sys.argv[2:])
+        t = parse_namespaces([sys.argv[1]], sys.argv[2:])
         print(len(t))
