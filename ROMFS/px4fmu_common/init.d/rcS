@@ -284,7 +284,7 @@ then
 		fi
 		if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE = ardrone ]
 		then
-			echo "[init] Use FMU PWM as primary output"
+			echo "[init] Use FMU as primary output"
 			if fmu mode_$FMU_MODE
 			then
 				echo "[init] FMU mode_$FMU_MODE started"
@@ -299,7 +299,7 @@ then
 				then
 					set TTYS1_BUSY yes
 				fi
-				if [ $FMU_MODE == pwm_gpio ]
+				if [ $FMU_MODE == pwm_gpio -o $OUTPUT_MODE == ardrone ]
 				then
 					set TTYS1_BUSY yes
 				fi
@@ -372,7 +372,7 @@ then
 					then
 						set TTYS1_BUSY yes
 					fi
-					if [ $FMU_MODE == pwm_gpio ]
+					if [ $FMU_MODE == pwm_gpio -o $OUTPUT_MODE == ardrone ]
 					then
 						set TTYS1_BUSY yes
 					fi
@@ -392,7 +392,7 @@ then
 		mavlink start -b 230400 -d /dev/ttyACM0 
 		usleep 5000
 	else
-		if [ $TTYS1_BUSY == yes -o $OUTPUT_MODE == ardrone ]
+		if [ $TTYS1_BUSY == yes ]
 		then
 			# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
 			mavlink start -d /dev/ttyS0
