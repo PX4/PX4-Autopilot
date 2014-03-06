@@ -240,6 +240,11 @@ then
 		fi
 	fi
 
+	if [ $OUTPUT_MODE == ardrone ]
+	then
+		set FMU_MODE gpio_serial
+	fi
+
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
@@ -277,7 +282,7 @@ then
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 		fi
-		if [ $OUTPUT_MODE == fmu ]
+		if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE = ardrone ]
 		then
 			echo "[init] Use FMU PWM as primary output"
 			if fmu mode_$FMU_MODE
@@ -351,7 +356,7 @@ then
 				fi
 			fi
 		else
-			if [ $OUTPUT_MODE != fmu ]
+			if [ $OUTPUT_MODE != fmu -a $OUTPUT_MODE != ardrone ]
 			then
 				if fmu mode_$FMU_MODE
 				then
@@ -387,7 +392,7 @@ then
 		mavlink start -b 230400 -d /dev/ttyACM0 
 		usleep 5000
 	else
-		if [ $TTYS1_BUSY == yes -o $ARDRONE == yes ]
+		if [ $TTYS1_BUSY == yes -o $OUTPUT_MODE == ardrone ]
 		then
 			# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
 			mavlink start -d /dev/ttyS0
@@ -430,7 +435,7 @@ then
 	#
 	# Start up ARDrone Motor interface
 	#
-	if [ $ARDRONE == yes ]
+	if [ $OUTPUT_MODE == ardrone ]
 	then
 		ardrone_interface start -d /dev/ttyS1
 	fi

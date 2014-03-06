@@ -30,7 +30,6 @@ then
     param set MC_YAW_FF 0.15
 fi
 
-set FMU_MODE gpio_serial
-set OUTPUT_MODE fmu
-set ARDRONE yes
+set OUTPUT_MODE ardrone
 set USE_IO no
+set MIXER skip
