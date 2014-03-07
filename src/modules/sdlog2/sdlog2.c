@@ -222,8 +222,9 @@ static int open_log_file(void);
 static void
 sdlog2_usage(const char *reason)
 {
-	if (reason)
+	if (reason) {
 		fprintf(stderr, "%s\n", reason);
+	}
 
 	errx(1, "usage: sdlog2 {start|stop|status} [-r <log rate>] [-b <buffer size>] -e -a -t\n"
 	     "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
@@ -243,8 +244,9 @@ sdlog2_usage(const char *reason)
  */
 int sdlog2_main(int argc, char *argv[])
 {
-	if (argc < 2)
+	if (argc < 2) {
 		sdlog2_usage("missing command");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
@@ -403,22 +405,29 @@ static void *logwriter_thread(void *arg)
 
 	int log_fd = open_log_file();
 
-	if (log_fd < 0)
+	if (log_fd < 0) {
 		return NULL;
+	}
 
 	struct logbuffer_s *logbuf = (struct logbuffer_s *)arg;
 
 	/* write log messages formats, version and parameters */
 	log_bytes_written += write_formats(log_fd);
+
 	log_bytes_written += write_version(log_fd);
+
 	log_bytes_written += write_parameters(log_fd);
+
 	fsync(log_fd);
 
 	int poll_count = 0;
 
 	void *read_ptr;
+
 	int n = 0;
+
 	bool should_wait = false;
+
 	bool is_part = false;
 
 	while (true) {
@@ -673,6 +682,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				if (r <= 0) {
 					r = 1;
 				}
+
 				sleep_delay = 1000000 / r;
 			}
 			break;
@@ -745,9 +755,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 	}
 
 	struct vehicle_status_s buf_status;
+
 	struct vehicle_gps_position_s buf_gps_pos;
 
 	memset(&buf_status, 0, sizeof(buf_status));
+
 	memset(&buf_gps_pos, 0, sizeof(buf_gps_pos));
 
 	/* warning! using union here to save memory, elements should be used separately! */
@@ -892,6 +904,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		/* --- VEHICLE STATUS - LOG MANAGEMENT --- */
 		bool status_updated = copy_if_updated(ORB_ID(vehicle_status), subs.status_sub, &buf_status);
+
 		if (status_updated) {
 			if (log_when_armed) {
 				handle_status(&buf_status);
@@ -900,6 +913,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		/* --- GPS POSITION - LOG MANAGEMENT --- */
 		bool gps_pos_updated = copy_if_updated(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf_gps_pos);
+
 		if (gps_pos_updated && log_name_timestamp) {
 			gps_time = buf_gps_pos.time_gps_usec;
 		}
@@ -1068,6 +1082,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (buf.local_pos.dist_bottom_valid) {
 				dist_bottom_present = true;
 			}
+
 			if (dist_bottom_present) {
 				log_msg.msg_type = LOG_DIST_MSG;
 				log_msg.body.log_DIST.bottom = buf.local_pos.dist_bottom;
@@ -1215,8 +1230,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 		usleep(sleep_delay);
 	}
 
-	if (logging_enabled)
+	if (logging_enabled) {
 		sdlog2_stop_log();
+	}
 
 	pthread_mutex_destroy(&logbuffer_mutex);
 	pthread_cond_destroy(&logbuffer_cond);
