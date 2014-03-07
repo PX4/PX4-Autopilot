@@ -106,6 +106,15 @@ then
 	sh /etc/init.d/4001_quad_x
 fi
 
+#
+# ARDrone
+#
+
+if param compare SYS_AUTOSTART 4008 8
+then
+    sh /etc/init.d/4008_ardrone
+fi
+
 if param compare SYS_AUTOSTART 4010 10
 then
 	sh /etc/init.d/4010_dji_f330
