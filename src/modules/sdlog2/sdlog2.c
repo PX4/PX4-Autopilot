@@ -134,12 +134,6 @@ static uint64_t gps_time = 0;
 
 /* current state of logging */
 static bool logging_enabled = false;
-/* enable logging on start (-e option) */
-static bool log_on_start = false;
-/* enable logging when armed (-a option) */
-static bool log_when_armed = false;
-/* delay = 1 / rate (rate defined by -r option) */
-static useconds_t sleep_delay = 0;
 /* use date/time for naming directories and files (-t option) */
 static bool log_name_timestamp = false;
 
@@ -660,11 +654,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 		warnx("failed to open MAVLink log stream, start mavlink app first");
 	}
 
-	useconds_t sleep_delay = 10000;		// default log rate: 100 Hz
+	/* delay = 1 / rate (rate defined by -r option), default log rate: 50 Hz */
+	useconds_t sleep_delay = 20000;
 	int log_buffer_size = LOG_BUFFER_SIZE_DEFAULT;
 	logging_enabled = false;
-	log_on_start = false;
-	log_when_armed = false;
+	/* enable logging on start (-e option) */
+	bool log_on_start = false;
+	/* enable logging when armed (-a option) */
+	bool log_when_armed = false;
 	log_name_timestamp = false;
 
 	flag_system_armed = false;
