@@ -893,6 +893,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	}
 
 	while (!main_thread_should_exit) {
+		usleep(sleep_delay);
+
 		/* --- VEHICLE COMMAND - LOG MANAGEMENT --- */
 		if (copy_if_updated(ORB_ID(vehicle_command), subs.cmd_sub, &buf.cmd)) {
 			handle_command(&buf.cmd);
@@ -1222,8 +1224,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		/* unlock, now the writer thread may run */
 		pthread_mutex_unlock(&logbuffer_mutex);
-
-		usleep(sleep_delay);
 	}
 
 	if (logging_enabled) {
