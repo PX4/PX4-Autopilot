@@ -89,6 +89,9 @@ public:
     IOutgoingTransferRegistry& getOutgoingTransferRegistry() { return outgoing_transfer_reg_; }
 
     NodeID getSelfNodeID() const { return self_node_id_; }
+
+    const ISystemClock& getSystemClock() const { return sysclock_; }
+    ISystemClock& getSystemClock() { return sysclock_; }
 };
 
 }
