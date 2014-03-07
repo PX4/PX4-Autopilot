@@ -3,7 +3,7 @@
 # Script to configure control interface
 #
 
-if [ $MIXER != none -a $MIXER != skip]
+if [ $MIXER != none -a $MIXER != skip ]
 then
 	#
 	# Load mixer
