@@ -454,7 +454,6 @@ static void *logwriter_thread(void *arg)
 				n = available;
 			}
 
-			lseek(log_fd, 0, SEEK_CUR);
 			n = write(log_fd, read_ptr, n);
 
 			should_wait = (n == available) && !is_part;
