@@ -240,6 +240,11 @@ then
 		fi
 	fi
 
+	if [ $OUTPUT_MODE == ardrone ]
+	then
+		set FMU_MODE gpio_serial
+	fi
+
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
@@ -277,9 +282,9 @@ then
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 		fi
-		if [ $OUTPUT_MODE == fmu ]
+		if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == ardrone ]
 		then
-			echo "[init] Use FMU PWM as primary output"
+			echo "[init] Use FMU as primary output"
 			if fmu mode_$FMU_MODE
 			then
 				echo "[init] FMU mode_$FMU_MODE started"
@@ -294,7 +299,7 @@ then
 				then
 					set TTYS1_BUSY yes
 				fi
-				if [ $FMU_MODE == pwm_gpio ]
+				if [ $FMU_MODE == pwm_gpio -o $OUTPUT_MODE == ardrone ]
 				then
 					set TTYS1_BUSY yes
 				fi
@@ -351,7 +356,7 @@ then
 				fi
 			fi
 		else
-			if [ $OUTPUT_MODE != fmu ]
+			if [ $OUTPUT_MODE != fmu -a $OUTPUT_MODE != ardrone ]
 			then
 				if fmu mode_$FMU_MODE
 				then
@@ -367,7 +372,7 @@ then
 					then
 						set TTYS1_BUSY yes
 					fi
-					if [ $FMU_MODE == pwm_gpio ]
+					if [ $FMU_MODE == pwm_gpio -o $OUTPUT_MODE == ardrone ]
 					then
 						set TTYS1_BUSY yes
 					fi
@@ -427,6 +432,14 @@ then
 		gps start
 	fi
 	
+	#
+	# Start up ARDrone Motor interface
+	#
+	if [ $OUTPUT_MODE == ardrone ]
+	then
+		ardrone_interface start -d /dev/ttyS1
+	fi
+
 	#
 	# Fixed wing setup
 	#
