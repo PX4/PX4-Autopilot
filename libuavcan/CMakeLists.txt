@@ -44,11 +44,12 @@ if (GTEST_FOUND)
     add_dependencies(libuavcan_test uavcan)
 
     set_target_properties(libuavcan_test PROPERTIES
-        COMPILE_FLAGS "-fno-rtti -fno-exceptions -Wno-unused-parameter -Wno-unused-function"
+        COMPILE_FLAGS "-fno-exceptions -Wno-unused-parameter -Wno-unused-function"
     )
 
     target_link_libraries(libuavcan_test ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
     target_link_libraries(libuavcan_test ${CMAKE_BINARY_DIR}/libuavcan.so)
+    target_link_libraries(libuavcan_test rt)
 
     # DSDL compiler invocation
     add_custom_target(dsdlc dsdl_compiler/dsdlc.py -v

@@ -32,19 +32,19 @@ public:
     bool tx_failure;
     bool rx_failure;
     uint64_t num_errors;
-    SystemClockMock& clockmock;
+    uavcan::ISystemClock& iclock;
 
-    CanIfaceMock(SystemClockMock& clockmock)
+    CanIfaceMock(uavcan::ISystemClock& iclock)
     : writeable(true)
     , tx_failure(false)
     , rx_failure(false)
     , num_errors(0)
-    , clockmock(clockmock)
+    , iclock(iclock)
     { }
 
     void pushRx(const uavcan::CanFrame& frame)
     {
-        rx.push(FrameWithTime(frame, clockmock.monotonic));
+        rx.push(FrameWithTime(frame, iclock.getMonotonicMicroseconds()));
     }
 
     void pushRx(const uavcan::RxFrame& frame)
@@ -74,7 +74,7 @@ public:
             return -1;
         if (!writeable)
             return 0;
-        const uint64_t monotonic_deadline = tx_timeout_usec + clockmock.monotonic;
+        const uint64_t monotonic_deadline = tx_timeout_usec + iclock.getMonotonicMicroseconds();
         tx.push(FrameWithTime(frame, monotonic_deadline));
         return 1;
     }
@@ -107,19 +107,19 @@ class CanDriverMock : public uavcan::ICanDriver
 {
 public:
     std::vector<CanIfaceMock> ifaces;
-    SystemClockMock& clockmock;
+    uavcan::ISystemClock& iclock;
     bool select_failure;
 
-    CanDriverMock(int num_ifaces, SystemClockMock& clockmock)
-    : ifaces(num_ifaces, CanIfaceMock(clockmock))
-    , clockmock(clockmock)
+    CanDriverMock(int num_ifaces, uavcan::ISystemClock& iclock)
+    : ifaces(num_ifaces, CanIfaceMock(iclock))
+    , iclock(iclock)
     , select_failure(false)
     { }
 
     int select(int& inout_write_iface_mask, int& inout_read_iface_mask, uint64_t timeout_usec)
     {
         assert(this);
-        std::cout << "Write/read masks: " << inout_write_iface_mask << "/" << inout_read_iface_mask << std::endl;
+        //std::cout << "Write/read masks: " << inout_write_iface_mask << "/" << inout_read_iface_mask << std::endl;
 
         if (select_failure)
             return -1;
@@ -142,7 +142,11 @@ public:
         inout_read_iface_mask = out_read_mask;
         if ((out_write_mask | out_read_mask) == 0)
         {
-            clockmock.advance(timeout_usec);   // Emulating timeout
+            SystemClockMock* const mock = dynamic_cast<SystemClockMock*>(&iclock);
+            if (mock)
+                mock->advance(timeout_usec);   // Emulating timeout
+            else
+                usleep(timeout_usec);
             return 0;
         }
         return 1;  // This value is not being checked anyway, it just has to be greater than zero

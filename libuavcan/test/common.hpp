@@ -7,6 +7,8 @@
 #include <cassert>
 #include <uavcan/can_driver.hpp>
 #include <uavcan/system_clock.hpp>
+#include <time.h>
+#include <sys/time.h>
 
 class SystemClockMock : public uavcan::ISystemClock
 {
@@ -46,6 +48,41 @@ public:
         assert(0);
     }
 };
+
+
+class SystemClockDriver : public uavcan::ISystemClock
+{
+public:
+    uint64_t getMonotonicMicroseconds() const
+    {
+        struct timespec ts;
+        const int ret = clock_gettime(CLOCK_MONOTONIC, &ts);
+        if (ret != 0)
+        {
+            assert(0);
+            return 0;
+        }
+        return uint64_t(ts.tv_sec) * 1000000UL + ts.tv_nsec / 1000UL;
+    }
+
+    uint64_t getUtcMicroseconds() const
+    {
+        struct timeval tv;
+        const int ret = gettimeofday(&tv, NULL);
+        if (ret != 0)
+        {
+            assert(0);
+            return 0;
+        }
+        return uint64_t(tv.tv_sec) * 1000000UL + tv.tv_usec;
+    }
+
+    void adjustUtcMicroseconds(uint64_t new_timestamp_usec, int64_t offset_usec)
+    {
+        assert(0);
+    }
+};
+
 
 enum FrameType { STD, EXT };
 static uavcan::CanFrame makeCanFrame(uint32_t id, const std::string& str_data, FrameType type)
