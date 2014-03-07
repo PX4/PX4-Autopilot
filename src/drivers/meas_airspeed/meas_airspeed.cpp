@@ -511,6 +511,7 @@ test()
 
 		warnx("periodic read %u", i);
 		warnx("diff pressure: %8.4f pa", (double)report.differential_pressure_pa);
+		warnx("diff raw pressure: %8.4f pa", (double)report.differential_pressure_raw_pa);
 		warnx("temperature: %d C (0x%02x)", (int)report.temperature, (unsigned) report.temperature);
 	}
 
