@@ -45,11 +45,42 @@
 #include <nuttx/config.h>
 #include <systemlib/param/param.h>
 
-PARAM_DEFINE_FLOAT(NAV_TAKEOFF_ALT, 5.0f);
-PARAM_DEFINE_FLOAT(NAV_TAKEOFF_GAP, 3.0f);
 PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
 PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
 PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
-PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.2f);
-PARAM_DEFINE_FLOAT(BAT_V_FULL, 4.05f);
-PARAM_DEFINE_FLOAT(BAT_N_CELLS, 3);
+
+/**
+ * Empty cell voltage.
+ *
+ * Defines the voltage where a single cell of the battery is considered empty.
+ *
+ * @group Battery Calibration
+ */
+PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
+
+/**
+ * Full cell voltage.
+ *
+ * Defines the voltage where a single cell of the battery is considered full.
+ *
+ * @group Battery Calibration
+ */
+PARAM_DEFINE_FLOAT(BAT_V_FULL, 3.9f);
+
+/**
+ * Number of cells.
+ *
+ * Defines the number of cells the attached battery consists of.
+ *
+ * @group Battery Calibration
+ */
+PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
+
+/**
+ * Battery capacity.
+ *
+ * Defines the capacity of the attached battery.
+ *
+ * @group Battery Calibration
+ */
+PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);

@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -114,6 +113,7 @@
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 #define ADC_BATTERY_VOLTAGE_CHANNEL	10
+#define ADC_BATTERY_CURRENT_CHANNEL	-1
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL	11
 #endif
 
@@ -124,10 +124,8 @@
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL	15
 #endif
 
-#define BAT_VOL_INITIAL 0.f
-#define BAT_VOL_LOWPASS_1 0.99f
-#define BAT_VOL_LOWPASS_2 0.01f
-#define VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS 3.5f
+#define BATT_V_LOWPASS 0.001f
+#define BATT_V_IGNORE_THRESHOLD 3.5f
 
 /**
  * HACK - true temperature is much less than indicated temperature in baro,
@@ -211,9 +209,12 @@ private:
 	struct differential_pressure_s _diff_pres;
 	struct airspeed_s _airspeed;
 
-	math::Matrix	_board_rotation;		/**< rotation matrix for the orientation that the board is mounted */
-	math::Matrix	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
+	math::Matrix<3,3>	_board_rotation;		/**< rotation matrix for the orientation that the board is mounted */
+	math::Matrix<3,3>	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
 	bool		_mag_is_external;		/**< true if the active mag is on an external board */
+
+	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
+	hrt_abstime _battery_current_timestamp;	/**< timestamp of last battery current reading */
 
 	struct {
 		float min[_rc_max_chan_count];
@@ -265,6 +266,7 @@ private:
 		float rc_fs_thr;
 
 		float battery_voltage_scaling;
+		float battery_current_scaling;
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -314,6 +316,7 @@ private:
 		param_t rc_fs_thr;
 
 		param_t battery_voltage_scaling;
+		param_t battery_current_scaling;
 
 		param_t board_rotation;
 		param_t external_mag_rotation;
@@ -465,9 +468,9 @@ Sensors::Sensors() :
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
 
-	_board_rotation(3, 3),
-	_external_mag_rotation(3, 3),
-	_mag_is_external(false)
+	_mag_is_external(false),
+	_battery_discharged(0),
+	_battery_current_timestamp(0)
 {
 
 	/* basic r/c parameters */
@@ -560,6 +563,7 @@ Sensors::Sensors() :
 	_parameter_handles.diff_pres_analog_enabled = param_find("SENS_DPRES_ANA");
 
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
+	_parameter_handles.battery_current_scaling = param_find("BAT_C_SCALING");
 
 	/* rotations */
 	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
@@ -631,41 +635,43 @@ Sensors::parameters_update()
 	if (!rc_valid)
 		warnx("WARNING     WARNING     WARNING\n\nRC CALIBRATION NOT SANE!\n\n");
 
+	const char *paramerr = "FAIL PARM LOAD";
+
 	/* channel mapping */
 	if (param_get(_parameter_handles.rc_map_roll, &(_parameters.rc_map_roll)) != OK) {
-		warnx("Failed getting roll chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_pitch, &(_parameters.rc_map_pitch)) != OK) {
-		warnx("Failed getting pitch chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_yaw, &(_parameters.rc_map_yaw)) != OK) {
-		warnx("Failed getting yaw chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_throttle, &(_parameters.rc_map_throttle)) != OK) {
-		warnx("Failed getting throttle chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_mode_sw, &(_parameters.rc_map_mode_sw)) != OK) {
-		warnx("Failed getting mode sw chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_return_sw, &(_parameters.rc_map_return_sw)) != OK) {
-		warnx("Failed getting return sw chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_assisted_sw, &(_parameters.rc_map_assisted_sw)) != OK) {
-		warnx("Failed getting assisted sw chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_mission_sw, &(_parameters.rc_map_mission_sw)) != OK) {
-		warnx("Failed getting mission sw chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_flaps, &(_parameters.rc_map_flaps)) != OK) {
-		warnx("Failed getting flaps chan index");
+		warnx(paramerr);
 	}
 
 //	if (param_get(_parameter_handles.rc_map_offboard_ctrl_mode_sw, &(_parameters.rc_map_offboard_ctrl_mode_sw)) != OK) {
@@ -737,7 +743,12 @@ Sensors::parameters_update()
 
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
-		warnx("Failed updating voltage scaling param");
+		warnx(paramerr);
+	}
+
+	/* scaling of ADC ticks to battery current */
+	if (param_get(_parameter_handles.battery_current_scaling, &(_parameters.battery_current_scaling)) != OK) {
+		warnx(paramerr);
 	}
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
@@ -785,7 +796,6 @@ Sensors::accel_init()
 
 #endif
 
-		warnx("using system accel");
 		close(fd);
 	}
 }
@@ -825,7 +835,6 @@ Sensors::gyro_init()
 
 #endif
 
-		warnx("using system gyro");
 		close(fd);
 	}
 }
@@ -920,7 +929,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
 
-		math::Vector3 vect = {accel_report.x, accel_report.y, accel_report.z};
+		math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
 		vect = _board_rotation * vect;
 
 		raw.accelerometer_m_s2[0] = vect(0);
@@ -946,7 +955,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &gyro_report);
 
-		math::Vector3 vect = {gyro_report.x, gyro_report.y, gyro_report.z};
+		math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
 		vect = _board_rotation * vect;
 
 		raw.gyro_rad_s[0] = vect(0);
@@ -972,7 +981,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_mag), _mag_sub, &mag_report);
 
-		math::Vector3 vect = {mag_report.x, mag_report.y, mag_report.z};
+		math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
 
 		if (_mag_is_external)
 			vect = _external_mag_rotation * vect;
@@ -1157,17 +1166,16 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 	if (!_publishing)
 		return;
 
+	hrt_abstime t = hrt_absolute_time();
 	/* rate limit to 100 Hz */
-	if (hrt_absolute_time() - _last_adc >= 10000) {
+	if (t - _last_adc >= 10000) {
 		/* make space for a maximum of eight channels */
 		struct adc_msg_s buf_adc[8];
 		/* read all channels available */
 		int ret = read(_fd_adc, &buf_adc, sizeof(buf_adc));
 
-		for (unsigned i = 0; i < sizeof(buf_adc) / sizeof(buf_adc[0]); i++) {
-
-			if (ret >= (int)sizeof(buf_adc[0])) {
-
+		if (ret >= (int)sizeof(buf_adc[0])) {
+			for (unsigned i = 0; i < sizeof(buf_adc) / sizeof(buf_adc[0]); i++) {
 				/* Save raw voltage values */
 				if (i < (sizeof(raw.adc_voltage_v)) / sizeof(raw.adc_voltage_v[0])) {
 					raw.adc_voltage_v[i] = buf_adc[i].am_data / (4096.0f / 3.3f);
@@ -1178,27 +1186,40 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					/* Voltage in volts */
 					float voltage = (buf_adc[i].am_data * _parameters.battery_voltage_scaling);
 
-					if (voltage > VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS) {
-
+					if (voltage > BATT_V_IGNORE_THRESHOLD) {
+						_battery_status.voltage_v = voltage;
 						/* one-time initialization of low-pass value to avoid long init delays */
-						if (_battery_status.voltage_v < 3.0f) {
-							_battery_status.voltage_v = voltage;
+						if (_battery_status.voltage_filtered_v < BATT_V_IGNORE_THRESHOLD) {
+							_battery_status.voltage_filtered_v = voltage;
 						}
 
-						_battery_status.timestamp = hrt_absolute_time();
-						_battery_status.voltage_v = (BAT_VOL_LOWPASS_1 * (_battery_status.voltage_v + BAT_VOL_LOWPASS_2 * voltage));;
-						/* current and discharge are unknown */
-						_battery_status.current_a = -1.0f;
-						_battery_status.discharged_mah = -1.0f;
+						_battery_status.timestamp = t;
+						_battery_status.voltage_filtered_v += (voltage - _battery_status.voltage_filtered_v) * BATT_V_LOWPASS;
 
-						/* announce the battery voltage if needed, just publish else */
-						if (_battery_pub > 0) {
-							orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
+					} else {
+						/* mark status as invalid */
+						_battery_status.voltage_v = -1.0f;
+						_battery_status.voltage_filtered_v = -1.0f;
+					}
 
-						} else {
-							_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
+				} else if (ADC_BATTERY_CURRENT_CHANNEL == buf_adc[i].am_channel) {
+					/* handle current only if voltage is valid */
+					if (_battery_status.voltage_v > 0.0f) {
+						float current = (buf_adc[i].am_data * _parameters.battery_current_scaling);
+						/* check measured current value */
+						if (current >= 0.0f) {
+							_battery_status.timestamp = t;
+							_battery_status.current_a = current;
+							if (_battery_current_timestamp != 0) {
+								/* initialize discharged value */
+								if (_battery_status.discharged_mah < 0.0f)
+									_battery_status.discharged_mah = 0.0f;
+								_battery_discharged += current * (t - _battery_current_timestamp);
+								_battery_status.discharged_mah = ((float) _battery_discharged) / 3600000.0f;
+							}
 						}
 					}
+					_battery_current_timestamp = t;
 
 				} else if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 
@@ -1214,7 +1235,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 						float diff_pres_pa = voltage * 1000.0f - _parameters.diff_pres_offset_pa; //for MPXV7002DP sensor
 
-						_diff_pres.timestamp = hrt_absolute_time();
+						_diff_pres.timestamp = t;
 						_diff_pres.differential_pressure_pa = diff_pres_pa;
 						_diff_pres.voltage = voltage;
 
@@ -1227,8 +1248,16 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 						}
 					}
 				}
+			}
+			_last_adc = t;
+			if (_battery_status.voltage_v > 0.0f) {
+				/* announce the battery status if needed, just publish else */
+				if (_battery_pub > 0) {
+					orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
 
-				_last_adc = hrt_absolute_time();
+				} else {
+					_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
+				}
 			}
 		}
 	}
@@ -1245,6 +1274,9 @@ Sensors::rc_poll()
 		struct rc_input_values	rc_input;
 
 		orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
+
+		if (rc_input.rc_lost)
+			return;
 
 		struct manual_control_setpoint_s manual_control;
 		struct actuator_controls_s actuator_group_3;
@@ -1290,7 +1322,7 @@ Sensors::rc_poll()
 			channel_limit = _rc_max_chan_count;
 
 		/* we are accepting this message */
-		_rc_last_valid = rc_input.timestamp;
+		_rc_last_valid = rc_input.timestamp_last_signal;
 
 		/* Read out values from raw message */
 		for (unsigned int i = 0; i < channel_limit; i++) {
@@ -1339,9 +1371,9 @@ Sensors::rc_poll()
 		}
 
 		_rc.chan_count = rc_input.channel_count;
-		_rc.timestamp = rc_input.timestamp;
+		_rc.timestamp = rc_input.timestamp_last_signal;
 
-		manual_control.timestamp = rc_input.timestamp;
+		manual_control.timestamp = rc_input.timestamp_last_signal;
 
 		/* roll input - rolling right is stick-wise and rotation-wise positive */
 		manual_control.roll = limit_minus_one_to_one(_rc.chan[_rc.function[ROLL]].scaled);
@@ -1372,18 +1404,6 @@ Sensors::rc_poll()
 			manual_control.yaw *= _parameters.rc_scale_yaw;
 		}
 
-		/* mode switch input */
-		manual_control.mode_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MODE]].scaled);
-
-		/* land switch input */
-		manual_control.return_switch = limit_minus_one_to_one(_rc.chan[_rc.function[RETURN]].scaled);
-
-		/* assisted switch input */
-		manual_control.assisted_switch = limit_minus_one_to_one(_rc.chan[_rc.function[ASSISTED]].scaled);
-
-		/* mission switch input */
-		manual_control.mission_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MISSION]].scaled);
-
 		/* flaps */
 		if (_rc.function[FLAPS] >= 0) {
 
@@ -1394,12 +1414,24 @@ Sensors::rc_poll()
 			}
 		}
 
+		/* mode switch input */
 		if (_rc.function[MODE] >= 0) {
 			manual_control.mode_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MODE]].scaled);
 		}
 
+		/* assisted switch input */
+		if (_rc.function[ASSISTED] >= 0) {
+			manual_control.assisted_switch = limit_minus_one_to_one(_rc.chan[_rc.function[ASSISTED]].scaled);
+		}
+
+		/* mission switch input */
 		if (_rc.function[MISSION] >= 0) {
 			manual_control.mission_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MISSION]].scaled);
+		}
+
+		/* return switch input */
+		if (_rc.function[RETURN] >= 0) {
+			manual_control.return_switch = limit_minus_one_to_one(_rc.chan[_rc.function[RETURN]].scaled);
 		}
 
 //		if (_rc.function[OFFBOARD_MODE] >= 0) {
@@ -1475,9 +1507,6 @@ void
 Sensors::task_main()
 {
 
-	/* inform about start */
-	warnx("Initializing..");
-
 	/* start individual sensors */
 	accel_init();
 	gyro_init();
@@ -1516,7 +1545,10 @@ Sensors::task_main()
 	raw.adc_voltage_v[3] = 0.0f;
 
 	memset(&_battery_status, 0, sizeof(_battery_status));
-	_battery_status.voltage_v = BAT_VOL_INITIAL;
+	_battery_status.voltage_v = -1.0f;
+	_battery_status.voltage_filtered_v = -1.0f;
+	_battery_status.current_a = -1.0f;
+	_battery_status.discharged_mah = -1.0f;
 
 	/* get a set of initial values */
 	accel_poll(raw);
@@ -1619,17 +1651,17 @@ int sensors_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (sensors::g_sensors != nullptr)
-			errx(0, "sensors task already running");
+			errx(0, "already running");
 
 		sensors::g_sensors = new Sensors;
 
 		if (sensors::g_sensors == nullptr)
-			errx(1, "sensors task alloc failed");
+			errx(1, "alloc failed");
 
 		if (OK != sensors::g_sensors->start()) {
 			delete sensors::g_sensors;
 			sensors::g_sensors = nullptr;
-			err(1, "sensors task start failed");
+			err(1, "start failed");
 		}
 
 		exit(0);
@@ -1637,7 +1669,7 @@ int sensors_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (sensors::g_sensors == nullptr)
-			errx(1, "sensors task not running");
+			errx(1, "not running");
 
 		delete sensors::g_sensors;
 		sensors::g_sensors = nullptr;
@@ -1646,10 +1678,10 @@ int sensors_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (sensors::g_sensors) {
-			errx(0, "task is running");
+			errx(0, "is running");
 
 		} else {
-			errx(1, "task is not running");
+			errx(1, "not running");
 		}
 	}
 

@@ -52,7 +52,6 @@ ECL_RollController::ECL_RollController() :
 	_tc(0.1f),
 	_k_p(0.0f),
 	_k_i(0.0f),
-	_k_d(0.0f),
 	_k_ff(0.0f),
 	_integrator_max(0.0f),
 	_max_rate(0.0f),
@@ -142,7 +141,7 @@ float ECL_RollController::control_bodyrate(float pitch,
 	//warnx("roll: _integrator: %.4f, _integrator_max: %.4f", (double)_integrator, (double)_integrator_max);
 
 	/* Apply PI rate controller and store non-limited output */
-	_last_output = (_bodyrate_setpoint * _k_ff + _rate_error * _k_p + integrator_constrained + _rate_setpoint * k_ff) * scaler * scaler;  //scaler is proportional to 1/airspeed
+	_last_output = (_bodyrate_setpoint * _k_ff + _rate_error * _k_p + integrator_constrained) * scaler * scaler;  //scaler is proportional to 1/airspeed
 
 	return math::constrain(_last_output, -1.0f, 1.0f);
 }

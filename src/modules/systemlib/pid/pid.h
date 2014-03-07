@@ -39,7 +39,7 @@
 /**
  * @file pid.h
  *
- * Definition of generic PID control interface.
+ * Definition of generic PID controller.
  *
  * @author Laurens Mackay <mackayl@student.ethz.ch>
  * @author Tobias Naegeli <naegelit@student.ethz.ch>
@@ -55,38 +55,35 @@
 
 __BEGIN_DECLS
 
-/* PID_MODE_DERIVATIV_CALC calculates discrete derivative from previous error
- * val_dot in pid_calculate() will be ignored */
-#define PID_MODE_DERIVATIV_CALC	0
-/* PID_MODE_DERIVATIV_CALC_NO_SP calculates discrete derivative from previous value, setpoint derivative is ignored
- * val_dot in pid_calculate() will be ignored */
-#define PID_MODE_DERIVATIV_CALC_NO_SP	1
-/* Use PID_MODE_DERIVATIV_SET if you have the derivative already (Gyros, Kalman) */
-#define PID_MODE_DERIVATIV_SET	2
-// Use PID_MODE_DERIVATIV_NONE for a PI controller (vs PID)
-#define PID_MODE_DERIVATIV_NONE 9
+typedef enum PID_MODE {
+	/* Use PID_MODE_DERIVATIV_NONE for a PI controller (vs PID) */
+	PID_MODE_DERIVATIV_NONE = 0,
+	/* PID_MODE_DERIVATIV_CALC calculates discrete derivative from previous error,
+	 * val_dot in pid_calculate() will be ignored */
+	PID_MODE_DERIVATIV_CALC,
+	/* PID_MODE_DERIVATIV_CALC_NO_SP calculates discrete derivative from previous value,
+	 * setpoint derivative will be ignored, val_dot in pid_calculate() will be ignored */
+	PID_MODE_DERIVATIV_CALC_NO_SP,
+	/* Use PID_MODE_DERIVATIV_SET if you have the derivative already (Gyros, Kalman) */
+	PID_MODE_DERIVATIV_SET
+} pid_mode_t;
 
 typedef struct {
+	pid_mode_t mode;
+	float dt_min;
 	float kp;
 	float ki;
 	float kd;
-	float intmax;
-	float sp;
 	float integral;
+	float integral_limit;
+	float output_limit;
 	float error_previous;
 	float last_output;
-	float limit;
-	float dt_min;
-	uint8_t mode;
-	uint8_t count;
-	uint8_t saturated;
 } PID_t;
 
-__EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax, float limit, uint8_t mode, float dt_min);
-__EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax, float limit);
-//void pid_set(PID_t *pid, float sp);
+__EXPORT void pid_init(PID_t *pid, pid_mode_t mode, float dt_min);
+__EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float integral_limit, float output_limit);
 __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt);
-
 __EXPORT void pid_reset_integral(PID_t *pid);
 
 __END_DECLS

@@ -174,9 +174,9 @@ void BlockMultiModeBacksideAutopilot::update()
 		// of control we will limit the velocity feedback between
 		// the min/max velocity
 		float v = _vLimit.update(sqrtf(
-					_pos.vx * _pos.vx +
+					_pos.vel_n * _pos.vel_n +
 					_pos.vy * _pos.vy +
-					_pos.vz * _pos.vz));
+					_pos.vel_d * _pos.vel_d));
 
 		// limit velocity command between min/max velocity
 		float vCmd = _vLimit.update(_vCmd.get());
@@ -236,9 +236,9 @@ void BlockMultiModeBacksideAutopilot::update()
 		// for the purpose of control we will limit the velocity feedback between
 		// the min/max velocity
 		float v = _vLimit.update(sqrtf(
-					_pos.vx * _pos.vx +
+					_pos.vel_n * _pos.vel_n +
 					_pos.vy * _pos.vy +
-					_pos.vz * _pos.vz));
+					_pos.vel_d * _pos.vel_d));
 
 		// pitch channel -> rate of climb
 		// TODO, might want to put a gain on this, otherwise commanding

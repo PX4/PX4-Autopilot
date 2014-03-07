@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -90,7 +90,7 @@ static const int ERROR = -1;
 class __EXPORT Airspeed : public device::I2C
 {
 public:
-	Airspeed(int bus, int address, unsigned conversion_interval);
+	Airspeed(int bus, int address, unsigned conversion_interval, const char* path);
 	virtual ~Airspeed();
 
 	virtual int	init();
@@ -126,6 +126,8 @@ protected:
 	float			_diff_pres_offset;
 
 	orb_advert_t		_airspeed_pub;
+
+	int			_class_instance;
 
 	unsigned		_conversion_interval;
 

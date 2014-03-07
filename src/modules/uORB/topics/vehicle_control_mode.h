@@ -48,6 +48,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "../uORB.h"
+#include "vehicle_status.h"
 
 /**
  * @addtogroup topics @{
@@ -59,6 +60,7 @@
  *
  * Encodes the complete system state and is set by the commander app.
  */
+
 struct vehicle_control_mode_s
 {
 	uint64_t timestamp; /**< in microseconds since system start, is set whenever the writing thread stores new data */
@@ -71,17 +73,14 @@ struct vehicle_control_mode_s
 	bool flag_system_hil_enabled;
 
 	bool flag_control_manual_enabled;		/**< true if manual input is mixed in */
-	bool flag_control_offboard_enabled;		/**< true if offboard control input is on */
+	bool flag_control_auto_enabled;			/**< true if onboard autopilot should act */
 	bool flag_control_rates_enabled;		/**< true if rates are stabilized */
 	bool flag_control_attitude_enabled;		/**< true if attitude stabilization is mixed in */
 	bool flag_control_velocity_enabled;		/**< true if horizontal velocity (implies direction) is controlled */
 	bool flag_control_position_enabled;		/**< true if position is controlled */
 	bool flag_control_altitude_enabled;		/**< true if altitude is controlled */
-	bool flag_control_climb_rate_enabled;		/**< true if climb rate is controlled */
-	bool flag_control_flighttermination_enabled;   /**< true if flighttermination is enabled */
-
-	bool flag_control_auto_enabled;		// TEMP
-	uint8_t auto_state;	// TEMP navigation state for AUTO modes
+	bool flag_control_climb_rate_enabled;	/**< true if climb rate is controlled */
+	bool flag_control_termination_enabled;	/**< true if flighttermination is enabled */
 };
 
 /**

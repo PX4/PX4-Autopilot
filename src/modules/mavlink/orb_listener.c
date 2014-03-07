@@ -60,7 +60,6 @@
 
 #include "waypoints.h"
 #include "orb_topics.h"
-#include "missionlib.h"
 #include "mavlink_hil.h"
 #include "util.h"
 
@@ -68,8 +67,10 @@ extern bool gcs_link;
 
 struct vehicle_global_position_s global_pos;
 struct vehicle_local_position_s local_pos;
+struct home_position_s home;
 struct navigation_capabilities_s nav_cap;
 struct vehicle_status_s v_status;
+struct position_setpoint_triplet_s pos_sp_triplet;
 struct rc_channels_s rc;
 struct rc_input_values rc_raw;
 struct actuator_armed_s armed;
@@ -245,10 +246,10 @@ l_vehicle_attitude(const struct listener *l)
 		hrt_abstime t = hrt_absolute_time();
 		if (t >= last_sent_vfr + 100000) {
 			last_sent_vfr = t;
-			float groundspeed = sqrtf(global_pos.vx * global_pos.vx + global_pos.vy * global_pos.vy);
+			float groundspeed = sqrtf(global_pos.vel_n * global_pos.vel_n + global_pos.vel_e * global_pos.vel_e);
 			uint16_t heading = _wrap_2pi(att.yaw) * M_RAD_TO_DEG_F;
 			float throttle = armed.armed ? actuators_0.control[3] * 100.0f : 0.0f;
-			mavlink_msg_vfr_hud_send(MAVLINK_COMM_0, airspeed.true_airspeed_m_s, groundspeed, heading, throttle, global_pos.alt, -global_pos.vz);
+			mavlink_msg_vfr_hud_send(MAVLINK_COMM_0, airspeed.true_airspeed_m_s, groundspeed, heading, throttle, global_pos.alt, -global_pos.vel_d);
 		}
 		
 		/* send quaternion values if it exists */
@@ -312,6 +313,7 @@ l_vehicle_status(const struct listener *l)
 	/* immediately communicate state changes back to user */
 	orb_copy(ORB_ID(vehicle_status), status_sub, &v_status);
 	orb_copy(ORB_ID(actuator_armed), mavlink_subs.armed_sub, &armed);
+	orb_copy(ORB_ID(position_setpoint_triplet), mavlink_subs.position_setpoint_triplet_sub, &pos_sp_triplet);
 
 	/* enable or disable HIL */
 	if (v_status.hil_state == HIL_STATE_ON)
@@ -348,20 +350,26 @@ l_input_rc(const struct listener *l)
 	/* copy rc channels into local buffer */
 	orb_copy(ORB_ID(input_rc), mavlink_subs.input_rc_sub, &rc_raw);
 
-	if (gcs_link)
-		/* Channels are sent in MAVLink main loop at a fixed interval */
-		mavlink_msg_rc_channels_raw_send(chan,
-						 rc_raw.timestamp / 1000,
-						 0,
-						 (rc_raw.channel_count > 0) ? rc_raw.values[0] : UINT16_MAX,
-						 (rc_raw.channel_count > 1) ? rc_raw.values[1] : UINT16_MAX,
-						 (rc_raw.channel_count > 2) ? rc_raw.values[2] : UINT16_MAX,
-						 (rc_raw.channel_count > 3) ? rc_raw.values[3] : UINT16_MAX,
-						 (rc_raw.channel_count > 4) ? rc_raw.values[4] : UINT16_MAX,
-						 (rc_raw.channel_count > 5) ? rc_raw.values[5] : UINT16_MAX,
-						 (rc_raw.channel_count > 6) ? rc_raw.values[6] : UINT16_MAX,
-						 (rc_raw.channel_count > 7) ? rc_raw.values[7] : UINT16_MAX,
-						 255);
+	if (gcs_link) {
+
+		const unsigned port_width = 8;
+
+		for (unsigned i = 0; (i * port_width) < rc_raw.channel_count; i++) {
+			/* Channels are sent in MAVLink main loop at a fixed interval */
+			mavlink_msg_rc_channels_raw_send(chan,
+							 rc_raw.timestamp_publication / 1000,
+							 i,
+							 (rc_raw.channel_count > (i * port_width) + 0) ? rc_raw.values[(i * port_width) + 0] : UINT16_MAX,
+							 (rc_raw.channel_count > (i * port_width) + 1) ? rc_raw.values[(i * port_width) + 1] : UINT16_MAX,
+							 (rc_raw.channel_count > (i * port_width) + 2) ? rc_raw.values[(i * port_width) + 2] : UINT16_MAX,
+							 (rc_raw.channel_count > (i * port_width) + 3) ? rc_raw.values[(i * port_width) + 3] : UINT16_MAX,
+							 (rc_raw.channel_count > (i * port_width) + 4) ? rc_raw.values[(i * port_width) + 4] : UINT16_MAX,
+							 (rc_raw.channel_count > (i * port_width) + 5) ? rc_raw.values[(i * port_width) + 5] : UINT16_MAX,
+							 (rc_raw.channel_count > (i * port_width) + 6) ? rc_raw.values[(i * port_width) + 6] : UINT16_MAX,
+							 (rc_raw.channel_count > (i * port_width) + 7) ? rc_raw.values[(i * port_width) + 7] : UINT16_MAX,
+							 rc_raw.rssi);
+		}
+	}
 }
 
 void
@@ -372,13 +380,13 @@ l_global_position(const struct listener *l)
 
 	mavlink_msg_global_position_int_send(MAVLINK_COMM_0,
 						 global_pos.timestamp / 1000,
-					     global_pos.lat,
-					     global_pos.lon,
+					     global_pos.lat * 1e7,
+					     global_pos.lon * 1e7,
 					     global_pos.alt * 1000.0f,
-					     global_pos.relative_alt * 1000.0f,
-					     global_pos.vx * 100.0f,
-					     global_pos.vy * 100.0f,
-					     global_pos.vz * 100.0f,
+					     (global_pos.alt - home.alt) * 1000.0f,
+					     global_pos.vel_n * 100.0f,
+					     global_pos.vel_e * 100.0f,
+					     global_pos.vel_d * 100.0f,
 					     _wrap_2pi(global_pos.yaw) * M_RAD_TO_DEG_F * 100.0f);
 }
 
@@ -402,23 +410,18 @@ l_local_position(const struct listener *l)
 void
 l_global_position_setpoint(const struct listener *l)
 {
-	struct mission_item_triplet_s triplet;
-	orb_copy(ORB_ID(mission_item_triplet), mavlink_subs.triplet_sub, &triplet);
+	struct position_setpoint_triplet_s triplet;
+	orb_copy(ORB_ID(position_setpoint_triplet), mavlink_subs.triplet_sub, &triplet);
 
-	uint8_t coordinate_frame = MAV_FRAME_GLOBAL;
-	
-	if (!triplet.current_valid)
+	if (!triplet.current.valid)
 		return;
-
-	if (triplet.current.altitude_is_relative)
-		coordinate_frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
 
 	if (gcs_link)
 		mavlink_msg_global_position_setpoint_int_send(MAVLINK_COMM_0,
-				coordinate_frame,
-				(int32_t)(triplet.current.lat * 1e7f),
-				(int32_t)(triplet.current.lon * 1e7f),
-				(int32_t)(triplet.current.altitude * 1e3f),
+				MAV_FRAME_GLOBAL,
+				(int32_t)(triplet.current.lat * 1e7d),
+				(int32_t)(triplet.current.lon * 1e7d),
+				(int32_t)(triplet.current.alt * 1e3f),
 				(int16_t)(triplet.current.yaw * M_RAD_TO_DEG_F * 1e2f));
 }
 
@@ -490,7 +493,8 @@ l_actuator_outputs(const struct listener *l)
 
 	if (gcs_link) {
 		mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000,
-						  l->arg /* port number */,
+						  l->arg /* port number - needs GCS support */,
+							 /* QGC has port number support already */
 						  act_outputs.output[0],
 						  act_outputs.output[1],
 						  act_outputs.output[2],
@@ -653,11 +657,9 @@ l_optical_flow(const struct listener *l)
 void
 l_home(const struct listener *l)
 {
-	struct home_position_s home;
-
 	orb_copy(ORB_ID(home_position), mavlink_subs.home_sub, &home);
 
-	mavlink_msg_gps_global_origin_send(MAVLINK_COMM_0, home.lat, home.lon, home.alt);
+	mavlink_msg_gps_global_origin_send(MAVLINK_COMM_0, (int32_t)(home.lat*1e7d), (int32_t)(home.lon*1e7d), (int32_t)(home.alt)*1e3f);
 }
 
 void
@@ -754,6 +756,10 @@ uorb_receive_start(void)
 	status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	orb_set_interval(status_sub, 300);		/* max 3.33 Hz updates */
 
+	/* --- POSITION SETPOINT TRIPLET --- */
+	mavlink_subs.position_setpoint_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
+	orb_set_interval(mavlink_subs.position_setpoint_triplet_sub, 0);		/* not polled, don't limit */
+
 	/* --- RC CHANNELS VALUE --- */
 	rc_sub = orb_subscribe(ORB_ID(rc_channels));
 	orb_set_interval(rc_sub, 100);			/* 10Hz updates */
@@ -771,7 +777,7 @@ uorb_receive_start(void)
 	orb_set_interval(mavlink_subs.local_pos_sub, 1000);	/* 1Hz active updates */
 
 	/* --- GLOBAL SETPOINT VALUE --- */
-	mavlink_subs.triplet_sub = orb_subscribe(ORB_ID(mission_item_triplet));
+	mavlink_subs.triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	orb_set_interval(mavlink_subs.triplet_sub, 2000);	/* 0.5 Hz updates */
 	
 	/* --- LOCAL SETPOINT VALUE --- */

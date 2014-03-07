@@ -75,10 +75,6 @@ public:
 		_k_i = k_i;
 	}
 
-	void set_k_d(float k_d) {
-		_k_d = k_d;
-	}
-
 	void set_k_ff(float k_ff) {
 		_k_ff = k_ff;
 	}
@@ -89,10 +85,6 @@ public:
 
 	void set_max_rate(float max_rate) {
 		_max_rate = max_rate;
-	}
-
-	void set_k_roll_ff(float roll_ff) {
-		_roll_ff = roll_ff;
 	}
 
 	void set_coordinated_min_speed(float coordinated_min_speed) {
@@ -116,7 +108,6 @@ private:
 	uint64_t _last_run;
 	float _k_p;
 	float _k_i;
-	float _k_d;
 	float _k_ff;
 	float _integrator_max;
 	float _max_rate;

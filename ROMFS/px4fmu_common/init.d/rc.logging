@@ -1,14 +1,16 @@
 #!nsh
 #
-# Initialise logging services.
+# Initialize logging services.
 #
 
 if [ -d /fs/microsd ]
 then
-	if [ $BOARD == fmuv1 ]
+	if hw_ver compare PX4FMU_V1
 	then
-		sdlog2 start -r 50 -a -b 16
+		echo "Start sdlog2 at 50Hz"
+		sdlog2 start -r 50 -a -b 8 -t
 	else
-		sdlog2 start -r 200 -a -b 16
+		echo "Start sdlog2 at 200Hz"
+		sdlog2 start -r 200 -a -b 16 -t
 	fi
 fi

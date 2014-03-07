@@ -93,8 +93,7 @@ void cpuload_initialize_once()
 #endif /* CONFIG_SCHED_WORKQUEUE */
 
 	// perform static initialization of "system" threads
-	for (system_load.total_count = 0; system_load.total_count < static_tasks_count; system_load.total_count++)
-	{
+	for (system_load.total_count = 0; system_load.total_count < static_tasks_count; system_load.total_count++) {
 		system_load.tasks[system_load.total_count].start_time = now;
 		system_load.tasks[system_load.total_count].total_runtime = 0;
 		system_load.tasks[system_load.total_count].curr_start_time = 0;

@@ -194,15 +194,13 @@ int do_accel_calibration(int mavlink_fd)
 		int32_t board_rotation_int;
 		param_get(board_rotation_h, &(board_rotation_int));
 		enum Rotation board_rotation_id = (enum Rotation)board_rotation_int;
-		math::Matrix board_rotation(3, 3);
+		math::Matrix<3,3> board_rotation;
 		get_rot_matrix(board_rotation_id, &board_rotation);
-		math::Matrix board_rotation_t = board_rotation.transpose();
-		math::Vector3 accel_offs_vec;
-		accel_offs_vec.set(&accel_offs[0]);
-		math::Vector3 accel_offs_rotated = board_rotation_t * accel_offs_vec;
-		math::Matrix accel_T_mat(3, 3);
-		accel_T_mat.set(&accel_T[0][0]);
-		math::Matrix accel_T_rotated = board_rotation_t * accel_T_mat * board_rotation;
+		math::Matrix<3,3> board_rotation_t = board_rotation.transposed();
+		math::Vector<3> accel_offs_vec(&accel_offs[0]);
+		math::Vector<3> accel_offs_rotated = board_rotation_t * accel_offs_vec;
+		math::Matrix<3,3> accel_T_mat(&accel_T[0][0]);
+		math::Matrix<3,3> accel_T_rotated = board_rotation_t * accel_T_mat * board_rotation;
 
 		accel_scale.x_offset = accel_offs_rotated(0);
 		accel_scale.x_scale = accel_T_rotated(0, 0);
@@ -313,7 +311,7 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 				 (double)accel_ref[orient][2]);
 
 		data_collected[orient] = true;
-		tune_neutral();
+		tune_neutral(true);
 	}
 
 	close(sensor_combined_sub);

@@ -3,12 +3,9 @@
 #include "tecs.h"
 #include <ecl/ecl.h>
 #include <systemlib/err.h>
+#include <geo/geo.h>
 
 using namespace math;
-
-#ifndef CONSTANTS_ONE_G
-#define CONSTANTS_ONE_G GRAVITY
-#endif
 
 /**
  * @file tecs.cpp
@@ -30,7 +27,7 @@ using namespace math;
  *
  */
 
-void TECS::update_50hz(float baro_altitude, float airspeed, const math::Dcm &rotMat, const math::Vector3 &accel_body, const math::Vector3 &accel_earth)
+void TECS::update_50hz(float baro_altitude, float airspeed, const math::Matrix<3,3> &rotMat, const math::Vector<3> &accel_body, const math::Vector<3> &accel_earth)
 {
 	// Implement third order complementary filter for height and height rate
 	// estimted height rate = _integ2_state
@@ -282,7 +279,7 @@ void TECS::_update_energies(void)
 	_SKEdot = _integ5_state * _vel_dot;
 }
 
-void TECS::_update_throttle(float throttle_cruise, const math::Dcm &rotMat)
+void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotMat)
 {
 	// Calculate total energy values
 	_STE_error = _SPE_dem - _SPE_est + _SKE_dem - _SKE_est;
@@ -505,7 +502,7 @@ void TECS::_update_STE_rate_lim(void)
 	_STEdot_min = - _minSinkRate * CONSTANTS_ONE_G;
 }
 
-void TECS::update_pitch_throttle(const math::Dcm &rotMat, float pitch, float baro_altitude, float hgt_dem, float EAS_dem, float indicated_airspeed, float EAS2TAS, bool climbOutDem, float ptchMinCO,
+void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, float baro_altitude, float hgt_dem, float EAS_dem, float indicated_airspeed, float EAS2TAS, bool climbOutDem, float ptchMinCO,
 				 float throttle_min, float throttle_max, float throttle_cruise,
 				 float pitch_limit_min, float pitch_limit_max)
 {

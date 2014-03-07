@@ -1,0 +1,39 @@
+#!nsh
+#
+# Skywalker X5 Flying Wing
+#
+# Thomas Gubler <thomasgubler@gmail.com>, Julian Oes <joes@student.ethz.ch>
+#
+
+sh /etc/init.d/rc.fw_defaults
+
+if [ $DO_AUTOCONFIG == yes ]
+then
+	param set FW_AIRSPD_MIN 15
+	param set FW_AIRSPD_TRIM 20
+	param set FW_AIRSPD_MAX 40
+	param set FW_ATT_TC 0.3
+	param set FW_L1_DAMPING 0.74
+	param set FW_L1_PERIOD 15
+	param set FW_PR_FF 0.3
+	param set FW_PR_I 0
+	param set FW_PR_IMAX 0.2
+	param set FW_PR_P 0.03
+	param set FW_P_LIM_MAX 45
+	param set FW_P_LIM_MIN -45
+	param set FW_P_RMAX_NEG 0
+	param set FW_P_RMAX_POS 0
+	param set FW_P_ROLLFF 0
+	param set FW_RR_FF 0.3
+	param set FW_RR_I 0
+	param set FW_RR_IMAX 0.2
+	param set FW_RR_P 0.03
+	param set FW_R_LIM 60
+	param set FW_R_RMAX 0
+	param set FW_T_HRATE_P 0.01
+	param set FW_T_RLL2THR 15
+	param set FW_T_SRATE_P 0.01
+	param set FW_T_TIME_CONST 5
+fi
+
+set MIXER FMU_X5

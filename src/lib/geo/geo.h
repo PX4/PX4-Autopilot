@@ -115,9 +115,11 @@ __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, dou
  */
 __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
 
-__EXPORT void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float* vx, float* vy);
+__EXPORT void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float* v_n, float* v_e);
 
-__EXPORT void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next, float* vx, float* vy);
+__EXPORT void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next, float* v_n, float* v_e);
+
+__EXPORT void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res, double *lon_res);
 
 __EXPORT int get_distance_to_line(struct crosstrack_error_s * crosstrack_error, double lat_now, double lon_now, double lat_start, double lon_start, double lat_end, double lon_end);
 
@@ -142,16 +144,5 @@ __EXPORT float _wrap_180(float bearing);
 __EXPORT float _wrap_360(float bearing);
 __EXPORT float _wrap_pi(float bearing);
 __EXPORT float _wrap_2pi(float bearing);
-
-/**
- * Return whether craft is inside geofence.
- *
- * Calculate whether point is inside arbitrary polygon
- * @param craft pointer craft coordinates
- * @param fence pointer to array of coordinates, one per vertex. First and last vertex are assumed connected
- * @return true: craft is inside fence, false:craft is outside fence
- */
-__EXPORT bool inside_geofence(const struct vehicle_global_position_s *craft, const struct fence_s *fence);
-
 
 __END_DECLS

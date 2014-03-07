@@ -3,5 +3,4 @@
 #
 
 MODULE_COMMAND	 = fmu
-SRCS		 = fmu.cpp \
-			../../modules/systemlib/pwm_limit/pwm_limit.c
+SRCS		 = fmu.cpp

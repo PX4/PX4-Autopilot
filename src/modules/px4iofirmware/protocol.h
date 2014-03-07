@@ -111,7 +111,6 @@
 #define PX4IO_P_STATUS_FLAGS_INIT_OK		(1 << 10) /* initialisation of the IO completed without error */
 #define PX4IO_P_STATUS_FLAGS_FAILSAFE		(1 << 11) /* failsafe is active */
 #define PX4IO_P_STATUS_FLAGS_SAFETY_OFF		(1 << 12) /* safety is off */
-#define PX4IO_P_STATUS_FLAGS_RC_DSM11		(1 << 13) /* DSM input is 11 bit data */
 
 #define PX4IO_P_STATUS_ALARMS			3	 /* alarm flags - alarms latch, write 1 to a bit to clear it */
 #define PX4IO_P_STATUS_ALARMS_VBATT_LOW		(1 << 0) /* [1] VBatt is very close to regulator dropout */
@@ -128,7 +127,6 @@
 #define PX4IO_P_STATUS_VSERVO			6	/* [2] servo rail voltage in mV */
 #define PX4IO_P_STATUS_VRSSI			7	/* [2] RSSI voltage */
 #define PX4IO_P_STATUS_PRSSI			8	/* [2] RSSI PWM value */
-#define PX4IO_P_STATUS_NRSSI			9	/* [2] Normalized RSSI value, 0: no reception, 1000: perfect reception */
 
 /* array of post-mix actuator outputs, -10000..10000 */
 #define PX4IO_PAGE_ACTUATORS		2		/* 0..CONFIG_ACTUATOR_COUNT-1 */
@@ -139,7 +137,17 @@
 /* array of raw RC input values, microseconds */
 #define PX4IO_PAGE_RAW_RC_INPUT		4
 #define PX4IO_P_RAW_RC_COUNT			0	/* number of valid channels */
-#define PX4IO_P_RAW_RC_BASE			1	/* CONFIG_RC_INPUT_COUNT channels from here */
+#define PX4IO_P_RAW_RC_FLAGS			1	/* RC detail status flags */
+#define PX4IO_P_RAW_RC_FLAGS_FRAME_DROP		(1 << 0) /* single frame drop */
+#define PX4IO_P_RAW_RC_FLAGS_FAILSAFE		(1 << 1) /* receiver is in failsafe mode */
+#define PX4IO_P_RAW_RC_FLAGS_RC_DSM11		(1 << 2) /* DSM decoding is 11 bit mode */
+#define PX4IO_P_RAW_RC_FLAGS_MAPPING_OK		(1 << 3) /* Channel mapping is ok */
+
+#define PX4IO_P_RAW_RC_NRSSI			2	/* [2] Normalized RSSI value, 0: no reception, 255: perfect reception */
+#define PX4IO_P_RAW_RC_DATA			3	/* [1] + [2] Details about the RC source (PPM frame length, Spektrum protocol type) */
+#define PX4IO_P_RAW_FRAME_COUNT			4	/* Number of total received frames (wrapping counter) */
+#define PX4IO_P_RAW_LOST_FRAME_COUNT		5	/* Number of total dropped frames (wrapping counter) */
+#define PX4IO_P_RAW_RC_BASE			6	/* CONFIG_RC_INPUT_COUNT channels from here */
 
 /* array of scaled RC input values, -10000..10000 */
 #define PX4IO_PAGE_RC_INPUT		5
@@ -156,6 +164,10 @@
 /* setup page */
 #define PX4IO_PAGE_SETUP		50
 #define PX4IO_P_SETUP_FEATURES			0
+#define PX4IO_P_SETUP_FEATURES_SBUS1_OUT	(1 << 0) /* enable S.Bus v1 output */
+#define PX4IO_P_SETUP_FEATURES_SBUS2_OUT	(1 << 1) /* enable S.Bus v2 output */
+#define PX4IO_P_SETUP_FEATURES_PWM_RSSI		(1 << 2) /* enable PWM RSSI parsing */
+#define PX4IO_P_SETUP_FEATURES_ADC_RSSI		(1 << 3) /* enable ADC RSSI parsing */
 
 #define PX4IO_P_SETUP_ARMING			1	 /* arming controls */
 #define PX4IO_P_SETUP_ARMING_IO_ARM_OK		(1 << 0) /* OK to arm the IO side */
@@ -165,6 +177,7 @@
 #define PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK	(1 << 4) /* OK to try in-air restart */
 #define PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE	(1 << 5) /* Output of PWM right after startup enabled to help ESCs initialize and prevent them from beeping */
 #define PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED	(1 << 6) /* Disable the IO-internal evaluation of the RC */
+#define PX4IO_P_SETUP_ARMING_LOCKDOWN		(1 << 7) /* If set, the system operates normally, but won't actuate any servos */
 
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
 #define PX4IO_P_SETUP_PWM_DEFAULTRATE		3	/* 'low' PWM frame output rate in Hz */

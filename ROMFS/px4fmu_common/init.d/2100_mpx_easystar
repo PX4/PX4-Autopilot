@@ -1,0 +1,8 @@
+#!nsh
+#
+# MPX EasyStar Plane
+#
+
+sh /etc/init.d/rc.fw_defaults
+ 
+set MIXER FMU_RET

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,7 +60,12 @@
 /**
  * Maximum number of R/C input channels in the system. S.Bus has up to 18 channels.
  */
-#define RC_INPUT_MAX_CHANNELS	20
+#define RC_INPUT_MAX_CHANNELS	18
+
+/**
+ * Maximum RSSI value
+ */
+#define RC_INPUT_RSSI_MAX	255
 
 /**
  * Input signal type, value is a control position from zero to 100
@@ -83,14 +88,51 @@ enum RC_INPUT_SOURCE {
  * on the board involved.
  */
 struct rc_input_values {
-	/** decoding time */
-	uint64_t		timestamp;
+	/** publication time */
+	uint64_t		timestamp_publication;
+
+	/** last valid reception time */
+	uint64_t		timestamp_last_signal;
 
 	/** number of channels actually being seen */
 	uint32_t		channel_count;
 
-	/** receive signal strength indicator (RSSI): < 0: Undefined, 0: no signal, 1000: full reception */
+	/** receive signal strength indicator (RSSI): < 0: Undefined, 0: no signal, 255: full reception */
 	int32_t			rssi;
+
+	/**
+	 * explicit failsafe flag: true on TX failure or TX out of range , false otherwise.
+	 * Only the true state is reliable, as there are some (PPM) receivers on the market going
+	 * into failsafe without telling us explicitly.
+	 * */
+	bool			rc_failsafe;
+
+	/**
+	 * RC receiver connection status: True,if no frame has arrived in the expected time, false otherwise.
+	 * True usally means that the receiver has been disconnected, but can also indicate a radio link loss on "stupid" systems.
+	 * Will remain false, if a RX with failsafe option continues to transmit frames after a link loss.
+	 * */
+	bool			rc_lost;
+
+	/**
+	 * Number of lost RC frames.
+	 * Note: intended purpose: observe the radio link quality if RSSI is not available
+	 * This value must not be used to trigger any failsafe-alike funtionality.
+	 * */
+	uint16_t		rc_lost_frame_count;
+
+	/**
+	 * Number of total RC frames.
+	 * Note: intended purpose: observe the radio link quality if RSSI is not available
+	 * This value must not be used to trigger any failsafe-alike funtionality.
+	 * */
+	uint16_t		rc_total_frame_count;
+
+	/**
+	 * Length of a single PPM frame.
+	 * Zero for non-PPM systems
+	 */
+	uint16_t		rc_ppm_frame_length;
 
 	/** Input source */
 	enum RC_INPUT_SOURCE 	input_source;
@@ -107,8 +149,12 @@ ORB_DECLARE(input_rc);
 #define _RC_INPUT_BASE		0x2b00
 
 /** Fetch R/C input values into (rc_input_values *)arg */
-
 #define RC_INPUT_GET			_IOC(_RC_INPUT_BASE, 0)
 
+/** Enable RSSI input via ADC */
+#define RC_INPUT_ENABLE_RSSI_ANALOG	_IOC(_RC_INPUT_BASE, 1)
+
+/** Enable RSSI input via PWM signal */
+#define RC_INPUT_ENABLE_RSSI_PWM	_IOC(_RC_INPUT_BASE, 2)
 
 #endif /* _DRV_RC_INPUT_H */
