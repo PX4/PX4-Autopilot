@@ -19,13 +19,16 @@ namespace uavcan
 /**
  * Container for received transfer.
  */
-class IncomingTransfer
+class IncomingTransfer : public ITransferBuffer
 {
     uint64_t ts_monotonic_;
     uint64_t ts_utc_;
     TransferType transfer_type_;
     TransferID transfer_id_;
     NodeID src_node_id_;
+
+    /// That's a no-op, asserts in debug builds
+    int write(unsigned int offset, const uint8_t* data, unsigned int len);
 
 protected:
     IncomingTransfer(uint64_t ts_monotonic, uint64_t ts_utc, TransferType transfer_type,
@@ -38,13 +41,6 @@ protected:
     { }
 
 public:
-    virtual ~IncomingTransfer() { }
-
-    /**
-     * Read pure payload, no service fields are included (e.g. Target Node ID, Transfer CRC)
-     */
-    virtual int read(unsigned int offset, uint8_t* data, unsigned int len) const = 0;
-
     /**
      * Dispose the payload buffer. Further calls to read() will not be possible.
      */

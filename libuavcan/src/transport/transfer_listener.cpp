@@ -9,6 +9,14 @@
 
 namespace uavcan
 {
+/*
+ * IncomingTransfer
+ */
+int IncomingTransfer::write(unsigned int, const uint8_t*, unsigned int)
+{
+    assert(0);  // Incoming transfer container is read-only
+    return -1;
+}
 
 /*
  * SingleFrameIncomingTransfer
