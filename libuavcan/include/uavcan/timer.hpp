@@ -42,7 +42,7 @@ public:
     using MonotonicDeadlineHandler::getMonotonicDeadline;
     using MonotonicDeadlineHandler::getScheduler;
 
-    Timer(Scheduler& scheduler)
+    explicit Timer(Scheduler& scheduler)
     : MonotonicDeadlineHandler(scheduler)
     , period_(InfinitePeriod)
     { }

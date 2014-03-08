@@ -19,7 +19,7 @@ class MonotonicDeadlineHandler : public LinkedListNode<MonotonicDeadlineHandler>
 protected:
     Scheduler& scheduler_;
 
-    MonotonicDeadlineHandler(Scheduler& scheduler)
+    explicit MonotonicDeadlineHandler(Scheduler& scheduler)
     : monotonic_deadline_(0)
     , scheduler_(scheduler)
     { }
