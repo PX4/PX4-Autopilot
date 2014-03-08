@@ -85,6 +85,7 @@ public:
         if (ptr_)
             ptr_->~T();
         ptr_ = NULL;
+        std::fill(data_, data_ + sizeof(T), 0);
     }
 
     void construct()
