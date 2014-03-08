@@ -21,7 +21,7 @@ TEST(LazyConstructor, Basic)
      */
     a.destroy(); // no-op
     a.construct();
-    b.construct("Hello world");
+    b.construct<const char*>("Hello world");
 
     ASSERT_TRUE(a);
     ASSERT_TRUE(b.isConstructed());
