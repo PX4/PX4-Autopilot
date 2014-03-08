@@ -201,6 +201,9 @@ public:
     }
 
     uint8_t* getRawPtr() { return data_; }
+    const uint8_t* getRawPtr() const { return data_; }
+
+    unsigned int getMaxWritePos() const { return max_write_pos_; }
     void setMaxWritePos(unsigned int value) { max_write_pos_ = value; }
 };
 
