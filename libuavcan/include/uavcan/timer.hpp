@@ -40,6 +40,7 @@ public:
     using MonotonicDeadlineHandler::stop;
     using MonotonicDeadlineHandler::isRunning;
     using MonotonicDeadlineHandler::getMonotonicDeadline;
+    using MonotonicDeadlineHandler::getScheduler;
 
     Timer(Scheduler& scheduler)
     : MonotonicDeadlineHandler(scheduler)

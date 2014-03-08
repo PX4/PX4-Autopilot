@@ -37,6 +37,7 @@ public:
     bool isRunning() const;
 
     uint64_t getMonotonicDeadline() const { return monotonic_deadline_; }
+    Scheduler& getScheduler() const { return scheduler_; }
 };
 
 
