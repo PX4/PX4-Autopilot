@@ -87,11 +87,12 @@ static const int ERROR = -1;
 #define SF0X_TAKE_RANGE_REG		'D'
 #define SF02F_MIN_DISTANCE		0.0f
 #define SF02F_MAX_DISTANCE		40.0f
+#define SF0X_DEFAULT_PORT		"/dev/ttyS2"
 
 class SF0X : public device::CDev
 {
 public:
-	SF0X(const char* port="/dev/ttyS1");
+	SF0X(const char* port=SF0X_DEFAULT_PORT);
 	virtual ~SF0X();
 
 	virtual int 			init();
@@ -628,7 +629,7 @@ void	info();
  * Start the driver.
  */
 void
-start()
+start(const char* port)
 {
 	int fd;
 
@@ -637,7 +638,7 @@ start()
 	}
 
 	/* create the driver */
-	g_dev = new SF0X();
+	g_dev = new SF0X(port);
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -795,7 +796,11 @@ sf0x_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start")) {
-		sf0x::start();
+		if (argc > 2) {
+			sf0x::start(argv[2]);
+		} else {
+			sf0x::start(SF0X_DEFAULT_PORT);
+		}
 	}
 
 	/*
