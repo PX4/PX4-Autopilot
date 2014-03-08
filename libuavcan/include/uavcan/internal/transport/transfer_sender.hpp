@@ -16,8 +16,6 @@ namespace uavcan
 
 class TransferSender
 {
-    static const uint64_t DefaultMaxTransferInterval = 60 * 1000 * 1000;
-
     const uint64_t max_transfer_interval_;
     const DataTypeDescriptor& data_type_;
     const CanTxQueue::Qos qos_;
@@ -26,6 +24,8 @@ class TransferSender
     Dispatcher& dispatcher_;
 
 public:
+    static const uint64_t DefaultMaxTransferInterval = 60 * 1000 * 1000;
+
     TransferSender(Dispatcher& dispatcher, const DataTypeDescriptor& data_type, CanTxQueue::Qos qos,
                    uint64_t max_transfer_interval = DefaultMaxTransferInterval)
     : max_transfer_interval_(max_transfer_interval)
