@@ -42,11 +42,14 @@ class LazyConstructor
 public:
     LazyConstructor()
     : ptr_(NULL)
-    { }
+    {
+        std::fill(data_, data_ + sizeof(T), 0);
+    }
 
     LazyConstructor(const LazyConstructor<T>& rhs)
     : ptr_(NULL)
     {
+        std::fill(data_, data_ + sizeof(T), 0);
         if (rhs)
             construct(*rhs);  // Invoke copy constructor
     }
