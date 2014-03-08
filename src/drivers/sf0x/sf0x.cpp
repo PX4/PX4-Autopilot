@@ -209,6 +209,10 @@ SF0X::init()
 {
 	int ret = ERROR;
 
+	/* do regular cdev init */
+	if (CDev::init() != OK)
+		goto out;
+
 	/* allocate basic report buffers */
 	_reports = new RingBuffer(2, sizeof(range_finder_report));
 
@@ -447,7 +451,7 @@ SF0X::measure()
 	char cmd = SF0X_TAKE_RANGE_REG;
 	ret = ::write(_fd, &cmd, 1);
 
-	if (OK != sizeof(cmd)) {
+	if (ret != sizeof(cmd)) {
 		perf_count(_comms_errors);
 		log("serial transfer returned %d", ret);
 		return ret;
