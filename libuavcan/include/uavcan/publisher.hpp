@@ -113,6 +113,8 @@ public:
     {
         tx_timeout_ = std::max(usec, uint64_t(MinTxTimeoutUsec));
     }
+
+    Scheduler& getScheduler() const { return scheduler_; }
 };
 
 }
