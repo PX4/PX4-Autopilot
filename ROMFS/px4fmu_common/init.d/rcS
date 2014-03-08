@@ -109,7 +109,7 @@ then
 	set VEHICLE_TYPE none
 	set MIXER none
 	set USE_IO yes
-	set OUTPUT_MODE none
+	set OUTPUT_MODE io
 	set PWM_OUTPUTS none
 	set PWM_RATE none
 	set PWM_DISARMED none
@@ -118,6 +118,18 @@ then
 	set MKBLCTRL_MODE none
 	set FMU_MODE pwm
 	set MAV_TYPE none
+	
+	#
+	# Select output by SYS_OUTPUT parameter
+	#
+	if param compare SYS_OUTPUT 1
+	then
+		set OUTPUT_MODE fmu
+	fi
+	if param compare SYS_OUTPUT 2
+	then
+		set OUTPUT_MODE mkblctrl
+	fi
 	
 	#
 	# Set DO_AUTOCONFIG flag to use it in AUTOSTART scripts
@@ -157,6 +169,14 @@ then
 	then
 		param set SYS_AUTOCONFIG 0
 		param save
+	fi
+
+	#
+	# If not using PX4IO, but output set to "io" fallback to "fmu"
+	#
+	if [ $USE_IO != yes -a $OUTPUT_MODE == io ]
+	then
+		set OUTPUT_MODE fmu
 	fi
 	
 	set IO_PRESENT no
@@ -214,19 +234,6 @@ then
 		fi
 	fi
 	
-	#
-	# Set default output if not set
-	#
-	if [ $OUTPUT_MODE == none ]
-	then
-		if [ $USE_IO == yes ]
-		then
-			set OUTPUT_MODE io
-		else
-			set OUTPUT_MODE fmu
-		fi
-	fi
-
 	if [ $OUTPUT_MODE == io -a $IO_PRESENT != yes ]
 	then
 		# Need IO for output but it not present, disable output
