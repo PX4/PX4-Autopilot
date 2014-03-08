@@ -33,7 +33,8 @@
 
 /**
  * @file sf0x.cpp
- * @author Lorenz Meier
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Greg Hulands
  *
  * Driver for the Lightware SF0x laser rangefinder series
  */
@@ -459,25 +460,26 @@ SF0X::measure()
 int
 SF0X::collect()
 {
-	int	ret = -EIO;
-
-	/* read from the sensor */
-	float val;
+	int	ret;
 
 	perf_begin(_sample_perf);
 
 	char buf[16];
+	/* read from the sensor (uart buffer) */
 	ret = ::read(_fd, buf, sizeof(buf));
-	printf("ret: %d, val: %s", ret, buf);
 
-	if (ret < 0) {
+	if (ret < 1) {
 		log("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
 	}
 
-	float si_units = 0.0f;
+	printf("ret: %d, val (str): %s\n", ret, buf);
+	char* end;
+	float si_units = strtod(buf,&end);
+	printf("val (float): %8.4f\n", si_units);
+
 	struct range_finder_report report;
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
@@ -538,7 +540,7 @@ SF0X::stop()
 void
 SF0X::cycle_trampoline(void *arg)
 {
-	SF0X *dev = (SF0X *)arg;
+	SF0X *dev = static_cast<SF0X *>(arg);
 
 	dev->cycle();
 }
@@ -598,7 +600,7 @@ SF0X::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
-	printf("poll interval:  %u ticks\n", _measure_ticks);
+	printf("poll interval:  %d ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
 }
 
@@ -694,7 +696,6 @@ test()
 {
 	struct range_finder_report report;
 	ssize_t sz;
-	int ret;
 
 	int fd = open(RANGE_FINDER_DEVICE_PATH, O_RDONLY);
 
@@ -725,7 +726,7 @@ test()
 		/* wait for data to be ready */
 		fds.fd = fd;
 		fds.events = POLLIN;
-		ret = poll(&fds, 1, 2000);
+		int ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
 			errx(1, "timed out waiting for sensor data");
