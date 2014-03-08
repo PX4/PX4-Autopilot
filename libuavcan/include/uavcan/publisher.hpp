@@ -12,6 +12,7 @@
 #include <uavcan/internal/lazy_constructor.hpp>
 #include <uavcan/internal/transport/transfer_sender.hpp>
 #include <uavcan/internal/marshal/scalar_codec.hpp>
+#include <uavcan/internal/marshal/types.hpp>
 
 namespace uavcan
 {
@@ -54,8 +55,7 @@ private:
 
     IMarshalBuffer* getBuffer()
     {
-        const int size = (DataType::MaxBitLen + 7) / 8;
-        return buffer_provider_.getBuffer(size);
+        return buffer_provider_.getBuffer(BitLenToByteLen<DataType::MaxBitLen>::Result);
     }
 
     int genericSend(const DataType& message, TransferType transfer_type, NodeID dst_node_id,

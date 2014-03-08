@@ -20,6 +20,10 @@ template <>
 struct IntegerBitLen<0> { enum { Result = 0 }; };
 
 
+template <unsigned long BitLen>
+struct BitLenToByteLen { enum { Result = (BitLen + 7) / 8 }; };
+
+
 template <typename T, typename Enable = void>
 struct StorageType { typedef T Type; };
 

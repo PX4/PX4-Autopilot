@@ -76,18 +76,6 @@ struct CustomType
 };
 
 
-TEST(Array, IntegerBitLen)
-{
-    using uavcan::IntegerBitLen;
-
-    ASSERT_EQ(0, IntegerBitLen<0>::Result);
-    ASSERT_EQ(1, IntegerBitLen<1>::Result);
-    ASSERT_EQ(6, IntegerBitLen<42>::Result);
-    ASSERT_EQ(8, IntegerBitLen<232>::Result);
-    ASSERT_EQ(32, IntegerBitLen<0x81234567>::Result);
-}
-
-
 TEST(Array, Basic)
 {
     typedef Array<IntegerSpec<8, SignednessSigned, CastModeTruncate>, ArrayModeStatic, 4> A1;
