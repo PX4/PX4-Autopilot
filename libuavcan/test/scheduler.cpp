@@ -3,7 +3,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <uavcan/scheduler.hpp>
+#include <uavcan/timer.hpp>
 #include "common.hpp"
 #include "transport/can/iface_mock.hpp"
 
@@ -46,21 +46,19 @@ TEST(Scheduler, Timers)
      */
     {
         TimerCallCounter tcc;
-        uavcan::Timer<TimerCallCounter::Binder> a(sch, TimerCallCounter::Binder(&tcc, &TimerCallCounter::callA));
-        uavcan::Timer<TimerCallCounter::Binder> b(sch, TimerCallCounter::Binder(&tcc, &TimerCallCounter::callB));
+        uavcan::TimerEventForwarder<TimerCallCounter::Binder>
+            a(sch, TimerCallCounter::Binder(&tcc, &TimerCallCounter::callA));
+        uavcan::TimerEventForwarder<TimerCallCounter::Binder>
+            b(sch, TimerCallCounter::Binder(&tcc, &TimerCallCounter::callB));
 
-        ASSERT_EQ(0, sch.getNumOneShotTimers());
-        ASSERT_FALSE(sch.isOneShotTimerRegistered(&a));
-        ASSERT_FALSE(sch.isOneShotTimerRegistered(&b));
+        ASSERT_EQ(0, sch.getMonotonicDeadlineScheduler().getNumHandlers());
 
         const uint64_t start_ts = clock_driver.getMonotonicMicroseconds();
 
-        a.startOneShotDeadline(start_ts + 100000);
+        a.startOneShotWithDeadline(start_ts + 100000);
         b.startPeriodic(1000);
 
-        ASSERT_EQ(2, sch.getNumOneShotTimers());
-        ASSERT_TRUE(sch.isOneShotTimerRegistered(&a));
-        ASSERT_TRUE(sch.isOneShotTimerRegistered(&b));
+        ASSERT_EQ(2, sch.getMonotonicDeadlineScheduler().getNumHandlers());
 
         /*
          * Spinning
@@ -89,17 +87,15 @@ TEST(Scheduler, Timers)
         /*
          * Deinitialization
          */
-        ASSERT_EQ(1, sch.getNumOneShotTimers());
+        ASSERT_EQ(1, sch.getMonotonicDeadlineScheduler().getNumHandlers());
 
-        ASSERT_FALSE(sch.isOneShotTimerRegistered(&a));
         ASSERT_FALSE(a.isRunning());
-        ASSERT_EQ(uavcan::TimerBase::InfinitePeriod, a.getPeriod());
+        ASSERT_EQ(uavcan::Timer::InfinitePeriod, a.getPeriod());
 
-        ASSERT_TRUE(sch.isOneShotTimerRegistered(&b));
         ASSERT_TRUE(b.isRunning());
         ASSERT_EQ(1000, b.getPeriod());
     }
 
-    ASSERT_EQ(0, sch.getNumOneShotTimers());                                 // Both timers were destroyed now
+    ASSERT_EQ(0, sch.getMonotonicDeadlineScheduler().getNumHandlers());      // Both timers were destroyed now
     ASSERT_EQ(0, sch.spin(clock_driver.getMonotonicMicroseconds() + 1000));  // Spin some more without timers
 }

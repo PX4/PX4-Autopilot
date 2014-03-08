@@ -9,55 +9,122 @@
 
 namespace uavcan
 {
+/*
+ * MonotonicDeadlineHandler
+ */
+void MonotonicDeadlineHandler::startWithDeadline(uint64_t monotonic_deadline)
+{
+    assert(monotonic_deadline > 0);
+    stop();
+    monotonic_deadline_ = monotonic_deadline;
+    scheduler_.getMonotonicDeadlineScheduler().add(this);
+}
 
-struct TimerInsertionComparator
+void MonotonicDeadlineHandler::startWithDelay(uint64_t delay_usec)
+{
+    startWithDeadline(scheduler_.getMonotonicTimestamp() + delay_usec);
+}
+
+void MonotonicDeadlineHandler::stop()
+{
+    scheduler_.getMonotonicDeadlineScheduler().remove(this);
+}
+
+bool MonotonicDeadlineHandler::isRunning() const
+{
+    return scheduler_.getMonotonicDeadlineScheduler().doesExist(this);
+}
+
+/*
+ * MonotonicDeadlineScheduler
+ */
+struct MonotonicDeadlineHandlerInsertionComparator
 {
     const uint64_t ts;
-    TimerInsertionComparator(uint64_t ts) : ts(ts) { }
-    bool operator()(const TimerBase* t) const
+    MonotonicDeadlineHandlerInsertionComparator(uint64_t ts) : ts(ts) { }
+    bool operator()(const MonotonicDeadlineHandler* t) const
     {
         return t->getMonotonicDeadline() > ts;
     }
 };
 
-uint64_t Scheduler::computeDispatcherSpinDeadline(uint64_t spin_deadline) const
+void MonotonicDeadlineScheduler::add(MonotonicDeadlineHandler* mdh)
 {
-    uint64_t timer_deadline = std::numeric_limits<uint64_t>::max();
-    TimerBase* const timer = ordered_timers_.get();
-    if (timer)
-        timer_deadline = timer->getMonotonicDeadline();
-
-    const uint64_t earliest = std::min(timer_deadline, spin_deadline);
-    const uint64_t ts = getMonotonicTimestamp();
-    if (earliest > ts)
-    {
-        if (ts - earliest > timer_resolution_)
-            return ts + timer_resolution_;
-    }
-    return earliest;
+    assert(mdh);
+    handlers_.insertBefore(mdh, MonotonicDeadlineHandlerInsertionComparator(mdh->getMonotonicDeadline()));
 }
 
-uint64_t Scheduler::pollTimersAndGetMonotonicTimestamp()
+void MonotonicDeadlineScheduler::remove(MonotonicDeadlineHandler* mdh)
+{
+    assert(mdh);
+    handlers_.remove(mdh);
+}
+
+bool MonotonicDeadlineScheduler::doesExist(const MonotonicDeadlineHandler* mdh) const
+{
+    assert(mdh);
+    const MonotonicDeadlineHandler* p = handlers_.get();
+#if UAVCAN_DEBUG
+    uint64_t prev_deadline = 0;
+#endif
+    while (p)
+    {
+#if UAVCAN_DEBUG
+        if (prev_deadline > p->getMonotonicDeadline())  // Self check
+            std::abort();
+        prev_deadline = p->getMonotonicDeadline();
+#endif
+        if (p == mdh)
+            return true;
+        p = p->getNextListNode();
+    }
+    return false;
+}
+
+uint64_t MonotonicDeadlineScheduler::pollAndGetMonotonicTimestamp(ISystemClock& sysclock)
 {
     while (true)
     {
-        TimerBase* const timer = ordered_timers_.get();
-        if (!timer)
-            return getMonotonicTimestamp();
+        MonotonicDeadlineHandler* const mdh = handlers_.get();
+        if (!mdh)
+            return sysclock.getMonotonicMicroseconds();
 #if UAVCAN_DEBUG
-        if (timer->getNextListNode())      // Order check
-            assert(timer->getMonotonicDeadline() <= timer->getNextListNode()->getMonotonicDeadline());
+        if (mdh->getNextListNode())      // Order check
+            assert(mdh->getMonotonicDeadline() <= mdh->getNextListNode()->getMonotonicDeadline());
 #endif
 
-        const uint64_t ts = getMonotonicTimestamp();
-        if (ts < timer->getMonotonicDeadline())
+        const uint64_t ts = sysclock.getMonotonicMicroseconds();
+        if (ts < mdh->getMonotonicDeadline())
             return ts;
 
-        ordered_timers_.remove(timer);
-        timer->handleOneShotTimeout(ts);   // This timer can be re-registered immediately
+        handlers_.remove(mdh);
+        mdh->onMonotonicDeadline(ts);   // This handler can be re-registered immediately
     }
     assert(0);
     return 0;
+}
+
+uint64_t MonotonicDeadlineScheduler::getEarliestDeadline() const
+{
+    const MonotonicDeadlineHandler* const mdh = handlers_.get();
+    if (mdh)
+        return mdh->getMonotonicDeadline();
+    return std::numeric_limits<uint64_t>::max();
+}
+
+/*
+ * Scheduler
+ */
+uint64_t Scheduler::computeDispatcherSpinDeadline(uint64_t spin_deadline) const
+{
+    const uint64_t earliest = std::min(deadline_scheduler_.getEarliestDeadline(), spin_deadline);
+    const uint64_t ts = getMonotonicTimestamp();
+    if (earliest > ts)
+    {
+        if (ts - earliest > monotonic_deadline_resolution_)
+            return ts + monotonic_deadline_resolution_;
+    }
+    return earliest;
 }
 
 void Scheduler::pollCleanup(uint64_t mono_ts, uint32_t num_frames_processed_with_last_spin)
@@ -82,45 +149,12 @@ int Scheduler::spin(uint64_t monotonic_deadline)
         if (retval < 0)
             break;
 
-        const uint64_t ts = pollTimersAndGetMonotonicTimestamp();
+        const uint64_t ts = deadline_scheduler_.pollAndGetMonotonicTimestamp(getSystemClock());
         pollCleanup(ts, retval);
         if (ts >= monotonic_deadline)
             break;
     }
     return retval;
-}
-
-void Scheduler::registerOneShotTimer(TimerBase* timer)
-{
-    assert(timer);
-    ordered_timers_.insertBefore(timer, TimerInsertionComparator(timer->getMonotonicDeadline()));
-}
-
-void Scheduler::unregisterOneShotTimer(TimerBase* timer)
-{
-    assert(timer);
-    ordered_timers_.remove(timer);
-}
-
-bool Scheduler::isOneShotTimerRegistered(const TimerBase* timer) const
-{
-    assert(timer);
-    const TimerBase* p = ordered_timers_.get();
-#if UAVCAN_DEBUG
-    uint64_t prev_deadline = 0;
-#endif
-    while (p)
-    {
-#if UAVCAN_DEBUG
-        if (prev_deadline > p->getMonotonicDeadline())  // Self check
-            std::abort();
-        prev_deadline = p->getMonotonicDeadline();
-#endif
-        if (p == timer)
-            return true;
-        p = p->getNextListNode();
-    }
-    return false;
 }
 
 }

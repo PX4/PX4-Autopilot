@@ -4,26 +4,69 @@
 
 #pragma once
 
-#include <uavcan/timer.hpp>
 #include <uavcan/internal/linked_list.hpp>
 #include <uavcan/internal/transport/dispatcher.hpp>
 
 namespace uavcan
 {
 
+class Scheduler;
+
+class MonotonicDeadlineHandler : public LinkedListNode<MonotonicDeadlineHandler>, Noncopyable
+{
+    uint64_t monotonic_deadline_;
+
+protected:
+    Scheduler& scheduler_;
+
+    MonotonicDeadlineHandler(Scheduler& scheduler)
+    : monotonic_deadline_(0)
+    , scheduler_(scheduler)
+    { }
+
+    virtual ~MonotonicDeadlineHandler() { stop(); }
+
+public:
+    virtual void onMonotonicDeadline(uint64_t monotonic_timestamp) = 0;
+
+    void startWithDeadline(uint64_t monotonic_deadline);
+    void startWithDelay(uint64_t delay_usec);
+
+    void stop();
+
+    bool isRunning() const;
+
+    uint64_t getMonotonicDeadline() const { return monotonic_deadline_; }
+};
+
+
+class MonotonicDeadlineScheduler : Noncopyable
+{
+    LinkedListRoot<MonotonicDeadlineHandler> handlers_;  // Ordered by deadline, lowest first
+
+public:
+    void add(MonotonicDeadlineHandler* mdh);
+    void remove(MonotonicDeadlineHandler* mdh);
+    bool doesExist(const MonotonicDeadlineHandler* mdh) const;
+    unsigned int getNumHandlers() const { return handlers_.getLength(); }
+
+    uint64_t pollAndGetMonotonicTimestamp(ISystemClock& sysclock);
+    uint64_t getEarliestDeadline() const;
+};
+
+
 class Scheduler : Noncopyable
 {
-    enum { DefaultTimerResolutionMs = 5 };
+    enum { DefaultMonotonicDeadlineResolutionMs = 5 };
     enum { DefaultCleanupPeriodMs = 1000 };
 
-    LinkedListRoot<TimerBase> ordered_timers_;  // Ordered by deadline, lowest first
+    MonotonicDeadlineScheduler deadline_scheduler_;
     Dispatcher dispatcher_;
     uint64_t prev_cleanup_ts_;
-    uint64_t timer_resolution_;
+    uint64_t monotonic_deadline_resolution_;
     uint64_t cleanup_period_;
 
     uint64_t computeDispatcherSpinDeadline(uint64_t spin_deadline) const;
-    uint64_t pollTimersAndGetMonotonicTimestamp();
     void pollCleanup(uint64_t mono_ts, uint32_t num_frames_processed_with_last_spin);
 
 public:
@@ -31,25 +74,21 @@ public:
              NodeID self_node_id)
     : dispatcher_(can_driver, allocator, sysclock, otr, self_node_id)
     , prev_cleanup_ts_(sysclock.getMonotonicMicroseconds())
-    , timer_resolution_(DefaultTimerResolutionMs * 1000)
+    , monotonic_deadline_resolution_(DefaultMonotonicDeadlineResolutionMs * 1000)
     , cleanup_period_(DefaultCleanupPeriodMs * 1000)
     { }
 
     int spin(uint64_t monotonic_deadline);
 
-    void registerOneShotTimer(TimerBase* timer);
-    void unregisterOneShotTimer(TimerBase* timer);
-    bool isOneShotTimerRegistered(const TimerBase* timer) const;
-    unsigned int getNumOneShotTimers() const { return ordered_timers_.getLength(); }
-
+    MonotonicDeadlineScheduler& getMonotonicDeadlineScheduler() { return deadline_scheduler_; }
     Dispatcher& getDispatcher() { return dispatcher_; }
 
     ISystemClock& getSystemClock()         { return dispatcher_.getSystemClock(); }
     uint64_t getMonotonicTimestamp() const { return dispatcher_.getSystemClock().getMonotonicMicroseconds(); }
     uint64_t getUtcTimestamp()       const { return dispatcher_.getSystemClock().getUtcMicroseconds(); }
 
-    uint64_t getTimerResolution() const { return timer_resolution_; }
-    void setTimerResolution(uint64_t res_usec) { timer_resolution_ = res_usec; }
+    uint64_t getMonotonicDeadlineResolution() const { return monotonic_deadline_resolution_; }
+    void setMonotonicDeadlineResolution(uint64_t res_usec) { monotonic_deadline_resolution_ = res_usec; }
 
     uint64_t getCleanupPeriod() const { return cleanup_period_; }
     void setCleanupPeriod(uint64_t period_usec) { cleanup_period_ = period_usec; }
