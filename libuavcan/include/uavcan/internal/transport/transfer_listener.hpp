@@ -163,8 +163,7 @@ class TransferListener : public TransferListenerBase, Noncopyable
                  * TransferReceivers do not own their buffers - this helps the Map<> container to copy them
                  * around quickly and safely (using default assignment operator). Downside is that we need to
                  * destroy the buffers manually.
-                 * Maybe it is not good that the predicate is being used as mapping functor, but I ran out
-                 * of better ideas.
+                 * Maybe it is not good that the predicate has side effects, but I ran out of better ideas.
                  */
                 bufmgr_.remove(key);
                 return true;
