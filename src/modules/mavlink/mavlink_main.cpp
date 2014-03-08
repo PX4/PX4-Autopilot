@@ -1731,6 +1731,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GPS_RAW_INT", 1.0f * rate_mult);
 		configure_stream("GLOBAL_POSITION_INT", 3.0f * rate_mult);
 		configure_stream("LOCAL_POSITION_NED", 3.0f * rate_mult);
+		configure_stream("RC_CHANNELS_RAW", 1.0f * rate_mult);
 		break;
 
 	case MODE_HIL:
@@ -1743,6 +1744,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GPS_RAW_INT", 1.0f * rate_mult);
 		configure_stream("GLOBAL_POSITION_INT", 1.0f * rate_mult);
 		configure_stream("LOCAL_POSITION_NED", 1.0f * rate_mult);
+		configure_stream("RC_CHANNELS_RAW", 1.0f * rate_mult);
 		configure_stream("HIL_CONTROLS", 15.0f * rate_mult);
 		break;
 
