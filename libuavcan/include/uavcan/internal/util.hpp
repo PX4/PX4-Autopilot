@@ -74,27 +74,6 @@ template<bool> struct BooleanType { };
 typedef BooleanType<true> TrueType;
 typedef BooleanType<false> FalseType;
 
-/**
- * Makeshift binder
- */
-template <typename ObjectPtr, typename MemFunPtr>
-class MethodBinder
-{
-    ObjectPtr obj_;
-    MemFunPtr fun_;
-
-public:
-    MethodBinder(ObjectPtr o, MemFunPtr f) : obj_(o), fun_(f) { }
-
-    void operator()() { (obj_->*fun_)(); }
-
-    template <typename Par1>
-    void operator()(Par1 p1) { (obj_->*fun_)(p1); }
-
-    template <typename Par1, typename Par2>
-    void operator()(Par1 p1, Par2 p2) { (obj_->*fun_)(p1, p2); }
-};
-
 }
 
 /// Ensure that conditional comilation macros are present

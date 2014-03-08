@@ -7,6 +7,8 @@
 #include <cstdlib>
 #include <cassert>
 #include <stdexcept>
+#include <typeinfo>
+#include <uavcan/internal/impl_constants.hpp>
 
 namespace uavcan
 {
@@ -20,7 +22,7 @@ class LazyConstructor
     void failure() const
     {
 #if UAVCAN_EXCEPTIONS
-        throw std::logic_error(typeid(*this).name());
+        throw std::runtime_error(typeid(*this).name());
 #else
         assert(0);
         std::abort();
