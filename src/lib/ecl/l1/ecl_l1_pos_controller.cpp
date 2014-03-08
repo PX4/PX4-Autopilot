@@ -38,6 +38,8 @@
  *
  */
 
+#include <float.h>
+
 #include "ecl_l1_pos_controller.h"
 
 float ECL_L1_Pos_Controller::nav_roll()
@@ -231,8 +233,15 @@ void ECL_L1_Pos_Controller::navigate_loiter(const math::Vector<2> &vector_A, con
 	/* calculate the vector from waypoint A to current position */
 	math::Vector<2> vector_A_to_airplane = get_local_planar_vector(vector_A, vector_curr_position);
 
-	/* store the normalized vector from waypoint A to current position */
-	math::Vector<2> vector_A_to_airplane_unit = (vector_A_to_airplane).normalized();
+	math::Vector<2> vector_A_to_airplane_unit;
+
+	/* prevent NaN when normalizing */
+	if (vector_A_to_airplane.length() > FLT_EPSILON) {
+		/* store the normalized vector from waypoint A to current position */
+		vector_A_to_airplane_unit = vector_A_to_airplane.normalized();
+	} else {
+		vector_A_to_airplane_unit = vector_A_to_airplane;
+	}
 
 	/* calculate eta angle towards the loiter center */
 

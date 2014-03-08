@@ -53,6 +53,7 @@ class __EXPORT LaunchDetector
 public:
 	LaunchDetector();
 	~LaunchDetector();
+	void reset();
 
 	void update(float accel_x);
 	bool getLaunchDetected();

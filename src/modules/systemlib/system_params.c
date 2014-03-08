@@ -40,10 +40,25 @@
 #include <nuttx/config.h>
 #include <systemlib/param/param.h>
 
-// Auto-start script with index #n
+/**
+ * Auto-start script index.
+ *
+ * Defines the auto-start script used to bootstrap the system.
+ *
+ * @group System
+ */
 PARAM_DEFINE_INT32(SYS_AUTOSTART, 0);
 
-// Automatically configure default values
+/**
+ * Automatically configure default values.
+ *
+ * Set to 1 to set platform-specific parameters to their default
+ * values on next system startup. 
+ *
+ * @min 0
+ * @max 1
+ * @group System
+ */
 PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
 
 // Select primary output (0 = IO PWM, 1 = FMU PWM, 2 = MKBLCTRL)
