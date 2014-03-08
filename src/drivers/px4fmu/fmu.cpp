@@ -1714,7 +1714,7 @@ fmu_main(int argc, char *argv[])
 	}
 
 
-	fprintf(stderr, "FMU: unrecognised command, try:\n");
+	fprintf(stderr, "FMU: unrecognised command %s, try:\n", verb);
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, test\n");
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2)

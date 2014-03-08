@@ -50,6 +50,7 @@
  *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
  */
 
+
 #include <nuttx/config.h>
 
 #include <drivers/device/i2c.h>
@@ -89,8 +90,10 @@
 
 /* I2C bus address is 1010001x */
 #define I2C_ADDRESS_MS4525DO	0x28	//0x51 /* 7-bit address. */
+#define PATH_MS4525		"/dev/ms4525"
 /* The MS5525DSO address is 111011Cx, where C is the complementary value of the pin CSB */
 #define I2C_ADDRESS_MS5525DSO	0x77	//0x77/* 7-bit address, addr. pin pulled low */
+#define PATH_MS5525		"/dev/ms5525"
 
 /* Register address */
 #define ADDR_READ_MR			0x00	/* write to this address to start conversion */
@@ -101,7 +104,7 @@
 class MEASAirspeed : public Airspeed
 {
 public:
-	MEASAirspeed(int bus, int address = I2C_ADDRESS_MS4525DO);
+	MEASAirspeed(int bus, int address = I2C_ADDRESS_MS4525DO, const char* path = PATH_MS4525);
 
 protected:
 
@@ -120,8 +123,8 @@ protected:
  */
 extern "C" __EXPORT int meas_airspeed_main(int argc, char *argv[]);
 
-MEASAirspeed::MEASAirspeed(int bus, int address) : Airspeed(bus, address,
-			CONVERSION_INTERVAL)
+MEASAirspeed::MEASAirspeed(int bus, int address, const char* path) : Airspeed(bus, address,
+			CONVERSION_INTERVAL, path)
 {
 
 }
@@ -304,7 +307,7 @@ start(int i2c_bus)
 		errx(1, "already started");
 
 	/* create the driver, try the MS4525DO first */
-	g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS4525DO);
+	g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS4525DO, PATH_MS4525);
 
 	/* check if the MS4525DO was instantiated */
 	if (g_dev == nullptr)
@@ -313,7 +316,7 @@ start(int i2c_bus)
 	/* try the MS5525DSO next if init fails */
 	if (OK != g_dev->Airspeed::init()) {
 		delete g_dev;
-		g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS5525DSO);
+		g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS5525DSO, PATH_MS5525);
 
 		/* check if the MS5525DSO was instantiated */
 		if (g_dev == nullptr)
@@ -386,7 +389,7 @@ test()
 		err(1, "immediate read failed");
 
 	warnx("single read");
-	warnx("diff pressure: %d pa", (double)report.differential_pressure_pa);
+	warnx("diff pressure: %8.4f pa", (double)report.differential_pressure_pa);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2))
@@ -411,7 +414,7 @@ test()
 			err(1, "periodic read failed");
 
 		warnx("periodic read %u", i);
-		warnx("diff pressure: %d pa", report.differential_pressure_pa);
+		warnx("diff pressure: %8.4f pa", (double)report.differential_pressure_pa);
 		warnx("temperature: %d C (0x%02x)", (int)report.temperature, (unsigned) report.temperature);
 	}
 

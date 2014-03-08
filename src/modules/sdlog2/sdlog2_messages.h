@@ -264,6 +264,18 @@ struct log_DIST_s {
 	uint8_t flags;
 };
 
+/* --- TELE - TELEMETRY STATUS --- */
+#define LOG_TELE_MSG 22
+struct log_TELE_s {
+    uint8_t rssi;
+    uint8_t remote_rssi;
+    uint8_t noise;
+    uint8_t remote_noise;
+    uint16_t rxerrors;
+    uint16_t fixed;
+    uint8_t txbuf;
+};
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -311,6 +323,8 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
 	LOG_FORMAT(BATT, "ffff", "V,VFilt,C,Discharged"),
 	LOG_FORMAT(DIST, "ffB", "Bottom,BottomRate,Flags"),
+	LOG_FORMAT(TELE, "BBBBHHB", "RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf"),
+
 	/* system-level messages, ID >= 0x80 */
 	// FMT: don't write format of format message, it's useless
 	LOG_FORMAT(TIME, "Q", "StartTime"),

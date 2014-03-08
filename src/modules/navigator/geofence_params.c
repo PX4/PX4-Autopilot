@@ -45,11 +45,17 @@
 #include <systemlib/param/param.h>
 
 /*
- * geofence parameters, accessible via MAVLink
- *
+ * Geofence parameters, accessible via MAVLink
  */
 
-// @DisplayName		Switch to enable geofence
-// @Description		if set to 1 geofence is enabled, defaults to 1 because geofence is only enabled when the geofence.txt file is present
-// @Range		0 or 1
+/**
+ * Enable geofence.
+ *
+ * Set to 1 to enable geofence.
+ * Defaults to 1 because geofence is only enabled when the geofence.txt file is present.
+ *
+ * @min 0
+ * @max 1
+ * @group Geofence
+ */
 PARAM_DEFINE_INT32(GF_ON, 1);
