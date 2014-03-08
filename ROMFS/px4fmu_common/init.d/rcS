@@ -240,6 +240,11 @@ then
 		fi
 	fi
 
+	if [ $OUTPUT_MODE == ardrone ]
+	then
+		set FMU_MODE gpio_serial
+	fi
+
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
@@ -277,9 +282,9 @@ then
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 		fi
-		if [ $OUTPUT_MODE == fmu ]
+		if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == ardrone ]
 		then
-			echo "[init] Use FMU PWM as primary output"
+			echo "[init] Use FMU as primary output"
 			if fmu mode_$FMU_MODE
 			then
 				echo "[init] FMU mode_$FMU_MODE started"
@@ -294,7 +299,7 @@ then
 				then
 					set TTYS1_BUSY yes
 				fi
-				if [ $FMU_MODE == pwm_gpio ]
+				if [ $FMU_MODE == pwm_gpio -o $OUTPUT_MODE == ardrone ]
 				then
 					set TTYS1_BUSY yes
 				fi
@@ -351,7 +356,7 @@ then
 				fi
 			fi
 		else
-			if [ $OUTPUT_MODE != fmu ]
+			if [ $OUTPUT_MODE != fmu -a $OUTPUT_MODE != ardrone ]
 			then
 				if fmu mode_$FMU_MODE
 				then
@@ -367,7 +372,7 @@ then
 					then
 						set TTYS1_BUSY yes
 					fi
-					if [ $FMU_MODE == pwm_gpio ]
+					if [ $FMU_MODE == pwm_gpio -o $OUTPUT_MODE == ardrone ]
 					then
 						set TTYS1_BUSY yes
 					fi
@@ -428,6 +433,14 @@ then
 	fi
 	
 	#
+	# Start up ARDrone Motor interface
+	#
+	if [ $OUTPUT_MODE == ardrone ]
+	then
+		ardrone_interface start -d /dev/ttyS1
+	fi
+
+	#
 	# Fixed wing setup
 	#
 	if [ $VEHICLE_TYPE == fw ]
@@ -464,17 +477,25 @@ then
 
 		if [ $MIXER == none ]
 		then
-			# Set default mixer for multicopter if not defined
-			set MIXER quad_x
+			echo "Default mixer for multicopter not defined"
 		fi
 
 		if [ $MAV_TYPE == none ]
 		then
-			# Use MAV_TYPE = 2 (quadcopter) if not defined
-			set MAV_TYPE 2
-			
 			# Use mixer to detect vehicle type
+			if [ $MIXER == FMU_quad_x -o $MIXER == FMU_quad_+ ]
+			then
+				set MAV_TYPE 2
+			fi
+			if [ $MIXER == FMU_quad_w ]
+			then
+				set MAV_TYPE 2
+			fi
 			if [ $MIXER == FMU_hexa_x -o $MIXER == FMU_hexa_+ ]
+			then
+				set MAV_TYPE 13
+			fi
+			if [ $MIXER == hexa_cox ]
 			then
 				set MAV_TYPE 13
 			fi
@@ -487,8 +508,14 @@ then
 				set MAV_TYPE 14
 			fi
 		fi
-
-	    param set MAV_TYPE $MAV_TYPE
+		
+		# Still no MAV_TYPE found
+		if [ $MAV_TYPE == none ]
+		then
+			echo "Unknown MAV_TYPE"
+		else
+			param set MAV_TYPE $MAV_TYPE
+		fi
 		
 		# Load mixer and configure outputs
 		sh /etc/init.d/rc.interface
@@ -502,10 +529,8 @@ then
 	#
 	if [ $VEHICLE_TYPE == none ]
 	then
-		echo "[init] Vehicle type: GENERIC"
+		echo "[init] Vehicle type: No autostart ID found"
 
-		# Load mixer and configure outputs
-		sh /etc/init.d/rc.interface
 	fi
 
 	# Start any custom addons

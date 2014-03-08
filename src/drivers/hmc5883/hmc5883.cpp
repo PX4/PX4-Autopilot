@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -381,16 +381,6 @@ HMC5883::init()
 	reset();
 
 	_class_instance = register_class_devname(MAG_DEVICE_PATH);
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		/* get a publish handle on the mag topic if we are
-		 * the primary mag */
-		struct mag_report zero_report;
-		memset(&zero_report, 0, sizeof(zero_report));
-		_mag_topic = orb_advertise(ORB_ID(sensor_mag), &zero_report);
-
-		if (_mag_topic < 0)
-			debug("failed to create sensor_mag object");
-	}
 
 	ret = OK;
 	/* sensor is ok, but not calibrated */
@@ -867,9 +857,17 @@ HMC5883::collect()
 	/* z remains z */
 	new_report.z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
 
-	if (_mag_topic != -1) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_mag), _mag_topic, &new_report);
+	if (_class_instance == CLASS_DEVICE_PRIMARY && !(_pub_blocked)) {
+
+		if (_mag_topic != -1) {
+			/* publish it */
+			orb_publish(ORB_ID(sensor_mag), _mag_topic, &new_report);
+		} else {
+			_mag_topic = orb_advertise(ORB_ID(sensor_mag), &new_report);
+
+			if (_mag_topic < 0)
+				debug("failed to create sensor_mag publication");
+		}
 	}
 
 	/* post a report to the ring */
@@ -1140,10 +1138,12 @@ int HMC5883::check_calibration()
 			SUBSYSTEM_TYPE_MAG};
 		static orb_advert_t pub = -1;
 
-		if (pub > 0) {
-			orb_publish(ORB_ID(subsystem_info), pub, &info);
-		} else {
-			pub = orb_advertise(ORB_ID(subsystem_info), &info);
+		if (!(_pub_blocked)) {
+			if (pub > 0) {
+				orb_publish(ORB_ID(subsystem_info), pub, &info);
+			} else {
+				pub = orb_advertise(ORB_ID(subsystem_info), &info);
+			}
 		}
 	}
 

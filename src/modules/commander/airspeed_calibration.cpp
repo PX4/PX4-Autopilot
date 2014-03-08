@@ -142,7 +142,7 @@ int do_airspeed_calibration(int mavlink_fd)
 		}
 
 		mavlink_log_info(mavlink_fd, CAL_DONE_MSG, sensor_name);
-		tune_neutral();
+		tune_neutral(true);
 		close(diff_pres_sub);
 		return OK;
 
