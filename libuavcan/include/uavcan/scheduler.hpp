@@ -59,7 +59,12 @@ public:
 class Scheduler : Noncopyable
 {
     enum { DefaultMonotonicDeadlineResolutionMs = 5 };
+    enum { MinMonotonicDeadlineResolutionMs = 1 };
+    enum { MaxMonotonicDeadlineResolutionMs = 100 };
+
     enum { DefaultCleanupPeriodMs = 1000 };
+    enum { MinCleanupPeriodMs = 10 };
+    enum { MaxCleanupPeriodMs = 10000 };
 
     MonotonicDeadlineScheduler deadline_scheduler_;
     Dispatcher dispatcher_;
@@ -89,10 +94,20 @@ public:
     uint64_t getUtcTimestamp()       const { return dispatcher_.getSystemClock().getUtcMicroseconds(); }
 
     uint64_t getMonotonicDeadlineResolution() const { return monotonic_deadline_resolution_; }
-    void setMonotonicDeadlineResolution(uint64_t res_usec) { monotonic_deadline_resolution_ = res_usec; }
+    void setMonotonicDeadlineResolution(uint64_t res_usec)
+    {
+        res_usec = std::min(res_usec, MaxMonotonicDeadlineResolutionMs * uint64_t(1000));
+        res_usec = std::max(res_usec, MinMonotonicDeadlineResolutionMs * uint64_t(1000));
+        monotonic_deadline_resolution_ = res_usec;
+    }
 
     uint64_t getCleanupPeriod() const { return cleanup_period_; }
-    void setCleanupPeriod(uint64_t period_usec) { cleanup_period_ = period_usec; }
+    void setCleanupPeriod(uint64_t period_usec)
+    {
+        period_usec = std::min(period_usec, MaxCleanupPeriodMs * uint64_t(1000));
+        period_usec = std::max(period_usec, MinCleanupPeriodMs * uint64_t(1000));
+        cleanup_period_ = period_usec;
+    }
 };
 
 }
