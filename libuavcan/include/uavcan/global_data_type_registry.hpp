@@ -75,11 +75,17 @@ public:
             return RegistResultFrozen;
 
         static Entry entry;
-        const RegistResult remove_res = remove(&entry);
-        if (remove_res != RegistResultOk)
-            return remove_res;
-
+        {
+            const RegistResult remove_res = remove(&entry);
+            if (remove_res != RegistResultOk)
+                return remove_res;
+        }
         entry = Entry(DataTypeKind(Type::DataTypeKind), id, Type::getDataTypeSignature(), Type::getDataTypeFullName());
+        {
+            const RegistResult remove_res = remove(&entry);
+            if (remove_res != RegistResultOk)
+                return remove_res;
+        }
         return registImpl(&entry);
     }
 
