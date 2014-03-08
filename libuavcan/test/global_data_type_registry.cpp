@@ -47,15 +47,6 @@ namespace
         static const char* getDataTypeFullName() { return "foo.DataTypeD"; }
     };
 
-    struct DataTypeBNameCollision
-    {
-        enum { DefaultDataTypeID = 999 };
-        enum { DataTypeKind = uavcan::DataTypeKindMessage };
-        static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(963); }
-        static const char* getDataTypeFullName() { return "my_namespace.DataTypeB"; }
-    };
-
-
     template <typename Type>
     uavcan::DataTypeDescriptor extractDescriptor(uint16_t dtid = Type::DefaultDataTypeID)
     {
@@ -138,10 +129,6 @@ TEST(GlobalDataTypeRegistry, Basic)
      */
     ASSERT_EQ(GlobalDataTypeRegistry::RegistResultCollision,
               GlobalDataTypeRegistry::instance().regist<DataTypeC>(741));                        // ID COLLISION
-
-    ASSERT_EQ(GlobalDataTypeRegistry::RegistResultCollision,
-              GlobalDataTypeRegistry::instance().regist<DataTypeBNameCollision>(
-                                                    DataTypeBNameCollision::DefaultDataTypeID)); // NAME COLLISION
 
     ASSERT_EQ(GlobalDataTypeRegistry::RegistResultOk,
               GlobalDataTypeRegistry::instance().regist<DataTypeC>(DataTypeC::DefaultDataTypeID));

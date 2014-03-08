@@ -79,7 +79,7 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::registImpl(Entry* d
         {
             if (p->descriptor.getID() == dtd->descriptor.getID()) // ID collision
                 return RegistResultCollision;
-            if (p->descriptor.match(dtd->descriptor.getFullName())) // Name collision
+            if (!std::strcmp(p->descriptor.getFullName(), dtd->descriptor.getFullName())) // Name collision
                 return RegistResultCollision;
             p = p->getNextListNode();
         }

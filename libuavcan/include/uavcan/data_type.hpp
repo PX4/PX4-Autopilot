@@ -120,7 +120,6 @@ public:
 
     bool match(DataTypeKind kind, const char* name) const;
     bool match(DataTypeKind kind, uint16_t id) const;
-    bool match(const char* name) const { return match(kind_, name); }
 
     std::string toString() const;
 
