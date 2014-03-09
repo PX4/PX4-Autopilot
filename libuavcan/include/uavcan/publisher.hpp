@@ -23,9 +23,10 @@ class Publisher
 public:
     typedef DataType_ DataType;
 
-private:
+    enum { DefaultTxTimeoutUsec = 2500 };  // 2500 ms --> 400Hz max
     enum { MinTxTimeoutUsec = 200 };
 
+private:
     const uint64_t max_transfer_interval_;   // TODO: memory usage can be reduced
     uint64_t tx_timeout_;
     Scheduler& scheduler_;
@@ -59,7 +60,7 @@ private:
     }
 
     int genericSend(const DataType& message, TransferType transfer_type, NodeID dst_node_id,
-                    uint64_t monotonic_blocking_deadline)
+                    uint64_t monotonic_blocking_deadline = 0)
     {
         if (!checkInit())
             return -1;
@@ -82,7 +83,8 @@ private:
     }
 
 public:
-    Publisher(Scheduler& scheduler, IMarshalBufferProvider& buffer_provider, uint64_t tx_timeout_usec,
+    Publisher(Scheduler& scheduler, IMarshalBufferProvider& buffer_provider,
+              uint64_t tx_timeout_usec = DefaultTxTimeoutUsec,
               uint64_t max_transfer_interval = TransferSender::DefaultMaxTransferInterval)
     : max_transfer_interval_(max_transfer_interval)
     , tx_timeout_(tx_timeout_usec)
@@ -93,19 +95,19 @@ public:
         StaticAssert<DataTypeKind(DataType::DataTypeKind) == DataTypeKindMessage>::check();
     }
 
-    int broadcast(const DataType& message, uint64_t monotonic_blocking_deadline = 0)
+    int broadcast(const DataType& message)
     {
-        return genericSend(message, TransferTypeMessageBroadcast, NodeID::Broadcast, monotonic_blocking_deadline);
+        return genericSend(message, TransferTypeMessageBroadcast, NodeID::Broadcast);
     }
 
-    int unicast(const DataType& message, NodeID dst_node_id, uint64_t monotonic_blocking_deadline = 0)
+    int unicast(const DataType& message, NodeID dst_node_id)
     {
         if (!dst_node_id.isUnicast())
         {
             assert(0);
             return -1;
         }
-        return genericSend(message, TransferTypeMessageUnicast, dst_node_id, monotonic_blocking_deadline);
+        return genericSend(message, TransferTypeMessageUnicast, dst_node_id);
     }
 
     uint64_t getTxTimeout() const { return tx_timeout_; }

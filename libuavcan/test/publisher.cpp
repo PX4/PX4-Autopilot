@@ -24,7 +24,7 @@ TEST(Publisher, Basic)
 
     uavcan::MarshalBufferProvider<> buffer_provider;
 
-    uavcan::Publisher<uavcan::mavlink::Message> publisher(sch, buffer_provider, 10000);
+    uavcan::Publisher<uavcan::mavlink::Message> publisher(sch, buffer_provider);
 
     ASSERT_FALSE(uavcan::GlobalDataTypeRegistry::instance().isFrozen());
 
