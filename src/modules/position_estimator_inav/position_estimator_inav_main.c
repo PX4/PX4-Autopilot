@@ -623,7 +623,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		float dt = t_prev > 0 ? (t - t_prev) / 1000000.0f : 0.0f;
-		dt = fmaxf(fminf(0.02, dt), 0.005);
+		dt = fmaxf(fminf(0.02, dt), 0.002);		// constrain dt from 2 to 20 ms
 		t_prev = t;
 
 		/* use GPS if it's valid and reference position initialized */
