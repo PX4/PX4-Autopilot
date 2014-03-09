@@ -55,11 +55,10 @@ public:
 	void update(float accel_x);
 	bool getLaunchDetected();
 	void updateParams();
+	void reset();
 
 private:
 	hrt_abstime last_timestamp;
-//	float threshold_accel_raw;
-//	float threshold_time;
 	float integrator;
 	bool launchDetected;
 
