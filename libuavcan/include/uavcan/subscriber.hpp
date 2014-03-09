@@ -119,6 +119,8 @@ public:
         StaticAssert<DataTypeKind(DataType::DataTypeKind) == DataTypeKindMessage>::check();
     }
 
+    virtual ~Subscriber() { stop(); }
+
     int start(Callback callback)
     {
         stop();
