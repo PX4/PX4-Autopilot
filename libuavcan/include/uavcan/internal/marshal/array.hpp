@@ -104,14 +104,12 @@ public:
  * Statically allocated array with optional dynamic-like behavior
  */
 template <typename T, ArrayMode ArrayMode, unsigned int MaxSize>
-class ArrayImpl : public StaticIf<ArrayMode == ArrayModeDynamic,
-                                  DynamicArrayBase<MaxSize>,
-                                  StaticArrayBase<MaxSize> >::Result
+class ArrayImpl : public Select<ArrayMode == ArrayModeDynamic,
+                                DynamicArrayBase<MaxSize>, StaticArrayBase<MaxSize> >::Result
 {
     typedef ArrayImpl<T, ArrayMode, MaxSize> SelfType;
-    typedef typename StaticIf<ArrayMode == ArrayModeDynamic,
-                              DynamicArrayBase<MaxSize>,
-                              StaticArrayBase<MaxSize> >::Result Base;
+    typedef typename Select<ArrayMode == ArrayModeDynamic,
+                            DynamicArrayBase<MaxSize>, StaticArrayBase<MaxSize> >::Result Base;
 
 public:
     enum
@@ -181,11 +179,10 @@ public:
 template <unsigned int MaxSize, ArrayMode ArrayMode, CastMode CastMode>
 class ArrayImpl<IntegerSpec<1, SignednessUnsigned, CastMode>, ArrayMode, MaxSize>
     : public std::bitset<MaxSize>
-    , public StaticIf<ArrayMode == ArrayModeDynamic, DynamicArrayBase<MaxSize>, StaticArrayBase<MaxSize> >::Result
+    , public Select<ArrayMode == ArrayModeDynamic, DynamicArrayBase<MaxSize>, StaticArrayBase<MaxSize> >::Result
 {
-    typedef typename StaticIf<ArrayMode == ArrayModeDynamic,
-                              DynamicArrayBase<MaxSize>,
-                              StaticArrayBase<MaxSize> >::Result ArrayBase;
+    typedef typename Select<ArrayMode == ArrayModeDynamic,
+                            DynamicArrayBase<MaxSize>, StaticArrayBase<MaxSize> >::Result ArrayBase;
 
 public:
     enum { IsStringLike = 0 };
@@ -527,8 +524,8 @@ public:
     template <typename Stream>
     static void stream(Stream& s, const ArrayType& array, int level)
     {
-        typedef typename StaticIf<ArrayType::IsStringLike, SelectorStringLike,
-                typename StaticIf<IsPrimitiveType<typename ArrayType::RawValueType>::Result, SelectorPrimitives,
+        typedef typename Select<ArrayType::IsStringLike, SelectorStringLike,
+                typename Select<IsPrimitiveType<typename ArrayType::RawValueType>::Result, SelectorPrimitives,
                                   SelectorObjects>::Result >::Result Type;
         genericStreamImpl(s, array, level, Type());
     }

@@ -53,16 +53,16 @@ struct EnableIfType { typedef R Type; };
 
 
 template <bool Condition, typename TrueType, typename FalseType>
-struct StaticIf;
+struct Select;
 
 template <typename TrueType, typename FalseType>
-struct StaticIf<true, TrueType, FalseType>
+struct Select<true, TrueType, FalseType>
 {
     typedef TrueType Result;
 };
 
 template <typename TrueType, typename FalseType>
-struct StaticIf<false, TrueType, FalseType>
+struct Select<false, TrueType, FalseType>
 {
     typedef FalseType Result;
 };

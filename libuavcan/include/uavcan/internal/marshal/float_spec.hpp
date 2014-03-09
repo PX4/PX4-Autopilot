@@ -19,9 +19,9 @@ template <unsigned int BitLen>
 struct NativeFloatSelector
 {
     struct ErrorNoSuchFloat;
-    typedef typename StaticIf<(sizeof(float) * 8 >= BitLen), float,
-            typename StaticIf<(sizeof(double) * 8 >= BitLen), double,
-            typename StaticIf<(sizeof(long double) * 8 >= BitLen), long double,
+    typedef typename Select<(sizeof(float) * 8 >= BitLen), float,
+            typename Select<(sizeof(double) * 8 >= BitLen), double,
+            typename Select<(sizeof(long double) * 8 >= BitLen), long double,
                               ErrorNoSuchFloat>::Result>::Result>::Result Type;
 };
 

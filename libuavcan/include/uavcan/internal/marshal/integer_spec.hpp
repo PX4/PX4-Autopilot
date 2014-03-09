@@ -28,10 +28,10 @@ public:
     enum { MaxBitLen = BitLen };
     enum { IsPrimitive = 1 };
 
-    typedef typename StaticIf<(BitLen <= 8),  typename StaticIf<IsSigned, int8_t,  uint8_t>::Result,
-            typename StaticIf<(BitLen <= 16), typename StaticIf<IsSigned, int16_t, uint16_t>::Result,
-            typename StaticIf<(BitLen <= 32), typename StaticIf<IsSigned, int32_t, uint32_t>::Result,
-            typename StaticIf<(BitLen <= 64), typename StaticIf<IsSigned, int64_t, uint64_t>::Result,
+    typedef typename Select<(BitLen <= 8),  typename Select<IsSigned, int8_t,  uint8_t>::Result,
+            typename Select<(BitLen <= 16), typename Select<IsSigned, int16_t, uint16_t>::Result,
+            typename Select<(BitLen <= 32), typename Select<IsSigned, int32_t, uint32_t>::Result,
+            typename Select<(BitLen <= 64), typename Select<IsSigned, int64_t, uint64_t>::Result,
                               ErrorNoSuchInteger>::Result>::Result>::Result>::Result StorageType;
 
     typedef typename IntegerSpec<BitLen, SignednessUnsigned, CastMode>::StorageType UnsignedStorageType;
@@ -59,7 +59,7 @@ private:
         static UnsignedStorageType mask() { return 0xFFFFFFFFFFFFFFFF; }
     };
 
-    typedef typename StaticIf<(BitLen == 64), LimitsImpl64, LimitsImplGeneric>::Result Limits;
+    typedef typename Select<(BitLen == 64), LimitsImpl64, LimitsImplGeneric>::Result Limits;
 
     static void saturate(StorageType& value)
     {
@@ -127,8 +127,8 @@ struct YamlStreamer<IntegerSpec<BitLen, Signedness, CastMode> >
     static void stream(Stream& s, const StorageType value, int)
     {
         // Get rid of character types - we want its integer representation, not ASCII code
-        typedef typename StaticIf<(sizeof(StorageType) >= sizeof(int)), StorageType,
-                typename StaticIf<RawType::IsSigned, int, unsigned int>::Result >::Result TempType;
+        typedef typename Select<(sizeof(StorageType) >= sizeof(int)), StorageType,
+                typename Select<RawType::IsSigned, int, unsigned int>::Result >::Result TempType;
         s << TempType(value);
     }
 };
