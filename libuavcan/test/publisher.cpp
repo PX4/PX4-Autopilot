@@ -43,7 +43,8 @@ TEST(Publisher, Basic)
     msg.msgid = 0xa5;
     msg.payload = "Msg";
 
-    static const uint8_t expected_transfer_payload[] = {0x42, 0x72, 0x08, 0xa5, 'M', 's', 'g'};
+    const uint8_t expected_transfer_payload[] = {0x42, 0x72, 0x08, 0xa5, 'M', 's', 'g'};
+    const uint64_t tx_timeout = publisher.DefaultTxTimeoutUsec;
 
     /*
      * Broadcast
@@ -60,8 +61,8 @@ TEST(Publisher, Basic)
         uavcan::CanFrame expected_can_frame;
         ASSERT_TRUE(expected_frame.compile(expected_can_frame));
 
-        ASSERT_TRUE(can_driver.ifaces[0].matchAndPopTx(expected_can_frame, 10000 + 100));
-        ASSERT_TRUE(can_driver.ifaces[1].matchAndPopTx(expected_can_frame, 10000 + 100));
+        ASSERT_TRUE(can_driver.ifaces[0].matchAndPopTx(expected_can_frame, tx_timeout + 100));
+        ASSERT_TRUE(can_driver.ifaces[1].matchAndPopTx(expected_can_frame, tx_timeout + 100));
         ASSERT_TRUE(can_driver.ifaces[0].tx.empty());
         ASSERT_TRUE(can_driver.ifaces[1].tx.empty());
 
@@ -73,8 +74,8 @@ TEST(Publisher, Basic)
         expected_frame.setPayload(expected_transfer_payload, 7);
         ASSERT_TRUE(expected_frame.compile(expected_can_frame));
 
-        ASSERT_TRUE(can_driver.ifaces[0].matchAndPopTx(expected_can_frame, 10000 + 100));
-        ASSERT_TRUE(can_driver.ifaces[1].matchAndPopTx(expected_can_frame, 10000 + 100));
+        ASSERT_TRUE(can_driver.ifaces[0].matchAndPopTx(expected_can_frame, tx_timeout + 100));
+        ASSERT_TRUE(can_driver.ifaces[1].matchAndPopTx(expected_can_frame, tx_timeout + 100));
         ASSERT_TRUE(can_driver.ifaces[0].tx.empty());
         ASSERT_TRUE(can_driver.ifaces[1].tx.empty());
     }
@@ -96,8 +97,8 @@ TEST(Publisher, Basic)
         uavcan::CanFrame expected_can_frame;
         ASSERT_TRUE(expected_frame.compile(expected_can_frame));
 
-        ASSERT_TRUE(can_driver.ifaces[0].matchAndPopTx(expected_can_frame, 10000 + 100 + 1000));
-        ASSERT_TRUE(can_driver.ifaces[1].matchAndPopTx(expected_can_frame, 10000 + 100 + 1000));
+        ASSERT_TRUE(can_driver.ifaces[0].matchAndPopTx(expected_can_frame, tx_timeout + 100 + 1000));
+        ASSERT_TRUE(can_driver.ifaces[1].matchAndPopTx(expected_can_frame, tx_timeout + 100 + 1000));
         ASSERT_TRUE(can_driver.ifaces[0].tx.empty());
         ASSERT_TRUE(can_driver.ifaces[1].tx.empty());
     }
