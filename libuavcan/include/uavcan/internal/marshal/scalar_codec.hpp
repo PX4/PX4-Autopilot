@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <limits>
 #include <string>
-#include <uavcan/internal/util.hpp>
+#include <uavcan/util/compile_time.hpp>
 #include <uavcan/internal/marshal/bit_stream.hpp>
 
 namespace uavcan

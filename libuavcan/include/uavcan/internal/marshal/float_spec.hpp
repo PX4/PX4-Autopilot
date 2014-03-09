@@ -8,7 +8,7 @@
 #include <limits>
 #include <math.h>            // Needed for isfinite
 #include <uavcan/data_type.hpp>
-#include <uavcan/internal/util.hpp>
+#include <uavcan/util/compile_time.hpp>
 #include <uavcan/internal/marshal/type_util.hpp>
 #include <uavcan/internal/marshal/integer_spec.hpp>
 

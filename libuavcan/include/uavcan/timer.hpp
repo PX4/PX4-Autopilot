@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 #include <uavcan/scheduler.hpp>
-#include <uavcan/internal/util.hpp>
+#include <uavcan/util/compile_time.hpp>
 #include <uavcan/internal/linked_list.hpp>
 
 namespace uavcan

@@ -108,6 +108,3 @@ To try_implicit_cast(const From& from, const To& default_ = To())
 }
 
 }
-
-/// Ensure that conditional comilation macros are present
-#include <uavcan/internal/impl_constants.hpp>

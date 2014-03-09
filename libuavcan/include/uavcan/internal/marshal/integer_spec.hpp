@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <limits>
 #include <uavcan/data_type.hpp>
-#include <uavcan/internal/util.hpp>
+#include <uavcan/util/compile_time.hpp>
 #include <uavcan/internal/marshal/scalar_codec.hpp>
 #include <uavcan/internal/marshal/type_util.hpp>
 

@@ -8,8 +8,8 @@
 #include <algorithm>
 #include <stdexcept>
 #include <cstring>
+#include <uavcan/util/compile_time.hpp>
 #include <uavcan/internal/impl_constants.hpp>
-#include <uavcan/internal/util.hpp>
 #include <uavcan/internal/marshal/type_util.hpp>
 
 namespace uavcan

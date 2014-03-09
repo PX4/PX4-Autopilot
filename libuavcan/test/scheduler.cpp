@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <uavcan/timer.hpp>
-#include <uavcan/internal/method_binder.hpp>
+#include <uavcan/util/method_binder.hpp>
 #include "common.hpp"
 #include "transport/can/iface_mock.hpp"
 

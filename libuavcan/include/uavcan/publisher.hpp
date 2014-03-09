@@ -8,8 +8,8 @@
 #include <uavcan/data_type.hpp>
 #include <uavcan/marshal_buffer.hpp>
 #include <uavcan/global_data_type_registry.hpp>
+#include <uavcan/util/lazy_constructor.hpp>
 #include <uavcan/internal/debug.hpp>
-#include <uavcan/internal/lazy_constructor.hpp>
 #include <uavcan/internal/transport/transfer_sender.hpp>
 #include <uavcan/internal/marshal/scalar_codec.hpp>
 #include <uavcan/internal/marshal/types.hpp>

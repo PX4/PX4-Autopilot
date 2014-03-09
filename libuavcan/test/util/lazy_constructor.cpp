@@ -3,7 +3,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <uavcan/internal/lazy_constructor.hpp>
+#include <uavcan/util/lazy_constructor.hpp>
 
 
 TEST(LazyConstructor, Basic)

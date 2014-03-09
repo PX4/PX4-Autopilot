@@ -8,9 +8,9 @@
 #include <uavcan/data_type.hpp>
 #include <uavcan/global_data_type_registry.hpp>
 #include <uavcan/received_data_structure.hpp>
+#include <uavcan/util/compile_time.hpp>
+#include <uavcan/util/lazy_constructor.hpp>
 #include <uavcan/internal/debug.hpp>
-#include <uavcan/internal/util.hpp>
-#include <uavcan/internal/lazy_constructor.hpp>
 #include <uavcan/internal/transport/transfer_listener.hpp>
 #include <uavcan/internal/marshal/scalar_codec.hpp>
 #include <uavcan/internal/marshal/types.hpp>

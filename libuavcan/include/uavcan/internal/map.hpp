@@ -10,7 +10,7 @@
 #include <uavcan/internal/linked_list.hpp>
 #include <uavcan/internal/impl_constants.hpp>
 #include <uavcan/internal/dynamic_memory.hpp>
-#include <uavcan/internal/util.hpp>
+#include <uavcan/util/compile_time.hpp>
 
 namespace uavcan
 {

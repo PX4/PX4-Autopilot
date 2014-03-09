@@ -7,7 +7,7 @@
 #include <cassert>
 #include <stdint.h>
 #include <string>
-#include <uavcan/internal/util.hpp>
+#include <uavcan/util/compile_time.hpp>
 #include <uavcan/internal/transport/transfer_buffer.hpp>
 
 namespace uavcan

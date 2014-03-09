@@ -11,7 +11,7 @@
 #include <uavcan/data_type.hpp>
 #include <uavcan/global_data_type_registry.hpp>
 #include <uavcan/internal/marshal/types.hpp>
-#include <uavcan/internal/util.hpp>
+#include <uavcan/util/compile_time.hpp>
 
 % for inc in t.cpp_includes:
 #include <${inc}>
