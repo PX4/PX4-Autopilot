@@ -4,10 +4,7 @@
 
 #pragma once
 
-#include <cassert>
-#include <cstdlib>
-#include <stdexcept>
-#include <typeinfo>
+#include <uavcan/internal/fatal_error.hpp>
 #include <uavcan/internal/impl_constants.hpp>
 #include <uavcan/internal/util.hpp>
 
@@ -23,14 +20,7 @@ class MethodBinder
     void validateBeforeCall() const
     {
         if (!operator bool())
-        {
-#if UAVCAN_EXCEPTIONS
-            throw std::runtime_error(typeid(*this).name());
-#else
-            assert(0);
-            std::abort();
-#endif
-        }
+            handleFatalError("Null method binder");
     }
 
 public:

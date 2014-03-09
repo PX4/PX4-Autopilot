@@ -5,12 +5,11 @@
 #pragma once
 
 #include <cassert>
-#include <typeinfo>
 #include <bitset>
-#include <stdexcept>
 #include <stdint.h>
 #include <algorithm>
 #include <uavcan/data_type.hpp>
+#include <uavcan/internal/fatal_error.hpp>
 #include <uavcan/internal/linked_list.hpp>
 #include <uavcan/internal/impl_constants.hpp>
 #if UAVCAN_DEBUG
@@ -132,14 +131,7 @@ struct DefaultDataTypeRegistrator
             GlobalDataTypeRegistry::instance().regist<Type>(Type::DefaultDataTypeID);
 
         if (res != GlobalDataTypeRegistry::RegistResultOk)
-        {
-#if UAVCAN_EXCEPTIONS
-            throw std::runtime_error("Type registration failed");
-#else
-            assert(0);
-            std::abort();
-#endif
-        }
+            handleFatalError("Type registration failed");
     }
 };
 

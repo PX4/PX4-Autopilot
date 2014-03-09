@@ -5,9 +5,7 @@
 #pragma once
 
 #include <cstdlib>
-#include <cassert>
-#include <stdexcept>
-#include <typeinfo>
+#include <uavcan/internal/fatal_error.hpp>
 #include <uavcan/internal/impl_constants.hpp>
 
 namespace uavcan
@@ -19,26 +17,16 @@ class LazyConstructor
     unsigned char data_[sizeof(T)] __attribute__((aligned(16)));  // TODO: compiler-independent alignment
     T* ptr_;
 
-    void failure() const
-    {
-#if UAVCAN_EXCEPTIONS
-        throw std::runtime_error(typeid(*this).name());
-#else
-        assert(0);
-        std::abort();
-#endif
-    }
-
     void ensureConstructed() const
     {
         if (!ptr_)
-            failure();
+            handleFatalError("LazyConstructor<T> is not constructed");
     }
 
     void ensureNotConstructed() const
     {
         if (ptr_)
-            failure();
+            handleFatalError("LazyConstructor<T> is already constructed");
     }
 
     template <typename U> struct ParamType { typedef const U& Type; };

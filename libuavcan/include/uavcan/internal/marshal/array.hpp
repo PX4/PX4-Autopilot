@@ -7,7 +7,6 @@
 #include <bitset>
 #include <algorithm>
 #include <stdexcept>
-#include <typeinfo>
 #include <cstring>
 #include <uavcan/internal/impl_constants.hpp>
 #include <uavcan/internal/util.hpp>
@@ -37,7 +36,7 @@ protected:
         if (pos < Size)
             return pos;
 #if UAVCAN_EXCEPTIONS
-        throw std::out_of_range(typeid(*this).name());
+        throw std::out_of_range("uavcan::Array");
 #else
         assert(0);
         return Size - 1;  // Ha ha
@@ -66,7 +65,7 @@ protected:
         if (pos < size_)
             return pos;
 #if UAVCAN_EXCEPTIONS
-        throw std::out_of_range(typeid(*this).name());
+        throw std::out_of_range("uavcan::Array");
 #else
         assert(0);
         return (size_ == 0) ? 0 : (size_ - 1);
