@@ -86,7 +86,9 @@ TEST(Subscriber, Basic)
     typedef SubscriptionListener<uavcan::mavlink::Message> Listener;
 
     uavcan::Subscriber<uavcan::mavlink::Message, Listener::ExtendedBinder> sub_extended(sch, poolmgr);
+    uavcan::Subscriber<uavcan::mavlink::Message, Listener::ExtendedBinder> sub_extended2(sch, poolmgr); // Not used
     uavcan::Subscriber<uavcan::mavlink::Message, Listener::SimpleBinder> sub_simple(sch, poolmgr);
+    uavcan::Subscriber<uavcan::mavlink::Message, Listener::SimpleBinder> sub_simple2(sch, poolmgr);     // Not used
 
     // Null binder - will fail
     ASSERT_EQ(-1, sub_extended.start(Listener::ExtendedBinder(NULL, NULL)));
@@ -131,7 +133,12 @@ TEST(Subscriber, Basic)
      * Reception
      */
     ASSERT_EQ(1, sub_extended.start(listener.bindExtended()));
+    ASSERT_EQ(1, sub_extended2.start(listener.bindExtended()));
     ASSERT_EQ(1, sub_simple.start(listener.bindSimple()));
+    ASSERT_EQ(1, sub_simple2.start(listener.bindSimple()));
+
+    sub_extended2.stop();  // These are not used - making sure they aren't receiving anything
+    sub_simple2.stop();
 
     for (unsigned int i = 0; i < rx_frames.size(); i++)
     {
@@ -144,6 +151,7 @@ TEST(Subscriber, Basic)
     /*
      * Validation
      */
+    ASSERT_EQ(listener.extended.size(), rx_frames.size());
     for (unsigned int i = 0; i < rx_frames.size(); i++)
     {
         const Listener::ReceivedDataStructureCopy s = listener.extended.at(i);
@@ -154,6 +162,7 @@ TEST(Subscriber, Basic)
         ASSERT_EQ(rx_frames[i].getMonotonicTimestamp(), s.ts_monotonic);
     }
 
+    ASSERT_EQ(listener.simple.size(), rx_frames.size());
     for (unsigned int i = 0; i < rx_frames.size(); i++)
     {
         ASSERT_TRUE(listener.simple.at(i) == expected_msg);
