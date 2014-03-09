@@ -105,6 +105,19 @@ struct ${t.cpp_type_name}
 #endif
     }
 
+    bool operator!=(const ${type_name}& rhs) const { return !operator==(rhs); }
+    bool operator==(const ${type_name}& rhs) const
+    {
+% if fields:
+        return
+    % for idx,a in enumerate(fields):
+            ${a.name} == rhs.${a.name} ${'&&' if (idx + 1) < len(fields) else ';'}
+    % endfor
+% else:
+        return true;
+% endif
+    }
+
 <%def name="generate_codec_calls_per_field(call_name, self_parameter_type)">
     static int ${call_name}(${self_parameter_type} self, ::uavcan::ScalarCodec& codec,
                       ::uavcan::TailArrayOptimizationMode tao_mode = ::uavcan::TailArrayOptEnabled)

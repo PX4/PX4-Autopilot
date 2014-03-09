@@ -55,6 +55,25 @@ TEST(Dsdl, Signature)
     ASSERT_EQ(uavcan::DataTypeKindMessage, root_ns_a::NestedMessage::DataTypeKind);
 }
 
+
+TEST(Dsdl, Operators)
+{
+    {
+        root_ns_a::EmptyService::Request a, b;
+        ASSERT_TRUE(a == b);
+        ASSERT_FALSE(a != b);
+    }
+    {
+        root_ns_a::NestedMessage c, d;
+        ASSERT_TRUE(c == d);
+        ASSERT_FALSE(c != d);
+
+        c.field = 1;
+        ASSERT_FALSE(c == d);
+        ASSERT_TRUE(c != d);
+    }
+}
+
 /*
  * This test assumes that it will be executed before other GDTR tests; otherwise it fails.
  * TODO: Probably it needs to be called directly from main()
