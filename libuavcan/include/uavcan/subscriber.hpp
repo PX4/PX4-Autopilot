@@ -20,18 +20,22 @@ namespace uavcan
 
 template <typename DataType_,
           typename Callback = void(*)(const ReceivedDataStructure<DataType_>&),
-          unsigned int NumStaticBufs = 1,
-          unsigned int NumStaticReceivers = NumStaticBufs + 1>
+          unsigned int NumStaticReceivers = 2,
+          unsigned int NumStaticBufs_ = 1>
 class Subscriber : Noncopyable
 {
-    typedef Subscriber<DataType_, Callback, NumStaticBufs, NumStaticReceivers> SelfType;
+    typedef Subscriber<DataType_, Callback, NumStaticReceivers, NumStaticBufs_> SelfType;
 
 public:
     typedef DataType_ DataType;
 
 private:
-    typedef TransferListener<BitLenToByteLen<DataType::MaxBitLen>::Result,
-                             NumStaticBufs ? NumStaticBufs : 1,            // TODO: add support for zero buffers
+    enum { DataTypeMaxByteLen = BitLenToByteLen<DataType::MaxBitLen>::Result };
+    enum { NeedsBuffer = int(DataTypeMaxByteLen) > int(MaxSingleFrameTransferPayloadLen) };
+    enum { BufferSize = NeedsBuffer ? DataTypeMaxByteLen : 0 };
+    enum { NumStaticBufs = NeedsBuffer ? (NumStaticBufs_ ? NumStaticBufs_ : 1) : 0 };
+
+    typedef TransferListener<BufferSize, NumStaticBufs,  // TODO: support for zero static bufs
                              NumStaticReceivers ? NumStaticReceivers : 1> TransferListenerType;
 
     // We need to break the inheritance chain here to implement lazy initialization

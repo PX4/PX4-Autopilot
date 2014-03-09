@@ -14,6 +14,8 @@ namespace uavcan
 
 enum { MaxTransferPayloadLen = 439 }; ///< According to the standard
 
+enum { MaxSingleFrameTransferPayloadLen = 7 };
+
 enum TransferType
 {
     TransferTypeServiceResponse  = 0,

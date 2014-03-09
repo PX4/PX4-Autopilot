@@ -6,6 +6,7 @@
 #include <uavcan/subscriber.hpp>
 #include <uavcan/util/method_binder.hpp>
 #include <uavcan/mavlink/Message.hpp>
+#include <root_ns_a/EmptyMessage.hpp>
 #include "common.hpp"
 #include "transport/can/iface_mock.hpp"
 
@@ -79,6 +80,10 @@ TEST(Subscriber, Basic)
     uavcan::Subscriber<uavcan::mavlink::Message, Listener::ExtendedBinder> sub_extended2(sch, poolmgr); // Not used
     uavcan::Subscriber<uavcan::mavlink::Message, Listener::SimpleBinder> sub_simple(sch, poolmgr);
     uavcan::Subscriber<uavcan::mavlink::Message, Listener::SimpleBinder> sub_simple2(sch, poolmgr);     // Not used
+
+    std::cout <<
+        "sizeof(uavcan::Subscriber<uavcan::mavlink::Message, Listener::ExtendedBinder>): " <<
+        sizeof(uavcan::Subscriber<uavcan::mavlink::Message, Listener::ExtendedBinder>) << std::endl;
 
     // Null binder - will fail
     ASSERT_EQ(-1, sub_extended.start(Listener::ExtendedBinder(NULL, NULL)));
@@ -232,4 +237,58 @@ TEST(Subscriber, FailureCount)
         ASSERT_EQ(1, sch.getDispatcher().getNumMessageListeners()); // Still there
     }
     ASSERT_EQ(0, sch.getDispatcher().getNumMessageListeners());     // Removed
+}
+
+
+TEST(Subscriber, SingleFrameTransfer)
+{
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 8, uavcan::MemPoolBlockSize> pool;
+    uavcan::PoolManager<1> poolmgr;
+    poolmgr.addPool(&pool);
+
+    // Manual type registration - we can't rely on the GDTR state
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<root_ns_a::EmptyMessage> _registrator;
+
+    SystemClockDriver clock_driver;
+    CanDriverMock can_driver(2, clock_driver);
+
+    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
+
+    uavcan::Scheduler sch(can_driver, poolmgr, clock_driver, out_trans_reg, uavcan::NodeID(1));
+
+    typedef SubscriptionListener<root_ns_a::EmptyMessage> Listener;
+
+    uavcan::Subscriber<root_ns_a::EmptyMessage, Listener::SimpleBinder> sub(sch, poolmgr);
+
+    std::cout <<
+        "sizeof(uavcan::Subscriber<root_ns_a::EmptyMessage, Listener::SimpleBinder>): " <<
+        sizeof(uavcan::Subscriber<root_ns_a::EmptyMessage, Listener::SimpleBinder>) << std::endl;
+
+    Listener listener;
+
+    sub.start(listener.bindSimple());
+
+    for (int i = 0; i < 4; i++)
+    {
+        // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
+        // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame
+        uavcan::Frame frame(root_ns_a::EmptyMessage::DefaultDataTypeID, uavcan::TransferTypeMessageBroadcast,
+                            uavcan::NodeID(i + 100), uavcan::NodeID::Broadcast, 0, i, true);
+        // No payload - message is empty
+        uavcan::RxFrame rx_frame(frame, clock_driver.getMonotonicMicroseconds(),
+                                 clock_driver.getUtcMicroseconds(), 0);
+        can_driver.ifaces[0].pushRx(rx_frame);
+        can_driver.ifaces[1].pushRx(rx_frame);
+    }
+
+    ASSERT_LE(0, sch.spin(clock_driver.getMonotonicMicroseconds() + 10000));
+
+    ASSERT_EQ(0, sub.getFailureCount());
+
+    ASSERT_EQ(4, listener.simple.size());
+    for (unsigned int i = 0; i < 4; i++)
+    {
+        ASSERT_TRUE(listener.simple.at(i) == root_ns_a::EmptyMessage());
+    }
 }
