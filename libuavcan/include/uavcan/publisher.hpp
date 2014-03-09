@@ -69,15 +69,16 @@ private:
         if (!buf)
             return -1;
 
-        BitStream bitstream(*buf);
-        ScalarCodec codec(bitstream);
-        const int encode_res = DataType::encode(message, codec);
-        if (encode_res <= 0)
         {
-            assert(0);   // Impossible, internal error
-            return -1;
+            BitStream bitstream(*buf);
+            ScalarCodec codec(bitstream);
+            const int encode_res = DataType::encode(message, codec);
+            if (encode_res <= 0)
+            {
+                assert(0);   // Impossible, internal error
+                return -1;
+            }
         }
-
         return sender_->send(buf->getDataPtr(), buf->getDataLength(), getTxDeadline(),
                              monotonic_blocking_deadline, transfer_type, dst_node_id);
     }
