@@ -47,7 +47,7 @@ private:
             UAVCAN_TRACE("Publisher", "Type [%s] is not registered", DataType::getDataTypeFullName());
             return false;
         }
-        sender_.construct<Dispatcher&, const DataTypeDescriptor&, CanTxQueue::Qos, uint64_t>
+        sender_.template construct<Dispatcher&, const DataTypeDescriptor&, CanTxQueue::Qos, uint64_t>
             (scheduler_.getDispatcher(), *descr, CanTxQueue::Volatile, max_transfer_interval_);
         return true;
     }
