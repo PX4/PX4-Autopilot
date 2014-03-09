@@ -90,3 +90,8 @@ static uavcan::CanFrame makeCanFrame(uint32_t id, const std::string& str_data, F
     id |= (type == EXT) ? uavcan::CanFrame::FlagEFF : 0;
     return uavcan::CanFrame(id, reinterpret_cast<const uint8_t*>(str_data.c_str()), str_data.length());
 }
+
+static bool areTimestampsClose(int64_t a, int64_t b, int64_t precision_usec = 10000)
+{
+    return std::abs(a - b) < precision_usec;
+}

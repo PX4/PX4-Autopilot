@@ -8,8 +8,6 @@
 #include "common.hpp"
 #include "transport/can/iface_mock.hpp"
 
-static const unsigned int TimestampPrecisionMs = 10;
-
 struct TimerCallCounter
 {
     std::vector<uavcan::TimerEvent> events_a;
@@ -20,11 +18,6 @@ struct TimerCallCounter
 
     typedef uavcan::MethodBinder<TimerCallCounter*, void(TimerCallCounter::*)(const uavcan::TimerEvent&)> Binder;
 };
-
-static bool timestampsEqual(int64_t a, int64_t b)
-{
-    return std::abs(a - b) < (TimestampPrecisionMs * 1000);
-}
 
 /*
  * This test can fail on a non real time system. That's kinda sad but okay.
@@ -67,8 +60,9 @@ TEST(Scheduler, Timers)
         ASSERT_EQ(0, sch.spin(start_ts + 1000000));
 
         ASSERT_EQ(1, tcc.events_a.size());
-        ASSERT_TRUE(timestampsEqual(tcc.events_a[0].scheduled_monotonic_deadline, start_ts + 100000));
-        ASSERT_TRUE(timestampsEqual(tcc.events_a[0].monotonic_timestamp, tcc.events_a[0].scheduled_monotonic_deadline));
+        ASSERT_TRUE(areTimestampsClose(tcc.events_a[0].scheduled_monotonic_deadline, start_ts + 100000));
+        ASSERT_TRUE(areTimestampsClose(tcc.events_a[0].monotonic_timestamp,
+                                       tcc.events_a[0].scheduled_monotonic_deadline));
         ASSERT_EQ(&a, tcc.events_a[0].timer);
 
         ASSERT_LT(900, tcc.events_b.size());
@@ -77,9 +71,9 @@ TEST(Scheduler, Timers)
             uint64_t next_expected_deadline = start_ts + 1000;
             for (unsigned int i = 0; i < tcc.events_b.size(); i++)
             {
-                ASSERT_TRUE(timestampsEqual(tcc.events_b[i].scheduled_monotonic_deadline, next_expected_deadline));
-                ASSERT_TRUE(timestampsEqual(tcc.events_b[i].monotonic_timestamp,
-                                            tcc.events_b[i].scheduled_monotonic_deadline));
+                ASSERT_TRUE(areTimestampsClose(tcc.events_b[i].scheduled_monotonic_deadline, next_expected_deadline));
+                ASSERT_TRUE(areTimestampsClose(tcc.events_b[i].monotonic_timestamp,
+                                               tcc.events_b[i].scheduled_monotonic_deadline));
                 ASSERT_EQ(&b, tcc.events_b[i].timer);
                 next_expected_deadline += 1000;
             }
