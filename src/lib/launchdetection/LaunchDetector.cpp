@@ -59,6 +59,12 @@ LaunchDetector::~LaunchDetector()
 
 }
 
+void LaunchDetector::reset()
+{
+	/* Reset all detectors */
+	launchMethods[0]->reset();
+}
+
 void LaunchDetector::update(float accel_x)
 {
 	if (launchdetection_on.get() == 1) {

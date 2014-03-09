@@ -47,6 +47,7 @@ public:
 	virtual void update(float accel_x) = 0;
 	virtual bool getLaunchDetected() = 0;
 	virtual void updateParams() = 0;
+	virtual void reset() = 0;
 protected:
 private:
 };
