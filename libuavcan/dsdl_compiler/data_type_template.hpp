@@ -249,6 +249,13 @@ ${define_yaml_streamer(t.cpp_full_type_name, t.fields)}
 
 }
 
+% for nsc in t.cpp_namespace_components:
+namespace ${nsc}
+{
+% endfor
+namespace
+{
+
 <%def name="define_streaming_operator(type_name)">
 template <typename Stream>
 inline Stream& operator<<(Stream& s, ${type_name}::ParameterType obj)
@@ -263,4 +270,9 @@ ${define_streaming_operator(t.cpp_full_type_name + '::Response')}
 % else:
 ${define_streaming_operator(t.cpp_full_type_name)}
 % endif
+
+}
+% for nsc in t.cpp_namespace_components:
+}
+% endfor
 
