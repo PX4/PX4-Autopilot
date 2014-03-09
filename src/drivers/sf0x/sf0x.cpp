@@ -53,6 +53,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
+#include <termios.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
@@ -83,8 +84,8 @@ static const int ERROR = -1;
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-#define SF0X_CONVERSION_INTERVAL	84000
-#define SF0X_TAKE_RANGE_REG		'D'
+#define SF0X_CONVERSION_INTERVAL	90000
+#define SF0X_TAKE_RANGE_REG		'd'
 #define SF02F_MIN_DISTANCE		0.0f
 #define SF02F_MAX_DISTANCE		40.0f
 #define SF0X_DEFAULT_PORT		"/dev/ttyS2"
@@ -186,8 +187,39 @@ SF0X::SF0X(const char *port) :
 	/* open fd */
 	_fd = ::open(port, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
-	// enable debug() calls
-	_debug_enabled = true;
+	if (_fd < 0) {
+		warnx("FAIL: laser fd");
+	}
+
+	struct termios uart_config;
+
+	int termios_state;
+
+	/* fill the struct for the new configuration */
+	tcgetattr(_fd, &uart_config);
+
+	/* clear ONLCR flag (which appends a CR for every LF) */
+	uart_config.c_oflag &= ~ONLCR;
+	/* no parity, one stop bit */
+	uart_config.c_cflag &= ~(CSTOPB | PARENB);
+
+	unsigned speed = B9600;
+
+	/* set baud rate */
+	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
+		warnx("ERR CFG: %d ISPD", termios_state);
+	}
+
+	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
+		warnx("ERR CFG: %d OSPD\n", termios_state);
+	}
+
+	if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
+		warnx("ERR baud %d ATTR", termios_state);
+	}
+
+	// disable debug() calls
+	_debug_enabled = false;
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -208,6 +240,7 @@ int
 SF0X::init()
 {
 	int ret = ERROR;
+	unsigned i = 0;
 
 	/* do regular cdev init */
 	if (CDev::init() != OK)
@@ -217,6 +250,7 @@ SF0X::init()
 	_reports = new RingBuffer(2, sizeof(range_finder_report));
 
 	if (_reports == nullptr) {
+		warnx("mem err");
 		goto out;
 	}
 
@@ -226,12 +260,33 @@ SF0X::init()
 	_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &zero_report);
 
 	if (_range_finder_topic < 0) {
-		debug("failed to create sensor_range_finder object. Did you start uOrb?");
+		warnx("advert err");
 	}
 
-	ret = OK;
-	/* sensor is ok, but we don't really know if it is within range */
-	_sensor_ok = true;
+	/* attempt to get a measurement 5 times */
+	while (ret != OK && i < 5) {
+
+		if (measure()) {
+			ret = ERROR;
+			_sensor_ok = false;
+		}
+
+		usleep(100000);
+		if (collect()) {
+			ret = ERROR;
+			_sensor_ok = false;
+		} else {
+			ret = OK;
+			/* sensor is ok, but we don't really know if it is within range */
+			_sensor_ok = true;
+		}
+
+		i++;
+	}
+
+	/* close the fd */
+	::close(_fd);
+	_fd = -1;
 out:
 	return ret;
 }
@@ -453,7 +508,7 @@ SF0X::measure()
 
 	if (ret != sizeof(cmd)) {
 		perf_count(_comms_errors);
-		log("serial transfer returned %d", ret);
+		log("write fail %d", ret);
 		return ret;
 	}
 
@@ -473,17 +528,30 @@ SF0X::collect()
 	/* read from the sensor (uart buffer) */
 	ret = ::read(_fd, buf, sizeof(buf));
 
-	if (ret < 1) {
-		log("error reading from sensor: %d", ret);
+	if (ret < 3) {
+		log("read err: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
 	}
 
-	printf("ret: %d, val (str): %s\n", ret, buf);
+	if (buf[ret - 2] != '\r' || buf[ret - 1] != '\n') {
+		/* incomplete read */
+		return -1;
+	}
+
 	char* end;
-	float si_units = strtod(buf,&end);
-	printf("val (float): %8.4f\n", si_units);
+	float si_units;
+	bool valid;
+
+	if (buf[0] == '-' && buf[1] == '-' && buf[2] == '.') {
+		si_units = -1.0f;
+		valid = false;
+	} else {
+		si_units = strtod(buf,&end);
+		valid = true;
+	}
+	debug("val (float): %8.4f, raw: %s\n", si_units, buf);
 
 	struct range_finder_report report;
 
@@ -491,7 +559,7 @@ SF0X::collect()
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
 	report.distance = si_units;
-	report.valid = si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
+	report.valid = valid && (si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0);
 
 	/* publish it */
 	orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
@@ -519,21 +587,21 @@ SF0X::start()
 	/* schedule a cycle to start things */
 	work_queue(HPWORK, &_work, (worker_t)&SF0X::cycle_trampoline, this, 1);
 
-	/* notify about state change */
-	struct subsystem_info_s info = {
-		true,
-		true,
-		true,
-		SUBSYSTEM_TYPE_RANGEFINDER
-	};
-	static orb_advert_t pub = -1;
+	// /* notify about state change */
+	// struct subsystem_info_s info = {
+	// 	true,
+	// 	true,
+	// 	true,
+	// 	SUBSYSTEM_TYPE_RANGEFINDER
+	// };
+	// static orb_advert_t pub = -1;
 
-	if (pub > 0) {
-		orb_publish(ORB_ID(subsystem_info), pub, &info);
+	// if (pub > 0) {
+	// 	orb_publish(ORB_ID(subsystem_info), pub, &info);
 
-	} else {
-		pub = orb_advertise(ORB_ID(subsystem_info), &info);
-	}
+	// } else {
+	// 	pub = orb_advertise(ORB_ID(subsystem_info), &info);
+	// }
 }
 
 void
@@ -553,6 +621,12 @@ SF0X::cycle_trampoline(void *arg)
 void
 SF0X::cycle()
 {
+	/* fds initialized? */
+	if (_fd < 0) {
+		/* open fd */
+		_fd = ::open(SF0X_DEFAULT_PORT, O_RDWR | O_NOCTTY | O_NONBLOCK);
+	}
+
 	/* collection phase? */
 	if (_collect_phase) {
 
@@ -653,9 +727,10 @@ start(const char* port)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(RANGE_FINDER_DEVICE_PATH, O_RDONLY);
+	fd = open(RANGE_FINDER_DEVICE_PATH, 0);
 
 	if (fd < 0) {
+		warnx("device open fail");
 		goto fail;
 	}
 
