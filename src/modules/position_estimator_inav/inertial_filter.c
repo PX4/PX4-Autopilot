@@ -15,10 +15,7 @@ void inertial_filter_predict(float dt, float x[3])
 
 void inertial_filter_correct(float e, float dt, float x[3], int i, float w)
 {
-	float ewdt = w * dt;
-	if (ewdt > 1.0f)
-		ewdt = 1.0f;	// prevent over-correcting
-	ewdt *= e;
+	float ewdt = e * w * dt;
 	x[i] += ewdt;
 
 	if (i == 0) {
