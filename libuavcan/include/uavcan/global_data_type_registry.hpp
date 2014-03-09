@@ -13,6 +13,9 @@
 #include <uavcan/data_type.hpp>
 #include <uavcan/internal/linked_list.hpp>
 #include <uavcan/internal/impl_constants.hpp>
+#if UAVCAN_DEBUG
+#include <uavcan/internal/debug.hpp>
+#endif
 
 namespace uavcan
 {
@@ -92,7 +95,7 @@ public:
     }
 
     /// Further calls to regist<>() will fail
-    void freeze() { frozen_ = true; }
+    void freeze();
     bool isFrozen() const { return frozen_; }
 
     const DataTypeDescriptor* find(DataTypeKind kind, const char* name) const;
@@ -108,6 +111,8 @@ public:
     /// Required for unit testing
     void reset()
     {
+        UAVCAN_TRACE("GlobalDataTypeRegistry", "Reset; was frozen: %i, num msgs: %u, num srvs: %u",
+                     int(frozen_), getNumMessageTypes(), getNumServiceTypes());
         frozen_ = false;
         while (msgs_.get())
             msgs_.remove(msgs_.get());

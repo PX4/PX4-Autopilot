@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <uavcan/global_data_type_registry.hpp>
+#include <uavcan/internal/debug.hpp>
 
 namespace uavcan
 {
@@ -109,6 +110,15 @@ GlobalDataTypeRegistry& GlobalDataTypeRegistry::instance()
 {
     static GlobalDataTypeRegistry inst;
     return inst;
+}
+
+void GlobalDataTypeRegistry::freeze()
+{
+    if (!frozen_)
+    {
+        frozen_ = true;
+        UAVCAN_TRACE("GlobalDataTypeRegistry", "Frozen");
+    }
 }
 
 const DataTypeDescriptor* GlobalDataTypeRegistry::find(DataTypeKind kind, const char* name) const
