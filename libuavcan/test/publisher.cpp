@@ -26,7 +26,9 @@ TEST(Publisher, Basic)
 
     uavcan::Publisher<uavcan::mavlink::Message> publisher(sch, buffer_provider);
 
-    ASSERT_FALSE(uavcan::GlobalDataTypeRegistry::instance().isFrozen());
+    // Manual type registration - we can't rely on the GDTR state
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<uavcan::mavlink::Message> _registrator;
 
     /*
      * Message layout:
