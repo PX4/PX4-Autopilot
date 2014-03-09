@@ -230,7 +230,7 @@ private:
 	/**
 	 * Check for airspeed updates.
 	 */
-	bool		vehicle_airspeed_poll();
+	void		vehicle_airspeed_poll();
 
 	/**
 	 * Check for accel updates.
@@ -452,7 +452,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 	}
 }
 
-bool
+void
 FixedwingAttitudeControl::vehicle_airspeed_poll()
 {
 	/* check if there is a new position */
@@ -462,10 +462,7 @@ FixedwingAttitudeControl::vehicle_airspeed_poll()
 	if (airspeed_updated) {
 		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
 //		warnx("airspeed poll: ind: %.4f,  true: %.4f", _airspeed.indicated_airspeed_m_s, _airspeed.true_airspeed_m_s);
-		return true;
 	}
-
-	return false;
 }
 
 void
@@ -539,7 +536,7 @@ FixedwingAttitudeControl::task_main()
 	parameters_update();
 
 	/* get an initial update for all sensor and status data */
-	(void)vehicle_airspeed_poll();
+	vehicle_airspeed_poll();
 	vehicle_setpoint_poll();
 	vehicle_accel_poll();
 	vehicle_control_mode_poll();
@@ -596,7 +593,7 @@ FixedwingAttitudeControl::task_main()
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
 
-			_airspeed_valid = vehicle_airspeed_poll();
+			vehicle_airspeed_poll();
 
 			vehicle_setpoint_poll();
 
@@ -636,8 +633,7 @@ FixedwingAttitudeControl::task_main()
 				float airspeed;
 
 				/* if airspeed is smaller than min, the sensor is not giving good readings */
-				if (!_airspeed_valid ||
-				    (_airspeed.indicated_airspeed_m_s < 0.5f * _parameters.airspeed_min) ||
+				if ((_airspeed.indicated_airspeed_m_s < 0.5f * _parameters.airspeed_min) ||
 				    !isfinite(_airspeed.indicated_airspeed_m_s)) {
 					airspeed = _parameters.airspeed_trim;
 
