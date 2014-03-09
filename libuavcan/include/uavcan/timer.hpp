@@ -66,13 +66,18 @@ public:
     TimerEventForwarder(Scheduler& node, Functor functor)
     : Timer(node)
     , functor_(functor)
-    { }
+    {
+        assert(try_implicit_cast<bool>(functor, true));
+    }
 
     const Functor& getFunctor() const { return functor_; }
 
     void onTimerEvent(const TimerEvent& event)
     {
-        functor_(event);
+        if (try_implicit_cast<bool>(functor_, true))
+            functor_(event);
+        else
+            assert(0);
     }
 };
 

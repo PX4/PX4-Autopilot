@@ -74,6 +74,39 @@ template<bool> struct BooleanType { };
 typedef BooleanType<true> TrueType;
 typedef BooleanType<false> FalseType;
 
+/**
+ * Relations
+ */
+template <typename T1, typename T2>
+class IsImplicitlyConvertibleFromTo
+{
+    template <typename U> static U returner();
+
+    struct True_ { char x[2]; };
+    struct False_ { };
+
+    static True_ test(const T2 &);
+    static False_ test(...);
+
+public:
+    enum { Result = sizeof(True_) == sizeof(IsImplicitlyConvertibleFromTo<T1, T2>::test(returner<T1>())) };
+};
+
+
+template <typename From, typename To>
+struct TryImplicitCastImpl
+{
+    static To impl(const From& from, const To&, TrueType) { return To(from); }
+    static To impl(const From&, const To& default_, FalseType) { return default_; }
+};
+
+template <typename To, typename From>
+To try_implicit_cast(const From& from, const To& default_ = To())
+{
+    return TryImplicitCastImpl<From, To>::impl(from, default_,
+        BooleanType<IsImplicitlyConvertibleFromTo<From, To>::Result>());
+}
+
 }
 
 /// Ensure that conditional comilation macros are present

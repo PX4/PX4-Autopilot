@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <typeinfo>
 #include <uavcan/internal/impl_constants.hpp>
+#include <uavcan/internal/util.hpp>
 
 namespace uavcan
 {
@@ -24,7 +25,8 @@ public:
     : obj_(o)
     , fun_(f)
     {
-        if (!o || !f)
+        if (!try_implicit_cast<bool>(o, true) ||
+            !try_implicit_cast<bool>(f, true))
         {
 #if UAVCAN_EXCEPTIONS
             throw std::runtime_error(typeid(*this).name());
