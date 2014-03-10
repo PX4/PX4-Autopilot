@@ -118,6 +118,9 @@ private:
 	int				_measure_ticks;
 	bool				_collect_phase;
 	int				_fd;
+	char				_linebuf[10];
+	unsigned			_linebuf_index;
+	hrt_abstime			_last_read;
 
 	orb_advert_t			_range_finder_topic;
 
@@ -179,6 +182,9 @@ SF0X::SF0X(const char *port) :
 	_sensor_ok(false),
 	_measure_ticks(0),
 	_collect_phase(false),
+	_fd(-1),
+	_linebuf_index(0),
+	_last_read(0),
 	_range_finder_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "sf0x_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "sf0x_comms_errors")),
@@ -186,6 +192,10 @@ SF0X::SF0X(const char *port) :
 {
 	/* open fd */
 	_fd = ::open(port, O_RDWR | O_NOCTTY | O_NONBLOCK);
+
+	/* tell it to stop auto-triggering */
+	char stop_auto = ' ';
+	::write(_fd, &stop_auto, 1);
 
 	if (_fd < 0) {
 		warnx("FAIL: laser fd");
@@ -219,7 +229,7 @@ SF0X::SF0X(const char *port) :
 	}
 
 	// disable debug() calls
-	_debug_enabled = false;
+	_debug_enabled = true;
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -524,18 +534,26 @@ SF0X::collect()
 
 	perf_begin(_sample_perf);
 
-	char buf[16];
-	/* read from the sensor (uart buffer) */
-	ret = ::read(_fd, buf, sizeof(buf));
+	/* clear buffer if last read was too long ago */
+	if (hrt_elapsed(&_last_read) > (SF0X_CONVERSION_INTERVAL * 2)) {
+		_linebuf_index = 0;
+	}
 
-	if (ret < 3) {
+	/* read from the sensor (uart buffer) */
+	ret = ::read(_fd, _linebuf[_linebuf_index], sizeof(_linebuf) - _linebuf_index);
+
+	if (ret < 1) {
 		log("read err: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
 	}
 
-	if (buf[ret - 2] != '\r' || buf[ret - 1] != '\n') {
+	_linebuf_index += ret;
+
+	_last_read = hrt_absolute_time();
+
+	if (_linebuf[_linebuf_index - 2] != '\r' || _linebuf[_linebuf_index - 1] != '\n') {
 		/* incomplete read */
 		return -1;
 	}
@@ -544,7 +562,7 @@ SF0X::collect()
 	float si_units;
 	bool valid;
 
-	if (buf[0] == '-' && buf[1] == '-' && buf[2] == '.') {
+	if (_linebuf[0] == '-' && _linebuf[1] == '-' && _linebuf[2] == '.') {
 		si_units = -1.0f;
 		valid = false;
 	} else {
