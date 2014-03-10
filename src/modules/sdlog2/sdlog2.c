@@ -58,6 +58,8 @@
 #include <drivers/drv_hrt.h>
 #include <math.h>
 
+#include <drivers/drv_range_finder.h>
+
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/sensor_combined.h>
@@ -759,6 +761,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_global_velocity_setpoint_s global_vel_sp;
 		struct battery_status_s battery;
 		struct telemetry_status_s telemetry;
+		struct range_finder_report range_finder;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -785,6 +788,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int global_vel_sp_sub;
 		int battery_sub;
 		int telemetry_sub;
+		int range_finder_sub;
 	} subs;
 
 	/* log message buffer: header + body */
@@ -952,6 +956,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* --- TELEMETRY STATUS --- */
 	subs.telemetry_sub = orb_subscribe(ORB_ID(telemetry_status));
 	fds[fdsc_count].fd = subs.telemetry_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- RANGE FINDER --- */
+	subs.range_finder_sub = orb_subscribe(ORB_ID(sensor_range_finder));
+	fds[fdsc_count].fd = subs.range_finder_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -1368,6 +1378,16 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_TELE.fixed = buf.telemetry.fixed;
 				log_msg.body.log_TELE.txbuf = buf.telemetry.txbuf;
 				LOGBUFFER_WRITE_AND_COUNT(TELE);
+			}
+
+			/* --- BOTTOM DISTANCE --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(sensor_range_finder), subs.range_finder_sub, &buf.range_finder);
+				log_msg.msg_type = LOG_DIST_MSG;
+				log_msg.body.log_DIST.bottom = buf.range_finder.distance;
+				log_msg.body.log_DIST.bottom_rate = 0.0f;
+				log_msg.body.log_DIST.flags = (buf.range_finder.valid ? 1 : 0);
+				LOGBUFFER_WRITE_AND_COUNT(DIST);
 			}
 
 			/* signal the other thread new data, but not yet unlock */
