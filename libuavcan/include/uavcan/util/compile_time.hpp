@@ -101,9 +101,16 @@ struct TryImplicitCastImpl
 };
 
 template <typename To, typename From>
-To try_implicit_cast(const From& from, const To& default_ = To())
+To try_implicit_cast(const From& from, const To& default_)
 {
     return TryImplicitCastImpl<From, To>::impl(from, default_,
+        BooleanType<IsImplicitlyConvertibleFromTo<From, To>::Result>());
+}
+
+template <typename To, typename From>
+To try_implicit_cast(const From& from)
+{
+    return TryImplicitCastImpl<From, To>::impl(from, To(),
         BooleanType<IsImplicitlyConvertibleFromTo<From, To>::Result>());
 }
 

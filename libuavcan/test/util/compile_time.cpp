@@ -6,12 +6,18 @@
 #include <uavcan/util/compile_time.hpp>
 
 struct NonConvertible { };
+
 struct ConvertibleToBool
 {
     const bool value;
     ConvertibleToBool(bool value) : value(value) { }
     operator bool() const { return value; }
     bool operator!() const { return !value; }
+};
+
+struct NonDefaultConstructible
+{
+    NonDefaultConstructible(int) { }
 };
 
 TEST(Util, TryImplicitCast)
@@ -30,4 +36,7 @@ TEST(Util, TryImplicitCast)
     ASSERT_FALSE(try_implicit_cast<bool>(ConvertibleToBool(false), true));
     ASSERT_EQ(1, try_implicit_cast<long>(ConvertibleToBool(true)));
     ASSERT_EQ(0, try_implicit_cast<long>(ConvertibleToBool(false), -100));
+
+    //try_implicit_cast<NonDefaultConstructible>(ConvertibleToBool(true));   // Will fail to compile
+    try_implicit_cast<NonDefaultConstructible>(NonConvertible(), NonDefaultConstructible(64));
 }
