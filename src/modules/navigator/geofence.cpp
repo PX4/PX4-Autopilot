@@ -55,11 +55,13 @@
 #endif
 static const int ERROR = -1;
 
-Geofence::Geofence() : _fence_pub(-1),
+Geofence::Geofence() :
+		SuperBlock(NULL, "GF"),
+		_fence_pub(-1),
 		_altitude_min(0),
 		_altitude_max(0),
 		_verticesCount(0),
-		param_geofence_on(NULL, "GF_ON", false)
+		param_geofence_on(this, "ON")
 {
 	/* Load initial params */
 	updateParams();
@@ -291,9 +293,4 @@ Geofence::loadFromFile(const char *filename)
 int Geofence::clearDm()
 {
 	dm_clear(DM_KEY_FENCE_POINTS);
-}
-
-void Geofence::updateParams()
-{
-	param_geofence_on.update();
 }
