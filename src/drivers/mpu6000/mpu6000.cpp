@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -443,7 +443,6 @@ int
 MPU6000::init()
 {
 	int ret;
-	int gyro_ret;
 
 	/* do SPI init (and probe) first */
 	ret = SPI::init();
@@ -488,16 +487,36 @@ MPU6000::init()
 		return ret;
 	}
 
-	/* fetch an initial set of measurements for advertisement */
+	_accel_class_instance = register_class_devname(ACCEL_DEVICE_PATH);
+
 	measure();
 
-	_accel_class_instance = register_class_devname(ACCEL_DEVICE_PATH);
 	if (_accel_class_instance == CLASS_DEVICE_PRIMARY) {
-		/* advertise accel topic */
-		accel_report ar;
-		_accel_reports->get(&ar);
-		_accel_topic = orb_advertise(ORB_ID(sensor_accel), &ar);
-	}		
+
+		/* advertise sensor topic, measure manually to initialize valid report */
+		struct accel_report arp;
+		_accel_reports->get(&arp);
+
+		/* measurement will have generated a report, publish */
+		_accel_topic = orb_advertise(ORB_ID(sensor_accel), &arp);
+
+		if (_accel_topic < 0)
+			debug("failed to create sensor_accel publication");
+
+	}
+
+	if (_gyro->_gyro_class_instance == CLASS_DEVICE_PRIMARY) {
+
+		/* advertise sensor topic, measure manually to initialize valid report */
+		struct gyro_report grp;
+		_gyro_reports->get(&grp);
+
+		_gyro->_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &grp);
+
+		if (_gyro->_gyro_topic < 0)
+			debug("failed to create sensor_gyro publication");
+
+	}
 
 out:
 	return ret;
@@ -1307,10 +1326,13 @@ MPU6000::measure()
 	poll_notify(POLLIN);
 	_gyro->parent_poll_notify();
 
-	if (_accel_topic != -1) {
+	if (_accel_topic > 0 && !(_pub_blocked)) {
+		/* publish it */
 		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
 	}
-	if (_gyro->_gyro_topic != -1) {
+
+	if (_gyro->_gyro_topic > 0 && !(_pub_blocked)) {
+		/* publish it */
 		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
 	}
 
@@ -1331,6 +1353,7 @@ MPU6000::print_info()
 MPU6000_gyro::MPU6000_gyro(MPU6000 *parent) :
 	CDev("MPU6000_gyro", MPU_DEVICE_PATH_GYRO),
 	_parent(parent),
+	_gyro_topic(-1),
 	_gyro_class_instance(-1)
 {
 }
@@ -1356,11 +1379,6 @@ MPU6000_gyro::init()
 	}
 
 	_gyro_class_instance = register_class_devname(GYRO_DEVICE_PATH);
-	if (_gyro_class_instance == CLASS_DEVICE_PRIMARY) {
-		gyro_report gr;
-		memset(&gr, 0, sizeof(gr));
-		_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &gr);
-	}
 
 out:
 	return ret;

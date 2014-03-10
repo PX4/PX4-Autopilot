@@ -1,0 +1,10 @@
+#!nsh
+#
+# FX-79 Buffalo Flying Wing
+#
+# Simon Wilks <sjwilks@gmail.com>
+#
+
+sh /etc/init.d/rc.fw_defaults
+
+set MIXER FMU_FX79

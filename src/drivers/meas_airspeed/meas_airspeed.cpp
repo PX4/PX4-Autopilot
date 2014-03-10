@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,6 +50,7 @@
  *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
  */
 
+
 #include <nuttx/config.h>
 
 #include <drivers/device/i2c.h>
@@ -77,7 +78,6 @@
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
-#include <mathlib/mathlib.h>
 
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
@@ -90,8 +90,10 @@
 
 /* I2C bus address is 1010001x */
 #define I2C_ADDRESS_MS4525DO	0x28	//0x51 /* 7-bit address. */
+#define PATH_MS4525		"/dev/ms4525"
 /* The MS5525DSO address is 111011Cx, where C is the complementary value of the pin CSB */
 #define I2C_ADDRESS_MS5525DSO	0x77	//0x77/* 7-bit address, addr. pin pulled low */
+#define PATH_MS5525		"/dev/ms5525"
 
 /* Register address */
 #define ADDR_READ_MR			0x00	/* write to this address to start conversion */
@@ -102,7 +104,7 @@
 class MEASAirspeed : public Airspeed
 {
 public:
-	MEASAirspeed(int bus, int address = I2C_ADDRESS_MS4525DO);
+	MEASAirspeed(int bus, int address = I2C_ADDRESS_MS4525DO, const char* path = PATH_MS4525);
 
 protected:
 
@@ -121,8 +123,8 @@ protected:
  */
 extern "C" __EXPORT int meas_airspeed_main(int argc, char *argv[]);
 
-MEASAirspeed::MEASAirspeed(int bus, int address) : Airspeed(bus, address,
-			CONVERSION_INTERVAL)
+MEASAirspeed::MEASAirspeed(int bus, int address, const char* path) : Airspeed(bus, address,
+			CONVERSION_INTERVAL, path)
 {
 
 }
@@ -178,31 +180,26 @@ MEASAirspeed::collect()
 		return ret;                
 	}
 
-	//uint16_t diff_pres_pa = (val[1]) | ((val[0] & ~(0xC0)) << 8);
-	uint16_t temp = (val[3] & 0xE0) << 8 | val[2];
-
-	// XXX leaving this in until new calculation method has been cross-checked
-	//diff_pres_pa = abs(diff_pres_pa - (16384 / 2.0f));
-	//diff_pres_pa -= _diff_pres_offset;
 	int16_t dp_raw = 0, dT_raw = 0;
 	dp_raw = (val[0] << 8) + val[1];
-	dp_raw = 0x3FFF & dp_raw; //mask the used bits
+	/* mask the used bits */
+	dp_raw = 0x3FFF & dp_raw;
 	dT_raw = (val[2] << 8) + val[3];
 	dT_raw = (0xFFE0 & dT_raw) >> 5;
 	float temperature = ((200 * dT_raw) / 2047) - 50;
 
-	// XXX we may want to smooth out the readings to remove noise.
-
-	// Calculate differential pressure. As its centered around 8000
-	// and can go positive or negative, enforce absolute value
-//	uint16_t diff_press_pa = abs(dp_raw - (16384 / 2.0f));
+	/* calculate differential pressure. As its centered around 8000
+	 * and can go positive or negative, enforce absolute value
+	*/
 	const float P_min = -1.0f;
 	const float P_max = 1.0f;
-	float diff_press_pa = math::max(0.0f, fabsf( ( ((float)dp_raw - 0.1f*16383.0f) * (P_max-P_min)/(0.8f*16383.0f) + P_min) * 6894.8f)   - _diff_pres_offset);
+	float diff_press_pa = fabsf( ( ((float)dp_raw - 0.1f*16383.0f) * (P_max-P_min)/(0.8f*16383.0f) + P_min) * 6894.8f) - _diff_pres_offset;
+        if (diff_press_pa < 0.0f)
+            diff_press_pa = 0.0f;
 
 	struct differential_pressure_s report;
 
-	// Track maximum differential pressure measured (so we can work out top speed).
+	/* track maximum differential pressure measured (so we can work out top speed). */
 	if (diff_press_pa > _max_differential_pressure_pa) {
 	    _max_differential_pressure_pa = diff_press_pa;
 	}
@@ -214,8 +211,10 @@ MEASAirspeed::collect()
 	report.voltage = 0;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
-	/* announce the airspeed if needed, just publish else */
-	orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
+	if (_airspeed_pub > 0 && !(_pub_blocked)) {
+		/* publish it */
+		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
+	}
 
 	new_report(report);
 
@@ -308,7 +307,7 @@ start(int i2c_bus)
 		errx(1, "already started");
 
 	/* create the driver, try the MS4525DO first */
-	g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS4525DO);
+	g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS4525DO, PATH_MS4525);
 
 	/* check if the MS4525DO was instantiated */
 	if (g_dev == nullptr)
@@ -317,7 +316,7 @@ start(int i2c_bus)
 	/* try the MS5525DSO next if init fails */
 	if (OK != g_dev->Airspeed::init()) {
 		delete g_dev;
-		g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS5525DSO);
+		g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS5525DSO, PATH_MS5525);
 
 		/* check if the MS5525DSO was instantiated */
 		if (g_dev == nullptr)
@@ -390,7 +389,7 @@ test()
 		err(1, "immediate read failed");
 
 	warnx("single read");
-	warnx("diff pressure: %d pa", report.differential_pressure_pa);
+	warnx("diff pressure: %8.4f pa", (double)report.differential_pressure_pa);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2))
@@ -415,7 +414,7 @@ test()
 			err(1, "periodic read failed");
 
 		warnx("periodic read %u", i);
-		warnx("diff pressure: %d pa", report.differential_pressure_pa);
+		warnx("diff pressure: %8.4f pa", (double)report.differential_pressure_pa);
 		warnx("temperature: %d C (0x%02x)", (int)report.temperature, (unsigned) report.temperature);
 	}
 

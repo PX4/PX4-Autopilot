@@ -54,14 +54,11 @@ bool is_rotary_wing(const struct vehicle_status_s *current_status);
 int buzzer_init(void);
 void buzzer_deinit(void);
 
-void tune_error(void);
-void tune_positive(void);
-void tune_neutral(void);
-void tune_negative(void);
-int tune_arm(void);
-int tune_low_bat(void);
-int tune_critical_bat(void);
-void tune_stop(void);
+void set_tune(int tune);
+void tune_positive(bool use_buzzer);
+void tune_neutral(bool use_buzzer);
+void tune_negative(bool use_buzzer);
+
 int blink_msg_state();
 
 int led_init(void);
@@ -75,12 +72,13 @@ void rgbled_set_mode(rgbled_mode_t mode);
 void rgbled_set_pattern(rgbled_pattern_t *pattern);
 
 /**
- * Provides a coarse estimate of remaining battery power.
+ * Estimate remaining battery charge.
  *
- * The estimate is very basic and based on decharging voltage curves.
+ * Use integral of current if battery capacity known (BAT_CAPACITY parameter set),
+ * else use simple estimate based on voltage.
  *
  * @return the estimated remaining capacity in 0..1
  */
-float battery_remaining_estimate_voltage(float voltage);
+float battery_remaining_estimate_voltage(float voltage, float discharged);
 
 #endif /* COMMANDER_HELPER_H_ */

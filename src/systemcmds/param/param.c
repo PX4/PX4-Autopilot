@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -63,7 +62,7 @@ static void	do_import(const char* param_file_name);
 static void	do_show(const char* search_string);
 static void	do_show_print(void *arg, param_t param);
 static void	do_set(const char* name, const char* val);
-static void	do_compare(const char* name, const char* val);
+static void	do_compare(const char* name, const char* vals[], unsigned comparisons);
 
 int
 param_main(int argc, char *argv[])
@@ -73,7 +72,12 @@ param_main(int argc, char *argv[])
 			if (argc >= 3) {
 				do_save(argv[2]);
 			} else {
-				do_save(param_get_default_file());
+				if (param_save_default()) {
+					warnx("Param export failed.");
+					exit(1);
+				} else {
+					exit(0);
+				}
 			}
 		}
 
@@ -121,7 +125,7 @@ param_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "compare")) {
 			if (argc >= 4) {
-				do_compare(argv[2], argv[3]);
+				do_compare(argv[2], &argv[3], argc - 3);
 			} else {
 				errx(1, "not enough arguments.\nTry 'param compare PARAM_NAME 3'");
 			}
@@ -134,11 +138,8 @@ param_main(int argc, char *argv[])
 static void
 do_save(const char* param_file_name)
 {
-	/* delete the parameter file in case it exists */
-	unlink(param_file_name);
-
 	/* create the file */
-	int fd = open(param_file_name, O_WRONLY | O_CREAT | O_EXCL);
+	int fd = open(param_file_name, O_WRONLY | O_CREAT);
 
 	if (fd < 0)
 		err(1, "opening '%s' failed", param_file_name);
@@ -147,7 +148,7 @@ do_save(const char* param_file_name)
 	close(fd);
 
 	if (result < 0) {
-		unlink(param_file_name);
+		(void)unlink(param_file_name);
 		errx(1, "error exporting to '%s'", param_file_name);
 	}
 
@@ -204,11 +205,38 @@ do_show_print(void *arg, param_t param)
 	int32_t i;
 	float f;
 	const char *search_string = (const char*)arg;
+	const char *p_name = (const char*)param_name(param);
 
 	/* print nothing if search string is invalid and not matching */
-	if (!(arg == NULL || (!strcmp(search_string, param_name(param))))) {
-		/* param not found */
-		return;
+	if (!(arg == NULL)) {
+
+		/* start search */
+		char *ss = search_string;
+		char *pp = p_name;
+		bool mismatch = false;
+
+		/* XXX this comparison is only ok for trailing wildcards */
+		while (*ss != '\0' && *pp != '\0') {
+
+			if (*ss == *pp) {
+				ss++;
+				pp++;
+			} else if (*ss == '*') {
+				if (*(ss + 1) != '\0') {
+					warnx("* symbol only allowed at end of search string.");
+					exit(1);
+				}
+
+				pp++;
+			} else {
+				/* param not found */
+				return;
+			}
+		}
+
+		/* the search string must have been consumed */
+		if (!(*ss == '\0' || *ss == '*'))
+			return;
 	}
 
 	printf("%c %s: ",
@@ -292,7 +320,7 @@ do_set(const char* name, const char* val)
 			char* end;
 			f = strtod(val,&end);
 			param_set(param, &f);
-			printf(" -> new: %f\n", f);
+			printf(" -> new: %4.4f\n", (double)f);
 
 		}
 
@@ -306,7 +334,7 @@ do_set(const char* name, const char* val)
 }
 
 static void
-do_compare(const char* name, const char* val)
+do_compare(const char* name, const char* vals[], unsigned comparisons)
 {
 	int32_t i;
 	float f;
@@ -330,12 +358,16 @@ do_compare(const char* name, const char* val)
 
 			/* convert string */
 			char* end;
-			int j = strtol(val,&end,10);
-			if (i == j) {
-				printf(" %d: ", i);
-				ret = 0;
-			}
 
+			for (unsigned k = 0; k < comparisons; k++) {
+
+				int j = strtol(vals[k],&end,10);
+
+				if (i == j) {
+					printf(" %d: ", i);
+					ret = 0;
+				}
+			}
 		}
 
 		break;
@@ -345,10 +377,14 @@ do_compare(const char* name, const char* val)
 
 			/* convert string */
 			char* end;
-			float g = strtod(val, &end);
-			if (fabsf(f - g) < 1e-7f) {
-				printf(" %4.4f: ", (double)f);
-				ret = 0;	
+
+			for (unsigned k = 0; k < comparisons; k++) {
+
+				float g = strtod(vals[k], &end);
+				if (fabsf(f - g) < 1e-7f) {
+					printf(" %4.4f: ", (double)f);
+					ret = 0;	
+				}
 			}
 		}
 
@@ -359,7 +395,7 @@ do_compare(const char* name, const char* val)
 	}
 
 	if (ret == 0) {
-		printf("%c %s: equal\n",
+		printf("%c %s: match\n",
 		param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
 		param_name(param));
 	}

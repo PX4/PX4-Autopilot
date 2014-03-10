@@ -160,7 +160,7 @@ ORB_DECLARE(output_pwm);
 
 #define DSM2_BIND_PULSES 3	/* DSM_BIND_START ioctl parameter, pulses required to start dsm2 pairing */
 #define DSMX_BIND_PULSES 7	/* DSM_BIND_START ioctl parameter, pulses required to start dsmx pairing */
-#define DSMX8_BIND_PULSES 10	/* DSM_BIND_START ioctl parameter, pulses required to start 8 or more channel dsmx pairing */
+#define DSMX8_BIND_PULSES 10 	/* DSM_BIND_START ioctl parameter, pulses required to start 8 or more channel dsmx pairing */
 
 /** power up DSM receiver */
 #define DSM_BIND_POWER_UP _IOC(_PWM_SERVO_BASE, 11)
@@ -188,6 +188,24 @@ ORB_DECLARE(output_pwm);
 
 /** get the maximum PWM value the output will send */
 #define PWM_SERVO_GET_MAX_PWM	_IOC(_PWM_SERVO_BASE, 19)
+
+/** set the number of servos in (unsigned)arg - allows change of
+ * split between servos and GPIO */
+#define PWM_SERVO_SET_COUNT	_IOC(_PWM_SERVO_BASE, 20)
+
+/** set the lockdown override flag to enable outputs in HIL */
+#define PWM_SERVO_SET_DISABLE_LOCKDOWN		_IOC(_PWM_SERVO_BASE, 21)
+
+/** get the lockdown override flag to enable outputs in HIL */
+#define PWM_SERVO_GET_DISABLE_LOCKDOWN		_IOC(_PWM_SERVO_BASE, 22)
+
+/*
+ *
+ *
+ * WARNING WARNING WARNING! DO NOT EXCEED 31 IN IOC INDICES HERE!
+ *
+ *
+ */
 
 /** set a single servo to a specific value */
 #define PWM_SERVO_SET(_servo)	_IOC(_PWM_SERVO_BASE, 0x20 + _servo)
