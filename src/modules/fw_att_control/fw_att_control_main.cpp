@@ -166,6 +166,15 @@ private:
 		float airspeed_min;
 		float airspeed_trim;
 		float airspeed_max;
+
+		float trim_roll;
+		float trim_pitch;
+		float trim_yaw;
+		float rollsp_offset_deg;			/**< Roll Setpoint Offset in deg */
+		float pitchsp_offset_deg;			/**< Pitch Setpoint Offset in deg */
+		float rollsp_offset_rad;			/**< Roll Setpoint Offset in rad */
+		float pitchsp_offset_rad;			/**< Pitch Setpoint Offset in rad */
+
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -197,6 +206,12 @@ private:
 		param_t airspeed_min;
 		param_t airspeed_trim;
 		param_t airspeed_max;
+
+		param_t trim_roll;
+		param_t trim_pitch;
+		param_t trim_yaw;
+		param_t rollsp_offset_deg;
+		param_t pitchsp_offset_deg;
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -335,6 +350,12 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	_parameter_handles.y_coordinated_min_speed = param_find("FW_YCO_VMIN");
 
+	_parameter_handles.trim_roll = param_find("TRIM_ROLL");
+	_parameter_handles.trim_pitch = param_find("TRIM_PITCH");
+	_parameter_handles.trim_yaw = param_find("TRIM_YAW");
+	_parameter_handles.rollsp_offset_deg = param_find("FW_RSP_OFF");
+	_parameter_handles.pitchsp_offset_deg = param_find("FW_PSP_OFF");
+
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -394,6 +415,15 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.airspeed_min, &(_parameters.airspeed_min));
 	param_get(_parameter_handles.airspeed_trim, &(_parameters.airspeed_trim));
 	param_get(_parameter_handles.airspeed_max, &(_parameters.airspeed_max));
+
+	param_get(_parameter_handles.trim_roll, &(_parameters.trim_roll));
+	param_get(_parameter_handles.trim_pitch, &(_parameters.trim_pitch));
+	param_get(_parameter_handles.trim_yaw, &(_parameters.trim_yaw));
+	param_get(_parameter_handles.rollsp_offset_deg, &(_parameters.rollsp_offset_deg));
+	param_get(_parameter_handles.pitchsp_offset_deg, &(_parameters.pitchsp_offset_deg));
+	_parameters.rollsp_offset_rad = math::radians(_parameters.rollsp_offset_deg);
+	_parameters.pitchsp_offset_rad = math::radians(_parameters.pitchsp_offset_deg);
+
 
 	/* pitch control parameters */
 	_pitch_ctrl.set_time_constant(_parameters.tconst);
@@ -648,13 +678,13 @@ FixedwingAttitudeControl::task_main()
 				float airspeed_scaling = _parameters.airspeed_trim / airspeed;
 				//warnx("aspd scale: %6.2f act scale: %6.2f", airspeed_scaling, actuator_scaling);
 
-				float roll_sp = 0.0f;
-				float pitch_sp = 0.0f;
+				float roll_sp = _parameters.rollsp_offset_rad;
+				float pitch_sp = _parameters.pitchsp_offset_rad;
 				float throttle_sp = 0.0f;
 
 				if (_vcontrol_mode.flag_control_velocity_enabled || _vcontrol_mode.flag_control_position_enabled) {
-					roll_sp = _att_sp.roll_body;
-					pitch_sp = _att_sp.pitch_body;
+					roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
+					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
 					throttle_sp = _att_sp.thrust;
 
 					/* reset integrals where needed */
@@ -670,9 +700,13 @@ FixedwingAttitudeControl::task_main()
 					 * With this mapping the stick angle is a 1:1 representation of
 					 * the commanded attitude. If more than 45 degrees are desired,
 					 * a scaling parameter can be applied to the remote.
+					 *
+					 * The trim gets subtracted here from the manual setpoint to get
+					 * the intended attitude setpoint. Later, after the rate control step the
+					 * trim is added again to the control signal.
 					 */
-					roll_sp = _manual.roll * 0.75f;
-					pitch_sp = _manual.pitch * 0.75f;
+					roll_sp = (_manual.roll - _parameters.trim_roll) * 0.75f + _parameters.rollsp_offset_rad;
+					pitch_sp = (_manual.pitch - _parameters.trim_pitch) * 0.75f + _parameters.pitchsp_offset_rad;
 					throttle_sp = _manual.throttle;
 					_actuators.control[4] = _manual.flaps;
 
@@ -685,7 +719,7 @@ FixedwingAttitudeControl::task_main()
 					att_sp.timestamp = hrt_absolute_time();
 					att_sp.roll_body = roll_sp;
 					att_sp.pitch_body = pitch_sp;
-					att_sp.yaw_body = 0.0f;
+					att_sp.yaw_body = 0.0f - _parameters.trim_yaw;
 					att_sp.thrust = throttle_sp;
 
 					/* lazily publish the setpoint only once available */
@@ -719,12 +753,12 @@ FixedwingAttitudeControl::task_main()
 							speed_body_u, speed_body_v, speed_body_w,
 							_roll_ctrl.get_desired_rate(), _pitch_ctrl.get_desired_rate()); //runs last, because is depending on output of roll and pitch attitude
 
-					/* Run attitude RATE controllers which need the desired attitudes from above */
+					/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
 					float roll_u = _roll_ctrl.control_bodyrate(_att.pitch,
 							_att.rollspeed, _att.yawspeed,
 							_yaw_ctrl.get_desired_rate(),
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
-					_actuators.control[0] = (isfinite(roll_u)) ? roll_u : 0.0f;
+					_actuators.control[0] = (isfinite(roll_u)) ? roll_u + _parameters.trim_roll : _parameters.trim_roll;
 					if (!isfinite(roll_u)) {
 						warnx("roll_u %.4f", roll_u);
 					}
@@ -733,7 +767,7 @@ FixedwingAttitudeControl::task_main()
 							_att.pitchspeed, _att.yawspeed,
 							_yaw_ctrl.get_desired_rate(),
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
-					_actuators.control[1] = (isfinite(pitch_u)) ? pitch_u : 0.0f;
+					_actuators.control[1] = (isfinite(pitch_u)) ? pitch_u + _parameters.trim_pitch : _parameters.trim_pitch;
 					if (!isfinite(pitch_u)) {
 						warnx("pitch_u %.4f, _yaw_ctrl.get_desired_rate() %.4f, airspeed %.4f, airspeed_scaling %.4f, roll_sp %.4f, pitch_sp %.4f, _roll_ctrl.get_desired_rate() %.4f, _pitch_ctrl.get_desired_rate() %.4f att_sp.roll_body %.4f",
 								pitch_u, _yaw_ctrl.get_desired_rate(), airspeed, airspeed_scaling, roll_sp, pitch_sp, _roll_ctrl.get_desired_rate(), _pitch_ctrl.get_desired_rate(), _att_sp.roll_body);
@@ -743,7 +777,7 @@ FixedwingAttitudeControl::task_main()
 							_att.pitchspeed, _att.yawspeed,
 							_pitch_ctrl.get_desired_rate(),
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
-					_actuators.control[2] = (isfinite(yaw_u)) ? yaw_u : 0.0f;
+					_actuators.control[2] = (isfinite(yaw_u)) ? yaw_u + _parameters.trim_yaw : _parameters.trim_yaw;
 					if (!isfinite(yaw_u)) {
 						warnx("yaw_u %.4f", yaw_u);
 					}
