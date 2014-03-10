@@ -19,7 +19,7 @@ from pyuavcan import dsdl
 MAX_BITLEN_FOR_ENUM = 31
 OUTPUT_FILE_EXTENSION = 'hpp'
 OUTPUT_FILE_PERMISSIONS = 0o444  # Read only for all
-TEMPLATE_FILENAME = os.path.join(os.path.dirname(__file__), 'data_type_template.hpp')
+TEMPLATE_FILENAME = os.path.join(os.path.dirname(__file__), 'data_type_template.tmpl')
 
 # -----------------
 
