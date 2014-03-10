@@ -3,9 +3,9 @@
  * Source: http://stackoverflow.com/questions/3534535/whats-a-time-efficient-algorithm-to-copy-unaligned-bit-arrays
  */
 
-#include <limits.h>
-#include <string.h>
-#include <stddef.h>
+#include <climits>
+#include <cstring>
+#include <cstddef>
 
 #define PREPARE_FIRST_COPY()                                      \
     do {                                                          \
@@ -19,11 +19,15 @@
         src_len = 0;                                              \
     } } while (0)
 
+namespace uavcan
+{
 
 void
 bitarray_copy(const unsigned char *src_org, int src_offset, int src_len,
                     unsigned char *dst_org, int dst_offset)
 {
+    using namespace std;
+
     static const unsigned char reverse_mask[] =
         { 0x55, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff };
     static const unsigned char reverse_mask_xor[] =
@@ -116,4 +120,6 @@ bitarray_copy(const unsigned char *src_org, int src_offset, int src_len,
             }
         }
     }
+}
+
 }

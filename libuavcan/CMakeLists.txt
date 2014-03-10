@@ -15,19 +15,13 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O1 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG "-g3 -DUAVCAN_DEBUG=1 -DDEBUG=1")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++03 -Wall -Wextra -Werror -pedantic -Wno-variadic-macros")
 
-set(CMAKE_C_FLAGS_RELWITHDEBINFO ${CMAKE_CXX_FLAGS_RELWITHDEBINFO})
-set(CMAKE_C_FLAGS_RELEASE        ${CMAKE_CXX_FLAGS_RELEASE})
-set(CMAKE_C_FLAGS_DEBUG          ${CMAKE_CXX_FLAGS_DEBUG})
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wextra -Werror -pedantic")
-
 include_directories(include)
 
 #
 # libuavcan
 #
 file(GLOB_RECURSE LIBUAVCAN_CXX_FILES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp")
-file(GLOB_RECURSE LIBUAVCAN_C_FILES   RELATIVE ${CMAKE_SOURCE_DIR} "src/*.c")
-add_library(uavcan SHARED ${LIBUAVCAN_CXX_FILES} ${LIBUAVCAN_C_FILES})
+add_library(uavcan SHARED ${LIBUAVCAN_CXX_FILES})
 
 # TODO installation rules
 
