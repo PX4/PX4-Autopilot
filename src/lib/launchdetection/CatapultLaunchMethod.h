@@ -44,17 +44,20 @@
 #include "LaunchMethod.h"
 
 #include <drivers/drv_hrt.h>
+#include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
-class CatapultLaunchMethod : public LaunchMethod
+namespace launchdetection
+{
+
+class CatapultLaunchMethod : public LaunchMethod, public control::SuperBlock
 {
 public:
-	CatapultLaunchMethod();
+	CatapultLaunchMethod(SuperBlock *parent);
 	~CatapultLaunchMethod();
 
 	void update(float accel_x);
 	bool getLaunchDetected();
-	void updateParams();
 	void reset();
 
 private:
@@ -68,3 +71,5 @@ private:
 };
 
 #endif /* CATAPULTLAUNCHMETHOD_H_ */
+
+}

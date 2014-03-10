@@ -186,7 +186,7 @@ private:
 	float target_bearing;
 
 	/* Launch detection */
-	LaunchDetector launchDetector;
+	launchdetection::LaunchDetector launchDetector;
 
 	/* throttle and airspeed states */
 	float _airspeed_error;				///< airspeed error to setpoint in m/s
@@ -989,6 +989,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				} else	{
 					/* no takeoff detection --> fly */
 					launch_detected = true;
+					warnx("launchdetection off");
 				}
 			}
 
