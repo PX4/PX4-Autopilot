@@ -854,6 +854,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int global_vel_sp_sub;
 		int battery_sub;
 		int telemetry_sub;
+		int target_pos_sub;
 	} subs;
 
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
