@@ -27,7 +27,7 @@ protected:
     virtual ~MonotonicDeadlineHandler() { stop(); }
 
 public:
-    virtual void onMonotonicDeadline(uint64_t monotonic_timestamp) = 0;
+    virtual void handleMonotonicDeadline(uint64_t monotonic_timestamp) = 0;
 
     void startWithDeadline(uint64_t monotonic_deadline);
     void startWithDelay(uint64_t delay_usec);

@@ -10,7 +10,7 @@ namespace uavcan
 
 const uint64_t Timer::InfinitePeriod;
 
-void Timer::onMonotonicDeadline(uint64_t monotonic_timestamp)
+void Timer::handleMonotonicDeadline(uint64_t monotonic_timestamp)
 {
     assert(!isRunning());
 
@@ -18,7 +18,7 @@ void Timer::onMonotonicDeadline(uint64_t monotonic_timestamp)
         startWithDeadline(getMonotonicDeadline() + period_);
 
     // Application can re-register the timer with different params, it's OK
-    onTimerEvent(TimerEvent(this, getMonotonicDeadline(), monotonic_timestamp));
+    handleTimerEvent(TimerEvent(this, getMonotonicDeadline(), monotonic_timestamp));
 }
 
 void Timer::startOneShotWithDeadline(uint64_t monotonic_deadline_usec)

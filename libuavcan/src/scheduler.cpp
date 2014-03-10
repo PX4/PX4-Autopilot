@@ -98,7 +98,7 @@ uint64_t MonotonicDeadlineScheduler::pollAndGetMonotonicTimestamp(ISystemClock& 
             return ts;
 
         handlers_.remove(mdh);
-        mdh->onMonotonicDeadline(ts);   // This handler can be re-registered immediately
+        mdh->handleMonotonicDeadline(ts);   // This handler can be re-registered immediately
     }
     assert(0);
     return 0;

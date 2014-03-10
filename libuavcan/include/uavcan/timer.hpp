@@ -33,7 +33,7 @@ class Timer : private MonotonicDeadlineHandler
 {
     uint64_t period_;
 
-    void onMonotonicDeadline(uint64_t monotonic_timestamp);
+    void handleMonotonicDeadline(uint64_t monotonic_timestamp);
 
 public:
     static const uint64_t InfinitePeriod = 0xFFFFFFFFFFFFFFFFUL;
@@ -54,7 +54,7 @@ public:
 
     uint64_t getPeriod() const { return period_; }
 
-    virtual void onTimerEvent(const TimerEvent& event) = 0;
+    virtual void handleTimerEvent(const TimerEvent& event) = 0;
 };
 
 
@@ -77,7 +77,7 @@ public:
     const Callback& getCallback() const { return callback_; }
     void setCallback(const Callback& callback) { callback_ = callback; }
 
-    void onTimerEvent(const TimerEvent& event)
+    void handleTimerEvent(const TimerEvent& event)
     {
         if (try_implicit_cast<bool>(callback_, true))
             callback_(event);
