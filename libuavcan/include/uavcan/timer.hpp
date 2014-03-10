@@ -64,7 +64,7 @@ class TimerEventForwarder : public Timer
     Callback callback_;
 
 public:
-    TimerEventForwarder(Scheduler& node)
+    explicit TimerEventForwarder(Scheduler& node)
     : Timer(node)
     , callback_()
     { }
