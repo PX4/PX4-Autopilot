@@ -5,7 +5,7 @@
 #pragma once
 
 #include <stdint.h>
-#include <uavcan/scheduler.hpp>
+#include <uavcan/internal/node/scheduler.hpp>
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/internal/linked_list.hpp>
 #include <uavcan/internal/fatal_error.hpp>

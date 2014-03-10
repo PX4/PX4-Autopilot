@@ -4,16 +4,8 @@
 
 #pragma once
 
-#include <uavcan/scheduler.hpp>
-#include <uavcan/data_type.hpp>
-#include <uavcan/global_data_type_registry.hpp>
-#include <uavcan/received_data_structure.hpp>
-#include <uavcan/util/compile_time.hpp>
-#include <uavcan/util/lazy_constructor.hpp>
-#include <uavcan/internal/debug.hpp>
-#include <uavcan/internal/transport/transfer_listener.hpp>
-#include <uavcan/internal/marshal/scalar_codec.hpp>
-#include <uavcan/internal/marshal/types.hpp>
+#include <cassert>
+#include <uavcan/internal/node/generic_subscriber.hpp>
 
 namespace uavcan
 {
@@ -21,109 +13,30 @@ namespace uavcan
 template <typename DataType_,
           typename Callback = void(*)(const ReceivedDataStructure<DataType_>&),
           unsigned int NumStaticReceivers = 2,
-          unsigned int NumStaticBufs_ = 1>
-class Subscriber : Noncopyable
+          unsigned int NumStaticBufs = 1>
+class Subscriber : public GenericSubscriber<DataType_, DataType_, NumStaticReceivers, NumStaticBufs>
 {
-    typedef Subscriber<DataType_, Callback, NumStaticReceivers, NumStaticBufs_> SelfType;
+    typedef GenericSubscriber<DataType_, DataType_, NumStaticReceivers, NumStaticBufs> BaseType;
+
+    Callback callback_;
+
+    void handleReceivedDataStruct(ReceivedDataStructure<DataType_>& msg)
+    {
+        if (try_implicit_cast<bool>(callback_, true))
+            callback_(msg);
+        else
+            handleFatalError("Invalid subscriber callback");
+    }
 
 public:
     typedef DataType_ DataType;
 
-private:
-    enum { DataTypeMaxByteLen = BitLenToByteLen<DataType::MaxBitLen>::Result };
-    enum { NeedsBuffer = int(DataTypeMaxByteLen) > int(MaxSingleFrameTransferPayloadLen) };
-    enum { BufferSize = NeedsBuffer ? DataTypeMaxByteLen : 0 };
-    enum { NumStaticBufs = NeedsBuffer ? (NumStaticBufs_ ? NumStaticBufs_ : 1) : 0 };
-
-    typedef TransferListener<BufferSize, NumStaticBufs,  // TODO: support for zero static bufs
-                             NumStaticReceivers ? NumStaticReceivers : 1> TransferListenerType;
-
-    // We need to break the inheritance chain here to implement lazy initialization
-    class TransferForwarder : public TransferListenerType
-    {
-        SelfType& obj_;
-
-        void handleIncomingTransfer(IncomingTransfer& transfer)
-        {
-            obj_.handleIncomingTransfer(transfer);
-        }
-
-    public:
-        TransferForwarder(SelfType& obj, const DataTypeDescriptor& data_type, IAllocator& allocator)
-        : TransferListenerType(data_type, allocator)
-        , obj_(obj)
-        { }
-    };
-
-    struct ReceivedDataStructureSpec : public ReceivedDataStructure<DataType>
-    {
-        using ReceivedDataStructure<DataType>::setTransfer;
-    };
-
-    Scheduler& scheduler_;
-    IAllocator& allocator_;
-    Callback callback_;
-    LazyConstructor<TransferForwarder> forwarder_;
-    ReceivedDataStructureSpec message_;
-    uint32_t failure_count_;
-
-    bool checkInit()
-    {
-        if (forwarder_)
-            return true;
-
-        GlobalDataTypeRegistry::instance().freeze();
-
-        const DataTypeDescriptor* const descr =
-            GlobalDataTypeRegistry::instance().find(DataTypeKindMessage, DataType::getDataTypeFullName());
-        if (!descr)
-        {
-            UAVCAN_TRACE("Subscriber", "Type [%s] is not registered", DataType::getDataTypeFullName());
-            return false;
-        }
-        forwarder_.template construct<SelfType&, const DataTypeDescriptor&, IAllocator&>(*this, *descr, allocator_);
-        return true;
-    }
-
-    void handleIncomingTransfer(IncomingTransfer& transfer)
-    {
-        assert(transfer.getTransferType() == TransferTypeMessageBroadcast ||
-               transfer.getTransferType() == TransferTypeMessageUnicast);
-
-        {
-            BitStream bitstream(transfer);
-            ScalarCodec codec(bitstream);
-
-            const int decode_res = DataType::decode(message_, codec);
-            // We don't need the data anymore, the memory can be reused from the callback:
-            transfer.release();
-            if (decode_res <= 0)
-            {
-                UAVCAN_TRACE("Subscriber", "Unable to decode the message [%i] [%s]",
-                    decode_res, DataType::getDataTypeFullName());
-                failure_count_++;
-                return;
-            }
-        }
-
-        message_.setTransfer(&transfer);
-        if (try_implicit_cast<bool>(callback_, true))
-            callback_(message_);  // Callback can accept non-const message reference and mutate it, that's OK
-        else
-            assert(0);
-    }
-
-public:
     Subscriber(Scheduler& scheduler, IAllocator& allocator)
-    : scheduler_(scheduler)
-    , allocator_(allocator)
+    : BaseType(scheduler, allocator)
     , callback_()
-    , failure_count_(0)
     {
         StaticAssert<DataTypeKind(DataType::DataTypeKind) == DataTypeKindMessage>::check();
     }
-
-    virtual ~Subscriber() { stop(); }
 
     int start(Callback callback)
     {
@@ -136,29 +49,10 @@ public:
         }
         callback_ = callback;
 
-        if (!checkInit())
-        {
-            UAVCAN_TRACE("Subscriber", "Initialization failure [%s]", DataType::getDataTypeFullName());
-            return -1;
-        }
-
-        if (!scheduler_.getDispatcher().registerMessageListener(forwarder_))
-        {
-            UAVCAN_TRACE("Subscriber", "Failed to register message listener [%s]", DataType::getDataTypeFullName());
-            return -1;
-        }
-        return 1;
+        return BaseType::startAsMessageListener();
     }
 
-    void stop()
-    {
-        if (forwarder_)
-            scheduler_.getDispatcher().unregisterMessageListener(forwarder_);
-    }
-
-    Scheduler& getScheduler() const { return scheduler_; }
-
-    uint32_t getFailureCount() const { return failure_count_; }
+    using BaseType::stop;
 };
 
 }

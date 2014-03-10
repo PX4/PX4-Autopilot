@@ -26,6 +26,10 @@ TEST(Publisher, Basic)
 
     uavcan::Publisher<uavcan::mavlink::Message> publisher(sch, buffer_provider);
 
+    std::cout <<
+        "sizeof(uavcan::Publisher<uavcan::mavlink::Message>): " <<
+        sizeof(uavcan::Publisher<uavcan::mavlink::Message>) << std::endl;
+
     // Manual type registration - we can't rely on the GDTR state
     uavcan::GlobalDataTypeRegistry::instance().reset();
     uavcan::DefaultDataTypeRegistrator<uavcan::mavlink::Message> _registrator;

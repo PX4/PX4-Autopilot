@@ -4,7 +4,7 @@
 
 #include <cassert>
 #include <limits>
-#include <uavcan/scheduler.hpp>
+#include <uavcan/internal/node/scheduler.hpp>
 #include <uavcan/internal/debug.hpp>
 
 namespace uavcan

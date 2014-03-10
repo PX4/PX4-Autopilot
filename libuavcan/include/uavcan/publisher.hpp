@@ -4,101 +4,31 @@
 
 #pragma once
 
-#include <uavcan/scheduler.hpp>
-#include <uavcan/data_type.hpp>
-#include <uavcan/marshal_buffer.hpp>
-#include <uavcan/global_data_type_registry.hpp>
-#include <uavcan/util/lazy_constructor.hpp>
-#include <uavcan/internal/debug.hpp>
-#include <uavcan/internal/transport/transfer_sender.hpp>
-#include <uavcan/internal/marshal/scalar_codec.hpp>
-#include <uavcan/internal/marshal/types.hpp>
+#include <uavcan/internal/node/generic_publisher.hpp>
 
 namespace uavcan
 {
 
 template <typename DataType_>
-class Publisher
+class Publisher : public GenericPublisher<DataType_, DataType_>
 {
+    typedef GenericPublisher<DataType_, DataType_> BaseType;
+
 public:
     typedef DataType_ DataType;
 
-    enum { DefaultTxTimeoutUsec = 2500 };  // 2500 ms --> 400Hz max
-    enum { MinTxTimeoutUsec = 200 };
-
-private:
-    const uint64_t max_transfer_interval_;   // TODO: memory usage can be reduced
-    uint64_t tx_timeout_;
-    Scheduler& scheduler_;
-    IMarshalBufferProvider& buffer_provider_;
-    LazyConstructor<TransferSender> sender_;
-
-    bool checkInit()
-    {
-        if (sender_)
-            return true;
-
-        GlobalDataTypeRegistry::instance().freeze();
-
-        const DataTypeDescriptor* const descr =
-            GlobalDataTypeRegistry::instance().find(DataTypeKindMessage, DataType::getDataTypeFullName());
-        if (!descr)
-        {
-            UAVCAN_TRACE("Publisher", "Type [%s] is not registered", DataType::getDataTypeFullName());
-            return false;
-        }
-        sender_.template construct<Dispatcher&, const DataTypeDescriptor&, CanTxQueue::Qos, uint64_t>
-            (scheduler_.getDispatcher(), *descr, CanTxQueue::Volatile, max_transfer_interval_);
-        return true;
-    }
-
-    uint64_t getTxDeadline() const { return scheduler_.getMonotonicTimestamp() + tx_timeout_; }
-
-    IMarshalBuffer* getBuffer()
-    {
-        return buffer_provider_.getBuffer(BitLenToByteLen<DataType::MaxBitLen>::Result);
-    }
-
-    int genericSend(const DataType& message, TransferType transfer_type, NodeID dst_node_id,
-                    uint64_t monotonic_blocking_deadline = 0)
-    {
-        if (!checkInit())
-            return -1;
-
-        IMarshalBuffer* const buf = getBuffer();
-        if (!buf)
-            return -1;
-
-        {
-            BitStream bitstream(*buf);
-            ScalarCodec codec(bitstream);
-            const int encode_res = DataType::encode(message, codec);
-            if (encode_res <= 0)
-            {
-                assert(0);   // Impossible, internal error
-                return -1;
-            }
-        }
-        return sender_->send(buf->getDataPtr(), buf->getDataLength(), getTxDeadline(),
-                             monotonic_blocking_deadline, transfer_type, dst_node_id);
-    }
-
-public:
     Publisher(Scheduler& scheduler, IMarshalBufferProvider& buffer_provider,
-              uint64_t tx_timeout_usec = DefaultTxTimeoutUsec,
+              uint64_t tx_timeout_usec = BaseType::DefaultTxTimeoutUsec,
               uint64_t max_transfer_interval = TransferSender::DefaultMaxTransferInterval)
-    : max_transfer_interval_(max_transfer_interval)
-    , tx_timeout_(tx_timeout_usec)
-    , scheduler_(scheduler)
-    , buffer_provider_(buffer_provider)
+    : BaseType(scheduler, buffer_provider, max_transfer_interval)
     {
-        setTxTimeout(tx_timeout_usec);
+        BaseType::setTxTimeout(tx_timeout_usec);
         StaticAssert<DataTypeKind(DataType::DataTypeKind) == DataTypeKindMessage>::check();
     }
 
     int broadcast(const DataType& message)
     {
-        return genericSend(message, TransferTypeMessageBroadcast, NodeID::Broadcast);
+        return publish(message, TransferTypeMessageBroadcast, NodeID::Broadcast);
     }
 
     int unicast(const DataType& message, NodeID dst_node_id)
@@ -108,16 +38,8 @@ public:
             assert(0);
             return -1;
         }
-        return genericSend(message, TransferTypeMessageUnicast, dst_node_id);
+        return publish(message, TransferTypeMessageUnicast, dst_node_id);
     }
-
-    uint64_t getTxTimeout() const { return tx_timeout_; }
-    void setTxTimeout(uint64_t usec)
-    {
-        tx_timeout_ = std::max(usec, uint64_t(MinTxTimeoutUsec));
-    }
-
-    Scheduler& getScheduler() const { return scheduler_; }
 };
 
 }
