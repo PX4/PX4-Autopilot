@@ -5,8 +5,8 @@
 #include <gtest/gtest.h>
 #include <uavcan/publisher.hpp>
 #include <uavcan/mavlink/Message.hpp>
-#include "common.hpp"
-#include "transport/can/iface_mock.hpp"
+#include "clock.hpp"
+#include "internal/transport/can/can.hpp"
 
 
 TEST(Publisher, Basic)

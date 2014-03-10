@@ -7,8 +7,8 @@
 #include <uavcan/util/method_binder.hpp>
 #include <uavcan/mavlink/Message.hpp>
 #include <root_ns_a/EmptyMessage.hpp>
-#include "common.hpp"
-#include "transport/can/iface_mock.hpp"
+#include "clock.hpp"
+#include "internal/transport/can/can.hpp"
 
 
 template <typename DataType>

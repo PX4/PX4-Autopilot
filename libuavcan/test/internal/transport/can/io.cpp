@@ -3,7 +3,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "iface_mock.hpp"
+#include "can.hpp"
 
 
 static bool rxFrameEquals(const uavcan::CanRxFrame& rxframe, const uavcan::CanFrame& frame,

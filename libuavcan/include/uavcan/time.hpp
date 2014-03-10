@@ -174,7 +174,7 @@ public:
 
     UtcTime& operator=(const Timestamp& ts)
     {
-        *this = UtcTime::fromUSec(ts.husec * Timestamp::USEC_PER_LSB);
+        *this = fromUSec(ts.husec * Timestamp::USEC_PER_LSB);
         return *this;
     }
 

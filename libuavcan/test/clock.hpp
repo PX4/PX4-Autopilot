@@ -5,7 +5,6 @@
 #pragma once
 
 #include <cassert>
-#include <uavcan/can_driver.hpp>
 #include <uavcan/system_clock.hpp>
 #include <time.h>
 #include <sys/time.h>
@@ -82,14 +81,6 @@ public:
         assert(0);
     }
 };
-
-
-enum FrameType { STD, EXT };
-static uavcan::CanFrame makeCanFrame(uint32_t id, const std::string& str_data, FrameType type)
-{
-    id |= (type == EXT) ? uavcan::CanFrame::FlagEFF : 0;
-    return uavcan::CanFrame(id, reinterpret_cast<const uint8_t*>(str_data.c_str()), str_data.length());
-}
 
 static bool areTimestampsClose(int64_t a, int64_t b, int64_t precision_usec = 10000)
 {

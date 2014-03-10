@@ -5,7 +5,7 @@
 #include <memory>
 #include <gtest/gtest.h>
 #include "transfer_test_helpers.hpp"
-#include "can/iface_mock.hpp"
+#include "can/can.hpp"
 #include <uavcan/internal/transport/dispatcher.hpp>
 
 

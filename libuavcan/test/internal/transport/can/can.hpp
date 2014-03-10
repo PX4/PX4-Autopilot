@@ -4,12 +4,15 @@
 
 #pragma once
 
+#include <cassert>
 #include <queue>
 #include <vector>
 #include <gtest/gtest.h>
 #include <uavcan/internal/transport/can_io.hpp>
 #include <uavcan/internal/transport/transfer.hpp>
-#include "../../common.hpp"
+#include <uavcan/can_driver.hpp>
+#include <uavcan/system_clock.hpp>
+#include "../../../clock.hpp"
 
 
 class CanIfaceMock : public uavcan::ICanIface
@@ -155,3 +158,10 @@ public:
     uavcan::ICanIface* getIface(int iface_index) { return &ifaces.at(iface_index); }
     int getNumIfaces() const { return ifaces.size(); }
 };
+
+enum FrameType { STD, EXT };
+static uavcan::CanFrame makeCanFrame(uint32_t id, const std::string& str_data, FrameType type)
+{
+    id |= (type == EXT) ? uavcan::CanFrame::FlagEFF : 0;
+    return uavcan::CanFrame(id, reinterpret_cast<const uint8_t*>(str_data.c_str()), str_data.length());
+}

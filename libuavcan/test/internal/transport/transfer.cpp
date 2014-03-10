@@ -5,7 +5,8 @@
 #include <string>
 #include <gtest/gtest.h>
 #include <uavcan/internal/transport/transfer.hpp>
-#include "../common.hpp"
+#include "../../clock.hpp"
+#include "can/can.hpp"
 
 
 TEST(Transfer, TransferID)

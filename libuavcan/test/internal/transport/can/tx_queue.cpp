@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <uavcan/internal/transport/can_io.hpp>
-#include "../../common.hpp"
+#include "can.hpp"
 
 
 static int getQueueLength(uavcan::CanTxQueue& queue)

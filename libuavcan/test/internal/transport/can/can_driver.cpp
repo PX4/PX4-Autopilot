@@ -3,7 +3,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "common.hpp"
+#include "can.hpp"
 #include <uavcan/can_driver.hpp>
 
 TEST(CanFrame, FrameProperties)

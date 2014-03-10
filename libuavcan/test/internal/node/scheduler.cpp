@@ -5,8 +5,8 @@
 #include <gtest/gtest.h>
 #include <uavcan/timer.hpp>
 #include <uavcan/util/method_binder.hpp>
-#include "../common.hpp"
-#include "../transport/can/iface_mock.hpp"
+#include "../../clock.hpp"
+#include "../transport/can/can.hpp"
 
 struct TimerCallCounter
 {

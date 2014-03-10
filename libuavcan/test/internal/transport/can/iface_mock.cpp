@@ -3,7 +3,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "iface_mock.hpp"
+#include "can.hpp"
 
 TEST(CanIOManager, CanDriverMock)
 {
