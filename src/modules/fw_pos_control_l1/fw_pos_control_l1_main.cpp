@@ -350,12 +350,12 @@ private:
 	/*
 	 * Reset takeoff state
 	 */
-	int reset_takeoff_state();
+	void reset_takeoff_state();
 
 	/*
 	 * Reset landing state
 	 */
-	int reset_landing_state();
+	void reset_landing_state();
 };
 
 namespace l1_control
@@ -1312,14 +1312,14 @@ FixedwingPositionControl::task_main()
 	_exit(0);
 }
 
-int FixedwingPositionControl::reset_takeoff_state()
+void FixedwingPositionControl::reset_takeoff_state()
 {
 	launch_detected = false;
 	usePreTakeoffThrust = false;
 	launchDetector.reset();
 }
 
-int FixedwingPositionControl::reset_landing_state()
+void FixedwingPositionControl::reset_landing_state()
 {
 	land_noreturn_horizontal = false;
 	land_noreturn_vertical = false;
