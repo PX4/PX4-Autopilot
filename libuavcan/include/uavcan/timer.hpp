@@ -58,31 +58,31 @@ public:
 };
 
 
-template <typename Functor>
+template <typename Callback>
 class TimerEventForwarder : public Timer
 {
-    Functor functor_;
+    Callback callback_;
 
 public:
     TimerEventForwarder(Scheduler& node)
     : Timer(node)
-    , functor_()
+    , callback_()
     { }
 
-    TimerEventForwarder(Scheduler& node, Functor functor)
+    TimerEventForwarder(Scheduler& node, Callback callback)
     : Timer(node)
-    , functor_(functor)
+    , callback_(callback)
     { }
 
-    const Functor& getFunctor() const { return functor_; }
-    void setFunctor(const Functor& functor) { functor_ = functor; }
+    const Callback& getCallback() const { return callback_; }
+    void setCallback(const Callback& callback) { callback_ = callback; }
 
     void onTimerEvent(const TimerEvent& event)
     {
-        if (try_implicit_cast<bool>(functor_, true))
-            functor_(event);
+        if (try_implicit_cast<bool>(callback_, true))
+            callback_(event);
         else
-            handleFatalError("Invalid timer functor");
+            handleFatalError("Invalid timer callback");
     }
 };
 
