@@ -95,6 +95,8 @@ struct ${t.cpp_type_name}
     ${':' if idx == 0 else ','} ${a.name}()
 % endfor
     {
+        enum { MaxByteLen = ::uavcan::BitLenToByteLen<MaxBitLen>::Result };
+        ::uavcan::StaticAssert<int(MaxByteLen) <= int(::uavcan::MaxTransferPayloadLen)>::check();
 #if UAVCAN_DEBUG
         /*
          * Cross-checking MaxBitLen provided by the DSDL compiler.
