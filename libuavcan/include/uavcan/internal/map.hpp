@@ -37,12 +37,12 @@ UAVCAN_PACKED_BEGIN
 
     struct KVGroup : LinkedListNode<KVGroup>
     {
-        enum { NUM_KV = (MemPoolBlockSize - sizeof(LinkedListNode<KVGroup>)) / sizeof(KVPair) };
-        KVPair kvs[NUM_KV];
+        enum { NumKV = (MemPoolBlockSize - sizeof(LinkedListNode<KVGroup>)) / sizeof(KVPair) };
+        KVPair kvs[NumKV];
 
         KVGroup()
         {
-            StaticAssert<(NUM_KV > 0)>::check();
+            StaticAssert<(NumKV > 0)>::check();
             IsDynamicallyAllocatable<KVGroup>::check();
         }
 
@@ -66,7 +66,7 @@ UAVCAN_PACKED_BEGIN
 
         KVPair* find(const Key& key)
         {
-            for (int i = 0; i < NUM_KV; i++)
+            for (int i = 0; i < NumKV; i++)
                 if (kvs[i].match(key))
                     return kvs + i;
             return NULL;
@@ -118,7 +118,7 @@ UAVCAN_PACKED_END
             while (p)
             {
                 bool stop = false;
-                for (int i = 0; i < KVGroup::NUM_KV; i++)
+                for (int i = 0; i < KVGroup::NumKV; i++)
                 {
                     if (!p->kvs[i].match(Key())) // Non empty
                     {
@@ -147,7 +147,7 @@ UAVCAN_PACKED_END
         {
             KVGroup* const next = p->getNextListNode();
             bool remove_this = true;
-            for (int i = 0; i < KVGroup::NUM_KV; i++)
+            for (int i = 0; i < KVGroup::NumKV; i++)
             {
                 if (!p->kvs[i].match(Key()))
                 {
@@ -247,7 +247,7 @@ public:
         KVGroup* p = list_.get();
         while (p)
         {
-            for (int i = 0; i < KVGroup::NUM_KV; i++)
+            for (int i = 0; i < KVGroup::NumKV; i++)
             {
                 const KVPair* const kv = p->kvs + i;
                 if (!kv->match(Key()))
@@ -293,7 +293,7 @@ public:
         KVGroup* p = list_.get();
         while (p)
         {
-            for (int i = 0; i < KVGroup::NUM_KV; i++)
+            for (int i = 0; i < KVGroup::NumKV; i++)
             {
                 const KVPair* const kv = p->kvs + i;
                 if (!kv->match(Key()))
