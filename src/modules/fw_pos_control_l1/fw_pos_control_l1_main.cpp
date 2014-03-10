@@ -356,6 +356,15 @@ private:
 	 * Reset landing state
 	 */
 	void reset_landing_state();
+
+	/*
+	 * Call TECS
+	 */
+	void tecs_update_pitch_throttle(float alt_sp, float v_sp, float eas2tas,
+			float pitch_min_rad, float pitch_max_rad,
+			float throttle_min, float throttle_max, float throttle_cruise,
+			bool climbout_mode, float climbout_pitch_min_rad);
+
 };
 
 namespace l1_control
@@ -819,11 +828,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_att_sp.roll_body = _l1_control.nav_roll();
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
-			_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _pos_sp_triplet.current.alt, calculate_target_airspeed(_parameters.airspeed_trim),
-						    _airspeed.indicated_airspeed_m_s, eas2tas,
-						    false, math::radians(_parameters.pitch_limit_min),
-						    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
-						    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
+			tecs_update_pitch_throttle(_pos_sp_triplet.current.alt, calculate_target_airspeed(_parameters.airspeed_trim), eas2tas,
+						math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
+						_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
+						false, math::radians(_parameters.pitch_limit_min));
 
 		} else if (pos_sp_triplet.current.type == SETPOINT_TYPE_LOITER) {
 
@@ -833,11 +841,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_att_sp.roll_body = _l1_control.nav_roll();
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
-			_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _pos_sp_triplet.current.alt, calculate_target_airspeed(_parameters.airspeed_trim),
-						    _airspeed.indicated_airspeed_m_s, eas2tas,
-						    false, math::radians(_parameters.pitch_limit_min),
-						    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
-						    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
+			tecs_update_pitch_throttle(_pos_sp_triplet.current.alt, calculate_target_airspeed(_parameters.airspeed_trim), eas2tas,
+						math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
+						_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
+						false, math::radians(_parameters.pitch_limit_min));
 
 		} else if (pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
 
@@ -929,11 +936,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					land_stayonground = true;
 				}
 
-				_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, flare_curve_alt, calculate_target_airspeed(airspeed_land),
-												    _airspeed.indicated_airspeed_m_s, eas2tas,
-												    false, flare_pitch_angle_rad,
-												    0.0f, throttle_max, throttle_land,
-												    flare_pitch_angle_rad,  math::radians(15.0f));
+				tecs_update_pitch_throttle(flare_curve_alt, calculate_target_airspeed(airspeed_land), eas2tas,
+						flare_pitch_angle_rad, math::radians(15.0f),
+						0.0f, throttle_max, throttle_land,
+						false, flare_pitch_angle_rad);
 
 				if (!land_noreturn_vertical) {
 					mavlink_log_info(_mavlink_fd, "#audio: Landing, flaring");
@@ -962,11 +968,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					altitude_desired =  math::max(_global_pos.alt, L_altitude);
 				}
 
-				_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, altitude_desired, calculate_target_airspeed(airspeed_approach),
-							    _airspeed.indicated_airspeed_m_s, eas2tas,
-							    false, math::radians(_parameters.pitch_limit_min),
-							    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
-							    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
+				tecs_update_pitch_throttle(altitude_desired, calculate_target_airspeed(airspeed_approach), eas2tas,
+						math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
+						_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
+						false, math::radians(_parameters.pitch_limit_min));
 			}
 
 		} else if (pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF) {
@@ -1004,22 +1009,19 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				if (altitude_error > 15.0f) {
 
 					/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _pos_sp_triplet.current.alt, calculate_target_airspeed(1.3f * _parameters.airspeed_min),
-									_airspeed.indicated_airspeed_m_s, eas2tas,
-									true, math::max(math::radians(pos_sp_triplet.current.pitch_min), math::radians(10.0f)),
-									_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
-									math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
+					tecs_update_pitch_throttle(_pos_sp_triplet.current.alt, calculate_target_airspeed(1.3f * _parameters.airspeed_min), eas2tas,
+							math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
+							_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
+							true, math::max(math::radians(pos_sp_triplet.current.pitch_min), math::radians(10.0f)));
 
 					/* limit roll motion to ensure enough lift */
 					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f), math::radians(15.0f));
 
 				} else {
-
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _pos_sp_triplet.current.alt, calculate_target_airspeed(_parameters.airspeed_trim),
-									_airspeed.indicated_airspeed_m_s, eas2tas,
-									false, math::radians(_parameters.pitch_limit_min),
-									_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
-									math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
+					tecs_update_pitch_throttle(_pos_sp_triplet.current.alt, calculate_target_airspeed(_parameters.airspeed_trim), eas2tas,
+								math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
+								_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
+								false, math::radians(_parameters.pitch_limit_min));
 				}
 
 			} else {
@@ -1083,12 +1085,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		_l1_control.navigate_heading(_seatbelt_hold_heading, _att.yaw, ground_speed);
 		_att_sp.roll_body = _l1_control.nav_roll();
 		_att_sp.yaw_body = _l1_control.nav_bearing();
-		_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_pos.alt + _manual.pitch * 2.0f,
-					    seatbelt_airspeed,
-					    _airspeed.indicated_airspeed_m_s, eas2tas,
-					    false, _parameters.pitch_limit_min,
-					    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
-					    _parameters.pitch_limit_min, _parameters.pitch_limit_max);
+		tecs_update_pitch_throttle(_global_pos.alt + _manual.pitch * 2.0f, seatbelt_airspeed, eas2tas,
+					math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
+					_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
+					false, math::radians(_parameters.pitch_limit_min));
 
 	} else if (0/* seatbelt mode enabled */) {
 
@@ -1127,12 +1127,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		_l1_control.navigate_heading(_seatbelt_hold_heading, _att.yaw, ground_speed);
 		_att_sp.roll_body =	_manual.roll;
 		_att_sp.yaw_body =	_manual.yaw;
-		_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_pos.alt + _manual.pitch * 2.0f,
-					    seatbelt_airspeed,
-					    _airspeed.indicated_airspeed_m_s, eas2tas,
-					    climb_out, _parameters.pitch_limit_min,
-					    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
-					    _parameters.pitch_limit_min, _parameters.pitch_limit_max);
+		tecs_update_pitch_throttle(_global_pos.alt + _manual.pitch * 2.0f, seatbelt_airspeed, eas2tas,
+					math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
+					_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
+					climb_out, math::radians(_parameters.pitch_limit_min));
 
 	} else {
 
@@ -1326,6 +1324,18 @@ void FixedwingPositionControl::reset_landing_state()
 	land_stayonground = false;
 	land_motor_lim = false;
 	land_onslope = false;
+}
+
+void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_sp, float eas2tas,
+		float pitch_min_rad, float pitch_max_rad,
+		float throttle_min, float throttle_max, float throttle_cruise,
+		bool climbout_mode, float climbout_pitch_min_rad)
+{
+	_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, alt_sp, v_sp,
+				    _airspeed.indicated_airspeed_m_s, eas2tas,
+				    climbout_mode, climbout_pitch_min_rad,
+				    throttle_min, throttle_max, throttle_cruise,
+				    pitch_min_rad, pitch_max_rad);
 }
 
 int
