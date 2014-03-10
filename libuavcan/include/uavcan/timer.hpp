@@ -8,6 +8,7 @@
 #include <uavcan/scheduler.hpp>
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/internal/linked_list.hpp>
+#include <uavcan/internal/fatal_error.hpp>
 
 namespace uavcan
 {
@@ -63,21 +64,25 @@ class TimerEventForwarder : public Timer
     Functor functor_;
 
 public:
+    TimerEventForwarder(Scheduler& node)
+    : Timer(node)
+    , functor_()
+    { }
+
     TimerEventForwarder(Scheduler& node, Functor functor)
     : Timer(node)
     , functor_(functor)
-    {
-        assert(try_implicit_cast<bool>(functor, true));
-    }
+    { }
 
     const Functor& getFunctor() const { return functor_; }
+    void setFunctor(const Functor& functor) { functor_ = functor; }
 
     void onTimerEvent(const TimerEvent& event)
     {
         if (try_implicit_cast<bool>(functor_, true))
             functor_(event);
         else
-            assert(0);
+            handleFatalError("Invalid timer functor");
     }
 };
 
