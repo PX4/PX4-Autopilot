@@ -112,3 +112,34 @@ TEST(DataTypeDescriptor, Match)
     ASSERT_FALSE(desc.match(uavcan::DataTypeKindMessage, "boo"));
     ASSERT_FALSE(desc.match(uavcan::DataTypeKindService, "namespace.TypeName"));
 }
+
+
+TEST(DataTypeID, Basic)
+{
+    uavcan::DataTypeID id;
+
+    ASSERT_EQ(0xFFFF, id.get());
+    ASSERT_FALSE(id.isValid());
+
+    id = 123;
+    uavcan::DataTypeID id2 = 456;
+
+    ASSERT_EQ(123, id.get());
+    ASSERT_EQ(456, id2.get());
+
+    ASSERT_TRUE(id.isValid());
+    ASSERT_TRUE(id2.isValid());
+
+    ASSERT_TRUE(id < id2);
+    ASSERT_TRUE(id <= id2);
+    ASSERT_TRUE(id2 > id);
+    ASSERT_TRUE(id2 >= id);
+    ASSERT_TRUE(id != id2);
+
+    id = id2;
+    ASSERT_FALSE(id < id2);
+    ASSERT_TRUE(id <= id2);
+    ASSERT_FALSE(id2 > id);
+    ASSERT_TRUE(id2 >= id);
+    ASSERT_TRUE(id == id2);
+}
