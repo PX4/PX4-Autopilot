@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <uavcan/internal/marshal/bit_stream.hpp>
+#include <uavcan/internal/transport/transfer_buffer.hpp>
 
 
 TEST(BitStream, ToString)

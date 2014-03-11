@@ -9,7 +9,7 @@
 #include <vector>
 #include <gtest/gtest.h>
 #include <uavcan/internal/transport/can_io.hpp>
-#include <uavcan/internal/transport/transfer.hpp>
+#include <uavcan/internal/transport/frame.hpp>
 #include <uavcan/can_driver.hpp>
 #include <uavcan/system_clock.hpp>
 #include "../../../clock.hpp"

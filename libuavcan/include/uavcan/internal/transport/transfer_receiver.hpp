@@ -5,7 +5,7 @@
 #pragma once
 
 #include <cstdlib>
-#include <uavcan/internal/transport/transfer.hpp>
+#include <uavcan/internal/transport/frame.hpp>
 #include <uavcan/internal/transport/transfer_buffer.hpp>
 
 namespace uavcan

@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <string>
 #include <stdint.h>
 #include <algorithm>
 #include <uavcan/internal/transport/transfer.hpp>
@@ -93,7 +94,7 @@ class DataTypeDescriptor
     const char* full_name_;
 
 public:
-    enum { MaxDataTypeID = Frame::MaxDataTypeID };
+    enum { MaxDataTypeID = 1023 };
     enum { MaxFullNameLen = 80 };
 
     DataTypeDescriptor()

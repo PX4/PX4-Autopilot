@@ -8,10 +8,11 @@
 #include <stdint.h>
 #include <string>
 #include <uavcan/util/compile_time.hpp>
-#include <uavcan/internal/transport/transfer_buffer.hpp>
 
 namespace uavcan
 {
+
+class ITransferBuffer;
 
 void bitarray_copy(const unsigned char *src_org, int src_offset, int src_len, unsigned char *dst_org, int dst_offset);
 

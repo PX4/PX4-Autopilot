@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include <cassert>
-
 namespace uavcan
 {
 /**

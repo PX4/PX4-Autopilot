@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <uavcan/internal/marshal/scalar_codec.hpp>
+#include <uavcan/internal/transport/transfer_buffer.hpp>
 
 
 TEST(ScalarCodec, Basic)

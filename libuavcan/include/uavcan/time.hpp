@@ -10,15 +10,8 @@
 #include <sstream>
 #include <cstdio>
 #include <uavcan/util/compile_time.hpp>
+#include <uavcan/Timestamp.hpp>
 
-// TODO: Fix inclusion loops!
-namespace uavcan
-{
-
-struct Timestamp_;
-typedef Timestamp_ Timestamp;
-
-}
 
 namespace uavcan
 {
@@ -182,9 +175,24 @@ class UtcTime : public TimeBase<UtcTime, UtcDuration>
 {
 public:
     UtcTime() { }
-    UtcTime(const Timestamp& ts);            // Implicit
-    UtcTime& operator=(const Timestamp& ts);
-    operator Timestamp() const;
+
+    UtcTime(const Timestamp& ts)  // Implicit
+    {
+        operator=(ts);
+    }
+
+    UtcTime& operator=(const Timestamp& ts)
+    {
+        *this = fromUSec(ts.husec * Timestamp::USEC_PER_LSB);
+        return *this;
+    }
+
+    operator Timestamp() const
+    {
+        Timestamp ts;
+        ts.husec = toUSec() / Timestamp::USEC_PER_LSB;
+        return ts;
+    }
 };
 
 

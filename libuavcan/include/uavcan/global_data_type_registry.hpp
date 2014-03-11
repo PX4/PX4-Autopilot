@@ -9,9 +9,9 @@
 #include <stdint.h>
 #include <algorithm>
 #include <uavcan/data_type.hpp>
+#include <uavcan/util/compile_time.hpp>
 #include <uavcan/internal/fatal_error.hpp>
 #include <uavcan/internal/linked_list.hpp>
-#include <uavcan/internal/impl_constants.hpp>
 #if UAVCAN_DEBUG
 #include <uavcan/internal/debug.hpp>
 #endif

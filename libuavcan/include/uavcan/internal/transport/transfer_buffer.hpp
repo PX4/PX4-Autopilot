@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <algorithm>
 #include <limits>
-#include <uavcan/internal/transport/transfer.hpp>
+#include <uavcan/internal/transport/frame.hpp>
 #include <uavcan/internal/linked_list.hpp>
 #include <uavcan/internal/dynamic_memory.hpp>
 #include <uavcan/internal/impl_constants.hpp>

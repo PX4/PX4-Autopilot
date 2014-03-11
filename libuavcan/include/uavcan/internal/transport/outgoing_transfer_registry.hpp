@@ -9,6 +9,7 @@
 #include <uavcan/internal/map.hpp>
 #include <uavcan/internal/debug.hpp>
 #include <uavcan/internal/transport/transfer.hpp>
+#include <uavcan/time.hpp>
 
 namespace uavcan
 {

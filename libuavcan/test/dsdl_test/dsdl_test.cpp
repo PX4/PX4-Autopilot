@@ -3,6 +3,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <uavcan/internal/transport/transfer_buffer.hpp>
 #include <root_ns_a/EmptyService.hpp>
 #include <root_ns_a/EmptyMessage.hpp>
 #include <root_ns_a/NestedMessage.hpp>
