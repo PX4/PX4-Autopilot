@@ -178,6 +178,7 @@ Mavlink::Mavlink() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink"))
 {
 	_wpm = &_wpm_s;
+	mission.count = 0;
 	fops.ioctl = (int (*)(file *, int, long unsigned int))&mavlink_dev_ioctl;
 
 	_instance_id = Mavlink::instance_count();
