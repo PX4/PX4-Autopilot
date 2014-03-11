@@ -159,9 +159,8 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 
 static void usage(void);
 
-Mavlink::Mavlink(int instance_id) :
+Mavlink::Mavlink() :
 	next(nullptr),
-	_instance_id(instance_id),
 	_device_name(DEFAULT_DEVICE_NAME),
 	_task_should_exit(false),
 	_mavlink_fd(-1),
@@ -180,6 +179,8 @@ Mavlink::Mavlink(int instance_id) :
 {
 	_wpm = &_wpm_s;
 	fops.ioctl = (int (*)(file *, int, long unsigned int))&mavlink_dev_ioctl;
+
+	_instance_id = Mavlink::instance_count();
 
 	/* set channel according to instance id */
 	switch (_instance_id) {
@@ -214,10 +215,15 @@ Mavlink::Mavlink(int instance_id) :
 		errx(1, "instance ID is out of range");
 		break;
 	}
+
+	LL_APPEND(_mavlink_instances, this);
 }
 
 Mavlink::~Mavlink()
 {
+	warnx("DESTRUCTOR");
+	usleep(1000000);
+
 	if (_task_running) {
 		/* task wakes up every 10ms or so at the longest */
 		_task_should_exit = true;
@@ -237,6 +243,7 @@ Mavlink::~Mavlink()
 			}
 		} while (_task_running);
 	}
+	LL_DELETE(_mavlink_instances, this);
 }
 
 void
@@ -256,31 +263,6 @@ Mavlink::instance_count()
 	}
 
 	return inst_index;
-}
-
-Mavlink *
-Mavlink::new_instance()
-{
-	int id = Mavlink::instance_count();
-
-	Mavlink *inst = new Mavlink(id);
-	Mavlink *next = ::_mavlink_instances;
-
-	/* create the first instance at _head */
-	if (::_mavlink_instances == nullptr) {
-		::_mavlink_instances = inst;
-		/* afterwards follow the next and append the instance */
-
-	} else {
-		while (next->next != nullptr) {
-			next = next->next;
-		}
-
-		/* now parent has a null pointer, fill it */
-		next->next = inst;
-	}
-
-	return inst;
 }
 
 Mavlink *
@@ -342,12 +324,7 @@ Mavlink::destroy_all_instances()
 				return ERROR;
 			}
 		}
-
-		delete inst_to_del;
 	}
-
-	/* reset head */
-	::_mavlink_instances = nullptr;
 
 	printf("\n");
 	warnx("all instances stopped");
@@ -1659,7 +1636,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	if (err_flag) {
 		usage();
-		exit(1);
+		return ERROR;
 	}
 
 	if (_datarate == 0) {
@@ -1672,7 +1649,8 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	if (Mavlink::instance_exists(_device_name, this)) {
-		errx(1, "mavlink instance for %s already running", _device_name);
+		warnx("mavlink instance for %s already running", _device_name);
+		return ERROR;
 	}
 
 	/* inform about mode */
@@ -1727,7 +1705,8 @@ Mavlink::task_main(int argc, char *argv[])
 	_uart_fd = mavlink_open_uart(_baudrate, _device_name, &uart_config_original, &usb_uart);
 
 	if (_uart_fd < 0) {
-		err(1, "could not open %s", _device_name);
+		warn("could not open %s", _device_name);
+		return ERROR;
 	}
 
 	/* create the device node that's used for sending text log messages, etc. */
@@ -1906,18 +1885,23 @@ Mavlink::task_main(int argc, char *argv[])
 	mavlink_logbuffer_destroy(&_logbuffer);
 
 	warnx("exiting");
-
 	_task_running = false;
-	_exit(0);
+
+	return OK;
 }
 
 int Mavlink::start_helper(int argc, char *argv[])
 {
 	/* create the instance in task context */
-	Mavlink *instance = Mavlink::new_instance();
+	Mavlink *instance = new Mavlink();
 
 	/* this will actually only return once MAVLink exits */
-	return instance->task_main(argc, argv);
+	int res = instance->task_main(argc, argv);
+
+	/* delete instance on main thread end */
+	delete instance;
+
+	return res;
 }
 
 int
@@ -2002,13 +1986,14 @@ Mavlink::stream(int argc, char *argv[])
 
 static void usage()
 {
-	errx(1, "usage: mavlink {start|stop-all|stream} [-d device] [-b baudrate] [-r rate] [-m mode] [-s stream] [-v]");
+	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-b baudrate] [-r rate] [-m mode] [-s stream] [-v]");
 }
 
 int mavlink_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		usage();
+		exit(1);
 	}
 
 	if (!strcmp(argv[1], "start")) {
@@ -2017,6 +2002,7 @@ int mavlink_main(int argc, char *argv[])
 	} else if (!strcmp(argv[1], "stop")) {
 		warnx("mavlink stop is deprecated, use stop-all instead");
 		usage();
+		exit(1);
 
 	} else if (!strcmp(argv[1], "stop-all")) {
 		return Mavlink::destroy_all_instances();
@@ -2029,6 +2015,7 @@ int mavlink_main(int argc, char *argv[])
 
 	} else {
 		usage();
+		exit(1);
 	}
 
 	return 0;

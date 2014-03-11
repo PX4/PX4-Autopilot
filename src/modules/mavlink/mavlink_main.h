@@ -105,7 +105,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	Mavlink(int instance_id);
+	Mavlink();
 
 	/**
 	 * Destructor, also kills the mavlinks task.
