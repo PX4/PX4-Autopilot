@@ -221,6 +221,8 @@ Mavlink::Mavlink() :
 
 Mavlink::~Mavlink()
 {
+	perf_free(_loop_perf);
+
 	if (_task_running) {
 		/* task wakes up every 10ms or so at the longest */
 		_task_should_exit = true;
@@ -393,14 +395,12 @@ Mavlink::mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 			struct mavlink_logmessage msg;
 			strncpy(msg.text, txt, sizeof(msg.text));
 
-			Mavlink *inst = ::_mavlink_instances;
-
-			while (inst != nullptr) {
-
-				mavlink_logbuffer_write(&inst->_logbuffer, &msg);
-				inst->_total_counter++;
-				inst = inst->next;
-
+			Mavlink *inst;
+			LL_FOREACH(_mavlink_instances, inst) {
+				if (!inst->_task_should_exit) {
+					mavlink_logbuffer_write(&inst->_logbuffer, &msg);
+					inst->_total_counter++;
+				}
 			}
 
 			return OK;
@@ -1557,9 +1557,6 @@ Mavlink::task_main(int argc, char *argv[])
 	warnx("start");
 	fflush(stdout);
 
-	/* initialize mavlink text message buffering */
-	mavlink_logbuffer_init(&_logbuffer, 5);
-
 	int ch;
 	_baudrate = 57600;
 	_datarate = 0;
@@ -1705,6 +1702,9 @@ Mavlink::task_main(int argc, char *argv[])
 		warn("could not open %s", _device_name);
 		return ERROR;
 	}
+
+	/* initialize mavlink text message buffering */
+	mavlink_logbuffer_init(&_logbuffer, 5);
 
 	/* create the device node that's used for sending text log messages, etc. */
 	register_driver(MAVLINK_LOG_DEVICE, &fops, 0666, NULL);
@@ -1867,6 +1867,30 @@ Mavlink::task_main(int argc, char *argv[])
 	delete _subscribe_to_stream;
 	_subscribe_to_stream = nullptr;
 
+	/* delete streams */
+	MavlinkStream *stream_to_del = nullptr;
+	MavlinkStream *stream_next = _streams;
+
+	while (stream_next != nullptr) {
+		stream_to_del = stream_next;
+		stream_next = stream_to_del->next;
+		delete stream_to_del;
+	}
+
+	_streams = nullptr;
+
+	/* delete subscriptions */
+	MavlinkOrbSubscription *sub_to_del = nullptr;
+	MavlinkOrbSubscription *sub_next = _subscriptions;
+
+	while (sub_next != nullptr) {
+		sub_to_del = sub_next;
+		sub_next = sub_to_del->next;
+		delete sub_to_del;
+	}
+
+	_subscriptions = nullptr;
+
 	warnx("waiting for UART receive thread");
 
 	/* wait for threads to complete */
@@ -1877,6 +1901,9 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* close UART */
 	close(_uart_fd);
+
+	/* close mavlink logging device */
+	close(_mavlink_fd);
 
 	/* destroy log buffer */
 	mavlink_logbuffer_destroy(&_logbuffer);
