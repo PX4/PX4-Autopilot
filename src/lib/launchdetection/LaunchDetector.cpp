@@ -42,12 +42,16 @@
 #include "CatapultLaunchMethod.h"
 #include <systemlib/err.h>
 
+namespace launchdetection
+{
+
 LaunchDetector::LaunchDetector() :
-	launchdetection_on(NULL, "LAUN_ALL_ON", false),
-	throttlePreTakeoff(NULL, "LAUN_THR_PRE", false)
+	SuperBlock(NULL, "LAUN"),
+	launchdetection_on(this, "ALL_ON"),
+	throttlePreTakeoff(this, "THR_PRE")
 {
 	/* init all detectors */
-	launchMethods[0] = new CatapultLaunchMethod();
+	launchMethods[0] = new CatapultLaunchMethod(this);
 
 
 	/* update all parameters of all detectors */
@@ -57,6 +61,12 @@ LaunchDetector::LaunchDetector() :
 LaunchDetector::~LaunchDetector()
 {
 
+}
+
+void LaunchDetector::reset()
+{
+	/* Reset all detectors */
+	launchMethods[0]->reset();
 }
 
 void LaunchDetector::update(float accel_x)
@@ -81,12 +91,4 @@ bool LaunchDetector::getLaunchDetected()
 	return false;
 }
 
-void LaunchDetector::updateParams() {
-
-	launchdetection_on.update();
-	throttlePreTakeoff.update();
-
-	for (uint8_t i = 0; i < sizeof(launchMethods)/sizeof(LaunchMethod); i++) {
-		launchMethods[i]->updateParams();
-	}
 }

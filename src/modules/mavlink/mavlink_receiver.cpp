@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_receiver.c
+ * @file mavlink_receiver.cpp
  * MAVLink protocol message receive and dispatch
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
@@ -77,64 +76,43 @@
 __BEGIN_DECLS
 
 #include "mavlink_bridge_header.h"
-#include "waypoints.h"
-#include "orb_topics.h"
-#include "mavlink_hil.h"
-#include "mavlink_parameters.h"
+// #include "waypoints.h"
+#include "mavlink_receiver.h"
+#include "mavlink_main.h"
 #include "util.h"
-
-extern bool gcs_link;
 
 __END_DECLS
 
-/* XXX should be in a header somewhere */
-extern "C" pthread_t receive_start(int uart);
+MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
+	_mavlink(parent),
+	pub_hil_global_pos(-1),
+	pub_hil_local_pos(-1),
+	pub_hil_attitude(-1),
+	pub_hil_gps(-1),
+	pub_hil_sensors(-1),
+	pub_hil_gyro(-1),
+	pub_hil_accel(-1),
+	pub_hil_mag(-1),
+	pub_hil_baro(-1),
+	pub_hil_airspeed(-1),
+	pub_hil_battery(-1),
+	hil_counter(0),
+	hil_frames(0),
+	old_timestamp(0),
+	cmd_pub(-1),
+	flow_pub(-1),
+	offboard_control_sp_pub(-1),
+	vicon_position_pub(-1),
+	telemetry_status_pub(-1),
+	lat0(0),
+	lon0(0),
+	alt0(0.0)
+{
 
-static void handle_message(mavlink_message_t *msg);
-static void *receive_thread(void *arg);
+}
 
-static mavlink_status_t status;
-static struct vehicle_vicon_position_s vicon_position;
-static struct vehicle_command_s vcmd;
-static struct offboard_control_setpoint_s offboard_control_sp;
-
-struct vehicle_global_position_s hil_global_pos;
-struct vehicle_local_position_s hil_local_pos;
-struct vehicle_attitude_s hil_attitude;
-struct vehicle_gps_position_s hil_gps;
-struct sensor_combined_s hil_sensors;
-struct battery_status_s	hil_battery_status;
-static orb_advert_t pub_hil_global_pos = -1;
-static orb_advert_t pub_hil_local_pos = -1;
-static orb_advert_t pub_hil_attitude = -1;
-static orb_advert_t pub_hil_gps = -1;
-static orb_advert_t pub_hil_sensors = -1;
-static orb_advert_t pub_hil_gyro = -1;
-static orb_advert_t pub_hil_accel = -1;
-static orb_advert_t pub_hil_mag = -1;
-static orb_advert_t pub_hil_baro = -1;
-static orb_advert_t pub_hil_airspeed = -1;
-static orb_advert_t pub_hil_battery = -1;
-
-/* packet counter */
-static int hil_counter = 0;
-static int hil_frames = 0;
-static uint64_t old_timestamp = 0;
-
-static orb_advert_t cmd_pub = -1;
-static orb_advert_t flow_pub = -1;
-
-static orb_advert_t offboard_control_sp_pub = -1;
-static orb_advert_t vicon_position_pub = -1;
-static orb_advert_t telemetry_status_pub = -1;
-
-// variables for HIL reference position
-static int32_t lat0 = 0;
-static int32_t lon0 = 0;
-static double alt0 = 0;
-
-static void
-handle_message(mavlink_message_t *msg)
+void
+MavlinkReceiver::handle_message(mavlink_message_t *msg)
 {
 	if (msg->msgid == MAVLINK_MSG_ID_COMMAND_LONG) {
 
@@ -151,7 +129,7 @@ handle_message(mavlink_message_t *msg)
 				usleep(50000);
 
 				/* terminate other threads and this thread */
-				thread_should_exit = true;
+				_mavlink->_task_should_exit = true;
 
 			} else {
 
@@ -272,7 +250,7 @@ handle_message(mavlink_message_t *msg)
 		if (mavlink_system.sysid < 4) {
 
 			/* switch to a receiving link mode */
-			gcs_link = false;
+			_mavlink->set_mode(Mavlink::MODE_TX_HEARTBEAT_ONLY);
 
 			/*
 			 * rate control mode - defined by MAVLink
@@ -367,7 +345,7 @@ handle_message(mavlink_message_t *msg)
 	 * COMMAND_LONG message or a SET_MODE message
 	 */
 
-	if (mavlink_hil_enabled) {
+	if (_mavlink->get_hil_enabled()) {
 
 		uint64_t timestamp = hrt_absolute_time();
 
@@ -627,8 +605,6 @@ handle_message(mavlink_message_t *msg)
 				orb_publish(ORB_ID(airspeed), pub_hil_airspeed, &airspeed);
 			}
 
-			uint64_t timestamp = hrt_absolute_time();
-
 			// publish global position	
 			if (pub_hil_global_pos > 0) {
 				orb_publish(ORB_ID(vehicle_global_position), pub_hil_global_pos, &hil_global_pos);
@@ -650,7 +626,7 @@ handle_message(mavlink_message_t *msg)
 			if (pub_hil_local_pos > 0) {
 				float x;
 				float y;
-				bool landed = hil_state.alt/1000.0f < (alt0 + 0.1); // XXX improve?
+				bool landed = (float)(hil_state.alt)/1000.0f < (alt0 + 0.1f); // XXX improve?
 				double lat = hil_state.lat*1e-7;
 				double lon = hil_state.lon*1e-7;
 				map_projection_project(lat, lon, &x, &y); 
@@ -810,17 +786,20 @@ handle_message(mavlink_message_t *msg)
 /**
  * Receive data from UART.
  */
-static void *
-receive_thread(void *arg)
+void *
+MavlinkReceiver::receive_thread(void *arg)
 {
-	int uart_fd = *((int *)arg);
+	int uart_fd = _mavlink->get_uart_fd();
 
 	const int timeout = 1000;
 	uint8_t buf[32];
 
 	mavlink_message_t msg;
 
-	prctl(PR_SET_NAME, "mavlink_uart_rcv", getpid());
+	/* Set thread name */
+	char thread_name[18];
+	sprintf(thread_name, "mavlink_uart_rcv_%d", _mavlink->get_channel());
+	prctl(PR_SET_NAME, thread_name, getpid());
 
 	struct pollfd fds[1];
 	fds[0].fd = uart_fd;
@@ -828,27 +807,26 @@ receive_thread(void *arg)
 
 	ssize_t nread = 0;
 
-	while (!thread_should_exit) {
+	while (!_mavlink->_task_should_exit) {
 		if (poll(fds, 1, timeout) > 0) {
-			if (nread < sizeof(buf)) {
+
+			/* non-blocking read. read may return negative values */
+			if ((nread = read(uart_fd, buf, sizeof(buf))) < (ssize_t)sizeof(buf)) {
 				/* to avoid reading very small chunks wait for data before reading */
 				usleep(1000);
 			}
 
-			/* non-blocking read. read may return negative values */
-			nread = read(uart_fd, buf, sizeof(buf));
-
 			/* if read failed, this loop won't execute */
 			for (ssize_t i = 0; i < nread; i++) {
-				if (mavlink_parse_char(chan, buf[i], &msg, &status)) {
+				if (mavlink_parse_char(_mavlink->get_chan(), buf[i], &msg, &status)) {
 					/* handle generic messages and commands */
 					handle_message(&msg);
 
 					/* handle packet with waypoint component */
-					mavlink_wpm_message_handler(&msg);
+					_mavlink->mavlink_wpm_message_handler(&msg);
 
 					/* handle packet with parameter component */
-					mavlink_pm_message_handler(MAVLINK_COMM_0, &msg);
+					_mavlink->mavlink_pm_message_handler(MAVLINK_COMM_0, &msg);
 				}
 			}
 		}
@@ -857,15 +835,26 @@ receive_thread(void *arg)
 	return NULL;
 }
 
+void MavlinkReceiver::print_status()
+{
+
+}
+
+void * MavlinkReceiver::start_helper(void *context)
+{
+	MavlinkReceiver *rcv = new MavlinkReceiver((Mavlink*)context);
+	return rcv->receive_thread(NULL);
+}
+
 pthread_t
-receive_start(int uart)
+MavlinkReceiver::receive_start(Mavlink *parent)
 {
 	pthread_attr_t receiveloop_attr;
 	pthread_attr_init(&receiveloop_attr);
 
 	// set to non-blocking read
-	int flags = fcntl(uart, F_GETFL, 0);
-	fcntl(uart, F_SETFL, flags | O_NONBLOCK);
+	int flags = fcntl(parent->get_uart_fd(), F_GETFL, 0);
+	fcntl(parent->get_uart_fd(), F_SETFL, flags | O_NONBLOCK);
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&receiveloop_attr, &param);
@@ -875,7 +864,7 @@ receive_start(int uart)
 	pthread_attr_setstacksize(&receiveloop_attr, 3000);
 
 	pthread_t thread;
-	pthread_create(&thread, &receiveloop_attr, receive_thread, &uart);
+	pthread_create(&thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void*)parent);
 
 	pthread_attr_destroy(&receiveloop_attr);
 	return thread;
