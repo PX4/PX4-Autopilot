@@ -28,21 +28,21 @@ public:
         utc += usec;
     }
 
-    uint64_t getMonotonicMicroseconds() const
+    uavcan::MonotonicTime getMonotonic() const
     {
         assert(this);
         const uint64_t res = monotonic;
         advance(monotonic_auto_advance);
-        return res;
+        return uavcan::MonotonicTime::fromUSec(res);
     }
 
-    uint64_t getUtcMicroseconds() const
+    uavcan::UtcTime getUtc() const
     {
         assert(this);
-        return utc;
+        return uavcan::UtcTime::fromUSec(utc);
     }
 
-    void adjustUtcMicroseconds(uint64_t new_timestamp_usec, int64_t offset_usec)
+    void adjustUtc(uavcan::UtcTime, uavcan::UtcDuration)
     {
         assert(0);
     }
@@ -52,37 +52,43 @@ public:
 class SystemClockDriver : public uavcan::ISystemClock
 {
 public:
-    uint64_t getMonotonicMicroseconds() const
+    uavcan::MonotonicTime getMonotonic() const
     {
         struct timespec ts;
         const int ret = clock_gettime(CLOCK_MONOTONIC, &ts);
         if (ret != 0)
         {
             assert(0);
-            return 0;
+            return uavcan::MonotonicTime();
         }
-        return uint64_t(ts.tv_sec) * 1000000UL + ts.tv_nsec / 1000UL;
+        return uavcan::MonotonicTime::fromUSec(uint64_t(ts.tv_sec) * 1000000UL + ts.tv_nsec / 1000UL);
     }
 
-    uint64_t getUtcMicroseconds() const
+    uavcan::UtcTime getUtc() const
     {
         struct timeval tv;
         const int ret = gettimeofday(&tv, NULL);
         if (ret != 0)
         {
             assert(0);
-            return 0;
+            return uavcan::UtcTime();
         }
-        return uint64_t(tv.tv_sec) * 1000000UL + tv.tv_usec;
+        return uavcan::UtcTime::fromUSec(uint64_t(tv.tv_sec) * 1000000UL + tv.tv_usec);
     }
 
-    void adjustUtcMicroseconds(uint64_t new_timestamp_usec, int64_t offset_usec)
+    void adjustUtc(uavcan::UtcTime, uavcan::UtcDuration)
     {
         assert(0);
     }
 };
 
-static bool areTimestampsClose(int64_t a, int64_t b, int64_t precision_usec = 10000)
+static uavcan::MonotonicTime tsMono(uint64_t usec) { return uavcan::MonotonicTime::fromUSec(usec); }
+static uavcan::UtcTime tsUtc(uint64_t usec) { return uavcan::UtcTime::fromUSec(usec); }
+
+static uavcan::MonotonicDuration durMono(int64_t usec) { return uavcan::MonotonicDuration::fromUSec(usec); }
+
+template <typename T>
+static bool areTimestampsClose(const T& a, const T& b, int64_t precision_usec = 10000)
 {
-    return std::abs(a - b) < precision_usec;
+    return (a - b).getAbs().toUSec() < precision_usec;
 }

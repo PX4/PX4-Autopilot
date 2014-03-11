@@ -228,17 +228,17 @@ TEST(Transfer, RxFrameParse)
         (456 << 19);      //    Data Type ID
 
     ASSERT_TRUE(rx_frame.parse(can_rx_frame));
-    ASSERT_EQ(0, rx_frame.getMonotonicTimestamp());
+    ASSERT_EQ(0, rx_frame.getMonotonicTimestamp().toUSec());
     ASSERT_EQ(0, rx_frame.getIfaceIndex());
 
-    can_rx_frame.ts_monotonic = 123;
+    can_rx_frame.ts_mono = tsMono(123);
     can_rx_frame.iface_index = 2;
 
     Frame frame(456, uavcan::TransferTypeMessageBroadcast, 1, uavcan::NodeID::Broadcast, 0, 0);
     ASSERT_TRUE(frame.compile(can_rx_frame));
 
     ASSERT_TRUE(rx_frame.parse(can_rx_frame));
-    ASSERT_EQ(123, rx_frame.getMonotonicTimestamp());
+    ASSERT_EQ(123, rx_frame.getMonotonicTimestamp().toUSec());
     ASSERT_EQ(2, rx_frame.getIfaceIndex());
     ASSERT_EQ(456, rx_frame.getDataTypeID());
     ASSERT_EQ(uavcan::TransferTypeMessageBroadcast, rx_frame.getTransferType());
@@ -252,13 +252,13 @@ TEST(Transfer, FrameToString)
 
     // RX frame default
     RxFrame rx_frame;
-    EXPECT_EQ("dtid=0 tt=4 snid=255 dnid=255 idx=0 last=0 tid=0 payload=[] ts_m=0 ts_utc=0 iface=0", rx_frame.toString());
+    EXPECT_EQ("dtid=0 tt=4 snid=255 dnid=255 idx=0 last=0 tid=0 payload=[] ts_m=0.000000 ts_utc=0.000000 iface=0", rx_frame.toString());
 
     // RX frame max len
     rx_frame = RxFrame(Frame(Frame::MaxDataTypeID, uavcan::TransferTypeMessageUnicast,
                              uavcan::NodeID::Max, uavcan::NodeID::Max - 1, Frame::MaxIndex,
                              uavcan::TransferID::Max, true),
-                       0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 3);
+                       uavcan::MonotonicTime::getMax(), uavcan::UtcTime::getMax(), 3);
 
     uint8_t data[8];
     for (unsigned int i = 0; i < sizeof(data); i++)
@@ -266,7 +266,7 @@ TEST(Transfer, FrameToString)
     rx_frame.setPayload(data, sizeof(data));
 
     EXPECT_EQ(
-    "dtid=1023 tt=3 snid=127 dnid=126 idx=62 last=1 tid=7 payload=[00 01 02 03 04 05 06] ts_m=18446744073709551615 ts_utc=18446744073709551615 iface=3",
+    "dtid=1023 tt=3 snid=127 dnid=126 idx=62 last=1 tid=7 payload=[00 01 02 03 04 05 06] ts_m=18446744073709.551615 ts_utc=18446744073709.551615 iface=3",
     rx_frame.toString());
 
     // Plain frame default

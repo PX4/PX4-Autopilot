@@ -7,10 +7,12 @@
 #include <cassert>
 #include <algorithm>
 #include <string>
-#include <uavcan/internal/transport/can_io.hpp>
+#include <uavcan/can_driver.hpp>
 
 namespace uavcan
 {
+
+struct CanRxFrame;
 
 enum { MaxTransferPayloadLen = 439 }; ///< According to the standard
 
@@ -175,37 +177,27 @@ public:
 
 class RxFrame : public Frame
 {
-    uint64_t ts_monotonic_;
-    uint64_t ts_utc_;
+    MonotonicTime ts_mono_;
+    UtcTime ts_utc_;
     uint8_t iface_index_;
 
 public:
     RxFrame()
-    : ts_monotonic_(0)
-    , ts_utc_(0)
-    , iface_index_(0)
+    : iface_index_(0)
     { }
 
-    RxFrame(const Frame& frame, uint64_t ts_monotonic, uint64_t ts_utc, uint8_t iface_index)
-    : ts_monotonic_(ts_monotonic)
+    RxFrame(const Frame& frame, MonotonicTime ts_mono, UtcTime ts_utc, uint8_t iface_index)
+    : ts_mono_(ts_mono)
     , ts_utc_(ts_utc)
     , iface_index_(iface_index)
     {
         *static_cast<Frame*>(this) = frame;
     }
 
-    bool parse(const CanRxFrame& can_frame)
-    {
-        if (!Frame::parse(can_frame))
-            return false;
-        ts_monotonic_ = can_frame.ts_monotonic;
-        ts_utc_ = can_frame.ts_utc;
-        iface_index_ = can_frame.iface_index;
-        return true;
-    }
+    bool parse(const CanRxFrame& can_frame);
 
-    uint64_t getMonotonicTimestamp() const { return ts_monotonic_; }
-    uint64_t getUtcTimestamp()       const { return ts_utc_; }
+    MonotonicTime getMonotonicTimestamp() const { return ts_mono_; }
+    UtcTime getUtcTimestamp() const { return ts_utc_; }
 
     uint8_t getIfaceIndex() const { return iface_index_; }
 

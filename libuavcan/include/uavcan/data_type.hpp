@@ -8,11 +8,12 @@
 #include <cstring>
 #include <stdint.h>
 #include <algorithm>
-#include <uavcan/internal/transport/crc.hpp>
 #include <uavcan/internal/transport/transfer.hpp>
 
 namespace uavcan
 {
+
+class TransferCRC;
 
 enum DataTypeKind
 {

@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 #include "transfer_test_helpers.hpp"
+#include "../../clock.hpp"
 
 
 TEST(TransferTestHelpers, Transfer)
@@ -15,8 +16,9 @@ TEST(TransferTestHelpers, Transfer)
     uavcan::TransferBufferManager<128, 1> mgr(poolmgr);
     uavcan::TransferBufferAccessor tba(mgr, uavcan::TransferBufferManagerKey(0, uavcan::TransferTypeMessageUnicast));
 
-    uavcan::RxFrame frame(uavcan::Frame(123, uavcan::TransferTypeMessageBroadcast, 1, 0, 0, 0, true), 0, 0, 0);
-    uavcan::MultiFrameIncomingTransfer mfit(10, 1000, frame, tba);
+    uavcan::RxFrame frame(uavcan::Frame(123, uavcan::TransferTypeMessageBroadcast, 1, 0, 0, 0, true),
+                          uavcan::MonotonicTime(), uavcan::UtcTime(), 0);
+    uavcan::MultiFrameIncomingTransfer mfit(tsMono(10), tsUtc(1000), frame, tba);
 
     // Filling the buffer with data
     static const std::string TEST_DATA = "Kaneda! What do you see? Kaneda! What do you see? Kaneda! Kaneda!!!";

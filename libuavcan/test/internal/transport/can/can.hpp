@@ -21,11 +21,16 @@ public:
     struct FrameWithTime
     {
         uavcan::CanFrame frame;
-        uint64_t time;
+        uavcan::MonotonicTime time;
 
-        FrameWithTime(const uavcan::CanFrame& frame, uint64_t time)
+        FrameWithTime(const uavcan::CanFrame& frame, uavcan::MonotonicTime time)
         : frame(frame)
         , time(time)
+        { }
+
+        FrameWithTime(const uavcan::CanFrame& frame, uint64_t time_usec)
+        : frame(frame)
+        , time(uavcan::MonotonicTime::fromUSec(time_usec))
         { }
     };
 
@@ -47,7 +52,7 @@ public:
 
     void pushRx(const uavcan::CanFrame& frame)
     {
-        rx.push(FrameWithTime(frame, iclock.getMonotonicMicroseconds()));
+        rx.push(FrameWithTime(frame, iclock.getMonotonic()));
     }
 
     void pushRx(const uavcan::RxFrame& frame)
@@ -57,7 +62,7 @@ public:
         rx.push(FrameWithTime(can_frame, frame.getMonotonicTimestamp()));
     }
 
-    bool matchAndPopTx(const uavcan::CanFrame& frame, uint64_t tx_deadline)
+    bool matchAndPopTx(const uavcan::CanFrame& frame, uavcan::MonotonicTime tx_deadline)
     {
         if (tx.empty())
         {
@@ -69,7 +74,12 @@ public:
         return (frame_time.frame == frame) && (frame_time.time == tx_deadline);
     }
 
-    int send(const uavcan::CanFrame& frame, uint64_t tx_timeout_usec)
+    bool matchAndPopTx(const uavcan::CanFrame& frame, uint64_t tx_deadline_usec)
+    {
+        return matchAndPopTx(frame, uavcan::MonotonicTime::fromUSec(tx_deadline_usec));
+    }
+
+    int send(const uavcan::CanFrame& frame, uavcan::MonotonicTime tx_deadline)
     {
         assert(this);
         EXPECT_TRUE(writeable);        // Shall never be called when not writeable
@@ -77,12 +87,11 @@ public:
             return -1;
         if (!writeable)
             return 0;
-        const uint64_t monotonic_deadline = tx_timeout_usec + iclock.getMonotonicMicroseconds();
-        tx.push(FrameWithTime(frame, monotonic_deadline));
+        tx.push(FrameWithTime(frame, tx_deadline));
         return 1;
     }
 
-    int receive(uavcan::CanFrame& out_frame, uint64_t& out_ts_monotonic_usec, uint64_t& out_ts_utc_usec)
+    int receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic, uavcan::UtcTime& out_ts_utc)
     {
         assert(this);
         EXPECT_TRUE(rx.size());        // Shall never be called when not readable
@@ -93,8 +102,8 @@ public:
         const FrameWithTime frame = rx.front();
         rx.pop();
         out_frame = frame.frame;
-        out_ts_monotonic_usec = frame.time;
-        out_ts_utc_usec = 0;
+        out_ts_monotonic = frame.time;
+        out_ts_utc = uavcan::UtcTime();
         return 1;
     }
 
@@ -119,7 +128,7 @@ public:
     , select_failure(false)
     { }
 
-    int select(int& inout_write_iface_mask, int& inout_read_iface_mask, uint64_t timeout_usec)
+    int select(int& inout_write_iface_mask, int& inout_read_iface_mask, uavcan::MonotonicTime deadline)
     {
         assert(this);
         //std::cout << "Write/read masks: " << inout_write_iface_mask << "/" << inout_read_iface_mask << std::endl;
@@ -145,11 +154,19 @@ public:
         inout_read_iface_mask = out_read_mask;
         if ((out_write_mask | out_read_mask) == 0)
         {
+            const uavcan::MonotonicTime ts = iclock.getMonotonic();
+            const uavcan::MonotonicDuration diff = deadline - ts;
             SystemClockMock* const mock = dynamic_cast<SystemClockMock*>(&iclock);
             if (mock)
-                mock->advance(timeout_usec);   // Emulating timeout
+            {
+                if (diff.isPositive())
+                    mock->advance(diff.toUSec());   // Emulating timeout
+            }
             else
-                usleep(timeout_usec);
+            {
+                if (diff.isPositive())
+                    usleep(diff.toUSec());
+            }
             return 0;
         }
         return 1;  // This value is not being checked anyway, it just has to be greater than zero

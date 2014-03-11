@@ -10,7 +10,15 @@
 #include <sstream>
 #include <cstdio>
 #include <uavcan/util/compile_time.hpp>
-#include <uavcan/Timestamp.hpp>
+
+// TODO: Fix inclusion loops!
+namespace uavcan
+{
+
+struct Timestamp_;
+typedef Timestamp_ Timestamp;
+
+}
 
 namespace uavcan
 {
@@ -26,6 +34,8 @@ public:
     {
         StaticAssert<(sizeof(D) == 8)>::check();
     }
+
+    static D getInfinite() { return fromUSec(std::numeric_limits<int64_t>::max()); }
 
     static D fromUSec(int64_t us)
     {
@@ -95,6 +105,8 @@ public:
         StaticAssert<(sizeof(D) == 8)>::check();
     }
 
+    static T getMax() { return fromUSec(std::numeric_limits<uint64_t>::max()); }
+
     static T fromUSec(uint64_t us)
     {
         T d;
@@ -120,15 +132,15 @@ public:
     {
         if (r.isNegative())
         {
-            if (uint64_t(r.getAbs().usec_) > usec_)
+            if (uint64_t(r.getAbs().toUSec()) > usec_)
                 return fromUSec(0);
         }
         else
         {
-            if (uint64_t(usec_ + r.usec_) < usec_)
+            if (uint64_t(usec_ + r.toUSec()) < usec_)
                 return fromUSec(std::numeric_limits<uint64_t>::max());
         }
-        return fromUSec(usec_ + r.usec_);
+        return fromUSec(usec_ + r.toUSec());
     }
 
     T operator-(const D& r) const
@@ -154,36 +166,25 @@ public:
     std::string toString() const;
 };
 
-
+/*
+ * Monotonic
+ */
 class MonotonicDuration : public DurationBase<MonotonicDuration> { };
 
 class MonotonicTime : public TimeBase<MonotonicTime, MonotonicDuration> { };
 
-
+/*
+ * UTC
+ */
 class UtcDuration : public DurationBase<UtcDuration> { };
 
 class UtcTime : public TimeBase<UtcTime, UtcDuration>
 {
 public:
     UtcTime() { }
-
-    UtcTime(const Timestamp& ts)  // Implicit
-    {
-        operator=(ts);
-    }
-
-    UtcTime& operator=(const Timestamp& ts)
-    {
-        *this = fromUSec(ts.husec * Timestamp::USEC_PER_LSB);
-        return *this;
-    }
-
-    operator Timestamp() const
-    {
-        Timestamp ts;
-        ts.husec = toUSec() / Timestamp::USEC_PER_LSB;
-        return ts;
-    }
+    UtcTime(const Timestamp& ts);            // Implicit
+    UtcTime& operator=(const Timestamp& ts);
+    operator Timestamp() const;
 };
 
 

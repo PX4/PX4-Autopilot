@@ -45,8 +45,11 @@ protected:
 public:
     typedef DataType_ DataType;
 
-    uint64_t getMonotonicTimestamp() const { return safeget<uint64_t, &IncomingTransfer::getMonotonicTimestamp>(); }
-    uint64_t getUtcTimestamp()       const { return safeget<uint64_t, &IncomingTransfer::getUtcTimestamp>(); }
+    MonotonicTime getMonotonicTimestamp() const
+    {
+        return safeget<MonotonicTime, &IncomingTransfer::getMonotonicTimestamp>();
+    }
+    UtcTime getUtcTimestamp()        const { return safeget<UtcTime, &IncomingTransfer::getUtcTimestamp>(); }
     TransferType getTransferType()   const { return safeget<TransferType, &IncomingTransfer::getTransferType>(); }
     TransferID getTransferID()       const { return safeget<TransferID, &IncomingTransfer::getTransferID>(); }
     NodeID getSrcNodeID()            const { return safeget<NodeID, &IncomingTransfer::getSrcNodeID>(); }

@@ -130,7 +130,7 @@ TEST(Dispatcher, Reception)
 
     while (true)
     {
-        const int res = dispatcher.spin(0);
+        const int res = dispatcher.spin(tsMono(0));
         ASSERT_LE(0, res);
         clockmock.advance(100);
         if (res == 0)
@@ -197,14 +197,14 @@ TEST(Dispatcher, Transmission)
     /*
      * Transmission
      */
-    static const int TX_DEADLINE = 123456;
+    static const uavcan::MonotonicTime TX_DEADLINE = tsMono(123456);
 
     // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
     // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame = false
     uavcan::Frame frame(123, uavcan::TransferTypeMessageUnicast, SELF_NODE_ID, 2, 0, 0, true);
     frame.setPayload(reinterpret_cast<const uint8_t*>("123"), 3);
 
-    ASSERT_EQ(2, dispatcher.send(frame, TX_DEADLINE, 0, uavcan::CanTxQueue::Volatile));
+    ASSERT_EQ(2, dispatcher.send(frame, TX_DEADLINE, tsMono(0), uavcan::CanTxQueue::Volatile));
 
     /*
      * Validation
@@ -234,10 +234,10 @@ TEST(Dispatcher, Spin)
     clockmock.monotonic_auto_advance = 100;
 
     ASSERT_EQ(100, clockmock.monotonic);
-    ASSERT_EQ(0, dispatcher.spin(1000));
+    ASSERT_EQ(0, dispatcher.spin(tsMono(1000)));
     ASSERT_LE(1000, clockmock.monotonic);
-    ASSERT_EQ(0, dispatcher.spin(0));
+    ASSERT_EQ(0, dispatcher.spin(tsMono(0)));
     ASSERT_LE(1000, clockmock.monotonic);
-    ASSERT_EQ(0, dispatcher.spin(1100));
+    ASSERT_EQ(0, dispatcher.spin(tsMono(1100)));
     ASSERT_LE(1100, clockmock.monotonic);
 }

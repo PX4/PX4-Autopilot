@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <uavcan/time.hpp>
+#include <uavcan/Timestamp.hpp>
 
 
 TEST(Time, Monotonic)

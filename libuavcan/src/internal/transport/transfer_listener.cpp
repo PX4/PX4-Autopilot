@@ -49,9 +49,9 @@ int SingleFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsign
 /*
  * MultiFrameIncomingTransfer
  */
-MultiFrameIncomingTransfer::MultiFrameIncomingTransfer(uint64_t ts_monotonic, uint64_t ts_utc,
+MultiFrameIncomingTransfer::MultiFrameIncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc,
                                                        const RxFrame& last_frame, TransferBufferAccessor& tba)
-: IncomingTransfer(ts_monotonic, ts_utc, last_frame.getTransferType(), last_frame.getTransferID(),
+: IncomingTransfer(ts_mono, ts_utc, last_frame.getTransferType(), last_frame.getTransferID(),
                    last_frame.getSrcNodeID())
 , buf_acc_(tba)
 {

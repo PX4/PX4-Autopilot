@@ -10,8 +10,8 @@
 namespace uavcan
 {
 
-int TransferSender::send(const uint8_t* payload, int payload_len, uint64_t monotonic_tx_deadline,
-                         uint64_t monotonic_blocking_deadline, TransferType transfer_type, NodeID dst_node_id,
+int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime tx_deadline,
+                         MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id,
                          TransferID tid)
 {
     Frame frame(data_type_.getID(), transfer_type, dispatcher_.getSelfNodeID(), dst_node_id, 0, tid);
@@ -27,7 +27,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, uint64_t monot
         }
         frame.makeLast();
         assert(frame.isLast() && frame.isFirst());
-        return dispatcher_.send(frame, monotonic_tx_deadline, monotonic_blocking_deadline, qos_);
+        return dispatcher_.send(frame, tx_deadline, blocking_deadline, qos_);
     }
     else                                                   // Multi Frame Transfer
     {
@@ -57,7 +57,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, uint64_t monot
 
         while (true)
         {
-            const int send_res = dispatcher_.send(frame, monotonic_tx_deadline, monotonic_blocking_deadline, qos_);
+            const int send_res = dispatcher_.send(frame, tx_deadline, blocking_deadline, qos_);
             if (send_res < 0)
                 return send_res;
 
@@ -84,13 +84,13 @@ int TransferSender::send(const uint8_t* payload, int payload_len, uint64_t monot
     return -1; // Return path analysis is apparently broken. There should be no warning, this 'return' is unreachable.
 }
 
-int TransferSender::send(const uint8_t* payload, int payload_len, uint64_t monotonic_tx_deadline,
-                         uint64_t monotonic_blocking_deadline, TransferType transfer_type, NodeID dst_node_id)
+int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime tx_deadline,
+                         MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id)
 {
     const OutgoingTransferRegistryKey otr_key(data_type_.getID(), transfer_type, dst_node_id);
 
-    assert(monotonic_tx_deadline > 0);
-    const uint64_t otr_deadline = monotonic_tx_deadline + max_transfer_interval_;
+    assert(!tx_deadline.isZero());
+    const MonotonicTime otr_deadline = tx_deadline + max_transfer_interval_;
 
     TransferID* const tid = dispatcher_.getOutgoingTransferRegistry().accessOrCreate(otr_key, otr_deadline);
     if (tid == NULL)
@@ -103,7 +103,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, uint64_t monot
     const TransferID this_tid = tid->get();
     tid->increment();
 
-    return send(payload, payload_len, monotonic_tx_deadline, monotonic_blocking_deadline, transfer_type,
+    return send(payload, payload_len, tx_deadline, blocking_deadline, transfer_type,
                 dst_node_id, this_tid);
 }
 

@@ -52,7 +52,7 @@ if (GTEST_FOUND)
                             ${CMAKE_SOURCE_DIR}/../dsdl/uavcan     # Input
                             -Otest/dsdlc_output                    # Output
                        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    add_dependencies(libuavcan_test dsdlc)
+    add_dependencies(uavcan dsdlc)
     include_directories(${CMAKE_SOURCE_DIR}/test/dsdlc_output)
 
     # Tests run automatically upon successful build

@@ -21,8 +21,8 @@ namespace uavcan
  */
 class IncomingTransfer : public ITransferBuffer
 {
-    uint64_t ts_monotonic_;
-    uint64_t ts_utc_;
+    MonotonicTime ts_mono_;
+    UtcTime ts_utc_;
     TransferType transfer_type_;
     TransferID transfer_id_;
     NodeID src_node_id_;
@@ -31,9 +31,9 @@ class IncomingTransfer : public ITransferBuffer
     int write(unsigned int offset, const uint8_t* data, unsigned int len);
 
 protected:
-    IncomingTransfer(uint64_t ts_monotonic, uint64_t ts_utc, TransferType transfer_type,
+    IncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc, TransferType transfer_type,
                      TransferID transfer_id, NodeID source_node_id)
-    : ts_monotonic_(ts_monotonic)
+    : ts_mono_(ts_mono)
     , ts_utc_(ts_utc)
     , transfer_type_(transfer_type)
     , transfer_id_(transfer_id)
@@ -46,11 +46,11 @@ public:
      */
     virtual void release() { }
 
-    uint64_t getMonotonicTimestamp() const { return ts_monotonic_; }
-    uint64_t getUtcTimestamp()       const { return ts_utc_; }
-    TransferType getTransferType()   const { return transfer_type_; }
-    TransferID getTransferID()       const { return transfer_id_; }
-    NodeID getSrcNodeID()            const { return src_node_id_; }
+    MonotonicTime getMonotonicTimestamp() const { return ts_mono_; }
+    UtcTime getUtcTimestamp()             const { return ts_utc_; }
+    TransferType getTransferType()        const { return transfer_type_; }
+    TransferID getTransferID()            const { return transfer_id_; }
+    NodeID getSrcNodeID()                 const { return src_node_id_; }
 };
 
 /**
@@ -72,7 +72,7 @@ class MultiFrameIncomingTransfer : public IncomingTransfer, Noncopyable
 {
     TransferBufferAccessor& buf_acc_;
 public:
-    MultiFrameIncomingTransfer(uint64_t ts_monotonic, uint64_t ts_utc, const RxFrame& last_frame,
+    MultiFrameIncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc, const RxFrame& last_frame,
                                TransferBufferAccessor& tba);
     int read(unsigned int offset, uint8_t* data, unsigned int len) const;
     void release() { buf_acc_.remove(); }
@@ -104,7 +104,7 @@ public:
     const DataTypeDescriptor& getDataTypeDescriptor() const { return data_type_; }
 
     virtual void handleFrame(const RxFrame& frame) = 0;
-    virtual void cleanup(uint64_t ts_monotonic) = 0;
+    virtual void cleanup(MonotonicTime ts) = 0;
 };
 
 /**
@@ -141,18 +141,18 @@ class TransferListener : public TransferListenerBase, Noncopyable
 
     class TimedOutReceiverPredicate
     {
-        const uint64_t ts_monotonic_;
+        const MonotonicTime ts_;
         BufferManager& bufmgr_;
 
     public:
-        TimedOutReceiverPredicate(uint64_t ts_monotonic, BufferManager& bufmgr)
-        : ts_monotonic_(ts_monotonic)
+        TimedOutReceiverPredicate(MonotonicTime ts, BufferManager& bufmgr)
+        : ts_(ts)
         , bufmgr_(bufmgr)
         { }
 
         bool operator()(const TransferBufferManagerKey& key, const TransferReceiver& value) const
         {
-            if (value.isTimedOut(ts_monotonic_))
+            if (value.isTimedOut(ts_))
             {
                 UAVCAN_TRACE("TransferListener", "Timed out receiver: %s", key.toString().c_str());
                 /*
@@ -168,9 +168,9 @@ class TransferListener : public TransferListenerBase, Noncopyable
         }
     };
 
-    void cleanup(uint64_t ts_monotonic)
+    void cleanup(MonotonicTime ts)
     {
-        receivers_.removeWhere(TimedOutReceiverPredicate(ts_monotonic, bufmgr_));
+        receivers_.removeWhere(TimedOutReceiverPredicate(ts, bufmgr_));
         assert(receivers_.isEmpty() ? bufmgr_.isEmpty() : 1);
     }
 

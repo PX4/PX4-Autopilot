@@ -19,7 +19,7 @@ std::string CanRxFrame::toString(StringRepresentation mode) const
 {
     std::ostringstream os;
     os << CanFrame::toString(mode)
-        << " ts_m=" << ts_monotonic << " ts_utc=" << ts_utc << " iface=" << int(iface_index);
+        << " ts_m=" << ts_mono << " ts_utc=" << ts_utc << " iface=" << int(iface_index);
     return os.str();
 }
 
@@ -88,11 +88,11 @@ void CanTxQueue::registerRejectedFrame()
         rejected_frames_cnt_++;
 }
 
-void CanTxQueue::push(const CanFrame& frame, uint64_t monotonic_tx_deadline, Qos qos)
+void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos)
 {
-    const uint64_t timestamp = sysclock_->getMonotonicMicroseconds();
+    const MonotonicTime timestamp = sysclock_->getMonotonic();
 
-    if (timestamp >= monotonic_tx_deadline)
+    if (timestamp >= tx_deadline)
     {
         UAVCAN_TRACE("CanTxQueue", "Push rejected: already expired");
         registerRejectedFrame();
@@ -147,14 +147,14 @@ void CanTxQueue::push(const CanFrame& frame, uint64_t monotonic_tx_deadline, Qos
     if (praw == NULL)
         return;                                            // Seems that there is no memory at all.
 
-    Entry* entry = new (praw) Entry(frame, monotonic_tx_deadline, qos);
+    Entry* entry = new (praw) Entry(frame, tx_deadline, qos);
     assert(entry);
     queue_.insertBefore(entry, PriorityInsertionComparator(frame));
 }
 
 CanTxQueue::Entry* CanTxQueue::peek()
 {
-    const uint64_t timestamp = sysclock_->getMonotonicMicroseconds();
+    const MonotonicTime timestamp = sysclock_->getMonotonic();
     Entry* p = queue_.get();
     while (p)
     {
@@ -194,7 +194,7 @@ bool CanTxQueue::topPriorityHigherOrEqual(const CanFrame& rhs_frame) const
 /*
  * CanIOManager
  */
-int CanIOManager::sendToIface(int iface_index, const CanFrame& frame, uint64_t monotonic_tx_deadline)
+int CanIOManager::sendToIface(int iface_index, const CanFrame& frame, MonotonicTime tx_deadline)
 {
     assert(iface_index >= 0 && iface_index < MaxIfaces);
     ICanIface* const iface = driver_.getIface(iface_index);
@@ -203,9 +203,7 @@ int CanIOManager::sendToIface(int iface_index, const CanFrame& frame, uint64_t m
         assert(0);   // Nonexistent interface
         return -1;
     }
-    const uint64_t timestamp = sysclock_.getMonotonicMicroseconds();
-    const uint64_t timeout = (timestamp >= monotonic_tx_deadline) ? 0 : (monotonic_tx_deadline - timestamp);
-    const int res = iface->send(frame, timeout);
+    const int res = iface->send(frame, tx_deadline);
     if (res != 1)
     {
         UAVCAN_TRACE("CanIOManager", "Send failed: code %i, iface %i, frame %s",
@@ -220,7 +218,7 @@ int CanIOManager::sendFromTxQueue(int iface_index)
     CanTxQueue::Entry* entry = tx_queues_[iface_index].peek();
     if (entry == NULL)
         return 0;
-    const int res = sendToIface(iface_index, entry->frame, entry->monotonic_deadline);
+    const int res = sendToIface(iface_index, entry->frame, entry->deadline);
     if (res > 0)
         tx_queues_[iface_index].remove(entry);
     return res;
@@ -235,12 +233,6 @@ int CanIOManager::makePendingTxMask() const
             write_mask |= 1 << i;
     }
     return write_mask;
-}
-
-uint64_t CanIOManager::getTimeUntilMonotonicDeadline(uint64_t monotonic_deadline) const
-{
-    const uint64_t timestamp = sysclock_.getMonotonicMicroseconds();
-    return (timestamp >= monotonic_deadline) ? 0 : (monotonic_deadline - timestamp);
 }
 
 int CanIOManager::getNumIfaces() const
@@ -261,7 +253,7 @@ uint64_t CanIOManager::getNumErrors(int iface_index) const
     return iface->getNumErrors() + tx_queues_[iface_index].getNumRejectedFrames();
 }
 
-int CanIOManager::send(const CanFrame& frame, uint64_t monotonic_tx_deadline, uint64_t monotonic_blocking_deadline,
+int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, MonotonicTime blocking_deadline,
                         int iface_mask, CanTxQueue::Qos qos)
 {
     const int num_ifaces = getNumIfaces();
@@ -270,8 +262,8 @@ int CanIOManager::send(const CanFrame& frame, uint64_t monotonic_tx_deadline, ui
     assert((iface_mask & ~all_ifaces_mask) == 0);
     iface_mask &= all_ifaces_mask;
 
-    if (monotonic_blocking_deadline > monotonic_tx_deadline)
-        monotonic_blocking_deadline = monotonic_tx_deadline;
+    if (blocking_deadline > tx_deadline)
+        blocking_deadline = tx_deadline;
 
     int retval = 0;
 
@@ -280,11 +272,9 @@ int CanIOManager::send(const CanFrame& frame, uint64_t monotonic_tx_deadline, ui
         if (iface_mask == 0)
             break;
         int write_mask = iface_mask | makePendingTxMask();
-
-        const uint64_t timeout = getTimeUntilMonotonicDeadline(monotonic_blocking_deadline);
         {
             int read_mask = 0;
-            const int select_res = driver_.select(write_mask, read_mask, timeout);
+            const int select_res = driver_.select(write_mask, read_mask, blocking_deadline);
             if (select_res < 0)
                 return select_res;
         }
@@ -303,7 +293,7 @@ int CanIOManager::send(const CanFrame& frame, uint64_t monotonic_tx_deadline, ui
                     }
                     if (res <= 0)
                     {
-                        res = sendToIface(i, frame, monotonic_tx_deadline);
+                        res = sendToIface(i, frame, tx_deadline);
                         if (res > 0)
                             iface_mask &= ~(1 << i);              // Mark transmitted
                     }
@@ -318,9 +308,10 @@ int CanIOManager::send(const CanFrame& frame, uint64_t monotonic_tx_deadline, ui
         }
 
         // Timeout. Enqueue the frame if wasn't transmitted and leave.
-        if (write_mask == 0 || timeout == 0)
+        const bool timed_out = sysclock_.getMonotonic() >= blocking_deadline;
+        if (write_mask == 0 || timed_out)
         {
-            if ((timeout > 0) && (sysclock_.getMonotonicMicroseconds() < monotonic_blocking_deadline))
+            if (!timed_out)
             {
                 UAVCAN_TRACE("CanIOManager", "Send: Premature timeout in select(), will try again");
                 continue;
@@ -328,7 +319,7 @@ int CanIOManager::send(const CanFrame& frame, uint64_t monotonic_tx_deadline, ui
             for (int i = 0; i < num_ifaces; i++)
             {
                 if (iface_mask & (1 << i))
-                    tx_queues_[i].push(frame, monotonic_tx_deadline, qos);
+                    tx_queues_[i].push(frame, tx_deadline, qos);
             }
             break;
         }
@@ -336,7 +327,7 @@ int CanIOManager::send(const CanFrame& frame, uint64_t monotonic_tx_deadline, ui
     return retval;
 }
 
-int CanIOManager::receive(CanRxFrame& frame, uint64_t monotonic_deadline)
+int CanIOManager::receive(CanRxFrame& frame, MonotonicTime blocking_deadline)
 {
     const int num_ifaces = getNumIfaces();
 
@@ -344,9 +335,8 @@ int CanIOManager::receive(CanRxFrame& frame, uint64_t monotonic_deadline)
     {
         int write_mask = makePendingTxMask();
         int read_mask = (1 << num_ifaces) - 1;
-        const uint64_t timeout = getTimeUntilMonotonicDeadline(monotonic_deadline);
         {
-            const int select_res = driver_.select(write_mask, read_mask, timeout);
+            const int select_res = driver_.select(write_mask, read_mask, blocking_deadline);
             if (select_res < 0)
                 return select_res;
         }
@@ -369,7 +359,7 @@ int CanIOManager::receive(CanRxFrame& frame, uint64_t monotonic_deadline)
                     assert(0);   // Nonexistent interface
                     continue;
                 }
-                const int res = iface->receive(frame, frame.ts_monotonic, frame.ts_utc);
+                const int res = iface->receive(frame, frame.ts_mono, frame.ts_utc);
                 if (res == 0)
                 {
                     assert(0);   // select() reported that iface has pending RX frames, but receive() returned none
@@ -380,7 +370,8 @@ int CanIOManager::receive(CanRxFrame& frame, uint64_t monotonic_deadline)
             }
         }
 
-        if (timeout == 0)  // Timeout checked in the last order - this way we can operate with expired deadline
+        // Timeout checked in the last order - this way we can operate with expired deadline:
+        if (sysclock_.getMonotonic() >= blocking_deadline)
             break;
     }
     return 0;

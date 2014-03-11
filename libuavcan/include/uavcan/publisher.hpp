@@ -18,11 +18,11 @@ public:
     typedef DataType_ DataType;
 
     Publisher(Scheduler& scheduler, IMarshalBufferProvider& buffer_provider,
-              uint64_t tx_timeout_usec = BaseType::DefaultTxTimeoutUsec,
-              uint64_t max_transfer_interval = TransferSender::DefaultMaxTransferInterval)
+              MonotonicDuration tx_timeout = BaseType::getDefaultTxTimeout(),
+              MonotonicDuration max_transfer_interval = TransferSender::getDefaultMaxTransferInterval())
     : BaseType(scheduler, buffer_provider, max_transfer_interval)
     {
-        BaseType::setTxTimeout(tx_timeout_usec);
+        BaseType::setTxTimeout(tx_timeout);
         StaticAssert<DataTypeKind(DataType::DataTypeKind) == DataTypeKindMessage>::check();
     }
 

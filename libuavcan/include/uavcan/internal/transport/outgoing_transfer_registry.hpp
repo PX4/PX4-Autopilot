@@ -54,8 +54,8 @@ class IOutgoingTransferRegistry
 {
 public:
     virtual ~IOutgoingTransferRegistry() { }
-    virtual TransferID* accessOrCreate(const OutgoingTransferRegistryKey& key, uint64_t new_monotonic_deadline) = 0;
-    virtual void cleanup(uint64_t monotonic_deadline) = 0;
+    virtual TransferID* accessOrCreate(const OutgoingTransferRegistryKey& key, MonotonicTime new_deadline) = 0;
+    virtual void cleanup(MonotonicTime deadline) = 0;
 };
 
 
@@ -65,26 +65,25 @@ class OutgoingTransferRegistry : public IOutgoingTransferRegistry, Noncopyable
 UAVCAN_PACKED_BEGIN
     struct Value
     {
-        uint64_t monotonic_deadline;
+        MonotonicTime deadline;
         TransferID tid;
-        Value() : monotonic_deadline(0) { }
     };
 UAVCAN_PACKED_END
 
     class DeadlineExpiredPredicate
     {
-        const uint64_t ts_monotonic_;
+        const MonotonicTime ts_;
 
     public:
-        DeadlineExpiredPredicate(uint64_t ts_monotonic)
-        : ts_monotonic_(ts_monotonic)
+        DeadlineExpiredPredicate(MonotonicTime ts)
+        : ts_(ts)
         { }
 
         bool operator()(const OutgoingTransferRegistryKey& key, const Value& value) const
         {
             (void)key;
-            assert(value.monotonic_deadline > 0);
-            return value.monotonic_deadline <= ts_monotonic_;
+            assert(!value.deadline.isZero());
+            return value.deadline <= ts_;
         }
     };
 
@@ -95,21 +94,21 @@ public:
     : map_(allocator)
     { }
 
-    TransferID* accessOrCreate(const OutgoingTransferRegistryKey& key, uint64_t new_monotonic_deadline)
+    TransferID* accessOrCreate(const OutgoingTransferRegistryKey& key, MonotonicTime new_deadline)
     {
-        assert(new_monotonic_deadline > 0);
+        assert(!new_deadline.isZero());
         Value* p = map_.access(key);
         if (p == NULL)
             p = map_.insert(key, Value());
         if (p == NULL)
             return NULL;
-        p->monotonic_deadline = new_monotonic_deadline;
+        p->deadline = new_deadline;
         return &p->tid;
     }
 
-    void cleanup(uint64_t ts_monotonic)
+    void cleanup(MonotonicTime ts)
     {
-        map_.removeWhere(DeadlineExpiredPredicate(ts_monotonic));
+        map_.removeWhere(DeadlineExpiredPredicate(ts));
     }
 };
 

@@ -33,12 +33,12 @@ void Dispatcher::ListenerRegister::remove(TransferListenerBase* listener)
     list_.remove(listener);
 }
 
-void Dispatcher::ListenerRegister::cleanup(uint64_t ts_monotonic)
+void Dispatcher::ListenerRegister::cleanup(MonotonicTime ts)
 {
     TransferListenerBase* p = list_.get();
     while (p)
     {
-        p->cleanup(ts_monotonic);
+        p->cleanup(ts);
         p = p->getNextListNode();
     }
 }
@@ -94,13 +94,13 @@ void Dispatcher::handleFrame(const CanRxFrame& can_frame)
     }
 }
 
-int Dispatcher::spin(uint64_t monotonic_deadline)
+int Dispatcher::spin(MonotonicTime deadline)
 {
     int num_frames_processed = 0;
     do
     {
         CanRxFrame frame;
-        const int res = canio_.receive(frame, monotonic_deadline);
+        const int res = canio_.receive(frame, deadline);
         if (res < 0)
             return res;
         if (res > 0)
@@ -109,12 +109,12 @@ int Dispatcher::spin(uint64_t monotonic_deadline)
             handleFrame(frame);
         }
     }
-    while (sysclock_.getMonotonicMicroseconds() < monotonic_deadline);
+    while (sysclock_.getMonotonic() < deadline);
 
     return num_frames_processed;
 }
 
-int Dispatcher::send(const Frame& frame, uint64_t monotonic_tx_deadline, uint64_t monotonic_blocking_deadline,
+int Dispatcher::send(const Frame& frame, MonotonicTime tx_deadline, MonotonicTime blocking_deadline,
                      CanTxQueue::Qos qos)
 {
     if (frame.getSrcNodeID() != getSelfNodeID())
@@ -132,15 +132,15 @@ int Dispatcher::send(const Frame& frame, uint64_t monotonic_tx_deadline, uint64_
     }
     const int iface_mask = (1 << canio_.getNumIfaces()) - 1;
 
-    return canio_.send(can_frame, monotonic_tx_deadline, monotonic_blocking_deadline, iface_mask, qos);
+    return canio_.send(can_frame, tx_deadline, blocking_deadline, iface_mask, qos);
 }
 
-void Dispatcher::cleanup(uint64_t ts_monotonic)
+void Dispatcher::cleanup(MonotonicTime ts)
 {
-    outgoing_transfer_reg_.cleanup(ts_monotonic);
-    lmsg_.cleanup(ts_monotonic);
-    lsrv_req_.cleanup(ts_monotonic);
-    lsrv_resp_.cleanup(ts_monotonic);
+    outgoing_transfer_reg_.cleanup(ts);
+    lmsg_.cleanup(ts);
+    lsrv_req_.cleanup(ts);
+    lsrv_resp_.cleanup(ts);
 }
 
 bool Dispatcher::registerMessageListener(TransferListenerBase* listener)

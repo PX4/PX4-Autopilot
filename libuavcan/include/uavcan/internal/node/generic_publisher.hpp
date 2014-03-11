@@ -25,16 +25,11 @@ namespace uavcan
 template <typename DataSpec, typename DataStruct>
 class GenericPublisher
 {
-public:
-    enum { DefaultTxTimeoutUsec = 2500 };    // 2500 ms --> 400Hz max
-    enum { MinTxTimeoutUsec = 200 };
-
-private:
     enum { Qos = (DataTypeKind(DataSpec::DataTypeKind) == DataTypeKindMessage) ?
                   CanTxQueue::Volatile : CanTxQueue::Persistent };
 
-    const uint64_t max_transfer_interval_;   // TODO: memory usage can be reduced
-    uint64_t tx_timeout_;
+    const MonotonicDuration max_transfer_interval_;   // TODO: memory usage can be reduced
+    MonotonicDuration tx_timeout_;
     Scheduler& scheduler_;
     IMarshalBufferProvider& buffer_provider_;
     LazyConstructor<TransferSender> sender_;
@@ -54,12 +49,12 @@ private:
             UAVCAN_TRACE("GenericPublisher", "Type [%s] is not registered", DataSpec::getDataTypeFullName());
             return false;
         }
-        sender_.template construct<Dispatcher&, const DataTypeDescriptor&, CanTxQueue::Qos, uint64_t>
+        sender_.template construct<Dispatcher&, const DataTypeDescriptor&, CanTxQueue::Qos, MonotonicDuration>
             (scheduler_.getDispatcher(), *descr, CanTxQueue::Qos(Qos), max_transfer_interval_);
         return true;
     }
 
-    uint64_t getTxDeadline() const { return scheduler_.getMonotonicTimestamp() + tx_timeout_; }
+    MonotonicTime getTxDeadline() const { return scheduler_.getMonotonicTimestamp() + tx_timeout_; }
 
     IMarshalBuffer* getBuffer()
     {
@@ -67,7 +62,7 @@ private:
     }
 
     int genericPublish(const DataStruct& message, TransferType transfer_type, NodeID dst_node_id,
-                       TransferID* tid, uint64_t monotonic_blocking_deadline)
+                       TransferID* tid, MonotonicTime blocking_deadline)
     {
         if (!checkInit())
             return -1;
@@ -89,20 +84,20 @@ private:
         if (tid)
         {
             return sender_->send(buf->getDataPtr(), buf->getDataLength(), getTxDeadline(),
-                                 monotonic_blocking_deadline, transfer_type, dst_node_id, *tid);
+                                 blocking_deadline, transfer_type, dst_node_id, *tid);
         }
         else
         {
             return sender_->send(buf->getDataPtr(), buf->getDataLength(), getTxDeadline(),
-                                 monotonic_blocking_deadline, transfer_type, dst_node_id);
+                                 blocking_deadline, transfer_type, dst_node_id);
         }
     }
 
 protected:
     GenericPublisher(Scheduler& scheduler, IMarshalBufferProvider& buffer_provider,
-                     uint64_t max_transfer_interval = TransferSender::DefaultMaxTransferInterval)
+                     MonotonicDuration max_transfer_interval = TransferSender::getDefaultMaxTransferInterval())
     : max_transfer_interval_(max_transfer_interval)
-    , tx_timeout_(DefaultTxTimeoutUsec)
+    , tx_timeout_(getDefaultTxTimeout())
     , scheduler_(scheduler)
     , buffer_provider_(buffer_provider)
     { }
@@ -110,22 +105,25 @@ protected:
     ~GenericPublisher() { }
 
     int publish(const DataStruct& message, TransferType transfer_type, NodeID dst_node_id,
-                uint64_t monotonic_blocking_deadline = 0)
+                MonotonicTime blocking_deadline = MonotonicTime())
     {
-        return genericPublish(message, transfer_type, dst_node_id, NULL, monotonic_blocking_deadline);
+        return genericPublish(message, transfer_type, dst_node_id, NULL, blocking_deadline);
     }
 
     int publish(const DataStruct& message, TransferType transfer_type, NodeID dst_node_id, TransferID tid,
-                uint64_t monotonic_blocking_deadline = 0)
+                MonotonicTime blocking_deadline = MonotonicTime())
     {
-        return genericPublish(message, transfer_type, dst_node_id, &tid, monotonic_blocking_deadline);
+        return genericPublish(message, transfer_type, dst_node_id, &tid, blocking_deadline);
     }
 
 public:
-    uint64_t getTxTimeout() const { return tx_timeout_; }
-    void setTxTimeout(uint64_t usec)
+    static MonotonicDuration getDefaultTxTimeout() { return MonotonicDuration::fromUSec(2500); }// 2500ms --> 400Hz max
+    static MonotonicDuration getMinTxTimeout() { return MonotonicDuration::fromUSec(200); }
+
+    MonotonicDuration getTxTimeout() const { return tx_timeout_; }
+    void setTxTimeout(MonotonicDuration tx_timeout)
     {
-        tx_timeout_ = std::max(usec, uint64_t(MinTxTimeoutUsec));
+        tx_timeout_ = std::max(tx_timeout, getMinTxTimeout());
     }
 
     Scheduler& getScheduler() const { return scheduler_; }

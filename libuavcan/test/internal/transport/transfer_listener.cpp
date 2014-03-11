@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 #include "transfer_test_helpers.hpp"
+#include "../../clock.hpp"
 
 
 class TransferListenerEmulator : public IncomingTransferEmulatorBase
@@ -198,7 +199,7 @@ TEST(TransferListener, Cleanup)
     /*
      * Cleanup with huge timestamp value will remove all entries
      */
-    static_cast<uavcan::TransferListenerBase&>(subscriber).cleanup(100000000);
+    static_cast<uavcan::TransferListenerBase&>(subscriber).cleanup(tsMono(100000000));
 
     /*
      * Sending the same transfers again - they will be accepted since registres were cleared

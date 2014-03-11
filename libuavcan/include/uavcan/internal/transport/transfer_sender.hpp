@@ -16,7 +16,7 @@ namespace uavcan
 
 class TransferSender
 {
-    const uint64_t max_transfer_interval_;
+    const MonotonicDuration max_transfer_interval_;
     const DataTypeDescriptor& data_type_;
     const CanTxQueue::Qos qos_;
     const TransferCRC crc_base_;
@@ -24,10 +24,13 @@ class TransferSender
     Dispatcher& dispatcher_;
 
 public:
-    static const uint64_t DefaultMaxTransferInterval = 60 * 1000 * 1000;
+    static MonotonicDuration getDefaultMaxTransferInterval()
+    {
+        return MonotonicDuration::fromMSec(60 * 1000);
+    }
 
     TransferSender(Dispatcher& dispatcher, const DataTypeDescriptor& data_type, CanTxQueue::Qos qos,
-                   uint64_t max_transfer_interval = DefaultMaxTransferInterval)
+                   MonotonicDuration max_transfer_interval = getDefaultMaxTransferInterval())
     : max_transfer_interval_(max_transfer_interval)
     , data_type_(data_type)
     , qos_(qos)
@@ -39,16 +42,16 @@ public:
      * Send with explicit Transfer ID.
      * Should be used only for service responses, where response TID should match request TID.
      */
-    int send(const uint8_t* payload, int payload_len, uint64_t monotonic_tx_deadline,
-             uint64_t monotonic_blocking_deadline, TransferType transfer_type, NodeID dst_node_id,
+    int send(const uint8_t* payload, int payload_len, MonotonicTime tx_deadline,
+             MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id,
              TransferID tid);
 
     /**
      * Send with automatic Transfer ID.
      * TID is managed by OutgoingTransferRegistry.
      */
-    int send(const uint8_t* payload, int payload_len, uint64_t monotonic_tx_deadline,
-             uint64_t monotonic_blocking_deadline, TransferType transfer_type, NodeID dst_node_id);
+    int send(const uint8_t* payload, int payload_len, MonotonicTime tx_deadline,
+             MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id);
 };
 
 }

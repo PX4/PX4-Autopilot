@@ -5,13 +5,14 @@
 #include <algorithm>
 #include <gtest/gtest.h>
 #include <uavcan/internal/transport/transfer_listener.hpp>
+#include "../../clock.hpp"
 
 
 static uavcan::RxFrame makeFrame()
 {
     uavcan::RxFrame frame(
         uavcan::Frame(123, uavcan::TransferTypeMessageBroadcast, 1, uavcan::NodeID::Broadcast, 0, 1, true),
-        123, 456, 0);
+        tsMono(123), tsUtc(456), 0);
     uint8_t data[8];
     for (unsigned int i = 0; i < sizeof(data); i++)
         data[i] = i;

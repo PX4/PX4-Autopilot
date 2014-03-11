@@ -41,7 +41,7 @@ class Dispatcher : Noncopyable
 
         bool add(TransferListenerBase* listener, Mode mode);
         void remove(TransferListenerBase* listener);
-        void cleanup(uint64_t ts_monotonic);
+        void cleanup(MonotonicTime ts);
         void handleFrame(const RxFrame& frame);
 
         int getNumEntries() const { return list_.getLength(); }
@@ -64,15 +64,14 @@ public:
     , self_node_id_(self_node_id)
     { }
 
-    int spin(uint64_t monotonic_deadline);
+    int spin(MonotonicTime deadline);
 
     /**
      * Refer to CanIOManager::send() for the parameter description
      */
-    int send(const Frame& frame, uint64_t monotonic_tx_deadline, uint64_t monotonic_blocking_deadline,
-             CanTxQueue::Qos qos);
+    int send(const Frame& frame, MonotonicTime tx_deadline, MonotonicTime blocking_deadline, CanTxQueue::Qos qos);
 
-    void cleanup(uint64_t ts_monotonic);
+    void cleanup(MonotonicTime ts);
 
     bool registerMessageListener(TransferListenerBase* listener);
     bool registerServiceRequestListener(TransferListenerBase* listener);

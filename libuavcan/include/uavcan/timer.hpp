@@ -17,13 +17,13 @@ class Timer;
 
 struct TimerEvent
 {
-    uint64_t scheduled_monotonic_deadline;
-    uint64_t monotonic_timestamp;
+    MonotonicTime scheduled_deadline;
+    MonotonicTime current_timestamp;
     Timer* timer;
 
-    TimerEvent(Timer* timer, uint64_t scheduled_monotonic_deadline, uint64_t monotonic_timestamp)
-    : scheduled_monotonic_deadline(scheduled_monotonic_deadline)
-    , monotonic_timestamp(monotonic_timestamp)
+    TimerEvent(Timer* timer, MonotonicTime scheduled_deadline, MonotonicTime current_timestamp)
+    : scheduled_deadline(scheduled_deadline)
+    , current_timestamp(current_timestamp)
     , timer(timer)
     { }
 };
@@ -31,28 +31,26 @@ struct TimerEvent
 
 class Timer : private MonotonicDeadlineHandler
 {
-    uint64_t period_;
+    MonotonicDuration period_;
 
-    void handleMonotonicDeadline(uint64_t monotonic_timestamp);
+    void handleDeadline(MonotonicTime current_timestamp);
 
 public:
-    static const uint64_t InfinitePeriod = 0xFFFFFFFFFFFFFFFFUL;
-
     using MonotonicDeadlineHandler::stop;
     using MonotonicDeadlineHandler::isRunning;
-    using MonotonicDeadlineHandler::getMonotonicDeadline;
+    using MonotonicDeadlineHandler::getDeadline;
     using MonotonicDeadlineHandler::getScheduler;
 
     explicit Timer(Scheduler& scheduler)
     : MonotonicDeadlineHandler(scheduler)
-    , period_(InfinitePeriod)
+    , period_(MonotonicDuration::getInfinite())
     { }
 
-    void startOneShotWithDeadline(uint64_t monotonic_deadline);
-    void startOneShotWithDelay(uint64_t delay_usec);
-    void startPeriodic(uint64_t period_usec);
+    void startOneShotWithDeadline(MonotonicTime deadline);
+    void startOneShotWithDelay(MonotonicDuration delay);
+    void startPeriodic(MonotonicDuration period);
 
-    uint64_t getPeriod() const { return period_; }
+    MonotonicDuration getPeriod() const { return period_; }
 
     virtual void handleTimerEvent(const TimerEvent& event) = 0;
 };

@@ -13,9 +13,9 @@
 namespace uavcan
 {
 
-const uint32_t TransferReceiver::DefaultTransferInterval;
-const uint32_t TransferReceiver::MinTransferInterval;
-const uint32_t TransferReceiver::MaxTransferInterval;
+const uint32_t TransferReceiver::DefaultTransferIntervalUSec;
+const uint32_t TransferReceiver::MinTransferIntervalUSec;
+const uint32_t TransferReceiver::MaxTransferIntervalUSec;
 
 TransferReceiver::TidRelation TransferReceiver::getTidRelation(const RxFrame& frame) const
 {
@@ -29,18 +29,17 @@ TransferReceiver::TidRelation TransferReceiver::getTidRelation(const RxFrame& fr
 
 void TransferReceiver::updateTransferTimings()
 {
-    assert(this_transfer_ts_monotonic_ > 0);
+    assert(!this_transfer_ts_.isZero());
 
-    const uint64_t prev_prev_ts = prev_transfer_ts_monotonic_;
-    prev_transfer_ts_monotonic_ = this_transfer_ts_monotonic_;
+    const MonotonicTime prev_prev_ts = prev_transfer_ts_;
+    prev_transfer_ts_ = this_transfer_ts_;
 
-    if ((prev_prev_ts != 0) &&
-        (prev_transfer_ts_monotonic_ != 0) &&
-        (prev_transfer_ts_monotonic_ >= prev_prev_ts))
+    if ((!prev_prev_ts.isZero()) && (!prev_transfer_ts_.isZero()) && (prev_transfer_ts_ >= prev_prev_ts))
     {
-        uint64_t interval = prev_transfer_ts_monotonic_ - prev_prev_ts;
-        interval = std::max(std::min(interval, uint64_t(MaxTransferInterval)), uint64_t(MinTransferInterval));
-        transfer_interval_ = static_cast<uint32_t>((uint64_t(transfer_interval_) * 7 + interval) / 8);
+        uint64_t interval_usec = (prev_transfer_ts_ - prev_prev_ts).toUSec();
+        interval_usec = std::min(interval_usec, uint64_t(MaxTransferIntervalUSec));
+        interval_usec = std::max(interval_usec, uint64_t(MinTransferIntervalUSec));
+        transfer_interval_usec_ = static_cast<uint32_t>((uint64_t(transfer_interval_usec_) * 7 + interval_usec) / 8);
     }
 }
 
@@ -117,8 +116,8 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame, Tra
     // Transfer timestamps are derived from the first frame
     if (frame.isFirst())
     {
-        this_transfer_ts_monotonic_ = frame.getMonotonicTimestamp();
-        first_frame_ts_utc_         = frame.getUtcTimestamp();
+        this_transfer_ts_ = frame.getMonotonicTimestamp();
+        first_frame_ts_   = frame.getUtcTimestamp();
     }
 
     if (frame.isFirst() && frame.isLast())
@@ -158,20 +157,19 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame, Tra
     return ResultNotComplete;
 }
 
-bool TransferReceiver::isTimedOut(uint64_t ts_monotonic) const
+bool TransferReceiver::isTimedOut(MonotonicTime current_ts) const
 {
     static const uint64_t INTERVAL_MULT = (1 << TransferID::BitLen) / 2 + 1;
-    const uint64_t ts = this_transfer_ts_monotonic_;
-    if (ts_monotonic <= ts)
+    if (current_ts <= this_transfer_ts_)
         return false;
-    return (ts_monotonic - ts) > (uint64_t(transfer_interval_) * INTERVAL_MULT);
+    return (current_ts - this_transfer_ts_).toUSec() > (uint64_t(transfer_interval_usec_) * INTERVAL_MULT);
 }
 
 TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, TransferBufferAccessor& tba)
 {
-    if ((frame.getMonotonicTimestamp() == 0) ||
-        (frame.getMonotonicTimestamp() < prev_transfer_ts_monotonic_) ||
-        (frame.getMonotonicTimestamp() < this_transfer_ts_monotonic_))
+    if ((frame.getMonotonicTimestamp().isZero()) ||
+        (frame.getMonotonicTimestamp() < prev_transfer_ts_) ||
+        (frame.getMonotonicTimestamp() < this_transfer_ts_))
     {
         return ResultNotComplete;
     }
@@ -182,7 +180,7 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, Tr
     const bool first_fame = frame.isFirst();
     const TidRelation tid_rel = getTidRelation(frame);
     const bool iface_timed_out =
-        (frame.getMonotonicTimestamp() - this_transfer_ts_monotonic_) > (uint64_t(transfer_interval_) * 2);
+        (frame.getMonotonicTimestamp() - this_transfer_ts_).toUSec() > (uint64_t(transfer_interval_usec_) * 2);
 
     const bool need_restart = // FSM, the hard way
         (not_initialized) ||

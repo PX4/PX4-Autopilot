@@ -14,29 +14,28 @@ class Scheduler;
 
 class MonotonicDeadlineHandler : public LinkedListNode<MonotonicDeadlineHandler>, Noncopyable
 {
-    uint64_t monotonic_deadline_;
+    MonotonicTime deadline_;
 
 protected:
     Scheduler& scheduler_;
 
     explicit MonotonicDeadlineHandler(Scheduler& scheduler)
-    : monotonic_deadline_(0)
-    , scheduler_(scheduler)
+    : scheduler_(scheduler)
     { }
 
     virtual ~MonotonicDeadlineHandler() { stop(); }
 
 public:
-    virtual void handleMonotonicDeadline(uint64_t monotonic_timestamp) = 0;
+    virtual void handleDeadline(MonotonicTime current_timestamp) = 0;
 
-    void startWithDeadline(uint64_t monotonic_deadline);
-    void startWithDelay(uint64_t delay_usec);
+    void startWithDeadline(MonotonicTime deadline);
+    void startWithDelay(MonotonicDuration delay);
 
     void stop();
 
     bool isRunning() const;
 
-    uint64_t getMonotonicDeadline() const { return monotonic_deadline_; }
+    MonotonicTime getDeadline() const { return deadline_; }
     Scheduler& getScheduler() const { return scheduler_; }
 };
 
@@ -51,8 +50,8 @@ public:
     bool doesExist(const MonotonicDeadlineHandler* mdh) const;
     unsigned int getNumHandlers() const { return handlers_.getLength(); }
 
-    uint64_t pollAndGetMonotonicTimestamp(ISystemClock& sysclock);
-    uint64_t getEarliestDeadline() const;
+    MonotonicTime pollAndGetMonotonicTimestamp(ISystemClock& sysclock);
+    MonotonicTime getEarliestDeadline() const;
 };
 
 
@@ -68,45 +67,45 @@ class Scheduler : Noncopyable
 
     MonotonicDeadlineScheduler deadline_scheduler_;
     Dispatcher dispatcher_;
-    uint64_t prev_cleanup_ts_;
-    uint64_t monotonic_deadline_resolution_;
-    uint64_t cleanup_period_;
+    MonotonicTime prev_cleanup_ts_;
+    MonotonicDuration deadline_resolution_;
+    MonotonicDuration cleanup_period_;
 
-    uint64_t computeDispatcherSpinDeadline(uint64_t spin_deadline) const;
-    void pollCleanup(uint64_t mono_ts, uint32_t num_frames_processed_with_last_spin);
+    MonotonicTime computeDispatcherSpinDeadline(MonotonicTime spin_deadline) const;
+    void pollCleanup(MonotonicTime mono_ts, uint32_t num_frames_processed_with_last_spin);
 
 public:
     Scheduler(ICanDriver& can_driver, IAllocator& allocator, ISystemClock& sysclock, IOutgoingTransferRegistry& otr,
              NodeID self_node_id)
     : dispatcher_(can_driver, allocator, sysclock, otr, self_node_id)
-    , prev_cleanup_ts_(sysclock.getMonotonicMicroseconds())
-    , monotonic_deadline_resolution_(DefaultMonotonicDeadlineResolutionMs * 1000)
-    , cleanup_period_(DefaultCleanupPeriodMs * 1000)
+    , prev_cleanup_ts_(sysclock.getMonotonic())
+    , deadline_resolution_(MonotonicDuration::fromMSec(DefaultMonotonicDeadlineResolutionMs))
+    , cleanup_period_(MonotonicDuration::fromMSec(DefaultCleanupPeriodMs))
     { }
 
-    int spin(uint64_t monotonic_deadline);
+    int spin(MonotonicTime deadline);
 
     MonotonicDeadlineScheduler& getMonotonicDeadlineScheduler() { return deadline_scheduler_; }
     Dispatcher& getDispatcher() { return dispatcher_; }
 
-    ISystemClock& getSystemClock()         { return dispatcher_.getSystemClock(); }
-    uint64_t getMonotonicTimestamp() const { return dispatcher_.getSystemClock().getMonotonicMicroseconds(); }
-    uint64_t getUtcTimestamp()       const { return dispatcher_.getSystemClock().getUtcMicroseconds(); }
+    ISystemClock& getSystemClock()              { return dispatcher_.getSystemClock(); }
+    MonotonicTime getMonotonicTimestamp() const { return dispatcher_.getSystemClock().getMonotonic(); }
+    UtcTime getUtcTimestamp()             const { return dispatcher_.getSystemClock().getUtc(); }
 
-    uint64_t getMonotonicDeadlineResolution() const { return monotonic_deadline_resolution_; }
-    void setMonotonicDeadlineResolution(uint64_t res_usec)
+    MonotonicDuration getMonotonicDeadlineResolution() const { return deadline_resolution_; }
+    void setMonotonicDeadlineResolution(MonotonicDuration res)
     {
-        res_usec = std::min(res_usec, MaxMonotonicDeadlineResolutionMs * uint64_t(1000));
-        res_usec = std::max(res_usec, MinMonotonicDeadlineResolutionMs * uint64_t(1000));
-        monotonic_deadline_resolution_ = res_usec;
+        res = std::min(res, MonotonicDuration::fromMSec(MaxMonotonicDeadlineResolutionMs));
+        res = std::max(res, MonotonicDuration::fromMSec(MinMonotonicDeadlineResolutionMs));
+        deadline_resolution_ = res;
     }
 
-    uint64_t getCleanupPeriod() const { return cleanup_period_; }
-    void setCleanupPeriod(uint64_t period_usec)
+    MonotonicDuration getCleanupPeriod() const { return cleanup_period_; }
+    void setCleanupPeriod(MonotonicDuration period)
     {
-        period_usec = std::min(period_usec, MaxCleanupPeriodMs * uint64_t(1000));
-        period_usec = std::max(period_usec, MinCleanupPeriodMs * uint64_t(1000));
-        cleanup_period_ = period_usec;
+        period = std::min(period, MonotonicDuration::fromMSec(MaxCleanupPeriodMs));
+        period = std::max(period, MonotonicDuration::fromMSec(MinCleanupPeriodMs));
+        cleanup_period_ = period;
     }
 };
 

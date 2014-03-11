@@ -8,6 +8,21 @@
 
 #pragma once
 
+/*
+ * Forward declaration
+ */
+% for nsc in t.cpp_namespace_components:
+namespace ${nsc}
+{
+% endfor
+
+struct ${t.cpp_type_name};
+typedef ${t.cpp_type_name} ${t.short_name};
+
+% for nsc in t.cpp_namespace_components:
+}
+% endfor
+
 #include <uavcan/data_type.hpp>
 #include <uavcan/global_data_type_registry.hpp>
 #include <uavcan/internal/marshal/types.hpp>
@@ -37,8 +52,6 @@ ${line}
 namespace ${nsc}
 {
 % endfor
-namespace
-{
 
 #if UAVCAN_PACK_STRUCTS
 UAVCAN_PACKED_BEGIN
@@ -214,14 +227,16 @@ UAVCAN_PACKED_END
 #endif
 
 % if t.has_default_dtid:
+namespace
+{
+
 const ::uavcan::DefaultDataTypeRegistrator< ${t.cpp_type_name} > _uavcan_gdtr_registrator_${t.cpp_type_name};
+
+}
 % else:
 // No default registration
 % endif
 
-typedef ${t.cpp_type_name} ${t.short_name};
-
-} // Anonymous namespace
 % for nsc in t.cpp_namespace_components:
 } // Namespace ${nsc}
 % endfor
@@ -268,8 +283,6 @@ ${define_yaml_streamer(t.cpp_full_type_name, t.fields)}
 namespace ${nsc}
 {
 % endfor
-namespace
-{
 
 <%def name="define_streaming_operator(type_name)">
 template <typename Stream>
@@ -286,7 +299,6 @@ ${define_streaming_operator(t.cpp_full_type_name + '::Response')}
 ${define_streaming_operator(t.cpp_full_type_name)}
 % endif
 
-}
 % for nsc in t.cpp_namespace_components:
 }
 % endfor

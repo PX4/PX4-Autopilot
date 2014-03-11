@@ -18,8 +18,8 @@ struct SubscriptionListener
 
     struct ReceivedDataStructureCopy
     {
-        uint64_t ts_monotonic;
-        uint64_t ts_utc;
+        uavcan::MonotonicTime ts_monotonic;
+        uavcan::UtcTime ts_utc;
         uavcan::TransferType transfer_type;
         uavcan::TransferID transfer_id;
         uavcan::NodeID src_node_id;
@@ -120,7 +120,7 @@ TEST(Subscriber, Basic)
         // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame
         uavcan::Frame frame(uavcan::mavlink::Message::DefaultDataTypeID, tt, uavcan::NodeID(i + 100), dni, 0, i, true);
         frame.setPayload(transfer_payload, 7);
-        uavcan::RxFrame rx_frame(frame, clock_driver.getMonotonicMicroseconds(), clock_driver.getUtcMicroseconds(), 0);
+        uavcan::RxFrame rx_frame(frame, clock_driver.getMonotonic(), clock_driver.getUtc(), 0);
         rx_frames.push_back(rx_frame);
     }
 
@@ -147,7 +147,7 @@ TEST(Subscriber, Basic)
         can_driver.ifaces[1].pushRx(rx_frames[i]);
     }
 
-    ASSERT_LE(0, sch.spin(clock_driver.getMonotonicMicroseconds() + 10000));
+    ASSERT_LE(0, sch.spin(clock_driver.getMonotonic() + durMono(10000)));
 
     /*
      * Validation
@@ -224,13 +224,12 @@ TEST(Subscriber, FailureCount)
             uavcan::Frame frame(uavcan::mavlink::Message::DefaultDataTypeID, uavcan::TransferTypeMessageBroadcast,
                                 uavcan::NodeID(i + 100), uavcan::NodeID::Broadcast, 0, i, true);
             // No payload - broken transfer
-            uavcan::RxFrame rx_frame(frame, clock_driver.getMonotonicMicroseconds(),
-                                     clock_driver.getUtcMicroseconds(), 0);
+            uavcan::RxFrame rx_frame(frame, clock_driver.getMonotonic(), clock_driver.getUtc(), 0);
             can_driver.ifaces[0].pushRx(rx_frame);
             can_driver.ifaces[1].pushRx(rx_frame);
         }
 
-        ASSERT_LE(0, sch.spin(clock_driver.getMonotonicMicroseconds() + 10000));
+        ASSERT_LE(0, sch.spin(clock_driver.getMonotonic() + durMono(10000)));
 
         ASSERT_EQ(4, sub.getFailureCount());
 
@@ -276,13 +275,12 @@ TEST(Subscriber, SingleFrameTransfer)
         uavcan::Frame frame(root_ns_a::EmptyMessage::DefaultDataTypeID, uavcan::TransferTypeMessageBroadcast,
                             uavcan::NodeID(i + 100), uavcan::NodeID::Broadcast, 0, i, true);
         // No payload - message is empty
-        uavcan::RxFrame rx_frame(frame, clock_driver.getMonotonicMicroseconds(),
-                                 clock_driver.getUtcMicroseconds(), 0);
+        uavcan::RxFrame rx_frame(frame, clock_driver.getMonotonic(), clock_driver.getUtc(), 0);
         can_driver.ifaces[0].pushRx(rx_frame);
         can_driver.ifaces[1].pushRx(rx_frame);
     }
 
-    ASSERT_LE(0, sch.spin(clock_driver.getMonotonicMicroseconds() + 10000));
+    ASSERT_LE(0, sch.spin(clock_driver.getMonotonic() + durMono(10000)));
 
     ASSERT_EQ(0, sub.getFailureCount());
 

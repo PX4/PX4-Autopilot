@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <gtest/gtest.h>
 #include <uavcan/internal/transport/transfer_receiver.hpp>
+#include "../../clock.hpp"
 
 /*
  * Beware!
@@ -37,7 +38,8 @@ struct RxFrameGenerator
 
         EXPECT_EQ(data.length(), frame.setPayload(reinterpret_cast<const uint8_t*>(data.c_str()), data.length()));
 
-        return uavcan::RxFrame(frame, ts_monotonic, ts_utc, iface_index);
+        return uavcan::RxFrame(frame, uavcan::MonotonicTime::fromUSec(ts_monotonic),
+                               uavcan::UtcTime::fromUSec(ts_utc), iface_index);
     }
 };
 
@@ -101,15 +103,15 @@ TEST(TransferReceiver, Basic)
     /*
      * Empty
      */
-    ASSERT_EQ(TransferReceiver::DefaultTransferInterval, rcv.getInterval());
-    ASSERT_EQ(0, rcv.getLastTransferTimestampMonotonic());
+    ASSERT_EQ(TransferReceiver::getDefaultTransferInterval(), rcv.getInterval());
+    ASSERT_EQ(0, rcv.getLastTransferTimestampMonotonic().toUSec());
 
     /*
      * Single frame transfer with zero ts, must be ignored
      */
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "Foo", 0, true, 0, 0), bk));
-    ASSERT_EQ(TransferReceiver::DefaultTransferInterval, rcv.getInterval());
-    ASSERT_EQ(0, rcv.getLastTransferTimestampMonotonic());
+    ASSERT_EQ(TransferReceiver::getDefaultTransferInterval(), rcv.getInterval());
+    ASSERT_EQ(0, rcv.getLastTransferTimestampMonotonic().toUSec());
 
     /*
      * Valid compound transfer
@@ -120,8 +122,8 @@ TEST(TransferReceiver, Basic)
 
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "345678foo"));
     ASSERT_EQ(0x1234, rcv.getLastTransferCrc());
-    ASSERT_EQ(TransferReceiver::DefaultTransferInterval, rcv.getInterval());           // Not initialized yet
-    ASSERT_EQ(100, rcv.getLastTransferTimestampMonotonic());
+    ASSERT_EQ(TransferReceiver::getDefaultTransferInterval(), rcv.getInterval());           // Not initialized yet
+    ASSERT_EQ(100, rcv.getLastTransferTimestampMonotonic().toUSec());
 
     /*
      * Compound transfer mixed with invalid frames; buffer was not released explicitly
@@ -138,12 +140,12 @@ TEST(TransferReceiver, Basic)
 
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "345678abcdefgh"));
     ASSERT_EQ(0x789A, rcv.getLastTransferCrc());
-    ASSERT_GT(TransferReceiver::DefaultTransferInterval, rcv.getInterval());
-    ASSERT_LT(TransferReceiver::MinTransferInterval, rcv.getInterval());
-    ASSERT_EQ(1000, rcv.getLastTransferTimestampMonotonic());
-    ASSERT_FALSE(rcv.isTimedOut(1000));
-    ASSERT_FALSE(rcv.isTimedOut(5000));
-    ASSERT_TRUE(rcv.isTimedOut(60000000));
+    ASSERT_GT(TransferReceiver::getDefaultTransferInterval(), rcv.getInterval());
+    ASSERT_LT(TransferReceiver::getMinTransferInterval(), rcv.getInterval());
+    ASSERT_EQ(1000, rcv.getLastTransferTimestampMonotonic().toUSec());
+    ASSERT_FALSE(rcv.isTimedOut(tsMono(1000)));
+    ASSERT_FALSE(rcv.isTimedOut(tsMono(5000)));
+    ASSERT_TRUE(rcv.isTimedOut(tsMono(60000000)));
 
     /*
      * Single-frame transfers
@@ -153,11 +155,11 @@ TEST(TransferReceiver, Basic)
     CHECK_SINGLE_FRAME(rcv.addFrame(gen(0, "qwe",      0, true, 2, 2200), bk));
 
     ASSERT_FALSE(bufmgr.access(gen.bufmgr_key));          // Buffer must be removed
-    ASSERT_GT(TransferReceiver::DefaultTransferInterval, rcv.getInterval());
-    ASSERT_EQ(2200, rcv.getLastTransferTimestampMonotonic());
+    ASSERT_GT(TransferReceiver::getDefaultTransferInterval(), rcv.getInterval());
+    ASSERT_EQ(2200, rcv.getLastTransferTimestampMonotonic().toUSec());
 
     CHECK_SINGLE_FRAME(rcv.addFrame(gen(0, "",         0, true, 3, 2500), bk));
-    ASSERT_EQ(2500, rcv.getLastTransferTimestampMonotonic());
+    ASSERT_EQ(2500, rcv.getLastTransferTimestampMonotonic().toUSec());
 
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "",         0, true, 0, 3000), bk));   // Old TID
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "",         0, true, 1, 3100), bk));   // Old TID
@@ -166,38 +168,38 @@ TEST(TransferReceiver, Basic)
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "",         0, true, 2, 3400), bk));   // Old TID, wrong iface
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "",         0, true, 3, 3500), bk));   // Old TID, wrong iface
     CHECK_SINGLE_FRAME(rcv.addFrame(gen(0, "",         0, true, 4, 3600), bk));
-    ASSERT_EQ(3600, rcv.getLastTransferTimestampMonotonic());
+    ASSERT_EQ(3600, rcv.getLastTransferTimestampMonotonic().toUSec());
 
     /*
      * Timeouts
      */
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "qwe",      0, true, 1, 100000), bk)); // Wrong iface - ignored
     CHECK_SINGLE_FRAME(rcv.addFrame(gen(1, "qwe",      0, true, 6, 600000), bk)); // Accepted due to iface timeout
-    ASSERT_EQ(600000, rcv.getLastTransferTimestampMonotonic());
+    ASSERT_EQ(600000, rcv.getLastTransferTimestampMonotonic().toUSec());
 
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "qwe",      0, true, 7, 600100), bk));// Ignored - old iface 0
     CHECK_SINGLE_FRAME(rcv.addFrame(gen(1, "qwe",      0, true, 7, 600100), bk));
-    ASSERT_EQ(600100, rcv.getLastTransferTimestampMonotonic());
+    ASSERT_EQ(600100, rcv.getLastTransferTimestampMonotonic().toUSec());
 
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "qwe",      0, true, 7, 600100), bk));   // Old TID
     CHECK_SINGLE_FRAME(rcv.addFrame(gen(0, "qwe",      0, true, 7, 100000000), bk));// Accepted - global timeout
-    ASSERT_EQ(100000000, rcv.getLastTransferTimestampMonotonic());
+    ASSERT_EQ(100000000, rcv.getLastTransferTimestampMonotonic().toUSec());
 
     CHECK_SINGLE_FRAME(rcv.addFrame(gen(0, "qwe",      0, true, 0, 100000100), bk));
-    ASSERT_EQ(100000100, rcv.getLastTransferTimestampMonotonic());
+    ASSERT_EQ(100000100, rcv.getLastTransferTimestampMonotonic().toUSec());
 
-    ASSERT_TRUE(rcv.isTimedOut(900000000));
+    ASSERT_TRUE(rcv.isTimedOut(tsMono(900000000)));
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "\x78\x56" "345678", 0, false, 0, 900000000), bk));// Global timeout
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "12345678", 0, false, 0, 900000100), bk));// Wrong iface
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "qwe",      1, true,  0, 900000200), bk));// Wrong iface
     CHECK_COMPLETE(    rcv.addFrame(gen(1, "qwe",      1, true,  0, 900000200), bk));
-    ASSERT_EQ(900000000, rcv.getLastTransferTimestampMonotonic());
-    ASSERT_FALSE(rcv.isTimedOut(1000));
-    ASSERT_FALSE(rcv.isTimedOut(900000200));
-    ASSERT_TRUE(rcv.isTimedOut(1000 * 1000000));
-    ASSERT_LT(TransferReceiver::DefaultTransferInterval, rcv.getInterval());
-    ASSERT_LE(TransferReceiver::MinTransferInterval, rcv.getInterval());
-    ASSERT_GE(TransferReceiver::MaxTransferInterval, rcv.getInterval());
+    ASSERT_EQ(900000000, rcv.getLastTransferTimestampMonotonic().toUSec());
+    ASSERT_FALSE(rcv.isTimedOut(tsMono(1000)));
+    ASSERT_FALSE(rcv.isTimedOut(tsMono(900000200)));
+    ASSERT_TRUE(rcv.isTimedOut(tsMono(1000 * 1000000)));
+    ASSERT_LT(TransferReceiver::getDefaultTransferInterval(), rcv.getInterval());
+    ASSERT_LE(TransferReceiver::getMinTransferInterval(), rcv.getInterval());
+    ASSERT_GE(TransferReceiver::getMaxTransferInterval(), rcv.getInterval());
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "345678qwe"));
     ASSERT_EQ(0x5678, rcv.getLastTransferCrc());
 
@@ -227,7 +229,7 @@ TEST(TransferReceiver, OutOfBufferSpace_32bytes)
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "12345678", 3, false, 1, 100000300), bk)); // 30
     CHECK_COMPLETE(    rcv.addFrame(gen(1, "12",       4, true,  1, 100000400), bk)); // 32
 
-    ASSERT_EQ(100000000, rcv.getLastTransferTimestampMonotonic());
+    ASSERT_EQ(100000000, rcv.getLastTransferTimestampMonotonic().toUSec());
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "34567812345678123456781234567812"));
     ASSERT_EQ(0x3231, rcv.getLastTransferCrc());                   // CRC from "12", which is 0x3231 in little endian
 
@@ -240,7 +242,7 @@ TEST(TransferReceiver, OutOfBufferSpace_32bytes)
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "12345678", 3, false, 2, 100001200), bk)); // 30
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "12345678", 4, true,  2, 100001300), bk)); // 38 // EOT, ignored - lost sync
 
-    ASSERT_EQ(100000000, rcv.getLastTransferTimestampMonotonic());  // Timestamp will not be overriden
+    ASSERT_EQ(100000000, rcv.getLastTransferTimestampMonotonic().toUSec());  // Timestamp will not be overriden
     ASSERT_FALSE(bufmgr.access(gen.bufmgr_key));                    // Buffer should be removed
 }
 
@@ -260,7 +262,7 @@ TEST(TransferReceiver, UnterminatedTransfer)
         content += "12345678";
     }
     CHECK_COMPLETE(rcv.addFrame(gen(1, "12345678", uavcan::Frame::MaxIndex, true, 0, 1100), bk));
-    ASSERT_EQ(1000, rcv.getLastTransferTimestampMonotonic());
+    ASSERT_EQ(1000, rcv.getLastTransferTimestampMonotonic().toUSec());
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), std::string(content, 2)));
     ASSERT_EQ(0x3231, rcv.getLastTransferCrc());
 }
@@ -281,7 +283,7 @@ TEST(TransferReceiver, OutOfOrderFrames)
     CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "--------", 4, true,  7, 100000200), bk));  // Out of order
     CHECK_COMPLETE(    rcv.addFrame(gen(1, "abcd",     2, true,  7, 100000400), bk));
 
-    ASSERT_EQ(100000000, rcv.getLastTransferTimestampMonotonic());
+    ASSERT_EQ(100000000, rcv.getLastTransferTimestampMonotonic().toUSec());
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "345678qwertyuiabcd"));
     ASSERT_EQ(0x3231, rcv.getLastTransferCrc());
 }
@@ -307,13 +309,13 @@ TEST(TransferReceiver, IntervalMeasurement)
 
         ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "345678qwertyuiabcd"));
         ASSERT_EQ(0x3231, rcv.getLastTransferCrc());
-        ASSERT_EQ(timestamp, rcv.getLastTransferTimestampMonotonic());
+        ASSERT_EQ(timestamp, rcv.getLastTransferTimestampMonotonic().toUSec());
 
         timestamp += INTERVAL;
         tid.increment();
     }
 
-    ASSERT_EQ(INTERVAL, rcv.getInterval());
+    ASSERT_EQ(INTERVAL, rcv.getInterval().toUSec());
 }
 
 
@@ -375,8 +377,8 @@ TEST(TransferReceiver, UtcTransferTimestamping)
     CHECK_COMPLETE(    rcv.addFrame(gen(1, "abcd",     2, true,  0, 3, 0), bk));
 
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "345678qwertyuiabcd"));
-    ASSERT_EQ(1, rcv.getLastTransferTimestampMonotonic());
-    ASSERT_EQ(0, rcv.getLastTransferTimestampUtc());
+    ASSERT_EQ(1, rcv.getLastTransferTimestampMonotonic().toUSec());
+    ASSERT_EQ(0, rcv.getLastTransferTimestampUtc().toUSec());
 
     /*
      * Non-zero UTC timestamp
@@ -386,15 +388,15 @@ TEST(TransferReceiver, UtcTransferTimestamping)
     CHECK_COMPLETE(    rcv.addFrame(gen(1, "abcd",     2, true,  1, 6, 42), bk));
 
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "345678qwertyuiabcd"));
-    ASSERT_EQ(4, rcv.getLastTransferTimestampMonotonic());
-    ASSERT_EQ(123, rcv.getLastTransferTimestampUtc());
+    ASSERT_EQ(4, rcv.getLastTransferTimestampMonotonic().toUSec());
+    ASSERT_EQ(123, rcv.getLastTransferTimestampUtc().toUSec());
 
     /*
      * Single-frame transfers
      */
     CHECK_SINGLE_FRAME(rcv.addFrame(gen(1, "abc", 0, true, 2, 10, 100000000), bk)); // Exact value is irrelevant
-    ASSERT_EQ(10, rcv.getLastTransferTimestampMonotonic());
-    ASSERT_EQ(100000000, rcv.getLastTransferTimestampUtc());
+    ASSERT_EQ(10, rcv.getLastTransferTimestampMonotonic().toUSec());
+    ASSERT_EQ(100000000, rcv.getLastTransferTimestampUtc().toUSec());
 
     /*
      * Restart recovery
@@ -404,8 +406,8 @@ TEST(TransferReceiver, UtcTransferTimestamping)
     CHECK_COMPLETE(    rcv.addFrame(gen(0, "abcd",     2, true,  1, 100000002, 900000000), bk));
 
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "345678qwertyuiabcd"));
-    ASSERT_EQ(100000000, rcv.getLastTransferTimestampMonotonic());
-    ASSERT_EQ(800000000, rcv.getLastTransferTimestampUtc());
+    ASSERT_EQ(100000000, rcv.getLastTransferTimestampMonotonic().toUSec());
+    ASSERT_EQ(800000000, rcv.getLastTransferTimestampUtc().toUSec());
 }
 
 

@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <string>
 #include <uavcan/internal/impl_constants.hpp>
+#include <uavcan/system_clock.hpp>
 
 namespace uavcan
 {
@@ -87,10 +88,10 @@ public:
 
     /**
      * Non-blocking transmission.
-     * If the frame wasn't transmitted upon TX timeout expiration, the driver should discard it.
+     * If the frame wasn't transmitted upon TX deadline, the driver should discard it.
      * @return 1 = one frame transmitted, 0 = TX buffer full, negative for error.
      */
-    virtual int send(const CanFrame& frame, uint64_t tx_timeout_usec) = 0;
+    virtual int send(const CanFrame& frame, MonotonicTime tx_deadline) = 0;
 
     /**
      * Non-blocking reception.
@@ -100,11 +101,11 @@ public:
      * UTC timestamp is optional, if available it will be used for precise time synchronization;
      * must be set to zero if not available.
      * Refer to @ref ISystemClock to learn more about timestamps.
-     * @param [out] out_ts_monotonic_usec Monotonic timestamp, usec, mandatory.
-     * @param [out] out_ts_utc_usec       UTC timestamp, usec, optional, zero if unknown.
+     * @param [out] out_ts_monotonic Monotonic timestamp, mandatory.
+     * @param [out] out_ts_utc       UTC timestamp, optional, zero if unknown.
      * @return 1 = one frame received, 0 = RX buffer empty, negative for error.
      */
-    virtual int receive(CanFrame& out_frame, uint64_t& out_ts_monotonic_usec, uint64_t& out_ts_utc_usec) = 0;
+    virtual int receive(CanFrame& out_frame, MonotonicTime& out_ts_monotonic, UtcTime& out_ts_utc) = 0;
 
     /**
      * Configure the hardware CAN filters. @ref CanFilterConfig.
@@ -142,15 +143,15 @@ public:
     virtual int getNumIfaces() const = 0;
 
     /**
-     * Block until the blocking timeout expires, or one of the specified interfaces becomes available for read or write.
+     * Block until the deadline, or one of the specified interfaces becomes available for read or write.
      * Iface masks will be modified by the driver to indicate which exactly interfaces are available for IO.
      * Bit position in the masks defines interface index.
      * @param [in,out] inout_write_iface_mask Mask indicating which interfaces are needed/available to write.
      * @param [in,out] inout_read_iface_mask  Same as above for reading.
-     * @param [in]     timeout_usec           Zero means non-blocking operation.
+     * @param [in]     blocking_deadline      Zero means non-blocking operation.
      * @return Positive number of ready interfaces or negative error code.
      */
-    virtual int select(int& inout_write_iface_mask, int& inout_read_iface_mask, uint64_t timeout_usec) = 0;
+    virtual int select(int& inout_write_iface_mask, int& inout_read_iface_mask, MonotonicTime blocking_deadline) = 0;
 };
 
 }

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <gtest/gtest.h>
 #include <uavcan/internal/transport/outgoing_transfer_registry.hpp>
+#include "../../clock.hpp"
 
 
 TEST(OutgoingTransferRegistry, Basic)
@@ -13,7 +14,7 @@ TEST(OutgoingTransferRegistry, Basic)
     uavcan::PoolManager<1> poolmgr;  // Empty
     uavcan::OutgoingTransferRegistry<4> otr(poolmgr);
 
-    otr.cleanup(1000);
+    otr.cleanup(tsMono(1000));
 
     static const int NUM_KEYS = 5;
     const OutgoingTransferRegistryKey keys[NUM_KEYS] =
@@ -25,50 +26,50 @@ TEST(OutgoingTransferRegistry, Basic)
         OutgoingTransferRegistryKey(456, uavcan::TransferTypeServiceRequest,   2)
     };
 
-    ASSERT_EQ(0, otr.accessOrCreate(keys[0], 1000000)->get());
-    ASSERT_EQ(0, otr.accessOrCreate(keys[1], 1000000)->get());
-    ASSERT_EQ(0, otr.accessOrCreate(keys[2], 1000000)->get());
-    ASSERT_EQ(0, otr.accessOrCreate(keys[3], 1000000)->get());
-    ASSERT_FALSE(otr.accessOrCreate(keys[4], 1000000));        // OOM
+    ASSERT_EQ(0, otr.accessOrCreate(keys[0], tsMono(1000000))->get());
+    ASSERT_EQ(0, otr.accessOrCreate(keys[1], tsMono(1000000))->get());
+    ASSERT_EQ(0, otr.accessOrCreate(keys[2], tsMono(1000000))->get());
+    ASSERT_EQ(0, otr.accessOrCreate(keys[3], tsMono(1000000))->get());
+    ASSERT_FALSE(otr.accessOrCreate(keys[4], tsMono(1000000)));        // OOM
 
     /*
      * Incrementing a little
      */
-    otr.accessOrCreate(keys[0], 2000000)->increment();
-    otr.accessOrCreate(keys[0], 4000000)->increment();
-    otr.accessOrCreate(keys[0], 3000000)->increment();
-    ASSERT_EQ(3, otr.accessOrCreate(keys[0], 5000000)->get());
+    otr.accessOrCreate(keys[0], tsMono(2000000))->increment();
+    otr.accessOrCreate(keys[0], tsMono(4000000))->increment();
+    otr.accessOrCreate(keys[0], tsMono(3000000))->increment();
+    ASSERT_EQ(3, otr.accessOrCreate(keys[0], tsMono(5000000))->get());
 
-    otr.accessOrCreate(keys[2], 2000000)->increment();
-    otr.accessOrCreate(keys[2], 3000000)->increment();
-    ASSERT_EQ(2, otr.accessOrCreate(keys[2], 6000000)->get());
+    otr.accessOrCreate(keys[2], tsMono(2000000))->increment();
+    otr.accessOrCreate(keys[2], tsMono(3000000))->increment();
+    ASSERT_EQ(2, otr.accessOrCreate(keys[2], tsMono(6000000))->get());
 
-    otr.accessOrCreate(keys[3], 9000000)->increment();
-    ASSERT_EQ(1, otr.accessOrCreate(keys[3], 4000000)->get());
+    otr.accessOrCreate(keys[3], tsMono(9000000))->increment();
+    ASSERT_EQ(1, otr.accessOrCreate(keys[3], tsMono(4000000))->get());
 
-    ASSERT_EQ(0, otr.accessOrCreate(keys[1], 4000000)->get());
+    ASSERT_EQ(0, otr.accessOrCreate(keys[1], tsMono(4000000))->get());
 
-    ASSERT_FALSE(otr.accessOrCreate(keys[4], 1000000));        // Still OOM
+    ASSERT_FALSE(otr.accessOrCreate(keys[4], tsMono(1000000)));        // Still OOM
 
     /*
      * Cleaning up
      */
-    otr.cleanup(4000001);    // Kills 1, 3
-    ASSERT_EQ(0, otr.accessOrCreate(keys[1], 1000000)->get());
-    ASSERT_EQ(0, otr.accessOrCreate(keys[3], 1000000)->get());
-    otr.accessOrCreate(keys[1], 5000000)->increment();
-    otr.accessOrCreate(keys[3], 5000000)->increment();
+    otr.cleanup(tsMono(4000001));    // Kills 1, 3
+    ASSERT_EQ(0, otr.accessOrCreate(keys[1], tsMono(1000000))->get());
+    ASSERT_EQ(0, otr.accessOrCreate(keys[3], tsMono(1000000))->get());
+    otr.accessOrCreate(keys[1], tsMono(5000000))->increment();
+    otr.accessOrCreate(keys[3], tsMono(5000000))->increment();
 
-    ASSERT_EQ(3, otr.accessOrCreate(keys[0], 5000000)->get());
-    ASSERT_EQ(2, otr.accessOrCreate(keys[2], 6000000)->get());
+    ASSERT_EQ(3, otr.accessOrCreate(keys[0], tsMono(5000000))->get());
+    ASSERT_EQ(2, otr.accessOrCreate(keys[2], tsMono(6000000))->get());
 
-    otr.cleanup(5000001);    // Kills 1, 3 (He needs a bath, Jud. He stinks of the ground you buried him in.), 0
-    ASSERT_EQ(0, otr.accessOrCreate(keys[0], 1000000)->get());
-    ASSERT_EQ(0, otr.accessOrCreate(keys[1], 1000000)->get());
-    ASSERT_EQ(0, otr.accessOrCreate(keys[3], 1000000)->get());
+    otr.cleanup(tsMono(5000001));    // Kills 1, 3 (He needs a bath, Jud. He stinks of the ground you buried him in.), 0
+    ASSERT_EQ(0, otr.accessOrCreate(keys[0], tsMono(1000000))->get());
+    ASSERT_EQ(0, otr.accessOrCreate(keys[1], tsMono(1000000))->get());
+    ASSERT_EQ(0, otr.accessOrCreate(keys[3], tsMono(1000000))->get());
 
-    ASSERT_EQ(2, otr.accessOrCreate(keys[2], 1000000)->get());
+    ASSERT_EQ(2, otr.accessOrCreate(keys[2], tsMono(1000000))->get());
 
-    otr.cleanup(5000001);    // Frees some memory for 4
-    ASSERT_EQ(0, otr.accessOrCreate(keys[0], 1000000)->get());
+    otr.cleanup(tsMono(5000001));    // Frees some memory for 4
+    ASSERT_EQ(0, otr.accessOrCreate(keys[0], tsMono(1000000))->get());
 }

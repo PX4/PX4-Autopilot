@@ -161,7 +161,7 @@ def generate_one_type(t):
                 c.cpp_value = c.string_value
             else:
                 int(c.string_value)  # Making sure that this is a valid integer literal
-                c.cpp_use_enum = c.value >= 0 and c.type.bitlen <= MAX_BITLEN_FOR_ENUM
+                c.cpp_use_enum = c.value >= 0 and c.value.bit_length() <= MAX_BITLEN_FOR_ENUM
                 c.cpp_value = c.string_value
                 if c.type.kind == c.type.KIND_UNSIGNED_INT:
                     c.cpp_value += 'U'

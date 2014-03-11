@@ -13,20 +13,19 @@
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/can_driver.hpp>
 #include <uavcan/system_clock.hpp>
+#include <uavcan/time.hpp>
 
 namespace uavcan
 {
 
 struct CanRxFrame : public CanFrame
 {
-    uint64_t ts_monotonic;
-    uint64_t ts_utc;
+    MonotonicTime ts_mono;
+    UtcTime ts_utc;
     uint8_t iface_index;
 
     CanRxFrame()
-    : ts_monotonic(0)
-    , ts_utc(0)
-    , iface_index(0)
+    : iface_index(0)
     { }
 
     std::string toString(StringRepresentation mode = StrTight) const;
@@ -40,12 +39,12 @@ public:
 
     struct Entry : public LinkedListNode<Entry>  // Not required to be packed - fits the block in any case
     {
-        uint64_t monotonic_deadline;
+        MonotonicTime deadline;
         CanFrame frame;
         uint8_t qos;
 
-        Entry(const CanFrame& frame, uint64_t monotonic_deadline, Qos qos)
-        : monotonic_deadline(monotonic_deadline)
+        Entry(const CanFrame& frame, MonotonicTime deadline, Qos qos)
+        : deadline(deadline)
         , frame(frame)
         , qos(uint8_t(qos))
         {
@@ -55,7 +54,7 @@ public:
 
         static void destroy(Entry*& obj, IAllocator& allocator);
 
-        bool isExpired(uint64_t monotonic_timestamp) const { return monotonic_timestamp > monotonic_deadline; }
+        bool isExpired(MonotonicTime timestamp) const { return timestamp > deadline; }
 
         bool qosHigherThan(const CanFrame& rhs_frame, Qos rhs_qos) const;
         bool qosLowerThan(const CanFrame& rhs_frame, Qos rhs_qos) const;
@@ -100,7 +99,7 @@ public:
 
     ~CanTxQueue();
 
-    void push(const CanFrame& frame, uint64_t monotonic_tx_deadline, Qos qos);
+    void push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos);
 
     Entry* peek();               // Modifier
     void remove(Entry*& entry);
@@ -128,10 +127,9 @@ private:
     CanIOManager(CanIOManager&);
     CanIOManager& operator=(CanIOManager&);
 
-    int sendToIface(int iface_index, const CanFrame& frame, uint64_t monotonic_tx_deadline);
+    int sendToIface(int iface_index, const CanFrame& frame, MonotonicTime tx_deadline);
     int sendFromTxQueue(int iface_index);
     int makePendingTxMask() const;
-    uint64_t getTimeUntilMonotonicDeadline(uint64_t monotonic_deadline) const;
 
 public:
     CanIOManager(ICanDriver& driver, IAllocator& allocator, ISystemClock& sysclock)
@@ -157,9 +155,9 @@ public:
      *  1+ - sent/received
      *  negative - failure
      */
-    int send(const CanFrame& frame, uint64_t monotonic_tx_deadline, uint64_t monotonic_blocking_deadline,
+    int send(const CanFrame& frame, MonotonicTime tx_deadline, MonotonicTime blocking_deadline,
              int iface_mask, CanTxQueue::Qos qos);
-    int receive(CanRxFrame& frame, uint64_t monotonic_blocking_deadline);
+    int receive(CanRxFrame& frame, MonotonicTime blocking_deadline);
 };
 
 }

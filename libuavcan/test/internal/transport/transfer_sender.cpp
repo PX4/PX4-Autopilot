@@ -13,16 +13,18 @@ static int sendOne(uavcan::TransferSender& sender, const std::string& data,
                    uint64_t monotonic_tx_deadline, uint64_t monotonic_blocking_deadline,
                    uavcan::TransferType transfer_type, uavcan::NodeID dst_node_id)
 {
-    return sender.send(reinterpret_cast<const uint8_t*>(data.c_str()), data.length(), monotonic_tx_deadline,
-                       monotonic_blocking_deadline, transfer_type, dst_node_id);
+    return sender.send(reinterpret_cast<const uint8_t*>(data.c_str()), data.length(),
+                       uavcan::MonotonicTime::fromUSec(monotonic_tx_deadline),
+                       uavcan::MonotonicTime::fromUSec(monotonic_blocking_deadline), transfer_type, dst_node_id);
 }
 
 static int sendOne(uavcan::TransferSender& sender, const std::string& data,
                    uint64_t monotonic_tx_deadline, uint64_t monotonic_blocking_deadline,
                    uavcan::TransferType transfer_type, uavcan::NodeID dst_node_id, uavcan::TransferID tid)
 {
-    return sender.send(reinterpret_cast<const uint8_t*>(data.c_str()), data.length(), monotonic_tx_deadline,
-                       monotonic_blocking_deadline, transfer_type, dst_node_id, tid);
+    return sender.send(reinterpret_cast<const uint8_t*>(data.c_str()), data.length(),
+                       uavcan::MonotonicTime::fromUSec(monotonic_tx_deadline),
+                       uavcan::MonotonicTime::fromUSec(monotonic_blocking_deadline), transfer_type, dst_node_id, tid);
 }
 
 
@@ -119,7 +121,7 @@ TEST(TransferSender, Basic)
 
     while (true)
     {
-        const int res = dispatcher_rx.spin(0);
+        const int res = dispatcher_rx.spin(tsMono(0));
         ASSERT_LE(0, res);
         clockmock.advance(100);
         if (res == 0)

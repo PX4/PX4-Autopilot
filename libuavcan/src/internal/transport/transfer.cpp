@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <sstream>
 #include <uavcan/internal/transport/transfer.hpp>
+#include <uavcan/internal/transport/can_io.hpp>
 
 namespace uavcan
 {
@@ -225,10 +226,20 @@ std::string Frame::toString() const
 /**
  * RxFrame
  */
+bool RxFrame::parse(const CanRxFrame& can_frame)
+{
+    if (!Frame::parse(can_frame))
+        return false;
+    ts_mono_ = can_frame.ts_mono;
+    ts_utc_ = can_frame.ts_utc;
+    iface_index_ = can_frame.iface_index;
+    return true;
+}
+
 std::string RxFrame::toString() const
 {
     std::ostringstream os;  // C++03 doesn't support long long, so we need ostream to print the timestamp
-    os << Frame::toString() << " ts_m=" << ts_monotonic_ << " ts_utc=" << ts_utc_ << " iface=" << int(iface_index_);
+    os << Frame::toString() << " ts_m=" << ts_mono_ << " ts_utc=" << ts_utc_ << " iface=" << int(iface_index_);
     return os.str();
 }
 
