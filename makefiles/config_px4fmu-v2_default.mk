@@ -70,7 +70,6 @@ MODULES		+= systemcmds/hw_ver
 MODULES		+= modules/commander
 MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
-MODULES		+= modules/mavlink_onboard
 
 #
 # Estimation modules (EKF/ SO3 / other filters)

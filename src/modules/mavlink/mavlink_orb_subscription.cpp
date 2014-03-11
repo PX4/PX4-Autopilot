@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,23 +32,58 @@
  ****************************************************************************/
 
 /**
- * @file util.h
- * Utility and helper functions and data.
+ * @file mavlink_orb_subscription.cpp
+ * uORB subscription implementation.
+ *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#pragma once
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <uORB/uORB.h>
+#include <stdio.h>
 
-#include "orb_topics.h"
+#include "mavlink_orb_subscription.h"
 
-/** MAVLink communications channel */
-extern uint8_t chan;
+MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic) : _topic(topic), _last_check(0), next(nullptr)
+{
+	_data = malloc(topic->o_size);
+	memset(_data, 0, topic->o_size);
+	_fd = orb_subscribe(_topic);
+}
 
-/** Shutdown marker */
-extern volatile bool thread_should_exit;
+MavlinkOrbSubscription::~MavlinkOrbSubscription()
+{
+	close(_fd);
+	free(_data);
+}
 
-/**
- * Translate the custom state into standard mavlink modes and state.
- */
-extern void
-get_mavlink_mode_and_state(const struct vehicle_control_mode_s *control_mode, const struct actuator_armed_s *armed,
-	uint8_t *mavlink_state, uint8_t *mavlink_mode);
+const orb_id_t
+MavlinkOrbSubscription::get_topic()
+{
+	return _topic;
+}
+
+void *
+MavlinkOrbSubscription::get_data()
+{
+	return _data;
+}
+
+bool
+MavlinkOrbSubscription::update(const hrt_abstime t)
+{
+	if (_last_check != t) {
+		_last_check = t;
+		bool updated;
+		orb_check(_fd, &updated);
+
+		if (updated) {
+			orb_copy(_topic, _fd, _data);
+			return true;
+		}
+	}
+
+	return false;
+}
