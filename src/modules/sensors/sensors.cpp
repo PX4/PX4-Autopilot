@@ -1170,7 +1170,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 	/* rate limit to 100 Hz */
 	if (t - _last_adc >= 10000) {
 		/* make space for a maximum of eight channels */
-		struct adc_msg_s buf_adc[8];
+		struct adc_msg_s buf_adc[10];
 		/* read all channels available */
 		int ret = read(_fd_adc, &buf_adc, sizeof(buf_adc));
 
