@@ -41,14 +41,20 @@
 #ifndef LAUNCHMETHOD_H_
 #define LAUNCHMETHOD_H_
 
+namespace launchdetection
+{
+
 class LaunchMethod
 {
 public:
 	virtual void update(float accel_x) = 0;
 	virtual bool getLaunchDetected() = 0;
-	virtual void updateParams() = 0;
+	virtual void reset() = 0;
+
 protected:
 private:
 };
+
+}
 
 #endif /* LAUNCHMETHOD_H_ */
