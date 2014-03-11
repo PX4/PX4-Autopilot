@@ -15,4 +15,4 @@ __pycache__
 .pydevproject
 
 # libuavcan DSDL compiler default output directory
-dsdlc_output
+dsdlc_generated

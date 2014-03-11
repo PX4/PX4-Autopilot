@@ -191,7 +191,7 @@ def generate_one_type(t):
 DESCRIPTION = '''UAVCAN DSDL compiler. Takes an input directory that contains an hierarchy of DSDL
 definitions and converts it into compatible hierarchy of C++ types for libuavcan.'''
 
-DEFAULT_OUTDIR = './dsdlc_output'
+DEFAULT_OUTDIR = './dsdlc_generated'
 
 argparser = argparse.ArgumentParser(description=DESCRIPTION)
 argparser.add_argument('source_dir', nargs='+', help='source directory with DSDL definitions')
