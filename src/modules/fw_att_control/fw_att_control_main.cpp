@@ -295,15 +295,15 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_setpoint_valid(false)
 {
 	/* safely initialize structs */
-	_att = {0};
-	_accel = {0};
-	_att_sp = {0};
-	_manual = {0};
-	_airspeed = {0};
-	_vcontrol_mode = {0};
-	_actuators = {0};
-	_actuators_airframe = {0};
-	_global_pos = {0};
+	_att = {};
+	_accel = {};
+	_att_sp = {};
+	_manual = {};
+	_airspeed = {};
+	_vcontrol_mode = {};
+	_actuators = {};
+	_actuators_airframe = {};
+	_global_pos = {};
 
 
 	_parameter_handles.tconst = param_find("FW_ATT_TC");
