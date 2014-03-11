@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,54 +32,86 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_control_debug.h
- * For debugging purposes to log PID parts of controller
+ * @file fw_att_pos_estimator_params.c
+ *
+ * Parameters defined by the attitude and position estimator task
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#ifndef TOPIC_VEHICLE_CONTROL_DEBUG_H_
-#define TOPIC_VEHICLE_CONTROL_DEBUG_H_
+#include <nuttx/config.h>
 
-#include <stdint.h>
-#include "../uORB.h"
+#include <systemlib/param/param.h>
 
-/**
- * @addtogroup topics
- * @{
+/*
+ * Estimator parameters, accessible via MAVLink
+ *
  */
-struct vehicle_control_debug_s {
-	uint64_t timestamp; /**< in microseconds since system start */
-
-	float roll_p;		/**< roll P control part		*/
-	float roll_i;		/**< roll I control part 		*/
-	float roll_d;		/**< roll D control part 		*/
-
-	float roll_rate_p;	/**< roll rate P control part		*/
-	float roll_rate_i;	/**< roll rate I control part 		*/
-	float roll_rate_d;	/**< roll rate D control part 		*/
-
-	float pitch_p;		/**< pitch P control part		*/
-	float pitch_i;		/**< pitch I control part 		*/
-	float pitch_d;		/**< pitch D control part 		*/
-
-	float pitch_rate_p;	/**< pitch rate P control part		*/
-	float pitch_rate_i;	/**< pitch rate I control part 		*/
-	float pitch_rate_d;	/**< pitch rate D control part 		*/
-
-	float yaw_p;		/**< yaw P control part			*/
-	float yaw_i;		/**< yaw I control part 		*/
-	float yaw_d;		/**< yaw D control part 		*/
-
-	float yaw_rate_p;	/**< yaw rate P control part		*/
-	float yaw_rate_i;	/**< yaw rate I control part 		*/
-	float yaw_rate_d;	/**< yaw rate D control part 		*/
-
-}; /**< vehicle_control_debug */
 
 /**
-* @}
-*/
+ * Velocity estimate delay
+ *
+ * The delay in milliseconds of the velocity estimate from GPS.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_VEL_DELAY_MS, 230);
 
-/* register this as object request broker structure */
-ORB_DECLARE(vehicle_control_debug);
+/**
+ * Position estimate delay
+ *
+ * The delay in milliseconds of the position estimate from GPS.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_POS_DELAY_MS, 210);
 
-#endif
+/**
+ * Height estimate delay
+ *
+ * The delay in milliseconds of the height estimate from the barometer.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_HGT_DELAY_MS, 350);
+
+/**
+ * Mag estimate delay
+ *
+ * The delay in milliseconds of the magnetic field estimate from
+ * the magnetometer.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_MAG_DELAY_MS, 30);
+
+/**
+ * True airspeeed estimate delay
+ *
+ * The delay in milliseconds of the airspeed estimate.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_TAS_DELAY_MS, 210);
+
+/**
+ * GPS vs. barometric altitude update weight
+ *
+ * RE-CHECK this.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group Position Estimator
+ */
+PARAM_DEFINE_FLOAT(PE_GPS_ALT_WGT, 0.9f);
+
