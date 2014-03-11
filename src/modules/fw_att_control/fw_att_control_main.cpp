@@ -136,7 +136,6 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	bool		_setpoint_valid;		/**< flag if the position control setpoint is valid */
-	bool		_airspeed_valid;		/**< flag if the airspeed measurement is valid */
 
 	struct {
 		float tconst;
@@ -293,8 +292,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw att control")),
 /* states */
-	_setpoint_valid(false),
-	_airspeed_valid(false)
+	_setpoint_valid(false)
 {
 	/* safely initialize structs */
 	_att = {0};
@@ -752,10 +750,6 @@ FixedwingAttitudeControl::task_main()
 				} else {
 					warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", roll_sp, pitch_sp);
 				}
-
-				// warnx("aspd: %s: %6.2f, aspd scaling: %6.2f, controls: %5.2f %5.2f %5.2f %5.2f", (_airspeed_valid) ? "valid" : "unknown",
-				// 			airspeed, airspeed_scaling, _actuators.control[0], _actuators.control[1],
-				// 			_actuators.control[2], _actuators.control[3]);
 
 				/*
 				 * Lazily publish the rate setpoint (for analysis, the actuators are published below)
