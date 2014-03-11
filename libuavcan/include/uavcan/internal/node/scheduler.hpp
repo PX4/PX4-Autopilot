@@ -12,18 +12,18 @@ namespace uavcan
 
 class Scheduler;
 
-class MonotonicDeadlineHandler : public LinkedListNode<MonotonicDeadlineHandler>, Noncopyable
+class DeadlineHandler : public LinkedListNode<DeadlineHandler>, Noncopyable
 {
     MonotonicTime deadline_;
 
 protected:
     Scheduler& scheduler_;
 
-    explicit MonotonicDeadlineHandler(Scheduler& scheduler)
+    explicit DeadlineHandler(Scheduler& scheduler)
     : scheduler_(scheduler)
     { }
 
-    virtual ~MonotonicDeadlineHandler() { stop(); }
+    virtual ~DeadlineHandler() { stop(); }
 
 public:
     virtual void handleDeadline(MonotonicTime current_timestamp) = 0;
@@ -40,14 +40,14 @@ public:
 };
 
 
-class MonotonicDeadlineScheduler : Noncopyable
+class DeadlineScheduler : Noncopyable
 {
-    LinkedListRoot<MonotonicDeadlineHandler> handlers_;  // Ordered by deadline, lowest first
+    LinkedListRoot<DeadlineHandler> handlers_;  // Ordered by deadline, lowest first
 
 public:
-    void add(MonotonicDeadlineHandler* mdh);
-    void remove(MonotonicDeadlineHandler* mdh);
-    bool doesExist(const MonotonicDeadlineHandler* mdh) const;
+    void add(DeadlineHandler* mdh);
+    void remove(DeadlineHandler* mdh);
+    bool doesExist(const DeadlineHandler* mdh) const;
     unsigned int getNumHandlers() const { return handlers_.getLength(); }
 
     MonotonicTime pollAndGetMonotonicTimestamp(ISystemClock& sysclock);
@@ -57,15 +57,15 @@ public:
 
 class Scheduler : Noncopyable
 {
-    enum { DefaultMonotonicDeadlineResolutionMs = 5 };
-    enum { MinMonotonicDeadlineResolutionMs = 1 };
-    enum { MaxMonotonicDeadlineResolutionMs = 100 };
+    enum { DefaultDeadlineResolutionMs = 5 };
+    enum { MinDeadlineResolutionMs = 1 };
+    enum { MaxDeadlineResolutionMs = 100 };
 
     enum { DefaultCleanupPeriodMs = 1000 };
     enum { MinCleanupPeriodMs = 10 };
     enum { MaxCleanupPeriodMs = 10000 };
 
-    MonotonicDeadlineScheduler deadline_scheduler_;
+    DeadlineScheduler deadline_scheduler_;
     Dispatcher dispatcher_;
     MonotonicTime prev_cleanup_ts_;
     MonotonicDuration deadline_resolution_;
@@ -79,24 +79,24 @@ public:
              NodeID self_node_id)
     : dispatcher_(can_driver, allocator, sysclock, otr, self_node_id)
     , prev_cleanup_ts_(sysclock.getMonotonic())
-    , deadline_resolution_(MonotonicDuration::fromMSec(DefaultMonotonicDeadlineResolutionMs))
+    , deadline_resolution_(MonotonicDuration::fromMSec(DefaultDeadlineResolutionMs))
     , cleanup_period_(MonotonicDuration::fromMSec(DefaultCleanupPeriodMs))
     { }
 
     int spin(MonotonicTime deadline);
 
-    MonotonicDeadlineScheduler& getMonotonicDeadlineScheduler() { return deadline_scheduler_; }
+    DeadlineScheduler& getDeadlineScheduler() { return deadline_scheduler_; }
     Dispatcher& getDispatcher() { return dispatcher_; }
 
     ISystemClock& getSystemClock()              { return dispatcher_.getSystemClock(); }
     MonotonicTime getMonotonicTimestamp() const { return dispatcher_.getSystemClock().getMonotonic(); }
     UtcTime getUtcTimestamp()             const { return dispatcher_.getSystemClock().getUtc(); }
 
-    MonotonicDuration getMonotonicDeadlineResolution() const { return deadline_resolution_; }
-    void setMonotonicDeadlineResolution(MonotonicDuration res)
+    MonotonicDuration getDeadlineResolution() const { return deadline_resolution_; }
+    void setDeadlineResolution(MonotonicDuration res)
     {
-        res = std::min(res, MonotonicDuration::fromMSec(MaxMonotonicDeadlineResolutionMs));
-        res = std::max(res, MonotonicDuration::fromMSec(MinMonotonicDeadlineResolutionMs));
+        res = std::min(res, MonotonicDuration::fromMSec(MaxDeadlineResolutionMs));
+        res = std::max(res, MonotonicDuration::fromMSec(MinDeadlineResolutionMs));
         deadline_resolution_ = res;
     }
 

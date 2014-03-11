@@ -45,14 +45,14 @@ TEST(Scheduler, Timers)
         uavcan::TimerEventForwarder<TimerCallCounter::Binder>
             b(sch, TimerCallCounter::Binder(&tcc, &TimerCallCounter::callB));
 
-        ASSERT_EQ(0, sch.getMonotonicDeadlineScheduler().getNumHandlers());
+        ASSERT_EQ(0, sch.getDeadlineScheduler().getNumHandlers());
 
         const uavcan::MonotonicTime start_ts = clock_driver.getMonotonic();
 
         a.startOneShotWithDeadline(start_ts + durMono(100000));
         b.startPeriodic(durMono(1000));
 
-        ASSERT_EQ(2, sch.getMonotonicDeadlineScheduler().getNumHandlers());
+        ASSERT_EQ(2, sch.getDeadlineScheduler().getNumHandlers());
 
         /*
          * Spinning
@@ -82,7 +82,7 @@ TEST(Scheduler, Timers)
         /*
          * Deinitialization
          */
-        ASSERT_EQ(1, sch.getMonotonicDeadlineScheduler().getNumHandlers());
+        ASSERT_EQ(1, sch.getDeadlineScheduler().getNumHandlers());
 
         ASSERT_FALSE(a.isRunning());
         ASSERT_EQ(uavcan::MonotonicDuration::getInfinite(), a.getPeriod());
@@ -91,6 +91,6 @@ TEST(Scheduler, Timers)
         ASSERT_EQ(1000, b.getPeriod().toUSec());
     }
 
-    ASSERT_EQ(0, sch.getMonotonicDeadlineScheduler().getNumHandlers());   // Both timers were destroyed now
+    ASSERT_EQ(0, sch.getDeadlineScheduler().getNumHandlers());   // Both timers were destroyed now
     ASSERT_EQ(0, sch.spin(clock_driver.getMonotonic() + durMono(1000)));  // Spin some more without timers
 }

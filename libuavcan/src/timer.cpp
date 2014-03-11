@@ -25,14 +25,14 @@ void Timer::startOneShotWithDeadline(MonotonicTime deadline)
 {
     stop();
     period_ = MonotonicDuration::getInfinite();
-    MonotonicDeadlineHandler::startWithDeadline(deadline);
+    DeadlineHandler::startWithDeadline(deadline);
 }
 
 void Timer::startOneShotWithDelay(MonotonicDuration delay)
 {
     stop();
     period_ = MonotonicDuration::getInfinite();
-    MonotonicDeadlineHandler::startWithDelay(delay);
+    DeadlineHandler::startWithDelay(delay);
 }
 
 void Timer::startPeriodic(MonotonicDuration period)
@@ -40,7 +40,7 @@ void Timer::startPeriodic(MonotonicDuration period)
     assert(period < MonotonicDuration::getInfinite());
     stop();
     period_ = period;
-    MonotonicDeadlineHandler::startWithDelay(period);
+    DeadlineHandler::startWithDelay(period);
 }
 
 }

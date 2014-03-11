@@ -11,27 +11,27 @@ namespace uavcan
 /*
  * MonotonicDeadlineHandler
  */
-void MonotonicDeadlineHandler::startWithDeadline(MonotonicTime deadline)
+void DeadlineHandler::startWithDeadline(MonotonicTime deadline)
 {
     assert(!deadline.isZero());
     stop();
     deadline_ = deadline;
-    scheduler_.getMonotonicDeadlineScheduler().add(this);
+    scheduler_.getDeadlineScheduler().add(this);
 }
 
-void MonotonicDeadlineHandler::startWithDelay(MonotonicDuration delay)
+void DeadlineHandler::startWithDelay(MonotonicDuration delay)
 {
     startWithDeadline(scheduler_.getMonotonicTimestamp() + delay);
 }
 
-void MonotonicDeadlineHandler::stop()
+void DeadlineHandler::stop()
 {
-    scheduler_.getMonotonicDeadlineScheduler().remove(this);
+    scheduler_.getDeadlineScheduler().remove(this);
 }
 
-bool MonotonicDeadlineHandler::isRunning() const
+bool DeadlineHandler::isRunning() const
 {
-    return scheduler_.getMonotonicDeadlineScheduler().doesExist(this);
+    return scheduler_.getDeadlineScheduler().doesExist(this);
 }
 
 /*
@@ -41,28 +41,28 @@ struct MonotonicDeadlineHandlerInsertionComparator
 {
     const MonotonicTime ts;
     MonotonicDeadlineHandlerInsertionComparator(MonotonicTime ts) : ts(ts) { }
-    bool operator()(const MonotonicDeadlineHandler* t) const
+    bool operator()(const DeadlineHandler* t) const
     {
         return t->getDeadline() > ts;
     }
 };
 
-void MonotonicDeadlineScheduler::add(MonotonicDeadlineHandler* mdh)
+void DeadlineScheduler::add(DeadlineHandler* mdh)
 {
     assert(mdh);
     handlers_.insertBefore(mdh, MonotonicDeadlineHandlerInsertionComparator(mdh->getDeadline()));
 }
 
-void MonotonicDeadlineScheduler::remove(MonotonicDeadlineHandler* mdh)
+void DeadlineScheduler::remove(DeadlineHandler* mdh)
 {
     assert(mdh);
     handlers_.remove(mdh);
 }
 
-bool MonotonicDeadlineScheduler::doesExist(const MonotonicDeadlineHandler* mdh) const
+bool DeadlineScheduler::doesExist(const DeadlineHandler* mdh) const
 {
     assert(mdh);
-    const MonotonicDeadlineHandler* p = handlers_.get();
+    const DeadlineHandler* p = handlers_.get();
 #if UAVCAN_DEBUG
     MonotonicTime prev_deadline;
 #endif
@@ -80,11 +80,11 @@ bool MonotonicDeadlineScheduler::doesExist(const MonotonicDeadlineHandler* mdh) 
     return false;
 }
 
-MonotonicTime MonotonicDeadlineScheduler::pollAndGetMonotonicTimestamp(ISystemClock& sysclock)
+MonotonicTime DeadlineScheduler::pollAndGetMonotonicTimestamp(ISystemClock& sysclock)
 {
     while (true)
     {
-        MonotonicDeadlineHandler* const mdh = handlers_.get();
+        DeadlineHandler* const mdh = handlers_.get();
         if (!mdh)
             return sysclock.getMonotonic();
 #if UAVCAN_DEBUG
@@ -103,9 +103,9 @@ MonotonicTime MonotonicDeadlineScheduler::pollAndGetMonotonicTimestamp(ISystemCl
     return MonotonicTime();
 }
 
-MonotonicTime MonotonicDeadlineScheduler::getEarliestDeadline() const
+MonotonicTime DeadlineScheduler::getEarliestDeadline() const
 {
-    const MonotonicDeadlineHandler* const mdh = handlers_.get();
+    const DeadlineHandler* const mdh = handlers_.get();
     if (mdh)
         return mdh->getDeadline();
     return MonotonicTime::getMax();

@@ -29,20 +29,20 @@ struct TimerEvent
 };
 
 
-class Timer : private MonotonicDeadlineHandler
+class Timer : private DeadlineHandler
 {
     MonotonicDuration period_;
 
     void handleDeadline(MonotonicTime current_timestamp);
 
 public:
-    using MonotonicDeadlineHandler::stop;
-    using MonotonicDeadlineHandler::isRunning;
-    using MonotonicDeadlineHandler::getDeadline;
-    using MonotonicDeadlineHandler::getScheduler;
+    using DeadlineHandler::stop;
+    using DeadlineHandler::isRunning;
+    using DeadlineHandler::getDeadline;
+    using DeadlineHandler::getScheduler;
 
     explicit Timer(Scheduler& scheduler)
-    : MonotonicDeadlineHandler(scheduler)
+    : DeadlineHandler(scheduler)
     , period_(MonotonicDuration::getInfinite())
     { }
 
