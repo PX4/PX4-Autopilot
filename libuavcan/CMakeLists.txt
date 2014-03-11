@@ -26,6 +26,16 @@ add_library(uavcan SHARED ${LIBUAVCAN_CXX_FILES})
 # TODO installation rules
 
 #
+# DSDSL compiler invocation
+#
+set(DSDLC_INPUTS "test/dsdl_test/root_ns_a" "test/dsdl_test/root_ns_b" "${CMAKE_SOURCE_DIR}/../dsdl/uavcan")
+set(DSDLC_OUTPUT "include/dsdlc_output")
+add_custom_target(dsdlc dsdl_compiler/dsdlc.py -v ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
+                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+add_dependencies(uavcan dsdlc)
+include_directories(${DSDLC_OUTPUT})
+
+#
 # Unit tests with gtest (optional)
 #
 find_package(GTest QUIET)
@@ -45,16 +55,6 @@ if (GTEST_FOUND)
     target_link_libraries(libuavcan_test ${CMAKE_BINARY_DIR}/libuavcan.so)
     target_link_libraries(libuavcan_test rt)
 
-    # DSDL compiler invocation
-    add_custom_target(dsdlc dsdl_compiler/dsdlc.py -v
-                            test/dsdl_test/root_ns_a               # Input
-                            test/dsdl_test/root_ns_b               # Input
-                            ${CMAKE_SOURCE_DIR}/../dsdl/uavcan     # Input
-                            -Otest/dsdlc_output                    # Output
-                       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    add_dependencies(uavcan dsdlc)
-    include_directories(${CMAKE_SOURCE_DIR}/test/dsdlc_output)
-
     # Tests run automatically upon successful build
     # If failing tests need to be investigated with debugger, use 'make --ignore-errors'
     add_custom_command(TARGET libuavcan_test POST_BUILD
@@ -67,6 +67,6 @@ endif (GTEST_FOUND)
 #
 # Static analysis with cppcheck (required), both library and unit test sources
 #
-add_custom_command(TARGET uavcan PRE_BUILD
+add_custom_command(TARGET uavcan POST_BUILD
                    COMMAND ./cppcheck.sh
                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
