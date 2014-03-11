@@ -159,8 +159,9 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 
 static void usage(void);
 
-Mavlink::Mavlink() :
+Mavlink::Mavlink(int instance_id) :
 	next(nullptr),
+	_instance_id(instance_id),
 	_device_name(DEFAULT_DEVICE_NAME),
 	_task_should_exit(false),
 	_mavlink_fd(-1),
@@ -179,6 +180,40 @@ Mavlink::Mavlink() :
 {
 	_wpm = &_wpm_s;
 	fops.ioctl = (int (*)(file *, int, long unsigned int))&mavlink_dev_ioctl;
+
+	/* set channel according to instance id */
+	switch (_instance_id) {
+	case 0:
+		_channel = MAVLINK_COMM_0;
+		break;
+	case 1:
+		_channel = MAVLINK_COMM_1;
+		break;
+	case 2:
+		_channel = MAVLINK_COMM_2;
+		break;
+	case 3:
+		_channel = MAVLINK_COMM_3;
+		break;
+#ifdef MAVLINK_COMM_4
+	case 4:
+		_channel = MAVLINK_COMM_4;
+		break;
+#endif
+#ifdef MAVLINK_COMM_5
+		case 5:
+		_channel = MAVLINK_COMM_5;
+		break;
+#endif
+#ifdef MAVLINK_COMM_6
+	case 6:
+		_channel = MAVLINK_COMM_6;
+		break;
+#endif
+	default:
+		errx(1, "instance ID is out of range");
+		break;
+	}
 }
 
 Mavlink::~Mavlink()
@@ -226,7 +261,9 @@ Mavlink::instance_count()
 Mavlink *
 Mavlink::new_instance()
 {
-	Mavlink *inst = new Mavlink();
+	int id = Mavlink::instance_count();
+
+	Mavlink *inst = new Mavlink(id);
 	Mavlink *next = ::_mavlink_instances;
 
 	/* create the first instance at _head */
@@ -351,6 +388,12 @@ int
 Mavlink::get_uart_fd()
 {
 	return _uart_fd;
+}
+
+int
+Mavlink::get_instance_id()
+{
+	return _instance_id;
 }
 
 mavlink_channel_t
@@ -1881,7 +1924,7 @@ int
 Mavlink::start(int argc, char *argv[])
 {
 	// Instantiate thread
-	char buf[32];
+	char buf[24];
 	sprintf(buf, "mavlink_if%d", Mavlink::instance_count());
 
 	task_spawn_cmd(buf,

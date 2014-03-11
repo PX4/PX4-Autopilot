@@ -877,8 +877,8 @@ MavlinkReceiver::receive_thread(void *arg)
 	mavlink_message_t msg;
 
 	/* set thread name */
-	char thread_name[18];
-	sprintf(thread_name, "mavlink_uart_rcv_%d", _mavlink->get_channel());
+	char thread_name[24];
+	sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
 	prctl(PR_SET_NAME, thread_name, getpid());
 
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));

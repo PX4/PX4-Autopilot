@@ -105,7 +105,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	Mavlink();
+	Mavlink(int instance_id);
 
 	/**
 	 * Destructor, also kills the mavlinks task.
@@ -182,6 +182,8 @@ public:
 
 	MavlinkOrbSubscription *add_orb_subscription(const orb_id_t topic);
 
+	int get_instance_id();
+
 	mavlink_channel_t get_channel();
 
 	bool		_task_should_exit;		/**< if true, mavlink task should exit */
@@ -190,6 +192,8 @@ protected:
 	Mavlink	*next;
 
 private:
+	int _instance_id;
+
 	int		_mavlink_fd;
 	bool		_task_running;
 
