@@ -108,14 +108,14 @@ private:
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	int		_control_task;			/**< task handle for sensor task */
 
-	int		_att_sub;				/**< vehicle attitude subscription */
-	int		_accel_sub;				/**< accelerometer subscription */
+	int		_att_sub;			/**< vehicle attitude subscription */
+	int		_accel_sub;			/**< accelerometer subscription */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
 	int		_attitude_sub;			/**< raw rc channels data subscription */
 	int		_airspeed_sub;			/**< airspeed subscription */
 	int		_vcontrol_mode_sub;		/**< vehicle status subscription */
-	int 	_params_sub;			/**< notification of parameter updates */
-	int 	_manual_sub;			/**< notification of manual control updates */
+	int 		_params_sub;			/**< notification of parameter updates */
+	int 		_manual_sub;			/**< notification of manual control updates */
 	int		_global_pos_sub;		/**< global position subscription */
 
 	orb_advert_t	_rate_sp_pub;			/**< rate setpoint publication */
@@ -123,15 +123,15 @@ private:
 	orb_advert_t	_actuators_0_pub;		/**< actuator control group 0 setpoint */
 	orb_advert_t	_actuators_1_pub;		/**< actuator control group 1 setpoint (Airframe) */
 
-	struct vehicle_attitude_s				_att;			/**< vehicle attitude */
-	struct accel_report						_accel;			/**< body frame accelerations */
+	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
+	struct accel_report				_accel;			/**< body frame accelerations */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
-	struct airspeed_s						_airspeed;		/**< airspeed */
-	struct vehicle_control_mode_s			_vcontrol_mode;	/**< vehicle control mode */
+	struct airspeed_s				_airspeed;		/**< airspeed */
+	struct vehicle_control_mode_s			_vcontrol_mode;		/**< vehicle control mode */
 	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
-	struct actuator_controls_s			_actuators_airframe;		/**< actuator control inputs */
-	struct vehicle_global_position_s		_global_pos;	/**< global position */
+	struct actuator_controls_s			_actuators_airframe;	/**< actuator control inputs */
+	struct vehicle_global_position_s		_global_pos;		/**< global position */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
