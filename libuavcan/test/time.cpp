@@ -85,3 +85,23 @@ TEST(Time, Utc)
     ASSERT_EQ("0.018000", u1.toString());
     ASSERT_EQ("12345.678900", UtcTime(ts).toString());
 }
+
+
+TEST(Time, Overflow)
+{
+    using uavcan::MonotonicDuration;
+    using uavcan::MonotonicTime;
+
+    MonotonicTime max_4 = MonotonicTime::fromUSec(MonotonicTime::getMax().toUSec() / 4);
+    MonotonicDuration max_4_duration = max_4 - MonotonicTime();
+
+    std::cout << max_4 << std::endl;
+    ASSERT_EQ(max_4_duration.toUSec(), max_4.toUSec());
+
+    MonotonicTime max = (((max_4 + max_4_duration) + max_4_duration) + max_4_duration) + max_4_duration;
+    ASSERT_EQ(max, MonotonicTime::getMax()); // Must not overflow
+
+    MonotonicTime min;
+    min -= max_4_duration;
+    ASSERT_EQ(min, MonotonicTime()); // Must not underflow
+}
