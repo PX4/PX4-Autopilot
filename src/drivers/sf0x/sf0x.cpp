@@ -93,7 +93,7 @@ static const int ERROR = -1;
 class SF0X : public device::CDev
 {
 public:
-	SF0X(const char* port=SF0X_DEFAULT_PORT);
+	SF0X(const char *port = SF0X_DEFAULT_PORT);
 	virtual ~SF0X();
 
 	virtual int 			init();
@@ -255,8 +255,9 @@ SF0X::init()
 	unsigned i = 0;
 
 	/* do regular cdev init */
-	if (CDev::init() != OK)
+	if (CDev::init() != OK) {
 		goto out;
+	}
 
 	/* allocate basic report buffers */
 	_reports = new RingBuffer(2, sizeof(range_finder_report));
@@ -284,9 +285,11 @@ SF0X::init()
 		}
 
 		usleep(100000);
+
 		if (collect()) {
 			ret = ERROR;
 			_sensor_ok = false;
+
 		} else {
 			ret = OK;
 			/* sensor is ok, but we don't really know if it is within range */
@@ -538,6 +541,7 @@ SF0X::collect()
 
 	/* clear buffer if last read was too long ago */
 	uint64_t read_elapsed = hrt_elapsed_time(&_last_read);
+
 	if (read_elapsed > (SF0X_CONVERSION_INTERVAL * 2)) {
 		_linebuf_index = 0;
 	}
@@ -550,16 +554,18 @@ SF0X::collect()
 		debug("read err: %d lbi: %d buf: %s", ret, (int)_linebuf_index, _linebuf);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
-		
+
 		/* only throw an error if we time out */
 		if (read_elapsed > (SF0X_CONVERSION_INTERVAL * 2)) {
 			return ret;
+
 		} else {
 			return -EAGAIN;
 		}
 	}
 
 	_linebuf_index += ret;
+
 	if (_linebuf_index >= sizeof(_linebuf)) {
 		_linebuf_index = 0;
 	}
@@ -571,7 +577,7 @@ SF0X::collect()
 		return -EAGAIN;
 	}
 
-	char* end;
+	char *end;
 	float si_units;
 	bool valid;
 
@@ -581,10 +587,12 @@ SF0X::collect()
 	if (_linebuf[0] == '-' && _linebuf[1] == '-' && _linebuf[2] == '.') {
 		si_units = -1.0f;
 		valid = false;
+
 	} else {
-		si_units = strtod(_linebuf,&end);
+		si_units = strtod(_linebuf, &end);
 		valid = true;
 	}
+
 	debug("val (float): %8.4f, raw: %s\n", si_units, _linebuf);
 
 	/* done with this chunk, resetting */
@@ -756,7 +764,7 @@ void	info();
  * Start the driver.
  */
 void
-start(const char* port)
+start(const char *port)
 {
 	int fd;
 
@@ -931,6 +939,7 @@ sf0x_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 		if (argc > 2) {
 			sf0x::start(argv[2]);
+
 		} else {
 			sf0x::start(SF0X_DEFAULT_PORT);
 		}
