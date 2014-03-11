@@ -84,7 +84,7 @@ static const int ERROR = -1;
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-#define SF0X_CONVERSION_INTERVAL	90000
+#define SF0X_CONVERSION_INTERVAL	83334
 #define SF0X_TAKE_RANGE_REG		'd'
 #define SF02F_MIN_DISTANCE		0.0f
 #define SF02F_MAX_DISTANCE		40.0f
@@ -193,13 +193,15 @@ SF0X::SF0X(const char *port) :
 	/* open fd */
 	_fd = ::open(port, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
-	/* tell it to stop auto-triggering */
-	char stop_auto = ' ';
-	::write(_fd, &stop_auto, 1);
-
 	if (_fd < 0) {
 		warnx("FAIL: laser fd");
 	}
+
+	/* tell it to stop auto-triggering */
+	char stop_auto = ' ';
+	(void)::write(_fd, &stop_auto, 1);
+	usleep(100);
+	(void)::write(_fd, &stop_auto, 1);
 
 	struct termios uart_config;
 
@@ -229,7 +231,7 @@ SF0X::SF0X(const char *port) :
 	}
 
 	// disable debug() calls
-	_debug_enabled = true;
+	_debug_enabled = false;
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -535,41 +537,58 @@ SF0X::collect()
 	perf_begin(_sample_perf);
 
 	/* clear buffer if last read was too long ago */
-	if (hrt_elapsed(&_last_read) > (SF0X_CONVERSION_INTERVAL * 2)) {
+	uint64_t read_elapsed = hrt_elapsed_time(&_last_read);
+	if (read_elapsed > (SF0X_CONVERSION_INTERVAL * 2)) {
 		_linebuf_index = 0;
 	}
 
 	/* read from the sensor (uart buffer) */
-	ret = ::read(_fd, _linebuf[_linebuf_index], sizeof(_linebuf) - _linebuf_index);
+	ret = ::read(_fd, &_linebuf[_linebuf_index], sizeof(_linebuf) - _linebuf_index);
 
-	if (ret < 1) {
-		log("read err: %d", ret);
+	if (ret < 0) {
+		_linebuf[sizeof(_linebuf) - 1] = '\0';
+		debug("read err: %d lbi: %d buf: %s", ret, (int)_linebuf_index, _linebuf);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
-		return ret;
+		
+		/* only throw an error if we time out */
+		if (read_elapsed > (SF0X_CONVERSION_INTERVAL * 2)) {
+			return ret;
+		} else {
+			return -EAGAIN;
+		}
 	}
 
 	_linebuf_index += ret;
+	if (_linebuf_index >= sizeof(_linebuf)) {
+		_linebuf_index = 0;
+	}
 
 	_last_read = hrt_absolute_time();
 
 	if (_linebuf[_linebuf_index - 2] != '\r' || _linebuf[_linebuf_index - 1] != '\n') {
-		/* incomplete read */
-		return -1;
+		/* incomplete read, reschedule ourselves */
+		return -EAGAIN;
 	}
 
 	char* end;
 	float si_units;
 	bool valid;
 
+	/* enforce line ending */
+	_linebuf[sizeof(_linebuf) - 1] = '\0';
+
 	if (_linebuf[0] == '-' && _linebuf[1] == '-' && _linebuf[2] == '.') {
 		si_units = -1.0f;
 		valid = false;
 	} else {
-		si_units = strtod(buf,&end);
+		si_units = strtod(_linebuf,&end);
 		valid = true;
 	}
-	debug("val (float): %8.4f, raw: %s\n", si_units, buf);
+	debug("val (float): %8.4f, raw: %s\n", si_units, _linebuf);
+
+	/* done with this chunk, resetting */
+	_linebuf_index = 0;
 
 	struct range_finder_report report;
 
@@ -649,7 +668,19 @@ SF0X::cycle()
 	if (_collect_phase) {
 
 		/* perform collection */
-		if (OK != collect()) {
+		int collect_ret = collect();
+
+		if (collect_ret == -EAGAIN) {
+			/* reschedule to grab the missing bits, time to transmit 10 bytes @9600 bps */
+			work_queue(HPWORK,
+				   &_work,
+				   (worker_t)&SF0X::cycle_trampoline,
+				   this,
+				   USEC2TICK(1100));
+			return;
+		}
+
+		if (OK != collect_ret) {
 			log("collection error");
 			/* restart the measurement state machine */
 			start();
@@ -840,6 +871,11 @@ test()
 		warnx("periodic read %u", i);
 		warnx("measurement: %0.3f", (double)report.distance);
 		warnx("time:        %lld", report.timestamp);
+	}
+
+	/* reset the sensor polling to default rate */
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
+		errx(1, "failed to set default poll rate");
 	}
 
 	errx(0, "PASS");
