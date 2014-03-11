@@ -309,6 +309,6 @@ private:
 	/**
 	 * Main mavlink task.
 	 */
-	int		task_main(int argc, char *argv[]) __attribute__((noreturn));
+	int		task_main(int argc, char *argv[]);
 
 };

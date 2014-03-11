@@ -221,9 +221,6 @@ Mavlink::Mavlink() :
 
 Mavlink::~Mavlink()
 {
-	warnx("DESTRUCTOR");
-	usleep(1000000);
-
 	if (_task_running) {
 		/* task wakes up every 10ms or so at the longest */
 		_task_should_exit = true;
