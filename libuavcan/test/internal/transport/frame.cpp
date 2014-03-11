@@ -43,7 +43,7 @@ TEST(Frame, FrameParseCompile)
     EXPECT_EQ(29, frame.getIndex());
     EXPECT_EQ(uavcan::NodeID(42), frame.getSrcNodeID());
     EXPECT_EQ(uavcan::TransferTypeMessageBroadcast, frame.getTransferType());
-    EXPECT_EQ(456, frame.getDataTypeID());
+    EXPECT_EQ(456, frame.getDataTypeID().get());
 
     EXPECT_EQ(payload_string.length(), frame.getPayloadLen());
     EXPECT_TRUE(std::equal(frame.getPayloadPtr(), frame.getPayloadPtr() + frame.getPayloadLen(),
@@ -100,7 +100,7 @@ TEST(Frame, FrameParsing)
     ASSERT_EQ(0, frame.getIndex());
     ASSERT_EQ(NodeID(42), frame.getSrcNodeID());
     ASSERT_EQ(NodeID::Broadcast, frame.getDstNodeID());
-    ASSERT_EQ(456, frame.getDataTypeID());
+    ASSERT_EQ(456, frame.getDataTypeID().get());
     ASSERT_EQ(TransferID(2), frame.getTransferID());
     ASSERT_EQ(uavcan::TransferTypeMessageBroadcast, frame.getTransferType());
     ASSERT_EQ(sizeof(CanFrame::data), frame.getMaxPayloadLen());
@@ -125,7 +125,7 @@ TEST(Frame, FrameParsing)
     ASSERT_EQ(0, frame.getIndex());
     ASSERT_EQ(NodeID(42), frame.getSrcNodeID());
     ASSERT_EQ(NodeID(127), frame.getDstNodeID());
-    ASSERT_EQ(456, frame.getDataTypeID());
+    ASSERT_EQ(456, frame.getDataTypeID().get());
     ASSERT_EQ(TransferID(2), frame.getTransferID());
     ASSERT_EQ(uavcan::TransferTypeMessageUnicast, frame.getTransferType());
     ASSERT_EQ(sizeof(CanFrame::data) - 1, frame.getMaxPayloadLen());
@@ -199,7 +199,7 @@ TEST(Frame, RxFrameParse)
     ASSERT_TRUE(rx_frame.parse(can_rx_frame));
     ASSERT_EQ(123, rx_frame.getMonotonicTimestamp().toUSec());
     ASSERT_EQ(2, rx_frame.getIfaceIndex());
-    ASSERT_EQ(456, rx_frame.getDataTypeID());
+    ASSERT_EQ(456, rx_frame.getDataTypeID().get());
     ASSERT_EQ(uavcan::TransferTypeMessageBroadcast, rx_frame.getTransferType());
 }
 
@@ -211,10 +211,10 @@ TEST(Frame, FrameToString)
 
     // RX frame default
     RxFrame rx_frame;
-    EXPECT_EQ("dtid=0 tt=4 snid=255 dnid=255 idx=0 last=0 tid=0 payload=[] ts_m=0.000000 ts_utc=0.000000 iface=0", rx_frame.toString());
+    EXPECT_EQ("dtid=65535 tt=4 snid=255 dnid=255 idx=0 last=0 tid=0 payload=[] ts_m=0.000000 ts_utc=0.000000 iface=0", rx_frame.toString());
 
     // RX frame max len
-    rx_frame = RxFrame(Frame(uavcan::DataTypeDescriptor::MaxDataTypeID, uavcan::TransferTypeMessageUnicast,
+    rx_frame = RxFrame(Frame(uavcan::DataTypeID::Max, uavcan::TransferTypeMessageUnicast,
                              uavcan::NodeID::Max, uavcan::NodeID::Max - 1, Frame::MaxIndex,
                              uavcan::TransferID::Max, true),
                        uavcan::MonotonicTime::getMax(), uavcan::UtcTime::getMax(), 3);
@@ -230,7 +230,7 @@ TEST(Frame, FrameToString)
 
     // Plain frame default
     Frame frame;
-    EXPECT_EQ("dtid=0 tt=4 snid=255 dnid=255 idx=0 last=0 tid=0 payload=[]", frame.toString());
+    EXPECT_EQ("dtid=65535 tt=4 snid=255 dnid=255 idx=0 last=0 tid=0 payload=[]", frame.toString());
 
     // Plain frame max len
     frame = rx_frame;

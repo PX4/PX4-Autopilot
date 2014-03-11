@@ -23,6 +23,36 @@ enum DataTypeKind
     NumDataTypeKinds
 };
 
+
+class DataTypeID
+{
+    uint16_t value_;
+
+public:
+    enum { Max = 1023 };
+
+    DataTypeID() : value_(0xFFFF) { }
+
+    DataTypeID(uint16_t id)
+    : value_(id)
+    {
+        assert(isValid());
+    }
+
+    bool isValid() const { return value_ <= Max; }
+
+    uint16_t get() const { return value_; }
+
+    bool operator==(DataTypeID rhs) const { return value_ == rhs.value_; }
+    bool operator!=(DataTypeID rhs) const { return value_ != rhs.value_; }
+
+    bool operator<(DataTypeID rhs) const { return value_ < rhs.value_; }
+    bool operator>(DataTypeID rhs) const { return value_ > rhs.value_; }
+    bool operator<=(DataTypeID rhs) const { return value_ <= rhs.value_; }
+    bool operator>=(DataTypeID rhs) const { return value_ >= rhs.value_; }
+};
+
+
 /**
  * CRC-64-WE
  * Description: http://reveng.sourceforge.net/crc-catalogue/17plus.htm#crc.cat-bits.64
@@ -89,39 +119,36 @@ public:
 class DataTypeDescriptor
 {
     DataTypeKind kind_;
-    uint16_t id_;
+    DataTypeID id_;
     DataTypeSignature signature_;
     const char* full_name_;
 
 public:
-    enum { MaxDataTypeID = 1023 };
     enum { MaxFullNameLen = 80 };
 
     DataTypeDescriptor()
     : kind_(DataTypeKind(0))
-    , id_(0)
     , full_name_("")
     { }
 
-    DataTypeDescriptor(DataTypeKind kind, uint16_t id, const DataTypeSignature& signature, const char* name)
+    DataTypeDescriptor(DataTypeKind kind, DataTypeID id, const DataTypeSignature& signature, const char* name)
     : kind_(kind)
     , id_(id)
     , signature_(signature)
     , full_name_(name)
     {
-        assert(id <= MaxDataTypeID);
         assert(kind < NumDataTypeKinds);
         assert(name);
         assert(std::strlen(name) <= MaxFullNameLen);
     }
 
     DataTypeKind getKind() const { return kind_; }
-    uint16_t getID() const { return id_; }
+    DataTypeID getID() const { return id_; }
     const DataTypeSignature& getSignature() const { return signature_; }
     const char* getFullName() const { return full_name_; }
 
     bool match(DataTypeKind kind, const char* name) const;
-    bool match(DataTypeKind kind, uint16_t id) const;
+    bool match(DataTypeKind kind, DataTypeID id) const;
 
     std::string toString() const;
 

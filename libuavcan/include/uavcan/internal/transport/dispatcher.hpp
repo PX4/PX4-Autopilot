@@ -26,9 +26,9 @@ class Dispatcher : Noncopyable
 
         class DataTypeIDInsertionComparator
         {
-            const uint16_t id_;
+            const DataTypeID id_;
         public:
-            DataTypeIDInsertionComparator(uint16_t id) : id_(id) { }
+            DataTypeIDInsertionComparator(DataTypeID id) : id_(id) { }
             bool operator()(const TransferListenerBase* listener) const
             {
                 assert(listener);

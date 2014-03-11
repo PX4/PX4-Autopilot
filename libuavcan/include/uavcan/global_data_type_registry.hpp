@@ -19,7 +19,7 @@
 namespace uavcan
 {
 
-typedef std::bitset<DataTypeDescriptor::MaxDataTypeID + 1> DataTypeIDMask;
+typedef std::bitset<DataTypeID::Max + 1> DataTypeIDMask;
 
 class GlobalDataTypeRegistry : Noncopyable
 {
@@ -29,14 +29,14 @@ class GlobalDataTypeRegistry : Noncopyable
 
         Entry() { }
 
-        Entry(DataTypeKind kind, uint16_t id, const DataTypeSignature& signature, const char* name)
+        Entry(DataTypeKind kind, DataTypeID id, const DataTypeSignature& signature, const char* name)
         : descriptor(kind, id, signature, name)
         { }
     };
 
     struct EntryInsertionComparator
     {
-        const uint16_t id;
+        const DataTypeID id;
         EntryInsertionComparator(Entry* dtd) : id(dtd->descriptor.getID()) { }
         bool operator()(const Entry* entry) const
         {
@@ -73,7 +73,7 @@ public:
 
     /// Last call wins
     template <typename Type>
-    RegistResult regist(uint16_t id)
+    RegistResult regist(DataTypeID id)
     {
         if (isFrozen())
             return RegistResultFrozen;

@@ -20,7 +20,7 @@ class Frame
 {
     uint8_t payload_[sizeof(CanFrame::data)];
     TransferType transfer_type_;
-    uint_fast16_t data_type_id_;
+    DataTypeID data_type_id_;
     uint_fast8_t payload_len_;
     NodeID src_node_id_;
     NodeID dst_node_id_;
@@ -33,14 +33,13 @@ public:
 
     Frame()
     : transfer_type_(TransferType(NumTransferTypes))  // That is invalid value
-    , data_type_id_(0)
     , payload_len_(0)
     , frame_index_(0)
     , transfer_id_(0)
     , last_frame_(false)
     { }
 
-    Frame(uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
+    Frame(DataTypeID data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
           uint_fast8_t frame_index, TransferID transfer_id, bool last_frame = false)
     : transfer_type_(transfer_type)
     , data_type_id_(data_type_id)
@@ -52,7 +51,7 @@ public:
     , last_frame_(last_frame)
     {
         assert((transfer_type == TransferTypeMessageBroadcast) == dst_node_id.isBroadcast());
-        assert(data_type_id <= DataTypeDescriptor::MaxDataTypeID);
+        assert(data_type_id.isValid());
         assert(src_node_id != dst_node_id);
         assert(frame_index <= MaxIndex);
     }
@@ -64,7 +63,7 @@ public:
     const uint8_t* getPayloadPtr() const { return payload_; }
 
     TransferType getTransferType() const { return transfer_type_; }
-    uint_fast16_t getDataTypeID()  const { return data_type_id_; }
+    DataTypeID getDataTypeID()     const { return data_type_id_; }
     NodeID getSrcNodeID()          const { return src_node_id_; }
     NodeID getDstNodeID()          const { return dst_node_id_; }
     TransferID getTransferID()     const { return transfer_id_; }

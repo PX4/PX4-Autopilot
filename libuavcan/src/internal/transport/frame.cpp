@@ -122,7 +122,7 @@ bool Frame::compile(CanFrame& out_can_frame) const
         bitpack<4, 6>(frame_index_) |
         bitpack<10, 7>(src_node_id_.get()) |
         bitpack<17, 2>(transfer_type_) |
-        bitpack<19, 10>(data_type_id_);
+        bitpack<19, 10>(data_type_id_.get());
 
     switch (transfer_type_)
     {
@@ -159,7 +159,7 @@ bool Frame::isValid() const
         ((transfer_type_ == TransferTypeMessageBroadcast) != dst_node_id_.isBroadcast()) ||
         (transfer_type_ >= NumTransferTypes) ||
         (payload_len_ > getMaxPayloadLen()) ||
-        (data_type_id_ > DataTypeDescriptor::MaxDataTypeID);
+        (!data_type_id_.isValid());
 
     return !invalid;
 }
@@ -192,8 +192,8 @@ std::string Frame::toString() const
     static const int BUFLEN = 100;
     char buf[BUFLEN];
     int ofs = std::snprintf(buf, BUFLEN, "dtid=%i tt=%i snid=%i dnid=%i idx=%i last=%i tid=%i payload=[",
-                            int(data_type_id_), int(transfer_type_), int(src_node_id_.get()), int(dst_node_id_.get()),
-                            int(frame_index_), int(last_frame_), int(transfer_id_.get()));
+                            int(data_type_id_.get()), int(transfer_type_), int(src_node_id_.get()),
+                            int(dst_node_id_.get()), int(frame_index_), int(last_frame_), int(transfer_id_.get()));
 
     for (int i = 0; i < payload_len_; i++)
     {

@@ -62,7 +62,7 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::remove(Entry* dtd)
 
 GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::registImpl(Entry* dtd)
 {
-    if (!dtd || (dtd->descriptor.getID() > DataTypeDescriptor::MaxDataTypeID))
+    if (!dtd || (dtd->descriptor.getID() > DataTypeID::Max))
     {
         assert(0);
         return RegistResultInvalidParams;
@@ -93,12 +93,12 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::registImpl(Entry* d
         int id = -1;
         while (p)
         {
-            if (id >= p->descriptor.getID())
+            if (id >= p->descriptor.getID().get())
             {
                 assert(0);
                 std::abort();
             }
-            id = p->descriptor.getID();
+            id = p->descriptor.getID().get();
             p = p->getNextListNode();
         }
     }
@@ -158,8 +158,9 @@ DataTypeSignature GlobalDataTypeRegistry::computeAggregateSignature(DataTypeKind
     while (p)
     {
         const DataTypeDescriptor& desc = p->descriptor;
+        const int dtid = desc.getID().get();
 
-        if (inout_id_mask[desc.getID()])
+        if (inout_id_mask[dtid])
         {
             if (signature_initialized)
                 signature.extend(desc.getSignature());
@@ -168,16 +169,16 @@ DataTypeSignature GlobalDataTypeRegistry::computeAggregateSignature(DataTypeKind
             signature_initialized = true;
         }
 
-        assert(prev_dtid < desc.getID());  // Making sure that list is ordered properly
+        assert(prev_dtid < dtid);  // Making sure that list is ordered properly
         prev_dtid++;
-        while (prev_dtid < desc.getID())
+        while (prev_dtid < dtid)
             inout_id_mask[prev_dtid++] = false; // Erasing bits for missing types
-        assert(prev_dtid == desc.getID());
+        assert(prev_dtid == dtid);
 
         p = p->getNextListNode();
     }
     prev_dtid++;
-    while (prev_dtid <= DataTypeDescriptor::MaxDataTypeID)
+    while (prev_dtid <= DataTypeID::Max)
         inout_id_mask[prev_dtid++] = false;
 
     return signature;
@@ -196,7 +197,7 @@ void GlobalDataTypeRegistry::getDataTypeIDMask(DataTypeKind kind, DataTypeIDMask
     while (p)
     {
         assert(p->descriptor.getKind() == kind);
-        mask[p->descriptor.getID()] = true;
+        mask[p->descriptor.getID().get()] = true;
         p = p->getNextListNode();
     }
 }

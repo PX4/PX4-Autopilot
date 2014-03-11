@@ -45,7 +45,7 @@ bool DataTypeDescriptor::match(DataTypeKind kind, const char* name) const
     return (kind_ == kind) && !std::strcmp(full_name_, name);
 }
 
-bool DataTypeDescriptor::match(DataTypeKind kind, uint16_t id) const
+bool DataTypeDescriptor::match(DataTypeKind kind, DataTypeID id) const
 {
     return (kind_ == kind) && (id_ == id);
 }
@@ -61,7 +61,8 @@ std::string DataTypeDescriptor::toString() const
     }
 
     std::ostringstream os;
-    os << full_name_ << ":" << id_ << kindch << ":" << std::hex << std::setfill('0') << std::setw(16) << signature_.get();
+    os << full_name_ << ":" << id_.get() << kindch << ":" << std::hex
+        << std::setfill('0') << std::setw(16) << signature_.get();
     return os.str();
 }
 

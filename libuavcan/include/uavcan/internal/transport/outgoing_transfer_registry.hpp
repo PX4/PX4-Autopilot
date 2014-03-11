@@ -17,17 +17,16 @@ namespace uavcan
 UAVCAN_PACKED_BEGIN
 class OutgoingTransferRegistryKey
 {
-    uint16_t data_type_id_;
+    DataTypeID data_type_id_;
     uint8_t transfer_type_;
     NodeID destination_node_id_;  ///< Not applicable for message broadcasting
 
 public:
     OutgoingTransferRegistryKey()
-    : data_type_id_(0xFFFF)
-    , transfer_type_(0xFF)
+    : transfer_type_(0xFF)
     { }
 
-    OutgoingTransferRegistryKey(uint16_t data_type_id, TransferType transfer_type, NodeID destination_node_id)
+    OutgoingTransferRegistryKey(DataTypeID data_type_id, TransferType transfer_type, NodeID destination_node_id)
     : data_type_id_(data_type_id)
     , transfer_type_(transfer_type)
     , destination_node_id_(destination_node_id)
