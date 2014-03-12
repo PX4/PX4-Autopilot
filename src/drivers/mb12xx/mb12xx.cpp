@@ -200,7 +200,7 @@ MB12XX::MB12XX(int bus, int address) :
 	_buffer_overflows(perf_alloc(PC_COUNT, "mb12xx_buffer_overflows"))
 {
 	// enable debug() calls
-	_debug_enabled = true;
+	_debug_enabled = false;
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -760,6 +760,11 @@ test()
 		warnx("periodic read %u", i);
 		warnx("measurement: %0.3f", (double)report.distance);
 		warnx("time:        %lld", report.timestamp);
+	}
+
+	/* reset the sensor polling to default rate */
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
+		errx(1, "failed to set default poll rate");
 	}
 
 	errx(0, "PASS");
