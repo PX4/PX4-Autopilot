@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Jean Cyr <jean.m.cyr@gmail.com>
- *           @author Thomas Gubler <thomasgubler@gmail.com>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,62 +30,87 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file geofence.h
- * Provides functions for handling the geofence
+ * @file dumpfile.c
+ *
+ * Dump file utility. Prints file size and contents in binary mode (don't replace LF with CR LF) to stdout.
+ *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#ifndef GEOFENCE_H_
-#define GEOFENCE_H_
+#include <nuttx/config.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <termios.h>
 
-#include <uORB/topics/fence.h>
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
+#include <systemlib/err.h>
 
-#define GEOFENCE_FILENAME "/fs/microsd/etc/geofence.txt"
+__EXPORT int dumpfile_main(int argc, char *argv[]);
 
-class Geofence : public control::SuperBlock
+int
+dumpfile_main(int argc, char *argv[])
 {
-private:
-	orb_advert_t	_fence_pub;			/**< publish fence topic */
+	if (argc < 2) {
+		errx(1, "usage: dumpfile <filename>");
+	}
 
-	float			_altitude_min;
-	float			_altitude_max;
+	/* open input file */
+	FILE *f;
+	f = fopen(argv[1], "r");
 
-	unsigned 			_verticesCount;
+	if (f == NULL) {
+		printf("ERROR\n");
+		exit(1);
+	}
 
-	/* Params */
-	control::BlockParamInt param_geofence_on;
-public:
-	Geofence();
-	~Geofence();
+	/* get file size */
+	fseek(f, 0L, SEEK_END);
+	int size = ftell(f);
+	fseek(f, 0L, SEEK_SET);
 
-	/**
-	 * Return whether craft is inside geofence.
-	 *
-	 * Calculate whether point is inside arbitrary polygon
-	 * @param craft pointer craft coordinates
-	 * @param fence pointer to array of coordinates, one per vertex. First and last vertex are assumed connected
-	 * @return true: craft is inside fence, false:craft is outside fence
-	 */
-	bool inside(const struct vehicle_global_position_s *craft);
-	bool inside(double lat, double lon, float altitude);
+	printf("OK %d\n", size);
 
-	int clearDm();
+	/* configure stdout */
+	int out = fileno(stdout);
 
-	bool valid();
+	struct termios tc;
+	struct termios tc_old;
+	tcgetattr(out, &tc);
 
-	/**
-	 * Specify fence vertex position.
-	 */
-	void addPoint(int argc, char *argv[]);
+	/* save old terminal attributes to restore it later on exit */
+	memcpy(&tc_old, &tc, sizeof(tc));
 
-	void publishFence(unsigned vertices);
+	/* don't add CR on each LF*/
+	tc.c_oflag &= ~ONLCR;
 
-	int loadFromFile(const char *filename);
+	if (tcsetattr(out, TCSANOW, &tc) < 0) {
+		warnx("ERROR setting stdout attributes");
+		exit(1);
+	}
 
-	bool isEmpty() {return _verticesCount == 0;}
-};
+	char buf[512];
+	int nread;
 
+	/* dump file */
+	while ((nread = fread(buf, 1, sizeof(buf), f)) > 0) {
+		if (write(out, buf, nread) <= 0) {
+			warnx("error dumping file");
+			break;
+		}
+	}
 
-#endif /* GEOFENCE_H_ */
+	fsync(out);
+	fclose(f);
+
+	/* restore old terminal attributes */
+	if (tcsetattr(out, TCSANOW, &tc_old) < 0) {
+		warnx("ERROR restoring stdout attributes");
+		exit(1);
+	}
+
+	return OK;
+}
