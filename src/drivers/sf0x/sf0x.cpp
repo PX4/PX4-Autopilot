@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,15 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file mb12xx.cpp
+ * @file sf0x.cpp
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Greg Hulands
  *
- * Driver for the Maxbotix sonar range finders connected via I2C.
+ * Driver for the Lightware SF0x laser rangefinder series
  */
 
 #include <nuttx/config.h>
-
-#include <drivers/device/i2c.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -54,6 +53,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
+#include <termios.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
@@ -64,6 +64,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
+#include <drivers/device/device.h>
 #include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
@@ -72,20 +73,6 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#define MB12XX_BUS 			PX4_I2C_BUS_EXPANSION
-#define MB12XX_BASEADDR 	0x70 /* 7-bit address. 8-bit address is 0xE0 */
-
-/* MB12xx Registers addresses */
-
-#define MB12XX_TAKE_RANGE_REG	0x51		/* Measure range Register */
-#define MB12XX_SET_ADDRESS_1	0xAA		/* Change address 1 Register */
-#define MB12XX_SET_ADDRESS_2	0xA5		/* Change address 2 Register */
-
-/* Device limits */
-#define MB12XX_MIN_DISTANCE (0.20f)
-#define MB12XX_MAX_DISTANCE (7.65f)
-
-#define MB12XX_CONVERSION_INTERVAL 60000 /* 60ms */
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -97,15 +84,21 @@ static const int ERROR = -1;
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class MB12XX : public device::I2C
+#define SF0X_CONVERSION_INTERVAL	83334
+#define SF0X_TAKE_RANGE_REG		'd'
+#define SF02F_MIN_DISTANCE		0.0f
+#define SF02F_MAX_DISTANCE		40.0f
+#define SF0X_DEFAULT_PORT		"/dev/ttyS2"
+
+class SF0X : public device::CDev
 {
 public:
-	MB12XX(int bus = MB12XX_BUS, int address = MB12XX_BASEADDR);
-	virtual ~MB12XX();
+	SF0X(const char *port = SF0X_DEFAULT_PORT);
+	virtual ~SF0X();
 
-	virtual int 		init();
+	virtual int 			init();
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
+	virtual ssize_t			read(struct file *filp, char *buffer, size_t buflen);
 	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
@@ -120,25 +113,20 @@ private:
 	float				_min_distance;
 	float				_max_distance;
 	work_s				_work;
-	RingBuffer		*_reports;
+	RingBuffer			*_reports;
 	bool				_sensor_ok;
-	int					_measure_ticks;
+	int				_measure_ticks;
 	bool				_collect_phase;
+	int				_fd;
+	char				_linebuf[10];
+	unsigned			_linebuf_index;
+	hrt_abstime			_last_read;
 
-	orb_advert_t		_range_finder_topic;
+	orb_advert_t			_range_finder_topic;
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
-	perf_counter_t		_buffer_overflows;
-
-	/**
-	* Test whether the device supported by the driver is present at a
-	* specific address.
-	*
-	* @param address	The I2C bus address to probe.
-	* @return		True if the device is present.
-	*/
-	int					probe_address(uint8_t address);
+	perf_counter_t			_sample_perf;
+	perf_counter_t			_comms_errors;
+	perf_counter_t			_buffer_overflows;
 
 	/**
 	* Initialise the automatic measurement state machine and start it.
@@ -155,8 +143,8 @@ private:
 
 	/**
 	* Set the min and max distance thresholds if you want the end points of the sensors
-	* range to be brought in at all, otherwise it will use the defaults MB12XX_MIN_DISTANCE
-	* and MB12XX_MAX_DISTANCE
+	* range to be brought in at all, otherwise it will use the defaults SF0X_MIN_DISTANCE
+	* and SF0X_MAX_DISTANCE
 	*/
 	void				set_minimum_distance(float min);
 	void				set_maximum_distance(float max);
@@ -168,15 +156,15 @@ private:
 	* and start a new one.
 	*/
 	void				cycle();
-	int					measure();
-	int					collect();
+	int				measure();
+	int				collect();
 	/**
 	* Static trampoline from the workq context; because we don't have a
 	* generic workq wrapper yet.
 	*
 	* @param arg		Instance pointer for the driver that is polling.
 	*/
-	static void		cycle_trampoline(void *arg);
+	static void			cycle_trampoline(void *arg);
 
 
 };
@@ -184,29 +172,72 @@ private:
 /*
  * Driver 'main' command.
  */
-extern "C" __EXPORT int mb12xx_main(int argc, char *argv[]);
+extern "C" __EXPORT int sf0x_main(int argc, char *argv[]);
 
-MB12XX::MB12XX(int bus, int address) :
-	I2C("MB12xx", RANGE_FINDER_DEVICE_PATH, bus, address, 100000),
-	_min_distance(MB12XX_MIN_DISTANCE),
-	_max_distance(MB12XX_MAX_DISTANCE),
+SF0X::SF0X(const char *port) :
+	CDev("SF0X", RANGE_FINDER_DEVICE_PATH),
+	_min_distance(SF02F_MIN_DISTANCE),
+	_max_distance(SF02F_MAX_DISTANCE),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),
 	_collect_phase(false),
+	_fd(-1),
+	_linebuf_index(0),
+	_last_read(0),
 	_range_finder_topic(-1),
-	_sample_perf(perf_alloc(PC_ELAPSED, "mb12xx_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "mb12xx_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "mb12xx_buffer_overflows"))
+	_sample_perf(perf_alloc(PC_ELAPSED, "sf0x_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "sf0x_comms_errors")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "sf0x_buffer_overflows"))
 {
-	// enable debug() calls
+	/* open fd */
+	_fd = ::open(port, O_RDWR | O_NOCTTY | O_NONBLOCK);
+
+	if (_fd < 0) {
+		warnx("FAIL: laser fd");
+	}
+
+	/* tell it to stop auto-triggering */
+	char stop_auto = ' ';
+	(void)::write(_fd, &stop_auto, 1);
+	usleep(100);
+	(void)::write(_fd, &stop_auto, 1);
+
+	struct termios uart_config;
+
+	int termios_state;
+
+	/* fill the struct for the new configuration */
+	tcgetattr(_fd, &uart_config);
+
+	/* clear ONLCR flag (which appends a CR for every LF) */
+	uart_config.c_oflag &= ~ONLCR;
+	/* no parity, one stop bit */
+	uart_config.c_cflag &= ~(CSTOPB | PARENB);
+
+	unsigned speed = B9600;
+
+	/* set baud rate */
+	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
+		warnx("ERR CFG: %d ISPD", termios_state);
+	}
+
+	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
+		warnx("ERR CFG: %d OSPD\n", termios_state);
+	}
+
+	if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
+		warnx("ERR baud %d ATTR", termios_state);
+	}
+
+	// disable debug() calls
 	_debug_enabled = false;
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
 }
 
-MB12XX::~MB12XX()
+SF0X::~SF0X()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -218,12 +249,13 @@ MB12XX::~MB12XX()
 }
 
 int
-MB12XX::init()
+SF0X::init()
 {
 	int ret = ERROR;
+	unsigned i = 0;
 
-	/* do I2C init (and probe) first */
-	if (I2C::init() != OK) {
+	/* do regular cdev init */
+	if (CDev::init() != OK) {
 		goto out;
 	}
 
@@ -231,6 +263,7 @@ MB12XX::init()
 	_reports = new RingBuffer(2, sizeof(range_finder_report));
 
 	if (_reports == nullptr) {
+		warnx("mem err");
 		goto out;
 	}
 
@@ -240,48 +273,71 @@ MB12XX::init()
 	_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &zero_report);
 
 	if (_range_finder_topic < 0) {
-		debug("failed to create sensor_range_finder object. Did you start uOrb?");
+		warnx("advert err");
 	}
 
-	ret = OK;
-	/* sensor is ok, but we don't really know if it is within range */
-	_sensor_ok = true;
+	/* attempt to get a measurement 5 times */
+	while (ret != OK && i < 5) {
+
+		if (measure()) {
+			ret = ERROR;
+			_sensor_ok = false;
+		}
+
+		usleep(100000);
+
+		if (collect()) {
+			ret = ERROR;
+			_sensor_ok = false;
+
+		} else {
+			ret = OK;
+			/* sensor is ok, but we don't really know if it is within range */
+			_sensor_ok = true;
+		}
+
+		i++;
+	}
+
+	/* close the fd */
+	::close(_fd);
+	_fd = -1;
 out:
 	return ret;
 }
 
 int
-MB12XX::probe()
+SF0X::probe()
 {
 	return measure();
 }
 
 void
-MB12XX::set_minimum_distance(float min)
+SF0X::set_minimum_distance(float min)
 {
 	_min_distance = min;
 }
 
 void
-MB12XX::set_maximum_distance(float max)
+SF0X::set_maximum_distance(float max)
 {
 	_max_distance = max;
 }
 
 float
-MB12XX::get_minimum_distance()
+SF0X::get_minimum_distance()
 {
 	return _min_distance;
 }
 
 float
-MB12XX::get_maximum_distance()
+SF0X::get_maximum_distance()
 {
 	return _max_distance;
 }
 
 int
-MB12XX::ioctl(struct file *filp, int cmd, unsigned long arg)
+SF0X::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -308,7 +364,7 @@ MB12XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(MB12XX_CONVERSION_INTERVAL);
+					_measure_ticks = USEC2TICK(SF0X_CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -327,7 +383,7 @@ MB12XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(MB12XX_CONVERSION_INTERVAL)) {
+					if (ticks < USEC2TICK(SF0X_CONVERSION_INTERVAL)) {
 						return -EINVAL;
 					}
 
@@ -390,12 +446,12 @@ MB12XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	default:
 		/* give it to the superclass */
-		return I2C::ioctl(filp, cmd, arg);
+		return CDev::ioctl(filp, cmd, arg);
 	}
 }
 
 ssize_t
-MB12XX::read(struct file *filp, char *buffer, size_t buflen)
+SF0X::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct range_finder_report);
 	struct range_finder_report *rbuf = reinterpret_cast<struct range_finder_report *>(buffer);
@@ -436,7 +492,7 @@ MB12XX::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(MB12XX_CONVERSION_INTERVAL);
+		usleep(SF0X_CONVERSION_INTERVAL);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -455,19 +511,19 @@ MB12XX::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-MB12XX::measure()
+SF0X::measure()
 {
 	int ret;
 
 	/*
 	 * Send the command to begin a measurement.
 	 */
-	uint8_t cmd = MB12XX_TAKE_RANGE_REG;
-	ret = transfer(&cmd, 1, nullptr, 0);
+	char cmd = SF0X_TAKE_RANGE_REG;
+	ret = ::write(_fd, &cmd, 1);
 
-	if (OK != ret) {
+	if (ret != sizeof(cmd)) {
 		perf_count(_comms_errors);
-		log("i2c::transfer returned %d", ret);
+		log("write fail %d", ret);
 		return ret;
 	}
 
@@ -477,33 +533,78 @@ MB12XX::measure()
 }
 
 int
-MB12XX::collect()
+SF0X::collect()
 {
-	int	ret = -EIO;
-
-	/* read from the sensor */
-	uint8_t val[2] = {0, 0};
+	int	ret;
 
 	perf_begin(_sample_perf);
 
-	ret = transfer(nullptr, 0, &val[0], 2);
+	/* clear buffer if last read was too long ago */
+	uint64_t read_elapsed = hrt_elapsed_time(&_last_read);
 
-	if (ret < 0) {
-		log("error reading from sensor: %d", ret);
-		perf_count(_comms_errors);
-		perf_end(_sample_perf);
-		return ret;
+	if (read_elapsed > (SF0X_CONVERSION_INTERVAL * 2)) {
+		_linebuf_index = 0;
 	}
 
-	uint16_t distance = val[0] << 8 | val[1];
-	float si_units = (distance * 1.0f) / 100.0f; /* cm to m */
+	/* read from the sensor (uart buffer) */
+	ret = ::read(_fd, &_linebuf[_linebuf_index], sizeof(_linebuf) - _linebuf_index);
+
+	if (ret < 0) {
+		_linebuf[sizeof(_linebuf) - 1] = '\0';
+		debug("read err: %d lbi: %d buf: %s", ret, (int)_linebuf_index, _linebuf);
+		perf_count(_comms_errors);
+		perf_end(_sample_perf);
+
+		/* only throw an error if we time out */
+		if (read_elapsed > (SF0X_CONVERSION_INTERVAL * 2)) {
+			return ret;
+
+		} else {
+			return -EAGAIN;
+		}
+	}
+
+	_linebuf_index += ret;
+
+	if (_linebuf_index >= sizeof(_linebuf)) {
+		_linebuf_index = 0;
+	}
+
+	_last_read = hrt_absolute_time();
+
+	if (_linebuf[_linebuf_index - 2] != '\r' || _linebuf[_linebuf_index - 1] != '\n') {
+		/* incomplete read, reschedule ourselves */
+		return -EAGAIN;
+	}
+
+	char *end;
+	float si_units;
+	bool valid;
+
+	/* enforce line ending */
+	_linebuf[sizeof(_linebuf) - 1] = '\0';
+
+	if (_linebuf[0] == '-' && _linebuf[1] == '-' && _linebuf[2] == '.') {
+		si_units = -1.0f;
+		valid = false;
+
+	} else {
+		si_units = strtod(_linebuf, &end);
+		valid = true;
+	}
+
+	debug("val (float): %8.4f, raw: %s\n", si_units, _linebuf);
+
+	/* done with this chunk, resetting */
+	_linebuf_index = 0;
+
 	struct range_finder_report report;
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
 	report.distance = si_units;
-	report.valid = si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
+	report.valid = valid && (si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0);
 
 	/* publish it */
 	orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
@@ -522,54 +623,72 @@ MB12XX::collect()
 }
 
 void
-MB12XX::start()
+SF0X::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&MB12XX::cycle_trampoline, this, 1);
+	work_queue(HPWORK, &_work, (worker_t)&SF0X::cycle_trampoline, this, 1);
 
-	/* notify about state change */
-	struct subsystem_info_s info = {
-		true,
-		true,
-		true,
-		SUBSYSTEM_TYPE_RANGEFINDER
-	};
-	static orb_advert_t pub = -1;
+	// /* notify about state change */
+	// struct subsystem_info_s info = {
+	// 	true,
+	// 	true,
+	// 	true,
+	// 	SUBSYSTEM_TYPE_RANGEFINDER
+	// };
+	// static orb_advert_t pub = -1;
 
-	if (pub > 0) {
-		orb_publish(ORB_ID(subsystem_info), pub, &info);
+	// if (pub > 0) {
+	// 	orb_publish(ORB_ID(subsystem_info), pub, &info);
 
-	} else {
-		pub = orb_advertise(ORB_ID(subsystem_info), &info);
-	}
+	// } else {
+	// 	pub = orb_advertise(ORB_ID(subsystem_info), &info);
+	// }
 }
 
 void
-MB12XX::stop()
+SF0X::stop()
 {
 	work_cancel(HPWORK, &_work);
 }
 
 void
-MB12XX::cycle_trampoline(void *arg)
+SF0X::cycle_trampoline(void *arg)
 {
-	MB12XX *dev = (MB12XX *)arg;
+	SF0X *dev = static_cast<SF0X *>(arg);
 
 	dev->cycle();
 }
 
 void
-MB12XX::cycle()
+SF0X::cycle()
 {
+	/* fds initialized? */
+	if (_fd < 0) {
+		/* open fd */
+		_fd = ::open(SF0X_DEFAULT_PORT, O_RDWR | O_NOCTTY | O_NONBLOCK);
+	}
+
 	/* collection phase? */
 	if (_collect_phase) {
 
 		/* perform collection */
-		if (OK != collect()) {
+		int collect_ret = collect();
+
+		if (collect_ret == -EAGAIN) {
+			/* reschedule to grab the missing bits, time to transmit 10 bytes @9600 bps */
+			work_queue(HPWORK,
+				   &_work,
+				   (worker_t)&SF0X::cycle_trampoline,
+				   this,
+				   USEC2TICK(1100));
+			return;
+		}
+
+		if (OK != collect_ret) {
 			log("collection error");
 			/* restart the measurement state machine */
 			start();
@@ -582,14 +701,14 @@ MB12XX::cycle()
 		/*
 		 * Is there a collect->measure gap?
 		 */
-		if (_measure_ticks > USEC2TICK(MB12XX_CONVERSION_INTERVAL)) {
+		if (_measure_ticks > USEC2TICK(SF0X_CONVERSION_INTERVAL)) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
 			work_queue(HPWORK,
 				   &_work,
-				   (worker_t)&MB12XX::cycle_trampoline,
+				   (worker_t)&SF0X::cycle_trampoline,
 				   this,
-				   _measure_ticks - USEC2TICK(MB12XX_CONVERSION_INTERVAL));
+				   _measure_ticks - USEC2TICK(SF0X_CONVERSION_INTERVAL));
 
 			return;
 		}
@@ -606,25 +725,25 @@ MB12XX::cycle()
 	/* schedule a fresh cycle call when the measurement is done */
 	work_queue(HPWORK,
 		   &_work,
-		   (worker_t)&MB12XX::cycle_trampoline,
+		   (worker_t)&SF0X::cycle_trampoline,
 		   this,
-		   USEC2TICK(MB12XX_CONVERSION_INTERVAL));
+		   USEC2TICK(SF0X_CONVERSION_INTERVAL));
 }
 
 void
-MB12XX::print_info()
+SF0X::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
-	printf("poll interval:  %u ticks\n", _measure_ticks);
+	printf("poll interval:  %d ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
 }
 
 /**
  * Local functions in support of the shell command.
  */
-namespace mb12xx
+namespace sf0x
 {
 
 /* oddly, ERROR is not defined for c++ */
@@ -633,7 +752,7 @@ namespace mb12xx
 #endif
 const int ERROR = -1;
 
-MB12XX	*g_dev;
+SF0X	*g_dev;
 
 void	start();
 void	stop();
@@ -645,7 +764,7 @@ void	info();
  * Start the driver.
  */
 void
-start()
+start(const char *port)
 {
 	int fd;
 
@@ -654,7 +773,7 @@ start()
 	}
 
 	/* create the driver */
-	g_dev = new MB12XX(MB12XX_BUS);
+	g_dev = new SF0X(port);
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -665,9 +784,10 @@ start()
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(RANGE_FINDER_DEVICE_PATH, O_RDONLY);
+	fd = open(RANGE_FINDER_DEVICE_PATH, 0);
 
 	if (fd < 0) {
+		warnx("device open fail");
 		goto fail;
 	}
 
@@ -713,12 +833,11 @@ test()
 {
 	struct range_finder_report report;
 	ssize_t sz;
-	int ret;
 
 	int fd = open(RANGE_FINDER_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'mb12xx start' if the driver is not running", RANGE_FINDER_DEVICE_PATH);
+		err(1, "%s open failed (try 'sf0x start' if the driver is not running", RANGE_FINDER_DEVICE_PATH);
 	}
 
 	/* do a simple demand read */
@@ -744,7 +863,7 @@ test()
 		/* wait for data to be ready */
 		fds.fd = fd;
 		fds.events = POLLIN;
-		ret = poll(&fds, 1, 2000);
+		int ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
 			errx(1, "timed out waiting for sensor data");
@@ -812,41 +931,46 @@ info()
 } // namespace
 
 int
-mb12xx_main(int argc, char *argv[])
+sf0x_main(int argc, char *argv[])
 {
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start")) {
-		mb12xx::start();
+		if (argc > 2) {
+			sf0x::start(argv[2]);
+
+		} else {
+			sf0x::start(SF0X_DEFAULT_PORT);
+		}
 	}
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[1], "stop")) {
-		mb12xx::stop();
+		sf0x::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[1], "test")) {
-		mb12xx::test();
+		sf0x::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[1], "reset")) {
-		mb12xx::reset();
+		sf0x::reset();
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status")) {
-		mb12xx::info();
+		sf0x::info();
 	}
 
 	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
