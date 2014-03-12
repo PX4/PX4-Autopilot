@@ -74,8 +74,9 @@ bool logbuffer_write(struct logbuffer_s *lb, void *ptr, int size)
 	// bytes available to write
 	int available = lb->read_ptr - lb->write_ptr - 1;
 
-	if (available < 0)
+	if (available < 0) {
 		available += lb->size;
+	}
 
 	if (size > available) {
 		// buffer overflow
