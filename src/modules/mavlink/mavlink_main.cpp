@@ -104,6 +104,8 @@ static struct file_operations fops;
  */
 extern "C" __EXPORT int mavlink_main(int argc, char *argv[]);
 
+static uint64_t last_write_times[6] = {0};
+
 /*
  * Internal function to send the bytes through the right serial port
  */
@@ -149,10 +151,28 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 	}
 
 	ssize_t desired = (sizeof(uint8_t) * length);
+
+	/*
+	 * Check if the OS buffer is full and disable HW
+	 * flow control if it continues to be full
+	 */
+	int buf_free = 0;
+
+	if (ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0 &&
+		hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500*1000UL) {
+		struct termios uart_config;
+		(void)tcgetattr(uart, &uart_config);
+		uart_config.c_cflag &= ~CRTSCTS;
+		(void)tcsetattr(uart, TCSANOW, &uart_config);
+		warnx("DISABLING HARDWARE FLOW CONTROL");
+	}
+
 	ssize_t ret = write(uart, ch, desired);
 
 	if (ret != desired) {
 		warn("write err");
+	} else {
+		last_write_times[(unsigned)channel] = hrt_absolute_time();
 	}
 
 }
@@ -541,7 +561,33 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 		return -1;
 	}
 
+	/*
+	 * Setup hardware flow control. If the port has no RTS pin this call will fail,
+	 * which is not an issue, but requires a separate call so we can fail silently.
+	 */
+	(void)tcgetattr(_uart_fd, &uart_config);
+	uart_config.c_cflag |= CRTS_IFLOW;
+	(void)tcsetattr(_uart_fd, TCSANOW, &uart_config);
+
+	/* setup output flow control */
+	(void)enable_flow_control(true);
+
 	return _uart_fd;
+}
+
+int
+Mavlink::enable_flow_control(bool enabled)
+{
+	struct termios uart_config;
+	int ret = tcgetattr(_uart_fd, &uart_config);
+	if (enabled) {
+		uart_config.c_cflag |= CRTSCTS;
+	} else {
+		uart_config.c_cflag &= ~CRTSCTS;
+	}
+	ret = tcsetattr(_uart_fd, TCSANOW, &uart_config);
+
+	return ret;
 }
 
 int
