@@ -912,7 +912,7 @@ MavlinkReceiver::receive_thread(void *arg)
 					_mavlink->mavlink_wpm_message_handler(&msg);
 
 					/* handle packet with parameter component */
-					_mavlink->mavlink_pm_message_handler(MAVLINK_COMM_0, &msg);
+					_mavlink->mavlink_pm_message_handler(_mavlink->get_channel(), &msg);
 				}
 			}
 		}

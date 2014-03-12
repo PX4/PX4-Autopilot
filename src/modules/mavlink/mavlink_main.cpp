@@ -711,7 +711,7 @@ int Mavlink::mavlink_pm_send_param(param_t param)
 
 	mavlink_msg_param_value_pack_chan(mavlink_system.sysid,
 					  mavlink_system.compid,
-					  MAVLINK_COMM_0,
+					  _channel,
 					  &tx_msg,
 					  name_buf,
 					  val_buf,
@@ -906,7 +906,7 @@ void Mavlink::mavlink_wpm_send_waypoint_ack(uint8_t sysid, uint8_t compid, uint8
 	wpa.target_component = compid;
 	wpa.type = type;
 
-	mavlink_msg_mission_ack_encode(mavlink_system.sysid, _mavlink_wpm_comp_id, &msg, &wpa);
+	mavlink_msg_mission_ack_encode_chan(mavlink_system.sysid, _mavlink_wpm_comp_id, _channel, &msg, &wpa);
 	mavlink_missionlib_send_message(&msg);
 
 	if (_verbose) { warnx("Sent waypoint ack (%u) to ID %u", wpa.type, wpa.target_system); }
@@ -929,7 +929,7 @@ void Mavlink::mavlink_wpm_send_waypoint_current(uint16_t seq)
 
 		wpc.seq = seq;
 
-		mavlink_msg_mission_current_encode(mavlink_system.sysid, _mavlink_wpm_comp_id, &msg, &wpc);
+		mavlink_msg_mission_current_encode_chan(mavlink_system.sysid, _mavlink_wpm_comp_id, _channel, &msg, &wpc);
 		mavlink_missionlib_send_message(&msg);
 
 	} else if (seq == 0 && _wpm->size == 0) {
@@ -952,7 +952,7 @@ void Mavlink::mavlink_wpm_send_waypoint_count(uint8_t sysid, uint8_t compid, uin
 	wpc.target_component = compid;
 	wpc.count = mission.count;
 
-	mavlink_msg_mission_count_encode(mavlink_system.sysid, _mavlink_wpm_comp_id, &msg, &wpc);
+	mavlink_msg_mission_count_encode_chan(mavlink_system.sysid, _mavlink_wpm_comp_id, _channel, &msg, &wpc);
 	mavlink_missionlib_send_message(&msg);
 
 	if (_verbose) { warnx("Sent waypoint count (%u) to ID %u", wpc.count, wpc.target_system); }
@@ -983,7 +983,7 @@ void Mavlink::mavlink_wpm_send_waypoint(uint8_t sysid, uint8_t compid, uint16_t 
 		wp.target_system = sysid;
 		wp.target_component = compid;
 		wp.seq = seq;
-		mavlink_msg_mission_item_encode(mavlink_system.sysid, _mavlink_wpm_comp_id, &msg, &wp);
+		mavlink_msg_mission_item_encode_chan(mavlink_system.sysid, _mavlink_wpm_comp_id, _channel, &msg, &wp);
 		mavlink_missionlib_send_message(&msg);
 
 		if (_verbose) { warnx("Sent waypoint %u to ID %u", wp.seq, wp.target_system); }
@@ -1003,7 +1003,7 @@ void Mavlink::mavlink_wpm_send_waypoint_request(uint8_t sysid, uint8_t compid, u
 		wpr.target_system = sysid;
 		wpr.target_component = compid;
 		wpr.seq = seq;
-		mavlink_msg_mission_request_encode(mavlink_system.sysid, _mavlink_wpm_comp_id, &msg, &wpr);
+		mavlink_msg_mission_request_encode_chan(mavlink_system.sysid, _mavlink_wpm_comp_id, _channel, &msg, &wpr);
 		mavlink_missionlib_send_message(&msg);
 
 		if (_verbose) { warnx("Sent waypoint request %u to ID %u", wpr.seq, wpr.target_system); }
@@ -1029,7 +1029,7 @@ void Mavlink::mavlink_wpm_send_waypoint_reached(uint16_t seq)
 
 	wp_reached.seq = seq;
 
-	mavlink_msg_mission_item_reached_encode(mavlink_system.sysid, _mavlink_wpm_comp_id, &msg, &wp_reached);
+	mavlink_msg_mission_item_reached_encode_chan(mavlink_system.sysid, _mavlink_wpm_comp_id, _channel, &msg, &wp_reached);
 	mavlink_missionlib_send_message(&msg);
 
 	if (_verbose) { warnx("Sent waypoint %u reached message", wp_reached.seq); }
@@ -1498,7 +1498,7 @@ Mavlink::mavlink_missionlib_send_gcs_string(const char *string)
 		statustext.text[i] = '\0';
 		mavlink_message_t msg;
 
-		mavlink_msg_statustext_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &statustext);
+		mavlink_msg_statustext_encode_chan(mavlink_system.sysid, mavlink_system.compid, _channel, &msg, &statustext);
 		mavlink_missionlib_send_message(&msg);
 		return OK;
 
@@ -1611,7 +1611,6 @@ Mavlink::task_main(int argc, char *argv[])
 	int ch;
 	_baudrate = 57600;
 	_datarate = 0;
-	_channel = MAVLINK_COMM_0;
 
 	_mode = MODE_OFFBOARD;
 
@@ -1826,7 +1825,7 @@ Mavlink::task_main(int argc, char *argv[])
 	_mavlink_param_queue_index = param_count();
 
 	MavlinkRateLimiter slow_rate_limiter(2000000.0f / rate_mult);
-	MavlinkRateLimiter fast_rate_limiter(100000.0f / rate_mult);
+	MavlinkRateLimiter fast_rate_limiter(20000.0f / rate_mult);
 
 	/* set main loop delay depending on data rate to minimize CPU overhead */
 	_main_loop_delay = MAIN_LOOP_DELAY / rate_mult;
