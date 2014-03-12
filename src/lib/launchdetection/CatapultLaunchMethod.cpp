@@ -41,12 +41,16 @@
 #include "CatapultLaunchMethod.h"
 #include <systemlib/err.h>
 
-CatapultLaunchMethod::CatapultLaunchMethod() :
+namespace launchdetection
+{
+
+CatapultLaunchMethod::CatapultLaunchMethod(SuperBlock *parent) :
+	SuperBlock(parent, "CAT"),
 	last_timestamp(hrt_absolute_time()),
 	integrator(0.0f),
 	launchDetected(false),
-	threshold_accel(NULL, "LAUN_CAT_A", false),
-	threshold_time(NULL, "LAUN_CAT_T", false)
+	threshold_accel(this, "A"),
+	threshold_time(this, "T")
 {
 
 }
@@ -83,14 +87,11 @@ bool CatapultLaunchMethod::getLaunchDetected()
 	return launchDetected;
 }
 
-void CatapultLaunchMethod::updateParams()
-{
-	threshold_accel.update();
-	threshold_time.update();
-}
 
 void CatapultLaunchMethod::reset()
 {
 	integrator = 0.0f;
 	launchDetected = false;
+}
+
 }

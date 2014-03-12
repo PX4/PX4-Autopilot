@@ -267,13 +267,13 @@ struct log_DIST_s {
 /* --- TELE - TELEMETRY STATUS --- */
 #define LOG_TELE_MSG 22
 struct log_TELE_s {
-    uint8_t rssi;
-    uint8_t remote_rssi;
-    uint8_t noise;
-    uint8_t remote_noise;
-    uint16_t rxerrors;
-    uint16_t fixed;
-    uint8_t txbuf;
+	uint8_t rssi;
+	uint8_t remote_rssi;
+	uint8_t noise;
+	uint8_t remote_noise;
+	uint16_t rxerrors;
+	uint16_t fixed;
+	uint8_t txbuf;
 };
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
