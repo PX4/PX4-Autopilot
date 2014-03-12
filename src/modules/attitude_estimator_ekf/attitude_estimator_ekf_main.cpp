@@ -477,6 +477,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						dt = 0.005f;
 						parameters_update(&ekf_param_handles, &ekf_params);
 
+						/* update mag declination rotation matrix */
+						R_decl.from_euler(0.0f, 0.0f, ekf_params.mag_decl);
+
 						x_aposteriori_k[0] = z_k[0];
 						x_aposteriori_k[1] = z_k[1];
 						x_aposteriori_k[2] = z_k[2];

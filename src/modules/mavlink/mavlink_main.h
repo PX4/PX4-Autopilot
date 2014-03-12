@@ -182,6 +182,8 @@ public:
 
 	MavlinkOrbSubscription *add_orb_subscription(const orb_id_t topic);
 
+	int get_instance_id();
+
 	mavlink_channel_t get_channel();
 
 	bool		_task_should_exit;		/**< if true, mavlink task should exit */
@@ -190,6 +192,8 @@ protected:
 	Mavlink	*next;
 
 private:
+	int _instance_id;
+
 	int		_mavlink_fd;
 	bool		_task_running;
 
@@ -205,7 +209,7 @@ private:
 
 	orb_advert_t	_mission_pub;
 	struct mission_s mission;
-	uint8_t missionlib_msg_buf[sizeof(mavlink_message_t)];
+	uint8_t missionlib_msg_buf[MAVLINK_MAX_PACKET_LEN];
 	MAVLINK_MODE _mode;
 
 	uint8_t _mavlink_wpm_comp_id;
@@ -305,6 +309,6 @@ private:
 	/**
 	 * Main mavlink task.
 	 */
-	int		task_main(int argc, char *argv[]) __attribute__((noreturn));
+	int		task_main(int argc, char *argv[]);
 
 };

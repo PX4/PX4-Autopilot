@@ -186,7 +186,7 @@ private:
 	float target_bearing;
 
 	/* Launch detection */
-	LaunchDetector launchDetector;
+	launchdetection::LaunchDetector launchDetector;
 
 	/* throttle and airspeed states */
 	float _airspeed_error;				///< airspeed error to setpoint in m/s
@@ -350,12 +350,12 @@ private:
 	/*
 	 * Reset takeoff state
 	 */
-	int reset_takeoff_state();
+	void reset_takeoff_state();
 
 	/*
 	 * Reset landing state
 	 */
-	int reset_landing_state();
+	void reset_landing_state();
 };
 
 namespace l1_control
@@ -989,6 +989,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				} else	{
 					/* no takeoff detection --> fly */
 					launch_detected = true;
+					warnx("launchdetection off");
 				}
 			}
 
@@ -1311,14 +1312,14 @@ FixedwingPositionControl::task_main()
 	_exit(0);
 }
 
-int FixedwingPositionControl::reset_takeoff_state()
+void FixedwingPositionControl::reset_takeoff_state()
 {
 	launch_detected = false;
 	usePreTakeoffThrust = false;
 	launchDetector.reset();
 }
 
-int FixedwingPositionControl::reset_landing_state()
+void FixedwingPositionControl::reset_landing_state()
 {
 	land_noreturn_horizontal = false;
 	land_noreturn_vertical = false;

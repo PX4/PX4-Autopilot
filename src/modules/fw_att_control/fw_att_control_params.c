@@ -176,3 +176,13 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 20.0f);
 // @Description		If the airspeed is above this value the TECS controller will try to decrease airspeed more aggressively
 // @Range		0.0 to 30
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 50.0f);
+
+// @DisplayName		Roll Setpoint Offset
+// @Description		An airframe specific offset of the roll setpoint in degrees, the value is added to the roll setpoint and should correspond to the typical cruise speed of the airframe
+// @Range		-90.0 to 90.0
+PARAM_DEFINE_FLOAT(FW_RSP_OFF, 0.0f);
+
+// @DisplayName		Pitch Setpoint Offset
+// @Description		An airframe specific offset of the pitch setpoint in degrees, the value is added to the pitch setpoint and should correspond to the typical cruise speed of the airframe
+// @Range		-90.0 to 90.0
+PARAM_DEFINE_FLOAT(FW_PSP_OFF, 0.0f);

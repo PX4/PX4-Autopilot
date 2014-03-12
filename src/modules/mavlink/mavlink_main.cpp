@@ -178,11 +178,52 @@ Mavlink::Mavlink() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink"))
 {
 	_wpm = &_wpm_s;
+	mission.count = 0;
 	fops.ioctl = (int (*)(file *, int, long unsigned int))&mavlink_dev_ioctl;
+
+	_instance_id = Mavlink::instance_count();
+
+	/* set channel according to instance id */
+	switch (_instance_id) {
+	case 0:
+		_channel = MAVLINK_COMM_0;
+		break;
+	case 1:
+		_channel = MAVLINK_COMM_1;
+		break;
+	case 2:
+		_channel = MAVLINK_COMM_2;
+		break;
+	case 3:
+		_channel = MAVLINK_COMM_3;
+		break;
+#ifdef MAVLINK_COMM_4
+	case 4:
+		_channel = MAVLINK_COMM_4;
+		break;
+#endif
+#ifdef MAVLINK_COMM_5
+		case 5:
+		_channel = MAVLINK_COMM_5;
+		break;
+#endif
+#ifdef MAVLINK_COMM_6
+	case 6:
+		_channel = MAVLINK_COMM_6;
+		break;
+#endif
+	default:
+		errx(1, "instance ID is out of range");
+		break;
+	}
+
+	LL_APPEND(_mavlink_instances, this);
 }
 
 Mavlink::~Mavlink()
 {
+	perf_free(_loop_perf);
+
 	if (_task_running) {
 		/* task wakes up every 10ms or so at the longest */
 		_task_should_exit = true;
@@ -202,6 +243,7 @@ Mavlink::~Mavlink()
 			}
 		} while (_task_running);
 	}
+	LL_DELETE(_mavlink_instances, this);
 }
 
 void
@@ -221,29 +263,6 @@ Mavlink::instance_count()
 	}
 
 	return inst_index;
-}
-
-Mavlink *
-Mavlink::new_instance()
-{
-	Mavlink *inst = new Mavlink();
-	Mavlink *next = ::_mavlink_instances;
-
-	/* create the first instance at _head */
-	if (::_mavlink_instances == nullptr) {
-		::_mavlink_instances = inst;
-		/* afterwards follow the next and append the instance */
-
-	} else {
-		while (next->next != nullptr) {
-			next = next->next;
-		}
-
-		/* now parent has a null pointer, fill it */
-		next->next = inst;
-	}
-
-	return inst;
 }
 
 Mavlink *
@@ -305,12 +324,7 @@ Mavlink::destroy_all_instances()
 				return ERROR;
 			}
 		}
-
-		delete inst_to_del;
 	}
-
-	/* reset head */
-	::_mavlink_instances = nullptr;
 
 	printf("\n");
 	warnx("all instances stopped");
@@ -353,6 +367,12 @@ Mavlink::get_uart_fd()
 	return _uart_fd;
 }
 
+int
+Mavlink::get_instance_id()
+{
+	return _instance_id;
+}
+
 mavlink_channel_t
 Mavlink::get_channel()
 {
@@ -376,14 +396,12 @@ Mavlink::mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 			struct mavlink_logmessage msg;
 			strncpy(msg.text, txt, sizeof(msg.text));
 
-			Mavlink *inst = ::_mavlink_instances;
-
-			while (inst != nullptr) {
-
-				mavlink_logbuffer_write(&inst->_logbuffer, &msg);
-				inst->_total_counter++;
-				inst = inst->next;
-
+			Mavlink *inst;
+			LL_FOREACH(_mavlink_instances, inst) {
+				if (!inst->_task_should_exit) {
+					mavlink_logbuffer_write(&inst->_logbuffer, &msg);
+					inst->_total_counter++;
+				}
 			}
 
 			return OK;
@@ -1550,9 +1568,6 @@ Mavlink::task_main(int argc, char *argv[])
 	warnx("start");
 	fflush(stdout);
 
-	/* initialize mavlink text message buffering */
-	mavlink_logbuffer_init(&_logbuffer, 5);
-
 	int ch;
 	_baudrate = 57600;
 	_datarate = 0;
@@ -1626,7 +1641,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	if (err_flag) {
 		usage();
-		exit(1);
+		return ERROR;
 	}
 
 	if (_datarate == 0) {
@@ -1639,7 +1654,8 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	if (Mavlink::instance_exists(_device_name, this)) {
-		errx(1, "mavlink instance for %s already running", _device_name);
+		warnx("mavlink instance for %s already running", _device_name);
+		return ERROR;
 	}
 
 	/* inform about mode */
@@ -1694,8 +1710,12 @@ Mavlink::task_main(int argc, char *argv[])
 	_uart_fd = mavlink_open_uart(_baudrate, _device_name, &uart_config_original, &usb_uart);
 
 	if (_uart_fd < 0) {
-		err(1, "could not open %s", _device_name);
+		warn("could not open %s", _device_name);
+		return ERROR;
 	}
+
+	/* initialize mavlink text message buffering */
+	mavlink_logbuffer_init(&_logbuffer, 5);
 
 	/* create the device node that's used for sending text log messages, etc. */
 	register_driver(MAVLINK_LOG_DEVICE, &fops, 0666, NULL);
@@ -1858,6 +1878,30 @@ Mavlink::task_main(int argc, char *argv[])
 	delete _subscribe_to_stream;
 	_subscribe_to_stream = nullptr;
 
+	/* delete streams */
+	MavlinkStream *stream_to_del = nullptr;
+	MavlinkStream *stream_next = _streams;
+
+	while (stream_next != nullptr) {
+		stream_to_del = stream_next;
+		stream_next = stream_to_del->next;
+		delete stream_to_del;
+	}
+
+	_streams = nullptr;
+
+	/* delete subscriptions */
+	MavlinkOrbSubscription *sub_to_del = nullptr;
+	MavlinkOrbSubscription *sub_next = _subscriptions;
+
+	while (sub_next != nullptr) {
+		sub_to_del = sub_next;
+		sub_next = sub_to_del->next;
+		delete sub_to_del;
+	}
+
+	_subscriptions = nullptr;
+
 	warnx("waiting for UART receive thread");
 
 	/* wait for threads to complete */
@@ -1869,29 +1913,37 @@ Mavlink::task_main(int argc, char *argv[])
 	/* close UART */
 	close(_uart_fd);
 
+	/* close mavlink logging device */
+	close(_mavlink_fd);
+
 	/* destroy log buffer */
 	mavlink_logbuffer_destroy(&_logbuffer);
 
 	warnx("exiting");
-
 	_task_running = false;
-	_exit(0);
+
+	return OK;
 }
 
 int Mavlink::start_helper(int argc, char *argv[])
 {
 	/* create the instance in task context */
-	Mavlink *instance = Mavlink::new_instance();
+	Mavlink *instance = new Mavlink();
 
 	/* this will actually only return once MAVLink exits */
-	return instance->task_main(argc, argv);
+	int res = instance->task_main(argc, argv);
+
+	/* delete instance on main thread end */
+	delete instance;
+
+	return res;
 }
 
 int
 Mavlink::start(int argc, char *argv[])
 {
 	// Instantiate thread
-	char buf[32];
+	char buf[24];
 	sprintf(buf, "mavlink_if%d", Mavlink::instance_count());
 
 	task_spawn_cmd(buf,
@@ -1969,13 +2021,14 @@ Mavlink::stream(int argc, char *argv[])
 
 static void usage()
 {
-	errx(1, "usage: mavlink {start|stop-all|stream} [-d device] [-b baudrate] [-r rate] [-m mode] [-s stream] [-v]");
+	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-b baudrate] [-r rate] [-m mode] [-s stream] [-v]");
 }
 
 int mavlink_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		usage();
+		exit(1);
 	}
 
 	if (!strcmp(argv[1], "start")) {
@@ -1984,6 +2037,7 @@ int mavlink_main(int argc, char *argv[])
 	} else if (!strcmp(argv[1], "stop")) {
 		warnx("mavlink stop is deprecated, use stop-all instead");
 		usage();
+		exit(1);
 
 	} else if (!strcmp(argv[1], "stop-all")) {
 		return Mavlink::destroy_all_instances();
@@ -1996,6 +2050,7 @@ int mavlink_main(int argc, char *argv[])
 
 	} else {
 		usage();
+		exit(1);
 	}
 
 	return 0;

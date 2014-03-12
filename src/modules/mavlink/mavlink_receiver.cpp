@@ -85,7 +85,7 @@ __BEGIN_DECLS
 
 __END_DECLS
 
-static const float mg2ms2 = 9.8f / 1000.0f;
+static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
 
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
@@ -119,6 +119,10 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_hil_local_alt0(0.0)
 {
 	memset(&hil_local_pos, 0, sizeof(hil_local_pos));
+}
+
+MavlinkReceiver::~MavlinkReceiver()
+{
 }
 
 void
@@ -865,9 +869,9 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		memset(&accel, 0, sizeof(accel));
 
 		accel.timestamp = timestamp;
-		accel.x_raw = hil_state.xacc / 9.81f * 1e3f;
-		accel.y_raw = hil_state.yacc / 9.81f * 1e3f;
-		accel.z_raw = hil_state.zacc / 9.81f * 1e3f;
+		accel.x_raw = hil_state.xacc / CONSTANTS_ONE_G * 1e3f;
+		accel.y_raw = hil_state.yacc / CONSTANTS_ONE_G * 1e3f;
+		accel.z_raw = hil_state.zacc / CONSTANTS_ONE_G * 1e3f;
 		accel.x = hil_state.xacc;
 		accel.y = hil_state.yacc;
 		accel.z = hil_state.zacc;
@@ -914,8 +918,8 @@ MavlinkReceiver::receive_thread(void *arg)
 	mavlink_message_t msg;
 
 	/* set thread name */
-	char thread_name[18];
-	sprintf(thread_name, "mavlink_uart_rcv_%d", _mavlink->get_channel());
+	char thread_name[24];
+	sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
 	prctl(PR_SET_NAME, thread_name, getpid());
 
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -962,7 +966,10 @@ void MavlinkReceiver::print_status()
 void *MavlinkReceiver::start_helper(void *context)
 {
 	MavlinkReceiver *rcv = new MavlinkReceiver((Mavlink *)context);
-	return rcv->receive_thread(NULL);
+
+	rcv->receive_thread(NULL);
+
+	delete rcv;
 }
 
 pthread_t
