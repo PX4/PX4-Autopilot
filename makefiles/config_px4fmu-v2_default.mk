@@ -63,6 +63,7 @@ MODULES		+= systemcmds/config
 MODULES		+= systemcmds/nshterm
 MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/hw_ver
+MODULES		+= systemcmds/dumpfile
 
 #
 # General system control
@@ -71,6 +72,7 @@ MODULES		+= modules/commander
 MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
 MODULES		+= modules/mavlink_onboard
+MODULES		+= modules/gpio_led
 
 #
 # Estimation modules (EKF/ SO3 / other filters)
