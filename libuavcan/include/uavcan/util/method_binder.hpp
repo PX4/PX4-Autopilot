@@ -46,14 +46,14 @@ public:
     }
 
     template <typename Par1>
-    void operator()(Par1 p1)
+    void operator()(Par1& p1)
     {
         validateBeforeCall();
         (obj_->*fun_)(p1);
     }
 
     template <typename Par1, typename Par2>
-    void operator()(Par1 p1, Par2 p2)
+    void operator()(Par1& p1, Par2& p2)
     {
         validateBeforeCall();
         (obj_->*fun_)(p1, p2);
