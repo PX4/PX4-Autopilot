@@ -79,6 +79,18 @@ public:
         return matchAndPopTx(frame, uavcan::MonotonicTime::fromUSec(tx_deadline_usec));
     }
 
+    uavcan::CanFrame popTxFrame()
+    {
+        if (tx.empty())
+        {
+            std::cout << "Tx buffer is empty" << std::endl;
+            std::abort();
+        }
+        const FrameWithTime frame_time = tx.front();
+        tx.pop();
+        return frame_time.frame;
+    }
+
     int send(const uavcan::CanFrame& frame, uavcan::MonotonicTime tx_deadline)
     {
         assert(this);
