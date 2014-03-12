@@ -199,10 +199,10 @@ protected:
         }
     }
 
+    uint32_t getFailureCount() const { return failure_count_; }
+
 public:
     Scheduler& getScheduler() const { return scheduler_; }
-
-    uint32_t getFailureCount() const { return failure_count_; }
 };
 
 }

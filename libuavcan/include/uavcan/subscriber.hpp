@@ -53,6 +53,7 @@ public:
     }
 
     using BaseType::stop;
+    using BaseType::getFailureCount;
 };
 
 }
