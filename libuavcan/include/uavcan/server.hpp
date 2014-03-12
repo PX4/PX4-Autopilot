@@ -18,21 +18,23 @@ class Server : public GenericSubscriber<DataType_, typename DataType_::Request, 
 {
 public:
     typedef DataType_ DataType;
+    typedef typename DataType::Request RequestType;
+    typedef typename DataType::Response ResponseType;
 
 private:
-    typedef GenericSubscriber<DataType, typename DataType::Request, NumStaticReceivers, NumStaticBufs> SubscriberType;
-    typedef GenericPublisher<DataType, typename DataType::Response> PublisherType;
+    typedef GenericSubscriber<DataType, RequestType, NumStaticReceivers, NumStaticBufs> SubscriberType;
+    typedef GenericPublisher<DataType, ResponseType> PublisherType;
 
     PublisherType publisher_;
     Callback callback_;
     uint32_t response_failure_count_;
-    typename DataType::Response response_;
+    ResponseType response_;
 
-    void handleReceivedDataStruct(ReceivedDataStructure<typename DataType::Request>& request)
+    void handleReceivedDataStruct(ReceivedDataStructure<RequestType>& request)
     {
         if (try_implicit_cast<bool>(callback_, true))
         {
-            response_ = typename DataType::Response();  // The application needs newly initialized structure
+            response_ = ResponseType();  // The application needs newly initialized structure
             callback_(request, response_);
         }
         else

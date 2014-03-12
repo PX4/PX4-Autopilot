@@ -40,12 +40,14 @@ namespace ${nsc}
 UAVCAN_PACKED_BEGIN
 #endif
 
+% if t.kind != t.KIND_SERVICE:
 template <int I>
+% endif
 struct ${t.cpp_type_name}
 {
-<%def name="generate_primary_body(typedef_name, ctor_name, max_bitlen, fields, constants)" buffered="True">
-    typedef const ${typedef_name}& ParameterType;
-    typedef ${typedef_name}& ReferenceType;
+<%def name="generate_primary_body(type_name, max_bitlen, fields, constants)" buffered="True">
+    typedef const ${type_name}<I>& ParameterType;
+    typedef ${type_name}<I>& ReferenceType;
 
 <%def name="expand_attr_types(group_name, attrs)">
     struct ${group_name}
@@ -87,7 +89,7 @@ struct ${t.cpp_type_name}
     typename ::uavcan::StorageType< typename FieldTypes::${a.name} >::Type ${a.name};
 % endfor
 
-    ${ctor_name}()
+    ${type_name}()
 % for idx,a in enumerate(fields):
     ${':' if idx == 0 else ','} ${a.name}()
 % endfor
@@ -96,6 +98,7 @@ struct ${t.cpp_type_name}
         ::uavcan::StaticAssert<int(MaxByteLen) <= int(::uavcan::MaxTransferPayloadLen)>::check();
 
         ::uavcan::StaticAssert<I == 0>::check();  // Usage check
+
 #if UAVCAN_DEBUG
         /*
          * Cross-checking MaxBitLen provided by the DSDL compiler.
@@ -137,17 +140,22 @@ ${'::uavcan::TailArrayOptDisabled' if (idx + 1) < len(fields) else 'tao_mode'});
     ${generate_codec_calls_per_field('decode', 'ReferenceType')}
 </%def>
 % if t.kind == t.KIND_SERVICE:
-    struct Request
+    template <int I>
+    struct Request_
     {
-        ${generate_primary_body('Request', 'Request', t.get_max_bitlen_request(), t.request_fields, t.request_constants) | indent}
+        ${generate_primary_body('Request_', t.get_max_bitlen_request(), t.request_fields, t.request_constants) | indent}
     };
 
-    struct Response
+    template <int I>
+    struct Response_
     {
-        ${generate_primary_body('Response', 'Response', t.get_max_bitlen_response(), t.response_fields, t.response_constants) | indent}
+        ${generate_primary_body('Response_', t.get_max_bitlen_response(), t.response_fields, t.response_constants) | indent}
     };
+
+    typedef Request_<0> Request;
+    typedef Response_<0> Response;
 % else:
-    ${generate_primary_body(t.cpp_type_name + '<I>', t.cpp_type_name, t.get_max_bitlen(), t.fields, t.constants)}
+    ${generate_primary_body(t.cpp_type_name, t.get_max_bitlen(), t.fields, t.constants)}
 % endif
 
     /*
@@ -197,24 +205,28 @@ private:
 % for a in constants:
     % if not a.cpp_use_enum:
 template <int I>
-const typename ::uavcan::StorageType< typename ${scope_prefix}::ConstantTypes::${a.name} >::Type
-    ${scope_prefix}::${a.name} = ${a.cpp_value}; // ${a.init_expression}
+const typename ::uavcan::StorageType< typename ${scope_prefix}<I>::ConstantTypes::${a.name} >::Type
+    ${scope_prefix}<I>::${a.name} = ${a.cpp_value}; // ${a.init_expression}
 
     %endif
 % endfor
 </%def>
 % if t.kind == t.KIND_SERVICE:
-${define_out_of_line_constants(t.cpp_type_name + '<I>::Request', t.request_constants)}
-${define_out_of_line_constants(t.cpp_type_name + '<I>::Response', t.response_constants)}
+${define_out_of_line_constants(t.cpp_type_name + '::Request_', t.request_constants)}
+${define_out_of_line_constants(t.cpp_type_name + '::Response_', t.response_constants)}
 % else:
-${define_out_of_line_constants(t.cpp_type_name + '<I>', t.constants)}
+${define_out_of_line_constants(t.cpp_type_name, t.constants)}
 % endif
 
 #if UAVCAN_PACK_STRUCTS
 UAVCAN_PACKED_END
 #endif
 
+% if t.kind == t.KIND_SERVICE:
+typedef ${t.cpp_type_name} ${t.short_name};
+% else:
 typedef ${t.cpp_type_name}<0> ${t.short_name};
+% endif
 
 % if t.has_default_dtid:
 namespace

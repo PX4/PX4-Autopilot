@@ -16,8 +16,8 @@ struct ServerImpl
 
     ServerImpl(const char* string_response) : string_response(string_response) { }
 
-    void handleRequest(const uavcan::ReceivedDataStructure<typename root_ns_a::StringService::Request>& request,
-                       typename root_ns_a::StringService::Response& response)
+    void handleRequest(const uavcan::ReceivedDataStructure<root_ns_a::StringService::Request>& request,
+                       root_ns_a::StringService::Response& response)
     {
         std::cout << request << std::endl;
         response.string_response = request.string_request;
@@ -27,8 +27,8 @@ struct ServerImpl
     }
 
     typedef uavcan::MethodBinder<ServerImpl*,
-        void (ServerImpl::*)(const uavcan::ReceivedDataStructure<typename root_ns_a::StringService::Request>&,
-                             typename root_ns_a::StringService::Response&)> Binder;
+        void (ServerImpl::*)(const uavcan::ReceivedDataStructure<root_ns_a::StringService::Request>&,
+                             root_ns_a::StringService::Response&)> Binder;
 
     Binder bind() { return Binder(this, &ServerImpl::handleRequest); }
 };
