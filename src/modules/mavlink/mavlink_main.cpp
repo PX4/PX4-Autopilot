@@ -661,7 +661,7 @@ int Mavlink::mavlink_pm_send_param(param_t param)
 
 	mavlink_msg_param_value_pack_chan(mavlink_system.sysid,
 					  mavlink_system.compid,
-					  MAVLINK_COMM_0,
+					  _channel,
 					  &tx_msg,
 					  name_buf,
 					  val_buf,
@@ -1561,7 +1561,6 @@ Mavlink::task_main(int argc, char *argv[])
 	int ch;
 	_baudrate = 57600;
 	_datarate = 0;
-	_channel = MAVLINK_COMM_0;
 
 	_mode = MODE_OFFBOARD;
 
@@ -1776,7 +1775,7 @@ Mavlink::task_main(int argc, char *argv[])
 	_mavlink_param_queue_index = param_count();
 
 	MavlinkRateLimiter slow_rate_limiter(2000000.0f / rate_mult);
-	MavlinkRateLimiter fast_rate_limiter(100000.0f / rate_mult);
+	MavlinkRateLimiter fast_rate_limiter(20000.0f / rate_mult);
 
 	/* set main loop delay depending on data rate to minimize CPU overhead */
 	_main_loop_delay = MAIN_LOOP_DELAY / rate_mult;
