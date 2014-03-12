@@ -45,10 +45,13 @@
 #include <stdint.h>
 
 #include "LaunchMethod.h"
-
+#include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
-class __EXPORT LaunchDetector
+namespace launchdetection
+{
+
+class __EXPORT LaunchDetector : public control::SuperBlock
 {
 public:
 	LaunchDetector();
@@ -57,7 +60,6 @@ public:
 
 	void update(float accel_x);
 	bool getLaunchDetected();
-	void updateParams();
 	bool launchDetectionEnabled() { return (bool)launchdetection_on.get(); };
 
 	float getThrottlePreTakeoff() {return throttlePreTakeoff.get(); }
@@ -72,5 +74,6 @@ private:
 
 };
 
+}
 
 #endif // LAUNCHDETECTOR_H
