@@ -104,6 +104,8 @@ static struct file_operations fops;
  */
 extern "C" __EXPORT int mavlink_main(int argc, char *argv[]);
 
+static uint64_t last_write_times[6] = {0};
+
 /*
  * Internal function to send the bytes through the right serial port
  */
@@ -149,10 +151,39 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 	}
 
 	ssize_t desired = (sizeof(uint8_t) * length);
+
+	/*
+	 * Check if the OS buffer is full and disable HW
+	 * flow control if it continues to be full
+	 */
+	int buf_free = 0;
+
+	if (ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
+
+		if (buf_free == 0) {
+
+			if (last_write_times[(unsigned)channel] != 0 &&
+			hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500*1000UL) {
+
+				struct termios uart_config;
+				(void)tcgetattr(uart, &uart_config);
+				uart_config.c_cflag &= ~CRTSCTS;
+				(void)tcsetattr(uart, TCSANOW, &uart_config);
+				warnx("DISABLING HARDWARE FLOW CONTROL");
+			}
+
+		} else {
+
+			/* apparently there is space left, although we might be
+			 * partially overflooding the buffer already */
+			last_write_times[(unsigned)channel] = hrt_absolute_time();
+		}
+	}
+
 	ssize_t ret = write(uart, ch, desired);
 
 	if (ret != desired) {
-		warn("write err");
+		// XXX do something here, but change to using FIONWRITE and OS buf size for detection
 	}
 
 }
@@ -512,7 +543,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 
 	/* Back up the original uart configuration to restore it after exit */
 	if ((termios_state = tcgetattr(_uart_fd, uart_config_original)) < 0) {
-		warnx("ERROR get termios config %s: %d\n", uart_name, termios_state);
+		warnx("ERR GET CONF %s: %d\n", uart_name, termios_state);
 		close(_uart_fd);
 		return -1;
 	}
@@ -528,7 +559,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 
 		/* Set baud rate */
 		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-			warnx("ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
+			warnx("ERR SET BAUD %s: %d\n", uart_name, termios_state);
 			close(_uart_fd);
 			return -1;
 		}
@@ -536,12 +567,40 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 	}
 
 	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERROR setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
+		warnx("ERR SET CONF %s\n", uart_name);
 		close(_uart_fd);
 		return -1;
 	}
 
+	/*
+	 * Setup hardware flow control. If the port has no RTS pin this call will fail,
+	 * which is not an issue, but requires a separate call so we can fail silently.
+	 */
+	(void)tcgetattr(_uart_fd, &uart_config);
+	uart_config.c_cflag |= CRTS_IFLOW;
+	(void)tcsetattr(_uart_fd, TCSANOW, &uart_config);
+
+	/* setup output flow control */
+	if (enable_flow_control(true)) {
+		warnx("ERR FLOW CTRL EN");
+	}
+
 	return _uart_fd;
+}
+
+int
+Mavlink::enable_flow_control(bool enabled)
+{
+	struct termios uart_config;
+	int ret = tcgetattr(_uart_fd, &uart_config);
+	if (enabled) {
+		uart_config.c_cflag |= CRTSCTS;
+	} else {
+		uart_config.c_cflag &= ~CRTSCTS;
+	}
+	ret = tcsetattr(_uart_fd, TCSANOW, &uart_config);
+
+	return ret;
 }
 
 int
@@ -1531,10 +1590,6 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 int
 Mavlink::task_main(int argc, char *argv[])
 {
-	/* inform about start */
-	warnx("start");
-	fflush(stdout);
-
 	int ch;
 	_baudrate = 57600;
 	_datarate = 0;
@@ -1631,8 +1686,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_mavlink_wpm_comp_id = MAV_COMP_ID_MISSIONPLANNER;
 
-	warnx("data rate: %d bytes/s", _datarate);
-	warnx("port: %s, baudrate: %d", _device_name, _baudrate);
+	warnx("data rate: %d bps, port: %s, baud: %d", _datarate, _device_name, (int)_baudrate);
 
 	/* flush stdout in case MAVLink is about to take it over */
 	fflush(stdout);
@@ -1676,9 +1730,6 @@ Mavlink::task_main(int argc, char *argv[])
 	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status));
 
 	struct vehicle_status_s *status = (struct vehicle_status_s *) status_sub->get_data();
-
-	warnx("started");
-	mavlink_log_info(_mavlink_fd, "[mavlink] started");
 
 	/* add default streams depending on mode and intervals depending on datarate */
 	float rate_mult = _datarate / 1000.0f;

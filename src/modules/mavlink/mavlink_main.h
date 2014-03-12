@@ -182,6 +182,13 @@ public:
 
 	int get_instance_id();
 
+	/**
+	 * Enable / disable hardware flow control.
+	 *
+	 * @param enabled	True if hardware flow control should be enabled
+	 */
+	int enable_flow_control(bool enabled);
+
 	mavlink_channel_t get_channel();
 
 	bool		_task_should_exit;		/**< if true, mavlink task should exit */
