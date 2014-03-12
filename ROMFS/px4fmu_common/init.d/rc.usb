@@ -5,7 +5,7 @@
 
 echo "Starting MAVLink on this USB console"
 
-mavlink start -r 5000 -d /dev/ttyACM0
+mavlink start -r 10000 -d /dev/ttyACM0
 
 # Exit shell to make it available to MAVLink
 exit 

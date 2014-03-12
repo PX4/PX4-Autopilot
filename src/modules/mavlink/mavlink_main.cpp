@@ -165,7 +165,7 @@ Mavlink::Mavlink() :
 	_task_should_exit(false),
 	_mavlink_fd(-1),
 	_task_running(false),
-	_mavlink_hil_enabled(false),
+	_hil_enabled(false),
 	_main_loop_delay(1000),
 	_subscriptions(nullptr),
 	_streams(nullptr),
@@ -549,38 +549,17 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 {
 	int ret = OK;
 
-	/* Enable HIL */
-	if (hil_enabled && !_mavlink_hil_enabled) {
-
-		_mavlink_hil_enabled = true;
-
-		/* ramp up some HIL-related subscriptions */
-		unsigned hil_rate_interval;
-
-		if (_baudrate < 19200) {
-			/* 10 Hz */
-			hil_rate_interval = 100;
-
-		} else if (_baudrate < 38400) {
-			/* 10 Hz */
-			hil_rate_interval = 100;
-
-		} else if (_baudrate < 115200) {
-			/* 20 Hz */
-			hil_rate_interval = 50;
-
-		} else {
-			/* 200 Hz */
-			hil_rate_interval = 5;
-		}
-
-//		orb_set_interval(subs.spa_sub, hil_rate_interval);
-//		set_mavlink_interval_limit(MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, hil_rate_interval);
+	/* enable HIL */
+	if (hil_enabled && !_hil_enabled) {
+		_hil_enabled = true;
+		float rate_mult = _datarate / 1000.0f;
+		configure_stream("HIL_CONTROLS", 15.0f * rate_mult);
 	}
 
-	if (!hil_enabled && _mavlink_hil_enabled) {
-		_mavlink_hil_enabled = false;
-//		orb_set_interval(subs.spa_sub, 200);
+	/* disable HIL */
+	if (!hil_enabled && _hil_enabled) {
+		_hil_enabled = false;
+		configure_stream("HIL_CONTROLS", 0.0f);
 
 	} else {
 		ret = ERROR;
@@ -1446,10 +1425,8 @@ Mavlink::mavlink_missionlib_send_gcs_string(const char *string)
 	if (i > 1) {
 		/* Enforce null termination */
 		statustext.text[i] = '\0';
-		mavlink_message_t msg;
 
-		mavlink_msg_statustext_encode_chan(mavlink_system.sysid, mavlink_system.compid, _channel, &msg, &statustext);
-		mavlink_missionlib_send_message(&msg);
+		mavlink_msg_statustext_send(_channel, statustext.severity, statustext.text);
 		return OK;
 
 	} else {
@@ -1561,8 +1538,7 @@ Mavlink::task_main(int argc, char *argv[])
 	int ch;
 	_baudrate = 57600;
 	_datarate = 0;
-
-	_mode = MODE_OFFBOARD;
+	_mode = MAVLINK_MODE_NORMAL;
 
 	/* work around some stupidity in task_create's argv handling */
 	argc -= 2;
@@ -1603,17 +1579,8 @@ Mavlink::task_main(int argc, char *argv[])
 //			break;
 
 		case 'm':
-			if (strcmp(optarg, "offboard") == 0) {
-				_mode = MODE_OFFBOARD;
-
-			} else if (strcmp(optarg, "onboard") == 0) {
-				_mode = MODE_ONBOARD;
-
-			} else if (strcmp(optarg, "hil") == 0) {
-				_mode = MODE_HIL;
-
-			} else if (strcmp(optarg, "custom") == 0) {
-				_mode = MODE_CUSTOM;
+			if (strcmp(optarg, "custom") == 0) {
+				_mode = MAVLINK_MODE_CUSTOM;
 			}
 
 			break;
@@ -1649,20 +1616,12 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* inform about mode */
 	switch (_mode) {
-	case MODE_CUSTOM:
+	case MAVLINK_MODE_NORMAL:
+		warnx("mode: NORMAL");
+		break;
+
+	case MAVLINK_MODE_CUSTOM:
 		warnx("mode: CUSTOM");
-		break;
-
-	case MODE_OFFBOARD:
-		warnx("mode: OFFBOARD");
-		break;
-
-	case MODE_ONBOARD:
-		warnx("mode: ONBOARD");
-		break;
-
-	case MODE_HIL:
-		warnx("mode: HIL");
 		break;
 
 	default:
@@ -1670,21 +1629,7 @@ Mavlink::task_main(int argc, char *argv[])
 		break;
 	}
 
-	switch (_mode) {
-	case MODE_OFFBOARD:
-	case MODE_HIL:
-	case MODE_CUSTOM:
-		_mavlink_wpm_comp_id = MAV_COMP_ID_MISSIONPLANNER;
-		break;
-
-	case MODE_ONBOARD:
-		_mavlink_wpm_comp_id = MAV_COMP_ID_CAMERA;
-		break;
-
-	default:
-		_mavlink_wpm_comp_id = MAV_COMP_ID_ALL;
-		break;
-	}
+	_mavlink_wpm_comp_id = MAV_COMP_ID_MISSIONPLANNER;
 
 	warnx("data rate: %d bytes/s", _datarate);
 	warnx("port: %s, baudrate: %d", _device_name, _baudrate);
@@ -1741,7 +1686,7 @@ Mavlink::task_main(int argc, char *argv[])
 	configure_stream("HEARTBEAT", 1.0f);
 
 	switch (_mode) {
-	case MODE_OFFBOARD:
+	case MAVLINK_MODE_NORMAL:
 		configure_stream("SYS_STATUS", 1.0f);
 		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f);
 		configure_stream("HIGHRES_IMU", 1.0f * rate_mult);
@@ -1751,20 +1696,6 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GLOBAL_POSITION_INT", 3.0f * rate_mult);
 		configure_stream("LOCAL_POSITION_NED", 3.0f * rate_mult);
 		configure_stream("RC_CHANNELS_RAW", 1.0f * rate_mult);
-		break;
-
-	case MODE_HIL:
-		/* HIL mode normally runs at high data rate, rate_mult ~ 10 */
-		configure_stream("SYS_STATUS", 1.0f);
-		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f);
-		configure_stream("HIGHRES_IMU", 1.0f * rate_mult);
-		configure_stream("ATTITUDE", 2.0f * rate_mult);
-		configure_stream("VFR_HUD", 2.0f * rate_mult);
-		configure_stream("GPS_RAW_INT", 1.0f * rate_mult);
-		configure_stream("GLOBAL_POSITION_INT", 1.0f * rate_mult);
-		configure_stream("LOCAL_POSITION_NED", 1.0f * rate_mult);
-		configure_stream("RC_CHANNELS_RAW", 1.0f * rate_mult);
-		configure_stream("HIL_CONTROLS", 15.0f * rate_mult);
 		break;
 
 	default:
@@ -1795,12 +1726,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 		if (status_sub->update(t)) {
 			/* switch HIL mode if required */
-			if (status->hil_state == HIL_STATE_ON) {
-				set_hil_enabled(true);
-
-			} else if (status->hil_state == HIL_STATE_OFF) {
-				set_hil_enabled(false);
-			}
+			set_hil_enabled(status->hil_state == HIL_STATE_ON);
 		}
 
 		/* check for requested subscriptions */
