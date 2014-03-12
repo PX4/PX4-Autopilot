@@ -253,8 +253,9 @@ void gpio_led_cycle(FAR void *arg)
 	bool updated;
 	orb_check(priv->vehicle_status_sub, &updated);
 
-	if (updated)
+	if (updated) {
 		orb_copy(ORB_ID(vehicle_status), priv->vehicle_status_sub, &priv->status);
+	}
 
 	/* select pattern for current status */
 	int pattern = 0;
@@ -294,8 +295,9 @@ void gpio_led_cycle(FAR void *arg)
 
 	priv->counter++;
 
-	if (priv->counter > 5)
+	if (priv->counter > 5) {
 		priv->counter = 0;
+	}
 
 	/* repeat cycle at 5 Hz */
 	if (gpio_led_started) {
