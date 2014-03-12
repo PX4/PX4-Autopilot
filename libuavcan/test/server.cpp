@@ -110,6 +110,9 @@ TEST(Server, Basic)
             ASSERT_EQ(i + 0x10, fr.getDstNodeID().get());
         }
 
+        ASSERT_EQ(0, server.getRequestFailureCount());
+        ASSERT_EQ(0, server.getResponseFailureCount());
+
         ASSERT_EQ(1, sch.getDispatcher().getNumServiceRequestListeners());
     }
     ASSERT_EQ(0, sch.getDispatcher().getNumServiceRequestListeners());
