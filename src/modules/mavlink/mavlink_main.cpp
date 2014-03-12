@@ -112,43 +112,49 @@ static uint64_t last_write_times[6] = {0};
 void
 mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length)
 {
-	int uart = -1;
+	Mavlink *instance;
 
 	switch (channel) {
 	case MAVLINK_COMM_0:
-		uart = Mavlink::get_uart_fd(0);
+		instance = Mavlink::get_instance(0);
 		break;
 
 	case MAVLINK_COMM_1:
-		uart = Mavlink::get_uart_fd(1);
+		instance = Mavlink::get_instance(1);
 		break;
 
 	case MAVLINK_COMM_2:
-		uart = Mavlink::get_uart_fd(2);
+		instance = Mavlink::get_instance(2);
 		break;
 
 	case MAVLINK_COMM_3:
-		uart = Mavlink::get_uart_fd(3);
+		instance = Mavlink::get_instance(3);
 		break;
 #ifdef MAVLINK_COMM_4
 
 	case MAVLINK_COMM_4:
-		uart = Mavlink::get_uart_fd(4);
+		instance = Mavlink::get_instance(4);
 		break;
 #endif
 #ifdef MAVLINK_COMM_5
 
 	case MAVLINK_COMM_5:
-		uart = Mavlink::get_uart_fd(5);
+		instance = Mavlink::get_instance(5);
 		break;
 #endif
 #ifdef MAVLINK_COMM_6
 
 	case MAVLINK_COMM_6:
-		uart = Mavlink::get_uart_fd(6);
+		instance = Mavlink::get_instance(6);
 		break;
 #endif
 	}
+
+	/* no valid instance, bail */
+	if (!instance)
+		return;
+
+	int uart = instance->get_uart_fd();
 
 	ssize_t desired = (sizeof(uint8_t) * length);
 
@@ -158,18 +164,16 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 	 */
 	int buf_free = 0;
 
-	if (ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
+	if (instance->get_flow_control_enabled()
+		&& ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
 
 		if (buf_free == 0) {
 
 			if (last_write_times[(unsigned)channel] != 0 &&
 			hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500*1000UL) {
 
-				struct termios uart_config;
-				(void)tcgetattr(uart, &uart_config);
-				uart_config.c_cflag &= ~CRTSCTS;
-				(void)tcsetattr(uart, TCSANOW, &uart_config);
 				warnx("DISABLING HARDWARE FLOW CONTROL");
+				instance->enable_flow_control(false);
 			}
 
 		} else {
@@ -204,6 +208,7 @@ Mavlink::Mavlink() :
 	_mavlink_param_queue_index(0),
 	_subscribe_to_stream(nullptr),
 	_subscribe_to_stream_rate(0.0f),
+	_flow_control_enabled(true),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink"))
@@ -599,6 +604,10 @@ Mavlink::enable_flow_control(bool enabled)
 		uart_config.c_cflag &= ~CRTSCTS;
 	}
 	ret = tcsetattr(_uart_fd, TCSANOW, &uart_config);
+
+	if (!ret) {
+		_flow_control_enabled = enabled;
+	}
 
 	return ret;
 }

@@ -154,6 +154,8 @@ public:
 
 	bool		get_hil_enabled() { return _hil_enabled; };
 
+	bool		get_flow_control_enabled() { return _flow_control_enabled; }
+
 	/**
 	 * Handle waypoint related messages.
 	 */
@@ -245,6 +247,8 @@ private:
 
 	char 	*_subscribe_to_stream;
 	float	_subscribe_to_stream_rate;
+
+	bool		_flow_control_enabled;
 
 	/**
 	 * Send one parameter.
