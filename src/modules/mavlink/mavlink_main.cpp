@@ -158,13 +158,17 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 	 */
 	int buf_free = 0;
 
-	if (ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0 &&
-		hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500*1000UL) {
-		struct termios uart_config;
-		(void)tcgetattr(uart, &uart_config);
-		uart_config.c_cflag &= ~CRTSCTS;
-		(void)tcsetattr(uart, TCSANOW, &uart_config);
-		warnx("DISABLING HARDWARE FLOW CONTROL");
+	if (ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
+
+		if (buf_free == 0 && last_write_times[(unsigned)channel] != 0 &&
+			hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500*1000UL) {
+
+			struct termios uart_config;
+			(void)tcgetattr(uart, &uart_config);
+			uart_config.c_cflag &= ~CRTSCTS;
+			(void)tcsetattr(uart, TCSANOW, &uart_config);
+			warnx("DISABLING HARDWARE FLOW CONTROL");
+		}
 	}
 
 	ssize_t ret = write(uart, ch, desired);
