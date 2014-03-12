@@ -10,7 +10,7 @@ namespace uavcan
 {
 
 template <typename DataType_>
-class Publisher : public GenericPublisher<DataType_, DataType_>
+class Publisher : protected GenericPublisher<DataType_, DataType_>
 {
     typedef GenericPublisher<DataType_, DataType_> BaseType;
 
@@ -40,6 +40,12 @@ public:
         }
         return publish(message, TransferTypeMessageUnicast, dst_node_id);
     }
+
+    using BaseType::getDefaultTxTimeout;
+    using BaseType::getMinTxTimeout;
+    using BaseType::getTxTimeout;
+    using BaseType::setTxTimeout;
+    using BaseType::getScheduler;
 };
 
 }

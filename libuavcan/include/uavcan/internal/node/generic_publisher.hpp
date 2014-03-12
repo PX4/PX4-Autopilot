@@ -93,7 +93,7 @@ class GenericPublisher
         }
     }
 
-protected:
+public:
     GenericPublisher(Scheduler& scheduler, IMarshalBufferProvider& buffer_provider,
                      MonotonicDuration max_transfer_interval = TransferSender::getDefaultMaxTransferInterval())
     : max_transfer_interval_(max_transfer_interval)
@@ -116,7 +116,6 @@ protected:
         return genericPublish(message, transfer_type, dst_node_id, &tid, blocking_deadline);
     }
 
-public:
     static MonotonicDuration getDefaultTxTimeout() { return MonotonicDuration::fromUSec(2500); }// 2500ms --> 400Hz max
     static MonotonicDuration getMinTxTimeout() { return MonotonicDuration::fromUSec(200); }
 

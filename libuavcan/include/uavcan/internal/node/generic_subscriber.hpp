@@ -123,7 +123,7 @@ class GenericSubscriber : Noncopyable
 
         message_.setTransfer(&transfer);
 
-        const int decode_res = DataSpec::decode(message_, codec);
+        const int decode_res = DataStruct::decode(message_, codec);
         // We don't need the data anymore, the memory can be reused from the callback:
         transfer.release();
         if (decode_res <= 0)
