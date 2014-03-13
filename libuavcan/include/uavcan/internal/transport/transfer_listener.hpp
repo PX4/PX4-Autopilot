@@ -81,7 +81,7 @@ public:
 /**
  * Internal, refer to transport dispatcher.
  */
-class TransferListenerBase : public LinkedListNode<TransferListenerBase>
+class TransferListenerBase : public LinkedListNode<TransferListenerBase>, Noncopyable
 {
     const DataTypeDescriptor& data_type_;
     const TransferCRC crc_base_;                      ///< Pre-initialized with data type hash, thus constant
@@ -108,36 +108,14 @@ public:
 };
 
 /**
- * This class should be derived by transfer receivers (subscribers, servers, callers).
+ * This class should be derived by transfer receivers (subscribers, servers).
  */
 template <unsigned int MaxBufSize, unsigned int NumStaticBufs, unsigned int NumStaticReceivers>
-class TransferListener : public TransferListenerBase, Noncopyable
+class TransferListener : public TransferListenerBase
 {
     typedef TransferBufferManager<MaxBufSize, NumStaticBufs> BufferManager;
     BufferManager bufmgr_;
     Map<TransferBufferManagerKey, TransferReceiver, NumStaticReceivers> receivers_;
-
-    void handleFrame(const RxFrame& frame)
-    {
-        const TransferBufferManagerKey key(frame.getSrcNodeID(), frame.getTransferType());
-
-        TransferReceiver* recv = receivers_.access(key);
-        if (recv == NULL)
-        {
-            if (!frame.isFirst())
-                return;
-
-            TransferReceiver new_recv;
-            recv = receivers_.insert(key, new_recv);
-            if (recv == NULL)
-            {
-                UAVCAN_TRACE("TransferListener", "Receiver registration failed; frame %s", frame.toString().c_str());
-                return;
-            }
-        }
-        TransferBufferAccessor tba(bufmgr_, key);
-        handleReception(*recv, frame, tba);
-    }
 
     class TimedOutReceiverPredicate
     {
@@ -174,6 +152,29 @@ class TransferListener : public TransferListenerBase, Noncopyable
         assert(receivers_.isEmpty() ? bufmgr_.isEmpty() : 1);
     }
 
+protected:
+    void handleFrame(const RxFrame& frame)
+    {
+        const TransferBufferManagerKey key(frame.getSrcNodeID(), frame.getTransferType());
+
+        TransferReceiver* recv = receivers_.access(key);
+        if (recv == NULL)
+        {
+            if (!frame.isFirst())
+                return;
+
+            TransferReceiver new_recv;
+            recv = receivers_.insert(key, new_recv);
+            if (recv == NULL)
+            {
+                UAVCAN_TRACE("TransferListener", "Receiver registration failed; frame %s", frame.toString().c_str());
+                return;
+            }
+        }
+        TransferBufferAccessor tba(bufmgr_, key);
+        handleReception(*recv, frame, tba);
+    }
+
 public:
     TransferListener(const DataTypeDescriptor& data_type, IAllocator& allocator)
     : TransferListenerBase(data_type)
@@ -183,10 +184,77 @@ public:
         StaticAssert<(NumStaticReceivers >= NumStaticBufs)>::check();  // Otherwise it would be meaningless
     }
 
-    ~TransferListener()
+    virtual ~TransferListener()
     {
         // Map must be cleared before bufmgr is destructed
         receivers_.removeAll();
+    }
+};
+
+/**
+ * This class should be derived by callers.
+ */
+template <unsigned int MaxBufSize>
+class ServiceResponseTransferListener : public TransferListener<MaxBufSize, 1, 1>
+{
+public:
+    struct ExpectedResponseParams
+    {
+        NodeID src_node_id;
+        TransferID transfer_id;
+
+        ExpectedResponseParams()
+        {
+            assert(!src_node_id.isValid());
+        }
+
+        ExpectedResponseParams(NodeID src_node_id, TransferID transfer_id)
+        : src_node_id(src_node_id)
+        , transfer_id(transfer_id)
+        {
+            assert(src_node_id.isUnicast());
+        }
+
+        bool match(const RxFrame& frame) const
+        {
+            assert(frame.getTransferType() == TransferTypeServiceResponse);
+            return (frame.getSrcNodeID() == src_node_id) && (frame.getTransferID() == transfer_id);
+        }
+    };
+
+private:
+    typedef TransferListener<MaxBufSize, 1, 1> BaseType;
+
+    ExpectedResponseParams response_params_;
+
+    void handleFrame(const RxFrame& frame)
+    {
+        if (!response_params_.match(frame))
+        {
+            UAVCAN_TRACE("ServiceResponseTransferListener", "Rejected %s [need snid=%i tid=%i]",
+                         frame.toString().c_str(),
+                         int(response_params_.src_node_id.get()), int(response_params_.transfer_id.get()));
+            return;
+        }
+        UAVCAN_TRACE("ServiceResponseTransferListener", "Accepted %s", frame.toString().c_str());
+        BaseType::handleFrame(frame);
+    }
+
+public:
+    ServiceResponseTransferListener(const DataTypeDescriptor& data_type, IAllocator& allocator)
+    : BaseType(data_type, allocator)
+    { }
+
+    void setExpectedResponseParams(const ExpectedResponseParams& erp)
+    {
+        response_params_ = erp;
+    }
+
+    const ExpectedResponseParams& getExpectedResponseParams() const { return response_params_; }
+
+    void stopAcceptingAnything()
+    {
+        response_params_ = ExpectedResponseParams();
     }
 };
 

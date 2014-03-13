@@ -209,6 +209,8 @@ protected:
 
     TransferListenerType* getTransferListener() { return forwarder_; }
 
+    ReceivedDataStructure<DataStruct>& getReceivedStructStorage() { return message_; }
+
 public:
     Scheduler& getScheduler() const { return scheduler_; }
 };
