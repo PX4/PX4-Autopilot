@@ -3,7 +3,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <uavcan/server.hpp>
+#include <uavcan/service_server.hpp>
 #include <uavcan/util/method_binder.hpp>
 #include <root_ns_a/StringService.hpp>
 #include "clock.hpp"
@@ -34,7 +34,7 @@ struct ServerImpl
 };
 
 
-TEST(Server, Basic)
+TEST(ServiceServer, Basic)
 {
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 8, uavcan::MemPoolBlockSize> pool;
     uavcan::PoolManager<1> poolmgr;
@@ -55,7 +55,7 @@ TEST(Server, Basic)
     ServerImpl impl("456");
 
     {
-        uavcan::Server<root_ns_a::StringService, ServerImpl::Binder> server(sch, poolmgr, buffer_provider);
+        uavcan::ServiceServer<root_ns_a::StringService, ServerImpl::Binder> server(sch, poolmgr, buffer_provider);
 
         ASSERT_EQ(0, sch.getDispatcher().getNumServiceRequestListeners());
         server.start(impl.bind());

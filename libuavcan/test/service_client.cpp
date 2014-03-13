@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <uavcan/service_client.hpp>
-#include <uavcan/server.hpp>
+#include <uavcan/service_server.hpp>
 #include <uavcan/util/method_binder.hpp>
 #include <root_ns_a/StringService.hpp>
 #include <queue>
@@ -157,7 +157,7 @@ TEST(ServiceClient, Basic)
     uavcan::DefaultDataTypeRegistrator<root_ns_a::StringService> _registrator;
 
     // Server
-    uavcan::Server<root_ns_a::StringService> server(node_a.scheduler, node_a.poolmgr, node_a.buffer_provider);
+    uavcan::ServiceServer<root_ns_a::StringService> server(node_a.scheduler, node_a.poolmgr, node_a.buffer_provider);
     ASSERT_EQ(1, server.start(stringServiceServerCallback));
 
     {

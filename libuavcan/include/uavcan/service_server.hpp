@@ -15,10 +15,10 @@ template <typename DataType_,
                                       typename DataType_::Response&),
           unsigned int NumStaticReceivers = 2,
           unsigned int NumStaticBufs = 1>
-class Server : public GenericSubscriber<DataType_, typename DataType_::Request,
-                                        typename TransferListenerInstantiationHelper<typename DataType_::Request,
-                                                                                     NumStaticReceivers,
-                                                                                     NumStaticBufs>::Type>
+class ServiceServer : public GenericSubscriber<DataType_, typename DataType_::Request,
+                                               typename TransferListenerInstantiationHelper<typename DataType_::Request,
+                                                                                            NumStaticReceivers,
+                                                                                            NumStaticBufs>::Type>
 {
 public:
     typedef DataType_ DataType;
@@ -44,19 +44,19 @@ private:
             callback_(request, response_);
         }
         else
-            handleFatalError("Invalid server callback");
+            handleFatalError("Invalid service server callback");
 
         const int res = publisher_.publish(response_, TransferTypeServiceResponse, request.getSrcNodeID(),
             request.getTransferID());
         if (res <= 0)
         {
-            UAVCAN_TRACE("Server", "Response publication failure: %i", res);
+            UAVCAN_TRACE("ServiceServer", "Response publication failure: %i", res);
             response_failure_count_++;
         }
     }
 
 public:
-    Server(Scheduler& scheduler, IAllocator& allocator, IMarshalBufferProvider& buffer_provider)
+    ServiceServer(Scheduler& scheduler, IAllocator& allocator, IMarshalBufferProvider& buffer_provider)
     : SubscriberType(scheduler, allocator)
     , publisher_(scheduler, buffer_provider, getDefaultTxTimeout())
     , callback_()
@@ -73,7 +73,7 @@ public:
 
         if (!try_implicit_cast<bool>(callback, true))
         {
-            UAVCAN_TRACE("Server", "Invalid callback");
+            UAVCAN_TRACE("ServiceServer", "Invalid callback");
             return -1;
         }
         callback_ = callback;
