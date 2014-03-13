@@ -56,18 +56,24 @@ public:
 };
 
 
-template <typename DataSpec, typename DataStruct, unsigned int NumStaticReceivers, unsigned int NumStaticBufs_>
-class GenericSubscriber : Noncopyable
+template <typename DataStruct_, unsigned int NumStaticReceivers_, unsigned int NumStaticBufs_>
+class TransferListenerInstantiationHelper
 {
-    typedef GenericSubscriber<DataSpec, DataStruct, NumStaticReceivers, NumStaticBufs_> SelfType;
-
-    enum { DataTypeMaxByteLen = BitLenToByteLen<DataStruct::MaxBitLen>::Result };
+    enum { DataTypeMaxByteLen = BitLenToByteLen<DataStruct_::MaxBitLen>::Result };
     enum { NeedsBuffer = int(DataTypeMaxByteLen) > int(MaxSingleFrameTransferPayloadLen) };
     enum { BufferSize = NeedsBuffer ? DataTypeMaxByteLen : 0 };
     enum { NumStaticBufs = NeedsBuffer ? (NumStaticBufs_ ? NumStaticBufs_ : 1) : 0 };
 
-    typedef TransferListener<BufferSize, NumStaticBufs,  // TODO: support for zero static bufs
-                             NumStaticReceivers ? NumStaticReceivers : 1> TransferListenerType;
+public:
+    // TODO: support for zero static bufs
+    typedef TransferListener<BufferSize, NumStaticBufs, NumStaticReceivers_ ? NumStaticReceivers_ : 1> Type;
+};
+
+
+template <typename DataSpec, typename DataStruct, typename TransferListenerType>
+class GenericSubscriber : Noncopyable
+{
+    typedef GenericSubscriber<DataSpec, DataStruct, TransferListenerType> SelfType;
 
     // We need to break the inheritance chain here to implement lazy initialization
     class TransferForwarder : public TransferListenerType
@@ -200,6 +206,8 @@ protected:
     }
 
     uint32_t getFailureCount() const { return failure_count_; }
+
+    TransferListenerType* getTransferListener() { return forwarder_; }
 
 public:
     Scheduler& getScheduler() const { return scheduler_; }

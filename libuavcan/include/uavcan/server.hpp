@@ -11,10 +11,14 @@ namespace uavcan
 {
 
 template <typename DataType_,
-          typename Callback = void(*)(const ReceivedDataStructure<typename DataType_::Request>&, typename DataType_::Response&),
+          typename Callback = void(*)(const ReceivedDataStructure<typename DataType_::Request>&,
+                                      typename DataType_::Response&),
           unsigned int NumStaticReceivers = 2,
           unsigned int NumStaticBufs = 1>
-class Server : public GenericSubscriber<DataType_, typename DataType_::Request, NumStaticReceivers, NumStaticBufs>
+class Server : public GenericSubscriber<DataType_, typename DataType_::Request,
+                                        typename TransferListenerInstantiationHelper<typename DataType_::Request,
+                                                                                     NumStaticReceivers,
+                                                                                     NumStaticBufs>::Type>
 {
 public:
     typedef DataType_ DataType;
@@ -22,7 +26,9 @@ public:
     typedef typename DataType::Response ResponseType;
 
 private:
-    typedef GenericSubscriber<DataType, RequestType, NumStaticReceivers, NumStaticBufs> SubscriberType;
+    typedef typename TransferListenerInstantiationHelper<RequestType, NumStaticReceivers, NumStaticBufs>::Type
+        TransferListenerType;
+    typedef GenericSubscriber<DataType, RequestType, TransferListenerType> SubscriberType;
     typedef GenericPublisher<DataType, ResponseType> PublisherType;
 
     PublisherType publisher_;

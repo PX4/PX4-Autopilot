@@ -14,9 +14,14 @@ template <typename DataType_,
           typename Callback = void(*)(const ReceivedDataStructure<DataType_>&),
           unsigned int NumStaticReceivers = 2,
           unsigned int NumStaticBufs = 1>
-class Subscriber : public GenericSubscriber<DataType_, DataType_, NumStaticReceivers, NumStaticBufs>
+class Subscriber : public GenericSubscriber<DataType_, DataType_,
+                                            typename TransferListenerInstantiationHelper<DataType_,
+                                                                                         NumStaticReceivers,
+                                                                                         NumStaticBufs>::Type>
 {
-    typedef GenericSubscriber<DataType_, DataType_, NumStaticReceivers, NumStaticBufs> BaseType;
+    typedef typename TransferListenerInstantiationHelper<DataType_, NumStaticReceivers, NumStaticBufs>::Type
+        TransferListenerType;
+    typedef GenericSubscriber<DataType_, DataType_, TransferListenerType> BaseType;
 
     Callback callback_;
 
