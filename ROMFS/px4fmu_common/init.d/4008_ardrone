@@ -33,3 +33,5 @@ fi
 set OUTPUT_MODE ardrone
 set USE_IO no
 set MIXER skip
+# set MAV_TYPE because no specific mixer is set
+set MAV_TYPE 2
