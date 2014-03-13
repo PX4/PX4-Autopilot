@@ -43,7 +43,7 @@ public:
         StaticAssert<DataTypeKind(DataType::DataTypeKind) == DataTypeKindMessage>::check();
     }
 
-    int start(Callback callback)
+    int start(const Callback& callback)
     {
         stop();
 

@@ -67,7 +67,7 @@ public:
         StaticAssert<DataTypeKind(DataType::DataTypeKind) == DataTypeKindService>::check();
     }
 
-    int start(Callback callback)
+    int start(const Callback& callback)
     {
         stop();
 
