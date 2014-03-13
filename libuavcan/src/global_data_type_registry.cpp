@@ -117,7 +117,8 @@ void GlobalDataTypeRegistry::freeze()
     if (!frozen_)
     {
         frozen_ = true;
-        UAVCAN_TRACE("GlobalDataTypeRegistry", "Frozen");
+        UAVCAN_TRACE("GlobalDataTypeRegistry", "Frozen; num msgs: %u, num srvs: %u",
+                     getNumMessageTypes(), getNumServiceTypes());
     }
 }
 
