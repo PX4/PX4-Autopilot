@@ -394,6 +394,18 @@ public:
         return *this;
     }
 
+    template <uavcan::ArrayMode RhsArrayMode, unsigned int RhsMaxSize>
+    SelfType& operator+=(const Array<T, RhsArrayMode, RhsMaxSize>& rhs)
+    {
+        typedef Array<T, RhsArrayMode, RhsMaxSize> Rhs;
+        typedef typename Select<(sizeof(SizeType) > sizeof(typename Rhs::SizeType)),
+                                SizeType, typename Rhs::SizeType>::Result CommonSizeType;
+        StaticAssert<IsDynamic>::check();
+        for (CommonSizeType i = 0; i < rhs.size(); i++)
+            push_back(rhs[i]);
+        return *this;
+    }
+
     typedef ValueType value_type;
     typedef SizeType size_type;
 };

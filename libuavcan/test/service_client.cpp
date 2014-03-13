@@ -47,7 +47,7 @@ static void stringServiceServerCallback(const uavcan::ReceivedDataStructure<root
                                         root_ns_a::StringService::Response& rsp)
 {
     rsp.string_response = "Request string: ";
-    rsp.string_response += req.string_request.c_str();
+    rsp.string_response += req.string_request;
 }
 
 

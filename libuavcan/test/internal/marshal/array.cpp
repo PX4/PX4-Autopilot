@@ -652,6 +652,31 @@ TEST(Array, Copyability)
 }
 
 
+TEST(Array, Appending)
+{
+    typedef Array<FloatSpec<16, CastModeSaturate>, ArrayModeDynamic, 2> A;
+    typedef Array<FloatSpec<16, CastModeSaturate>, ArrayModeDynamic, 257> B;
+    A a;
+    B b;
+
+    a.push_back(1);
+    a.push_back(2);
+    a += b;
+    ASSERT_EQ(2, a.size());
+    ASSERT_EQ(1, a[0]);
+    ASSERT_EQ(2, a[1]);
+
+    b += a;
+    ASSERT_TRUE(a == b);
+    b += a;
+    ASSERT_EQ(4, b.size());
+    ASSERT_EQ(1, b[0]);
+    ASSERT_EQ(2, b[1]);
+    ASSERT_EQ(1, b[2]);
+    ASSERT_EQ(2, b[3]);
+}
+
+
 TEST(Array, Strings)
 {
     typedef Array<IntegerSpec<8, SignednessUnsigned, CastModeSaturate>, ArrayModeDynamic, 32> A8;
