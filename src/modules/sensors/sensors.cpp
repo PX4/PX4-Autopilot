@@ -1030,6 +1030,7 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		raw.differential_pressure_pa = _diff_pres.differential_pressure_pa;
 		raw.differential_pressure_counter++;
 
+		_airspeed.timestamp = hrt_absolute_time();
 		_airspeed.indicated_airspeed_m_s = calc_indicated_airspeed(_diff_pres.differential_pressure_pa);
 		_airspeed.true_airspeed_m_s = calc_true_airspeed(_diff_pres.differential_pressure_pa + raw.baro_pres_mbar * 1e2f,
 					      raw.baro_pres_mbar * 1e2f, raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
