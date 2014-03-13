@@ -60,10 +60,8 @@ TEST(Scheduler, Timers)
         ASSERT_EQ(0, sch.spin(start_ts + durMono(1000000)));
 
         ASSERT_EQ(1, tcc.events_a.size());
-        ASSERT_TRUE(areTimestampsClose(tcc.events_a[0].scheduled_deadline, start_ts + durMono(100000)));
-        ASSERT_TRUE(areTimestampsClose(tcc.events_a[0].current_timestamp,
-                                       tcc.events_a[0].scheduled_deadline));
-        ASSERT_EQ(&a, tcc.events_a[0].timer);
+        ASSERT_TRUE(areTimestampsClose(tcc.events_a[0].scheduled_time, start_ts + durMono(100000)));
+        ASSERT_TRUE(areTimestampsClose(tcc.events_a[0].scheduled_time, tcc.events_a[0].real_time));
 
         ASSERT_LT(900, tcc.events_b.size());
         ASSERT_GT(1100, tcc.events_b.size());
@@ -71,10 +69,8 @@ TEST(Scheduler, Timers)
             uavcan::MonotonicTime next_expected_deadline = start_ts + durMono(1000);
             for (unsigned int i = 0; i < tcc.events_b.size(); i++)
             {
-                ASSERT_TRUE(areTimestampsClose(tcc.events_b[i].scheduled_deadline, next_expected_deadline));
-                ASSERT_TRUE(areTimestampsClose(tcc.events_b[i].current_timestamp,
-                                               tcc.events_b[i].scheduled_deadline));
-                ASSERT_EQ(&b, tcc.events_b[i].timer);
+                ASSERT_TRUE(areTimestampsClose(tcc.events_b[i].scheduled_time, next_expected_deadline));
+                ASSERT_TRUE(areTimestampsClose(tcc.events_b[i].scheduled_time, tcc.events_b[i].real_time));
                 next_expected_deadline += durMono(1000);
             }
         }

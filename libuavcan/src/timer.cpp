@@ -12,13 +12,13 @@ void Timer::handleDeadline(MonotonicTime current_timestamp)
 {
     assert(!isRunning());
 
-    const MonotonicTime scheduled_deadline = getDeadline();
+    const MonotonicTime scheduled_time = getDeadline();
 
     if (period_ < MonotonicDuration::getInfinite())
-        startWithDeadline(scheduled_deadline + period_);
+        startWithDeadline(scheduled_time + period_);
 
     // Application can re-register the timer with different params, it's OK
-    handleTimerEvent(TimerEvent(this, scheduled_deadline, current_timestamp));
+    handleTimerEvent(TimerEvent(scheduled_time, current_timestamp));
 }
 
 void Timer::startOneShotWithDeadline(MonotonicTime deadline)

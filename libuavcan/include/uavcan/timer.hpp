@@ -17,14 +17,12 @@ class Timer;
 
 struct TimerEvent
 {
-    MonotonicTime scheduled_deadline;
-    MonotonicTime current_timestamp;
-    Timer* timer;
+    MonotonicTime scheduled_time;
+    MonotonicTime real_time;
 
-    TimerEvent(Timer* timer, MonotonicTime scheduled_deadline, MonotonicTime current_timestamp)
-    : scheduled_deadline(scheduled_deadline)
-    , current_timestamp(current_timestamp)
-    , timer(timer)
+    TimerEvent(MonotonicTime scheduled_time, MonotonicTime real_time)
+    : scheduled_time(scheduled_time)
+    , real_time(real_time)
     { }
 };
 
