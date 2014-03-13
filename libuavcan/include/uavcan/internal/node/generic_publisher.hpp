@@ -94,13 +94,18 @@ class GenericPublisher
     }
 
 public:
-    GenericPublisher(Scheduler& scheduler, IMarshalBufferProvider& buffer_provider,
+    GenericPublisher(Scheduler& scheduler, IMarshalBufferProvider& buffer_provider, MonotonicDuration tx_timeout,
                      MonotonicDuration max_transfer_interval = TransferSender::getDefaultMaxTransferInterval())
     : max_transfer_interval_(max_transfer_interval)
-    , tx_timeout_(getDefaultTxTimeout())
+    , tx_timeout_(tx_timeout)
     , scheduler_(scheduler)
     , buffer_provider_(buffer_provider)
-    { }
+    {
+        setTxTimeout(tx_timeout);
+#if UAVCAN_DEBUG
+        assert(getTxTimeout() == tx_timeout);  // Making sure default values are OK
+#endif
+    }
 
     ~GenericPublisher() { }
 
@@ -116,13 +121,15 @@ public:
         return genericPublish(message, transfer_type, dst_node_id, &tid, blocking_deadline);
     }
 
-    static MonotonicDuration getDefaultTxTimeout() { return MonotonicDuration::fromUSec(2500); }// 2500ms --> 400Hz max
     static MonotonicDuration getMinTxTimeout() { return MonotonicDuration::fromUSec(200); }
+    static MonotonicDuration getMaxTxTimeout() { return MonotonicDuration::fromMSec(60000); }
 
     MonotonicDuration getTxTimeout() const { return tx_timeout_; }
     void setTxTimeout(MonotonicDuration tx_timeout)
     {
-        tx_timeout_ = std::max(tx_timeout, getMinTxTimeout());
+        tx_timeout = std::max(tx_timeout, getMinTxTimeout());
+        tx_timeout = std::min(tx_timeout, getMaxTxTimeout());
+        tx_timeout_ = tx_timeout;
     }
 
     Scheduler& getScheduler() const { return scheduler_; }

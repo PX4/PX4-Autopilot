@@ -58,10 +58,12 @@ private:
 public:
     Server(Scheduler& scheduler, IAllocator& allocator, IMarshalBufferProvider& buffer_provider)
     : SubscriberType(scheduler, allocator)
-    , publisher_(scheduler, buffer_provider)
+    , publisher_(scheduler, buffer_provider, getDefaultTxTimeout())
     , callback_()
     , response_failure_count_(0)
     {
+        assert(getTxTimeout() == getDefaultTxTimeout());  // Making sure it is valid
+
         StaticAssert<DataTypeKind(DataType::DataTypeKind) == DataTypeKindService>::check();
     }
 
@@ -80,6 +82,13 @@ public:
     }
 
     using SubscriberType::stop;
+
+    static MonotonicDuration getDefaultTxTimeout() { return MonotonicDuration::fromMSec(1000); }
+    static MonotonicDuration getMinTxTimeout() { return PublisherType::getMinTxTimeout(); }
+    static MonotonicDuration getMaxTxTimeout() { return PublisherType::getMaxTxTimeout(); }
+
+    MonotonicDuration getTxTimeout() const { return publisher_.getTxTimeout(); }
+    void setTxTimeout(MonotonicDuration tx_timeout) { publisher_.setTxTimeout(tx_timeout); }
 
     uint32_t getRequestFailureCount() const { return SubscriberType::getFailureCount(); }
     uint32_t getResponseFailureCount() const { return response_failure_count_; }
