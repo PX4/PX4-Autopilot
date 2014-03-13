@@ -6,9 +6,12 @@
 
 #include <cassert>
 #include <stdint.h>
+#include <sstream>
+#include <uavcan/internal/impl_constants.hpp>
 #include <uavcan/internal/map.hpp>
 #include <uavcan/internal/debug.hpp>
 #include <uavcan/internal/transport/transfer.hpp>
+#include <uavcan/internal/debug.hpp>
 #include <uavcan/time.hpp>
 
 namespace uavcan
@@ -45,6 +48,15 @@ public:
             (data_type_id_        == rhs.data_type_id_) &&
             (transfer_type_       == rhs.transfer_type_) &&
             (destination_node_id_ == rhs.destination_node_id_);
+    }
+
+    std::string toString() const
+    {
+        std::ostringstream os;
+        os << "dtid=" << int(data_type_id_.get())
+            << " tt=" << int(transfer_type_)
+            << " dnid=" << int(destination_node_id_.get());
+        return os.str();
     }
 };
 UAVCAN_PACKED_END
@@ -83,7 +95,13 @@ UAVCAN_PACKED_END
         {
             (void)key;
             assert(!value.deadline.isZero());
-            return value.deadline <= ts_;
+            const bool expired = value.deadline <= ts_;
+            if (expired)
+            {
+                UAVCAN_TRACE("OutgoingTransferRegistry", "Expired %s tid=%i",
+                             key.toString().c_str(), int(value.tid.get()));
+            }
+            return expired;
         }
     };
 
@@ -99,9 +117,12 @@ public:
         assert(!new_deadline.isZero());
         Value* p = map_.access(key);
         if (p == NULL)
+        {
             p = map_.insert(key, Value());
-        if (p == NULL)
-            return NULL;
+            if (p == NULL)
+                return NULL;
+            UAVCAN_TRACE("OutgoingTransferRegistry", "Created %s", key.toString().c_str());
+        }
         p->deadline = new_deadline;
         return &p->tid;
     }
