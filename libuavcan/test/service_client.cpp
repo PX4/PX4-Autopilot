@@ -22,11 +22,7 @@ struct ServiceCallResultHandler
 
     void handleResponse(const uavcan::ServiceCallResult<DataType>& result)
     {
-        // TODO: stream uavcan::ServiceCallResult<> directly
-        std::cout << "Service call result [" << DataType::getDataTypeFullName() << "], success="
-            << result.isSuccessful() << ":\n";
-        std::cout << result.response << std::endl;
-
+        std::cout << result << std::endl;
         last_status = result.status;
         last_response = result.response;
         last_server_node_id = result.server_node_id;

@@ -40,6 +40,19 @@ struct ServiceCallResult
     bool isSuccessful() const { return status == Success; }
 };
 
+template <typename Stream, typename DataType>
+static Stream& operator<<(Stream& s, const ServiceCallResult<DataType>& scr)
+{
+    s << "# Service call result [" << DataType::getDataTypeFullName() << "] "
+        << (scr.isSuccessful() ? "OK" : "FAILURE")
+        << " server_node_id=" << int(scr.server_node_id.get()) << "\n";
+    if (scr.isSuccessful())
+        s << scr.response;
+    else
+        s << "# (no data)";
+    return s;
+}
+
 
 template <typename DataType_, typename Callback = void(*)(const ServiceCallResult<DataType_>&)>
 class ServiceClient :
