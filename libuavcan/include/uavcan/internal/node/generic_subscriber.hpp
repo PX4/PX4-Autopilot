@@ -55,6 +55,16 @@ public:
     NodeID getSrcNodeID()            const { return safeget<NodeID, &IncomingTransfer::getSrcNodeID>(); }
 };
 
+template <typename Stream, typename DataType>
+static Stream& operator<<(Stream& s, const ReceivedDataStructure<DataType>& rds)
+{
+    s << "# Received struct ts_m=" << rds.getMonotonicTimestamp()
+        << " ts_utc=" << rds.getUtcTimestamp()
+        << " snid=" << int(rds.getSrcNodeID().get()) << "\n";
+    s << static_cast<const DataType&>(rds);
+    return s;
+}
+
 
 template <typename DataStruct_, unsigned int NumStaticReceivers_, unsigned int NumStaticBufs_>
 class TransferListenerInstantiationHelper
