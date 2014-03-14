@@ -7,6 +7,7 @@
 #include <uavcan/util/method_binder.hpp>
 #include "../clock.hpp"
 #include "../transport/can/can.hpp"
+#include "test_node.hpp"
 
 struct TimerCallCounter
 {
@@ -24,17 +25,9 @@ struct TimerCallCounter
  */
 TEST(Scheduler, Timers)
 {
-    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 8, uavcan::MemPoolBlockSize> pool;
-    uavcan::PoolManager<1> poolmgr;
-    poolmgr.addPool(&pool);
-
     SystemClockDriver clock_driver;
     CanDriverMock can_driver(2, clock_driver);
-
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
-
-    uavcan::Scheduler sch(can_driver, poolmgr, clock_driver, out_trans_reg);
-    sch.getDispatcher().setNodeID(1);
+    TestNode node(can_driver, clock_driver, 1);
 
     /*
      * Registration
@@ -42,23 +35,23 @@ TEST(Scheduler, Timers)
     {
         TimerCallCounter tcc;
         uavcan::TimerEventForwarder<TimerCallCounter::Binder>
-            a(sch, TimerCallCounter::Binder(&tcc, &TimerCallCounter::callA));
+            a(node, TimerCallCounter::Binder(&tcc, &TimerCallCounter::callA));
         uavcan::TimerEventForwarder<TimerCallCounter::Binder>
-            b(sch, TimerCallCounter::Binder(&tcc, &TimerCallCounter::callB));
+            b(node, TimerCallCounter::Binder(&tcc, &TimerCallCounter::callB));
 
-        ASSERT_EQ(0, sch.getDeadlineScheduler().getNumHandlers());
+        ASSERT_EQ(0, node.getScheduler().getDeadlineScheduler().getNumHandlers());
 
         const uavcan::MonotonicTime start_ts = clock_driver.getMonotonic();
 
         a.startOneShotWithDeadline(start_ts + durMono(100000));
         b.startPeriodic(durMono(1000));
 
-        ASSERT_EQ(2, sch.getDeadlineScheduler().getNumHandlers());
+        ASSERT_EQ(2, node.getScheduler().getDeadlineScheduler().getNumHandlers());
 
         /*
          * Spinning
          */
-        ASSERT_EQ(0, sch.spin(start_ts + durMono(1000000)));
+        ASSERT_EQ(0, node.spin(start_ts + durMono(1000000)));
 
         ASSERT_EQ(1, tcc.events_a.size());
         ASSERT_TRUE(areTimestampsClose(tcc.events_a[0].scheduled_time, start_ts + durMono(100000)));
@@ -79,7 +72,7 @@ TEST(Scheduler, Timers)
         /*
          * Deinitialization
          */
-        ASSERT_EQ(1, sch.getDeadlineScheduler().getNumHandlers());
+        ASSERT_EQ(1, node.getScheduler().getDeadlineScheduler().getNumHandlers());
 
         ASSERT_FALSE(a.isRunning());
         ASSERT_EQ(uavcan::MonotonicDuration::getInfinite(), a.getPeriod());
@@ -88,6 +81,6 @@ TEST(Scheduler, Timers)
         ASSERT_EQ(1000, b.getPeriod().toUSec());
     }
 
-    ASSERT_EQ(0, sch.getDeadlineScheduler().getNumHandlers());   // Both timers were destroyed now
-    ASSERT_EQ(0, sch.spin(clock_driver.getMonotonic() + durMono(1000)));  // Spin some more without timers
+    ASSERT_EQ(0, node.getScheduler().getDeadlineScheduler().getNumHandlers()); // Both timers were destroyed now
+    ASSERT_EQ(0, node.spin(durMono(1000)));       // Spin some more without timers
 }

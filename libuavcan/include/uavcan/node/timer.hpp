@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <uavcan/node/scheduler.hpp>
 #include <uavcan/util/compile_time.hpp>
+#include <uavcan/node/abstract_node.hpp>
 #include <uavcan/linked_list.hpp>
 #include <uavcan/fatal_error.hpp>
 
@@ -39,8 +40,8 @@ public:
     using DeadlineHandler::getDeadline;
     using DeadlineHandler::getScheduler;
 
-    explicit Timer(Scheduler& scheduler)
-    : DeadlineHandler(scheduler)
+    explicit Timer(INode& node)
+    : DeadlineHandler(node.getScheduler())
     , period_(MonotonicDuration::getInfinite())
     { }
 
@@ -60,12 +61,12 @@ class TimerEventForwarder : public Timer
     Callback callback_;
 
 public:
-    explicit TimerEventForwarder(Scheduler& node)
+    explicit TimerEventForwarder(INode& node)
     : Timer(node)
     , callback_()
     { }
 
-    TimerEventForwarder(Scheduler& node, Callback callback)
+    TimerEventForwarder(INode& node, Callback callback)
     : Timer(node)
     , callback_(callback)
     { }
