@@ -1538,7 +1538,7 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 		/* copy stream name */
 		unsigned n = strlen(stream_name) + 1;
 		char *s = new char[n];
-		memcpy(s, stream_name, n);
+		strcpy(s, stream_name);
 
 		/* set subscription task */
 		_subscribe_to_stream_rate = rate;
@@ -1959,36 +1959,33 @@ Mavlink::stream(int argc, char *argv[])
 	const char *stream_name = nullptr;
 	int ch;
 
-	argc -= 1;
-	argv += 1;
+	argc -= 2;
+	argv += 2;
 
 	/* don't exit from getopt loop to leave getopt global variables in consistent state,
 	 * set error flag instead */
 	bool err_flag = false;
 
-	while ((ch = getopt(argc, argv, "r:d:s:")) != EOF) {
-		switch (ch) {
-		case 'r':
-			rate = strtod(optarg, nullptr);
+	int i = 0;
+	while (i < argc) {
 
+		if (0 == strcmp(argv[i], "-r") && i < argc - 1 ) {
+			rate = strtod(argv[i+1], nullptr);
 			if (rate < 0.0f) {
 				err_flag = true;
 			}
-
-			break;
-
-		case 'd':
-			device_name = optarg;
-			break;
-
-		case 's':
-			stream_name = optarg;
-			break;
-
-		default:
+			i++;
+		} else if (0 == strcmp(argv[i], "-d") && i < argc - 1 ) {
+			device_name = argv[i+1];
+			i++;
+		} else if (0 == strcmp(argv[i], "-s") && i < argc - 1 ) {
+			stream_name = argv[i+1];
+			i++;
+		} else {
 			err_flag = true;
-			break;
 		}
+
+		i++;
 	}
 
 	if (!err_flag && rate >= 0.0 && stream_name != nullptr) {
