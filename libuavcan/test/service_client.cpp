@@ -6,6 +6,8 @@
 #include <uavcan/service_client.hpp>
 #include <uavcan/service_server.hpp>
 #include <uavcan/util/method_binder.hpp>
+#include <uavcan/protocol/ComputeAggregateTypeSignature.hpp>
+#include <uavcan/protocol/GetDataTypeInfo.hpp>
 #include <root_ns_a/StringService.hpp>
 #include <queue>
 #include "clock.hpp"
@@ -222,4 +224,25 @@ TEST(ServiceClient, Basic)
 
     // All destroyed - nobody listening
     ASSERT_EQ(0, node_b.scheduler.getDispatcher().getNumServiceResponseListeners());
+}
+
+
+TEST(ServiceClient, Sizes)
+{
+    using namespace uavcan;
+
+    std::cout << "ComputeAggregateTypeSignature server: " <<
+        sizeof(ServiceServer<protocol::ComputeAggregateTypeSignature>) << std::endl;
+
+    std::cout << "ComputeAggregateTypeSignature client: " <<
+        sizeof(ServiceClient<protocol::ComputeAggregateTypeSignature>) << std::endl;
+
+    std::cout << "ComputeAggregateTypeSignature request data struct: " <<
+        sizeof(protocol::ComputeAggregateTypeSignature::Request) << std::endl;
+
+    std::cout << "GetDataTypeInfo server: " <<
+        sizeof(ServiceServer<protocol::GetDataTypeInfo>) << std::endl;
+
+    std::cout << "GetDataTypeInfo client: " <<
+        sizeof(ServiceClient<protocol::GetDataTypeInfo>) << std::endl;
 }
