@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <uavcan/node/scheduler.hpp>
+#include <uavcan/node/abstract_node.hpp>
 #include <uavcan/data_type.hpp>
 #include <uavcan/node/global_data_type_registry.hpp>
 #include <uavcan/util/compile_time.hpp>
@@ -107,8 +107,7 @@ class GenericSubscriber : Noncopyable
         using ReceivedDataStructure<DataStruct>::setTransfer;
     };
 
-    Scheduler& scheduler_;
-    IAllocator& allocator_;
+    INode& node_;
     LazyConstructor<TransferForwarder> forwarder_;
     ReceivedDataStructureSpec message_;
     uint32_t failure_count_;
@@ -128,7 +127,8 @@ class GenericSubscriber : Noncopyable
             UAVCAN_TRACE("GenericSubscriber", "Type [%s] is not registered", DataSpec::getDataTypeFullName());
             return false;
         }
-        forwarder_.template construct<SelfType&, const DataTypeDescriptor&, IAllocator&>(*this, *descr, allocator_);
+        forwarder_.template construct<SelfType&, const DataTypeDescriptor&, IAllocator&>
+            (*this, *descr, node_.getAllocator());
         return true;
     }
 
@@ -170,7 +170,7 @@ class GenericSubscriber : Noncopyable
             return -1;
         }
 
-        if (!(scheduler_.getDispatcher().*registration_method)(forwarder_))
+        if (!(node_.getDispatcher().*registration_method)(forwarder_))
         {
             UAVCAN_TRACE("GenericSubscriber", "Failed to register transfer listener [%s]",
                          DataSpec::getDataTypeFullName());
@@ -180,9 +180,8 @@ class GenericSubscriber : Noncopyable
     }
 
 protected:
-    GenericSubscriber(Scheduler& scheduler, IAllocator& allocator)
-    : scheduler_(scheduler)
-    , allocator_(allocator)
+    explicit GenericSubscriber(INode& node)
+    : node_(node)
     , failure_count_(0)
     { }
 
@@ -209,9 +208,9 @@ protected:
     {
         if (forwarder_)
         {
-            scheduler_.getDispatcher().unregisterMessageListener(forwarder_);
-            scheduler_.getDispatcher().unregisterServiceRequestListener(forwarder_);
-            scheduler_.getDispatcher().unregisterServiceResponseListener(forwarder_);
+            node_.getDispatcher().unregisterMessageListener(forwarder_);
+            node_.getDispatcher().unregisterServiceRequestListener(forwarder_);
+            node_.getDispatcher().unregisterServiceResponseListener(forwarder_);
         }
     }
 
@@ -222,7 +221,7 @@ protected:
     ReceivedDataStructure<DataStruct>& getReceivedStructStorage() { return message_; }
 
 public:
-    Scheduler& getScheduler() const { return scheduler_; }
+    INode& getNode() const { return node_; }
 };
 
 }

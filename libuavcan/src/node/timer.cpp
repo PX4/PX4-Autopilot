@@ -8,7 +8,7 @@
 namespace uavcan
 {
 
-void Timer::handleDeadline(MonotonicTime current_timestamp)
+void Timer::handleDeadline(MonotonicTime current)
 {
     assert(!isRunning());
 
@@ -18,7 +18,7 @@ void Timer::handleDeadline(MonotonicTime current_timestamp)
         startWithDeadline(scheduled_time + period_);
 
     // Application can re-register the timer with different params, it's OK
-    handleTimerEvent(TimerEvent(scheduled_time, current_timestamp));
+    handleTimerEvent(TimerEvent(scheduled_time, current));
 }
 
 void Timer::startOneShotWithDeadline(MonotonicTime deadline)

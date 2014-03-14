@@ -73,7 +73,6 @@ private:
     typedef GenericSubscriber<DataType, ResponseType, TransferListenerType> SubscriberType;
 
     PublisherType publisher_;
-    IAllocator& allocator_;
     Callback callback_;
     MonotonicDuration request_timeout_;
     bool pending_;
@@ -128,12 +127,10 @@ private:
     }
 
 public:
-    ServiceClient(Scheduler& scheduler, IAllocator& allocator, IMarshalBufferProvider& buffer_provider,
-                  const Callback& callback = Callback())
-    : SubscriberType(scheduler, allocator)
-    , DeadlineHandler(scheduler)
-    , publisher_(scheduler, buffer_provider, getDefaultRequestTimeout())
-    , allocator_(allocator)
+    explicit ServiceClient(INode& node, const Callback& callback = Callback())
+    : SubscriberType(node)
+    , DeadlineHandler(node.getScheduler())
+    , publisher_(node, getDefaultRequestTimeout())
     , callback_(callback)
     , request_timeout_(getDefaultRequestTimeout())
     , pending_(false)
@@ -177,8 +174,8 @@ public:
          */
         const OutgoingTransferRegistryKey otr_key(descr->getID(), TransferTypeServiceRequest, server_node_id);
         const MonotonicTime otr_deadline =
-            SubscriberType::getScheduler().getMonotonicTimestamp() + TransferSender::getDefaultMaxTransferInterval();
-        TransferID* const otr_tid = SubscriberType::getScheduler().getDispatcher().getOutgoingTransferRegistry()
+            SubscriberType::getNode().getMonotonicTime() + TransferSender::getDefaultMaxTransferInterval();
+        TransferID* const otr_tid = SubscriberType::getNode().getDispatcher().getOutgoingTransferRegistry()
             .accessOrCreate(otr_key, otr_deadline);
         if (!otr_tid)
         {

@@ -69,7 +69,7 @@ void Dispatcher::handleFrame(const CanRxFrame& can_frame)
     }
 
     if ((frame.getDstNodeID() != NodeID::Broadcast) &&
-        (frame.getDstNodeID() != getSelfNodeID()))
+        (frame.getDstNodeID() != getNodeID()))
     {
         return;
     }
@@ -117,7 +117,7 @@ int Dispatcher::spin(MonotonicTime deadline)
 int Dispatcher::send(const Frame& frame, MonotonicTime tx_deadline, MonotonicTime blocking_deadline,
                      CanTxQueue::Qos qos)
 {
-    if (frame.getSrcNodeID() != getSelfNodeID())
+    if (frame.getSrcNodeID() != getNodeID())
     {
         assert(0);
         return -1;
@@ -186,6 +186,16 @@ void Dispatcher::unregisterServiceRequestListener(TransferListenerBase* listener
 void Dispatcher::unregisterServiceResponseListener(TransferListenerBase* listener)
 {
     lsrv_resp_.remove(listener);
+}
+
+bool Dispatcher::setNodeID(NodeID nid)
+{
+    if (nid.isUnicast() && !self_node_id_.isValid())
+    {
+        self_node_id_ = nid;
+        return true;
+    }
+    return false;
 }
 
 }

@@ -4,9 +4,8 @@
 
 #pragma once
 
-#include <uavcan/node/scheduler.hpp>
+#include <uavcan/node/abstract_node.hpp>
 #include <uavcan/data_type.hpp>
-#include <uavcan/node/marshal_buffer.hpp>
 #include <uavcan/node/global_data_type_registry.hpp>
 #include <uavcan/util/lazy_constructor.hpp>
 #include <uavcan/debug.hpp>
@@ -30,8 +29,7 @@ class GenericPublisher
 
     const MonotonicDuration max_transfer_interval_;   // TODO: memory usage can be reduced
     MonotonicDuration tx_timeout_;
-    Scheduler& scheduler_;
-    IMarshalBufferProvider& buffer_provider_;
+    INode& node_;
     LazyConstructor<TransferSender> sender_;
 
     bool checkInit()
@@ -50,15 +48,15 @@ class GenericPublisher
             return false;
         }
         sender_.template construct<Dispatcher&, const DataTypeDescriptor&, CanTxQueue::Qos, MonotonicDuration>
-            (scheduler_.getDispatcher(), *descr, CanTxQueue::Qos(Qos), max_transfer_interval_);
+            (node_.getDispatcher(), *descr, CanTxQueue::Qos(Qos), max_transfer_interval_);
         return true;
     }
 
-    MonotonicTime getTxDeadline() const { return scheduler_.getMonotonicTimestamp() + tx_timeout_; }
+    MonotonicTime getTxDeadline() const { return node_.getMonotonicTime() + tx_timeout_; }
 
     IMarshalBuffer* getBuffer()
     {
-        return buffer_provider_.getBuffer(BitLenToByteLen<DataStruct::MaxBitLen>::Result);
+        return node_.getMarshalBufferProvider().getBuffer(BitLenToByteLen<DataStruct::MaxBitLen>::Result);
     }
 
     int genericPublish(const DataStruct& message, TransferType transfer_type, NodeID dst_node_id,
@@ -94,12 +92,11 @@ class GenericPublisher
     }
 
 public:
-    GenericPublisher(Scheduler& scheduler, IMarshalBufferProvider& buffer_provider, MonotonicDuration tx_timeout,
+    GenericPublisher(INode& node, MonotonicDuration tx_timeout,
                      MonotonicDuration max_transfer_interval = TransferSender::getDefaultMaxTransferInterval())
     : max_transfer_interval_(max_transfer_interval)
     , tx_timeout_(tx_timeout)
-    , scheduler_(scheduler)
-    , buffer_provider_(buffer_provider)
+    , node_(node)
     {
         setTxTimeout(tx_timeout);
 #if UAVCAN_DEBUG
@@ -132,7 +129,7 @@ public:
         tx_timeout_ = tx_timeout;
     }
 
-    Scheduler& getScheduler() const { return scheduler_; }
+    INode& getNode() const { return node_; }
 };
 
 }

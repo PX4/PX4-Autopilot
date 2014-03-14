@@ -17,10 +17,9 @@ class Publisher : protected GenericPublisher<DataType_, DataType_>
 public:
     typedef DataType_ DataType;
 
-    Publisher(Scheduler& scheduler, IMarshalBufferProvider& buffer_provider,
-              MonotonicDuration tx_timeout = getDefaultTxTimeout(),
-              MonotonicDuration max_transfer_interval = TransferSender::getDefaultMaxTransferInterval())
-    : BaseType(scheduler, buffer_provider, tx_timeout, max_transfer_interval)
+    explicit Publisher(INode& node, MonotonicDuration tx_timeout = getDefaultTxTimeout(),
+                       MonotonicDuration max_transfer_interval = TransferSender::getDefaultMaxTransferInterval())
+    : BaseType(node, tx_timeout, max_transfer_interval)
     {
 #if UAVCAN_DEBUG
         assert(getTxTimeout() == tx_timeout);  // Making sure default values are OK
@@ -49,7 +48,7 @@ public:
     using BaseType::getMaxTxTimeout;
     using BaseType::getTxTimeout;
     using BaseType::setTxTimeout;
-    using BaseType::getScheduler;
+    using BaseType::getNode;
 };
 
 }

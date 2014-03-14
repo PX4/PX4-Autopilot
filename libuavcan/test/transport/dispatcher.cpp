@@ -43,7 +43,10 @@ TEST(Dispatcher, Reception)
 
     uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
 
-    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg, SELF_NODE_ID);
+    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg);
+    ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));  // Can be set only once
+    ASSERT_FALSE(dispatcher.setNodeID(SELF_NODE_ID));
+    ASSERT_EQ(SELF_NODE_ID, dispatcher.getNodeID());
 
     DispatcherTransferEmulator emulator(driver, SELF_NODE_ID);
 
@@ -192,7 +195,9 @@ TEST(Dispatcher, Transmission)
 
     uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
 
-    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg, SELF_NODE_ID);
+    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg);
+    ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));  // Can be set only once
+    ASSERT_FALSE(dispatcher.setNodeID(SELF_NODE_ID));
 
     /*
      * Transmission
@@ -229,7 +234,9 @@ TEST(Dispatcher, Spin)
 
     uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
 
-    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg, SELF_NODE_ID);
+    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg);
+    ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));  // Can be set only once
+    ASSERT_FALSE(dispatcher.setNodeID(SELF_NODE_ID));
 
     clockmock.monotonic_auto_advance = 100;
 

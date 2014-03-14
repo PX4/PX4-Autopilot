@@ -36,8 +36,8 @@ class Subscriber : public GenericSubscriber<DataType_, DataType_,
 public:
     typedef DataType_ DataType;
 
-    Subscriber(Scheduler& scheduler, IAllocator& allocator)
-    : BaseType(scheduler, allocator)
+    explicit Subscriber(INode& node)
+    : BaseType(node)
     , callback_()
     {
         StaticAssert<DataTypeKind(DataType::DataTypeKind) == DataTypeKindMessage>::check();

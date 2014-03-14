@@ -39,8 +39,10 @@ TEST(TransferSender, Basic)
 
     static const uavcan::NodeID TX_NODE_ID(64);
     static const uavcan::NodeID RX_NODE_ID(65);
-    uavcan::Dispatcher dispatcher_tx(driver, poolmgr, clockmock, out_trans_reg, TX_NODE_ID);
-    uavcan::Dispatcher dispatcher_rx(driver, poolmgr, clockmock, out_trans_reg, RX_NODE_ID);
+    uavcan::Dispatcher dispatcher_tx(driver, poolmgr, clockmock, out_trans_reg);
+    uavcan::Dispatcher dispatcher_rx(driver, poolmgr, clockmock, out_trans_reg);
+    ASSERT_TRUE(dispatcher_tx.setNodeID(TX_NODE_ID));
+    ASSERT_TRUE(dispatcher_rx.setNodeID(RX_NODE_ID));
 
     /*
      * Test environment

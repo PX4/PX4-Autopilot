@@ -51,17 +51,15 @@ class Dispatcher : Noncopyable
     ListenerRegister lsrv_req_;
     ListenerRegister lsrv_resp_;
 
-    const NodeID self_node_id_;
+    NodeID self_node_id_;
 
     void handleFrame(const CanRxFrame& can_frame);
 
 public:
-    Dispatcher(ICanDriver& driver, IAllocator& allocator, ISystemClock& sysclock, IOutgoingTransferRegistry& otr,
-               NodeID self_node_id)
+    Dispatcher(ICanDriver& driver, IAllocator& allocator, ISystemClock& sysclock, IOutgoingTransferRegistry& otr)
     : canio_(driver, allocator, sysclock)
     , sysclock_(sysclock)
     , outgoing_transfer_reg_(otr)
-    , self_node_id_(self_node_id)
     { }
 
     int spin(MonotonicTime deadline);
@@ -87,7 +85,8 @@ public:
 
     IOutgoingTransferRegistry& getOutgoingTransferRegistry() { return outgoing_transfer_reg_; }
 
-    NodeID getSelfNodeID() const { return self_node_id_; }
+    NodeID getNodeID() const { return self_node_id_; }
+    bool setNodeID(NodeID nid);
 
     const ISystemClock& getSystemClock() const { return sysclock_; }
     ISystemClock& getSystemClock() { return sysclock_; }

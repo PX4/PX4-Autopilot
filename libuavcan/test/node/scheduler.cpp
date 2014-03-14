@@ -33,7 +33,8 @@ TEST(Scheduler, Timers)
 
     uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
 
-    uavcan::Scheduler sch(can_driver, poolmgr, clock_driver, out_trans_reg, uavcan::NodeID(1));
+    uavcan::Scheduler sch(can_driver, poolmgr, clock_driver, out_trans_reg);
+    sch.getDispatcher().setNodeID(1);
 
     /*
      * Registration

@@ -57,9 +57,9 @@ private:
     }
 
 public:
-    ServiceServer(Scheduler& scheduler, IAllocator& allocator, IMarshalBufferProvider& buffer_provider)
-    : SubscriberType(scheduler, allocator)
-    , publisher_(scheduler, buffer_provider, getDefaultTxTimeout())
+    explicit ServiceServer(INode& node)
+    : SubscriberType(node)
+    , publisher_(node, getDefaultTxTimeout())
     , callback_()
     , response_failure_count_(0)
     {

@@ -21,7 +21,7 @@ void DeadlineHandler::startWithDeadline(MonotonicTime deadline)
 
 void DeadlineHandler::startWithDelay(MonotonicDuration delay)
 {
-    startWithDeadline(scheduler_.getMonotonicTimestamp() + delay);
+    startWithDeadline(scheduler_.getMonotonicTime() + delay);
 }
 
 void DeadlineHandler::stop()
@@ -80,7 +80,7 @@ bool DeadlineScheduler::doesExist(const DeadlineHandler* mdh) const
     return false;
 }
 
-MonotonicTime DeadlineScheduler::pollAndGetMonotonicTimestamp(ISystemClock& sysclock)
+MonotonicTime DeadlineScheduler::pollAndGetMonotonicTime(ISystemClock& sysclock)
 {
     while (true)
     {
@@ -117,7 +117,7 @@ MonotonicTime DeadlineScheduler::getEarliestDeadline() const
 MonotonicTime Scheduler::computeDispatcherSpinDeadline(MonotonicTime spin_deadline) const
 {
     const MonotonicTime earliest = std::min(deadline_scheduler_.getEarliestDeadline(), spin_deadline);
-    const MonotonicTime ts = getMonotonicTimestamp();
+    const MonotonicTime ts = getMonotonicTime();
     if (earliest > ts)
     {
         if (ts - earliest > deadline_resolution_)
@@ -148,7 +148,7 @@ int Scheduler::spin(MonotonicTime deadline)
         if (retval < 0)
             break;
 
-        const MonotonicTime ts = deadline_scheduler_.pollAndGetMonotonicTimestamp(getSystemClock());
+        const MonotonicTime ts = deadline_scheduler_.pollAndGetMonotonicTime(getSystemClock());
         pollCleanup(ts, retval);
         if (ts >= deadline)
             break;

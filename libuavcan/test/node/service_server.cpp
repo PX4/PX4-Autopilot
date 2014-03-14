@@ -8,6 +8,7 @@
 #include <root_ns_a/StringService.hpp>
 #include "../clock.hpp"
 #include "../transport/can/can.hpp"
+#include "test_node.hpp"
 
 
 struct ServerImpl
@@ -36,30 +37,22 @@ struct ServerImpl
 
 TEST(ServiceServer, Basic)
 {
-    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 8, uavcan::MemPoolBlockSize> pool;
-    uavcan::PoolManager<1> poolmgr;
-    poolmgr.addPool(&pool);
-
     // Manual type registration - we can't rely on the GDTR state
     uavcan::GlobalDataTypeRegistry::instance().reset();
     uavcan::DefaultDataTypeRegistrator<root_ns_a::StringService> _registrator;
 
     SystemClockDriver clock_driver;
     CanDriverMock can_driver(1, clock_driver);
-
-    uavcan::MarshalBufferProvider<> buffer_provider;
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
-
-    uavcan::Scheduler sch(can_driver, poolmgr, clock_driver, out_trans_reg, uavcan::NodeID(1));
+    TestNode node(can_driver, clock_driver, 1);
 
     ServerImpl impl("456");
 
     {
-        uavcan::ServiceServer<root_ns_a::StringService, ServerImpl::Binder> server(sch, poolmgr, buffer_provider);
+        uavcan::ServiceServer<root_ns_a::StringService, ServerImpl::Binder> server(node);
 
-        ASSERT_EQ(0, sch.getDispatcher().getNumServiceRequestListeners());
+        ASSERT_EQ(0, node.getDispatcher().getNumServiceRequestListeners());
         server.start(impl.bind());
-        ASSERT_EQ(1, sch.getDispatcher().getNumServiceRequestListeners());
+        ASSERT_EQ(1, node.getDispatcher().getNumServiceRequestListeners());
 
         /*
          * Request frames
@@ -78,7 +71,7 @@ TEST(ServiceServer, Basic)
             can_driver.ifaces[0].pushRx(rx_frame);
         }
 
-        sch.spin(clock_driver.getMonotonic() + uavcan::MonotonicDuration::fromUSec(10000));
+        node.spin(clock_driver.getMonotonic() + uavcan::MonotonicDuration::fromUSec(10000));
 
         /*
          * Responses (MFT)
@@ -113,7 +106,7 @@ TEST(ServiceServer, Basic)
         ASSERT_EQ(0, server.getRequestFailureCount());
         ASSERT_EQ(0, server.getResponseFailureCount());
 
-        ASSERT_EQ(1, sch.getDispatcher().getNumServiceRequestListeners());
+        ASSERT_EQ(1, node.getDispatcher().getNumServiceRequestListeners());
     }
-    ASSERT_EQ(0, sch.getDispatcher().getNumServiceRequestListeners());
+    ASSERT_EQ(0, node.getDispatcher().getNumServiceRequestListeners());
 }

@@ -31,7 +31,7 @@ class Timer : private DeadlineHandler
 {
     MonotonicDuration period_;
 
-    void handleDeadline(MonotonicTime current_timestamp);
+    void handleDeadline(MonotonicTime current);
 
 public:
     using DeadlineHandler::stop;

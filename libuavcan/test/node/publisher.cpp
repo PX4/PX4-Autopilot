@@ -7,24 +7,16 @@
 #include <uavcan/mavlink/Message.hpp>
 #include "../clock.hpp"
 #include "../transport/can/can.hpp"
+#include "test_node.hpp"
 
 
 TEST(Publisher, Basic)
 {
-    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * 8, uavcan::MemPoolBlockSize> pool;
-    uavcan::PoolManager<1> poolmgr;
-    poolmgr.addPool(&pool);
-
     SystemClockMock clock_mock(100);
     CanDriverMock can_driver(2, clock_mock);
+    TestNode node(can_driver, clock_mock, 1);
 
-    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
-
-    uavcan::Scheduler sch(can_driver, poolmgr, clock_mock, out_trans_reg, uavcan::NodeID(1));
-
-    uavcan::MarshalBufferProvider<> buffer_provider;
-
-    uavcan::Publisher<uavcan::mavlink::Message> publisher(sch, buffer_provider);
+    uavcan::Publisher<uavcan::mavlink::Message> publisher(node);
 
     std::cout <<
         "sizeof(uavcan::Publisher<uavcan::mavlink::Message>): " <<
@@ -61,7 +53,7 @@ TEST(Publisher, Basic)
         // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
         // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame = false
         uavcan::Frame expected_frame(uavcan::mavlink::Message::DefaultDataTypeID, uavcan::TransferTypeMessageBroadcast,
-                                     sch.getDispatcher().getSelfNodeID(), uavcan::NodeID::Broadcast, 0, 0, true);
+                                     node.getNodeID(), uavcan::NodeID::Broadcast, 0, 0, true);
         expected_frame.setPayload(expected_transfer_payload, 7);
 
         uavcan::CanFrame expected_can_frame;
@@ -76,7 +68,7 @@ TEST(Publisher, Basic)
         ASSERT_LT(0, publisher.broadcast(msg));
 
         expected_frame = uavcan::Frame(uavcan::mavlink::Message::DefaultDataTypeID, uavcan::TransferTypeMessageBroadcast,
-                                       sch.getDispatcher().getSelfNodeID(), uavcan::NodeID::Broadcast, 0, 1, true);
+                                       node.getNodeID(), uavcan::NodeID::Broadcast, 0, 1, true);
         expected_frame.setPayload(expected_transfer_payload, 7);
         ASSERT_TRUE(expected_frame.compile(expected_can_frame));
 
@@ -97,7 +89,7 @@ TEST(Publisher, Basic)
         // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
         // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame = false
         uavcan::Frame expected_frame(uavcan::mavlink::Message::DefaultDataTypeID, uavcan::TransferTypeMessageUnicast,
-                                     sch.getDispatcher().getSelfNodeID(), uavcan::NodeID(0x44), 0, 0, true);
+                                     node.getNodeID(), uavcan::NodeID(0x44), 0, 0, true);
         expected_frame.setPayload(expected_transfer_payload, 7);
 
         uavcan::CanFrame expected_can_frame;
