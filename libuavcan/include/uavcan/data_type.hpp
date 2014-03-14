@@ -9,7 +9,7 @@
 #include <string>
 #include <stdint.h>
 #include <algorithm>
-#include <uavcan/internal/transport/transfer.hpp>
+#include <uavcan/transport/transfer.hpp>
 
 namespace uavcan
 {

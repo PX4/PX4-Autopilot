@@ -9,7 +9,7 @@
 #include <stdint.h>
 #include <algorithm>
 #include <string>
-#include <uavcan/internal/impl_constants.hpp>
+#include <uavcan/impl_constants.hpp>
 #include <uavcan/system_clock.hpp>
 
 namespace uavcan

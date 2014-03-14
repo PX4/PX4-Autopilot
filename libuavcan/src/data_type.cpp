@@ -7,7 +7,7 @@
 #include <iomanip>
 #include <cassert>
 #include <uavcan/data_type.hpp>
-#include <uavcan/internal/transport/crc.hpp>
+#include <uavcan/transport/crc.hpp>
 
 namespace uavcan
 {

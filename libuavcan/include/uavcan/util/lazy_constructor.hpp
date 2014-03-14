@@ -5,8 +5,8 @@
 #pragma once
 
 #include <cstdlib>
-#include <uavcan/internal/fatal_error.hpp>
-#include <uavcan/internal/impl_constants.hpp>
+#include <uavcan/fatal_error.hpp>
+#include <uavcan/impl_constants.hpp>
 
 namespace uavcan
 {

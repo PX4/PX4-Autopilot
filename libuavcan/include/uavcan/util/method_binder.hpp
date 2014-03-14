@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <uavcan/internal/fatal_error.hpp>
-#include <uavcan/internal/impl_constants.hpp>
+#include <uavcan/fatal_error.hpp>
+#include <uavcan/impl_constants.hpp>
 #include <uavcan/util/compile_time.hpp>
 
 namespace uavcan

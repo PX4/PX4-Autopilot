@@ -6,7 +6,7 @@
 #pragma once
 
 #include <stdint.h>
-#include <uavcan/internal/impl_constants.hpp>
+#include <uavcan/impl_constants.hpp>
 #include <uavcan/time.hpp>
 
 namespace uavcan
