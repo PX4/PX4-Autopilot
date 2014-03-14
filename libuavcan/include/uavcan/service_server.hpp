@@ -38,6 +38,7 @@ private:
 
     void handleReceivedDataStruct(ReceivedDataStructure<RequestType>& request)
     {
+        assert(request.getTransferType() == TransferTypeServiceRequest);
         if (try_implicit_cast<bool>(callback_, true))
         {
             response_ = ResponseType();  // The application needs newly initialized structure

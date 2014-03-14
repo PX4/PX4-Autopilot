@@ -88,13 +88,14 @@ private:
             handleFatalError("Invalid caller callback");
     }
 
-    void handleReceivedDataStruct(ReceivedDataStructure<ResponseType>& request)
+    void handleReceivedDataStruct(ReceivedDataStructure<ResponseType>& response)
     {
+        assert(response.getTransferType() == TransferTypeServiceResponse);
         const TransferListenerType* const listener = SubscriberType::getTransferListener();
         if (listener)
         {
             const typename TransferListenerType::ExpectedResponseParams erp = listener->getExpectedResponseParams();
-            ServiceCallResultType result(ServiceCallResultType::Success, erp.src_node_id, request);
+            ServiceCallResultType result(ServiceCallResultType::Success, erp.src_node_id, response);
             cancel();
             invokeCallback(result);
         }
