@@ -8,10 +8,11 @@ DataTypeKind kind
 ---
 
 uint64 signature            # Data type signature
-uint8[<=80] name            # Full data type name, e.g. "uavcan.protocol.GetDataTypeInfo"
 
 uint8 MASK_KNOWN      = 1   # This data type is defined
 uint8 MASK_SUBSCRIBED = 2   # Subscribed to messages of this type
 uint8 MASK_PUBLISHING = 4   # Publishing messages of this type
 uint8 MASK_SERVING    = 8   # Providing service of this type
 uint8 mask
+
+uint8[<=80] name            # Full data type name, e.g. "uavcan.protocol.GetDataTypeInfo"

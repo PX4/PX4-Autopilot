@@ -9,7 +9,7 @@ uint16 PUBLICATION_PERIOD_MS = 1000
 uint16 OFFLINE_TIMEOUT_MS = 4000
 
 # Uptime counter should never overflow.
-uint24 uptime_sec
+uint28 uptime_sec
 
 # Status code should be used to reflect the node status in the most abstract way.
 # Use cases: top-level onboard computer should not allow the UAV to begin normal operation
