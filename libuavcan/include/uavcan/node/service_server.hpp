@@ -49,7 +49,7 @@ private:
 
         const int res = publisher_.publish(response_, TransferTypeServiceResponse, request.getSrcNodeID(),
             request.getTransferID());
-        if (res <= 0)
+        if (res < 0)
         {
             UAVCAN_TRACE("ServiceServer", "Response publication failure: %i", res);
             response_failure_count_++;

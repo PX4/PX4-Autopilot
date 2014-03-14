@@ -190,7 +190,7 @@ public:
          * Starting the subscriber
          */
         const int subscriber_res = SubscriberType::startAsServiceResponseListener();
-        if (subscriber_res <= 0)
+        if (subscriber_res < 0)
         {
             UAVCAN_TRACE("ServiceClient", "Failed to start the subscriber, error: %i", subscriber_res);
             cancel();
