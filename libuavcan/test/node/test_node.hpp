@@ -23,6 +23,11 @@ struct TestNode : public uavcan::INode
         setNodeID(self_node_id);
     }
 
+    void registerInternalFailure(const char* msg)
+    {
+        std::cout << "TestNode internal failure: " << msg << std::endl;
+    }
+
     uavcan::PoolManager<1>& getAllocator() { return poolmgr; }
     uavcan::Scheduler& getScheduler() { return scheduler; }
     const uavcan::Scheduler& getScheduler() const { return scheduler; }

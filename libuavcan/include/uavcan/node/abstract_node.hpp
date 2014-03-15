@@ -18,6 +18,7 @@ public:
     virtual Scheduler& getScheduler() = 0;
     virtual const Scheduler& getScheduler() const = 0;
     virtual IMarshalBufferProvider& getMarshalBufferProvider() = 0;
+    virtual void registerInternalFailure(const char* msg) = 0;
 
     Dispatcher& getDispatcher()             { return getScheduler().getDispatcher(); }
     const Dispatcher& getDispatcher() const { return getScheduler().getDispatcher(); }
