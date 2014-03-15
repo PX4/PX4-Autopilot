@@ -466,7 +466,7 @@ then
 		sh /etc/init.d/rc.interface
 		
 		# Start standard fixedwing apps
-		if [ LOAD_DEFAULT_APPS == yes ]
+		if [ $LOAD_DEFAULT_APPS == yes ]
 		then
 			sh /etc/init.d/rc.fw_apps
 		fi
@@ -525,7 +525,7 @@ then
 		sh /etc/init.d/rc.interface
 		
 		# Start standard multicopter apps
-		if [ LOAD_DEFAULT_APPS == yes ]
+		if [ $LOAD_DEFAULT_APPS == yes ]
 		then
 			sh /etc/init.d/rc.mc_apps
 		fi
