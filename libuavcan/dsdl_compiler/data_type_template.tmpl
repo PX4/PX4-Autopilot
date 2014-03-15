@@ -118,6 +118,7 @@ struct ${t.cpp_type_name}
             ${a.name} == rhs.${a.name} ${'&&' if (idx + 1) < len(fields) else ';'}
     % endfor
 % else:
+        (void)rhs;
         return true;
 % endif
     }
@@ -126,6 +127,9 @@ struct ${t.cpp_type_name}
     static int ${call_name}(${self_parameter_type} self, ::uavcan::ScalarCodec& codec,
                       ::uavcan::TailArrayOptimizationMode tao_mode = ::uavcan::TailArrayOptEnabled)
     {
+        (void)self;
+        (void)codec;
+        (void)tao_mode;
         int res = 1;
 % for idx,a in enumerate(fields):
         res = FieldTypes::${a.name}::${call_name}(self.${a.name}, codec, \
