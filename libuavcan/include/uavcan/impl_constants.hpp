@@ -6,6 +6,13 @@
 
 #include <uavcan/util/compile_time.hpp>
 
+
+// TODO: Use git short hash as build id
+#define UAVCAN_VERSION_MAJOR    0
+#define UAVCAN_VERSION_MINOR    1
+#define UAVCAN_VERSION_BUILD    0
+
+
 namespace uavcan
 {
 
