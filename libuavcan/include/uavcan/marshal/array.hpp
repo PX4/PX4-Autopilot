@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <cstring>
+#include <uavcan/fatal_error.hpp>
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/marshal/type_util.hpp>
@@ -380,6 +381,8 @@ public:
         StaticAssert<Base::IsStringLike>::check();
         StaticAssert<IsDynamic>::check();
         Base::clear();
+        if (ch == NULL)
+            handleFatalError("Null pointer in Array<>::operator=(const char*)");
         while (*ch)
             push_back(*ch++);
         return *this;
@@ -389,6 +392,8 @@ public:
     {
         StaticAssert<Base::IsStringLike>::check();
         StaticAssert<IsDynamic>::check();
+        if (ch == NULL)
+            handleFatalError("Null pointer in Array<>::operator+=(const char*)");
         while (*ch)
             push_back(*ch++);
         return *this;
