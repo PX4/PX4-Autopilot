@@ -1,6 +1,6 @@
 #
 # Nested type.
-# Generic version information.
+# Generic hardware version information.
 #
 
 uint8 major

@@ -4,9 +4,9 @@
 
 ---
 
-Version software_version
-Version hardware_version
-Version uavcan_version
+HardwareVersion hardware_version
+SoftwareVersion software_version
+SoftwareVersion uavcan_version
 
 NodeStatus status
 

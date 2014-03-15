@@ -1,0 +1,8 @@
+#
+# Nested type.
+# Generic software version information.
+#
+
+uint8 major
+uint8 minor
+uint32 build  # VCS revision hash, build date, etc
