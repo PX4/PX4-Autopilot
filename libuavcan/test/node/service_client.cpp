@@ -10,8 +10,6 @@
 #include <uavcan/protocol/GetDataTypeInfo.hpp>
 #include <root_ns_a/StringService.hpp>
 #include <queue>
-#include "../clock.hpp"
-#include "../transport/can/can.hpp"
 #include "test_node.hpp"
 
 
@@ -54,84 +52,16 @@ static void stringServiceServerCallback(const uavcan::ReceivedDataStructure<root
 }
 
 
-struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
-{
-    uavcan::ISystemClock& clock;
-    PairableCanDriver* other;
-    std::queue<uavcan::CanFrame> read_queue;
-
-    PairableCanDriver(uavcan::ISystemClock& clock)
-    : clock(clock)
-    , other(NULL)
-    { }
-
-    void linkTogether(PairableCanDriver* with)
-    {
-        this->other = with;
-        with->other = this;
-    }
-
-    uavcan::ICanIface* getIface(int iface_index)
-    {
-        if (iface_index == 0)
-            return this;
-        return NULL;
-    }
-
-    int getNumIfaces() const { return 1; }
-
-    int select(int& inout_write_iface_mask, int& inout_read_iface_mask, uavcan::MonotonicTime blocking_deadline)
-    {
-        assert(other);
-        if (inout_read_iface_mask == 1)
-            inout_read_iface_mask = read_queue.size() ? 1 : 0;
-
-        if (inout_read_iface_mask || inout_write_iface_mask)
-            return 1;
-
-        while (clock.getMonotonic() < blocking_deadline)
-            usleep(1000);
-
-        return 0;
-    }
-
-    int send(const uavcan::CanFrame& frame, uavcan::MonotonicTime)
-    {
-        assert(other);
-        other->read_queue.push(frame);
-        return 1;
-    }
-
-    int receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic, uavcan::UtcTime& out_ts_utc)
-    {
-        assert(other);
-        assert(read_queue.size());
-        out_frame = read_queue.front();
-        read_queue.pop();
-        out_ts_monotonic = clock.getMonotonic();
-        out_ts_utc = clock.getUtc();
-        return 1;
-    }
-
-    int configureFilters(const uavcan::CanFilterConfig*, int) { return -1; }
-    int getNumFilters() const { return 0; }
-    uint64_t getNumErrors() const { return 0; }
-};
-
-
 TEST(ServiceClient, Basic)
 {
-    SystemClockDriver clock;
-    PairableCanDriver can_a(clock), can_b(clock);
-    can_a.linkTogether(&can_b);
-    TestNode node_a(can_a, clock, 1), node_b(can_b, clock, 2);
+    InterlinkedTestNodes nodes;
 
     // Type registration
     uavcan::GlobalDataTypeRegistry::instance().reset();
     uavcan::DefaultDataTypeRegistrator<root_ns_a::StringService> _registrator;
 
     // Server
-    uavcan::ServiceServer<root_ns_a::StringService> server(node_a);
+    uavcan::ServiceServer<root_ns_a::StringService> server(nodes.a);
     ASSERT_EQ(1, server.start(stringServiceServerCallback));
 
     {
@@ -141,17 +71,17 @@ TEST(ServiceClient, Basic)
             typename ServiceCallResultHandler<root_ns_a::StringService>::Binder > ClientType;
         ServiceCallResultHandler<root_ns_a::StringService> handler;
 
-        ClientType client1(node_b);
-        ClientType client2(node_b);
-        ClientType client3(node_b);
+        ClientType client1(nodes.b);
+        ClientType client2(nodes.b);
+        ClientType client3(nodes.b);
 
         client1.setCallback(handler.bind());
         client2.setCallback(client1.getCallback());
         client3.setCallback(client1.getCallback());
         client3.setRequestTimeout(uavcan::MonotonicDuration::fromMSec(100));
 
-        ASSERT_EQ(1, node_a.getDispatcher().getNumServiceRequestListeners());
-        ASSERT_EQ(0, node_b.getDispatcher().getNumServiceResponseListeners()); // NOT listening!
+        ASSERT_EQ(1, nodes.a.getDispatcher().getNumServiceRequestListeners());
+        ASSERT_EQ(0, nodes.b.getDispatcher().getNumServiceResponseListeners()); // NOT listening!
 
         root_ns_a::StringService::Request request;
         request.string_request = "Hello world";
@@ -160,16 +90,15 @@ TEST(ServiceClient, Basic)
         ASSERT_LT(0, client2.call(1, request)); // OK
         ASSERT_LT(0, client3.call(99, request)); // Will timeout!
 
-        ASSERT_EQ(3, node_b.getDispatcher().getNumServiceResponseListeners()); // Listening now!
+        ASSERT_EQ(3, nodes.b.getDispatcher().getNumServiceResponseListeners()); // Listening now!
 
         ASSERT_TRUE(client1.isPending());
         ASSERT_TRUE(client2.isPending());
         ASSERT_TRUE(client3.isPending());
 
-        node_a.spin(uavcan::MonotonicDuration::fromMSec(10));
-        node_b.spin(uavcan::MonotonicDuration::fromMSec(10));
+        nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(20));
 
-        ASSERT_EQ(1, node_b.getDispatcher().getNumServiceResponseListeners()); // Third is still listening!
+        ASSERT_EQ(1, nodes.b.getDispatcher().getNumServiceResponseListeners()); // Third is still listening!
 
         ASSERT_FALSE(client1.isPending());
         ASSERT_FALSE(client2.isPending());
@@ -180,14 +109,13 @@ TEST(ServiceClient, Basic)
         expected_response.string_response = "Request string: Hello world";
         ASSERT_TRUE(handler.match(ResultType::Success, 1, expected_response));
 
-        node_a.spin(uavcan::MonotonicDuration::fromMSec(100));
-        node_b.spin(uavcan::MonotonicDuration::fromMSec(100));
+        nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(200));
 
         ASSERT_FALSE(client1.isPending());
         ASSERT_FALSE(client2.isPending());
         ASSERT_FALSE(client3.isPending());
 
-        ASSERT_EQ(0, node_b.getDispatcher().getNumServiceResponseListeners()); // Third has timed out :(
+        ASSERT_EQ(0, nodes.b.getDispatcher().getNumServiceResponseListeners()); // Third has timed out :(
 
         // Validating
         ASSERT_TRUE(handler.match(ResultType::ErrorTimeout, 99, root_ns_a::StringService::Response()));
@@ -195,11 +123,11 @@ TEST(ServiceClient, Basic)
         // Stray request
         ASSERT_LT(0, client3.call(99, request)); // Will timeout!
         ASSERT_TRUE(client3.isPending());
-        ASSERT_EQ(1, node_b.getDispatcher().getNumServiceResponseListeners());
+        ASSERT_EQ(1, nodes.b.getDispatcher().getNumServiceResponseListeners());
     }
 
     // All destroyed - nobody listening
-    ASSERT_EQ(0, node_b.getDispatcher().getNumServiceResponseListeners());
+    ASSERT_EQ(0, nodes.b.getDispatcher().getNumServiceResponseListeners());
 }
 
 
