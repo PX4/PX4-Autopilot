@@ -58,6 +58,8 @@
 #include <drivers/drv_hrt.h>
 #include <math.h>
 
+#include <drivers/drv_range_finder.h>
+
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/sensor_combined.h>
@@ -792,6 +794,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_global_velocity_setpoint_s global_vel_sp;
 		struct battery_status_s battery;
 		struct telemetry_status_s telemetry;
+		struct range_finder_report range_finder;
 		struct target_global_position_s target_pos;
 	} buf;
 
@@ -854,6 +857,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int global_vel_sp_sub;
 		int battery_sub;
 		int telemetry_sub;
+		int range_finder_sub;
 		int target_pos_sub;
 	} subs;
 
@@ -878,6 +882,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.global_vel_sp_sub = orb_subscribe(ORB_ID(vehicle_global_velocity_setpoint));
 	subs.battery_sub = orb_subscribe(ORB_ID(battery_status));
 	subs.telemetry_sub = orb_subscribe(ORB_ID(telemetry_status));
+	subs.range_finder_sub = orb_subscribe(ORB_ID(sensor_range_finder));
 	subs.target_pos_sub = orb_subscribe(ORB_ID(target_global_position));
 
 	thread_running = true;
@@ -1233,6 +1238,15 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_TELE.fixed = buf.telemetry.fixed;
 			log_msg.body.log_TELE.txbuf = buf.telemetry.txbuf;
 			LOGBUFFER_WRITE_AND_COUNT(TELE);
+		}
+
+		/* --- BOTTOM DISTANCE --- */
+		if (copy_if_updated(ORB_ID(sensor_range_finder), subs.range_finder_sub, &buf.range_finder)) {
+			log_msg.msg_type = LOG_DIST_MSG;
+			log_msg.body.log_DIST.bottom = buf.range_finder.distance;
+			log_msg.body.log_DIST.bottom_rate = 0.0f;
+			log_msg.body.log_DIST.flags = (buf.range_finder.valid ? 1 : 0);
+			LOGBUFFER_WRITE_AND_COUNT(DIST);
 		}
 
 		/* --- TARGET GLOBAL POSITION --- */
