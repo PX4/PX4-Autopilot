@@ -118,6 +118,7 @@ then
 	set MKBLCTRL_MODE none
 	set FMU_MODE pwm
 	set MAV_TYPE none
+	set LOAD_DEFAULT_APPS yes
 	
 	#
 	# Set DO_AUTOCONFIG flag to use it in AUTOSTART scripts
@@ -465,7 +466,10 @@ then
 		sh /etc/init.d/rc.interface
 		
 		# Start standard fixedwing apps
-		sh /etc/init.d/rc.fw_apps
+		if [ LOAD_DEFAULT_APPS == yes ]
+		then
+			sh /etc/init.d/rc.fw_apps
+		fi
 	fi
 
 	#
@@ -521,7 +525,10 @@ then
 		sh /etc/init.d/rc.interface
 		
 		# Start standard multicopter apps
-		sh /etc/init.d/rc.mc_apps
+		if [ LOAD_DEFAULT_APPS == yes ]
+		then
+			sh /etc/init.d/rc.mc_apps
+		fi
 	fi
 
 	#
