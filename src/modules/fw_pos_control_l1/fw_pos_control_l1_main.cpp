@@ -983,7 +983,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					land_stayonground = true;
 				}
 
-				_tecs.update_pitch_throttle(_R_nb, _att.pitch, relative_alt, flare_curve_alt_rel, calculate_target_airspeed(airspeed_land),
+				_tecs.update_pitch_throttle(_R_nb, _att.pitch, _pos_sp_triplet.current.alt + relative_alt, _pos_sp_triplet.current.alt + flare_curve_alt_rel, calculate_target_airspeed(airspeed_land),
 												    _airspeed.indicated_airspeed_m_s, eas2tas,
 												    false, flare_pitch_angle_rad,
 												    0.0f, throttle_max, throttle_land,
@@ -1016,7 +1016,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					altitude_desired_rel =  math::max(relative_alt, L_altitude_rel);
 				}
 
-				_tecs.update_pitch_throttle(_R_nb, _att.pitch, relative_alt, altitude_desired_rel, calculate_target_airspeed(airspeed_approach),
+				_tecs.update_pitch_throttle(_R_nb, _att.pitch, _pos_sp_triplet.current.alt + relative_alt, _pos_sp_triplet.current.alt + altitude_desired_rel, calculate_target_airspeed(airspeed_approach),
 							    _airspeed.indicated_airspeed_m_s, eas2tas,
 							    false, math::radians(_parameters.pitch_limit_min),
 							    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
