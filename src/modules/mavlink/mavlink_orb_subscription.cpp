@@ -98,6 +98,10 @@ MavlinkOrbSubscription::update(const hrt_abstime t)
 bool
 MavlinkOrbSubscription::is_published()
 {
+	if (_published) {
+		return true;
+	}
+
 	bool updated;
 	orb_check(_fd, &updated);
 

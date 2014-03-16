@@ -59,7 +59,7 @@ public:
 	 * Check if the topic has been published.
 	 *
 	 * This call will return true if the topic was ever published.
-	 * @param true if the topic has been published at least once.
+	 * @return true if the topic has been published at least once.
 	 */
 	bool is_published();
 	void *get_data();
