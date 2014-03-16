@@ -350,7 +350,7 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 						int block_ret = ::ioctl(sensfd, DEVIOCSPUBBLOCK, 0);
 						close(sensfd);
 
-						printf("Disabling %s\n: %s", direntry->d_name, (!block_ret) ? "OK" : "FAIL");
+						printf("Disabling %s: %s\n", direntry->d_name, (block_ret == OK) ? "OK" : "ERROR");
 					}
 
 					closedir(d);
