@@ -201,6 +201,7 @@ Mavlink::Mavlink() :
 	_mavlink_fd(-1),
 	_task_running(false),
 	_hil_enabled(false),
+	_is_usb_uart(false),
 	_main_loop_delay(1000),
 	_subscriptions(nullptr),
 	_streams(nullptr),
@@ -577,17 +578,19 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 		return -1;
 	}
 
-	/*
-	 * Setup hardware flow control. If the port has no RTS pin this call will fail,
-	 * which is not an issue, but requires a separate call so we can fail silently.
-	 */
-	(void)tcgetattr(_uart_fd, &uart_config);
-	uart_config.c_cflag |= CRTS_IFLOW;
-	(void)tcsetattr(_uart_fd, TCSANOW, &uart_config);
+	if (!_is_usb_uart) {
+		/*
+		 * Setup hardware flow control. If the port has no RTS pin this call will fail,
+		 * which is not an issue, but requires a separate call so we can fail silently.
+		 */
+		(void)tcgetattr(_uart_fd, &uart_config);
+		uart_config.c_cflag |= CRTS_IFLOW;
+		(void)tcsetattr(_uart_fd, TCSANOW, &uart_config);
 
-	/* setup output flow control */
-	if (enable_flow_control(true)) {
-		warnx("ERR FLOW CTRL EN");
+		/* setup output flow control */
+		if (enable_flow_control(true)) {
+			warnx("ERR FLOW CTRL EN");
+		}
 	}
 
 	return _uart_fd;
@@ -596,6 +599,11 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 int
 Mavlink::enable_flow_control(bool enabled)
 {
+	// We can't do this on USB - skip
+	if (_is_usb_uart) {
+		return OK;
+	}
+
 	struct termios uart_config;
 	int ret = tcgetattr(_uart_fd, &uart_config);
 	if (enabled) {
@@ -1701,10 +1709,9 @@ Mavlink::task_main(int argc, char *argv[])
 	fflush(stdout);
 
 	struct termios uart_config_original;
-	bool usb_uart;
 
 	/* default values for arguments */
-	_uart_fd = mavlink_open_uart(_baudrate, _device_name, &uart_config_original, &usb_uart);
+	_uart_fd = mavlink_open_uart(_baudrate, _device_name, &uart_config_original, &_is_usb_uart);
 
 	if (_uart_fd < 0) {
 		warn("could not open %s", _device_name);
