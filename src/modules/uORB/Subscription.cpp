@@ -41,6 +41,16 @@
 #include "topics/actuator_controls.h"
 #include "topics/vehicle_gps_position.h"
 #include "topics/sensor_combined.h"
+#include "topics/vehicle_attitude.h"
+#include "topics/vehicle_global_position.h"
+#include "topics/encoders.h"
+#include "topics/position_setpoint_triplet.h"
+#include "topics/vehicle_status.h"
+#include "topics/manual_control_setpoint.h"
+#include "topics/vehicle_local_position_setpoint.h"
+#include "topics/vehicle_local_position.h"
+#include "topics/vehicle_attitude_setpoint.h"
+#include "topics/vehicle_rates_setpoint.h"
 
 namespace uORB
 {
@@ -79,5 +89,15 @@ template class __EXPORT Subscription<parameter_update_s>;
 template class __EXPORT Subscription<actuator_controls_s>;
 template class __EXPORT Subscription<vehicle_gps_position_s>;
 template class __EXPORT Subscription<sensor_combined_s>;
+template class __EXPORT Subscription<vehicle_attitude_s>;
+template class __EXPORT Subscription<vehicle_global_position_s>;
+template class __EXPORT Subscription<encoders_s>;
+template class __EXPORT Subscription<position_setpoint_triplet_s>;
+template class __EXPORT Subscription<vehicle_status_s>;
+template class __EXPORT Subscription<manual_control_setpoint_s>;
+template class __EXPORT Subscription<vehicle_local_position_setpoint_s>;
+template class __EXPORT Subscription<vehicle_local_position_s>;
+template class __EXPORT Subscription<vehicle_attitude_setpoint_s>;
+template class __EXPORT Subscription<vehicle_rates_setpoint_s>;
 
 } // namespace uORB
