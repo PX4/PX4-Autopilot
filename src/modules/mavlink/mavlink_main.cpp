@@ -104,55 +104,90 @@ static struct file_operations fops;
  */
 extern "C" __EXPORT int mavlink_main(int argc, char *argv[]);
 
+static uint64_t last_write_times[6] = {0};
+
 /*
  * Internal function to send the bytes through the right serial port
  */
 void
 mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length)
 {
-	int uart = -1;
+	Mavlink *instance;
 
 	switch (channel) {
 	case MAVLINK_COMM_0:
-		uart = Mavlink::get_uart_fd(0);
+		instance = Mavlink::get_instance(0);
 		break;
 
 	case MAVLINK_COMM_1:
-		uart = Mavlink::get_uart_fd(1);
+		instance = Mavlink::get_instance(1);
 		break;
 
 	case MAVLINK_COMM_2:
-		uart = Mavlink::get_uart_fd(2);
+		instance = Mavlink::get_instance(2);
 		break;
 
 	case MAVLINK_COMM_3:
-		uart = Mavlink::get_uart_fd(3);
+		instance = Mavlink::get_instance(3);
 		break;
 #ifdef MAVLINK_COMM_4
 
 	case MAVLINK_COMM_4:
-		uart = Mavlink::get_uart_fd(4);
+		instance = Mavlink::get_instance(4);
 		break;
 #endif
 #ifdef MAVLINK_COMM_5
 
 	case MAVLINK_COMM_5:
-		uart = Mavlink::get_uart_fd(5);
+		instance = Mavlink::get_instance(5);
 		break;
 #endif
 #ifdef MAVLINK_COMM_6
 
 	case MAVLINK_COMM_6:
-		uart = Mavlink::get_uart_fd(6);
+		instance = Mavlink::get_instance(6);
 		break;
 #endif
 	}
 
+	/* no valid instance, bail */
+	if (!instance)
+		return;
+
+	int uart = instance->get_uart_fd();
+
 	ssize_t desired = (sizeof(uint8_t) * length);
+
+	/*
+	 * Check if the OS buffer is full and disable HW
+	 * flow control if it continues to be full
+	 */
+	int buf_free = 0;
+
+	if (instance->get_flow_control_enabled()
+		&& ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
+
+		if (buf_free == 0) {
+
+			if (last_write_times[(unsigned)channel] != 0 &&
+			hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500*1000UL) {
+
+				warnx("DISABLING HARDWARE FLOW CONTROL");
+				instance->enable_flow_control(false);
+			}
+
+		} else {
+
+			/* apparently there is space left, although we might be
+			 * partially overflooding the buffer already */
+			last_write_times[(unsigned)channel] = hrt_absolute_time();
+		}
+	}
+
 	ssize_t ret = write(uart, ch, desired);
 
 	if (ret != desired) {
-		warn("write err");
+		// XXX do something here, but change to using FIONWRITE and OS buf size for detection
 	}
 
 }
@@ -173,11 +208,13 @@ Mavlink::Mavlink() :
 	_mavlink_param_queue_index(0),
 	_subscribe_to_stream(nullptr),
 	_subscribe_to_stream_rate(0.0f),
+	_flow_control_enabled(true),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink"))
 {
 	_wpm = &_wpm_s;
+	mission.count = 0;
 	fops.ioctl = (int (*)(file *, int, long unsigned int))&mavlink_dev_ioctl;
 
 	_instance_id = Mavlink::instance_count();
@@ -511,7 +548,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 
 	/* Back up the original uart configuration to restore it after exit */
 	if ((termios_state = tcgetattr(_uart_fd, uart_config_original)) < 0) {
-		warnx("ERROR get termios config %s: %d\n", uart_name, termios_state);
+		warnx("ERR GET CONF %s: %d\n", uart_name, termios_state);
 		close(_uart_fd);
 		return -1;
 	}
@@ -527,7 +564,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 
 		/* Set baud rate */
 		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-			warnx("ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
+			warnx("ERR SET BAUD %s: %d\n", uart_name, termios_state);
 			close(_uart_fd);
 			return -1;
 		}
@@ -535,12 +572,44 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 	}
 
 	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERROR setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
+		warnx("ERR SET CONF %s\n", uart_name);
 		close(_uart_fd);
 		return -1;
 	}
 
+	/*
+	 * Setup hardware flow control. If the port has no RTS pin this call will fail,
+	 * which is not an issue, but requires a separate call so we can fail silently.
+	 */
+	(void)tcgetattr(_uart_fd, &uart_config);
+	uart_config.c_cflag |= CRTS_IFLOW;
+	(void)tcsetattr(_uart_fd, TCSANOW, &uart_config);
+
+	/* setup output flow control */
+	if (enable_flow_control(true)) {
+		warnx("ERR FLOW CTRL EN");
+	}
+
 	return _uart_fd;
+}
+
+int
+Mavlink::enable_flow_control(bool enabled)
+{
+	struct termios uart_config;
+	int ret = tcgetattr(_uart_fd, &uart_config);
+	if (enabled) {
+		uart_config.c_cflag |= CRTSCTS;
+	} else {
+		uart_config.c_cflag &= ~CRTSCTS;
+	}
+	ret = tcsetattr(_uart_fd, TCSANOW, &uart_config);
+
+	if (!ret) {
+		_flow_control_enabled = enabled;
+	}
+
+	return ret;
 }
 
 int
@@ -639,7 +708,7 @@ int Mavlink::mavlink_pm_send_param(param_t param)
 
 	mavlink_msg_param_value_pack_chan(mavlink_system.sysid,
 					  mavlink_system.compid,
-					  MAVLINK_COMM_0,
+					  _channel,
 					  &tx_msg,
 					  name_buf,
 					  val_buf,
@@ -834,7 +903,7 @@ void Mavlink::mavlink_wpm_send_waypoint_ack(uint8_t sysid, uint8_t compid, uint8
 	wpa.target_component = compid;
 	wpa.type = type;
 
-	mavlink_msg_mission_ack_encode(mavlink_system.sysid, _mavlink_wpm_comp_id, &msg, &wpa);
+	mavlink_msg_mission_ack_encode_chan(mavlink_system.sysid, _mavlink_wpm_comp_id, _channel, &msg, &wpa);
 	mavlink_missionlib_send_message(&msg);
 
 	if (_verbose) { warnx("Sent waypoint ack (%u) to ID %u", wpa.type, wpa.target_system); }
@@ -857,7 +926,7 @@ void Mavlink::mavlink_wpm_send_waypoint_current(uint16_t seq)
 
 		wpc.seq = seq;
 
-		mavlink_msg_mission_current_encode(mavlink_system.sysid, _mavlink_wpm_comp_id, &msg, &wpc);
+		mavlink_msg_mission_current_encode_chan(mavlink_system.sysid, _mavlink_wpm_comp_id, _channel, &msg, &wpc);
 		mavlink_missionlib_send_message(&msg);
 
 	} else if (seq == 0 && _wpm->size == 0) {
@@ -880,7 +949,7 @@ void Mavlink::mavlink_wpm_send_waypoint_count(uint8_t sysid, uint8_t compid, uin
 	wpc.target_component = compid;
 	wpc.count = mission.count;
 
-	mavlink_msg_mission_count_encode(mavlink_system.sysid, _mavlink_wpm_comp_id, &msg, &wpc);
+	mavlink_msg_mission_count_encode_chan(mavlink_system.sysid, _mavlink_wpm_comp_id, _channel, &msg, &wpc);
 	mavlink_missionlib_send_message(&msg);
 
 	if (_verbose) { warnx("Sent waypoint count (%u) to ID %u", wpc.count, wpc.target_system); }
@@ -911,7 +980,7 @@ void Mavlink::mavlink_wpm_send_waypoint(uint8_t sysid, uint8_t compid, uint16_t 
 		wp.target_system = sysid;
 		wp.target_component = compid;
 		wp.seq = seq;
-		mavlink_msg_mission_item_encode(mavlink_system.sysid, _mavlink_wpm_comp_id, &msg, &wp);
+		mavlink_msg_mission_item_encode_chan(mavlink_system.sysid, _mavlink_wpm_comp_id, _channel, &msg, &wp);
 		mavlink_missionlib_send_message(&msg);
 
 		if (_verbose) { warnx("Sent waypoint %u to ID %u", wp.seq, wp.target_system); }
@@ -931,7 +1000,7 @@ void Mavlink::mavlink_wpm_send_waypoint_request(uint8_t sysid, uint8_t compid, u
 		wpr.target_system = sysid;
 		wpr.target_component = compid;
 		wpr.seq = seq;
-		mavlink_msg_mission_request_encode(mavlink_system.sysid, _mavlink_wpm_comp_id, &msg, &wpr);
+		mavlink_msg_mission_request_encode_chan(mavlink_system.sysid, _mavlink_wpm_comp_id, _channel, &msg, &wpr);
 		mavlink_missionlib_send_message(&msg);
 
 		if (_verbose) { warnx("Sent waypoint request %u to ID %u", wpr.seq, wpr.target_system); }
@@ -957,7 +1026,7 @@ void Mavlink::mavlink_wpm_send_waypoint_reached(uint16_t seq)
 
 	wp_reached.seq = seq;
 
-	mavlink_msg_mission_item_reached_encode(mavlink_system.sysid, _mavlink_wpm_comp_id, &msg, &wp_reached);
+	mavlink_msg_mission_item_reached_encode_chan(mavlink_system.sysid, _mavlink_wpm_comp_id, _channel, &msg, &wp_reached);
 	mavlink_missionlib_send_message(&msg);
 
 	if (_verbose) { warnx("Sent waypoint %u reached message", wp_reached.seq); }
@@ -1514,7 +1583,7 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 		/* copy stream name */
 		unsigned n = strlen(stream_name) + 1;
 		char *s = new char[n];
-		memcpy(s, stream_name, n);
+		strcpy(s, stream_name);
 
 		/* set subscription task */
 		_subscribe_to_stream_rate = rate;
@@ -1530,10 +1599,6 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 int
 Mavlink::task_main(int argc, char *argv[])
 {
-	/* inform about start */
-	warnx("start");
-	fflush(stdout);
-
 	int ch;
 	_baudrate = 57600;
 	_datarate = 0;
@@ -1630,8 +1695,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_mavlink_wpm_comp_id = MAV_COMP_ID_MISSIONPLANNER;
 
-	warnx("data rate: %d bytes/s", _datarate);
-	warnx("port: %s, baudrate: %d", _device_name, _baudrate);
+	warnx("data rate: %d bps, port: %s, baud: %d", _datarate, _device_name, (int)_baudrate);
 
 	/* flush stdout in case MAVLink is about to take it over */
 	fflush(stdout);
@@ -1676,9 +1740,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 	struct vehicle_status_s *status = (struct vehicle_status_s *) status_sub->get_data();
 
-	warnx("started");
-	mavlink_log_info(_mavlink_fd, "[mavlink] started");
-
 	/* add default streams depending on mode and intervals depending on datarate */
 	float rate_mult = _datarate / 1000.0f;
 
@@ -1705,7 +1766,7 @@ Mavlink::task_main(int argc, char *argv[])
 	_mavlink_param_queue_index = param_count();
 
 	MavlinkRateLimiter slow_rate_limiter(2000000.0f / rate_mult);
-	MavlinkRateLimiter fast_rate_limiter(100000.0f / rate_mult);
+	MavlinkRateLimiter fast_rate_limiter(20000.0f / rate_mult);
 
 	/* set main loop delay depending on data rate to minimize CPU overhead */
 	_main_loop_delay = MAIN_LOOP_DELAY / rate_mult;
@@ -1884,36 +1945,33 @@ Mavlink::stream(int argc, char *argv[])
 	const char *stream_name = nullptr;
 	int ch;
 
-	argc -= 1;
-	argv += 1;
+	argc -= 2;
+	argv += 2;
 
 	/* don't exit from getopt loop to leave getopt global variables in consistent state,
 	 * set error flag instead */
 	bool err_flag = false;
 
-	while ((ch = getopt(argc, argv, "r:d:s:")) != EOF) {
-		switch (ch) {
-		case 'r':
-			rate = strtod(optarg, nullptr);
+	int i = 0;
+	while (i < argc) {
 
+		if (0 == strcmp(argv[i], "-r") && i < argc - 1 ) {
+			rate = strtod(argv[i+1], nullptr);
 			if (rate < 0.0f) {
 				err_flag = true;
 			}
-
-			break;
-
-		case 'd':
-			device_name = optarg;
-			break;
-
-		case 's':
-			stream_name = optarg;
-			break;
-
-		default:
+			i++;
+		} else if (0 == strcmp(argv[i], "-d") && i < argc - 1 ) {
+			device_name = argv[i+1];
+			i++;
+		} else if (0 == strcmp(argv[i], "-s") && i < argc - 1 ) {
+			stream_name = argv[i+1];
+			i++;
+		} else {
 			err_flag = true;
-			break;
 		}
+
+		i++;
 	}
 
 	if (!err_flag && rate >= 0.0 && stream_name != nullptr) {

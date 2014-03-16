@@ -154,6 +154,8 @@ public:
 
 	bool		get_hil_enabled() { return _hil_enabled; };
 
+	bool		get_flow_control_enabled() { return _flow_control_enabled; }
+
 	/**
 	 * Handle waypoint related messages.
 	 */
@@ -181,6 +183,13 @@ public:
 	MavlinkOrbSubscription *add_orb_subscription(const orb_id_t topic);
 
 	int get_instance_id();
+
+	/**
+	 * Enable / disable hardware flow control.
+	 *
+	 * @param enabled	True if hardware flow control should be enabled
+	 */
+	int enable_flow_control(bool enabled);
 
 	mavlink_channel_t get_channel();
 
@@ -238,6 +247,8 @@ private:
 
 	char 	*_subscribe_to_stream;
 	float	_subscribe_to_stream_rate;
+
+	bool		_flow_control_enabled;
 
 	/**
 	 * Send one parameter.

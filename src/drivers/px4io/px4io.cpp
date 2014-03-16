@@ -1921,12 +1921,14 @@ PX4IO::print_status()
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE));
 #endif
 	printf("debuglevel %u\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG));
-	printf("controls");
+	for (unsigned group = 0; group < 4; group++) {
+		printf("controls %u:", group);
 
-	for (unsigned i = 0; i < _max_controls; i++)
-		printf(" %u", io_reg_get(PX4IO_PAGE_CONTROLS, i));
+		for (unsigned i = 0; i < _max_controls; i++)
+			printf(" %d", (int16_t) io_reg_get(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT + i));
 
-	printf("\n");
+		printf("\n");
+	}
 
 	for (unsigned i = 0; i < _max_rc_input; i++) {
 		unsigned base = PX4IO_P_RC_CONFIG_STRIDE * i;
