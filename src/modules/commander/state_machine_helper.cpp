@@ -309,10 +309,7 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 	bool valid_transition = false;
 	int ret = ERROR;
 
-	warnx("Current state: %d, requested state: %d", current_status->hil_state, new_state);
-
 	if (current_status->hil_state == new_state) {
-		warnx("Hil state not changed");
 		valid_transition = true;
 
 	} else {
@@ -347,10 +344,16 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 					while ((direntry = readdir(d)) != NULL) {
 
 						int sensfd = ::open(direntry->d_name, 0);
-						int block_ret = ::ioctl(sensfd, DEVIOCSPUBBLOCK, 0);
+
+						if (sensfd < 0) {
+							warn("failed opening device");
+							return 1;
+						}
+
+						int block_ret = ::ioctl(sensfd, DEVIOCSPUBBLOCK, 1);
 						close(sensfd);
 
-						printf("Disabling %s\n: %s", direntry->d_name, (!block_ret) ? "OK" : "FAIL");
+						printf("Disabling %s: %s\n", direntry->d_name, (block_ret == OK) ? "OK" : "FAIL");
 					}
 
 					closedir(d);
