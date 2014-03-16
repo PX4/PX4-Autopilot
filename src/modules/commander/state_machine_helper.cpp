@@ -337,9 +337,10 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 
 				/* list directory */
 				DIR		*d;
-				struct dirent	*direntry;
 				d = opendir("/dev");
 				if (d) {
+
+					struct dirent	*direntry;
 
 					while ((direntry = readdir(d)) != NULL) {
 
