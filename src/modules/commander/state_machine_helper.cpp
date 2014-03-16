@@ -351,6 +351,23 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 							return 1;
 						}
 
+						/* skip serial ports */
+						if (!strncmp("tty", direntry-d_name, 3)) {
+							continue;
+						}
+						/* skip mtd devices */
+						if (!strncmp("mtd", direntry-d_name, 3)) {
+							continue;
+						}
+						/* skip ram devices */
+						if (!strncmp("ram", direntry-d_name, 3)) {
+							continue;
+						}
+						/* skip mavlink */
+						if (!strcmp("mavlink", direntry-d_name)) {
+							continue;
+						}
+
 						int block_ret = ::ioctl(sensfd, DEVIOCSPUBBLOCK, 1);
 						close(sensfd);
 
@@ -358,8 +375,6 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 					}
 
 					closedir(d);
-
-					warnx("directory listing ok (FS mounted and readable)");
 
 				} else {
 					/* failed opening dir */
