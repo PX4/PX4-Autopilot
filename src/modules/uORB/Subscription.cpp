@@ -37,6 +37,10 @@
  */
 
 #include "Subscription.hpp"
+#include "topics/parameter_update.h"
+#include "topics/actuator_controls.h"
+#include "topics/vehicle_gps_position.h"
+#include "topics/sensor_combined.h"
 
 namespace uORB
 {
@@ -47,5 +51,33 @@ bool __EXPORT SubscriptionBase::updated()
 	orb_check(_handle, &isUpdated);
 	return isUpdated;
 }
+
+template<class T>
+Subscription<T>::Subscription(
+	List<SubscriptionBase *> * list,
+	const struct orb_metadata *meta, unsigned interval) :
+	T(), // initialize data structure to zero
+	SubscriptionBase(list, meta) {
+	setHandle(orb_subscribe(getMeta()));
+	orb_set_interval(getHandle(), interval);
+}
+
+template<class T>
+Subscription<T>::~Subscription() {}
+
+template<class T>
+void * Subscription<T>::getDataVoidPtr() {
+	return (void *)(T *)(this);
+}
+
+template<class T>
+T Subscription<T>::getData() {
+	return T(*this);
+}
+
+template class __EXPORT Subscription<parameter_update_s>;
+template class __EXPORT Subscription<actuator_controls_s>;
+template class __EXPORT Subscription<vehicle_gps_position_s>;
+template class __EXPORT Subscription<sensor_combined_s>;
 
 } // namespace uORB

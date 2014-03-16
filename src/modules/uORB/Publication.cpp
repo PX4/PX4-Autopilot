@@ -37,3 +37,30 @@
  */
 
 #include "Publication.hpp"
+#include "topics/vehicle_attitude.h"
+#include "topics/vehicle_local_position.h"
+#include "topics/vehicle_global_position.h"
+
+namespace uORB {
+
+template<class T>
+Publication<T>::Publication(
+	List<PublicationBase *> * list,
+	const struct orb_metadata *meta) :
+	T(), // initialize data structure to zero
+	PublicationBase(list, meta) {
+}
+
+template<class T>
+Publication<T>::~Publication() {}
+
+template<class T>
+void * Publication<T>::getDataVoidPtr() {
+	return (void *)(T *)(this);
+}
+
+template class __EXPORT Publication<vehicle_attitude_s>;
+template class __EXPORT Publication<vehicle_local_position_s>;
+template class __EXPORT Publication<vehicle_global_position_s>;
+
+}
