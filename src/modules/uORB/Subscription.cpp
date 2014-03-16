@@ -32,20 +32,20 @@
  ****************************************************************************/
 
 /**
- * @file UOrbSubscription.cpp
+ * @file Subscription.cpp
  *
  */
 
-#include "UOrbSubscription.hpp"
+#include "Subscription.hpp"
 
-namespace control
+namespace uORB
 {
 
-bool __EXPORT UOrbSubscriptionBase::updated()
+bool __EXPORT SubscriptionBase::updated()
 {
 	bool isUpdated = false;
 	orb_check(_handle, &isUpdated);
 	return isUpdated;
 }
 
-} // namespace control
+} // namespace uORB

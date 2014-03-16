@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file UOrbPublication.cpp
+ * @file Publication.cpp
  *
  */
 
-#include "UOrbPublication.hpp"
+#include "Publication.hpp"
