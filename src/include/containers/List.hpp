@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Node.h
+ * @file List.hpp
  *
- * A node of a linked list.
+ * A linked list.
  */
 
 #pragma once
@@ -43,7 +43,7 @@ template<class T>
 class __EXPORT ListNode
 {
 public:
-	ListNode() : _sibling(NULL) {
+	ListNode() : _sibling(nullptr) {
 	}
 	void setSibling(T sibling) { _sibling = sibling; }
 	T getSibling() { return _sibling; }
