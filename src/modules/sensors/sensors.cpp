@@ -940,7 +940,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		raw.accelerometer_raw[1] = accel_report.y_raw;
 		raw.accelerometer_raw[2] = accel_report.z_raw;
 
-		raw.accelerometer_counter++;
+		raw.accelerometer_timestamp = accel_report.timestamp;
 	}
 }
 
@@ -966,7 +966,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		raw.gyro_raw[1] = gyro_report.y_raw;
 		raw.gyro_raw[2] = gyro_report.z_raw;
 
-		raw.gyro_counter++;
+		raw.timestamp = gyro_report.timestamp;
 	}
 }
 
@@ -996,7 +996,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 		raw.magnetometer_raw[1] = mag_report.y_raw;
 		raw.magnetometer_raw[2] = mag_report.z_raw;
 
-		raw.magnetometer_counter++;
+		raw.magnetometer_timestamp = mag_report.timestamp;
 	}
 }
 
@@ -1014,7 +1014,7 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 		raw.baro_alt_meter = _barometer.altitude; // Altitude in meters
 		raw.baro_temp_celcius = _barometer.temperature; // Temperature in degrees celcius
 
-		raw.baro_counter++;
+		raw.baro_timestamp = _barometer.timestamp;
 	}
 }
 
@@ -1028,7 +1028,7 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		orb_copy(ORB_ID(differential_pressure), _diff_pres_sub, &_diff_pres);
 
 		raw.differential_pressure_pa = _diff_pres.differential_pressure_pa;
-		raw.differential_pressure_counter++;
+		raw.differential_pressure_timestamp = _diff_pres.timestamp;
 
 		_airspeed.indicated_airspeed_m_s = calc_indicated_airspeed(_diff_pres.differential_pressure_pa);
 		_airspeed.true_airspeed_m_s = calc_true_airspeed(_diff_pres.differential_pressure_pa + raw.baro_pres_mbar * 1e2f,
