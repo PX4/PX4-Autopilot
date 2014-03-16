@@ -40,6 +40,7 @@
 #include "topics/vehicle_attitude.h"
 #include "topics/vehicle_local_position.h"
 #include "topics/vehicle_global_position.h"
+#include "topics/debug_key_value.h"
 
 namespace uORB {
 
@@ -62,5 +63,6 @@ void * Publication<T>::getDataVoidPtr() {
 template class __EXPORT Publication<vehicle_attitude_s>;
 template class __EXPORT Publication<vehicle_local_position_s>;
 template class __EXPORT Publication<vehicle_global_position_s>;
+template class __EXPORT Publication<debug_key_value_s>;
 
 }
