@@ -37,7 +37,4 @@
 
 MODULE_COMMAND		= roboclaw
 
-SRCS			= roboclaw_main.cpp \
-			  RoboClaw.cpp
-
-MAXOPTIMIZATION	 = -Os
+SRCS			= roboclaw.cpp RoboClaw.cpp RoboClawDevice.cpp

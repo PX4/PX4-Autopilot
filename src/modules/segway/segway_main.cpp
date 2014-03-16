@@ -51,6 +51,7 @@
 #include <math.h>
 
 #include "BlockSegwayController.hpp"
+#include "BlockEncoderPositionEstimator.hpp"
 
 static bool thread_should_exit = false;     /**< Deamon exit flag */
 static bool thread_running = false;     /**< Deamon status flag */
@@ -74,8 +75,9 @@ static void usage(const char *reason);
 static void
 usage(const char *reason)
 {
-	if (reason)
+	if (reason) {
 		fprintf(stderr, "%s\n", reason);
+	}
 
 	fprintf(stderr, "usage: segway {start|stop|status} [-p <additional params>]\n\n");
 	exit(1);
@@ -92,8 +94,9 @@ usage(const char *reason)
 int segway_main(int argc, char *argv[])
 {
 
-	if (argc < 1)
+	if (argc < 1) {
 		usage("missing command");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
@@ -106,11 +109,11 @@ int segway_main(int argc, char *argv[])
 		thread_should_exit = false;
 
 		deamon_task = task_spawn_cmd("segway",
-					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 10,
-					 5120,
-					 segway_thread_main,
-					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
+					     SCHED_DEFAULT,
+					     SCHED_PRIORITY_MAX - 10,
+					     5120,
+					     segway_thread_main,
+					     (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
 	}
 
@@ -142,10 +145,12 @@ int segway_thread_main(int argc, char *argv[])
 	using namespace control;
 
 	BlockSegwayController autopilot;
+	BlockEncoderPositionEstimator estimator;
 
 	thread_running = true;
 
 	while (!thread_should_exit) {
+		estimator.update();
 		autopilot.update();
 	}
 

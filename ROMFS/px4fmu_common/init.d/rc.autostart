@@ -16,6 +16,8 @@
 # 10000	..	10999		Wide arm / H frame
 # 11000	..	11999		Hexa Cox
 # 12000	..	12999		Octo Cox
+# 13000	..	19999		Reserved (future use)
+# 20000	..	20999		Ground Vehicles
 
 #
 # Simulation setups
@@ -237,4 +239,13 @@ fi
 if param compare SYS_AUTOSTART 12001
 then
 	sh /etc/init.d/12001_octo_cox
+fi
+
+#
+# Ground Vehicles
+#
+
+if param compare SYS_AUTOSTART 20001
+then
+	sh /etc/init.d/20001_segway
 fi

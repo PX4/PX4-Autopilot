@@ -37,6 +37,7 @@
 
 MODULE_COMMAND	= segway
 
-SRCS		= segway_main.cpp \
+SRCS		= BlockEncoderPositionEstimator.cpp \
 		  BlockSegwayController.cpp \
+		  segway_main.cpp \
 		  params.c
