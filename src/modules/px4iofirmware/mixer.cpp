@@ -267,7 +267,7 @@ mixer_callback(uintptr_t handle,
 	       uint8_t control_index,
 	       float &control)
 {
-	if (control_group > 3)
+	if (control_group >= PX4IO_CONTROL_GROUPS)
 		return -1;
 
 	switch (source) {
