@@ -95,13 +95,9 @@ public:
 	 * @param meta		The uORB metadata (usually from the ORB_ID() macro)
 	 *			for the topic.
 	 */
-	Publication(
-		List<PublicationBase *> * list,
-		const struct orb_metadata *meta) :
-		T(), // initialize data structure to zero
-		PublicationBase(list, meta) {
-	}
-	virtual ~Publication() {}
+	Publication(List<PublicationBase *> * list,
+		const struct orb_metadata *meta);
+	virtual ~Publication();
 	/*
 	 * XXX
 	 * This function gets the T struct, assuming
@@ -109,7 +105,7 @@ public:
 	 * should use dynamic cast, but doesn't
 	 * seem to be available
 	 */
-	void *getDataVoidPtr() { return (void *)(T *)(this); }
+	void *getDataVoidPtr();
 };
 
 } // namespace uORB

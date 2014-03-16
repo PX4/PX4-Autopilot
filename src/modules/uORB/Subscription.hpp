@@ -108,17 +108,11 @@ public:
 	 */
 	Subscription(
 		List<SubscriptionBase *> * list,
-		const struct orb_metadata *meta, unsigned interval) :
-		T(), // initialize data structure to zero
-		SubscriptionBase(list, meta) {
-		setHandle(orb_subscribe(getMeta()));
-		orb_set_interval(getHandle(), interval);
-	}
-
+		const struct orb_metadata *meta, unsigned interval);
 	/**
 	 * Deconstructor
 	 */
-	virtual ~Subscription() {}
+	virtual ~Subscription();
 
 	/*
 	 * XXX
@@ -127,8 +121,8 @@ public:
 	 * should use dynamic cast, but doesn't
 	 * seem to be available
 	 */
-	void *getDataVoidPtr() { return (void *)(T *)(this); }
-	T getData() { return T(*this); }
+	void *getDataVoidPtr();
+	T getData();
 };
 
 } // namespace uORB
