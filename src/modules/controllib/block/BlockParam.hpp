@@ -42,7 +42,7 @@
 #include <systemlib/param/param.h>
 
 #include "Block.hpp"
-#include "List.hpp"
+#include <containers/List.hpp>
 
 namespace control
 {
