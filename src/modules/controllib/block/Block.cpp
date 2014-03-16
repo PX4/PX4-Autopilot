@@ -41,10 +41,11 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
+
 #include "Block.hpp"
 #include "BlockParam.hpp"
-#include "uORB/Subscription.hpp"
-#include "uORB/Publication.hpp"
 
 namespace control
 {
