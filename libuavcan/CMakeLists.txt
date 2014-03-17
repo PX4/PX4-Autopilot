@@ -30,7 +30,7 @@ add_library(uavcan SHARED ${LIBUAVCAN_CXX_FILES})
 #
 set(DSDLC_INPUTS "test/dsdl_test/root_ns_a" "test/dsdl_test/root_ns_b" "${CMAKE_SOURCE_DIR}/../dsdl/uavcan")
 set(DSDLC_OUTPUT "include/dsdlc_generated")
-add_custom_target(dsdlc dsdl_compiler/dsdlc.py -v ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
+add_custom_target(dsdlc dsdl_compiler/dsdlc.py ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_dependencies(uavcan dsdlc)
 include_directories(${DSDLC_OUTPUT})
