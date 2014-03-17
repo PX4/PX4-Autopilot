@@ -46,11 +46,15 @@
 
 #include "mavlink_orb_subscription.h"
 
-MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic) : _topic(topic), _last_check(0), next(nullptr)
+MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic) :
+	_fd(orb_subscribe(_topic)),
+	_published(false),
+	_topic(topic),
+	_last_check(0),
+	next(nullptr)
 {
 	_data = malloc(topic->o_size);
 	memset(_data, 0, topic->o_size);
-	_fd = orb_subscribe(_topic);
 }
 
 MavlinkOrbSubscription::~MavlinkOrbSubscription()
@@ -86,4 +90,17 @@ MavlinkOrbSubscription::update(const hrt_abstime t)
 	}
 
 	return false;
+}
+
+bool
+MavlinkOrbSubscription::is_published()
+{
+	bool updated;
+	orb_check(_fd, &updated);
+
+	if (updated) {
+		_published = true;
+	}
+
+	return _published;
 }

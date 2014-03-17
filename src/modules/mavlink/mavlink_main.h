@@ -208,6 +208,7 @@ private:
 
 	/* states */
 	bool		_hil_enabled;		/**< Hardware In the Loop mode */
+	bool		_is_usb_uart;		/**< Port is USB */
 
 	unsigned	_main_loop_delay;		/**< mainloop delay, depends on data rate */
 

@@ -54,12 +54,21 @@ public:
 	~MavlinkOrbSubscription();
 
 	bool update(const hrt_abstime t);
+
+	/**
+	 * Check if the topic has been published.
+	 *
+	 * This call will return true if the topic was ever published.
+	 * @param true if the topic has been published at least once.
+	 */
+	bool is_published();
 	void *get_data();
 	const orb_id_t get_topic();
 
 private:
 	const orb_id_t _topic;
 	int _fd;
+	bool _published;
 	void *_data;
 	hrt_abstime _last_check;
 };

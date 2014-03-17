@@ -445,7 +445,6 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 	// XXX write this out to perf regs
 
 	/* keep track of sensor updates */
-	uint32_t sensor_last_count[3] = {0, 0, 0};
 	uint64_t sensor_last_timestamp[3] = {0, 0, 0};
 
 	struct attitude_estimator_so3_params so3_comp_params;
