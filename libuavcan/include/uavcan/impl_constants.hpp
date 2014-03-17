@@ -6,15 +6,13 @@
 
 #include <uavcan/util/compile_time.hpp>
 
-
-// TODO: Use git short hash as build id
+/**
+ * UAVCAN version definition
+ * // TODO: Use git short hash as build id
+ */
 #define UAVCAN_VERSION_MAJOR    0
 #define UAVCAN_VERSION_MINOR    1
 #define UAVCAN_VERSION_BUILD    0
-
-
-namespace uavcan
-{
 
 /**
  * UAVCAN can be compiled in C++11 mode.
@@ -53,6 +51,10 @@ namespace uavcan
 # define UAVCAN_PACKED_END _Pragma("pack(pop)")
 #endif
 
+
+namespace uavcan
+{
+
 /**
  * Should be OK for any target arch up to AMD64 and any compiler.
  * The library leverages compile-time checks to ensure that all types that are subject to dynamic allocation
@@ -61,7 +63,7 @@ namespace uavcan
 #if UAVCAN_MEM_POOL_BLOCK_SIZE
 enum { MemPoolBlockSize = UAVCAN_MEM_POOL_BLOCK_SIZE };
 #else
-enum { MemPoolBlockSize = 32 + sizeof(void*) * 2 };
+enum { MemPoolBlockSize = 32 + sizeof(void*) * 2 };//!< MemPoolBlockSize
 #endif
 
 enum { MemPoolAlignment = 8 };
