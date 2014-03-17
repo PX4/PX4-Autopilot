@@ -67,6 +67,14 @@ struct crosstrack_error_s {
 	float bearing;		// Bearing in radians to closest point on line/arc
 } ;
 
+/* lat/lon are in radians */
+struct map_projection_reference_s {
+	double lat;
+	double lon;
+	double sin_lat;
+	double cos_lat;
+};
+
 /**
  * Initializes the map transformation.
  *
@@ -74,7 +82,7 @@ struct crosstrack_error_s {
  * @param lat in degrees (47.1234567°, not 471234567°)
  * @param lon in degrees (8.1234567°, not 81234567°)
  */
-__EXPORT void map_projection_init(double lat_0, double lon_0);
+__EXPORT void map_projection_init(struct map_projection_reference_s *ref, double lat_0, double lon_0);
 
 /**
  * Transforms a point in the geographic coordinate system to the local azimuthal equidistant plane
@@ -83,7 +91,7 @@ __EXPORT void map_projection_init(double lat_0, double lon_0);
  * @param lat in degrees (47.1234567°, not 471234567°)
  * @param lon in degrees (8.1234567°, not 81234567°)
  */
-__EXPORT void map_projection_project(double lat, double lon, float *x, float *y);
+__EXPORT void map_projection_project(struct map_projection_reference_s *ref, double lat, double lon, float *x, float *y);
 
 /**
  * Transforms a point in the local azimuthal equidistant plane to the geographic coordinate system
@@ -93,7 +101,7 @@ __EXPORT void map_projection_project(double lat, double lon, float *x, float *y)
  * @param lat in degrees (47.1234567°, not 471234567°)
  * @param lon in degrees (8.1234567°, not 81234567°)
  */
-__EXPORT void map_projection_reproject(float x, float y, double *lat, double *lon);
+__EXPORT void map_projection_reproject(struct map_projection_reference_s *ref, float x, float y, double *lat, double *lon);
 
 /**
  * Returns the distance to the next waypoint in meters.
