@@ -931,6 +931,7 @@ FixedwingEstimator::task_main()
 				_local_pos.xy_global = true;
 
 				_local_pos.z_global = false;
+				_local_pos.yaw = _att.yaw;
 
 				/* lazily publish the local position only once available */
 				if (_local_pos_pub > 0) {
