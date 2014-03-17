@@ -393,7 +393,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp) {
 						update_vect[1] = 1;
 						sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
-						sensor_last_timestamp[1] = raw.timestamp;
+						sensor_last_timestamp[1] = raw.accelerometer_timestamp;
 					}
 
 					hrt_abstime vel_t = 0;
@@ -445,7 +445,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp) {
 						update_vect[2] = 1;
 						sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
-						sensor_last_timestamp[2] = raw.timestamp;
+						sensor_last_timestamp[2] = raw.magnetometer_timestamp;
 					}
 
 					z_k[6] = raw.magnetometer_ga[0];
