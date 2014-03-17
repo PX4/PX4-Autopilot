@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <bitset>
+#include <cstdio>
 #include <algorithm>
 #include <stdexcept>
 #include <cstring>
@@ -308,6 +309,7 @@ public:
     typedef typename Base::SizeType SizeType;
 
     using Base::size;
+    using Base::capacity;
 
     enum { IsDynamic = ArrayMode == ArrayModeDynamic };
     enum { MaxSize = MaxSize_ };
@@ -414,6 +416,44 @@ public:
         for (CommonSizeType i = 0; i < rhs.size(); i++)
             push_back(rhs[i]);
         return *this;
+    }
+
+    /*
+     * Formatting appender.
+     * This method doesn't raise an overflow error; instead it silently truncates the data to fit the array capacity.
+     */
+    template <typename A>
+    void appendFormatted(const char* const format, const A value)
+    {
+        StaticAssert<Base::IsStringLike>::check();
+        StaticAssert<IsDynamic>::check();
+
+        StaticAssert<sizeof(A() == A(0))>::check();             // This check allows to weed out most non-trivial types
+        StaticAssert<sizeof(A) <= sizeof(long double)>::check();// Another stupid check to catch non-trivial types
+
+        if (!format)
+        {
+            assert(0);
+            return;
+        }
+        // Add some hardcore runtime checks for the format string correctness?
+
+        ValueType* const ptr = Base::end();
+        assert(capacity() >= size());
+        const SizeType max_size = capacity() - size();
+
+        // We have one extra byte for the null terminator, hence +1
+        const int ret = std::snprintf(reinterpret_cast<char*>(ptr), max_size + 1, format, value);
+
+        for (int i = 0; i < std::min(ret, int(max_size)); i++)
+        {
+            Base::grow();
+        }
+        if (ret < 0)
+        {
+            assert(0);           // Likely an invalid format string
+            (*this) += format;   // So we print it as is in release builds
+        }
     }
 
     typedef ValueType value_type;

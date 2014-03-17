@@ -726,6 +726,24 @@ TEST(Array, Strings)
 }
 
 
+TEST(Array, AppendFormatted)
+{
+    typedef Array<IntegerSpec<8, SignednessUnsigned, CastModeSaturate>, ArrayModeDynamic, 45> A8;
+
+    A8 a;
+
+    ASSERT_TRUE("" == a);
+
+    a.appendFormatted("%4.1f", 12.3);                      // 4
+    a += " ";                                             // 1
+    a.appendFormatted("%li", -123456789L);                 // 10
+    a.appendFormatted("%s", " TOTAL PERSPECTIVE VORTEX "); // 26
+    a.appendFormatted("0x%X", 0xDEADBEEF);                 // 10 --> 4
+
+    ASSERT_STREQ("12.3 -123456789 TOTAL PERSPECTIVE VORTEX 0xDE", a.c_str());
+}
+
+
 TEST(Array, FlatStreaming)
 {
     typedef Array<IntegerSpec<8, SignednessUnsigned, CastModeSaturate>, ArrayModeDynamic, 32> A8D;
