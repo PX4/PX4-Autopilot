@@ -230,7 +230,6 @@ protected:
 					   mavlink_base_mode,
 					   mavlink_custom_mode,
 					   mavlink_state);
-
 	}
 };
 
@@ -1127,6 +1126,48 @@ protected:
 	}
 };
 
+class MavlinkStreamCameraCapture : public MavlinkStream
+{
+public:
+	const char *get_name()
+	{
+		return "CAMERA_CAPTURE";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamCameraCapture();
+	}
+
+private:
+	MavlinkOrbSubscription *status_sub;
+	struct vehicle_status_s *status;
+
+protected:
+	void subscribe(Mavlink *mavlink)
+	{
+		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status));
+		status = (struct vehicle_status_s *)status_sub->get_data();
+
+
+	}
+
+	void send(const hrt_abstime t)
+	{
+		(void)status_sub->update(t);
+
+		if (status->arming_state == ARMING_STATE_ARMED
+		 || status->arming_state == ARMING_STATE_ARMED_ERROR) {
+
+			/* send camera capture on */
+			mavlink_msg_command_long_send(_channel, 42, 30, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 1, 0, 0, 0);
+		} else {
+			/* send camera capture off */
+			mavlink_msg_command_long_send(_channel, 42, 30, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 0, 0, 0, 0);
+		}
+	}
+};
+
 
 MavlinkStream *streams_list[] = {
 	new MavlinkStreamHeartbeat(),
@@ -1151,6 +1192,7 @@ MavlinkStream *streams_list[] = {
 	new MavlinkStreamRCChannelsRaw(),
 	new MavlinkStreamManualControl(),
 	new MavlinkStreamOpticalFlow(),
+	new MavlinkStreamCameraCapture(),
 	nullptr
 };
 

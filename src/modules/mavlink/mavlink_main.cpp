@@ -1653,6 +1653,8 @@ Mavlink::task_main(int argc, char *argv[])
 		case 'm':
 			if (strcmp(optarg, "custom") == 0) {
 				_mode = MAVLINK_MODE_CUSTOM;
+			} else if (strcmp(optarg, "camera") == 0) {
+				_mode = MAVLINK_MODE_CAMERA;
 			}
 
 			break;
@@ -1694,6 +1696,10 @@ Mavlink::task_main(int argc, char *argv[])
 
 	case MAVLINK_MODE_CUSTOM:
 		warnx("mode: CUSTOM");
+		break;
+
+	case MAVLINK_MODE_CAMERA:
+		warnx("mode: CAMERA");
 		break;
 
 	default:
@@ -1763,6 +1769,13 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GLOBAL_POSITION_INT", 3.0f * rate_mult);
 		configure_stream("LOCAL_POSITION_NED", 3.0f * rate_mult);
 		configure_stream("RC_CHANNELS_RAW", 1.0f * rate_mult);
+		break;
+
+	case MAVLINK_MODE_CAMERA:
+		configure_stream("SYS_STATUS", 1.0f);
+		configure_stream("ATTITUDE", 20.0f);
+		configure_stream("GLOBAL_POSITION_INT", 20.0f);
+		configure_stream("CAMERA_CAPTURE", 1.0f);
 		break;
 
 	default:
