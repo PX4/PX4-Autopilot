@@ -1776,7 +1776,111 @@ void CovarianceInit()
     P[20][20] = P[18][18];
 }
 
+float ConstrainFloat(float val, float min, float max)
+{
+    return (val > max) ? max : ((val < min) ? min : val);
+}
 
+void ConstrainVariances()
+{
+    // State vector:
+    // 0-3: quaternions (q0, q1, q2, q3)
+    // 4-6: Velocity - m/sec (North, East, Down)
+    // 7-9: Position - m (North, East, Down)
+    // 10-12: Delta Angle bias - rad (X,Y,Z)
+    // 13-14: Wind Vector  - m/sec (North,East)
+    // 15-17: Earth Magnetic Field Vector - gauss (North, East, Down)
+    // 18-20: Body Magnetic Field Vector - gauss (X,Y,Z)
+
+    // Constrain quaternion variances
+    for (unsigned i = 0; i < 4; i++) {
+        P[i][i] = ConstrainFloat(P[i][i], 0.0f, 1.0f);
+    }
+
+    // Constrain velocitie variances
+    for (unsigned i = 4; i < 7; i++) {
+        P[i][i] = ConstrainFloat(P[i][i], 0.0f, 1.0e3f);
+    }
+
+    // Constrain position variances
+    for (unsigned i = 7; i < 10; i++) {
+        P[i][i] = ConstrainFloat(P[i][i], 0.0f, 1.0e6f);
+    }
+
+    // Angle bias variances
+    for (unsigned i = 10; i < 13; i++) {
+        P[i][i] = ConstrainFloat(P[i][i], 0.0f, sq(0.175f * dtIMU));
+    }
+
+    // Wind velocity variances
+    for (unsigned i = 13; i < 15; i++) {
+        P[i][i] = ConstrainFloat(P[i][i], 0.0f, 1.0e3f);
+    }
+
+    // Earth magnetic field variances
+    for (unsigned i = 15; i < 18; i++) {
+        P[i][i] = ConstrainFloat(P[i][i], 0.0f, 1.0f);
+    }
+
+    // Body magnetic field variances
+    for (unsigned i = 18; i < 21; i++) {
+        P[i][i] = ConstrainFloat(P[i][i], 0.0f, 1.0f);
+    }
+
+}
+
+void ConstrainStates()
+{
+    // State vector:
+    // 0-3: quaternions (q0, q1, q2, q3)
+    // 4-6: Velocity - m/sec (North, East, Down)
+    // 7-9: Position - m (North, East, Down)
+    // 10-12: Delta Angle bias - rad (X,Y,Z)
+    // 13-14: Wind Vector  - m/sec (North,East)
+    // 15-17: Earth Magnetic Field Vector - gauss (North, East, Down)
+    // 18-20: Body Magnetic Field Vector - gauss (X,Y,Z)
+
+
+    // Constrain quaternion
+    for (unsigned i = 0; i < 4; i++) {
+        states[i] = ConstrainFloat(states[i], -1.0f, 1.0f);
+    }
+
+    // Constrain velocities to what GPS can do for us
+    for (unsigned i = 4; i < 7; i++) {
+        states[i] = ConstrainFloat(states[i], -5.0e2f, 5.0e2f);
+    }
+
+    // Constrain position to a reasonable vehicle range (in meters)
+    for (unsigned i = 7; i < 9; i++) {
+        states[i] = ConstrainFloat(states[i], -1.0e6f, 1.0e6f);
+    }
+
+    // Constrain altitude
+    states[9] = ConstrainFloat(states[9], -4.0e4f, 1.0e4f);
+
+    // Angle bias limit - set to 8 degrees / sec
+    for (unsigned i = 10; i < 13; i++) {
+        states[i] = ConstrainFloat(states[i], -0.12f * dtIMU, 0.12f * dtIMU);
+    }
+
+    // Wind velocity limits - assume 120 m/s max velocity
+    for (unsigned i = 13; i < 15; i++) {
+        states[i] = ConstrainFloat(states[i], -120.0f, 120.0f);
+    }
+
+    // Earth magnetic field limits (in Gauss)
+    for (unsigned i = 15; i < 18; i++) {
+        states[i] = ConstrainFloat(states[i], -1.0f, 1.0f);
+    }
+
+    // Body magnetic field variances (in Gauss).
+    // the max offset should be in this range.
+    for (unsigned i = 18; i < 21; i++) {
+        states[i] = ConstrainFloat(states[i], -0.5f, 0.5f);
+    }
+
+}
 
 void AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, float *initQuat)
 {

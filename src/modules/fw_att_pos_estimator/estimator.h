@@ -169,5 +169,11 @@ void CovarianceInit();
 
 void InitialiseFilter(float (&initvelNED)[3]);
 
+float ConstrainFloat(float val, float min, float max);
+
+void ConstrainVariances();
+
+void ConstrainStates();
+
 uint32_t millis();
 
