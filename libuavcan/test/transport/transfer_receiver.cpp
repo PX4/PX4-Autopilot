@@ -20,8 +20,7 @@ struct RxFrameGenerator
     uint16_t data_type_id;
     uavcan::TransferBufferManagerKey bufmgr_key;
 
-    RxFrameGenerator(uint16_t data_type_id, uavcan::TransferType ttype,
-                     const uavcan::TransferBufferManagerKey& bufmgr_key = DEFAULT_KEY)
+    RxFrameGenerator(uint16_t data_type_id, const uavcan::TransferBufferManagerKey& bufmgr_key = DEFAULT_KEY)
     : data_type_id(data_type_id)
     , bufmgr_key(bufmgr_key)
     { }
@@ -95,7 +94,7 @@ TEST(TransferReceiver, Basic)
 {
     using uavcan::TransferReceiver;
     Context<32> context;
-    RxFrameGenerator gen(789, uavcan::TransferTypeMessageBroadcast);
+    RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
     uavcan::TransferBufferAccessor bk(context.bufmgr, RxFrameGenerator::DEFAULT_KEY);
@@ -215,7 +214,7 @@ TEST(TransferReceiver, Basic)
 TEST(TransferReceiver, OutOfBufferSpace_32bytes)
 {
     Context<32> context;
-    RxFrameGenerator gen(789, uavcan::TransferTypeMessageBroadcast);
+    RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
     uavcan::TransferBufferAccessor bk(context.bufmgr, RxFrameGenerator::DEFAULT_KEY);
@@ -250,7 +249,7 @@ TEST(TransferReceiver, OutOfBufferSpace_32bytes)
 TEST(TransferReceiver, UnterminatedTransfer)
 {
     Context<512> context;
-    RxFrameGenerator gen(789, uavcan::TransferTypeMessageBroadcast);
+    RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
     uavcan::TransferBufferAccessor bk(context.bufmgr, RxFrameGenerator::DEFAULT_KEY);
@@ -271,7 +270,7 @@ TEST(TransferReceiver, UnterminatedTransfer)
 TEST(TransferReceiver, OutOfOrderFrames)
 {
     Context<32> context;
-    RxFrameGenerator gen(789, uavcan::TransferTypeMessageBroadcast);
+    RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
     uavcan::TransferBufferAccessor bk(context.bufmgr, RxFrameGenerator::DEFAULT_KEY);
@@ -292,7 +291,7 @@ TEST(TransferReceiver, OutOfOrderFrames)
 TEST(TransferReceiver, IntervalMeasurement)
 {
     Context<32> context;
-    RxFrameGenerator gen(789, uavcan::TransferTypeMessageBroadcast);
+    RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
     uavcan::TransferBufferAccessor bk(context.bufmgr, RxFrameGenerator::DEFAULT_KEY);
@@ -322,7 +321,7 @@ TEST(TransferReceiver, IntervalMeasurement)
 TEST(TransferReceiver, Restart)
 {
     Context<32> context;
-    RxFrameGenerator gen(789, uavcan::TransferTypeMessageBroadcast);
+    RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
     uavcan::TransferBufferAccessor bk(context.bufmgr, RxFrameGenerator::DEFAULT_KEY);
@@ -364,7 +363,7 @@ TEST(TransferReceiver, Restart)
 TEST(TransferReceiver, UtcTransferTimestamping)
 {
     Context<32> context;
-    RxFrameGenerator gen(789, uavcan::TransferTypeMessageBroadcast);
+    RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
     uavcan::TransferBufferAccessor bk(context.bufmgr, RxFrameGenerator::DEFAULT_KEY);
@@ -414,7 +413,7 @@ TEST(TransferReceiver, UtcTransferTimestamping)
 TEST(TransferReceiver, HeaderParsing)
 {
     Context<32> context;
-    RxFrameGenerator gen(789, uavcan::TransferTypeMessageBroadcast);
+    RxFrameGenerator gen(789);
     uavcan::TransferReceiver& rcv = context.receiver;
     uavcan::ITransferBufferManager& bufmgr = context.bufmgr;
 

@@ -38,28 +38,33 @@ include_directories(${DSDLC_OUTPUT})
 #
 # Unit tests with gtest (optional)
 #
-find_package(GTest QUIET)
-if (GTEST_FOUND)
+function(add_test name flags)
     find_package(Threads REQUIRED)
     include_directories(${GTEST_INCLUDE_DIRS})
 
     file(GLOB_RECURSE TEST_CXX_FILES RELATIVE ${CMAKE_SOURCE_DIR} "test/*.cpp")
-    add_executable(libuavcan_test ${TEST_CXX_FILES})
-    add_dependencies(libuavcan_test uavcan)
+    add_executable(${name} ${TEST_CXX_FILES})
+    add_dependencies(${name} uavcan)
 
-    set_target_properties(libuavcan_test PROPERTIES
-        COMPILE_FLAGS "-fno-exceptions -Wno-unused-parameter -Wno-unused-function"
-    )
+    set_target_properties(${name} PROPERTIES COMPILE_FLAGS ${flags})
 
-    target_link_libraries(libuavcan_test ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-    target_link_libraries(libuavcan_test ${CMAKE_BINARY_DIR}/libuavcan.so)
-    target_link_libraries(libuavcan_test rt)
+    target_link_libraries(${name} ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+    target_link_libraries(${name} ${CMAKE_BINARY_DIR}/libuavcan.so)
+    target_link_libraries(${name} rt)
 
     # Tests run automatically upon successful build
     # If failing tests need to be investigated with debugger, use 'make --ignore-errors'
-    add_custom_command(TARGET libuavcan_test POST_BUILD
-                       COMMAND ./libuavcan_test
+    add_custom_command(TARGET ${name} POST_BUILD
+                       COMMAND ./${name} > "${name}.log"
                        WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+endfunction()
+
+find_package(GTest QUIET)
+if (GTEST_FOUND)
+    add_test(libuavcan_test_cpp03_noexc "-Wall -Wextra -Werror -pedantic -fno-exceptions -std=c++03")
+    add_test(libuavcan_test_cpp11_noexc "-Wall -Wextra -Werror -pedantic -fno-exceptions -std=c++0x")
+    add_test(libuavcan_test_cpp03_exc   "-Wall -Wextra -Werror -pedantic -std=c++03")
+    add_test(libuavcan_test_cpp11_exc   "-Wall -Wextra -Werror -pedantic -std=c++0x")
 else (GTEST_FOUND)
     message(">> Google test library is not found, you will not be able to run tests")
 endif (GTEST_FOUND)

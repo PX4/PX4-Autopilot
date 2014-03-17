@@ -82,10 +82,10 @@ public:
     }
 };
 
-static uavcan::MonotonicTime tsMono(uint64_t usec) { return uavcan::MonotonicTime::fromUSec(usec); }
-static uavcan::UtcTime tsUtc(uint64_t usec) { return uavcan::UtcTime::fromUSec(usec); }
+inline uavcan::MonotonicTime tsMono(uint64_t usec) { return uavcan::MonotonicTime::fromUSec(usec); }
+inline uavcan::UtcTime tsUtc(uint64_t usec) { return uavcan::UtcTime::fromUSec(usec); }
 
-static uavcan::MonotonicDuration durMono(int64_t usec) { return uavcan::MonotonicDuration::fromUSec(usec); }
+inline uavcan::MonotonicDuration durMono(int64_t usec) { return uavcan::MonotonicDuration::fromUSec(usec); }
 
 template <typename T>
 static bool areTimestampsClose(const T& a, const T& b, int64_t precision_usec = 10000)

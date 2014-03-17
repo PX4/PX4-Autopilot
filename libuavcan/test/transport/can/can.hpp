@@ -121,7 +121,7 @@ public:
 
     // cppcheck-suppress unusedFunction
     // cppcheck-suppress functionConst
-    int configureFilters(const uavcan::CanFilterConfig* filter_configs, int num_configs) { return -1; }
+    int configureFilters(const uavcan::CanFilterConfig*, int) { return -1; }
     // cppcheck-suppress unusedFunction
     int getNumFilters() const { return 0; }
     uint64_t getNumErrors() const { return num_errors; }
@@ -189,7 +189,7 @@ public:
 };
 
 enum FrameType { STD, EXT };
-static uavcan::CanFrame makeCanFrame(uint32_t id, const std::string& str_data, FrameType type)
+inline uavcan::CanFrame makeCanFrame(uint32_t id, const std::string& str_data, FrameType type)
 {
     id |= (type == EXT) ? uavcan::CanFrame::FlagEFF : 0;
     return uavcan::CanFrame(id, reinterpret_cast<const uint8_t*>(str_data.c_str()), str_data.length());
