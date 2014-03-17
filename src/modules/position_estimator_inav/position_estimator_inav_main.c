@@ -206,6 +206,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	bool ref_inited = false;
 	hrt_abstime ref_init_start = 0;
 	const hrt_abstime ref_init_delay = 1000000;	// wait for 1s after 3D fix
+	struct map_projection_reference_s ref;
+	memset(&ref, 0, sizeof(ref));
 
 	uint16_t accel_updates = 0;
 	uint16_t baro_updates = 0;
@@ -560,7 +562,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							local_pos.ref_timestamp = t;
 
 							/* initialize projection */
-							map_projection_init(lat, lon);
+							map_projection_init(&ref, lat, lon);
 							warnx("init ref: lat=%.7f, lon=%.7f, alt=%.2f", lat, lon, alt);
 							mavlink_log_info(mavlink_fd, "[inav] init ref: lat=%.7f, lon=%.7f, alt=%.2f", lat, lon, alt);
 						}
@@ -569,7 +571,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					if (ref_inited) {
 						/* project GPS lat lon to plane */
 						float gps_proj[2];
-						map_projection_project(gps.lat * 1e-7, gps.lon * 1e-7, &(gps_proj[0]), &(gps_proj[1]));
+						map_projection_project(&ref, gps.lat * 1e-7, gps.lon * 1e-7, &(gps_proj[0]), &(gps_proj[1]));
 						/* calculate correction for position */
 						corr_gps[0][0] = gps_proj[0] - x_est[0];
 						corr_gps[1][0] = gps_proj[1] - y_est[0];
@@ -836,7 +838,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (local_pos.xy_global) {
 				double est_lat, est_lon;
-				map_projection_reproject(local_pos.x, local_pos.y, &est_lat, &est_lon);
+				map_projection_reproject(&ref, local_pos.x, local_pos.y, &est_lat, &est_lon);
 				global_pos.lat = est_lat;
 				global_pos.lon = est_lon;
 				global_pos.time_gps_usec = gps.time_gps_usec;

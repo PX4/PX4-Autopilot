@@ -132,6 +132,7 @@ static orb_advert_t telemetry_status_pub = -1;
 static int32_t lat0 = 0;
 static int32_t lon0 = 0;
 static double alt0 = 0;
+struct map_projection_reference_s hil_ref;
 
 static void
 handle_message(mavlink_message_t *msg)
@@ -653,7 +654,7 @@ handle_message(mavlink_message_t *msg)
 				bool landed = hil_state.alt/1000.0f < (alt0 + 0.1); // XXX improve?
 				double lat = hil_state.lat*1e-7;
 				double lon = hil_state.lon*1e-7;
-				map_projection_project(lat, lon, &x, &y); 
+				map_projection_project(&hil_ref, lat, lon, &x, &y);
 				hil_local_pos.timestamp = timestamp;
 				hil_local_pos.xy_valid = true;
 				hil_local_pos.z_valid = true;
@@ -679,7 +680,7 @@ handle_message(mavlink_message_t *msg)
 				lat0 = hil_state.lat;
 				lon0 = hil_state.lon;
 				alt0 = hil_state.alt / 1000.0f;
-				map_projection_init(hil_state.lat, hil_state.lon);
+				map_projection_init(&hil_ref, hil_state.lat, hil_state.lon);
 			}
 
 			/* Calculate Rotation Matrix */
