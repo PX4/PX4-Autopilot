@@ -14,6 +14,7 @@
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/marshal/type_util.hpp>
+#include <uavcan/marshal/integer_spec.hpp>
 
 #ifndef UAVCAN_EXCEPTIONS
 # error UAVCAN_EXCEPTIONS
