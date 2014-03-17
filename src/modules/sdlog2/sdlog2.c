@@ -887,11 +887,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 	pthread_cond_init(&logbuffer_cond, NULL);
 
 	/* track changes in sensor_combined topic */
-	uint16_t gyro_counter = 0;
-	uint16_t accelerometer_counter = 0;
-	uint16_t magnetometer_counter = 0;
-	uint16_t baro_counter = 0;
-	uint16_t differential_pressure_counter = 0;
+	hrt_abstime gyro_timestamp = 0;
+	hrt_abstime accelerometer_timestamp = 0;
+	hrt_abstime magnetometer_timestamp = 0;
+	hrt_abstime barometer_timestamp = 0;
+	hrt_abstime differential_pressure_timestamp = 0;
 
 	/* track changes in distance status */
 	bool dist_bottom_present = false;
@@ -976,28 +976,28 @@ int sdlog2_thread_main(int argc, char *argv[])
 			bool write_IMU = false;
 			bool write_SENS = false;
 
-			if (buf.sensor.gyro_counter != gyro_counter) {
-				gyro_counter = buf.sensor.gyro_counter;
+			if (buf.sensor.timestamp != gyro_timestamp) {
+				gyro_timestamp = buf.sensor.timestamp;
 				write_IMU = true;
 			}
 
-			if (buf.sensor.accelerometer_counter != accelerometer_counter) {
-				accelerometer_counter = buf.sensor.accelerometer_counter;
+			if (buf.sensor.accelerometer_timestamp != accelerometer_timestamp) {
+				accelerometer_timestamp = buf.sensor.accelerometer_timestamp;
 				write_IMU = true;
 			}
 
-			if (buf.sensor.magnetometer_counter != magnetometer_counter) {
-				magnetometer_counter = buf.sensor.magnetometer_counter;
+			if (buf.sensor.magnetometer_timestamp != magnetometer_timestamp) {
+				magnetometer_timestamp = buf.sensor.magnetometer_timestamp;
 				write_IMU = true;
 			}
 
-			if (buf.sensor.baro_counter != baro_counter) {
-				baro_counter = buf.sensor.baro_counter;
+			if (buf.sensor.baro_timestamp != barometer_timestamp) {
+				barometer_timestamp = buf.sensor.baro_timestamp;
 				write_SENS = true;
 			}
 
-			if (buf.sensor.differential_pressure_counter != differential_pressure_counter) {
-				differential_pressure_counter = buf.sensor.differential_pressure_counter;
+			if (buf.sensor.differential_pressure_timestamp != differential_pressure_timestamp) {
+				differential_pressure_timestamp = buf.sensor.differential_pressure_timestamp;
 				write_SENS = true;
 			}
 
@@ -1023,6 +1023,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_SENS.diff_pres = buf.sensor.differential_pressure_pa;
 				LOGBUFFER_WRITE_AND_COUNT(SENS);
 			}
+
 		}
 
 		/* --- ATTITUDE --- */

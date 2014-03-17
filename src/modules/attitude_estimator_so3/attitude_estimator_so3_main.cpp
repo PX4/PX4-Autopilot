@@ -445,7 +445,6 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 	// XXX write this out to perf regs
 
 	/* keep track of sensor updates */
-	uint32_t sensor_last_count[3] = {0, 0, 0};
 	uint64_t sensor_last_timestamp[3] = {0, 0, 0};
 
 	struct attitude_estimator_so3_params so3_comp_params;
@@ -526,9 +525,8 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 					uint8_t update_vect[3] = {0, 0, 0};
 
 					/* Fill in gyro measurements */
-					if (sensor_last_count[0] != raw.gyro_counter) {
+					if (sensor_last_timestamp[0] != raw.timestamp) {
 						update_vect[0] = 1;
-						sensor_last_count[0] = raw.gyro_counter;
 						sensor_update_hz[0] = 1e6f / (raw.timestamp - sensor_last_timestamp[0]);
 						sensor_last_timestamp[0] = raw.timestamp;
 					}
@@ -538,11 +536,10 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 					gyro[2] = raw.gyro_rad_s[2] - gyro_offsets[2];
 
 					/* update accelerometer measurements */
-					if (sensor_last_count[1] != raw.accelerometer_counter) {
+					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp) {
 						update_vect[1] = 1;
-						sensor_last_count[1] = raw.accelerometer_counter;
 						sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
-						sensor_last_timestamp[1] = raw.timestamp;
+						sensor_last_timestamp[1] = raw.accelerometer_timestamp;
 					}
 
 					acc[0] = raw.accelerometer_m_s2[0];
@@ -550,11 +547,10 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 					acc[2] = raw.accelerometer_m_s2[2];
 
 					/* update magnetometer measurements */
-					if (sensor_last_count[2] != raw.magnetometer_counter) {
+					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp) {
 						update_vect[2] = 1;
-						sensor_last_count[2] = raw.magnetometer_counter;
 						sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
-						sensor_last_timestamp[2] = raw.timestamp;
+						sensor_last_timestamp[2] = raw.magnetometer_timestamp;
 					}
 
 					mag[0] = raw.magnetometer_ga[0];

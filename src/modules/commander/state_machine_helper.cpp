@@ -44,6 +44,7 @@
 #include <stdbool.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <string.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
@@ -309,10 +310,7 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 	bool valid_transition = false;
 	int ret = ERROR;
 
-	warnx("Current state: %d, requested state: %d", current_status->hil_state, new_state);
-
 	if (current_status->hil_state == new_state) {
-		warnx("Hil state not changed");
 		valid_transition = true;
 
 	} else {
@@ -340,22 +338,59 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 
 				/* list directory */
 				DIR		*d;
-				struct dirent	*direntry;
 				d = opendir("/dev");
 				if (d) {
 
+					struct dirent	*direntry;
+					char devname[24];
+
 					while ((direntry = readdir(d)) != NULL) {
 
-						int sensfd = ::open(direntry->d_name, 0);
-						int block_ret = ::ioctl(sensfd, DEVIOCSPUBBLOCK, 0);
+						/* skip serial ports */
+						if (!strncmp("tty", direntry->d_name, 3)) {
+							continue;
+						}
+						/* skip mtd devices */
+						if (!strncmp("mtd", direntry->d_name, 3)) {
+							continue;
+						}
+						/* skip ram devices */
+						if (!strncmp("ram", direntry->d_name, 3)) {
+							continue;
+						}
+						/* skip MMC devices */
+						if (!strncmp("mmc", direntry->d_name, 3)) {
+							continue;
+						}
+						/* skip mavlink */
+						if (!strcmp("mavlink", direntry->d_name)) {
+							continue;
+						}
+						/* skip console */
+						if (!strcmp("console", direntry->d_name)) {
+							continue;
+						}
+						/* skip null */
+						if (!strcmp("null", direntry->d_name)) {
+							continue;
+						}
+
+						snprintf(devname, sizeof(devname), "/dev/%s", direntry->d_name);
+
+						int sensfd = ::open(devname, 0);
+
+						if (sensfd < 0) {
+							warn("failed opening device %s", devname);
+							continue;
+						}
+
+						int block_ret = ::ioctl(sensfd, DEVIOCSPUBBLOCK, 1);
 						close(sensfd);
 
-						printf("Disabling %s\n: %s", direntry->d_name, (!block_ret) ? "OK" : "FAIL");
+						printf("Disabling %s: %s\n", devname, (block_ret == OK) ? "OK" : "ERROR");
 					}
 
 					closedir(d);
-
-					warnx("directory listing ok (FS mounted and readable)");
 
 				} else {
 					/* failed opening dir */

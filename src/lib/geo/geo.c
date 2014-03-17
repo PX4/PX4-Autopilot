@@ -197,7 +197,6 @@ __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, doub
 	double lat_next_rad = lat_next * M_DEG_TO_RAD;
 	double lon_next_rad = lon_next * M_DEG_TO_RAD;
 
-	double d_lat = lat_next_rad - lat_now_rad;
 	double d_lon = lon_next_rad - lon_now_rad;
 
 	/* conscious mix of double and float trig function to maximize speed and efficiency */
@@ -441,14 +440,14 @@ __EXPORT float _wrap_pi(float bearing)
 	}
 
 	int c = 0;
-	while (bearing > M_PI_F) {
+	while (bearing >= M_PI_F) {
 		bearing -= M_TWOPI_F;
 		if (c++ > 3)
 			return NAN;
 	}
 
 	c = 0;
-	while (bearing <= -M_PI_F) {
+	while (bearing < -M_PI_F) {
 		bearing += M_TWOPI_F;
 		if (c++ > 3)
 			return NAN;
@@ -465,14 +464,14 @@ __EXPORT float _wrap_2pi(float bearing)
 	}
 
 	int c = 0;
-	while (bearing > M_TWOPI_F) {
+	while (bearing >= M_TWOPI_F) {
 		bearing -= M_TWOPI_F;
 		if (c++ > 3)
 			return NAN;
 	}
 
 	c = 0;
-	while (bearing <= 0.0f) {
+	while (bearing < 0.0f) {
 		bearing += M_TWOPI_F;
 		if (c++ > 3)
 			return NAN;
@@ -489,14 +488,14 @@ __EXPORT float _wrap_180(float bearing)
 	}
 
 	int c = 0;
-	while (bearing > 180.0f) {
+	while (bearing >= 180.0f) {
 		bearing -= 360.0f;
 		if (c++ > 3)
 			return NAN;
 	}
 
 	c = 0;
-	while (bearing <= -180.0f) {
+	while (bearing < -180.0f) {
 		bearing += 360.0f;
 		if (c++ > 3)
 			return NAN;
@@ -513,14 +512,14 @@ __EXPORT float _wrap_360(float bearing)
 	}
 
 	int c = 0;
-	while (bearing > 360.0f) {
+	while (bearing >= 360.0f) {
 		bearing -= 360.0f;
 		if (c++ > 3)
 			return NAN;
 	}
 
 	c = 0;
-	while (bearing <= 0.0f) {
+	while (bearing < 0.0f) {
 		bearing += 360.0f;
 		if (c++ > 3)
 			return NAN;

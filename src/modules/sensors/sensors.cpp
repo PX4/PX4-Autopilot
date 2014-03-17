@@ -36,6 +36,8 @@
  * Sensor readout process.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
  */
 
 #include <nuttx/config.h>
@@ -940,7 +942,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		raw.accelerometer_raw[1] = accel_report.y_raw;
 		raw.accelerometer_raw[2] = accel_report.z_raw;
 
-		raw.accelerometer_counter++;
+		raw.accelerometer_timestamp = accel_report.timestamp;
 	}
 }
 
@@ -966,7 +968,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		raw.gyro_raw[1] = gyro_report.y_raw;
 		raw.gyro_raw[2] = gyro_report.z_raw;
 
-		raw.gyro_counter++;
+		raw.timestamp = gyro_report.timestamp;
 	}
 }
 
@@ -996,7 +998,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 		raw.magnetometer_raw[1] = mag_report.y_raw;
 		raw.magnetometer_raw[2] = mag_report.z_raw;
 
-		raw.magnetometer_counter++;
+		raw.magnetometer_timestamp = mag_report.timestamp;
 	}
 }
 
@@ -1014,7 +1016,7 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 		raw.baro_alt_meter = _barometer.altitude; // Altitude in meters
 		raw.baro_temp_celcius = _barometer.temperature; // Temperature in degrees celcius
 
-		raw.baro_counter++;
+		raw.baro_timestamp = _barometer.timestamp;
 	}
 }
 
@@ -1028,7 +1030,7 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		orb_copy(ORB_ID(differential_pressure), _diff_pres_sub, &_diff_pres);
 
 		raw.differential_pressure_pa = _diff_pres.differential_pressure_pa;
-		raw.differential_pressure_counter++;
+		raw.differential_pressure_timestamp = _diff_pres.timestamp;
 
 		_airspeed.indicated_airspeed_m_s = calc_indicated_airspeed(_diff_pres.differential_pressure_pa);
 		_airspeed.true_airspeed_m_s = calc_true_airspeed(_diff_pres.differential_pressure_pa + raw.baro_pres_mbar * 1e2f,
@@ -1169,16 +1171,19 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 	hrt_abstime t = hrt_absolute_time();
 	/* rate limit to 100 Hz */
 	if (t - _last_adc >= 10000) {
-		/* make space for a maximum of eight channels */
-		struct adc_msg_s buf_adc[8];
+		/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
+		struct adc_msg_s buf_adc[12];
 		/* read all channels available */
 		int ret = read(_fd_adc, &buf_adc, sizeof(buf_adc));
 
 		if (ret >= (int)sizeof(buf_adc[0])) {
-			for (unsigned i = 0; i < sizeof(buf_adc) / sizeof(buf_adc[0]); i++) {
+
+			/* Read add channels we got */
+			for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {
 				/* Save raw voltage values */
-				if (i < (sizeof(raw.adc_voltage_v)) / sizeof(raw.adc_voltage_v[0])) {
+				if (i < (sizeof(raw.adc_voltage_v) / sizeof(raw.adc_voltage_v[0]))) {
 					raw.adc_voltage_v[i] = buf_adc[i].am_data / (4096.0f / 3.3f);
+					raw.adc_mapping[i] = buf_adc[i].am_channel;
 				}
 
 				/* look for specific channels and process the raw voltage to measurement data */
@@ -1592,8 +1597,7 @@ Sensors::task_main()
 		/* check parameters for updates */
 		parameter_update_poll();
 
-		/* store the time closest to all measurements (this is bogus, sensor timestamps should be propagated...) */
-		raw.timestamp = hrt_absolute_time();
+		/* the timestamp of the raw struct is updated by the gyro_poll() method */
 
 		/* copy most recent sensor data */
 		gyro_poll(raw);

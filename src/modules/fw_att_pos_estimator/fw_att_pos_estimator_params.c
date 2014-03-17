@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,72 +32,86 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_parameters.h
- * MAVLink parameter protocol definitions (BSD-relicensed).
+ * @file fw_att_pos_estimator_params.c
+ *
+ * Parameters defined by the attitude and position estimator task
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-/* This assumes you have the mavlink headers on your include path
- or in the same folder as this source file */
+#include <nuttx/config.h>
 
-
-#include <v1.0/mavlink_types.h>
-#include <stdbool.h>
 #include <systemlib/param/param.h>
 
-/**
- * Handle parameter related messages.
+/*
+ * Estimator parameters, accessible via MAVLink
+ *
  */
-void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_message_t *msg);
 
 /**
- * Send all parameters at once.
+ * Velocity estimate delay
  *
- * This function blocks until all parameters have been sent.
- * it delays each parameter by the passed amount of microseconds.
+ * The delay in milliseconds of the velocity estimate from GPS.
  *
- * @param delay		The delay in us between sending all parameters.
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
  */
-void mavlink_pm_send_all_params(unsigned int delay);
+PARAM_DEFINE_INT32(PE_VEL_DELAY_MS, 230);
 
 /**
- * Send one parameter.
+ * Position estimate delay
  *
- * @param param		The parameter id to send.
- * @return		zero on success, nonzero on failure.
+ * The delay in milliseconds of the position estimate from GPS.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
  */
-int mavlink_pm_send_param(param_t param);
+PARAM_DEFINE_INT32(PE_POS_DELAY_MS, 210);
 
 /**
- * Send one parameter identified by index.
+ * Height estimate delay
  *
- * @param index		The index of the parameter to send.
- * @return		zero on success, nonzero else.
+ * The delay in milliseconds of the height estimate from the barometer.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
  */
-int mavlink_pm_send_param_for_index(uint16_t index);
+PARAM_DEFINE_INT32(PE_HGT_DELAY_MS, 350);
 
 /**
- * Send one parameter identified by name.
+ * Mag estimate delay
  *
- * @param name		The index of the parameter to send.
- * @return		zero on success, nonzero else.
+ * The delay in milliseconds of the magnetic field estimate from
+ * the magnetometer.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
  */
-int mavlink_pm_send_param_for_name(const char *name);
+PARAM_DEFINE_INT32(PE_MAG_DELAY_MS, 30);
 
 /**
- * Send a queue of parameters, one parameter per function call.
+ * True airspeeed estimate delay
  *
- * @return		zero on success, nonzero on failure
+ * The delay in milliseconds of the airspeed estimate.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
  */
-int mavlink_pm_queued_send(void);
+PARAM_DEFINE_INT32(PE_TAS_DELAY_MS, 210);
 
 /**
- * Start sending the parameter queue.
+ * GPS vs. barometric altitude update weight
  *
- * This function will not directly send parameters, but instead
- * activate the sending of one parameter on each call of
- * mavlink_pm_queued_send().
- * @see 		mavlink_pm_queued_send()
+ * RE-CHECK this.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group Position Estimator
  */
-void mavlink_pm_start_queued_send(void);
+PARAM_DEFINE_FLOAT(PE_GPS_ALT_WGT, 0.9f);
+

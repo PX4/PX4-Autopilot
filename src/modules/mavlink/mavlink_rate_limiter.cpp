@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,63 +32,41 @@
  ****************************************************************************/
 
 /**
- * @file test_adc.c
- * Test for the analog to digital converter.
+ * @file mavlink_rate_limiter.cpp
+ * Message rate limiter implementation.
+ *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <nuttx/config.h>
-#include <nuttx/arch.h>
+#include "mavlink_rate_limiter.h"
 
-#include <sys/types.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <debug.h>
-
-#include <nuttx/spi.h>
-
-#include "tests.h"
-
-#include <nuttx/analog/adc.h>
-#include <drivers/drv_adc.h>
-#include <systemlib/err.h>
-
-int test_adc(int argc, char *argv[])
+MavlinkRateLimiter::MavlinkRateLimiter() : _last_sent(0), _interval(1000000)
 {
-	int fd = open(ADC_DEVICE_PATH, O_RDONLY);
+}
 
-	if (fd < 0) {
-		warnx("ERROR: can't open ADC device");
-		return 1;
+MavlinkRateLimiter::MavlinkRateLimiter(unsigned int interval) : _last_sent(0), _interval(interval)
+{
+}
+
+MavlinkRateLimiter::~MavlinkRateLimiter()
+{
+}
+
+void
+MavlinkRateLimiter::set_interval(unsigned int interval)
+{
+	_interval = interval;
+}
+
+bool
+MavlinkRateLimiter::check(hrt_abstime t)
+{
+	uint64_t dt = t - _last_sent;
+
+	if (dt > 0 && dt >= _interval) {
+		_last_sent = (t / _interval) * _interval;
+		return true;
 	}
 
-	for (unsigned i = 0; i < 5; i++) {
-		/* make space for a maximum of twelve channels */
-		struct adc_msg_s data[12];
-		/* read all channels available */
-		ssize_t count = read(fd, data, sizeof(data));
-
-		if (count < 0)
-			goto errout_with_dev;
-
-		unsigned channels = count / sizeof(data[0]);
-
-		for (unsigned j = 0; j < channels; j++) {
-			printf("%d: %u  ", data[j].am_channel, data[j].am_data);
-		}
-
-		printf("\n");
-		usleep(150000);
-	}
-
-	warnx("\t ADC test successful.\n");
-
-errout_with_dev:
-
-	if (fd != 0) close(fd);
-
-	return OK;
+	return false;
 }

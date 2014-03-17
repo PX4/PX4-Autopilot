@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,63 +32,47 @@
  ****************************************************************************/
 
 /**
- * @file test_adc.c
- * Test for the analog to digital converter.
+ * @file mavlink_orb_subscription.h
+ * uORB subscription definition.
+ *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <nuttx/config.h>
-#include <nuttx/arch.h>
+#ifndef MAVLINK_ORB_SUBSCRIPTION_H_
+#define MAVLINK_ORB_SUBSCRIPTION_H_
 
-#include <sys/types.h>
+#include <systemlib/uthash/utlist.h>
+#include <drivers/drv_hrt.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <debug.h>
 
-#include <nuttx/spi.h>
-
-#include "tests.h"
-
-#include <nuttx/analog/adc.h>
-#include <drivers/drv_adc.h>
-#include <systemlib/err.h>
-
-int test_adc(int argc, char *argv[])
+class MavlinkOrbSubscription
 {
-	int fd = open(ADC_DEVICE_PATH, O_RDONLY);
+public:
+	MavlinkOrbSubscription *next;	/*< pointer to next subscription in list */
 
-	if (fd < 0) {
-		warnx("ERROR: can't open ADC device");
-		return 1;
-	}
+	MavlinkOrbSubscription(const orb_id_t topic);
+	~MavlinkOrbSubscription();
 
-	for (unsigned i = 0; i < 5; i++) {
-		/* make space for a maximum of twelve channels */
-		struct adc_msg_s data[12];
-		/* read all channels available */
-		ssize_t count = read(fd, data, sizeof(data));
+	bool update(const hrt_abstime t);
 
-		if (count < 0)
-			goto errout_with_dev;
+	/**
+	 * Check if the topic has been published.
+	 *
+	 * This call will return true if the topic was ever published.
+	 * @return true if the topic has been published at least once.
+	 */
+	bool is_published();
+	void *get_data();
+	const orb_id_t get_topic();
 
-		unsigned channels = count / sizeof(data[0]);
+private:
+	const orb_id_t _topic;		/*< topic metadata */
+	int _fd;					/*< subscription handle */
+	bool _published;			/*< topic was ever published */
+	void *_data;				/*< pointer to data buffer */
+	hrt_abstime _last_check;	/*< time of last check */
+	bool _updated;				/*< updated on last check */
+};
 
-		for (unsigned j = 0; j < channels; j++) {
-			printf("%d: %u  ", data[j].am_channel, data[j].am_data);
-		}
 
-		printf("\n");
-		usleep(150000);
-	}
-
-	warnx("\t ADC test successful.\n");
-
-errout_with_dev:
-
-	if (fd != 0) close(fd);
-
-	return OK;
-}
+#endif /* MAVLINK_ORB_SUBSCRIPTION_H_ */
