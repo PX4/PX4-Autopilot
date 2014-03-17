@@ -466,7 +466,7 @@ class YamlStreamer<Array<T, ArrayMode, MaxSize> >
             const int c = array.at(i);
             if (c < 32 || c > 126)
             {
-                char nibbles[2] = {(c >> 4) & 0xF, c & 0xF};
+                char nibbles[2] = {char((c >> 4) & 0xF), char(c & 0xF)};
                 for (int i = 0; i < 2; i++)
                 {
                     nibbles[i] += '0';

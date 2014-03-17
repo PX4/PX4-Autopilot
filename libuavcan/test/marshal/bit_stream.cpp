@@ -142,7 +142,7 @@ TEST(BitStream, BitByBit)
         {
             const bool value = counter % 3 == 0;
             binary_string.push_back(value ? '1' : '0');
-            const uint8_t data[] = { value << 7 };
+            const uint8_t data[] = { uint8_t(value << 7) };
             ASSERT_EQ(1, bs_wr.write(data, 1));
         }
         binary_string.push_back(' ');

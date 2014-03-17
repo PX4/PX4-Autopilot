@@ -6,11 +6,15 @@
 
 #include <stdint.h>
 #include <limits>
-#include <math.h>            // Needed for isfinite
 #include <uavcan/data_type.hpp>
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/marshal/type_util.hpp>
 #include <uavcan/marshal/integer_spec.hpp>
+#if __cplusplus > 201100
+#  include <cmath>
+#else
+#  include <math.h>
+#endif
 
 namespace uavcan
 {
@@ -137,6 +141,7 @@ public:
 private:
     static inline void saturate(StorageType& value)
     {
+        using namespace std;
         if (!IsExactRepresentation && isfinite(value))
         {
             if (value > max())
@@ -148,6 +153,7 @@ private:
 
     static inline void truncate(StorageType& value)
     {
+        using namespace std;
         if (!IsExactRepresentation && isfinite(value))
         {
             if (value > max())
