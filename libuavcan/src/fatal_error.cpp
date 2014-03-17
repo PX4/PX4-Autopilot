@@ -8,6 +8,10 @@
 #include <uavcan/fatal_error.hpp>
 #include <uavcan/impl_constants.hpp>
 
+#ifndef UAVCAN_EXCEPTIONS
+# error UAVCAN_EXCEPTIONS
+#endif
+
 namespace uavcan
 {
 

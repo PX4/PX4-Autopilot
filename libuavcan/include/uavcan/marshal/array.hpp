@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cassert>
 #include <bitset>
 #include <algorithm>
 #include <stdexcept>
@@ -12,6 +13,10 @@
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/marshal/type_util.hpp>
+
+#ifndef UAVCAN_EXCEPTIONS
+# error UAVCAN_EXCEPTIONS
+#endif
 
 namespace uavcan
 {

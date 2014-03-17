@@ -35,8 +35,10 @@ namespace uavcan
  * UAVCAN can be explicitly told to ignore exceptions, or it can be detected automatically.
  */
 #ifndef UAVCAN_EXCEPTIONS
-# if defined(__EXCEPTIONS) || defined(_HAS_EXCEPTIONS)
-#  define UAVCAN_EXCEPTIONS 1
+# if __EXCEPTIONS || _HAS_EXCEPTIONS
+#  define UAVCAN_EXCEPTIONS  1
+# else
+#  define UAVCAN_EXCEPTIONS  0
 # endif
 #endif
 
