@@ -6,7 +6,6 @@
 
 #include <cassert>
 #include <cstdlib>
-#include <stdint.h>
 #include <uavcan/linked_list.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/dynamic_memory.hpp>

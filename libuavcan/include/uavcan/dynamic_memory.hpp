@@ -9,7 +9,7 @@
 #include <cstring>
 #include <algorithm>
 #include <limits>
-#include <stdint.h>
+#include <uavcan/stdint.hpp>
 #include <uavcan/util/compile_time.hpp>
 
 namespace uavcan

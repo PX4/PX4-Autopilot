@@ -6,9 +6,9 @@
 #pragma once
 
 #include <cassert>
-#include <stdint.h>
 #include <algorithm>
 #include <string>
+#include <uavcan/stdint.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/system_clock.hpp>
 

@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include <stdint.h>
 #include <algorithm>
 #include <limits>
+#include <uavcan/stdint.hpp>
 #include <uavcan/transport/frame.hpp>
 #include <uavcan/linked_list.hpp>
 #include <uavcan/dynamic_memory.hpp>

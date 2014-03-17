@@ -7,8 +7,8 @@
 #include <cassert>
 #include <cstring>
 #include <string>
-#include <stdint.h>
 #include <algorithm>
+#include <uavcan/stdint.hpp>
 #include <uavcan/transport/transfer.hpp>
 
 namespace uavcan

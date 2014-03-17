@@ -6,8 +6,8 @@
 
 #include <cassert>
 #include <bitset>
-#include <stdint.h>
 #include <algorithm>
+#include <uavcan/stdint.hpp>
 #include <uavcan/data_type.hpp>
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/fatal_error.hpp>

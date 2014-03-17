@@ -6,7 +6,7 @@
 
 #include <cassert>
 #include <algorithm>
-#include <stdint.h>
+#include <uavcan/stdint.hpp>
 #include <uavcan/transport/transfer_receiver.hpp>
 #include <uavcan/linked_list.hpp>
 #include <uavcan/map.hpp>

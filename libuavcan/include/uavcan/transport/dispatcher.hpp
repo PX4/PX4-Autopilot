@@ -5,7 +5,7 @@
 #pragma once
 
 #include <cassert>
-#include <stdint.h>
+#include <uavcan/stdint.hpp>
 #include <uavcan/transport/transfer_listener.hpp>
 #include <uavcan/transport/outgoing_transfer_registry.hpp>
 #include <uavcan/transport/can_io.hpp>

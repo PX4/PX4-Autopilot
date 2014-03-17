@@ -5,8 +5,8 @@
 #pragma once
 
 #include <cassert>
-#include <stdint.h>
 #include <sstream>
+#include <uavcan/stdint.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/map.hpp>
 #include <uavcan/debug.hpp>

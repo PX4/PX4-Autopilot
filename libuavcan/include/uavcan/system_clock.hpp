@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <uavcan/stdint.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/time.hpp>
 

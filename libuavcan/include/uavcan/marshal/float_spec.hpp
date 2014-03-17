@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <stdint.h>
 #include <limits>
+#include <uavcan/stdint.hpp>
 #include <uavcan/data_type.hpp>
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/impl_constants.hpp>

@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <uavcan/stdint.hpp>
 #include <algorithm>
 #include <limits>
 #include <sstream>
