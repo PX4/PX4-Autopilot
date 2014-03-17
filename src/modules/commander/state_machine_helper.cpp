@@ -70,7 +70,7 @@ static bool failsafe_state_changed = true;
 
 transition_result_t
 arming_state_transition(struct vehicle_status_s *status, const struct safety_s *safety,
-			arming_state_t new_arming_state, struct actuator_armed_s *armed)
+			arming_state_t new_arming_state, struct actuator_armed_s *armed, const int mavlink_fd)
 {
 	/*
 	 * Perform an atomic state update
@@ -125,13 +125,18 @@ arming_state_transition(struct vehicle_status_s *status, const struct safety_s *
 		case ARMING_STATE_ARMED:
 
 			/* allow arming from STANDBY and IN-AIR-RESTORE */
-			if ((status->arming_state == ARMING_STATE_STANDBY
-			     || status->arming_state == ARMING_STATE_IN_AIR_RESTORE)
-			    && (!safety->safety_switch_available || safety->safety_off || status->hil_state == HIL_STATE_ON)) { /* only allow arming if safety is off */
-				ret = TRANSITION_CHANGED;
-				armed->armed = true;
-				armed->ready_to_arm = true;
-			}
+            if ((status->arming_state == ARMING_STATE_STANDBY || status->arming_state == ARMING_STATE_IN_AIR_RESTORE)) {
+                if (status->hil_state == HIL_STATE_OFF && safety->safety_switch_available && !safety->safety_off) {
+                    // If we need to wait for safety switch then output message, but only if we have fd for mavlink connection
+                    if (mavlink_fd) {
+                        mavlink_log_critical(mavlink_fd, "NOT ARMING: Press safety switch first.");
+                    }
+                } else {
+                    ret = TRANSITION_CHANGED;
+                    armed->armed = true;
+                    armed->ready_to_arm = true;
+                }
+            }
 
 			break;
 
