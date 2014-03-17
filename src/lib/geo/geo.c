@@ -79,7 +79,7 @@ __EXPORT void map_projection_project(struct map_projection_reference_s *ref, dou
 	double k = (c == 0.0) ? 1.0 : (c / sin(c));
 
 	*x = k * (ref->cos_lat * sin_lat - ref->sin_lat * cos_lat * cos_d_lon) * CONSTANTS_RADIUS_OF_EARTH;
-	*y = k * (cos_lat * sin(lon_rad - ref->lon)) * CONSTANTS_RADIUS_OF_EARTH;
+	*y = k * cos_lat * sin(lon_rad - ref->lon) * CONSTANTS_RADIUS_OF_EARTH;
 }
 
 __EXPORT void map_projection_reproject(struct map_projection_reference_s *ref, float x, float y, double *lat, double *lon)
