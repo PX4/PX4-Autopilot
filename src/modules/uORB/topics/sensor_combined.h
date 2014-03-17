@@ -98,8 +98,8 @@ struct sensor_combined_s {
 	float baro_pres_mbar;			/**< Barometric pressure, already temp. comp.     */
 	float baro_alt_meter;			/**< Altitude, already temp. comp.                */
 	float baro_temp_celcius;		/**< Temperature in degrees celsius               */
-	float adc_voltage_v[9];			/**< ADC voltages of ADC Chan 10/11/12/13 or -1      */
-	unsigned adc_mapping[9];		/**< Channel indices of each of these values */
+	float adc_voltage_v[10];		/**< ADC voltages of ADC Chan 10/11/12/13 or -1      */
+	unsigned adc_mapping[10];		/**< Channel indices of each of these values */
 	float mcu_temp_celcius;			/**< Internal temperature measurement of MCU */
 	uint64_t baro_timestamp;		/**< Barometer timestamp        */
 
