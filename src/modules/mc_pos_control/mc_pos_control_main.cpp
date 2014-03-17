@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +39,8 @@
  * Output of velocity controller is thrust vector that splitted to thrust direction
  * (i.e. rotation matrix for multicopter orientation) and thrust module (i.e. multicopter thrust itself).
  * Controller doesn't use Euler angles for work, they generated only for more human-friendly control and logging.
+ *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <nuttx/config.h>
@@ -355,8 +356,9 @@ MulticopterPositionControl::parameters_update(bool force)
 
 	orb_check(_params_sub, &updated);
 
-	if (updated)
+	if (updated) {
 		orb_copy(ORB_ID(parameter_update), _params_sub, &param_upd);
+	}
 
 	if (updated || force) {
 		param_get(_params_handles.thr_min, &_params.thr_min);
@@ -412,33 +414,39 @@ MulticopterPositionControl::poll_subscriptions()
 
 	orb_check(_att_sub, &updated);
 
-	if (updated)
+	if (updated) {
 		orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
+	}
 
 	orb_check(_att_sp_sub, &updated);
 
-	if (updated)
+	if (updated) {
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp);
+	}
 
 	orb_check(_control_mode_sub, &updated);
 
-	if (updated)
+	if (updated) {
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
+	}
 
 	orb_check(_manual_sub, &updated);
 
-	if (updated)
+	if (updated) {
 		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
+	}
 
 	orb_check(_arming_sub, &updated);
 
-	if (updated)
+	if (updated) {
 		orb_copy(ORB_ID(actuator_armed), _arming_sub, &_arming);
+	}
 
 	orb_check(_local_pos_sub, &updated);
 
-	if (updated)
+	if (updated) {
 		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+	}
 }
 
 float
@@ -550,8 +558,9 @@ MulticopterPositionControl::task_main()
 		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 500);
 
 		/* timed out - periodic check for _task_should_exit */
-		if (pret == 0)
+		if (pret == 0) {
 			continue;
+		}
 
 		/* this is undesirable but not much we can do */
 		if (pret < 0) {
@@ -653,8 +662,9 @@ MulticopterPositionControl::task_main()
 				bool updated;
 				orb_check(_pos_sp_triplet_sub, &updated);
 
-				if (updated)
+				if (updated) {
 					orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
+				}
 
 				if (_pos_sp_triplet.current.valid) {
 					/* in case of interrupted mission don't go to waypoint but stay at current position */
@@ -663,8 +673,8 @@ MulticopterPositionControl::task_main()
 
 					/* project setpoint to local frame */
 					map_projection_project(&_ref_pos,
-							_pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
-							&_pos_sp.data[0], &_pos_sp.data[1]);
+							       _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
+							       &_pos_sp.data[0], &_pos_sp.data[1]);
 					_pos_sp(2) = -(_pos_sp_triplet.current.alt - _ref_alt);
 
 					/* update yaw setpoint if needed */
@@ -832,8 +842,9 @@ MulticopterPositionControl::task_main()
 						/* limit max tilt and min lift when landing */
 						tilt_max = _params.land_tilt_max;
 
-						if (thr_min < 0.0f)
+						if (thr_min < 0.0f) {
 							thr_min = 0.0f;
+						}
 					}
 
 					/* limit min lift */
@@ -924,8 +935,9 @@ MulticopterPositionControl::task_main()
 						thrust_int(2) += vel_err(2) * _params.vel_i(2) * dt;
 
 						/* protection against flipping on ground when landing */
-						if (thrust_int(2) > 0.0f)
+						if (thrust_int(2) > 0.0f) {
 							thrust_int(2) = 0.0f;
+						}
 					}
 
 					/* calculate attitude setpoint from thrust vector */
@@ -1045,18 +1057,21 @@ MulticopterPositionControl::start()
 
 int mc_pos_control_main(int argc, char *argv[])
 {
-	if (argc < 1)
+	if (argc < 1) {
 		errx(1, "usage: mc_pos_control {start|stop|status}");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (pos_control::g_control != nullptr)
+		if (pos_control::g_control != nullptr) {
 			errx(1, "already running");
+		}
 
 		pos_control::g_control = new MulticopterPositionControl;
 
-		if (pos_control::g_control == nullptr)
+		if (pos_control::g_control == nullptr) {
 			errx(1, "alloc failed");
+		}
 
 		if (OK != pos_control::g_control->start()) {
 			delete pos_control::g_control;
@@ -1068,8 +1083,9 @@ int mc_pos_control_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		if (pos_control::g_control == nullptr)
+		if (pos_control::g_control == nullptr) {
 			errx(1, "not running");
+		}
 
 		delete pos_control::g_control;
 		pos_control::g_control = nullptr;

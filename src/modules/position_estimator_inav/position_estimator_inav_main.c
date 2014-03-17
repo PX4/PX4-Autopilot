@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 Anton Babushkin. All rights reserved.
- *   Author: 	Anton Babushkin	<rk3dov@gmail.com>
+ *   Copyright (C) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +34,8 @@
 /**
  * @file position_estimator_inav_main.c
  * Model-identification based position estimator for multirotors
+ *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <unistd.h>
@@ -95,8 +96,9 @@ static void usage(const char *reason);
  */
 static void usage(const char *reason)
 {
-	if (reason)
+	if (reason) {
 		fprintf(stderr, "%s\n", reason);
+	}
 
 	fprintf(stderr, "usage: position_estimator_inav {start|stop|status} [-v]\n\n");
 	exit(1);
@@ -112,8 +114,9 @@ static void usage(const char *reason)
  */
 int position_estimator_inav_main(int argc, char *argv[])
 {
-	if (argc < 1)
+	if (argc < 1) {
 		usage("missing command");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 		if (thread_running) {
@@ -125,8 +128,9 @@ int position_estimator_inav_main(int argc, char *argv[])
 		verbose_mode = false;
 
 		if (argc > 1)
-			if (!strcmp(argv[2], "-v"))
+			if (!strcmp(argv[2], "-v")) {
 				verbose_mode = true;
+			}
 
 		thread_should_exit = false;
 		position_estimator_inav_task = task_spawn_cmd("position_estimator_inav",
@@ -163,8 +167,10 @@ int position_estimator_inav_main(int argc, char *argv[])
 	exit(1);
 }
 
-void write_debug_log(const char *msg, float dt, float x_est[3], float y_est[3], float z_est[3], float corr_acc[3], float corr_gps[3][2], float w_xy_gps_p, float w_xy_gps_v) {
+void write_debug_log(const char *msg, float dt, float x_est[3], float y_est[3], float z_est[3], float corr_acc[3], float corr_gps[3][2], float w_xy_gps_p, float w_xy_gps_v)
+{
 	FILE *f = fopen("/fs/microsd/inav.log", "a");
+
 	if (f) {
 		char *s = malloc(256);
 		unsigned n = snprintf(s, 256, "%llu %s\n\tdt=%.5f x_est=[%.5f %.5f %.5f] y_est=[%.5f %.5f %.5f] z_est=[%.5f %.5f %.5f]\n", hrt_absolute_time(), msg, dt, x_est[0], x_est[1], x_est[2], y_est[0], y_est[1], y_est[2], z_est[0], z_est[1], z_est[2]);
@@ -173,6 +179,7 @@ void write_debug_log(const char *msg, float dt, float x_est[3], float y_est[3], 
 		fwrite(s, 1, n, f);
 		free(s);
 	}
+
 	fsync(fileno(f));
 	fclose(f);
 }
@@ -505,8 +512,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					/* if flow is not accurate, reduce weight for it */
 					// TODO make this more fuzzy
-					if (!flow_accurate)
+					if (!flow_accurate) {
 						w_flow *= 0.05f;
+					}
 
 					flow_valid = true;
 

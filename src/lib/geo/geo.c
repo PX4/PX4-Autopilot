@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
- *           Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2012, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,6 +39,7 @@
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
  * @author Julian Oes <joes@student.ethz.ch>
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <geo/geo.h>
@@ -142,7 +140,7 @@ __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, doub
 	return theta;
 }
 
-__EXPORT void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float* v_n, float* v_e)
+__EXPORT void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n, float *v_e)
 {
 	double lat_now_rad = lat_now * M_DEG_TO_RAD;
 	double lon_now_rad = lon_now * M_DEG_TO_RAD;
@@ -157,7 +155,7 @@ __EXPORT void get_vector_to_next_waypoint(double lat_now, double lon_now, double
 	*v_e = CONSTANTS_RADIUS_OF_EARTH * sin(d_lon) * cos(lat_next_rad);
 }
 
-__EXPORT void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next, float* v_n, float* v_e)
+__EXPORT void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n, float *v_e)
 {
 	double lat_now_rad = lat_now * M_DEG_TO_RAD;
 	double lon_now_rad = lon_now * M_DEG_TO_RAD;
@@ -183,7 +181,7 @@ __EXPORT void add_vector_to_global_position(double lat_now, double lon_now, floa
 
 // Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu>
 
-__EXPORT int get_distance_to_line(struct crosstrack_error_s * crosstrack_error, double lat_now, double lon_now, double lat_start, double lon_start, double lat_end, double lon_end)
+__EXPORT int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now, double lat_start, double lon_start, double lat_end, double lon_end)
 {
 // This function returns the distance to the nearest point on the track line.  Distance is positive if current
 // position is right of the track and negative if left of the track as seen from a point on the track line
@@ -200,7 +198,7 @@ __EXPORT int get_distance_to_line(struct crosstrack_error_s * crosstrack_error, 
 	crosstrack_error->bearing = 0.0f;
 
 	// Return error if arguments are bad
-	if (lat_now == 0.0d || lon_now == 0.0d || lat_start == 0.0d || lon_start == 0.0d || lat_end == 0.0d || lon_end == 0.0d) return return_value;
+	if (lat_now == 0.0d || lon_now == 0.0d || lat_start == 0.0d || lon_start == 0.0d || lat_end == 0.0d || lon_end == 0.0d) { return return_value; }
 
 	bearing_end = get_bearing_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 	bearing_track = get_bearing_to_next_waypoint(lat_start, lon_start, lat_end, lon_end);
@@ -231,8 +229,8 @@ __EXPORT int get_distance_to_line(struct crosstrack_error_s * crosstrack_error, 
 }
 
 
-__EXPORT int get_distance_to_arc(struct crosstrack_error_s * crosstrack_error, double lat_now, double lon_now, double lat_center, double lon_center,
-		float radius, float arc_start_bearing, float arc_sweep)
+__EXPORT int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now, double lat_center, double lon_center,
+				 float radius, float arc_start_bearing, float arc_sweep)
 {
 	// This function returns the distance to the nearest point on the track arc.  Distance is positive if current
 	// position is right of the arc and negative if left of the arc as seen from the closest point on the arc and
@@ -251,29 +249,29 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s * crosstrack_error, d
 	crosstrack_error->bearing = 0.0f;
 
 	// Return error if arguments are bad
-	if (lat_now == 0.0d || lon_now == 0.0d || lat_center == 0.0d || lon_center == 0.0d || radius == 0.0d) return return_value;
+	if (lat_now == 0.0d || lon_now == 0.0d || lat_center == 0.0d || lon_center == 0.0d || radius == 0.0d) { return return_value; }
 
 
 	if (arc_sweep >= 0) {
 		bearing_sector_start = arc_start_bearing;
 		bearing_sector_end = arc_start_bearing + arc_sweep;
 
-		if (bearing_sector_end > 2.0f * M_PI_F) bearing_sector_end -= M_TWOPI_F;
+		if (bearing_sector_end > 2.0f * M_PI_F) { bearing_sector_end -= M_TWOPI_F; }
 
 	} else {
 		bearing_sector_end = arc_start_bearing;
 		bearing_sector_start = arc_start_bearing - arc_sweep;
 
-		if (bearing_sector_start < 0.0f) bearing_sector_start += M_TWOPI_F;
+		if (bearing_sector_start < 0.0f) { bearing_sector_start += M_TWOPI_F; }
 	}
 
 	in_sector = false;
 
 	// Case where sector does not span zero
-	if (bearing_sector_end >= bearing_sector_start && bearing_now >= bearing_sector_start && bearing_now <= bearing_sector_end) in_sector = true;
+	if (bearing_sector_end >= bearing_sector_start && bearing_now >= bearing_sector_start && bearing_now <= bearing_sector_end) { in_sector = true; }
 
 	// Case where sector does span zero
-	if (bearing_sector_end < bearing_sector_start && (bearing_now > bearing_sector_start || bearing_now < bearing_sector_end)) in_sector = true;
+	if (bearing_sector_end < bearing_sector_start && (bearing_now > bearing_sector_start || bearing_now < bearing_sector_end)) { in_sector = true; }
 
 	// If in the sector then calculate distance and bearing to closest point
 	if (in_sector) {
@@ -329,8 +327,8 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s * crosstrack_error, d
 }
 
 __EXPORT float get_distance_to_point_global_wgs84(double lat_now, double lon_now, float alt_now,
-	                                          double lat_next, double lon_next, float alt_next,
-	                                          float *dist_xy, float *dist_z)
+		double lat_next, double lon_next, float alt_next,
+		float *dist_xy, float *dist_z)
 {
 	double current_x_rad = lat_next / 180.0 * M_PI;
 	double current_y_rad = lon_next / 180.0 * M_PI;
@@ -354,8 +352,8 @@ __EXPORT float get_distance_to_point_global_wgs84(double lat_now, double lon_now
 
 
 __EXPORT float mavlink_wpm_distance_to_point_local(float x_now, float y_now, float z_now,
-	                                           float x_next, float y_next, float z_next,
-	                                           float *dist_xy, float *dist_z)
+		float x_next, float y_next, float z_next,
+		float *dist_xy, float *dist_z)
 {
 	float dx = x_now - x_next;
 	float dy = y_now - y_next;
@@ -375,17 +373,23 @@ __EXPORT float _wrap_pi(float bearing)
 	}
 
 	int c = 0;
+
 	while (bearing > M_PI_F) {
 		bearing -= M_TWOPI_F;
-		if (c++ > 3)
+
+		if (c++ > 3) {
 			return NAN;
+		}
 	}
 
 	c = 0;
+
 	while (bearing <= -M_PI_F) {
 		bearing += M_TWOPI_F;
-		if (c++ > 3)
+
+		if (c++ > 3) {
 			return NAN;
+		}
 	}
 
 	return bearing;
@@ -399,17 +403,23 @@ __EXPORT float _wrap_2pi(float bearing)
 	}
 
 	int c = 0;
+
 	while (bearing > M_TWOPI_F) {
 		bearing -= M_TWOPI_F;
-		if (c++ > 3)
+
+		if (c++ > 3) {
 			return NAN;
+		}
 	}
 
 	c = 0;
+
 	while (bearing <= 0.0f) {
 		bearing += M_TWOPI_F;
-		if (c++ > 3)
+
+		if (c++ > 3) {
 			return NAN;
+		}
 	}
 
 	return bearing;
@@ -423,17 +433,23 @@ __EXPORT float _wrap_180(float bearing)
 	}
 
 	int c = 0;
+
 	while (bearing > 180.0f) {
 		bearing -= 360.0f;
-		if (c++ > 3)
+
+		if (c++ > 3) {
 			return NAN;
+		}
 	}
 
 	c = 0;
+
 	while (bearing <= -180.0f) {
 		bearing += 360.0f;
-		if (c++ > 3)
+
+		if (c++ > 3) {
 			return NAN;
+		}
 	}
 
 	return bearing;
@@ -447,17 +463,23 @@ __EXPORT float _wrap_360(float bearing)
 	}
 
 	int c = 0;
+
 	while (bearing > 360.0f) {
 		bearing -= 360.0f;
-		if (c++ > 3)
+
+		if (c++ > 3) {
 			return NAN;
+		}
 	}
 
 	c = 0;
+
 	while (bearing <= 0.0f) {
 		bearing += 360.0f;
-		if (c++ > 3)
+
+		if (c++ > 3) {
 			return NAN;
+		}
 	}
 
 	return bearing;
