@@ -1037,8 +1037,8 @@ void print_status()
 	// 7-9: Position - m (North, East, Down)
 	// 10-12: Delta Angle bias - rad (X,Y,Z)
 	// 13-14: Wind Vector  - m/sec (North,East)
-	// 15-17: Earth Magnetic Field Vector - milligauss (North, East, Down)
-	// 18-20: Body Magnetic Field Vector - milligauss (X,Y,Z)
+	// 15-17: Earth Magnetic Field Vector - gauss (North, East, Down)
+	// 18-20: Body Magnetic Field Vector - gauss (X,Y,Z)
 
 	printf("dtIMU: %8.6f dt: %8.6f IMUmsec: %d\n", dtIMU, dt, (int)IMUmsec);
 	printf("dvel: %8.6f %8.6f %8.6f accel: %8.6f %8.6f %8.6f\n", (double)dVelIMU.x, (double)dVelIMU.y, (double)dVelIMU.z, (double)accel.x, (double)accel.y, (double)accel.z);
