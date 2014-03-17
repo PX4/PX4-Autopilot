@@ -1169,8 +1169,8 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 	hrt_abstime t = hrt_absolute_time();
 	/* rate limit to 100 Hz */
 	if (t - _last_adc >= 10000) {
-		/* make space for a maximum of ten channels (to ensure reading all channels at once) */
-		struct adc_msg_s buf_adc[10];
+		/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
+		struct adc_msg_s buf_adc[12];
 		/* read all channels available */
 		int ret = read(_fd_adc, &buf_adc, sizeof(buf_adc));
 
