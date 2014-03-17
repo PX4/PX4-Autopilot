@@ -1594,6 +1594,8 @@ Sensors::task_main()
 		/* check parameters for updates */
 		parameter_update_poll();
 
+		/* the timestamp of the raw struct is updated by the gyro_poll() method */
+
 		/* copy most recent sensor data */
 		gyro_poll(raw);
 		accel_poll(raw);

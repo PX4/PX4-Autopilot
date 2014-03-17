@@ -108,7 +108,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_telemetry_status_pub(-1),
 	_rc_pub(-1),
 	_manual_pub(-1),
-
 	_hil_frames(0),
 	_old_timestamp(0),
 	_hil_local_proj_inited(0),
@@ -646,7 +645,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	}
 
 	/* increment counters */
-	_hil_counter++;
 	_hil_frames++;
 
 	/* print HIL sensors rate */
