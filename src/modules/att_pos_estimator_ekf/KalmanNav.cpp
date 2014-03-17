@@ -341,8 +341,8 @@ void KalmanNav::updatePublications()
 	_localPos.xy_global = true;
 	_localPos.z_global = true;
 	_localPos.ref_timestamp = _pubTimeStamp;
-	_localPos.ref_lat = getLatDegE7();
-	_localPos.ref_lon = getLonDegE7();
+	_localPos.ref_lat = lat * M_RAD_TO_DEG;
+	_localPos.ref_lon = lon * M_RAD_TO_DEG;
 	_localPos.ref_alt = 0;
 	_localPos.landed = landed;
 

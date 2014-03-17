@@ -576,12 +576,12 @@ MulticopterPositionControl::task_main()
 
 		was_armed = _control_mode.flag_armed;
 
+		update_ref();
+
 		if (_control_mode.flag_control_altitude_enabled ||
 		    _control_mode.flag_control_position_enabled ||
 		    _control_mode.flag_control_climb_rate_enabled ||
 		    _control_mode.flag_control_velocity_enabled) {
-
-			update_ref();
 
 			_pos(0) = _local_pos.x;
 			_pos(1) = _local_pos.y;

@@ -670,8 +670,8 @@ handle_message(mavlink_message_t *msg)
 				hil_local_pos.xy_global = true;
 				hil_local_pos.z_global = true;
 				hil_local_pos.ref_timestamp = timestamp;
-				hil_local_pos.ref_lat = hil_state.lat;
-				hil_local_pos.ref_lon = hil_state.lon;
+				hil_local_pos.ref_lat = hil_state.lat / 1e7d;
+				hil_local_pos.ref_lon = hil_state.lon / 1e7d;
 				hil_local_pos.ref_alt = alt0;
 				hil_local_pos.landed = landed;
 				orb_publish(ORB_ID(vehicle_local_position), pub_hil_local_pos, &hil_local_pos);

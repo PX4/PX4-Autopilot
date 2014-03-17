@@ -556,8 +556,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							double lon = gps.lon * 1e-7;
 							float alt = gps.alt * 1e-3;
 
-							local_pos.ref_lat = gps.lat;
-							local_pos.ref_lon = gps.lon;
+							local_pos.ref_lat = lat;
+							local_pos.ref_lon = lon;
 							local_pos.ref_alt = alt + z_est[0];
 							local_pos.ref_timestamp = t;
 
