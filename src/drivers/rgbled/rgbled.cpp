@@ -243,7 +243,7 @@ RGBLED::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	default:
 		/* see if the parent class can make any use of it */
-		ret = CDev::ioctl(filep, cmd, arg);
+		ret = CDev::ioctl(filp, cmd, arg);
 		break;
 	}
 
