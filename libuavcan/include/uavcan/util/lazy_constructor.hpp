@@ -8,6 +8,10 @@
 #include <uavcan/fatal_error.hpp>
 #include <uavcan/impl_constants.hpp>
 
+#ifndef UAVCAN_CPP_VERSION
+# error UAVCAN_CPP_VERSION
+#endif
+
 namespace uavcan
 {
 
@@ -31,7 +35,7 @@ class LazyConstructor
 
     template <typename U> struct ParamType { typedef const U& Type; };
     template <typename U> struct ParamType<U&> { typedef U& Type; };
-#if __cplusplus > 201100
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
     template <typename U> struct ParamType<U&&> { typedef U&& Type; };
 #endif
 

@@ -17,6 +17,21 @@ namespace uavcan
 {
 
 /**
+ * UAVCAN can be compiled in C++11 mode.
+ * This macro allows to detect which version of the C++ standard is being used.
+ */
+#define UAVCAN_CPP11    2011
+#define UAVCAN_CPP03    2003
+
+#if __cplusplus > 201200
+# error Unsupported C++ standard
+#elif (__cplusplus > 201100) || defined(__GXX_EXPERIMENTAL_CXX0X__)
+# define UAVCAN_CPP_VERSION    UAVCAN_CPP11
+#else
+# define UAVCAN_CPP_VERSION    UAVCAN_CPP03
+#endif
+
+/**
  * UAVCAN can be explicitly told to ignore exceptions, or it can be detected automatically.
  */
 #ifndef UAVCAN_EXCEPTIONS

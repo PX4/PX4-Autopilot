@@ -8,12 +8,16 @@
 #include <limits>
 #include <uavcan/data_type.hpp>
 #include <uavcan/util/compile_time.hpp>
+#include <uavcan/impl_constants.hpp>
 #include <uavcan/marshal/type_util.hpp>
 #include <uavcan/marshal/integer_spec.hpp>
-#if __cplusplus > 201100
-#  include <cmath>
-#else
-#  include <math.h>
+#include <cmath>
+
+#ifndef UAVCAN_CPP_VERSION
+# error UAVCAN_CPP_VERSION
+#endif
+#if UAVCAN_CPP_VERSION < UAVCAN_CPP11
+# include <math.h>     // Needed for isfinite()
 #endif
 
 namespace uavcan
