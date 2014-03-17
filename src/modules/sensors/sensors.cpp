@@ -1592,8 +1592,7 @@ Sensors::task_main()
 		/* check parameters for updates */
 		parameter_update_poll();
 
-		/* store the time closest to all measurements (this is bogus, sensor timestamps should be propagated...) */
-		raw.timestamp = hrt_absolute_time();
+		/* the timestamp of the raw struct is updated by the gyro_poll() method */
 
 		/* copy most recent sensor data */
 		gyro_poll(raw);

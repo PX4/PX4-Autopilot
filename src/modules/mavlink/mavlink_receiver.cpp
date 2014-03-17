@@ -108,8 +108,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_telemetry_status_pub(-1),
 	_rc_pub(-1),
 	_manual_pub(-1),
-
-	_hil_counter(0),
 	_hil_frames(0),
 	_old_timestamp(0),
 	_hil_local_proj_inited(0),
@@ -647,7 +645,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	}
 
 	/* increment counters */
-	_hil_counter++;
 	_hil_frames++;
 
 	/* print HIL sensors rate */
@@ -854,7 +851,9 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 		hil_battery_status.timestamp = timestamp;
 		hil_battery_status.voltage_v = 11.1f;
+		hil_battery_status.voltage_filtered_v = 11.1f;
 		hil_battery_status.current_a = 10.0f;
+		hil_battery_status.discharged_mah = -1.0f;
 
 		if (_battery_pub > 0) {
 			orb_publish(ORB_ID(battery_status), _battery_pub, &hil_battery_status);

@@ -539,7 +539,7 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp) {
 						update_vect[1] = 1;
 						sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
-						sensor_last_timestamp[1] = raw.timestamp;
+						sensor_last_timestamp[1] = raw.accelerometer_timestamp;
 					}
 
 					acc[0] = raw.accelerometer_m_s2[0];
@@ -550,7 +550,7 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp) {
 						update_vect[2] = 1;
 						sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
-						sensor_last_timestamp[2] = raw.timestamp;
+						sensor_last_timestamp[2] = raw.magnetometer_timestamp;
 					}
 
 					mag[0] = raw.magnetometer_ga[0];
