@@ -810,7 +810,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		if (t > pub_last + pub_interval) {
 			pub_last = t;
 			/* publish local position */
-			local_pos.xy_valid = can_estimate_xy && use_gps_xy;
+			local_pos.xy_valid = can_estimate_xy;
 			local_pos.v_xy_valid = can_estimate_xy;
 			local_pos.xy_global = local_pos.xy_valid && use_gps_xy;
 			local_pos.z_global = local_pos.z_valid && use_gps_z;
