@@ -121,9 +121,18 @@ extern uint8_t GPSstatus;
 extern float baroHgt;
 
 extern bool statesInitialised;
+extern bool numericalProtection;
 
 const float covTimeStepMax = 0.07f; // maximum time allowed between covariance predictions
 const float covDelAngMax = 0.02f; // maximum delta angle between covariance predictions
+
+extern bool staticMode;
+
+enum GPS_FIX {
+    GPS_FIX_NOFIX = 0,
+    GPS_FIX_2D = 2,
+    GPS_FIX_3D = 3
+};
 
 void  UpdateStrapdownEquationsNED();
 
@@ -174,6 +183,8 @@ float ConstrainFloat(float val, float min, float max);
 void ConstrainVariances();
 
 void ConstrainStates();
+
+void ForceSymmetry();
 
 uint32_t millis();
 

@@ -1,5 +1,7 @@
 #include "estimator.h"
 
+#include <string.h>
+
 // Global variables
 float KH[n_states][n_states]; //  intermediate result used for covariance updates
 float KHP[n_states][n_states]; // intermediate result used for covariance updates
@@ -67,9 +69,21 @@ bool fuseHgtData = false; // this boolean causes the hgtMea obs to be fused
 bool fuseMagData = false; // boolean true when magnetometer data is to be fused
 bool fuseVtasData = false; // boolean true when airspeed data is to be fused
 
-bool onGround = true; // boolean true when the flight vehicle is on the ground (not flying)
-bool useAirspeed = true; // boolean true if airspeed data is being used
-bool useCompass = true; // boolean true if magnetometer data is being used
+bool onGround    = true;    ///< boolean true when the flight vehicle is on the ground (not flying)
+bool staticMode  = true;    ///< boolean true if no position feedback is fused
+bool useAirspeed = true;    ///< boolean true if airspeed data is being used
+bool useCompass  = true;    ///< boolean true if magnetometer data is being used
+
+bool velHealth;
+bool posHealth;
+bool hgtHealth;
+bool velTimeout;
+bool posTimeout;
+bool hgtTimeout;
+
+bool numericalProtection = true;
+
+static unsigned storeIndex = 0;
 
 float Vector3f::length(void) const
 {
@@ -889,7 +903,7 @@ void CovariancePrediction(float dt)
     {
         for (uint8_t i=7; i<=8; i++)
         {
-            for (uint8_t j=0; j<=20; j++)
+            for (unsigned j = 0; j < n_states; j++)
             {
                 nextP[i][j] = P[i][j];
                 nextP[j][i] = P[j][i];
@@ -897,19 +911,39 @@ void CovariancePrediction(float dt)
         }
     }
 
-    // Force symmetry on the covariance matrix to prevent ill-conditioning
-    // of the matrix which would cause the filter to blow-up
-    for (uint8_t i=0; i<=20; i++) P[i][i] = nextP[i][i];
-    for (uint8_t i=1; i<=20; i++)
-    {
-        for (uint8_t j=0; j<=i-1; j++)
-        {
-            P[i][j] = 0.5f*(nextP[i][j] + nextP[j][i]);
-            P[j][i] = P[i][j];
+    if (onGround || staticMode) {
+        // copy the portion of the variances we want to
+        // propagate
+        for (unsigned i = 0; i < 14; i++) {
+            P[i][i] = nextP[i][i];
+
+            // force symmetry for observable states
+            // force zero for non-observable states
+            for (unsigned i = 1; i < n_states; i++)
+            {
+                for (uint8_t j = 0; j < i; j++)
+                {
+                    if ((i > 12) || (j > 12)) {
+                        P[i][j] = 0.0f;
+                    } else {
+                        P[i][j] = 0.5f * (nextP[i][j] + nextP[j][i]);
+                    }
+                    P[j][i] = P[i][j];
+                }
+            }
         }
+
+    } else {
+
+        // Copy covariance
+        for (unsigned i = 0; i < n_states; i++) {
+            P[i][i] = nextP[i][i];
+        }
+
+        ForceSymmetry();
     }
 
-    //
+    ConstrainVariances();
 }
 
 void FuseVelposNED()
@@ -923,12 +957,6 @@ void FuseVelposNED()
     static uint32_t velFailTime = 0;
     static uint32_t posFailTime = 0;
     static uint32_t hgtFailTime = 0;
-    bool velHealth;
-    bool posHealth;
-    bool hgtHealth;
-    bool velTimeout;
-    bool posTimeout;
-    bool hgtTimeout;
 
 // declare variables used to check measurement errors
     float velInnov[3] = {0.0f,0.0f,0.0f};
@@ -1136,6 +1164,9 @@ void FuseVelposNED()
             }
         }
     }
+
+    ForceSymmetry();
+    ConstrainVariances();
 
     //printf("velh: %s, posh: %s, hgth: %s\n", ((velHealth) ? "OK" : "FAIL"), ((posHealth) ? "OK" : "FAIL"), ((hgtHealth) ? "OK" : "FAIL"));
 }
@@ -1442,6 +1473,9 @@ void FuseMagnetometer()
         }
     }
     obsIndex = obsIndex + 1;
+
+    ForceSymmetry();
+    ConstrainVariances();
 }
 
 void FuseAirspeed()
@@ -1568,6 +1602,9 @@ void FuseAirspeed()
             }
         }
     }
+
+    ForceSymmetry();
+    ConstrainVariances();
 }
 
 void zeroRows(float (&covMat)[n_states][n_states], uint8_t first, uint8_t last)
@@ -1604,14 +1641,32 @@ float sq(float valIn)
 // Store states in a history array along with time stamp
 void StoreStates(uint64_t timestamp_ms)
 {
-    /* static to keep the store index */
-    static uint8_t storeIndex = 0;
     for (unsigned i=0; i<n_states; i++)
         storedStates[i][storeIndex] = states[i];
     statetimeStamp[storeIndex] = timestamp_ms;
     storeIndex++;
     if (storeIndex == data_buffer_size)
         storeIndex = 0;
+}
+
+void ResetStates()
+{
+    // reset all stored states
+    memset(&storedStates[0][0], 0, sizeof(storedStates));
+    memset(&statetimeStamp[0], 0, sizeof(statetimeStamp));
+
+    // reset store index to first
+    storeIndex = 0;
+
+    // overwrite all existing states
+    for (unsigned i = 0; i < n_states; i++) {
+        storedStates[i][storeIndex] = states[i];
+    }
+
+    statetimeStamp[storeIndex] = millis();
+
+    // increment to next storage index
+    storeIndex++;
 }
 
 // Output the state vector stored at the time that best matches that specified by msec
@@ -1740,6 +1795,9 @@ void calcLLH(float (&posNED)[3], float lat, float lon, float hgt, float latRef, 
 void OnGroundCheck()
 {
     onGround = (((sq(velNED[0]) + sq(velNED[1]) + sq(velNED[2])) < 4.0f) && (VtasMeas < 8.0f));
+    if (staticMode) {
+        staticMode = !(GPSstatus > GPS_FIX_2D);
+    }
 }
 
 void calcEarthRateNED(Vector3f &omega, float latitude)
@@ -1783,6 +1841,10 @@ float ConstrainFloat(float val, float min, float max)
 
 void ConstrainVariances()
 {
+    if (!numericalProtection) {
+        return;
+    }
+
     // State vector:
     // 0-3: quaternions (q0, q1, q2, q3)
     // 4-6: Velocity - m/sec (North, East, Down)
@@ -1831,6 +1893,10 @@ void ConstrainVariances()
 
 void ConstrainStates()
 {
+    if (!numericalProtection) {
+        return;
+    }
+
     // State vector:
     // 0-3: quaternions (q0, q1, q2, q3)
     // 4-6: Velocity - m/sec (North, East, Down)
@@ -1880,6 +1946,88 @@ void ConstrainStates()
         states[i] = ConstrainFloat(states[i], -0.5f, 0.5f);
     }
 
+}
+
+void ForceSymmetry()
+{
+    if (!numericalProtection) {
+        return;
+    }
+
+    // Force symmetry on the covariance matrix to prevent ill-conditioning
+    // of the matrix which would cause the filter to blow-up
+    for (unsigned i = 1; i < n_states; i++)
+    {
+        for (uint8_t j = 0; j < i; j++)
+        {
+            P[i][j] = 0.5f * (P[i][j] + P[j][i]);
+            P[j][i] = P[i][j];
+        }
+    }
+}
+
+bool FilterHealthy()
+{
+    if (!statesInitialised) {
+        return false;
+    }
+
+    // XXX Check state vector for NaNs and ill-conditioning
+
+    // Check if any of the major inputs timed out
+    if (posTimeout || velTimeout || hgtTimeout) {
+        return false;
+    }
+
+    // Nothing fired, return ok.
+    return true;
+}
+
+/**
+ * Reset the filter position states
+ *
+ * This resets the position to the last GPS measurement
+ * or to zero in case of static position.
+ */
+void ResetPosition(void)
+{
+    if (staticMode) {
+        states[7] = 0;
+        states[8] = 0;
+    } else if (GPSstatus >= GPS_FIX_3D) {
+
+        // reset the states from the GPS measurements
+        states[7] = posNE[0];
+        states[8] = posNE[1];
+    }
+}
+
+/**
+ * Reset the height state.
+ *
+ * This resets the height state with the last altitude measurements
+ */
+void ResetHeight(void)
+{
+    // write to the state vector
+    states[9]   = -hgtMea;
+}
+
+/**
+ * Reset the velocity state.
+ */
+void ResetVelocity(void)
+{
+    if (staticMode) {
+        states[4] = 0.0f;
+        states[5] = 0.0f;
+        states[6] = 0.0f;
+    } else if (GPSstatus >= GPS_FIX_3D) {
+
+        states[4]  = velNED[0]; // north velocity from last reading
+        states[5]  = velNED[1]; // east velocity from last reading
+        states[6]  = velNED[2]; // down velocity from last reading
+    }
 }
 
 void AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, float *initQuat)
