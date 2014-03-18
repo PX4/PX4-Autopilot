@@ -158,6 +158,8 @@ void StoreStates(uint64_t timestamp_ms);
 // recall stste vector stored at closest time to the one specified by msec
 void RecallStates(float statesForFusion[n_states], uint64_t msec);
 
+void ResetStoredStates();
+
 void quat2Tbn(Mat3f &Tbn, const float (&quat)[4]);
 
 void calcEarthRateNED(Vector3f &omega, float latitude);
@@ -185,6 +187,12 @@ void ConstrainVariances();
 void ConstrainStates();
 
 void ForceSymmetry();
+
+void CheckAndBound();
+
+void ResetPosition();
+
+void ResetVelocity();
 
 uint32_t millis();
 

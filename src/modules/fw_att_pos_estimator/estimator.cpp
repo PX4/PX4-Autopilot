@@ -1651,7 +1651,7 @@ void StoreStates(uint64_t timestamp_ms)
         storeIndex = 0;
 }
 
-void ResetStates()
+void ResetStoredStates()
 {
     // reset all stored states
     memset(&storedStates[0][0], 0, sizeof(storedStates));
@@ -2029,6 +2029,45 @@ void ResetVelocity(void)
         states[4]  = velNED[0]; // north velocity from last reading
         states[5]  = velNED[1]; // east velocity from last reading
         states[6]  = velNED[2]; // down velocity from last reading
+    }
+}
+
+
+/**
+ * Check the filter inputs and bound its operational state
+ *
+ * This check will reset the filter states if required
+ * due to a failure of consistency or timeout checks.
+ * it should be run after the measurement data has been
+ * updated, but before any of the fusion steps are
+ * executed.
+ */
+void CheckAndBound()
+{
+
+    // Store the old filter state
+    bool currStaticMode = staticMode;
+
+    // Reset the filter if the IMU data is too old
+    if (dtIMU > 0.2f) {
+        ResetVelocity();
+        ResetPosition();
+        ResetHeight();
+        ResetStoredStates();
+
+        // that's all we can do here, return
+        return;
+    }
+
+    // Check if we're on ground - this also sets static mode.
+    OnGroundCheck();
+
+    // Check if we switched between states
+    if (currStaticMode != staticMode) {
+        ResetVelocity();
+        ResetPosition();
+        ResetHeight();
+        ResetStoredStates();
     }
 }
 

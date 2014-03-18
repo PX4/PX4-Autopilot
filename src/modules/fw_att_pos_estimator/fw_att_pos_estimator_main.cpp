@@ -604,6 +604,9 @@ FixedwingEstimator::task_main()
 			orb_check(_gps_sub, &gps_updated);
 
 			if (gps_updated) {
+
+				uint64_t last_gps = _gps.timestamp_position;
+
 				orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &_gps);
 				perf_count(_perf_gps);
 
@@ -612,6 +615,14 @@ FixedwingEstimator::task_main()
 					newDataGps = false;
 
 				} else {
+
+					/* check if we had a GPS outage for a long time */
+					if (hrt_elapsed_time(&last_gps) > 5 * 1000 * 1000) {
+						ResetPosition();
+						ResetVelocity();
+						ResetStoredStates();
+					}
+
 					/* fuse GPS updates */
 
 					//_gps.timestamp / 1e3;
@@ -688,6 +699,12 @@ FixedwingEstimator::task_main()
 
 
 			/**
+			 *    CHECK IF THE INPUT DATA IS SANE
+			 */
+			CheckAndBound();
+
+
+			/**
 			 *    PART TWO: EXECUTE THE FILTER
 			 **/
 
@@ -715,7 +732,9 @@ FixedwingEstimator::task_main()
 					_local_pos.ref_timestamp = _gps.timestamp_position;
 
 					// Store 
-					_baro_ref = baroHgt;
+					orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
+					_baro_ref = _baro.altitude;
+					baroHgt = _baro.altitude - _baro_ref;
 					_baro_gps_offset = baroHgt - alt;
 
 					// XXX this is not multithreading safe
