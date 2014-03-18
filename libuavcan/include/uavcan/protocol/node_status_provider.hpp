@@ -60,6 +60,9 @@ public:
         node_info_.uavcan_version.build = UAVCAN_VERSION_BUILD;
 
         node_info_.status.status_code = protocol::NodeStatus::STATUS_INITIALIZING;
+
+        // NodeStatus TX timeout equals its publication period minus some arbitrary time gap:
+        node_status_pub_.setTxTimeout(MonotonicDuration::fromMSec(protocol::NodeStatus::PUBLICATION_PERIOD_MS - 10));
     }
 
     int startAndPublish();
