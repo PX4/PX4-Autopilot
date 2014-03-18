@@ -268,6 +268,39 @@ public:
         }
     }
 
+    template <typename Predicate>
+    const Key* findFirstKey(Predicate predicate) const
+    {
+        for (unsigned int i = 0; i < NumStaticEntries; i++)
+        {
+            if (!static_[i].match(Key()))
+            {
+                if (predicate(static_[i].key, static_[i].value))
+                {
+                    return &static_[i].key;
+                }
+            }
+        }
+
+        KVGroup* p = list_.get();
+        while (p)
+        {
+            for (int i = 0; i < KVGroup::NumKV; i++)
+            {
+                const KVPair* const kv = p->kvs + i;
+                if (!kv->match(Key()))
+                {
+                    if (predicate(kv->key, kv->value))
+                    {
+                        return &p->kvs[i].key;
+                    }
+                }
+            }
+            p = p->getNextListNode();
+        }
+        return NULL;
+    }
+
     void removeAll()
     {
         removeWhere(YesPredicate());

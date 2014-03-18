@@ -24,6 +24,20 @@ static bool oddValuePredicate(const std::string& key, const std::string& value)
     return num & 1;
 }
 
+struct KeyFindPredicate
+{
+    const std::string target;
+    KeyFindPredicate(std::string target) : target(target) { }
+    bool operator()(const std::string& key, const std::string&) const { return key == target; }
+};
+
+struct ValueFindPredicate
+{
+    const std::string target;
+    ValueFindPredicate(std::string target) : target(target) { }
+    bool operator()(const std::string&, const std::string& value) const { return value == target; }
+};
+
 
 TEST(Map, Basic)
 {
@@ -74,6 +88,20 @@ TEST(Map, Basic)
     ASSERT_EQ("B", *map->access("2"));
     ASSERT_EQ("C", *map->access("3"));
     ASSERT_EQ("D", *map->access("4"));
+
+    // Finding some keys
+    ASSERT_EQ("1", *map->findFirstKey(KeyFindPredicate("1")));
+    ASSERT_EQ("2", *map->findFirstKey(KeyFindPredicate("2")));
+    ASSERT_EQ("3", *map->findFirstKey(KeyFindPredicate("3")));
+    ASSERT_EQ("4", *map->findFirstKey(KeyFindPredicate("4")));
+    ASSERT_FALSE(map->findFirstKey(KeyFindPredicate("nonexistent_key")));
+
+    // Finding some values
+    ASSERT_EQ("1", *map->findFirstKey(ValueFindPredicate("A")));
+    ASSERT_EQ("2", *map->findFirstKey(ValueFindPredicate("B")));
+    ASSERT_EQ("3", *map->findFirstKey(ValueFindPredicate("C")));
+    ASSERT_EQ("4", *map->findFirstKey(ValueFindPredicate("D")));
+    ASSERT_FALSE(map->findFirstKey(KeyFindPredicate("nonexistent_value")));
 
     // Removing one static
     map->remove("1");                             // One of dynamics now migrates to the static storage
