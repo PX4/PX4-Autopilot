@@ -108,8 +108,15 @@ TEST(Dispatcher, Reception)
     };
 
     /*
-     * Sending the transfers
+     * Registration
      */
+    for (int i = 0; i < NUM_SUBSCRIBERS; i++)
+    {
+        ASSERT_FALSE(dispatcher.hasSubscriber(subscribers[i]->getDataTypeDescriptor().getID()));
+        ASSERT_FALSE(dispatcher.hasPublisher(subscribers[i]->getDataTypeDescriptor().getID()));
+        ASSERT_FALSE(dispatcher.hasServer(subscribers[i]->getDataTypeDescriptor().getID()));
+    }
+
     ASSERT_TRUE(dispatcher.registerMessageListener(subscribers[0].get()));
     ASSERT_TRUE(dispatcher.registerMessageListener(subscribers[1].get()));
     ASSERT_TRUE(dispatcher.registerMessageListener(subscribers[2].get()));
@@ -117,6 +124,20 @@ TEST(Dispatcher, Reception)
     ASSERT_TRUE(dispatcher.registerServiceResponseListener(subscribers[4].get()));
     ASSERT_TRUE(dispatcher.registerServiceResponseListener(subscribers[5].get()));
 
+    for (int i = 0; i < NUM_SUBSCRIBERS; i++)
+        ASSERT_FALSE(dispatcher.hasPublisher(subscribers[i]->getDataTypeDescriptor().getID()));
+
+    // Subscribers
+    ASSERT_TRUE(dispatcher.hasSubscriber(subscribers[0]->getDataTypeDescriptor().getID()));
+    ASSERT_TRUE(dispatcher.hasSubscriber(subscribers[1]->getDataTypeDescriptor().getID()));
+    ASSERT_TRUE(dispatcher.hasSubscriber(subscribers[2]->getDataTypeDescriptor().getID()));
+
+    // Servers
+    ASSERT_TRUE(dispatcher.hasServer(subscribers[3]->getDataTypeDescriptor().getID()));
+
+    /*
+     * Sending the transfers
+     */
     // Multiple service request listeners are not allowed
     ASSERT_FALSE(dispatcher.registerServiceRequestListener(subscribers[3].get()));
 
@@ -208,6 +229,13 @@ TEST(Dispatcher, Transmission)
     // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame = false
     uavcan::Frame frame(123, uavcan::TransferTypeMessageUnicast, SELF_NODE_ID, 2, 0, 0, true);
     frame.setPayload(reinterpret_cast<const uint8_t*>("123"), 3);
+
+    ASSERT_FALSE(dispatcher.hasPublisher(123));
+    ASSERT_FALSE(dispatcher.hasPublisher(456));
+    const uavcan::OutgoingTransferRegistryKey otr_key(123, uavcan::TransferTypeMessageUnicast, 2);
+    ASSERT_TRUE(out_trans_reg.accessOrCreate(otr_key, uavcan::MonotonicTime::fromMSec(1000000)));
+    ASSERT_TRUE(dispatcher.hasPublisher(123));
+    ASSERT_FALSE(dispatcher.hasPublisher(456));
 
     ASSERT_EQ(2, dispatcher.send(frame, TX_DEADLINE, tsMono(0), uavcan::CanTxQueue::Volatile));
 

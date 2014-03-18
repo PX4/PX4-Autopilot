@@ -33,6 +33,18 @@ void Dispatcher::ListenerRegister::remove(TransferListenerBase* listener)
     list_.remove(listener);
 }
 
+bool Dispatcher::ListenerRegister::exists(DataTypeID dtid) const
+{
+    TransferListenerBase* p = list_.get();
+    while (p)
+    {
+        if (p->getDataTypeDescriptor().getID() == dtid)
+            return true;
+        p = p->getNextListNode();
+    }
+    return false;
+}
+
 void Dispatcher::ListenerRegister::cleanup(MonotonicTime ts)
 {
     TransferListenerBase* p = list_.get();
@@ -186,6 +198,22 @@ void Dispatcher::unregisterServiceRequestListener(TransferListenerBase* listener
 void Dispatcher::unregisterServiceResponseListener(TransferListenerBase* listener)
 {
     lsrv_resp_.remove(listener);
+}
+
+bool Dispatcher::hasSubscriber(DataTypeID dtid) const
+{
+    return lmsg_.exists(dtid);
+}
+
+bool Dispatcher::hasPublisher(DataTypeID dtid) const
+{
+    return outgoing_transfer_reg_.exists(dtid, TransferTypeMessageBroadcast)
+        || outgoing_transfer_reg_.exists(dtid, TransferTypeMessageUnicast);
+}
+
+bool Dispatcher::hasServer(DataTypeID dtid) const
+{
+    return lsrv_req_.exists(dtid);
 }
 
 bool Dispatcher::setNodeID(NodeID nid)

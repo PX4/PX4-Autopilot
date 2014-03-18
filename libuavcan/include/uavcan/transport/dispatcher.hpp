@@ -41,6 +41,7 @@ class Dispatcher : Noncopyable
 
         bool add(TransferListenerBase* listener, Mode mode);
         void remove(TransferListenerBase* listener);
+        bool exists(DataTypeID dtid) const;
         void cleanup(MonotonicTime ts);
         void handleFrame(const RxFrame& frame);
 
@@ -78,6 +79,10 @@ public:
     void unregisterMessageListener(TransferListenerBase* listener);
     void unregisterServiceRequestListener(TransferListenerBase* listener);
     void unregisterServiceResponseListener(TransferListenerBase* listener);
+
+    bool hasSubscriber(DataTypeID dtid) const;
+    bool hasPublisher(DataTypeID dtid) const;
+    bool hasServer(DataTypeID dtid) const;
 
     int getNumMessageListeners()         const { return lmsg_.getNumEntries(); }
     int getNumServiceRequestListeners()  const { return lsrv_req_.getNumEntries(); }
