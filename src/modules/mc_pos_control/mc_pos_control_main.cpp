@@ -306,6 +306,8 @@ MulticopterPositionControl::~MulticopterPositionControl()
 			}
 		} while (_control_task != -1);
 	}
+
+	pos_control::g_control = nullptr;
 }
 
 void
