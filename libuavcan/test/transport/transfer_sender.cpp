@@ -113,9 +113,9 @@ TEST(TransferSender, Basic)
         }
     }
 
-    TestSubscriber<512, 2, 2> sub_msg(TYPES[0], poolmgr);
-    TestSubscriber<512, 2, 2> sub_srv_req(TYPES[1], poolmgr);
-    TestSubscriber<512, 2, 2> sub_srv_resp(TYPES[1], poolmgr);
+    TestListener<512, 2, 2> sub_msg(TYPES[0], poolmgr);
+    TestListener<512, 2, 2> sub_srv_req(TYPES[1], poolmgr);
+    TestListener<512, 2, 2> sub_srv_resp(TYPES[1], poolmgr);
 
     dispatcher_rx.registerMessageListener(&sub_msg);
     dispatcher_rx.registerServiceRequestListener(&sub_srv_req);

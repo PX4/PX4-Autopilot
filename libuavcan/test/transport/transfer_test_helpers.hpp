@@ -110,14 +110,14 @@ struct Transfer
  * which are dispatched/filtered by uavcan::Dispatcher.
  */
 template <unsigned int MAX_BUF_SIZE, unsigned int NUM_STATIC_BUFS, unsigned int NUM_STATIC_RECEIVERS>
-class TestSubscriber : public uavcan::TransferListener<MAX_BUF_SIZE, NUM_STATIC_BUFS, NUM_STATIC_RECEIVERS>
+class TestListener : public uavcan::TransferListener<MAX_BUF_SIZE, NUM_STATIC_BUFS, NUM_STATIC_RECEIVERS>
 {
     typedef uavcan::TransferListener<MAX_BUF_SIZE, NUM_STATIC_BUFS, NUM_STATIC_RECEIVERS> Base;
 
     std::queue<Transfer> transfers_;
 
 public:
-    TestSubscriber(const uavcan::DataTypeDescriptor& data_type, uavcan::IAllocator& allocator)
+    TestListener(const uavcan::DataTypeDescriptor& data_type, uavcan::IAllocator& allocator)
     : Base(data_type, allocator)
     { }
 

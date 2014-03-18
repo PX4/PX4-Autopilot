@@ -38,7 +38,7 @@ TEST(TransferListener, BasicMFT)
     uavcan::PoolManager<1> poolmgr;
     poolmgr.addPool(&pool);
 
-    TestSubscriber<256, 1, 1> subscriber(type, poolmgr);
+    TestListener<256, 1, 1> subscriber(type, poolmgr);
 
     /*
      * Test data
@@ -89,7 +89,7 @@ TEST(TransferListener, CrcFailure)
     const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "A");
 
     uavcan::PoolManager<1> poolmgr;                         // No dynamic memory
-    TestSubscriber<256, 2, 2> subscriber(type, poolmgr);  // Static buffer only, 2 entries
+    TestListener<256, 2, 2> subscriber(type, poolmgr);  // Static buffer only, 2 entries
 
     /*
      * Generating transfers with damaged payload (CRC is not valid)
@@ -132,7 +132,7 @@ TEST(TransferListener, BasicSFT)
     const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "A");
 
     uavcan::PoolManager<1> poolmgr;                         // No dynamic memory. At all.
-    TestSubscriber<0, 0, 5> subscriber(type, poolmgr);    // Max buf size is 0, i.e. SFT-only
+    TestListener<0, 0, 5> subscriber(type, poolmgr);    // Max buf size is 0, i.e. SFT-only
 
     TransferListenerEmulator emulator(subscriber, type);
     const Transfer transfers[] =
@@ -167,7 +167,7 @@ TEST(TransferListener, Cleanup)
     const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "A");
 
     uavcan::PoolManager<1> poolmgr;                         // No dynamic memory
-    TestSubscriber<256, 1, 2> subscriber(type, poolmgr);  // Static buffer only, 1 entry
+    TestListener<256, 1, 2> subscriber(type, poolmgr);  // Static buffer only, 1 entry
 
     /*
      * Generating transfers
@@ -221,7 +221,7 @@ TEST(TransferListener, MaximumTransferLength)
     const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "A");
 
     uavcan::PoolManager<1> poolmgr;
-    TestSubscriber<uavcan::MaxTransferPayloadLen * 2, 2, 2> subscriber(type, poolmgr);
+    TestListener<uavcan::MaxTransferPayloadLen * 2, 2, 2> subscriber(type, poolmgr);
 
     static const std::string DATA_OK(uavcan::MaxTransferPayloadLen, 'z');
 

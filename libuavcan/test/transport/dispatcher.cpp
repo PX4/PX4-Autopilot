@@ -61,7 +61,7 @@ TEST(Dispatcher, Reception)
         makeDataType(uavcan::DataTypeKindService, 1)
     };
 
-    typedef TestSubscriber<512, 2, 2> Subscriber;
+    typedef TestListener<512, 2, 2> Subscriber;
     typedef std::auto_ptr<Subscriber> SubscriberPtr;
     static const int NUM_SUBSCRIBERS = 6;
     SubscriberPtr subscribers[NUM_SUBSCRIBERS] =
