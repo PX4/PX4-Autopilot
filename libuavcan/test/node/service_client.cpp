@@ -7,6 +7,7 @@
 #include <uavcan/node/service_server.hpp>
 #include <uavcan/util/method_binder.hpp>
 #include <uavcan/protocol/ComputeAggregateTypeSignature.hpp>
+#include <uavcan/protocol/RestartNode.hpp>
 #include <uavcan/protocol/GetDataTypeInfo.hpp>
 #include <root_ns_a/StringService.hpp>
 #include <queue>
@@ -146,6 +147,9 @@ TEST(ServiceClient, Sizes)
 
     std::cout << "GetDataTypeInfo server: " <<
         sizeof(ServiceServer<protocol::GetDataTypeInfo>) << std::endl;
+
+    std::cout << "RestartNode server: " <<
+        sizeof(ServiceServer<protocol::RestartNode>) << std::endl;
 
     std::cout << "GetDataTypeInfo client: " <<
         sizeof(ServiceClient<protocol::GetDataTypeInfo>) << std::endl;
