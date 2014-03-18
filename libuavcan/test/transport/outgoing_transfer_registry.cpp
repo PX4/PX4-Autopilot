@@ -20,9 +20,9 @@ TEST(OutgoingTransferRegistry, Basic)
     const OutgoingTransferRegistryKey keys[NUM_KEYS] =
     {
         OutgoingTransferRegistryKey(123, uavcan::TransferTypeMessageUnicast,   42),
-        OutgoingTransferRegistryKey(123, uavcan::TransferTypeMessageBroadcast, 0),
-        OutgoingTransferRegistryKey(123, uavcan::TransferTypeServiceRequest,   2),
-        OutgoingTransferRegistryKey(123, uavcan::TransferTypeMessageUnicast,   4),
+        OutgoingTransferRegistryKey(321, uavcan::TransferTypeMessageBroadcast, 0),
+        OutgoingTransferRegistryKey(213, uavcan::TransferTypeServiceRequest,   2),
+        OutgoingTransferRegistryKey(312, uavcan::TransferTypeMessageUnicast,   4),
         OutgoingTransferRegistryKey(456, uavcan::TransferTypeServiceRequest,   2)
     };
 
@@ -50,6 +50,20 @@ TEST(OutgoingTransferRegistry, Basic)
     ASSERT_EQ(0, otr.accessOrCreate(keys[1], tsMono(4000000))->get());
 
     ASSERT_FALSE(otr.accessOrCreate(keys[4], tsMono(1000000)));        // Still OOM
+
+    /*
+     * Checking existence
+     * Exist: 0, 1, 2, 3
+     * Does not exist: 4
+     */
+    ASSERT_TRUE(otr.exists(keys[1].getDataTypeID(), keys[1].getTransferType()));
+    ASSERT_TRUE(otr.exists(keys[0].getDataTypeID(), keys[0].getTransferType()));
+    ASSERT_TRUE(otr.exists(keys[3].getDataTypeID(), keys[3].getTransferType()));
+    ASSERT_TRUE(otr.exists(keys[2].getDataTypeID(), keys[2].getTransferType()));
+
+    ASSERT_FALSE(otr.exists(keys[1].getDataTypeID(), keys[2].getTransferType()));  // Invalid combination
+    ASSERT_FALSE(otr.exists(keys[0].getDataTypeID(), keys[1].getTransferType()));  // Invalid combination
+    ASSERT_FALSE(otr.exists(keys[4].getDataTypeID(), keys[4].getTransferType()));  // Plain missing
 
     /*
      * Cleaning up

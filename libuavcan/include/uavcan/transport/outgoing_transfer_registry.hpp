@@ -41,6 +41,9 @@ public:
         assert(transfer_type != TransferTypeServiceResponse);
     }
 
+    DataTypeID getDataTypeID() const { return data_type_id_; }
+    TransferType getTransferType() const { return TransferType(transfer_type_); }
+
     bool operator==(const OutgoingTransferRegistryKey& rhs) const
     {
         return
@@ -66,6 +69,7 @@ class IOutgoingTransferRegistry
 public:
     virtual ~IOutgoingTransferRegistry() { }
     virtual TransferID* accessOrCreate(const OutgoingTransferRegistryKey& key, MonotonicTime new_deadline) = 0;
+    virtual bool exists(DataTypeID dtid, TransferType tt) const = 0;
     virtual void cleanup(MonotonicTime deadline) = 0;
 };
 
@@ -104,6 +108,23 @@ UAVCAN_PACKED_END
         }
     };
 
+    class ExistenceCheckingPredicate
+    {
+        const DataTypeID dtid_;
+        const TransferType tt_;
+
+    public:
+        ExistenceCheckingPredicate(DataTypeID dtid, TransferType tt)
+        : dtid_(dtid)
+        , tt_(tt)
+        { }
+
+        bool operator()(const OutgoingTransferRegistryKey& key, const Value&) const
+        {
+            return dtid_ == key.getDataTypeID() && tt_ == key.getTransferType();
+        }
+    };
+
     Map<OutgoingTransferRegistryKey, Value, NumStaticEntries> map_;
 
 public:
@@ -124,6 +145,11 @@ public:
         }
         p->deadline = new_deadline;
         return &p->tid;
+    }
+
+    bool exists(DataTypeID dtid, TransferType tt) const
+    {
+        return NULL != map_.findFirstKey(ExistenceCheckingPredicate(dtid, tt));
     }
 
     void cleanup(MonotonicTime ts)
