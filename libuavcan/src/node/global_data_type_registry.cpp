@@ -124,6 +124,11 @@ void GlobalDataTypeRegistry::freeze()
 
 const DataTypeDescriptor* GlobalDataTypeRegistry::find(DataTypeKind kind, const char* name) const
 {
+    if (!name)
+    {
+        assert(0);
+        return NULL;
+    }
     const List* list = selectList(kind);
     if (!list)
     {
