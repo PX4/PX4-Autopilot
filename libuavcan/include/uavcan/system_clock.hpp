@@ -14,9 +14,6 @@ namespace uavcan
 
 /**
  * System clock interface - monotonic and UTC.
- * Note that this library uses microseconds for all time related values (timestamps, deadlines, delays),
- * if not explicitly specified otherwise.
- * All time values are represented as 64-bit integers.
  */
 class ISystemClock
 {
