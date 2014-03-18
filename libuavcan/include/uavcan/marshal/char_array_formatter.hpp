@@ -38,7 +38,8 @@ class CharArrayFormatter
     {
         if (std::is_same<T, char>())
         {
-            array_.template appendFormatted("%c", value); // TODO: speedup
+            if (array_.size() != array_.capacity())
+                array_.push_back(value);
         }
         else if (std::is_signed<T>())
         {
