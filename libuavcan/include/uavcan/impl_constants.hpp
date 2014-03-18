@@ -66,7 +66,7 @@ namespace uavcan
 #if UAVCAN_MEM_POOL_BLOCK_SIZE
 enum { MemPoolBlockSize = UAVCAN_MEM_POOL_BLOCK_SIZE };
 #else
-enum { MemPoolBlockSize = 32 + sizeof(void*) * 2 };//!< MemPoolBlockSize
+enum { MemPoolBlockSize = 48 };
 #endif
 
 enum { MemPoolAlignment = 8 };
