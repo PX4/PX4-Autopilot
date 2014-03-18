@@ -312,6 +312,8 @@ void  UpdateStrapdownEquationsNED()
     states[8] = states[8] + 0.5f*(states[5] + lastVelocity[1])*dtIMU;
     states[9] = states[9] + 0.5f*(states[6] + lastVelocity[2])*dtIMU;
 
+    // Constrain states (to protect against filter divergence)
+    ConstrainStates();
 }
 
 void CovariancePrediction(float dt)
