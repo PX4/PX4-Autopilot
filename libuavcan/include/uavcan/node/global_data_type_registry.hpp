@@ -98,6 +98,7 @@ public:
     bool isFrozen() const { return frozen_; }
 
     const DataTypeDescriptor* find(DataTypeKind kind, const char* name) const;
+    const DataTypeDescriptor* find(DataTypeKind kind, DataTypeID dtid) const;
 
     DataTypeSignature computeAggregateSignature(DataTypeKind kind, DataTypeIDMask& inout_id_mask) const;
 

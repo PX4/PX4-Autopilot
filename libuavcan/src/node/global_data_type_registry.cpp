@@ -140,6 +140,24 @@ const DataTypeDescriptor* GlobalDataTypeRegistry::find(DataTypeKind kind, const 
     return NULL;
 }
 
+const DataTypeDescriptor* GlobalDataTypeRegistry::find(DataTypeKind kind, DataTypeID dtid) const
+{
+    const List* list = selectList(kind);
+    if (!list)
+    {
+        assert(0);
+        return NULL;
+    }
+    Entry* p = list->get();
+    while (p)
+    {
+        if (p->descriptor.match(kind, dtid))
+            return &p->descriptor;
+        p = p->getNextListNode();
+    }
+    return NULL;
+}
+
 DataTypeSignature GlobalDataTypeRegistry::computeAggregateSignature(DataTypeKind kind,
                                                                     DataTypeIDMask& inout_id_mask) const
 {
