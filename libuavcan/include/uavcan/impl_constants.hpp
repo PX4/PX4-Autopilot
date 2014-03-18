@@ -44,6 +44,9 @@
  * Struct layout control.
  * Define UAVCAN_PACK_STRUCTS = 1 to reduce memory usage.
  */
+#ifndef UAVCAN_PACK_STRUCTS
+# define UAVCAN_PACK_STRUCTS    0
+#endif
 #ifndef UAVCAN_PACKED_BEGIN
 # define UAVCAN_PACKED_BEGIN _Pragma("pack(push, 1)")
 #endif

@@ -31,6 +31,10 @@ ${line}
 % endfor
 ******************************************************************************/
 
+#ifndef UAVCAN_PACK_STRUCTS
+# error UAVCAN_PACK_STRUCTS
+#endif
+
 % for nsc in t.cpp_namespace_components:
 namespace ${nsc}
 {
