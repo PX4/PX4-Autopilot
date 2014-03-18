@@ -10,10 +10,12 @@ project(libuavcan)
 # -DUAVCAN_DEBUG=1 enables the tracing feature that writes debug info into stdout.
 # Normally this feature should be used only for library development.
 #
+# TODO: Compile two versions - C++03, C++11
+#
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O1 -g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O1 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG "-g3 -DUAVCAN_DEBUG=1 -DDEBUG=1")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++03 -Wall -Wextra -Werror -pedantic -Wno-variadic-macros")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-long-long -std=c++03 -Wall -Wextra -Werror -pedantic -Wno-variadic-macros")
 
 include_directories(include)
 
@@ -61,9 +63,9 @@ endfunction()
 
 find_package(GTest QUIET)
 if (GTEST_FOUND)
-    add_test(libuavcan_test_cpp03_noexc "-Wall -Wextra -Werror -pedantic -fno-exceptions -std=c++03")
+    add_test(libuavcan_test_cpp03_noexc "-Wno-long-long -Wall -Wextra -Werror -pedantic -fno-exceptions -std=c++03")
+    add_test(libuavcan_test_cpp03_exc   "-Wno-long-long -Wall -Wextra -Werror -pedantic -std=c++03")
     add_test(libuavcan_test_cpp11_noexc "-Wall -Wextra -Werror -pedantic -fno-exceptions -std=c++0x")
-    add_test(libuavcan_test_cpp03_exc   "-Wall -Wextra -Werror -pedantic -std=c++03")
     add_test(libuavcan_test_cpp11_exc   "-Wall -Wextra -Werror -pedantic -std=c++0x")
 else (GTEST_FOUND)
     message(">> Google test library is not found, you will not be able to run tests")
