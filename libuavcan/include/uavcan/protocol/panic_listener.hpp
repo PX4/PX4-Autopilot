@@ -17,7 +17,7 @@ namespace uavcan
  *   void (const protocol::Panic&)
  * The listener can be stopped from the callback.
  */
-template <typename Callback = void(*)(const protocol::Panic&)>
+template <typename Callback = void(*)(const ReceivedDataStructure<protocol::Panic>&)>
 class PanicListener : Noncopyable
 {
     typedef MethodBinder<PanicListener*, void(PanicListener::*)(const ReceivedDataStructure<protocol::Panic>&)>
