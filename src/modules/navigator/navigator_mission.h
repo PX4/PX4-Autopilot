@@ -40,6 +40,7 @@
 #define NAVIGATOR_MISSION_H
 
 #include <uORB/topics/mission.h>
+#include <uORB/topics/mission_result.h>
 
 
 class __EXPORT Mission
@@ -71,7 +72,9 @@ public:
 
 	void		move_to_next();
 
-	void		add_home_pos(struct mission_item_s *new_mission_item);
+	void		report_mission_item_reached();
+	void		report_current_offboard_mission_item();
+	void		publish_mission_result();
 
 private:
 	bool		current_onboard_mission_available();
@@ -92,6 +95,10 @@ private:
 		MISSION_TYPE_ONBOARD,
 		MISSION_TYPE_OFFBOARD,
 	} 		_current_mission_type;
+
+	int		_mission_result_pub;
+
+	struct mission_result_s _mission_result;
 };
 
 #endif

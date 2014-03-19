@@ -277,7 +277,6 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	// XXX write this out to perf regs
 
 	/* keep track of sensor updates */
-	uint32_t sensor_last_count[3] = {0, 0, 0};
 	uint64_t sensor_last_timestamp[3] = {0, 0, 0};
 
 	struct attitude_estimator_ekf_params ekf_params;
@@ -380,9 +379,8 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					uint8_t update_vect[3] = {0, 0, 0};
 
 					/* Fill in gyro measurements */
-					if (sensor_last_count[0] != raw.gyro_counter) {
+					if (sensor_last_timestamp[0] != raw.timestamp) {
 						update_vect[0] = 1;
-						sensor_last_count[0] = raw.gyro_counter;
 						sensor_update_hz[0] = 1e6f / (raw.timestamp - sensor_last_timestamp[0]);
 						sensor_last_timestamp[0] = raw.timestamp;
 					}
@@ -392,11 +390,10 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					z_k[2] =  raw.gyro_rad_s[2] - gyro_offsets[2];
 
 					/* update accelerometer measurements */
-					if (sensor_last_count[1] != raw.accelerometer_counter) {
+					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp) {
 						update_vect[1] = 1;
-						sensor_last_count[1] = raw.accelerometer_counter;
 						sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
-						sensor_last_timestamp[1] = raw.timestamp;
+						sensor_last_timestamp[1] = raw.accelerometer_timestamp;
 					}
 
 					hrt_abstime vel_t = 0;
@@ -445,11 +442,10 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					z_k[5] = raw.accelerometer_m_s2[2] - acc(2);
 
 					/* update magnetometer measurements */
-					if (sensor_last_count[2] != raw.magnetometer_counter) {
+					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp) {
 						update_vect[2] = 1;
-						sensor_last_count[2] = raw.magnetometer_counter;
 						sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
-						sensor_last_timestamp[2] = raw.timestamp;
+						sensor_last_timestamp[2] = raw.magnetometer_timestamp;
 					}
 
 					z_k[6] = raw.magnetometer_ga[0];
