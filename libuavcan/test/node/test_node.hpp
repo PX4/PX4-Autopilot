@@ -130,10 +130,19 @@ struct InterlinkedTestNodes
 
     int spinBoth(uavcan::MonotonicDuration duration)
     {
-        const uavcan::MonotonicDuration duration_per_node = duration * 0.5;
-        const int ret = a.spin(duration_per_node);
-        if (ret < 0)
-            return ret;
-        return b.spin(duration_per_node);
+        assert(duration.isPositive());
+        unsigned int nspins2 = duration.toMSec() / 2 + 1;
+        assert(nspins2 > 0);
+        while (nspins2 --> 0)
+        {
+            int ret = -1;
+            ret = a.spin(uavcan::MonotonicDuration::fromMSec(1));
+            if (ret < 0)
+                return ret;
+            ret = b.spin(uavcan::MonotonicDuration::fromMSec(1));
+            if (ret < 0)
+                return ret;
+        }
+        return 0;
     }
 };
