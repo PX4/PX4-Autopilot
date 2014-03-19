@@ -7,7 +7,7 @@
 #include "helpers.hpp"
 
 
-struct Handler : public uavcan::IRestartRequestHandler
+struct RestartHandler : public uavcan::IRestartRequestHandler
 {
     bool accept;
 
@@ -48,7 +48,7 @@ TEST(RestartRequestServer, Basic)
     /*
      * Accepted
      */
-    Handler handler;
+    RestartHandler handler;
     handler.accept = true;
     rrs.setHandler(&handler);
 
