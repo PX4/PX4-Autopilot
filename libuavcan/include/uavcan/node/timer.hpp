@@ -60,6 +60,14 @@ class TimerEventForwarder : public Timer
 {
     Callback callback_;
 
+    void handleTimerEvent(const TimerEvent& event)
+    {
+        if (try_implicit_cast<bool>(callback_, true))
+            callback_(event);
+        else
+            handleFatalError("Invalid timer callback");
+    }
+
 public:
     explicit TimerEventForwarder(INode& node)
     : Timer(node)
@@ -73,14 +81,6 @@ public:
 
     const Callback& getCallback() const { return callback_; }
     void setCallback(const Callback& callback) { callback_ = callback; }
-
-    void handleTimerEvent(const TimerEvent& event)
-    {
-        if (try_implicit_cast<bool>(callback_, true))
-            callback_(event);
-        else
-            handleFatalError("Invalid timer callback");
-    }
 };
 
 }
