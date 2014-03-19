@@ -5,7 +5,6 @@
 #pragma once
 
 #include <uavcan/time.hpp>
-#include <uavcan/debug.hpp>
 #include <uavcan/protocol/debug/LogMessage.hpp>
 #include <uavcan/marshal/char_array_formatter.hpp>
 #include <uavcan/node/publisher.hpp>
