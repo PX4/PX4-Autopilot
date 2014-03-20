@@ -10,8 +10,8 @@
 #include <gtest/gtest.h>
 #include <uavcan/transport/can_io.hpp>
 #include <uavcan/transport/frame.hpp>
-#include <uavcan/can_driver.hpp>
-#include <uavcan/system_clock.hpp>
+#include <uavcan/driver/can.hpp>
+#include <uavcan/driver/system_clock.hpp>
 #include "../../clock.hpp"
 
 

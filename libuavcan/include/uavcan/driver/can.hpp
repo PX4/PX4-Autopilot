@@ -10,7 +10,7 @@
 #include <string>
 #include <uavcan/stdint.hpp>
 #include <uavcan/impl_constants.hpp>
-#include <uavcan/system_clock.hpp>
+#include <uavcan/driver/system_clock.hpp>
 
 namespace uavcan
 {

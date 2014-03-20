@@ -11,8 +11,8 @@
 #include <uavcan/dynamic_memory.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/util/compile_time.hpp>
-#include <uavcan/can_driver.hpp>
-#include <uavcan/system_clock.hpp>
+#include <uavcan/driver/can.hpp>
+#include <uavcan/driver/system_clock.hpp>
 #include <uavcan/time.hpp>
 
 namespace uavcan

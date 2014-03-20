@@ -5,7 +5,7 @@
 
 #include <cstdio>
 #include <cassert>
-#include <uavcan/can_driver.hpp>
+#include <uavcan/driver/can.hpp>
 
 namespace uavcan
 {

@@ -5,9 +5,9 @@
 #pragma once
 
 #include <cassert>
-#include <uavcan/system_clock.hpp>
 #include <time.h>
 #include <sys/time.h>
+#include <uavcan/driver/system_clock.hpp>
 
 class SystemClockMock : public uavcan::ISystemClock
 {
