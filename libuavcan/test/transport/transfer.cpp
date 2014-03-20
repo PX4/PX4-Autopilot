@@ -17,16 +17,16 @@ TEST(Transfer, TransferID)
     /*
      * forwardDistance()
      */
-    EXPECT_EQ(0, TransferID(0).forwardDistance(0));
-    EXPECT_EQ(1, TransferID(0).forwardDistance(1));
-    EXPECT_EQ(7, TransferID(0).forwardDistance(7));
+    EXPECT_EQ(0, TransferID(0).computeForwardDistance(0));
+    EXPECT_EQ(1, TransferID(0).computeForwardDistance(1));
+    EXPECT_EQ(7, TransferID(0).computeForwardDistance(7));
 
-    EXPECT_EQ(0, TransferID(7).forwardDistance(7));
-    EXPECT_EQ(7, TransferID(7).forwardDistance(6));
-    EXPECT_EQ(1, TransferID(7).forwardDistance(0));
+    EXPECT_EQ(0, TransferID(7).computeForwardDistance(7));
+    EXPECT_EQ(7, TransferID(7).computeForwardDistance(6));
+    EXPECT_EQ(1, TransferID(7).computeForwardDistance(0));
 
-    EXPECT_EQ(7, TransferID(7).forwardDistance(6));
-    EXPECT_EQ(5, TransferID(0).forwardDistance(5));
+    EXPECT_EQ(7, TransferID(7).computeForwardDistance(6));
+    EXPECT_EQ(5, TransferID(0).computeForwardDistance(5));
 
     /*
      * Misc
@@ -42,8 +42,8 @@ TEST(Transfer, TransferID)
         ASSERT_EQ(i & ((1 << TransferID::BitLen) - 1), tid.get());
         const TransferID copy = tid;
         tid.increment();
-        ASSERT_EQ(1, copy.forwardDistance(tid));
-        ASSERT_EQ(7, tid.forwardDistance(copy));
-        ASSERT_EQ(0, tid.forwardDistance(tid));
+        ASSERT_EQ(1, copy.computeForwardDistance(tid));
+        ASSERT_EQ(7, tid.computeForwardDistance(copy));
+        ASSERT_EQ(0, tid.computeForwardDistance(tid));
     }
 }

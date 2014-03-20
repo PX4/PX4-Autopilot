@@ -18,7 +18,7 @@ const NodeID NodeID::Broadcast(ValueBroadcast);
 /**
  * TransferID
  */
-int TransferID::forwardDistance(TransferID rhs) const
+int TransferID::computeForwardDistance(TransferID rhs) const
 {
     int d = int(rhs.get()) - int(get());
     if (d < 0)

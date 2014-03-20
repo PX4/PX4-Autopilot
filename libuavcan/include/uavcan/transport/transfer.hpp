@@ -60,7 +60,7 @@ public:
     /**
      * Amount of increment() calls to reach rhs value.
      */
-    int forwardDistance(TransferID rhs) const;
+    int computeForwardDistance(TransferID rhs) const;
 };
 
 

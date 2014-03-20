@@ -19,7 +19,7 @@ const uint32_t TransferReceiver::MaxTransferIntervalUSec;
 
 TransferReceiver::TidRelation TransferReceiver::getTidRelation(const RxFrame& frame) const
 {
-    const int distance = tid_.forwardDistance(frame.getTransferID());
+    const int distance = tid_.computeForwardDistance(frame.getTransferID());
     if (distance == 0)
         return TidSame;
     if (distance < ((1 << TransferID::BitLen) / 2))
