@@ -1709,7 +1709,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_mavlink_wpm_comp_id = MAV_COMP_ID_MISSIONPLANNER;
 
-	warnx("data rate: %d bps, port: %s, baud: %d", _datarate, _device_name, (int)_baudrate);
+	warnx("data rate: %d Bytes/s, port: %s, baud: %d", _datarate, _device_name, _baudrate);
 
 	/* flush stdout in case MAVLink is about to take it over */
 	fflush(stdout);
