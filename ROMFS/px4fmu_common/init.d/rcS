@@ -108,7 +108,6 @@ then
 	set HIL no
 	set VEHICLE_TYPE none
 	set MIXER none
-	set USE_IO yes
 	set OUTPUT_MODE none
 	set PWM_OUTPUTS none
 	set PWM_RATE none
@@ -128,6 +127,16 @@ then
 		set DO_AUTOCONFIG yes
 	else
 		set DO_AUTOCONFIG no
+	fi
+	
+	#
+	# Set USE_IO flag
+	#
+	if param compare SYS_USE_IO 1
+	then
+		set USE_IO yes
+	else
+		set USE_IO no
 	fi
 		
 	#
