@@ -70,7 +70,7 @@ struct CanFrame
 UAVCAN_PACKED_END
 
 /**
- * CAN hardware filter config struct. @ref ICanDriver::filter().
+ * CAN hardware filter config struct. @ref ICanIface::configureFilters().
  */
 struct CanFilterConfig
 {
