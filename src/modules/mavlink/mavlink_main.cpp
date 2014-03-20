@@ -1773,8 +1773,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 	case MAVLINK_MODE_CAMERA:
 		configure_stream("SYS_STATUS", 1.0f);
-		configure_stream("ATTITUDE", 20.0f * rate_mult);
-		configure_stream("GLOBAL_POSITION_INT", 20.0f * rate_mult);
+		configure_stream("ATTITUDE", 15.0f * rate_mult);
+		configure_stream("GLOBAL_POSITION_INT", 15.0f * rate_mult);
 		configure_stream("CAMERA_CAPTURE", 1.0f);
 		break;
 
