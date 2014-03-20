@@ -211,7 +211,14 @@ std::string Frame::toString() const
 bool RxFrame::parse(const CanRxFrame& can_frame)
 {
     if (!Frame::parse(can_frame))
+    {
         return false;
+    }
+    if (can_frame.ts_mono.isZero())  // Monotonic timestamps are mandatory.
+    {
+        assert(0);                   // If it is not set, it's a driver failure.
+        return false;
+    }
     ts_mono_ = can_frame.ts_mono;
     ts_utc_ = can_frame.ts_utc;
     iface_index_ = can_frame.iface_index;

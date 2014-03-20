@@ -178,6 +178,7 @@ TEST(Frame, RxFrameParse)
     ASSERT_FALSE(rx_frame.parse(can_rx_frame));
 
     // Valid
+    can_rx_frame.ts_mono = uavcan::MonotonicTime::fromUSec(1);  // Zero is not allowed
     can_rx_frame.id = CanFrame::FlagEFF |
         (2 << 0)   |      //    Transfer ID
         (1 << 3)   |      //    Last Frame
@@ -187,7 +188,7 @@ TEST(Frame, RxFrameParse)
         (456 << 19);      //    Data Type ID
 
     ASSERT_TRUE(rx_frame.parse(can_rx_frame));
-    ASSERT_EQ(0, rx_frame.getMonotonicTimestamp().toUSec());
+    ASSERT_EQ(1, rx_frame.getMonotonicTimestamp().toUSec());
     ASSERT_EQ(0, rx_frame.getIfaceIndex());
 
     can_rx_frame.ts_mono = tsMono(123);
