@@ -32,40 +32,51 @@
  ****************************************************************************/
 
 /**
- * @file Node.h
+ * @file Publication.cpp
  *
- * A node of a linked list.
  */
 
-#pragma once
+#include "Publication.hpp"
+#include "topics/vehicle_attitude.h"
+#include "topics/vehicle_local_position.h"
+#include "topics/vehicle_global_position.h"
+#include "topics/debug_key_value.h"
+#include "topics/actuator_controls.h"
+#include "topics/vehicle_global_velocity_setpoint.h"
+#include "topics/vehicle_attitude_setpoint.h"
+#include "topics/vehicle_rates_setpoint.h"
+#include "topics/actuator_outputs.h"
+#include "topics/encoders.h"
+#include "topics/position_setpoint_triplet.h"
+
+namespace uORB {
 
 template<class T>
-class __EXPORT ListNode
-{
-public:
-	ListNode() : _sibling(NULL) {
-	}
-	void setSibling(T sibling) { _sibling = sibling; }
-	T getSibling() { return _sibling; }
-	T get() {
-		return _sibling;
-	}
-protected:
-	T _sibling;
-};
+Publication<T>::Publication(
+	List<PublicationBase *> * list,
+	const struct orb_metadata *meta) :
+	T(), // initialize data structure to zero
+	PublicationBase(list, meta) {
+}
 
 template<class T>
-class __EXPORT List
-{
-public:
-	List() : _head() {
-	}
-	void add(T newNode) {
-		newNode->setSibling(getHead());
-		setHead(newNode);
-	}
-	T getHead() { return _head; }
-private:
-	void setHead(T &head) { _head = head; }
-	T _head;
-};
+Publication<T>::~Publication() {}
+
+template<class T>
+void * Publication<T>::getDataVoidPtr() {
+	return (void *)(T *)(this);
+}
+
+template class __EXPORT Publication<vehicle_attitude_s>;
+template class __EXPORT Publication<vehicle_local_position_s>;
+template class __EXPORT Publication<vehicle_global_position_s>;
+template class __EXPORT Publication<debug_key_value_s>;
+template class __EXPORT Publication<actuator_controls_s>;
+template class __EXPORT Publication<vehicle_global_velocity_setpoint_s>;
+template class __EXPORT Publication<vehicle_attitude_setpoint_s>;
+template class __EXPORT Publication<vehicle_rates_setpoint_s>;
+template class __EXPORT Publication<actuator_outputs_s>;
+template class __EXPORT Publication<encoders_s>;
+template class __EXPORT Publication<position_setpoint_triplet_s>;
+
+}

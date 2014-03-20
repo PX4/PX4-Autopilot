@@ -41,10 +41,11 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
+
 #include "Block.hpp"
 #include "BlockParam.hpp"
-#include "../uorb/UOrbSubscription.hpp"
-#include "../uorb/UOrbPublication.hpp"
 
 namespace control
 {
@@ -100,7 +101,7 @@ void Block::updateParams()
 
 void Block::updateSubscriptions()
 {
-	UOrbSubscriptionBase *sub = getSubscriptions().getHead();
+	uORB::SubscriptionBase *sub = getSubscriptions().getHead();
 	int count = 0;
 
 	while (sub != NULL) {
@@ -118,7 +119,7 @@ void Block::updateSubscriptions()
 
 void Block::updatePublications()
 {
-	UOrbPublicationBase *pub = getPublications().getHead();
+	uORB::PublicationBase *pub = getPublications().getHead();
 	int count = 0;
 
 	while (pub != NULL) {

@@ -32,8 +32,35 @@
  ****************************************************************************/
 
 /**
- * @file UOrbPublication.cpp
+ * @file encoders.h
+ *
+ * Encoders topic.
  *
  */
 
-#include "UOrbPublication.hpp"
+#ifndef TOPIC_ENCODERS_H
+#define TOPIC_ENCODERS_H
+
+#include <stdint.h>
+#include "../uORB.h"
+
+/**
+ * @addtogroup topics
+ * @{
+ */
+
+#define NUM_ENCODERS 4
+
+struct encoders_s {
+	uint64_t timestamp;
+	int64_t counts[NUM_ENCODERS]; // counts of encoder
+	float velocity[NUM_ENCODERS]; // counts of encoder/ second
+};
+
+/**
+ * @}
+ */
+
+ORB_DECLARE(encoders);
+
+#endif
