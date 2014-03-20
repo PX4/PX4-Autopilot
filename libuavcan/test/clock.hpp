@@ -42,7 +42,7 @@ public:
         return uavcan::UtcTime::fromUSec(utc);
     }
 
-    void adjustUtc(uavcan::UtcTime, uavcan::UtcDuration)
+    void adjustUtc(uavcan::UtcDuration)
     {
         assert(0);
     }
@@ -76,7 +76,7 @@ public:
         return uavcan::UtcTime::fromUSec(uint64_t(tv.tv_sec) * 1000000UL + tv.tv_usec);
     }
 
-    void adjustUtc(uavcan::UtcTime, uavcan::UtcDuration)
+    void adjustUtc(uavcan::UtcDuration)
     {
         assert(0);
     }

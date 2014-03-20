@@ -37,11 +37,10 @@ public:
 
     /**
      * Set the UTC system clock.
-     * @param [in] timestamp New UTC timestamp. Avoid when possible.
-     * @param [in] offset    Current UTC time error. More precise than just timestamp, use it if possible.
+     * @param [in] adjustment Amount of time to add to the clock value.
      * For POSIX refer to adjtime(), settimeofday().
      */
-    virtual void adjustUtc(UtcTime new_time, UtcDuration offset) = 0;
+    virtual void adjustUtc(UtcDuration adjustment) = 0;
 };
 
 }
