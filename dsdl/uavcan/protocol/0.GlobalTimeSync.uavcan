@@ -1,11 +1,14 @@
 #
-# Time synchronization; publish frequency 0.5 Hz.
+# Global time synchronization.
 # Should be UTC time, not GPS time nor local time.
-# Any node that publishes a timestamped data must use this time reference.
-# Multiple nodes can provide the time synchronization concurrently.
+# Any node that publishes timestamped data must use this time reference.
+# This message is not intended for unicast transfers.
 #
 
-uint16 PUBLICATION_PERIOD_MS = 2000
+uint16 MAX_PUBLICATION_PERIOD_MS = 2000
+uint16 DEFAULT_PUBLICATION_PERIOD_MS = 1000
+uint16 PUBLISHER_TIMEOUT_MS = 10000
 
-uavcan.Timestamp timestamp   # Must be known
-float16 timestamp_variance   # Units of the timestamp ^2
+# UTC time in microseconds when the PREVIOUS GlobalTimeSync message was transmitted.
+# If this message is the first one, this field must be zero.
+uint64 prev_utc_usec
