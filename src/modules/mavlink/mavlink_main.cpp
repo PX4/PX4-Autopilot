@@ -254,7 +254,6 @@ Mavlink::Mavlink() :
 		break;
 	}
 
-	LL_APPEND(_mavlink_instances, this);
 }
 
 Mavlink::~Mavlink()
@@ -1778,6 +1777,9 @@ Mavlink::task_main(int argc, char *argv[])
 	/* set main loop delay depending on data rate to minimize CPU overhead */
 	_main_loop_delay = MAIN_LOOP_DELAY / rate_mult;
 
+	/* now the instance is fully initialized and we can bump the instance count */
+	LL_APPEND(_mavlink_instances, this);
+
 	while (!_task_should_exit) {
 		/* main loop */
 		usleep(_main_loop_delay);
@@ -1924,16 +1926,34 @@ int Mavlink::start_helper(int argc, char *argv[])
 int
 Mavlink::start(int argc, char *argv[])
 {
+	// Wait for the instance count to go up one
+	// before returning to the shell
+	int ic = Mavlink::instance_count();
+
 	// Instantiate thread
 	char buf[24];
-	sprintf(buf, "mavlink_if%d", Mavlink::instance_count());
+	sprintf(buf, "mavlink_if%d", ic);
 
+	// This is where the control flow splits
+	// between the starting task and the spawned
+	// task - start_helper() only returns
+	// when the started task exits.
 	task_spawn_cmd(buf,
 		       SCHED_DEFAULT,
 		       SCHED_PRIORITY_DEFAULT,
 		       2048,
 		       (main_t)&Mavlink::start_helper,
 		       (const char **)argv);
+
+	// Ensure that this shell command
+	// does not return before the instance
+	// is fully initialized. As this is also
+	// the only path to create a new instance,
+	// this is effectively a lock on concurrent
+	// instance starting. XXX do a real lock.
+	while (ic == Mavlink::instance_count()) {
+		::usleep(500);
+	}
 
 	return OK;
 }
