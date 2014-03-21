@@ -1652,6 +1652,8 @@ Mavlink::task_main(int argc, char *argv[])
 		case 'm':
 			if (strcmp(optarg, "custom") == 0) {
 				_mode = MAVLINK_MODE_CUSTOM;
+			} else if (strcmp(optarg, "camera") == 0) {
+				_mode = MAVLINK_MODE_CAMERA;
 			}
 
 			break;
@@ -1695,6 +1697,10 @@ Mavlink::task_main(int argc, char *argv[])
 		warnx("mode: CUSTOM");
 		break;
 
+	case MAVLINK_MODE_CAMERA:
+		warnx("mode: CAMERA");
+		break;
+
 	default:
 		warnx("ERROR: Unknown mode");
 		break;
@@ -1702,7 +1708,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_mavlink_wpm_comp_id = MAV_COMP_ID_MISSIONPLANNER;
 
-	warnx("data rate: %d bps, port: %s, baud: %d", _datarate, _device_name, (int)_baudrate);
+	warnx("data rate: %d Bytes/s, port: %s, baud: %d", _datarate, _device_name, _baudrate);
 
 	/* flush stdout in case MAVLink is about to take it over */
 	fflush(stdout);
@@ -1763,6 +1769,13 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("LOCAL_POSITION_NED", 3.0f * rate_mult);
 		configure_stream("RC_CHANNELS_RAW", 1.0f * rate_mult);
 		configure_stream("NAMED_VALUE_FLOAT", 1.0f * rate_mult);
+		break;
+
+	case MAVLINK_MODE_CAMERA:
+		configure_stream("SYS_STATUS", 1.0f);
+		configure_stream("ATTITUDE", 15.0f * rate_mult);
+		configure_stream("GLOBAL_POSITION_INT", 15.0f * rate_mult);
+		configure_stream("CAMERA_CAPTURE", 1.0f);
 		break;
 
 	default:
