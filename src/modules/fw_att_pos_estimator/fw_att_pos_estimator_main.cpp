@@ -735,7 +735,7 @@ FixedwingEstimator::task_main()
 					orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
 					_baro_ref = _baro.altitude;
 					baroHgt = _baro.altitude - _baro_ref;
-					_baro_gps_offset = baroHgt - alt;
+					_baro_gps_offset = _baro_ref - _local_pos.ref_alt;
 
 					// XXX this is not multithreading safe
 					map_projection_init(lat, lon);
@@ -984,10 +984,11 @@ FixedwingEstimator::task_main()
 					_global_pos.vel_e = 0.0f;
 				}
 
-				_global_pos.alt = _local_pos.ref_alt - _local_pos.z;
+				/* local pos alt is negative, change sign and add alt offset */
+				_global_pos.alt = _local_pos.ref_alt + (-_local_pos.z);
 
 				if (_local_pos.z_valid) {
-					_global_pos.baro_alt = _baro_ref - _baro_gps_offset - _local_pos.z;
+					_global_pos.baro_alt = _local_pos.ref_alt - _baro_gps_offset - _local_pos.z;
 				}
 
 				if (_local_pos.v_z_valid) {
