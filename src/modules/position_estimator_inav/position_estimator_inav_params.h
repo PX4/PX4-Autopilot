@@ -58,6 +58,8 @@ struct position_estimator_inav_params {
 	float land_t;
 	float land_disp;
 	float land_thr;
+	float alt0;
+	float alt0_err;
 };
 
 struct position_estimator_inav_param_handles {
@@ -78,6 +80,8 @@ struct position_estimator_inav_param_handles {
 	param_t land_t;
 	param_t land_disp;
 	param_t land_thr;
+	param_t alt0;
+	param_t alt0_err;
 };
 
 /**

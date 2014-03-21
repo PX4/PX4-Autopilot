@@ -525,13 +525,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				if (gps.fix_type >= 3) {
 					/* hysteresis for GPS quality */
 					if (gps_valid) {
-						if (gps.eph_m > 10.0f || gps.epv_m > 20.0f) {
+						if (gps.eph_m > 50.0f || gps.epv_m > 30.0f) {
 							gps_valid = false;
 							mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
 						}
 
 					} else {
-						if (gps.eph_m < 5.0f && gps.epv_m < 10.0f) {
+						if (gps.eph_m < 50.0f && gps.epv_m < 30.0f) {
 							gps_valid = true;
 							mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
 						}
@@ -542,27 +542,40 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				}
 
 				if (gps_valid) {
+					double lat = gps.lat * 1e-7;
+					double lon = gps.lon * 1e-7;
+					float alt = gps.alt * 1e-3;
+
 					/* initialize reference position if needed */
 					if (!ref_inited) {
-						if (ref_init_start == 0) {
-							ref_init_start = t;
+						bool do_init = true;
+						/* if init altitude defined, check if we close enough to it */
+						if (params.alt0_err > 0.0f) {
+							if (fabsf(alt - params.alt0) < params.alt0_err) {
+								alt = params.alt0;
 
-						} else if (t > ref_init_start + ref_init_delay) {
-							ref_inited = true;
-							/* reference GPS position */
-							double lat = gps.lat * 1e-7;
-							double lon = gps.lon * 1e-7;
-							float alt = gps.alt * 1e-3;
+							} else {
+								do_init = false;
+							}
+						}
 
-							local_pos.ref_lat = gps.lat;
-							local_pos.ref_lon = gps.lon;
-							local_pos.ref_alt = alt + z_est[0];
-							local_pos.ref_timestamp = t;
+						if (do_init) {
+							if (ref_init_start == 0) {
+								ref_init_start = t;
 
-							/* initialize projection */
-							map_projection_init(lat, lon);
-							warnx("init ref: lat=%.7f, lon=%.7f, alt=%.2f", lat, lon, alt);
-							mavlink_log_info(mavlink_fd, "[inav] init ref: lat=%.7f, lon=%.7f, alt=%.2f", lat, lon, alt);
+							} else if (t > ref_init_start + ref_init_delay) {
+								ref_inited = true;
+								/* reference GPS position */
+								local_pos.ref_lat = gps.lat;
+								local_pos.ref_lon = gps.lon;
+								local_pos.ref_alt = alt + z_est[0];
+								local_pos.ref_timestamp = t;
+
+								/* initialize projection */
+								map_projection_init(lat, lon);
+								warnx("init ref: lat=%.7f, lon=%.7f, alt=%.2f", lat, lon, alt);
+								mavlink_log_info(mavlink_fd, "[inav] init ref: lat=%.7f, lon=%.7f, alt=%.2f", lat, lon, alt);
+							}
 						}
 					}
 
