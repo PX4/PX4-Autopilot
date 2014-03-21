@@ -79,6 +79,12 @@ public:
         }
         callback_ = callback;
 
+        const int publisher_res = publisher_.init();
+        if (publisher_res < 0)
+        {
+            UAVCAN_TRACE("ServiceServer", "Publisher initialization failure: %i", publisher_res);
+            return publisher_res;
+        }
         return SubscriberType::startAsServiceRequestListener();
     }
 

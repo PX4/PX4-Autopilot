@@ -106,6 +106,11 @@ public:
 
     ~GenericPublisher() { }
 
+    int init()
+    {
+        return checkInit() ? 0 : -1;
+    }
+
     int publish(const DataStruct& message, TransferType transfer_type, NodeID dst_node_id,
                 MonotonicTime blocking_deadline = MonotonicTime())
     {
@@ -116,6 +121,12 @@ public:
                 MonotonicTime blocking_deadline = MonotonicTime())
     {
         return genericPublish(message, transfer_type, dst_node_id, &tid, blocking_deadline);
+    }
+
+    TransferSender* getTransferSender()
+    {
+        checkInit();
+        return sender_.isConstructed() ? static_cast<TransferSender*>(sender_) : NULL;
     }
 
     static MonotonicDuration getMinTxTimeout() { return MonotonicDuration::fromUSec(200); }

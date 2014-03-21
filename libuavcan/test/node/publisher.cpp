@@ -105,4 +105,18 @@ TEST(Publisher, Basic)
      * Misc
      */
     ASSERT_TRUE(uavcan::GlobalDataTypeRegistry::instance().isFrozen());
+    ASSERT_TRUE(publisher.getTransferSender());
+}
+
+
+TEST(Publisher, ImplicitInitialization)
+{
+    SystemClockMock clock_mock(100);
+    CanDriverMock can_driver(2, clock_mock);
+    TestNode node(can_driver, clock_mock, 1);
+
+    uavcan::Publisher<uavcan::mavlink::Message> publisher(node);
+
+    // Will be initialized ad-hoc
+    ASSERT_TRUE(publisher.getTransferSender());
 }

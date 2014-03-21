@@ -44,6 +44,8 @@ public:
 
     static MonotonicDuration getDefaultTxTimeout() { return MonotonicDuration::fromMSec(5); } // 5 ms --> 200 Hz max
 
+    using BaseType::init;
+    using BaseType::getTransferSender;
     using BaseType::getMinTxTimeout;
     using BaseType::getMaxTxTimeout;
     using BaseType::getTxTimeout;

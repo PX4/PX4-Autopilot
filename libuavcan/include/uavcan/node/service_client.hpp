@@ -143,6 +143,11 @@ public:
 
     virtual ~ServiceClient() { cancel(); }
 
+    int init()
+    {
+        return publisher_.init();
+    }
+
     int call(NodeID server_node_id, const RequestType& request) // TODO: Refactor, move into a non-template subclass!
     {
         /*
