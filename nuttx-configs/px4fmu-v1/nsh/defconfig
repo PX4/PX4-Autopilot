@@ -16,6 +16,7 @@ CONFIG_HOST_LINUX=y
 #
 # Build Configuration
 #
+CONFIG_APPS_DIR="../apps"
 # CONFIG_BUILD_2PASS is not set
 
 #
@@ -341,7 +342,7 @@ CONFIG_ARCH_HAVE_IRQPRIO=y
 CONFIG_ARCH_HAVE_VFORK=y
 # CONFIG_ARCH_HAVE_MMU is not set
 # CONFIG_ARCH_NAND_HWECC is not set
-# CONFIG_ARCH_IRQPRIO is not set
+CONFIG_ARCH_IRQPRIO=y
 CONFIG_ARCH_STACKDUMP=y
 # CONFIG_ENDIAN_BIG is not set
 # CONFIG_ARCH_IDLE_CUSTOM is not set
@@ -1127,7 +1128,3 @@ CONFIG_SYSTEM_CLE_DEBUGLEVEL=0
 # Zmodem Commands
 #
 # CONFIG_SYSTEM_ZMODEM is not set
-
-# Application configuration
-
-CONFIG_APPS_DIR="../apps"
