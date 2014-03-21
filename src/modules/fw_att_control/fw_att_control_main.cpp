@@ -108,14 +108,14 @@ private:
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	int		_control_task;			/**< task handle for sensor task */
 
-	int		_att_sub;				/**< vehicle attitude subscription */
-	int		_accel_sub;				/**< accelerometer subscription */
+	int		_att_sub;			/**< vehicle attitude subscription */
+	int		_accel_sub;			/**< accelerometer subscription */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
 	int		_attitude_sub;			/**< raw rc channels data subscription */
 	int		_airspeed_sub;			/**< airspeed subscription */
 	int		_vcontrol_mode_sub;		/**< vehicle status subscription */
-	int 	_params_sub;			/**< notification of parameter updates */
-	int 	_manual_sub;			/**< notification of manual control updates */
+	int 		_params_sub;			/**< notification of parameter updates */
+	int 		_manual_sub;			/**< notification of manual control updates */
 	int		_global_pos_sub;		/**< global position subscription */
 
 	orb_advert_t	_rate_sp_pub;			/**< rate setpoint publication */
@@ -123,20 +123,19 @@ private:
 	orb_advert_t	_actuators_0_pub;		/**< actuator control group 0 setpoint */
 	orb_advert_t	_actuators_1_pub;		/**< actuator control group 1 setpoint (Airframe) */
 
-	struct vehicle_attitude_s				_att;			/**< vehicle attitude */
-	struct accel_report						_accel;			/**< body frame accelerations */
+	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
+	struct accel_report				_accel;			/**< body frame accelerations */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
-	struct airspeed_s						_airspeed;		/**< airspeed */
-	struct vehicle_control_mode_s			_vcontrol_mode;	/**< vehicle control mode */
+	struct airspeed_s				_airspeed;		/**< airspeed */
+	struct vehicle_control_mode_s			_vcontrol_mode;		/**< vehicle control mode */
 	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
-	struct actuator_controls_s			_actuators_airframe;		/**< actuator control inputs */
-	struct vehicle_global_position_s		_global_pos;	/**< global position */
+	struct actuator_controls_s			_actuators_airframe;	/**< actuator control inputs */
+	struct vehicle_global_position_s		_global_pos;		/**< global position */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	bool		_setpoint_valid;		/**< flag if the position control setpoint is valid */
-	bool		_airspeed_valid;		/**< flag if the airspeed measurement is valid */
 
 	struct {
 		float tconst;
@@ -245,7 +244,7 @@ private:
 	/**
 	 * Check for airspeed updates.
 	 */
-	bool		vehicle_airspeed_poll();
+	void		vehicle_airspeed_poll();
 
 	/**
 	 * Check for accel updates.
@@ -308,19 +307,18 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw att control")),
 /* states */
-	_setpoint_valid(false),
-	_airspeed_valid(false)
+	_setpoint_valid(false)
 {
 	/* safely initialize structs */
-	_att = {0};
-	_accel = {0};
-	_att_sp = {0};
-	_manual = {0};
-	_airspeed = {0};
-	_vcontrol_mode = {0};
-	_actuators = {0};
-	_actuators_airframe = {0};
-	_global_pos = {0};
+	_att = {};
+	_accel = {};
+	_att_sp = {};
+	_manual = {};
+	_airspeed = {};
+	_vcontrol_mode = {};
+	_actuators = {};
+	_actuators_airframe = {};
+	_global_pos = {};
 
 
 	_parameter_handles.tconst = param_find("FW_ATT_TC");
@@ -482,7 +480,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 	}
 }
 
-bool
+void
 FixedwingAttitudeControl::vehicle_airspeed_poll()
 {
 	/* check if there is a new position */
@@ -492,10 +490,7 @@ FixedwingAttitudeControl::vehicle_airspeed_poll()
 	if (airspeed_updated) {
 		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
 //		warnx("airspeed poll: ind: %.4f,  true: %.4f", _airspeed.indicated_airspeed_m_s, _airspeed.true_airspeed_m_s);
-		return true;
 	}
-
-	return false;
 }
 
 void
@@ -569,7 +564,7 @@ FixedwingAttitudeControl::task_main()
 	parameters_update();
 
 	/* get an initial update for all sensor and status data */
-	(void)vehicle_airspeed_poll();
+	vehicle_airspeed_poll();
 	vehicle_setpoint_poll();
 	vehicle_accel_poll();
 	vehicle_control_mode_poll();
@@ -626,7 +621,7 @@ FixedwingAttitudeControl::task_main()
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
 
-			_airspeed_valid = vehicle_airspeed_poll();
+			vehicle_airspeed_poll();
 
 			vehicle_setpoint_poll();
 
@@ -666,9 +661,9 @@ FixedwingAttitudeControl::task_main()
 				float airspeed;
 
 				/* if airspeed is smaller than min, the sensor is not giving good readings */
-				if (!_airspeed_valid ||
-				    (_airspeed.indicated_airspeed_m_s < 0.5f * _parameters.airspeed_min) ||
-				    !isfinite(_airspeed.indicated_airspeed_m_s)) {
+				if ((_airspeed.indicated_airspeed_m_s < 0.5f * _parameters.airspeed_min) ||
+				    !isfinite(_airspeed.indicated_airspeed_m_s) ||
+				    hrt_elapsed_time(&_airspeed.timestamp) > 1e6) {
 					airspeed = _parameters.airspeed_trim;
 
 				} else {
@@ -790,10 +785,6 @@ FixedwingAttitudeControl::task_main()
 				} else {
 					warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", roll_sp, pitch_sp);
 				}
-
-				// warnx("aspd: %s: %6.2f, aspd scaling: %6.2f, controls: %5.2f %5.2f %5.2f %5.2f", (_airspeed_valid) ? "valid" : "unknown",
-				// 			airspeed, airspeed_scaling, _actuators.control[0], _actuators.control[1],
-				// 			_actuators.control[2], _actuators.control[3]);
 
 				/*
 				 * Lazily publish the rate setpoint (for analysis, the actuators are published below)
