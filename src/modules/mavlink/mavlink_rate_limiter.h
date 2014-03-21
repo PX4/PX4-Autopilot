@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,20 +32,31 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_hil.h
- * Hardware-in-the-loop simulation support.
- */
-
-#pragma once
-
-extern bool mavlink_hil_enabled;
-
-/**
- * Enable / disable Hardware in the Loop simulation mode.
+ * @file mavlink_rate_limiter.h
+ * Message rate limiter definition.
  *
- * @param hil_enabled	The new HIL enable/disable state.
- * @return		OK if the HIL state changed, ERROR if the
- *			requested change could not be made or was
- *			redundant.
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
-extern int set_hil_on_off(bool hil_enabled);
+
+#ifndef MAVLINK_RATE_LIMITER_H_
+#define MAVLINK_RATE_LIMITER_H_
+
+#include <drivers/drv_hrt.h>
+
+
+class MavlinkRateLimiter
+{
+private:
+	hrt_abstime _last_sent;
+	hrt_abstime _interval;
+
+public:
+	MavlinkRateLimiter();
+	MavlinkRateLimiter(unsigned int interval);
+	~MavlinkRateLimiter();
+	void set_interval(unsigned int interval);
+	bool check(hrt_abstime t);
+};
+
+
+#endif /* MAVLINK_RATE_LIMITER_H_ */
