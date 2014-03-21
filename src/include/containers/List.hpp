@@ -32,20 +32,40 @@
  ****************************************************************************/
 
 /**
- * @file UOrbSubscription.cpp
+ * @file List.hpp
  *
+ * A linked list.
  */
 
-#include "UOrbSubscription.hpp"
+#pragma once
 
-namespace control
+template<class T>
+class __EXPORT ListNode
 {
+public:
+	ListNode() : _sibling(nullptr) {
+	}
+	void setSibling(T sibling) { _sibling = sibling; }
+	T getSibling() { return _sibling; }
+	T get() {
+		return _sibling;
+	}
+protected:
+	T _sibling;
+};
 
-bool __EXPORT UOrbSubscriptionBase::updated()
+template<class T>
+class __EXPORT List
 {
-	bool isUpdated = false;
-	orb_check(_handle, &isUpdated);
-	return isUpdated;
-}
-
-} // namespace control
+public:
+	List() : _head() {
+	}
+	void add(T newNode) {
+		newNode->setSibling(getHead());
+		setHead(newNode);
+	}
+	T getHead() { return _head; }
+private:
+	void setHead(T &head) { _head = head; }
+	T _head;
+};
