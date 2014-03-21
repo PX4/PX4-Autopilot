@@ -74,8 +74,6 @@
 #include <commander/px4_custom_mode.h>
 #include <geo/geo.h>
 
-#include <uORB/topics/target_global_position.h>
-
 __BEGIN_DECLS
 
 #include "mavlink_bridge_header.h"
@@ -111,8 +109,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_rc_pub(-1),
 	_manual_pub(-1),
 	_target_pos_pub(-1),
-
-	_hil_counter(0),
 	_hil_frames(0),
 	_old_timestamp(0),
 	_hil_local_proj_inited(0),
@@ -623,7 +619,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.gyro_rad_s[0] = imu.xgyro;
 		hil_sensors.gyro_rad_s[1] = imu.ygyro;
 		hil_sensors.gyro_rad_s[2] = imu.zgyro;
-		hil_sensors.gyro_counter = _hil_counter;
 
 		hil_sensors.accelerometer_raw[0] = imu.xacc / mg2ms2;
 		hil_sensors.accelerometer_raw[1] = imu.yacc / mg2ms2;
@@ -633,7 +628,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.accelerometer_m_s2[2] = imu.zacc;
 		hil_sensors.accelerometer_mode = 0; // TODO what is this?
 		hil_sensors.accelerometer_range_m_s2 = 32.7f; // int16
-		hil_sensors.accelerometer_counter = _hil_counter;
+		hil_sensors.accelerometer_timestamp = timestamp;
 
 		hil_sensors.adc_voltage_v[0] = 0.0f;
 		hil_sensors.adc_voltage_v[1] = 0.0f;
@@ -648,15 +643,15 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_sensors.magnetometer_range_ga = 32.7f; // int16
 		hil_sensors.magnetometer_mode = 0; // TODO what is this
 		hil_sensors.magnetometer_cuttoff_freq_hz = 50.0f;
-		hil_sensors.magnetometer_counter = _hil_counter;
+		hil_sensors.magnetometer_timestamp = timestamp;
 
 		hil_sensors.baro_pres_mbar = imu.abs_pressure;
 		hil_sensors.baro_alt_meter = imu.pressure_alt;
 		hil_sensors.baro_temp_celcius = imu.temperature;
-		hil_sensors.baro_counter = _hil_counter;
+		hil_sensors.baro_timestamp = timestamp;
 
 		hil_sensors.differential_pressure_pa = imu.diff_pressure * 1e2f; //from hPa to Pa
-		hil_sensors.differential_pressure_counter = _hil_counter;
+		hil_sensors.differential_pressure_timestamp = timestamp;
 
 		/* publish combined sensor topic */
 		if (_sensors_pub > 0) {
@@ -685,7 +680,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	}
 
 	/* increment counters */
-	_hil_counter++;
 	_hil_frames++;
 
 	/* print HIL sensors rate */
@@ -892,7 +886,9 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 		hil_battery_status.timestamp = timestamp;
 		hil_battery_status.voltage_v = 11.1f;
+		hil_battery_status.voltage_filtered_v = 11.1f;
 		hil_battery_status.current_a = 10.0f;
+		hil_battery_status.discharged_mah = -1.0f;
 
 		if (_battery_pub > 0) {
 			orb_publish(ORB_ID(battery_status), _battery_pub, &hil_battery_status);

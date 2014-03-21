@@ -45,31 +45,6 @@
 #include <string.h>
 #include "mavlink_bridge_header.h"
 #include <systemlib/param/param.h>
-// #include <drivers/drv_hrt.h>
-// #include <time.h>
-// #include <float.h>
-// #include <unistd.h>
-// #include <nuttx/sched.h>
-// #include <sys/prctl.h>
-// #include <termios.h>
-// #include <errno.h>
-// #include <stdlib.h>
-// #include <poll.h>
-
-//
-// #include <systemlib/systemlib.h>
-// #include <systemlib/err.h>
-// #include <mavlink/mavlink_log.h>
-// #include <commander/px4_custom_mode.h>
-
-// #include "waypoints.h"
-// #include "orb_topics.h"
-// #include "mavlink_hil.h"
-// #include "util.h"
-// #include "waypoints.h"
-// #include "mavlink_parameters.h"
-
-// #include <uORB/topics/mission_result.h>
 
 /* define MAVLink specific parameters */
 /**

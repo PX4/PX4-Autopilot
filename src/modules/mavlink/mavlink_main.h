@@ -145,16 +145,14 @@ public:
 	const char *_device_name;
 
 	enum MAVLINK_MODE {
-		MODE_CUSTOM = 0,
-		MODE_OFFBOARD,
-		MODE_ONBOARD,
-		MODE_HIL
+		MAVLINK_MODE_NORMAL = 0,
+		MAVLINK_MODE_CUSTOM
 	};
 
 	void		set_mode(enum MAVLINK_MODE);
 	enum MAVLINK_MODE		get_mode() { return _mode; }
 
-	bool		get_hil_enabled() { return _mavlink_hil_enabled; };
+	bool		get_hil_enabled() { return _hil_enabled; };
 
 	bool		get_flow_control_enabled() { return _flow_control_enabled; }
 
@@ -209,7 +207,8 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	/* states */
-	bool		_mavlink_hil_enabled;		/**< Hardware In the Loop mode */
+	bool		_hil_enabled;		/**< Hardware In the Loop mode */
+	bool		_is_usb_uart;		/**< Port is USB */
 
 	unsigned	_main_loop_delay;		/**< mainloop delay, depends on data rate */
 

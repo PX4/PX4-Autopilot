@@ -46,11 +46,15 @@
 
 #include "mavlink_orb_subscription.h"
 
-MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic) : _topic(topic), _last_check(0), next(nullptr)
+MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic) :
+	_fd(orb_subscribe(_topic)),
+	_published(false),
+	_topic(topic),
+	_last_check(0),
+	next(nullptr)
 {
 	_data = malloc(topic->o_size);
 	memset(_data, 0, topic->o_size);
-	_fd = orb_subscribe(_topic);
 }
 
 MavlinkOrbSubscription::~MavlinkOrbSubscription()
@@ -74,16 +78,36 @@ MavlinkOrbSubscription::get_data()
 bool
 MavlinkOrbSubscription::update(const hrt_abstime t)
 {
-	if (_last_check != t) {
-		_last_check = t;
-		bool updated;
-		orb_check(_fd, &updated);
+	if (_last_check == t) {
+		/* already checked right now, return result of the check */
+		return _updated;
 
-		if (updated) {
+	} else {
+		_last_check = t;
+		orb_check(_fd, &_updated);
+
+		if (_updated) {
 			orb_copy(_topic, _fd, _data);
 			return true;
 		}
 	}
 
 	return false;
+}
+
+bool
+MavlinkOrbSubscription::is_published()
+{
+	if (_published) {
+		return true;
+	}
+
+	bool updated;
+	orb_check(_fd, &updated);
+
+	if (updated) {
+		_published = true;
+	}
+
+	return _published;
 }
