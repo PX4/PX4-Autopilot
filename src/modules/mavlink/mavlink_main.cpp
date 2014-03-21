@@ -151,8 +151,9 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 	}
 
 	/* no valid instance, bail */
-	if (!instance)
+	if (!instance) {
 		return;
+	}
 
 	int uart = instance->get_uart_fd();
 
@@ -165,12 +166,12 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 	int buf_free = 0;
 
 	if (instance->get_flow_control_enabled()
-		&& ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
+	    && ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
 
 		if (buf_free == 0) {
 
 			if (last_write_times[(unsigned)channel] != 0 &&
-			hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500*1000UL) {
+			    hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500 * 1000UL) {
 
 				warnx("DISABLING HARDWARE FLOW CONTROL");
 				instance->enable_flow_control(false);
@@ -225,36 +226,42 @@ Mavlink::Mavlink() :
 	case 0:
 		_channel = MAVLINK_COMM_0;
 		break;
+
 	case 1:
 		_channel = MAVLINK_COMM_1;
 		break;
+
 	case 2:
 		_channel = MAVLINK_COMM_2;
 		break;
+
 	case 3:
 		_channel = MAVLINK_COMM_3;
 		break;
 #ifdef MAVLINK_COMM_4
+
 	case 4:
 		_channel = MAVLINK_COMM_4;
 		break;
 #endif
 #ifdef MAVLINK_COMM_5
-		case 5:
+
+	case 5:
 		_channel = MAVLINK_COMM_5;
 		break;
 #endif
 #ifdef MAVLINK_COMM_6
+
 	case 6:
 		_channel = MAVLINK_COMM_6;
 		break;
 #endif
+
 	default:
 		errx(1, "instance ID is out of range");
 		break;
 	}
 
-	LL_APPEND(_mavlink_instances, this);
 }
 
 Mavlink::~Mavlink()
@@ -280,6 +287,7 @@ Mavlink::~Mavlink()
 			}
 		} while (_task_running);
 	}
+
 	LL_DELETE(_mavlink_instances, this);
 }
 
@@ -589,7 +597,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 
 		/* setup output flow control */
 		if (enable_flow_control(true)) {
-			warnx("ERR FLOW CTRL EN");
+			warnx("hardware flow control not supported");
 		}
 	}
 
@@ -605,12 +613,16 @@ Mavlink::enable_flow_control(bool enabled)
 	}
 
 	struct termios uart_config;
+
 	int ret = tcgetattr(_uart_fd, &uart_config);
+
 	if (enabled) {
 		uart_config.c_cflag |= CRTSCTS;
+
 	} else {
 		uart_config.c_cflag &= ~CRTSCTS;
 	}
+
 	ret = tcsetattr(_uart_fd, TCSANOW, &uart_config);
 
 	if (!ret) {
@@ -1653,6 +1665,9 @@ Mavlink::task_main(int argc, char *argv[])
 		case 'm':
 			if (strcmp(optarg, "custom") == 0) {
 				_mode = MAVLINK_MODE_CUSTOM;
+
+			} else if (strcmp(optarg, "camera") == 0) {
+				_mode = MAVLINK_MODE_CAMERA;
 			}
 
 			break;
@@ -1696,6 +1711,10 @@ Mavlink::task_main(int argc, char *argv[])
 		warnx("mode: CUSTOM");
 		break;
 
+	case MAVLINK_MODE_CAMERA:
+		warnx("mode: CAMERA");
+		break;
+
 	default:
 		warnx("ERROR: Unknown mode");
 		break;
@@ -1703,7 +1722,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_mavlink_wpm_comp_id = MAV_COMP_ID_MISSIONPLANNER;
 
-	warnx("data rate: %d bps, port: %s, baud: %d", _datarate, _device_name, (int)_baudrate);
+	warnx("data rate: %d Bytes/s, port: %s, baud: %d", _datarate, _device_name, _baudrate);
 
 	/* flush stdout in case MAVLink is about to take it over */
 	fflush(stdout);
@@ -1763,6 +1782,14 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GLOBAL_POSITION_INT", 3.0f * rate_mult);
 		configure_stream("LOCAL_POSITION_NED", 3.0f * rate_mult);
 		configure_stream("RC_CHANNELS_RAW", 1.0f * rate_mult);
+		configure_stream("NAMED_VALUE_FLOAT", 1.0f * rate_mult);
+		break;
+
+	case MAVLINK_MODE_CAMERA:
+		configure_stream("SYS_STATUS", 1.0f);
+		configure_stream("ATTITUDE", 15.0f * rate_mult);
+		configure_stream("GLOBAL_POSITION_INT", 15.0f * rate_mult);
+		configure_stream("CAMERA_CAPTURE", 1.0f);
 		break;
 
 	default:
@@ -1773,10 +1800,13 @@ Mavlink::task_main(int argc, char *argv[])
 	_mavlink_param_queue_index = param_count();
 
 	MavlinkRateLimiter slow_rate_limiter(2000000.0f / rate_mult);
-	MavlinkRateLimiter fast_rate_limiter(20000.0f / rate_mult);
+	MavlinkRateLimiter fast_rate_limiter(30000.0f / rate_mult);
 
 	/* set main loop delay depending on data rate to minimize CPU overhead */
 	_main_loop_delay = MAIN_LOOP_DELAY / rate_mult;
+
+	/* now the instance is fully initialized and we can bump the instance count */
+	LL_APPEND(_mavlink_instances, this);
 
 	while (!_task_should_exit) {
 		/* main loop */
@@ -1924,16 +1954,44 @@ int Mavlink::start_helper(int argc, char *argv[])
 int
 Mavlink::start(int argc, char *argv[])
 {
+	// Wait for the instance count to go up one
+	// before returning to the shell
+	int ic = Mavlink::instance_count();
+
 	// Instantiate thread
 	char buf[24];
-	sprintf(buf, "mavlink_if%d", Mavlink::instance_count());
+	sprintf(buf, "mavlink_if%d", ic);
 
+	// This is where the control flow splits
+	// between the starting task and the spawned
+	// task - start_helper() only returns
+	// when the started task exits.
 	task_spawn_cmd(buf,
 		       SCHED_DEFAULT,
 		       SCHED_PRIORITY_DEFAULT,
 		       2048,
 		       (main_t)&Mavlink::start_helper,
 		       (const char **)argv);
+
+	// Ensure that this shell command
+	// does not return before the instance
+	// is fully initialized. As this is also
+	// the only path to create a new instance,
+	// this is effectively a lock on concurrent
+	// instance starting. XXX do a real lock.
+
+	// Sleep 500 us between each attempt
+	const unsigned sleeptime = 500;
+
+	// Wait 100 ms max for the startup.
+	const unsigned limit = 100 * 1000 / sleeptime;
+
+	unsigned count = 0;
+
+	while (ic == Mavlink::instance_count() && count < limit) {
+		::usleep(sleeptime);
+		count++;
+	}
 
 	return OK;
 }
@@ -1960,20 +2018,26 @@ Mavlink::stream(int argc, char *argv[])
 	bool err_flag = false;
 
 	int i = 0;
+
 	while (i < argc) {
 
-		if (0 == strcmp(argv[i], "-r") && i < argc - 1 ) {
-			rate = strtod(argv[i+1], nullptr);
+		if (0 == strcmp(argv[i], "-r") && i < argc - 1) {
+			rate = strtod(argv[i + 1], nullptr);
+
 			if (rate < 0.0f) {
 				err_flag = true;
 			}
+
 			i++;
-		} else if (0 == strcmp(argv[i], "-d") && i < argc - 1 ) {
-			device_name = argv[i+1];
+
+		} else if (0 == strcmp(argv[i], "-d") && i < argc - 1) {
+			device_name = argv[i + 1];
 			i++;
-		} else if (0 == strcmp(argv[i], "-s") && i < argc - 1 ) {
-			stream_name = argv[i+1];
+
+		} else if (0 == strcmp(argv[i], "-s") && i < argc - 1) {
+			stream_name = argv[i + 1];
 			i++;
+
 		} else {
 			err_flag = true;
 		}
@@ -1988,7 +2052,10 @@ Mavlink::stream(int argc, char *argv[])
 			inst->configure_stream_threadsafe(stream_name, rate);
 
 		} else {
-			errx(1, "mavlink for device %s is not running", device_name);
+
+			// If the link is not running we should complain, but not fall over
+			// because this is so easy to get wrong and not fatal. Warning is sufficient.
+			errx(0, "mavlink for device %s is not running", device_name);
 		}
 
 	} else {
