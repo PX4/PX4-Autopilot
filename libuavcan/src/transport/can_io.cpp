@@ -271,18 +271,19 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
     {
         if (iface_mask == 0)
             break;
-        int write_mask = iface_mask | makePendingTxMask();
+        CanSelectMasks masks;
+        masks.write = iface_mask | makePendingTxMask();
         {
-            int read_mask = 0;
-            const int select_res = driver_.select(write_mask, read_mask, blocking_deadline);
+            const int select_res = driver_.select(masks, blocking_deadline);
             if (select_res < 0)
                 return select_res;
+            assert(masks.read == 0);
         }
 
         // Transmission
         for (int i = 0; i < num_ifaces; i++)
         {
-            if (write_mask & (1 << i))
+            if (masks.write & (1 << i))
             {
                 int res = 0;
                 if (iface_mask & (1 << i))
@@ -309,7 +310,7 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
 
         // Timeout. Enqueue the frame if wasn't transmitted and leave.
         const bool timed_out = sysclock_.getMonotonic() >= blocking_deadline;
-        if (write_mask == 0 || timed_out)
+        if (masks.write == 0 || timed_out)
         {
             if (!timed_out)
             {
@@ -333,10 +334,11 @@ int CanIOManager::receive(CanRxFrame& frame, MonotonicTime blocking_deadline)
 
     while (true)
     {
-        int write_mask = makePendingTxMask();
-        int read_mask = (1 << num_ifaces) - 1;
+        CanSelectMasks masks;
+        masks.write = makePendingTxMask();
+        masks.read = (1 << num_ifaces) - 1;
         {
-            const int select_res = driver_.select(write_mask, read_mask, blocking_deadline);
+            const int select_res = driver_.select(masks, blocking_deadline);
             if (select_res < 0)
                 return select_res;
         }
@@ -344,14 +346,14 @@ int CanIOManager::receive(CanRxFrame& frame, MonotonicTime blocking_deadline)
         // Write - if buffers are not empty, one frame will be sent for each iface per one receive() call
         for (int i = 0; i < num_ifaces; i++)
         {
-            if (write_mask & (1 << i))
+            if (masks.write & (1 << i))
                 sendFromTxQueue(i);
         }
 
         // Read
         for (int i = 0; i < num_ifaces; i++)
         {
-            if (read_mask & (1 << i))
+            if (masks.read & (1 << i))
             {
                 ICanIface* const iface = driver_.getIface(i);
                 if (iface == NULL)

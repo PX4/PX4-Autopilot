@@ -63,13 +63,13 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
 
     int getNumIfaces() const { return 1; }
 
-    int select(int& inout_write_iface_mask, int& inout_read_iface_mask, uavcan::MonotonicTime blocking_deadline)
+    int select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline)
     {
         assert(other);
-        if (inout_read_iface_mask == 1)
-            inout_read_iface_mask = read_queue.size() ? 1 : 0;
+        if (inout_masks.read == 1)
+            inout_masks.read = read_queue.size() ? 1 : 0;
 
-        if (inout_read_iface_mask || inout_write_iface_mask)
+        if (inout_masks.read || inout_masks.write)
             return 1;
 
         while (clock.getMonotonic() < blocking_deadline)

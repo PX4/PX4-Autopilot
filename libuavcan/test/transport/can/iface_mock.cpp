@@ -8,6 +8,7 @@
 TEST(CanIOManager, CanDriverMock)
 {
     using uavcan::CanFrame;
+    using uavcan::CanSelectMasks;
 
     SystemClockMock clockmock;
     CanDriverMock driver(3, clockmock);
@@ -15,32 +16,33 @@ TEST(CanIOManager, CanDriverMock)
     ASSERT_EQ(3, driver.getNumIfaces());
 
     // All WR, no RD
-    int mask_wr = 7;
-    int mask_rd = 7;
-    EXPECT_LT(0, driver.select(mask_wr, mask_rd, uavcan::MonotonicTime::fromUSec(100)));
-    EXPECT_EQ(7, mask_wr);
-    EXPECT_EQ(0, mask_rd);
+    CanSelectMasks masks;
+    masks.write = 7;
+    masks.read = 7;
+    EXPECT_LT(0, driver.select(masks, uavcan::MonotonicTime::fromUSec(100)));
+    EXPECT_EQ(7, masks.write);
+    EXPECT_EQ(0, masks.read);
 
     for (int i = 0; i < 3; i++)
         driver.ifaces.at(i).writeable = false;
 
     // No WR, no RD
-    mask_wr = 7;
-    mask_rd = 7;
-    EXPECT_EQ(0, driver.select(mask_wr, mask_rd, uavcan::MonotonicTime::fromUSec(100)));
-    EXPECT_EQ(0, mask_wr);
-    EXPECT_EQ(0, mask_rd);
+    masks.write = 7;
+    masks.read = 7;
+    EXPECT_EQ(0, driver.select(masks, uavcan::MonotonicTime::fromUSec(100)));
+    EXPECT_EQ(0, masks.write);
+    EXPECT_EQ(0, masks.read);
     EXPECT_EQ(100, clockmock.monotonic);
     EXPECT_EQ(100, clockmock.utc);
 
     // No WR, #1 RD
     const CanFrame fr1 = makeCanFrame(123, "foo", EXT);
     driver.ifaces.at(1).pushRx(fr1);
-    mask_wr = 7;
-    mask_rd = 6;
-    EXPECT_LT(0, driver.select(mask_wr, mask_rd, uavcan::MonotonicTime::fromUSec(100)));
-    EXPECT_EQ(0, mask_wr);
-    EXPECT_EQ(2, mask_rd);
+    masks.write = 7;
+    masks.read = 6;
+    EXPECT_LT(0, driver.select(masks, uavcan::MonotonicTime::fromUSec(100)));
+    EXPECT_EQ(0, masks.write);
+    EXPECT_EQ(2, masks.read);
     CanFrame fr2;
     uavcan::MonotonicTime ts_monotonic;
     uavcan::UtcTime ts_utc;
@@ -52,9 +54,9 @@ TEST(CanIOManager, CanDriverMock)
     // #0 WR, #1 RD, Select failure
     driver.ifaces.at(0).writeable = true;
     driver.select_failure = true;
-    mask_wr = 1;
-    mask_rd = 7;
-    EXPECT_EQ(-1, driver.select(mask_wr, mask_rd, uavcan::MonotonicTime::fromUSec(100)));
-    EXPECT_EQ(1, mask_wr);                                 // Leaving masks unchanged - the library must ignore them
-    EXPECT_EQ(7, mask_rd);
+    masks.write = 1;
+    masks.read = 7;
+    EXPECT_EQ(-1, driver.select(masks, uavcan::MonotonicTime::fromUSec(100)));
+    EXPECT_EQ(1, masks.write);                               // Leaving masks unchanged - the library must ignore them
+    EXPECT_EQ(7, masks.read);
 }

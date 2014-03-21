@@ -79,6 +79,20 @@ struct CanFilterConfig
 };
 
 /**
+ * Events to look for during @ref ICanDriver::select() call
+ */
+struct CanSelectMasks
+{
+    uint8_t read;
+    uint8_t write;
+
+    CanSelectMasks()
+    : read(0)
+    , write(0)
+    { }
+};
+
+/**
  * Single non-blocking CAN interface.
  */
 class ICanIface
@@ -146,12 +160,11 @@ public:
      * Block until the deadline, or one of the specified interfaces becomes available for read or write.
      * Iface masks will be modified by the driver to indicate which exactly interfaces are available for IO.
      * Bit position in the masks defines interface index.
-     * @param [in,out] inout_write_iface_mask Mask indicating which interfaces are needed/available to write.
-     * @param [in,out] inout_read_iface_mask  Same as above for reading.
-     * @param [in]     blocking_deadline      Zero means non-blocking operation.
+     * @param [in,out] inout_masks        Masks indicating which interfaces are needed/available for IO.
+     * @param [in]     blocking_deadline  Zero means non-blocking operation.
      * @return Positive number of ready interfaces or negative error code.
      */
-    virtual int select(int& inout_write_iface_mask, int& inout_read_iface_mask, MonotonicTime blocking_deadline) = 0;
+    virtual int select(CanSelectMasks& inout_masks, MonotonicTime blocking_deadline) = 0;
 };
 
 }

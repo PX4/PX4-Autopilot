@@ -140,7 +140,7 @@ public:
     , select_failure(false)
     { }
 
-    int select(int& inout_write_iface_mask, int& inout_read_iface_mask, uavcan::MonotonicTime deadline)
+    int select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime deadline)
     {
         assert(this);
         //std::cout << "Write/read masks: " << inout_write_iface_mask << "/" << inout_read_iface_mask << std::endl;
@@ -149,21 +149,21 @@ public:
             return -1;
 
         const int valid_iface_mask = (1 << getNumIfaces()) - 1;
-        EXPECT_FALSE(inout_write_iface_mask & ~valid_iface_mask);
-        EXPECT_FALSE(inout_read_iface_mask & ~valid_iface_mask);
+        EXPECT_FALSE(inout_masks.write & ~valid_iface_mask);
+        EXPECT_FALSE(inout_masks.read & ~valid_iface_mask);
 
         int out_write_mask = 0;
         int out_read_mask = 0;
         for (int i = 0; i < getNumIfaces(); i++)
         {
             const int mask = 1 << i;
-            if ((inout_write_iface_mask & mask) && ifaces.at(i).writeable)
+            if ((inout_masks.write & mask) && ifaces.at(i).writeable)
                 out_write_mask |= mask;
-            if ((inout_read_iface_mask & mask) && ifaces.at(i).rx.size())
+            if ((inout_masks.read & mask) && ifaces.at(i).rx.size())
                 out_read_mask |= mask;
         }
-        inout_write_iface_mask = out_write_mask;
-        inout_read_iface_mask = out_read_mask;
+        inout_masks.write = out_write_mask;
+        inout_masks.read = out_read_mask;
         if ((out_write_mask | out_read_mask) == 0)
         {
             const uavcan::MonotonicTime ts = iclock.getMonotonic();
