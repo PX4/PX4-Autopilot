@@ -588,7 +588,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 
 		/* setup output flow control */
 		if (enable_flow_control(true)) {
-			warnx("ERR FLOW CTRL EN");
+			warnx("hardware flow control not supported");
 		}
 	}
 
@@ -1762,6 +1762,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GLOBAL_POSITION_INT", 3.0f * rate_mult);
 		configure_stream("LOCAL_POSITION_NED", 3.0f * rate_mult);
 		configure_stream("RC_CHANNELS_RAW", 1.0f * rate_mult);
+		configure_stream("NAMED_VALUE_FLOAT", 1.0f * rate_mult);
 		break;
 
 	default:
@@ -1951,8 +1952,17 @@ Mavlink::start(int argc, char *argv[])
 	// the only path to create a new instance,
 	// this is effectively a lock on concurrent
 	// instance starting. XXX do a real lock.
-	while (ic == Mavlink::instance_count()) {
-		::usleep(500);
+
+	// Sleep 500 us between each attempt
+	const unsigned sleeptime = 500;
+
+	// Wait 100 ms max for the startup.
+	const unsigned limit = 100 * 1000 / sleeptime;
+
+	unsigned count = 0;
+	while (ic == Mavlink::instance_count() && count < limit) {
+		::usleep(sleeptime);
+		count++;
 	}
 
 	return OK;
@@ -2008,7 +2018,10 @@ Mavlink::stream(int argc, char *argv[])
 			inst->configure_stream_threadsafe(stream_name, rate);
 
 		} else {
-			errx(1, "mavlink for device %s is not running", device_name);
+
+			// If the link is not running we should complain, but not fall over
+			// because this is so easy to get wrong and not fatal. Warning is sufficient.
+			errx(0, "mavlink for device %s is not running", device_name);
 		}
 
 	} else {
