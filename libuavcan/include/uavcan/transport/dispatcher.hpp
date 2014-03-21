@@ -68,7 +68,8 @@ public:
     /**
      * Refer to CanIOManager::send() for the parameter description
      */
-    int send(const Frame& frame, MonotonicTime tx_deadline, MonotonicTime blocking_deadline, CanTxQueue::Qos qos);
+    int send(const Frame& frame, MonotonicTime tx_deadline, MonotonicTime blocking_deadline, CanTxQueue::Qos qos,
+             CanIOFlags flags);
 
     void cleanup(MonotonicTime ts);
 

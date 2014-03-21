@@ -42,6 +42,7 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
     uavcan::ISystemClock& clock;
     PairableCanDriver* other;
     std::queue<uavcan::CanFrame> read_queue;
+    std::queue<uavcan::CanFrame> loopback_queue;
 
     PairableCanDriver(uavcan::ISystemClock& clock)
     : clock(clock)
@@ -67,7 +68,9 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
     {
         assert(other);
         if (inout_masks.read == 1)
-            inout_masks.read = read_queue.size() ? 1 : 0;
+        {
+            inout_masks.read = (read_queue.size() || loopback_queue.size()) ? 1 : 0;
+        }
 
         if (inout_masks.read || inout_masks.write)
             return 1;
@@ -78,19 +81,34 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
         return 0;
     }
 
-    int send(const uavcan::CanFrame& frame, uavcan::MonotonicTime)
+    int send(const uavcan::CanFrame& frame, uavcan::MonotonicTime, uavcan::CanIOFlags flags)
     {
         assert(other);
         other->read_queue.push(frame);
+        if (flags & uavcan::CanIOFlagLoopback)
+        {
+            loopback_queue.push(frame);
+        }
         return 1;
     }
 
-    int receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic, uavcan::UtcTime& out_ts_utc)
+    int receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic, uavcan::UtcTime& out_ts_utc,
+                uavcan::CanIOFlags& out_flags)
     {
         assert(other);
-        assert(read_queue.size());
-        out_frame = read_queue.front();
-        read_queue.pop();
+        out_flags = 0;
+        if (loopback_queue.empty())
+        {
+            assert(read_queue.size());
+            out_frame = read_queue.front();
+            read_queue.pop();
+        }
+        else
+        {
+            out_flags |= uavcan::CanIOFlagLoopback;
+            out_frame = loopback_queue.front();
+            loopback_queue.pop();
+        }
         out_ts_monotonic = clock.getMonotonic();
         out_ts_utc = clock.getUtc();
         return 1;

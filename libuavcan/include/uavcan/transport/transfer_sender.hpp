@@ -20,6 +20,7 @@ class TransferSender
     const DataTypeDescriptor& data_type_;
     const CanTxQueue::Qos qos_;
     const TransferCRC crc_base_;
+    CanIOFlags flags_;
 
     Dispatcher& dispatcher_;
 
@@ -35,8 +36,12 @@ public:
     , data_type_(data_type)
     , qos_(qos)
     , crc_base_(data_type.getSignature().toTransferCRC())
+    , flags_(CanIOFlags(0))
     , dispatcher_(dispatcher)
     { }
+
+    CanIOFlags getCanIOFlags() const { return flags_; }
+    void setCanIOFlags(CanIOFlags flags) { flags_ = flags; }
 
     /**
      * Send with explicit Transfer ID.

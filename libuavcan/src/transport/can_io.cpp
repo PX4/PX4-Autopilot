@@ -88,7 +88,7 @@ void CanTxQueue::registerRejectedFrame()
         rejected_frames_cnt_++;
 }
 
-void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos)
+void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos, CanIOFlags flags)
 {
     const MonotonicTime timestamp = sysclock_->getMonotonic();
 
@@ -147,7 +147,7 @@ void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos)
     if (praw == NULL)
         return;                                            // Seems that there is no memory at all.
 
-    Entry* entry = new (praw) Entry(frame, tx_deadline, qos);
+    Entry* entry = new (praw) Entry(frame, tx_deadline, qos, flags);
     assert(entry);
     queue_.insertBefore(entry, PriorityInsertionComparator(frame));
 }
@@ -194,7 +194,7 @@ bool CanTxQueue::topPriorityHigherOrEqual(const CanFrame& rhs_frame) const
 /*
  * CanIOManager
  */
-int CanIOManager::sendToIface(int iface_index, const CanFrame& frame, MonotonicTime tx_deadline)
+int CanIOManager::sendToIface(int iface_index, const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags)
 {
     assert(iface_index >= 0 && iface_index < MaxIfaces);
     ICanIface* const iface = driver_.getIface(iface_index);
@@ -203,7 +203,7 @@ int CanIOManager::sendToIface(int iface_index, const CanFrame& frame, MonotonicT
         assert(0);   // Nonexistent interface
         return -1;
     }
-    const int res = iface->send(frame, tx_deadline);
+    const int res = iface->send(frame, tx_deadline, flags);
     if (res != 1)
     {
         UAVCAN_TRACE("CanIOManager", "Send failed: code %i, iface %i, frame %s",
@@ -218,7 +218,7 @@ int CanIOManager::sendFromTxQueue(int iface_index)
     CanTxQueue::Entry* entry = tx_queues_[iface_index].peek();
     if (entry == NULL)
         return 0;
-    const int res = sendToIface(iface_index, entry->frame, entry->deadline);
+    const int res = sendToIface(iface_index, entry->frame, entry->deadline, entry->flags);
     if (res > 0)
         tx_queues_[iface_index].remove(entry);
     return res;
@@ -254,7 +254,7 @@ uint64_t CanIOManager::getNumErrors(int iface_index) const
 }
 
 int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, MonotonicTime blocking_deadline,
-                        int iface_mask, CanTxQueue::Qos qos)
+                        int iface_mask, CanTxQueue::Qos qos, CanIOFlags flags)
 {
     const int num_ifaces = getNumIfaces();
     const int all_ifaces_mask = (1 << num_ifaces) - 1;
@@ -294,7 +294,7 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
                     }
                     if (res <= 0)
                     {
-                        res = sendToIface(i, frame, tx_deadline);
+                        res = sendToIface(i, frame, tx_deadline, flags);
                         if (res > 0)
                             iface_mask &= ~(1 << i);              // Mark transmitted
                     }
@@ -320,7 +320,7 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
             for (int i = 0; i < num_ifaces; i++)
             {
                 if (iface_mask & (1 << i))
-                    tx_queues_[i].push(frame, tx_deadline, qos);
+                    tx_queues_[i].push(frame, tx_deadline, qos, flags);
             }
             break;
         }
@@ -328,7 +328,7 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
     return retval;
 }
 
-int CanIOManager::receive(CanRxFrame& frame, MonotonicTime blocking_deadline)
+int CanIOManager::receive(CanRxFrame& out_frame, MonotonicTime blocking_deadline, CanIOFlags& out_flags)
 {
     const int num_ifaces = getNumIfaces();
 
@@ -361,13 +361,13 @@ int CanIOManager::receive(CanRxFrame& frame, MonotonicTime blocking_deadline)
                     assert(0);   // Nonexistent interface
                     continue;
                 }
-                const int res = iface->receive(frame, frame.ts_mono, frame.ts_utc);
+                const int res = iface->receive(out_frame, out_frame.ts_mono, out_frame.ts_utc, out_flags);
                 if (res == 0)
                 {
                     assert(0);   // select() reported that iface has pending RX frames, but receive() returned none
                     continue;
                 }
-                frame.iface_index = i;
+                out_frame.iface_index = i;
                 return res;
             }
         }

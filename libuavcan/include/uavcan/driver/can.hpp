@@ -94,6 +94,12 @@ struct CanSelectMasks
     { }
 };
 
+enum
+{
+    CanIOFlagLoopback = 1  ///< Send the frame back to RX with true TX timestamps
+};
+typedef uint16_t CanIOFlags;
+
 /**
  * Single non-blocking CAN interface.
  */
@@ -107,7 +113,7 @@ public:
      * If the frame wasn't transmitted upon TX deadline, the driver should discard it.
      * @return 1 = one frame transmitted, 0 = TX buffer full, negative for error.
      */
-    virtual int send(const CanFrame& frame, MonotonicTime tx_deadline) = 0;
+    virtual int send(const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags) = 0;
 
     /**
      * Non-blocking reception.
@@ -121,7 +127,8 @@ public:
      * @param [out] out_ts_utc       UTC timestamp, optional, zero if unknown.
      * @return 1 = one frame received, 0 = RX buffer empty, negative for error.
      */
-    virtual int receive(CanFrame& out_frame, MonotonicTime& out_ts_monotonic, UtcTime& out_ts_utc) = 0;
+    virtual int receive(CanFrame& out_frame, MonotonicTime& out_ts_monotonic, UtcTime& out_ts_utc,
+                        CanIOFlags& out_flags) = 0;
 
     /**
      * Configure the hardware CAN filters. @ref CanFilterConfig.

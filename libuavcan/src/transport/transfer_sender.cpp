@@ -27,7 +27,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
         }
         frame.makeLast();
         assert(frame.isLast() && frame.isFirst());
-        return dispatcher_.send(frame, tx_deadline, blocking_deadline, qos_);
+        return dispatcher_.send(frame, tx_deadline, blocking_deadline, qos_, flags_);
     }
     else                                                   // Multi Frame Transfer
     {
@@ -57,7 +57,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
 
         while (true)
         {
-            const int send_res = dispatcher_.send(frame, tx_deadline, blocking_deadline, qos_);
+            const int send_res = dispatcher_.send(frame, tx_deadline, blocking_deadline, qos_, flags_);
             if (send_res < 0)
                 return send_res;
 

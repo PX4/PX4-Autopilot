@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 #include "can.hpp"
 
-TEST(CanIOManager, CanDriverMock)
+TEST(CanDriverMock, Basic)
 {
     using uavcan::CanFrame;
     using uavcan::CanSelectMasks;
@@ -46,7 +46,9 @@ TEST(CanIOManager, CanDriverMock)
     CanFrame fr2;
     uavcan::MonotonicTime ts_monotonic;
     uavcan::UtcTime ts_utc;
-    EXPECT_EQ(1, driver.getIface(1)->receive(fr2, ts_monotonic, ts_utc));
+    uavcan::CanIOFlags flags = 0;
+    EXPECT_EQ(1, driver.getIface(1)->receive(fr2, ts_monotonic, ts_utc, flags));
+    EXPECT_EQ(0, flags);
     EXPECT_EQ(fr1, fr2);
     EXPECT_EQ(100, ts_monotonic.toUSec());
     EXPECT_EQ(0, ts_utc.toUSec());
@@ -59,4 +61,42 @@ TEST(CanIOManager, CanDriverMock)
     EXPECT_EQ(-1, driver.select(masks, uavcan::MonotonicTime::fromUSec(100)));
     EXPECT_EQ(1, masks.write);                               // Leaving masks unchanged - the library must ignore them
     EXPECT_EQ(7, masks.read);
+}
+
+TEST(CanDriverMock, Loopback)
+{
+    using uavcan::CanFrame;
+    using uavcan::CanSelectMasks;
+
+    SystemClockMock clockmock;
+    CanDriverMock driver(1, clockmock);
+
+    CanSelectMasks masks;
+    masks.write = 1;
+    masks.read = 1;
+    EXPECT_LT(0, driver.select(masks, uavcan::MonotonicTime::fromUSec(100)));
+    EXPECT_EQ(1, masks.write);
+    EXPECT_EQ(0, masks.read);
+
+    clockmock.advance(200);
+
+    CanFrame fr1;
+    fr1.id = 123 | CanFrame::FlagEFF;
+    EXPECT_EQ(1, driver.getIface(0)->send(fr1, uavcan::MonotonicTime::fromUSec(10000), uavcan::CanIOFlagLoopback));
+
+    masks.write = 0;
+    masks.read = 1;
+    EXPECT_LT(0, driver.select(masks, uavcan::MonotonicTime::fromUSec(100)));
+    EXPECT_EQ(0, masks.write);
+    EXPECT_EQ(1, masks.read);
+
+    CanFrame fr2;
+    uavcan::MonotonicTime ts_monotonic;
+    uavcan::UtcTime ts_utc;
+    uavcan::CanIOFlags flags = 0;
+    EXPECT_EQ(1, driver.getIface(0)->receive(fr2, ts_monotonic, ts_utc, flags));
+    EXPECT_EQ(uavcan::CanIOFlagLoopback, flags);
+    EXPECT_EQ(fr1, fr2);
+    EXPECT_EQ(200, ts_monotonic.toUSec());
+    EXPECT_EQ(0, ts_utc.toUSec());
 }

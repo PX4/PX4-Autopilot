@@ -42,11 +42,13 @@ public:
         MonotonicTime deadline;
         CanFrame frame;
         uint8_t qos;
+        CanIOFlags flags;
 
-        Entry(const CanFrame& frame, MonotonicTime deadline, Qos qos)
+        Entry(const CanFrame& frame, MonotonicTime deadline, Qos qos, CanIOFlags flags)
         : deadline(deadline)
         , frame(frame)
         , qos(uint8_t(qos))
+        , flags(flags)
         {
             assert(qos == Volatile || qos == Persistent);
             IsDynamicallyAllocatable<Entry>::check();
@@ -99,7 +101,7 @@ public:
 
     ~CanTxQueue();
 
-    void push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos);
+    void push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos, CanIOFlags flags);
 
     Entry* peek();               // Modifier
     void remove(Entry*& entry);
@@ -127,7 +129,7 @@ private:
     CanIOManager(CanIOManager&);
     CanIOManager& operator=(CanIOManager&);
 
-    int sendToIface(int iface_index, const CanFrame& frame, MonotonicTime tx_deadline);
+    int sendToIface(int iface_index, const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags);
     int sendFromTxQueue(int iface_index);
     int makePendingTxMask() const;
 
@@ -156,8 +158,8 @@ public:
      *  negative - failure
      */
     int send(const CanFrame& frame, MonotonicTime tx_deadline, MonotonicTime blocking_deadline,
-             int iface_mask, CanTxQueue::Qos qos);
-    int receive(CanRxFrame& frame, MonotonicTime blocking_deadline);
+             int iface_mask, CanTxQueue::Qos qos, CanIOFlags flags);
+    int receive(CanRxFrame& out_frame, MonotonicTime blocking_deadline, CanIOFlags& out_flags);
 };
 
 }

@@ -36,6 +36,7 @@ public:
 
     std::queue<FrameWithTime> tx;       ///< Queue of outgoing frames (bus <-- library)
     std::queue<FrameWithTime> rx;       ///< Queue of incoming frames (bus --> library)
+    std::queue<FrameWithTime> loopback; ///< Loopback
     bool writeable;
     bool tx_failure;
     bool rx_failure;
@@ -91,7 +92,7 @@ public:
         return frame_time.frame;
     }
 
-    int send(const uavcan::CanFrame& frame, uavcan::MonotonicTime tx_deadline)
+    int send(const uavcan::CanFrame& frame, uavcan::MonotonicTime tx_deadline, uavcan::CanIOFlags flags)
     {
         assert(this);
         EXPECT_TRUE(writeable);        // Shall never be called when not writeable
@@ -100,21 +101,36 @@ public:
         if (!writeable)
             return 0;
         tx.push(FrameWithTime(frame, tx_deadline));
+        if (flags & uavcan::CanIOFlagLoopback)
+            loopback.push(FrameWithTime(frame, iclock.getMonotonic()));
         return 1;
     }
 
-    int receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic, uavcan::UtcTime& out_ts_utc)
+    int receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic, uavcan::UtcTime& out_ts_utc,
+                uavcan::CanIOFlags& out_flags)
     {
         assert(this);
-        EXPECT_TRUE(rx.size());        // Shall never be called when not readable
-        if (rx_failure)
-            return -1;
-        if (rx.empty())
-            return 0;
-        const FrameWithTime frame = rx.front();
-        rx.pop();
-        out_frame = frame.frame;
-        out_ts_monotonic = frame.time;
+        out_flags = uavcan::CanIOFlags();
+        if (loopback.empty())
+        {
+            EXPECT_TRUE(rx.size());        // Shall never be called when not readable
+            if (rx_failure)
+                return -1;
+            if (rx.empty())
+                return 0;
+            const FrameWithTime frame = rx.front();
+            rx.pop();
+            out_frame = frame.frame;
+            out_ts_monotonic = frame.time;
+        }
+        else
+        {
+            out_flags |= uavcan::CanIOFlagLoopback;
+            const FrameWithTime frame = loopback.front();
+            loopback.pop();
+            out_frame = frame.frame;
+            out_ts_monotonic = frame.time;
+        }
         out_ts_utc = uavcan::UtcTime();
         return 1;
     }
@@ -159,7 +175,7 @@ public:
             const int mask = 1 << i;
             if ((inout_masks.write & mask) && ifaces.at(i).writeable)
                 out_write_mask |= mask;
-            if ((inout_masks.read & mask) && ifaces.at(i).rx.size())
+            if ((inout_masks.read & mask) && (ifaces.at(i).rx.size() || ifaces.at(i).loopback.size()))
                 out_read_mask |= mask;
         }
         inout_masks.write = out_write_mask;

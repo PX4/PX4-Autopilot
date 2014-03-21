@@ -111,14 +111,23 @@ int Dispatcher::spin(MonotonicTime deadline)
     int num_frames_processed = 0;
     do
     {
+        CanIOFlags flags = CanIOFlags();
         CanRxFrame frame;
-        const int res = canio_.receive(frame, deadline);
+        const int res = canio_.receive(frame, deadline, flags);
         if (res < 0)
             return res;
         if (res > 0)
         {
-            num_frames_processed++;
-            handleFrame(frame);
+            if (flags & CanIOFlagLoopback)
+            {
+                // TODO: Loopback handling!
+                assert(0); // Not implemented
+            }
+            else
+            {
+                num_frames_processed++;
+                handleFrame(frame);
+            }
         }
     }
     while (sysclock_.getMonotonic() < deadline);
@@ -127,7 +136,7 @@ int Dispatcher::spin(MonotonicTime deadline)
 }
 
 int Dispatcher::send(const Frame& frame, MonotonicTime tx_deadline, MonotonicTime blocking_deadline,
-                     CanTxQueue::Qos qos)
+                     CanTxQueue::Qos qos, CanIOFlags flags)
 {
     if (frame.getSrcNodeID() != getNodeID())
     {
@@ -144,7 +153,7 @@ int Dispatcher::send(const Frame& frame, MonotonicTime tx_deadline, MonotonicTim
     }
     const int iface_mask = (1 << canio_.getNumIfaces()) - 1;
 
-    return canio_.send(can_frame, tx_deadline, blocking_deadline, iface_mask, qos);
+    return canio_.send(can_frame, tx_deadline, blocking_deadline, iface_mask, qos, flags);
 }
 
 void Dispatcher::cleanup(MonotonicTime ts)

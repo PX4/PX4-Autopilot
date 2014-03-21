@@ -37,7 +37,9 @@ TEST(CanIOManager, Reception)
      * Empty, will time out
      */
     uavcan::CanRxFrame frame;
-    EXPECT_EQ(0, iomgr.receive(frame, tsMono(100)));
+    uavcan::CanIOFlags flags = uavcan::CanIOFlags();
+    EXPECT_EQ(0, iomgr.receive(frame, tsMono(100), flags));
+    EXPECT_EQ(0, flags);
     EXPECT_EQ(100, clockmock.monotonic);
     EXPECT_EQ(100, clockmock.utc);
 
@@ -60,36 +62,43 @@ TEST(CanIOManager, Reception)
     driver.ifaces.at(1).pushRx(frames[1][2]);
     clockmock.advance(10);
 
-    EXPECT_EQ(1, iomgr.receive(frame, uavcan::MonotonicTime()));
+    EXPECT_EQ(1, iomgr.receive(frame, uavcan::MonotonicTime(), flags));
     EXPECT_TRUE(rxFrameEquals(frame, frames[0][0], 110, 0));
+    EXPECT_EQ(0, flags);
 
-    EXPECT_EQ(1, iomgr.receive(frame, uavcan::MonotonicTime()));
+    EXPECT_EQ(1, iomgr.receive(frame, uavcan::MonotonicTime(), flags));
     EXPECT_TRUE(rxFrameEquals(frame, frames[0][1], 120, 0));
+    EXPECT_EQ(0, flags);
 
-    EXPECT_EQ(1, iomgr.receive(frame, uavcan::MonotonicTime()));
+    EXPECT_EQ(1, iomgr.receive(frame, uavcan::MonotonicTime(), flags));
     EXPECT_TRUE(rxFrameEquals(frame, frames[0][2], 130, 0));
+    EXPECT_EQ(0, flags);
 
-    EXPECT_EQ(1, iomgr.receive(frame, uavcan::MonotonicTime()));
+    EXPECT_EQ(1, iomgr.receive(frame, uavcan::MonotonicTime(), flags));
     EXPECT_TRUE(rxFrameEquals(frame, frames[1][0], 110, 1));
+    EXPECT_EQ(0, flags);
 
-    EXPECT_EQ(1, iomgr.receive(frame, uavcan::MonotonicTime()));
+    EXPECT_EQ(1, iomgr.receive(frame, uavcan::MonotonicTime(), flags));
     EXPECT_TRUE(rxFrameEquals(frame, frames[1][1], 120, 1));
+    EXPECT_EQ(0, flags);
 
-    EXPECT_EQ(1, iomgr.receive(frame, uavcan::MonotonicTime()));
+    EXPECT_EQ(1, iomgr.receive(frame, uavcan::MonotonicTime(), flags));
     EXPECT_TRUE(rxFrameEquals(frame, frames[1][2], 130, 1));
+    EXPECT_EQ(0, flags);
 
-    EXPECT_EQ(0, iomgr.receive(frame, uavcan::MonotonicTime()));  // Will time out
+    EXPECT_EQ(0, iomgr.receive(frame, uavcan::MonotonicTime(), flags));  // Will time out
+    EXPECT_EQ(0, flags);
 
     /*
      * Errors
      */
     driver.select_failure = true;
-    EXPECT_EQ(-1, iomgr.receive(frame, uavcan::MonotonicTime()));
+    EXPECT_EQ(-1, iomgr.receive(frame, uavcan::MonotonicTime(), flags));
 
     driver.select_failure = false;
     driver.ifaces.at(1).pushRx(frames[0][0]);
     driver.ifaces.at(1).rx_failure = true;
-    EXPECT_EQ(-1, iomgr.receive(frame, uavcan::MonotonicTime()));
+    EXPECT_EQ(-1, iomgr.receive(frame, uavcan::MonotonicTime(), flags));
 
     driver.ifaces.at(0).num_errors = 9000;
     driver.ifaces.at(1).num_errors = 100500;
@@ -123,14 +132,16 @@ TEST(CanIOManager, Transmission)
         makeCanFrame(1, "a0", EXT),    makeCanFrame(99, "a1", EXT),  makeCanFrame(803, "a2", STD)
     };
 
+    uavcan::CanIOFlags flags = uavcan::CanIOFlags();
+
     /*
      * Simple transmission
      */
-    EXPECT_EQ(2, iomgr.send(frames[0], tsMono(100), tsMono(0), ALL_IFACES_MASK, CanTxQueue::Volatile));  // To both
+    EXPECT_EQ(2, iomgr.send(frames[0], tsMono(100), tsMono(0), ALL_IFACES_MASK, CanTxQueue::Volatile, flags));// To both
     EXPECT_TRUE(driver.ifaces.at(0).matchAndPopTx(frames[0], 100));
     EXPECT_TRUE(driver.ifaces.at(1).matchAndPopTx(frames[0], 100));
 
-    EXPECT_EQ(1, iomgr.send(frames[1], tsMono(200), tsMono(100), 2, CanTxQueue::Persistent));            // To #1
+    EXPECT_EQ(1, iomgr.send(frames[1], tsMono(200), tsMono(100), 2, CanTxQueue::Persistent, flags));          // To #1
     EXPECT_TRUE(driver.ifaces.at(1).matchAndPopTx(frames[1], 200));
 
     EXPECT_EQ(0, clockmock.monotonic);
@@ -147,7 +158,7 @@ TEST(CanIOManager, Transmission)
 
     // Sending to both, #0 blocked
     driver.ifaces.at(0).writeable = false;
-    EXPECT_LT(0, iomgr.send(frames[0], tsMono(201), tsMono(200), ALL_IFACES_MASK, CanTxQueue::Persistent));
+    EXPECT_LT(0, iomgr.send(frames[0], tsMono(201), tsMono(200), ALL_IFACES_MASK, CanTxQueue::Persistent, flags));
     EXPECT_TRUE(driver.ifaces.at(1).matchAndPopTx(frames[0], 201));
     EXPECT_EQ(200, clockmock.monotonic);
     EXPECT_EQ(200, clockmock.utc);
@@ -157,11 +168,11 @@ TEST(CanIOManager, Transmission)
 
     // Sending to both, both blocked
     driver.ifaces.at(1).writeable = false;
-    EXPECT_EQ(0, iomgr.send(frames[1], tsMono(777), tsMono(300), ALL_IFACES_MASK, CanTxQueue::Volatile));
+    EXPECT_EQ(0, iomgr.send(frames[1], tsMono(777), tsMono(300), ALL_IFACES_MASK, CanTxQueue::Volatile, flags));
     EXPECT_EQ(3, pool.getNumUsedBlocks());          // Total 3 frames in TX queue now
 
     // Sending to #0, both blocked
-    EXPECT_EQ(0, iomgr.send(frames[2], tsMono(888), tsMono(400), 1, CanTxQueue::Persistent));
+    EXPECT_EQ(0, iomgr.send(frames[2], tsMono(888), tsMono(400), 1, CanTxQueue::Persistent, flags));
     EXPECT_EQ(400, clockmock.monotonic);
     EXPECT_EQ(400, clockmock.utc);
     EXPECT_TRUE(driver.ifaces.at(0).tx.empty());
@@ -175,7 +186,7 @@ TEST(CanIOManager, Transmission)
     // Sending to #1, both writeable
     driver.ifaces.at(0).writeable = true;
     driver.ifaces.at(1).writeable = true;
-    EXPECT_LT(0, iomgr.send(frames[0], tsMono(999), tsMono(500), 2, CanTxQueue::Persistent)); // One frame per each iface will be sent
+    EXPECT_LT(0, iomgr.send(frames[0], tsMono(999), tsMono(500), 2, CanTxQueue::Persistent, flags)); // One frame per each iface will be sent
     EXPECT_TRUE(driver.ifaces.at(0).matchAndPopTx(frames[1], 777));   // Note that frame[0] on iface #0 has expired
     EXPECT_TRUE(driver.ifaces.at(1).matchAndPopTx(frames[0], 999));   // In different order due to prioritization
     EXPECT_TRUE(driver.ifaces.at(0).tx.empty());
@@ -183,9 +194,10 @@ TEST(CanIOManager, Transmission)
 
     // Calling receive() to flush the rest two frames
     uavcan::CanRxFrame dummy_rx_frame;
-    EXPECT_EQ(0, iomgr.receive(dummy_rx_frame, tsMono(0)));
+    EXPECT_EQ(0, iomgr.receive(dummy_rx_frame, tsMono(0), flags));
     EXPECT_TRUE(driver.ifaces.at(0).matchAndPopTx(frames[2], 888));
     EXPECT_TRUE(driver.ifaces.at(1).matchAndPopTx(frames[1], 777));
+    ASSERT_EQ(0, flags);
 
     // Final checks
     EXPECT_TRUE(driver.ifaces.at(0).tx.empty());
@@ -201,9 +213,9 @@ TEST(CanIOManager, Transmission)
     driver.ifaces.at(1).writeable = false;
 
     // Sending 5 frames, one will be rejected
-    EXPECT_EQ(0, iomgr.send(frames[2], tsMono(2222), tsMono(1000), ALL_IFACES_MASK, CanTxQueue::Persistent));
-    EXPECT_EQ(0, iomgr.send(frames[0], tsMono(3333), tsMono(1100), 2, CanTxQueue::Persistent));
-    EXPECT_EQ(0, iomgr.send(frames[1], tsMono(4444), tsMono(1200), ALL_IFACES_MASK, CanTxQueue::Volatile));  // One frame kicked here
+    EXPECT_EQ(0, iomgr.send(frames[2], tsMono(2222), tsMono(1000), ALL_IFACES_MASK, CanTxQueue::Persistent, flags));
+    EXPECT_EQ(0, iomgr.send(frames[0], tsMono(3333), tsMono(1100), 2, CanTxQueue::Persistent, flags));
+    EXPECT_EQ(0, iomgr.send(frames[1], tsMono(4444), tsMono(1200), ALL_IFACES_MASK, CanTxQueue::Volatile, flags));  // One frame kicked here
 
     // State checks
     EXPECT_EQ(4, pool.getNumUsedBlocks());          // TX queue is full
@@ -221,15 +233,17 @@ TEST(CanIOManager, Transmission)
 
     // This shall transmit _some_ frames now, at least one per iface (exact number can be changed - it will be OK)
     uavcan::CanRxFrame rx_frame;
-    EXPECT_EQ(1, iomgr.receive(rx_frame, tsMono(0)));                         // Non-blocking
+    EXPECT_EQ(1, iomgr.receive(rx_frame, tsMono(0), flags));                         // Non-blocking
     EXPECT_TRUE(rxFrameEquals(rx_frame, rx_frames[0], 1200, 0));
     EXPECT_TRUE(driver.ifaces.at(0).matchAndPopTx(frames[1], 4444));
     EXPECT_TRUE(driver.ifaces.at(1).matchAndPopTx(frames[0], 3333));
+    ASSERT_EQ(0, flags);
 
-    EXPECT_EQ(1, iomgr.receive(rx_frame, tsMono(0)));
+    EXPECT_EQ(1, iomgr.receive(rx_frame, tsMono(0), flags));
     EXPECT_TRUE(rxFrameEquals(rx_frame, rx_frames[1], 1200, 1));
     EXPECT_TRUE(driver.ifaces.at(0).matchAndPopTx(frames[2], 2222));
     EXPECT_TRUE(driver.ifaces.at(1).matchAndPopTx(frames[2], 2222));  // Iface #1, frame[1] was rejected (VOLATILE)
+    ASSERT_EQ(0, flags);
 
     // State checks
     EXPECT_EQ(0, pool.getNumUsedBlocks());          // TX queue is empty
@@ -245,10 +259,11 @@ TEST(CanIOManager, Transmission)
      */
     // Select failure
     driver.select_failure = true;
-    EXPECT_EQ(-1, iomgr.receive(rx_frame, tsMono(2000)));
-    EXPECT_EQ(-1, iomgr.send(frames[0], tsMono(2100), tsMono(2000), ALL_IFACES_MASK, CanTxQueue::Volatile));
+    EXPECT_EQ(-1, iomgr.receive(rx_frame, tsMono(2000), flags));
+    EXPECT_EQ(-1, iomgr.send(frames[0], tsMono(2100), tsMono(2000), ALL_IFACES_MASK, CanTxQueue::Volatile, flags));
     EXPECT_EQ(1200, clockmock.monotonic);
     EXPECT_EQ(1200, clockmock.utc);
+    ASSERT_EQ(0, flags);
 
     // Transmission failure
     driver.select_failure = false;
@@ -256,15 +271,69 @@ TEST(CanIOManager, Transmission)
     driver.ifaces.at(1).writeable = true;
     driver.ifaces.at(0).tx_failure = true;
     driver.ifaces.at(1).tx_failure = true;
-    EXPECT_GE(0, iomgr.send(frames[0], tsMono(2200), tsMono(0), ALL_IFACES_MASK, CanTxQueue::Persistent)); // Non-blocking - return < 0
+    EXPECT_GE(0, iomgr.send(frames[0], tsMono(2200), tsMono(0), ALL_IFACES_MASK, CanTxQueue::Persistent, flags)); // Non-blocking - return < 0
 
     ASSERT_EQ(2, pool.getNumUsedBlocks());               // Untransmitted frames will be buffered
 
     // Failure removed - transmission shall proceed
     driver.ifaces.at(0).tx_failure = false;
     driver.ifaces.at(1).tx_failure = false;
-    EXPECT_EQ(0, iomgr.receive(rx_frame, tsMono(2500)));
+    EXPECT_EQ(0, iomgr.receive(rx_frame, tsMono(2500), flags));
     EXPECT_TRUE(driver.ifaces.at(0).matchAndPopTx(frames[0], 2200));
     EXPECT_TRUE(driver.ifaces.at(1).matchAndPopTx(frames[0], 2200));
     EXPECT_EQ(0, pool.getNumUsedBlocks());               // All transmitted
+    ASSERT_EQ(0, flags);
+}
+
+TEST(CanIOManager, Loopback)
+{
+    using uavcan::CanIOManager;
+    using uavcan::CanTxQueue;
+    using uavcan::CanFrame;
+    using uavcan::CanRxFrame;
+
+    // Memory
+    typedef uavcan::PoolAllocator<sizeof(CanTxQueue::Entry) * 4, sizeof(CanTxQueue::Entry)> Pool1;
+    Pool1* ppool = new Pool1();
+    Pool1& pool = *ppool;
+    uavcan::PoolManager<2> poolmgr;
+    poolmgr.addPool(&pool);
+
+    // Platform interface
+    SystemClockMock clockmock;
+    CanDriverMock driver(2, clockmock);
+
+    // IO Manager
+    CanIOManager iomgr(driver, poolmgr, clockmock);
+    ASSERT_EQ(2, iomgr.getNumIfaces());
+
+    CanFrame fr1;
+    fr1.id = 123 | CanFrame::FlagEFF;
+
+    CanFrame fr2;
+    fr2.id = 456 | CanFrame::FlagEFF;
+
+    CanRxFrame rfr1;
+    CanRxFrame rfr2;
+
+    uavcan::CanIOFlags flags = 0;
+    ASSERT_EQ(1, iomgr.send(fr1, tsMono(1000), tsMono(0), 1, CanTxQueue::Volatile, uavcan::CanIOFlagLoopback));
+    ASSERT_LE(0, iomgr.receive(rfr1, tsMono(100), flags));
+    ASSERT_EQ(uavcan::CanIOFlagLoopback, flags);
+    ASSERT_TRUE(rfr1 == fr1);
+
+    flags = 0;
+    ASSERT_EQ(1, iomgr.send(fr1, tsMono(1000), tsMono(0), 1, CanTxQueue::Volatile, uavcan::CanIOFlagLoopback));
+    ASSERT_EQ(1, iomgr.send(fr2, tsMono(1000), tsMono(0), 1, CanTxQueue::Persistent, uavcan::CanIOFlagLoopback));
+    ASSERT_LE(0, iomgr.receive(rfr1, tsMono(100), flags));
+    ASSERT_EQ(uavcan::CanIOFlagLoopback, flags);
+    ASSERT_LE(0, iomgr.receive(rfr2, tsMono(100), flags));
+    ASSERT_EQ(uavcan::CanIOFlagLoopback, flags);
+    ASSERT_TRUE(rfr1 == fr1);
+    ASSERT_TRUE(rfr2 == fr2);
+}
+
+TEST(CanIOManager, Size)
+{
+    std::cout << sizeof(uavcan::CanIOManager) << std::endl;
 }
