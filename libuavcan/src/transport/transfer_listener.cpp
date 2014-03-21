@@ -23,7 +23,7 @@ int IncomingTransfer::write(unsigned int, const uint8_t*, unsigned int)
  */
 SingleFrameIncomingTransfer::SingleFrameIncomingTransfer(const RxFrame& frm)
 : IncomingTransfer(frm.getMonotonicTimestamp(), frm.getUtcTimestamp(), frm.getTransferType(),
-                   frm.getTransferID(), frm.getSrcNodeID())
+                   frm.getTransferID(), frm.getSrcNodeID(), frm.getIfaceIndex())
 , payload_(frm.getPayloadPtr())
 , payload_len_(frm.getPayloadLen())
 {
@@ -52,7 +52,7 @@ int SingleFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsign
 MultiFrameIncomingTransfer::MultiFrameIncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc,
                                                        const RxFrame& last_frame, TransferBufferAccessor& tba)
 : IncomingTransfer(ts_mono, ts_utc, last_frame.getTransferType(), last_frame.getTransferID(),
-                   last_frame.getSrcNodeID())
+                   last_frame.getSrcNodeID(), last_frame.getIfaceIndex())
 , buf_acc_(tba)
 {
     assert(last_frame.isValid());

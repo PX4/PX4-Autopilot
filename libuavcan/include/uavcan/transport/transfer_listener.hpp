@@ -26,18 +26,20 @@ class IncomingTransfer : public ITransferBuffer
     TransferType transfer_type_;
     TransferID transfer_id_;
     NodeID src_node_id_;
+    uint8_t iface_index_;
 
     /// That's a no-op, asserts in debug builds
     int write(unsigned int offset, const uint8_t* data, unsigned int len);
 
 protected:
     IncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc, TransferType transfer_type,
-                     TransferID transfer_id, NodeID source_node_id)
+                     TransferID transfer_id, NodeID source_node_id, uint8_t iface_index)
     : ts_mono_(ts_mono)
     , ts_utc_(ts_utc)
     , transfer_type_(transfer_type)
     , transfer_id_(transfer_id)
     , src_node_id_(source_node_id)
+    , iface_index_(iface_index)
     { }
 
 public:
@@ -51,6 +53,7 @@ public:
     TransferType getTransferType()        const { return transfer_type_; }
     TransferID getTransferID()            const { return transfer_id_; }
     NodeID getSrcNodeID()                 const { return src_node_id_; }
+    uint8_t getIfaceIndex()               const { return iface_index_; }
 };
 
 /**

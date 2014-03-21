@@ -53,6 +53,7 @@ public:
     TransferType getTransferType()   const { return safeget<TransferType, &IncomingTransfer::getTransferType>(); }
     TransferID getTransferID()       const { return safeget<TransferID, &IncomingTransfer::getTransferID>(); }
     NodeID getSrcNodeID()            const { return safeget<NodeID, &IncomingTransfer::getSrcNodeID>(); }
+    uint8_t getIfaceIndex()          const { return safeget<uint8_t, &IncomingTransfer::getIfaceIndex>(); }
 };
 
 template <typename Stream, typename DataType>

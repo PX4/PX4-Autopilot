@@ -24,6 +24,7 @@ struct SubscriptionListener
         uavcan::TransferType transfer_type;
         uavcan::TransferID transfer_id;
         uavcan::NodeID src_node_id;
+        uavcan::uint8_t iface_index;
         DataType msg;
 
         ReceivedDataStructureCopy(const ReceivedDataStructure& s)
@@ -32,6 +33,7 @@ struct SubscriptionListener
         , transfer_type(s.getTransferType())
         , transfer_id(s.getTransferID())
         , src_node_id(s.getSrcNodeID())
+        , iface_index(s.getIfaceIndex())
         , msg(s)
         { }
     };
@@ -155,6 +157,7 @@ TEST(Subscriber, Basic)
         ASSERT_EQ(rx_frames[i].getTransferID(), s.transfer_id);
         ASSERT_EQ(rx_frames[i].getTransferType(), s.transfer_type);
         ASSERT_EQ(rx_frames[i].getMonotonicTimestamp(), s.ts_monotonic);
+        ASSERT_EQ(rx_frames[i].getIfaceIndex(), s.iface_index);
     }
 
     ASSERT_EQ(listener.simple.size(), rx_frames.size());
