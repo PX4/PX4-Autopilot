@@ -262,7 +262,6 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		if (status_sub->update(t)) {
-
 			mavlink_msg_sys_status_send(_channel,
 						    status->onboard_control_sensors_present,
 						    status->onboard_control_sensors_enabled,
@@ -318,7 +317,6 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		if (sensor_sub->update(t)) {
-
 			uint16_t fields_updated = 0;
 
 			if (accel_timestamp != sensor->accelerometer_timestamp) {
@@ -385,7 +383,6 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		if (att_sub->update(t)) {
-
 			mavlink_msg_attitude_send(_channel,
 						  att->timestamp / 1000,
 						  att->roll, att->pitch, att->yaw,
@@ -422,7 +419,6 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		if (att_sub->update(t)) {
-
 			mavlink_msg_attitude_quaternion_send(_channel,
 							     att->timestamp / 1000,
 							     att->q[0],
@@ -494,7 +490,6 @@ protected:
 		updated |= airspeed_sub->update(t);
 
 		if (updated) {
-
 			float groundspeed = sqrtf(pos->vel_n * pos->vel_n + pos->vel_e * pos->vel_e);
 			uint16_t heading = _wrap_2pi(att->yaw) * M_RAD_TO_DEG_F;
 			float throttle = armed->armed ? act->control[3] * 100.0f : 0.0f;
@@ -538,7 +533,6 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		if (gps_sub->update(t)) {
-
 			mavlink_msg_gps_raw_int_send(_channel,
 						     gps->timestamp_position,
 						     gps->fix_type,
@@ -592,15 +586,15 @@ protected:
 
 		if (updated) {
 			mavlink_msg_global_position_int_send(_channel,
-						     pos->timestamp / 1000,
-						     pos->lat * 1e7,
-						     pos->lon * 1e7,
-						     pos->alt * 1000.0f,
-						     (pos->alt - home->alt) * 1000.0f,
-						     pos->vel_n * 100.0f,
-						     pos->vel_e * 100.0f,
-						     pos->vel_d * 100.0f,
-						     _wrap_2pi(pos->yaw) * M_RAD_TO_DEG_F * 100.0f);
+							     pos->timestamp / 1000,
+							     pos->lat * 1e7,
+							     pos->lon * 1e7,
+							     pos->alt * 1000.0f,
+							     (pos->alt - home->alt) * 1000.0f,
+							     pos->vel_n * 100.0f,
+							     pos->vel_e * 100.0f,
+							     pos->vel_d * 100.0f,
+							     _wrap_2pi(pos->yaw) * M_RAD_TO_DEG_F * 100.0f);
 		}
 	}
 };
@@ -681,7 +675,6 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		if (pos_sub->update(t)) {
-
 			mavlink_msg_local_position_ned_send(_channel,
 							    pos->timestamp / 1000,
 							    pos->x,
@@ -778,7 +771,6 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		if (act_sub->update(t)) {
-
 			mavlink_msg_servo_output_raw_send(_channel,
 							  act->timestamp / 1000,
 							  _n,
@@ -838,7 +830,6 @@ protected:
 		updated |= act_sub->update(t);
 
 		if (updated) {
-
 			/* translate the current syste state to mavlink state and mode */
 			uint8_t mavlink_state;
 			uint8_t mavlink_base_mode;
@@ -918,7 +909,6 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		if (pos_sp_triplet_sub->update(t)) {
-
 			mavlink_msg_global_position_setpoint_int_send(_channel,
 					MAV_FRAME_GLOBAL,
 					(int32_t)(pos_sp_triplet->current.lat * 1e7),
@@ -956,14 +946,14 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
-		pos_sp_sub->update(t);
-
-		mavlink_msg_local_position_setpoint_send(_channel,
-				MAV_FRAME_LOCAL_NED,
-				pos_sp->x,
-				pos_sp->y,
-				pos_sp->z,
-				pos_sp->yaw);
+		if (pos_sp_sub->update(t)) {
+			mavlink_msg_local_position_setpoint_send(_channel,
+					MAV_FRAME_LOCAL_NED,
+					pos_sp->x,
+					pos_sp->y,
+					pos_sp->z,
+					pos_sp->yaw);
+		}
 	}
 };
 
@@ -995,7 +985,6 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		if (att_sp_sub->update(t)) {
-
 			mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(_channel,
 					att_sp->timestamp / 1000,
 					att_sp->roll_body,
@@ -1034,7 +1023,6 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		if (att_rates_sp_sub->update(t)) {
-
 			mavlink_msg_roll_pitch_yaw_rates_thrust_setpoint_send(_channel,
 					att_rates_sp->timestamp / 1000,
 					att_rates_sp->roll,
@@ -1073,7 +1061,6 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		if (rc_sub->update(t)) {
-
 			const unsigned port_width = 8;
 
 			for (unsigned i = 0; (i * port_width) < rc->channel_count; i++) {
@@ -1123,7 +1110,6 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		if (manual_sub->update(t)) {
-
 			mavlink_msg_manual_control_send(_channel,
 							mavlink_system.sysid,
 							manual->roll * 1000,
@@ -1163,7 +1149,6 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		if (flow_sub->update(t)) {
-
 			mavlink_msg_optical_flow_send(_channel,
 						      flow->timestamp,
 						      flow->sensor_id,
@@ -1202,24 +1187,23 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		if (att_ctrl_sub->update(t)) {
-
-		// send, add spaces so that string buffer is at least 10 chars long
-		mavlink_msg_named_value_float_send(_channel,
-						   att_ctrl->timestamp / 1000,
-						   "rll ctrl    ",
-						   att_ctrl->control[0]);
-		mavlink_msg_named_value_float_send(_channel,
-						   att_ctrl->timestamp / 1000,
-						   "ptch ctrl    ",
-						   att_ctrl->control[1]);
-		mavlink_msg_named_value_float_send(_channel,
-						   att_ctrl->timestamp / 1000,
-						   "yaw ctrl     ",
-						   att_ctrl->control[2]);
-		mavlink_msg_named_value_float_send(_channel,
-						   att_ctrl->timestamp / 1000,
-						   "thr ctrl     ",
-						   att_ctrl->control[3]);
+			/* send, add spaces so that string buffer is at least 10 chars long */
+			mavlink_msg_named_value_float_send(_channel,
+							   att_ctrl->timestamp / 1000,
+							   "rll ctrl    ",
+							   att_ctrl->control[0]);
+			mavlink_msg_named_value_float_send(_channel,
+							   att_ctrl->timestamp / 1000,
+							   "ptch ctrl    ",
+							   att_ctrl->control[1]);
+			mavlink_msg_named_value_float_send(_channel,
+							   att_ctrl->timestamp / 1000,
+							   "yaw ctrl     ",
+							   att_ctrl->control[2]);
+			mavlink_msg_named_value_float_send(_channel,
+							   att_ctrl->timestamp / 1000,
+							   "thr ctrl     ",
+							   att_ctrl->control[3]);
 		}
 	}
 };
@@ -1251,8 +1235,7 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		if (debug_sub->update(t)) {
-
-			// Enforce null termination
+			/* enforce null termination */
 			debug->key[sizeof(debug->key) - 1] = '\0';
 
 			mavlink_msg_named_value_float_send(_channel,
@@ -1294,10 +1277,11 @@ protected:
 		(void)status_sub->update(t);
 
 		if (status->arming_state == ARMING_STATE_ARMED
-		 || status->arming_state == ARMING_STATE_ARMED_ERROR) {
+		    || status->arming_state == ARMING_STATE_ARMED_ERROR) {
 
 			/* send camera capture on */
 			mavlink_msg_command_long_send(_channel, 42, 30, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 1, 0, 0, 0);
+
 		} else {
 			/* send camera capture off */
 			mavlink_msg_command_long_send(_channel, 42, 30, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 0, 0, 0, 0);
