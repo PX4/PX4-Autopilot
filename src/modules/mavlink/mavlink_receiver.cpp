@@ -245,6 +245,7 @@ MavlinkReceiver::handle_message_optical_flow(mavlink_message_t *msg)
 	memset(&f, 0, sizeof(f));
 
 	f.timestamp = hrt_absolute_time();
+	f.flow_timestamp = flow.time_usec;
 	f.flow_raw_x = flow.flow_x;
 	f.flow_raw_y = flow.flow_y;
 	f.flow_comp_x_m = flow.flow_comp_m_x;
