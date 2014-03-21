@@ -237,7 +237,7 @@ TEST(Dispatcher, Transmission)
     ASSERT_TRUE(dispatcher.hasPublisher(123));
     ASSERT_FALSE(dispatcher.hasPublisher(456));
 
-    ASSERT_EQ(2, dispatcher.send(frame, TX_DEADLINE, tsMono(0), uavcan::CanTxQueue::Volatile, 0));
+    ASSERT_EQ(2, dispatcher.send(frame, TX_DEADLINE, tsMono(0), uavcan::CanTxQueue::Volatile, 0, 0xFF));
 
     /*
      * Validation
@@ -275,4 +275,66 @@ TEST(Dispatcher, Spin)
     ASSERT_LE(1000, clockmock.monotonic);
     ASSERT_EQ(0, dispatcher.spin(tsMono(1100)));
     ASSERT_LE(1100, clockmock.monotonic);
+}
+
+
+struct DispatcherTestLoopbackFrameListener : public uavcan::LoopbackFrameListenerBase
+{
+    uavcan::RxFrame last_frame;
+    unsigned int count;
+
+    DispatcherTestLoopbackFrameListener(uavcan::Dispatcher& dispatcher)
+    : uavcan::LoopbackFrameListenerBase(dispatcher)
+    , count(0)
+    { }
+
+    using uavcan::LoopbackFrameListenerBase::startListening;
+    using uavcan::LoopbackFrameListenerBase::isListening;
+
+    void handleLoopbackFrame(const uavcan::RxFrame& frame)
+    {
+        std::cout << "DispatcherTestLoopbackFrameListener: " << frame.toString() << std::endl;
+        last_frame = frame;
+        count++;
+    }
+};
+
+TEST(Dispatcher, Loopback)
+{
+    uavcan::PoolManager<1> poolmgr;
+
+    SystemClockMock clockmock(100);
+    CanDriverMock driver(2, clockmock);
+
+    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
+
+    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg);
+    ASSERT_TRUE(dispatcher.setNodeID(SELF_NODE_ID));
+
+    {
+        DispatcherTestLoopbackFrameListener listener(dispatcher);
+        ASSERT_FALSE(listener.isListening());
+        listener.startListening();
+        ASSERT_TRUE(listener.isListening());
+
+        // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
+        // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame = false
+        uavcan::Frame frame(123, uavcan::TransferTypeMessageUnicast, SELF_NODE_ID, 2, 0, 0, true);
+        frame.setPayload(reinterpret_cast<const uint8_t*>("123"), 3);
+
+        ASSERT_TRUE(listener.last_frame == uavcan::RxFrame());
+
+        ASSERT_LE(0, dispatcher.send(frame, tsMono(1000), tsMono(0), uavcan::CanTxQueue::Persistent,
+                                     uavcan::CanIOFlagLoopback, 0xFF));
+
+        ASSERT_EQ(0, dispatcher.spin(tsMono(1000)));
+
+        ASSERT_TRUE(listener.last_frame != uavcan::RxFrame());
+        ASSERT_TRUE(listener.last_frame == frame);
+        ASSERT_EQ(1, listener.last_frame.getIfaceIndex());  // Last iface
+        ASSERT_EQ(2, listener.count);
+
+        ASSERT_EQ(1, dispatcher.getLoopbackFrameListenerRegistry().getNumListeners());
+    }
+    ASSERT_EQ(0, dispatcher.getLoopbackFrameListenerRegistry().getNumListeners());
 }

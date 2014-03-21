@@ -258,8 +258,6 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
 {
     const int num_ifaces = getNumIfaces();
     const int all_ifaces_mask = (1 << num_ifaces) - 1;
-
-    assert((iface_mask & ~all_ifaces_mask) == 0);
     iface_mask &= all_ifaces_mask;
 
     if (blocking_deadline > tx_deadline)

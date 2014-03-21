@@ -21,10 +21,13 @@ class TransferSender
     const CanTxQueue::Qos qos_;
     const TransferCRC crc_base_;
     CanIOFlags flags_;
+    uint8_t iface_mask_;
 
     Dispatcher& dispatcher_;
 
 public:
+    enum { AllIfacesMask = 0xFF };
+
     static MonotonicDuration getDefaultMaxTransferInterval()
     {
         return MonotonicDuration::fromMSec(60 * 1000);
@@ -37,11 +40,19 @@ public:
     , qos_(qos)
     , crc_base_(data_type.getSignature().toTransferCRC())
     , flags_(CanIOFlags(0))
+    , iface_mask_(AllIfacesMask)
     , dispatcher_(dispatcher)
     { }
 
     CanIOFlags getCanIOFlags() const { return flags_; }
     void setCanIOFlags(CanIOFlags flags) { flags_ = flags; }
+
+    uint8_t getIfaceMask() const { return iface_mask_; }
+    void setIfaceMask(uint8_t iface_mask)
+    {
+        assert(iface_mask);
+        iface_mask_ = iface_mask;
+    }
 
     /**
      * Send with explicit Transfer ID.

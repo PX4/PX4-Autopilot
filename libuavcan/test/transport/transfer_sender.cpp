@@ -144,3 +144,60 @@ TEST(TransferSender, Basic)
     ASSERT_TRUE(sub_srv_resp.matchAndPop(TRANSFERS[5]));
     ASSERT_TRUE(sub_srv_resp.matchAndPop(TRANSFERS[7]));
 }
+
+
+struct TransferSenderTestLoopbackFrameListener : public uavcan::LoopbackFrameListenerBase
+{
+    uavcan::RxFrame last_frame;
+    unsigned int count;
+
+    TransferSenderTestLoopbackFrameListener(uavcan::Dispatcher& dispatcher)
+    : uavcan::LoopbackFrameListenerBase(dispatcher)
+    , count(0)
+    {
+        startListening();
+    }
+
+    void handleLoopbackFrame(const uavcan::RxFrame& frame)
+    {
+        last_frame = frame;
+        count++;
+    }
+};
+
+TEST(TransferSender, Loopback)
+{
+    uavcan::PoolManager<1> poolmgr;
+
+    SystemClockMock clockmock(100);
+    CanDriverMock driver(2, clockmock);
+
+    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
+
+    static const uavcan::NodeID TX_NODE_ID(64);
+    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg);
+    ASSERT_TRUE(dispatcher.setNodeID(TX_NODE_ID));
+
+    uavcan::DataTypeDescriptor desc = makeDataType(uavcan::DataTypeKindMessage, 1, "Foobar");
+
+    uavcan::TransferSender sender(dispatcher, desc, uavcan::CanTxQueue::Volatile);
+
+    sender.setCanIOFlags(uavcan::CanIOFlagLoopback);
+    ASSERT_EQ(uavcan::CanIOFlagLoopback, sender.getCanIOFlags());
+
+    sender.setIfaceMask(2);
+    ASSERT_EQ(2, sender.getIfaceMask());
+
+    TransferSenderTestLoopbackFrameListener listener(dispatcher);
+
+    ASSERT_LE(0, sender.send(reinterpret_cast<const uint8_t*>("123"), 3, tsMono(1000), tsMono(0),
+                             uavcan::TransferTypeMessageBroadcast, 0));
+
+    ASSERT_EQ(0, listener.count);
+    ASSERT_EQ(0, dispatcher.spin(tsMono(1000)));
+    ASSERT_EQ(1, listener.count);
+    ASSERT_EQ(1, listener.last_frame.getIfaceIndex());
+    ASSERT_EQ(3, listener.last_frame.getPayloadLen());
+    ASSERT_TRUE(TX_NODE_ID == listener.last_frame.getSrcNodeID());
+    ASSERT_TRUE(listener.last_frame.isLast());
+}

@@ -9,6 +9,63 @@
 namespace uavcan
 {
 /*
+ * LoopbackFrameListenerBase
+ */
+void LoopbackFrameListenerBase::startListening()
+{
+    dispatcher_.getLoopbackFrameListenerRegistry().add(this);
+}
+
+void LoopbackFrameListenerBase::stopListening()
+{
+    dispatcher_.getLoopbackFrameListenerRegistry().remove(this);
+}
+
+bool LoopbackFrameListenerBase::isListening() const
+{
+    return dispatcher_.getLoopbackFrameListenerRegistry().doesExist(this);
+}
+
+/*
+ * LoopbackFrameListenerRegistry
+ */
+void LoopbackFrameListenerRegistry::add(LoopbackFrameListenerBase* listener)
+{
+    assert(listener);
+    listeners_.insert(listener);
+}
+
+void LoopbackFrameListenerRegistry::remove(LoopbackFrameListenerBase* listener)
+{
+    assert(listener);
+    listeners_.remove(listener);
+}
+
+bool LoopbackFrameListenerRegistry::doesExist(const LoopbackFrameListenerBase* listener) const
+{
+    assert(listener);
+    const LoopbackFrameListenerBase* p = listeners_.get();
+    while (p)
+    {
+        if (p == listener)
+            return true;
+        p = p->getNextListNode();
+    }
+    return false;
+}
+
+void LoopbackFrameListenerRegistry::invokeListeners(RxFrame& frame)
+{
+    LoopbackFrameListenerBase* p = listeners_.get();
+    while (p)
+    {
+        LoopbackFrameListenerBase* const next = p->getNextListNode();
+        p->handleLoopbackFrame(frame);
+        p = next;
+    }
+}
+
+/*
  * Dispatcher::ListenerRegister
  */
 bool Dispatcher::ListenerRegister::add(TransferListenerBase* listener, Mode mode)
@@ -106,12 +163,25 @@ void Dispatcher::handleFrame(const CanRxFrame& can_frame)
     }
 }
 
+void Dispatcher::handleLoopbackFrame(const CanRxFrame& can_frame)
+{
+    RxFrame frame;
+    if (!frame.parse(can_frame))
+    {
+        UAVCAN_TRACE("Dispatcher", "Invalid loopback CAN frame: %s", can_frame.toString().c_str());
+        assert(0);  // No way!
+        return;
+    }
+    assert(frame.getSrcNodeID() == getNodeID());
+    loopback_listeners_.invokeListeners(frame);
+}
+
 int Dispatcher::spin(MonotonicTime deadline)
 {
     int num_frames_processed = 0;
     do
     {
-        CanIOFlags flags = CanIOFlags();
+        CanIOFlags flags = 0;
         CanRxFrame frame;
         const int res = canio_.receive(frame, deadline, flags);
         if (res < 0)
@@ -120,8 +190,7 @@ int Dispatcher::spin(MonotonicTime deadline)
         {
             if (flags & CanIOFlagLoopback)
             {
-                // TODO: Loopback handling!
-                assert(0); // Not implemented
+                handleLoopbackFrame(frame);
             }
             else
             {
@@ -136,7 +205,7 @@ int Dispatcher::spin(MonotonicTime deadline)
 }
 
 int Dispatcher::send(const Frame& frame, MonotonicTime tx_deadline, MonotonicTime blocking_deadline,
-                     CanTxQueue::Qos qos, CanIOFlags flags)
+                     CanTxQueue::Qos qos, CanIOFlags flags, uint8_t iface_mask)
 {
     if (frame.getSrcNodeID() != getNodeID())
     {
@@ -151,8 +220,6 @@ int Dispatcher::send(const Frame& frame, MonotonicTime tx_deadline, MonotonicTim
         assert(0);
         return -1;
     }
-    const int iface_mask = (1 << canio_.getNumIfaces()) - 1;
-
     return canio_.send(can_frame, tx_deadline, blocking_deadline, iface_mask, qos, flags);
 }
 

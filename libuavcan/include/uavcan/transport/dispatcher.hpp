@@ -14,6 +14,44 @@
 namespace uavcan
 {
 
+class Dispatcher;
+
+class LoopbackFrameListenerBase : public LinkedListNode<LoopbackFrameListenerBase>, Noncopyable
+{
+    Dispatcher& dispatcher_;
+
+protected:
+    LoopbackFrameListenerBase(Dispatcher& dispatcher)
+    : dispatcher_(dispatcher)
+    { }
+
+    virtual ~LoopbackFrameListenerBase() { stopListening(); }
+
+    void startListening();
+    void stopListening();
+    bool isListening() const;
+
+    Dispatcher& getDispatcher() { return dispatcher_; }
+
+public:
+    virtual void handleLoopbackFrame(const RxFrame& frame) = 0;
+};
+
+
+class LoopbackFrameListenerRegistry : Noncopyable
+{
+    LinkedListRoot<LoopbackFrameListenerBase> listeners_;
+
+public:
+    void add(LoopbackFrameListenerBase* listener);
+    void remove(LoopbackFrameListenerBase* listener);
+    bool doesExist(const LoopbackFrameListenerBase* listener) const;
+    unsigned int getNumListeners() const { return listeners_.getLength(); }
+
+    void invokeListeners(RxFrame& frame);
+};
+
+
 class Dispatcher : Noncopyable
 {
     CanIOManager canio_;
@@ -52,9 +90,12 @@ class Dispatcher : Noncopyable
     ListenerRegister lsrv_req_;
     ListenerRegister lsrv_resp_;
 
+    LoopbackFrameListenerRegistry loopback_listeners_;
+
     NodeID self_node_id_;
 
     void handleFrame(const CanRxFrame& can_frame);
+    void handleLoopbackFrame(const CanRxFrame& can_frame);
 
 public:
     Dispatcher(ICanDriver& driver, IAllocator& allocator, ISystemClock& sysclock, IOutgoingTransferRegistry& otr)
@@ -69,7 +110,7 @@ public:
      * Refer to CanIOManager::send() for the parameter description
      */
     int send(const Frame& frame, MonotonicTime tx_deadline, MonotonicTime blocking_deadline, CanTxQueue::Qos qos,
-             CanIOFlags flags);
+             CanIOFlags flags, uint8_t iface_mask);
 
     void cleanup(MonotonicTime ts);
 
@@ -90,6 +131,8 @@ public:
     int getNumServiceResponseListeners() const { return lsrv_resp_.getNumEntries(); }
 
     IOutgoingTransferRegistry& getOutgoingTransferRegistry() { return outgoing_transfer_reg_; }
+
+    LoopbackFrameListenerRegistry& getLoopbackFrameListenerRegistry() { return loopback_listeners_; }
 
     NodeID getNodeID() const { return self_node_id_; }
     bool setNodeID(NodeID nid);
