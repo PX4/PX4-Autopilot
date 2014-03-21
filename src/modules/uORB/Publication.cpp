@@ -32,8 +32,49 @@
  ****************************************************************************/
 
 /**
- * @file UOrbPublication.cpp
+ * @file Publication.cpp
  *
  */
 
-#include "UOrbPublication.hpp"
+#include "Publication.hpp"
+#include "topics/vehicle_attitude.h"
+#include "topics/vehicle_local_position.h"
+#include "topics/vehicle_global_position.h"
+#include "topics/debug_key_value.h"
+#include "topics/actuator_controls.h"
+#include "topics/vehicle_global_velocity_setpoint.h"
+#include "topics/vehicle_attitude_setpoint.h"
+#include "topics/vehicle_rates_setpoint.h"
+#include "topics/actuator_outputs.h"
+#include "topics/encoders.h"
+
+namespace uORB {
+
+template<class T>
+Publication<T>::Publication(
+	List<PublicationBase *> * list,
+	const struct orb_metadata *meta) :
+	T(), // initialize data structure to zero
+	PublicationBase(list, meta) {
+}
+
+template<class T>
+Publication<T>::~Publication() {}
+
+template<class T>
+void * Publication<T>::getDataVoidPtr() {
+	return (void *)(T *)(this);
+}
+
+template class __EXPORT Publication<vehicle_attitude_s>;
+template class __EXPORT Publication<vehicle_local_position_s>;
+template class __EXPORT Publication<vehicle_global_position_s>;
+template class __EXPORT Publication<debug_key_value_s>;
+template class __EXPORT Publication<actuator_controls_s>;
+template class __EXPORT Publication<vehicle_global_velocity_setpoint_s>;
+template class __EXPORT Publication<vehicle_attitude_setpoint_s>;
+template class __EXPORT Publication<vehicle_rates_setpoint_s>;
+template class __EXPORT Publication<actuator_outputs_s>;
+template class __EXPORT Publication<encoders_s>;
+
+}

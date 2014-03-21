@@ -74,7 +74,7 @@
 
 /* Configuration Constants */
 #define PX4FLOW_BUS 			PX4_I2C_BUS_EXPANSION
-#define I2C_FLOW_ADDRESS 		0x45 //* 7-bit address. 8-bit address is 0x8A
+#define I2C_FLOW_ADDRESS 		0x42 //* 7-bit address. 8-bit address is 0x84
 //range 0x42 - 0x49
 
 /* PX4FLOW Registers addresses */

@@ -47,8 +47,8 @@
 #include <mathlib/mathlib.h>
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
-#include <controllib/uorb/UOrbSubscription.hpp>
-#include <controllib/uorb/UOrbPublication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
 
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -138,13 +138,13 @@ protected:
 	math::Matrix<3,3> C_nb;             /**< direction cosine matrix from body to nav frame */
 	math::Quaternion q;         /**< quaternion from body to nav frame */
 	// subscriptions
-	control::UOrbSubscription<sensor_combined_s> _sensors;          /**< sensors sub. */
-	control::UOrbSubscription<vehicle_gps_position_s> _gps;         /**< gps sub. */
-	control::UOrbSubscription<parameter_update_s> _param_update;    /**< parameter update sub. */
+	uORB::Subscription<sensor_combined_s> _sensors;          /**< sensors sub. */
+	uORB::Subscription<vehicle_gps_position_s> _gps;         /**< gps sub. */
+	uORB::Subscription<parameter_update_s> _param_update;    /**< parameter update sub. */
 	// publications
-	control::UOrbPublication<vehicle_global_position_s> _pos;       /**< position pub. */
-	control::UOrbPublication<vehicle_local_position_s> _localPos;   /**< local position pub. */
-	control::UOrbPublication<vehicle_attitude_s> _att;              /**< attitude pub. */
+	uORB::Publication<vehicle_global_position_s> _pos;       /**< position pub. */
+	uORB::Publication<vehicle_local_position_s> _localPos;   /**< local position pub. */
+	uORB::Publication<vehicle_attitude_s> _att;              /**< attitude pub. */
 	// time stamps
 	uint64_t _pubTimeStamp;     /**< output data publication time stamp */
 	uint64_t _predictTimeStamp; /**< prediction time stamp */
