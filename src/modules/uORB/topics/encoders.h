@@ -32,40 +32,35 @@
  ****************************************************************************/
 
 /**
- * @file Node.h
+ * @file encoders.h
  *
- * A node of a linked list.
+ * Encoders topic.
+ *
  */
 
-#pragma once
+#ifndef TOPIC_ENCODERS_H
+#define TOPIC_ENCODERS_H
 
-template<class T>
-class __EXPORT ListNode
-{
-public:
-	ListNode() : _sibling(NULL) {
-	}
-	void setSibling(T sibling) { _sibling = sibling; }
-	T getSibling() { return _sibling; }
-	T get() {
-		return _sibling;
-	}
-protected:
-	T _sibling;
+#include <stdint.h>
+#include "../uORB.h"
+
+/**
+ * @addtogroup topics
+ * @{
+ */
+
+#define NUM_ENCODERS 4
+
+struct encoders_s {
+	uint64_t timestamp;
+	int64_t counts[NUM_ENCODERS]; // counts of encoder
+	float velocity[NUM_ENCODERS]; // counts of encoder/ second
 };
 
-template<class T>
-class __EXPORT List
-{
-public:
-	List() : _head() {
-	}
-	void add(T newNode) {
-		newNode->setSibling(getHead());
-		setHead(newNode);
-	}
-	T getHead() { return _head; }
-private:
-	void setHead(T &head) { _head = head; }
-	T _head;
-};
+/**
+ * @}
+ */
+
+ORB_DECLARE(encoders);
+
+#endif
