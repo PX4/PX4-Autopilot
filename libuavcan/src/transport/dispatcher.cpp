@@ -68,7 +68,7 @@ void LoopbackFrameListenerRegistry::invokeListeners(RxFrame& frame)
 /*
  * Dispatcher::ListenerRegister
  */
-bool Dispatcher::ListenerRegister::add(TransferListenerBase* listener, Mode mode)
+bool Dispatcher::ListenerRegistry::add(TransferListenerBase* listener, Mode mode)
 {
     if (mode == UniqueListener)
     {
@@ -85,12 +85,12 @@ bool Dispatcher::ListenerRegister::add(TransferListenerBase* listener, Mode mode
     return true;
 }
 
-void Dispatcher::ListenerRegister::remove(TransferListenerBase* listener)
+void Dispatcher::ListenerRegistry::remove(TransferListenerBase* listener)
 {
     list_.remove(listener);
 }
 
-bool Dispatcher::ListenerRegister::exists(DataTypeID dtid) const
+bool Dispatcher::ListenerRegistry::exists(DataTypeID dtid) const
 {
     TransferListenerBase* p = list_.get();
     while (p)
@@ -102,7 +102,7 @@ bool Dispatcher::ListenerRegister::exists(DataTypeID dtid) const
     return false;
 }
 
-void Dispatcher::ListenerRegister::cleanup(MonotonicTime ts)
+void Dispatcher::ListenerRegistry::cleanup(MonotonicTime ts)
 {
     TransferListenerBase* p = list_.get();
     while (p)
@@ -112,7 +112,7 @@ void Dispatcher::ListenerRegister::cleanup(MonotonicTime ts)
     }
 }
 
-void Dispatcher::ListenerRegister::handleFrame(const RxFrame& frame)
+void Dispatcher::ListenerRegistry::handleFrame(const RxFrame& frame)
 {
     TransferListenerBase* p = list_.get();
     while (p)
@@ -238,7 +238,7 @@ bool Dispatcher::registerMessageListener(TransferListenerBase* listener)
         assert(0);
         return false;
     }
-    return lmsg_.add(listener, ListenerRegister::ManyListeners);       // Multiple subscribers are OK
+    return lmsg_.add(listener, ListenerRegistry::ManyListeners);       // Multiple subscribers are OK
 }
 
 bool Dispatcher::registerServiceRequestListener(TransferListenerBase* listener)
@@ -248,7 +248,7 @@ bool Dispatcher::registerServiceRequestListener(TransferListenerBase* listener)
         assert(0);
         return false;
     }
-    return lsrv_req_.add(listener, ListenerRegister::UniqueListener);  // Only one server per data type
+    return lsrv_req_.add(listener, ListenerRegistry::UniqueListener);  // Only one server per data type
 }
 
 bool Dispatcher::registerServiceResponseListener(TransferListenerBase* listener)
@@ -258,7 +258,7 @@ bool Dispatcher::registerServiceResponseListener(TransferListenerBase* listener)
         assert(0);
         return false;
     }
-    return lsrv_resp_.add(listener, ListenerRegister::ManyListeners);  // Multiple callers may call same srv
+    return lsrv_resp_.add(listener, ListenerRegistry::ManyListeners);  // Multiple callers may call same srv
 }
 
 void Dispatcher::unregisterMessageListener(TransferListenerBase* listener)

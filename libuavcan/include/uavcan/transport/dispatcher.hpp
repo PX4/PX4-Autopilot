@@ -58,7 +58,7 @@ class Dispatcher : Noncopyable
     ISystemClock& sysclock_;
     IOutgoingTransferRegistry& outgoing_transfer_reg_;
 
-    class ListenerRegister
+    class ListenerRegistry
     {
         LinkedListRoot<TransferListenerBase> list_;
 
@@ -86,9 +86,9 @@ class Dispatcher : Noncopyable
         int getNumEntries() const { return list_.getLength(); }
     };
 
-    ListenerRegister lmsg_;
-    ListenerRegister lsrv_req_;
-    ListenerRegister lsrv_resp_;
+    ListenerRegistry lmsg_;
+    ListenerRegistry lsrv_req_;
+    ListenerRegistry lsrv_resp_;
 
     LoopbackFrameListenerRegistry loopback_listeners_;
 
