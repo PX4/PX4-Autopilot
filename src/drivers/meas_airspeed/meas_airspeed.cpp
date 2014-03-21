@@ -169,18 +169,13 @@ MEASAirspeed::collect()
 	uint8_t status = (val[0] & 0xC0) >> 6;
 
 	switch (status) {
-	case 0: break;
+	case 0:
+		break;
 
 	case 1:
-		perf_count(_comms_errors);
-		perf_end(_sample_perf);
-		return -EAGAIN;
-
+		/* fallthrough */
 	case 2:
-		perf_count(_comms_errors);
-		perf_end(_sample_perf);
-		return -EAGAIN;
-
+		/* fallthrough */
 	case 3:
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);

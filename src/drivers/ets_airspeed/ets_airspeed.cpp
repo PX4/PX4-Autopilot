@@ -132,7 +132,6 @@ ETSAirspeed::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		log("i2c::transfer returned %d", ret);
 	}
 
 	return ret;
