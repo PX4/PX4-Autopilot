@@ -307,7 +307,7 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	errx(1, "no ETS airspeed sensor connected");
 }
 
 /**
