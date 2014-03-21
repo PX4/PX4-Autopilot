@@ -1028,6 +1028,7 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		orb_copy(ORB_ID(differential_pressure), _diff_pres_sub, &_diff_pres);
 
 		raw.differential_pressure_pa = _diff_pres.differential_pressure_pa;
+		raw.differential_pressure_filtered_pa = _diff_pres.differential_pressure_filtered_pa;
 		raw.differential_pressure_counter++;
 
 		_airspeed.timestamp = hrt_absolute_time();
