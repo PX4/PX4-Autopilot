@@ -177,9 +177,6 @@ stm32_boardinitialize(void)
 {
 	/* configure SPI interfaces */
 	stm32_spiinitialize();
-
-	/* configure LEDs */
-	up_ledinit();
 }
 
 /****************************************************************************
@@ -268,7 +265,6 @@ __EXPORT int nsh_archinitialize(void)
 
 	if (!spi1) {
 		message("[boot] FAILED to initialize SPI port 1\n");
-		up_ledon(LED_AMBER);
 		return -ENODEV;
 	}
 
@@ -290,7 +286,6 @@ __EXPORT int nsh_archinitialize(void)
 
 	if (!spi2) {
 		message("[boot] FAILED to initialize SPI port 2\n");
-		up_ledon(LED_AMBER);
 		return -ENODEV;
 	}
 

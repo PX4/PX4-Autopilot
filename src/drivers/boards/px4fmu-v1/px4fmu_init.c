@@ -126,9 +126,6 @@ __EXPORT void stm32_boardinitialize(void)
 {
 	/* configure SPI interfaces */
 	stm32_spiinitialize();
-
-	/* configure LEDs (empty call to NuttX' ledinit) */
-	up_ledinit();
 }
 
 /****************************************************************************
@@ -203,7 +200,6 @@ __EXPORT int nsh_archinitialize(void)
 
 	if (!spi1) {
 		message("[boot] FAILED to initialize SPI port 1\r\n");
-		up_ledon(LED_AMBER);
 		return -ENODEV;
 	}
 
@@ -248,7 +244,6 @@ __EXPORT int nsh_archinitialize(void)
 
 	if (!spi3) {
 		message("[boot] FAILED to initialize SPI port 3\n");
-		up_ledon(LED_AMBER);
 		return -ENODEV;
 	}
 
@@ -259,7 +254,6 @@ __EXPORT int nsh_archinitialize(void)
 
 	if (result != OK) {
 		message("[boot] FAILED to bind SPI port 3 to the MMCSD driver\n");
-		up_ledon(LED_AMBER);
 		return -ENODEV;
 	}
 
