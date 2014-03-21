@@ -14,6 +14,7 @@ const uint32_t CanFrame::MaskStdID;
 const uint32_t CanFrame::MaskExtID;
 const uint32_t CanFrame::FlagEFF;
 const uint32_t CanFrame::FlagRTR;
+const uint32_t CanFrame::FlagERR;
 
 
 std::string CanFrame::toString(StringRepresentation mode) const
@@ -41,6 +42,11 @@ std::string CanFrame::toString(StringRepresentation mode) const
     if (id & FlagRTR)
     {
         wpos += snprintf(wpos, epos - wpos, " RTR");
+    }
+    else if (id & FlagERR)
+    {
+        // TODO: print error flags
+        wpos += snprintf(wpos, epos - wpos, " ERR");
     }
     else
     {

@@ -52,7 +52,7 @@ inline static uint32_t bitunpack(uint32_t val)
 
 bool Frame::parse(const CanFrame& can_frame)
 {
-    if ((can_frame.id & CanFrame::FlagRTR) || !(can_frame.id & CanFrame::FlagEFF))
+    if (can_frame.isErrorFrame() || can_frame.isRemoteTransmissionRequest() || !can_frame.isExtended())
         return false;
 
     if (can_frame.dlc > sizeof(CanFrame::data))

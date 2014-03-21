@@ -24,6 +24,7 @@ struct CanFrame
     static const uint32_t MaskExtID = 0x1FFFFFFF;
     static const uint32_t FlagEFF = 1 << 31;                  ///< Extended frame format
     static const uint32_t FlagRTR = 1 << 30;                  ///< Remote transmission request
+    static const uint32_t FlagERR = 1 << 29;                  ///< Error frame
 
     uint32_t id;        ///< CAN ID with flags (above)
     uint8_t data[8];
@@ -50,8 +51,9 @@ struct CanFrame
         return (id == rhs.id) && (dlc == rhs.dlc) && std::equal(data, data + dlc, rhs.data);
     }
 
-    bool isExtended() const { return id & FlagEFF; }
+    bool isExtended()                  const { return id & FlagEFF; }
     bool isRemoteTransmissionRequest() const { return id & FlagRTR; }
+    bool isErrorFrame()                const { return id & FlagERR; }
 
     enum StringRepresentation { StrTight, StrAligned };
     std::string toString(StringRepresentation mode = StrTight) const;

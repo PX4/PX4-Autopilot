@@ -16,6 +16,9 @@ TEST(CanFrame, FrameProperties)
     uavcan::CanFrame frame = makeCanFrame(123, "", STD);
     frame.id |= uavcan::CanFrame::FlagRTR;
     EXPECT_TRUE(frame.isRemoteTransmissionRequest());
+    EXPECT_FALSE(frame.isErrorFrame());
+    frame.id |= uavcan::CanFrame::FlagERR;
+    EXPECT_TRUE(frame.isErrorFrame());
 }
 
 TEST(CanFrame, ToString)
