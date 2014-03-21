@@ -1800,7 +1800,7 @@ Mavlink::task_main(int argc, char *argv[])
 	_mavlink_param_queue_index = param_count();
 
 	MavlinkRateLimiter slow_rate_limiter(2000000.0f / rate_mult);
-	MavlinkRateLimiter fast_rate_limiter(20000.0f / rate_mult);
+	MavlinkRateLimiter fast_rate_limiter(30000.0f / rate_mult);
 
 	/* set main loop delay depending on data rate to minimize CPU overhead */
 	_main_loop_delay = MAIN_LOOP_DELAY / rate_mult;
