@@ -132,7 +132,6 @@ ETSAirspeed::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		log("i2c::transfer returned %d", ret);
 	}
 
 	return ret;
@@ -308,7 +307,7 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	errx(1, "no ETS airspeed sensor connected");
 }
 
 /**
