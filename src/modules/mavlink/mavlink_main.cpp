@@ -151,8 +151,9 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 	}
 
 	/* no valid instance, bail */
-	if (!instance)
+	if (!instance) {
 		return;
+	}
 
 	int uart = instance->get_uart_fd();
 
@@ -165,12 +166,12 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 	int buf_free = 0;
 
 	if (instance->get_flow_control_enabled()
-		&& ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
+	    && ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
 
 		if (buf_free == 0) {
 
 			if (last_write_times[(unsigned)channel] != 0 &&
-			hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500*1000UL) {
+			    hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500 * 1000UL) {
 
 				warnx("DISABLING HARDWARE FLOW CONTROL");
 				instance->enable_flow_control(false);
@@ -225,30 +226,37 @@ Mavlink::Mavlink() :
 	case 0:
 		_channel = MAVLINK_COMM_0;
 		break;
+
 	case 1:
 		_channel = MAVLINK_COMM_1;
 		break;
+
 	case 2:
 		_channel = MAVLINK_COMM_2;
 		break;
+
 	case 3:
 		_channel = MAVLINK_COMM_3;
 		break;
 #ifdef MAVLINK_COMM_4
+
 	case 4:
 		_channel = MAVLINK_COMM_4;
 		break;
 #endif
 #ifdef MAVLINK_COMM_5
-		case 5:
+
+	case 5:
 		_channel = MAVLINK_COMM_5;
 		break;
 #endif
 #ifdef MAVLINK_COMM_6
+
 	case 6:
 		_channel = MAVLINK_COMM_6;
 		break;
 #endif
+
 	default:
 		errx(1, "instance ID is out of range");
 		break;
@@ -279,6 +287,7 @@ Mavlink::~Mavlink()
 			}
 		} while (_task_running);
 	}
+
 	LL_DELETE(_mavlink_instances, this);
 }
 
@@ -604,12 +613,16 @@ Mavlink::enable_flow_control(bool enabled)
 	}
 
 	struct termios uart_config;
+
 	int ret = tcgetattr(_uart_fd, &uart_config);
+
 	if (enabled) {
 		uart_config.c_cflag |= CRTSCTS;
+
 	} else {
 		uart_config.c_cflag &= ~CRTSCTS;
 	}
+
 	ret = tcsetattr(_uart_fd, TCSANOW, &uart_config);
 
 	if (!ret) {
@@ -1652,6 +1665,7 @@ Mavlink::task_main(int argc, char *argv[])
 		case 'm':
 			if (strcmp(optarg, "custom") == 0) {
 				_mode = MAVLINK_MODE_CUSTOM;
+
 			} else if (strcmp(optarg, "camera") == 0) {
 				_mode = MAVLINK_MODE_CAMERA;
 			}
@@ -1973,6 +1987,7 @@ Mavlink::start(int argc, char *argv[])
 	const unsigned limit = 100 * 1000 / sleeptime;
 
 	unsigned count = 0;
+
 	while (ic == Mavlink::instance_count() && count < limit) {
 		::usleep(sleeptime);
 		count++;
@@ -2003,20 +2018,26 @@ Mavlink::stream(int argc, char *argv[])
 	bool err_flag = false;
 
 	int i = 0;
+
 	while (i < argc) {
 
-		if (0 == strcmp(argv[i], "-r") && i < argc - 1 ) {
-			rate = strtod(argv[i+1], nullptr);
+		if (0 == strcmp(argv[i], "-r") && i < argc - 1) {
+			rate = strtod(argv[i + 1], nullptr);
+
 			if (rate < 0.0f) {
 				err_flag = true;
 			}
+
 			i++;
-		} else if (0 == strcmp(argv[i], "-d") && i < argc - 1 ) {
-			device_name = argv[i+1];
+
+		} else if (0 == strcmp(argv[i], "-d") && i < argc - 1) {
+			device_name = argv[i + 1];
 			i++;
-		} else if (0 == strcmp(argv[i], "-s") && i < argc - 1 ) {
-			stream_name = argv[i+1];
+
+		} else if (0 == strcmp(argv[i], "-s") && i < argc - 1) {
+			stream_name = argv[i + 1];
 			i++;
+
 		} else {
 			err_flag = true;
 		}
