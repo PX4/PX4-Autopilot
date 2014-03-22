@@ -15,7 +15,6 @@
 #include <uavcan/protocol/DataTypeKind.hpp>
 #include <uavcan/protocol/GlobalDiscoveryRequest.hpp>
 #include <uavcan/protocol/GetDataTypeInfo.hpp>
-#include <uavcan/protocol/Version.hpp>
 #include <uavcan/protocol/NodeStatus.hpp>
 #include <uavcan/protocol/GetNodeInfo.hpp>
 #include <uavcan/protocol/debug/LogMessage.hpp>

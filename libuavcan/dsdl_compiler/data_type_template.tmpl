@@ -45,13 +45,13 @@ UAVCAN_PACKED_BEGIN
 #endif
 
 % if t.kind != t.KIND_SERVICE:
-template <int I>
+template <int _tmpl>
 % endif
 struct ${t.cpp_type_name}
 {
 <%def name="generate_primary_body(type_name, max_bitlen, fields, constants)" buffered="True">
-    typedef const ${type_name}<I>& ParameterType;
-    typedef ${type_name}<I>& ReferenceType;
+    typedef const ${type_name}<_tmpl>& ParameterType;
+    typedef ${type_name}<_tmpl>& ReferenceType;
 
 <%def name="expand_attr_types(group_name, attrs)">
     struct ${group_name}
@@ -101,7 +101,7 @@ struct ${t.cpp_type_name}
         enum { MaxByteLen = ::uavcan::BitLenToByteLen<MaxBitLen>::Result };
         ::uavcan::StaticAssert<int(MaxByteLen) <= int(::uavcan::MaxTransferPayloadLen)>::check();
 
-        ::uavcan::StaticAssert<I == 0>::check();  // Usage check
+        ::uavcan::StaticAssert<_tmpl == 0>::check();  // Usage check
 
 #if UAVCAN_DEBUG
         /*
@@ -148,13 +148,13 @@ ${'::uavcan::TailArrayOptDisabled' if (idx + 1) < len(fields) else 'tao_mode'});
     ${generate_codec_calls_per_field('decode', 'ReferenceType')}
 </%def>
 % if t.kind == t.KIND_SERVICE:
-    template <int I>
+    template <int _tmpl>
     struct Request_
     {
         ${generate_primary_body('Request_', t.get_max_bitlen_request(), t.request_fields, t.request_constants) | indent}
     };
 
-    template <int I>
+    template <int _tmpl>
     struct Response_
     {
         ${generate_primary_body('Response_', t.get_max_bitlen_response(), t.response_fields, t.response_constants) | indent}
@@ -212,9 +212,9 @@ private:
 <%def name="define_out_of_line_constants(scope_prefix, constants)">
 % for a in constants:
     % if not a.cpp_use_enum:
-template <int I>
-const typename ::uavcan::StorageType< typename ${scope_prefix}<I>::ConstantTypes::${a.name} >::Type
-    ${scope_prefix}<I>::${a.name} = ${a.cpp_value}; // ${a.init_expression}
+template <int _tmpl>
+const typename ::uavcan::StorageType< typename ${scope_prefix}<_tmpl>::ConstantTypes::${a.name} >::Type
+    ${scope_prefix}<_tmpl>::${a.name} = ${a.cpp_value}; // ${a.init_expression}
 
     %endif
 % endfor
