@@ -182,6 +182,7 @@ private:
 		double lon;		/**< longitude of target */
 		float alt;		/**< altitude of target */
 		math::Vector<3> offset;		/**< offset from target */
+		float yaw;		/**< relative yaw, 0.0 = pointed to target */
 	};
 
 	struct follow_offset_s	_follow_offset_prev;		/**< offset from target for previous "follow" waypoint */
@@ -1218,6 +1219,7 @@ Navigator::set_mission_item()
 						_mission_item.lat, _mission_item.lon,
 						&_follow_offset_next.offset.data[0], &_follow_offset_next.offset.data[1]);
 				_follow_offset_next.offset(2) = -(_mission_item.altitude - _roi_item.altitude);
+				_follow_offset_next.yaw = _mission_item.yaw;
 				mavlink_log_info(_mavlink_fd, "f offs: %d %.2f %.2f %.2f -> %d %.2f %.2f %.2f",
 						_follow_offset_prev.valid, _follow_offset_prev.offset(0), _follow_offset_prev.offset(1), _follow_offset_prev.offset(2),
 						_follow_offset_next.valid, _follow_offset_next.offset(0), _follow_offset_next.offset(1), _follow_offset_next.offset(2));
@@ -1772,13 +1774,17 @@ Navigator::publish_position_setpoint_triplet()
 		_pos_sp_triplet.current.valid = true;
 		_pos_sp_triplet.current.type = SETPOINT_TYPE_NORMAL;
 
-		/* calculate current desired offset from target position */
+		/* calculate current desired offset from target position and relative yaw */
 		math::Vector<3> offset;
+		float yaw_relative = 0.0f;
+
 		if (!_follow_offset_prev.valid) {
 			offset = _follow_offset_next.offset;
+			yaw_relative = _follow_offset_next.yaw;
 
 		} else if (!_follow_offset_next.valid) {
 			offset = _follow_offset_prev.offset;
+			yaw_relative = _follow_offset_prev.yaw;
 
 		} else {
 			float dist_prev = get_distance_to_point_global_wgs84(
@@ -1791,6 +1797,7 @@ Navigator::publish_position_setpoint_triplet()
 					NULL, NULL);
 			float progress = dist_prev / (dist_prev + dist_next);
 			offset = _follow_offset_prev.offset + (_follow_offset_next.offset - _follow_offset_prev.offset) * progress;
+			yaw_relative = _follow_offset_prev.yaw + (_follow_offset_next.yaw - _follow_offset_prev.yaw) * progress;
 		}
 
 		/* add offset to target position */
@@ -1802,7 +1809,7 @@ Navigator::publish_position_setpoint_triplet()
 
 		/* calculate direction to target */
 		// TODO add yaw offset, use actual position instead of offset
-		_pos_sp_triplet.current.yaw = atan2f(-offset(1), -offset(0));
+		_pos_sp_triplet.current.yaw = atan2f(-offset(1), -offset(0)) + yaw_relative;
 
 		_pos_sp_triplet.current.vel_n = _target_pos.vel_n;
 		_pos_sp_triplet.current.vel_e = _target_pos.vel_e;
