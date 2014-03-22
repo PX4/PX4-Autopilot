@@ -201,6 +201,7 @@ struct log_FLOW_s {
 /* --- GPOS - GLOBAL POSITION ESTIMATE --- */
 #define LOG_GPOS_MSG 16
 struct log_GPOS_s {
+	uint64_t time;
 	int32_t lat;
 	int32_t lon;
 	float alt;
@@ -283,6 +284,7 @@ struct log_TELE_s {
 #define LOG_TPOS_MSG 23
 struct log_TPOS_s {
 	uint8_t sysid;
+	uint64_t time;
 	int32_t lat;
 	int32_t lon;
 	float alt;
@@ -332,14 +334,14 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(AIRS, "ff", "IndSpeed,TrueSpeed"),
 	LOG_FORMAT(ARSP, "fff", "RollRateSP,PitchRateSP,YawRateSP"),
 	LOG_FORMAT(FLOW, "hhfffBB", "RawX,RawY,CompX,CompY,Dist,Q,SensID"),
-	LOG_FORMAT(GPOS, "LLfffffB", "Lat,Lon,Alt,VelN,VelE,VelD,BaroAlt,Flags"),
+	LOG_FORMAT(GPOS, "QLLfffffB", "Time,Lat,Lon,Alt,VelN,VelE,VelD,BaroAlt,Flags"),
 	LOG_FORMAT(GPSP, "BLLffBfbf", "NavState,Lat,Lon,Alt,Yaw,Type,LoitR,LoitDir,PitMin"),
 	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
 	LOG_FORMAT(BATT, "ffff", "V,VFilt,C,Discharged"),
 	LOG_FORMAT(DIST, "ffB", "Bottom,BottomRate,Flags"),
 	LOG_FORMAT(TELE, "BBBBHHB", "RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf"),
-	LOG_FORMAT(TPOS, "BLLffff", "SysID,Lat,Lon,Alt,VelN,VelE,VelD"),
+	LOG_FORMAT(TPOS, "BQLLffff", "SysID,Time,Lat,Lon,Alt,VelN,VelE,VelD"),
 	/* system-level messages, ID >= 0x80 */
 	// FMT: don't write format of format message, it's useless
 	LOG_FORMAT(TIME, "Q", "StartTime"),

@@ -1128,6 +1128,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- GLOBAL POSITION --- */
 		if (copy_if_updated(ORB_ID(vehicle_global_position), subs.global_pos_sub, &buf.global_pos)) {
 			log_msg.msg_type = LOG_GPOS_MSG;
+			log_msg.body.log_GPOS.time = buf.global_pos.time_gps_usec;
 			log_msg.body.log_GPOS.lat = buf.global_pos.lat * 1e7;
 			log_msg.body.log_GPOS.lon = buf.global_pos.lon * 1e7;
 			log_msg.body.log_GPOS.alt = buf.global_pos.alt;
@@ -1253,6 +1254,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- TARGET GLOBAL POSITION --- */
 		if (copy_if_updated(ORB_ID(target_global_position), subs.target_pos_sub, &buf.target_pos)) {
 			log_msg.msg_type = LOG_TPOS_MSG;
+			log_msg.body.log_TPOS.sysid = buf.target_pos.sysid;
+			log_msg.body.log_TPOS.time = buf.target_pos.time_gps_usec;
 			log_msg.body.log_TPOS.lat = buf.target_pos.lat * 1e7d;
 			log_msg.body.log_TPOS.lon = buf.target_pos.lon * 1e7d;
 			log_msg.body.log_TPOS.alt = buf.target_pos.alt;
