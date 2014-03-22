@@ -116,7 +116,8 @@ public:
         convertByteOrder<BitLen>(byte_union.bytes);
 
         // Underlying stream class assumes that more significant bits have lower index, so we need to shift some.
-        byte_union.bytes[BitLen / 8] <<= (8 - (BitLen % 8)) & 7;
+        if (BitLen % 8)
+            byte_union.bytes[BitLen / 8] <<= (8 - (BitLen % 8)) & 7;
 
         return stream_.write(byte_union.bytes, BitLen);
     }
@@ -136,7 +137,8 @@ public:
         if (read_res <= 0)
             return read_res;
 
-        byte_union.bytes[BitLen / 8] >>= (8 - (BitLen % 8)) & 7;  // As in encode(), vice versa
+        if (BitLen % 8)
+            byte_union.bytes[BitLen / 8] >>= (8 - (BitLen % 8)) & 7;  // As in encode(), vice versa
 
         convertByteOrder<BitLen>(byte_union.bytes);
         fixTwosComplement<BitLen>(byte_union.value);
