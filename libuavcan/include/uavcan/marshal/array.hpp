@@ -341,7 +341,7 @@ public:
         Base::at(size() - 1) = value;
     }
 
-    void resize(SizeType new_size, ValueType filler = ValueType())
+    void resize(SizeType new_size, const ValueType& filler)
     {
         if (new_size > size())
         {
@@ -355,6 +355,11 @@ public:
             while (cnt--)
                 pop_back();
         }
+    }
+
+    void resize(SizeType new_size)
+    {
+        resize(new_size, ValueType());
     }
 
     /*
