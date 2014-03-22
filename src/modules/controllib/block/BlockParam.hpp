@@ -42,7 +42,7 @@
 #include <systemlib/param/param.h>
 
 #include "Block.hpp"
-#include "List.hpp"
+#include <containers/List.hpp>
 
 namespace control
 {
@@ -70,38 +70,21 @@ protected:
  * Parameters that are tied to blocks for updating and nameing.
  */
 
-class __EXPORT BlockParamFloat : public BlockParamBase
+template <class T>
+class BlockParam : public BlockParamBase
 {
 public:
-	BlockParamFloat(Block *block, const char *name, bool parent_prefix=true) :
-		BlockParamBase(block, name, parent_prefix),
-		_val() {
-		update();
-	}
-	float get() { return _val; }
-	void set(float val) { _val = val; }
-	void update() {
-		if (_handle != PARAM_INVALID) param_get(_handle, &_val);
-	}
+	BlockParam(Block *block, const char *name,
+			bool parent_prefix=true);
+	T get();
+	void set(T val);
+	void update();
+	virtual ~BlockParam();
 protected:
-	float _val;
+	T _val;
 };
 
-class __EXPORT BlockParamInt : public BlockParamBase
-{
-public:
-	BlockParamInt(Block *block, const char *name, bool parent_prefix=true) :
-		BlockParamBase(block, name, parent_prefix),
-		_val() {
-		update();
-	}
-	int get() { return _val; }
-	void set(int val) { _val = val; }
-	void update() {
-		if (_handle != PARAM_INVALID) param_get(_handle, &_val);
-	}
-protected:
-	int _val;
-};
+typedef BlockParam<float> BlockParamFloat;
+typedef BlockParam<int> BlockParamInt;
 
 } // namespace control

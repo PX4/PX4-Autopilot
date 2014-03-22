@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,23 +32,35 @@
  ****************************************************************************/
 
 /**
- * @file util.h
- * Utility and helper functions and data.
+ * @file encoders.h
+ *
+ * Encoders topic.
+ *
  */
 
-#pragma once
+#ifndef TOPIC_ENCODERS_H
+#define TOPIC_ENCODERS_H
 
-#include "orb_topics.h"
-
-/** MAVLink communications channel */
-extern uint8_t chan;
-
-/** Shutdown marker */
-extern volatile bool thread_should_exit;
+#include <stdint.h>
+#include "../uORB.h"
 
 /**
- * Translate the custom state into standard mavlink modes and state.
+ * @addtogroup topics
+ * @{
  */
-extern void
-get_mavlink_mode_and_state(const struct vehicle_control_mode_s *control_mode, const struct actuator_armed_s *armed,
-	uint8_t *mavlink_state, uint8_t *mavlink_mode);
+
+#define NUM_ENCODERS 4
+
+struct encoders_s {
+	uint64_t timestamp;
+	int64_t counts[NUM_ENCODERS]; // counts of encoder
+	float velocity[NUM_ENCODERS]; // counts of encoder/ second
+};
+
+/**
+ * @}
+ */
+
+ORB_DECLARE(encoders);
+
+#endif

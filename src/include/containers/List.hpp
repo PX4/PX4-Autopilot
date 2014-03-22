@@ -32,87 +32,40 @@
  ****************************************************************************/
 
 /**
- * @file UOrbPublication.h
+ * @file List.hpp
  *
+ * A linked list.
  */
 
 #pragma once
 
-#include <uORB/uORB.h>
-#include "../block/Block.hpp"
-#include "../block/List.hpp"
-
-
-namespace control
-{
-
-class Block;
-
-/**
- * Base publication warapper class, used in list traversal
- * of various publications.
- */
-class __EXPORT UOrbPublicationBase : public ListNode<control::UOrbPublicationBase *>
-{
-public:
-
-	UOrbPublicationBase(
-		List<UOrbPublicationBase *> * list,
-		const struct orb_metadata *meta) :
-		_meta(meta),
-		_handle(-1) {
-		if (list != NULL) list->add(this);
-	}
-	void update() {
-		if (_handle > 0) {
-			orb_publish(getMeta(), getHandle(), getDataVoidPtr());
-		} else {
-			setHandle(orb_advertise(getMeta(), getDataVoidPtr()));
-		}
-	}
-	virtual void *getDataVoidPtr() = 0;
-	virtual ~UOrbPublicationBase() {
-		orb_unsubscribe(getHandle());
-	}
-	const struct orb_metadata *getMeta() { return _meta; }
-	int getHandle() { return _handle; }
-protected:
-	void setHandle(orb_advert_t handle) { _handle = handle; }
-	const struct orb_metadata *_meta;
-	orb_advert_t _handle;
-};
-
-/**
- * UOrb Publication wrapper class
- */
 template<class T>
-class UOrbPublication :
-	public T, // this must be first!
-	public UOrbPublicationBase
+class __EXPORT ListNode
 {
 public:
-	/**
-	 * Constructor
-	 *
-	 * @param list      A list interface for adding to list during construction
-	 * @param meta		The uORB metadata (usually from the ORB_ID() macro)
-	 *			for the topic.
-	 */
-	UOrbPublication(
-		List<UOrbPublicationBase *> * list,
-		const struct orb_metadata *meta) :
-		T(), // initialize data structure to zero
-		UOrbPublicationBase(list, meta) {
+	ListNode() : _sibling(nullptr) {
 	}
-	virtual ~UOrbPublication() {}
-	/*
-	 * XXX
-	 * This function gets the T struct, assuming
-	 * the struct is the first base class, this
-	 * should use dynamic cast, but doesn't
-	 * seem to be available
-	 */
-	void *getDataVoidPtr() { return (void *)(T *)(this); }
+	void setSibling(T sibling) { _sibling = sibling; }
+	T getSibling() { return _sibling; }
+	T get() {
+		return _sibling;
+	}
+protected:
+	T _sibling;
 };
 
-} // namespace control
+template<class T>
+class __EXPORT List
+{
+public:
+	List() : _head() {
+	}
+	void add(T newNode) {
+		newNode->setSibling(getHead());
+		setHead(newNode);
+	}
+	T getHead() { return _head; }
+private:
+	void setHead(T &head) { _head = head; }
+	T _head;
+};

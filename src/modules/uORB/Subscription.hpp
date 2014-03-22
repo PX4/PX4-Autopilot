@@ -32,40 +32,97 @@
  ****************************************************************************/
 
 /**
- * @file Node.h
+ * @file Subscription.h
  *
- * A node of a linked list.
  */
 
 #pragma once
 
-template<class T>
-class __EXPORT ListNode
+#include <uORB/uORB.h>
+#include <containers/List.hpp>
+
+
+namespace uORB
+{
+
+/**
+ * Base subscription warapper class, used in list traversal
+ * of various subscriptions.
+ */
+class __EXPORT SubscriptionBase :
+	public ListNode<SubscriptionBase *>
 {
 public:
-	ListNode() : _sibling(NULL) {
+// methods
+
+	/**
+	 * Constructor
+	 *
+	 * @param meta		The uORB metadata (usually from the ORB_ID() macro)
+	 *			for the topic.
+	 */
+	SubscriptionBase(
+		List<SubscriptionBase *> * list,
+		const struct orb_metadata *meta) :
+		_meta(meta),
+		_handle() {
+		if (list != NULL) list->add(this);
 	}
-	void setSibling(T sibling) { _sibling = sibling; }
-	T getSibling() { return _sibling; }
-	T get() {
-		return _sibling;
+	bool updated();
+	void update() {
+		if (updated()) {
+			orb_copy(_meta, _handle, getDataVoidPtr());
+		}
 	}
+	virtual void *getDataVoidPtr() = 0;
+	virtual ~SubscriptionBase() {
+		orb_unsubscribe(_handle);
+	}
+// accessors
+	const struct orb_metadata *getMeta() { return _meta; }
+	int getHandle() { return _handle; }
 protected:
-	T _sibling;
+// accessors
+	void setHandle(int handle) { _handle = handle; }
+// attributes
+	const struct orb_metadata *_meta;
+	int _handle;
 };
 
+/**
+ * Subscription wrapper class
+ */
 template<class T>
-class __EXPORT List
+class __EXPORT Subscription :
+	public T, // this must be first!
+	public SubscriptionBase
 {
 public:
-	List() : _head() {
-	}
-	void add(T newNode) {
-		newNode->setSibling(getHead());
-		setHead(newNode);
-	}
-	T getHead() { return _head; }
-private:
-	void setHead(T &head) { _head = head; }
-	T _head;
+	/**
+	 * Constructor
+	 *
+	 * @param list      A list interface for adding to list during construction
+	 * @param meta		The uORB metadata (usually from the ORB_ID() macro)
+	 *			for the topic.
+	 * @param interval  The minimum interval in milliseconds between updates
+	 */
+	Subscription(
+		List<SubscriptionBase *> * list,
+		const struct orb_metadata *meta, unsigned interval);
+	/**
+	 * Deconstructor
+	 */
+	virtual ~Subscription();
+
+	/*
+	 * XXX
+	 * This function gets the T struct, assuming
+	 * the struct is the first base class, this
+	 * should use dynamic cast, but doesn't
+	 * seem to be available
+	 */
+	void *getDataVoidPtr();
+	T getData();
 };
+
+} // namespace uORB

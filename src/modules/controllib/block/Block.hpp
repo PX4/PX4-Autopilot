@@ -42,7 +42,13 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#include "List.hpp"
+#include <containers/List.hpp>
+
+// forward declaration
+namespace uORB {
+	class SubscriptionBase;
+	class PublicationBase;
+}
 
 namespace control
 {
@@ -55,8 +61,6 @@ static const uint8_t blockNameLengthMax = 80;
 
 // forward declaration
 class BlockParamBase;
-class UOrbSubscriptionBase;
-class UOrbPublicationBase;
 class SuperBlock;
 
 /**
@@ -79,15 +83,15 @@ public:
 protected:
 // accessors
 	SuperBlock *getParent() { return _parent; }
-	List<UOrbSubscriptionBase *> & getSubscriptions() { return _subscriptions; }
-	List<UOrbPublicationBase *> & getPublications() { return _publications; }
+	List<uORB::SubscriptionBase *> & getSubscriptions() { return _subscriptions; }
+	List<uORB::PublicationBase *> & getPublications() { return _publications; }
 	List<BlockParamBase *> & getParams() { return _params; }
 // attributes
 	const char *_name;
 	SuperBlock *_parent;
 	float _dt;
-	List<UOrbSubscriptionBase *> _subscriptions;
-	List<UOrbPublicationBase *> _publications;
+	List<uORB::SubscriptionBase *> _subscriptions;
+	List<uORB::PublicationBase *> _publications;
 	List<BlockParamBase *> _params;
 };
 
