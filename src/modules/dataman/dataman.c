@@ -1,8 +1,10 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: 	Lorenz Meier
- *              Jean Cyr
+ *   Author: 	Jean Cyr
+ *              Lorenz Meier
+ *              Julian Oes
+ *              Thomas Gubler
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,16 +42,8 @@
 #include <nuttx/config.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <poll.h>
-#include <time.h>
-#include <sys/ioctl.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/err.h>
 #include <queue.h>
 
 #include "dataman.h"
