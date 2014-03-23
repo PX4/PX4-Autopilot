@@ -634,13 +634,15 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 		hil_battery_status.timestamp = timestamp;
 		hil_battery_status.voltage_v = 11.1f;
+		hil_battery_status.voltage_filtered_v = 11.1f;
 		hil_battery_status.current_a = 10.0f;
+		hil_battery_status.discharged_mah = -1.0f;
 
 		if (_battery_pub > 0) {
 			orb_publish(ORB_ID(battery_status), _battery_pub, &hil_battery_status);
 
 		} else {
-			_baro_pub = orb_advertise(ORB_ID(battery_status), &hil_battery_status);
+			_battery_pub = orb_advertise(ORB_ID(battery_status), &hil_battery_status);
 		}
 	}
 

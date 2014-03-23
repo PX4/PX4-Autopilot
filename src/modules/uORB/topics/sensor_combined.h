@@ -105,6 +105,8 @@ struct sensor_combined_s {
 
 	float differential_pressure_pa;				/**< Airspeed sensor differential pressure                  */
 	uint64_t differential_pressure_timestamp;		/**< Last measurement timestamp */
+	float differential_pressure_filtered_pa;	/**< Low pass filtered airspeed sensor differential pressure reading */
+
 };
 
 /**
