@@ -30,6 +30,9 @@ TEST(PanicListener, Basic)
 {
     InterlinkedTestNodes nodes;
 
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<uavcan::protocol::Panic> _reg1;
+
     uavcan::PanicListener<PanicHandler::Binder> pl(nodes.a);
     uavcan::PanicBroadcaster pbr(nodes.b);
     PanicHandler handler;
