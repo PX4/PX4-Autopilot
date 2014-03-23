@@ -72,6 +72,9 @@ TEST(Transfer, NodeID)
     ASSERT_FALSE(nidx.isBroadcast());
     ASSERT_FALSE(nidx.isValid());
 
+    /*
+     * Comparison operators
+     */
     ASSERT_TRUE(nid1 < nid127);
     ASSERT_TRUE(nid1 <= nid127);
     ASSERT_TRUE(nid0 < nid1);
@@ -82,9 +85,9 @@ TEST(Transfer, NodeID)
     ASSERT_FALSE(nid0 > nid1);
     ASSERT_FALSE(nid0 >= nid1);
 
-    ASSERT_FALSE(nid1 > nid1);
-    ASSERT_TRUE(nid1 >= nid1);
+    ASSERT_FALSE(nid1 > uavcan::NodeID(1));
+    ASSERT_TRUE(nid1 >= uavcan::NodeID(1));
 
     ASSERT_FALSE(nid1 == nid127);
-    ASSERT_TRUE(nid127 == nid127);
+    ASSERT_TRUE(nid127 == uavcan::NodeID(127));
 }
