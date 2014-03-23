@@ -14,6 +14,7 @@ class SystemClockMock : public uavcan::ISystemClock
 public:
     mutable uint64_t monotonic;
     mutable uint64_t utc;
+    uavcan::UtcDuration last_adjustment;
     int64_t monotonic_auto_advance;
 
     SystemClockMock(uint64_t initial = 0)
@@ -42,9 +43,10 @@ public:
         return uavcan::UtcTime::fromUSec(utc);
     }
 
-    void adjustUtc(uavcan::UtcDuration)
+    void adjustUtc(uavcan::UtcDuration adjustment)
     {
-        assert(0);
+        assert(this);
+        last_adjustment = adjustment;
     }
 };
 
