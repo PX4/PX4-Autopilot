@@ -341,7 +341,7 @@ test(void)
 		err(1, "can't open ADC device");
 
 	for (unsigned i = 0; i < 50; i++) {
-		adc_msg_s data[10];
+		adc_msg_s data[12];
 		ssize_t count = read(fd, data, sizeof(data));
 
 		if (count < 0)

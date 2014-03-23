@@ -79,6 +79,8 @@
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
 
@@ -99,6 +101,8 @@
 #define ADDR_READ_MR			0x00	/* write to this address to start conversion */
 
 /* Measurement rate is 100Hz */
+#define MEAS_RATE 100.0f
+#define MEAS_DRIVER_FILTER_FREQ 3.0f
 #define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
 
 class MEASAirspeed : public Airspeed
@@ -116,6 +120,7 @@ protected:
 	virtual int	measure();
 	virtual int	collect();
 
+	math::LowPassFilter2p	_filter;
 };
 
 /*
@@ -124,7 +129,8 @@ protected:
 extern "C" __EXPORT int meas_airspeed_main(int argc, char *argv[]);
 
 MEASAirspeed::MEASAirspeed(int bus, int address, const char *path) : Airspeed(bus, address,
-			CONVERSION_INTERVAL, path)
+			CONVERSION_INTERVAL, path),
+			_filter(MEAS_RATE, MEAS_DRIVER_FILTER_FREQ)
 {
 
 }
@@ -212,6 +218,7 @@ MEASAirspeed::collect()
 	report.error_count = perf_event_count(_comms_errors);
 	report.temperature = temperature;
 	report.differential_pressure_pa = diff_press_pa;
+	report.differential_pressure_filtered_pa =  _filter.apply(diff_press_pa);
 	report.voltage = 0;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
