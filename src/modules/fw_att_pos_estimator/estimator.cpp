@@ -876,7 +876,7 @@ void CovariancePrediction(float dt)
     nextP[20][19] = P[20][19];
     nextP[20][20] = P[20][20];
 
-    for (uint8_t i=0; i<= 20; i++)
+    for (unsigned i = 0; i < n_states; i++)
     {
         nextP[i][i] = nextP[i][i] + processNoise[i];
     }
@@ -942,7 +942,16 @@ void CovariancePrediction(float dt)
             P[i][i] = nextP[i][i];
         }
 
-        ForceSymmetry();
+        // force symmetry for observable states
+        for (unsigned i = 1; i < n_states; i++)
+        {
+            for (uint8_t j = 0; j < i; j++)
+            {
+                P[i][j] = 0.5f * (nextP[i][j] + nextP[j][i]);
+                P[j][i] = P[i][j];
+            }
+        }
+
     }
 
     ConstrainVariances();
