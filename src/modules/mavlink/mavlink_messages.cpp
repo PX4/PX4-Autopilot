@@ -811,8 +811,8 @@ protected:
 			for (unsigned i = 0; i < 8; i++) {
 				if (i < n) {
 					if (mavlink_base_mode & MAV_MODE_FLAG_SAFETY_ARMED) {
-						/* scale fake PWM out 900..1200 us to 0..1*/
-						out[i] = (act->output[i] - 900.0f) / 1200.0f;
+						/* scale fake PWM out 900..2100 us to -1..1*/
+						out[i] = (act->output[i] - 1500.0f) / 600.0f;
 
 					} else {
 						/* send 0 when disarmed */
