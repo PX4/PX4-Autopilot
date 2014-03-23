@@ -38,7 +38,7 @@ static bool validateDataTypeInfoResponse(const std::auto_ptr<ServiceCallResult<G
 
 TEST(DataTypeInfoProvider, Basic)
 {
-    InterlinkedTestNodes nodes;
+    InterlinkedTestNodesWithSysClock nodes;
 
     DataTypeInfoProvider dtip(nodes.a);
 

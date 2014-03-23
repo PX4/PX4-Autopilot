@@ -22,7 +22,7 @@ struct RestartHandler : public uavcan::IRestartRequestHandler
 
 TEST(RestartRequestServer, Basic)
 {
-    InterlinkedTestNodes nodes;
+    InterlinkedTestNodesWithSysClock nodes;
 
     uavcan::RestartRequestServer rrs(nodes.a);
 

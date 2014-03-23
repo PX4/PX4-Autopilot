@@ -9,7 +9,7 @@
 
 TEST(PanicBroadcaster, Basic)
 {
-    InterlinkedTestNodes nodes;
+    InterlinkedTestNodesWithSysClock nodes;
 
     uavcan::PanicBroadcaster panicker(nodes.a);
 

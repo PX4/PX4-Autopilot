@@ -9,7 +9,7 @@
 
 TEST(NodeStatusProvider, Basic)
 {
-    InterlinkedTestNodes nodes;
+    InterlinkedTestNodesWithSysClock nodes;
 
     uavcan::NodeStatusProvider nsp(nodes.a);
 

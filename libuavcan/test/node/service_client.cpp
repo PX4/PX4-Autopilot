@@ -55,7 +55,7 @@ static void stringServiceServerCallback(const uavcan::ReceivedDataStructure<root
 
 TEST(ServiceClient, Basic)
 {
-    InterlinkedTestNodes nodes;
+    InterlinkedTestNodesWithSysClock nodes;
 
     // Type registration
     uavcan::GlobalDataTypeRegistry::instance().reset();

@@ -42,7 +42,7 @@ struct LogSink : public uavcan::ILogSink
 
 TEST(Logger, Basic)
 {
-    InterlinkedTestNodes nodes;
+    InterlinkedTestNodesWithSysClock nodes;
 
     uavcan::Logger logger(nodes.a);
 
@@ -105,7 +105,7 @@ TEST(Logger, Basic)
 
 TEST(Logger, Cpp11Formatting)
 {
-    InterlinkedTestNodes nodes;
+    InterlinkedTestNodesWithSysClock nodes;
 
     uavcan::Logger logger(nodes.a);
     logger.setLevel(uavcan::protocol::debug::LogLevel::DEBUG);

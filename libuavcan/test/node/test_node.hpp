@@ -120,28 +120,30 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
 };
 
 
+template <typename ClockType>
 struct InterlinkedTestNodes
 {
-    SystemClockDriver clock;
+    ClockType clock_a;
+    ClockType clock_b;
     PairableCanDriver can_a;
     PairableCanDriver can_b;
     TestNode a;
     TestNode b;
 
     InterlinkedTestNodes(uavcan::NodeID nid_first, uavcan::NodeID nid_second)
-    : can_a(clock)
-    , can_b(clock)
-    , a(can_a, clock, nid_first)
-    , b(can_b, clock, nid_second)
+    : can_a(clock_a)
+    , can_b(clock_b)
+    , a(can_a, clock_a, nid_first)
+    , b(can_b, clock_b, nid_second)
     {
         can_a.linkTogether(&can_b);
     }
 
     InterlinkedTestNodes()
-    : can_a(clock)
-    , can_b(clock)
-    , a(can_a, clock, 1)
-    , b(can_b, clock, 2)
+    : can_a(clock_a)
+    , can_b(clock_b)
+    , a(can_a, clock_a, 1)
+    , b(can_b, clock_b, 2)
     {
         can_a.linkTogether(&can_b);
     }
@@ -164,3 +166,7 @@ struct InterlinkedTestNodes
         return 0;
     }
 };
+
+
+typedef InterlinkedTestNodes<SystemClockDriver> InterlinkedTestNodesWithSysClock;
+typedef InterlinkedTestNodes<SystemClockMock> InterlinkedTestNodesWithClockMock;

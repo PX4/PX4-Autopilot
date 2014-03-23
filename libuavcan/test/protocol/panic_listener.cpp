@@ -28,7 +28,7 @@ struct PanicHandler
 
 TEST(PanicListener, Basic)
 {
-    InterlinkedTestNodes nodes;
+    InterlinkedTestNodesWithSysClock nodes;
 
     uavcan::GlobalDataTypeRegistry::instance().reset();
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::Panic> _reg1;
