@@ -169,8 +169,10 @@ create_work_item(void)
 
 	/* Try to reuse item from free item queue */
 	lock_queue(&g_free_q);
+
 	if ((item = (work_q_item_t *)sq_remfirst(&(g_free_q.q))))
 		g_free_q.size--;
+
 	unlock_queue(&g_free_q);
 
 	/* If we there weren't any free items then obtain memory for a new one */
@@ -283,11 +285,11 @@ _write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const v
 	offset = calculate_offset(item, index);
 
 	/* If item type or index out of range, return error */
-	if (offset < 0) 
+	if (offset < 0)
 		return -1;
 
 	/* Make sure caller has not given us more data than we can handle */
-	if (count > DM_MAX_DATA_SIZE) 
+	if (count > DM_MAX_DATA_SIZE)
 		return -1;
 
 	/* Write out the data, prefixed with length and persistence level */
@@ -333,6 +335,7 @@ _read(dm_item_t item, unsigned char index, void *buf, size_t count)
 
 	/* Read the prefix and data */
 	len = -1;
+
 	if (lseek(g_task_fd, offset, SEEK_SET) == offset)
 		len = read(g_task_fd, buffer, count + DM_SECTOR_HDR_SIZE);
 
@@ -486,7 +489,7 @@ dm_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const
 		return -1;
 
 	/* get a work item and queue up a write request */
-	if ((work = create_work_item()) == NULL) 
+	if ((work = create_work_item()) == NULL)
 		return -1;
 
 	work->func = dm_write_func;
@@ -593,17 +596,20 @@ task_main(int argc, char *argv[])
 
 	/* Open or create the data manager file */
 	g_task_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY);
+
 	if (g_task_fd < 0) {
 		warnx("Could not open data manager file %s", k_data_manager_device_path);
 		sem_post(&g_init_sema); /* Don't want to hang startup */
 		return -1;
 	}
+
 	if (lseek(g_task_fd, max_offset, SEEK_SET) != max_offset) {
 		close(g_task_fd);
 		warnx("Could not seek data manager file %s", k_data_manager_device_path);
 		sem_post(&g_init_sema); /* Don't want to hang startup */
 		return -1;
 	}
+
 	fsync(g_task_fd);
 
 	/* We use two file descriptors, one for the caller context and one for the worker thread */
@@ -761,10 +767,10 @@ dataman_main(int argc, char *argv[])
 		stop();
 	else if (!strcmp(argv[1], "status"))
 		status();
-    else if (!strcmp(argv[1], "poweronrestart"))
-        dm_restart(DM_INIT_REASON_POWER_ON);
-    else if (!strcmp(argv[1], "inflightrestart"))
-        dm_restart(DM_INIT_REASON_IN_FLIGHT);
+	else if (!strcmp(argv[1], "poweronrestart"))
+		dm_restart(DM_INIT_REASON_POWER_ON);
+	else if (!strcmp(argv[1], "inflightrestart"))
+		dm_restart(DM_INIT_REASON_IN_FLIGHT);
 	else
 		usage();
 
