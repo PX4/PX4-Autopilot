@@ -95,6 +95,11 @@ public:
 
     bool operator!=(NodeID rhs) const { return !operator==(rhs); }
     bool operator==(NodeID rhs) const { return value_ == rhs.value_; }
+
+    bool operator<(NodeID rhs) const { return value_ < rhs.value_; }
+    bool operator>(NodeID rhs) const { return value_ > rhs.value_; }
+    bool operator<=(NodeID rhs) const { return value_ <= rhs.value_; }
+    bool operator>=(NodeID rhs) const { return value_ >= rhs.value_; }
 };
 
 }

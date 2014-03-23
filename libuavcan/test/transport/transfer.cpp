@@ -47,3 +47,44 @@ TEST(Transfer, TransferID)
         ASSERT_EQ(0, tid.computeForwardDistance(tid));
     }
 }
+
+
+TEST(Transfer, NodeID)
+{
+    uavcan::NodeID nid1(1);
+    uavcan::NodeID nid127(127);
+    uavcan::NodeID nid0(0);
+    uavcan::NodeID nidx;
+
+    ASSERT_TRUE(nid1.isUnicast());
+    ASSERT_FALSE(nid1.isBroadcast());
+    ASSERT_TRUE(nid1.isValid());
+
+    ASSERT_TRUE(nid127.isUnicast());
+    ASSERT_FALSE(nid127.isBroadcast());
+    ASSERT_TRUE(nid127.isValid());
+
+    ASSERT_FALSE(nid0.isUnicast());
+    ASSERT_TRUE(nid0.isBroadcast());
+    ASSERT_TRUE(nid0.isValid());
+
+    ASSERT_FALSE(nidx.isUnicast());
+    ASSERT_FALSE(nidx.isBroadcast());
+    ASSERT_FALSE(nidx.isValid());
+
+    ASSERT_TRUE(nid1 < nid127);
+    ASSERT_TRUE(nid1 <= nid127);
+    ASSERT_TRUE(nid0 < nid1);
+    ASSERT_TRUE(nid0 <= nid1);
+
+    ASSERT_FALSE(nid1 > nid127);
+    ASSERT_FALSE(nid1 >= nid127);
+    ASSERT_FALSE(nid0 > nid1);
+    ASSERT_FALSE(nid0 >= nid1);
+
+    ASSERT_FALSE(nid1 > nid1);
+    ASSERT_TRUE(nid1 >= nid1);
+
+    ASSERT_FALSE(nid1 == nid127);
+    ASSERT_TRUE(nid127 == nid127);
+}
