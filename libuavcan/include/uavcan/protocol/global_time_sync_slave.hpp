@@ -22,7 +22,7 @@ class GlobalTimeSyncSlave : Noncopyable
     UtcTime prev_ts_utc_;
     MonotonicTime prev_ts_mono_;
     MonotonicTime last_adjustment_ts_;
-    enum State { Update, Adjust } state;
+    enum State { Update, Adjust } state_;
     NodeID master_nid_;
     uint8_t prev_iface_index_;
 
@@ -39,7 +39,7 @@ class GlobalTimeSyncSlave : Noncopyable
 public:
     GlobalTimeSyncSlave(INode& node)
     : sub_(node)
-    , state(Update)
+    , state_(Update)
     , prev_iface_index_(0xFF)
     { }
 

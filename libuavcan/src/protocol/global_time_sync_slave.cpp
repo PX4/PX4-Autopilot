@@ -20,7 +20,7 @@ void GlobalTimeSyncSlave::adjustFromMsg(const ReceivedDataStructure<protocol::Gl
 
     getSystemClock().adjustUtc(adjustment);
     last_adjustment_ts_ = msg.getMonotonicTimestamp();
-    state = Update;
+    state_ = Update;
 }
 
 void GlobalTimeSyncSlave::updateFromMsg(const ReceivedDataStructure<protocol::GlobalTimeSync>& msg)
@@ -32,7 +32,7 @@ void GlobalTimeSyncSlave::updateFromMsg(const ReceivedDataStructure<protocol::Gl
     prev_ts_mono_     = msg.getMonotonicTimestamp();
     master_nid_       = msg.getSrcNodeID();
     prev_iface_index_ = msg.getIfaceIndex();
-    state             = Adjust;
+    state_             = Adjust;
 }
 
 void GlobalTimeSyncSlave::processMsg(const ReceivedDataStructure<protocol::GlobalTimeSync>& msg)
@@ -52,7 +52,7 @@ void GlobalTimeSyncSlave::processMsg(const ReceivedDataStructure<protocol::Globa
     }
     else if (msg.getIfaceIndex() == prev_iface_index_ && msg.getSrcNodeID() == master_nid_)
     {
-        if (state == Adjust && msg.prev_utc_usec > 0)
+        if (state_ == Adjust && msg.prev_utc_usec > 0)
         {
             adjustFromMsg(msg);
         }
