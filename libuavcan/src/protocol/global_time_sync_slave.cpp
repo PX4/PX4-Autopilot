@@ -19,6 +19,7 @@ void GlobalTimeSyncSlave::adjustFromMsg(const ReceivedDataStructure<protocol::Gl
                  int(msg.getSrcNodeID().get()), int(msg.getIfaceIndex()));
 
     getSystemClock().adjustUtc(adjustment);
+    last_adjustment_ts_ = msg.getMonotonicTimestamp();
     state = Update;
 }
 
@@ -82,6 +83,17 @@ void GlobalTimeSyncSlave::handleGlobalTimeSync(const ReceivedDataStructure<proto
 int GlobalTimeSyncSlave::start()
 {
     return sub_.start(GlobalTimeSyncCallback(this, &GlobalTimeSyncSlave::handleGlobalTimeSync));
+}
+
+bool GlobalTimeSyncSlave::isActive() const
+{
+    const MonotonicDuration since_prev_adj = getSystemClock().getMonotonic() - last_adjustment_ts_;
+    return !last_adjustment_ts_.isZero() && since_prev_adj.toMSec() <= protocol::GlobalTimeSync::PUBLISHER_TIMEOUT_MS;
+}
+
+NodeID GlobalTimeSyncSlave::getMasterNodeID() const
+{
+    return isActive() ? master_nid_ : NodeID();
 }
 
 }

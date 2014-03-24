@@ -29,6 +29,8 @@ TEST(GlobalTimeSyncSlave, Basic)
     uavcan::Publisher<uavcan::protocol::GlobalTimeSync> gts_pub(nodes.b);
 
     ASSERT_LE(0, gtss.start());
+    ASSERT_FALSE(gtss.isActive());
+    ASSERT_FALSE(gtss.getMasterNodeID().isValid());
 
     /*
      * Empty broadcast
@@ -43,6 +45,9 @@ TEST(GlobalTimeSyncSlave, Basic)
     ASSERT_EQ(1000000, master_clock.utc);
     std::cout << "Master mono=" << master_clock.monotonic << " utc=" << master_clock.utc << std::endl;
     std::cout << "Slave  mono=" << slave_clock.monotonic  << " utc=" << slave_clock.utc << std::endl;
+
+    ASSERT_FALSE(gtss.isActive());
+    ASSERT_FALSE(gtss.getMasterNodeID().isValid());
 
     /*
      * Follow-up broadcast with proper time
@@ -59,6 +64,9 @@ TEST(GlobalTimeSyncSlave, Basic)
     master_clock.utc += 1000000;
     slave_clock.utc += 1000000;
 
+    ASSERT_TRUE(gtss.isActive());
+    ASSERT_EQ(nodes.b.getNodeID(), gtss.getMasterNodeID());
+
     /*
      * Next follow-up, slave is synchronized now
      * Will update
@@ -71,6 +79,9 @@ TEST(GlobalTimeSyncSlave, Basic)
 
     master_clock.utc += 1000000;
     slave_clock.utc += 1000000;
+
+    ASSERT_TRUE(gtss.isActive());
+    ASSERT_EQ(nodes.b.getNodeID(), gtss.getMasterNodeID());
 
     /*
      * Next follow-up, slave is synchronized now
@@ -86,6 +97,9 @@ TEST(GlobalTimeSyncSlave, Basic)
     slave_clock.utc += 1000000;
     ASSERT_EQ(4000000, slave_clock.utc);
     ASSERT_EQ(4000000, master_clock.utc);
+
+    ASSERT_TRUE(gtss.isActive());
+    ASSERT_EQ(nodes.b.getNodeID(), gtss.getMasterNodeID());
 
     /*
      * Another master
@@ -112,12 +126,18 @@ TEST(GlobalTimeSyncSlave, Basic)
 
     master2_clock.utc += 1000000;
 
+    ASSERT_TRUE(gtss.isActive());
+    ASSERT_EQ(master2_node.getNodeID(), gtss.getMasterNodeID());
+
     /*
      * Adjustment
      */
     gts_pub2.broadcast(gts);
     nodes.spinBoth(uavcan::MonotonicDuration());
     ASSERT_EQ(100, slave_clock.utc);
+
+    ASSERT_TRUE(gtss.isActive());
+    ASSERT_EQ(master2_node.getNodeID(), gtss.getMasterNodeID());
 
     /*
      * Another master will be ignored now
@@ -131,4 +151,15 @@ TEST(GlobalTimeSyncSlave, Basic)
     gts_pub.broadcast(gts);
     nodes.spinBoth(uavcan::MonotonicDuration());
     ASSERT_EQ(100, slave_clock.utc);
+
+    ASSERT_TRUE(gtss.isActive());
+    ASSERT_EQ(master2_node.getNodeID(), gtss.getMasterNodeID());
+
+    /*
+     * Timeout
+     */
+    slave_clock.advance(100000000);
+
+    ASSERT_FALSE(gtss.isActive());
+    ASSERT_FALSE(gtss.getMasterNodeID().isValid());
 }

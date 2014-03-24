@@ -21,11 +21,13 @@ class GlobalTimeSyncSlave : Noncopyable
 
     UtcTime prev_ts_utc_;
     MonotonicTime prev_ts_mono_;
+    MonotonicTime last_adjustment_ts_;
     enum State { Update, Adjust } state;
     NodeID master_nid_;
     uint8_t prev_iface_index_;
 
     ISystemClock& getSystemClock() { return sub_.getNode().getSystemClock(); }
+    const ISystemClock& getSystemClock() const { return sub_.getNode().getSystemClock(); }
 
     void adjustFromMsg(const ReceivedDataStructure<protocol::GlobalTimeSync>& msg);
 
@@ -43,6 +45,10 @@ public:
     { }
 
     int start();
+
+    bool isActive() const;
+
+    NodeID getMasterNodeID() const;
 };
 
 }
