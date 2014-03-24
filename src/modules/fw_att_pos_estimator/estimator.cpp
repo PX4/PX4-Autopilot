@@ -74,12 +74,8 @@ bool staticMode  = true;    ///< boolean true if no position feedback is fused
 bool useAirspeed = true;    ///< boolean true if airspeed data is being used
 bool useCompass  = true;    ///< boolean true if magnetometer data is being used
 
-bool velHealth;
-bool posHealth;
-bool hgtHealth;
-bool velTimeout;
-bool posTimeout;
-bool hgtTimeout;
+struct ekf_status_report current_ekf_state;
+struct ekf_status_report last_ekf_error;
 
 bool numericalProtection = true;
 
@@ -965,9 +961,6 @@ void FuseVelposNED()
     uint32_t gpsRetryTimeNoTAS = 5000; // retry time if no TAS measurement available
     uint32_t hgtRetryTime = 5000; // height measurement retry time
     uint32_t horizRetryTime;
-    static uint32_t velFailTime = 0;
-    static uint32_t posFailTime = 0;
-    static uint32_t hgtFailTime = 0;
 
 // declare variables used to check measurement errors
     float velInnov[3] = {0.0f,0.0f,0.0f};
@@ -1033,16 +1026,16 @@ void FuseVelposNED()
                 varInnovVelPos[i] = P[stateIndex][stateIndex] + R_OBS[i];
             }
             // apply a 5-sigma threshold
-            velHealth = (sq(velInnov[0]) + sq(velInnov[1]) + sq(velInnov[2])) < 25.0*(varInnovVelPos[0] + varInnovVelPos[1] + varInnovVelPos[2]);
-            velTimeout = (millis() - velFailTime) > horizRetryTime;
-            if (velHealth || velTimeout)
+            current_ekf_state.velHealth = (sq(velInnov[0]) + sq(velInnov[1]) + sq(velInnov[2])) < 25.0*(varInnovVelPos[0] + varInnovVelPos[1] + varInnovVelPos[2]);
+            current_ekf_state.velTimeout = (millis() - current_ekf_state.velFailTime) > horizRetryTime;
+            if (current_ekf_state.velHealth || current_ekf_state.velTimeout)
             {
-                velHealth = true;
-                velFailTime = millis();
+                current_ekf_state.velHealth = true;
+                current_ekf_state.velFailTime = millis();
             }
             else
             {
-                velHealth = false;
+                current_ekf_state.velHealth = false;
             }
         }
         if (fusePosData)
@@ -1053,16 +1046,16 @@ void FuseVelposNED()
             varInnovVelPos[3] = P[7][7] + R_OBS[3];
             varInnovVelPos[4] = P[8][8] + R_OBS[4];
             // apply a 10-sigma threshold
-            posHealth = (sq(posInnov[0]) + sq(posInnov[1])) < 100.0f*(varInnovVelPos[3] + varInnovVelPos[4]);
-            posTimeout = (millis() - posFailTime) > horizRetryTime;
-            if (posHealth || posTimeout)
+            current_ekf_state.posHealth = (sq(posInnov[0]) + sq(posInnov[1])) < 100.0f*(varInnovVelPos[3] + varInnovVelPos[4]);
+            current_ekf_state.posTimeout = (millis() - current_ekf_state.posFailTime) > horizRetryTime;
+            if (current_ekf_state.posHealth || current_ekf_state.posTimeout)
             {
-                posHealth = true;
-                posFailTime = millis();
+                current_ekf_state.posHealth = true;
+                current_ekf_state.posFailTime = millis();
             }
             else
             {
-                posHealth = false;
+                current_ekf_state.posHealth = false;
             }
         }
         // test height measurements
@@ -1071,37 +1064,37 @@ void FuseVelposNED()
             hgtInnov = statesAtHgtTime[9] + hgtMea;
             varInnovVelPos[5] = P[9][9] + R_OBS[5];
             // apply a 10-sigma threshold
-            hgtHealth = sq(hgtInnov) < 100.0f*varInnovVelPos[5];
-            hgtTimeout = (millis() - hgtFailTime) > hgtRetryTime;
-            if (hgtHealth || hgtTimeout)
+            current_ekf_state.hgtHealth = sq(hgtInnov) < 100.0f*varInnovVelPos[5];
+            current_ekf_state.hgtTimeout = (millis() - current_ekf_state.hgtFailTime) > hgtRetryTime;
+            if (current_ekf_state.hgtHealth || current_ekf_state.hgtTimeout)
             {
-                hgtHealth = true;
-                hgtFailTime = millis();
+                current_ekf_state.hgtHealth = true;
+                current_ekf_state.hgtFailTime = millis();
             }
             else
             {
-                hgtHealth = false;
+                current_ekf_state.hgtHealth = false;
             }
         }
         // Set range for sequential fusion of velocity and position measurements depending
         // on which data is available and its health
-        if (fuseVelData && fusionModeGPS == 0 && velHealth)
+        if (fuseVelData && fusionModeGPS == 0 && current_ekf_state.velHealth)
         {
             fuseData[0] = true;
             fuseData[1] = true;
             fuseData[2] = true;
         }
-        if (fuseVelData && fusionModeGPS == 1 && velHealth)
+        if (fuseVelData && fusionModeGPS == 1 && current_ekf_state.velHealth)
         {
             fuseData[0] = true;
             fuseData[1] = true;
         }
-        if (fusePosData && fusionModeGPS <= 2 && posHealth)
+        if (fusePosData && fusionModeGPS <= 2 && current_ekf_state.posHealth)
         {
             fuseData[3] = true;
             fuseData[4] = true;
         }
-        if (fuseHgtData && hgtHealth)
+        if (fuseHgtData && current_ekf_state.hgtHealth)
         {
             fuseData[5] = true;
         }
@@ -1986,7 +1979,7 @@ bool FilterHealthy()
     // XXX Check state vector for NaNs and ill-conditioning
 
     // Check if any of the major inputs timed out
-    if (posTimeout || velTimeout || hgtTimeout) {
+    if (current_ekf_state.posTimeout || current_ekf_state.velTimeout || current_ekf_state.hgtTimeout) {
         return false;
     }
 
@@ -2042,6 +2035,65 @@ void ResetVelocity(void)
 }
 
 
+void FillErrorReport(struct ekf_status_report *err)
+{
+    for (int i = 0; i < n_states; i++)
+    {
+        err->states[i] = states[i];
+    }
+
+    err->velHealth = current_ekf_state.velHealth;
+    err->posHealth = current_ekf_state.posHealth;
+    err->hgtHealth = current_ekf_state.hgtHealth;
+    err->velTimeout = current_ekf_state.velTimeout;
+    err->posTimeout = current_ekf_state.posTimeout;
+    err->hgtTimeout = current_ekf_state.hgtTimeout;
+}
+
+bool StatesNaN(struct ekf_status_report *err_report) {
+    bool err = false;
+
+    // check all states and covariance matrices
+    for (unsigned i = 0; i < n_states; i++) {
+        for (unsigned j = 0; j < n_states; j++) {
+            if (!isfinite(KH[i][j])) {
+
+                err_report->covarianceNaN = true;
+                err = true;
+            } //  intermediate result used for covariance updates
+            if (!isfinite(KHP[i][j])) {
+
+                err_report->covarianceNaN = true;
+                err = true;
+            } // intermediate result used for covariance updates
+            if (!isfinite(P[i][j])) {
+
+                err_report->covarianceNaN = true;
+                err = true;
+            } // covariance matrix
+        }
+
+        if (!isfinite(Kfusion[i])) {
+
+            err_report->kalmanGainsNaN = true;
+            err = true;
+        } // Kalman gains
+
+        if (!isfinite(states[i])) {
+
+            err_report->statesNaN = true;
+            err = true;
+        } // state matrix
+    }
+
+    if (err) {
+        FillErrorReport(err_report);
+    }
+
+    return err;
+
+}
+
 /**
  * Check the filter inputs and bound its operational state
  *
@@ -2051,21 +2103,30 @@ void ResetVelocity(void)
  * updated, but before any of the fusion steps are
  * executed.
  */
-void CheckAndBound()
+int CheckAndBound()
 {
 
     // Store the old filter state
     bool currStaticMode = staticMode;
 
+    // Reset the filter if the states went NaN
+    if (StatesNaN(&last_ekf_error)) {
+
+        InitializeDynamic(velNED);
+
+        return 1;
+    }
+
     // Reset the filter if the IMU data is too old
     if (dtIMU > 0.2f) {
+
         ResetVelocity();
         ResetPosition();
         ResetHeight();
         ResetStoredStates();
 
         // that's all we can do here, return
-        return;
+        return 2;
     }
 
     // Check if we're on ground - this also sets static mode.
@@ -2077,7 +2138,11 @@ void CheckAndBound()
         ResetPosition();
         ResetHeight();
         ResetStoredStates();
+
+        return 3;
     }
+
+    return 0;
 }
 
 void AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, float *initQuat)
@@ -2116,28 +2181,13 @@ void AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, fl
     initQuat[3] = cosRoll * cosPitch * sinHeading - sinRoll * sinPitch * cosHeading;
 }
 
-void InitialiseFilter(float (&initvelNED)[3])
+void InitializeDynamic(float (&initvelNED)[3])
 {
-    // Do the data structure init
-    for (unsigned i = 0; i < n_states; i++) {
-        for (unsigned j = 0; j < n_states; j++) {
-            KH[i][j] = 0.0f; //  intermediate result used for covariance updates
-            KHP[i][j] = 0.0f; // intermediate result used for covariance updates
-            P[i][j] = 0.0f; // covariance matrix
-        }
 
-        Kfusion[i] = 0.0f; // Kalman gains
-        states[i] = 0.0f; // state matrix
-    }
+    // Clear the init flag
+    statesInitialised = false;
 
-    for (unsigned i = 0; i < data_buffer_size; i++) {
-
-        for (unsigned j = 0; j < n_states; j++) {
-            storedStates[j][i] = 0.0f;
-        }
-
-        statetimeStamp[i] = 0;
-    }
+    ZeroVariables();
 
     // Calculate initial filter quaternion states from raw measurements
     float initQuat[4];
@@ -2155,10 +2205,7 @@ void InitialiseFilter(float (&initvelNED)[3])
     initMagNED.y = DCM.y.x*initMagXYZ.x + DCM.y.y*initMagXYZ.y + DCM.y.z*initMagXYZ.z;
     initMagNED.z = DCM.z.x*initMagXYZ.x + DCM.z.y*initMagXYZ.y + DCM.z.z*initMagXYZ.z;
 
-    //store initial lat,long and height
-    latRef = gpsLat;
-    lonRef = gpsLon;
-    hgtRef = gpsHgt;
+
 
     // write to state vector
     for (uint8_t j=0; j<=3; j++) states[j] = initQuat[j]; // quaternions
@@ -2186,4 +2233,52 @@ void InitialiseFilter(float (&initvelNED)[3])
     summedDelVel.x = 0.0f;
     summedDelVel.y = 0.0f;
     summedDelVel.z = 0.0f;
+}
+
+void InitialiseFilter(float (&initvelNED)[3])
+{
+    //store initial lat,long and height
+    latRef = gpsLat;
+    lonRef = gpsLon;
+    hgtRef = gpsHgt;
+
+    memset(&last_ekf_error, 0, sizeof(last_ekf_error));
+
+    InitializeDynamic(initvelNED);
+}
+
+void ZeroVariables()
+{
+    // Do the data structure init
+    for (unsigned i = 0; i < n_states; i++) {
+        for (unsigned j = 0; j < n_states; j++) {
+            KH[i][j] = 0.0f; //  intermediate result used for covariance updates
+            KHP[i][j] = 0.0f; // intermediate result used for covariance updates
+            P[i][j] = 0.0f; // covariance matrix
+        }
+
+        Kfusion[i] = 0.0f; // Kalman gains
+        states[i] = 0.0f; // state matrix
+    }
+
+    for (unsigned i = 0; i < data_buffer_size; i++) {
+
+        for (unsigned j = 0; j < n_states; j++) {
+            storedStates[j][i] = 0.0f;
+        }
+
+        statetimeStamp[i] = 0;
+    }
+
+    memset(&current_ekf_state, 0, sizeof(current_ekf_state));
+}
+
+void GetFilterState(struct ekf_status_report *state)
+{
+    memcpy(state, &current_ekf_state, sizeof(state));
+}
+
+void GetLastErrorState(struct ekf_status_report *last_error)
+{
+    memcpy(last_error, &last_ekf_error, sizeof(last_error));
 }

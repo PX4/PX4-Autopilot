@@ -134,6 +134,22 @@ enum GPS_FIX {
     GPS_FIX_3D = 3
 };
 
+struct ekf_status_report {
+    bool velHealth;
+    bool posHealth;
+    bool hgtHealth;
+    bool velTimeout;
+    bool posTimeout;
+    bool hgtTimeout;
+    uint32_t velFailTime;
+    uint32_t posFailTime;
+    uint32_t hgtFailTime;
+    float states[n_states];
+    bool statesNaN;
+    bool covarianceNaN;
+    bool kalmanGainsNaN;
+};
+
 void  UpdateStrapdownEquationsNED();
 
 void CovariancePrediction(float dt);
@@ -188,11 +204,22 @@ void ConstrainStates();
 
 void ForceSymmetry();
 
-void CheckAndBound();
+int CheckAndBound();
 
 void ResetPosition();
 
 void ResetVelocity();
+
+void ZeroVariables();
+
+void GetFilterState(struct ekf_status_report *state);
+
+void GetLastErrorState(struct ekf_status_report *last_error);
+
+bool StatesNaN(struct ekf_status_report *err_report);
+void FillErrorReport(struct ekf_status_report *err);
+
+void InitializeDynamic(float (&initvelNED)[3]);
 
 uint32_t millis();
 
