@@ -26,8 +26,7 @@ class GlobalTimeSyncSlave : Noncopyable
     NodeID master_nid_;
     uint8_t prev_iface_index_;
 
-    ISystemClock& getSystemClock() { return sub_.getNode().getSystemClock(); }
-    const ISystemClock& getSystemClock() const { return sub_.getNode().getSystemClock(); }
+    ISystemClock& getSystemClock() const { return sub_.getNode().getSystemClock(); }
 
     void adjustFromMsg(const ReceivedDataStructure<protocol::GlobalTimeSync>& msg);
 
