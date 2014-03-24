@@ -14,7 +14,7 @@ namespace uavcan
 
 class ITransferBuffer;
 
-void bitarray_copy(const unsigned char *src_org, int src_offset, int src_len, unsigned char *dst_org, int dst_offset);
+void bitarrayCopy(const unsigned char* src_org, int src_offset, int src_len, unsigned char* dst_org, int dst_offset);
 
 class BitStream
 {
@@ -27,10 +27,10 @@ class BitStream
     static inline unsigned int bitlenToBytelen(unsigned int bits) { return (bits + 7) / 8; }
 
     static inline void copyBitArray(const uint8_t* src_org, int src_offset, int src_len,
-                                          uint8_t* dst_org, int dst_offset)
+                                    uint8_t* dst_org, int dst_offset)
     {
-        bitarray_copy(reinterpret_cast<const unsigned char*>(src_org), src_offset, src_len,
-                      reinterpret_cast<unsigned char*>(dst_org), dst_offset);
+        bitarrayCopy(reinterpret_cast<const unsigned char*>(src_org), src_offset, src_len,
+                     reinterpret_cast<unsigned char*>(dst_org), dst_offset);
     }
 
 public:

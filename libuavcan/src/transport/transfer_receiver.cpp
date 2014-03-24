@@ -87,10 +87,10 @@ bool TransferReceiver::writePayload(const RxFrame& frame, ITransferBuffer& buf)
     const uint8_t* const payload = frame.getPayloadPtr();
     const int payload_len = frame.getPayloadLen();
 
-    if (frame.isFirst())                  // First frame contains CRC, we need to extract it now
+    if (frame.isFirst())     // First frame contains CRC, we need to extract it now
     {
-        if (frame.getPayloadLen() < TransferCRC::NumBytes) // Must have been validated earlier though. I think I'm paranoid.
-            return false;
+        if (frame.getPayloadLen() < TransferCRC::NumBytes)
+            return false;    // Must have been validated earlier though. I think I'm paranoid.
 
         this_transfer_crc_ = (payload[0] & 0xFF) | (uint16_t(payload[1] & 0xFF) << 8); // Little endian.
 
@@ -191,9 +191,9 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, Tr
     if (need_restart)
     {
         UAVCAN_TRACE("TransferReceiver",
-            "Restart [not_inited=%i, iface_timeout=%i, recv_timeout=%i, same_iface=%i, first_frame=%i, tid_rel=%i], %s",
-            int(not_initialized), int(iface_timed_out), int(receiver_timed_out), int(same_iface), int(first_fame),
-            int(tid_rel), frame.toString().c_str());
+                     "Restart [not_inited=%i, iface_timeout=%i, recv_timeout=%i, same_iface=%i, first_frame=%i, tid_rel=%i], %s",
+                     int(not_initialized), int(iface_timed_out), int(receiver_timed_out), int(same_iface),
+                     int(first_fame), int(tid_rel), frame.toString().c_str());
         tba.remove();
         iface_index_ = frame.getIfaceIndex();
         tid_ = frame.getTransferID();

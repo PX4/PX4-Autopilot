@@ -42,7 +42,7 @@ void DynamicTransferBufferManagerEntry::Block::destroy(Block*& obj, IAllocator& 
 }
 
 void DynamicTransferBufferManagerEntry::Block::read(uint8_t*& outptr, unsigned int target_offset,
-                                        unsigned int& total_offset, unsigned int& left_to_read)
+                                                    unsigned int& total_offset, unsigned int& left_to_read)
 {
     assert(outptr);
     for (int i = 0; (i < Block::Size) && (left_to_read > 0); i++, total_offset++)
@@ -56,7 +56,7 @@ void DynamicTransferBufferManagerEntry::Block::read(uint8_t*& outptr, unsigned i
 }
 
 void DynamicTransferBufferManagerEntry::Block::write(const uint8_t*& inptr, unsigned int target_offset,
-                                         unsigned int& total_offset, unsigned int& left_to_write)
+                                                     unsigned int& total_offset, unsigned int& left_to_write)
 {
     assert(inptr);
     for (int i = 0; (i < Block::Size) && (left_to_write > 0); i++, total_offset++)
@@ -72,7 +72,8 @@ void DynamicTransferBufferManagerEntry::Block::write(const uint8_t*& inptr, unsi
 /*
  * DynamicTransferBuffer
  */
-DynamicTransferBufferManagerEntry* DynamicTransferBufferManagerEntry::instantiate(IAllocator& allocator, unsigned int max_size)
+DynamicTransferBufferManagerEntry* DynamicTransferBufferManagerEntry::instantiate(IAllocator& allocator,
+                                                                                  unsigned int max_size)
 {
     void* const praw = allocator.allocate(sizeof(DynamicTransferBufferManagerEntry));
     if (praw == NULL)
