@@ -13,8 +13,8 @@ bool NodeStatusProvider::isNodeInfoInitialized() const
 {
     // Hardware version is not required
     return (node_info_.software_version != protocol::SoftwareVersion()) &&
-        (node_info_.uavcan_version != protocol::SoftwareVersion()) &&
-        (!node_info_.name.empty());
+           (node_info_.uavcan_version != protocol::SoftwareVersion()) &&
+           (!node_info_.name.empty());
 }
 
 int NodeStatusProvider::publish()
@@ -32,7 +32,9 @@ void NodeStatusProvider::publishWithErrorHandling()
 {
     const int res = publish();
     if (res < 0)
+    {
         getNode().registerInternalFailure("NodeStatus publication failed");
+    }
 }
 
 void NodeStatusProvider::handleTimerEvent(const TimerEvent&)
@@ -67,21 +69,27 @@ int NodeStatusProvider::startAndPublish()
 
     res = publish(); // Initial broadcast
     if (res < 0)
+    {
         goto fail;
+    }
 
     res = gdr_sub_.start(GlobalDiscoveryRequestCallback(this, &NodeStatusProvider::handleGlobalDiscoveryRequest));
     if (res < 0)
+    {
         goto fail;
+    }
 
     res = gni_srv_.start(GetNodeInfoCallback(this, &NodeStatusProvider::handleGetNodeInfoRequest));
     if (res < 0)
+    {
         goto fail;
+    }
 
     Timer::startPeriodic(MonotonicDuration::fromMSec(protocol::NodeStatus::PUBLICATION_PERIOD_MS));
 
     return res;
 
-    fail:
+fail:
     assert(res < 0);
     gdr_sub_.stop();
     gni_srv_.stop();

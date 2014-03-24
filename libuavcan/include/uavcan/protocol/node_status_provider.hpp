@@ -19,11 +19,11 @@ namespace uavcan
 
 class NodeStatusProvider : private Timer
 {
-    typedef MethodBinder<NodeStatusProvider*, void(NodeStatusProvider::*)(const protocol::GlobalDiscoveryRequest&)>
+    typedef MethodBinder<NodeStatusProvider*, void (NodeStatusProvider::*)(const protocol::GlobalDiscoveryRequest&)>
         GlobalDiscoveryRequestCallback;
     typedef MethodBinder<NodeStatusProvider*,
-        void(NodeStatusProvider::*)(const protocol::GetNodeInfo::Request&,
-                                    protocol::GetNodeInfo::Response&)> GetNodeInfoCallback;
+                         void (NodeStatusProvider::*)(const protocol::GetNodeInfo::Request&,
+                                                      protocol::GetNodeInfo::Response&)> GetNodeInfoCallback;
 
     const MonotonicTime creation_timestamp_;
 
@@ -46,11 +46,11 @@ class NodeStatusProvider : private Timer
 
 public:
     NodeStatusProvider(INode& node)
-    : Timer(node)
-    , creation_timestamp_(node.getMonotonicTime())
-    , node_status_pub_(node)
-    , gdr_sub_(node)
-    , gni_srv_(node)
+        : Timer(node)
+        , creation_timestamp_(node.getMonotonicTime())
+        , node_status_pub_(node)
+        , gdr_sub_(node)
+        , gni_srv_(node)
     {
         assert(!creation_timestamp_.isZero());
 

@@ -24,13 +24,17 @@ class LazyConstructor
     void ensureConstructed() const
     {
         if (!ptr_)
+        {
             handleFatalError("LazyConstructor<T> is not constructed");
+        }
     }
 
     void ensureNotConstructed() const
     {
         if (ptr_)
+        {
             handleFatalError("LazyConstructor<T> is already constructed");
+        }
     }
 
     template <typename U> struct ParamType { typedef const U& Type; };
@@ -41,17 +45,19 @@ class LazyConstructor
 
 public:
     LazyConstructor()
-    : ptr_(NULL)
+        : ptr_(NULL)
     {
         std::fill(data_, data_ + sizeof(T), 0);
     }
 
     LazyConstructor(const LazyConstructor<T>& rhs)
-    : ptr_(NULL)
+        : ptr_(NULL)
     {
         std::fill(data_, data_ + sizeof(T), 0);
         if (rhs)
+        {
             construct<const T&>(*rhs);  // Invoke copy constructor
+        }
     }
 
     ~LazyConstructor() { destroy(); }
@@ -60,7 +66,9 @@ public:
     {
         destroy();
         if (rhs)
+        {
             construct<const T&>(*rhs);  // Invoke copy constructor
+        }
         return *this;
     }
 
@@ -77,7 +85,9 @@ public:
     void destroy()
     {
         if (ptr_)
+        {
             ptr_->~T();
+        }
         ptr_ = NULL;
         std::fill(data_, data_ + sizeof(T), 0);
     }

@@ -39,7 +39,9 @@ class CharArrayFormatter
         if (std::is_same<T, char>())
         {
             if (array_.size() != array_.capacity())
+            {
                 array_.push_back(value);
+            }
         }
         else if (std::is_signed<T>())
         {
@@ -67,7 +69,7 @@ public:
     typedef ArrayType_ ArrayType;
 
     CharArrayFormatter(ArrayType& array)
-    : array_(array)
+        : array_(array)
     { }
 
     ArrayType& getArray() { return array_; }
@@ -78,7 +80,7 @@ public:
         writeValue(text);
     }
 
-    template<typename T, typename... Args>
+    template <typename T, typename... Args>
     void write(const char* s, T value, Args... args)
     {
         while (s && *s)
@@ -105,7 +107,7 @@ public:
     typedef ArrayType_ ArrayType;
 
     CharArrayFormatter(ArrayType& array)
-    : array_(array)
+        : array_(array)
     { }
 
     ArrayType& getArray() { return array_; }

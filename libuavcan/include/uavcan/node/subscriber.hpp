@@ -11,7 +11,7 @@ namespace uavcan
 {
 
 template <typename DataType_,
-          typename Callback = void(*)(const ReceivedDataStructure<DataType_>&),
+          typename Callback = void (*)(const ReceivedDataStructure<DataType_>&),
           unsigned int NumStaticReceivers = 2,
           unsigned int NumStaticBufs = 1>
 class Subscriber : public GenericSubscriber<DataType_, DataType_,
@@ -28,17 +28,21 @@ class Subscriber : public GenericSubscriber<DataType_, DataType_,
     void handleReceivedDataStruct(ReceivedDataStructure<DataType_>& msg)
     {
         if (try_implicit_cast<bool>(callback_, true))
+        {
             callback_(msg);
+        }
         else
+        {
             handleFatalError("Invalid subscriber callback");
+        }
     }
 
 public:
     typedef DataType_ DataType;
 
     explicit Subscriber(INode& node)
-    : BaseType(node)
-    , callback_()
+        : BaseType(node)
+        , callback_()
     {
         StaticAssert<DataTypeKind(DataType::DataTypeKind) == DataTypeKindMessage>::check();
     }

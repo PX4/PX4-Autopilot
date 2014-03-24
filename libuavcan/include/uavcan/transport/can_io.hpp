@@ -27,7 +27,7 @@ struct CanRxFrame : public CanFrame
     uint8_t iface_index;
 
     CanRxFrame()
-    : iface_index(0)
+        : iface_index(0)
     { }
 
     std::string toString(StringRepresentation mode = StrTight) const;
@@ -47,10 +47,10 @@ public:
         CanIOFlags flags;
 
         Entry(const CanFrame& frame, MonotonicTime deadline, Qos qos, CanIOFlags flags)
-        : deadline(deadline)
-        , frame(frame)
-        , qos(uint8_t(qos))
-        , flags(flags)
+            : deadline(deadline)
+            , frame(frame)
+            , qos(uint8_t(qos))
+            , flags(flags)
         {
             assert(qos == Volatile || qos == Persistent);
             IsDynamicallyAllocatable<Entry>::check();
@@ -90,15 +90,15 @@ private:
 
 public:
     CanTxQueue()
-    : allocator_(NULL)
-    , sysclock_(NULL)
-    , rejected_frames_cnt_(0)
+        : allocator_(NULL)
+        , sysclock_(NULL)
+        , rejected_frames_cnt_(0)
     { }
 
     CanTxQueue(IAllocator* allocator, ISystemClock* sysclock)
-    : allocator_(allocator)
-    , sysclock_(sysclock)
-    , rejected_frames_cnt_(0)
+        : allocator_(allocator)
+        , sysclock_(sysclock)
+        , rejected_frames_cnt_(0)
     { }
 
     ~CanTxQueue();
@@ -133,8 +133,8 @@ class CanIOManager : Noncopyable
 
 public:
     CanIOManager(ICanDriver& driver, IAllocator& allocator, ISystemClock& sysclock)
-    : driver_(driver)
-    , sysclock_(sysclock)
+        : driver_(driver)
+        , sysclock_(sysclock)
     {
         assert(driver.getNumIfaces() <= MaxCanIfaces);
         // We can't initialize member array with non-default constructors in C++03

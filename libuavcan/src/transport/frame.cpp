@@ -18,15 +18,15 @@ int Frame::getMaxPayloadLen() const
     switch (getTransferType())
     {
     case TransferTypeMessageBroadcast:
+    {
         return sizeof(payload_);
-        break;
-
+    }
     case TransferTypeServiceResponse:
     case TransferTypeServiceRequest:
     case TransferTypeMessageUnicast:
+    {
         return sizeof(payload_) - 1;
-        break;
-
+    }
     default:
         assert(0);
         return -1;
@@ -53,7 +53,9 @@ inline static uint32_t bitunpack(uint32_t val)
 bool Frame::parse(const CanFrame& can_frame)
 {
     if (can_frame.isErrorFrame() || can_frame.isRemoteTransmissionRequest() || !can_frame.isExtended())
+    {
         return false;
+    }
 
     if (can_frame.dlc > sizeof(CanFrame::data))
     {
@@ -78,22 +80,30 @@ bool Frame::parse(const CanFrame& can_frame)
     switch (transfer_type_)
     {
     case TransferTypeMessageBroadcast:
+    {
         dst_node_id_ = NodeID::Broadcast;
         payload_len_ = can_frame.dlc;
         std::copy(can_frame.data, can_frame.data + can_frame.dlc, payload_);
         break;
+    }
 
     case TransferTypeServiceResponse:
     case TransferTypeServiceRequest:
     case TransferTypeMessageUnicast:
+    {
         if (can_frame.dlc < 1)
+        {
             return false;
+        }
         if (can_frame.data[0] & 0x80)     // RESERVED, must be zero
+        {
             return false;
+        }
         dst_node_id_ = can_frame.data[0] & 0x7F;
         payload_len_ = can_frame.dlc - 1;
         std::copy(can_frame.data + 1, can_frame.data + can_frame.dlc, payload_);
         break;
+    }
 
     default:
         return false;
@@ -128,18 +138,22 @@ bool Frame::compile(CanFrame& out_can_frame) const
     switch (transfer_type_)
     {
     case TransferTypeMessageBroadcast:
+    {
         out_can_frame.dlc = payload_len_;
         std::copy(payload_, payload_ + payload_len_, out_can_frame.data);
         break;
+    }
 
     case TransferTypeServiceResponse:
     case TransferTypeServiceRequest:
     case TransferTypeMessageUnicast:
+    {
         assert((payload_len_ + 1) <= sizeof(CanFrame::data));
         out_can_frame.data[0] = dst_node_id_.get();
         out_can_frame.dlc = payload_len_ + 1;
         std::copy(payload_, payload_ + payload_len_, out_can_frame.data + 1);
         break;
+    }
 
     default:
         assert(0);
@@ -200,7 +214,9 @@ std::string Frame::toString() const
     {
         ofs += std::snprintf(buf + ofs, BUFLEN - ofs, "%02x", payload_[i]);
         if ((i + 1) < payload_len_)
+        {
             ofs += std::snprintf(buf + ofs, BUFLEN - ofs, " ");
+        }
     }
     ofs += std::snprintf(buf + ofs, BUFLEN - ofs, "]");
     return std::string(buf);

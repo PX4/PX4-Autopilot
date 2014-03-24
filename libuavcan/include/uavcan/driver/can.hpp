@@ -31,15 +31,15 @@ struct CanFrame
     uint8_t dlc;        ///< Data Length Code
 
     CanFrame()
-    : id(0)
-    , dlc(0)
+        : id(0)
+        , dlc(0)
     {
         std::fill(data, data + sizeof(data), 0);
     }
 
     CanFrame(uint32_t id, const uint8_t* data, unsigned int dlc)
-    : id(id)
-    , dlc(dlc)
+        : id(id)
+        , dlc(dlc)
     {
         assert(data && dlc <= 8);
         std::copy(data, data + dlc, this->data);
@@ -89,8 +89,8 @@ struct CanSelectMasks
     uint8_t write;
 
     CanSelectMasks()
-    : read(0)
-    , write(0)
+        : read(0)
+        , write(0)
     { }
 };
 

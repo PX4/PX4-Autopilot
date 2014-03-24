@@ -22,7 +22,7 @@ class LoopbackFrameListenerBase : public LinkedListNode<LoopbackFrameListenerBas
 
 protected:
     LoopbackFrameListenerBase(Dispatcher& dispatcher)
-    : dispatcher_(dispatcher)
+        : dispatcher_(dispatcher)
     { }
 
     virtual ~LoopbackFrameListenerBase() { stopListening(); }
@@ -99,9 +99,9 @@ class Dispatcher : Noncopyable
 
 public:
     Dispatcher(ICanDriver& driver, IAllocator& allocator, ISystemClock& sysclock, IOutgoingTransferRegistry& otr)
-    : canio_(driver, allocator, sysclock)
-    , sysclock_(sysclock)
-    , outgoing_transfer_reg_(otr)
+        : canio_(driver, allocator, sysclock)
+        , sysclock_(sysclock)
+        , outgoing_transfer_reg_(otr)
     { }
 
     int spin(MonotonicTime deadline);

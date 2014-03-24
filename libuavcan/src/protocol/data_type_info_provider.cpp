@@ -89,16 +89,20 @@ int DataTypeInfoProvider::start()
     res = cats_srv_.start(
         ComputeAggregateTypeSignatureCallback(this, &DataTypeInfoProvider::handleComputeAggregateTypeSignatureRequest));
     if (res < 0)
+    {
         goto fail;
+    }
 
     res = gdti_srv_.start(GetDataTypeInfoCallback(this, &DataTypeInfoProvider::handleGetDataTypeInfoRequest));
     if (res < 0)
+    {
         goto fail;
+    }
 
     assert(res >= 0);
     return res;
 
-    fail:
+fail:
     assert(res < 0);
     cats_srv_.stop();
     gdti_srv_.stop();

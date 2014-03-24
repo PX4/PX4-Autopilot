@@ -22,7 +22,9 @@ int TransferID::computeForwardDistance(TransferID rhs) const
 {
     int d = int(rhs.get()) - int(get());
     if (d < 0)
+    {
         d += 1 << BitLen;
+    }
 
     assert(((get() + d) & Max) == rhs.get());
     return d;

@@ -27,7 +27,9 @@ DynamicTransferBufferManagerEntry::Block* DynamicTransferBufferManagerEntry::Blo
 {
     void* const praw = allocator.allocate(sizeof(Block));
     if (praw == NULL)
+    {
         return NULL;
+    }
     return new (praw) Block;
 }
 
@@ -77,7 +79,9 @@ DynamicTransferBufferManagerEntry* DynamicTransferBufferManagerEntry::instantiat
 {
     void* const praw = allocator.allocate(sizeof(DynamicTransferBufferManagerEntry));
     if (praw == NULL)
+    {
         return NULL;
+    }
     return new (praw) DynamicTransferBufferManagerEntry(allocator, max_size);
 }
 
@@ -112,9 +116,13 @@ int DynamicTransferBufferManagerEntry::read(unsigned int offset, uint8_t* data, 
         return -1;
     }
     if (offset >= max_write_pos_)
+    {
         return 0;
+    }
     if ((offset + len) > max_write_pos_)
+    {
         len = max_write_pos_ - offset;
+    }
     assert((offset + len) <= max_write_pos_);
 
     // This shall be optimized.
@@ -125,7 +133,9 @@ int DynamicTransferBufferManagerEntry::read(unsigned int offset, uint8_t* data, 
     {
         p->read(outptr, offset, total_offset, left_to_read);
         if (left_to_read == 0)
+        {
             break;
+        }
         p = p->getNextListNode();
     }
 
@@ -142,9 +152,13 @@ int DynamicTransferBufferManagerEntry::write(unsigned int offset, const uint8_t*
     }
 
     if (offset >= max_size_)
+    {
         return 0;
+    }
     if ((offset + len) > max_size_)
+    {
         len = max_size_ - offset;
+    }
     assert((offset + len) <= max_size_);
 
     unsigned int total_offset = 0;
@@ -159,7 +173,9 @@ int DynamicTransferBufferManagerEntry::write(unsigned int offset, const uint8_t*
         last_written_block = p;
         p->write(inptr, offset, total_offset, left_to_write);
         if (left_to_write == 0)
+        {
             break;
+        }
         p = p->getNextListNode();
     }
 
@@ -172,8 +188,10 @@ int DynamicTransferBufferManagerEntry::write(unsigned int offset, const uint8_t*
         // Allocating the chunk
         Block* new_block = Block::instantiate(allocator_);
         if (new_block == NULL)
+        {
             break;                        // We're in deep shit.
 
+        }
         // Appending the chain with the new block
         if (last_written_block != NULL)
         {

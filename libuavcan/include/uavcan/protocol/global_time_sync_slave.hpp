@@ -14,7 +14,8 @@ namespace uavcan
 class GlobalTimeSyncSlave : Noncopyable
 {
     typedef MethodBinder<GlobalTimeSyncSlave*,
-        void (GlobalTimeSyncSlave::*)(const ReceivedDataStructure<protocol::GlobalTimeSync>&)> GlobalTimeSyncCallback;
+                         void (GlobalTimeSyncSlave::*)(const ReceivedDataStructure<protocol::GlobalTimeSync>&)>
+        GlobalTimeSyncCallback;
 
     // Static buffers are explicitly disabled because time should never be unicasted.
     Subscriber<protocol::GlobalTimeSync, GlobalTimeSyncCallback, 2, 0> sub_;
@@ -39,9 +40,9 @@ class GlobalTimeSyncSlave : Noncopyable
 
 public:
     GlobalTimeSyncSlave(INode& node)
-    : sub_(node)
-    , state_(Update)
-    , prev_iface_index_(0xFF)
+        : sub_(node)
+        , state_(Update)
+        , prev_iface_index_(0xFF)
     { }
 
     int start();

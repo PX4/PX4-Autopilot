@@ -124,9 +124,13 @@ public:
     {
         // cppcheck-suppress duplicateExpression
         if (CastMode == CastModeSaturate)
+        {
             saturate(value);
+        }
         else
+        {
             truncate(value);
+        }
         return codec.encode<BitLen>(IEEE754Converter::toIeee<BitLen>(value));
     }
 
@@ -135,7 +139,9 @@ public:
         typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType ieee = 0;
         const int res = codec.decode<BitLen>(ieee);
         if (res <= 0)
+        {
             return res;
+        }
         out_value = IEEE754Converter::toNative<BitLen>(ieee);
         return res;
     }
@@ -149,9 +155,13 @@ private:
         if (!IsExactRepresentation && isfinite(value))
         {
             if (value > max())
+            {
                 value = max();
+            }
             else if (value < -max())
+            {
                 value = -max();
+            }
         }
     }
 
@@ -161,9 +171,13 @@ private:
         if (!IsExactRepresentation && isfinite(value))
         {
             if (value > max())
+            {
                 value = std::numeric_limits<StorageType>::infinity();
+            }
             else if (value < -max())
+            {
                 value = -std::numeric_limits<StorageType>::infinity();
+            }
         }
     }
 };

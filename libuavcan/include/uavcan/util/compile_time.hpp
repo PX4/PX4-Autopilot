@@ -23,7 +23,7 @@ struct StaticAssert<true>
  * Usage:
  *  ShowIntegerAsError<integer_expression>::foobar();
  */
-template<long N> struct ShowIntegerAsError;
+template <long N> struct ShowIntegerAsError;
 
 /**
  * Prevents copying when inherited
@@ -39,15 +39,21 @@ protected:
 /**
  * Compile time conditions
  */
-template<bool B, typename T = void>
+template <bool B, typename T = void>
 struct EnableIf { };
 
-template<typename T>
-struct EnableIf<true, T> { typedef T Type; };
+template <typename T>
+struct EnableIf<true, T>
+{
+    typedef T Type;
+};
 
 
-template<typename T, typename R = void>
-struct EnableIfType { typedef R Type; };
+template <typename T, typename R = void>
+struct EnableIfType
+{
+    typedef R Type;
+};
 
 
 template <bool Condition, typename TrueType, typename FalseType>
@@ -68,7 +74,7 @@ struct Select<false, TrueType, FalseType>
 /**
  * Value types
  */
-template<bool> struct BooleanType { };
+template <bool> struct BooleanType { };
 typedef BooleanType<true> TrueType;
 typedef BooleanType<false> FalseType;
 
@@ -102,14 +108,14 @@ template <typename To, typename From>
 To try_implicit_cast(const From& from, const To& default_)
 {
     return TryImplicitCastImpl<From, To>::impl(from, default_,
-        BooleanType<IsImplicitlyConvertibleFromTo<From, To>::Result>());
+                                               BooleanType<IsImplicitlyConvertibleFromTo<From, To>::Result>());
 }
 
 template <typename To, typename From>
 To try_implicit_cast(const From& from)
 {
     return TryImplicitCastImpl<From, To>::impl(from, To(),
-        BooleanType<IsImplicitlyConvertibleFromTo<From, To>::Result>());
+                                               BooleanType<IsImplicitlyConvertibleFromTo<From, To>::Result>());
 }
 
 }

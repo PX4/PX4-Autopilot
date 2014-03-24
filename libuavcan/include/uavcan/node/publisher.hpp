@@ -19,7 +19,7 @@ public:
 
     explicit Publisher(INode& node, MonotonicDuration tx_timeout = getDefaultTxTimeout(),
                        MonotonicDuration max_transfer_interval = TransferSender::getDefaultMaxTransferInterval())
-    : BaseType(node, tx_timeout, max_transfer_interval)
+        : BaseType(node, tx_timeout, max_transfer_interval)
     {
 #if UAVCAN_DEBUG
         assert(getTxTimeout() == tx_timeout);  // Making sure default values are OK

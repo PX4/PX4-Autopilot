@@ -20,7 +20,7 @@ protected:
     Scheduler& scheduler_;
 
     explicit DeadlineHandler(Scheduler& scheduler)
-    : scheduler_(scheduler)
+        : scheduler_(scheduler)
     { }
 
     virtual ~DeadlineHandler() { stop(); }
@@ -76,10 +76,10 @@ class Scheduler : Noncopyable
 
 public:
     Scheduler(ICanDriver& can_driver, IAllocator& allocator, ISystemClock& sysclock, IOutgoingTransferRegistry& otr)
-    : dispatcher_(can_driver, allocator, sysclock, otr)
-    , prev_cleanup_ts_(sysclock.getMonotonic())
-    , deadline_resolution_(MonotonicDuration::fromMSec(DefaultDeadlineResolutionMs))
-    , cleanup_period_(MonotonicDuration::fromMSec(DefaultCleanupPeriodMs))
+        : dispatcher_(can_driver, allocator, sysclock, otr)
+        , prev_cleanup_ts_(sysclock.getMonotonic())
+        , deadline_resolution_(MonotonicDuration::fromMSec(DefaultDeadlineResolutionMs))
+        , cleanup_period_(MonotonicDuration::fromMSec(DefaultCleanupPeriodMs))
     { }
 
     int spin(MonotonicTime deadline);

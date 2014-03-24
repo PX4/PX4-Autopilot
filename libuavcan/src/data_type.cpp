@@ -18,7 +18,9 @@ void DataTypeSignature::mixin64(uint64_t x)
 {
     DataTypeSignatureCRC crc = DataTypeSignatureCRC::extend(value_);
     for (int i = 0; i < 64; i += 8)   // LSB first
+    {
         crc.add((x >> i) & 0xFF);
+    }
     value_ = crc.get();
 }
 
@@ -33,7 +35,9 @@ TransferCRC DataTypeSignature::toTransferCRC() const
 {
     TransferCRC tcrc;
     for (int i = 0; i < 64; i += 8)    // LSB first
+    {
         tcrc.add((value_ >> i) & 0xFF);
+    }
     return tcrc;
 }
 
@@ -71,7 +75,7 @@ std::string DataTypeDescriptor::toString() const
 
     std::ostringstream os;
     os << full_name_ << ":" << id_.get() << kindch << ":" << std::hex
-        << std::setfill('0') << std::setw(16) << signature_.get();
+       << std::setfill('0') << std::setw(16) << signature_.get();
     return os.str();
 }
 

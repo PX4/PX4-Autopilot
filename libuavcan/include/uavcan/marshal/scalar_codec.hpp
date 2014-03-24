@@ -45,9 +45,10 @@ class ScalarCodec
          * It is likely to be OK anyway, so feel free to remove this assert() as needed.
          */
         assert(big_endian == false);
-
         if (big_endian)
+        {
             swapByteOrder(bytes);
+        }
     }
 
     template <int BitLen, int Size>
@@ -62,9 +63,10 @@ class ScalarCodec
     fixTwosComplement(T& value)
     {
         StaticAssert<std::numeric_limits<T>::is_integer>::check(); // Not applicable to floating point types
-
         if (value & (T(1) << (BitLen - 1)))                        // The most significant bit is set --> negative
+        {
             value |= 0xFFFFFFFFFFFFFFFF & ~((T(1) << BitLen) - 1);
+        }
     }
 
     template <int BitLen, typename T>
@@ -98,7 +100,7 @@ class ScalarCodec
 
 public:
     ScalarCodec(BitStream& stream)
-    : stream_(stream)
+        : stream_(stream)
     { }
 
     template <int BitLen, typename T>
@@ -111,14 +113,13 @@ public:
             uint8_t bytes[sizeof(T)];
         } byte_union;
         byte_union.value = value;
-
         clearExtraBits<BitLen>(byte_union.value);
         convertByteOrder<BitLen>(byte_union.bytes);
-
         // Underlying stream class assumes that more significant bits have lower index, so we need to shift some.
         if (BitLen % 8)
+        {
             byte_union.bytes[BitLen / 8] <<= (8 - (BitLen % 8)) & 7;
-
+        }
         return stream_.write(byte_union.bytes, BitLen);
     }
 
@@ -135,14 +136,15 @@ public:
 
         const int read_res = stream_.read(byte_union.bytes, BitLen);
         if (read_res <= 0)
+        {
             return read_res;
-
+        }
         if (BitLen % 8)
+        {
             byte_union.bytes[BitLen / 8] >>= (8 - (BitLen % 8)) & 7;  // As in encode(), vice versa
-
+        }
         convertByteOrder<BitLen>(byte_union.bytes);
         fixTwosComplement<BitLen>(byte_union.value);
-
         value = byte_union.value;
         return read_res;
     }

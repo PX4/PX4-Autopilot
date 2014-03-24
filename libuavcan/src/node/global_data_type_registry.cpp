@@ -35,11 +35,15 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::remove(Entry* dtd)
         return RegistResultInvalidParams;
     }
     if (isFrozen())
+    {
         return RegistResultFrozen;
+    }
 
     List* list = selectList(dtd->descriptor.getKind());
     if (!list)
+    {
         return RegistResultInvalidParams;
+    }
 
     list->remove(dtd);       // If this call came from regist<>(), that would be enough
     Entry* p = list->get();  // But anyway
@@ -47,7 +51,9 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::remove(Entry* dtd)
     {
         Entry* const next = p->getNextListNode();
         if (p->descriptor.match(dtd->descriptor.getKind(), dtd->descriptor.getFullName()))
+        {
             list->remove(p);
+        }
         p = next;
     }
     return RegistResultOk;
@@ -61,20 +67,28 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::registImpl(Entry* d
         return RegistResultInvalidParams;
     }
     if (isFrozen())
+    {
         return RegistResultFrozen;
+    }
 
     List* list = selectList(dtd->descriptor.getKind());
     if (!list)
+    {
         return RegistResultInvalidParams;
+    }
 
     {   // Collision check
         Entry* p = list->get();
         while (p)
         {
             if (p->descriptor.getID() == dtd->descriptor.getID()) // ID collision
+            {
                 return RegistResultCollision;
+            }
             if (!std::strcmp(p->descriptor.getFullName(), dtd->descriptor.getFullName())) // Name collision
+            {
                 return RegistResultCollision;
+            }
             p = p->getNextListNode();
         }
     }
@@ -132,7 +146,9 @@ const DataTypeDescriptor* GlobalDataTypeRegistry::find(DataTypeKind kind, const 
     while (p)
     {
         if (p->descriptor.match(kind, name))
+        {
             return &p->descriptor;
+        }
         p = p->getNextListNode();
     }
     return NULL;
@@ -150,7 +166,9 @@ const DataTypeDescriptor* GlobalDataTypeRegistry::find(DataTypeKind kind, DataTy
     while (p)
     {
         if (p->descriptor.match(kind, dtid))
+        {
             return &p->descriptor;
+        }
         p = p->getNextListNode();
     }
     return NULL;
@@ -180,23 +198,31 @@ DataTypeSignature GlobalDataTypeRegistry::computeAggregateSignature(DataTypeKind
         if (inout_id_mask[dtid])
         {
             if (signature_initialized)
+            {
                 signature.extend(desc.getSignature());
+            }
             else
+            {
                 signature = DataTypeSignature(desc.getSignature());
+            }
             signature_initialized = true;
         }
 
         assert(prev_dtid < dtid);  // Making sure that list is ordered properly
         prev_dtid++;
         while (prev_dtid < dtid)
+        {
             inout_id_mask[prev_dtid++] = false; // Erasing bits for missing types
+        }
         assert(prev_dtid == dtid);
 
         p = p->getNextListNode();
     }
     prev_dtid++;
     while (prev_dtid <= DataTypeID::Max)
+    {
         inout_id_mask[prev_dtid++] = false;
+    }
 
     return signature;
 }

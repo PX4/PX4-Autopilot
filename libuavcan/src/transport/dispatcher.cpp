@@ -48,7 +48,9 @@ bool LoopbackFrameListenerRegistry::doesExist(const LoopbackFrameListenerBase* l
     while (p)
     {
         if (p == listener)
+        {
             return true;
+        }
         p = p->getNextListNode();
     }
     return false;
@@ -76,7 +78,9 @@ bool Dispatcher::ListenerRegistry::add(TransferListenerBase* listener, Mode mode
         while (p)
         {
             if (p->getDataTypeDescriptor().getID() == listener->getDataTypeDescriptor().getID())
+            {
                 return false;
+            }
             p = p->getNextListNode();
         }
     }
@@ -96,7 +100,9 @@ bool Dispatcher::ListenerRegistry::exists(DataTypeID dtid) const
     while (p)
     {
         if (p->getDataTypeDescriptor().getID() == dtid)
+        {
             return true;
+        }
         p = p->getNextListNode();
     }
     return false;
@@ -118,9 +124,13 @@ void Dispatcher::ListenerRegistry::handleFrame(const RxFrame& frame)
     while (p)
     {
         if (p->getDataTypeDescriptor().getID() == frame.getDataTypeID())
+        {
             p->handleFrame(frame);
+        }
         else if (p->getDataTypeDescriptor().getID() < frame.getDataTypeID())  // Listeners are ordered by data type id!
+        {
             break;
+        }
         p = p->getNextListNode();
     }
 }
@@ -147,16 +157,22 @@ void Dispatcher::handleFrame(const CanRxFrame& can_frame)
     {
     case TransferTypeMessageBroadcast:
     case TransferTypeMessageUnicast:
+    {
         lmsg_.handleFrame(frame);
         break;
+    }
 
     case TransferTypeServiceRequest:
+    {
         lsrv_req_.handleFrame(frame);
         break;
+    }
 
     case TransferTypeServiceResponse:
+    {
         lsrv_resp_.handleFrame(frame);
         break;
+    }
 
     default:
         assert(0);
@@ -185,7 +201,9 @@ int Dispatcher::spin(MonotonicTime deadline)
         CanRxFrame frame;
         const int res = canio_.receive(frame, deadline, flags);
         if (res < 0)
+        {
             return res;
+        }
         if (res > 0)
         {
             if (flags & CanIOFlagLoopback)
@@ -283,8 +301,8 @@ bool Dispatcher::hasSubscriber(DataTypeID dtid) const
 
 bool Dispatcher::hasPublisher(DataTypeID dtid) const
 {
-    return outgoing_transfer_reg_.exists(dtid, TransferTypeMessageBroadcast)
-        || outgoing_transfer_reg_.exists(dtid, TransferTypeMessageUnicast);
+    return outgoing_transfer_reg_.exists(dtid, TransferTypeMessageBroadcast) ||
+           outgoing_transfer_reg_.exists(dtid, TransferTypeMessageUnicast);
 }
 
 bool Dispatcher::hasServer(DataTypeID dtid) const

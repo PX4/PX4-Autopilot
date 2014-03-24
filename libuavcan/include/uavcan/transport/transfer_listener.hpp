@@ -34,12 +34,12 @@ class IncomingTransfer : public ITransferBuffer
 protected:
     IncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc, TransferType transfer_type,
                      TransferID transfer_id, NodeID source_node_id, uint8_t iface_index)
-    : ts_mono_(ts_mono)
-    , ts_utc_(ts_utc)
-    , transfer_type_(transfer_type)
-    , transfer_id_(transfer_id)
-    , src_node_id_(source_node_id)
-    , iface_index_(iface_index)
+        : ts_mono_(ts_mono)
+        , ts_utc_(ts_utc)
+        , transfer_type_(transfer_type)
+        , transfer_id_(transfer_id)
+        , src_node_id_(source_node_id)
+        , iface_index_(iface_index)
     { }
 
 public:
@@ -93,8 +93,8 @@ class TransferListenerBase : public LinkedListNode<TransferListenerBase>, Noncop
 
 protected:
     TransferListenerBase(const DataTypeDescriptor& data_type)
-    : data_type_(data_type)
-    , crc_base_(data_type.getSignature().toTransferCRC())
+        : data_type_(data_type)
+        , crc_base_(data_type.getSignature().toTransferCRC())
     { }
 
     virtual ~TransferListenerBase() { }
@@ -127,8 +127,8 @@ class TransferListener : public TransferListenerBase
 
     public:
         TimedOutReceiverPredicate(MonotonicTime ts, BufferManager& bufmgr)
-        : ts_(ts)
-        , bufmgr_(bufmgr)
+            : ts_(ts)
+            , bufmgr_(bufmgr)
         { }
 
         bool operator()(const TransferBufferManagerKey& key, const TransferReceiver& value) const
@@ -164,7 +164,9 @@ protected:
         if (recv == NULL)
         {
             if (!frame.isFirst())
+            {
                 return;
+            }
 
             TransferReceiver new_recv;
             recv = receivers_.insert(key, new_recv);
@@ -180,9 +182,9 @@ protected:
 
 public:
     TransferListener(const DataTypeDescriptor& data_type, IAllocator& allocator)
-    : TransferListenerBase(data_type)
-    , bufmgr_(allocator)
-    , receivers_(allocator)
+        : TransferListenerBase(data_type)
+        , bufmgr_(allocator)
+        , receivers_(allocator)
     {
         StaticAssert<(NumStaticReceivers >= NumStaticBufs)>::check();  // Otherwise it would be meaningless
     }
@@ -212,8 +214,8 @@ public:
         }
 
         ExpectedResponseParams(NodeID src_node_id, TransferID transfer_id)
-        : src_node_id(src_node_id)
-        , transfer_id(transfer_id)
+            : src_node_id(src_node_id)
+            , transfer_id(transfer_id)
         {
             assert(src_node_id.isUnicast());
         }
@@ -245,7 +247,7 @@ private:
 
 public:
     ServiceResponseTransferListener(const DataTypeDescriptor& data_type, IAllocator& allocator)
-    : BaseType(data_type, allocator)
+        : BaseType(data_type, allocator)
     { }
 
     void setExpectedResponseParams(const ExpectedResponseParams& erp)

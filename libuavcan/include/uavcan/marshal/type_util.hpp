@@ -15,17 +15,29 @@ enum TailArrayOptimizationMode { TailArrayOptDisabled, TailArrayOptEnabled };
 
 
 template <unsigned long Num>
-struct IntegerBitLen    { enum { Result = 1 + IntegerBitLen<(Num >> 1)>::Result }; };
+struct IntegerBitLen
+{
+    enum { Result = 1 + IntegerBitLen<(Num >> 1)>::Result };
+};
 template <>
-struct IntegerBitLen<0> { enum { Result = 0 }; };
+struct IntegerBitLen<0>
+{
+    enum { Result = 0 };
+};
 
 
 template <unsigned long BitLen>
-struct BitLenToByteLen { enum { Result = (BitLen + 7) / 8 }; };
+struct BitLenToByteLen
+{
+    enum { Result = (BitLen + 7) / 8 };
+};
 
 
 template <typename T, typename Enable = void>
-struct StorageType { typedef T Type; };
+struct StorageType
+{
+    typedef T Type;
+};
 
 template <typename T>
 struct StorageType<T, typename EnableIfType<typename T::StorageType>::Type>

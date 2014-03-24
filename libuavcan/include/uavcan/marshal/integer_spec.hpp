@@ -64,9 +64,13 @@ private:
     static void saturate(StorageType& value)
     {
         if (value > max())
+        {
             value = max();
+        }
         else if (value <= min()) // 'Less or Equal' allows to suppress compiler warning on unsigned types
+        {
             value = min();
+        }
     }
 
     static void truncate(StorageType& value) { value &= mask(); }
@@ -88,9 +92,13 @@ public:
         validate();
         // cppcheck-suppress duplicateExpression
         if (CastMode == CastModeSaturate)
+        {
             saturate(value);
+        }
         else
+        {
             truncate(value);
+        }
         return codec.encode<BitLen>(value);
     }
 
@@ -111,10 +119,16 @@ class IntegerSpec<0, Signedness, CastMode>;         // Invalid instantiation
 
 
 template <typename T>
-struct IsIntegerSpec { enum { Result = 0 }; };
+struct IsIntegerSpec
+{
+    enum { Result = 0 };
+};
 
 template <unsigned int BitLen, Signedness Signedness, CastMode CastMode>
-struct IsIntegerSpec<IntegerSpec<BitLen, Signedness, CastMode> > { enum { Result = 1 }; };
+struct IsIntegerSpec<IntegerSpec<BitLen, Signedness, CastMode> >
+{
+    enum { Result = 1 };
+};
 
 
 template <unsigned int BitLen, Signedness Signedness, CastMode CastMode>
@@ -128,7 +142,7 @@ struct YamlStreamer<IntegerSpec<BitLen, Signedness, CastMode> >
     {
         // Get rid of character types - we want its integer representation, not ASCII code
         typedef typename Select<(sizeof(StorageType) >= sizeof(int)), StorageType,
-                typename Select<RawType::IsSigned, int, unsigned int>::Result >::Result TempType;
+                                typename Select<RawType::IsSigned, int, unsigned int>::Result >::Result TempType;
         s << TempType(value);
     }
 };

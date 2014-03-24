@@ -32,23 +32,23 @@ public:
     enum { MaxIndex = 62 };        // 63 (or 0b111111) is reserved
 
     Frame()
-    : transfer_type_(TransferType(NumTransferTypes))  // That is invalid value
-    , payload_len_(0)
-    , frame_index_(0)
-    , transfer_id_(0)
-    , last_frame_(false)
+        : transfer_type_(TransferType(NumTransferTypes)) // That is invalid value
+        , payload_len_(0)
+        , frame_index_(0)
+        , transfer_id_(0)
+        , last_frame_(false)
     { }
 
     Frame(DataTypeID data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
           uint_fast8_t frame_index, TransferID transfer_id, bool last_frame = false)
-    : transfer_type_(transfer_type)
-    , data_type_id_(data_type_id)
-    , payload_len_(0)
-    , src_node_id_(src_node_id)
-    , dst_node_id_(dst_node_id)
-    , frame_index_(frame_index)
-    , transfer_id_(transfer_id)
-    , last_frame_(last_frame)
+        : transfer_type_(transfer_type)
+        , data_type_id_(data_type_id)
+        , payload_len_(0)
+        , src_node_id_(src_node_id)
+        , dst_node_id_(dst_node_id)
+        , frame_index_(frame_index)
+        , transfer_id_(transfer_id)
+        , last_frame_(last_frame)
     {
         assert((transfer_type == TransferTypeMessageBroadcast) == dst_node_id.isBroadcast());
         assert(data_type_id.isValid());
@@ -95,13 +95,13 @@ class RxFrame : public Frame
 
 public:
     RxFrame()
-    : iface_index_(0)
+        : iface_index_(0)
     { }
 
     RxFrame(const Frame& frame, MonotonicTime ts_mono, UtcTime ts_utc, uint8_t iface_index)
-    : ts_mono_(ts_mono)
-    , ts_utc_(ts_utc)
-    , iface_index_(iface_index)
+        : ts_mono_(ts_mono)
+        , ts_utc_(ts_utc)
+        , iface_index_(iface_index)
     {
         *static_cast<Frame*>(this) = frame;
     }

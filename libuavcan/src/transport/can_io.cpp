@@ -19,7 +19,7 @@ std::string CanRxFrame::toString(StringRepresentation mode) const
 {
     std::ostringstream os;
     os << CanFrame::toString(mode)
-        << " ts_m=" << ts_mono << " ts_utc=" << ts_utc << " iface=" << int(iface_index);
+       << " ts_m=" << ts_mono << " ts_utc=" << ts_utc << " iface=" << int(iface_index);
     return os.str();
 }
 
@@ -39,14 +39,18 @@ void CanTxQueue::Entry::destroy(Entry*& obj, IAllocator& allocator)
 bool CanTxQueue::Entry::qosHigherThan(const CanFrame& rhs_frame, Qos rhs_qos) const
 {
     if (qos != rhs_qos)
+    {
         return qos > rhs_qos;
+    }
     return frame.priorityHigherThan(rhs_frame);
 }
 
 bool CanTxQueue::Entry::qosLowerThan(const CanFrame& rhs_frame, Qos rhs_qos) const
 {
     if (qos != rhs_qos)
+    {
         return qos < rhs_qos;
+    }
     return frame.priorityLowerThan(rhs_frame);
 }
 
@@ -56,11 +60,15 @@ std::string CanTxQueue::Entry::toString() const
     switch (qos)
     {
     case Volatile:
+    {
         str_qos = "<volat> ";
         break;
+    }
     case Persistent:
+    {
         str_qos = "<perst> ";
         break;
+    }
     default:
         assert(0);
         str_qos = "<?WTF?> ";
@@ -85,7 +93,9 @@ CanTxQueue::~CanTxQueue()
 void CanTxQueue::registerRejectedFrame()
 {
     if (rejected_frames_cnt_ < std::numeric_limits<uint32_t>::max())
+    {
         rejected_frames_cnt_++;
+    }
 }
 
 void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos, CanIOFlags flags)
@@ -130,7 +140,9 @@ void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos,
         while (p)
         {
             if (lowestqos->qosHigherThan(*p))
+            {
                 lowestqos = p;
+            }
             p = p->getNextListNode();
         }
         // Note that frame with *equal* QoS will be replaced too.
@@ -145,8 +157,10 @@ void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos,
     }
 
     if (praw == NULL)
+    {
         return;                                            // Seems that there is no memory at all.
 
+    }
     Entry* entry = new (praw) Entry(frame, tx_deadline, qos, flags);
     assert(entry);
     queue_.insertBefore(entry, PriorityInsertionComparator(frame));
@@ -167,7 +181,9 @@ CanTxQueue::Entry* CanTxQueue::peek()
             p = next;
         }
         else
+        {
             return p;
+        }
     }
     return NULL;
 }
@@ -187,7 +203,9 @@ bool CanTxQueue::topPriorityHigherOrEqual(const CanFrame& rhs_frame) const
 {
     const Entry* entry = queue_.get();
     if (entry == NULL)
+    {
         return false;
+    }
     return !rhs_frame.priorityHigherThan(entry->frame);
 }
 
@@ -217,10 +235,14 @@ int CanIOManager::sendFromTxQueue(int iface_index)
     assert(iface_index >= 0 && iface_index < MaxCanIfaces);
     CanTxQueue::Entry* entry = tx_queues_[iface_index].peek();
     if (entry == NULL)
+    {
         return 0;
+    }
     const int res = sendToIface(iface_index, entry->frame, entry->deadline, entry->flags);
     if (res > 0)
+    {
         tx_queues_[iface_index].remove(entry);
+    }
     return res;
 }
 
@@ -230,7 +252,9 @@ int CanIOManager::makePendingTxMask() const
     for (int i = 0; i < getNumIfaces(); i++)
     {
         if (!tx_queues_[i].isEmpty())
+        {
             write_mask |= 1 << i;
+        }
     }
     return write_mask;
 }
@@ -254,27 +278,33 @@ uint64_t CanIOManager::getNumErrors(int iface_index) const
 }
 
 int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, MonotonicTime blocking_deadline,
-                        int iface_mask, CanTxQueue::Qos qos, CanIOFlags flags)
+                       int iface_mask, CanTxQueue::Qos qos, CanIOFlags flags)
 {
     const int num_ifaces = getNumIfaces();
     const int all_ifaces_mask = (1 << num_ifaces) - 1;
     iface_mask &= all_ifaces_mask;
 
     if (blocking_deadline > tx_deadline)
+    {
         blocking_deadline = tx_deadline;
+    }
 
     int retval = 0;
 
     while (true)
     {
         if (iface_mask == 0)
+        {
             break;
+        }
         CanSelectMasks masks;
         masks.write = iface_mask | makePendingTxMask();
         {
             const int select_res = driver_.select(masks, blocking_deadline);
             if (select_res < 0)
+            {
                 return select_res;
+            }
             assert(masks.read == 0);
         }
 
@@ -294,7 +324,9 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
                     {
                         res = sendToIface(i, frame, tx_deadline, flags);
                         if (res > 0)
+                        {
                             iface_mask &= ~(1 << i);              // Mark transmitted
+                        }
                     }
                 }
                 else
@@ -302,7 +334,9 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
                     res = sendFromTxQueue(i);
                 }
                 if (res > 0)
+                {
                     retval++;
+                }
             }
         }
 
@@ -318,7 +352,9 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
             for (int i = 0; i < num_ifaces; i++)
             {
                 if (iface_mask & (1 << i))
+                {
                     tx_queues_[i].push(frame, tx_deadline, qos, flags);
+                }
             }
             break;
         }
@@ -338,14 +374,18 @@ int CanIOManager::receive(CanRxFrame& out_frame, MonotonicTime blocking_deadline
         {
             const int select_res = driver_.select(masks, blocking_deadline);
             if (select_res < 0)
+            {
                 return select_res;
+            }
         }
 
         // Write - if buffers are not empty, one frame will be sent for each iface per one receive() call
         for (int i = 0; i < num_ifaces; i++)
         {
             if (masks.write & (1 << i))
+            {
                 sendFromTxQueue(i);
+            }
         }
 
         // Read
@@ -372,7 +412,9 @@ int CanIOManager::receive(CanRxFrame& out_frame, MonotonicTime blocking_deadline
 
         // Timeout checked in the last order - this way we can operate with expired deadline:
         if (sysclock_.getMonotonic() >= blocking_deadline)
+        {
             break;
+        }
     }
     return 0;
 }

@@ -23,7 +23,7 @@ class DurationBase
 
 public:
     DurationBase()
-    : usec_(0)
+        : usec_(0)
     {
         StaticAssert<(sizeof(D) == 8)>::check();
     }
@@ -55,17 +55,17 @@ public:
     bool operator<=(const D& r) const { return usec_ <= r.usec_; }
     bool operator>=(const D& r) const { return usec_ >= r.usec_; }
 
-    D operator+(const D &r) const { return fromUSec(usec_ + r.usec_); } // TODO: overflow check
-    D operator-(const D &r) const { return fromUSec(usec_ - r.usec_); } // ditto
+    D operator+(const D& r) const { return fromUSec(usec_ + r.usec_); } // TODO: overflow check
+    D operator-(const D& r) const { return fromUSec(usec_ - r.usec_); } // ditto
 
     D operator-() const { return fromUSec(-usec_); }
 
-    D& operator+=(const D &r)
+    D& operator+=(const D& r)
     {
         *this = *this + r;
         return *static_cast<D*>(this);
     }
-    D& operator-=(const D &r)
+    D& operator-=(const D& r)
     {
         *this = *this - r;
         return *static_cast<D*>(this);
@@ -92,7 +92,7 @@ class TimeBase
 
 public:
     TimeBase()
-    : usec_(0)
+        : usec_(0)
     {
         StaticAssert<(sizeof(T) == 8)>::check();
         StaticAssert<(sizeof(D) == 8)>::check();
@@ -126,12 +126,16 @@ public:
         if (r.isNegative())
         {
             if (uint64_t(r.getAbs().toUSec()) > usec_)
+            {
                 return fromUSec(0);
+            }
         }
         else
         {
             if (uint64_t(usec_ + r.toUSec()) < usec_)
+            {
                 return fromUSec(std::numeric_limits<uint64_t>::max());
+            }
         }
         return fromUSec(usec_ + r.toUSec());
     }
@@ -202,7 +206,9 @@ inline Stream& operator<<(Stream& s, DurationBase<D> d)
     char buf[8];
     std::snprintf(buf, sizeof(buf), "%06lu", static_cast<unsigned long>(std::abs(d.toUSec() % 1000000L)));
     if (d.isNegative())
+    {
         s << '-';
+    }
     s << std::abs(d.toUSec() / 1000000L) << '.' << buf;
     return s;
 }

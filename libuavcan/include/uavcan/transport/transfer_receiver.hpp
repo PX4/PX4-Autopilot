@@ -55,11 +55,11 @@ private:
 
 public:
     TransferReceiver()
-    : transfer_interval_usec_(DefaultTransferIntervalUSec)
-    , this_transfer_crc_(0)
-    , buffer_write_pos_(0)
-    , iface_index_(IfaceIndexNotSet)
-    , next_frame_index_(0)
+        : transfer_interval_usec_(DefaultTransferIntervalUSec)
+        , this_transfer_crc_(0)
+        , buffer_write_pos_(0)
+        , iface_index_(IfaceIndexNotSet)
+        , next_frame_index_(0)
     { }
 
     bool isTimedOut(MonotonicTime current_ts) const;

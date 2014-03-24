@@ -59,11 +59,15 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
         {
             const int send_res = dispatcher_.send(frame, tx_deadline, blocking_deadline, qos_, flags_, iface_mask_);
             if (send_res < 0)
+            {
                 return send_res;
+            }
 
             if (frame.isLast())
+            {
                 return next_frame_index;  // Number of frames transmitted
 
+            }
             frame.setIndex(next_frame_index++);
 
             const int write_res = frame.setPayload(payload + offset, payload_len - offset);
@@ -76,7 +80,9 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
             offset += write_res;
             assert(offset <= payload_len);
             if (offset >= payload_len)
+            {
                 frame.makeLast();
+            }
         }
     }
 

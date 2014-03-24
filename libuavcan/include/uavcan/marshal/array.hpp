@@ -42,7 +42,9 @@ protected:
     SizeType validateRange(SizeType pos) const
     {
         if (pos < Size)
+        {
             return pos;
+        }
 #if UAVCAN_EXCEPTIONS
         throw std::out_of_range("uavcan::Array");
 #else
@@ -71,7 +73,9 @@ protected:
     SizeType validateRange(SizeType pos) const
     {
         if (pos < size_)
+        {
             return pos;
+        }
 #if UAVCAN_EXCEPTIONS
         throw std::out_of_range("uavcan::Array");
 #else
@@ -83,15 +87,21 @@ protected:
     void grow()
     {
         if (size_ >= MaxSize)
+        {
             validateRange(MaxSize);  // Will throw, assert() or do nothing
+        }
         else
+        {
             size_++;
+        }
     }
 
     void shrink()
     {
         if (size_ > 0)
+        {
             size_--;
+        }
     }
 
 public:
@@ -122,8 +132,8 @@ class ArrayImpl : public Select<ArrayMode == ArrayModeDynamic,
 public:
     enum
     {
-        IsStringLike = IsIntegerSpec<T>::Result && (T::MaxBitLen == 8 || T::MaxBitLen == 7)
-                    && (ArrayMode == ArrayModeDynamic)
+        IsStringLike = IsIntegerSpec<T>::Result && (T::MaxBitLen == 8 || T::MaxBitLen == 7) &&
+                       (ArrayMode == ArrayModeDynamic)
     };
 
 private:
@@ -134,7 +144,9 @@ private:
     typename EnableIf<sizeof(U(0) == U())>::Type initialize(int)
     {
         if (ArrayMode != ArrayModeDynamic)
+        {
             std::fill(data_, data_ + MaxSize, U());
+        }
     }
     template <typename> void initialize(...) { }
 
@@ -233,7 +245,9 @@ class Array : public ArrayImpl<T, ArrayMode, MaxSize_>
             const bool last_item = i == (size() - 1);
             const int res = RawValueType::encode(Base::at(i), codec, last_item ? tao_mode : TailArrayOptDisabled);
             if (res <= 0)
+            {
                 return res;
+            }
         }
         return 1;
     }
@@ -246,10 +260,14 @@ class Array : public ArrayImpl<T, ArrayMode, MaxSize_>
         {
             const int res_sz = Base::RawSizeType::encode(size(), codec, TailArrayOptDisabled);
             if (res_sz <= 0)
+            {
                 return res_sz;
+            }
         }
         if (size() == 0)
+        {
             return 1;
+        }
         return encodeImpl(codec, self_tao_enabled ? TailArrayOptDisabled : tao_mode, FalseType());
     }
 
@@ -262,7 +280,9 @@ class Array : public ArrayImpl<T, ArrayMode, MaxSize_>
             ValueType value;                          // TODO: avoid extra copy
             const int res = RawValueType::decode(value, codec, last_item ? tao_mode : TailArrayOptDisabled);
             if (res <= 0)
+            {
                 return res;
+            }
             Base::at(i) = value;
         }
         return 1;
@@ -279,11 +299,17 @@ class Array : public ArrayImpl<T, ArrayMode, MaxSize_>
                 ValueType value;
                 const int res = RawValueType::decode(value, codec, TailArrayOptDisabled);
                 if (res < 0)
+                {
                     return res;
+                }
                 if (res == 0)             // Success: End of stream reached (even if zero items were read)
+                {
                     return 1;
+                }
                 if (size() == MaxSize_)   // Error: Max array length reached, but the end of stream is not
+                {
                     return -1;
+                }
                 push_back(value);
             }
         }
@@ -292,12 +318,18 @@ class Array : public ArrayImpl<T, ArrayMode, MaxSize_>
             typename StorageType<typename Base::RawSizeType>::Type sz = 0;
             const int res_sz = Base::RawSizeType::decode(sz, codec, TailArrayOptDisabled);
             if (res_sz <= 0)
+            {
                 return res_sz;
+            }
             if ((sz > 0) && ((sz - 1u) > (MaxSize_ - 1u))) // -Werror=type-limits
+            {
                 return -1;
+            }
             resize(sz);
             if (sz == 0)
+            {
                 return 1;
+            }
             return decodeImpl(codec, tao_mode, FalseType());
         }
         assert(0); // Unreachable
@@ -347,13 +379,17 @@ public:
         {
             unsigned int cnt = new_size - size();
             while (cnt--)
+            {
                 push_back(filler);
+            }
         }
         else if (new_size < size())
         {
             unsigned int cnt = size() - new_size;
             while (cnt--)
+            {
                 pop_back();
+            }
         }
     }
 
@@ -370,17 +406,25 @@ public:
     operator==(const R& rhs) const
     {
         if (size() != rhs.size())
+        {
             return false;
+        }
         for (SizeType i = 0; i < size(); i++)  // Bitset does not have iterators
+        {
             if (!(Base::at(i) == rhs[i]))
+            {
                 return false;
+            }
+        }
         return true;
     }
 
     bool operator==(const char* ch) const
     {
         if (ch == NULL)
+        {
             return false;
+        }
         return std::strcmp(Base::c_str(), ch) == 0;
     }
 
@@ -395,9 +439,13 @@ public:
         StaticAssert<IsDynamic>::check();
         Base::clear();
         if (ch == NULL)
+        {
             handleFatalError("Null pointer in Array<>::operator=(const char*)");
+        }
         while (*ch)
+        {
             push_back(*ch++);
+        }
         return *this;
     }
 
@@ -406,9 +454,13 @@ public:
         StaticAssert<Base::IsStringLike>::check();
         StaticAssert<IsDynamic>::check();
         if (ch == NULL)
+        {
             handleFatalError("Null pointer in Array<>::operator+=(const char*)");
+        }
         while (*ch)
+        {
             push_back(*ch++);
+        }
         return *this;
     }
 
@@ -420,7 +472,9 @@ public:
                                 SizeType, typename Rhs::SizeType>::Result CommonSizeType;
         StaticAssert<IsDynamic>::check();
         for (CommonSizeType i = 0; i < rhs.size(); i++)
+        {
             push_back(rhs[i]);
+        }
         return *this;
     }
 
@@ -435,7 +489,7 @@ public:
         StaticAssert<IsDynamic>::check();
 
         StaticAssert<sizeof(A() == A(0))>::check();             // This check allows to weed out most non-trivial types
-        StaticAssert<sizeof(A) <= sizeof(long double)>::check();// Another stupid check to catch non-trivial types
+        StaticAssert<sizeof(A) <= sizeof(long double)>::check(); // Another stupid check to catch non-trivial types
 
         if (!format)
         {
@@ -487,11 +541,17 @@ class YamlStreamer<Array<T, ArrayMode, MaxSize> >
     static bool isNiceCharacter(int c)
     {
         if (c >= 32 && c <= 126)
+        {
             return true;
+        }
         static const char Good[] = {'\n', '\r', '\t'};
         for (unsigned int i = 0; i < sizeof(Good) / sizeof(Good[0]); i++)
+        {
             if (Good[i] == c)
+            {
                 return true;
+            }
+        }
         return false;
     }
 
@@ -503,7 +563,9 @@ class YamlStreamer<Array<T, ArrayMode, MaxSize> >
         {
             YamlStreamer<T>::stream(s, array.at(i), 0);
             if ((i + 1) < array.size())
+            {
                 s << ", ";
+            }
         }
         s << ']';
     }
@@ -522,14 +584,18 @@ class YamlStreamer<Array<T, ArrayMode, MaxSize> >
                 {
                     nibbles[i] += '0';
                     if (nibbles[i] > '9')
+                    {
                         nibbles[i] += 'A' - '9' - 1;
+                    }
                 }
                 s << "\\x" << nibbles[0] << nibbles[1];
             }
             else
             {
                 if (c == '"' || c == '\\')      // YAML requires to escape these two
+                {
                     s << '\\';
+                }
                 s << char(c);
             }
         }
@@ -582,7 +648,9 @@ class YamlStreamer<Array<T, ArrayMode, MaxSize> >
         {
             s << '\n';
             for (int pos = 0; pos < level; pos++)
+            {
                 s << "  ";
+            }
             s << "- ";
             YamlStreamer<T>::stream(s, array.at(i), level + 1);
         }
@@ -593,8 +661,9 @@ public:
     static void stream(Stream& s, const ArrayType& array, int level)
     {
         typedef typename Select<ArrayType::IsStringLike, SelectorStringLike,
-                typename Select<IsPrimitiveType<typename ArrayType::RawValueType>::Result, SelectorPrimitives,
-                                  SelectorObjects>::Result >::Result Type;
+                                typename Select<IsPrimitiveType<typename ArrayType::RawValueType>::Result,
+                                                SelectorPrimitives,
+                                                SelectorObjects>::Result >::Result Type;
         genericStreamImpl(s, array, level, Type());
     }
 };

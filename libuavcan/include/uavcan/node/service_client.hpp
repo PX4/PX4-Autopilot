@@ -29,9 +29,9 @@ struct ServiceCallResult
     ResponseFieldType& response;      ///< Either response contents or unspecified response structure
 
     ServiceCallResult(Status status, NodeID server_node_id, ResponseFieldType& response)
-    : status(status)
-    , server_node_id(server_node_id)
-    , response(response)
+        : status(status)
+        , server_node_id(server_node_id)
+        , response(response)
     {
         assert(server_node_id.isUnicast());
         assert(status == Success || status == ErrorTimeout);
@@ -44,21 +44,25 @@ template <typename Stream, typename DataType>
 static Stream& operator<<(Stream& s, const ServiceCallResult<DataType>& scr)
 {
     s << "# Service call result [" << DataType::getDataTypeFullName() << "] "
-        << (scr.isSuccessful() ? "OK" : "FAILURE")
-        << " server_node_id=" << int(scr.server_node_id.get()) << "\n";
+      << (scr.isSuccessful() ? "OK" : "FAILURE")
+      << " server_node_id=" << int(scr.server_node_id.get()) << "\n";
     if (scr.isSuccessful())
+    {
         s << scr.response;
+    }
     else
+    {
         s << "# (no data)";
+    }
     return s;
 }
 
 
-template <typename DataType_, typename Callback = void(*)(const ServiceCallResult<DataType_>&)>
-class ServiceClient :
-    public GenericSubscriber<DataType_, typename DataType_::Response,
-                             typename ServiceResponseTransferListenerInstantiationHelper<DataType_>::Type >,
-    public DeadlineHandler
+template <typename DataType_, typename Callback = void (*)(const ServiceCallResult<DataType_>&)>
+class ServiceClient
+    : public GenericSubscriber<DataType_, typename DataType_::Response,
+                               typename ServiceResponseTransferListenerInstantiationHelper<DataType_>::Type >
+    , public DeadlineHandler
 {
 public:
     typedef DataType_ DataType;
@@ -82,9 +86,13 @@ private:
     void invokeCallback(ServiceCallResultType& result)
     {
         if (isCallbackValid())
+        {
             callback_(result);
+        }
         else
+        {
             handleFatalError("Invalid caller callback");
+        }
     }
 
     void handleReceivedDataStruct(ReceivedDataStructure<ResponseType>& response)
@@ -128,12 +136,12 @@ private:
 
 public:
     explicit ServiceClient(INode& node, const Callback& callback = Callback())
-    : SubscriberType(node)
-    , DeadlineHandler(node.getScheduler())
-    , publisher_(node, getDefaultRequestTimeout())
-    , callback_(callback)
-    , request_timeout_(getDefaultRequestTimeout())
-    , pending_(false)
+        : SubscriberType(node)
+        , DeadlineHandler(node.getScheduler())
+        , publisher_(node, getDefaultRequestTimeout())
+        , callback_(callback)
+        , request_timeout_(getDefaultRequestTimeout())
+        , pending_(false)
     {
         setRequestTimeout(getDefaultRequestTimeout());
 #if UAVCAN_DEBUG
@@ -181,7 +189,7 @@ public:
         const MonotonicTime otr_deadline =
             SubscriberType::getNode().getMonotonicTime() + TransferSender::getDefaultMaxTransferInterval();
         TransferID* const otr_tid = SubscriberType::getNode().getDispatcher().getOutgoingTransferRegistry()
-            .accessOrCreate(otr_key, otr_deadline);
+                                        .accessOrCreate(otr_key, otr_deadline);
         if (!otr_tid)
         {
             UAVCAN_TRACE("ServiceClient", "OTR access failure, dtd=%s", descr->toString().c_str());
@@ -238,7 +246,9 @@ public:
         DeadlineHandler::stop();
         TransferListenerType* const tl = SubscriberType::getTransferListener();
         if (tl)
+        {
             tl->stopAcceptingAnything();
+        }
     }
 
     bool isPending() const { return pending_; }

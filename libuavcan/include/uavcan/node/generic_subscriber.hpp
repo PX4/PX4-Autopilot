@@ -22,7 +22,7 @@ class ReceivedDataStructure : public DataType_
 {
     const IncomingTransfer* transfer_;
 
-    template <typename Ret, Ret (IncomingTransfer::*Fun)() const>
+    template <typename Ret, Ret(IncomingTransfer::*Fun) () const>
     Ret safeget() const
     {
         if (!transfer_)
@@ -60,8 +60,8 @@ template <typename Stream, typename DataType>
 static Stream& operator<<(Stream& s, const ReceivedDataStructure<DataType>& rds)
 {
     s << "# Received struct ts_m=" << rds.getMonotonicTimestamp()
-        << " ts_utc=" << rds.getUtcTimestamp()
-        << " snid=" << int(rds.getSrcNodeID().get()) << "\n";
+      << " ts_utc=" << rds.getUtcTimestamp()
+      << " snid=" << int(rds.getSrcNodeID().get()) << "\n";
     s << static_cast<const DataType&>(rds);
     return s;
 }
@@ -98,8 +98,8 @@ class GenericSubscriber : Noncopyable
 
     public:
         TransferForwarder(SelfType& obj, const DataTypeDescriptor& data_type, IAllocator& allocator)
-        : TransferListenerType(data_type, allocator)
-        , obj_(obj)
+            : TransferListenerType(data_type, allocator)
+            , obj_(obj)
         { }
     };
 
@@ -116,7 +116,9 @@ class GenericSubscriber : Noncopyable
     bool checkInit()
     {
         if (forwarder_)
+        {
             return true;
+        }
 
         GlobalDataTypeRegistry::instance().freeze();
 
@@ -161,7 +163,7 @@ class GenericSubscriber : Noncopyable
         }
     }
 
-    int genericStart(bool(Dispatcher::*registration_method)(TransferListenerBase* listener))
+    int genericStart(bool (Dispatcher::*registration_method)(TransferListenerBase* listener))
     {
         stop();
 
@@ -182,8 +184,8 @@ class GenericSubscriber : Noncopyable
 
 protected:
     explicit GenericSubscriber(INode& node)
-    : node_(node)
-    , failure_count_(0)
+        : node_(node)
+        , failure_count_(0)
     { }
 
     virtual ~GenericSubscriber() { stop(); }

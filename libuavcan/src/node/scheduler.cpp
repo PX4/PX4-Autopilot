@@ -70,11 +70,15 @@ bool DeadlineScheduler::doesExist(const DeadlineHandler* mdh) const
     {
 #if UAVCAN_DEBUG
         if (prev_deadline > p->getDeadline())  // Self check
+        {
             std::abort();
+        }
         prev_deadline = p->getDeadline();
 #endif
         if (p == mdh)
+        {
             return true;
+        }
         p = p->getNextListNode();
     }
     return false;
@@ -86,15 +90,21 @@ MonotonicTime DeadlineScheduler::pollAndGetMonotonicTime(ISystemClock& sysclock)
     {
         DeadlineHandler* const mdh = handlers_.get();
         if (!mdh)
+        {
             return sysclock.getMonotonic();
+        }
 #if UAVCAN_DEBUG
         if (mdh->getNextListNode())      // Order check
+        {
             assert(mdh->getDeadline() <= mdh->getNextListNode()->getDeadline());
+        }
 #endif
 
         const MonotonicTime ts = sysclock.getMonotonic();
         if (ts < mdh->getDeadline())
+        {
             return ts;
+        }
 
         handlers_.remove(mdh);
         mdh->handleDeadline(ts);   // This handler can be re-registered immediately
@@ -107,7 +117,9 @@ MonotonicTime DeadlineScheduler::getEarliestDeadline() const
 {
     const DeadlineHandler* const mdh = handlers_.get();
     if (mdh)
+    {
         return mdh->getDeadline();
+    }
     return MonotonicTime::getMax();
 }
 
@@ -121,7 +133,9 @@ MonotonicTime Scheduler::computeDispatcherSpinDeadline(MonotonicTime spin_deadli
     if (earliest > ts)
     {
         if (ts - earliest > deadline_resolution_)
+        {
             return ts + deadline_resolution_;
+        }
     }
     return earliest;
 }
@@ -146,12 +160,16 @@ int Scheduler::spin(MonotonicTime deadline)
         const MonotonicTime dl = computeDispatcherSpinDeadline(deadline);
         retval = dispatcher_.spin(dl);
         if (retval < 0)
+        {
             break;
+        }
 
         const MonotonicTime ts = deadline_scheduler_.pollAndGetMonotonicTime(getSystemClock());
         pollCleanup(ts, retval);
         if (ts >= deadline)
+        {
             break;
+        }
     }
     return retval;
 }

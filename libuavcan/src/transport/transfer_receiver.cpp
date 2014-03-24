@@ -21,9 +21,13 @@ TransferReceiver::TidRelation TransferReceiver::getTidRelation(const RxFrame& fr
 {
     const int distance = tid_.computeForwardDistance(frame.getTransferID());
     if (distance == 0)
+    {
         return TidSame;
+    }
     if (distance < ((1 << TransferID::BitLen) / 2))
+    {
         return TidFuture;
+    }
     return TidRepeat;
 }
 
@@ -53,7 +57,9 @@ void TransferReceiver::prepareForNextTransfer()
 bool TransferReceiver::validate(const RxFrame& frame) const
 {
     if (iface_index_ != frame.getIfaceIndex())
+    {
         return false;
+    }
 
     if (frame.isFirst() && !frame.isLast() && (frame.getPayloadLen() < TransferCRC::NumBytes))
     {
@@ -90,15 +96,19 @@ bool TransferReceiver::writePayload(const RxFrame& frame, ITransferBuffer& buf)
     if (frame.isFirst())     // First frame contains CRC, we need to extract it now
     {
         if (frame.getPayloadLen() < TransferCRC::NumBytes)
+        {
             return false;    // Must have been validated earlier though. I think I'm paranoid.
 
+        }
         this_transfer_crc_ = (payload[0] & 0xFF) | (uint16_t(payload[1] & 0xFF) << 8); // Little endian.
 
         const int effective_payload_len = payload_len - TransferCRC::NumBytes;
         const int res = buf.write(buffer_write_pos_, payload + TransferCRC::NumBytes, effective_payload_len);
         const bool success = res == effective_payload_len;
         if (success)
+        {
             buffer_write_pos_ += effective_payload_len;
+        }
         return success;
     }
     else
@@ -106,7 +116,9 @@ bool TransferReceiver::writePayload(const RxFrame& frame, ITransferBuffer& buf)
         const int res = buf.write(buffer_write_pos_, payload, payload_len);
         const bool success = res == payload_len;
         if (success)
+        {
             buffer_write_pos_ += payload_len;
+        }
         return success;
     }
 }
@@ -132,7 +144,9 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame, Tra
     // Payload write
     ITransferBuffer* buf = tba.access();
     if (buf == NULL)
+    {
         buf = tba.create();
+    }
     if (buf == NULL)
     {
         UAVCAN_TRACE("TransferReceiver", "Failed to access the buffer, %s", frame.toString().c_str());
@@ -161,7 +175,9 @@ bool TransferReceiver::isTimedOut(MonotonicTime current_ts) const
 {
     static const uint64_t INTERVAL_MULT = (1 << TransferID::BitLen) / 2 + 1;
     if (current_ts <= this_transfer_ts_)
+    {
         return false;
+    }
     return (current_ts - this_transfer_ts_).toUSec() > (uint64_t(transfer_interval_usec_) * INTERVAL_MULT);
 }
 
@@ -209,7 +225,9 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, Tr
     }
 
     if (!validate(frame))
+    {
         return ResultNotComplete;
+    }
 
     return receive(frame, tba);
 }

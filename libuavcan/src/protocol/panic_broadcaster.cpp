@@ -29,7 +29,9 @@ void PanicBroadcaster::panic(const char* short_reason)
     while (p && *p)
     {
         if (msg_.reason_text.size() == msg_.reason_text.capacity())
+        {
             break;
+        }
         msg_.reason_text.push_back(*p);
         p++;
     }

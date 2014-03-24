@@ -76,10 +76,14 @@ public:
         for (int i = 0; i < MaxPools; i++)
         {
             if (pools_[i] == NULL)
+            {
                 break;
+            }
             void* const pmem = pools_[i]->allocate(size);
             if (pmem != NULL)
+            {
                 return pmem;
+            }
         }
         return NULL;
     }
@@ -123,18 +127,22 @@ public:
     static const int NumBlocks = int(PoolSize / BlockSize);
 
     PoolAllocator()
-    : free_list_(reinterpret_cast<Node*>(pool_)) // TODO: alignment
+        : free_list_(reinterpret_cast<Node*>(pool_)) // TODO: alignment
     {
         memset(pool_, 0, PoolSize);
         for (int i = 0; i < NumBlocks - 1; i++)
+        {
             free_list_[i].next = free_list_ + i + 1;
+        }
         free_list_[NumBlocks - 1].next = NULL;
     }
 
     void* allocate(std::size_t size)
     {
         if (free_list_ == NULL || size > BlockSize)
+        {
             return NULL;
+        }
         void* pmem = free_list_;
         free_list_ = free_list_->next;
         return pmem;
@@ -143,7 +151,9 @@ public:
     void deallocate(const void* ptr)
     {
         if (ptr == NULL)
+        {
             return;
+        }
         Node* p = static_cast<Node*>(const_cast<void*>(ptr));
 #if DEBUG || UAVCAN_DEBUG
         std::memset(p, 0, sizeof(Node));

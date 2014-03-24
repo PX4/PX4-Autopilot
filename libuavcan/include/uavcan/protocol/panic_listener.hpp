@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cassert>
+#include <uavcan/debug.hpp>
 #include <uavcan/node/subscriber.hpp>
 #include <uavcan/util/method_binder.hpp>
 #include <uavcan/protocol/Panic.hpp>
@@ -17,10 +19,10 @@ namespace uavcan
  *   void (const protocol::Panic&)
  * The listener can be stopped from the callback.
  */
-template <typename Callback = void(*)(const ReceivedDataStructure<protocol::Panic>&)>
+template <typename Callback = void (*)(const ReceivedDataStructure<protocol::Panic>&)>
 class PanicListener : Noncopyable
 {
-    typedef MethodBinder<PanicListener*, void(PanicListener::*)(const ReceivedDataStructure<protocol::Panic>&)>
+    typedef MethodBinder<PanicListener*, void (PanicListener::*)(const ReceivedDataStructure<protocol::Panic>&)>
         PanicMsgCallback;
 
     Subscriber<protocol::Panic, PanicMsgCallback> sub_;
@@ -73,9 +75,9 @@ class PanicListener : Noncopyable
 
 public:
     PanicListener(INode& node)
-    : sub_(node)
-    , callback_()
-    , num_subsequent_msgs_(0)
+        : sub_(node)
+        , callback_()
+        , num_subsequent_msgs_(0)
     { }
 
     int start(const Callback& callback)

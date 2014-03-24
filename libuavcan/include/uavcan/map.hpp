@@ -24,13 +24,16 @@ namespace uavcan
 template <typename Key, typename Value, unsigned int NumStaticEntries>
 class Map : Noncopyable
 {
-UAVCAN_PACKED_BEGIN
+    UAVCAN_PACKED_BEGIN
     struct KVPair
     {
         Key key;
         Value value;
         KVPair() { }
-        KVPair(const Key& key, const Value& value) : key(key), value(value) { }
+        KVPair(const Key& key, const Value& value)
+            : key(key)
+            , value(value)
+        { }
         bool match(const Key& rhs) const { return rhs == key; }
     };
 
@@ -49,7 +52,9 @@ UAVCAN_PACKED_BEGIN
         {
             void* const praw = allocator.allocate(sizeof(KVGroup));
             if (praw == NULL)
+            {
                 return NULL;
+            }
             return new (praw) KVGroup();
         }
 
@@ -66,12 +71,16 @@ UAVCAN_PACKED_BEGIN
         KVPair* find(const Key& key)
         {
             for (int i = 0; i < NumKV; i++)
+            {
                 if (kvs[i].match(key))
+                {
                     return kvs + i;
+                }
+            }
             return NULL;
         }
     };
-UAVCAN_PACKED_END
+    UAVCAN_PACKED_END
 
     LinkedListRoot<KVGroup> list_;
     IAllocator& allocator_;
@@ -80,15 +89,21 @@ UAVCAN_PACKED_END
     KVPair* find(const Key& key)
     {
         for (unsigned int i = 0; i < NumStaticEntries; i++)
+        {
             if (static_[i].match(key))
+            {
                 return static_ + i;
+            }
+        }
 
         KVGroup* p = list_.get();
         while (p)
         {
             KVPair* const kv = p->find(key);
             if (kv)
+            {
                 return kv;
+            }
             p = p->getNextListNode();
         }
         return NULL;
@@ -109,7 +124,9 @@ UAVCAN_PACKED_END
                 }
             }
             if (stat == NULL)
+            {
                 break;
+            }
 
             // Looking for the first NON-EMPTY dynamic entry, erasing immediately
             KVGroup* p = list_.get();
@@ -128,11 +145,15 @@ UAVCAN_PACKED_END
                     }
                 }
                 if (stop)
+                {
                     break;
+                }
                 p = p->getNextListNode();
             }
             if (dyn.match(Key()))
+            {
                 break;
+            }
 
             // Migrating
             *stat = dyn;
@@ -174,7 +195,7 @@ UAVCAN_PACKED_END
 
 public:
     Map(IAllocator& allocator)
-    : allocator_(allocator)
+        : allocator_(allocator)
     {
         assert(Key() == Key());
     }
@@ -203,7 +224,9 @@ public:
 
         KVGroup* const kvg = KVGroup::instantiate(allocator_);
         if (kvg == NULL)
+        {
             return NULL;
+        }
         list_.insert(kvg);
         kvg->kvs[0] = KVPair(key, value);
         return &kvg->kvs[0].value;
@@ -313,8 +336,12 @@ public:
     {
         unsigned int num = 0;
         for (unsigned int i = 0; i < NumStaticEntries; i++)
+        {
             if (!static_[i].match(Key()))
+            {
                 num++;
+            }
+        }
         return num;
     }
 
@@ -329,7 +356,9 @@ public:
             {
                 const KVPair* const kv = p->kvs + i;
                 if (!kv->match(Key()))
+                {
                     num++;
+                }
             }
             p = p->getNextListNode();
         }

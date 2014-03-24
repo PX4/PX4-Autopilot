@@ -20,18 +20,20 @@ class MethodBinder
     void validateBeforeCall() const
     {
         if (!operator bool())
+        {
             handleFatalError("Null method binder");
+        }
     }
 
 public:
     MethodBinder()
-    : obj_()
-    , fun_()
+        : obj_()
+        , fun_()
     { }
 
     MethodBinder(ObjectPtr o, MemFunPtr f)
-    : obj_(o)
-    , fun_(f)
+        : obj_(o)
+        , fun_(f)
     { }
 
     operator bool() const

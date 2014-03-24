@@ -22,8 +22,8 @@ public:
 class RestartRequestServer : Noncopyable
 {
     typedef MethodBinder<const RestartRequestServer*,
-        void(RestartRequestServer::*)(const ReceivedDataStructure<protocol::RestartNode::Request>&,
-            protocol::RestartNode::Response&) const> RestartNodeCallback;
+                         void (RestartRequestServer::*)(const ReceivedDataStructure<protocol::RestartNode::Request>&,
+                                                        protocol::RestartNode::Response&) const> RestartNodeCallback;
 
     ServiceServer<protocol::RestartNode, RestartNodeCallback> srv_;
     IRestartRequestHandler* handler_;
@@ -33,8 +33,8 @@ class RestartRequestServer : Noncopyable
 
 public:
     RestartRequestServer(INode& node)
-    : srv_(node)
-    , handler_(NULL)
+        : srv_(node)
+        , handler_(NULL)
     { }
 
     IRestartRequestHandler* getHandler() const { return handler_; }

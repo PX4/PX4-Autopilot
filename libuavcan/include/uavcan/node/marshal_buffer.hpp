@@ -59,7 +59,9 @@ public:
     IMarshalBuffer* getBuffer(unsigned int size)
     {
         if (size > MaxSize)
+        {
             return NULL;
+        }
         buffer_.reset();
         return &buffer_;
     }

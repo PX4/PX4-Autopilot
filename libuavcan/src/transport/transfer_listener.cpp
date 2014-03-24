@@ -22,10 +22,10 @@ int IncomingTransfer::write(unsigned int, const uint8_t*, unsigned int)
  * SingleFrameIncomingTransfer
  */
 SingleFrameIncomingTransfer::SingleFrameIncomingTransfer(const RxFrame& frm)
-: IncomingTransfer(frm.getMonotonicTimestamp(), frm.getUtcTimestamp(), frm.getTransferType(),
-                   frm.getTransferID(), frm.getSrcNodeID(), frm.getIfaceIndex())
-, payload_(frm.getPayloadPtr())
-, payload_len_(frm.getPayloadLen())
+    : IncomingTransfer(frm.getMonotonicTimestamp(), frm.getUtcTimestamp(), frm.getTransferType(),
+                       frm.getTransferID(), frm.getSrcNodeID(), frm.getIfaceIndex())
+    , payload_(frm.getPayloadPtr())
+    , payload_len_(frm.getPayloadLen())
 {
     assert(frm.isValid());
 }
@@ -38,9 +38,13 @@ int SingleFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsign
         return -1;
     }
     if (offset >= payload_len_)
+    {
         return 0;
+    }
     if ((offset + len) > payload_len_)
+    {
         len = payload_len_ - offset;
+    }
     assert((offset + len) <= payload_len_);
     std::copy(payload_ + offset, payload_ + offset + len, data);
     return len;
@@ -51,9 +55,9 @@ int SingleFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsign
  */
 MultiFrameIncomingTransfer::MultiFrameIncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc,
                                                        const RxFrame& last_frame, TransferBufferAccessor& tba)
-: IncomingTransfer(ts_mono, ts_utc, last_frame.getTransferType(), last_frame.getTransferID(),
-                   last_frame.getSrcNodeID(), last_frame.getIfaceIndex())
-, buf_acc_(tba)
+    : IncomingTransfer(ts_mono, ts_utc, last_frame.getTransferType(), last_frame.getTransferID(),
+                       last_frame.getSrcNodeID(), last_frame.getIfaceIndex())
+    , buf_acc_(tba)
 {
     assert(last_frame.isValid());
     assert(last_frame.isLast());
@@ -87,7 +91,9 @@ bool TransferListenerBase::checkPayloadCrc(const uint16_t compare_with, const IT
             return false;
         }
         if (res == 0)
+        {
             break;
+        }
         offset += res;
         crc.add(buf, res);
     }
@@ -106,8 +112,10 @@ void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxF
     switch (receiver.addFrame(frame, tba))
     {
     case TransferReceiver::ResultNotComplete:
+    {
         return;
 
+    }
     case TransferReceiver::ResultSingleFrame:
     {
         SingleFrameIncomingTransfer it(frame);
@@ -138,8 +146,10 @@ void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxF
     }
 
     default:
+    {
         assert(0);
         break;
+    }
     }
 }
 

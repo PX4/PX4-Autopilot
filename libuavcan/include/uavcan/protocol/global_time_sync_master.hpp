@@ -26,8 +26,8 @@ class GlobalTimeSyncMaster : protected LoopbackFrameListenerBase
 
     public:
         IfaceMaster(INode& node, uint8_t iface_index)
-        : pub_(node)
-        , iface_index_(iface_index)
+            : pub_(node)
+            , iface_index_(iface_index)
         {
             assert(iface_index < MaxCanIfaces);
         }
@@ -48,9 +48,9 @@ class GlobalTimeSyncMaster : protected LoopbackFrameListenerBase
 
 public:
     GlobalTimeSyncMaster(INode& node)
-    : LoopbackFrameListenerBase(node.getDispatcher())
-    , node_(node)
-    , initialized_(false)
+        : LoopbackFrameListenerBase(node.getDispatcher())
+        , node_(node)
+        , initialized_(false)
     { }
 
     int init();

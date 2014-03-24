@@ -25,13 +25,13 @@ class OutgoingTransferRegistryKey
 
 public:
     OutgoingTransferRegistryKey()
-    : transfer_type_(0xFF)
+        : transfer_type_(0xFF)
     { }
 
     OutgoingTransferRegistryKey(DataTypeID data_type_id, TransferType transfer_type, NodeID destination_node_id)
-    : data_type_id_(data_type_id)
-    , transfer_type_(transfer_type)
-    , destination_node_id_(destination_node_id)
+        : data_type_id_(data_type_id)
+        , transfer_type_(transfer_type)
+        , destination_node_id_(destination_node_id)
     {
         assert((transfer_type == TransferTypeMessageBroadcast) == destination_node_id.isBroadcast());
 
@@ -56,8 +56,8 @@ public:
     {
         std::ostringstream os;
         os << "dtid=" << int(data_type_id_.get())
-            << " tt=" << int(transfer_type_)
-            << " dnid=" << int(destination_node_id_.get());
+           << " tt=" << int(transfer_type_)
+           << " dnid=" << int(destination_node_id_.get());
         return os.str();
     }
 };
@@ -77,13 +77,13 @@ public:
 template <int NumStaticEntries>
 class OutgoingTransferRegistry : public IOutgoingTransferRegistry, Noncopyable
 {
-UAVCAN_PACKED_BEGIN
+    UAVCAN_PACKED_BEGIN
     struct Value
     {
         MonotonicTime deadline;
         TransferID tid;
     };
-UAVCAN_PACKED_END
+    UAVCAN_PACKED_END
 
     class DeadlineExpiredPredicate
     {
@@ -91,7 +91,7 @@ UAVCAN_PACKED_END
 
     public:
         DeadlineExpiredPredicate(MonotonicTime ts)
-        : ts_(ts)
+            : ts_(ts)
         { }
 
         bool operator()(const OutgoingTransferRegistryKey& key, const Value& value) const
@@ -115,8 +115,8 @@ UAVCAN_PACKED_END
 
     public:
         ExistenceCheckingPredicate(DataTypeID dtid, TransferType tt)
-        : dtid_(dtid)
-        , tt_(tt)
+            : dtid_(dtid)
+            , tt_(tt)
         { }
 
         bool operator()(const OutgoingTransferRegistryKey& key, const Value&) const
@@ -129,7 +129,7 @@ UAVCAN_PACKED_END
 
 public:
     OutgoingTransferRegistry(IAllocator& allocator)
-    : map_(allocator)
+        : map_(allocator)
     { }
 
     TransferID* accessOrCreate(const OutgoingTransferRegistryKey& key, MonotonicTime new_deadline)
@@ -140,7 +140,9 @@ public:
         {
             p = map_.insert(key, Value());
             if (p == NULL)
+            {
                 return NULL;
+            }
             UAVCAN_TRACE("OutgoingTransferRegistry", "Created %s", key.toString().c_str());
         }
         p->deadline = new_deadline;

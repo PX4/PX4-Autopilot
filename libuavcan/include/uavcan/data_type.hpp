@@ -34,7 +34,7 @@ public:
     DataTypeID() : value_(0xFFFF) { }
 
     DataTypeID(uint16_t id)
-    : value_(id)
+        : value_(id)
     {
         assert(isValid());
     }
@@ -81,14 +81,18 @@ public:
         static const uint64_t Poly = 0x42F0E1EBA9EA3693;
         crc_ ^= uint64_t(byte) << 56;
         for (int i = 0; i < 8; i++)
+        {
             crc_ = (crc_ & (uint64_t(1) << 63)) ? (crc_ << 1) ^ Poly : crc_ << 1;
+        }
     }
 
     void add(const uint8_t* bytes, unsigned int len)
     {
         assert(bytes);
         while (len--)
+        {
             add(*bytes++);
+        }
     }
 
     uint64_t get() const { return crc_ ^ 0xFFFFFFFFFFFFFFFF; }
@@ -127,15 +131,15 @@ public:
     enum { MaxFullNameLen = 80 };
 
     DataTypeDescriptor()
-    : kind_(DataTypeKind(0))
-    , full_name_("")
+        : kind_(DataTypeKind(0))
+        , full_name_("")
     { }
 
     DataTypeDescriptor(DataTypeKind kind, DataTypeID id, const DataTypeSignature& signature, const char* name)
-    : kind_(kind)
-    , id_(id)
-    , signature_(signature)
-    , full_name_(name)
+        : kind_(kind)
+        , id_(id)
+        , signature_(signature)
+        , full_name_(name)
     {
         assert(kind < NumDataTypeKinds);
         assert(name);

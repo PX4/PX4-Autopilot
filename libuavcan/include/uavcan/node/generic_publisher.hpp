@@ -24,8 +24,11 @@ namespace uavcan
 template <typename DataSpec, typename DataStruct>
 class GenericPublisher
 {
-    enum { Qos = (DataTypeKind(DataSpec::DataTypeKind) == DataTypeKindMessage) ?
-                  CanTxQueue::Volatile : CanTxQueue::Persistent };
+    enum
+    {
+        Qos = (DataTypeKind(DataSpec::DataTypeKind) == DataTypeKindMessage) ?
+              CanTxQueue::Volatile : CanTxQueue::Persistent
+    };
 
     const MonotonicDuration max_transfer_interval_;   // TODO: memory usage can be reduced
     MonotonicDuration tx_timeout_;
@@ -35,7 +38,9 @@ class GenericPublisher
     bool checkInit()
     {
         if (sender_)
+        {
             return true;
+        }
 
         GlobalDataTypeRegistry::instance().freeze();
 
@@ -63,11 +68,15 @@ class GenericPublisher
                        TransferID* tid, MonotonicTime blocking_deadline)
     {
         if (!checkInit())
+        {
             return -1;
+        }
 
         IMarshalBuffer* const buf = getBuffer();
         if (!buf)
+        {
             return -1;
+        }
 
         {
             BitStream bitstream(*buf);
@@ -94,9 +103,9 @@ class GenericPublisher
 public:
     GenericPublisher(INode& node, MonotonicDuration tx_timeout,
                      MonotonicDuration max_transfer_interval = TransferSender::getDefaultMaxTransferInterval())
-    : max_transfer_interval_(max_transfer_interval)
-    , tx_timeout_(tx_timeout)
-    , node_(node)
+        : max_transfer_interval_(max_transfer_interval)
+        , tx_timeout_(tx_timeout)
+        , node_(node)
     {
         setTxTimeout(tx_timeout);
 #if UAVCAN_DEBUG

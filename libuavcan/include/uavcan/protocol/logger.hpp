@@ -41,8 +41,8 @@ private:
 
 public:
     Logger(INode& node)
-    : logmsg_pub_(node)
-    , external_sink_(NULL)
+        : logmsg_pub_(node)
+        , external_sink_(NULL)
     {
         level_ = protocol::debug::LogLevel::ERROR;
         setTxTimeout(MonotonicDuration::fromMSec(DefaultTxTimeoutMs));

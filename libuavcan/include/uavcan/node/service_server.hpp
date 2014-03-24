@@ -11,8 +11,8 @@ namespace uavcan
 {
 
 template <typename DataType_,
-          typename Callback = void(*)(const ReceivedDataStructure<typename DataType_::Request>&,
-                                      typename DataType_::Response&),
+          typename Callback = void (*)(const ReceivedDataStructure<typename DataType_::Request>&,
+                                       typename DataType_::Response&),
           unsigned int NumStaticReceivers = 2,
           unsigned int NumStaticBufs = 1>
 class ServiceServer : public GenericSubscriber<DataType_, typename DataType_::Request,
@@ -45,10 +45,12 @@ private:
             callback_(request, response_);
         }
         else
+        {
             handleFatalError("Invalid service server callback");
+        }
 
         const int res = publisher_.publish(response_, TransferTypeServiceResponse, request.getSrcNodeID(),
-            request.getTransferID());
+                                           request.getTransferID());
         if (res < 0)
         {
             UAVCAN_TRACE("ServiceServer", "Response publication failure: %i", res);
@@ -58,10 +60,10 @@ private:
 
 public:
     explicit ServiceServer(INode& node)
-    : SubscriberType(node)
-    , publisher_(node, getDefaultTxTimeout())
-    , callback_()
-    , response_failure_count_(0)
+        : SubscriberType(node)
+        , publisher_(node, getDefaultTxTimeout())
+        , callback_()
+        , response_failure_count_(0)
     {
         assert(getTxTimeout() == getDefaultTxTimeout());  // Making sure it is valid
 

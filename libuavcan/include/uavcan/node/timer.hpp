@@ -22,8 +22,8 @@ struct TimerEvent
     MonotonicTime real_time;
 
     TimerEvent(MonotonicTime scheduled_time, MonotonicTime real_time)
-    : scheduled_time(scheduled_time)
-    , real_time(real_time)
+        : scheduled_time(scheduled_time)
+        , real_time(real_time)
     { }
 };
 
@@ -41,8 +41,8 @@ public:
     using DeadlineHandler::getScheduler;
 
     explicit Timer(INode& node)
-    : DeadlineHandler(node.getScheduler())
-    , period_(MonotonicDuration::getInfinite())
+        : DeadlineHandler(node.getScheduler())
+        , period_(MonotonicDuration::getInfinite())
     { }
 
     void startOneShotWithDeadline(MonotonicTime deadline);
@@ -63,20 +63,24 @@ class TimerEventForwarder : public Timer
     void handleTimerEvent(const TimerEvent& event)
     {
         if (try_implicit_cast<bool>(callback_, true))
+        {
             callback_(event);
+        }
         else
+        {
             handleFatalError("Invalid timer callback");
+        }
     }
 
 public:
     explicit TimerEventForwarder(INode& node)
-    : Timer(node)
-    , callback_()
+        : Timer(node)
+        , callback_()
     { }
 
     TimerEventForwarder(INode& node, Callback callback)
-    : Timer(node)
-    , callback_(callback)
+        : Timer(node)
+        , callback_(callback)
     { }
 
     const Callback& getCallback() const { return callback_; }

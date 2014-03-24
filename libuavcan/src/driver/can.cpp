@@ -52,17 +52,23 @@ std::string CanFrame::toString(StringRepresentation mode) const
     else
     {
         for (int dlen = 0; dlen < dlc; dlen++)                                 // hex bytes
+        {
             wpos += snprintf(wpos, epos - wpos, " %02x", (unsigned int)data[dlen]);
+        }
 
         while (mode == StrAligned && wpos < buf + ASCII_COLUMN_OFFSET)        // alignment
+        {
             *wpos++ = ' ';
+        }
 
         wpos += snprintf(wpos, epos - wpos, "  \'");                           // ascii
         for (int dlen = 0; dlen < dlc; dlen++)
         {
             uint8_t ch = data[dlen];
             if (ch < 0x20 || ch > 0x7E)
+            {
                 ch = '.';
+            }
             wpos += snprintf(wpos, epos - wpos, "%c", ch);
         }
         wpos += snprintf(wpos, epos - wpos, "\'");

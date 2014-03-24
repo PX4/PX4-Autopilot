@@ -7,12 +7,12 @@
 
 #if UAVCAN_DEBUG
 
-#include <cstdio>
-#include <cstdarg>
+# include <cstdio>
+# include <cstdarg>
 
-#if __GNUC__
-__attribute__ ((format (printf, 2, 3)))
-#endif
+# if __GNUC__
+__attribute__ ((format(printf, 2, 3)))
+# endif
 static void UAVCAN_TRACE(const char* src, const char* fmt, ...)
 {
     va_list args;
@@ -25,6 +25,6 @@ static void UAVCAN_TRACE(const char* src, const char* fmt, ...)
 
 #else
 
-#  define UAVCAN_TRACE(...) ((void)0)
+# define UAVCAN_TRACE(...) ((void)0)
 
 #endif

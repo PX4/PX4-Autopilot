@@ -16,13 +16,13 @@ namespace uavcan
 class DataTypeInfoProvider : Noncopyable
 {
     typedef MethodBinder<DataTypeInfoProvider*,
-        void (DataTypeInfoProvider::*)(const protocol::ComputeAggregateTypeSignature::Request&,
-                                       protocol::ComputeAggregateTypeSignature::Response&)>
+                         void (DataTypeInfoProvider::*)(const protocol::ComputeAggregateTypeSignature::Request&,
+                                                        protocol::ComputeAggregateTypeSignature::Response&)>
         ComputeAggregateTypeSignatureCallback;
 
     typedef MethodBinder<DataTypeInfoProvider*,
-        void (DataTypeInfoProvider::*)(const protocol::GetDataTypeInfo::Request&,
-                                       protocol::GetDataTypeInfo::Response&)> GetDataTypeInfoCallback;
+                         void (DataTypeInfoProvider::*)(const protocol::GetDataTypeInfo::Request&,
+                                                        protocol::GetDataTypeInfo::Response&)> GetDataTypeInfoCallback;
 
     ServiceServer<protocol::ComputeAggregateTypeSignature, ComputeAggregateTypeSignatureCallback> cats_srv_;
     ServiceServer<protocol::GetDataTypeInfo, GetDataTypeInfoCallback> gdti_srv_;
@@ -39,8 +39,8 @@ class DataTypeInfoProvider : Noncopyable
 
 public:
     DataTypeInfoProvider(INode& node)
-    : cats_srv_(node)
-    , gdti_srv_(node)
+        : cats_srv_(node)
+        , gdti_srv_(node)
     { }
 
     int start();

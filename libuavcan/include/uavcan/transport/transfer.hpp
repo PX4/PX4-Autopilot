@@ -33,11 +33,11 @@ public:
     enum { Max = (1 << BitLen) - 1 };
 
     TransferID()
-    : value_(0)
+        : value_(0)
     { }
 
     TransferID(uint8_t value)    // implicit
-    : value_(value)
+        : value_(value)
     {
         value_ &= Max;
         assert(value == value_);
@@ -82,16 +82,16 @@ public:
     NodeID() : value_(ValueInvalid) { }
 
     NodeID(uint8_t value)
-    : value_(value)
+        : value_(value)
     {
         assert(isValid());
     }
 
     uint8_t get() const { return value_; }
 
-    bool isValid() const     { return value_ <= Max; }
+    bool isValid()     const { return value_ <= Max; }
     bool isBroadcast() const { return value_ == ValueBroadcast; }
-    bool isUnicast() const   { return (value_ <= Max) && (value_ != ValueBroadcast); }
+    bool isUnicast()   const { return (value_ <= Max) && (value_ != ValueBroadcast); }
 
     bool operator!=(NodeID rhs) const { return !operator==(rhs); }
     bool operator==(NodeID rhs) const { return value_ == rhs.value_; }

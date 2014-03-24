@@ -32,7 +32,7 @@ public:
     enum { NumBytes = 2 };
 
     TransferCRC()
-    : value_(0xFFFF)
+        : value_(0xFFFF)
     { }
 
     void add(uint8_t byte)
@@ -44,7 +44,9 @@ public:
     {
         assert(bytes);
         while (len--)
+        {
             add(*bytes++);
+        }
     }
 
     uint16_t get() const { return value_; }

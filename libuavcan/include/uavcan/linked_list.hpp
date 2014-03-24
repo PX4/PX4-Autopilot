@@ -20,7 +20,7 @@ class LinkedListNode
 
 protected:
     LinkedListNode()
-    : next_(NULL)
+        : next_(NULL)
     { }
 
 public:
@@ -42,7 +42,7 @@ class LinkedListRoot
 
 public:
     LinkedListRoot()
-    : root_(NULL)
+        : root_(NULL)
     { }
 
     T* get() const { return root_; }
@@ -88,7 +88,9 @@ public:
             while (p->getNextListNode())
             {
                 if (predicate(p->getNextListNode()))
+                {
                     break;
+                }
                 p = p->getNextListNode();
             }
             node->setNextListNode(p->getNextListNode());
@@ -99,7 +101,9 @@ public:
     bool remove(const T* node)
     {
         if (root_ == NULL || node == NULL)
+        {
             return false;
+        }
 
         if (root_ == node)
         {

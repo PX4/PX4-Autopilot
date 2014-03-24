@@ -22,8 +22,8 @@ class PanicBroadcaster : private Timer
 
 public:
     PanicBroadcaster(INode& node)
-    : Timer(node)
-    , pub_(node)
+        : Timer(node)
+        , pub_(node)
     {
         pub_.setTxTimeout(MonotonicDuration::fromMSec(protocol::Panic::BROADCASTING_INTERVAL_MS - 10));
     }

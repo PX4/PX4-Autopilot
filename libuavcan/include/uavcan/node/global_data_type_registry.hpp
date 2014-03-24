@@ -13,7 +13,7 @@
 #include <uavcan/fatal_error.hpp>
 #include <uavcan/linked_list.hpp>
 #if UAVCAN_DEBUG
-#include <uavcan/debug.hpp>
+# include <uavcan/debug.hpp>
 #endif
 
 namespace uavcan
@@ -30,7 +30,7 @@ class GlobalDataTypeRegistry : Noncopyable
         Entry() { }
 
         Entry(DataTypeKind kind, DataTypeID id, const DataTypeSignature& signature, const char* name)
-        : descriptor(kind, id, signature, name)
+            : descriptor(kind, id, signature, name)
         { }
     };
 
@@ -75,19 +75,25 @@ public:
     RegistResult regist(DataTypeID id)
     {
         if (isFrozen())
+        {
             return RegistResultFrozen;
+        }
 
         static Entry entry;
         {
             const RegistResult remove_res = remove(&entry);
             if (remove_res != RegistResultOk)
+            {
                 return remove_res;
+            }
         }
         entry = Entry(DataTypeKind(Type::DataTypeKind), id, Type::getDataTypeSignature(), Type::getDataTypeFullName());
         {
             const RegistResult remove_res = remove(&entry);
             if (remove_res != RegistResultOk)
+            {
                 return remove_res;
+            }
         }
         return registImpl(&entry);
     }
@@ -114,9 +120,13 @@ public:
                      int(frozen_), getNumMessageTypes(), getNumServiceTypes());
         frozen_ = false;
         while (msgs_.get())
+        {
             msgs_.remove(msgs_.get());
+        }
         while (srvs_.get())
+        {
             srvs_.remove(srvs_.get());
+        }
     }
 #endif
 };
@@ -131,7 +141,9 @@ struct DefaultDataTypeRegistrator
             GlobalDataTypeRegistry::instance().regist<Type>(Type::DefaultDataTypeID);
 
         if (res != GlobalDataTypeRegistry::RegistResultOk)
+        {
             handleFatalError("Type registration failed");
+        }
     }
 };
 

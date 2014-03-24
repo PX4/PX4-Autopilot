@@ -35,13 +35,13 @@ public:
 
     TransferSender(Dispatcher& dispatcher, const DataTypeDescriptor& data_type, CanTxQueue::Qos qos,
                    MonotonicDuration max_transfer_interval = getDefaultMaxTransferInterval())
-    : max_transfer_interval_(max_transfer_interval)
-    , data_type_(data_type)
-    , qos_(qos)
-    , crc_base_(data_type.getSignature().toTransferCRC())
-    , flags_(CanIOFlags(0))
-    , iface_mask_(AllIfacesMask)
-    , dispatcher_(dispatcher)
+        : max_transfer_interval_(max_transfer_interval)
+        , data_type_(data_type)
+        , qos_(qos)
+        , crc_base_(data_type.getSignature().toTransferCRC())
+        , flags_(CanIOFlags(0))
+        , iface_mask_(AllIfacesMask)
+        , dispatcher_(dispatcher)
     { }
 
     CanIOFlags getCanIOFlags() const { return flags_; }

@@ -15,7 +15,7 @@
     } else {                                                       \
         *dst &= reverse_mask[dst_offset_modulo] |                  \
                 reverse_mask_xor[dst_offset_modulo + src_len + 1]; \
-         c &= reverse_mask[dst_offset_modulo + src_len];           \
+        c &= reverse_mask[dst_offset_modulo + src_len];            \
         src_len = 0;                                               \
     } } while (0)
 
