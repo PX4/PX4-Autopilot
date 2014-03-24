@@ -72,6 +72,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/actuator_armed.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <geo/geo.h>
@@ -1146,6 +1147,55 @@ void print_status()
 	       (staticMode) ? "STATIC_MODE" : "DYNAMIC_MODE");
 }
 
+int trip_nan() {
+
+	int ret = 0;
+
+	// If system is not armed, inject a NaN value into the filter
+	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+
+	struct actuator_armed_s armed;
+	orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
+
+	if (armed.armed) {
+		warnx("ACTUATORS ARMED! NOT TRIPPING SYSTEM");
+		ret = 1;
+	} else {
+
+		float nan_val = 0.0f / 0.0f;
+
+		warnx("system not armed, tripping state vector with NaN values");
+		states[5] = nan_val;
+		usleep(100000);
+
+		// warnx("tripping covariance #1 with NaN values");
+		// KH[2][2] = nan_val; //  intermediate result used for covariance updates
+		// usleep(100000);
+
+		// warnx("tripping covariance #2 with NaN values");
+		// KHP[5][5] = nan_val; // intermediate result used for covariance updates
+		// usleep(100000);
+
+		warnx("tripping covariance #3 with NaN values");
+		P[3][3] = nan_val; // covariance matrix
+		usleep(100000);
+
+		warnx("tripping Kalman gains with NaN values");
+		Kfusion[0] = nan_val; // Kalman gains
+		usleep(100000);
+
+		warnx("tripping stored states[0] with NaN values");
+		storedStates[0][0] = nan_val;
+		usleep(100000);
+
+		warnx("\nDONE - FILTER STATE:");
+		print_status();
+	}
+
+	close(armed_sub);
+	return ret;
+}
+
 int fw_att_pos_estimator_main(int argc, char *argv[])
 {
 	if (argc < 1)
@@ -1186,6 +1236,17 @@ int fw_att_pos_estimator_main(int argc, char *argv[])
 			print_status();
 
 			exit(0);
+
+		} else {
+			errx(1, "not running");
+		}
+	}
+
+	if (!strcmp(argv[1], "trip")) {
+		if (estimator::g_estimator) {
+			int ret = trip_nan();
+
+			exit(ret);
 
 		} else {
 			errx(1, "not running");
