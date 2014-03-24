@@ -66,8 +66,8 @@ int test_adc(int argc, char *argv[])
 	}
 
 	for (unsigned i = 0; i < 5; i++) {
-		/* make space for a maximum of eight channels */
-		struct adc_msg_s data[8];
+		/* make space for a maximum of twelve channels */
+		struct adc_msg_s data[12];
 		/* read all channels available */
 		ssize_t count = read(fd, data, sizeof(data));
 
