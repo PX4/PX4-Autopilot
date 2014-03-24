@@ -67,7 +67,6 @@ struct estimator_status_report {
 	bool states_nan;			/**< If set to true, one of the states is NaN */
 	bool covariance_nan;			/**< If set to true, the covariance matrix went NaN */
 	bool kalman_gain_nan;			/**< If set to true, the Kalman gain matrix went NaN */
-	bool states_out_of_bounds;		/**< If set to true, one of the states is out of bounds */
 
 };
 
