@@ -196,7 +196,7 @@ bool CanTxQueue::topPriorityHigherOrEqual(const CanFrame& rhs_frame) const
  */
 int CanIOManager::sendToIface(int iface_index, const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags)
 {
-    assert(iface_index >= 0 && iface_index < MaxIfaces);
+    assert(iface_index >= 0 && iface_index < MaxCanIfaces);
     ICanIface* const iface = driver_.getIface(iface_index);
     if (iface == NULL)
     {
@@ -214,7 +214,7 @@ int CanIOManager::sendToIface(int iface_index, const CanFrame& frame, MonotonicT
 
 int CanIOManager::sendFromTxQueue(int iface_index)
 {
-    assert(iface_index >= 0 && iface_index < MaxIfaces);
+    assert(iface_index >= 0 && iface_index < MaxCanIfaces);
     CanTxQueue::Entry* entry = tx_queues_[iface_index].peek();
     if (entry == NULL)
         return 0;
@@ -238,14 +238,14 @@ int CanIOManager::makePendingTxMask() const
 int CanIOManager::getNumIfaces() const
 {
     const int num = driver_.getNumIfaces();
-    assert(num > 0 && num <= MaxIfaces);
-    return std::min(std::max(num, 0), (int)MaxIfaces);
+    assert(num > 0 && num <= MaxCanIfaces);
+    return std::min(std::max(num, 0), (int)MaxCanIfaces);
 }
 
 uint64_t CanIOManager::getNumErrors(int iface_index) const
 {
     ICanIface* const iface = driver_.getIface(iface_index);
-    if (iface == NULL || iface_index >= MaxIfaces || iface_index < 0)
+    if (iface == NULL || iface_index >= MaxCanIfaces || iface_index < 0)
     {
         assert(0);
         return std::numeric_limits<uint64_t>::max();

@@ -18,6 +18,8 @@
 namespace uavcan
 {
 
+enum { MaxCanIfaces = 3 };
+
 struct CanRxFrame : public CanFrame
 {
     MonotonicTime ts_mono;
@@ -116,14 +118,10 @@ public:
 
 class CanIOManager : Noncopyable
 {
-public:
-    enum { MaxIfaces = 3 };
-
-private:
     ICanDriver& driver_;
     ISystemClock& sysclock_;
 
-    CanTxQueue tx_queues_[MaxIfaces];
+    CanTxQueue tx_queues_[MaxCanIfaces];
 
     // Noncopyable
     CanIOManager(CanIOManager&);
@@ -138,9 +136,9 @@ public:
     : driver_(driver)
     , sysclock_(sysclock)
     {
-        assert(driver.getNumIfaces() <= MaxIfaces);
+        assert(driver.getNumIfaces() <= MaxCanIfaces);
         // We can't initialize member array with non-default constructors in C++03
-        for (int i = 0; i < MaxIfaces; i++)
+        for (int i = 0; i < MaxCanIfaces; i++)
         {
             tx_queues_[i].~CanTxQueue();
             new (tx_queues_ + i) CanTxQueue(&allocator, &sysclock);
