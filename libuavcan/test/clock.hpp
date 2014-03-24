@@ -62,6 +62,8 @@ public:
 class SystemClockDriver : public uavcan::ISystemClock
 {
 public:
+    uavcan::UtcDuration utc_adjustment;
+
     uavcan::MonotonicTime getMonotonic() const
     {
         struct timespec ts;
@@ -83,12 +85,12 @@ public:
             assert(0);
             return uavcan::UtcTime();
         }
-        return uavcan::UtcTime::fromUSec(uint64_t(tv.tv_sec) * 1000000UL + tv.tv_usec);
+        return uavcan::UtcTime::fromUSec(uint64_t(tv.tv_sec) * 1000000UL + tv.tv_usec) + utc_adjustment;
     }
 
-    void adjustUtc(uavcan::UtcDuration)
+    void adjustUtc(uavcan::UtcDuration adjustment)
     {
-        assert(0);
+        utc_adjustment += adjustment;
     }
 };
 
