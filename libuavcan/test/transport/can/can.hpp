@@ -42,6 +42,7 @@ public:
     bool rx_failure;
     uint64_t num_errors;
     uavcan::ISystemClock& iclock;
+    bool enable_utc_timestamping;
 
     CanIfaceMock(uavcan::ISystemClock& iclock)
     : writeable(true)
@@ -49,6 +50,7 @@ public:
     , rx_failure(false)
     , num_errors(0)
     , iclock(iclock)
+    , enable_utc_timestamping(false)
     { }
 
     void pushRx(const uavcan::CanFrame& frame)
@@ -131,7 +133,7 @@ public:
             out_frame = frame.frame;
             out_ts_monotonic = frame.time;
         }
-        out_ts_utc = uavcan::UtcTime();
+        out_ts_utc = enable_utc_timestamping ? iclock.getUtc() : uavcan::UtcTime();
         return 1;
     }
 
