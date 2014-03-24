@@ -139,6 +139,8 @@ public:
 
     const ISystemClock& getSystemClock() const { return sysclock_; }
     ISystemClock& getSystemClock() { return sysclock_; }
+
+    const CanIOManager& getCanIOManager() const { return canio_; }
 };
 
 }
