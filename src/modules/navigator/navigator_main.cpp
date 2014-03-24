@@ -880,7 +880,7 @@ Navigator::task_main()
 		/* predict target position */
 		if (_vstatus.condition_target_position_valid) {
 			/* time interval between target and vehicle position estimates */
-			float target_dt = math::constrain((_global_pos.time_gps_usec - _target_pos.time_gps_usec) / 1000000.0f, 0.0f, 1.0f);
+			float target_dt = math::constrain(((int64_t)_global_pos.time_gps_usec - (int64_t)_target_pos.time_gps_usec) / 1000000.0f, 0.0f, 1.0f);
 
 			/* position change prediction */
 			math::Vector<3> dpos(_target_pos.vel_n, _target_pos.vel_e, _target_pos.vel_d);
