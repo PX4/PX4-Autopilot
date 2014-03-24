@@ -171,8 +171,18 @@ void quatNorm(float (&quatOut)[4], const float quatIn[4]);
 // store staes along with system time stamp in msces
 void StoreStates(uint64_t timestamp_ms);
 
-// recall stste vector stored at closest time to the one specified by msec
-void RecallStates(float statesForFusion[n_states], uint64_t msec);
+/**
+ * Recall the state vector.
+ *
+ * Recalls the vector stored at closest time to the one specified by msec
+ *
+ * @return zero on success, integer indicating the number of invalid states on failure.
+ *         Does only copy valid states, if the statesForFusion vector was initialized
+ *         correctly by the caller, the result can be safely used, but is a mixture
+ *         time-wise where valid states were updated and invalid remained at the old
+ *         value.
+ */
+int RecallStates(float statesForFusion[n_states], uint64_t msec);
 
 void ResetStoredStates();
 

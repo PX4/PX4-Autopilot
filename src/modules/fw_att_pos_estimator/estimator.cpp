@@ -1674,34 +1674,49 @@ void ResetStoredStates()
 }
 
 // Output the state vector stored at the time that best matches that specified by msec
-void RecallStates(float statesForFusion[n_states], uint64_t msec)
+int RecallStates(float statesForFusion[n_states], uint64_t msec)
 {
-    // int64_t bestTimeDelta = 200;
-    // unsigned bestStoreIndex = 0;
-    // for (unsigned storeIndex = 0; storeIndex < data_buffer_size; storeIndex++)
-    // {
-    //     // The time delta can also end up as negative number,
-    //     // since we might compare future to past or past to future
-    //     // therefore cast to int64.
-    //     int64_t timeDelta = (int64_t)msec - (int64_t)statetimeStamp[storeIndex];
-    //     if (timeDelta < 0) {
-    //         timeDelta = -timeDelta;
-    //     }
+    int ret = 0;
 
-    //     if (timeDelta < bestTimeDelta)
-    //     {
-    //         bestStoreIndex = storeIndex;
-    //         bestTimeDelta = timeDelta;
-    //     }
-    // }
-    // if (bestTimeDelta < 200) // only output stored state if < 200 msec retrieval error
-    // {
-    //     for (uint8_t i=0; i < n_states; i++) statesForFusion[i] = storedStates[i][bestStoreIndex];
-    // }
-    // else // otherwise output current state
-    // {
-        for (uint8_t i=0; i < n_states; i++) statesForFusion[i] = states[i];
-    // }
+    int64_t bestTimeDelta = 200;
+    unsigned bestStoreIndex = 0;
+    for (unsigned storeIndex = 0; storeIndex < data_buffer_size; storeIndex++)
+    {
+        // The time delta can also end up as negative number,
+        // since we might compare future to past or past to future
+        // therefore cast to int64.
+        int64_t timeDelta = (int64_t)msec - (int64_t)statetimeStamp[storeIndex];
+        if (timeDelta < 0) {
+            timeDelta = -timeDelta;
+        }
+
+        if (timeDelta < bestTimeDelta)
+        {
+            bestStoreIndex = storeIndex;
+            bestTimeDelta = timeDelta;
+        }
+    }
+    if (bestTimeDelta < 200) // only output stored state if < 200 msec retrieval error
+    {
+        for (uint8_t i=0; i < n_states; i++) {
+            if (isfinite(storedStates[i][bestStoreIndex])) {
+                statesForFusion[i] = storedStates[i][bestStoreIndex];
+            } else if (isfinite(states[i])) {
+                statesForFusion[i] = states[i];
+            } else {
+                // There is not much we can do here, except reporting the error we just
+                // found.
+                ret++;
+            }
+    }
+    else // otherwise output current state
+    {
+        for (uint8_t i=0; i < n_states; i++) {
+            statesForFusion[i] = states[i];
+        }
+    }
+
+    return ret;
 }
 
 void quat2Tnb(Mat3f &Tnb, const float (&quat)[4])
