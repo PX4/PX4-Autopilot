@@ -24,6 +24,7 @@ class GlobalTimeSyncSlave : Noncopyable
     MonotonicTime last_adjustment_ts_;
     enum State { Update, Adjust } state_;
     NodeID master_nid_;
+    TransferID prev_tid_;
     uint8_t prev_iface_index_;
 
     ISystemClock& getSystemClock() const { return sub_.getNode().getSystemClock(); }
@@ -48,6 +49,8 @@ public:
     bool isActive() const;
 
     NodeID getMasterNodeID() const;
+
+    MonotonicTime getLastAdjustmentTime() const { return last_adjustment_ts_; }
 };
 
 }
