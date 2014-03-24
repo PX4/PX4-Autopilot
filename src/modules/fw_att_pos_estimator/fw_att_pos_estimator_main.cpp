@@ -758,6 +758,7 @@ FixedwingEstimator::task_main()
 				while ((i < ekf_n_states) && (i < max_states)) {
 
 					rep.states[i] = ekf_report.states[i];
+					i++;
 				}
 
 				if (_estimator_status_pub > 0) {
