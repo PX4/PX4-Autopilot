@@ -58,6 +58,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/home_position.h>
 #include <uORB/topics/optical_flow.h>
 #include <mavlink/mavlink_log.h>
 #include <poll.h>
@@ -215,6 +216,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	const hrt_abstime ref_init_delay = 1000000;	// wait for 1s after 3D fix
 	struct map_projection_reference_s ref;
 	memset(&ref, 0, sizeof(ref));
+	hrt_abstime home_timestamp = 0;
 
 	uint16_t accel_updates = 0;
 	uint16_t baro_updates = 0;
@@ -267,6 +269,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&sensor, 0, sizeof(sensor));
 	struct vehicle_gps_position_s gps;
 	memset(&gps, 0, sizeof(gps));
+	struct home_position_s home;
+	memset(&home, 0, sizeof(home));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
 	struct vehicle_local_position_s local_pos;
@@ -284,6 +288,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	int home_position_sub = orb_subscribe(ORB_ID(home_position));
 
 	/* advertise */
 	orb_advert_t vehicle_local_position_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos);
@@ -531,29 +536,56 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				flow_updates++;
 			}
 
+			/* home position */
+			orb_check(home_position_sub, &updated);
+
+			if (updated) {
+				orb_copy(ORB_ID(home_position), home_position_sub, &home);
+
+				if (home.timestamp != home_timestamp) {
+					home_timestamp = home.timestamp;
+					if (ref_inited) {
+						ref_inited = true;
+
+						/* reproject position estimate to new reference */
+						float dx, dy;
+						map_projection_project(&ref, home.lat, home.lon, &dx, &dy);
+						est_x[0] -= dx;
+						est_y[0] -= dx;
+						est_z[0] += home.alt - local_pos.ref_alt;
+					}
+
+					/* update baro offset */
+					baro_offset -= home.alt - local_pos.ref_alt;
+
+					/* update reference */
+					map_projection_init(&ref, home.lat, home.lon);
+
+					local_pos.ref_lat = home.lat;
+					local_pos.ref_lon = home.lon;
+					local_pos.ref_alt = home.alt;
+					local_pos.ref_timestamp = home.timestamp;
+				}
+			}
+
 			/* vehicle GPS position */
 			orb_check(vehicle_gps_position_sub, &updated);
 
 			if (updated) {
 				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
 
-				if (gps.fix_type >= 3) {
-					/* hysteresis for GPS quality */
-					if (gps_valid) {
-						if (gps.eph_m > 10.0f || gps.epv_m > 20.0f) {
-							gps_valid = false;
-							mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
-						}
-
-					} else {
-						if (gps.eph_m < 5.0f && gps.epv_m < 10.0f) {
-							gps_valid = true;
-							mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
-						}
+				/* hysteresis for GPS quality */
+				if (gps_valid) {
+					if (gps.eph_m > 10.0f || gps.epv_m > 20.0f || gps.fix_type < 3) {
+						gps_valid = false;
+						mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
 					}
 
 				} else {
-					gps_valid = false;
+					if (gps.eph_m < 5.0f && gps.epv_m < 10.0f && gps.fix_type >= 3) {
+						gps_valid = true;
+						mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
+					}
 				}
 
 				if (gps_valid) {
@@ -569,9 +601,19 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							double lon = gps.lon * 1e-7;
 							float alt = gps.alt * 1e-3;
 
+							/* update baro offset */
+							baro_offset -= z_est[0];
+
+							/* set position estimate to (0, 0, 0), use GPS velocity for XY */
+							x_est[0] = 0.0f;
+							x_est[1] = gps.vel_n_m_s;
+							y_est[0] = 0.0f;
+							y_est[1] = gps.vel_e_m_s;
+							z_est[0] = 0.0f;
+
 							local_pos.ref_lat = lat;
 							local_pos.ref_lon = lon;
-							local_pos.ref_alt = alt + z_est[0];
+							local_pos.ref_alt = alt;
 							local_pos.ref_timestamp = t;
 
 							/* initialize projection */
