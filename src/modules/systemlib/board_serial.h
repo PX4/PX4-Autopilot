@@ -44,6 +44,6 @@
 
 __BEGIN_DECLS
 
-__EXPORT int get_board_serial(char *serialid);
+__EXPORT int get_board_serial(uint8_t *serialid);
 
 __END_DECLS
