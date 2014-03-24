@@ -10,25 +10,18 @@
 namespace uavcan
 {
 
-const GlobalDataTypeRegistry::List* GlobalDataTypeRegistry::selectList(DataTypeKind kind) const
+GlobalDataTypeRegistry::List* GlobalDataTypeRegistry::selectList(DataTypeKind kind) const
 {
-    switch (kind)
+    if (kind == DataTypeKindMessage)
     {
-    case DataTypeKindMessage: return &msgs_;
-    case DataTypeKindService: return &srvs_;
-    default:
-        assert(0);
-        return NULL;
+        return &msgs_;
     }
-}
-
-GlobalDataTypeRegistry::List* GlobalDataTypeRegistry::selectList(DataTypeKind kind)
-{
-    switch (kind)
+    else if (kind == DataTypeKindService)
     {
-    case DataTypeKindMessage: return &msgs_;
-    case DataTypeKindService: return &srvs_;
-    default:
+        return &srvs_;
+    }
+    else
+    {
         assert(0);
         return NULL;
     }

@@ -55,9 +55,18 @@ std::string DataTypeDescriptor::toString() const
     char kindch = '?';
     switch (kind_)
     {
-    case DataTypeKindMessage: kindch = 'm'; break;
-    case DataTypeKindService: kindch = 's'; break;
-    default: assert(0);
+    case DataTypeKindMessage:
+    {
+        kindch = 'm';
+        break;
+    }
+    case DataTypeKindService:
+    {
+        kindch = 's';
+        break;
+    }
+    default:
+        assert(0);
     }
 
     std::ostringstream os;

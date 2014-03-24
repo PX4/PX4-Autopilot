@@ -56,14 +56,13 @@ public:
 
 private:
     typedef LinkedListRoot<Entry> List;
-    List msgs_;
-    List srvs_;
+    mutable List msgs_;
+    mutable List srvs_;
     bool frozen_;
 
     GlobalDataTypeRegistry() : frozen_(false) { }
 
-    const List* selectList(DataTypeKind kind) const;
-    List* selectList(DataTypeKind kind);
+    List* selectList(DataTypeKind kind) const;
 
     RegistResult remove(Entry* dtd);
     RegistResult registImpl(Entry* dtd);

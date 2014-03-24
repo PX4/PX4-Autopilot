@@ -147,9 +147,11 @@ int DynamicTransferBufferManagerEntry::write(unsigned int offset, const uint8_t*
         len = max_size_ - offset;
     assert((offset + len) <= max_size_);
 
-    unsigned int total_offset = 0, left_to_write = len;
+    unsigned int total_offset = 0;
+    unsigned int left_to_write = len;
     const uint8_t* inptr = data;
-    Block* p = blocks_.get(), *last_written_block = NULL;
+    Block* p = blocks_.get();
+    Block* last_written_block = NULL;
 
     // First we need to write the part that is already allocated
     while (p)

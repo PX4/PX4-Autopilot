@@ -116,7 +116,8 @@ bool Frame::compile(CanFrame& out_can_frame) const
         return false;
     }
 
-    out_can_frame.id = CanFrame::FlagEFF |
+    out_can_frame.id =
+        CanFrame::FlagEFF |
         bitpack<0, 3>(transfer_id_.get()) |
         bitpack<3, 1>(last_frame_) |
         bitpack<4, 6>(frame_index_) |

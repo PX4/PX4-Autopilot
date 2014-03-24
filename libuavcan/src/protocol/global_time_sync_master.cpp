@@ -104,8 +104,8 @@ int GlobalTimeSyncMaster::init()
     }
 
     // Data type ID
-    const DataTypeDescriptor* const desc = GlobalDataTypeRegistry::instance().find(DataTypeKindMessage,
-        protocol::GlobalTimeSync::getDataTypeFullName());
+    const DataTypeDescriptor* const desc =
+        GlobalDataTypeRegistry::instance().find(DataTypeKindMessage, protocol::GlobalTimeSync::getDataTypeFullName());
     if (desc == NULL)
     {
         return -1;

@@ -26,7 +26,8 @@ std::string CanFrame::toString(StringRepresentation mode) const
     static const int ASCII_COLUMN_OFFSET = 36;
 
     char buf[50];
-    char* wpos = buf, *epos = buf + sizeof(buf);
+    char* wpos = buf;
+    char* const epos = buf + sizeof(buf);
     std::fill(buf, buf + sizeof(buf), 0);
 
     if (id & FlagEFF)

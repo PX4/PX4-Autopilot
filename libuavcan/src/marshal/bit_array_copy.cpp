@@ -7,16 +7,16 @@
 #include <cstring>
 #include <cstddef>
 
-#define PREPARE_FIRST_COPY()                                      \
-    do {                                                          \
-    if (src_len >= (CHAR_BIT - dst_offset_modulo)) {              \
-        *dst     &= reverse_mask[dst_offset_modulo];              \
-        src_len -= CHAR_BIT - dst_offset_modulo;                  \
-    } else {                                                      \
-        *dst     &= reverse_mask[dst_offset_modulo]               \
-              | reverse_mask_xor[dst_offset_modulo + src_len + 1];\
-         c       &= reverse_mask[dst_offset_modulo + src_len    ];\
-        src_len = 0;                                              \
+#define PREPARE_FIRST_COPY()                                       \
+    do {                                                           \
+    if (src_len >= (CHAR_BIT - dst_offset_modulo)) {               \
+        *dst &= reverse_mask[dst_offset_modulo];                   \
+        src_len -= CHAR_BIT - dst_offset_modulo;                   \
+    } else {                                                       \
+        *dst &= reverse_mask[dst_offset_modulo] |                  \
+                reverse_mask_xor[dst_offset_modulo + src_len + 1]; \
+         c &= reverse_mask[dst_offset_modulo + src_len];           \
+        src_len = 0;                                               \
     } } while (0)
 
 namespace uavcan

@@ -182,7 +182,8 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, Tr
     const bool iface_timed_out =
         (frame.getMonotonicTimestamp() - this_transfer_ts_).toUSec() > (uint64_t(transfer_interval_usec_) * 2);
 
-    const bool need_restart = // FSM, the hard way
+    // FSM, the hard way
+    const bool need_restart =
         (not_initialized) ||
         (receiver_timed_out) ||
         (same_iface && first_fame && (tid_rel == TidFuture)) ||
