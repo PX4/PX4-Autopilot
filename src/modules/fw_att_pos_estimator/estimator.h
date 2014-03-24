@@ -134,6 +134,22 @@ enum GPS_FIX {
     GPS_FIX_3D = 3
 };
 
+struct ekf_status_report {
+    bool velHealth;
+    bool posHealth;
+    bool hgtHealth;
+    bool velTimeout;
+    bool posTimeout;
+    bool hgtTimeout;
+    uint32_t velFailTime;
+    uint32_t posFailTime;
+    uint32_t hgtFailTime;
+    float states[n_states];
+    bool statesNaN;
+    bool covarianceNaN;
+    bool kalmanGainsNaN;
+};
+
 void  UpdateStrapdownEquationsNED();
 
 void CovariancePrediction(float dt);
@@ -155,8 +171,18 @@ void quatNorm(float (&quatOut)[4], const float quatIn[4]);
 // store staes along with system time stamp in msces
 void StoreStates(uint64_t timestamp_ms);
 
-// recall stste vector stored at closest time to the one specified by msec
-void RecallStates(float statesForFusion[n_states], uint64_t msec);
+/**
+ * Recall the state vector.
+ *
+ * Recalls the vector stored at closest time to the one specified by msec
+ *
+ * @return zero on success, integer indicating the number of invalid states on failure.
+ *         Does only copy valid states, if the statesForFusion vector was initialized
+ *         correctly by the caller, the result can be safely used, but is a mixture
+ *         time-wise where valid states were updated and invalid remained at the old
+ *         value.
+ */
+int RecallStates(float statesForFusion[n_states], uint64_t msec);
 
 void ResetStoredStates();
 
@@ -188,11 +214,22 @@ void ConstrainStates();
 
 void ForceSymmetry();
 
-void CheckAndBound();
+int CheckAndBound();
 
 void ResetPosition();
 
 void ResetVelocity();
+
+void ZeroVariables();
+
+void GetFilterState(struct ekf_status_report *state);
+
+void GetLastErrorState(struct ekf_status_report *last_error);
+
+bool StatesNaN(struct ekf_status_report *err_report);
+void FillErrorReport(struct ekf_status_report *err);
+
+void InitializeDynamic(float (&initvelNED)[3]);
 
 uint32_t millis();
 

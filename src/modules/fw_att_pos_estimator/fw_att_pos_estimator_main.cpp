@@ -71,6 +71,8 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/estimator_status.h>
+#include <uORB/topics/actuator_armed.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <geo/geo.h>
@@ -144,6 +146,7 @@ private:
 	orb_advert_t	_att_pub;			/**< vehicle attitude */
 	orb_advert_t	_global_pos_pub;		/**< global position */
 	orb_advert_t	_local_pos_pub;			/**< position in local frame */
+	orb_advert_t	_estimator_status_pub;		/**< status of the estimator */
 
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
 	struct gyro_report				_gyro;
@@ -260,6 +263,7 @@ FixedwingEstimator::FixedwingEstimator() :
 	_att_pub(-1),
 	_global_pos_pub(-1),
 	_local_pos_pub(-1),
+	_estimator_status_pub(-1),
 
 	_baro_ref(0.0f),
 	_baro_gps_offset(0.0f),
@@ -701,7 +705,68 @@ FixedwingEstimator::task_main()
 			/**
 			 *    CHECK IF THE INPUT DATA IS SANE
 			 */
-			CheckAndBound();
+			int check = CheckAndBound();
+
+			switch (check) {
+				case 0:
+					/* all ok */
+					break;
+				case 1:
+				{
+					const char* str = "NaN in states, resetting";
+					warnx(str);
+					mavlink_log_critical(_mavlink_fd, str);
+					break;
+				}
+				case 2:
+				{
+					const char* str = "stale IMU data, resetting";
+					warnx(str);
+					mavlink_log_critical(_mavlink_fd, str);
+					break;
+				}
+				case 3:
+				{
+					const char* str = "switching dynamic / static state";
+					warnx(str);
+					mavlink_log_critical(_mavlink_fd, str);
+					break;
+				}
+			}
+
+			// If non-zero, we got a problem
+			if (check) {
+
+				struct ekf_status_report ekf_report;
+
+				GetLastErrorState(&ekf_report);
+
+				struct estimator_status_report rep;
+				memset(&rep, 0, sizeof(rep));
+				rep.timestamp = hrt_absolute_time();
+
+				rep.states_nan = ekf_report.statesNaN;
+				rep.covariance_nan = ekf_report.covarianceNaN;
+				rep.kalman_gain_nan = ekf_report.kalmanGainsNaN;
+
+				// Copy all states or at least all that we can fit
+				int i = 0;
+				unsigned ekf_n_states = (sizeof(ekf_report.states) / sizeof(ekf_report.states[0]));
+				unsigned max_states = (sizeof(rep.states) / sizeof(rep.states[0]));
+				rep.n_states = (ekf_n_states < max_states) ? ekf_n_states : max_states;
+
+				while ((i < ekf_n_states) && (i < max_states)) {
+
+					rep.states[i] = ekf_report.states[i];
+					i++;
+				}
+
+				if (_estimator_status_pub > 0) {
+					orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &rep);
+				} else {
+					_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &rep);
+				}
+			}
 
 
 			/**
@@ -1083,6 +1148,55 @@ void print_status()
 	       (staticMode) ? "STATIC_MODE" : "DYNAMIC_MODE");
 }
 
+int trip_nan() {
+
+	int ret = 0;
+
+	// If system is not armed, inject a NaN value into the filter
+	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+
+	struct actuator_armed_s armed;
+	orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
+
+	if (armed.armed) {
+		warnx("ACTUATORS ARMED! NOT TRIPPING SYSTEM");
+		ret = 1;
+	} else {
+
+		float nan_val = 0.0f / 0.0f;
+
+		warnx("system not armed, tripping state vector with NaN values");
+		states[5] = nan_val;
+		usleep(100000);
+
+		// warnx("tripping covariance #1 with NaN values");
+		// KH[2][2] = nan_val; //  intermediate result used for covariance updates
+		// usleep(100000);
+
+		// warnx("tripping covariance #2 with NaN values");
+		// KHP[5][5] = nan_val; // intermediate result used for covariance updates
+		// usleep(100000);
+
+		warnx("tripping covariance #3 with NaN values");
+		P[3][3] = nan_val; // covariance matrix
+		usleep(100000);
+
+		warnx("tripping Kalman gains with NaN values");
+		Kfusion[0] = nan_val; // Kalman gains
+		usleep(100000);
+
+		warnx("tripping stored states[0] with NaN values");
+		storedStates[0][0] = nan_val;
+		usleep(100000);
+
+		warnx("\nDONE - FILTER STATE:");
+		print_status();
+	}
+
+	close(armed_sub);
+	return ret;
+}
+
 int fw_att_pos_estimator_main(int argc, char *argv[])
 {
 	if (argc < 1)
@@ -1123,6 +1237,17 @@ int fw_att_pos_estimator_main(int argc, char *argv[])
 			print_status();
 
 			exit(0);
+
+		} else {
+			errx(1, "not running");
+		}
+	}
+
+	if (!strcmp(argv[1], "trip")) {
+		if (estimator::g_estimator) {
+			int ret = trip_nan();
+
+			exit(ret);
 
 		} else {
 			errx(1, "not running");
