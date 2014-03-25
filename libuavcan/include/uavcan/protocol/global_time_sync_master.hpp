@@ -13,6 +13,7 @@
 namespace uavcan
 {
 /**
+ * Ref. M. Gergeleit, H. Streich - "Implementing a Distributed High-Resolution Real-Time Clock using the CAN-Bus"
  * TODO: Enforce max one master per node
  */
 class GlobalTimeSyncMaster : protected LoopbackFrameListenerBase

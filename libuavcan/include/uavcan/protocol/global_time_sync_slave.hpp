@@ -10,7 +10,10 @@
 
 namespace uavcan
 {
-
+/**
+ * Ref. M. Gergeleit, H. Streich - "Implementing a Distributed High-Resolution Real-Time Clock using the CAN-Bus"
+ * http://modecs.cs.uni-salzburg.at/results/related_documents/CAN_clock.pdf
+ */
 class GlobalTimeSyncSlave : Noncopyable
 {
     typedef MethodBinder<GlobalTimeSyncSlave*,
