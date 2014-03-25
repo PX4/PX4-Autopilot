@@ -14,8 +14,8 @@ struct GlobalTimeSyncMasterTestNode
     TestNode node;
 
     GlobalTimeSyncMasterTestNode(uavcan::NodeID nid)
-    : can(clock)
-    , node(can, clock, nid)
+        : can(clock)
+        , node(can, clock, nid)
     { }
 };
 
@@ -26,9 +26,9 @@ struct GlobalTimeSyncTestNetwork
     GlobalTimeSyncMasterTestNode master_high;
 
     GlobalTimeSyncTestNetwork()
-    : slave(64)
-    , master_low(120)
-    , master_high(8)
+        : slave(64)
+        , master_low(120)
+        , master_high(8)
     {
         slave.can.other = &master_low.can;
         master_low.can.other = &slave.can;

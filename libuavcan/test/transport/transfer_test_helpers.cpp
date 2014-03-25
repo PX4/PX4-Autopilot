@@ -43,7 +43,9 @@ TEST(TransferTestHelpers, MFTSerialization)
 
     std::cout << "Serialized transfer:\n";
     for (std::vector<uavcan::RxFrame>::const_iterator it = ser.begin(); it != ser.end(); ++it)
+    {
         std::cout << "\t" << it->toString() << "\n";
+    }
 
     for (std::vector<uavcan::RxFrame>::const_iterator it = ser.begin(); it != ser.end(); ++it)
     {
@@ -52,7 +54,9 @@ TEST(TransferTestHelpers, MFTSerialization)
         {
             uint8_t ch = it->getPayloadPtr()[i];
             if (ch < 0x20 || ch > 0x7E)
+            {
                 ch = '.';
+            }
             std::cout << static_cast<char>(ch);
         }
         std::cout << "'\n";

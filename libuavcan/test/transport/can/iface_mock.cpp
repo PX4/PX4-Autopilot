@@ -24,7 +24,9 @@ TEST(CanDriverMock, Basic)
     EXPECT_EQ(0, masks.read);
 
     for (int i = 0; i < 3; i++)
+    {
         driver.ifaces.at(i).writeable = false;
+    }
 
     // No WR, no RD
     masks.write = 7;

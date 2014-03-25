@@ -15,8 +15,8 @@ class DispatcherTransferEmulator : public IncomingTransferEmulatorBase
 
 public:
     DispatcherTransferEmulator(CanDriverMock& target, uavcan::NodeID dst_node_id = 127)
-    : IncomingTransferEmulatorBase(dst_node_id)
-    , target_(target)
+        : IncomingTransferEmulatorBase(dst_node_id)
+        , target_(target)
     { }
 
     void sendOneFrame(const uavcan::RxFrame& frame)
@@ -24,7 +24,9 @@ public:
         CanIfaceMock* const iface = static_cast<CanIfaceMock*>(target_.getIface(frame.getIfaceIndex()));
         EXPECT_TRUE(iface);
         if (iface)
+        {
             iface->pushRx(frame);
+        }
     }
 };
 
@@ -125,7 +127,9 @@ TEST(Dispatcher, Reception)
     ASSERT_TRUE(dispatcher.registerServiceResponseListener(subscribers[5].get()));
 
     for (int i = 0; i < NUM_SUBSCRIBERS; i++)
+    {
         ASSERT_FALSE(dispatcher.hasPublisher(subscribers[i]->getDataTypeDescriptor().getID()));
+    }
 
     // Subscribers
     ASSERT_TRUE(dispatcher.hasSubscriber(subscribers[0]->getDataTypeDescriptor().getID()));
@@ -147,7 +151,9 @@ TEST(Dispatcher, Reception)
     ASSERT_EQ(2, dispatcher.getNumServiceResponseListeners());
 
     for (int i = 0; i < NUM_SUBSCRIBERS; i++)
+    {
         ASSERT_TRUE(subscribers[i]->isEmpty());
+    }
 
     emulator.send(transfers);
     emulator.send(transfers);  // Just for fun, they will be ignored anyway.
@@ -158,7 +164,9 @@ TEST(Dispatcher, Reception)
         ASSERT_LE(0, res);
         clockmock.advance(100);
         if (res == 0)
+        {
             break;
+        }
     }
 
     /*
@@ -187,7 +195,9 @@ TEST(Dispatcher, Reception)
     ASSERT_TRUE(subscribers[5]->matchAndPop(transfers[3]));
 
     for (int i = 0; i < NUM_SUBSCRIBERS; i++)
+    {
         ASSERT_TRUE(subscribers[i]->isEmpty());
+    }
 
     /*
      * Unregistering all transfers
@@ -284,8 +294,8 @@ struct DispatcherTestLoopbackFrameListener : public uavcan::LoopbackFrameListene
     unsigned int count;
 
     DispatcherTestLoopbackFrameListener(uavcan::Dispatcher& dispatcher)
-    : uavcan::LoopbackFrameListenerBase(dispatcher)
-    , count(0)
+        : uavcan::LoopbackFrameListenerBase(dispatcher)
+        , count(0)
     { }
 
     using uavcan::LoopbackFrameListenerBase::startListening;

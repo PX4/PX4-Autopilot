@@ -52,7 +52,8 @@ TEST(CharArrayFormatter, Hardcore)
 
     CharArrayFormatter<A8> f(a);
 
-    f.write("%% char='%*' double='%*' long='%*' unsigned long='%*' int='%s' long double='%*' bool='%*' const char='%*' %%",
+    f.write(
+        "%% char='%*' double='%*' long='%*' unsigned long='%*' int='%s' long double='%*' bool='%*' const char='%*' %%",
         '%', -12.3456, -123456789123456789L, 987654321, -123456789, 0.000001L, true, "Don't Panic.");
 
     static const std::string Reference =

@@ -17,7 +17,7 @@ struct TimerCallCounter
     void callA(const uavcan::TimerEvent& ev) { events_a.push_back(ev); }
     void callB(const uavcan::TimerEvent& ev) { events_b.push_back(ev); }
 
-    typedef uavcan::MethodBinder<TimerCallCounter*, void(TimerCallCounter::*)(const uavcan::TimerEvent&)> Binder;
+    typedef uavcan::MethodBinder<TimerCallCounter*, void (TimerCallCounter::*)(const uavcan::TimerEvent&)> Binder;
 
     Binder bindA() { return Binder(this, &TimerCallCounter::callA); }
     Binder bindB() { return Binder(this, &TimerCallCounter::callB); }

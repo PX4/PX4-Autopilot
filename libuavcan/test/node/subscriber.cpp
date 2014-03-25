@@ -28,13 +28,13 @@ struct SubscriptionListener
         DataType msg;
 
         ReceivedDataStructureCopy(const ReceivedDataStructure& s)
-        : ts_monotonic(s.getMonotonicTimestamp())
-        , ts_utc(s.getUtcTimestamp())
-        , transfer_type(s.getTransferType())
-        , transfer_id(s.getTransferID())
-        , src_node_id(s.getSrcNodeID())
-        , iface_index(s.getIfaceIndex())
-        , msg(s)
+            : ts_monotonic(s.getMonotonicTimestamp())
+            , ts_utc(s.getUtcTimestamp())
+            , transfer_type(s.getTransferType())
+            , transfer_id(s.getTransferID())
+            , src_node_id(s.getSrcNodeID())
+            , iface_index(s.getIfaceIndex())
+            , msg(s)
         { }
     };
 
@@ -111,7 +111,7 @@ TEST(Subscriber, Basic)
     {
         uavcan::TransferType tt = (i & 1) ? uavcan::TransferTypeMessageUnicast : uavcan::TransferTypeMessageBroadcast;
         uavcan::NodeID dni = (tt == uavcan::TransferTypeMessageBroadcast) ?
-            uavcan::NodeID::Broadcast : node.getDispatcher().getNodeID();
+                             uavcan::NodeID::Broadcast : node.getDispatcher().getNodeID();
         // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
         // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame
         uavcan::Frame frame(uavcan::mavlink::Message::DefaultDataTypeID, tt, uavcan::NodeID(i + 100), dni, 0, i, true);

@@ -14,7 +14,7 @@ struct RestartHandler : public uavcan::IRestartRequestHandler
     bool handleRestartRequest(uavcan::NodeID request_source)
     {
         std::cout << "Restart request from " << int(request_source.get()) << " will be "
-            << (accept ? "accepted" : "rejected") << std::endl;
+                  << (accept ? "accepted" : "rejected") << std::endl;
         return accept;
     }
 };

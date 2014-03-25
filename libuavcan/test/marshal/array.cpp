@@ -106,11 +106,15 @@ TEST(Array, Basic)
      */
     ASSERT_FALSE(a1.empty());
     for (A1::const_iterator it = a1.begin(); it != a1.end(); ++it)
+    {
         ASSERT_EQ(0, *it);
+    }
 
     ASSERT_FALSE(a2.empty());
     for (A2::const_iterator it = a2.begin(); it != a2.end(); ++it)
+    {
         ASSERT_EQ(0, *it);
+    }
 
     for (A3::const_iterator it = a3.begin(); it != a3.end(); ++it)
     {
@@ -124,17 +128,21 @@ TEST(Array, Basic)
      * Modification with known values; array lengths are hard coded.
      */
     for (int i = 0; i < 4; i++)
+    {
         a1.at(i) = i;
-
+    }
     for (int i = 0; i < 2; i++)
+    {
         a2.at(i) = i;
-
+    }
     for (int i = 0; i < 2; i++)
     {
         a3[i].a = i;
         a3[i].b = i;
         for (int i2 = 0; i2 < 5; i2++)
+        {
             a3[i].c.push_back(i2 & 1);
+        }
         ASSERT_EQ(5, a3[i].c.size());
         ASSERT_FALSE(a3[i].c.empty());
     }
@@ -180,11 +188,13 @@ TEST(Array, Basic)
     ASSERT_EQ(a3_, a3);
 
     for (int i = 0; i < 4; i++)
+    {
         ASSERT_EQ(a1[i], a1_[i]);
-
+    }
     for (int i = 0; i < 2; i++)
+    {
         ASSERT_EQ(a2[i], a2_[i]);
-
+    }
     for (int i = 0; i < 2; i++)
     {
         ASSERT_EQ(a3[i].a, a3_[i].a);
@@ -346,10 +356,13 @@ TEST(Array, Dynamic)
     ASSERT_EQ(255, b.size());
 
     for (int i = 0; i < 5; i++)
+    {
         ASSERT_TRUE(a[i]);
-
+    }
     for (int i = 0; i < 255; i++)
+    {
         ASSERT_EQ(72, b[i]);
+    }
 }
 
 
@@ -566,8 +579,8 @@ TEST(Array, TailArrayOptimizationErrors)
 TEST(Array, DynamicEncodeDecodeErrors)
 {
     typedef CustomType2<Array<Array<IntegerSpec<8, SignednessUnsigned, CastModeSaturate>,
-                              ArrayModeDynamic, 255>,
-                        ArrayModeDynamic, 255> > A;
+                                    ArrayModeDynamic, 255>,
+                              ArrayModeDynamic, 255> > A;
     A a;
     a.b.resize(2);
     a.b[0].push_back(55);
@@ -598,8 +611,8 @@ TEST(Array, DynamicEncodeDecodeErrors)
 TEST(Array, StaticEncodeDecodeErrors)
 {
     typedef CustomType2<Array<Array<IntegerSpec<8, SignednessUnsigned, CastModeSaturate>,
-                              ArrayModeStatic, 2>,
-                        ArrayModeStatic, 2> > A;
+                                    ArrayModeStatic, 2>,
+                              ArrayModeStatic, 2> > A;
     A a;
     a.a = 1.0;
     a.b[0][0] = 0x11;
@@ -810,7 +823,9 @@ TEST(Array, MultidimensionalStreaming)
         {
             threedee[x][y].resize(3);
             for (int z = 0; z < threedee[x][y].size(); z++)
+            {
                 threedee[x][y][z] = 1.0 / (x + y + z + 1.0);
+            }
         }
     }
 

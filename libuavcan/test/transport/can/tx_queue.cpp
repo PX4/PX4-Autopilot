@@ -25,7 +25,9 @@ static bool isInQueue(uavcan::CanTxQueue& queue, const uavcan::CanFrame& frame)
     while (p)
     {
         if (frame == p->frame)
+        {
             return true;
+        }
         p = p->getNextListNode();
     }
     return false;

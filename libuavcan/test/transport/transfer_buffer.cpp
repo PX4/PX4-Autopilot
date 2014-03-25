@@ -26,7 +26,9 @@ template <typename T>
 static void fill(const T a, int value)
 {
     for (unsigned int i = 0; i < sizeof(a) / sizeof(a[0]); i++)
+    {
         a[i] = value;
+    }
 }
 
 static bool matchAgainst(const std::string& data, const uavcan::ITransferBuffer& tbb,
@@ -58,12 +60,8 @@ static bool matchAgainst(const std::string& data, const uavcan::ITransferBuffer&
     const bool equals = std::equal(local_buffer, local_buffer + len, data.begin() + offset);
     if (!equals)
     {
-        std::cout
-            << "local_buffer:\n\t" << local_buffer
-            << std::endl;
-        std::cout
-            << "test_data:\n\t" << std::string(data.begin() + offset, data.begin() + offset + len)
-            << std::endl;
+        std::cout << "local_buffer:\n\t" << local_buffer << std::endl;
+        std::cout << "test_data:\n\t" << std::string(data.begin() + offset, data.begin() + offset + len) << std::endl;
     }
     return equals;
 }

@@ -173,17 +173,20 @@ TEST(GlobalDataTypeRegistry, Basic)
     ASSERT_FALSE(GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindService, "my_namespace.DataTypeB"));
     ASSERT_FALSE(GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindService, 42));
 
-    ASSERT_TRUE((pdtd = GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindMessage, "my_namespace.DataTypeB")));
+    ASSERT_TRUE((pdtd = GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindMessage,
+                                                                "my_namespace.DataTypeB")));
     ASSERT_EQ(extractDescriptor<DataTypeB>(741), *pdtd);
     ASSERT_TRUE((pdtd = GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindMessage, 741)));
     ASSERT_EQ(extractDescriptor<DataTypeB>(741), *pdtd);
 
-    ASSERT_TRUE((pdtd = GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindMessage, "my_namespace.DataTypeA")));
+    ASSERT_TRUE((pdtd = GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindMessage,
+                                                                "my_namespace.DataTypeA")));
     ASSERT_EQ(extractDescriptor<DataTypeAMessage>(), *pdtd);
     ASSERT_TRUE((pdtd = GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindMessage, uavcan::DataTypeID(0))));
     ASSERT_EQ(extractDescriptor<DataTypeAMessage>(), *pdtd);
 
-    ASSERT_TRUE((pdtd = GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindService, "my_namespace.DataTypeA")));
+    ASSERT_TRUE((pdtd = GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindService,
+                                                                "my_namespace.DataTypeA")));
     ASSERT_EQ(extractDescriptor<DataTypeAService>(147), *pdtd);
     ASSERT_TRUE((pdtd = GlobalDataTypeRegistry::instance().find(uavcan::DataTypeKindService, 147)));
     ASSERT_EQ(extractDescriptor<DataTypeAService>(147), *pdtd);

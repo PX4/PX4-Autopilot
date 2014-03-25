@@ -23,15 +23,25 @@ static bool validateDataTypeInfoResponse(const std::auto_ptr<ServiceCallResult<G
                                          unsigned int mask)
 {
     if (!resp.get())
+    {
         return false;
+    }
     if (!resp->isSuccessful())
+    {
         return false;
+    }
     if (resp->response.name != DataType::getDataTypeFullName())
+    {
         return false;
+    }
     if (DataType::getDataTypeSignature().get() != resp->response.signature)
+    {
         return false;
+    }
     if (resp->response.mask != mask)
+    {
         return false;
+    }
     return true;
 }
 
@@ -62,8 +72,8 @@ TEST(DataTypeInfoProvider, Basic)
     nodes.spinBoth(MonotonicDuration::fromMSec(2));
 
     ASSERT_TRUE(validateDataTypeInfoResponse<GetDataTypeInfo>(gdti_cln.collector.result,
-        GetDataTypeInfo::Response::MASK_KNOWN |
-        GetDataTypeInfo::Response::MASK_SERVING));
+                                                              GetDataTypeInfo::Response::MASK_KNOWN |
+                                                              GetDataTypeInfo::Response::MASK_SERVING));
     ASSERT_EQ(1, gdti_cln.collector.result->server_node_id.get());
 
     /*
@@ -75,7 +85,7 @@ TEST(DataTypeInfoProvider, Basic)
     nodes.spinBoth(MonotonicDuration::fromMSec(2));
 
     ASSERT_TRUE(validateDataTypeInfoResponse<NodeStatus>(gdti_cln.collector.result,
-        GetDataTypeInfo::Response::MASK_KNOWN));
+                                                         GetDataTypeInfo::Response::MASK_KNOWN));
 
     /*
      * Starting publisher and subscriber for NodeStatus, requesting info again
@@ -91,9 +101,9 @@ TEST(DataTypeInfoProvider, Basic)
     nodes.spinBoth(MonotonicDuration::fromMSec(2));
 
     ASSERT_TRUE(validateDataTypeInfoResponse<NodeStatus>(gdti_cln.collector.result,
-        GetDataTypeInfo::Response::MASK_KNOWN |
-        GetDataTypeInfo::Response::MASK_PUBLISHING |
-        GetDataTypeInfo::Response::MASK_SUBSCRIBED));
+                                                         GetDataTypeInfo::Response::MASK_KNOWN |
+                                                         GetDataTypeInfo::Response::MASK_PUBLISHING |
+                                                         GetDataTypeInfo::Response::MASK_SUBSCRIBED));
 
     /*
      * Requesting a non-existent type

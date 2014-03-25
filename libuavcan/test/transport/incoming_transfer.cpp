@@ -15,7 +15,9 @@ static uavcan::RxFrame makeFrame()
         tsMono(123), tsUtc(456), 0);
     uint8_t data[8];
     for (unsigned int i = 0; i < sizeof(data); i++)
+    {
         data[i] = i;
+    }
     frame.setPayload(data, sizeof(data));
     return frame;
 }
@@ -105,4 +107,3 @@ TEST(MultiFrameIncomingTransfer, Basic)
     it.release();
     ASSERT_FALSE(bufmgr.access(bufmgr_key));
 }
-

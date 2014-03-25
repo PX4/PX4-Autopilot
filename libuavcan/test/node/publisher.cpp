@@ -67,7 +67,8 @@ TEST(Publisher, Basic)
         // Second shot - checking the transfer ID
         ASSERT_LT(0, publisher.broadcast(msg));
 
-        expected_frame = uavcan::Frame(uavcan::mavlink::Message::DefaultDataTypeID, uavcan::TransferTypeMessageBroadcast,
+        expected_frame = uavcan::Frame(uavcan::mavlink::Message::DefaultDataTypeID,
+                                       uavcan::TransferTypeMessageBroadcast,
                                        node.getNodeID(), uavcan::NodeID::Broadcast, 0, 1, true);
         expected_frame.setPayload(expected_transfer_payload, 7);
         ASSERT_TRUE(expected_frame.compile(expected_can_frame));

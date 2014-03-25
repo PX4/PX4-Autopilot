@@ -124,10 +124,10 @@ TEST(FloatSpec, Basic)
     do { \
         StorageType<FloatType>::Type var = StorageType<FloatType>::Type(); \
         ASSERT_EQ(1, FloatType::decode(var, sc_rd, uavcan::TailArrayOptDisabled)); \
-        if (!isnan(expected_value)) \
-            ASSERT_FLOAT_EQ(expected_value, var); \
-        else \
-            ASSERT_EQ(!!isnan(expected_value), !!isnan(var)); \
+        if (!isnan(expected_value)) { \
+            ASSERT_FLOAT_EQ(expected_value, var); } \
+        else { \
+            ASSERT_EQ(!!isnan(expected_value), !!isnan(var)); } \
     } while (0)
 
     for (int i = 0; i < NumValues; i++)

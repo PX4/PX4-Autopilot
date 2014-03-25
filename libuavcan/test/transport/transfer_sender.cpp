@@ -127,7 +127,9 @@ TEST(TransferSender, Basic)
         ASSERT_LE(0, res);
         clockmock.advance(100);
         if (res == 0)
+        {
             break;
+        }
     }
 
     /*
@@ -152,8 +154,8 @@ struct TransferSenderTestLoopbackFrameListener : public uavcan::LoopbackFrameLis
     unsigned int count;
 
     TransferSenderTestLoopbackFrameListener(uavcan::Dispatcher& dispatcher)
-    : uavcan::LoopbackFrameListenerBase(dispatcher)
-    , count(0)
+        : uavcan::LoopbackFrameListenerBase(dispatcher)
+        , count(0)
     {
         startListening();
     }

@@ -84,7 +84,9 @@ TEST(Frame, FrameParsing)
     ASSERT_FALSE(frame.parse(can));
 
     for (unsigned int i = 0; i < sizeof(CanFrame::data); i++)
+    {
         can.data[i] = i | (i << 4);
+    }
 
     // CAN ID field order: Transfer ID, Last Frame, Frame Index, Source Node ID, Transfer Type, Data Type ID
 
@@ -92,7 +94,7 @@ TEST(Frame, FrameParsing)
      * SFT broadcast
      */
     can.id = CanFrame::FlagEFF |
-        (2 << 0) | (1 << 3) | (0 << 4) | (42 << 10) | (uavcan::TransferTypeMessageBroadcast << 17) | (456 << 19);
+             (2 << 0) | (1 << 3) | (0 << 4) | (42 << 10) | (uavcan::TransferTypeMessageBroadcast << 17) | (456 << 19);
 
     ASSERT_TRUE(frame.parse(can));
     ASSERT_TRUE(frame.isFirst());
@@ -109,7 +111,7 @@ TEST(Frame, FrameParsing)
      * SFT addressed
      */
     can.id = CanFrame::FlagEFF |
-        (2 << 0) | (1 << 3) | (0 << 4) | (42 << 10) | (uavcan::TransferTypeMessageUnicast << 17) | (456 << 19);
+             (2 << 0) | (1 << 3) | (0 << 4) | (42 << 10) | (uavcan::TransferTypeMessageUnicast << 17) | (456 << 19);
 
     ASSERT_FALSE(frame.parse(can));  // No payload - failure
 
@@ -134,8 +136,8 @@ TEST(Frame, FrameParsing)
      * MFT invalid - unterminated transfer
      */
     can.id = CanFrame::FlagEFF |
-        (2 << 0) | (0 << 3) | (Frame::MaxIndex << 4) | (42 << 10) |
-        (uavcan::TransferTypeMessageUnicast << 17) | (456 << 19);
+             (2 << 0) | (0 << 3) | (Frame::MaxIndex << 4) | (42 << 10) |
+             (uavcan::TransferTypeMessageUnicast << 17) | (456 << 19);
 
     ASSERT_FALSE(frame.parse(can));
 
@@ -143,7 +145,7 @@ TEST(Frame, FrameParsing)
      * MFT invalid - invalid frame index
      */
     can.id = CanFrame::FlagEFF |
-        (2 << 0) | (0 << 3) | (63 << 4) | (42 << 10) | (uavcan::TransferTypeMessageUnicast << 17) | (456 << 19);
+             (2 << 0) | (0 << 3) | (63 << 4) | (42 << 10) | (uavcan::TransferTypeMessageUnicast << 17) | (456 << 19);
 
     ASSERT_FALSE(frame.parse(can));
 
@@ -151,7 +153,7 @@ TEST(Frame, FrameParsing)
      * Malformed frames
      */
     can.id = CanFrame::FlagEFF |
-        (2 << 0) | (1 << 3) | (0 << 4) | (42 << 10) | (uavcan::TransferTypeMessageUnicast << 17) | (456 << 19);
+             (2 << 0) | (1 << 3) | (0 << 4) | (42 << 10) | (uavcan::TransferTypeMessageUnicast << 17) | (456 << 19);
     can.dlc = 3;
     can.data[0] = 42;
     ASSERT_FALSE(frame.parse(can)); // Src == Dst Node ID
@@ -159,7 +161,7 @@ TEST(Frame, FrameParsing)
     ASSERT_TRUE(frame.parse(can));
 
     can.id = CanFrame::FlagEFF | // cppcheck-suppress duplicateExpression
-        (2 << 0) | (1 << 3) | (0 << 4) | (0 << 10) | (uavcan::TransferTypeMessageUnicast << 17) | (456 << 19);
+             (2 << 0) | (1 << 3) | (0 << 4) | (0 << 10) | (uavcan::TransferTypeMessageUnicast << 17) | (456 << 19);
     ASSERT_FALSE(frame.parse(can)); // Broadcast Src Node ID
 }
 
@@ -213,7 +215,8 @@ TEST(Frame, FrameToString)
 
     // RX frame default
     RxFrame rx_frame;
-    EXPECT_EQ("dtid=65535 tt=4 snid=255 dnid=255 idx=0 last=0 tid=0 payload=[] ts_m=0.000000 ts_utc=0.000000 iface=0", rx_frame.toString());
+    EXPECT_EQ("dtid=65535 tt=4 snid=255 dnid=255 idx=0 last=0 tid=0 payload=[] ts_m=0.000000 ts_utc=0.000000 iface=0",
+              rx_frame.toString());
 
     // RX frame max len
     rx_frame = RxFrame(Frame(uavcan::DataTypeID::Max, uavcan::TransferTypeMessageUnicast,
@@ -223,12 +226,14 @@ TEST(Frame, FrameToString)
 
     uint8_t data[8];
     for (unsigned int i = 0; i < sizeof(data); i++)
+    {
         data[i] = i;
+    }
     rx_frame.setPayload(data, sizeof(data));
 
-    EXPECT_EQ(
-    "dtid=1023 tt=3 snid=127 dnid=126 idx=62 last=1 tid=7 payload=[00 01 02 03 04 05 06] ts_m=18446744073709.551615 ts_utc=18446744073709.551615 iface=3",
-    rx_frame.toString());
+    EXPECT_EQ("dtid=1023 tt=3 snid=127 dnid=126 idx=62 last=1 tid=7 payload=[00 01 02 03 04 05 06] "
+              "ts_m=18446744073709.551615 ts_utc=18446744073709.551615 iface=3",
+              rx_frame.toString());
 
     // Plain frame default
     Frame frame;

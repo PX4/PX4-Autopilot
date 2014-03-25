@@ -14,10 +14,10 @@ class TransferListenerEmulator : public IncomingTransferEmulatorBase
 
 public:
     TransferListenerEmulator(uavcan::TransferListenerBase& target, const uavcan::DataTypeDescriptor& type,
-             uavcan::NodeID dst_node_id = 127)
-    : IncomingTransferEmulatorBase(dst_node_id)
-    , target_(target)
-    , data_type_(type)
+                             uavcan::NodeID dst_node_id = 127)
+        : IncomingTransferEmulatorBase(dst_node_id)
+        , target_(target)
+        , data_type_(type)
     { }
 
     void sendOneFrame(const uavcan::RxFrame& frame) { target_.handleFrame(frame); }
@@ -105,8 +105,8 @@ TEST(TransferListener, CrcFailure)
     ASSERT_TRUE(ser_sft.size() == 1);
 
     // Fuck my brain.
-    const_cast<uint8_t*>(ser_mft[1].getPayloadPtr())[1] = ~ser_mft[1].getPayloadPtr()[1];// CRC is no longer valid
-    const_cast<uint8_t*>(ser_sft[0].getPayloadPtr())[2] = ~ser_sft[0].getPayloadPtr()[2];// no CRC - will be undetected
+    const_cast<uint8_t*>(ser_mft[1].getPayloadPtr())[1] = ~ser_mft[1].getPayloadPtr()[1]; // CRC is no longer valid
+    const_cast<uint8_t*>(ser_sft[0].getPayloadPtr())[2] = ~ser_sft[0].getPayloadPtr()[2]; // no CRC - will be undetected
 
     /*
      * Sending and making sure that MFT was not received, but SFT was.
@@ -144,7 +144,7 @@ TEST(TransferListener, BasicSFT)
         emulator.makeTransfer(uavcan::TransferTypeServiceResponse,  4, ""),
         emulator.makeTransfer(uavcan::TransferTypeServiceResponse,  2, ""),      // New TT, ignored due to OOM
         emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   2, "foo"),   // Same as 2, not ignored
-        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   2, "123456789abc"),// Same as 2, not SFT - ignore
+        emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   2, "123456789abc"), // Same as 2, not SFT - ignore
         emulator.makeTransfer(uavcan::TransferTypeMessageUnicast,   2, "bar"),   // Same as 2, not ignored
     };
 

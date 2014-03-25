@@ -60,7 +60,9 @@ TEST(DataTypeSignature, Correctness)
     crc.add(0x34);
     crc.add(0x12);
     for (int i = 0; i < 8; i++)
+    {
         crc.add(0);
+    }
 
     ASSERT_EQ(crc.get(), signature.get());
 
@@ -79,7 +81,9 @@ TEST(DataTypeSignature, Correctness)
     crc.add(0xdc);
     crc.add(0xfe);
     for (int i = 0; i < 64; i += 8)
+    {
         crc.add((old_signature >> i) & 0xFF);
+    }
 
     ASSERT_EQ(crc.get(), signature.get());
 

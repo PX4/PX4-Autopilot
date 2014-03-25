@@ -39,7 +39,7 @@ struct ServiceCallResultHandler
     }
 
     typedef uavcan::MethodBinder<ServiceCallResultHandler*,
-        void (ServiceCallResultHandler::*)(const uavcan::ServiceCallResult<DataType>&)> Binder;
+                                 void (ServiceCallResultHandler::*)(const uavcan::ServiceCallResult<DataType>&)> Binder;
 
     Binder bind() { return Binder(this, &ServiceCallResultHandler::handleResponse); }
 };
@@ -69,7 +69,7 @@ TEST(ServiceClient, Basic)
         // Caller
         typedef uavcan::ServiceCallResult<root_ns_a::StringService> ResultType;
         typedef uavcan::ServiceClient<root_ns_a::StringService,
-            typename ServiceCallResultHandler<root_ns_a::StringService>::Binder > ClientType;
+                                      typename ServiceCallResultHandler<root_ns_a::StringService>::Binder > ClientType;
         ServiceCallResultHandler<root_ns_a::StringService> handler;
 
         ClientType client1(nodes.b);

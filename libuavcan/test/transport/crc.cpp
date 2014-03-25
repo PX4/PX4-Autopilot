@@ -6,14 +6,14 @@
 #include <uavcan/transport/crc.hpp>
 
 /*
- import crcmod
- crc = crcmod.predefined.Crc('crc-ccitt-false')
- crc.update('123')
- crc.hexdigest()
-'5BCE'
- crc.update('456789')
- crc.hexdigest()
-'29B1'
+   import crcmod
+   crc = crcmod.predefined.Crc('crc-ccitt-false')
+   crc.update('123')
+   crc.hexdigest()
+   '5BCE'
+   crc.update('456789')
+   crc.hexdigest()
+   '29B1'
  */
 
 TEST(TransferCRC, Correctness)
