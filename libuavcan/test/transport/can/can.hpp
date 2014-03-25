@@ -24,13 +24,13 @@ public:
         uavcan::MonotonicTime time;
 
         FrameWithTime(const uavcan::CanFrame& frame, uavcan::MonotonicTime time)
-        : frame(frame)
-        , time(time)
+            : frame(frame)
+            , time(time)
         { }
 
         FrameWithTime(const uavcan::CanFrame& frame, uint64_t time_usec)
-        : frame(frame)
-        , time(uavcan::MonotonicTime::fromUSec(time_usec))
+            : frame(frame)
+            , time(uavcan::MonotonicTime::fromUSec(time_usec))
         { }
     };
 
@@ -45,12 +45,12 @@ public:
     bool enable_utc_timestamping;
 
     CanIfaceMock(uavcan::ISystemClock& iclock)
-    : writeable(true)
-    , tx_failure(false)
-    , rx_failure(false)
-    , num_errors(0)
-    , iclock(iclock)
-    , enable_utc_timestamping(false)
+        : writeable(true)
+        , tx_failure(false)
+        , rx_failure(false)
+        , num_errors(0)
+        , iclock(iclock)
+        , enable_utc_timestamping(false)
     { }
 
     void pushRx(const uavcan::CanFrame& frame)
@@ -99,12 +99,18 @@ public:
         assert(this);
         EXPECT_TRUE(writeable);        // Shall never be called when not writeable
         if (tx_failure)
+        {
             return -1;
+        }
         if (!writeable)
+        {
             return 0;
+        }
         tx.push(FrameWithTime(frame, tx_deadline));
         if (flags & uavcan::CanIOFlagLoopback)
+        {
             loopback.push(FrameWithTime(frame, iclock.getMonotonic()));
+        }
         return 1;
     }
 
@@ -117,9 +123,13 @@ public:
         {
             EXPECT_TRUE(rx.size());        // Shall never be called when not readable
             if (rx_failure)
+            {
                 return -1;
+            }
             if (rx.empty())
+            {
                 return 0;
+            }
             const FrameWithTime frame = rx.front();
             rx.pop();
             out_frame = frame.frame;
@@ -153,9 +163,9 @@ public:
     bool select_failure;
 
     CanDriverMock(int num_ifaces, uavcan::ISystemClock& iclock)
-    : ifaces(num_ifaces, CanIfaceMock(iclock))
-    , iclock(iclock)
-    , select_failure(false)
+        : ifaces(num_ifaces, CanIfaceMock(iclock))
+        , iclock(iclock)
+        , select_failure(false)
     { }
 
     int select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime deadline)
@@ -164,7 +174,9 @@ public:
         //std::cout << "Write/read masks: " << inout_write_iface_mask << "/" << inout_read_iface_mask << std::endl;
 
         if (select_failure)
+        {
             return -1;
+        }
 
         const int valid_iface_mask = (1 << getNumIfaces()) - 1;
         EXPECT_FALSE(inout_masks.write & ~valid_iface_mask);
@@ -176,9 +188,13 @@ public:
         {
             const int mask = 1 << i;
             if ((inout_masks.write & mask) && ifaces.at(i).writeable)
+            {
                 out_write_mask |= mask;
+            }
             if ((inout_masks.read & mask) && (ifaces.at(i).rx.size() || ifaces.at(i).loopback.size()))
+            {
                 out_read_mask |= mask;
+            }
         }
         inout_masks.write = out_write_mask;
         inout_masks.read = out_read_mask;
@@ -190,12 +206,16 @@ public:
             if (mock)
             {
                 if (diff.isPositive())
+                {
                     mock->advance(diff.toUSec());   // Emulating timeout
+                }
             }
             else
             {
                 if (diff.isPositive())
+                {
                     usleep(diff.toUSec());
+                }
             }
             return 0;
         }

@@ -25,13 +25,13 @@ struct Transfer
     std::string payload;
 
     Transfer(const uavcan::IncomingTransfer& tr, const uavcan::DataTypeDescriptor& data_type)
-    : ts_monotonic(tr.getMonotonicTimestamp())
-    , ts_utc(tr.getUtcTimestamp())
-    , transfer_type(tr.getTransferType())
-    , transfer_id(tr.getTransferID())
-    , src_node_id(tr.getSrcNodeID())
-    , dst_node_id() // default is invalid
-    , data_type(data_type)
+        : ts_monotonic(tr.getMonotonicTimestamp())
+        , ts_utc(tr.getUtcTimestamp())
+        , transfer_type(tr.getTransferType())
+        , transfer_id(tr.getTransferID())
+        , src_node_id(tr.getSrcNodeID())
+        , dst_node_id() // default is invalid
+        , data_type(data_type)
     {
         unsigned int offset = 0;
         while (true)
@@ -44,7 +44,9 @@ struct Transfer
                 exit(1);
             }
             if (res == 0)
+            {
                 break;
+            }
             payload += std::string(reinterpret_cast<const char*>(buf), res);
             offset += res;
         }
@@ -53,27 +55,27 @@ struct Transfer
     Transfer(uavcan::MonotonicTime ts_monotonic, uavcan::UtcTime ts_utc, uavcan::TransferType transfer_type,
              uavcan::TransferID transfer_id, uavcan::NodeID src_node_id, uavcan::NodeID dst_node_id,
              const std::string& payload, const uavcan::DataTypeDescriptor& data_type)
-    : ts_monotonic(ts_monotonic)
-    , ts_utc(ts_utc)
-    , transfer_type(transfer_type)
-    , transfer_id(transfer_id)
-    , src_node_id(src_node_id)
-    , dst_node_id(dst_node_id)
-    , data_type(data_type)
-    , payload(payload)
+        : ts_monotonic(ts_monotonic)
+        , ts_utc(ts_utc)
+        , transfer_type(transfer_type)
+        , transfer_id(transfer_id)
+        , src_node_id(src_node_id)
+        , dst_node_id(dst_node_id)
+        , data_type(data_type)
+        , payload(payload)
     { }
 
     Transfer(uint64_t ts_monotonic, uint64_t ts_utc, uavcan::TransferType transfer_type,
              uavcan::TransferID transfer_id, uavcan::NodeID src_node_id, uavcan::NodeID dst_node_id,
              const std::string& payload, const uavcan::DataTypeDescriptor& data_type)
-    : ts_monotonic(uavcan::MonotonicTime::fromUSec(ts_monotonic))
-    , ts_utc(uavcan::UtcTime::fromUSec(ts_utc))
-    , transfer_type(transfer_type)
-    , transfer_id(transfer_id)
-    , src_node_id(src_node_id)
-    , dst_node_id(dst_node_id)
-    , data_type(data_type)
-    , payload(payload)
+        : ts_monotonic(uavcan::MonotonicTime::fromUSec(ts_monotonic))
+        , ts_utc(uavcan::UtcTime::fromUSec(ts_utc))
+        , transfer_type(transfer_type)
+        , transfer_id(transfer_id)
+        , src_node_id(src_node_id)
+        , dst_node_id(dst_node_id)
+        , data_type(data_type)
+        , payload(payload)
     { }
 
     bool operator==(const Transfer& rhs) const
@@ -93,13 +95,13 @@ struct Transfer
     {
         std::ostringstream os;
         os << "ts_m="     << ts_monotonic
-            << " ts_utc=" << ts_utc
-            << " tt="     << transfer_type
-            << " tid="    << int(transfer_id.get())
-            << " snid="   << int(src_node_id.get())
-            << " dnid="   << int(dst_node_id.get())
-            << " dtid="   << int(data_type.getID().get())
-            << "\n\t'" << payload << "'";
+           << " ts_utc=" << ts_utc
+           << " tt="     << transfer_type
+           << " tid="    << int(transfer_id.get())
+           << " snid="   << int(src_node_id.get())
+           << " dnid="   << int(dst_node_id.get())
+           << " dtid="   << int(data_type.getID().get())
+           << "\n\t'" << payload << "'";
         return os.str();
     }
 };
@@ -118,7 +120,7 @@ class TestListener : public uavcan::TransferListener<MAX_BUF_SIZE, NUM_STATIC_BU
 
 public:
     TestListener(const uavcan::DataTypeDescriptor& data_type, uavcan::IAllocator& allocator)
-    : Base(data_type, allocator)
+        : Base(data_type, allocator)
     { }
 
     void handleIncomingTransfer(uavcan::IncomingTransfer& transfer)
@@ -143,8 +145,8 @@ public:
         if (!res)
         {
             std::cout << "TestSubscriber: Transfer mismatch:\n"
-                << "Expected: " << reference.toString() << "\n"
-                << "Received: " << tr.toString() << std::endl;
+                      << "Expected: " << reference.toString() << "\n"
+                      << "Received: " << tr.toString() << std::endl;
         }
         return res;
     }
@@ -163,13 +165,17 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
     switch (transfer.transfer_type)
     {
     case uavcan::TransferTypeMessageBroadcast:
+    {
         need_crc = transfer.payload.length() > sizeof(uavcan::CanFrame::data);
         break;
+    }
     case uavcan::TransferTypeServiceResponse:
     case uavcan::TransferTypeServiceRequest:
     case uavcan::TransferTypeMessageUnicast:
+    {
         need_crc = transfer.payload.length() > (sizeof(uavcan::CanFrame::data) - 1);
         break;
+    }
     default:
         std::cerr << "X_X" << std::endl;
         std::exit(1);
@@ -206,7 +212,9 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
             std::exit(1);
         }
         if (spres == bytes_left)
+        {
             frm.makeLast();
+        }
 
         offset += spres;
         EXPECT_GE(uavcan::Frame::MaxIndex, frame_index);
@@ -218,7 +226,9 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
 
         output.push_back(rxfrm);
         if (frm.isLast())
+        {
             break;
+        }
     }
     return output;
 }
@@ -240,7 +250,7 @@ class IncomingTransferEmulatorBase
 
 public:
     IncomingTransferEmulatorBase(uavcan::NodeID dst_node_id)
-    : dst_node_id_(dst_node_id)
+        : dst_node_id_(dst_node_id)
     { }
 
     virtual ~IncomingTransferEmulatorBase() { }
@@ -251,9 +261,9 @@ public:
     {
         ts_ += uavcan::MonotonicDuration::fromUSec(100);
         const uavcan::UtcTime utc = uavcan::UtcTime::fromUSec(ts_.toUSec() + 1000000000ul);
-        const uavcan::NodeID dst_node_id = (transfer_type == uavcan::TransferTypeMessageBroadcast)
-                    ? uavcan::NodeID::Broadcast
-                    : (dst_node_id_override.isValid() ? dst_node_id_override : dst_node_id_);
+        const uavcan::NodeID dst_node_id = (transfer_type == uavcan::TransferTypeMessageBroadcast) ?
+                                           uavcan::NodeID::Broadcast :
+                                           (dst_node_id_override.isValid() ? dst_node_id_override : dst_node_id_);
         const Transfer tr(ts_, utc, transfer_type, tid_, source_node_id, dst_node_id, payload, type);
         tid_.increment();
         return tr;
@@ -271,14 +281,18 @@ public:
             for (std::vector<std::vector<uavcan::RxFrame> >::const_iterator it = sers.begin(); it != sers.end(); ++it)
             {
                 if (it->size() <= index)
+                {
                     continue;
+                }
                 all_empty = false;
                 std::cout << "Incoming Transfer Emulator: Sending: " << it->at(index).toString() << std::endl;
                 sendOneFrame(it->at(index));
             }
             index++;
             if (all_empty)
+            {
                 break;
+            }
         }
     }
 
@@ -286,7 +300,9 @@ public:
     {
         std::vector<std::vector<uavcan::RxFrame> > sers;
         while (num_transfers--)
+        {
             sers.push_back(serializeTransfer(*transfers++));
+        }
         send(sers);
     }
 

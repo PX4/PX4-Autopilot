@@ -19,10 +19,10 @@ public:
     bool preserve_utc;
 
     SystemClockMock(uint64_t initial = 0)
-    : monotonic(initial)
-    , utc(initial)
-    , monotonic_auto_advance(0)
-    , preserve_utc(false)
+        : monotonic(initial)
+        , utc(initial)
+        , monotonic_auto_advance(0)
+        , preserve_utc(false)
     { }
 
     void advance(uint64_t usec) const

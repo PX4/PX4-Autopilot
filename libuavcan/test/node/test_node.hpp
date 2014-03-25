@@ -18,8 +18,8 @@ struct TestNode : public uavcan::INode
     uavcan::Scheduler scheduler;
 
     TestNode(uavcan::ICanDriver& can_driver, uavcan::ISystemClock& clock_driver, uavcan::NodeID self_node_id)
-    : otr(poolmgr)
-    , scheduler(can_driver, poolmgr, clock_driver, otr)
+        : otr(poolmgr)
+        , scheduler(can_driver, poolmgr, clock_driver, otr)
     {
         poolmgr.addPool(&pool);
         setNodeID(self_node_id);
@@ -45,8 +45,8 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
     std::queue<uavcan::CanFrame> loopback_queue;
 
     PairableCanDriver(uavcan::ISystemClock& clock)
-    : clock(clock)
-    , other(NULL)
+        : clock(clock)
+        , other(NULL)
     { }
 
     void linkTogether(PairableCanDriver* with)
@@ -58,7 +58,9 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
     uavcan::ICanIface* getIface(int iface_index)
     {
         if (iface_index == 0)
+        {
             return this;
+        }
         return NULL;
     }
 
@@ -73,10 +75,14 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
         }
 
         if (inout_masks.read || inout_masks.write)
+        {
             return 1;
+        }
 
         while (clock.getMonotonic() < blocking_deadline)
+        {
             usleep(1000);
+        }
 
         return 0;
     }
@@ -131,19 +137,19 @@ struct InterlinkedTestNodes
     TestNode b;
 
     InterlinkedTestNodes(uavcan::NodeID nid_first, uavcan::NodeID nid_second)
-    : can_a(clock_a)
-    , can_b(clock_b)
-    , a(can_a, clock_a, nid_first)
-    , b(can_b, clock_b, nid_second)
+        : can_a(clock_a)
+        , can_b(clock_b)
+        , a(can_a, clock_a, nid_first)
+        , b(can_b, clock_b, nid_second)
     {
         can_a.linkTogether(&can_b);
     }
 
     InterlinkedTestNodes()
-    : can_a(clock_a)
-    , can_b(clock_b)
-    , a(can_a, clock_a, 1)
-    , b(can_b, clock_b, 2)
+        : can_a(clock_a)
+        , can_b(clock_b)
+        , a(can_a, clock_a, 1)
+        , b(can_b, clock_b, 2)
     {
         can_a.linkTogether(&can_b);
     }
@@ -158,10 +164,14 @@ struct InterlinkedTestNodes
             int ret = -1;
             ret = a.spin(uavcan::MonotonicDuration::fromMSec(1));
             if (ret < 0)
+            {
                 return ret;
+            }
             ret = b.spin(uavcan::MonotonicDuration::fromMSec(1));
             if (ret < 0)
+            {
                 return ret;
+            }
         }
         return 0;
     }
