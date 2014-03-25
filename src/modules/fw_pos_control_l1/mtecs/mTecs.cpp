@@ -59,7 +59,8 @@ mTecs::mTecs() :
 	_throttleSp(0.0f),
 	_pitchSp(0.0f),
 	timestampLastIteration(hrt_absolute_time()),
-	_firstIterationAfterReset(true)
+	_firstIterationAfterReset(true),
+	_counter(0)
 {
 }
 
@@ -69,16 +70,21 @@ mTecs::~mTecs()
 
 void mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed, float airspeedSp)
 {
-	warnx("***");
+
 	float flightPathAngleSp = _controlAltitude.update(altitudeSp - altitude);
-	warnx("updateAltitudeSpeed: altitudeSp %.4f, altitude %.4f, flightPathAngleSp %.4f", (double)altitudeSp, (double)altitude, (double)flightPathAngleSp);
+	if (_counter % 10 == 0) {
+		warnx("***");
+		warnx("updateAltitudeSpeed: altitudeSp %.4f, altitude %.4f, flightPathAngleSp %.4f", (double)altitudeSp, (double)altitude, (double)flightPathAngleSp);
+	}
 	updateFlightPathAngleSpeed(flightPathAngle, flightPathAngleSp, airspeed, airspeedSp);
 }
 
 void mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed, float airspeedSp) {
 
 	float accelerationLongitudinalSp = _controlAirSpeed.update(airspeedSp - airspeed);
-	warnx("updateFlightPathAngleSpeed airspeedSp %.4f, airspeed %.4f, accelerationLongitudinalSp%.4f", (double)airspeedSp, (double)airspeed, (double)accelerationLongitudinalSp);
+	if (_counter % 10 == 0) {
+		warnx("updateFlightPathAngleSpeed airspeedSp %.4f, airspeed %.4f, accelerationLongitudinalSp%.4f", (double)airspeedSp, (double)airspeed, (double)accelerationLongitudinalSp);
+	}
 	updateFlightPathAngleAcceleration(flightPathAngle, flightPathAngleSp, airspeed, accelerationLongitudinalSp);
 }
 
@@ -117,10 +123,12 @@ void mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float fligh
 	float energyDistributionRateSp = flightPathAngleSp - airspeedSpDerivativeNorm;
 	float energyDistributionRateError2 = energyDistributionRateSp - energyDistributionRate;
 
-	warnx("totalEnergyRateSp %.2f, totalEnergyRate %.2f, totalEnergyRateError %.2f totalEnergyRateError2 %.2f airspeedDerivativeNorm %.4f",
-			(double)totalEnergyRateSp, (double)totalEnergyRate, (double)totalEnergyRateError, (double)totalEnergyRateError2, (double)airspeedDerivativeNorm);
-	warnx("energyDistributionRateSp %.2f, energyDistributionRate %.2f, energyDistributionRateError %.2f energyDistributionRateError2 %.2f",
-			(double)energyDistributionRateSp, (double)energyDistributionRate, (double)energyDistributionRateError, (double)energyDistributionRateError2);
+	if (_counter % 10 == 0) {
+		warnx("totalEnergyRateSp %.2f, totalEnergyRate %.2f, totalEnergyRateError %.2f totalEnergyRateError2 %.2f airspeedDerivativeNorm %.4f",
+				(double)totalEnergyRateSp, (double)totalEnergyRate, (double)totalEnergyRateError, (double)totalEnergyRateError2, (double)airspeedDerivativeNorm);
+		warnx("energyDistributionRateSp %.2f, energyDistributionRate %.2f, energyDistributionRateError %.2f energyDistributionRateError2 %.2f",
+				(double)energyDistributionRateSp, (double)energyDistributionRate, (double)energyDistributionRateError, (double)energyDistributionRateError2);
+	}
 
 	/** update control blocks **/
 	/* update total energy rate control block */
@@ -129,15 +137,18 @@ void mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float fligh
 	/* update energy distribution rate control block */
 	_pitchSp = _controlEnergyDistribution.update(energyDistributionRateSp, energyDistributionRateError);
 
-	warnx("_throttleSp %.1f, _pitchSp %.1f, flightPathAngleSp %.1f, flightPathAngle %.1f accelerationLongitudinalSp %.1f, airspeedDerivative %.1f",
-			(double)_throttleSp, (double)_pitchSp,
-			(double)flightPathAngleSp, (double)flightPathAngle,
-			(double)accelerationLongitudinalSp, (double)airspeedDerivative);
+	if (_counter % 10 == 0) {
+		warnx("_throttleSp %.1f, _pitchSp %.1f, flightPathAngleSp %.1f, flightPathAngle %.1f accelerationLongitudinalSp %.1f, airspeedDerivative %.1f",
+				(double)_throttleSp, (double)_pitchSp,
+				(double)flightPathAngleSp, (double)flightPathAngle,
+				(double)accelerationLongitudinalSp, (double)airspeedDerivative);
+	}
 
 
 	/* clean up */
 	_firstIterationAfterReset = false;
 
+	_counter++;
 }
 
 void mTecs::resetIntegrators()
