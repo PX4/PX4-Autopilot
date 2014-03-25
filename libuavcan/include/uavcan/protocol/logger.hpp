@@ -19,7 +19,18 @@ namespace uavcan
 class ILogSink
 {
 public:
+    typedef typename StorageType<typename protocol::debug::LogLevel::FieldTypes::value>::Type LogLevel;
+
     virtual ~ILogSink() { }
+
+    /**
+     * Logger will not sink messages with level lower than returned by this method.
+     */
+    virtual LogLevel getLogLevel() const = 0;
+
+    /**
+     * Logger will call this method for every log message with level not less than the current level of this sink.
+     */
     virtual void log(const protocol::debug::LogMessage& message) = 0;
 };
 
@@ -27,7 +38,7 @@ public:
 class Logger
 {
 public:
-    typedef typename StorageType<typename protocol::debug::LogLevel::FieldTypes::value>::Type LogLevel;
+    typedef ILogSink::LogLevel LogLevel;
 
     static const LogLevel LevelAboveAll = (protocol::debug::LogLevel::FieldTypes::value::BitLen << 1) - 1;
 
@@ -38,6 +49,8 @@ private:
     protocol::debug::LogMessage msg_buf_;
     LogLevel level_;
     ILogSink* external_sink_;
+
+    LogLevel getExternalSinkLevel() const;
 
 public:
     Logger(INode& node)
@@ -65,7 +78,7 @@ public:
     template <typename... Args>
     int log(LogLevel level, const char* source, const char* format, Args... args)
     {
-        if (level >= level_)
+        if (level >= level_ || level >= getExternalSinkLevel())
         {
             msg_buf_.level.value = level;
             msg_buf_.source = source;
@@ -78,25 +91,25 @@ public:
     }
 
     template <typename... Args>
-    int logDebug(const char* source, const char* format, Args... args)
+    inline int logDebug(const char* source, const char* format, Args... args)
     {
         return log(protocol::debug::LogLevel::DEBUG, source, format, args...);
     }
 
     template <typename... Args>
-    int logInfo(const char* source, const char* format, Args... args)
+    inline int logInfo(const char* source, const char* format, Args... args)
     {
         return log(protocol::debug::LogLevel::INFO, source, format, args...);
     }
 
     template <typename... Args>
-    int logWarning(const char* source, const char* format, Args... args)
+    inline int logWarning(const char* source, const char* format, Args... args)
     {
         return log(protocol::debug::LogLevel::WARNING, source, format, args...);
     }
 
     template <typename... Args>
-    int logError(const char* source, const char* format, Args... args)
+    inline int logError(const char* source, const char* format, Args... args)
     {
         return log(protocol::debug::LogLevel::ERROR, source, format, args...);
     }
@@ -105,7 +118,7 @@ public:
 
     int log(LogLevel level, const char* source, const char* text)
     {
-        if (level >= level_)
+        if (level >= level_ || level >= getExternalSinkLevel())
         {
             msg_buf_.level.value = level;
             msg_buf_.source = source;

@@ -10,6 +10,13 @@
 struct LogSink : public uavcan::ILogSink
 {
     std::queue<uavcan::protocol::debug::LogMessage> msgs;
+    LogLevel level;
+
+    LogSink()
+        : level(uavcan::protocol::debug::LogLevel::ERROR)
+    { }
+
+    LogLevel getLogLevel() const { return level; }
 
     void log(const uavcan::protocol::debug::LogMessage& message)
     {
@@ -31,6 +38,11 @@ struct LogSink : public uavcan::ILogSink
 
     bool popMatchByLevelAndText(int level, const std::string& source, const std::string& text)
     {
+        if (msgs.empty())
+        {
+            std::cout << "LogSink is empty" << std::endl;
+            return false;
+        }
         const uavcan::protocol::debug::LogMessage m = pop();
         return
             level == m.level.value &&
@@ -65,7 +77,14 @@ TEST(Logger, Basic)
     SubscriberWithCollector<uavcan::protocol::debug::LogMessage> log_sub(nodes.b);
     ASSERT_LE(0, log_sub.start());
 
+    // Sink test
     ASSERT_EQ(0, logger.logDebug("foo", "Debug (ignored due to low logging level)"));
+    ASSERT_TRUE(sink.msgs.empty());
+
+    sink.level = uavcan::protocol::debug::LogLevel::DEBUG;
+    ASSERT_EQ(0, logger.logDebug("foo", "Debug (sink only)"));
+    ASSERT_TRUE(sink.popMatchByLevelAndText(uavcan::protocol::debug::LogLevel::DEBUG, "foo", "Debug (sink only)"));
+
     ASSERT_LE(0, logger.logError("foo", "Error"));
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2));
     ASSERT_EQ(log_sub.collector.msg->level.value, uavcan::protocol::debug::LogLevel::ERROR);
