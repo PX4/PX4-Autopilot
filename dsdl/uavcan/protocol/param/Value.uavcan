@@ -1,0 +1,8 @@
+#
+# Single parameter value.
+# The actual type should be detected from the available values, as described below.
+#
+
+bool[<=1] value_bool      # Preferred over int and float if ambiguous
+int64[<=1] value_int      # Preferred over float if ambiguous
+float32[<=1] value_float

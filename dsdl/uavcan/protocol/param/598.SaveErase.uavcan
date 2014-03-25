@@ -1,0 +1,11 @@
+#
+# Service to control non-volatile parameter storage.
+#
+
+uint2 OPCODE_SAVE  = 0  # Save all parameters to non-volatile storage
+uint2 OPCODE_ERASE = 1  # Clear the non-volatile storage; actual parameter values may or may not be affected
+uint2 opcode
+
+---
+
+bool ok

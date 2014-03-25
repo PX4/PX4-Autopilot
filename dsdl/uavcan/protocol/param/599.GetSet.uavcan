@@ -1,0 +1,26 @@
+#
+# Get or set a parameter by name or by index.
+#
+
+# If set - parameter will be assigned this value, then the new value will be returned
+# If not set - current parameter value will be returned
+Value value
+
+# Index of the parameter starting from 0; ignored if name is nonempty
+uint8 index
+
+# Name of the parameter; always preferred over index if nonempty
+uint8[<=40] name
+
+---
+
+# Actual parameter value. For write requests it must contain the newly assigned parameter value.
+# Empty value indicates that there is no such parameter.
+Value value
+
+Value default_value  # Optional
+Value max_value      # Optional
+Value min_value      # Optional
+
+# Empty name in response indicates that there is no such parameter
+uint8[<=40] name
