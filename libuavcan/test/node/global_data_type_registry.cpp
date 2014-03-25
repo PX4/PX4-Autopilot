@@ -7,52 +7,54 @@
 
 namespace
 {
-    struct DataTypeAMessage
-    {
-        enum { DefaultDataTypeID = 0 };
-        enum { DataTypeKind = uavcan::DataTypeKindMessage };
-        static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(123); }
-        static const char* getDataTypeFullName() { return "my_namespace.DataTypeA"; }
-    };
 
-    struct DataTypeAService
-    {
-        enum { DefaultDataTypeID = 0 };
-        enum { DataTypeKind = uavcan::DataTypeKindService };
-        static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(789); }
-        static const char* getDataTypeFullName() { return "my_namespace.DataTypeA"; }
-    };
+struct DataTypeAMessage
+{
+    enum { DefaultDataTypeID = 0 };
+    enum { DataTypeKind = uavcan::DataTypeKindMessage };
+    static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(123); }
+    static const char* getDataTypeFullName() { return "my_namespace.DataTypeA"; }
+};
 
-    struct DataTypeB
-    {
-        enum { DefaultDataTypeID = 42 };
-        enum { DataTypeKind = uavcan::DataTypeKindMessage };
-        static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(456); }
-        static const char* getDataTypeFullName() { return "my_namespace.DataTypeB"; }
-    };
+struct DataTypeAService
+{
+    enum { DefaultDataTypeID = 0 };
+    enum { DataTypeKind = uavcan::DataTypeKindService };
+    static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(789); }
+    static const char* getDataTypeFullName() { return "my_namespace.DataTypeA"; }
+};
 
-    struct DataTypeC
-    {
-        enum { DefaultDataTypeID = 1023 };
-        enum { DataTypeKind = uavcan::DataTypeKindMessage };
-        static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(654); }
-        static const char* getDataTypeFullName() { return "foo.DataTypeC"; }
-    };
+struct DataTypeB
+{
+    enum { DefaultDataTypeID = 42 };
+    enum { DataTypeKind = uavcan::DataTypeKindMessage };
+    static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(456); }
+    static const char* getDataTypeFullName() { return "my_namespace.DataTypeB"; }
+};
 
-    struct DataTypeD
-    {
-        enum { DefaultDataTypeID = 43 };
-        enum { DataTypeKind = uavcan::DataTypeKindService };
-        static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(987); }
-        static const char* getDataTypeFullName() { return "foo.DataTypeD"; }
-    };
+struct DataTypeC
+{
+    enum { DefaultDataTypeID = 1023 };
+    enum { DataTypeKind = uavcan::DataTypeKindMessage };
+    static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(654); }
+    static const char* getDataTypeFullName() { return "foo.DataTypeC"; }
+};
 
-    template <typename Type>
-    uavcan::DataTypeDescriptor extractDescriptor(uint16_t dtid = Type::DefaultDataTypeID)
-    {
-        return uavcan::DataTypeDescriptor(uavcan::DataTypeKind(Type::DataTypeKind), dtid,
-                                          Type::getDataTypeSignature(), Type::getDataTypeFullName());
-    }
+struct DataTypeD
+{
+    enum { DefaultDataTypeID = 43 };
+    enum { DataTypeKind = uavcan::DataTypeKindService };
+    static uavcan::DataTypeSignature getDataTypeSignature() { return uavcan::DataTypeSignature(987); }
+    static const char* getDataTypeFullName() { return "foo.DataTypeD"; }
+};
+
+template <typename Type>
+uavcan::DataTypeDescriptor extractDescriptor(uint16_t dtid = Type::DefaultDataTypeID)
+{
+    return uavcan::DataTypeDescriptor(uavcan::DataTypeKind(Type::DataTypeKind), dtid,
+                                      Type::getDataTypeSignature(), Type::getDataTypeFullName());
+}
+
 }
 
 

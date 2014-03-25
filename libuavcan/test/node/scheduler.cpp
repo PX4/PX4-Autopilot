@@ -18,6 +18,9 @@ struct TimerCallCounter
     void callB(const uavcan::TimerEvent& ev) { events_b.push_back(ev); }
 
     typedef uavcan::MethodBinder<TimerCallCounter*, void(TimerCallCounter::*)(const uavcan::TimerEvent&)> Binder;
+
+    Binder bindA() { return Binder(this, &TimerCallCounter::callA); }
+    Binder bindB() { return Binder(this, &TimerCallCounter::callB); }
 };
 
 /*
@@ -34,10 +37,8 @@ TEST(Scheduler, Timers)
      */
     {
         TimerCallCounter tcc;
-        uavcan::TimerEventForwarder<TimerCallCounter::Binder>
-            a(node, TimerCallCounter::Binder(&tcc, &TimerCallCounter::callA));
-        uavcan::TimerEventForwarder<TimerCallCounter::Binder>
-            b(node, TimerCallCounter::Binder(&tcc, &TimerCallCounter::callB));
+        uavcan::TimerEventForwarder<TimerCallCounter::Binder> a(node, tcc.bindA());
+        uavcan::TimerEventForwarder<TimerCallCounter::Binder> b(node, tcc.bindB());
 
         ASSERT_EQ(0, node.getScheduler().getDeadlineScheduler().getNumHandlers());
 

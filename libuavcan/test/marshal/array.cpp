@@ -31,7 +31,11 @@ struct CustomType
     typename uavcan::StorageType<B>::Type b;
     typename uavcan::StorageType<C>::Type c;
 
-    CustomType() : a(), b(), c() { }
+    CustomType()
+        : a()
+        , b()
+        , c()
+    { }
 
     bool operator==(const CustomType& rhs) const { return a == rhs.a && b == rhs.b && c == rhs.c; }
 
@@ -39,19 +43,21 @@ struct CustomType
                       uavcan::TailArrayOptimizationMode tao_mode = uavcan::TailArrayOptEnabled)
     {
         int res = 0;
-
         res = A::encode(obj.a, codec, uavcan::TailArrayOptDisabled);
         if (res <= 0)
+        {
             return res;
-
+        }
         res = B::encode(obj.b, codec, uavcan::TailArrayOptDisabled);
         if (res <= 0)
+        {
             return res;
-
+        }
         res = C::encode(obj.c, codec, tao_mode);
         if (res <= 0)
+        {
             return res;
-
+        }
         return 1;
     }
 
@@ -59,19 +65,21 @@ struct CustomType
                       uavcan::TailArrayOptimizationMode tao_mode = uavcan::TailArrayOptEnabled)
     {
         int res = 0;
-
         res = A::decode(obj.a, codec, uavcan::TailArrayOptDisabled);
         if (res <= 0)
+        {
             return res;
-
+        }
         res = B::decode(obj.b, codec, uavcan::TailArrayOptDisabled);
         if (res <= 0)
+        {
             return res;
-
+        }
         res = C::decode(obj.c, codec, tao_mode);
         if (res <= 0)
+        {
             return res;
-
+        }
         return 1;
     }
 };
@@ -356,7 +364,10 @@ struct CustomType2
     typename uavcan::StorageType<A>::Type a;
     typename uavcan::StorageType<B>::Type b;
 
-    CustomType2() : a(), b() { }
+    CustomType2()
+        : a()
+        , b()
+    { }
 
     bool operator==(const CustomType2& rhs) const { return a == rhs.a && b == rhs.b; }
 
@@ -366,10 +377,14 @@ struct CustomType2
         int res = 0;
         res = A::encode(obj.a, codec, uavcan::TailArrayOptDisabled);
         if (res <= 0)
+        {
             return res;
+        }
         res = B::encode(obj.b, codec, tao_mode);
         if (res <= 0)
+        {
             return res;
+        }
         return 1;
     }
 
@@ -379,10 +394,14 @@ struct CustomType2
         int res = 0;
         res = A::decode(obj.a, codec, uavcan::TailArrayOptDisabled);
         if (res <= 0)
+        {
             return res;
+        }
         res = B::decode(obj.b, codec, tao_mode);
         if (res <= 0)
+        {
             return res;
+        }
         return 1;
     }
 };

@@ -165,7 +165,8 @@ TEST(FloatSpec, Float16Representation)
 
     ASSERT_EQ(0, F16S::encode(0, sc_wr, uavcan::TailArrayOptDisabled));  // Out of buffer space now
 
-    static const std::string Reference =  // Keep in mind that this is LITTLE ENDIAN representation
+    // Keep in mind that this is LITTLE ENDIAN representation
+    static const std::string Reference =
         "00000000 00000000 " // 0.0
         "00000000 00111100 " // 1.0
         "00000000 11000000 " // -2.0

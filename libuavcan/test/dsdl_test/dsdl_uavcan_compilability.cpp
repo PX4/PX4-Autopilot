@@ -43,7 +43,8 @@ TEST(Dsdl, Streaming)
     ps.a.resize(2);
     os << ps << std::endl << "==========" << std::endl;
 
-    static const std::string Reference = "seq: 0\n"
+    static const std::string Reference =
+        "seq: 0\n"
         "sysid: 0\n"
         "compid: 0\n"
         "msgid: 0\n"

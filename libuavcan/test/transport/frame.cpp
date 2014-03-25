@@ -179,7 +179,8 @@ TEST(Frame, RxFrameParse)
 
     // Valid
     can_rx_frame.ts_mono = uavcan::MonotonicTime::fromUSec(1);  // Zero is not allowed
-    can_rx_frame.id = CanFrame::FlagEFF |
+    can_rx_frame.id =
+        CanFrame::FlagEFF |
         (2 << 0)   |      //    Transfer ID
         (1 << 3)   |      //    Last Frame
         (29 << 4)  |      //    Frame Index
