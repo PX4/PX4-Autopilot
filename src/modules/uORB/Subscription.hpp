@@ -65,7 +65,8 @@ public:
 		List<SubscriptionBase *> * list,
 		const struct orb_metadata *meta) :
 		_meta(meta),
-		_handle() {
+		_handle(),
+		_isUpdated(false) {
 		if (list != NULL) list->add(this);
 	}
 	bool updated();
@@ -81,12 +82,14 @@ public:
 // accessors
 	const struct orb_metadata *getMeta() { return _meta; }
 	int getHandle() { return _handle; }
+	bool isUpdated(){ return _isUpdated; }
 protected:
 // accessors
 	void setHandle(int handle) { _handle = handle; }
 // attributes
 	const struct orb_metadata *_meta;
 	int _handle;
+	bool _isUpdated;
 };
 
 /**
