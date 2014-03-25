@@ -763,9 +763,6 @@ private:
 	MavlinkOrbSubscription *act_sub;
 	struct actuator_outputs_s *act;
 
-	MavlinkOrbSubscription *ctrl_sub;
-	struct actuator_controls_s *ctrl;
-
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
@@ -777,9 +774,6 @@ protected:
 
 		act_sub = mavlink->add_orb_subscription(ORB_ID(actuator_outputs_0));
 		act = (struct actuator_outputs_s *)act_sub->get_data();
-
-		ctrl_sub = mavlink->add_orb_subscription(ORB_ID(actuator_controls_0));
-		ctrl = (struct actuator_controls_s *)ctrl_sub->get_data();
 	}
 
 	void send(const hrt_abstime t)
@@ -787,7 +781,6 @@ protected:
 		bool updated = status_sub->update(t);
 		updated |= pos_sp_triplet_sub->update(t);
 		updated |= act_sub->update(t);
-		updated |= ctrl_sub->update(t);
 
 		if (updated) {
 			/* translate the current syste state to mavlink state and mode */
@@ -842,12 +835,30 @@ protected:
 							      0);
 			} else {
 
-				/* no special handling required, just send the controls */
+				/* fixed wing: scale all channels except throttle -1 .. 1
+				 * because we know that we set the mixers up this way
+				 */
+
+				float out[8];
+
+				const float pwm_center = (PWM_HIGHEST_MAX + PWM_LOWEST_MIN) / 2;
+
+				for (unsigned i = 0; i < 8; i++) {
+					if (i != 3) {
+						/* scale fake PWM out 900..2100 us to -1..+1 for normal channels */
+						out[i] = (act->output[i] - pwm_center) / ((PWM_HIGHEST_MAX - PWM_LOWEST_MIN) / 2);
+
+					} else {
+
+						/* scale fake PWM out 900..2100 us to 0..1 for throttle */
+						out[i] = (act->output[i] - PWM_LOWEST_MIN) / (PWM_HIGHEST_MAX - PWM_LOWEST_MIN);
+					}
+
+				}
 
 				mavlink_msg_hil_controls_send(_channel,
 							      hrt_absolute_time(),
-							      ctrl->control[0], ctrl->control[1], ctrl->control[2], ctrl->control[3],
-							      ctrl->control[4], ctrl->control[5], ctrl->control[6], ctrl->control[7],
+							      out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7],
 							      mavlink_base_mode,
 							      0);
 			}
