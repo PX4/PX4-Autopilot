@@ -20,15 +20,6 @@
 #include <uavcan/protocol/debug/LogMessage.hpp>
 #include <uavcan/protocol/debug/StartHilSimulation.hpp>
 #include <uavcan/protocol/debug/KeyValue.hpp>
-#include <uavcan/protocol/file/Path.hpp>
-#include <uavcan/protocol/file/Read.hpp>
-#include <uavcan/protocol/file/Delete.hpp>
-#include <uavcan/protocol/file/Errno.hpp>
-#include <uavcan/protocol/file/BeginFirmwareUpdate.hpp>
-#include <uavcan/protocol/file/List.hpp>
-#include <uavcan/protocol/file/BeginTransfer.hpp>
-#include <uavcan/protocol/file/Crc.hpp>
-#include <uavcan/protocol/file/GetInfo.hpp>
 
 #include <root_ns_a/Deep.hpp>
 

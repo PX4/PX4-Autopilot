@@ -1,6 +1,0 @@
-#
-# File CRC.
-# Algorithm: CRC-64-WE.
-#
-
-uint64 value

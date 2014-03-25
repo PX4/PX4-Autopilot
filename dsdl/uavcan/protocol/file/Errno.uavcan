@@ -1,5 +1,0 @@
-#
-# File operation result - UNIX errno.
-#
-
-int16 value
