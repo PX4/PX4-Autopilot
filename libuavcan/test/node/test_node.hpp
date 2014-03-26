@@ -43,10 +43,12 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
     PairableCanDriver* other;
     std::queue<uavcan::CanFrame> read_queue;
     std::queue<uavcan::CanFrame> loopback_queue;
+    uint64_t error_count;
 
     PairableCanDriver(uavcan::ISystemClock& clock)
         : clock(clock)
         , other(NULL)
+        , error_count(0)
     { }
 
     void linkTogether(PairableCanDriver* with)
@@ -122,7 +124,7 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
 
     int configureFilters(const uavcan::CanFilterConfig*, int) { return -1; }
     int getNumFilters() const { return 0; }
-    uint64_t getErrorCount() const { return 0; }
+    uint64_t getErrorCount() const { return error_count; }
 };
 
 

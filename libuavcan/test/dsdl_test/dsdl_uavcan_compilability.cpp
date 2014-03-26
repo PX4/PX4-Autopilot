@@ -8,7 +8,7 @@
 #include <uavcan/FigureOfMerit.hpp>
 #include <uavcan/mavlink/Message.hpp>
 #include <uavcan/protocol/ComputeAggregateTypeSignature.hpp>
-#include <uavcan/protocol/GetProtocolStatistics.hpp>
+#include <uavcan/protocol/GetTransportStats.hpp>
 #include <uavcan/protocol/Panic.hpp>
 #include <uavcan/protocol/RestartNode.hpp>
 #include <uavcan/protocol/GlobalTimeSync.hpp>
