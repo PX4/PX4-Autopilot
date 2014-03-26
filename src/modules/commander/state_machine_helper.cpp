@@ -68,10 +68,44 @@ static bool arming_state_changed = true;
 static bool main_state_changed = true;
 static bool failsafe_state_changed = true;
 
+// This array defines the arming state transitions. The rows are the new state, and the columns
+// are the current state. Using new state and current  state you can index into the array which
+// will be true for a valid transition or false for a invalid transition. In some cases even
+// though the transition is marked as true additional checks must be made. See arming_state_transition
+// code for those checks.
+static const bool arming_transitions[ARMING_STATE_MAX][ARMING_STATE_MAX] = {
+    //                                  INIT,   STANDBY,    ARMED,  ARMED_ERROR,    STANDBY_ERROR,  REBOOT,     IN_AIR_RESTORE
+    { /* ARMING_STATE_INIT */           true,   true,       false,  false,          false,          false,      false },
+    { /* ARMING_STATE_STANDBY */        true,   true,       true,   true,           false,          false,      false },
+    { /* ARMING_STATE_ARMED */          false,  true,       true,   false,          false,          false,      true },
+    { /* ARMING_STATE_ARMED_ERROR */    false,  false,      true,   true,           false,          false,      false },
+    { /* ARMING_STATE_STANDBY_ERROR */  true,   true,       false,  true,           true,           false,      false },
+    { /* ARMING_STATE_REBOOT */         true,   true,       false,  false,          true,           true,       true },
+    { /* ARMING_STATE_IN_AIR_RESTORE */ false,  false,      false,  false,          false,          false,      false }, // NYI
+};
+
+// You can index into the array with an arming_state_t in order to get it's textual representation
+static const char* state_names[ARMING_STATE_MAX] = {
+    "ARMING_STATE_INIT",
+    "ARMING_STATE_STANDBY",
+    "ARMING_STATE_ARMED",
+    "ARMING_STATE_ARMED_ERROR",
+    "ARMING_STATE_STANDBY_ERROR",
+    "ARMING_STATE_REBOOT",
+    "ARMING_STATE_IN_AIR_RESTORE",
+};
+
 transition_result_t
-arming_state_transition(struct vehicle_status_s *status, const struct safety_s *safety,
-			arming_state_t new_arming_state, struct actuator_armed_s *armed, const int mavlink_fd)
+arming_state_transition(struct vehicle_status_s *status,            /// current vehicle status
+                        const struct safety_s   *safety,            /// current safety settings
+                        arming_state_t          new_arming_state,   /// arming state requested
+                        struct actuator_armed_s *armed,             /// current armed status
+                        const int               mavlink_fd)         /// mavlink fd for error reporting, 0 for none
 {
+    // Double check that our static arrays are still valid
+    ASSERT(ARMING_STATE_INIT == 0);
+    ASSERT(ARMING_STATE_IN_AIR_RESTORE == ARMING_STATE_MAX - 1);
+    
 	/*
 	 * Perform an atomic state update
 	 */
@@ -82,121 +116,60 @@ arming_state_transition(struct vehicle_status_s *status, const struct safety_s *
 	/* only check transition if the new state is actually different from the current one */
 	if (new_arming_state == status->arming_state) {
 		ret = TRANSITION_NOT_CHANGED;
-
 	} else {
-
 		/* enforce lockdown in HIL */
 		if (status->hil_state == HIL_STATE_ON) {
 			armed->lockdown = true;
-
 		} else {
 			armed->lockdown = false;
 		}
-
-		switch (new_arming_state) {
-		case ARMING_STATE_INIT:
-
-			/* allow going back from INIT for calibration */
-			if (status->arming_state == ARMING_STATE_STANDBY) {
-				ret = TRANSITION_CHANGED;
-				armed->armed = false;
-				armed->ready_to_arm = false;
-			}
-
-			break;
-
-		case ARMING_STATE_STANDBY:
-
-			/* allow coming from INIT and disarming from ARMED */
-			if (status->arming_state == ARMING_STATE_INIT
-			    || status->arming_state == ARMING_STATE_ARMED
-			    || status->hil_state == HIL_STATE_ON) {
-
-				/* sensors need to be initialized for STANDBY state */
-				if (status->condition_system_sensors_initialized) {
-					ret = TRANSITION_CHANGED;
-					armed->armed = false;
-					armed->ready_to_arm = true;
-				}
-			}
-
-			break;
-
-		case ARMING_STATE_ARMED:
-
-			/* allow arming from STANDBY and IN-AIR-RESTORE */
-            if ((status->arming_state == ARMING_STATE_STANDBY || status->arming_state == ARMING_STATE_IN_AIR_RESTORE)) {
+        
+        // Check that we have a valid state transition
+        bool valid_transition = arming_transitions[new_arming_state][status->arming_state];
+        if (valid_transition) {
+            // We have a good transition. Now perform any secondary validation.
+            if (new_arming_state == ARMING_STATE_ARMED) {
+                // In non-HIL, fail transition if we need safety switch press
                 if (status->hil_state == HIL_STATE_OFF && safety->safety_switch_available && !safety->safety_off) {
-                    // If we need to wait for safety switch then output message, but only if we have fd for mavlink connection
                     if (mavlink_fd) {
                         mavlink_log_critical(mavlink_fd, "NOT ARMING: Press safety switch first.");
                     }
-                } else {
-                    ret = TRANSITION_CHANGED;
-                    armed->armed = true;
-                    armed->ready_to_arm = true;
+                    valid_transition = false;
                 }
+            } else if (new_arming_state == ARMING_STATE_STANDBY && status->arming_state == ARMING_STATE_ARMED_ERROR) {
+                new_arming_state = ARMING_STATE_STANDBY_ERROR;
             }
+        }
+        
+        // HIL can always go to standby
+        if (status->hil_state == HIL_STATE_ON && new_arming_state == ARMING_STATE_STANDBY) {
+            valid_transition = true;
+        }
+        
+        /* Sensors need to be initialized for STANDBY state */
+        if (new_arming_state == ARMING_STATE_STANDBY && !status->condition_system_sensors_initialized) {
+            valid_transition = false;
+        }
 
-			break;
-
-		case ARMING_STATE_ARMED_ERROR:
-
-			/* an armed error happens when ARMED obviously */
-			if (status->arming_state == ARMING_STATE_ARMED) {
-				ret = TRANSITION_CHANGED;
-				armed->armed = true;
-				armed->ready_to_arm = false;
-			}
-
-			break;
-
-		case ARMING_STATE_STANDBY_ERROR:
-
-			/* a disarmed error happens when in STANDBY or in INIT or after ARMED_ERROR */
-			if (status->arming_state == ARMING_STATE_STANDBY
-			    || status->arming_state == ARMING_STATE_INIT
-			    || status->arming_state == ARMING_STATE_ARMED_ERROR) {
-				ret = TRANSITION_CHANGED;
-				armed->armed = false;
-				armed->ready_to_arm = false;
-			}
-
-			break;
-
-		case ARMING_STATE_REBOOT:
-
-			/* an armed error happens when ARMED obviously */
-			if (status->arming_state == ARMING_STATE_INIT
-			    || status->arming_state == ARMING_STATE_STANDBY
-			    || status->arming_state == ARMING_STATE_STANDBY_ERROR) {
-				ret = TRANSITION_CHANGED;
-				armed->armed = false;
-				armed->ready_to_arm = false;
-			}
-
-			break;
-
-		case ARMING_STATE_IN_AIR_RESTORE:
-
-			/* XXX implement */
-			break;
-
-		default:
-			break;
-		}
-
-		if (ret == TRANSITION_CHANGED) {
-			status->arming_state = new_arming_state;
-			arming_state_changed = true;
-		}
-	}
-
+        // Finish up the state transition
+        if (valid_transition) {
+            armed->armed = new_arming_state == ARMING_STATE_ARMED || new_arming_state == ARMING_STATE_ARMED_ERROR;
+            armed->ready_to_arm = new_arming_state == ARMING_STATE_ARMED || new_arming_state == ARMING_STATE_STANDBY;
+            ret = TRANSITION_CHANGED;
+            status->arming_state = new_arming_state;
+            arming_state_changed = true;
+        }
+    }
+    
 	/* end of atomic state update */
 	irqrestore(flags);
 
-	if (ret == TRANSITION_DENIED)
-		warnx("arming transition rejected");
+    if (ret == TRANSITION_DENIED) {
+        if (mavlink_fd) {
+            mavlink_log_critical(mavlink_fd, "Invalid arming transition from %s to %s", state_names[status->arming_state], state_names[new_arming_state]);
+        }
+        warnx("arming transition rejected");
+    }
 
 	return ret;
 }
