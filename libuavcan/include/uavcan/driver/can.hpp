@@ -142,9 +142,9 @@ public:
     virtual int getNumFilters() const = 0;
 
     /**
-     * Continuously incrementing counter of detected hardware errors.
+     * Continuously incrementing counter of hardware errors.
      */
-    virtual uint64_t getNumErrors() const = 0;
+    virtual uint64_t getErrorCount() const = 0;
 };
 
 /**

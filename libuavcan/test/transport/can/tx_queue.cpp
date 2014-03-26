@@ -112,7 +112,7 @@ TEST(CanTxQueue, TxQueue)
 
     // Out of free memory now
 
-    EXPECT_EQ(0, queue.getNumRejectedFrames());
+    EXPECT_EQ(0, queue.getRejectedFrameCount());
     EXPECT_EQ(4, getQueueLength(queue));
     EXPECT_TRUE(isInQueue(queue, f0));
     EXPECT_TRUE(isInQueue(queue, f1));
@@ -137,7 +137,7 @@ TEST(CanTxQueue, TxQueue)
     EXPECT_TRUE(isInQueue(queue, f2));
     EXPECT_FALSE(isInQueue(queue, f1));
     EXPECT_EQ(4, getQueueLength(queue));
-    EXPECT_EQ(2, queue.getNumRejectedFrames());
+    EXPECT_EQ(2, queue.getRejectedFrameCount());
     EXPECT_EQ(f0, queue.peek()->frame);            // Check the priority
 
     queue.push(f5, tsMono(600), CanTxQueue::Persistent, flags);   // Will override f0 (rest are presistent)
@@ -159,7 +159,7 @@ TEST(CanTxQueue, TxQueue)
     EXPECT_TRUE(queue.topPriorityHigherOrEqual(f5a));
     EXPECT_EQ(4, getQueueLength(queue));
     EXPECT_EQ(4, pool32.getNumUsedBlocks());
-    EXPECT_EQ(5, queue.getNumRejectedFrames());
+    EXPECT_EQ(5, queue.getRejectedFrameCount());
     EXPECT_TRUE(isInQueue(queue, f2));
     EXPECT_TRUE(isInQueue(queue, f3));
     EXPECT_TRUE(isInQueue(queue, f4));
@@ -173,19 +173,19 @@ TEST(CanTxQueue, TxQueue)
     queue.push(f0, tsMono(800), CanTxQueue::Volatile, flags);     // Will replace f4 which is expired now
     EXPECT_TRUE(isInQueue(queue, f0));
     EXPECT_FALSE(isInQueue(queue, f4));
-    EXPECT_EQ(6, queue.getNumRejectedFrames());
+    EXPECT_EQ(6, queue.getRejectedFrameCount());
 
     clockmock.monotonic = 1001;
     queue.push(f5, tsMono(2000), CanTxQueue::Volatile, flags);    // Entire queue is expired
     EXPECT_TRUE(isInQueue(queue, f5));
     EXPECT_EQ(1, getQueueLength(queue));           // Just one entry left - f5
     EXPECT_EQ(1, pool32.getNumUsedBlocks());       // Make sure there is no leaks
-    EXPECT_EQ(10, queue.getNumRejectedFrames());
+    EXPECT_EQ(10, queue.getRejectedFrameCount());
 
     queue.push(f0, tsMono(1000), CanTxQueue::Persistent, flags);  // This entry is already expired
     EXPECT_EQ(1, getQueueLength(queue));
     EXPECT_EQ(1, pool32.getNumUsedBlocks());
-    EXPECT_EQ(11, queue.getNumRejectedFrames());
+    EXPECT_EQ(11, queue.getRejectedFrameCount());
 
     /*
      * Removing
@@ -212,7 +212,7 @@ TEST(CanTxQueue, TxQueue)
 
     EXPECT_EQ(0, getQueueLength(queue));           // Final state checks
     EXPECT_EQ(0, pool32.getNumUsedBlocks());
-    EXPECT_EQ(11, queue.getNumRejectedFrames());
+    EXPECT_EQ(11, queue.getRejectedFrameCount());
     EXPECT_FALSE(queue.peek());
     EXPECT_FALSE(queue.topPriorityHigherOrEqual(f0));
 }

@@ -91,7 +91,7 @@ TEST(CanIOManager, Reception)
     EXPECT_EQ(0, flags);
 
     /*
-     * Errors
+     * Perf counters
      */
     driver.select_failure = true;
     EXPECT_EQ(-1, iomgr.receive(frame, uavcan::MonotonicTime(), flags));
@@ -103,8 +103,14 @@ TEST(CanIOManager, Reception)
 
     driver.ifaces.at(0).num_errors = 9000;
     driver.ifaces.at(1).num_errors = 100500;
-    EXPECT_EQ(9000, iomgr.getNumErrors(0));
-    EXPECT_EQ(100500, iomgr.getNumErrors(1));
+    EXPECT_EQ(9000, iomgr.getIfacePerfCounters(0).errors);
+    EXPECT_EQ(100500, iomgr.getIfacePerfCounters(1).errors);
+
+    EXPECT_EQ(3, iomgr.getIfacePerfCounters(0).frames_rx);
+    EXPECT_EQ(3, iomgr.getIfacePerfCounters(1).frames_rx);
+
+    EXPECT_EQ(0, iomgr.getIfacePerfCounters(0).frames_tx);
+    EXPECT_EQ(0, iomgr.getIfacePerfCounters(1).frames_tx);
 }
 
 TEST(CanIOManager, Transmission)
@@ -149,8 +155,8 @@ TEST(CanIOManager, Transmission)
     EXPECT_EQ(0, clockmock.utc);
     EXPECT_TRUE(driver.ifaces.at(0).tx.empty());
     EXPECT_TRUE(driver.ifaces.at(1).tx.empty());
-    EXPECT_EQ(0, iomgr.getNumErrors(0));
-    EXPECT_EQ(0, iomgr.getNumErrors(1));
+    EXPECT_EQ(0, iomgr.getIfacePerfCounters(0).errors);
+    EXPECT_EQ(0, iomgr.getIfacePerfCounters(1).errors);
 
     /*
      * TX Queue basics
@@ -204,9 +210,9 @@ TEST(CanIOManager, Transmission)
     // Final checks
     EXPECT_TRUE(driver.ifaces.at(0).tx.empty());
     EXPECT_TRUE(driver.ifaces.at(1).tx.empty());
-    EXPECT_EQ(0, pool.getNumUsedBlocks());          // Make sure the memory was properly released
-    EXPECT_EQ(1, iomgr.getNumErrors(0));            // This is because of expired frame[0]
-    EXPECT_EQ(0, iomgr.getNumErrors(1));
+    EXPECT_EQ(0, pool.getNumUsedBlocks());              // Make sure the memory was properly released
+    EXPECT_EQ(1, iomgr.getIfacePerfCounters(0).errors); // This is because of expired frame[0]
+    EXPECT_EQ(0, iomgr.getIfacePerfCounters(1).errors);
 
     /*
      * TX Queue updates from receive() call
@@ -254,8 +260,8 @@ TEST(CanIOManager, Transmission)
     EXPECT_EQ(1200, clockmock.utc);
     EXPECT_TRUE(driver.ifaces.at(0).tx.empty());
     EXPECT_TRUE(driver.ifaces.at(1).tx.empty());
-    EXPECT_EQ(1, iomgr.getNumErrors(0));
-    EXPECT_EQ(1, iomgr.getNumErrors(1));            // This is because of rejected frame[1]
+    EXPECT_EQ(1, iomgr.getIfacePerfCounters(0).errors);
+    EXPECT_EQ(1, iomgr.getIfacePerfCounters(1).errors); // This is because of rejected frame[1]
 
     /*
      * Error handling
@@ -287,6 +293,15 @@ TEST(CanIOManager, Transmission)
     EXPECT_TRUE(driver.ifaces.at(1).matchAndPopTx(frames[0], 2200));
     EXPECT_EQ(0, pool.getNumUsedBlocks());               // All transmitted
     ASSERT_EQ(0, flags);
+
+    /*
+     * Perf counters
+     */
+    EXPECT_EQ(1, iomgr.getIfacePerfCounters(0).frames_rx);
+    EXPECT_EQ(1, iomgr.getIfacePerfCounters(1).frames_rx);
+
+    EXPECT_EQ(6, iomgr.getIfacePerfCounters(0).frames_tx);
+    EXPECT_EQ(8, iomgr.getIfacePerfCounters(1).frames_tx);
 }
 
 TEST(CanIOManager, Loopback)
@@ -335,6 +350,16 @@ TEST(CanIOManager, Loopback)
     ASSERT_EQ(uavcan::CanIOFlagLoopback, flags);
     ASSERT_TRUE(rfr1 == fr1);
     ASSERT_TRUE(rfr2 == fr2);
+
+    /*
+     * Perf counters
+     * Loopback frames are not registered as RX
+     */
+    EXPECT_EQ(0, iomgr.getIfacePerfCounters(0).frames_rx);
+    EXPECT_EQ(0, iomgr.getIfacePerfCounters(1).frames_rx);
+
+    EXPECT_EQ(3, iomgr.getIfacePerfCounters(0).frames_tx);
+    EXPECT_EQ(0, iomgr.getIfacePerfCounters(1).frames_tx);
 }
 
 TEST(CanIOManager, Size)

@@ -110,22 +110,44 @@ public:
 
     bool topPriorityHigherOrEqual(const CanFrame& rhs_frame) const;
 
-    uint32_t getNumRejectedFrames() const { return rejected_frames_cnt_; }
+    uint32_t getRejectedFrameCount() const { return rejected_frames_cnt_; }
 
     bool isEmpty() const { return queue_.isEmpty(); }
 };
 
 
+struct CanIfacePerfCounters
+{
+    uint64_t frames_tx;
+    uint64_t frames_rx;
+    uint64_t errors;
+
+    CanIfacePerfCounters()
+        : frames_tx(0)
+        , frames_rx(0)
+        , errors(0)
+    { }
+};
+
+
 class CanIOManager : Noncopyable
 {
+    struct IfaceFrameCounters
+    {
+        uint64_t frames_tx;
+        uint64_t frames_rx;
+
+        IfaceFrameCounters()
+            : frames_tx(0)
+            , frames_rx(0)
+        { }
+    };
+
     ICanDriver& driver_;
     ISystemClock& sysclock_;
 
     CanTxQueue tx_queues_[MaxCanIfaces];
-
-    // Noncopyable
-    CanIOManager(CanIOManager&);
-    CanIOManager& operator=(CanIOManager&);
+    IfaceFrameCounters counters_[MaxCanIfaces];
 
     int sendToIface(int iface_index, const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags);
     int sendFromTxQueue(int iface_index);
@@ -147,7 +169,7 @@ public:
 
     int getNumIfaces() const;
 
-    uint64_t getNumErrors(int iface_index) const;
+    CanIfacePerfCounters getIfacePerfCounters(int iface_index) const;
 
     /**
      * Returns:

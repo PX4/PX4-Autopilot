@@ -152,7 +152,7 @@ public:
     int configureFilters(const uavcan::CanFilterConfig*, int) { return -1; }
     // cppcheck-suppress unusedFunction
     int getNumFilters() const { return 0; }
-    uint64_t getNumErrors() const { return num_errors; }
+    uint64_t getErrorCount() const { return num_errors; }
 };
 
 class CanDriverMock : public uavcan::ICanDriver

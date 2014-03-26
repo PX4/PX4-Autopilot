@@ -122,7 +122,7 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
 
     int configureFilters(const uavcan::CanFilterConfig*, int) { return -1; }
     int getNumFilters() const { return 0; }
-    uint64_t getNumErrors() const { return 0; }
+    uint64_t getErrorCount() const { return 0; }
 };
 
 

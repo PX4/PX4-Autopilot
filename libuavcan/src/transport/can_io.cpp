@@ -227,6 +227,10 @@ int CanIOManager::sendToIface(int iface_index, const CanFrame& frame, MonotonicT
         UAVCAN_TRACE("CanIOManager", "Send failed: code %i, iface %i, frame %s",
                      res, iface_index, frame.toString().c_str());
     }
+    if (res > 0)
+    {
+        counters_[iface_index].frames_tx += res;
+    }
     return res;
 }
 
@@ -266,15 +270,19 @@ int CanIOManager::getNumIfaces() const
     return std::min(std::max(num, 0), (int)MaxCanIfaces);
 }
 
-uint64_t CanIOManager::getNumErrors(int iface_index) const
+CanIfacePerfCounters CanIOManager::getIfacePerfCounters(int iface_index) const
 {
     ICanIface* const iface = driver_.getIface(iface_index);
     if (iface == NULL || iface_index >= MaxCanIfaces || iface_index < 0)
     {
         assert(0);
-        return std::numeric_limits<uint64_t>::max();
+        return CanIfacePerfCounters();
     }
-    return iface->getNumErrors() + tx_queues_[iface_index].getNumRejectedFrames();
+    CanIfacePerfCounters cnt;
+    cnt.errors = iface->getErrorCount() + tx_queues_[iface_index].getRejectedFrameCount();
+    cnt.frames_rx = counters_[iface_index].frames_rx;
+    cnt.frames_tx = counters_[iface_index].frames_tx;
+    return cnt;
 }
 
 int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, MonotonicTime blocking_deadline,
@@ -406,6 +414,10 @@ int CanIOManager::receive(CanRxFrame& out_frame, MonotonicTime blocking_deadline
                     continue;
                 }
                 out_frame.iface_index = i;
+                if ((res > 0) && !(out_flags & CanIOFlagLoopback))
+                {
+                    counters_[i].frames_rx += 1;
+                }
                 return res;
             }
         }
