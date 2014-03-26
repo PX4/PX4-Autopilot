@@ -17,9 +17,9 @@ class TransferReceiver
 public:
     enum ResultCode { ResultNotComplete, ResultComplete, ResultSingleFrame };
 
-    static const uint32_t DefaultTransferIntervalUSec = 500 * 1000UL;
     static const uint32_t MinTransferIntervalUSec     = 1   * 1000UL;
     static const uint32_t MaxTransferIntervalUSec     = 10  * 1000 * 1000UL;
+    static const uint32_t DefaultTransferIntervalUSec = 1   * 1000 * 1000UL;
 
     static MonotonicDuration getDefaultTransferInterval()
     {

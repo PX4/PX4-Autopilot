@@ -174,15 +174,15 @@ TEST(TransferReceiver, Basic)
     /*
      * Timeouts
      */
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "qwe",      0, true, 1, 100000), bk)); // Wrong iface - ignored
-    CHECK_SINGLE_FRAME(rcv.addFrame(gen(1, "qwe",      0, true, 6, 600000), bk)); // Accepted due to iface timeout
-    ASSERT_EQ(600000, rcv.getLastTransferTimestampMonotonic().toUSec());
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "qwe",      0, true, 1, 100000), bk));  // Wrong iface - ignored
+    CHECK_SINGLE_FRAME(rcv.addFrame(gen(1, "qwe",      0, true, 6, 1500000), bk)); // Accepted due to iface timeout
+    ASSERT_EQ(1500000, rcv.getLastTransferTimestampMonotonic().toUSec());
 
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "qwe",      0, true, 7, 600100), bk)); // Ignored - old iface 0
-    CHECK_SINGLE_FRAME(rcv.addFrame(gen(1, "qwe",      0, true, 7, 600100), bk));
-    ASSERT_EQ(600100, rcv.getLastTransferTimestampMonotonic().toUSec());
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(0, "qwe",      0, true, 7, 1500100), bk)); // Ignored - old iface 0
+    CHECK_SINGLE_FRAME(rcv.addFrame(gen(1, "qwe",      0, true, 7, 1500100), bk));
+    ASSERT_EQ(1500100, rcv.getLastTransferTimestampMonotonic().toUSec());
 
-    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "qwe",      0, true, 7, 600100), bk));   // Old TID
+    CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "qwe",      0, true, 7, 1500100), bk));   // Old TID
     CHECK_SINGLE_FRAME(rcv.addFrame(gen(0, "qwe",      0, true, 7, 100000000), bk)); // Accepted - global timeout
     ASSERT_EQ(100000000, rcv.getLastTransferTimestampMonotonic().toUSec());
 

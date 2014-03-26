@@ -13,9 +13,9 @@
 namespace uavcan
 {
 
-const uint32_t TransferReceiver::DefaultTransferIntervalUSec;
 const uint32_t TransferReceiver::MinTransferIntervalUSec;
 const uint32_t TransferReceiver::MaxTransferIntervalUSec;
+const uint32_t TransferReceiver::DefaultTransferIntervalUSec;
 
 TransferReceiver::TidRelation TransferReceiver::getTidRelation(const RxFrame& frame) const
 {
