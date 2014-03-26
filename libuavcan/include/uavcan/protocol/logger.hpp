@@ -40,7 +40,7 @@ class Logger
 public:
     typedef ILogSink::LogLevel LogLevel;
 
-    static const LogLevel LevelAboveAll = (protocol::debug::LogLevel::FieldTypes::value::BitLen << 1) - 1;
+    static const LogLevel LevelAboveAll = (1 << protocol::debug::LogLevel::FieldTypes::value::BitLen) - 1;
 
 private:
     enum { DefaultTxTimeoutMs = 2000 };
