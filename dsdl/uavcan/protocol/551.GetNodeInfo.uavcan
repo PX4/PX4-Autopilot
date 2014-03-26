@@ -10,5 +10,9 @@ SoftwareVersion uavcan_version
 
 NodeStatus status
 
-# Human readable name, e.g. "pixhawk", "gnss_mag". Alphanumeric and underscores.
+# Human readable node name.
+# The naming convention is like of Java packages (reversed internet domain names).
+# Examples:
+#     org.pixhawk.pixhawk
+#     org.autoquad.esc32
 uint8[<64] name
