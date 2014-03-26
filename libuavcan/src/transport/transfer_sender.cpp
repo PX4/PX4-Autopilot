@@ -12,14 +12,14 @@ namespace uavcan
 
 void TransferSender::registerError()
 {
-    dispatcher_.getTransportPerfCounter().addError();
+    dispatcher_.getTransferPerfCounter().addError();
 }
 
 int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime tx_deadline,
                          MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id,
                          TransferID tid)
 {
-    dispatcher_.getTransportPerfCounter().addTxTransfer();
+    dispatcher_.getTransferPerfCounter().addTxTransfer();
 
     Frame frame(data_type_.getID(), transfer_type, dispatcher_.getNodeID(), dst_node_id, 0, tid);
 

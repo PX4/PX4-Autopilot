@@ -98,7 +98,7 @@ class GenericSubscriber : Noncopyable
 
     public:
         TransferForwarder(SelfType& obj, const DataTypeDescriptor& data_type, IAllocator& allocator)
-            : TransferListenerType(obj.node_.getDispatcher().getTransportPerfCounter(), data_type, allocator)
+            : TransferListenerType(obj.node_.getDispatcher().getTransferPerfCounter(), data_type, allocator)
             , obj_(obj)
         { }
     };

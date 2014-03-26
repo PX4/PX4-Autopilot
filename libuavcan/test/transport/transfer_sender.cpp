@@ -113,9 +113,9 @@ TEST(TransferSender, Basic)
         }
     }
 
-    TestListener<512, 2, 2> sub_msg(dispatcher_rx.getTransportPerfCounter(),      TYPES[0], poolmgr);
-    TestListener<512, 2, 2> sub_srv_req(dispatcher_rx.getTransportPerfCounter(),  TYPES[1], poolmgr);
-    TestListener<512, 2, 2> sub_srv_resp(dispatcher_rx.getTransportPerfCounter(), TYPES[1], poolmgr);
+    TestListener<512, 2, 2> sub_msg(dispatcher_rx.getTransferPerfCounter(),      TYPES[0], poolmgr);
+    TestListener<512, 2, 2> sub_srv_req(dispatcher_rx.getTransferPerfCounter(),  TYPES[1], poolmgr);
+    TestListener<512, 2, 2> sub_srv_resp(dispatcher_rx.getTransferPerfCounter(), TYPES[1], poolmgr);
 
     dispatcher_rx.registerMessageListener(&sub_msg);
     dispatcher_rx.registerServiceRequestListener(&sub_srv_req);
@@ -149,13 +149,13 @@ TEST(TransferSender, Basic)
     /*
      * Perf counters
      */
-    EXPECT_EQ(0, dispatcher_tx.getTransportPerfCounter().getErrorCount());
-    EXPECT_EQ(8, dispatcher_tx.getTransportPerfCounter().getTxTransferCount());
-    EXPECT_EQ(0, dispatcher_tx.getTransportPerfCounter().getRxTransferCount());
+    EXPECT_EQ(0, dispatcher_tx.getTransferPerfCounter().getErrorCount());
+    EXPECT_EQ(8, dispatcher_tx.getTransferPerfCounter().getTxTransferCount());
+    EXPECT_EQ(0, dispatcher_tx.getTransferPerfCounter().getRxTransferCount());
 
-    EXPECT_EQ(0, dispatcher_rx.getTransportPerfCounter().getErrorCount());
-    EXPECT_EQ(0, dispatcher_rx.getTransportPerfCounter().getTxTransferCount());
-    EXPECT_EQ(8, dispatcher_rx.getTransportPerfCounter().getRxTransferCount());
+    EXPECT_EQ(0, dispatcher_rx.getTransferPerfCounter().getErrorCount());
+    EXPECT_EQ(0, dispatcher_rx.getTransferPerfCounter().getTxTransferCount());
+    EXPECT_EQ(8, dispatcher_rx.getTransferPerfCounter().getRxTransferCount());
 }
 
 
@@ -214,7 +214,7 @@ TEST(TransferSender, Loopback)
     ASSERT_TRUE(TX_NODE_ID == listener.last_frame.getSrcNodeID());
     ASSERT_TRUE(listener.last_frame.isLast());
 
-    EXPECT_EQ(0, dispatcher.getTransportPerfCounter().getErrorCount());
-    EXPECT_EQ(1, dispatcher.getTransportPerfCounter().getTxTransferCount());
-    EXPECT_EQ(0, dispatcher.getTransportPerfCounter().getRxTransferCount());
+    EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getErrorCount());
+    EXPECT_EQ(1, dispatcher.getTransferPerfCounter().getTxTransferCount());
+    EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getRxTransferCount());
 }

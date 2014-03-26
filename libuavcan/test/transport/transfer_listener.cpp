@@ -38,7 +38,7 @@ TEST(TransferListener, BasicMFT)
     uavcan::PoolManager<1> poolmgr;
     poolmgr.addPool(&pool);
 
-    uavcan::TransportPerfCounter perf;
+    uavcan::TransferPerfCounter perf;
     TestListener<256, 1, 1> subscriber(perf, type, poolmgr);
 
     /*
@@ -90,7 +90,7 @@ TEST(TransferListener, CrcFailure)
     const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "A");
 
     uavcan::PoolManager<1> poolmgr;                         // No dynamic memory
-    uavcan::TransportPerfCounter perf;
+    uavcan::TransferPerfCounter perf;
     TestListener<256, 2, 2> subscriber(perf, type, poolmgr);  // Static buffer only, 2 entries
 
     /*
@@ -134,7 +134,7 @@ TEST(TransferListener, BasicSFT)
     const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "A");
 
     uavcan::PoolManager<1> poolmgr;                        // No dynamic memory. At all.
-    uavcan::TransportPerfCounter perf;
+    uavcan::TransferPerfCounter perf;
     TestListener<0, 0, 5> subscriber(perf, type, poolmgr); // Max buf size is 0, i.e. SFT-only
 
     TransferListenerEmulator emulator(subscriber, type);
@@ -170,7 +170,7 @@ TEST(TransferListener, Cleanup)
     const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "A");
 
     uavcan::PoolManager<1> poolmgr;                           // No dynamic memory
-    uavcan::TransportPerfCounter perf;
+    uavcan::TransferPerfCounter perf;
     TestListener<256, 1, 2> subscriber(perf, type, poolmgr);  // Static buffer only, 1 entry
 
     /*
@@ -225,7 +225,7 @@ TEST(TransferListener, MaximumTransferLength)
     const uavcan::DataTypeDescriptor type(uavcan::DataTypeKindMessage, 123, uavcan::DataTypeSignature(123456789), "A");
 
     uavcan::PoolManager<1> poolmgr;
-    uavcan::TransportPerfCounter perf;
+    uavcan::TransferPerfCounter perf;
     TestListener<uavcan::MaxTransferPayloadLen * 2, 2, 2> subscriber(perf, type, poolmgr);
 
     static const std::string DATA_OK(uavcan::MaxTransferPayloadLen, 'z');

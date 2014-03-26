@@ -68,12 +68,12 @@ TEST(Dispatcher, Reception)
     static const int NUM_SUBSCRIBERS = 6;
     SubscriberPtr subscribers[NUM_SUBSCRIBERS] =
     {
-        SubscriberPtr(new Subscriber(dispatcher.getTransportPerfCounter(), TYPES[0], poolmgr)), // msg
-        SubscriberPtr(new Subscriber(dispatcher.getTransportPerfCounter(), TYPES[0], poolmgr)), // msg // Two similar
-        SubscriberPtr(new Subscriber(dispatcher.getTransportPerfCounter(), TYPES[1], poolmgr)), // msg
-        SubscriberPtr(new Subscriber(dispatcher.getTransportPerfCounter(), TYPES[2], poolmgr)), // srv
-        SubscriberPtr(new Subscriber(dispatcher.getTransportPerfCounter(), TYPES[3], poolmgr)), // srv
-        SubscriberPtr(new Subscriber(dispatcher.getTransportPerfCounter(), TYPES[3], poolmgr))  // srv // Repeat again
+        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[0], poolmgr)), // msg
+        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[0], poolmgr)), // msg // Two similar
+        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[1], poolmgr)), // msg
+        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[2], poolmgr)), // srv
+        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[3], poolmgr)), // srv
+        SubscriberPtr(new Subscriber(dispatcher.getTransferPerfCounter(), TYPES[3], poolmgr))  // srv // Repeat again
     };
 
     static const std::string DATA[6] =
@@ -216,9 +216,9 @@ TEST(Dispatcher, Reception)
     /*
      * Perf counters
      */
-    EXPECT_LT(0, dispatcher.getTransportPerfCounter().getErrorCount());   // Repeated transfers
-    EXPECT_EQ(0, dispatcher.getTransportPerfCounter().getTxTransferCount());
-    EXPECT_EQ(9, dispatcher.getTransportPerfCounter().getRxTransferCount());
+    EXPECT_LT(0, dispatcher.getTransferPerfCounter().getErrorCount());   // Repeated transfers
+    EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getTxTransferCount());
+    EXPECT_EQ(9, dispatcher.getTransferPerfCounter().getRxTransferCount());
 }
 
 
@@ -271,9 +271,9 @@ TEST(Dispatcher, Transmission)
     /*
      * Perf counters - all empty because dispatcher itself does not count TX transfers
      */
-    EXPECT_EQ(0, dispatcher.getTransportPerfCounter().getErrorCount());
-    EXPECT_EQ(0, dispatcher.getTransportPerfCounter().getTxTransferCount());
-    EXPECT_EQ(0, dispatcher.getTransportPerfCounter().getRxTransferCount());
+    EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getErrorCount());
+    EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getTxTransferCount());
+    EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getRxTransferCount());
 }
 
 

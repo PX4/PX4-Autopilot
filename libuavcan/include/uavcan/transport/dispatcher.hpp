@@ -58,7 +58,7 @@ class Dispatcher : Noncopyable
     CanIOManager canio_;
     ISystemClock& sysclock_;
     IOutgoingTransferRegistry& outgoing_transfer_reg_;
-    TransportPerfCounter perf_;
+    TransferPerfCounter perf_;
 
     class ListenerRegistry
     {
@@ -144,8 +144,8 @@ public:
 
     const CanIOManager& getCanIOManager() const { return canio_; }
 
-    const TransportPerfCounter& getTransportPerfCounter() const { return perf_; }
-    TransportPerfCounter& getTransportPerfCounter() { return perf_; }
+    const TransferPerfCounter& getTransferPerfCounter() const { return perf_; }
+    TransferPerfCounter& getTransferPerfCounter() { return perf_; }
 };
 
 }

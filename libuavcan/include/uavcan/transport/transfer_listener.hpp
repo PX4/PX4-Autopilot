@@ -89,12 +89,12 @@ class TransferListenerBase : public LinkedListNode<TransferListenerBase>, Noncop
 {
     const DataTypeDescriptor& data_type_;
     const TransferCRC crc_base_;                      ///< Pre-initialized with data type hash, thus constant
-    TransportPerfCounter& perf_;
+    TransferPerfCounter& perf_;
 
     bool checkPayloadCrc(const uint16_t compare_with, const ITransferBuffer& tbb) const;
 
 protected:
-    TransferListenerBase(TransportPerfCounter& perf, const DataTypeDescriptor& data_type)
+    TransferListenerBase(TransferPerfCounter& perf, const DataTypeDescriptor& data_type)
         : data_type_(data_type)
         , crc_base_(data_type.getSignature().toTransferCRC())
         , perf_(perf)
@@ -184,7 +184,7 @@ protected:
     }
 
 public:
-    TransferListener(TransportPerfCounter& perf, const DataTypeDescriptor& data_type, IAllocator& allocator)
+    TransferListener(TransferPerfCounter& perf, const DataTypeDescriptor& data_type, IAllocator& allocator)
         : TransferListenerBase(perf, data_type)
         , bufmgr_(allocator)
         , receivers_(allocator)
@@ -249,7 +249,7 @@ private:
     }
 
 public:
-    ServiceResponseTransferListener(TransportPerfCounter& perf, const DataTypeDescriptor& data_type,
+    ServiceResponseTransferListener(TransferPerfCounter& perf, const DataTypeDescriptor& data_type,
                                     IAllocator& allocator)
         : BaseType(perf, data_type, allocator)
     { }

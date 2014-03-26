@@ -9,14 +9,14 @@
 namespace uavcan
 {
 
-class TransportPerfCounter
+class TransferPerfCounter
 {
     uint64_t transfers_tx_;
     uint64_t transfers_rx_;
     uint64_t errors_;
 
 public:
-    TransportPerfCounter()
+    TransferPerfCounter()
         : transfers_tx_(0)
         , transfers_rx_(0)
         , errors_(0)
