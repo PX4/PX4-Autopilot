@@ -245,6 +245,9 @@ TEST(TransferReceiver, OutOfBufferSpace_32bytes)
 
     ASSERT_EQ(100000000, rcv.getLastTransferTimestampMonotonic().toUSec());  // Timestamp will not be overriden
     ASSERT_FALSE(bufmgr.access(gen.bufmgr_key));                    // Buffer should be removed
+
+    ASSERT_EQ(1, rcv.yieldErrorCount());
+    ASSERT_EQ(0, rcv.yieldErrorCount());
 }
 
 
@@ -266,6 +269,9 @@ TEST(TransferReceiver, UnterminatedTransfer)
     ASSERT_EQ(1000, rcv.getLastTransferTimestampMonotonic().toUSec());
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), std::string(content, 2)));
     ASSERT_EQ(0x3231, rcv.getLastTransferCrc());
+
+    ASSERT_EQ(1, rcv.yieldErrorCount());
+    ASSERT_EQ(0, rcv.yieldErrorCount());
 }
 
 
@@ -287,6 +293,9 @@ TEST(TransferReceiver, OutOfOrderFrames)
     ASSERT_EQ(100000000, rcv.getLastTransferTimestampMonotonic().toUSec());
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "345678qwertyuiabcd"));
     ASSERT_EQ(0x3231, rcv.getLastTransferCrc());
+
+    ASSERT_EQ(3, rcv.yieldErrorCount());
+    ASSERT_EQ(0, rcv.yieldErrorCount());
 }
 
 
@@ -359,6 +368,9 @@ TEST(TransferReceiver, Restart)
 
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "3456781234567812345678"));
     ASSERT_EQ(0x3231, rcv.getLastTransferCrc());
+
+    ASSERT_EQ(3, rcv.yieldErrorCount());
+    ASSERT_EQ(0, rcv.yieldErrorCount());
 }
 
 

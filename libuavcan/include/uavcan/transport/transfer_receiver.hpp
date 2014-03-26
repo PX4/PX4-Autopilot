@@ -41,8 +41,11 @@ private:
     TransferID tid_;
     uint8_t iface_index_;
     uint8_t next_frame_index_;
+    uint8_t error_cnt_;
 
     bool isInitialized() const { return iface_index_ != IfaceIndexNotSet; }
+
+    void registerError();
 
     TidRelation getTidRelation(const RxFrame& frame) const;
 
@@ -60,11 +63,14 @@ public:
         , buffer_write_pos_(0)
         , iface_index_(IfaceIndexNotSet)
         , next_frame_index_(0)
+        , error_cnt_(0)
     { }
 
     bool isTimedOut(MonotonicTime current_ts) const;
 
     ResultCode addFrame(const RxFrame& frame, TransferBufferAccessor& tba);
+
+    uint8_t yieldErrorCount();
 
     MonotonicTime getLastTransferTimestampMonotonic() const { return prev_transfer_ts_; }
     UtcTime getLastTransferTimestampUtc() const { return first_frame_ts_; }

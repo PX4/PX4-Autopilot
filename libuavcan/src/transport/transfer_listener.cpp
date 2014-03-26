@@ -114,7 +114,6 @@ void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxF
     case TransferReceiver::ResultNotComplete:
     {
         return;
-
     }
     case TransferReceiver::ResultSingleFrame:
     {
@@ -122,7 +121,6 @@ void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxF
         handleIncomingTransfer(it);
         return;
     }
-
     case TransferReceiver::ResultComplete:
     {
         const ITransferBuffer* tbb = tba.access();
@@ -131,20 +129,17 @@ void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxF
             UAVCAN_TRACE("TransferListenerBase", "Buffer access failure, last frame: %s", frame.toString().c_str());
             return;
         }
-
         if (!checkPayloadCrc(receiver.getLastTransferCrc(), *tbb))
         {
             UAVCAN_TRACE("TransferListenerBase", "CRC error, last frame: %s", frame.toString().c_str());
             return;
         }
-
         MultiFrameIncomingTransfer it(receiver.getLastTransferTimestampMonotonic(),
                                       receiver.getLastTransferTimestampUtc(), frame, tba);
         handleIncomingTransfer(it);
         it.release();
         return;
     }
-
     default:
     {
         assert(0);

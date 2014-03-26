@@ -17,6 +17,18 @@ const uint32_t TransferReceiver::MinTransferIntervalUSec;
 const uint32_t TransferReceiver::MaxTransferIntervalUSec;
 const uint32_t TransferReceiver::DefaultTransferIntervalUSec;
 
+void TransferReceiver::registerError()
+{
+    if (error_cnt_ < 0xFF)
+    {
+        error_cnt_ += 1;
+    }
+    else
+    {
+        assert(0);
+    }
+}
+
 TransferReceiver::TidRelation TransferReceiver::getTidRelation(const RxFrame& frame) const
 {
     const int distance = tid_.computeForwardDistance(frame.getTransferID());
@@ -151,6 +163,7 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame, Tra
     {
         UAVCAN_TRACE("TransferReceiver", "Failed to access the buffer, %s", frame.toString().c_str());
         prepareForNextTransfer();
+        registerError();
         return ResultNotComplete;
     }
     if (!writePayload(frame, *buf))
@@ -158,6 +171,7 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame, Tra
         UAVCAN_TRACE("TransferReceiver", "Payload write failed, %s", frame.toString().c_str());
         tba.remove();
         prepareForNextTransfer();
+        registerError();
         return ResultNotComplete;
     }
     next_frame_index_++;
@@ -207,6 +221,11 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, Tr
 
     if (need_restart)
     {
+        const bool error = !not_initialized && !receiver_timed_out;
+        if (error)
+        {
+            registerError();
+        }
         UAVCAN_TRACE("TransferReceiver",
                      "Restart [not_inited=%i, iface_timeout=%i, recv_timeout=%i, same_iface=%i, first_frame=%i, tid_rel=%i], %s",
                      int(not_initialized), int(iface_timed_out), int(receiver_timed_out), int(same_iface),
@@ -226,10 +245,18 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, Tr
 
     if (!validate(frame))
     {
+        registerError();
         return ResultNotComplete;
     }
 
     return receive(frame, tba);
+}
+
+uint8_t TransferReceiver::yieldErrorCount()
+{
+    const uint8_t ret = error_cnt_;
+    error_cnt_ = 0;
+    return ret;
 }
 
 }
