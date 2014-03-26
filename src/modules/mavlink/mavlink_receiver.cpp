@@ -765,7 +765,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		memset(&hil_global_pos, 0, sizeof(hil_global_pos));
 
 		hil_global_pos.timestamp = timestamp;
-		hil_global_pos.global_valid = true;
 		hil_global_pos.lat = hil_state.lat;
 		hil_global_pos.lon = hil_state.lon;
 		hil_global_pos.alt = hil_state.alt / 1000.0f;
@@ -773,6 +772,8 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_global_pos.vel_e = hil_state.vy / 100.0f;
 		hil_global_pos.vel_d = hil_state.vz / 100.0f;
 		hil_global_pos.yaw = hil_attitude.yaw;
+		hil_global_pos.eph = 2.0f;
+		hil_global_pos.epv = 4.0f;
 
 		if (_global_pos_pub > 0) {
 			orb_publish(ORB_ID(vehicle_global_position), _global_pos_pub, &hil_global_pos);

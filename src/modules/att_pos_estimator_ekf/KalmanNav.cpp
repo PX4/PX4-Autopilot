@@ -312,7 +312,6 @@ void KalmanNav::updatePublications()
 	// global position publication
 	_pos.timestamp = _pubTimeStamp;
 	_pos.time_gps_usec = _gps.timestamp_position;
-	_pos.global_valid = true;
 	_pos.lat = lat * M_RAD_TO_DEG;
 	_pos.lon = lon * M_RAD_TO_DEG;
 	_pos.alt = float(alt);

@@ -1126,8 +1126,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_GPOS.vel_n = buf.global_pos.vel_n;
 			log_msg.body.log_GPOS.vel_e = buf.global_pos.vel_e;
 			log_msg.body.log_GPOS.vel_d = buf.global_pos.vel_d;
-			log_msg.body.log_GPOS.baro_alt = buf.global_pos.baro_alt;
-			log_msg.body.log_GPOS.flags = (buf.global_pos.baro_valid ? 1 : 0) | (buf.global_pos.global_valid ? 2 : 0);
+			log_msg.body.log_GPOS.eph = buf.global_pos.eph;
+			log_msg.body.log_GPOS.epv = buf.global_pos.epv;
 			LOGBUFFER_WRITE_AND_COUNT(GPOS);
 		}
 

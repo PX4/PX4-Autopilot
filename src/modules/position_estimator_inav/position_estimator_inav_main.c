@@ -292,7 +292,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	/* advertise */
 	orb_advert_t vehicle_local_position_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos);
-	orb_advert_t vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
+	orb_advert_t vehicle_global_position_pub = -1;
 
 	struct position_estimator_inav_params params;
 	struct position_estimator_inav_param_handles pos_inav_param_handles;
@@ -340,7 +340,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						mavlink_log_info(mavlink_fd, "[inav] baro offs: %.2f", baro_offset);
 						local_pos.z_valid = true;
 						local_pos.v_z_valid = true;
-						global_pos.baro_valid = true;
 					}
 				}
 			}
@@ -550,9 +549,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						/* reproject position estimate to new reference */
 						float dx, dy;
 						map_projection_project(&ref, home.lat, home.lon, &dx, &dy);
-						est_x[0] -= dx;
-						est_y[0] -= dx;
-						est_z[0] += home.alt - local_pos.ref_alt;
+						x_est[0] -= dx;
+						y_est[0] -= dx;
+						z_est[0] += home.alt - local_pos.ref_alt;
 					}
 
 					/* update baro offset */
@@ -888,40 +887,35 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			orb_publish(ORB_ID(vehicle_local_position), vehicle_local_position_pub, &local_pos);
 
-			/* publish global position */
-			global_pos.global_valid = local_pos.xy_global;
+			if (local_pos.xy_global && local_pos.z_global) {
+				/* publish global position */
+				global_pos.timestamp = t;
+				global_pos.time_gps_usec = gps.time_gps_usec;
 
-			if (local_pos.xy_global) {
 				double est_lat, est_lon;
 				map_projection_reproject(&ref, local_pos.x, local_pos.y, &est_lat, &est_lon);
+
 				global_pos.lat = est_lat;
 				global_pos.lon = est_lon;
-				global_pos.time_gps_usec = gps.time_gps_usec;
-			}
+				global_pos.alt = local_pos.ref_alt - local_pos.z;
 
-			/* set valid values even if position is not valid */
-			if (local_pos.v_xy_valid) {
 				global_pos.vel_n = local_pos.vx;
 				global_pos.vel_e = local_pos.vy;
-			}
-
-			if (local_pos.z_global) {
-				global_pos.alt = local_pos.ref_alt - local_pos.z;
-			}
-
-			if (local_pos.z_valid) {
-				global_pos.baro_alt = baro_offset - local_pos.z;
-			}
-
-			if (local_pos.v_z_valid) {
 				global_pos.vel_d = local_pos.vz;
+
+				global_pos.yaw = local_pos.yaw;
+
+				// TODO implement dead-reckoning
+				global_pos.eph = gps.eph_m;
+				global_pos.epv = gps.epv_m;
+
+				if (vehicle_global_position_pub < 0) {
+					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
+
+				} else {
+					orb_publish(ORB_ID(vehicle_global_position), vehicle_global_position_pub, &global_pos);
+				}
 			}
-
-			global_pos.yaw = local_pos.yaw;
-
-			global_pos.timestamp = t;
-
-			orb_publish(ORB_ID(vehicle_global_position), vehicle_global_position_pub, &global_pos);
 		}
 	}
 

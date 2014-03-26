@@ -117,7 +117,7 @@ extern struct system_load_s system_load;
 #define STICK_ON_OFF_HYSTERESIS_TIME_MS 1000
 #define STICK_ON_OFF_COUNTER_LIMIT (STICK_ON_OFF_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
-#define POSITION_TIMEOUT 1000000 /**< consider the local or global position estimate invalid after 1s */
+#define POSITION_TIMEOUT 20000 /**< consider the local or global position estimate invalid after 20ms */
 #define RC_TIMEOUT 100000
 #define DIFFPRESS_TIMEOUT 2000000
 
@@ -919,7 +919,37 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* update condition_global_position_valid */
-		check_valid(global_position.timestamp, POSITION_TIMEOUT, global_position.global_valid, &(status.condition_global_position_valid), &status_changed);
+		check_valid(global_position.timestamp, POSITION_TIMEOUT, true, &(status.condition_global_position_valid), &status_changed);
+
+		/* check if GPS fix is ok */
+		static float hdop_threshold_m = 4.0f;
+		static float vdop_threshold_m = 8.0f;
+
+		/* update home position */
+		if (!status.condition_home_position_valid && updated &&
+			(global_position.eph < hdop_threshold_m) && (global_position.epv < vdop_threshold_m) &&
+		    (hrt_absolute_time() < global_position.timestamp + POSITION_TIMEOUT) && !armed.armed) {
+
+			/* copy position data to uORB home message, store it locally as well */
+			home.lat = global_position.lat;
+			home.lon = global_position.lon;
+			home.alt = global_position.alt;
+
+			warnx("home: lat = %.7f, lon = %.7f, alt = %.4f ", home.lat, home.lon, (double)home.alt);
+			mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.4f", home.lat, home.lon, (double)home.alt);
+
+			/* announce new home position */
+			if (home_pub > 0) {
+				orb_publish(ORB_ID(home_position), home_pub, &home);
+
+			} else {
+				home_pub = orb_advertise(ORB_ID(home_position), &home);
+			}
+
+			/* mark home position as set */
+			status.condition_home_position_valid = true;
+			tune_positive(true);
+		}
 
 		/* update local position estimate */
 		orb_check(local_position_sub, &updated);
@@ -1067,45 +1097,6 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps_position);
-			/* check if GPS fix is ok */
-			float hdop_threshold_m = 4.0f;
-			float vdop_threshold_m = 8.0f;
-
-			/*
-			 * If horizontal dilution of precision (hdop / eph)
-			 * and vertical diluation of precision (vdop / epv)
-			 * are below a certain threshold (e.g. 4 m), AND
-			 * home position is not yet set AND the last GPS
-			 * GPS measurement is not older than two seconds AND
-			 * the system is currently not armed, set home
-			 * position to the current position.
-			 */
-
-			if (!status.condition_home_position_valid && gps_position.fix_type >= 3 &&
-			    (gps_position.eph_m < hdop_threshold_m) && (gps_position.epv_m < vdop_threshold_m) &&
-			    (hrt_absolute_time() < gps_position.timestamp_position + POSITION_TIMEOUT) && !armed.armed
-			    && global_position.global_valid) {
-
-				/* copy position data to uORB home message, store it locally as well */
-				home.lat = global_position.lat;
-				home.lon = global_position.lon;
-				home.alt = global_position.alt;
-
-				warnx("home: lat = %.7f, lon = %.7f, alt = %.4f ", home.lat, home.lon, (double)home.alt);
-				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.4f", home.lat, home.lon, (double)home.alt);
-
-				/* announce new home position */
-				if (home_pub > 0) {
-					orb_publish(ORB_ID(home_position), home_pub, &home);
-
-				} else {
-					home_pub = orb_advertise(ORB_ID(home_position), &home);
-				}
-
-				/* mark home position as set */
-				status.condition_home_position_valid = true;
-				tune_positive(true);
-			}
 		}
 
 		/* start RC input check */

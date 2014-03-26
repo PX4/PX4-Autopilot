@@ -177,7 +177,7 @@ private:
 	class 		Mission				_mission;
 
 	bool		_mission_item_valid;		/**< current mission item valid */
-	bool		_global_pos_valid;		/**< track changes of global_position.global_valid flag */
+	bool		_global_pos_valid;		/**< track changes of global_position */
 	bool		_reset_loiter_pos;		/**< if true then loiter position should be set to current position */
 	bool		_waypoint_position_reached;
 	bool		_waypoint_yaw_reached;
@@ -817,12 +817,10 @@ Navigator::task_main()
 			if (_control_mode.flag_armed && _control_mode.flag_control_auto_enabled) {
 				_pos_sp_triplet_updated = true;
 
-				if (myState == NAV_STATE_LAND && _global_pos.global_valid && !_global_pos_valid) {
+				if (myState == NAV_STATE_LAND && !_global_pos_valid) {
 					/* got global position when landing, update setpoint */
 					start_land();
 				}
-
-				_global_pos_valid = _global_pos.global_valid;
 
 				/* check if waypoint has been reached in MISSION, RTL and LAND modes */
 				if (myState == NAV_STATE_MISSION || myState == NAV_STATE_RTL || myState == NAV_STATE_LAND) {
@@ -846,7 +844,14 @@ Navigator::task_main()
 				/* Reset the _geofence_violation_warning_sent field */
 				_geofence_violation_warning_sent = false;
 			}
+
+			_global_pos_valid = true;
+
+		} else {
+			/* assume that global position is valid if updated in last 20ms */
+			_global_pos_valid = _global_pos.timestamp != 0 && hrt_abstime() < _global_pos.timestamp + 20000;
 		}
+
 
 		/* publish position setpoint triplet if updated */
 		if (_pos_sp_triplet_updated) {
@@ -893,9 +898,9 @@ Navigator::start()
 void
 Navigator::status()
 {
-	warnx("Global position is %svalid", _global_pos.global_valid ? "" : "in");
+	warnx("Global position: %svalid", _global_pos_valid ? "" : "in");
 
-	if (_global_pos.global_valid) {
+	if (_global_pos_valid) {
 		warnx("Longitude %5.5f degrees, latitude %5.5f degrees", _global_pos.lon, _global_pos.lat);
 		warnx("Altitude %5.5f meters, altitude above home %5.5f meters",
 		      (double)_global_pos.alt, (double)(_global_pos.alt - _home_pos.alt));
