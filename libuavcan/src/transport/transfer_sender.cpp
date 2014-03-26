@@ -10,10 +10,17 @@
 namespace uavcan
 {
 
+void TransferSender::registerError()
+{
+    dispatcher_.getTransportPerfCounter().addError();
+}
+
 int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime tx_deadline,
                          MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id,
                          TransferID tid)
 {
+    dispatcher_.getTransportPerfCounter().addTxTransfer();
+
     Frame frame(data_type_.getID(), transfer_type, dispatcher_.getNodeID(), dst_node_id, 0, tid);
 
     if (frame.getMaxPayloadLen() >= payload_len)           // Single Frame Transfer
@@ -23,6 +30,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
         {
             assert(0);
             UAVCAN_TRACE("TransferSender", "Frame payload write failure, %i", res);
+            registerError();
             return (res < 0) ? res : -1;
         }
         frame.makeLast();
@@ -47,6 +55,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
             if (write_res < 2)
             {
                 UAVCAN_TRACE("TransferSender", "Frame payload write failure, %i", write_res);
+                registerError();
                 return write_res;
             }
             offset = write_res - 2;
@@ -60,13 +69,13 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
             const int send_res = dispatcher_.send(frame, tx_deadline, blocking_deadline, qos_, flags_, iface_mask_);
             if (send_res < 0)
             {
+                registerError();
                 return send_res;
             }
 
             if (frame.isLast())
             {
                 return next_frame_index;  // Number of frames transmitted
-
             }
             frame.setIndex(next_frame_index++);
 
@@ -74,6 +83,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
             if (write_res < 0)
             {
                 UAVCAN_TRACE("TransferSender", "Frame payload write failure, %i", write_res);
+                registerError();
                 return write_res;
             }
 

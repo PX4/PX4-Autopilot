@@ -17,7 +17,7 @@ const uint32_t TransferReceiver::MinTransferIntervalUSec;
 const uint32_t TransferReceiver::MaxTransferIntervalUSec;
 const uint32_t TransferReceiver::DefaultTransferIntervalUSec;
 
-void TransferReceiver::registerError()
+void TransferReceiver::registerError() const
 {
     if (error_cnt_ < 0xFF)
     {
@@ -72,29 +72,29 @@ bool TransferReceiver::validate(const RxFrame& frame) const
     {
         return false;
     }
-
     if (frame.isFirst() && !frame.isLast() && (frame.getPayloadLen() < TransferCRC::NumBytes))
     {
         UAVCAN_TRACE("TransferReceiver", "CRC expected, %s", frame.toString().c_str());
+        registerError();
         return false;
     }
-
     if ((frame.getIndex() == Frame::MaxIndex) && !frame.isLast())
     {
         UAVCAN_TRACE("TransferReceiver", "Unterminated transfer, %s", frame.toString().c_str());
+        registerError();
         return false;
     }
-
     if (frame.getIndex() != next_frame_index_)
     {
         UAVCAN_TRACE("TransferReceiver", "Unexpected frame index (not %i), %s",
                      int(next_frame_index_), frame.toString().c_str());
+        registerError();
         return false;
     }
-
     if (getTidRelation(frame) != TidSame)
     {
         UAVCAN_TRACE("TransferReceiver", "Unexpected TID (current %i), %s", tid_.get(), frame.toString().c_str());
+        registerError();
         return false;
     }
     return true;
@@ -245,10 +245,8 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, Tr
 
     if (!validate(frame))
     {
-        registerError();
         return ResultNotComplete;
     }
-
     return receive(frame, tba);
 }
 

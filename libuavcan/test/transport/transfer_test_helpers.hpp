@@ -119,8 +119,9 @@ class TestListener : public uavcan::TransferListener<MAX_BUF_SIZE, NUM_STATIC_BU
     std::queue<Transfer> transfers_;
 
 public:
-    TestListener(const uavcan::DataTypeDescriptor& data_type, uavcan::IAllocator& allocator)
-        : Base(data_type, allocator)
+    TestListener(uavcan::TransportPerfCounter& perf, const uavcan::DataTypeDescriptor& data_type,
+                 uavcan::IAllocator& allocator)
+        : Base(perf, data_type, allocator)
     { }
 
     void handleIncomingTransfer(uavcan::IncomingTransfer& transfer)

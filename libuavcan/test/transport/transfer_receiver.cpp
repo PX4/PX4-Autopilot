@@ -369,7 +369,7 @@ TEST(TransferReceiver, Restart)
     ASSERT_TRUE(matchBufferContent(bufmgr.access(gen.bufmgr_key), "3456781234567812345678"));
     ASSERT_EQ(0x3231, rcv.getLastTransferCrc());
 
-    ASSERT_EQ(3, rcv.yieldErrorCount());
+    ASSERT_EQ(1, rcv.yieldErrorCount());
     ASSERT_EQ(0, rcv.yieldErrorCount());
 }
 

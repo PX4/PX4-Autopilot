@@ -143,6 +143,7 @@ void Dispatcher::handleFrame(const CanRxFrame& can_frame)
     RxFrame frame;
     if (!frame.parse(can_frame))
     {
+        // This is not counted as a transport error
         UAVCAN_TRACE("Dispatcher", "Invalid CAN frame received: %s", can_frame.toString().c_str());
         return;
     }
@@ -161,19 +162,16 @@ void Dispatcher::handleFrame(const CanRxFrame& can_frame)
         lmsg_.handleFrame(frame);
         break;
     }
-
     case TransferTypeServiceRequest:
     {
         lsrv_req_.handleFrame(frame);
         break;
     }
-
     case TransferTypeServiceResponse:
     {
         lsrv_resp_.handleFrame(frame);
         break;
     }
-
     default:
         assert(0);
     }

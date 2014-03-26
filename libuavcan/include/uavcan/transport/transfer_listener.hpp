@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <uavcan/stdint.hpp>
 #include <uavcan/transport/transfer_receiver.hpp>
+#include <uavcan/transport/perf_counter.hpp>
 #include <uavcan/linked_list.hpp>
 #include <uavcan/map.hpp>
 #include <uavcan/debug.hpp>
@@ -88,13 +89,15 @@ class TransferListenerBase : public LinkedListNode<TransferListenerBase>, Noncop
 {
     const DataTypeDescriptor& data_type_;
     const TransferCRC crc_base_;                      ///< Pre-initialized with data type hash, thus constant
+    TransportPerfCounter& perf_;
 
     bool checkPayloadCrc(const uint16_t compare_with, const ITransferBuffer& tbb) const;
 
 protected:
-    TransferListenerBase(const DataTypeDescriptor& data_type)
+    TransferListenerBase(TransportPerfCounter& perf, const DataTypeDescriptor& data_type)
         : data_type_(data_type)
         , crc_base_(data_type.getSignature().toTransferCRC())
+        , perf_(perf)
     { }
 
     virtual ~TransferListenerBase() { }
@@ -181,8 +184,8 @@ protected:
     }
 
 public:
-    TransferListener(const DataTypeDescriptor& data_type, IAllocator& allocator)
-        : TransferListenerBase(data_type)
+    TransferListener(TransportPerfCounter& perf, const DataTypeDescriptor& data_type, IAllocator& allocator)
+        : TransferListenerBase(perf, data_type)
         , bufmgr_(allocator)
         , receivers_(allocator)
     {
@@ -246,8 +249,9 @@ private:
     }
 
 public:
-    ServiceResponseTransferListener(const DataTypeDescriptor& data_type, IAllocator& allocator)
-        : BaseType(data_type, allocator)
+    ServiceResponseTransferListener(TransportPerfCounter& perf, const DataTypeDescriptor& data_type,
+                                    IAllocator& allocator)
+        : BaseType(perf, data_type, allocator)
     { }
 
     void setExpectedResponseParams(const ExpectedResponseParams& erp)

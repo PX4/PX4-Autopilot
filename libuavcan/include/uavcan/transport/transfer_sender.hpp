@@ -25,6 +25,8 @@ class TransferSender
 
     Dispatcher& dispatcher_;
 
+    void registerError();
+
 public:
     enum { AllIfacesMask = 0xFF };
 

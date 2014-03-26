@@ -41,11 +41,11 @@ private:
     TransferID tid_;
     uint8_t iface_index_;
     uint8_t next_frame_index_;
-    uint8_t error_cnt_;
+    mutable uint8_t error_cnt_;
 
     bool isInitialized() const { return iface_index_ != IfaceIndexNotSet; }
 
-    void registerError();
+    void registerError() const;
 
     TidRelation getTidRelation(const RxFrame& frame) const;
 

@@ -113,32 +113,35 @@ void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxF
     {
     case TransferReceiver::ResultNotComplete:
     {
-        return;
+        perf_.addErrors(receiver.yieldErrorCount());
+        break;
     }
     case TransferReceiver::ResultSingleFrame:
     {
+        perf_.addRxTransfer();
         SingleFrameIncomingTransfer it(frame);
         handleIncomingTransfer(it);
-        return;
+        break;
     }
     case TransferReceiver::ResultComplete:
     {
+        perf_.addRxTransfer();
         const ITransferBuffer* tbb = tba.access();
         if (tbb == NULL)
         {
             UAVCAN_TRACE("TransferListenerBase", "Buffer access failure, last frame: %s", frame.toString().c_str());
-            return;
+            break;
         }
         if (!checkPayloadCrc(receiver.getLastTransferCrc(), *tbb))
         {
             UAVCAN_TRACE("TransferListenerBase", "CRC error, last frame: %s", frame.toString().c_str());
-            return;
+            break;
         }
         MultiFrameIncomingTransfer it(receiver.getLastTransferTimestampMonotonic(),
                                       receiver.getLastTransferTimestampUtc(), frame, tba);
         handleIncomingTransfer(it);
         it.release();
-        return;
+        break;
     }
     default:
     {

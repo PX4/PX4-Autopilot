@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <uavcan/stdint.hpp>
+#include <uavcan/transport/perf_counter.hpp>
 #include <uavcan/transport/transfer_listener.hpp>
 #include <uavcan/transport/outgoing_transfer_registry.hpp>
 #include <uavcan/transport/can_io.hpp>
@@ -57,6 +58,7 @@ class Dispatcher : Noncopyable
     CanIOManager canio_;
     ISystemClock& sysclock_;
     IOutgoingTransferRegistry& outgoing_transfer_reg_;
+    TransportPerfCounter perf_;
 
     class ListenerRegistry
     {
@@ -141,6 +143,9 @@ public:
     ISystemClock& getSystemClock() { return sysclock_; }
 
     const CanIOManager& getCanIOManager() const { return canio_; }
+
+    const TransportPerfCounter& getTransportPerfCounter() const { return perf_; }
+    TransportPerfCounter& getTransportPerfCounter() { return perf_; }
 };
 
 }
