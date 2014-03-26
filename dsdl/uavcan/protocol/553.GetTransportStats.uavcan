@@ -1,0 +1,13 @@
+#
+# Get transport statistics.
+#
+
+---
+
+# UAVCAN transport layer statistics
+uint64 transfers_tx
+uint64 transfers_rx
+uint64 transfer_errors
+
+# CAN bus statistics, for each interface independently
+CanIfaceStats[<=3] can_iface_stats

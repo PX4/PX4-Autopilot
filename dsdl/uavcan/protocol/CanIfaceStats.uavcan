@@ -1,0 +1,7 @@
+#
+# Single CAN iface statistics
+#
+
+uint64 frames_tx
+uint64 frames_rx
+uint64 errors
