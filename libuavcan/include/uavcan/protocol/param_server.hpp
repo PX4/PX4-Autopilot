@@ -83,7 +83,7 @@ class ParamServer
                          protocol::param::SaveErase::Response& response);
 
 public:
-    ParamServer(INode& node)
+    explicit ParamServer(INode& node)
         : get_set_srv_(node)
         , save_erase_srv_(node)
         , manager_(NULL)

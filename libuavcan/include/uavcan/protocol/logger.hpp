@@ -53,7 +53,7 @@ private:
     LogLevel getExternalSinkLevel() const;
 
 public:
-    Logger(INode& node)
+    explicit Logger(INode& node)
         : logmsg_pub_(node)
         , external_sink_(NULL)
     {

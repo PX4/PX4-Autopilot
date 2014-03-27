@@ -74,7 +74,7 @@ class PanicListener : Noncopyable
     }
 
 public:
-    PanicListener(INode& node)
+    explicit PanicListener(INode& node)
         : sub_(node)
         , callback_()
         , num_subsequent_msgs_(0)

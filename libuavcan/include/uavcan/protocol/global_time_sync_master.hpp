@@ -48,7 +48,7 @@ class GlobalTimeSyncMaster : protected LoopbackFrameListenerBase
     void handleLoopbackFrame(const RxFrame& frame);
 
 public:
-    GlobalTimeSyncMaster(INode& node)
+    explicit GlobalTimeSyncMaster(INode& node)
         : LoopbackFrameListenerBase(node.getDispatcher())
         , node_(node)
         , initialized_(false)

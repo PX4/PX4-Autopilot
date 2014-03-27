@@ -38,7 +38,7 @@ class DataTypeInfoProvider : Noncopyable
                                       protocol::GetDataTypeInfo::Response& response);
 
 public:
-    DataTypeInfoProvider(INode& node)
+    explicit DataTypeInfoProvider(INode& node)
         : cats_srv_(node)
         , gdti_srv_(node)
     { }

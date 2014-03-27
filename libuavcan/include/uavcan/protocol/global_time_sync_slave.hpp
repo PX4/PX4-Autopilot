@@ -42,7 +42,7 @@ class GlobalTimeSyncSlave : Noncopyable
     void handleGlobalTimeSync(const ReceivedDataStructure<protocol::GlobalTimeSync>& msg);
 
 public:
-    GlobalTimeSyncSlave(INode& node)
+    explicit GlobalTimeSyncSlave(INode& node)
         : sub_(node)
         , state_(Update)
         , prev_iface_index_(0xFF)

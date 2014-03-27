@@ -45,7 +45,7 @@ class NodeStatusProvider : private TimerBase
     void handleGetNodeInfoRequest(const protocol::GetNodeInfo::Request&, protocol::GetNodeInfo::Response& rsp);
 
 public:
-    NodeStatusProvider(INode& node)
+    explicit NodeStatusProvider(INode& node)
         : TimerBase(node)
         , creation_timestamp_(node.getMonotonicTime())
         , node_status_pub_(node)

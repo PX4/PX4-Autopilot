@@ -21,7 +21,7 @@ class PanicBroadcaster : private TimerBase
     void handleTimerEvent(const TimerEvent&);
 
 public:
-    PanicBroadcaster(INode& node)
+    explicit PanicBroadcaster(INode& node)
         : TimerBase(node)
         , pub_(node)
     {

@@ -32,7 +32,7 @@ class RestartRequestServer : Noncopyable
                            protocol::RestartNode::Response& response) const;
 
 public:
-    RestartRequestServer(INode& node)
+    explicit RestartRequestServer(INode& node)
         : srv_(node)
         , handler_(NULL)
     { }
