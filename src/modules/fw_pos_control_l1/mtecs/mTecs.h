@@ -106,6 +106,7 @@ protected:
 
 	bool _firstIterationAfterReset;		/**< True during the first iteration after a reset */
 
+	int _counter;
 };
 
 } /* namespace fwPosctrl */

@@ -213,7 +213,7 @@ PARAM_DEFINE_FLOAT(MT_ACC_P, 0.1f);
  * @unit m/s^2
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_ACC_MIN, 0.0f);
+PARAM_DEFINE_FLOAT(MT_ACC_MIN, -40.0f);
 
 /**
  * Maximal acceleration (air)

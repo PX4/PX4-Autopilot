@@ -87,10 +87,10 @@ public:
 	bool limit(float& value, float& difference) {
 		float minimum = isAngularLimit() ? getMin() * M_DEG_TO_RAD_F : getMin();
 		float maximum = isAngularLimit() ? getMax() * M_DEG_TO_RAD_F : getMax();
-		char name[blockNameLengthMax];
-		getName(name, blockNameLengthMax);
-		warnx("%s minimum %.2f maximum %.2f, getMin() %.2f, getMax() %.2f, isAngularLimit() %u",
-				 name,(double)minimum,(double)maximum,  (double)getMin(), (double)getMax(), isAngularLimit());
+//		char name[blockNameLengthMax];
+//		getName(name, blockNameLengthMax);
+//		warnx("%s minimum %.2f maximum %.2f, getMin() %.2f, getMax() %.2f, isAngularLimit() %u",
+//				 name,(double)minimum,(double)maximum,  (double)getMin(), (double)getMax(), isAngularLimit());
 		if (value < minimum) {
 			difference = value - minimum;
 			value = minimum;
@@ -134,17 +134,17 @@ public:
 		float difference = 0.0f;
 		float integralYPrevious = _integral.getY();
 		float output = getOffset() + getKFF() * inputValue + getKP() * inputError + getKI() * getIntegral().update(inputError);
-		char name[blockNameLengthMax];
-		getName(name, blockNameLengthMax);
-		warnx("%s output %.2f getKFF() %.2f, inputValue  %.2f, getKP() %.2f, getKI() %.2f, getIntegral().getY() %.2f, inputError %.2f getIntegral().getDt() %.2f", name,
-				(double)output, (double)getKFF(), (double)inputValue, (double)getKP(), (double)getKI(), (double)getIntegral().getY(), (double)inputError, (double)getIntegral().getDt());
+//		char name[blockNameLengthMax];
+//		getName(name, blockNameLengthMax);
+//		warnx("%s output %.2f getKFF() %.2f, inputValue  %.2f, getKP() %.2f, getKI() %.2f, getIntegral().getY() %.2f, inputError %.2f getIntegral().getDt() %.2f", name,
+//				(double)output, (double)getKFF(), (double)inputValue, (double)getKP(), (double)getKI(), (double)getIntegral().getY(), (double)inputError, (double)getIntegral().getDt());
 		if(!getOutputLimiter().limit(output, difference) &&
 			(((difference < 0) && (getKI() * getIntegral().update(inputError) < 0)) ||
 			((difference > 0) && (getKI() * getIntegral().update(inputError) > 0)))) {
 				getIntegral().setY(integralYPrevious);
 		}
-		warnx("%s output limited %.2f",
-				 name,(double)output);
+//		warnx("%s output limited %.2f",
+//				 name,(double)output);
 		return output;
 	}
 // accessors
@@ -177,13 +177,13 @@ public:
 	float update(float input) {
 		float difference = 0.0f;
 		float output = getKP() * input;
-		char name[blockNameLengthMax];
-		getName(name, blockNameLengthMax);
-		warnx("%s output %.2f _kP.get() %.2f, input",
-				 name,(double)output, (double)_kP.get(), (double)input);
+//		char name[blockNameLengthMax];
+//		getName(name, blockNameLengthMax);
+//		warnx("%s output %.2f _kP.get() %.2f, input",
+//				 name,(double)output, (double)_kP.get(), (double)input);
 		getOutputLimiter().limit(output, difference);
-		warnx("%s output limited %.2f",
-				 name,(double)output);
+//		warnx("%s output limited %.2f",
+//				 name,(double)output);
 		return output;
 	}
 // accessors
