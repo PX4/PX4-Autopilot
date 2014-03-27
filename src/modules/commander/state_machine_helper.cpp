@@ -129,8 +129,10 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
         if (valid_transition) {
             // We have a good transition. Now perform any secondary validation.
             if (new_arming_state == ARMING_STATE_ARMED) {
-                // In non-HIL, fail transition if we need safety switch press
-                if (status->hil_state == HIL_STATE_OFF && safety->safety_switch_available && !safety->safety_off) {
+                // Fail transition if we need safety switch press
+                //      Allow if coming from in air restore
+                //      Allow if HIL_STATE_ON
+                if (status->arming_state != ARMING_STATE_IN_AIR_RESTORE && status->hil_state == HIL_STATE_OFF && safety->safety_switch_available && !safety->safety_off) {
                     if (mavlink_fd) {
                         mavlink_log_critical(mavlink_fd, "NOT ARMING: Press safety switch first.");
                     }
@@ -165,10 +167,11 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 	irqrestore(flags);
 
     if (ret == TRANSITION_DENIED) {
+        static const char* errMsg = "Invalid arming transition from %s to %s";
         if (mavlink_fd) {
-            mavlink_log_critical(mavlink_fd, "Invalid arming transition from %s to %s", state_names[status->arming_state], state_names[new_arming_state]);
+            mavlink_log_critical(mavlink_fd, errMsg, state_names[status->arming_state], state_names[new_arming_state]);
         }
-        warnx("arming transition rejected");
+        warnx(errMsg, state_names[status->arming_state], state_names[new_arming_state]);
     }
 
 	return ret;
