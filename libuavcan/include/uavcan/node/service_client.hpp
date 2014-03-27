@@ -4,8 +4,17 @@
 
 #pragma once
 
+#include <uavcan/impl_constants.hpp>
 #include <uavcan/node/generic_publisher.hpp>
 #include <uavcan/node/generic_subscriber.hpp>
+
+#if !defined(UAVCAN_CPP_VERSION) || !defined(UAVCAN_CPP11)
+# error UAVCAN_CPP_VERSION
+#endif
+
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+# include <functional>
+#endif
 
 namespace uavcan
 {
@@ -60,7 +69,13 @@ static Stream& operator<<(Stream& s, const ServiceCallResult<DataType>& scr)
 }
 
 
-template <typename DataType_, typename Callback = void (*)(const ServiceCallResult<DataType_>&)>
+template <typename DataType_,
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+          typename Callback = std::function<void (const ServiceCallResult<DataType_>&)>
+#else
+          typename Callback = void (*)(const ServiceCallResult<DataType_>&)
+#endif
+          >
 class ServiceClient
     : public GenericSubscriber<DataType_, typename DataType_::Response,
                                typename ServiceResponseTransferListenerInstantiationHelper<DataType_>::Type >

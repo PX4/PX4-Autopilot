@@ -5,13 +5,26 @@
 #pragma once
 
 #include <cassert>
+#include <uavcan/impl_constants.hpp>
 #include <uavcan/node/generic_subscriber.hpp>
+
+#if !defined(UAVCAN_CPP_VERSION) || !defined(UAVCAN_CPP11)
+# error UAVCAN_CPP_VERSION
+#endif
+
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+# include <functional>
+#endif
 
 namespace uavcan
 {
 
 template <typename DataType_,
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+          typename Callback = std::function<void (const ReceivedDataStructure<DataType_>&)>,
+#else
           typename Callback = void (*)(const ReceivedDataStructure<DataType_>&),
+#endif
           unsigned int NumStaticReceivers = 2,
           unsigned int NumStaticBufs = 1>
 class Subscriber : public GenericSubscriber<DataType_, DataType_,

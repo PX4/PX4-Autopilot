@@ -6,9 +6,18 @@
 
 #include <cassert>
 #include <uavcan/debug.hpp>
+#include <uavcan/impl_constants.hpp>
 #include <uavcan/node/subscriber.hpp>
 #include <uavcan/util/method_binder.hpp>
 #include <uavcan/protocol/Panic.hpp>
+
+#if !defined(UAVCAN_CPP_VERSION) || !defined(UAVCAN_CPP11)
+# error UAVCAN_CPP_VERSION
+#endif
+
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+# include <functional>
+#endif
 
 namespace uavcan
 {
@@ -19,7 +28,13 @@ namespace uavcan
  *   void (const protocol::Panic&)
  * The listener can be stopped from the callback.
  */
-template <typename Callback = void (*)(const ReceivedDataStructure<protocol::Panic>&)>
+template <
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+          typename Callback = std::function<void (const ReceivedDataStructure<protocol::Panic>&)>
+#else
+          typename Callback = void (*)(const ReceivedDataStructure<protocol::Panic>&)
+#endif
+          >
 class PanicListener : Noncopyable
 {
     typedef MethodBinder<PanicListener*, void (PanicListener::*)(const ReceivedDataStructure<protocol::Panic>&)>
