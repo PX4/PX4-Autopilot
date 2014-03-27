@@ -5,6 +5,7 @@
 #pragma once
 
 #include <uavcan/node/subscriber.hpp>
+#include <uavcan/node/timer.hpp>
 #include <uavcan/node/service_client.hpp>
 #include <uavcan/util/method_binder.hpp>
 #include "../node/test_node.hpp"
@@ -84,5 +85,21 @@ struct ServiceClientWithCollector
     {
         client.setCallback(collector.bind());
         return client.call(node_id, request);
+    }
+};
+
+
+struct BackgroundSpinner : uavcan::TimerBase
+{
+    uavcan::INode& spinning_node;
+
+    BackgroundSpinner(uavcan::INode& spinning_node, uavcan::INode& running_node)
+        : uavcan::TimerBase(running_node)
+        , spinning_node(spinning_node)
+    { }
+
+    void handleTimerEvent(const uavcan::TimerEvent&)
+    {
+        spinning_node.spin(uavcan::MonotonicDuration::fromMSec(1));
     }
 };
