@@ -57,9 +57,8 @@ namespace uORB
 
 bool __EXPORT SubscriptionBase::updated()
 {
-	bool isUpdated = false;
-	orb_check(_handle, &isUpdated);
-	return isUpdated;
+	orb_check(_handle, &_isUpdated);
+	return _isUpdated;
 }
 
 template<class T>
