@@ -62,7 +62,7 @@ template <typename DataType_, typename Callback = void (*)(const ServiceCallResu
 class ServiceClient
     : public GenericSubscriber<DataType_, typename DataType_::Response,
                                typename ServiceResponseTransferListenerInstantiationHelper<DataType_>::Type >
-    , public DeadlineHandler
+    , protected DeadlineHandler
 {
 public:
     typedef DataType_ DataType;
@@ -275,6 +275,8 @@ public:
         publisher_.setTxTimeout(timeout);
         request_timeout_ = std::max(timeout, publisher_.getTxTimeout());  // No less than TX timeout
     }
+
+    using DeadlineHandler::getDeadline;
 };
 
 }
