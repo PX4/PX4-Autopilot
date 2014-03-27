@@ -104,9 +104,15 @@ protected:
 	/* Time measurements */
 	hrt_abstime timestampLastIteration;		/**< Saves the result of hrt_absolute_time() of the last iteration */
 
-	bool _firstIterationAfterReset;		/**< True during the first iteration after a reset */
+	bool _firstIterationAfterReset;			/**< True during the first iteration after a reset */
+	bool dtCalculated;				/**< True if dt has been calculated in this iteration */
 
 	int _counter;
+
+	/*
+	 * Measure and update the time step dt if this was not already done in the current iteration
+	 */
+	void updateTimeMeasurement();
 };
 
 } /* namespace fwPosctrl */

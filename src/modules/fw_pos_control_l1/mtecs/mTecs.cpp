@@ -60,6 +60,7 @@ mTecs::mTecs() :
 	_pitchSp(0.0f),
 	timestampLastIteration(hrt_absolute_time()),
 	_firstIterationAfterReset(true),
+	dtCalculated(false),
 	_counter(0)
 {
 }
@@ -71,6 +72,9 @@ mTecs::~mTecs()
 void mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed, float airspeedSp)
 {
 
+	/* time measurement */
+	updateTimeMeasurement();
+
 	float flightPathAngleSp = _controlAltitude.update(altitudeSp - altitude);
 	if (_counter % 10 == 0) {
 		warnx("***");
@@ -80,6 +84,9 @@ void mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float alt
 }
 
 void mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed, float airspeedSp) {
+
+	/* time measurement */
+	updateTimeMeasurement();
 
 	float accelerationLongitudinalSp = _controlAirSpeed.update(airspeedSp - airspeed);
 	if (_counter % 10 == 0) {
@@ -91,13 +98,7 @@ void mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAn
 void mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeed, float accelerationLongitudinalSp)
 {
 	/* time measurement */
-	float deltaTSeconds = 0.0f;
-	if (!_firstIterationAfterReset) {
-		hrt_abstime timestampNow = hrt_absolute_time();
-		deltaTSeconds = (float)(timestampNow - timestampLastIteration) * 1e-6f;
-		timestampLastIteration = timestampNow;
-	}
-	setDt(deltaTSeconds);
+	updateTimeMeasurement();
 
 	/* update parameters first */
 	updateParams();
@@ -147,6 +148,7 @@ void mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float fligh
 
 	/* clean up */
 	_firstIterationAfterReset = false;
+	dtCalculated = false;
 
 	_counter++;
 }
@@ -157,6 +159,21 @@ void mTecs::resetIntegrators()
 	_controlEnergyDistribution.getIntegral().setY(0.0f);
 	timestampLastIteration = hrt_absolute_time();
 	_firstIterationAfterReset = true;
+}
+
+void mTecs::updateTimeMeasurement()
+{
+	if (!dtCalculated) {
+		float deltaTSeconds = 0.0f;
+		if (!_firstIterationAfterReset) {
+			hrt_abstime timestampNow = hrt_absolute_time();
+			deltaTSeconds = (float)(timestampNow - timestampLastIteration) * 1e-6f;
+			timestampLastIteration = timestampNow;
+		}
+		setDt(deltaTSeconds);
+
+		dtCalculated = true;
+	}
 }
 
 } /* namespace fwPosctrl */
