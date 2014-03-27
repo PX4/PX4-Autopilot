@@ -361,7 +361,7 @@ private:
 	void reset_landing_state();
 
 	/*
-	 * Call TECS
+	 * Call TECS : a wrapper function to call one of the TECS implementations (mTECS is called only if enabled via parameter)
 	 */
 	void tecs_update_pitch_throttle(float alt_sp, float v_sp, float eas2tas,
 			float pitch_min_rad, float pitch_max_rad,
@@ -1364,7 +1364,14 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		if (ground_speed_length > FLT_EPSILON) {
 			flightPathAngle = -asinf(ground_speed(2)/ground_speed_length);
 		}
-		_mTecs.updateAltitudeSpeed(flightPathAngle, _global_pos.alt, alt_sp, _airspeed.true_airspeed_m_s, v_sp);
+
+		if (!climbout_mode) {
+			/* Normal operation */
+			_mTecs.updateAltitudeSpeed(flightPathAngle, _global_pos.alt, alt_sp, _airspeed.true_airspeed_m_s, v_sp, fwPosctrl::mTecs::TECS_MODE_NORMAL);
+		} else {
+			/* Climbout/Takeoff mode requested */
+			_mTecs.updateAltitudeSpeed(flightPathAngle, _global_pos.alt, alt_sp, _airspeed.true_airspeed_m_s, v_sp, fwPosctrl::mTecs::TECS_MODE_TAKEOFF);
+		}
 
 	} else {
 		_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, alt_sp, v_sp,
