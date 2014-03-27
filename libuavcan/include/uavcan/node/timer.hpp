@@ -87,7 +87,7 @@ public:
         , callback_()
     { }
 
-    TimerEventForwarder(INode& node, Callback callback)
+    TimerEventForwarder(INode& node, const Callback& callback)
         : TimerBase(node)
         , callback_(callback)
     { }
@@ -99,24 +99,7 @@ public:
 
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
 
-class Timer : public TimerBase
-{
-    void handleTimerEvent(const TimerEvent& event);
-
-public:
-    typedef std::function<void (const TimerEvent& event)> Callback;
-
-    explicit Timer(INode& node)
-        : TimerBase(node)
-    { }
-
-    Timer(INode& node, const Callback& callback)
-        : TimerBase(node)
-        , callback(callback)
-    { }
-
-    Callback callback;
-};
+typedef TimerEventForwarder<std::function<void (const TimerEvent& event)> > Timer;
 
 #endif
 
