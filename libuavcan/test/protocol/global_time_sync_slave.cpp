@@ -213,18 +213,18 @@ TEST(GlobalTimeSyncSlave, Validation)
      */
     broadcastSyncMsg(slave_can.ifaces.at(0), 0, 8, 0);    // Locked on this
     broadcastSyncMsg(slave_can.ifaces.at(1), 2000, 8, 0); // Ignored
-    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(1)));
+    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(10)));
 
     broadcastSyncMsg(slave_can.ifaces.at(0), 1000, 8, 1); // Adjust 1000 ahead
     broadcastSyncMsg(slave_can.ifaces.at(1), 2000, 8, 1); // Ignored
-    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(1)));
+    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(10)));
 
     ASSERT_TRUE(gtss.isActive());
     ASSERT_EQ(8, gtss.getMasterNodeID().get());
     ASSERT_EQ(1000, slave_clock.utc);
 
     broadcastSyncMsg(slave_can.ifaces.at(0), 2000, 8, 2); // Update
-    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(1)));
+    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(10)));
 
     ASSERT_EQ(1000, slave_clock.utc);
     std::cout << slave_clock.monotonic << std::endl;
@@ -233,7 +233,7 @@ TEST(GlobalTimeSyncSlave, Validation)
      * TID jump simulates a frame loss
      */
     broadcastSyncMsg(slave_can.ifaces.at(0), 3000, 8, 4); // Adjustment skipped - expected TID 3, update instead
-    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(1)));
+    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(10)));
 
     ASSERT_TRUE(gtss.isActive());
     ASSERT_EQ(8, gtss.getMasterNodeID().get());
@@ -245,7 +245,7 @@ TEST(GlobalTimeSyncSlave, Validation)
      */
     broadcastSyncMsg(slave_can.ifaces.at(0), 3000, 8, 5);  // Slave UTC was 1000, master reports 3000 --> shift ahead
     broadcastSyncMsg(slave_can.ifaces.at(1), 2000, 8, 5);
-    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(1)));
+    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(10)));
 
     ASSERT_TRUE(gtss.isActive());
     ASSERT_EQ(8, gtss.getMasterNodeID().get());
@@ -257,17 +257,17 @@ TEST(GlobalTimeSyncSlave, Validation)
      */
     broadcastSyncMsg(slave_can.ifaces.at(0), 2000, 8, 6); // Valid update, slave UTC is 3000
     broadcastSyncMsg(slave_can.ifaces.at(1), 2000, 8, 6);
-    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(1)));
+    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(10)));
 
     slave_clock.monotonic += 5000000;
 
     broadcastSyncMsg(slave_can.ifaces.at(0), 5000, 8, 7); // Adjustment skipped
     broadcastSyncMsg(slave_can.ifaces.at(1), 2000, 8, 7);
-    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(1)));
+    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(10)));
 
     broadcastSyncMsg(slave_can.ifaces.at(0), 5000, 8, 0); // Valid adjustment now
     broadcastSyncMsg(slave_can.ifaces.at(1), 2000, 8, 0);
-    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(1)));
+    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(10)));
 
     ASSERT_TRUE(gtss.isActive());
     ASSERT_EQ(8, gtss.getMasterNodeID().get());

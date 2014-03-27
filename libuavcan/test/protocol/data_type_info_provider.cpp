@@ -69,7 +69,7 @@ TEST(DataTypeInfoProvider, Basic)
     gdti_request.id = GetDataTypeInfo::DefaultDataTypeID;
     gdti_request.kind.value = DataTypeKind::SERVICE;
     ASSERT_LE(0, gdti_cln.call(1, gdti_request));
-    nodes.spinBoth(MonotonicDuration::fromMSec(2));
+    nodes.spinBoth(MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(validateDataTypeInfoResponse<GetDataTypeInfo>(gdti_cln.collector.result,
                                                               GetDataTypeInfo::Response::MASK_KNOWN |
@@ -82,7 +82,7 @@ TEST(DataTypeInfoProvider, Basic)
     gdti_request.id = NodeStatus::DefaultDataTypeID;
     gdti_request.kind.value = DataTypeKind::MESSAGE;
     ASSERT_LE(0, gdti_cln.call(1, gdti_request));
-    nodes.spinBoth(MonotonicDuration::fromMSec(2));
+    nodes.spinBoth(MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(validateDataTypeInfoResponse<NodeStatus>(gdti_cln.collector.result,
                                                          GetDataTypeInfo::Response::MASK_KNOWN));
@@ -98,7 +98,7 @@ TEST(DataTypeInfoProvider, Basic)
 
     // Request again
     ASSERT_LE(0, gdti_cln.call(1, gdti_request));
-    nodes.spinBoth(MonotonicDuration::fromMSec(2));
+    nodes.spinBoth(MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(validateDataTypeInfoResponse<NodeStatus>(gdti_cln.collector.result,
                                                          GetDataTypeInfo::Response::MASK_KNOWN |
@@ -111,7 +111,7 @@ TEST(DataTypeInfoProvider, Basic)
     gdti_request.id = ComputeAggregateTypeSignature::DefaultDataTypeID;
     gdti_request.kind.value = 0xFF;               // INVALID VALUE
     ASSERT_LE(0, gdti_cln.call(1, gdti_request));
-    nodes.spinBoth(MonotonicDuration::fromMSec(2));
+    nodes.spinBoth(MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(gdti_cln.collector.result.get());
     ASSERT_TRUE(gdti_cln.collector.result->isSuccessful());
@@ -125,7 +125,7 @@ TEST(DataTypeInfoProvider, Basic)
     cats_request.kind.value = DataTypeKind::MESSAGE;
     cats_request.known_ids.set();                   // Assuming we have all 1023 types
     ASSERT_LE(0, cats_cln.call(1, cats_request));
-    nodes.spinBoth(MonotonicDuration::fromMSec(2));
+    nodes.spinBoth(MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(cats_cln.collector.result.get());
     ASSERT_TRUE(cats_cln.collector.result->isSuccessful());
@@ -141,7 +141,7 @@ TEST(DataTypeInfoProvider, Basic)
     cats_request.kind.value = 0xFF;                 // INVALID
     cats_request.known_ids.set();                   // Assuming we have all 1023 types
     ASSERT_LE(0, cats_cln.call(1, cats_request));
-    nodes.spinBoth(MonotonicDuration::fromMSec(2));
+    nodes.spinBoth(MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(cats_cln.collector.result.get());
     ASSERT_TRUE(cats_cln.collector.result->isSuccessful());

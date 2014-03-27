@@ -41,7 +41,7 @@ static void publishNodeStatus(CanDriverMock& can, uavcan::NodeID node_id, uavcan
 
 static void shortSpin(TestNode& node)
 {
-    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(1)));
+    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(10)));
 }
 
 
@@ -63,7 +63,7 @@ TEST(NodeStatusMonitor, Basic)
     uavcan::NodeStatusMonitor nsm(node);
     ASSERT_LE(0, nsm.start());
 
-    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(1)));
+    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(10)));
 
     /*
      * Empty NSM, no nodes were registered yet

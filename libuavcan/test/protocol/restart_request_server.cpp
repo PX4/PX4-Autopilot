@@ -40,7 +40,7 @@ TEST(RestartRequestServer, Basic)
      * Rejected - handler was not set
      */
     ASSERT_LE(0, rrs_cln.call(1, request));
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(rrs_cln.collector.result.get());
     ASSERT_TRUE(rrs_cln.collector.result->isSuccessful());
@@ -54,7 +54,7 @@ TEST(RestartRequestServer, Basic)
     rrs.setHandler(&handler);
 
     ASSERT_LE(0, rrs_cln.call(1, request));
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(rrs_cln.collector.result->isSuccessful());
     ASSERT_TRUE(rrs_cln.collector.result->response.ok);
@@ -65,7 +65,7 @@ TEST(RestartRequestServer, Basic)
     handler.accept = false;
 
     ASSERT_LE(0, rrs_cln.call(1, request));
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(rrs_cln.collector.result->isSuccessful());
     ASSERT_FALSE(rrs_cln.collector.result->response.ok);
@@ -76,7 +76,7 @@ TEST(RestartRequestServer, Basic)
     handler.accept = true;
 
     ASSERT_LE(0, rrs_cln.call(1, uavcan::protocol::RestartNode::Request()));
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
 
     ASSERT_TRUE(rrs_cln.collector.result->isSuccessful());
     ASSERT_FALSE(rrs_cln.collector.result->response.ok);

@@ -78,7 +78,7 @@ template <typename Client, typename Message>
 static void doCall(Client& client, const Message& request, InterlinkedTestNodesWithSysClock& nodes)
 {
     ASSERT_LE(0, client.call(1, request));
-    ASSERT_LE(0, nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1)));
+    ASSERT_LE(0, nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10)));
     ASSERT_TRUE(client.collector.result->isSuccessful());
 }
 

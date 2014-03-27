@@ -24,7 +24,7 @@ TEST(TransportStatsProvider, Basic)
      * First request
      */
     ASSERT_LE(0, tsp_cln.call(1, uavcan::protocol::GetTransportStats::Request()));
-    ASSERT_LE(0, nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1)));
+    ASSERT_LE(0, nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10)));
 
     ASSERT_TRUE(tsp_cln.collector.result.get());
     ASSERT_TRUE(tsp_cln.collector.result->isSuccessful());
@@ -40,7 +40,7 @@ TEST(TransportStatsProvider, Basic)
      * Second request
      */
     ASSERT_LE(0, tsp_cln.call(1, uavcan::protocol::GetTransportStats::Request()));
-    ASSERT_LE(0, nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1)));
+    ASSERT_LE(0, nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10)));
 
     ASSERT_TRUE(tsp_cln.collector.result.get());
     ASSERT_EQ(0, tsp_cln.collector.result->response.transfer_errors);
@@ -60,7 +60,7 @@ TEST(TransportStatsProvider, Basic)
     ASSERT_TRUE(frame.compile(can_frame));
     nodes.can_a.read_queue.push(can_frame);
 
-    ASSERT_LE(0, nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1)));
+    ASSERT_LE(0, nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10)));
 
     /*
      * Introducing a CAN driver error
@@ -71,7 +71,7 @@ TEST(TransportStatsProvider, Basic)
      * Third request
      */
     ASSERT_LE(0, tsp_cln.call(1, uavcan::protocol::GetTransportStats::Request()));
-    ASSERT_LE(0, nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1)));
+    ASSERT_LE(0, nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10)));
 
     ASSERT_TRUE(tsp_cln.collector.result.get());
     ASSERT_EQ(1, tsp_cln.collector.result->response.transfer_errors);                  // That broken frame

@@ -25,7 +25,7 @@ TEST(PanicBroadcaster, Basic)
     ASSERT_STREQ("I lost ", panicker.getReason().c_str());
     ASSERT_TRUE(panicker.isPanicking());
 
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
     ASSERT_TRUE(sub.collector.msg.get());
     ASSERT_STREQ("I lost ", sub.collector.msg->reason_text.c_str());
     sub.collector.msg.reset();

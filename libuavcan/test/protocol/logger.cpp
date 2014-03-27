@@ -86,26 +86,26 @@ TEST(Logger, Basic)
     ASSERT_TRUE(sink.popMatchByLevelAndText(uavcan::protocol::debug::LogLevel::DEBUG, "foo", "Debug (sink only)"));
 
     ASSERT_LE(0, logger.logError("foo", "Error"));
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
     ASSERT_EQ(log_sub.collector.msg->level.value, uavcan::protocol::debug::LogLevel::ERROR);
     ASSERT_EQ(log_sub.collector.msg->source, "foo");
     ASSERT_EQ(log_sub.collector.msg->text, "Error");
 
     logger.setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
     ASSERT_LE(0, logger.logWarning("foo", "Warning"));
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
     ASSERT_EQ(log_sub.collector.msg->level.value, uavcan::protocol::debug::LogLevel::WARNING);
     ASSERT_EQ(log_sub.collector.msg->source, "foo");
     ASSERT_EQ(log_sub.collector.msg->text, "Warning");
 
     ASSERT_LE(0, logger.logInfo("foo", "Info"));
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
     ASSERT_EQ(log_sub.collector.msg->level.value, uavcan::protocol::debug::LogLevel::INFO);
     ASSERT_EQ(log_sub.collector.msg->source, "foo");
     ASSERT_EQ(log_sub.collector.msg->text, "Info");
 
     ASSERT_LE(0, logger.logDebug("foo", "Debug"));
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
     ASSERT_EQ(log_sub.collector.msg->level.value, uavcan::protocol::debug::LogLevel::DEBUG);
     ASSERT_EQ(log_sub.collector.msg->source, "foo");
     ASSERT_EQ(log_sub.collector.msg->text, "Debug");
@@ -133,7 +133,7 @@ TEST(Logger, Cpp11Formatting)
     ASSERT_LE(0, log_sub.start());
 
     ASSERT_LE(0, logger.logWarning("foo", "char='%*', %* is %*", '$', "double", 12.34));
-    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2));
+    nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
     ASSERT_EQ(log_sub.collector.msg->level.value, uavcan::protocol::debug::LogLevel::WARNING);
     ASSERT_EQ(log_sub.collector.msg->source, "foo");
     ASSERT_EQ(log_sub.collector.msg->text, "char='$', double is 12.340000");

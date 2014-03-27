@@ -35,7 +35,7 @@ struct GlobalTimeSyncTestNetwork
         master_high.can.other = &slave.can;
     }
 
-    void spinAll(uavcan::MonotonicDuration duration = uavcan::MonotonicDuration::fromMSec(3))
+    void spinAll(uavcan::MonotonicDuration duration = uavcan::MonotonicDuration::fromMSec(9))
     {
         assert(!duration.isNegative());
         unsigned int nspins3 = duration.toMSec() / 3;
