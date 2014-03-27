@@ -2,6 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#pragma once
+
 #include <uavcan/node/generic_publisher.hpp>
 #include <uavcan/node/generic_subscriber.hpp>
 
