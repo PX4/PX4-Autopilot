@@ -178,6 +178,23 @@ PARAM_DEFINE_FLOAT(MT_PIT_MAX, 45.0f);
 PARAM_DEFINE_FLOAT(MT_FPA_P, 0.1f);
 
 /**
+ * D gain for the altitude control
+ *
+ * @min 0.0f
+ * @max 10.0f
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_FPA_D, 0.0f);
+
+/**
+ * Lowpass for FPA error derivative (see MT_FPA_D)
+ *
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_FPA_D_LP, 1.0f);
+
+
+/**
  * Minimal flight path angle setpoint
  *
  * @min -90.0f

@@ -91,7 +91,7 @@ protected:
 	/* control blocks */
 	BlockFFPILimited _controlTotalEnergy;		/**< FFPI controller for total energy control: output is throttle */
 	BlockFFPILimited _controlEnergyDistribution;	/**< FFPI controller for energy distribution control: output is pitch */
-	BlockPLimited	_controlAltitude;		/**< P controller for altitude: output is the flight path angle setpoint */
+	BlockPDLimited	_controlAltitude;		/**< P controller for altitude: output is the flight path angle setpoint */
 	BlockPLimited	_controlAirSpeed;			/**< P controller for airspeed: output is acceleration setpoint */
 
 	/* Other calculation Blocks */
