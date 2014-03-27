@@ -5,11 +5,20 @@
 #pragma once
 
 #include <uavcan/stdint.hpp>
+#include <uavcan/impl_constants.hpp>
 #include <uavcan/node/scheduler.hpp>
-#include <uavcan/util/compile_time.hpp>
 #include <uavcan/node/abstract_node.hpp>
+#include <uavcan/util/compile_time.hpp>
 #include <uavcan/linked_list.hpp>
 #include <uavcan/fatal_error.hpp>
+
+#if !defined(UAVCAN_CPP11) || !defined(UAVCAN_CPP_VERSION)
+# error UAVCAN_CPP_VERSION
+#endif
+
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+# include <functional>
+#endif
 
 namespace uavcan
 {
@@ -86,5 +95,29 @@ public:
     const Callback& getCallback() const { return callback_; }
     void setCallback(const Callback& callback) { callback_ = callback; }
 };
+
+
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+
+class Timer : public TimerBase
+{
+    void handleTimerEvent(const TimerEvent& event);
+
+public:
+    typedef std::function<void (const TimerEvent& event)> Callback;
+
+    explicit Timer(INode& node)
+        : TimerBase(node)
+    { }
+
+    Timer(INode& node, const Callback& callback)
+        : TimerBase(node)
+        , callback(callback)
+    { }
+
+    Callback callback;
+};
+
+#endif
 
 }

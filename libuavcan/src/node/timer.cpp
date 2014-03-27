@@ -7,7 +7,9 @@
 
 namespace uavcan
 {
-
+/*
+ * TimerBase
+ */
 void TimerBase::handleDeadline(MonotonicTime current)
 {
     assert(!isRunning());
@@ -44,5 +46,24 @@ void TimerBase::startPeriodic(MonotonicDuration period)
     period_ = period;
     DeadlineHandler::startWithDelay(period);
 }
+
+/*
+ * Timer
+ */
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+
+void Timer::handleTimerEvent(const TimerEvent& event)
+{
+    if (callback)
+    {
+        callback(event);
+    }
+    else
+    {
+        assert(0);
+    }
+}
+
+#endif
 
 }

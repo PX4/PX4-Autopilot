@@ -9,6 +9,10 @@
 #include "../transport/can/can.hpp"
 #include "test_node.hpp"
 
+#if !defined(UAVCAN_CPP11) || !defined(UAVCAN_CPP_VERSION)
+# error UAVCAN_CPP_VERSION
+#endif
+
 struct TimerCallCounter
 {
     std::vector<uavcan::TimerEvent> events_a;
@@ -82,6 +86,31 @@ TEST(Scheduler, Timers)
         ASSERT_EQ(1000, b.getPeriod().toUSec());
     }
 
-    ASSERT_EQ(0, node.getScheduler().getDeadlineScheduler().getNumHandlers()); // Both timers were destroyed now
-    ASSERT_EQ(0, node.spin(durMono(1000)));       // Spin some more without timers
+    ASSERT_EQ(0, node.getScheduler().getDeadlineScheduler().getNumHandlers()); // Both timers were destroyed by now
+    ASSERT_EQ(0, node.spin(durMono(1000)));                                    // Spin some more without timers
 }
+
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+
+TEST(Scheduler, TimerCpp11)
+{
+    SystemClockDriver clock_driver;
+    CanDriverMock can_driver(2, clock_driver);
+    TestNode node(can_driver, clock_driver, 1);
+
+    int count = 0;
+
+    uavcan::Timer tm(node, [&count](const uavcan::TimerEvent&) { count++; });
+
+    ASSERT_EQ(0, node.getScheduler().getDeadlineScheduler().getNumHandlers());
+    tm.startPeriodic(uavcan::MonotonicDuration::fromMSec(10));
+    ASSERT_EQ(1, node.getScheduler().getDeadlineScheduler().getNumHandlers());
+
+    ASSERT_EQ(0, node.spin(uavcan::MonotonicDuration::fromMSec(100)));
+
+    std::cout << count << std::endl;
+    ASSERT_LE(5, count);
+    ASSERT_GE(15, count);
+}
+
+#endif
