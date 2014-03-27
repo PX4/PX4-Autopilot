@@ -8,7 +8,7 @@
 namespace uavcan
 {
 
-void Timer::handleDeadline(MonotonicTime current)
+void TimerBase::handleDeadline(MonotonicTime current)
 {
     assert(!isRunning());
 
@@ -23,21 +23,21 @@ void Timer::handleDeadline(MonotonicTime current)
     handleTimerEvent(TimerEvent(scheduled_time, current));
 }
 
-void Timer::startOneShotWithDeadline(MonotonicTime deadline)
+void TimerBase::startOneShotWithDeadline(MonotonicTime deadline)
 {
     stop();
     period_ = MonotonicDuration::getInfinite();
     DeadlineHandler::startWithDeadline(deadline);
 }
 
-void Timer::startOneShotWithDelay(MonotonicDuration delay)
+void TimerBase::startOneShotWithDelay(MonotonicDuration delay)
 {
     stop();
     period_ = MonotonicDuration::getInfinite();
     DeadlineHandler::startWithDelay(delay);
 }
 
-void Timer::startPeriodic(MonotonicDuration period)
+void TimerBase::startPeriodic(MonotonicDuration period)
 {
     assert(period < MonotonicDuration::getInfinite());
     stop();

@@ -11,7 +11,7 @@
 namespace uavcan
 {
 
-class PanicBroadcaster : private Timer
+class PanicBroadcaster : private TimerBase
 {
     Publisher<protocol::Panic> pub_;
     protocol::Panic msg_;
@@ -22,7 +22,7 @@ class PanicBroadcaster : private Timer
 
 public:
     PanicBroadcaster(INode& node)
-        : Timer(node)
+        : TimerBase(node)
         , pub_(node)
     {
         pub_.setTxTimeout(MonotonicDuration::fromMSec(protocol::Panic::BROADCASTING_INTERVAL_MS - 10));

@@ -83,7 +83,7 @@ int NodeStatusMonitor::start()
     const int res = sub_.start(NodeStatusCallback(this, &NodeStatusMonitor::handleNodeStatus));
     if (res >= 0)
     {
-        Timer::startPeriodic(MonotonicDuration::fromMSec(TimerPeriodMs100 * 100));
+        TimerBase::startPeriodic(MonotonicDuration::fromMSec(TimerPeriodMs100 * 100));
     }
     return res;
 }

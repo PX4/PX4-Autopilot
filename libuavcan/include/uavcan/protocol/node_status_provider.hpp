@@ -17,7 +17,7 @@
 namespace uavcan
 {
 
-class NodeStatusProvider : private Timer
+class NodeStatusProvider : private TimerBase
 {
     typedef MethodBinder<NodeStatusProvider*, void (NodeStatusProvider::*)(const protocol::GlobalDiscoveryRequest&)>
         GlobalDiscoveryRequestCallback;
@@ -46,7 +46,7 @@ class NodeStatusProvider : private Timer
 
 public:
     NodeStatusProvider(INode& node)
-        : Timer(node)
+        : TimerBase(node)
         , creation_timestamp_(node.getMonotonicTime())
         , node_status_pub_(node)
         , gdr_sub_(node)

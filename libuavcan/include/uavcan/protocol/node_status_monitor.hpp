@@ -12,7 +12,7 @@
 namespace uavcan
 {
 
-class NodeStatusMonitor : protected Timer
+class NodeStatusMonitor : protected TimerBase
 {
 public:
     typedef typename StorageType<typename protocol::NodeStatus::FieldTypes::status_code>::Type NodeStatusCode;
@@ -83,7 +83,7 @@ protected:
 
 public:
     explicit NodeStatusMonitor(INode& node)
-        : Timer(node)
+        : TimerBase(node)
         , sub_(node)
     { }
 

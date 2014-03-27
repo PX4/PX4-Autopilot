@@ -14,7 +14,7 @@
 namespace uavcan
 {
 
-class Timer;
+class TimerBase;
 
 struct TimerEvent
 {
@@ -28,7 +28,7 @@ struct TimerEvent
 };
 
 
-class Timer : private DeadlineHandler
+class TimerBase : private DeadlineHandler
 {
     MonotonicDuration period_;
 
@@ -40,7 +40,7 @@ public:
     using DeadlineHandler::getDeadline;
     using DeadlineHandler::getScheduler;
 
-    explicit Timer(INode& node)
+    explicit TimerBase(INode& node)
         : DeadlineHandler(node.getScheduler())
         , period_(MonotonicDuration::getInfinite())
     { }
@@ -56,7 +56,7 @@ public:
 
 
 template <typename Callback>
-class TimerEventForwarder : public Timer
+class TimerEventForwarder : public TimerBase
 {
     Callback callback_;
 
@@ -74,12 +74,12 @@ class TimerEventForwarder : public Timer
 
 public:
     explicit TimerEventForwarder(INode& node)
-        : Timer(node)
+        : TimerBase(node)
         , callback_()
     { }
 
     TimerEventForwarder(INode& node, Callback callback)
-        : Timer(node)
+        : TimerBase(node)
         , callback_(callback)
     { }
 

@@ -85,7 +85,7 @@ int NodeStatusProvider::startAndPublish()
         goto fail;
     }
 
-    Timer::startPeriodic(MonotonicDuration::fromMSec(protocol::NodeStatus::PUBLICATION_PERIOD_MS));
+    TimerBase::startPeriodic(MonotonicDuration::fromMSec(protocol::NodeStatus::PUBLICATION_PERIOD_MS));
 
     return res;
 
@@ -93,7 +93,7 @@ fail:
     assert(res < 0);
     gdr_sub_.stop();
     gni_srv_.stop();
-    Timer::stop();
+    TimerBase::stop();
     return res;
 }
 
