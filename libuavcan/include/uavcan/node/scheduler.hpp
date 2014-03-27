@@ -70,6 +70,7 @@ class Scheduler : Noncopyable
     MonotonicTime prev_cleanup_ts_;
     MonotonicDuration deadline_resolution_;
     MonotonicDuration cleanup_period_;
+    bool inside_spin_;
 
     MonotonicTime computeDispatcherSpinDeadline(MonotonicTime spin_deadline) const;
     void pollCleanup(MonotonicTime mono_ts, uint32_t num_frames_processed_with_last_spin);
@@ -80,6 +81,7 @@ public:
         , prev_cleanup_ts_(sysclock.getMonotonic())
         , deadline_resolution_(MonotonicDuration::fromMSec(DefaultDeadlineResolutionMs))
         , cleanup_period_(MonotonicDuration::fromMSec(DefaultCleanupPeriodMs))
+        , inside_spin_(false)
     { }
 
     int spin(MonotonicTime deadline);

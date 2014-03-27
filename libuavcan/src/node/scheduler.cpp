@@ -154,6 +154,13 @@ void Scheduler::pollCleanup(MonotonicTime mono_ts, uint32_t num_frames_processed
 
 int Scheduler::spin(MonotonicTime deadline)
 {
+    if (inside_spin_)  // Preventing recursive calls
+    {
+        assert(0);
+        return -1;
+    }
+    inside_spin_ = true;
+
     int retval = 0;
     while (true)
     {
@@ -171,6 +178,8 @@ int Scheduler::spin(MonotonicTime deadline)
             break;
         }
     }
+
+    inside_spin_ = false;
     return retval;
 }
 
