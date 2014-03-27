@@ -193,7 +193,7 @@ public:
 	virtual ~BlockPDLimited() {};
 	float update(float input) {
 		float difference = 0.0f;
-		float output = getKP() * input + getKD() * getDerivative().update(input);
+		float output = getKP() * input + (getDerivative().getDt() > 0.0f ? getKD() * getDerivative().update(input) : 0.0f);
 		getOutputLimiter().limit(output, difference);
 
 		return output;
