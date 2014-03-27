@@ -26,6 +26,7 @@ TEST(TransportStatsProvider, Basic)
     ASSERT_LE(0, tsp_cln.call(1, uavcan::protocol::GetTransportStats::Request()));
     ASSERT_LE(0, nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1)));
 
+    ASSERT_TRUE(tsp_cln.collector.result.get());
     ASSERT_TRUE(tsp_cln.collector.result->isSuccessful());
     ASSERT_EQ(0, tsp_cln.collector.result->response.transfer_errors);
     ASSERT_EQ(1, tsp_cln.collector.result->response.transfers_rx);
@@ -41,6 +42,7 @@ TEST(TransportStatsProvider, Basic)
     ASSERT_LE(0, tsp_cln.call(1, uavcan::protocol::GetTransportStats::Request()));
     ASSERT_LE(0, nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1)));
 
+    ASSERT_TRUE(tsp_cln.collector.result.get());
     ASSERT_EQ(0, tsp_cln.collector.result->response.transfer_errors);
     ASSERT_EQ(2, tsp_cln.collector.result->response.transfers_rx);
     ASSERT_EQ(1, tsp_cln.collector.result->response.transfers_tx);
@@ -71,6 +73,7 @@ TEST(TransportStatsProvider, Basic)
     ASSERT_LE(0, tsp_cln.call(1, uavcan::protocol::GetTransportStats::Request()));
     ASSERT_LE(0, nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(1)));
 
+    ASSERT_TRUE(tsp_cln.collector.result.get());
     ASSERT_EQ(1, tsp_cln.collector.result->response.transfer_errors);                  // That broken frame
     ASSERT_EQ(3, tsp_cln.collector.result->response.transfers_rx);
     ASSERT_EQ(2, tsp_cln.collector.result->response.transfers_tx);

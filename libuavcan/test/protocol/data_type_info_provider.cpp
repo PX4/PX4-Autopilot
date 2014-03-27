@@ -113,6 +113,7 @@ TEST(DataTypeInfoProvider, Basic)
     ASSERT_LE(0, gdti_cln.call(1, gdti_request));
     nodes.spinBoth(MonotonicDuration::fromMSec(2));
 
+    ASSERT_TRUE(gdti_cln.collector.result.get());
     ASSERT_TRUE(gdti_cln.collector.result->isSuccessful());
     ASSERT_EQ(1, gdti_cln.collector.result->server_node_id.get());
     ASSERT_TRUE(gdti_cln.collector.result->response == GetDataTypeInfo::Response());  // Empty response
@@ -126,6 +127,7 @@ TEST(DataTypeInfoProvider, Basic)
     ASSERT_LE(0, cats_cln.call(1, cats_request));
     nodes.spinBoth(MonotonicDuration::fromMSec(2));
 
+    ASSERT_TRUE(gdti_cln.collector.result.get());
     ASSERT_TRUE(cats_cln.collector.result->isSuccessful());
     ASSERT_EQ(1, cats_cln.collector.result->server_node_id.get());
     ASSERT_EQ(NodeStatus::getDataTypeSignature().get(), cats_cln.collector.result->response.aggregate_signature);
@@ -141,6 +143,7 @@ TEST(DataTypeInfoProvider, Basic)
     ASSERT_LE(0, cats_cln.call(1, cats_request));
     nodes.spinBoth(MonotonicDuration::fromMSec(2));
 
+    ASSERT_TRUE(gdti_cln.collector.result.get());
     ASSERT_TRUE(cats_cln.collector.result->isSuccessful());
     ASSERT_EQ(0, cats_cln.collector.result->response.aggregate_signature);
     ASSERT_FALSE(cats_cln.collector.result->response.mutually_known_ids.any());

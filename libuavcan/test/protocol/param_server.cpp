@@ -106,6 +106,7 @@ TEST(ParamServer, Basic)
     uavcan::protocol::param::SaveErase::Request save_erase_rq;
     save_erase_rq.opcode = uavcan::protocol::param::SaveErase::Request::OPCODE_SAVE;
     doCall(save_erase_cln, save_erase_rq, nodes);
+    ASSERT_TRUE(save_erase_cln.collector.result.get());
     ASSERT_TRUE(save_erase_cln.collector.result->response.ok);
 
     save_erase_rq.opcode = uavcan::protocol::param::SaveErase::Request::OPCODE_ERASE;
@@ -123,6 +124,7 @@ TEST(ParamServer, Basic)
     uavcan::protocol::param::GetSet::Request get_set_rq;
     get_set_rq.name = "nonexistent_parameter";
     doCall(get_set_cln, get_set_rq, nodes);
+    ASSERT_TRUE(get_set_cln.collector.result.get());
     ASSERT_TRUE(get_set_cln.collector.result->response.name.empty());
 
     // No such variable, shall return empty name/value

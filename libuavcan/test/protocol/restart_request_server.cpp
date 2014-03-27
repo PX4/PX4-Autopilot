@@ -42,6 +42,7 @@ TEST(RestartRequestServer, Basic)
     ASSERT_LE(0, rrs_cln.call(1, request));
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(2));
 
+    ASSERT_TRUE(rrs_cln.collector.result.get());
     ASSERT_TRUE(rrs_cln.collector.result->isSuccessful());
     ASSERT_FALSE(rrs_cln.collector.result->response.ok);
 
