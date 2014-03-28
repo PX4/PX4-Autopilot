@@ -5,7 +5,7 @@
 # Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
 #
 
-import sys, os, argparse, logging
+import sys, os, argparse, logging, errno
 from mako.template import Template
 
 RUNNING_FROM_SRC_DIR = os.path.abspath(__file__).endswith(os.path.join('libuavcan', 'dsdl_compiler', 'dsdlc.py'))
@@ -35,6 +35,13 @@ def type_output_filename(t):
     assert t.category == t.CATEGORY_COMPOUND
     return t.full_name.replace('.', os.path.sep) + '.' + OUTPUT_FILE_EXTENSION
 
+def makedirs(path):
+    try:
+        os.makedirs(path, exist_ok=True)  # May throw "File exists" when executed as root, which is wrong
+    except OSError as ex:
+        if ex.errno != errno.EEXIST:  # http://stackoverflow.com/questions/12468022
+            raise
+
 def die(text):
     print(text, file=sys.stderr)
     exit(1)
@@ -55,7 +62,7 @@ def run_parser(source_dirs, search_dirs):
 def run_generator(types, dest_dir):
     try:
         dest_dir = os.path.abspath(dest_dir)  # Removing '..'
-        os.makedirs(dest_dir, exist_ok=True)
+        makedirs(dest_dir)
         for t in types:
             logging.info('Generating type %s', t.full_name)
             filename = os.path.join(dest_dir, type_output_filename(t))
@@ -67,7 +74,7 @@ def run_generator(types, dest_dir):
 
 def write_generated_data(filename, data):
     dirname = os.path.dirname(filename)
-    os.makedirs(dirname, exist_ok=True)
+    makedirs(dirname)
 
     # Lazy update - file will not be rewritten if its content is not going to change
     if os.path.exists(filename):
