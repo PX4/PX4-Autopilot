@@ -18,7 +18,13 @@ namespace uavcan
 template <typename T>
 class LazyConstructor
 {
-    unsigned char data_[sizeof(T)] __attribute__((aligned(16)));  // TODO: compiler-independent alignment
+    union
+    {
+        unsigned char pool[sizeof(T)];
+        long double _aligner1;
+        long long _aligner2;
+    } data_;
+
     T* ptr_;
 
     void ensureConstructed() const
@@ -47,13 +53,13 @@ public:
     LazyConstructor()
         : ptr_(NULL)
     {
-        std::fill(data_, data_ + sizeof(T), 0);
+        std::fill(data_.pool, data_.pool + sizeof(T), 0);
     }
 
     LazyConstructor(const LazyConstructor<T>& rhs)
         : ptr_(NULL)
     {
-        std::fill(data_, data_ + sizeof(T), 0);
+        std::fill(data_.pool, data_.pool + sizeof(T), 0);
         if (rhs)
         {
             construct<const T&>(*rhs);  // Invoke copy constructor
@@ -89,13 +95,13 @@ public:
             ptr_->~T();
         }
         ptr_ = NULL;
-        std::fill(data_, data_ + sizeof(T), 0);
+        std::fill(data_.pool, data_.pool + sizeof(T), 0);
     }
 
     void construct()
     {
         ensureNotConstructed();
-        ptr_ = new (static_cast<void*>(data_)) T();
+        ptr_ = new (static_cast<void*>(data_.pool)) T();
     }
 
 // MAX_ARGS = 6
@@ -104,7 +110,7 @@ public:
 //     void construct(%s)
 //     {
 //         ensureNotConstructed();
-//         ptr_ = new (static_cast<void*>(data_)) T(%s);
+//         ptr_ = new (static_cast<void*>(data_.pool)) T(%s);
 //     }'''
 // for nargs in range(1, MAX_ARGS + 1):
 //     nums = [(x + 1) for x in range(nargs)]
@@ -117,21 +123,21 @@ public:
     void construct(typename ParamType<P1>::Type p1)
     {
         ensureNotConstructed();
-        ptr_ = new (static_cast<void*>(data_)) T(p1);
+        ptr_ = new (static_cast<void*>(data_.pool)) T(p1);
     }
 
     template <typename P1, typename P2>
     void construct(typename ParamType<P1>::Type p1, typename ParamType<P2>::Type p2)
     {
         ensureNotConstructed();
-        ptr_ = new (static_cast<void*>(data_)) T(p1, p2);
+        ptr_ = new (static_cast<void*>(data_.pool)) T(p1, p2);
     }
 
     template <typename P1, typename P2, typename P3>
     void construct(typename ParamType<P1>::Type p1, typename ParamType<P2>::Type p2, typename ParamType<P3>::Type p3)
     {
         ensureNotConstructed();
-        ptr_ = new (static_cast<void*>(data_)) T(p1, p2, p3);
+        ptr_ = new (static_cast<void*>(data_.pool)) T(p1, p2, p3);
     }
 
     template <typename P1, typename P2, typename P3, typename P4>
@@ -139,7 +145,7 @@ public:
                    typename ParamType<P4>::Type p4)
     {
         ensureNotConstructed();
-        ptr_ = new (static_cast<void*>(data_)) T(p1, p2, p3, p4);
+        ptr_ = new (static_cast<void*>(data_.pool)) T(p1, p2, p3, p4);
     }
 
     template <typename P1, typename P2, typename P3, typename P4, typename P5>
@@ -147,7 +153,7 @@ public:
                    typename ParamType<P4>::Type p4, typename ParamType<P5>::Type p5)
     {
         ensureNotConstructed();
-        ptr_ = new (static_cast<void*>(data_)) T(p1, p2, p3, p4, p5);
+        ptr_ = new (static_cast<void*>(data_.pool)) T(p1, p2, p3, p4, p5);
     }
 
     template <typename P1, typename P2, typename P3, typename P4, typename P5, typename P6>
@@ -155,7 +161,7 @@ public:
                    typename ParamType<P4>::Type p4, typename ParamType<P5>::Type p5, typename ParamType<P6>::Type p6)
     {
         ensureNotConstructed();
-        ptr_ = new (static_cast<void*>(data_)) T(p1, p2, p3, p4, p5, p6);
+        ptr_ = new (static_cast<void*>(data_.pool)) T(p1, p2, p3, p4, p5, p6);
     }
 };
 

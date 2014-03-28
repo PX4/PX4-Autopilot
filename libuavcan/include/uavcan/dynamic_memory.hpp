@@ -117,7 +117,13 @@ class PoolAllocator : public IPoolAllocator, Noncopyable
     };
 
     Node* free_list_;
-    uint8_t pool_[PoolSize] __attribute__((aligned(16)));  // TODO: compiler-independent alignment
+    union
+    {
+         uint8_t bytes[PoolSize];
+         long double _aligner1;
+         long long _aligner2;
+         Node _aligner3;
+    } pool_;
 
     // Noncopyable
     PoolAllocator(const PoolAllocator&);
@@ -127,9 +133,9 @@ public:
     static const int NumBlocks = int(PoolSize / BlockSize);
 
     PoolAllocator()
-        : free_list_(reinterpret_cast<Node*>(pool_)) // TODO: alignment
+        : free_list_(reinterpret_cast<Node*>(pool_.bytes))
     {
-        memset(pool_, 0, PoolSize);
+        memset(pool_.bytes, 0, PoolSize);
         for (int i = 0; i < NumBlocks - 1; i++)
         {
             free_list_[i].next = free_list_ + i + 1;
@@ -165,8 +171,8 @@ public:
     bool isInPool(const void* ptr) const
     {
         return
-            ptr >= pool_ &&
-            ptr < (pool_ + PoolSize);
+            ptr >= pool_.bytes &&
+            ptr < (pool_.bytes + PoolSize);
     }
 
     std::size_t getBlockSize() const { return BlockSize; }
