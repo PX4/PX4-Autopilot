@@ -2,8 +2,8 @@
 # Start HIL simulation for the specified components.
 #
 
-uint64 MAGIC_NUMBER = 0xACCE551B1E012345
-uint64 magic_number
+uint40 MAGIC_NUMBER = 0xACCE551B1E
+uint40 magic_number
 
 uint64 component_mask   # Components are application defined
 
