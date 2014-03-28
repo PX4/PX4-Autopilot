@@ -42,7 +42,10 @@ endfunction()
 add_libuavcan(uavcan       ${CPP11_FLAGS})
 add_libuavcan(uavcan_cpp03 ${CPP03_FLAGS})
 
-# TODO installation rules
+install(TARGETS uavcan uavcan_cpp03 DESTINATION lib)
+install(DIRECTORY include/uavcan                 DESTINATION include)
+install(DIRECTORY include/dsdlc_generated/uavcan DESTINATION include)  # Merging generated .hpp with lib's .hpp
+install(DIRECTORY src/ DESTINATION src/uavcan)
 
 #
 # Unit tests with gtest (optional)
