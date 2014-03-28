@@ -5,7 +5,7 @@
 #pragma once
 
 #include <cstdlib>
-#include <uavcan/fatal_error.hpp>
+#include <uavcan/error.hpp>
 #include <uavcan/impl_constants.hpp>
 
 #ifndef UAVCAN_CPP_VERSION

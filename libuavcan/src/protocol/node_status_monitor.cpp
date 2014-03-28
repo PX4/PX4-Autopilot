@@ -6,7 +6,6 @@
 #include <cassert>
 #include <cstdlib>
 #include <uavcan/debug.hpp>
-#include <uavcan/fatal_error.hpp>
 #include <uavcan/protocol/node_status_monitor.hpp>
 
 namespace uavcan

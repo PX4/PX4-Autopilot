@@ -7,10 +7,10 @@
 #include <cassert>
 #include <bitset>
 #include <algorithm>
+#include <uavcan/error.hpp>
 #include <uavcan/stdint.hpp>
 #include <uavcan/data_type.hpp>
 #include <uavcan/util/compile_time.hpp>
-#include <uavcan/fatal_error.hpp>
 #include <uavcan/linked_list.hpp>
 #if UAVCAN_DEBUG
 # include <uavcan/debug.hpp>

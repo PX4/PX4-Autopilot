@@ -5,7 +5,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <stdexcept>
-#include <uavcan/fatal_error.hpp>
+#include <uavcan/error.hpp>
 #include <uavcan/impl_constants.hpp>
 
 #ifndef UAVCAN_EXCEPTIONS

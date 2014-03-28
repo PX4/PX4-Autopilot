@@ -11,7 +11,6 @@
 #include <stdexcept>
 #include <cstring>
 #include <uavcan/error.hpp>
-#include <uavcan/fatal_error.hpp>
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/marshal/type_util.hpp>

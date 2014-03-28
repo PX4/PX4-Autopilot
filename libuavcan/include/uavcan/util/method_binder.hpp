@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <uavcan/fatal_error.hpp>
+#include <uavcan/error.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/util/compile_time.hpp>
 
