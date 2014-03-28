@@ -68,6 +68,7 @@ private:
         if (res < 0)
         {
             UAVCAN_TRACE("ServiceServer", "Response publication failure: %i", res);
+            publisher_.getNode().getDispatcher().getTransferPerfCounter().addError();
             response_failure_count_++;
         }
     }

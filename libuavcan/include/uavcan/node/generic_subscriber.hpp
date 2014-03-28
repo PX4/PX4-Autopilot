@@ -151,6 +151,7 @@ class GenericSubscriber : Noncopyable
             UAVCAN_TRACE("GenericSubscriber", "Unable to decode the message [%i] [%s]",
                          decode_res, DataSpec::getDataTypeFullName());
             failure_count_++;
+            node_.getDispatcher().getTransferPerfCounter().addError();
             return false;
         }
         return true;
