@@ -62,6 +62,8 @@ public:
         assert(getTxTimeout() == MonotonicDuration::fromMSec(DefaultTxTimeoutMs));
     }
 
+    int init();
+
     int log(const protocol::debug::LogMessage& message);
 
     LogLevel getLevel() const { return level_; }
