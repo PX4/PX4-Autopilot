@@ -10,11 +10,26 @@ else()
    set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Debug Release RelWithDebInfo MinSizeRel")
 endif()
 
+# Detecting whether we need to add debug targets
+string(TOLOWER "${CMAKE_BUILD_TYPE}" build_type_lower)
+if (build_type_lower STREQUAL "debug")
+    set(DEBUG_BUILD 1)
+else ()
+    set(DEBUG_BUILD 0)
+endif ()
+message(STATUS "Debug build: ${DEBUG_BUILD}")
+
 project(libuavcan)
+
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    set(COMPILER_IS_GCC_COMPATIBLE 1)
+else ()
+    set(COMPILER_IS_GCC_COMPATIBLE 0)
+endif ()
 
 #
 # DSDL compiler invocation
-# Probably output files should be saved into CMAKE_BINARY_DIR?
+# Probably output files should be saved into CMake output dir?
 #
 set(DSDLC_INPUTS "test/dsdl_test/root_ns_a" "test/dsdl_test/root_ns_b" "${CMAKE_SOURCE_DIR}/../dsdl/uavcan")
 set(DSDLC_OUTPUT "include/dsdlc_generated")
@@ -25,32 +40,31 @@ include_directories(${DSDLC_OUTPUT})
 #
 # Compiler flags
 #
-set(CMAKE_CXX_FLAGS_RELEASE        "-O1 -DNDEBUG")
-set(CMAKE_CXX_FLAGS_MINSIZEREL     "-Os -DNDEBUG")
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O1 -g")
-set(CMAKE_CXX_FLAGS_DEBUG          "-g3 -DUAVCAN_DEBUG=1")
+if (COMPILER_IS_GCC_COMPATIBLE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -pedantic")
+    if (USE_CPP03)
+        message(STATUS "Using C++03")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++03 -Wno-variadic-macros -Wno-long-long")
+    else ()
+        message(STATUS "Using C++11 (pass USE_CPP03=1 to override)")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+    endif ()
+endif ()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -pedantic")
-
-set(CPP11_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-set(CPP03_FLAGS "${CMAKE_CXX_FLAGS} -std=c++03 -Wno-variadic-macros -Wno-long-long")
+if (DEBUG_BUILD)
+    add_definitions(-DUAVCAN_DEBUG=1)
+endif ()
 
 include_directories(include)
 
 #
 # libuavcan
 #
-function(add_libuavcan name flags)
-    file(GLOB_RECURSE LIBUAVCAN_CXX_FILES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp")
-    add_library(${name} SHARED ${LIBUAVCAN_CXX_FILES})
-    set_target_properties(${name} PROPERTIES COMPILE_FLAGS ${flags})
-    add_dependencies(${name} dsdlc)
-endfunction()
+file(GLOB_RECURSE LIBUAVCAN_CXX_FILES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp")
+add_library(uavcan SHARED ${LIBUAVCAN_CXX_FILES})
+add_dependencies(uavcan dsdlc)
 
-add_libuavcan(uavcan       ${CPP11_FLAGS})
-add_libuavcan(uavcan_cpp03 ${CPP03_FLAGS})
-
-install(TARGETS uavcan uavcan_cpp03 DESTINATION lib)
+install(TARGETS uavcan DESTINATION lib)
 install(DIRECTORY include/uavcan                 DESTINATION include)
 install(DIRECTORY include/dsdlc_generated/uavcan DESTINATION include)  # Merging generated .hpp with lib's .hpp
 install(DIRECTORY src/ DESTINATION src/uavcan)
@@ -58,7 +72,7 @@ install(DIRECTORY src/ DESTINATION src/uavcan)
 #
 # Tests and static analysis - only for debug builds
 #
-function(add_test name library flags)
+function(add_libuavcan_test name library flags) # Adds GTest executable and creates target to execute it every build
     find_package(Threads REQUIRED)
     include_directories(${GTEST_INCLUDE_DIRS})
 
@@ -66,7 +80,9 @@ function(add_test name library flags)
     add_executable(${name} ${TEST_CXX_FILES})
     add_dependencies(${name} ${library})
 
-    set_target_properties(${name} PROPERTIES COMPILE_FLAGS ${flags})
+    if (flags)
+        set_target_properties(${name} PROPERTIES COMPILE_FLAGS ${flags})
+    endif ()
 
     target_link_libraries(${name} ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
     target_link_libraries(${name} ${CMAKE_BINARY_DIR}/lib${library}.so)
@@ -75,21 +91,33 @@ function(add_test name library flags)
     # Tests run automatically upon successful build
     # If failing tests need to be investigated with debugger, use 'make --ignore-errors'
     add_custom_command(TARGET ${name} POST_BUILD
-                       COMMAND ./${name} > "${name}.log"
-                       WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+                    COMMAND ./${name} > "${name}.log"
+                    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 endfunction()
 
-string(TOLOWER "${CMAKE_BUILD_TYPE}" build_type_lower)
-if (build_type_lower STREQUAL "debug")
+if (DEBUG_BUILD)
     message(STATUS "Debug build (note: requires gtest, cppcheck)")
 
+    if (COMPILER_IS_GCC_COMPATIBLE)
+        set(cpp03_flags "-std=c++03 -Wno-variadic-macros -Wno-long-long")
+        set(optim_flags "-O3 -DNDEBUG -g0")
+    else ()
+        message(STATUS "Compiler ID: ${CMAKE_CXX_COMPILER_ID}")
+        message(FATAL_ERROR "This compiler cannot be used to build tests; use release build instead.")
+    endif ()
+
+    # Additional flavours of the library
+    add_library(uavcan_cpp03 SHARED ${LIBUAVCAN_CXX_FILES})
+    set_target_properties(uavcan_cpp03 PROPERTIES COMPILE_FLAGS ${cpp03_flags})
+
+    add_library(uavcan_optim SHARED ${LIBUAVCAN_CXX_FILES})
+    set_target_properties(uavcan_optim PROPERTIES COMPILE_FLAGS ${optim_flags})
+
+    # GTest executables
     find_package(GTest REQUIRED)
-
-    add_libuavcan(uavcan_optimized "-Wall -Wextra -Werror -pedantic -O3 -DNDEBUG -std=c++0x")
-    add_test(libuavcan_test_optimized uavcan_optimized ${CPP11_FLAGS})
-
-    add_test(libuavcan_test       uavcan       ${CPP11_FLAGS})
-    add_test(libuavcan_test_cpp03 uavcan_cpp03 ${CPP03_FLAGS})
+    add_libuavcan_test(libuavcan_test       uavcan       "")              # Default
+    add_libuavcan_test(libuavcan_test_cpp03 uavcan_cpp03 ${cpp03_flags})  # C++03
+    add_libuavcan_test(libuavcan_test_optim uavcan_optim ${optim_flags})  # Max optimization
 
     # Static analysis with cppcheck, both library and unit test sources
     add_custom_command(TARGET uavcan POST_BUILD COMMAND ./cppcheck.sh WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
