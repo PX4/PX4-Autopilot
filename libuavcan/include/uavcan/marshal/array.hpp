@@ -277,7 +277,7 @@ class Array : public ArrayImpl<T, ArrayMode, MaxSize_>
         for (SizeType i = 0; i < size(); i++)
         {
             const bool last_item = i == (size() - 1);
-            ValueType value;                          // TODO: avoid extra copy
+            ValueType value = ValueType();                          // TODO: avoid extra copy
             const int res = RawValueType::decode(value, codec, last_item ? tao_mode : TailArrayOptDisabled);
             if (res <= 0)
             {
@@ -296,7 +296,7 @@ class Array : public ArrayImpl<T, ArrayMode, MaxSize_>
         {
             while (true)
             {
-                ValueType value;
+                ValueType value = ValueType();
                 const int res = RawValueType::decode(value, codec, TailArrayOptDisabled);
                 if (res < 0)
                 {
