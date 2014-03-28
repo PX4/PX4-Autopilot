@@ -119,6 +119,7 @@ extern struct system_load_s system_load;
 
 #define POSITION_TIMEOUT 20000 /**< consider the local or global position estimate invalid after 20ms */
 #define RC_TIMEOUT 100000
+#define RC_TIMEOUT_HIL 500000
 #define DIFFPRESS_TIMEOUT 2000000
 
 #define PRINT_INTERVAL	5000000
@@ -1099,8 +1100,16 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps_position);
 		}
 
+
+		/*
+		 * XXX workaround:
+		 * Prevent RC loss in HIL when sensors.cpp is only publishing sp_man at a low rate (e.g. 30Hz)
+		 * which can trigger RC loss if the computer/simulator lags.
+		 */
+		uint64_t rc_timeout = status.hil_state == HIL_STATE_ON ? RC_TIMEOUT_HIL : RC_TIMEOUT;
+
 		/* start RC input check */
-		if (!status.rc_input_blocked && sp_man.timestamp != 0 && hrt_absolute_time() < sp_man.timestamp + RC_TIMEOUT) {
+		if (!status.rc_input_blocked && sp_man.timestamp != 0 && hrt_absolute_time() < sp_man.timestamp + rc_timeout) {
 			/* handle the case where RC signal was regained */
 			if (!status.rc_signal_found_once) {
 				status.rc_signal_found_once = true;
