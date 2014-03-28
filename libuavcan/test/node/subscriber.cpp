@@ -82,7 +82,7 @@ TEST(Subscriber, Basic)
         sizeof(uavcan::Subscriber<uavcan::mavlink::Message, Listener::ExtendedBinder>) << std::endl;
 
     // Null binder - will fail
-    ASSERT_EQ(-1, sub_extended.start(Listener::ExtendedBinder(NULL, NULL)));
+    ASSERT_EQ(-uavcan::ErrInvalidParam, sub_extended.start(Listener::ExtendedBinder(NULL, NULL)));
 
     Listener listener;
 
@@ -125,10 +125,10 @@ TEST(Subscriber, Basic)
      */
     ASSERT_EQ(0, node.getDispatcher().getNumMessageListeners());
 
-    ASSERT_EQ(1, sub_extended.start(listener.bindExtended()));
-    ASSERT_EQ(1, sub_extended2.start(listener.bindExtended()));
-    ASSERT_EQ(1, sub_simple.start(listener.bindSimple()));
-    ASSERT_EQ(1, sub_simple2.start(listener.bindSimple()));
+    ASSERT_EQ(0, sub_extended.start(listener.bindExtended()));
+    ASSERT_EQ(0, sub_extended2.start(listener.bindExtended()));
+    ASSERT_EQ(0, sub_simple.start(listener.bindSimple()));
+    ASSERT_EQ(0, sub_simple2.start(listener.bindSimple()));
 
     ASSERT_EQ(4, node.getDispatcher().getNumMessageListeners());
 

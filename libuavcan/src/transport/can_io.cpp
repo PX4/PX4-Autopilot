@@ -219,7 +219,7 @@ int CanIOManager::sendToIface(int iface_index, const CanFrame& frame, MonotonicT
     if (iface == NULL)
     {
         assert(0);   // Nonexistent interface
-        return -1;
+        return -ErrLogic;
     }
     const int res = iface->send(frame, tx_deadline, flags);
     if (res != 1)
@@ -311,7 +311,7 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
             const int select_res = driver_.select(masks, blocking_deadline);
             if (select_res < 0)
             {
-                return select_res;
+                return -ErrDriver;
             }
             assert(masks.read == 0);
         }
@@ -383,7 +383,7 @@ int CanIOManager::receive(CanRxFrame& out_frame, MonotonicTime blocking_deadline
             const int select_res = driver_.select(masks, blocking_deadline);
             if (select_res < 0)
             {
-                return select_res;
+                return -ErrDriver;
             }
         }
 
@@ -418,7 +418,7 @@ int CanIOManager::receive(CanRxFrame& out_frame, MonotonicTime blocking_deadline
                 {
                     counters_[i].frames_rx += 1;
                 }
-                return res;
+                return (res < 0) ? -ErrDriver : res;
             }
         }
 

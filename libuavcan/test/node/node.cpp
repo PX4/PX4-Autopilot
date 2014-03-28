@@ -67,7 +67,7 @@ TEST(Node, Basic)
      * Init the first node
      */
     ASSERT_FALSE(node1.isStarted());
-    ASSERT_EQ(-1, node1.spin(uavcan::MonotonicDuration::fromMSec(20)));  // Not initialized - will fail
+    ASSERT_EQ(-uavcan::ErrNotInited, node1.spin(uavcan::MonotonicDuration::fromMSec(20)));
     ASSERT_LE(0, node1.start(result));
     ASSERT_TRUE(node1.isStarted());
 

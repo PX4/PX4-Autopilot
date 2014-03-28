@@ -84,7 +84,7 @@ void DataTypeInfoProvider::handleGetDataTypeInfoRequest(const protocol::GetDataT
 
 int DataTypeInfoProvider::start()
 {
-    int res = -1;
+    int res = 0;
 
     res = cats_srv_.start(
         ComputeAggregateTypeSignatureCallback(this, &DataTypeInfoProvider::handleComputeAggregateTypeSignatureRequest));

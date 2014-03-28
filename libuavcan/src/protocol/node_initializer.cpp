@@ -105,7 +105,7 @@ int NodeInitializer::checkOneNodeOneDataTypeKind(NodeID nid, DataTypeKind kind)
     }
     if (!last_cats_request_ok_)
     {
-        return -1;
+        return -ErrFailure;
     }
     return 0;
 }

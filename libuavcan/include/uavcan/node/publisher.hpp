@@ -37,7 +37,7 @@ public:
         if (!dst_node_id.isUnicast())
         {
             assert(0);
-            return -1;
+            return -ErrInvalidParam;
         }
         return publish(message, TransferTypeMessageUnicast, dst_node_id);
     }

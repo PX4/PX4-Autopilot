@@ -6,6 +6,7 @@
 
 #include <cstdlib>
 #include <cassert>
+#include <uavcan/error.hpp>
 #include <uavcan/data_type.hpp>
 #include <uavcan/transport/crc.hpp>
 #include <uavcan/transport/transfer.hpp>

@@ -5,13 +5,13 @@
 #pragma once
 
 #include <limits>
+#include <cmath>
 #include <uavcan/stdint.hpp>
 #include <uavcan/data_type.hpp>
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/marshal/type_util.hpp>
 #include <uavcan/marshal/integer_spec.hpp>
-#include <cmath>
 
 #ifndef UAVCAN_CPP_VERSION
 # error UAVCAN_CPP_VERSION

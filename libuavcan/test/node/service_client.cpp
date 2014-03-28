@@ -63,7 +63,7 @@ TEST(ServiceClient, Basic)
 
     // Server
     uavcan::ServiceServer<root_ns_a::StringService> server(nodes.a);
-    ASSERT_EQ(1, server.start(stringServiceServerCallback));
+    ASSERT_EQ(0, server.start(stringServiceServerCallback));
 
     {
         // Caller

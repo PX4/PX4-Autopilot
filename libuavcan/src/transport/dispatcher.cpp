@@ -226,7 +226,7 @@ int Dispatcher::send(const Frame& frame, MonotonicTime tx_deadline, MonotonicTim
     if (frame.getSrcNodeID() != getNodeID())
     {
         assert(0);
-        return -1;
+        return -ErrLogic;
     }
 
     CanFrame can_frame;
@@ -234,7 +234,7 @@ int Dispatcher::send(const Frame& frame, MonotonicTime tx_deadline, MonotonicTim
     {
         UAVCAN_TRACE("Dispatcher", "Unable to send: frame is malformed: %s", frame.toString().c_str());
         assert(0);
-        return -1;
+        return -ErrLogic;
     }
     return canio_.send(can_frame, tx_deadline, blocking_deadline, iface_mask, qos, flags);
 }

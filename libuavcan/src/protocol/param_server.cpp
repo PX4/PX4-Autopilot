@@ -73,7 +73,7 @@ int ParamServer::start(IParamManager* manager)
 {
     if (manager == NULL)
     {
-        return -1;
+        return -ErrInvalidParam;
     }
     manager_ = manager;
 

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <uavcan/error.hpp>
 #include <uavcan/linked_list.hpp>
 #include <uavcan/transport/dispatcher.hpp>
 

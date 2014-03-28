@@ -157,7 +157,7 @@ int Scheduler::spin(MonotonicTime deadline)
     if (inside_spin_)  // Preventing recursive calls
     {
         assert(0);
-        return -1;
+        return -ErrRecursiveCall;
     }
     inside_spin_ = true;
 

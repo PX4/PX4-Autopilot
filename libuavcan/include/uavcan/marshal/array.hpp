@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <cstring>
+#include <uavcan/error.hpp>
 #include <uavcan/fatal_error.hpp>
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/impl_constants.hpp>
@@ -308,7 +309,7 @@ class Array : public ArrayImpl<T, ArrayMode, MaxSize_>
                 }
                 if (size() == MaxSize_)   // Error: Max array length reached, but the end of stream is not
                 {
-                    return -1;
+                    return -ErrInvalidMarshalData;
                 }
                 push_back(value);
             }
@@ -323,7 +324,7 @@ class Array : public ArrayImpl<T, ArrayMode, MaxSize_>
             }
             if ((sz > 0) && ((sz - 1u) > (MaxSize_ - 1u))) // -Werror=type-limits
             {
-                return -1;
+                return -ErrInvalidMarshalData;
             }
             resize(sz);
             if (sz == 0)
@@ -333,7 +334,7 @@ class Array : public ArrayImpl<T, ArrayMode, MaxSize_>
             return decodeImpl(codec, tao_mode, FalseType());
         }
         assert(0); // Unreachable
-        return -1;
+        return -ErrLogic;
     }
 
 public:

@@ -5,6 +5,7 @@
 #pragma once
 
 #include <cassert>
+#include <uavcan/error.hpp>
 #include <uavcan/stdint.hpp>
 #include <uavcan/transport/perf_counter.hpp>
 #include <uavcan/transport/transfer_listener.hpp>

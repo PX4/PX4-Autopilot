@@ -31,7 +31,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
             assert(0);
             UAVCAN_TRACE("TransferSender", "Frame payload write failure, %i", res);
             registerError();
-            return (res < 0) ? res : -1;
+            return (res < 0) ? res : -ErrLogic;
         }
         frame.makeLast();
         assert(frame.isLast() && frame.isFirst());
@@ -97,7 +97,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
     }
 
     assert(0);
-    return -1; // Return path analysis is apparently broken. There should be no warning, this 'return' is unreachable.
+    return -ErrLogic; // Return path analysis is apparently broken. There should be no warning, this 'return' is unreachable.
 }
 
 int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime tx_deadline,
@@ -113,7 +113,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
     {
         UAVCAN_TRACE("TransferSender", "OTR access failure, dtd=%s tt=%i",
                      data_type_.toString().c_str(), int(transfer_type));
-        return -1;
+        return -ErrMemory;
     }
 
     const TransferID this_tid = tid->get();

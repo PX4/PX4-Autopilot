@@ -552,7 +552,7 @@ TEST(Array, TailArrayOptimizationErrors)
         a2.push_back(56);   // Garbage
         ASSERT_EQ(1, a2.size());
         // Will fail - declared length is more than 5 items
-        ASSERT_EQ(-1, A::decode(a2, sc_rd, uavcan::TailArrayOptDisabled));
+        ASSERT_GT(0, A::decode(a2, sc_rd, uavcan::TailArrayOptDisabled));
         // Must be cleared
         ASSERT_TRUE(a2.empty());
     }
@@ -563,7 +563,7 @@ TEST(Array, TailArrayOptimizationErrors)
         a2.push_back(56);   // Garbage
         ASSERT_EQ(1, a2.size());
         // Will fail - no length field, but the stream is too long
-        ASSERT_EQ(-1, A::decode(a2, sc_rd, uavcan::TailArrayOptEnabled));
+        ASSERT_GT(0, A::decode(a2, sc_rd, uavcan::TailArrayOptEnabled));
         // Will contain some garbage
         ASSERT_EQ(5, a2.size());
         // Interpreted stream - see the values above

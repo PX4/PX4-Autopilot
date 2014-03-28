@@ -6,6 +6,7 @@
 #pragma once
 
 #include <cassert>
+#include <uavcan/error.hpp>
 #include <uavcan/stdint.hpp>
 #include <uavcan/linked_list.hpp>
 #include <uavcan/dynamic_memory.hpp>

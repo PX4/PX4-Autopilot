@@ -108,12 +108,12 @@ int GlobalTimeSyncMaster::init()
         GlobalDataTypeRegistry::instance().find(DataTypeKindMessage, protocol::GlobalTimeSync::getDataTypeFullName());
     if (desc == NULL)
     {
-        return -1;
+        return -ErrUnknownDataType;
     }
     dtid_ = desc->getID();
 
     // Iface master array
-    int res = -1;
+    int res = -ErrLogic;
     for (uint8_t i = 0; i < MaxCanIfaces; i++)
     {
         if (!iface_masters_[i].isConstructed())

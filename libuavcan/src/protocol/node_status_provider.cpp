@@ -59,15 +59,13 @@ void NodeStatusProvider::handleGetNodeInfoRequest(const protocol::GetNodeInfo::R
 
 int NodeStatusProvider::startAndPublish()
 {
-    int res = -1;
-
     if (!isNodeInfoInitialized())
     {
         UAVCAN_TRACE("NodeStatusProvider", "Node info was not initialized");
-        return -1;
+        return -ErrNotInited;
     }
 
-    res = publish(); // Initial broadcast
+    int res = publish(); // Initial broadcast
     if (res < 0)
     {
         goto fail;

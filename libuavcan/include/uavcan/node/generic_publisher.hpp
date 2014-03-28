@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <uavcan/error.hpp>
 #include <uavcan/node/abstract_node.hpp>
 #include <uavcan/data_type.hpp>
 #include <uavcan/node/global_data_type_registry.hpp>
@@ -35,11 +36,11 @@ class GenericPublisher
     INode& node_;
     LazyConstructor<TransferSender> sender_;
 
-    bool checkInit()
+    int checkInit()
     {
         if (sender_)
         {
-            return true;
+            return 0;
         }
 
         GlobalDataTypeRegistry::instance().freeze();
@@ -50,11 +51,11 @@ class GenericPublisher
         if (!descr)
         {
             UAVCAN_TRACE("GenericPublisher", "Type [%s] is not registered", DataSpec::getDataTypeFullName());
-            return false;
+            return -ErrUnknownDataType;
         }
         sender_.template construct<Dispatcher&, const DataTypeDescriptor&, CanTxQueue::Qos, MonotonicDuration>
             (node_.getDispatcher(), *descr, CanTxQueue::Qos(Qos), max_transfer_interval_);
-        return true;
+        return 0;
     }
 
     MonotonicTime getTxDeadline() const { return node_.getMonotonicTime() + tx_timeout_; }
@@ -67,15 +68,16 @@ class GenericPublisher
     int genericPublish(const DataStruct& message, TransferType transfer_type, NodeID dst_node_id,
                        TransferID* tid, MonotonicTime blocking_deadline)
     {
-        if (!checkInit())
+        const int res = checkInit();
+        if (res < 0)
         {
-            return -1;
+            return res;
         }
 
         IMarshalBuffer* const buf = getBuffer();
         if (!buf)
         {
-            return -1;
+            return -ErrMemory;
         }
 
         {
@@ -85,7 +87,7 @@ class GenericPublisher
             if (encode_res <= 0)
             {
                 assert(0);   // Impossible, internal error
-                return -1;
+                return -ErrInvalidMarshalData;
             }
         }
         if (tid)
@@ -117,7 +119,7 @@ public:
 
     int init()
     {
-        return checkInit() ? 0 : -1;
+        return checkInit();
     }
 
     int publish(const DataStruct& message, TransferType transfer_type, NodeID dst_node_id,
@@ -134,7 +136,7 @@ public:
 
     TransferSender* getTransferSender()
     {
-        checkInit();
+        (void)checkInit();
         return sender_.isConstructed() ? static_cast<TransferSender*>(sender_) : NULL;
     }
 

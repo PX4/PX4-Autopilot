@@ -101,7 +101,7 @@ public:
         if (!try_implicit_cast<bool>(callback, true))
         {
             UAVCAN_TRACE("PanicListener", "Invalid callback");
-            return -1;
+            return -ErrInvalidParam;
         }
         callback_ = callback;
         return sub_.start(PanicMsgCallback(this, &PanicListener::handleMsg));

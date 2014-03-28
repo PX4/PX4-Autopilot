@@ -182,7 +182,7 @@ public:
         if (!isCallbackValid())
         {
             UAVCAN_TRACE("ServiceClient", "Invalid callback");
-            return -1;
+            return -ErrInvalidParam;
         }
         pending_ = true;
 
@@ -196,7 +196,7 @@ public:
         {
             UAVCAN_TRACE("ServiceClient", "Type [%s] is not registered", DataType::getDataTypeFullName());
             cancel();
-            return -1;
+            return -ErrUnknownDataType;
         }
 
         /*
@@ -211,7 +211,7 @@ public:
         {
             UAVCAN_TRACE("ServiceClient", "OTR access failure, dtd=%s", descr->toString().c_str());
             cancel();
-            return -1;
+            return -ErrMemory;
         }
         const TransferID transfer_id = *otr_tid;
         otr_tid->increment();
@@ -235,7 +235,7 @@ public:
         {
             assert(0);  // Must have been created
             cancel();
-            return -1;
+            return -ErrLogic;
         }
         const typename TransferListenerType::ExpectedResponseParams erp(server_node_id, transfer_id);
         tl->setExpectedResponseParams(erp);

@@ -15,7 +15,7 @@ namespace uavcan
 int IncomingTransfer::write(unsigned int, const uint8_t*, unsigned int)
 {
     assert(0);  // Incoming transfer container is read-only
-    return -1;
+    return -ErrLogic;
 }
 
 /*
@@ -35,7 +35,7 @@ int SingleFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsign
     if (data == NULL)
     {
         assert(0);
-        return -1;
+        return -ErrInvalidParam;
     }
     if (offset >= payload_len_)
     {
@@ -69,7 +69,7 @@ int MultiFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsigne
     if (tbb == NULL)
     {
         UAVCAN_TRACE("MultiFrameIncomingTransfer", "Read failed: no such buffer");
-        return -1;
+        return -ErrLogic;
     }
     return tbb->read(offset, data, len);
 }

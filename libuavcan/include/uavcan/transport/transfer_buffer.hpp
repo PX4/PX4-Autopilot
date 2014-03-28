@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <limits>
 #include <uavcan/stdint.hpp>
+#include <uavcan/error.hpp>
 #include <uavcan/transport/frame.hpp>
 #include <uavcan/linked_list.hpp>
 #include <uavcan/dynamic_memory.hpp>
@@ -166,7 +167,7 @@ public:
         if (!data)
         {
             assert(0);
-            return -1;
+            return -ErrInvalidParam;
         }
         if (offset >= max_write_pos_)
         {
@@ -186,7 +187,7 @@ public:
         if (!data)
         {
             assert(0);
-            return -1;
+            return -ErrInvalidParam;
         }
         if (offset >= Size)
         {

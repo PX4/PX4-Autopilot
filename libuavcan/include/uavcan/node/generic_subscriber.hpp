@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <uavcan/error.hpp>
 #include <uavcan/node/abstract_node.hpp>
 #include <uavcan/data_type.hpp>
 #include <uavcan/node/global_data_type_registry.hpp>
@@ -113,11 +114,11 @@ class GenericSubscriber : Noncopyable
     ReceivedDataStructureSpec message_;
     uint32_t failure_count_;
 
-    bool checkInit()
+    int checkInit()
     {
         if (forwarder_)
         {
-            return true;
+            return 0;
         }
 
         GlobalDataTypeRegistry::instance().freeze();
@@ -128,11 +129,11 @@ class GenericSubscriber : Noncopyable
         if (!descr)
         {
             UAVCAN_TRACE("GenericSubscriber", "Type [%s] is not registered", DataSpec::getDataTypeFullName());
-            return false;
+            return -ErrUnknownDataType;
         }
         forwarder_.template construct<SelfType&, const DataTypeDescriptor&, IAllocator&>
             (*this, *descr, node_.getAllocator());
-        return true;
+        return 0;
     }
 
     bool decodeTransfer(IncomingTransfer& transfer)
@@ -167,19 +168,20 @@ class GenericSubscriber : Noncopyable
     {
         stop();
 
-        if (!checkInit())
+        const int res = checkInit();
+        if (res < 0)
         {
             UAVCAN_TRACE("GenericSubscriber", "Initialization failure [%s]", DataSpec::getDataTypeFullName());
-            return -1;
+            return res;
         }
 
         if (!(node_.getDispatcher().*registration_method)(forwarder_))
         {
             UAVCAN_TRACE("GenericSubscriber", "Failed to register transfer listener [%s]",
                          DataSpec::getDataTypeFullName());
-            return -1;
+            return -ErrInvalidTransferListener;
         }
-        return 1;
+        return 0;
     }
 
 protected:

@@ -113,7 +113,7 @@ int DynamicTransferBufferManagerEntry::read(unsigned int offset, uint8_t* data, 
     if (!data)
     {
         assert(0);
-        return -1;
+        return -ErrInvalidParam;
     }
     if (offset >= max_write_pos_)
     {
@@ -148,7 +148,7 @@ int DynamicTransferBufferManagerEntry::write(unsigned int offset, const uint8_t*
     if (!data)
     {
         assert(0);
-        return -1;
+        return -ErrInvalidParam;
     }
 
     if (offset >= max_size_)
@@ -190,7 +190,6 @@ int DynamicTransferBufferManagerEntry::write(unsigned int offset, const uint8_t*
         if (new_block == NULL)
         {
             break;                        // We're in deep shit.
-
         }
         // Appending the chain with the new block
         if (last_written_block != NULL)

@@ -29,7 +29,7 @@ int Frame::getMaxPayloadLen() const
     }
     default:
         assert(0);
-        return -1;
+        return -ErrLogic;
     }
 }
 

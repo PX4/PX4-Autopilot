@@ -94,12 +94,12 @@ TEST(CanIOManager, Reception)
      * Perf counters
      */
     driver.select_failure = true;
-    EXPECT_EQ(-1, iomgr.receive(frame, uavcan::MonotonicTime(), flags));
+    EXPECT_EQ(-uavcan::ErrDriver, iomgr.receive(frame, uavcan::MonotonicTime(), flags));
 
     driver.select_failure = false;
     driver.ifaces.at(1).pushRx(frames[0][0]);
     driver.ifaces.at(1).rx_failure = true;
-    EXPECT_EQ(-1, iomgr.receive(frame, uavcan::MonotonicTime(), flags));
+    EXPECT_EQ(-uavcan::ErrDriver, iomgr.receive(frame, uavcan::MonotonicTime(), flags));
 
     driver.ifaces.at(0).num_errors = 9000;
     driver.ifaces.at(1).num_errors = 100500;
@@ -268,8 +268,9 @@ TEST(CanIOManager, Transmission)
      */
     // Select failure
     driver.select_failure = true;
-    EXPECT_EQ(-1, iomgr.receive(rx_frame, tsMono(2000), flags));
-    EXPECT_EQ(-1, iomgr.send(frames[0], tsMono(2100), tsMono(2000), ALL_IFACES_MASK, CanTxQueue::Volatile, flags));
+    EXPECT_EQ(-uavcan::ErrDriver, iomgr.receive(rx_frame, tsMono(2000), flags));
+    EXPECT_EQ(-uavcan::ErrDriver,
+              iomgr.send(frames[0], tsMono(2100), tsMono(2000), ALL_IFACES_MASK, CanTxQueue::Volatile, flags));
     EXPECT_EQ(1200, clockmock.monotonic);
     EXPECT_EQ(1200, clockmock.utc);
     ASSERT_EQ(0, flags);

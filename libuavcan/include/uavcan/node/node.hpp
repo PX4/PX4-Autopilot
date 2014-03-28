@@ -5,6 +5,7 @@
 #pragma once
 
 #include <cassert>
+#include <uavcan/error.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/dynamic_memory.hpp>
 #include <uavcan/node/abstract_node.hpp>
@@ -94,7 +95,7 @@ public:
         {
             return INode::spin(deadline);
         }
-        return -1;
+        return -ErrNotInited;
     }
 
     int spin(MonotonicDuration duration)
@@ -103,7 +104,7 @@ public:
         {
             return INode::spin(duration);
         }
-        return -1;
+        return -ErrNotInited;
     }
 
     bool isStarted() const { return started_; }
