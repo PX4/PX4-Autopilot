@@ -31,7 +31,7 @@ class SystemClockDriver : public uavcan::ISystemClock
 
     static constexpr int64_t Int1e6 = 1000000;
 
-    bool performStepAdjustment(uavcan::UtcDuration adjustment) const
+    bool performStepAdjustment(const uavcan::UtcDuration adjustment)
     {
         step_adj_cnt_++;
         const int64_t usec = adjustment.toUSec();
@@ -45,7 +45,7 @@ class SystemClockDriver : public uavcan::ISystemClock
         return settimeofday(&tv, nullptr) == 0;
     }
 
-    bool performGradualAdjustment(uavcan::UtcDuration adjustment) const
+    bool performGradualAdjustment(const uavcan::UtcDuration adjustment)
     {
         gradual_adj_cnt_++;
         const int64_t usec = adjustment.toUSec();
@@ -88,7 +88,7 @@ public:
         return utc;
     }
 
-    virtual void adjustUtc(uavcan::UtcDuration adjustment)
+    virtual void adjustUtc(const uavcan::UtcDuration adjustment)
     {
         if (adj_mode_ == ClockAdjustmentMode::PerDriverPrivate)
         {
