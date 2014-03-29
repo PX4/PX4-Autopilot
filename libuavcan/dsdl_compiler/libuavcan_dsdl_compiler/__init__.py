@@ -1,19 +1,11 @@
-#!/usr/bin/env python3
 #
 # UAVCAN DSDL compiler for libuavcan
 #
 # Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
 #
 
-import sys, os, argparse, logging, errno
+import sys, os, logging, errno
 from mako.template import Template
-
-RUNNING_FROM_SRC_DIR = os.path.abspath(__file__).endswith(os.path.join('libuavcan', 'dsdl_compiler', 'dsdlc.py'))
-if RUNNING_FROM_SRC_DIR:
-    print('Running from the source directory')
-    scriptdir = os.path.dirname(os.path.abspath(__file__))
-    sys.path.append(os.path.join(scriptdir, '..', '..', 'pyuavcan'))
-
 from pyuavcan import dsdl
 
 MAX_BITLEN_FOR_ENUM = 31
@@ -21,10 +13,26 @@ OUTPUT_FILE_EXTENSION = 'hpp'
 OUTPUT_FILE_PERMISSIONS = 0o444  # Read only for all
 TEMPLATE_FILENAME = os.path.join(os.path.dirname(__file__), 'data_type_template.tmpl')
 
-# -----------------
+__all__ = ['run', 'logger', 'DsdlCompilerException']
 
 class DsdlCompilerException(Exception):
     pass
+
+logger = logging.getLogger(__name__)
+
+def run(source_dirs, include_dirs, output_dir):
+    assert isinstance(source_dirs, list)
+    assert isinstance(include_dirs, list)
+    assert isinstance(output_dir, str)
+
+    types = run_parser(source_dirs, include_dirs + source_dirs)
+    if not types:
+        die('No type definitions were found')
+
+    logger.info('%d types total', len(types))
+    run_generator(types, output_dir)
+
+# -----------------
 
 def pretty_filename(filename):
     a = os.path.abspath(filename)
@@ -43,20 +51,14 @@ def makedirs(path):
             raise
 
 def die(text):
-    print(text, file=sys.stderr)
-    exit(1)
-
-def configure_logging(verbosity):
-    fmt = '%(message)s'
-    level = { 0: logging.WARNING, 1: logging.INFO, 2: logging.DEBUG }.get(verbosity or 0, logging.DEBUG)
-    logging.basicConfig(stream=sys.stderr, level=level, format=fmt)
+    raise DsdlCompilerException(str(text))
 
 def run_parser(source_dirs, search_dirs):
     try:
         types = dsdl.parse_namespaces(source_dirs, search_dirs)
     except dsdl.DsdlException as ex:
-        logging.info('Parser failure', exc_info=True)
-        die(str(ex))
+        logger.info('Parser failure', exc_info=True)
+        die(ex)
     return types
 
 def run_generator(types, dest_dir):
@@ -64,13 +66,13 @@ def run_generator(types, dest_dir):
         dest_dir = os.path.abspath(dest_dir)  # Removing '..'
         makedirs(dest_dir)
         for t in types:
-            logging.info('Generating type %s', t.full_name)
+            logger.info('Generating type %s', t.full_name)
             filename = os.path.join(dest_dir, type_output_filename(t))
             text = generate_one_type(t)
             write_generated_data(filename, text)
     except Exception as ex:
-        logging.info('Generator failure', exc_info=True)
-        die(str(ex))
+        logger.info('Generator failure', exc_info=True)
+        die(ex)
 
 def write_generated_data(filename, data):
     dirname = os.path.dirname(filename)
@@ -81,12 +83,12 @@ def write_generated_data(filename, data):
         with open(filename) as f:
             existing_data = f.read()
         if data == existing_data:
-            logging.info('Up to date [%s]', pretty_filename(filename))
+            logger.info('Up to date [%s]', pretty_filename(filename))
             return
-        logging.info('Rewriting [%s]', pretty_filename(filename))
+        logger.info('Rewriting [%s]', pretty_filename(filename))
         os.remove(filename)
     else:
-        logging.info('Creating [%s]', pretty_filename(filename))
+        logger.info('Creating [%s]', pretty_filename(filename))
 
     # Full rewrite
     with open(filename, 'w') as f:
@@ -94,7 +96,7 @@ def write_generated_data(filename, data):
     try:
         os.chmod(filename, OUTPUT_FILE_PERMISSIONS)
     except (OSError, IOError) as ex:
-        logging.warning('Failed to set permissions for %s: %s', pretty_filename(filename), ex)
+        logger.warning('Failed to set permissions for %s: %s', pretty_filename(filename), ex)
 
 def type_to_cpp_type(t):
     if t.category == t.CATEGORY_PRIMITIVE:
@@ -192,26 +194,3 @@ def generate_one_type(t):
     text = text.replace('\n\n\n\n', '\n\n').replace('\n\n\n', '\n\n')
     text = text.replace('{\n\n ', '{\n ')
     return text
-
-# -----------------
-
-DESCRIPTION = '''UAVCAN DSDL compiler. Takes an input directory that contains an hierarchy of DSDL
-definitions and converts it into compatible hierarchy of C++ types for libuavcan.'''
-
-DEFAULT_OUTDIR = './dsdlc_generated'
-
-argparser = argparse.ArgumentParser(description=DESCRIPTION)
-argparser.add_argument('source_dir', nargs='+', help='source directory with DSDL definitions')
-argparser.add_argument('--verbose', '-v', action='count', help='verbosity level (-v, -vv)')
-argparser.add_argument('--outdir', '-O', default=DEFAULT_OUTDIR, help='output directory, default %s' % DEFAULT_OUTDIR)
-argparser.add_argument('--incdir', '-I', default=[], action='append', help='nested type namespaces')
-args = argparser.parse_args()
-
-configure_logging(args.verbose)
-
-types = run_parser(args.source_dir, args.incdir + args.source_dir)
-if not types:
-    die('No type definitions were found')
-logging.info('%d types total', len(types))
-
-run_generator(types, args.outdir)

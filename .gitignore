@@ -3,7 +3,7 @@
 lib*.so
 lib*.so.*
 *.a
-*/build
+build
 .dep
 __pycache__
 

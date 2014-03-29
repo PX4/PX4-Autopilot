@@ -2,7 +2,7 @@
 # Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
 #
 
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8)
 
 if(DEFINED CMAKE_BUILD_TYPE)
    set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "Debug Release RelWithDebInfo MinSizeRel")
@@ -31,9 +31,10 @@ endif ()
 # DSDL compiler invocation
 # Probably output files should be saved into CMake output dir?
 #
+execute_process(COMMAND ./setup.py build WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/dsdl_compiler)
 set(DSDLC_INPUTS "test/dsdl_test/root_ns_a" "test/dsdl_test/root_ns_b" "${CMAKE_SOURCE_DIR}/../dsdl/uavcan")
 set(DSDLC_OUTPUT "include/dsdlc_generated")
-add_custom_target(dsdlc dsdl_compiler/dsdlc.py ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
+add_custom_target(dsdlc dsdl_compiler/uavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 include_directories(${DSDLC_OUTPUT})
 
@@ -64,10 +65,12 @@ file(GLOB_RECURSE LIBUAVCAN_CXX_FILES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp")
 add_library(uavcan SHARED ${LIBUAVCAN_CXX_FILES})
 add_dependencies(uavcan dsdlc)
 
-install(TARGETS uavcan DESTINATION lib)
-install(DIRECTORY include/uavcan                 DESTINATION include)
-install(DIRECTORY include/dsdlc_generated/uavcan DESTINATION include)  # Merging generated .hpp with lib's .hpp
-install(DIRECTORY src/ DESTINATION src/uavcan)
+install(TARGETS uavcan                            DESTINATION lib)
+install(DIRECTORY include/uavcan                  DESTINATION include)
+install(DIRECTORY include/dsdlc_generated/uavcan  DESTINATION include)  # Generated and lib's .hpp
+install(DIRECTORY src                             DESTINATION src/uavcan)
+install(DIRECTORY ../dsdl                         DESTINATION share/uavcan) # TODO: move to top-level CMake script
+install(CODE "execute_process(COMMAND ./setup.py install WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/dsdl_compiler)")
 
 #
 # Tests and static analysis - only for debug builds
@@ -91,8 +94,8 @@ function(add_libuavcan_test name library flags) # Adds GTest executable and crea
     # Tests run automatically upon successful build
     # If failing tests need to be investigated with debugger, use 'make --ignore-errors'
     add_custom_command(TARGET ${name} POST_BUILD
-                    COMMAND ./${name} > "${name}.log"
-                    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+                       COMMAND ./${name} > "${name}.log"
+                       WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 endfunction()
 
 if (DEBUG_BUILD)
@@ -109,9 +112,11 @@ if (DEBUG_BUILD)
     # Additional flavours of the library
     add_library(uavcan_cpp03 SHARED ${LIBUAVCAN_CXX_FILES})
     set_target_properties(uavcan_cpp03 PROPERTIES COMPILE_FLAGS ${cpp03_flags})
+    add_dependencies(uavcan_cpp03 dsdlc)
 
     add_library(uavcan_optim SHARED ${LIBUAVCAN_CXX_FILES})
     set_target_properties(uavcan_optim PROPERTIES COMPILE_FLAGS ${optim_flags})
+    add_dependencies(uavcan_optim dsdlc)
 
     # GTest executables
     find_package(GTest REQUIRED)
