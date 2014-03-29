@@ -588,8 +588,8 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		break;
 
 	default:
-		/* warn about unsupported commands */
-		answer_command(*cmd, VEHICLE_CMD_RESULT_UNSUPPORTED);
+		/* don't warn about unsupported commands, maybe another app supports it */
+//		answer_command(*cmd, VEHICLE_CMD_RESULT_UNSUPPORTED);
 		break;
 	}
 
