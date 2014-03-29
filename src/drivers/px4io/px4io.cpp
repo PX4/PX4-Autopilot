@@ -1332,12 +1332,15 @@ PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 	battery_status.discharged_mah = _battery_mamphour_total;
 	_battery_last_timestamp = battery_status.timestamp;
 
-	/* lazily publish the battery voltage */
-	if (_to_battery > 0) {
-		orb_publish(ORB_ID(battery_status), _to_battery, &battery_status);
+	/* the announced battery status would conflict with the simulated battery status in HIL */
+	if (!(_pub_blocked)) {
+		/* lazily publish the battery voltage */
+		if (_to_battery > 0) {
+			orb_publish(ORB_ID(battery_status), _to_battery, &battery_status);
 
-	} else {
-		_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status);
+		} else {
+			_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status);
+		}
 	}
 }
 
@@ -1921,12 +1924,14 @@ PX4IO::print_status()
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE));
 #endif
 	printf("debuglevel %u\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG));
-	printf("controls");
+	for (unsigned group = 0; group < 4; group++) {
+		printf("controls %u:", group);
 
-	for (unsigned i = 0; i < _max_controls; i++)
-		printf(" %u", io_reg_get(PX4IO_PAGE_CONTROLS, i));
+		for (unsigned i = 0; i < _max_controls; i++)
+			printf(" %d", (int16_t) io_reg_get(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT + i));
 
-	printf("\n");
+		printf("\n");
+	}
 
 	for (unsigned i = 0; i < _max_rc_input; i++) {
 		unsigned base = PX4IO_P_RC_CONFIG_STRIDE * i;
@@ -1957,8 +1962,7 @@ PX4IO::print_status()
 }
 
 int
-PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
-/* Make it obvious that file * isn't used here */
+PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 {
 	int ret = OK;
 
@@ -2370,8 +2374,9 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		break;
 
 	default:
-		/* not a recognized value */
-		ret = -ENOTTY;
+		/* see if the parent class can make any use of it */
+		ret = CDev::ioctl(filep, cmd, arg);
+		break;
 	}
 
 	return ret;

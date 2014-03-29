@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2009-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +34,11 @@
 /**
  * @file waypoints.h
  * MAVLink waypoint protocol definition (BSD-relicensed).
+ *
+ * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
  */
 
 #ifndef WAYPOINTS_H_
@@ -105,8 +107,5 @@ extern void mavlink_missionlib_current_waypoint_changed(uint16_t index, float pa
 		float param6_lon_y, float param7_alt_z, uint8_t frame, uint16_t command);
 
 static uint8_t missionlib_msg_buf[MAVLINK_MAX_PACKET_LEN];
-
-void mavlink_missionlib_send_message(mavlink_message_t *msg);
-int mavlink_missionlib_send_gcs_string(const char *string);
 
 #endif /* WAYPOINTS_H_ */

@@ -200,8 +200,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	bool landed = true;
 	hrt_abstime landed_time = 0;
 
-	uint32_t accel_counter = 0;
-	uint32_t baro_counter = 0;
+	hrt_abstime accel_timestamp = 0;
+	hrt_abstime baro_timestamp = 0;
 
 	bool ref_inited = false;
 	hrt_abstime ref_init_start = 0;
@@ -310,8 +310,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (fds_init[0].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (wait_baro && sensor.baro_counter != baro_counter) {
-					baro_counter = sensor.baro_counter;
+				if (wait_baro && sensor.baro_timestamp != baro_timestamp) {
+					baro_timestamp = sensor.baro_timestamp;
 
 					/* mean calculation over several measurements */
 					if (baro_init_cnt < baro_init_num) {
@@ -384,7 +384,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (sensor.accelerometer_counter != accel_counter) {
+				if (sensor.accelerometer_timestamp != accel_timestamp) {
 					if (att.R_valid) {
 						/* correct accel bias */
 						sensor.accelerometer_m_s2[0] -= acc_bias[0];
@@ -408,13 +408,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						memset(corr_acc, 0, sizeof(corr_acc));
 					}
 
-					accel_counter = sensor.accelerometer_counter;
+					accel_timestamp = sensor.accelerometer_timestamp;
 					accel_updates++;
 				}
 
-				if (sensor.baro_counter != baro_counter) {
+				if (sensor.baro_timestamp != baro_timestamp) {
 					corr_baro = baro_offset - sensor.baro_alt_meter - z_est[0];
-					baro_counter = sensor.baro_counter;
+					baro_timestamp = sensor.baro_timestamp;
 					baro_updates++;
 				}
 			}
@@ -623,7 +623,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		float dt = t_prev > 0 ? (t - t_prev) / 1000000.0f : 0.0f;
-		dt = fmaxf(fminf(0.02, dt), 0.005);
+		dt = fmaxf(fminf(0.02, dt), 0.002);		// constrain dt from 2 to 20 ms
 		t_prev = t;
 
 		/* use GPS if it's valid and reference position initialized */

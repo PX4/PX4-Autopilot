@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,11 +32,9 @@
 ############################################################################
 
 #
-# MAVLink protocol to uORB interface process (XXX hack for onboard use)
+# Makefile to build the PX4FLOW driver.
 #
 
-MODULE_COMMAND	 = mavlink_onboard
-SRCS		 = mavlink.c \
-		   mavlink_receiver.c
+MODULE_COMMAND	= px4flow
 
-INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
+SRCS		= px4flow.cpp

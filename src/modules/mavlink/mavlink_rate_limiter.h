@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,20 +32,31 @@
  ****************************************************************************/
 
 /**
- * @file UOrbSubscription.cpp
+ * @file mavlink_rate_limiter.h
+ * Message rate limiter definition.
  *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include "UOrbSubscription.hpp"
+#ifndef MAVLINK_RATE_LIMITER_H_
+#define MAVLINK_RATE_LIMITER_H_
 
-namespace control
+#include <drivers/drv_hrt.h>
+
+
+class MavlinkRateLimiter
 {
+private:
+	hrt_abstime _last_sent;
+	hrt_abstime _interval;
 
-bool __EXPORT UOrbSubscriptionBase::updated()
-{
-	bool isUpdated = false;
-	orb_check(_handle, &isUpdated);
-	return isUpdated;
-}
+public:
+	MavlinkRateLimiter();
+	MavlinkRateLimiter(unsigned int interval);
+	~MavlinkRateLimiter();
+	void set_interval(unsigned int interval);
+	bool check(hrt_abstime t);
+};
 
-} // namespace control
+
+#endif /* MAVLINK_RATE_LIMITER_H_ */

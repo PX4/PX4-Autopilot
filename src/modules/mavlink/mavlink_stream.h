@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,20 +32,45 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_hil.h
- * Hardware-in-the-loop simulation support.
- */
-
-#pragma once
-
-extern bool mavlink_hil_enabled;
-
-/**
- * Enable / disable Hardware in the Loop simulation mode.
+ * @file mavlink_stream.cpp
+ * Mavlink messages stream definition.
  *
- * @param hil_enabled	The new HIL enable/disable state.
- * @return		OK if the HIL state changed, ERROR if the
- *			requested change could not be made or was
- *			redundant.
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
-extern int set_hil_on_off(bool hil_enabled);
+
+#ifndef MAVLINK_STREAM_H_
+#define MAVLINK_STREAM_H_
+
+#include <drivers/drv_hrt.h>
+
+class Mavlink;
+class MavlinkStream;
+
+#include "mavlink_main.h"
+
+class MavlinkStream
+{
+private:
+	hrt_abstime _last_sent;
+
+protected:
+	mavlink_channel_t _channel;
+	unsigned int _interval;
+
+	virtual void send(const hrt_abstime t) = 0;
+
+public:
+	MavlinkStream *next;
+
+	MavlinkStream();
+	~MavlinkStream();
+	void set_interval(const unsigned int interval);
+	void set_channel(mavlink_channel_t channel);
+	int update(const hrt_abstime t);
+	virtual MavlinkStream *new_instance() = 0;
+	virtual void subscribe(Mavlink *mavlink) = 0;
+	virtual const char *get_name() = 0;
+};
+
+
+#endif /* MAVLINK_STREAM_H_ */

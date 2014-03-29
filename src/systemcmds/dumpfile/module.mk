@@ -1,7 +1,6 @@
-#!/usr/bin/env python
 ############################################################################
 #
-#   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2014 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,35 +32,10 @@
 ############################################################################
 
 #
-# PX4 paramers processor (main executable file)
-#
-# It scans src/ subdirectory of the project, collects all parameters
-# definitions, and outputs list of parameters in XML and DokuWiki formats.
+# Dump file utility
 #
 
-import scanner
-import srcparser
-import output_xml
-import output_dokuwiki_tables
-import output_dokuwiki_listings
+MODULE_COMMAND	 = dumpfile
+SRCS		 = dumpfile.c
 
-# Initialize parser
-prs = srcparser.Parser()
-
-# Scan directories, and parse the files
-sc = scanner.Scanner()
-sc.ScanDir("../../src", prs)
-groups = prs.GetParamGroups()
-
-# Output into XML
-out = output_xml.XMLOutput(groups)
-out.Save("parameters.xml")
-
-# Output to DokuWiki listings
-#out = output_dokuwiki_listings.DokuWikiListingsOutput(groups)
-#out.Save("parameters.wiki")
-
-# Output to DokuWiki tables
-out = output_dokuwiki_tables.DokuWikiTablesOutput(groups)
-out.Save("parameters.wiki")
-out.SaveRpc("parameters.wikirpc.xml")
+MAXOPTIMIZATION	 = -Os

@@ -175,14 +175,14 @@ void BlockMultiModeBacksideAutopilot::update()
 		// the min/max velocity
 		float v = _vLimit.update(sqrtf(
 					_pos.vel_n * _pos.vel_n +
-					_pos.vy * _pos.vy +
+					_pos.vel_e * _pos.vel_e +
 					_pos.vel_d * _pos.vel_d));
 
 		// limit velocity command between min/max velocity
 		float vCmd = _vLimit.update(_vCmd.get());
 
 		// altitude hold
-		float dThrottle = _h2Thr.update(_missionCmd.current.altitude - _pos.alt);
+		float dThrottle = _h2Thr.update(_missionCmd.current.alt - _pos.alt);
 
 		// heading hold
 		float psiError = _wrap_pi(_guide.getPsiCmd() - _att.yaw);
@@ -237,7 +237,7 @@ void BlockMultiModeBacksideAutopilot::update()
 		// the min/max velocity
 		float v = _vLimit.update(sqrtf(
 					_pos.vel_n * _pos.vel_n +
-					_pos.vy * _pos.vy +
+					_pos.vel_e * _pos.vel_e +
 					_pos.vel_d * _pos.vel_d));
 
 		// pitch channel -> rate of climb
