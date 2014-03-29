@@ -31,11 +31,11 @@ endif ()
 # DSDL compiler invocation
 # Probably output files should be saved into CMake output dir?
 #
-execute_process(COMMAND ./setup.py build WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/dsdl_compiler)
-set(DSDLC_INPUTS "test/dsdl_test/root_ns_a" "test/dsdl_test/root_ns_b" "${CMAKE_SOURCE_DIR}/../dsdl/uavcan")
+execute_process(COMMAND ./setup.py build WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dsdl_compiler)
+set(DSDLC_INPUTS "test/dsdl_test/root_ns_a" "test/dsdl_test/root_ns_b" "${CMAKE_CURRENT_SOURCE_DIR}/../dsdl/uavcan")
 set(DSDLC_OUTPUT "include/dsdlc_generated")
 add_custom_target(dsdlc dsdl_compiler/libuavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
-                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${DSDLC_OUTPUT})
 
 #
@@ -61,7 +61,7 @@ include_directories(include)
 #
 # libuavcan
 #
-file(GLOB_RECURSE LIBUAVCAN_CXX_FILES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp")
+file(GLOB_RECURSE LIBUAVCAN_CXX_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "src/*.cpp")
 add_library(uavcan SHARED ${LIBUAVCAN_CXX_FILES})
 add_dependencies(uavcan dsdlc)
 
@@ -69,8 +69,7 @@ install(TARGETS uavcan                            DESTINATION lib)
 install(DIRECTORY include/uavcan                  DESTINATION include)
 install(DIRECTORY include/dsdlc_generated/uavcan  DESTINATION include)  # Generated and lib's .hpp
 install(DIRECTORY src                             DESTINATION src/uavcan)
-install(DIRECTORY ../dsdl                         DESTINATION share/uavcan) # TODO: move to top-level CMake script
-install(CODE "execute_process(COMMAND ./setup.py install WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/dsdl_compiler)")
+install(CODE "execute_process(COMMAND ./setup.py install WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dsdl_compiler)")
 
 #
 # Tests and static analysis - only for debug builds
@@ -79,7 +78,7 @@ function(add_libuavcan_test name library flags) # Adds GTest executable and crea
     find_package(Threads REQUIRED)
     include_directories(${GTEST_INCLUDE_DIRS})
 
-    file(GLOB_RECURSE TEST_CXX_FILES RELATIVE ${CMAKE_SOURCE_DIR} "test/*.cpp")
+    file(GLOB_RECURSE TEST_CXX_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "test/*.cpp")
     add_executable(${name} ${TEST_CXX_FILES})
     add_dependencies(${name} ${library})
 
@@ -88,14 +87,14 @@ function(add_libuavcan_test name library flags) # Adds GTest executable and crea
     endif ()
 
     target_link_libraries(${name} ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-    target_link_libraries(${name} ${CMAKE_BINARY_DIR}/lib${library}.so)
+    target_link_libraries(${name} ${CMAKE_CURRENT_BINARY_DIR}/lib${library}.so)
     target_link_libraries(${name} rt)
 
     # Tests run automatically upon successful build
     # If failing tests need to be investigated with debugger, use 'make --ignore-errors'
     add_custom_command(TARGET ${name} POST_BUILD
                        COMMAND ./${name} > "${name}.log"
-                       WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+                       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 endfunction()
 
 if (DEBUG_BUILD)
@@ -125,7 +124,7 @@ if (DEBUG_BUILD)
     add_libuavcan_test(libuavcan_test_optim uavcan_optim ${optim_flags})  # Max optimization
 
     # Static analysis with cppcheck, both library and unit test sources
-    add_custom_command(TARGET uavcan POST_BUILD COMMAND ./cppcheck.sh WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+    add_custom_command(TARGET uavcan POST_BUILD COMMAND ./cppcheck.sh WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 else ()
     message(STATUS "Release build type: " ${CMAKE_BUILD_TYPE})
 endif ()
