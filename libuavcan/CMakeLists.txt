@@ -34,7 +34,7 @@ endif ()
 execute_process(COMMAND ./setup.py build WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dsdl_compiler)
 set(DSDLC_INPUTS "test/dsdl_test/root_ns_a" "test/dsdl_test/root_ns_b" "${CMAKE_CURRENT_SOURCE_DIR}/../dsdl/uavcan")
 set(DSDLC_OUTPUT "include/dsdlc_generated")
-add_custom_target(dsdlc dsdl_compiler/libuavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
+add_custom_target(libuavcan_dsdlc dsdl_compiler/libuavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${DSDLC_OUTPUT})
 
@@ -62,8 +62,8 @@ include_directories(include)
 # libuavcan
 #
 file(GLOB_RECURSE LIBUAVCAN_CXX_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "src/*.cpp")
-add_library(uavcan SHARED ${LIBUAVCAN_CXX_FILES})
-add_dependencies(uavcan dsdlc)
+add_library(uavcan STATIC ${LIBUAVCAN_CXX_FILES})
+add_dependencies(uavcan libuavcan_dsdlc)
 
 install(TARGETS uavcan                            DESTINATION lib)
 install(DIRECTORY include/uavcan                  DESTINATION include)
@@ -111,11 +111,11 @@ if (DEBUG_BUILD)
     # Additional flavours of the library
     add_library(uavcan_cpp03 SHARED ${LIBUAVCAN_CXX_FILES})
     set_target_properties(uavcan_cpp03 PROPERTIES COMPILE_FLAGS ${cpp03_flags})
-    add_dependencies(uavcan_cpp03 dsdlc)
+    add_dependencies(uavcan_cpp03 libuavcan_dsdlc)
 
     add_library(uavcan_optim SHARED ${LIBUAVCAN_CXX_FILES})
     set_target_properties(uavcan_optim PROPERTIES COMPILE_FLAGS ${optim_flags})
-    add_dependencies(uavcan_optim dsdlc)
+    add_dependencies(uavcan_optim libuavcan_dsdlc)
 
     # GTest executables
     find_package(GTest REQUIRED)
