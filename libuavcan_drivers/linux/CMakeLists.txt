@@ -20,3 +20,4 @@ set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -pedantic -std=c++0x -g3 -O1")  # GCC
 
 add_executable(log_subscriber test/log_subscriber.cpp)
 target_link_libraries(log_subscriber ${UAVCAN_LIB})
+target_link_libraries(log_subscriber rt)
