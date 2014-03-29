@@ -34,7 +34,7 @@ endif ()
 execute_process(COMMAND ./setup.py build WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/dsdl_compiler)
 set(DSDLC_INPUTS "test/dsdl_test/root_ns_a" "test/dsdl_test/root_ns_b" "${CMAKE_SOURCE_DIR}/../dsdl/uavcan")
 set(DSDLC_OUTPUT "include/dsdlc_generated")
-add_custom_target(dsdlc dsdl_compiler/uavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
+add_custom_target(dsdlc dsdl_compiler/libuavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 include_directories(${DSDLC_OUTPUT})
 

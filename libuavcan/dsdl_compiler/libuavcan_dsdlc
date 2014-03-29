@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 #
-# UAVCAN DSDL compiler
-# Probably it will be extended in future to add support for different programming languages.
+# UAVCAN DSDL compiler for libuavcan
 #
 # Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
 #
 
 import os, sys, logging, argparse
+
+RUNNING_FROM_SRC_DIR = os.path.abspath(__file__).endswith(os.path.join('libuavcan', 'dsdl_compiler', 'uavcan_dsdlc'))
+if RUNNING_FROM_SRC_DIR:
+    print('Running from the source directory')
+    scriptdir = os.path.dirname(os.path.abspath(__file__))
+    sys.path.append(os.path.join(scriptdir, '..', '..', 'pyuavcan'))
+    sys.path.append(os.path.join(scriptdir))
 
 def configure_logging(verbosity):
     fmt = '%(message)s'
@@ -16,13 +22,6 @@ def configure_logging(verbosity):
 def die(text):
     print(text, file=sys.stderr)
     exit(1)
-
-RUNNING_FROM_SRC_DIR = os.path.abspath(__file__).endswith(os.path.join('libuavcan', 'dsdl_compiler', 'uavcan_dsdlc'))
-if RUNNING_FROM_SRC_DIR:
-    print('Running from the source directory')
-    scriptdir = os.path.dirname(os.path.abspath(__file__))
-    sys.path.append(os.path.join(scriptdir, '..', '..', 'pyuavcan'))
-    sys.path.append(os.path.join(scriptdir))
 
 DEFAULT_OUTDIR = './dsdlc_generated'
 
@@ -38,9 +37,15 @@ args = argparser.parse_args()
 
 configure_logging(args.verbose)
 
+try:
+    extra_incdir = os.environ['UAVCAN_DSDL_INCLUDE_PATH'].split(':')
+    logging.info('Additional include directories: %s', extra_incdir)
+    args.incdir += extra_incdir
+except KeyError:
+    pass
+
 from libuavcan_dsdl_compiler import run as dsdlc_run
 try:
-    # TODO: collect include dirs from environment variable UAVCAN_DSDL_INCLUDE
     dsdlc_run(args.source_dir, args.incdir, args.outdir)
 except Exception as ex:
     logging.error('Compiler failure', exc_info=True)
