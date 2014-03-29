@@ -232,6 +232,11 @@ GPS::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCRESET:
 		cmd_reset();
 		break;
+
+	default:
+		/* give it to parent if no one wants it */
+		ret = CDev::ioctl(filp, cmd, arg);
+		break;
 	}
 
 	unlock();

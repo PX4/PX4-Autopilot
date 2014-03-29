@@ -167,12 +167,13 @@ void write_debug_log(const char *msg, float dt, float x_est[3], float y_est[3], 
 	FILE *f = fopen("/fs/microsd/inav.log", "a");
 	if (f) {
 		char *s = malloc(256);
-		snprintf(s, 256, "%llu %s\n\tdt=%.5f x_est=[%.5f %.5f %.5f] y_est=[%.5f %.5f %.5f] z_est=[%.5f %.5f %.5f]\n", hrt_absolute_time(), msg, dt, x_est[0], x_est[1], x_est[2], y_est[0], y_est[1], y_est[2], z_est[0], z_est[1], z_est[2]);
-		fputs(f, s);
-		snprintf(s, 256, "\tacc_corr=[%.5f %.5f %.5f] gps_pos_corr=[%.5f %.5f %.5f] gps_vel_corr=[%.5f %.5f %.5f] w_xy_gps_p=%.5f w_xy_gps_v=%.5f\n", corr_acc[0], corr_acc[1], corr_acc[2], corr_gps[0][0], corr_gps[1][0], corr_gps[2][0], corr_gps[0][1], corr_gps[1][1], corr_gps[2][1], w_xy_gps_p, w_xy_gps_v);
-		fputs(f, s);
+		unsigned n = snprintf(s, 256, "%llu %s\n\tdt=%.5f x_est=[%.5f %.5f %.5f] y_est=[%.5f %.5f %.5f] z_est=[%.5f %.5f %.5f]\n", hrt_absolute_time(), msg, dt, x_est[0], x_est[1], x_est[2], y_est[0], y_est[1], y_est[2], z_est[0], z_est[1], z_est[2]);
+		fwrite(s, 1, n, f);
+		n = snprintf(s, 256, "\tacc_corr=[%.5f %.5f %.5f] gps_pos_corr=[%.5f %.5f %.5f] gps_vel_corr=[%.5f %.5f %.5f] w_xy_gps_p=%.5f w_xy_gps_v=%.5f\n", corr_acc[0], corr_acc[1], corr_acc[2], corr_gps[0][0], corr_gps[1][0], corr_gps[2][0], corr_gps[0][1], corr_gps[1][1], corr_gps[2][1], w_xy_gps_p, w_xy_gps_v);
+		fwrite(s, 1, n, f);
 		free(s);
 	}
+	fsync(fileno(f));
 	fclose(f);
 }
 
@@ -199,8 +200,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	bool landed = true;
 	hrt_abstime landed_time = 0;
 
-	uint32_t accel_counter = 0;
-	uint32_t baro_counter = 0;
+	hrt_abstime accel_timestamp = 0;
+	hrt_abstime baro_timestamp = 0;
 
 	bool ref_inited = false;
 	hrt_abstime ref_init_start = 0;
@@ -309,8 +310,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (fds_init[0].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (wait_baro && sensor.baro_counter != baro_counter) {
-					baro_counter = sensor.baro_counter;
+				if (wait_baro && sensor.baro_timestamp != baro_timestamp) {
+					baro_timestamp = sensor.baro_timestamp;
 
 					/* mean calculation over several measurements */
 					if (baro_init_cnt < baro_init_num) {
@@ -383,7 +384,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (sensor.accelerometer_counter != accel_counter) {
+				if (sensor.accelerometer_timestamp != accel_timestamp) {
 					if (att.R_valid) {
 						/* correct accel bias */
 						sensor.accelerometer_m_s2[0] -= acc_bias[0];
@@ -407,13 +408,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						memset(corr_acc, 0, sizeof(corr_acc));
 					}
 
-					accel_counter = sensor.accelerometer_counter;
+					accel_timestamp = sensor.accelerometer_timestamp;
 					accel_updates++;
 				}
 
-				if (sensor.baro_counter != baro_counter) {
+				if (sensor.baro_timestamp != baro_timestamp) {
 					corr_baro = baro_offset - sensor.baro_alt_meter - z_est[0];
-					baro_counter = sensor.baro_counter;
+					baro_timestamp = sensor.baro_timestamp;
 					baro_updates++;
 				}
 			}
@@ -622,7 +623,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		float dt = t_prev > 0 ? (t - t_prev) / 1000000.0f : 0.0f;
-		dt = fmaxf(fminf(0.02, dt), 0.005);
+		dt = fmaxf(fminf(0.02, dt), 0.002);		// constrain dt from 2 to 20 ms
 		t_prev = t;
 
 		/* use GPS if it's valid and reference position initialized */
@@ -708,6 +709,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		inertial_filter_correct(corr_gps[2][0], dt, z_est, 0, w_z_gps_p);
 		inertial_filter_correct(corr_acc[2], dt, z_est, 2, params.w_z_acc);
 
+		float x_est_prev[3], y_est_prev[3];
+
+		memcpy(x_est_prev, x_est, sizeof(x_est));
+		memcpy(y_est_prev, y_est, sizeof(y_est));
+
 		if (can_estimate_xy) {
 			/* inertial filter prediction for position */
 			inertial_filter_predict(dt, x_est);
@@ -715,7 +721,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (!isfinite(x_est[0]) || !isfinite(y_est[0])) {
 				write_debug_log("BAD ESTIMATE AFTER PREDICTION", dt, x_est, y_est, z_est, corr_acc, corr_gps, w_xy_gps_p, w_xy_gps_v);
-				thread_should_exit = true;
+				memcpy(x_est, x_est_prev, sizeof(x_est));
+				memcpy(y_est, y_est_prev, sizeof(y_est));
 			}
 
 			/* inertial filter correction for position */
@@ -739,7 +746,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (!isfinite(x_est[0]) || !isfinite(y_est[0])) {
 				write_debug_log("BAD ESTIMATE AFTER CORRECTION", dt, x_est, y_est, z_est, corr_acc, corr_gps, w_xy_gps_p, w_xy_gps_v);
-				thread_should_exit = true;
+				memcpy(x_est, x_est_prev, sizeof(x_est));
+				memcpy(y_est, y_est_prev, sizeof(y_est));
+				memset(corr_acc, 0, sizeof(corr_acc));
+				memset(corr_gps, 0, sizeof(corr_gps));
+				memset(corr_flow, 0, sizeof(corr_flow));
 			}
 		}
 

@@ -119,6 +119,7 @@ extern struct system_load_s system_load;
 
 #define POSITION_TIMEOUT 1000000 /**< consider the local or global position estimate invalid after 1s */
 #define RC_TIMEOUT 100000
+#define RC_TIMEOUT_HIL 500000
 #define OFFBOARD_TIMEOUT 200000
 #define DIFFPRESS_TIMEOUT 2000000
 
@@ -616,7 +617,6 @@ int commander_thread_main(int argc, char *argv[])
 	/* not yet initialized */
 	commander_initialized = false;
 
-	bool battery_tune_played = false;
 	bool arm_tune_played = false;
 
 	/* set parameters */
@@ -909,7 +909,7 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(safety), safety_sub, &safety);
 
 			/* disarm if safety is now on and still armed */
-			if (safety.safety_switch_available && !safety.safety_off && armed.armed) {
+			if (status.hil_state == HIL_STATE_OFF && safety.safety_switch_available && !safety.safety_off && armed.armed) {
 				arming_state_t new_arming_state = (status.arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
 				if (TRANSITION_CHANGED == arming_state_transition(&status, &safety, new_arming_state, &armed)) {
 					mavlink_log_info(mavlink_fd, "[cmd] DISARMED by safety switch");
@@ -969,7 +969,7 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
 
 			/* only consider battery voltage if system has been running 2s and battery voltage is valid */
-			if (hrt_absolute_time() > start_time + 2000000 && battery.voltage_filtered_v > 0.0f) {
+			if (status.hil_state == HIL_STATE_OFF && hrt_absolute_time() > start_time + 2000000 && battery.voltage_filtered_v > 0.0f) {
 				status.battery_voltage = battery.voltage_filtered_v;
 				status.battery_current = battery.current_a;
 				status.condition_battery_voltage_valid = true;
@@ -1032,14 +1032,12 @@ int commander_thread_main(int argc, char *argv[])
 			mavlink_log_critical(mavlink_fd, "#audio: WARNING: LOW BATTERY");
 			status.battery_warning = VEHICLE_BATTERY_WARNING_LOW;
 			status_changed = true;
-			battery_tune_played = false;
 
 		} else if (status.condition_battery_voltage_valid && status.battery_remaining < 0.1f && !critical_battery_voltage_actions_done && low_battery_voltage_actions_done) {
 			/* critical battery voltage, this is rather an emergency, change state machine */
 			critical_battery_voltage_actions_done = true;
 			mavlink_log_critical(mavlink_fd, "#audio: EMERGENCY: CRITICAL BATTERY");
 			status.battery_warning = VEHICLE_BATTERY_WARNING_CRITICAL;
-			battery_tune_played = false;
 
 			if (armed.armed) {
 				arming_state_transition(&status, &safety, ARMING_STATE_ARMED_ERROR, &armed);
@@ -1113,12 +1111,20 @@ int commander_thread_main(int argc, char *argv[])
 
 				/* mark home position as set */
 				status.condition_home_position_valid = true;
-				tune_positive();
+				tune_positive(true);
 			}
 		}
 
+
+		/*
+		 * XXX workaround:
+		 * Prevent RC loss in HIL when sensors.cpp is only publishing sp_man at a low rate (e.g. 30Hz)
+		 * which can trigger RC loss if the computer/simulator lags.
+		 */
+		uint64_t rc_timeout = status.hil_state == HIL_STATE_ON ? RC_TIMEOUT_HIL : RC_TIMEOUT;
+
 		/* start RC input check */
-		if (!status.rc_input_blocked && sp_man.timestamp != 0 && hrt_absolute_time() < sp_man.timestamp + RC_TIMEOUT) {
+		if (!status.rc_input_blocked && sp_man.timestamp != 0 && hrt_absolute_time() < sp_man.timestamp + rc_timeout) {
 			/* handle the case where RC signal was regained */
 			if (!status.rc_signal_found_once) {
 				status.rc_signal_found_once = true;
@@ -1208,8 +1214,9 @@ int commander_thread_main(int argc, char *argv[])
 			/* evaluate the main state machine according to mode switches */
 			res = set_main_state_rc(&status);
 
+			/* play tune on mode change only if armed, blink LED always */
 			if (res == TRANSITION_CHANGED) {
-				tune_positive();
+				tune_positive(armed.armed);
 
 			} else if (res == TRANSITION_DENIED) {
 				/* DENIED here indicates bug in the commander */
@@ -1309,7 +1316,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* flight termination in manual mode if assisted switch is on easy position */
 		if (!status.is_rotary_wing && parachute_enabled && armed.armed && status.main_state == MAIN_STATE_MANUAL && sp_man.assisted_switch > STICK_ON_OFF_LIMIT) {
 			if (TRANSITION_CHANGED == failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION)) {
-				tune_positive();
+				tune_positive(armed.armed);
 			}
 		}
 
@@ -1364,26 +1371,23 @@ int commander_thread_main(int argc, char *argv[])
 		/* play arming and battery warning tunes */
 		if (!arm_tune_played && armed.armed && (!safety.safety_switch_available || (safety.safety_switch_available && safety.safety_off))) {
 			/* play tune when armed */
-			if (tune_arm() == OK)
-				arm_tune_played = true;
-
-		} else if (status.battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
-			/* play tune on battery warning */
-			if (tune_low_bat() == OK)
-				battery_tune_played = true;
+			set_tune(TONE_ARMING_WARNING_TUNE);
+			arm_tune_played = true;
 
 		} else if (status.battery_warning == VEHICLE_BATTERY_WARNING_CRITICAL) {
 			/* play tune on battery critical */
-			if (tune_critical_bat() == OK)
-				battery_tune_played = true;
+			set_tune(TONE_BATTERY_WARNING_FAST_TUNE);
 
-		} else if (battery_tune_played) {
-			tune_stop();
-			battery_tune_played = false;
+		} else if (status.battery_warning == VEHICLE_BATTERY_WARNING_LOW || status.failsafe_state != FAILSAFE_STATE_NORMAL) {
+			/* play tune on battery warning or failsafe */
+			set_tune(TONE_BATTERY_WARNING_SLOW_TUNE);
+
+		} else {
+			set_tune(TONE_STOP_TUNE);
 		}
 
 		/* reset arm_tune_played when disarmed */
-		if (status.arming_state != ARMING_STATE_ARMED || (safety.safety_switch_available && !safety.safety_off)) {
+		if (!armed.armed || (safety.safety_switch_available && !safety.safety_off)) {
 			arm_tune_played = false;
 		}
 
@@ -1478,11 +1482,8 @@ control_status_leds(vehicle_status_s *status, const actuator_armed_s *actuator_a
 
 		if (set_normal_color) {
 			/* set color */
-			if (status->battery_warning != VEHICLE_BATTERY_WARNING_NONE) {
-				if (status->battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
-					rgbled_set_color(RGBLED_COLOR_AMBER);
-				}
-
+			if (status->battery_warning == VEHICLE_BATTERY_WARNING_LOW || status->failsafe_state != FAILSAFE_STATE_NORMAL) {
+				rgbled_set_color(RGBLED_COLOR_AMBER);
 				/* VEHICLE_BATTERY_WARNING_CRITICAL handled as ARMING_STATE_ARMED_ERROR / ARMING_STATE_STANDBY_ERROR */
 
 			} else {
@@ -1802,15 +1803,9 @@ print_reject_mode(struct vehicle_status_s *status, const char *msg)
 		sprintf(s, "#audio: REJECT %s", msg);
 		mavlink_log_critical(mavlink_fd, s);
 
-		// only buzz if armed, because else we're driving people nuts indoors
-		// they really need to look at the leds as well.
-		if (status->arming_state == ARMING_STATE_ARMED) {
-			tune_negative();
-		} else {
-
-			// Always show the led indication
-			led_negative();
-		}
+		/* only buzz if armed, because else we're driving people nuts indoors
+		they really need to look at the leds as well. */
+		tune_negative(armed.armed);
 	}
 }
 
@@ -1824,7 +1819,7 @@ print_reject_arm(const char *msg)
 		char s[80];
 		sprintf(s, "#audio: %s", msg);
 		mavlink_log_critical(mavlink_fd, s);
-		tune_negative();
+		tune_negative(true);
 	}
 }
 
@@ -1832,27 +1827,27 @@ void answer_command(struct vehicle_command_s &cmd, enum VEHICLE_CMD_RESULT resul
 {
 	switch (result) {
 	case VEHICLE_CMD_RESULT_ACCEPTED:
-			tune_positive();
+			tune_positive(true);
 		break;
 
 	case VEHICLE_CMD_RESULT_DENIED:
 		mavlink_log_critical(mavlink_fd, "#audio: command denied: %u", cmd.command);
-		tune_negative();
+		tune_negative(true);
 		break;
 
 	case VEHICLE_CMD_RESULT_FAILED:
 		mavlink_log_critical(mavlink_fd, "#audio: command failed: %u", cmd.command);
-		tune_negative();
+		tune_negative(true);
 		break;
 
 	case VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:
 		mavlink_log_critical(mavlink_fd, "#audio: command temporarily rejected: %u", cmd.command);
-		tune_negative();
+		tune_negative(true);
 		break;
 
 	case VEHICLE_CMD_RESULT_UNSUPPORTED:
 		mavlink_log_critical(mavlink_fd, "#audio: command unsupported: %u", cmd.command);
-		tune_negative();
+		tune_negative(true);
 		break;
 
 	default:
@@ -1992,9 +1987,9 @@ void *commander_low_prio_loop(void *arg)
 				}
 
 				if (calib_ret == OK)
-					tune_positive();
+					tune_positive(true);
 				else
-					tune_negative();
+					tune_negative(true);
 
 				arming_state_transition(&status, &safety, ARMING_STATE_STANDBY, &armed);
 

@@ -244,8 +244,7 @@ private:
 	volatile int		_task;			///< worker task id
 	volatile bool		_task_should_exit;	///< worker terminate flag
 
-	int			_mavlink_fd;		///< mavlink file descriptor. This is opened by class instantiation and Doesn't appear to be usable in main thread.
-	int			_thread_mavlink_fd;	///< mavlink file descriptor for thread.
+	int			_mavlink_fd;		///< mavlink file descriptor.
 
 	perf_counter_t		_perf_update;		///<local performance counter for status updates
 	perf_counter_t		_perf_write;		///<local performance counter for PWM control writes
@@ -474,7 +473,6 @@ PX4IO::PX4IO(device::Device *interface) :
 	_task(-1),
 	_task_should_exit(false),
 	_mavlink_fd(-1),
-	_thread_mavlink_fd(-1),
 	_perf_update(perf_alloc(PC_ELAPSED, "io update")),
 	_perf_write(perf_alloc(PC_ELAPSED, "io write")),
 	_perf_chan_count(perf_alloc(PC_COUNT, "io rc #")),
@@ -506,9 +504,6 @@ PX4IO::PX4IO(device::Device *interface) :
 {
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
-
-	/* open MAVLink text channel */
-	_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
 
 	_debug_enabled = false;
 	_servorail_status.rssi_v = 0;
@@ -785,7 +780,7 @@ PX4IO::task_main()
 	hrt_abstime poll_last = 0;
 	hrt_abstime orb_check_last = 0;
 
-	_thread_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
+	_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
 
 	/*
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
@@ -879,6 +874,10 @@ PX4IO::task_main()
 		if (now >= orb_check_last + ORB_CHECK_INTERVAL) {
 			/* run at 5Hz */
 			orb_check_last = now;
+
+			/* try to claim the MAVLink log FD */
+			if (_mavlink_fd < 0)
+				_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
 
 			/* check updates on uORB topics and handle it */
 			bool updated = false;
@@ -1275,16 +1274,14 @@ void
 PX4IO::dsm_bind_ioctl(int dsmMode)
 {
 	if (!(_status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)) {
-		/* 0: dsm2, 1:dsmx */
-		if ((dsmMode == 0) || (dsmMode == 1)) {
-			mavlink_log_info(_thread_mavlink_fd, "[IO] binding dsm%s rx", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "x" : "x8"));
-			ioctl(nullptr, DSM_BIND_START, (dsmMode == 0) ? DSM2_BIND_PULSES : ((dsmMode == 1) ? DSMX_BIND_PULSES : DSMX8_BIND_PULSES));
-		} else {
-			mavlink_log_info(_thread_mavlink_fd, "[IO] invalid dsm bind mode, bind request rejected");
-		}
+		mavlink_log_info(_mavlink_fd, "[IO] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
+		int ret = ioctl(nullptr, DSM_BIND_START, (dsmMode == 0) ? DSM2_BIND_PULSES : ((dsmMode == 1) ? DSMX_BIND_PULSES : DSMX8_BIND_PULSES));
+
+		if (ret)
+			mavlink_log_critical(_mavlink_fd, "binding failed.");
 
 	} else {
-		mavlink_log_info(_thread_mavlink_fd, "[IO] system armed, bind request rejected");
+		mavlink_log_info(_mavlink_fd, "[IO] system armed, bind request rejected");
 	}
 }
 
@@ -1335,12 +1332,15 @@ PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 	battery_status.discharged_mah = _battery_mamphour_total;
 	_battery_last_timestamp = battery_status.timestamp;
 
-	/* lazily publish the battery voltage */
-	if (_to_battery > 0) {
-		orb_publish(ORB_ID(battery_status), _to_battery, &battery_status);
+	/* the announced battery status would conflict with the simulated battery status in HIL */
+	if (!(_pub_blocked)) {
+		/* lazily publish the battery voltage */
+		if (_to_battery > 0) {
+			orb_publish(ORB_ID(battery_status), _to_battery, &battery_status);
 
-	} else {
-		_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status);
+		} else {
+			_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status);
+		}
 	}
 }
 
@@ -1924,12 +1924,14 @@ PX4IO::print_status()
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE));
 #endif
 	printf("debuglevel %u\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG));
-	printf("controls");
+	for (unsigned group = 0; group < 4; group++) {
+		printf("controls %u:", group);
 
-	for (unsigned i = 0; i < _max_controls; i++)
-		printf(" %u", io_reg_get(PX4IO_PAGE_CONTROLS, i));
+		for (unsigned i = 0; i < _max_controls; i++)
+			printf(" %d", (int16_t) io_reg_get(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT + i));
 
-	printf("\n");
+		printf("\n");
+	}
 
 	for (unsigned i = 0; i < _max_rc_input; i++) {
 		unsigned base = PX4IO_P_RC_CONFIG_STRIDE * i;
@@ -1960,8 +1962,7 @@ PX4IO::print_status()
 }
 
 int
-PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
-/* Make it obvious that file * isn't used here */
+PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 {
 	int ret = OK;
 
@@ -2115,14 +2116,24 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		break;
 
 	case DSM_BIND_START:
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down);
-		usleep(500000);
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_out);
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
-		usleep(72000);
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_send_pulses | (arg << 4));
-		usleep(50000);
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_reinit_uart);
+
+		/* only allow DSM2, DSM-X and DSM-X with more than 7 channels */
+		if (arg == DSM2_BIND_PULSES ||
+		    arg == DSMX_BIND_PULSES ||
+		    arg == DSMX8_BIND_PULSES) {
+			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down);
+			usleep(500000);
+			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_out);
+			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
+			usleep(72000);
+			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_send_pulses | (arg << 4));
+			usleep(50000);
+			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_reinit_uart);
+
+			ret = OK;
+		} else {
+			ret = -EINVAL;
+		}
 		break;
 
 	case DSM_BIND_POWER_UP:
@@ -2363,8 +2374,9 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		break;
 
 	default:
-		/* not a recognized value */
-		ret = -ENOTTY;
+		/* see if the parent class can make any use of it */
+		ret = CDev::ioctl(filep, cmd, arg);
+		break;
 	}
 
 	return ret;
@@ -2615,7 +2627,7 @@ bind(int argc, char *argv[])
 #endif
 
 	if (argc < 3)
-		errx(0, "needs argument, use dsm2 or dsmx");
+		errx(0, "needs argument, use dsm2, dsmx or dsmx8");
 
 	if (!strcmp(argv[2], "dsm2"))
 		pulses = DSM2_BIND_PULSES;
@@ -2624,7 +2636,7 @@ bind(int argc, char *argv[])
 	else if (!strcmp(argv[2], "dsmx8"))
 		pulses = DSMX8_BIND_PULSES;
 	else 
-		errx(1, "unknown parameter %s, use dsm2 or dsmx", argv[2]);
+		errx(1, "unknown parameter %s, use dsm2, dsmx or dsmx8", argv[2]);
 	// Test for custom pulse parameter
 	if (argc > 3)
 		pulses = atoi(argv[3]);
