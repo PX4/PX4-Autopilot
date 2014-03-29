@@ -155,9 +155,11 @@ private:
 		param_t follow_ff;
 		param_t follow_dist;
 		param_t follow_alt_offs;
+		param_t follow_scale_yaw;
 
 		param_t rc_scale_pitch;
 		param_t rc_scale_roll;
+		param_t rc_scale_yaw;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -169,6 +171,7 @@ private:
 		float follow_ff;
 		float follow_dist;
 		float follow_alt_offs;
+		float follow_scale_yaw;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -180,6 +183,7 @@ private:
 
 		float rc_scale_pitch;
 		float rc_scale_roll;
+		float rc_scale_yaw;
 	}		_params;
 
 	double _lat_sp;
@@ -197,7 +201,6 @@ private:
 	math::Vector<3> _vel_prev;			/**< velocity on previous step */
 
 	math::Vector<3> _follow_offset;		/**< offset from target for FOLLOW mode, vector in NED frame */
-	float _follow_yaw_offset;			/**< yaw offset from direction to target in FOLLOW mode */
 
 	/**
 	 * Update our local parameter cache.
@@ -315,7 +318,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	/* initialize to safe value to avoid flying into target */
 	_follow_offset.zero();
 	_follow_offset(2) = -20.0f;
-	_follow_yaw_offset = 0.0f;
 
 	_params_handles.thr_min		= param_find("MPC_THR_MIN");
 	_params_handles.thr_max		= param_find("MPC_THR_MAX");
@@ -337,9 +339,11 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.follow_ff	= param_find("MPC_FOLLOW_FF");
 	_params_handles.follow_dist	= param_find("MPC_FOLLOW_DIST");
 	_params_handles.follow_alt_offs	= param_find("MPC_FOLLOW_AOFF");
+	_params_handles.follow_scale_yaw	= param_find("MPC_FOLLOW_YAW");
 
 	_params_handles.rc_scale_pitch	= param_find("RC_SCALE_PITCH");
 	_params_handles.rc_scale_roll	= param_find("RC_SCALE_ROLL");
+	_params_handles.rc_scale_yaw	= param_find("RC_SCALE_YAW");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -389,6 +393,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.follow_ff, &_params.follow_ff);
 		param_get(_params_handles.follow_dist, &_params.follow_dist);
 		param_get(_params_handles.follow_alt_offs, &_params.follow_alt_offs);
+		param_get(_params_handles.follow_scale_yaw, &_params.follow_scale_yaw);
 
 		float v;
 		param_get(_params_handles.xy_p, &v);
@@ -426,6 +431,7 @@ MulticopterPositionControl::parameters_update(bool force)
 
 		param_get(_params_handles.rc_scale_pitch, &_params.rc_scale_pitch);
 		param_get(_params_handles.rc_scale_roll, &_params.rc_scale_roll);
+		param_get(_params_handles.rc_scale_yaw, &_params.rc_scale_yaw);
 	}
 
 	return OK;
@@ -524,7 +530,6 @@ MulticopterPositionControl::reset_follow_offset()
 			_reset_lat_lon_sp ? _global_pos.lon : _lon_sp,
 			&_follow_offset.data[0], &_follow_offset.data[1]);
 		_follow_offset(2) = - ((_reset_alt_sp ? _global_pos.alt : _alt_sp) - _target_pos.alt - _target_alt_offs);
-		_follow_yaw_offset = _wrap_pi(_att_sp.yaw_body - atan2f(_follow_offset(1), _follow_offset(0)));
 		mavlink_log_info(_mavlink_fd, "[mpc] reset follow offs: %.2f, %.2f, %.2f", _follow_offset(0), _follow_offset(1), _follow_offset(2));
 	}
 }
@@ -703,18 +708,13 @@ MulticopterPositionControl::task_main()
 					/* new value for _follow_offset vector */
 					math::Vector<3> follow_offset_new(_follow_offset);
 
-					/* move follow offset using polar coordinates to avoid integration errors */
+					/* move follow offset using polar coordinates */
 					math::Vector<2> follow_offset_xy(_follow_offset(0), _follow_offset(1));
 					math::Vector<2> sp_move_rate_xy(sp_move_rate(0), sp_move_rate(1));
 					float follow_offset_xy_len = follow_offset_xy.length();
 
 					if (sp_move_rate_xy.length_squared() > 0.0f) {
 						if (follow_offset_xy_len > FOLLOW_OFFS_XY_MIN) {
-							/* rotate around yaw by _follow_yaw_offset */
-							math::Matrix<2, 2> R_yaw_offset;
-							R_yaw_offset.from_angle(_follow_yaw_offset);
-							sp_move_rate_xy = R_yaw_offset * sp_move_rate_xy;
-
 							/* calculate change rate in polar coordinates phi, d */
 							float rate_phi = sp_move_rate_xy(1) / follow_offset_xy_len;
 							float rate_d = sp_move_rate_xy(0);
@@ -776,9 +776,6 @@ MulticopterPositionControl::task_main()
 					/* feed forward target velocity */
 					vel_ff += vel_target * _params.follow_ff;
 
-					/* change yaw offset with yaw stick */
-					_follow_yaw_offset += _manual.yaw * dt;
-
 					/* change yaw to keep direction to target */
 					/* calculate current offset (not offset setpoint) */
 					math::Vector<2> current_offset_xy;
@@ -791,8 +788,8 @@ MulticopterPositionControl::task_main()
 					/* don't try to rotate near singularity */
 					float current_offset_xy_len = current_offset_xy.length();
 					if (current_offset_xy_len > FOLLOW_OFFS_XY_MIN) {
-						/* calculate yaw setpoint from current positions */
-						_att_sp.yaw_body = _wrap_pi(atan2f(current_offset_xy(1), current_offset_xy(0)) + _follow_yaw_offset);
+						/* calculate yaw setpoint from current positions and control offset with yaw stick */
+						_att_sp.yaw_body = _wrap_pi(atan2f(current_offset_xy(1), current_offset_xy(0)) + _manual.yaw / _params.rc_scale_yaw * _params.follow_scale_yaw);
 
 						/* feed forward attitude rates */
 						math::Vector<2> offs_vel_xy(_vel(0) - vel_target(0), _vel(1) - vel_target(1));

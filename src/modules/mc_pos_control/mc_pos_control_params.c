@@ -222,3 +222,13 @@ PARAM_DEFINE_FLOAT(MPC_FOLLOW_FF, 0.0f);
  */
 PARAM_DEFINE_FLOAT(MPC_FOLLOW_DIST, 10.0f);
 PARAM_DEFINE_FLOAT(MPC_FOLLOW_AOFF, 0.0f);
+
+/**
+ * Follow mode yaw scale
+ *
+ * Maximum yaw offset that can be set by stick.
+ *
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_FOLLOW_YAW, 1.0f);
