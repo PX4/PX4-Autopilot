@@ -87,7 +87,7 @@ function(add_libuavcan_test name library flags) # Adds GTest executable and crea
     endif ()
 
     target_link_libraries(${name} ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-    target_link_libraries(${name} ${CMAKE_CURRENT_BINARY_DIR}/lib${library}.so)
+    target_link_libraries(${name} ${library})
     target_link_libraries(${name} rt)
 
     # Tests run automatically upon successful build
@@ -109,11 +109,11 @@ if (DEBUG_BUILD)
     endif ()
 
     # Additional flavours of the library
-    add_library(uavcan_cpp03 SHARED ${LIBUAVCAN_CXX_FILES})
+    add_library(uavcan_cpp03 STATIC ${LIBUAVCAN_CXX_FILES})
     set_target_properties(uavcan_cpp03 PROPERTIES COMPILE_FLAGS ${cpp03_flags})
     add_dependencies(uavcan_cpp03 libuavcan_dsdlc)
 
-    add_library(uavcan_optim SHARED ${LIBUAVCAN_CXX_FILES})
+    add_library(uavcan_optim STATIC ${LIBUAVCAN_CXX_FILES})
     set_target_properties(uavcan_optim PROPERTIES COMPILE_FLAGS ${optim_flags})
     add_dependencies(uavcan_optim libuavcan_dsdlc)
 
