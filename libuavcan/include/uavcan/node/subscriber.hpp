@@ -25,8 +25,8 @@ template <typename DataType_,
 #else
           typename Callback = void (*)(const ReceivedDataStructure<DataType_>&),
 #endif
-          unsigned int NumStaticReceivers = 2,
-          unsigned int NumStaticBufs = 1>
+          unsigned NumStaticReceivers = 2,
+          unsigned NumStaticBufs = 1>
 class Subscriber : public GenericSubscriber<DataType_, DataType_,
                                             typename TransferListenerInstantiationHelper<DataType_,
                                                                                          NumStaticReceivers,

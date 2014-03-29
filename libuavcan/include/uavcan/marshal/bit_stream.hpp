@@ -24,7 +24,7 @@ class BitStream
     int bit_offset_;
     uint8_t byte_cache_;
 
-    static inline unsigned int bitlenToBytelen(unsigned int bits) { return (bits + 7) / 8; }
+    static inline unsigned bitlenToBytelen(unsigned bits) { return (bits + 7) / 8; }
 
     static inline void copyBitArray(const uint8_t* src_org, int src_offset, int src_len,
                                     uint8_t* dst_org, int dst_offset)

@@ -135,7 +135,7 @@ TEST(BitStream, BitByBit)
     uavcan::BitStream bs_wr(buf);
 
     std::string binary_string;
-    unsigned int counter = 0;
+    unsigned counter = 0;
     for (int byte = 0; byte < NUM_BYTES; byte++)
     {
         for (int bit = 0; bit < 8; bit++, counter++)

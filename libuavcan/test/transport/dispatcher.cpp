@@ -305,7 +305,7 @@ TEST(Dispatcher, Spin)
 struct DispatcherTestLoopbackFrameListener : public uavcan::LoopbackFrameListenerBase
 {
     uavcan::RxFrame last_frame;
-    unsigned int count;
+    unsigned count;
 
     DispatcherTestLoopbackFrameListener(uavcan::Dispatcher& dispatcher)
         : uavcan::LoopbackFrameListenerBase(dispatcher)

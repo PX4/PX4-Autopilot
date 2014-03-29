@@ -26,12 +26,12 @@ namespace uavcan
 enum ArrayMode { ArrayModeStatic, ArrayModeDynamic };
 
 
-template <unsigned int Size>
+template <unsigned Size>
 class StaticArrayBase
 {
 public:
     enum { SizeBitLen = 0 };
-    typedef unsigned int SizeType;
+    typedef unsigned SizeType;
     SizeType size()     const { return Size; }
     SizeType capacity() const { return Size; }
 
@@ -55,7 +55,7 @@ protected:
 };
 
 
-template <unsigned int MaxSize>
+template <unsigned MaxSize>
 class DynamicArrayBase
 {
 protected:
@@ -121,7 +121,7 @@ public:
 /**
  * Statically allocated array with optional dynamic-like behavior
  */
-template <typename T, ArrayMode ArrayMode, unsigned int MaxSize>
+template <typename T, ArrayMode ArrayMode, unsigned MaxSize>
 class ArrayImpl : public Select<ArrayMode == ArrayModeDynamic,
                                 DynamicArrayBase<MaxSize>, StaticArrayBase<MaxSize> >::Result
 {
@@ -196,7 +196,7 @@ public:
 /**
  * Bit array specialization
  */
-template <unsigned int MaxSize, ArrayMode ArrayMode, CastMode CastMode>
+template <unsigned MaxSize, ArrayMode ArrayMode, CastMode CastMode>
 class ArrayImpl<IntegerSpec<1, SignednessUnsigned, CastMode>, ArrayMode, MaxSize>
     : public std::bitset<MaxSize>
     , public Select<ArrayMode == ArrayModeDynamic, DynamicArrayBase<MaxSize>, StaticArrayBase<MaxSize> >::Result
@@ -226,7 +226,7 @@ public:
 template <typename T, ArrayMode ArrayMode> class ArrayImpl<T, ArrayMode, 0>;
 
 
-template <typename T, ArrayMode ArrayMode, unsigned int MaxSize_>
+template <typename T, ArrayMode ArrayMode, unsigned MaxSize_>
 class Array : public ArrayImpl<T, ArrayMode, MaxSize_>
 {
     typedef ArrayImpl<T, ArrayMode, MaxSize_> Base;
@@ -377,7 +377,7 @@ public:
     {
         if (new_size > size())
         {
-            unsigned int cnt = new_size - size();
+            unsigned cnt = new_size - size();
             while (cnt--)
             {
                 push_back(filler);
@@ -385,7 +385,7 @@ public:
         }
         else if (new_size < size())
         {
-            unsigned int cnt = size() - new_size;
+            unsigned cnt = size() - new_size;
             while (cnt--)
             {
                 pop_back();
@@ -464,7 +464,7 @@ public:
         return *this;
     }
 
-    template <uavcan::ArrayMode RhsArrayMode, unsigned int RhsMaxSize>
+    template <uavcan::ArrayMode RhsArrayMode, unsigned RhsMaxSize>
     SelfType& operator+=(const Array<T, RhsArrayMode, RhsMaxSize>& rhs)
     {
         typedef Array<T, RhsArrayMode, RhsMaxSize> Rhs;
@@ -520,20 +520,20 @@ public:
     typedef SizeType size_type;
 };
 
-template <typename R, typename T, ArrayMode ArrayMode, unsigned int MaxSize>
+template <typename R, typename T, ArrayMode ArrayMode, unsigned MaxSize>
 inline bool operator==(const R& rhs, const Array<T, ArrayMode, MaxSize>& lhs)
 {
     return lhs.operator==(rhs);
 }
 
-template <typename R, typename T, ArrayMode ArrayMode, unsigned int MaxSize>
+template <typename R, typename T, ArrayMode ArrayMode, unsigned MaxSize>
 inline bool operator!=(const R& rhs, const Array<T, ArrayMode, MaxSize>& lhs)
 {
     return lhs.operator!=(rhs);
 }
 
 
-template <typename T, ArrayMode ArrayMode, unsigned int MaxSize>
+template <typename T, ArrayMode ArrayMode, unsigned MaxSize>
 class YamlStreamer<Array<T, ArrayMode, MaxSize> >
 {
     typedef Array<T, ArrayMode, MaxSize> ArrayType;
@@ -545,7 +545,7 @@ class YamlStreamer<Array<T, ArrayMode, MaxSize> >
             return true;
         }
         static const char Good[] = {'\n', '\r', '\t'};
-        for (unsigned int i = 0; i < sizeof(Good) / sizeof(Good[0]); i++)
+        for (unsigned i = 0; i < sizeof(Good) / sizeof(Good[0]); i++)
         {
             if (Good[i] == c)
             {

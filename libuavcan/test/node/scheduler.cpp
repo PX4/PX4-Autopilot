@@ -66,7 +66,7 @@ TEST(Scheduler, Timers)
         ASSERT_GT(1100, tcc.events_b.size());
         {
             uavcan::MonotonicTime next_expected_deadline = start_ts + durMono(1000);
-            for (unsigned int i = 0; i < tcc.events_b.size(); i++)
+            for (unsigned i = 0; i < tcc.events_b.size(); i++)
             {
                 ASSERT_TRUE(areTimestampsClose(tcc.events_b[i].scheduled_time, next_expected_deadline));
                 ASSERT_TRUE(areTimestampsClose(tcc.events_b[i].scheduled_time, tcc.events_b[i].real_time));

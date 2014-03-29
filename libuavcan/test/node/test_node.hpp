@@ -57,7 +57,7 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
         with->other = this;
     }
 
-    uavcan::ICanIface* getIface(int iface_index)
+    uavcan::ICanIface* getIface(uavcan::uint8_t iface_index)
     {
         if (iface_index == 0)
         {
@@ -66,30 +66,27 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
         return NULL;
     }
 
-    int getNumIfaces() const { return 1; }
+    uavcan::uint8_t getNumIfaces() const { return 1; }
 
-    int select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline)
+    uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline)
     {
         assert(other);
         if (inout_masks.read == 1)
         {
             inout_masks.read = (read_queue.size() || loopback_queue.size()) ? 1 : 0;
         }
-
         if (inout_masks.read || inout_masks.write)
         {
             return 1;
         }
-
         while (clock.getMonotonic() < blocking_deadline)
         {
             usleep(1000);
         }
-
         return 0;
     }
 
-    int send(const uavcan::CanFrame& frame, uavcan::MonotonicTime, uavcan::CanIOFlags flags)
+    uavcan::int16_t send(const uavcan::CanFrame& frame, uavcan::MonotonicTime, uavcan::CanIOFlags flags)
     {
         assert(other);
         other->read_queue.push(frame);
@@ -100,8 +97,8 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
         return 1;
     }
 
-    int receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic, uavcan::UtcTime& out_ts_utc,
-                uavcan::CanIOFlags& out_flags)
+    uavcan::int16_t receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
+                            uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags)
     {
         assert(other);
         out_flags = 0;
@@ -122,9 +119,9 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
         return 1;
     }
 
-    int configureFilters(const uavcan::CanFilterConfig*, int) { return -1; }
-    int getNumFilters() const { return 0; }
-    uint64_t getErrorCount() const { return error_count; }
+    uavcan::int16_t configureFilters(const uavcan::CanFilterConfig*, uavcan::uint16_t) { return -1; }
+    uavcan::uint16_t getNumFilters() const { return 0; }
+    uavcan::uint64_t getErrorCount() const { return error_count; }
 };
 
 
@@ -159,7 +156,7 @@ struct InterlinkedTestNodes
     int spinBoth(uavcan::MonotonicDuration duration)
     {
         assert(!duration.isNegative());
-        unsigned int nspins2 = duration.toMSec() / 2;
+        unsigned nspins2 = duration.toMSec() / 2;
         nspins2 = nspins2 ? nspins2 : 1;
         while (nspins2 --> 0)
         {

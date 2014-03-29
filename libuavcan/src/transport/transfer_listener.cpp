@@ -12,7 +12,7 @@ namespace uavcan
 /*
  * IncomingTransfer
  */
-int IncomingTransfer::write(unsigned int, const uint8_t*, unsigned int)
+int IncomingTransfer::write(unsigned, const uint8_t*, unsigned)
 {
     assert(0);  // Incoming transfer container is read-only
     return -ErrLogic;
@@ -30,7 +30,7 @@ SingleFrameIncomingTransfer::SingleFrameIncomingTransfer(const RxFrame& frm)
     assert(frm.isValid());
 }
 
-int SingleFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsigned int len) const
+int SingleFrameIncomingTransfer::read(unsigned offset, uint8_t* data, unsigned len) const
 {
     if (data == NULL)
     {
@@ -63,7 +63,7 @@ MultiFrameIncomingTransfer::MultiFrameIncomingTransfer(MonotonicTime ts_mono, Ut
     assert(last_frame.isLast());
 }
 
-int MultiFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsigned int len) const
+int MultiFrameIncomingTransfer::read(unsigned offset, uint8_t* data, unsigned len) const
 {
     const ITransferBuffer* const tbb = const_cast<TransferBufferAccessor&>(buf_acc_).access();
     if (tbb == NULL)
@@ -80,7 +80,7 @@ int MultiFrameIncomingTransfer::read(unsigned int offset, uint8_t* data, unsigne
 bool TransferListenerBase::checkPayloadCrc(const uint16_t compare_with, const ITransferBuffer& tbb) const
 {
     TransferCRC crc = crc_base_;
-    unsigned int offset = 0;
+    unsigned offset = 0;
     while (true)
     {
         uint8_t buf[16];

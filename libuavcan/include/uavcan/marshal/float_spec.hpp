@@ -23,7 +23,7 @@
 namespace uavcan
 {
 
-template <unsigned int BitLen>
+template <unsigned BitLen>
 struct NativeFloatSelector
 {
     struct ErrorNoSuchFloat;
@@ -46,7 +46,7 @@ public:
     /// UAVCAN requires rounding to nearest for all float conversions
     static std::float_round_style roundstyle() { return std::round_to_nearest; }
 
-    template <unsigned int BitLen>
+    template <unsigned BitLen>
     static typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType
     toIeee(typename NativeFloatSelector<BitLen>::Type value)
     {
@@ -58,7 +58,7 @@ public:
         return u.i;
     }
 
-    template <unsigned int BitLen>
+    template <unsigned BitLen>
     static typename NativeFloatSelector<BitLen>::Type
     toNative(typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType value)
     {
@@ -83,7 +83,7 @@ IEEE754Converter::toNative<16>(typename IntegerSpec<16, SignednessUnsigned, Cast
     return halfToNativeNonIeee(value);
 }
 
-template <unsigned int BitLen> struct IEEE754Limits;
+template <unsigned BitLen> struct IEEE754Limits;
 template <> struct IEEE754Limits<16>
 {
     static typename NativeFloatSelector<16>::Type max() { return 65504.0; }
@@ -101,7 +101,7 @@ template <> struct IEEE754Limits<64>
 };
 
 
-template <unsigned int BitLen_, CastMode CastMode>
+template <unsigned BitLen_, CastMode CastMode>
 class FloatSpec : public IEEE754Limits<BitLen_>
 {
     FloatSpec();
@@ -183,7 +183,7 @@ private:
 };
 
 
-template <unsigned int BitLen, CastMode CastMode>
+template <unsigned BitLen, CastMode CastMode>
 struct YamlStreamer<FloatSpec<BitLen, CastMode> >
 {
     typedef typename FloatSpec<BitLen, CastMode>::StorageType StorageType;

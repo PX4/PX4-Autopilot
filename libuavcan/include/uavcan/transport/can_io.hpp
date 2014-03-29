@@ -150,9 +150,9 @@ class CanIOManager : Noncopyable
     CanTxQueue tx_queues_[MaxCanIfaces];
     IfaceFrameCounters counters_[MaxCanIfaces];
 
-    int sendToIface(int iface_index, const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags);
-    int sendFromTxQueue(int iface_index);
-    int makePendingTxMask() const;
+    int sendToIface(uint8_t iface_index, const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags);
+    int sendFromTxQueue(uint8_t iface_index);
+    uint8_t makePendingTxMask() const;
 
 public:
     CanIOManager(ICanDriver& driver, IAllocator& allocator, ISystemClock& sysclock)
@@ -168,9 +168,9 @@ public:
         }
     }
 
-    int getNumIfaces() const;
+    uint8_t getNumIfaces() const;
 
-    CanIfacePerfCounters getIfacePerfCounters(int iface_index) const;
+    CanIfacePerfCounters getIfacePerfCounters(uint8_t iface_index) const;
 
     /**
      * Returns:
@@ -179,7 +179,7 @@ public:
      *  negative - failure
      */
     int send(const CanFrame& frame, MonotonicTime tx_deadline, MonotonicTime blocking_deadline,
-             int iface_mask, CanTxQueue::Qos qos, CanIOFlags flags);
+             uint8_t iface_mask, CanTxQueue::Qos qos, CanIOFlags flags);
     int receive(CanRxFrame& out_frame, MonotonicTime blocking_deadline, CanIOFlags& out_flags);
 };
 

@@ -27,7 +27,7 @@ public:
 
     void addError() { errors_++; }
 
-    void addErrors(unsigned int errors)
+    void addErrors(unsigned errors)
     {
         errors_ += errors;
     }

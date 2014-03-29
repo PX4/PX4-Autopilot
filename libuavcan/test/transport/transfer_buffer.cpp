@@ -25,18 +25,18 @@ static bool allEqual(const T a)
 template <typename T>
 static void fill(const T a, int value)
 {
-    for (unsigned int i = 0; i < sizeof(a) / sizeof(a[0]); i++)
+    for (unsigned i = 0; i < sizeof(a) / sizeof(a[0]); i++)
     {
         a[i] = value;
     }
 }
 
 static bool matchAgainst(const std::string& data, const uavcan::ITransferBuffer& tbb,
-                         unsigned int offset = 0, int len = -1)
+                         unsigned offset = 0, int len = -1)
 {
     uint8_t local_buffer[1024];
     fill(local_buffer, 0);
-    assert((len < 0) || (sizeof(local_buffer) >= static_cast<unsigned int>(len)));
+    assert((len < 0) || (sizeof(local_buffer) >= static_cast<unsigned>(len)));
 
     if (len < 0)
     {
@@ -66,7 +66,7 @@ static bool matchAgainst(const std::string& data, const uavcan::ITransferBuffer&
     return equals;
 }
 
-static bool matchAgainstTestData(const uavcan::ITransferBuffer& tbb, unsigned int offset, int len = -1)
+static bool matchAgainstTestData(const uavcan::ITransferBuffer& tbb, unsigned offset, int len = -1)
 {
     return matchAgainst(TEST_DATA, tbb, offset, len);
 }
@@ -213,7 +213,7 @@ static const int MGR_MAX_BUFFER_SIZE = 100;
 
 TEST(TransferBufferManager, TestDataValidation)
 {
-    for (unsigned int i = 0; i < sizeof(MGR_TEST_DATA) / sizeof(MGR_TEST_DATA[0]); i++)
+    for (unsigned i = 0; i < sizeof(MGR_TEST_DATA) / sizeof(MGR_TEST_DATA[0]); i++)
     {
         ASSERT_LT(MGR_MAX_BUFFER_SIZE, MGR_TEST_DATA[i].length());
     }

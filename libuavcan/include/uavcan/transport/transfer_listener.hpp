@@ -31,7 +31,7 @@ class IncomingTransfer : public ITransferBuffer
     uint8_t iface_index_;
 
     /// That's a no-op, asserts in debug builds
-    int write(unsigned int offset, const uint8_t* data, unsigned int len);
+    int write(unsigned offset, const uint8_t* data, unsigned len);
 
 protected:
     IncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc, TransferType transfer_type,
@@ -67,7 +67,7 @@ class SingleFrameIncomingTransfer : public IncomingTransfer
     const uint8_t payload_len_;
 public:
     SingleFrameIncomingTransfer(const RxFrame& frm);
-    int read(unsigned int offset, uint8_t* data, unsigned int len) const;
+    int read(unsigned offset, uint8_t* data, unsigned len) const;
 };
 
 /**
@@ -79,7 +79,7 @@ class MultiFrameIncomingTransfer : public IncomingTransfer, Noncopyable
 public:
     MultiFrameIncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc, const RxFrame& last_frame,
                                TransferBufferAccessor& tba);
-    int read(unsigned int offset, uint8_t* data, unsigned int len) const;
+    int read(unsigned offset, uint8_t* data, unsigned len) const;
     void release() { buf_acc_.remove(); }
 };
 
@@ -117,7 +117,7 @@ public:
 /**
  * This class should be derived by transfer receivers (subscribers, servers).
  */
-template <unsigned int MaxBufSize, unsigned int NumStaticBufs, unsigned int NumStaticReceivers>
+template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
 class TransferListener : public TransferListenerBase
 {
     typedef TransferBufferManager<MaxBufSize, NumStaticBufs> BufferManager;
@@ -203,7 +203,7 @@ public:
 /**
  * This class should be derived by callers.
  */
-template <unsigned int MaxBufSize>
+template <unsigned MaxBufSize>
 class ServiceResponseTransferListener : public TransferListener<MaxBufSize, 1, 1>
 {
 public:

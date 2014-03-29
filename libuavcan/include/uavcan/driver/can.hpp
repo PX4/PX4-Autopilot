@@ -37,7 +37,7 @@ struct CanFrame
         std::fill(data, data + sizeof(data), 0);
     }
 
-    CanFrame(uint32_t id, const uint8_t* data, unsigned int dlc)
+    CanFrame(uint32_t id, const uint8_t* data, uint8_t dlc)
         : id(id)
         , dlc(dlc)
     {
@@ -113,7 +113,7 @@ public:
      * If the frame wasn't transmitted upon TX deadline, the driver should discard it.
      * @return 1 = one frame transmitted, 0 = TX buffer full, negative for error.
      */
-    virtual int send(const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags) = 0;
+    virtual int16_t send(const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags) = 0;
 
     /**
      * Non-blocking reception.
@@ -127,19 +127,19 @@ public:
      * @param [out] out_ts_utc       UTC timestamp, optional, zero if unknown.
      * @return 1 = one frame received, 0 = RX buffer empty, negative for error.
      */
-    virtual int receive(CanFrame& out_frame, MonotonicTime& out_ts_monotonic, UtcTime& out_ts_utc,
-                        CanIOFlags& out_flags) = 0;
+    virtual int16_t receive(CanFrame& out_frame, MonotonicTime& out_ts_monotonic, UtcTime& out_ts_utc,
+                            CanIOFlags& out_flags) = 0;
 
     /**
      * Configure the hardware CAN filters. @ref CanFilterConfig.
      * @return 0 = success, negative for error.
      */
-    virtual int configureFilters(const CanFilterConfig* filter_configs, int num_configs) = 0;
+    virtual int16_t configureFilters(const CanFilterConfig* filter_configs, uint16_t num_configs) = 0;
 
     /**
      * Number of available hardware filters.
      */
-    virtual int getNumFilters() const = 0;
+    virtual uint16_t getNumFilters() const = 0;
 
     /**
      * Continuously incrementing counter of hardware errors.
@@ -158,12 +158,12 @@ public:
     /**
      * Returns the interface by index, or null pointer if the index is out of range.
      */
-    virtual ICanIface* getIface(int iface_index) = 0;
+    virtual ICanIface* getIface(uint8_t iface_index) = 0;
 
     /**
      * Total number of available CAN interfaces.
      */
-    virtual int getNumIfaces() const = 0;
+    virtual uint8_t getNumIfaces() const = 0;
 
     /**
      * Block until the deadline, or one of the specified interfaces becomes available for read or write.
@@ -173,7 +173,7 @@ public:
      * @param [in]     blocking_deadline  Zero means non-blocking operation.
      * @return Positive number of ready interfaces or negative error code.
      */
-    virtual int select(CanSelectMasks& inout_masks, MonotonicTime blocking_deadline) = 0;
+    virtual int16_t select(CanSelectMasks& inout_masks, MonotonicTime blocking_deadline) = 0;
 };
 
 }

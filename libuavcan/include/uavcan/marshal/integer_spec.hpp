@@ -16,7 +16,7 @@ namespace uavcan
 
 enum Signedness { SignednessUnsigned, SignednessSigned };
 
-template <unsigned int BitLen_, Signedness Signedness, CastMode CastMode>
+template <unsigned BitLen_, Signedness Signedness, CastMode CastMode>
 class IntegerSpec
 {
     struct ErrorNoSuchInteger;
@@ -124,14 +124,14 @@ struct IsIntegerSpec
     enum { Result = 0 };
 };
 
-template <unsigned int BitLen, Signedness Signedness, CastMode CastMode>
+template <unsigned BitLen, Signedness Signedness, CastMode CastMode>
 struct IsIntegerSpec<IntegerSpec<BitLen, Signedness, CastMode> >
 {
     enum { Result = 1 };
 };
 
 
-template <unsigned int BitLen, Signedness Signedness, CastMode CastMode>
+template <unsigned BitLen, Signedness Signedness, CastMode CastMode>
 struct YamlStreamer<IntegerSpec<BitLen, Signedness, CastMode> >
 {
     typedef IntegerSpec<BitLen, Signedness, CastMode> RawType;
@@ -142,7 +142,7 @@ struct YamlStreamer<IntegerSpec<BitLen, Signedness, CastMode> >
     {
         // Get rid of character types - we want its integer representation, not ASCII code
         typedef typename Select<(sizeof(StorageType) >= sizeof(int)), StorageType,
-                                typename Select<RawType::IsSigned, int, unsigned int>::Result >::Result TempType;
+                                typename Select<RawType::IsSigned, int, unsigned>::Result >::Result TempType;
         s << TempType(value);
     }
 };

@@ -57,9 +57,9 @@ public:
     }
 
     int getMaxPayloadLen() const;
-    int setPayload(const uint8_t* data, int len);
+    int setPayload(const uint8_t* data, unsigned len);
 
-    int getPayloadLen() const { return payload_len_; }
+    unsigned getPayloadLen() const { return payload_len_; }
     const uint8_t* getPayloadPtr() const { return payload_; }
 
     TransferType getTransferType() const { return transfer_type_; }

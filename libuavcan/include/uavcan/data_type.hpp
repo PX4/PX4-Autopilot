@@ -86,7 +86,7 @@ public:
         }
     }
 
-    void add(const uint8_t* bytes, unsigned int len)
+    void add(const uint8_t* bytes, unsigned len)
     {
         assert(bytes);
         while (len--)

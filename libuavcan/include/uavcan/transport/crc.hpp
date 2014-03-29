@@ -40,7 +40,7 @@ public:
         value_ = ((value_ << 8) ^ Table[((value_ >> 8) ^ byte) & 0xFF]) & 0xFFFF;
     }
 
-    void add(const uint8_t* bytes, unsigned int len)
+    void add(const uint8_t* bytes, unsigned len)
     {
         assert(bytes);
         while (len--)

@@ -43,11 +43,11 @@ void DynamicTransferBufferManagerEntry::Block::destroy(Block*& obj, IAllocator& 
     }
 }
 
-void DynamicTransferBufferManagerEntry::Block::read(uint8_t*& outptr, unsigned int target_offset,
-                                                    unsigned int& total_offset, unsigned int& left_to_read)
+void DynamicTransferBufferManagerEntry::Block::read(uint8_t*& outptr, unsigned target_offset,
+                                                    unsigned& total_offset, unsigned& left_to_read)
 {
     assert(outptr);
-    for (int i = 0; (i < Block::Size) && (left_to_read > 0); i++, total_offset++)
+    for (unsigned i = 0; (i < Block::Size) && (left_to_read > 0); i++, total_offset++)
     {
         if (total_offset >= target_offset)
         {
@@ -57,11 +57,11 @@ void DynamicTransferBufferManagerEntry::Block::read(uint8_t*& outptr, unsigned i
     }
 }
 
-void DynamicTransferBufferManagerEntry::Block::write(const uint8_t*& inptr, unsigned int target_offset,
-                                                     unsigned int& total_offset, unsigned int& left_to_write)
+void DynamicTransferBufferManagerEntry::Block::write(const uint8_t*& inptr, unsigned target_offset,
+                                                     unsigned& total_offset, unsigned& left_to_write)
 {
     assert(inptr);
-    for (int i = 0; (i < Block::Size) && (left_to_write > 0); i++, total_offset++)
+    for (unsigned i = 0; (i < Block::Size) && (left_to_write > 0); i++, total_offset++)
     {
         if (total_offset >= target_offset)
         {
@@ -75,7 +75,7 @@ void DynamicTransferBufferManagerEntry::Block::write(const uint8_t*& inptr, unsi
  * DynamicTransferBuffer
  */
 DynamicTransferBufferManagerEntry* DynamicTransferBufferManagerEntry::instantiate(IAllocator& allocator,
-                                                                                  unsigned int max_size)
+                                                                                  unsigned max_size)
 {
     void* const praw = allocator.allocate(sizeof(DynamicTransferBufferManagerEntry));
     if (praw == NULL)
@@ -108,7 +108,7 @@ void DynamicTransferBufferManagerEntry::resetImpl()
     }
 }
 
-int DynamicTransferBufferManagerEntry::read(unsigned int offset, uint8_t* data, unsigned int len) const
+int DynamicTransferBufferManagerEntry::read(unsigned offset, uint8_t* data, unsigned len) const
 {
     if (!data)
     {
@@ -126,7 +126,8 @@ int DynamicTransferBufferManagerEntry::read(unsigned int offset, uint8_t* data, 
     assert((offset + len) <= max_write_pos_);
 
     // This shall be optimized.
-    unsigned int total_offset = 0, left_to_read = len;
+    unsigned total_offset = 0;
+    unsigned left_to_read = len;
     uint8_t* outptr = data;
     Block* p = blocks_.get();
     while (p)
@@ -143,7 +144,7 @@ int DynamicTransferBufferManagerEntry::read(unsigned int offset, uint8_t* data, 
     return len;
 }
 
-int DynamicTransferBufferManagerEntry::write(unsigned int offset, const uint8_t* data, unsigned int len)
+int DynamicTransferBufferManagerEntry::write(unsigned offset, const uint8_t* data, unsigned len)
 {
     if (!data)
     {
@@ -161,8 +162,8 @@ int DynamicTransferBufferManagerEntry::write(unsigned int offset, const uint8_t*
     }
     assert((offset + len) <= max_size_);
 
-    unsigned int total_offset = 0;
-    unsigned int left_to_write = len;
+    unsigned total_offset = 0;
+    unsigned left_to_write = len;
     const uint8_t* inptr = data;
     Block* p = blocks_.get();
     Block* last_written_block = NULL;

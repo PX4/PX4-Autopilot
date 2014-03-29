@@ -27,8 +27,8 @@ template <typename DataType_,
           typename Callback = void (*)(const ReceivedDataStructure<typename DataType_::Request>&,
                                        typename DataType_::Response&),
 #endif
-          unsigned int NumStaticReceivers = 2,
-          unsigned int NumStaticBufs = 1>
+          unsigned NumStaticReceivers = 2,
+          unsigned NumStaticBufs = 1>
 class ServiceServer : public GenericSubscriber<DataType_, typename DataType_::Request,
                                                typename TransferListenerInstantiationHelper<typename DataType_::Request,
                                                                                             NumStaticReceivers,

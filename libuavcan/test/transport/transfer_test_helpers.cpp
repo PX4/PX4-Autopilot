@@ -50,7 +50,7 @@ TEST(TransferTestHelpers, MFTSerialization)
     for (std::vector<uavcan::RxFrame>::const_iterator it = ser.begin(); it != ser.end(); ++it)
     {
         std::cout << "\t'";
-        for (int i = 0; i < it->getPayloadLen(); i++)
+        for (unsigned i = 0; i < it->getPayloadLen(); i++)
         {
             uint8_t ch = it->getPayloadPtr()[i];
             if (ch < 0x20 || ch > 0x7E)

@@ -212,9 +212,9 @@ bool CanTxQueue::topPriorityHigherOrEqual(const CanFrame& rhs_frame) const
 /*
  * CanIOManager
  */
-int CanIOManager::sendToIface(int iface_index, const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags)
+int CanIOManager::sendToIface(uint8_t iface_index, const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags)
 {
-    assert(iface_index >= 0 && iface_index < MaxCanIfaces);
+    assert(iface_index < MaxCanIfaces);
     ICanIface* const iface = driver_.getIface(iface_index);
     if (iface == NULL)
     {
@@ -234,9 +234,9 @@ int CanIOManager::sendToIface(int iface_index, const CanFrame& frame, MonotonicT
     return res;
 }
 
-int CanIOManager::sendFromTxQueue(int iface_index)
+int CanIOManager::sendFromTxQueue(uint8_t iface_index)
 {
-    assert(iface_index >= 0 && iface_index < MaxCanIfaces);
+    assert(iface_index < MaxCanIfaces);
     CanTxQueue::Entry* entry = tx_queues_[iface_index].peek();
     if (entry == NULL)
     {
@@ -250,10 +250,10 @@ int CanIOManager::sendFromTxQueue(int iface_index)
     return res;
 }
 
-int CanIOManager::makePendingTxMask() const
+uint8_t CanIOManager::makePendingTxMask() const
 {
-    int write_mask = 0;
-    for (int i = 0; i < getNumIfaces(); i++)
+    uint8_t write_mask = 0;
+    for (uint8_t i = 0; i < getNumIfaces(); i++)
     {
         if (!tx_queues_[i].isEmpty())
         {
@@ -263,17 +263,17 @@ int CanIOManager::makePendingTxMask() const
     return write_mask;
 }
 
-int CanIOManager::getNumIfaces() const
+uint8_t CanIOManager::getNumIfaces() const
 {
-    const int num = driver_.getNumIfaces();
+    const uint8_t num = driver_.getNumIfaces();
     assert(num > 0 && num <= MaxCanIfaces);
-    return std::min(std::max(num, 0), (int)MaxCanIfaces);
+    return std::min(std::max(num, uint8_t(0)), uint8_t(MaxCanIfaces));
 }
 
-CanIfacePerfCounters CanIOManager::getIfacePerfCounters(int iface_index) const
+CanIfacePerfCounters CanIOManager::getIfacePerfCounters(uint8_t iface_index) const
 {
     ICanIface* const iface = driver_.getIface(iface_index);
-    if (iface == NULL || iface_index >= MaxCanIfaces || iface_index < 0)
+    if (iface == NULL || iface_index >= MaxCanIfaces)
     {
         assert(0);
         return CanIfacePerfCounters();
@@ -286,10 +286,10 @@ CanIfacePerfCounters CanIOManager::getIfacePerfCounters(int iface_index) const
 }
 
 int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, MonotonicTime blocking_deadline,
-                       int iface_mask, CanTxQueue::Qos qos, CanIOFlags flags)
+                       uint8_t iface_mask, CanTxQueue::Qos qos, CanIOFlags flags)
 {
-    const int num_ifaces = getNumIfaces();
-    const int all_ifaces_mask = (1 << num_ifaces) - 1;
+    const uint8_t num_ifaces = getNumIfaces();
+    const uint8_t all_ifaces_mask = (1U << num_ifaces) - 1;
     iface_mask &= all_ifaces_mask;
 
     if (blocking_deadline > tx_deadline)
@@ -317,7 +317,7 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
         }
 
         // Transmission
-        for (int i = 0; i < num_ifaces; i++)
+        for (uint8_t i = 0; i < num_ifaces; i++)
         {
             if (masks.write & (1 << i))
             {
@@ -357,7 +357,7 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
                 UAVCAN_TRACE("CanIOManager", "Send: Premature timeout in select(), will try again");
                 continue;
             }
-            for (int i = 0; i < num_ifaces; i++)
+            for (uint8_t i = 0; i < num_ifaces; i++)
             {
                 if (iface_mask & (1 << i))
                 {
@@ -372,7 +372,7 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
 
 int CanIOManager::receive(CanRxFrame& out_frame, MonotonicTime blocking_deadline, CanIOFlags& out_flags)
 {
-    const int num_ifaces = getNumIfaces();
+    const uint8_t num_ifaces = getNumIfaces();
 
     while (true)
     {
@@ -388,7 +388,7 @@ int CanIOManager::receive(CanRxFrame& out_frame, MonotonicTime blocking_deadline
         }
 
         // Write - if buffers are not empty, one frame will be sent for each iface per one receive() call
-        for (int i = 0; i < num_ifaces; i++)
+        for (uint8_t i = 0; i < num_ifaces; i++)
         {
             if (masks.write & (1 << i))
             {
@@ -397,7 +397,7 @@ int CanIOManager::receive(CanRxFrame& out_frame, MonotonicTime blocking_deadline
         }
 
         // Read
-        for (int i = 0; i < num_ifaces; i++)
+        for (uint8_t i = 0; i < num_ifaces; i++)
         {
             if (masks.read & (1 << i))
             {

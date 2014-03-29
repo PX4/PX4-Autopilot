@@ -68,7 +68,7 @@ static Stream& operator<<(Stream& s, const ReceivedDataStructure<DataType>& rds)
 }
 
 
-template <typename DataStruct_, unsigned int NumStaticReceivers_, unsigned int NumStaticBufs_>
+template <typename DataStruct_, unsigned NumStaticReceivers_, unsigned NumStaticBufs_>
 class TransferListenerInstantiationHelper
 {
     enum { DataTypeMaxByteLen = BitLenToByteLen<DataStruct_::MaxBitLen>::Result };

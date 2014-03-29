@@ -162,7 +162,7 @@ TEST(TransferSender, Basic)
 struct TransferSenderTestLoopbackFrameListener : public uavcan::LoopbackFrameListenerBase
 {
     uavcan::RxFrame last_frame;
-    unsigned int count;
+    unsigned count;
 
     TransferSenderTestLoopbackFrameListener(uavcan::Dispatcher& dispatcher)
         : uavcan::LoopbackFrameListenerBase(dispatcher)

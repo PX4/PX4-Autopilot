@@ -109,8 +109,8 @@ public:
 
     void getDataTypeIDMask(DataTypeKind kind, DataTypeIDMask& mask) const;
 
-    unsigned int getNumMessageTypes() const { return msgs_.getLength(); }
-    unsigned int getNumServiceTypes() const { return srvs_.getLength(); }
+    unsigned getNumMessageTypes() const { return msgs_.getLength(); }
+    unsigned getNumServiceTypes() const { return srvs_.getLength(); }
 
 #if UAVCAN_DEBUG
     /// Required for unit testing

@@ -48,10 +48,10 @@ public:
     T* get() const { return root_; }
     bool isEmpty() const { return get() == NULL; }
 
-    unsigned int getLength() const
+    unsigned getLength() const
     {
         T* node = root_;
-        unsigned int cnt = 0;
+        unsigned cnt = 0;
         while (node)
         {
             cnt++;

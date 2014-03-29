@@ -27,8 +27,8 @@ namespace uavcan
 {
 
 template <std::size_t MemPoolSize_,
-          unsigned int OutgoingTransferRegistryStaticEntries = 10,
-          unsigned int OutgoingTransferMaxPayloadLen = MaxTransferPayloadLen>
+          unsigned OutgoingTransferRegistryStaticEntries = 10,
+          unsigned OutgoingTransferMaxPayloadLen = MaxTransferPayloadLen>
 class Node : public INode
 {
     enum

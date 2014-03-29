@@ -21,7 +21,7 @@ namespace uavcan
  *  Key's default constructor must initialize the object into invalid state.
  *  Size of Key + Value + padding must not exceed MemPoolBlockSize.
  */
-template <typename Key, typename Value, unsigned int NumStaticEntries>
+template <typename Key, typename Value, unsigned NumStaticEntries>
 class Map : Noncopyable
 {
     UAVCAN_PACKED_BEGIN
@@ -88,7 +88,7 @@ class Map : Noncopyable
 
     KVPair* find(const Key& key)
     {
-        for (unsigned int i = 0; i < NumStaticEntries; i++)
+        for (unsigned i = 0; i < NumStaticEntries; i++)
         {
             if (static_[i].match(key))
             {
@@ -115,7 +115,7 @@ class Map : Noncopyable
         {
             // Looking for first EMPTY static entry
             KVPair* stat = NULL;
-            for (unsigned int i = 0; i < NumStaticEntries; i++)
+            for (unsigned i = 0; i < NumStaticEntries; i++)
             {
                 if (static_[i].match(Key()))
                 {
@@ -252,9 +252,9 @@ public:
     template <typename Predicate>
     void removeWhere(Predicate predicate)
     {
-        unsigned int num_removed = 0;
+        unsigned num_removed = 0;
 
-        for (unsigned int i = 0; i < NumStaticEntries; i++)
+        for (unsigned i = 0; i < NumStaticEntries; i++)
         {
             if (!static_[i].match(Key()))
             {
@@ -294,7 +294,7 @@ public:
     template <typename Predicate>
     const Key* findFirstKey(Predicate predicate) const
     {
-        for (unsigned int i = 0; i < NumStaticEntries; i++)
+        for (unsigned i = 0; i < NumStaticEntries; i++)
         {
             if (!static_[i].match(Key()))
             {
@@ -332,10 +332,10 @@ public:
     bool isEmpty() const { return (getNumStaticPairs() == 0) && (getNumDynamicPairs() == 0); }
 
     /// For testing
-    unsigned int getNumStaticPairs() const
+    unsigned getNumStaticPairs() const
     {
-        unsigned int num = 0;
-        for (unsigned int i = 0; i < NumStaticEntries; i++)
+        unsigned num = 0;
+        for (unsigned i = 0; i < NumStaticEntries; i++)
         {
             if (!static_[i].match(Key()))
             {
@@ -346,9 +346,9 @@ public:
     }
 
     /// For testing
-    unsigned int getNumDynamicPairs() const
+    unsigned getNumDynamicPairs() const
     {
-        unsigned int num = 0;
+        unsigned num = 0;
         KVGroup* p = list_.get();
         while (p)
         {

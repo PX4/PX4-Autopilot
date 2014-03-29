@@ -83,7 +83,7 @@ TEST(Frame, FrameParsing)
     Frame frame;
     ASSERT_FALSE(frame.parse(can));
 
-    for (unsigned int i = 0; i < sizeof(CanFrame::data); i++)
+    for (unsigned i = 0; i < sizeof(CanFrame::data); i++)
     {
         can.data[i] = i | (i << 4);
     }
@@ -225,7 +225,7 @@ TEST(Frame, FrameToString)
                        uavcan::MonotonicTime::getMax(), uavcan::UtcTime::getMax(), 3);
 
     uint8_t data[8];
-    for (unsigned int i = 0; i < sizeof(data); i++)
+    for (unsigned i = 0; i < sizeof(data); i++)
     {
         data[i] = i;
     }

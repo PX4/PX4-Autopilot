@@ -14,7 +14,7 @@ static uavcan::RxFrame makeFrame()
         uavcan::Frame(123, uavcan::TransferTypeMessageBroadcast, 1, uavcan::NodeID::Broadcast, 0, 1, true),
         tsMono(123), tsUtc(456), 0);
     uint8_t data[8];
-    for (unsigned int i = 0; i < sizeof(data); i++)
+    for (unsigned i = 0; i < sizeof(data); i++)
     {
         data[i] = i;
     }
@@ -24,7 +24,7 @@ static uavcan::RxFrame makeFrame()
 
 
 static bool match(const uavcan::IncomingTransfer& it, const uavcan::RxFrame& frame,
-                  const uint8_t* payload, unsigned int payload_len)
+                  const uint8_t* payload, unsigned payload_len)
 {
     // Fields extracted from the frame struct
     EXPECT_EQ(it.getMonotonicTimestamp(), frame.getMonotonicTimestamp());
@@ -34,7 +34,7 @@ static bool match(const uavcan::IncomingTransfer& it, const uavcan::RxFrame& fra
     EXPECT_EQ(it.getTransferType(),       frame.getTransferType());
 
     // Payload comparison
-    static const unsigned int BUFLEN = 1024;
+    static const unsigned BUFLEN = 1024;
     uint8_t buf_reference[BUFLEN], buf_actual[BUFLEN];
 
     if (payload_len > BUFLEN)

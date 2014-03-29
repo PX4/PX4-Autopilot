@@ -49,7 +49,7 @@ public:
     void add(DeadlineHandler* mdh);
     void remove(DeadlineHandler* mdh);
     bool doesExist(const DeadlineHandler* mdh) const;
-    unsigned int getNumHandlers() const { return handlers_.getLength(); }
+    unsigned getNumHandlers() const { return handlers_.getLength(); }
 
     MonotonicTime pollAndGetMonotonicTime(ISystemClock& sysclock);
     MonotonicTime getEarliestDeadline() const;

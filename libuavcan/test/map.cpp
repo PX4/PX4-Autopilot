@@ -127,7 +127,7 @@ TEST(Map, Basic)
     ASSERT_EQ("D", *map->access("4"));
 
     // Adding some new dynamics
-    unsigned int max_key_integer = 0;
+    unsigned max_key_integer = 0;
     for (int i = 0; i < 100; i++)
     {
         const std::string key   = toString(i);
@@ -155,15 +155,15 @@ TEST(Map, Basic)
 
     // Removing odd values - nearly half of them
     ASSERT_EQ(2, map->getNumStaticPairs());
-    const unsigned int num_dynamics_old = map->getNumDynamicPairs();
+    const unsigned num_dynamics_old = map->getNumDynamicPairs();
     map->removeWhere(oddValuePredicate);
     ASSERT_EQ(2, map->getNumStaticPairs());
-    const unsigned int num_dynamics_new = map->getNumDynamicPairs();
+    const unsigned num_dynamics_new = map->getNumDynamicPairs();
     std::cout << "Num of dynamic pairs reduced from " << num_dynamics_old << " to " << num_dynamics_new << std::endl;
     ASSERT_LT(num_dynamics_new, num_dynamics_old);
 
     // Making sure there's no odd values left
-    for (unsigned int kv_int = 0; kv_int <= max_key_integer; kv_int++)
+    for (unsigned kv_int = 0; kv_int <= max_key_integer; kv_int++)
     {
         const std::string* val = map->access(toString(kv_int));
         if (val)

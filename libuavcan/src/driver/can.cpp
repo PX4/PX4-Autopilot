@@ -32,12 +32,12 @@ std::string CanFrame::toString(StringRepresentation mode) const
 
     if (id & FlagEFF)
     {
-        wpos += snprintf(wpos, epos - wpos, "0x%08x  ", (unsigned int)(id & MaskExtID));
+        wpos += snprintf(wpos, epos - wpos, "0x%08x  ", unsigned(id & MaskExtID));
     }
     else
     {
         const char* const fmt = (mode == StrAligned) ? "     0x%03x  " : "0x%03x  ";
-        wpos += snprintf(wpos, epos - wpos, fmt, (unsigned int)(id & MaskStdID));
+        wpos += snprintf(wpos, epos - wpos, fmt, unsigned(id & MaskStdID));
     }
 
     if (id & FlagRTR)
@@ -53,7 +53,7 @@ std::string CanFrame::toString(StringRepresentation mode) const
     {
         for (int dlen = 0; dlen < dlc; dlen++)                                 // hex bytes
         {
-            wpos += snprintf(wpos, epos - wpos, " %02x", (unsigned int)data[dlen]);
+            wpos += snprintf(wpos, epos - wpos, " %02x", unsigned(data[dlen]));
         }
 
         while (mode == StrAligned && wpos < buf + ASCII_COLUMN_OFFSET)        // alignment

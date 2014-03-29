@@ -25,8 +25,8 @@ class ITransferBuffer
 public:
     virtual ~ITransferBuffer() { }
 
-    virtual int read(unsigned int offset, uint8_t* data, unsigned int len) const = 0;
-    virtual int write(unsigned int offset, const uint8_t* data, unsigned int len) = 0;
+    virtual int read(unsigned offset, uint8_t* data, unsigned len) const = 0;
+    virtual int write(unsigned offset, const uint8_t* data, unsigned len) = 0;
 };
 
 /**
@@ -108,21 +108,21 @@ class DynamicTransferBufferManagerEntry
         static Block* instantiate(IAllocator& allocator);
         static void destroy(Block*& obj, IAllocator& allocator);
 
-        void read(uint8_t*& outptr, unsigned int target_offset,
-                  unsigned int& total_offset, unsigned int& left_to_read);
-        void write(const uint8_t*& inptr, unsigned int target_offset,
-                   unsigned int& total_offset, unsigned int& left_to_write);
+        void read(uint8_t*& outptr, unsigned target_offset,
+                  unsigned& total_offset, unsigned& left_to_read);
+        void write(const uint8_t*& inptr, unsigned target_offset,
+                   unsigned& total_offset, unsigned& left_to_write);
     };
 
     IAllocator& allocator_;
     LinkedListRoot<Block> blocks_;    // Blocks are ordered from lower to higher buffer offset
-    unsigned int max_write_pos_;
-    const unsigned int max_size_;
+    unsigned max_write_pos_;
+    const unsigned max_size_;
 
     void resetImpl();
 
 public:
-    DynamicTransferBufferManagerEntry(IAllocator& allocator, unsigned int max_size)
+    DynamicTransferBufferManagerEntry(IAllocator& allocator, unsigned max_size)
         : allocator_(allocator)
         , max_write_pos_(0)
         , max_size_(max_size)
@@ -137,22 +137,22 @@ public:
         resetImpl();
     }
 
-    static DynamicTransferBufferManagerEntry* instantiate(IAllocator& allocator, unsigned int max_size);
+    static DynamicTransferBufferManagerEntry* instantiate(IAllocator& allocator, unsigned max_size);
     static void destroy(DynamicTransferBufferManagerEntry*& obj, IAllocator& allocator);
 
-    int read(unsigned int offset, uint8_t* data, unsigned int len) const;
-    int write(unsigned int offset, const uint8_t* data, unsigned int len);
+    int read(unsigned offset, uint8_t* data, unsigned len) const;
+    int write(unsigned offset, const uint8_t* data, unsigned len);
 };
 UAVCAN_PACKED_END
 
 /**
  * Standalone static buffer
  */
-template <unsigned int Size>
+template <unsigned Size>
 class StaticTransferBuffer : public ITransferBuffer
 {
     uint8_t data_[Size];
-    unsigned int max_write_pos_;
+    unsigned max_write_pos_;
 
 public:
     StaticTransferBuffer()
@@ -162,7 +162,7 @@ public:
         std::fill(data_, data_ + Size, 0);
     }
 
-    int read(unsigned int offset, uint8_t* data, unsigned int len) const
+    int read(unsigned offset, uint8_t* data, unsigned len) const
     {
         if (!data)
         {
@@ -182,7 +182,7 @@ public:
         return len;
     }
 
-    int write(unsigned int offset, const uint8_t* data, unsigned int len)
+    int write(unsigned offset, const uint8_t* data, unsigned len)
     {
         if (!data)
         {
@@ -214,14 +214,14 @@ public:
     uint8_t* getRawPtr() { return data_; }
     const uint8_t* getRawPtr() const { return data_; }
 
-    unsigned int getMaxWritePos() const { return max_write_pos_; }
-    void setMaxWritePos(unsigned int value) { max_write_pos_ = value; }
+    unsigned getMaxWritePos() const { return max_write_pos_; }
+    void setMaxWritePos(unsigned value) { max_write_pos_ = value; }
 };
 
 /**
  * Statically allocated storage for buffer manager
  */
-template <unsigned int Size>
+template <unsigned Size>
 class StaticTransferBufferManagerEntry : public TransferBufferManagerEntry
 {
     StaticTransferBuffer<Size> buf_;
@@ -232,12 +232,12 @@ class StaticTransferBufferManagerEntry : public TransferBufferManagerEntry
     }
 
 public:
-    int read(unsigned int offset, uint8_t* data, unsigned int len) const
+    int read(unsigned offset, uint8_t* data, unsigned len) const
     {
         return buf_.read(offset, data, len);
     }
 
-    int write(unsigned int offset, const uint8_t* data, unsigned int len)
+    int write(unsigned offset, const uint8_t* data, unsigned len)
     {
         return buf_.write(offset, data, len);
     }
@@ -310,7 +310,7 @@ public:
 /**
  * Buffer manager implementation.
  */
-template <unsigned int MaxBufSize, unsigned int NumStaticBufs>
+template <unsigned MaxBufSize, unsigned NumStaticBufs>
 class TransferBufferManager : public ITransferBufferManager, Noncopyable
 {
     typedef StaticTransferBufferManagerEntry<MaxBufSize> StaticBufferType;
@@ -321,7 +321,7 @@ class TransferBufferManager : public ITransferBufferManager, Noncopyable
 
     StaticBufferType* findFirstStatic(const TransferBufferManagerKey& key)
     {
-        for (unsigned int i = 0; i < NumStaticBufs; i++)
+        for (unsigned i = 0; i < NumStaticBufs; i++)
         {
             if (static_buffers_[i].getKey() == key)
             {
@@ -476,12 +476,12 @@ public:
 
     bool isEmpty() const { return (getNumStaticBuffers() == 0) && (getNumDynamicBuffers() == 0); }
 
-    unsigned int getNumDynamicBuffers() const { return dynamic_buffers_.getLength(); }
+    unsigned getNumDynamicBuffers() const { return dynamic_buffers_.getLength(); }
 
-    unsigned int getNumStaticBuffers() const
+    unsigned getNumStaticBuffers() const
     {
-        unsigned int res = 0;
-        for (unsigned int i = 0; i < NumStaticBufs; i++)
+        unsigned res = 0;
+        for (unsigned i = 0; i < NumStaticBufs; i++)
         {
             if (!static_buffers_[i].isEmpty())
             {

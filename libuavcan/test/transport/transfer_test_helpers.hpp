@@ -33,7 +33,7 @@ struct Transfer
         , dst_node_id() // default is invalid
         , data_type(data_type)
     {
-        unsigned int offset = 0;
+        unsigned offset = 0;
         while (true)
         {
             uint8_t buf[256];
@@ -111,7 +111,7 @@ struct Transfer
  * In reality, uavcan::TransferListener should accept only specific transfer types
  * which are dispatched/filtered by uavcan::Dispatcher.
  */
-template <unsigned int MAX_BUF_SIZE, unsigned int NUM_STATIC_BUFS, unsigned int NUM_STATIC_RECEIVERS>
+template <unsigned MAX_BUF_SIZE, unsigned NUM_STATIC_BUFS, unsigned NUM_STATIC_RECEIVERS>
 class TestListener : public uavcan::TransferListener<MAX_BUF_SIZE, NUM_STATIC_BUFS, NUM_STATIC_RECEIVERS>
 {
     typedef uavcan::TransferListener<MAX_BUF_SIZE, NUM_STATIC_BUFS, NUM_STATIC_RECEIVERS> Base;
@@ -194,8 +194,8 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
     raw_payload.insert(raw_payload.end(), transfer.payload.begin(), transfer.payload.end());
 
     std::vector<uavcan::RxFrame> output;
-    unsigned int frame_index = 0;
-    unsigned int offset = 0;
+    unsigned frame_index = 0;
+    unsigned offset = 0;
     uavcan::MonotonicTime ts_monotonic = transfer.ts_monotonic;
     uavcan::UtcTime ts_utc = transfer.ts_utc;
 
@@ -274,7 +274,7 @@ public:
 
     void send(const std::vector<std::vector<uavcan::RxFrame> >& sers)
     {
-        unsigned int index = 0;
+        unsigned index = 0;
         while (true)
         {
             // Sending all transfers concurrently
@@ -297,7 +297,7 @@ public:
         }
     }
 
-    void send(const Transfer* transfers, unsigned int num_transfers)
+    void send(const Transfer* transfers, unsigned num_transfers)
     {
         std::vector<std::vector<uavcan::RxFrame> > sers;
         while (num_transfers--)

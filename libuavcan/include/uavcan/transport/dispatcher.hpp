@@ -48,7 +48,7 @@ public:
     void add(LoopbackFrameListenerBase* listener);
     void remove(LoopbackFrameListenerBase* listener);
     bool doesExist(const LoopbackFrameListenerBase* listener) const;
-    unsigned int getNumListeners() const { return listeners_.getLength(); }
+    unsigned getNumListeners() const { return listeners_.getLength(); }
 
     void invokeListeners(RxFrame& frame);
 };

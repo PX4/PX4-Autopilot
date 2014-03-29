@@ -33,14 +33,16 @@ int Frame::getMaxPayloadLen() const
     }
 }
 
-int Frame::setPayload(const uint8_t* data, int len)
+int Frame::setPayload(const uint8_t* data, unsigned len)
 {
-    len = std::min(getMaxPayloadLen(), len);
-    if (len >= 0)
+    const int maxlen = getMaxPayloadLen();
+    if (maxlen < 0)
     {
-        std::copy(data, data + len, payload_);
-        payload_len_ = len;
+        return maxlen;
     }
+    len = std::min(unsigned(maxlen), len);
+    std::copy(data, data + len, payload_);
+    payload_len_ = len;
     return len;
 }
 

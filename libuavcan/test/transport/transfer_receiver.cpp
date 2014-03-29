@@ -45,7 +45,7 @@ struct RxFrameGenerator
 const uavcan::TransferBufferManagerKey RxFrameGenerator::DEFAULT_KEY(42, uavcan::TransferTypeMessageBroadcast);
 
 
-template <unsigned int BUFSIZE>
+template <unsigned BUFSIZE>
 struct Context
 {
     uavcan::PoolManager<1> poolmgr;        // We don't need dynamic memory for this test

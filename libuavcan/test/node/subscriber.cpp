@@ -137,7 +137,7 @@ TEST(Subscriber, Basic)
 
     ASSERT_EQ(2, node.getDispatcher().getNumMessageListeners());
 
-    for (unsigned int i = 0; i < rx_frames.size(); i++)
+    for (unsigned i = 0; i < rx_frames.size(); i++)
     {
         can_driver.ifaces[0].pushRx(rx_frames[i]);
         can_driver.ifaces[1].pushRx(rx_frames[i]);
@@ -149,7 +149,7 @@ TEST(Subscriber, Basic)
      * Validation
      */
     ASSERT_EQ(listener.extended.size(), rx_frames.size());
-    for (unsigned int i = 0; i < rx_frames.size(); i++)
+    for (unsigned i = 0; i < rx_frames.size(); i++)
     {
         const Listener::ReceivedDataStructureCopy s = listener.extended.at(i);
         ASSERT_TRUE(s.msg == expected_msg);
@@ -161,7 +161,7 @@ TEST(Subscriber, Basic)
     }
 
     ASSERT_EQ(listener.simple.size(), rx_frames.size());
-    for (unsigned int i = 0; i < rx_frames.size(); i++)
+    for (unsigned i = 0; i < rx_frames.size(); i++)
     {
         ASSERT_TRUE(listener.simple.at(i) == expected_msg);
     }
@@ -268,7 +268,7 @@ TEST(Subscriber, SingleFrameTransfer)
     ASSERT_EQ(0, sub.getFailureCount());
 
     ASSERT_EQ(4, listener.simple.size());
-    for (unsigned int i = 0; i < 4; i++)
+    for (unsigned i = 0; i < 4; i++)
     {
         ASSERT_TRUE(listener.simple.at(i) == root_ns_a::EmptyMessage());
     }
