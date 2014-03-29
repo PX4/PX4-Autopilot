@@ -832,18 +832,18 @@ FixedwingAttitudeControl::task_main()
 				_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
 			}
 
-			if (_actuators_1_pub > 0) {
-				/* publish the attitude setpoint */
-				orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_airframe);
-//				warnx("%.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f",
-//						(double)_actuators_airframe.control[0], (double)_actuators_airframe.control[1], (double)_actuators_airframe.control[2],
-//						(double)_actuators_airframe.control[3], (double)_actuators_airframe.control[4], (double)_actuators_airframe.control[5],
-//						(double)_actuators_airframe.control[6], (double)_actuators_airframe.control[7]);
-
-			} else {
-				/* advertise and publish */
-				_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_airframe);
-			}
+//			if (_actuators_1_pub > 0) {
+//				/* publish the attitude setpoint */
+//				orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_airframe);
+////				warnx("%.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f",
+////						(double)_actuators_airframe.control[0], (double)_actuators_airframe.control[1], (double)_actuators_airframe.control[2],
+////						(double)_actuators_airframe.control[3], (double)_actuators_airframe.control[4], (double)_actuators_airframe.control[5],
+////						(double)_actuators_airframe.control[6], (double)_actuators_airframe.control[7]);
+//
+//			} else {
+//				/* advertise and publish */
+//				_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_airframe);
+//			}
 
 		}
 
