@@ -2,6 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#pragma once
+
 #include <cassert>
 #include <ctime>
 #include <sys/time.h>
