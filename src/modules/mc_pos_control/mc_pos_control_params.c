@@ -200,6 +200,25 @@ PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 1.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_LAND_TILT, 0.3f);
+
+/**
+ * Follow mode feed-forward
+ *
+ * Target velocity feed-forward in follow mode.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group Multicopter Position Control
+ */
 PARAM_DEFINE_FLOAT(MPC_FOLLOW_FF, 0.0f);
+
+/**
+ * Follow mode min distance
+ *
+ * Minimum allowed distance between target and copter.
+ *
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
 PARAM_DEFINE_FLOAT(MPC_FOLLOW_DIST, 10.0f);
 PARAM_DEFINE_FLOAT(MPC_FOLLOW_AOFF, 0.0f);
