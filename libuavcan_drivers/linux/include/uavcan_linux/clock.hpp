@@ -63,7 +63,7 @@ public:
         , gradual_adj_cnt_(0)
     { }
 
-    uavcan::MonotonicTime getMonotonic() const
+    virtual uavcan::MonotonicTime getMonotonic() const
     {
         struct timespec ts;
         if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
@@ -73,7 +73,7 @@ public:
         return uavcan::MonotonicTime::fromUSec(uint64_t(ts.tv_sec) * 1000000UL + ts.tv_nsec / 1000UL);
     }
 
-    uavcan::UtcTime getUtc() const
+    virtual uavcan::UtcTime getUtc() const
     {
         timeval tv;
         if (gettimeofday(&tv, NULL) != 0)
@@ -88,7 +88,7 @@ public:
         return utc;
     }
 
-    void adjustUtc(uavcan::UtcDuration adjustment)
+    virtual void adjustUtc(uavcan::UtcDuration adjustment)
     {
         if (adj_mode_ == ClockAdjustmentMode::PerDriverPrivate)
         {
