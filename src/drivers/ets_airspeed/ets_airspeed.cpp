@@ -176,11 +176,14 @@ ETSAirspeed::collect()
 		_max_differential_pressure_pa = diff_pres_pa;
 	}
 
-	// XXX we may want to smooth out the readings to remove noise.
 	differential_pressure_s report;
 	report.timestamp = hrt_absolute_time();
         report.error_count = perf_event_count(_comms_errors);
 	report.differential_pressure_pa = (float)diff_pres_pa;
+
+	// XXX we may want to smooth out the readings to remove noise.
+	report.differential_pressure_filtered_pa = (float)diff_pres_pa;
+	report.temperature = -1000.0f;
 	report.voltage = 0;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 

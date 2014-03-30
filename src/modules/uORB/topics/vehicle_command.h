@@ -97,14 +97,13 @@ enum VEHICLE_CMD
  * Should contain all of MAVLink's VEHICLE_CMD_RESULT values
  * but can contain additional ones.
  */
-enum VEHICLE_CMD_RESULT
-{
-	VEHICLE_CMD_RESULT_ACCEPTED=0, /* Command ACCEPTED and EXECUTED | */
-	VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED=1, /* Command TEMPORARY REJECTED/DENIED | */
-	VEHICLE_CMD_RESULT_DENIED=2, /* Command PERMANENTLY DENIED | */
-	VEHICLE_CMD_RESULT_UNSUPPORTED=3, /* Command UNKNOWN/UNSUPPORTED | */
-	VEHICLE_CMD_RESULT_FAILED=4, /* Command executed, but failed | */
-	VEHICLE_CMD_RESULT_ENUM_END=5, /*  | */
+enum VEHICLE_CMD_RESULT {
+	VEHICLE_CMD_RESULT_ACCEPTED = 0, /* Command ACCEPTED and EXECUTED | */
+	VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED = 1, /* Command TEMPORARY REJECTED/DENIED | */
+	VEHICLE_CMD_RESULT_DENIED = 2, /* Command PERMANENTLY DENIED | */
+	VEHICLE_CMD_RESULT_UNSUPPORTED = 3, /* Command UNKNOWN/UNSUPPORTED | */
+	VEHICLE_CMD_RESULT_FAILED = 4, /* Command executed, but failed | */
+	VEHICLE_CMD_RESULT_ENUM_END = 5, /*  | */
 };
 
 /**
@@ -112,8 +111,7 @@ enum VEHICLE_CMD_RESULT
  * @{
  */
 
-struct vehicle_command_s
-{
+struct vehicle_command_s {
 	float param1;			/**< Parameter 1, as defined by MAVLink VEHICLE_CMD enum.   */
 	float param2;			/**< Parameter 2, as defined by MAVLink VEHICLE_CMD enum.   */
 	float param3;			/**< Parameter 3, as defined by MAVLink VEHICLE_CMD enum.   */
