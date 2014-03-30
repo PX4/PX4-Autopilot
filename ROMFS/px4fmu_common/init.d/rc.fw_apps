@@ -13,3 +13,7 @@ fw_att_pos_estimator start
 #
 fw_att_control start
 fw_pos_control_l1 start
+
+bottle_drop start
+fmu mode_pwm
+mixer load /dev/px4fmu /etc/mixers/FMU_pass.mix
