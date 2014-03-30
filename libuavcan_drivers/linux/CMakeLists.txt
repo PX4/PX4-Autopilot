@@ -16,8 +16,10 @@ install(DIRECTORY include/uavcan_linux DESTINATION include)
 #
 find_library(UAVCAN_LIB uavcan REQUIRED)
 include_directories(include)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -pedantic -std=c++0x -g3 -O1")  # GCC or Clang
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -pedantic -std=c++0x -g3")  # GCC or Clang
 
 add_executable(test_clock test/test_clock.cpp)
-target_link_libraries(test_clock ${UAVCAN_LIB})
-target_link_libraries(test_clock rt)
+target_link_libraries(test_clock ${UAVCAN_LIB} rt)
+
+add_executable(test_socket test/test_socket.cpp)
+target_link_libraries(test_socket ${UAVCAN_LIB} rt)
