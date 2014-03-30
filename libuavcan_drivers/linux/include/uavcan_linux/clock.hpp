@@ -29,12 +29,13 @@ class SystemClockDriver : public uavcan::ISystemClock
     std::uint64_t step_adj_cnt_;
     std::uint64_t gradual_adj_cnt_;
 
-    static constexpr int64_t Int1e6 = 1000000;
+    static constexpr std::int64_t Int1e6   = 1000000;
+    static constexpr std::uint64_t UInt1e6 = 1000000;
 
     bool performStepAdjustment(const uavcan::UtcDuration adjustment)
     {
         step_adj_cnt_++;
-        const int64_t usec = adjustment.toUSec();
+        const std::int64_t usec = adjustment.toUSec();
         timeval tv;
         if (gettimeofday(&tv, NULL) != 0)
         {
@@ -48,7 +49,7 @@ class SystemClockDriver : public uavcan::ISystemClock
     bool performGradualAdjustment(const uavcan::UtcDuration adjustment)
     {
         gradual_adj_cnt_++;
-        const int64_t usec = adjustment.toUSec();
+        const std::int64_t usec = adjustment.toUSec();
         timeval tv;
         tv.tv_sec  = usec / Int1e6;
         tv.tv_usec = usec % Int1e6;
@@ -70,7 +71,7 @@ public:
         {
             throw Exception("Failed to get monotonic time");
         }
-        return uavcan::MonotonicTime::fromUSec(uint64_t(ts.tv_sec) * 1000000UL + ts.tv_nsec / 1000UL);
+        return uavcan::MonotonicTime::fromUSec(std::uint64_t(ts.tv_sec) * UInt1e6 + ts.tv_nsec / 1000);
     }
 
     virtual uavcan::UtcTime getUtc() const
@@ -80,7 +81,7 @@ public:
         {
             throw Exception("Failed to get UTC time");
         }
-        uavcan::UtcTime utc = uavcan::UtcTime::fromUSec(uint64_t(tv.tv_sec) * 1000000UL + tv.tv_usec);
+        uavcan::UtcTime utc = uavcan::UtcTime::fromUSec(std::uint64_t(tv.tv_sec) * UInt1e6 + tv.tv_usec);
         if (adj_mode_ == ClockAdjustmentMode::PerDriverPrivate)
         {
             utc += private_adj_;
