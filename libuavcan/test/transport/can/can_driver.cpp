@@ -21,6 +21,63 @@ TEST(CanFrame, FrameProperties)
     EXPECT_TRUE(frame.isErrorFrame());
 }
 
+TEST(CanFrame, Arbitration)
+{
+    using uavcan::CanFrame;
+
+    CanFrame a;
+    CanFrame b;
+
+    /*
+     * Simple
+     */
+    a.id = 123;
+    b.id = 122;
+    ASSERT_TRUE(a.priorityLowerThan(b));
+    ASSERT_TRUE(b.priorityHigherThan(a));
+
+    a.id = 123 | CanFrame::FlagEFF;
+    b.id = 122 | CanFrame::FlagEFF;
+    ASSERT_TRUE(a.priorityLowerThan(b));
+    ASSERT_TRUE(b.priorityHigherThan(a));
+
+    a.id = 8;
+    b.id = 8;
+    ASSERT_FALSE(a.priorityLowerThan(b));
+    ASSERT_FALSE(b.priorityHigherThan(a));
+
+    /*
+     * EXT vs STD
+     */
+    a.id = 1000;                      // 1000
+    b.id = 2000 | CanFrame::FlagEFF;  // 2000 >> 18, wins
+    ASSERT_TRUE(a.priorityLowerThan(b));
+    ASSERT_TRUE(b.priorityHigherThan(a));
+
+    a.id = 0x400;
+    b.id = 0x10000000 | CanFrame::FlagEFF; // (0x400 << 18), 11 most significant bits are the same --> EFF loses
+    ASSERT_TRUE(a.priorityHigherThan(b));
+    ASSERT_TRUE(b.priorityLowerThan(a));
+
+    /*
+     * RTR vs Data
+     */
+    a.id = 123 | CanFrame::FlagRTR;      // On the same ID, RTR loses
+    b.id = 123;
+    ASSERT_TRUE(a.priorityLowerThan(b));
+    ASSERT_TRUE(b.priorityHigherThan(a));
+
+    a.id = CanFrame::MaskStdID | CanFrame::FlagRTR;  // RTR is STD, so it wins
+    b.id = CanFrame::MaskExtID | CanFrame::FlagEFF;  // Lowest possible priority for data frame
+    ASSERT_TRUE(a.priorityHigherThan(b));
+    ASSERT_TRUE(b.priorityLowerThan(a));
+
+    a.id = 123 | CanFrame::FlagRTR;      // Both RTR arbitrate as usually
+    b.id = 122 | CanFrame::FlagRTR;
+    ASSERT_TRUE(a.priorityLowerThan(b));
+    ASSERT_TRUE(b.priorityHigherThan(a));
+}
+
 TEST(CanFrame, ToString)
 {
     uavcan::CanFrame frame = makeCanFrame(123, "\x01\x02\x03\x04" "1234", EXT);

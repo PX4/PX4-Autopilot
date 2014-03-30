@@ -61,16 +61,13 @@ struct CanFrame
     enum StringRepresentation { StrTight, StrAligned };
     std::string toString(StringRepresentation mode = StrTight) const;
 
-    // TODO: priority comparison for EXT vs STD frames
-    bool priorityHigherThan(const CanFrame& rhs) const
-    {
-        return (id & CanFrame::MaskExtID) < (rhs.id & CanFrame::MaskExtID);
-    }
-
-    bool priorityLowerThan(const CanFrame& rhs) const
-    {
-        return (id & CanFrame::MaskExtID) > (rhs.id & CanFrame::MaskExtID);
-    }
+    /**
+     * CAN frames arbitration rules, particularly STD vs EXT:
+     *     Marco Di Natale - "Understanding and using the Controller Area Network"
+     *     http://www6.in.tum.de/pub/Main/TeachingWs2013MSE/CANbus.pdf
+     */
+    bool priorityHigherThan(const CanFrame& rhs) const;
+    bool priorityLowerThan(const CanFrame& rhs) const { return rhs.priorityHigherThan(*this); }
 };
 UAVCAN_PACKED_END
 
