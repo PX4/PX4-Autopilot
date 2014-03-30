@@ -243,21 +243,21 @@ BottleDrop::task_main()
 				_doors_opened = hrt_absolute_time();
 			}
 		} else {
-			_actuators.control[0] = 0.5f;
-			_actuators.control[1] = -0.5f;
+			_actuators.control[0] = 1.0f;
+			_actuators.control[1] = -1.0f;
 
 			_doors_opened = 0;
 		}
 
 		/* update drop actuator, wait 0.5s until the doors are open before dropping */
 		if (_drop && _doors_opened != 0 && hrt_elapsed_time(&_doors_opened) > 500000) {
-			_actuators.control[2] = 0.5f;
-		} else {
 			_actuators.control[2] = -0.5f;
+		} else {
+			_actuators.control[2] = 0.5f;
 		}
 
-		/* 2s after drop, reset and close everything again */
-		if (_drop && _doors_opened != 0 && hrt_elapsed_time(&_doors_opened) > 2000000) {
+		/* 20s after drop, reset and close everything again */
+		if (_drop && _doors_opened != 0 && hrt_elapsed_time(&_doors_opened) > 20000000) {
 			_open_door = false;
 			_drop = false;
 		}
