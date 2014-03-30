@@ -18,6 +18,6 @@ find_library(UAVCAN_LIB uavcan REQUIRED)
 include_directories(include)
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -pedantic -std=c++0x -g3 -O1")  # GCC or Clang
 
-add_executable(log_subscriber test/log_subscriber.cpp)
-target_link_libraries(log_subscriber ${UAVCAN_LIB})
-target_link_libraries(log_subscriber rt)
+add_executable(test_clock test/test_clock.cpp)
+target_link_libraries(test_clock ${UAVCAN_LIB})
+target_link_libraries(test_clock rt)
