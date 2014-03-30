@@ -1,0 +1,38 @@
+#!/bin/sh
+#
+# Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
+#
+
+HELP="Initializes and brings up a virtual CAN interface.
+Usage:
+    `basename $0` <iface-index>
+Example:
+    `basename $0` 0"
+
+function die() { echo $@ >&2; exit 1; }
+
+if [ "$1" == '--help' ] || [ "$1" == '-h' ]; then echo "$HELP"; exit; fi
+[ -n "$1" ] || die "Invalid usage. Use --help to get help."
+[ "$(id -u)" == "0" ] || die "Must be root"
+
+# ---------------------------------------------------------
+
+IFACE="vcan$1"
+
+if [ $(ifconfig -a | grep -c "^$IFACE") -eq "1" ]; then
+    ifconfig $IFACE up
+    exit
+fi
+
+modprobe can
+modprobe can_raw
+modprobe can_bcm
+modprobe vcan
+
+ip link add dev $IFACE type vcan
+ip link set up $IFACE
+ip link show $IFACE
+
+ifconfig $IFACE up || exit 1
+
+echo "New iface $IFACE added successfully. To delete: ip link delete $IFACE"
