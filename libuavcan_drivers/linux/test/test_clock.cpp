@@ -19,7 +19,7 @@ int main()
     std::cout << "Enter system time adjustment in seconds (fractions allowed): " << std::endl;
     std::cin >> sec;
 
-    uavcan_linux::SystemClockDriver clock;
+    uavcan_linux::SystemClock clock;
 
     const auto before = std::chrono::system_clock::now();
     try

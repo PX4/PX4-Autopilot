@@ -21,7 +21,7 @@ enum class ClockAdjustmentMode
 };
 
 
-class SystemClockDriver : public uavcan::ISystemClock
+class SystemClock : public uavcan::ISystemClock
 {
     uavcan::UtcDuration private_adj_;
     uavcan::UtcDuration gradual_adj_limit_;
@@ -57,7 +57,7 @@ class SystemClockDriver : public uavcan::ISystemClock
     }
 
 public:
-    SystemClockDriver(ClockAdjustmentMode adj_mode = ClockAdjustmentMode::SystemWide)
+    SystemClock(ClockAdjustmentMode adj_mode = ClockAdjustmentMode::SystemWide)
         : gradual_adj_limit_(uavcan::UtcDuration::fromMSec(4000))
         , adj_mode_(adj_mode)
         , step_adj_cnt_(0)
