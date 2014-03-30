@@ -15,6 +15,7 @@ const uint32_t CanFrame::MaskExtID;
 const uint32_t CanFrame::FlagEFF;
 const uint32_t CanFrame::FlagRTR;
 const uint32_t CanFrame::FlagERR;
+const uint8_t CanFrame::MaxDataLen;
 
 
 std::string CanFrame::toString(StringRepresentation mode) const

@@ -26,22 +26,25 @@ struct CanFrame
     static const uint32_t FlagRTR = 1 << 30;                  ///< Remote transmission request
     static const uint32_t FlagERR = 1 << 29;                  ///< Error frame
 
-    uint32_t id;        ///< CAN ID with flags (above)
-    uint8_t data[8];
-    uint8_t dlc;        ///< Data Length Code
+    static const uint8_t MaxDataLen = 8;
+
+    uint32_t id;                ///< CAN ID with flags (above)
+    uint8_t data[MaxDataLen];
+    uint8_t dlc;                ///< Data Length Code
 
     CanFrame()
         : id(0)
         , dlc(0)
     {
-        std::fill(data, data + sizeof(data), 0);
+        std::fill(data, data + MaxDataLen, 0);
     }
 
-    CanFrame(uint32_t id, const uint8_t* data, uint8_t dlc)
+    CanFrame(uint32_t id, const uint8_t* data, uint8_t data_len)
         : id(id)
-        , dlc(dlc)
+        , dlc((data_len > MaxDataLen) ? MaxDataLen : data_len)
     {
-        assert(data && dlc <= 8);
+        assert(data != NULL);
+        assert(data_len == dlc);
         std::copy(data, data + dlc, this->data);
     }
 
