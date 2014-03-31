@@ -263,6 +263,19 @@ uint8_t CanIOManager::makePendingTxMask() const
     return write_mask;
 }
 
+int CanIOManager::callSelect(CanSelectMasks& inout_masks, MonotonicTime blocking_deadline)
+{
+    const CanSelectMasks in_masks = inout_masks;
+    const int res = driver_.select(inout_masks, blocking_deadline);
+    if (res < 0)
+    {
+        return -ErrDriver;
+    }
+    inout_masks.read  &= in_masks.read;  // Driver is not required to clean the masks
+    inout_masks.write &= in_masks.write;
+    return res;
+}
+
 uint8_t CanIOManager::getNumIfaces() const
 {
     const uint8_t num = driver_.getNumIfaces();
@@ -308,7 +321,7 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
         CanSelectMasks masks;
         masks.write = iface_mask | makePendingTxMask();
         {
-            const int select_res = driver_.select(masks, blocking_deadline);
+            const int select_res = callSelect(masks, blocking_deadline);
             if (select_res < 0)
             {
                 return -ErrDriver;
@@ -380,7 +393,7 @@ int CanIOManager::receive(CanRxFrame& out_frame, MonotonicTime blocking_deadline
         masks.write = makePendingTxMask();
         masks.read = (1 << num_ifaces) - 1;
         {
-            const int select_res = driver_.select(masks, blocking_deadline);
+            const int select_res = callSelect(masks, blocking_deadline);
             if (select_res < 0)
             {
                 return -ErrDriver;

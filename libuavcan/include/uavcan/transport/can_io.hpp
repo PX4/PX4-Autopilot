@@ -153,6 +153,7 @@ class CanIOManager : Noncopyable
     int sendToIface(uint8_t iface_index, const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags);
     int sendFromTxQueue(uint8_t iface_index);
     uint8_t makePendingTxMask() const;
+    int callSelect(CanSelectMasks& inout_masks, MonotonicTime blocking_deadline);
 
 public:
     CanIOManager(ICanDriver& driver, IAllocator& allocator, ISystemClock& sysclock)
