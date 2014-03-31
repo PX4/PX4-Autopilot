@@ -6,7 +6,7 @@
 uint16 PUBLICATION_PERIOD_MS = 1000
 
 # If a node fails to publish this message in this amount of time, it should be considered offline.
-uint16 OFFLINE_TIMEOUT_MS = 4000
+uint16 OFFLINE_TIMEOUT_MS = 5000
 
 # Uptime counter should never overflow.
 uint28 uptime_sec
