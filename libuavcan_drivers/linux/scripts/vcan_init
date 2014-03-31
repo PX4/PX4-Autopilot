@@ -5,9 +5,9 @@
 
 HELP="Initializes and brings up a virtual CAN interface.
 Usage:
-    `basename $0` <iface-index>
+    `basename $0` <iface-name>
 Example:
-    `basename $0` 0"
+    `basename $0` vcan0"
 
 function die() { echo $@ >&2; exit 1; }
 
@@ -17,7 +17,7 @@ if [ "$1" == '--help' ] || [ "$1" == '-h' ]; then echo "$HELP"; exit; fi
 
 # ---------------------------------------------------------
 
-IFACE="vcan$1"
+IFACE="$1"
 
 if [ $(ifconfig -a | grep -c "^$IFACE") -eq "1" ]; then
     ifconfig $IFACE up
