@@ -21,11 +21,11 @@ namespace uavcan
 
 template <typename DataType_,
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-          typename Callback = std::function<void (const ReceivedDataStructure<typename DataType_::Request>&,
-                                                  typename DataType_::Response&)>,
+          typename Callback_ = std::function<void (const ReceivedDataStructure<typename DataType_::Request>&,
+                                                   typename DataType_::Response&)>,
 #else
-          typename Callback = void (*)(const ReceivedDataStructure<typename DataType_::Request>&,
-                                       typename DataType_::Response&),
+          typename Callback_ = void (*)(const ReceivedDataStructure<typename DataType_::Request>&,
+                                        typename DataType_::Response&),
 #endif
           unsigned NumStaticReceivers = 2,
           unsigned NumStaticBufs = 1>
@@ -38,6 +38,7 @@ public:
     typedef DataType_ DataType;
     typedef typename DataType::Request RequestType;
     typedef typename DataType::Response ResponseType;
+    typedef Callback_ Callback;
 
 private:
     typedef typename TransferListenerInstantiationHelper<RequestType, NumStaticReceivers, NumStaticBufs>::Type

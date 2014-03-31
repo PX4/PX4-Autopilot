@@ -64,9 +64,13 @@ public:
 };
 
 
-template <typename Callback>
+template <typename Callback_>
 class TimerEventForwarder : public TimerBase
 {
+public:
+    typedef Callback_ Callback;
+
+private:
     Callback callback_;
 
     void handleTimerEvent(const TimerEvent& event)

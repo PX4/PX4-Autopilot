@@ -71,9 +71,9 @@ static Stream& operator<<(Stream& s, const ServiceCallResult<DataType>& scr)
 
 template <typename DataType_,
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-          typename Callback = std::function<void (const ServiceCallResult<DataType_>&)>
+          typename Callback_ = std::function<void (const ServiceCallResult<DataType_>&)>
 #else
-          typename Callback = void (*)(const ServiceCallResult<DataType_>&)
+          typename Callback_ = void (*)(const ServiceCallResult<DataType_>&)
 #endif
           >
 class ServiceClient
@@ -86,6 +86,7 @@ public:
     typedef typename DataType::Request RequestType;
     typedef typename DataType::Response ResponseType;
     typedef ServiceCallResult<DataType> ServiceCallResultType;
+    typedef Callback_ Callback;
 
 private:
     typedef ServiceClient<DataType, Callback> SelfType;

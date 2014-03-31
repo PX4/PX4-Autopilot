@@ -21,9 +21,9 @@ namespace uavcan
 
 template <typename DataType_,
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-          typename Callback = std::function<void (const ReceivedDataStructure<DataType_>&)>,
+          typename Callback_ = std::function<void (const ReceivedDataStructure<DataType_>&)>,
 #else
-          typename Callback = void (*)(const ReceivedDataStructure<DataType_>&),
+          typename Callback_ = void (*)(const ReceivedDataStructure<DataType_>&),
 #endif
           unsigned NumStaticReceivers = 2,
           unsigned NumStaticBufs = 1>
@@ -32,6 +32,10 @@ class Subscriber : public GenericSubscriber<DataType_, DataType_,
                                                                                          NumStaticReceivers,
                                                                                          NumStaticBufs>::Type>
 {
+public:
+    typedef Callback_ Callback;
+
+private:
     typedef typename TransferListenerInstantiationHelper<DataType_, NumStaticReceivers, NumStaticBufs>::Type
         TransferListenerType;
     typedef GenericSubscriber<DataType_, DataType_, TransferListenerType> BaseType;
