@@ -12,9 +12,22 @@ project(libuavcan_linux)
 install(DIRECTORY include/uavcan_linux DESTINATION include)
 
 #
+# Finding libuavcan - it will be a target if we're running from the top-level CMakeLists.txt,
+# otherwise try to find it in the system directories.
+#
+if (TARGET uavcan)
+    message(STATUS "Using uavcan target; source dir: ${libuavcan_SOURCE_DIR}")
+    set(UAVCAN_LIB uavcan)
+    include_directories(${libuavcan_SOURCE_DIR}/include
+                        ${libuavcan_SOURCE_DIR}/include/dsdlc_generated)
+else ()
+    message(STATUS "Using installed uavcan library")
+    find_library(UAVCAN_LIB uavcan REQUIRED)
+endif ()
+
+#
 # Test/demo executables
 #
-find_library(UAVCAN_LIB uavcan REQUIRED)
 include_directories(include)
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -pedantic -std=c++0x -g3")  # GCC or Clang
 
