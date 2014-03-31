@@ -284,6 +284,34 @@ static void testDriver(const std::vector<std::string>& iface_names)
     ENFORCE(masks.write == AllIfacesMask);
 
     std::cout << "exit" << std::endl;
+
+    /*
+     * Error checks
+     */
+    for (int i = 0; i < driver.getNumIfaces(); i++)
+    {
+        for (auto kv : driver.getIface(i)->getErrors())
+        {
+            switch (kv.first)
+            {
+            case uavcan_linux::SocketCanError::SocketReadFailure:
+            case uavcan_linux::SocketCanError::SocketWriteFailure:
+            {
+                ENFORCE(kv.second == 0);
+                break;
+            }
+            case uavcan_linux::SocketCanError::TxTimeout:
+            {
+                ENFORCE(kv.second == 1);  // One timed out frame from the above
+                break;
+            }
+            default:
+            {
+                ENFORCE(false);
+            }
+            }
+        }
+    }
 }
 
 int main(int argc, const char** argv)
