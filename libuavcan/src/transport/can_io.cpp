@@ -159,7 +159,6 @@ void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos,
     if (praw == NULL)
     {
         return;                                            // Seems that there is no memory at all.
-
     }
     Entry* entry = new (praw) Entry(frame, tx_deadline, qos, flags);
     assert(entry);
@@ -405,7 +404,7 @@ int CanIOManager::receive(CanRxFrame& out_frame, MonotonicTime blocking_deadline
         {
             if (masks.write & (1 << i))
             {
-                sendFromTxQueue(i);
+                (void)sendFromTxQueue(i);  // It may fail, we don't care. Requested operation was receive, not send.
             }
         }
 

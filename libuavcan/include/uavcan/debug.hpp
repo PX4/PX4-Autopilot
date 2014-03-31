@@ -16,11 +16,11 @@ __attribute__ ((format(printf, 2, 3)))
 static void UAVCAN_TRACE(const char* src, const char* fmt, ...)
 {
     va_list args;
-    std::printf("UAVCAN: %s: ", src);
+    (void)std::printf("UAVCAN: %s: ", src);
     va_start(args, fmt);
-    std::vprintf(fmt, args);
+    (void)std::vprintf(fmt, args);
     va_end(args);
-    std::puts("");
+    (void)std::puts("");
 }
 
 #else
