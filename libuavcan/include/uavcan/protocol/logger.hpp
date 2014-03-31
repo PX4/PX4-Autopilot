@@ -26,7 +26,7 @@ public:
     /**
      * Logger will not sink messages with level lower than returned by this method.
      */
-    virtual LogLevel getLogLevel() const = 0;
+    virtual LogLevel getLogLevel() const { return protocol::debug::LogLevel::DEBUG; }
 
     /**
      * Logger will call this method for every log message with level not less than the current level of this sink.
