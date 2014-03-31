@@ -39,7 +39,6 @@ void NodeStatusProvider::publishWithErrorHandling()
 
 void NodeStatusProvider::handleTimerEvent(const TimerEvent&)
 {
-    UAVCAN_TRACE("NodeStatusProvider", "Publishing node status by timer");
     publishWithErrorHandling();
 }
 

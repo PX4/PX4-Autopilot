@@ -146,7 +146,7 @@ void Scheduler::pollCleanup(MonotonicTime mono_ts, uint32_t num_frames_processed
     const MonotonicTime deadline = prev_cleanup_ts_ + cleanup_period_ * (num_frames_processed_with_last_spin + 1);
     if (mono_ts > deadline)
     {
-        UAVCAN_TRACE("Scheduler", "Cleanup with %u processed frames", num_frames_processed_with_last_spin);
+        //UAVCAN_TRACE("Scheduler", "Cleanup with %u processed frames", num_frames_processed_with_last_spin);
         prev_cleanup_ts_ = mono_ts;
         dispatcher_.cleanup(mono_ts);
     }
