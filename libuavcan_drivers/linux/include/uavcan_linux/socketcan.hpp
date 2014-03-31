@@ -41,6 +41,9 @@ enum class SocketCanError
  * This approach allows to properly maintain TX timeouts (http://stackoverflow.com/questions/19633015/).
  * TX timestamping is implemented by means of reading RX timestamps of loopback frames (see "TX timestamping" on
  * linux-can mailing list, http://permalink.gmane.org/gmane.linux.can/5322).
+ *
+ * This class is too complex and needs to be refactored later. At least, basic socket IO and configuration
+ * should be extracted into a different class.
  */
 class SocketCanIface : public uavcan::ICanIface
 {
@@ -116,13 +119,35 @@ class SocketCanIface : public uavcan::ICanIface
 
     const SystemClock clock_;
     const int fd_;
+
+    const unsigned max_frames_in_socket_tx_queue_;
+    unsigned frames_in_socket_tx_queue_;
+
     std::map<SocketCanError, std::uint64_t> errors_;
+
     std::priority_queue<TxItem> tx_queue_;                          // TODO: Use pool allocator
     std::priority_queue<RxItem> rx_queue_;                          // TODO: Use pool allocator
     std::unordered_multiset<std::uint32_t> pending_loopback_ids_;   // TODO: Use pool allocator
-    bool has_pending_write_;
 
     void registerError(SocketCanError e) { errors_[e]++; }
+
+    void incrementNumFramesInSocketTxQueue()
+    {
+        assert(frames_in_socket_tx_queue_ < max_frames_in_socket_tx_queue_);
+        frames_in_socket_tx_queue_++;
+    }
+
+    void confirmSentFrame()
+    {
+        if (frames_in_socket_tx_queue_ > 0)
+        {
+            frames_in_socket_tx_queue_--;
+        }
+        else
+        {
+            assert(0); // Loopback for a frame that we didn't send.
+        }
+    }
 
     bool wasInPendingLoopbackSet(const uavcan::CanFrame& frame)
     {
@@ -208,7 +233,7 @@ class SocketCanIface : public uavcan::ICanIface
 
     void pollWrite()
     {
-        while (!tx_queue_.empty() && !has_pending_write_)
+        while (!tx_queue_.empty() && (frames_in_socket_tx_queue_ < max_frames_in_socket_tx_queue_))
         {
             const TxItem tx = tx_queue_.top();
             tx_queue_.pop();
@@ -218,7 +243,7 @@ class SocketCanIface : public uavcan::ICanIface
                 const int res = write(tx.frame);
                 if (res == 1)
                 {
-                    has_pending_write_ = true;
+                    incrementNumFramesInSocketTxQueue();
                     if (tx.flags & uavcan::CanIOFlagLoopback)
                     {
                         pending_loopback_ids_.insert(tx.frame.id);
@@ -250,7 +275,7 @@ class SocketCanIface : public uavcan::ICanIface
                 bool accept = true;
                 if (loopback)                   // We receive loopback for all CAN frames
                 {
-                    has_pending_write_ = false;
+                    confirmSentFrame();
                     rx.flags |= uavcan::CanIOFlagLoopback;
                     accept = wasInPendingLoopbackSet(rx.frame); // Do we need to send this loopback into the lib?
                 }
@@ -273,11 +298,11 @@ class SocketCanIface : public uavcan::ICanIface
 public:
     /**
      * Takes ownership of socket's file descriptor.
-     * @param fd
      */
-    explicit SocketCanIface(int socket_fd)
+    explicit SocketCanIface(int socket_fd, int max_frames_in_socket_tx_queue = 3)
         : fd_(socket_fd)
-        , has_pending_write_(false)
+        , max_frames_in_socket_tx_queue_(max_frames_in_socket_tx_queue)
+        , frames_in_socket_tx_queue_(0)
     {
         assert(fd_ >= 0);
     }
