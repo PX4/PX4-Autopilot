@@ -12,10 +12,10 @@ namespace uavcan_linux
 
 class Exception : public std::runtime_error
 {
-    int errno_;
+    const int errno_;
 
 public:
-    Exception(const char* descr)
+    Exception(const std::string& descr)
         : std::runtime_error(descr)
         , errno_(errno)
     { }

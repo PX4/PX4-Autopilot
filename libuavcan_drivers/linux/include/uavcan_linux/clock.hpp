@@ -60,12 +60,6 @@ class SystemClock : public uavcan::ISystemClock
         return adjtime(&tv, nullptr) == 0;
     }
 
-    static ClockAdjustmentMode detectPreferredClockAdjustmentMode()
-    {
-        const bool godmode = geteuid() == 0;
-        return godmode ? ClockAdjustmentMode::SystemWide : ClockAdjustmentMode::PerDriverPrivate;
-    }
-
 public:
     SystemClock(ClockAdjustmentMode adj_mode = detectPreferredClockAdjustmentMode())
         : gradual_adj_limit_(uavcan::UtcDuration::fromMSec(4000))
@@ -146,6 +140,12 @@ public:
     std::uint64_t getAdjustmentCount() const
     {
         return getStepAdjustmentCount() + getGradualAdjustmentCount();
+    }
+
+    static ClockAdjustmentMode detectPreferredClockAdjustmentMode()
+    {
+        const bool godmode = geteuid() == 0;
+        return godmode ? ClockAdjustmentMode::SystemWide : ClockAdjustmentMode::PerDriverPrivate;
     }
 };
 
