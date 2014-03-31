@@ -6,12 +6,7 @@
 #include <vector>
 #include <cerrno>
 #include <uavcan_linux/uavcan_linux.hpp>
-
-#ifndef STRINGIZE
-#  define STRINGIZE2(x)   #x
-#  define STRINGIZE(x)    STRINGIZE2(x)
-#endif
-#define ENFORCE(x) if (!(x)) { throw std::runtime_error(__FILE__ ":" STRINGIZE(__LINE__) ": " #x); }
+#include "debug.hpp"
 
 static uavcan::CanFrame makeFrame(std::uint32_t id, const std::string& data)
 {
@@ -56,7 +51,7 @@ static void testSocketRxTx(const std::string& iface_name)
      */
     ENFORCE(1 == if2.send(makeFrame(321, "if2-1"), tsMonoOffsetMs(100), 0));
     ENFORCE(1 == if2.send(makeFrame(654, "if2-2"), tsMonoOffsetMs(100), uavcan::CanIOFlagLoopback));
-    ENFORCE(1 == if2.send(makeFrame(1, "discard"), tsMonoOffsetMs(0), uavcan::CanIOFlagLoopback));  // Will timeout
+    ENFORCE(1 == if2.send(makeFrame(1, "discard"), tsMonoOffsetMs(-1), uavcan::CanIOFlagLoopback));  // Will timeout
     if2.poll(true, true);
     if2.poll(true, true);
     ENFORCE(1 == if2.getErrorCount());  // One timed out
@@ -80,16 +75,16 @@ static void testSocketRxTx(const std::string& iface_name)
      * Read first
      */
     ENFORCE(1 == if1.receive(frame, ts_mono, ts_utc, flags));
-    ENFORCE(frame == makeFrame(321, "if2-1"));
-    ENFORCE(flags == 0);
-    ENFORCE(!ts_mono.isZero());
-    ENFORCE(!ts_utc.isZero());
+    ENFORCE(frame == makeFrame(456, "if1-2"));
+    ENFORCE(flags == uavcan::CanIOFlagLoopback);
     ENFORCE((clock.getMonotonic() - ts_mono).getAbs().toMSec() < 10);
     ENFORCE((clock.getUtc() - ts_utc).getAbs().toMSec() < 10);
 
     ENFORCE(1 == if1.receive(frame, ts_mono, ts_utc, flags));
-    ENFORCE(frame == makeFrame(456, "if1-2"));
-    ENFORCE(flags == uavcan::CanIOFlagLoopback);
+    ENFORCE(frame == makeFrame(321, "if2-1"));
+    ENFORCE(flags == 0);
+    ENFORCE(!ts_mono.isZero());
+    ENFORCE(!ts_utc.isZero());
     ENFORCE((clock.getMonotonic() - ts_mono).getAbs().toMSec() < 10);
     ENFORCE((clock.getUtc() - ts_utc).getAbs().toMSec() < 10);
 
@@ -180,7 +175,6 @@ static void testSocketFilters(const std::string& iface_name)
 
     /*
      * Checking RX on 2
-     * Notice how the frames were reordered according to CAN bus arbitration rules
      */
     uavcan::CanFrame frame;
     uavcan::MonotonicTime ts_mono;
@@ -188,8 +182,7 @@ static void testSocketFilters(const std::string& iface_name)
     uavcan::CanIOFlags flags = 0;
 
     ENFORCE(1 == if2.receive(frame, ts_mono, ts_utc, flags));
-    ENFORCE(frame == makeFrame(0, "6"));
-    ENFORCE(flags == 0);
+    ENFORCE(frame == makeFrame(123, "1"));
 
     ENFORCE(1 == if2.receive(frame, ts_mono, ts_utc, flags));
     ENFORCE(frame == makeFrame(123 | EFF, "2"));
@@ -198,7 +191,8 @@ static void testSocketFilters(const std::string& iface_name)
     ENFORCE(frame == makeFrame(456789 | EFF, "5"));
 
     ENFORCE(1 == if2.receive(frame, ts_mono, ts_utc, flags));
-    ENFORCE(frame == makeFrame(123, "1"));
+    ENFORCE(frame == makeFrame(0, "6"));
+    ENFORCE(flags == 0);
 
     ENFORCE(!if2.hasReadyRx());
 }

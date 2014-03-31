@@ -113,8 +113,6 @@ class SocketCanIface : public uavcan::ICanIface
         RxItem()
             : flags(0)
         { }
-
-        bool operator<(const RxItem& rhs) const { return frame.priorityLowerThan(rhs.frame); }
     };
 
     const SystemClock clock_;
@@ -126,7 +124,7 @@ class SocketCanIface : public uavcan::ICanIface
     std::map<SocketCanError, std::uint64_t> errors_;
 
     std::priority_queue<TxItem> tx_queue_;                          // TODO: Use pool allocator
-    std::priority_queue<RxItem> rx_queue_;                          // TODO: Use pool allocator
+    std::queue<RxItem> rx_queue_;                                   // TODO: Use pool allocator
     std::unordered_multiset<std::uint32_t> pending_loopback_ids_;   // TODO: Use pool allocator
 
     void registerError(SocketCanError e) { errors_[e]++; }
@@ -340,14 +338,13 @@ public:
             }
         }
         {
-            const RxItem& rx = rx_queue_.top();
+            const RxItem& rx = rx_queue_.front();
             out_frame        = rx.frame;
             out_ts_monotonic = rx.ts_mono;
             out_ts_utc       = rx.ts_utc;
             out_flags        = rx.flags;
         }
         rx_queue_.pop();
-        assert(rx_queue_.empty() ? true : !out_frame.priorityLowerThan(rx_queue_.top().frame)); // Order check
         return 1;
     }
 
