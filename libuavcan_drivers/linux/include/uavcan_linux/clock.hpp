@@ -6,8 +6,12 @@
 
 #include <cassert>
 #include <ctime>
-#include <sys/time.h>
 #include <cstdint>
+
+#include <unistd.h>
+#include <sys/time.h>
+#include <sys/types.h>
+
 #include <uavcan/driver/system_clock.hpp>
 #include <uavcan_linux/exception.hpp>
 
@@ -56,8 +60,14 @@ class SystemClock : public uavcan::ISystemClock
         return adjtime(&tv, nullptr) == 0;
     }
 
+    static ClockAdjustmentMode detectPreferredClockAdjustmentMode()
+    {
+        const bool godmode = geteuid() == 0;
+        return godmode ? ClockAdjustmentMode::SystemWide : ClockAdjustmentMode::PerDriverPrivate;
+    }
+
 public:
-    SystemClock(ClockAdjustmentMode adj_mode = ClockAdjustmentMode::SystemWide)
+    SystemClock(ClockAdjustmentMode adj_mode = detectPreferredClockAdjustmentMode())
         : gradual_adj_limit_(uavcan::UtcDuration::fromMSec(4000))
         , adj_mode_(adj_mode)
         , step_adj_cnt_(0)

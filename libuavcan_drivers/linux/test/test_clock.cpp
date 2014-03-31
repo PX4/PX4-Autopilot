@@ -15,11 +15,35 @@ static std::string systime2str(const std::chrono::system_clock::time_point& tp)
 
 int main()
 {
+    uavcan_linux::SystemClock clock;
+
+    /*
+     * Auto-detected clock adjustment mode
+     */
+    std::cout << "Clock adjustment mode: ";
+    switch (clock.getAdjustmentMode())
+    {
+    case uavcan_linux::ClockAdjustmentMode::SystemWide:
+    {
+        std::cout << "SystemWide";
+        break;
+    }
+    case uavcan_linux::ClockAdjustmentMode::PerDriverPrivate:
+    {
+        std::cout << "PerDriverPrivate";
+        break;
+    }
+    default:
+        std::abort();
+    }
+    std::cout << std::endl;
+
+    /*
+     * Test adjustment
+     */
     double sec = 0;
     std::cout << "Enter system time adjustment in seconds (fractions allowed): " << std::endl;
     std::cin >> sec;
-
-    uavcan_linux::SystemClock clock;
 
     const auto before = std::chrono::system_clock::now();
     try
