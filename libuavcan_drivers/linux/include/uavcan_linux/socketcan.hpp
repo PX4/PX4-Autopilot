@@ -18,6 +18,7 @@
 #include <net/if.h>
 #include <linux/can.h>
 #include <linux/can/raw.h>
+#include <poll.h>
 
 #include <uavcan/uavcan.hpp>
 #include <uavcan_linux/clock.hpp>
@@ -35,9 +36,9 @@ enum class SocketCanError
 
 /**
  * SocketCAN socket adapter maintains TX and RX queues in user space. At any moment socket's buffer contains
- * no more than one TX frame, rest is waiting in the application TX queue; when the socket procudes loopback for
- * previously sent TX frame the next frame from the user space TX queue will be sent to the socket. This approach
- * allows to properly maintain TX timeouts (http://stackoverflow.com/questions/19633015/).
+ * no more than one TX frame, rest is waiting in the user space TX queue; when the socket produces loopback for
+ * the previously sent TX frame the next frame from the user space TX queue will be sent to the socket.
+ * This approach allows to properly maintain TX timeouts (http://stackoverflow.com/questions/19633015/).
  * TX timestamping is implemented by means of reading RX timestamps of loopback frames (see "TX timestamping" on
  * linux-can mailing list, http://permalink.gmane.org/gmane.linux.can/5322).
  */
@@ -83,17 +84,33 @@ class SocketCanIface : public uavcan::ICanIface
     struct TxItem
     {
         uavcan::CanFrame frame;
-        uavcan::CanIOFlags flags;
         uavcan::MonotonicTime deadline;
+        uavcan::CanIOFlags flags;
+
+        TxItem()
+            : flags(0)
+        { }
+
+        TxItem(const uavcan::CanFrame& frame, uavcan::MonotonicTime deadline, uavcan::CanIOFlags flags)
+            : frame(frame)
+            , deadline(deadline)
+            , flags(flags)
+        { }
+
         bool operator<(const TxItem& rhs) const { return frame.priorityLowerThan(rhs.frame); }
     };
 
     struct RxItem
     {
         uavcan::CanFrame frame;
-        uavcan::CanIOFlags flags;
         uavcan::MonotonicTime ts_mono;
         uavcan::UtcTime ts_utc;
+        uavcan::CanIOFlags flags;
+
+        RxItem()
+            : flags(0)
+        { }
+
         bool operator<(const RxItem& rhs) const { return frame.priorityLowerThan(rhs.frame); }
     };
 
@@ -254,10 +271,21 @@ class SocketCanIface : public uavcan::ICanIface
     }
 
 public:
-    explicit SocketCanIface(int fd)
-        : fd_(fd)
+    /**
+     * Takes ownership of socket's file descriptor.
+     * @param fd
+     */
+    explicit SocketCanIface(int socket_fd)
+        : fd_(socket_fd)
         , has_pending_write_(false)
-    { }
+    {
+        assert(fd_ >= 0);
+    }
+
+    virtual ~SocketCanIface()
+    {
+        (void)::close(fd_);
+    }
 
     /**
      * Assumes that the socket is writeable
@@ -265,26 +293,34 @@ public:
     virtual std::int16_t send(const uavcan::CanFrame& frame, const uavcan::MonotonicTime tx_deadline,
                               const uavcan::CanIOFlags flags)
     {
-        tx_queue_.push({ frame, flags, tx_deadline });
+        tx_queue_.emplace(frame, tx_deadline, flags);
+        pollRead();     // Read poll is necessary because it can release the pending TX flag
         pollWrite();
         return 1;
     }
 
     /**
-     * Does not read from the socket, but from the RX queue. Thus, pollRead() must be executed first.
+     * Will read the socket only if RX queue is empty.
+     * Normally, poll() needs to be executed first.
      */
     virtual std::int16_t receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
                                  uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags)
     {
         if (rx_queue_.empty())
         {
-            return 0;
+            pollRead();            // This allows to use the socket not calling poll() explicitly.
+            if (rx_queue_.empty())
+            {
+                return 0;
+            }
         }
-        const RxItem& rx = rx_queue_.top();
-        out_frame = rx.frame;
-        out_ts_monotonic = rx.ts_mono;
-        out_ts_utc = rx.ts_utc;
-        out_flags = rx.flags;
+        {
+            const RxItem& rx = rx_queue_.top();
+            out_frame        = rx.frame;
+            out_ts_monotonic = rx.ts_mono;
+            out_ts_utc       = rx.ts_utc;
+            out_flags        = rx.flags;
+        }
         rx_queue_.pop();
         assert(rx_queue_.empty() ? true : !out_frame.priorityLowerThan(rx_queue_.top().frame)); // Order check
         return 1;
@@ -429,24 +465,110 @@ public:
 
 private:
     const SystemClock clock_;
+    uavcan::LazyConstructor<SocketCanIface> ifaces_[MaxIfaces];
+    ::pollfd pollfds_[MaxIfaces];
+    std::uint8_t num_ifaces_;
 
 public:
-    virtual SocketCanIface* getIface(std::uint8_t iface_index)
+    SocketCanDriver()
+        : num_ifaces_(0)
     {
-        (void)iface_index;
-        return nullptr; // FIXME not implemented yet
+        for (auto& p : pollfds_)
+        {
+            p = ::pollfd();
+            p.fd = -1;
+        }
     }
 
-    virtual std::uint8_t getNumIfaces() const
-    {
-        return -1; // FIXME not implemented yet
-    }
-
+    /**
+     * This function may return before deadline expiration even if no requested IO operations become possible.
+     * This behavior makes implementation way simpler, and it is OK since uavcan can properly handle such
+     * early returns.
+     * Also it can return more events that were originally requested by uavcan, which is also acceptable.
+     */
     virtual std::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline)
     {
-        (void)inout_masks;
-        (void)blocking_deadline;
-        return -1; // FIXME not implemented yet
+        // Poll FD set setup
+        for (unsigned i = 0; i < num_ifaces_; i++)
+        {
+            pollfds_[i].events = POLLIN;
+            if (ifaces_[i]->hasPendingTx() || (inout_masks.write & (1 << i)))
+            {
+                pollfds_[i].events |= POLLOUT;
+            }
+        }
+        // Blocking poll
+        {
+            const std::int64_t timeout_usec = (blocking_deadline - clock_.getMonotonic()).toUSec();
+            auto ts = ::timespec();
+            if (timeout_usec > 0)
+            {
+                ts.tv_sec = timeout_usec / 1000000LL;
+                ts.tv_nsec = (timeout_usec % 1000000LL) * 1000;
+            }
+            const int res = ::ppoll(pollfds_, num_ifaces_, &ts, nullptr);
+            if (res < 0)
+            {
+                return res;
+            }
+        }
+        // Handling
+        inout_masks = uavcan::CanSelectMasks();
+        for (unsigned i = 0; i < num_ifaces_; i++)
+        {
+            const bool poll_read  = pollfds_[i].revents & POLLIN;
+            const bool poll_write = pollfds_[i].revents & POLLOUT;
+            ifaces_[i]->poll(poll_read, poll_write);
+
+            const std::uint8_t iface_mask = 1 << i;
+            inout_masks.write |= iface_mask;           // Always ready to write
+            if (ifaces_[i]->hasReadyRx())
+            {
+                inout_masks.read |= iface_mask;
+            }
+        }
+        // Since all ifaces are always ready to write, return value is always the same
+        return num_ifaces_;
+    }
+
+    virtual SocketCanIface* getIface(std::uint8_t iface_index)
+    {
+        return (iface_index >= num_ifaces_) ? nullptr : static_cast<SocketCanIface*>(ifaces_[iface_index]);
+    }
+
+    virtual std::uint8_t getNumIfaces() const { return num_ifaces_; }
+
+    /**
+     * Adds one iface by name. Will fail if there are @ref MaxIfaces ifaces registered already.
+     * @param iface_name E.g. "can0", "vcan1"
+     * @return Negative on error, zero on success.
+     */
+    int addIface(const std::string& iface_name)
+    {
+        if (num_ifaces_ >= MaxIfaces)
+        {
+            return -1;
+        }
+        // Open the socket
+        const int fd = SocketCanIface::openSocket(iface_name);
+        if (fd < 0)
+        {
+            return fd;
+        }
+        // Construct the iface - upon successful construction the iface will take ownership of the fd.
+        try
+        {
+            ifaces_[num_ifaces_].construct<int>(fd);
+        }
+        catch (...)
+        {
+            (void)::close(fd);
+            throw;
+        }
+        // Init pollfd
+        pollfds_[num_ifaces_].fd = fd;
+        num_ifaces_++;
+        return 0;
     }
 };
 
