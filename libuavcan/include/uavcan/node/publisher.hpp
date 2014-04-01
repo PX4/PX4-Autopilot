@@ -32,6 +32,11 @@ public:
         return publish(message, TransferTypeMessageBroadcast, NodeID::Broadcast);
     }
 
+    int broadcast(const DataType& message, TransferID tid)
+    {
+        return publish(message, TransferTypeMessageBroadcast, NodeID::Broadcast, tid);
+    }
+
     int unicast(const DataType& message, NodeID dst_node_id)
     {
         if (!dst_node_id.isUnicast())
