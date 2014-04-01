@@ -506,21 +506,34 @@ public:
      * This function may return before deadline expiration even if no requested IO operations become possible.
      * This behavior makes implementation way simpler, and it is OK since uavcan can properly handle such
      * early returns.
-     * Also it can return more events that were originally requested by uavcan, which is also acceptable.
+     * Also it can return more events than were originally requested by uavcan, which is also acceptable.
      */
     virtual std::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline)
     {
-        // Poll FD set setup
-        for (unsigned i = 0; i < num_ifaces_; i++)
+        // Detecting whether we need to block at all
+        bool need_block = (inout_masks.write == 0);    // Write queue is infinite
+        for (unsigned i = 0; need_block && (i < num_ifaces_); i++)
         {
-            pollfds_[i].events = POLLIN;
-            if (ifaces_[i]->hasPendingTx() || (inout_masks.write & (1 << i)))
+            const bool need_read = inout_masks.read  & (1 << i);
+            if (need_read && ifaces_[i]->hasReadyRx())
             {
-                pollfds_[i].events |= POLLOUT;
+                need_block = false;
             }
         }
-        // Blocking poll
+
+        if (need_block)
         {
+            // Poll FD set setup
+            for (unsigned i = 0; i < num_ifaces_; i++)
+            {
+                pollfds_[i].events = POLLIN;
+                if (ifaces_[i]->hasPendingTx() || (inout_masks.write & (1 << i)))
+                {
+                    pollfds_[i].events |= POLLOUT;
+                }
+            }
+
+            // Timeout conversion
             const std::int64_t timeout_usec = (blocking_deadline - clock_.getMonotonic()).toUSec();
             auto ts = ::timespec();
             if (timeout_usec > 0)
@@ -528,20 +541,27 @@ public:
                 ts.tv_sec = timeout_usec / 1000000LL;
                 ts.tv_nsec = (timeout_usec % 1000000LL) * 1000;
             }
+
+            // Blocking here
             const int res = ::ppoll(pollfds_, num_ifaces_, &ts, nullptr);
             if (res < 0)
             {
                 return res;
             }
+
+            // Handling poll output
+            for (unsigned i = 0; i < num_ifaces_; i++)
+            {
+                const bool poll_read  = pollfds_[i].revents & POLLIN;
+                const bool poll_write = pollfds_[i].revents & POLLOUT;
+                ifaces_[i]->poll(poll_read, poll_write);
+            }
         }
-        // Handling
+
+        // Writing the output masks
         inout_masks = uavcan::CanSelectMasks();
         for (unsigned i = 0; i < num_ifaces_; i++)
         {
-            const bool poll_read  = pollfds_[i].revents & POLLIN;
-            const bool poll_write = pollfds_[i].revents & POLLOUT;
-            ifaces_[i]->poll(poll_read, poll_write);
-
             const std::uint8_t iface_mask = 1 << i;
             inout_masks.write |= iface_mask;           // Always ready to write
             if (ifaces_[i]->hasReadyRx())
