@@ -39,3 +39,6 @@ target_link_libraries(test_socket ${UAVCAN_LIB} rt)
 
 add_executable(test_node test/test_node.cpp)
 target_link_libraries(test_node ${UAVCAN_LIB} rt)
+
+add_executable(test_node_status_monitor test/test_node_status_monitor.cpp)
+target_link_libraries(test_node_status_monitor ${UAVCAN_LIB} rt)
