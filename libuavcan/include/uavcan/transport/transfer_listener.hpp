@@ -238,15 +238,10 @@ private:
 
     void handleFrame(const RxFrame& frame)
     {
-        if (!response_params_.match(frame))
+        if (response_params_.match(frame))
         {
-            UAVCAN_TRACE("ServiceResponseTransferListener", "Rejected %s [need snid=%i tid=%i]",
-                         frame.toString().c_str(),
-                         int(response_params_.src_node_id.get()), int(response_params_.transfer_id.get()));
-            return;
+            BaseType::handleFrame(frame);
         }
-        UAVCAN_TRACE("ServiceResponseTransferListener", "Accepted %s", frame.toString().c_str());
-        BaseType::handleFrame(frame);
     }
 
 public:
