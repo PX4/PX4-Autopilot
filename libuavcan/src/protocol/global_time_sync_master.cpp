@@ -27,7 +27,6 @@ int GlobalTimeSyncMaster::IfaceMaster::init()
 
 void GlobalTimeSyncMaster::IfaceMaster::setTxTimestamp(UtcTime ts)
 {
-    prev_tx_utc_ = UtcTime();
     if (ts.isZero())
     {
         assert(0);
@@ -43,36 +42,23 @@ void GlobalTimeSyncMaster::IfaceMaster::setTxTimestamp(UtcTime ts)
     prev_tx_utc_ = ts;
 }
 
-int GlobalTimeSyncMaster::IfaceMaster::publish()
+int GlobalTimeSyncMaster::IfaceMaster::publish(TransferID tid, MonotonicTime current_time)
 {
     assert(pub_.getTransferSender()->getCanIOFlags() == CanIOFlagLoopback);
     assert(pub_.getTransferSender()->getIfaceMask() == (1 << iface_index_));
 
-    const MonotonicTime ts_mono = pub_.getNode().getMonotonicTime();
-    const MonotonicDuration since_prev_pub = ts_mono - prev_pub_mono_;
-    assert(!since_prev_pub.isNegative());
+    const MonotonicDuration since_prev_pub = current_time - prev_pub_mono_;
+    prev_pub_mono_ = current_time;
+    assert(since_prev_pub.isPositive());
+    const bool long_period = since_prev_pub.toMSec() >= protocol::GlobalTimeSync::MAX_PUBLICATION_PERIOD_MS;
 
-    if (since_prev_pub.toMSec() > protocol::GlobalTimeSync::MIN_PUBLICATION_PERIOD_MS)
-    {
-        prev_pub_mono_ = ts_mono;
-        protocol::GlobalTimeSync msg;
-        if (since_prev_pub.toMSec() < protocol::GlobalTimeSync::MAX_PUBLICATION_PERIOD_MS)
-        {
-            msg.prev_utc_usec = prev_tx_utc_.toUSec();
-        }
-        else
-        {
-            msg.prev_utc_usec = 0;
-        }
-        prev_tx_utc_ = UtcTime();
-        UAVCAN_TRACE("GlobalTimeSyncMaster", "Publishing %llu", static_cast<unsigned long long>(msg.prev_utc_usec));
-        return pub_.broadcast(msg);
-    }
-    else
-    {
-        UAVCAN_TRACE("GlobalTimeSyncMaster", "Publication skipped");
-        return 0;
-    }
+    protocol::GlobalTimeSync msg;
+    msg.prev_utc_usec = long_period ? 0 : prev_tx_utc_.toUSec();
+    prev_tx_utc_ = UtcTime();
+
+    UAVCAN_TRACE("GlobalTimeSyncMaster", "Publishing %llu iface=%i tid=%i",
+                 static_cast<unsigned long long>(msg.prev_utc_usec), int(iface_index_), int(tid.get()));
+    return pub_.broadcast(msg, tid);
 }
 
 /*
@@ -94,6 +80,25 @@ void GlobalTimeSyncMaster::handleLoopbackFrame(const RxFrame& frame)
     {
         assert(0);
     }
+}
+
+int GlobalTimeSyncMaster::getNextTransferID(TransferID& tid)
+{
+    const MonotonicDuration max_transfer_interval =
+        MonotonicDuration::fromMSec(protocol::GlobalTimeSync::PUBLISHER_TIMEOUT_MS);
+
+    const OutgoingTransferRegistryKey otr_key(dtid_, TransferTypeMessageBroadcast, NodeID::Broadcast);
+    const MonotonicTime otr_deadline = node_.getMonotonicTime() + max_transfer_interval;
+    TransferID* const tid_ptr =
+        node_.getDispatcher().getOutgoingTransferRegistry().accessOrCreate(otr_key, otr_deadline);
+    if (tid_ptr == NULL)
+    {
+        return -ErrMemory;
+    }
+
+    tid = *tid_ptr;
+    tid_ptr->increment();
+    return 0;
 }
 
 int GlobalTimeSyncMaster::init()
@@ -146,9 +151,37 @@ int GlobalTimeSyncMaster::publish()
             return res;
         }
     }
+
+    /*
+     * Enforce max frequency
+     */
+    const MonotonicTime current_time = node_.getMonotonicTime();
+    {
+        const MonotonicDuration since_prev_pub = current_time - prev_pub_mono_;
+        assert(since_prev_pub.isPositive());
+        if (since_prev_pub.toMSec() < protocol::GlobalTimeSync::MIN_PUBLICATION_PERIOD_MS)
+        {
+            UAVCAN_TRACE("GlobalTimeSyncMaster", "Publication skipped");
+            return 0;
+        }
+        prev_pub_mono_ = current_time;
+    }
+
+    /*
+     * Obtain common Transfer ID for all masters
+     */
+    TransferID tid;
+    {
+        const int tid_res = getNextTransferID(tid);
+        if (tid_res < 0)
+        {
+            return tid_res;
+        }
+    }
+
     for (uint8_t i = 0; i < node_.getDispatcher().getCanIOManager().getNumIfaces(); i++)
     {
-        const int res = iface_masters_[i]->publish();
+        const int res = iface_masters_[i]->publish(tid, current_time);
         if (res < 0)
         {
             return res;

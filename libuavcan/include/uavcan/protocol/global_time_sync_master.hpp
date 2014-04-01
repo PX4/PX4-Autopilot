@@ -37,15 +37,18 @@ class GlobalTimeSyncMaster : protected LoopbackFrameListenerBase
 
         void setTxTimestamp(UtcTime ts);
 
-        int publish();
+        int publish(TransferID tid, MonotonicTime current_time);
     };
 
     INode& node_;
     LazyConstructor<IfaceMaster> iface_masters_[MaxCanIfaces];
+    MonotonicTime prev_pub_mono_;
     DataTypeID dtid_;
     bool initialized_;
 
     void handleLoopbackFrame(const RxFrame& frame);
+
+    int getNextTransferID(TransferID& tid);
 
 public:
     explicit GlobalTimeSyncMaster(INode& node)
