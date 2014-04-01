@@ -51,8 +51,8 @@ static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, ua
      * Say Hi to the world.
      */
     node->setStatusOk();
-    (void)node->logInfo("init", "Hello world! I'm [%*], NID %*",
-                        node->getNodeStatusProvider().getName().c_str(), int(node->getNodeID().get()));
+    node->logInfo("init", "Hello world! I'm [%*], NID %*",
+                  node->getNodeStatusProvider().getName().c_str(), int(node->getNodeID().get()));
     return node;
 }
 
@@ -90,7 +90,7 @@ static void runForever(const uavcan_linux::NodePtr& node)
      */
     auto do_nothing_once_a_minute = [&node](const uavcan::TimerEvent&)
     {
-        (void)node->logInfo("timer", "Another minute passed...");
+        node->logInfo("timer", "Another minute passed...");
     };
     auto timer = node->makeTimer(uavcan::MonotonicDuration::fromMSec(60000), do_nothing_once_a_minute);
 
@@ -102,7 +102,7 @@ static void runForever(const uavcan_linux::NodePtr& node)
         const int res = node->spin(uavcan::MonotonicDuration::getInfinite());
         if (res < 0)
         {
-            (void)node->logError("spin", "Error %*", res);
+            node->logError("spin", "Error %*", res);
         }
     }
 }

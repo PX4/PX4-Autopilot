@@ -76,7 +76,7 @@ static void runForever(const uavcan_linux::NodePtr& node)
         const int res = node->spin(uavcan::MonotonicDuration::getInfinite());
         if (res < 0)
         {
-            (void)node->logError("spin", "Error %*", res);
+            node->logError("spin", "Error %*", res);
         }
     }
 }
