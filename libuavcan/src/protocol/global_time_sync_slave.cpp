@@ -14,9 +14,9 @@ void GlobalTimeSyncSlave::adjustFromMsg(const ReceivedDataStructure<protocol::Gl
     assert(msg.prev_utc_usec > 0);
     const UtcDuration adjustment = UtcTime::fromUSec(msg.prev_utc_usec) - prev_ts_utc_;
 
-    UAVCAN_TRACE("GlobalTimeSyncSlave", "Adjustment: usec=%lli snid=%i iface=%i",
+    UAVCAN_TRACE("GlobalTimeSyncSlave", "Adjustment: usec=%lli snid=%i iface=%i suppress=%i",
                  static_cast<long long>(adjustment.toUSec()),
-                 int(msg.getSrcNodeID().get()), int(msg.getIfaceIndex()));
+                 int(msg.getSrcNodeID().get()), int(msg.getIfaceIndex()), int(suppressed_));
 
     if (!suppressed_)
     {
