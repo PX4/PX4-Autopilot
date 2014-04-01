@@ -62,7 +62,7 @@ void LoopbackFrameListenerRegistry::invokeListeners(RxFrame& frame)
     while (p)
     {
         LoopbackFrameListenerBase* const next = p->getNextListNode();
-        p->handleLoopbackFrame(frame);
+        p->handleLoopbackFrame(frame);     // p may be modified
         p = next;
     }
 }
@@ -113,8 +113,9 @@ void Dispatcher::ListenerRegistry::cleanup(MonotonicTime ts)
     TransferListenerBase* p = list_.get();
     while (p)
     {
-        p->cleanup(ts);
-        p = p->getNextListNode();
+        TransferListenerBase* const next = p->getNextListNode();
+        p->cleanup(ts); // p may be modified
+        p = next;
     }
 }
 
@@ -123,15 +124,16 @@ void Dispatcher::ListenerRegistry::handleFrame(const RxFrame& frame)
     TransferListenerBase* p = list_.get();
     while (p)
     {
+        TransferListenerBase* const next = p->getNextListNode();
         if (p->getDataTypeDescriptor().getID() == frame.getDataTypeID())
         {
-            p->handleFrame(frame);
+            p->handleFrame(frame); // p may be modified
         }
         else if (p->getDataTypeDescriptor().getID() < frame.getDataTypeID())  // Listeners are ordered by data type id!
         {
             break;
         }
-        p = p->getNextListNode();
+        p = next;
     }
 }
 
