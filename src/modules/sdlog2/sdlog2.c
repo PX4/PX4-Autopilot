@@ -1258,7 +1258,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_ESTM.states_nan = buf.estimator_status.states_nan;
 			log_msg.body.log_ESTM.covariance_nan = buf.estimator_status.covariance_nan;
 			log_msg.body.log_ESTM.kalman_gain_nan = buf.estimator_status.kalman_gain_nan;
-			LOGBUFFER_WRITE_AND_COUNT(DIST);
+			LOGBUFFER_WRITE_AND_COUNT(ESTM);
 		}
 
 		/* signal the other thread new data, but not yet unlock */
