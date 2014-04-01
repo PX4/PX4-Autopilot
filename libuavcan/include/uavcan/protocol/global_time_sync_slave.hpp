@@ -30,6 +30,7 @@ class GlobalTimeSyncSlave : Noncopyable
     NodeID master_nid_;
     TransferID prev_tid_;
     uint8_t prev_iface_index_;
+    bool suppressed_;
 
     ISystemClock& getSystemClock() const { return sub_.getNode().getSystemClock(); }
 
@@ -46,9 +47,13 @@ public:
         : sub_(node)
         , state_(Update)
         , prev_iface_index_(0xFF)
+        , suppressed_(false)
     { }
 
     int start();
+
+    void suppress(bool suppressed) { suppressed_ = suppressed; }
+    bool isSuppressed() const { return suppressed_; }
 
     bool isActive() const;
 

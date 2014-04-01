@@ -18,7 +18,10 @@ void GlobalTimeSyncSlave::adjustFromMsg(const ReceivedDataStructure<protocol::Gl
                  static_cast<long long>(adjustment.toUSec()),
                  int(msg.getSrcNodeID().get()), int(msg.getIfaceIndex()));
 
-    getSystemClock().adjustUtc(adjustment);
+    if (!suppressed_)
+    {
+        getSystemClock().adjustUtc(adjustment);
+    }
     last_adjustment_ts_ = msg.getMonotonicTimestamp();
     state_ = Update;
 }

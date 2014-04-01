@@ -274,3 +274,39 @@ TEST(GlobalTimeSyncSlave, Validation)
     ASSERT_EQ(5000, slave_clock.utc);
     std::cout << slave_clock.monotonic << std::endl;
 }
+
+
+TEST(GlobalTimeSyncSlave, Suppression)
+{
+    SystemClockMock slave_clock;
+    slave_clock.monotonic = 1000000;
+    slave_clock.preserve_utc = true;
+
+    CanDriverMock slave_can(3, slave_clock);
+    for (int i = 0; i < slave_can.getNumIfaces(); i++)
+    {
+        slave_can.ifaces.at(i).enable_utc_timestamping = true;
+    }
+
+    TestNode node(slave_can, slave_clock, 64);
+
+    uavcan::GlobalTimeSyncSlave gtss(node);
+    uavcan::Publisher<uavcan::protocol::GlobalTimeSync> gts_pub(node);
+
+    ASSERT_LE(0, gtss.start());
+    ASSERT_EQ(0, slave_clock.utc);
+
+    gtss.suppress(true);
+
+    broadcastSyncMsg(slave_can.ifaces.at(0), 0, 8, 0);    // Locked on this
+    broadcastSyncMsg(slave_can.ifaces.at(1), 2000, 8, 0); // Ignored
+    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(10)));
+
+    broadcastSyncMsg(slave_can.ifaces.at(0), 1000, 8, 1); // Adjust 1000 ahead
+    broadcastSyncMsg(slave_can.ifaces.at(1), 2000, 8, 1); // Ignored
+    ASSERT_LE(0, node.spin(uavcan::MonotonicDuration::fromMSec(10)));
+
+    ASSERT_TRUE(gtss.isActive());
+    ASSERT_EQ(8, gtss.getMasterNodeID().get());
+    ASSERT_EQ(0, slave_clock.utc);                  // The clock shall not be asjusted
+}
