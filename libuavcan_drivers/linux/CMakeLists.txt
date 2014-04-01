@@ -36,3 +36,6 @@ target_link_libraries(test_clock ${UAVCAN_LIB} rt)
 
 add_executable(test_socket test/test_socket.cpp)
 target_link_libraries(test_socket ${UAVCAN_LIB} rt)
+
+add_executable(test_node test/test_node.cpp)
+target_link_libraries(test_node ${UAVCAN_LIB} rt)
