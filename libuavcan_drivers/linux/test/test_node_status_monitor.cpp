@@ -142,18 +142,13 @@ int main(int argc, const char** argv)
         std::cout << "Usage:\n\t" << argv[0] << " <node-id> <can-iface-name-1> [can-iface-name-N...]" << std::endl;
         return 1;
     }
-
     const int self_node_id = std::stoi(argv[1]);
-
     std::vector<std::string> iface_names;
     for (int i = 2; i < argc; i++)
     {
         iface_names.emplace_back(argv[i]);
     }
-
     uavcan_linux::NodePtr node = initNode(iface_names, self_node_id, "org.uavcan.linux_test_node_status_monitor");
-
     runForever(node);
-
     return 0;
 }
