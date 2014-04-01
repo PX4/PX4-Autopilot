@@ -80,7 +80,7 @@ TEST(Node, Basic)
     ASSERT_LE(0, log_sub.start());
 
     node1.getLogger().setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
-    ASSERT_LE(1, node1.logInfo("test", "6 * 9 = 42"));
+    node1.logInfo("test", "6 * 9 = 42");
 
     ASSERT_LE(0, node1.spin(uavcan::MonotonicDuration::fromMSec(20)));
     ASSERT_LE(0, node2.spin(uavcan::MonotonicDuration::fromMSec(20)));

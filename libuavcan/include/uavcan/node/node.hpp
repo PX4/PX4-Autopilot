@@ -184,35 +184,35 @@ public:
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
 
     template <typename... Args>
-    inline int logDebug(const char* source, const char* format, Args... args)
+    inline void logDebug(const char* source, const char* format, Args... args)
     {
-        return proto_logger_.logDebug(source, format, args...);
+        (void)proto_logger_.logDebug(source, format, args...);
     }
 
     template <typename... Args>
-    inline int logInfo(const char* source, const char* format, Args... args)
+    inline void logInfo(const char* source, const char* format, Args... args)
     {
-        return proto_logger_.logInfo(source, format, args...);
+        (void)proto_logger_.logInfo(source, format, args...);
     }
 
     template <typename... Args>
-    inline int logWarning(const char* source, const char* format, Args... args)
+    inline void logWarning(const char* source, const char* format, Args... args)
     {
-        return proto_logger_.logWarning(source, format, args...);
+        (void)proto_logger_.logWarning(source, format, args...);
     }
 
     template <typename... Args>
-    inline int logError(const char* source, const char* format, Args... args)
+    inline void logError(const char* source, const char* format, Args... args)
     {
-        return proto_logger_.logError(source, format, args...);
+        (void)proto_logger_.logError(source, format, args...);
     }
 
 #else
 
-    int logDebug(const char* source, const char* text)   { return proto_logger_.logDebug(source, text); }
-    int logInfo(const char* source, const char* text)    { return proto_logger_.logInfo(source, text); }
-    int logWarning(const char* source, const char* text) { return proto_logger_.logWarning(source, text); }
-    int logError(const char* source, const char* text)   { return proto_logger_.logError(source, text); }
+    void logDebug(const char* source, const char* text)   { (void)proto_logger_.logDebug(source, text); }
+    void logInfo(const char* source, const char* text)    { (void)proto_logger_.logInfo(source, text); }
+    void logWarning(const char* source, const char* text) { (void)proto_logger_.logWarning(source, text); }
+    void logError(const char* source, const char* text)   { (void)proto_logger_.logError(source, text); }
 
 #endif
 
