@@ -29,7 +29,8 @@ __attribute__((noreturn))
 void die(int status)
 {
     lowsyslog("Now I am dead x_x %i\n", status);
-    while (1) {
+    while (1)
+    {
         ledSet(false);
         sleep(1);
         ledSet(true);
