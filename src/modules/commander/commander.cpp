@@ -117,7 +117,7 @@ extern struct system_load_s system_load;
 #define STICK_ON_OFF_HYSTERESIS_TIME_MS 1000
 #define STICK_ON_OFF_COUNTER_LIMIT (STICK_ON_OFF_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
-#define POSITION_TIMEOUT 20000 /**< consider the local or global position estimate invalid after 20ms */
+#define POSITION_TIMEOUT 30000 /**< consider the local or global position estimate invalid after 30ms */
 #define RC_TIMEOUT 100000
 #define RC_TIMEOUT_HIL 500000
 #define DIFFPRESS_TIMEOUT 2000000
