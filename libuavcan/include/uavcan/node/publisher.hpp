@@ -29,12 +29,12 @@ public:
 
     int broadcast(const DataType& message)
     {
-        return publish(message, TransferTypeMessageBroadcast, NodeID::Broadcast);
+        return BaseType::publish(message, TransferTypeMessageBroadcast, NodeID::Broadcast);
     }
 
     int broadcast(const DataType& message, TransferID tid)
     {
-        return publish(message, TransferTypeMessageBroadcast, NodeID::Broadcast, tid);
+        return BaseType::publish(message, TransferTypeMessageBroadcast, NodeID::Broadcast, tid);
     }
 
     int unicast(const DataType& message, NodeID dst_node_id)
@@ -44,7 +44,7 @@ public:
             assert(0);
             return -ErrInvalidParam;
         }
-        return publish(message, TransferTypeMessageUnicast, dst_node_id);
+        return BaseType::publish(message, TransferTypeMessageUnicast, dst_node_id);
     }
 
     static MonotonicDuration getDefaultTxTimeout() { return MonotonicDuration::fromMSec(5); } // 5 ms --> 200 Hz max

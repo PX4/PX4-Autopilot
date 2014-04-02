@@ -167,7 +167,7 @@ public:
         return reinterpret_cast<const char*>(data_);
     }
 
-    ValueType& at(SizeType pos)             { return data_[validateRange(pos)]; }
+    ValueType& at(SizeType pos)             { return data_[Base::validateRange(pos)]; }
     const ValueType& at(SizeType pos) const { return data_[Base::validateRange(pos)]; }
 
     ValueType& operator[](SizeType pos)             { return at(pos); }

@@ -175,7 +175,7 @@ bool Frame::isValid() const
         (src_node_id_ == dst_node_id_) ||
         ((transfer_type_ == TransferTypeMessageBroadcast) != dst_node_id_.isBroadcast()) ||
         (transfer_type_ >= NumTransferTypes) ||
-        (payload_len_ > getMaxPayloadLen()) ||
+        (static_cast<int>(payload_len_) > getMaxPayloadLen()) ||
         (!data_type_id_.isValid());
 
     return !invalid;
@@ -213,7 +213,7 @@ std::string Frame::toString() const
                        int(data_type_id_.get()), int(transfer_type_), int(src_node_id_.get()),
                        int(dst_node_id_.get()), int(frame_index_), int(last_frame_), int(transfer_id_.get()));
 
-    for (int i = 0; i < payload_len_; i++)
+    for (unsigned i = 0; i < payload_len_; i++)
     {
         ofs += snprintf(buf + ofs, BUFLEN - ofs, "%02x", payload_[i]);
         if ((i + 1) < payload_len_)

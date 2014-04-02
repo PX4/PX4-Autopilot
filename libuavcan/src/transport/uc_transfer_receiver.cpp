@@ -187,12 +187,12 @@ TransferReceiver::ResultCode TransferReceiver::receive(const RxFrame& frame, Tra
 
 bool TransferReceiver::isTimedOut(MonotonicTime current_ts) const
 {
-    static const uint64_t INTERVAL_MULT = (1 << TransferID::BitLen) / 2 + 1;
+    static const int64_t INTERVAL_MULT = (1 << TransferID::BitLen) / 2 + 1;
     if (current_ts <= this_transfer_ts_)
     {
         return false;
     }
-    return (current_ts - this_transfer_ts_).toUSec() > (uint64_t(transfer_interval_usec_) * INTERVAL_MULT);
+    return (current_ts - this_transfer_ts_).toUSec() > (int64_t(transfer_interval_usec_) * INTERVAL_MULT);
 }
 
 TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, TransferBufferAccessor& tba)
@@ -210,7 +210,7 @@ TransferReceiver::ResultCode TransferReceiver::addFrame(const RxFrame& frame, Tr
     const bool first_fame = frame.isFirst();
     const TidRelation tid_rel = getTidRelation(frame);
     const bool iface_timed_out =
-        (frame.getMonotonicTimestamp() - this_transfer_ts_).toUSec() > (uint64_t(transfer_interval_usec_) * 2);
+        (frame.getMonotonicTimestamp() - this_transfer_ts_).toUSec() > (int64_t(transfer_interval_usec_) * 2);
 
     // FSM, the hard way
     const bool need_restart =
