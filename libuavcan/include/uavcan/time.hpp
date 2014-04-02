@@ -204,7 +204,8 @@ template <typename Stream, typename D>
 inline Stream& operator<<(Stream& s, DurationBase<D> d)
 {
     char buf[8];
-    std::snprintf(buf, sizeof(buf), "%06lu", static_cast<unsigned long>(std::abs(d.toUSec() % 1000000L)));
+    using namespace std; // For snprintf()
+    snprintf(buf, sizeof(buf), "%06lu", static_cast<unsigned long>(std::abs(d.toUSec() % 1000000L)));
     if (d.isNegative())
     {
         s << '-';
@@ -217,7 +218,8 @@ template <typename Stream, typename T, typename D>
 inline Stream& operator<<(Stream& s, TimeBase<T, D> t)
 {
     char buf[8];
-    std::snprintf(buf, sizeof(buf), "%06lu", static_cast<unsigned long>(t.toUSec() % 1000000L));
+    using namespace std; // For snprintf()
+    snprintf(buf, sizeof(buf), "%06lu", static_cast<unsigned long>(t.toUSec() % 1000000L));
     s << (t.toUSec() / 1000000L) << '.' << buf;
     return s;
 }

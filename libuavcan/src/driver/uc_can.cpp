@@ -59,7 +59,7 @@ bool CanFrame::priorityHigherThan(const CanFrame& rhs) const
 
 std::string CanFrame::toString(StringRepresentation mode) const
 {
-    using std::snprintf;
+    using namespace std; // For snprintf()
 
     assert(mode == StrTight || mode == StrAligned);
 

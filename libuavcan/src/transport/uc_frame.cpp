@@ -197,6 +197,7 @@ bool Frame::operator==(const Frame& rhs) const
 
 std::string Frame::toString() const
 {
+    using namespace std; // For snprintf()
     /*
      * Frame ID fields, according to UAVCAN specs:
      *  - Data Type ID
@@ -208,19 +209,19 @@ std::string Frame::toString() const
      */
     static const int BUFLEN = 100;
     char buf[BUFLEN];
-    int ofs = std::snprintf(buf, BUFLEN, "dtid=%i tt=%i snid=%i dnid=%i idx=%i last=%i tid=%i payload=[",
-                            int(data_type_id_.get()), int(transfer_type_), int(src_node_id_.get()),
-                            int(dst_node_id_.get()), int(frame_index_), int(last_frame_), int(transfer_id_.get()));
+    int ofs = snprintf(buf, BUFLEN, "dtid=%i tt=%i snid=%i dnid=%i idx=%i last=%i tid=%i payload=[",
+                       int(data_type_id_.get()), int(transfer_type_), int(src_node_id_.get()),
+                       int(dst_node_id_.get()), int(frame_index_), int(last_frame_), int(transfer_id_.get()));
 
     for (int i = 0; i < payload_len_; i++)
     {
-        ofs += std::snprintf(buf + ofs, BUFLEN - ofs, "%02x", payload_[i]);
+        ofs += snprintf(buf + ofs, BUFLEN - ofs, "%02x", payload_[i]);
         if ((i + 1) < payload_len_)
         {
-            ofs += std::snprintf(buf + ofs, BUFLEN - ofs, " ");
+            ofs += snprintf(buf + ofs, BUFLEN - ofs, " ");
         }
     }
-    ofs += std::snprintf(buf + ofs, BUFLEN - ofs, "]");
+    ofs += snprintf(buf + ofs, BUFLEN - ofs, "]");
     return std::string(buf);
 }
 

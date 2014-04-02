@@ -503,7 +503,8 @@ public:
         const SizeType max_size = capacity() - size();
 
         // We have one extra byte for the null terminator, hence +1
-        const int ret = std::snprintf(reinterpret_cast<char*>(ptr), max_size + 1, format, value);
+        using namespace std; // For snprintf()
+        const int ret = snprintf(reinterpret_cast<char*>(ptr), max_size + 1, format, value);
 
         for (int i = 0; i < std::min(ret, int(max_size)); i++)
         {
