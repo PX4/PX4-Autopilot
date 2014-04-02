@@ -129,7 +129,6 @@ __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, doub
 	double lat_next_rad = lat_next * M_DEG_TO_RAD;
 	double lon_next_rad = lon_next * M_DEG_TO_RAD;
 
-	double d_lat = lat_next_rad - lat_now_rad;
 	double d_lon = lon_next_rad - lon_now_rad;
 
 	/* conscious mix of double and float trig function to maximize speed and efficiency */

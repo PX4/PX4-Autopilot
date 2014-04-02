@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,63 +32,86 @@
  ****************************************************************************/
 
 /**
- * @file test_adc.c
- * Test for the analog to digital converter.
+ * @file fw_att_pos_estimator_params.c
+ *
+ * Parameters defined by the attitude and position estimator task
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #include <nuttx/config.h>
-#include <nuttx/arch.h>
 
-#include <sys/types.h>
+#include <systemlib/param/param.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <debug.h>
+/*
+ * Estimator parameters, accessible via MAVLink
+ *
+ */
 
-#include <nuttx/spi.h>
+/**
+ * Velocity estimate delay
+ *
+ * The delay in milliseconds of the velocity estimate from GPS.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_VEL_DELAY_MS, 230);
 
-#include "tests.h"
+/**
+ * Position estimate delay
+ *
+ * The delay in milliseconds of the position estimate from GPS.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_POS_DELAY_MS, 210);
 
-#include <nuttx/analog/adc.h>
-#include <drivers/drv_adc.h>
-#include <systemlib/err.h>
+/**
+ * Height estimate delay
+ *
+ * The delay in milliseconds of the height estimate from the barometer.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_HGT_DELAY_MS, 350);
 
-int test_adc(int argc, char *argv[])
-{
-	int fd = open(ADC_DEVICE_PATH, O_RDONLY);
+/**
+ * Mag estimate delay
+ *
+ * The delay in milliseconds of the magnetic field estimate from
+ * the magnetometer.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_MAG_DELAY_MS, 30);
 
-	if (fd < 0) {
-		warnx("ERROR: can't open ADC device");
-		return 1;
-	}
+/**
+ * True airspeeed estimate delay
+ *
+ * The delay in milliseconds of the airspeed estimate.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_TAS_DELAY_MS, 210);
 
-	for (unsigned i = 0; i < 5; i++) {
-		/* make space for a maximum of twelve channels */
-		struct adc_msg_s data[12];
-		/* read all channels available */
-		ssize_t count = read(fd, data, sizeof(data));
+/**
+ * GPS vs. barometric altitude update weight
+ *
+ * RE-CHECK this.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group Position Estimator
+ */
+PARAM_DEFINE_FLOAT(PE_GPS_ALT_WGT, 0.9f);
 
-		if (count < 0)
-			goto errout_with_dev;
-
-		unsigned channels = count / sizeof(data[0]);
-
-		for (unsigned j = 0; j < channels; j++) {
-			printf("%d: %u  ", data[j].am_channel, data[j].am_data);
-		}
-
-		printf("\n");
-		usleep(150000);
-	}
-
-	warnx("\t ADC test successful.\n");
-
-errout_with_dev:
-
-	if (fd != 0) close(fd);
-
-	return OK;
-}

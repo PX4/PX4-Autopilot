@@ -276,34 +276,11 @@ SF0X::init()
 		warnx("advert err");
 	}
 
-	/* attempt to get a measurement 5 times */
-	while (ret != OK && i < 5) {
-
-		if (measure()) {
-			ret = ERROR;
-			_sensor_ok = false;
-		}
-
-		usleep(100000);
-
-		if (collect()) {
-			ret = ERROR;
-			_sensor_ok = false;
-
-		} else {
-			ret = OK;
-			/* sensor is ok, but we don't really know if it is within range */
-			_sensor_ok = true;
-		}
-
-		i++;
-	}
-
 	/* close the fd */
 	::close(_fd);
 	_fd = -1;
 out:
-	return ret;
+	return OK;
 }
 
 int
@@ -376,6 +353,7 @@ SF0X::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
+
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
 
@@ -544,10 +522,16 @@ SF0X::collect()
 
 	if (read_elapsed > (SF0X_CONVERSION_INTERVAL * 2)) {
 		_linebuf_index = 0;
+	} else if (_linebuf_index > 0) {
+		/* increment to next read position */
+		_linebuf_index++;
 	}
 
+	/* the buffer for read chars is buflen minus null termination */
+	unsigned readlen = sizeof(_linebuf) - 1;
+
 	/* read from the sensor (uart buffer) */
-	ret = ::read(_fd, &_linebuf[_linebuf_index], sizeof(_linebuf) - _linebuf_index);
+	ret = ::read(_fd, &_linebuf[_linebuf_index], readlen - _linebuf_index);
 
 	if (ret < 0) {
 		_linebuf[sizeof(_linebuf) - 1] = '\0';
@@ -562,19 +546,30 @@ SF0X::collect()
 		} else {
 			return -EAGAIN;
 		}
+	} else if (ret == 0) {
+		return -EAGAIN;
 	}
 
-	_linebuf_index += ret;
-
-	if (_linebuf_index >= sizeof(_linebuf)) {
-		_linebuf_index = 0;
-	}
+	/* we did increment the index to the next position already, so just add the additional fields */
+	_linebuf_index += (ret - 1);
 
 	_last_read = hrt_absolute_time();
 
-	if (_linebuf[_linebuf_index - 2] != '\r' || _linebuf[_linebuf_index - 1] != '\n') {
-		/* incomplete read, reschedule ourselves */
+	if (_linebuf_index < 1) {
+		/* we need at least the two end bytes to make sense of this string */
 		return -EAGAIN;
+
+	} else if (_linebuf[_linebuf_index - 1] != '\r' || _linebuf[_linebuf_index] != '\n') {
+
+		if (_linebuf_index >= readlen - 1) {
+			/* we have a full buffer, but no line ending - abort */
+			_linebuf_index = 0;
+			perf_count(_comms_errors);
+			return -ENOMEM;
+		} else {
+			/* incomplete read, reschedule ourselves */
+			return -EAGAIN;
+		}
 	}
 
 	char *end;
@@ -582,21 +577,55 @@ SF0X::collect()
 	bool valid;
 
 	/* enforce line ending */
-	_linebuf[sizeof(_linebuf) - 1] = '\0';
+	unsigned lend = (_linebuf_index < (sizeof(_linebuf) - 1)) ? _linebuf_index : (sizeof(_linebuf) - 1);
+
+	_linebuf[lend] = '\0';
 
 	if (_linebuf[0] == '-' && _linebuf[1] == '-' && _linebuf[2] == '.') {
 		si_units = -1.0f;
 		valid = false;
 
 	} else {
-		si_units = strtod(_linebuf, &end);
-		valid = true;
+
+		/* we need to find a dot in the string, as we're missing the meters part else */
+		valid = false;
+
+		/* wipe out partially read content from last cycle(s), check for dot */
+		for (int i = 0; i < (lend - 2); i++) {
+			if (_linebuf[i] == '\n') {
+				char buf[sizeof(_linebuf)];
+				memcpy(buf, &_linebuf[i+1], (lend + 1) - (i + 1));
+				memcpy(_linebuf, buf, (lend + 1) - (i + 1));
+			}
+
+			if (_linebuf[i] == '.') {
+				valid = true;
+			}
+		}
+
+		if (valid) {
+			si_units = strtod(_linebuf, &end);
+
+			/* we require at least 3 characters for a valid number */
+			if (end > _linebuf + 3) {
+				valid = true;
+			} else {
+				si_units = -1.0f;
+				valid = false;
+			}
+		}
 	}
 
-	debug("val (float): %8.4f, raw: %s\n", si_units, _linebuf);
+	debug("val (float): %8.4f, raw: %s, valid: %s\n", si_units, _linebuf, ((valid) ? "OK" : "NO"));
 
-	/* done with this chunk, resetting */
+	/* done with this chunk, resetting - even if invalid */
 	_linebuf_index = 0;
+
+	/* if its invalid, there is no reason to forward the value */
+	if (!valid) {
+		perf_count(_comms_errors);
+		return -EINVAL;
+	}
 
 	struct range_finder_report report;
 
@@ -689,7 +718,11 @@ SF0X::cycle()
 		}
 
 		if (OK != collect_ret) {
-			log("collection error");
+
+			/* we know the sensor needs about four seconds to initialize */
+			if (hrt_absolute_time() > 5 * 1000 * 1000LL) {
+				log("collection error");
+			}
 			/* restart the measurement state machine */
 			start();
 			return;
@@ -848,10 +881,10 @@ test()
 	}
 
 	warnx("single read");
-	warnx("measurement: %0.2f m", (double)report.distance);
-	warnx("time:        %lld", report.timestamp);
+	warnx("val:  %0.2f m", (double)report.distance);
+	warnx("time: %lld", report.timestamp);
 
-	/* start the sensor polling at 2Hz */
+	/* start the sensor polling at 2 Hz rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
 		errx(1, "failed to set 2Hz poll rate");
 	}
@@ -866,24 +899,26 @@ test()
 		int ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			errx(1, "timed out waiting for sensor data");
+			warnx("timed out");
+			break;
 		}
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			err(1, "periodic read failed");
+			warnx("read failed: got %d vs exp. %d", sz, sizeof(report));
+			break;
 		}
 
-		warnx("periodic read %u", i);
-		warnx("measurement: %0.3f", (double)report.distance);
-		warnx("time:        %lld", report.timestamp);
+		warnx("read #%u", i);
+		warnx("val:  %0.3f m", (double)report.distance);
+		warnx("time: %lld", report.timestamp);
 	}
 
-	/* reset the sensor polling to default rate */
+	/* reset the sensor polling to the default rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		errx(1, "failed to set default poll rate");
+		errx(1, "ERR: DEF RATE");
 	}
 
 	errx(0, "PASS");

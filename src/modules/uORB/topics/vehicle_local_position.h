@@ -54,8 +54,7 @@
 /**
  * Fused local position in NED.
  */
-struct vehicle_local_position_s
-{
+struct vehicle_local_position_s {
 	uint64_t timestamp;		/**< Time of this estimate, in microseconds since system start */
 	bool xy_valid;			/**< true if x and y are valid */
 	bool z_valid;			/**< true if z is valid */
