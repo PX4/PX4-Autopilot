@@ -203,6 +203,13 @@ private:
 	math::Vector<3> _vel;
 	math::Vector<3> _vel_sp;
 	math::Vector<3> _vel_prev;			/**< velocity on previous step */
+	math::Vector<3> _vel_ff;
+
+	math::Vector<3> _tpos;
+	math::Vector<3> _tvel;
+
+	math::Vector<3> _sp_move_rate;
+	math::Vector<3> _att_rates_ff;
 
 	math::Vector<3> _follow_offset;		/**< offset from target for FOLLOW mode, vector in NED frame */
 
@@ -243,9 +250,9 @@ private:
 	void		reset_follow_offset();
 
 	/**
-	 * Select between barometric and global (AMSL) altitudes
+	 * Control setpoint if "follow target" mode
 	 */
-	void		select_alt(bool global);
+	void		control_sp_follow(float dt);
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -325,6 +332,13 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel.zero();
 	_vel_sp.zero();
 	_vel_prev.zero();
+	_vel_ff.zero();
+
+	_tpos.zero();
+	_tvel.zero();
+
+	_sp_move_rate.zero();
+	_att_rates_ff.zero();
 
 	/* initialize to safe value to avoid flying into target */
 	_follow_offset.zero();
@@ -552,11 +566,6 @@ MulticopterPositionControl::reset_follow_offset()
 	if (_reset_follow_offset) {
 		_reset_follow_offset = false;
 
-		/* project target position to local frame */
-		math::Vector<3> target;
-		map_projection_project(&_ref_pos, _target_pos.lat, _target_pos.lon, &target.data[0], &target.data[1]);
-		target(2) = -(_target_pos.alt - _ref_alt) + _target_alt_offs;
-
 		/* use current position or position setpoint */
 		math::Vector<3> pos;
 		if (_reset_pos_sp) {
@@ -569,7 +578,7 @@ MulticopterPositionControl::reset_follow_offset()
 		}
 		pos(2) = _reset_alt_sp ? _pos(2) : _pos_sp(2);
 
-		_follow_offset = pos - target;
+		_follow_offset = pos - _tpos;
 
 		mavlink_log_info(_mavlink_fd, "[mpc] reset follow offs: %.2f, %.2f, %.2f", _follow_offset(0), _follow_offset(1), _follow_offset(2));
 	}
@@ -583,6 +592,93 @@ MulticopterPositionControl::reset_alt_sp()
 		_reset_alt_sp = false;
 		_pos_sp(2) = _pos(2);
 		mavlink_log_info(_mavlink_fd, "[mpc] reset alt sp: %.2f", -(double)_pos_sp(2));
+	}
+}
+
+void
+MulticopterPositionControl::control_sp_follow(float dt)
+{
+	/* follow target, change offset from target instead of moving setpoint directly */
+	reset_follow_offset();
+
+	/* new value for _follow_offset vector */
+	math::Vector<3> follow_offset_new(_follow_offset);
+
+	/* move follow offset using polar coordinates */
+	math::Vector<2> follow_offset_xy(_follow_offset(0), _follow_offset(1));
+	math::Vector<2> sp_move_rate_xy(_sp_move_rate(0), _sp_move_rate(1));
+	float follow_offset_xy_len = follow_offset_xy.length();
+
+	if (sp_move_rate_xy.length_squared() > 0.0f) {
+		if (follow_offset_xy_len > FOLLOW_OFFS_XY_MIN) {
+			/* calculate change rate in polar coordinates phi, d */
+			float rate_phi = -sp_move_rate_xy(1) / follow_offset_xy_len;
+			float rate_d = -sp_move_rate_xy(0);
+
+			/* current direction of offset vector */
+			float phi = atan2f(_follow_offset(1), _follow_offset(0));
+
+			/* change length of horizontal component of _follow_offset vector with rate_d */
+			follow_offset_new(0) += rate_d * cosf(phi) * dt;
+			follow_offset_new(1) += rate_d * sinf(phi) * dt;
+
+			/* rotate _follow_offset around vertical axis with rate_phi */
+			math::Matrix<3, 3> R_phi;
+			R_phi.from_euler(0.0f, 0.0f, rate_phi * dt);
+			follow_offset_new = R_phi * follow_offset_new;
+
+			/* update horizontal components of _sp_move_rate */
+			_sp_move_rate(0) = rate_d * cosf(phi) - rate_phi * sinf(phi) * follow_offset_xy_len;
+			_sp_move_rate(1) = rate_d * sinf(phi) + rate_phi * cosf(phi) * follow_offset_xy_len;
+
+		} else {
+			/* don't use polar coordinates near singularity */
+			math::Matrix<3, 3> R_yaw_sp;
+			R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
+			_sp_move_rate = R_yaw_sp * _sp_move_rate;
+			follow_offset_new += _sp_move_rate * dt;
+		}
+	}
+
+	/* change altitude */
+	follow_offset_new(2) += _sp_move_rate(2) * dt;
+
+	/* don't allow to get closer than MC_FOLLOW_DIST */
+	float follow_offset_len = _follow_offset.length();
+	float follow_offset_new_len = follow_offset_new.length();
+
+	if (follow_offset_new_len > _params.follow_dist || follow_offset_new_len > follow_offset_len) {
+		_follow_offset = follow_offset_new;
+
+	} else {
+		_sp_move_rate.zero();
+	}
+
+	_pos_sp = _tpos + _follow_offset;
+
+	/* feed forward manual setpoint move rate with weight vel_ff */
+	_vel_ff = _sp_move_rate.emult(_params.vel_ff);
+
+	/* add target velocity to setpoint move rate */
+	_sp_move_rate += _tvel;
+
+	/* feed forward target velocity */
+	_vel_ff += _tvel * _params.follow_ff;
+
+	/* change yaw to keep direction to target */
+	/* calculate current offset (not offset setpoint) */
+	math::Vector<3> current_offset = _pos - _tpos;
+	math::Vector<2> current_offset_xy(current_offset(0), current_offset(1));
+
+	/* don't try to rotate near singularity */
+	float current_offset_xy_len = current_offset_xy.length();
+	if (current_offset_xy_len > FOLLOW_OFFS_XY_MIN) {
+		/* calculate yaw setpoint from current positions and control offset with yaw stick */
+		_att_sp.yaw_body = _wrap_pi(atan2f(-current_offset_xy(1), -current_offset_xy(0)) + _manual.yaw / _params.rc_scale_yaw * _params.follow_scale_yaw);
+
+		/* feed forward attitude rates */
+		math::Vector<2> offs_vel_xy(_vel(0) - _tvel(0), _vel(1) - _tvel(1));
+		_att_rates_ff(2) = (current_offset_xy % offs_vel_xy) / current_offset_xy_len / current_offset_xy_len;
 	}
 }
 
@@ -625,12 +721,6 @@ MulticopterPositionControl::task_main()
 	const float alt_ctl_dz = 0.2f;
 	const float pos_ctl_dz = 0.05f;
 
-	math::Vector<3> sp_move_rate;
-	sp_move_rate.zero();
-	math::Vector<3> vel_ff;
-	vel_ff.zero();
-	math::Vector<3> att_rates_ff;
-	att_rates_ff.zero();
 	math::Vector<3> thrust_int;
 	thrust_int.zero();
 	math::Matrix<3, 3> R;
@@ -697,9 +787,24 @@ MulticopterPositionControl::task_main()
 			_vel(1) = _local_pos.vy;
 			_vel(2) = _local_pos.vz;
 
-			sp_move_rate.zero();
-			vel_ff.zero();
-			att_rates_ff.zero();
+			/* project target position to local frame */
+			map_projection_project(&_ref_pos, _target_pos.lat, _target_pos.lon, &_tpos.data[0], &_tpos.data[1]);
+			_tpos(2) = -(_target_pos.alt + _target_alt_offs - _ref_alt);
+
+			_tvel(0) = _target_pos.vel_n;
+			_tvel(1) = _target_pos.vel_e;
+			_tvel(2) = _target_pos.vel_d;
+
+			/* calculate delay between position estimates for vehicle and target */
+			float target_dt = math::constrain(((int64_t)_local_pos.time_gps_usec - (int64_t)_target_pos.time_gps_usec) / 1000000.0f, 0.0f, 1.0f);
+
+			/* target position prediction */
+			_tpos += _tvel * target_dt;
+
+			_vel_ff.zero();
+
+			_sp_move_rate.zero();
+			_att_rates_ff.zero();
 
 			/* select control source */
 			if (_control_mode.flag_control_manual_enabled) {
@@ -709,7 +814,7 @@ MulticopterPositionControl::task_main()
 					reset_alt_sp();
 
 					/* move altitude setpoint with throttle stick */
-					sp_move_rate(2) = -scale_control(_manual.throttle - 0.5f, 0.5f, alt_ctl_dz);
+					_sp_move_rate(2) = -scale_control(_manual.throttle - 0.5f, 0.5f, alt_ctl_dz);
 				}
 
 				if (_control_mode.flag_control_position_enabled) {
@@ -717,129 +822,36 @@ MulticopterPositionControl::task_main()
 					reset_pos_sp();
 
 					/* move position setpoint with roll/pitch stick */
-					sp_move_rate(0) = scale_control(-_manual.pitch / _params.rc_scale_pitch, 1.0f, pos_ctl_dz);
-					sp_move_rate(1) = scale_control(_manual.roll / _params.rc_scale_roll, 1.0f, pos_ctl_dz);
+					_sp_move_rate(0) = scale_control(-_manual.pitch / _params.rc_scale_pitch, 1.0f, pos_ctl_dz);
+					_sp_move_rate(1) = scale_control(_manual.roll / _params.rc_scale_roll, 1.0f, pos_ctl_dz);
 				}
 
 				/* limit setpoint move rate */
-				float sp_move_norm = sp_move_rate.length();
+				float sp_move_norm = _sp_move_rate.length();
 
 				if (sp_move_norm > 1.0f) {
-					sp_move_rate /= sp_move_norm;
+					_sp_move_rate /= sp_move_norm;
 				}
 
 				/* scale speed */
-				sp_move_rate = sp_move_rate.emult(_params.vel_max);
+				_sp_move_rate = _sp_move_rate.emult(_params.vel_max);
 
 				if (_control_mode.flag_follow_target) {
-					/* follow target, change offset from target instead of moving setpoint directly */
-					reset_follow_offset();
-
-					/* new value for _follow_offset vector */
-					math::Vector<3> follow_offset_new(_follow_offset);
-
-					/* move follow offset using polar coordinates */
-					math::Vector<2> follow_offset_xy(_follow_offset(0), _follow_offset(1));
-					math::Vector<2> sp_move_rate_xy(sp_move_rate(0), sp_move_rate(1));
-					float follow_offset_xy_len = follow_offset_xy.length();
-
-					if (sp_move_rate_xy.length_squared() > 0.0f) {
-						if (follow_offset_xy_len > FOLLOW_OFFS_XY_MIN) {
-							/* calculate change rate in polar coordinates phi, d */
-							float rate_phi = sp_move_rate_xy(1) / follow_offset_xy_len;
-							float rate_d = sp_move_rate_xy(0);
-
-							/* current direction of offset vector */
-							float phi = atan2f(_follow_offset(1), _follow_offset(0));
-
-							/* change length of horizontal component of _follow_offset vector with rate_d */
-							follow_offset_new(0) += rate_d * cosf(phi) * dt;
-							follow_offset_new(1) += rate_d * sinf(phi) * dt;
-
-							/* rotate _follow_offset around vertical axis with rate_phi */
-							math::Matrix<3, 3> R_phi;
-							R_phi.from_euler(0.0f, 0.0f, rate_phi * dt);
-							follow_offset_new = R_phi * follow_offset_new;
-
-							/* update horizontal components of sp_move_rate */
-							sp_move_rate(0) = rate_d * cosf(phi) - rate_phi * sinf(phi) * follow_offset_xy_len;
-							sp_move_rate(1) = rate_d * sinf(phi) + rate_phi * cosf(phi) * follow_offset_xy_len;
-
-						} else {
-							/* don't use polar coordinates near singularity */
-							math::Matrix<3, 3> R_yaw_sp;
-							R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
-							sp_move_rate = R_yaw_sp * sp_move_rate;
-							follow_offset_new += sp_move_rate * dt;
-						}
-					}
-
-					/* change altitude */
-					follow_offset_new(2) += sp_move_rate(2) * dt;
-
-					/* don't allow to get closer than MC_FOLLOW_DIST */
-					float follow_offset_len = _follow_offset.length();
-					float follow_offset_new_len = follow_offset_new.length();
-
-					if (follow_offset_new_len > _params.follow_dist || follow_offset_new_len > follow_offset_len) {
-						_follow_offset = follow_offset_new;
-
-					} else {
-						sp_move_rate.zero();
-					}
-
-					/* calculate position setpoint with position prediction using GPS time */
-					float target_dt = 0; // TODO math::constrain(((int64_t)_global_pos.time_gps_usec - (int64_t)_target_pos.time_gps_usec) / 1000000.0f, 0.0f, 1.0f);
-
-					/* project target position to local frame */
-					math::Vector<3> target;
-					map_projection_project(&_ref_pos, _target_pos.lat, _target_pos.lon, &target.data[0], &target.data[1]);
-					target(2) = -(_target_pos.alt + _target_alt_offs - _ref_alt);
-
-					_pos_sp = target + _follow_offset;
-
-					/* feed forward manual setpoint move rate with weight vel_ff */
-					vel_ff = sp_move_rate.emult(_params.vel_ff);
-
-					/* add target velocity to setpoint move rate */
-					math::Vector<3> vel_target(_target_pos.vel_n, _target_pos.vel_e, _target_pos.vel_d);
-					sp_move_rate += vel_target;
-
-					/* feed forward target velocity */
-					vel_ff += vel_target * _params.follow_ff;
-
-					/* change yaw to keep direction to target */
-					/* calculate current offset (not offset setpoint) */
-					math::Vector<3> current_offset = _pos - target;
-					math::Vector<2> current_offset_xy(current_offset(0), current_offset(1));
-
-					/* use position prediction */
-					current_offset_xy(0) -= _target_pos.vel_n * target_dt;
-					current_offset_xy(1) -= _target_pos.vel_e * target_dt;
-
-					/* don't try to rotate near singularity */
-					float current_offset_xy_len = current_offset_xy.length();
-					if (current_offset_xy_len > FOLLOW_OFFS_XY_MIN) {
-						/* calculate yaw setpoint from current positions and control offset with yaw stick */
-						_att_sp.yaw_body = _wrap_pi(atan2f(current_offset_xy(1), current_offset_xy(0)) + _manual.yaw / _params.rc_scale_yaw * _params.follow_scale_yaw);
-
-						/* feed forward attitude rates */
-						math::Vector<2> offs_vel_xy(_vel(0) - vel_target(0), _vel(1) - vel_target(1));
-						att_rates_ff(2) = (current_offset_xy % offs_vel_xy) / current_offset_xy_len / current_offset_xy_len;
-					}
+					/* follow target mode */
+					control_sp_follow(dt);
 
 				} else {
 					/* normal node, move position setpoint */
 					/* rotate moving vector around yaw (use yaw setpoint) */
 					math::Matrix<3, 3> R_yaw_sp;
 					R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
-					sp_move_rate = R_yaw_sp * sp_move_rate;
+					_sp_move_rate = R_yaw_sp * _sp_move_rate;
 
 					/* feed forward setpoint move rate with weight vel_ff */
-					vel_ff = sp_move_rate.emult(_params.vel_ff);
+					_vel_ff = _sp_move_rate.emult(_params.vel_ff);
 
 					/* move position setpoint */
-					_pos_sp += sp_move_rate * dt;
+					_pos_sp += _sp_move_rate * dt;
 
 					_reset_follow_offset = true;
 				}
@@ -940,7 +952,7 @@ MulticopterPositionControl::task_main()
 				/* run position & altitude controllers, calculate velocity setpoint */
 				math::Vector<3> pos_err = _pos_sp - _pos;
 
-				_vel_sp = pos_err.emult(_params.pos_p) + vel_ff;
+				_vel_sp = pos_err.emult(_params.pos_p) + _vel_ff;
 
 				if (!_control_mode.flag_control_altitude_enabled) {
 					_reset_alt_sp = true;
@@ -1019,7 +1031,7 @@ MulticopterPositionControl::task_main()
 					math::Vector<3> vel_err = _vel_sp - _vel;
 
 					/* derivative of velocity error */
-					math::Vector<3> vel_err_d = (sp_move_rate - _vel).emult(_params.pos_p) - (_vel - _vel_prev) / dt;
+					math::Vector<3> vel_err_d = (_sp_move_rate - _vel).emult(_params.pos_p) - (_vel - _vel_prev) / dt;
 					_vel_prev = _vel;
 
 					/* thrust vector in NED frame */
@@ -1211,11 +1223,11 @@ MulticopterPositionControl::task_main()
 					}
 
 					/* convert attitude rates from NED to body frame */
-					att_rates_ff = R.transposed() * att_rates_ff;
+					_att_rates_ff = R.transposed() * _att_rates_ff;
 
-					_att_sp.rollrate_ff = att_rates_ff(0);
-					_att_sp.pitchrate_ff = att_rates_ff(1);
-					_att_sp.yawrate_ff = att_rates_ff(2);
+					_att_sp.rollrate_ff = _att_rates_ff(0);
+					_att_sp.pitchrate_ff = _att_rates_ff(1);
+					_att_sp.yawrate_ff = _att_rates_ff(2);
 					_att_sp.thrust = thrust_abs;
 
 					_att_sp.timestamp = hrt_absolute_time();
