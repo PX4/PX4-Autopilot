@@ -10,6 +10,8 @@ PROJECT = uavcan_test_stm32f107
 
 CPPSRC = src/main.cpp src/dummy.cpp
 
+UDEFS = -DUAVCAN_STM32_CHIBIOS=1
+
 #
 # UAVCAN library
 #
@@ -23,7 +25,7 @@ CPPSRC += $(LIBUAVCAN_STM32_SRC)
 UINCDIR += $(LIBUAVCAN_STM32_INC)
 
 # TODO: add target for this
-$(info $(shell $(LIBUAVCAN_DSDLC) $(UAVCAN_DSDL_DIR) -v))
+$(info $(shell $(LIBUAVCAN_DSDLC) $(UAVCAN_DSDL_DIR)))
 UINCDIR += dsdlc_generated
 
 #
@@ -35,8 +37,5 @@ CSRC += src/sys/board.c
 UINCDIR += src/sys
 
 SERIAL_CLI_PORT_NUMBER = 2
-
-RELEASE_OPT = -Os -fomit-frame-pointer
-DEBUG_OPT = -Os -g3
 
 include crdr_chibios/rules_stm32f105_107.mk
