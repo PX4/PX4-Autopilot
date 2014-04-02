@@ -56,6 +56,7 @@
  */
 struct vehicle_local_position_s {
 	uint64_t timestamp;		/**< Time of this estimate, in microseconds since system start */
+	uint64_t time_gps_usec; /**< GPS timestamp in microseconds					   */
 	bool xy_valid;			/**< true if x and y are valid */
 	bool z_valid;			/**< true if z is valid */
 	bool v_xy_valid;		/**< true if vy and vy are valid */

@@ -897,6 +897,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				local_pos.dist_bottom_rate = -z_est[1] - surface_offset_rate;
 			}
 
+			if (gps_valid) {
+				local_pos.time_gps_usec = gps.time_gps_usec + t - gps.timestamp_time;
+			}
+
 			local_pos.timestamp = t;
 
 			orb_publish(ORB_ID(vehicle_local_position), vehicle_local_position_pub, &local_pos);
