@@ -844,14 +844,9 @@ Navigator::task_main()
 				/* Reset the _geofence_violation_warning_sent field */
 				_geofence_violation_warning_sent = false;
 			}
-
-			_global_pos_valid = true;
-
-		} else {
-			/* assume that global position is valid if updated in last 20ms */
-			_global_pos_valid = _global_pos.timestamp != 0 && hrt_abstime() < _global_pos.timestamp + 20000;
 		}
 
+		_global_pos_valid = _vstatus.condition_global_position_valid;
 
 		/* publish position setpoint triplet if updated */
 		if (_pos_sp_triplet_updated) {
