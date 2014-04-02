@@ -119,6 +119,7 @@ extern struct system_load_s system_load;
 #define STICK_ON_OFF_COUNTER_LIMIT (STICK_ON_OFF_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
 #define POSITION_TIMEOUT 30000 /**< consider the local or global position estimate invalid after 30ms */
+#define TARGET_POSITION_TIMEOUT 2000000 /**< consider the target position estimate invalid after 2s */
 #define RC_TIMEOUT 100000
 #define RC_TIMEOUT_HIL 500000
 #define DIFFPRESS_TIMEOUT 2000000
@@ -1024,7 +1025,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* update condition_target_position_valid */
-		check_valid(target_position.timestamp, POSITION_TIMEOUT, target_position.valid, &(status.condition_target_position_valid), &status_changed);
+		check_valid(target_position.timestamp, TARGET_POSITION_TIMEOUT, target_position.valid, &(status.condition_target_position_valid), &status_changed);
 
 		static bool published_condition_landed_fw = false;
 		if (status.is_rotary_wing && status.condition_local_altitude_valid) {
