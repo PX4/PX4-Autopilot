@@ -84,6 +84,7 @@
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/estimator_status.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -795,6 +796,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct battery_status_s battery;
 		struct telemetry_status_s telemetry;
 		struct range_finder_report range_finder;
+		struct estimator_status_report estimator_status;
 		struct target_global_position_s target_pos;
 	} buf;
 
@@ -827,6 +829,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_BATT_s log_BATT;
 			struct log_DIST_s log_DIST;
 			struct log_TELE_s log_TELE;
+			struct log_ESTM_s log_ESTM;
 			struct log_TPOS_s log_TPOS;
 		} body;
 	} log_msg = {
@@ -858,6 +861,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int battery_sub;
 		int telemetry_sub;
 		int range_finder_sub;
+		int estimator_status_sub;
 		int target_pos_sub;
 	} subs;
 
@@ -883,6 +887,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.battery_sub = orb_subscribe(ORB_ID(battery_status));
 	subs.telemetry_sub = orb_subscribe(ORB_ID(telemetry_status));
 	subs.range_finder_sub = orb_subscribe(ORB_ID(sensor_range_finder));
+	subs.estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
 	subs.target_pos_sub = orb_subscribe(ORB_ID(target_global_position));
 
 	thread_running = true;
@@ -1095,8 +1100,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_LPOS.vx = buf.local_pos.vx;
 			log_msg.body.log_LPOS.vy = buf.local_pos.vy;
 			log_msg.body.log_LPOS.vz = buf.local_pos.vz;
-			log_msg.body.log_LPOS.ref_lat = buf.local_pos.ref_lat;
-			log_msg.body.log_LPOS.ref_lon = buf.local_pos.ref_lon;
+			log_msg.body.log_LPOS.ref_lat = buf.local_pos.ref_lat * 1e7;
+			log_msg.body.log_LPOS.ref_lon = buf.local_pos.ref_lon * 1e7;
 			log_msg.body.log_LPOS.ref_alt = buf.local_pos.ref_alt;
 			log_msg.body.log_LPOS.xy_flags = (buf.local_pos.xy_valid ? 1 : 0) | (buf.local_pos.v_xy_valid ? 2 : 0) | (buf.local_pos.xy_global ? 8 : 0);
 			log_msg.body.log_LPOS.z_flags = (buf.local_pos.z_valid ? 1 : 0) | (buf.local_pos.v_z_valid ? 2 : 0) | (buf.local_pos.z_global ? 8 : 0);
@@ -1136,8 +1141,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_GPOS.vel_n = buf.global_pos.vel_n;
 			log_msg.body.log_GPOS.vel_e = buf.global_pos.vel_e;
 			log_msg.body.log_GPOS.vel_d = buf.global_pos.vel_d;
-			log_msg.body.log_GPOS.baro_alt = buf.global_pos.baro_alt;
-			log_msg.body.log_GPOS.flags = (buf.global_pos.baro_valid ? 1 : 0) | (buf.global_pos.global_valid ? 2 : 0);
+			log_msg.body.log_GPOS.eph = buf.global_pos.eph;
+			log_msg.body.log_GPOS.epv = buf.global_pos.epv;
 			LOGBUFFER_WRITE_AND_COUNT(GPOS);
 		}
 
@@ -1250,6 +1255,19 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_DIST.bottom_rate = 0.0f;
 			log_msg.body.log_DIST.flags = (buf.range_finder.valid ? 1 : 0);
 			LOGBUFFER_WRITE_AND_COUNT(DIST);
+		}
+
+		/* --- ESTIMATOR STATUS --- */
+		if (copy_if_updated(ORB_ID(estimator_status), subs.estimator_status_sub, &buf.estimator_status)) {
+			log_msg.msg_type = LOG_ESTM_MSG;
+			unsigned maxcopy = (sizeof(buf.estimator_status.states) < sizeof(log_msg.body.log_ESTM.s)) ? sizeof(buf.estimator_status.states) : sizeof(log_msg.body.log_ESTM.s);
+			memset(&(log_msg.body.log_ESTM.s), 0, sizeof(log_msg.body.log_ESTM.s));
+			memcpy(&(log_msg.body.log_ESTM.s), buf.estimator_status.states, maxcopy);
+			log_msg.body.log_ESTM.n_states = buf.estimator_status.n_states;
+			log_msg.body.log_ESTM.states_nan = buf.estimator_status.states_nan;
+			log_msg.body.log_ESTM.covariance_nan = buf.estimator_status.covariance_nan;
+			log_msg.body.log_ESTM.kalman_gain_nan = buf.estimator_status.kalman_gain_nan;
+			LOGBUFFER_WRITE_AND_COUNT(ESTM);
 		}
 
 		/* --- TARGET GLOBAL POSITION --- */

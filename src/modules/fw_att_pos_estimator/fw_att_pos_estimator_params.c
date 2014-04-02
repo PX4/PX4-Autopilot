@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,46 +32,86 @@
  ****************************************************************************/
 
 /**
- * @file optical_flow.h
- * Definition of the optical flow uORB topic.
- */
-
-#ifndef TOPIC_OPTICAL_FLOW_H_
-#define TOPIC_OPTICAL_FLOW_H_
-
-#include <stdint.h>
-#include <stdbool.h>
-#include "../uORB.h"
-
-/**
- * @addtogroup topics
- */
-
-/**
- * Optical flow in NED body frame in SI units.
+ * @file fw_att_pos_estimator_params.c
  *
- * @see http://en.wikipedia.org/wiki/International_System_of_Units
+ * Parameters defined by the attitude and position estimator task
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
-struct optical_flow_s {
 
-	uint64_t timestamp;		/**< in microseconds since system start          */
+#include <nuttx/config.h>
 
-	uint64_t flow_timestamp;		/**< timestamp from flow sensor */
-	int16_t flow_raw_x;		/**< flow in pixels in X direction, not rotation-compensated */
-	int16_t flow_raw_y;		/**< flow in pixels in Y direction, not rotation-compensated */
-	float flow_comp_x_m;		/**< speed over ground in meters, rotation-compensated */
-	float flow_comp_y_m;		/**< speed over ground in meters, rotation-compensated */
-	float ground_distance_m;	/**< Altitude / distance to ground in meters */
-	uint8_t	quality;		/**< Quality of the measurement, 0: bad quality, 255: maximum quality */
-	uint8_t sensor_id;		/**< id of the sensor emitting the flow value */
+#include <systemlib/param/param.h>
 
-};
+/*
+ * Estimator parameters, accessible via MAVLink
+ *
+ */
 
 /**
- * @}
+ * Velocity estimate delay
+ *
+ * The delay in milliseconds of the velocity estimate from GPS.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
  */
+PARAM_DEFINE_INT32(PE_VEL_DELAY_MS, 230);
 
-/* register this as object request broker structure */
-ORB_DECLARE(optical_flow);
+/**
+ * Position estimate delay
+ *
+ * The delay in milliseconds of the position estimate from GPS.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_POS_DELAY_MS, 210);
 
-#endif
+/**
+ * Height estimate delay
+ *
+ * The delay in milliseconds of the height estimate from the barometer.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_HGT_DELAY_MS, 350);
+
+/**
+ * Mag estimate delay
+ *
+ * The delay in milliseconds of the magnetic field estimate from
+ * the magnetometer.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_MAG_DELAY_MS, 30);
+
+/**
+ * True airspeeed estimate delay
+ *
+ * The delay in milliseconds of the airspeed estimate.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_TAS_DELAY_MS, 210);
+
+/**
+ * GPS vs. barometric altitude update weight
+ *
+ * RE-CHECK this.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group Position Estimator
+ */
+PARAM_DEFINE_FLOAT(PE_GPS_ALT_WGT, 0.9f);
+

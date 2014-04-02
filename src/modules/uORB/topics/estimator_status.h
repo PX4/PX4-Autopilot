@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,12 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file optical_flow.h
- * Definition of the optical flow uORB topic.
+ * @file estimator_status.h
+ * Definition of the estimator_status_report uORB topic.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#ifndef TOPIC_OPTICAL_FLOW_H_
-#define TOPIC_OPTICAL_FLOW_H_
+#ifndef ESTIMATOR_STATUS_H_
+#define ESTIMATOR_STATUS_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -46,25 +47,26 @@
 
 /**
  * @addtogroup topics
+ * @{
  */
 
 /**
- * Optical flow in NED body frame in SI units.
+ * Estimator status report.
  *
- * @see http://en.wikipedia.org/wiki/International_System_of_Units
+ * This is a generic status report struct which allows any of the onboard estimators
+ * to write the internal state to the system log.
+ *
  */
-struct optical_flow_s {
+struct estimator_status_report {
 
-	uint64_t timestamp;		/**< in microseconds since system start          */
+	/* NOTE: Ordering of fields optimized to align to 32 bit / 4 bytes - change with consideration only   */
 
-	uint64_t flow_timestamp;		/**< timestamp from flow sensor */
-	int16_t flow_raw_x;		/**< flow in pixels in X direction, not rotation-compensated */
-	int16_t flow_raw_y;		/**< flow in pixels in Y direction, not rotation-compensated */
-	float flow_comp_x_m;		/**< speed over ground in meters, rotation-compensated */
-	float flow_comp_y_m;		/**< speed over ground in meters, rotation-compensated */
-	float ground_distance_m;	/**< Altitude / distance to ground in meters */
-	uint8_t	quality;		/**< Quality of the measurement, 0: bad quality, 255: maximum quality */
-	uint8_t sensor_id;		/**< id of the sensor emitting the flow value */
+	uint64_t timestamp;			/**< Timestamp in microseconds since boot */
+	float states[32];			/**< Internal filter states */
+	float n_states;				/**< Number of states effectively used */
+	bool states_nan;			/**< If set to true, one of the states is NaN */
+	bool covariance_nan;			/**< If set to true, the covariance matrix went NaN */
+	bool kalman_gain_nan;			/**< If set to true, the Kalman gain matrix went NaN */
 
 };
 
@@ -73,6 +75,6 @@ struct optical_flow_s {
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(optical_flow);
+ORB_DECLARE(estimator_status);
 
 #endif

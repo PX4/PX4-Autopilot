@@ -49,11 +49,10 @@
  * @{
  */
 
- /**
- * Target global position in WGS84.
- */
-struct target_global_position_s
-{
+/**
+* Target global position in WGS84.
+*/
+struct target_global_position_s {
 	uint64_t timestamp;	/**< time of this estimate, in microseconds since system start */
 	uint8_t sysid;		/**< sysid of target */
 	uint64_t time_gps_usec; 	/**< GPS timestamp in microseconds							   */

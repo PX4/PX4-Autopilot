@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 Anton Babushkin. All rights reserved.
- *   Author: 	Anton Babushkin	<rk3dov@gmail.com>
+ *   Copyright (C) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +34,8 @@
 /**
  * @file position_estimator_inav_main.c
  * Model-identification based position estimator for multirotors
+ *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <unistd.h>
@@ -57,6 +58,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/home_position.h>
 #include <uORB/topics/optical_flow.h>
 #include <mavlink/mavlink_log.h>
 #include <poll.h>
@@ -95,8 +97,9 @@ static void usage(const char *reason);
  */
 static void usage(const char *reason)
 {
-	if (reason)
+	if (reason) {
 		fprintf(stderr, "%s\n", reason);
+	}
 
 	fprintf(stderr, "usage: position_estimator_inav {start|stop|status} [-v]\n\n");
 	exit(1);
@@ -112,8 +115,9 @@ static void usage(const char *reason)
  */
 int position_estimator_inav_main(int argc, char *argv[])
 {
-	if (argc < 1)
+	if (argc < 1) {
 		usage("missing command");
+	}
 
 	if (!strcmp(argv[1], "start")) {
 		if (thread_running) {
@@ -125,8 +129,9 @@ int position_estimator_inav_main(int argc, char *argv[])
 		verbose_mode = false;
 
 		if (argc > 1)
-			if (!strcmp(argv[2], "-v"))
+			if (!strcmp(argv[2], "-v")) {
 				verbose_mode = true;
+			}
 
 		thread_should_exit = false;
 		position_estimator_inav_task = task_spawn_cmd("position_estimator_inav",
@@ -163,8 +168,10 @@ int position_estimator_inav_main(int argc, char *argv[])
 	exit(1);
 }
 
-void write_debug_log(const char *msg, float dt, float x_est[3], float y_est[3], float z_est[3], float corr_acc[3], float corr_gps[3][2], float w_xy_gps_p, float w_xy_gps_v) {
+void write_debug_log(const char *msg, float dt, float x_est[3], float y_est[3], float z_est[3], float corr_acc[3], float corr_gps[3][2], float w_xy_gps_p, float w_xy_gps_v)
+{
 	FILE *f = fopen("/fs/microsd/inav.log", "a");
+
 	if (f) {
 		char *s = malloc(256);
 		unsigned n = snprintf(s, 256, "%llu %s\n\tdt=%.5f x_est=[%.5f %.5f %.5f] y_est=[%.5f %.5f %.5f] z_est=[%.5f %.5f %.5f]\n", hrt_absolute_time(), msg, dt, x_est[0], x_est[1], x_est[2], y_est[0], y_est[1], y_est[2], z_est[0], z_est[1], z_est[2]);
@@ -173,6 +180,7 @@ void write_debug_log(const char *msg, float dt, float x_est[3], float y_est[3], 
 		fwrite(s, 1, n, f);
 		free(s);
 	}
+
 	fsync(fileno(f));
 	fclose(f);
 }
@@ -206,6 +214,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	bool ref_inited = false;
 	hrt_abstime ref_init_start = 0;
 	const hrt_abstime ref_init_delay = 1000000;	// wait for 1s after 3D fix
+	struct map_projection_reference_s ref;
+	memset(&ref, 0, sizeof(ref));
+	hrt_abstime home_timestamp = 0;
 
 	uint16_t accel_updates = 0;
 	uint16_t baro_updates = 0;
@@ -239,6 +250,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float w_flow = 0.0f;
 
 	float sonar_prev = 0.0f;
+	hrt_abstime flow_prev = 0;			// time of last flow measurement
 	hrt_abstime sonar_time = 0;			// time of last sonar measurement (not filtered)
 	hrt_abstime sonar_valid_time = 0;	// time of last sonar measurement used for correction (filtered)
 	hrt_abstime xy_src_time = 0;		// time of last available position data
@@ -257,6 +269,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&sensor, 0, sizeof(sensor));
 	struct vehicle_gps_position_s gps;
 	memset(&gps, 0, sizeof(gps));
+	struct home_position_s home;
+	memset(&home, 0, sizeof(home));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
 	struct vehicle_local_position_s local_pos;
@@ -274,10 +288,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	int home_position_sub = orb_subscribe(ORB_ID(home_position));
 
 	/* advertise */
 	orb_advert_t vehicle_local_position_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos);
-	orb_advert_t vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
+	orb_advert_t vehicle_global_position_pub = -1;
 
 	struct position_estimator_inav_params params;
 	struct position_estimator_inav_param_handles pos_inav_param_handles;
@@ -325,7 +340,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						mavlink_log_info(mavlink_fd, "[inav] baro offs: %.2f", baro_offset);
 						local_pos.z_valid = true;
 						local_pos.v_z_valid = true;
-						global_pos.baro_valid = true;
 					}
 				}
 			}
@@ -425,6 +439,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
 
+				/* calculate time from previous update */
+				float flow_dt = flow_prev > 0 ? (flow.flow_timestamp - flow_prev) * 1e-6f : 0.1f;
+				flow_prev = flow.flow_timestamp;
+
 				if (flow.ground_distance_m > 0.31f && flow.ground_distance_m < 4.0f && att.R[2][2] > 0.7 && flow.ground_distance_m != sonar_prev) {
 					sonar_time = t;
 					sonar_prev = flow.ground_distance_m;
@@ -475,10 +493,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					flow_accurate = fabsf(body_v_est[1] / flow_dist - att.rollspeed) < max_flow &&
 							fabsf(body_v_est[0] / flow_dist + att.pitchspeed) < max_flow;
 
-					/* convert raw flow to angular flow */
+					/* convert raw flow to angular flow (rad/s) */
 					float flow_ang[2];
-					flow_ang[0] = flow.flow_raw_x * params.flow_k;
-					flow_ang[1] = flow.flow_raw_y * params.flow_k;
+					flow_ang[0] = flow.flow_raw_x * params.flow_k / 1000.0f / flow_dt;
+					flow_ang[1] = flow.flow_raw_y * params.flow_k / 1000.0f / flow_dt;
 					/* flow measurements vector */
 					float flow_m[3];
 					flow_m[0] = -flow_ang[0] * flow_dist;
@@ -503,8 +521,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					/* if flow is not accurate, reduce weight for it */
 					// TODO make this more fuzzy
-					if (!flow_accurate)
+					if (!flow_accurate) {
 						w_flow *= 0.05f;
+					}
 
 					flow_valid = true;
 
@@ -516,29 +535,56 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				flow_updates++;
 			}
 
+			/* home position */
+			orb_check(home_position_sub, &updated);
+
+			if (updated) {
+				orb_copy(ORB_ID(home_position), home_position_sub, &home);
+
+				if (home.timestamp != home_timestamp) {
+					home_timestamp = home.timestamp;
+					if (ref_inited) {
+						ref_inited = true;
+
+						/* reproject position estimate to new reference */
+						float dx, dy;
+						map_projection_project(&ref, home.lat, home.lon, &dx, &dy);
+						x_est[0] -= dx;
+						y_est[0] -= dx;
+						z_est[0] += home.alt - local_pos.ref_alt;
+					}
+
+					/* update baro offset */
+					baro_offset -= home.alt - local_pos.ref_alt;
+
+					/* update reference */
+					map_projection_init(&ref, home.lat, home.lon);
+
+					local_pos.ref_lat = home.lat;
+					local_pos.ref_lon = home.lon;
+					local_pos.ref_alt = home.alt;
+					local_pos.ref_timestamp = home.timestamp;
+				}
+			}
+
 			/* vehicle GPS position */
 			orb_check(vehicle_gps_position_sub, &updated);
 
 			if (updated) {
 				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
 
-				if (gps.fix_type >= 3) {
-					/* hysteresis for GPS quality */
-					if (gps_valid) {
-						if (gps.eph_m > 10.0f || gps.epv_m > 20.0f) {
-							gps_valid = false;
-							mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
-						}
-
-					} else {
-						if (gps.eph_m < 5.0f && gps.epv_m < 10.0f) {
-							gps_valid = true;
-							mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
-						}
+				/* hysteresis for GPS quality */
+				if (gps_valid) {
+					if (gps.eph_m > 10.0f || gps.epv_m > 20.0f || gps.fix_type < 3) {
+						gps_valid = false;
+						mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
 					}
 
 				} else {
-					gps_valid = false;
+					if (gps.eph_m < 5.0f && gps.epv_m < 10.0f && gps.fix_type >= 3) {
+						gps_valid = true;
+						mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
+					}
 				}
 
 				if (gps_valid) {
@@ -565,14 +611,25 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 							} else if (t > ref_init_start + ref_init_delay) {
 								ref_inited = true;
+
+								/* update baro offset */
+								baro_offset -= z_est[0];
+
+								/* set position estimate to (0, 0, 0), use GPS velocity for XY */
+								x_est[0] = 0.0f;
+								x_est[1] = gps.vel_n_m_s;
+								y_est[0] = 0.0f;
+								y_est[1] = gps.vel_e_m_s;
+								z_est[0] = 0.0f;
+
 								/* reference GPS position */
-								local_pos.ref_lat = gps.lat;
-								local_pos.ref_lon = gps.lon;
-								local_pos.ref_alt = alt + z_est[0];
+								local_pos.ref_lat = lat;
+								local_pos.ref_lon = lon;
+								local_pos.ref_alt = alt + z_est[0];;
 								local_pos.ref_timestamp = t;
 
 								/* initialize projection */
-								map_projection_init(lat, lon);
+								map_projection_init(&ref, lat, lon);
 								warnx("init ref: lat=%.7f, lon=%.7f, alt=%.2f", lat, lon, alt);
 								mavlink_log_info(mavlink_fd, "[inav] init ref: lat=%.7f, lon=%.7f, alt=%.2f", lat, lon, alt);
 							}
@@ -582,7 +639,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					if (ref_inited) {
 						/* project GPS lat lon to plane */
 						float gps_proj[2];
-						map_projection_project(gps.lat * 1e-7, gps.lon * 1e-7, &(gps_proj[0]), &(gps_proj[1]));
+						map_projection_project(&ref, gps.lat * 1e-7, gps.lon * 1e-7, &(gps_proj[0]), &(gps_proj[1]));
 						/* calculate correction for position */
 						corr_gps[0][0] = gps_proj[0] - x_est[0];
 						corr_gps[1][0] = gps_proj[1] - y_est[0];
@@ -821,7 +878,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		if (t > pub_last + pub_interval) {
 			pub_last = t;
 			/* publish local position */
-			local_pos.xy_valid = can_estimate_xy && use_gps_xy;
+			local_pos.xy_valid = can_estimate_xy;
 			local_pos.v_xy_valid = can_estimate_xy;
 			local_pos.xy_global = local_pos.xy_valid && use_gps_xy;
 			local_pos.z_global = local_pos.z_valid && use_gps_z;
@@ -844,37 +901,37 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			orb_publish(ORB_ID(vehicle_local_position), vehicle_local_position_pub, &local_pos);
 
-			/* publish global position */
-			global_pos.global_valid = local_pos.xy_global;
+			if (local_pos.xy_global && local_pos.z_global) {
+				/* publish global position */
+				global_pos.timestamp = t;
+				global_pos.time_gps_usec = gps.time_gps_usec;
 
-			if (local_pos.xy_global) {
-				map_projection_reproject(local_pos.x, local_pos.y, &global_pos.lat, &global_pos.lon);
+				double est_lat, est_lon;
+				map_projection_reproject(&ref, local_pos.x, local_pos.y, &est_lat, &est_lon);
+
+				global_pos.lat = est_lat;
+				global_pos.lon = est_lon;
+				global_pos.alt = local_pos.ref_alt - local_pos.z;
+
 				global_pos.time_gps_usec = gps.time_gps_usec + t - gps.timestamp_time;
-			}
 
-			/* set valid values even if position is not valid */
-			if (local_pos.v_xy_valid) {
 				global_pos.vel_n = local_pos.vx;
 				global_pos.vel_e = local_pos.vy;
-			}
-
-			if (local_pos.z_global) {
-				global_pos.alt = local_pos.ref_alt - local_pos.z;
-			}
-
-			if (local_pos.z_valid) {
-				global_pos.baro_alt = baro_offset - local_pos.z;
-			}
-
-			if (local_pos.v_z_valid) {
 				global_pos.vel_d = local_pos.vz;
+
+				global_pos.yaw = local_pos.yaw;
+
+				// TODO implement dead-reckoning
+				global_pos.eph = gps.eph_m;
+				global_pos.epv = gps.epv_m;
+
+				if (vehicle_global_position_pub < 0) {
+					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
+
+				} else {
+					orb_publish(ORB_ID(vehicle_global_position), vehicle_global_position_pub, &global_pos);
+				}
 			}
-
-			global_pos.yaw = local_pos.yaw;
-
-			global_pos.timestamp = t;
-
-			orb_publish(ORB_ID(vehicle_global_position), vehicle_global_position_pub, &global_pos);
 		}
 	}
 

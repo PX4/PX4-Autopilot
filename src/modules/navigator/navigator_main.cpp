@@ -66,7 +66,6 @@
 #include <uORB/topics/target_global_position.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/mission_result.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/parameter_update.h>
@@ -166,8 +165,7 @@ private:
 	struct home_position_s				_home_pos;		/**< home position for RTL */
 	struct position_setpoint_triplet_s			_pos_sp_triplet;	/**< triplet of position setpoints */
 	struct mission_result_s				_mission_result;	/**< mission result for commander/mavlink */
-	struct mission_item_s				_mission_item;	/**< current mission item */
-	bool		_mission_item_valid;	/**< current mission item valid */
+	struct mission_item_s				_mission_item;		/**< current mission item */
 
 	struct mission_item_s				_roi_item;	/**< ROI mission item */
 	bool								_roi_item_valid;
@@ -200,8 +198,9 @@ private:
 
 	class 		Mission				_mission;
 
-	bool		_global_pos_valid;				/**< track changes of global_position.global_valid flag */
-	bool		_reset_loiter_pos;				/**< if true then loiter position should be set to current position */
+	bool		_mission_item_valid;		/**< current mission item valid */
+	bool		_global_pos_valid;		/**< track changes of global_position */
+	bool		_reset_loiter_pos;		/**< if true then loiter position should be set to current position */
 	bool		_waypoint_position_reached;
 	bool		_waypoint_yaw_reached;
 	uint64_t	_time_first_inside_orbit;
@@ -214,7 +213,7 @@ private:
 
 	bool		_pos_sp_triplet_updated;
 
-	char *nav_states_str[NAV_STATE_MAX];
+	const char *nav_states_str[NAV_STATE_MAX];
 
 	struct {
 		float min_altitude;
@@ -315,9 +314,9 @@ private:
 	static void	task_main_trampoline(int argc, char *argv[]);
 
 	/**
-	 * Main sensor collection task.
+	 * Main task.
 	 */
-	void		task_main() __attribute__((noreturn));
+	void		task_main();
 
 	void		publish_safepoints(unsigned points);
 
@@ -415,35 +414,34 @@ Navigator::Navigator() :
 	_target_pos_sub(-1),
 	_home_pos_sub(-1),
 	_vstatus_sub(-1),
-	_control_mode_sub(-1),
 	_params_sub(-1),
 	_offboard_mission_sub(-1),
 	_onboard_mission_sub(-1),
 	_capabilities_sub(-1),
+	_control_mode_sub(-1),
 
 /* publications */
 	_pos_sp_triplet_pub(-1),
-	_mission_result_pub(-1),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 
-/* states */
-	_rtl_state(RTL_STATE_NONE),
+	_geofence_violation_warning_sent(false),
 	_fence_valid(false),
 	_inside_fence(true),
 	_mission(),
+	_mission_item_valid(false),
 	_global_pos_valid(false),
 	_reset_loiter_pos(true),
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
 	_time_first_inside_orbit(0),
-	_set_nav_state_timestamp(0),
-	_mission_item_valid(false),
 	_need_takeoff(true),
 	_do_takeoff(false),
+	_set_nav_state_timestamp(0),
 	_pos_sp_triplet_updated(false),
-	_geofence_violation_warning_sent(false),
+/* states */
+	_rtl_state(RTL_STATE_NONE),
 	_roi_item_valid(false),
 	_target_lat(0.0),
 	_target_lon(0.0),
@@ -459,7 +457,6 @@ Navigator::Navigator() :
 	_parameter_handles.rtl_land_delay = param_find("NAV_RTL_LAND_T");
 
 	memset(&_pos_sp_triplet, 0, sizeof(struct position_setpoint_triplet_s));
-	memset(&_mission_result, 0, sizeof(struct mission_result_s));
 	memset(&_mission_item, 0, sizeof(struct mission_item_s));
 	memset(&_roi_item, 0, sizeof(_roi_item));
 	memset(&_follow_offset_prev, 0, sizeof(_follow_offset_prev));
@@ -571,13 +568,16 @@ Navigator::offboard_mission_update(bool isrotaryWing)
 		missionFeasiblityChecker.checkMissionFeasible(isrotaryWing, dm_current, (size_t)offboard_mission.count, _geofence);
 
 		_mission.set_offboard_dataman_id(offboard_mission.dataman_id);
-		_mission.set_current_offboard_mission_index(offboard_mission.current_index);
+
 		_mission.set_offboard_mission_count(offboard_mission.count);
+		_mission.set_current_offboard_mission_index(offboard_mission.current_index);
 
 	} else {
-		_mission.set_current_offboard_mission_index(0);
 		_mission.set_offboard_mission_count(0);
+		_mission.set_current_offboard_mission_index(0);
 	}
+
+	_mission.publish_mission_result();
 }
 
 void
@@ -587,12 +587,12 @@ Navigator::onboard_mission_update()
 
 	if (orb_copy(ORB_ID(mission), _onboard_mission_sub, &onboard_mission) == OK) {
 
-		_mission.set_current_onboard_mission_index(onboard_mission.current_index);
 		_mission.set_onboard_mission_count(onboard_mission.count);
+		_mission.set_current_onboard_mission_index(onboard_mission.current_index);
 
 	} else {
-		_mission.set_current_onboard_mission_index(0);
 		_mission.set_onboard_mission_count(0);
+		_mission.set_current_onboard_mission_index(0);
 	}
 }
 
@@ -875,6 +875,44 @@ Navigator::task_main()
 		/* global position updated */
 		if (fds[1].revents & POLLIN) {
 			global_position_update();
+
+			/* publish position setpoint triplet on each position update if navigator active */
+			if (_control_mode.flag_armed && _control_mode.flag_control_auto_enabled) {
+				_pos_sp_triplet_updated = true;
+
+				if (myState == NAV_STATE_LAND && !_global_pos_valid) {
+					/* got global position when landing, update setpoint */
+					start_land();
+				}
+
+				/* check if waypoint has been reached in MISSION, RTL and LAND modes */
+				if (myState == NAV_STATE_MISSION || myState == NAV_STATE_RTL || myState == NAV_STATE_LAND) {
+					if (check_mission_item_reached()) {
+						on_mission_item_reached();
+					}
+				}
+			}
+
+			/* Check geofence violation */
+			if (!_geofence.inside(&_global_pos)) {
+				//xxx: publish geofence violation here (or change local flag depending on which app handles the flight termination)
+
+				/* Issue a warning about the geofence violation once */
+				if (!_geofence_violation_warning_sent) {
+					mavlink_log_critical(_mavlink_fd, "#audio: Geofence violation");
+					_geofence_violation_warning_sent = true;
+				}
+
+			} else {
+				/* Reset the _geofence_violation_warning_sent field */
+				_geofence_violation_warning_sent = false;
+			}
+
+			_global_pos_valid = true;
+
+		} else {
+			/* assume that global position is valid if updated in last 20ms */
+			_global_pos_valid = _global_pos.timestamp != 0 && hrt_abstime() < _global_pos.timestamp + 20000;
 		}
 
 		/* predict target position */
@@ -889,40 +927,6 @@ Navigator::task_main()
 			/* predict current target position */
 			add_vector_to_global_position(_target_pos.lat, _target_pos.lon, dpos(0), dpos(1), &_target_lat, &_target_lon);
 			_target_alt = _target_pos.alt - dpos(2);
-		}
-
-		/* publish position setpoint triplet on each position update if navigator active */
-		if (_control_mode.flag_armed && _control_mode.flag_control_auto_enabled) {
-			_pos_sp_triplet_updated = true;
-
-			if (myState == NAV_STATE_LAND && _global_pos.global_valid && !_global_pos_valid) {
-				/* got global position when landing, update setpoint */
-				start_land();
-			}
-
-			_global_pos_valid = _global_pos.global_valid;
-
-			/* check if waypoint has been reached in MISSION, RTL and LAND modes */
-			if (myState == NAV_STATE_MISSION || myState == NAV_STATE_RTL || myState == NAV_STATE_LAND) {
-				if (check_mission_item_reached()) {
-					on_mission_item_reached();
-				}
-			}
-		}
-
-		/* Check geofence violation */
-		if (!_geofence.inside(&_global_pos)) {
-			//xxx: publish geofence violation here (or change local flag depending on which app handles the flight termination)
-
-			/* Issue a warning about the geofence violation once */
-			if (!_geofence_violation_warning_sent) {
-				mavlink_log_critical(_mavlink_fd, "#audio: Geofence violation");
-				_geofence_violation_warning_sent = true;
-			}
-
-		} else {
-			/* Reset the _geofence_violation_warning_sent field */
-			_geofence_violation_warning_sent = false;
 		}
 
 		/* publish position setpoint triplet if updated */
@@ -970,9 +974,9 @@ Navigator::start()
 void
 Navigator::status()
 {
-	warnx("Global position is %svalid", _global_pos.global_valid ? "" : "in");
+	warnx("Global position: %svalid", _global_pos_valid ? "" : "in");
 
-	if (_global_pos.global_valid) {
+	if (_global_pos_valid) {
 		warnx("Longitude %5.5f degrees, latitude %5.5f degrees", _global_pos.lon, _global_pos.lat);
 		warnx("Altitude %5.5f meters, altitude above home %5.5f meters",
 		      (double)_global_pos.alt, (double)(_global_pos.alt - _home_pos.alt));
@@ -1279,7 +1283,7 @@ Navigator::set_mission_item()
 			}
 
 			if (_do_takeoff) {
-				mavlink_log_info(_mavlink_fd, "#audio: takeoff to %.1fm above home", _pos_sp_triplet.current.alt - _home_pos.alt);
+				mavlink_log_info(_mavlink_fd, "#audio: takeoff to %.1fm above home", (double)(_pos_sp_triplet.current.alt - _home_pos.alt));
 
 			} else {
 				if (onboard) {
@@ -1440,7 +1444,7 @@ Navigator::set_rtl_item()
 
 			_pos_sp_triplet.next.valid = false;
 
-			mavlink_log_info(_mavlink_fd, "#audio: RTL: climb to %.1fm above home", climb_alt - _home_pos.alt);
+			mavlink_log_info(_mavlink_fd, "#audio: RTL: climb to %.1fm above home", (double)(climb_alt - _home_pos.alt));
 			break;
 		}
 
@@ -1473,7 +1477,7 @@ Navigator::set_rtl_item()
 
 			_pos_sp_triplet.next.valid = false;
 
-			mavlink_log_info(_mavlink_fd, "#audio: RTL: return at %.1fm above home", _mission_item.altitude - _home_pos.alt);
+			mavlink_log_info(_mavlink_fd, "#audio: RTL: return at %.1fm above home", (double)(_mission_item.altitude - _home_pos.alt));
 			break;
 		}
 
@@ -1684,7 +1688,7 @@ Navigator::check_mission_item_reached()
 			_time_first_inside_orbit = now;
 
 			if (_mission_item.time_inside > 0.01f) {
-				mavlink_log_info(_mavlink_fd, "#audio: waypoint reached, wait for %.1fs", _mission_item.time_inside);
+				mavlink_log_info(_mavlink_fd, "#audio: waypoint reached, wait for %.1fs", (double)_mission_item.time_inside);
 			}
 		}
 

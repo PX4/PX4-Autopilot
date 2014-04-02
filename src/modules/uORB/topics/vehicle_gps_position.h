@@ -53,13 +53,12 @@
 /**
  * GPS position in WGS84 coordinates.
  */
-struct vehicle_gps_position_s
-{
+struct vehicle_gps_position_s {
 	uint64_t timestamp_position;			/**< Timestamp for position information */
 	int32_t lat;					/**< Latitude in 1E-7 degrees */
 	int32_t lon;					/**< Longitude in 1E-7 degrees */
 	int32_t alt;					/**< Altitude in 1E-3 meters (millimeters) above MSL  */
-	
+
 	uint64_t timestamp_variance;
 	float s_variance_m_s;				/**< speed accuracy estimate m/s */
 	float p_variance_m;				/**< position accuracy estimate m */

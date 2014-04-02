@@ -50,32 +50,31 @@
 
 /* compatible to mavlink MAV_CMD */
 enum NAV_CMD {
-	NAV_CMD_WAYPOINT=16,
-	NAV_CMD_LOITER_UNLIMITED=17,
-	NAV_CMD_LOITER_TURN_COUNT=18,
-	NAV_CMD_LOITER_TIME_LIMIT=19,
-	NAV_CMD_RETURN_TO_LAUNCH=20,
-	NAV_CMD_LAND=21,
-	NAV_CMD_TAKEOFF=22,
-	NAV_CMD_ROI=80,
-	NAV_CMD_PATHPLANNING=81
+	NAV_CMD_WAYPOINT = 16,
+	NAV_CMD_LOITER_UNLIMITED = 17,
+	NAV_CMD_LOITER_TURN_COUNT = 18,
+	NAV_CMD_LOITER_TIME_LIMIT = 19,
+	NAV_CMD_RETURN_TO_LAUNCH = 20,
+	NAV_CMD_LAND = 21,
+	NAV_CMD_TAKEOFF = 22,
+	NAV_CMD_ROI = 80,
+	NAV_CMD_PATHPLANNING = 81
 };
 
 /* compatible to mavlink MAV_ROI */
-enum ROI_MODE
-{
-	ROI_MODE_NONE=0, /* No region of interest. | */
-	ROI_MODE_WPNEXT=1, /* Point toward next MISSION. | */
-	ROI_MODE_WPINDEX=2, /* Point toward given MISSION. | */
-	ROI_MODE_LOCATION=3, /* Point toward fixed location. | */
-	ROI_MODE_TARGET=4, /* Point toward of given id. | */
-	ROI_MODE_FOLLOW=5, /* Follow system with given id. Position offset is the difference between ROI and following waypoint. | */
+enum ROI_MODE {
+	ROI_MODE_NONE = 0, /* No region of interest. | */
+	ROI_MODE_WPNEXT = 1, /* Point toward next MISSION. | */
+	ROI_MODE_WPINDEX = 2, /* Point toward given MISSION. | */
+	ROI_MODE_LOCATION = 3, /* Point toward fixed location. | */
+	ROI_MODE_TARGET = 4, /* Point toward of given id. | */
+	ROI_MODE_FOLLOW = 5, /* Follow system with given id. Position offset is the difference between ROI and following waypoint. | */
 };
 
 enum NAV_PATH_MODE {
-	NAV_PATH_MODE_NONE=0,		/**< simply go to specified waypoint */
-	NAV_PATH_MODE_LINEAR=1,		/**< go by line between previous and current waypoints */
-	NAV_PATH_MODE_SPLINE=2,		/**< build path between waypoints using spline */
+	NAV_PATH_MODE_NONE = 0,		/**< simply go to specified waypoint */
+	NAV_PATH_MODE_LINEAR = 1,		/**< go by line between previous and current waypoints */
+	NAV_PATH_MODE_SPLINE = 2,		/**< build path between waypoints using spline */
 };
 
 enum ORIGIN {
@@ -94,8 +93,7 @@ enum ORIGIN {
  * This is the position the MAV is heading towards. If it of type loiter,
  * the MAV is circling around it with the given loiter radius in meters.
  */
-struct mission_item_s
-{
+struct mission_item_s {
 	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
 	double lat;			/**< latitude in degrees				*/
 	double lon;			/**< longitude in degrees				*/
