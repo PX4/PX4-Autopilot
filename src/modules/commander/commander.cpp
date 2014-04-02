@@ -612,6 +612,7 @@ int commander_thread_main(int argc, char *argv[])
 	commander_initialized = false;
 
 	bool arm_tune_played = false;
+	bool was_armed = false;
 
 	/* set parameters */
 	param_t _param_sys_type = param_find("MAV_TYPE");
@@ -927,17 +928,15 @@ int commander_thread_main(int argc, char *argv[])
 		static float vdop_threshold_m = 8.0f;
 
 		/* update home position */
-		if (!status.condition_home_position_valid && updated &&
-			(global_position.eph < hdop_threshold_m) && (global_position.epv < vdop_threshold_m) &&
-		    (hrt_absolute_time() < global_position.timestamp + POSITION_TIMEOUT) && !armed.armed) {
+		if (!status.condition_home_position_valid && status.condition_global_position_valid && !armed.armed &&
+			(global_position.eph < hdop_threshold_m) && (global_position.epv < vdop_threshold_m)) {
 
-			/* copy position data to uORB home message, store it locally as well */
 			home.lat = global_position.lat;
 			home.lon = global_position.lon;
 			home.alt = global_position.alt;
 
-			warnx("home: lat = %.7f, lon = %.7f, alt = %.4f ", home.lat, home.lon, (double)home.alt);
-			mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.4f", home.lat, home.lon, (double)home.alt);
+			warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home.lat, home.lon, (double)home.alt);
+			mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
 
 			/* announce new home position */
 			if (home_pub > 0) {
@@ -1284,7 +1283,32 @@ int commander_thread_main(int argc, char *argv[])
 		if (arming_state_changed) {
 			status_changed = true;
 			mavlink_log_info(mavlink_fd, "[cmd] arming state: %s", arming_states_str[status.arming_state]);
+
+			/* update home position on arming */
+			if (armed.armed && !was_armed && status.condition_global_position_valid &&
+				(global_position.eph < hdop_threshold_m) && (global_position.epv < vdop_threshold_m)) {
+
+				// TODO remove code duplication
+				home.lat = global_position.lat;
+				home.lon = global_position.lon;
+				home.alt = global_position.alt;
+
+				warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home.lat, home.lon, (double)home.alt);
+				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
+
+				/* announce new home position */
+				if (home_pub > 0) {
+					orb_publish(ORB_ID(home_position), home_pub, &home);
+
+				} else {
+					home_pub = orb_advertise(ORB_ID(home_position), &home);
+				}
+
+				/* mark home position as set */
+				status.condition_home_position_valid = true;
+			}
 		}
+		was_armed = armed.armed;
 
 		if (main_state_changed) {
 			status_changed = true;
