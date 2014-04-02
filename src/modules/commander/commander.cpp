@@ -1329,8 +1329,8 @@ int commander_thread_main(int argc, char *argv[])
 			status_changed = true;
 			mavlink_log_info(mavlink_fd, "[cmd] arming state: %s", arming_states_str[status.arming_state]);
 
-			/* update home position on arming */
-			if (armed.armed && !was_armed && status.condition_global_position_valid &&
+			/* update home position on arming if at least 2s from commander start spent to avoid setting home on in-air restart */
+			if (armed.armed && !was_armed && hrt_absolute_time() > start_time + 2000000 && status.condition_global_position_valid &&
 				(global_position.eph < hdop_threshold_m) && (global_position.epv < vdop_threshold_m)) {
 
 				// TODO remove code duplication
