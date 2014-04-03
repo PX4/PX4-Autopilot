@@ -15,11 +15,11 @@
 namespace uavcan_stm32
 {
 
-#if UAVCAN_STM32_CHIBIOS
-
 class Event
 {
+#if UAVCAN_STM32_CHIBIOS
     chibios_rt::CounterSemaphore sem_;
+#endif
 
 public:
     Event() : sem_(0) { }
@@ -30,7 +30,5 @@ public:
 
     void signalFromInterrupt();
 };
-
-#endif
 
 }

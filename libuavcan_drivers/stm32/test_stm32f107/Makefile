@@ -16,6 +16,8 @@ UDEFS = -DUAVCAN_STM32_CHIBIOS=1
 # UAVCAN library
 #
 
+UDEFS += -DUAVCAN_STM32_TIMER_NUMBER=2
+
 include ../../../libuavcan/include.mk
 CPPSRC += $(LIBUAVCAN_SRC)
 UINCDIR += $(LIBUAVCAN_INC)

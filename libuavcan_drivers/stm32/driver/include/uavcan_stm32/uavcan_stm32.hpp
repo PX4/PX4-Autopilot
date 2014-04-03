@@ -4,5 +4,6 @@
 
 #pragma once
 
-#include <uavcan_stm32/can.hpp>
 #include <uavcan_stm32/thread.hpp>
+#include <uavcan_stm32/clock.hpp>
+#include <uavcan_stm32/can.hpp>

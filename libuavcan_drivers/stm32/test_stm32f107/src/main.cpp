@@ -75,5 +75,17 @@ int main()
         app::ledSet(true);
         sleep(1);
         app::led_turn_off_event.signal();
+
+        printf("Mono clock: %lu  %lu\n",
+               static_cast<unsigned long>(uavcan_stm32::SystemClock::instance().getMonotonic().toUSec()),
+               static_cast<unsigned long>(uavcan_stm32::SystemClock::instance().getMonotonic().toMSec()));
+
+        printf("UTC  clock: %lu\n",
+               static_cast<unsigned long>(uavcan_stm32::SystemClock::instance().getUtc().toUSec()));
+
+        if (uavcan_stm32::SystemClock::instance().getMonotonic().toMSec() / 1000 == 10)
+        {
+            uavcan_stm32::SystemClock::instance().adjustUtc(uavcan::UtcDuration::fromMSec(10000));
+        }
     }
 }
