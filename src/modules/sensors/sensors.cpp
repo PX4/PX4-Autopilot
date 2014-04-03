@@ -167,8 +167,6 @@ public:
 private:
 	static const unsigned _rc_max_chan_count = RC_INPUT_MAX_CHANNELS;	/**< maximum number of r/c channels we handle */
 
-	hrt_abstime	_rc_last_valid;		/**< last time we got a valid RC signal */
-
 	/**
 	 * Get and limit value for specified RC function. Returns NAN if not mapped.
 	 */
@@ -216,6 +214,7 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	struct rc_channels_s _rc;			/**< r/c channel data */
+	struct manual_control_setpoint_s _manual;	/**< manual control setpoint */
 	struct battery_status_s _battery_status;	/**< battery status */
 	struct baro_report _barometer;			/**< barometer data */
 	struct differential_pressure_s _diff_pres;
@@ -438,8 +437,6 @@ Sensors	*g_sensors = nullptr;
 }
 
 Sensors::Sensors() :
-	_rc_last_valid(0),
-
 	_fd_adc(-1),
 	_last_adc(0),
 
@@ -475,6 +472,21 @@ Sensors::Sensors() :
 	_battery_current_timestamp(0)
 {
 	memset(&_rc, 0, sizeof(_rc));
+	memset(&_manual, 0, sizeof(_manual));
+
+	/* set NANs instead of zeroes */
+	_manual.roll = NAN;
+	_manual.pitch = NAN;
+	_manual.yaw = NAN;
+	_manual.throttle = NAN;
+	_manual.flaps = NAN;
+	_manual.aux1 = NAN;
+	_manual.aux2 = NAN;
+	_manual.aux3 = NAN;
+	_manual.aux4 = NAN;
+	_manual.aux5 = NAN;
+
+	_manual.signal_lost = true;
 
 	/* basic r/c parameters */
 	for (unsigned i = 0; i < _rc_max_chan_count; i++) {
@@ -1314,27 +1326,8 @@ Sensors::rc_poll()
 	if (rc_updated) {
 		/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
 		struct rc_input_values	rc_input;
-		struct manual_control_setpoint_s manual_control;
-		struct actuator_controls_s actuator_group_3;
 
-		/* initialize to default values */
-		manual_control.roll = NAN;
-		manual_control.pitch = NAN;
-		manual_control.yaw = NAN;
-		manual_control.throttle = NAN;
-		manual_control.flaps = NAN;
-		manual_control.aux1 = NAN;
-		manual_control.aux2 = NAN;
-		manual_control.aux3 = NAN;
-		manual_control.aux4 = NAN;
-		manual_control.aux5 = NAN;
-
-		manual_control.mode_switch = SWITCH_POS_NONE;
-		manual_control.return_switch = SWITCH_POS_NONE;
-		manual_control.assisted_switch = SWITCH_POS_NONE;
-		manual_control.mission_switch = SWITCH_POS_NONE;
-
-		manual_control.signal_lost = true;
+		_manual.signal_lost = true;
 
 		orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
 
@@ -1342,18 +1335,18 @@ Sensors::rc_poll()
 		/* check flags and require at least four channels to consider the signal valid */
 		if (!(rc_input.rc_lost || rc_input.rc_failsafe || rc_input.channel_count < 4)) {
 			/* signal looks good */
-			manual_control.signal_lost = false;
+			_manual.signal_lost = false;
 
 			/* check for throttle failsafe */
 			if (_parameters.rc_fs_ch != 0) {
 				if (_parameters.rc_fs_mode == 0) {
 					if (rc_input.values[_parameters.rc_fs_ch - 1] < _parameters.rc_fs_thr) {
-						manual_control.signal_lost = true;
+						_manual.signal_lost = true;
 					}
 
 				} else if (_parameters.rc_fs_mode == 1) {
 					if (rc_input.values[_parameters.rc_fs_ch - 1] > _parameters.rc_fs_thr) {
-						manual_control.signal_lost = true;
+						_manual.signal_lost = true;
 					}
 				}
 			}
@@ -1412,46 +1405,42 @@ Sensors::rc_poll()
 
 		_rc.chan_count = rc_input.channel_count;
 		_rc.rssi = rc_input.rssi;
-		_rc.signal_lost = manual_control.signal_lost;
+		_rc.signal_lost = _manual.signal_lost;
 
-		if (!manual_control.signal_lost) {
-			_rc_last_valid = rc_input.timestamp_last_signal;
-		}
-
-		_rc.timestamp = _rc_last_valid;
-
-		manual_control.timestamp = _rc_last_valid;
-
-		if (!manual_control.signal_lost) {
+		if (!_manual.signal_lost) {
 			/* fill values in manual_control_setpoint topic only if signal is valid */
+			_manual.timestamp = rc_input.timestamp_last_signal;
+			_rc.timestamp = rc_input.timestamp_last_signal;
 
 			/* limit controls */
-			manual_control.roll = get_rc_value(ROLL, -1.0, 1.0);
-			manual_control.pitch = get_rc_value(PITCH, -1.0, 1.0);
-			manual_control.yaw = get_rc_value(YAW, -1.0, 1.0);
-			manual_control.throttle = get_rc_value(THROTTLE, 0.0, 1.0);
-			manual_control.flaps = get_rc_value(FLAPS, -1.0, 1.0);
-			manual_control.aux1 = get_rc_value(AUX_1, -1.0, 1.0);
-			manual_control.aux2 = get_rc_value(AUX_2, -1.0, 1.0);
-			manual_control.aux3 = get_rc_value(AUX_3, -1.0, 1.0);
-			manual_control.aux4 = get_rc_value(AUX_4, -1.0, 1.0);
-			manual_control.aux5 = get_rc_value(AUX_5, -1.0, 1.0);
+			_manual.roll = get_rc_value(ROLL, -1.0, 1.0);
+			_manual.pitch = get_rc_value(PITCH, -1.0, 1.0);
+			_manual.yaw = get_rc_value(YAW, -1.0, 1.0);
+			_manual.throttle = get_rc_value(THROTTLE, 0.0, 1.0);
+			_manual.flaps = get_rc_value(FLAPS, -1.0, 1.0);
+			_manual.aux1 = get_rc_value(AUX_1, -1.0, 1.0);
+			_manual.aux2 = get_rc_value(AUX_2, -1.0, 1.0);
+			_manual.aux3 = get_rc_value(AUX_3, -1.0, 1.0);
+			_manual.aux4 = get_rc_value(AUX_4, -1.0, 1.0);
+			_manual.aux5 = get_rc_value(AUX_5, -1.0, 1.0);
 
 			/* mode switches */
-			manual_control.mode_switch = get_rc_switch_position(MODE);
-			manual_control.assisted_switch = get_rc_switch_position(ASSISTED);
-			manual_control.mission_switch = get_rc_switch_position(MISSION);
-			manual_control.return_switch = get_rc_switch_position(RETURN);
+			_manual.mode_switch = get_rc_switch_position(MODE);
+			_manual.assisted_switch = get_rc_switch_position(ASSISTED);
+			_manual.mission_switch = get_rc_switch_position(MISSION);
+			_manual.return_switch = get_rc_switch_position(RETURN);
 
 			/* copy from mapped manual control to control group 3 */
-			actuator_group_3.control[0] = manual_control.roll;
-			actuator_group_3.control[1] = manual_control.pitch;
-			actuator_group_3.control[2] = manual_control.yaw;
-			actuator_group_3.control[3] = manual_control.throttle;
-			actuator_group_3.control[4] = manual_control.flaps;
-			actuator_group_3.control[5] = manual_control.aux1;
-			actuator_group_3.control[6] = manual_control.aux2;
-			actuator_group_3.control[7] = manual_control.aux3;
+			struct actuator_controls_s actuator_group_3;
+
+			actuator_group_3.control[0] = _manual.roll;
+			actuator_group_3.control[1] = _manual.pitch;
+			actuator_group_3.control[2] = _manual.yaw;
+			actuator_group_3.control[3] = _manual.throttle;
+			actuator_group_3.control[4] = _manual.flaps;
+			actuator_group_3.control[5] = _manual.aux1;
+			actuator_group_3.control[6] = _manual.aux2;
+			actuator_group_3.control[7] = _manual.aux3;
 
 			/* publish actuator_controls_3 topic only if control signal is valid */
 			if (_actuator_group_3_pub > 0) {
@@ -1473,10 +1462,10 @@ Sensors::rc_poll()
 
 		/* publish manual_control_setpoint topic even if signal is not valid to update 'signal_lost' flag */
 		if (_manual_control_pub > 0) {
-			orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual_control);
+			orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &_manual);
 
 		} else {
-			_manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual_control);
+			_manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &_manual);
 		}
 	}
 
