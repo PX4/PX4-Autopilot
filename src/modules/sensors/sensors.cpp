@@ -135,7 +135,7 @@
  */
 #define PCB_TEMP_ESTIMATE_DEG 5.0f
 
-#define limit_minus_one_to_one(arg) (arg < -1.0f) ? -1.0f : ((arg > 1.0f) ? 1.0f : arg)
+#define STICK_ON_OFF_LIMIT 0.75f
 
 /**
  * Sensor app start / stop handling function
@@ -168,6 +168,16 @@ private:
 	static const unsigned _rc_max_chan_count = RC_INPUT_MAX_CHANNELS;	/**< maximum number of r/c channels we handle */
 
 	hrt_abstime	_rc_last_valid;		/**< last time we got a valid RC signal */
+
+	/**
+	 * Get and limit value for specified RC function. Returns NAN if not mapped.
+	 */
+	float		get_rc_value(enum RC_CHANNELS_FUNCTION func, float min_value, float max_value);
+
+	/**
+	 * Get switch position for specified function.
+	 */
+	switch_pos_t	get_rc_switch_position(enum RC_CHANNELS_FUNCTION func);
 
 	/**
 	 * Gather and publish RC input data.
@@ -1275,6 +1285,45 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 	}
 }
 
+float
+Sensors::get_rc_value(enum RC_CHANNELS_FUNCTION func, float min_value, float max_value)
+{
+	if (_rc.function[func] >= 0) {
+		float value = _rc.chan[_rc.function[func]].scaled;
+		if (value < min_value) {
+			return min_value;
+
+		} else if (value > max_value) {
+			return max_value;
+
+		} else {
+			return value;
+		}
+	} else {
+		return NAN;
+	}
+}
+
+switch_pos_t
+Sensors::get_rc_switch_position(enum RC_CHANNELS_FUNCTION func)
+{
+	if (_rc.function[func] >= 0) {
+		float value = _rc.chan[_rc.function[func]].scaled;
+		if (value > STICK_ON_OFF_LIMIT) {
+			return SWITCH_POS_ON;
+
+		} else if (value < STICK_ON_OFF_LIMIT) {
+			return SWITCH_POS_OFF;
+
+		} else {
+			return SWITCH_POS_MIDDLE;
+		}
+
+	} else {
+		return SWITCH_POS_NONE;
+	}
+}
+
 void
 Sensors::rc_poll()
 {
@@ -1292,19 +1341,17 @@ Sensors::rc_poll()
 		manual_control.pitch = NAN;
 		manual_control.yaw = NAN;
 		manual_control.throttle = NAN;
-
-		manual_control.mode_switch = NAN;
-		manual_control.return_switch = NAN;
-		manual_control.assisted_switch = NAN;
-		manual_control.mission_switch = NAN;
-//		manual_control.auto_offboard_input_switch = NAN;
-
 		manual_control.flaps = NAN;
 		manual_control.aux1 = NAN;
 		manual_control.aux2 = NAN;
 		manual_control.aux3 = NAN;
 		manual_control.aux4 = NAN;
 		manual_control.aux5 = NAN;
+
+		manual_control.mode_switch = SWITCH_POS_NONE;
+		manual_control.return_switch = SWITCH_POS_NONE;
+		manual_control.assisted_switch = SWITCH_POS_NONE;
+		manual_control.mission_switch = SWITCH_POS_NONE;
 
 		manual_control.signal_lost = true;
 
@@ -1316,7 +1363,7 @@ Sensors::rc_poll()
 			/* signal looks good */
 			manual_control.signal_lost = false;
 
-			/* check throttle failsafe */
+			/* check for throttle failsafe */
 			if (_parameters.rc_fs_ch != 0) {
 				if (_parameters.rc_fs_mode == 0) {
 					if (rc_input.values[_parameters.rc_fs_ch - 1] < _parameters.rc_fs_thr) {
@@ -1397,89 +1444,23 @@ Sensors::rc_poll()
 		if (!manual_control.signal_lost) {
 			/* fill values in manual_control_setpoint topic only if signal is valid */
 
-			/* roll input - rolling right is stick-wise and rotation-wise positive */
-			manual_control.roll = limit_minus_one_to_one(_rc.chan[_rc.function[ROLL]].scaled);
-			/*
-			 * pitch input - stick down is negative, but stick down is pitching up (pos) in NED,
-			 * so reverse sign.
-			 */
-			manual_control.pitch = limit_minus_one_to_one(-1.0f * _rc.chan[_rc.function[PITCH]].scaled);
-			/* yaw input - stick right is positive and positive rotation */
-			manual_control.yaw = limit_minus_one_to_one(_rc.chan[_rc.function[YAW]].scaled);
-			/* throttle input */
-			manual_control.throttle = _rc.chan[_rc.function[THROTTLE]].scaled;
+			/* limit controls */
+			manual_control.roll = get_rc_value(ROLL, -1.0, 1.0);
+			manual_control.pitch = get_rc_value(PITCH, -1.0, 1.0);
+			manual_control.yaw = get_rc_value(YAW, -1.0, 1.0);
+			manual_control.throttle = get_rc_value(THROTTLE, 0.0, 1.0);
+			manual_control.flaps = get_rc_value(FLAPS, -1.0, 1.0);
+			manual_control.aux1 = get_rc_value(AUX_1, -1.0, 1.0);
+			manual_control.aux2 = get_rc_value(AUX_2, -1.0, 1.0);
+			manual_control.aux3 = get_rc_value(AUX_3, -1.0, 1.0);
+			manual_control.aux4 = get_rc_value(AUX_4, -1.0, 1.0);
+			manual_control.aux5 = get_rc_value(AUX_5, -1.0, 1.0);
 
-			if (manual_control.throttle < 0.0f) manual_control.throttle = 0.0f;
-
-			if (manual_control.throttle > 1.0f) manual_control.throttle = 1.0f;
-
-			/* scale output */
-			if (isfinite(_parameters.rc_scale_roll) && _parameters.rc_scale_roll > 0.0f) {
-				manual_control.roll *= _parameters.rc_scale_roll;
-			}
-
-			if (isfinite(_parameters.rc_scale_pitch) && _parameters.rc_scale_pitch > 0.0f) {
-				manual_control.pitch *= _parameters.rc_scale_pitch;
-			}
-
-			if (isfinite(_parameters.rc_scale_yaw) && _parameters.rc_scale_yaw > 0.0f) {
-				manual_control.yaw *= _parameters.rc_scale_yaw;
-			}
-
-			/* flaps */
-			if (_rc.function[FLAPS] >= 0) {
-
-				manual_control.flaps = limit_minus_one_to_one(_rc.chan[_rc.function[FLAPS]].scaled);
-
-				if (isfinite(_parameters.rc_scale_flaps) && _parameters.rc_scale_flaps > 0.0f) {
-					manual_control.flaps *= _parameters.rc_scale_flaps;
-				}
-			}
-
-			/* mode switch input */
-			if (_rc.function[MODE] >= 0) {
-				manual_control.mode_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MODE]].scaled);
-			}
-
-			/* assisted switch input */
-			if (_rc.function[ASSISTED] >= 0) {
-				manual_control.assisted_switch = limit_minus_one_to_one(_rc.chan[_rc.function[ASSISTED]].scaled);
-			}
-
-			/* mission switch input */
-			if (_rc.function[MISSION] >= 0) {
-				manual_control.mission_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MISSION]].scaled);
-			}
-
-			/* return switch input */
-			if (_rc.function[RETURN] >= 0) {
-				manual_control.return_switch = limit_minus_one_to_one(_rc.chan[_rc.function[RETURN]].scaled);
-			}
-
-	//		if (_rc.function[OFFBOARD_MODE] >= 0) {
-	//			manual_control.auto_offboard_input_switch = limit_minus_one_to_one(_rc.chan[_rc.function[OFFBOARD_MODE]].scaled);
-	//		}
-
-			/* aux functions, only assign if valid mapping is present */
-			if (_rc.function[AUX_1] >= 0) {
-				manual_control.aux1 = limit_minus_one_to_one(_rc.chan[_rc.function[AUX_1]].scaled);
-			}
-
-			if (_rc.function[AUX_2] >= 0) {
-				manual_control.aux2 = limit_minus_one_to_one(_rc.chan[_rc.function[AUX_2]].scaled);
-			}
-
-			if (_rc.function[AUX_3] >= 0) {
-				manual_control.aux3 = limit_minus_one_to_one(_rc.chan[_rc.function[AUX_3]].scaled);
-			}
-
-			if (_rc.function[AUX_4] >= 0) {
-				manual_control.aux4 = limit_minus_one_to_one(_rc.chan[_rc.function[AUX_4]].scaled);
-			}
-
-			if (_rc.function[AUX_5] >= 0) {
-				manual_control.aux5 = limit_minus_one_to_one(_rc.chan[_rc.function[AUX_5]].scaled);
-			}
+			/* mode switches */
+			manual_control.mode_switch = get_rc_switch_position(MODE);
+			manual_control.assisted_switch = get_rc_switch_position(ASSISTED);
+			manual_control.mission_switch = get_rc_switch_position(MISSION);
+			manual_control.return_switch = get_rc_switch_position(RETURN);
 
 			/* copy from mapped manual control to control group 3 */
 			actuator_group_3.control[0] = manual_control.roll;
