@@ -51,6 +51,8 @@
 struct manual_control_setpoint_s {
 	uint64_t timestamp;
 
+	bool signal_lost;		/**< control signal lost, should be checked together with topic timeout */
+
 	float roll;			 	/**< ailerons roll / roll rate input */
 	float pitch;				/**< elevator / pitch / pitch rate */
 	float yaw;				/**< rudder / yaw rate / yaw */
