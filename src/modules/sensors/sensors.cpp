@@ -268,11 +268,6 @@ private:
 		int rc_map_aux4;
 		int rc_map_aux5;
 
-		float rc_scale_roll;
-		float rc_scale_pitch;
-		float rc_scale_yaw;
-		float rc_scale_flaps;
-
 		int rc_fs_ch;
 		int rc_fs_mode;
 		float rc_fs_thr;
@@ -317,11 +312,6 @@ private:
 		param_t rc_map_aux3;
 		param_t rc_map_aux4;
 		param_t rc_map_aux5;
-
-		param_t rc_scale_roll;
-		param_t rc_scale_pitch;
-		param_t rc_scale_yaw;
-		param_t rc_scale_flaps;
 
 		param_t rc_fs_ch;
 		param_t rc_fs_mode;
@@ -536,11 +526,6 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_aux4 = param_find("RC_MAP_AUX4");
 	_parameter_handles.rc_map_aux5 = param_find("RC_MAP_AUX5");
 
-	_parameter_handles.rc_scale_roll = param_find("RC_SCALE_ROLL");
-	_parameter_handles.rc_scale_pitch = param_find("RC_SCALE_PITCH");
-	_parameter_handles.rc_scale_yaw = param_find("RC_SCALE_YAW");
-	_parameter_handles.rc_scale_flaps = param_find("RC_SCALE_FLAPS");
-
 	/* RC failsafe */
 	_parameter_handles.rc_fs_ch = param_find("RC_FS_CH");
 	_parameter_handles.rc_fs_mode = param_find("RC_FS_MODE");
@@ -696,10 +681,6 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_map_aux3, &(_parameters.rc_map_aux3));
 	param_get(_parameter_handles.rc_map_aux4, &(_parameters.rc_map_aux4));
 	param_get(_parameter_handles.rc_map_aux5, &(_parameters.rc_map_aux5));
-	param_get(_parameter_handles.rc_scale_roll, &(_parameters.rc_scale_roll));
-	param_get(_parameter_handles.rc_scale_pitch, &(_parameters.rc_scale_pitch));
-	param_get(_parameter_handles.rc_scale_yaw, &(_parameters.rc_scale_yaw));
-	param_get(_parameter_handles.rc_scale_flaps, &(_parameters.rc_scale_flaps));
 	param_get(_parameter_handles.rc_fs_ch, &(_parameters.rc_fs_ch));
 	param_get(_parameter_handles.rc_fs_mode, &(_parameters.rc_fs_mode));
 	param_get(_parameter_handles.rc_fs_thr, &(_parameters.rc_fs_thr));

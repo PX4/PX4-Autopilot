@@ -157,7 +157,9 @@ private:
 		param_t yaw_rate_d;
 		param_t yaw_ff;
 
-		param_t rc_scale_yaw;
+		param_t man_scale_roll;
+		param_t man_scale_pitch;
+		param_t man_scale_yaw;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -167,7 +169,9 @@ private:
 		math::Vector<3> rate_d;				/**< D gain for angular rate error */
 		float yaw_ff;						/**< yaw control feed-forward */
 
-		float rc_scale_yaw;
+		float man_scale_roll;
+		float man_scale_pitch;
+		float man_scale_yaw;
 	}		_params;
 
 	/**
@@ -295,7 +299,9 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.yaw_rate_d		= 	param_find("MC_YAWRATE_D");
 	_params_handles.yaw_ff			= 	param_find("MC_YAW_FF");
 
-	_params_handles.rc_scale_yaw	= 	param_find("RC_SCALE_YAW");
+	_params_handles.man_scale_roll	= 	param_find("MC_SCALE_ROLL");
+	_params_handles.man_scale_pitch	= 	param_find("MC_SCALE_PITCH");
+	_params_handles.man_scale_yaw	= 	param_find("MC_SCALE_YAW");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -330,7 +336,7 @@ MulticopterAttitudeControl::parameters_update()
 {
 	float v;
 
-	/* roll */
+	/* roll gains */
 	param_get(_params_handles.roll_p, &v);
 	_params.att_p(0) = v;
 	param_get(_params_handles.roll_rate_p, &v);
@@ -340,7 +346,7 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_params_handles.roll_rate_d, &v);
 	_params.rate_d(0) = v;
 
-	/* pitch */
+	/* pitch gains */
 	param_get(_params_handles.pitch_p, &v);
 	_params.att_p(1) = v;
 	param_get(_params_handles.pitch_rate_p, &v);
@@ -350,7 +356,7 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_params_handles.pitch_rate_d, &v);
 	_params.rate_d(1) = v;
 
-	/* yaw */
+	/* yaw gains */
 	param_get(_params_handles.yaw_p, &v);
 	_params.att_p(2) = v;
 	param_get(_params_handles.yaw_rate_p, &v);
@@ -362,7 +368,14 @@ MulticopterAttitudeControl::parameters_update()
 
 	param_get(_params_handles.yaw_ff, &_params.yaw_ff);
 
-	param_get(_params_handles.rc_scale_yaw, &_params.rc_scale_yaw);
+	/* manual control scale */
+	param_get(_params_handles.man_scale_roll, &_params.man_scale_roll);
+	param_get(_params_handles.man_scale_pitch, &_params.man_scale_pitch);
+	param_get(_params_handles.man_scale_yaw, &_params.man_scale_yaw);
+
+	_params.man_scale_roll *= M_PI / 180.0;
+	_params.man_scale_pitch *= M_PI / 180.0;
+	_params.man_scale_yaw *= M_PI / 180.0;
 
 	return OK;
 }
@@ -404,7 +417,6 @@ MulticopterAttitudeControl::vehicle_manual_poll()
 	orb_check(_manual_control_sp_sub, &updated);
 
 	if (updated) {
-
 		orb_copy(ORB_ID(manual_control_setpoint), _manual_control_sp_sub, &_manual_control_sp);
 	}
 }
@@ -483,24 +495,10 @@ MulticopterAttitudeControl::control_attitude(float dt)
 			//	reset_yaw_sp = true;
 			//}
 		} else {
-			float yaw_dz_scaled = YAW_DEADZONE * _params.rc_scale_yaw;
-
-			if (_params.rc_scale_yaw > 0.001f && fabs(_manual_control_sp.yaw) > yaw_dz_scaled) {
-				/* move yaw setpoint */
-				yaw_sp_move_rate = _manual_control_sp.yaw / _params.rc_scale_yaw;
-
-				if (_manual_control_sp.yaw > 0.0f) {
-					yaw_sp_move_rate -= YAW_DEADZONE;
-
-				} else {
-					yaw_sp_move_rate += YAW_DEADZONE;
-				}
-
-				yaw_sp_move_rate *= _params.rc_scale_yaw;
-				_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + yaw_sp_move_rate * dt);
-				_v_att_sp.R_valid = false;
-				publish_att_sp = true;
-			}
+			/* move yaw setpoint */
+			_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + _manual_control_sp.yaw * _params.man_scale_yaw * dt);
+			_v_att_sp.R_valid = false;
+			publish_att_sp = true;
 		}
 
 		/* reset yaw setpint to current position if needed */
@@ -513,8 +511,8 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 		if (!_v_control_mode.flag_control_velocity_enabled) {
 			/* update attitude setpoint if not in position control mode */
-			_v_att_sp.roll_body = _manual_control_sp.roll;
-			_v_att_sp.pitch_body = _manual_control_sp.pitch;
+			_v_att_sp.roll_body = _manual_control_sp.roll * _params.man_scale_roll;
+			_v_att_sp.pitch_body = -_manual_control_sp.pitch * _params.man_scale_pitch;
 			_v_att_sp.R_valid = false;
 			publish_att_sp = true;
 		}
