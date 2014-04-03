@@ -591,11 +591,11 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		answer_command(*cmd, VEHICLE_CMD_RESULT_UNSUPPORTED);
 		break;
 	}
-
-	if (result != VEHICLE_CMD_RESULT_UNSUPPORTED) {
-		/* already warned about unsupported commands in "default" case */
-		answer_command(*cmd, result);
-	}
+	/* silently ignore unsupported commands, maybe they are passed on over mavlink */
+//	if (result != VEHICLE_CMD_RESULT_UNSUPPORTED) {
+//		/* already warned about unsupported commands in "default" case */
+//		answer_command(*cmd, result);
+//	}
 
 	/* send any requested ACKs */
 	if (cmd->confirmation > 0 && result != VEHICLE_CMD_RESULT_UNSUPPORTED) {
