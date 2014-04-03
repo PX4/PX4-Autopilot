@@ -138,6 +138,8 @@ public:
 
 	static bool	instance_exists(const char *device_name, Mavlink *self);
 
+	static void	forward_message(mavlink_message_t *msg, Mavlink *self);
+
 	static int get_uart_fd(unsigned index);
 
 	int get_uart_fd();
@@ -153,9 +155,11 @@ public:
 	void		set_mode(enum MAVLINK_MODE);
 	enum MAVLINK_MODE		get_mode() { return _mode; }
 
-	bool		get_hil_enabled() { return _hil_enabled; };
+	bool		get_hil_enabled() { return _hil_enabled; }
 
 	bool		get_flow_control_enabled() { return _flow_control_enabled; }
+
+	bool		get_forwarding_on() { return _forwarding_on; }
 
 	/**
 	 * Handle waypoint related messages.
@@ -234,6 +238,8 @@ private:
 	mavlink_wpm_storage *_wpm;
 
 	bool _verbose;
+	bool _forwarding_on;
+	bool _passing_on;
 	int _uart_fd;
 	int _baudrate;
 	int _datarate;
@@ -251,6 +257,16 @@ private:
 	float	_subscribe_to_stream_rate;
 
 	bool		_flow_control_enabled;
+
+	struct mavlink_message_buffer {
+		int write_ptr;
+		int read_ptr;
+		int size;
+		char *data;
+	};
+	mavlink_message_buffer _message_buffer;
+
+	pthread_mutex_t _message_buffer_mutex;
 
 	/**
 	 * Send one parameter.
@@ -314,6 +330,22 @@ private:
 
 	int configure_stream(const char *stream_name, const float rate);
 	void configure_stream_threadsafe(const char *stream_name, const float rate);
+
+	int message_buffer_init(int size);
+
+	void message_buffer_destroy();
+
+	int message_buffer_count();
+
+	int message_buffer_is_empty();
+
+	bool message_buffer_write(void *ptr, int size);
+
+	int message_buffer_get_ptr(void **ptr, bool *is_part);
+
+	void message_buffer_mark_read(int n);
+
+	void pass_message(mavlink_message_t *msg);
 
 	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
 

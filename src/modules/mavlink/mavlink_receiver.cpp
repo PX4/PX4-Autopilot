@@ -880,6 +880,11 @@ MavlinkReceiver::receive_thread(void *arg)
 
 					/* handle packet with parameter component */
 					_mavlink->mavlink_pm_message_handler(_mavlink->get_channel(), &msg);
+
+					if (_mavlink->get_forwarding_on()) {
+						/* forward any messages to other mavlink instances */
+						Mavlink::forward_message(&msg, _mavlink);
+					}
 				}
 			}
 		}

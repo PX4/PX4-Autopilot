@@ -1265,11 +1265,13 @@ protected:
 		    || status->arming_state == ARMING_STATE_ARMED_ERROR) {
 
 			/* send camera capture on */
-			mavlink_msg_command_long_send(_channel, 42, 30, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 1, 0, 0, 0);
+			/* XXX TODO: get param for system ID */
+			mavlink_msg_command_long_send(_channel, 42, 250, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 1, 0, 0, 0);
 
 		} else {
 			/* send camera capture off */
-			mavlink_msg_command_long_send(_channel, 42, 30, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 0, 0, 0, 0);
+			/* XXX TODO: get param for system ID */
+			mavlink_msg_command_long_send(_channel, 42, 250, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 0, 0, 0, 0);
 		}
 	}
 };
