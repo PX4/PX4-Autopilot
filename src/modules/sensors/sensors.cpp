@@ -1305,7 +1305,7 @@ Sensors::get_rc_switch_position(enum RC_CHANNELS_FUNCTION func)
 		if (value > STICK_ON_OFF_LIMIT) {
 			return SWITCH_POS_ON;
 
-		} else if (value < STICK_ON_OFF_LIMIT) {
+		} else if (value < -STICK_ON_OFF_LIMIT) {
 			return SWITCH_POS_OFF;
 
 		} else {
