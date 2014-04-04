@@ -579,12 +579,26 @@ int write_formats(int fd)
 
 		/* buffer type and length */
 		buf[0] = log_formats[i].type;
-		buf[1] = log_formats[i].length;
+
+		/* the length field accounts for the char pointers for the
+		 * two strings, which means we have the NUL char already counted.
+		 * so we can just add strlen() for each field and get the full
+		 * length.
+		 */
+		buf[1] = log_formats[i].length + strlen(log_formats[i].format)
+			 + strlen(log_formats[i].labels);
 		/* two bytes of the buffer consumed */
 		unsigned len = 2;
 		/* copy name */
-		len += strcpy(&buf[len], log_formats[i].name);
-		/* copy format */
+		(void)memcpy(&buf[len], sizeof(log_formats[i].name));
+		len += sizeof(log_formats[i].name)
+		/*
+		 * copy format - this string starts at
+		 * index 6 and ends NUL-terminates, followed
+		 * straight by the NUL-terminated labels.
+		 * The next header starts right after the
+		 * NUL-termination.
+		 */
 		len += strcpy(&buf[len], log_formats[i].format);
 
 		/* write out and clear buffer */
