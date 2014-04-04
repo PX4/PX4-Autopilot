@@ -562,7 +562,6 @@ int write_formats(int fd)
 	/* construct message format packet */
 	struct {
 		LOG_PACKET_HEADER;
-		struct log_format_s body;
 	} log_msg_format = {
 		LOG_PACKET_HEADER_INIT(LOG_FORMAT_MSG),
 	};
@@ -571,8 +570,45 @@ int write_formats(int fd)
 
 	/* fill message format packet for each format and write it */
 	for (int i = 0; i < log_formats_num; i++) {
-		log_msg_format.body = log_formats[i];
+
+		/* write out the header */
 		written += write(fd, &log_msg_format, sizeof(log_msg_format));
+
+		/* hold a local buffer */
+		uint8_t buf[200];
+
+		/* buffer type and length */
+		buf[0] = log_formats[i].type;
+
+		/* the length field accounts for the char pointers for the
+		 * two strings, which means we have the NUL char already counted.
+		 * so we can just add strlen() for each field and get the full
+		 * length.
+		 */
+		buf[1] = log_formats[i].length + strlen(log_formats[i].format)
+			 + strlen(log_formats[i].labels);
+		/* two bytes of the buffer consumed */
+		unsigned len = 2;
+		/* copy name */
+		(void)memcpy(&buf[len], sizeof(log_formats[i].name));
+		len += sizeof(log_formats[i].name)
+		/*
+		 * copy format - this string starts at
+		 * index 6 and ends NUL-terminates, followed
+		 * straight by the NUL-terminated labels.
+		 * The next header starts right after the
+		 * NUL-termination.
+		 */
+		len += strcpy(&buf[len], log_formats[i].format);
+
+		/* write out and clear buffer */
+		written += write(fd, &buf[0], len);
+
+		/* reset len and write labels separately (as its a large chunk) */
+		len = 0;
+		len += strcpy(&buf[len], log_formats[i].labels);
+
+		written += write(fd, &buf[0], len);
 	}
 
 	return written;
