@@ -302,12 +302,19 @@ struct log_PARM_s {
 /* --- ESTM - ESTIMATOR STATUS --- */
 #define LOG_ESTM_MSG 132
 struct log_ESTM_s {
-	float s[32];
+	float s[10];
 	uint8_t n_states;
 	uint8_t states_nan;
 	uint8_t covariance_nan;
 	uint8_t kalman_gain_nan;
 };
+// struct log_ESTM_s {
+// 	float s[32];
+// 	uint8_t n_states;
+// 	uint8_t states_nan;
+// 	uint8_t covariance_nan;
+// 	uint8_t kalman_gain_nan;
+// };
 
 #pragma pack(pop)
 
@@ -341,7 +348,8 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TIME, "Q", "StartTime"),
 	LOG_FORMAT(VER, "NZ", "Arch,FwGit"),
 	LOG_FORMAT(PARM, "Nf", "Name,Value"),
-	LOG_FORMAT(ESTM, "ffffffffffffffffffffffffffffffffBBBB", "s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27,s28,s29,s30,s31,n_states,states_nan,cov_nan,kgain_nan"),
+	LOG_FORMAT(ESTM, "ffffffffffBBBB", "s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,n_states,states_nan,cov_nan,kgain_nan"),
+	//LOG_FORMAT(ESTM, "ffffffffffffffffffffffffffffffffBBBB", "s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27,s28,s29,s30,s31,n_states,states_nan,cov_nan,kgain_nan"),
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);
