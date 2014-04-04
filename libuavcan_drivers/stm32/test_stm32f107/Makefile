@@ -10,7 +10,7 @@ PROJECT = uavcan_test_stm32f107
 
 CPPSRC = src/main.cpp src/dummy.cpp
 
-UDEFS = -DUAVCAN_STM32_CHIBIOS=1
+UDEFS = -DUAVCAN_STM32_CHIBIOS=1 -DUAVCAN_STM32_DEBUG=1
 
 #
 # UAVCAN library
