@@ -264,17 +264,24 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame& frame, uavcan::MonotonicT
 uavcan::int16_t CanIface::receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
                                   uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags)
 {
-    CriticalSectionLock lock;
-    (void)out_frame;
-    (void)out_ts_monotonic;
-    (void)out_ts_utc;
-    (void)out_flags;
-    return -1;
+    out_ts_monotonic = clock::getMonotonic();  // High precision is not required for monotonic timestamps
+    uavcan::uint64_t utc_usec = 0;
+    {
+        CriticalSectionLock lock;
+        if (rx_queue_.getLength() == 0)
+        {
+            return 0;
+        }
+        rx_queue_.pop(out_frame, utc_usec, out_flags);
+    }
+    out_ts_utc = uavcan::UtcTime::fromUSec(utc_usec);
+    return 1;
 }
 
 uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig* filter_configs,
                                            uavcan::uint16_t num_configs)
 {
+    // TODO: Hardware filter support
     CriticalSectionLock lock;
     (void)filter_configs;
     (void)num_configs;
@@ -324,8 +331,6 @@ int CanIface::init(uavcan::uint32_t bitrate)
     can_->IER = CAN_IER_TMEIE |   // TX mailbox empty
                 CAN_IER_ERRIE |   // Error set in ESR register
                 CAN_IER_LECIE |   // LEC in ESR updated
-                CAN_IER_FOVIE0 |  // RX FIFO 0 overrun
-                CAN_IER_FOVIE1 |  // RX FIFO 1 overrun
                 CAN_IER_FMPIE0 |  // RX FIFO 0 is not empty
                 CAN_IER_FMPIE1;   // RX FIFO 1 is not empty
 
@@ -342,6 +347,36 @@ int CanIface::init(uavcan::uint32_t bitrate)
     {
         res = -1;
         goto leave;
+    }
+
+    /*
+     * Default filter configuration
+     */
+    if (self_index_ == 0)
+    {
+        can_->FMR |= CAN_FMR_FINIT;
+
+        can_->FMR &= 0xFFFFC0F1;
+        can_->FMR |= static_cast<uavcan::uint32_t>(NumFilters) << 8;  // Slave (CAN2) gets half of the filters
+
+        can_->FFA1R = 0;                           // All assigned to FIFO0 by default
+        can_->FM1R = 0;                            // Indentifier Mask mode
+
+#if UAVCAN_STM32_NUM_IFACES > 1
+        can_->FS1R = 0x7ffffff;                    // Single 32-bit for all
+        can_->sFilterRegister[0].FR1 = 0;          // CAN1 accepts everything
+        can_->sFilterRegister[0].FR2 = 0;
+        can_->sFilterRegister[NumFilters].FR1 = 0; // CAN2 accepts everything
+        can_->sFilterRegister[NumFilters].FR2 = 0;
+        can_->FA1R = 1 | (1 << NumFilters);        // One filter per each iface
+#else
+        can_->FS1R = 0x1fff;
+        can_->sFilterRegister[0].FR1 = 0;
+        can_->sFilterRegister[0].FR2 = 0;
+        can_->FA1R = 1;
+#endif
+
+        can_->FMR &= ~CAN_FMR_FINIT;
     }
 
 leave:
@@ -385,9 +420,61 @@ void CanIface::handleTxInterrupt(const uavcan::uint64_t utc_usec)
 
 void CanIface::handleRxInterrupt(uavcan::uint8_t fifo_index, uavcan::uint64_t utc_usec)
 {
-    assert(fifo_index == 0 || fifo_index == 1);
-    (void)fifo_index;
-    (void)utc_usec;
+    assert(fifo_index < 2);
+
+    volatile uavcan::uint32_t* const rfr_reg = (fifo_index == 0) ? &can_->RF0R : &can_->RF1R;
+    if ((*rfr_reg & CAN_RF0R_FMP0) == 0)
+    {
+        assert(0);  // Weird, IRQ is here but no data to read
+        return;
+    }
+
+    /*
+     * Register overflow as a hardware error
+     */
+    if ((*rfr_reg & CAN_RF0R_FOVR0) != 0)
+    {
+        error_cnt_++;
+    }
+
+    /*
+     * Read the frame contents
+     */
+    uavcan::CanFrame frame;
+    const CAN_FIFOMailBox_TypeDef& rf = can_->sFIFOMailBox[fifo_index];
+
+    if ((rf.RIR & CAN_RI0R_IDE) == 0)
+    {
+        frame.id = uavcan::CanFrame::MaskStdID & (rf.RIR >> 21);
+    }
+    else
+    {
+        frame.id = uavcan::CanFrame::MaskExtID & (rf.RIR >> 3);
+        frame.id |= uavcan::CanFrame::FlagEFF;
+    }
+
+    if ((rf.RIR & CAN_RI0R_RTR) != 0)
+    {
+        frame.id |= uavcan::CanFrame::FlagRTR;
+    }
+
+    frame.dlc = rf.RDTR & 15;
+
+    frame.data[0] = 0xFF & (rf.RDLR >> 0);
+    frame.data[1] = 0xFF & (rf.RDLR >> 8);
+    frame.data[2] = 0xFF & (rf.RDLR >> 16);
+    frame.data[3] = 0xFF & (rf.RDLR >> 24);
+    frame.data[4] = 0xFF & (rf.RDHR >> 0);
+    frame.data[5] = 0xFF & (rf.RDHR >> 8);
+    frame.data[6] = 0xFF & (rf.RDHR >> 16);
+    frame.data[7] = 0xFF & (rf.RDHR >> 24);
+
+    *rfr_reg = CAN_RF0R_RFOM0 | CAN_RF0R_FOVR0 | CAN_RF0R_FULL0;  // Release FIFO entry we just read
+
+    /*
+     * Store with timeout into the FIFO buffer and signal update event
+     */
+    rx_queue_.push(frame, utc_usec, 0);
     update_event_.signalFromInterrupt();
 }
 

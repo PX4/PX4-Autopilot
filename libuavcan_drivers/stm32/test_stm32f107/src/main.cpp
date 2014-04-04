@@ -98,9 +98,31 @@ int main()
         frame.data[0] = 42;
         frame.dlc = 2;
 
-        const int send_res = static_cast<uavcan::ICanIface*>(app::can.driver.getIface(0))->send(frame, deadline, 0);
+        const int send_res =
+            static_cast<uavcan::ICanIface*>(app::can.driver.getIface(0))->send(frame, deadline,
+                                                                               uavcan::CanIOFlagLoopback);
         printf("send_res=%i errcnt=%lu hwerr=%i\n", send_res,
                static_cast<unsigned long>(app::can.driver.getIface(0)->getErrorCount()),
                static_cast<int>(app::can.driver.getIface(0)->yieldLastHardwareErrorCode()));
+
+        while (true)
+        {
+            uavcan::CanRxFrame rx_frame;
+            uavcan::CanIOFlags flags = 0;
+
+            const int recv_res =
+                static_cast<uavcan::ICanIface*>(app::can.driver.getIface(0))->receive(rx_frame, rx_frame.ts_mono,
+                                                                                      rx_frame.ts_utc, flags);
+
+            printf("recv_res=%i flg=%u canid=%lu dlc=%u data=[%02x %02x %02x %02x %02x %02x %02x %02x]\n",
+                   recv_res, unsigned(flags), rx_frame.id & uavcan::CanFrame::MaskExtID, int(rx_frame.dlc),
+                   int(rx_frame.data[0]), int(rx_frame.data[1]), int(rx_frame.data[2]), int(rx_frame.data[3]),
+                   int(rx_frame.data[4]), int(rx_frame.data[5]), int(rx_frame.data[6]), int(rx_frame.data[7]));
+
+            if (recv_res <= 0)
+            {
+                break;
+            }
+        }
     }
 }
