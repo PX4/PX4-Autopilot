@@ -124,6 +124,16 @@ public:
 	 */
 	int		start();
 
+	/**
+	 * Print the current status.
+	 */
+	void		print_status();
+
+	/**
+	 * Trip the filter by feeding it NaN values.
+	 */
+	int		trip_nan();
+
 private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
@@ -199,6 +209,7 @@ private:
 		param_t	tas_delay_ms;
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
+	AttPosEKF					*_ekf;
 
 	/**
 	 * Update our local parameter cache.
@@ -280,7 +291,8 @@ FixedwingEstimator::FixedwingEstimator() :
 /* states */
 	_initialized(false),
 	_gps_initialized(false),
-	_mavlink_fd(-1)
+	_mavlink_fd(-1),
+	_ekf(new AttPosEKF())
 {
 
 	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
@@ -384,6 +396,10 @@ void
 FixedwingEstimator::task_main()
 {
 
+	if (!_ekf) {
+		errx(1, "failed allocating EKF filter - out of RAM!");
+	}
+
 	/*
 	 * do subscriptions
 	 */
@@ -414,23 +430,23 @@ FixedwingEstimator::task_main()
 	parameters_update();
 
 	/* set initial filter state */
-	fuseVelData = false;
-	fusePosData = false;
-	fuseHgtData = false;
-	fuseMagData = false;
-	fuseVtasData = false;
-	statesInitialised = false;
+	_ekf->fuseVelData = false;
+	_ekf->fusePosData = false;
+	_ekf->fuseHgtData = false;
+	_ekf->fuseMagData = false;
+	_ekf->fuseVtasData = false;
+	_ekf->statesInitialised = false;
 
 	/* initialize measurement data */
-	VtasMeas = 0.0f;
+	_ekf->VtasMeas = 0.0f;
 	Vector3f lastAngRate = {0.0f, 0.0f, 0.0f};
 	Vector3f lastAccel = {0.0f, 0.0f, -9.81f};
-	dVelIMU.x = 0.0f;
-	dVelIMU.y = 0.0f;
-	dVelIMU.z = 0.0f;
-	dAngIMU.x = 0.0f;
-	dAngIMU.y = 0.0f;
-	dAngIMU.z = 0.0f;
+	_ekf->dVelIMU.x = 0.0f;
+	_ekf->dVelIMU.y = 0.0f;
+	_ekf->dVelIMU.z = 0.0f;
+	_ekf->dAngIMU.x = 0.0f;
+	_ekf->dAngIMU.y = 0.0f;
+	_ekf->dAngIMU.z = 0.0f;
 
 	/* wakeup source(s) */
 	struct pollfd fds[2];
@@ -509,7 +525,7 @@ FixedwingEstimator::task_main()
 			}
 
 			last_sensor_timestamp = _gyro.timestamp;
-			IMUmsec = _gyro.timestamp / 1e3f;
+			_ekf.IMUmsec = _gyro.timestamp / 1e3f;
 
 			float deltaT = (_gyro.timestamp - last_run) / 1e6f;
 			last_run = _gyro.timestamp;
@@ -521,20 +537,20 @@ FixedwingEstimator::task_main()
 
 			// Always store data, independent of init status
 			/* fill in last data set */
-			dtIMU = deltaT;
+			_ekf->dtIMU = deltaT;
 
-			angRate.x = _gyro.x;
-			angRate.y = _gyro.y;
-			angRate.z = _gyro.z;
+			_ekf->angRate.x = _gyro.x;
+			_ekf->angRate.y = _gyro.y;
+			_ekf->angRate.z = _gyro.z;
 
-			accel.x = _accel.x;
-			accel.y = _accel.y;
-			accel.z = _accel.z;
+			_ekf->accel.x = _accel.x;
+			_ekf->accel.y = _accel.y;
+			_ekf->accel.z = _accel.z;
 
-			dAngIMU = 0.5f * (angRate + lastAngRate) * dtIMU;
-			lastAngRate = angRate;
-			dVelIMU = 0.5f * (accel + lastAccel) * dtIMU;
-			lastAccel = accel;
+			_ekf->dAngIMU = 0.5f * (angRate + lastAngRate) * dtIMU;
+			_ekf->lastAngRate = angRate;
+			_ekf->dVelIMU = 0.5f * (accel + lastAccel) * dtIMU;
+			_ekf->lastAccel = accel;
 
 
 #else
@@ -563,20 +579,20 @@ FixedwingEstimator::task_main()
 
 			// Always store data, independent of init status
 			/* fill in last data set */
-			dtIMU = deltaT;
+			_ekf->dtIMU = deltaT;
 
-			angRate.x = _sensor_combined.gyro_rad_s[0];
-			angRate.y = _sensor_combined.gyro_rad_s[1];
-			angRate.z = _sensor_combined.gyro_rad_s[2];
+			_ekf->angRate.x = _sensor_combined.gyro_rad_s[0];
+			_ekf->angRate.y = _sensor_combined.gyro_rad_s[1];
+			_ekf->angRate.z = _sensor_combined.gyro_rad_s[2];
 
-			accel.x = _sensor_combined.accelerometer_m_s2[0];
-			accel.y = _sensor_combined.accelerometer_m_s2[1];
-			accel.z = _sensor_combined.accelerometer_m_s2[2];
+			_ekf->accel.x = _sensor_combined.accelerometer_m_s2[0];
+			_ekf->accel.y = _sensor_combined.accelerometer_m_s2[1];
+			_ekf->accel.z = _sensor_combined.accelerometer_m_s2[2];
 
-			dAngIMU = 0.5f * (angRate + lastAngRate) * dtIMU;
-			lastAngRate = angRate;
-			dVelIMU = 0.5f * (accel + lastAccel) * dtIMU;
-			lastAccel = accel;
+			_ekf->dAngIMU = 0.5f * (_ekf->angRate + lastAngRate) * _ekf->dtIMU;
+			lastAngRate = _ekf->angRate;
+			_ekf->dVelIMU = 0.5f * (_ekf->accel + lastAccel) * _ekf->dtIMU;
+			lastAccel = _ekf->accel;
 
 			if (last_mag != _sensor_combined.magnetometer_timestamp) {
 				mag_updated = true;
@@ -597,7 +613,7 @@ FixedwingEstimator::task_main()
 				orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
 				perf_count(_perf_airspeed);
 
-				VtasMeas = _airspeed.true_airspeed_m_s;
+				_ekf->VtasMeas = _airspeed.true_airspeed_m_s;
 				newAdsData = true;
 
 			} else {
@@ -622,24 +638,24 @@ FixedwingEstimator::task_main()
 
 					/* check if we had a GPS outage for a long time */
 					if (hrt_elapsed_time(&last_gps) > 5 * 1000 * 1000) {
-						ResetPosition();
-						ResetVelocity();
-						ResetStoredStates();
+						_ekf->ResetPosition();
+						_ekf->ResetVelocity();
+						_ekf->ResetStoredStates();
 					}
 
 					/* fuse GPS updates */
 
 					//_gps.timestamp / 1e3;
-					GPSstatus = _gps.fix_type;
-					velNED[0] = _gps.vel_n_m_s;
-					velNED[1] = _gps.vel_e_m_s;
-					velNED[2] = _gps.vel_d_m_s;
+					_ekf->GPSstatus = _gps.fix_type;
+					_ekf->velNED[0] = _gps.vel_n_m_s;
+					_ekf->velNED[1] = _gps.vel_e_m_s;
+					_ekf->velNED[2] = _gps.vel_d_m_s;
 
 					// warnx("GPS updated: status: %d, vel: %8.4f %8.4f %8.4f", (int)GPSstatus, velNED[0], velNED[1], velNED[2]);
 
-					gpsLat = math::radians(_gps.lat / (double)1e7);
-					gpsLon = math::radians(_gps.lon / (double)1e7) - M_PI;
-					gpsHgt = _gps.alt / 1e3f;
+					_ekf->gpsLat = math::radians(_gps.lat / (double)1e7);
+					_ekf->gpsLon = math::radians(_gps.lon / (double)1e7) - M_PI;
+					_ekf->gpsHgt = _gps.alt / 1e3f;
 					newDataGps = true;
 
 				}
@@ -652,10 +668,10 @@ FixedwingEstimator::task_main()
 			if (baro_updated) {
 				orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
 
-				baroHgt = _baro.altitude - _baro_ref;
+				_ekf->baroHgt = _baro.altitude - _baro_ref;
 
 				// Could use a blend of GPS and baro alt data if desired
-				hgtMea = 1.0f * baroHgt + 0.0f * gpsHgt;
+				_ekf->hgtMea = 1.0f * _ekf->baroHgt + 0.0f * _ekf->gpsHgt;
 			}
 
 #ifndef SENSOR_COMBINED_SUB
@@ -671,27 +687,27 @@ FixedwingEstimator::task_main()
 
 				// XXX we compensate the offsets upfront - should be close to zero.
 				// 0.001f
-				magData.x = _mag.x;
-				magBias.x = 0.000001f; // _mag_offsets.x_offset
+				_ekf->magData.x = _mag.x;
+				_ekf->magBias.x = 0.000001f; // _mag_offsets.x_offset
 
-				magData.y = _mag.y;
-				magBias.y = 0.000001f; // _mag_offsets.y_offset
+				_ekf->magData.y = _mag.y;
+				_ekf->magBias.y = 0.000001f; // _mag_offsets.y_offset
 
-				magData.z = _mag.z;
-				magBias.z = 0.000001f; // _mag_offsets.y_offset
+				_ekf->magData.z = _mag.z;
+				_ekf->magBias.z = 0.000001f; // _mag_offsets.y_offset
 
 #else
 
 				// XXX we compensate the offsets upfront - should be close to zero.
 				// 0.001f
-				magData.x = _sensor_combined.magnetometer_ga[0];
-				magBias.x = 0.000001f; // _mag_offsets.x_offset
+				_ekf->magData.x = _sensor_combined.magnetometer_ga[0];
+				_ekf->magBias.x = 0.000001f; // _mag_offsets.x_offset
 
-				magData.y = _sensor_combined.magnetometer_ga[1];
-				magBias.y = 0.000001f; // _mag_offsets.y_offset
+				_ekf->magData.y = _sensor_combined.magnetometer_ga[1];
+				_ekf->magBias.y = 0.000001f; // _mag_offsets.y_offset
 
-				magData.z = _sensor_combined.magnetometer_ga[2];
-				magBias.z = 0.000001f; // _mag_offsets.y_offset
+				_ekf->magData.z = _sensor_combined.magnetometer_ga[2];
+				_ekf->magBias.z = 0.000001f; // _mag_offsets.y_offset
 
 #endif
 
@@ -705,7 +721,7 @@ FixedwingEstimator::task_main()
 			/**
 			 *    CHECK IF THE INPUT DATA IS SANE
 			 */
-			int check = CheckAndBound();
+			int check = _ekf->CheckAndBound();
 
 			switch (check) {
 				case 0:
@@ -739,7 +755,7 @@ FixedwingEstimator::task_main()
 
 				struct ekf_status_report ekf_report;
 
-				GetLastErrorState(&ekf_report);
+				_ekf->GetLastErrorState(&ekf_report);
 
 				struct estimator_status_report rep;
 				memset(&rep, 0, sizeof(rep));
@@ -779,16 +795,16 @@ FixedwingEstimator::task_main()
 
 			if (hrt_elapsed_time(&start_time) > 100000) {
 
-				if (!_gps_initialized && (GPSstatus == 3)) {
-					velNED[0] = _gps.vel_n_m_s;
-					velNED[1] = _gps.vel_e_m_s;
-					velNED[2] = _gps.vel_d_m_s;
+				if (!_gps_initialized && (_ekf->GPSstatus == 3)) {
+					_ekf->velNED[0] = _gps.vel_n_m_s;
+					_ekf->velNED[1] = _gps.vel_e_m_s;
+					_ekf->velNED[2] = _gps.vel_d_m_s;
 
 					double lat = _gps.lat * 1e-7;
 					double lon = _gps.lon * 1e-7;
 					float alt = _gps.alt * 1e-3;
 
-					InitialiseFilter(velNED);
+					_ekf->InitialiseFilter(_ekf->velNED);
 
 					// Initialize projection
 					_local_pos.ref_lat = _gps.lat;
@@ -799,7 +815,7 @@ FixedwingEstimator::task_main()
 					// Store 
 					orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
 					_baro_ref = _baro.altitude;
-					baroHgt = _baro.altitude - _baro_ref;
+					_ekf->baroHgt = _baro.altitude - _baro_ref;
 					_baro_gps_offset = _baro_ref - _local_pos.ref_alt;
 
 					// XXX this is not multithreading safe
@@ -808,24 +824,24 @@ FixedwingEstimator::task_main()
 
 					_gps_initialized = true;
 
-				} else if (!statesInitialised) {
-					velNED[0] = 0.0f;
-					velNED[1] = 0.0f;
-					velNED[2] = 0.0f;
-					posNED[0] = 0.0f;
-					posNED[1] = 0.0f;
-					posNED[2] = 0.0f;
+				} else if (!_ekf->statesInitialised) {
+					_ekf->velNED[0] = 0.0f;
+					_ekf->velNED[1] = 0.0f;
+					_ekf->velNED[2] = 0.0f;
+					_ekf->posNED[0] = 0.0f;
+					_ekf->posNED[1] = 0.0f;
+					_ekf->posNED[2] = 0.0f;
 
-					posNE[0] = posNED[0];
-					posNE[1] = posNED[1];
-					InitialiseFilter(velNED);
+					_ekf->posNE[0] = _ekf->posNED[0];
+					_ekf->posNE[1] = _ekf->posNED[1];
+					_ekf->InitialiseFilter(_ekf->velNED);
 				}
 			}
 
 			// If valid IMU data and states initialised, predict states and covariances
-			if (statesInitialised) {
+			if (_ekf->statesInitialised) {
 				// Run the strapdown INS equations every IMU update
-				UpdateStrapdownEquationsNED();
+				_ekf->UpdateStrapdownEquationsNED();
 #if 0
 				// debug code - could be tunred into a filter mnitoring/watchdog function
 				float tempQuat[4];
@@ -842,20 +858,20 @@ FixedwingEstimator::task_main()
 
 #endif
 				// store the predicted states for subsequent use by measurement fusion
-				StoreStates(IMUmsec);
+				_ekf->StoreStates(IMUmsec);
 				// Check if on ground - status is used by covariance prediction
-				OnGroundCheck();
+				_ekf->OnGroundCheck();
 				// sum delta angles and time used by covariance prediction
-				summedDelAng = summedDelAng + correctedDelAng;
-				summedDelVel = summedDelVel + dVelIMU;
-				dt += dtIMU;
+				_ekf->summedDelAng = _ekf->summedDelAng + _ekf->correctedDelAng;
+				_ekf->summedDelVel = _ekf->summedDelVel + _ekf->dVelIMU;
+				dt += _ekf->dtIMU;
 
 				// perform a covariance prediction if the total delta angle has exceeded the limit
 				// or the time limit will be exceeded at the next IMU update
-				if ((dt >= (covTimeStepMax - dtIMU)) || (summedDelAng.length() > covDelAngMax)) {
-					CovariancePrediction(dt);
-					summedDelAng = summedDelAng.zero();
-					summedDelVel = summedDelVel.zero();
+				if ((dt >= (covTimeStepMax - _ekf->dtIMU)) || (_ekf->summedDelAng.length() > covDelAngMax)) {
+					_ekf->CovariancePrediction(dt);
+					_ekf->summedDelAng = _ekf->summedDelAng.zero();
+					_ekf->summedDelVel = _ekf->summedDelVel.zero();
 					dt = 0.0f;
 				}
 
@@ -865,79 +881,79 @@ FixedwingEstimator::task_main()
 			// Fuse GPS Measurements
 			if (newDataGps && _gps_initialized) {
 				// Convert GPS measurements to Pos NE, hgt and Vel NED
-				velNED[0] = _gps.vel_n_m_s;
-				velNED[1] = _gps.vel_e_m_s;
-				velNED[2] = _gps.vel_d_m_s;
-				calcposNED(posNED, gpsLat, gpsLon, gpsHgt, latRef, lonRef, hgtRef);
+				_ekf->velNED[0] = _gps.vel_n_m_s;
+				_ekf->velNED[1] = _gps.vel_e_m_s;
+				_ekf->velNED[2] = _gps.vel_d_m_s;
+				_ekf->calcposNED(_ekf->posNED, _ekf->gpsLat, _ekf->gpsLon, _ekf->gpsHgt, _ekf->latRef, _ekf->lonRef, _ekf->hgtRef);
 
-				posNE[0] = posNED[0];
-				posNE[1] = posNED[1];
+				_ekf->posNE[0] = _ekf->posNED[0];
+				_ekf->posNE[1] = _ekf->posNED[1];
 				// set fusion flags
-				fuseVelData = true;
-				fusePosData = true;
+				_ekf->fuseVelData = true;
+				_ekf->fusePosData = true;
 				// recall states stored at time of measurement after adjusting for delays
-				RecallStates(statesAtVelTime, (IMUmsec - _parameters.vel_delay_ms));
-				RecallStates(statesAtPosTime, (IMUmsec - _parameters.pos_delay_ms));
+				_ekf->RecallStates(_ekf->statesAtVelTime, (IMUmsec - _parameters.vel_delay_ms));
+				_ekf->RecallStates(_ekf->statesAtPosTime, (IMUmsec - _parameters.pos_delay_ms));
 				// run the fusion step
-				FuseVelposNED();
+				_ekf->FuseVelposNED();
 
-			} else if (statesInitialised) {
+			} else if (_ekf->statesInitialised) {
 				// Convert GPS measurements to Pos NE, hgt and Vel NED
-				velNED[0] = 0.0f;
-				velNED[1] = 0.0f;
-				velNED[2] = 0.0f;
-				posNED[0] = 0.0f;
-				posNED[1] = 0.0f;
-				posNED[2] = 0.0f;
+				_ekf->velNED[0] = 0.0f;
+				_ekf->velNED[1] = 0.0f;
+				_ekf->velNED[2] = 0.0f;
+				_ekf->posNED[0] = 0.0f;
+				_ekf->posNED[1] = 0.0f;
+				_ekf->posNED[2] = 0.0f;
 
-				posNE[0] = posNED[0];
-				posNE[1] = posNED[1];
+				_ekf->posNE[0] = _ekf->posNED[0];
+				_ekf->posNE[1] = _ekf->posNED[1];
 				// set fusion flags
-				fuseVelData = true;
-				fusePosData = true;
+				_ekf->fuseVelData = true;
+				_ekf->fusePosData = true;
 				// recall states stored at time of measurement after adjusting for delays
-				RecallStates(statesAtVelTime, (IMUmsec - _parameters.vel_delay_ms));
-				RecallStates(statesAtPosTime, (IMUmsec - _parameters.pos_delay_ms));
+				_ekf->RecallStates(_ekf->statesAtVelTime, (IMUmsec - _parameters.vel_delay_ms));
+				_ekf->RecallStates(_ekf->statesAtPosTime, (IMUmsec - _parameters.pos_delay_ms));
 				// run the fusion step
-				FuseVelposNED();
+				_ekf->FuseVelposNED();
 
 			} else {
-				fuseVelData = false;
-				fusePosData = false;
+				_ekf->fuseVelData = false;
+				_ekf->fusePosData = false;
 			}
 
-			if (newAdsData && statesInitialised) {
+			if (newAdsData && _ekf->statesInitialised) {
 				// Could use a blend of GPS and baro alt data if desired
-				hgtMea = 1.0f * baroHgt + 0.0f * gpsHgt;
-				fuseHgtData = true;
+				_ekf->hgtMea = 1.0f * _ekf->baroHgt + 0.0f * _ekf->gpsHgt;
+				_ekf->fuseHgtData = true;
 				// recall states stored at time of measurement after adjusting for delays
-				RecallStates(statesAtHgtTime, (IMUmsec - _parameters.height_delay_ms));
+				_ekf->RecallStates(_ekf->statesAtHgtTime, (IMUmsec - _parameters.height_delay_ms));
 				// run the fusion step
-				FuseVelposNED();
+				_ekf->FuseVelposNED();
 
 			} else {
-				fuseHgtData = false;
+				_ekf->fuseHgtData = false;
 			}
 
 			// Fuse Magnetometer Measurements
-			if (newDataMag && statesInitialised) {
-				fuseMagData = true;
-				RecallStates(statesAtMagMeasTime, (IMUmsec - _parameters.mag_delay_ms)); // Assume 50 msec avg delay for magnetometer data
+			if (newDataMag && _ekf->statesInitialised) {
+				_ekf->fuseMagData = true;
+				_ekf->RecallStates(_ekf->statesAtMagMeasTime, (IMUmsec - _parameters.mag_delay_ms)); // Assume 50 msec avg delay for magnetometer data
 
 			} else {
-				fuseMagData = false;
+				_ekf->fuseMagData = false;
 			}
 
-			if (statesInitialised) FuseMagnetometer();
+			if (_ekf->statesInitialised) _ekf->FuseMagnetometer();
 
 			// Fuse Airspeed Measurements
-			if (newAdsData && statesInitialised && VtasMeas > 8.0f) {
-				fuseVtasData = true;
-				RecallStates(statesAtVtasMeasTime, (IMUmsec - _parameters.tas_delay_ms)); // assume 100 msec avg delay for airspeed data
-				FuseAirspeed();
+			if (newAdsData && _ekf->statesInitialised && _ekf->VtasMeas > 8.0f) {
+				_ekf->fuseVtasData = true;
+				_ekf->RecallStates(_ekf->statesAtVtasMeasTime, (IMUmsec - _parameters.tas_delay_ms)); // assume 100 msec avg delay for airspeed data
+				_ekf->FuseAirspeed();
 
 			} else {
-				fuseVtasData = false;
+				_ekf->fuseVtasData = false;
 			}
 
 			// Publish results
@@ -954,7 +970,7 @@ FixedwingEstimator::task_main()
 				// 15-17: Earth Magnetic Field Vector - milligauss (North, East, Down)
 				// 18-20: Body Magnetic Field Vector - milligauss (X,Y,Z)
 
-				math::Quaternion q(states[0], states[1], states[2], states[3]);
+				math::Quaternion q(_ekf->states[0], _ekf->states[1], _ekf->states[2], _ekf->states[3]);
 				math::Matrix<3, 3> R = q.to_dcm();
 				math::Vector<3> euler = R.to_euler();
 
@@ -962,10 +978,10 @@ FixedwingEstimator::task_main()
 						_att.R[i][j] = R(i, j);
 
 				_att.timestamp = last_sensor_timestamp;
-				_att.q[0] = states[0];
-				_att.q[1] = states[1];
-				_att.q[2] = states[2];
-				_att.q[3] = states[3];
+				_att.q[0] = _ekf->states[0];
+				_att.q[1] = _ekf->states[1];
+				_att.q[2] = _ekf->states[2];
+				_att.q[3] = _ekf->states[3];
 				_att.q_valid = true;
 				_att.R_valid = true;
 
@@ -974,13 +990,13 @@ FixedwingEstimator::task_main()
 				_att.pitch = euler(1);
 				_att.yaw = euler(2);
 
-				_att.rollspeed = angRate.x - states[10];
-				_att.pitchspeed = angRate.y - states[11];
-				_att.yawspeed = angRate.z - states[12];
+				_att.rollspeed = _ekf->angRate.x - _ekf->states[10];
+				_att.pitchspeed = _ekf->angRate.y - _ekf->states[11];
+				_att.yawspeed = _ekf->angRate.z - _ekf->states[12];
 				// gyro offsets
-				_att.rate_offsets[0] = states[10];
-				_att.rate_offsets[1] = states[11];
-				_att.rate_offsets[2] = states[12];
+				_att.rate_offsets[0] = _ekf->states[10];
+				_att.rate_offsets[1] = _ekf->states[11];
+				_att.rate_offsets[2] = _ekf->states[12];
 
 				/* lazily publish the attitude only once available */
 				if (_att_pub > 0) {
@@ -993,20 +1009,15 @@ FixedwingEstimator::task_main()
 				}
 			}
 
-			if (!isfinite(states[0])) {
-				print_status();
-				_exit(0);
-			}
-
 			if (_gps_initialized) {
 				_local_pos.timestamp = last_sensor_timestamp;
-				_local_pos.x = states[7];
-				_local_pos.y = states[8];
-				_local_pos.z = states[9];
+				_local_pos.x = _ekf->states[7];
+				_local_pos.y = _ekf->states[8];
+				_local_pos.z = _ekf->states[9];
 
-				_local_pos.vx = states[4];
-				_local_pos.vy = states[5];
-				_local_pos.vz = states[6];
+				_local_pos.vx = _ekf->states[4];
+				_local_pos.vy = _ekf->states[5];
+				_local_pos.vz = _ekf->states[6];
 
 				_local_pos.xy_valid = _gps_initialized;
 				_local_pos.z_valid = true;
@@ -1107,9 +1118,10 @@ FixedwingEstimator::start()
 	return OK;
 }
 
-void print_status()
+void
+FixedwingEstimator::print_status()
 {
-	math::Quaternion q(states[0], states[1], states[2], states[3]);
+	math::Quaternion q(_ekf->states[0], _ekf->states[1], _ekf->states[2], _ekf->states[3]);
 	math::Matrix<3, 3> R = q.to_dcm();
 	math::Vector<3> euler = R.to_euler();
 
@@ -1125,30 +1137,30 @@ void print_status()
 	// 15-17: Earth Magnetic Field Vector - gauss (North, East, Down)
 	// 18-20: Body Magnetic Field Vector - gauss (X,Y,Z)
 
-	printf("dtIMU: %8.6f dt: %8.6f IMUmsec: %d\n", dtIMU, dt, (int)IMUmsec);
-	printf("dvel: %8.6f %8.6f %8.6f accel: %8.6f %8.6f %8.6f\n", (double)dVelIMU.x, (double)dVelIMU.y, (double)dVelIMU.z, (double)accel.x, (double)accel.y, (double)accel.z);
-	printf("dang: %8.4f %8.4f %8.4f dang corr: %8.4f %8.4f %8.4f\n" , (double)dAngIMU.x, (double)dAngIMU.y, (double)dAngIMU.z, (double)correctedDelAng.x, (double)correctedDelAng.y, (double)correctedDelAng.z);
-	printf("states (quat)        [1-4]: %8.4f, %8.4f, %8.4f, %8.4f\n", (double)states[0], (double)states[1], (double)states[2], (double)states[3]);
-	printf("states (vel m/s)     [5-7]: %8.4f, %8.4f, %8.4f\n", (double)states[4], (double)states[5], (double)states[6]);
-	printf("states (pos m)      [8-10]: %8.4f, %8.4f, %8.4f\n", (double)states[7], (double)states[8], (double)states[9]);
-	printf("states (delta ang) [11-13]: %8.4f, %8.4f, %8.4f\n", (double)states[10], (double)states[11], (double)states[12]);
-	printf("states (wind)      [14-15]: %8.4f, %8.4f\n", (double)states[13], (double)states[14]);
-	printf("states (earth mag) [16-18]: %8.4f, %8.4f, %8.4f\n", (double)states[15], (double)states[16], (double)states[17]);
-	printf("states (body mag)  [19-21]: %8.4f, %8.4f, %8.4f\n", (double)states[18], (double)states[19], (double)states[20]);
+	printf("dtIMU: %8.6f dt: %8.6f IMUmsec: %d\n", _ekf->dtIMU, dt, (int)IMUmsec);
+	printf("dvel: %8.6f %8.6f %8.6f accel: %8.6f %8.6f %8.6f\n", (double)_ekf->dVelIMU.x, (double)_ekf->dVelIMU.y, (double)_ekf->dVelIMU.z, (double)_ekf->accel.x, (double)_ekf->accel.y, (double)_ekf->accel.z);
+	printf("dang: %8.4f %8.4f %8.4f dang corr: %8.4f %8.4f %8.4f\n" , (double)_ekf->dAngIMU.x, (double)_ekf->dAngIMU.y, (double)_ekf->dAngIMU.z, (double)_ekf->correctedDelAng.x, (double)_ekf->correctedDelAng.y, (double)_ekf->correctedDelAng.z);
+	printf("states (quat)        [1-4]: %8.4f, %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[0], (double)_ekf->states[1], (double)_ekf->states[2], (double)_ekf->states[3]);
+	printf("states (vel m/s)     [5-7]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[4], (double)_ekf->states[5], (double)_ekf->states[6]);
+	printf("states (pos m)      [8-10]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[7], (double)_ekf->states[8], (double)_ekf->states[9]);
+	printf("states (delta ang) [11-13]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[10], (double)_ekf->states[11], (double)_ekf->states[12]);
+	printf("states (wind)      [14-15]: %8.4f, %8.4f\n", (double)_ekf->states[13], (double)_ekf->states[14]);
+	printf("states (earth mag) [16-18]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[15], (double)_ekf->states[16], (double)_ekf->states[17]);
+	printf("states (body mag)  [19-21]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[18], (double)_ekf->states[19], (double)_ekf->states[20]);
 	printf("states: %s %s %s %s %s %s %s %s %s %s\n",
-	       (statesInitialised) ? "INITIALIZED" : "NON_INIT",
-	       (onGround) ? "ON_GROUND" : "AIRBORNE",
-	       (fuseVelData) ? "FUSE_VEL" : "INH_VEL",
-	       (fusePosData) ? "FUSE_POS" : "INH_POS",
-	       (fuseHgtData) ? "FUSE_HGT" : "INH_HGT",
-	       (fuseMagData) ? "FUSE_MAG" : "INH_MAG",
-	       (fuseVtasData) ? "FUSE_VTAS" : "INH_VTAS",
-	       (useAirspeed) ? "USE_AIRSPD" : "IGN_AIRSPD",
-	       (useCompass) ? "USE_COMPASS" : "IGN_COMPASS",
-	       (staticMode) ? "STATIC_MODE" : "DYNAMIC_MODE");
+	       (_ekf->statesInitialised) ? "INITIALIZED" : "NON_INIT",
+	       (_ekf->onGround) ? "ON_GROUND" : "AIRBORNE",
+	       (_ekf->fuseVelData) ? "FUSE_VEL" : "INH_VEL",
+	       (_ekf->fusePosData) ? "FUSE_POS" : "INH_POS",
+	       (_ekf->fuseHgtData) ? "FUSE_HGT" : "INH_HGT",
+	       (_ekf->fuseMagData) ? "FUSE_MAG" : "INH_MAG",
+	       (_ekf->fuseVtasData) ? "FUSE_VTAS" : "INH_VTAS",
+	       (_ekf->useAirspeed) ? "USE_AIRSPD" : "IGN_AIRSPD",
+	       (_ekf->useCompass) ? "USE_COMPASS" : "IGN_COMPASS",
+	       (_ekf->staticMode) ? "STATIC_MODE" : "DYNAMIC_MODE");
 }
 
-int trip_nan() {
+int FixedwingEstimator::trip_nan() {
 
 	int ret = 0;
 
@@ -1166,7 +1178,7 @@ int trip_nan() {
 		float nan_val = 0.0f / 0.0f;
 
 		warnx("system not armed, tripping state vector with NaN values");
-		states[5] = nan_val;
+		_ekf->states[5] = nan_val;
 		usleep(100000);
 
 		// warnx("tripping covariance #1 with NaN values");
@@ -1178,15 +1190,15 @@ int trip_nan() {
 		// usleep(100000);
 
 		warnx("tripping covariance #3 with NaN values");
-		P[3][3] = nan_val; // covariance matrix
+		_ekf->P[3][3] = nan_val; // covariance matrix
 		usleep(100000);
 
 		warnx("tripping Kalman gains with NaN values");
-		Kfusion[0] = nan_val; // Kalman gains
+		_ekf->Kfusion[0] = nan_val; // Kalman gains
 		usleep(100000);
 
 		warnx("tripping stored states[0] with NaN values");
-		storedStates[0][0] = nan_val;
+		_ekf->storedStates[0][0] = nan_val;
 		usleep(100000);
 
 		warnx("\nDONE - FILTER STATE:");
@@ -1234,7 +1246,7 @@ int fw_att_pos_estimator_main(int argc, char *argv[])
 		if (estimator::g_estimator) {
 			warnx("running");
 
-			print_status();
+			estimator::g_estimator->print_status();
 
 			exit(0);
 
@@ -1245,7 +1257,7 @@ int fw_att_pos_estimator_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "trip")) {
 		if (estimator::g_estimator) {
-			int ret = trip_nan();
+			int ret = estimator::g_estimator->trip_nan();
 
 			exit(ret);
 
