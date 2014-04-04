@@ -573,6 +573,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
 
+				bool reset_est = false;
+
 				/* hysteresis for GPS quality */
 				if (gps_valid) {
 					if (gps.eph_m > 10.0f || gps.epv_m > 20.0f || gps.fix_type < 3) {
@@ -583,6 +585,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				} else {
 					if (gps.eph_m < 5.0f && gps.epv_m < 10.0f && gps.fix_type >= 3) {
 						gps_valid = true;
+						reset_est = true;
 						mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
 					}
 				}
@@ -606,9 +609,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							/* set position estimate to (0, 0, 0), use GPS velocity for XY */
 							x_est[0] = 0.0f;
 							x_est[1] = gps.vel_n_m_s;
+							x_est[2] = accel_NED[0];
 							y_est[0] = 0.0f;
 							y_est[1] = gps.vel_e_m_s;
 							z_est[0] = 0.0f;
+							y_est[2] = accel_NED[1];
 
 							local_pos.ref_lat = lat;
 							local_pos.ref_lon = lon;
@@ -626,6 +631,17 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						/* project GPS lat lon to plane */
 						float gps_proj[2];
 						map_projection_project(&ref, gps.lat * 1e-7, gps.lon * 1e-7, &(gps_proj[0]), &(gps_proj[1]));
+
+						/* reset position estimate when GPS becomes good */
+						if (reset_est) {
+							x_est[0] = gps_proj[0];
+							x_est[1] = gps.vel_n_m_s;
+							x_est[2] = accel_NED[0];
+							y_est[0] = gps_proj[1];
+							y_est[1] = gps.vel_e_m_s;
+							y_est[2] = accel_NED[1];
+						}
+
 						/* calculate correction for position */
 						corr_gps[0][0] = gps_proj[0] - x_est[0];
 						corr_gps[1][0] = gps_proj[1] - y_est[0];
