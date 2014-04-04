@@ -292,7 +292,7 @@ FixedwingEstimator::FixedwingEstimator() :
 	_initialized(false),
 	_gps_initialized(false),
 	_mavlink_fd(-1),
-	_ekf(new AttPosEKF())
+	_ekf(nullptr)
 {
 
 	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
@@ -395,6 +395,8 @@ float dt = 0.0f; // time lapsed since last covariance prediction
 void
 FixedwingEstimator::task_main()
 {
+
+	_ekf = new AttPosEKF();
 
 	if (!_ekf) {
 		errx(1, "failed allocating EKF filter - out of RAM!");

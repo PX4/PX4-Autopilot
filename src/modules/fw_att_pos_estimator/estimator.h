@@ -78,6 +78,10 @@ struct ekf_status_report {
 class AttPosEKF {
 
 public:
+
+    AttPosEKF();
+    ~AttPosEKF();
+
     // Global variables
     float KH[n_states][n_states]; //  intermediate result used for covariance updates
     float KHP[n_states][n_states]; // intermediate result used for covariance updates

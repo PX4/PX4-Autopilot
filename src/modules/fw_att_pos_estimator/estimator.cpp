@@ -106,7 +106,16 @@ void swap_var(float &d1, float &d2)
     d2 = tmp;
 }
 
-void  AttPosEKF::UpdateStrapdownEquationsNED()
+AttPosEKF::AttPosEKF()
+{
+
+}
+
+AttPosEKF::~AttPosEKF()
+{
+}
+
+void AttPosEKF::UpdateStrapdownEquationsNED()
 {
     Vector3f delVelNav;
     float q00;
