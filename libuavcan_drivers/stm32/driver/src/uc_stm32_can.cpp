@@ -23,7 +23,7 @@ CanIface* ifaces[UAVCAN_STM32_NUM_IFACES] =
 
 inline void handleTxInterrupt(uavcan::uint8_t iface_index)
 {
-    uavcan::uint64_t utc_usec = clock::getUtcUSecFromInterrupt();
+    uavcan::uint64_t utc_usec = clock::getUtcUSecFromCanInterrupt();
     if (utc_usec > 0)
     {
         utc_usec--;
@@ -41,7 +41,7 @@ inline void handleTxInterrupt(uavcan::uint8_t iface_index)
 
 inline void handleRxInterrupt(uavcan::uint8_t iface_index, uavcan::uint8_t fifo_index)
 {
-    uavcan::uint64_t utc_usec = clock::getUtcUSecFromInterrupt();
+    uavcan::uint64_t utc_usec = clock::getUtcUSecFromCanInterrupt();
     if (utc_usec > 0)
     {
         utc_usec--;

@@ -30,7 +30,9 @@ void Event::signal()
 
 void Event::signalFromInterrupt()
 {
+    chSysLockFromIsr();
     sem_.signalI();
+    chSysUnlockFromIsr();
 }
 
 #endif

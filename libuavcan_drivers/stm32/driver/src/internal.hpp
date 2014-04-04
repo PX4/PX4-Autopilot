@@ -21,14 +21,8 @@
 #if UAVCAN_STM32_CHIBIOS
 
 # define UAVCAN_STM32_IRQ_HANDLER(id)  CH_IRQ_HANDLER(id)
-
-# define UAVCAN_STM32_IRQ_PROLOGUE()    \
-    CH_IRQ_PROLOGUE(); \
-    chSysLockFromIsr()
-
-# define UAVCAN_STM32_IRQ_EPILOGUE()    \
-    chSysUnlockFromIsr(); \
-    CH_IRQ_EPILOGUE()
+# define UAVCAN_STM32_IRQ_PROLOGUE()    CH_IRQ_PROLOGUE()
+# define UAVCAN_STM32_IRQ_EPILOGUE()    CH_IRQ_EPILOGUE()
 
 #else
 
@@ -92,5 +86,12 @@ struct CriticalSectionLock
     CriticalSectionLock() { chSysSuspend(); }
     ~CriticalSectionLock() { chSysEnable(); }
 };
+
+namespace clock
+{
+
+uavcan::uint64_t getUtcUSecFromCanInterrupt();
+
+}
 
 }

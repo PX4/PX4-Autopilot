@@ -18,11 +18,6 @@ namespace clock
 void init();
 
 /**
- * For CAN timestamping.
- */
-uavcan::uint64_t getUtcUSecFromInterrupt();
-
-/**
  * For general usage.
  */
 uavcan::MonotonicTime getMonotonic();
@@ -49,26 +44,15 @@ uavcan::uint32_t getUtcAjdustmentJumpCount();
 }
 
 /**
- * Clock interface for CAN driver.
- */
-class ICanTimestampingClock : public uavcan::ISystemClock
-{
-public:
-    virtual uavcan::uint64_t getUtcUSecFromInterrupt() const = 0;
-};
-
-/**
  * Trivial system clock implementation; can be redefined by the application.
  * Uses a simple 16-bit hardware timer for both UTC and monotonic clocks.
  */
-class SystemClock : public ICanTimestampingClock, uavcan::Noncopyable
+class SystemClock : public uavcan::ISystemClock, uavcan::Noncopyable
 {
     SystemClock() { }
 
 public:
     static SystemClock& instance();
-
-    virtual uavcan::uint64_t getUtcUSecFromInterrupt() const { return clock::getUtcUSecFromInterrupt(); }
 
     virtual uavcan::MonotonicTime getMonotonic()     const { return clock::getMonotonic(); }
     virtual uavcan::UtcTime getUtc()                 const { return clock::getUtc(); }

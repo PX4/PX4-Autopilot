@@ -23,9 +23,6 @@
 # error "This UAVCAN_STM32_TIMER_NUMBER is not supported yet"
 #endif
 
-#define TIMX_IRQ_ENABLE()       TIMX->DIER = TIM_DIER_UIE
-#define TIMX_IRQ_DISABLE()      TIMX->DIER = 0
-
 namespace uavcan_stm32
 {
 namespace clock
@@ -85,12 +82,10 @@ void init()
 /**
  * Callable from any context
  */
-static uavcan::uint64_t sampleSpecifiedTime(const volatile uavcan::uint64_t* const value)
+static uavcan::uint64_t sampleFromCriticalSection(const volatile uavcan::uint64_t* const value)
 {
     assert(initialized);
     assert(TIMX->DIER & TIM_DIER_UIE);
-
-    TIMX_IRQ_DISABLE();
 
     volatile uavcan::uint64_t time = *value;
     volatile uavcan::uint32_t cnt = TIMX->CNT;
@@ -110,19 +105,21 @@ static uavcan::uint64_t sampleSpecifiedTime(const volatile uavcan::uint64_t* con
         time += USecPerOverflow;
     }
 
-    TIMX_IRQ_ENABLE();
-
     return time + cnt;
 }
 
-uavcan::uint64_t getUtcUSecFromInterrupt()
+uavcan::uint64_t getUtcUSecFromCanInterrupt()
 {
-    return utc_set ? sampleSpecifiedTime(&time_utc) : 0;
+    return utc_set ? sampleFromCriticalSection(&time_utc) : 0;
 }
 
 uavcan::MonotonicTime getMonotonic()
 {
-    const uavcan::uint64_t usec = sampleSpecifiedTime(&time_mono);
+    uavcan::uint64_t usec = 0;
+    {
+        CriticalSectionLock locker;
+        usec = sampleFromCriticalSection(&time_mono);
+    }
 #if !NDEBUG
     static uavcan::uint64_t prev_usec = 0;  // Self-test
     assert(prev_usec <= usec);
@@ -133,7 +130,16 @@ uavcan::MonotonicTime getMonotonic()
 
 uavcan::UtcTime getUtc()
 {
-    return utc_set ? uavcan::UtcTime::fromUSec(sampleSpecifiedTime(&time_utc)) : uavcan::UtcTime();
+    if (utc_set)
+    {
+        uavcan::uint64_t usec = 0;
+        {
+            CriticalSectionLock locker;
+            usec = sampleFromCriticalSection(&time_utc);
+        }
+        return uavcan::UtcTime::fromUSec(usec);
+    }
+    return uavcan::UtcTime();
 }
 
 void adjustUtc(uavcan::UtcDuration adjustment)
@@ -172,15 +178,13 @@ void adjustUtc(uavcan::UtcDuration adjustment)
         if (adjustment.isNegative() &&
             uavcan::uint64_t(adjustment.getAbs().toUSec()) > time_utc)
         {
-            TIMX_IRQ_DISABLE();
+            CriticalSectionLock locker;
             time_utc = 1;
-            TIMX_IRQ_ENABLE();
         }
         else
         {
-            TIMX_IRQ_DISABLE();
+            CriticalSectionLock locker;
             time_utc += adjustment.toUSec();
-            TIMX_IRQ_ENABLE();
         }
 
         if (utc_set)
