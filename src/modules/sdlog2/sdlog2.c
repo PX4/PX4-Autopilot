@@ -84,6 +84,8 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/system_power.h>
+#include <uORB/topics/servorail_status.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -1236,7 +1238,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- SYSTEM POWER RAILS --- */
 		if (copy_if_updated(ORB_ID(system_power), subs.system_power_sub, &buf.system_power)) {
 			log_msg.msg_type = LOG_PWR_MSG;
-			log_msg.body.log_PWR.5v_peripherals = buf.system_power.voltage_5V_v;
+			log_msg.body.log_PWR.peripherals_5v = buf.system_power.voltage5V_v;
 			log_msg.body.log_PWR.usb_ok = buf.system_power.usb_connected;
 			log_msg.body.log_PWR.brick_ok = buf.system_power.brick_valid;
 			log_msg.body.log_PWR.servo_ok = buf.system_power.servo_valid;
@@ -1245,8 +1247,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 			/* copy servo rail status topic here too */
 			orb_copy(ORB_ID(servorail_status), subs.servorail_status_sub, &buf.servorail_status);
-			log_msg.body.log_PWR.5v_servo_rail = buf.servorail_status.voltage_v;
-			log_msg.body.log_PWR.5v_servo_rssi = buf.servorail_status.rssi_v;
+			log_msg.body.log_PWR.servo_rail_5v = buf.servorail_status.voltage_v;
+			log_msg.body.log_PWR.servo_rssi_5v = buf.servorail_status.rssi_v;
 
 			LOGBUFFER_WRITE_AND_COUNT(PWR);
 		}
