@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <crdr_chibios/sys/sys.h>
 #include <uavcan_stm32/uavcan_stm32.hpp>
+#include <uavcan/protocol/global_time_sync_slave.hpp>
 
 namespace app
 {
@@ -94,17 +95,30 @@ public:
         }
 
         /*
+         * Time synchronizer
+         */
+        static uavcan::GlobalTimeSyncSlave time_sync_slave(node);
+        {
+            const int res = time_sync_slave.start();
+            if (res < 0)
+            {
+                die(res);
+            }
+        }
+
+        /*
          * Main loop
          */
         lowsyslog("UAVCAN node started\n");
         node.setStatusOk();
         while (true)
         {
-            const int spin_res = node.spin(uavcan::MonotonicDuration::fromMSec(100));
+            const int spin_res = node.spin(uavcan::MonotonicDuration::fromMSec(5000));
             if (spin_res < 0)
             {
                 lowsyslog("Spin failure: %i\n", spin_res);
             }
+            lowsyslog("Time sync master: %u\n", unsigned(time_sync_slave.getMasterNodeID().get()));
         }
         return msg_t();
     }
@@ -130,5 +144,11 @@ int main()
         sleep(1);
         app::ledSet(true);
         sleep(1);
+
+        const uavcan::UtcTime utc = uavcan_stm32::clock::getUtc();
+        lowsyslog("UTC %lu sec, %li corr, %lu jumps\n",
+                  static_cast<unsigned long>(utc.toMSec() / 1000),
+                  uavcan_stm32::clock::getUtcSpeedCorrectionPPM(),
+                  uavcan_stm32::clock::getUtcAjdustmentJumpCount());
     }
 }
