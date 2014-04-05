@@ -944,8 +944,23 @@ PX4IO::task_main()
 				int pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE, &scaling, 1);
 
 				if (pret != OK) {
-					log("voltage scaling upload failed");
+					log("vscale upload failed");
 				}
+
+				/* send RC throttle failsafe value to IO */
+				int32_t failsafe_param_val;
+				param_t failsafe_param = param_find("RC_FAILS_THR");
+
+				if (failsafe_param > 0)
+
+					param_get(failsafe_param, &failsafe_param_val);
+					uint16_t failsafe_thr = failsafe_param_val;
+					pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RC_THR_FAILSAFE_US, &failsafe_thr, 1);
+					if (pret != OK) {
+						log("failsafe upload failed");
+					}
+				}
+
 			}
 
 		}
@@ -1479,10 +1494,11 @@ PX4IO::io_publish_raw_rc()
 	} else {
 		rc_val.input_source = RC_INPUT_SOURCE_UNKNOWN;
 
-		/* we do not know the RC input, only publish if RC OK flag is set */
-		/* if no raw RC, just don't publish */
-		if (!(_status & PX4IO_P_STATUS_FLAGS_RC_OK))
+		/* only keep publishing RC input if we ever got a valid input */
+		if (_rc_last_valid == 0) {
+			/* we have never seen valid RC signals, abort */
 			return OK;
+		}
 	}
 
 	/* lazily advertise on first publication */

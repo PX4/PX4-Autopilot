@@ -267,9 +267,7 @@ private:
 		int rc_map_aux4;
 		int rc_map_aux5;
 
-		int rc_fs_ch;
-		int rc_fs_mode;
-		float rc_fs_thr;
+		int32_t rc_fs_thr;
 
 		float battery_voltage_scaling;
 		float battery_current_scaling;
@@ -312,8 +310,6 @@ private:
 		param_t rc_map_aux4;
 		param_t rc_map_aux5;
 
-		param_t rc_fs_ch;
-		param_t rc_fs_mode;
 		param_t rc_fs_thr;
 
 		param_t battery_voltage_scaling;
@@ -539,9 +535,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_aux5 = param_find("RC_MAP_AUX5");
 
 	/* RC failsafe */
-	_parameter_handles.rc_fs_ch = param_find("RC_FS_CH");
-	_parameter_handles.rc_fs_mode = param_find("RC_FS_MODE");
-	_parameter_handles.rc_fs_thr = param_find("RC_FS_THR");
+	_parameter_handles.rc_fs_thr = param_find("RC_FAILS_THR");
 
 	/* gyro offsets */
 	_parameter_handles.gyro_offset[0] = param_find("SENS_GYRO_XOFF");
@@ -693,8 +687,6 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_map_aux3, &(_parameters.rc_map_aux3));
 	param_get(_parameter_handles.rc_map_aux4, &(_parameters.rc_map_aux4));
 	param_get(_parameter_handles.rc_map_aux5, &(_parameters.rc_map_aux5));
-	param_get(_parameter_handles.rc_fs_ch, &(_parameters.rc_fs_ch));
-	param_get(_parameter_handles.rc_fs_mode, &(_parameters.rc_fs_mode));
 	param_get(_parameter_handles.rc_fs_thr, &(_parameters.rc_fs_thr));
 
 	/* update RC function mappings */
@@ -1293,7 +1285,7 @@ Sensors::get_rc_value(enum RC_CHANNELS_FUNCTION func, float min_value, float max
 			return value;
 		}
 	} else {
-		return NAN;
+		return 0.0f;
 	}
 }
 
@@ -1325,30 +1317,21 @@ Sensors::rc_poll()
 
 	if (rc_updated) {
 		/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
-		struct rc_input_values	rc_input;
-
-		_manual.signal_lost = true;
+		struct rc_input_values rc_input;
 
 		orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
 
 		/* detect RC signal loss */
+		bool signal_lost = true;
+
 		/* check flags and require at least four channels to consider the signal valid */
 		if (!(rc_input.rc_lost || rc_input.rc_failsafe || rc_input.channel_count < 4)) {
-			/* signal looks good */
-			_manual.signal_lost = false;
-
-			/* check for throttle failsafe */
-			if (_parameters.rc_fs_ch != 0) {
-				if (_parameters.rc_fs_mode == 0) {
-					if (rc_input.values[_parameters.rc_fs_ch - 1] < _parameters.rc_fs_thr) {
-						_manual.signal_lost = true;
-					}
-
-				} else if (_parameters.rc_fs_mode == 1) {
-					if (rc_input.values[_parameters.rc_fs_ch - 1] > _parameters.rc_fs_thr) {
-						_manual.signal_lost = true;
-					}
-				}
+			/* signal looks good, but check for throttle failsafe */
+			if (_parameters.rc_fs_thr == 0 ||
+				!((_parameters.rc_fs_thr < _parameters.min[i] && rc_input.values[_rc.function[THROTTLE]] < _parameters.rc_fs_thr) ||
+				(_parameters.rc_fs_thr > _parameters.max[i] && rc_input.values[_rc.function[THROTTLE]] > _parameters.rc_fs_thr))) {
+				/* valid signal, throttle failsafe not configured or not triggered */
+				signal_lost = false;
 			}
 		}
 
@@ -1405,33 +1388,55 @@ Sensors::rc_poll()
 
 		_rc.chan_count = rc_input.channel_count;
 		_rc.rssi = rc_input.rssi;
-		_rc.signal_lost = _manual.signal_lost;
+		_rc.signal_lost = signal_lost;
+		_rc.timestamp = rc_input.timestamp_last_signal;
 
-		if (!_manual.signal_lost) {
+		/* publish rc_channels topic even if signal is invalid, for debug */
+		if (_rc_pub > 0) {
+			orb_publish(ORB_ID(rc_channels), _rc_pub, &_rc);
+
+		} else {
+			_rc_pub = orb_advertise(ORB_ID(rc_channels), &_rc);
+		}
+
+		if (!signal_lost) {
+			struct manual_control_setpoint_s manual;
+			memset(&manual, 0 , sizeof(manual));
+
 			/* fill values in manual_control_setpoint topic only if signal is valid */
-			_manual.timestamp = rc_input.timestamp_last_signal;
-			_rc.timestamp = rc_input.timestamp_last_signal;
+			manual.timestamp = rc_input.timestamp_last_signal;
 
 			/* limit controls */
-			_manual.roll = get_rc_value(ROLL, -1.0, 1.0);
-			_manual.pitch = get_rc_value(PITCH, -1.0, 1.0);
-			_manual.yaw = get_rc_value(YAW, -1.0, 1.0);
-			_manual.throttle = get_rc_value(THROTTLE, 0.0, 1.0);
-			_manual.flaps = get_rc_value(FLAPS, -1.0, 1.0);
-			_manual.aux1 = get_rc_value(AUX_1, -1.0, 1.0);
-			_manual.aux2 = get_rc_value(AUX_2, -1.0, 1.0);
-			_manual.aux3 = get_rc_value(AUX_3, -1.0, 1.0);
-			_manual.aux4 = get_rc_value(AUX_4, -1.0, 1.0);
-			_manual.aux5 = get_rc_value(AUX_5, -1.0, 1.0);
+			manual.roll = get_rc_value(ROLL, -1.0, 1.0);
+			manual.pitch = get_rc_value(PITCH, -1.0, 1.0);
+			manual.yaw = get_rc_value(YAW, -1.0, 1.0);
+			manual.throttle = get_rc_value(THROTTLE, 0.0, 1.0);
+			manual.flaps = get_rc_value(FLAPS, -1.0, 1.0);
+			manual.aux1 = get_rc_value(AUX_1, -1.0, 1.0);
+			manual.aux2 = get_rc_value(AUX_2, -1.0, 1.0);
+			manual.aux3 = get_rc_value(AUX_3, -1.0, 1.0);
+			manual.aux4 = get_rc_value(AUX_4, -1.0, 1.0);
+			manual.aux5 = get_rc_value(AUX_5, -1.0, 1.0);
 
 			/* mode switches */
-			_manual.mode_switch = get_rc_switch_position(MODE);
-			_manual.assisted_switch = get_rc_switch_position(ASSISTED);
-			_manual.mission_switch = get_rc_switch_position(MISSION);
-			_manual.return_switch = get_rc_switch_position(RETURN);
+			manual.mode_switch = get_rc_switch_position(MODE);
+			manual.assisted_switch = get_rc_switch_position(ASSISTED);
+			manual.mission_switch = get_rc_switch_position(MISSION);
+			manual.return_switch = get_rc_switch_position(RETURN);
+
+			/* publish manual_control_setpoint topic */
+			if (_manual_control_pub > 0) {
+				orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &_manual);
+
+			} else {
+				_manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &_manual);
+			}
 
 			/* copy from mapped manual control to control group 3 */
 			struct actuator_controls_s actuator_group_3;
+			memset(&actuator_group_3, 0 , sizeof(actuator_group_3));
+
+			actuator_group_3.timestamp = rc_input.timestamp_publication;
 
 			actuator_group_3.control[0] = _manual.roll;
 			actuator_group_3.control[1] = _manual.pitch;
@@ -1442,7 +1447,7 @@ Sensors::rc_poll()
 			actuator_group_3.control[6] = _manual.aux2;
 			actuator_group_3.control[7] = _manual.aux3;
 
-			/* publish actuator_controls_3 topic only if control signal is valid */
+			/* publish actuator_controls_3 topic */
 			if (_actuator_group_3_pub > 0) {
 				orb_publish(ORB_ID(actuator_controls_3), _actuator_group_3_pub, &actuator_group_3);
 
@@ -1450,25 +1455,7 @@ Sensors::rc_poll()
 				_actuator_group_3_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_group_3);
 			}
 		}
-
-		/* publish rc_channels topic even if signal is invalid, for debug */
-		if (_rc_pub > 0) {
-			orb_publish(ORB_ID(rc_channels), _rc_pub, &_rc);
-
-		} else {
-			/* advertise the rc topic */
-			_rc_pub = orb_advertise(ORB_ID(rc_channels), &_rc);
-		}
-
-		/* publish manual_control_setpoint topic even if signal is not valid to update 'signal_lost' flag */
-		if (_manual_control_pub > 0) {
-			orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &_manual);
-
-		} else {
-			_manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &_manual);
-		}
 	}
-
 }
 
 void

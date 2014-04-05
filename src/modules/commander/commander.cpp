@@ -1121,7 +1121,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* start RC input check */
-		if (!status.rc_input_blocked && !sp_man.signal_lost && hrt_absolute_time() < sp_man.timestamp + RC_TIMEOUT) {
+		if (!status.rc_input_blocked && sp_man.timestamp != 0 && hrt_absolute_time() < sp_man.timestamp + RC_TIMEOUT) {
 			/* handle the case where RC signal was regained */
 			if (!status.rc_signal_found_once) {
 				status.rc_signal_found_once = true;
