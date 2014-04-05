@@ -1327,9 +1327,10 @@ Sensors::rc_poll()
 		/* check flags and require at least four channels to consider the signal valid */
 		if (!(rc_input.rc_lost || rc_input.rc_failsafe || rc_input.channel_count < 4)) {
 			/* signal looks good, but check for throttle failsafe */
-			if (_parameters.rc_fs_thr == 0 ||
-				!((_parameters.rc_fs_thr < _parameters.min[i] && rc_input.values[_rc.function[THROTTLE]] < _parameters.rc_fs_thr) ||
-				(_parameters.rc_fs_thr > _parameters.max[i] && rc_input.values[_rc.function[THROTTLE]] > _parameters.rc_fs_thr))) {
+			int8_t thr_ch = _rc.function[THROTTLE];
+			if (_parameters.rc_fs_thr == 0 || thr_ch < 0 ||
+				!((_parameters.rc_fs_thr < _parameters.min[thr_ch] && rc_input.values[thr_ch] < _parameters.rc_fs_thr) ||
+				(_parameters.rc_fs_thr > _parameters.max[thr_ch] && rc_input.values[thr_ch] > _parameters.rc_fs_thr))) {
 				/* valid signal, throttle failsafe not configured or not triggered */
 				signal_lost = false;
 			}
