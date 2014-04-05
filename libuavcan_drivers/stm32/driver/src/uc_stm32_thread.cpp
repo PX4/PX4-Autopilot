@@ -13,14 +13,18 @@ namespace uavcan_stm32
  */
 bool Event::wait(uavcan::MonotonicDuration duration)
 {
+    static const uavcan::int64_t MaxDelayMSec = 0x000FFFFF;
+
+    const uavcan::int64_t msec = duration.toMSec();
     msg_t ret = msg_t();
-    if (!duration.isPositive())
+
+    if (msec <= 0)
     {
-        sem_.waitTimeout(TIME_IMMEDIATE);
+        ret = sem_.waitTimeout(TIME_IMMEDIATE);
     }
     else
     {
-        sem_.waitTimeout(MS2ST(duration.toMSec()));
+        ret = sem_.waitTimeout((msec > MaxDelayMSec) ? MS2ST(MaxDelayMSec) : MS2ST(msec));
     }
     return ret == RDY_OK;
 }
