@@ -14,13 +14,13 @@ namespace uavcan_stm32
 bool Event::wait(uavcan::MonotonicDuration duration)
 {
     msg_t ret = msg_t();
-    if (duration.isZero())
+    if (!duration.isPositive())
     {
         sem_.waitTimeout(TIME_IMMEDIATE);
     }
     else
     {
-        sem_.waitTimeout(US2ST(duration.toUSec()));
+        sem_.waitTimeout(MS2ST(duration.toMSec()));
     }
     return ret == RDY_OK;
 }

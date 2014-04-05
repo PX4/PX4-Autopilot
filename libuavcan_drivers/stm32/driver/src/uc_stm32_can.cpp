@@ -525,11 +525,46 @@ uavcan::uint8_t CanIface::yieldLastHardwareErrorCode()
 /*
  * CanDriver
  */
-uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline)
+uavcan::CanSelectMasks CanDriver::makeSelectMasks() const
 {
-    (void)inout_masks;
-    (void)blocking_deadline;
-    return -1;
+    uavcan::CanSelectMasks msk;
+    // Iface 0
+    msk.read  = if0_.isRxBufferEmpty() ? 0 : 1;
+    msk.write = if0_.isTxBufferFull()  ? 0 : 1;
+    // Iface 1
+#if UAVCAN_STM32_NUM_IFACES > 1
+    if (!if1_.isRxBufferEmpty())
+    {
+        msk.read |= 1 << 1;
+    }
+    if (!if1_.isTxBufferFull())
+    {
+        msk.write |= 1 << 1;
+    }
+#endif
+    return msk;
+}
+
+uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks, const uavcan::MonotonicTime blocking_deadline)
+{
+    const uavcan::CanSelectMasks in_masks = inout_masks;
+    const uavcan::MonotonicTime time = clock::getMonotonic();
+
+    if0_.discardTimedOutTxMailboxes(time);              // Check TX timeouts - this may release some TX slots
+#if UAVCAN_STM32_NUM_IFACES > 1
+    if1_.discardTimedOutTxMailboxes(time);
+#endif
+
+    inout_masks = makeSelectMasks();                    // Check if we already have some of the requested events
+    if ((inout_masks.read  & in_masks.read)  != 0 ||
+        (inout_masks.write & in_masks.write) != 0)
+    {
+        return 1;
+    }
+
+    (void)update_event_.wait(blocking_deadline - time); // Block until timeout expires or any iface updates
+    inout_masks = makeSelectMasks(); // Return what we got even if none of the requested events became signaled
+    return 1;                        // Return value doesn't matter as long as it is non-negative
 }
 
 int CanDriver::init(uavcan::uint32_t bitrate)

@@ -176,6 +176,8 @@ class CanDriver : public uavcan::ICanDriver, uavcan::Noncopyable
     CanIface if1_;
 #endif
 
+    uavcan::CanSelectMasks makeSelectMasks() const;
+
     virtual uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline);
 
 public:
