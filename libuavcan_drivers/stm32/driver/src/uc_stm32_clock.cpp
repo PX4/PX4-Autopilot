@@ -38,13 +38,13 @@ bool initialized = false;
 bool utc_set = false;
 
 uavcan::uint32_t utc_jump_cnt = 0;
-uavcan::int32_t utc_correction_usec_per_overflow = 0;
+uavcan::int32_t utc_correction_usec_per_overflow_x16 = 0;
 
 uavcan::uint64_t time_mono = 0;
 uavcan::uint64_t time_utc = 0;
 
 const uavcan::uint32_t USecPerOverflow = 65536;
-const uavcan::int32_t MaxUtcSpeedCorrection = 500; // x / 65536
+const uavcan::int32_t MaxUtcSpeedCorrectionX16 = 100 * 16;
 
 }
 
@@ -153,21 +153,21 @@ void adjustUtc(uavcan::UtcDuration adjustment)
     }
 
     /*
-     * Naive speed adjustment
-     * TODO needs better solution
+     * Naive speed adjustment (proof of concept)
+     * TODO: Reliable clock speed adjustment algorithm
      */
     if (adjustment.isPositive())
     {
-        if (utc_correction_usec_per_overflow < MaxUtcSpeedCorrection)
+        if (utc_correction_usec_per_overflow_x16 < MaxUtcSpeedCorrectionX16)
         {
-            utc_correction_usec_per_overflow++;
+            utc_correction_usec_per_overflow_x16++;
         }
     }
     else
     {
-        if (utc_correction_usec_per_overflow > -MaxUtcSpeedCorrection)
+        if (utc_correction_usec_per_overflow_x16 > -MaxUtcSpeedCorrectionX16)
         {
-            utc_correction_usec_per_overflow--;
+            utc_correction_usec_per_overflow_x16--;
         }
     }
 
@@ -198,7 +198,7 @@ void adjustUtc(uavcan::UtcDuration adjustment)
         else
         {
             utc_set = true;
-            utc_correction_usec_per_overflow = 0;
+            utc_correction_usec_per_overflow_x16 = 0;
         }
     }
 }
@@ -206,7 +206,7 @@ void adjustUtc(uavcan::UtcDuration adjustment)
 uavcan::int32_t getUtcSpeedCorrectionPPM()
 {
     MutexLocker mlocker(mutex);
-    return uavcan::int64_t(utc_correction_usec_per_overflow * 1000000) / USecPerOverflow;
+    return uavcan::int64_t((utc_correction_usec_per_overflow_x16 * 1000000) / 16) / USecPerOverflow;
 }
 
 uavcan::uint32_t getUtcAjdustmentJumpCount()
@@ -247,7 +247,8 @@ UAVCAN_STM32_IRQ_HANDLER(TIMX_IRQHandler)
     time_mono += USecPerOverflow;
     if (utc_set)
     {
-        time_utc += USecPerOverflow + utc_correction_usec_per_overflow;
+        // Values below 16 are ignored
+        time_utc += USecPerOverflow + (utc_correction_usec_per_overflow_x16 / 16);
     }
 
     UAVCAN_STM32_IRQ_EPILOGUE();
