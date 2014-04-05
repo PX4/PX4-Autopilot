@@ -944,8 +944,23 @@ PX4IO::task_main()
 				int pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE, &scaling, 1);
 
 				if (pret != OK) {
-					log("voltage scaling upload failed");
+					log("vscale upload failed");
 				}
+
+				/* send RC throttle failsafe value to IO */
+				float failsafe_param_val;
+				param_t failsafe_param = param_find("RC_FS_THR");
+
+				if (failsafe_param > 0)
+
+					param_get(failsafe_param, &failsafe_param_val);
+					uint16_t failsafe_thr = failsafe_param_val;
+					pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RC_THR_FAILSAFE_US, &failsafe_thr, 1);
+					if (pret != OK) {
+						log("failsafe upload failed");
+					}
+				}
+
 			}
 
 		}

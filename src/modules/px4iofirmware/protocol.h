@@ -168,7 +168,6 @@
 #define PX4IO_P_SETUP_FEATURES_SBUS2_OUT	(1 << 1) /**< enable S.Bus v2 output */
 #define PX4IO_P_SETUP_FEATURES_PWM_RSSI		(1 << 2) /**< enable PWM RSSI parsing */
 #define PX4IO_P_SETUP_FEATURES_ADC_RSSI		(1 << 3) /**< enable ADC RSSI parsing */
-#define PX4IO_P_SETUP_FEATURES_RC_FAIL_DETECT	(1 << 4) /**< enable RC fail detection based on channel value */
 
 #define PX4IO_P_SETUP_ARMING			1	 /* arming controls */
 #define PX4IO_P_SETUP_ARMING_IO_ARM_OK		(1 << 0) /* OK to arm the IO side */
@@ -202,13 +201,15 @@ enum {							/* DSM bind states */
 	dsm_bind_send_pulses,
 	dsm_bind_reinit_uart
 };
- 					     /*	8 */
-#define PX4IO_P_SETUP_SET_DEBUG			9		/* debug level for IO board */
+						/* 8 */
+#define PX4IO_P_SETUP_SET_DEBUG			9	/* debug level for IO board */
 
-#define PX4IO_P_SETUP_REBOOT_BL		       10	/* reboot IO into bootloader */
-#define PX4IO_REBOOT_BL_MAGIC               14662       /* required argument for reboot (random) */
+#define PX4IO_P_SETUP_REBOOT_BL			10	/* reboot IO into bootloader */
+#define PX4IO_REBOOT_BL_MAGIC			14662	/* required argument for reboot (random) */
 
-#define PX4IO_P_SETUP_CRC		       11	/* get CRC of IO firmware */
+#define PX4IO_P_SETUP_CRC			11	/* get CRC of IO firmware */
+						/* 12 occupied by CRC */
+#define PX4IO_P_SETUP_RC_THR_FAILSAFE_US	13	/**< the throttle failsafe pulse length in microseconds */
 
 /* autopilot control values, -10000..10000 */
 #define PX4IO_PAGE_CONTROLS			51		/**< actuator control groups, one after the other, 8 wide */
@@ -218,10 +219,10 @@ enum {							/* DSM bind states */
 #define PX4IO_P_CONTROLS_GROUP_3		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 3)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */
 
 #define PX4IO_P_CONTROLS_GROUP_VALID		64
-#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP0	(1 << 0) /* group 0 is valid / received */
-#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP1	(1 << 1) /* group 1 is valid / received */
-#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP2	(1 << 2) /* group 2 is valid / received */
-#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP3	(1 << 3) /* group 3 is valid / received */
+#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP0	(1 << 0) /**< group 0 is valid / received */
+#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP1	(1 << 1) /**< group 1 is valid / received */
+#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP2	(1 << 2) /**< group 2 is valid / received */
+#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP3	(1 << 3) /**< group 3 is valid / received */
 
 /* raw text load to the mixer parser - ignores offset */
 #define PX4IO_PAGE_MIXERLOAD			52

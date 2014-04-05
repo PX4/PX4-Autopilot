@@ -264,10 +264,10 @@ controls_tick() {
 						scaled = -scaled;
 					}
 
-					if (mapped == 3 && (r_setup_features & PX4IO_P_SETUP_FEATURES_RC_FAIL_DETECT)) {
+					if (mapped == 3 && r_setup_rc_thr_failsafe) {
 						/* throttle failsafe detection */
-						if (((raw < conf[PX4IO_P_RC_CONFIG_MIN]) && (raw < 800)) ||
-						    ((raw > conf[PX4IO_P_RC_CONFIG_MAX]) && (raw > 2200))) {
+						if (((raw < conf[PX4IO_P_RC_CONFIG_MIN]) && (raw < r_setup_rc_thr_failsafe)) ||
+						    ((raw > conf[PX4IO_P_RC_CONFIG_MAX]) && (raw > r_setup_rc_thr_failsafe))) {
 							r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FAILSAFE;
 						} else {
 							r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
