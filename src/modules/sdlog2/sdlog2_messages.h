@@ -174,6 +174,7 @@ struct log_OUT0_s {
 struct log_AIRS_s {
 	float indicated_airspeed;
 	float true_airspeed;
+	float air_temperature_celsius;
 };
 
 /* --- ARSP - ATTITUDE RATE SET POINT --- */
@@ -338,7 +339,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(STAT, "BBfBB", "MainState,ArmState,BatRem,BatWarn,Landed"),
 	LOG_FORMAT(RC, "ffffffffB", "Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,Count"),
 	LOG_FORMAT(OUT0, "ffffffff", "Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
-	LOG_FORMAT(AIRS, "ff", "IndSpeed,TrueSpeed"),
+	LOG_FORMAT(AIRS, "fff", "IndSpeed,TrueSpeed,AirTemp"),
 	LOG_FORMAT(ARSP, "fff", "RollRateSP,PitchRateSP,YawRateSP"),
 	LOG_FORMAT(FLOW, "hhfffBB", "RawX,RawY,CompX,CompY,Dist,Q,SensID"),
 	LOG_FORMAT(GPOS, "LLfffffB", "Lat,Lon,Alt,VelN,VelE,VelD,BaroAlt,Flags"),
