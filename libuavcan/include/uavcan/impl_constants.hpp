@@ -69,7 +69,7 @@ enum { MemPoolBlockSize = UAVCAN_MEM_POOL_BLOCK_SIZE };
 enum { MemPoolBlockSize = 48 };
 #endif
 
-enum { MemPoolAlignment = 8 };
+enum { MemPoolAlignment = 16 };
 
 typedef char _alignment_check_for_MEM_POOL_BLOCK_SIZE[((MemPoolBlockSize & (MemPoolAlignment - 1)) == 0) ? 1 : -1];
 
