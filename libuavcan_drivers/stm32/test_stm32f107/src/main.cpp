@@ -13,6 +13,14 @@ namespace
 
 uavcan_stm32::CanInitHelper<> can;
 
+typedef uavcan::Node<4096> Node;
+
+Node& getNode()
+{
+    static Node node(can.driver, uavcan_stm32::SystemClock::instance());
+    return node;
+}
+
 void ledSet(bool state)
 {
     palWritePad(GPIO_PORT_LED, GPIO_PIN_LED, state);
@@ -20,11 +28,20 @@ void ledSet(bool state)
 
 int init()
 {
+    int res = 0;
+
     halInit();
     chibios_rt::System::init();
     sdStart(&STDOUT_SD, NULL);
 
-    return can.init(1000000);
+    res = can.init(1000000);
+    if (res < 0)
+    {
+        goto leave;
+    }
+
+leave:
+    return res;
 }
 
 __attribute__((noreturn))
@@ -40,21 +57,58 @@ void die(int status)
     }
 }
 
-
-uavcan_stm32::Event led_turn_off_event;
-
-class : public chibios_rt::BaseStaticThread<512>
+class : public chibios_rt::BaseStaticThread<2048>
 {
+public:
     msg_t main()
     {
+        /*
+         * Setting up the node parameters
+         */
+        Node& node = app::getNode();
+
+        node.setNodeID(64);
+        node.setName("org.uavcan.stm32_test_stm32f107");
+
+        /*
+         * Initializing the UAVCAN node - this may take a while
+         */
         while (true)
         {
-            led_turn_off_event.wait(uavcan::MonotonicDuration::getInfinite());
-            ledSet(false);
+            uavcan::NodeInitializationResult init_result;
+            const int uavcan_start_res = node.start(init_result);
+
+            if (uavcan_start_res < 0)
+            {
+                lowsyslog("Node initialization failure: %i, will try agin soon\n", uavcan_start_res);
+            }
+            else if (!init_result.isOk())
+            {
+                lowsyslog("Network conflict with %u, will try again soon\n", init_result.conflicting_node.get());
+            }
+            else
+            {
+                break;
+            }
+            ::sleep(3);
+        }
+
+        /*
+         * Main loop
+         */
+        lowsyslog("UAVCAN node started\n");
+        node.setStatusOk();
+        while (true)
+        {
+            const int spin_res = node.spin(uavcan::MonotonicDuration::fromMSec(100));
+            if (spin_res < 0)
+            {
+                lowsyslog("Spin failure: %i\n", spin_res);
+            }
         }
         return msg_t();
     }
-} led_turn_off_executor;
+} uavcan_node_thread;
 
 }
 }
@@ -67,86 +121,14 @@ int main()
         app::die(init_res);
     }
 
-    app::led_turn_off_executor.start(LOWPRIO);
+    lowsyslog("Starting the UAVCAN thread\n");
+    app::uavcan_node_thread.start(LOWPRIO);
 
-    puts("Hello world");
-
-    unsigned iter_counter = 0;
     while (true)
     {
-        iter_counter++;
-        printf("Mono clock: %lu  %lu\n",
-               static_cast<unsigned long>(uavcan_stm32::SystemClock::instance().getMonotonic().toUSec()),
-               static_cast<unsigned long>(uavcan_stm32::SystemClock::instance().getMonotonic().toMSec()));
-
-        printf("UTC  clock: %lu\n",
-               static_cast<unsigned long>(uavcan_stm32::SystemClock::instance().getUtc().toUSec()));
-
-        if (uavcan_stm32::SystemClock::instance().getMonotonic().toMSec() / 1000 == 10)
-        {
-            uavcan_stm32::SystemClock::instance().adjustUtc(uavcan::UtcDuration::fromMSec(10000));
-        }
-
-        app::led_turn_off_event.signal();
-
+        app::ledSet(false);
         sleep(1);
-
-        const uavcan::MonotonicTime before_select = uavcan_stm32::clock::getMonotonic();
-
-        uavcan::CanSelectMasks masks;  // Zero masks - always blocks
-        (void)static_cast<uavcan::ICanDriver&>(app::can.driver).select(masks,
-            uavcan_stm32::clock::getMonotonic() + uavcan::MonotonicDuration::fromMSec(10000));
-
-        const uavcan::MonotonicDuration select_duration = uavcan_stm32::clock::getMonotonic() - before_select;
-        printf("Select duration: %lu msec errs=%lu/%lu\n",
-               static_cast<unsigned long>(select_duration.toMSec()),
-               static_cast<unsigned long>(app::can.driver.getIface(0)->getErrorCount()),
-               static_cast<unsigned long>(app::can.driver.getIface(1)->getErrorCount()));
-
         app::ledSet(true);
-
-        for (int i = 0; i < 2; i++)
-        {
-            if ((iter_counter % 3 == 0) && (masks.write & (1 << i)))
-            {
-                uavcan::CanFrame frame;
-                const uavcan::MonotonicTime deadline =
-                    uavcan_stm32::clock::getMonotonic() + uavcan::MonotonicDuration::fromMSec(10);
-
-                frame.id = 123 | uavcan::CanFrame::FlagEFF;
-                frame.data[0] = 42;
-                frame.dlc = 2;
-
-                const int send_res =
-                    static_cast<uavcan::ICanIface*>(app::can.driver.getIface(i))->send(frame, deadline,
-                                                                                       uavcan::CanIOFlagLoopback);
-                printf("send_res=%i errcnt=%lu hwerr=%i\n", send_res,
-                       static_cast<unsigned long>(app::can.driver.getIface(i)->getErrorCount()),
-                       static_cast<int>(app::can.driver.getIface(i)->yieldLastHardwareErrorCode()));
-            }
-
-            if (masks.read & (1 << i))
-            {
-                while (true)
-                {
-                    uavcan::CanRxFrame rx_frame;
-                    uavcan::CanIOFlags flags = 0;
-
-                    const int recv_res =
-                        static_cast<uavcan::ICanIface*>(app::can.driver.getIface(i))->receive(rx_frame, rx_frame.ts_mono,
-                                                                                              rx_frame.ts_utc, flags);
-
-                    printf("recv_res=%i iface=%u flg=%u canid=%lu dlc=%u data=[%02x %02x %02x %02x %02x %02x %02x %02x]\n",
-                           recv_res, unsigned(i), unsigned(flags), rx_frame.id & uavcan::CanFrame::MaskExtID, int(rx_frame.dlc),
-                           int(rx_frame.data[0]), int(rx_frame.data[1]), int(rx_frame.data[2]), int(rx_frame.data[3]),
-                           int(rx_frame.data[4]), int(rx_frame.data[5]), int(rx_frame.data[6]), int(rx_frame.data[7]));
-
-                    if (recv_res <= 0)
-                    {
-                        break;
-                    }
-                }
-            }
-        }
+        sleep(1);
     }
 }
