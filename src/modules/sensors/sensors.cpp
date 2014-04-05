@@ -263,9 +263,7 @@ private:
 		float rc_scale_yaw;
 		float rc_scale_flaps;
 
-		int rc_fs_ch;
-		int rc_fs_mode;
-		float rc_fs_thr;
+		int32_t rc_fs_thr;
 
 		float battery_voltage_scaling;
 		float battery_current_scaling;
@@ -313,8 +311,6 @@ private:
 		param_t rc_scale_yaw;
 		param_t rc_scale_flaps;
 
-		param_t rc_fs_ch;
-		param_t rc_fs_mode;
 		param_t rc_fs_thr;
 
 		param_t battery_voltage_scaling;
@@ -531,9 +527,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_scale_flaps = param_find("RC_SCALE_FLAPS");
 
 	/* RC failsafe */
-	_parameter_handles.rc_fs_ch = param_find("RC_FS_CH");
-	_parameter_handles.rc_fs_mode = param_find("RC_FS_MODE");
-	_parameter_handles.rc_fs_thr = param_find("RC_FS_THR");
+	_parameter_handles.rc_fs_thr = param_find("RC_FAILS_THR");
 
 	/* gyro offsets */
 	_parameter_handles.gyro_offset[0] = param_find("SENS_GYRO_XOFF");
@@ -689,8 +683,6 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_scale_pitch, &(_parameters.rc_scale_pitch));
 	param_get(_parameter_handles.rc_scale_yaw, &(_parameters.rc_scale_yaw));
 	param_get(_parameter_handles.rc_scale_flaps, &(_parameters.rc_scale_flaps));
-	param_get(_parameter_handles.rc_fs_ch, &(_parameters.rc_fs_ch));
-	param_get(_parameter_handles.rc_fs_mode, &(_parameters.rc_fs_mode));
 	param_get(_parameter_handles.rc_fs_thr, &(_parameters.rc_fs_thr));
 
 	/* update RC function mappings */
@@ -1312,19 +1304,15 @@ Sensors::rc_poll()
 		manual_control.aux5 = NAN;
 
 		/* require at least four channels to consider the signal valid */
-		if (rc_input.channel_count < 4)
+		if (rc_input.channel_count < 4) {
 			return;
+		}
 
-		/* failsafe check */
-		if (_parameters.rc_fs_ch != 0) {
-			if (_parameters.rc_fs_mode == 0) {
-				if (rc_input.values[_parameters.rc_fs_ch - 1] < _parameters.rc_fs_thr)
-					return;
-
-			} else if (_parameters.rc_fs_mode == 1) {
-				if (rc_input.values[_parameters.rc_fs_ch - 1] > _parameters.rc_fs_thr)
-					return;
-			}
+		/* check for failsafe */
+		if ((rc_input.rc_failsafe) || ((_parameters.rc_fs_thr != 0) && (((rc_input.values[_rc.function[THROTTLE]] < _parameters.min[i]) && (rc_input.values[_rc.function[THROTTLE]] < _parameters.rc_fs_thr))
+			|| ((rc_input.values[_rc.function[THROTTLE]] > _parameters.max[i]) && (rc_input.values[_rc.function[THROTTLE]] > _parameters.rc_fs_thr))))) {
+			/* do not publish manual control setpoints when there are none */
+			return;
 		}
 
 		unsigned channel_limit = rc_input.channel_count;
