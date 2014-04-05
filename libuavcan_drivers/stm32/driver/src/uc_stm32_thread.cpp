@@ -8,7 +8,9 @@ namespace uavcan_stm32
 {
 
 #if UAVCAN_STM32_CHIBIOS
-
+/*
+ * Event
+ */
 bool Event::wait(uavcan::MonotonicDuration duration)
 {
     msg_t ret = msg_t();
@@ -33,6 +35,19 @@ void Event::signalFromInterrupt()
     chSysLockFromIsr();
     sem_.signalI();
     chSysUnlockFromIsr();
+}
+
+/*
+ * Mutex
+ */
+void Mutex::lock()
+{
+    mtx_.lock();
+}
+
+void Mutex::unlock()
+{
+    chibios_rt::BaseThread::unlockMutex();
 }
 
 #endif

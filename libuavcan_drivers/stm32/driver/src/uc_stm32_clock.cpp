@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <uavcan_stm32/clock.hpp>
+#include <uavcan_stm32/thread.hpp>
 #include "internal.hpp"
 
 /*
@@ -29,6 +30,8 @@ namespace clock
 {
 namespace
 {
+
+Mutex mutex;
 
 bool initialized = false;
 
@@ -141,6 +144,8 @@ uavcan::UtcTime getUtc()
 
 void adjustUtc(uavcan::UtcDuration adjustment)
 {
+    MutexLocker mlocker(mutex);
+
     assert(initialized);
     if (adjustment.isZero() && utc_set)
     {
@@ -200,15 +205,21 @@ void adjustUtc(uavcan::UtcDuration adjustment)
 
 uavcan::int32_t getUtcSpeedCorrectionPPM()
 {
+    MutexLocker mlocker(mutex);
     return uavcan::int64_t(utc_correction_usec_per_overflow * 1000000) / USecPerOverflow;
 }
 
-uavcan::uint32_t getUtcAjdustmentJumpCount() { return utc_jump_cnt; }
+uavcan::uint32_t getUtcAjdustmentJumpCount()
+{
+    MutexLocker mlocker(mutex);
+    return utc_jump_cnt;
+}
 
 } // namespace clock
 
 SystemClock& SystemClock::instance()
 {
+    MutexLocker mlocker(clock::mutex);
     if (!clock::initialized)
     {
         clock::init();

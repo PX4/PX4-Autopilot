@@ -31,4 +31,33 @@ public:
     void signalFromInterrupt();
 };
 
+
+class Mutex
+{
+#if UAVCAN_STM32_CHIBIOS
+    chibios_rt::Mutex mtx_;
+#endif
+
+public:
+    void lock();
+    void unlock();
+};
+
+
+class MutexLocker
+{
+    Mutex& mutex_;
+
+public:
+    MutexLocker(Mutex& mutex)
+        : mutex_(mutex)
+    {
+        mutex_.lock();
+    }
+    ~MutexLocker()
+    {
+        mutex_.unlock();
+    }
+};
+
 }
