@@ -796,6 +796,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct telemetry_status_s telemetry;
 		struct range_finder_report range_finder;
 		struct estimator_status_report estimator_status;
+		struct system_power_s system_power;
+		struct servorail_status_s servorail_status;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -828,6 +830,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_DIST_s log_DIST;
 			struct log_TELE_s log_TELE;
 			struct log_ESTM_s log_ESTM;
+			struct log_PWR_s log_PWR;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -859,6 +862,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int telemetry_sub;
 		int range_finder_sub;
 		int estimator_status_sub;
+		int system_power_sub;
+		int servorail_status_sub;
 	} subs;
 
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -884,6 +889,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.telemetry_sub = orb_subscribe(ORB_ID(telemetry_status));
 	subs.range_finder_sub = orb_subscribe(ORB_ID(sensor_range_finder));
 	subs.estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
+	subs.system_power_sub = orb_subscribe(ORB_ID(system_power));
+	subs.servorail_status_sub = orb_subscribe(ORB_ID(servorail_status));
 
 	thread_running = true;
 
@@ -1224,6 +1231,24 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_BATT.current = buf.battery.current_a;
 			log_msg.body.log_BATT.discharged = buf.battery.discharged_mah;
 			LOGBUFFER_WRITE_AND_COUNT(BATT);
+		}
+
+		/* --- SYSTEM POWER RAILS --- */
+		if (copy_if_updated(ORB_ID(system_power), subs.system_power_sub, &buf.system_power)) {
+			log_msg.msg_type = LOG_PWR_MSG;
+			log_msg.body.log_PWR.5v_peripherals = buf.system_power.voltage_5V_v;
+			log_msg.body.log_PWR.usb_ok = buf.system_power.usb_connected;
+			log_msg.body.log_PWR.brick_ok = buf.system_power.brick_valid;
+			log_msg.body.log_PWR.servo_ok = buf.system_power.servo_valid;
+			log_msg.body.log_PWR.low_power_rail_overcurrent = buf.system_power.periph_5V_OC;
+			log_msg.body.log_PWR.high_power_rail_overcurrent = buf.system_power.hipower_5V_OC;
+
+			/* copy servo rail status topic here too */
+			orb_copy(ORB_ID(servorail_status), subs.servorail_status_sub, &buf.servorail_status);
+			log_msg.body.log_PWR.5v_servo_rail = buf.servorail_status.voltage_v;
+			log_msg.body.log_PWR.5v_servo_rssi = buf.servorail_status.rssi_v;
+
+			LOGBUFFER_WRITE_AND_COUNT(PWR);
 		}
 
 		/* --- TELEMETRY --- */
