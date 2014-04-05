@@ -1479,9 +1479,11 @@ PX4IO::io_publish_raw_rc()
 	} else {
 		rc_val.input_source = RC_INPUT_SOURCE_UNKNOWN;
 
-		/* we do not know the RC input, but have to publish timestamp_published 
-		 * and rc_lost flag, so do not prematurely return here
-		 */
+		/* only keep publishing RC input if we ever got a valid input */
+		if (_rc_last_valid == 0) {
+			/* we have never seen valid RC signals, abort */
+			return OK;
+		}
 	}
 
 	/* lazily advertise on first publication */
