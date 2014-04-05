@@ -613,10 +613,10 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 
 				/* announce new home position */
 				if (*home_pub > 0) {
-					orb_publish(ORB_ID(home_position), *home_pub, &home);
+					orb_publish(ORB_ID(home_position), *home_pub, home);
 
 				} else {
-					*home_pub = orb_advertise(ORB_ID(home_position), &home);
+					*home_pub = orb_advertise(ORB_ID(home_position), home);
 				}
 
 				/* mark home position as set */
