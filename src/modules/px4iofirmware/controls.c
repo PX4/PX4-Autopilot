@@ -134,8 +134,6 @@ controls_tick() {
 
 	perf_begin(c_gather_sbus);
 
-	bool sbus_status = (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS);
-
 	bool sbus_failsafe, sbus_frame_drop;
 	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &sbus_failsafe, &sbus_frame_drop, PX4IO_RC_INPUT_CHANNELS);
 
@@ -261,8 +259,20 @@ controls_tick() {
 				if (mapped < PX4IO_CONTROL_CHANNELS) {
 
 					/* invert channel if pitch - pulling the lever down means pitching up by convention */
-					if (mapped == 1) /* roll, pitch, yaw, throttle, override is the standard order */
+					if (mapped == 1) {
+						/* roll, pitch, yaw, throttle, override is the standard order */
 						scaled = -scaled;
+					}
+
+					if (mapped == 3 && (r_setup_features & PX4IO_P_SETUP_FEATURES_RC_FAIL_DETECT)) {
+						/* throttle failsafe detection */
+						if (((raw < conf[PX4IO_P_RC_CONFIG_MIN]) && (raw < 800)) ||
+						    ((raw > conf[PX4IO_P_RC_CONFIG_MAX]) && (raw > 2200))) {
+							r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FAILSAFE;
+						} else {
+							r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+						}
+					}
 
 					r_rc_values[mapped] = SIGNED_TO_REG(scaled);
 					assigned_channels |= (1 << mapped);
@@ -312,6 +322,11 @@ controls_tick() {
 	 * Handle losing RC input
 	 */
 
+	/* if we are in failsafe, clear the override flag */
+	if (r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE) {
+		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
+	}
+
 	/* this kicks in if the receiver is gone, but there is not on failsafe (indicated by separate flag) */
 	if (rc_input_lost) {
 		/* Clear the RC input status flag, clear manual override flag */
@@ -322,27 +337,24 @@ controls_tick() {
 		/* Mark all channels as invalid, as we just lost the RX */
 		r_rc_valid = 0;
 
+		/* Set raw channel count to zero */
+		r_raw_rc_count = 0;
+
 		/* Set the RC_LOST alarm */
 		r_status_alarms |= PX4IO_P_STATUS_ALARMS_RC_LOST;
-	}
-
-	/* this kicks in if the receiver is completely gone */
-	if (rc_input_lost) {
-
-		/* Set channel count to zero */
-		r_raw_rc_count = 0;
 	}
 
 	/*
 	 * Check for manual override.
 	 *
 	 * The PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK flag must be set, and we
-	 * must have R/C input.
+	 * must have R/C input (NO FAILSAFE!).
 	 * Override is enabled if either the hardcoded channel / value combination
 	 * is selected, or the AP has requested it.
 	 */
 	if ((r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) && 
-		(r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK)) {
+		(r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
+		!(r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE)) {
 
 		bool override = false;
 
