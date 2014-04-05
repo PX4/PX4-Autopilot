@@ -1,0 +1,12 @@
+#
+# Pressure altitude and barometric climb rate.
+# Barometer nodes should publish this message.
+#
+
+uavcan.Timestamp timestamp
+
+float32 pressure_altitude
+float16 pressure_altitude_variance
+
+float16 climb_rate
+float16 climb_rate_variance

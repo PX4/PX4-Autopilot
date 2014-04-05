@@ -1,0 +1,19 @@
+#
+# GNSS nav solution with uncertainty.
+# Lat and lon are represented in integer degrees * 1e7, so 1 LSB = 1e-7 deg (approx. 11 mm per LSB on equator).
+# Alt is above ellipsoid, represented as meters * 1e2, so 1 LSB = 1e-2 meters (10 mm).
+# Velocity is in NED frame (north-east-down) in meters per second.
+#
+
+uavcan.Timestamp timestamp
+
+int32 lon_1e7
+int32 lat_1e7
+int24 alt_1e2
+
+float16[3] ned_velocity
+
+uint4 sats_used
+
+float16[<=9] position_covariance   # m^2
+float16[<=9] velocity_covariance   # (m/s)^2

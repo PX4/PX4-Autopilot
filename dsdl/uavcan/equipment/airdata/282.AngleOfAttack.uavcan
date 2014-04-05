@@ -1,0 +1,10 @@
+#
+# Angle of attack.
+#
+
+uint8 ID_LEFT = 254
+uint8 ID_RIGHT = 255
+uint8 id
+
+float16 aoa
+float16 aoa_variance

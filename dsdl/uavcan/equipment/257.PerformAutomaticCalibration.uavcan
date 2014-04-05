@@ -1,0 +1,13 @@
+#
+# Fast automatic calibration request.
+# E.g. Before flight, the flight computer should call this service on every node that provides it.
+# Such nodes should be detected with the service std.protocol.GetDataTypeInfo.
+# If at least one node fails, the start should be aborted.
+#
+
+---
+
+# Amount of extra time the node needs to finish the procedure.
+uint16 delay_msec
+
+bool ok

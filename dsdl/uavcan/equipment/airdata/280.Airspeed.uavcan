@@ -1,0 +1,6 @@
+#
+# True airspeed.
+#
+
+float16 true_airspeed
+float16 true_airspeed_variance

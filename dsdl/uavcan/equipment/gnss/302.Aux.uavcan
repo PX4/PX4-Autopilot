@@ -1,0 +1,12 @@
+#
+# GNSS low priority auxiliary info; should be published at low frequency or not published at all.
+#
+
+uint4 sats_visible
+uint4 sats_used
+
+float16 gdop
+float16 pdop
+float16 hdop
+float16 vdop
+float16 tdop
