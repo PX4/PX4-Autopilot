@@ -134,8 +134,6 @@ controls_tick() {
 
 	perf_begin(c_gather_sbus);
 
-	bool sbus_status = (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS);
-
 	bool sbus_failsafe, sbus_frame_drop;
 	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &sbus_failsafe, &sbus_frame_drop, PX4IO_RC_INPUT_CHANNELS);
 
