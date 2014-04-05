@@ -48,10 +48,10 @@
 # define UAVCAN_PACK_STRUCTS    0
 #endif
 #ifndef UAVCAN_PACKED_BEGIN
-# define UAVCAN_PACKED_BEGIN _Pragma("pack(push, 1)")
+# define UAVCAN_PACKED_BEGIN
 #endif
 #ifndef UAVCAN_PACKED_END
-# define UAVCAN_PACKED_END _Pragma("pack(pop)")
+# define UAVCAN_PACKED_END
 #endif
 
 
@@ -66,10 +66,14 @@ namespace uavcan
 #if UAVCAN_MEM_POOL_BLOCK_SIZE
 enum { MemPoolBlockSize = UAVCAN_MEM_POOL_BLOCK_SIZE };
 #else
-enum { MemPoolBlockSize = 48 };
+enum { MemPoolBlockSize = 64 };
 #endif
 
+#ifdef __BIGGEST_ALIGNMENT__
+enum { MemPoolAlignment = __BIGGEST_ALIGNMENT__ };
+#else
 enum { MemPoolAlignment = 16 };
+#endif
 
 typedef char _alignment_check_for_MEM_POOL_BLOCK_SIZE[((MemPoolBlockSize & (MemPoolAlignment - 1)) == 0) ? 1 : -1];
 
