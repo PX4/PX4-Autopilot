@@ -169,6 +169,8 @@ private:
 
 	int			_bus;			/**< the bus the device is connected to */
 
+	struct mag_report	_last_report;           /**< used for info() */
+
 	/**
 	 * Test whether the device supported by the driver is present at a
 	 * specific address.
@@ -870,6 +872,8 @@ HMC5883::collect()
 		}
 	}
 
+	_last_report = new_report;
+
 	/* post a report to the ring */
 	if (_reports->force(&new_report)) {
 		perf_count(_buffer_overflows);
@@ -1042,31 +1046,28 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 
 	warnx("axes scaling: %.6f  %.6f  %.6f", (double)scaling[0], (double)scaling[1], (double)scaling[2]);
 
-	/* set back to normal mode */
-	/* Set to 1.1 Gauss */
-	if (OK != ::ioctl(fd, MAGIOCSRANGE, 1)) {
-		warnx("failed to set 1.1 Ga range");
-		goto out;
-	}
-
-	if (OK != ::ioctl(fd, MAGIOCEXSTRAP, 0)) {
-		warnx("failed to disable sensor calibration mode");
-		goto out;
-	}
-
 	/* set scaling in device */
 	mscale_previous.x_scale = scaling[0];
 	mscale_previous.y_scale = scaling[1];
 	mscale_previous.z_scale = scaling[2];
 
-	if (OK != ioctl(filp, MAGIOCSSCALE, (long unsigned int)&mscale_previous)) {
-		warn("WARNING: failed to set new scale / offsets for mag");
-		goto out;
-	}
-
 	ret = OK;
 
 out:
+
+	if (OK != ioctl(filp, MAGIOCSSCALE, (long unsigned int)&mscale_previous)) {
+		warn("WARNING: failed to set new scale / offsets for mag");
+	}
+
+	/* set back to normal mode */
+	/* Set to 1.1 Gauss */
+	if (OK != ::ioctl(fd, MAGIOCSRANGE, 1)) {
+		warnx("failed to set 1.1 Ga range");
+	}
+
+	if (OK != ::ioctl(fd, MAGIOCEXSTRAP, 0)) {
+		warnx("failed to disable sensor calibration mode");
+	}
 
 	if (ret == OK) {
 		if (!check_scale()) {
@@ -1221,6 +1222,7 @@ HMC5883::print_info()
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
+	printf("output  (%.2f %.2f %.2f)\n", (double)_last_report.x, (double)_last_report.y, (double)_last_report.z);
 	printf("offsets (%.2f %.2f %.2f)\n", (double)_scale.x_offset, (double)_scale.y_offset, (double)_scale.z_offset);
 	printf("scaling (%.2f %.2f %.2f) 1/range_scale %.2f range_ga %.2f\n", 
 	       (double)_scale.x_scale, (double)_scale.y_scale, (double)_scale.z_scale,
