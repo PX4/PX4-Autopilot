@@ -61,8 +61,6 @@ typedef enum {
 struct manual_control_setpoint_s {
 	uint64_t timestamp;
 
-	bool signal_lost;		/**< control signal lost, should be checked together with topic timeout */
-
 	/**
 	 * Any of the channels may not be available and be set to NaN
 	 * to indicate that it does not contain valid data.

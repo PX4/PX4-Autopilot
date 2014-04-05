@@ -214,7 +214,6 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	struct rc_channels_s _rc;			/**< r/c channel data */
-	struct manual_control_setpoint_s _manual;	/**< manual control setpoint */
 	struct battery_status_s _battery_status;	/**< battery status */
 	struct baro_report _barometer;			/**< barometer data */
 	struct differential_pressure_s _diff_pres;
@@ -468,21 +467,6 @@ Sensors::Sensors() :
 	_battery_current_timestamp(0)
 {
 	memset(&_rc, 0, sizeof(_rc));
-	memset(&_manual, 0, sizeof(_manual));
-
-	/* set NANs instead of zeroes */
-	_manual.roll = NAN;
-	_manual.pitch = NAN;
-	_manual.yaw = NAN;
-	_manual.throttle = NAN;
-	_manual.flaps = NAN;
-	_manual.aux1 = NAN;
-	_manual.aux2 = NAN;
-	_manual.aux3 = NAN;
-	_manual.aux4 = NAN;
-	_manual.aux5 = NAN;
-
-	_manual.signal_lost = true;
 
 	/* basic r/c parameters */
 	for (unsigned i = 0; i < _rc_max_chan_count; i++) {
@@ -1427,10 +1411,10 @@ Sensors::rc_poll()
 
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub > 0) {
-				orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &_manual);
+				orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual);
 
 			} else {
-				_manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &_manual);
+				_manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
 			}
 
 			/* copy from mapped manual control to control group 3 */
@@ -1439,14 +1423,14 @@ Sensors::rc_poll()
 
 			actuator_group_3.timestamp = rc_input.timestamp_publication;
 
-			actuator_group_3.control[0] = _manual.roll;
-			actuator_group_3.control[1] = _manual.pitch;
-			actuator_group_3.control[2] = _manual.yaw;
-			actuator_group_3.control[3] = _manual.throttle;
-			actuator_group_3.control[4] = _manual.flaps;
-			actuator_group_3.control[5] = _manual.aux1;
-			actuator_group_3.control[6] = _manual.aux2;
-			actuator_group_3.control[7] = _manual.aux3;
+			actuator_group_3.control[0] = manual.roll;
+			actuator_group_3.control[1] = manual.pitch;
+			actuator_group_3.control[2] = manual.yaw;
+			actuator_group_3.control[3] = manual.throttle;
+			actuator_group_3.control[4] = manual.flaps;
+			actuator_group_3.control[5] = manual.aux1;
+			actuator_group_3.control[6] = manual.aux2;
+			actuator_group_3.control[7] = manual.aux3;
 
 			/* publish actuator_controls_3 topic */
 			if (_actuator_group_3_pub > 0) {
