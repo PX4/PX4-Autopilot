@@ -231,7 +231,7 @@ TEST(TransferBufferManager, Basic)
     using uavcan::TransferBufferManagerKey;
     using uavcan::ITransferBuffer;
 
-    static const int POOL_BLOCKS = 8;
+    static const int POOL_BLOCKS = 6;
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
     uavcan::PoolManager<1> poolmgr;
     poolmgr.addPool(&pool);
