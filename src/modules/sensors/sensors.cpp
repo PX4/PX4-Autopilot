@@ -263,7 +263,7 @@ private:
 		float rc_scale_yaw;
 		float rc_scale_flaps;
 
-		float rc_fs_thr;
+		int32_t rc_fs_thr;
 
 		float battery_voltage_scaling;
 		float battery_current_scaling;
@@ -527,7 +527,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_scale_flaps = param_find("RC_SCALE_FLAPS");
 
 	/* RC failsafe */
-	_parameter_handles.rc_fs_thr = param_find("RC_FS_THR");
+	_parameter_handles.rc_fs_thr = param_find("RC_FAILS_THR");
 
 	/* gyro offsets */
 	_parameter_handles.gyro_offset[0] = param_find("SENS_GYRO_XOFF");
@@ -1309,8 +1309,8 @@ Sensors::rc_poll()
 		}
 
 		/* check for failsafe */
-		if (rc_input.rc_failsafe || ((rc_input.values[_rc.function[THROTTLE]] < _parameters.min[i]) && (rc_input.values[_rc.function[THROTTLE]] < _parameters.rc_fs_thr))
-			|| ((rc_input.values[_rc.function[THROTTLE]] > _parameters.max[i]) && (rc_input.values[_rc.function[THROTTLE]] > _parameters.rc_fs_thr))) {
+		if (_parameters.rc_fs_thr && (rc_input.rc_failsafe || ((rc_input.values[_rc.function[THROTTLE]] < _parameters.min[i]) && (rc_input.values[_rc.function[THROTTLE]] < _parameters.rc_fs_thr))
+			|| ((rc_input.values[_rc.function[THROTTLE]] > _parameters.max[i]) && (rc_input.values[_rc.function[THROTTLE]] > _parameters.rc_fs_thr)))) {
 			/* do not publish manual control setpoints when there are none */
 			return;
 		}

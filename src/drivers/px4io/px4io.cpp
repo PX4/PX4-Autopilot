@@ -948,8 +948,8 @@ PX4IO::task_main()
 				}
 
 				/* send RC throttle failsafe value to IO */
-				float failsafe_param_val;
-				param_t failsafe_param = param_find("RC_FS_THR");
+				int32_t failsafe_param_val;
+				param_t failsafe_param = param_find("RC_FAILS_THR");
 
 				if (failsafe_param > 0)
 
