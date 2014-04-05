@@ -108,7 +108,7 @@ public:
     Vector3f dVelIMU;
     Vector3f dAngIMU;
     float dtIMU; // time lapsed since the last IMU measurement or covariance update (sec)
-    uint8_t fusionModeGPS = 0; // 0 = GPS outputs 3D velocity, 1 = GPS outputs 2D velocity, 2 = GPS outputs no velocity
+    uint8_t fusionModeGPS; // 0 = GPS outputs 3D velocity, 1 = GPS outputs 2D velocity, 2 = GPS outputs no velocity
     float innovVelPos[6]; // innovation output
     float varInnovVelPos[6]; // innovation variance output
 
@@ -127,8 +127,8 @@ public:
     float lonRef; // WGS-84 longitude of reference point (rad)
     float hgtRef; // WGS-84 height of reference point (m)
     Vector3f magBias; // states representing magnetometer bias vector in XYZ body axes
-    uint8_t covSkipCount = 0; // Number of state prediction frames (IMU daya updates to skip before doing the covariance prediction
-    float EAS2TAS = 1.0f; // ratio f true to equivalent airspeed
+    uint8_t covSkipCount; // Number of state prediction frames (IMU daya updates to skip before doing the covariance prediction
+    float EAS2TAS; // ratio f true to equivalent airspeed
 
     // GPS input data variables
     float gpsCourse;
@@ -141,25 +141,25 @@ public:
     // Baro input
     float baroHgt;
 
-    bool statesInitialised = false;
+    bool statesInitialised;
 
-    bool fuseVelData = false; // this boolean causes the posNE and velNED obs to be fused
-    bool fusePosData = false; // this boolean causes the posNE and velNED obs to be fused
-    bool fuseHgtData = false; // this boolean causes the hgtMea obs to be fused
-    bool fuseMagData = false; // boolean true when magnetometer data is to be fused
-    bool fuseVtasData = false; // boolean true when airspeed data is to be fused
+    bool fuseVelData; // this boolean causes the posNE and velNED obs to be fused
+    bool fusePosData; // this boolean causes the posNE and velNED obs to be fused
+    bool fuseHgtData; // this boolean causes the hgtMea obs to be fused
+    bool fuseMagData; // boolean true when magnetometer data is to be fused
+    bool fuseVtasData; // boolean true when airspeed data is to be fused
 
-    bool onGround    = true;    ///< boolean true when the flight vehicle is on the ground (not flying)
-    bool staticMode  = true;    ///< boolean true if no position feedback is fused
-    bool useAirspeed = true;    ///< boolean true if airspeed data is being used
-    bool useCompass  = true;    ///< boolean true if magnetometer data is being used
+    bool onGround;    ///< boolean true when the flight vehicle is on the ground (not flying)
+    bool staticMode;    ///< boolean true if no position feedback is fused
+    bool useAirspeed;    ///< boolean true if airspeed data is being used
+    bool useCompass;    ///< boolean true if magnetometer data is being used
 
     struct ekf_status_report current_ekf_state;
     struct ekf_status_report last_ekf_error;
 
-    bool numericalProtection = true;
+    bool numericalProtection;
 
-    unsigned storeIndex = 0;
+    unsigned storeIndex;
 
 
 void  UpdateStrapdownEquationsNED();

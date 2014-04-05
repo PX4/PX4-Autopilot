@@ -106,7 +106,22 @@ void swap_var(float &d1, float &d2)
     d2 = tmp;
 }
 
-AttPosEKF::AttPosEKF()
+AttPosEKF::AttPosEKF() :
+    fusionModeGPS(0),
+    covSkipCount(0),
+    EAS2TAS(1.0f),
+    statesInitialised(false),
+    fuseVelData(false),
+    fusePosData(false),
+    fuseHgtData(false),
+    fuseMagData(false),
+    fuseVtasData(false),
+    onGround(true),
+    staticMode(true),
+    useAirspeed(true),
+    useCompass(true),
+    numericalProtection(true),
+    storeIndex(0)
 {
 
 }
