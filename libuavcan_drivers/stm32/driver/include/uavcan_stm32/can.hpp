@@ -28,7 +28,8 @@
 namespace uavcan_stm32
 {
 /**
- * RX queue item
+ * RX queue item.
+ * The application shall not use this directly.
  */
 struct CanRxItem
 {
@@ -43,6 +44,7 @@ struct CanRxItem
 
 /**
  * Single CAN iface.
+ * The application shall not use this directly.
  */
 class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 {
@@ -167,6 +169,7 @@ public:
 
 /**
  * CAN driver, incorporates all available CAN ifaces.
+ * Please avoid direct usage, prefer @ref CanInitHelper instead.
  */
 class CanDriver : public uavcan::ICanDriver, uavcan::Noncopyable
 {
