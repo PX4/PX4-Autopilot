@@ -47,20 +47,17 @@ const uavcan::int32_t MaxUtcSpeedCorrection = 500; // x / 65536
 
 void init()
 {
+    CriticalSectionLock lock;
     if (initialized)
     {
         return;
     }
     initialized = true;
 
-    chSysDisable();
-
     // Power-on and reset
     TIMX_RCC_ENR |= TIMX_RCC_ENR_MASK;
     TIMX_RCC_RSTR |=  TIMX_RCC_RSTR_MASK;
     TIMX_RCC_RSTR &= ~TIMX_RCC_RSTR_MASK;
-
-    chSysEnable();
 
     // Enable IRQ
     nvicEnableVector(TIMX_IRQn,  UAVCAN_STM32_IRQ_PRIORITY_MASK);
@@ -175,16 +172,18 @@ void adjustUtc(uavcan::UtcDuration adjustment)
      */
     if (adjustment.getAbs().toMSec() > 1 || !utc_set)
     {
-        if (adjustment.isNegative() &&
-            uavcan::uint64_t(adjustment.getAbs().toUSec()) > time_utc)
+        const uavcan::int64_t adj_usec = adjustment.toUSec();
+
         {
             CriticalSectionLock locker;
-            time_utc = 1;
-        }
-        else
-        {
-            CriticalSectionLock locker;
-            time_utc += adjustment.toUSec();
+            if ((adj_usec < 0) && uavcan::uint64_t(-adj_usec) > time_utc)
+            {
+                time_utc = 1;
+            }
+            else
+            {
+                time_utc += adj_usec;
+            }
         }
 
         if (utc_set)

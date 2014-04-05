@@ -159,7 +159,7 @@ public:
     void discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time);
 
     bool isTxBufferFull() const;
-    bool isRxBufferEmpty() const { return rx_queue_.getLength() == 0; }
+    bool isRxBufferEmpty() const;
 
     virtual uavcan::uint64_t getErrorCount() const;
     uavcan::uint8_t yieldLastHardwareErrorCode();

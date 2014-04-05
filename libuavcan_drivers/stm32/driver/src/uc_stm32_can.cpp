@@ -23,13 +23,13 @@ CanIface* ifaces[UAVCAN_STM32_NUM_IFACES] =
 
 inline void handleTxInterrupt(uavcan::uint8_t iface_index)
 {
+    assert(iface_index < UAVCAN_STM32_NUM_IFACES);
     uavcan::uint64_t utc_usec = clock::getUtcUSecFromCanInterrupt();
     if (utc_usec > 0)
     {
         utc_usec--;
     }
-    if (iface_index < UAVCAN_STM32_NUM_IFACES &&
-        ifaces[iface_index] != NULL)
+    if (ifaces[iface_index] != NULL)
     {
         ifaces[iface_index]->handleTxInterrupt(utc_usec);
     }
@@ -41,13 +41,13 @@ inline void handleTxInterrupt(uavcan::uint8_t iface_index)
 
 inline void handleRxInterrupt(uavcan::uint8_t iface_index, uavcan::uint8_t fifo_index)
 {
+    assert(iface_index < UAVCAN_STM32_NUM_IFACES);
     uavcan::uint64_t utc_usec = clock::getUtcUSecFromCanInterrupt();
     if (utc_usec > 0)
     {
         utc_usec--;
     }
-    if (iface_index < UAVCAN_STM32_NUM_IFACES &&
-        ifaces[iface_index] != NULL)
+    if (ifaces[iface_index] != NULL)
     {
         ifaces[iface_index]->handleRxInterrupt(fifo_index, utc_usec);
     }
@@ -59,8 +59,8 @@ inline void handleRxInterrupt(uavcan::uint8_t iface_index, uavcan::uint8_t fifo_
 
 inline void handleStatusInterrupt(uavcan::uint8_t iface_index)
 {
-    if (iface_index < UAVCAN_STM32_NUM_IFACES &&
-        ifaces[iface_index] != NULL)
+    assert(iface_index < UAVCAN_STM32_NUM_IFACES);
+    if (ifaces[iface_index] != NULL)
     {
         ifaces[iface_index]->handleStatusInterrupt();
     }
@@ -183,11 +183,6 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out
     out_timings.sjw = 1;
     out_timings.bs1 = bs1 - 1;
     out_timings.bs2 = bs2 - 1;
-
-    UAVCAN_STM32_TRACE("CAN pclk=%lu bitrt=%lu presc=%u sjw=%u bs1=%u bs2=%u",
-                       static_cast<unsigned long>(pclk), static_cast<unsigned long>(target_bitrate),
-                       static_cast<unsigned>(out_timings.prescaler), static_cast<unsigned>(out_timings.sjw),
-                       static_cast<unsigned>(out_timings.bs1), static_cast<unsigned>(out_timings.bs2));
     return 0;
 }
 
@@ -504,7 +499,13 @@ void CanIface::discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time)
 
 bool CanIface::isTxBufferFull() const
 {
-    return (can_->TSR & CAN_TSR_TME) == 0;
+    return (can_->TSR & CAN_TSR_TME) == 0;  // Interrupts enabled
+}
+
+bool CanIface::isRxBufferEmpty() const
+{
+    CriticalSectionLock lock;
+    return rx_queue_.getLength() == 0;
 }
 
 uavcan::uint64_t CanIface::getErrorCount() const
