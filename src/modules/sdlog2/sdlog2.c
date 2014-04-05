@@ -1248,7 +1248,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* copy servo rail status topic here too */
 			orb_copy(ORB_ID(servorail_status), subs.servorail_status_sub, &buf.servorail_status);
 			log_msg.body.log_PWR.servo_rail_5v = buf.servorail_status.voltage_v;
-			log_msg.body.log_PWR.servo_rssi_5v = buf.servorail_status.rssi_v;
+			log_msg.body.log_PWR.servo_rssi = buf.servorail_status.rssi_v;
 
 			LOGBUFFER_WRITE_AND_COUNT(PWR);
 		}

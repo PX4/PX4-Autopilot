@@ -124,6 +124,8 @@ private:
 
 	orb_advert_t			_range_finder_topic;
 
+	unsigned			_consecutive_fail_count;
+
 	perf_counter_t			_sample_perf;
 	perf_counter_t			_comms_errors;
 	perf_counter_t			_buffer_overflows;
@@ -186,6 +188,7 @@ SF0X::SF0X(const char *port) :
 	_linebuf_index(0),
 	_last_read(0),
 	_range_finder_topic(-1),
+	_consecutive_fail_count(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "sf0x_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "sf0x_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "sf0x_buffer_overflows"))
@@ -720,12 +723,17 @@ SF0X::cycle()
 		if (OK != collect_ret) {
 
 			/* we know the sensor needs about four seconds to initialize */
-			if (hrt_absolute_time() > 5 * 1000 * 1000LL) {
-				log("collection error");
+			if (hrt_absolute_time() > 5 * 1000 * 1000LL && _consecutive_fail_count < 5) {
+				log("collection error #%u", _consecutive_fail_count);
 			}
+			_consecutive_fail_count++;
+
 			/* restart the measurement state machine */
 			start();
 			return;
+		} else {
+			/* apparently success */
+			_consecutive_fail_count = 0;
 		}
 
 		/* next phase is measurement */
