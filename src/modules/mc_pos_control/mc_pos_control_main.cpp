@@ -473,18 +473,26 @@ void
 MulticopterPositionControl::update_ref()
 {
 	if (_local_pos.ref_timestamp != _ref_timestamp) {
+		double lat_sp, lon_sp;
+		float alt_sp;
+
 		if (_ref_timestamp != 0) {
-			/* reproject local position setpoint to new reference */
-			float dx, dy;
-			map_projection_project(&_ref_pos, _local_pos.ref_lat, _local_pos.ref_lon, &dx, &dy);
-			_pos_sp(0) -= dx;
-			_pos_sp(1) -= dy;
+			/* calculate current position setpoint in global frame */
+			map_projection_reproject(&_ref_pos, _pos_sp(0), _pos_sp(1), &lat_sp, &lon_sp);
+			alt_sp = _ref_alt - _pos_sp(2);
+		}
+
+		/* update local projection reference */
+		map_projection_init(&_ref_pos, _local_pos.ref_lat, _local_pos.ref_lon);
+		_ref_alt = _local_pos.ref_alt;
+
+		if (_ref_timestamp != 0) {
+			/* reproject position setpoint to new reference */
+			map_projection_project(&_ref_pos, lat_sp, lon_sp, &_pos_sp.data[0], &_pos_sp.data[1]);
+			_pos_sp(2) = -(alt_sp - _ref_alt);
 		}
 
 		_ref_timestamp = _local_pos.ref_timestamp;
-
-		map_projection_init(&_ref_pos, _local_pos.ref_lat, _local_pos.ref_lon);
-		_ref_alt = _local_pos.ref_alt;
 	}
 }
 
