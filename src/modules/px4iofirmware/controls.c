@@ -251,8 +251,9 @@ controls_tick() {
 				}
 
 				/* invert channel if requested */
-				if (conf[PX4IO_P_RC_CONFIG_OPTIONS] & PX4IO_P_RC_CONFIG_OPTIONS_REVERSE)
+				if (conf[PX4IO_P_RC_CONFIG_OPTIONS] & PX4IO_P_RC_CONFIG_OPTIONS_REVERSE) {
 					scaled = -scaled;
+				}
 
 				/* and update the scaled/mapped version */
 				unsigned mapped = conf[PX4IO_P_RC_CONFIG_ASSIGNMENT];
@@ -283,8 +284,9 @@ controls_tick() {
 
 		/* set un-assigned controls to zero */
 		for (unsigned i = 0; i < PX4IO_CONTROL_CHANNELS; i++) {
-			if (!(assigned_channels & (1 << i)))
+			if (!(assigned_channels & (1 << i))) {
 				r_rc_values[i] = 0;
+			}
 		}
 
 		/* set RC OK flag, as we got an update */
@@ -377,10 +379,10 @@ controls_tick() {
 				mixer_tick();
 
 		} else {
-			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_OVERRIDE;
+			r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
 		}
 	} else {
-		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_OVERRIDE;
+		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
 	}
 }
 

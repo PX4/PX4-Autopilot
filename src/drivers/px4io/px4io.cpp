@@ -1499,6 +1499,7 @@ PX4IO::io_publish_raw_rc()
 			/* we have never seen valid RC signals, abort */
 			return OK;
 		}
+
 	}
 
 	/* lazily advertise on first publication */
