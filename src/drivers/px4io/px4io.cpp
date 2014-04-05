@@ -951,7 +951,7 @@ PX4IO::task_main()
 				int32_t failsafe_param_val;
 				param_t failsafe_param = param_find("RC_FAILS_THR");
 
-				if (failsafe_param > 0)
+				if (failsafe_param > 0) {
 
 					param_get(failsafe_param, &failsafe_param_val);
 					uint16_t failsafe_thr = failsafe_param_val;
