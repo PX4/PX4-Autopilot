@@ -544,13 +544,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				if (home.timestamp != home_timestamp) {
 					home_timestamp = home.timestamp;
 					if (ref_inited) {
-						ref_inited = true;
-
 						/* reproject position estimate to new reference */
 						float dx, dy;
 						map_projection_project(&ref, home.lat, home.lon, &dx, &dy);
 						x_est[0] -= dx;
-						y_est[0] -= dx;
+						y_est[0] -= dy;
 						z_est[0] += home.alt - local_pos.ref_alt;
 					}
 
