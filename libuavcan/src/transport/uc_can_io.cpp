@@ -136,6 +136,11 @@ void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos,
 
         // Find a frame with lowest QoS
         Entry* p = queue_.get();
+        if (p == NULL)
+        {
+            UAVCAN_TRACE("CanTxQueue", "Push rejected: Nothing to replace");
+            return;
+        }
         Entry* lowestqos = p;
         while (p)
         {
