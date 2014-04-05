@@ -1309,8 +1309,8 @@ Sensors::rc_poll()
 		}
 
 		/* check for failsafe */
-		if (_parameters.rc_fs_thr && (rc_input.rc_failsafe || ((rc_input.values[_rc.function[THROTTLE]] < _parameters.min[i]) && (rc_input.values[_rc.function[THROTTLE]] < _parameters.rc_fs_thr))
-			|| ((rc_input.values[_rc.function[THROTTLE]] > _parameters.max[i]) && (rc_input.values[_rc.function[THROTTLE]] > _parameters.rc_fs_thr)))) {
+		if ((rc_input.rc_failsafe) || ((_parameters.rc_fs_thr != 0) && (((rc_input.values[_rc.function[THROTTLE]] < _parameters.min[i]) && (rc_input.values[_rc.function[THROTTLE]] < _parameters.rc_fs_thr))
+			|| ((rc_input.values[_rc.function[THROTTLE]] > _parameters.max[i]) && (rc_input.values[_rc.function[THROTTLE]] > _parameters.rc_fs_thr))))) {
 			/* do not publish manual control setpoints when there are none */
 			return;
 		}
