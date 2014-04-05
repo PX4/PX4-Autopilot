@@ -310,6 +310,11 @@ controls_tick() {
 	 * Handle losing RC input
 	 */
 
+	/* if we are in failsafe, clear the override flag */
+	if (r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE) {
+		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
+	}
+
 	/* this kicks in if the receiver is gone, but there is not on failsafe (indicated by separate flag) */
 	if (rc_input_lost) {
 		/* Clear the RC input status flag, clear manual override flag */
@@ -320,27 +325,24 @@ controls_tick() {
 		/* Mark all channels as invalid, as we just lost the RX */
 		r_rc_valid = 0;
 
-		/* Set the RC_LOST alarm */
-		r_status_alarms |= PX4IO_P_STATUS_ALARMS_RC_LOST;
-	}
-
-	/* this kicks in if the receiver is completely gone */
-	if (rc_input_lost) {
-
 		/* Set channel count to zero */
 		r_raw_rc_count = 0;
+
+		/* Set the RC_LOST alarm */
+		r_status_alarms |= PX4IO_P_STATUS_ALARMS_RC_LOST;
 	}
 
 	/*
 	 * Check for manual override.
 	 *
 	 * The PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK flag must be set, and we
-	 * must have R/C input.
+	 * must have R/C input (NO FAILSAFE!).
 	 * Override is enabled if either the hardcoded channel / value combination
 	 * is selected, or the AP has requested it.
 	 */
 	if ((r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) && 
-		(r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK)) {
+		(r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
+		!(r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE)) {
 
 		bool override = false;
 
@@ -363,10 +365,10 @@ controls_tick() {
 				mixer_tick();
 
 		} else {
-			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_OVERRIDE;
+			r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
 		}
 	} else {
-		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_OVERRIDE;
+		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
 	}
 }
 
