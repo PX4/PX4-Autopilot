@@ -118,6 +118,7 @@ extern struct system_load_s system_load;
 #define STICK_ON_OFF_HYSTERESIS_TIME_MS 1000
 #define STICK_ON_OFF_COUNTER_LIMIT (STICK_ON_OFF_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
+#define POSITION_TIMEOUT 30000 /**< consider the local or global position estimate invalid after 30ms */
 #define POSITION_TIMEOUT 1000000 /**< consider the local or global position estimate invalid after 1s */
 #define TARGET_POSITION_TIMEOUT 2000000 /**< consider the target position estimate invalid after 2s */
 #define RC_TIMEOUT 500000
@@ -615,10 +616,10 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 
 				/* announce new home position */
 				if (*home_pub > 0) {
-					orb_publish(ORB_ID(home_position), *home_pub, &home);
+					orb_publish(ORB_ID(home_position), *home_pub, home);
 
 				} else {
-					*home_pub = orb_advertise(ORB_ID(home_position), &home);
+					*home_pub = orb_advertise(ORB_ID(home_position), home);
 				}
 
 				/* mark home position as set */

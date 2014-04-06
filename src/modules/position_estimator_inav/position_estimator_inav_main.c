@@ -543,27 +543,34 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				if (home.timestamp != home_timestamp) {
 					home_timestamp = home.timestamp;
+
+					double est_lat, est_lon;
+					float est_alt;
+
 					if (ref_inited) {
-						ref_inited = true;
-
-						/* reproject position estimate to new reference */
-						float dx, dy;
-						map_projection_project(&ref, home.lat, home.lon, &dx, &dy);
-						x_est[0] -= dx;
-						y_est[0] -= dx;
-						z_est[0] += home.alt - local_pos.ref_alt;
+						/* calculate current estimated position in global frame */
+						est_alt = local_pos.ref_alt - local_pos.z;
+						map_projection_reproject(&ref, local_pos.x, local_pos.y, &est_lat, &est_lon);
 					}
-
-					/* update baro offset */
-					baro_offset -= home.alt - local_pos.ref_alt;
 
 					/* update reference */
 					map_projection_init(&ref, home.lat, home.lon);
+
+					/* update baro offset */
+					baro_offset += home.alt - local_pos.ref_alt;
 
 					local_pos.ref_lat = home.lat;
 					local_pos.ref_lon = home.lon;
 					local_pos.ref_alt = home.alt;
 					local_pos.ref_timestamp = home.timestamp;
+
+					if (ref_inited) {
+						/* reproject position estimate with new reference */
+						map_projection_project(&ref, est_lat, est_lon, &x_est[0], &y_est[0]);
+						z_est[0] = -(est_alt - local_pos.ref_alt);
+					}
+
+					ref_inited = true;
 				}
 			}
 
@@ -572,6 +579,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (updated) {
 				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
+
+				bool reset_est = false;
 
 				/* hysteresis for GPS quality */
 				if (gps_valid) {
@@ -583,6 +592,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				} else {
 					if (gps.eph_m < 5.0f && gps.epv_m < 10.0f && gps.fix_type >= 3) {
 						gps_valid = true;
+						reset_est = true;
 						mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
 					}
 				}
@@ -611,21 +621,21 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 							} else if (t > ref_init_start + ref_init_delay) {
 								ref_inited = true;
-
 								/* update baro offset */
 								baro_offset -= z_est[0];
 
 								/* set position estimate to (0, 0, 0), use GPS velocity for XY */
 								x_est[0] = 0.0f;
 								x_est[1] = gps.vel_n_m_s;
+								x_est[2] = accel_NED[0];
 								y_est[0] = 0.0f;
 								y_est[1] = gps.vel_e_m_s;
 								z_est[0] = 0.0f;
+								y_est[2] = accel_NED[1];
 
-								/* reference GPS position */
 								local_pos.ref_lat = lat;
 								local_pos.ref_lon = lon;
-								local_pos.ref_alt = alt + z_est[0];;
+								local_pos.ref_alt = alt;
 								local_pos.ref_timestamp = t;
 
 								/* initialize projection */
@@ -639,11 +649,22 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					if (ref_inited) {
 						/* project GPS lat lon to plane */
 						float gps_proj[2];
-						map_projection_project(&ref, gps.lat * 1e-7, gps.lon * 1e-7, &(gps_proj[0]), &(gps_proj[1]));
+						map_projection_project(&ref, lat, lon, &(gps_proj[0]), &(gps_proj[1]));
+
+						/* reset position estimate when GPS becomes good */
+						if (reset_est) {
+							x_est[0] = gps_proj[0];
+							x_est[1] = gps.vel_n_m_s;
+							x_est[2] = accel_NED[0];
+							y_est[0] = gps_proj[1];
+							y_est[1] = gps.vel_e_m_s;
+							y_est[2] = accel_NED[1];
+						}
+
 						/* calculate correction for position */
 						corr_gps[0][0] = gps_proj[0] - x_est[0];
 						corr_gps[1][0] = gps_proj[1] - y_est[0];
-						corr_gps[2][0] = local_pos.ref_alt - gps.alt * 1e-3 - z_est[0];
+						corr_gps[2][0] = local_pos.ref_alt - alt - z_est[0];
 
 						/* calculate correction for velocity */
 						if (gps.vel_ned_valid) {
