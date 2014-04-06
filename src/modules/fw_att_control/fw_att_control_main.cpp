@@ -671,18 +671,24 @@ FixedwingAttitudeControl::task_main()
 
 				float airspeed;
 
-				/* if airspeed is smaller than min, the sensor is not giving good readings */
-				if ((_airspeed.indicated_airspeed_m_s < 0.5f * _parameters.airspeed_min) ||
-				    !isfinite(_airspeed.indicated_airspeed_m_s) ||
+				/* if airspeed is not updating, we assume the normal average speed */
+				if (!isfinite(_airspeed.true_airspeed_m_s) ||
 				    hrt_elapsed_time(&_airspeed.timestamp) > 1e6) {
 					airspeed = _parameters.airspeed_trim;
 
 				} else {
-					airspeed = _airspeed.indicated_airspeed_m_s;
+					airspeed = _airspeed.true_airspeed_m_s;
 				}
 
-				float airspeed_scaling = _parameters.airspeed_trim / airspeed;
-				//warnx("aspd scale: %6.2f act scale: %6.2f", airspeed_scaling, actuator_scaling);
+				/*
+				 * For scaling our actuators using anything less than the min (close to stall)
+				 * speed doesn't make any sense - its the strongest reasonable deflection we
+				 * want to do in flight and its the baseline a human pilot would choose.
+				 *
+				 * Forcing the scaling to this value allows reasonable handheld tests.
+				 */
+
+				float airspeed_scaling = _parameters.airspeed_trim / ((airspeed < _parameters.airspeed_min) ? _parameters.airspeed_min : airspeed);
 
 				float roll_sp = _parameters.rollsp_offset_rad;
 				float pitch_sp = _parameters.pitchsp_offset_rad;
