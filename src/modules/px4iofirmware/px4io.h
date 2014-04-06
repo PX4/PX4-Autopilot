@@ -108,6 +108,7 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V1
 #define r_setup_relays		r_page_setup[PX4IO_P_SETUP_RELAYS]
 #endif
+#define r_setup_rc_thr_failsafe	r_page_setup[PX4IO_P_SETUP_RC_THR_FAILSAFE_US]
 
 #define r_control_values	(&r_page_controls[0])
 

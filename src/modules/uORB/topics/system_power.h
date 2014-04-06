@@ -32,13 +32,13 @@
  ****************************************************************************/
 
 /**
- * @file differential_pressure.h
+ * @file system_power.h
  *
- * Definition of differential pressure topic
+ * Definition of the system_power voltage and power status uORB topic.
  */
 
-#ifndef TOPIC_DIFFERENTIAL_PRESSURE_H_
-#define TOPIC_DIFFERENTIAL_PRESSURE_H_
+#ifndef SYSTEM_POWER_H_
+#define SYSTEM_POWER_H_
 
 #include "../uORB.h"
 #include <stdint.h>
@@ -49,18 +49,16 @@
  */
 
 /**
- * Differential pressure.
+ * voltage and power supply status
  */
-struct differential_pressure_s {
-	uint64_t	timestamp;			/**< Microseconds since system boot, needed to integrate */
-	uint64_t	error_count;			/**< Number of errors detected by driver */
-	float	differential_pressure_pa;		/**< Differential pressure reading */
-	float	differential_pressure_raw_pa;		/**< Raw differential pressure reading (may be negative) */
-	float	differential_pressure_filtered_pa;	/**< Low pass filtered differential pressure reading */
-	float	max_differential_pressure_pa;		/**< Maximum differential pressure reading */
-	float	voltage;				/**< Voltage from analog airspeed sensors (voltage divider already compensated) */
-	float	temperature;				/**< Temperature provided by sensor, -1000.0f if unknown */
-
+struct system_power_s {
+	uint64_t	timestamp;		/**< microseconds since system boot */
+	float   	voltage5V_v;		/**< peripheral 5V rail voltage */
+	uint8_t         usb_connected:1;        /**< USB is connected when 1 */
+	uint8_t         brick_valid:1;          /**< brick power is good when 1 */
+	uint8_t         servo_valid:1;          /**< servo power is good when 1 */
+	uint8_t		periph_5V_OC:1;         /**< peripheral overcurrent when 1 */
+	uint8_t		hipower_5V_OC:1;        /**< hi power peripheral overcurrent when 1 */
 };
 
 /**
@@ -68,6 +66,6 @@ struct differential_pressure_s {
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(differential_pressure);
+ORB_DECLARE(system_power);
 
 #endif

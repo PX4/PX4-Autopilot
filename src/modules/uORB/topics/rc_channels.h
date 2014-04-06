@@ -94,6 +94,7 @@ struct rc_channels_s {
 	char function_name[RC_CHANNELS_FUNCTION_MAX][20];
 	int8_t function[RC_CHANNELS_FUNCTION_MAX];
 	uint8_t rssi;                       /**< Overall receive signal strength */
+	bool signal_lost;		/**< control signal lost, should be checked together with topic timeout */
 }; /**< radio control channels. */
 
 /**
