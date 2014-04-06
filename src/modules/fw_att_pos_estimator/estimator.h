@@ -48,85 +48,10 @@ void swap_var(float &d1, float &d2);
 const unsigned int n_states = 21;
 const unsigned int data_buffer_size = 50;
 
-extern uint32_t statetimeStamp[data_buffer_size]; // time stamp for each state vector stored
-extern Vector3f correctedDelAng; // delta angles about the xyz body axes corrected for errors (rad)
-extern Vector3f correctedDelVel; // delta velocities along the XYZ body axes corrected for errors (m/s)
-extern Vector3f summedDelAng; // summed delta angles about the xyz body axes corrected for errors (rad)
-extern Vector3f summedDelVel; // summed delta velocities along the XYZ body axes corrected for errors (m/s)
-extern float accNavMag; // magnitude of navigation accel (- used to adjust GPS obs variance (m/s^2)
-extern Vector3f earthRateNED; // earths angular rate vector in NED (rad/s)
-extern Vector3f angRate; // angular rate vector in XYZ body axes measured by the IMU (rad/s)
-extern Vector3f accel; // acceleration vector in XYZ body axes measured by the IMU (m/s^2)
-extern Vector3f dVelIMU;
-extern Vector3f dAngIMU;
-
-extern float P[n_states][n_states]; // covariance matrix
-extern float Kfusion[n_states]; // Kalman gains
-extern float states[n_states]; // state matrix
-extern float storedStates[n_states][data_buffer_size]; // state vectors stored for the last 50 time steps
-
-extern Vector3f correctedDelAng; // delta angles about the xyz body axes corrected for errors (rad)
-extern Vector3f correctedDelVel; // delta velocities along the XYZ body axes corrected for errors (m/s)
-extern Vector3f summedDelAng; // summed delta angles about the xyz body axes corrected for errors (rad)
-extern Vector3f summedDelVel; // summed delta velocities along the XYZ body axes corrected for errors (m/s)
-
-extern float dtIMU; // time lapsed since the last IMU measurement or covariance update (sec)
-
-extern bool onGround; // boolean true when the flight vehicle is on the ground (not flying)
-extern bool useAirspeed; // boolean true if airspeed data is being used
-extern bool useCompass; // boolean true if magnetometer data is being used
-extern uint8_t fusionModeGPS ; // 0 = GPS outputs 3D velocity, 1 = GPS outputs 2D velocity, 2 = GPS outputs no velocity
-extern float innovVelPos[6]; // innovation output
-extern float varInnovVelPos[6]; // innovation variance output
-
-extern bool fuseVelData; // this boolean causes the posNE and velNED obs to be fused
-extern bool fusePosData; // this boolean causes the posNE and velNED obs to be fused
-extern bool fuseHgtData; // this boolean causes the hgtMea obs to be fused
-extern bool fuseMagData; // boolean true when magnetometer data is to be fused
-
-extern float velNED[3]; // North, East, Down velocity obs (m/s)
-extern float posNE[2]; // North, East position obs (m)
-extern float hgtMea; //  measured height (m)
-extern float posNED[3]; // North, East Down position (m)
-
-extern float statesAtVelTime[n_states]; // States at the effective measurement time for posNE and velNED measurements
-extern float statesAtPosTime[n_states]; // States at the effective measurement time for posNE and velNED measurements
-extern float statesAtHgtTime[n_states]; // States at the effective measurement time for the hgtMea measurement
-
-extern float innovMag[3]; // innovation output
-extern float varInnovMag[3]; // innovation variance output
-extern Vector3f magData; // magnetometer flux radings in X,Y,Z body axes
-extern float statesAtMagMeasTime[n_states]; // filter satates at the effective measurement time
-extern float innovVtas; // innovation output
-extern float varInnovVtas; // innovation variance output
-extern bool fuseVtasData; // boolean true when airspeed data is to be fused
-extern float VtasMeas; // true airspeed measurement (m/s)
-extern float statesAtVtasMeasTime[n_states]; // filter states at the effective measurement time
-extern float latRef; // WGS-84 latitude of reference point (rad)
-extern float lonRef; // WGS-84 longitude of reference point (rad)
-extern float hgtRef; // WGS-84 height of reference point (m)
-extern Vector3f magBias; // states representing magnetometer bias vector in XYZ body axes
-extern uint8_t covSkipCount; // Number of state prediction frames (IMU daya updates to skip before doing the covariance prediction
-extern float EAS2TAS; // ratio f true to equivalent airspeed
-
-// GPS input data variables
-extern float gpsCourse;
-extern float gpsVelD;
-extern float gpsLat;
-extern float gpsLon;
-extern float gpsHgt;
-extern uint8_t GPSstatus;
-
-// Baro input
-extern float baroHgt;
-
-extern bool statesInitialised;
-extern bool numericalProtection;
-
 const float covTimeStepMax = 0.07f; // maximum time allowed between covariance predictions
 const float covDelAngMax = 0.02f; // maximum delta angle between covariance predictions
 
-extern bool staticMode;
+// extern bool staticMode;
 
 enum GPS_FIX {
     GPS_FIX_NOFIX = 0,
@@ -150,6 +75,93 @@ struct ekf_status_report {
     bool kalmanGainsNaN;
 };
 
+class AttPosEKF {
+
+public:
+
+    AttPosEKF();
+    ~AttPosEKF();
+
+    // Global variables
+    float KH[n_states][n_states]; //  intermediate result used for covariance updates
+    float KHP[n_states][n_states]; // intermediate result used for covariance updates
+    float P[n_states][n_states]; // covariance matrix
+    float Kfusion[n_states]; // Kalman gains
+    float states[n_states]; // state matrix
+    float storedStates[n_states][data_buffer_size]; // state vectors stored for the last 50 time steps
+    uint32_t statetimeStamp[data_buffer_size]; // time stamp for each state vector stored
+
+    float statesAtVelTime[n_states]; // States at the effective measurement time for posNE and velNED measurements
+    float statesAtPosTime[n_states]; // States at the effective measurement time for posNE and velNED measurements
+    float statesAtHgtTime[n_states]; // States at the effective measurement time for the hgtMea measurement
+    float statesAtMagMeasTime[n_states]; // filter satates at the effective measurement time
+    float statesAtVtasMeasTime[n_states]; // filter states at the effective measurement time
+
+    Vector3f correctedDelAng; // delta angles about the xyz body axes corrected for errors (rad)
+    Vector3f correctedDelVel; // delta velocities along the XYZ body axes corrected for errors (m/s)
+    Vector3f summedDelAng; // summed delta angles about the xyz body axes corrected for errors (rad)
+    Vector3f summedDelVel; // summed delta velocities along the XYZ body axes corrected for errors (m/s)
+    float accNavMag; // magnitude of navigation accel (- used to adjust GPS obs variance (m/s^2)
+    Vector3f earthRateNED; // earths angular rate vector in NED (rad/s)
+    Vector3f angRate; // angular rate vector in XYZ body axes measured by the IMU (rad/s)
+    Vector3f accel; // acceleration vector in XYZ body axes measured by the IMU (m/s^2)
+    Vector3f dVelIMU;
+    Vector3f dAngIMU;
+    float dtIMU; // time lapsed since the last IMU measurement or covariance update (sec)
+    uint8_t fusionModeGPS; // 0 = GPS outputs 3D velocity, 1 = GPS outputs 2D velocity, 2 = GPS outputs no velocity
+    float innovVelPos[6]; // innovation output
+    float varInnovVelPos[6]; // innovation variance output
+
+    float velNED[3]; // North, East, Down velocity obs (m/s)
+    float posNE[2]; // North, East position obs (m)
+    float hgtMea; //  measured height (m)
+    float posNED[3]; // North, East Down position (m)
+
+    float innovMag[3]; // innovation output
+    float varInnovMag[3]; // innovation variance output
+    Vector3f magData; // magnetometer flux radings in X,Y,Z body axes
+    float innovVtas; // innovation output
+    float varInnovVtas; // innovation variance output
+    float VtasMeas; // true airspeed measurement (m/s)
+    float latRef; // WGS-84 latitude of reference point (rad)
+    float lonRef; // WGS-84 longitude of reference point (rad)
+    float hgtRef; // WGS-84 height of reference point (m)
+    Vector3f magBias; // states representing magnetometer bias vector in XYZ body axes
+    uint8_t covSkipCount; // Number of state prediction frames (IMU daya updates to skip before doing the covariance prediction
+    float EAS2TAS; // ratio f true to equivalent airspeed
+
+    // GPS input data variables
+    float gpsCourse;
+    float gpsVelD;
+    float gpsLat;
+    float gpsLon;
+    float gpsHgt;
+    uint8_t GPSstatus;
+
+    // Baro input
+    float baroHgt;
+
+    bool statesInitialised;
+
+    bool fuseVelData; // this boolean causes the posNE and velNED obs to be fused
+    bool fusePosData; // this boolean causes the posNE and velNED obs to be fused
+    bool fuseHgtData; // this boolean causes the hgtMea obs to be fused
+    bool fuseMagData; // boolean true when magnetometer data is to be fused
+    bool fuseVtasData; // boolean true when airspeed data is to be fused
+
+    bool onGround;    ///< boolean true when the flight vehicle is on the ground (not flying)
+    bool staticMode;    ///< boolean true if no position feedback is fused
+    bool useAirspeed;    ///< boolean true if airspeed data is being used
+    bool useCompass;    ///< boolean true if magnetometer data is being used
+
+    struct ekf_status_report current_ekf_state;
+    struct ekf_status_report last_ekf_error;
+
+    bool numericalProtection;
+
+    unsigned storeIndex;
+
+
 void  UpdateStrapdownEquationsNED();
 
 void CovariancePrediction(float dt);
@@ -163,8 +175,6 @@ void FuseAirspeed();
 void zeroRows(float (&covMat)[n_states][n_states], uint8_t first, uint8_t last);
 
 void zeroCols(float (&covMat)[n_states][n_states], uint8_t first, uint8_t last);
-
-float sq(float valIn);
 
 void quatNorm(float (&quatOut)[4], const float quatIn[4]);
 
@@ -190,15 +200,19 @@ void quat2Tbn(Mat3f &Tbn, const float (&quat)[4]);
 
 void calcEarthRateNED(Vector3f &omega, float latitude);
 
-void eul2quat(float (&quat)[4], const float (&eul)[3]);
+static void eul2quat(float (&quat)[4], const float (&eul)[3]);
 
-void quat2eul(float (&eul)[3], const float (&quat)[4]);
+static void quat2eul(float (&eul)[3], const float (&quat)[4]);
 
-void calcvelNED(float (&velNED)[3], float gpsCourse, float gpsGndSpd, float gpsVelD);
+static void calcvelNED(float (&velNED)[3], float gpsCourse, float gpsGndSpd, float gpsVelD);
 
-void calcposNED(float (&posNED)[3], float lat, float lon, float hgt, float latRef, float lonRef, float hgtRef);
+static void calcposNED(float (&posNED)[3], float lat, float lon, float hgt, float latRef, float lonRef, float hgtRef);
 
-void calcLLH(float (&posNED)[3], float lat, float lon, float hgt, float latRef, float lonRef, float hgtRef);
+static void calcLLH(float (&posNED)[3], float lat, float lon, float hgt, float latRef, float lonRef, float hgtRef);
+
+static void quat2Tnb(Mat3f &Tnb, const float (&quat)[4]);
+
+static float sq(float valIn);
 
 void OnGroundCheck();
 
@@ -230,6 +244,16 @@ bool StatesNaN(struct ekf_status_report *err_report);
 void FillErrorReport(struct ekf_status_report *err);
 
 void InitializeDynamic(float (&initvelNED)[3]);
+
+protected:
+
+bool FilterHealthy();
+
+void ResetHeight(void);
+
+void AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, float *initQuat);
+
+};
 
 uint32_t millis();
 
