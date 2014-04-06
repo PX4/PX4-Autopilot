@@ -4,7 +4,7 @@
 
 uavcan.Timestamp timestamp
 
-float16 static_pressure
+float32 static_pressure
 float16 static_pressure_variance
 
 float16 static_temperature
