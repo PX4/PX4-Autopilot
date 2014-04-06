@@ -497,7 +497,6 @@ MulticopterAttitudeControl::control_attitude(float dt)
 				/* move yaw setpoint */
 				_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + _manual_control_sp.yaw * _params.man_scale_yaw * dt);
 				_v_att_sp.R_valid = false;
-				publish_att_sp = true;
 			}
 
 			/* reset yaw setpint to current position if needed */
@@ -540,8 +539,6 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		memcpy(&_v_att_sp.R_body[0][0], &R_sp.data[0][0], sizeof(_v_att_sp.R_body));
 		_v_att_sp.R_valid = true;
 	}
-
-	bool publish_att_sp = false;
 
 	math::Vector<3> rates_ff;
 	if (_v_control_mode.flag_control_manual_enabled && !_v_control_mode.flag_follow_target) {

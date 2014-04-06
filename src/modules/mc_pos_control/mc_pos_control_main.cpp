@@ -658,7 +658,7 @@ MulticopterPositionControl::control_sp_follow(float dt)
 	float current_offset_xy_len = current_offset_xy.length();
 	if (current_offset_xy_len > FOLLOW_OFFS_XY_MIN) {
 		/* calculate yaw setpoint from current positions and control offset with yaw stick */
-		_att_sp.yaw_body = _wrap_pi(atan2f(-current_offset_xy(1), -current_offset_xy(0)) + _manual.yaw / _params.rc_scale_yaw * _params.follow_scale_yaw);
+		_att_sp.yaw_body = _wrap_pi(atan2f(-current_offset_xy(1), -current_offset_xy(0)) + _manual.yaw * _params.follow_scale_yaw);
 
 		/* feed forward attitude rates */
 		math::Vector<2> offs_vel_xy(_vel(0) - _tvel(0), _vel(1) - _tvel(1));
@@ -806,8 +806,8 @@ MulticopterPositionControl::task_main()
 					reset_pos_sp();
 
 					/* move position setpoint with roll/pitch stick */
-					sp_move_rate(0) = _manual.pitch;
-					sp_move_rate(1) = _manual.roll;
+					_sp_move_rate(0) = _manual.pitch;
+					_sp_move_rate(1) = _manual.roll;
 				}
 
 				/* limit setpoint move rate */
