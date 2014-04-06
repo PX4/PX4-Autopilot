@@ -134,8 +134,8 @@ void mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float fligh
 	}
 
 	/* Set special ouput limiters if we are not in TECS_MODE_NORMAL */
-	BlockOutputLimiter *outputLimiterThrottle = NULL;
-	BlockOutputLimiter *outputLimiterPitch = NULL;
+	BlockOutputLimiter *outputLimiterThrottle = NULL; // NULL --> use standard inflight limits
+	BlockOutputLimiter *outputLimiterPitch = NULL; // NULL --> use standard inflight limits
 	if (mode == TECS_MODE_TAKEOFF) {
 		outputLimiterThrottle = &BlockOutputLimiterTakeoffThrottle; //XXX: accept prelaunch values from launchdetector
 		outputLimiterPitch = &BlockOutputLimiterTakeoffPitch;
