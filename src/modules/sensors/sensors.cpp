@@ -1013,12 +1013,13 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		raw.differential_pressure_timestamp = _diff_pres.timestamp;
 		raw.differential_pressure_filtered_pa = _diff_pres.differential_pressure_filtered_pa;
 
-		float air_temperature_celcius = (_diff_pres.temperature > -300.0f) ? _diff_pres.temperature : (raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
+		float air_temperature_celsius = (_diff_pres.temperature > -300.0f) ? _diff_pres.temperature : (raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
 
 		_airspeed.timestamp = _diff_pres.timestamp;
 		_airspeed.indicated_airspeed_m_s = calc_indicated_airspeed(_diff_pres.differential_pressure_filtered_pa);
 		_airspeed.true_airspeed_m_s = calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + raw.baro_pres_mbar * 1e2f,
-					      raw.baro_pres_mbar * 1e2f, air_temperature_celcius);
+					      raw.baro_pres_mbar * 1e2f, air_temperature_celsius);
+		_airspeed.air_temperature_celsius = air_temperature_celsius;
 
 		/* announce the airspeed if needed, just publish else */
 		if (_airspeed_pub > 0) {

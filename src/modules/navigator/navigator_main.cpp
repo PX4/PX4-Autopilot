@@ -1503,7 +1503,7 @@ Navigator::check_mission_item_reached()
 			/* check yaw if defined only for rotary wing except takeoff */
 			float yaw_err = _wrap_pi(_mission_item.yaw - _global_pos.yaw);
 
-			if (fabsf(yaw_err) < 0.05f) { /* XXX get rid of magic number */
+			if (fabsf(yaw_err) < 0.2f) { /* XXX get rid of magic number */
 				_waypoint_yaw_reached = true;
 			}
 
