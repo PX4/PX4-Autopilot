@@ -15,5 +15,11 @@ float16[3] ned_velocity
 
 uint4 sats_used
 
+uint2 STATUS_NO_FIX    = 0
+uint2 STATUS_TIME_ONLY = 1
+uint2 STATUS_2D_FIX    = 2
+uint2 STATUS_3D_FIX    = 3
+uint2 status
+
 float16[<=9] position_covariance   # m^2
 float16[<=9] velocity_covariance   # (m/s)^2
