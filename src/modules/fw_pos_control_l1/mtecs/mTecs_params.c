@@ -55,7 +55,7 @@
  * @max 1
  * @group mTECS
  */
-PARAM_DEFINE_INT32(MT_ENABLED, 0);
+PARAM_DEFINE_INT32(MT_ENABLED, 1);
 
 /**
  * Total Energy Rate Control FF
@@ -64,7 +64,7 @@ PARAM_DEFINE_INT32(MT_ENABLED, 0);
  * @max 10.0
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_THR_FF, 1.0f);
+PARAM_DEFINE_FLOAT(MT_THR_FF, 0.2f);
 
 /**
  * Total Energy Rate Control P
@@ -73,7 +73,7 @@ PARAM_DEFINE_FLOAT(MT_THR_FF, 1.0f);
  * @max 10.0
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_THR_P, 0.1f);
+PARAM_DEFINE_FLOAT(MT_THR_P, 0.03f);
 
 /**
  * Total Energy Rate Control I
@@ -82,7 +82,7 @@ PARAM_DEFINE_FLOAT(MT_THR_P, 0.1f);
  * @max 10.0
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_THR_I, 0.0f);
+PARAM_DEFINE_FLOAT(MT_THR_I, 0.1f);
 
 /**
  * Total Energy Rate Control OFF (Cruise throttle)
@@ -100,7 +100,7 @@ PARAM_DEFINE_FLOAT(MT_THR_OFF, 0.7f);
  * @max 10.0
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_PIT_FF, 1.0f);
+PARAM_DEFINE_FLOAT(MT_PIT_FF, 0.1f);
 
 /**
  * Energy Distribution Rate Control P
@@ -109,7 +109,7 @@ PARAM_DEFINE_FLOAT(MT_PIT_FF, 1.0f);
  * @max 10.0
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_PIT_P, 0.1f);
+PARAM_DEFINE_FLOAT(MT_PIT_P, 0.03f);
 
 /**
  * Energy Distribution Rate Control I
@@ -118,7 +118,7 @@ PARAM_DEFINE_FLOAT(MT_PIT_P, 0.1f);
  * @max 10.0
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_PIT_I, 0.0f);
+PARAM_DEFINE_FLOAT(MT_PIT_I, 0.03f);
 
 
 /**
@@ -166,7 +166,7 @@ PARAM_DEFINE_FLOAT(MT_PIT_MIN, -45.0f);
  * @unit deg
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_PIT_MAX, 45.0f);
+PARAM_DEFINE_FLOAT(MT_PIT_MAX, 20.0f);
 
 /**
  * P gain for the altitude control
@@ -175,7 +175,7 @@ PARAM_DEFINE_FLOAT(MT_PIT_MAX, 45.0f);
  * @max 10.0f
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_FPA_P, 0.1f);
+PARAM_DEFINE_FLOAT(MT_FPA_P, 0.2f);
 
 /**
  * D gain for the altitude control
@@ -202,7 +202,7 @@ PARAM_DEFINE_FLOAT(MT_FPA_D_LP, 1.0f);
  * @unit deg
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_FPA_MIN, -30.0f);
+PARAM_DEFINE_FLOAT(MT_FPA_MIN, -10.0f);
 
 /**
  * Maximal flight path angle setpoint
@@ -222,7 +222,7 @@ PARAM_DEFINE_FLOAT(MT_FPA_MAX, 30.0f);
  * @max 10.0f
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_ACC_P, 0.1f);
+PARAM_DEFINE_FLOAT(MT_ACC_P, 1.5f);
 
 /**
  * Minimal acceleration (air)
