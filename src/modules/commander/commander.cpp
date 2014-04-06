@@ -1514,6 +1514,9 @@ set_main_state_rc(struct vehicle_status_s *status, struct manual_control_setpoin
 
 	switch (sp_man->mode_switch) {
 	case SWITCH_POS_NONE:
+		res = TRANSITION_NOT_CHANGED;
+		break;
+
 	case SWITCH_POS_OFF:		// MANUAL
 		res = main_state_transition(status, MAIN_STATE_MANUAL);
 		// TRANSITION_DENIED is not possible here
