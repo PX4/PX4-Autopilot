@@ -77,8 +77,8 @@ MODULES		+= modules/position_estimator_inav
 #
 # Vehicle Control
 #
-MODULES		+= modules/fw_pos_control_l1
-MODULES		+= modules/fw_att_control
+#MODULES		+= modules/fw_pos_control_l1
+#MODULES		+= modules/fw_att_control
 MODULES		+= modules/mc_att_control
 MODULES		+= modules/mc_pos_control
 #MODULES		+= examples/flow_position_control
@@ -110,8 +110,8 @@ MODULES		+= modules/dataman
 LIBRARIES	+= lib/mathlib/CMSIS
 MODULES		+= lib/mathlib
 MODULES		+= lib/mathlib/math/filter
-MODULES		+= lib/ecl
-MODULES		+= lib/external_lgpl
+#MODULES		+= lib/ecl
+#MODULES		+= lib/external_lgpl
 MODULES		+= lib/geo
 MODULES		+= lib/conversion
 MODULES		+= lib/launchdetection
