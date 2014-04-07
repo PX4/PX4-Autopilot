@@ -157,9 +157,9 @@ private:
 		param_t yaw_rate_d;
 		param_t yaw_ff;
 
-		param_t man_scale_roll;
-		param_t man_scale_pitch;
-		param_t man_scale_yaw;
+		param_t man_roll_max;
+		param_t man_pitch_max;
+		param_t man_yaw_max;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -169,9 +169,9 @@ private:
 		math::Vector<3> rate_d;				/**< D gain for angular rate error */
 		float yaw_ff;						/**< yaw control feed-forward */
 
-		float man_scale_roll;
-		float man_scale_pitch;
-		float man_scale_yaw;
+		float man_roll_max;
+		float man_pitch_max;
+		float man_yaw_max;
 	}		_params;
 
 	/**
@@ -299,9 +299,9 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.yaw_rate_d		= 	param_find("MC_YAWRATE_D");
 	_params_handles.yaw_ff			= 	param_find("MC_YAW_FF");
 
-	_params_handles.man_scale_roll	= 	param_find("MC_SCALE_ROLL");
-	_params_handles.man_scale_pitch	= 	param_find("MC_SCALE_PITCH");
-	_params_handles.man_scale_yaw	= 	param_find("MC_SCALE_YAW");
+	_params_handles.man_roll_max	= 	param_find("MC_MAN_R_MAX");
+	_params_handles.man_pitch_max	= 	param_find("MC_MAN_P_MAX");
+	_params_handles.man_yaw_max		= 	param_find("MC_MAN_Y_MAX");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -369,13 +369,13 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_params_handles.yaw_ff, &_params.yaw_ff);
 
 	/* manual control scale */
-	param_get(_params_handles.man_scale_roll, &_params.man_scale_roll);
-	param_get(_params_handles.man_scale_pitch, &_params.man_scale_pitch);
-	param_get(_params_handles.man_scale_yaw, &_params.man_scale_yaw);
+	param_get(_params_handles.man_roll_max, &_params.man_roll_max);
+	param_get(_params_handles.man_pitch_max, &_params.man_pitch_max);
+	param_get(_params_handles.man_yaw_max, &_params.man_yaw_max);
 
-	_params.man_scale_roll *= M_PI / 180.0;
-	_params.man_scale_pitch *= M_PI / 180.0;
-	_params.man_scale_yaw *= M_PI / 180.0;
+	_params.man_roll_max *= M_PI / 180.0;
+	_params.man_pitch_max *= M_PI / 180.0;
+	_params.man_yaw_max *= M_PI / 180.0;
 
 	return OK;
 }
@@ -496,7 +496,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 			//}
 		} else {
 			/* move yaw setpoint */
-			_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + _manual_control_sp.yaw * _params.man_scale_yaw * dt);
+			_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + _manual_control_sp.yaw * _params.man_yaw_max * dt);
 			_v_att_sp.R_valid = false;
 			publish_att_sp = true;
 		}
@@ -511,8 +511,8 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 		if (!_v_control_mode.flag_control_velocity_enabled) {
 			/* update attitude setpoint if not in position control mode */
-			_v_att_sp.roll_body = _manual_control_sp.roll * _params.man_scale_roll;
-			_v_att_sp.pitch_body = -_manual_control_sp.pitch * _params.man_scale_pitch;
+			_v_att_sp.roll_body = _manual_control_sp.roll * _params.man_roll_max;
+			_v_att_sp.pitch_body = -_manual_control_sp.pitch * _params.man_pitch_max;
 			_v_att_sp.R_valid = false;
 			publish_att_sp = true;
 		}
