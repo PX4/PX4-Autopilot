@@ -119,12 +119,12 @@ uavcan::MonotonicTime getMonotonic()
     {
         CriticalSectionLock locker;
         usec = sampleFromCriticalSection(&time_mono);
-    }
 #if !NDEBUG
-    static uavcan::uint64_t prev_usec = 0;  // Self-test
-    assert(prev_usec <= usec);
-    prev_usec = usec;
+        static uavcan::uint64_t prev_usec = 0;  // Self-test
+        assert(prev_usec <= usec);
+        prev_usec = usec;
 #endif
+    }
     return uavcan::MonotonicTime::fromUSec(usec);
 }
 
@@ -239,7 +239,7 @@ UAVCAN_STM32_IRQ_HANDLER(TIMX_IRQHandler)
 {
     UAVCAN_STM32_IRQ_PROLOGUE();
 
-    TIMX->SR = ~TIM_SR_UIF;
+    TIMX->SR = 0;
 
     using namespace uavcan_stm32::clock;
     assert(initialized);
