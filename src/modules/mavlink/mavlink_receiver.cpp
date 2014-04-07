@@ -152,6 +152,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_manual_control(msg);
 		break;
 
+	case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:
+		handle_message_request_data_stream(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -453,6 +457,23 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 
 		} else {
 			orb_publish(ORB_ID(manual_control_setpoint), _manual_pub, &manual);
+		}
+	}
+}
+
+void
+MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
+{
+	mavlink_request_data_stream_t req;
+	mavlink_msg_request_data_stream_decode(msg, &req);
+
+	if (req.target_system == mavlink_system.sysid && req.target_component == mavlink_system.compid) {
+		float rate = req.start_stop ? (1000.0f / req.req_message_rate) : 0.0f;
+
+		for (unsigned int i = 0; streams_list[i] != nullptr; i++) {
+			if (req.req_stream_id == 0 || req.req_stream_id == streams_list[i]->get_id()) {
+				_mavlink->configure_stream_threadsafe(streams_list[i]->get_name(), rate);
+			}
 		}
 	}
 }

@@ -193,6 +193,11 @@ public:
 		return "HEARTBEAT";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_HEARTBEAT;
+	}
+
 	MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamHeartbeat();
@@ -244,6 +249,11 @@ public:
 		return "SYS_STATUS";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_SYS_STATUS;
+	}
+
 	MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamSysStatus();
@@ -291,6 +301,11 @@ public:
 	const char *get_name()
 	{
 		return "HIGHRES_IMU";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_HIGHRES_IMU;
 	}
 
 	MavlinkStream *new_instance()
@@ -364,6 +379,11 @@ public:
 		return "ATTITUDE";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_ATTITUDE;
+	}
+
 	MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamAttitude();
@@ -398,6 +418,11 @@ public:
 	const char *get_name()
 	{
 		return "ATTITUDE_QUATERNION";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_ATTITUDE_QUATERNION;
 	}
 
 	MavlinkStream *new_instance()
@@ -439,6 +464,11 @@ public:
 	const char *get_name()
 	{
 		return "VFR_HUD";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_VFR_HUD;
 	}
 
 	MavlinkStream *new_instance()
@@ -514,6 +544,11 @@ public:
 		return "GPS_RAW_INT";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_GPS_RAW_INT;
+	}
+
 	MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamGPSRawInt();
@@ -555,6 +590,11 @@ public:
 	const char *get_name()
 	{
 		return "GLOBAL_POSITION_INT";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_GLOBAL_POSITION_INT;
 	}
 
 	MavlinkStream *new_instance()
@@ -608,6 +648,11 @@ public:
 		return "LOCAL_POSITION_NED";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_LOCAL_POSITION_NED;
+	}
+
 	MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamLocalPositionNED();
@@ -646,6 +691,11 @@ public:
 	const char *get_name()
 	{
 		return "GPS_GLOBAL_ORIGIN";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN;
 	}
 
 	MavlinkStream *new_instance()
@@ -687,6 +737,11 @@ public:
 	MavlinkStreamServoOutputRaw(unsigned int n) : MavlinkStream(), _n(n)
 	{
 		sprintf(_name, "SERVO_OUTPUT_RAW_%d", _n);
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_SERVO_OUTPUT_RAW;
 	}
 
 	const char *get_name()
@@ -745,6 +800,11 @@ public:
 	const char *get_name()
 	{
 		return "HIL_CONTROLS";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_HIL_CONTROLS;
 	}
 
 	MavlinkStream *new_instance()
@@ -874,6 +934,11 @@ public:
 		return "GLOBAL_POSITION_SETPOINT_INT";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_GLOBAL_POSITION_SETPOINT_INT;
+	}
+
 	MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamGlobalPositionSetpointInt();
@@ -910,6 +975,11 @@ public:
 	const char *get_name()
 	{
 		return "LOCAL_POSITION_SETPOINT";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_LOCAL_POSITION_SETPOINT;
 	}
 
 	MavlinkStream *new_instance()
@@ -950,6 +1020,11 @@ public:
 		return "ROLL_PITCH_YAW_THRUST_SETPOINT";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_ROLL_PITCH_YAW_THRUST_SETPOINT;
+	}
+
 	MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamRollPitchYawThrustSetpoint();
@@ -988,6 +1063,11 @@ public:
 		return "ROLL_PITCH_YAW_RATES_THRUST_SETPOINT";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_ROLL_PITCH_YAW_RATES_THRUST_SETPOINT;
+	}
+
 	MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamRollPitchYawRatesThrustSetpoint();
@@ -1024,6 +1104,11 @@ public:
 	const char *get_name()
 	{
 		return "RC_CHANNELS_RAW";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_RC_CHANNELS_RAW;
 	}
 
 	MavlinkStream *new_instance()
@@ -1075,6 +1160,11 @@ public:
 		return "MANUAL_CONTROL";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_MANUAL_CONTROL;
+	}
+
 	MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamManualControl();
@@ -1114,6 +1204,11 @@ public:
 		return "OPTICAL_FLOW";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_OPTICAL_FLOW;
+	}
+
 	MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamOpticalFlow();
@@ -1150,6 +1245,11 @@ public:
 	const char *get_name()
 	{
 		return "ATTITUDE_CONTROLS";
+	}
+
+	uint8_t get_id()
+	{
+		return 0;
 	}
 
 	MavlinkStream *new_instance()
@@ -1200,6 +1300,11 @@ public:
 		return "NAMED_VALUE_FLOAT";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_NAMED_VALUE_FLOAT;
+	}
+
 	MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamNamedValueFloat();
@@ -1238,6 +1343,11 @@ public:
 		return "CAMERA_CAPTURE";
 	}
 
+	uint8_t get_id()
+	{
+		return 0;
+	}
+
 	MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamCameraCapture();
@@ -1252,8 +1362,6 @@ protected:
 	{
 		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status));
 		status = (struct vehicle_status_s *)status_sub->get_data();
-
-
 	}
 
 	void send(const hrt_abstime t)

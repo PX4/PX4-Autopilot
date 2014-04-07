@@ -194,6 +194,8 @@ public:
 
 	mavlink_channel_t get_channel();
 
+	void configure_stream_threadsafe(const char *stream_name, const float rate);
+
 	bool		_task_should_exit;		/**< if true, mavlink task should exit */
 
 protected:
@@ -313,7 +315,6 @@ private:
 	int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
 
 	int configure_stream(const char *stream_name, const float rate);
-	void configure_stream_threadsafe(const char *stream_name, const float rate);
 
 	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
 

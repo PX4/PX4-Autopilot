@@ -70,6 +70,7 @@ public:
 	virtual MavlinkStream *new_instance() = 0;
 	virtual void subscribe(Mavlink *mavlink) = 0;
 	virtual const char *get_name() = 0;
+	virtual uint8_t get_id() = 0;
 };
 
 
