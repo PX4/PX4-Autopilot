@@ -71,6 +71,7 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
 #include <uORB/topics/navigation_capabilities.h>
+#include <uORB/topics/vehicle_command.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/state_table.h>
@@ -152,6 +153,7 @@ private:
 	int 		_onboard_mission_sub;		/**< notification of onboard mission updates */
 	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
+	int		_vehicle_command_sub;		/**< vehicle command subscription */
 
 	orb_advert_t	_pos_sp_triplet_pub;		/**< publish position setpoint triplet */
 	orb_advert_t	_mission_result_pub;		/**< publish mission result topic */
@@ -163,6 +165,7 @@ private:
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< triplet of position setpoints */
 	struct mission_result_s				_mission_result;	/**< mission result for commander/mavlink */
 	struct mission_item_s				_mission_item;		/**< current mission item */
+	struct vehicle_command_s 			_vehicle_command;	/***< vehicle command */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -282,6 +285,11 @@ private:
 	void		vehicle_control_mode_update();
 
 	/**
+	 * Retrieve vehicle command
+	 */
+	void		vehicle_command_update();
+
+	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -391,6 +399,7 @@ Navigator::Navigator() :
 	_onboard_mission_sub(-1),
 	_capabilities_sub(-1),
 	_control_mode_sub(-1),
+	_vehicle_command_sub(-1),
 
 /* publications */
 	_pos_sp_triplet_pub(-1),
@@ -426,8 +435,9 @@ Navigator::Navigator() :
 
 	memset(&_pos_sp_triplet, 0, sizeof(struct position_setpoint_triplet_s));
 	memset(&_mission_item, 0, sizeof(struct mission_item_s));
-
 	memset(&nav_states_str, 0, sizeof(nav_states_str));
+	memset(&_vehicle_command, 0, sizeof(_vehicle_command));
+
 	nav_states_str[0] = "NONE";
 	nav_states_str[1] = "READY";
 	nav_states_str[2] = "LOITER";
@@ -574,6 +584,21 @@ Navigator::vehicle_control_mode_update()
 }
 
 void
+Navigator::vehicle_command_update()
+{
+
+	orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &_vehicle_command);
+
+	/* only handle MAV_CMD_OVERRIDE_GOTO commands in navigator */
+	//XXX MAV_CMD_OVERRIDE_GOTO with param2 == MAV_GOTO_HOLD_AT_CURRENT_POSITION is handled in commander
+	if (_vehicle_command.command == VEHICLE_CMD_OVERRIDE_GOTO) {
+		//XXX: set setpoint to data in command
+		mavlink_log_info(_mavlink_fd, "got goto command: lat %.7f lon %.7f, alt %.2f", (double)_vehicle_command.param5, (double)_vehicle_command.param6, (double)_vehicle_command.param7);
+	}
+
+}
+
+void
 Navigator::task_main_trampoline(int argc, char *argv[])
 {
 	navigator::g_navigator->task_main();
@@ -618,6 +643,7 @@ Navigator::task_main()
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
+	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -628,6 +654,7 @@ Navigator::task_main()
 	navigation_capabilities_update();
 	offboard_mission_update(_vstatus.is_rotary_wing);
 	onboard_mission_update();
+	vehicle_command_update();
 
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
@@ -637,7 +664,7 @@ Navigator::task_main()
 	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source(s) */
-	struct pollfd fds[8];
+	struct pollfd fds[9];
 
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
@@ -656,6 +683,8 @@ Navigator::task_main()
 	fds[6].events = POLLIN;
 	fds[7].fd = _control_mode_sub;
 	fds[7].events = POLLIN;
+	fds[8].fd = _vehicle_command_sub;
+	fds[8].events = POLLIN;
 
 	while (!_task_should_exit) {
 
@@ -807,6 +836,11 @@ Navigator::task_main()
 			home_position_update();
 			// XXX check if home position really changed
 			dispatch(EVENT_HOME_POSITION_CHANGED);
+		}
+
+		/* vehicle command updated */
+		if (fds[8].revents & POLLIN) {
+			vehicle_command_update();
 		}
 
 		/* global position updated */
