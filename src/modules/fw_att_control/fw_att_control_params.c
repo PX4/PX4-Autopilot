@@ -186,3 +186,13 @@ PARAM_DEFINE_FLOAT(FW_RSP_OFF, 0.0f);
 // @Description		An airframe specific offset of the pitch setpoint in degrees, the value is added to the pitch setpoint and should correspond to the typical cruise speed of the airframe
 // @Range		-90.0 to 90.0
 PARAM_DEFINE_FLOAT(FW_PSP_OFF, 0.0f);
+
+// @DisplayName		Max Roll
+// @Description		Max roll for manual control in attitude stabilized mode
+// @Range		0.0 to 90.0
+PARAM_DEFINE_FLOAT(FW_R_MAX, 45.0f);
+
+// @DisplayName		Max Pitch
+// @Description		Max pitch for manual control in attitude stabilized mode
+// @Range		0.0 to 90.0
+PARAM_DEFINE_FLOAT(FW_P_MAX, 45.0f);

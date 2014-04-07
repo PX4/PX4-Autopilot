@@ -161,10 +161,6 @@ private:
 		param_t follow_dist;
 		param_t follow_alt_offs;
 		param_t follow_scale_yaw;
-
-		param_t rc_scale_pitch;
-		param_t rc_scale_roll;
-		param_t rc_scale_yaw;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -185,10 +181,6 @@ private:
 		math::Vector<3> vel_ff;
 		math::Vector<3> vel_max;
 		math::Vector<3> sp_offs_max;
-
-		float rc_scale_pitch;
-		float rc_scale_roll;
-		float rc_scale_yaw;
 	}		_params;
 
 	struct map_projection_reference_s _ref_pos;
@@ -374,10 +366,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.follow_alt_offs	= param_find("MPC_FOLLOW_AOFF");
 	_params_handles.follow_scale_yaw	= param_find("MPC_FOLLOW_YAW");
 
-	_params_handles.rc_scale_pitch	= param_find("RC_SCALE_PITCH");
-	_params_handles.rc_scale_roll	= param_find("RC_SCALE_ROLL");
-	_params_handles.rc_scale_yaw	= param_find("RC_SCALE_YAW");
-
 	/* fetch initial parameter values */
 	parameters_update(true);
 }
@@ -462,10 +450,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.vel_ff(2) = v;
 
 		_params.sp_offs_max = _params.vel_max.edivide(_params.pos_p) * 2.0f;
-
-		param_get(_params_handles.rc_scale_pitch, &_params.rc_scale_pitch);
-		param_get(_params_handles.rc_scale_roll, &_params.rc_scale_roll);
-		param_get(_params_handles.rc_scale_yaw, &_params.rc_scale_yaw);
 	}
 
 	return OK;
@@ -542,18 +526,26 @@ void
 MulticopterPositionControl::update_ref()
 {
 	if (_local_pos.ref_timestamp != _ref_timestamp) {
+		double lat_sp, lon_sp;
+		float alt_sp;
+
 		if (_ref_timestamp != 0) {
-			/* reproject local position setpoint to new reference */
-			float dx, dy;
-			map_projection_project(&_ref_pos, _local_pos.ref_lat, _local_pos.ref_lon, &dx, &dy);
-			_pos_sp(0) -= dx;
-			_pos_sp(1) -= dy;
+			/* calculate current position setpoint in global frame */
+			map_projection_reproject(&_ref_pos, _pos_sp(0), _pos_sp(1), &lat_sp, &lon_sp);
+			alt_sp = _ref_alt - _pos_sp(2);
+		}
+
+		/* update local projection reference */
+		map_projection_init(&_ref_pos, _local_pos.ref_lat, _local_pos.ref_lon);
+		_ref_alt = _local_pos.ref_alt;
+
+		if (_ref_timestamp != 0) {
+			/* reproject position setpoint to new reference */
+			map_projection_project(&_ref_pos, lat_sp, lon_sp, &_pos_sp.data[0], &_pos_sp.data[1]);
+			_pos_sp(2) = -(alt_sp - _ref_alt);
 		}
 
 		_ref_timestamp = _local_pos.ref_timestamp;
-
-		map_projection_init(&_ref_pos, _local_pos.ref_lat, _local_pos.ref_lon);
-		_ref_alt = _local_pos.ref_alt;
 	}
 }
 
@@ -687,7 +679,7 @@ MulticopterPositionControl::control_camera()
 		float current_offset_xy_len = current_offset_xy.length();
 		if (current_offset_xy_len > FOLLOW_OFFS_XY_MIN) {
 			/* calculate yaw setpoint from current positions and control offset with yaw stick */
-			_att_sp.yaw_body = _wrap_pi(atan2f(-current_offset_xy(1), -current_offset_xy(0)) + _manual.yaw / _params.rc_scale_yaw * _params.follow_scale_yaw);
+			_att_sp.yaw_body = _wrap_pi(atan2f(-current_offset_xy(1), -current_offset_xy(0)) + _manual.yaw * _params.follow_scale_yaw);
 
 			/* feed forward attitude rates */
 			math::Vector<2> offs_vel_xy(_vel(0) - _tvel(0), _vel(1) - _tvel(1));
@@ -853,8 +845,8 @@ MulticopterPositionControl::task_main()
 					reset_pos_sp();
 
 					/* move position setpoint with roll/pitch stick */
-					_sp_move_rate(0) = scale_control(-_manual.pitch / _params.rc_scale_pitch, 1.0f, pos_ctl_dz);
-					_sp_move_rate(1) = scale_control(_manual.roll / _params.rc_scale_roll, 1.0f, pos_ctl_dz);
+					_sp_move_rate(0) = _manual.pitch;
+					_sp_move_rate(1) = _manual.roll;
 				}
 
 				/* limit setpoint move rate */

@@ -168,13 +168,13 @@ int position_estimator_inav_main(int argc, char *argv[])
 	exit(1);
 }
 
-void write_debug_log(const char *msg, float dt, float x_est[3], float y_est[3], float z_est[3], float corr_acc[3], float corr_gps[3][2], float w_xy_gps_p, float w_xy_gps_v)
+void write_debug_log(const char *msg, float dt, float x_est[3], float y_est[3], float z_est[3], float x_est_prev[3], float y_est_prev[3], float z_est_prev[3], float corr_acc[3], float corr_gps[3][2], float w_xy_gps_p, float w_xy_gps_v)
 {
 	FILE *f = fopen("/fs/microsd/inav.log", "a");
 
 	if (f) {
 		char *s = malloc(256);
-		unsigned n = snprintf(s, 256, "%llu %s\n\tdt=%.5f x_est=[%.5f %.5f %.5f] y_est=[%.5f %.5f %.5f] z_est=[%.5f %.5f %.5f]\n", hrt_absolute_time(), msg, dt, x_est[0], x_est[1], x_est[2], y_est[0], y_est[1], y_est[2], z_est[0], z_est[1], z_est[2]);
+		unsigned n = snprintf(s, 256, "%llu %s\n\tdt=%.5f x_est=[%.5f %.5f %.5f] y_est=[%.5f %.5f %.5f] z_est=[%.5f %.5f %.5f] x_est_prev=[%.5f %.5f %.5f] y_est_prev=[%.5f %.5f %.5f] z_est_prev=[%.5f %.5f %.5f]\n", hrt_absolute_time(), msg, dt, x_est[0], x_est[1], x_est[2], y_est[0], y_est[1], y_est[2], z_est[0], z_est[1], z_est[2], x_est_prev[0], x_est_prev[1], x_est_prev[2], y_est_prev[0], y_est_prev[1], y_est_prev[2], z_est_prev[0], z_est_prev[1], z_est_prev[2]);
 		fwrite(s, 1, n, f);
 		n = snprintf(s, 256, "\tacc_corr=[%.5f %.5f %.5f] gps_pos_corr=[%.5f %.5f %.5f] gps_vel_corr=[%.5f %.5f %.5f] w_xy_gps_p=%.5f w_xy_gps_v=%.5f\n", corr_acc[0], corr_acc[1], corr_acc[2], corr_gps[0][0], corr_gps[1][0], corr_gps[2][0], corr_gps[0][1], corr_gps[1][1], corr_gps[2][1], w_xy_gps_p, w_xy_gps_v);
 		fwrite(s, 1, n, f);
@@ -198,6 +198,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float x_est[3] = { 0.0f, 0.0f, 0.0f };
 	float y_est[3] = { 0.0f, 0.0f, 0.0f };
 	float z_est[3] = { 0.0f, 0.0f, 0.0f };
+
+	float x_est_prev[3], y_est_prev[3], z_est_prev[3];
+	memset(x_est_prev, 0, sizeof(x_est_prev));
+	memset(y_est_prev, 0, sizeof(y_est_prev));
+	memset(z_est_prev, 0, sizeof(z_est_prev));
 
 	int baro_init_cnt = 0;
 	int baro_init_num = 200;
@@ -248,6 +253,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	float corr_flow[] = { 0.0f, 0.0f };	// N E
 	float w_flow = 0.0f;
+
+	static float min_eph_epv = 2.0f;	// min EPH/EPV, used for weight calculation
+	static float max_eph_epv = 10.0f;	// max EPH/EPV acceptable for estimation
 
 	float sonar_prev = 0.0f;
 	hrt_abstime flow_prev = 0;			// time of last flow measurement
@@ -543,27 +551,34 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				if (home.timestamp != home_timestamp) {
 					home_timestamp = home.timestamp;
+
+					double est_lat, est_lon;
+					float est_alt;
+
 					if (ref_inited) {
-						ref_inited = true;
-
-						/* reproject position estimate to new reference */
-						float dx, dy;
-						map_projection_project(&ref, home.lat, home.lon, &dx, &dy);
-						x_est[0] -= dx;
-						y_est[0] -= dx;
-						z_est[0] += home.alt - local_pos.ref_alt;
+						/* calculate current estimated position in global frame */
+						est_alt = local_pos.ref_alt - local_pos.z;
+						map_projection_reproject(&ref, local_pos.x, local_pos.y, &est_lat, &est_lon);
 					}
-
-					/* update baro offset */
-					baro_offset -= home.alt - local_pos.ref_alt;
 
 					/* update reference */
 					map_projection_init(&ref, home.lat, home.lon);
+
+					/* update baro offset */
+					baro_offset += home.alt - local_pos.ref_alt;
 
 					local_pos.ref_lat = home.lat;
 					local_pos.ref_lon = home.lon;
 					local_pos.ref_alt = home.alt;
 					local_pos.ref_timestamp = home.timestamp;
+
+					if (ref_inited) {
+						/* reproject position estimate with new reference */
+						map_projection_project(&ref, est_lat, est_lon, &x_est[0], &y_est[0]);
+						z_est[0] = -(est_alt - local_pos.ref_alt);
+					}
+
+					ref_inited = true;
 				}
 			}
 
@@ -573,16 +588,19 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
 
+				bool reset_est = false;
+
 				/* hysteresis for GPS quality */
 				if (gps_valid) {
-					if (gps.eph_m > 10.0f || gps.epv_m > 20.0f || gps.fix_type < 3) {
+					if (gps.eph_m > max_eph_epv * 1.5f || gps.epv_m > max_eph_epv * 1.5f || gps.fix_type < 3) {
 						gps_valid = false;
 						mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
 					}
 
 				} else {
-					if (gps.eph_m < 5.0f && gps.epv_m < 10.0f && gps.fix_type >= 3) {
+					if (gps.eph_m < max_eph_epv && gps.epv_m < max_eph_epv && gps.fix_type >= 3) {
 						gps_valid = true;
+						reset_est = true;
 						mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
 					}
 				}
@@ -611,21 +629,21 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 							} else if (t > ref_init_start + ref_init_delay) {
 								ref_inited = true;
-
 								/* update baro offset */
 								baro_offset -= z_est[0];
 
 								/* set position estimate to (0, 0, 0), use GPS velocity for XY */
 								x_est[0] = 0.0f;
 								x_est[1] = gps.vel_n_m_s;
+								x_est[2] = accel_NED[0];
 								y_est[0] = 0.0f;
 								y_est[1] = gps.vel_e_m_s;
 								z_est[0] = 0.0f;
+								y_est[2] = accel_NED[1];
 
-								/* reference GPS position */
 								local_pos.ref_lat = lat;
 								local_pos.ref_lon = lon;
-								local_pos.ref_alt = alt + z_est[0];;
+								local_pos.ref_alt = alt;
 								local_pos.ref_timestamp = t;
 
 								/* initialize projection */
@@ -639,11 +657,22 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					if (ref_inited) {
 						/* project GPS lat lon to plane */
 						float gps_proj[2];
-						map_projection_project(&ref, gps.lat * 1e-7, gps.lon * 1e-7, &(gps_proj[0]), &(gps_proj[1]));
+						map_projection_project(&ref, lat, lon, &(gps_proj[0]), &(gps_proj[1]));
+
+						/* reset position estimate when GPS becomes good */
+						if (reset_est) {
+							x_est[0] = gps_proj[0];
+							x_est[1] = gps.vel_n_m_s;
+							x_est[2] = accel_NED[0];
+							y_est[0] = gps_proj[1];
+							y_est[1] = gps.vel_e_m_s;
+							y_est[2] = accel_NED[1];
+						}
+
 						/* calculate correction for position */
 						corr_gps[0][0] = gps_proj[0] - x_est[0];
 						corr_gps[1][0] = gps_proj[1] - y_est[0];
-						corr_gps[2][0] = local_pos.ref_alt - gps.alt * 1e-3 - z_est[0];
+						corr_gps[2][0] = local_pos.ref_alt - alt - z_est[0];
 
 						/* calculate correction for velocity */
 						if (gps.vel_ned_valid) {
@@ -657,8 +686,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							corr_gps[2][1] = 0.0f;
 						}
 
-						w_gps_xy = 2.0f / fmaxf(2.0f, gps.eph_m);
-						w_gps_z = 4.0f / fmaxf(4.0f, gps.epv_m);
+						w_gps_xy = min_eph_epv / fmaxf(min_eph_epv, gps.eph_m);
+						w_gps_z = min_eph_epv / fmaxf(min_eph_epv, gps.epv_m);
 					}
 
 				} else {
@@ -774,23 +803,34 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		/* inertial filter prediction for altitude */
 		inertial_filter_predict(dt, z_est);
 
+		if (!(isfinite(z_est[0]) && isfinite(z_est[1]) && isfinite(z_est[2]))) {
+			write_debug_log("BAD ESTIMATE AFTER Z PREDICTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev, corr_acc, corr_gps, w_xy_gps_p, w_xy_gps_v);
+			memcpy(z_est, z_est_prev, sizeof(z_est));
+		}
+
 		/* inertial filter correction for altitude */
 		inertial_filter_correct(corr_baro, dt, z_est, 0, params.w_z_baro);
 		inertial_filter_correct(corr_gps[2][0], dt, z_est, 0, w_z_gps_p);
 		inertial_filter_correct(corr_acc[2], dt, z_est, 2, params.w_z_acc);
 
-		float x_est_prev[3], y_est_prev[3];
+		if (!(isfinite(z_est[0]) && isfinite(z_est[1]) && isfinite(z_est[2]))) {
+			write_debug_log("BAD ESTIMATE AFTER Z CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev, corr_acc, corr_gps, w_xy_gps_p, w_xy_gps_v);
+			memcpy(z_est, z_est_prev, sizeof(z_est));
+			memset(corr_acc, 0, sizeof(corr_acc));
+			memset(corr_gps, 0, sizeof(corr_gps));
+			corr_baro = 0;
 
-		memcpy(x_est_prev, x_est, sizeof(x_est));
-		memcpy(y_est_prev, y_est, sizeof(y_est));
+		} else {
+			memcpy(z_est_prev, z_est, sizeof(z_est));
+		}
 
 		if (can_estimate_xy) {
 			/* inertial filter prediction for position */
 			inertial_filter_predict(dt, x_est);
 			inertial_filter_predict(dt, y_est);
 
-			if (!isfinite(x_est[0]) || !isfinite(y_est[0])) {
-				write_debug_log("BAD ESTIMATE AFTER PREDICTION", dt, x_est, y_est, z_est, corr_acc, corr_gps, w_xy_gps_p, w_xy_gps_v);
+			if (!(isfinite(x_est[0]) && isfinite(x_est[1]) && isfinite(x_est[2]) && isfinite(y_est[0]) && isfinite(y_est[1]) && isfinite(y_est[2]))) {
+				write_debug_log("BAD ESTIMATE AFTER PREDICTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev, corr_acc, corr_gps, w_xy_gps_p, w_xy_gps_v);
 				memcpy(x_est, x_est_prev, sizeof(x_est));
 				memcpy(y_est, y_est_prev, sizeof(y_est));
 			}
@@ -814,13 +854,17 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				}
 			}
 
-			if (!isfinite(x_est[0]) || !isfinite(y_est[0])) {
-				write_debug_log("BAD ESTIMATE AFTER CORRECTION", dt, x_est, y_est, z_est, corr_acc, corr_gps, w_xy_gps_p, w_xy_gps_v);
+			if (!(isfinite(x_est[0]) && isfinite(x_est[1]) && isfinite(x_est[2]) && isfinite(y_est[0]) && isfinite(y_est[1]) && isfinite(y_est[2]))) {
+				write_debug_log("BAD ESTIMATE AFTER CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev, corr_acc, corr_gps, w_xy_gps_p, w_xy_gps_v);
 				memcpy(x_est, x_est_prev, sizeof(x_est));
 				memcpy(y_est, y_est_prev, sizeof(y_est));
 				memset(corr_acc, 0, sizeof(corr_acc));
 				memset(corr_gps, 0, sizeof(corr_gps));
 				memset(corr_flow, 0, sizeof(corr_flow));
+
+			} else {
+				memcpy(x_est_prev, x_est, sizeof(x_est));
+				memcpy(y_est_prev, y_est, sizeof(y_est));
 			}
 		}
 

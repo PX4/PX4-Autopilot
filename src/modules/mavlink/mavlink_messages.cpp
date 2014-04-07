@@ -262,22 +262,21 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
-		if (status_sub->update(t)) {
-			mavlink_msg_sys_status_send(_channel,
-						    status->onboard_control_sensors_present,
-						    status->onboard_control_sensors_enabled,
-						    status->onboard_control_sensors_health,
-						    status->load * 1000.0f,
-						    status->battery_voltage * 1000.0f,
-						    status->battery_current * 1000.0f,
-						    status->battery_remaining,
-						    status->drop_rate_comm,
-						    status->errors_comm,
-						    status->errors_count1,
-						    status->errors_count2,
-						    status->errors_count3,
-						    status->errors_count4);
-		}
+		status_sub->update(t);
+		mavlink_msg_sys_status_send(_channel,
+						status->onboard_control_sensors_present,
+						status->onboard_control_sensors_enabled,
+						status->onboard_control_sensors_health,
+						status->load * 1000.0f,
+						status->battery_voltage * 1000.0f,
+						status->battery_current * 1000.0f,
+						status->battery_remaining,
+						status->drop_rate_comm,
+						status->errors_comm,
+						status->errors_count1,
+						status->errors_count2,
+						status->errors_count3,
+						status->errors_count4);
 	}
 };
 
@@ -862,14 +861,14 @@ protected:
 
 				for (unsigned i = 0; i < 8; i++) {
 					if (i < n) {
-						if (mavlink_base_mode & MAV_MODE_FLAG_SAFETY_ARMED) {
-							/* scale fake PWM out 900..2100 us to 0..1 for normal multirotors */
-							out[i] = (act->output[i] - PWM_LOWEST_MIN) / (PWM_HIGHEST_MAX - PWM_LOWEST_MIN);
+					if (mavlink_base_mode & MAV_MODE_FLAG_SAFETY_ARMED) {
+						/* scale fake PWM out 900..2100 us to 0..1 for normal multirotors */
+						out[i] = (act->output[i] - PWM_LOWEST_MIN) / (PWM_HIGHEST_MAX - PWM_LOWEST_MIN);
 
-						} else {
-							/* send 0 when disarmed */
-							out[i] = 0.0f;
-						}
+					} else {
+						/* send 0 when disarmed */
+						out[i] = 0.0f;
+					}
 
 					} else {
 						out[i] = -1.0f;
