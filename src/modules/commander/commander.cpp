@@ -966,7 +966,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* update condition_global_position_valid */
-		/* hysteresis for EPH/EPV*/
+		/* hysteresis for EPH/EPV */
 		bool eph_epv_good;
 		if (status.condition_global_position_valid) {
 			if (global_position.eph > eph_epv_threshold * 2.0f || global_position.epv > eph_epv_threshold * 2.0f) {
