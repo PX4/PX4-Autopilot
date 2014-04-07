@@ -80,10 +80,10 @@ static void UAVCAN_STM32_TRACE(const char* fmt, ...)
 namespace uavcan_stm32
 {
 
-struct CriticalSectionLock
+struct CriticalSectionLocker
 {
-    CriticalSectionLock() { chSysSuspend(); }
-    ~CriticalSectionLock() { chSysEnable(); }
+    CriticalSectionLocker() { chSysSuspend(); }
+    ~CriticalSectionLocker() { chSysEnable(); }
 };
 
 namespace clock

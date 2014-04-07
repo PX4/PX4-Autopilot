@@ -50,7 +50,7 @@ const uavcan::int32_t MaxUtcSpeedCorrectionX16 = 100 * 16;
 
 void init()
 {
-    CriticalSectionLock lock;
+    CriticalSectionLocker lock;
     if (initialized)
     {
         return;
@@ -117,7 +117,7 @@ uavcan::MonotonicTime getMonotonic()
 {
     uavcan::uint64_t usec = 0;
     {
-        CriticalSectionLock locker;
+        CriticalSectionLocker locker;
         usec = sampleFromCriticalSection(&time_mono);
 #if !NDEBUG
         static uavcan::uint64_t prev_usec = 0;  // Self-test
@@ -134,7 +134,7 @@ uavcan::UtcTime getUtc()
     {
         uavcan::uint64_t usec = 0;
         {
-            CriticalSectionLock locker;
+            CriticalSectionLocker locker;
             usec = sampleFromCriticalSection(&time_utc);
         }
         return uavcan::UtcTime::fromUSec(usec);
@@ -180,7 +180,7 @@ void adjustUtc(uavcan::UtcDuration adjustment)
         const uavcan::int64_t adj_usec = adjustment.toUSec();
 
         {
-            CriticalSectionLock locker;
+            CriticalSectionLocker locker;
             if ((adj_usec < 0) && uavcan::uint64_t(-adj_usec) > time_utc)
             {
                 time_utc = 1;

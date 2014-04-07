@@ -194,7 +194,7 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame& frame, uavcan::MonotonicT
         return -1;  // WTF man how to handle that
     }
 
-    CriticalSectionLock lock;
+    CriticalSectionLocker lock;
 
     /*
      * Seeking for an empty slot
@@ -262,7 +262,7 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame& out_frame, uavcan::Monotonic
     out_ts_monotonic = clock::getMonotonic();  // High precision is not required for monotonic timestamps
     uavcan::uint64_t utc_usec = 0;
     {
-        CriticalSectionLock lock;
+        CriticalSectionLocker lock;
         if (rx_queue_.getLength() == 0)
         {
             return 0;
@@ -277,7 +277,7 @@ uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig* filter
                                            uavcan::uint16_t num_configs)
 {
     // TODO: Hardware filter support
-    CriticalSectionLock lock;
+    CriticalSectionLocker lock;
     (void)filter_configs;
     (void)num_configs;
     return -1;
@@ -484,7 +484,7 @@ void CanIface::handleStatusInterrupt()
 void CanIface::discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time)
 {
     static const uavcan::uint32_t AbortFlags[NumTxMailboxes] = { CAN_TSR_ABRQ0, CAN_TSR_ABRQ1, CAN_TSR_ABRQ2 };
-    CriticalSectionLock lock;
+    CriticalSectionLocker lock;
     for (int i = 0; i < NumTxMailboxes; i++)
     {
         TxItem& txi = pending_tx_[i];
@@ -504,19 +504,19 @@ bool CanIface::isTxBufferFull() const
 
 bool CanIface::isRxBufferEmpty() const
 {
-    CriticalSectionLock lock;
+    CriticalSectionLocker lock;
     return rx_queue_.getLength() == 0;
 }
 
 uavcan::uint64_t CanIface::getErrorCount() const
 {
-    CriticalSectionLock lock;
+    CriticalSectionLocker lock;
     return error_cnt_ + rx_queue_.getOverflowCount();
 }
 
 uavcan::uint8_t CanIface::yieldLastHardwareErrorCode()
 {
-    CriticalSectionLock lock;
+    CriticalSectionLocker lock;
     const uavcan::uint8_t val = last_hw_error_code_;
     last_hw_error_code_ = 0;
     return val;
@@ -571,7 +571,7 @@ int CanDriver::init(uavcan::uint32_t bitrate)
 {
     int res = 0;
 
-    CriticalSectionLock lock;
+    CriticalSectionLocker lock;
 
     /*
      * CAN1
