@@ -296,6 +296,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_att_sp_pub(-1),
 	_local_pos_sp_pub(-1),
 	_global_vel_sp_pub(-1),
+	_cam_control_pub(-1),
 
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
@@ -695,11 +696,11 @@ MulticopterPositionControl::control_camera()
 	}
 
 	/* publish camera control */
-	if (_cam_control_pub > 0) {
-		orb_publish(ORB_ID(actuator_controls_2), _cam_control_pub, &_cam_control);
+	if (_cam_control_pub < 0) {
+		_cam_control_pub = orb_advertise(ORB_ID(actuator_controls_2), &_cam_control);
 
 	} else {
-		_cam_control_pub = orb_advertise(ORB_ID(actuator_controls_2), &_cam_control);
+		orb_publish(ORB_ID(actuator_controls_2), _cam_control_pub, &_cam_control);
 	}
 }
 
