@@ -140,10 +140,11 @@ int main()
 
     while (true)
     {
-        app::ledSet(false);
-        sleep(1);
-        app::ledSet(true);
-        sleep(1);
+        for (int i = 0; i < 200; i++)
+        {
+            app::ledSet(app::can.driver.hadActivity());
+            ::usleep(25000);
+        }
 
         const uavcan::UtcTime utc = uavcan_stm32::clock::getUtc();
         lowsyslog("UTC %lu sec, %li corr, %lu jumps\n",

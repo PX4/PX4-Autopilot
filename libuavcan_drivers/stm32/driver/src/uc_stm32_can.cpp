@@ -381,6 +381,9 @@ leave:
 void CanIface::handleTxMailboxInterrupt(uavcan::uint8_t mailbox_index, bool txok, const uavcan::uint64_t utc_usec)
 {
     assert(mailbox_index < NumTxMailboxes);
+
+    had_activity_ = had_activity_ || txok;
+
     TxItem& txi = pending_tx_[mailbox_index];
     if (txi.loopback && txok && txi.pending)
     {
@@ -471,6 +474,7 @@ void CanIface::handleRxInterrupt(uavcan::uint8_t fifo_index, uavcan::uint64_t ut
      */
     rx_queue_.push(frame, utc_usec, 0);
     update_event_.signalFromInterrupt();
+    had_activity_ = true;
 }
 
 void CanIface::handleStatusInterrupt()
@@ -520,6 +524,14 @@ uavcan::uint8_t CanIface::yieldLastHardwareErrorCode()
     const uavcan::uint8_t val = last_hw_error_code_;
     last_hw_error_code_ = 0;
     return val;
+}
+
+bool CanIface::hadActivity()
+{
+    CriticalSectionLocker lock;
+    const bool ret = had_activity_;
+    had_activity_ = false;
+    return ret;
 }
 
 /*
@@ -638,6 +650,15 @@ CanIface* CanDriver::getIface(uavcan::uint8_t iface_index)
         return ifaces[iface_index];
     }
     return NULL;
+}
+
+bool CanDriver::hadActivity()
+{
+    bool ret = if0_.hadActivity();
+#if UAVCAN_STM32_NUM_IFACES > 1
+    ret |= if1_.hadActivity();
+#endif
+    return ret;
 }
 
 } // namespace uavcan_stm32

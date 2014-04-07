@@ -114,6 +114,7 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
     TxItem pending_tx_[NumTxMailboxes];
     uavcan::uint8_t last_hw_error_code_;
     const uavcan::uint8_t self_index_;
+    bool had_activity_;
 
     int computeTimings(uavcan::uint32_t target_bitrate, Timings& out_timings);
 
@@ -141,11 +142,13 @@ public:
         , update_event_(update_event)
         , last_hw_error_code_(0)
         , self_index_(self_index)
+        , had_activity_(false)
     {
         assert(self_index_ < UAVCAN_STM32_NUM_IFACES);
     }
 
     /**
+     * Initializes the hardware CAN controller.
      * Assumes:
      *   - Iface clock is enabled
      *   - Iface has been resetted via RCC
@@ -163,8 +166,22 @@ public:
     bool isTxBufferFull() const;
     bool isRxBufferEmpty() const;
 
+    /**
+     * Total number of hardware failures.
+     * May increase continuously if the interface is not connected to the bus.
+     */
     virtual uavcan::uint64_t getErrorCount() const;
+
+    /**
+     * Returns last hardware error code (LEC field in the register ESR)
+     */
     uavcan::uint8_t yieldLastHardwareErrorCode();
+
+    /**
+     * Whether this iface had at least one successful IO since previous call of this method.
+     * This is designed for use with iface activity LEDs.
+     */
+    bool hadActivity();
 };
 
 /**
@@ -199,6 +216,12 @@ public:
     virtual CanIface* getIface(uavcan::uint8_t iface_index);
 
     virtual uavcan::uint8_t getNumIfaces() const { return UAVCAN_STM32_NUM_IFACES; }
+
+    /**
+     * Whether at least one iface had at least one successful IO since previous call of this method.
+     * This is designed for use with iface activity LEDs.
+     */
+    bool hadActivity();
 };
 
 /**
