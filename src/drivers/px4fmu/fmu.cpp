@@ -233,6 +233,7 @@ PX4FMU::PX4FMU() :
 	_pwm_on(false),
 	_mixers(nullptr),
 	_groups_required(0),
+	_groups_subscribed(0),
 	_failsafe_pwm({0}),
 	      _disarmed_pwm({0}),
 	      _num_failsafe_set(0),
@@ -584,28 +585,6 @@ PX4FMU::task_main()
 				}
 			}
 
-			/* check arming state */
-			bool updated = false;
-			orb_check(_armed_sub, &updated);
-
-			if (updated) {
-				orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
-
-				/* update the armed status and check that we're not locked down */
-				bool set_armed = _armed.armed && !_armed.lockdown;
-
-				if (_servo_armed != set_armed)
-					_servo_armed = set_armed;
-
-				/* update PWM status if armed or if disarmed PWM values are set */
-				bool pwm_on = (_armed.armed || _num_disarmed_set > 0);
-
-				if (_pwm_on != pwm_on) {
-					_pwm_on = pwm_on;
-					up_pwm_servo_arm(pwm_on);
-				}
-			}
-
 			/* can we mix? */
 			if (_mixers != nullptr) {
 
@@ -665,6 +644,28 @@ PX4FMU::task_main()
 
 					orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), _outputs_pub, &outputs);
 				}
+			}
+		}
+
+		/* check arming state */
+		bool updated = false;
+		orb_check(_armed_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
+
+			/* update the armed status and check that we're not locked down */
+			bool set_armed = _armed.armed && !_armed.lockdown;
+
+			if (_servo_armed != set_armed)
+				_servo_armed = set_armed;
+
+			/* update PWM status if armed or if disarmed PWM values are set */
+			bool pwm_on = (_armed.armed || _num_disarmed_set > 0);
+
+			if (_pwm_on != pwm_on) {
+				_pwm_on = pwm_on;
+				up_pwm_servo_arm(pwm_on);
 			}
 		}
 
