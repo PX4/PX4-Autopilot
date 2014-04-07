@@ -116,6 +116,7 @@ struct ${t.cpp_type_name}
     bool operator!=(ParameterType rhs) const { return !operator==(rhs); }
     bool operator==(ParameterType rhs) const
     {
+        // TODO: Proper float comparison.
 % if fields:
         return
     % for idx,a in enumerate(fields):
