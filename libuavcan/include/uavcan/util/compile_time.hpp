@@ -118,4 +118,17 @@ To try_implicit_cast(const From& from)
                                                BooleanType<IsImplicitlyConvertibleFromTo<From, To>::Result>());
 }
 
+/**
+ * Some arithmetics
+ */
+template <unsigned Value> struct CompileTimeIntSqrt;
+template <> struct CompileTimeIntSqrt<4>  { enum { Result = 2 }; };
+template <> struct CompileTimeIntSqrt<9>  { enum { Result = 3 }; };
+template <> struct CompileTimeIntSqrt<16> { enum { Result = 4 }; };
+template <> struct CompileTimeIntSqrt<25> { enum { Result = 5 }; };
+template <> struct CompileTimeIntSqrt<36> { enum { Result = 6 }; };
+template <> struct CompileTimeIntSqrt<49> { enum { Result = 7 }; };
+template <> struct CompileTimeIntSqrt<64> { enum { Result = 8 }; };
+template <> struct CompileTimeIntSqrt<81> { enum { Result = 9 }; };
+
 }

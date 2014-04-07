@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <cstring>
+#include <cmath>
 #include <uavcan/error.hpp>
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/impl_constants.hpp>
@@ -336,6 +337,108 @@ class Array : public ArrayImpl<T, ArrayMode, MaxSize_>
         return -ErrLogic;
     }
 
+    template <typename InputIter>
+    void packSquareMatrixImpl(const InputIter src_row_major)
+    {
+        StaticAssert<IsDynamic>::check();
+        enum { Width = CompileTimeIntSqrt<MaxSize>::Result };
+
+        bool all_nans = true;
+        bool scalar_matrix = true;
+        bool diagonal_matrix = true;
+        /*
+         * Detecting how the matrix can be compressed:
+         * - Matrix that consists only of NANs will be eliminated completely;
+         * - Scalar matrix will be reduced to one value;
+         * - Diagonal matrix will be reduced to array of length Width.
+         */
+        {
+            unsigned index = 0;
+            for (InputIter it = src_row_major; index < MaxSize; ++it, ++index)
+            {
+                const bool on_diagonal = (index / Width) == (index % Width);
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+                const bool nan = std::isnan(*it);
+#else
+                const bool nan = (*it) != (*it);
+#endif
+                if (!nan)
+                {
+                    all_nans = false;
+                }
+                if (!on_diagonal && (*it) != 0)                     // TODO: Proper float comparison
+                {
+                    scalar_matrix = false;  // This matrix cannot be compressed.
+                    diagonal_matrix = false;
+                    break;
+                }
+                if (on_diagonal && (*it) != (*src_row_major)) // TODO: Proper float comparison
+                {
+                    scalar_matrix = false;
+                }
+            }
+        }
+        /*
+         * Actual packing is performed here.
+         */
+        this->clear();
+        if (!all_nans)
+        {
+            unsigned index = 0;
+            for (InputIter it = src_row_major; index < MaxSize; ++it, ++index)
+            {
+                const bool on_diagonal = (index / Width) == (index % Width);
+                if (diagonal_matrix && !on_diagonal)
+                {
+                    continue;
+                }
+                this->push_back(ValueType(*it));
+                if (scalar_matrix)
+                {
+                    break;
+                }
+            }
+        }
+    }
+
+    template <typename OutputIter>
+    void unpackSquareMatrixImpl(OutputIter it) const
+    {
+        StaticAssert<IsDynamic>::check();
+        enum { Width = CompileTimeIntSqrt<MaxSize>::Result };
+        /*
+         * Unpacking as follows:
+         * - Array of length 1 will be unpacked to scalar matrix
+         * - Array of length Width will be unpacked to diagonal matrix
+         * - Array of length MaxSize will be unpacked to full matrix
+         * - All other length values will yield zero matrix
+         */
+        if (this->size() == Width || this->size() == 1)
+        {
+            for (unsigned index = 0; index < MaxSize; index++)
+            {
+                const bool on_diagonal = (index / Width) == (index % Width);
+                if (on_diagonal)
+                {
+                    const SizeType source_index = (this->size() == 1) ? 0 : (index / Width);
+                    *it++ = at(source_index);
+                }
+                else
+                {
+                    *it++ = 0;
+                }
+            }
+        }
+        else if (this->size() == MaxSize)
+        {
+            std::copy(this->begin(), this->end(), it);
+        }
+        else
+        {
+            std::fill_n(it, MaxSize, 0);
+        }
+    }
+
 public:
     typedef T RawValueType;
     typedef typename StorageType<T>::Type ValueType;
@@ -516,6 +619,72 @@ public:
             (*this) += format;   // So we print it as is in release builds
         }
     }
+
+    /**
+     * Fills this array as a packed square matrix from a static array.
+     */
+    template <typename ScalarType>
+    void packSquareMatrix(const ScalarType (&src_row_major)[MaxSize])
+    {
+        packSquareMatrixImpl<const ScalarType*>(src_row_major);
+    }
+
+    /**
+     * Fills this array as a packed square matrix from any container that implements the methods begin() and size().
+     */
+    template <typename R>
+    typename EnableIf<sizeof(((const R*)(0U))->begin()) && sizeof(((const R*)(0U))->size())>::Type
+    packSquareMatrix(const R& src_row_major)
+    {
+        if (src_row_major.size() == MaxSize)
+        {
+            packSquareMatrixImpl(src_row_major.begin());
+        }
+        else if (src_row_major.size() == 0)
+        {
+            this->clear();
+        }
+        else
+        {
+#if UAVCAN_EXCEPTIONS
+            throw std::out_of_range("uavcan::Array::packSquareMatrix()");
+#else
+            assert(0);
+            this->clear();
+#endif
+        }
+    }
+
+    /**
+     * Reconstructs full matrix, result will be saved into a static array.
+     */
+    template <typename ScalarType>
+    void unpackSquareMatrix(ScalarType (&dst_row_major)[MaxSize]) const
+    {
+        unpackSquareMatrixImpl<ScalarType*>(dst_row_major);
+    }
+
+    /**
+     * Reconstructs full matrix, result will be saved into container that implements begin() and size().
+     */
+    template <typename R>
+    typename EnableIf<sizeof(((const R*)(0U))->begin()) && sizeof(((const R*)(0U))->size())>::Type
+    unpackSquareMatrix(R& dst_row_major) const
+    {
+        if (dst_row_major.size() == MaxSize)
+        {
+            unpackSquareMatrixImpl(dst_row_major.begin());
+        }
+        else
+        {
+#if UAVCAN_EXCEPTIONS
+            throw std::out_of_range("uavcan::Array::unpackSquareMatrix()");
+#else
+            assert(0);
+#endif
+        }
+    }
+
 
     typedef ValueType value_type;
     typedef SizeType size_type;

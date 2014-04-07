@@ -832,3 +832,240 @@ TEST(Array, MultidimensionalStreaming)
     uavcan::YamlStreamer<ThreeDimensional>::stream(std::cout, threedee, 0);
     std::cout << std::endl;
 }
+
+
+TEST(Array, SquareMatrixPacking)
+{
+    Array<FloatSpec<16, CastModeSaturate>, ArrayModeDynamic, 9> m3x3s;
+    Array<FloatSpec<32, CastModeSaturate>, ArrayModeDynamic, 4> m2x2f;
+    Array<FloatSpec<64, CastModeSaturate>, ArrayModeDynamic, 36> m6x6d;
+
+    // NAN will be reduced to empty array
+    {
+        const double nans3x3[] =
+        {
+            NAN, NAN, NAN,
+            NAN, NAN, NAN,
+            NAN, NAN, NAN
+        };
+        m3x3s.packSquareMatrix(nans3x3);
+        ASSERT_EQ(0, m3x3s.size());
+
+        // Empty array will be decoded as zero matrix
+        double nans3x3_out[9];
+        m3x3s.unpackSquareMatrix(nans3x3_out);
+        for (int i = 0; i < 9; i++)
+        {
+            ASSERT_FLOAT_EQ(0, nans3x3_out[i]);
+        }
+    }
+    {
+        std::vector<double> empty;
+        m3x3s.packSquareMatrix(empty);
+        ASSERT_EQ(0, m3x3s.size());
+
+        empty.resize(9);
+        m3x3s.unpackSquareMatrix(empty);
+        for (int i = 0; i < 9; i++)
+        {
+            ASSERT_FLOAT_EQ(0, empty.at(i));
+        }
+    }
+
+    // Scalar matrix will be reduced to a single value
+    {
+        std::vector<float> scalar2x2(4);
+        scalar2x2[0] = scalar2x2[3] = 3.14;
+        m2x2f.packSquareMatrix(scalar2x2);
+        ASSERT_EQ(1, m2x2f.size());
+        ASSERT_FLOAT_EQ(3.14, m2x2f[0]);
+
+        m2x2f.unpackSquareMatrix(scalar2x2);
+        const float reference[] =
+        {
+            3.14, 0,
+            0, 3.14
+        };
+        ASSERT_TRUE(std::equal(scalar2x2.begin(), scalar2x2.end(), reference));
+    }
+    {
+        const float scalar6x6[] =
+        {
+            -18, 0, 0, 0, 0, 0,
+            0, -18, 0, 0, 0, 0,
+            0, 0, -18, 0, 0, 0,
+            0, 0, 0, -18, 0, 0,
+            0, 0, 0, 0, -18, 0,
+            0, 0, 0, 0, 0, -18
+        };
+        m6x6d.packSquareMatrix(scalar6x6);
+        ASSERT_EQ(1, m6x6d.size());
+        ASSERT_FLOAT_EQ(-18, m6x6d[0]);
+
+        std::vector<long double> output(36);
+        m6x6d.unpackSquareMatrix(output);
+        ASSERT_TRUE(std::equal(output.begin(), output.end(), scalar6x6));
+    }
+
+    // Diagonal matrix will be reduced to an array of length Width
+    {
+        const float diagonal6x6[] =
+        {
+            1,  0,  0,  0,  0,  0,
+            0, -2,  0,  0,  0,  0,
+            0,  0,  3,  0,  0,  0,
+            0,  0,  0, -4,  0,  0,
+            0,  0,  0,  0,  5,  0,
+            0,  0,  0,  0,  0, -6
+        };
+        m6x6d.packSquareMatrix(diagonal6x6);
+        ASSERT_EQ(6, m6x6d.size());
+        ASSERT_FLOAT_EQ(1,  m6x6d[0]);
+        ASSERT_FLOAT_EQ(-2, m6x6d[1]);
+        ASSERT_FLOAT_EQ(3,  m6x6d[2]);
+        ASSERT_FLOAT_EQ(-4, m6x6d[3]);
+        ASSERT_FLOAT_EQ(5,  m6x6d[4]);
+        ASSERT_FLOAT_EQ(-6, m6x6d[5]);
+
+        std::vector<long double> output(36);
+        m6x6d.unpackSquareMatrix(output);
+        ASSERT_TRUE(std::equal(output.begin(), output.end(), diagonal6x6));
+    }
+
+    // A matrix filled with random values will not be compressed
+    {
+        std::vector<float> full3x3(9);
+        for (int i = 0; i < 9; i++)
+        {
+            full3x3[i] = i;
+        }
+        m3x3s.packSquareMatrix(full3x3);
+        ASSERT_EQ(9, m3x3s.size());
+        for (int i = 0; i < 9; i++)
+        {
+            ASSERT_FLOAT_EQ(i, m3x3s[i]);
+        }
+
+        long output[9];
+        m3x3s.unpackSquareMatrix(output);
+        ASSERT_TRUE(std::equal(full3x3.begin(), full3x3.end(), output));
+    }
+
+    // This will be represented as diagonal - NANs are exceptional
+    {
+        const double scalarnan3x3[] =
+        {
+            NAN, 0, 0,
+            0, NAN, 0,
+            0, 0, NAN
+        };
+        m3x3s.packSquareMatrix(scalarnan3x3);
+        ASSERT_EQ(3, m3x3s.size());
+        ASSERT_FALSE(m3x3s[0] == m3x3s[0]);   // NAN
+        ASSERT_FALSE(m3x3s[1] == m3x3s[1]);   // NAN
+        ASSERT_FALSE(m3x3s[2] == m3x3s[2]);   // NAN
+
+        float output[9];
+        m3x3s.unpackSquareMatrix(output);
+        ASSERT_FALSE(output[0] == output[0]);   // NAN
+        ASSERT_EQ(0, output[1]);
+        ASSERT_EQ(0, output[2]);
+        ASSERT_EQ(0, output[3]);
+        ASSERT_FALSE(output[4] == output[4]);   // NAN
+        ASSERT_EQ(0, output[5]);
+        ASSERT_EQ(0, output[6]);
+        ASSERT_EQ(0, output[7]);
+        ASSERT_FALSE(output[8] == output[8]);   // NAN
+    }
+
+    // This is a full matrix too (notice the NAN)
+    {
+        const float full2x2[] =
+        {
+            1,  NAN,
+            0, -2
+        };
+        m2x2f.packSquareMatrix(full2x2);
+        ASSERT_EQ(4, m2x2f.size());
+        ASSERT_FLOAT_EQ(1, m2x2f[0]);
+        ASSERT_FALSE(m2x2f[1] == m2x2f[1]);   // NAN
+        ASSERT_FLOAT_EQ(0, m2x2f[2]);
+        ASSERT_FLOAT_EQ(-2, m2x2f[3]);
+
+        float output[4];
+        m2x2f.unpackSquareMatrix(output);
+        ASSERT_EQ(1, output[0]);
+        ASSERT_FALSE(output[1] == output[1]);   // NAN
+        ASSERT_EQ(0, output[2]);
+        ASSERT_EQ(-2, output[3]);
+    }
+
+    // Zero matrix will be represented as scalar matrix
+    {
+        const float zero2x2[] =
+        {
+            0, 0,
+            0, 0
+        };
+        m2x2f.packSquareMatrix(zero2x2);
+        ASSERT_EQ(1, m2x2f.size());
+        ASSERT_FLOAT_EQ(0, m2x2f[0]);
+    }
+}
+
+
+TEST(Array, SquareMatrixPackingIntegers)
+{
+    Array<IntegerSpec<30, SignednessSigned, CastModeSaturate>, ArrayModeDynamic, 9> m3x3int;
+    {
+        const long scalar[] =
+        {
+            42, 0, 0,
+            0, 42, 0,
+            0, 0, 42
+        };
+        m3x3int.packSquareMatrix(scalar);
+        ASSERT_EQ(1, m3x3int.size());
+        ASSERT_EQ(42, m3x3int[0]);
+
+        std::vector<int> output(9);
+        m3x3int.unpackSquareMatrix(output);
+        ASSERT_TRUE(std::equal(output.begin(), output.end(), scalar));
+    }
+    {
+        std::vector<short> diagonal(9);
+        diagonal[0] = 6;
+        diagonal[4] = -57;
+        diagonal[8] = 1139;
+        m3x3int.packSquareMatrix(diagonal);
+        ASSERT_EQ(3, m3x3int.size());
+        ASSERT_EQ(6, m3x3int[0]);
+        ASSERT_EQ(-57, m3x3int[1]);
+        ASSERT_EQ(1139, m3x3int[2]);
+    }
+    {
+        std::vector<long double> full(9);
+        for (int i = 0; i < 9; i++)
+        {
+            full[i] = i;
+        }
+        m3x3int.packSquareMatrix(full);
+        ASSERT_EQ(9, m3x3int.size());
+        for (int i = 0; i < 9; i++)
+        {
+            ASSERT_EQ(i, m3x3int[i]);
+        }
+    }
+}
+
+#if UAVCAN_EXCEPTIONS
+TEST(Array, SquareMatrixPackingErrors)
+{
+    Array<FloatSpec<16, CastModeSaturate>, ArrayModeDynamic, 9> m3x3s;
+
+    std::vector<float> ill_formed_row_major(8);
+    ASSERT_THROW(m3x3s.packSquareMatrix(ill_formed_row_major), std::out_of_range);
+
+    ASSERT_THROW(m3x3s.unpackSquareMatrix(ill_formed_row_major), std::out_of_range);
+}
+#endif
