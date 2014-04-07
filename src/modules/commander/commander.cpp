@@ -153,6 +153,7 @@ static bool on_usb_power = false;
 
 static float takeoff_alt = 5.0f;
 static int parachute_enabled = 0;
+static float eph_epv_threshold = 5.0f;
 
 static struct vehicle_status_s status;
 static struct actuator_armed_s armed;
@@ -965,15 +966,25 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* update condition_global_position_valid */
-		check_valid(global_position.timestamp, POSITION_TIMEOUT, true, &(status.condition_global_position_valid), &status_changed);
+		/* hysteresis for EPH/EPV*/
+		bool eph_epv_good;
+		if (status.condition_global_position_valid) {
+			if (global_position.eph > eph_epv_threshold * 2.0f || global_position.epv > eph_epv_threshold * 2.0f) {
+				eph_epv_good = false;
+			}
+
+		} else {
+			if (global_position.eph < eph_epv_threshold && global_position.epv < eph_epv_threshold) {
+				eph_epv_good = true;
+			}
+		}
+		check_valid(global_position.timestamp, POSITION_TIMEOUT, eph_epv_good, &(status.condition_global_position_valid), &status_changed);
 
 		/* check if GPS fix is ok */
-		static float hdop_threshold_m = 4.0f;
-		static float vdop_threshold_m = 8.0f;
 
 		/* update home position */
 		if (!status.condition_home_position_valid && status.condition_global_position_valid && !armed.armed &&
-			(global_position.eph < hdop_threshold_m) && (global_position.epv < vdop_threshold_m)) {
+			(global_position.eph < eph_epv_threshold) && (global_position.epv < eph_epv_threshold)) {
 
 			home.lat = global_position.lat;
 			home.lon = global_position.lon;
@@ -1004,7 +1015,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* update condition_local_position_valid and condition_local_altitude_valid */
-		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid, &(status.condition_local_position_valid), &status_changed);
+		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid && eph_epv_good, &(status.condition_local_position_valid), &status_changed);
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid, &(status.condition_local_altitude_valid), &status_changed);
 
 		static bool published_condition_landed_fw = false;
@@ -1322,7 +1333,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* update home position on arming if at least 2s from commander start spent to avoid setting home on in-air restart */
 			if (armed.armed && !was_armed && hrt_absolute_time() > start_time + 2000000 && status.condition_global_position_valid &&
-				(global_position.eph < hdop_threshold_m) && (global_position.epv < vdop_threshold_m)) {
+				(global_position.eph < eph_epv_threshold) && (global_position.epv < eph_epv_threshold)) {
 
 				// TODO remove code duplication
 				home.lat = global_position.lat;
