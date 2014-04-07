@@ -10,13 +10,14 @@ PROJECT = uavcan_test_stm32f107
 
 CPPSRC = src/main.cpp src/dummy.cpp
 
-UDEFS = -DUAVCAN_STM32_CHIBIOS=1 -DUAVCAN_STM32_DEBUG=1 -DUAVCAN_MEM_POOL_BLOCK_SIZE=56
-
 #
 # UAVCAN library
 #
 
-UDEFS += -DUAVCAN_STM32_TIMER_NUMBER=7
+UDEFS = -DUAVCAN_STM32_CHIBIOS=1         \
+        -DUAVCAN_STM32_TIMER_NUMBER=6    \
+        -DUAVCAN_STM32_DEBUG=1           \
+        -DUAVCAN_MEM_POOL_BLOCK_SIZE=56
 
 include ../../../libuavcan/include.mk
 CPPSRC += $(LIBUAVCAN_SRC)
