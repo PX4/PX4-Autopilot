@@ -1431,7 +1431,7 @@ Sensors::rc_poll()
 			struct actuator_controls_s actuator_group_3;
 			memset(&actuator_group_3, 0 , sizeof(actuator_group_3));
 
-			actuator_group_3.timestamp = rc_input.timestamp_publication;
+			actuator_group_3.timestamp = rc_input.timestamp_last_signal;
 
 			actuator_group_3.control[0] = manual.roll;
 			actuator_group_3.control[1] = manual.pitch;
