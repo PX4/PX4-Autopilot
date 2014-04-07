@@ -1307,17 +1307,26 @@ Sensors::rc_poll()
 		orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
 
 		/* detect RC signal loss */
-		bool signal_lost = true;
+		bool signal_lost;
 
 		/* check flags and require at least four channels to consider the signal valid */
-		if (!(rc_input.rc_lost || rc_input.rc_failsafe || rc_input.channel_count < 4)) {
-			/* signal looks good, but check for throttle failsafe */
+		if (rc_input.rc_lost || rc_input.rc_failsafe || rc_input.channel_count < 4) {
+			/* signal is lost or no enough channels */
+			signal_lost = true;
+
+		} else {
+			/* signal looks good */
+			signal_lost = false;
+
+			/* check throttle failsafe */
 			int8_t thr_ch = _rc.function[THROTTLE];
-			if (_parameters.rc_fs_thr == 0 || thr_ch < 0 ||
-				!((_parameters.rc_fs_thr < _parameters.min[thr_ch] && rc_input.values[thr_ch] < _parameters.rc_fs_thr) ||
-				(_parameters.rc_fs_thr > _parameters.max[thr_ch] && rc_input.values[thr_ch] > _parameters.rc_fs_thr))) {
-				/* valid signal, throttle failsafe not configured or not triggered */
-				signal_lost = false;
+			if (_parameters.rc_fs_thr > 0 && thr_ch >= 0) {
+				/* throttle failsafe configured */
+				if ((_parameters.rc_fs_thr < _parameters.min[thr_ch] && rc_input.values[thr_ch] < _parameters.rc_fs_thr) ||
+					(_parameters.rc_fs_thr > _parameters.max[thr_ch] && rc_input.values[thr_ch] > _parameters.rc_fs_thr)) {
+					/* throttle failsafe triggered, signal is lost by receiver */
+					signal_lost = true;
+				}
 			}
 		}
 
