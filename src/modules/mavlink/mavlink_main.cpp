@@ -401,14 +401,12 @@ Mavlink::instance_exists(const char *device_name, Mavlink *self)
 void
 Mavlink::forward_message(mavlink_message_t *msg, Mavlink *self)
 {
-	Mavlink *inst = ::_mavlink_instances;
-
-	while (inst != nullptr) {
-		/* don't broadcast to itself */
+	
+	Mavlink *inst;
+	LL_FOREACH(_mavlink_instances, inst) {
 		if (inst != self) {
 			inst->pass_message(msg);
 		}
-		inst = inst->next;
 	}
 }
 
