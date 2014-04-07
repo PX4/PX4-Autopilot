@@ -45,12 +45,11 @@
 
 /**
  * Off-board control inputs.
- * 
+ *
  * Typically sent by a ground control station / joystick or by
  * some off-board controller via C or SIMULINK.
  */
-enum OFFBOARD_CONTROL_MODE
-{
+enum OFFBOARD_CONTROL_MODE {
 	OFFBOARD_CONTROL_MODE_DIRECT = 0,
 	OFFBOARD_CONTROL_MODE_DIRECT_RATES = 1,
 	OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE = 2,

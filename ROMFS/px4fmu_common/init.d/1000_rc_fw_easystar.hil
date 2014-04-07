@@ -7,7 +7,7 @@
 
 sh /etc/init.d/rc.fw_defaults
 
-echo "HIL Rascal 110 starting.."
+echo "X Plane HIL starting.."
 
 set HIL yes
 

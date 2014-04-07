@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,42 +32,86 @@
  ****************************************************************************/
 
 /**
- * @file differential_pressure.h
+ * @file fw_att_pos_estimator_params.c
  *
- * Definition of differential pressure topic
+ * Parameters defined by the attitude and position estimator task
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#ifndef TOPIC_DIFFERENTIAL_PRESSURE_H_
-#define TOPIC_DIFFERENTIAL_PRESSURE_H_
+#include <nuttx/config.h>
 
-#include "../uORB.h"
-#include <stdint.h>
+#include <systemlib/param/param.h>
+
+/*
+ * Estimator parameters, accessible via MAVLink
+ *
+ */
 
 /**
- * @addtogroup topics
- * @{
+ * Velocity estimate delay
+ *
+ * The delay in milliseconds of the velocity estimate from GPS.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
  */
+PARAM_DEFINE_INT32(PE_VEL_DELAY_MS, 230);
 
 /**
- * Differential pressure.
+ * Position estimate delay
+ *
+ * The delay in milliseconds of the position estimate from GPS.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
  */
-struct differential_pressure_s {
-	uint64_t	timestamp;			/**< Microseconds since system boot, needed to integrate */
-	uint64_t	error_count;			/**< Number of errors detected by driver */
-	float	differential_pressure_pa;		/**< Differential pressure reading */
-	float	differential_pressure_raw_pa;		/**< Raw differential pressure reading (may be negative) */
-	float	differential_pressure_filtered_pa;	/**< Low pass filtered differential pressure reading */
-	float	max_differential_pressure_pa;		/**< Maximum differential pressure reading */
-	float	voltage;				/**< Voltage from analog airspeed sensors (voltage divider already compensated) */
-	float	temperature;				/**< Temperature provided by sensor, -1000.0f if unknown */
-
-};
+PARAM_DEFINE_INT32(PE_POS_DELAY_MS, 210);
 
 /**
- * @}
+ * Height estimate delay
+ *
+ * The delay in milliseconds of the height estimate from the barometer.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
  */
+PARAM_DEFINE_INT32(PE_HGT_DELAY_MS, 350);
 
-/* register this as object request broker structure */
-ORB_DECLARE(differential_pressure);
+/**
+ * Mag estimate delay
+ *
+ * The delay in milliseconds of the magnetic field estimate from
+ * the magnetometer.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_MAG_DELAY_MS, 30);
 
-#endif
+/**
+ * True airspeeed estimate delay
+ *
+ * The delay in milliseconds of the airspeed estimate.
+ *
+ * @min 0
+ * @max 1000
+ * @group Position Estimator
+ */
+PARAM_DEFINE_INT32(PE_TAS_DELAY_MS, 210);
+
+/**
+ * GPS vs. barometric altitude update weight
+ *
+ * RE-CHECK this.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group Position Estimator
+ */
+PARAM_DEFINE_FLOAT(PE_GPS_ALT_WGT, 0.9f);
+

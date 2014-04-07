@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,16 +32,18 @@
  ****************************************************************************/
 
 /**
- * @file differential_pressure.h
+ * @file estimator_status.h
+ * Definition of the estimator_status_report uORB topic.
  *
- * Definition of differential pressure topic
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#ifndef TOPIC_DIFFERENTIAL_PRESSURE_H_
-#define TOPIC_DIFFERENTIAL_PRESSURE_H_
+#ifndef ESTIMATOR_STATUS_H_
+#define ESTIMATOR_STATUS_H_
 
-#include "../uORB.h"
 #include <stdint.h>
+#include <stdbool.h>
+#include "../uORB.h"
 
 /**
  * @addtogroup topics
@@ -49,17 +51,22 @@
  */
 
 /**
- * Differential pressure.
+ * Estimator status report.
+ *
+ * This is a generic status report struct which allows any of the onboard estimators
+ * to write the internal state to the system log.
+ *
  */
-struct differential_pressure_s {
-	uint64_t	timestamp;			/**< Microseconds since system boot, needed to integrate */
-	uint64_t	error_count;			/**< Number of errors detected by driver */
-	float	differential_pressure_pa;		/**< Differential pressure reading */
-	float	differential_pressure_raw_pa;		/**< Raw differential pressure reading (may be negative) */
-	float	differential_pressure_filtered_pa;	/**< Low pass filtered differential pressure reading */
-	float	max_differential_pressure_pa;		/**< Maximum differential pressure reading */
-	float	voltage;				/**< Voltage from analog airspeed sensors (voltage divider already compensated) */
-	float	temperature;				/**< Temperature provided by sensor, -1000.0f if unknown */
+struct estimator_status_report {
+
+	/* NOTE: Ordering of fields optimized to align to 32 bit / 4 bytes - change with consideration only   */
+
+	uint64_t timestamp;			/**< Timestamp in microseconds since boot */
+	float states[32];			/**< Internal filter states */
+	float n_states;				/**< Number of states effectively used */
+	bool states_nan;			/**< If set to true, one of the states is NaN */
+	bool covariance_nan;			/**< If set to true, the covariance matrix went NaN */
+	bool kalman_gain_nan;			/**< If set to true, the Kalman gain matrix went NaN */
 
 };
 
@@ -68,6 +75,6 @@ struct differential_pressure_s {
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(differential_pressure);
+ORB_DECLARE(estimator_status);
 
 #endif
