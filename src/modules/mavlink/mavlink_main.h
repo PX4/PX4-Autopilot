@@ -200,6 +200,8 @@ public:
 
 	bool		_task_should_exit;		/**< if true, mavlink task should exit */
 
+	int get_mavlink_fd() { return _mavlink_fd; }
+
 protected:
 	Mavlink	*next;
 
