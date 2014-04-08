@@ -34,4 +34,20 @@ int Logger::log(const protocol::debug::LogMessage& message)
     return retval;
 }
 
+#if UAVCAN_CPP_VERSION < UAVCAN_CPP11
+
+int Logger::log(LogLevel level, const char* source, const char* text)
+{
+    if (level >= level_ || level >= getExternalSinkLevel())
+    {
+        msg_buf_.level.value = level;
+        msg_buf_.source = source;
+        msg_buf_.text = text;
+        return log(msg_buf_);
+    }
+    return 0;
+}
+
+#endif
+
 }

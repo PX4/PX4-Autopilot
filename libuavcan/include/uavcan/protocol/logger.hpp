@@ -78,19 +78,7 @@ public:
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
 
     template <typename... Args>
-    int log(LogLevel level, const char* source, const char* format, Args... args)
-    {
-        if (level >= level_ || level >= getExternalSinkLevel())
-        {
-            msg_buf_.level.value = level;
-            msg_buf_.source = source;
-            msg_buf_.text.clear();
-            CharArrayFormatter<typename protocol::debug::LogMessage::FieldTypes::text> formatter(msg_buf_.text);
-            formatter.write(format, args...);
-            return log(msg_buf_);
-        }
-        return 0;
-    }
+    int log(LogLevel level, const char* source, const char* format, Args... args);
 
     template <typename... Args>
     inline int logDebug(const char* source, const char* format, Args... args)
@@ -118,17 +106,7 @@ public:
 
 #else
 
-    int log(LogLevel level, const char* source, const char* text)
-    {
-        if (level >= level_ || level >= getExternalSinkLevel())
-        {
-            msg_buf_.level.value = level;
-            msg_buf_.source = source;
-            msg_buf_.text = text;
-            return log(msg_buf_);
-        }
-        return 0;
-    }
+    int log(LogLevel level, const char* source, const char* text);
 
     int logDebug(const char* source, const char* text)
     {
@@ -152,5 +130,24 @@ public:
 
 #endif
 };
+
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+
+template <typename... Args>
+int Logger::log(LogLevel level, const char* source, const char* format, Args... args)
+{
+    if (level >= level_ || level >= getExternalSinkLevel())
+    {
+        msg_buf_.level.value = level;
+        msg_buf_.source = source;
+        msg_buf_.text.clear();
+        CharArrayFormatter<typename protocol::debug::LogMessage::FieldTypes::text> formatter(msg_buf_.text);
+        formatter.write(format, args...);
+        return log(msg_buf_);
+    }
+    return 0;
+}
+
+#endif
 
 }
