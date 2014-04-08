@@ -215,4 +215,106 @@ int DynamicTransferBufferManagerEntry::write(unsigned offset, const uint8_t* dat
     return actually_written;
 }
 
+/*
+ * StaticTransferBufferImpl
+ */
+int StaticTransferBufferImpl::read(unsigned offset, uint8_t* data, unsigned len) const
+{
+    if (!data)
+    {
+        assert(0);
+        return -ErrInvalidParam;
+    }
+    if (offset >= max_write_pos_)
+    {
+        return 0;
+    }
+    if ((offset + len) > max_write_pos_)
+    {
+        len = max_write_pos_ - offset;
+    }
+    assert((offset + len) <= max_write_pos_);
+    std::copy(data_ + offset, data_ + offset + len, data);
+    return len;
+}
+
+int StaticTransferBufferImpl::write(unsigned offset, const uint8_t* data, unsigned len)
+{
+    if (!data)
+    {
+        assert(0);
+        return -ErrInvalidParam;
+    }
+    if (offset >= size_)
+    {
+        return 0;
+    }
+    if ((offset + len) > size_)
+    {
+        len = size_ - offset;
+    }
+    assert((offset + len) <= size_);
+    std::copy(data, data + len, data_ + offset);
+    max_write_pos_ = std::max(offset + len, max_write_pos_);
+    return len;
+}
+
+void StaticTransferBufferImpl::reset()
+{
+    max_write_pos_ = 0;
+#if UAVCAN_DEBUG
+    std::fill(data_, data_ + size_, 0);
+#endif
+}
+
+/*
+ * StaticTransferBufferManagerEntryImpl
+ */
+void StaticTransferBufferManagerEntryImpl::resetImpl()
+{
+    buf_.reset();
+}
+
+int StaticTransferBufferManagerEntryImpl::read(unsigned offset, uint8_t* data, unsigned len) const
+{
+    return buf_.read(offset, data, len);
+}
+
+int StaticTransferBufferManagerEntryImpl::write(unsigned offset, const uint8_t* data, unsigned len)
+{
+    return buf_.write(offset, data, len);
+}
+
+bool StaticTransferBufferManagerEntryImpl::migrateFrom(const TransferBufferManagerEntry* tbme)
+{
+    if (tbme == NULL || tbme->isEmpty())
+    {
+        assert(0);
+        return false;
+    }
+
+    // Resetting self and moving all data from the source
+    TransferBufferManagerEntry::reset(tbme->getKey());
+    const int res = tbme->read(0, buf_.getRawPtr(), buf_.getSize());
+    if (res < 0)
+    {
+        TransferBufferManagerEntry::reset();
+        return false;
+    }
+    buf_.setMaxWritePos(res);
+    if (res < int(buf_.getSize()))
+    {
+        return true;
+    }
+
+    // Now we need to make sure that all data can fit the storage
+    uint8_t dummy = 0;
+    if (tbme->read(buf_.getSize(), &dummy, 1) > 0)
+    {
+        TransferBufferManagerEntry::reset();            // Damn, the buffer was too large
+        return false;
+    }
+    return true;
+}
+
 }
