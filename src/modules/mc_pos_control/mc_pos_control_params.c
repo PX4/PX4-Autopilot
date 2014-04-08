@@ -232,3 +232,14 @@ PARAM_DEFINE_FLOAT(MPC_FOLLOW_AOFF, 0.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_FOLLOW_YAW, 1.0f);
+
+/**
+ * Camera pitch scale
+ *
+ * Camera pitch (degrees) to control signal (-1..1) scale factor
+ *
+ * @unit deg
+ * @min 0.0
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_CAM_P_SCALE, 90.0f);

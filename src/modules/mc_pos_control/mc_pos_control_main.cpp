@@ -161,6 +161,7 @@ private:
 		param_t follow_dist;
 		param_t follow_alt_offs;
 		param_t follow_scale_yaw;
+		param_t cam_pitch_scale;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -173,6 +174,7 @@ private:
 		float follow_dist;
 		float follow_alt_offs;
 		float follow_scale_yaw;
+		float cam_pitch_scale;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -366,6 +368,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.follow_dist	= param_find("MPC_FOLLOW_DIST");
 	_params_handles.follow_alt_offs	= param_find("MPC_FOLLOW_AOFF");
 	_params_handles.follow_scale_yaw	= param_find("MPC_FOLLOW_YAW");
+	_params_handles.cam_pitch_scale	= param_find("MPC_CAM_P_SCALE");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -417,6 +420,8 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.follow_dist, &_params.follow_dist);
 		param_get(_params_handles.follow_alt_offs, &_params.follow_alt_offs);
 		param_get(_params_handles.follow_scale_yaw, &_params.follow_scale_yaw);
+		param_get(_params_handles.cam_pitch_scale, &_params.cam_pitch_scale);
+		_params.cam_pitch_scale *= M_PI / 180.0f;
 
 		float v;
 		param_get(_params_handles.xy_p, &v);
@@ -688,7 +693,7 @@ MulticopterPositionControl::control_camera()
 		}
 
 		/* control camera pitch in global frame (for BL camera gimbal) */
-		_cam_control.control[1] = atan2f(current_offset(2), current_offset_xy_len) + _manual.aux2;
+		_cam_control.control[1] = atan2f(current_offset(2), current_offset_xy_len) / _params.cam_pitch_scale + _manual.aux2;
 
 	} else {
 		/* manual camera pitch control */
