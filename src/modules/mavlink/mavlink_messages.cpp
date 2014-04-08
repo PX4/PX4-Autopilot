@@ -1271,51 +1271,6 @@ protected:
 	}
 };
 
-class MavlinkStreamCommandLong : public MavlinkStream
-{
-public:
-	const char *get_name()
-	{
-		return "COMMAND_LONG";
-	}
-
-	MavlinkStream *new_instance()
-	{
-		return new MavlinkStreamCommandLong();
-	}
-
-private:
-	MavlinkOrbSubscription *vehicle_command_sub;
-	struct vehicle_command_s *vehicle_command;
-
-protected:
-	void subscribe(Mavlink *mavlink)
-	{
-		vehicle_command_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_command));
-		vehicle_command = (struct vehicle_command_s *)vehicle_command_sub->get_data();
-	}
-
-	void send(const hrt_abstime t)
-	{
-		if (vehicle_command_sub->update(t)) {
-			if (!((vehicle_command->target_system == mavlink_system.sysid) && (vehicle_command->target_component == mavlink_system.compid))) {
-				mavlink_msg_command_long_send(_channel,
-						vehicle_command->target_system,
-						vehicle_command->target_component,
-						vehicle_command->command,
-						vehicle_command->confirmation,
-						vehicle_command->param1,
-						vehicle_command->param2,
-						vehicle_command->param3,
-						vehicle_command->param4,
-						vehicle_command->param5,
-						vehicle_command->param6,
-						vehicle_command->param7);
-			}
-		}
-	}
-};
-
 MavlinkStream *streams_list[] = {
 	new MavlinkStreamHeartbeat(),
 	new MavlinkStreamSysStatus(),
@@ -1342,6 +1297,5 @@ MavlinkStream *streams_list[] = {
 	new MavlinkStreamAttitudeControls(),
 	new MavlinkStreamNamedValueFloat(),
 	new MavlinkStreamCameraCapture(),
-	new MavlinkStreamCommandLong(),
 	nullptr
 };
