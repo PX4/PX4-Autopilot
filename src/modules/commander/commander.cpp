@@ -562,9 +562,6 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 				ret = true;
 
 			}
-//			else {
-//				mavlink_log_info(mavlink_fd, "Unsupported OVERRIDE_GOTO: %f %f %f %f %f %f %f %f", cmd->param1, cmd->param2, cmd->param3, cmd->param4, cmd->param5, cmd->param6, cmd->param7);
-//			}
 		}
 		break;
 

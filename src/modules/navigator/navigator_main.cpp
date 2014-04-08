@@ -163,6 +163,7 @@ private:
 	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
 	struct home_position_s				_home_pos;		/**< home position for RTL */
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< triplet of position setpoints */
+	struct position_setpoint_s			_goto_sp;		/**< stores the setpoint given by the VEHICLE_CMD_OVERRIDE_GOTO mavlink command */
 	struct mission_result_s				_mission_result;	/**< mission result for commander/mavlink */
 	struct mission_item_s				_mission_item;		/**< current mission item */
 	struct vehicle_command_s 			_vehicle_command;	/***< vehicle command */
@@ -223,6 +224,7 @@ private:
 		EVENT_READY_REQUESTED,
 		EVENT_LOITER_REQUESTED,
 		EVENT_MISSION_REQUESTED,
+		EVENT_GOTO_REQUESTED,
 		EVENT_RTL_REQUESTED,
 		EVENT_LAND_REQUESTED,
 		EVENT_MISSION_CHANGED,
@@ -308,6 +310,7 @@ private:
 	void		start_ready();
 	void		start_loiter();
 	void		start_mission();
+	void		start_goto();
 	void		start_rtl();
 	void		start_land();
 	void		start_land_home();
@@ -317,6 +320,7 @@ private:
 	 */
 	void		request_loiter_or_ready();
 	void		request_mission_if_available();
+	void		request_goto_if_available();
 
 	/**
 	 * Guards offboard mission
@@ -437,13 +441,15 @@ Navigator::Navigator() :
 	memset(&_mission_item, 0, sizeof(struct mission_item_s));
 	memset(&nav_states_str, 0, sizeof(nav_states_str));
 	memset(&_vehicle_command, 0, sizeof(_vehicle_command));
+	memset(&_goto_sp, 0, sizeof(_goto_sp));
 
 	nav_states_str[0] = "NONE";
 	nav_states_str[1] = "READY";
 	nav_states_str[2] = "LOITER";
 	nav_states_str[3] = "MISSION";
-	nav_states_str[4] = "RTL";
-	nav_states_str[5] = "LAND";
+	nav_states_str[4] = "GOTO";
+	nav_states_str[5] = "RTL";
+	nav_states_str[6] = "LAND";
 
 	/* Initialize state machine */
 	myState = NAV_STATE_NONE;
@@ -586,14 +592,22 @@ Navigator::vehicle_control_mode_update()
 void
 Navigator::vehicle_command_update()
 {
-
 	orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &_vehicle_command);
 
 	/* only handle MAV_CMD_OVERRIDE_GOTO commands in navigator */
 	//XXX MAV_CMD_OVERRIDE_GOTO with param2 == MAV_GOTO_HOLD_AT_CURRENT_POSITION is handled in commander
+
 	if (_vehicle_command.command == VEHICLE_CMD_OVERRIDE_GOTO) {
-		//XXX: set setpoint to data in command
-		mavlink_log_info(_mavlink_fd, "got goto command: lat %.7f lon %.7f, alt %.2f", (double)_vehicle_command.param5, (double)_vehicle_command.param6, (double)_vehicle_command.param7);
+		_goto_sp.lat = _vehicle_command.param5;
+		_goto_sp.lon = _vehicle_command.param6;
+		_goto_sp.alt = _vehicle_command.param7;
+		_goto_sp.yaw = _vehicle_command.param4;
+		_goto_sp.loiter_radius = _parameters.loiter_radius;
+		_goto_sp.loiter_direction = 1;
+		_goto_sp.pitch_min = 0.0f;
+		_goto_sp.type = SETPOINT_TYPE_LOITER;
+		_goto_sp.valid = true;
+		request_goto_if_available();
 	}
 
 }
@@ -859,7 +873,7 @@ Navigator::task_main()
 				_global_pos_valid = _global_pos.global_valid;
 
 				/* check if waypoint has been reached in MISSION, RTL and LAND modes */
-				if (myState == NAV_STATE_MISSION || myState == NAV_STATE_RTL || myState == NAV_STATE_LAND) {
+				if (myState == NAV_STATE_MISSION || myState == NAV_STATE_GOTO || myState == NAV_STATE_RTL || myState == NAV_STATE_LAND) {
 					if (check_mission_item_reached()) {
 						on_mission_item_reached();
 					}
@@ -978,6 +992,7 @@ StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 		/* EVENT_READY_REQUESTED */		{ACTION(&Navigator::start_ready), NAV_STATE_READY},
 		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), NAV_STATE_LOITER},
 		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
+		/* EVENT_GOTO_REQUESTED */		{ACTION(&Navigator::start_goto), NAV_STATE_GOTO},
 		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
 		/* EVENT_LAND_REQUESTED */		{ACTION(&Navigator::start_land), NAV_STATE_LAND},
 		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_NONE},
@@ -989,6 +1004,7 @@ StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 		/* EVENT_READY_REQUESTED */		{NO_ACTION, NAV_STATE_READY},
 		/* EVENT_LOITER_REQUESTED */		{NO_ACTION, NAV_STATE_READY},
 		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
+		/* EVENT_GOTO_REQUESTED */		{ACTION(&Navigator::start_goto), NAV_STATE_GOTO},
 		/* EVENT_RTL_REQUESTED */		{NO_ACTION, NAV_STATE_READY},
 		/* EVENT_LAND_REQUESTED */		{NO_ACTION, NAV_STATE_READY},
 		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_READY},
@@ -1000,6 +1016,7 @@ StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 		/* EVENT_READY_REQUESTED */		{NO_ACTION, NAV_STATE_LOITER},
 		/* EVENT_LOITER_REQUESTED */		{NO_ACTION, NAV_STATE_LOITER},
 		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
+		/* EVENT_GOTO_REQUESTED */		{ACTION(&Navigator::start_goto), NAV_STATE_GOTO},
 		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
 		/* EVENT_LAND_REQUESTED */		{ACTION(&Navigator::start_land), NAV_STATE_LAND},
 		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_LOITER},
@@ -1011,6 +1028,19 @@ StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 		/* EVENT_READY_REQUESTED */		{ACTION(&Navigator::start_ready), NAV_STATE_READY},
 		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), NAV_STATE_LOITER},
 		/* EVENT_MISSION_REQUESTED */		{NO_ACTION, NAV_STATE_MISSION},
+		/* EVENT_GOTO_REQUESTED */		{ACTION(&Navigator::start_goto), NAV_STATE_GOTO},
+		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
+		/* EVENT_LAND_REQUESTED */		{ACTION(&Navigator::start_land), NAV_STATE_LAND},
+		/* EVENT_MISSION_CHANGED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
+		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, NAV_STATE_MISSION},
+	},
+	{
+		/* NAV_STATE_GOTO */
+		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), NAV_STATE_NONE},
+		/* EVENT_READY_REQUESTED */		{NO_ACTION, NAV_STATE_GOTO},
+		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), NAV_STATE_LOITER},
+		/* EVENT_MISSION_REQUESTED */		{NO_ACTION, NAV_STATE_GOTO},
+		/* EVENT_GOTO_REQUESTED */		{NO_ACTION, NAV_STATE_GOTO},
 		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
 		/* EVENT_LAND_REQUESTED */		{ACTION(&Navigator::start_land), NAV_STATE_LAND},
 		/* EVENT_MISSION_CHANGED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
@@ -1022,6 +1052,7 @@ StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 		/* EVENT_READY_REQUESTED */		{ACTION(&Navigator::start_ready), NAV_STATE_READY},
 		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), NAV_STATE_LOITER},
 		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
+		/* EVENT_GOTO_REQUESTED */		{ACTION(&Navigator::start_goto), NAV_STATE_GOTO},
 		/* EVENT_RTL_REQUESTED */		{NO_ACTION, NAV_STATE_RTL},
 		/* EVENT_LAND_REQUESTED */		{ACTION(&Navigator::start_land_home), NAV_STATE_LAND},
 		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_RTL},
@@ -1033,6 +1064,7 @@ StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 		/* EVENT_READY_REQUESTED */		{ACTION(&Navigator::start_ready), NAV_STATE_READY},
 		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), NAV_STATE_LOITER},
 		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
+		/* EVENT_GOTO_REQUESTED */		{ACTION(&Navigator::start_goto), NAV_STATE_GOTO},
 		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
 		/* EVENT_LAND_REQUESTED */		{NO_ACTION, NAV_STATE_LAND},
 		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_LAND},
@@ -1235,6 +1267,17 @@ Navigator::set_mission_item()
 	}
 
 	_pos_sp_triplet_updated = true;
+}
+
+void
+Navigator::start_goto()
+{
+	_need_takeoff = true;
+	memcpy(&_pos_sp_triplet.current, &_goto_sp, sizeof(_goto_sp));
+	mavlink_log_info(_mavlink_fd, "#audio: heading to goto WP");
+	_pos_sp_triplet.next.valid = false;
+	_pos_sp_triplet_updated = true;
+	//warnx("got goto lat %.4f lon %.4f, alt %.4f", (double)_goto_sp.lat, (double)_goto_sp.lon, (double)_goto_sp.alt);
 }
 
 void
@@ -1460,6 +1503,17 @@ Navigator::request_mission_if_available()
 }
 
 void
+Navigator::request_goto_if_available()
+{
+	if (_goto_sp.valid) {
+		dispatch(EVENT_GOTO_REQUESTED);
+
+	} else {
+		request_loiter_or_ready();
+	}
+}
+
+void
 Navigator::position_setpoint_from_mission_item(position_setpoint_s *sp, mission_item_s *item)
 {
 	sp->valid = true;
@@ -1640,7 +1694,10 @@ Navigator::on_mission_item_reached()
 			mavlink_log_info(_mavlink_fd, "[navigator] mission completed");
 			request_loiter_or_ready();
 		}
-
+	} else if (myState == NAV_STATE_GOTO) {
+		mavlink_log_info(_mavlink_fd, "[navigator]goto wp reached");
+		_reset_loiter_pos = false;
+		request_loiter_or_ready();
 	} else if (myState == NAV_STATE_RTL) {
 		/* RTL completed */
 		if (_rtl_state == RTL_STATE_DESCEND) {
