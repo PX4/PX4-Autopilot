@@ -81,6 +81,7 @@
 #include "mavlink_messages.h"
 #include "mavlink_receiver.h"
 #include "mavlink_rate_limiter.h"
+#include "mavlink_commands.h"
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -1920,6 +1921,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 	struct vehicle_status_s *status = (struct vehicle_status_s *) status_sub->get_data();
 
+	MavlinkCommandsStream commands_stream(this, _channel);
+
 	/* add default streams depending on mode and intervals depending on datarate */
 	float rate_mult = _datarate / 1000.0f;
 
@@ -1981,6 +1984,9 @@ Mavlink::task_main(int argc, char *argv[])
 			/* switch HIL mode if required */
 			set_hil_enabled(status->hil_state == HIL_STATE_ON);
 		}
+
+		/* update commands stream */
+		commands_stream.update(t);
 
 		/* check for requested subscriptions */
 		if (_subscribe_to_stream != nullptr) {
