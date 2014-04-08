@@ -132,32 +132,47 @@ public:
         : map_(allocator)
     { }
 
-    TransferID* accessOrCreate(const OutgoingTransferRegistryKey& key, MonotonicTime new_deadline)
+    TransferID* accessOrCreate(const OutgoingTransferRegistryKey& key, MonotonicTime new_deadline);
+
+    bool exists(DataTypeID dtid, TransferType tt) const;
+
+    void cleanup(MonotonicTime ts);
+};
+
+// ----------------------------------------------------------------------------
+
+/*
+ * OutgoingTransferRegistry<>
+ */
+template <int NumStaticEntries>
+TransferID* OutgoingTransferRegistry<NumStaticEntries>::accessOrCreate(const OutgoingTransferRegistryKey& key,
+                                                                       MonotonicTime new_deadline)
+{
+    assert(!new_deadline.isZero());
+    Value* p = map_.access(key);
+    if (p == NULL)
     {
-        assert(!new_deadline.isZero());
-        Value* p = map_.access(key);
+        p = map_.insert(key, Value());
         if (p == NULL)
         {
-            p = map_.insert(key, Value());
-            if (p == NULL)
-            {
-                return NULL;
-            }
-            UAVCAN_TRACE("OutgoingTransferRegistry", "Created %s", key.toString().c_str());
+            return NULL;
         }
-        p->deadline = new_deadline;
-        return &p->tid;
+        UAVCAN_TRACE("OutgoingTransferRegistry", "Created %s", key.toString().c_str());
     }
+    p->deadline = new_deadline;
+    return &p->tid;
+}
 
-    bool exists(DataTypeID dtid, TransferType tt) const
-    {
-        return NULL != map_.findFirstKey(ExistenceCheckingPredicate(dtid, tt));
-    }
+template <int NumStaticEntries>
+bool OutgoingTransferRegistry<NumStaticEntries>::exists(DataTypeID dtid, TransferType tt) const
+{
+    return NULL != map_.findFirstKey(ExistenceCheckingPredicate(dtid, tt));
+}
 
-    void cleanup(MonotonicTime ts)
-    {
-        map_.removeWhere(DeadlineExpiredPredicate(ts));
-    }
-};
+template <int NumStaticEntries>
+void OutgoingTransferRegistry<NumStaticEntries>::cleanup(MonotonicTime ts)
+{
+    map_.removeWhere(DeadlineExpiredPredicate(ts));
+}
 
 }
