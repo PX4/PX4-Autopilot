@@ -125,10 +125,6 @@ class UAVCAN_EXPORT PoolAllocator : public IPoolAllocator, Noncopyable
          Node _aligner3;
     } pool_;
 
-    // Noncopyable
-    PoolAllocator(const PoolAllocator&);
-    PoolAllocator& operator=(const PoolAllocator&);
-
 public:
     static const int NumBlocks = int(PoolSize / BlockSize);
 
