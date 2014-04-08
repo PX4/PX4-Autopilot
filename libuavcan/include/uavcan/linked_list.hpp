@@ -49,83 +49,101 @@ public:
     T* get() const { return root_; }
     bool isEmpty() const { return get() == NULL; }
 
-    unsigned getLength() const
-    {
-        T* node = root_;
-        unsigned cnt = 0;
-        while (node)
-        {
-            cnt++;
-            node = node->getNextListNode();
-        }
-        return cnt;
-    }
+    unsigned getLength() const;
 
-    void insert(T* node)
-    {
-        assert(node);
-        remove(node);  // Making sure there will be no loops
-        node->setNextListNode(root_);
-        root_ = node;
-    }
+    void insert(T* node);
 
     /**
      * Inserts node A immediately before the node B where
      *  predicate(B) -> true.
      */
     template <typename Predicate>
-    void insertBefore(T* node, Predicate predicate)
-    {
-        assert(node);
-        remove(node);
+    void insertBefore(T* node, Predicate predicate);
 
-        if (root_ == NULL || predicate(root_))
-        {
-            insert(node);
-        }
-        else
-        {
-            T* p = root_;
-            while (p->getNextListNode())
-            {
-                if (predicate(p->getNextListNode()))
-                {
-                    break;
-                }
-                p = p->getNextListNode();
-            }
-            node->setNextListNode(p->getNextListNode());
-            p->setNextListNode(node);
-        }
-    }
-
-    bool remove(const T* node)
-    {
-        if (root_ == NULL || node == NULL)
-        {
-            return false;
-        }
-
-        if (root_ == node)
-        {
-            root_ = root_->getNextListNode();
-            return true;
-        }
-        else
-        {
-            T* p = root_;
-            while (p->getNextListNode())
-            {
-                if (p->getNextListNode() == node)
-                {
-                    p->setNextListNode(p->getNextListNode()->getNextListNode());
-                    return true;
-                }
-                p = p->getNextListNode();
-            }
-            return false;
-        }
-    }
+    bool remove(const T* node);
 };
+
+// ----------------------------------------------------------------------------
+
+/*
+ * LinkedListRoot<>
+ */
+template <typename T>
+unsigned LinkedListRoot<T>::getLength() const
+{
+    T* node = root_;
+    unsigned cnt = 0;
+    while (node)
+    {
+        cnt++;
+        node = node->getNextListNode();
+    }
+    return cnt;
+}
+
+template <typename T>
+void LinkedListRoot<T>::insert(T* node)
+{
+    assert(node);
+    remove(node);  // Making sure there will be no loops
+    node->setNextListNode(root_);
+    root_ = node;
+}
+
+template <typename T>
+template <typename Predicate>
+void LinkedListRoot<T>::insertBefore(T* node, Predicate predicate)
+{
+    assert(node);
+    remove(node);
+
+    if (root_ == NULL || predicate(root_))
+    {
+        insert(node);
+    }
+    else
+    {
+        T* p = root_;
+        while (p->getNextListNode())
+        {
+            if (predicate(p->getNextListNode()))
+            {
+                break;
+            }
+            p = p->getNextListNode();
+        }
+        node->setNextListNode(p->getNextListNode());
+        p->setNextListNode(node);
+    }
+}
+
+template <typename T>
+bool LinkedListRoot<T>::remove(const T* node)
+{
+    if (root_ == NULL || node == NULL)
+    {
+        return false;
+    }
+
+    if (root_ == node)
+    {
+        root_ = root_->getNextListNode();
+        return true;
+    }
+    else
+    {
+        T* p = root_;
+        while (p->getNextListNode())
+        {
+            if (p->getNextListNode() == node)
+            {
+                p->setNextListNode(p->getNextListNode()->getNextListNode());
+                return true;
+            }
+            p = p->getNextListNode();
+        }
+        return false;
+    }
+}
 
 }
