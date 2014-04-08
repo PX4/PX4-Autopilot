@@ -173,8 +173,8 @@ private:
 		float pitchsp_offset_deg;			/**< Pitch Setpoint Offset in deg */
 		float rollsp_offset_rad;			/**< Roll Setpoint Offset in rad */
 		float pitchsp_offset_rad;			/**< Pitch Setpoint Offset in rad */
-		float roll_max;						/**< Max Roll in rad */
-		float pitch_max;					/**< Max Pitch in rad */
+		float man_roll_max;						/**< Max Roll in rad */
+		float man_pitch_max;					/**< Max Pitch in rad */
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -213,8 +213,8 @@ private:
 		param_t trim_yaw;
 		param_t rollsp_offset_deg;
 		param_t pitchsp_offset_deg;
-		param_t roll_max;
-		param_t pitch_max;
+		param_t man_roll_max;
+		param_t man_pitch_max;
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -358,8 +358,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.rollsp_offset_deg = param_find("FW_RSP_OFF");
 	_parameter_handles.pitchsp_offset_deg = param_find("FW_PSP_OFF");
 
-	_parameter_handles.roll_max = param_find("FW_R_MAX");
-	_parameter_handles.pitch_max = param_find("FW_P_MAX");
+	_parameter_handles.man_roll_max = param_find("FW_MAN_R_MAX");
+	_parameter_handles.man_pitch_max = param_find("FW_MAN_P_MAX");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -428,10 +428,10 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.pitchsp_offset_deg, &(_parameters.pitchsp_offset_deg));
 	_parameters.rollsp_offset_rad = math::radians(_parameters.rollsp_offset_deg);
 	_parameters.pitchsp_offset_rad = math::radians(_parameters.pitchsp_offset_deg);
-	param_get(_parameter_handles.roll_max, &(_parameters.roll_max));
-	param_get(_parameter_handles.pitch_max, &(_parameters.pitch_max));
-	_parameters.roll_max = math::radians(_parameters.roll_max);
-	_parameters.pitch_max = math::radians(_parameters.pitch_max);
+	param_get(_parameter_handles.man_roll_max, &(_parameters.man_roll_max));
+	param_get(_parameter_handles.man_pitch_max, &(_parameters.man_pitch_max));
+	_parameters.man_roll_max = math::radians(_parameters.man_roll_max);
+	_parameters.man_pitch_max = math::radians(_parameters.man_pitch_max);
 
 
 	/* pitch control parameters */
@@ -717,8 +717,8 @@ FixedwingAttitudeControl::task_main()
 					 * the intended attitude setpoint. Later, after the rate control step the
 					 * trim is added again to the control signal.
 					 */
-					roll_sp = (_manual.roll * _parameters.roll_max - _parameters.trim_roll) + _parameters.rollsp_offset_rad;
-					pitch_sp = (-_manual.pitch * _parameters.pitch_max - _parameters.trim_pitch) + _parameters.pitchsp_offset_rad;
+					roll_sp = (_manual.roll * _parameters.man_roll_max - _parameters.trim_roll) + _parameters.rollsp_offset_rad;
+					pitch_sp = (-_manual.pitch * _parameters.man_pitch_max - _parameters.trim_pitch) + _parameters.pitchsp_offset_rad;
 					throttle_sp = _manual.throttle;
 					_actuators.control[4] = _manual.flaps;
 
