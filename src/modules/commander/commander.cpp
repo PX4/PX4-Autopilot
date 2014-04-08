@@ -473,18 +473,19 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		}
 
 	case VEHICLE_CMD_COMPONENT_ARM_DISARM: {
-            // Follow exactly what the mavlink spec says for values
-            if (cmd->param1 != 0.0f && cmd->param1 != 1.0f) {
-                return VEHICLE_CMD_RESULT_UNSUPPORTED;
-            }
-        
-            transition_result_t arming_res = arm_disarm(cmd->param1 == 1.0f, mavlink_fd, "arm/disarm component command");
-            if (arming_res == TRANSITION_DENIED) {
-                mavlink_log_critical(mavlink_fd, "#audio: REJECTING component arm cmd");
-                result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+            // Follow exactly what the mavlink spec says for values: 0.0f for disarm, 1.0f for arm.
+            // We use an float epsilon delta to test float equality.
+            if (cmd->param1 != 0.0f && (fabsf(cmd->param1 - 1.0f) > 2.0f * FLT_EPSILON)) {
+				mavlink_log_info(mavlink_fd, "Unsupported ARM_DISARM parameter: %.6f", cmd->param1);
             } else {
-				result = VEHICLE_CMD_RESULT_ACCEPTED;
-			}
+                transition_result_t arming_res = arm_disarm(cmd->param1 != 0.0f, mavlink_fd, "arm/disarm component command");
+                if (arming_res == TRANSITION_DENIED) {
+                    mavlink_log_critical(mavlink_fd, "#audio: REJECTING component arm cmd");
+                    result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+                } else {
+                    result = VEHICLE_CMD_RESULT_ACCEPTED;
+                }
+            }
 		}
 		break;
 
