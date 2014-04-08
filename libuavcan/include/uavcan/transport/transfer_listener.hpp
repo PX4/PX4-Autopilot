@@ -135,54 +135,13 @@ class UAVCAN_EXPORT TransferListener : public TransferListenerBase
             , bufmgr_(bufmgr)
         { }
 
-        bool operator()(const TransferBufferManagerKey& key, const TransferReceiver& value) const
-        {
-            if (value.isTimedOut(ts_))
-            {
-                UAVCAN_TRACE("TransferListener", "Timed out receiver: %s", key.toString().c_str());
-                /*
-                 * TransferReceivers do not own their buffers - this helps the Map<> container to copy them
-                 * around quickly and safely (using default assignment operator). Downside is that we need to
-                 * destroy the buffers manually.
-                 * Maybe it is not good that the predicate has side effects, but I ran out of better ideas.
-                 */
-                bufmgr_.remove(key);
-                return true;
-            }
-            return false;
-        }
+        bool operator()(const TransferBufferManagerKey& key, const TransferReceiver& value) const;
     };
 
-    void cleanup(MonotonicTime ts)
-    {
-        receivers_.removeWhere(TimedOutReceiverPredicate(ts, bufmgr_));
-        assert(receivers_.isEmpty() ? bufmgr_.isEmpty() : 1);
-    }
+    void cleanup(MonotonicTime ts);
 
 protected:
-    void handleFrame(const RxFrame& frame)
-    {
-        const TransferBufferManagerKey key(frame.getSrcNodeID(), frame.getTransferType());
-
-        TransferReceiver* recv = receivers_.access(key);
-        if (recv == NULL)
-        {
-            if (!frame.isFirst())
-            {
-                return;
-            }
-
-            TransferReceiver new_recv;
-            recv = receivers_.insert(key, new_recv);
-            if (recv == NULL)
-            {
-                UAVCAN_TRACE("TransferListener", "Receiver registration failed; frame %s", frame.toString().c_str());
-                return;
-            }
-        }
-        TransferBufferAccessor tba(bufmgr_, key);
-        handleReception(*recv, frame, tba);
-    }
+    void handleFrame(const RxFrame& frame);
 
 public:
     TransferListener(TransferPerfCounter& perf, const DataTypeDescriptor& data_type, IAllocator& allocator)
@@ -236,13 +195,7 @@ private:
 
     ExpectedResponseParams response_params_;
 
-    void handleFrame(const RxFrame& frame)
-    {
-        if (response_params_.match(frame))
-        {
-            BaseType::handleFrame(frame);
-        }
-    }
+    void handleFrame(const RxFrame& frame);
 
 public:
     ServiceResponseTransferListener(TransferPerfCounter& perf, const DataTypeDescriptor& data_type,
@@ -250,17 +203,94 @@ public:
         : BaseType(perf, data_type, allocator)
     { }
 
-    void setExpectedResponseParams(const ExpectedResponseParams& erp)
-    {
-        response_params_ = erp;
-    }
+    void setExpectedResponseParams(const ExpectedResponseParams& erp);
 
     const ExpectedResponseParams& getExpectedResponseParams() const { return response_params_; }
 
-    void stopAcceptingAnything()
-    {
-        response_params_ = ExpectedResponseParams();
-    }
+    void stopAcceptingAnything();
 };
+
+// ----------------------------------------------------------------------------
+
+/*
+ * TransferListener<>::TimedOutReceiverPredicate
+ */
+template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
+bool TransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers>::TimedOutReceiverPredicate::operator()
+(const TransferBufferManagerKey& key, const TransferReceiver& value) const
+{
+    if (value.isTimedOut(ts_))
+    {
+        UAVCAN_TRACE("TransferListener", "Timed out receiver: %s", key.toString().c_str());
+        /*
+         * TransferReceivers do not own their buffers - this helps the Map<> container to copy them
+         * around quickly and safely (using default assignment operator). Downside is that we need to
+         * destroy the buffers manually.
+         * Maybe it is not good that the predicate has side effects, but I ran out of better ideas.
+         */
+        bufmgr_.remove(key);
+        return true;
+    }
+    return false;
+}
+
+/*
+ * TransferListener<>
+ */
+template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
+void TransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers>::cleanup(MonotonicTime ts)
+{
+    receivers_.removeWhere(TimedOutReceiverPredicate(ts, bufmgr_));
+    assert(receivers_.isEmpty() ? bufmgr_.isEmpty() : 1);
+}
+
+template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
+void TransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers>::handleFrame(const RxFrame& frame)
+{
+    const TransferBufferManagerKey key(frame.getSrcNodeID(), frame.getTransferType());
+
+    TransferReceiver* recv = receivers_.access(key);
+    if (recv == NULL)
+    {
+        if (!frame.isFirst())
+        {
+            return;
+        }
+
+        TransferReceiver new_recv;
+        recv = receivers_.insert(key, new_recv);
+        if (recv == NULL)
+        {
+            UAVCAN_TRACE("TransferListener", "Receiver registration failed; frame %s", frame.toString().c_str());
+            return;
+        }
+    }
+    TransferBufferAccessor tba(bufmgr_, key);
+    handleReception(*recv, frame, tba);
+}
+
+/*
+ * ServiceResponseTransferListener<>
+ */
+template <unsigned MaxBufSize>
+void ServiceResponseTransferListener<MaxBufSize>::handleFrame(const RxFrame& frame)
+{
+    if (response_params_.match(frame))
+    {
+        BaseType::handleFrame(frame);
+    }
+}
+
+template <unsigned MaxBufSize>
+void ServiceResponseTransferListener<MaxBufSize>::setExpectedResponseParams(const ExpectedResponseParams& erp)
+{
+    response_params_ = erp;
+}
+
+template <unsigned MaxBufSize>
+void ServiceResponseTransferListener<MaxBufSize>::stopAcceptingAnything()
+{
+    response_params_ = ExpectedResponseParams();
+}
 
 }
