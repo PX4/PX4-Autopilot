@@ -396,7 +396,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 	bool ret = false;
 
 	/* only handle commands that are meant to be handled by this system and component */
-	if (cmd->target_system != status->system_id || cmd->target_component != status->component_id) {
+	if (cmd->target_system != status->system_id || ((cmd->target_component != status->component_id) && (cmd->target_component != 0))) { // component_id 0: valid for all components
 		return false;
 	}
 
