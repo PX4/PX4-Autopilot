@@ -763,7 +763,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		float thrust = armed.armed ? actuator.control[3] : 0.0f;
 
 		if (landed) {
-			if (alt_disp2 > land_disp2 && thrust > params.land_thr) {
+			if (alt_disp2 > land_disp2 || thrust > params.land_thr) {
 				landed = false;
 				landed_time = 0;
 			}
