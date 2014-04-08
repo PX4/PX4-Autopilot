@@ -819,16 +819,17 @@ MulticopterPositionControl::task_main()
 		/* target position prediction */
 		_tpos += _tvel * target_dt;
 
+		_vel_ff.zero();
+		_sp_move_rate.zero();
+		_att_rates_ff.zero();
+
+		/* control camera (pass through) even if position controller disabled */
 		control_camera();
 
 		if (_control_mode.flag_control_altitude_enabled ||
 		    _control_mode.flag_control_position_enabled ||
 		    _control_mode.flag_control_climb_rate_enabled ||
 		    _control_mode.flag_control_velocity_enabled) {
-
-			_vel_ff.zero();
-			_sp_move_rate.zero();
-			_att_rates_ff.zero();
 
 			/* select control source */
 			if (_control_mode.flag_control_manual_enabled) {
