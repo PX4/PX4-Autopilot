@@ -1252,8 +1252,6 @@ protected:
 	{
 		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status));
 		status = (struct vehicle_status_s *)status_sub->get_data();
-
-
 	}
 
 	void send(const hrt_abstime t)
