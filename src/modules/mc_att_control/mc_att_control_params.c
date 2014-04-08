@@ -175,30 +175,30 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
 PARAM_DEFINE_FLOAT(MC_YAW_FF, 0.5f);
 
 /**
- * Manual control scaling factor for roll
+ * Max manual roll
  *
  * @unit deg
  * @min 0.0
  * @max 90.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_SCALE_ROLL, 35.0f);
+PARAM_DEFINE_FLOAT(MC_MAN_R_MAX, 35.0f);
 
 /**
- * Manual control scaling factor for pitch
+ * Max manual pitch
  *
  * @unit deg
  * @min 0.0
  * @max 90.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_SCALE_PITCH, 35.0f);
+PARAM_DEFINE_FLOAT(MC_MAN_P_MAX, 35.0f);
 
 /**
- * Manual control scaling factor for yaw
+ * Max manual yaw rate
  *
  * @unit deg/s
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_SCALE_YAW, 120.0f);
+PARAM_DEFINE_FLOAT(MC_MAN_Y_MAX, 120.0f);
