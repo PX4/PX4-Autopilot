@@ -19,18 +19,9 @@ class UAVCAN_EXPORT ScalarCodec
 {
     BitStream& stream_;
 
-    template <int Size>
-    static void swapByteOrder(uint8_t (&bytes)[Size])
-    {
-        for (int i = 0, j = Size - 1; i < j; i++, j--)
-        {
-            const uint8_t c = bytes[i];
-            bytes[i] = bytes[j];
-            bytes[j] = c;
-        }
-    }
+    static void swapByteOrder(uint8_t* bytes, unsigned len);
 
-    template <int BitLen, int Size>
+    template <unsigned BitLen, unsigned Size>
     static typename EnableIf<(BitLen > 8)>::Type
     convertByteOrder(uint8_t (&bytes)[Size])
     {
@@ -48,18 +39,15 @@ class UAVCAN_EXPORT ScalarCodec
         assert(big_endian == false);
         if (big_endian)
         {
-            swapByteOrder(bytes);
+            swapByteOrder(bytes, Size);
         }
     }
 
-    template <int BitLen, int Size>
+    template <unsigned BitLen, unsigned Size>
     static typename EnableIf<(BitLen <= 8)>::Type
-    convertByteOrder(uint8_t (&bytes)[Size])
-    {
-        (void)bytes;
-    }
+    convertByteOrder(uint8_t (&)[Size]) { }
 
-    template <int BitLen, typename T>
+    template <unsigned BitLen, typename T>
     static typename EnableIf<std::numeric_limits<T>::is_signed && ((sizeof(T) * 8) > BitLen)>::Type
     fixTwosComplement(T& value)
     {
@@ -70,28 +58,22 @@ class UAVCAN_EXPORT ScalarCodec
         }
     }
 
-    template <int BitLen, typename T>
+    template <unsigned BitLen, typename T>
     static typename EnableIf<!std::numeric_limits<T>::is_signed || ((sizeof(T) * 8) == BitLen)>::Type
-    fixTwosComplement(T& value)
-    {
-        (void)value;
-    }
+    fixTwosComplement(T&) { }
 
-    template <int BitLen, typename T>
+    template <unsigned BitLen, typename T>
     static typename EnableIf<((sizeof(T) * 8) > BitLen)>::Type
     clearExtraBits(T& value)
     {
         value &= (T(1) << BitLen) - 1;  // Signedness doesn't matter
     }
 
-    template <int BitLen, typename T>
+    template <unsigned BitLen, typename T>
     static typename EnableIf<((sizeof(T) * 8) == BitLen)>::Type
-    clearExtraBits(T& value)
-    {
-        (void)value;
-    }
+    clearExtraBits(T&) { }
 
-    template <int BitLen, typename T>
+    template <unsigned BitLen, typename T>
     void validate()
     {
         StaticAssert<((sizeof(T) * 8) >= BitLen)>::check();
@@ -99,12 +81,15 @@ class UAVCAN_EXPORT ScalarCodec
         StaticAssert<std::numeric_limits<T>::is_signed ? (BitLen > 1) : 1>::check();
     }
 
+    int encodeBytesImpl(uint8_t* bytes, unsigned bitlen);
+    int decodeBytesImpl(uint8_t* bytes, unsigned bitlen);
+
 public:
     ScalarCodec(BitStream& stream)
         : stream_(stream)
     { }
 
-    template <int BitLen, typename T>
+    template <unsigned BitLen, typename T>
     int encode(const T value)
     {
         validate<BitLen, T>();
@@ -116,15 +101,10 @@ public:
         byte_union.value = value;
         clearExtraBits<BitLen>(byte_union.value);
         convertByteOrder<BitLen>(byte_union.bytes);
-        // Underlying stream class assumes that more significant bits have lower index, so we need to shift some.
-        if (BitLen % 8)
-        {
-            byte_union.bytes[BitLen / 8] <<= (8 - (BitLen % 8)) & 7;
-        }
-        return stream_.write(byte_union.bytes, BitLen);
+        return encodeBytesImpl(byte_union.bytes, BitLen);
     }
 
-    template <int BitLen, typename T>
+    template <unsigned BitLen, typename T>
     int decode(T& value)
     {
         validate<BitLen, T>();
@@ -133,20 +113,14 @@ public:
             T value;
             uint8_t bytes[sizeof(T)];
         } byte_union;
-        std::fill(byte_union.bytes, byte_union.bytes + sizeof(T), 0);
-
-        const int read_res = stream_.read(byte_union.bytes, BitLen);
-        if (read_res <= 0)
+        byte_union.value = T();
+        const int read_res = decodeBytesImpl(byte_union.bytes, BitLen);
+        if (read_res > 0)
         {
-            return read_res;
+            convertByteOrder<BitLen>(byte_union.bytes);
+            fixTwosComplement<BitLen>(byte_union.value);
+            value = byte_union.value;
         }
-        if (BitLen % 8)
-        {
-            byte_union.bytes[BitLen / 8] >>= (8 - (BitLen % 8)) & 7;  // As in encode(), vice versa
-        }
-        convertByteOrder<BitLen>(byte_union.bytes);
-        fixTwosComplement<BitLen>(byte_union.value);
-        value = byte_union.value;
         return read_res;
     }
 };
