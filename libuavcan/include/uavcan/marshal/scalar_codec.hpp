@@ -90,39 +90,47 @@ public:
     { }
 
     template <unsigned BitLen, typename T>
-    int encode(const T value)
-    {
-        validate<BitLen, T>();
-        union ByteUnion
-        {
-            T value;
-            uint8_t bytes[sizeof(T)];
-        } byte_union;
-        byte_union.value = value;
-        clearExtraBits<BitLen>(byte_union.value);
-        convertByteOrder<BitLen>(byte_union.bytes);
-        return encodeBytesImpl(byte_union.bytes, BitLen);
-    }
+    int encode(const T value);
 
     template <unsigned BitLen, typename T>
-    int decode(T& value)
-    {
-        validate<BitLen, T>();
-        union ByteUnion
-        {
-            T value;
-            uint8_t bytes[sizeof(T)];
-        } byte_union;
-        byte_union.value = T();
-        const int read_res = decodeBytesImpl(byte_union.bytes, BitLen);
-        if (read_res > 0)
-        {
-            convertByteOrder<BitLen>(byte_union.bytes);
-            fixTwosComplement<BitLen>(byte_union.value);
-            value = byte_union.value;
-        }
-        return read_res;
-    }
+    int decode(T& value);
 };
+
+// ----------------------------------------------------------------------------
+
+template <unsigned BitLen, typename T>
+int ScalarCodec::encode(const T value)
+{
+    validate<BitLen, T>();
+    union ByteUnion
+    {
+        T value;
+        uint8_t bytes[sizeof(T)];
+    } byte_union;
+    byte_union.value = value;
+    clearExtraBits<BitLen>(byte_union.value);
+    convertByteOrder<BitLen>(byte_union.bytes);
+    return encodeBytesImpl(byte_union.bytes, BitLen);
+}
+
+template <unsigned BitLen, typename T>
+int ScalarCodec::decode(T& value)
+{
+    validate<BitLen, T>();
+    union ByteUnion
+    {
+        T value;
+        uint8_t bytes[sizeof(T)];
+    } byte_union;
+    byte_union.value = T();
+    const int read_res = decodeBytesImpl(byte_union.bytes, BitLen);
+    if (read_res > 0)
+    {
+        convertByteOrder<BitLen>(byte_union.bytes);
+        fixTwosComplement<BitLen>(byte_union.value);
+        value = byte_union.value;
+    }
+    return read_res;
+}
 
 }
