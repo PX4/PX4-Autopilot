@@ -5,6 +5,7 @@
 #pragma once
 
 #include <uavcan/util/compile_time.hpp>
+#include <uavcan/impl_constants.hpp>
 
 namespace uavcan
 {
@@ -64,6 +65,6 @@ public:
 
 
 template <typename T>
-struct YamlStreamer;
+struct UAVCAN_EXPORT YamlStreamer;
 
 }

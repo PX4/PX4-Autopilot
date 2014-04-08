@@ -16,7 +16,7 @@ namespace uavcan
 {
 
 template <typename T>
-class LazyConstructor
+class UAVCAN_EXPORT LazyConstructor
 {
     union
     {

@@ -7,6 +7,7 @@
 #include <cassert>
 #include <uavcan/error.hpp>
 #include <uavcan/stdint.hpp>
+#include <uavcan/impl_constants.hpp>
 #include <uavcan/transport/perf_counter.hpp>
 #include <uavcan/transport/transfer_listener.hpp>
 #include <uavcan/transport/outgoing_transfer_registry.hpp>
@@ -16,9 +17,9 @@
 namespace uavcan
 {
 
-class Dispatcher;
+class UAVCAN_EXPORT Dispatcher;
 
-class LoopbackFrameListenerBase : public LinkedListNode<LoopbackFrameListenerBase>, Noncopyable
+class UAVCAN_EXPORT LoopbackFrameListenerBase : public LinkedListNode<LoopbackFrameListenerBase>, Noncopyable
 {
     Dispatcher& dispatcher_;
 
@@ -40,7 +41,7 @@ public:
 };
 
 
-class LoopbackFrameListenerRegistry : Noncopyable
+class UAVCAN_EXPORT LoopbackFrameListenerRegistry : Noncopyable
 {
     LinkedListRoot<LoopbackFrameListenerBase> listeners_;
 
@@ -54,7 +55,7 @@ public:
 };
 
 
-class Dispatcher : Noncopyable
+class UAVCAN_EXPORT Dispatcher : Noncopyable
 {
     CanIOManager canio_;
     ISystemClock& sysclock_;

@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <uavcan/stdint.hpp>
+#include <uavcan/impl_constants.hpp>
 
 namespace uavcan
 {
@@ -23,7 +24,7 @@ namespace uavcan
  * crc.hexdigest()
  * '29B1'
  */
-class TransferCRC
+class UAVCAN_EXPORT TransferCRC
 {
     static const uint16_t Table[256];
     uint16_t value_;

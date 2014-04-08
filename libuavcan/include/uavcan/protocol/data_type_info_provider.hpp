@@ -13,7 +13,7 @@
 namespace uavcan
 {
 
-class DataTypeInfoProvider : Noncopyable
+class UAVCAN_EXPORT DataTypeInfoProvider : Noncopyable
 {
     typedef MethodBinder<DataTypeInfoProvider*,
                          void (DataTypeInfoProvider::*)(const protocol::ComputeAggregateTypeSignature::Request&,

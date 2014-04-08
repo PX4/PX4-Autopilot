@@ -9,12 +9,13 @@
 #include <string>
 #include <algorithm>
 #include <uavcan/stdint.hpp>
+#include <uavcan/impl_constants.hpp>
 #include <uavcan/transport/transfer.hpp>
 
 namespace uavcan
 {
 
-class TransferCRC;
+class UAVCAN_EXPORT TransferCRC;
 
 enum DataTypeKind
 {
@@ -24,7 +25,7 @@ enum DataTypeKind
 };
 
 
-class DataTypeID
+class UAVCAN_EXPORT DataTypeID
 {
     uint16_t value_;
 
@@ -62,7 +63,7 @@ public:
  * Output xor: 0xFFFFFFFFFFFFFFFF
  * Check: 0x62EC59E3F1A4F00A
  */
-class DataTypeSignatureCRC
+class UAVCAN_EXPORT DataTypeSignatureCRC
 {
     uint64_t crc_;
 
@@ -99,7 +100,7 @@ public:
 };
 
 
-class DataTypeSignature
+class UAVCAN_EXPORT DataTypeSignature
 {
     uint64_t value_;
 
@@ -120,7 +121,7 @@ public:
 };
 
 
-class DataTypeDescriptor
+class UAVCAN_EXPORT DataTypeDescriptor
 {
     DataTypeKind kind_;
     DataTypeID id_;

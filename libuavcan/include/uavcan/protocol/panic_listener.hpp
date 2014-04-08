@@ -35,7 +35,7 @@ template <
           typename Callback = void (*)(const ReceivedDataStructure<protocol::Panic>&)
 #endif
           >
-class PanicListener : Noncopyable
+class UAVCAN_EXPORT PanicListener : Noncopyable
 {
     typedef MethodBinder<PanicListener*, void (PanicListener::*)(const ReceivedDataStructure<protocol::Panic>&)>
         PanicMsgCallback;

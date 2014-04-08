@@ -21,7 +21,7 @@ namespace uavcan
 
 typedef std::bitset<DataTypeID::Max + 1> DataTypeIDMask;
 
-class GlobalDataTypeRegistry : Noncopyable
+class UAVCAN_EXPORT GlobalDataTypeRegistry : Noncopyable
 {
     struct Entry : public LinkedListNode<Entry>
     {
@@ -133,7 +133,7 @@ public:
 
 
 template <typename Type>
-struct DefaultDataTypeRegistrator
+struct UAVCAN_EXPORT DefaultDataTypeRegistrator
 {
     DefaultDataTypeRegistrator()
     {

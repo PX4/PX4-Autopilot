@@ -23,7 +23,7 @@ namespace uavcan
  * DataStruct - instantiable class
  */
 template <typename DataSpec, typename DataStruct>
-class GenericPublisher
+class UAVCAN_EXPORT GenericPublisher
 {
     enum
     {

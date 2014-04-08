@@ -8,13 +8,14 @@
 #include <limits>
 #include <string>
 #include <uavcan/stdint.hpp>
+#include <uavcan/impl_constants.hpp>
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/marshal/bit_stream.hpp>
 
 namespace uavcan
 {
 
-class ScalarCodec
+class UAVCAN_EXPORT ScalarCodec
 {
     BitStream& stream_;
 

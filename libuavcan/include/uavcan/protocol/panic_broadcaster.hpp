@@ -11,7 +11,7 @@
 namespace uavcan
 {
 
-class PanicBroadcaster : private TimerBase
+class UAVCAN_EXPORT PanicBroadcaster : private TimerBase
 {
     Publisher<protocol::Panic> pub_;
     protocol::Panic msg_;

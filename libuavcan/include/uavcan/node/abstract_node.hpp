@@ -4,13 +4,14 @@
 
 #pragma once
 
+#include <uavcan/impl_constants.hpp>
 #include <uavcan/node/scheduler.hpp>
 #include <uavcan/node/marshal_buffer.hpp>
 
 namespace uavcan
 {
 
-class INode
+class UAVCAN_EXPORT INode
 {
 public:
     virtual ~INode() { }

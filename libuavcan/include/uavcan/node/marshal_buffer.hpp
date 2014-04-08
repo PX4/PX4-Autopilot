@@ -4,13 +4,14 @@
 
 #pragma once
 
+#include <uavcan/impl_constants.hpp>
 #include <uavcan/transport/transfer.hpp>
 #include <uavcan/transport/transfer_buffer.hpp>
 
 namespace uavcan
 {
 
-class IMarshalBuffer : public ITransferBuffer
+class UAVCAN_EXPORT IMarshalBuffer : public ITransferBuffer
 {
 public:
     virtual const uint8_t* getDataPtr() const = 0;
@@ -18,7 +19,7 @@ public:
 };
 
 
-class IMarshalBufferProvider
+class UAVCAN_EXPORT IMarshalBufferProvider
 {
 public:
     virtual ~IMarshalBufferProvider() { }
@@ -27,7 +28,7 @@ public:
 
 
 template <unsigned MaxSize_ = MaxTransferPayloadLen>
-class MarshalBufferProvider : public IMarshalBufferProvider
+class UAVCAN_EXPORT MarshalBufferProvider : public IMarshalBufferProvider
 {
     class Buffer : public IMarshalBuffer
     {

@@ -21,7 +21,7 @@ namespace uavcan
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
 
 template <typename ArrayType_>
-class CharArrayFormatter
+class UAVCAN_EXPORT CharArrayFormatter
 {
     ArrayType_& array_;
 
@@ -99,7 +99,7 @@ public:
 #else
 
 template <typename ArrayType_>
-class CharArrayFormatter
+class UAVCAN_EXPORT CharArrayFormatter
 {
     ArrayType_& array_;
 

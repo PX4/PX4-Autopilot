@@ -11,7 +11,7 @@
 namespace uavcan
 {
 
-class TransportStatsProvider : Noncopyable
+class UAVCAN_EXPORT TransportStatsProvider : Noncopyable
 {
     typedef MethodBinder<const TransportStatsProvider*,
                          void (TransportStatsProvider::*)(const protocol::GetTransportStats::Request&,

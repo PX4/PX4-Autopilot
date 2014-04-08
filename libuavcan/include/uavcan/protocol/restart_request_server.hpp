@@ -11,7 +11,7 @@
 namespace uavcan
 {
 
-class IRestartRequestHandler
+class UAVCAN_EXPORT IRestartRequestHandler
 {
 public:
     virtual ~IRestartRequestHandler() { }
@@ -19,7 +19,7 @@ public:
 };
 
 
-class RestartRequestServer : Noncopyable
+class UAVCAN_EXPORT RestartRequestServer : Noncopyable
 {
     typedef MethodBinder<const RestartRequestServer*,
                          void (RestartRequestServer::*)(const ReceivedDataStructure<protocol::RestartNode::Request>&,

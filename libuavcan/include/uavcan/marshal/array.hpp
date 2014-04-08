@@ -28,7 +28,7 @@ enum ArrayMode { ArrayModeStatic, ArrayModeDynamic };
 
 
 template <unsigned Size>
-class StaticArrayBase
+class UAVCAN_EXPORT StaticArrayBase
 {
 public:
     enum { SizeBitLen = 0 };
@@ -57,7 +57,7 @@ protected:
 
 
 template <unsigned MaxSize>
-class DynamicArrayBase
+class UAVCAN_EXPORT DynamicArrayBase
 {
 protected:
     typedef IntegerSpec<IntegerBitLen<MaxSize>::Result, SignednessUnsigned, CastModeSaturate> RawSizeType;
@@ -123,8 +123,8 @@ public:
  * Statically allocated array with optional dynamic-like behavior
  */
 template <typename T, ArrayMode ArrayMode, unsigned MaxSize>
-class ArrayImpl : public Select<ArrayMode == ArrayModeDynamic,
-                                DynamicArrayBase<MaxSize>, StaticArrayBase<MaxSize> >::Result
+class UAVCAN_EXPORT ArrayImpl : public Select<ArrayMode == ArrayModeDynamic,
+                                              DynamicArrayBase<MaxSize>, StaticArrayBase<MaxSize> >::Result
 {
     typedef ArrayImpl<T, ArrayMode, MaxSize> SelfType;
     typedef typename Select<ArrayMode == ArrayModeDynamic,
@@ -198,7 +198,7 @@ public:
  * Bit array specialization
  */
 template <unsigned MaxSize, ArrayMode ArrayMode, CastMode CastMode>
-class ArrayImpl<IntegerSpec<1, SignednessUnsigned, CastMode>, ArrayMode, MaxSize>
+class UAVCAN_EXPORT ArrayImpl<IntegerSpec<1, SignednessUnsigned, CastMode>, ArrayMode, MaxSize>
     : public std::bitset<MaxSize>
     , public Select<ArrayMode == ArrayModeDynamic, DynamicArrayBase<MaxSize>, StaticArrayBase<MaxSize> >::Result
 {
@@ -228,7 +228,7 @@ template <typename T, ArrayMode ArrayMode> class ArrayImpl<T, ArrayMode, 0>;
 
 
 template <typename T, ArrayMode ArrayMode, unsigned MaxSize_>
-class Array : public ArrayImpl<T, ArrayMode, MaxSize_>
+class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
 {
     typedef ArrayImpl<T, ArrayMode, MaxSize_> Base;
     typedef Array<T, ArrayMode, MaxSize_> SelfType;
@@ -691,12 +691,14 @@ public:
 };
 
 template <typename R, typename T, ArrayMode ArrayMode, unsigned MaxSize>
+UAVCAN_EXPORT
 inline bool operator==(const R& rhs, const Array<T, ArrayMode, MaxSize>& lhs)
 {
     return lhs.operator==(rhs);
 }
 
 template <typename R, typename T, ArrayMode ArrayMode, unsigned MaxSize>
+UAVCAN_EXPORT
 inline bool operator!=(const R& rhs, const Array<T, ArrayMode, MaxSize>& lhs)
 {
     return lhs.operator!=(rhs);
@@ -704,7 +706,7 @@ inline bool operator!=(const R& rhs, const Array<T, ArrayMode, MaxSize>& lhs)
 
 
 template <typename T, ArrayMode ArrayMode, unsigned MaxSize>
-class YamlStreamer<Array<T, ArrayMode, MaxSize> >
+class UAVCAN_EXPORT YamlStreamer<Array<T, ArrayMode, MaxSize> >
 {
     typedef Array<T, ArrayMode, MaxSize> ArrayType;
 

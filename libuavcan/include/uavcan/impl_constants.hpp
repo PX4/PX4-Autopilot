@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include <uavcan/util/compile_time.hpp>
-
 /**
  * UAVCAN version definition
  * // TODO: Use git short hash as build id
@@ -54,6 +52,13 @@
 # define UAVCAN_PACKED_END
 #endif
 
+/**
+ * Declaration visibility
+ * http://gcc.gnu.org/wiki/Visibility
+ */
+#ifndef UAVCAN_EXPORT
+# define UAVCAN_EXPORT
+#endif
 
 namespace uavcan
 {
@@ -78,9 +83,13 @@ enum { MemPoolAlignment = 16 };
 typedef char _alignment_check_for_MEM_POOL_BLOCK_SIZE[((MemPoolBlockSize & (MemPoolAlignment - 1)) == 0) ? 1 : -1];
 
 template <typename T>
-struct IsDynamicallyAllocatable
+struct UAVCAN_EXPORT IsDynamicallyAllocatable
 {
-    static void check() { StaticAssert<sizeof(T) <= MemPoolBlockSize>::check(); }
+    static void check()
+    {
+        char dummy[(sizeof(T) <= MemPoolBlockSize) ? 1 : -1];
+        (void)dummy;
+    }
 };
 
 }

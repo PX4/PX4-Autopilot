@@ -23,9 +23,9 @@
 namespace uavcan
 {
 
-class TimerBase;
+class UAVCAN_EXPORT TimerBase;
 
-struct TimerEvent
+struct UAVCAN_EXPORT TimerEvent
 {
     MonotonicTime scheduled_time;
     MonotonicTime real_time;
@@ -37,7 +37,7 @@ struct TimerEvent
 };
 
 
-class TimerBase : private DeadlineHandler
+class UAVCAN_EXPORT TimerBase : private DeadlineHandler
 {
     MonotonicDuration period_;
 
@@ -65,7 +65,7 @@ public:
 
 
 template <typename Callback_>
-class TimerEventForwarder : public TimerBase
+class UAVCAN_EXPORT TimerEventForwarder : public TimerBase
 {
 public:
     typedef Callback_ Callback;

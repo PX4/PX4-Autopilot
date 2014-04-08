@@ -17,7 +17,7 @@ namespace uavcan
 /**
  * This interface is used by other library components that need dynamic memory.
  */
-class IAllocator
+class UAVCAN_EXPORT IAllocator
 {
 public:
     virtual ~IAllocator() { }
@@ -26,7 +26,7 @@ public:
 };
 
 
-class IPoolAllocator : public IAllocator
+class UAVCAN_EXPORT IPoolAllocator : public IAllocator
 {
 public:
     virtual bool isInPool(const void* ptr) const = 0;
@@ -35,7 +35,7 @@ public:
 
 
 template <int MaxPools>
-class PoolManager : public IAllocator, Noncopyable
+class UAVCAN_EXPORT PoolManager : public IAllocator, Noncopyable
 {
     IPoolAllocator* pools_[MaxPools];
 
@@ -108,7 +108,7 @@ public:
 
 
 template <std::size_t PoolSize, std::size_t BlockSize>
-class PoolAllocator : public IPoolAllocator, Noncopyable
+class UAVCAN_EXPORT PoolAllocator : public IPoolAllocator, Noncopyable
 {
     union Node
     {

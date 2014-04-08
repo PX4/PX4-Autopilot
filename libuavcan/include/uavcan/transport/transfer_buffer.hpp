@@ -20,7 +20,7 @@ UAVCAN_PACKED_BEGIN
 /**
  * API for transfer buffer users.
  */
-class ITransferBuffer
+class UAVCAN_EXPORT ITransferBuffer
 {
 public:
     virtual ~ITransferBuffer() { }
@@ -32,7 +32,7 @@ public:
 /**
  * Internal for TransferBufferManager
  */
-class TransferBufferManagerKey
+class UAVCAN_EXPORT TransferBufferManagerKey
 {
     NodeID node_id_;
     uint8_t transfer_type_;
@@ -67,7 +67,7 @@ public:
 /**
  * Internal for TransferBufferManager
  */
-class TransferBufferManagerEntry : public ITransferBuffer, Noncopyable
+class UAVCAN_EXPORT TransferBufferManagerEntry : public ITransferBuffer, Noncopyable
 {
     TransferBufferManagerKey key_;
 
@@ -96,7 +96,7 @@ public:
  * reset() call releases all memory blocks.
  * Supports unordered write operations - from higher to lower offsets
  */
-class DynamicTransferBufferManagerEntry
+class UAVCAN_EXPORT DynamicTransferBufferManagerEntry
     : public TransferBufferManagerEntry
     , public LinkedListNode<DynamicTransferBufferManagerEntry>
 {
@@ -149,7 +149,7 @@ UAVCAN_PACKED_END
  * Standalone static buffer
  */
 template <unsigned Size>
-class StaticTransferBuffer : public ITransferBuffer
+class UAVCAN_EXPORT StaticTransferBuffer : public ITransferBuffer
 {
     uint8_t data_[Size];
     unsigned max_write_pos_;
@@ -222,7 +222,7 @@ public:
  * Statically allocated storage for buffer manager
  */
 template <unsigned Size>
-class StaticTransferBufferManagerEntry : public TransferBufferManagerEntry
+class UAVCAN_EXPORT StaticTransferBufferManagerEntry : public TransferBufferManagerEntry
 {
     StaticTransferBuffer<Size> buf_;
 
@@ -278,7 +278,7 @@ public:
 /**
  * Manages different storage types (static/dynamic) for transfer reception logic.
  */
-class ITransferBufferManager
+class UAVCAN_EXPORT ITransferBufferManager
 {
 public:
     virtual ~ITransferBufferManager() { }
@@ -290,7 +290,7 @@ public:
 /**
  * Convinience class.
  */
-class TransferBufferAccessor
+class UAVCAN_EXPORT TransferBufferAccessor
 {
     ITransferBufferManager& bufmgr_;
     const TransferBufferManagerKey key_;
@@ -311,7 +311,7 @@ public:
  * Buffer manager implementation.
  */
 template <unsigned MaxBufSize, unsigned NumStaticBufs>
-class TransferBufferManager : public ITransferBufferManager, Noncopyable
+class UAVCAN_EXPORT TransferBufferManager : public ITransferBufferManager, Noncopyable
 {
     typedef StaticTransferBufferManagerEntry<MaxBufSize> StaticBufferType;
 
@@ -493,7 +493,7 @@ public:
 };
 
 template <>
-class TransferBufferManager<0, 0> : public ITransferBufferManager
+class UAVCAN_EXPORT TransferBufferManager<0, 0> : public ITransferBufferManager
 {
 public:
     TransferBufferManager() { }

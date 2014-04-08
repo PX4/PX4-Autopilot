@@ -29,10 +29,10 @@ template <typename DataType_,
 #endif
           unsigned NumStaticReceivers = 2,
           unsigned NumStaticBufs = 1>
-class ServiceServer : public GenericSubscriber<DataType_, typename DataType_::Request,
-                                               typename TransferListenerInstantiationHelper<typename DataType_::Request,
-                                                                                            NumStaticReceivers,
-                                                                                            NumStaticBufs>::Type>
+class UAVCAN_EXPORT ServiceServer
+    : public GenericSubscriber<DataType_, typename DataType_::Request,
+                               typename TransferListenerInstantiationHelper<typename DataType_::Request,
+                                                                            NumStaticReceivers, NumStaticBufs>::Type>
 {
 public:
     typedef DataType_ DataType;

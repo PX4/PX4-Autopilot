@@ -16,7 +16,7 @@
 namespace uavcan
 {
 
-class ILogSink
+class UAVCAN_EXPORT ILogSink
 {
 public:
     typedef typename StorageType<typename protocol::debug::LogLevel::FieldTypes::value>::Type LogLevel;
@@ -35,7 +35,7 @@ public:
 };
 
 
-class Logger
+class UAVCAN_EXPORT Logger
 {
 public:
     typedef ILogSink::LogLevel LogLevel;

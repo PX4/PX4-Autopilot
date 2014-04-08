@@ -34,7 +34,7 @@ struct NativeFloatSelector
 };
 
 
-class IEEE754Converter
+class UAVCAN_EXPORT IEEE754Converter
 {
     // TODO: Non-IEEE float support for float32 and float64
     static uint16_t nativeNonIeeeToHalf(float value);
@@ -102,7 +102,7 @@ template <> struct IEEE754Limits<64>
 
 
 template <unsigned BitLen_, CastMode CastMode>
-class FloatSpec : public IEEE754Limits<BitLen_>
+class UAVCAN_EXPORT FloatSpec : public IEEE754Limits<BitLen_>
 {
     FloatSpec();
 
@@ -184,7 +184,7 @@ private:
 
 
 template <unsigned BitLen, CastMode CastMode>
-struct YamlStreamer<FloatSpec<BitLen, CastMode> >
+struct UAVCAN_EXPORT YamlStreamer<FloatSpec<BitLen, CastMode> >
 {
     typedef typename FloatSpec<BitLen, CastMode>::StorageType StorageType;
 

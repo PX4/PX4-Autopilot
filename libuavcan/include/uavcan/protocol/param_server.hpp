@@ -12,7 +12,7 @@
 namespace uavcan
 {
 
-class IParamManager
+class UAVCAN_EXPORT IParamManager
 {
 public:
     typedef typename StorageType<typename protocol::param::GetSet::Response::FieldTypes::name>::Type ParamName;
@@ -63,7 +63,7 @@ public:
 };
 
 
-class ParamServer
+class UAVCAN_EXPORT ParamServer
 {
     typedef MethodBinder<ParamServer*, void (ParamServer::*)(const protocol::param::GetSet::Request&,
                                                              protocol::param::GetSet::Response&)> GetSetCallback;

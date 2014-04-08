@@ -19,7 +19,7 @@ namespace uavcan
 {
 
 template <typename DataType_>
-class ReceivedDataStructure : public DataType_
+class UAVCAN_EXPORT ReceivedDataStructure : public DataType_
 {
     const IncomingTransfer* transfer_;
 
@@ -69,7 +69,7 @@ static Stream& operator<<(Stream& s, const ReceivedDataStructure<DataType>& rds)
 
 
 template <typename DataStruct_, unsigned NumStaticReceivers_, unsigned NumStaticBufs_>
-class TransferListenerInstantiationHelper
+class UAVCAN_EXPORT TransferListenerInstantiationHelper
 {
     enum { DataTypeMaxByteLen = BitLenToByteLen<DataStruct_::MaxBitLen>::Result };
     enum { NeedsBuffer = int(DataTypeMaxByteLen) > int(MaxSingleFrameTransferPayloadLen) };
@@ -83,7 +83,7 @@ public:
 
 
 template <typename DataSpec, typename DataStruct, typename TransferListenerType>
-class GenericSubscriber : Noncopyable
+class UAVCAN_EXPORT GenericSubscriber : Noncopyable
 {
     typedef GenericSubscriber<DataSpec, DataStruct, TransferListenerType> SelfType;
 

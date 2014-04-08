@@ -9,14 +9,13 @@
 #include <string>
 #include <uavcan/transport/transfer.hpp>
 #include <uavcan/transport/can_io.hpp>
+#include <uavcan/impl_constants.hpp>
 #include <uavcan/data_type.hpp>
 
 namespace uavcan
 {
 
-struct CanRxFrame;
-
-class Frame
+class UAVCAN_EXPORT Frame
 {
     uint8_t payload_[sizeof(CanFrame::data)];
     TransferType transfer_type_;
@@ -87,7 +86,7 @@ public:
 };
 
 
-class RxFrame : public Frame
+class UAVCAN_EXPORT RxFrame : public Frame
 {
     MonotonicTime ts_mono_;
     UtcTime ts_utc_;

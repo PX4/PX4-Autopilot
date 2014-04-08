@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <uavcan/impl_constants.hpp>
+
 namespace uavcan
 {
 /**
@@ -33,6 +35,7 @@ enum
 #if __GNUC__
 __attribute__ ((noreturn))
 #endif
+UAVCAN_EXPORT
 void handleFatalError(const char* msg);
 
 }

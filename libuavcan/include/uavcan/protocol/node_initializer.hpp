@@ -14,7 +14,7 @@
 namespace uavcan
 {
 
-struct NodeInitializationResult
+struct UAVCAN_EXPORT NodeInitializationResult
 {
     NodeID conflicting_node;
     bool isOk() const { return !conflicting_node.isValid(); }
@@ -24,7 +24,7 @@ struct NodeInitializationResult
  * This class does not issue GlobalDiscoveryRequest, assuming that it was done already by the caller.
  * Instantiated object can execute() only once. Objects of this class are intended for stack allocation.
  */
-class NodeInitializer : Noncopyable
+class UAVCAN_EXPORT NodeInitializer : Noncopyable
 {
     typedef std::bitset<NodeID::Max + 1> NodeIDMask;
     typedef MethodBinder<NodeInitializer*,

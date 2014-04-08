@@ -17,7 +17,7 @@ namespace uavcan
 enum Signedness { SignednessUnsigned, SignednessSigned };
 
 template <unsigned BitLen_, Signedness Signedness, CastMode CastMode>
-class IntegerSpec
+class UAVCAN_EXPORT IntegerSpec
 {
     struct ErrorNoSuchInteger;
 
@@ -132,7 +132,7 @@ struct IsIntegerSpec<IntegerSpec<BitLen, Signedness, CastMode> >
 
 
 template <unsigned BitLen, Signedness Signedness, CastMode CastMode>
-struct YamlStreamer<IntegerSpec<BitLen, Signedness, CastMode> >
+struct UAVCAN_EXPORT YamlStreamer<IntegerSpec<BitLen, Signedness, CastMode> >
 {
     typedef IntegerSpec<BitLen, Signedness, CastMode> RawType;
     typedef typename RawType::StorageType StorageType;

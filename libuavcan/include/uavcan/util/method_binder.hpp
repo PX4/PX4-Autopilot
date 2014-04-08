@@ -12,7 +12,7 @@ namespace uavcan
 {
 
 template <typename ObjectPtr, typename MemFunPtr>
-class MethodBinder
+class UAVCAN_EXPORT MethodBinder
 {
     ObjectPtr obj_;
     MemFunPtr fun_;

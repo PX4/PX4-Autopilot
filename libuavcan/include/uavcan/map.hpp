@@ -22,7 +22,7 @@ namespace uavcan
  *  Size of Key + Value + padding must not exceed MemPoolBlockSize.
  */
 template <typename Key, typename Value, unsigned NumStaticEntries>
-class Map : Noncopyable
+class UAVCAN_EXPORT Map : Noncopyable
 {
     UAVCAN_PACKED_BEGIN
     struct KVPair

@@ -5,11 +5,12 @@
 #pragma once
 
 #include <uavcan/stdint.hpp>
+#include <uavcan/impl_constants.hpp>
 
 namespace uavcan
 {
 
-class TransferPerfCounter
+class UAVCAN_EXPORT TransferPerfCounter
 {
     uint64_t transfers_tx_;
     uint64_t transfers_rx_;

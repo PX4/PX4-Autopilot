@@ -6,6 +6,7 @@
 
 #include <cstdlib>
 #include <cassert>
+#include <uavcan/impl_constants.hpp>
 #include <uavcan/error.hpp>
 #include <uavcan/data_type.hpp>
 #include <uavcan/transport/crc.hpp>
@@ -15,7 +16,7 @@
 namespace uavcan
 {
 
-class TransferSender
+class UAVCAN_EXPORT TransferSender
 {
     const MonotonicDuration max_transfer_interval_;
     const DataTypeDescriptor& data_type_;

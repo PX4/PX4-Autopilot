@@ -7,6 +7,7 @@
 
 #include <cstdlib>
 #include <cassert>
+#include <uavcan/impl_constants.hpp>
 
 namespace uavcan
 {
@@ -14,7 +15,7 @@ namespace uavcan
  * Classes that are supposed to be linked-listed should derive this.
  */
 template <typename T>
-class LinkedListNode
+class UAVCAN_EXPORT LinkedListNode
 {
     T* next_;
 
@@ -36,7 +37,7 @@ public:
  * Linked list root.
  */
 template <typename T>
-class LinkedListRoot
+class UAVCAN_EXPORT LinkedListRoot
 {
     T* root_;
 

@@ -15,7 +15,7 @@ namespace uavcan
 /**
  * System clock interface - monotonic and UTC.
  */
-class ISystemClock
+class UAVCAN_EXPORT ISystemClock
 {
 public:
     virtual ~ISystemClock() { }

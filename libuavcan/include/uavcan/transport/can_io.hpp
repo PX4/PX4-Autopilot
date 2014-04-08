@@ -21,7 +21,7 @@ namespace uavcan
 
 enum { MaxCanIfaces = 3 };
 
-struct CanRxFrame : public CanFrame
+struct UAVCAN_EXPORT CanRxFrame : public CanFrame
 {
     MonotonicTime ts_mono;
     UtcTime ts_utc;
@@ -35,7 +35,7 @@ struct CanRxFrame : public CanFrame
 };
 
 
-class CanTxQueue : Noncopyable
+class UAVCAN_EXPORT CanTxQueue : Noncopyable
 {
 public:
     enum Qos { Volatile, Persistent };
@@ -117,7 +117,7 @@ public:
 };
 
 
-struct CanIfacePerfCounters
+struct UAVCAN_EXPORT CanIfacePerfCounters
 {
     uint64_t frames_tx;
     uint64_t frames_rx;
@@ -131,7 +131,7 @@ struct CanIfacePerfCounters
 };
 
 
-class CanIOManager : Noncopyable
+class UAVCAN_EXPORT CanIOManager : Noncopyable
 {
     struct IfaceFrameCounters
     {

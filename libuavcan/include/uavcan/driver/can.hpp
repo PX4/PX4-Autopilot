@@ -18,7 +18,7 @@ namespace uavcan
  * Raw CAN frame, as passed to/from the CAN driver.
  */
 UAVCAN_PACKED_BEGIN
-struct CanFrame
+struct UAVCAN_EXPORT CanFrame
 {
     static const uint32_t MaskStdID = 0x000007FF;
     static const uint32_t MaskExtID = 0x1FFFFFFF;
@@ -74,7 +74,7 @@ UAVCAN_PACKED_END
 /**
  * CAN hardware filter config struct. @ref ICanIface::configureFilters().
  */
-struct CanFilterConfig
+struct UAVCAN_EXPORT CanFilterConfig
 {
     uint32_t id;
     uint32_t mask;
@@ -83,7 +83,7 @@ struct CanFilterConfig
 /**
  * Events to look for during @ref ICanDriver::select() call
  */
-struct CanSelectMasks
+struct UAVCAN_EXPORT CanSelectMasks
 {
     uint8_t read;
     uint8_t write;
@@ -103,7 +103,7 @@ typedef uint16_t CanIOFlags;
 /**
  * Single non-blocking CAN interface.
  */
-class ICanIface
+class UAVCAN_EXPORT ICanIface
 {
 public:
     virtual ~ICanIface() { }
@@ -150,7 +150,7 @@ public:
 /**
  * Generic CAN driver.
  */
-class ICanDriver
+class UAVCAN_EXPORT ICanDriver
 {
 public:
     virtual ~ICanDriver() { }

@@ -21,7 +21,7 @@ namespace uavcan
 /**
  * Container for received transfer.
  */
-class IncomingTransfer : public ITransferBuffer
+class UAVCAN_EXPORT IncomingTransfer : public ITransferBuffer
 {
     MonotonicTime ts_mono_;
     UtcTime ts_utc_;
@@ -61,7 +61,7 @@ public:
 /**
  * Internal.
  */
-class SingleFrameIncomingTransfer : public IncomingTransfer
+class UAVCAN_EXPORT SingleFrameIncomingTransfer : public IncomingTransfer
 {
     const uint8_t* const payload_;
     const uint8_t payload_len_;
@@ -73,7 +73,7 @@ public:
 /**
  * Internal.
  */
-class MultiFrameIncomingTransfer : public IncomingTransfer, Noncopyable
+class UAVCAN_EXPORT MultiFrameIncomingTransfer : public IncomingTransfer, Noncopyable
 {
     TransferBufferAccessor& buf_acc_;
 public:
@@ -86,7 +86,7 @@ public:
 /**
  * Internal, refer to transport dispatcher.
  */
-class TransferListenerBase : public LinkedListNode<TransferListenerBase>, Noncopyable
+class UAVCAN_EXPORT TransferListenerBase : public LinkedListNode<TransferListenerBase>, Noncopyable
 {
     const DataTypeDescriptor& data_type_;
     const TransferCRC crc_base_;                      ///< Pre-initialized with data type hash, thus constant
@@ -118,7 +118,7 @@ public:
  * This class should be derived by transfer receivers (subscribers, servers).
  */
 template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
-class TransferListener : public TransferListenerBase
+class UAVCAN_EXPORT TransferListener : public TransferListenerBase
 {
     typedef TransferBufferManager<MaxBufSize, NumStaticBufs> BufferManager;
     BufferManager bufmgr_;
@@ -204,7 +204,7 @@ public:
  * This class should be derived by callers.
  */
 template <unsigned MaxBufSize>
-class ServiceResponseTransferListener : public TransferListener<MaxBufSize, 1, 1>
+class UAVCAN_EXPORT ServiceResponseTransferListener : public TransferListener<MaxBufSize, 1, 1>
 {
 public:
     struct ExpectedResponseParams

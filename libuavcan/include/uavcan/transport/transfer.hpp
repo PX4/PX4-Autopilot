@@ -5,6 +5,7 @@
 #pragma once
 
 #include <cassert>
+#include <uavcan/impl_constants.hpp>
 #include <uavcan/stdint.hpp>
 
 namespace uavcan
@@ -24,7 +25,7 @@ enum TransferType
 };
 
 
-class TransferID
+class UAVCAN_EXPORT TransferID
 {
     uint8_t value_;
 
@@ -64,7 +65,7 @@ public:
 };
 
 
-class NodeID
+class UAVCAN_EXPORT NodeID
 {
     enum
     {

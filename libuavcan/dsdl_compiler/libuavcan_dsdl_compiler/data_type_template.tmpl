@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <uavcan/impl_constants.hpp>
 #include <uavcan/node/global_data_type_registry.hpp>
 #include <uavcan/marshal/types.hpp>
 
@@ -47,7 +48,7 @@ UAVCAN_PACKED_BEGIN
 % if t.kind != t.KIND_SERVICE:
 template <int _tmpl>
 % endif
-struct ${t.cpp_type_name}
+struct UAVCAN_EXPORT ${t.cpp_type_name}
 {
 <%def name="generate_primary_body(type_name, max_bitlen, fields, constants)" buffered="True">
     typedef const ${type_name}<_tmpl>& ParameterType;
@@ -259,7 +260,7 @@ namespace uavcan
 
 <%def name="define_yaml_streamer(type_name, fields)">
 template <>
-struct YamlStreamer< ${type_name} >
+struct UAVCAN_EXPORT YamlStreamer< ${type_name} >
 {
     template <typename Stream>
     static void stream(Stream& s, ${type_name}::ParameterType obj, const int level)

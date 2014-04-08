@@ -17,7 +17,7 @@ namespace uavcan
 {
 
 UAVCAN_PACKED_BEGIN
-class OutgoingTransferRegistryKey
+class UAVCAN_EXPORT OutgoingTransferRegistryKey
 {
     DataTypeID data_type_id_;
     uint8_t transfer_type_;
@@ -64,7 +64,7 @@ public:
 UAVCAN_PACKED_END
 
 
-class IOutgoingTransferRegistry
+class UAVCAN_EXPORT IOutgoingTransferRegistry
 {
 public:
     virtual ~IOutgoingTransferRegistry() { }
@@ -75,7 +75,7 @@ public:
 
 
 template <int NumStaticEntries>
-class OutgoingTransferRegistry : public IOutgoingTransferRegistry, Noncopyable
+class UAVCAN_EXPORT OutgoingTransferRegistry : public IOutgoingTransferRegistry, Noncopyable
 {
     UAVCAN_PACKED_BEGIN
     struct Value

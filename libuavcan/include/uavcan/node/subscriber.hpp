@@ -27,10 +27,10 @@ template <typename DataType_,
 #endif
           unsigned NumStaticReceivers = 2,
           unsigned NumStaticBufs = 1>
-class Subscriber : public GenericSubscriber<DataType_, DataType_,
-                                            typename TransferListenerInstantiationHelper<DataType_,
-                                                                                         NumStaticReceivers,
-                                                                                         NumStaticBufs>::Type>
+class UAVCAN_EXPORT Subscriber
+    : public GenericSubscriber<DataType_, DataType_,
+                               typename TransferListenerInstantiationHelper<DataType_, NumStaticReceivers,
+                                                                            NumStaticBufs>::Type>
 {
 public:
     typedef Callback_ Callback;

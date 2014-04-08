@@ -20,7 +20,7 @@ namespace uavcan
 {
 
 template <typename ServiceDataType>
-class ServiceResponseTransferListenerInstantiationHelper
+class UAVCAN_EXPORT ServiceResponseTransferListenerInstantiationHelper
 {
     enum { DataTypeMaxByteLen = BitLenToByteLen<ServiceDataType::Response::MaxBitLen>::Result };
 public:
@@ -29,7 +29,7 @@ public:
 
 
 template <typename DataType>
-struct ServiceCallResult
+struct UAVCAN_EXPORT ServiceCallResult
 {
     typedef ReceivedDataStructure<typename DataType::Response> ResponseFieldType;
 
@@ -76,7 +76,7 @@ template <typename DataType_,
           typename Callback_ = void (*)(const ServiceCallResult<DataType_>&)
 #endif
           >
-class ServiceClient
+class UAVCAN_EXPORT ServiceClient
     : public GenericSubscriber<DataType_, typename DataType_::Response,
                                typename ServiceResponseTransferListenerInstantiationHelper<DataType_>::Type >
     , protected DeadlineHandler

@@ -10,7 +10,7 @@ namespace uavcan
 {
 
 template <typename DataType_>
-class Publisher : protected GenericPublisher<DataType_, DataType_>
+class UAVCAN_EXPORT Publisher : protected GenericPublisher<DataType_, DataType_>
 {
     typedef GenericPublisher<DataType_, DataType_> BaseType;
 

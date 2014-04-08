@@ -11,9 +11,9 @@
 namespace uavcan
 {
 
-class Scheduler;
+class UAVCAN_EXPORT Scheduler;
 
-class DeadlineHandler : public LinkedListNode<DeadlineHandler>, Noncopyable
+class UAVCAN_EXPORT DeadlineHandler : public LinkedListNode<DeadlineHandler>, Noncopyable
 {
     MonotonicTime deadline_;
 
@@ -41,7 +41,7 @@ public:
 };
 
 
-class DeadlineScheduler : Noncopyable
+class UAVCAN_EXPORT DeadlineScheduler : Noncopyable
 {
     LinkedListRoot<DeadlineHandler> handlers_;  // Ordered by deadline, lowest first
 
@@ -56,7 +56,7 @@ public:
 };
 
 
-class Scheduler : Noncopyable
+class UAVCAN_EXPORT Scheduler : Noncopyable
 {
     enum { DefaultDeadlineResolutionMs = 5 };
     enum { MinDeadlineResolutionMs = 1 };

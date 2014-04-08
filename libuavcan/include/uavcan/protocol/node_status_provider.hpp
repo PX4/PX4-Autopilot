@@ -17,7 +17,7 @@
 namespace uavcan
 {
 
-class NodeStatusProvider : private TimerBase
+class UAVCAN_EXPORT NodeStatusProvider : private TimerBase
 {
     typedef MethodBinder<NodeStatusProvider*, void (NodeStatusProvider::*)(const protocol::GlobalDiscoveryRequest&)>
         GlobalDiscoveryRequestCallback;

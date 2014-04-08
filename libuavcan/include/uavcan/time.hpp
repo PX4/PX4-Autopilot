@@ -9,6 +9,7 @@
 #include <limits>
 #include <sstream>
 #include <cstdio>
+#include <uavcan/impl_constants.hpp>
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/Timestamp.hpp>
 
@@ -166,16 +167,16 @@ public:
 /*
  * Monotonic
  */
-class MonotonicDuration : public DurationBase<MonotonicDuration> { };
+class UAVCAN_EXPORT MonotonicDuration : public DurationBase<MonotonicDuration> { };
 
-class MonotonicTime : public TimeBase<MonotonicTime, MonotonicDuration> { };
+class UAVCAN_EXPORT MonotonicTime : public TimeBase<MonotonicTime, MonotonicDuration> { };
 
 /*
  * UTC
  */
-class UtcDuration : public DurationBase<UtcDuration> { };
+class UAVCAN_EXPORT UtcDuration : public DurationBase<UtcDuration> { };
 
-class UtcTime : public TimeBase<UtcTime, UtcDuration>
+class UAVCAN_EXPORT UtcTime : public TimeBase<UtcTime, UtcDuration>
 {
 public:
     UtcTime() { }
@@ -201,6 +202,7 @@ public:
 
 
 template <typename Stream, typename D>
+UAVCAN_EXPORT
 inline Stream& operator<<(Stream& s, DurationBase<D> d)
 {
     char buf[8];
@@ -215,6 +217,7 @@ inline Stream& operator<<(Stream& s, DurationBase<D> d)
 }
 
 template <typename Stream, typename T, typename D>
+UAVCAN_EXPORT
 inline Stream& operator<<(Stream& s, TimeBase<T, D> t)
 {
     char buf[8];
