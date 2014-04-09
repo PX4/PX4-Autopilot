@@ -17,7 +17,7 @@
 namespace uavcan
 {
 
-class GenericPublisherBase
+class GenericPublisherBase : Noncopyable
 {
     const MonotonicDuration max_transfer_interval_;   // TODO: memory usage can be reduced
     MonotonicDuration tx_timeout_;
