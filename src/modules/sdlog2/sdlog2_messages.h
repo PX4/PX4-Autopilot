@@ -363,7 +363,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TELE, "BBBBHHB", "RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf"),
 	LOG_FORMAT(ESTM, "ffffffffffBBBB", "s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,n_states,states_nan,cov_nan,kgain_nan"),
 	LOG_FORMAT(PWR, "fffBBBBB", "Periph_5V,Servo_5V,RSSI,USB_OK,BRICK_OK,SRV_OK,PERIPH_OC,HIPWR_OC"),
-	LOG_FORMAT(VICON, "ffffff", "X,Y,Z,Roll,Pitch,Yaw"),
+	LOG_FORMAT(VICN, "ffffff", "X,Y,Z,Roll,Pitch,Yaw"),
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
