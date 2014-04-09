@@ -49,19 +49,7 @@ class UAVCAN_EXPORT Node : public INode
 
     bool started_;
 
-    int initNetwork(NodeInitializationResult& node_init_result)
-    {
-        int res = NodeInitializer::publishGlobalDiscoveryRequest(*this);
-        if (res < 0)
-        {
-            return res;
-        }
-        NodeInitializer initializer(*this);
-        StaticAssert<(sizeof(initializer) < 1200)>::check();
-        res = initializer.execute();
-        node_init_result = initializer.getResult();
-        return res;
-    }
+    int initNetwork(NodeInitializationResult& node_init_result);
 
 protected:
     virtual void registerInternalFailure(const char* msg)
@@ -109,47 +97,7 @@ public:
 
     bool isStarted() const { return started_; }
 
-    int start(NodeInitializationResult& node_init_result)
-    {
-        if (started_)
-        {
-            return 0;
-        }
-        GlobalDataTypeRegistry::instance().freeze();
-
-        int res = 0;
-        res = proto_dtp_.start();
-        if (res < 0)
-        {
-            goto fail;
-        }
-        res = proto_logger_.init();
-        if (res < 0)
-        {
-            goto fail;
-        }
-        res = proto_nsp_.startAndPublish();
-        if (res < 0)
-        {
-            goto fail;
-        }
-        res = proto_rrs_.start();
-        if (res < 0)
-        {
-            goto fail;
-        }
-        res = proto_tsp_.start();
-        if (res < 0)
-        {
-            goto fail;
-        }
-        res = initNetwork(node_init_result);
-        started_ = (res >= 0) && node_init_result.isOk();
-        return res;
-    fail:
-        assert(res < 0);
-        return res;
-    }
+    int start(NodeInitializationResult& node_init_result);
 
     /*
      * Initialization methods
@@ -218,5 +166,69 @@ public:
 
     Logger& getLogger() { return proto_logger_; }
 };
+
+// ----------------------------------------------------------------------------
+
+template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries,
+          unsigned OutgoingTransferMaxPayloadLen>
+int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMaxPayloadLen>::
+initNetwork(NodeInitializationResult& node_init_result)
+{
+    int res = NodeInitializer::publishGlobalDiscoveryRequest(*this);
+    if (res < 0)
+    {
+        return res;
+    }
+    NodeInitializer initializer(*this);
+    StaticAssert<(sizeof(initializer) < 1200)>::check();
+    res = initializer.execute();
+    node_init_result = initializer.getResult();
+    return res;
+}
+
+template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries,
+          unsigned OutgoingTransferMaxPayloadLen>
+int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMaxPayloadLen>::
+start(NodeInitializationResult& node_init_result)
+{
+    if (started_)
+    {
+        return 0;
+    }
+    GlobalDataTypeRegistry::instance().freeze();
+
+    int res = 0;
+    res = proto_dtp_.start();
+    if (res < 0)
+    {
+        goto fail;
+    }
+    res = proto_logger_.init();
+    if (res < 0)
+    {
+        goto fail;
+    }
+    res = proto_nsp_.startAndPublish();
+    if (res < 0)
+    {
+        goto fail;
+    }
+    res = proto_rrs_.start();
+    if (res < 0)
+    {
+        goto fail;
+    }
+    res = proto_tsp_.start();
+    if (res < 0)
+    {
+        goto fail;
+    }
+    res = initNetwork(node_init_result);
+    started_ = (res >= 0) && node_init_result.isOk();
+    return res;
+fail:
+    assert(res < 0);
+    return res;
+}
 
 }
