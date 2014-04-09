@@ -32,45 +32,34 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_stream.h
- * Mavlink messages stream definition.
+ * @file mavlink_commands.h
+ * Mavlink commands stream definition.
  *
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#ifndef MAVLINK_STREAM_H_
-#define MAVLINK_STREAM_H_
+#ifndef MAVLINK_COMMANDS_H_
+#define MAVLINK_COMMANDS_H_
 
-#include <drivers/drv_hrt.h>
+#include <uORB/uORB.h>
+#include <uORB/topics/vehicle_command.h>
 
 class Mavlink;
-class MavlinkStream;
+class MavlinkCommansStream;
 
 #include "mavlink_main.h"
 
-class MavlinkStream
+class MavlinkCommandsStream
 {
 private:
-	hrt_abstime _last_sent;
-
-protected:
+	MavlinkOrbSubscription *_cmd_sub;
+	struct vehicle_command_s *_cmd;
 	mavlink_channel_t _channel;
-	unsigned int _interval;
-
-	virtual void send(const hrt_abstime t) = 0;
 
 public:
-	MavlinkStream *next;
-
-	MavlinkStream();
-	~MavlinkStream();
-	void set_interval(const unsigned int interval);
-	void set_channel(mavlink_channel_t channel);
-	int update(const hrt_abstime t);
-	virtual MavlinkStream *new_instance() = 0;
-	virtual void subscribe(Mavlink *mavlink) = 0;
-	virtual const char *get_name() = 0;
+	MavlinkCommandsStream(Mavlink *mavlink, mavlink_channel_t channel);
+	~MavlinkCommandsStream();
+	void update(const hrt_abstime t);
 };
 
-
-#endif /* MAVLINK_STREAM_H_ */
+#endif /* MAVLINK_COMMANDS_H_ */

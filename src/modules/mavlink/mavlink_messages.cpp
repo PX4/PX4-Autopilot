@@ -1300,8 +1300,6 @@ protected:
 	{
 		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status));
 		status = (struct vehicle_status_s *)status_sub->get_data();
-
-
 	}
 
 	void send(const hrt_abstime t)
@@ -1312,11 +1310,11 @@ protected:
 		    || status->arming_state == ARMING_STATE_ARMED_ERROR) {
 
 			/* send camera capture on */
-			mavlink_msg_command_long_send(_channel, 42, 30, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 1, 0, 0, 0);
+			mavlink_msg_command_long_send(_channel, mavlink_system.sysid, 0, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 1, 0, 0, 0);
 
 		} else {
 			/* send camera capture off */
-			mavlink_msg_command_long_send(_channel, 42, 30, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 0, 0, 0, 0);
+			mavlink_msg_command_long_send(_channel, mavlink_system.sysid, 0, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 0, 0, 0, 0);
 		}
 	}
 };

@@ -32,45 +32,42 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_stream.h
- * Mavlink messages stream definition.
+ * @file mavlink_commands.cpp
+ * Mavlink commands stream implementation.
  *
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#ifndef MAVLINK_STREAM_H_
-#define MAVLINK_STREAM_H_
+#include "mavlink_commands.h"
 
-#include <drivers/drv_hrt.h>
-
-class Mavlink;
-class MavlinkStream;
-
-#include "mavlink_main.h"
-
-class MavlinkStream
+MavlinkCommandsStream::MavlinkCommandsStream(Mavlink *mavlink, mavlink_channel_t channel) : _channel(channel)
 {
-private:
-	hrt_abstime _last_sent;
+	_cmd_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_command));
+	_cmd = (struct vehicle_command_s *)_cmd_sub->get_data();
+}
 
-protected:
-	mavlink_channel_t _channel;
-	unsigned int _interval;
+MavlinkCommandsStream::~MavlinkCommandsStream()
+{
+}
 
-	virtual void send(const hrt_abstime t) = 0;
-
-public:
-	MavlinkStream *next;
-
-	MavlinkStream();
-	~MavlinkStream();
-	void set_interval(const unsigned int interval);
-	void set_channel(mavlink_channel_t channel);
-	int update(const hrt_abstime t);
-	virtual MavlinkStream *new_instance() = 0;
-	virtual void subscribe(Mavlink *mavlink) = 0;
-	virtual const char *get_name() = 0;
-};
-
-
-#endif /* MAVLINK_STREAM_H_ */
+void
+MavlinkCommandsStream::update(const hrt_abstime t)
+{
+	if (_cmd_sub->update(t)) {
+		/* only send commands for other systems/components */
+		if (_cmd->target_system != mavlink_system.sysid || _cmd->target_component != mavlink_system.compid) {
+			mavlink_msg_command_long_send(_channel,
+						      _cmd->target_system,
+						      _cmd->target_component,
+						      _cmd->command,
+						      _cmd->confirmation,
+						      _cmd->param1,
+						      _cmd->param2,
+						      _cmd->param3,
+						      _cmd->param4,
+						      _cmd->param5,
+						      _cmd->param6,
+						      _cmd->param7);
+		}
+	}
+}
