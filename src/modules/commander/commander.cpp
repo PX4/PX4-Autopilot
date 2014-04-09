@@ -488,6 +488,10 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
 					/* AUTO */
 					main_res = main_state_transition(status, MAIN_STATE_AUTO);
+
+				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_FOLLOW) {
+					/* FOLLOW */
+					main_res = main_state_transition(status, MAIN_STATE_FOLLOW);
 				}
 
 			} else {
