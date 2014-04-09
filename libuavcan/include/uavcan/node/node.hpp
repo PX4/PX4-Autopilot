@@ -57,7 +57,7 @@ class UAVCAN_EXPORT Node : public INode
             return res;
         }
         NodeInitializer initializer(*this);
-        StaticAssert<(sizeof(initializer) < 1024)>::check();
+        StaticAssert<(sizeof(initializer) < 1200)>::check();
         res = initializer.execute();
         node_init_result = initializer.getResult();
         return res;

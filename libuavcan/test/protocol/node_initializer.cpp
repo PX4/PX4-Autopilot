@@ -48,7 +48,7 @@ struct NodeInitializerRemoteContext
 TEST(NodeInitializer, Size)
 {
     std::cout << "sizeof(uavcan::NodeInitializer): " << sizeof(uavcan::NodeInitializer) << std::endl;
-    ASSERT_TRUE(sizeof(uavcan::NodeInitializer) < 1024);
+    ASSERT_TRUE(sizeof(uavcan::NodeInitializer) < 2048);
 }
 
 

@@ -211,7 +211,7 @@ int DynamicTransferBufferManagerEntry::write(unsigned offset, const uint8_t* dat
     }
 
     const int actually_written = len - left_to_write;
-    max_write_pos_ = std::max(offset + actually_written, max_write_pos_);
+    max_write_pos_ = std::max(offset + actually_written, unsigned(max_write_pos_));
     return actually_written;
 }
 
@@ -255,7 +255,7 @@ int StaticTransferBufferImpl::write(unsigned offset, const uint8_t* data, unsign
     }
     assert((offset + len) <= size_);
     std::copy(data, data + len, data_ + offset);
-    max_write_pos_ = std::max(offset + len, max_write_pos_);
+    max_write_pos_ = std::max(offset + len, unsigned(max_write_pos_));
     return len;
 }
 
@@ -315,6 +315,189 @@ bool StaticTransferBufferManagerEntryImpl::migrateFrom(const TransferBufferManag
         return false;
     }
     return true;
+}
+
+/*
+ * TransferBufferManagerImpl
+ */
+StaticTransferBufferManagerEntryImpl* TransferBufferManagerImpl::findFirstStatic(const TransferBufferManagerKey& key)
+{
+    for (unsigned i = 0; true; i++)
+    {
+        StaticTransferBufferManagerEntryImpl* const sb = getStaticByIndex(i);
+        if (sb == NULL)
+        {
+            break;
+        }
+        if (sb->getKey() == key)
+        {
+            return sb;
+        }
+    }
+    return NULL;
+}
+
+DynamicTransferBufferManagerEntry* TransferBufferManagerImpl::findFirstDynamic(const TransferBufferManagerKey& key)
+{
+    DynamicTransferBufferManagerEntry* dyn = dynamic_buffers_.get();
+    while (dyn)
+    {
+        assert(!dyn->isEmpty());
+        if (dyn->getKey() == key)
+        {
+            return dyn;
+        }
+        dyn = dyn->getNextListNode();
+    }
+    return NULL;
+}
+
+void TransferBufferManagerImpl::optimizeStorage()
+{
+    while (!dynamic_buffers_.isEmpty())
+    {
+        StaticTransferBufferManagerEntryImpl* const sb = findFirstStatic(TransferBufferManagerKey());
+        if (sb == NULL)
+        {
+            break;
+        }
+        DynamicTransferBufferManagerEntry* dyn = dynamic_buffers_.get();
+        assert(dyn);
+        assert(!dyn->isEmpty());
+        if (sb->migrateFrom(dyn))
+        {
+            assert(!dyn->isEmpty());
+            UAVCAN_TRACE("TransferBufferManager", "Storage optimization: Migrated %s",
+                         dyn->getKey().toString().c_str());
+            dynamic_buffers_.remove(dyn);
+            DynamicTransferBufferManagerEntry::destroy(dyn, allocator_);
+        }
+        else
+        {
+            /* Migration can fail if a dynamic buffer contains more data than a static buffer can accomodate.
+             * This should never happen during normal operation because dynamic buffers are limited in growth.
+             */
+            UAVCAN_TRACE("TransferBufferManager", "Storage optimization: MIGRATION FAILURE %s MAXSIZE %u",
+                         dyn->getKey().toString().c_str(), max_buf_size_);
+            assert(0);
+            sb->reset();
+            break;
+        }
+    }
+}
+
+TransferBufferManagerImpl::~TransferBufferManagerImpl()
+{
+    DynamicTransferBufferManagerEntry* dyn = dynamic_buffers_.get();
+    while (dyn)
+    {
+        DynamicTransferBufferManagerEntry* const next = dyn->getNextListNode();
+        dynamic_buffers_.remove(dyn);
+        DynamicTransferBufferManagerEntry::destroy(dyn, allocator_);
+        dyn = next;
+    }
+}
+
+ITransferBuffer* TransferBufferManagerImpl::access(const TransferBufferManagerKey& key)
+{
+    if (key.isEmpty())
+    {
+        assert(0);
+        return NULL;
+    }
+    TransferBufferManagerEntry* tbme = findFirstStatic(key);
+    if (tbme)
+    {
+        return tbme;
+    }
+    return findFirstDynamic(key);
+}
+
+ITransferBuffer* TransferBufferManagerImpl::create(const TransferBufferManagerKey& key)
+{
+    if (key.isEmpty())
+    {
+        assert(0);
+        return NULL;
+    }
+    remove(key);
+
+    TransferBufferManagerEntry* tbme = findFirstStatic(TransferBufferManagerKey());
+    if (tbme == NULL)
+    {
+        DynamicTransferBufferManagerEntry* dyn =
+            DynamicTransferBufferManagerEntry::instantiate(allocator_, max_buf_size_);
+        tbme = dyn;
+        if (dyn == NULL)
+        {
+            return NULL;     // Epic fail.
+        }
+        dynamic_buffers_.insert(dyn);
+        UAVCAN_TRACE("TransferBufferManager", "Dynamic buffer created [st=%u, dyn=%u], %s",
+                     getNumStaticBuffers(), getNumDynamicBuffers(), key.toString().c_str());
+    }
+    else
+    {
+        UAVCAN_TRACE("TransferBufferManager", "Static buffer created [st=%u, dyn=%u], %s",
+                     getNumStaticBuffers(), getNumDynamicBuffers(), key.toString().c_str());
+    }
+
+    if (tbme)
+    {
+        assert(tbme->isEmpty());
+        tbme->reset(key);
+    }
+    return tbme;
+}
+
+void TransferBufferManagerImpl::remove(const TransferBufferManagerKey& key)
+{
+    assert(!key.isEmpty());
+
+    TransferBufferManagerEntry* const tbme = findFirstStatic(key);
+    if (tbme)
+    {
+        UAVCAN_TRACE("TransferBufferManager", "Static buffer deleted, %s", key.toString().c_str());
+        tbme->reset();
+        optimizeStorage();
+        return;
+    }
+
+    DynamicTransferBufferManagerEntry* dyn = findFirstDynamic(key);
+    if (dyn)
+    {
+        UAVCAN_TRACE("TransferBufferManager", "Dynamic buffer deleted, %s", key.toString().c_str());
+        dynamic_buffers_.remove(dyn);
+        DynamicTransferBufferManagerEntry::destroy(dyn, allocator_);
+    }
+}
+
+bool TransferBufferManagerImpl::isEmpty() const
+{
+    return (getNumStaticBuffers() == 0) && (getNumDynamicBuffers() == 0);
+}
+
+unsigned TransferBufferManagerImpl::getNumDynamicBuffers() const
+{
+    return dynamic_buffers_.getLength();
+}
+
+unsigned TransferBufferManagerImpl::getNumStaticBuffers() const
+{
+    unsigned res = 0;
+    for (unsigned i = 0; true; i++)
+    {
+        StaticTransferBufferManagerEntryImpl* const sb = getStaticByIndex(i);
+        if (sb == NULL)
+        {
+            break;
+        }
+        if (!sb->isEmpty())
+        {
+            res++;
+        }
+    }
+    return res;
 }
 
 }
