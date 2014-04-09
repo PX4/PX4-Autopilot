@@ -76,7 +76,7 @@ void DynamicTransferBufferManagerEntry::Block::write(const uint8_t*& inptr, unsi
  * DynamicTransferBuffer
  */
 DynamicTransferBufferManagerEntry* DynamicTransferBufferManagerEntry::instantiate(IAllocator& allocator,
-                                                                                  unsigned max_size)
+                                                                                  uint16_t max_size)
 {
     void* const praw = allocator.allocate(sizeof(DynamicTransferBufferManagerEntry));
     if (praw == NULL)

@@ -116,13 +116,13 @@ class UAVCAN_EXPORT DynamicTransferBufferManagerEntry
 
     IAllocator& allocator_;
     LinkedListRoot<Block> blocks_;    // Blocks are ordered from lower to higher buffer offset
-    unsigned max_write_pos_;
-    const unsigned max_size_;
+    uint16_t max_write_pos_;
+    const uint16_t max_size_;
 
     void resetImpl();
 
 public:
-    DynamicTransferBufferManagerEntry(IAllocator& allocator, unsigned max_size)
+    DynamicTransferBufferManagerEntry(IAllocator& allocator, uint16_t max_size)
         : allocator_(allocator)
         , max_write_pos_(0)
         , max_size_(max_size)
@@ -137,7 +137,7 @@ public:
         resetImpl();
     }
 
-    static DynamicTransferBufferManagerEntry* instantiate(IAllocator& allocator, unsigned max_size);
+    static DynamicTransferBufferManagerEntry* instantiate(IAllocator& allocator, uint16_t max_size);
     static void destroy(DynamicTransferBufferManagerEntry*& obj, IAllocator& allocator);
 
     int read(unsigned offset, uint8_t* data, unsigned len) const;
@@ -151,11 +151,11 @@ UAVCAN_PACKED_END
 class StaticTransferBufferImpl : public ITransferBuffer
 {
     uint8_t* const data_;
-    const unsigned size_;
-    unsigned max_write_pos_;
+    const uint16_t size_;
+    uint16_t max_write_pos_;
 
 public:
-    StaticTransferBufferImpl(uint8_t* buf, unsigned buf_size)
+    StaticTransferBufferImpl(uint8_t* buf, uint16_t buf_size)
         : data_(buf)
         , size_(buf_size)
         , max_write_pos_(0)
@@ -166,16 +166,16 @@ public:
 
     void reset();
 
-    unsigned getSize() const { return size_; }
+    uint16_t getSize() const { return size_; }
 
     uint8_t* getRawPtr() { return data_; }
     const uint8_t* getRawPtr() const { return data_; }
 
-    unsigned getMaxWritePos() const { return max_write_pos_; }
-    void setMaxWritePos(unsigned value) { max_write_pos_ = value; }
+    uint16_t getMaxWritePos() const { return max_write_pos_; }
+    void setMaxWritePos(uint16_t value) { max_write_pos_ = value; }
 };
 
-template <unsigned Size>
+template <uint16_t Size>
 class UAVCAN_EXPORT StaticTransferBuffer : public StaticTransferBufferImpl
 {
     uint8_t buffer_[Size];
@@ -197,7 +197,7 @@ class StaticTransferBufferManagerEntryImpl : public TransferBufferManagerEntry
     void resetImpl();
 
 public:
-    StaticTransferBufferManagerEntryImpl(uint8_t* buf, unsigned buf_size)
+    StaticTransferBufferManagerEntryImpl(uint8_t* buf, uint16_t buf_size)
         : buf_(buf, buf_size)
     { }
 
@@ -207,7 +207,7 @@ public:
     bool migrateFrom(const TransferBufferManagerEntry* tbme);
 };
 
-template <unsigned Size>
+template <uint16_t Size>
 class UAVCAN_EXPORT StaticTransferBufferManagerEntry : public StaticTransferBufferManagerEntryImpl
 {
     uint8_t buffer_[Size];
@@ -256,16 +256,16 @@ class TransferBufferManagerImpl : public ITransferBufferManager, Noncopyable
 {
     LinkedListRoot<DynamicTransferBufferManagerEntry> dynamic_buffers_;
     IAllocator& allocator_;
-    const unsigned max_buf_size_;
+    const uint16_t max_buf_size_;
 
-    virtual StaticTransferBufferManagerEntryImpl* getStaticByIndex(unsigned index) const = 0;
+    virtual StaticTransferBufferManagerEntryImpl* getStaticByIndex(uint16_t index) const = 0;
 
     StaticTransferBufferManagerEntryImpl* findFirstStatic(const TransferBufferManagerKey& key);
     DynamicTransferBufferManagerEntry* findFirstDynamic(const TransferBufferManagerKey& key);
     void optimizeStorage();
 
 public:
-    TransferBufferManagerImpl(unsigned max_buf_size, IAllocator& allocator)
+    TransferBufferManagerImpl(uint16_t max_buf_size, IAllocator& allocator)
         : allocator_(allocator)
         , max_buf_size_(max_buf_size)
     { }
@@ -281,12 +281,12 @@ public:
     unsigned getNumStaticBuffers() const;
 };
 
-template <unsigned MaxBufSize, unsigned NumStaticBufs>
+template <uint16_t MaxBufSize, uint8_t NumStaticBufs>
 class UAVCAN_EXPORT TransferBufferManager : public TransferBufferManagerImpl
 {
     mutable StaticTransferBufferManagerEntry<MaxBufSize> static_buffers_[NumStaticBufs];  // TODO: zero buffers support
 
-    StaticTransferBufferManagerEntry<MaxBufSize>* getStaticByIndex(unsigned index) const
+    StaticTransferBufferManagerEntry<MaxBufSize>* getStaticByIndex(uint16_t index) const
     {
         return (index < NumStaticBufs) ? &static_buffers_[index] : NULL;
     }
