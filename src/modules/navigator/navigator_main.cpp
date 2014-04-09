@@ -513,6 +513,9 @@ Navigator::home_position_update()
 {
 	orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
 	map_projection_init(_home_pos.lat, _home_pos.lon);
+	_goto_mission_item.lat = _home_pos.lat;
+	_goto_mission_item.lon = _home_pos.lon;
+	_goto_mission_item.altitude = _home_pos.alt;
 }
 
 void
@@ -599,7 +602,7 @@ Navigator::vehicle_command_update()
 	//XXX MAV_CMD_OVERRIDE_GOTO with param2 == MAV_GOTO_HOLD_AT_CURRENT_POSITION is handled in commander
 	if (_vehicle_command.command == VEHICLE_CMD_OVERRIDE_GOTO &&
 			(_vehicle_command.target_system == _vstatus.system_id && ((_vehicle_command.target_component == _vstatus.component_id) || (_vehicle_command.target_component == 0)))) { // component_id 0: valid for all components
-
+		if (_vehicle_command.param2 == 3 || _vehicle_command.param2 == 5) {  //XXX MAV_GOTO_HOLD_AT_SPECIFIED_POSITION || MAV_GOTO_HOLD_AT_SPECIFIED_POSITION_ONLY
 			if (_vehicle_command.param3 == 0) {//MAV_FRAME_GLOBAL
 				_goto_mission_item.altitude_is_relative = false;
 				_goto_mission_item.lat = _vehicle_command.param5;
@@ -619,15 +622,24 @@ Navigator::vehicle_command_update()
 				mavlink_log_info(_mavlink_fd, "goto: unsupported coordinate frame");
 				return;
 			}
+
+			if (_vehicle_command.param2 == 3) {
+				_goto_mission_item.yaw = _vehicle_command.param4;
+			}
+
+		} else if (_vehicle_command.param2 == 6) { //XXX MAV_GOTO_HOLD_AT_SPECIFIED_YAW
 			_goto_mission_item.yaw = _vehicle_command.param4;
-			_goto_mission_item.loiter_radius = _parameters.loiter_radius;
-			_goto_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-			_goto_mission_item.acceptance_radius = _parameters.acceptance_radius;
-			_goto_mission_item.loiter_direction = 1;
-			_goto_mission_item.pitch_min = 0.0f;
-			_goto_mission_item.origin = ORIGIN_MAVLINK;
-			_goto_mission_item.autocontinue = false;
-			request_goto();
+		}
+
+		_goto_mission_item.loiter_radius = _parameters.loiter_radius;
+		_goto_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+		_goto_mission_item.acceptance_radius = _parameters.acceptance_radius;
+		_goto_mission_item.loiter_direction = 1;
+		_goto_mission_item.pitch_min = 0.0f;
+		_goto_mission_item.origin = ORIGIN_MAVLINK;
+		_goto_mission_item.autocontinue = false;
+
+		request_goto();
 	}
 }
 
