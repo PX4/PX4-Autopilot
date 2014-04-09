@@ -17,94 +17,16 @@
 namespace uavcan
 {
 
-/**
- * Generic publisher, suitable for messages and services.
- * DataSpec - data type specification class
- * DataStruct - instantiable class
- */
-template <typename DataSpec, typename DataStruct>
-class UAVCAN_EXPORT GenericPublisher
+class GenericPublisherBase
 {
-    enum
-    {
-        Qos = (DataTypeKind(DataSpec::DataTypeKind) == DataTypeKindMessage) ?
-              CanTxQueue::Volatile : CanTxQueue::Persistent
-    };
-
     const MonotonicDuration max_transfer_interval_;   // TODO: memory usage can be reduced
     MonotonicDuration tx_timeout_;
     INode& node_;
     LazyConstructor<TransferSender> sender_;
 
-    int checkInit()
-    {
-        if (sender_)
-        {
-            return 0;
-        }
-
-        GlobalDataTypeRegistry::instance().freeze();
-
-        const DataTypeDescriptor* const descr =
-            GlobalDataTypeRegistry::instance().find(DataTypeKind(DataSpec::DataTypeKind),
-                                                    DataSpec::getDataTypeFullName());
-        if (!descr)
-        {
-            UAVCAN_TRACE("GenericPublisher", "Type [%s] is not registered", DataSpec::getDataTypeFullName());
-            return -ErrUnknownDataType;
-        }
-        sender_.template construct<Dispatcher&, const DataTypeDescriptor&, CanTxQueue::Qos, MonotonicDuration>
-            (node_.getDispatcher(), *descr, CanTxQueue::Qos(Qos), max_transfer_interval_);
-        return 0;
-    }
-
-    MonotonicTime getTxDeadline() const { return node_.getMonotonicTime() + tx_timeout_; }
-
-    IMarshalBuffer* getBuffer()
-    {
-        return node_.getMarshalBufferProvider().getBuffer(BitLenToByteLen<DataStruct::MaxBitLen>::Result);
-    }
-
-    int genericPublish(const DataStruct& message, TransferType transfer_type, NodeID dst_node_id,
-                       TransferID* tid, MonotonicTime blocking_deadline)
-    {
-        const int res = checkInit();
-        if (res < 0)
-        {
-            return res;
-        }
-
-        IMarshalBuffer* const buf = getBuffer();
-        if (!buf)
-        {
-            return -ErrMemory;
-        }
-
-        {
-            BitStream bitstream(*buf);
-            ScalarCodec codec(bitstream);
-            const int encode_res = DataStruct::encode(message, codec);
-            if (encode_res <= 0)
-            {
-                assert(0);   // Impossible, internal error
-                return -ErrInvalidMarshalData;
-            }
-        }
-        if (tid)
-        {
-            return sender_->send(buf->getDataPtr(), buf->getDataLength(), getTxDeadline(),
-                                 blocking_deadline, transfer_type, dst_node_id, *tid);
-        }
-        else
-        {
-            return sender_->send(buf->getDataPtr(), buf->getDataLength(), getTxDeadline(),
-                                 blocking_deadline, transfer_type, dst_node_id);
-        }
-    }
-
-public:
-    GenericPublisher(INode& node, MonotonicDuration tx_timeout,
-                     MonotonicDuration max_transfer_interval = TransferSender::getDefaultMaxTransferInterval())
+protected:
+    GenericPublisherBase(INode& node, MonotonicDuration tx_timeout,
+                         MonotonicDuration max_transfer_interval)
         : max_transfer_interval_(max_transfer_interval)
         , tx_timeout_(tx_timeout)
         , node_(node)
@@ -114,6 +36,58 @@ public:
         assert(getTxTimeout() == tx_timeout);  // Making sure default values are OK
 #endif
     }
+
+    ~GenericPublisherBase() { }
+
+    bool isInited() const;
+
+    int doInit(DataTypeKind dtkind, const char* dtname, CanTxQueue::Qos qos);
+
+    MonotonicTime getTxDeadline() const;
+
+    IMarshalBuffer* getBuffer(unsigned byte_len);
+
+    int genericPublish(const IMarshalBuffer& buffer, TransferType transfer_type, NodeID dst_node_id,
+                       TransferID* tid, MonotonicTime blocking_deadline);
+
+    TransferSender* getTransferSender();
+
+public:
+    static MonotonicDuration getMinTxTimeout() { return MonotonicDuration::fromUSec(200); }
+    static MonotonicDuration getMaxTxTimeout() { return MonotonicDuration::fromMSec(60000); }
+
+    MonotonicDuration getTxTimeout() const { return tx_timeout_; }
+    void setTxTimeout(MonotonicDuration tx_timeout);
+
+    INode& getNode() const { return node_; }
+};
+
+/**
+ * Generic publisher, suitable for messages and services.
+ * DataSpec - data type specification class
+ * DataStruct - instantiable class
+ */
+template <typename DataSpec, typename DataStruct>
+class UAVCAN_EXPORT GenericPublisher : public GenericPublisherBase
+{
+    enum
+    {
+        Qos = (DataTypeKind(DataSpec::DataTypeKind) == DataTypeKindMessage) ?
+              CanTxQueue::Volatile : CanTxQueue::Persistent
+    };
+
+    int checkInit();
+
+    int doEncode(const DataStruct& message, IMarshalBuffer& buffer) const;
+
+    int genericPublish(const DataStruct& message, TransferType transfer_type, NodeID dst_node_id,
+                       TransferID* tid, MonotonicTime blocking_deadline);
+
+public:
+    GenericPublisher(INode& node, MonotonicDuration tx_timeout,
+                     MonotonicDuration max_transfer_interval = TransferSender::getDefaultMaxTransferInterval())
+        : GenericPublisherBase(node, tx_timeout, max_transfer_interval)
+    { }
 
     ~GenericPublisher() { }
 
@@ -137,21 +111,57 @@ public:
     TransferSender* getTransferSender()
     {
         (void)checkInit();
-        return sender_.isConstructed() ? static_cast<TransferSender*>(sender_) : NULL;
+        return GenericPublisherBase::getTransferSender();
     }
-
-    static MonotonicDuration getMinTxTimeout() { return MonotonicDuration::fromUSec(200); }
-    static MonotonicDuration getMaxTxTimeout() { return MonotonicDuration::fromMSec(60000); }
-
-    MonotonicDuration getTxTimeout() const { return tx_timeout_; }
-    void setTxTimeout(MonotonicDuration tx_timeout)
-    {
-        tx_timeout = std::max(tx_timeout, getMinTxTimeout());
-        tx_timeout = std::min(tx_timeout, getMaxTxTimeout());
-        tx_timeout_ = tx_timeout;
-    }
-
-    INode& getNode() const { return node_; }
 };
+
+// ----------------------------------------------------------------------------
+
+template <typename DataSpec, typename DataStruct>
+int GenericPublisher<DataSpec, DataStruct>::checkInit()
+{
+    if (isInited())
+    {
+        return 0;
+    }
+    return doInit(DataTypeKind(DataSpec::DataTypeKind), DataSpec::getDataTypeFullName(), CanTxQueue::Qos(Qos));
+}
+
+template <typename DataSpec, typename DataStruct>
+int GenericPublisher<DataSpec, DataStruct>::doEncode(const DataStruct& message, IMarshalBuffer& buffer) const
+{
+    BitStream bitstream(buffer);
+    ScalarCodec codec(bitstream);
+    const int encode_res = DataStruct::encode(message, codec);
+    if (encode_res <= 0)
+    {
+        assert(0);   // Impossible, internal error
+        return -ErrInvalidMarshalData;
+    }
+    return encode_res;
+}
+
+template <typename DataSpec, typename DataStruct>
+int GenericPublisher<DataSpec, DataStruct>::genericPublish(const DataStruct& message, TransferType transfer_type,
+                                                           NodeID dst_node_id, TransferID* tid,
+                                                           MonotonicTime blocking_deadline)
+{
+    const int res = checkInit();
+    if (res < 0)
+    {
+        return res;
+    }
+    IMarshalBuffer* const buf = getBuffer(BitLenToByteLen<DataStruct::MaxBitLen>::Result);
+    if (!buf)
+    {
+        return -ErrMemory;
+    }
+    const int encode_res = doEncode(message, *buf);
+    if (encode_res < 0)
+    {
+        return encode_res;
+    }
+    return GenericPublisherBase::genericPublish(*buf, transfer_type, dst_node_id, tid, blocking_deadline);
+}
 
 }
