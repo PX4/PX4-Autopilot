@@ -101,10 +101,6 @@ class UAVCAN_EXPORT MapBase : Noncopyable
     };
 
 protected:
-    /// Derived class destructor must call removeAll();
-    ~MapBase() { }
-
-public:
     MapBase(KVPair* static_buf, unsigned num_static_entries, IAllocator& allocator)
         : allocator_(allocator)
         , static_(static_buf)
@@ -113,6 +109,10 @@ public:
         assert(Key() == Key());
     }
 
+    /// Derived class destructor must call removeAll();
+    ~MapBase() { }
+
+public:
     Value* access(const Key& key);
 
     /// If entry with the same key already exists, it will be replaced
