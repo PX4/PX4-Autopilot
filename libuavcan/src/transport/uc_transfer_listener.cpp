@@ -75,6 +75,27 @@ int MultiFrameIncomingTransfer::read(unsigned offset, uint8_t* data, unsigned le
 }
 
 /*
+ * TransferListenerBase::TimedOutReceiverPredicate
+ */
+bool TransferListenerBase::TimedOutReceiverPredicate::operator()(const TransferBufferManagerKey& key,
+                                                                 const TransferReceiver& value) const
+{
+    if (value.isTimedOut(ts_))
+    {
+        UAVCAN_TRACE("TransferListener", "Timed out receiver: %s", key.toString().c_str());
+        /*
+         * TransferReceivers do not own their buffers - this helps the Map<> container to copy them
+         * around quickly and safely (using default assignment operator). Downside is that we need to
+         * destroy the buffers manually.
+         * Maybe it is not good that the predicate has side effects, but I ran out of better ideas.
+         */
+        bufmgr_.remove(key);
+        return true;
+    }
+    return false;
+}
+
+/*
  * TransferListenerBase
  */
 bool TransferListenerBase::checkPayloadCrc(const uint16_t compare_with, const ITransferBuffer& tbb) const
@@ -149,6 +170,36 @@ void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxF
         break;
     }
     }
+}
+
+void TransferListenerBase::cleanup(MonotonicTime ts)
+{
+    receivers_.removeWhere(TimedOutReceiverPredicate(ts, bufmgr_));
+    assert(receivers_.isEmpty() ? bufmgr_.isEmpty() : 1);
+}
+
+void TransferListenerBase::handleFrame(const RxFrame& frame)
+{
+    const TransferBufferManagerKey key(frame.getSrcNodeID(), frame.getTransferType());
+
+    TransferReceiver* recv = receivers_.access(key);
+    if (recv == NULL)
+    {
+        if (!frame.isFirst())
+        {
+            return;
+        }
+
+        TransferReceiver new_recv;
+        recv = receivers_.insert(key, new_recv);
+        if (recv == NULL)
+        {
+            UAVCAN_TRACE("TransferListener", "Receiver registration failed; frame %s", frame.toString().c_str());
+            return;
+        }
+    }
+    TransferBufferAccessor tba(bufmgr_, key);
+    handleReception(*recv, frame, tba);
 }
 
 }

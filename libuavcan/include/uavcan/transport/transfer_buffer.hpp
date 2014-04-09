@@ -227,6 +227,7 @@ public:
     virtual ITransferBuffer* access(const TransferBufferManagerKey& key) = 0;
     virtual ITransferBuffer* create(const TransferBufferManagerKey& key) = 0;
     virtual void remove(const TransferBufferManagerKey& key) = 0;
+    virtual bool isEmpty() const = 0;
 };
 
 /**

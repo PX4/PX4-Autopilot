@@ -90,14 +90,34 @@ class UAVCAN_EXPORT TransferListenerBase : public LinkedListNode<TransferListene
 {
     const DataTypeDescriptor& data_type_;
     const TransferCRC crc_base_;                      ///< Pre-initialized with data type hash, thus constant
+    MapBase<TransferBufferManagerKey, TransferReceiver>& receivers_;
+    ITransferBufferManager& bufmgr_;
     TransferPerfCounter& perf_;
+
+    class TimedOutReceiverPredicate
+    {
+        const MonotonicTime ts_;
+        ITransferBufferManager& bufmgr_;
+
+    public:
+        TimedOutReceiverPredicate(MonotonicTime ts, ITransferBufferManager& bufmgr)
+            : ts_(ts)
+            , bufmgr_(bufmgr)
+        { }
+
+        bool operator()(const TransferBufferManagerKey& key, const TransferReceiver& value) const;
+    };
 
     bool checkPayloadCrc(const uint16_t compare_with, const ITransferBuffer& tbb) const;
 
 protected:
-    TransferListenerBase(TransferPerfCounter& perf, const DataTypeDescriptor& data_type)
+    TransferListenerBase(TransferPerfCounter& perf, const DataTypeDescriptor& data_type,
+                         MapBase<TransferBufferManagerKey, TransferReceiver>& receivers,
+                         ITransferBufferManager& bufmgr)
         : data_type_(data_type)
         , crc_base_(data_type.getSignature().toTransferCRC())
+        , receivers_(receivers)
+        , bufmgr_(bufmgr)
         , perf_(perf)
     { }
 
@@ -110,8 +130,9 @@ protected:
 public:
     const DataTypeDescriptor& getDataTypeDescriptor() const { return data_type_; }
 
-    virtual void handleFrame(const RxFrame& frame) = 0;
-    virtual void cleanup(MonotonicTime ts) = 0;
+    void cleanup(MonotonicTime ts);
+
+    virtual void handleFrame(const RxFrame& frame);
 };
 
 /**
@@ -120,32 +141,12 @@ public:
 template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
 class UAVCAN_EXPORT TransferListener : public TransferListenerBase
 {
-    typedef TransferBufferManager<MaxBufSize, NumStaticBufs> BufferManager;
-    BufferManager bufmgr_;
+    TransferBufferManager<MaxBufSize, NumStaticBufs> bufmgr_;
     Map<TransferBufferManagerKey, TransferReceiver, NumStaticReceivers> receivers_;
-
-    class TimedOutReceiverPredicate
-    {
-        const MonotonicTime ts_;
-        BufferManager& bufmgr_;
-
-    public:
-        TimedOutReceiverPredicate(MonotonicTime ts, BufferManager& bufmgr)
-            : ts_(ts)
-            , bufmgr_(bufmgr)
-        { }
-
-        bool operator()(const TransferBufferManagerKey& key, const TransferReceiver& value) const;
-    };
-
-    void cleanup(MonotonicTime ts);
-
-protected:
-    void handleFrame(const RxFrame& frame);
 
 public:
     TransferListener(TransferPerfCounter& perf, const DataTypeDescriptor& data_type, IAllocator& allocator)
-        : TransferListenerBase(perf, data_type)
+        : TransferListenerBase(perf, data_type, receivers_, bufmgr_)
         , bufmgr_(allocator)
         , receivers_(allocator)
     {
@@ -211,63 +212,6 @@ public:
 };
 
 // ----------------------------------------------------------------------------
-
-/*
- * TransferListener<>::TimedOutReceiverPredicate
- */
-template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
-bool TransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers>::TimedOutReceiverPredicate::operator()
-(const TransferBufferManagerKey& key, const TransferReceiver& value) const
-{
-    if (value.isTimedOut(ts_))
-    {
-        UAVCAN_TRACE("TransferListener", "Timed out receiver: %s", key.toString().c_str());
-        /*
-         * TransferReceivers do not own their buffers - this helps the Map<> container to copy them
-         * around quickly and safely (using default assignment operator). Downside is that we need to
-         * destroy the buffers manually.
-         * Maybe it is not good that the predicate has side effects, but I ran out of better ideas.
-         */
-        bufmgr_.remove(key);
-        return true;
-    }
-    return false;
-}
-
-/*
- * TransferListener<>
- */
-template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
-void TransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers>::cleanup(MonotonicTime ts)
-{
-    receivers_.removeWhere(TimedOutReceiverPredicate(ts, bufmgr_));
-    assert(receivers_.isEmpty() ? bufmgr_.isEmpty() : 1);
-}
-
-template <unsigned MaxBufSize, unsigned NumStaticBufs, unsigned NumStaticReceivers>
-void TransferListener<MaxBufSize, NumStaticBufs, NumStaticReceivers>::handleFrame(const RxFrame& frame)
-{
-    const TransferBufferManagerKey key(frame.getSrcNodeID(), frame.getTransferType());
-
-    TransferReceiver* recv = receivers_.access(key);
-    if (recv == NULL)
-    {
-        if (!frame.isFirst())
-        {
-            return;
-        }
-
-        TransferReceiver new_recv;
-        recv = receivers_.insert(key, new_recv);
-        if (recv == NULL)
-        {
-            UAVCAN_TRACE("TransferListener", "Receiver registration failed; frame %s", frame.toString().c_str());
-            return;
-        }
-    }
-    TransferBufferAccessor tba(bufmgr_, key);
-    handleReception(*recv, frame, tba);
-}
 
 /*
  * ServiceResponseTransferListener<>
