@@ -1236,7 +1236,7 @@ int commander_thread_main(int argc, char *argv[])
 					status.set_nav_state = NAV_STATE_MISSION;
 					status.set_nav_state_timestamp = hrt_absolute_time();
 
-				} else if (sp_man.return_switch == SWITCH_POS_OFF || sp_man.return_switch == SWITCH_POS_MIDDLE &&
+				} else if ((sp_man.return_switch == SWITCH_POS_OFF || sp_man.return_switch == SWITCH_POS_MIDDLE) &&
 						pos_sp_triplet.nav_state == NAV_STATE_RTL) {
 					/* RETURN switch is in normal mode, no MISSION switch mapped, interrupt if in RTL state */
 					status.set_nav_state = NAV_STATE_MISSION;
