@@ -86,6 +86,8 @@ protected:
     void stop(TransferListenerBase* listener);
 
 public:
+    uint32_t getFailureCount() const { return failure_count_; }
+
     INode& getNode() const { return node_; }
 };
 
@@ -170,8 +172,6 @@ protected:
     {
         GenericSubscriberBase::stop(forwarder_);
     }
-
-    uint32_t getFailureCount() const { return failure_count_; }
 
     TransferListenerType* getTransferListener() { return forwarder_; }
 
