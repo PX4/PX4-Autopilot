@@ -594,33 +594,31 @@ void
 Navigator::vehicle_command_update()
 {
 	orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &_vehicle_command);
-	warnx("vehicle_command_update");
 
 	/* only handle MAV_CMD_OVERRIDE_GOTO commands in navigator */
 	//XXX MAV_CMD_OVERRIDE_GOTO with param2 == MAV_GOTO_HOLD_AT_CURRENT_POSITION is handled in commander
 	if (_vehicle_command.command == VEHICLE_CMD_OVERRIDE_GOTO &&
 			(_vehicle_command.target_system == _vstatus.system_id && ((_vehicle_command.target_component == _vstatus.component_id) || (_vehicle_command.target_component == 0)))) { // component_id 0: valid for all components
-		warnx("VEHICLE_CMD_OVERRIDE_GOTO par3 %f", _vehicle_command.param3);
 
 			if (_vehicle_command.param3 == 0) {//MAV_FRAME_GLOBAL
 				_goto_mission_item.altitude_is_relative = false;
 				_goto_mission_item.lat = _vehicle_command.param5;
 				_goto_mission_item.lon = _vehicle_command.param6;
+				_goto_mission_item.altitude = _vehicle_command.param7;
 			} else if (_vehicle_command.param3 == 1) {//MAV_FRAME_LOCAL_NED
 				/* Transform to global frame */
 				double lat, lon;
 				map_projection_reproject(_vehicle_command.param5, _vehicle_command.param6, &lat, &lon);
-				_goto_mission_item.altitude_is_relative = true;
+				_goto_mission_item.altitude = _vehicle_command.param7 + _home_pos.alt;
+				_goto_mission_item.altitude_is_relative = false;
 				_goto_mission_item.lat = lat;
 				_goto_mission_item.lon = lon;
-//				warnx("lat: %.5f, lon %.5f", lat, lon);
+
 
 			} else {
 				mavlink_log_info(_mavlink_fd, "goto: unsupported coordinate frame");
 				return;
 			}
-
-			_goto_mission_item.altitude = _vehicle_command.param7;
 			_goto_mission_item.yaw = _vehicle_command.param4;
 			_goto_mission_item.loiter_radius = _parameters.loiter_radius;
 			_goto_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
@@ -1014,7 +1012,7 @@ StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 		/* EVENT_READY_REQUESTED */		{ACTION(&Navigator::start_ready), NAV_STATE_READY},
 		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), NAV_STATE_LOITER},
 		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
-		/* EVENT_GOTO_REQUESTED */		{ACTION(&Navigator::start_goto), NAV_STATE_GOTO},
+		/* EVENT_GOTO_REQUESTED */		{NO_ACTION, NAV_STATE_NONE},
 		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
 		/* EVENT_LAND_REQUESTED */		{ACTION(&Navigator::start_land), NAV_STATE_LAND},
 		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_NONE},
@@ -1062,7 +1060,7 @@ StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 		/* EVENT_READY_REQUESTED */		{NO_ACTION, NAV_STATE_GOTO},
 		/* EVENT_LOITER_REQUESTED */		{NO_ACTION, NAV_STATE_GOTO},
 		/* EVENT_MISSION_REQUESTED */		{NO_ACTION, NAV_STATE_GOTO},
-		/* EVENT_GOTO_REQUESTED */		{NO_ACTION, NAV_STATE_GOTO},
+		/* EVENT_GOTO_REQUESTED */		{ACTION(&Navigator::start_goto), NAV_STATE_GOTO},
 		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
 		/* EVENT_LAND_REQUESTED */		{ACTION(&Navigator::start_land), NAV_STATE_LAND},
 		/* EVENT_MISSION_CHANGED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
