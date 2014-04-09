@@ -191,6 +191,6 @@ def generate_one_type(t):
     template = Template(filename=TEMPLATE_FILENAME)
     text = template.render(t=t)
     text = '\n'.join(x.rstrip() for x in text.splitlines())
-    text = text.replace('\n\n\n\n', '\n\n').replace('\n\n\n', '\n\n')
+    text = text.replace('\n\n\n\n\n', '\n\n').replace('\n\n\n\n', '\n\n').replace('\n\n\n', '\n\n')
     text = text.replace('{\n\n ', '{\n ')
     return text
