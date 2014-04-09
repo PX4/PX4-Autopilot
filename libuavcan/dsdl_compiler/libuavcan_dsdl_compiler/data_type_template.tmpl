@@ -295,6 +295,9 @@ const ::uavcan::DefaultDataTypeRegistrator< ${t.cpp_full_type_name} > _uavcan_gd
 } // Namespace ${nsc}
 % endfor
 
+/*
+ * YAML streamer specialization
+ */
 namespace uavcan
 {
 
@@ -303,30 +306,33 @@ template <>
 struct UAVCAN_EXPORT YamlStreamer< ${type_name} >
 {
     template <typename Stream>
-    static void stream(Stream& s, ${type_name}::ParameterType obj, const int level)
-    {
+    static void stream(Stream& s, ${type_name}::ParameterType obj, const int level);
+};
+
+template <typename Stream>
+void YamlStreamer< ${type_name} >::stream(Stream& s, ${type_name}::ParameterType obj, const int level)
+{
 % for idx,a in enumerate(fields):
-    % if idx == 0:
-        if (level > 0)
-        {
-            s << '\n';
-            for (int pos = 0; pos < level; pos++)
-            {
-                s << "  ";
-            }
-        }
-    % else:
+% if idx == 0:
+    if (level > 0)
+    {
         s << '\n';
         for (int pos = 0; pos < level; pos++)
         {
             s << "  ";
         }
-    % endif
-        s << "${a.name}: ";
-        YamlStreamer< ${type_name}::FieldTypes::${a.name} >::stream(s, obj.${a.name}, level + 1);
-% endfor
     }
-};
+% else:
+    s << '\n';
+    for (int pos = 0; pos < level; pos++)
+    {
+        s << "  ";
+    }
+% endif
+    s << "${a.name}: ";
+    YamlStreamer< ${type_name}::FieldTypes::${a.name} >::stream(s, obj.${a.name}, level + 1);
+% endfor
+}
 </%def>
 % if t.kind == t.KIND_SERVICE:
 ${define_yaml_streamer(t.cpp_full_type_name + '::Request', t.request_fields)}
