@@ -301,9 +301,9 @@ struct log_PWR_s {
 	uint8_t high_power_rail_overcurrent;
 };
 
-/* --- VICON - VICON POSITION --- */
-#define LOG_VICON_MSG 25
-struct log_VICON_s {
+/* --- VICN - VICON POSITION --- */
+#define LOG_VICN_MSG 25
+struct log_VICN_s {
 	float x;
 	float y;
 	float z;

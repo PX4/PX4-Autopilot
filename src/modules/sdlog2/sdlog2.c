@@ -833,7 +833,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_TELE_s log_TELE;
 			struct log_ESTM_s log_ESTM;
 			struct log_PWR_s log_PWR;
-			struct log_VICON_s log_VICON;
+			struct log_VICN_s log_VICN;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1164,14 +1164,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		/* --- VICON POSITION --- */
 		if (copy_if_updated(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos)) {
-			log_msg.msg_type = LOG_VICON_MSG;
-			log_msg.body.log_VICON.x = buf.vicon_pos.x;
-			log_msg.body.log_VICON.y = buf.vicon_pos.y;
-			log_msg.body.log_VICON.z = buf.vicon_pos.z;
-			log_msg.body.log_VICON.pitch = buf.vicon_pos.pitch;
-			log_msg.body.log_VICON.roll = buf.vicon_pos.roll;
-			log_msg.body.log_VICON.yaw = buf.vicon_pos.yaw;
-			LOGBUFFER_WRITE_AND_COUNT(VICON);
+			log_msg.msg_type = LOG_VICN_MSG;
+			log_msg.body.log_VICN.x = buf.vicon_pos.x;
+			log_msg.body.log_VICN.y = buf.vicon_pos.y;
+			log_msg.body.log_VICN.z = buf.vicon_pos.z;
+			log_msg.body.log_VICN.pitch = buf.vicon_pos.pitch;
+			log_msg.body.log_VICN.roll = buf.vicon_pos.roll;
+			log_msg.body.log_VICN.yaw = buf.vicon_pos.yaw;
+			LOGBUFFER_WRITE_AND_COUNT(VICN);
 		}
 
 		/* --- FLOW --- */
