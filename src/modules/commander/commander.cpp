@@ -1697,6 +1697,7 @@ set_control_mode()
 	control_mode.flag_system_hil_enabled = status.hil_state == HIL_STATE_ON;
 
 	control_mode.flag_follow_target = false;
+	control_mode.flag_point_to_target = false;
 	control_mode.flag_control_termination_enabled = false;
 
 	/* set this flag when navigator should act */
@@ -1748,6 +1749,7 @@ set_control_mode()
 			control_mode.flag_control_position_enabled = true;
 			control_mode.flag_control_velocity_enabled = true;
 			control_mode.flag_follow_target = true;
+			control_mode.flag_point_to_target = true;
 			break;
 
 		case MAIN_STATE_AUTO:

@@ -125,6 +125,7 @@ private:
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
 	orb_advert_t	_global_vel_sp_pub;		/**< vehicle global velocity setpoint publication */
+	orb_advert_t	_cam_control_pub;		/**< camera control publication */
 
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s	_att_sp;		/**< vehicle attitude setpoint */
@@ -136,6 +137,7 @@ private:
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;	/**< vehicle global velocity setpoint */
 	struct target_global_position_s		_target_pos;	/**< target global position */
+	struct actuator_controls_s			_cam_control;	/**< camera control */
 
 	struct {
 		param_t thr_min;
@@ -159,6 +161,7 @@ private:
 		param_t follow_dist;
 		param_t follow_alt_offs;
 		param_t follow_scale_yaw;
+		param_t cam_pitch_scale;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -171,6 +174,7 @@ private:
 		float follow_dist;
 		float follow_alt_offs;
 		float follow_scale_yaw;
+		float cam_pitch_scale;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -247,6 +251,11 @@ private:
 	void		control_sp_follow(float dt);
 
 	/**
+	 * Control camera and copter yaw depending on mode
+	 */
+	void		control_camera();
+
+	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -289,6 +298,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_att_sp_pub(-1),
 	_local_pos_sp_pub(-1),
 	_global_vel_sp_pub(-1),
+	_cam_control_pub(-1),
 
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
@@ -308,6 +318,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	memset(&_local_pos_sp, 0, sizeof(_local_pos_sp));
 	memset(&_global_vel_sp, 0, sizeof(_global_vel_sp));
 	memset(&_target_pos, 0, sizeof(_target_pos));
+	memset(&_cam_control, 0, sizeof(_cam_control));
 
 	memset(&_ref_pos, 0, sizeof(_ref_pos));
 
@@ -357,6 +368,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.follow_dist	= param_find("MPC_FOLLOW_DIST");
 	_params_handles.follow_alt_offs	= param_find("MPC_FOLLOW_AOFF");
 	_params_handles.follow_scale_yaw	= param_find("MPC_FOLLOW_YAW");
+	_params_handles.cam_pitch_scale	= param_find("MPC_CAM_P_SCALE");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -408,6 +420,8 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.follow_dist, &_params.follow_dist);
 		param_get(_params_handles.follow_alt_offs, &_params.follow_alt_offs);
 		param_get(_params_handles.follow_scale_yaw, &_params.follow_scale_yaw);
+		param_get(_params_handles.cam_pitch_scale, &_params.cam_pitch_scale);
+		_params.cam_pitch_scale *= M_PI / 180.0f;
 
 		float v;
 		param_get(_params_handles.xy_p, &v);
@@ -602,7 +616,7 @@ MulticopterPositionControl::control_sp_follow(float dt)
 	float follow_offset_xy_len = follow_offset_xy.length();
 
 	if (sp_move_rate_xy.length_squared() > 0.0f) {
-		if (follow_offset_xy_len > FOLLOW_OFFS_XY_MIN) {
+		if (_control_mode.flag_point_to_target && follow_offset_xy_len > FOLLOW_OFFS_XY_MIN) {
 			/* calculate change rate in polar coordinates phi, d */
 			float rate_phi = -sp_move_rate_xy(1) / follow_offset_xy_len;
 			float rate_d = -sp_move_rate_xy(0);
@@ -624,7 +638,7 @@ MulticopterPositionControl::control_sp_follow(float dt)
 			_sp_move_rate(1) = rate_d * sinf(phi) + rate_phi * cosf(phi) * follow_offset_xy_len;
 
 		} else {
-			/* don't use polar coordinates near singularity */
+			/* 'point_to_target' disabled or copter is too close to target */
 			math::Matrix<3, 3> R_yaw_sp;
 			R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
 			_sp_move_rate = R_yaw_sp * _sp_move_rate;
@@ -656,21 +670,42 @@ MulticopterPositionControl::control_sp_follow(float dt)
 
 	/* feed forward target velocity */
 	_vel_ff += _tvel * _params.follow_ff;
+}
 
-	/* change yaw to keep direction to target */
-	/* calculate current offset (not offset setpoint) */
-	math::Vector<3> current_offset = _pos - _tpos;
-	math::Vector<2> current_offset_xy(current_offset(0), current_offset(1));
+void
+MulticopterPositionControl::control_camera()
+{
+	if (_control_mode.flag_point_to_target) {
+		/* change yaw to keep direction to target */
+		/* calculate current offset (not offset setpoint) */
+		math::Vector<3> current_offset = _pos - _tpos;
+		math::Vector<2> current_offset_xy(current_offset(0), current_offset(1));
 
-	/* don't try to rotate near singularity */
-	float current_offset_xy_len = current_offset_xy.length();
-	if (current_offset_xy_len > FOLLOW_OFFS_XY_MIN) {
-		/* calculate yaw setpoint from current positions and control offset with yaw stick */
-		_att_sp.yaw_body = _wrap_pi(atan2f(-current_offset_xy(1), -current_offset_xy(0)) + _manual.yaw * _params.follow_scale_yaw);
+		/* don't try to rotate near singularity */
+		float current_offset_xy_len = current_offset_xy.length();
+		if (current_offset_xy_len > FOLLOW_OFFS_XY_MIN) {
+			/* calculate yaw setpoint from current positions and control offset with yaw stick */
+			_att_sp.yaw_body = _wrap_pi(atan2f(-current_offset_xy(1), -current_offset_xy(0)) + _manual.yaw * _params.follow_scale_yaw);
 
-		/* feed forward attitude rates */
-		math::Vector<2> offs_vel_xy(_vel(0) - _tvel(0), _vel(1) - _tvel(1));
-		_att_rates_ff(2) = (current_offset_xy % offs_vel_xy) / current_offset_xy_len / current_offset_xy_len;
+			/* feed forward attitude rates */
+			math::Vector<2> offs_vel_xy(_vel(0) - _tvel(0), _vel(1) - _tvel(1));
+			_att_rates_ff(2) = (current_offset_xy % offs_vel_xy) / current_offset_xy_len / current_offset_xy_len;
+		}
+
+		/* control camera pitch in global frame (for BL camera gimbal) */
+		_cam_control.control[1] = atan2f(current_offset(2), current_offset_xy_len) / _params.cam_pitch_scale + _manual.aux2;
+
+	} else {
+		/* manual camera pitch control */
+		_cam_control.control[1] = _manual.aux2;
+	}
+
+	/* publish camera control */
+	if (_cam_control_pub < 0) {
+		_cam_control_pub = orb_advertise(ORB_ID(actuator_controls_2), &_cam_control);
+
+	} else {
+		orb_publish(ORB_ID(actuator_controls_2), _cam_control_pub, &_cam_control);
 	}
 }
 
@@ -766,37 +801,40 @@ MulticopterPositionControl::task_main()
 
 		update_ref();
 
+		/* update position and velocity vectors */
+		_pos(0) = _local_pos.x;
+		_pos(1) = _local_pos.y;
+		_pos(2) = _local_pos.z;
+
+		_vel(0) = _local_pos.vx;
+		_vel(1) = _local_pos.vy;
+		_vel(2) = _local_pos.vz;
+
+		/* project target position to local frame */
+		map_projection_project(&_ref_pos, _target_pos.lat, _target_pos.lon, &_tpos.data[0], &_tpos.data[1]);
+		_tpos(2) = -(_target_pos.alt + _target_alt_offs - _ref_alt);
+
+		_tvel(0) = _target_pos.vel_n;
+		_tvel(1) = _target_pos.vel_e;
+		_tvel(2) = _target_pos.vel_d;
+
+		/* calculate delay between position estimates for vehicle and target */
+		float target_dt = math::constrain(((int64_t)_local_pos.time_gps_usec - (int64_t)_target_pos.time_gps_usec) / 1000000.0f, 0.0f, 1.0f);
+
+		/* target position prediction */
+		_tpos += _tvel * target_dt;
+
+		_vel_ff.zero();
+		_sp_move_rate.zero();
+		_att_rates_ff.zero();
+
+		/* control camera (pass through) even if position controller disabled */
+		control_camera();
+
 		if (_control_mode.flag_control_altitude_enabled ||
 		    _control_mode.flag_control_position_enabled ||
 		    _control_mode.flag_control_climb_rate_enabled ||
 		    _control_mode.flag_control_velocity_enabled) {
-
-			_pos(0) = _local_pos.x;
-			_pos(1) = _local_pos.y;
-			_pos(2) = _local_pos.z;
-
-			_vel(0) = _local_pos.vx;
-			_vel(1) = _local_pos.vy;
-			_vel(2) = _local_pos.vz;
-
-			/* project target position to local frame */
-			map_projection_project(&_ref_pos, _target_pos.lat, _target_pos.lon, &_tpos.data[0], &_tpos.data[1]);
-			_tpos(2) = -(_target_pos.alt + _target_alt_offs - _ref_alt);
-
-			_tvel(0) = _target_pos.vel_n;
-			_tvel(1) = _target_pos.vel_e;
-			_tvel(2) = _target_pos.vel_d;
-
-			/* calculate delay between position estimates for vehicle and target */
-			float target_dt = math::constrain(((int64_t)_local_pos.time_gps_usec - (int64_t)_target_pos.time_gps_usec) / 1000000.0f, 0.0f, 1.0f);
-
-			/* target position prediction */
-			_tpos += _tvel * target_dt;
-
-			_vel_ff.zero();
-
-			_sp_move_rate.zero();
-			_att_rates_ff.zero();
 
 			/* select control source */
 			if (_control_mode.flag_control_manual_enabled) {
