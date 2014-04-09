@@ -72,31 +72,7 @@ public:
 
     /// Last call wins
     template <typename Type>
-    RegistResult regist(DataTypeID id)
-    {
-        if (isFrozen())
-        {
-            return RegistResultFrozen;
-        }
-
-        static Entry entry;
-        {
-            const RegistResult remove_res = remove(&entry);
-            if (remove_res != RegistResultOk)
-            {
-                return remove_res;
-            }
-        }
-        entry = Entry(DataTypeKind(Type::DataTypeKind), id, Type::getDataTypeSignature(), Type::getDataTypeFullName());
-        {
-            const RegistResult remove_res = remove(&entry);
-            if (remove_res != RegistResultOk)
-            {
-                return remove_res;
-            }
-        }
-        return registImpl(&entry);
-    }
+    RegistResult regist(DataTypeID id);
 
     /// Further calls to regist<>() will fail
     void freeze();
@@ -146,5 +122,37 @@ struct UAVCAN_EXPORT DefaultDataTypeRegistrator
         }
     }
 };
+
+// ----------------------------------------------------------------------------
+
+/*
+ * GlobalDataTypeRegistry
+ */
+template <typename Type>
+GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::regist(DataTypeID id)
+{
+    if (isFrozen())
+    {
+        return RegistResultFrozen;
+    }
+
+    static Entry entry;
+    {
+        const RegistResult remove_res = remove(&entry);
+        if (remove_res != RegistResultOk)
+        {
+            return remove_res;
+        }
+    }
+    entry = Entry(DataTypeKind(Type::DataTypeKind), id, Type::getDataTypeSignature(), Type::getDataTypeFullName());
+    {
+        const RegistResult remove_res = remove(&entry);
+        if (remove_res != RegistResultOk)
+        {
+            return remove_res;
+        }
+    }
+    return registImpl(&entry);
+}
 
 }
