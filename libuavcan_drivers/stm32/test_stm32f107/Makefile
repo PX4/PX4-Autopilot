@@ -43,6 +43,6 @@ SERIAL_CLI_PORT_NUMBER = 2
 
 RELEASE_OPT = -Os -fomit-frame-pointer
 DEBUG_OPT = -Os -g3
-USE_OPT = -flto -u_port_lock -u_port_unlock -uchThdExit
+#USE_OPT = -flto -u_port_lock -u_port_unlock -uchThdExit
 
 include crdr_chibios/rules_stm32f105_107.mk
