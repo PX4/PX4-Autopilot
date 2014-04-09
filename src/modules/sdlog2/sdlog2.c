@@ -1164,14 +1164,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		/* --- VICON POSITION --- */
 		if (copy_if_updated(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos)) {
-            log_msg.msg_type = LOG_VICON_MSG;
-            log_msg.body.log_VICON.x = buf.vicon_pos.x;
-            log_msg.body.log_VICON.y = buf.vicon_pos.y;
-            log_msg.body.log_VICON.z = buf.vicon_pos.z;
-            log_msg.body.log_VICON.pitch = buf.vicon_pos.pitch;
-            log_msg.body.log_VICON.roll = buf.vicon_pos.roll;
-            log_msg.body.log_VICON.yaw = buf.vicon_pos.yaw;
-            LOGBUFFER_WRITE_AND_COUNT(VICON);
+			log_msg.msg_type = LOG_VICON_MSG;
+			log_msg.body.log_VICON.x = buf.vicon_pos.x;
+			log_msg.body.log_VICON.y = buf.vicon_pos.y;
+			log_msg.body.log_VICON.z = buf.vicon_pos.z;
+			log_msg.body.log_VICON.pitch = buf.vicon_pos.pitch;
+			log_msg.body.log_VICON.roll = buf.vicon_pos.roll;
+			log_msg.body.log_VICON.yaw = buf.vicon_pos.yaw;
+			LOGBUFFER_WRITE_AND_COUNT(VICON);
 		}
 
 		/* --- FLOW --- */
