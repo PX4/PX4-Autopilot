@@ -512,6 +512,7 @@ void
 Navigator::home_position_update()
 {
 	orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
+	map_projection_init(_home_pos.lat, _home_pos.lon);
 }
 
 void
@@ -593,14 +594,32 @@ void
 Navigator::vehicle_command_update()
 {
 	orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &_vehicle_command);
+	warnx("vehicle_command_update");
 
 	/* only handle MAV_CMD_OVERRIDE_GOTO commands in navigator */
 	//XXX MAV_CMD_OVERRIDE_GOTO with param2 == MAV_GOTO_HOLD_AT_CURRENT_POSITION is handled in commander
 	if (_vehicle_command.command == VEHICLE_CMD_OVERRIDE_GOTO &&
 			(_vehicle_command.target_system == _vstatus.system_id && ((_vehicle_command.target_component == _vstatus.component_id) || (_vehicle_command.target_component == 0)))) { // component_id 0: valid for all components
-			_goto_mission_item.altitude_is_relative = false;
-			_goto_mission_item.lat = _vehicle_command.param5;
-			_goto_mission_item.lon = _vehicle_command.param6;
+		warnx("VEHICLE_CMD_OVERRIDE_GOTO par3 %f", _vehicle_command.param3);
+
+			if (_vehicle_command.param3 == 0) {//MAV_FRAME_GLOBAL
+				_goto_mission_item.altitude_is_relative = false;
+				_goto_mission_item.lat = _vehicle_command.param5;
+				_goto_mission_item.lon = _vehicle_command.param6;
+			} else if (_vehicle_command.param3 == 1) {//MAV_FRAME_LOCAL_NED
+				/* Transform to global frame */
+				double lat, lon;
+				map_projection_reproject(_vehicle_command.param5, _vehicle_command.param6, &lat, &lon);
+				_goto_mission_item.altitude_is_relative = true;
+				_goto_mission_item.lat = lat;
+				_goto_mission_item.lon = lon;
+//				warnx("lat: %.5f, lon %.5f", lat, lon);
+
+			} else {
+				mavlink_log_info(_mavlink_fd, "goto: unsupported coordinate frame");
+				return;
+			}
+
 			_goto_mission_item.altitude = _vehicle_command.param7;
 			_goto_mission_item.yaw = _vehicle_command.param4;
 			_goto_mission_item.loiter_radius = _parameters.loiter_radius;
