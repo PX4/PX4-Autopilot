@@ -77,6 +77,8 @@ public:
 	void		publish_mission_result();
 
 private:
+	int		get_mission_item(const dm_item_t dm_item, unsigned *mission_index, struct mission_item_s *new_mission_item);
+
 	bool		current_onboard_mission_available();
 	bool		current_offboard_mission_available();
 	bool		next_onboard_mission_available();

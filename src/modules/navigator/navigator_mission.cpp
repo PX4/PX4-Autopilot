@@ -142,22 +142,19 @@ Mission::next_mission_available()
 int
 Mission::get_current_mission_item(struct mission_item_s *new_mission_item, bool *onboard, unsigned *index)
 {
+	int ret = ERROR;
+
 	/* try onboard mission first */
 	if (current_onboard_mission_available()) {
 
-		const ssize_t len = sizeof(struct mission_item_s);
-
-		if (dm_read(DM_KEY_WAYPOINTS_ONBOARD, _current_onboard_mission_index, new_mission_item, len) != len) {
-			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-			return ERROR;
+		ret = get_mission_item(DM_KEY_WAYPOINTS_ONBOARD, &_current_onboard_mission_index, new_mission_item);
+		if (ret == OK) {
+			_current_mission_type = MISSION_TYPE_ONBOARD;
+			*onboard = true;
+			*index = _current_onboard_mission_index;
 		}
 
-		_current_mission_type = MISSION_TYPE_ONBOARD;
-		*onboard = true;
-		*index = _current_onboard_mission_index;
-
-		/* otherwise fallback to offboard */
-
+	/* otherwise fallback to offboard */
 	} else if (current_offboard_mission_available()) {
 
 		dm_item_t dm_current;
@@ -169,42 +166,34 @@ Mission::get_current_mission_item(struct mission_item_s *new_mission_item, bool 
 			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_1;
 		}
 
-		const ssize_t len = sizeof(struct mission_item_s);
-
-		if (dm_read(dm_current, _current_offboard_mission_index, new_mission_item, len) != len) {
-			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-			_current_mission_type = MISSION_TYPE_NONE;
-			return ERROR;
+		ret = get_mission_item(dm_current, &_current_offboard_mission_index, new_mission_item);
+		if (ret == OK) {
+			_current_mission_type = MISSION_TYPE_OFFBOARD;
+			*onboard = false;
+			*index = _current_offboard_mission_index;
 		}
-
-		_current_mission_type = MISSION_TYPE_OFFBOARD;
-		*onboard = false;
-		*index = _current_offboard_mission_index;
 
 	} else {
 		/* happens when no more mission items can be added as a next item */
 		_current_mission_type = MISSION_TYPE_NONE;
-		return ERROR;
+		ret == ERROR;
 	}
 
-	return OK;
+	return ret;
 }
 
 int
 Mission::get_next_mission_item(struct mission_item_s *new_mission_item)
 {
+	int ret = ERROR;
+
 	/* try onboard mission first */
 	if (next_onboard_mission_available()) {
 
-		const ssize_t len = sizeof(struct mission_item_s);
+		unsigned next_onboard_mission_index = _current_onboard_mission_index + 1;
+		ret = get_mission_item(DM_KEY_WAYPOINTS_ONBOARD, &next_onboard_mission_index, new_mission_item);
 
-		if (dm_read(DM_KEY_WAYPOINTS_ONBOARD, _current_onboard_mission_index + 1, new_mission_item, len) != len) {
-			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-			return ERROR;
-		}
-
-		/* otherwise fallback to offboard */
-
+	/* otherwise fallback to offboard */
 	} else if (next_offboard_mission_available()) {
 
 		dm_item_t dm_current;
@@ -216,19 +205,14 @@ Mission::get_next_mission_item(struct mission_item_s *new_mission_item)
 			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_1;
 		}
 
-		const ssize_t len = sizeof(struct mission_item_s);
-
-		if (dm_read(dm_current, _current_offboard_mission_index + 1, new_mission_item, len) != len) {
-			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-			return ERROR;
-		}
+		unsigned next_offboard_mission_index = _current_offboard_mission_index + 1;
+		ret = get_mission_item(dm_current, &next_offboard_mission_index, new_mission_item);
 
 	} else {
 		/* happens when no more mission items can be added as a next item */
-		return ERROR;
+		ret = ERROR;
 	}
-
-	return OK;
+	return ret;
 }
 
 
@@ -315,4 +299,34 @@ Mission::publish_mission_result()
 	}
 	/* reset reached bool */
 	_mission_result.mission_reached = false;
+}
+
+int
+Mission::get_mission_item(const dm_item_t dm_item, unsigned *mission_index, struct mission_item_s *new_mission_item)
+{
+	/* repeat several to get the mission item because we might have to follow multiple DO_JUMPS */
+	for (int i=0; i<10; i++) {
+
+		const ssize_t len = sizeof(struct mission_item_s);
+
+		/* read mission item from datamanager */
+		if (dm_read(dm_item, *mission_index, new_mission_item, len) != len) {
+			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+			return ERROR;
+		}
+
+		/* check for DO_JUMP item */
+		if (new_mission_item->nav_cmd == NAV_CMD_DO_JUMP) {
+			/* set new mission item index and repeat
+			 * we don't have to validate here, if it's invalid, we should realize this later .*/
+			*mission_index = new_mission_item->do_jump_mission_index;
+		} else {
+			/* if it's not a DO_JUMP, then we were successful */
+			return OK;
+		}
+	}
+
+	/* we have given up, we don't want to cycle forever */
+	warnx("ERROR: cycling through mission items without success");
+	return ERROR;
 }
