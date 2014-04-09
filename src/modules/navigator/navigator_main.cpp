@@ -596,22 +596,22 @@ Navigator::vehicle_command_update()
 
 	/* only handle MAV_CMD_OVERRIDE_GOTO commands in navigator */
 	//XXX MAV_CMD_OVERRIDE_GOTO with param2 == MAV_GOTO_HOLD_AT_CURRENT_POSITION is handled in commander
-	if (_vehicle_command.command == VEHICLE_CMD_OVERRIDE_GOTO) {
-		_goto_mission_item.altitude_is_relative = false;
-		_goto_mission_item.lat = _vehicle_command.param5;
-		_goto_mission_item.lon = _vehicle_command.param6;
-		_goto_mission_item.altitude = _vehicle_command.param7;
-		_goto_mission_item.yaw = _vehicle_command.param4;
-		_goto_mission_item.loiter_radius = _parameters.loiter_radius;
-		_goto_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-		_goto_mission_item.acceptance_radius = _parameters.acceptance_radius;
-		_goto_mission_item.loiter_direction = 1;
-		_goto_mission_item.pitch_min = 0.0f;
-		_goto_mission_item.origin = ORIGIN_MAVLINK;
-		_goto_mission_item.autocontinue = false;
-		request_goto();
+	if (_vehicle_command.command == VEHICLE_CMD_OVERRIDE_GOTO &&
+			(_vehicle_command.target_system == _vstatus.system_id && ((_vehicle_command.target_component == _vstatus.component_id) || (_vehicle_command.target_component == 0)))) { // component_id 0: valid for all components
+			_goto_mission_item.altitude_is_relative = false;
+			_goto_mission_item.lat = _vehicle_command.param5;
+			_goto_mission_item.lon = _vehicle_command.param6;
+			_goto_mission_item.altitude = _vehicle_command.param7;
+			_goto_mission_item.yaw = _vehicle_command.param4;
+			_goto_mission_item.loiter_radius = _parameters.loiter_radius;
+			_goto_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+			_goto_mission_item.acceptance_radius = _parameters.acceptance_radius;
+			_goto_mission_item.loiter_direction = 1;
+			_goto_mission_item.pitch_min = 0.0f;
+			_goto_mission_item.origin = ORIGIN_MAVLINK;
+			_goto_mission_item.autocontinue = false;
+			request_goto();
 	}
-
 }
 
 void
