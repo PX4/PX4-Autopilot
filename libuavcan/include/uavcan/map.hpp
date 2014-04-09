@@ -21,9 +21,11 @@ namespace uavcan
  *  Key's default constructor must initialize the object into invalid state.
  *  Size of Key + Value + padding must not exceed MemPoolBlockSize.
  */
-template <typename Key, typename Value, unsigned NumStaticEntries>
-class UAVCAN_EXPORT Map : Noncopyable
+template <typename Key, typename Value>
+class UAVCAN_EXPORT MapBase : Noncopyable
 {
+    template <typename, typename, unsigned> friend class Map;
+
     UAVCAN_PACKED_BEGIN
     struct KVPair
     {
@@ -84,7 +86,8 @@ class UAVCAN_EXPORT Map : Noncopyable
 
     LinkedListRoot<KVGroup> list_;
     IAllocator& allocator_;
-    KVPair static_[NumStaticEntries];
+    KVPair* const static_;
+    const unsigned num_static_entries_;
 
     KVPair* find(const Key& key);
 
@@ -97,18 +100,18 @@ class UAVCAN_EXPORT Map : Noncopyable
         bool operator()(const Key& k, const Value& v) const { (void)k; (void)v; return true; }
     };
 
-    // This container is not copyable
-    Map(const Map&);
-    bool operator=(const Map&);
+protected:
+    /// Derived class destructor must call removeAll();
+    ~MapBase() { }
 
 public:
-    Map(IAllocator& allocator)
+    MapBase(KVPair* static_buf, unsigned num_static_entries, IAllocator& allocator)
         : allocator_(allocator)
+        , static_(static_buf)
+        , num_static_entries_(num_static_entries)
     {
         assert(Key() == Key());
     }
-
-    ~Map() { removeAll(); }
 
     Value* access(const Key& key);
 
@@ -139,15 +142,41 @@ public:
     unsigned getNumDynamicPairs() const;
 };
 
+
+template <typename Key, typename Value, unsigned NumStaticEntries = 0>
+class UAVCAN_EXPORT Map : public MapBase<Key, Value>
+{
+    typename MapBase<Key, Value>::KVPair static_[NumStaticEntries];
+
+public:
+    Map(IAllocator& allocator)
+        : MapBase<Key, Value>(static_, NumStaticEntries, allocator)
+    { }
+
+    ~Map() { this->removeAll(); }
+};
+
+
+template <typename Key, typename Value>
+class UAVCAN_EXPORT Map<Key, Value, 0> : public MapBase<Key, Value>
+{
+public:
+    Map(IAllocator& allocator)
+        : MapBase<Key, Value>(NULL, 0, allocator)
+    { }
+
+    ~Map() { this->removeAll(); }
+};
+
 // ----------------------------------------------------------------------------
 
 /*
- * Map<>
+ * MapBase<>
  */
-template <typename Key, typename Value, unsigned NumStaticEntries>
-typename Map<Key, Value, NumStaticEntries>::KVPair* Map<Key, Value, NumStaticEntries>::find(const Key& key)
+template <typename Key, typename Value>
+typename MapBase<Key, Value>::KVPair* MapBase<Key, Value>::find(const Key& key)
 {
-    for (unsigned i = 0; i < NumStaticEntries; i++)
+    for (unsigned i = 0; i < num_static_entries_; i++)
     {
         if (static_[i].match(key))
         {
@@ -168,14 +197,14 @@ typename Map<Key, Value, NumStaticEntries>::KVPair* Map<Key, Value, NumStaticEnt
     return NULL;
 }
 
-template <typename Key, typename Value, unsigned NumStaticEntries>
-void Map<Key, Value, NumStaticEntries>::optimizeStorage()
+template <typename Key, typename Value>
+void MapBase<Key, Value>::optimizeStorage()
 {
     while (true)
     {
         // Looking for first EMPTY static entry
         KVPair* stat = NULL;
-        for (unsigned i = 0; i < NumStaticEntries; i++)
+        for (unsigned i = 0; i < num_static_entries_; i++)
         {
             if (static_[i].match(Key()))
             {
@@ -220,8 +249,8 @@ void Map<Key, Value, NumStaticEntries>::optimizeStorage()
     }
 }
 
-template <typename Key, typename Value, unsigned NumStaticEntries>
-void Map<Key, Value, NumStaticEntries>::compact()
+template <typename Key, typename Value>
+void MapBase<Key, Value>::compact()
 {
     KVGroup* p = list_.get();
     while (p)
@@ -245,16 +274,16 @@ void Map<Key, Value, NumStaticEntries>::compact()
     }
 }
 
-template <typename Key, typename Value, unsigned NumStaticEntries>
-Value* Map<Key, Value, NumStaticEntries>::access(const Key& key)
+template <typename Key, typename Value>
+Value* MapBase<Key, Value>::access(const Key& key)
 {
     assert(!(key == Key()));
     KVPair* const kv = find(key);
     return kv ? &kv->value : NULL;
 }
 
-template <typename Key, typename Value, unsigned NumStaticEntries>
-Value* Map<Key, Value, NumStaticEntries>::insert(const Key& key, const Value& value)
+template <typename Key, typename Value>
+Value* MapBase<Key, Value>::insert(const Key& key, const Value& value)
 {
     assert(!(key == Key()));
     remove(key);
@@ -276,8 +305,8 @@ Value* Map<Key, Value, NumStaticEntries>::insert(const Key& key, const Value& va
     return &kvg->kvs[0].value;
 }
 
-template <typename Key, typename Value, unsigned NumStaticEntries>
-void Map<Key, Value, NumStaticEntries>::remove(const Key& key)
+template <typename Key, typename Value>
+void MapBase<Key, Value>::remove(const Key& key)
 {
     assert(!(key == Key()));
     KVPair* const kv = find(key);
@@ -289,13 +318,13 @@ void Map<Key, Value, NumStaticEntries>::remove(const Key& key)
     }
 }
 
-template <typename Key, typename Value, unsigned NumStaticEntries>
+template <typename Key, typename Value>
 template <typename Predicate>
-void Map<Key, Value, NumStaticEntries>::removeWhere(Predicate predicate)
+void MapBase<Key, Value>::removeWhere(Predicate predicate)
 {
     unsigned num_removed = 0;
 
-    for (unsigned i = 0; i < NumStaticEntries; i++)
+    for (unsigned i = 0; i < num_static_entries_; i++)
     {
         if (!static_[i].match(Key()))
         {
@@ -332,11 +361,11 @@ void Map<Key, Value, NumStaticEntries>::removeWhere(Predicate predicate)
     }
 }
 
-template <typename Key, typename Value, unsigned NumStaticEntries>
+template <typename Key, typename Value>
 template <typename Predicate>
-const Key* Map<Key, Value, NumStaticEntries>::findFirstKey(Predicate predicate) const
+const Key* MapBase<Key, Value>::findFirstKey(Predicate predicate) const
 {
-    for (unsigned i = 0; i < NumStaticEntries; i++)
+    for (unsigned i = 0; i < num_static_entries_; i++)
     {
         if (!static_[i].match(Key()))
         {
@@ -366,23 +395,23 @@ const Key* Map<Key, Value, NumStaticEntries>::findFirstKey(Predicate predicate) 
     return NULL;
 }
 
-template <typename Key, typename Value, unsigned NumStaticEntries>
-void Map<Key, Value, NumStaticEntries>::removeAll()
+template <typename Key, typename Value>
+void MapBase<Key, Value>::removeAll()
 {
     removeWhere(YesPredicate());
 }
 
-template <typename Key, typename Value, unsigned NumStaticEntries>
-bool Map<Key, Value, NumStaticEntries>::isEmpty() const
+template <typename Key, typename Value>
+bool MapBase<Key, Value>::isEmpty() const
 {
     return (getNumStaticPairs() == 0) && (getNumDynamicPairs() == 0);
 }
 
-template <typename Key, typename Value, unsigned NumStaticEntries>
-unsigned Map<Key, Value, NumStaticEntries>::getNumStaticPairs() const
+template <typename Key, typename Value>
+unsigned MapBase<Key, Value>::getNumStaticPairs() const
 {
     unsigned num = 0;
-    for (unsigned i = 0; i < NumStaticEntries; i++)
+    for (unsigned i = 0; i < num_static_entries_; i++)
     {
         if (!static_[i].match(Key()))
         {
@@ -392,8 +421,8 @@ unsigned Map<Key, Value, NumStaticEntries>::getNumStaticPairs() const
     return num;
 }
 
-template <typename Key, typename Value, unsigned NumStaticEntries>
-unsigned Map<Key, Value, NumStaticEntries>::getNumDynamicPairs() const
+template <typename Key, typename Value>
+unsigned MapBase<Key, Value>::getNumDynamicPairs() const
 {
     unsigned num = 0;
     KVGroup* p = list_.get();

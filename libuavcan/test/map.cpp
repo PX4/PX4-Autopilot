@@ -180,3 +180,29 @@ TEST(Map, Basic)
     map.reset();
     ASSERT_EQ(0, pool.getNumUsedBlocks());
 }
+
+
+TEST(Map, NoStatic)
+{
+    using uavcan::Map;
+
+    static const int POOL_BLOCKS = 3;
+    uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
+    uavcan::PoolManager<2> poolmgr;
+    poolmgr.addPool(&pool);
+
+    typedef Map<std::string, std::string> MapType;
+    std::auto_ptr<MapType> map(new MapType(poolmgr));
+
+    // Empty
+    ASSERT_FALSE(map->access("hi"));
+    map->remove("foo");
+    ASSERT_EQ(0, pool.getNumUsedBlocks());
+
+    // Static insertion
+    ASSERT_EQ("a", *map->insert("1", "a"));
+    ASSERT_EQ("b", *map->insert("2", "b"));
+    ASSERT_EQ(1, pool.getNumUsedBlocks());
+    ASSERT_EQ(0, map->getNumStaticPairs());
+    ASSERT_EQ(2, map->getNumDynamicPairs());
+}
