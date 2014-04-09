@@ -58,7 +58,8 @@ enum NAV_CMD {
 	NAV_CMD_LAND=21,
 	NAV_CMD_TAKEOFF=22,
 	NAV_CMD_ROI=80,
-	NAV_CMD_PATHPLANNING=81
+	NAV_CMD_PATHPLANNING=81,
+	NAV_CMD_DO_JUMP=177
 };
 
 enum ORIGIN {
@@ -91,6 +92,7 @@ struct mission_item_s {
 	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
 	bool autocontinue;		/**< true if next waypoint should follow after this one */
 	enum ORIGIN origin;		/**< where the waypoint has been generated		*/
+	int do_jump_mission_index;	/**< the mission index that we want to jump to		*/
 };
 
 struct mission_s
