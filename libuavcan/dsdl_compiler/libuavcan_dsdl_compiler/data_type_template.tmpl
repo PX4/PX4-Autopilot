@@ -115,42 +115,15 @@ struct UAVCAN_EXPORT ${t.cpp_type_name}
     }
 
     bool operator!=(ParameterType rhs) const { return !operator==(rhs); }
-    bool operator==(ParameterType rhs) const
-    {
-        // TODO: Proper float comparison.
-% if fields:
-        return
-    % for idx,a in enumerate(fields):
-            ${a.name} == rhs.${a.name} ${'&&' if (idx + 1) < len(fields) else ';'}
-    % endfor
-% else:
-        (void)rhs;
-        return true;
-% endif
-    }
+    bool operator==(ParameterType rhs) const;
 
-<%def name="generate_codec_calls_per_field(call_name, self_parameter_type)">
-    static int ${call_name}(${self_parameter_type} self, ::uavcan::ScalarCodec& codec,
-                      ::uavcan::TailArrayOptimizationMode tao_mode = ::uavcan::TailArrayOptEnabled)
-    {
-        (void)self;
-        (void)codec;
-        (void)tao_mode;
-        int res = 1;
-% for idx,a in enumerate(fields):
-        res = FieldTypes::${a.name}::${call_name}(self.${a.name}, codec, \
-${'::uavcan::TailArrayOptDisabled' if (idx + 1) < len(fields) else 'tao_mode'});
-        if (res <= 0)
-        {
-            return res;
-        }
-% endfor
-        return res;
-    }
+    static int encode(ParameterType self, ::uavcan::ScalarCodec& codec,
+                      ::uavcan::TailArrayOptimizationMode tao_mode = ::uavcan::TailArrayOptEnabled);
+
+    static int decode(ReferenceType self, ::uavcan::ScalarCodec& codec,
+                      ::uavcan::TailArrayOptimizationMode tao_mode = ::uavcan::TailArrayOptEnabled);
 </%def>
-    ${generate_codec_calls_per_field('encode', 'ParameterType')}
-    ${generate_codec_calls_per_field('decode', 'ReferenceType')}
-</%def>
+
 % if t.kind == t.KIND_SERVICE:
     template <int _tmpl>
     struct Request_
@@ -190,22 +163,7 @@ ${'::uavcan::TailArrayOptDisabled' if (idx + 1) < len(fields) else 'tao_mode'});
         signature.extend(getDataTypeSignature());
     }
 
-    static ::uavcan::DataTypeSignature getDataTypeSignature()
-    {
-        ::uavcan::DataTypeSignature signature(${hex(t.get_dsdl_signature())}UL);
-<%def name="extend_signature_per_field(scope_prefix, fields)">
-    % for a in fields:
-        ${scope_prefix}FieldTypes::${a.name}::extendDataTypeSignature(signature);
-    % endfor
-</%def>
-% if t.kind == t.KIND_SERVICE:
-    ${extend_signature_per_field('Request::', t.request_fields)}
-    ${extend_signature_per_field('Response::', t.response_fields)}
-% else:
-    ${extend_signature_per_field('', t.fields)}
-% endif
-        return signature;
-    }
+    static ::uavcan::DataTypeSignature getDataTypeSignature();
 
 % if t.kind == t.KIND_SERVICE:
 private:
@@ -213,6 +171,89 @@ private:
 % endif
 };
 
+#if UAVCAN_PACK_STRUCTS
+UAVCAN_PACKED_END
+#endif
+
+/*
+ * Out of line struct method definitions
+ */
+<%def name="define_out_of_line_struct_methods(scope_prefix, fields)">
+
+template <int _tmpl>
+bool ${scope_prefix}<_tmpl>::operator==(ParameterType rhs) const
+{
+    // TODO: Proper float comparison.
+% if fields:
+    return
+% for idx,a in enumerate(fields):
+        ${a.name} == rhs.${a.name} ${'&&' if (idx + 1) < len(fields) else ';'}
+% endfor
+% else:
+    (void)rhs;
+    return true;
+% endif
+}
+
+<%def name="generate_codec_calls_per_field(call_name, self_parameter_type)">
+template <int _tmpl>
+int ${scope_prefix}<_tmpl>::${call_name}(${self_parameter_type} self, ::uavcan::ScalarCodec& codec,
+    ::uavcan::TailArrayOptimizationMode tao_mode)
+{
+    (void)self;
+    (void)codec;
+    (void)tao_mode;
+    int res = 1;
+% for idx,a in enumerate(fields):
+    res = FieldTypes::${a.name}::${call_name}(self.${a.name}, codec, \
+${'::uavcan::TailArrayOptDisabled' if (idx + 1) < len(fields) else 'tao_mode'});
+    if (res <= 0)
+    {
+        return res;
+    }
+% endfor
+    return res;
+}
+</%def>
+${generate_codec_calls_per_field('encode', 'ParameterType')}
+${generate_codec_calls_per_field('decode', 'ReferenceType')}
+</%def>
+
+% if t.kind == t.KIND_SERVICE:
+${define_out_of_line_struct_methods(t.cpp_type_name + '::Request_', t.request_fields)}
+${define_out_of_line_struct_methods(t.cpp_type_name + '::Response_', t.response_fields)}
+% else:
+${define_out_of_line_struct_methods(t.cpp_type_name, t.fields)}
+% endif
+
+/*
+ * Out of line type method definitions
+ */
+% if t.kind == t.KIND_SERVICE:
+inline ::uavcan::DataTypeSignature ${t.cpp_type_name}::getDataTypeSignature()
+% else:
+template <int _tmpl>
+::uavcan::DataTypeSignature ${t.cpp_type_name}<_tmpl>::getDataTypeSignature()
+% endif
+{
+    ::uavcan::DataTypeSignature signature(${hex(t.get_dsdl_signature())}UL);
+<%def name="extend_signature_per_field(scope_prefix, fields)">
+% for a in fields:
+    ${scope_prefix}FieldTypes::${a.name}::extendDataTypeSignature(signature);
+% endfor
+</%def>
+% if t.kind == t.KIND_SERVICE:
+${extend_signature_per_field('Request::', t.request_fields)}
+${extend_signature_per_field('Response::', t.response_fields)}
+% else:
+${extend_signature_per_field('', t.fields)}
+% endif
+    return signature;
+}
+
+/*
+ * Out of line constant definitions
+ */
 <%def name="define_out_of_line_constants(scope_prefix, constants)">
 % for a in constants:
     % if not a.cpp_use_enum:
@@ -230,10 +271,9 @@ ${define_out_of_line_constants(t.cpp_type_name + '::Response_', t.response_const
 ${define_out_of_line_constants(t.cpp_type_name, t.constants)}
 % endif
 
-#if UAVCAN_PACK_STRUCTS
-UAVCAN_PACKED_END
-#endif
-
+/*
+ * Final typedef
+ */
 % if t.kind == t.KIND_SERVICE:
 typedef ${t.cpp_type_name} ${t.short_name};
 % else:
