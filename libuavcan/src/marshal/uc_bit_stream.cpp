@@ -3,7 +3,7 @@
  */
 
 #include <cassert>
-#include <sstream>
+#include <string>
 #include <uavcan/marshal/bit_stream.hpp>
 #include <uavcan/transport/transfer_buffer.hpp>
 
@@ -75,7 +75,9 @@ int BitStream::read(uint8_t* bytes, const int bitlen)
 
 std::string BitStream::toString() const
 {
-    std::ostringstream os;
+    std::string out;
+    out.reserve(128);
+
     for (int offset = 0; true; offset++)
     {
         uint8_t byte = 0;
@@ -85,16 +87,15 @@ std::string BitStream::toString() const
         }
         for (int i = 7; i >= 0; i--)     // Most significant goes first
         {
-            os << !!(byte & (1 << i));
+            out += (byte & (1 << i)) ? '1' : '0';
         }
-        os << " ";
+        out += ' ';
     }
-    std::string output = os.str();
-    if (output.length())
+    if (out.length())
     {
-        output.erase(output.length() - 1, 1);
+        out.erase(out.length() - 1, 1);
     }
-    return output;
+    return out;
 }
 
 }
