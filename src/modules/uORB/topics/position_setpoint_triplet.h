@@ -58,7 +58,7 @@ enum SETPOINT_TYPE
 	SETPOINT_TYPE_LOITER,			/**< loiter setpoint */
 	SETPOINT_TYPE_TAKEOFF,			/**< takeoff setpoint */
 	SETPOINT_TYPE_LAND,			/**< land setpoint, altitude must be ignored, vehicle must descend until landing */
-	SETPOINT_TYPE_IDLE,			/**< do nothing, switch off motors or keep at idle speed (MC) */
+	SETPOINT_TYPE_IDLE			/**< do nothing, switch off motors or keep at idle speed (MC) */
 };
 
 struct position_setpoint_s
@@ -72,6 +72,14 @@ struct position_setpoint_s
 	float loiter_radius;		/**< loiter radius (only for fixed wing), in m */
 	int8_t loiter_direction;	/**< loiter direction: 1 = CW, -1 = CCW */
 	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
+	float velocity_x;		//**< velocity x setpoint */
+	float velocity_y;		//**< velocity y setpoint */
+	float velocity_z;		//**< velocity z setpoint */
+	bool velocity_set;		//*< true if velocity setpoint should be used */
+	float acceleration_x;		//**< acceleration x setpoint */
+	float acceleration_y;		//**< acceleration y setpoint */
+	float acceleration_z;		//**< acceleration z setpoint */
+	bool acceleration_set;		//*< true if acceleration setpoint should be used */
 };
 
 /**

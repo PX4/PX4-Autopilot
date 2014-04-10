@@ -91,6 +91,14 @@ struct mission_item_s {
 	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
 	bool autocontinue;		/**< true if next waypoint should follow after this one */
 	enum ORIGIN origin;		/**< where the waypoint has been generated		*/
+	float velocity_x;		//**< velocity x setpoint */
+	float velocity_y;		//**< velocity y setpoint */
+	float velocity_z;		//**< velocity z setpoint */
+	bool velocity_set;		//*< true if velocity setpoint should be used */
+	float acceleration_x;		//**< acceleration x setpoint */
+	float acceleration_y;		//**< acceleration y setpoint */
+	float acceleration_z;		//**< acceleration z setpoint */
+	bool acceleration_set;		//*< true if acceleration setpoint should be used */
 };
 
 struct mission_s

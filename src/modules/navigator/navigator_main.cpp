@@ -1472,6 +1472,30 @@ Navigator::position_setpoint_from_mission_item(position_setpoint_s *sp, mission_
 	} else {
 		sp->type = SETPOINT_TYPE_NORMAL;
 	}
+
+	if (item->velocity_set) {
+		sp->velocity_set = true;
+		sp->velocity_x = item->velocity_x;
+		sp->velocity_y = item->velocity_y;
+		sp->velocity_z = item->velocity_z;
+	} else {
+		sp->velocity_set = false;
+		sp->velocity_x = 0.0f;
+		sp->velocity_y = 0.0f;
+		sp->velocity_z = 0.0f;
+	}
+
+	if (item->acceleration_set) {
+		sp->acceleration_set = true;
+		sp->acceleration_x = item->acceleration_x;
+		sp->acceleration_y = item->acceleration_y;
+		sp->acceleration_z = item->acceleration_z;
+	} else {
+		sp->acceleration_set = false;
+		sp->acceleration_x = 0.0f;
+		sp->acceleration_y = 0.0f;
+		sp->acceleration_z = 0.0f;
+	}
 }
 
 bool
