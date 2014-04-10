@@ -4,7 +4,6 @@
 
 #include <cassert>
 #include <cstdio>
-#include <sstream>
 #include <uavcan/transport/frame.hpp>
 #include <uavcan/transport/can_io.hpp>
 
