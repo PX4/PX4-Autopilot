@@ -3,7 +3,6 @@
  */
 
 #include <cassert>
-#include <cstdio>
 #include <uavcan/transport/frame.hpp>
 #include <uavcan/transport/can_io.hpp>
 

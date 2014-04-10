@@ -3,7 +3,6 @@
  */
 
 #include <cassert>
-#include <string>
 #include <uavcan/marshal/bit_stream.hpp>
 #include <uavcan/transport/transfer_buffer.hpp>
 
@@ -73,6 +72,7 @@ int BitStream::read(uint8_t* bytes, const int bitlen)
     return ResultOk;
 }
 
+#if UAVCAN_TOSTRING
 std::string BitStream::toString() const
 {
     std::string out;
@@ -97,5 +97,6 @@ std::string BitStream::toString() const
     }
     return out;
 }
+#endif
 
 }

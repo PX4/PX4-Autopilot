@@ -5,7 +5,6 @@
 #pragma once
 
 #include <cassert>
-#include <string>
 #include <uavcan/stdint.hpp>
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/impl_constants.hpp>
@@ -65,7 +64,9 @@ public:
     int write(const uint8_t* bytes, const int bitlen);
     int read(uint8_t* bytes, const int bitlen);
 
+#if UAVCAN_TOSTRING
     std::string toString() const;
+#endif
 };
 
 }

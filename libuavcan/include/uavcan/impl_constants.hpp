@@ -60,6 +60,18 @@
 # define UAVCAN_EXPORT
 #endif
 
+/**
+ * It might make sense to remove toString() methods for an embedded system
+ */
+#ifndef UAVCAN_TOSTRING
+# define UAVCAN_TOSTRING 1
+#endif
+
+#if UAVCAN_TOSTRING
+# include <string>
+# include <cstdio>
+#endif
+
 namespace uavcan
 {
 

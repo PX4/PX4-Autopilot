@@ -4,7 +4,6 @@
  */
 
 #include <algorithm>
-#include <string>
 #include <cassert>
 #include <limits>
 #include <uavcan/transport/can_io.hpp>
@@ -15,6 +14,7 @@ namespace uavcan
 /*
  * CanRxFrame
  */
+#if UAVCAN_TOSTRING
 std::string CanRxFrame::toString(StringRepresentation mode) const
 {
     std::string out = CanFrame::toString(mode);
@@ -25,6 +25,7 @@ std::string CanRxFrame::toString(StringRepresentation mode) const
     out += '0' + iface_index;
     return out;
 }
+#endif
 
 /*
  * CanTxQueue::Entry
@@ -57,6 +58,7 @@ bool CanTxQueue::Entry::qosLowerThan(const CanFrame& rhs_frame, Qos rhs_qos) con
     return frame.priorityLowerThan(rhs_frame);
 }
 
+#if UAVCAN_TOSTRING
 std::string CanTxQueue::Entry::toString() const
 {
     std::string str_qos;
@@ -78,6 +80,7 @@ std::string CanTxQueue::Entry::toString() const
     }
     return str_qos + frame.toString();
 }
+#endif
 
 /*
  * CanTxQueue

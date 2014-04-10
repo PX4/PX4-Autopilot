@@ -6,7 +6,6 @@
 
 #include <cassert>
 #include <cstring>
-#include <string>
 #include <algorithm>
 #include <uavcan/stdint.hpp>
 #include <uavcan/impl_constants.hpp>
@@ -155,10 +154,12 @@ public:
     bool match(DataTypeKind kind, const char* name) const;
     bool match(DataTypeKind kind, DataTypeID id) const;
 
-    std::string toString() const;
-
     bool operator!=(const DataTypeDescriptor& rhs) const { return !operator==(rhs); }
     bool operator==(const DataTypeDescriptor& rhs) const;
+
+#if UAVCAN_TOSTRING
+    std::string toString() const;
+#endif
 };
 
 }

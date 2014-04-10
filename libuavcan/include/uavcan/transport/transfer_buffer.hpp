@@ -61,7 +61,9 @@ public:
     NodeID getNodeID() const { return node_id_; }
     TransferType getTransferType() const { return TransferType(transfer_type_); }
 
+#if UAVCAN_TOSTRING
     std::string toString() const;
+#endif
 };
 
 /**

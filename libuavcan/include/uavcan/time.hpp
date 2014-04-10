@@ -4,10 +4,9 @@
 
 #pragma once
 
-#include <uavcan/stdint.hpp>
 #include <algorithm>
 #include <limits>
-#include <cstdio>
+#include <uavcan/stdint.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/Timestamp.hpp>
@@ -83,7 +82,9 @@ public:
 
     enum { StringBufSize = 32 };
     void toString(char buf[StringBufSize]) const;
+#if UAVCAN_TOSTRING
     std::string toString() const;
+#endif
 };
 
 
@@ -164,7 +165,9 @@ public:
 
     enum { StringBufSize = 32 };
     void toString(char buf[StringBufSize]) const;
+#if UAVCAN_TOSTRING
     std::string toString() const;
+#endif
 };
 
 /*
@@ -230,6 +233,8 @@ void TimeBase<T, D>::toString(char buf[StringBufSize]) const
 }
 
 
+#if UAVCAN_TOSTRING
+
 template <typename D>
 std::string DurationBase<D>::toString() const
 {
@@ -245,6 +250,8 @@ std::string TimeBase<T, D>::toString() const
     toString(buf);
     return std::string(buf);
 }
+
+#endif
 
 
 template <typename Stream, typename D>

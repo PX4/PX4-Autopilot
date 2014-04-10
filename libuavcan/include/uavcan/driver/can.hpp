@@ -7,7 +7,6 @@
 
 #include <cassert>
 #include <algorithm>
-#include <string>
 #include <uavcan/stdint.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/driver/system_clock.hpp>
@@ -58,8 +57,10 @@ struct UAVCAN_EXPORT CanFrame
     bool isRemoteTransmissionRequest() const { return id & FlagRTR; }
     bool isErrorFrame()                const { return id & FlagERR; }
 
+#if UAVCAN_TOSTRING
     enum StringRepresentation { StrTight, StrAligned };
     std::string toString(StringRepresentation mode = StrTight) const;
+#endif
 
     /**
      * CAN frames arbitration rules, particularly STD vs EXT:

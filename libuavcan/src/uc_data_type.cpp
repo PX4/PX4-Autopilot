@@ -3,8 +3,6 @@
  */
 
 #include <cstring>
-#include <cstdio>
-#include <string>
 #include <cassert>
 #include <uavcan/data_type.hpp>
 #include <uavcan/transport/crc.hpp>
@@ -54,6 +52,7 @@ bool DataTypeDescriptor::match(DataTypeKind kind, DataTypeID id) const
     return (kind_ == kind) && (id_ == id);
 }
 
+#if UAVCAN_TOSTRING
 std::string DataTypeDescriptor::toString() const
 {
     char kindch = '?';
@@ -80,6 +79,7 @@ std::string DataTypeDescriptor::toString() const
                    static_cast<unsigned long long>(signature_.get()));
     return std::string(buf);
 }
+#endif
 
 bool DataTypeDescriptor::operator==(const DataTypeDescriptor& rhs) const
 {

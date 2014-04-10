@@ -3,7 +3,6 @@
  */
 
 #include <cassert>
-#include <cstdio>
 #include <uavcan/transport/frame.hpp>
 #include <uavcan/transport/can_io.hpp>
 
@@ -194,6 +193,7 @@ bool Frame::operator==(const Frame& rhs) const
         std::equal(payload_, payload_ + payload_len_, rhs.payload_);
 }
 
+#if UAVCAN_TOSTRING
 std::string Frame::toString() const
 {
     using namespace std; // For snprintf()
@@ -223,6 +223,7 @@ std::string Frame::toString() const
     ofs += snprintf(buf + ofs, BUFLEN - ofs, "]");
     return std::string(buf);
 }
+#endif
 
 /**
  * RxFrame
@@ -244,6 +245,7 @@ bool RxFrame::parse(const CanRxFrame& can_frame)
     return true;
 }
 
+#if UAVCAN_TOSTRING
 std::string RxFrame::toString() const
 {
     std::string out = Frame::toString();
@@ -254,5 +256,6 @@ std::string RxFrame::toString() const
     out += '0' + iface_index_;
     return out;
 }
+#endif
 
 }

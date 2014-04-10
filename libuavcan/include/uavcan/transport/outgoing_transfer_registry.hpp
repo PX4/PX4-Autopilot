@@ -5,7 +5,6 @@
 #pragma once
 
 #include <cassert>
-#include <string>
 #include <uavcan/stdint.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/map.hpp>
@@ -52,7 +51,9 @@ public:
             (destination_node_id_ == rhs.destination_node_id_);
     }
 
+#if UAVCAN_TOSTRING
     std::string toString() const;
+#endif
 };
 UAVCAN_PACKED_END
 

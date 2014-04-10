@@ -3,7 +3,6 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <cstdio>
 #include <cassert>
 #include <uavcan/driver/can.hpp>
 
@@ -57,6 +56,7 @@ bool CanFrame::priorityHigherThan(const CanFrame& rhs) const
     return clean_id < rhs_clean_id;
 }
 
+#if UAVCAN_TOSTRING
 std::string CanFrame::toString(StringRepresentation mode) const
 {
     using namespace std; // For snprintf()
@@ -115,5 +115,6 @@ std::string CanFrame::toString(StringRepresentation mode) const
     }
     return std::string(buf);
 }
+#endif
 
 }

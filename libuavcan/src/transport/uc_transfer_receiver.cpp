@@ -3,7 +3,6 @@
  */
 
 #include <cstdlib>
-#include <cstdio>
 #include <cassert>
 #include <algorithm>
 #include <uavcan/debug.hpp>

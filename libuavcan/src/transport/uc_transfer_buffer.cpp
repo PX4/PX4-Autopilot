@@ -4,8 +4,6 @@
 
 #include <cassert>
 #include <cstdlib>
-#include <cstdio>
-#include <string>
 #include <uavcan/transport/transfer_buffer.hpp>
 
 namespace uavcan
@@ -13,6 +11,7 @@ namespace uavcan
 /*
  * TransferBufferManagerKey
  */
+#if UAVCAN_TOSTRING
 std::string TransferBufferManagerKey::toString() const
 {
     using namespace std; // For snprintf()
@@ -20,6 +19,7 @@ std::string TransferBufferManagerKey::toString() const
     snprintf(buf, sizeof(buf), "nid=%i tt=%i", int(node_id_.get()), int(transfer_type_));
     return std::string(buf);
 }
+#endif
 
 /*
  * DynamicTransferBuffer::Block

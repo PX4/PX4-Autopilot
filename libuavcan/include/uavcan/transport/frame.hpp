@@ -6,7 +6,6 @@
 
 #include <cassert>
 #include <algorithm>
-#include <string>
 #include <uavcan/transport/transfer.hpp>
 #include <uavcan/transport/can_io.hpp>
 #include <uavcan/impl_constants.hpp>
@@ -82,7 +81,9 @@ public:
     bool operator!=(const Frame& rhs) const { return !operator==(rhs); }
     bool operator==(const Frame& rhs) const;
 
+#if UAVCAN_TOSTRING
     std::string toString() const;
+#endif
 };
 
 
@@ -112,7 +113,9 @@ public:
 
     uint8_t getIfaceIndex() const { return iface_index_; }
 
+#if UAVCAN_TOSTRING
     std::string toString() const;
+#endif
 };
 
 }

@@ -31,7 +31,9 @@ struct UAVCAN_EXPORT CanRxFrame : public CanFrame
         : iface_index(0)
     { }
 
+#if UAVCAN_TOSTRING
     std::string toString(StringRepresentation mode = StrTight) const;
+#endif
 };
 
 
@@ -66,7 +68,9 @@ public:
         bool qosHigherThan(const Entry& rhs) const { return qosHigherThan(rhs.frame, Qos(rhs.qos)); }
         bool qosLowerThan(const Entry& rhs)  const { return qosLowerThan(rhs.frame, Qos(rhs.qos)); }
 
+#if UAVCAN_TOSTRING
         std::string toString() const;
+#endif
     };
 
 private:
