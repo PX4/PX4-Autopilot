@@ -5,7 +5,7 @@
 #pragma once
 
 #include <cassert>
-#include <sstream>
+#include <string>
 #include <uavcan/stdint.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/map.hpp>
@@ -34,8 +34,8 @@ public:
         , destination_node_id_(destination_node_id)
     {
         assert((transfer_type == TransferTypeMessageBroadcast) == destination_node_id.isBroadcast());
-
-        /* Service response transfers must use the same Transfer ID as matching service request transfer,
+        /*
+         * Service response transfers must use the same Transfer ID as matching service request transfer,
          * so this registry is not applicable for service response transfers at all.
          */
         assert(transfer_type != TransferTypeServiceResponse);
@@ -52,14 +52,7 @@ public:
             (destination_node_id_ == rhs.destination_node_id_);
     }
 
-    std::string toString() const
-    {
-        std::ostringstream os;
-        os << "dtid=" << int(data_type_id_.get())
-           << " tt=" << int(transfer_type_)
-           << " dnid=" << int(destination_node_id_.get());
-        return os.str();
-    }
+    std::string toString() const;
 };
 UAVCAN_PACKED_END
 

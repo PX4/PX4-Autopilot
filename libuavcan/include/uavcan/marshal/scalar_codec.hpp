@@ -6,7 +6,6 @@
 
 #include <cassert>
 #include <limits>
-#include <string>
 #include <uavcan/stdint.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/util/compile_time.hpp>
