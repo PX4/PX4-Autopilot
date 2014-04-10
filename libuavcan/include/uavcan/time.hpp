@@ -7,7 +7,6 @@
 #include <uavcan/stdint.hpp>
 #include <algorithm>
 #include <limits>
-#include <sstream>
 #include <cstdio>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/util/compile_time.hpp>
@@ -82,6 +81,8 @@ public:
         return *static_cast<D*>(this);
     }
 
+    enum { StringBufSize = 32 };
+    void toString(char buf[StringBufSize]) const;
     std::string toString() const;
 };
 
@@ -161,6 +162,8 @@ public:
         return *static_cast<T*>(this);
     }
 
+    enum { StringBufSize = 32 };
+    void toString(char buf[StringBufSize]) const;
     std::string toString() const;
 };
 
@@ -200,48 +203,68 @@ public:
     }
 };
 
+// ----------------------------------------------------------------------------
+
+template <typename D>
+void DurationBase<D>::toString(char buf[StringBufSize]) const
+{
+    using namespace std; // For snprintf()
+    char* ptr = buf;
+    if (isNegative())
+    {
+        *ptr++ = '-';
+    }
+    (void)snprintf(ptr, StringBufSize - 1, "%llu.%06lu",
+                   static_cast<unsigned long long>(std::abs(toUSec() / 1000000L)),
+                   static_cast<unsigned long>(std::abs(toUSec() % 1000000L)));
+}
+
+
+template <typename T, typename D>
+void TimeBase<T, D>::toString(char buf[StringBufSize]) const
+{
+    using namespace std; // For snprintf()
+    (void)snprintf(buf, StringBufSize, "%llu.%06lu",
+                   static_cast<unsigned long long>(toUSec() / 1000000UL),
+                   static_cast<unsigned long>(toUSec() % 1000000UL));
+}
+
+
+template <typename D>
+std::string DurationBase<D>::toString() const
+{
+    char buf[StringBufSize];
+    toString(buf);
+    return std::string(buf);
+}
+
+template <typename T, typename D>
+std::string TimeBase<T, D>::toString() const
+{
+    char buf[StringBufSize];
+    toString(buf);
+    return std::string(buf);
+}
+
 
 template <typename Stream, typename D>
 UAVCAN_EXPORT
-inline Stream& operator<<(Stream& s, DurationBase<D> d)
+Stream& operator<<(Stream& s, DurationBase<D> d)
 {
-    char buf[8];
-    using namespace std; // For snprintf()
-    snprintf(buf, sizeof(buf), "%06lu", static_cast<unsigned long>(std::abs(d.toUSec() % 1000000L)));
-    if (d.isNegative())
-    {
-        s << '-';
-    }
-    s << std::abs(d.toUSec() / 1000000L) << '.' << buf;
+    char buf[DurationBase<D>::StringBufSize];
+    d.toString(buf);
+    s << buf;
     return s;
 }
 
 template <typename Stream, typename T, typename D>
 UAVCAN_EXPORT
-inline Stream& operator<<(Stream& s, TimeBase<T, D> t)
+Stream& operator<<(Stream& s, TimeBase<T, D> t)
 {
-    char buf[8];
-    using namespace std; // For snprintf()
-    snprintf(buf, sizeof(buf), "%06lu", static_cast<unsigned long>(t.toUSec() % 1000000L));
-    s << (t.toUSec() / 1000000L) << '.' << buf;
+    char buf[TimeBase<T, D>::StringBufSize];
+    t.toString(buf);
+    s << buf;
     return s;
-}
-
-
-template <typename D>
-inline std::string DurationBase<D>::toString() const
-{
-    std::ostringstream os;
-    os << *static_cast<const D*>(this);
-    return os.str();
-}
-
-template <typename T, typename D>
-inline std::string TimeBase<T, D>::toString() const
-{
-    std::ostringstream os;
-    os << *static_cast<const T*>(this);
-    return os.str();
 }
 
 }
