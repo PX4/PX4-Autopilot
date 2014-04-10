@@ -2,9 +2,9 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <sstream>
 #include <cstring>
-#include <iomanip>
+#include <cstdio>
+#include <string>
 #include <cassert>
 #include <uavcan/data_type.hpp>
 #include <uavcan/transport/crc.hpp>
@@ -73,10 +73,12 @@ std::string DataTypeDescriptor::toString() const
         assert(0);
     }
 
-    std::ostringstream os;
-    os << full_name_ << ":" << id_.get() << kindch << ":" << std::hex
-       << std::setfill('0') << std::setw(16) << signature_.get();
-    return os.str();
+    using namespace std; // For snprintf()
+    char buf[80];
+    (void)snprintf(buf, sizeof(buf), "%s:%u%c:%016llx",
+                   full_name_, static_cast<unsigned>(id_.get()), kindch,
+                   static_cast<unsigned long long>(signature_.get()));
+    return std::string(buf);
 }
 
 bool DataTypeDescriptor::operator==(const DataTypeDescriptor& rhs) const
