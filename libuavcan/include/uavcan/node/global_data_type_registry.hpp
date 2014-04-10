@@ -142,23 +142,37 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::regist(DataTypeID i
         return RegistResultFrozen;
     }
 
-    static Entry entry;
+    static union EntryUnion
     {
-        const RegistResult remove_res = remove(&entry);
+        uint8_t buffer[sizeof(Entry)];
+        long long _aligner_1;
+        long double _aligner_2;
+    } storage;
+    static bool constructed = false;
+    if (!constructed)
+    {
+        new (storage.buffer) Entry();
+        constructed = true;
+    }
+
+    Entry* const entry = reinterpret_cast<Entry*>(storage.buffer);
+
+    {
+        const RegistResult remove_res = remove(entry);
         if (remove_res != RegistResultOk)
         {
             return remove_res;
         }
     }
-    entry = Entry(DataTypeKind(Type::DataTypeKind), id, Type::getDataTypeSignature(), Type::getDataTypeFullName());
+    new (storage.buffer) Entry(DataTypeKind(Type::DataTypeKind), id, Type::getDataTypeSignature(), Type::getDataTypeFullName());
     {
-        const RegistResult remove_res = remove(&entry);
+        const RegistResult remove_res = remove(entry);
         if (remove_res != RegistResultOk)
         {
             return remove_res;
         }
     }
-    return registImpl(&entry);
+    return registImpl(entry);
 }
 
 }
