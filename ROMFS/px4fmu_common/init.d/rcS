@@ -422,14 +422,14 @@ then
 	fi
 
     # Main mavlink
-	mavlink start $MAVLINK_FLAGS
+	mavlink start -d /dev/ttyS0 -b 57600
+    mavlink stream -d /dev/ttyS0 -s OPTICAL_FLOW -r 10
     # Optical Flow
     mavlink start -d /dev/ttyS3 -m custom -b 115200
     # Android board
-    #mavlink start -d /dev/ttyS2 -m custom -b 115200
-    #mavlink stream -d /dev/ttyS2 -s LOCAL_POSITION_NED -r 5 
-    #mavlink stream -d /dev/ttyS2 -s ATTITUDE -r 50
-    #mavlink stream -d /dev/ttyS2 -s VICON_POSITION_ESTIMATE -r 50
+    mavlink start -d /dev/ttyS2 -m custom -b 115200 -w
+    mavlink stream -d /dev/ttyS2 -s ATTITUDE -r 50
+    #mavlink stream -d /dev/ttyS2 -s VICON_POSITION_ESTIMATE -r 10
 
 	#
 	# Start the datamanager
@@ -453,7 +453,7 @@ then
 		sh /etc/init.d/rc.logging
 		
 		echo "[init] Start GPS"
-		gps start
+		#gps start
 	fi
 	
 	#
