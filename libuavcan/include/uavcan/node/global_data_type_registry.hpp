@@ -60,6 +60,12 @@ private:
     mutable List srvs_;
     bool frozen_;
 
+    /**
+     * We can't use function local static variable for singleton because of code size issues:
+     *     http://stackoverflow.com/questions/22985570
+     */
+    static GlobalDataTypeRegistry singleton;
+
     GlobalDataTypeRegistry() : frozen_(false) { }
 
     List* selectList(DataTypeKind kind) const;

@@ -10,6 +10,8 @@
 namespace uavcan
 {
 
+GlobalDataTypeRegistry GlobalDataTypeRegistry::singleton;
+
 GlobalDataTypeRegistry::List* GlobalDataTypeRegistry::selectList(DataTypeKind kind) const
 {
     if (kind == DataTypeKindMessage)
@@ -115,8 +117,7 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::registImpl(Entry* d
 
 GlobalDataTypeRegistry& GlobalDataTypeRegistry::instance()
 {
-    static GlobalDataTypeRegistry inst;
-    return inst;
+    return singleton;
 }
 
 void GlobalDataTypeRegistry::freeze()
