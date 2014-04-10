@@ -180,9 +180,9 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		}
 	}
 
-    /* If we've received a valid message, mark the flag indicating so.
-       This is used in the '-w' command-line flag. */
-    _mavlink->set_has_received_messages(true);
+	/* If we've received a valid message, mark the flag indicating so.
+	   This is used in the '-w' command-line flag. */
+	_mavlink->set_has_received_messages(true);
 }
 
 void

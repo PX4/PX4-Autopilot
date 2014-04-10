@@ -94,7 +94,7 @@ cm_uint16_from_m_float(float m)
 }
 
 void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_setpoint_triplet_s *pos_sp_triplet,
-			    uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode)
+				uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode)
 {
 	*mavlink_state = 0;
 	*mavlink_base_mode = 0;
@@ -107,7 +107,7 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 
 	/* arming state */
 	if (status->arming_state == ARMING_STATE_ARMED
-	    || status->arming_state == ARMING_STATE_ARMED_ERROR) {
+		|| status->arming_state == ARMING_STATE_ARMED_ERROR) {
 		*mavlink_base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 	}
 
@@ -163,8 +163,8 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 
 	/* set system state */
 	if (status->arming_state == ARMING_STATE_INIT
-	    || status->arming_state == ARMING_STATE_IN_AIR_RESTORE
-	    || status->arming_state == ARMING_STATE_STANDBY_ERROR) {	// TODO review
+		|| status->arming_state == ARMING_STATE_IN_AIR_RESTORE
+		|| status->arming_state == ARMING_STATE_STANDBY_ERROR) {	// TODO review
 		*mavlink_state = MAV_STATE_UNINIT;
 
 	} else if (status->arming_state == ARMING_STATE_ARMED) {
@@ -344,13 +344,13 @@ protected:
 			}
 
 			mavlink_msg_highres_imu_send(_channel,
-						     sensor->timestamp,
-						     sensor->accelerometer_m_s2[0], sensor->accelerometer_m_s2[1], sensor->accelerometer_m_s2[2],
-						     sensor->gyro_rad_s[0], sensor->gyro_rad_s[1], sensor->gyro_rad_s[2],
-						     sensor->magnetometer_ga[0], sensor->magnetometer_ga[1], sensor->magnetometer_ga[2],
-						     sensor->baro_pres_mbar, sensor->differential_pressure_pa,
-						     sensor->baro_alt_meter, sensor->baro_temp_celcius,
-						     fields_updated);
+							 sensor->timestamp,
+							 sensor->accelerometer_m_s2[0], sensor->accelerometer_m_s2[1], sensor->accelerometer_m_s2[2],
+							 sensor->gyro_rad_s[0], sensor->gyro_rad_s[1], sensor->gyro_rad_s[2],
+							 sensor->magnetometer_ga[0], sensor->magnetometer_ga[1], sensor->magnetometer_ga[2],
+							 sensor->baro_pres_mbar, sensor->differential_pressure_pa,
+							 sensor->baro_alt_meter, sensor->baro_temp_celcius,
+							 fields_updated);
 		}
 	}
 };
@@ -420,14 +420,14 @@ protected:
 	{
 		if (att_sub->update(t)) {
 			mavlink_msg_attitude_quaternion_send(_channel,
-							     att->timestamp / 1000,
-							     att->q[0],
-							     att->q[1],
-							     att->q[2],
-							     att->q[3],
-							     att->rollspeed,
-							     att->pitchspeed,
-							     att->yawspeed);
+								 att->timestamp / 1000,
+								 att->q[0],
+								 att->q[1],
+								 att->q[2],
+								 att->q[3],
+								 att->rollspeed,
+								 att->pitchspeed,
+								 att->yawspeed);
 		}
 	}
 };
@@ -534,16 +534,16 @@ protected:
 	{
 		if (gps_sub->update(t)) {
 			mavlink_msg_gps_raw_int_send(_channel,
-						     gps->timestamp_position,
-						     gps->fix_type,
-						     gps->lat,
-						     gps->lon,
-						     gps->alt,
-						     cm_uint16_from_m_float(gps->eph_m),
-						     cm_uint16_from_m_float(gps->epv_m),
-						     gps->vel_m_s * 100.0f,
-						     _wrap_2pi(gps->cog_rad) * M_RAD_TO_DEG_F * 1e2f,
-						     gps->satellites_visible);
+							 gps->timestamp_position,
+							 gps->fix_type,
+							 gps->lat,
+							 gps->lon,
+							 gps->alt,
+							 cm_uint16_from_m_float(gps->eph_m),
+							 cm_uint16_from_m_float(gps->epv_m),
+							 gps->vel_m_s * 100.0f,
+							 _wrap_2pi(gps->cog_rad) * M_RAD_TO_DEG_F * 1e2f,
+							 gps->satellites_visible);
 		}
 	}
 };
@@ -586,15 +586,15 @@ protected:
 
 		if (updated) {
 			mavlink_msg_global_position_int_send(_channel,
-							     pos->timestamp / 1000,
-							     pos->lat * 1e7,
-							     pos->lon * 1e7,
-							     pos->alt * 1000.0f,
-							     (pos->alt - home->alt) * 1000.0f,
-							     pos->vel_n * 100.0f,
-							     pos->vel_e * 100.0f,
-							     pos->vel_d * 100.0f,
-							     _wrap_2pi(pos->yaw) * M_RAD_TO_DEG_F * 100.0f);
+								 pos->timestamp / 1000,
+								 pos->lat * 1e7,
+								 pos->lon * 1e7,
+								 pos->alt * 1000.0f,
+								 (pos->alt - home->alt) * 1000.0f,
+								 pos->vel_n * 100.0f,
+								 pos->vel_e * 100.0f,
+								 pos->vel_d * 100.0f,
+								 _wrap_2pi(pos->yaw) * M_RAD_TO_DEG_F * 100.0f);
 		}
 	}
 };
@@ -628,13 +628,13 @@ protected:
 	{
 		if (pos_sub->update(t)) {
 			mavlink_msg_local_position_ned_send(_channel,
-							    pos->timestamp / 1000,
-							    pos->x,
-							    pos->y,
-							    pos->z,
-							    pos->vx,
-							    pos->vy,
-							    pos->vz);
+								pos->timestamp / 1000,
+								pos->x,
+								pos->y,
+								pos->z,
+								pos->vx,
+								pos->vy,
+								pos->vz);
 		}
 	}
 };
@@ -644,40 +644,40 @@ protected:
 class MavlinkStreamViconPositionEstimate : public MavlinkStream
 {
 public:
-    const char *get_name()
-    {
-        return "VICON_POSITION_ESTIMATE";
-    }
+	const char *get_name()
+	{
+		return "VICON_POSITION_ESTIMATE";
+	}
 
-    MavlinkStream *new_instance()
-    {
-        return new MavlinkStreamViconPositionEstimate();
-    }
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamViconPositionEstimate();
+	}
 
 private:
-    MavlinkOrbSubscription *pos_sub;
-    struct vehicle_vicon_position_s *pos;
+	MavlinkOrbSubscription *pos_sub;
+	struct vehicle_vicon_position_s *pos;
 
 protected:
-    void subscribe(Mavlink *mavlink)
-    {
-        pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_vicon_position));
-        pos = (struct vehicle_vicon_position_s *)pos_sub->get_data();
-    }
+	void subscribe(Mavlink *mavlink)
+	{
+		pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_vicon_position));
+		pos = (struct vehicle_vicon_position_s *)pos_sub->get_data();
+	}
 
-    void send(const hrt_abstime t)
-    {
-        if (pos_sub->update(t)) {
-            mavlink_msg_vicon_position_estimate_send(_channel,
-                                pos->timestamp / 1000,
-                                pos->x,
-                                pos->y,
-                                pos->z,
-                                pos->roll,
-                                pos->pitch,
-                                pos->yaw);
-        }
-    }
+	void send(const hrt_abstime t)
+	{
+		if (pos_sub->update(t)) {
+			mavlink_msg_vicon_position_estimate_send(_channel,
+							pos->timestamp / 1000,
+							pos->x,
+							pos->y,
+							pos->z,
+							pos->roll,
+							pos->pitch,
+							pos->yaw);
+		}
+	}
 };
 
 
@@ -869,10 +869,10 @@ protected:
 				}
 
 				mavlink_msg_hil_controls_send(_channel,
-							      hrt_absolute_time(),
-							      out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7],
-							      mavlink_base_mode,
-							      0);
+								  hrt_absolute_time(),
+								  out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7],
+								  mavlink_base_mode,
+								  0);
 			} else {
 
 				/* fixed wing: scale all channels except throttle -1 .. 1
@@ -897,10 +897,10 @@ protected:
 				}
 
 				mavlink_msg_hil_controls_send(_channel,
-							      hrt_absolute_time(),
-							      out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7],
-							      mavlink_base_mode,
-							      0);
+								  hrt_absolute_time(),
+								  out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7],
+								  mavlink_base_mode,
+								  0);
 			}
 		}
 	}
@@ -1175,12 +1175,12 @@ protected:
 	{
 		if (flow_sub->update(t)) {
 			mavlink_msg_optical_flow_send(_channel,
-						      flow->timestamp,
-						      flow->sensor_id,
-						      flow->flow_raw_x, flow->flow_raw_y,
-						      flow->flow_comp_x_m, flow->flow_comp_y_m,
-						      flow->quality,
-						      flow->ground_distance_m);
+							  flow->timestamp,
+							  flow->sensor_id,
+							  flow->flow_raw_x, flow->flow_raw_y,
+							  flow->flow_comp_x_m, flow->flow_comp_y_m,
+							  flow->quality,
+							  flow->ground_distance_m);
 		}
 	}
 };
@@ -1300,7 +1300,7 @@ protected:
 		(void)status_sub->update(t);
 
 		if (status->arming_state == ARMING_STATE_ARMED
-		    || status->arming_state == ARMING_STATE_ARMED_ERROR) {
+			|| status->arming_state == ARMING_STATE_ARMED_ERROR) {
 
 			/* send camera capture on */
 			mavlink_msg_command_long_send(_channel, mavlink_system.sysid, 0, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 1, 0, 0, 0);
@@ -1338,6 +1338,6 @@ MavlinkStream *streams_list[] = {
 	new MavlinkStreamAttitudeControls(),
 	new MavlinkStreamNamedValueFloat(),
 	new MavlinkStreamCameraCapture(),
-    new MavlinkStreamViconPositionEstimate(),
+	new MavlinkStreamViconPositionEstimate(),
 	nullptr
 };
