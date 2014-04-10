@@ -48,27 +48,6 @@
 #endif
 
 /**
- * Driver debug output
- */
-#if UAVCAN_STM32_DEBUG
-# if __GNUC__
-__attribute__ ((format(printf, 1, 2)))
-# endif
-static void UAVCAN_STM32_TRACE(const char* fmt, ...)
-{
-    (void)UAVCAN_STM32_TRACE;
-    va_list args;
-    (void)std::printf("UAVCAN: STM32: ");
-    va_start(args, fmt);
-    (void)std::vprintf(fmt, args);
-    va_end(args);
-    (void)std::puts("");
-}
-#else
-# define UAVCAN_STM32_TRACE(...)    ((void)0)
-#endif
-
-/**
  * Glue macros
  */
 #define UAVCAN_STM32_GLUE2_(A, B)       A##B
