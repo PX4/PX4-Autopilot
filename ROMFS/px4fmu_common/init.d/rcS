@@ -410,7 +410,7 @@ then
 			if [ $TTYS1_BUSY == yes ]
 			then
 				# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
-				set MAVLINK_FLAGS "-r 1000 -d /dev/ttyS0 -b 57600"
+				set MAVLINK_FLAGS "-r 1000 -d /dev/ttyS0"
 				
 				# Exit from nsh to free port for mavlink
 				set EXIT_ON_END yes
@@ -421,16 +421,8 @@ then
 		fi
 	fi
 
-    # Main mavlink
-	mavlink start -d /dev/ttyS0 -b 57600
-    mavlink stream -d /dev/ttyS0 -s OPTICAL_FLOW -r 10
-    # Optical Flow
-    mavlink start -d /dev/ttyS3 -m custom -b 115200
-    # Android board
-    mavlink start -d /dev/ttyS2 -m custom -b 115200 -w
-    mavlink stream -d /dev/ttyS2 -s ATTITUDE -r 50
-    #mavlink stream -d /dev/ttyS2 -s VICON_POSITION_ESTIMATE -r 10
-
+	mavlink start $MAVLINK_FLAGS
+	
 	#
 	# Start the datamanager
 	#
@@ -453,7 +445,7 @@ then
 		sh /etc/init.d/rc.logging
 		
 		echo "[init] Start GPS"
-		#gps start
+		gps start
 	fi
 	
 	#
