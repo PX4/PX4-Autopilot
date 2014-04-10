@@ -2175,11 +2175,11 @@ Mavlink::start(int argc, char *argv[])
 	// task - start_helper() only returns
 	// when the started task exits.
 	task_spawn_cmd(buf,
-				   SCHED_DEFAULT,
-				   SCHED_PRIORITY_DEFAULT,
-				   2048,
-				   (main_t)&Mavlink::start_helper,
-				   (const char **)argv);
+		       SCHED_DEFAULT,
+		       SCHED_PRIORITY_DEFAULT,
+		       2048,
+		       (main_t)&Mavlink::start_helper,
+		       (const char **)argv);
 
 	// Ensure that this shell command
 	// does not return before the instance
