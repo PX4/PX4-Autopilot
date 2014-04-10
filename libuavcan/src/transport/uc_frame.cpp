@@ -4,7 +4,6 @@
 
 #include <cassert>
 #include <cstdio>
-#include <sstream>
 #include <uavcan/transport/frame.hpp>
 #include <uavcan/transport/can_io.hpp>
 
@@ -247,9 +246,13 @@ bool RxFrame::parse(const CanRxFrame& can_frame)
 
 std::string RxFrame::toString() const
 {
-    std::ostringstream os;  // C++03 doesn't support long long, so we need ostream to print the timestamp
-    os << Frame::toString() << " ts_m=" << ts_mono_ << " ts_utc=" << ts_utc_ << " iface=" << int(iface_index_);
-    return os.str();
+    std::string out = Frame::toString();
+    out.reserve(128);
+    out += " ts_m="   + ts_mono_.toString();
+    out += " ts_utc=" + ts_utc_.toString();
+    out += " iface=";
+    out += '0' + iface_index_;
+    return out;
 }
 
 }
