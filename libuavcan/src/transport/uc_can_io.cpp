@@ -4,7 +4,7 @@
  */
 
 #include <algorithm>
-#include <sstream>
+#include <string>
 #include <cassert>
 #include <limits>
 #include <uavcan/transport/can_io.hpp>
@@ -17,10 +17,13 @@ namespace uavcan
  */
 std::string CanRxFrame::toString(StringRepresentation mode) const
 {
-    std::ostringstream os;
-    os << CanFrame::toString(mode)
-       << " ts_m=" << ts_mono << " ts_utc=" << ts_utc << " iface=" << int(iface_index);
-    return os.str();
+    std::string out = CanFrame::toString(mode);
+    out.reserve(128);
+    out += " ts_m="   + ts_mono.toString();
+    out += " ts_utc=" + ts_utc.toString();
+    out += " iface=";
+    out += '0' + iface_index;
+    return out;
 }
 
 /*
