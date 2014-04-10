@@ -16,10 +16,15 @@ uavcan_stm32::CanInitHelper<> can;
 
 typedef uavcan::Node<4096> Node;
 
+uavcan::LazyConstructor<Node> node_;
+
 Node& getNode()
 {
-    static Node node(can.driver, uavcan_stm32::SystemClock::instance());
-    return node;
+    if (!node_.isConstructed())
+    {
+        node_.construct<uavcan::ICanDriver&, uavcan::ISystemClock&>(can.driver, uavcan_stm32::SystemClock::instance());
+    }
+    return *node_;
 }
 
 void ledSet(bool state)

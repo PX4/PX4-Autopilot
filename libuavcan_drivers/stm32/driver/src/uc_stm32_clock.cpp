@@ -217,6 +217,8 @@ uavcan::uint32_t getUtcAjdustmentJumpCount()
 
 } // namespace clock
 
+SystemClock SystemClock::self;
+
 SystemClock& SystemClock::instance()
 {
     MutexLocker mlocker(clock::mutex);
@@ -224,8 +226,7 @@ SystemClock& SystemClock::instance()
     {
         clock::init();
     }
-    static SystemClock inst;
-    return inst;
+    return self;
 }
 
 } // namespace uavcan_stm32
