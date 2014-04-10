@@ -203,12 +203,12 @@ public:
 	int get_mavlink_fd() { return _mavlink_fd; }
 
 
-    /* Functions for waiting to start transmission until message received. */
-    void set_has_received_messages(bool received_messages) { _received_messages = received_messages; }
-    bool get_has_received_messages() { return _received_messages; }
-    void set_wait_to_transmit(bool wait) { _wait_to_transmit = wait; }
-    bool get_wait_to_transmit() { return _wait_to_transmit; }
-    bool should_transmit() { return (!_wait_to_transmit || (_wait_to_transmit && _received_messages)); }
+	/* Functions for waiting to start transmission until message received. */
+	void set_has_received_messages(bool received_messages) { _received_messages = received_messages; }
+	bool get_has_received_messages() { return _received_messages; }
+	void set_wait_to_transmit(bool wait) { _wait_to_transmit = wait; }
+	bool get_wait_to_transmit() { return _wait_to_transmit; }
+	bool should_transmit() { return (!_wait_to_transmit || (_wait_to_transmit && _received_messages)); }
 
 protected:
 	Mavlink	*next;
@@ -224,8 +224,8 @@ private:
 	/* states */
 	bool		_hil_enabled;		/**< Hardware In the Loop mode */
 	bool		_is_usb_uart;		/**< Port is USB */
-    bool        _wait_to_transmit;  /**< Wait to transmit until received messages. */
-    bool        _received_messages; /**< Whether we've received valid mavlink messages. */
+	bool        _wait_to_transmit;  /**< Wait to transmit until received messages. */
+	bool        _received_messages; /**< Whether we've received valid mavlink messages. */
 
 	unsigned	_main_loop_delay;		/**< mainloop delay, depends on data rate */
 
