@@ -124,7 +124,16 @@ public:
             {
                 lowsyslog("Spin failure: %i\n", spin_res);
             }
+
             lowsyslog("Time sync master: %u\n", unsigned(time_sync_slave.getMasterNodeID().get()));
+
+            lowsyslog("Memory usage: used=%u free=%u\n",
+                      node.getAllocator().getNumUsedBlocks(), node.getAllocator().getNumFreeBlocks());
+
+            lowsyslog("RX queues: %u %u\n",
+                      can.driver.getIface(0)->getRxQueueLength(),
+                      can.driver.getIface(1)->getRxQueueLength());
+
             node.logInfo("app", "UTC %* sec, %* corr, %* jumps",
                          uavcan_stm32::clock::getUtc().toMSec() / 1000,
                          uavcan_stm32::clock::getUtcSpeedCorrectionPPM(),

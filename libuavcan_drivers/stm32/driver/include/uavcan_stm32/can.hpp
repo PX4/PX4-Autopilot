@@ -173,6 +173,12 @@ public:
     virtual uavcan::uint64_t getErrorCount() const;
 
     /**
+     * Returns number of frames pending in the RX queue.
+     * This is intended for debug use only.
+     */
+    unsigned getRxQueueLength() const;
+
+    /**
      * Returns last hardware error code (LEC field in the register ESR)
      */
     uavcan::uint8_t yieldLastHardwareErrorCode();

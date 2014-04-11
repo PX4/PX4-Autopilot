@@ -518,6 +518,12 @@ uavcan::uint64_t CanIface::getErrorCount() const
     return error_cnt_ + rx_queue_.getOverflowCount();
 }
 
+unsigned CanIface::getRxQueueLength() const
+{
+    CriticalSectionLocker lock;
+    return rx_queue_.getLength();
+}
+
 uavcan::uint8_t CanIface::yieldLastHardwareErrorCode()
 {
     CriticalSectionLocker lock;
