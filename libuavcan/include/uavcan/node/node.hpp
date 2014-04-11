@@ -36,7 +36,9 @@ class UAVCAN_EXPORT Node : public INode
         MemPoolSize = (MemPoolSize_ < std::size_t(MemPoolBlockSize)) ? std::size_t(MemPoolBlockSize) : MemPoolSize_
     };
 
-    PoolAllocator<MemPoolSize, MemPoolBlockSize> pool_allocator_;
+    typedef PoolAllocator<MemPoolSize, MemPoolBlockSize> Allocator;
+
+    Allocator pool_allocator_;
     MarshalBufferProvider<OutgoingTransferMaxPayloadLen> marsh_buf_;
     OutgoingTransferRegistry<OutgoingTransferRegistryStaticEntries> outgoing_trans_reg_;
     Scheduler scheduler_;
@@ -58,8 +60,6 @@ protected:
         (void)getLogger().log(protocol::debug::LogLevel::ERROR, "UAVCAN", msg);
     }
 
-    virtual IAllocator& getAllocator() { return pool_allocator_; }
-
     virtual IMarshalBufferProvider& getMarshalBufferProvider() { return marsh_buf_; }
 
 public:
@@ -73,6 +73,8 @@ public:
         , proto_tsp_(*this)
         , started_(false)
     { }
+
+    virtual Allocator& getAllocator() { return pool_allocator_; }
 
     virtual Scheduler& getScheduler() { return scheduler_; }
     virtual const Scheduler& getScheduler() const { return scheduler_; }
