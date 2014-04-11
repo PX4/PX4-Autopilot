@@ -55,7 +55,7 @@ protected:
     virtual void registerInternalFailure(const char* msg)
     {
         UAVCAN_TRACE("Node", "Internal failure: %s", msg);
-        logError("UAVCAN", msg);
+        (void)getLogger().log(protocol::debug::LogLevel::ERROR, "UAVCAN", msg);
     }
 
     virtual IAllocator& getAllocator() { return pool_allocator_; }
