@@ -12,9 +12,9 @@ namespace app
 namespace
 {
 
-uavcan_stm32::CanInitHelper<> can;
+uavcan_stm32::CanInitHelper<128> can;
 
-typedef uavcan::Node<4096> Node;
+typedef uavcan::Node<8192> Node;
 
 uavcan::LazyConstructor<Node> node_;
 
@@ -63,7 +63,7 @@ void die(int status)
     }
 }
 
-class : public chibios_rt::BaseStaticThread<2048>
+class : public chibios_rt::BaseStaticThread<8192>
 {
 public:
     msg_t main()
