@@ -7,10 +7,25 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <chrono>
+#include <iostream>
 #include <uavcan/uavcan.hpp>
 
 namespace uavcan_linux
 {
+/**
+ * Default log sink will dump everything into stderr
+ */
+class DefaultLogSink : public uavcan::ILogSink
+{
+    virtual void log(const uavcan::protocol::debug::LogMessage& message)
+    {
+        const auto tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        const auto tstr = std::ctime(&tt);
+        std::cerr << "### UAVCAN " << tstr << message << std::endl;
+    }
+};
+
 /**
  * Contains all drivers needed for uavcan::Node.
  */
@@ -37,6 +52,7 @@ static constexpr std::size_t NodeMemPoolSize = 1024 * 512;  // One size fits all
 class Node : public uavcan::Node<NodeMemPoolSize>
 {
     DriverPackPtr driver_pack_;
+    DefaultLogSink log_sink_;
 
     static void enforce(int error, const char* msg)
     {
@@ -52,7 +68,9 @@ public:
      */
     Node(uavcan::ICanDriver& can_driver, uavcan::ISystemClock& clock)
         : uavcan::Node<NodeMemPoolSize>(can_driver, clock)
-    { }
+    {
+        getLogger().setExternalSink(&log_sink_);
+    }
 
     /**
      * Takes ownership of the driver container.
@@ -60,7 +78,9 @@ public:
     Node(DriverPackPtr driver_pack)
         : uavcan::Node<NodeMemPoolSize>(driver_pack->can, driver_pack->clock)
         , driver_pack_(driver_pack)
-    { }
+    {
+        getLogger().setExternalSink(&log_sink_);
+    }
 
     template <typename DataType>
     std::shared_ptr<uavcan::Subscriber<DataType>>

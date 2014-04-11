@@ -7,18 +7,6 @@
 #include <uavcan/protocol/node_status_monitor.hpp>
 #include "debug.hpp"
 
-class LogSink : public uavcan::ILogSink
-{
-    virtual void log(const uavcan::protocol::debug::LogMessage& message)
-    {
-        std::cout << "--- LOCAL LOG ---\n"
-                  << message << "\n"
-                  << "-----------------" << std::endl;
-    }
-};
-
-static LogSink log_sink_;
-
 static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::NodeID nid,
                                       const std::string& name)
 {
@@ -31,7 +19,6 @@ static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, ua
     node->setName(name.c_str());
 
     node->getLogger().setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
-    node->getLogger().setExternalSink(&log_sink_);
 
     /*
      * Starting the node. This may take a few seconds.
