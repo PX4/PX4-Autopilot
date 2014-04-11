@@ -71,7 +71,8 @@ void GlobalTimeSyncMaster::handleLoopbackFrame(const RxFrame& frame)
     {
         if (frame.getDataTypeID() == dtid_ &&
             frame.getTransferType() == TransferTypeMessageBroadcast &&
-            frame.isLast() && frame.isFirst())
+            frame.isLast() && frame.isFirst() &&
+            frame.getSrcNodeID() == node_.getNodeID())
         {
             iface_masters_[iface]->setTxTimestamp(frame.getUtcTimestamp());
         }
