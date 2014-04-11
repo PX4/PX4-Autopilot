@@ -116,6 +116,7 @@ public:
          */
         lowsyslog("UAVCAN node started\n");
         node.setStatusOk();
+        node.getLogger().setLevel(uavcan::protocol::debug::LogLevel::INFO);
         while (true)
         {
             const int spin_res = node.spin(uavcan::MonotonicDuration::fromMSec(5000));
@@ -124,6 +125,10 @@ public:
                 lowsyslog("Spin failure: %i\n", spin_res);
             }
             lowsyslog("Time sync master: %u\n", unsigned(time_sync_slave.getMasterNodeID().get()));
+            node.logInfo("app", "UTC %* sec, %* corr, %* jumps",
+                         uavcan_stm32::clock::getUtc().toMSec() / 1000,
+                         uavcan_stm32::clock::getUtcSpeedCorrectionPPM(),
+                         uavcan_stm32::clock::getUtcAjdustmentJumpCount());
         }
         return msg_t();
     }
@@ -143,8 +148,6 @@ int main()
     lowsyslog("Starting the UAVCAN thread\n");
     app::uavcan_node_thread.start(LOWPRIO);
 
-    app::getNode().getLogger().setLevel(uavcan::protocol::debug::LogLevel::INFO);
-
     while (true)
     {
         for (int i = 0; i < 200; i++)
@@ -158,13 +161,5 @@ int main()
                   static_cast<unsigned long>(utc.toMSec() / 1000),
                   uavcan_stm32::clock::getUtcSpeedCorrectionPPM(),
                   uavcan_stm32::clock::getUtcAjdustmentJumpCount());
-
-        if (app::getNode().isStarted())
-        {
-            app::getNode().logInfo("app", "UTC %* sec, %* corr, %* jumps",
-                                   utc.toMSec() / 1000,
-                                   uavcan_stm32::clock::getUtcSpeedCorrectionPPM(),
-                                   uavcan_stm32::clock::getUtcAjdustmentJumpCount());
-        }
     }
 }
