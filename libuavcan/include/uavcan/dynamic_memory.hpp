@@ -97,6 +97,26 @@ public:
     int getNumUsedBlocks() const { return NumBlocks - getNumFreeBlocks(); }
 };
 
+
+class LimitedPoolAllocator : public IAllocator
+{
+    IAllocator& allocator_;
+    const std::size_t max_blocks_;
+    std::size_t used_blocks_;
+
+public:
+    LimitedPoolAllocator(IAllocator& allocator, std::size_t max_blocks)
+        : allocator_(allocator)
+        , max_blocks_(max_blocks)
+        , used_blocks_(0)
+    {
+        assert(max_blocks_ > 0);
+    }
+
+    void* allocate(std::size_t size);
+    void deallocate(const void* ptr);
+};
+
 // ----------------------------------------------------------------------------
 
 /*

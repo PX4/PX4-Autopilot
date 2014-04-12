@@ -92,3 +92,27 @@ TEST(DynamicMemory, OutOfMemory)
     EXPECT_EQ(1, pool32.getNumUsedBlocks());
     EXPECT_EQ(1, pool64.getNumUsedBlocks());   // Make sure it was properly deallocated
 }
+
+TEST(DynamicMemory, LimitedPoolAllocator)
+{
+    uavcan::PoolAllocator<128, 32> pool32;
+    uavcan::LimitedPoolAllocator lim(pool32, 2);
+
+    const void* ptr1 = lim.allocate(1);
+    const void* ptr2 = lim.allocate(1);
+    const void* ptr3 = lim.allocate(1);
+
+    EXPECT_TRUE(ptr1);
+    EXPECT_TRUE(ptr2);
+    EXPECT_FALSE(ptr3);
+
+    lim.deallocate(ptr2);
+    const void* ptr4 = lim.allocate(1);
+    lim.deallocate(ptr1);
+    const void* ptr5 = lim.allocate(1);
+    const void* ptr6 = lim.allocate(1);
+
+    EXPECT_TRUE(ptr4);
+    EXPECT_TRUE(ptr5);
+    EXPECT_FALSE(ptr6);
+}
