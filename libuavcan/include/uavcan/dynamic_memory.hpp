@@ -257,9 +257,6 @@ void PoolAllocator<PoolSize, BlockSize>::deallocate(const void* ptr)
         return;
     }
     Node* p = static_cast<Node*>(const_cast<void*>(ptr));
-#if DEBUG || UAVCAN_DEBUG
-    std::memset(p, 0, sizeof(Node));
-#endif
     p->next = free_list_;
     free_list_ = p;
 }
