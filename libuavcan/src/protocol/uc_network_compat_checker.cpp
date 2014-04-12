@@ -4,14 +4,14 @@
 
 #include <cassert>
 #include <uavcan/debug.hpp>
-#include <uavcan/protocol/node_initializer.hpp>
+#include <uavcan/protocol/network_compat_checker.hpp>
 #include <uavcan/node/publisher.hpp>
 #include <uavcan/protocol/GlobalDiscoveryRequest.hpp>
 
 namespace uavcan
 {
 
-MonotonicDuration NodeInitializer::getNetworkDiscoveryDelay() const
+MonotonicDuration NetworkCompatibilityChecker::getNetworkDiscoveryDelay() const
 {
     // Base duration is constant - NodeStatus publication period
     MonotonicDuration dur = MonotonicDuration::fromMSec(protocol::NodeStatus::PUBLICATION_PERIOD_MS);
@@ -20,7 +20,7 @@ MonotonicDuration NodeInitializer::getNetworkDiscoveryDelay() const
     return dur;
 }
 
-NodeID NodeInitializer::findNextUncheckedNode()
+NodeID NetworkCompatibilityChecker::findNextUncheckedNode()
 {
     for (int i = 1; i <= NodeID::Max; i++)
     {
@@ -33,7 +33,7 @@ NodeID NodeInitializer::findNextUncheckedNode()
     return NodeID();
 }
 
-int NodeInitializer::waitForCATSResponse()
+int NetworkCompatibilityChecker::waitForCATSResponse()
 {
     while (cats_cln_.isPending())
     {
@@ -46,7 +46,7 @@ int NodeInitializer::waitForCATSResponse()
     return 0;
 }
 
-void NodeInitializer::handleNodeStatus(const ReceivedDataStructure<protocol::NodeStatus>& msg)
+void NetworkCompatibilityChecker::handleNodeStatus(const ReceivedDataStructure<protocol::NodeStatus>& msg)
 {
     if (!nid_mask_present_.test(msg.getSrcNodeID().get()))
     {
@@ -61,7 +61,7 @@ void NodeInitializer::handleNodeStatus(const ReceivedDataStructure<protocol::Nod
     }
 }
 
-void NodeInitializer::handleCATSResponse(ServiceCallResult<protocol::ComputeAggregateTypeSignature>& resp)
+void NetworkCompatibilityChecker::handleCATSResponse(ServiceCallResult<protocol::ComputeAggregateTypeSignature>& resp)
 {
     last_cats_request_ok_ = resp.isSuccessful();
     if (last_cats_request_ok_)
@@ -80,7 +80,7 @@ void NodeInitializer::handleCATSResponse(ServiceCallResult<protocol::ComputeAggr
     }
 }
 
-int NodeInitializer::checkOneNodeOneDataTypeKind(NodeID nid, DataTypeKind kind)
+int NetworkCompatibilityChecker::checkOneNodeOneDataTypeKind(NodeID nid, DataTypeKind kind)
 {
     StaticAssert<DataTypeKindMessage == int(protocol::DataTypeKind::MESSAGE)>::check();
     StaticAssert<DataTypeKindService == int(protocol::DataTypeKind::SERVICE)>::check();
@@ -110,7 +110,7 @@ int NodeInitializer::checkOneNodeOneDataTypeKind(NodeID nid, DataTypeKind kind)
     return 0;
 }
 
-int NodeInitializer::checkOneNode(NodeID nid)
+int NetworkCompatibilityChecker::checkOneNode(NodeID nid)
 {
     if (nid == getNode().getNodeID())
     {
@@ -126,7 +126,7 @@ int NodeInitializer::checkOneNode(NodeID nid)
     return checkOneNodeOneDataTypeKind(nid, DataTypeKindService);
 }
 
-int NodeInitializer::checkNodes()
+int NetworkCompatibilityChecker::checkNodes()
 {
     nid_mask_checked_.reset();
     while (true)
@@ -150,7 +150,7 @@ int NodeInitializer::checkNodes()
     return 0;
 }
 
-int NodeInitializer::execute()
+int NetworkCompatibilityChecker::execute()
 {
     int res = 0;
 
@@ -160,13 +160,13 @@ int NodeInitializer::execute()
         goto exit;
     }
 
-    res = ns_sub_.start(NodeStatusCallback(this, &NodeInitializer::handleNodeStatus));
+    res = ns_sub_.start(NodeStatusCallback(this, &NetworkCompatibilityChecker::handleNodeStatus));
     if (res < 0)
     {
         goto exit;
     }
 
-    cats_cln_.setCallback(CATSResponseCallback(this, &NodeInitializer::handleCATSResponse));
+    cats_cln_.setCallback(CATSResponseCallback(this, &NetworkCompatibilityChecker::handleCATSResponse));
     res = cats_cln_.init();
     if (res < 0)
     {
@@ -187,7 +187,7 @@ exit:
     return res;
 }
 
-int NodeInitializer::publishGlobalDiscoveryRequest(INode& node)
+int NetworkCompatibilityChecker::publishGlobalDiscoveryRequest(INode& node)
 {
     Publisher<protocol::GlobalDiscoveryRequest> pub(node);
     return pub.broadcast(protocol::GlobalDiscoveryRequest());

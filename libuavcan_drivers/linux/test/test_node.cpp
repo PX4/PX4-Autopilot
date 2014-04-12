@@ -24,7 +24,7 @@ static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, ua
      * Starting the node. This may take a few seconds.
      */
     std::cout << "Starting the node..." << std::endl;
-    uavcan::NodeInitializationResult init_result;
+    uavcan::NetworkCompatibilityCheckResult init_result;
     const int start_res = node->start(init_result);
     std::cout << "Start returned: " << start_res << std::endl;
     ENFORCE(0 == start_res);

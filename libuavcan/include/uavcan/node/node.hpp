@@ -17,7 +17,7 @@
 #include <uavcan/protocol/node_status_provider.hpp>
 #include <uavcan/protocol/restart_request_server.hpp>
 #include <uavcan/protocol/transport_stats_provider.hpp>
-#include <uavcan/protocol/node_initializer.hpp>
+#include <uavcan/protocol/network_compat_checker.hpp>
 
 #if !defined(UAVCAN_CPP_VERSION) || !defined(UAVCAN_CPP11)
 # error UAVCAN_CPP_VERSION
@@ -51,7 +51,7 @@ class UAVCAN_EXPORT Node : public INode
 
     bool started_;
 
-    int initNetwork(NodeInitializationResult& node_init_result);
+    int initNetwork(NetworkCompatibilityCheckResult& node_init_result);
 
 protected:
     virtual void registerInternalFailure(const char* msg)
@@ -99,7 +99,7 @@ public:
 
     bool isStarted() const { return started_; }
 
-    int start(NodeInitializationResult& node_init_result);
+    int start(NetworkCompatibilityCheckResult& node_init_result);
 
     /*
      * Initialization methods
@@ -174,14 +174,14 @@ public:
 template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries,
           unsigned OutgoingTransferMaxPayloadLen>
 int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMaxPayloadLen>::
-initNetwork(NodeInitializationResult& node_init_result)
+initNetwork(NetworkCompatibilityCheckResult& node_init_result)
 {
-    int res = NodeInitializer::publishGlobalDiscoveryRequest(*this);
+    int res = NetworkCompatibilityChecker::publishGlobalDiscoveryRequest(*this);
     if (res < 0)
     {
         return res;
     }
-    NodeInitializer initializer(*this);
+    NetworkCompatibilityChecker initializer(*this);
     StaticAssert<(sizeof(initializer) < 1200)>::check();
     res = initializer.execute();
     node_init_result = initializer.getResult();
@@ -191,7 +191,7 @@ initNetwork(NodeInitializationResult& node_init_result)
 template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries,
           unsigned OutgoingTransferMaxPayloadLen>
 int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMaxPayloadLen>::
-start(NodeInitializationResult& node_init_result)
+start(NetworkCompatibilityCheckResult& node_init_result)
 {
     if (started_)
     {

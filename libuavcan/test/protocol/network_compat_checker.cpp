@@ -3,7 +3,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <uavcan/protocol/node_initializer.hpp>
+#include <uavcan/protocol/network_compat_checker.hpp>
 #include <uavcan/protocol/node_status_provider.hpp>
 #include <uavcan/protocol/data_type_info_provider.hpp>
 #include <uavcan/protocol/GlobalDiscoveryRequest.hpp>
@@ -45,27 +45,29 @@ struct NodeInitializerRemoteContext
 };
 
 
-TEST(NodeInitializer, Size)
+TEST(NetworkCompatibilityChecker, Size)
 {
-    std::cout << "sizeof(uavcan::NodeInitializer): " << sizeof(uavcan::NodeInitializer) << std::endl;
-    ASSERT_TRUE(sizeof(uavcan::NodeInitializer) < 2048);
+    // Objects are subject for stack allocation, hence the size matters
+    std::cout << "sizeof(uavcan::NetworkCompatibilityChecker): "
+              << sizeof(uavcan::NetworkCompatibilityChecker) << std::endl;
+    ASSERT_TRUE(sizeof(uavcan::NetworkCompatibilityChecker) < 2048);
 }
 
 
-TEST(NodeInitializer, EmptyNetwork)
+TEST(NetworkCompatibilityChecker, EmptyNetwork)
 {
     registerTypes();
     InterlinkedTestNodesWithSysClock nodes;
 
-    ASSERT_LE(0, uavcan::NodeInitializer::publishGlobalDiscoveryRequest(nodes.a));
+    ASSERT_LE(0, uavcan::NetworkCompatibilityChecker::publishGlobalDiscoveryRequest(nodes.a));
 
-    uavcan::NodeInitializer ni(nodes.a);
+    uavcan::NetworkCompatibilityChecker ni(nodes.a);
     ASSERT_LE(0, ni.execute());
     ASSERT_TRUE(ni.getResult().isOk());
 }
 
 
-TEST(NodeInitializer, Success)
+TEST(NetworkCompatibilityChecker, Success)
 {
     registerTypes();
     InterlinkedTestNodesWithSysClock nodes;
@@ -75,29 +77,29 @@ TEST(NodeInitializer, Success)
     BackgroundSpinner bgspinner(nodes.b, nodes.a);
     bgspinner.startPeriodic(uavcan::MonotonicDuration::fromMSec(10));
 
-    ASSERT_LE(0, uavcan::NodeInitializer::publishGlobalDiscoveryRequest(nodes.a));
+    ASSERT_LE(0, uavcan::NetworkCompatibilityChecker::publishGlobalDiscoveryRequest(nodes.a));
 
-    uavcan::NodeInitializer ni(nodes.a);
+    uavcan::NetworkCompatibilityChecker ni(nodes.a);
     ASSERT_LE(0, ni.execute());
     ASSERT_TRUE(ni.getResult().isOk());
 }
 
 
-TEST(NodeInitializer, RequestTimeout)
+TEST(NetworkCompatibilityChecker, RequestTimeout)
 {
     registerTypes();
     InterlinkedTestNodesWithSysClock nodes;
     NodeInitializerRemoteContext remote(nodes.b);
     remote.start();
 
-    ASSERT_LE(0, uavcan::NodeInitializer::publishGlobalDiscoveryRequest(nodes.a));
+    ASSERT_LE(0, uavcan::NetworkCompatibilityChecker::publishGlobalDiscoveryRequest(nodes.a));
 
-    uavcan::NodeInitializer ni(nodes.a);
+    uavcan::NetworkCompatibilityChecker ni(nodes.a);
     ASSERT_GT(0, ni.execute());            // There is no background spinner, so CATS request will time out
 }
 
 
-TEST(NodeInitializer, NodeIDCollision)
+TEST(NetworkCompatibilityChecker, NodeIDCollision)
 {
     registerTypes();
     InterlinkedTestNodesWithSysClock nodes(8, 8);   // Same NID
@@ -107,9 +109,9 @@ TEST(NodeInitializer, NodeIDCollision)
     BackgroundSpinner bgspinner(nodes.b, nodes.a);
     bgspinner.startPeriodic(uavcan::MonotonicDuration::fromMSec(10));
 
-    ASSERT_LE(0, uavcan::NodeInitializer::publishGlobalDiscoveryRequest(nodes.a));
+    ASSERT_LE(0, uavcan::NetworkCompatibilityChecker::publishGlobalDiscoveryRequest(nodes.a));
 
-    uavcan::NodeInitializer ni(nodes.a);
+    uavcan::NetworkCompatibilityChecker ni(nodes.a);
     ASSERT_LE(0, ni.execute());
     ASSERT_FALSE(ni.getResult().isOk());
     ASSERT_EQ(8, ni.getResult().conflicting_node.get());

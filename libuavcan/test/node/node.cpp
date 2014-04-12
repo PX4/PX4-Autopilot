@@ -58,7 +58,7 @@ TEST(Node, Basic)
     /*
      * Init the second node - network is empty
      */
-    uavcan::NodeInitializationResult result;
+    uavcan::NetworkCompatibilityCheckResult result;
     ASSERT_LE(0, node2.start(result));
 
     ASSERT_FALSE(node_status_monitor.findNodeWithWorstStatus().isValid());

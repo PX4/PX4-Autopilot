@@ -14,7 +14,7 @@
 namespace uavcan
 {
 
-struct UAVCAN_EXPORT NodeInitializationResult
+struct UAVCAN_EXPORT NetworkCompatibilityCheckResult
 {
     NodeID conflicting_node;
     bool isOk() const { return !conflicting_node.isValid(); }
@@ -24,21 +24,21 @@ struct UAVCAN_EXPORT NodeInitializationResult
  * This class does not issue GlobalDiscoveryRequest, assuming that it was done already by the caller.
  * Instantiated object can execute() only once. Objects of this class are intended for stack allocation.
  */
-class UAVCAN_EXPORT NodeInitializer : Noncopyable
+class UAVCAN_EXPORT NetworkCompatibilityChecker : Noncopyable
 {
     typedef std::bitset<NodeID::Max + 1> NodeIDMask;
-    typedef MethodBinder<NodeInitializer*,
-                         void (NodeInitializer::*)(const ReceivedDataStructure<protocol::NodeStatus>&)>
+    typedef MethodBinder<NetworkCompatibilityChecker*,
+                         void (NetworkCompatibilityChecker::*)(const ReceivedDataStructure<protocol::NodeStatus>&)>
             NodeStatusCallback;
-    typedef MethodBinder<NodeInitializer*,
-                         void (NodeInitializer::*)(ServiceCallResult<protocol::ComputeAggregateTypeSignature>&)>
+    typedef MethodBinder<NetworkCompatibilityChecker*,
+                         void (NetworkCompatibilityChecker::*)(ServiceCallResult<protocol::ComputeAggregateTypeSignature>&)>
             CATSResponseCallback;
 
     Subscriber<protocol::NodeStatus, NodeStatusCallback> ns_sub_;
     ServiceClient<protocol::ComputeAggregateTypeSignature, CATSResponseCallback> cats_cln_;
     NodeIDMask nid_mask_present_;
     NodeIDMask nid_mask_checked_;
-    NodeInitializationResult result_;
+    NetworkCompatibilityCheckResult result_;
     DataTypeKind checking_dtkind_;
     bool last_cats_request_ok_;
 
@@ -59,7 +59,7 @@ class UAVCAN_EXPORT NodeInitializer : Noncopyable
     int checkNodes();
 
 public:
-    NodeInitializer(INode& node)
+    NetworkCompatibilityChecker(INode& node)
         : ns_sub_(node)
         , cats_cln_(node)
         , checking_dtkind_(DataTypeKindService)
@@ -68,7 +68,7 @@ public:
 
     int execute();
 
-    const NodeInitializationResult& getResult() const { return result_; }
+    const NetworkCompatibilityCheckResult& getResult() const { return result_; }
 
     static int publishGlobalDiscoveryRequest(INode& node);
 };
