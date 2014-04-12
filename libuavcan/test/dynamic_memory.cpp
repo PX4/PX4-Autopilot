@@ -20,6 +20,8 @@ TEST(DynamicMemory, Basic)
     EXPECT_TRUE(poolmgr.addPool(&pool32));
     EXPECT_FALSE(poolmgr.addPool(&pool128));
 
+    EXPECT_EQ(4 * 2, poolmgr.getNumBlocks());
+
     const void* ptr1 = poolmgr.allocate(16);
     EXPECT_TRUE(ptr1);
 
