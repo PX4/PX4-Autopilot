@@ -14,7 +14,7 @@ namespace
 
 uavcan_stm32::CanInitHelper<128> can;
 
-typedef uavcan::Node<8192> Node;
+typedef uavcan::Node<16384> Node;
 
 uavcan::LazyConstructor<Node> node_;
 
