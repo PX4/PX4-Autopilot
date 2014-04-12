@@ -10,6 +10,35 @@
 namespace uavcan
 {
 /*
+ * DataTypeSignatureCRC
+ */
+DataTypeSignatureCRC DataTypeSignatureCRC::extend(uint64_t crc)
+{
+    DataTypeSignatureCRC ret;
+    ret.crc_ = crc ^ 0xFFFFFFFFFFFFFFFF;
+    return ret;
+}
+
+void DataTypeSignatureCRC::add(uint8_t byte)
+{
+    static const uint64_t Poly = 0x42F0E1EBA9EA3693;
+    crc_ ^= uint64_t(byte) << 56;
+    for (int i = 0; i < 8; i++)
+    {
+        crc_ = (crc_ & (uint64_t(1) << 63)) ? (crc_ << 1) ^ Poly : crc_ << 1;
+    }
+}
+
+void DataTypeSignatureCRC::add(const uint8_t* bytes, unsigned len)
+{
+    assert(bytes);
+    while (len--)
+    {
+        add(*bytes++);
+    }
+}
+
+/*
  * DataTypeSignature
  */
 void DataTypeSignature::mixin64(uint64_t x)

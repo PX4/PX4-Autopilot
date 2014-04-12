@@ -67,33 +67,13 @@ class UAVCAN_EXPORT DataTypeSignatureCRC
     uint64_t crc_;
 
 public:
-    static DataTypeSignatureCRC extend(uint64_t crc)
-    {
-        DataTypeSignatureCRC ret;
-        ret.crc_ = crc ^ 0xFFFFFFFFFFFFFFFF;
-        return ret;
-    }
+    static DataTypeSignatureCRC extend(uint64_t crc);
 
     DataTypeSignatureCRC() : crc_(0xFFFFFFFFFFFFFFFF) { }
 
-    void add(uint8_t byte)
-    {
-        static const uint64_t Poly = 0x42F0E1EBA9EA3693;
-        crc_ ^= uint64_t(byte) << 56;
-        for (int i = 0; i < 8; i++)
-        {
-            crc_ = (crc_ & (uint64_t(1) << 63)) ? (crc_ << 1) ^ Poly : crc_ << 1;
-        }
-    }
+    void add(uint8_t byte);
 
-    void add(const uint8_t* bytes, unsigned len)
-    {
-        assert(bytes);
-        while (len--)
-        {
-            add(*bytes++);
-        }
-    }
+    void add(const uint8_t* bytes, unsigned len);
 
     uint64_t get() const { return crc_ ^ 0xFFFFFFFFFFFFFFFF; }
 };
