@@ -59,7 +59,7 @@ public:
             IsDynamicallyAllocatable<Entry>::check();
         }
 
-        static void destroy(Entry*& obj, IAllocator& allocator);
+        static void destroy(Entry*& obj, IPoolAllocator& allocator);
 
         bool isExpired(MonotonicTime timestamp) const { return timestamp > deadline; }
 
@@ -87,7 +87,7 @@ private:
     };
 
     LinkedListRoot<Entry> queue_;
-    IAllocator* const allocator_;
+    IPoolAllocator* const allocator_;
     ISystemClock* const sysclock_;
     uint32_t rejected_frames_cnt_;
 
@@ -100,7 +100,7 @@ public:
         , rejected_frames_cnt_(0)
     { }
 
-    CanTxQueue(IAllocator* allocator, ISystemClock* sysclock)
+    CanTxQueue(IPoolAllocator* allocator, ISystemClock* sysclock)
         : allocator_(allocator)
         , sysclock_(sysclock)
         , rejected_frames_cnt_(0)
@@ -160,7 +160,7 @@ class UAVCAN_EXPORT CanIOManager : Noncopyable
     int callSelect(CanSelectMasks& inout_masks, MonotonicTime blocking_deadline);
 
 public:
-    CanIOManager(ICanDriver& driver, IAllocator& allocator, ISystemClock& sysclock)
+    CanIOManager(ICanDriver& driver, IPoolAllocator& allocator, ISystemClock& sysclock)
         : driver_(driver)
         , sysclock_(sysclock)
     {

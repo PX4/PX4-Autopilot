@@ -122,7 +122,7 @@ class UAVCAN_EXPORT GenericSubscriber : public GenericSubscriberBase
         }
 
     public:
-        TransferForwarder(SelfType& obj, const DataTypeDescriptor& data_type, IAllocator& allocator)
+        TransferForwarder(SelfType& obj, const DataTypeDescriptor& data_type, IPoolAllocator& allocator)
             : TransferListenerType(obj.node_.getDispatcher().getTransferPerfCounter(), data_type, allocator)
             , obj_(obj)
         { }
@@ -198,7 +198,7 @@ int GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::checkInit()
         UAVCAN_TRACE("GenericSubscriber", "Type [%s] is not registered", DataSpec::getDataTypeFullName());
         return -ErrUnknownDataType;
     }
-    forwarder_.template construct<SelfType&, const DataTypeDescriptor&, IAllocator&>
+    forwarder_.template construct<SelfType&, const DataTypeDescriptor&, IPoolAllocator&>
         (*this, *descr, node_.getAllocator());
     return 0;
 }

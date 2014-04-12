@@ -122,7 +122,7 @@ class UAVCAN_EXPORT OutgoingTransferRegistry : public IOutgoingTransferRegistry,
     Map<OutgoingTransferRegistryKey, Value, NumStaticEntries> map_;
 
 public:
-    OutgoingTransferRegistry(IAllocator& allocator)
+    OutgoingTransferRegistry(IPoolAllocator& allocator)
         : map_(allocator)
     { }
 

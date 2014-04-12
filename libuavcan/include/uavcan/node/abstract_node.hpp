@@ -15,7 +15,7 @@ class UAVCAN_EXPORT INode
 {
 public:
     virtual ~INode() { }
-    virtual IAllocator& getAllocator() = 0;
+    virtual IPoolAllocator& getAllocator() = 0;
     virtual Scheduler& getScheduler() = 0;
     virtual const Scheduler& getScheduler() const = 0;
     virtual IMarshalBufferProvider& getMarshalBufferProvider() = 0;

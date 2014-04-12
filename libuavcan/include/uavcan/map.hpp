@@ -50,7 +50,7 @@ class UAVCAN_EXPORT MapBase : Noncopyable
             IsDynamicallyAllocatable<KVGroup>::check();
         }
 
-        static KVGroup* instantiate(IAllocator& allocator)
+        static KVGroup* instantiate(IPoolAllocator& allocator)
         {
             void* const praw = allocator.allocate(sizeof(KVGroup));
             if (praw == NULL)
@@ -60,7 +60,7 @@ class UAVCAN_EXPORT MapBase : Noncopyable
             return new (praw) KVGroup();
         }
 
-        static void destroy(KVGroup*& obj, IAllocator& allocator)
+        static void destroy(KVGroup*& obj, IPoolAllocator& allocator)
         {
             if (obj != NULL)
             {
@@ -85,7 +85,7 @@ class UAVCAN_EXPORT MapBase : Noncopyable
     UAVCAN_PACKED_END
 
     LinkedListRoot<KVGroup> list_;
-    IAllocator& allocator_;
+    IPoolAllocator& allocator_;
     KVPair* const static_;
     const unsigned num_static_entries_;
 
@@ -101,7 +101,7 @@ class UAVCAN_EXPORT MapBase : Noncopyable
     };
 
 protected:
-    MapBase(KVPair* static_buf, unsigned num_static_entries, IAllocator& allocator)
+    MapBase(KVPair* static_buf, unsigned num_static_entries, IPoolAllocator& allocator)
         : allocator_(allocator)
         , static_(static_buf)
         , num_static_entries_(num_static_entries)
@@ -149,7 +149,7 @@ class UAVCAN_EXPORT Map : public MapBase<Key, Value>
     typename MapBase<Key, Value>::KVPair static_[NumStaticEntries];
 
 public:
-    Map(IAllocator& allocator)
+    Map(IPoolAllocator& allocator)
         : MapBase<Key, Value>(static_, NumStaticEntries, allocator)
     { }
 
@@ -161,7 +161,7 @@ template <typename Key, typename Value>
 class UAVCAN_EXPORT Map<Key, Value, 0> : public MapBase<Key, Value>
 {
 public:
-    Map(IAllocator& allocator)
+    Map(IPoolAllocator& allocator)
         : MapBase<Key, Value>(NULL, 0, allocator)
     { }
 

@@ -107,8 +107,8 @@ class UAVCAN_EXPORT DynamicTransferBufferManagerEntry
         enum { Size = MemPoolBlockSize - sizeof(LinkedListNode<Block>) };
         uint8_t data[Size];
 
-        static Block* instantiate(IAllocator& allocator);
-        static void destroy(Block*& obj, IAllocator& allocator);
+        static Block* instantiate(IPoolAllocator& allocator);
+        static void destroy(Block*& obj, IPoolAllocator& allocator);
 
         void read(uint8_t*& outptr, unsigned target_offset,
                   unsigned& total_offset, unsigned& left_to_read);
@@ -116,7 +116,7 @@ class UAVCAN_EXPORT DynamicTransferBufferManagerEntry
                    unsigned& total_offset, unsigned& left_to_write);
     };
 
-    IAllocator& allocator_;
+    IPoolAllocator& allocator_;
     LinkedListRoot<Block> blocks_;    // Blocks are ordered from lower to higher buffer offset
     uint16_t max_write_pos_;
     const uint16_t max_size_;
@@ -124,7 +124,7 @@ class UAVCAN_EXPORT DynamicTransferBufferManagerEntry
     void resetImpl();
 
 public:
-    DynamicTransferBufferManagerEntry(IAllocator& allocator, uint16_t max_size)
+    DynamicTransferBufferManagerEntry(IPoolAllocator& allocator, uint16_t max_size)
         : allocator_(allocator)
         , max_write_pos_(0)
         , max_size_(max_size)
@@ -139,8 +139,8 @@ public:
         resetImpl();
     }
 
-    static DynamicTransferBufferManagerEntry* instantiate(IAllocator& allocator, uint16_t max_size);
-    static void destroy(DynamicTransferBufferManagerEntry*& obj, IAllocator& allocator);
+    static DynamicTransferBufferManagerEntry* instantiate(IPoolAllocator& allocator, uint16_t max_size);
+    static void destroy(DynamicTransferBufferManagerEntry*& obj, IPoolAllocator& allocator);
 
     int read(unsigned offset, uint8_t* data, unsigned len) const;
     int write(unsigned offset, const uint8_t* data, unsigned len);
@@ -258,7 +258,7 @@ public:
 class TransferBufferManagerImpl : public ITransferBufferManager, Noncopyable
 {
     LinkedListRoot<DynamicTransferBufferManagerEntry> dynamic_buffers_;
-    IAllocator& allocator_;
+    IPoolAllocator& allocator_;
     const uint16_t max_buf_size_;
 
     virtual StaticTransferBufferManagerEntryImpl* getStaticByIndex(uint16_t index) const = 0;
@@ -268,7 +268,7 @@ class TransferBufferManagerImpl : public ITransferBufferManager, Noncopyable
     void optimizeStorage();
 
 public:
-    TransferBufferManagerImpl(uint16_t max_buf_size, IAllocator& allocator)
+    TransferBufferManagerImpl(uint16_t max_buf_size, IPoolAllocator& allocator)
         : allocator_(allocator)
         , max_buf_size_(max_buf_size)
     { }
@@ -295,7 +295,7 @@ class UAVCAN_EXPORT TransferBufferManager : public TransferBufferManagerImpl
     }
 
 public:
-    TransferBufferManager(IAllocator& allocator)
+    TransferBufferManager(IPoolAllocator& allocator)
         : TransferBufferManagerImpl(MaxBufSize, allocator)
     {
         StaticAssert<(MaxBufSize > 0)>::check();
@@ -307,7 +307,7 @@ class UAVCAN_EXPORT TransferBufferManager<0, 0> : public ITransferBufferManager
 {
 public:
     TransferBufferManager() { }
-    TransferBufferManager(IAllocator&) { }
+    TransferBufferManager(IPoolAllocator&) { }
     ITransferBuffer* access(const TransferBufferManagerKey&) { return NULL; }
     ITransferBuffer* create(const TransferBufferManagerKey&) { return NULL; }
     void remove(const TransferBufferManagerKey&) { }

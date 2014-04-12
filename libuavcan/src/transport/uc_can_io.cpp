@@ -30,7 +30,7 @@ std::string CanRxFrame::toString(StringRepresentation mode) const
 /*
  * CanTxQueue::Entry
  */
-void CanTxQueue::Entry::destroy(Entry*& obj, IAllocator& allocator)
+void CanTxQueue::Entry::destroy(Entry*& obj, IPoolAllocator& allocator)
 {
     if (obj != NULL)
     {

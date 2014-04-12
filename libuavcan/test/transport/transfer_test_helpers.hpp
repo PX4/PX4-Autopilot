@@ -120,7 +120,7 @@ class TestListener : public uavcan::TransferListener<MAX_BUF_SIZE, NUM_STATIC_BU
 
 public:
     TestListener(uavcan::TransferPerfCounter& perf, const uavcan::DataTypeDescriptor& data_type,
-                 uavcan::IAllocator& allocator)
+                 uavcan::IPoolAllocator& allocator)
         : Base(perf, data_type, allocator)
     { }
 

@@ -33,4 +33,19 @@ void LimitedPoolAllocator::deallocate(const void* ptr)
     }
 }
 
+bool LimitedPoolAllocator::isInPool(const void* ptr) const
+{
+    return allocator_.isInPool(ptr);
+}
+
+std::size_t LimitedPoolAllocator::getBlockSize() const
+{
+    return allocator_.getBlockSize();
+}
+
+std::size_t LimitedPoolAllocator::getNumBlocks() const
+{
+    return allocator_.getNumBlocks();
+}
+
 }

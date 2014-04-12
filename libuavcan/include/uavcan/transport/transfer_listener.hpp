@@ -145,7 +145,7 @@ class UAVCAN_EXPORT TransferListener : public TransferListenerBase
     Map<TransferBufferManagerKey, TransferReceiver, NumStaticReceivers> receivers_;
 
 public:
-    TransferListener(TransferPerfCounter& perf, const DataTypeDescriptor& data_type, IAllocator& allocator)
+    TransferListener(TransferPerfCounter& perf, const DataTypeDescriptor& data_type, IPoolAllocator& allocator)
         : TransferListenerBase(perf, data_type, receivers_, bufmgr_)
         , bufmgr_(allocator)
         , receivers_(allocator)
@@ -200,7 +200,7 @@ private:
 
 public:
     ServiceResponseTransferListener(TransferPerfCounter& perf, const DataTypeDescriptor& data_type,
-                                    IAllocator& allocator)
+                                    IPoolAllocator& allocator)
         : BaseType(perf, data_type, allocator)
     { }
 

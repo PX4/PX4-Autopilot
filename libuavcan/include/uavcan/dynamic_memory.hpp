@@ -18,25 +18,23 @@ namespace uavcan
 /**
  * This interface is used by other library components that need dynamic memory.
  */
-class UAVCAN_EXPORT IAllocator
+class UAVCAN_EXPORT IPoolAllocator
 {
 public:
-    virtual ~IAllocator() { }
+    virtual ~IPoolAllocator() { }
+
     virtual void* allocate(std::size_t size) = 0;
     virtual void deallocate(const void* ptr) = 0;
-};
 
-
-class UAVCAN_EXPORT IPoolAllocator : public IAllocator
-{
-public:
     virtual bool isInPool(const void* ptr) const = 0;
+
     virtual std::size_t getBlockSize() const = 0;
+    virtual std::size_t getNumBlocks() const = 0;
 };
 
 
-template <int MaxPools>
-class UAVCAN_EXPORT PoolManager : public IAllocator, Noncopyable
+template <unsigned MaxPools>
+class UAVCAN_EXPORT PoolManager : public IPoolAllocator, Noncopyable
 {
     IPoolAllocator* pools_[MaxPools];
 
@@ -56,8 +54,12 @@ public:
     bool addPool(IPoolAllocator* pool);
 
     void* allocate(std::size_t size);
-
     void deallocate(const void* ptr);
+
+    bool isInPool(const void* ptr) const;
+
+    std::size_t getBlockSize() const;
+    std::size_t getNumBlocks() const;
 };
 
 
@@ -80,32 +82,31 @@ class UAVCAN_EXPORT PoolAllocator : public IPoolAllocator, Noncopyable
     } pool_;
 
 public:
-    static const int NumBlocks = int(PoolSize / BlockSize);
+    static const unsigned NumBlocks = unsigned(PoolSize / BlockSize);
 
     PoolAllocator();
 
     void* allocate(std::size_t size);
-
     void deallocate(const void* ptr);
 
     bool isInPool(const void* ptr) const;
 
     std::size_t getBlockSize() const { return BlockSize; }
+    std::size_t getNumBlocks() const { return NumBlocks; }
 
-    int getNumFreeBlocks() const;
-
-    int getNumUsedBlocks() const { return NumBlocks - getNumFreeBlocks(); }
+    unsigned getNumFreeBlocks() const;
+    unsigned getNumUsedBlocks() const { return NumBlocks - getNumFreeBlocks(); }
 };
 
 
-class LimitedPoolAllocator : public IAllocator
+class LimitedPoolAllocator : public IPoolAllocator
 {
-    IAllocator& allocator_;
+    IPoolAllocator& allocator_;
     const std::size_t max_blocks_;
     std::size_t used_blocks_;
 
 public:
-    LimitedPoolAllocator(IAllocator& allocator, std::size_t max_blocks)
+    LimitedPoolAllocator(IPoolAllocator& allocator, std::size_t max_blocks)
         : allocator_(allocator)
         , max_blocks_(max_blocks)
         , used_blocks_(0)
@@ -115,6 +116,11 @@ public:
 
     void* allocate(std::size_t size);
     void deallocate(const void* ptr);
+
+    bool isInPool(const void* ptr) const;
+
+    std::size_t getBlockSize() const;
+    std::size_t getNumBlocks() const;
 };
 
 // ----------------------------------------------------------------------------
@@ -122,12 +128,12 @@ public:
 /*
  * PoolManager<>
  */
-template <int MaxPools>
+template <unsigned MaxPools>
 bool PoolManager<MaxPools>::addPool(IPoolAllocator* pool)
 {
     assert(pool);
     bool retval = false;
-    for (int i = 0; i < MaxPools; i++)
+    for (unsigned i = 0; i < MaxPools; i++)
     {
         assert(pools_[i] != pool);
         if (pools_[i] == NULL || pools_[i] == pool)
@@ -142,10 +148,10 @@ bool PoolManager<MaxPools>::addPool(IPoolAllocator* pool)
     return retval;
 }
 
-template <int MaxPools>
+template <unsigned MaxPools>
 void* PoolManager<MaxPools>::allocate(std::size_t size)
 {
-    for (int i = 0; i < MaxPools; i++)
+    for (unsigned i = 0; i < MaxPools; i++)
     {
         if (pools_[i] == NULL)
         {
@@ -160,10 +166,10 @@ void* PoolManager<MaxPools>::allocate(std::size_t size)
     return NULL;
 }
 
-template <int MaxPools>
+template <unsigned MaxPools>
 void PoolManager<MaxPools>::deallocate(const void* ptr)
 {
-    for (int i = 0; i < MaxPools; i++)
+    for (unsigned i = 0; i < MaxPools; i++)
     {
         if (pools_[i] == NULL)
         {
@@ -178,6 +184,44 @@ void PoolManager<MaxPools>::deallocate(const void* ptr)
     }
 }
 
+template <unsigned MaxPools>
+bool PoolManager<MaxPools>::isInPool(const void* ptr) const
+{
+    for (unsigned i = 0; i < MaxPools; i++)
+    {
+        if (pools_[i] == NULL)
+        {
+            break;
+        }
+        if (pools_[i]->isInPool(ptr))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+template <unsigned MaxPools>
+std::size_t PoolManager<MaxPools>::getBlockSize() const
+{
+    return 0;
+}
+
+template <unsigned MaxPools>
+std::size_t PoolManager<MaxPools>::getNumBlocks() const
+{
+    std::size_t ret = 0;
+    for (unsigned i = 0; i < MaxPools; i++)
+    {
+        if (pools_[i] == NULL)
+        {
+            break;
+        }
+        ret += pools_[i]->getNumBlocks();
+    }
+    return ret;
+}
+
 /*
  * PoolAllocator<>
  */
@@ -186,7 +230,7 @@ PoolAllocator<PoolSize, BlockSize>::PoolAllocator()
     : free_list_(reinterpret_cast<Node*>(pool_.bytes))
 {
     memset(pool_.bytes, 0, PoolSize);
-    for (int i = 0; i < NumBlocks - 1; i++)
+    for (unsigned i = 0; (i + 1) < (NumBlocks - 1 + 1); i++) // -Werror=type-limits
     {
         free_list_[i].next = free_list_ + i + 1;
     }
@@ -228,9 +272,9 @@ bool PoolAllocator<PoolSize, BlockSize>::isInPool(const void* ptr) const
 }
 
 template <std::size_t PoolSize, std::size_t BlockSize>
-int PoolAllocator<PoolSize, BlockSize>::getNumFreeBlocks() const
+unsigned PoolAllocator<PoolSize, BlockSize>::getNumFreeBlocks() const
 {
-    int num = 0;
+    unsigned num = 0;
     Node* p = free_list_;
     while (p)
     {

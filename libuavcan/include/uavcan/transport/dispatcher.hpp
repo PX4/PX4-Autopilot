@@ -102,7 +102,7 @@ class UAVCAN_EXPORT Dispatcher : Noncopyable
     void handleLoopbackFrame(const CanRxFrame& can_frame);
 
 public:
-    Dispatcher(ICanDriver& driver, IAllocator& allocator, ISystemClock& sysclock, IOutgoingTransferRegistry& otr)
+    Dispatcher(ICanDriver& driver, IPoolAllocator& allocator, ISystemClock& sysclock, IOutgoingTransferRegistry& otr)
         : canio_(driver, allocator, sysclock)
         , sysclock_(sysclock)
         , outgoing_transfer_reg_(otr)

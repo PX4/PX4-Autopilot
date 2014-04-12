@@ -24,7 +24,7 @@ std::string TransferBufferManagerKey::toString() const
 /*
  * DynamicTransferBuffer::Block
  */
-DynamicTransferBufferManagerEntry::Block* DynamicTransferBufferManagerEntry::Block::instantiate(IAllocator& allocator)
+DynamicTransferBufferManagerEntry::Block* DynamicTransferBufferManagerEntry::Block::instantiate(IPoolAllocator& allocator)
 {
     void* const praw = allocator.allocate(sizeof(Block));
     if (praw == NULL)
@@ -34,7 +34,7 @@ DynamicTransferBufferManagerEntry::Block* DynamicTransferBufferManagerEntry::Blo
     return new (praw) Block;
 }
 
-void DynamicTransferBufferManagerEntry::Block::destroy(Block*& obj, IAllocator& allocator)
+void DynamicTransferBufferManagerEntry::Block::destroy(Block*& obj, IPoolAllocator& allocator)
 {
     if (obj != NULL)
     {
@@ -75,7 +75,7 @@ void DynamicTransferBufferManagerEntry::Block::write(const uint8_t*& inptr, unsi
 /*
  * DynamicTransferBuffer
  */
-DynamicTransferBufferManagerEntry* DynamicTransferBufferManagerEntry::instantiate(IAllocator& allocator,
+DynamicTransferBufferManagerEntry* DynamicTransferBufferManagerEntry::instantiate(IPoolAllocator& allocator,
                                                                                   uint16_t max_size)
 {
     void* const praw = allocator.allocate(sizeof(DynamicTransferBufferManagerEntry));
@@ -86,7 +86,7 @@ DynamicTransferBufferManagerEntry* DynamicTransferBufferManagerEntry::instantiat
     return new (praw) DynamicTransferBufferManagerEntry(allocator, max_size);
 }
 
-void DynamicTransferBufferManagerEntry::destroy(DynamicTransferBufferManagerEntry*& obj, IAllocator& allocator)
+void DynamicTransferBufferManagerEntry::destroy(DynamicTransferBufferManagerEntry*& obj, IPoolAllocator& allocator)
 {
     if (obj != NULL)
     {
