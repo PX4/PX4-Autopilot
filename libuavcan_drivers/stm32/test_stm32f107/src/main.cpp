@@ -130,9 +130,9 @@ public:
             lowsyslog("Memory usage: used=%u free=%u\n",
                       node.getAllocator().getNumUsedBlocks(), node.getAllocator().getNumFreeBlocks());
 
-            lowsyslog("RX queues: %u %u\n",
-                      can.driver.getIface(0)->getRxQueueLength(),
-                      can.driver.getIface(1)->getRxQueueLength());
+            lowsyslog("CAN errors: %lu %lu\n",
+                      static_cast<unsigned long>(can.driver.getIface(0)->getErrorCount()),
+                      static_cast<unsigned long>(can.driver.getIface(1)->getErrorCount()));
 
             node.logInfo("app", "UTC %* sec, %* corr, %* jumps",
                          uavcan_stm32::clock::getUtc().toMSec() / 1000,
