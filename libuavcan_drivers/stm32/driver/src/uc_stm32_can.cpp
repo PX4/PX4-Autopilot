@@ -94,7 +94,7 @@ void CanIface::RxQueue::push(const uavcan::CanFrame& frame, const uint64_t& utc_
         in_ = 0;
     }
     len_++;
-    if (len_ >= capacity_)
+    if (len_ > capacity_)
     {
         len_ = capacity_;
         registerOverflow();
