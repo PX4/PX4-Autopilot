@@ -100,6 +100,8 @@ TEST(DynamicMemory, LimitedPoolAllocator)
     uavcan::PoolAllocator<128, 32> pool32;
     uavcan::LimitedPoolAllocator lim(pool32, 2);
 
+    EXPECT_EQ(2, lim.getNumBlocks());
+
     const void* ptr1 = lim.allocate(1);
     const void* ptr2 = lim.allocate(1);
     const void* ptr3 = lim.allocate(1);

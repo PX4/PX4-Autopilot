@@ -45,7 +45,7 @@ std::size_t LimitedPoolAllocator::getBlockSize() const
 
 std::size_t LimitedPoolAllocator::getNumBlocks() const
 {
-    return allocator_.getNumBlocks();
+    return std::min(max_blocks_, allocator_.getNumBlocks());
 }
 
 }
