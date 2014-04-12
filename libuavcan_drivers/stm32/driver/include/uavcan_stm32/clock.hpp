@@ -50,6 +50,13 @@ uavcan::int32_t getUtcSpeedCorrectionPPM();
  */
 uavcan::uint32_t getUtcAjdustmentJumpCount();
 
+/**
+ * Returns clock error sampled at previous UTC adjustment.
+ * Positive if the hardware timer is slower than reference time.
+ * This function is thread safe.
+ */
+uavcan::UtcDuration getPrevUtcAdjustment();
+
 }
 
 /**

@@ -166,8 +166,9 @@ int main()
         }
 
         const uavcan::UtcTime utc = uavcan_stm32::clock::getUtc();
-        lowsyslog("UTC %lu sec, %li corr, %lu jumps\n",
+        lowsyslog("UTC %lu sec   Absolute error: %li usec   Speed correction: %liPPM   Jumps: %lu\n",
                   static_cast<unsigned long>(utc.toMSec() / 1000),
+                  static_cast<long>(uavcan_stm32::clock::getPrevUtcAdjustment().toUSec()),
                   uavcan_stm32::clock::getUtcSpeedCorrectionPPM(),
                   uavcan_stm32::clock::getUtcAjdustmentJumpCount());
     }

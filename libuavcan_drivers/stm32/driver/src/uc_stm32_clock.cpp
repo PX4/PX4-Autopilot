@@ -39,6 +39,7 @@ bool utc_set = false;
 
 uavcan::uint32_t utc_jump_cnt = 0;
 uavcan::int32_t utc_correction_usec_per_overflow_x16 = 0;
+uavcan::int64_t prev_adjustment = 0;
 
 uavcan::uint64_t time_mono = 0;
 uavcan::uint64_t time_utc = 0;
@@ -147,43 +148,25 @@ void adjustUtc(uavcan::UtcDuration adjustment)
     MutexLocker mlocker(mutex);
 
     assert(initialized);
-    if (adjustment.isZero() && utc_set)
-    {
-        return; // Perfect sync
-    }
 
     /*
-     * Naive speed adjustment (proof of concept)
-     * TODO: Reliable clock speed adjustment algorithm
+     * Naive speed adjustment - discrete PI controller.
+     * TODO: More reliable clock speed adjustment algorithm
      */
-    if (adjustment.isPositive())
-    {
-        if (utc_correction_usec_per_overflow_x16 < 0)
-        {
-            utc_correction_usec_per_overflow_x16 += 4;
-        }
-        else if (utc_correction_usec_per_overflow_x16 < MaxUtcSpeedCorrectionX16)
-        {
-            utc_correction_usec_per_overflow_x16 += 1;
-        }
-    }
-    else
-    {
-        if (utc_correction_usec_per_overflow_x16 > 0)
-        {
-            utc_correction_usec_per_overflow_x16 -= 4;
-        }
-        else if (utc_correction_usec_per_overflow_x16 > -MaxUtcSpeedCorrectionX16)
-        {
-            utc_correction_usec_per_overflow_x16 -= 1;
-        }
-    }
+    const uavcan::int64_t adj_delta = adjustment.toUSec() - prev_adjustment;  // This is the P term
+    prev_adjustment = adjustment.toUSec();
+
+    utc_correction_usec_per_overflow_x16 += adjustment.isPositive() ? 1 : -1; // I
+    utc_correction_usec_per_overflow_x16 += (adj_delta > 0) ? 1 : -1;         // P
+
+    utc_correction_usec_per_overflow_x16 = std::max(utc_correction_usec_per_overflow_x16, -MaxUtcSpeedCorrectionX16);
+    utc_correction_usec_per_overflow_x16 = std::min(utc_correction_usec_per_overflow_x16,  MaxUtcSpeedCorrectionX16);
 
     /*
      * Clock value adjustment
-     * For small adjustments we will rely only on speed change
+     * For small adjustments (less than 3 msec) we will rely only on speed change
      */
-    if (adjustment.getAbs().toMSec() > 1 || !utc_set)
+    if (adjustment.getAbs().toMSec() > 2 || !utc_set)
     {
         const uavcan::int64_t adj_usec = adjustment.toUSec();
 
@@ -221,6 +204,12 @@ uavcan::uint32_t getUtcAjdustmentJumpCount()
 {
     MutexLocker mlocker(mutex);
     return utc_jump_cnt;
+}
+
+uavcan::UtcDuration getPrevUtcAdjustment()
+{
+    MutexLocker mlocker(mutex);
+    return uavcan::UtcDuration::fromUSec(prev_adjustment);
 }
 
 } // namespace clock
