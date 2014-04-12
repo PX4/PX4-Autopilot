@@ -73,7 +73,7 @@ TEST(CanTxQueue, TxQueue)
 
     SystemClockMock clockmock;
 
-    CanTxQueue queue(&poolmgr, &clockmock);
+    CanTxQueue queue(poolmgr, clockmock, 99999);
     EXPECT_TRUE(queue.isEmpty());
 
     const uavcan::CanIOFlags flags = 0;

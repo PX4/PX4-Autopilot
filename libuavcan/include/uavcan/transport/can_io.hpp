@@ -12,6 +12,7 @@
 #include <uavcan/dynamic_memory.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/util/compile_time.hpp>
+#include <uavcan/util/lazy_constructor.hpp>
 #include <uavcan/driver/can.hpp>
 #include <uavcan/driver/system_clock.hpp>
 #include <uavcan/time.hpp>
@@ -87,21 +88,15 @@ private:
     };
 
     LinkedListRoot<Entry> queue_;
-    IPoolAllocator* const allocator_;
-    ISystemClock* const sysclock_;
+    LimitedPoolAllocator allocator_;
+    ISystemClock& sysclock_;
     uint32_t rejected_frames_cnt_;
 
     void registerRejectedFrame();
 
 public:
-    CanTxQueue()
-        : allocator_(NULL)
-        , sysclock_(NULL)
-        , rejected_frames_cnt_(0)
-    { }
-
-    CanTxQueue(IPoolAllocator* allocator, ISystemClock* sysclock)
-        : allocator_(allocator)
+    CanTxQueue(IPoolAllocator& allocator, ISystemClock& sysclock, std::size_t allocator_quota)
+        : allocator_(allocator, allocator_quota)
         , sysclock_(sysclock)
         , rejected_frames_cnt_(0)
     { }
@@ -151,8 +146,10 @@ class UAVCAN_EXPORT CanIOManager : Noncopyable
     ICanDriver& driver_;
     ISystemClock& sysclock_;
 
-    CanTxQueue tx_queues_[MaxCanIfaces];
+    LazyConstructor<CanTxQueue> tx_queues_[MaxCanIfaces];
     IfaceFrameCounters counters_[MaxCanIfaces];
+
+    const uint8_t num_ifaces_;
 
     int sendToIface(uint8_t iface_index, const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags);
     int sendFromTxQueue(uint8_t iface_index);
@@ -160,20 +157,10 @@ class UAVCAN_EXPORT CanIOManager : Noncopyable
     int callSelect(CanSelectMasks& inout_masks, MonotonicTime blocking_deadline);
 
 public:
-    CanIOManager(ICanDriver& driver, IPoolAllocator& allocator, ISystemClock& sysclock)
-        : driver_(driver)
-        , sysclock_(sysclock)
-    {
-        assert(driver.getNumIfaces() <= MaxCanIfaces);
-        // We can't initialize member array with non-default constructors in C++03
-        for (int i = 0; i < MaxCanIfaces; i++)
-        {
-            tx_queues_[i].~CanTxQueue();
-            new (tx_queues_ + i) CanTxQueue(&allocator, &sysclock);
-        }
-    }
+    CanIOManager(ICanDriver& driver, IPoolAllocator& allocator, ISystemClock& sysclock,
+                 std::size_t mem_blocks_per_iface = 0);
 
-    uint8_t getNumIfaces() const;
+    uint8_t getNumIfaces() const { return num_ifaces_; }
 
     CanIfacePerfCounters getIfacePerfCounters(uint8_t iface_index) const;
 

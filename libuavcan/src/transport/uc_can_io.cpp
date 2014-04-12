@@ -106,7 +106,7 @@ void CanTxQueue::registerRejectedFrame()
 
 void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos, CanIOFlags flags)
 {
-    const MonotonicTime timestamp = sysclock_->getMonotonic();
+    const MonotonicTime timestamp = sysclock_.getMonotonic();
 
     if (timestamp >= tx_deadline)
     {
@@ -115,7 +115,7 @@ void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos,
         return;
     }
 
-    void* praw = allocator_->allocate(sizeof(Entry));
+    void* praw = allocator_.allocate(sizeof(Entry));
     if (praw == NULL)
     {
         UAVCAN_TRACE("CanTxQueue", "Push OOM #1, cleanup");
@@ -132,7 +132,7 @@ void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos,
             }
             p = next;
         }
-        praw = allocator_->allocate(sizeof(Entry));         // Try again
+        praw = allocator_.allocate(sizeof(Entry));         // Try again
     }
 
     if (praw == NULL)
@@ -164,7 +164,7 @@ void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos,
         }
         UAVCAN_TRACE("CanTxQueue", "Push: Replacing %s", lowestqos->toString().c_str());
         remove(lowestqos);
-        praw = allocator_->allocate(sizeof(Entry));        // Try again
+        praw = allocator_.allocate(sizeof(Entry));        // Try again
     }
 
     if (praw == NULL)
@@ -178,7 +178,7 @@ void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos,
 
 CanTxQueue::Entry* CanTxQueue::peek()
 {
-    const MonotonicTime timestamp = sysclock_->getMonotonic();
+    const MonotonicTime timestamp = sysclock_.getMonotonic();
     Entry* p = queue_.get();
     while (p)
     {
@@ -206,7 +206,7 @@ void CanTxQueue::remove(Entry*& entry)
         return;
     }
     queue_.remove(entry);
-    Entry::destroy(entry, *allocator_);
+    Entry::destroy(entry, allocator_);
 }
 
 bool CanTxQueue::topPriorityHigherOrEqual(const CanFrame& rhs_frame) const
@@ -247,7 +247,7 @@ int CanIOManager::sendToIface(uint8_t iface_index, const CanFrame& frame, Monoto
 int CanIOManager::sendFromTxQueue(uint8_t iface_index)
 {
     assert(iface_index < MaxCanIfaces);
-    CanTxQueue::Entry* entry = tx_queues_[iface_index].peek();
+    CanTxQueue::Entry* entry = tx_queues_[iface_index]->peek();
     if (entry == NULL)
     {
         return 0;
@@ -255,7 +255,7 @@ int CanIOManager::sendFromTxQueue(uint8_t iface_index)
     const int res = sendToIface(iface_index, entry->frame, entry->deadline, entry->flags);
     if (res > 0)
     {
-        tx_queues_[iface_index].remove(entry);
+        tx_queues_[iface_index]->remove(entry);
     }
     return res;
 }
@@ -265,7 +265,7 @@ uint8_t CanIOManager::makePendingTxMask() const
     uint8_t write_mask = 0;
     for (uint8_t i = 0; i < getNumIfaces(); i++)
     {
-        if (!tx_queues_[i].isEmpty())
+        if (!tx_queues_[i]->isEmpty())
         {
             write_mask |= 1 << i;
         }
@@ -286,11 +286,29 @@ int CanIOManager::callSelect(CanSelectMasks& inout_masks, MonotonicTime blocking
     return res;
 }
 
-uint8_t CanIOManager::getNumIfaces() const
+CanIOManager::CanIOManager(ICanDriver& driver, IPoolAllocator& allocator, ISystemClock& sysclock,
+                           std::size_t mem_blocks_per_iface)
+    : driver_(driver)
+    , sysclock_(sysclock)
+    , num_ifaces_(driver.getNumIfaces())
 {
-    const uint8_t num = driver_.getNumIfaces();
-    assert(num > 0 && num <= MaxCanIfaces);
-    return std::min(std::max(num, uint8_t(0)), uint8_t(MaxCanIfaces));
+    if (num_ifaces_ < 1 || num_ifaces_ > MaxCanIfaces)
+    {
+        handleFatalError("Wrong number of CAN ifaces");
+    }
+
+    if (mem_blocks_per_iface == 0)
+    {
+        mem_blocks_per_iface = allocator.getNumBlocks() / (num_ifaces_ + 1) + 1;
+    }
+    UAVCAN_TRACE("CanIOManager", "Memory blocks per iface: %u, total: %u",
+                 unsigned(mem_blocks_per_iface), unsigned(allocator.getNumBlocks()));
+
+    for (int i = 0; i < num_ifaces_; i++)
+    {
+        tx_queues_[i].construct<IPoolAllocator&, ISystemClock&, std::size_t>
+        (allocator, sysclock, mem_blocks_per_iface);
+    }
 }
 
 CanIfacePerfCounters CanIOManager::getIfacePerfCounters(uint8_t iface_index) const
@@ -302,7 +320,7 @@ CanIfacePerfCounters CanIOManager::getIfacePerfCounters(uint8_t iface_index) con
         return CanIfacePerfCounters();
     }
     CanIfacePerfCounters cnt;
-    cnt.errors = iface->getErrorCount() + tx_queues_[iface_index].getRejectedFrameCount();
+    cnt.errors = iface->getErrorCount() + tx_queues_[iface_index]->getRejectedFrameCount();
     cnt.frames_rx = counters_[iface_index].frames_rx;
     cnt.frames_tx = counters_[iface_index].frames_tx;
     return cnt;
@@ -347,7 +365,7 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
                 int res = 0;
                 if (iface_mask & (1 << i))
                 {
-                    if (tx_queues_[i].topPriorityHigherOrEqual(frame))
+                    if (tx_queues_[i]->topPriorityHigherOrEqual(frame))
                     {
                         res = sendFromTxQueue(i);                 // May return 0 if nothing to transmit (e.g. expired)
                     }
@@ -384,7 +402,7 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
             {
                 if (iface_mask & (1 << i))
                 {
-                    tx_queues_[i].push(frame, tx_deadline, qos, flags);
+                    tx_queues_[i]->push(frame, tx_deadline, qos, flags);
                 }
             }
             break;
