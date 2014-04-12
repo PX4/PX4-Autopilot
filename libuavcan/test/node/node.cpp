@@ -59,7 +59,9 @@ TEST(Node, Basic)
      * Init the second node - network is empty
      */
     uavcan::NetworkCompatibilityCheckResult result;
-    ASSERT_LE(0, node2.start(result));
+    ASSERT_LE(0, node2.start());
+    ASSERT_LE(0, node2.checkNetworkCompatibility(result));
+    ASSERT_TRUE(result.isOk());
 
     ASSERT_FALSE(node_status_monitor.findNodeWithWorstStatus().isValid());
 
@@ -68,7 +70,9 @@ TEST(Node, Basic)
      */
     ASSERT_FALSE(node1.isStarted());
     ASSERT_EQ(-uavcan::ErrNotInited, node1.spin(uavcan::MonotonicDuration::fromMSec(20)));
-    ASSERT_LE(0, node1.start(result));
+    ASSERT_LE(0, node1.start());
+    ASSERT_LE(0, node1.checkNetworkCompatibility(result));
+    ASSERT_TRUE(result.isOk());
     ASSERT_TRUE(node1.isStarted());
 
     ASSERT_EQ(1, node_status_monitor.findNodeWithWorstStatus().get());

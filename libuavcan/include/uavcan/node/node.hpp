@@ -51,8 +51,6 @@ class UAVCAN_EXPORT Node : public INode
 
     bool started_;
 
-    int initNetwork(NetworkCompatibilityCheckResult& node_init_result);
-
 protected:
     virtual void registerInternalFailure(const char* msg)
     {
@@ -99,7 +97,9 @@ public:
 
     bool isStarted() const { return started_; }
 
-    int start(NetworkCompatibilityCheckResult& node_init_result);
+    int start();
+
+    int checkNetworkCompatibility(NetworkCompatibilityCheckResult& result);
 
     /*
      * Initialization methods
@@ -173,25 +173,7 @@ public:
 
 template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries,
           unsigned OutgoingTransferMaxPayloadLen>
-int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMaxPayloadLen>::
-initNetwork(NetworkCompatibilityCheckResult& node_init_result)
-{
-    int res = NetworkCompatibilityChecker::publishGlobalDiscoveryRequest(*this);
-    if (res < 0)
-    {
-        return res;
-    }
-    NetworkCompatibilityChecker initializer(*this);
-    StaticAssert<(sizeof(initializer) < 1200)>::check();
-    res = initializer.execute();
-    node_init_result = initializer.getResult();
-    return res;
-}
-
-template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries,
-          unsigned OutgoingTransferMaxPayloadLen>
-int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMaxPayloadLen>::
-start(NetworkCompatibilityCheckResult& node_init_result)
+int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMaxPayloadLen>::start()
 {
     if (started_)
     {
@@ -225,11 +207,33 @@ start(NetworkCompatibilityCheckResult& node_init_result)
     {
         goto fail;
     }
-    res = initNetwork(node_init_result);
-    started_ = (res >= 0) && node_init_result.isOk();
+    started_ = res >= 0;
     return res;
 fail:
     assert(res < 0);
+    return res;
+}
+
+template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries,
+          unsigned OutgoingTransferMaxPayloadLen>
+int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMaxPayloadLen>::
+checkNetworkCompatibility(NetworkCompatibilityCheckResult& result)
+{
+    if (!started_)
+    {
+        return -ErrNotInited;
+    }
+
+    int res = NetworkCompatibilityChecker::publishGlobalDiscoveryRequest(*this);
+    if (res < 0)
+    {
+        return res;
+    }
+
+    NetworkCompatibilityChecker checker(*this);
+    StaticAssert<(sizeof(checker) < 2048)>::check();
+    res = checker.execute();
+    result = checker.getResult();
     return res;
 }
 

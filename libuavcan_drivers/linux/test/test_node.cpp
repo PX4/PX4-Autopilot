@@ -21,17 +21,23 @@ static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, ua
     node->getLogger().setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
 
     /*
-     * Starting the node. This may take a few seconds.
+     * Starting the node.
      */
     std::cout << "Starting the node..." << std::endl;
-    uavcan::NetworkCompatibilityCheckResult init_result;
-    const int start_res = node->start(init_result);
+    const int start_res = node->start();
     std::cout << "Start returned: " << start_res << std::endl;
     ENFORCE(0 == start_res);
+
+    /*
+     * Checking if our node conflicts with other nodes. This may take a few seconds.
+     */
+    uavcan::NetworkCompatibilityCheckResult init_result;
+    ENFORCE(0 == node->checkNetworkCompatibility(init_result));
     if (!init_result.isOk())
     {
         throw std::runtime_error("Network conflict with node " + std::to_string(init_result.conflicting_node.get()));
     }
+
     std::cout << "Node started successfully" << std::endl;
 
     /*

@@ -17,9 +17,10 @@ static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, ua
     node->setNodeID(nid);
     node->setName(name.c_str());
 
+    ENFORCE(0 == node->start());
+
     uavcan::NetworkCompatibilityCheckResult init_result;
-    const int start_res = node->start(init_result);
-    ENFORCE(0 == start_res);
+    ENFORCE(0 == node->checkNetworkCompatibility(init_result));
     if (!init_result.isOk())
     {
         throw std::runtime_error("Network conflict with node " + std::to_string(init_result.conflicting_node.get()));

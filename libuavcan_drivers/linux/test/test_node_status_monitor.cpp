@@ -108,15 +108,7 @@ static uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, ua
     auto node = uavcan_linux::makeNode(ifaces);
     node->setNodeID(nid);
     node->setName(name.c_str());
-
-    uavcan::NetworkCompatibilityCheckResult init_result;
-    const int start_res = node->start(init_result);
-    ENFORCE(0 == start_res);
-    if (!init_result.isOk())
-    {
-        throw std::runtime_error("Network conflict with node " + std::to_string(init_result.conflicting_node.get()));
-    }
-
+    ENFORCE(0 == node->start());  // This node doesn't check its network compatibility
     node->setStatusOk();
     return node;
 }

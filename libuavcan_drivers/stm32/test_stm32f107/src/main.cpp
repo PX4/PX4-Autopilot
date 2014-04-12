@@ -81,16 +81,23 @@ public:
          */
         while (true)
         {
-            uavcan::NodeInitializationResult init_result;
-            const int uavcan_start_res = node.start(init_result);
+            // Calling start() multiple times is OK - only the first successfull call will be effective
+            int res = node.start();
 
-            if (uavcan_start_res < 0)
+            uavcan::NetworkCompatibilityCheckResult ncc_result;
+            if (res >= 0)
             {
-                lowsyslog("Node initialization failure: %i, will try agin soon\n", uavcan_start_res);
+                lowsyslog("Checking network compatibility...\n");
+                res = node.checkNetworkCompatibility(ncc_result);
             }
-            else if (!init_result.isOk())
+
+            if (res < 0)
             {
-                lowsyslog("Network conflict with %u, will try again soon\n", init_result.conflicting_node.get());
+                lowsyslog("Node initialization failure: %i, will try agin soon\n", res);
+            }
+            else if (!ncc_result.isOk())
+            {
+                lowsyslog("Network conflict with %u, will try again soon\n", ncc_result.conflicting_node.get());
             }
             else
             {
