@@ -10,6 +10,22 @@
 namespace uavcan
 {
 
+#if UAVCAN_TINY
+
+class UAVCAN_EXPORT TransferPerfCounter
+{
+public:
+    void addTxTransfer() { }
+    void addRxTransfer() { }
+    void addError() { }
+    void addErrors(unsigned) { }
+    uint64_t getTxTransferCount() const { return 0; }
+    uint64_t getRxTransferCount() const { return 0; }
+    uint64_t getErrorCount() const { return 0; }
+};
+
+#else
+
 class UAVCAN_EXPORT TransferPerfCounter
 {
     uint64_t transfers_tx_;
@@ -37,5 +53,7 @@ public:
     uint64_t getRxTransferCount() const { return transfers_rx_; }
     uint64_t getErrorCount() const { return errors_; }
 };
+
+#endif
 
 }

@@ -61,6 +61,15 @@
 #endif
 
 /**
+ * Functionality / Code Size trade-off.
+ * Use code search for UAVCAN_TINY to find what functionality will be disabled.
+ * This is particularly useful for embedded systems with less than 64kB of ROM.
+ */
+#ifndef UAVCAN_TINY
+# define UAVCAN_TINY 0
+#endif
+
+/**
  * It might make sense to remove toString() methods for an embedded system
  */
 #ifndef UAVCAN_TOSTRING

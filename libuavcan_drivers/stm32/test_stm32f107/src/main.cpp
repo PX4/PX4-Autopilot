@@ -84,21 +84,25 @@ public:
             // Calling start() multiple times is OK - only the first successfull call will be effective
             int res = node.start();
 
+#if !UAVCAN_TINY
             uavcan::NetworkCompatibilityCheckResult ncc_result;
             if (res >= 0)
             {
                 lowsyslog("Checking network compatibility...\n");
                 res = node.checkNetworkCompatibility(ncc_result);
             }
+#endif
 
             if (res < 0)
             {
                 lowsyslog("Node initialization failure: %i, will try agin soon\n", res);
             }
+#if !UAVCAN_TINY
             else if (!ncc_result.isOk())
             {
                 lowsyslog("Network conflict with %u, will try again soon\n", ncc_result.conflicting_node.get());
             }
+#endif
             else
             {
                 break;
@@ -123,7 +127,6 @@ public:
          */
         lowsyslog("UAVCAN node started\n");
         node.setStatusOk();
-        node.getLogger().setLevel(uavcan::protocol::debug::LogLevel::INFO);
         while (true)
         {
             const int spin_res = node.spin(uavcan::MonotonicDuration::fromMSec(5000));
@@ -141,10 +144,13 @@ public:
                       static_cast<unsigned long>(can.driver.getIface(0)->getErrorCount()),
                       static_cast<unsigned long>(can.driver.getIface(1)->getErrorCount()));
 
+#if !UAVCAN_TINY
+            node.getLogger().setLevel(uavcan::protocol::debug::LogLevel::INFO);
             node.logInfo("app", "UTC %* sec, %* corr, %* jumps",
                          uavcan_stm32::clock::getUtc().toMSec() / 1000,
                          uavcan_stm32::clock::getUtcSpeedCorrectionPPM(),
                          uavcan_stm32::clock::getUtcAjdustmentJumpCount());
+#endif
         }
         return msg_t();
     }

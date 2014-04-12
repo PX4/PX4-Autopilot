@@ -13,11 +13,14 @@
 
 // High-level functionality available by default
 #include <uavcan/protocol/data_type_info_provider.hpp>
-#include <uavcan/protocol/logger.hpp>
 #include <uavcan/protocol/node_status_provider.hpp>
-#include <uavcan/protocol/restart_request_server.hpp>
-#include <uavcan/protocol/transport_stats_provider.hpp>
-#include <uavcan/protocol/network_compat_checker.hpp>
+
+#if !UAVCAN_TINY
+# include <uavcan/protocol/logger.hpp>
+# include <uavcan/protocol/restart_request_server.hpp>
+# include <uavcan/protocol/transport_stats_provider.hpp>
+# include <uavcan/protocol/network_compat_checker.hpp>
+#endif
 
 #if !defined(UAVCAN_CPP_VERSION) || !defined(UAVCAN_CPP11)
 # error UAVCAN_CPP_VERSION
@@ -44,10 +47,12 @@ class UAVCAN_EXPORT Node : public INode
     Scheduler scheduler_;
 
     DataTypeInfoProvider proto_dtp_;
-    Logger proto_logger_;
     NodeStatusProvider proto_nsp_;
+#if !UAVCAN_TINY
+    Logger proto_logger_;
     RestartRequestServer proto_rrs_;
     TransportStatsProvider proto_tsp_;
+#endif
 
     bool started_;
 
@@ -55,7 +60,11 @@ protected:
     virtual void registerInternalFailure(const char* msg)
     {
         UAVCAN_TRACE("Node", "Internal failure: %s", msg);
+#if UAVCAN_TINY
+        (void)msg;
+#else
         (void)getLogger().log(protocol::debug::LogLevel::ERROR, "UAVCAN", msg);
+#endif
     }
 
     virtual IMarshalBufferProvider& getMarshalBufferProvider() { return marsh_buf_; }
@@ -65,10 +74,12 @@ public:
         : outgoing_trans_reg_(pool_allocator_)
         , scheduler_(can_driver, pool_allocator_, system_clock, outgoing_trans_reg_)
         , proto_dtp_(*this)
-        , proto_logger_(*this)
         , proto_nsp_(*this)
+#if !UAVCAN_TINY
+        , proto_logger_(*this)
         , proto_rrs_(*this)
         , proto_tsp_(*this)
+#endif
         , started_(false)
     { }
 
@@ -99,7 +110,9 @@ public:
 
     int start();
 
+#if !UAVCAN_TINY
     int checkNetworkCompatibility(NetworkCompatibilityCheckResult& result);
+#endif
 
     /*
      * Initialization methods
@@ -121,6 +134,7 @@ public:
 
     NodeStatusProvider& getNodeStatusProvider() { return proto_nsp_; }
 
+#if !UAVCAN_TINY
     /*
      * Restart handler
      */
@@ -167,6 +181,8 @@ public:
 #endif
 
     Logger& getLogger() { return proto_logger_; }
+
+#endif  // UAVCAN_TINY
 };
 
 // ----------------------------------------------------------------------------
@@ -187,12 +203,13 @@ int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMa
     {
         goto fail;
     }
-    res = proto_logger_.init();
+    res = proto_nsp_.startAndPublish();
     if (res < 0)
     {
         goto fail;
     }
-    res = proto_nsp_.startAndPublish();
+#if !UAVCAN_TINY
+    res = proto_logger_.init();
     if (res < 0)
     {
         goto fail;
@@ -207,12 +224,15 @@ int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMa
     {
         goto fail;
     }
+#endif
     started_ = res >= 0;
     return res;
 fail:
     assert(res < 0);
     return res;
 }
+
+#if !UAVCAN_TINY
 
 template <std::size_t MemPoolSize_, unsigned OutgoingTransferRegistryStaticEntries,
           unsigned OutgoingTransferMaxPayloadLen>
@@ -236,5 +256,7 @@ checkNetworkCompatibility(NetworkCompatibilityCheckResult& result)
     result = checker.getResult();
     return res;
 }
+
+#endif
 
 }
