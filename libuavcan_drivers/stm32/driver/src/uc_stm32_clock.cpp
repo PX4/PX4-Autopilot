@@ -158,16 +158,24 @@ void adjustUtc(uavcan::UtcDuration adjustment)
      */
     if (adjustment.isPositive())
     {
-        if (utc_correction_usec_per_overflow_x16 < MaxUtcSpeedCorrectionX16)
+        if (utc_correction_usec_per_overflow_x16 < 0)
         {
-            utc_correction_usec_per_overflow_x16++;
+            utc_correction_usec_per_overflow_x16 += 4;
+        }
+        else if (utc_correction_usec_per_overflow_x16 < MaxUtcSpeedCorrectionX16)
+        {
+            utc_correction_usec_per_overflow_x16 += 1;
         }
     }
     else
     {
-        if (utc_correction_usec_per_overflow_x16 > -MaxUtcSpeedCorrectionX16)
+        if (utc_correction_usec_per_overflow_x16 > 0)
         {
-            utc_correction_usec_per_overflow_x16--;
+            utc_correction_usec_per_overflow_x16 -= 4;
+        }
+        else if (utc_correction_usec_per_overflow_x16 > -MaxUtcSpeedCorrectionX16)
+        {
+            utc_correction_usec_per_overflow_x16 -= 1;
         }
     }
 
