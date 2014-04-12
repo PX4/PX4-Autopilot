@@ -810,25 +810,27 @@ MulticopterPositionControl::task_main()
 		_vel(1) = _local_pos.vy;
 		_vel(2) = _local_pos.vz;
 
-		/* project target position to local frame */
-		map_projection_project(&_ref_pos, _target_pos.lat, _target_pos.lon, &_tpos.data[0], &_tpos.data[1]);
-		_tpos(2) = -(_target_pos.alt + _target_alt_offs - _ref_alt);
+		/* project target position to local frame if valid */
+		if (_control_mode.flag_point_to_target || _control_mode.flag_follow_target) {
+			map_projection_project(&_ref_pos, _target_pos.lat, _target_pos.lon, &_tpos.data[0], &_tpos.data[1]);
+			_tpos(2) = -(_target_pos.alt + _target_alt_offs - _ref_alt);
 
-		_tvel(0) = _target_pos.vel_n;
-		_tvel(1) = _target_pos.vel_e;
-		_tvel(2) = _target_pos.vel_d;
+			_tvel(0) = _target_pos.vel_n;
+			_tvel(1) = _target_pos.vel_e;
+			_tvel(2) = _target_pos.vel_d;
 
-		/* calculate delay between position estimates for vehicle and target */
-		float target_dt = math::constrain(((int64_t)_local_pos.time_gps_usec - (int64_t)_target_pos.time_gps_usec) / 1000000.0f, 0.0f, 1.0f);
+			/* calculate delay between position estimates for vehicle and target */
+			float target_dt = math::constrain(((int64_t)_local_pos.time_gps_usec - (int64_t)_target_pos.time_gps_usec) / 1000000.0f, 0.0f, 1.0f);
 
-		/* target position prediction */
-		_tpos += _tvel * target_dt;
+			/* target position prediction */
+			_tpos += _tvel * target_dt;
+		}
 
 		_vel_ff.zero();
 		_sp_move_rate.zero();
 		_att_rates_ff.zero();
 
-		/* control camera (pass through) even if position controller disabled */
+		/* control camera even if position controller disabled (pass through) */
 		control_camera();
 
 		if (_control_mode.flag_control_altitude_enabled ||
