@@ -151,9 +151,6 @@ private:
 		param_t tilt_max;
 		param_t land_speed;
 		param_t land_tilt_max;
-
-		param_t rc_scale_pitch;
-		param_t rc_scale_roll;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -162,9 +159,6 @@ private:
 		float tilt_max;
 		float land_speed;
 		float land_tilt_max;
-
-		float rc_scale_pitch;
-		float rc_scale_roll;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -317,8 +311,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.tilt_max	= param_find("MPC_TILT_MAX");
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
 	_params_handles.land_tilt_max	= param_find("MPC_LAND_TILT");
-	_params_handles.rc_scale_pitch	= param_find("RC_SCALE_PITCH");
-	_params_handles.rc_scale_roll	= param_find("RC_SCALE_ROLL");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -366,8 +358,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.tilt_max, &_params.tilt_max);
 		param_get(_params_handles.land_speed, &_params.land_speed);
 		param_get(_params_handles.land_tilt_max, &_params.land_tilt_max);
-		param_get(_params_handles.rc_scale_pitch, &_params.rc_scale_pitch);
-		param_get(_params_handles.rc_scale_roll, &_params.rc_scale_roll);
 
 		float v;
 		param_get(_params_handles.xy_p, &v);
@@ -633,8 +623,8 @@ MulticopterPositionControl::task_main()
 					reset_pos_sp();
 
 					/* move position setpoint with roll/pitch stick */
-					sp_move_rate(0) = scale_control(-_manual.pitch / _params.rc_scale_pitch, 1.0f, pos_ctl_dz);
-					sp_move_rate(1) = scale_control(_manual.roll / _params.rc_scale_roll, 1.0f, pos_ctl_dz);
+					sp_move_rate(0) = _manual.pitch;
+					sp_move_rate(1) = _manual.roll;
 				}
 
 				/* limit setpoint move rate */

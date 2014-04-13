@@ -173,6 +173,8 @@ private:
 		float pitchsp_offset_deg;			/**< Pitch Setpoint Offset in deg */
 		float rollsp_offset_rad;			/**< Roll Setpoint Offset in rad */
 		float pitchsp_offset_rad;			/**< Pitch Setpoint Offset in rad */
+		float man_roll_max;						/**< Max Roll in rad */
+		float man_pitch_max;					/**< Max Pitch in rad */
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -211,6 +213,8 @@ private:
 		param_t trim_yaw;
 		param_t rollsp_offset_deg;
 		param_t pitchsp_offset_deg;
+		param_t man_roll_max;
+		param_t man_pitch_max;
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -354,6 +358,9 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.rollsp_offset_deg = param_find("FW_RSP_OFF");
 	_parameter_handles.pitchsp_offset_deg = param_find("FW_PSP_OFF");
 
+	_parameter_handles.man_roll_max = param_find("FW_MAN_R_MAX");
+	_parameter_handles.man_pitch_max = param_find("FW_MAN_P_MAX");
+
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -421,6 +428,10 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.pitchsp_offset_deg, &(_parameters.pitchsp_offset_deg));
 	_parameters.rollsp_offset_rad = math::radians(_parameters.rollsp_offset_deg);
 	_parameters.pitchsp_offset_rad = math::radians(_parameters.pitchsp_offset_deg);
+	param_get(_parameter_handles.man_roll_max, &(_parameters.man_roll_max));
+	param_get(_parameter_handles.man_pitch_max, &(_parameters.man_pitch_max));
+	_parameters.man_roll_max = math::radians(_parameters.man_roll_max);
+	_parameters.man_pitch_max = math::radians(_parameters.man_pitch_max);
 
 
 	/* pitch control parameters */
@@ -660,18 +671,24 @@ FixedwingAttitudeControl::task_main()
 
 				float airspeed;
 
-				/* if airspeed is smaller than min, the sensor is not giving good readings */
-				if ((_airspeed.indicated_airspeed_m_s < 0.5f * _parameters.airspeed_min) ||
-				    !isfinite(_airspeed.indicated_airspeed_m_s) ||
+				/* if airspeed is not updating, we assume the normal average speed */
+				if (!isfinite(_airspeed.true_airspeed_m_s) ||
 				    hrt_elapsed_time(&_airspeed.timestamp) > 1e6) {
 					airspeed = _parameters.airspeed_trim;
 
 				} else {
-					airspeed = _airspeed.indicated_airspeed_m_s;
+					airspeed = _airspeed.true_airspeed_m_s;
 				}
 
-				float airspeed_scaling = _parameters.airspeed_trim / airspeed;
-				//warnx("aspd scale: %6.2f act scale: %6.2f", airspeed_scaling, actuator_scaling);
+				/*
+				 * For scaling our actuators using anything less than the min (close to stall)
+				 * speed doesn't make any sense - its the strongest reasonable deflection we
+				 * want to do in flight and its the baseline a human pilot would choose.
+				 *
+				 * Forcing the scaling to this value allows reasonable handheld tests.
+				 */
+
+				float airspeed_scaling = _parameters.airspeed_trim / ((airspeed < _parameters.airspeed_min) ? _parameters.airspeed_min : airspeed);
 
 				float roll_sp = _parameters.rollsp_offset_rad;
 				float pitch_sp = _parameters.pitchsp_offset_rad;
@@ -700,8 +717,8 @@ FixedwingAttitudeControl::task_main()
 					 * the intended attitude setpoint. Later, after the rate control step the
 					 * trim is added again to the control signal.
 					 */
-					roll_sp = (_manual.roll - _parameters.trim_roll) * 0.75f + _parameters.rollsp_offset_rad;
-					pitch_sp = (_manual.pitch - _parameters.trim_pitch) * 0.75f + _parameters.pitchsp_offset_rad;
+					roll_sp = (_manual.roll * _parameters.man_roll_max - _parameters.trim_roll) + _parameters.rollsp_offset_rad;
+					pitch_sp = (-_manual.pitch * _parameters.man_pitch_max - _parameters.trim_pitch) + _parameters.pitchsp_offset_rad;
 					throttle_sp = _manual.throttle;
 					_actuators.control[4] = _manual.flaps;
 
@@ -809,7 +826,7 @@ FixedwingAttitudeControl::task_main()
 			} else {
 				/* manual/direct control */
 				_actuators.control[0] = _manual.roll;
-				_actuators.control[1] = _manual.pitch;
+				_actuators.control[1] = -_manual.pitch;
 				_actuators.control[2] = _manual.yaw;
 				_actuators.control[3] = _manual.throttle;
 				_actuators.control[4] = _manual.flaps;

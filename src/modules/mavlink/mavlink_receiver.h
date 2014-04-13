@@ -120,7 +120,6 @@ private:
 
 	mavlink_status_t status;
 	struct vehicle_local_position_s hil_local_pos;
-	int _manual_sub;
 	orb_advert_t _global_pos_pub;
 	orb_advert_t _local_pos_pub;
 	orb_advert_t _attitude_pub;

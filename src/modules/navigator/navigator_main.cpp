@@ -690,84 +690,46 @@ Navigator::task_main()
 		if (fds[6].revents & POLLIN) {
 			vehicle_status_update();
 
-			/* evaluate state machine from commander and set the navigator mode accordingly */
+			/* evaluate state requested by commander */
 			if (_control_mode.flag_armed && _control_mode.flag_control_auto_enabled) {
-				bool stick_mode = false;
+				if (_vstatus.set_nav_state_timestamp != _set_nav_state_timestamp) {
+					/* commander requested new navigation mode, try to set it */
+					switch (_vstatus.set_nav_state) {
+					case NAV_STATE_NONE:
+						/* nothing to do */
+						break;
 
-				if (!_vstatus.rc_signal_lost) {
-					/* RC signal available, use control switches to set mode */
-					/* RETURN switch, overrides MISSION switch */
-					if (_vstatus.return_switch == RETURN_SWITCH_RETURN) {
-						/* switch to RTL if not already landed after RTL and home position set */
+					case NAV_STATE_LOITER:
+						request_loiter_or_ready();
+						break;
+
+					case NAV_STATE_MISSION:
+						request_mission_if_available();
+						break;
+
+					case NAV_STATE_RTL:
 						if (!(_rtl_state == RTL_STATE_DESCEND &&
-						      (myState == NAV_STATE_LAND || myState == NAV_STATE_LOITER)) &&
-						    _vstatus.condition_home_position_valid) {
+							  (myState == NAV_STATE_LAND || myState == NAV_STATE_LOITER)) &&
+							_vstatus.condition_home_position_valid) {
 							dispatch(EVENT_RTL_REQUESTED);
 						}
 
-						stick_mode = true;
+						break;
 
-					} else {
-						/* MISSION switch */
-						if (_vstatus.mission_switch == MISSION_SWITCH_LOITER) {
-							request_loiter_or_ready();
-							stick_mode = true;
+					case NAV_STATE_LAND:
+						dispatch(EVENT_LAND_REQUESTED);
 
-						} else if (_vstatus.mission_switch == MISSION_SWITCH_MISSION) {
-							request_mission_if_available();
-							stick_mode = true;
-						}
+						break;
 
-						if (!stick_mode && _vstatus.return_switch == RETURN_SWITCH_NORMAL && myState == NAV_STATE_RTL) {
-							/* RETURN switch is in normal mode, no MISSION switch mapped, interrupt if in RTL state */
-							request_mission_if_available();
-							stick_mode = true;
-						}
+					default:
+						warnx("ERROR: Requested navigation state not supported");
+						break;
 					}
-				}
 
-				if (!stick_mode) {
-					if (_vstatus.set_nav_state_timestamp != _set_nav_state_timestamp) {
-						/* commander requested new navigation mode, try to set it */
-						_set_nav_state_timestamp = _vstatus.set_nav_state_timestamp;
-
-						switch (_vstatus.set_nav_state) {
-						case NAV_STATE_NONE:
-							/* nothing to do */
-							break;
-
-						case NAV_STATE_LOITER:
-							request_loiter_or_ready();
-							break;
-
-						case NAV_STATE_MISSION:
-							request_mission_if_available();
-							break;
-
-						case NAV_STATE_RTL:
-							if (!(_rtl_state == RTL_STATE_DESCEND &&
-							      (myState == NAV_STATE_LAND || myState == NAV_STATE_LOITER)) &&
-							    _vstatus.condition_home_position_valid) {
-								dispatch(EVENT_RTL_REQUESTED);
-							}
-
-							break;
-
-						case NAV_STATE_LAND:
-							dispatch(EVENT_LAND_REQUESTED);
-
-							break;
-
-						default:
-							warnx("ERROR: Requested navigation state not supported");
-							break;
-						}
-
-					} else {
-						/* on first switch to AUTO try mission by default, if none is available fallback to loiter */
-						if (myState == NAV_STATE_NONE) {
-							request_mission_if_available();
-						}
+				} else {
+					/* on first switch to AUTO try mission by default, if none is available fallback to loiter */
+					if (myState == NAV_STATE_NONE) {
+						request_mission_if_available();
 					}
 				}
 
@@ -775,6 +737,8 @@ Navigator::task_main()
 				/* navigator shouldn't act */
 				dispatch(EVENT_NONE_REQUESTED);
 			}
+
+			_set_nav_state_timestamp = _vstatus.set_nav_state_timestamp;
 		}
 
 		/* parameters updated */
@@ -1539,7 +1503,7 @@ Navigator::check_mission_item_reached()
 			/* check yaw if defined only for rotary wing except takeoff */
 			float yaw_err = _wrap_pi(_mission_item.yaw - _global_pos.yaw);
 
-			if (fabsf(yaw_err) < 0.05f) { /* XXX get rid of magic number */
+			if (fabsf(yaw_err) < 0.2f) { /* XXX get rid of magic number */
 				_waypoint_yaw_reached = true;
 			}
 

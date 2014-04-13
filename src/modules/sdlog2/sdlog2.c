@@ -84,6 +84,8 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/system_power.h>
+#include <uORB/topics/servorail_status.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -796,6 +798,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct telemetry_status_s telemetry;
 		struct range_finder_report range_finder;
 		struct estimator_status_report estimator_status;
+		struct system_power_s system_power;
+		struct servorail_status_s servorail_status;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -828,6 +832,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_DIST_s log_DIST;
 			struct log_TELE_s log_TELE;
 			struct log_ESTM_s log_ESTM;
+			struct log_PWR_s log_PWR;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -859,6 +864,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int telemetry_sub;
 		int range_finder_sub;
 		int estimator_status_sub;
+		int system_power_sub;
+		int servorail_status_sub;
 	} subs;
 
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -884,6 +891,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.telemetry_sub = orb_subscribe(ORB_ID(telemetry_status));
 	subs.range_finder_sub = orb_subscribe(ORB_ID(sensor_range_finder));
 	subs.estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
+	subs.system_power_sub = orb_subscribe(ORB_ID(system_power));
+	subs.servorail_status_sub = orb_subscribe(ORB_ID(servorail_status));
 
 	thread_running = true;
 
@@ -1176,6 +1185,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* Copy only the first 8 channels of 14 */
 			memcpy(log_msg.body.log_RC.channel, buf.rc.chan, sizeof(log_msg.body.log_RC.channel));
 			log_msg.body.log_RC.channel_count = buf.rc.chan_count;
+			log_msg.body.log_RC.signal_lost = buf.rc.signal_lost;
 			LOGBUFFER_WRITE_AND_COUNT(RC);
 		}
 
@@ -1184,6 +1194,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.msg_type = LOG_AIRS_MSG;
 			log_msg.body.log_AIRS.indicated_airspeed = buf.airspeed.indicated_airspeed_m_s;
 			log_msg.body.log_AIRS.true_airspeed = buf.airspeed.true_airspeed_m_s;
+			log_msg.body.log_AIRS.air_temperature_celsius = buf.airspeed.air_temperature_celsius;
 			LOGBUFFER_WRITE_AND_COUNT(AIRS);
 		}
 
@@ -1224,6 +1235,24 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_BATT.current = buf.battery.current_a;
 			log_msg.body.log_BATT.discharged = buf.battery.discharged_mah;
 			LOGBUFFER_WRITE_AND_COUNT(BATT);
+		}
+
+		/* --- SYSTEM POWER RAILS --- */
+		if (copy_if_updated(ORB_ID(system_power), subs.system_power_sub, &buf.system_power)) {
+			log_msg.msg_type = LOG_PWR_MSG;
+			log_msg.body.log_PWR.peripherals_5v = buf.system_power.voltage5V_v;
+			log_msg.body.log_PWR.usb_ok = buf.system_power.usb_connected;
+			log_msg.body.log_PWR.brick_ok = buf.system_power.brick_valid;
+			log_msg.body.log_PWR.servo_ok = buf.system_power.servo_valid;
+			log_msg.body.log_PWR.low_power_rail_overcurrent = buf.system_power.periph_5V_OC;
+			log_msg.body.log_PWR.high_power_rail_overcurrent = buf.system_power.hipower_5V_OC;
+
+			/* copy servo rail status topic here too */
+			orb_copy(ORB_ID(servorail_status), subs.servorail_status_sub, &buf.servorail_status);
+			log_msg.body.log_PWR.servo_rail_5v = buf.servorail_status.voltage_v;
+			log_msg.body.log_PWR.servo_rssi = buf.servorail_status.rssi_v;
+
+			LOGBUFFER_WRITE_AND_COUNT(PWR);
 		}
 
 		/* --- TELEMETRY --- */
