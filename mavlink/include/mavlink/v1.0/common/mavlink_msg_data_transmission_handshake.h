@@ -212,6 +212,50 @@ static inline void mavlink_msg_data_transmission_handshake_send(mavlink_channel_
 #endif
 }
 
+#if MAVLINK_MSG_ID_DATA_TRANSMISSION_HANDSHAKE_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_data_transmission_handshake_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint8_t type, uint32_t size, uint16_t width, uint16_t height, uint16_t packets, uint8_t payload, uint8_t jpg_quality)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+	_mav_put_uint32_t(buf, 0, size);
+	_mav_put_uint16_t(buf, 4, width);
+	_mav_put_uint16_t(buf, 6, height);
+	_mav_put_uint16_t(buf, 8, packets);
+	_mav_put_uint8_t(buf, 10, type);
+	_mav_put_uint8_t(buf, 11, payload);
+	_mav_put_uint8_t(buf, 12, jpg_quality);
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_DATA_TRANSMISSION_HANDSHAKE, buf, MAVLINK_MSG_ID_DATA_TRANSMISSION_HANDSHAKE_LEN, MAVLINK_MSG_ID_DATA_TRANSMISSION_HANDSHAKE_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_DATA_TRANSMISSION_HANDSHAKE, buf, MAVLINK_MSG_ID_DATA_TRANSMISSION_HANDSHAKE_LEN);
+#endif
+#else
+	mavlink_data_transmission_handshake_t *packet = (mavlink_data_transmission_handshake_t *)msgbuf;
+	packet->size = size;
+	packet->width = width;
+	packet->height = height;
+	packet->packets = packets;
+	packet->type = type;
+	packet->payload = payload;
+	packet->jpg_quality = jpg_quality;
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_DATA_TRANSMISSION_HANDSHAKE, (const char *)packet, MAVLINK_MSG_ID_DATA_TRANSMISSION_HANDSHAKE_LEN, MAVLINK_MSG_ID_DATA_TRANSMISSION_HANDSHAKE_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_DATA_TRANSMISSION_HANDSHAKE, (const char *)packet, MAVLINK_MSG_ID_DATA_TRANSMISSION_HANDSHAKE_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE DATA_TRANSMISSION_HANDSHAKE UNPACKING

@@ -179,6 +179,44 @@ static inline void mavlink_msg_serial_udb_extra_f13_send(mavlink_channel_t chan,
 #endif
 }
 
+#if MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F13_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_serial_udb_extra_f13_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  int16_t sue_week_no, int32_t sue_lat_origin, int32_t sue_lon_origin, int32_t sue_alt_origin)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+	_mav_put_int32_t(buf, 0, sue_lat_origin);
+	_mav_put_int32_t(buf, 4, sue_lon_origin);
+	_mav_put_int32_t(buf, 8, sue_alt_origin);
+	_mav_put_int16_t(buf, 12, sue_week_no);
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F13, buf, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F13_LEN, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F13_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F13, buf, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F13_LEN);
+#endif
+#else
+	mavlink_serial_udb_extra_f13_t *packet = (mavlink_serial_udb_extra_f13_t *)msgbuf;
+	packet->sue_lat_origin = sue_lat_origin;
+	packet->sue_lon_origin = sue_lon_origin;
+	packet->sue_alt_origin = sue_alt_origin;
+	packet->sue_week_no = sue_week_no;
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F13, (const char *)packet, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F13_LEN, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F13_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F13, (const char *)packet, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F13_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE SERIAL_UDB_EXTRA_F13 UNPACKING
