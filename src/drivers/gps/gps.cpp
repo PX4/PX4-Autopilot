@@ -63,6 +63,8 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
 
+#include <board_config.h>
+
 #include "ubx.h"
 #include "mtk.h"
 
@@ -421,7 +423,14 @@ GPS::task_main()
 void
 GPS::cmd_reset()
 {
-	//XXX add reset?
+#ifdef GPIO_GPS_NRESET
+	warnx("Toggling GPS reset pin");
+	stm32_configgpio(GPIO_GPS_NRESET);
+	stm32_gpiowrite(GPIO_GPS_NRESET, 0);
+	usleep(100);
+	stm32_gpiowrite(GPIO_GPS_NRESET, 1);
+	warnx("Toggled GPS reset pin");
+#endif
 }
 
 void

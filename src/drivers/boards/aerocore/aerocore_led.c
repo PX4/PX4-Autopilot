@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,44 +32,90 @@
  ****************************************************************************/
 
 /**
- * @file drv_gps.h
+ * @file aerocore_led.c
  *
- * GPS driver interface.
+ * AeroCore LED backend.
  */
 
-#ifndef _DRV_GPS_H
-#define _DRV_GPS_H
+#include <nuttx/config.h>
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+#include <stdbool.h>
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
+#include "stm32.h"
+#include "board_config.h"
 
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define GPS_DEFAULT_UART_PORT "/dev/ttyS0"
-#else
-#define GPS_DEFAULT_UART_PORT "/dev/ttyS3"
-#endif
-
-#define GPS_DEVICE_PATH	"/dev/gps"
-
-typedef enum {
-	GPS_DRIVER_MODE_NONE = 0,
-	GPS_DRIVER_MODE_UBX,
-	GPS_DRIVER_MODE_MTK
-} gps_driver_mode_t;
-
+#include <arch/board/board.h>
 
 /*
- * ObjDev tag for GPS data.
+ * Ideally we'd be able to get these from up_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
  */
-ORB_DECLARE(gps);
+__BEGIN_DECLS
+extern void led_init();
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
+__END_DECLS
 
-/*
- * ioctl() definitions
- */
-#define _GPSIOCBASE			(0x2800)            //TODO: arbitrary choice...
-#define _GPSIOC(_n)		(_IOC(_GPSIOCBASE, _n))
+__EXPORT void led_init()
+{
+	stm32_configgpio(GPIO_LED0);
+	stm32_configgpio(GPIO_LED1);
+}
 
-#endif /* _DRV_GPS_H */
+__EXPORT void led_on(int led)
+{
+	switch (led) {
+	case 0:
+		stm32_gpiowrite(GPIO_LED0, true);
+		break;
+
+	case 1:
+		stm32_gpiowrite(GPIO_LED1, true);
+		break;
+
+	default:
+		warnx("LED ID not recognized\n");
+	}
+}
+
+__EXPORT void led_off(int led)
+{
+	switch (led) {
+	case 0:
+		stm32_gpiowrite(GPIO_LED0, false);
+		break;
+
+	case 1:
+		stm32_gpiowrite(GPIO_LED1, false);
+		break;
+
+	default:
+		warnx("LED ID not recognized\n");
+	}
+}
+
+__EXPORT void led_toggle(int led)
+{
+	switch (led) {
+	case 0:
+		if (stm32_gpioread(GPIO_LED0))
+			stm32_gpiowrite(GPIO_LED0, false);
+		else
+			stm32_gpiowrite(GPIO_LED0, true);
+		break;
+
+	case 1:
+		if (stm32_gpioread(GPIO_LED1))
+			stm32_gpiowrite(GPIO_LED1, false);
+		else
+			stm32_gpiowrite(GPIO_LED1, true);
+		break;
+
+	default:
+		warnx("LED ID not recognized\n");
+	}
+}
