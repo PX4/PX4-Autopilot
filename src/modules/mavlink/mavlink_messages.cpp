@@ -640,6 +640,47 @@ protected:
 };
 
 
+
+class MavlinkStreamViconPositionEstimate : public MavlinkStream
+{
+public:
+	const char *get_name()
+	{
+		return "VICON_POSITION_ESTIMATE";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamViconPositionEstimate();
+	}
+
+private:
+	MavlinkOrbSubscription *pos_sub;
+	struct vehicle_vicon_position_s *pos;
+
+protected:
+	void subscribe(Mavlink *mavlink)
+	{
+		pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_vicon_position));
+		pos = (struct vehicle_vicon_position_s *)pos_sub->get_data();
+	}
+
+	void send(const hrt_abstime t)
+	{
+		if (pos_sub->update(t)) {
+			mavlink_msg_vicon_position_estimate_send(_channel,
+								pos->timestamp / 1000,
+								pos->x,
+								pos->y,
+								pos->z,
+								pos->roll,
+								pos->pitch,
+								pos->yaw);
+		}
+	}
+};
+
+
 class MavlinkStreamGPSGlobalOrigin : public MavlinkStream
 {
 public:
@@ -1297,5 +1338,6 @@ MavlinkStream *streams_list[] = {
 	new MavlinkStreamAttitudeControls(),
 	new MavlinkStreamNamedValueFloat(),
 	new MavlinkStreamCameraCapture(),
+	new MavlinkStreamViconPositionEstimate(),
 	nullptr
 };

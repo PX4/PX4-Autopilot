@@ -167,12 +167,12 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 	int buf_free = 0;
 
 	if (instance->get_flow_control_enabled()
-	    && ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
+		&& ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
 
 		if (buf_free == 0) {
 
 			if (last_write_times[(unsigned)channel] != 0 &&
-			    hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500 * 1000UL) {
+				hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500 * 1000UL) {
 
 				warnx("DISABLING HARDWARE FLOW CONTROL");
 				instance->enable_flow_control(false);
@@ -186,11 +186,16 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 		}
 	}
 
-	ssize_t ret = write(uart, ch, desired);
-
-	if (ret != desired) {
-		// XXX do something here, but change to using FIONWRITE and OS buf size for detection
+	/* If the wait until transmit flag is on, only transmit after we've received messages.
+	   Otherwise, transmit all the time. */
+	if (instance->should_transmit()) {
+	   ssize_t ret = write(uart, ch, desired);
+		if (ret != desired) {
+			// XXX do something here, but change to using FIONWRITE and OS buf size for detection
+		}
 	}
+
+
 
 }
 
@@ -204,6 +209,8 @@ Mavlink::Mavlink() :
 	_task_running(false),
 	_hil_enabled(false),
 	_is_usb_uart(false),
+	_wait_to_transmit(false),
+	_received_messages(false),
 	_main_loop_delay(1000),
 	_subscriptions(nullptr),
 	_streams(nullptr),
@@ -1768,7 +1775,7 @@ Mavlink::task_main(int argc, char *argv[])
 	 * set error flag instead */
 	bool err_flag = false;
 
-	while ((ch = getopt(argc, argv, "b:r:d:m:fpv")) != EOF) {
+	while ((ch = getopt(argc, argv, "b:r:d:m:fpvw")) != EOF) {
 		switch (ch) {
 		case 'b':
 			_baudrate = strtoul(optarg, NULL, 10);
@@ -1818,6 +1825,10 @@ Mavlink::task_main(int argc, char *argv[])
 
 		case 'v':
 			_verbose = true;
+			break;
+
+		case 'w':
+			_wait_to_transmit = true;
 			break;
 
 		default:
@@ -2264,7 +2275,7 @@ Mavlink::stream(int argc, char *argv[])
 
 static void usage()
 {
-	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-b baudrate] [-r rate] [-m mode] [-s stream] [-f] [-p] [-v]");
+	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-b baudrate] [-r rate] [-m mode] [-s stream] [-f] [-p] [-v] [-w]");
 }
 
 int mavlink_main(int argc, char *argv[])
