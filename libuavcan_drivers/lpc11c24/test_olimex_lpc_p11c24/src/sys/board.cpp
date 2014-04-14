@@ -127,6 +127,7 @@ void setErrorLed(bool state)
 } // namespace board
 
 /*
+ * Basic hardware initialization
  * C++ runtime initialization
  */
 extern "C"
@@ -147,13 +148,22 @@ static void call_init_array(unsigned long* start, unsigned long* end)
     }
 }
 
-void __pre_main()
+// We need to disable pedantic mode to call main()
+#pragma GCC diagnostic ignored "-Wpedantic"
+
+extern int main();
+
+void __start()
 {
+    board::init();
+
     call_init_array(&__preinit_array_start, &__preinit_array_end);
     call_init_array(&__init_array_start, &__init_array_end);
     call_init_array(&_ctor_start, &_ctor_end);
 
-    board::init();
+    (void)main();
+
+    while (true) { }
 }
 
 }

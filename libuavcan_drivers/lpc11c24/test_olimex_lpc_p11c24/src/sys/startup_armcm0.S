@@ -239,10 +239,7 @@ Reset_Handler:
     blt    .flash_to_ram_loop
 .flash_to_ram_loop_end:
 
-    ldr    r0, =__pre_main
-    blx    r0
-
-    ldr    r0, =main
+    ldr    r0, =__start
     bx     r0
     .pool
     .size Reset_Handler, . - Reset_Handler

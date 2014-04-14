@@ -9,11 +9,13 @@ struct A
     A()
     {
         board::setStatusLed(true);
+        board::setErrorLed(false);
     }
 
     ~A()
     {
         board::setStatusLed(false);
+        board::setErrorLed(true);
     }
 };
 
