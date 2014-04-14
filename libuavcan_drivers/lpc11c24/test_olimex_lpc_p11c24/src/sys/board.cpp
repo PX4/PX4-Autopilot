@@ -151,8 +151,10 @@ static void call_init_array(unsigned long* start, unsigned long* end)
 // We need to disable pedantic mode to call main()
 #pragma GCC diagnostic ignored "-Wpedantic"
 
+__attribute__((noreturn))
 extern int main();
 
+__attribute__((noreturn))
 void __start()
 {
     board::init();
