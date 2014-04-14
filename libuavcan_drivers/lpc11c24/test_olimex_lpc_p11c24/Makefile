@@ -2,12 +2,11 @@
 # Pavel Kirienko, 2014 <pavel.kirienko@gmail.com>
 #
 
-CPPSRC := $(wildcard src/*.cpp)          \
+CPPSRC := $(wildcard src/*.cpp)                  \
           $(wildcard src/sys/*.cpp)
 
-CSRC   := $(wildcard lpc_chip_11cxx_lib/src/*.c)
-
-ASMSRC := $(wildcard src/sys/*.S)
+CSRC   := $(wildcard lpc_chip_11cxx_lib/src/*.c) \
+          $(wildcard src/sys/*.c)
 
 DEF =
 
@@ -26,9 +25,7 @@ DEF += -DNDEBUG -DCHIP_LPC11CXX -DCORE_M0 -DTHUMB_NO_INTERWORKING
 
 FLAGS = -mthumb -mcpu=cortex-m0 -mno-thumb-interwork
 
-ASMFLAGS = $(FLAGS)
-
-C_CPP_FLAGS = $(FLAGS) -g3 -Os -Wall -Wextra -Werror -ffunction-sections -fdata-sections \
+C_CPP_FLAGS = $(FLAGS) -Os -g3 -Wall -Wextra -Werror -ffunction-sections -fdata-sections \
               -fno-common -fno-exceptions -fno-unwind-tables -fno-stack-protector -fomit-frame-pointer
 
 # Dependencies
@@ -38,14 +35,14 @@ CFLAGS = $(C_CPP_FLAGS) -std=c99
 
 CPPFLAGS = $(C_CPP_FLAGS) -pedantic -std=c++11 -fno-rtti -fno-threadsafe-statics
 
-LDFLAGS = $(FLAGS) -nodefaultlibs -lc -lgcc -nostartfiles -Tlpc11c24.ld -Xlinker --gc-sections
+LDFLAGS = $(FLAGS) -nodefaultlibs -lc -lgcc -nostartfiles -Tlpc11c24.ld -Xlinker --gc-sections \
+          -Wl,-Map,$(BUILDDIR)/output.map
 
 COBJ   = $(addprefix $(OBJDIR)/, $(notdir $(CSRC:.c=.o)))
 CPPOBJ = $(addprefix $(OBJDIR)/, $(notdir $(CPPSRC:.cpp=.o)))
-ASMOBJ = $(addprefix $(OBJDIR)/, $(notdir $(ASMSRC:.S=.o)))
-OBJ  = $(COBJ) $(ASMOBJ) $(CPPOBJ)
+OBJ = $(COBJ) $(CPPOBJ)
 
-VPATH = $(sort $(dir $(CSRC)) $(dir $(CPPSRC)) $(dir $(ASMSRC)))
+VPATH = $(sort $(dir $(CSRC)) $(dir $(CPPSRC)))
 
 ELF = $(BUILDDIR)/firmware.elf
 BIN = $(BUILDDIR)/firmware.bin
@@ -86,10 +83,6 @@ $(COBJ): $(OBJDIR)/%.o: %.c
 $(CPPOBJ): $(OBJDIR)/%.o: %.cpp
 	@echo
 	$(CPPC) -c $(DEF) $(INC) $(CPPFLAGS) $< -o $@
-
-$(ASMOBJ): $(OBJDIR)/%.o: %.S
-	@echo
-	$(AS) -c $(DEF) $(INC) $(ASMFLAGS) $< -o $@
 
 clean:
 	rm -rf $(BUILDDIR)
