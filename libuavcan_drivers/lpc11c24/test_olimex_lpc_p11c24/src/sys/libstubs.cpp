@@ -129,6 +129,11 @@ void __cxa_pure_virtual()
 extern "C"
 {
 
+void abort()
+{
+    while (true) { }
+}
+
 int _read_r(struct _reent*, int, char*, int)
 {
     return -1;
@@ -166,8 +171,7 @@ int _isatty_r(struct _reent*, int)
 
 void _exit(int)
 {
-    std::abort();
-    while (1) { }
+    abort();
 }
 
 pid_t _getpid(void)
