@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <chip.h>
+
 namespace uavcan_lpc11c24
 {
 
@@ -22,5 +24,15 @@ struct CriticalSectionLocker
         __asm volatile ("cpsie  i");
     }
 };
+
+/**
+ * Internal for the driver
+ */
+namespace clock
+{
+
+uint64_t getUtcUSecFromCanInterrupt();
+
+}
 
 }

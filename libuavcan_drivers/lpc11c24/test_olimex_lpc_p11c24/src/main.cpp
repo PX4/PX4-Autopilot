@@ -5,6 +5,7 @@
 #include <board.hpp>
 #include <chip.h>
 #include <uavcan_lpc11c24/can.hpp>
+#include <uavcan_lpc11c24/clock.hpp>
 
 #define ENFORCE(x)        \
     if ((x) == 0) {       \
@@ -18,9 +19,18 @@ int main()
         while (true) { }
     }
 
+    uavcan_lpc11c24::clock::init();
+
+    uavcan::MonotonicTime prev_mono;
+
     while (true)
     {
-        //for (volatile int i = 0; i < 2000000; i++) { __asm volatile ("nop"); }
+        const uavcan::MonotonicTime ts_mono = uavcan_lpc11c24::clock::getMonotonic();
+
+        while (prev_mono >= ts_mono)
+        {
+        }
+        prev_mono = ts_mono;
 
         board::setErrorLed(uavcan_lpc11c24::CanDriver::instance().getErrorCount() > 0);
 

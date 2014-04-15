@@ -3,6 +3,7 @@
  */
 
 #include <uavcan_lpc11c24/can.hpp>
+#include <uavcan_lpc11c24/clock.hpp>
 #include <chip.h>
 #include "internal.hpp"
 
@@ -264,8 +265,8 @@ uavcan::int16_t CanDriver::send(const uavcan::CanFrame& frame, uavcan::Monotonic
 uavcan::int16_t CanDriver::receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
                                    uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags)
 {
-    out_ts_monotonic = uavcan::MonotonicTime(); // TODO: read monotonic
-    out_flags = 0;  // We don't support any flags
+    out_ts_monotonic = uavcan_lpc11c24::clock::getMonotonic();
+    out_flags = 0;                                            // We don't support any IO flags
 
     CriticalSectionLocker locker;
     if (rx_queue.getLength() == 0)
@@ -368,9 +369,9 @@ void canErrorCallback(uint32_t error_info)
     }
 }
 
-void CAN_IRQHandler(void)
+void CAN_IRQHandler()
 {
-    uavcan_lpc11c24::last_irq_utc_timestamp = 0; // TODO: Read UTC timestamp
+    uavcan_lpc11c24::last_irq_utc_timestamp = uavcan_lpc11c24::clock::getUtcUSecFromCanInterrupt();
     LPC_CCAN_API->isr();
 }
 
