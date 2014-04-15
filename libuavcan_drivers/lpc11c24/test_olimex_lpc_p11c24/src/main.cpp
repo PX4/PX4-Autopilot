@@ -2,6 +2,7 @@
  * Pavel Kirienko, 2014 <pavel.kirienko@gmail.com>
  */
 
+#include <cstdio>
 #include <board.hpp>
 #include <chip.h>
 #include <uavcan_lpc11c24/can.hpp>
@@ -22,6 +23,7 @@ int main()
     uavcan_lpc11c24::clock::init();
 
     uavcan::MonotonicTime prev_mono;
+    uavcan::MonotonicTime prev_time_pub_at;
 
     while (true)
     {
@@ -51,6 +53,20 @@ int main()
         else
         {
             board::setStatusLed(false);
+        }
+
+        if ((ts_mono - prev_time_pub_at).toMSec() >= 1000)
+        {
+            prev_time_pub_at = ts_mono;
+
+            uavcan::CanFrame frm;
+            frm.dlc = 8;
+            std::fill_n(frm.data, 8, 0);
+            snprintf(reinterpret_cast<char*>(frm.data), 8, "%u", unsigned(ts_mono.toMSec()));
+
+            frm.id = ts_mono.toMSec() | uavcan::CanFrame::FlagEFF;
+
+            ENFORCE(1 == uavcan_lpc11c24::CanDriver::instance().send(frm, ts_mono, 0));
         }
     }
 }
