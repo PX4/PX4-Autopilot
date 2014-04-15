@@ -56,15 +56,13 @@ void init()
     }
 }
 
-// Optimizer breaks this function.
-__attribute__((optimize("0")))
 static uint64_t sampleFromCriticalSection(const volatile uint64_t* const value)
 {
-    const uint32_t reload = SysTick->LOAD;  // SysTick counts downwards, hence the value subtracted from reload
+    const uint32_t reload = SysTick->LOAD + 1;  // SysTick counts downwards, hence the value subtracted from reload
     volatile uint64_t time = *value;
     volatile uint32_t cycles = reload - SysTick->VAL;
 
-    if (NVIC_GetPendingIRQ(SysTick_IRQn))
+    if ((SCB->ICSR & SCB_ICSR_PENDSTSET_Msk) == SCB_ICSR_PENDSTSET_Msk)
     {
         /*
          * The timer has overflowed either before or after CNT sample was obtained.
@@ -101,16 +99,13 @@ uavcan::MonotonicTime getMonotonic()
 
 uavcan::UtcTime getUtc()
 {
+    uint64_t usec = 0;
     if (utc_set)
     {
-        uint64_t usec = 0;
-        {
-            CriticalSectionLocker locker;
-            usec = sampleFromCriticalSection(&time_utc);
-        }
-        return uavcan::UtcTime::fromUSec(usec);
+        CriticalSectionLocker locker;
+        usec = sampleFromCriticalSection(&time_utc);
     }
-    return uavcan::UtcTime();
+    return uavcan::UtcTime::fromUSec(usec);
 }
 
 uavcan::UtcDuration getPrevUtcAdjustment()
@@ -169,7 +164,6 @@ SystemClock& SystemClock::instance()
 extern "C"
 {
 
-__attribute__((optimize("0")))
 void SysTick_Handler()
 {
     using namespace uavcan_lpc11c24::clock;
