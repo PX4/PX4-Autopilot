@@ -80,9 +80,6 @@ void init()
     TIMX->CR1  = TIM_CR1_CEN;    // Start
 }
 
-/**
- * Callable from any context
- */
 static uavcan::uint64_t sampleFromCriticalSection(const volatile uavcan::uint64_t* const value)
 {
     assert(initialized);
