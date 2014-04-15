@@ -22,7 +22,7 @@ SECTIONS
         KEEP(*(vectors))
     } > FLASH
 
-    constructors : ALIGN(16) SUBALIGN(16)
+    constructors : ALIGN(4) SUBALIGN(4)
     {
         PROVIDE(__init_array_start = .);
         KEEP(*(SORT(.init_array.*)))
