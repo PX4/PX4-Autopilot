@@ -14,6 +14,27 @@ INC = -Isrc/sys                         \
       -Ilpc_chip_11cxx_lib/inc
 
 #
+# UAVCAN library
+#
+
+DEF += -DUAVCAN_MEM_POOL_BLOCK_SIZE=56  \
+       -DUAVCAN_TOSTRING=0              \
+       -DUAVCAN_EXCEPTIONS=0            \
+       -DUAVCAN_TINY=1
+
+include ../../../libuavcan/include.mk
+CPPSRC += $(LIBUAVCAN_SRC)
+INC += -I$(LIBUAVCAN_INC)
+
+include ../driver/include.mk
+CPPSRC += $(LIBUAVCAN_LPC11C24_SRC)
+INC += -I$(LIBUAVCAN_LPC11C24_INC)
+
+# TODO: add target for this
+$(info $(shell $(LIBUAVCAN_DSDLC) $(UAVCAN_DSDL_DIR)))
+INC += -Idsdlc_generated
+
+#
 # Build configuration
 #
 
@@ -88,7 +109,7 @@ clean:
 	rm -rf $(BUILDDIR)
 
 size:
-	@if [ -f $(ELF) ]; then echo; $(SIZE) $(OBJ) -t; echo; fi;
+	@if [ -f $(ELF) ]; then echo; $(SIZE) $(ELF); echo; fi;
 
 .PHONY: all clean size $(BUILDDIR)
 
