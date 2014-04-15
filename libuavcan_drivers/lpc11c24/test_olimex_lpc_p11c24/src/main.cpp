@@ -32,7 +32,8 @@ int main()
         }
         prev_mono = ts_mono;
 
-        board::setErrorLed(uavcan_lpc11c24::CanDriver::instance().getErrorCount() > 0);
+        board::setErrorLed(uavcan_lpc11c24::CanDriver::instance().getErrorCount() > 0 ||
+                           uavcan_lpc11c24::CanDriver::instance().hadActivity());
 
         if (uavcan_lpc11c24::CanDriver::instance().hasPendingRx())
         {

@@ -26,6 +26,8 @@ public:
     bool hasPendingRx() const;
     bool hasEmptyTx() const;
 
+    bool hadActivity();
+
     virtual uavcan::int16_t send(const uavcan::CanFrame& frame, uavcan::MonotonicTime tx_deadline,
                                  uavcan::CanIOFlags flags);
 

@@ -52,6 +52,8 @@ uint32_t tx_msgobj_free_mask = (1 << NumTxMsgObjects) - 1;
  */
 uint64_t last_irq_utc_timestamp = 0;
 
+bool had_activity;
+
 /**
  * After a received message gets extracted from C_CAN, it will be stored in the RX queue until libuavcan
  * reads it via select()/receive() calls.
@@ -216,6 +218,14 @@ bool CanDriver::hasEmptyTx() const
     return tx_msgobj_free_mask != 0;
 }
 
+bool CanDriver::hadActivity()
+{
+    CriticalSectionLocker locker;
+    const bool ret = had_activity;
+    had_activity = false;
+    return ret;
+}
+
 uavcan::int16_t CanDriver::send(const uavcan::CanFrame& frame, uavcan::MonotonicTime tx_deadline,
                                 uavcan::CanIOFlags flags)
 {
@@ -353,11 +363,13 @@ void canRxCallback(uint8_t msg_obj_num)
     std::copy(msg_obj.data, msg_obj.data + msg_obj.dlc, frame.data);
 
     uavcan_lpc11c24::rx_queue.push(frame, uavcan_lpc11c24::last_irq_utc_timestamp);
+    uavcan_lpc11c24::had_activity = true;
 }
 
 void canTxCallback(uint8_t msg_obj_num)
 {
     uavcan_lpc11c24::tx_msgobj_free_mask |= 1U << (msg_obj_num - 1);
+    uavcan_lpc11c24::had_activity = true;
 }
 
 void canErrorCallback(uint32_t error_info)
