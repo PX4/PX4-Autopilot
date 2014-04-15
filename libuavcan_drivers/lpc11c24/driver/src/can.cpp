@@ -28,7 +28,7 @@ namespace
 /**
  * Hardware message objects are allocated as follows:
  *  - 0..NumTxMsgObjects - TX objects
- *  - NumRxMsgObjects..32 - RX objects, where only the last one is used by default (accepts everything)
+ *  - NumRxMsgObjects..32 - RX objects
  */
 const unsigned NumMsgObjects = 32;
 const unsigned NumTxMsgObjects = 3;
@@ -226,7 +226,7 @@ uavcan::int16_t CanDriver::send(const uavcan::CanFrame& frame, uavcan::Monotonic
     }
 
     /*
-     * Message conversion
+     * Frame conversion
      */
     CCAN_MSG_OBJ_T msgobj = CCAN_MSG_OBJ_T();
     msgobj.mode_id = frame.id & uavcan::CanFrame::MaskExtID;
@@ -241,9 +241,24 @@ uavcan::int16_t CanDriver::send(const uavcan::CanFrame& frame, uavcan::Monotonic
     msgobj.dlc = frame.dlc;
     std::copy(frame.data, frame.data + frame.dlc, msgobj.data);
 
+    /*
+     * Transmission
+     */
+    (void)tx_deadline;               // TX timeouts are not supported by this driver yet.
+
     CriticalSectionLocker locker;
-    (void)tx_deadline;
-    return -1;
+
+    for (unsigned i = 0; i < NumTxMsgObjects; i++)
+    {
+        if (tx_msgobj_free_mask & (1 << i))
+        {
+            tx_msgobj_free_mask &= ~(1U << i);   // Mark as pending - will be released in TX callback
+            msgobj.msgobj = i + 1;
+            LPC_CCAN_API->can_transmit(&msgobj);
+            return 1;
+        }
+    }
+    return 0;
 }
 
 uavcan::int16_t CanDriver::receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
@@ -281,7 +296,7 @@ uavcan::int16_t CanDriver::configureFilters(const uavcan::CanFilterConfig* filte
 uavcan::uint64_t CanDriver::getErrorCount() const
 {
     CriticalSectionLocker locker;
-    return error_cnt + rx_queue.getOverflowCount();
+    return uint64_t(error_cnt) + uint64_t(rx_queue.getOverflowCount());
 }
 
 uavcan::uint16_t CanDriver::getNumFilters() const
@@ -341,9 +356,6 @@ void canRxCallback(uint8_t msg_obj_num)
 
 void canTxCallback(uint8_t msg_obj_num)
 {
-    while (msg_obj_num > uavcan_lpc11c24::NumMsgObjects || msg_obj_num < 1)  // Validation
-    {
-    }
     uavcan_lpc11c24::tx_msgobj_free_mask |= 1U << (msg_obj_num - 1);
 }
 

@@ -6,6 +6,11 @@
 #include <chip.h>
 #include <uavcan_lpc11c24/can.hpp>
 
+#define ENFORCE(x)        \
+    if ((x) == 0) {       \
+        while (true) { }  \
+    }
+
 int main()
 {
     if (uavcan_lpc11c24::CanDriver::instance().init(1000000) < 0)
@@ -26,8 +31,10 @@ int main()
             uavcan::UtcTime utc;
             uavcan::MonotonicTime mono;
             uavcan::CanIOFlags flags;
-            uavcan_lpc11c24::CanDriver::instance().receive(frm, mono, utc, flags);
+            ENFORCE(1 == uavcan_lpc11c24::CanDriver::instance().receive(frm, mono, utc, flags));
             asm volatile ("nop");
+
+            ENFORCE(1 == uavcan_lpc11c24::CanDriver::instance().send(frm, mono, 0));
         }
         else
         {
