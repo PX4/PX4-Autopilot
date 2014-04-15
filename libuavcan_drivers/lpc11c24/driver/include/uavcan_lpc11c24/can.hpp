@@ -23,7 +23,7 @@ public:
 
     int init(uavcan::uint32_t baudrate);
 
-    bool hasPendingRx() const;
+    bool hasReadyRx() const;
     bool hasEmptyTx() const;
 
     bool hadActivity();

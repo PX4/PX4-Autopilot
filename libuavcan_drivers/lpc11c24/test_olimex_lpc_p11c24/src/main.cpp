@@ -37,7 +37,12 @@ int main()
         board::setErrorLed(uavcan_lpc11c24::CanDriver::instance().getErrorCount() > 0 ||
                            uavcan_lpc11c24::CanDriver::instance().hadActivity());
 
-        if (uavcan_lpc11c24::CanDriver::instance().hasPendingRx())
+        uavcan::CanSelectMasks masks;
+        masks.read = 1;
+        masks.write = 1;
+        uavcan_lpc11c24::CanDriver::instance().select(masks, ts_mono + uavcan::MonotonicDuration::fromMSec(10));
+
+        if (masks.read == 1)
         {
             board::setStatusLed(true);
             uavcan::CanFrame frm;
@@ -45,17 +50,23 @@ int main()
             uavcan::MonotonicTime mono;
             uavcan::CanIOFlags flags;
             ENFORCE(1 == uavcan_lpc11c24::CanDriver::instance().receive(frm, mono, utc, flags));
-            asm volatile ("nop");
 
-            frm.id += 0x100;
-            ENFORCE(1 == uavcan_lpc11c24::CanDriver::instance().send(frm, mono, 0));
+            if (masks.write == 1)
+            {
+                frm.id += 0x100;
+                ENFORCE(1 == uavcan_lpc11c24::CanDriver::instance().send(frm, mono, 0));
+            }
         }
         else
         {
             board::setStatusLed(false);
         }
 
-        if ((ts_mono - prev_time_pub_at).toMSec() >= 1000)
+        masks.read = 0;
+        masks.write = 1;
+        uavcan_lpc11c24::CanDriver::instance().select(masks, ts_mono + uavcan::MonotonicDuration::fromMSec(10));
+
+        if ((ts_mono - prev_time_pub_at).toMSec() >= 1000 && (masks.write == 1))
         {
             prev_time_pub_at = ts_mono;
 

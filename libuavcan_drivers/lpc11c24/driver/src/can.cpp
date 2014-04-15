@@ -206,7 +206,7 @@ int CanDriver::init(uavcan::uint32_t baudrate)
     return 0;
 }
 
-bool CanDriver::hasPendingRx() const
+bool CanDriver::hasReadyRx() const
 {
     CriticalSectionLocker locker;
     return rx_queue.getLength() > 0;
@@ -291,9 +291,35 @@ uavcan::int16_t CanDriver::receive(uavcan::CanFrame& out_frame, uavcan::Monotoni
 
 uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline)
 {
-    (void)inout_masks;
-    (void)blocking_deadline;
-    return -1;
+    const bool noblock = ((inout_masks.read  == 1) && hasReadyRx()) ||
+                         ((inout_masks.write == 1) && hasEmptyTx());
+
+    if (!noblock && (clock::getMonotonic() > blocking_deadline))
+    {
+        /*
+         * Are you afraid of the global warming? Fear no more, the solution is right here.
+         *
+         * It's not cool (literally) to burn cycles in a busyloop, and we have no OS to pass control to other
+         * tasks, thus solution is to halt the core until a hardware event occurs - e.g. clock timer overflow.
+         * Upon such event the select() call will return, even if no requested IO operations became available.
+         * It's OK to do that, libuavcan can handle such behavior.
+         *
+         * Note that it is not possible to precisely control the sleep time with WFE, since we can't predict when
+         * the next hardware event occurs. Worst case conditions:
+         *  - WFE gets executed right after the clock timer interrupt;
+         *  - CAN bus is completely silent (no traffic);
+         *  - User's application has no interrupts and generates no hardware events.
+         * In such scenario execution will stuck here for one period of the clock timer interrupt, even if
+         * blocking_deadline will expire sooner.
+         * If the user's application requires higher timing precision, an extra dummy IRQ can be added just to
+         * break WFE every once in a while.
+         */
+        asm volatile ("wfe");
+    }
+
+    inout_masks.read  = hasReadyRx() ? 1 : 0;
+    inout_masks.write = hasEmptyTx() ? 1 : 0;
+    return 0;  // Return value doesn't matter as long as it is non-negative
 }
 
 uavcan::int16_t CanDriver::configureFilters(const uavcan::CanFilterConfig* filter_configs,
