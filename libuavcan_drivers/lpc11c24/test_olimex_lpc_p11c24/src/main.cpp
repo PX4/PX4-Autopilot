@@ -8,7 +8,7 @@
 
 #define ENFORCE(x)        \
     if ((x) == 0) {       \
-        while (true) { }  \
+        while (true) { board::setErrorLed(true); }  \
     }
 
 int main()
@@ -20,7 +20,7 @@ int main()
 
     while (true)
     {
-        for (volatile int i = 0; i < 2000000; i++) { __asm volatile ("nop"); }
+        //for (volatile int i = 0; i < 2000000; i++) { __asm volatile ("nop"); }
 
         board::setErrorLed(uavcan_lpc11c24::CanDriver::instance().getErrorCount() > 0);
 
@@ -34,6 +34,7 @@ int main()
             ENFORCE(1 == uavcan_lpc11c24::CanDriver::instance().receive(frm, mono, utc, flags));
             asm volatile ("nop");
 
+            frm.id += 0x100;
             ENFORCE(1 == uavcan_lpc11c24::CanDriver::instance().send(frm, mono, 0));
         }
         else
