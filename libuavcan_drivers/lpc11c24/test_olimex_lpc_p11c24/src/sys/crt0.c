@@ -26,7 +26,7 @@ extern funptr_t __init_array_end;
 __attribute__((noreturn))
 extern int main(void);
 
-extern void __low_init(void);
+extern void SystemInit(void);
 
 /**
  * Firmware entry point
@@ -47,7 +47,7 @@ void Reset_Handler(void)
     // BSS section
     fill32(&_bss, &_ebss, 0);
 
-    __low_init();
+    SystemInit();
 
     // Constructors
     {

@@ -129,7 +129,7 @@ void setErrorLed(bool state)
 extern "C"
 {
 
-void __low_init()
+void SystemInit()
 {
     board::init();
 }
