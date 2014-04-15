@@ -59,6 +59,9 @@ CPPFLAGS = $(C_CPP_FLAGS) -pedantic -std=c++11 -fno-rtti -fno-threadsafe-statics
 LDFLAGS = $(FLAGS) -nodefaultlibs -lc -lgcc -nostartfiles -Tlpc11c24.ld -Xlinker --gc-sections \
           -Wl,-Map,$(BUILDDIR)/output.map
 
+# Link with nano newlib. Other toolchains may not support this option, so it can be safely removed.
+LDFLAGS += --specs=nano.specs
+
 COBJ   = $(addprefix $(OBJDIR)/, $(notdir $(CSRC:.c=.o)))
 CPPOBJ = $(addprefix $(OBJDIR)/, $(notdir $(CPPSRC:.cpp=.o)))
 OBJ = $(COBJ) $(CPPOBJ)
