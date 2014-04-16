@@ -28,7 +28,7 @@ namespace
 {
 /**
  * Hardware message objects are allocated as follows:
- *  - 0..NumTxMsgObjects - TX objects
+ *  - 1..NumTxMsgObjects - TX objects
  *  - NumTxMsgObjects..32 - RX objects
  */
 const unsigned NumMsgObjects = 32;
@@ -166,6 +166,11 @@ int CanDriver::init(uavcan::uint32_t baudrate)
 {
     CriticalSectionLocker locker;
 
+    error_cnt = 0;
+    tx_msgobj_free_mask = (1 << NumTxMsgObjects) - 1;
+    last_irq_utc_timestamp = 0;
+    had_activity = false;
+
     /*
      * C_CAN init
      */
@@ -297,20 +302,18 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks, uavcan::M
     if (!noblock && (clock::getMonotonic() > blocking_deadline))
     {
         /*
-         * Are you afraid of the global warming? Fear no more, the solution is right here.
-         *
          * It's not cool (literally) to burn cycles in a busyloop, and we have no OS to pass control to other
          * tasks, thus solution is to halt the core until a hardware event occurs - e.g. clock timer overflow.
          * Upon such event the select() call will return, even if no requested IO operations became available.
          * It's OK to do that, libuavcan can handle such behavior.
          *
-         * Note that it is not possible to precisely control the sleep time with WFE, since we can't predict when
+         * Note that it is not possible to precisely control the sleep duration with WFE, since we can't predict when
          * the next hardware event occurs. Worst case conditions:
          *  - WFE gets executed right after the clock timer interrupt;
          *  - CAN bus is completely silent (no traffic);
          *  - User's application has no interrupts and generates no hardware events.
          * In such scenario execution will stuck here for one period of the clock timer interrupt, even if
-         * blocking_deadline will expire sooner.
+         * blocking_deadline expires sooner.
          * If the user's application requires higher timing precision, an extra dummy IRQ can be added just to
          * break WFE every once in a while.
          */
