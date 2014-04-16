@@ -313,7 +313,9 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks, uavcan::M
          * If the user's application requires higher timing precision, an extra dummy IRQ can be added just to
          * break WFE every once in a while.
          */
+#if !UAVCAN_LPC11C24_NO_WFE
         asm volatile ("wfe");
+#endif
     }
 
     inout_masks.read  = hasReadyRx() ? 1 : 0;
