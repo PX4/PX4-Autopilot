@@ -29,10 +29,10 @@ namespace
 /**
  * Hardware message objects are allocated as follows:
  *  - 0..NumTxMsgObjects - TX objects
- *  - NumRxMsgObjects..32 - RX objects
+ *  - NumTxMsgObjects..32 - RX objects
  */
 const unsigned NumMsgObjects = 32;
-const unsigned NumTxMsgObjects = 3;
+const unsigned NumTxMsgObjects = 1;
 const unsigned NumRxMsgObjects = NumMsgObjects - NumTxMsgObjects;
 
 /**
