@@ -129,6 +129,7 @@ void __cxa_pure_virtual()
 extern "C"
 {
 
+__attribute__((used))
 void abort()
 {
     while (true) { }
