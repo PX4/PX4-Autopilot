@@ -28,12 +28,12 @@ namespace
 {
 /**
  * Hardware message objects are allocated as follows:
- *  - 1..NumTxMsgObjects - TX objects
- *  - NumTxMsgObjects..32 - RX objects
+ *  - 1 - Single TX object
+ *  - 2..32 - RX objects
+ * TX priority is defined by the message object number, not by the CAN ID (chapter 16.7.3.5 of the user manual),
+ * hence we can't use more than one object because that would cause priority inversion on long transfers.
  */
 const unsigned NumMsgObjects = 32;
-const unsigned NumTxMsgObjects = 1;
-const unsigned NumRxMsgObjects = NumMsgObjects - NumTxMsgObjects;
 
 /**
  * Total number of CAN errors.
@@ -42,10 +42,9 @@ const unsigned NumRxMsgObjects = NumMsgObjects - NumTxMsgObjects;
 uint32_t error_cnt;
 
 /**
- * Message objects that are free to begin a transmission are indicated here.
- * Bit 0 stands for msgobj 1, bit 1 stands for msgobj 2, etc.
+ * True if there's no pending TX frame, i.e. write is possible.
  */
-uint32_t tx_msgobj_free_mask = (1 << NumTxMsgObjects) - 1;
+bool tx_free = true;
 
 /**
  * Gets updated every time the CAN IRQ handler is being called.
@@ -167,7 +166,7 @@ int CanDriver::init(uavcan::uint32_t baudrate)
     CriticalSectionLocker locker;
 
     error_cnt = 0;
-    tx_msgobj_free_mask = (1 << NumTxMsgObjects) - 1;
+    tx_free = true;
     last_irq_utc_timestamp = 0;
     had_activity = false;
 
@@ -220,7 +219,7 @@ bool CanDriver::hasReadyRx() const
 bool CanDriver::hasEmptyTx() const
 {
     CriticalSectionLocker locker;
-    return tx_msgobj_free_mask != 0;
+    return tx_free;
 }
 
 bool CanDriver::hadActivity()
@@ -260,19 +259,16 @@ uavcan::int16_t CanDriver::send(const uavcan::CanFrame& frame, uavcan::Monotonic
     /*
      * Transmission
      */
-    (void)tx_deadline;               // TX timeouts are not supported by this driver yet.
+    (void)tx_deadline;               // TX timeouts are not supported by this driver yet (and hardly going to be).
 
     CriticalSectionLocker locker;
 
-    for (unsigned i = 0; i < NumTxMsgObjects; i++)
+    if (tx_free)
     {
-        if (tx_msgobj_free_mask & (1 << i))
-        {
-            tx_msgobj_free_mask &= ~(1U << i);   // Mark as pending - will be released in TX callback
-            msgobj.msgobj = i + 1;
-            LPC_CCAN_API->can_transmit(&msgobj);
-            return 1;
-        }
+        tx_free = false;   // Mark as pending - will be released in TX callback
+        msgobj.msgobj = 1;
+        LPC_CCAN_API->can_transmit(&msgobj);
+        return 1;
     }
     return 0;
 }
@@ -341,7 +337,7 @@ uavcan::uint64_t CanDriver::getErrorCount() const
 
 uavcan::uint16_t CanDriver::getNumFilters() const
 {
-    return NumRxMsgObjects;
+    return NumMsgObjects - 1;  // First msgobj is reserved for TX frame
 }
 
 uavcan::ICanIface* CanDriver::getIface(uavcan::uint8_t iface_index)
@@ -397,7 +393,8 @@ void canRxCallback(uint8_t msg_obj_num)
 
 void canTxCallback(uint8_t msg_obj_num)
 {
-    uavcan_lpc11c24::tx_msgobj_free_mask |= 1U << (msg_obj_num - 1);
+    (void)msg_obj_num;
+    uavcan_lpc11c24::tx_free = true;
     uavcan_lpc11c24::had_activity = true;
 }
 
