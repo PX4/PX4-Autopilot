@@ -13,7 +13,7 @@ void PanicBroadcaster::publishOnce()
     const int res = pub_.broadcast(msg_);
     if (res < 0)
     {
-        pub_.getNode().registerInternalFailure("Panic broadcasting failure");
+        pub_.getNode().registerInternalFailure("Panic pub failed");
     }
 }
 

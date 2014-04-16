@@ -61,7 +61,7 @@ private:
         }
         else
         {
-            handleFatalError("Invalid service server callback");
+            handleFatalError("Srv serv clbk");
         }
 
         const int res = publisher_.publish(response_, TransferTypeServiceResponse, request.getSrcNodeID(),

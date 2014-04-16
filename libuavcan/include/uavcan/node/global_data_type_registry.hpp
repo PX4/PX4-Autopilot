@@ -124,7 +124,7 @@ struct UAVCAN_EXPORT DefaultDataTypeRegistrator
 
         if (res != GlobalDataTypeRegistry::RegistResultOk)
         {
-            handleFatalError("Type registration failed");
+            handleFatalError("Type reg failed");
         }
     }
 };
@@ -164,7 +164,8 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::regist(DataTypeID i
             return remove_res;
         }
     }
-    new (storage.buffer) Entry(DataTypeKind(Type::DataTypeKind), id, Type::getDataTypeSignature(), Type::getDataTypeFullName());
+    new (storage.buffer) Entry(DataTypeKind(Type::DataTypeKind), id, Type::getDataTypeSignature(),
+                               Type::getDataTypeFullName());
     {
         const RegistResult remove_res = remove(entry);
         if (remove_res != RegistResultOk)

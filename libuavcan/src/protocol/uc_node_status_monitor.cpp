@@ -15,7 +15,7 @@ NodeStatusMonitor::Entry& NodeStatusMonitor::getEntry(NodeID node_id) const
 {
     if (node_id.get() < 1 || node_id.get() > NodeID::Max)
     {
-        handleFatalError("NodeStatusMonitor NodeID out of range");
+        handleFatalError("NodeStatusMonitor NodeID");
     }
     return entries_[node_id.get() - 1];
 }

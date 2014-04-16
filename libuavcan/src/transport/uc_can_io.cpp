@@ -294,7 +294,7 @@ CanIOManager::CanIOManager(ICanDriver& driver, IPoolAllocator& allocator, ISyste
 {
     if (num_ifaces_ < 1 || num_ifaces_ > MaxCanIfaces)
     {
-        handleFatalError("Wrong number of CAN ifaces");
+        handleFatalError("Num ifaces");
     }
 
     if (mem_blocks_per_iface == 0)

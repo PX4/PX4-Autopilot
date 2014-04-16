@@ -21,7 +21,7 @@ class UAVCAN_EXPORT MethodBinder
     {
         if (!operator bool())
         {
-            handleFatalError("Null method binder");
+            handleFatalError("Null binder");
         }
     }
 

@@ -31,7 +31,7 @@ class UAVCAN_EXPORT LazyConstructor
     {
         if (!ptr_)
         {
-            handleFatalError("LazyConstructor<T> is not constructed");
+            handleFatalError("LazyConstructor<T>");
         }
     }
 
@@ -39,7 +39,7 @@ class UAVCAN_EXPORT LazyConstructor
     {
         if (ptr_)
         {
-            handleFatalError("LazyConstructor<T> is already constructed");
+            handleFatalError("LazyConstructor<T>");
         }
     }
 

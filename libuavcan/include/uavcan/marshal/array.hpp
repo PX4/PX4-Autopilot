@@ -543,7 +543,7 @@ public:
         Base::clear();
         if (ch == NULL)
         {
-            handleFatalError("Null pointer in Array<>::operator=(const char*)");
+            handleFatalError("Array::operator=(const char*)");
         }
         while (*ch)
         {
@@ -558,7 +558,7 @@ public:
         StaticAssert<IsDynamic>::check();
         if (ch == NULL)
         {
-            handleFatalError("Null pointer in Array<>::operator+=(const char*)");
+            handleFatalError("Array::operator+=(const char*)");
         }
         while (*ch)
         {

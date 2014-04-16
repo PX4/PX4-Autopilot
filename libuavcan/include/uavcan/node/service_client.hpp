@@ -187,7 +187,7 @@ void ServiceClient<DataType_, Callback_>::invokeCallback(ServiceCallResultType& 
     }
     else
     {
-        handleFatalError("Invalid caller callback");
+        handleFatalError("Srv client clbk");
     }
 }
 

@@ -50,7 +50,7 @@ private:
         }
         else
         {
-            handleFatalError("Invalid subscriber callback");
+            handleFatalError("Sub clbk");
         }
     }
 

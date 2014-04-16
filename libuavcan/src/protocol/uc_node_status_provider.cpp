@@ -31,7 +31,7 @@ void NodeStatusProvider::publishWithErrorHandling()
     const int res = publish();
     if (res < 0)
     {
-        getNode().registerInternalFailure("NodeStatus publication failed");
+        getNode().registerInternalFailure("NodeStatus pub failed");
     }
 }
 

@@ -30,13 +30,13 @@ void GlobalTimeSyncMaster::IfaceMaster::setTxTimestamp(UtcTime ts)
     if (ts.isZero())
     {
         assert(0);
-        pub_.getNode().registerInternalFailure("GlobalTimeSyncMaster got zero UTC TX timestamp");
+        pub_.getNode().registerInternalFailure("GlobalTimeSyncMaster zero TX ts");
         return;
     }
     if (!prev_tx_utc_.isZero())
     {
         prev_tx_utc_ = UtcTime(); // Reset again, because there's something broken in the driver and we don't trust it
-        pub_.getNode().registerInternalFailure("GlobalTimeSyncMaster publication conflict");
+        pub_.getNode().registerInternalFailure("GlobalTimeSyncMaster pub conflict");
         return;
     }
     prev_tx_utc_ = ts;
