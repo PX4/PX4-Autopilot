@@ -7,11 +7,6 @@
 #include <chip.h>
 #include <uavcan_lpc11c24/uavcan_lpc11c24.hpp>
 
-#define ENFORCE(x)        \
-    if ((x) == 0) {       \
-        while (true) { board::setErrorLed(true); }  \
-    }
-
 namespace
 {
 
@@ -49,6 +44,8 @@ void init()
 int main()
 {
     init();
+
+    getNode().setStatusOk();
 
     while (true)
     {
