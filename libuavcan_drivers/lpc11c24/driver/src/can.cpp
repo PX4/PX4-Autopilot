@@ -11,7 +11,7 @@
  * The default value should be OK for any use case.
  */
 #ifndef UAVCAN_LPC11C24_RX_QUEUE_LEN
-# define UAVCAN_LPC11C24_RX_QUEUE_LEN   16
+# define UAVCAN_LPC11C24_RX_QUEUE_LEN   10
 #endif
 
 #if UAVCAN_LPC11C24_RX_QUEUE_LEN > 254
