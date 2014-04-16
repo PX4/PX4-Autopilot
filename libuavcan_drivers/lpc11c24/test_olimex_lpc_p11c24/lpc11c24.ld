@@ -32,7 +32,7 @@ SECTIONS
 
     /* NO DESTRUCTORS */
 
-    .text : ALIGN(16) SUBALIGN(16)
+    .text :
     {
         *(.text.startup.*)
         *(.text)
