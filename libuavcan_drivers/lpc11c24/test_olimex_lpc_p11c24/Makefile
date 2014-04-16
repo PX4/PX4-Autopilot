@@ -45,7 +45,8 @@ DEPDIR = $(BUILDDIR)/dep
 DEF += -DNDEBUG -DCHIP_LPC11CXX -DCORE_M0 -DTHUMB_NO_INTERWORKING -U__STRICT_ANSI__
 
 FLAGS = -mthumb -mcpu=cortex-m0 -mno-thumb-interwork -flto -Os -g3 -Wall -Wextra -Werror -ffunction-sections \
-        -fdata-sections -fno-common -fno-exceptions -fno-unwind-tables -fno-stack-protector -fomit-frame-pointer
+        -fdata-sections -fno-common -fno-exceptions -fno-unwind-tables -fno-stack-protector -fomit-frame-pointer \
+        -ftracer -ftree-loop-distribute-patterns -frename-registers -freorder-blocks -fconserve-stack
 
 C_CPP_FLAGS = $(FLAGS) -MD -MP -MF $(DEPDIR)/$(@F).d
 
