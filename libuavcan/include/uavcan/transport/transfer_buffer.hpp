@@ -287,11 +287,27 @@ public:
 template <uint16_t MaxBufSize, uint8_t NumStaticBufs>
 class UAVCAN_EXPORT TransferBufferManager : public TransferBufferManagerImpl
 {
-    mutable StaticTransferBufferManagerEntry<MaxBufSize> static_buffers_[NumStaticBufs];  // TODO: zero buffers support
+    mutable StaticTransferBufferManagerEntry<MaxBufSize> static_buffers_[NumStaticBufs];
 
     StaticTransferBufferManagerEntry<MaxBufSize>* getStaticByIndex(uint16_t index) const
     {
         return (index < NumStaticBufs) ? &static_buffers_[index] : NULL;
+    }
+
+public:
+    TransferBufferManager(IPoolAllocator& allocator)
+        : TransferBufferManagerImpl(MaxBufSize, allocator)
+    {
+        StaticAssert<(MaxBufSize > 0)>::check();
+    }
+};
+
+template <uint16_t MaxBufSize>
+class UAVCAN_EXPORT TransferBufferManager<MaxBufSize, 0> : public TransferBufferManagerImpl
+{
+    StaticTransferBufferManagerEntry<MaxBufSize>* getStaticByIndex(uint16_t index) const
+    {
+        return NULL;
     }
 
 public:
