@@ -36,8 +36,9 @@ enum class SocketCanError
 
 /**
  * SocketCAN socket adapter maintains TX and RX queues in user space. At any moment socket's buffer contains
- * no more than one TX frame, rest is waiting in the user space TX queue; when the socket produces loopback for
- * the previously sent TX frame the next frame from the user space TX queue will be sent to the socket.
+ * no more than 'max_frames_in_socket_tx_queue_' TX frames, rest is waiting in the user space TX queue; when the
+ * socket produces loopback for the previously sent TX frame the next frame from the user space TX queue will
+ * be sent into the socket.
  * This approach allows to properly maintain TX timeouts (http://stackoverflow.com/questions/19633015/).
  * TX timestamping is implemented by means of reading RX timestamps of loopback frames (see "TX timestamping" on
  * linux-can mailing list, http://permalink.gmane.org/gmane.linux.can/5322).
@@ -357,7 +358,7 @@ public:
     {
         if (read)
         {
-            pollRead();  // Read poll must be executed first because it may release pending TX flag
+            pollRead();  // Read poll must be executed first because it may decrement frames_in_socket_tx_queue_
         }
         if (write)
         {
@@ -504,7 +505,7 @@ public:
 
     /**
      * This function may return before deadline expiration even if no requested IO operations become possible.
-     * This behavior makes implementation way simpler, and it is OK since uavcan can properly handle such
+     * This behavior makes implementation way simpler, and it is OK since libuavcan can properly handle such
      * early returns.
      * Also it can return more events than were originally requested by uavcan, which is also acceptable.
      */
