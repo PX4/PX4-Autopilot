@@ -12,7 +12,7 @@
 namespace
 {
 
-typedef uavcan::Node<3584> Node;
+typedef uavcan::Node<3136> Node;
 
 Node& getNode()
 {
@@ -118,7 +118,13 @@ int main()
             char buf[24];
             lltoa(uavcan_lpc11c24::clock::getPrevUtcAdjustment().toUSec(), buf);
             buf[sizeof(buf) - 1] = '\0';
-            (void)getLogger().logInfo("app", buf);
+
+            // ...hence we need to construct the message manually:
+            uavcan::protocol::debug::LogMessage logmsg;
+            logmsg.level.value = uavcan::protocol::debug::LogLevel::INFO;
+            logmsg.source = "app";
+            logmsg.text = buf;
+            (void)getLogger().log(logmsg);
         }
     }
 }
