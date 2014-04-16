@@ -26,7 +26,10 @@ namespace uavcan
  */
 class UAVCAN_EXPORT TransferCRC
 {
+#if !UAVCAN_TINY
     static const uint16_t Table[256];
+#endif
+
     uint16_t value_;
 
 public:
@@ -36,10 +39,28 @@ public:
         : value_(0xFFFF)
     { }
 
+#if UAVCAN_TINY
+    void add(uint8_t byte)
+    {
+        value_ ^= byte << 8;
+        for (uint8_t bit = 8; bit > 0; --bit)
+        {
+            if (value_ & 0x8000)
+            {
+                value_ = (value_ << 1) ^ 0x1021;
+            }
+            else
+            {
+                value_ = (value_ << 1);
+            }
+        }
+    }
+#else
     void add(uint8_t byte)
     {
         value_ = ((value_ << 8) ^ Table[((value_ >> 8) ^ byte) & 0xFF]) & 0xFFFF;
     }
+#endif
 
     void add(const uint8_t* bytes, unsigned len)
     {
