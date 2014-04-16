@@ -59,26 +59,15 @@ void init()
 static uint64_t sampleFromCriticalSection(const volatile uint64_t* const value)
 {
     const uint32_t reload = SysTick->LOAD + 1;  // SysTick counts downwards, hence the value subtracted from reload
+
     volatile uint64_t time = *value;
     volatile uint32_t cycles = reload - SysTick->VAL;
 
     if ((SCB->ICSR & SCB_ICSR_PENDSTSET_Msk) == SCB_ICSR_PENDSTSET_Msk)
     {
-        /*
-         * The timer has overflowed either before or after CNT sample was obtained.
-         * We need to sample it once more to be sure that the obtained
-         * counter value has wrapped over zero.
-         */
         cycles = reload - SysTick->VAL;
-        /*
-         * The timer interrupt was set, but not handled yet.
-         * Thus we need to adjust the tick counter manually.
-         */
         time += USecPerOverflow;
     }
-    /*
-     * Raw counter value must be converted from core cycles to microseconds
-     */
     return time + (cycles / (SystemCoreClock / 1000000));
 }
 
