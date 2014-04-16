@@ -135,8 +135,9 @@ extern void __stack_end(void);
 
 /**
  * Vector table for LPC11Cxx
+ * Must be explicitly defined 'used', otherwise LTO optimizer will discard it.
  */
-__attribute__ ((section("vectors")))
+__attribute__ ((used, section("vectors")))
 void (* const VectorTable[64])(void) =
 {
     __stack_end,                            // The initial stack pointer
