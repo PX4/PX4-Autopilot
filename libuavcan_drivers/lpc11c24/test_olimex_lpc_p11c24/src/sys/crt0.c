@@ -28,6 +28,8 @@ extern int main(void);
 
 extern void SystemInit(void);
 
+#pragma GCC optimize 1
+
 /**
  * Firmware entry point
  */
