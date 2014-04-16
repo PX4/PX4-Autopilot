@@ -155,6 +155,7 @@ int _close_r(struct _reent*, int)
     return -1;
 }
 
+__attribute__((used))
 caddr_t _sbrk_r(struct _reent*, int)
 {
     return 0;
