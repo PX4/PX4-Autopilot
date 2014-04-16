@@ -10,7 +10,7 @@
 namespace
 {
 
-typedef uavcan::Node<2048> Node;
+typedef uavcan::Node<3584> Node;
 
 Node& getNode()
 {

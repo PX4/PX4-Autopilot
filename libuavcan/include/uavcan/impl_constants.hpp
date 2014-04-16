@@ -61,9 +61,10 @@
 #endif
 
 /**
- * Functionality / Code Size trade-off.
+ * Trade-off between ROM/RAM usage and functionality/determinism.
+ * Note that this feature is not well tested and should be avoided.
  * Use code search for UAVCAN_TINY to find what functionality will be disabled.
- * This is particularly useful for embedded systems with less than 64kB of ROM.
+ * This is particularly useful for embedded systems with less than 40kB of ROM.
  */
 #ifndef UAVCAN_TINY
 # define UAVCAN_TINY 0

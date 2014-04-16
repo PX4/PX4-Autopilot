@@ -98,11 +98,16 @@ class UAVCAN_EXPORT TransferListenerInstantiationHelper
     enum { DataTypeMaxByteLen = BitLenToByteLen<DataStruct_::MaxBitLen>::Result };
     enum { NeedsBuffer = int(DataTypeMaxByteLen) > int(MaxSingleFrameTransferPayloadLen) };
     enum { BufferSize = NeedsBuffer ? DataTypeMaxByteLen : 0 };
-    enum { NumStaticBufs = NeedsBuffer ? (NumStaticBufs_ ? NumStaticBufs_ : 1) : 0 };
+#if UAVCAN_TINY
+    enum { NumStaticBufs = 0 };
+    enum { NumStaticReceivers = 0 };
+#else
+    enum { NumStaticBufs = NeedsBuffer ? NumStaticBufs_: 0 };
+    enum { NumStaticReceivers = NumStaticReceivers_ };
+#endif
 
 public:
-    // TODO: support for zero static bufs
-    typedef TransferListener<BufferSize, NumStaticBufs, NumStaticReceivers_ ? NumStaticReceivers_ : 1> Type;
+    typedef TransferListener<BufferSize, NumStaticBufs, NumStaticReceivers> Type;
 };
 
 

@@ -27,8 +27,14 @@ template <typename DataType_,
           typename Callback_ = void (*)(const ReceivedDataStructure<typename DataType_::Request>&,
                                         typename DataType_::Response&),
 #endif
+#if UAVCAN_TINY
+          unsigned NumStaticReceivers = 0,
+          unsigned NumStaticBufs = 0
+#else
           unsigned NumStaticReceivers = 2,
-          unsigned NumStaticBufs = 1>
+          unsigned NumStaticBufs = 1
+#endif
+          >
 class UAVCAN_EXPORT ServiceServer
     : public GenericSubscriber<DataType_, typename DataType_::Request,
                                typename TransferListenerInstantiationHelper<typename DataType_::Request,

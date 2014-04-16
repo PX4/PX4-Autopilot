@@ -86,13 +86,16 @@ class UAVCAN_EXPORT MapBase : Noncopyable
 
     LinkedListRoot<KVGroup> list_;
     IPoolAllocator& allocator_;
+#if !UAVCAN_TINY
     KVPair* const static_;
     const unsigned num_static_entries_;
+#endif
 
     KVPair* find(const Key& key);
 
+#if !UAVCAN_TINY
     void optimizeStorage();
-
+#endif
     void compact();
 
     struct YesPredicate
@@ -101,6 +104,13 @@ class UAVCAN_EXPORT MapBase : Noncopyable
     };
 
 protected:
+#if UAVCAN_TINY
+    MapBase(IPoolAllocator& allocator)
+        : allocator_(allocator)
+    {
+        assert(Key() == Key());
+    }
+#else
     MapBase(KVPair* static_buf, unsigned num_static_entries, IPoolAllocator& allocator)
         : allocator_(allocator)
         , static_(static_buf)
@@ -108,6 +118,7 @@ protected:
     {
         assert(Key() == Key());
     }
+#endif
 
     /// Derived class destructor must call removeAll();
     ~MapBase() { }
@@ -149,11 +160,17 @@ class UAVCAN_EXPORT Map : public MapBase<Key, Value>
     typename MapBase<Key, Value>::KVPair static_[NumStaticEntries];
 
 public:
+
+#if !UAVCAN_TINY
+
+    // This instantiation will not be valid in UAVCAN_TINY mode
     Map(IPoolAllocator& allocator)
         : MapBase<Key, Value>(static_, NumStaticEntries, allocator)
     { }
 
     ~Map() { this->removeAll(); }
+
+#endif // !UAVCAN_TINY
 };
 
 
@@ -162,7 +179,11 @@ class UAVCAN_EXPORT Map<Key, Value, 0> : public MapBase<Key, Value>
 {
 public:
     Map(IPoolAllocator& allocator)
+#if UAVCAN_TINY
+        : MapBase<Key, Value>(allocator)
+#else
         : MapBase<Key, Value>(NULL, 0, allocator)
+#endif
     { }
 
     ~Map() { this->removeAll(); }
@@ -176,6 +197,7 @@ public:
 template <typename Key, typename Value>
 typename MapBase<Key, Value>::KVPair* MapBase<Key, Value>::find(const Key& key)
 {
+#if !UAVCAN_TINY
     for (unsigned i = 0; i < num_static_entries_; i++)
     {
         if (static_[i].match(key))
@@ -183,6 +205,7 @@ typename MapBase<Key, Value>::KVPair* MapBase<Key, Value>::find(const Key& key)
             return static_ + i;
         }
     }
+#endif
 
     KVGroup* p = list_.get();
     while (p)
@@ -196,6 +219,8 @@ typename MapBase<Key, Value>::KVPair* MapBase<Key, Value>::find(const Key& key)
     }
     return NULL;
 }
+
+#if !UAVCAN_TINY
 
 template <typename Key, typename Value>
 void MapBase<Key, Value>::optimizeStorage()
@@ -248,6 +273,8 @@ void MapBase<Key, Value>::optimizeStorage()
         *stat = dyn;
     }
 }
+
+#endif // !UAVCAN_TINY
 
 template <typename Key, typename Value>
 void MapBase<Key, Value>::compact()
@@ -313,7 +340,9 @@ void MapBase<Key, Value>::remove(const Key& key)
     if (kv)
     {
         *kv = KVPair();
+#if !UAVCAN_TINY
         optimizeStorage();
+#endif
         compact();
     }
 }
@@ -324,6 +353,7 @@ void MapBase<Key, Value>::removeWhere(Predicate predicate)
 {
     unsigned num_removed = 0;
 
+#if !UAVCAN_TINY
     for (unsigned i = 0; i < num_static_entries_; i++)
     {
         if (!static_[i].match(Key()))
@@ -335,6 +365,7 @@ void MapBase<Key, Value>::removeWhere(Predicate predicate)
             }
         }
     }
+#endif
 
     KVGroup* p = list_.get();
     while (p)
@@ -356,7 +387,9 @@ void MapBase<Key, Value>::removeWhere(Predicate predicate)
 
     if (num_removed > 0)
     {
+#if !UAVCAN_TINY
         optimizeStorage();
+#endif
         compact();
     }
 }
@@ -365,6 +398,7 @@ template <typename Key, typename Value>
 template <typename Predicate>
 const Key* MapBase<Key, Value>::findFirstKey(Predicate predicate) const
 {
+#if !UAVCAN_TINY
     for (unsigned i = 0; i < num_static_entries_; i++)
     {
         if (!static_[i].match(Key()))
@@ -375,6 +409,7 @@ const Key* MapBase<Key, Value>::findFirstKey(Predicate predicate) const
             }
         }
     }
+#endif
 
     KVGroup* p = list_.get();
     while (p)
@@ -411,6 +446,7 @@ template <typename Key, typename Value>
 unsigned MapBase<Key, Value>::getNumStaticPairs() const
 {
     unsigned num = 0;
+#if !UAVCAN_TINY
     for (unsigned i = 0; i < num_static_entries_; i++)
     {
         if (!static_[i].match(Key()))
@@ -418,6 +454,7 @@ unsigned MapBase<Key, Value>::getNumStaticPairs() const
             num++;
         }
     }
+#endif
     return num;
 }
 

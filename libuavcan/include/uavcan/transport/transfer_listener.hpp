@@ -150,6 +150,10 @@ public:
         , bufmgr_(allocator)
         , receivers_(allocator)
     {
+#if UAVCAN_TINY
+        StaticAssert<NumStaticBufs == 0>::check();
+        StaticAssert<NumStaticReceivers == 0>::check();
+#endif
         StaticAssert<(NumStaticReceivers >= NumStaticBufs)>::check();  // Otherwise it would be meaningless
     }
 
@@ -164,7 +168,12 @@ public:
  * This class should be derived by callers.
  */
 template <unsigned MaxBufSize>
-class UAVCAN_EXPORT ServiceResponseTransferListener : public TransferListener<MaxBufSize, 1, 1>
+class UAVCAN_EXPORT ServiceResponseTransferListener
+#if UAVCAN_TINY
+    : public TransferListener<MaxBufSize, 0, 0>
+#else
+    : public TransferListener<MaxBufSize, 1, 1>
+#endif
 {
 public:
     struct ExpectedResponseParams

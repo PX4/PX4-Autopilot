@@ -298,6 +298,9 @@ public:
     TransferBufferManager(IPoolAllocator& allocator)
         : TransferBufferManagerImpl(MaxBufSize, allocator)
     {
+#if UAVCAN_TINY
+        StaticAssert<(NumStaticBufs == 0)>::check();   // Static buffers in UAVCAN_TINY mode are not allowed
+#endif
         StaticAssert<(MaxBufSize > 0)>::check();
     }
 };
@@ -305,7 +308,7 @@ public:
 template <uint16_t MaxBufSize>
 class UAVCAN_EXPORT TransferBufferManager<MaxBufSize, 0> : public TransferBufferManagerImpl
 {
-    StaticTransferBufferManagerEntry<MaxBufSize>* getStaticByIndex(uint16_t index) const
+    StaticTransferBufferManagerEntry<MaxBufSize>* getStaticByIndex(uint16_t) const
     {
         return NULL;
     }
