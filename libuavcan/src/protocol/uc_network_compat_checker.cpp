@@ -2,6 +2,9 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#include <uavcan/impl_constants.hpp>
+#if !UAVCAN_TINY
+
 #include <cassert>
 #include <uavcan/debug.hpp>
 #include <uavcan/protocol/network_compat_checker.hpp>
@@ -194,3 +197,5 @@ int NetworkCompatibilityChecker::publishGlobalDiscoveryRequest(INode& node)
 }
 
 }
+
+#endif

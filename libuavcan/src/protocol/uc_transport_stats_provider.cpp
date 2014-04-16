@@ -2,6 +2,9 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#include <uavcan/impl_constants.hpp>
+#if !UAVCAN_TINY
+
 #include <uavcan/protocol/transport_stats_provider.hpp>
 
 namespace uavcan
@@ -33,3 +36,5 @@ int TransportStatsProvider::start()
 }
 
 }
+
+#endif

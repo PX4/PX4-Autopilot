@@ -2,6 +2,9 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#include <uavcan/impl_constants.hpp>
+#if !UAVCAN_TINY
+
 #include <cstdlib>
 #include <cassert>
 #include <uavcan/protocol/global_time_sync_master.hpp>
@@ -192,3 +195,5 @@ int GlobalTimeSyncMaster::publish()
 }
 
 }
+
+#endif
