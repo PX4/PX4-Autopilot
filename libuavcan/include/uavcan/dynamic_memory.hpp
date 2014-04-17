@@ -229,7 +229,7 @@ template <std::size_t PoolSize, std::size_t BlockSize>
 PoolAllocator<PoolSize, BlockSize>::PoolAllocator()
     : free_list_(reinterpret_cast<Node*>(pool_.bytes))
 {
-    memset(pool_.bytes, 0, PoolSize);
+    std::memset(pool_.bytes, 0, PoolSize);
     for (unsigned i = 0; (i + 1) < (NumBlocks - 1 + 1); i++) // -Werror=type-limits
     {
         free_list_[i].next = free_list_ + i + 1;

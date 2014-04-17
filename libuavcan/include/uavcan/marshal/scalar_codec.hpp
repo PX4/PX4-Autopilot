@@ -107,7 +107,7 @@ int ScalarCodec::encode(const T value)
         uint8_t bytes[sizeof(T)];
     } byte_union;
     byte_union.value = value;
-    clearExtraBits<BitLen>(byte_union.value);
+    clearExtraBits<BitLen, T>(byte_union.value);
     convertByteOrder<BitLen>(byte_union.bytes);
     return encodeBytesImpl(byte_union.bytes, BitLen);
 }

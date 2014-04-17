@@ -21,9 +21,9 @@ struct UAVCAN_EXPORT CanFrame
 {
     static const uint32_t MaskStdID = 0x000007FF;
     static const uint32_t MaskExtID = 0x1FFFFFFF;
-    static const uint32_t FlagEFF = 1 << 31;                  ///< Extended frame format
-    static const uint32_t FlagRTR = 1 << 30;                  ///< Remote transmission request
-    static const uint32_t FlagERR = 1 << 29;                  ///< Error frame
+    static const uint32_t FlagEFF = 1U << 31;                  ///< Extended frame format
+    static const uint32_t FlagRTR = 1U << 30;                  ///< Remote transmission request
+    static const uint32_t FlagERR = 1U << 29;                  ///< Error frame
 
     static const uint8_t MaxDataLen = 8;
 
