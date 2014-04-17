@@ -116,7 +116,7 @@ class SocketCanIface : public uavcan::ICanIface
         { }
     };
 
-    const SystemClock clock_;
+    const SystemClock& clock_;
     const int fd_;
 
     const unsigned max_frames_in_socket_tx_queue_;
@@ -280,6 +280,7 @@ class SocketCanIface : public uavcan::ICanIface
                 }
                 if (accept)
                 {
+                    rx.ts_utc += clock_.getPrivateAdjustment();
                     rx_queue_.push(rx);
                 }
             }
@@ -298,8 +299,9 @@ public:
     /**
      * Takes ownership of socket's file descriptor.
      */
-    explicit SocketCanIface(int socket_fd, int max_frames_in_socket_tx_queue = 3)
-        : fd_(socket_fd)
+    SocketCanIface(const SystemClock& clock, int socket_fd, int max_frames_in_socket_tx_queue = 3)
+        : clock_(clock)
+        , fd_(socket_fd)
         , max_frames_in_socket_tx_queue_(max_frames_in_socket_tx_queue)
         , frames_in_socket_tx_queue_(0)
     {
@@ -487,14 +489,15 @@ public:
     static constexpr unsigned MaxIfaces = uavcan::MaxCanIfaces;
 
 private:
-    const SystemClock clock_;
+    const SystemClock& clock_;
     uavcan::LazyConstructor<SocketCanIface> ifaces_[MaxIfaces];
     ::pollfd pollfds_[MaxIfaces];
     std::uint8_t num_ifaces_;
 
 public:
-    SocketCanDriver()
-        : num_ifaces_(0)
+    explicit SocketCanDriver(const SystemClock& clock)
+        : clock_(clock)
+        , num_ifaces_(0)
     {
         for (auto& p : pollfds_)
         {
@@ -601,7 +604,7 @@ public:
         // Construct the iface - upon successful construction the iface will take ownership of the fd.
         try
         {
-            ifaces_[num_ifaces_].construct<int>(fd);
+            ifaces_[num_ifaces_].construct<const SystemClock&, int>(clock_, fd);
         }
         catch (...)
         {

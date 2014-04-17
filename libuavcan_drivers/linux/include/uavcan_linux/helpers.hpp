@@ -31,12 +31,12 @@ class DefaultLogSink : public uavcan::ILogSink
  */
 struct DriverPack
 {
-    SocketCanDriver can;
     SystemClock clock;
+    SocketCanDriver can;
 
     DriverPack(ClockAdjustmentMode clock_adjustment_mode)
-        : can()
-        , clock(clock_adjustment_mode)
+        : clock(clock_adjustment_mode)
+        , can(clock)
     { }
 };
 

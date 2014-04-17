@@ -32,8 +32,16 @@ static void testSocketRxTx(const std::string& iface_name)
     const int sock2 = uavcan_linux::SocketCanIface::openSocket(iface_name);
     ENFORCE(sock1 >= 0 && sock2 >= 0);
 
-    uavcan_linux::SocketCanIface if1(sock1);
-    uavcan_linux::SocketCanIface if2(sock2);
+    /*
+     * Clocks will have some offset from the true system time
+     * SocketCAN driver must handle this correctly
+     */
+    uavcan_linux::SystemClock clock_impl(uavcan_linux::ClockAdjustmentMode::PerDriverPrivate);
+    clock_impl.adjustUtc(uavcan::UtcDuration::fromMSec(100000));
+    const uavcan_linux::SystemClock& clock = clock_impl;
+
+    uavcan_linux::SocketCanIface if1(clock, sock1);
+    uavcan_linux::SocketCanIface if2(clock, sock2);
 
     /*
      * Sending two frames, one of which must be returned back
@@ -68,8 +76,6 @@ static void testSocketRxTx(const std::string& iface_name)
     uavcan::MonotonicTime ts_mono;
     uavcan::UtcTime ts_utc;
     uavcan::CanIOFlags flags = 0;
-
-    const uavcan_linux::SystemClock clock(uavcan_linux::ClockAdjustmentMode::PerDriverPrivate);
 
     /*
      * Read first
@@ -132,8 +138,16 @@ static void testSocketFilters(const std::string& iface_name)
     const int sock2 = uavcan_linux::SocketCanIface::openSocket(iface_name);
     ENFORCE(sock1 >= 0 && sock2 >= 0);
 
-    uavcan_linux::SocketCanIface if1(sock1);
-    uavcan_linux::SocketCanIface if2(sock2);
+    /*
+     * Clocks will have some offset from the true system time
+     * SocketCAN driver must handle this correctly
+     */
+    uavcan_linux::SystemClock clock_impl(uavcan_linux::ClockAdjustmentMode::PerDriverPrivate);
+    clock_impl.adjustUtc(uavcan::UtcDuration::fromMSec(-1000));
+    const uavcan_linux::SystemClock& clock = clock_impl;
+
+    uavcan_linux::SocketCanIface if1(clock, sock1);
+    uavcan_linux::SocketCanIface if2(clock, sock2);
 
     /*
      * Configuring filters
@@ -199,7 +213,15 @@ static void testSocketFilters(const std::string& iface_name)
 
 static void testDriver(const std::vector<std::string>& iface_names)
 {
-    uavcan_linux::SocketCanDriver driver;
+    /*
+     * Clocks will have some offset from the true system time
+     * SocketCAN driver must handle this correctly
+     */
+    uavcan_linux::SystemClock clock_impl(uavcan_linux::ClockAdjustmentMode::PerDriverPrivate);
+    clock_impl.adjustUtc(uavcan::UtcDuration::fromMSec(9000000));
+    const uavcan_linux::SystemClock& clock = clock_impl;
+
+    uavcan_linux::SocketCanDriver driver(clock);
     for (auto ifn : iface_names)
     {
         std::cout << "Adding iface " << ifn << std::endl;
@@ -254,7 +276,6 @@ static void testDriver(const std::vector<std::string>& iface_names)
     /*
      * Receive loopback
      */
-    const uavcan_linux::SystemClock clock(uavcan_linux::ClockAdjustmentMode::PerDriverPrivate);
     for (int i = 0; i < driver.getNumIfaces(); i++)
     {
         uavcan::CanFrame frame;
