@@ -44,7 +44,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
             TransferCRC crc = crc_base_;
             crc.add(payload, payload_len);
 
-            static const int BUFLEN = sizeof(CanFrame::data);
+            static const int BUFLEN = sizeof(static_cast<CanFrame*>(0)->data);
             uint8_t buf[BUFLEN];
 
             buf[0] = crc.get() & 0xFF;       // Transfer CRC, little endian

@@ -126,7 +126,7 @@ int ScalarCodec::decode(T& value)
     if (read_res > 0)
     {
         convertByteOrder<BitLen>(byte_union.bytes);
-        fixTwosComplement<BitLen>(byte_union.value);
+        fixTwosComplement<BitLen, T>(byte_union.value);
         value = byte_union.value;
     }
     return read_res;

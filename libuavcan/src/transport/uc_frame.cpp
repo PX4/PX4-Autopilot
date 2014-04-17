@@ -57,7 +57,7 @@ bool Frame::parse(const CanFrame& can_frame)
         return false;
     }
 
-    if (can_frame.dlc > sizeof(CanFrame::data))
+    if (can_frame.dlc > sizeof(can_frame.data))
     {
         assert(0);  // This is not a protocol error, so assert() is ok
         return false;
@@ -148,7 +148,7 @@ bool Frame::compile(CanFrame& out_can_frame) const
     case TransferTypeServiceRequest:
     case TransferTypeMessageUnicast:
     {
-        assert((payload_len_ + 1) <= sizeof(CanFrame::data));
+        assert((payload_len_ + 1) <= sizeof(out_can_frame.data));
         out_can_frame.data[0] = dst_node_id_.get();
         out_can_frame.dlc = payload_len_ + 1;
         std::copy(payload_, payload_ + payload_len_, out_can_frame.data + 1);

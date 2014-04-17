@@ -52,7 +52,7 @@ public:
     {
         typedef typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType IntType;
         typedef typename NativeFloatSelector<BitLen>::Type FloatType;
-        StaticAssert<sizeof(FloatType) * 8 == BitLen && std::numeric_limits<FloatType>::is_iec559>::check();
+        StaticAssert<sizeof(FloatType) * 8 == BitLen>::check();
         union { IntType i; FloatType f; } u;
         u.f = value;
         return u.i;
@@ -64,7 +64,7 @@ public:
     {
         typedef typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType IntType;
         typedef typename NativeFloatSelector<BitLen>::Type FloatType;
-        StaticAssert<sizeof(FloatType) * 8 == BitLen && std::numeric_limits<FloatType>::is_iec559>::check();
+        StaticAssert<sizeof(FloatType) * 8 == BitLen>::check();
         union { IntType i; FloatType f; } u;
         u.i = value;
         return u.f;
