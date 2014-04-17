@@ -68,7 +68,8 @@ static uint64_t sampleFromCriticalSection(const volatile uint64_t* const value)
         cycles = reload - SysTick->VAL;
         time += USecPerOverflow;
     }
-    return time + (cycles / (SystemCoreClock / 1000000));
+    const uint32_t cycles_per_usec = SystemCoreClock / 1000000;
+    return time + (cycles / cycles_per_usec);
 }
 
 uint64_t getUtcUSecFromCanInterrupt()
