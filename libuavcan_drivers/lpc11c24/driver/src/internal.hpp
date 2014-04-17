@@ -17,11 +17,11 @@ struct CriticalSectionLocker
 {
     CriticalSectionLocker()
     {
-        __asm volatile ("cpsid  i");
+        __disable_irq();
     }
     ~CriticalSectionLocker()
     {
-        __asm volatile ("cpsie  i");
+        __enable_irq();
     }
 };
 

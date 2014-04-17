@@ -314,7 +314,7 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks, uavcan::M
          * break WFE every once in a while.
          */
 #if !UAVCAN_LPC11C24_NO_WFE
-        asm volatile ("wfe");
+        __WFE();
 #endif
     }
 

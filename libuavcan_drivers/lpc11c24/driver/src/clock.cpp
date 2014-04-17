@@ -31,7 +31,9 @@ const int32_t MaxUtcSpeedCorrectionX16 = 100 * 16;
 
 }
 
-__attribute((noreturn))
+#if __GNUC__
+__attribute__((noreturn))
+#endif
 void fail()
 {
     while (true) { }

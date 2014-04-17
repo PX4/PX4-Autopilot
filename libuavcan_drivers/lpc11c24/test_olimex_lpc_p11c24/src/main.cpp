@@ -32,7 +32,9 @@ uavcan::Logger& getLogger()
     return logger;
 }
 
+#if __GNUC__
 __attribute__((noreturn))
+#endif
 void die()
 {
     while (true) { }
