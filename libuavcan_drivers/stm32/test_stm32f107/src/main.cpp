@@ -50,7 +50,9 @@ leave:
     return res;
 }
 
+#if __GNUC__
 __attribute__((noreturn))
+#endif
 void die(int status)
 {
     lowsyslog("Now I am dead x_x %i\n", status);
