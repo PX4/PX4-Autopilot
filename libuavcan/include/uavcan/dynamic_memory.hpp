@@ -23,9 +23,7 @@ class UAVCAN_EXPORT IPoolAllocator
 public:
     virtual ~IPoolAllocator() { }
 
-    // coverity[+alloc]
     virtual void* allocate(std::size_t size) = 0;
-    // coverity[+free : arg-0]
     virtual void deallocate(const void* ptr) = 0;
 
     virtual bool isInPool(const void* ptr) const = 0;
@@ -55,9 +53,7 @@ public:
 
     bool addPool(IPoolAllocator* pool);
 
-    // coverity[+alloc]
     void* allocate(std::size_t size);
-    // coverity[+free : arg-0]
     void deallocate(const void* ptr);
 
     bool isInPool(const void* ptr) const;
@@ -90,9 +86,7 @@ public:
 
     PoolAllocator();
 
-    // coverity[+alloc]
     void* allocate(std::size_t size);
-    // coverity[+free : arg-0]
     void deallocate(const void* ptr);
 
     bool isInPool(const void* ptr) const;
@@ -120,9 +114,7 @@ public:
         assert(max_blocks_ > 0);
     }
 
-    // coverity[+alloc]
     void* allocate(std::size_t size);
-    // coverity[+free : arg-0]
     void deallocate(const void* ptr);
 
     bool isInPool(const void* ptr) const;
