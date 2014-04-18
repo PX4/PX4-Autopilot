@@ -127,7 +127,7 @@ ORB_DEFINE(position_setpoint_triplet, struct position_setpoint_triplet_s);
 ORB_DEFINE(vehicle_global_velocity_setpoint, struct vehicle_global_velocity_setpoint_s);
 
 #include "topics/mission.h"
-ORB_DEFINE(mission, struct mission_s);
+ORB_DEFINE(offboard_mission, struct mission_s);
 ORB_DEFINE(onboard_mission, struct mission_s);
 
 #include "topics/mission_result.h"
