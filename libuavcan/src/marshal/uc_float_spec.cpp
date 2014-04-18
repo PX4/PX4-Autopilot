@@ -60,17 +60,17 @@ uint16_t IEEE754Converter::nativeNonIeeeToHalf(float value)
     }
     if (isnan(value))
     {
-        return hbits | 0x7FFF;
+        return hbits | 0x7FFFU;
     }
     if (isinf(value))
     {
-        return hbits | 0x7C00;
+        return hbits | 0x7C00U;
     }
     int exp;
     std::frexp(value, &exp);
     if (exp > 16)
     {
-        return hbits | 0x7C00;
+        return hbits | 0x7C00U;
     }
     if (exp < -13)
     {
@@ -81,8 +81,8 @@ uint16_t IEEE754Converter::nativeNonIeeeToHalf(float value)
         value = std::ldexp(value, 11 - exp);
         hbits |= ((exp + 14) << 10);
     }
-    const int ival = static_cast<int>(value);
-    hbits |= static_cast<uint16_t>(std::abs(ival) & 0x3FF);
+    const int32_t ival = static_cast<int32_t>(value);
+    hbits |= static_cast<uint16_t>(std::abs(ival) & 0x3FFU);
     float diff = std::abs(value - static_cast<float>(ival));
     hbits += diff >= 0.5f;
     return hbits;
@@ -91,25 +91,25 @@ uint16_t IEEE754Converter::nativeNonIeeeToHalf(float value)
 float IEEE754Converter::halfToNativeNonIeee(uint16_t value)
 {
     float out;
-    int abs = value & 0x7FFF;
-    if (abs > 0x7C00)
+    unsigned abs = value & 0x7FFFU;
+    if (abs > 0x7C00U)
     {
         out = std::numeric_limits<float>::has_quiet_NaN ? std::numeric_limits<float>::quiet_NaN() : 0.0f;
     }
-    else if (abs == 0x7C00)
+    else if (abs == 0x7C00U)
     {
         out = std::numeric_limits<float>::has_infinity ?
               std::numeric_limits<float>::infinity() : std::numeric_limits<float>::max();
     }
-    else if (abs > 0x3FF)
+    else if (abs > 0x3FFU)
     {
-        out = std::ldexp(static_cast<float>((value & 0x3FF) | 0x400), (abs >> 10) - 25);
+        out = std::ldexp(static_cast<float>((value & 0x3FFU) | 0x400U), (abs >> 10) - 25);
     }
     else
     {
         out = std::ldexp(static_cast<float>(abs), -24);
     }
-    return (value & 0x8000) ? -out : out;
+    return (value & 0x8000U) ? -out : out;
 }
 
 }
