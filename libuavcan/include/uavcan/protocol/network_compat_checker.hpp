@@ -59,7 +59,7 @@ class UAVCAN_EXPORT NetworkCompatibilityChecker : Noncopyable
     int checkNodes();
 
 public:
-    NetworkCompatibilityChecker(INode& node)
+    explicit NetworkCompatibilityChecker(INode& node)
         : ns_sub_(node)
         , cats_cln_(node)
         , checking_dtkind_(DataTypeKindService)

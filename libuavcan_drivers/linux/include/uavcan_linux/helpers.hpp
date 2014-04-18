@@ -34,7 +34,7 @@ struct DriverPack
     SystemClock clock;
     SocketCanDriver can;
 
-    DriverPack(ClockAdjustmentMode clock_adjustment_mode)
+    explicit DriverPack(ClockAdjustmentMode clock_adjustment_mode)
         : clock(clock_adjustment_mode)
         , can(clock)
     { }
@@ -75,7 +75,7 @@ public:
     /**
      * Takes ownership of the driver container.
      */
-    Node(DriverPackPtr driver_pack)
+    explicit Node(DriverPackPtr driver_pack)
         : uavcan::Node<NodeMemPoolSize>(driver_pack->can, driver_pack->clock)
         , driver_pack_(driver_pack)
     {

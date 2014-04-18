@@ -74,7 +74,7 @@ protected:
     INode& node_;
     uint32_t failure_count_;
 
-    GenericSubscriberBase(INode& node)
+    explicit GenericSubscriberBase(INode& node)
         : node_(node)
         , failure_count_(0)
     { }

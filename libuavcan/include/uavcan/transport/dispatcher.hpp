@@ -24,7 +24,7 @@ class UAVCAN_EXPORT LoopbackFrameListenerBase : public LinkedListNode<LoopbackFr
     Dispatcher& dispatcher_;
 
 protected:
-    LoopbackFrameListenerBase(Dispatcher& dispatcher)
+    explicit LoopbackFrameListenerBase(Dispatcher& dispatcher)
         : dispatcher_(dispatcher)
     { }
 
@@ -70,7 +70,7 @@ class UAVCAN_EXPORT Dispatcher : Noncopyable
         {
             const DataTypeID id_;
         public:
-            DataTypeIDInsertionComparator(DataTypeID id) : id_(id) { }
+            explicit DataTypeIDInsertionComparator(DataTypeID id) : id_(id) { }
             bool operator()(const TransferListenerBase* listener) const
             {
                 assert(listener);

@@ -61,7 +61,7 @@ class SystemClock : public uavcan::ISystemClock
     }
 
 public:
-    SystemClock(ClockAdjustmentMode adj_mode = detectPreferredClockAdjustmentMode())
+    explicit SystemClock(ClockAdjustmentMode adj_mode = detectPreferredClockAdjustmentMode())
         : gradual_adj_limit_(uavcan::UtcDuration::fromMSec(4000))
         , adj_mode_(adj_mode)
         , step_adj_cnt_(0)

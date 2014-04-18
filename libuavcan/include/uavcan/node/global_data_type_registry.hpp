@@ -37,7 +37,7 @@ class UAVCAN_EXPORT GlobalDataTypeRegistry : Noncopyable
     struct EntryInsertionComparator
     {
         const DataTypeID id;
-        EntryInsertionComparator(Entry* dtd) : id(dtd->descriptor.getID()) { }
+        explicit EntryInsertionComparator(Entry* dtd) : id(dtd->descriptor.getID()) { }
         bool operator()(const Entry* entry) const
         {
             assert(entry);

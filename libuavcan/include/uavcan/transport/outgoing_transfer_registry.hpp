@@ -84,7 +84,7 @@ class UAVCAN_EXPORT OutgoingTransferRegistry : public IOutgoingTransferRegistry,
         const MonotonicTime ts_;
 
     public:
-        DeadlineExpiredPredicate(MonotonicTime ts)
+        explicit DeadlineExpiredPredicate(MonotonicTime ts)
             : ts_(ts)
         { }
 
@@ -122,7 +122,7 @@ class UAVCAN_EXPORT OutgoingTransferRegistry : public IOutgoingTransferRegistry,
     Map<OutgoingTransferRegistryKey, Value, NumStaticEntries> map_;
 
 public:
-    OutgoingTransferRegistry(IPoolAllocator& allocator)
+    explicit OutgoingTransferRegistry(IPoolAllocator& allocator)
         : map_(allocator)
     { }
 

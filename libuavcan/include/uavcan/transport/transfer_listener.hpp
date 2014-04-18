@@ -66,7 +66,7 @@ class UAVCAN_EXPORT SingleFrameIncomingTransfer : public IncomingTransfer
     const uint8_t* const payload_;
     const uint8_t payload_len_;
 public:
-    SingleFrameIncomingTransfer(const RxFrame& frm);
+    explicit SingleFrameIncomingTransfer(const RxFrame& frm);
     int read(unsigned offset, uint8_t* data, unsigned len) const;
 };
 

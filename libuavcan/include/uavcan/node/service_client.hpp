@@ -75,7 +75,7 @@ protected:
     MonotonicDuration request_timeout_;
     bool pending_;
 
-    ServiceClientBase(INode& node)
+    explicit ServiceClientBase(INode& node)
         : DeadlineHandler(node.getScheduler())
         , request_timeout_(getDefaultRequestTimeout())
         , pending_(false)

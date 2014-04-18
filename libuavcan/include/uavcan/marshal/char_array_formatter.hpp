@@ -68,7 +68,7 @@ class UAVCAN_EXPORT CharArrayFormatter
 public:
     typedef ArrayType_ ArrayType;
 
-    CharArrayFormatter(ArrayType& array)
+    explicit CharArrayFormatter(ArrayType& array)
         : array_(array)
     { }
 

@@ -84,7 +84,7 @@ class UAVCAN_EXPORT ScalarCodec
     int decodeBytesImpl(uint8_t* bytes, unsigned bitlen);
 
 public:
-    ScalarCodec(BitStream& stream)
+    explicit ScalarCodec(BitStream& stream)
         : stream_(stream)
     { }
 

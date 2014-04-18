@@ -164,7 +164,7 @@ public:
 #if !UAVCAN_TINY
 
     // This instantiation will not be valid in UAVCAN_TINY mode
-    Map(IPoolAllocator& allocator)
+    explicit Map(IPoolAllocator& allocator)
         : MapBase<Key, Value>(static_, NumStaticEntries, allocator)
     { }
 
@@ -178,7 +178,7 @@ template <typename Key, typename Value>
 class UAVCAN_EXPORT Map<Key, Value, 0> : public MapBase<Key, Value>
 {
 public:
-    Map(IPoolAllocator& allocator)
+    explicit Map(IPoolAllocator& allocator)
 #if UAVCAN_TINY
         : MapBase<Key, Value>(allocator)
 #else

@@ -56,7 +56,7 @@ public:
         std::fill(data_.pool, data_.pool + sizeof(T), 0);
     }
 
-    LazyConstructor(const LazyConstructor<T>& rhs)
+    LazyConstructor(const LazyConstructor<T>& rhs)   // Implicit
         : ptr_(NULL)
     {
         std::fill(data_.pool, data_.pool + sizeof(T), 0);

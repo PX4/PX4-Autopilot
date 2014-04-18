@@ -82,7 +82,7 @@ public:
 
     NodeID() : value_(ValueInvalid) { }
 
-    NodeID(uint8_t value)
+    NodeID(uint8_t value)   // Implicit
         : value_(value)
     {
         assert(isValid());

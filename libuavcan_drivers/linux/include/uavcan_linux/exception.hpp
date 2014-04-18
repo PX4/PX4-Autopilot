@@ -15,7 +15,7 @@ class Exception : public std::runtime_error
     const int errno_;
 
 public:
-    Exception(const std::string& descr)
+    explicit Exception(const std::string& descr)
         : std::runtime_error(descr)
         , errno_(errno)
     { }

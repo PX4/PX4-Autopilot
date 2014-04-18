@@ -33,7 +33,7 @@ public:
 
     DataTypeID() : value_(0xFFFF) { }
 
-    DataTypeID(uint16_t id)
+    DataTypeID(uint16_t id)  // Implicit
         : value_(id)
     {
         assert(isValid());

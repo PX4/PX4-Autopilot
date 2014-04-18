@@ -79,7 +79,7 @@ protected:
 public:
     TransferBufferManagerEntry() { }
 
-    TransferBufferManagerEntry(const TransferBufferManagerKey& key)
+    explicit TransferBufferManagerEntry(const TransferBufferManagerKey& key)
         : key_(key)
     { }
 
@@ -298,7 +298,7 @@ class UAVCAN_EXPORT TransferBufferManager : public TransferBufferManagerImpl
     }
 
 public:
-    TransferBufferManager(IPoolAllocator& allocator)
+    explicit TransferBufferManager(IPoolAllocator& allocator)
         : TransferBufferManagerImpl(MaxBufSize, allocator)
     {
 #if UAVCAN_TINY
@@ -317,7 +317,7 @@ class UAVCAN_EXPORT TransferBufferManager<MaxBufSize, 0> : public TransferBuffer
     }
 
 public:
-    TransferBufferManager(IPoolAllocator& allocator)
+    explicit TransferBufferManager(IPoolAllocator& allocator)
         : TransferBufferManagerImpl(MaxBufSize, allocator)
     {
         StaticAssert<(MaxBufSize > 0)>::check();

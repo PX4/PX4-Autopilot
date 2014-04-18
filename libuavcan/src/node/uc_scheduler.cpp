@@ -40,7 +40,7 @@ bool DeadlineHandler::isRunning() const
 struct MonotonicDeadlineHandlerInsertionComparator
 {
     const MonotonicTime ts;
-    MonotonicDeadlineHandlerInsertionComparator(MonotonicTime ts) : ts(ts) { }
+    explicit MonotonicDeadlineHandlerInsertionComparator(MonotonicTime ts) : ts(ts) { }
     bool operator()(const DeadlineHandler* t) const
     {
         return t->getDeadline() > ts;

@@ -79,7 +79,7 @@ private:
     {
         const CanFrame& frm_;
     public:
-        PriorityInsertionComparator(const CanFrame& frm) : frm_(frm) { }
+        explicit PriorityInsertionComparator(const CanFrame& frm) : frm_(frm) { }
         bool operator()(const Entry* entry)
         {
             assert(entry);

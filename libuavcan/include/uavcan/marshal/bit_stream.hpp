@@ -42,7 +42,7 @@ public:
         ResultOk          = 1
     };
 
-    BitStream(ITransferBuffer& buf)
+    explicit BitStream(ITransferBuffer& buf)
         : buf_(buf)
         , bit_offset_(0)
         , byte_cache_(0)
