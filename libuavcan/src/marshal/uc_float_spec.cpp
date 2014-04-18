@@ -84,7 +84,7 @@ uint16_t IEEE754Converter::nativeNonIeeeToHalf(float value)
     const int32_t ival = static_cast<int32_t>(value);
     hbits |= static_cast<uint16_t>(std::abs(ival) & 0x3FFU);
     float diff = std::abs(value - static_cast<float>(ival));
-    hbits += diff >= 0.5f;
+    hbits += diff >= 0.5F;
     return hbits;
 }
 
@@ -94,7 +94,7 @@ float IEEE754Converter::halfToNativeNonIeee(uint16_t value)
     unsigned abs = value & 0x7FFFU;
     if (abs > 0x7C00U)
     {
-        out = std::numeric_limits<float>::has_quiet_NaN ? std::numeric_limits<float>::quiet_NaN() : 0.0f;
+        out = std::numeric_limits<float>::has_quiet_NaN ? std::numeric_limits<float>::quiet_NaN() : 0.0F;
     }
     else if (abs == 0x7C00U)
     {
