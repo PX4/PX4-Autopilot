@@ -36,6 +36,7 @@ class UAVCAN_EXPORT Noncopyable
     Noncopyable& operator=(const Noncopyable&);
 protected:
     Noncopyable() { }
+    ~Noncopyable() { }
 };
 
 /**

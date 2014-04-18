@@ -20,13 +20,16 @@ class DurationBase
 {
     int64_t usec_;
 
-public:
+protected:
+    ~DurationBase() { }
+
     DurationBase()
         : usec_(0)
     {
         StaticAssert<(sizeof(D) == 8)>::check();
     }
 
+public:
     static D getInfinite() { return fromUSec(std::numeric_limits<int64_t>::max()); }
 
     static D fromUSec(int64_t us)
@@ -93,7 +96,9 @@ class TimeBase
 {
     uint64_t usec_;
 
-public:
+protected:
+    ~TimeBase() { }
+
     TimeBase()
         : usec_(0)
     {
@@ -101,6 +106,7 @@ public:
         StaticAssert<(sizeof(D) == 8)>::check();
     }
 
+public:
     static T getMax() { return fromUSec(std::numeric_limits<uint64_t>::max()); }
 
     static T fromUSec(uint64_t us)
@@ -256,7 +262,7 @@ std::string TimeBase<T, D>::toString() const
 
 template <typename Stream, typename D>
 UAVCAN_EXPORT
-Stream& operator<<(Stream& s, DurationBase<D> d)
+Stream& operator<<(Stream& s, const DurationBase<D>& d)
 {
     char buf[DurationBase<D>::StringBufSize];
     d.toString(buf);
@@ -266,7 +272,7 @@ Stream& operator<<(Stream& s, DurationBase<D> d)
 
 template <typename Stream, typename T, typename D>
 UAVCAN_EXPORT
-Stream& operator<<(Stream& s, TimeBase<T, D> t)
+Stream& operator<<(Stream& s, const TimeBase<T, D>& t)
 {
     char buf[TimeBase<T, D>::StringBufSize];
     t.toString(buf);

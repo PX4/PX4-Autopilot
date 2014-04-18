@@ -151,6 +151,9 @@ private:
     }
     template <typename> void initialize(...) { }
 
+protected:
+    ~ArrayImpl() { }
+
 public:
     typedef typename StorageType<T>::Type ValueType;
     typedef typename Base::SizeType SizeType;

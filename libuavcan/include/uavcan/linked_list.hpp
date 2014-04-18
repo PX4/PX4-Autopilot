@@ -24,6 +24,8 @@ protected:
         : next_(NULL)
     { }
 
+    ~LinkedListNode() { }
+
 public:
     T* getNextListNode() const { return next_; }
 
