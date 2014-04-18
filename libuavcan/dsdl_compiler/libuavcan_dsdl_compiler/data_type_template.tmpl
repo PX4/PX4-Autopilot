@@ -97,7 +97,7 @@ struct UAVCAN_EXPORT ${t.cpp_type_name}
 
     ${type_name}()
 % for idx,a in enumerate(fields):
-    ${':' if idx == 0 else ','} ${a.name}()
+        ${':' if idx == 0 else ','} ${a.name}()
 % endfor
     {
         enum { MaxByteLen = ::uavcan::BitLenToByteLen<MaxBitLen>::Result };
