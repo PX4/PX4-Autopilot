@@ -155,11 +155,13 @@ def generate_one_type(t):
     if t.kind == t.KIND_MESSAGE:
         inject_cpp_types(t.fields)
         inject_cpp_types(t.constants)
+        t.all_attributes = t.fields + t.constants
     else:
         inject_cpp_types(t.request_fields)
         inject_cpp_types(t.request_constants)
         inject_cpp_types(t.response_fields)
         inject_cpp_types(t.response_constants)
+        t.all_attributes = t.request_fields + t.request_constants + t.response_fields + t.response_constants
 
     # Constant properties
     def inject_constant_info(constants):

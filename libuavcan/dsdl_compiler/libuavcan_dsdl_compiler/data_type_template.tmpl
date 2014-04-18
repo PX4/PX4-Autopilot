@@ -32,6 +32,10 @@ ${line}
 % endfor
 ******************************************************************************/
 
+% for a in t.all_attributes:
+#undef ${a.name}
+% endfor
+
 #ifndef UAVCAN_PACK_STRUCTS
 # error UAVCAN_PACK_STRUCTS
 #endif
@@ -57,9 +61,6 @@ struct UAVCAN_EXPORT ${t.cpp_type_name}
 <%def name="expand_attr_types(group_name, attrs)">
     struct ${group_name}
     {
-% for a in attrs:
-        #undef ${a.name}
-% endfor
 % for a in attrs:
         typedef ${a.cpp_type} ${a.name};
 % endfor
