@@ -36,6 +36,7 @@ enum
 __attribute__ ((noreturn))
 #endif
 UAVCAN_EXPORT
+// coverity[+kill]
 void handleFatalError(const char* msg);
 
 }

@@ -78,7 +78,9 @@ private:
     static void validate()
     {
         StaticAssert<(BitLen <= (sizeof(StorageType) * 8))>::check();
+        // coverity[result_independent_of_operands : FALSE]
         assert(max() <= std::numeric_limits<StorageType>::max());
+        // coverity[result_independent_of_operands : FALSE]
         assert(min() >= std::numeric_limits<StorageType>::min());
     }
 

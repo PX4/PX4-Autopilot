@@ -360,6 +360,7 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
                 const bool nan = std::isnan(*it);
 #else
+                // coverity[same_on_both_sides : FALSE]
                 const bool nan = (*it) != (*it);
 #endif
                 if (!nan)

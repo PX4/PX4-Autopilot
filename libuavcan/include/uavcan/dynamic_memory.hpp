@@ -23,7 +23,9 @@ class UAVCAN_EXPORT IPoolAllocator
 public:
     virtual ~IPoolAllocator() { }
 
+    // coverity[+alloc]
     virtual void* allocate(std::size_t size) = 0;
+    // coverity[+free : arg-0]
     virtual void deallocate(const void* ptr) = 0;
 
     virtual bool isInPool(const void* ptr) const = 0;
@@ -53,7 +55,9 @@ public:
 
     bool addPool(IPoolAllocator* pool);
 
+    // coverity[+alloc]
     void* allocate(std::size_t size);
+    // coverity[+free : arg-0]
     void deallocate(const void* ptr);
 
     bool isInPool(const void* ptr) const;
@@ -86,7 +90,9 @@ public:
 
     PoolAllocator();
 
+    // coverity[+alloc]
     void* allocate(std::size_t size);
+    // coverity[+free : arg-0]
     void deallocate(const void* ptr);
 
     bool isInPool(const void* ptr) const;
@@ -114,7 +120,9 @@ public:
         assert(max_blocks_ > 0);
     }
 
+    // coverity[+alloc]
     void* allocate(std::size_t size);
+    // coverity[+free : arg-0]
     void deallocate(const void* ptr);
 
     bool isInPool(const void* ptr) const;
@@ -232,6 +240,7 @@ PoolAllocator<PoolSize, BlockSize>::PoolAllocator()
     std::memset(pool_.bytes, 0, PoolSize);
     for (unsigned i = 0; (i + 1) < (NumBlocks - 1 + 1); i++) // -Werror=type-limits
     {
+        // coverity[dead_error_line : FALSE]
         free_list_[i].next = free_list_ + i + 1;
     }
     free_list_[NumBlocks - 1].next = NULL;
