@@ -314,6 +314,9 @@ public:
 template <typename Stream>
 void YamlStreamer< ${type_name} >::stream(Stream& s, ${type_name}::ParameterType obj, const int level)
 {
+    (void)s;
+    (void)obj;
+    (void)level;
 % for idx,a in enumerate(fields):
 % if idx == 0:
     if (level > 0)
