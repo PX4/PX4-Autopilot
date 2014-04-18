@@ -832,10 +832,10 @@ void Mavlink::publish_mission()
 {
 	/* Initialize mission publication if necessary */
 	if (_mission_pub < 0) {
-		_mission_pub = orb_advertise(ORB_ID(mission), &mission);
+		_mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
 
 	} else {
-		orb_publish(ORB_ID(mission), _mission_pub, &mission);
+		orb_publish(ORB_ID(offboard_mission), _mission_pub, &mission);
 	}
 }
 
