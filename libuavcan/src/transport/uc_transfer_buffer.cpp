@@ -96,7 +96,7 @@ void DynamicTransferBufferManagerEntry::destroy(DynamicTransferBufferManagerEntr
     }
 }
 
-void DynamicTransferBufferManagerEntry::resetImpl()
+void DynamicTransferBufferManagerEntry::doReset()
 {
     max_write_pos_ = 0;
     Block* p = blocks_.get();
@@ -107,6 +107,11 @@ void DynamicTransferBufferManagerEntry::resetImpl()
         Block::destroy(p, allocator_);
         p = next;
     }
+}
+
+void DynamicTransferBufferManagerEntry::resetImpl()
+{
+    doReset();
 }
 
 int DynamicTransferBufferManagerEntry::read(unsigned offset, uint8_t* data, unsigned len) const

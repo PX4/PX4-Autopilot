@@ -121,6 +121,9 @@ class UAVCAN_EXPORT DynamicTransferBufferManagerEntry
     uint16_t max_write_pos_;
     const uint16_t max_size_;
 
+    /// Reset functionality must be implemented in a non-virtual method to call it safely from the destructor.
+    void doReset();
+
     void resetImpl();
 
 public:
@@ -136,7 +139,7 @@ public:
 
     ~DynamicTransferBufferManagerEntry()
     {
-        DynamicTransferBufferManagerEntry::resetImpl();
+        doReset();
     }
 
     static DynamicTransferBufferManagerEntry* instantiate(IPoolAllocator& allocator, uint16_t max_size);
