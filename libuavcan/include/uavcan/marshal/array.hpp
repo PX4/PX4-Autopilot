@@ -422,7 +422,7 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
                 if (on_diagonal)
                 {
                     const SizeType source_index = (this->size() == 1) ? 0 : (index / Width);
-                    *it++ = at(source_index);
+                    *it++ = this->at(source_index);
                 }
                 else
                 {

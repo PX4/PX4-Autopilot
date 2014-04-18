@@ -234,7 +234,7 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
     return output;
 }
 
-uavcan::DataTypeDescriptor makeDataType(uavcan::DataTypeKind kind, uint16_t id, const char* name = "")
+inline uavcan::DataTypeDescriptor makeDataType(uavcan::DataTypeKind kind, uint16_t id, const char* name = "")
 {
     const uavcan::DataTypeSignature signature((uint64_t(kind) << 16) | (id << 8) | (id & 0xFF));
     return uavcan::DataTypeDescriptor(kind, id, signature, name);

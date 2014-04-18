@@ -65,6 +65,6 @@ public:
 
 
 template <typename T>
-struct UAVCAN_EXPORT YamlStreamer;
+class UAVCAN_EXPORT YamlStreamer;
 
 }

@@ -303,8 +303,9 @@ namespace uavcan
 
 <%def name="define_yaml_streamer(type_name, fields)">
 template <>
-struct UAVCAN_EXPORT YamlStreamer< ${type_name} >
+class UAVCAN_EXPORT YamlStreamer< ${type_name} >
 {
+public:
     template <typename Stream>
     static void stream(Stream& s, ${type_name}::ParameterType obj, const int level);
 };

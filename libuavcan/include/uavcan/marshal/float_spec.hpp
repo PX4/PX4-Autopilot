@@ -184,10 +184,11 @@ private:
 
 
 template <unsigned BitLen, CastMode CastMode>
-struct UAVCAN_EXPORT YamlStreamer<FloatSpec<BitLen, CastMode> >
+class UAVCAN_EXPORT YamlStreamer<FloatSpec<BitLen, CastMode> >
 {
     typedef typename FloatSpec<BitLen, CastMode>::StorageType StorageType;
 
+public:
     template <typename Stream>
     static void stream(Stream& s, const StorageType value, int)
     {

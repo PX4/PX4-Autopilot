@@ -134,11 +134,12 @@ struct IsIntegerSpec<IntegerSpec<BitLen, Signedness, CastMode> >
 
 
 template <unsigned BitLen, Signedness Signedness, CastMode CastMode>
-struct UAVCAN_EXPORT YamlStreamer<IntegerSpec<BitLen, Signedness, CastMode> >
+class UAVCAN_EXPORT YamlStreamer<IntegerSpec<BitLen, Signedness, CastMode> >
 {
     typedef IntegerSpec<BitLen, Signedness, CastMode> RawType;
     typedef typename RawType::StorageType StorageType;
 
+public:
     template <typename Stream>
     static void stream(Stream& s, const StorageType value, int)
     {
