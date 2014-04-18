@@ -133,6 +133,10 @@ void Dispatcher::ListenerRegistry::handleFrame(const RxFrame& frame)
         {
             break;
         }
+        else
+        {
+            ;  // Nothing to do with this one
+        }
         p = next;
     }
 }
@@ -175,7 +179,10 @@ void Dispatcher::handleFrame(const CanRxFrame& can_frame)
         break;
     }
     default:
+    {
         assert(0);
+        break;
+    }
     }
 }
 

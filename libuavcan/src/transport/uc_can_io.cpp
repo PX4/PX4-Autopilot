@@ -75,8 +75,11 @@ std::string CanTxQueue::Entry::toString() const
         break;
     }
     default:
+    {
         assert(0);
         str_qos = "<?WTF?> ";
+        break;
+    }
     }
     return str_qos + frame.toString();
 }

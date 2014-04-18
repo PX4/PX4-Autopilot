@@ -495,6 +495,10 @@ public:
                 pop_back();
             }
         }
+        else
+        {
+            ; // Exact size
+        }
     }
 
     void resize(SizeType new_size)

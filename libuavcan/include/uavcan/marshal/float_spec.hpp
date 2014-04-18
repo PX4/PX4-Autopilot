@@ -162,6 +162,10 @@ private:
             {
                 value = -max();
             }
+            else
+            {
+                ; // Valid range
+            }
         }
     }
 
@@ -177,6 +181,10 @@ private:
             else if (value < -max())
             {
                 value = -std::numeric_limits<StorageType>::infinity();
+            }
+            else
+            {
+                ; // Valid range
             }
         }
     }

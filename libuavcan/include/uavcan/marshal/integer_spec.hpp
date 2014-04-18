@@ -71,6 +71,10 @@ private:
         {
             value = min();
         }
+        else
+        {
+            ; // Valid range
+        }
     }
 
     static void truncate(StorageType& value) { value &= mask(); }

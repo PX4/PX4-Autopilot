@@ -98,7 +98,10 @@ std::string DataTypeDescriptor::toString() const
         break;
     }
     default:
+    {
         assert(0);
+        break;
+    }
     }
 
     using namespace std; // For snprintf()

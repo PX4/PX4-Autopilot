@@ -26,8 +26,10 @@ int Frame::getMaxPayloadLen() const
         return sizeof(payload_) - 1;
     }
     default:
+    {
         assert(0);
         return -ErrLogic;
+    }
     }
 }
 
@@ -86,7 +88,6 @@ bool Frame::parse(const CanFrame& can_frame)
         std::copy(can_frame.data, can_frame.data + can_frame.dlc, payload_);
         break;
     }
-
     case TransferTypeServiceResponse:
     case TransferTypeServiceRequest:
     case TransferTypeMessageUnicast:
@@ -104,9 +105,10 @@ bool Frame::parse(const CanFrame& can_frame)
         std::copy(can_frame.data + 1, can_frame.data + can_frame.dlc, payload_);
         break;
     }
-
     default:
+    {
         return false;
+    }
     }
 
     return isValid();
@@ -143,7 +145,6 @@ bool Frame::compile(CanFrame& out_can_frame) const
         std::copy(payload_, payload_ + payload_len_, out_can_frame.data);
         break;
     }
-
     case TransferTypeServiceResponse:
     case TransferTypeServiceRequest:
     case TransferTypeMessageUnicast:
@@ -154,10 +155,11 @@ bool Frame::compile(CanFrame& out_can_frame) const
         std::copy(payload_, payload_ + payload_len_, out_can_frame.data + 1);
         break;
     }
-
     default:
+    {
         assert(0);
         return false;
+    }
     }
     return true;
 }
