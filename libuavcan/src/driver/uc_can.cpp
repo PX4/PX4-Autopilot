@@ -113,6 +113,7 @@ std::string CanFrame::toString(StringRepresentation mode) const
         }
         wpos += snprintf(wpos, epos - wpos, "\'");
     }
+    (void)wpos;
     return std::string(buf);
 }
 #endif

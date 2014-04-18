@@ -136,7 +136,7 @@ public:
 
     ~DynamicTransferBufferManagerEntry()
     {
-        resetImpl();
+        DynamicTransferBufferManagerEntry::resetImpl();
     }
 
     static DynamicTransferBufferManagerEntry* instantiate(IPoolAllocator& allocator, uint16_t max_size);

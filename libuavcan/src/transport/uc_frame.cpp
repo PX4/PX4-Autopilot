@@ -220,7 +220,7 @@ std::string Frame::toString() const
             ofs += snprintf(buf + ofs, BUFLEN - ofs, " ");
         }
     }
-    ofs += snprintf(buf + ofs, BUFLEN - ofs, "]");
+    (void)snprintf(buf + ofs, BUFLEN - ofs, "]");
     return std::string(buf);
 }
 #endif
