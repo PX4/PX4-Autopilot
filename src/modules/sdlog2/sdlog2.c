@@ -226,11 +226,11 @@ sdlog2_usage(const char *reason)
 	}
 
 	errx(1, "usage: sdlog2 {start|stop|status} [-r <log rate>] [-b <buffer size>] -e -a -t\n"
-	     "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
-	     "\t-b\tLog buffer size in KiB, default is 8\n"
-	     "\t-e\tEnable logging by default (if not, can be started by command)\n"
-	     "\t-a\tLog only when armed (can be still overriden by command)\n"
-	     "\t-t\tUse date/time for naming log directories and files\n");
+		 "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
+		 "\t-b\tLog buffer size in KiB, default is 8\n"
+		 "\t-e\tEnable logging by default (if not, can be started by command)\n"
+		 "\t-a\tLog only when armed (can be still overriden by command)\n"
+		 "\t-t\tUse date/time for naming log directories and files\n");
 }
 
 /**
@@ -257,11 +257,11 @@ int sdlog2_main(int argc, char *argv[])
 
 		main_thread_should_exit = false;
 		deamon_task = task_spawn_cmd("sdlog2",
-					     SCHED_DEFAULT,
-					     SCHED_PRIORITY_DEFAULT - 30,
-					     3000,
-					     sdlog2_thread_main,
-					     (const char **)argv);
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_DEFAULT - 30,
+						 3000,
+						 sdlog2_thread_main,
+						 (const char **)argv);
 		exit(0);
 	}
 
@@ -833,6 +833,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_TELE_s log_TELE;
 			struct log_ESTM_s log_ESTM;
 			struct log_PWR_s log_PWR;
+			struct log_VICN_s log_VICN;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1163,7 +1164,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		/* --- VICON POSITION --- */
 		if (copy_if_updated(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos)) {
-			// TODO not implemented yet
+			log_msg.msg_type = LOG_VICN_MSG;
+			log_msg.body.log_VICN.x = buf.vicon_pos.x;
+			log_msg.body.log_VICN.y = buf.vicon_pos.y;
+			log_msg.body.log_VICN.z = buf.vicon_pos.z;
+			log_msg.body.log_VICN.pitch = buf.vicon_pos.pitch;
+			log_msg.body.log_VICN.roll = buf.vicon_pos.roll;
+			log_msg.body.log_VICN.yaw = buf.vicon_pos.yaw;
+			LOGBUFFER_WRITE_AND_COUNT(VICN);
 		}
 
 		/* --- FLOW --- */

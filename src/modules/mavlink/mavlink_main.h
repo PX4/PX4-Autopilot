@@ -138,6 +138,8 @@ public:
 
 	static bool	instance_exists(const char *device_name, Mavlink *self);
 
+	static void	forward_message(mavlink_message_t *msg, Mavlink *self);
+
 	static int get_uart_fd(unsigned index);
 
 	int get_uart_fd();
@@ -153,9 +155,11 @@ public:
 	void		set_mode(enum MAVLINK_MODE);
 	enum MAVLINK_MODE		get_mode() { return _mode; }
 
-	bool		get_hil_enabled() { return _hil_enabled; };
+	bool		get_hil_enabled() { return _hil_enabled; }
 
 	bool		get_flow_control_enabled() { return _flow_control_enabled; }
+
+	bool		get_forwarding_on() { return _forwarding_on; }
 
 	/**
 	 * Handle waypoint related messages.
@@ -196,6 +200,16 @@ public:
 
 	bool		_task_should_exit;		/**< if true, mavlink task should exit */
 
+	int get_mavlink_fd() { return _mavlink_fd; }
+
+
+	/* Functions for waiting to start transmission until message received. */
+	void set_has_received_messages(bool received_messages) { _received_messages = received_messages; }
+	bool get_has_received_messages() { return _received_messages; }
+	void set_wait_to_transmit(bool wait) { _wait_to_transmit = wait; }
+	bool get_wait_to_transmit() { return _wait_to_transmit; }
+	bool should_transmit() { return (!_wait_to_transmit || (_wait_to_transmit && _received_messages)); }
+
 protected:
 	Mavlink	*next;
 
@@ -210,6 +224,8 @@ private:
 	/* states */
 	bool		_hil_enabled;		/**< Hardware In the Loop mode */
 	bool		_is_usb_uart;		/**< Port is USB */
+	bool        _wait_to_transmit;  /**< Wait to transmit until received messages. */
+	bool        _received_messages; /**< Whether we've received valid mavlink messages. */
 
 	unsigned	_main_loop_delay;		/**< mainloop delay, depends on data rate */
 
@@ -234,6 +250,8 @@ private:
 	mavlink_wpm_storage *_wpm;
 
 	bool _verbose;
+	bool _forwarding_on;
+	bool _passing_on;
 	int _uart_fd;
 	int _baudrate;
 	int _datarate;
@@ -251,6 +269,18 @@ private:
 	float	_subscribe_to_stream_rate;
 
 	bool		_flow_control_enabled;
+
+	struct mavlink_message_buffer {
+		int write_ptr;
+		int read_ptr;
+		int size;
+		char *data;
+	};
+	mavlink_message_buffer _message_buffer;
+
+	pthread_mutex_t _message_buffer_mutex;
+
+
 
 	/**
 	 * Send one parameter.
@@ -314,6 +344,22 @@ private:
 
 	int configure_stream(const char *stream_name, const float rate);
 	void configure_stream_threadsafe(const char *stream_name, const float rate);
+
+	int message_buffer_init(int size);
+
+	void message_buffer_destroy();
+
+	int message_buffer_count();
+
+	int message_buffer_is_empty();
+
+	bool message_buffer_write(void *ptr, int size);
+
+	int message_buffer_get_ptr(void **ptr, bool *is_part);
+
+	void message_buffer_mark_read(int n);
+
+	void pass_message(mavlink_message_t *msg);
 
 	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
 
