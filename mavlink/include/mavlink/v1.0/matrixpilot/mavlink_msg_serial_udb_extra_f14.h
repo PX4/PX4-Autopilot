@@ -256,6 +256,58 @@ static inline void mavlink_msg_serial_udb_extra_f14_send(mavlink_channel_t chan,
 #endif
 }
 
+#if MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F14_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_serial_udb_extra_f14_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint8_t sue_WIND_ESTIMATION, uint8_t sue_GPS_TYPE, uint8_t sue_DR, uint8_t sue_BOARD_TYPE, uint8_t sue_AIRFRAME, int16_t sue_RCON, int16_t sue_TRAP_FLAGS, uint32_t sue_TRAP_SOURCE, int16_t sue_osc_fail_count, uint8_t sue_CLOCK_CONFIG, uint8_t sue_FLIGHT_PLAN_TYPE)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+	_mav_put_uint32_t(buf, 0, sue_TRAP_SOURCE);
+	_mav_put_int16_t(buf, 4, sue_RCON);
+	_mav_put_int16_t(buf, 6, sue_TRAP_FLAGS);
+	_mav_put_int16_t(buf, 8, sue_osc_fail_count);
+	_mav_put_uint8_t(buf, 10, sue_WIND_ESTIMATION);
+	_mav_put_uint8_t(buf, 11, sue_GPS_TYPE);
+	_mav_put_uint8_t(buf, 12, sue_DR);
+	_mav_put_uint8_t(buf, 13, sue_BOARD_TYPE);
+	_mav_put_uint8_t(buf, 14, sue_AIRFRAME);
+	_mav_put_uint8_t(buf, 15, sue_CLOCK_CONFIG);
+	_mav_put_uint8_t(buf, 16, sue_FLIGHT_PLAN_TYPE);
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F14, buf, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F14_LEN, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F14_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F14, buf, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F14_LEN);
+#endif
+#else
+	mavlink_serial_udb_extra_f14_t *packet = (mavlink_serial_udb_extra_f14_t *)msgbuf;
+	packet->sue_TRAP_SOURCE = sue_TRAP_SOURCE;
+	packet->sue_RCON = sue_RCON;
+	packet->sue_TRAP_FLAGS = sue_TRAP_FLAGS;
+	packet->sue_osc_fail_count = sue_osc_fail_count;
+	packet->sue_WIND_ESTIMATION = sue_WIND_ESTIMATION;
+	packet->sue_GPS_TYPE = sue_GPS_TYPE;
+	packet->sue_DR = sue_DR;
+	packet->sue_BOARD_TYPE = sue_BOARD_TYPE;
+	packet->sue_AIRFRAME = sue_AIRFRAME;
+	packet->sue_CLOCK_CONFIG = sue_CLOCK_CONFIG;
+	packet->sue_FLIGHT_PLAN_TYPE = sue_FLIGHT_PLAN_TYPE;
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F14, (const char *)packet, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F14_LEN, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F14_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F14, (const char *)packet, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F14_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE SERIAL_UDB_EXTRA_F14 UNPACKING

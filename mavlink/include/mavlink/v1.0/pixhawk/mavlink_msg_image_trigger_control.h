@@ -146,6 +146,38 @@ static inline void mavlink_msg_image_trigger_control_send(mavlink_channel_t chan
 #endif
 }
 
+#if MAVLINK_MSG_ID_IMAGE_TRIGGER_CONTROL_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_image_trigger_control_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint8_t enable)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+	_mav_put_uint8_t(buf, 0, enable);
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_TRIGGER_CONTROL, buf, MAVLINK_MSG_ID_IMAGE_TRIGGER_CONTROL_LEN, MAVLINK_MSG_ID_IMAGE_TRIGGER_CONTROL_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_TRIGGER_CONTROL, buf, MAVLINK_MSG_ID_IMAGE_TRIGGER_CONTROL_LEN);
+#endif
+#else
+	mavlink_image_trigger_control_t *packet = (mavlink_image_trigger_control_t *)msgbuf;
+	packet->enable = enable;
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_TRIGGER_CONTROL, (const char *)packet, MAVLINK_MSG_ID_IMAGE_TRIGGER_CONTROL_LEN, MAVLINK_MSG_ID_IMAGE_TRIGGER_CONTROL_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_TRIGGER_CONTROL, (const char *)packet, MAVLINK_MSG_ID_IMAGE_TRIGGER_CONTROL_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE IMAGE_TRIGGER_CONTROL UNPACKING
