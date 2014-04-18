@@ -7,12 +7,11 @@
 #include <cassert>
 #include <uavcan/stdint.hpp>
 #include <uavcan/util/compile_time.hpp>
+#include <uavcan/transport/abstract_transfer_buffer.hpp>
 #include <uavcan/impl_constants.hpp>
 
 namespace uavcan
 {
-
-class UAVCAN_EXPORT ITransferBuffer;
 
 void bitarrayCopy(const unsigned char* src_org, int src_offset, int src_len, unsigned char* dst_org, int dst_offset);
 

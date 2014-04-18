@@ -9,6 +9,7 @@
 #include <uavcan/stdint.hpp>
 #include <uavcan/error.hpp>
 #include <uavcan/transport/frame.hpp>
+#include <uavcan/transport/abstract_transfer_buffer.hpp>
 #include <uavcan/linked_list.hpp>
 #include <uavcan/dynamic_memory.hpp>
 #include <uavcan/impl_constants.hpp>
@@ -17,18 +18,6 @@
 namespace uavcan
 {
 UAVCAN_PACKED_BEGIN
-/**
- * API for transfer buffer users.
- */
-class UAVCAN_EXPORT ITransferBuffer
-{
-public:
-    virtual ~ITransferBuffer() { }
-
-    virtual int read(unsigned offset, uint8_t* data, unsigned len) const = 0;
-    virtual int write(unsigned offset, const uint8_t* data, unsigned len) = 0;
-};
-
 /**
  * Internal for TransferBufferManager
  */
