@@ -126,7 +126,7 @@ bool DataTypeDescriptor::operator==(const DataTypeDescriptor& rhs) const
         (kind_ == rhs.kind_) &&
         (id_ == rhs.id_) &&
         (signature_ == rhs.signature_) &&
-        !std::strcmp(full_name_, rhs.full_name_);
+        !std::strncmp(full_name_, rhs.full_name_, MaxFullNameLen);
 }
 
 }
