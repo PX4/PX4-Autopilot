@@ -233,7 +233,7 @@ template <int _tmpl>
 ::uavcan::DataTypeSignature ${t.cpp_type_name}<_tmpl>::getDataTypeSignature()
 % endif
 {
-    ::uavcan::DataTypeSignature signature(${hex(t.get_dsdl_signature())}UL);
+    ::uavcan::DataTypeSignature signature(${'0x%08X' % t.get_dsdl_signature()}UL);
 <%def name="extend_signature_per_field(scope_prefix, fields)">
 % for a in fields:
     ${scope_prefix}FieldTypes::${a.name}::extendDataTypeSignature(signature);
