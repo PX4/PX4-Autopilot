@@ -85,11 +85,15 @@ public:
     {
         while (s && *s)
         {
-            if (*s == '%' && *++s != '%')
+            if (*s == '%')
             {
-                writeValue(value);
-                write(++s, args...);
-                break;
+                s += 1;
+                if (*s != '%')
+                {
+                    writeValue(value);
+                    write(++s, args...);
+                    break;
+                }
             }
             writeValue(*s++);
         }
