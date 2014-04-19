@@ -712,6 +712,7 @@ Sensors::parameters_update()
 	_rc.function[AUX_2] = _parameters.rc_map_aux2 - 1;
 	_rc.function[AUX_3] = _parameters.rc_map_aux3 - 1;
 	_rc.function[AUX_4] = _parameters.rc_map_aux4 - 1;
+	_rc.function[AUX_5] = _parameters.rc_map_aux5 - 1;
 
 	/* gyro offsets */
 	param_get(_parameter_handles.gyro_offset[0], &(_parameters.gyro_offset[0]));
