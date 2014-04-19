@@ -199,6 +199,17 @@ private:
 		int32_t	height_delay_ms;
 		int32_t	mag_delay_ms;
 		int32_t	tas_delay_ms;
+		float velne_noise;
+		float veld_noise;
+		float posne_noise;
+		float posd_noise;
+		float mag_noise;
+		float gyro_pnoise;
+		float acc_pnoise;
+		float gbias_pnoise;
+		float abias_pnoise;
+		float mage_pnoise;
+		float magb_pnoise;
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -207,6 +218,17 @@ private:
 		param_t	height_delay_ms;
 		param_t	mag_delay_ms;
 		param_t	tas_delay_ms;
+		param_t velne_noise;
+		param_t veld_noise;
+		param_t posne_noise;
+		param_t posd_noise;
+		param_t mag_noise;
+		param_t gyro_pnoise;
+		param_t acc_pnoise;
+		param_t gbias_pnoise;
+		param_t abias_pnoise;
+		param_t mage_pnoise;
+		param_t magb_pnoise;
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 	AttPosEKF					*_ekf;
@@ -302,6 +324,17 @@ FixedwingEstimator::FixedwingEstimator() :
 	_parameter_handles.height_delay_ms = param_find("PE_HGT_DELAY_MS");
 	_parameter_handles.mag_delay_ms = param_find("PE_MAG_DELAY_MS");
 	_parameter_handles.tas_delay_ms = param_find("PE_TAS_DELAY_MS");
+	_parameter_handles.velne_noise = param_find("PE_VELNE_NOISE");
+	_parameter_handles.veld_noise = param_find("PE_VELD_NOISE");
+	_parameter_handles.posne_noise = param_find("PE_POSNE_NOISE");
+	_parameter_handles.posd_noise = param_find("PE_POSD_NOISE");
+	_parameter_handles.mag_noise = param_find("PE_MAG_NOISE");
+	_parameter_handles.gyro_pnoise = param_find("PE_GYRO_PNOISE");
+	_parameter_handles.acc_pnoise = param_find("PE_ACC_PNOISE");
+	_parameter_handles.gbias_pnoise = param_find("PE_GBIAS_PNOISE");
+	_parameter_handles.abias_pnoise = param_find("PE_ABIAS_PNOISE");
+	_parameter_handles.mage_pnoise = param_find("PE_MAGE_PNOISE");
+	_parameter_handles.magb_pnoise = param_find("PE_MAGB_PNOISE");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -366,6 +399,17 @@ FixedwingEstimator::parameters_update()
 	param_get(_parameter_handles.height_delay_ms, &(_parameters.height_delay_ms));
 	param_get(_parameter_handles.mag_delay_ms, &(_parameters.mag_delay_ms));
 	param_get(_parameter_handles.tas_delay_ms, &(_parameters.tas_delay_ms));
+	param_get(_parameter_handles.velne_noise, &(_parameters.velne_noise));
+	param_get(_parameter_handles.veld_noise, &(_parameters.veld_noise));
+	param_get(_parameter_handles.posne_noise, &(_parameters.posne_noise));
+	param_get(_parameter_handles.posd_noise, &(_parameters.posd_noise));
+	param_get(_parameter_handles.mag_noise, &(_parameters.mag_noise));
+	param_get(_parameter_handles.gyro_pnoise, &(_parameters.gyro_pnoise));
+	param_get(_parameter_handles.acc_pnoise, &(_parameters.acc_pnoise));
+	param_get(_parameter_handles.gbias_pnoise, &(_parameters.gbias_pnoise));
+	param_get(_parameter_handles.abias_pnoise, &(_parameters.abias_pnoise));
+	param_get(_parameter_handles.mage_pnoise, &(_parameters.mage_pnoise));
+	param_get(_parameter_handles.magb_pnoise, &(_parameters.magb_pnoise));
 
 	return OK;
 }
