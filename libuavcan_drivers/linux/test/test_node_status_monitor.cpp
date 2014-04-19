@@ -20,7 +20,7 @@ struct OstreamColorizer
         Magenta = 35,
         Default = 39
     };
-    OstreamColorizer(Color color = Default) : color_(color) { }
+    explicit OstreamColorizer(Color color = Default) : color_(color) { }
     friend std::ostream& operator<<(std::ostream& os, const OstreamColorizer& mod)
     {
         return os << "\033[" << int(mod.color_) << "m";
@@ -94,7 +94,7 @@ class Monitor : public uavcan::NodeStatusMonitor
     }
 
 public:
-    Monitor(uavcan_linux::NodePtr node)
+    explicit Monitor(uavcan_linux::NodePtr node)
         : uavcan::NodeStatusMonitor(*node)
         , timer_(node->makeTimer(uavcan::MonotonicDuration::fromMSec(500),
                                  std::bind(&Monitor::redraw, this, std::placeholders::_1)))

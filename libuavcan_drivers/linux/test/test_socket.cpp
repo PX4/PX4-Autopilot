@@ -323,6 +323,7 @@ static void testDriver(const std::vector<std::string>& iface_names)
             default:
             {
                 ENFORCE(false);
+                break;
             }
             }
         }

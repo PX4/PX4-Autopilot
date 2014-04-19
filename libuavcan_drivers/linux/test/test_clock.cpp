@@ -34,7 +34,10 @@ int main()
         break;
     }
     default:
+    {
         std::abort();
+        break;
+    }
     }
     std::cout << std::endl;
 
