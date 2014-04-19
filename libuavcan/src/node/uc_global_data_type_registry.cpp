@@ -87,7 +87,8 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::registImpl(Entry* d
             {
                 return RegistResultCollision;
             }
-            if (!std::strcmp(p->descriptor.getFullName(), dtd->descriptor.getFullName())) // Name collision
+            if (!std::strncmp(p->descriptor.getFullName(), dtd->descriptor.getFullName(),
+                              DataTypeDescriptor::MaxFullNameLen))                        // Name collision
             {
                 return RegistResultCollision;
             }

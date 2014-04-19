@@ -80,7 +80,7 @@ const unsigned DataTypeDescriptor::MaxFullNameLen;
 
 bool DataTypeDescriptor::match(DataTypeKind kind, const char* name) const
 {
-    return (kind_ == kind) && !std::strcmp(full_name_, name);
+    return (kind_ == kind) && !std::strncmp(full_name_, name, MaxFullNameLen);
 }
 
 bool DataTypeDescriptor::match(DataTypeKind kind, DataTypeID id) const

@@ -545,7 +545,7 @@ public:
         {
             return false;
         }
-        return std::strcmp(Base::c_str(), ch) == 0;
+        return std::strncmp(Base::c_str(), ch, MaxSize) == 0;
     }
 
     template <typename R> bool operator!=(const R& rhs) const { return !operator==(rhs); }
