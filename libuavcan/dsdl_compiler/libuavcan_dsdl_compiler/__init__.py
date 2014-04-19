@@ -8,7 +8,6 @@ import sys, os, logging, errno
 from mako.template import Template
 from pyuavcan import dsdl
 
-MAX_BITLEN_FOR_ENUM = 31
 OUTPUT_FILE_EXTENSION = 'hpp'
 OUTPUT_FILE_PERMISSIONS = 0o444  # Read only for all
 TEMPLATE_FILENAME = os.path.join(os.path.dirname(__file__), 'data_type_template.tmpl')
@@ -167,12 +166,10 @@ def generate_one_type(t):
     def inject_constant_info(constants):
         for c in constants:
             if c.type.kind == c.type.KIND_FLOAT:
-                c.cpp_use_enum = False
                 float(c.string_value)  # Making sure that this is a valid float literal
                 c.cpp_value = c.string_value
             else:
                 int(c.string_value)  # Making sure that this is a valid integer literal
-                c.cpp_use_enum = c.value >= 0 and c.type.bitlen <= MAX_BITLEN_FOR_ENUM
                 c.cpp_value = c.string_value
                 if c.type.kind == c.type.KIND_UNSIGNED_INT:
                     c.cpp_value += 'U'

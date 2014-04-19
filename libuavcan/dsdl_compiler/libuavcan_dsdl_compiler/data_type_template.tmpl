@@ -83,11 +83,7 @@ struct UAVCAN_EXPORT ${t.cpp_type_name}
 
     // Constants
 % for a in constants:
-    % if a.cpp_use_enum:
-    enum { ${a.name} = ${a.cpp_value} }; // ${a.init_expression}
-    % else:
     static const typename ::uavcan::StorageType< typename ConstantTypes::${a.name} >::Type ${a.name}; // ${a.init_expression}
-    %endif
 % endfor
 
     // Fields
@@ -257,12 +253,10 @@ ${extend_signature_per_field('', t.fields)}
  */
 <%def name="define_out_of_line_constants(scope_prefix, constants)">
 % for a in constants:
-    % if not a.cpp_use_enum:
 template <int _tmpl>
 const typename ::uavcan::StorageType< typename ${scope_prefix}<_tmpl>::ConstantTypes::${a.name} >::Type
     ${scope_prefix}<_tmpl>::${a.name} = ${a.cpp_value}; // ${a.init_expression}
 
-    %endif
 % endfor
 </%def>
 % if t.kind == t.KIND_SERVICE:
