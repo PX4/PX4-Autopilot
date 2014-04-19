@@ -116,7 +116,19 @@ PARAM_DEFINE_INT32(PE_TAS_DELAY_MS, 210);
 PARAM_DEFINE_FLOAT(PE_GPS_ALT_WGT, 0.9f);
 
 /**
- * Velocity noise in north-east (horizontal) direction.
+ * Airspeed measurement noise.
+ *
+ * Increasing this value will make the filter trust this sensor
+ * less and trust other sensors more.
+ *
+ * @min 0.5
+ * @max 5.0
+ * @group Position Estimator
+ */
+PARAM_DEFINE_FLOAT(PE_EAS_NOISE, 1.4f);
+
+/**
+ * Velocity measurement noise in north-east (horizontal) direction.
  *
  * Generic default: 0.3, multicopters: 0.5, ground vehicles: 0.5
  *

@@ -210,6 +210,7 @@ private:
 		float abias_pnoise;
 		float mage_pnoise;
 		float magb_pnoise;
+		float eas_noise;
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -229,6 +230,7 @@ private:
 		param_t abias_pnoise;
 		param_t mage_pnoise;
 		param_t magb_pnoise;
+		param_t eas_noise;
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 	AttPosEKF					*_ekf;
@@ -335,6 +337,7 @@ FixedwingEstimator::FixedwingEstimator() :
 	_parameter_handles.abias_pnoise = param_find("PE_ABIAS_PNOISE");
 	_parameter_handles.mage_pnoise = param_find("PE_MAGE_PNOISE");
 	_parameter_handles.magb_pnoise = param_find("PE_MAGB_PNOISE");
+	_parameter_handles.eas_noise = param_find("PE_EAS_NOISE");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -410,6 +413,25 @@ FixedwingEstimator::parameters_update()
 	param_get(_parameter_handles.abias_pnoise, &(_parameters.abias_pnoise));
 	param_get(_parameter_handles.mage_pnoise, &(_parameters.mage_pnoise));
 	param_get(_parameter_handles.magb_pnoise, &(_parameters.magb_pnoise));
+	param_get(_parameter_handles.eas_noise, &(_parameters.eas_noise));
+
+	if (_ekf) {
+		// _ekf->yawVarScale = 1.0f;
+		// _ekf->windVelSigma = 0.1f;
+		_ekf->dAngBiasSigma = _parameters.gbias_pnoise;
+		_ekf->dVelBiasSigma = _parameters.abias_pnoise;
+		_ekf->magEarthSigma = _parameters.mage_pnoise;
+		_ekf->magBodySigma  = _parameters.magb_pnoise;
+		// _ekf->gndHgtSigma  = 0.02f;
+		_ekf->vneSigma = _parameters.velne_noise;
+		_ekf->vdSigma = _parameters.veld_noise;
+		_ekf->posNeSigma = _parameters.posne_noise;
+		_ekf->posDSigma = _parameters.posd_noise;
+		_ekf->magMeasurementSigma = _parameters.mag_noise;
+		_ekf->gyroProcessNoise = _parameters.gyro_pnoise;
+        	_ekf->accelProcessNoise = _parameters.acc_pnoise;
+		_ekf->airspeedMeasurementSigma = _parameters.eas_noise;
+	}
 
 	return OK;
 }
@@ -473,6 +495,7 @@ FixedwingEstimator::task_main()
 	orb_set_interval(_sensor_combined_sub, 4);
 #endif
 
+	/* sets also parameters in the EKF object */
 	parameters_update();
 
 	/* set initial filter state */
@@ -914,7 +937,7 @@ FixedwingEstimator::task_main()
 
 				// perform a covariance prediction if the total delta angle has exceeded the limit
 				// or the time limit will be exceeded at the next IMU update
-				if ((dt >= (covTimeStepMax - _ekf->dtIMU)) || (_ekf->summedDelAng.length() > covDelAngMax)) {
+				if ((dt >= (_ekf->covTimeStepMax - _ekf->dtIMU)) || (_ekf->summedDelAng.length() > _ekf->covDelAngMax)) {
 					_ekf->CovariancePrediction(dt);
 					_ekf->summedDelAng = _ekf->summedDelAng.zero();
 					_ekf->summedDelVel = _ekf->summedDelVel.zero();
