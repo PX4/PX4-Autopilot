@@ -14,18 +14,18 @@ static const std::string TEST_DATA =
     "pawnbroker, who had to be murdered too to get money from her trunk (for his career, you understand). "
     "Well, would he have brought himself to that if there had been no other means?";
 
-template <typename T>
-static bool allEqual(const T a)
+template <typename T, unsigned Size>
+static bool allEqual(const T (&a)[Size])
 {
-    int n = sizeof(a) / sizeof(a[0]);
-    while (--n > 0 && a[n] == a[0]) { }
+    unsigned n = Size;
+    while ((--n > 0) && (a[n] == a[0])) { }
     return n == 0;
 }
 
-template <typename T>
-static void fill(const T a, int value)
+template <typename T, unsigned Size>
+static void fill(T (&a)[Size], int value)
 {
-    for (unsigned i = 0; i < sizeof(a) / sizeof(a[0]); i++)
+    for (unsigned i = 0; i < Size; i++)
     {
         a[i] = value;
     }
