@@ -549,6 +549,19 @@ PARAM_DEFINE_INT32(RC_MAP_PITCH, 2);
 PARAM_DEFINE_INT32(RC_MAP_THROTTLE, 3);
 
 /**
+ * Failsafe control channel mapping.
+ *
+ * The channel index (starting from 1 for channel 1) indicates
+ * which channel should be used for reading throttle inputs from.
+ * A value of zero indicates the switch is not assigned.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_MAP_FAILSAFE, 3); // Default to throttle channel
+
+/**
  * Yaw control channel mapping.
  *
  * The channel index (starting from 1 for channel 1) indicates

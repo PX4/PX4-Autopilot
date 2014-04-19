@@ -242,6 +242,7 @@ private:
 		int rc_map_pitch;
 		int rc_map_yaw;
 		int rc_map_throttle;
+		int rc_map_failsafe;
 
 		int rc_map_mode_sw;
 		int rc_map_return_sw;
@@ -290,6 +291,7 @@ private:
 		param_t rc_map_pitch;
 		param_t rc_map_yaw;
 		param_t rc_map_throttle;
+		param_t rc_map_failsafe;
 
 		param_t rc_map_mode_sw;
 		param_t rc_map_return_sw;
@@ -512,6 +514,7 @@ Sensors::Sensors() :
 	/* optional mode switches, not mapped per default */
 	_parameter_handles.rc_map_assisted_sw = param_find("RC_MAP_ASSIST_SW");
 	_parameter_handles.rc_map_mission_sw = param_find("RC_MAP_MISSIO_SW");
+	_parameter_handles.rc_map_failsafe = param_find("RC_MAP_FAILSAFE");
 
 //	_parameter_handles.rc_map_offboard_ctrl_mode_sw = param_find("RC_MAP_OFFB_SW");
 
@@ -647,6 +650,10 @@ Sensors::parameters_update()
 	}
 
 	if (param_get(_parameter_handles.rc_map_throttle, &(_parameters.rc_map_throttle)) != OK) {
+		warnx(paramerr);
+	}
+
+	if (param_get(_parameter_handles.rc_map_failsafe, &(_parameters.rc_map_failsafe)) != OK) {
 		warnx(paramerr);
 	}
 
@@ -1309,9 +1316,8 @@ Sensors::rc_poll()
 			return;
 		}
 
-		/* check for failsafe */
-		if ((rc_input.rc_failsafe) || ((_parameters.rc_fs_thr != 0) && (((rc_input.values[_rc.function[THROTTLE]] < _parameters.min[_rc.function[THROTTLE]]) && (rc_input.values[_rc.function[THROTTLE]] < _parameters.rc_fs_thr))
-			|| ((rc_input.values[_rc.function[THROTTLE]] > _parameters.max[_rc.function[THROTTLE]]) && (rc_input.values[_rc.function[THROTTLE]] > _parameters.rc_fs_thr))))) {
+		if ((rc_input.rc_failsafe) || ((_parameters.rc_fs_thr != 0) && (((rc_input.values[_parameters.rc_map_failsafe - 1] < _parameters.min[_parameters.rc_map_failsafe - 1]) && (rc_input.values[_parameters.rc_map_failsafe - 1] < _parameters.rc_fs_thr))
+			|| ((rc_input.values[_parameters.rc_map_failsafe - 1] > _parameters.max[_parameters.rc_map_failsafe - 1]) && (rc_input.values[_parameters.rc_map_failsafe - 1] > _parameters.rc_fs_thr))))) {
 			/* do not publish manual control setpoints when there are none */
 			return;
 		}
