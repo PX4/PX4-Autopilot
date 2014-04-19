@@ -136,6 +136,7 @@
 #define PCB_TEMP_ESTIMATE_DEG 5.0f
 
 #define limit_minus_one_to_one(arg) (arg < -1.0f) ? -1.0f : ((arg > 1.0f) ? 1.0f : arg)
+#define limit_zero_to_one(arg) (arg < 0) ? 0 : ((arg > 1.0f) ? 1.0f : arg)
 
 /**
  * Sensor app start / stop handling function
@@ -1422,22 +1423,22 @@ Sensors::rc_poll()
 
 		/* mode switch input */
 		if (_rc.function[MODE] >= 0) {
-			manual_control.mode_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MODE]].scaled);
+			manual_control.mode_switch = limit_zero_to_one(0.5f * _rc.chan[_rc.function[MODE]].scaled + 0.5f);
 		}
 
 		/* assisted switch input */
 		if (_rc.function[ASSISTED] >= 0) {
-			manual_control.assisted_switch = limit_minus_one_to_one(_rc.chan[_rc.function[ASSISTED]].scaled);
+			manual_control.assisted_switch = limit_zero_to_one(0.5f * _rc.chan[_rc.function[ASSISTED]].scaled + 0.5f);
 		}
 
 		/* mission switch input */
 		if (_rc.function[MISSION] >= 0) {
-			manual_control.mission_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MISSION]].scaled);
+			manual_control.mission_switch = limit_zero_to_one(0.5f * _rc.chan[_rc.function[MISSION]].scaled + 0.5f);
 		}
 
 		/* return switch input */
 		if (_rc.function[RETURN] >= 0) {
-			manual_control.return_switch = limit_minus_one_to_one(_rc.chan[_rc.function[RETURN]].scaled);
+			manual_control.return_switch = limit_zero_to_one(0.5f * _rc.chan[_rc.function[RETURN]].scaled + 0.5f);
 		}
 
 

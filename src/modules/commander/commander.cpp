@@ -153,7 +153,16 @@ static bool on_usb_power = false;
 
 static float takeoff_alt = 5.0f;
 static int parachute_enabled = 0;
-
+static float assisted_th = 0.25f;
+static float auto_th = 0.75f;
+static float easy_th = 0.5f;
+static float rtl_th = 0.5f;
+static float loiter_th = 0.5f;
+static bool assisted_th_inv = false;
+static bool auto_th_inv = false;
+static bool easy_th_inv = false;
+static bool rtl_th_inv = false;
+static bool loiter_th_inv = false;
 static struct vehicle_status_s status;
 static struct actuator_armed_s armed;
 static struct safety_s safety;
@@ -623,6 +632,11 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_component_id = param_find("MAV_COMP_ID");
 	param_t _param_takeoff_alt = param_find("NAV_TAKEOFF_ALT");
 	param_t _param_enable_parachute = param_find("NAV_PARACHUTE_EN");
+	param_t _param_assisted_th = param_find("RC_ASSISTED_TH");
+	param_t _param_auto_th = param_find("RC_AUTO_TH");
+	param_t _param_easy_th = param_find("RC_EASY_TH");
+	param_t _param_rtl_th = param_find("RC_RTL_TH");
+	param_t _param_loiter_th = param_find("RC_LOITER_TH");
 
 	/* welcome user */
 	warnx("starting");
@@ -872,6 +886,21 @@ int commander_thread_main(int argc, char *argv[])
 			/* navigation parameters */
 			param_get(_param_takeoff_alt, &takeoff_alt);
 			param_get(_param_enable_parachute, &parachute_enabled);
+			param_get(_param_assisted_th, &assisted_th);
+			assisted_th_inv = (assisted_th<0);
+			assisted_th = fabs(assisted_th);
+			param_get(_param_auto_th, &auto_th);
+			auto_th_inv = (auto_th<0);
+			auto_th = fabs(auto_th);
+			param_get(_param_easy_th, &easy_th);
+			easy_th_inv = (easy_th<0);
+			easy_th = fabs(easy_th);
+			param_get(_param_rtl_th, &rtl_th);
+			rtl_th_inv = (rtl_th<0);
+			rtl_th = fabs(rtl_th);
+			param_get(_param_loiter_th, &loiter_th);
+			loiter_th_inv = (loiter_th<0);
+			loiter_th = fabs(loiter_th);
 		}
 
 		orb_check(sp_man_sub, &updated);
@@ -1260,7 +1289,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		// TODO remove this hack
 		/* flight termination in manual mode if assisted switch is on easy position */
-		if (!status.is_rotary_wing && parachute_enabled && armed.armed && status.main_state == MAIN_STATE_MANUAL && sp_man.assisted_switch > STICK_ON_OFF_LIMIT) {
+		if (!status.is_rotary_wing && parachute_enabled && armed.armed && status.main_state == MAIN_STATE_MANUAL && (assisted_th_inv ? sp_man.assisted_switch < assisted_th : sp_man.assisted_switch > assisted_th)) {
 			if (TRANSITION_CHANGED == failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION)) {
 				tune_positive(armed.armed);
 			}
@@ -1483,21 +1512,20 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 		/* default to manual if signal is invalid */
 		status->mode_switch = MODE_SWITCH_MANUAL;
 
-	} else if (sp_man->mode_switch > STICK_ON_OFF_LIMIT) {
+	} else if (auto_th_inv ? sp_man->mode_switch < auto_th : sp_man->mode_switch > auto_th) {
 		status->mode_switch = MODE_SWITCH_AUTO;
 
-	} else if (sp_man->mode_switch < -STICK_ON_OFF_LIMIT) {
-		status->mode_switch = MODE_SWITCH_MANUAL;
-
-	} else {
+	} else if (assisted_th_inv ? sp_man->mode_switch < assisted_th : sp_man->mode_switch > assisted_th) {
 		status->mode_switch = MODE_SWITCH_ASSISTED;
+	} else {
+		status->mode_switch = MODE_SWITCH_MANUAL;
 	}
 
 	/* return switch */
 	if (!isfinite(sp_man->return_switch)) {
 		status->return_switch = RETURN_SWITCH_NONE;
 
-	} else if (sp_man->return_switch > STICK_ON_OFF_LIMIT) {
+	} else if (rtl_th_inv ? sp_man->return_switch < rtl_th : sp_man->return_switch > rtl_th) {
 		status->return_switch = RETURN_SWITCH_RETURN;
 
 	} else {
@@ -1508,7 +1536,7 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 	if (!isfinite(sp_man->assisted_switch)) {
 		status->assisted_switch = ASSISTED_SWITCH_SEATBELT;
 
-	} else if (sp_man->assisted_switch > STICK_ON_OFF_LIMIT) {
+	} else if (easy_th_inv ? sp_man->assisted_switch < easy_th : sp_man->assisted_switch > easy_th) {
 		status->assisted_switch = ASSISTED_SWITCH_EASY;
 
 	} else {
@@ -1519,7 +1547,7 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 	if (!isfinite(sp_man->mission_switch)) {
 		status->mission_switch = MISSION_SWITCH_NONE;
 
-	} else if (sp_man->mission_switch > STICK_ON_OFF_LIMIT) {
+	} else if (loiter_th_inv ? sp_man->mission_switch < loiter_th : sp_man->mission_switch > loiter_th) {
 		status->mission_switch = MISSION_SWITCH_LOITER;
 
 	} else {
