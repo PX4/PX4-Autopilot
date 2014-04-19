@@ -1026,7 +1026,7 @@ FixedwingEstimator::task_main()
 			}
 
 			// Publish results
-			if (_initialized) {
+			if (_initialized && (check == OK)) {
 
 
 
