@@ -119,9 +119,7 @@ TEST(CanIOManager, Transmission)
     using uavcan::CanTxQueue;
 
     // Memory
-    typedef uavcan::PoolAllocator<sizeof(CanTxQueue::Entry) * 4, sizeof(CanTxQueue::Entry)> Pool1;
-    Pool1* ppool = new Pool1();
-    Pool1& pool = *ppool;
+    uavcan::PoolAllocator<sizeof(CanTxQueue::Entry) * 4, sizeof(CanTxQueue::Entry)> pool;
     uavcan::PoolManager<2> poolmgr;
     poolmgr.addPool(&pool);
 
@@ -313,9 +311,7 @@ TEST(CanIOManager, Loopback)
     using uavcan::CanRxFrame;
 
     // Memory
-    typedef uavcan::PoolAllocator<sizeof(CanTxQueue::Entry) * 4, sizeof(CanTxQueue::Entry)> Pool1;
-    Pool1* ppool = new Pool1();
-    Pool1& pool = *ppool;
+    uavcan::PoolAllocator<sizeof(CanTxQueue::Entry) * 4, sizeof(CanTxQueue::Entry)> pool;
     uavcan::PoolManager<2> poolmgr;
     poolmgr.addPool(&pool);
 
