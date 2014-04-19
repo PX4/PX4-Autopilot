@@ -94,9 +94,9 @@ std::string BitStream::toString() const
         }
         out += ' ';
     }
-    if (out.length())
+    if (out.length() > 0)
     {
-        out.erase(out.length() - 1, 1);
+        (void)out.erase(out.length() - 1, 1);
     }
     return out;
 }

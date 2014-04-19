@@ -56,7 +56,7 @@ void bitarrayCopy(const unsigned char* src_org, int src_offset, int src_len, uns
 
             if (byte_len)
             {
-                std::memcpy(dst, src, byte_len);
+                (void)std::memcpy(dst, src, byte_len);
                 src += byte_len;
                 dst += byte_len;
             }

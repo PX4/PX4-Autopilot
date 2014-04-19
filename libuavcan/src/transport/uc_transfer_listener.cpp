@@ -46,7 +46,7 @@ int SingleFrameIncomingTransfer::read(unsigned offset, uint8_t* data, unsigned l
         len = payload_len_ - offset;
     }
     assert((offset + len) <= payload_len_);
-    std::copy(payload_ + offset, payload_ + offset + len, data);
+    (void)std::copy(payload_ + offset, payload_ + offset + len, data);
     return len;
 }
 

@@ -67,7 +67,7 @@ uint16_t IEEE754Converter::nativeNonIeeeToHalf(float value)
         return hbits | 0x7C00U;
     }
     int exp;
-    std::frexp(value, &exp);
+    (void)std::frexp(value, &exp);
     if (exp > 16)
     {
         return hbits | 0x7C00U;

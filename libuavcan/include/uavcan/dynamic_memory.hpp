@@ -48,7 +48,7 @@ class UAVCAN_EXPORT PoolManager : public IPoolAllocator, Noncopyable
 public:
     PoolManager()
     {
-        std::memset(pools_, 0, sizeof(pools_));
+        (void)std::memset(pools_, 0, sizeof(pools_));
     }
 
     bool addPool(IPoolAllocator* pool);
@@ -229,7 +229,7 @@ template <std::size_t PoolSize, std::size_t BlockSize>
 PoolAllocator<PoolSize, BlockSize>::PoolAllocator()
     : free_list_(reinterpret_cast<Node*>(pool_.bytes))
 {
-    std::memset(pool_.bytes, 0, PoolSize);
+    (void)std::memset(pool_.bytes, 0, PoolSize);
     for (unsigned i = 0; (i + 1) < (NumBlocks - 1 + 1); i++) // -Werror=type-limits
     {
         // coverity[dead_error_line : FALSE]

@@ -51,7 +51,7 @@ class SocketCanIface : public uavcan::ICanIface
     static inline ::can_frame makeSocketCanFrame(const uavcan::CanFrame& uavcan_frame)
     {
         ::can_frame sockcan_frame { uavcan_frame.id & uavcan::CanFrame::MaskExtID, uavcan_frame.dlc, { } };
-        std::copy(uavcan_frame.data, uavcan_frame.data + uavcan_frame.dlc, sockcan_frame.data);
+        (void)std::copy(uavcan_frame.data, uavcan_frame.data + uavcan_frame.dlc, sockcan_frame.data);
         if (uavcan_frame.isExtended())
         {
             sockcan_frame.can_id |= CAN_EFF_FLAG;
@@ -152,7 +152,7 @@ class SocketCanIface : public uavcan::ICanIface
     {
         if (pending_loopback_ids_.count(frame.id) > 0)
         {
-            pending_loopback_ids_.erase(frame.id);
+            (void)pending_loopback_ids_.erase(frame.id);
             return true;
         }
         return false;
@@ -214,7 +214,7 @@ class SocketCanIface : public uavcan::ICanIface
         if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SO_TIMESTAMP)
         {
             auto tv = ::timeval();
-            std::memcpy(&tv, CMSG_DATA(cmsg), sizeof(tv));  // Copy to avoid alignment problems
+            (void)std::memcpy(&tv, CMSG_DATA(cmsg), sizeof(tv));  // Copy to avoid alignment problems
             assert(tv.tv_sec >= 0 && tv.tv_usec >= 0);
             ts_utc = uavcan::UtcTime::fromUSec(std::uint64_t(tv.tv_sec) * 1000000ULL + tv.tv_usec);
         }
@@ -245,7 +245,7 @@ class SocketCanIface : public uavcan::ICanIface
                     incrementNumFramesInSocketTxQueue();
                     if (tx.flags & uavcan::CanIOFlagLoopback)
                     {
-                        pending_loopback_ids_.insert(tx.frame.id);
+                        (void)pending_loopback_ids_.insert(tx.frame.id);
                     }
                 }
                 else
@@ -437,7 +437,7 @@ public:
         {
             goto fail;
         }
-        std::strncpy(ifr.ifr_name, iface_name.c_str(), iface_name.length());
+        (void)std::strncpy(ifr.ifr_name, iface_name.c_str(), iface_name.length());
         if (::ioctl(s, SIOCGIFINDEX, &ifr) < 0 || ifr.ifr_ifindex < 0)
         {
             goto fail;
@@ -474,7 +474,7 @@ public:
         return s;
 
     fail:
-        ::close(s);
+        (void)::close(s);
         return -1;
     }
 };

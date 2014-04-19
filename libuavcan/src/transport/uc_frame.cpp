@@ -41,7 +41,7 @@ int Frame::setPayload(const uint8_t* data, unsigned len)
         return maxlen;
     }
     len = std::min(unsigned(maxlen), len);
-    std::copy(data, data + len, payload_);
+    (void)std::copy(data, data + len, payload_);
     payload_len_ = len;
     return len;
 }
@@ -85,7 +85,7 @@ bool Frame::parse(const CanFrame& can_frame)
     {
         dst_node_id_ = NodeID::Broadcast;
         payload_len_ = can_frame.dlc;
-        std::copy(can_frame.data, can_frame.data + can_frame.dlc, payload_);
+        (void)std::copy(can_frame.data, can_frame.data + can_frame.dlc, payload_);
         break;
     }
     case TransferTypeServiceResponse:
@@ -102,7 +102,7 @@ bool Frame::parse(const CanFrame& can_frame)
         }
         dst_node_id_ = can_frame.data[0] & 0x7F;
         payload_len_ = can_frame.dlc - 1;
-        std::copy(can_frame.data + 1, can_frame.data + can_frame.dlc, payload_);
+        (void)std::copy(can_frame.data + 1, can_frame.data + can_frame.dlc, payload_);
         break;
     }
     default:
@@ -142,7 +142,7 @@ bool Frame::compile(CanFrame& out_can_frame) const
     case TransferTypeMessageBroadcast:
     {
         out_can_frame.dlc = payload_len_;
-        std::copy(payload_, payload_ + payload_len_, out_can_frame.data);
+        (void)std::copy(payload_, payload_ + payload_len_, out_can_frame.data);
         break;
     }
     case TransferTypeServiceResponse:
@@ -152,7 +152,7 @@ bool Frame::compile(CanFrame& out_can_frame) const
         assert((payload_len_ + 1) <= sizeof(out_can_frame.data));
         out_can_frame.data[0] = dst_node_id_.get();
         out_can_frame.dlc = payload_len_ + 1;
-        std::copy(payload_, payload_ + payload_len_, out_can_frame.data + 1);
+        (void)std::copy(payload_, payload_ + payload_len_, out_can_frame.data + 1);
         break;
     }
     default:

@@ -89,7 +89,7 @@ protected:
     {
         if (size_ >= MaxSize)
         {
-            validateRange(MaxSize);  // Will throw, assert() or do nothing
+            (void)validateRange(MaxSize);  // Will throw, assert() or do nothing
         }
         else
         {
@@ -435,7 +435,7 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
         }
         else if (this->size() == MaxSize)
         {
-            std::copy(this->begin(), this->end(), it);
+            (void)std::copy(this->begin(), this->end(), it);
         }
         else
         {

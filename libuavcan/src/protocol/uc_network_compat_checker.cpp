@@ -131,7 +131,7 @@ int NetworkCompatibilityChecker::checkOneNode(NodeID nid)
 
 int NetworkCompatibilityChecker::checkNodes()
 {
-    nid_mask_checked_.reset();
+    (void)nid_mask_checked_.reset();
     while (true)
     {
         const NodeID nid = findNextUncheckedNode();

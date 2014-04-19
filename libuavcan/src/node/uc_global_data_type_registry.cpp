@@ -231,7 +231,7 @@ DataTypeSignature GlobalDataTypeRegistry::computeAggregateSignature(DataTypeKind
 
 void GlobalDataTypeRegistry::getDataTypeIDMask(DataTypeKind kind, DataTypeIDMask& mask) const
 {
-    mask.reset();
+    (void)mask.reset();
     const List* list = selectList(kind);
     if (!list)
     {
