@@ -40,6 +40,7 @@
  */
 
 #include "attitude_estimator_ekf_params.h"
+#include <math.h>
 
 /* Extended Kalman Filter covariances */
 
