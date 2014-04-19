@@ -64,7 +64,7 @@ private:
     {
         static StorageType max()
         {
-            return StorageType((IsSigned != 0) ? 0x7FFFFFFFFFFFFFFFLL : 0xFFFFFFFFFFFFFFFFULL);
+            return StorageType((IsSigned == 0) ? 0xFFFFFFFFFFFFFFFFULL : 0x7FFFFFFFFFFFFFFFLL);
         }
         static UnsignedStorageType mask() { return 0xFFFFFFFFFFFFFFFFULL; }
     };
