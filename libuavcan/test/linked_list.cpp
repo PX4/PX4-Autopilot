@@ -47,8 +47,8 @@ TEST(LinkedList, Basic)
     root.insert(&item1);         // Insert twice - second will be ignored
     EXPECT_EQ(1, root.getLength());
 
-    EXPECT_TRUE(root.remove(&item1));
-    EXPECT_FALSE(root.remove(&item1));
+    root.remove(&item1);
+    root.remove(&item1);
     EXPECT_EQ(0, root.getLength());
 
     ListItem items[3];
@@ -72,9 +72,9 @@ TEST(LinkedList, Basic)
         node = node->getNextListNode();
     }
 
-    EXPECT_TRUE(root.remove(items + 0));
-    EXPECT_TRUE(root.remove(items + 2));
-    EXPECT_FALSE(root.remove(items + 2));
+    root.remove(items + 0);
+    root.remove(items + 2);
+    root.remove(items + 2);
     EXPECT_EQ(2, root.getLength());
 
     const int expected_values2[] = {11, 0};
@@ -92,10 +92,10 @@ TEST(LinkedList, Basic)
     /*
      * Emptying
      */
-    EXPECT_TRUE(root.remove(&item1));
-    EXPECT_FALSE(root.remove(items + 0));
-    EXPECT_TRUE(root.remove(items + 1));
-    EXPECT_TRUE(root.remove(items + 2));
+    root.remove(&item1);
+    root.remove(items + 0);
+    root.remove(items + 1);
+    root.remove(items + 2);
     EXPECT_EQ(0, root.getLength());
 }
 
