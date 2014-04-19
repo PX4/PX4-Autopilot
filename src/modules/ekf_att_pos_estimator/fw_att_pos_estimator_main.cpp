@@ -90,7 +90,7 @@
  *
  * @ingroup apps
  */
-extern "C" __EXPORT int fw_att_pos_estimator_main(int argc, char *argv[]);
+extern "C" __EXPORT int ekf_att_pos_estimator_main(int argc, char *argv[]);
 
 __EXPORT uint32_t millis();
 
@@ -1255,10 +1255,10 @@ int FixedwingEstimator::trip_nan() {
 	return ret;
 }
 
-int fw_att_pos_estimator_main(int argc, char *argv[])
+int ekf_att_pos_estimator_main(int argc, char *argv[])
 {
 	if (argc < 1)
-		errx(1, "usage: fw_att_pos_estimator {start|stop|status}");
+		errx(1, "usage: ekf_att_pos_estimator {start|stop|status}");
 
 	if (!strcmp(argv[1], "start")) {
 
