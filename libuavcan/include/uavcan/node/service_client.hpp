@@ -45,7 +45,7 @@ struct UAVCAN_EXPORT ServiceCallResult
         , response(arg_response)
     {
         assert(server_node_id.isUnicast());
-        assert(status == Success || status == ErrorTimeout);
+        assert((status == Success) || (status == ErrorTimeout));
     }
 
     bool isSuccessful() const { return status == Success; }
