@@ -34,19 +34,19 @@ class UAVCAN_EXPORT MarshalBufferProvider : public IMarshalBufferProvider
     {
         StaticTransferBuffer<MaxSize_> buf_;
 
-        int read(unsigned offset, uint8_t* data, unsigned len) const
+        virtual int read(unsigned offset, uint8_t* data, unsigned len) const
         {
             return buf_.read(offset, data, len);
         }
 
-        int write(unsigned offset, const uint8_t* data, unsigned len)
+        virtual int write(unsigned offset, const uint8_t* data, unsigned len)
         {
             return buf_.write(offset, data, len);
         }
 
-        const uint8_t* getDataPtr() const { return buf_.getRawPtr(); }
+        virtual const uint8_t* getDataPtr() const { return buf_.getRawPtr(); }
 
-        unsigned getDataLength() const { return buf_.getMaxWritePos(); }
+        virtual unsigned getDataLength() const { return buf_.getMaxWritePos(); }
 
     public:
         void reset() { buf_.reset(); }
@@ -57,7 +57,7 @@ class UAVCAN_EXPORT MarshalBufferProvider : public IMarshalBufferProvider
 public:
     enum { MaxSize = MaxSize_ };
 
-    IMarshalBuffer* getBuffer(unsigned size)
+    virtual IMarshalBuffer* getBuffer(unsigned size)
     {
         if (size > MaxSize)
         {

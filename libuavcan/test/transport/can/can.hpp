@@ -94,7 +94,8 @@ public:
         return frame_time.frame;
     }
 
-    uavcan::int16_t send(const uavcan::CanFrame& frame, uavcan::MonotonicTime tx_deadline, uavcan::CanIOFlags flags)
+    virtual uavcan::int16_t send(const uavcan::CanFrame& frame, uavcan::MonotonicTime tx_deadline,
+                                 uavcan::CanIOFlags flags)
     {
         assert(this);
         EXPECT_TRUE(writeable);        // Shall never be called when not writeable
@@ -114,8 +115,8 @@ public:
         return 1;
     }
 
-    uavcan::int16_t receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
-                            uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags)
+    virtual uavcan::int16_t receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
+                                    uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags)
     {
         assert(this);
         out_flags = uavcan::CanIOFlags();
@@ -149,10 +150,10 @@ public:
 
     // cppcheck-suppress unusedFunction
     // cppcheck-suppress functionConst
-    uavcan::int16_t configureFilters(const uavcan::CanFilterConfig*, uavcan::uint16_t) { return -1; }
+    virtual uavcan::int16_t configureFilters(const uavcan::CanFilterConfig*, uavcan::uint16_t) { return -1; }
     // cppcheck-suppress unusedFunction
-    uavcan::uint16_t getNumFilters() const { return 0; }
-    uavcan::uint64_t getErrorCount() const { return num_errors; }
+    virtual uavcan::uint16_t getNumFilters() const { return 0; }
+    virtual uavcan::uint64_t getErrorCount() const { return num_errors; }
 };
 
 class CanDriverMock : public uavcan::ICanDriver
@@ -168,7 +169,7 @@ public:
         , select_failure(false)
     { }
 
-    uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime deadline)
+    virtual uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime deadline)
     {
         assert(this);
         //std::cout << "Write/read masks: " << inout_write_iface_mask << "/" << inout_read_iface_mask << std::endl;
@@ -222,8 +223,8 @@ public:
         return 1;  // This value is not being checked anyway, it just has to be greater than zero
     }
 
-    uavcan::ICanIface* getIface(uavcan::uint8_t iface_index) { return &ifaces.at(iface_index); }
-    uavcan::uint8_t getNumIfaces() const { return ifaces.size(); }
+    virtual uavcan::ICanIface* getIface(uavcan::uint8_t iface_index) { return &ifaces.at(iface_index); }
+    virtual uavcan::uint8_t getNumIfaces() const { return ifaces.size(); }
 };
 
 enum FrameType { STD, EXT };

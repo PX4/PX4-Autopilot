@@ -18,7 +18,7 @@ class UAVCAN_EXPORT PanicBroadcaster : private TimerBase
 
     void publishOnce();
 
-    void handleTimerEvent(const TimerEvent&);
+    virtual void handleTimerEvent(const TimerEvent&);
 
 public:
     explicit PanicBroadcaster(INode& node)

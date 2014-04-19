@@ -130,7 +130,7 @@ private:
 
     void handleReceivedDataStruct(ReceivedDataStructure<ResponseType>& response);
 
-    void handleDeadline(MonotonicTime);
+    virtual void handleDeadline(MonotonicTime);
 
 public:
     explicit ServiceClient(INode& node, const Callback& callback = Callback())

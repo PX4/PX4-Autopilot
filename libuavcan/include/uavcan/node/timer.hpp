@@ -41,7 +41,7 @@ class UAVCAN_EXPORT TimerBase : private DeadlineHandler
 {
     MonotonicDuration period_;
 
-    void handleDeadline(MonotonicTime current);
+    virtual void handleDeadline(MonotonicTime current);
 
 public:
     using DeadlineHandler::stop;
@@ -73,7 +73,7 @@ public:
 private:
     Callback callback_;
 
-    void handleTimerEvent(const TimerEvent& event)
+    virtual void handleTimerEvent(const TimerEvent& event)
     {
         if (try_implicit_cast<bool>(callback_, true))
         {

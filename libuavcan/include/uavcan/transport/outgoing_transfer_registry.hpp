@@ -126,11 +126,11 @@ public:
         : map_(allocator)
     { }
 
-    TransferID* accessOrCreate(const OutgoingTransferRegistryKey& key, MonotonicTime new_deadline);
+    virtual TransferID* accessOrCreate(const OutgoingTransferRegistryKey& key, MonotonicTime new_deadline);
 
-    bool exists(DataTypeID dtid, TransferType tt) const;
+    virtual bool exists(DataTypeID dtid, TransferType tt) const;
 
-    void cleanup(MonotonicTime ts);
+    virtual void cleanup(MonotonicTime ts);
 };
 
 // ----------------------------------------------------------------------------

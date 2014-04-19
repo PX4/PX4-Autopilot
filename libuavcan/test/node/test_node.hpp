@@ -25,15 +25,15 @@ struct TestNode : public uavcan::INode
         setNodeID(self_node_id);
     }
 
-    void registerInternalFailure(const char* msg)
+    virtual void registerInternalFailure(const char* msg)
     {
         std::cout << "TestNode internal failure: " << msg << std::endl;
     }
 
-    uavcan::PoolManager<1>& getAllocator() { return poolmgr; }
-    uavcan::Scheduler& getScheduler() { return scheduler; }
-    const uavcan::Scheduler& getScheduler() const { return scheduler; }
-    uavcan::IMarshalBufferProvider& getMarshalBufferProvider() { return buffer_provider; }
+    virtual uavcan::PoolManager<1>& getAllocator() { return poolmgr; }
+    virtual uavcan::Scheduler& getScheduler() { return scheduler; }
+    virtual const uavcan::Scheduler& getScheduler() const { return scheduler; }
+    virtual uavcan::IMarshalBufferProvider& getMarshalBufferProvider() { return buffer_provider; }
 };
 
 
@@ -57,7 +57,7 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
         with->other = this;
     }
 
-    uavcan::ICanIface* getIface(uavcan::uint8_t iface_index)
+    virtual uavcan::ICanIface* getIface(uavcan::uint8_t iface_index)
     {
         if (iface_index == 0)
         {
@@ -66,9 +66,9 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
         return NULL;
     }
 
-    uavcan::uint8_t getNumIfaces() const { return 1; }
+    virtual uavcan::uint8_t getNumIfaces() const { return 1; }
 
-    uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline)
+    virtual uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline)
     {
         assert(other);
         if (inout_masks.read == 1)
@@ -86,7 +86,7 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
         return 0;
     }
 
-    uavcan::int16_t send(const uavcan::CanFrame& frame, uavcan::MonotonicTime, uavcan::CanIOFlags flags)
+    virtual uavcan::int16_t send(const uavcan::CanFrame& frame, uavcan::MonotonicTime, uavcan::CanIOFlags flags)
     {
         assert(other);
         other->read_queue.push(frame);
@@ -97,8 +97,8 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
         return 1;
     }
 
-    uavcan::int16_t receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
-                            uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags)
+    virtual uavcan::int16_t receive(uavcan::CanFrame& out_frame, uavcan::MonotonicTime& out_ts_monotonic,
+                                    uavcan::UtcTime& out_ts_utc, uavcan::CanIOFlags& out_flags)
     {
         assert(other);
         out_flags = 0;
@@ -119,9 +119,9 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
         return 1;
     }
 
-    uavcan::int16_t configureFilters(const uavcan::CanFilterConfig*, uavcan::uint16_t) { return -1; }
-    uavcan::uint16_t getNumFilters() const { return 0; }
-    uavcan::uint64_t getErrorCount() const { return error_count; }
+    virtual uavcan::int16_t configureFilters(const uavcan::CanFilterConfig*, uavcan::uint16_t) { return -1; }
+    virtual uavcan::uint16_t getNumFilters() const { return 0; }
+    virtual uavcan::uint64_t getErrorCount() const { return error_count; }
 };
 
 

@@ -31,7 +31,7 @@ class UAVCAN_EXPORT IncomingTransfer : public ITransferBuffer
     uint8_t iface_index_;
 
     /// That's a no-op, asserts in debug builds
-    int write(unsigned offset, const uint8_t* data, unsigned len);
+    virtual int write(unsigned offset, const uint8_t* data, unsigned len);
 
 protected:
     IncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc, TransferType transfer_type,
@@ -67,7 +67,7 @@ class UAVCAN_EXPORT SingleFrameIncomingTransfer : public IncomingTransfer
     const uint8_t payload_len_;
 public:
     explicit SingleFrameIncomingTransfer(const RxFrame& frm);
-    int read(unsigned offset, uint8_t* data, unsigned len) const;
+    virtual int read(unsigned offset, uint8_t* data, unsigned len) const;
 };
 
 /**
@@ -79,8 +79,8 @@ class UAVCAN_EXPORT MultiFrameIncomingTransfer : public IncomingTransfer, Noncop
 public:
     MultiFrameIncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc, const RxFrame& last_frame,
                                TransferBufferAccessor& tba);
-    int read(unsigned offset, uint8_t* data, unsigned len) const;
-    void release() { buf_acc_.remove(); }
+    virtual int read(unsigned offset, uint8_t* data, unsigned len) const;
+    virtual void release() { buf_acc_.remove(); }
 };
 
 /**

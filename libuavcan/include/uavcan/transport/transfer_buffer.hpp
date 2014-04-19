@@ -113,7 +113,7 @@ class UAVCAN_EXPORT DynamicTransferBufferManagerEntry
     /// Reset functionality must be implemented in a non-virtual method to call it safely from the destructor.
     void doReset();
 
-    void resetImpl();
+    virtual void resetImpl();
 
 public:
     DynamicTransferBufferManagerEntry(IPoolAllocator& allocator, uint16_t max_size)
@@ -126,7 +126,7 @@ public:
         IsDynamicallyAllocatable<DynamicTransferBufferManagerEntry>::check();
     }
 
-    ~DynamicTransferBufferManagerEntry()
+    virtual ~DynamicTransferBufferManagerEntry()
     {
         doReset();
     }
@@ -134,8 +134,8 @@ public:
     static DynamicTransferBufferManagerEntry* instantiate(IPoolAllocator& allocator, uint16_t max_size);
     static void destroy(DynamicTransferBufferManagerEntry*& obj, IPoolAllocator& allocator);
 
-    int read(unsigned offset, uint8_t* data, unsigned len) const;
-    int write(unsigned offset, const uint8_t* data, unsigned len);
+    virtual int read(unsigned offset, uint8_t* data, unsigned len) const;
+    virtual int write(unsigned offset, const uint8_t* data, unsigned len);
 };
 UAVCAN_PACKED_END
 
@@ -155,8 +155,8 @@ public:
         , max_write_pos_(0)
     { }
 
-    int read(unsigned offset, uint8_t* data, unsigned len) const;
-    int write(unsigned offset, const uint8_t* data, unsigned len);
+    virtual int read(unsigned offset, uint8_t* data, unsigned len) const;
+    virtual int write(unsigned offset, const uint8_t* data, unsigned len);
 
     void reset();
 
@@ -188,15 +188,15 @@ class StaticTransferBufferManagerEntryImpl : public TransferBufferManagerEntry
 {
     StaticTransferBufferImpl buf_;
 
-    void resetImpl();
+    virtual void resetImpl();
 
 public:
     StaticTransferBufferManagerEntryImpl(uint8_t* buf, uint16_t buf_size)
         : buf_(buf, buf_size)
     { }
 
-    int read(unsigned offset, uint8_t* data, unsigned len) const;
-    int write(unsigned offset, const uint8_t* data, unsigned len);
+    virtual int read(unsigned offset, uint8_t* data, unsigned len) const;
+    virtual int write(unsigned offset, const uint8_t* data, unsigned len);
 
     bool migrateFrom(const TransferBufferManagerEntry* tbme);
 };
@@ -265,13 +265,13 @@ public:
         , max_buf_size_(max_buf_size)
     { }
 
-    ~TransferBufferManagerImpl();
+    virtual ~TransferBufferManagerImpl();
 
-    ITransferBuffer* access(const TransferBufferManagerKey& key);
-    ITransferBuffer* create(const TransferBufferManagerKey& key);
-    void remove(const TransferBufferManagerKey& key);
+    virtual ITransferBuffer* access(const TransferBufferManagerKey& key);
+    virtual ITransferBuffer* create(const TransferBufferManagerKey& key);
+    virtual void remove(const TransferBufferManagerKey& key);
+    virtual bool isEmpty() const;
 
-    bool isEmpty() const;
     unsigned getNumDynamicBuffers() const;
     unsigned getNumStaticBuffers() const;
 };
@@ -281,7 +281,7 @@ class UAVCAN_EXPORT TransferBufferManager : public TransferBufferManagerImpl
 {
     mutable StaticTransferBufferManagerEntry<MaxBufSize> static_buffers_[NumStaticBufs];
 
-    StaticTransferBufferManagerEntry<MaxBufSize>* getStaticByIndex(uint16_t index) const
+    virtual StaticTransferBufferManagerEntry<MaxBufSize>* getStaticByIndex(uint16_t index) const
     {
         return (index < NumStaticBufs) ? &static_buffers_[index] : NULL;
     }
@@ -300,7 +300,7 @@ public:
 template <uint16_t MaxBufSize>
 class UAVCAN_EXPORT TransferBufferManager<MaxBufSize, 0> : public TransferBufferManagerImpl
 {
-    StaticTransferBufferManagerEntry<MaxBufSize>* getStaticByIndex(uint16_t) const
+    virtual StaticTransferBufferManagerEntry<MaxBufSize>* getStaticByIndex(uint16_t) const
     {
         return NULL;
     }
@@ -319,10 +319,10 @@ class UAVCAN_EXPORT TransferBufferManager<0, 0> : public ITransferBufferManager
 public:
     TransferBufferManager() { }
     TransferBufferManager(IPoolAllocator&) { }
-    ITransferBuffer* access(const TransferBufferManagerKey&) { return NULL; }
-    ITransferBuffer* create(const TransferBufferManagerKey&) { return NULL; }
-    void remove(const TransferBufferManagerKey&) { }
-    bool isEmpty() const { return true; }
+    virtual ITransferBuffer* access(const TransferBufferManagerKey&) { return NULL; }
+    virtual ITransferBuffer* create(const TransferBufferManagerKey&) { return NULL; }
+    virtual void remove(const TransferBufferManagerKey&) { }
+    virtual bool isEmpty() const { return true; }
 };
 
 }

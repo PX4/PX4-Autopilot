@@ -46,7 +46,7 @@ class UAVCAN_EXPORT GlobalTimeSyncMaster : protected LoopbackFrameListenerBase
     DataTypeID dtid_;
     bool initialized_;
 
-    void handleLoopbackFrame(const RxFrame& frame);
+    virtual void handleLoopbackFrame(const RxFrame& frame);
 
     int getNextTransferID(TransferID& tid);
 

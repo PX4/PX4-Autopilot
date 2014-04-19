@@ -53,13 +53,13 @@ public:
 
     bool addPool(IPoolAllocator* pool);
 
-    void* allocate(std::size_t size);
-    void deallocate(const void* ptr);
+    virtual void* allocate(std::size_t size);
+    virtual void deallocate(const void* ptr);
 
-    bool isInPool(const void* ptr) const;
+    virtual bool isInPool(const void* ptr) const;
 
-    std::size_t getBlockSize() const;
-    std::size_t getNumBlocks() const;
+    virtual std::size_t getBlockSize() const;
+    virtual std::size_t getNumBlocks() const;
 };
 
 
@@ -86,13 +86,13 @@ public:
 
     PoolAllocator();
 
-    void* allocate(std::size_t size);
-    void deallocate(const void* ptr);
+    virtual void* allocate(std::size_t size);
+    virtual void deallocate(const void* ptr);
 
-    bool isInPool(const void* ptr) const;
+    virtual bool isInPool(const void* ptr) const;
 
-    std::size_t getBlockSize() const { return BlockSize; }
-    std::size_t getNumBlocks() const { return NumBlocks; }
+    virtual std::size_t getBlockSize() const { return BlockSize; }
+    virtual std::size_t getNumBlocks() const { return NumBlocks; }
 
     unsigned getNumFreeBlocks() const;
     unsigned getNumUsedBlocks() const { return NumBlocks - getNumFreeBlocks(); }
@@ -114,13 +114,13 @@ public:
         assert(max_blocks_ > 0);
     }
 
-    void* allocate(std::size_t size);
-    void deallocate(const void* ptr);
+    virtual void* allocate(std::size_t size);
+    virtual void deallocate(const void* ptr);
 
-    bool isInPool(const void* ptr) const;
+    virtual bool isInPool(const void* ptr) const;
 
-    std::size_t getBlockSize() const;
-    std::size_t getNumBlocks() const;
+    virtual std::size_t getBlockSize() const;
+    virtual std::size_t getNumBlocks() const;
 };
 
 // ----------------------------------------------------------------------------

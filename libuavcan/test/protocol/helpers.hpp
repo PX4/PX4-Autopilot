@@ -98,7 +98,7 @@ struct BackgroundSpinner : uavcan::TimerBase
         , spinning_node(spinning_node)
     { }
 
-    void handleTimerEvent(const uavcan::TimerEvent&)
+    virtual void handleTimerEvent(const uavcan::TimerEvent&)
     {
         spinning_node.spin(uavcan::MonotonicDuration::fromMSec(1));
     }

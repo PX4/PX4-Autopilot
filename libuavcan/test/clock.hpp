@@ -34,7 +34,7 @@ public:
         }
     }
 
-    uavcan::MonotonicTime getMonotonic() const
+    virtual uavcan::MonotonicTime getMonotonic() const
     {
         assert(this);
         const uint64_t res = monotonic;
@@ -42,13 +42,13 @@ public:
         return uavcan::MonotonicTime::fromUSec(res);
     }
 
-    uavcan::UtcTime getUtc() const
+    virtual uavcan::UtcTime getUtc() const
     {
         assert(this);
         return uavcan::UtcTime::fromUSec(utc);
     }
 
-    void adjustUtc(uavcan::UtcDuration adjustment)
+    virtual void adjustUtc(uavcan::UtcDuration adjustment)
     {
         assert(this);
         const uint64_t prev_utc = utc;
@@ -64,7 +64,7 @@ class SystemClockDriver : public uavcan::ISystemClock
 public:
     uavcan::UtcDuration utc_adjustment;
 
-    uavcan::MonotonicTime getMonotonic() const
+    virtual uavcan::MonotonicTime getMonotonic() const
     {
         struct timespec ts;
         const int ret = clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -76,7 +76,7 @@ public:
         return uavcan::MonotonicTime::fromUSec(uint64_t(ts.tv_sec) * 1000000UL + ts.tv_nsec / 1000UL);
     }
 
-    uavcan::UtcTime getUtc() const
+    virtual uavcan::UtcTime getUtc() const
     {
         struct timeval tv;
         const int ret = gettimeofday(&tv, NULL);
@@ -88,7 +88,7 @@ public:
         return uavcan::UtcTime::fromUSec(uint64_t(tv.tv_sec) * 1000000UL + tv.tv_usec) + utc_adjustment;
     }
 
-    void adjustUtc(uavcan::UtcDuration adjustment)
+    virtual void adjustUtc(uavcan::UtcDuration adjustment)
     {
         utc_adjustment += adjustment;
     }

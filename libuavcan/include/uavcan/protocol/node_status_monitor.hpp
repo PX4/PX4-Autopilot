@@ -62,7 +62,7 @@ private:
 
     void handleNodeStatus(const ReceivedDataStructure<protocol::NodeStatus>& msg);
 
-    void handleTimerEvent(const TimerEvent&);
+    virtual void handleTimerEvent(const TimerEvent&);
 
 protected:
     /**
