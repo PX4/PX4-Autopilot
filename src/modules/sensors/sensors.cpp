@@ -1463,6 +1463,10 @@ Sensors::rc_poll()
 			manual_control.aux4 = limit_minus_one_to_one(_rc.chan[_rc.function[AUX_4]].scaled);
 		}
 
+		if (_rc.function[AUX_5] >= 0) {
+			manual_control.aux5 = limit_minus_one_to_one(_rc.chan[_rc.function[AUX_5]].scaled);
+		}
+
 		/* copy from mapped manual control to control group 3 */
 		actuator_group_3.control[0] = manual_control.roll;
 		actuator_group_3.control[1] = manual_control.pitch;
