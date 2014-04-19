@@ -226,7 +226,7 @@ class SocketCanIface : public uavcan::ICanIface
         /*
          * Flags
          */
-        loopback = !!(msg.msg_flags & MSG_CONFIRM);
+        loopback = (msg.msg_flags & static_cast<int>(MSG_CONFIRM)) != 0;
         return 1;
     }
 
