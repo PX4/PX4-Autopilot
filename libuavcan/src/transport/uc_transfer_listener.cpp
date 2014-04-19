@@ -89,7 +89,7 @@ bool TransferListenerBase::TimedOutReceiverPredicate::operator()(const TransferB
          * destroy the buffers manually.
          * Maybe it is not good that the predicate has side effects, but I ran out of better ideas.
          */
-        bufmgr_.remove(key);
+        parent_bufmgr_.remove(key);
         return true;
     }
     return false;

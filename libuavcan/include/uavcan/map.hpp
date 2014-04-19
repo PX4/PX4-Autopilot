@@ -32,9 +32,9 @@ class UAVCAN_EXPORT MapBase : Noncopyable
         Key key;
         Value value;
         KVPair() { }
-        KVPair(const Key& key, const Value& value)
-            : key(key)
-            , value(value)
+        KVPair(const Key& arg_key, const Value& arg_value)
+            : key(arg_key)
+            , value(arg_value)
         { }
         bool match(const Key& rhs) const { return rhs == key; }
     };

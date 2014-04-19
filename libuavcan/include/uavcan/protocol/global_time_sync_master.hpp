@@ -21,7 +21,7 @@ class UAVCAN_EXPORT GlobalTimeSyncMaster : protected LoopbackFrameListenerBase
     class IfaceMaster
     {
         Publisher<protocol::GlobalTimeSync> pub_;
-        MonotonicTime prev_pub_mono_;
+        MonotonicTime iface_prev_pub_mono_;
         UtcTime prev_tx_utc_;
         const uint8_t iface_index_;
 

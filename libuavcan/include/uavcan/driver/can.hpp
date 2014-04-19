@@ -38,13 +38,13 @@ struct UAVCAN_EXPORT CanFrame
         std::fill(data, data + MaxDataLen, 0);
     }
 
-    CanFrame(uint32_t id, const uint8_t* data, uint8_t data_len)
-        : id(id)
+    CanFrame(uint32_t arg_id, const uint8_t* arg_data, uint8_t data_len)
+        : id(arg_id)
         , dlc((data_len > MaxDataLen) ? MaxDataLen : data_len)
     {
-        assert(data != NULL);
+        assert(arg_data != NULL);
         assert(data_len == dlc);
-        std::copy(data, data + dlc, this->data);
+        (void)std::copy(arg_data, arg_data + dlc, this->data);
     }
 
     bool operator!=(const CanFrame& rhs) const { return !operator==(rhs); }

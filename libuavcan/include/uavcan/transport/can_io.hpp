@@ -50,11 +50,11 @@ public:
         uint8_t qos;
         CanIOFlags flags;
 
-        Entry(const CanFrame& frame, MonotonicTime deadline, Qos qos, CanIOFlags flags)
-            : deadline(deadline)
-            , frame(frame)
-            , qos(uint8_t(qos))
-            , flags(flags)
+        Entry(const CanFrame& arg_frame, MonotonicTime arg_deadline, Qos arg_qos, CanIOFlags arg_flags)
+            : deadline(arg_deadline)
+            , frame(arg_frame)
+            , qos(uint8_t(arg_qos))
+            , flags(arg_flags)
         {
             assert((qos == Volatile) || (qos == Persistent));
             IsDynamicallyAllocatable<Entry>::check();

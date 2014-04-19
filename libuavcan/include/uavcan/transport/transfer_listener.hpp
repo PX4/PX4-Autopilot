@@ -97,12 +97,12 @@ class UAVCAN_EXPORT TransferListenerBase : public LinkedListNode<TransferListene
     class TimedOutReceiverPredicate
     {
         const MonotonicTime ts_;
-        ITransferBufferManager& bufmgr_;
+        ITransferBufferManager& parent_bufmgr_;
 
     public:
-        TimedOutReceiverPredicate(MonotonicTime ts, ITransferBufferManager& bufmgr)
-            : ts_(ts)
-            , bufmgr_(bufmgr)
+        TimedOutReceiverPredicate(MonotonicTime arg_ts, ITransferBufferManager& arg_bufmgr)
+            : ts_(arg_ts)
+            , parent_bufmgr_(arg_bufmgr)
         { }
 
         bool operator()(const TransferBufferManagerKey& key, const TransferReceiver& value) const;
@@ -186,9 +186,9 @@ public:
             assert(!src_node_id.isValid());
         }
 
-        ExpectedResponseParams(NodeID src_node_id, TransferID transfer_id)
-            : src_node_id(src_node_id)
-            , transfer_id(transfer_id)
+        ExpectedResponseParams(NodeID arg_src_node_id, TransferID arg_transfer_id)
+            : src_node_id(arg_src_node_id)
+            , transfer_id(arg_transfer_id)
         {
             assert(src_node_id.isUnicast());
         }

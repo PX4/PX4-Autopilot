@@ -39,10 +39,10 @@ struct UAVCAN_EXPORT ServiceCallResult
     NodeID server_node_id;
     ResponseFieldType& response;      ///< Either response contents or unspecified response structure
 
-    ServiceCallResult(Status status, NodeID server_node_id, ResponseFieldType& response)
-        : status(status)
-        , server_node_id(server_node_id)
-        , response(response)
+    ServiceCallResult(Status arg_status, NodeID arg_server_node_id, ResponseFieldType& arg_response)
+        : status(arg_status)
+        , server_node_id(arg_server_node_id)
+        , response(arg_response)
     {
         assert(server_node_id.isUnicast());
         assert(status == Success || status == ErrorTimeout);

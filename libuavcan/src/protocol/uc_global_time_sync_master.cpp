@@ -50,8 +50,8 @@ int GlobalTimeSyncMaster::IfaceMaster::publish(TransferID tid, MonotonicTime cur
     assert(pub_.getTransferSender()->getCanIOFlags() == CanIOFlagLoopback);
     assert(pub_.getTransferSender()->getIfaceMask() == (1 << iface_index_));
 
-    const MonotonicDuration since_prev_pub = current_time - prev_pub_mono_;
-    prev_pub_mono_ = current_time;
+    const MonotonicDuration since_prev_pub = current_time - iface_prev_pub_mono_;
+    iface_prev_pub_mono_ = current_time;
     assert(since_prev_pub.isPositive());
     const bool long_period = since_prev_pub.toMSec() >= protocol::GlobalTimeSync::MAX_PUBLICATION_PERIOD_MS;
 

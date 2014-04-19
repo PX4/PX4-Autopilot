@@ -95,10 +95,10 @@ class SocketCanIface : public uavcan::ICanIface
             : flags(0)
         { }
 
-        TxItem(const uavcan::CanFrame& frame, uavcan::MonotonicTime deadline, uavcan::CanIOFlags flags)
-            : frame(frame)
-            , deadline(deadline)
-            , flags(flags)
+        TxItem(const uavcan::CanFrame& arg_frame, uavcan::MonotonicTime arg_deadline, uavcan::CanIOFlags arg_flags)
+            : frame(arg_frame)
+            , deadline(arg_deadline)
+            , flags(arg_flags)
         { }
 
         bool operator<(const TxItem& rhs) const { return frame.priorityLowerThan(rhs.frame); }
@@ -190,7 +190,7 @@ class SocketCanIface : public uavcan::ICanIface
         struct Control
         {
             cmsghdr cm;
-            std::uint8_t control[sizeof(::timeval)];
+            std::uint8_t data[sizeof(::timeval)];
         };
         auto control = Control();
 

@@ -30,9 +30,9 @@ struct UAVCAN_EXPORT TimerEvent
     MonotonicTime scheduled_time;
     MonotonicTime real_time;
 
-    TimerEvent(MonotonicTime scheduled_time, MonotonicTime real_time)
-        : scheduled_time(scheduled_time)
-        , real_time(real_time)
+    TimerEvent(MonotonicTime arg_scheduled_time, MonotonicTime arg_real_time)
+        : scheduled_time(arg_scheduled_time)
+        , real_time(arg_real_time)
     { }
 };
 
