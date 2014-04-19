@@ -5,10 +5,10 @@
 #include <uavcan/impl_constants.hpp>
 #if !UAVCAN_TINY
 
-#include <cstdlib>
-#include <cassert>
 #include <uavcan/protocol/global_time_sync_master.hpp>
 #include <uavcan/debug.hpp>
+#include <cstdlib>
+#include <cassert>
 
 namespace uavcan
 {

@@ -2,9 +2,9 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#include <uavcan/transport/transfer_buffer.hpp>
 #include <cassert>
 #include <cstdlib>
-#include <uavcan/transport/transfer_buffer.hpp>
 
 namespace uavcan
 {

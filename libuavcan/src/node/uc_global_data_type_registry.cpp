@@ -2,10 +2,10 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <cassert>
-#include <cstdlib>
 #include <uavcan/node/global_data_type_registry.hpp>
 #include <uavcan/debug.hpp>
+#include <cassert>
+#include <cstdlib>
 
 namespace uavcan
 {

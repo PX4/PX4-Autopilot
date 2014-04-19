@@ -2,8 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <cassert>
 #include <uavcan/node/timer.hpp>
+#include <cassert>
 
 namespace uavcan
 {

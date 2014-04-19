@@ -2,10 +2,10 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <cstdlib>
-#include <cassert>
 #include <uavcan/transport/transfer_listener.hpp>
 #include <uavcan/debug.hpp>
+#include <cstdlib>
+#include <cassert>
 
 namespace uavcan
 {

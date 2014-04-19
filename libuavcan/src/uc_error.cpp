@@ -2,11 +2,10 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#include <uavcan/error.hpp>
 #include <cassert>
 #include <cstdlib>
 #include <stdexcept>
-#include <uavcan/error.hpp>
-#include <uavcan/impl_constants.hpp>
 
 #ifndef UAVCAN_EXCEPTIONS
 # error UAVCAN_EXCEPTIONS

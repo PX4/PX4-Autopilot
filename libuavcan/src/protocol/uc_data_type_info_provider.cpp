@@ -2,8 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <uavcan/debug.hpp>
 #include <uavcan/protocol/data_type_info_provider.hpp>
+#include <uavcan/debug.hpp>
 
 namespace uavcan
 {

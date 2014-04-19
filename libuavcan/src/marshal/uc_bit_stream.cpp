@@ -2,9 +2,9 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <cassert>
 #include <uavcan/marshal/bit_stream.hpp>
 #include <uavcan/transport/transfer_buffer.hpp>
+#include <cassert>
 
 namespace uavcan
 {

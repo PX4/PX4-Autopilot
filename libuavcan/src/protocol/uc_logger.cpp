@@ -2,8 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <cstdlib>
 #include <uavcan/protocol/logger.hpp>
+#include <cstdlib>
 
 namespace uavcan
 {

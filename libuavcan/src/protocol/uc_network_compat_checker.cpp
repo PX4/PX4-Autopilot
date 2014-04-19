@@ -5,11 +5,11 @@
 #include <uavcan/impl_constants.hpp>
 #if !UAVCAN_TINY
 
-#include <cassert>
-#include <uavcan/debug.hpp>
 #include <uavcan/protocol/network_compat_checker.hpp>
+#include <uavcan/debug.hpp>
 #include <uavcan/node/publisher.hpp>
 #include <uavcan/protocol/GlobalDiscoveryRequest.hpp>
+#include <cassert>
 
 namespace uavcan
 {

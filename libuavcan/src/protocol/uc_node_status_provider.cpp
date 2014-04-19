@@ -2,9 +2,9 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <cassert>
-#include <uavcan/debug.hpp>
 #include <uavcan/protocol/node_status_provider.hpp>
+#include <uavcan/debug.hpp>
+#include <cassert>
 
 namespace uavcan
 {

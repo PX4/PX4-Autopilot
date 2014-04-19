@@ -2,12 +2,12 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#include <uavcan/transport/transfer_receiver.hpp>
+#include <uavcan/transport/crc.hpp>
+#include <uavcan/debug.hpp>
 #include <cstdlib>
 #include <cassert>
 #include <algorithm>
-#include <uavcan/debug.hpp>
-#include <uavcan/transport/transfer_receiver.hpp>
-#include <uavcan/transport/crc.hpp>
 
 namespace uavcan
 {

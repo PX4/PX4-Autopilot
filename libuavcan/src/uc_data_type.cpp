@@ -2,10 +2,10 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <cstring>
-#include <cassert>
 #include <uavcan/data_type.hpp>
 #include <uavcan/transport/crc.hpp>
+#include <cstring>
+#include <cassert>
 
 namespace uavcan
 {

@@ -2,9 +2,9 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <cassert>
 #include <uavcan/protocol/global_time_sync_slave.hpp>
 #include <uavcan/debug.hpp>
+#include <cassert>
 
 namespace uavcan
 {

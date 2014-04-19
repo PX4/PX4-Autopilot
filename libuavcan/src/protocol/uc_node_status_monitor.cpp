@@ -2,11 +2,11 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#include <uavcan/protocol/node_status_monitor.hpp>
+#include <uavcan/debug.hpp>
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
-#include <uavcan/debug.hpp>
-#include <uavcan/protocol/node_status_monitor.hpp>
 
 namespace uavcan
 {

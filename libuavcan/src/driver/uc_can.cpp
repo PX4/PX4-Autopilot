@@ -3,8 +3,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <cassert>
 #include <uavcan/driver/can.hpp>
+#include <cassert>
 
 namespace uavcan
 {

@@ -2,8 +2,8 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <uavcan/impl_constants.hpp>
 #include <uavcan/marshal/float_spec.hpp>
+#include <uavcan/impl_constants.hpp>
 #include <cmath>
 
 #if !defined(UAVCAN_CPP_VERSION) || !defined(UAVCAN_CPP11)

@@ -2,7 +2,7 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <cassert>
+#include <uavcan/transport/transfer.hpp>
 #include <uavcan/transport/frame.hpp>
 #include <uavcan/transport/can_io.hpp>
 

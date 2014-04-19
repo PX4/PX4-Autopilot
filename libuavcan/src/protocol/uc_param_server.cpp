@@ -2,10 +2,10 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#include <uavcan/protocol/param_server.hpp>
+#include <uavcan/debug.hpp>
 #include <cassert>
 #include <cstdlib>
-#include <uavcan/debug.hpp>
-#include <uavcan/protocol/param_server.hpp>
 
 namespace uavcan
 {

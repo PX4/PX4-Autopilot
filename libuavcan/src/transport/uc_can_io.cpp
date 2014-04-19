@@ -3,11 +3,11 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#include <uavcan/transport/can_io.hpp>
+#include <uavcan/debug.hpp>
 #include <algorithm>
 #include <cassert>
 #include <limits>
-#include <uavcan/transport/can_io.hpp>
-#include <uavcan/debug.hpp>
 
 namespace uavcan
 {
