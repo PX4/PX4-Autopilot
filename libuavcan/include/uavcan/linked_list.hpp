@@ -62,7 +62,7 @@ public:
     template <typename Predicate>
     void insertBefore(T* node, Predicate predicate);
 
-    bool remove(const T* node);
+    void remove(const T* node);
 };
 
 // ----------------------------------------------------------------------------
@@ -120,17 +120,16 @@ void LinkedListRoot<T>::insertBefore(T* node, Predicate predicate)
 }
 
 template <typename T>
-bool LinkedListRoot<T>::remove(const T* node)
+void LinkedListRoot<T>::remove(const T* node)
 {
     if (root_ == NULL || node == NULL)
     {
-        return false;
+        return;
     }
 
     if (root_ == node)
     {
         root_ = root_->getNextListNode();
-        return true;
     }
     else
     {
@@ -140,11 +139,10 @@ bool LinkedListRoot<T>::remove(const T* node)
             if (p->getNextListNode() == node)
             {
                 p->setNextListNode(p->getNextListNode()->getNextListNode());
-                return true;
+                break;
             }
             p = p->getNextListNode();
         }
-        return false;
     }
 }
 
