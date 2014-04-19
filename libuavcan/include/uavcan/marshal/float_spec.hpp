@@ -50,10 +50,12 @@ public:
     static typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType
     toIeee(typename NativeFloatSelector<BitLen>::Type value)
     {
-        typedef typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType IntType;
-        typedef typename NativeFloatSelector<BitLen>::Type FloatType;
-        StaticAssert<sizeof(FloatType) * 8 == BitLen>::check();
-        union { IntType i; FloatType f; } u;
+        union
+        {
+            typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType i;
+            typename NativeFloatSelector<BitLen>::Type f;
+        } u;
+        StaticAssert<sizeof(u.f) * 8 == BitLen>::check();
         u.f = value;
         return u.i;
     }
@@ -62,10 +64,12 @@ public:
     static typename NativeFloatSelector<BitLen>::Type
     toNative(typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType value)
     {
-        typedef typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType IntType;
-        typedef typename NativeFloatSelector<BitLen>::Type FloatType;
-        StaticAssert<sizeof(FloatType) * 8 == BitLen>::check();
-        union { IntType i; FloatType f; } u;
+        union
+        {
+            typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType i;
+            typename NativeFloatSelector<BitLen>::Type f;
+        } u;
+        StaticAssert<sizeof(u.f) * 8 == BitLen>::check();
         u.i = value;
         return u.f;
     }

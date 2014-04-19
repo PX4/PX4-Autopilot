@@ -70,7 +70,7 @@ public:
 
     virtual uavcan::MonotonicTime getMonotonic() const
     {
-        struct timespec ts;
+        timespec ts;
         if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
         {
             throw Exception("Failed to get monotonic time");

@@ -142,7 +142,7 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::regist(DataTypeID i
         return RegistResultFrozen;
     }
 
-    static union EntryUnion
+    static union
     {
         uint8_t buffer[sizeof(Entry)];
         long long _aligner_1;
