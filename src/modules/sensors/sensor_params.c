@@ -536,6 +536,35 @@ PARAM_DEFINE_INT32(RC_MAP_ROLL, 1);
 PARAM_DEFINE_INT32(RC_MAP_PITCH, 2);
 
 /**
+ * Failsafe channel mapping.
+ *
+ * The RC mapping index indicates which rc function
+ * should be used for detecting the failsafe condition
+ *
+ * @min 0
+ * @max 14
+ *
+ * mapping (from rc_channels.h)
+ * 	THROTTLE = 0,
+	ROLL     = 1,
+	PITCH    = 2,
+	YAW      = 3,
+	MODE = 4,
+	RETURN = 5,
+	ASSISTED = 6,
+	MISSION = 7,
+	OFFBOARD_MODE = 8,
+	FLAPS   = 9,
+	AUX_1   = 10,
+	AUX_2   = 11,
+	AUX_3   = 12,
+	AUX_4   = 13,
+	AUX_5   = 14,
+ *
+ */
+PARAM_DEFINE_INT32(RC_MAP_FAILSAFE, 0);  //Default to throttle function
+
+/**
  * Throttle control channel mapping.
  *
  * The channel index (starting from 1 for channel 1) indicates

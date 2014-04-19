@@ -242,6 +242,7 @@ private:
 		int rc_map_pitch;
 		int rc_map_yaw;
 		int rc_map_throttle;
+		int rc_map_failsafe;
 
 		int rc_map_mode_sw;
 		int rc_map_return_sw;
@@ -290,6 +291,7 @@ private:
 		param_t rc_map_pitch;
 		param_t rc_map_yaw;
 		param_t rc_map_throttle;
+		param_t rc_map_failsafe;
 
 		param_t rc_map_mode_sw;
 		param_t rc_map_return_sw;
@@ -512,6 +514,7 @@ Sensors::Sensors() :
 	/* optional mode switches, not mapped per default */
 	_parameter_handles.rc_map_assisted_sw = param_find("RC_MAP_ASSIST_SW");
 	_parameter_handles.rc_map_mission_sw = param_find("RC_MAP_MISSIO_SW");
+	_parameter_handles.rc_map_failsafe = param_find("RC_MAP_FAILSAFE");
 
 //	_parameter_handles.rc_map_offboard_ctrl_mode_sw = param_find("RC_MAP_OFFB_SW");
 
@@ -650,6 +653,10 @@ Sensors::parameters_update()
 		warnx(paramerr);
 	}
 
+	if (param_get(_parameter_handles.rc_map_failsafe, &(_parameters.rc_map_failsafe)) != OK) {
+		warnx(paramerr);
+	}
+
 	if (param_get(_parameter_handles.rc_map_mode_sw, &(_parameters.rc_map_mode_sw)) != OK) {
 		warnx(paramerr);
 	}
@@ -704,7 +711,6 @@ Sensors::parameters_update()
 	_rc.function[AUX_2] = _parameters.rc_map_aux2 - 1;
 	_rc.function[AUX_3] = _parameters.rc_map_aux3 - 1;
 	_rc.function[AUX_4] = _parameters.rc_map_aux4 - 1;
-	_rc.function[AUX_5] = _parameters.rc_map_aux5 - 1;
 
 	/* gyro offsets */
 	param_get(_parameter_handles.gyro_offset[0], &(_parameters.gyro_offset[0]));
@@ -1310,8 +1316,8 @@ Sensors::rc_poll()
 		}
 
 		/* check for failsafe */
-		if ((rc_input.rc_failsafe) || ((_parameters.rc_fs_thr != 0) && (((rc_input.values[_rc.function[THROTTLE]] < _parameters.min[_rc.function[THROTTLE]]) && (rc_input.values[_rc.function[THROTTLE]] < _parameters.rc_fs_thr))
-			|| ((rc_input.values[_rc.function[THROTTLE]] > _parameters.max[_rc.function[THROTTLE]]) && (rc_input.values[_rc.function[THROTTLE]] > _parameters.rc_fs_thr))))) {
+		if ((rc_input.rc_failsafe) || ((_parameters.rc_fs_thr != 0) && (((rc_input.values[_rc.function[_parameters.rc_map_failsafe]] < _parameters.min[_rc.function[_parameters.rc_map_failsafe]]) && (rc_input.values[_rc.function[_parameters.rc_map_failsafe]] < _parameters.rc_fs_thr))
+			|| ((rc_input.values[_rc.function[_parameters.rc_map_failsafe]] > _parameters.max[_rc.function[_parameters.rc_map_failsafe]]) && (rc_input.values[_rc.function[_parameters.rc_map_failsafe]] > _parameters.rc_fs_thr))))) {
 			/* do not publish manual control setpoints when there are none */
 			return;
 		}
@@ -1434,7 +1440,8 @@ Sensors::rc_poll()
 			manual_control.return_switch = limit_minus_one_to_one(_rc.chan[_rc.function[RETURN]].scaled);
 		}
 
-//		if (_rc.function[OFFBOARD_MODE] >= 0) {
+
+		//		if (_rc.function[OFFBOARD_MODE] >= 0) {
 //			manual_control.auto_offboard_input_switch = limit_minus_one_to_one(_rc.chan[_rc.function[OFFBOARD_MODE]].scaled);
 //		}
 
@@ -1453,10 +1460,6 @@ Sensors::rc_poll()
 
 		if (_rc.function[AUX_4] >= 0) {
 			manual_control.aux4 = limit_minus_one_to_one(_rc.chan[_rc.function[AUX_4]].scaled);
-		}
-
-		if (_rc.function[AUX_5] >= 0) {
-			manual_control.aux5 = limit_minus_one_to_one(_rc.chan[_rc.function[AUX_5]].scaled);
 		}
 
 		/* copy from mapped manual control to control group 3 */
