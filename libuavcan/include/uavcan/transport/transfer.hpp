@@ -11,9 +11,9 @@
 namespace uavcan
 {
 
-enum { MaxTransferPayloadLen = 439 }; ///< According to the standard
+static const unsigned MaxTransferPayloadLen = 439; ///< According to the RFC
 
-enum { MaxSingleFrameTransferPayloadLen = 7 };
+static const unsigned MaxSingleFrameTransferPayloadLen = 7;
 
 enum TransferType
 {
@@ -30,8 +30,8 @@ class UAVCAN_EXPORT TransferID
     uint8_t value_;
 
 public:
-    enum { BitLen = 3 };
-    enum { Max = (1 << BitLen) - 1 };
+    static const uint8_t BitLen = 3U;
+    static const uint8_t Max = (1U << BitLen) - 1U;
 
     TransferID()
         : value_(0)
@@ -67,17 +67,13 @@ public:
 
 class UAVCAN_EXPORT NodeID
 {
-    enum
-    {
-        ValueBroadcast = 0,
-        ValueInvalid = 0xFF
-    };
+    static const uint8_t ValueBroadcast = 0;
+    static const uint8_t ValueInvalid   = 0xFF;
     uint8_t value_;
 
 public:
-    enum { BitLen = 7 };
-    enum { Max = (1 << BitLen) - 1 };
-
+    static const uint8_t BitLen = 7U;
+    static const uint8_t Max = (1U << BitLen) - 1U;
     static const NodeID Broadcast;
 
     NodeID() : value_(ValueInvalid) { }

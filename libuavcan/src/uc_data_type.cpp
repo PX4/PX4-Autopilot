@@ -10,6 +10,11 @@
 namespace uavcan
 {
 /*
+ * DataTypeID
+ */
+const uint16_t DataTypeID::Max;
+
+/*
  * DataTypeSignatureCRC
  */
 DataTypeSignatureCRC DataTypeSignatureCRC::extend(uint64_t crc)
@@ -71,6 +76,8 @@ TransferCRC DataTypeSignature::toTransferCRC() const
 /*
  * DataTypeDescriptor
  */
+const unsigned DataTypeDescriptor::MaxFullNameLen;
+
 bool DataTypeDescriptor::match(DataTypeKind kind, const char* name) const
 {
     return (kind_ == kind) && !std::strcmp(full_name_, name);

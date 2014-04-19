@@ -95,11 +95,8 @@ struct UAVCAN_EXPORT CanSelectMasks
     { }
 };
 
-enum
-{
-    CanIOFlagLoopback = 1  ///< Send the frame back to RX with true TX timestamps
-};
 typedef uint16_t CanIOFlags;
+static const CanIOFlags CanIOFlagLoopback = 1; ///< Send the frame back to RX with true TX timestamps
 
 /**
  * Single non-blocking CAN interface.

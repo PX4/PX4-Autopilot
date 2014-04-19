@@ -36,7 +36,7 @@ public:
     };
 
 private:
-    enum { TimerPeriodMs100 = 5 };
+    static const unsigned TimerPeriodMs100 = 5;
 
     typedef MethodBinder<NodeStatusMonitor*,
                          void (NodeStatusMonitor::*)(const ReceivedDataStructure<protocol::NodeStatus>&)>

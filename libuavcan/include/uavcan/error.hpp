@@ -9,14 +9,13 @@
 
 namespace uavcan
 {
+namespace
+{
 /**
  * Common error codes.
  * Functions that return signed integers may also return inverted error codes,
  * i.e. returned value should be inverted back to get the actual error code.
  */
-namespace
-{
-
 const int16_t ErrOk                      = 0;
 const int16_t ErrFailure                 = 1;
 const int16_t ErrInvalidParam            = 2;

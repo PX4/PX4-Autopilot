@@ -94,7 +94,7 @@ class UAVCAN_EXPORT DynamicTransferBufferManagerEntry
     struct Block : LinkedListNode<Block>
     {
         enum { Size = MemPoolBlockSize - sizeof(LinkedListNode<Block>) };
-        uint8_t data[Size];
+        uint8_t data[static_cast<unsigned>(Size)];
 
         static Block* instantiate(IPoolAllocator& allocator);
         static void destroy(Block*& obj, IPoolAllocator& allocator);

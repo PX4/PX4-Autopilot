@@ -46,7 +46,7 @@ class UAVCAN_EXPORT MapBase : Noncopyable
 
         KVGroup()
         {
-            StaticAssert<(NumKV > 0)>::check();
+            StaticAssert<(static_cast<unsigned>(NumKV) > 0)>::check();
             IsDynamicallyAllocatable<KVGroup>::check();
         }
 
@@ -72,7 +72,7 @@ class UAVCAN_EXPORT MapBase : Noncopyable
 
         KVPair* find(const Key& key)
         {
-            for (int i = 0; i < NumKV; i++)
+            for (unsigned i = 0; i < static_cast<unsigned>(NumKV); i++)
             {
                 if (kvs[i].match(key))
                 {

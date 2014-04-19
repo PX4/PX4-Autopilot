@@ -31,7 +31,7 @@ public:
 
 private:
     enum TidRelation { TidSame, TidRepeat, TidFuture };
-    enum { IfaceIndexNotSet = 0xFF };
+    static const uint8_t IfaceIndexNotSet = 0xFF;
 
     MonotonicTime prev_transfer_ts_;
     MonotonicTime this_transfer_ts_;

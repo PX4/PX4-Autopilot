@@ -9,8 +9,18 @@
 namespace uavcan
 {
 /**
+ * TransferID
+ */
+const uint8_t TransferID::BitLen;
+const uint8_t TransferID::Max;
+
+/**
  * NodeID
  */
+const uint8_t NodeID::ValueBroadcast;
+const uint8_t NodeID::ValueInvalid;
+const uint8_t NodeID::BitLen;
+const uint8_t NodeID::Max;
 const NodeID NodeID::Broadcast(ValueBroadcast);
 
 /**

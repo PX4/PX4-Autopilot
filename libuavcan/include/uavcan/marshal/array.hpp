@@ -344,7 +344,7 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
     void packSquareMatrixImpl(const InputIter src_row_major)
     {
         StaticAssert<IsDynamic>::check();
-        enum { Width = CompileTimeIntSqrt<MaxSize>::Result };
+        const unsigned Width = CompileTimeIntSqrt<MaxSize>::Result;
 
         bool all_nans = true;
         bool scalar_matrix = true;
@@ -409,7 +409,7 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
     void unpackSquareMatrixImpl(OutputIter it) const
     {
         StaticAssert<IsDynamic>::check();
-        enum { Width = CompileTimeIntSqrt<MaxSize>::Result };
+        const unsigned Width = CompileTimeIntSqrt<MaxSize>::Result;
         /*
          * Unpacking as follows:
          * - Array of length 1 will be unpacked to scalar matrix
@@ -453,8 +453,17 @@ public:
 
     enum { IsDynamic = ArrayMode == ArrayModeDynamic };
     enum { MaxSize = MaxSize_ };
-    enum { MinBitLen = IsDynamic ? 0 : (RawValueType::MinBitLen * MaxSize) };
-    enum { MaxBitLen = Base::SizeBitLen + RawValueType::MaxBitLen * MaxSize };
+    enum
+    {
+        MinBitLen = (IsDynamic == 0)
+                    ? (static_cast<unsigned>(RawValueType::MinBitLen) * static_cast<unsigned>(MaxSize))
+                    : 0
+    };
+    enum
+    {
+        MaxBitLen = static_cast<unsigned>(Base::SizeBitLen) +
+                    static_cast<unsigned>(RawValueType::MaxBitLen) * static_cast<unsigned>(MaxSize)
+    };
 
     static int encode(const SelfType& array, ScalarCodec& codec, const TailArrayOptimizationMode tao_mode)
     {

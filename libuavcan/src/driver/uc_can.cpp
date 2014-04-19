@@ -63,7 +63,7 @@ std::string CanFrame::toString(StringRepresentation mode) const
 
     assert(mode == StrTight || mode == StrAligned);
 
-    static const int ASCII_COLUMN_OFFSET = 36;
+    static const unsigned AsciiColumnOffset = 36U;
 
     char buf[50];
     char* wpos = buf;
@@ -96,7 +96,7 @@ std::string CanFrame::toString(StringRepresentation mode) const
             wpos += snprintf(wpos, epos - wpos, " %02x", unsigned(data[dlen]));
         }
 
-        while (mode == StrAligned && wpos < buf + ASCII_COLUMN_OFFSET)        // alignment
+        while ((mode == StrAligned) && (wpos < buf + AsciiColumnOffset))        // alignment
         {
             *wpos++ = ' ';
         }

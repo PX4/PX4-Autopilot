@@ -44,19 +44,29 @@ private:
         static StorageType max()
         {
             StaticAssert<(sizeof(uintmax_t) >= 8)>::check();
-            return StorageType(IsSigned ? ((uintmax_t(1) << (BitLen - 1)) - 1) : ((uintmax_t(1) << BitLen) - 1));
+            if (IsSigned == 0)
+            {
+                return StorageType((uintmax_t(1) << static_cast<unsigned>(BitLen)) - 1U);
+            }
+            else
+            {
+                return StorageType((uintmax_t(1) << (static_cast<unsigned>(BitLen) - 1U)) - 1);
+            }
         }
         static UnsignedStorageType mask()
         {
-            StaticAssert<(sizeof(uintmax_t) >= 8)>::check();
-            return UnsignedStorageType((uintmax_t(1) << BitLen) - 1);
+            StaticAssert<(sizeof(uintmax_t) >= 8U)>::check();
+            return UnsignedStorageType((uintmax_t(1) << static_cast<unsigned>(BitLen)) - 1U);
         }
     };
 
     struct LimitsImpl64
     {
-        static StorageType max() { return StorageType(IsSigned ? 0x7FFFFFFFFFFFFFFF : 0xFFFFFFFFFFFFFFFF); }
-        static UnsignedStorageType mask() { return 0xFFFFFFFFFFFFFFFF; }
+        static StorageType max()
+        {
+            return StorageType((IsSigned != 0) ? 0x7FFFFFFFFFFFFFFFLL : 0xFFFFFFFFFFFFFFFFULL);
+        }
+        static UnsignedStorageType mask() { return 0xFFFFFFFFFFFFFFFFULL; }
     };
 
     typedef typename Select<(BitLen == 64), LimitsImpl64, LimitsImplGeneric>::Result Limits;

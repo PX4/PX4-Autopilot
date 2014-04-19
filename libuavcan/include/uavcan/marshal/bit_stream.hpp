@@ -17,7 +17,7 @@ void bitarrayCopy(const unsigned char* src_org, int src_offset, int src_len, uns
 
 class UAVCAN_EXPORT BitStream
 {
-    enum { MaxBytesPerRW = 16 };
+    static const unsigned MaxBytesPerRW = 16;
 
     ITransferBuffer& buf_;
     int bit_offset_;
@@ -33,7 +33,7 @@ class UAVCAN_EXPORT BitStream
     }
 
 public:
-    enum { MaxBitsPerRW = MaxBytesPerRW * 8 };
+    static const unsigned MaxBitsPerRW = MaxBytesPerRW * 8;
 
     enum
     {

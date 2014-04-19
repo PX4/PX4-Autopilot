@@ -56,7 +56,7 @@ public:
             , qos(uint8_t(qos))
             , flags(flags)
         {
-            assert(qos == Volatile || qos == Persistent);
+            assert((qos == Volatile) || (qos == Persistent));
             IsDynamicallyAllocatable<Entry>::check();
         }
 

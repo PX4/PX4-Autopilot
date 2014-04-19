@@ -9,13 +9,16 @@
 namespace uavcan
 {
 
+const unsigned BitStream::MaxBytesPerRW;
+const unsigned BitStream::MaxBitsPerRW;
+
 int BitStream::write(const uint8_t* bytes, const int bitlen)
 {
     // Temporary buffer is needed to merge new bits with cached unaligned bits from the last write() (see byte_cache_)
     uint8_t tmp[MaxBytesPerRW + 1];
 
     // Tmp space must be large enough to accomodate new bits AND unaligned bits from the last write()
-    const int bytelen = bitlenToBytelen(bitlen + (bit_offset_ % 8));
+    const unsigned bytelen = bitlenToBytelen(bitlen + (bit_offset_ % 8));
     assert(MaxBytesPerRW >= bytelen);
     tmp[0] = tmp[bytelen - 1] = 0;
 
@@ -40,7 +43,7 @@ int BitStream::write(const uint8_t* bytes, const int bitlen)
     {
         return write_res;
     }
-    if (write_res < bytelen)
+    if (static_cast<unsigned>(write_res) < bytelen)
     {
         return ResultOutOfBuffer;
     }
@@ -53,7 +56,7 @@ int BitStream::read(uint8_t* bytes, const int bitlen)
 {
     uint8_t tmp[MaxBytesPerRW + 1];
 
-    const int bytelen = bitlenToBytelen(bitlen + (bit_offset_ % 8));
+    const unsigned bytelen = bitlenToBytelen(bitlen + (bit_offset_ % 8));
     assert(MaxBytesPerRW >= bytelen);
 
     const int read_res = buf_.read(bit_offset_ / 8, tmp, bytelen);
@@ -61,7 +64,7 @@ int BitStream::read(uint8_t* bytes, const int bitlen)
     {
         return read_res;
     }
-    if (read_res < bytelen)
+    if (static_cast<unsigned>(read_res) < bytelen)
     {
         return ResultOutOfBuffer;
     }

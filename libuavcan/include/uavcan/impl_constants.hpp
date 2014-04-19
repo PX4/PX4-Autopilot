@@ -91,15 +91,15 @@ namespace uavcan
  * fit this size; otherwise compilation fails.
  */
 #if UAVCAN_MEM_POOL_BLOCK_SIZE
-enum { MemPoolBlockSize = UAVCAN_MEM_POOL_BLOCK_SIZE };
+static const unsigned MemPoolBlockSize = UAVCAN_MEM_POOL_BLOCK_SIZE;
 #else
-enum { MemPoolBlockSize = 64 };
+static const unsigned MemPoolBlockSize = 64;
 #endif
 
 #ifdef __BIGGEST_ALIGNMENT__
-enum { MemPoolAlignment = __BIGGEST_ALIGNMENT__ };
+static const unsigned MemPoolAlignment = __BIGGEST_ALIGNMENT__;
 #else
-enum { MemPoolAlignment = 16 };
+static const unsigned MemPoolAlignment = 16;
 #endif
 
 typedef char _alignment_check_for_MEM_POOL_BLOCK_SIZE[((MemPoolBlockSize & (MemPoolAlignment - 1)) == 0) ? 1 : -1];

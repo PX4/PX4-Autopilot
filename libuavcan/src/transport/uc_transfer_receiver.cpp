@@ -15,6 +15,7 @@ namespace uavcan
 const uint32_t TransferReceiver::MinTransferIntervalUSec;
 const uint32_t TransferReceiver::MaxTransferIntervalUSec;
 const uint32_t TransferReceiver::DefaultTransferIntervalUSec;
+const uint8_t TransferReceiver::IfaceIndexNotSet;
 
 void TransferReceiver::registerError() const
 {

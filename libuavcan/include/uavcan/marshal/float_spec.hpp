@@ -152,7 +152,7 @@ private:
     static inline void saturate(StorageType& value)
     {
         using namespace std;
-        if (!IsExactRepresentation && isfinite(value))
+        if ((IsExactRepresentation == 0) && isfinite(value))
         {
             if (value > max())
             {
@@ -172,7 +172,7 @@ private:
     static inline void truncate(StorageType& value)
     {
         using namespace std;
-        if (!IsExactRepresentation && isfinite(value))
+        if ((IsExactRepresentation == 0) && isfinite(value))
         {
             if (value > max())
             {

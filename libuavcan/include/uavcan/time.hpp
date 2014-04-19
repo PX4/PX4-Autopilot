@@ -83,7 +83,7 @@ public:
         return *static_cast<D*>(this);
     }
 
-    enum { StringBufSize = 32 };
+    static const unsigned StringBufSize = 32;
     void toString(char buf[StringBufSize]) const;
 #if UAVCAN_TOSTRING
     std::string toString() const;
@@ -169,7 +169,7 @@ public:
         return *static_cast<T*>(this);
     }
 
-    enum { StringBufSize = 32 };
+    static const unsigned StringBufSize = 32;
     void toString(char buf[StringBufSize]) const;
 #if UAVCAN_TOSTRING
     std::string toString() const;
@@ -213,6 +213,12 @@ public:
 };
 
 // ----------------------------------------------------------------------------
+
+template <typename D>
+const unsigned DurationBase<D>::StringBufSize;
+
+template <typename T, typename D>
+const unsigned TimeBase<T, D>::StringBufSize;
 
 template <typename D>
 void DurationBase<D>::toString(char buf[StringBufSize]) const

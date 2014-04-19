@@ -11,6 +11,8 @@
 namespace uavcan
 {
 
+const unsigned NodeStatusMonitor::TimerPeriodMs100;
+
 NodeStatusMonitor::Entry& NodeStatusMonitor::getEntry(NodeID node_id) const
 {
     if (node_id.get() < 1 || node_id.get() > NodeID::Max)
@@ -55,7 +57,7 @@ void NodeStatusMonitor::handleNodeStatus(const ReceivedDataStructure<protocol::N
 
 void NodeStatusMonitor::handleTimerEvent(const TimerEvent&)
 {
-    enum { OfflineTimeoutMs100 = protocol::NodeStatus::OFFLINE_TIMEOUT_MS / 100 };
+    const int OfflineTimeoutMs100 = protocol::NodeStatus::OFFLINE_TIMEOUT_MS / 100;
 
     for (int i = 1; i <= NodeID::Max; i++)
     {

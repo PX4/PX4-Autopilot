@@ -29,7 +29,7 @@ class UAVCAN_EXPORT DataTypeID
     uint16_t value_;
 
 public:
-    enum { Max = 1023 };
+    static const uint16_t Max = 1023;
 
     DataTypeID() : value_(0xFFFF) { }
 
@@ -69,13 +69,13 @@ class UAVCAN_EXPORT DataTypeSignatureCRC
 public:
     static DataTypeSignatureCRC extend(uint64_t crc);
 
-    DataTypeSignatureCRC() : crc_(0xFFFFFFFFFFFFFFFF) { }
+    DataTypeSignatureCRC() : crc_(0xFFFFFFFFFFFFFFFFULL) { }
 
     void add(uint8_t byte);
 
     void add(const uint8_t* bytes, unsigned len);
 
-    uint64_t get() const { return crc_ ^ 0xFFFFFFFFFFFFFFFF; }
+    uint64_t get() const { return crc_ ^ 0xFFFFFFFFFFFFFFFFULL; }
 };
 
 
@@ -108,7 +108,7 @@ class UAVCAN_EXPORT DataTypeDescriptor
     const char* full_name_;
 
 public:
-    enum { MaxFullNameLen = 80 };
+    static const unsigned MaxFullNameLen = 80;
 
     DataTypeDescriptor()
         : kind_(DataTypeKind(0))
