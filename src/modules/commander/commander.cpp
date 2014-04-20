@@ -1092,9 +1092,9 @@ int commander_thread_main(int argc, char *argv[])
 			    && global_position.global_valid) {
 
 				/* copy position data to uORB home message, store it locally as well */
-				home.lat = global_position.lat;
-				home.lon = global_position.lon;
-				home.alt = global_position.alt;
+				home.lat = gps_position.lat / (double)1e7;
+				home.lon = gps_position.lon / (double)1e7;
+				home.alt = gps_position.alt;
 
 				warnx("home: lat = %.7f, lon = %.7f, alt = %.4f ", home.lat, home.lon, (double)home.alt);
 				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.4f", home.lat, home.lon, (double)home.alt);
