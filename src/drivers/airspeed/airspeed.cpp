@@ -151,8 +151,7 @@ Airspeed::init()
 	}
 
 	ret = OK;
-	/* sensor is ok, but we don't really know if it is within range */
-	_sensor_ok = true;
+
 out:
 	return ret;
 }
