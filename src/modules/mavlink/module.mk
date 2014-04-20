@@ -47,4 +47,4 @@ SRCS		 += mavlink_main.cpp \
 
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
 
-MAXOPTIMIZATION		 = -Os
+MAXOPTIMIZATION	 = -Os
