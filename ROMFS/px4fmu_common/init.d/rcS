@@ -514,7 +514,7 @@ then
 			then
 				set MAV_TYPE 13
 			fi
-			if [ $MIXER == hexa_cox ]
+			if [ $MIXER == FMU_hexa_cox ]
 			then
 				set MAV_TYPE 13
 			fi
