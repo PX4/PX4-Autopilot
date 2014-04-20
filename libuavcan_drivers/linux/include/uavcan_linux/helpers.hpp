@@ -9,6 +9,7 @@
 #include <vector>
 #include <chrono>
 #include <iostream>
+#include <sstream>
 #include <uavcan/uavcan.hpp>
 
 namespace uavcan_linux
@@ -54,12 +55,20 @@ class Node : public uavcan::Node<NodeMemPoolSize>
     DriverPackPtr driver_pack_;
     DefaultLogSink log_sink_;
 
-    static void enforce(int error, const char* msg)
+    static void enforce(int error, const std::string& msg)
     {
         if (error < 0)
         {
-            throw Exception(msg);
+            std::ostringstream os;
+            os << msg << " [" << error << "]";
+            throw Exception(os.str());
         }
+    }
+
+    template <typename DataType>
+    static std::string getDataTypeName()
+    {
+        return DataType::getDataTypeFullName();
     }
 
 public:
@@ -87,7 +96,7 @@ public:
     makeSubscriber(const typename uavcan::Subscriber<DataType>::Callback& cb)
     {
         std::shared_ptr<uavcan::Subscriber<DataType>> p(new uavcan::Subscriber<DataType>(*this));
-        enforce(p->start(cb), "Subscriber start");
+        enforce(p->start(cb), "Subscriber start failure " + getDataTypeName<DataType>());
         return p;
     }
 
@@ -96,7 +105,7 @@ public:
     makePublisher(uavcan::MonotonicDuration tx_timeout = uavcan::Publisher<DataType>::getDefaultTxTimeout())
     {
         std::shared_ptr<uavcan::Publisher<DataType>> p(new uavcan::Publisher<DataType>(*this));
-        enforce(p->init(), "Publisher init");
+        enforce(p->init(), "Publisher init failure " + getDataTypeName<DataType>());
         p->setTxTimeout(tx_timeout);
         return p;
     }
@@ -106,7 +115,7 @@ public:
     makeServiceServer(const typename uavcan::ServiceServer<DataType>::Callback& cb)
     {
         std::shared_ptr<uavcan::ServiceServer<DataType>> p(new uavcan::ServiceServer<DataType>(*this));
-        enforce(p->start(cb), "ServiceServer start");
+        enforce(p->start(cb), "ServiceServer start failure " + getDataTypeName<DataType>());
         return p;
     }
 
@@ -115,7 +124,7 @@ public:
     makeServiceClient(const typename uavcan::ServiceClient<DataType>::Callback& cb)
     {
         std::shared_ptr<uavcan::ServiceClient<DataType>> p(new uavcan::ServiceClient<DataType>(*this));
-        enforce(p->init(), "ServiceClient init");
+        enforce(p->init(), "ServiceClient init failure " + getDataTypeName<DataType>());
         p->setCallback(cb);
         return p;
     }
