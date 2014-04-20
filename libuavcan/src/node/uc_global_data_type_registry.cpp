@@ -103,7 +103,7 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::registImpl(Entry* d
 #if UAVCAN_DEBUG
     {   // List integrity check
         const unsigned len_after = list->getLength();
-        if (len_before >= len_after)
+        if ((len_before + 1) != len_after)
         {
             assert(0);
             std::abort();
