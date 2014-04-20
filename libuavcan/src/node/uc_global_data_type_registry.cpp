@@ -95,9 +95,20 @@ GlobalDataTypeRegistry::RegistResult GlobalDataTypeRegistry::registImpl(Entry* d
             p = p->getNextListNode();
         }
     }
+#if UAVCAN_DEBUG
+    const unsigned len_before = list->getLength();
+#endif
     list->insertBefore(dtd, EntryInsertionComparator(dtd));
 
 #if UAVCAN_DEBUG
+    {   // List integrity check
+        const unsigned len_after = list->getLength();
+        if (len_before >= len_after)
+        {
+            assert(0);
+            std::abort();
+        }
+    }
     {   // Order check
         Entry* p = list->get();
         int id = -1;
