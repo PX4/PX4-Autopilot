@@ -319,7 +319,7 @@ FixedwingEstimator::FixedwingEstimator() :
 	_ekf(nullptr)
 {
 
-	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+	last_run = hrt_absolute_time();
 
 	_parameter_handles.vel_delay_ms = param_find("PE_VEL_DELAY_MS");
 	_parameter_handles.pos_delay_ms = param_find("PE_POS_DELAY_MS");
@@ -461,6 +461,7 @@ float dt = 0.0f; // time lapsed since last covariance prediction
 void
 FixedwingEstimator::task_main()
 {
+	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
 	_ekf = new AttPosEKF();
 
@@ -600,17 +601,23 @@ FixedwingEstimator::task_main()
 			last_run = _gyro.timestamp;
 
 			/* guard against too large deltaT's */
-			if (deltaT > 1.0f)
+			if (!isfinite(deltaT) || deltaT > 1.0f || deltaT < 0.000001f) {
 				deltaT = 0.01f;
+				warnx("TS fail");
+			}
 
 
 			// Always store data, independent of init status
 			/* fill in last data set */
 			_ekf->dtIMU = deltaT;
 
-			_ekf->angRate.x = _gyro.x;
-			_ekf->angRate.y = _gyro.y;
-			_ekf->angRate.z = _gyro.z;
+			if (isfinite(_gyro.x) &&
+				isfinite(_gyro.y) &&
+				isfinite(_gyro.z)) {
+				_ekf->angRate.x = _gyro.x;
+				_ekf->angRate.y = _gyro.y;
+				_ekf->angRate.z = _gyro.z;
+			}
 
 			_ekf->accel.x = _accel.x;
 			_ekf->accel.y = _accel.y;
@@ -643,16 +650,22 @@ FixedwingEstimator::task_main()
 			last_run = _sensor_combined.timestamp;
 
 			/* guard against too large deltaT's */
-			if (deltaT > 1.0f || deltaT < 0.000001f)
+			if (!isfinite(deltaT) || deltaT > 1.0f || deltaT < 0.000001f) {
 				deltaT = 0.01f;
+				warnx("TS fail");
+			}
 
 			// Always store data, independent of init status
 			/* fill in last data set */
 			_ekf->dtIMU = deltaT;
 
-			_ekf->angRate.x = _sensor_combined.gyro_rad_s[0];
-			_ekf->angRate.y = _sensor_combined.gyro_rad_s[1];
-			_ekf->angRate.z = _sensor_combined.gyro_rad_s[2];
+			if (isfinite(_sensor_combined.gyro_rad_s[0]) &&
+				isfinite(_sensor_combined.gyro_rad_s[1]) &&
+				isfinite(_sensor_combined.gyro_rad_s[2])) {
+				_ekf->angRate.x = _sensor_combined.gyro_rad_s[0];
+				_ekf->angRate.y = _sensor_combined.gyro_rad_s[1];
+				_ekf->angRate.z = _sensor_combined.gyro_rad_s[2];
+			}
 
 			_ekf->accel.x = _sensor_combined.accelerometer_m_s2[0];
 			_ekf->accel.y = _sensor_combined.accelerometer_m_s2[1];
@@ -725,6 +738,21 @@ FixedwingEstimator::task_main()
 					_ekf->gpsLat = math::radians(_gps.lat / (double)1e7);
 					_ekf->gpsLon = math::radians(_gps.lon / (double)1e7) - M_PI;
 					_ekf->gpsHgt = _gps.alt / 1e3f;
+
+					// if (_gps.s_variance_m_s > 0.25f && _gps.s_variance_m_s < 100.0f * 100.0f) {
+					// 	_ekf->vneSigma = sqrtf(_gps.s_variance_m_s);
+					// } else {
+					// 	_ekf->vneSigma = _parameters.velne_noise;
+					// }
+
+					// if (_gps.p_variance_m > 0.25f && _gps.p_variance_m < 100.0f * 100.0f) {
+					// 	_ekf->posNeSigma = sqrtf(_gps.p_variance_m);
+					// } else {
+					// 	_ekf->posNeSigma = _parameters.posne_noise;
+					// }
+
+					// warnx("vel: %8.4f pos: %8.4f", _gps.s_variance_m_s, _gps.p_variance_m);
+
 					newDataGps = true;
 
 				}
@@ -851,6 +879,7 @@ FixedwingEstimator::task_main()
 				} else {
 					_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &rep);
 				}
+
 			}
 
 
