@@ -2711,6 +2711,8 @@ void AttPosEKF::ZeroVariables()
         states[i] = 0.0f; // state matrix
     }
 
+    correctedDelAng.zero();
+
     for (unsigned i = 0; i < data_buffer_size; i++) {
 
         for (unsigned j = 0; j < n_states; j++) {
