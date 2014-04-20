@@ -396,6 +396,11 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 	enum VEHICLE_CMD_RESULT result = VEHICLE_CMD_RESULT_UNSUPPORTED;
 	bool ret = false;
 
+	/* only handle commands that are meant to be handled by this system and component */
+	if (cmd->target_system != status->system_id || ((cmd->target_component != status->component_id) && (cmd->target_component != 0))) { // component_id 0: valid for all components
+		return false;
+	}
+
 	/* only handle high-priority commands here */
 
 	/* request to set different system mode */
@@ -633,11 +638,11 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		break;
 
 	default:
-		/* warn about unsupported commands */
+		/* Warn about unsupported commands, this makes sense because only commands
+		 * to this component ID (or all) are passed by mavlink. */
 		answer_command(*cmd, VEHICLE_CMD_RESULT_UNSUPPORTED);
 		break;
 	}
-
 	if (result != VEHICLE_CMD_RESULT_UNSUPPORTED) {
 		/* already warned about unsupported commands in "default" case */
 		answer_command(*cmd, result);

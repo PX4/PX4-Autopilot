@@ -262,22 +262,21 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
-		if (status_sub->update(t)) {
-			mavlink_msg_sys_status_send(_channel,
-						    status->onboard_control_sensors_present,
-						    status->onboard_control_sensors_enabled,
-						    status->onboard_control_sensors_health,
-						    status->load * 1000.0f,
-						    status->battery_voltage * 1000.0f,
-						    status->battery_current * 1000.0f,
-						    status->battery_remaining,
-						    status->drop_rate_comm,
-						    status->errors_comm,
-						    status->errors_count1,
-						    status->errors_count2,
-						    status->errors_count3,
-						    status->errors_count4);
-		}
+		status_sub->update(t);
+		mavlink_msg_sys_status_send(_channel,
+						status->onboard_control_sensors_present,
+						status->onboard_control_sensors_enabled,
+						status->onboard_control_sensors_health,
+						status->load * 1000.0f,
+						status->battery_voltage * 1000.0f,
+						status->battery_current * 1000.0f,
+						status->battery_remaining,
+						status->drop_rate_comm,
+						status->errors_comm,
+						status->errors_count1,
+						status->errors_count2,
+						status->errors_count3,
+						status->errors_count4);
 	}
 };
 
@@ -636,6 +635,47 @@ protected:
 							    pos->vx,
 							    pos->vy,
 							    pos->vz);
+		}
+	}
+};
+
+
+
+class MavlinkStreamViconPositionEstimate : public MavlinkStream
+{
+public:
+	const char *get_name()
+	{
+		return "VICON_POSITION_ESTIMATE";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamViconPositionEstimate();
+	}
+
+private:
+	MavlinkOrbSubscription *pos_sub;
+	struct vehicle_vicon_position_s *pos;
+
+protected:
+	void subscribe(Mavlink *mavlink)
+	{
+		pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_vicon_position));
+		pos = (struct vehicle_vicon_position_s *)pos_sub->get_data();
+	}
+
+	void send(const hrt_abstime t)
+	{
+		if (pos_sub->update(t)) {
+			mavlink_msg_vicon_position_estimate_send(_channel,
+								pos->timestamp / 1000,
+								pos->x,
+								pos->y,
+								pos->z,
+								pos->roll,
+								pos->pitch,
+								pos->yaw);
 		}
 	}
 };
@@ -1253,8 +1293,6 @@ protected:
 	{
 		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status));
 		status = (struct vehicle_status_s *)status_sub->get_data();
-
-
 	}
 
 	void send(const hrt_abstime t)
@@ -1265,11 +1303,11 @@ protected:
 		    || status->arming_state == ARMING_STATE_ARMED_ERROR) {
 
 			/* send camera capture on */
-			mavlink_msg_command_long_send(_channel, 42, 30, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 1, 0, 0, 0);
+			mavlink_msg_command_long_send(_channel, mavlink_system.sysid, 0, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 1, 0, 0, 0);
 
 		} else {
 			/* send camera capture off */
-			mavlink_msg_command_long_send(_channel, 42, 30, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 0, 0, 0, 0);
+			mavlink_msg_command_long_send(_channel, mavlink_system.sysid, 0, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 0, 0, 0, 0);
 		}
 	}
 };
@@ -1300,5 +1338,6 @@ MavlinkStream *streams_list[] = {
 	new MavlinkStreamAttitudeControls(),
 	new MavlinkStreamNamedValueFloat(),
 	new MavlinkStreamCameraCapture(),
+	new MavlinkStreamViconPositionEstimate(),
 	nullptr
 };
