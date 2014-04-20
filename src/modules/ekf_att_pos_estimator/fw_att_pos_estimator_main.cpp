@@ -73,6 +73,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/home_position.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <geo/geo.h>
@@ -152,6 +153,7 @@ private:
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_control_sub;		/**< notification of manual control updates */
 	int		_mission_sub;
+	int		_home_sub;			/**< home position as defined by commander / user */
 
 	orb_advert_t	_att_pub;			/**< vehicle attitude */
 	orb_advert_t	_global_pos_pub;		/**< global position */
@@ -476,6 +478,7 @@ FixedwingEstimator::task_main()
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
+	_home_sub = orb_subscribe(ORB_ID(home_position));
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
@@ -864,20 +867,27 @@ FixedwingEstimator::task_main()
 
 			if (hrt_elapsed_time(&start_time) > 100000) {
 
-				if (!_gps_initialized && (_ekf->GPSstatus == 3)) {
+				bool home_set;
+				orb_check(_home_sub, &home_set);
+
+				if (home_set && !_gps_initialized && _gps.fix_type > 2) {
 					_ekf->velNED[0] = _gps.vel_n_m_s;
 					_ekf->velNED[1] = _gps.vel_e_m_s;
 					_ekf->velNED[2] = _gps.vel_d_m_s;
 
-					double lat = _gps.lat * 1e-7;
-					double lon = _gps.lon * 1e-7;
-					float alt = _gps.alt * 1e-3;
+					struct home_position_s home;
+
+					orb_copy(ORB_ID(home_position), _home_sub, &home);
+
+					double lat = home.lat;
+					double lon = home.lon;
+					float alt = home.alt;
 
 					_ekf->InitialiseFilter(_ekf->velNED);
 
 					// Initialize projection
-					_local_pos.ref_lat = _gps.lat;
-					_local_pos.ref_lon = _gps.lon;
+					_local_pos.ref_lat = home.lat * 1e7;
+					_local_pos.ref_lon = home.lon * 1e7;
 					_local_pos.ref_alt = alt;
 					_local_pos.ref_timestamp = _gps.timestamp_position;
 
