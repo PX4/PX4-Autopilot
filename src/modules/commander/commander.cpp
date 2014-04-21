@@ -1088,13 +1088,12 @@ int commander_thread_main(int argc, char *argv[])
 
 			if (!status.condition_home_position_valid && gps_position.fix_type >= 3 &&
 			    (gps_position.eph_m < hdop_threshold_m) && (gps_position.epv_m < vdop_threshold_m) &&
-			    (hrt_absolute_time() < gps_position.timestamp_position + POSITION_TIMEOUT) && !armed.armed
-			    && global_position.global_valid) {
+			    (hrt_absolute_time() < gps_position.timestamp_position + POSITION_TIMEOUT) && !armed.armed) {
 
 				/* copy position data to uORB home message, store it locally as well */
 				home.lat = gps_position.lat / (double)1e7;
 				home.lon = gps_position.lon / (double)1e7;
-				home.alt = gps_position.alt;
+				home.alt = gps_position.alt / (float)1e3;
 
 				warnx("home: lat = %.7f, lon = %.7f, alt = %.4f ", home.lat, home.lon, (double)home.alt);
 				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.4f", home.lat, home.lon, (double)home.alt);
