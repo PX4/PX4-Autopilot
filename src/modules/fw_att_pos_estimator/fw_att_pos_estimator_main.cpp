@@ -1035,8 +1035,8 @@ FixedwingEstimator::task_main()
 				_local_pos.z_global = false;
 				_local_pos.yaw = _att.yaw;
 
-				// _velocity_xy_filtered = 0.9f*_velocity_xy_filtered + 0.1f*sqrtf(_local_pos.vx*_local_pos.vx + _local_pos.vy*_local_pos.vy);
-				// _velocity_z_filtered = 0.9f*_velocity_z_filtered + 0.1f*fabsf(_local_pos.vz);
+				 _velocity_xy_filtered = 0.9f*_velocity_xy_filtered + 0.1f*sqrtf(_local_pos.vx*_local_pos.vx + _local_pos.vy*_local_pos.vy);
+				 _velocity_z_filtered = 0.9f*_velocity_z_filtered + 0.1f*fabsf(_local_pos.vz);
 
 
 				/* crude land detector for fixedwing only,
