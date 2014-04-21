@@ -308,7 +308,7 @@ void OnGroundCheck();
 
 void CovarianceInit();
 
-void InitialiseFilter(float (&initvelNED)[3]);
+void InitialiseFilter(float (&initvelNED)[3], double referenceLat, double referenceLon, float referenceHgt);
 
 float ConstrainFloat(float val, float min, float max);
 

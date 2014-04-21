@@ -606,7 +606,6 @@ FixedwingEstimator::task_main()
 			/* guard against too large deltaT's */
 			if (!isfinite(deltaT) || deltaT > 1.0f || deltaT < 0.000001f) {
 				deltaT = 0.01f;
-				warnx("TS fail");
 			}
 
 
@@ -650,13 +649,13 @@ FixedwingEstimator::task_main()
 			IMUmsec = _sensor_combined.timestamp / 1e3f;
 
 			float deltaT = (_sensor_combined.timestamp - last_run) / 1e6f;
-			last_run = _sensor_combined.timestamp;
 
 			/* guard against too large deltaT's */
 			if (!isfinite(deltaT) || deltaT > 1.0f || deltaT < 0.000001f) {
 				deltaT = 0.01f;
-				warnx("TS fail");
 			}
+
+			last_run = _sensor_combined.timestamp;
 
 			// Always store data, independent of init status
 			/* fill in last data set */
@@ -823,6 +822,8 @@ FixedwingEstimator::task_main()
 			 */
 			int check = _ekf->CheckAndBound();
 
+			const char* ekfname = "[ekf] ";
+
 			switch (check) {
 				case 0:
 					/* all ok */
@@ -830,27 +831,34 @@ FixedwingEstimator::task_main()
 				case 1:
 				{
 					const char* str = "NaN in states, resetting";
-					warnx(str);
-					mavlink_log_critical(_mavlink_fd, str);
+					warnx("%s%s", ekfname, str);
+					mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
 					break;
 				}
 				case 2:
 				{
 					const char* str = "stale IMU data, resetting";
-					warnx(str);
-					mavlink_log_critical(_mavlink_fd, str);
+					warnx("%s%s", ekfname, str);
+					mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
 					break;
 				}
 				case 3:
 				{
-					const char* str = "switching dynamic / static state";
-					warnx(str);
-					mavlink_log_critical(_mavlink_fd, str);
+					const char* str = "switching to dynamic state";
+					warnx("%s%s", ekfname, str);
+					mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
 					break;
+				}
+
+				default:
+				{
+					const char* str = "unknown reset condition";
+					warnx("%s%s", ekfname, str);
+					mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
 				}
 			}
 
-			// If non-zero, we got a problem
+			// If non-zero, we got a filter reset
 			if (check) {
 
 				struct ekf_status_report ekf_report;
@@ -912,7 +920,7 @@ FixedwingEstimator::task_main()
 					double lon = home.lon;
 					float alt = home.alt;
 
-					_ekf->InitialiseFilter(_ekf->velNED);
+					_ekf->InitialiseFilter(_ekf->velNED, math::radians(lat), math::radians(lon) - M_PI, alt);
 
 					// Initialize projection
 					_local_pos.ref_lat = home.lat * 1e7;
@@ -942,7 +950,7 @@ FixedwingEstimator::task_main()
 
 					_ekf->posNE[0] = _ekf->posNED[0];
 					_ekf->posNE[1] = _ekf->posNED[1];
-					_ekf->InitialiseFilter(_ekf->velNED);
+					_ekf->InitialiseFilter(_ekf->velNED, 0.0, 0.0, 0.0f);
 				}
 			}
 

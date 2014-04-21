@@ -4,7 +4,7 @@
 // Define EKF_DEBUG here to enable the debug print calls
 // if the macro is not set, these will be completely
 // optimized out by the compiler.
-//#define EKF_DEBUG
+#define EKF_DEBUG
 
 #ifdef EKF_DEBUG
 #include <stdio.h>
@@ -2263,21 +2263,29 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
             if (!isfinite(KH[i][j])) {
 
                 err_report->covarianceNaN = true;
-                ekf_debug("KH NaN");
                 err = true;
             } //  intermediate result used for covariance updates
+            if (err) {
+                ekf_debug("KH NaN");
+            }
+
             if (!isfinite(KHP[i][j])) {
 
                 err_report->covarianceNaN = true;
-                ekf_debug("KHP NaN");
                 err = true;
             } // intermediate result used for covariance updates
+            if (err) {
+                ekf_debug("KHP NaN");
+            }
+
             if (!isfinite(P[i][j])) {
 
                 err_report->covarianceNaN = true;
-                ekf_debug("P NaN");
                 err = true;
             } // covariance matrix
+            if (err) {
+                ekf_debug("P NaN");
+            }
         }
 
         if (!isfinite(Kfusion[i])) {
@@ -2461,12 +2469,12 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3])
     summedDelVel.z = 0.0f;
 }
 
-void AttPosEKF::InitialiseFilter(float (&initvelNED)[3])
+void AttPosEKF::InitialiseFilter(float (&initvelNED)[3], double referenceLat, double referenceLon, float referenceHgt)
 {
     //store initial lat,long and height
-    latRef = gpsLat;
-    lonRef = gpsLon;
-    hgtRef = gpsHgt;
+    latRef = referenceLat;
+    lonRef = referenceLon;
+    hgtRef = referenceHgt;
 
     memset(&last_ekf_error, 0, sizeof(last_ekf_error));
 
