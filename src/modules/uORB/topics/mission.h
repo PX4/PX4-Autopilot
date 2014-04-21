@@ -93,6 +93,8 @@ struct mission_item_s {
 	bool autocontinue;		/**< true if next waypoint should follow after this one */
 	enum ORIGIN origin;		/**< where the waypoint has been generated		*/
 	int do_jump_mission_index;	/**< the mission index that we want to jump to		*/
+	int do_jump_repeat_count;	/**< how many times the jump should be repeated		*/
+	int do_jump_current_count;	/**< how many times the jump has already been repeated	*/
 };
 
 struct mission_s

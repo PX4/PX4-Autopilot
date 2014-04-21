@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -32,51 +32,56 @@
  ****************************************************************************/
 
 /**
- * @file state_table.h
- * 
- * Finite-State-Machine helper class for state table
- * @author: Julian Oes <julian@oes.ch>
+ * @file rtl_params.c
+ *
+ * Parameters for RTL
+ *
+ * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef __SYSTEMLIB_STATE_TABLE_H
-#define __SYSTEMLIB_STATE_TABLE_H
+#include <nuttx/config.h>
 
-class StateTable
-{
-public:
-	typedef bool (StateTable::*Action)();
-	struct Tran {
-		Action action;
-		unsigned nextState;
-	};
-	
-	StateTable(Tran const *table, unsigned nStates, unsigned nSignals)
-	: myTable(table), myNsignals(nSignals), myNstates(nStates) {}
-	
-	#define NO_ACTION &StateTable::doNothing
-	#define ACTION(_target) StateTable::Action(_target)
+#include <systemlib/param/param.h>
 
-	virtual ~StateTable() {}
-	
-	void dispatch(unsigned const sig) {
-		/* get transition using state table */
-		Tran const *t = myTable + myState*myNsignals + sig;
-		/* first up change state, this allows to do further dispatchs in the state functions */
-		
-		/* now execute state function, if it runs with success, accept new state */
-		if ((this->*(t->action))()) {
-			myState = t->nextState;
-		}
-	}
-	bool doNothing() {
-		return true;
-	}
-protected:
-	unsigned myState;
-private:
-	Tran const *myTable;
-	unsigned myNsignals;
-	unsigned myNstates;
-};
+/*
+ * RTL parameters, accessible via MAVLink
+ */
 
-#endif
+/**
+ * RTL altitude
+ *
+ * Altitude to fly back in RTL in meters
+ *
+ * @unit meters
+ * @min 0
+ * @max 1
+ * @group RTL
+ */
+PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 100);
+
+
+/**
+ * RTL loiter altitude
+ *
+ * Stay at this altitude above home position after RTL descending.
+ * Land (i.e. slowly descend) from this altitude if autolanding allowed.
+ *
+ * @unit meters
+ * @min 0
+ * @max 100
+ * @group RTL
+ */
+PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 20);
+
+/**
+ * RTL delay
+ *
+ * Delay after descend before landing in RTL mode.
+ * If set to -1 the system will not land but loiter at NAV_LAND_ALT.
+ *
+ * @unit seconds
+ * @min -1
+ * @max
+ * @group RTL
+ */
+PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);

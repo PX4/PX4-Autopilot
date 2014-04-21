@@ -150,8 +150,6 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	bool		_setpoint_valid;		/**< flag if the position control setpoint is valid */
-
 	/** manual control states */
 	float		_seatbelt_hold_heading;		/**< heading the system should hold in seatbelt mode */
 	double		_loiter_hold_lat;
@@ -393,7 +391,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
 
 /* states */
-	_setpoint_valid(false),
 	_loiter_hold(false),
 	land_noreturn_horizontal(false),
 	land_noreturn_vertical(false),
@@ -663,7 +660,6 @@ FixedwingPositionControl::vehicle_setpoint_poll()
 
 	if (pos_sp_triplet_updated) {
 		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
-		_setpoint_valid = true;
 	}
 }
 
@@ -708,7 +704,7 @@ void
 FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &current_position, const math::Vector<2> &ground_speed, const struct position_setpoint_triplet_s &pos_sp_triplet)
 {
 
-	if (_global_pos_valid && !(pos_sp_triplet.current.type == SETPOINT_TYPE_LOITER)) {
+	if (pos_sp_triplet.current.valid && !(pos_sp_triplet.current.type == SETPOINT_TYPE_LOITER)) {
 
 		/* rotate ground speed vector with current attitude */
 		math::Vector<2> yaw_vector(_R_nb(0, 0), _R_nb(1, 0));
@@ -781,7 +777,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	// XXX this should only execute if auto AND safety off (actuators active),
 	// else integrators should be constantly reset.
-	if (_control_mode.flag_control_position_enabled) {
+	if (pos_sp_triplet.current.valid) {
 
 		/* get circle mode */
 		bool was_circle_mode = _l1_control.circle_mode();

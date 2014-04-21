@@ -53,16 +53,6 @@
  */
 
 /**
- * Minimum altitude (fixed wing only)
- *
- * Minimum altitude above home for LOITER.
- *
- * @unit meters
- * @group Navigation
- */
-PARAM_DEFINE_FLOAT(NAV_MIN_ALT, 50.0f);
-
-/**
  * Waypoint acceptance radius
  *
  * Default value of acceptance radius (if not specified in mission item).
@@ -100,37 +90,6 @@ PARAM_DEFINE_INT32(NAV_ONB_MIS_EN, 0);
  * @group Navigation
  */
 PARAM_DEFINE_FLOAT(NAV_TAKEOFF_ALT, 10.0f);
-
-/**
- * Landing altitude
- *
- * Stay at this altitude above home position after RTL descending. Land (i.e. slowly descend) from this altitude if autolanding allowed.
- *
- * @unit meters
- * @group Navigation
- */
-PARAM_DEFINE_FLOAT(NAV_LAND_ALT, 5.0f);
-
-/**
- * Return-To-Launch altitude
- *
- * Minimum altitude above home position for going home in RTL mode.
- *
- * @unit meters
- * @group Navigation
- */
-PARAM_DEFINE_FLOAT(NAV_RTL_ALT, 30.0f);
-
-/**
- * Return-To-Launch delay
- *
- * Delay after descend before landing in RTL mode.
- * If set to -1 the system will not land but loiter at NAV_LAND_ALT.
- *
- * @unit seconds
- * @group Navigation
- */
-PARAM_DEFINE_FLOAT(NAV_RTL_LAND_T, -1.0f);
 
 /**
  * Enable parachute deployment

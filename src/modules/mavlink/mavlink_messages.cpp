@@ -117,7 +117,8 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 	union px4_custom_mode custom_mode;
 	custom_mode.data = 0;
 
-	if (pos_sp_triplet->nav_state == NAV_STATE_NONE) {
+	if (pos_sp_triplet->nav_state == NAV_STATE_NONE_ON_GROUND
+		|| pos_sp_triplet->nav_state == NAV_STATE_NONE_IN_AIR) {
 		/* use main state when navigator is not active */
 		if (status->main_state == MAIN_STATE_MANUAL) {
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
@@ -142,7 +143,7 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
 
-		if (pos_sp_triplet->nav_state == NAV_STATE_READY) {
+		if (pos_sp_triplet->nav_state == NAV_STATE_AUTO_ON_GROUND) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
 
 		} else if (pos_sp_triplet->nav_state == NAV_STATE_LOITER) {

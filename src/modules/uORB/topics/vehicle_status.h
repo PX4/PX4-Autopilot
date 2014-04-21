@@ -54,8 +54,6 @@
 #include <stdbool.h>
 #include "../uORB.h"
 
-#include <navigator/navigator_state.h>
-
 /**
  * @addtogroup topics @{
  */
@@ -92,6 +90,14 @@ typedef enum {
 	FAILSAFE_STATE_TERMINATION,		/**< Disable motors and use parachute, can't be recovered */
 	FAILSAFE_STATE_MAX
 } failsafe_state_t;
+
+typedef enum {
+	NAVIGATION_STATE_NONE = 0,
+	NAVIGATION_STATE_MISSION,
+	NAVIGATION_STATE_LOITER,
+	NAVIGATION_STATE_RTL,
+	NAVIGATION_STATE_LAND
+} navigation_state_t;
 
 enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_SAFETY_ARMED = 128,
@@ -152,8 +158,7 @@ struct vehicle_status_s {
 	uint64_t timestamp; /**< in microseconds since system start, is set whenever the writing thread stores new data */
 
 	main_state_t main_state;				/**< main state machine */
-	unsigned int set_nav_state;	/**< set navigation state machine to specified value */
-	uint64_t set_nav_state_timestamp;	/**< timestamp of latest change of set_nav_state */
+	navigation_state_t set_nav_state;		/**< set navigation state machine to specified value */
 	arming_state_t arming_state;			/**< current arming state */
 	hil_state_t hil_state;					/**< current hil state */
 	failsafe_state_t failsafe_state;		/**< current failsafe state */

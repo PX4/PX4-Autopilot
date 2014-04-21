@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,22 +32,22 @@
  ****************************************************************************/
 /**
  * @file navigator_mission.cpp
+ *
  * Helper class to access missions
+ *
+ * @author Julian Oes <julian@oes.ch>
  */
 
 #include <string.h>
 #include <stdlib.h>
+
 #include <dataman/dataman.h>
 #include <systemlib/err.h>
+
 #include <uORB/uORB.h>
 #include <uORB/topics/mission_result.h>
-#include "navigator_mission.h"
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
+#include "mission.h"
 
 
 Mission::Mission() :
@@ -60,27 +59,43 @@ Mission::Mission() :
 	_onboard_mission_item_count(0),
 	_onboard_mission_allowed(false),
 	_current_mission_type(MISSION_TYPE_NONE),
-	_mission_result_pub(-1)
+	_mission_result_pub(-1),
+	_mission_result({})
 {
-	memset(&_mission_result, 0, sizeof(struct mission_result_s));
 }
 
 Mission::~Mission()
 {
-
 }
 
 void
-Mission::set_offboard_dataman_id(int new_id)
+Mission::set_offboard_dataman_id(const int new_id)
 {
 	_offboard_dataman_id = new_id;
 }
 
 void
-Mission::set_current_offboard_mission_index(int new_index)
+Mission::set_offboard_mission_count(int new_count)
 {
-	if (new_index != -1) {
-		warnx("specifically set to %d", new_index);
+	_offboard_mission_item_count = new_count;
+}
+
+void
+Mission::set_onboard_mission_count(int new_count)
+{
+	_onboard_mission_item_count = new_count;
+}
+
+void
+Mission::set_onboard_mission_allowed(bool allowed)
+{
+	_onboard_mission_allowed = allowed;
+}
+
+bool
+Mission::command_current_offboard_mission_index(const int new_index)
+{
+	if (new_index >= 0) {
 		_current_offboard_mission_index = (unsigned)new_index;
 	} else {
 
@@ -92,8 +107,8 @@ Mission::set_current_offboard_mission_index(int new_index)
 	report_current_offboard_mission_item();
 }
 
-void
-Mission::set_current_onboard_mission_index(int new_index)
+bool
+Mission::command_current_onboard_mission_index(int new_index)
 {
 	if (new_index != -1) {
 		_current_onboard_mission_index = (unsigned)new_index;
@@ -108,153 +123,130 @@ Mission::set_current_onboard_mission_index(int new_index)
 	// report_current_mission_item();
 }
 
-void
-Mission::set_offboard_mission_count(unsigned new_count)
-{
-	_offboard_mission_item_count = new_count;
-}
-
-void
-Mission::set_onboard_mission_count(unsigned new_count)
-{
-	_onboard_mission_item_count = new_count;
-}
-
-void
-Mission::set_onboard_mission_allowed(bool allowed)
-{
-	_onboard_mission_allowed = allowed;
-}
-
 bool
-Mission::current_mission_available()
+Mission::get_current_mission_item(struct mission_item_s *new_mission_item, bool *onboard, int *index)
 {
-	return (current_onboard_mission_available() || current_offboard_mission_available());
-
-}
-
-bool
-Mission::next_mission_available()
-{
-	return (next_onboard_mission_available() || next_offboard_mission_available());
-}
-
-int
-Mission::get_current_mission_item(struct mission_item_s *new_mission_item, bool *onboard, unsigned *index)
-{
-	int ret = ERROR;
+	*onboard = false;
+	*index = -1;
 
 	/* try onboard mission first */
-	if (current_onboard_mission_available()) {
-
-		ret = get_mission_item(DM_KEY_WAYPOINTS_ONBOARD, &_current_onboard_mission_index, new_mission_item);
-		if (ret == OK) {
+	if (_current_onboard_mission_index < _onboard_mission_item_count && _onboard_mission_allowed) {
+		if (read_mission_item(DM_KEY_WAYPOINTS_ONBOARD, true, &_current_onboard_mission_index, new_mission_item)) {
 			_current_mission_type = MISSION_TYPE_ONBOARD;
 			*onboard = true;
 			*index = _current_onboard_mission_index;
-		}
 
+			return true;
+		}
+	}
+	
 	/* otherwise fallback to offboard */
-	} else if (current_offboard_mission_available()) {
+	if (_current_offboard_mission_index < _offboard_mission_item_count) {
 
 		dm_item_t dm_current;
-
 		if (_offboard_dataman_id == 0) {
 			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_0;
-
 		} else {
 			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_1;
 		}
+		if (read_mission_item(dm_current, true, &_current_offboard_mission_index, new_mission_item)) {
 
-		ret = get_mission_item(dm_current, &_current_offboard_mission_index, new_mission_item);
-		if (ret == OK) {
 			_current_mission_type = MISSION_TYPE_OFFBOARD;
 			*onboard = false;
 			*index = _current_offboard_mission_index;
-		}
 
-	} else {
-		/* happens when no more mission items can be added as a next item */
-		_current_mission_type = MISSION_TYPE_NONE;
-		ret == ERROR;
+			return true;
+		}
 	}
 
-	return ret;
+	/* happens when no more mission items can be added as a next item */
+	_current_mission_type = MISSION_TYPE_NONE;
+
+	return false;
 }
 
-int
+bool
 Mission::get_next_mission_item(struct mission_item_s *new_mission_item)
 {
-	int ret = ERROR;
+	int next_temp_mission_index = _current_onboard_mission_index + 1;
 
 	/* try onboard mission first */
-	if (next_onboard_mission_available()) {
+	if (next_temp_mission_index < _onboard_mission_item_count && _onboard_mission_allowed) {
+		if (read_mission_item(DM_KEY_WAYPOINTS_ONBOARD, false, &next_temp_mission_index, new_mission_item)) {
+			return true;
+		}
+	}
 
-		unsigned next_onboard_mission_index = _current_onboard_mission_index + 1;
-		ret = get_mission_item(DM_KEY_WAYPOINTS_ONBOARD, &next_onboard_mission_index, new_mission_item);
+	/* then try offboard mission */
+	dm_item_t dm_current;
+	if (_offboard_dataman_id == 0) {
+		dm_current = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	} else {
+		dm_current = DM_KEY_WAYPOINTS_OFFBOARD_1;
+	}
+	next_temp_mission_index = _current_offboard_mission_index + 1;
+	if (next_temp_mission_index < _offboard_mission_item_count) {
+		if (read_mission_item(dm_current, false, &next_temp_mission_index, new_mission_item)) {
+			return true;
+		}
+	}
 
-	/* otherwise fallback to offboard */
-	} else if (next_offboard_mission_available()) {
+	/* both failed, bail out */
+	return false;
+}
 
-		dm_item_t dm_current;
+bool
+Mission::read_mission_item(const dm_item_t dm_item, bool is_current, int *mission_index, struct mission_item_s *new_mission_item)
+{
+	/* repeat several to get the mission item because we might have to follow multiple DO_JUMPS */
+	for (int i=0; i<10; i++) {
+		const ssize_t len = sizeof(struct mission_item_s);
 
-		if (_offboard_dataman_id == 0) {
-			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_0;
-
-		} else {
-			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_1;
+		/* read mission item from datamanager */
+		if (dm_read(dm_item, *mission_index, new_mission_item, len) != len) {
+			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+			return false;
 		}
 
-		unsigned next_offboard_mission_index = _current_offboard_mission_index + 1;
-		ret = get_mission_item(dm_current, &next_offboard_mission_index, new_mission_item);
+		/* check for DO_JUMP item, and whether it hasn't not already been repeated enough times */
+		if (new_mission_item->nav_cmd == NAV_CMD_DO_JUMP) {
 
-	} else {
-		/* happens when no more mission items can be added as a next item */
-		ret = ERROR;
-	}
-	return ret;
-}
+			if (new_mission_item->do_jump_current_count < new_mission_item->do_jump_repeat_count) {
 
+				/* only raise the repeat count if this is for the current mission item
+				 * but not for the next mission item */
+				if (is_current) {
+					(new_mission_item->do_jump_current_count)++;
 
-bool
-Mission::current_onboard_mission_available()
-{
-	return _onboard_mission_item_count > _current_onboard_mission_index && _onboard_mission_allowed;
-}
+					/* save repeat count */
+					if (dm_write(dm_item, *mission_index, DM_PERSIST_IN_FLIGHT_RESET, new_mission_item, len) != len) {
+						/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+						return false;
+					}
+				}
+				/* set new mission item index and repeat
+				 * we don't have to validate here, if it's invalid, we should realize this later .*/
+				*mission_index = new_mission_item->do_jump_mission_index;
+			} else {
+				return false;
+			}
 
-bool
-Mission::current_offboard_mission_available()
-{
-	return _offboard_mission_item_count > _current_offboard_mission_index;
-}
-
-bool
-Mission::next_onboard_mission_available()
-{
-	unsigned next = 0;
-
-	if (_current_mission_type != MISSION_TYPE_ONBOARD) {
-		next = 1;
+		} else {
+			/* if it's not a DO_JUMP, then we were successful */
+			return true;
+		}
 	}
 
-	return _onboard_mission_item_count > (_current_onboard_mission_index + next) && _onboard_mission_allowed;
-}
-
-bool
-Mission::next_offboard_mission_available()
-{
-	unsigned next = 0;
-
-	if (_current_mission_type != MISSION_TYPE_OFFBOARD) {
-		next = 1;
-	}
-
-	return _offboard_mission_item_count > (_current_offboard_mission_index + next);
+	/* we have given up, we don't want to cycle forever */
+	warnx("ERROR: cycling through mission items without success");
+	return false;
 }
 
 void
 Mission::move_to_next()
 {
+	report_mission_item_reached();
+	
 	switch (_current_mission_type) {
 	case MISSION_TYPE_ONBOARD:
 		_current_onboard_mission_index++;
@@ -277,12 +269,14 @@ Mission::report_mission_item_reached()
 		_mission_result.mission_reached = true;
 		_mission_result.mission_index_reached = _current_offboard_mission_index;
 	}
+	publish_mission_result();
 }
 
 void
 Mission::report_current_offboard_mission_item()
 {
 	_mission_result.index_current_mission = _current_offboard_mission_index;
+	publish_mission_result();
 }
 
 void
@@ -301,32 +295,3 @@ Mission::publish_mission_result()
 	_mission_result.mission_reached = false;
 }
 
-int
-Mission::get_mission_item(const dm_item_t dm_item, unsigned *mission_index, struct mission_item_s *new_mission_item)
-{
-	/* repeat several to get the mission item because we might have to follow multiple DO_JUMPS */
-	for (int i=0; i<10; i++) {
-
-		const ssize_t len = sizeof(struct mission_item_s);
-
-		/* read mission item from datamanager */
-		if (dm_read(dm_item, *mission_index, new_mission_item, len) != len) {
-			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-			return ERROR;
-		}
-
-		/* check for DO_JUMP item */
-		if (new_mission_item->nav_cmd == NAV_CMD_DO_JUMP) {
-			/* set new mission item index and repeat
-			 * we don't have to validate here, if it's invalid, we should realize this later .*/
-			*mission_index = new_mission_item->do_jump_mission_index;
-		} else {
-			/* if it's not a DO_JUMP, then we were successful */
-			return OK;
-		}
-	}
-
-	/* we have given up, we don't want to cycle forever */
-	warnx("ERROR: cycling through mission items without success");
-	return ERROR;
-}

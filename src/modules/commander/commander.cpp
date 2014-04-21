@@ -547,15 +547,13 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 			unsigned int mav_goto = cmd->param1;
 
 			if (mav_goto == 0) {	// MAV_GOTO_DO_HOLD
-				status->set_nav_state = NAV_STATE_LOITER;
-				status->set_nav_state_timestamp = hrt_absolute_time();
+				status->set_nav_state = NAVIGATION_STATE_LOITER;
 				mavlink_log_critical(mavlink_fd, "#audio: pause mission cmd");
 				result = VEHICLE_CMD_RESULT_ACCEPTED;
 				ret = true;
 
 			} else if (mav_goto == 1) {	// MAV_GOTO_DO_CONTINUE
-				status->set_nav_state = NAV_STATE_MISSION;
-				status->set_nav_state_timestamp = hrt_absolute_time();
+				status->set_nav_state = NAVIGATION_STATE_MISSION;
 				mavlink_log_critical(mavlink_fd, "#audio: continue mission cmd");
 				result = VEHICLE_CMD_RESULT_ACCEPTED;
 				ret = true;
@@ -668,8 +666,7 @@ int commander_thread_main(int argc, char *argv[])
 	// We want to accept RC inputs as default
 	status.rc_input_blocked = false;
 	status.main_state = MAIN_STATE_MANUAL;
-	status.set_nav_state = NAV_STATE_NONE;
-	status.set_nav_state_timestamp = 0;
+	status.set_nav_state = NAVIGATION_STATE_NONE;
 	status.arming_state = ARMING_STATE_INIT;
 	status.hil_state = HIL_STATE_OFF;
 	status.failsafe_state = FAILSAFE_STATE_NORMAL;
@@ -944,7 +941,7 @@ int commander_thread_main(int argc, char *argv[])
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid, &(status.condition_local_altitude_valid), &status_changed);
 
 		static bool published_condition_landed_fw = false;
-		if (status.is_rotary_wing && status.condition_local_altitude_valid) {
+		if (status.condition_local_altitude_valid) {
 			if (status.condition_landed != local_position.landed) {
 				status.condition_landed = local_position.landed;
 				status_changed = true;
@@ -1222,30 +1219,30 @@ int commander_thread_main(int argc, char *argv[])
 				mavlink_log_critical(mavlink_fd, "ERROR: main state transition denied");
 			}
 
-			/* set navigation state */
-			/* RETURN switch, overrides MISSION switch */
-			if (sp_man.return_switch == SWITCH_POS_ON) {
-				/* switch to RTL if not already landed after RTL and home position set */
-				status.set_nav_state = NAV_STATE_RTL;
-				status.set_nav_state_timestamp = hrt_absolute_time();
+			if (sp_man.mode_switch == SWITCH_POS_ON) {
 
-			} else {
-				/* MISSION switch */
-				if (sp_man.mission_switch == SWITCH_POS_ON) {
-					/* stick is in LOITER position */
-					status.set_nav_state = NAV_STATE_LOITER;
-					status.set_nav_state_timestamp = hrt_absolute_time();
+				/* set navigation state */
+				/* RETURN switch, overrides MISSION switch */
+				if (sp_man.return_switch == SWITCH_POS_ON) {
+					/* switch to RTL if not already landed after RTL and home position set */
+					status.set_nav_state = NAVIGATION_STATE_RTL;
 
-				} else if (sp_man.mission_switch != SWITCH_POS_NONE) {
-					/* stick is in MISSION position */
-					status.set_nav_state = NAV_STATE_MISSION;
-					status.set_nav_state_timestamp = hrt_absolute_time();
+				} else {
+					/* MISSION switch */
+					if (sp_man.mission_switch == SWITCH_POS_ON) {
+						/* stick is in LOITER position */
+						status.set_nav_state = NAVIGATION_STATE_LOITER;
 
-				} else if ((sp_man.return_switch == SWITCH_POS_OFF || sp_man.return_switch == SWITCH_POS_MIDDLE) &&
-						pos_sp_triplet.nav_state == NAV_STATE_RTL) {
-					/* RETURN switch is in normal mode, no MISSION switch mapped, interrupt if in RTL state */
-					status.set_nav_state = NAV_STATE_MISSION;
-					status.set_nav_state_timestamp = hrt_absolute_time();
+					} else if (sp_man.mission_switch != SWITCH_POS_NONE) {
+						/* stick is in MISSION position */
+						status.set_nav_state = NAVIGATION_STATE_MISSION;
+					}
+					/* XXX: I don't understand this */					
+					//else if ((sp_man.return_switch == SWITCH_POS_OFF || sp_man.return_switch == SWITCH_POS_MIDDLE) &&
+					// 		pos_sp_triplet.nav_state == NAVIGATION_STATE_RTL) {
+					// 	/* RETURN switch is in normal mode, no MISSION switch mapped, interrupt if in RTL state */
+					// 	status.set_nav_state = NAV_STATE_MISSION;
+					// }
 				}
 			}
 

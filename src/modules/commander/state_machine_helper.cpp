@@ -450,8 +450,7 @@ transition_result_t failsafe_state_transition(struct vehicle_status_s *status, f
 
 			/* global position and home position required for RTL */
 			if (status->condition_global_position_valid && status->condition_home_position_valid) {
-				status->set_nav_state = NAV_STATE_RTL;
-				status->set_nav_state_timestamp = hrt_absolute_time();
+				status->set_nav_state = NAVIGATION_STATE_RTL;
 				ret = TRANSITION_CHANGED;
 			}
 
@@ -461,8 +460,7 @@ transition_result_t failsafe_state_transition(struct vehicle_status_s *status, f
 
 			/* at least relative altitude estimate required for landing */
 			if (status->condition_local_altitude_valid || status->condition_global_position_valid) {
-				status->set_nav_state = NAV_STATE_LAND;
-				status->set_nav_state_timestamp = hrt_absolute_time();
+				status->set_nav_state = NAVIGATION_STATE_LAND;
 				ret = TRANSITION_CHANGED;
 			}
 
