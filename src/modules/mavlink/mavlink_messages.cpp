@@ -271,7 +271,7 @@ protected:
 						status->load * 1000.0f,
 						status->battery_voltage * 1000.0f,
 						status->battery_current * 1000.0f,
-						status->battery_remaining,
+						status->battery_remaining * 100.0f,
 						status->drop_rate_comm,
 						status->errors_comm,
 						status->errors_count1,

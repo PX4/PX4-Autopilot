@@ -403,7 +403,8 @@ then
 	then
 		if [ $HIL == yes ]
 		then
-			sleep 1
+			# Sleep required to ensure the link is up
+			sleep 5
 			set MAVLINK_FLAGS "-r 10000 -d /dev/ttyACM0"
 		else
 			# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
