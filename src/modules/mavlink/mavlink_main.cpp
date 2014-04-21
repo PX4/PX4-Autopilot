@@ -832,10 +832,10 @@ void Mavlink::publish_mission()
 {
 	/* Initialize mission publication if necessary */
 	if (_mission_pub < 0) {
-		_mission_pub = orb_advertise(ORB_ID(mission), &mission);
+		_mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
 
 	} else {
-		orb_publish(ORB_ID(mission), _mission_pub, &mission);
+		orb_publish(ORB_ID(offboard_mission), _mission_pub, &mission);
 	}
 }
 
@@ -1953,6 +1953,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAMED_VALUE_FLOAT", 1.0f * rate_mult);
 		configure_stream("GLOBAL_POSITION_SETPOINT_INT", 3.0f * rate_mult);
 		configure_stream("ROLL_PITCH_YAW_THRUST_SETPOINT", 3.0f * rate_mult);
+		configure_stream("DISTANCE_SENSOR", 0.5f);
 		break;
 
 	case MAVLINK_MODE_CAMERA:
