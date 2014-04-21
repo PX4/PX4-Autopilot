@@ -60,6 +60,7 @@ public:
 
 	typedef enum {
 		TECS_MODE_NORMAL,
+		TECS_MODE_UNDERSPEED,
 		TECS_MODE_TAKEOFF
 	} tecs_mode;
 
@@ -92,6 +93,7 @@ public:
 protected:
 	/* parameters */
 	control::BlockParamInt _mTecsEnabled;		/**< 1 if mTecs is enabled */
+	control::BlockParamFloat _airspeedMin;		/**< minimal airspeed */
 
 	/* control blocks */
 	BlockFFPILimitedCustom _controlTotalEnergy;		/**< FFPI controller for total energy control: output is throttle */
@@ -107,14 +109,16 @@ protected:
 	float _pitchSp;					/**< Pitch Setpoint from -pi to pi */
 
 	/* Output Limits in special modes */
-	BlockOutputLimiter BlockOutputLimiterTakeoffThrottle; /**< Throttle Limits during takeoff */
-	BlockOutputLimiter BlockOutputLimiterTakeoffPitch; /**< Pitch Limit during takeoff */
+	BlockOutputLimiter _BlockOutputLimiterTakeoffThrottle;		/**< Throttle Limits during takeoff */
+	BlockOutputLimiter _BlockOutputLimiterTakeoffPitch;      	/**< Pitch Limit during takeoff */
+	BlockOutputLimiter _BlockOutputLimiterUnderspeedThrottle;	/**< Throttle Limits during takeoff */
+	BlockOutputLimiter _BlockOutputLimiterUnderspeedPitch;   	/**< Pitch Limit during takeoff */
 
 	/* Time measurements */
 	hrt_abstime timestampLastIteration;		/**< Saves the result of hrt_absolute_time() of the last iteration */
 
 	bool _firstIterationAfterReset;			/**< True during the first iteration after a reset */
-	bool dtCalculated;				/**< True if dt has been calculated in this iteration */
+	bool _dtCalculated;				/**< True if dt has been calculated in this iteration */
 
 	int _counter;
 

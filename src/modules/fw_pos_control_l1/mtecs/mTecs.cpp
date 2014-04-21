@@ -50,6 +50,7 @@ mTecs::mTecs() :
 	SuperBlock(NULL, "MT"),
 	/* Parameters */
 	_mTecsEnabled(this, "ENABLED"),
+	_airspeedMin(this, "FW_AIRSPD_MIN", false),
 	/* control blocks */
 	_controlTotalEnergy(this, "THR"),
 	_controlEnergyDistribution(this, "PIT", true),
@@ -58,11 +59,13 @@ mTecs::mTecs() :
 	_airspeedDerivative(this, "AD"),
 	_throttleSp(0.0f),
 	_pitchSp(0.0f),
-	BlockOutputLimiterTakeoffThrottle(this, "TKF_THR"),
-	BlockOutputLimiterTakeoffPitch(this, "TKF_PIT", true),
+	_BlockOutputLimiterTakeoffThrottle(this, "TKF_THR"),
+	_BlockOutputLimiterTakeoffPitch(this, "TKF_PIT", true),
+	_BlockOutputLimiterUnderspeedThrottle(this, "USP_THR"),
+	_BlockOutputLimiterUnderspeedPitch(this, "USP_PIT", true),
 	timestampLastIteration(hrt_absolute_time()),
 	_firstIterationAfterReset(true),
-	dtCalculated(false),
+	_dtCalculated(false),
 	_counter(0)
 {
 }
@@ -133,12 +136,20 @@ void mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float fligh
 				(double)energyDistributionRateSp, (double)energyDistributionRate, (double)energyDistributionRateError, (double)energyDistributionRateError2);
 	}
 
+	/* Check airspeed: if below safe value switch to underspeed mode */
+	if (airspeed < _airspeedMin.get()) {
+		mode = TECS_MODE_UNDERSPEED;
+	}
+
 	/* Set special ouput limiters if we are not in TECS_MODE_NORMAL */
 	BlockOutputLimiter *outputLimiterThrottle = NULL; // NULL --> use standard inflight limits
 	BlockOutputLimiter *outputLimiterPitch = NULL; // NULL --> use standard inflight limits
 	if (mode == TECS_MODE_TAKEOFF) {
-		outputLimiterThrottle = &BlockOutputLimiterTakeoffThrottle; //XXX: accept prelaunch values from launchdetector
-		outputLimiterPitch = &BlockOutputLimiterTakeoffPitch;
+		outputLimiterThrottle = &_BlockOutputLimiterTakeoffThrottle; //XXX: accept prelaunch values from launchdetector
+		outputLimiterPitch = &_BlockOutputLimiterTakeoffPitch;
+	} else if (mode == TECS_MODE_UNDERSPEED) {
+		outputLimiterThrottle = &_BlockOutputLimiterUnderspeedThrottle;
+		outputLimiterPitch = &_BlockOutputLimiterUnderspeedPitch;
 	}
 
 	/** update control blocks **/
@@ -159,7 +170,7 @@ void mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float fligh
 
 	/* clean up */
 	_firstIterationAfterReset = false;
-	dtCalculated = false;
+	_dtCalculated = false;
 
 	_counter++;
 }
@@ -174,7 +185,7 @@ void mTecs::resetIntegrators()
 
 void mTecs::updateTimeMeasurement()
 {
-	if (!dtCalculated) {
+	if (!_dtCalculated) {
 		float deltaTSeconds = 0.0f;
 		if (!_firstIterationAfterReset) {
 			hrt_abstime timestampNow = hrt_absolute_time();
@@ -183,7 +194,7 @@ void mTecs::updateTimeMeasurement()
 		}
 		setDt(deltaTSeconds);
 
-		dtCalculated = true;
+		_dtCalculated = true;
 	}
 }
 

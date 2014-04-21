@@ -247,7 +247,6 @@ PARAM_DEFINE_FLOAT(MT_ACC_MAX, 40.0f);
  */
 PARAM_DEFINE_FLOAT(MT_AD_LP, 1.0f);
 
-
 /**
  * Minimal throttle during takeoff
  *
@@ -285,3 +284,42 @@ PARAM_DEFINE_FLOAT(MT_TKF_PIT_MIN, 0.0f);
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_TKF_PIT_MAX, 45.0f);
+
+/**
+ * Minimal throttle in underspeed mode
+ *
+ * @min 0.0f
+ * @max 1.0f
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_USP_THR_MIN, 1.0f);
+
+/**
+ * Maximal throttle in underspeed mode
+ *
+ * @min 0.0f
+ * @max 1.0f
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_USP_THR_MAX, 1.0f);
+
+/**
+ * Minimal pitch in underspeed mode
+ *
+ * @min -90.0f
+ * @max 90.0f
+ * @unit deg
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_USP_PIT_MIN, -45.0f);
+
+/**
+ * Maximal pitch in underspeed mode
+ *
+ * @min -90.0f
+ * @max 90.0f
+ * @unit deg
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_USP_PIT_MAX, 0.0f);
+
