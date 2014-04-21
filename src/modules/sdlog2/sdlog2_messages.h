@@ -346,7 +346,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(ATSP, "ffff",		"RollSP,PitchSP,YawSP,ThrustSP"),
 	LOG_FORMAT(IMU, "fffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
 	LOG_FORMAT(SENS, "fffff",		"BaroPres,BaroAlt,BaroTemp,DiffPres,DiffPresFilt"),
-	LOG_FORMAT(LPOS, "ffffffffLLfBBBB",	"X,Y,Z,dist,distr,VX,VY,VZ,RLat,RLon,RAlt,XYFlag,ZFlag,LFlag"),
+	LOG_FORMAT(LPOS, "ffffffffLLfBBBB",	"X,Y,Z,dist,distR,VX,VY,VZ,RLat,RLon,RAlt,XYFlg,ZFlg,LFlg,GFlg"),
 	LOG_FORMAT(LPSP, "ffff",		"X,Y,Z,Yaw"),
 	LOG_FORMAT(GPS, "QBffLLfffff",		"GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
 	LOG_FORMAT(ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
