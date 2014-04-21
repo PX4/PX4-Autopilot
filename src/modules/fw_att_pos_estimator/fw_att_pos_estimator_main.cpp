@@ -211,6 +211,9 @@ private:
 
 	AttPosEKF					*_ekf;
 
+	float						_velocity_xy_filtered;
+	float						_velocity_z_filtered;
+
 	/**
 	 * Update our local parameter cache.
 	 */
@@ -292,7 +295,9 @@ FixedwingEstimator::FixedwingEstimator() :
 	_initialized(false),
 	_gps_initialized(false),
 	_mavlink_fd(-1),
-	_ekf(nullptr)
+	_ekf(nullptr),
+	_velocity_xy_filtered(0.0f),
+	_velocity_z_filtered(0.0f)
 {
 
 	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
@@ -1029,6 +1034,21 @@ FixedwingEstimator::task_main()
 
 				_local_pos.z_global = false;
 				_local_pos.yaw = _att.yaw;
+
+				// _velocity_xy_filtered = 0.9f*_velocity_xy_filtered + 0.1f*sqrtf(_local_pos.vx*_local_pos.vx + _local_pos.vy*_local_pos.vy);
+				// _velocity_z_filtered = 0.9f*_velocity_z_filtered + 0.1f*fabsf(_local_pos.vz);
+
+
+				/* crude land detector for fixedwing only,
+				 * TODO: adapt so that it works for both, maybe move to another location
+				 */
+				if (_velocity_xy_filtered < 2
+					&& _velocity_z_filtered < 2
+					&& _airspeed.true_airspeed_m_s < 10) {
+					_local_pos.landed = true;
+				} else {
+					_local_pos.landed = false;
+				}
 
 				/* lazily publish the local position only once available */
 				if (_local_pos_pub > 0) {
