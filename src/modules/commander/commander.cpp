@@ -967,7 +967,7 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
 
 			/* only consider battery voltage if system has been running 2s and battery voltage is valid */
-			if (status.hil_state == HIL_STATE_OFF && hrt_absolute_time() > start_time + 2000000 && battery.voltage_filtered_v > 0.0f) {
+			if (hrt_absolute_time() > start_time + 2000000 && battery.voltage_filtered_v > 0.0f) {
 				status.battery_voltage = battery.voltage_filtered_v;
 				status.battery_current = battery.current_a;
 				status.condition_battery_voltage_valid = true;
