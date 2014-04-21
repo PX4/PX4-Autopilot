@@ -2419,15 +2419,18 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3])
     initMagNED.y = DCM.y.x*initMagXYZ.x + DCM.y.y*initMagXYZ.y + DCM.y.z*initMagXYZ.z;
     initMagNED.z = DCM.z.x*initMagXYZ.x + DCM.z.y*initMagXYZ.y + DCM.z.z*initMagXYZ.z;
 
-    magstate.q3 = 1.0f;
-    magstate.magN = 0.4f;
-    magstate.magE = 0.0f;
-    magstate.magD = 0.3f;
-    magstate.magXbias = 0.0f;
-    magstate.magYbias = 0.0f;
-    magstate.magZbias = 0.0f;
+    magstate.q0 = initQuat[0];
+    magstate.q1 = initQuat[1];
+    magstate.q2 = initQuat[2];
+    magstate.q3 = initQuat[3];
+    magstate.magN = magData.x;
+    magstate.magE = magData.y;
+    magstate.magD = magData.z;
+    magstate.magXbias = magBias.x;
+    magstate.magYbias = magBias.y;
+    magstate.magZbias = magBias.z;
     magstate.R_MAG = sq(magMeasurementSigma);
-    magstate.DCM.identity();
+    magstate.DCM = DCM;
 
     // write to state vector
     for (uint8_t j=0; j<=3; j++) states[j] = initQuat[j]; // quaternions
