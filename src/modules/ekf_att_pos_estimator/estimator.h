@@ -33,6 +33,7 @@ public:
 
     Mat3f();
 
+    void identity();
     Mat3f transpose(void) const;
 };
 
@@ -140,7 +141,23 @@ public:
         accelProcessNoise = 0.5f;
     }
 
-
+    struct {
+        unsigned obsIndex;
+        float MagPred[3];
+        float SH_MAG[9];
+        float q0;
+        float q1;
+        float q2;
+        float q3;
+        float magN;
+        float magE;
+        float magD;
+        float magXbias;
+        float magYbias;
+        float magZbias;
+        float R_MAG;
+        Mat3f DCM;
+    } magstate;
 
 
     // Global variables
