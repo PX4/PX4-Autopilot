@@ -58,6 +58,8 @@ mTecs::mTecs() :
 	_airspeedDerivative(this, "AD"),
 	_throttleSp(0.0f),
 	_pitchSp(0.0f),
+	BlockOutputLimiterTakeoffThrottle(this, "TKF_THR"),
+	BlockOutputLimiterTakeoffPitch(this, "TKF_PIT", true),
 	timestampLastIteration(hrt_absolute_time()),
 	_firstIterationAfterReset(true),
 	dtCalculated(false),
@@ -69,7 +71,7 @@ mTecs::~mTecs()
 {
 }
 
-void mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed, float airspeedSp)
+void mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed, float airspeedSp, tecs_mode mode)
 {
 
 	/* time measurement */
@@ -80,10 +82,10 @@ void mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float alt
 		warnx("***");
 		warnx("updateAltitudeSpeed: altitudeSp %.4f, altitude %.4f, flightPathAngleSp %.4f", (double)altitudeSp, (double)altitude, (double)flightPathAngleSp);
 	}
-	updateFlightPathAngleSpeed(flightPathAngle, flightPathAngleSp, airspeed, airspeedSp);
+	updateFlightPathAngleSpeed(flightPathAngle, flightPathAngleSp, airspeed, airspeedSp, mode);
 }
 
-void mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed, float airspeedSp) {
+void mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed, float airspeedSp, tecs_mode mode) {
 
 	/* time measurement */
 	updateTimeMeasurement();
@@ -92,10 +94,10 @@ void mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAn
 	if (_counter % 10 == 0) {
 		warnx("updateFlightPathAngleSpeed airspeedSp %.4f, airspeed %.4f, accelerationLongitudinalSp%.4f", (double)airspeedSp, (double)airspeed, (double)accelerationLongitudinalSp);
 	}
-	updateFlightPathAngleAcceleration(flightPathAngle, flightPathAngleSp, airspeed, accelerationLongitudinalSp);
+	updateFlightPathAngleAcceleration(flightPathAngle, flightPathAngleSp, airspeed, accelerationLongitudinalSp, mode);
 }
 
-void mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeed, float accelerationLongitudinalSp)
+void mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeed, float accelerationLongitudinalSp, tecs_mode mode)
 {
 	/* time measurement */
 	updateTimeMeasurement();
@@ -131,12 +133,21 @@ void mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float fligh
 				(double)energyDistributionRateSp, (double)energyDistributionRate, (double)energyDistributionRateError, (double)energyDistributionRateError2);
 	}
 
+	/* Set special ouput limiters if we are not in TECS_MODE_NORMAL */
+	BlockOutputLimiter *outputLimiterThrottle = NULL; // NULL --> use standard inflight limits
+	BlockOutputLimiter *outputLimiterPitch = NULL; // NULL --> use standard inflight limits
+	if (mode == TECS_MODE_TAKEOFF) {
+		outputLimiterThrottle = &BlockOutputLimiterTakeoffThrottle; //XXX: accept prelaunch values from launchdetector
+		outputLimiterPitch = &BlockOutputLimiterTakeoffPitch;
+	}
+
 	/** update control blocks **/
 	/* update total energy rate control block */
-	_throttleSp = _controlTotalEnergy.update(totalEnergyRateSp, totalEnergyRateError);
+	_throttleSp = _controlTotalEnergy.update(totalEnergyRateSp, totalEnergyRateError, outputLimiterThrottle);
 
 	/* update energy distribution rate control block */
-	_pitchSp = _controlEnergyDistribution.update(energyDistributionRateSp, energyDistributionRateError);
+	_pitchSp = _controlEnergyDistribution.update(energyDistributionRateSp, energyDistributionRateError, outputLimiterPitch);
+
 
 	if (_counter % 10 == 0) {
 		warnx("_throttleSp %.1f, _pitchSp %.1f, flightPathAngleSp %.1f, flightPathAngle %.1f accelerationLongitudinalSp %.1f, airspeedDerivative %.1f",

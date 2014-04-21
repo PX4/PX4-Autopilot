@@ -111,32 +111,22 @@ protected:
 
 typedef
 
-/* A combination of feed forward, P and I gain  using the output limiter*/
+/* A combination of feed forward, P and I gain using the output limiter*/
 class BlockFFPILimited: public SuperBlock
 {
 public:
 // methods
 	BlockFFPILimited(SuperBlock *parent, const char *name, bool isAngularLimit = false) :
 		SuperBlock(parent, name),
+		_outputLimiter(this, "", isAngularLimit),
 		_integral(this, "I"),
 		_kFF(this, "FF"),
 		_kP(this, "P"),
 		_kI(this, "I"),
-		_offset(this, "OFF"),
-		_outputLimiter(this, "", isAngularLimit)
+		_offset(this, "OFF")
 	{};
 	virtual ~BlockFFPILimited() {};
-	float update(float inputValue, float inputError) {
-		float difference = 0.0f;
-		float integralYPrevious = _integral.getY();
-		float output = getOffset() + getKFF() * inputValue + getKP() * inputError + getKI() * getIntegral().update(inputError);
-		if(!getOutputLimiter().limit(output, difference) &&
-			(((difference < 0) && (getKI() * getIntegral().update(inputError) < 0)) ||
-			((difference > 0) && (getKI() * getIntegral().update(inputError) > 0)))) {
-				getIntegral().setY(integralYPrevious);
-		}
-		return output;
-	}
+	float update(float inputValue, float inputError) { return calcLimitedOutput(inputValue, inputError, _outputLimiter); }
 // accessors
 	BlockIntegralNoLimit &getIntegral() { return _integral; }
 	float getKFF() { return _kFF.get(); }
@@ -144,13 +134,41 @@ public:
 	float getKI() { return _kI.get(); }
 	float getOffset() { return _offset.get(); }
 	BlockOutputLimiter &getOutputLimiter() { return _outputLimiter; };
+protected:
+	BlockOutputLimiter _outputLimiter;
+
+	float calcUnlimitedOutput(float inputValue, float inputError) {return getOffset() + getKFF() * inputValue + getKP() * inputError + getKI() * getIntegral().update(inputError);}
+	float calcLimitedOutput(float inputValue, float inputError, BlockOutputLimiter &outputLimiter) {
+		float difference = 0.0f;
+		float integralYPrevious = _integral.getY();
+		float output = calcUnlimitedOutput(inputValue, inputError);
+		if(!outputLimiter.limit(output, difference) &&
+			(((difference < 0) && (getKI() * getIntegral().update(inputError) < 0)) ||
+			((difference > 0) && (getKI() * getIntegral().update(inputError) > 0)))) {
+				getIntegral().setY(integralYPrevious);
+		}
+		return output;
+	}
 private:
 	BlockIntegralNoLimit _integral;
 	BlockParamFloat _kFF;
 	BlockParamFloat _kP;
 	BlockParamFloat _kI;
 	BlockParamFloat _offset;
-	BlockOutputLimiter _outputLimiter;
+};
+
+/* A combination of feed forward, P and I gain using the output limiter with the option to provide a special output limiter (for example for takeoff)*/
+class BlockFFPILimitedCustom: public BlockFFPILimited
+{
+public:
+// methods
+	BlockFFPILimitedCustom(SuperBlock *parent, const char *name, bool isAngularLimit = false) :
+		BlockFFPILimited(parent, name, isAngularLimit)
+		{};
+	virtual ~BlockFFPILimitedCustom() {};
+	float update(float inputValue, float inputError, BlockOutputLimiter *outputLimiter = NULL) {
+		return calcLimitedOutput(inputValue, inputError, outputLimiter == NULL ? _outputLimiter : *outputLimiter);
+	}
 };
 
 /* A combination of P gain and output limiter */

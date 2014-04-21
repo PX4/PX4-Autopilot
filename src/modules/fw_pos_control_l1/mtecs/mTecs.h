@@ -58,20 +58,25 @@ public:
 	mTecs();
 	virtual ~mTecs();
 
+	typedef enum {
+		TECS_MODE_NORMAL,
+		TECS_MODE_TAKEOFF
+	} tecs_mode;
+
 	/*
 	 * Control in altitude setpoint and speed mode
 	 */
-	void updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed, float airspeedSp);
+	void updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed, float airspeedSp, tecs_mode mode);
 
 	/*
 	 * Control in flightPathAngle setpoint (flollow a slope etc.) and speed mode
 	 */
-	void updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed, float airspeedSp);
+	void updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed, float airspeedSp, tecs_mode mode);
 
 	/*
 	 * Control in flightPathAngle setpoint (flollow a slope etc.) and acceleration mode (base case)
 	 */
-	void updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeed, float accelerationLongitudinalSp);
+	void updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeed, float accelerationLongitudinalSp, tecs_mode mode);
 
 	/*
 	 * Reset all integrators
@@ -89,8 +94,8 @@ protected:
 	control::BlockParamInt _mTecsEnabled;		/**< 1 if mTecs is enabled */
 
 	/* control blocks */
-	BlockFFPILimited _controlTotalEnergy;		/**< FFPI controller for total energy control: output is throttle */
-	BlockFFPILimited _controlEnergyDistribution;	/**< FFPI controller for energy distribution control: output is pitch */
+	BlockFFPILimitedCustom _controlTotalEnergy;		/**< FFPI controller for total energy control: output is throttle */
+	BlockFFPILimitedCustom _controlEnergyDistribution;	/**< FFPI controller for energy distribution control: output is pitch */
 	BlockPDLimited	_controlAltitude;		/**< P controller for altitude: output is the flight path angle setpoint */
 	BlockPLimited	_controlAirSpeed;			/**< P controller for airspeed: output is acceleration setpoint */
 
@@ -100,6 +105,10 @@ protected:
 	/* Output setpoints */
 	float _throttleSp;				/**< Throttle Setpoint from 0 to 1 */
 	float _pitchSp;					/**< Pitch Setpoint from -pi to pi */
+
+	/* Output Limits in special modes */
+	BlockOutputLimiter BlockOutputLimiterTakeoffThrottle; /**< Throttle Limits during takeoff */
+	BlockOutputLimiter BlockOutputLimiterTakeoffPitch; /**< Pitch Limit during takeoff */
 
 	/* Time measurements */
 	hrt_abstime timestampLastIteration;		/**< Saves the result of hrt_absolute_time() of the last iteration */
