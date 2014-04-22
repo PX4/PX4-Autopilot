@@ -920,6 +920,7 @@ FixedwingEstimator::task_main()
 					struct home_position_s home;
 
 					orb_copy(ORB_ID(home_position), _home_sub, &home);
+					warnx("HOME SET");
 
 					double lat = home.lat;
 					double lon = home.lon;
