@@ -2407,10 +2407,6 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3])
 
     ZeroVariables();
 
-    ResetVelocity();
-    ResetPosition();
-    ResetHeight();
-
     // Calculate initial filter quaternion states from raw measurements
     float initQuat[4];
     Vector3f initMagXYZ;
@@ -2451,6 +2447,10 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3])
     states[20] = magBias.y; // Magnetic Field Bias Y
     states[21] = magBias.z; // Magnetic Field Bias Z
     states[22] = 0.0f; // terrain height
+
+    ResetVelocity();
+    ResetPosition();
+    ResetHeight();
 
     statesInitialised = true;
 
