@@ -858,6 +858,11 @@ FixedwingEstimator::task_main()
 				}
 			}
 
+			// XXX trap for testing
+			if (check == 1 || check == 2) {
+				errx(1, "NUMERIC ERROR IN FILTER");
+			}
+
 			// If non-zero, we got a filter reset
 			if (check) {
 
