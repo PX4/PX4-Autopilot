@@ -545,8 +545,9 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 	case VEHICLE_CMD_OVERRIDE_GOTO: {
 			// TODO listen vehicle_command topic directly from navigator (?)
 			unsigned int mav_goto = cmd->param1;
+			bool mav_goto_current = cmd->param2 == 2; // 2 == MAV_GOTO_HOLD_AT_CURRENT_POSITION
 
-			if (mav_goto == 0) {	// MAV_GOTO_DO_HOLD
+			if (mav_goto == 0 && mav_goto_current) {// MAV_GOTO_DO_HOLD
 				status->set_nav_state = NAV_STATE_LOITER;
 				status->set_nav_state_timestamp = hrt_absolute_time();
 				mavlink_log_critical(mavlink_fd, "#audio: pause mission cmd");
@@ -560,8 +561,6 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 				result = VEHICLE_CMD_RESULT_ACCEPTED;
 				ret = true;
 
-			} else {
-				mavlink_log_info(mavlink_fd, "Unsupported OVERRIDE_GOTO: %f %f %f %f %f %f %f %f", cmd->param1, cmd->param2, cmd->param3, cmd->param4, cmd->param5, cmd->param6, cmd->param7);
 			}
 		}
 		break;
