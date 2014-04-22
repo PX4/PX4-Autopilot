@@ -282,8 +282,8 @@ GPS::task_main()
 			_report.p_variance_m = 10.0f;
 			_report.c_variance_rad = 0.1f;
 			_report.fix_type = 3;
-			_report.eph_m = 10.0f;
-			_report.epv_m = 10.0f;
+			_report.eph_m = 3.0f;
+			_report.epv_m = 7.0f;
 			_report.timestamp_velocity = hrt_absolute_time();
 			_report.vel_n_m_s = 0.0f;
 			_report.vel_e_m_s = 0.0f;

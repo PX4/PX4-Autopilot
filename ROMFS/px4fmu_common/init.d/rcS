@@ -294,6 +294,7 @@ then
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 		fi
+		
 		if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == ardrone ]
 		then
 			echo "[init] Use FMU as primary output"
@@ -317,6 +318,7 @@ then
 				fi
 			fi
 		fi
+		
 		if [ $OUTPUT_MODE == mkblctrl ]
 		then
 			echo "[init] Use MKBLCTRL as primary output"
@@ -338,7 +340,8 @@ then
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 			
-		fi		
+		fi
+				
 		if [ $OUTPUT_MODE == hil ]
 		then
 			echo "[init] Use HIL as primary output"
@@ -396,34 +399,29 @@ then
 	#
 	# MAVLink
 	#
-	
 	if [ $MAVLINK_FLAGS == default ]
 	then
 		if [ $HIL == yes ]
 		then
 			sleep 1
 			set MAVLINK_FLAGS "-r 10000 -d /dev/ttyACM0"
-			usleep 5000
 		else
 			# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
 			if [ $TTYS1_BUSY == yes ]
 			then
 				# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
 				set MAVLINK_FLAGS "-r 1000 -d /dev/ttyS0"
-				usleep 5000
 				
 				# Exit from nsh to free port for mavlink
 				set EXIT_ON_END yes
 			else
 				# Start MAVLink on default port: ttyS1
 				set MAVLINK_FLAGS "-r 1000"
-				usleep 5000
 			fi
 		fi
 	fi
 
 	mavlink start $MAVLINK_FLAGS
-	usleep 5000
 	
 	#
 	# Start the datamanager
@@ -516,7 +514,7 @@ then
 			then
 				set MAV_TYPE 13
 			fi
-			if [ $MIXER == hexa_cox ]
+			if [ $MIXER == FMU_hexa_cox ]
 			then
 				set MAV_TYPE 13
 			fi

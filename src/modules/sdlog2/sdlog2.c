@@ -84,6 +84,8 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/system_power.h>
+#include <uORB/topics/servorail_status.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -224,11 +226,11 @@ sdlog2_usage(const char *reason)
 	}
 
 	errx(1, "usage: sdlog2 {start|stop|status} [-r <log rate>] [-b <buffer size>] -e -a -t\n"
-	     "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
-	     "\t-b\tLog buffer size in KiB, default is 8\n"
-	     "\t-e\tEnable logging by default (if not, can be started by command)\n"
-	     "\t-a\tLog only when armed (can be still overriden by command)\n"
-	     "\t-t\tUse date/time for naming log directories and files\n");
+		 "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
+		 "\t-b\tLog buffer size in KiB, default is 8\n"
+		 "\t-e\tEnable logging by default (if not, can be started by command)\n"
+		 "\t-a\tLog only when armed (can be still overriden by command)\n"
+		 "\t-t\tUse date/time for naming log directories and files\n");
 }
 
 /**
@@ -255,11 +257,11 @@ int sdlog2_main(int argc, char *argv[])
 
 		main_thread_should_exit = false;
 		deamon_task = task_spawn_cmd("sdlog2",
-					     SCHED_DEFAULT,
-					     SCHED_PRIORITY_DEFAULT - 30,
-					     3000,
-					     sdlog2_thread_main,
-					     (const char **)argv);
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_DEFAULT - 30,
+						 3000,
+						 sdlog2_thread_main,
+						 (const char **)argv);
 		exit(0);
 	}
 
@@ -796,6 +798,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct telemetry_status_s telemetry;
 		struct range_finder_report range_finder;
 		struct estimator_status_report estimator_status;
+		struct system_power_s system_power;
+		struct servorail_status_s servorail_status;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -828,6 +832,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_DIST_s log_DIST;
 			struct log_TELE_s log_TELE;
 			struct log_ESTM_s log_ESTM;
+			struct log_PWR_s log_PWR;
+			struct log_VICN_s log_VICN;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -859,6 +865,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int telemetry_sub;
 		int range_finder_sub;
 		int estimator_status_sub;
+		int system_power_sub;
+		int servorail_status_sub;
 	} subs;
 
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -884,6 +892,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.telemetry_sub = orb_subscribe(ORB_ID(telemetry_status));
 	subs.range_finder_sub = orb_subscribe(ORB_ID(sensor_range_finder));
 	subs.estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
+	subs.system_power_sub = orb_subscribe(ORB_ID(system_power));
+	subs.servorail_status_sub = orb_subscribe(ORB_ID(servorail_status));
 
 	thread_running = true;
 
@@ -897,9 +907,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	hrt_abstime magnetometer_timestamp = 0;
 	hrt_abstime barometer_timestamp = 0;
 	hrt_abstime differential_pressure_timestamp = 0;
-
-	/* track changes in distance status */
-	bool dist_bottom_present = false;
 
 	/* enable logging on start if needed */
 	if (log_on_start) {
@@ -1089,6 +1096,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_LPOS.x = buf.local_pos.x;
 			log_msg.body.log_LPOS.y = buf.local_pos.y;
 			log_msg.body.log_LPOS.z = buf.local_pos.z;
+			log_msg.body.log_LPOS.ground_dist = buf.local_pos.dist_bottom;
+			log_msg.body.log_LPOS.ground_dist_rate = buf.local_pos.dist_bottom_rate;
 			log_msg.body.log_LPOS.vx = buf.local_pos.vx;
 			log_msg.body.log_LPOS.vy = buf.local_pos.vy;
 			log_msg.body.log_LPOS.vz = buf.local_pos.vz;
@@ -1098,19 +1107,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_LPOS.xy_flags = (buf.local_pos.xy_valid ? 1 : 0) | (buf.local_pos.v_xy_valid ? 2 : 0) | (buf.local_pos.xy_global ? 8 : 0);
 			log_msg.body.log_LPOS.z_flags = (buf.local_pos.z_valid ? 1 : 0) | (buf.local_pos.v_z_valid ? 2 : 0) | (buf.local_pos.z_global ? 8 : 0);
 			log_msg.body.log_LPOS.landed = buf.local_pos.landed;
+			log_msg.body.log_LPOS.ground_dist_flags = (buf.local_pos.dist_bottom_valid ? 1 : 0);
 			LOGBUFFER_WRITE_AND_COUNT(LPOS);
-
-			if (buf.local_pos.dist_bottom_valid) {
-				dist_bottom_present = true;
-			}
-
-			if (dist_bottom_present) {
-				log_msg.msg_type = LOG_DIST_MSG;
-				log_msg.body.log_DIST.bottom = buf.local_pos.dist_bottom;
-				log_msg.body.log_DIST.bottom_rate = buf.local_pos.dist_bottom_rate;
-				log_msg.body.log_DIST.flags = (buf.local_pos.dist_bottom_valid ? 1 : 0);
-				LOGBUFFER_WRITE_AND_COUNT(DIST);
-			}
 		}
 
 		/* --- LOCAL POSITION SETPOINT --- */
@@ -1154,7 +1152,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		/* --- VICON POSITION --- */
 		if (copy_if_updated(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos)) {
-			// TODO not implemented yet
+			log_msg.msg_type = LOG_VICN_MSG;
+			log_msg.body.log_VICN.x = buf.vicon_pos.x;
+			log_msg.body.log_VICN.y = buf.vicon_pos.y;
+			log_msg.body.log_VICN.z = buf.vicon_pos.z;
+			log_msg.body.log_VICN.pitch = buf.vicon_pos.pitch;
+			log_msg.body.log_VICN.roll = buf.vicon_pos.roll;
+			log_msg.body.log_VICN.yaw = buf.vicon_pos.yaw;
+			LOGBUFFER_WRITE_AND_COUNT(VICN);
 		}
 
 		/* --- FLOW --- */
@@ -1184,6 +1189,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.msg_type = LOG_AIRS_MSG;
 			log_msg.body.log_AIRS.indicated_airspeed = buf.airspeed.indicated_airspeed_m_s;
 			log_msg.body.log_AIRS.true_airspeed = buf.airspeed.true_airspeed_m_s;
+			log_msg.body.log_AIRS.air_temperature_celsius = buf.airspeed.air_temperature_celsius;
 			LOGBUFFER_WRITE_AND_COUNT(AIRS);
 		}
 
@@ -1224,6 +1230,24 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_BATT.current = buf.battery.current_a;
 			log_msg.body.log_BATT.discharged = buf.battery.discharged_mah;
 			LOGBUFFER_WRITE_AND_COUNT(BATT);
+		}
+
+		/* --- SYSTEM POWER RAILS --- */
+		if (copy_if_updated(ORB_ID(system_power), subs.system_power_sub, &buf.system_power)) {
+			log_msg.msg_type = LOG_PWR_MSG;
+			log_msg.body.log_PWR.peripherals_5v = buf.system_power.voltage5V_v;
+			log_msg.body.log_PWR.usb_ok = buf.system_power.usb_connected;
+			log_msg.body.log_PWR.brick_ok = buf.system_power.brick_valid;
+			log_msg.body.log_PWR.servo_ok = buf.system_power.servo_valid;
+			log_msg.body.log_PWR.low_power_rail_overcurrent = buf.system_power.periph_5V_OC;
+			log_msg.body.log_PWR.high_power_rail_overcurrent = buf.system_power.hipower_5V_OC;
+
+			/* copy servo rail status topic here too */
+			orb_copy(ORB_ID(servorail_status), subs.servorail_status_sub, &buf.servorail_status);
+			log_msg.body.log_PWR.servo_rail_5v = buf.servorail_status.voltage_v;
+			log_msg.body.log_PWR.servo_rssi = buf.servorail_status.rssi_v;
+
+			LOGBUFFER_WRITE_AND_COUNT(PWR);
 		}
 
 		/* --- TELEMETRY --- */

@@ -510,7 +510,7 @@ Navigator::offboard_mission_update(bool isrotaryWing)
 {
 	struct mission_s offboard_mission;
 
-	if (orb_copy(ORB_ID(mission), _offboard_mission_sub, &offboard_mission) == OK) {
+	if (orb_copy(ORB_ID(offboard_mission), _offboard_mission_sub, &offboard_mission) == OK) {
 
 		/* Check mission feasibility, for now do not handle the return value,
 		 * however warnings are issued to the gcs via mavlink from inside the MissionFeasiblityChecker */
@@ -543,7 +543,7 @@ Navigator::onboard_mission_update()
 {
 	struct mission_s onboard_mission;
 
-	if (orb_copy(ORB_ID(mission), _onboard_mission_sub, &onboard_mission) == OK) {
+	if (orb_copy(ORB_ID(onboard_mission), _onboard_mission_sub, &onboard_mission) == OK) {
 
 		_mission.set_onboard_mission_count(onboard_mission.count);
 		_mission.set_current_onboard_mission_index(onboard_mission.current_index);
@@ -611,7 +611,7 @@ Navigator::task_main()
 	 * do subscriptions
 	 */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
+	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -1539,7 +1539,7 @@ Navigator::check_mission_item_reached()
 			/* check yaw if defined only for rotary wing except takeoff */
 			float yaw_err = _wrap_pi(_mission_item.yaw - _global_pos.yaw);
 
-			if (fabsf(yaw_err) < 0.05f) { /* XXX get rid of magic number */
+			if (fabsf(yaw_err) < 0.2f) { /* XXX get rid of magic number */
 				_waypoint_yaw_reached = true;
 			}
 

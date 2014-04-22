@@ -668,33 +668,11 @@ PARAM_DEFINE_FLOAT(RC_SCALE_PITCH, 0.6f);
  */
 PARAM_DEFINE_FLOAT(RC_SCALE_YAW, 2.0f);
 
-
-/**
- * Failsafe channel mapping.
- *
- * @min 0
- * @max 18
- * @group Radio Calibration
- */
-PARAM_DEFINE_INT32(RC_FS_CH, 0);
-
-/**
- * Failsafe channel mode.
- *
- * 0 = too low means signal loss,
- * 1 = too high means signal loss
- *
- * @min 0
- * @max 1
- * @group Radio Calibration
- */
-PARAM_DEFINE_INT32(RC_FS_MODE, 0);
-
 /**
  * Failsafe channel PWM threshold.
  *
- * @min 0
- * @max 1
+ * @min 800
+ * @max 2200
  * @group Radio Calibration
  */
-PARAM_DEFINE_FLOAT(RC_FS_THR, 800);
+PARAM_DEFINE_INT32(RC_FAILS_THR, 0);
