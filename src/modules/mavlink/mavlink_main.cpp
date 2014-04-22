@@ -583,6 +583,11 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 	/* open uart */
 	_uart_fd = open(uart_name, O_RDWR | O_NOCTTY);
 
+	if (_uart_fd < 0) {
+		return _uart_fd;
+	}
+
+
 	/* Try to set baud rate */
 	struct termios uart_config;
 	int termios_state;
