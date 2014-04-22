@@ -179,6 +179,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 			break;
 		}
 	}
+
+	/* If we've received a valid message, mark the flag indicating so.
+	   This is used in the '-w' command-line flag. */
+	_mavlink->set_has_received_messages(true);
 }
 
 void
@@ -880,6 +884,11 @@ MavlinkReceiver::receive_thread(void *arg)
 
 					/* handle packet with parameter component */
 					_mavlink->mavlink_pm_message_handler(_mavlink->get_channel(), &msg);
+
+					if (_mavlink->get_forwarding_on()) {
+						/* forward any messages to other mavlink instances */
+						Mavlink::forward_message(&msg, _mavlink);
+					}
 				}
 			}
 		}

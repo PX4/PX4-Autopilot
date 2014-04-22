@@ -23,7 +23,7 @@ then
 	param set FW_P_LIM_MIN -45
 	param set FW_P_RMAX_NEG 0
 	param set FW_P_RMAX_POS 0
-	param set FW_P_ROLLFF 0
+	param set FW_P_ROLLFF 1
 	param set FW_RR_FF 0.3
 	param set FW_RR_I 0
 	param set FW_RR_IMAX 0.2
