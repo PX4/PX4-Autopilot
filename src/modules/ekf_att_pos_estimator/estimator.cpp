@@ -153,11 +153,12 @@ AttPosEKF::AttPosEKF() :
     useCompass(true),
     useRangeFinder(true),
     numericalProtection(true),
+    refSet(false),
     storeIndex(0),
     gpsHgt(0.0f),
     baroHgt(0.0f),
     GPSstatus(0),
-    VtasMeas(0.0f),
+    VtasMeas(0.0f)
 {
     velNED[0] = 0.0f;
     velNED[1] = 0.0f;
@@ -1977,7 +1978,7 @@ void AttPosEKF::OnGroundCheck()
 {
     onGround = (((sq(velNED[0]) + sq(velNED[1]) + sq(velNED[2])) < 4.0f) && (VtasMeas < 6.0f));
     if (staticMode) {
-        staticMode = !(GPSstatus > GPS_FIX_2D);
+        staticMode = (!refSet || (GPSstatus < GPS_FIX_3D));
     }
 }
 
@@ -2485,6 +2486,7 @@ void AttPosEKF::InitialiseFilter(float (&initvelNED)[3], double referenceLat, do
     latRef = referenceLat;
     lonRef = referenceLon;
     hgtRef = referenceHgt;
+    refSet = true;
 
     memset(&last_ekf_error, 0, sizeof(last_ekf_error));
 

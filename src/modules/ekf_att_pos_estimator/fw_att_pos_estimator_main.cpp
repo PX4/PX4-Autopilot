@@ -192,6 +192,7 @@ private:
 
 	bool						_initialized;
 	bool						_gps_initialized;
+	uint64_t					_gps_start_time;
 
 	int						_mavlink_fd;
 
@@ -720,6 +721,9 @@ FixedwingEstimator::task_main()
 
 				} else {
 
+					/* store time of valid GPS measurement */
+					_gps_start_time = hrt_absolute_time();
+
 					/* check if we had a GPS outage for a long time */
 					if (hrt_elapsed_time(&last_gps) > 5 * 1000 * 1000) {
 						_ekf->ResetPosition();
@@ -859,7 +863,7 @@ FixedwingEstimator::task_main()
 			}
 
 			// XXX trap for testing
-			if (check == 1 || check == 2) {
+			if (check == 1) {
 				errx(1, "NUMERIC ERROR IN FILTER");
 			}
 
@@ -907,7 +911,7 @@ FixedwingEstimator::task_main()
 			// XXX we rather want to check all updated
 
 
-			if (hrt_elapsed_time(&start_time) > 100000) {
+			if (hrt_elapsed_time(&_gps_start_time) > 50000) {
 
 				bool home_set;
 				orb_check(_home_sub, &home_set);
@@ -920,7 +924,6 @@ FixedwingEstimator::task_main()
 					struct home_position_s home;
 
 					orb_copy(ORB_ID(home_position), _home_sub, &home);
-					warnx("HOME SET");
 
 					double lat = home.lat;
 					double lon = home.lon;
@@ -942,7 +945,9 @@ FixedwingEstimator::task_main()
 
 					// XXX this is not multithreading safe
 					map_projection_init(lat, lon);
-					mavlink_log_info(_mavlink_fd, "[position estimator] init ref: lat=%.7f, lon=%.7f, alt=%.2f", lat, lon, alt);
+					mavlink_log_info(_mavlink_fd, "[ekf] ref: LA %.4f,LO %.4f,ALT %.2f", lat, lon, (double)alt);
+					warnx("[ekf] HOME/REF: LA %8.4f,LO %8.4f,ALT %8.2f V: %8.4f %8.4f %8.4f", lat, lon, (double)alt,
+						(double)_ekf->velNED[0], (double)_ekf->velNED[1], (double)_ekf->velNED[2]);
 
 					_gps_initialized = true;
 
