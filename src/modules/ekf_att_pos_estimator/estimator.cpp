@@ -153,8 +153,16 @@ AttPosEKF::AttPosEKF() :
     useCompass(true),
     useRangeFinder(true),
     numericalProtection(true),
-    storeIndex(0)
+    storeIndex(0),
+    gpsHgt(0.0f),
+    baroHgt(0.0f),
+    GPSstatus(0),
+    VtasMeas(0.0f),
 {
+    velNED[0] = 0.0f;
+    velNED[1] = 0.0f;
+    velNED[2] = 0.0f;
+
     InitialiseParameters();
     ZeroVariables();
 }
@@ -1967,7 +1975,7 @@ void AttPosEKF::calcLLH(float (&posNED)[3], float lat, float lon, float hgt, flo
 
 void AttPosEKF::OnGroundCheck()
 {
-    onGround = (((sq(velNED[0]) + sq(velNED[1]) + sq(velNED[2])) < 4.0f) && (VtasMeas < 8.0f));
+    onGround = (((sq(velNED[0]) + sq(velNED[1]) + sq(velNED[2])) < 4.0f) && (VtasMeas < 6.0f));
     if (staticMode) {
         staticMode = !(GPSstatus > GPS_FIX_2D);
     }
@@ -2515,6 +2523,7 @@ void AttPosEKF::ZeroVariables()
     magstate.DCM.identity();
 
     memset(&current_ekf_state, 0, sizeof(current_ekf_state));
+
 }
 
 void AttPosEKF::GetFilterState(struct ekf_status_report *state)
