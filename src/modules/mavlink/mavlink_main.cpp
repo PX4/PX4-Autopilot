@@ -574,6 +574,11 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 	/* open uart */
 	_uart_fd = open(uart_name, O_RDWR | O_NOCTTY);
 
+	if (_uart_fd < 0) {
+		return _uart_fd;
+	}
+
+
 	/* Try to set baud rate */
 	struct termios uart_config;
 	int termios_state;
@@ -1964,6 +1969,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAMED_VALUE_FLOAT", 1.0f * rate_mult);
 		configure_stream("GLOBAL_POSITION_SETPOINT_INT", 3.0f * rate_mult);
 		configure_stream("ROLL_PITCH_YAW_THRUST_SETPOINT", 3.0f * rate_mult);
+		configure_stream("DISTANCE_SENSOR", 0.5f);
 		break;
 
 	case MAVLINK_MODE_CAMERA:
