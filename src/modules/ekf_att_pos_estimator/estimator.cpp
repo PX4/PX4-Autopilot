@@ -2243,18 +2243,21 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
         err_report->statesNaN = true;
         ekf_debug("summedDelAng NaN: x: %f y: %f z: %f", summedDelAng.x, summedDelAng.y, summedDelAng.z);
         err = true;
+        goto out;
     } // delta angles
 
     if (!isfinite(correctedDelAng.x) || !isfinite(correctedDelAng.y) || !isfinite(correctedDelAng.z)) {
         err_report->statesNaN = true;
         ekf_debug("correctedDelAng NaN: x: %f y: %f z: %f", correctedDelAng.x, correctedDelAng.y, correctedDelAng.z);
         err = true;
+        goto out;
     } // delta angles
 
     if (!isfinite(summedDelVel.x) || !isfinite(summedDelVel.y) || !isfinite(summedDelVel.z)) {
         err_report->statesNaN = true;
         ekf_debug("summedDelVel NaN: x: %f y: %f z: %f", summedDelVel.x, summedDelVel.y, summedDelVel.z);
         err = true;
+        goto out;
     } // delta velocities
 
     // check all states and covariance matrices
@@ -2264,28 +2267,24 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
 
                 err_report->covarianceNaN = true;
                 err = true;
-            } //  intermediate result used for covariance updates
-            if (err) {
                 ekf_debug("KH NaN");
-            }
+                goto out;
+            } //  intermediate result used for covariance updates
 
             if (!isfinite(KHP[i][j])) {
 
                 err_report->covarianceNaN = true;
                 err = true;
-            } // intermediate result used for covariance updates
-            if (err) {
                 ekf_debug("KHP NaN");
-            }
+                goto out;
+            } // intermediate result used for covariance updates
 
             if (!isfinite(P[i][j])) {
 
                 err_report->covarianceNaN = true;
                 err = true;
-            } // covariance matrix
-            if (err) {
                 ekf_debug("P NaN");
-            }
+            } // covariance matrix
         }
 
         if (!isfinite(Kfusion[i])) {
@@ -2293,6 +2292,7 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
             err_report->kalmanGainsNaN = true;
             ekf_debug("Kfusion NaN");
             err = true;
+            goto out;
         } // Kalman gains
 
         if (!isfinite(states[i])) {
@@ -2300,9 +2300,11 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
             err_report->statesNaN = true;
             ekf_debug("states NaN: i: %u val: %f", i, states[i]);
             err = true;
+            goto out;
         } // state matrix
     }
 
+out:
     if (err) {
         FillErrorReport(err_report);
     }
