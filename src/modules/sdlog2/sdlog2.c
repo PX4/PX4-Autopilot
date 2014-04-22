@@ -960,6 +960,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.msg_type = LOG_STAT_MSG;
 			log_msg.body.log_STAT.main_state = (uint8_t) buf_status.main_state;
 			log_msg.body.log_STAT.arming_state = (uint8_t) buf_status.arming_state;
+			log_msg.body.log_STAT.failsafe_state = (uint8_t) buf_status.failsafe_state;
 			log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
 			log_msg.body.log_STAT.battery_warning = (uint8_t) buf_status.battery_warning;
 			log_msg.body.log_STAT.landed = (uint8_t) buf_status.condition_landed;
