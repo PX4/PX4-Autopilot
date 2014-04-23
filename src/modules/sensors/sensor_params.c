@@ -677,27 +677,6 @@ PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);
 
 
 /**
- * Roll scaling factor
- *
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC_SCALE_ROLL, 0.6f);
-
-/**
- * Pitch scaling factor
- *
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC_SCALE_PITCH, 0.6f);
-
-/**
- * Yaw scaling factor
- *
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC_SCALE_YAW, 2.0f);
-
-/**
  * Failsafe channel PWM threshold.
  *
  * @min 800
