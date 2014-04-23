@@ -777,8 +777,8 @@ Navigator::task_main()
 		if (fds[1].revents & POLLIN) {
 			global_position_update();
 
-			/* publish position setpoint triplet on each position update if navigator active */
 			if (_control_mode.flag_armed && _control_mode.flag_control_auto_enabled) {
+				/* publish position setpoint triplet on each position update if navigator active */
 				_pos_sp_triplet_updated = true;
 
 				if (myState == NAV_STATE_LAND && !_global_pos_valid) {
