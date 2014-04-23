@@ -733,6 +733,13 @@ Navigator::task_main()
 					}
 				}
 
+				/* check if waypoint has been reached in MISSION, RTL and LAND modes */
+				if (myState == NAV_STATE_MISSION || myState == NAV_STATE_RTL || myState == NAV_STATE_LAND) {
+					if (check_mission_item_reached()) {
+						on_mission_item_reached();
+					}
+				}
+
 			} else {
 				/* navigator shouldn't act */
 				dispatch(EVENT_NONE_REQUESTED);
