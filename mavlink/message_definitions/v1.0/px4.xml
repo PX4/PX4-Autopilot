@@ -1,0 +1,17 @@
+<?xml version='1.0'?>
+<mavlink>
+    <include>common.xml</include>
+    <messages>
+          <message id="126" name="GLOBAL_POSITION_TIME">
+               <description>The filtered global position (e.g. fused GPS and other sensors, e.g. baro and accelerometer) and time. The position is in GPS-frame (right-handed, Z-up). Latitude and longitude encoded as scaled integers since the resolution of float is not sufficient.</description>
+               <field type="uint64_t" name="time">GPS time (microseconds since UNIX epoch)</field>
+               <field type="int32_t" name="lat">Latitude, expressed as * 1E7</field>
+               <field type="int32_t" name="lon">Longitude, expressed as * 1E7</field>
+               <field type="float" name="alt">Altitude in meters, expressed as * 1000 (millimeters), above MSL</field>
+               <field type="float" name="vx">Ground X Speed (Latitude), expressed as m/s * 100</field>
+               <field type="float" name="vy">Ground Y Speed (Longitude), expressed as m/s * 100</field>
+               <field type="float" name="vz">Ground Z Speed (Altitude), expressed as m/s * 100</field>
+               <field type="uint16_t" name="hdg">Compass heading in degrees * 100, 0.0..359.99 degrees. If unknown, set to: UINT16_MAX</field>
+          </message>
+    </messages>
+</mavlink>

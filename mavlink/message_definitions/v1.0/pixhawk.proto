@@ -1,0 +1,163 @@
+package px;
+
+message HeaderInfo
+{
+    required int32 source_sysid = 1;
+    required int32 source_compid = 2;
+    required double timestamp = 3; // in seconds
+}
+
+message GLOverlay
+{
+    required HeaderInfo header = 1;
+
+    optional string name = 2;
+    
+    enum CoordinateFrameType
+    {
+        GLOBAL = 0;
+        LOCAL = 1;
+    }
+    optional CoordinateFrameType coordinateFrameType = 3;
+
+    optional double origin_x = 4;
+    optional double origin_y = 5;
+    optional double origin_z = 6;
+    
+    optional bytes data = 7;
+
+    enum Mode
+    {
+        POINTS = 0;
+        LINES = 1;
+        LINE_STRIP = 2;
+        LINE_LOOP = 3;
+        TRIANGLES = 4;
+        TRIANGLE_STRIP = 5;
+        TRIANGLE_FAN = 6;
+        QUADS = 7;
+        QUAD_STRIP = 8;
+        POLYGON = 9;
+        SOLID_CIRCLE = 10;
+        WIRE_CIRCLE = 11;
+        SOLID_CUBE = 12;
+        WIRE_CUBE = 13;
+    }
+
+    enum Identifier
+    {
+        END = 14;
+        VERTEX2F = 15;
+        VERTEX3F = 16;
+        ROTATEF = 17;
+        TRANSLATEF = 18;
+        SCALEF = 19;
+        PUSH_MATRIX = 20;
+        POP_MATRIX = 21;
+        COLOR3F = 22;
+        COLOR4F = 23;
+        POINTSIZE = 24;
+        LINEWIDTH = 25;
+    }
+}
+
+message Obstacle
+{
+    optional float x = 1;
+    optional float y = 2;
+    optional float z = 3;
+    optional float length = 4;
+    optional float width = 5;
+    optional float height = 6;
+}
+
+message ObstacleList
+{
+    required HeaderInfo header = 1;
+
+    repeated Obstacle obstacles = 2;
+}
+
+message ObstacleMap
+{
+    required HeaderInfo header = 1;
+
+    required int32 type = 2;
+
+    optional float resolution = 3;
+    optional int32 rows = 4;
+    optional int32 cols = 5;
+    optional int32 mapR0 = 6;
+    optional int32 mapC0 = 7;
+    optional int32 arrayR0 = 8;
+    optional int32 arrayC0 = 9;
+    
+    optional bytes data = 10;
+}
+
+message Path
+{
+    required HeaderInfo header = 1;
+
+    repeated Waypoint waypoints = 2;
+}
+
+message PointCloudXYZI {
+    message PointXYZI {
+        required float x = 1;
+        required float y = 2;
+        required float z = 3;
+        required float intensity = 4;
+    }
+
+    required HeaderInfo header = 1;
+    repeated PointXYZI points = 2;
+}
+
+message PointCloudXYZRGB {
+    message PointXYZRGB {
+        required float x = 1;
+        required float y = 2;
+        required float z = 3;
+        required float rgb = 4;
+    }
+
+    required HeaderInfo header = 1;
+    repeated PointXYZRGB points = 2;
+}
+
+message RGBDImage
+{
+    required HeaderInfo header = 1;
+
+    required uint32 cols = 2;        ///< Number of columns in image(s)
+    required uint32 rows = 3;        ///< Number of rows in image(s)
+    required uint32 step1 = 4;        ///< Step (stride) of image 1
+    required uint32 type1 = 5;        ///< Type of image 1
+    required bytes imageData1 = 6;
+    required uint32 step2 = 7;        ///< Step (stride) of image 2
+    required uint32 type2 = 8;        ///< Type of image 2
+    required bytes imageData2 = 9;
+    optional uint32 camera_config = 10;    ///< PxSHM::Camera enumeration
+    optional uint32 camera_type = 11;    ///< PxSHM::CameraType enumeration
+    optional float roll = 12;
+    optional float pitch = 13;
+    optional float yaw = 14;
+    optional float lon = 15;
+    optional float lat = 16;
+    optional float alt = 17;
+    optional float ground_x = 18;
+    optional float ground_y = 19;
+    optional float ground_z = 20;
+    repeated float camera_matrix = 21;
+}
+
+message Waypoint
+{
+    required double x = 1;
+    required double y = 2;
+    optional double z = 3;
+    optional double roll = 4;
+    optional double pitch = 5;
+    optional double yaw = 6;
+}
