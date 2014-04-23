@@ -552,7 +552,7 @@ Navigator::offboard_mission_update(bool isrotaryWing)
 {
 	struct mission_s offboard_mission;
 
-	if (orb_copy(ORB_ID(mission), _offboard_mission_sub, &offboard_mission) == OK) {
+	if (orb_copy(ORB_ID(offboard_mission), _offboard_mission_sub, &offboard_mission) == OK) {
 
 		/* Check mission feasibility, for now do not handle the return value,
 		 * however warnings are issued to the gcs via mavlink from inside the MissionFeasiblityChecker */
@@ -585,7 +585,7 @@ Navigator::onboard_mission_update()
 {
 	struct mission_s onboard_mission;
 
-	if (orb_copy(ORB_ID(mission), _onboard_mission_sub, &onboard_mission) == OK) {
+	if (orb_copy(ORB_ID(onboard_mission), _onboard_mission_sub, &onboard_mission) == OK) {
 
 		_mission.set_onboard_mission_count(onboard_mission.count);
 		_mission.set_current_onboard_mission_index(onboard_mission.current_index);
@@ -654,7 +654,7 @@ Navigator::task_main()
 	 */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_target_pos_sub = orb_subscribe(ORB_ID(target_global_position));
-	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
+	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -734,6 +734,9 @@ Navigator::task_main()
 
 			/* evaluate state requested by commander */
 			if (_control_mode.flag_armed && _control_mode.flag_control_auto_enabled) {
+				/* publish position setpoint triplet on each status update if navigator active */
+				_pos_sp_triplet_updated = true;
+
 				if (_vstatus.set_nav_state_timestamp != _set_nav_state_timestamp) {
 					/* commander requested new navigation mode, try to set it */
 					switch (_vstatus.set_nav_state) {
@@ -772,6 +775,13 @@ Navigator::task_main()
 					/* on first switch to AUTO try mission by default, if none is available fallback to loiter */
 					if (myState == NAV_STATE_NONE) {
 						request_mission_if_available();
+					}
+				}
+
+				/* check if waypoint has been reached in MISSION, RTL and LAND modes */
+				if (myState == NAV_STATE_MISSION || myState == NAV_STATE_RTL || myState == NAV_STATE_LAND) {
+					if (check_mission_item_reached()) {
+						on_mission_item_reached();
 					}
 				}
 
@@ -840,8 +850,8 @@ Navigator::task_main()
 		if (fds[1].revents & POLLIN) {
 			global_position_update();
 
-			/* publish position setpoint triplet on each position update if navigator active */
 			if (_control_mode.flag_armed && _control_mode.flag_control_auto_enabled) {
+				/* publish position setpoint triplet on each position update if navigator active */
 				_pos_sp_triplet_updated = true;
 
 				if (myState == NAV_STATE_LAND && !_global_pos_valid) {

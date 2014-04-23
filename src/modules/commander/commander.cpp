@@ -1081,7 +1081,7 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
 
 			/* only consider battery voltage if system has been running 2s and battery voltage is valid */
-			if (status.hil_state == HIL_STATE_OFF && hrt_absolute_time() > start_time + 2000000 && battery.voltage_filtered_v > 0.0f) {
+			if (hrt_absolute_time() > start_time + 2000000 && battery.voltage_filtered_v > 0.0f) {
 				status.battery_voltage = battery.voltage_filtered_v;
 				status.battery_current = battery.current_a;
 				status.condition_battery_voltage_valid = true;
@@ -1124,7 +1124,7 @@ int commander_thread_main(int argc, char *argv[])
 			status_changed = true;
 		}
 
-		/* update subsystem */
+		/* update position setpoint triplet */
 		orb_check(pos_sp_triplet_sub, &updated);
 
 		if (updated) {
@@ -1343,10 +1343,15 @@ int commander_thread_main(int argc, char *argv[])
 
 				} else {
 					/* failsafe for manual modes */
-					transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_RTL);
+					transition_result_t res = TRANSITION_DENIED;
+
+					if (!status.condition_landed) {
+						/* vehicle is not landed, try to perform RTL */
+						res = failsafe_state_transition(&status, FAILSAFE_STATE_RTL);
+					}
 
 					if (res == TRANSITION_DENIED) {
-						/* RTL not allowed (no global position estimate), try LAND */
+						/* RTL not allowed (no global position estimate) or not wanted, try LAND */
 						res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
 
 						if (res == TRANSITION_DENIED) {
