@@ -692,6 +692,9 @@ Navigator::task_main()
 
 			/* evaluate state requested by commander */
 			if (_control_mode.flag_armed && _control_mode.flag_control_auto_enabled) {
+				/* publish position setpoint triplet on each status update if navigator active */
+				_pos_sp_triplet_updated = true;
+
 				if (_vstatus.set_nav_state_timestamp != _set_nav_state_timestamp) {
 					/* commander requested new navigation mode, try to set it */
 					switch (_vstatus.set_nav_state) {
