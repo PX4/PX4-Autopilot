@@ -2,7 +2,7 @@
 <mavlink>
     <include>common.xml</include>
     <messages>
-          <message id="126" name="GLOBAL_POSITION_TIME">
+          <message id="127" name="GLOBAL_POSITION_TIME">
                <description>The filtered global position (e.g. fused GPS and other sensors, e.g. baro and accelerometer) and time. The position is in GPS-frame (right-handed, Z-up). Latitude and longitude encoded as scaled integers since the resolution of float is not sufficient.</description>
                <field type="uint64_t" name="time">GPS time (microseconds since UNIX epoch)</field>
                <field type="int32_t" name="lat">Latitude, expressed as * 1E7</field>
