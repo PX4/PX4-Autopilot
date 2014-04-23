@@ -1379,7 +1379,10 @@ Sensors::rc_poll()
 			signal_lost = false;
 
 			/* check failsafe */
-			int8_t fs_ch = _rc.function[_parameters.rc_map_failsafe];
+			int8_t fs_ch = _rc.function[_parameters.rc_map_failsafe]; // get channel mapped to throttle
+			if (_parameters.rc_map_failsafe>0){ // if not 0, use channel number instead of rc.function mapping
+				fs_ch = _parameters.rc_map_failsafe - 1;
+			}
 			if (_parameters.rc_fails_thr > 0 && fs_ch >= 0) {
 				/* failsafe configured */
 				if ((_parameters.rc_fails_thr < _parameters.min[fs_ch] && rc_input.values[fs_ch] < _parameters.rc_fails_thr) ||
