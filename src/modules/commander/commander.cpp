@@ -1231,12 +1231,12 @@ int commander_thread_main(int argc, char *argv[])
 
 			} else {
 				/* MISSION switch */
-				if (sp_man.mission_switch == SWITCH_POS_ON) {
+				if (sp_man.loiter_switch == SWITCH_POS_ON) {
 					/* stick is in LOITER position */
 					status.set_nav_state = NAV_STATE_LOITER;
 					status.set_nav_state_timestamp = hrt_absolute_time();
 
-				} else if (sp_man.mission_switch != SWITCH_POS_NONE) {
+				} else if (sp_man.loiter_switch != SWITCH_POS_NONE) {
 					/* stick is in MISSION position */
 					status.set_nav_state = NAV_STATE_MISSION;
 					status.set_nav_state_timestamp = hrt_absolute_time();
@@ -1296,7 +1296,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		// TODO remove this hack
 		/* flight termination in manual mode if assisted switch is on easy position */
-		if (!status.is_rotary_wing && parachute_enabled && armed.armed && status.main_state == MAIN_STATE_MANUAL && sp_man.assisted_switch == SWITCH_POS_ON) {
+		if (!status.is_rotary_wing && parachute_enabled && armed.armed && status.main_state == MAIN_STATE_MANUAL && sp_man.easy_switch == SWITCH_POS_ON) {
 			if (TRANSITION_CHANGED == failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION)) {
 				tune_positive(armed.armed);
 			}
@@ -1528,7 +1528,7 @@ set_main_state_rc(struct vehicle_status_s *status, struct manual_control_setpoin
 		break;
 
 	case SWITCH_POS_MIDDLE:		// ASSISTED
-		if (sp_man->assisted_switch == SWITCH_POS_ON) {
+		if (sp_man->easy_switch == SWITCH_POS_ON) {
 			res = main_state_transition(status, MAIN_STATE_EASY);
 
 			if (res != TRANSITION_DENIED) {
@@ -1545,7 +1545,7 @@ set_main_state_rc(struct vehicle_status_s *status, struct manual_control_setpoin
 			break;	// changed successfully or already in this mode
 		}
 
-		if (sp_man->assisted_switch != SWITCH_POS_ON) {
+		if (sp_man->easy_switch != SWITCH_POS_ON) {
 			print_reject_mode(status, "SEATBELT");
 		}
 
