@@ -175,8 +175,8 @@ private:
 	/**
 	 * Get switch position for specified function.
 	 */
-	switch_pos_t	get_rc_sw3pos_position(enum RC_CHANNELS_FUNCTION func);
-	switch_pos_t	get_rc_sw2pos_position(enum RC_CHANNELS_FUNCTION func);
+	switch_pos_t	get_rc_sw3pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv, float mid_th, bool mid_inv);
+	switch_pos_t	get_rc_sw2pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv);
 
 	/**
 	 * Gather and publish RC input data.
@@ -268,7 +268,17 @@ private:
 		int rc_map_aux4;
 		int rc_map_aux5;
 
-		int32_t rc_fs_thr;
+		int32_t rc_fails_thr;
+		float rc_assisted_th;
+		float rc_auto_th;
+		float rc_easy_th;
+		float rc_return_th;
+		float rc_loiter_th;
+		bool rc_assisted_inv;
+		bool rc_auto_inv;
+		bool rc_easy_inv;
+		bool rc_return_inv;
+		bool rc_loiter_inv;
 
 		float battery_voltage_scaling;
 		float battery_current_scaling;
@@ -312,7 +322,12 @@ private:
 		param_t rc_map_aux4;
 		param_t rc_map_aux5;
 
-		param_t rc_fs_thr;
+		param_t rc_fails_thr;
+		param_t rc_assisted_th;
+		param_t rc_auto_th;
+		param_t rc_easy_th;
+		param_t rc_return_th;
+		param_t rc_loiter_th;
 
 		param_t battery_voltage_scaling;
 		param_t battery_current_scaling;
@@ -522,8 +537,13 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_aux4 = param_find("RC_MAP_AUX4");
 	_parameter_handles.rc_map_aux5 = param_find("RC_MAP_AUX5");
 
-	/* RC failsafe */
-	_parameter_handles.rc_fs_thr = param_find("RC_FAILS_THR");
+	/* RC thresholds */
+	_parameter_handles.rc_fails_thr = param_find("RC_FAILS_THR");
+	_parameter_handles.rc_assisted_th = param_find("RC_ASSISTED_TH");
+	_parameter_handles.rc_auto_th = param_find("RC_AUTO_TH");
+	_parameter_handles.rc_easy_th = param_find("RC_EASY_TH");
+	_parameter_handles.rc_return_th = param_find("RC_RETURN_TH");
+	_parameter_handles.rc_loiter_th = param_find("RC_LOITER_TH");
 
 	/* gyro offsets */
 	_parameter_handles.gyro_offset[0] = param_find("SENS_GYRO_XOFF");
@@ -679,7 +699,22 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_map_aux3, &(_parameters.rc_map_aux3));
 	param_get(_parameter_handles.rc_map_aux4, &(_parameters.rc_map_aux4));
 	param_get(_parameter_handles.rc_map_aux5, &(_parameters.rc_map_aux5));
-	param_get(_parameter_handles.rc_fs_thr, &(_parameters.rc_fs_thr));
+	param_get(_parameter_handles.rc_fails_thr, &(_parameters.rc_fails_thr));
+	param_get(_parameter_handles.rc_assisted_th, &(_parameters.rc_assisted_th));
+	_parameters.rc_assisted_inv = (_parameters.rc_assisted_th<0);
+	_parameters.rc_assisted_th = fabs(_parameters.rc_assisted_th);
+	param_get(_parameter_handles.rc_auto_th, &(_parameters.rc_auto_th));
+	_parameters.rc_auto_inv = (_parameters.rc_auto_th<0);
+	_parameters.rc_auto_th = fabs(_parameters.rc_auto_th);
+	param_get(_parameter_handles.rc_easy_th, &(_parameters.rc_easy_th));
+	_parameters.rc_easy_inv = (_parameters.rc_easy_th<0);
+	_parameters.rc_easy_th = fabs(_parameters.rc_easy_th);
+	param_get(_parameter_handles.rc_return_th, &(_parameters.rc_return_th));
+	_parameters.rc_return_inv = (_parameters.rc_return_th<0);
+	_parameters.rc_return_th = fabs(_parameters.rc_return_th);
+	param_get(_parameter_handles.rc_loiter_th, &(_parameters.rc_loiter_th));
+	_parameters.rc_loiter_inv = (_parameters.rc_loiter_th<0);
+	_parameters.rc_loiter_th = fabs(_parameters.rc_loiter_th);
 
 	/* update RC function mappings */
 	_rc.function[THROTTLE] = _parameters.rc_map_throttle - 1;
@@ -1283,18 +1318,18 @@ Sensors::get_rc_value(enum RC_CHANNELS_FUNCTION func, float min_value, float max
 }
 
 switch_pos_t
-Sensors::get_rc_sw3pos_position(enum RC_CHANNELS_FUNCTION func)
+Sensors::get_rc_sw3pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv, float mid_th, bool mid_inv)
 {
 	if (_rc.function[func] >= 0) {
-		float value = _rc.chan[_rc.function[func]].scaled;
-		if (value > STICK_ON_OFF_LIMIT) {
+		float value = 0.5f * _rc.chan[_rc.function[func]].scaled + 0.5f;
+		if (on_inv ? value < on_th : value > on_th) {
 			return SWITCH_POS_ON;
 
-		} else if (value < -STICK_ON_OFF_LIMIT) {
-			return SWITCH_POS_OFF;
+		} else if (mid_inv ? value < mid_th : value > mid_th) {
+			return SWITCH_POS_MIDDLE;
 
 		} else {
-			return SWITCH_POS_MIDDLE;
+			return SWITCH_POS_OFF;
 		}
 
 	} else {
@@ -1303,11 +1338,11 @@ Sensors::get_rc_sw3pos_position(enum RC_CHANNELS_FUNCTION func)
 }
 
 switch_pos_t
-Sensors::get_rc_sw2pos_position(enum RC_CHANNELS_FUNCTION func)
+Sensors::get_rc_sw2pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv)
 {
 	if (_rc.function[func] >= 0) {
-		float value = _rc.chan[_rc.function[func]].scaled;
-		if (value > STICK_ON_OFF_LIMIT) {
+		float value = 0.5f * _rc.chan[_rc.function[func]].scaled + 0.5f;
+		if (on_inv ? value < on_th : value > on_th) {
 			return SWITCH_POS_ON;
 
 		} else {
@@ -1345,10 +1380,10 @@ Sensors::rc_poll()
 
 			/* check failsafe */
 			int8_t fs_ch = _rc.function[_parameters.rc_map_failsafe];
-			if (_parameters.rc_fs_thr > 0 && fs_ch >= 0) {
+			if (_parameters.rc_fails_thr > 0 && fs_ch >= 0) {
 				/* failsafe configured */
-				if ((_parameters.rc_fs_thr < _parameters.min[fs_ch] && rc_input.values[fs_ch] < _parameters.rc_fs_thr) ||
-					(_parameters.rc_fs_thr > _parameters.max[fs_ch] && rc_input.values[fs_ch] > _parameters.rc_fs_thr)) {
+				if ((_parameters.rc_fails_thr < _parameters.min[fs_ch] && rc_input.values[fs_ch] < _parameters.rc_fails_thr) ||
+					(_parameters.rc_fails_thr > _parameters.max[fs_ch] && rc_input.values[fs_ch] > _parameters.rc_fails_thr)) {
 					/* failsafe triggered, signal is lost by receiver */
 					signal_lost = true;
 				}
@@ -1439,10 +1474,10 @@ Sensors::rc_poll()
 			manual.aux5 = get_rc_value(AUX_5, -1.0, 1.0);
 
 			/* mode switches */
-			manual.mode_switch = get_rc_sw3pos_position(MODE);
-			manual.easy_switch = get_rc_sw2pos_position(EASY);
-			manual.loiter_switch = get_rc_sw2pos_position(LOITER);
-			manual.return_switch = get_rc_sw2pos_position(RETURN);
+			manual.mode_switch = get_rc_sw3pos_position(MODE, _parameters.rc_auto_th, _parameters.rc_auto_inv, _parameters.rc_assisted_th, _parameters.rc_assisted_inv);
+			manual.easy_switch = get_rc_sw2pos_position(EASY, _parameters.rc_easy_th, _parameters.rc_easy_inv);
+			manual.return_switch = get_rc_sw2pos_position(RETURN, _parameters.rc_return_th, _parameters.rc_return_inv);
+			manual.loiter_switch = get_rc_sw2pos_position(LOITER, _parameters.rc_loiter_th, _parameters.rc_loiter_inv);
 
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub > 0) {

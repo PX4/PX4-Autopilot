@@ -684,3 +684,83 @@ PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_FAILS_THR, 0);
+
+/**
+ * Threshold for selecting assisted mode
+ *
+ * min:-1
+ * max:+1
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_ASSISTED_TH, 0.25f);
+
+/**
+ * Threshold for selecting auto mode
+ *
+ * min:-1
+ * max:+1
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_AUTO_TH, 0.75f);
+
+/**
+ * Threshold for selecting easy mode
+ *
+ * min:-1
+ * max:+1
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_EASY_TH, 0.5f);
+
+/**
+ * Threshold for selecting return to launch mode
+ *
+ * min:-1
+ * max:+1
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_RETURN_TH, 0.5f);
+
+/**
+ * Threshold for selecting loiter mode
+ *
+ * min:-1
+ * max:+1
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_LOITER_TH, 0.5f);
