@@ -182,7 +182,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	}
 
 
-	if (_mavlink->get_hil_enabled() || _mavlink->get_use_hil_gps()) {
+   	if (_mavlink->get_hil_enabled() || (_mavlink->get_use_hil_gps() && msg->sysid == mavlink_system.sysid)) {
 		switch (msg->msgid) {
 		case MAVLINK_MSG_ID_HIL_GPS:
 			handle_message_hil_gps(msg);
