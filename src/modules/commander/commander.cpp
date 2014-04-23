@@ -1230,7 +1230,7 @@ int commander_thread_main(int argc, char *argv[])
 				status.set_nav_state_timestamp = hrt_absolute_time();
 
 			} else {
-				/* MISSION switch */
+				/* LOITER switch */
 				if (sp_man.loiter_switch == SWITCH_POS_ON) {
 					/* stick is in LOITER position */
 					status.set_nav_state = NAV_STATE_LOITER;
