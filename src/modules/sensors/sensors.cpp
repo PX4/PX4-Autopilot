@@ -136,6 +136,7 @@
 #define PCB_TEMP_ESTIMATE_DEG 5.0f
 
 #define limit_minus_one_to_one(arg) (arg < -1.0f) ? -1.0f : ((arg > 1.0f) ? 1.0f : arg)
+#define limit_zero_to_one(arg) (arg < 0) ? 0 : ((arg > 1.0f) ? 1.0f : arg)
 
 /**
  * Sensor app start / stop handling function
@@ -242,6 +243,7 @@ private:
 		int rc_map_pitch;
 		int rc_map_yaw;
 		int rc_map_throttle;
+		int rc_map_failsafe;
 
 		int rc_map_mode_sw;
 		int rc_map_return_sw;
@@ -290,6 +292,7 @@ private:
 		param_t rc_map_pitch;
 		param_t rc_map_yaw;
 		param_t rc_map_throttle;
+		param_t rc_map_failsafe;
 
 		param_t rc_map_mode_sw;
 		param_t rc_map_return_sw;
@@ -512,6 +515,7 @@ Sensors::Sensors() :
 	/* optional mode switches, not mapped per default */
 	_parameter_handles.rc_map_assisted_sw = param_find("RC_MAP_ASSIST_SW");
 	_parameter_handles.rc_map_mission_sw = param_find("RC_MAP_MISSIO_SW");
+	_parameter_handles.rc_map_failsafe = param_find("RC_MAP_FAILSAFE");
 
 //	_parameter_handles.rc_map_offboard_ctrl_mode_sw = param_find("RC_MAP_OFFB_SW");
 
@@ -647,6 +651,10 @@ Sensors::parameters_update()
 	}
 
 	if (param_get(_parameter_handles.rc_map_throttle, &(_parameters.rc_map_throttle)) != OK) {
+		warnx(paramerr);
+	}
+
+	if (param_get(_parameter_handles.rc_map_failsafe, &(_parameters.rc_map_failsafe)) != OK) {
 		warnx(paramerr);
 	}
 
@@ -1310,8 +1318,8 @@ Sensors::rc_poll()
 		}
 
 		/* check for failsafe */
-		if ((rc_input.rc_failsafe) || ((_parameters.rc_fs_thr != 0) && (((rc_input.values[_rc.function[THROTTLE]] < _parameters.min[_rc.function[THROTTLE]]) && (rc_input.values[_rc.function[THROTTLE]] < _parameters.rc_fs_thr))
-			|| ((rc_input.values[_rc.function[THROTTLE]] > _parameters.max[_rc.function[THROTTLE]]) && (rc_input.values[_rc.function[THROTTLE]] > _parameters.rc_fs_thr))))) {
+		if ((rc_input.rc_failsafe) || ((_parameters.rc_fs_thr != 0) && (((rc_input.values[_rc.function[_parameters.rc_map_failsafe]] < _parameters.min[_rc.function[_parameters.rc_map_failsafe]]) && (rc_input.values[_rc.function[_parameters.rc_map_failsafe]] < _parameters.rc_fs_thr))
+			|| ((rc_input.values[_rc.function[_parameters.rc_map_failsafe]] > _parameters.max[_rc.function[_parameters.rc_map_failsafe]]) && (rc_input.values[_rc.function[_parameters.rc_map_failsafe]] > _parameters.rc_fs_thr))))) {
 			/* do not publish manual control setpoints when there are none */
 			return;
 		}
@@ -1416,25 +1424,26 @@ Sensors::rc_poll()
 
 		/* mode switch input */
 		if (_rc.function[MODE] >= 0) {
-			manual_control.mode_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MODE]].scaled);
+			manual_control.mode_switch = limit_zero_to_one(0.5f * _rc.chan[_rc.function[MODE]].scaled + 0.5f);
 		}
 
 		/* assisted switch input */
 		if (_rc.function[ASSISTED] >= 0) {
-			manual_control.assisted_switch = limit_minus_one_to_one(_rc.chan[_rc.function[ASSISTED]].scaled);
+			manual_control.assisted_switch = limit_zero_to_one(0.5f * _rc.chan[_rc.function[ASSISTED]].scaled + 0.5f);
 		}
 
 		/* mission switch input */
 		if (_rc.function[MISSION] >= 0) {
-			manual_control.mission_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MISSION]].scaled);
+			manual_control.mission_switch = limit_zero_to_one(0.5f * _rc.chan[_rc.function[MISSION]].scaled + 0.5f);
 		}
 
 		/* return switch input */
 		if (_rc.function[RETURN] >= 0) {
-			manual_control.return_switch = limit_minus_one_to_one(_rc.chan[_rc.function[RETURN]].scaled);
+			manual_control.return_switch = limit_zero_to_one(0.5f * _rc.chan[_rc.function[RETURN]].scaled + 0.5f);
 		}
 
-//		if (_rc.function[OFFBOARD_MODE] >= 0) {
+
+		//		if (_rc.function[OFFBOARD_MODE] >= 0) {
 //			manual_control.auto_offboard_input_switch = limit_minus_one_to_one(_rc.chan[_rc.function[OFFBOARD_MODE]].scaled);
 //		}
 
