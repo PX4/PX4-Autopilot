@@ -31,6 +31,9 @@ typedef struct __mavlink_test_types_t
 #define MAVLINK_MSG_ID_TEST_TYPES_LEN 179
 #define MAVLINK_MSG_ID_0_LEN 179
 
+#define MAVLINK_MSG_ID_TEST_TYPES_CRC 103
+#define MAVLINK_MSG_ID_0_CRC 103
+
 #define MAVLINK_MSG_TEST_TYPES_FIELD_U64_ARRAY_LEN 3
 #define MAVLINK_MSG_TEST_TYPES_FIELD_S64_ARRAY_LEN 3
 #define MAVLINK_MSG_TEST_TYPES_FIELD_D_ARRAY_LEN 3
@@ -106,7 +109,7 @@ static inline uint16_t mavlink_msg_test_types_pack(uint8_t system_id, uint8_t co
 						       char c, const char *s, uint8_t u8, uint16_t u16, uint32_t u32, uint64_t u64, int8_t s8, int16_t s16, int32_t s32, int64_t s64, float f, double d, const uint8_t *u8_array, const uint16_t *u16_array, const uint32_t *u32_array, const uint64_t *u64_array, const int8_t *s8_array, const int16_t *s16_array, const int32_t *s32_array, const int64_t *s64_array, const float *f_array, const double *d_array)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[179];
+	char buf[MAVLINK_MSG_ID_TEST_TYPES_LEN];
 	_mav_put_uint64_t(buf, 0, u64);
 	_mav_put_int64_t(buf, 8, s64);
 	_mav_put_double(buf, 16, d);
@@ -129,7 +132,7 @@ static inline uint16_t mavlink_msg_test_types_pack(uint8_t system_id, uint8_t co
 	_mav_put_char_array(buf, 161, s, 10);
 	_mav_put_uint8_t_array(buf, 173, u8_array, 3);
 	_mav_put_int8_t_array(buf, 176, s8_array, 3);
-        memcpy(_MAV_PAYLOAD(msg), buf, 179);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_TEST_TYPES_LEN);
 #else
 	mavlink_test_types_t packet;
 	packet.u64 = u64;
@@ -154,11 +157,15 @@ static inline uint16_t mavlink_msg_test_types_pack(uint8_t system_id, uint8_t co
 	mav_array_memcpy(packet.s, s, sizeof(char)*10);
 	mav_array_memcpy(packet.u8_array, u8_array, sizeof(uint8_t)*3);
 	mav_array_memcpy(packet.s8_array, s8_array, sizeof(int8_t)*3);
-        memcpy(_MAV_PAYLOAD(msg), &packet, 179);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_TEST_TYPES_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_TEST_TYPES;
-	return mavlink_finalize_message(msg, system_id, component_id, 179, 103);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_TEST_TYPES_LEN, MAVLINK_MSG_ID_TEST_TYPES_CRC);
+#else
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_TEST_TYPES_LEN);
+#endif
 }
 
 /**
@@ -196,7 +203,7 @@ static inline uint16_t mavlink_msg_test_types_pack_chan(uint8_t system_id, uint8
 						           char c,const char *s,uint8_t u8,uint16_t u16,uint32_t u32,uint64_t u64,int8_t s8,int16_t s16,int32_t s32,int64_t s64,float f,double d,const uint8_t *u8_array,const uint16_t *u16_array,const uint32_t *u32_array,const uint64_t *u64_array,const int8_t *s8_array,const int16_t *s16_array,const int32_t *s32_array,const int64_t *s64_array,const float *f_array,const double *d_array)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[179];
+	char buf[MAVLINK_MSG_ID_TEST_TYPES_LEN];
 	_mav_put_uint64_t(buf, 0, u64);
 	_mav_put_int64_t(buf, 8, s64);
 	_mav_put_double(buf, 16, d);
@@ -219,7 +226,7 @@ static inline uint16_t mavlink_msg_test_types_pack_chan(uint8_t system_id, uint8
 	_mav_put_char_array(buf, 161, s, 10);
 	_mav_put_uint8_t_array(buf, 173, u8_array, 3);
 	_mav_put_int8_t_array(buf, 176, s8_array, 3);
-        memcpy(_MAV_PAYLOAD(msg), buf, 179);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_TEST_TYPES_LEN);
 #else
 	mavlink_test_types_t packet;
 	packet.u64 = u64;
@@ -244,11 +251,15 @@ static inline uint16_t mavlink_msg_test_types_pack_chan(uint8_t system_id, uint8
 	mav_array_memcpy(packet.s, s, sizeof(char)*10);
 	mav_array_memcpy(packet.u8_array, u8_array, sizeof(uint8_t)*3);
 	mav_array_memcpy(packet.s8_array, s8_array, sizeof(int8_t)*3);
-        memcpy(_MAV_PAYLOAD(msg), &packet, 179);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_TEST_TYPES_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_TEST_TYPES;
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 179, 103);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_TEST_TYPES_LEN, MAVLINK_MSG_ID_TEST_TYPES_CRC);
+#else
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_TEST_TYPES_LEN);
+#endif
 }
 
 /**
@@ -296,7 +307,7 @@ static inline uint16_t mavlink_msg_test_types_encode(uint8_t system_id, uint8_t 
 static inline void mavlink_msg_test_types_send(mavlink_channel_t chan, char c, const char *s, uint8_t u8, uint16_t u16, uint32_t u32, uint64_t u64, int8_t s8, int16_t s16, int32_t s32, int64_t s64, float f, double d, const uint8_t *u8_array, const uint16_t *u16_array, const uint32_t *u32_array, const uint64_t *u64_array, const int8_t *s8_array, const int16_t *s16_array, const int32_t *s32_array, const int64_t *s64_array, const float *f_array, const double *d_array)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[179];
+	char buf[MAVLINK_MSG_ID_TEST_TYPES_LEN];
 	_mav_put_uint64_t(buf, 0, u64);
 	_mav_put_int64_t(buf, 8, s64);
 	_mav_put_double(buf, 16, d);
@@ -319,7 +330,11 @@ static inline void mavlink_msg_test_types_send(mavlink_channel_t chan, char c, c
 	_mav_put_char_array(buf, 161, s, 10);
 	_mav_put_uint8_t_array(buf, 173, u8_array, 3);
 	_mav_put_int8_t_array(buf, 176, s8_array, 3);
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_TEST_TYPES, buf, 179, 103);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_TEST_TYPES, buf, MAVLINK_MSG_ID_TEST_TYPES_LEN, MAVLINK_MSG_ID_TEST_TYPES_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_TEST_TYPES, buf, MAVLINK_MSG_ID_TEST_TYPES_LEN);
+#endif
 #else
 	mavlink_test_types_t packet;
 	packet.u64 = u64;
@@ -344,7 +359,11 @@ static inline void mavlink_msg_test_types_send(mavlink_channel_t chan, char c, c
 	mav_array_memcpy(packet.s, s, sizeof(char)*10);
 	mav_array_memcpy(packet.u8_array, u8_array, sizeof(uint8_t)*3);
 	mav_array_memcpy(packet.s8_array, s8_array, sizeof(int8_t)*3);
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_TEST_TYPES, (const char *)&packet, 179, 103);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_TEST_TYPES, (const char *)&packet, MAVLINK_MSG_ID_TEST_TYPES_LEN, MAVLINK_MSG_ID_TEST_TYPES_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_TEST_TYPES, (const char *)&packet, MAVLINK_MSG_ID_TEST_TYPES_LEN);
+#endif
 #endif
 }
 
@@ -605,6 +624,6 @@ static inline void mavlink_msg_test_types_decode(const mavlink_message_t* msg, m
 	mavlink_msg_test_types_get_u8_array(msg, test_types->u8_array);
 	mavlink_msg_test_types_get_s8_array(msg, test_types->s8_array);
 #else
-	memcpy(test_types, _MAV_PAYLOAD(msg), 179);
+	memcpy(test_types, _MAV_PAYLOAD(msg), MAVLINK_MSG_ID_TEST_TYPES_LEN);
 #endif
 }

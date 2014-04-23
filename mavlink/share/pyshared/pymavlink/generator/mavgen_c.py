@@ -97,20 +97,6 @@ extern "C" {
 
 #define MAVLINK_ENABLED_${basename_upper}
 
-${{include_list:#include "../${base}/${base}.h"
-}}
-
-// MAVLINK VERSION
-
-#ifndef MAVLINK_VERSION
-#define MAVLINK_VERSION ${version}
-#endif
-
-#if (MAVLINK_VERSION == 0)
-#undef MAVLINK_VERSION
-#define MAVLINK_VERSION ${version}
-#endif
-
 // ENUM DEFINITIONS
 
 ${{enum:
@@ -124,6 +110,20 @@ ${{entry:	${name}=${value}, /* ${description} |${{param:${description}| }} */
 };
 #endif
 }}
+
+${{include_list:#include "../${base}/${base}.h"
+}}
+
+// MAVLINK VERSION
+
+#ifndef MAVLINK_VERSION
+#define MAVLINK_VERSION ${version}
+#endif
+
+#if (MAVLINK_VERSION == 0)
+#undef MAVLINK_VERSION
+#define MAVLINK_VERSION ${version}
+#endif
 
 // MESSAGE DEFINITIONS
 ${{message:#include "./mavlink_msg_${name_lower}.h"
@@ -155,6 +155,9 @@ ${{ordered_fields: ${type} ${name}${array_suffix}; ///< ${description}
 #define MAVLINK_MSG_ID_${name}_LEN ${wire_length}
 #define MAVLINK_MSG_ID_${id}_LEN ${wire_length}
 
+#define MAVLINK_MSG_ID_${name}_CRC ${crc_extra}
+#define MAVLINK_MSG_ID_${id}_CRC ${crc_extra}
+
 ${{array_fields:#define MAVLINK_MSG_${msg_name}_FIELD_${name_upper}_LEN ${array_length}
 }}
 
@@ -180,30 +183,34 @@ static inline uint16_t mavlink_msg_${name_lower}_pack(uint8_t system_id, uint8_t
 						      ${{arg_fields: ${array_const}${type} ${array_prefix}${name},}})
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[${wire_length}];
+	char buf[MAVLINK_MSG_ID_${name}_LEN];
 ${{scalar_fields:	_mav_put_${type}(buf, ${wire_offset}, ${putname});
 }}
 ${{array_fields:	_mav_put_${type}_array(buf, ${wire_offset}, ${name}, ${array_length});
 }}
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, ${wire_length});
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_${name}_LEN);
 #else
 	mavlink_${name_lower}_t packet;
 ${{scalar_fields:	packet.${name} = ${putname};
 }}
 ${{array_fields:	mav_array_memcpy(packet.${name}, ${name}, sizeof(${type})*${array_length});
 }}
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, ${wire_length});
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_${name}_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_${name};
-	return mavlink_finalize_message(msg, system_id, component_id, ${wire_length}${crc_extra_arg});
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_${name}_LEN, MAVLINK_MSG_ID_${name}_CRC);
+#else
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_${name}_LEN);
+#endif
 }
 
 /**
  * @brief Pack a ${name_lower} message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
 ${{arg_fields: * @param ${name} ${description}
 }}
@@ -214,27 +221,31 @@ static inline uint16_t mavlink_msg_${name_lower}_pack_chan(uint8_t system_id, ui
 						           ${{arg_fields:${array_const}${type} ${array_prefix}${name},}})
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[${wire_length}];
+	char buf[MAVLINK_MSG_ID_${name}_LEN];
 ${{scalar_fields:	_mav_put_${type}(buf, ${wire_offset}, ${putname});
 }}
 ${{array_fields:	_mav_put_${type}_array(buf, ${wire_offset}, ${name}, ${array_length});
 }}
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, ${wire_length});
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_${name}_LEN);
 #else
 	mavlink_${name_lower}_t packet;
 ${{scalar_fields:	packet.${name} = ${putname};
 }}
 ${{array_fields:	mav_array_memcpy(packet.${name}, ${name}, sizeof(${type})*${array_length});
 }}
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, ${wire_length});
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_${name}_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_${name};
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, ${wire_length}${crc_extra_arg});
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_${name}_LEN, MAVLINK_MSG_ID_${name}_CRC);
+#else
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_${name}_LEN);
+#endif
 }
 
 /**
- * @brief Encode a ${name_lower} struct into a message
+ * @brief Encode a ${name_lower} struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -244,6 +255,20 @@ ${{array_fields:	mav_array_memcpy(packet.${name}, ${name}, sizeof(${type})*${arr
 static inline uint16_t mavlink_msg_${name_lower}_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_${name_lower}_t* ${name_lower})
 {
 	return mavlink_msg_${name_lower}_pack(system_id, component_id, msg,${{arg_fields: ${name_lower}->${name},}});
+}
+
+/**
+ * @brief Encode a ${name_lower} struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param ${name_lower} C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_${name_lower}_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_${name_lower}_t* ${name_lower})
+{
+	return mavlink_msg_${name_lower}_pack_chan(system_id, component_id, chan, msg,${{arg_fields: ${name_lower}->${name},}});
 }
 
 /**
@@ -258,21 +283,65 @@ ${{arg_fields: * @param ${name} ${description}
 static inline void mavlink_msg_${name_lower}_send(mavlink_channel_t chan,${{arg_fields: ${array_const}${type} ${array_prefix}${name},}})
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[${wire_length}];
+	char buf[MAVLINK_MSG_ID_${name}_LEN];
 ${{scalar_fields:	_mav_put_${type}(buf, ${wire_offset}, ${putname});
 }}
 ${{array_fields:	_mav_put_${type}_array(buf, ${wire_offset}, ${name}, ${array_length});
 }}
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_${name}, buf, ${wire_length}${crc_extra_arg});
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_${name}, buf, MAVLINK_MSG_ID_${name}_LEN, MAVLINK_MSG_ID_${name}_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_${name}, buf, MAVLINK_MSG_ID_${name}_LEN);
+#endif
 #else
 	mavlink_${name_lower}_t packet;
 ${{scalar_fields:	packet.${name} = ${putname};
 }}
 ${{array_fields:	mav_array_memcpy(packet.${name}, ${name}, sizeof(${type})*${array_length});
 }}
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_${name}, (const char *)&packet, ${wire_length}${crc_extra_arg});
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_${name}, (const char *)&packet, MAVLINK_MSG_ID_${name}_LEN, MAVLINK_MSG_ID_${name}_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_${name}, (const char *)&packet, MAVLINK_MSG_ID_${name}_LEN);
+#endif
 #endif
 }
+
+#if MAVLINK_MSG_ID_${name}_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_${name_lower}_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan, ${{arg_fields: ${array_const}${type} ${array_prefix}${name},}})
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+${{scalar_fields:	_mav_put_${type}(buf, ${wire_offset}, ${putname});
+}}
+${{array_fields:	_mav_put_${type}_array(buf, ${wire_offset}, ${name}, ${array_length});
+}}
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_${name}, buf, MAVLINK_MSG_ID_${name}_LEN, MAVLINK_MSG_ID_${name}_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_${name}, buf, MAVLINK_MSG_ID_${name}_LEN);
+#endif
+#else
+	mavlink_${name_lower}_t *packet = (mavlink_${name_lower}_t *)msgbuf;
+${{scalar_fields:	packet->${name} = ${putname};
+}}
+${{array_fields:	mav_array_memcpy(packet->${name}, ${name}, sizeof(${type})*${array_length});
+}}
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_${name}, (const char *)packet, MAVLINK_MSG_ID_${name}_LEN, MAVLINK_MSG_ID_${name}_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_${name}, (const char *)packet, MAVLINK_MSG_ID_${name}_LEN);
+#endif
+#endif
+}
+#endif
 
 #endif
 
@@ -302,7 +371,7 @@ static inline void mavlink_msg_${name_lower}_decode(const mavlink_message_t* msg
 ${{ordered_fields:	${decode_left}mavlink_msg_${name_lower}_get_${name}(msg${decode_right});
 }}
 #else
-	memcpy(${name_lower}, _MAV_PAYLOAD(msg), ${wire_length});
+	memcpy(${name_lower}, _MAV_PAYLOAD(msg), MAVLINK_MSG_ID_${name}_LEN);
 #endif
 }
 ''', m)
@@ -404,7 +473,7 @@ ${{message:	mavlink_test_${name_lower}(system_id, component_id, last_msg);
 def copy_fixed_headers(directory, xml):
     '''copy the fixed protocol headers to the target directory'''
     import shutil
-    hlist = [ 'protocol.h', 'mavlink_helpers.h', 'mavlink_types.h', 'checksum.h', 'mavlink_protobuf_manager.hpp' ]
+    hlist = [ 'protocol.h', 'mavlink_helpers.h', 'mavlink_types.h', 'checksum.h', 'mavlink_conversions.h', 'mavlink_protobuf_manager.hpp' ]
     basepath = os.path.dirname(os.path.realpath(__file__))
     srcpath = os.path.join(basepath, 'C/include_v%s' % xml.wire_protocol_version)
     print("Copying fixed headers")
@@ -420,7 +489,8 @@ def copy_fixed_headers(directory, xml):
         h = 'pixhawk/pixhawk.pb.h'
         src = os.path.realpath(os.path.join(srcpath, h))
         dest = os.path.realpath(os.path.join(directory, h))
-        shutil.copy(src, dest)
+        if src != dest:
+            shutil.copy(src, dest)
         
 def copy_fixed_sources(directory, xml):
     # XXX This is a hack - to be removed

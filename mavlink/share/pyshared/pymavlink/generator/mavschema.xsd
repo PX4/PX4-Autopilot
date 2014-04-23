@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+<!-- definition of simple elements -->
+<xs:element name="include" type="xs:anyURI"/>
+<xs:element name="version" type="xs:unsignedByte"/>
+<xs:element name="description" type="xs:string"/>
+
+
+<!-- definition of attributes -->
+<xs:attribute name="name" type="xs:string"/> <!-- enum,entry,message,field -->
+<xs:attribute name="index" type="xs:unsignedByte"/> <!-- param -->
+<xs:attribute name="id" type="xs:unsignedByte"/> <!-- message -->
+<xs:attribute name="print_format" type="xs:string"/> <!-- field -->
+<xs:attribute name="value"> <!-- entry -->
+  <xs:simpleType>
+    <xs:restriction base="xs:string">
+        <xs:pattern value="^\d{1,10}$"/> <!-- base 10 int -->
+        <xs:pattern value="^0[xX][0-9a-fA-F]{1,8}$"/> <!-- base 16 -->
+        <xs:pattern value="^0[bB][0-1]{1,32}$"/> <!-- base 1 -->
+    </xs:restriction>
+  </xs:simpleType>
+</xs:attribute>
+<xs:attribute name="type">
+  <xs:simpleType>
+    <xs:restriction base="xs:string">
+        <xs:pattern value="float(\[([0-9])+\])?"/>
+        <xs:pattern value="double(\[([0-9])+\])?"/>
+        <xs:pattern value="char(\[([0-9])+\])?"/>
+        <xs:pattern value="int8_t(\[([0-9])+\])?"/>
+        <xs:pattern value="uint8_t(\[([0-9])+\])?"/>
+        <xs:pattern value="uint8_t_mavlink_version"/>
+        <xs:pattern value="int16_t(\[([0-9])+\])?"/>
+        <xs:pattern value="uint16_t(\[([0-9])+\])?"/>
+        <xs:pattern value="int32_t(\[([0-9])+\])?"/>
+        <xs:pattern value="uint32_t(\[([0-9])+\])?"/>
+        <xs:pattern value="int64_t(\[([0-9])+\])?"/>
+        <xs:pattern value="uint64_t(\[([0-9])+\])?"/>
+        <xs:pattern value="array\[[0-9]+\]"/> <!-- 0.9 compatibility -->
+    </xs:restriction>
+  </xs:simpleType>
+</xs:attribute>
+
+<!-- definition of complex elements -->
+<xs:element name="param">
+    <xs:complexType mixed="true">
+        <xs:attribute ref="index" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+<xs:element name="field">
+    <xs:complexType mixed="true">
+        <xs:sequence>
+            <xs:element ref="description" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute ref="type" use="required"/>
+        <xs:attribute ref="name" use="required"/>
+        <xs:attribute ref="print_format" />
+    </xs:complexType>
+</xs:element>
+
+<xs:element name="entry">
+    <xs:complexType>
+        <xs:sequence>
+            <xs:element ref="description" minOccurs="0"/>
+            <xs:element ref="param" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+        <xs:attribute ref="value" />
+        <xs:attribute ref="name" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+<xs:element name="enum">
+    <xs:complexType>
+        <xs:sequence>
+            <xs:element ref="description" minOccurs="0"/>
+            <xs:element ref="entry" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute ref="name" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+<xs:element name="message">
+    <xs:complexType>
+        <xs:sequence>
+            <xs:element ref="description" minOccurs="0"/>
+            <xs:element ref="field" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute ref="id" use="required"/>
+        <xs:attribute ref="name" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+<xs:element name="enums">
+    <xs:complexType>
+        <xs:sequence>
+            <xs:element ref="enum" maxOccurs="unbounded" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+</xs:element>
+
+<xs:element name="messages">
+    <xs:complexType>
+        <xs:sequence>
+            <xs:element ref="message" maxOccurs="unbounded" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+</xs:element>
+
+<xs:element name="mavlink">
+    <xs:complexType>
+        <xs:sequence>
+            <xs:element ref="include" minOccurs="0"/>
+            <xs:element ref="version" minOccurs="0"/>
+            <xs:element ref="enums" minOccurs="0"/>
+            <xs:element ref="messages"/>
+        </xs:sequence>
+    </xs:complexType>
+</xs:element>
+
+</xs:schema>

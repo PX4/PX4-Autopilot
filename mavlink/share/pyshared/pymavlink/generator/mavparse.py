@@ -6,7 +6,7 @@ Copyright Andrew Tridgell 2011
 Released under GNU GPL version 3 or later
 '''
 
-import xml.parsers.expat, os, errno, time, sys, operator, mavutil
+import xml.parsers.expat, os, errno, time, sys, operator
 
 PROTOCOL_0_9 = "0.9"
 PROTOCOL_1_0 = "1.0"
@@ -195,7 +195,7 @@ class MAVXML(object):
             elif in_element == "mavlink.enums.enum.entry":
                 check_attrs(attrs, ['name'], 'enum entry')
                 if 'value' in attrs:
-                    value = int(attrs['value'])
+                    value = eval(attrs['value'])
                 else:
                     value = self.enum[-1].highest_value + 1
                 if (value > self.enum[-1].highest_value):
@@ -282,7 +282,8 @@ class MAVXML(object):
 def message_checksum(msg):
     '''calculate a 8-bit checksum of the key fields of a message, so we
        can detect incompatible XML changes'''
-    crc = mavutil.x25crc(msg.name + ' ')
+    from mavcrc import x25crc
+    crc = x25crc(msg.name + ' ')
     for f in msg.ordered_fields:
         crc.accumulate(f.type + ' ')
         crc.accumulate(f.name + ' ')

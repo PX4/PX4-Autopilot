@@ -11,15 +11,13 @@ Released under GNU GPL version 3 or later
 import os, sys, glob, re
 from mavgen import mavgen
 
-# allow import from the parent directory, where mavutil.py is
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
-
 class options:
     """ a class to simulate the options of mavgen OptionsParser"""
-    def __init__(self, lang, output, wire_protocol):
+    def __init__(self, lang, output, wire_protocol, error_limit):
         self.language = lang
         self.wire_protocol = wire_protocol
         self.output = output
+        self.error_limit = error_limit
 
 protocols = [ '0.9', '1.0' ]
 
@@ -31,7 +29,7 @@ for protocol in protocols :
     for xml_file in xml_file_names:
         print "xml file is ", xml_file
         opts = options(lang = "C", output = "C/include_v"+protocol, \
-                       wire_protocol=protocol)
+                       wire_protocol=protocol, error_limit=200)
         args = []
         args.append(xml_file)
         mavgen(opts, args)
@@ -40,5 +38,10 @@ for protocol in protocols :
         print "xml_file_base is", xml_file_base
         opts = options(lang = "python", \
                        output="python/mavlink_"+xml_file_base+"_v"+protocol+".py", \
-                       wire_protocol=protocol)
+                       wire_protocol=protocol, error_limit=200)
+        mavgen(opts,args)
+        
+        opts = options(lang = "CS", \
+                       output="CS/v" + protocol + "/mavlink_" + xml_file_base + "/mesages", \
+                       wire_protocol=protocol, error_limit=200)
         mavgen(opts,args)

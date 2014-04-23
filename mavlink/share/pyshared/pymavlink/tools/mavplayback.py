@@ -10,10 +10,7 @@ Useful for visualising flights
 import sys, time, os, struct
 import Tkinter
 
-# allow import from the parent directory, where mavlink.py is
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
-
-import fgFDM
+from pymavlink import fgFDM
 
 from optparse import OptionParser
 parser = OptionParser("mavplayback.py [options]")
@@ -31,7 +28,7 @@ parser.add_option("--baudrate", type='int', default=57600, help='baud rate')
 
 if opts.mav10:
     os.environ['MAVLINK10'] = '1'
-import mavutil
+from pymavlink import mavutil
 
 if len(args) < 1:
     parser.print_help()
@@ -43,7 +40,7 @@ filename = args[0]
 def LoadImage(filename):
     '''return an image from the images/ directory'''
     app_dir = os.path.dirname(os.path.realpath(__file__))
-    path = os.path.join(app_dir, 'files/images', filename)
+    path = os.path.join(app_dir, 'images', filename)
     return Tkinter.PhotoImage(file=path)
 
 
@@ -198,13 +195,19 @@ class App():
 
         if msg.get_type() != "BAD_DATA":
             for m in self.mout:
-                m.write(msg.get_msgbuf().tostring())
+                m.write(msg.get_msgbuf())
 
         if msg.get_type() == "GPS_RAW":
             self.fdm.set('latitude', msg.lat, units='degrees')
             self.fdm.set('longitude', msg.lon, units='degrees')
             if opts.gpsalt:
                 self.fdm.set('altitude', msg.alt, units='meters')
+
+        if msg.get_type() == "GPS_RAW_INT":
+            self.fdm.set('latitude', msg.lat/1.0e7, units='degrees')
+            self.fdm.set('longitude', msg.lon/1.0e7, units='degrees')
+            if opts.gpsalt:
+                self.fdm.set('altitude', msg.alt/1.0e3, units='meters')
 
         if msg.get_type() == "VFR_HUD":
             if not opts.gpsalt:
