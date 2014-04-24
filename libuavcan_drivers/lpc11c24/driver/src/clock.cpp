@@ -116,7 +116,7 @@ void adjustUtc(uavcan::UtcDuration adjustment)
     utc_correction_usec_per_overflow_x16 = std::max(utc_correction_usec_per_overflow_x16, -MaxUtcSpeedCorrectionX16);
     utc_correction_usec_per_overflow_x16 = std::min(utc_correction_usec_per_overflow_x16,  MaxUtcSpeedCorrectionX16);
 
-    if (adjustment.getAbs().toMSec() > 2 || !utc_set)
+    if (adjustment.getAbs().toMSec() > 9 || !utc_set)
     {
         const int64_t adj_usec = adjustment.toUSec();
         {

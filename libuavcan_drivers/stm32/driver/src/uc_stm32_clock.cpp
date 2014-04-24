@@ -41,7 +41,7 @@ uavcan::uint32_t utc_jump_cnt = 0;
 uavcan::int32_t utc_correction_usec_per_overflow_x16 = 0;
 uavcan::int64_t prev_adjustment = 0;
 
-uavcan::UtcDuration min_jump = uavcan::UtcDuration::fromMSec(3);
+uavcan::UtcDuration min_jump = uavcan::UtcDuration::fromMSec(10);
 
 uavcan::uint64_t time_mono = 0;
 uavcan::uint64_t time_utc = 0;
