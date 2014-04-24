@@ -549,7 +549,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(home_position), home_position_sub, &home);
 
-				if (home.timestamp != home_timestamp && map_projection_inited()) {
+				if (home.timestamp != home_timestamp && map_projection_initialized()) {
 					home_timestamp = home.timestamp;
 
 					double est_lat, est_lon;
@@ -602,7 +602,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					}
 				}
 
-				if (gps_valid && map_projection_inited()) {
+				if (gps_valid && map_projection_initialized()) {
 					double lat = gps.lat * 1e-7;
 					double lon = gps.lon * 1e-7;
 					float alt = gps.alt * 1e-3;

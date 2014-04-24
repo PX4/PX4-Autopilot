@@ -79,7 +79,7 @@ struct map_projection_reference_s {
  * Initializes the map transformation.
  * @return true if map_projection_init was called before, false else
  */
-__EXPORT bool map_projection_inited();
+__EXPORT bool map_projection_initialized();
 
 
 /**

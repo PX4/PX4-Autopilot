@@ -57,7 +57,7 @@
 
 static struct map_projection_reference_s mp_ref;
 
-__EXPORT bool map_projection_inited()
+__EXPORT bool map_projection_initialized()
 {
 	return mp_ref.init_done;
 }
@@ -81,7 +81,7 @@ __EXPORT void map_projection_init(double lat_0, double lon_0) //lat_0, lon_0 are
 
 __EXPORT bool map_projection_project(double lat, double lon, float *x, float *y)
 {
-	if (!map_projection_inited()) {
+	if (!map_projection_initialized()) {
 		return false;
 	}
 
@@ -103,7 +103,7 @@ __EXPORT bool map_projection_project(double lat, double lon, float *x, float *y)
 
 __EXPORT bool map_projection_reproject(float x, float y, double *lat, double *lon)
 {
-	if (!map_projection_inited()) {
+	if (!map_projection_initialized()) {
 		return false;
 	}
 
