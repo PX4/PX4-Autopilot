@@ -62,7 +62,7 @@ uavcan::UtcDuration getPrevUtcAdjustment();
  * The parameter must be positive.
  * This function is thread safe.
  */
-void setMinJump(uavcan::UtcDuration adj);
+void setMinUtcJump(uavcan::UtcDuration adj);
 
 }
 

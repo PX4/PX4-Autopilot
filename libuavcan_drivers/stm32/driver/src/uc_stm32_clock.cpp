@@ -41,7 +41,7 @@ uavcan::uint32_t utc_jump_cnt = 0;
 uavcan::int32_t utc_correction_usec_per_overflow_x16 = 0;
 uavcan::int64_t prev_adjustment = 0;
 
-uavcan::UtcDuration min_jump = uavcan::UtcDuration::fromMSec(10);
+uavcan::UtcDuration min_utc_jump = uavcan::UtcDuration::fromMSec(10);
 
 uavcan::uint64_t time_mono = 0;
 uavcan::uint64_t time_utc = 0;
@@ -165,7 +165,7 @@ void adjustUtc(uavcan::UtcDuration adjustment)
      * Clock value adjustment
      * For small adjustments we will rely only on speed change
      */
-    if (adjustment.getAbs() > min_jump || !utc_set)
+    if (adjustment.getAbs() > min_utc_jump || !utc_set)
     {
         const uavcan::int64_t adj_usec = adjustment.toUSec();
 
@@ -211,12 +211,12 @@ uavcan::UtcDuration getPrevUtcAdjustment()
     return uavcan::UtcDuration::fromUSec(prev_adjustment);
 }
 
-void setMinJump(uavcan::UtcDuration adj)
+void setMinUtcJump(uavcan::UtcDuration adj)
 {
     MutexLocker mlocker(mutex);
     if (adj.isPositive())
     {
-        min_jump = adj;
+        min_utc_jump = adj;
     }
     else
     {
