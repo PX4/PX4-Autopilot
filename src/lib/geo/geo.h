@@ -72,7 +72,14 @@ struct map_projection_reference_s {
 	double sin_lat;
 	double cos_lat;
 	bool init_done;
+	uint64_t timestamp;
 };
+
+/**
+ * Initializes the map transformation.
+ * @return true if map_projection_init was called before, false else
+ */
+__EXPORT bool map_projection_inited();
 
 /**
  * Initializes the map transformation.

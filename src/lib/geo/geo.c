@@ -57,6 +57,11 @@
 
 static struct map_projection_reference_s mp_ref;
 
+__EXPORT bool map_projection_inited()
+{
+	return mp_ref.init_done;
+}
+
 __EXPORT void map_projection_init(double lat_0, double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
 	mp_ref.lat = lat_0 / 180.0 * M_PI;
@@ -65,12 +70,13 @@ __EXPORT void map_projection_init(double lat_0, double lon_0) //lat_0, lon_0 are
 	mp_ref.sin_lat = sin(mp_ref.lat);
 	mp_ref.cos_lat = cos(mp_ref.lat);
 
+	mp_ref.timestamp = hrt_absolute_time();
 	mp_ref.init_done = true;
 }
 
 __EXPORT bool map_projection_project(double lat, double lon, float *x, float *y)
 {
-	if (!mp_ref.init_done) {
+	if (!map_projection_inited()) {
 		return false;
 	}
 
@@ -92,7 +98,7 @@ __EXPORT bool map_projection_project(double lat, double lon, float *x, float *y)
 
 __EXPORT bool map_projection_reproject(float x, float y, double *lat, double *lon)
 {
-	if (!mp_ref.init_done) {
+	if (!map_projection_inited()) {
 		return false;
 	}
 
