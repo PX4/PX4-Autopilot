@@ -332,6 +332,7 @@ struct log_TPOS_s {
 	float vel_n;
 	float vel_e;
 	float vel_d;
+};
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
