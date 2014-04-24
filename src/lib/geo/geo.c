@@ -62,6 +62,11 @@ __EXPORT bool map_projection_inited()
 	return mp_ref.init_done;
 }
 
+__EXPORT uint64_t map_projection_timestamp()
+{
+	return mp_ref.timestamp;
+}
+
 __EXPORT void map_projection_init(double lat_0, double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
 	mp_ref.lat = lat_0 / 180.0 * M_PI;

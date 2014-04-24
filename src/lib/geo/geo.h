@@ -81,6 +81,13 @@ struct map_projection_reference_s {
  */
 __EXPORT bool map_projection_inited();
 
+
+/**
+ * Initializes the map transformation.
+ * @return the timestamp of the map_projection
+ */
+__EXPORT uint64_t map_projection_timestamp();
+
 /**
  * Initializes the map transformation.
  *
