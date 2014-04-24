@@ -55,7 +55,7 @@
  * formulas according to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html
  */
 
-struct map_projection_reference_s mp_ref;
+static struct map_projection_reference_s mp_ref;
 
 __EXPORT void map_projection_init(double lat_0, double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
@@ -116,6 +116,8 @@ __EXPORT bool map_projection_reproject(float x, float y, double *lat, double *lo
 
 	*lat = lat_rad * 180.0 / M_PI;
 	*lon = lon_rad * 180.0 / M_PI;
+
+	return true;
 }
 
 
