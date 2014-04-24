@@ -57,6 +57,13 @@ uavcan::uint32_t getUtcAjdustmentJumpCount();
  */
 uavcan::UtcDuration getPrevUtcAdjustment();
 
+/**
+ * Sets minimum absolute time error to perform non-gradual jump adjustment rather than speed change.
+ * The parameter must be positive.
+ * This function is thread safe.
+ */
+void setMinJump(uavcan::UtcDuration adj);
+
 }
 
 /**
