@@ -549,7 +549,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(home_position), home_position_sub, &home);
 
-				if (home.timestamp != home_timestamp) {
+				if (home.timestamp != home_timestamp && map_projection_inited()) {
 					home_timestamp = home.timestamp;
 
 					double est_lat, est_lon;
@@ -569,7 +569,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					local_pos.ref_alt = home.alt;
 					local_pos.ref_timestamp = home.timestamp;
 
-					if (ref_inited) { //XXX fix reference update
+					if (ref_inited) {
 						/* reproject position estimate with new reference */
 						map_projection_project(est_lat, est_lon, &x_est[0], &y_est[0]);
 						z_est[0] = -(est_alt - local_pos.ref_alt);
@@ -602,7 +602,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					}
 				}
 
-				if (gps_valid) {
+				if (gps_valid && map_projection_inited()) {
 					double lat = gps.lat * 1e-7;
 					double lon = gps.lon * 1e-7;
 					float alt = gps.alt * 1e-3;
@@ -633,7 +633,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						}
 					}
 
-					if (ref_inited) { //XXX fix reference update
+					if (ref_inited) {
 						/* project GPS lat lon to plane */
 						float gps_proj[2];
 						map_projection_project(lat, lon, &(gps_proj[0]), &(gps_proj[1]));
