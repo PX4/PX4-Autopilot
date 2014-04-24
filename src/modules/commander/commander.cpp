@@ -1231,12 +1231,12 @@ int commander_thread_main(int argc, char *argv[])
 
 			} else {
 				/* MISSION switch */
-				if (sp_man.mission_switch == SWITCH_POS_ON) {
+				if (sp_man.loiter_switch == SWITCH_POS_ON) {
 					/* stick is in LOITER position */
 					status.set_nav_state = NAV_STATE_LOITER;
 					status.set_nav_state_timestamp = hrt_absolute_time();
 
-				} else if (sp_man.mission_switch != SWITCH_POS_NONE) {
+				} else if (sp_man.loiter_switch != SWITCH_POS_NONE) {
 					/* stick is in MISSION position */
 					status.set_nav_state = NAV_STATE_MISSION;
 					status.set_nav_state_timestamp = hrt_absolute_time();
