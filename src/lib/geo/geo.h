@@ -71,6 +71,7 @@ struct map_projection_reference_s {
 	double lon;
 	double sin_lat;
 	double cos_lat;
+	bool init_done;
 };
 
 /**
@@ -80,7 +81,7 @@ struct map_projection_reference_s {
  * @param lat in degrees (47.1234567°, not 471234567°)
  * @param lon in degrees (8.1234567°, not 81234567°)
  */
-__EXPORT void map_projection_init(struct map_projection_reference_s *ref, double lat_0, double lon_0);
+__EXPORT void map_projection_init(double lat_0, double lon_0);
 
 /**
  * Transforms a point in the geographic coordinate system to the local azimuthal equidistant plane
@@ -88,8 +89,9 @@ __EXPORT void map_projection_init(struct map_projection_reference_s *ref, double
  * @param y east
  * @param lat in degrees (47.1234567°, not 471234567°)
  * @param lon in degrees (8.1234567°, not 81234567°)
+ * @return true if map_projection_init was called before, false else
  */
-__EXPORT void map_projection_project(struct map_projection_reference_s *ref, double lat, double lon, float *x, float *y);
+__EXPORT bool map_projection_project(double lat, double lon, float *x, float *y);
 
 /**
  * Transforms a point in the local azimuthal equidistant plane to the geographic coordinate system
@@ -98,8 +100,9 @@ __EXPORT void map_projection_project(struct map_projection_reference_s *ref, dou
  * @param y east
  * @param lat in degrees (47.1234567°, not 471234567°)
  * @param lon in degrees (8.1234567°, not 81234567°)
+ * @return true if map_projection_init was called before, false else
  */
-__EXPORT void map_projection_reproject(struct map_projection_reference_s *ref, float x, float y, double *lat, double *lon);
+__EXPORT bool map_projection_reproject(float x, float y, double *lat, double *lon);
 
 /**
  * Returns the distance to the next waypoint in meters.

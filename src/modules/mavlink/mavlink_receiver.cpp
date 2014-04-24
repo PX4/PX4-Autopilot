@@ -795,7 +795,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		if (!_hil_local_proj_inited) {
 			_hil_local_proj_inited = true;
 			_hil_local_alt0 = hil_state.alt / 1000.0f;
-			map_projection_init(&_hil_local_proj_ref, hil_state.lat, hil_state.lon);
+//			map_projection_init(&_hil_local_proj_ref, hil_state.lat, hil_state.lon); //XXX fix reference update
 			hil_local_pos.ref_timestamp = timestamp;
 			hil_local_pos.ref_lat = lat;
 			hil_local_pos.ref_lon = lon;
@@ -804,7 +804,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 		float x;
 		float y;
-		map_projection_project(&_hil_local_proj_ref, lat, lon, &x, &y);
+		map_projection_project(lat, lon, &x, &y);
 		hil_local_pos.timestamp = timestamp;
 		hil_local_pos.xy_valid = true;
 		hil_local_pos.z_valid = true;

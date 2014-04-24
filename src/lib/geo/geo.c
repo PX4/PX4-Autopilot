@@ -55,33 +55,47 @@
  * formulas according to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html
  */
 
-__EXPORT void map_projection_init(struct map_projection_reference_s *ref, double lat_0, double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
-{
-	ref->lat = lat_0 / 180.0 * M_PI;
-	ref->lon = lon_0 / 180.0 * M_PI;
+struct map_projection_reference_s mp_ref;
 
-	ref->sin_lat = sin(ref->lat);
-	ref->cos_lat = cos(ref->lat);
+__EXPORT void map_projection_init(double lat_0, double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+{
+	mp_ref.lat = lat_0 / 180.0 * M_PI;
+	mp_ref.lon = lon_0 / 180.0 * M_PI;
+
+	mp_ref.sin_lat = sin(mp_ref.lat);
+	mp_ref.cos_lat = cos(mp_ref.lat);
+
+	mp_ref.init_done = true;
 }
 
-__EXPORT void map_projection_project(struct map_projection_reference_s *ref, double lat, double lon, float *x, float *y)
+__EXPORT bool map_projection_project(double lat, double lon, float *x, float *y)
 {
+	if (!mp_ref.init_done) {
+		return false;
+	}
+
 	double lat_rad = lat / 180.0 * M_PI;
 	double lon_rad = lon / 180.0 * M_PI;
 
 	double sin_lat = sin(lat_rad);
 	double cos_lat = cos(lat_rad);
-	double cos_d_lon = cos(lon_rad - ref->lon);
+	double cos_d_lon = cos(lon_rad - mp_ref.lon);
 
-	double c = acos(ref->sin_lat * sin_lat + ref->cos_lat * cos_lat * cos_d_lon);
+	double c = acos(mp_ref.sin_lat * sin_lat + mp_ref.cos_lat * cos_lat * cos_d_lon);
 	double k = (c == 0.0) ? 1.0 : (c / sin(c));
 
-	*x = k * (ref->cos_lat * sin_lat - ref->sin_lat * cos_lat * cos_d_lon) * CONSTANTS_RADIUS_OF_EARTH;
-	*y = k * cos_lat * sin(lon_rad - ref->lon) * CONSTANTS_RADIUS_OF_EARTH;
+	*x = k * (mp_ref.cos_lat * sin_lat - mp_ref.sin_lat * cos_lat * cos_d_lon) * CONSTANTS_RADIUS_OF_EARTH;
+	*y = k * cos_lat * sin(lon_rad - mp_ref.lon) * CONSTANTS_RADIUS_OF_EARTH;
+
+	return true;
 }
 
-__EXPORT void map_projection_reproject(struct map_projection_reference_s *ref, float x, float y, double *lat, double *lon)
+__EXPORT bool map_projection_reproject(float x, float y, double *lat, double *lon)
 {
+	if (!mp_ref.init_done) {
+		return false;
+	}
+
 	float x_rad = x / CONSTANTS_RADIUS_OF_EARTH;
 	float y_rad = y / CONSTANTS_RADIUS_OF_EARTH;
 	double c = sqrtf(x_rad * x_rad + y_rad * y_rad);
@@ -92,12 +106,12 @@ __EXPORT void map_projection_reproject(struct map_projection_reference_s *ref, f
 	double lon_rad;
 
 	if (c != 0.0) {
-		lat_rad = asin(cos_c * ref->sin_lat + (x_rad * sin_c * ref->cos_lat) / c);
-		lon_rad = (ref->lon + atan2(y_rad * sin_c, c * ref->cos_lat * cos_c - x_rad * ref->sin_lat * sin_c));
+		lat_rad = asin(cos_c * mp_ref.sin_lat + (x_rad * sin_c * mp_ref.cos_lat) / c);
+		lon_rad = (mp_ref.lon + atan2(y_rad * sin_c, c * mp_ref.cos_lat * cos_c - x_rad * mp_ref.sin_lat * sin_c));
 
 	} else {
-		lat_rad = ref->lat;
-		lon_rad = ref->lon;
+		lat_rad = mp_ref.lat;
+		lon_rad = mp_ref.lon;
 	}
 
 	*lat = lat_rad * 180.0 / M_PI;
