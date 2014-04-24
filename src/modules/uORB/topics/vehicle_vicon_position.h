@@ -52,8 +52,7 @@
 /**
  * Fused local position in NED.
  */
-struct vehicle_vicon_position_s
-{
+struct vehicle_vicon_position_s {
 	uint64_t timestamp;			/**< time of this estimate, in microseconds since system start */
 	bool valid;				/**< true if position satisfies validity criteria of estimator */
 

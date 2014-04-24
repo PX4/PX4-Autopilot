@@ -36,13 +36,12 @@
  * Helper class to access missions
  */
 
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <string.h>
-// #include <unistd.h>
-
+#include <string.h>
 #include <stdlib.h>
 #include <dataman/dataman.h>
+#include <systemlib/err.h>
+#include <uORB/uORB.h>
+#include <uORB/topics/mission_result.h>
 #include "navigator_mission.h"
 
 /* oddly, ERROR is not defined for c++ */
@@ -60,8 +59,11 @@ Mission::Mission() :
 	_offboard_mission_item_count(0),
 	_onboard_mission_item_count(0),
 	_onboard_mission_allowed(false),
-	_current_mission_type(MISSION_TYPE_NONE)
-{}
+	_current_mission_type(MISSION_TYPE_NONE),
+	_mission_result_pub(-1)
+{
+	memset(&_mission_result, 0, sizeof(struct mission_result_s));
+}
 
 Mission::~Mission()
 {
@@ -78,8 +80,16 @@ void
 Mission::set_current_offboard_mission_index(int new_index)
 {
 	if (new_index != -1) {
+		warnx("specifically set to %d", new_index);
 		_current_offboard_mission_index = (unsigned)new_index;
+	} else {
+
+		/* if less WPs available, reset to first WP */
+		if (_current_offboard_mission_index >= _offboard_mission_item_count) {
+			_current_offboard_mission_index = 0;
+		}
 	}
+	report_current_offboard_mission_item();
 }
 
 void
@@ -87,7 +97,15 @@ Mission::set_current_onboard_mission_index(int new_index)
 {
 	if (new_index != -1) {
 		_current_onboard_mission_index = (unsigned)new_index;
+	} else {
+
+		/* if less WPs available, reset to first WP */
+		if (_current_onboard_mission_index >= _onboard_mission_item_count) {
+			_current_onboard_mission_index = 0;
+		}
 	}
+	// TODO: implement this for onboard missions as well
+	// report_current_mission_item();
 }
 
 void
@@ -266,4 +284,35 @@ Mission::move_to_next()
 	default:
 		break;
 	}
+}
+
+void
+Mission::report_mission_item_reached()
+{
+	if (_current_mission_type == MISSION_TYPE_OFFBOARD) {
+		_mission_result.mission_reached = true;
+		_mission_result.mission_index_reached = _current_offboard_mission_index;
+	}
+}
+
+void
+Mission::report_current_offboard_mission_item()
+{
+	_mission_result.index_current_mission = _current_offboard_mission_index;
+}
+
+void
+Mission::publish_mission_result()
+{
+	/* lazily publish the mission result only once available */
+	if (_mission_result_pub > 0) {
+		/* publish mission result */
+		orb_publish(ORB_ID(mission_result), _mission_result_pub, &_mission_result);
+
+	} else {
+		/* advertise and publish */
+		_mission_result_pub = orb_advertise(ORB_ID(mission_result), &_mission_result);
+	}
+	/* reset reached bool */
+	_mission_result.mission_reached = false;
 }

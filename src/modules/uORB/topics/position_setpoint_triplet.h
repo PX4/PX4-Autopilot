@@ -54,24 +54,24 @@
 
 enum SETPOINT_TYPE
 {
-	SETPOINT_TYPE_NORMAL = 0,	/**< normal setpoint */
-	SETPOINT_TYPE_LOITER,		/**< loiter setpoint */
-	SETPOINT_TYPE_TAKEOFF,		/**< takeoff setpoint */
+	SETPOINT_TYPE_NORMAL = 0,		/**< normal setpoint */
+	SETPOINT_TYPE_LOITER,			/**< loiter setpoint */
+	SETPOINT_TYPE_TAKEOFF,			/**< takeoff setpoint */
 	SETPOINT_TYPE_LAND,			/**< land setpoint, altitude must be ignored, vehicle must descend until landing */
 	SETPOINT_TYPE_IDLE,			/**< do nothing, switch off motors or keep at idle speed (MC) */
 };
 
 struct position_setpoint_s
 {
-	bool valid;					/**< true if setpoint is valid */
+	bool valid;			/**< true if setpoint is valid */
 	enum SETPOINT_TYPE type;	/**< setpoint type to adjust behavior of position controller */
-	double lat;					/**< latitude, in deg */
-	double lon;					/**< longitude, in deg */
-	float alt;					/**< altitude AMSL, in m */
-	float yaw;					/**< yaw (only for multirotors), in rad [-PI..PI), NaN = hold current yaw */
+	double lat;			/**< latitude, in deg */
+	double lon;			/**< longitude, in deg */
+	float alt;			/**< altitude AMSL, in m */
+	float yaw;			/**< yaw (only for multirotors), in rad [-PI..PI), NaN = hold current yaw */
 	float loiter_radius;		/**< loiter radius (only for fixed wing), in m */
 	int8_t loiter_direction;	/**< loiter direction: 1 = CW, -1 = CCW */
-	float pitch_min;			/**< minimal pitch angle for fixed wing takeoff waypoints */
+	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
 };
 
 /**
@@ -85,7 +85,7 @@ struct position_setpoint_triplet_s
 	struct position_setpoint_s current;
 	struct position_setpoint_s next;
 
-	nav_state_t nav_state;		/**< navigation state */
+	nav_state_t nav_state;			/**< navigation state */
 };
 
 /**

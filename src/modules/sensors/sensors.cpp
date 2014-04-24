@@ -36,6 +36,8 @@
  * Sensor readout process.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
  */
 
 #include <nuttx/config.h>
@@ -261,9 +263,7 @@ private:
 		float rc_scale_yaw;
 		float rc_scale_flaps;
 
-		int rc_fs_ch;
-		int rc_fs_mode;
-		float rc_fs_thr;
+		int32_t rc_fs_thr;
 
 		float battery_voltage_scaling;
 		float battery_current_scaling;
@@ -311,8 +311,6 @@ private:
 		param_t rc_scale_yaw;
 		param_t rc_scale_flaps;
 
-		param_t rc_fs_ch;
-		param_t rc_fs_mode;
 		param_t rc_fs_thr;
 
 		param_t battery_voltage_scaling;
@@ -529,9 +527,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_scale_flaps = param_find("RC_SCALE_FLAPS");
 
 	/* RC failsafe */
-	_parameter_handles.rc_fs_ch = param_find("RC_FS_CH");
-	_parameter_handles.rc_fs_mode = param_find("RC_FS_MODE");
-	_parameter_handles.rc_fs_thr = param_find("RC_FS_THR");
+	_parameter_handles.rc_fs_thr = param_find("RC_FAILS_THR");
 
 	/* gyro offsets */
 	_parameter_handles.gyro_offset[0] = param_find("SENS_GYRO_XOFF");
@@ -687,8 +683,6 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_scale_pitch, &(_parameters.rc_scale_pitch));
 	param_get(_parameter_handles.rc_scale_yaw, &(_parameters.rc_scale_yaw));
 	param_get(_parameter_handles.rc_scale_flaps, &(_parameters.rc_scale_flaps));
-	param_get(_parameter_handles.rc_fs_ch, &(_parameters.rc_fs_ch));
-	param_get(_parameter_handles.rc_fs_mode, &(_parameters.rc_fs_mode));
 	param_get(_parameter_handles.rc_fs_thr, &(_parameters.rc_fs_thr));
 
 	/* update RC function mappings */
@@ -940,7 +934,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		raw.accelerometer_raw[1] = accel_report.y_raw;
 		raw.accelerometer_raw[2] = accel_report.z_raw;
 
-		raw.accelerometer_counter++;
+		raw.accelerometer_timestamp = accel_report.timestamp;
 	}
 }
 
@@ -966,7 +960,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		raw.gyro_raw[1] = gyro_report.y_raw;
 		raw.gyro_raw[2] = gyro_report.z_raw;
 
-		raw.gyro_counter++;
+		raw.timestamp = gyro_report.timestamp;
 	}
 }
 
@@ -996,7 +990,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 		raw.magnetometer_raw[1] = mag_report.y_raw;
 		raw.magnetometer_raw[2] = mag_report.z_raw;
 
-		raw.magnetometer_counter++;
+		raw.magnetometer_timestamp = mag_report.timestamp;
 	}
 }
 
@@ -1014,7 +1008,7 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 		raw.baro_alt_meter = _barometer.altitude; // Altitude in meters
 		raw.baro_temp_celcius = _barometer.temperature; // Temperature in degrees celcius
 
-		raw.baro_counter++;
+		raw.baro_timestamp = _barometer.timestamp;
 	}
 }
 
@@ -1028,11 +1022,16 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		orb_copy(ORB_ID(differential_pressure), _diff_pres_sub, &_diff_pres);
 
 		raw.differential_pressure_pa = _diff_pres.differential_pressure_pa;
-		raw.differential_pressure_counter++;
+		raw.differential_pressure_timestamp = _diff_pres.timestamp;
+		raw.differential_pressure_filtered_pa = _diff_pres.differential_pressure_filtered_pa;
 
-		_airspeed.indicated_airspeed_m_s = calc_indicated_airspeed(_diff_pres.differential_pressure_pa);
-		_airspeed.true_airspeed_m_s = calc_true_airspeed(_diff_pres.differential_pressure_pa + raw.baro_pres_mbar * 1e2f,
-					      raw.baro_pres_mbar * 1e2f, raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
+		float air_temperature_celsius = (_diff_pres.temperature > -300.0f) ? _diff_pres.temperature : (raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
+
+		_airspeed.timestamp = _diff_pres.timestamp;
+		_airspeed.indicated_airspeed_m_s = calc_indicated_airspeed(_diff_pres.differential_pressure_filtered_pa);
+		_airspeed.true_airspeed_m_s = calc_true_airspeed(_diff_pres.differential_pressure_filtered_pa + raw.baro_pres_mbar * 1e2f,
+					      raw.baro_pres_mbar * 1e2f, air_temperature_celsius);
+		_airspeed.air_temperature_celsius = air_temperature_celsius;
 
 		/* announce the airspeed if needed, just publish else */
 		if (_airspeed_pub > 0) {
@@ -1169,16 +1168,19 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 	hrt_abstime t = hrt_absolute_time();
 	/* rate limit to 100 Hz */
 	if (t - _last_adc >= 10000) {
-		/* make space for a maximum of eight channels */
-		struct adc_msg_s buf_adc[8];
+		/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
+		struct adc_msg_s buf_adc[12];
 		/* read all channels available */
 		int ret = read(_fd_adc, &buf_adc, sizeof(buf_adc));
 
 		if (ret >= (int)sizeof(buf_adc[0])) {
-			for (unsigned i = 0; i < sizeof(buf_adc) / sizeof(buf_adc[0]); i++) {
+
+			/* Read add channels we got */
+			for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {
 				/* Save raw voltage values */
-				if (i < (sizeof(raw.adc_voltage_v)) / sizeof(raw.adc_voltage_v[0])) {
+				if (i < (sizeof(raw.adc_voltage_v) / sizeof(raw.adc_voltage_v[0]))) {
 					raw.adc_voltage_v[i] = buf_adc[i].am_data / (4096.0f / 3.3f);
+					raw.adc_mapping[i] = buf_adc[i].am_channel;
 				}
 
 				/* look for specific channels and process the raw voltage to measurement data */
@@ -1237,6 +1239,8 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 						_diff_pres.timestamp = t;
 						_diff_pres.differential_pressure_pa = diff_pres_pa;
+						_diff_pres.differential_pressure_filtered_pa = diff_pres_pa;
+						_diff_pres.temperature = -1000.0f;
 						_diff_pres.voltage = voltage;
 
 						/* announce the airspeed if needed, just publish else */
@@ -1301,19 +1305,15 @@ Sensors::rc_poll()
 		manual_control.aux5 = NAN;
 
 		/* require at least four channels to consider the signal valid */
-		if (rc_input.channel_count < 4)
+		if (rc_input.channel_count < 4) {
 			return;
+		}
 
-		/* failsafe check */
-		if (_parameters.rc_fs_ch != 0) {
-			if (_parameters.rc_fs_mode == 0) {
-				if (rc_input.values[_parameters.rc_fs_ch - 1] < _parameters.rc_fs_thr)
-					return;
-
-			} else if (_parameters.rc_fs_mode == 1) {
-				if (rc_input.values[_parameters.rc_fs_ch - 1] > _parameters.rc_fs_thr)
-					return;
-			}
+		/* check for failsafe */
+		if ((rc_input.rc_failsafe) || ((_parameters.rc_fs_thr != 0) && (((rc_input.values[_rc.function[THROTTLE]] < _parameters.min[_rc.function[THROTTLE]]) && (rc_input.values[_rc.function[THROTTLE]] < _parameters.rc_fs_thr))
+			|| ((rc_input.values[_rc.function[THROTTLE]] > _parameters.max[_rc.function[THROTTLE]]) && (rc_input.values[_rc.function[THROTTLE]] > _parameters.rc_fs_thr))))) {
+			/* do not publish manual control setpoints when there are none */
+			return;
 		}
 
 		unsigned channel_limit = rc_input.channel_count;
@@ -1592,8 +1592,7 @@ Sensors::task_main()
 		/* check parameters for updates */
 		parameter_update_poll();
 
-		/* store the time closest to all measurements (this is bogus, sensor timestamps should be propagated...) */
-		raw.timestamp = hrt_absolute_time();
+		/* the timestamp of the raw struct is updated by the gyro_poll() method */
 
 		/* copy most recent sensor data */
 		gyro_poll(raw);

@@ -108,7 +108,6 @@ then
 	set HIL no
 	set VEHICLE_TYPE none
 	set MIXER none
-	set USE_IO yes
 	set OUTPUT_MODE none
 	set PWM_OUTPUTS none
 	set PWM_RATE none
@@ -117,7 +116,10 @@ then
 	set PWM_MAX none
 	set MKBLCTRL_MODE none
 	set FMU_MODE pwm
+	set MAVLINK_FLAGS default
+	set EXIT_ON_END no
 	set MAV_TYPE none
+	set LOAD_DEFAULT_APPS yes
 	
 	#
 	# Set DO_AUTOCONFIG flag to use it in AUTOSTART scripts
@@ -127,6 +129,16 @@ then
 		set DO_AUTOCONFIG yes
 	else
 		set DO_AUTOCONFIG no
+	fi
+	
+	#
+	# Set USE_IO flag
+	#
+	if param compare SYS_USE_IO 1
+	then
+		set USE_IO yes
+	else
+		set USE_IO no
 	fi
 		
 	#
@@ -282,6 +294,7 @@ then
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 		fi
+		
 		if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == ardrone ]
 		then
 			echo "[init] Use FMU as primary output"
@@ -305,6 +318,7 @@ then
 				fi
 			fi
 		fi
+		
 		if [ $OUTPUT_MODE == mkblctrl ]
 		then
 			echo "[init] Use MKBLCTRL as primary output"
@@ -326,7 +340,8 @@ then
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 			
-		fi		
+		fi
+				
 		if [ $OUTPUT_MODE == hil ]
 		then
 			echo "[init] Use HIL as primary output"
@@ -384,28 +399,29 @@ then
 	#
 	# MAVLink
 	#
-	set EXIT_ON_END no
-	
-	if [ $HIL == yes ]
+	if [ $MAVLINK_FLAGS == default ]
 	then
-		sleep 1
-		mavlink start -b 230400 -d /dev/ttyACM0 
-		usleep 5000
-	else
-		if [ $TTYS1_BUSY == yes ]
+		if [ $HIL == yes ]
 		then
-			# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
-			mavlink start -d /dev/ttyS0
-			usleep 5000
-			
-			# Exit from nsh to free port for mavlink
-			set EXIT_ON_END yes
+			sleep 1
+			set MAVLINK_FLAGS "-r 10000 -d /dev/ttyACM0"
 		else
-			# Start MAVLink on default port: ttyS1
-			mavlink start
-			usleep 5000
+			# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
+			if [ $TTYS1_BUSY == yes ]
+			then
+				# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
+				set MAVLINK_FLAGS "-r 1000 -d /dev/ttyS0"
+				
+				# Exit from nsh to free port for mavlink
+				set EXIT_ON_END yes
+			else
+				# Start MAVLink on default port: ttyS1
+				set MAVLINK_FLAGS "-r 1000"
+			fi
 		fi
 	fi
+
+	mavlink start $MAVLINK_FLAGS
 	
 	#
 	# Start the datamanager
@@ -465,7 +481,10 @@ then
 		sh /etc/init.d/rc.interface
 		
 		# Start standard fixedwing apps
-		sh /etc/init.d/rc.fw_apps
+		if [ $LOAD_DEFAULT_APPS == yes ]
+		then
+			sh /etc/init.d/rc.fw_apps
+		fi
 	fi
 
 	#
@@ -495,7 +514,7 @@ then
 			then
 				set MAV_TYPE 13
 			fi
-			if [ $MIXER == hexa_cox ]
+			if [ $MIXER == FMU_hexa_cox ]
 			then
 				set MAV_TYPE 13
 			fi
@@ -521,7 +540,10 @@ then
 		sh /etc/init.d/rc.interface
 		
 		# Start standard multicopter apps
-		sh /etc/init.d/rc.mc_apps
+		if [ $LOAD_DEFAULT_APPS == yes ]
+		then
+			sh /etc/init.d/rc.mc_apps
+		fi
 	fi
 
 	#
@@ -544,6 +566,7 @@ then
 
 	if [ $EXIT_ON_END == yes ]
 	then
+		echo "[init] Exit from nsh"
 		exit
 	fi
 

@@ -245,7 +245,7 @@ PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
 /**
  * Maximum vertical acceleration
  *
- * This is the maximum vertical acceleration (in metres/second^2) 
+ * This is the maximum vertical acceleration (in metres/second square)
  * either up or down that the controller will use to correct speed 
  * or height errors. The default value of 7 m/s/s (equivalent to +- 0.7 g) 
  * allows for reasonably aggressive pitch changes if required to recover 
