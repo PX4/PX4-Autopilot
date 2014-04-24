@@ -482,8 +482,6 @@ MulticopterPositionControl::update_ref()
 			alt_sp = _ref_alt - _pos_sp(2);
 		}
 
-		/* update local projection reference */
-//		map_projection_init(&_ref_pos, _local_pos.ref_lat, _local_pos.ref_lon);    //XXX fix reference update
 		_ref_alt = _local_pos.ref_alt;
 
 		if (_ref_timestamp != 0) {
