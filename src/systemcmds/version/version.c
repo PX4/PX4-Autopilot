@@ -45,6 +45,13 @@
 #include <errno.h>
 #include <version/version.h>
 
+static char sz_ver_hw_str[] = "hw";
+static char sz_ver_git_str[] = "git";
+static char sz_ver_date_str[] = "date";
+static char sz_ver_gcc_str[] = "gcc";
+static char sz_ver_all_str[] = "all";
+
+
 __EXPORT int version_main(int argc, char *argv[]);
 
 static void usage(const char *reason)
@@ -59,7 +66,7 @@ static void usage(const char *reason)
 static void version_githash(int bShowPrefix)
 {
 	if (bShowPrefix == 1) {
-		printf("FW git-hash:");
+		printf("FW git-hash: ");
 	}
 	printf("%s\n", FW_GIT);
 }
@@ -88,7 +95,6 @@ static void version_gcc(int bShowPrefix)
 	}
 	printf("%s\n", __VERSION__);
 }
-static char sz_ver_hw_str[] = "hw";
 
 int version_main(int argc, char *argv[])
 {
@@ -100,19 +106,19 @@ int version_main(int argc, char *argv[])
 			{
 				version_hwarch(0);
 			}
-			else if (!strncmp(argv[1], "git", 3))
+			else if (!strncmp(argv[1], sz_ver_git_str, strlen(sz_ver_git_str)))
 			{
 				version_githash(0);
 			}
-			else if (!strncmp(argv[1], "date", 3))
+			else if (!strncmp(argv[1], sz_ver_date_str, strlen(sz_ver_date_str)))
 			{
 				version_date(0);
 			}
-			else if (!strncmp(argv[1], "gcc", 3))
+			else if (!strncmp(argv[1], sz_ver_gcc_str, strlen(sz_ver_gcc_str)))
 			{
 				version_gcc(0);
 			}
-			else if (!strncmp(argv[1], "all", 3))
+			else if (!strncmp(argv[1], sz_ver_all_str, strlen(sz_ver_all_str)))
 			{
 				printf("Pixhawk version info\n");
 				version_hwarch(1);
