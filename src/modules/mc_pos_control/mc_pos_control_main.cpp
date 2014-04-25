@@ -160,7 +160,7 @@ private:
 		param_t follow_ff;
 		param_t follow_dist;
 		param_t follow_alt_offs;
-		param_t follow_scale_yaw;
+		param_t follow_max_yaw;
 		param_t cam_pitch_scale;
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -173,7 +173,7 @@ private:
 		float follow_ff;
 		float follow_dist;
 		float follow_alt_offs;
-		float follow_scale_yaw;
+		float follow_max_yaw;
 		float cam_pitch_scale;
 
 		math::Vector<3> pos_p;
@@ -367,7 +367,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.follow_ff	= param_find("MPC_FOLLOW_FF");
 	_params_handles.follow_dist	= param_find("MPC_FOLLOW_DIST");
 	_params_handles.follow_alt_offs	= param_find("MPC_FOLLOW_AOFF");
-	_params_handles.follow_scale_yaw	= param_find("MPC_FOLLOW_YAW");
+	_params_handles.follow_max_yaw	= param_find("MPC_FOLLOW_YAW");
 	_params_handles.cam_pitch_scale	= param_find("MPC_CAM_P_SCALE");
 
 	/* fetch initial parameter values */
@@ -419,7 +419,8 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.follow_ff, &_params.follow_ff);
 		param_get(_params_handles.follow_dist, &_params.follow_dist);
 		param_get(_params_handles.follow_alt_offs, &_params.follow_alt_offs);
-		param_get(_params_handles.follow_scale_yaw, &_params.follow_scale_yaw);
+		param_get(_params_handles.follow_max_yaw, &_params.follow_max_yaw);
+		_params.follow_max_yaw *= M_PI / 180.0f;
 		param_get(_params_handles.cam_pitch_scale, &_params.cam_pitch_scale);
 		_params.cam_pitch_scale *= M_PI / 180.0f;
 
@@ -685,7 +686,7 @@ MulticopterPositionControl::control_camera()
 		float current_offset_xy_len = current_offset_xy.length();
 		if (current_offset_xy_len > FOLLOW_OFFS_XY_MIN) {
 			/* calculate yaw setpoint from current positions and control offset with yaw stick */
-			_att_sp.yaw_body = _wrap_pi(atan2f(-current_offset_xy(1), -current_offset_xy(0)) + _manual.yaw * _params.follow_scale_yaw);
+			_att_sp.yaw_body = _wrap_pi(atan2f(-current_offset_xy(1), -current_offset_xy(0)) + _manual.yaw * _params.follow_max_yaw);
 
 			/* feed forward attitude rates */
 			math::Vector<2> offs_vel_xy(_vel(0) - _tvel(0), _vel(1) - _tvel(1));
