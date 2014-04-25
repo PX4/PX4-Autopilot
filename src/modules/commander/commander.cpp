@@ -617,6 +617,8 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 				warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home->lat, home->lon, (double)home->alt);
 				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home->lat, home->lon, (double)home->alt);
 
+				home->valid = true;
+
 				/* announce new home position */
 				if (*home_pub > 0) {
 					orb_publish(ORB_ID(home_position), *home_pub, home);
@@ -999,6 +1001,7 @@ int commander_thread_main(int argc, char *argv[])
 			home.lat = global_position.lat;
 			home.lon = global_position.lon;
 			home.alt = global_position.alt;
+			home.valid = true;
 
 			warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home.lat, home.lon, (double)home.alt);
 			mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
@@ -1385,6 +1388,7 @@ int commander_thread_main(int argc, char *argv[])
 				home.lat = global_position.lat;
 				home.lon = global_position.lon;
 				home.alt = global_position.alt;
+				home.valid = true;
 
 				warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home.lat, home.lon, (double)home.alt);
 				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
