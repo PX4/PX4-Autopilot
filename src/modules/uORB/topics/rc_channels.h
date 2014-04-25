@@ -65,7 +65,7 @@ enum RC_CHANNELS_FUNCTION {
 	MODE = 4,
 	RETURN = 5,
 	ASSISTED = 6,
-	MISSION = 7,
+	LOITER = 7,
 	OFFBOARD_MODE = 8,
 	FLAPS   = 9,
 	AUX_1   = 10,
@@ -94,6 +94,7 @@ struct rc_channels_s {
 	char function_name[RC_CHANNELS_FUNCTION_MAX][20];
 	int8_t function[RC_CHANNELS_FUNCTION_MAX];
 	uint8_t rssi;                       /**< Overall receive signal strength */
+	bool signal_lost;		/**< control signal lost, should be checked together with topic timeout */
 }; /**< radio control channels. */
 
 /**

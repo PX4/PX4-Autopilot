@@ -1182,6 +1182,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* Copy only the first 8 channels of 14 */
 			memcpy(log_msg.body.log_RC.channel, buf.rc.chan, sizeof(log_msg.body.log_RC.channel));
 			log_msg.body.log_RC.channel_count = buf.rc.chan_count;
+			log_msg.body.log_RC.signal_lost = buf.rc.signal_lost;
 			LOGBUFFER_WRITE_AND_COUNT(RC);
 		}
 

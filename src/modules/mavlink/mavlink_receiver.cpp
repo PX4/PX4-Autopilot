@@ -88,8 +88,6 @@ static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
 
-	_manual_sub(-1),
-
 	_global_pos_pub(-1),
 	_local_pos_pub(-1),
 	_attitude_pub(-1),
@@ -418,47 +416,20 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	mavlink_manual_control_t man;
 	mavlink_msg_manual_control_decode(msg, &man);
 
-	/* rc channels */
-	{
-		struct rc_channels_s rc;
-		memset(&rc, 0, sizeof(rc));
+	struct manual_control_setpoint_s manual;
+	memset(&manual, 0, sizeof(manual));
 
-		rc.timestamp = hrt_absolute_time();
-		rc.chan_count = 4;
+	manual.timestamp = hrt_absolute_time();
+	manual.roll = man.x / 1000.0f;
+	manual.pitch = man.y / 1000.0f;
+	manual.yaw = man.r / 1000.0f;
+	manual.throttle = man.z / 1000.0f;
 
-		rc.chan[0].scaled = man.x / 1000.0f;
-		rc.chan[1].scaled = man.y / 1000.0f;
-		rc.chan[2].scaled = man.r / 1000.0f;
-		rc.chan[3].scaled = man.z / 1000.0f;
+	if (_manual_pub < 0) {
+		_manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
 
-		if (_rc_pub < 0) {
-			_rc_pub = orb_advertise(ORB_ID(rc_channels), &rc);
-
-		} else {
-			orb_publish(ORB_ID(rc_channels), _rc_pub, &rc);
-		}
-	}
-
-	/* manual control */
-	{
-		struct manual_control_setpoint_s manual;
-		memset(&manual, 0, sizeof(manual));
-
-		/* get a copy first, to prevent altering values that are not sent by the mavlink command */
-		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &manual);
-
-		manual.timestamp = hrt_absolute_time();
-		manual.roll = man.x / 1000.0f;
-		manual.pitch = man.y / 1000.0f;
-		manual.yaw = man.r / 1000.0f;
-		manual.throttle = man.z / 1000.0f;
-
-		if (_manual_pub < 0) {
-			_manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
-
-		} else {
-			orb_publish(ORB_ID(manual_control_setpoint), _manual_pub, &manual);
-		}
+	} else {
+		orb_publish(ORB_ID(manual_control_setpoint), _manual_pub, &manual);
 	}
 }
 
@@ -890,8 +861,6 @@ MavlinkReceiver::receive_thread(void *arg)
 	char thread_name[24];
 	sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
 	prctl(PR_SET_NAME, thread_name, getpid());
-
-	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	struct pollfd fds[1];
 	fds[0].fd = uart_fd;
