@@ -89,13 +89,19 @@ __EXPORT bool map_projection_initialized();
 __EXPORT uint64_t map_projection_timestamp();
 
 /**
+ * Writes the reference values to ref_lat and ref_lon
+ * @return true if map_projection_init was called before, false else
+ */
+__EXPORT bool map_projection_reference(double *ref_lat, double *ref_lon);
+
+/**
  * Initializes the map transformation.
  *
  * Initializes the transformation between the geographic coordinate system and the azimuthal equidistant plane
  * @param lat in degrees (47.1234567°, not 471234567°)
  * @param lon in degrees (8.1234567°, not 81234567°)
  */
-__EXPORT void map_projection_init(double lat_0, double lon_0);
+__EXPORT void map_projection_init(double lat_0, double lon_0, uint64_t timestamp);
 
 /**
  * Transforms a point in the geographic coordinate system to the local azimuthal equidistant plane

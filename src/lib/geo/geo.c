@@ -67,7 +67,7 @@ __EXPORT uint64_t map_projection_timestamp()
 	return mp_ref.timestamp;
 }
 
-__EXPORT void map_projection_init(double lat_0, double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+__EXPORT void map_projection_init(double lat_0, double lon_0, uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
 	mp_ref.lat = lat_0 / 180.0 * M_PI;
 	mp_ref.lon = lon_0 / 180.0 * M_PI;
@@ -75,8 +75,20 @@ __EXPORT void map_projection_init(double lat_0, double lon_0) //lat_0, lon_0 are
 	mp_ref.sin_lat = sin(mp_ref.lat);
 	mp_ref.cos_lat = cos(mp_ref.lat);
 
-	mp_ref.timestamp = hrt_absolute_time();
+	mp_ref.timestamp = timestamp;
 	mp_ref.init_done = true;
+}
+
+__EXPORT bool map_projection_reference(double *ref_lat, double *ref_lon)
+{
+	if (!map_projection_initialized()) {
+		return false;
+	}
+
+	*ref_lat = mp_ref.lat;
+	*ref_lon = mp_ref.lon;
+
+	return true;
 }
 
 __EXPORT bool map_projection_project(double lat, double lon, float *x, float *y)
