@@ -626,8 +626,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							z_est[0] = 0.0f;
 							y_est[2] = accel_NED[1];
 
-							local_pos.ref_lat = lat;
-							local_pos.ref_lon = lon;
+							map_projection_reference(&local_pos.ref_lat, &local_pos.ref_lon);
+
 							local_pos.ref_alt = alt;
 							local_pos.ref_timestamp = t;
 						}
