@@ -356,8 +356,10 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.thr_min, &_params.thr_min);
 		param_get(_params_handles.thr_max, &_params.thr_max);
 		param_get(_params_handles.tilt_max, &_params.tilt_max);
+		_params.tilt_max = math::radians(_params.tilt_max);
 		param_get(_params_handles.land_speed, &_params.land_speed);
 		param_get(_params_handles.land_tilt_max, &_params.land_tilt_max);
+		_params.land_tilt_max = math::radians(_params.land_tilt_max);
 
 		float v;
 		param_get(_params_handles.xy_p, &v);
