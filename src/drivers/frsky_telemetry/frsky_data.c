@@ -225,7 +225,7 @@ void frsky_send_frame2(int uart)
 	float course = 0, lat = 0, lon = 0, speed = 0, alt = 0;
 	char lat_ns = 0, lon_ew = 0;
 	int sec = 0;
-	if (global_pos.global_valid) {
+	if (global_pos.timestamp != 0 && hrt_absolute_time() < global_pos.timestamp + 20000) {
 		time_t time_gps = global_pos.time_gps_usec / 1000000;
 		struct tm *tm_gps = gmtime(&time_gps);
 
