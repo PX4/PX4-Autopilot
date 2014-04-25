@@ -176,11 +176,12 @@ PARAM_DEFINE_FLOAT(MPC_XY_FF, 0.5f);
  *
  * Limits maximum tilt in AUTO and EASY modes.
  *
+ * @unit deg
  * @min 0.0
- * @max 1.57
+ * @max 90.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_TILT_MAX, 1.0f);
+PARAM_DEFINE_FLOAT(MPC_TILT_MAX, 45.0f);
 
 /**
  * Landing descend rate
@@ -195,11 +196,12 @@ PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 1.0f);
  *
  * Limits maximum tilt on landing.
  *
+ * @unit deg
  * @min 0.0
- * @max 1.57
+ * @max 90.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_LAND_TILT, 0.3f);
+PARAM_DEFINE_FLOAT(MPC_LAND_TILT, 15.0f);
 
 /**
  * Follow mode feed-forward
@@ -226,7 +228,7 @@ PARAM_DEFINE_FLOAT(MPC_FOLLOW_AOFF, 0.0f);
 /**
  * Follow mode yaw scale
  *
- * Maximum yaw offset that can be set by stick.
+ * Maximum yaw offset in FOLLOW mode that can be set by stick.
  *
  * @unit deg
  * @min 0.0
@@ -235,12 +237,13 @@ PARAM_DEFINE_FLOAT(MPC_FOLLOW_AOFF, 0.0f);
 PARAM_DEFINE_FLOAT(MPC_FOLLOW_YAW, 45.0f);
 
 /**
- * Camera pitch scale
+ * Maximum camera pitch
  *
- * Camera pitch (degrees) to control signal (-1..1) scale factor
+ * Camera pitch (degrees) for control signal of 1 (assuming that camera pitch is 0 when control signal is 0).
  *
  * @unit deg
  * @min 0.0
+ * @max 180.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_CAM_P_SCALE, 90.0f);
+PARAM_DEFINE_FLOAT(MPC_CAM_P_MAX, 90.0f);

@@ -1301,12 +1301,12 @@ int commander_thread_main(int argc, char *argv[])
 
 			} else {
 				/* MISSION switch */
-				if (sp_man.mission_switch == SWITCH_POS_ON) {
+				if (sp_man.loiter_switch == SWITCH_POS_ON) {
 					/* stick is in LOITER position */
 					status.set_nav_state = NAV_STATE_LOITER;
 					status.set_nav_state_timestamp = hrt_absolute_time();
 
-				} else if (sp_man.mission_switch != SWITCH_POS_NONE) {
+				} else if (sp_man.loiter_switch != SWITCH_POS_NONE) {
 					/* stick is in MISSION position */
 					status.set_nav_state = NAV_STATE_MISSION;
 					status.set_nav_state_timestamp = hrt_absolute_time();
@@ -1797,8 +1797,11 @@ set_control_mode()
 		control_mode.flag_control_auto_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_position_enabled = true;
-		control_mode.flag_control_velocity_enabled = true;
+
+		/* in failsafe LAND mode position may be not available */
+		control_mode.flag_control_position_enabled = status.condition_local_position_valid;
+		control_mode.flag_control_velocity_enabled = status.condition_local_position_valid;
+
 		control_mode.flag_control_altitude_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
 	}

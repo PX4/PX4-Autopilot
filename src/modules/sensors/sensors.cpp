@@ -254,7 +254,7 @@ private:
 		int rc_map_mode_sw;
 		int rc_map_return_sw;
 		int rc_map_assisted_sw;
-		int rc_map_mission_sw;
+		int rc_map_loiter_sw;
 
 //		int rc_map_offboard_ctrl_mode_sw;
 
@@ -297,7 +297,7 @@ private:
 		param_t rc_map_mode_sw;
 		param_t rc_map_return_sw;
 		param_t rc_map_assisted_sw;
-		param_t rc_map_mission_sw;
+		param_t rc_map_loiter_sw;
 
 //		param_t rc_map_offboard_ctrl_mode_sw;
 
@@ -508,7 +508,7 @@ Sensors::Sensors() :
 
 	/* optional mode switches, not mapped per default */
 	_parameter_handles.rc_map_assisted_sw = param_find("RC_MAP_ASSIST_SW");
-	_parameter_handles.rc_map_mission_sw = param_find("RC_MAP_MISSIO_SW");
+	_parameter_handles.rc_map_loiter_sw = param_find("RC_MAP_LOITER_SW");
 
 //	_parameter_handles.rc_map_offboard_ctrl_mode_sw = param_find("RC_MAP_OFFB_SW");
 
@@ -654,7 +654,7 @@ Sensors::parameters_update()
 		warnx(paramerr);
 	}
 
-	if (param_get(_parameter_handles.rc_map_mission_sw, &(_parameters.rc_map_mission_sw)) != OK) {
+	if (param_get(_parameter_handles.rc_map_loiter_sw, &(_parameters.rc_map_loiter_sw)) != OK) {
 		warnx(paramerr);
 	}
 
@@ -682,7 +682,7 @@ Sensors::parameters_update()
 	_rc.function[MODE] = _parameters.rc_map_mode_sw - 1;
 	_rc.function[RETURN] = _parameters.rc_map_return_sw - 1;
 	_rc.function[ASSISTED] = _parameters.rc_map_assisted_sw - 1;
-	_rc.function[MISSION] = _parameters.rc_map_mission_sw - 1;
+	_rc.function[LOITER] = _parameters.rc_map_loiter_sw - 1;
 
 	_rc.function[FLAPS] = _parameters.rc_map_flaps - 1;
 
@@ -1242,7 +1242,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				}
 			}
 			_last_adc = t;
-			if (_battery_status.voltage_v > 0.0f) {
+			if (_battery_status.voltage_filtered_v > BATT_V_IGNORE_THRESHOLD) {
 				/* announce the battery status if needed, just publish else */
 				if (_battery_pub > 0) {
 					orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
@@ -1416,7 +1416,7 @@ Sensors::rc_poll()
 			/* mode switches */
 			manual.mode_switch = get_rc_switch_position(MODE);
 			manual.assisted_switch = get_rc_switch_position(ASSISTED);
-			manual.mission_switch = get_rc_switch_position(MISSION);
+			manual.loiter_switch = get_rc_switch_position(LOITER);
 			manual.return_switch = get_rc_switch_position(RETURN);
 
 			/* publish manual_control_setpoint topic */
@@ -1527,12 +1527,10 @@ Sensors::task_main()
 
 	while (!_task_should_exit) {
 
-		/* wait for up to 100ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		/* wait for up to 50ms for data */
+		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 50);
 
-		/* timed out - periodic check for _task_should_exit, etc. */
-		if (pret == 0)
-			continue;
+		/* if pret == 0 it timed out - periodic check for _task_should_exit, etc. */
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
@@ -1571,7 +1569,7 @@ Sensors::task_main()
 		perf_end(_loop_perf);
 	}
 
-	printf("[sensors] exiting.\n");
+	warnx("[sensors] exiting.");
 
 	_sensors_task = -1;
 	_exit(0);

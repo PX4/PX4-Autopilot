@@ -160,8 +160,8 @@ private:
 		param_t follow_ff;
 		param_t follow_dist;
 		param_t follow_alt_offs;
-		param_t follow_max_yaw;
-		param_t cam_pitch_scale;
+		param_t follow_yaw_max;
+		param_t cam_pitch_max;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -173,8 +173,8 @@ private:
 		float follow_ff;
 		float follow_dist;
 		float follow_alt_offs;
-		float follow_max_yaw;
-		float cam_pitch_scale;
+		float follow_yaw_max;
+		float cam_pitch_max;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -367,8 +367,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.follow_ff	= param_find("MPC_FOLLOW_FF");
 	_params_handles.follow_dist	= param_find("MPC_FOLLOW_DIST");
 	_params_handles.follow_alt_offs	= param_find("MPC_FOLLOW_AOFF");
-	_params_handles.follow_max_yaw	= param_find("MPC_FOLLOW_YAW");
-	_params_handles.cam_pitch_scale	= param_find("MPC_CAM_P_SCALE");
+	_params_handles.follow_yaw_max	= param_find("MPC_FOLLOW_YAW");
+	_params_handles.cam_pitch_max	= param_find("MPC_CAM_P_MAX");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -414,15 +414,16 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.thr_min, &_params.thr_min);
 		param_get(_params_handles.thr_max, &_params.thr_max);
 		param_get(_params_handles.tilt_max, &_params.tilt_max);
+		_params.tilt_max = math::radians(_params.tilt_max);
 		param_get(_params_handles.land_speed, &_params.land_speed);
 		param_get(_params_handles.land_tilt_max, &_params.land_tilt_max);
 		param_get(_params_handles.follow_ff, &_params.follow_ff);
 		param_get(_params_handles.follow_dist, &_params.follow_dist);
 		param_get(_params_handles.follow_alt_offs, &_params.follow_alt_offs);
-		param_get(_params_handles.follow_max_yaw, &_params.follow_max_yaw);
-		_params.follow_max_yaw *= M_PI / 180.0f;
-		param_get(_params_handles.cam_pitch_scale, &_params.cam_pitch_scale);
-		_params.cam_pitch_scale *= M_PI / 180.0f;
+		param_get(_params_handles.follow_yaw_max, &_params.follow_yaw_max);
+		_params.follow_yaw_max = math::radians(_params.follow_yaw_max);
+		param_get(_params_handles.cam_pitch_max, &_params.cam_pitch_max);
+		_params.cam_pitch_max = math::radians(_params.cam_pitch_max);
 
 		float v;
 		param_get(_params_handles.xy_p, &v);
@@ -686,7 +687,7 @@ MulticopterPositionControl::control_camera()
 		float current_offset_xy_len = current_offset_xy.length();
 		if (current_offset_xy_len > FOLLOW_OFFS_XY_MIN) {
 			/* calculate yaw setpoint from current positions and control offset with yaw stick */
-			_att_sp.yaw_body = _wrap_pi(atan2f(-current_offset_xy(1), -current_offset_xy(0)) + _manual.yaw * _params.follow_max_yaw);
+			_att_sp.yaw_body = _wrap_pi(atan2f(-current_offset_xy(1), -current_offset_xy(0)) + _manual.yaw * _params.follow_yaw_max);
 
 			/* feed forward attitude rates */
 			math::Vector<2> offs_vel_xy(_vel(0) - _tvel(0), _vel(1) - _tvel(1));
@@ -694,7 +695,7 @@ MulticopterPositionControl::control_camera()
 		}
 
 		/* control camera pitch in global frame (for BL camera gimbal) */
-		_cam_control.control[1] = atan2f(current_offset(2), current_offset_xy_len) / _params.cam_pitch_scale + _manual.aux2;
+		_cam_control.control[1] = atan2f(current_offset(2), current_offset_xy_len) / _params.cam_pitch_max + _manual.aux2;
 
 	} else {
 		/* manual camera pitch control */
@@ -1253,6 +1254,18 @@ MulticopterPositionControl::task_main()
 						_att_sp.roll_body = euler(0);
 						_att_sp.pitch_body = euler(1);
 						/* yaw already used to construct rot matrix, but actual rotation matrix can have different yaw near singularity */
+
+					} else if (!_control_mode.flag_control_manual_enabled) {
+						/* autonomous altitude control without position control (failsafe landing),
+						 * force level attitude, don't change yaw */
+						R.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
+
+						/* copy rotation matrix to attitude setpoint topic */
+						memcpy(&_att_sp.R_body[0][0], R.data, sizeof(_att_sp.R_body));
+						_att_sp.R_valid = true;
+
+						_att_sp.roll_body = 0.0f;
+						_att_sp.pitch_body = 0.0f;
 					}
 
 					/* convert attitude rates from NED to body frame */
