@@ -625,7 +625,7 @@ Navigator::task_main()
 	parameters_update();
 	global_position_update();
 	home_position_update();
-	map_projection_init(_home_pos.lat, _home_pos.lon);
+	map_projection_init(_home_pos.lat, _home_pos.lon, _home_pos.timestamp);
 	navigation_capabilities_update();
 	offboard_mission_update(_vstatus.is_rotary_wing);
 	onboard_mission_update();
@@ -817,7 +817,7 @@ Navigator::task_main()
 		if (fds[2].revents & POLLIN) {
 			home_position_update();
 			// XXX check if home position really changed
-			map_projection_init(_home_pos.lat, _home_pos.lon);
+			map_projection_init(_home_pos.lat, _home_pos.lon, _home_pos.timestamp);
 			dispatch(EVENT_HOME_POSITION_CHANGED);
 		}
 
