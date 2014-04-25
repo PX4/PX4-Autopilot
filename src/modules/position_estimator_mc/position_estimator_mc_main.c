@@ -322,11 +322,6 @@ int position_estimator_mc_thread_main(int argc, char *argv[])
 		lon_current = ((double)(gps.lon)) * 1e-7d;
 		alt_current = gps.alt * 1e-3f;
 		gps_origin_altitude = alt_current;
-		/* initialize coordinates */
-		map_projection_init(lat_current, lon_current);
-		/* publish global position messages only after first GPS message */
-		printf("[pos_est_mc] initialized projection with: lat: %.10f,  lon:%.10f\n", lat_current, lon_current);
-
 	} else {
 		mavlink_log_info(mavlink_fd, "[pos_est_mc] I'm NOT using GPS - I use VICON");
 		/* onboard calculated position estimations */
