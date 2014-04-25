@@ -77,7 +77,7 @@ struct map_projection_reference_s {
 
 /**
  * Initializes the map transformation.
- * @return true if map_projection_init was called before, false else
+ * @return true if map was initialized before, false else
  */
 __EXPORT bool map_projection_initialized();
 
@@ -90,9 +90,9 @@ __EXPORT uint64_t map_projection_timestamp();
 
 /**
  * Writes the reference values to ref_lat and ref_lon
- * @return true if map_projection_init was called before, false else
+ * @return 0 if map_projection_init was called before, -1 else
  */
-__EXPORT bool map_projection_reference(double *ref_lat, double *ref_lon);
+__EXPORT int map_projection_reference(double *ref_lat, double *ref_lon);
 
 /**
  * Initializes the map transformation.
@@ -101,7 +101,7 @@ __EXPORT bool map_projection_reference(double *ref_lat, double *ref_lon);
  * @param lat in degrees (47.1234567°, not 471234567°)
  * @param lon in degrees (8.1234567°, not 81234567°)
  */
-__EXPORT void map_projection_init(double lat_0, double lon_0, uint64_t timestamp);
+__EXPORT int map_projection_init(double lat_0, double lon_0, uint64_t timestamp);
 
 /**
  * Transforms a point in the geographic coordinate system to the local azimuthal equidistant plane
@@ -109,9 +109,9 @@ __EXPORT void map_projection_init(double lat_0, double lon_0, uint64_t timestamp
  * @param y east
  * @param lat in degrees (47.1234567°, not 471234567°)
  * @param lon in degrees (8.1234567°, not 81234567°)
- * @return true if map_projection_init was called before, false else
+ * @return 0 if map_projection_init was called before, -1 else
  */
-__EXPORT bool map_projection_project(double lat, double lon, float *x, float *y);
+__EXPORT int map_projection_project(double lat, double lon, float *x, float *y);
 
 /**
  * Transforms a point in the local azimuthal equidistant plane to the geographic coordinate system
@@ -120,9 +120,9 @@ __EXPORT bool map_projection_project(double lat, double lon, float *x, float *y)
  * @param y east
  * @param lat in degrees (47.1234567°, not 471234567°)
  * @param lon in degrees (8.1234567°, not 81234567°)
- * @return true if map_projection_init was called before, false else
+ * @return 0 if map_projection_init was called before, -1 else
  */
-__EXPORT bool map_projection_reproject(float x, float y, double *lat, double *lon);
+__EXPORT int map_projection_reproject(float x, float y, double *lat, double *lon);
 
 /**
  * Returns the distance to the next waypoint in meters.

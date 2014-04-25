@@ -55,7 +55,7 @@
  * formulas according to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html
  */
 
-static struct map_projection_reference_s mp_ref;
+static struct map_projection_reference_s mp_ref = {0};
 
 __EXPORT bool map_projection_initialized()
 {
@@ -67,34 +67,41 @@ __EXPORT uint64_t map_projection_timestamp()
 	return mp_ref.timestamp;
 }
 
-__EXPORT void map_projection_init(double lat_0, double lon_0, uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+__EXPORT int map_projection_init(double lat_0, double lon_0, uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
-	mp_ref.lat = lat_0 / 180.0 * M_PI;
-	mp_ref.lon = lon_0 / 180.0 * M_PI;
+	if (strcmp("navigator", getprogname() == 0)) {
 
-	mp_ref.sin_lat = sin(mp_ref.lat);
-	mp_ref.cos_lat = cos(mp_ref.lat);
+		mp_ref.lat = lat_0 / 180.0 * M_PI;
+		mp_ref.lon = lon_0 / 180.0 * M_PI;
 
-	mp_ref.timestamp = timestamp;
-	mp_ref.init_done = true;
+		mp_ref.sin_lat = sin(mp_ref.lat);
+		mp_ref.cos_lat = cos(mp_ref.lat);
+
+		mp_ref.timestamp = timestamp;
+		mp_ref.init_done = true;
+
+		return 0;
+	} else {
+		return -1;
+	}
 }
 
-__EXPORT bool map_projection_reference(double *ref_lat, double *ref_lon)
+__EXPORT int map_projection_reference(double *ref_lat, double *ref_lon)
 {
 	if (!map_projection_initialized()) {
-		return false;
+		return -1;
 	}
 
 	*ref_lat = mp_ref.lat;
 	*ref_lon = mp_ref.lon;
 
-	return true;
+	return 0;
 }
 
-__EXPORT bool map_projection_project(double lat, double lon, float *x, float *y)
+__EXPORT int map_projection_project(double lat, double lon, float *x, float *y)
 {
 	if (!map_projection_initialized()) {
-		return false;
+		return -1;
 	}
 
 	double lat_rad = lat / 180.0 * M_PI;
@@ -110,13 +117,13 @@ __EXPORT bool map_projection_project(double lat, double lon, float *x, float *y)
 	*x = k * (mp_ref.cos_lat * sin_lat - mp_ref.sin_lat * cos_lat * cos_d_lon) * CONSTANTS_RADIUS_OF_EARTH;
 	*y = k * cos_lat * sin(lon_rad - mp_ref.lon) * CONSTANTS_RADIUS_OF_EARTH;
 
-	return true;
+	return 0;
 }
 
-__EXPORT bool map_projection_reproject(float x, float y, double *lat, double *lon)
+__EXPORT int map_projection_reproject(float x, float y, double *lat, double *lon)
 {
 	if (!map_projection_initialized()) {
-		return false;
+		return -1;
 	}
 
 	float x_rad = x / CONSTANTS_RADIUS_OF_EARTH;
@@ -140,7 +147,7 @@ __EXPORT bool map_projection_reproject(float x, float y, double *lat, double *lo
 	*lat = lat_rad * 180.0 / M_PI;
 	*lon = lon_rad * 180.0 / M_PI;
 
-	return true;
+	return 0;
 }
 
 
