@@ -288,13 +288,17 @@ MEASAirspeed::collect()
 void
 MEASAirspeed::cycle()
 {
+	int ret;
+
 	/* collection phase? */
 	if (_collect_phase) {
 
 		/* perform collection */
-		if (OK != collect()) {
+		ret = collect();
+		if (OK != ret) {
 			/* restart the measurement state machine */
 			start();
+			_sensor_ok = false;
 			return;
 		}
 
@@ -318,9 +322,12 @@ MEASAirspeed::cycle()
 	}
 
 	/* measurement phase */
-	if (OK != measure()) {
-		log("measure error");
+	ret = measure();
+	if (OK != ret) {
+		debug("measure error");
 	}
+
+	_sensor_ok = (ret == OK);
 
 	/* next phase is collection */
 	_collect_phase = true;
