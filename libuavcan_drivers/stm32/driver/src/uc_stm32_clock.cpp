@@ -37,6 +37,7 @@ bool initialized = false;
 
 bool utc_set = false;
 
+// TODO: Clock speed adjustment is suboptimal, shall be reimplemented.
 uavcan::uint32_t utc_jump_cnt = 0;
 uavcan::int32_t utc_correction_usec_per_overflow_x16 = 0;
 uavcan::int64_t prev_adjustment = 0;
@@ -47,7 +48,7 @@ uavcan::uint64_t time_mono = 0;
 uavcan::uint64_t time_utc = 0;
 
 const uavcan::uint32_t USecPerOverflow = 65536;
-const uavcan::int32_t MaxUtcSpeedCorrectionX16 = 100 * 16;
+const uavcan::int32_t MaxUtcSpeedCorrectionX16 = 30 * 16;
 
 }
 
@@ -150,13 +151,12 @@ void adjustUtc(uavcan::UtcDuration adjustment)
 
     /*
      * Naive speed adjustment - discrete PI controller.
-     * TODO: More reliable clock speed adjustment algorithm
      */
-    const uavcan::int64_t adj_delta = adjustment.toUSec() - prev_adjustment;  // This is the P term
+    const uavcan::int64_t adj_delta = adjustment.toUSec() - prev_adjustment;
     prev_adjustment = adjustment.toUSec();
 
-    utc_correction_usec_per_overflow_x16 += adjustment.isPositive() ? 1 : -1; // I
-    utc_correction_usec_per_overflow_x16 += (adj_delta > 0) ? 1 : -1;         // P
+    utc_correction_usec_per_overflow_x16 += adjustment.isPositive() ? 1 : -1;
+    utc_correction_usec_per_overflow_x16 += (adj_delta > 0) ? 1 : -1;
 
     utc_correction_usec_per_overflow_x16 = std::max(utc_correction_usec_per_overflow_x16, -MaxUtcSpeedCorrectionX16);
     utc_correction_usec_per_overflow_x16 = std::min(utc_correction_usec_per_overflow_x16,  MaxUtcSpeedCorrectionX16);
@@ -267,6 +267,24 @@ UAVCAN_STM32_IRQ_HANDLER(TIMX_IRQHandler)
     {
         // Values below 16 are ignored
         time_utc += USecPerOverflow + (utc_correction_usec_per_overflow_x16 / 16);
+
+        // Correction slowly decays
+        static uavcan::uint8_t reductor;
+        if (reductor++ == 0)
+        {
+            if (utc_correction_usec_per_overflow_x16 > 0)
+            {
+                utc_correction_usec_per_overflow_x16--;
+            }
+            else if (utc_correction_usec_per_overflow_x16 < 0)
+            {
+                utc_correction_usec_per_overflow_x16++;
+            }
+            else
+            {
+                ; // Nothing to do
+            }
+        }
     }
 
     UAVCAN_STM32_IRQ_EPILOGUE();
