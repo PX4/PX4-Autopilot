@@ -44,6 +44,12 @@ void adjustUtc(uavcan::UtcDuration adjustment);
 uavcan::int32_t getUtcSpeedCorrectionPPM();
 
 /**
+ * Sets maximum absolute UTC speed correction in ppm.
+ * This function is thread safe.
+ */
+void setMaxUtcSpeedCorrectionPPM(uavcan::uint32_t ppm);
+
+/**
  * Number of non-gradual adjustments performed so far.
  * Ideally should be zero.
  * This function is thread safe.

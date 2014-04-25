@@ -43,12 +43,12 @@ uavcan::int32_t utc_correction_usec_per_overflow_x16 = 0;
 uavcan::int64_t prev_adjustment = 0;
 
 uavcan::UtcDuration min_utc_jump = uavcan::UtcDuration::fromMSec(10);
+uavcan::int32_t max_utc_speed_correction_x16 = 20 * 16;
 
 uavcan::uint64_t time_mono = 0;
 uavcan::uint64_t time_utc = 0;
 
 const uavcan::uint32_t USecPerOverflow = 65536;
-const uavcan::int32_t MaxUtcSpeedCorrectionX16 = 30 * 16;
 
 }
 
@@ -158,8 +158,8 @@ void adjustUtc(uavcan::UtcDuration adjustment)
     utc_correction_usec_per_overflow_x16 += adjustment.isPositive() ? 1 : -1;
     utc_correction_usec_per_overflow_x16 += (adj_delta > 0) ? 1 : -1;
 
-    utc_correction_usec_per_overflow_x16 = std::max(utc_correction_usec_per_overflow_x16, -MaxUtcSpeedCorrectionX16);
-    utc_correction_usec_per_overflow_x16 = std::min(utc_correction_usec_per_overflow_x16,  MaxUtcSpeedCorrectionX16);
+    utc_correction_usec_per_overflow_x16 = std::max(utc_correction_usec_per_overflow_x16,-max_utc_speed_correction_x16);
+    utc_correction_usec_per_overflow_x16 = std::min(utc_correction_usec_per_overflow_x16, max_utc_speed_correction_x16);
 
     /*
      * Clock value adjustment
@@ -197,6 +197,12 @@ uavcan::int32_t getUtcSpeedCorrectionPPM()
 {
     MutexLocker mlocker(mutex);
     return uavcan::int64_t((utc_correction_usec_per_overflow_x16 * 1000000) / 16) / USecPerOverflow;
+}
+
+void setMaxUtcSpeedCorrectionPPM(uavcan::uint32_t ppm)
+{
+    MutexLocker mlocker(mutex);
+    max_utc_speed_correction_x16 = (USecPerOverflow * 16LL * uavcan::int64_t(ppm)) / 1000000;
 }
 
 uavcan::uint32_t getUtcAjdustmentJumpCount()
