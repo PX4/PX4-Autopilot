@@ -20,7 +20,7 @@ public:
     float z;
 
     float length(void) const;
-    Vector3f zero(void) const;
+    void zero(void);
 };
 
 class Mat3f
@@ -33,6 +33,7 @@ public:
 
     Mat3f();
 
+    void identity();
     Mat3f transpose(void) const;
 };
 
@@ -45,13 +46,8 @@ Vector3f operator*(Vector3f vecIn1, float sclIn1);
 
 void swap_var(float &d1, float &d2);
 
-const unsigned int n_states = 21;
+const unsigned int n_states = 23;
 const unsigned int data_buffer_size = 50;
-
-const float covTimeStepMax = 0.07f; // maximum time allowed between covariance predictions
-const float covDelAngMax = 0.02f; // maximum delta angle between covariance predictions
-
-// extern bool staticMode;
 
 enum GPS_FIX {
     GPS_FIX_NOFIX = 0,
@@ -82,6 +78,88 @@ public:
     AttPosEKF();
     ~AttPosEKF();
 
+
+
+    /* ##############################################
+     *
+     *   M A I N    F I L T E R    P A R A M E T E R S
+     *
+     * ########################################### */
+
+    /*
+     * parameters are defined here and initialised in
+     * the InitialiseParameters() (which is just 20 lines down)
+     */
+
+    float covTimeStepMax; // maximum time allowed between covariance predictions
+    float covDelAngMax; // maximum delta angle between covariance predictions
+    float rngFinderPitch; // pitch angle of laser range finder in radians. Zero is aligned with the Z body axis. Positive is RH rotation about Y body axis.
+
+    float yawVarScale;
+    float windVelSigma;
+    float dAngBiasSigma;
+    float dVelBiasSigma;
+    float magEarthSigma;
+    float magBodySigma;
+    float gndHgtSigma;
+
+    float vneSigma;
+    float vdSigma;
+    float posNeSigma;
+    float posDSigma;
+    float magMeasurementSigma;
+    float airspeedMeasurementSigma;
+
+    float gyroProcessNoise;
+    float accelProcessNoise;
+
+    float EAS2TAS; // ratio f true to equivalent airspeed
+
+    void InitialiseParameters()
+    {
+        covTimeStepMax = 0.07f; // maximum time allowed between covariance predictions
+        covDelAngMax = 0.02f; // maximum delta angle between covariance predictions
+        rngFinderPitch = 0.0f; // pitch angle of laser range finder in radians. Zero is aligned with the Z body axis. Positive is RH rotation about Y body axis.
+        EAS2TAS = 1.0f;
+
+        yawVarScale = 1.0f;
+        windVelSigma = 0.1f;
+        dAngBiasSigma = 5.0e-7f;
+        dVelBiasSigma = 1e-4f;
+        magEarthSigma = 3.0e-4f;
+        magBodySigma  = 3.0e-4f;
+        gndHgtSigma  = 0.02f; // assume 2% terrain gradient 1-sigma
+
+        vneSigma = 0.2f;
+        vdSigma = 0.3f;
+        posNeSigma = 2.0f;
+        posDSigma = 2.0f;
+
+        magMeasurementSigma = 0.05;
+        airspeedMeasurementSigma = 1.4f;
+        gyroProcessNoise = 1.4544411e-2f;
+        accelProcessNoise = 0.5f;
+    }
+
+    struct {
+        unsigned obsIndex;
+        float MagPred[3];
+        float SH_MAG[9];
+        float q0;
+        float q1;
+        float q2;
+        float q3;
+        float magN;
+        float magE;
+        float magD;
+        float magXbias;
+        float magYbias;
+        float magZbias;
+        float R_MAG;
+        Mat3f DCM;
+    } magstate;
+
+
     // Global variables
     float KH[n_states][n_states]; //  intermediate result used for covariance updates
     float KHP[n_states][n_states]; // intermediate result used for covariance updates
@@ -96,6 +174,7 @@ public:
     float statesAtHgtTime[n_states]; // States at the effective measurement time for the hgtMea measurement
     float statesAtMagMeasTime[n_states]; // filter satates at the effective measurement time
     float statesAtVtasMeasTime[n_states]; // filter states at the effective measurement time
+    float statesAtRngTime[n_states]; // filter states at the effective measurement time
 
     Vector3f correctedDelAng; // delta angles about the xyz body axes corrected for errors (rad)
     Vector3f correctedDelVel; // delta velocities along the XYZ body axes corrected for errors (m/s)
@@ -104,6 +183,10 @@ public:
     float accNavMag; // magnitude of navigation accel (- used to adjust GPS obs variance (m/s^2)
     Vector3f earthRateNED; // earths angular rate vector in NED (rad/s)
     Vector3f angRate; // angular rate vector in XYZ body axes measured by the IMU (rad/s)
+
+    Mat3f Tbn; // transformation matrix from body to NED coordinates
+    Mat3f Tnb; // transformation amtrix from NED to body coordinates
+
     Vector3f accel; // acceleration vector in XYZ body axes measured by the IMU (m/s^2)
     Vector3f dVelIMU;
     Vector3f dAngIMU;
@@ -115,26 +198,28 @@ public:
     float velNED[3]; // North, East, Down velocity obs (m/s)
     float posNE[2]; // North, East position obs (m)
     float hgtMea; //  measured height (m)
+    float rngMea; // Ground distance
     float posNED[3]; // North, East Down position (m)
 
     float innovMag[3]; // innovation output
     float varInnovMag[3]; // innovation variance output
     Vector3f magData; // magnetometer flux radings in X,Y,Z body axes
     float innovVtas; // innovation output
+    float innovRng; ///< Range finder innovation
     float varInnovVtas; // innovation variance output
     float VtasMeas; // true airspeed measurement (m/s)
-    float latRef; // WGS-84 latitude of reference point (rad)
-    float lonRef; // WGS-84 longitude of reference point (rad)
+    double latRef; // WGS-84 latitude of reference point (rad)
+    double lonRef; // WGS-84 longitude of reference point (rad)
     float hgtRef; // WGS-84 height of reference point (m)
+    bool refSet;                ///< flag to indicate if the reference position has been set
     Vector3f magBias; // states representing magnetometer bias vector in XYZ body axes
-    uint8_t covSkipCount; // Number of state prediction frames (IMU daya updates to skip before doing the covariance prediction
-    float EAS2TAS; // ratio f true to equivalent airspeed
+    unsigned covSkipCount; // Number of state prediction frames (IMU daya updates to skip before doing the covariance prediction
 
     // GPS input data variables
     float gpsCourse;
     float gpsVelD;
-    float gpsLat;
-    float gpsLon;
+    double gpsLat;
+    double gpsLon;
     float gpsHgt;
     uint8_t GPSstatus;
 
@@ -148,11 +233,13 @@ public:
     bool fuseHgtData; // this boolean causes the hgtMea obs to be fused
     bool fuseMagData; // boolean true when magnetometer data is to be fused
     bool fuseVtasData; // boolean true when airspeed data is to be fused
+    bool fuseRngData;   ///< true when range data is fused
 
     bool onGround;    ///< boolean true when the flight vehicle is on the ground (not flying)
     bool staticMode;    ///< boolean true if no position feedback is fused
     bool useAirspeed;    ///< boolean true if airspeed data is being used
     bool useCompass;    ///< boolean true if magnetometer data is being used
+    bool useRangeFinder;     ///< true when rangefinder is being used
 
     struct ekf_status_report current_ekf_state;
     struct ekf_status_report last_ekf_error;
@@ -171,6 +258,10 @@ void FuseVelposNED();
 void FuseMagnetometer();
 
 void FuseAirspeed();
+
+void FuseRangeFinder();
+
+void FuseOpticalFlow();
 
 void zeroRows(float (&covMat)[n_states][n_states], uint8_t first, uint8_t last);
 
@@ -192,7 +283,7 @@ void StoreStates(uint64_t timestamp_ms);
  *         time-wise where valid states were updated and invalid remained at the old
  *         value.
  */
-int RecallStates(float statesForFusion[n_states], uint64_t msec);
+int RecallStates(float *statesForFusion, uint64_t msec);
 
 void ResetStoredStates();
 
@@ -206,7 +297,7 @@ static void quat2eul(float (&eul)[3], const float (&quat)[4]);
 
 static void calcvelNED(float (&velNED)[3], float gpsCourse, float gpsGndSpd, float gpsVelD);
 
-static void calcposNED(float (&posNED)[3], float lat, float lon, float hgt, float latRef, float lonRef, float hgtRef);
+static void calcposNED(float (&posNED)[3], double lat, double lon, float hgt, double latRef, double lonRef, float hgtRef);
 
 static void calcLLH(float (&posNED)[3], float lat, float lon, float hgt, float latRef, float lonRef, float hgtRef);
 
@@ -218,7 +309,7 @@ void OnGroundCheck();
 
 void CovarianceInit();
 
-void InitialiseFilter(float (&initvelNED)[3]);
+void InitialiseFilter(float (&initvelNED)[3], double referenceLat, double referenceLon, float referenceHgt);
 
 float ConstrainFloat(float val, float min, float max);
 

@@ -61,12 +61,8 @@
  * e.g. control inputs of the vehicle in a Kalman-filter implementation.
  */
 struct vehicle_global_position_s {
-	uint64_t timestamp;		/**< Time of this estimate, in microseconds since system start */
-
-	bool global_valid;		/**< true if position satisfies validity criteria of estimator */
-	bool baro_valid;		/**< true if baro_alt is valid (vel_d is also valid in this case) */
-
-	uint64_t time_gps_usec; 	/**< GPS timestamp in microseconds					   */
+	uint64_t timestamp;		/**< Time of this estimate, in microseconds since system start		*/
+	uint64_t time_gps_usec;		/**< GPS timestamp in microseconds					   */
 	double lat;			/**< Latitude in degrees							 	   */
 	double lon;			/**< Longitude in degrees							 	   */
 	float alt;			/**< Altitude AMSL in meters						 	   */
@@ -74,8 +70,8 @@ struct vehicle_global_position_s {
 	float vel_e;			/**< Ground east velocity, m/s							   */
 	float vel_d;			/**< Ground downside velocity, m/s						   */
 	float yaw; 			/**< Yaw in radians -PI..+PI.							   */
-
-	float baro_alt;			/**< Barometric altitude (not raw baro but fused with accelerometer) */
+	float eph;
+	float epv;
 };
 
 /**

@@ -782,7 +782,7 @@ FixedwingAttitudeControl::task_main()
 					_actuators.control[1] = (isfinite(pitch_u)) ? pitch_u + _parameters.trim_pitch : _parameters.trim_pitch;
 					if (!isfinite(pitch_u)) {
 						warnx("pitch_u %.4f, _yaw_ctrl.get_desired_rate() %.4f, airspeed %.4f, airspeed_scaling %.4f, roll_sp %.4f, pitch_sp %.4f, _roll_ctrl.get_desired_rate() %.4f, _pitch_ctrl.get_desired_rate() %.4f att_sp.roll_body %.4f",
-								pitch_u, _yaw_ctrl.get_desired_rate(), airspeed, airspeed_scaling, roll_sp, pitch_sp, _roll_ctrl.get_desired_rate(), _pitch_ctrl.get_desired_rate(), _att_sp.roll_body);
+								(double)pitch_u, (double)_yaw_ctrl.get_desired_rate(), (double)airspeed, (double)airspeed_scaling, (double)roll_sp, (double)pitch_sp, (double)_roll_ctrl.get_desired_rate(), (double)_pitch_ctrl.get_desired_rate(), (double)_att_sp.roll_body);
 					}
 
 					float yaw_u = _yaw_ctrl.control_bodyrate(_att.roll, _att.pitch,
@@ -791,16 +791,16 @@ FixedwingAttitudeControl::task_main()
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
 					_actuators.control[2] = (isfinite(yaw_u)) ? yaw_u + _parameters.trim_yaw : _parameters.trim_yaw;
 					if (!isfinite(yaw_u)) {
-						warnx("yaw_u %.4f", yaw_u);
+						warnx("yaw_u %.4f", (double)yaw_u);
 					}
 
 					/* throttle passed through */
 					_actuators.control[3] = (isfinite(throttle_sp)) ? throttle_sp : 0.0f;
 					if (!isfinite(throttle_sp)) {
-						warnx("throttle_sp %.4f", throttle_sp);
+						warnx("throttle_sp %.4f", (double)throttle_sp);
 					}
 				} else {
-					warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", roll_sp, pitch_sp);
+					warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", (double)roll_sp, (double)pitch_sp);
 				}
 
 				/*

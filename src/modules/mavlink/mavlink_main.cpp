@@ -189,9 +189,18 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 	/* If the wait until transmit flag is on, only transmit after we've received messages.
 	   Otherwise, transmit all the time. */
 	if (instance->should_transmit()) {
-	   ssize_t ret = write(uart, ch, desired);
+
+		/* check if there is space in the buffer, let it overflow else */
+		if (!ioctl(uart, FIONWRITE, (unsigned long)&buf_free)) {
+
+			if (desired > buf_free) {
+				desired = buf_free;
+			}
+		}
+
+		ssize_t ret = write(uart, ch, desired);
 		if (ret != desired) {
-			// XXX do something here, but change to using FIONWRITE and OS buf size for detection
+			warnx("TX FAIL");
 		}
 	}
 
