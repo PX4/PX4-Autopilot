@@ -1203,7 +1203,7 @@ FixedwingEstimator::task_main()
 				_local_pos.timestamp = last_sensor_timestamp;
 				_local_pos.x = _ekf->states[7];
 				_local_pos.y = _ekf->states[8];
-				_local_pos.z = _ekf->states[9];
+				_local_pos.z = _ekf->states[9] + _baro_gps_offset;
 
 				_local_pos.vx = _ekf->states[4];
 				_local_pos.vy = _ekf->states[5];
