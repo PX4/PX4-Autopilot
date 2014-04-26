@@ -2,6 +2,7 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#include <crdr_chibios/sys/sys.h>
 #include <cassert>
 #include <cmath>
 #include <uavcan_stm32/clock.hpp>
@@ -188,6 +189,9 @@ static void updateRatePID(uavcan::UtcDuration adjustment)
     rate_correction_ppm = std::min(rate_correction_ppm, utc_sync_params.max_rate_correction_ppm);
 
     utc_correction_nsec_per_overflow = (USecPerOverflow * 1000) * (rate_correction_ppm / 1e6F);
+
+    lowsyslog("$ adj=%f   rate_err=%f   int=%f   ppm=%f\n",
+              adj_usec, utc_inv_rate_error_ppm, utc_integrated_error, rate_correction_ppm);
 }
 
 void adjustUtc(uavcan::UtcDuration adjustment)

@@ -43,10 +43,10 @@ struct UtcSyncParams
 {
     float p = 0.01;                                   ///< Correction PPM per 1 usec error
     float i_fwd = 0.0001;
-    float i_rev = i_fwd * 10.0;
-    float rate_error_corner_freq = 0.05;
+    float i_rev = i_fwd * 5.0;
+    float rate_error_corner_freq = 0.01;
     float max_rate_correction_ppm = 300;
-    float lock_thres_rate_ppm = 10.0;
+    float lock_thres_rate_ppm = 2.0;
     uavcan::UtcDuration lock_thres_offset = uavcan::UtcDuration::fromMSec(4);
     uavcan::UtcDuration min_jump = uavcan::UtcDuration::fromMSec(10); ///< Min error to jump rather than change rate
 };
