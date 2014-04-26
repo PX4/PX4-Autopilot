@@ -837,21 +837,21 @@ FixedwingEstimator::task_main()
 				case 1:
 				{
 					const char* str = "NaN in states, resetting";
-					warnx("%s%s", ekfname, str);
+					warnx("%s", str);
 					mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
 					break;
 				}
 				case 2:
 				{
 					const char* str = "stale IMU data, resetting";
-					warnx("%s%s", ekfname, str);
+					warnx("%s", str);
 					mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
 					break;
 				}
 				case 3:
 				{
 					const char* str = "switching to dynamic state";
-					warnx("%s%s", ekfname, str);
+					warnx("%s", str);
 					mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
 					break;
 				}
@@ -859,7 +859,7 @@ FixedwingEstimator::task_main()
 				default:
 				{
 					const char* str = "unknown reset condition";
-					warnx("%s%s", ekfname, str);
+					warnx("%s", str);
 					mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
 				}
 			}
