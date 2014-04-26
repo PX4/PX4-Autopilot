@@ -181,10 +181,10 @@ int main()
         }
 
         const uavcan::UtcTime utc = uavcan_stm32::clock::getUtc();
-        lowsyslog("UTC %lu sec   Absolute correction: %li usec   Speed correction: %liPPM   Jumps: %lu\n",
+        lowsyslog("UTC %lu sec   Rate corr: %fPPM   Jumps: %lu   Locked: %i\n",
                   static_cast<unsigned long>(utc.toMSec() / 1000),
-                  static_cast<long>(uavcan_stm32::clock::getPrevUtcAdjustment().toUSec()),
-                  uavcan_stm32::clock::getUtcSpeedCorrectionPPM(),
-                  uavcan_stm32::clock::getUtcAjdustmentJumpCount());
+                  uavcan_stm32::clock::getUtcRateCorrectionPPM(),
+                  uavcan_stm32::clock::getUtcJumpCount(),
+                  int(uavcan_stm32::clock::isUtcLocked()));
     }
 }

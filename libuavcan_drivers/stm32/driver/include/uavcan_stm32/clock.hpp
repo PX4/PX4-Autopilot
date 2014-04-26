@@ -37,38 +37,46 @@ uavcan::UtcTime getUtc();
 void adjustUtc(uavcan::UtcDuration adjustment);
 
 /**
- * Clock speed error.
+ * UTC clock synchronization parameters
+ */
+struct UtcSyncParams
+{
+    float p = 0.01;                                   ///< Correction PPM per 1 usec error
+    float i_fwd = 0.0001;
+    float i_rev = i_fwd * 10.0;
+    float rate_error_corner_freq = 0.05;
+    float max_rate_correction_ppm = 300;
+    float lock_thres_rate_ppm = 10.0;
+    uavcan::UtcDuration lock_thres_offset = uavcan::UtcDuration::fromMSec(4);
+    uavcan::UtcDuration min_jump = uavcan::UtcDuration::fromMSec(10); ///< Min error to jump rather than change rate
+};
+
+/**
+ * Clock rate error.
  * Positive if the hardware timer is slower than reference time.
  * This function is thread safe.
  */
-uavcan::int32_t getUtcSpeedCorrectionPPM();
-
-/**
- * Sets maximum absolute UTC speed correction in ppm.
- * This function is thread safe.
- */
-void setMaxUtcSpeedCorrectionPPM(uavcan::uint32_t ppm);
+float getUtcRateCorrectionPPM();
 
 /**
  * Number of non-gradual adjustments performed so far.
  * Ideally should be zero.
  * This function is thread safe.
  */
-uavcan::uint32_t getUtcAjdustmentJumpCount();
+uavcan::uint32_t getUtcJumpCount();
 
 /**
- * Returns clock error sampled at previous UTC adjustment.
- * Positive if the hardware timer is slower than reference time.
+ * Whether UTC is synchronized and locked.
  * This function is thread safe.
  */
-uavcan::UtcDuration getPrevUtcAdjustment();
+bool isUtcLocked();
 
 /**
- * Sets minimum absolute time error to perform non-gradual jump adjustment rather than speed change.
- * The parameter must be positive.
- * This function is thread safe.
+ * UTC sync params get/set.
+ * Both functions are thread safe.
  */
-void setMinUtcJump(uavcan::UtcDuration adj);
+UtcSyncParams getUtcSyncParams();
+void setUtcSyncParams(const UtcSyncParams& params);
 
 }
 
