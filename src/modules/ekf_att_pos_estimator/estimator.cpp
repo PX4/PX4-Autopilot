@@ -2250,21 +2250,21 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
     // check all integrators
     if (!isfinite(summedDelAng.x) || !isfinite(summedDelAng.y) || !isfinite(summedDelAng.z)) {
         err_report->statesNaN = true;
-        ekf_debug("summedDelAng NaN: x: %f y: %f z: %f", summedDelAng.x, summedDelAng.y, summedDelAng.z);
+        ekf_debug("summedDelAng NaN: x: %f y: %f z: %f", (double)summedDelAng.x, (double)summedDelAng.y, (double)summedDelAng.z);
         err = true;
         goto out;
     } // delta angles
 
     if (!isfinite(correctedDelAng.x) || !isfinite(correctedDelAng.y) || !isfinite(correctedDelAng.z)) {
         err_report->statesNaN = true;
-        ekf_debug("correctedDelAng NaN: x: %f y: %f z: %f", correctedDelAng.x, correctedDelAng.y, correctedDelAng.z);
+        ekf_debug("correctedDelAng NaN: x: %f y: %f z: %f", (double)correctedDelAng.x, (double)correctedDelAng.y, (double)correctedDelAng.z);
         err = true;
         goto out;
     } // delta angles
 
     if (!isfinite(summedDelVel.x) || !isfinite(summedDelVel.y) || !isfinite(summedDelVel.z)) {
         err_report->statesNaN = true;
-        ekf_debug("summedDelVel NaN: x: %f y: %f z: %f", summedDelVel.x, summedDelVel.y, summedDelVel.z);
+        ekf_debug("summedDelVel NaN: x: %f y: %f z: %f", (double)summedDelVel.x, (double)summedDelVel.y, (double)summedDelVel.z);
         err = true;
         goto out;
     } // delta velocities
@@ -2381,8 +2381,8 @@ void AttPosEKF::AttitudeInit(float ax, float ay, float az, float mx, float my, f
     float magX, magY;
     float initialHdg, cosHeading, sinHeading;
 
-    initialRoll = atan2(-ay, -az);
-    initialPitch = atan2(ax, -az);
+    initialRoll = atan2f(-ay, -az);
+    initialPitch = atan2f(ax, -az);
 
     cosRoll = cosf(initialRoll);
     sinRoll = sinf(initialRoll);
