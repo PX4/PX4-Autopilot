@@ -137,7 +137,7 @@ enum MAV_MODE_FLAG {
 };
 
 /* Mavlink file descriptors */
-static int mavlink_fd;
+static int mavlink_fd = 0;
 
 /* flags */
 static bool commander_initialized = false;
@@ -217,10 +217,9 @@ void print_reject_arm(const char *msg);
 
 void print_status();
 
-int arm();
-int disarm();
-
 transition_result_t check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_control_mode_s *control_mode, struct vehicle_local_position_s *local_pos);
+
+transition_result_t arm_disarm(bool arm, const int mavlink_fd, const char* armedBy);
 
 /**
  * Loop that runs at a lower rate and priority for calibration and parameter tasks.
@@ -288,12 +287,12 @@ int commander_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "arm")) {
-		arm();
+		arm_disarm(true, mavlink_fd, "command line");
 		exit(0);
 	}
 
-	if (!strcmp(argv[1], "disarm")) {
-		disarm();
+	if (!strcmp(argv[1], "2")) {
+		arm_disarm(false, mavlink_fd, "command line");
 		exit(0);
 	}
 
@@ -363,30 +362,20 @@ void print_status()
 
 static orb_advert_t status_pub;
 
-int arm()
+transition_result_t arm_disarm(bool arm, const int mavlink_fd, const char* armedBy)
 {
-	int arming_res = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed);
-
-	if (arming_res == TRANSITION_CHANGED) {
-		mavlink_log_info(mavlink_fd, "[cmd] ARMED by commandline");
-		return 0;
-
-	} else {
-		return 1;
-	}
-}
-
-int disarm()
-{
-	int arming_res = arming_state_transition(&status, &safety, ARMING_STATE_STANDBY, &armed);
-
-	if (arming_res == TRANSITION_CHANGED) {
-		mavlink_log_info(mavlink_fd, "[cmd] ARMED by commandline");
-		return 0;
-
-	} else {
-		return 1;
-	}
+    transition_result_t arming_res = TRANSITION_NOT_CHANGED;
+    
+    // Transition the armed state. By passing mavlink_fd to arming_state_transition it will
+    // output appropriate error messages if the state cannot transition.
+    arming_res = arming_state_transition(&status, &safety, arm ? ARMING_STATE_ARMED : ARMING_STATE_STANDBY, &armed, mavlink_fd);
+    if (arming_res == TRANSITION_CHANGED && mavlink_fd) {
+        mavlink_log_info(mavlink_fd, "[cmd] %s by %s", arm ? "ARMED" : "DISARMED", armedBy);
+    } else if (arming_res == TRANSITION_DENIED) {
+        tune_negative(true);
+    }
+    
+    return arming_res;
 }
 
 bool handle_command(struct vehicle_status_s *status, const struct safety_s *safety, struct vehicle_command_s *cmd, struct actuator_armed_s *armed)
@@ -429,37 +418,8 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 			if (hil_ret == OK)
 				ret = true;
 
-			// TODO remove debug code
-			//mavlink_log_critical(mavlink_fd, "#audio: command setmode: %d %d", base_mode, custom_main_mode);
-			/* set arming state */
-			arming_res = TRANSITION_NOT_CHANGED;
-
-			if (base_mode & MAV_MODE_FLAG_SAFETY_ARMED) {
-				if (safety->safety_switch_available && !safety->safety_off && status->hil_state == HIL_STATE_OFF) {
-					print_reject_arm("NOT ARMING: Press safety switch first.");
-					arming_res = TRANSITION_DENIED;
-
-				} else {
-					arming_res = arming_state_transition(status, safety, ARMING_STATE_ARMED, armed);
-				}
-
-				if (arming_res == TRANSITION_CHANGED) {
-					mavlink_log_info(mavlink_fd, "[cmd] ARMED by command");
-				}
-
-			} else {
-				if (status->arming_state == ARMING_STATE_ARMED || status->arming_state == ARMING_STATE_ARMED_ERROR) {
-					arming_state_t new_arming_state = (status->arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
-					arming_res = arming_state_transition(status, safety, new_arming_state, armed);
-
-					if (arming_res == TRANSITION_CHANGED) {
-						mavlink_log_info(mavlink_fd, "[cmd] DISARMED by command");
-					}
-
-				} else {
-					arming_res = TRANSITION_NOT_CHANGED;
-				}
-			}
+            // Transition the arming state
+            arming_res = arm_disarm(base_mode & MAV_MODE_FLAG_SAFETY_ARMED, mavlink_fd, "set mode command");
 
 			if (arming_res == TRANSITION_CHANGED)
 				ret = true;
@@ -518,27 +478,19 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		}
 
 	case VEHICLE_CMD_COMPONENT_ARM_DISARM: {
-			transition_result_t arming_res = TRANSITION_NOT_CHANGED;
-
-			if (!armed->armed && ((int)(cmd->param1 + 0.5f)) == 1) {
-				if (safety->safety_switch_available && !safety->safety_off && status->hil_state == HIL_STATE_OFF) {
-					print_reject_arm("NOT ARMING: Press safety switch first.");
-					arming_res = TRANSITION_DENIED;
-
-				} else {
-					arming_res = arming_state_transition(status, safety, ARMING_STATE_ARMED, armed);
-				}
-
-				if (arming_res == TRANSITION_CHANGED) {
-					mavlink_log_critical(mavlink_fd, "#audio: ARMED by component arm cmd");
-					result = VEHICLE_CMD_RESULT_ACCEPTED;
-					ret = true;
-
-				} else {
-					mavlink_log_critical(mavlink_fd, "#audio: REJECTING component arm cmd");
-					result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-				}
-			}
+            // Follow exactly what the mavlink spec says for values: 0.0f for disarm, 1.0f for arm.
+            // We use an float epsilon delta to test float equality.
+            if (cmd->param1 != 0.0f && (fabsf(cmd->param1 - 1.0f) > 2.0f * FLT_EPSILON)) {
+				mavlink_log_info(mavlink_fd, "Unsupported ARM_DISARM parameter: %.6f", cmd->param1);
+            } else {
+                transition_result_t arming_res = arm_disarm(cmd->param1 != 0.0f, mavlink_fd, "arm/disarm component command");
+                if (arming_res == TRANSITION_DENIED) {
+                    mavlink_log_critical(mavlink_fd, "#audio: REJECTING component arm cmd");
+                    result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+                } else {
+                    result = VEHICLE_CMD_RESULT_ACCEPTED;
+                }
+            }
 		}
 		break;
 

@@ -67,6 +67,8 @@ typedef enum {
 	MAIN_STATE_MAX
 } main_state_t;
 
+// If you change the order, add or remove arming_state_t states make sure to update the arrays
+// in state_machine_helper.cpp as well.
 typedef enum {
 	ARMING_STATE_INIT = 0,
 	ARMING_STATE_STANDBY,

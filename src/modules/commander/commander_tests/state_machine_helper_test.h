@@ -39,6 +39,6 @@
 #ifndef STATE_MACHINE_HELPER_TEST_H_
 #define STATE_MACHINE_HELPER_TEST_
 
-void state_machine_helper_test();
+void stateMachineHelperTest(void);
 
 #endif /* STATE_MACHINE_HELPER_TEST_H_ */
