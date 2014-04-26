@@ -1247,7 +1247,6 @@ FixedwingEstimator::task_main()
 
 				/* local pos alt is negative, change sign and add alt offset */
 				_global_pos.alt = _local_pos.ref_alt + (-_local_pos.z);
-				_global_pos.rel_alt = (-_local_pos.z);
 
 				if (_local_pos.v_z_valid) {
 					_global_pos.vel_d = _local_pos.vz;
@@ -1255,8 +1254,8 @@ FixedwingEstimator::task_main()
 
 				_global_pos.yaw = _local_pos.yaw;
 
-				_global_pos.eph = _gps.eph_m;
-				_global_pos.epv = _gps.epv_m;
+				_global_pos.eph = _gps.eph;
+				_global_pos.epv = _gps.epv;
 
 				_global_pos.timestamp = _local_pos.timestamp;
 

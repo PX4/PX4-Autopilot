@@ -592,13 +592,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				/* hysteresis for GPS quality */
 				if (gps_valid) {
-					if (gps.eph_m > max_eph_epv * 1.5f || gps.epv_m > max_eph_epv * 1.5f || gps.fix_type < 3) {
+					if (gps.eph > max_eph_epv * 1.5f || gps.epv > max_eph_epv * 1.5f || gps.fix_type < 3) {
 						gps_valid = false;
 						mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
 					}
 
 				} else {
-					if (gps.eph_m < max_eph_epv && gps.epv_m < max_eph_epv && gps.fix_type >= 3) {
+					if (gps.eph < max_eph_epv && gps.epv < max_eph_epv && gps.fix_type >= 3) {
 						gps_valid = true;
 						reset_est = true;
 						mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
@@ -673,8 +673,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							corr_gps[2][1] = 0.0f;
 						}
 
-						w_gps_xy = min_eph_epv / fmaxf(min_eph_epv, gps.eph_m);
-						w_gps_z = min_eph_epv / fmaxf(min_eph_epv, gps.epv_m);
+						w_gps_xy = min_eph_epv / fmaxf(min_eph_epv, gps.eph);
+						w_gps_z = min_eph_epv / fmaxf(min_eph_epv, gps.epv);
 					}
 
 				} else {
@@ -951,8 +951,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				global_pos.yaw = local_pos.yaw;
 
 				// TODO implement dead-reckoning
-				global_pos.eph = gps.eph_m;
-				global_pos.epv = gps.epv_m;
+				global_pos.eph = gps.eph;
+				global_pos.epv = gps.epv;
 
 				if (vehicle_global_position_pub < 0) {
 					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);

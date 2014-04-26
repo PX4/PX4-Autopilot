@@ -282,8 +282,8 @@ GPS::task_main()
 			_report.p_variance_m = 10.0f;
 			_report.c_variance_rad = 0.1f;
 			_report.fix_type = 3;
-			_report.eph_m = 3.0f;
-			_report.epv_m = 7.0f;
+			_report.eph = 3.0f;
+			_report.epv = 7.0f;
 			_report.timestamp_velocity = hrt_absolute_time();
 			_report.vel_n_m_s = 0.0f;
 			_report.vel_e_m_s = 0.0f;
@@ -446,7 +446,7 @@ GPS::print_info()
 		warnx("position lock: %dD, satellites: %d, last update: %fms ago", (int)_report.fix_type,
 				_report.satellites_visible, (hrt_absolute_time() - _report.timestamp_position) / 1000.0f);
 		warnx("lat: %d, lon: %d, alt: %d", _report.lat, _report.lon, _report.alt);
-		warnx("eph: %.2fm, epv: %.2fm", _report.eph_m, _report.epv_m);
+		warnx("eph: %.2fm, epv: %.2fm", _report.eph, _report.epv);
 		warnx("rate position: \t%6.2f Hz", (double)_Helper->get_position_update_rate());
 		warnx("rate velocity: \t%6.2f Hz", (double)_Helper->get_velocity_update_rate());
 		warnx("rate publication:\t%6.2f Hz", (double)_rate);

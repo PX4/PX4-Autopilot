@@ -743,16 +743,17 @@ Navigator::start()
 void
 Navigator::status()
 {
-	warnx("Global position is %svalid", _global_pos.global_valid ? "" : "in");
+	/* TODO: add this again */
+	// warnx("Global position is %svalid", _global_pos_valid ? "" : "in");
 
-	if (_global_pos.global_valid) {
-		warnx("Longitude %5.5f degrees, latitude %5.5f degrees", _global_pos.lon, _global_pos.lat);
-		warnx("Altitude %5.5f meters, altitude above home %5.5f meters",
-		      (double)_global_pos.alt, (double)(_global_pos.alt - _home_pos.alt));
-		warnx("Ground velocity in m/s, N %5.5f, E %5.5f, D %5.5f",
-		      (double)_global_pos.vel_n, (double)_global_pos.vel_e, (double)_global_pos.vel_d);
-		warnx("Compass heading in degrees %5.5f", (double)(_global_pos.yaw * M_RAD_TO_DEG_F));
-	}
+	// if (_global_pos.global_valid) {
+	// 	warnx("Longitude %5.5f degrees, latitude %5.5f degrees", _global_pos.lon, _global_pos.lat);
+	// 	warnx("Altitude %5.5f meters, altitude above home %5.5f meters",
+	// 	      (double)_global_pos.alt, (double)(_global_pos.alt - _home_pos.alt));
+	// 	warnx("Ground velocity in m/s, N %5.5f, E %5.5f, D %5.5f",
+	// 	      (double)_global_pos.vel_n, (double)_global_pos.vel_e, (double)_global_pos.vel_d);
+	// 	warnx("Compass heading in degrees %5.5f", (double)(_global_pos.yaw * M_RAD_TO_DEG_F));
+	// }
 
 	if (_fence_valid) {
 		warnx("Geofence is valid");
