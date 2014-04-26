@@ -119,7 +119,7 @@ RTL::get_current_rtl_item(const vehicle_global_position_s *global_position, miss
 		new_mission_item->yaw = NAN;
 		new_mission_item->loiter_radius = _loiter_radius;
 		new_mission_item->loiter_direction = 1;
-		new_mission_item->nav_cmd = NAV_CMD_TAKEOFF;
+		new_mission_item->nav_cmd = NAV_CMD_WAYPOINT;
 		new_mission_item->acceptance_radius = _acceptance_radius;
 		new_mission_item->time_inside = 0.0f;
 		new_mission_item->pitch_min = 0.0f;
@@ -168,7 +168,7 @@ RTL::get_current_rtl_item(const vehicle_global_position_s *global_position, miss
 		new_mission_item->yaw = NAN;
 		new_mission_item->loiter_radius = _loiter_radius;
 		new_mission_item->loiter_direction = 1;
-		new_mission_item->nav_cmd = NAV_CMD_WAYPOINT;
+		new_mission_item->nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 		new_mission_item->acceptance_radius = _acceptance_radius;
 		new_mission_item->time_inside = _param_land_delay.get() < 0.0f ? 0.0f : _param_land_delay.get();
 		new_mission_item->pitch_min = 0.0f;
