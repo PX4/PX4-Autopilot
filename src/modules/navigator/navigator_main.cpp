@@ -159,8 +159,9 @@ private:
 	vehicle_control_mode_s				_control_mode;		/**< vehicle control mode */
 	vehicle_global_position_s			_global_pos;		/**< global vehicle position */
 	home_position_s					_home_pos;		/**< home position for RTL */
-	position_setpoint_triplet_s			_pos_sp_triplet;	/**< triplet of position setpoints */
 	mission_item_s 					_mission_item;		/**< current mission item */
+	navigation_capabilities_s			_nav_caps;
+	position_setpoint_triplet_s			_pos_sp_triplet;	/**< triplet of position setpoints */
 
 	bool 						_mission_item_valid;
 
@@ -172,7 +173,6 @@ private:
 	bool						_fence_valid;		/**< flag if fence is valid */
 	bool						_inside_fence;		/**< vehicle is inside fence */
 
-	struct navigation_capabilities_s		_nav_caps;
 
 	Mission						_mission;
 
@@ -308,11 +308,6 @@ private:
 	bool		check_mission_item_reached();
 
 	/**
-	 * Perform actions when current mission item reached.
-	 */
-	// void		on_mission_item_reached();
-
-	/**
 	 * Move to next waypoint
 	 */
 	bool		set_mission_items();
@@ -352,7 +347,7 @@ Navigator	*g_navigator;
 
 Navigator::Navigator() :
 
-/* state machine transition table */
+	/* state machine transition table */
 	StateTable(&myTable[0][0], NAV_STATE_MAX, MAX_EVENT),
 	_task_should_exit(false),
 	_navigator_task(-1),
@@ -366,18 +361,27 @@ Navigator::Navigator() :
 	_capabilities_sub(-1),
 	_control_mode_sub(-1),
 	_pos_sp_triplet_pub(-1),
+	_vstatus({}),
+	_control_mode({}),
+	_global_pos({}),
+	_home_pos({}),
+	_mission_item({}),
+	_nav_caps({}),
+	_pos_sp_triplet({}),
+	_mission_item_valid(false),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
+	_geofence({}),
 	_geofence_violation_warning_sent(false),
 	_fence_valid(false),
 	_inside_fence(true),
-	_mission(),
-	_pos_sp_triplet({}),
-	_mission_item({}),
-	_mission_item_valid(false),
+	_mission({}),
+	_rtl({}),
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
 	_time_first_inside_orbit(0),
-	_update_triplet(false)
+	_update_triplet(false),
+	_parameters({}),
+	_parameter_handles({})
 {
 	_parameter_handles.acceptance_radius = param_find("NAV_ACCEPT_RAD");
 	_parameter_handles.loiter_radius = param_find("NAV_LOITER_RAD");
@@ -530,11 +534,8 @@ Navigator::task_main()
 {
 	/* inform about start */
 	warnx("Initializing..");
-	fflush(stdout);
 
 	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
-
-	mavlink_log_info(_mavlink_fd, "[navigator] started");
 
 	/* Try to load the geofence:
 	 * if /fs/microsd/etc/geofence.txt load from this file
@@ -578,7 +579,6 @@ Navigator::task_main()
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
 
-	unsigned prevState = NAV_STATE_NONE_ON_GROUND;
 	hrt_abstime mavlink_open_time = 0;
 	const hrt_abstime mavlink_open_interval = 500000;
 
@@ -811,7 +811,7 @@ Navigator::status()
 		break;
 
 	case NAV_STATE_LAND:
-		warnx("State: LAND");
+		warnx("State: Land");
 		break;
 
 	default:
