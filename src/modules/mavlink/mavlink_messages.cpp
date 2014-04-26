@@ -72,6 +72,7 @@
 #include <uORB/topics/navigation_capabilities.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
+#include <drivers/drv_range_finder.h>
 
 #include "mavlink_messages.h"
 
@@ -271,7 +272,7 @@ protected:
 						status->load * 1000.0f,
 						status->battery_voltage * 1000.0f,
 						status->battery_current * 1000.0f,
-						status->battery_remaining,
+						status->battery_remaining * 100.0f,
 						status->drop_rate_comm,
 						status->errors_comm,
 						status->errors_count1,
@@ -1313,6 +1314,51 @@ protected:
 	}
 };
 
+class MavlinkStreamDistanceSensor : public MavlinkStream
+{
+public:
+	const char *get_name()
+	{
+		return "DISTANCE_SENSOR";
+	}
+
+	MavlinkStream *new_instance()
+	{
+		return new MavlinkStreamDistanceSensor();
+	}
+
+private:
+	MavlinkOrbSubscription *range_sub;
+	struct range_finder_report *range;
+
+protected:
+	void subscribe(Mavlink *mavlink)
+	{
+		range_sub = mavlink->add_orb_subscription(ORB_ID(sensor_range_finder));
+		range = (struct range_finder_report *)range_sub->get_data();
+	}
+
+	void send(const hrt_abstime t)
+	{
+		(void)range_sub->update(t);
+
+		uint8_t type;
+
+		switch (range->type) {
+			case RANGE_FINDER_TYPE_LASER:
+			type = MAV_DISTANCE_SENSOR_LASER;
+			break;
+		}
+
+		uint8_t id = 0;
+		uint8_t orientation = 0;
+		uint8_t covariance = 20;
+
+		mavlink_msg_distance_sensor_send(_channel, range->timestamp / 1000, type, id, orientation, 
+			range->minimum_distance*100, range->maximum_distance*100, range->distance*100, covariance);
+	}
+};
+
 MavlinkStream *streams_list[] = {
 	new MavlinkStreamHeartbeat(),
 	new MavlinkStreamSysStatus(),
@@ -1339,6 +1385,7 @@ MavlinkStream *streams_list[] = {
 	new MavlinkStreamAttitudeControls(),
 	new MavlinkStreamNamedValueFloat(),
 	new MavlinkStreamCameraCapture(),
+	new MavlinkStreamDistanceSensor(),
 	new MavlinkStreamViconPositionEstimate(),
 	nullptr
 };

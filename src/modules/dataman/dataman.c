@@ -44,7 +44,9 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/err.h>
 #include <queue.h>
+#include <string.h>
 
 #include "dataman.h"
 
@@ -594,6 +596,20 @@ task_main(int argc, char *argv[])
 
 	sem_init(&g_work_queued_sema, 1, 0);
 
+	/* See if the data manage file exists and is a multiple of the sector size */
+	g_task_fd = open(k_data_manager_device_path, O_RDONLY | O_BINARY);
+	if (g_task_fd >= 0) {
+		/* File exists, check its size */
+		int file_size = lseek(g_task_fd, 0, SEEK_END);
+		if ((file_size % k_sector_size) != 0) {
+			warnx("Incompatible data manager file %s, resetting it", k_data_manager_device_path);
+			close(g_task_fd);
+			unlink(k_data_manager_device_path);
+		}
+		else
+			close(g_task_fd);
+	}
+
 	/* Open or create the data manager file */
 	g_task_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY);
 
@@ -603,7 +619,7 @@ task_main(int argc, char *argv[])
 		return -1;
 	}
 
-	if (lseek(g_task_fd, max_offset, SEEK_SET) != max_offset) {
+	if ((unsigned)lseek(g_task_fd, max_offset, SEEK_SET) != max_offset) {
 		close(g_task_fd);
 		warnx("Could not seek data manager file %s", k_data_manager_device_path);
 		sem_post(&g_init_sema); /* Don't want to hang startup */
@@ -776,4 +792,3 @@ dataman_main(int argc, char *argv[])
 
 	exit(1);
 }
-
