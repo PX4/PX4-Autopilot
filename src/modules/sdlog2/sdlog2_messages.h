@@ -164,6 +164,7 @@ struct log_STAT_s {
 struct log_RC_s {
 	float channel[8];
 	uint8_t channel_count;
+	uint8_t signal_lost;
 };
 
 /* --- OUT0 - ACTUATOR_0 OUTPUT --- */

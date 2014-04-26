@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,53 +30,63 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file state_table.h
- * 
- * Finite-State-Machine helper class for state table
- * @author: Julian Oes <julian@oes.ch>
+ * @file navigator_mission.h
+ * Helper class to access missions
+ * @author Julian Oes <julian@oes.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#ifndef __SYSTEMLIB_STATE_TABLE_H
-#define __SYSTEMLIB_STATE_TABLE_H
+#ifndef NAVIGATOR_RTL_H
+#define NAVIGATOR_RTL_H
 
-class StateTable
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
+
+#include <uORB/topics/mission.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_global_position.h>
+
+class RTL : public control::SuperBlock
 {
 public:
-	typedef bool (StateTable::*Action)();
-	struct Tran {
-		Action action;
-		unsigned nextState;
-	};
-	
-	StateTable(Tran const *table, unsigned nStates, unsigned nSignals)
-	: myTable(table), myNsignals(nSignals), myNstates(nStates) {}
-	
-	#define NO_ACTION &StateTable::doNothing
-	#define ACTION(_target) StateTable::Action(_target)
+	/**
+	 * Constructor
+	 */
+	RTL();
 
-	virtual ~StateTable() {}
-	
-	void dispatch(unsigned const sig) {
-		/* get transition using state table */
-		Tran const *t = myTable + myState*myNsignals + sig;
-		/* first up change state, this allows to do further dispatchs in the state functions */
-		
-		/* now execute state function, if it runs with success, accept new state */
-		if ((this->*(t->action))()) {
-			myState = t->nextState;
-		}
-	}
-	bool doNothing() {
-		return true;
-	}
-protected:
-	unsigned myState;
+	/**
+	 * Destructor
+	 */
+	~RTL();
+
+	void		set_home_position(const home_position_s *home_position);
+
+	bool		get_current_rtl_item(const vehicle_global_position_s *global_position, mission_item_s *new_mission_item);
+	bool		get_next_rtl_item(mission_item_s *mission_item);
+
+	void		move_to_next();
+
 private:
-	Tran const *myTable;
-	unsigned myNsignals;
-	unsigned myNstates;
+	int 		_mavlink_fd;
+
+	enum RTLState {
+		RTL_STATE_NONE = 0,
+		RTL_STATE_CLIMB,
+		RTL_STATE_RETURN,
+		RTL_STATE_DESCEND,
+		RTL_STATE_LAND,
+		RTL_STATE_FINISHED,
+	}		_rtl_state;
+
+	home_position_s _home_position;
+	float		_loiter_radius;
+	float		_acceptance_radius;
+
+
+	control::BlockParamFloat _param_return_alt;
+	control::BlockParamFloat _param_descend_alt;
+	control::BlockParamFloat _param_land_delay;
 };
 
 #endif

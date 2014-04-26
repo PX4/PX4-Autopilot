@@ -45,7 +45,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "../uORB.h"
-#include <navigator/navigator_state.h>
 
 /**
  * @addtogroup topics
@@ -73,6 +72,17 @@ struct position_setpoint_s
 	int8_t loiter_direction;	/**< loiter direction: 1 = CW, -1 = CCW */
 	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
 };
+
+typedef enum {
+	NAV_STATE_NONE_ON_GROUND = 0,
+	NAV_STATE_NONE_IN_AIR,
+	NAV_STATE_AUTO_ON_GROUND,
+	NAV_STATE_LOITER,
+	NAV_STATE_MISSION,
+	NAV_STATE_RTL,
+	NAV_STATE_LAND,
+	NAV_STATE_MAX
+} nav_state_t;
 
 /**
  * Global position setpoint triplet in WGS84 coordinates.

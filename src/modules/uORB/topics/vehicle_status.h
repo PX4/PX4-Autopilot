@@ -54,8 +54,6 @@
 #include <stdbool.h>
 #include "../uORB.h"
 
-#include <navigator/navigator_state.h>
-
 /**
  * @addtogroup topics @{
  */
@@ -96,27 +94,12 @@ typedef enum {
 } failsafe_state_t;
 
 typedef enum {
-	MODE_SWITCH_MANUAL = 0,
-	MODE_SWITCH_ASSISTED,
-	MODE_SWITCH_AUTO
-} mode_switch_pos_t;
-
-typedef enum {
-	ASSISTED_SWITCH_SEATBELT = 0,
-	ASSISTED_SWITCH_EASY
-} assisted_switch_pos_t;
-
-typedef enum {
-	RETURN_SWITCH_NONE = 0,
-	RETURN_SWITCH_NORMAL,
-	RETURN_SWITCH_RETURN
-} return_switch_pos_t;
-
-typedef enum {
-	MISSION_SWITCH_NONE = 0,
-	MISSION_SWITCH_LOITER,
-	MISSION_SWITCH_MISSION
-} mission_switch_pos_t;
+	NAVIGATION_STATE_NONE = 0,
+	NAVIGATION_STATE_MISSION,
+	NAVIGATION_STATE_LOITER,
+	NAVIGATION_STATE_RTL,
+	NAVIGATION_STATE_LAND
+} navigation_state_t;
 
 enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_SAFETY_ARMED = 128,
@@ -177,8 +160,7 @@ struct vehicle_status_s {
 	uint64_t timestamp; /**< in microseconds since system start, is set whenever the writing thread stores new data */
 
 	main_state_t main_state;				/**< main state machine */
-	unsigned int set_nav_state;	/**< set navigation state machine to specified value */
-	uint64_t set_nav_state_timestamp;	/**< timestamp of latest change of set_nav_state */
+	navigation_state_t set_nav_state;		/**< set navigation state machine to specified value */
 	arming_state_t arming_state;			/**< current arming state */
 	hil_state_t hil_state;					/**< current hil state */
 	failsafe_state_t failsafe_state;		/**< current failsafe state */
@@ -188,11 +170,6 @@ struct vehicle_status_s {
 	int32_t component_id;				/**< subsystem / component id, inspired by MAVLink's component ID field */
 
 	bool is_rotary_wing;
-
-	mode_switch_pos_t mode_switch;
-	return_switch_pos_t return_switch;
-	assisted_switch_pos_t assisted_switch;
-	mission_switch_pos_t mission_switch;
 
 	bool condition_battery_voltage_valid;
 	bool condition_system_in_air_restore;	/**< true if we can restore in mid air */
