@@ -715,7 +715,7 @@ HMC5883::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			log("collection error");
+			debug("collection error");
 			/* restart the measurement state machine */
 			start();
 			return;
@@ -742,7 +742,7 @@ HMC5883::cycle()
 
 	/* measurement phase */
 	if (OK != measure())
-		log("measure error");
+		debug("measure error");
 
 	/* next phase is collection */
 	_collect_phase = true;

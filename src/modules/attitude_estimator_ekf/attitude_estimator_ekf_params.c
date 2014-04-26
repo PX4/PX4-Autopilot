@@ -40,6 +40,7 @@
  */
 
 #include "attitude_estimator_ekf_params.h"
+#include <math.h>
 
 /* Extended Kalman Filter covariances */
 
@@ -113,6 +114,7 @@ int parameters_update(const struct attitude_estimator_ekf_param_handles *h, stru
 	param_get(h->yaw_off, &(p->yaw_off));
 
 	param_get(h->mag_decl, &(p->mag_decl));
+	p->mag_decl *= M_PI / 180.0f;
 
 	param_get(h->acc_comp, &(p->acc_comp));
 

@@ -162,15 +162,14 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	 * The HIL mode is enabled by the HIL bit flag
 	 * in the system mode. Either send a set mode
 	 * COMMAND_LONG message or a SET_MODE message
+	 *
+	 * Accept HIL GPS messages if use_hil_gps flag is true.
+	 * This allows to provide fake gps measurements to the system.
 	 */
 	if (_mavlink->get_hil_enabled()) {
 		switch (msg->msgid) {
 		case MAVLINK_MSG_ID_HIL_SENSOR:
 			handle_message_hil_sensor(msg);
-			break;
-
-		case MAVLINK_MSG_ID_HIL_GPS:
-			handle_message_hil_gps(msg);
 			break;
 
 		case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
@@ -182,7 +181,20 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		}
 	}
 
-	/* If we've received a valid message, mark the flag indicating so.
+
+   	if (_mavlink->get_hil_enabled() || (_mavlink->get_use_hil_gps() && msg->sysid == mavlink_system.sysid)) {
+		switch (msg->msgid) {
+		case MAVLINK_MSG_ID_HIL_GPS:
+			handle_message_hil_gps(msg);
+			break;
+
+		default:
+			break;
+		}
+
+	}
+	
+    /* If we've received a valid message, mark the flag indicating so.
 	   This is used in the '-w' command-line flag. */
 	_mavlink->set_has_received_messages(true);
 }

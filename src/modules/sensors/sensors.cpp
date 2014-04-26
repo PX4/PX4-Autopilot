@@ -635,39 +635,39 @@ Sensors::parameters_update()
 
 	/* channel mapping */
 	if (param_get(_parameter_handles.rc_map_roll, &(_parameters.rc_map_roll)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_pitch, &(_parameters.rc_map_pitch)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_yaw, &(_parameters.rc_map_yaw)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_throttle, &(_parameters.rc_map_throttle)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_mode_sw, &(_parameters.rc_map_mode_sw)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_return_sw, &(_parameters.rc_map_return_sw)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_assisted_sw, &(_parameters.rc_map_assisted_sw)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_mission_sw, &(_parameters.rc_map_mission_sw)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_flaps, &(_parameters.rc_map_flaps)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 //	if (param_get(_parameter_handles.rc_map_offboard_ctrl_mode_sw, &(_parameters.rc_map_offboard_ctrl_mode_sw)) != OK) {
@@ -737,12 +737,12 @@ Sensors::parameters_update()
 
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 	/* scaling of ADC ticks to battery current */
 	if (param_get(_parameter_handles.battery_current_scaling, &(_parameters.battery_current_scaling)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
@@ -1254,7 +1254,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				}
 			}
 			_last_adc = t;
-			if (_battery_status.voltage_v > 0.0f) {
+			if (_battery_status.voltage_filtered_v > BATT_V_IGNORE_THRESHOLD) {
 				/* announce the battery status if needed, just publish else */
 				if (_battery_pub > 0) {
 					orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
@@ -1571,12 +1571,10 @@ Sensors::task_main()
 
 	while (!_task_should_exit) {
 
-		/* wait for up to 100ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		/* wait for up to 50ms for data */
+		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 50);
 
-		/* timed out - periodic check for _task_should_exit, etc. */
-		if (pret == 0)
-			continue;
+		/* if pret == 0 it timed out - periodic check for _task_should_exit, etc. */
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
@@ -1615,7 +1613,7 @@ Sensors::task_main()
 		perf_end(_loop_perf);
 	}
 
-	printf("[sensors] exiting.\n");
+	warnx("[sensors] exiting.");
 
 	_sensors_task = -1;
 	_exit(0);
