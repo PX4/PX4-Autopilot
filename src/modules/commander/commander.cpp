@@ -927,6 +927,14 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_position);
 		}
 
+		/* update local position estimate */
+		orb_check(local_position_sub, &updated);
+
+		if (updated) {
+			/* position changed */
+			orb_copy(ORB_ID(vehicle_local_position), local_position_sub, &local_position);
+		}
+
 		/* update condition_global_position_valid */
 		/* hysteresis for EPH/EPV */
 		bool eph_epv_good;
@@ -952,6 +960,10 @@ int commander_thread_main(int argc, char *argv[])
 			home.lon = global_position.lon;
 			home.alt = global_position.alt;
 
+			home.x = local_position.x;
+			home.y = local_position.y;
+			home.z = local_position.z;
+
 			warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home.lat, home.lon, (double)home.alt);
 			mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
 
@@ -966,14 +978,6 @@ int commander_thread_main(int argc, char *argv[])
 			/* mark home position as set */
 			status.condition_home_position_valid = true;
 			tune_positive(true);
-		}
-
-		/* update local position estimate */
-		orb_check(local_position_sub, &updated);
-
-		if (updated) {
-			/* position changed */
-			orb_copy(ORB_ID(vehicle_local_position), local_position_sub, &local_position);
 		}
 
 		/* update condition_local_position_valid and condition_local_altitude_valid */
@@ -1337,6 +1341,10 @@ int commander_thread_main(int argc, char *argv[])
 				home.lat = global_position.lat;
 				home.lon = global_position.lon;
 				home.alt = global_position.alt;
+
+				home.x = local_position.x;
+				home.y = local_position.y;
+				home.z = local_position.z;
 
 				warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home.lat, home.lon, (double)home.alt);
 				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
