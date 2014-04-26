@@ -142,7 +142,7 @@ private:
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	int		_navigator_task;		/**< task handle for sensor task */
 
-	int		_mavlink_fd;
+	int		_mavlink_fd;			/**< the file descriptor to send messages over mavlink */
 
 	int		_global_pos_sub;		/**< global position subscription */
 	int		_home_pos_sub;			/**< home position subscription */
@@ -160,30 +160,31 @@ private:
 	vehicle_global_position_s			_global_pos;		/**< global vehicle position */
 	home_position_s					_home_pos;		/**< home position for RTL */
 	mission_item_s 					_mission_item;		/**< current mission item */
-	navigation_capabilities_s			_nav_caps;
+	navigation_capabilities_s			_nav_caps;		/**< navigation capabilities */
 	position_setpoint_triplet_s			_pos_sp_triplet;	/**< triplet of position setpoints */
 
-	bool 						_mission_item_valid;
+	bool 		_mission_item_valid;		/**< flags if the current mission item is valid */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	Geofence					_geofence;
-	bool						_geofence_violation_warning_sent;
+	Geofence	_geofence;			/**< class that handles the geofence */
+	bool		_geofence_violation_warning_sent; /**< prevents spaming to mavlink */
 
-	bool						_fence_valid;		/**< flag if fence is valid */
-	bool						_inside_fence;		/**< vehicle is inside fence */
+	bool		_fence_valid;			/**< flag if fence is valid */
+	bool		_inside_fence;			/**< vehicle is inside fence */
 
 
-	Mission						_mission;
+	Mission		_mission;			/**< class that handles the missions */
 
-	RTL 						_rtl;
+	RTL 		_rtl;				/**< class that handles RTL */
 
-	bool		_waypoint_position_reached;
-	bool		_waypoint_yaw_reached;
-	uint64_t	_time_first_inside_orbit;
-	MissionFeasibilityChecker missionFeasiblityChecker;
+	bool		_waypoint_position_reached;	/**< flags if the position of the mission item has been reached */
+	bool		_waypoint_yaw_reached;		/**< flags if the yaw position of the mission item has been reached */
+	uint64_t	_time_first_inside_orbit;	/**< the time when we were first in the acceptance radius of the mission item */
 
-	bool		_update_triplet;
+	MissionFeasibilityChecker			missionFeasiblityChecker; /**< class that checks if a mission is feasible */
+
+	bool		_update_triplet;		/**< flags if position setpoint triplet needs to be published */
 
 	struct {
 		float acceptance_radius;
@@ -210,7 +211,7 @@ private:
 		EVENT_HOME_POSITION_CHANGED,
 		EVENT_MISSION_ITEM_REACHED,
 		MAX_EVENT
-	};
+	};						/**< possible events that can be thrown at state machine */
 
 	/**
 	 * State machine transition table
@@ -267,8 +268,6 @@ private:
 	 */
 	void		task_main();
 
-	void		publish_safepoints(unsigned points);
-
 	/**
 	 * Functions that are triggered when a new state is entered.
 	 */
@@ -283,22 +282,7 @@ private:
 	bool		start_land();
 
 	/**
-	 * Fork for state transitions
-	 */
-	// void		request_loiter_or_ready();
-
-	/**
-	 * Guards offboard mission
-	 */
-	bool		offboard_mission_available(unsigned relative_index);
-
-	/**
-	 * Guards onboard mission
-	 */
-	bool		onboard_mission_available(unsigned relative_index);
-
-	/**
-	 * Reset all "reached" flags.
+	 * Reset all "mission item reached" flags.
 	 */
 	void		reset_reached();
 
@@ -308,27 +292,24 @@ private:
 	bool		check_mission_item_reached();
 
 	/**
-	 * Move to next waypoint
+	 * Set mission items by accessing the mission class.
+	 * If failing, tell the state machine to loiter.
 	 */
 	bool		set_mission_items();
 
 	/**
-	 * Switch to next RTL state
+	 * Set a RTL item by accessing the RTL class.
+	 * If failing, tell the state machine to loiter.
 	 */
 	void		set_rtl_item();
 
 	/**
-	 * Set position setpoint for mission item
+	 * Translate mission item to a position setpoint.
 	 */
 	void		mission_item_to_position_setpoint(const mission_item_s *item, position_setpoint_s *sp);
 
 	/**
-	 * Helper function to get a takeoff item
-	 */
-	void		get_takeoff_setpoint(position_setpoint_s *pos_sp);
-
-	/**
-	 * Publish a new mission item triplet for position controller
+	 * Publish a new position setpoint triplet for position controllers
 	 */
 	void		publish_position_setpoint_triplet();
 };
@@ -608,13 +589,12 @@ Navigator::task_main()
 		/* wait for up to 100ms for data */
 		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
-		/* timed out - periodic check for _task_should_exit, etc. */
 		if (pret == 0) {
+			/* timed out - periodic check for _task_should_exit, etc. */
 			continue;
-		}
 
-		/* this is undesirable but not much we can do - might want to flag unhappy status */
-		if (pret < 0) {
+		} else if (pret < 0) {
+			/* this is undesirable but not much we can do - might want to flag unhappy status */
 			warn("poll error %d, %d", pret, errno);
 			continue;
 		}
@@ -651,16 +631,11 @@ Navigator::task_main()
 				break;
 
 			case NAVIGATION_STATE_RTL:
-				/* TODO: what is this for? */
-				// if (!(_rtl_state == RTL_STATE_DESCEND &&
-				// 	  (myState == NAV_STATE_LAND || myState == NAV_STATE_LOITER)) &&
-				// 	_vstatus.condition_home_position_valid) {
 				dispatch(EVENT_RTL_REQUESTED);
-				// }
 				break;
 
 			case NAVIGATION_STATE_LAND:
-				/* TODO: add this */
+				/* TODO: add and test this */
 				// dispatch(EVENT_LAND_REQUESTED);
 				break;
 
@@ -781,6 +756,7 @@ Navigator::status()
 
 	if (_fence_valid) {
 		warnx("Geofence is valid");
+		/* TODO: needed? */
 //		warnx("Vertex longitude latitude");
 //		for (unsigned i = 0; i < _fence.count; i++)
 //		warnx("%6u %9.5f %8.5f", i, (double)_fence.vertices[i].lon, (double)_fence.vertices[i].lat);
@@ -944,12 +920,6 @@ Navigator::start_auto_on_ground()
 
 	_pos_sp_triplet.current.type = SETPOINT_TYPE_IDLE;
 
-
-	// if (_rtl_state != RTL_STATE_DESCEND) {
-	// 	 reset RTL state if landed not at home 
-	// 	_rtl_state = RTL_STATE_NONE;
-	// }
-
 	_update_triplet = true;
 	return true;
 }
@@ -1057,7 +1027,6 @@ Navigator::set_mission_items()
 bool
 Navigator::start_rtl()
 {
-	/* TODO check if RTL was successfull, if not we have a problem and need to dispatch something */
 	if (_rtl.get_current_rtl_item(&_global_pos, &_mission_item)) {
 
 		_mission_item_valid = true;
@@ -1070,8 +1039,9 @@ Navigator::start_rtl()
 		_update_triplet = true;
 		return true;
 	}
-	dispatch(EVENT_LOITER_REQUESTED);
 
+	/* if RTL doesn't work, fallback to loiter */
+	dispatch(EVENT_LOITER_REQUESTED);
 	return false;
 }
 
@@ -1189,7 +1159,7 @@ Navigator::check_mission_item_reached()
 		return _vstatus.condition_landed;
 	}
 
-	/* TODO count turns */
+	/* TODO: count turns */
 	// if ((_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
 	//      _mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 	//      _mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED) &&
@@ -1242,7 +1212,7 @@ Navigator::check_mission_item_reached()
 			/* check yaw if defined only for rotary wing except takeoff */
 			float yaw_err = _wrap_pi(_mission_item.yaw - _global_pos.yaw);
 
-			if (fabsf(yaw_err) < 0.2f) { /* XXX get rid of magic number */
+			if (fabsf(yaw_err) < 0.2f) { /* TODO: get rid of magic number */
 				_waypoint_yaw_reached = true;
 			}
 
