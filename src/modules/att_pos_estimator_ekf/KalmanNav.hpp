@@ -49,6 +49,7 @@
 #include <controllib/block/BlockParam.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
+#include <lib/geo/geo.h>
 
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -164,6 +165,7 @@ protected:
 	// parameters
 	float alt;                   		/**< altitude, meters */
 	double lat0, lon0;                   	/**< reference latitude and longitude */
+	struct map_projection_reference_s ref;	/**< local projection reference */
 	float alt0;                   		/**<  refeerence altitude (ground height) */
 	control::BlockParamFloat _vGyro;      /**< gyro process noise */
 	control::BlockParamFloat _vAccel;     /**< accelerometer process noise  */

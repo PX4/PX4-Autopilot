@@ -117,7 +117,7 @@ extern struct system_load_s system_load;
 #define STICK_ON_OFF_HYSTERESIS_TIME_MS 1000
 #define STICK_ON_OFF_COUNTER_LIMIT (STICK_ON_OFF_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
-#define POSITION_TIMEOUT 1000000 /**< consider the local or global position estimate invalid after 1s */
+#define POSITION_TIMEOUT 30000 /**< consider the local or global position estimate invalid after 30ms */
 #define RC_TIMEOUT 500000
 #define DIFFPRESS_TIMEOUT 2000000
 
@@ -153,6 +153,7 @@ static bool on_usb_power = false;
 
 static float takeoff_alt = 5.0f;
 static int parachute_enabled = 0;
+static float eph_epv_threshold = 5.0f;
 
 static struct vehicle_status_s status;
 static struct actuator_armed_s armed;
@@ -194,7 +195,7 @@ void usage(const char *reason);
 /**
  * React to commands that are sent e.g. from the mavlink module.
  */
-bool handle_command(struct vehicle_status_s *status, struct vehicle_command_s *cmd, struct actuator_armed_s *armed);
+bool handle_command(struct vehicle_status_s *status, const struct safety_s *safety, struct vehicle_command_s *cmd, struct actuator_armed_s *armed, struct home_position_s *home, struct vehicle_global_position_s *global_pos, orb_advert_t *home_pub);
 
 /**
  * Mainloop of commander.
@@ -389,7 +390,7 @@ int disarm()
 	}
 }
 
-bool handle_command(struct vehicle_status_s *status, const struct safety_s *safety, struct vehicle_command_s *cmd, struct actuator_armed_s *armed)
+bool handle_command(struct vehicle_status_s *status, const struct safety_s *safety, struct vehicle_command_s *cmd, struct actuator_armed_s *armed, struct home_position_s *home, struct vehicle_global_position_s *global_pos, orb_advert_t *home_pub)
 {
 	/* result of the command */
 	enum VEHICLE_CMD_RESULT result = VEHICLE_CMD_RESULT_UNSUPPORTED;
@@ -584,6 +585,51 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		}
 		break;
 
+	case VEHICLE_CMD_DO_SET_HOME: {
+			bool use_current = cmd->param1 > 0.5f;
+			if (use_current) {
+				/* use current position */
+				if (status->condition_global_position_valid) {
+					home->lat = global_pos->lat;
+					home->lon = global_pos->lon;
+					home->alt = global_pos->alt;
+
+					home->timestamp = hrt_absolute_time();
+
+					result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+				} else {
+					result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+				}
+
+			} else {
+				/* use specified position */
+				home->lat = cmd->param5;
+				home->lon = cmd->param6;
+				home->alt = cmd->param7;
+
+				home->timestamp = hrt_absolute_time();
+
+				result = VEHICLE_CMD_RESULT_ACCEPTED;
+			}
+
+			if (result == VEHICLE_CMD_RESULT_ACCEPTED) {
+				warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home->lat, home->lon, (double)home->alt);
+				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home->lat, home->lon, (double)home->alt);
+
+				/* announce new home position */
+				if (*home_pub > 0) {
+					orb_publish(ORB_ID(home_position), *home_pub, home);
+
+				} else {
+					*home_pub = orb_advertise(ORB_ID(home_position), home);
+				}
+
+				/* mark home position as set */
+				status->condition_home_position_valid = true;
+			}
+		}
+		break;
 	case VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
 	case VEHICLE_CMD_PREFLIGHT_CALIBRATION:
 	case VEHICLE_CMD_PREFLIGHT_SET_SENSOR_OFFSETS:
@@ -616,6 +662,7 @@ int commander_thread_main(int argc, char *argv[])
 	commander_initialized = false;
 
 	bool arm_tune_played = false;
+	bool was_armed = false;
 
 	/* set parameters */
 	param_t _param_sys_type = param_find("MAV_TYPE");
@@ -929,7 +976,45 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* update condition_global_position_valid */
-		check_valid(global_position.timestamp, POSITION_TIMEOUT, global_position.global_valid, &(status.condition_global_position_valid), &status_changed);
+		/* hysteresis for EPH/EPV */
+		bool eph_epv_good;
+		if (status.condition_global_position_valid) {
+			if (global_position.eph > eph_epv_threshold * 2.0f || global_position.epv > eph_epv_threshold * 2.0f) {
+				eph_epv_good = false;
+			}
+
+		} else {
+			if (global_position.eph < eph_epv_threshold && global_position.epv < eph_epv_threshold) {
+				eph_epv_good = true;
+			}
+		}
+		check_valid(global_position.timestamp, POSITION_TIMEOUT, eph_epv_good, &(status.condition_global_position_valid), &status_changed);
+
+		/* check if GPS fix is ok */
+
+		/* update home position */
+		if (!status.condition_home_position_valid && status.condition_global_position_valid && !armed.armed &&
+			(global_position.eph < eph_epv_threshold) && (global_position.epv < eph_epv_threshold)) {
+
+			home.lat = global_position.lat;
+			home.lon = global_position.lon;
+			home.alt = global_position.alt;
+
+			warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home.lat, home.lon, (double)home.alt);
+			mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
+
+			/* announce new home position */
+			if (home_pub > 0) {
+				orb_publish(ORB_ID(home_position), home_pub, &home);
+
+			} else {
+				home_pub = orb_advertise(ORB_ID(home_position), &home);
+			}
+
+			/* mark home position as set */
+			status.condition_home_position_valid = true;
+			tune_positive(true);
+		}
 
 		/* update local position estimate */
 		orb_check(local_position_sub, &updated);
@@ -940,7 +1025,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* update condition_local_position_valid and condition_local_altitude_valid */
-		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid, &(status.condition_local_position_valid), &status_changed);
+		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid && eph_epv_good, &(status.condition_local_position_valid), &status_changed);
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid, &(status.condition_local_altitude_valid), &status_changed);
 
 		static bool published_condition_landed_fw = false;
@@ -1084,45 +1169,6 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps_position);
-			/* check if GPS fix is ok */
-			float hdop_threshold_m = 4.0f;
-			float vdop_threshold_m = 8.0f;
-
-			/*
-			 * If horizontal dilution of precision (hdop / eph)
-			 * and vertical diluation of precision (vdop / epv)
-			 * are below a certain threshold (e.g. 4 m), AND
-			 * home position is not yet set AND the last GPS
-			 * GPS measurement is not older than two seconds AND
-			 * the system is currently not armed, set home
-			 * position to the current position.
-			 */
-
-			if (!status.condition_home_position_valid && gps_position.fix_type >= 3 &&
-			    (gps_position.eph_m < hdop_threshold_m) && (gps_position.epv_m < vdop_threshold_m) &&
-			    (hrt_absolute_time() < gps_position.timestamp_position + POSITION_TIMEOUT) && !armed.armed
-			    && global_position.global_valid) {
-
-				/* copy position data to uORB home message, store it locally as well */
-				home.lat = global_position.lat;
-				home.lon = global_position.lon;
-				home.alt = global_position.alt;
-
-				warnx("home: lat = %.7f, lon = %.7f, alt = %.4f ", home.lat, home.lon, (double)home.alt);
-				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.4f", home.lat, home.lon, (double)home.alt);
-
-				/* announce new home position */
-				if (home_pub > 0) {
-					orb_publish(ORB_ID(home_position), home_pub, &home);
-
-				} else {
-					home_pub = orb_advertise(ORB_ID(home_position), &home);
-				}
-
-				/* mark home position as set */
-				status.condition_home_position_valid = true;
-				tune_positive(true);
-			}
 		}
 
 		/* start RC input check */
@@ -1310,7 +1356,7 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
 
 			/* handle it */
-			if (handle_command(&status, &safety, &cmd, &armed))
+			if (handle_command(&status, &safety, &cmd, &armed, &home, &global_position, &home_pub))
 				status_changed = true;
 		}
 
@@ -1325,7 +1371,32 @@ int commander_thread_main(int argc, char *argv[])
 		if (arming_state_changed) {
 			status_changed = true;
 			mavlink_log_info(mavlink_fd, "[cmd] arming state: %s", arming_states_str[status.arming_state]);
+
+			/* update home position on arming if at least 2s from commander start spent to avoid setting home on in-air restart */
+			if (armed.armed && !was_armed && hrt_absolute_time() > start_time + 2000000 && status.condition_global_position_valid &&
+				(global_position.eph < eph_epv_threshold) && (global_position.epv < eph_epv_threshold)) {
+
+				// TODO remove code duplication
+				home.lat = global_position.lat;
+				home.lon = global_position.lon;
+				home.alt = global_position.alt;
+
+				warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home.lat, home.lon, (double)home.alt);
+				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
+
+				/* announce new home position */
+				if (home_pub > 0) {
+					orb_publish(ORB_ID(home_position), home_pub, &home);
+
+				} else {
+					home_pub = orb_advertise(ORB_ID(home_position), &home);
+				}
+
+				/* mark home position as set */
+				status.condition_home_position_valid = true;
+			}
 		}
+		was_armed = armed.armed;
 
 		if (main_state_changed) {
 			status_changed = true;

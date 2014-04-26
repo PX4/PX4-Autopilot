@@ -245,6 +245,7 @@ MavlinkReceiver::handle_message_optical_flow(mavlink_message_t *msg)
 	memset(&f, 0, sizeof(f));
 
 	f.timestamp = hrt_absolute_time();
+	f.flow_timestamp = flow.time_usec;
 	f.flow_raw_x = flow.flow_x;
 	f.flow_raw_y = flow.flow_y;
 	f.flow_comp_x_m = flow.flow_comp_m_x;
@@ -739,7 +740,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		memset(&hil_global_pos, 0, sizeof(hil_global_pos));
 
 		hil_global_pos.timestamp = timestamp;
-		hil_global_pos.global_valid = true;
 		hil_global_pos.lat = hil_state.lat;
 		hil_global_pos.lon = hil_state.lon;
 		hil_global_pos.alt = hil_state.alt / 1000.0f;
@@ -747,6 +747,8 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_global_pos.vel_e = hil_state.vy / 100.0f;
 		hil_global_pos.vel_d = hil_state.vz / 100.0f;
 		hil_global_pos.yaw = hil_attitude.yaw;
+		hil_global_pos.eph = 2.0f;
+		hil_global_pos.epv = 4.0f;
 
 		if (_global_pos_pub < 0) {
 			_global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
@@ -758,19 +760,22 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 	/* local position */
 	{
+		double lat = hil_state.lat * 1e-7;
+		double lon = hil_state.lon * 1e-7;
+
 		if (!_hil_local_proj_inited) {
 			_hil_local_proj_inited = true;
 			_hil_local_alt0 = hil_state.alt / 1000.0f;
-			map_projection_init(hil_state.lat, hil_state.lon);
+			map_projection_init(&_hil_local_proj_ref, hil_state.lat, hil_state.lon);
 			hil_local_pos.ref_timestamp = timestamp;
-			hil_local_pos.ref_lat = hil_state.lat;
-			hil_local_pos.ref_lon = hil_state.lon;
+			hil_local_pos.ref_lat = lat;
+			hil_local_pos.ref_lon = lon;
 			hil_local_pos.ref_alt = _hil_local_alt0;
 		}
 
 		float x;
 		float y;
-		map_projection_project(hil_state.lat * 1e-7, hil_state.lon * 1e-7, &x, &y);
+		map_projection_project(&_hil_local_proj_ref, lat, lon, &x, &y);
 		hil_local_pos.timestamp = timestamp;
 		hil_local_pos.xy_valid = true;
 		hil_local_pos.z_valid = true;
