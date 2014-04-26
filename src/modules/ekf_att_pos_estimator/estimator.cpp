@@ -2307,7 +2307,7 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
         if (!isfinite(states[i])) {
 
             err_report->statesNaN = true;
-            ekf_debug("states NaN: i: %u val: %f", i, states[i]);
+            ekf_debug("states NaN: i: %u val: %f", i, (double)states[i]);
             err = true;
             goto out;
         } // state matrix

@@ -1213,8 +1213,8 @@ FixedwingEstimator::task_main()
 					_global_pos.lat = est_lat;
 					_global_pos.lon = est_lon;
 					_global_pos.time_gps_usec = _gps.time_gps_usec;
-					_global_pos.eph = _gps.eph;
-					_global_pos.epv = _gps.epv;
+					_global_pos.eph = _gps.eph_m;
+					_global_pos.epv = _gps.epv_m;
 				}
 
 				if (_local_pos.v_xy_valid) {
@@ -1227,7 +1227,6 @@ FixedwingEstimator::task_main()
 
 				/* local pos alt is negative, change sign and add alt offset */
 				_global_pos.alt = _local_pos.ref_alt + (-_local_pos.z);
-				_global_pos.rel_alt = (-_local_pos.z);
 
 				if (_local_pos.v_z_valid) {
 					_global_pos.vel_d = _local_pos.vz;
