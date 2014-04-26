@@ -258,3 +258,14 @@ PARAM_DEFINE_FLOAT(PE_MAGE_PNOISE, 0.0003f);
  */
 PARAM_DEFINE_FLOAT(PE_MAGB_PNOISE, 0.0003f);
 
+/**
+ * Threshold for filter initialization.
+ *
+ * If the standard deviation of the GPS position estimate is below this threshold
+ * in meters, the filter will initialize.
+ *
+ * @min 0.3
+ * @max 10.0
+ * @group Position Estimator
+ */
+PARAM_DEFINE_FLOAT(PE_POSDEV_INIT, 5.0f);

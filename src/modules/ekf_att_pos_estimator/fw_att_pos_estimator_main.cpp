@@ -191,6 +191,7 @@ private:
 	perf_counter_t	_perf_airspeed;			///<local performance counter for airspeed updates
 
 	bool						_initialized;
+	bool						_baro_init;
 	bool						_gps_initialized;
 	uint64_t					_gps_start_time;
 
@@ -214,6 +215,7 @@ private:
 		float mage_pnoise;
 		float magb_pnoise;
 		float eas_noise;
+		float pos_stddev_threshold;
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -234,6 +236,7 @@ private:
 		param_t mage_pnoise;
 		param_t magb_pnoise;
 		param_t eas_noise;
+		param_t pos_stddev_threshold;
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 	AttPosEKF					*_ekf;
@@ -336,6 +339,7 @@ FixedwingEstimator::FixedwingEstimator() :
 
 /* states */
 	_initialized(false),
+	_baro_init(false),
 	_gps_initialized(false),
 	_mavlink_fd(-1),
 	_ekf(nullptr)
@@ -360,6 +364,7 @@ FixedwingEstimator::FixedwingEstimator() :
 	_parameter_handles.mage_pnoise = param_find("PE_MAGE_PNOISE");
 	_parameter_handles.magb_pnoise = param_find("PE_MAGB_PNOISE");
 	_parameter_handles.eas_noise = param_find("PE_EAS_NOISE");
+	_parameter_handles.pos_stddev_threshold = param_find("PE_POSDEV_INIT");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -448,6 +453,7 @@ FixedwingEstimator::parameters_update()
 	param_get(_parameter_handles.mage_pnoise, &(_parameters.mage_pnoise));
 	param_get(_parameter_handles.magb_pnoise, &(_parameters.magb_pnoise));
 	param_get(_parameter_handles.eas_noise, &(_parameters.eas_noise));
+	param_get(_parameter_handles.pos_stddev_threshold, &(_parameters.pos_stddev_threshold));
 
 	if (_ekf) {
 		// _ekf->yawVarScale = 1.0f;
@@ -568,17 +574,9 @@ FixedwingEstimator::task_main()
 #endif
 
 	bool newDataGps = false;
+	bool newHgtData = false;
 	bool newAdsData = false;
 	bool newDataMag = false;
-
-	// Reset relevant structs
-	_gps = {};
-
-	#ifndef SENSOR_COMBINED_SUB
-	_gyro = {};
-	#else
-	_sensor_combined = {};
-	#endif
 
 	while (!_task_should_exit) {
 
@@ -611,12 +609,19 @@ FixedwingEstimator::task_main()
 		if (fds[1].revents & POLLIN) {
 
 			/* check vehicle status for changes to publication state */
+			bool prev_hil = (_vstatus.hil_state == HIL_STATE_ON);
 			vehicle_status_poll();
 
 			bool accel_updated;
 			bool mag_updated;
 
 			perf_count(_perf_gyro);
+
+			/* Reset baro reference if switching to HIL */
+			if (!prev_hil && (_vstatus.hil_state == HIL_STATE_ON)) {
+				_baro_init = false;
+				_gps_initialized = false;
+			}
 
 			/**
 			 *    PART ONE: COLLECT ALL DATA
@@ -813,10 +818,17 @@ FixedwingEstimator::task_main()
 			if (baro_updated) {
 				orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
 
-				_ekf->baroHgt = _baro.altitude - _baro_ref;
+				_ekf->baroHgt = _baro.altitude;
 
-				// Could use a blend of GPS and baro alt data if desired
-				_ekf->hgtMea = 1.0f * _ekf->baroHgt + 0.0f * _ekf->gpsHgt;
+				if (!_baro_init) {
+					_baro_ref = _baro.altitude;
+					_baro_init = true;
+					warnx("ALT REF INIT");
+				}
+
+				newHgtData = true;
+			} else {
+				newHgtData = false;
 			}
 
 #ifndef SENSOR_COMBINED_SUB
@@ -904,9 +916,9 @@ FixedwingEstimator::task_main()
 				}
 			}
 
-			// XXX trap for testing
+			// warn on fatal resets
 			if (check == 1) {
-				errx(1, "NUMERIC ERROR IN FILTER");
+				warnx("NUMERIC ERROR IN FILTER");
 			}
 
 			// If non-zero, we got a filter reset
@@ -960,7 +972,7 @@ FixedwingEstimator::task_main()
 				// struct home_position_s home;
 				// orb_copy(ORB_ID(home_position), _home_sub, &home);
 
-				if (!_gps_initialized && _gps.fix_type > 2) {
+				if (!_gps_initialized && _gps.fix_type > 2 && _gps.eph_m < _parameters.pos_stddev_threshold && _gps.epv_m < _parameters.pos_stddev_threshold) {
 					_ekf->velNED[0] = _gps.vel_n_m_s;
 					_ekf->velNED[1] = _gps.vel_e_m_s;
 					_ekf->velNED[2] = _gps.vel_d_m_s;
@@ -968,26 +980,37 @@ FixedwingEstimator::task_main()
 					// GPS is in scaled integers, convert
 					double lat = _gps.lat / 1.0e7;
 					double lon = _gps.lon / 1.0e7;
-					float alt = _gps.alt / 1e3f;
+					float gps_alt = _gps.alt / 1e3f;
 
-					_ekf->InitialiseFilter(_ekf->velNED, math::radians(lat), math::radians(lon) - M_PI, alt);
+					// Set up height correctly
+					orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
+					_baro_gps_offset = gps_alt - _baro.altitude;
+					_ekf->baroHgt = _baro.altitude;
+					_ekf->hgtMea = 1.0f * (_ekf->baroHgt - _baro_ref);
+
+					// Set up position variables correctly
+					_ekf->GPSstatus = _gps.fix_type;
+					_ekf->velNED[0] = _gps.vel_n_m_s;
+					_ekf->velNED[1] = _gps.vel_e_m_s;
+					_ekf->velNED[2] = _gps.vel_d_m_s;
+
+					_ekf->gpsLat = math::radians(_gps.lat / (double)1e7);
+					_ekf->gpsLon = math::radians(_gps.lon / (double)1e7) - M_PI;
+					_ekf->gpsHgt = _gps.alt / 1e3f;
+
+					_ekf->InitialiseFilter(_ekf->velNED, math::radians(lat), math::radians(lon) - M_PI, gps_alt);
 
 					// Initialize projection
 					_local_pos.ref_lat = _gps.lat;
 					_local_pos.ref_lon = _gps.alt;
-					_local_pos.ref_alt = alt;
+					_local_pos.ref_alt = _baro_ref + _baro_gps_offset;
 					_local_pos.ref_timestamp = _gps.timestamp_position;
 
-					// Store 
-					orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
-					_baro_ref = _baro.altitude;
-					_ekf->baroHgt = _baro.altitude - _baro_ref;
-					_baro_gps_offset = _baro_ref - _local_pos.ref_alt;
-
 					map_projection_init(&_pos_ref, lat, lon);
-					mavlink_log_info(_mavlink_fd, "[ekf] ref: LA %.4f,LO %.4f,ALT %.2f", lat, lon, (double)alt);
-					warnx("[ekf] HOME/REF: LA %8.4f,LO %8.4f,ALT %8.2f V: %8.4f %8.4f %8.4f", lat, lon, (double)alt,
+					mavlink_log_info(_mavlink_fd, "[ekf] ref: LA %.4f,LO %.4f,ALT %.2f", lat, lon, (double)gps_alt);
+					warnx("HOME/REF: LA %8.4f,LO %8.4f,ALT %8.2f V: %8.4f %8.4f %8.4f", lat, lon, (double)gps_alt,
 						(double)_ekf->velNED[0], (double)_ekf->velNED[1], (double)_ekf->velNED[2]);
+					warnx("GPS: eph: %8.4f, epv: %8.4f", (double)_gps.eph_m, (double)_gps.epv_m);
 
 					_gps_initialized = true;
 
@@ -1089,9 +1112,9 @@ FixedwingEstimator::task_main()
 				_ekf->fusePosData = false;
 			}
 
-			if (newAdsData && _ekf->statesInitialised) {
+			if (newHgtData && _ekf->statesInitialised) {
 				// Could use a blend of GPS and baro alt data if desired
-				_ekf->hgtMea = 1.0f * _ekf->baroHgt + 0.0f * _ekf->gpsHgt;
+				_ekf->hgtMea = 1.0f * (_ekf->baroHgt - _baro_ref);
 				_ekf->fuseHgtData = true;
 				// recall states stored at time of measurement after adjusting for delays
 				_ekf->RecallStates(_ekf->statesAtHgtTime, (IMUmsec - _parameters.height_delay_ms));
