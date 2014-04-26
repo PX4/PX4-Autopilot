@@ -103,8 +103,6 @@ uint32_t millis()
 	return IMUmsec;
 }
 
-static void print_status();
-
 class FixedwingEstimator
 {
 public:
@@ -305,6 +303,25 @@ FixedwingEstimator::FixedwingEstimator() :
 	_local_pos_pub(-1),
 	_estimator_status_pub(-1),
 
+	_att({}),
+	_gyro({}),
+	_accel({}),
+	_mag({}),
+	_airspeed({}),
+	_baro({}),
+	_vstatus({}),
+	_global_pos({}),
+	_local_pos({}),
+	_gps({}),
+
+	_gyro_offsets({}),
+	_accel_offsets({}),
+	_mag_offsets({}),
+
+	#ifdef SENSOR_COMBINED_SUB
+	_sensor_combined({}),
+	#endif
+
 	_baro_ref(0.0f),
 	_baro_gps_offset(0.0f),
 
@@ -356,6 +373,10 @@ FixedwingEstimator::FixedwingEstimator() :
 	if (fd > 0) {
 		res = ioctl(fd, GYROIOCGSCALE, (long unsigned int)&_gyro_offsets);
 		close(fd);
+
+		if (res) {
+			warnx("G SCALE FAIL");
+		}
 	}
 
 	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
@@ -363,6 +384,10 @@ FixedwingEstimator::FixedwingEstimator() :
 	if (fd > 0) {
 		res = ioctl(fd, ACCELIOCGSCALE, (long unsigned int)&_accel_offsets);
 		close(fd);
+
+		if (res) {
+			warnx("A SCALE FAIL");
+		}
 	}
 
 	fd = open(MAG_DEVICE_PATH, O_RDONLY);
@@ -370,6 +395,10 @@ FixedwingEstimator::FixedwingEstimator() :
 	if (fd > 0) {
 		res = ioctl(fd, MAGIOCGSCALE, (long unsigned int)&_mag_offsets);
 		close(fd);
+
+		if (res) {
+			warnx("M SCALE FAIL");
+		}
 	}
 }
 
@@ -538,11 +567,18 @@ FixedwingEstimator::task_main()
 	fds[1].events = POLLIN;
 #endif
 
-	hrt_abstime start_time = hrt_absolute_time();
-
 	bool newDataGps = false;
 	bool newAdsData = false;
 	bool newDataMag = false;
+
+	// Reset relevant structs
+	_gps = {};
+
+	#ifndef SENSOR_COMBINED_SUB
+	_gyro = {};
+	#else
+	_sensor_combined = {};
+	#endif
 
 	while (!_task_should_exit) {
 
@@ -624,9 +660,11 @@ FixedwingEstimator::task_main()
 				_ekf->angRate.z = _gyro.z;
 			}
 
-			_ekf->accel.x = _accel.x;
-			_ekf->accel.y = _accel.y;
-			_ekf->accel.z = _accel.z;
+			if (accel_updated) {
+				_ekf->accel.x = _accel.x;
+				_ekf->accel.y = _accel.y;
+				_ekf->accel.z = _accel.z;
+			}
 
 			_ekf->dAngIMU = 0.5f * (angRate + lastAngRate) * dtIMU;
 			_ekf->lastAngRate = angRate;
@@ -672,9 +710,11 @@ FixedwingEstimator::task_main()
 				_ekf->angRate.z = _sensor_combined.gyro_rad_s[2];
 			}
 
-			_ekf->accel.x = _sensor_combined.accelerometer_m_s2[0];
-			_ekf->accel.y = _sensor_combined.accelerometer_m_s2[1];
-			_ekf->accel.z = _sensor_combined.accelerometer_m_s2[2];
+			if (accel_updated) {
+				_ekf->accel.x = _sensor_combined.accelerometer_m_s2[0];
+				_ekf->accel.y = _sensor_combined.accelerometer_m_s2[1];
+				_ekf->accel.z = _sensor_combined.accelerometer_m_s2[2];
+			}
 
 			_ekf->dAngIMU = 0.5f * (_ekf->angRate + lastAngRate) * _ekf->dtIMU;
 			lastAngRate = _ekf->angRate;
@@ -885,7 +925,7 @@ FixedwingEstimator::task_main()
 				rep.kalman_gain_nan = ekf_report.kalmanGainsNaN;
 
 				// Copy all states or at least all that we can fit
-				int i = 0;
+				unsigned i = 0;
 				unsigned ekf_n_states = (sizeof(ekf_report.states) / sizeof(ekf_report.states[0]));
 				unsigned max_states = (sizeof(rep.states) / sizeof(rep.states[0]));
 				rep.n_states = (ekf_n_states < max_states) ? ekf_n_states : max_states;
@@ -1173,6 +1213,8 @@ FixedwingEstimator::task_main()
 					_global_pos.lat = est_lat;
 					_global_pos.lon = est_lon;
 					_global_pos.time_gps_usec = _gps.time_gps_usec;
+					_global_pos.eph = _gps.eph;
+					_global_pos.epv = _gps.epv;
 				}
 
 				if (_local_pos.v_xy_valid) {
@@ -1185,6 +1227,7 @@ FixedwingEstimator::task_main()
 
 				/* local pos alt is negative, change sign and add alt offset */
 				_global_pos.alt = _local_pos.ref_alt + (-_local_pos.z);
+				_global_pos.rel_alt = (-_local_pos.z);
 
 				if (_local_pos.v_z_valid) {
 					_global_pos.vel_d = _local_pos.vz;
@@ -1259,7 +1302,7 @@ FixedwingEstimator::print_status()
 	// 15-17: Earth Magnetic Field Vector - gauss (North, East, Down)
 	// 18-20: Body Magnetic Field Vector - gauss (X,Y,Z)
 
-	printf("dtIMU: %8.6f dt: %8.6f IMUmsec: %d\n", _ekf->dtIMU, dt, (int)IMUmsec);
+	printf("dtIMU: %8.6f dt: %8.6f IMUmsec: %d\n", (double)_ekf->dtIMU, (double)dt, (int)IMUmsec);
 	printf("dvel: %8.6f %8.6f %8.6f accel: %8.6f %8.6f %8.6f\n", (double)_ekf->dVelIMU.x, (double)_ekf->dVelIMU.y, (double)_ekf->dVelIMU.z, (double)_ekf->accel.x, (double)_ekf->accel.y, (double)_ekf->accel.z);
 	printf("dang: %8.4f %8.4f %8.4f dang corr: %8.4f %8.4f %8.4f\n" , (double)_ekf->dAngIMU.x, (double)_ekf->dAngIMU.y, (double)_ekf->dAngIMU.z, (double)_ekf->correctedDelAng.x, (double)_ekf->correctedDelAng.y, (double)_ekf->correctedDelAng.z);
 	printf("states (quat)        [1-4]: %8.4f, %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[0], (double)_ekf->states[1], (double)_ekf->states[2], (double)_ekf->states[3]);
