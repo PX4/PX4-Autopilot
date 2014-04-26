@@ -157,6 +157,8 @@ public:
 
 	bool		get_hil_enabled() { return _hil_enabled; }
 
+	bool		get_use_hil_gps() { return _use_hil_gps; }
+
 	bool		get_flow_control_enabled() { return _flow_control_enabled; }
 
 	bool		get_forwarding_on() { return _forwarding_on; }
@@ -223,6 +225,7 @@ private:
 
 	/* states */
 	bool		_hil_enabled;		/**< Hardware In the Loop mode */
+	bool		_use_hil_gps;		/**< Accept GPS HIL messages (for example from an external motion capturing system to fake indoor gps) */
 	bool		_is_usb_uart;		/**< Port is USB */
 	bool        _wait_to_transmit;  /**< Wait to transmit until received messages. */
 	bool        _received_messages; /**< Whether we've received valid mavlink messages. */
