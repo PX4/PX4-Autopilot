@@ -13,6 +13,15 @@ int ServiceClientBase::prepareToCall(INode& node, const char* dtname, NodeID ser
     pending_ = true;
 
     /*
+     * Making sure we're not going to get transport error because of invalid input data
+     */
+    if (!server_node_id.isUnicast() || (server_node_id == node.getNodeID()))
+    {
+        UAVCAN_TRACE("ServiceClient", "Invalid Server Node ID");
+        return -ErrInvalidParam;
+    }
+
+    /*
      * Determining the Data Type ID
      */
     GlobalDataTypeRegistry::instance().freeze();
