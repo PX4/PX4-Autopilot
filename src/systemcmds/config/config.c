@@ -121,7 +121,7 @@ do_device(int argc, char *argv[])
 				errx(ret,"uORB publications could not be unblocked");
 
 		} else {
-			errx("no valid command: %s", argv[1]);
+			errx(1, "no valid command: %s", argv[1]);
 		}
 	}
 

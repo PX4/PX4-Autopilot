@@ -356,8 +356,10 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.thr_min, &_params.thr_min);
 		param_get(_params_handles.thr_max, &_params.thr_max);
 		param_get(_params_handles.tilt_max, &_params.tilt_max);
+		_params.tilt_max = math::radians(_params.tilt_max);
 		param_get(_params_handles.land_speed, &_params.land_speed);
 		param_get(_params_handles.land_tilt_max, &_params.land_tilt_max);
+		_params.land_tilt_max = math::radians(_params.land_tilt_max);
 
 		float v;
 		param_get(_params_handles.xy_p, &v);
@@ -1001,6 +1003,18 @@ MulticopterPositionControl::task_main()
 						_att_sp.roll_body = euler(0);
 						_att_sp.pitch_body = euler(1);
 						/* yaw already used to construct rot matrix, but actual rotation matrix can have different yaw near singularity */
+
+					} else if (!_control_mode.flag_control_manual_enabled) {
+						/* autonomous altitude control without position control (failsafe landing),
+						 * force level attitude, don't change yaw */
+						R.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
+
+						/* copy rotation matrix to attitude setpoint topic */
+						memcpy(&_att_sp.R_body[0][0], R.data, sizeof(_att_sp.R_body));
+						_att_sp.R_valid = true;
+
+						_att_sp.roll_body = 0.0f;
+						_att_sp.pitch_body = 0.0f;
 					}
 
 					_att_sp.thrust = thrust_abs;

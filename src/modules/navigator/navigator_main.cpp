@@ -692,6 +692,9 @@ Navigator::task_main()
 
 			/* evaluate state requested by commander */
 			if (_control_mode.flag_armed && _control_mode.flag_control_auto_enabled) {
+				/* publish position setpoint triplet on each status update if navigator active */
+				_pos_sp_triplet_updated = true;
+
 				if (_vstatus.set_nav_state_timestamp != _set_nav_state_timestamp) {
 					/* commander requested new navigation mode, try to set it */
 					switch (_vstatus.set_nav_state) {
@@ -730,6 +733,13 @@ Navigator::task_main()
 					/* on first switch to AUTO try mission by default, if none is available fallback to loiter */
 					if (myState == NAV_STATE_NONE) {
 						request_mission_if_available();
+					}
+				}
+
+				/* check if waypoint has been reached in MISSION, RTL and LAND modes */
+				if (myState == NAV_STATE_MISSION || myState == NAV_STATE_RTL || myState == NAV_STATE_LAND) {
+					if (check_mission_item_reached()) {
+						on_mission_item_reached();
 					}
 				}
 
@@ -777,8 +787,8 @@ Navigator::task_main()
 		if (fds[1].revents & POLLIN) {
 			global_position_update();
 
-			/* publish position setpoint triplet on each position update if navigator active */
 			if (_control_mode.flag_armed && _control_mode.flag_control_auto_enabled) {
+				/* publish position setpoint triplet on each position update if navigator active */
 				_pos_sp_triplet_updated = true;
 
 				if (myState == NAV_STATE_LAND && !_global_pos_valid) {

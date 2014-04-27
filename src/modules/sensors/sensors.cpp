@@ -255,7 +255,11 @@ private:
 
 		int rc_map_mode_sw;
 		int rc_map_return_sw;
+<<<<<<< HEAD
 		int rc_map_easy_sw;
+=======
+		int rc_map_assisted_sw;
+>>>>>>> ad77ba26427aa9a2d8b8241fc95271667a1c0863
 		int rc_map_loiter_sw;
 
 //		int rc_map_offboard_ctrl_mode_sw;
@@ -309,7 +313,11 @@ private:
 
 		param_t rc_map_mode_sw;
 		param_t rc_map_return_sw;
+<<<<<<< HEAD
 		param_t rc_map_easy_sw;
+=======
+		param_t rc_map_assisted_sw;
+>>>>>>> ad77ba26427aa9a2d8b8241fc95271667a1c0863
 		param_t rc_map_loiter_sw;
 
 //		param_t rc_map_offboard_ctrl_mode_sw;
@@ -526,7 +534,11 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_flaps = param_find("RC_MAP_FLAPS");
 
 	/* optional mode switches, not mapped per default */
+<<<<<<< HEAD
 	_parameter_handles.rc_map_easy_sw = param_find("RC_MAP_EASY_SW");
+=======
+	_parameter_handles.rc_map_assisted_sw = param_find("RC_MAP_ASSIST_SW");
+>>>>>>> ad77ba26427aa9a2d8b8241fc95271667a1c0863
 	_parameter_handles.rc_map_loiter_sw = param_find("RC_MAP_LOITER_SW");
 
 //	_parameter_handles.rc_map_offboard_ctrl_mode_sw = param_find("RC_MAP_OFFB_SW");
@@ -651,19 +663,19 @@ Sensors::parameters_update()
 
 	/* channel mapping */
 	if (param_get(_parameter_handles.rc_map_roll, &(_parameters.rc_map_roll)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_pitch, &(_parameters.rc_map_pitch)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_yaw, &(_parameters.rc_map_yaw)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_throttle, &(_parameters.rc_map_throttle)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_failsafe, &(_parameters.rc_map_failsafe)) != OK) {
@@ -671,23 +683,32 @@ Sensors::parameters_update()
 	}
 
 	if (param_get(_parameter_handles.rc_map_mode_sw, &(_parameters.rc_map_mode_sw)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_return_sw, &(_parameters.rc_map_return_sw)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
+<<<<<<< HEAD
 	if (param_get(_parameter_handles.rc_map_easy_sw, &(_parameters.rc_map_easy_sw)) != OK) {
 		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_loiter_sw, &(_parameters.rc_map_loiter_sw)) != OK) {
 		warnx(paramerr);
+=======
+	if (param_get(_parameter_handles.rc_map_assisted_sw, &(_parameters.rc_map_assisted_sw)) != OK) {
+		warnx("%s", paramerr);
+	}
+
+	if (param_get(_parameter_handles.rc_map_loiter_sw, &(_parameters.rc_map_loiter_sw)) != OK) {
+		warnx("%s", paramerr);
+>>>>>>> ad77ba26427aa9a2d8b8241fc95271667a1c0863
 	}
 
 	if (param_get(_parameter_handles.rc_map_flaps, &(_parameters.rc_map_flaps)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 //	if (param_get(_parameter_handles.rc_map_offboard_ctrl_mode_sw, &(_parameters.rc_map_offboard_ctrl_mode_sw)) != OK) {
@@ -724,7 +745,11 @@ Sensors::parameters_update()
 
 	_rc.function[MODE] = _parameters.rc_map_mode_sw - 1;
 	_rc.function[RETURN] = _parameters.rc_map_return_sw - 1;
+<<<<<<< HEAD
 	_rc.function[EASY] = _parameters.rc_map_easy_sw - 1;
+=======
+	_rc.function[ASSISTED] = _parameters.rc_map_assisted_sw - 1;
+>>>>>>> ad77ba26427aa9a2d8b8241fc95271667a1c0863
 	_rc.function[LOITER] = _parameters.rc_map_loiter_sw - 1;
 
 	_rc.function[FLAPS] = _parameters.rc_map_flaps - 1;
@@ -768,12 +793,12 @@ Sensors::parameters_update()
 
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 	/* scaling of ADC ticks to battery current */
 	if (param_get(_parameter_handles.battery_current_scaling, &(_parameters.battery_current_scaling)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
@@ -1285,7 +1310,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				}
 			}
 			_last_adc = t;
-			if (_battery_status.voltage_v > 0.0f) {
+			if (_battery_status.voltage_filtered_v > BATT_V_IGNORE_THRESHOLD) {
 				/* announce the battery status if needed, just publish else */
 				if (_battery_pub > 0) {
 					orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
@@ -1477,10 +1502,17 @@ Sensors::rc_poll()
 			manual.aux5 = get_rc_value(AUX_5, -1.0, 1.0);
 
 			/* mode switches */
+<<<<<<< HEAD
 			manual.mode_switch = get_rc_sw3pos_position(MODE, _parameters.rc_auto_th, _parameters.rc_auto_inv, _parameters.rc_assisted_th, _parameters.rc_assisted_inv);
 			manual.easy_switch = get_rc_sw2pos_position(EASY, _parameters.rc_easy_th, _parameters.rc_easy_inv);
 			manual.return_switch = get_rc_sw2pos_position(RETURN, _parameters.rc_return_th, _parameters.rc_return_inv);
 			manual.loiter_switch = get_rc_sw2pos_position(LOITER, _parameters.rc_loiter_th, _parameters.rc_loiter_inv);
+=======
+			manual.mode_switch = get_rc_switch_position(MODE);
+			manual.assisted_switch = get_rc_switch_position(ASSISTED);
+			manual.loiter_switch = get_rc_switch_position(LOITER);
+			manual.return_switch = get_rc_switch_position(RETURN);
+>>>>>>> ad77ba26427aa9a2d8b8241fc95271667a1c0863
 
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub > 0) {
@@ -1590,12 +1622,10 @@ Sensors::task_main()
 
 	while (!_task_should_exit) {
 
-		/* wait for up to 100ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		/* wait for up to 50ms for data */
+		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 50);
 
-		/* timed out - periodic check for _task_should_exit, etc. */
-		if (pret == 0)
-			continue;
+		/* if pret == 0 it timed out - periodic check for _task_should_exit, etc. */
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
@@ -1634,7 +1664,7 @@ Sensors::task_main()
 		perf_end(_loop_perf);
 	}
 
-	printf("[sensors] exiting.\n");
+	warnx("[sensors] exiting.");
 
 	_sensors_task = -1;
 	_exit(0);

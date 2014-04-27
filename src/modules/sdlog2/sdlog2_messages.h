@@ -101,6 +101,8 @@ struct log_LPOS_s {
 	float x;
 	float y;
 	float z;
+	float ground_dist;
+	float ground_dist_rate;
 	float vx;
 	float vy;
 	float vz;
@@ -110,6 +112,7 @@ struct log_LPOS_s {
 	uint8_t xy_flags;
 	uint8_t z_flags;
 	uint8_t landed;
+	uint8_t ground_dist_flags;
 };
 
 /* --- LPSP - LOCAL POSITION SETPOINT --- */
@@ -151,6 +154,7 @@ struct log_ATTC_s {
 struct log_STAT_s {
 	uint8_t main_state;
 	uint8_t arming_state;
+	uint8_t failsafe_state;
 	float battery_remaining;
 	uint8_t battery_warning;
 	uint8_t landed;
@@ -340,30 +344,30 @@ struct log_PARM_s {
 /* construct list of all message formats */
 static const struct log_format_s log_formats[] = {
 	/* business-level messages, ID < 0x80 */
-	LOG_FORMAT(ATT, "fffffffff", "Roll,Pitch,Yaw,RollRate,PitchRate,YawRate,GX,GY,GZ"),
-	LOG_FORMAT(ATSP, "ffff", "RollSP,PitchSP,YawSP,ThrustSP"),
-	LOG_FORMAT(IMU, "fffffffff", "AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
-	LOG_FORMAT(SENS, "fffff", "BaroPres,BaroAlt,BaroTemp,DiffPres,DiffPresFilt"),
-	LOG_FORMAT(LPOS, "ffffffLLfBBB", "X,Y,Z,VX,VY,VZ,RefLat,RefLon,RefAlt,XYFlags,ZFlags,Landed"),
-	LOG_FORMAT(LPSP, "ffff", "X,Y,Z,Yaw"),
-	LOG_FORMAT(GPS, "QBffLLfffff", "GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
-	LOG_FORMAT(ATTC, "ffff", "Roll,Pitch,Yaw,Thrust"),
-	LOG_FORMAT(STAT, "BBfBB", "MainState,ArmState,BatRem,BatWarn,Landed"),
-	LOG_FORMAT(RC, "ffffffffBB", "Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,Count,SignalLost"),
-	LOG_FORMAT(OUT0, "ffffffff", "Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
-	LOG_FORMAT(AIRS, "fff", "IndSpeed,TrueSpeed,AirTemp"),
-	LOG_FORMAT(ARSP, "fff", "RollRateSP,PitchRateSP,YawRateSP"),
-	LOG_FORMAT(FLOW, "hhfffBB", "RawX,RawY,CompX,CompY,Dist,Q,SensID"),
-	LOG_FORMAT(GPOS, "LLffffff", "Lat,Lon,Alt,VelN,VelE,VelD,EPH,EPV"),
-	LOG_FORMAT(GPSP, "BLLffBfbf", "NavState,Lat,Lon,Alt,Yaw,Type,LoitR,LoitDir,PitMin"),
-	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
-	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
-	LOG_FORMAT(BATT, "ffff", "V,VFilt,C,Discharged"),
-	LOG_FORMAT(DIST, "ffB", "Bottom,BottomRate,Flags"),
-	LOG_FORMAT(TELE, "BBBBHHB", "RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf"),
-	LOG_FORMAT(ESTM, "ffffffffffBBBB", "s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,n_states,states_nan,cov_nan,kgain_nan"),
-	LOG_FORMAT(PWR, "fffBBBBB", "Periph_5V,Servo_5V,RSSI,USB_OK,BRICK_OK,SRV_OK,PERIPH_OC,HIPWR_OC"),
-	LOG_FORMAT(VICN, "ffffff", "X,Y,Z,Roll,Pitch,Yaw"),
+	LOG_FORMAT(ATT, "fffffffff",		"Roll,Pitch,Yaw,RollRate,PitchRate,YawRate,GX,GY,GZ"),
+	LOG_FORMAT(ATSP, "ffff",		"RollSP,PitchSP,YawSP,ThrustSP"),
+	LOG_FORMAT(IMU, "fffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
+	LOG_FORMAT(SENS, "fffff",		"BaroPres,BaroAlt,BaroTemp,DiffPres,DiffPresFilt"),
+	LOG_FORMAT(LPOS, "ffffffffLLfBBBB",	"X,Y,Z,dist,distR,VX,VY,VZ,RLat,RLon,RAlt,XYFlg,ZFlg,LFlg,GFlg"),
+	LOG_FORMAT(LPSP, "ffff",		"X,Y,Z,Yaw"),
+	LOG_FORMAT(GPS, "QBffLLfffff",		"GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
+	LOG_FORMAT(ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
+	LOG_FORMAT(STAT, "BBBfBB",		"MainState,ArmState,FailsafeState,BatRem,BatWarn,Landed"),
+	LOG_FORMAT(RC, "ffffffffBB",		"Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,Count,SignalLost"),
+	LOG_FORMAT(OUT0, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
+	LOG_FORMAT(AIRS, "fff",			"IndSpeed,TrueSpeed,AirTemp"),
+	LOG_FORMAT(ARSP, "fff",			"RollRateSP,PitchRateSP,YawRateSP"),
+	LOG_FORMAT(FLOW, "hhfffBB",		"RawX,RawY,CompX,CompY,Dist,Q,SensID"),
+	LOG_FORMAT(GPOS, "LLffffff",		"Lat,Lon,Alt,VelN,VelE,VelD,EPH,EPV"),
+	LOG_FORMAT(GPSP, "BLLffBfbf",		"NavState,Lat,Lon,Alt,Yaw,Type,LoitR,LoitDir,PitMin"),
+	LOG_FORMAT(ESC, "HBBBHHHHHHfH",		"count,nESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
+	LOG_FORMAT(GVSP, "fff",			"VX,VY,VZ"),
+	LOG_FORMAT(BATT, "ffff",		"V,VFilt,C,Discharged"),
+	LOG_FORMAT(DIST, "ffB",			"Bottom,BottomRate,Flags"),
+	LOG_FORMAT(TELE, "BBBBHHB",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf"),
+	LOG_FORMAT(ESTM, "ffffffffffBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,nStat,statNaN,covNaN,kGainNaN"),
+	LOG_FORMAT(PWR, "fffBBBBB",		"Periph5V,Servo5V,RSSI,UsbOk,BrickOk,ServoOk,PeriphOC,HipwrOC"),
+	LOG_FORMAT(VICN, "ffffff",		"X,Y,Z,Roll,Pitch,Yaw"),
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */

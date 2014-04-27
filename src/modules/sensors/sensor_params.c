@@ -608,7 +608,7 @@ PARAM_DEFINE_INT32(RC_MAP_RETURN_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_EASY_SW, 0);
 
 /**
- * Mission switch channel mapping.
+ * Loiter switch channel mapping.
  *
  * @min 0
  * @max 18
