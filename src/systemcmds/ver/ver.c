@@ -34,28 +34,22 @@
 /**
 * @file ver.c
 *
-* Version command, unifies way of showing versions of HW, SW, Build, gcc
+* Version command, unifies way of showing versions of HW, SW, Build, GCC
 * In case you want to add new version just extend version_main function
-*
-* External use of the version functions is possible, include "vercmd.h"
-* and use functions from header with prefix ver_
 *
 * @author Vladimir Kulla <ufon@kullaonline.net>
 */
 
-#include <nuttx/config.h>
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
 #include <version/version.h>
-
-#include "ver.h"
+#include <systemlib/err.h>
 
 // string constants for version commands
 static const char sz_ver_hw_str[] 	= "hw";
 static const char sz_ver_hwcmp_str[]= "hwcmp";
 static const char sz_ver_git_str[] 	= "git";
-static const char sz_ver_date_str[] = "date";
+static const char sz_ver_bdate_str[] = "bdate";
 static const char sz_ver_gcc_str[] 	= "gcc";
 static const char sz_ver_all_str[] 	= "all";
 
@@ -65,10 +59,10 @@ static void usage(const char *reason)
 		printf("%s\n", reason);
 	}
 
-	printf("usage: version {hw|hwcmp|git|date|gcc|all}\n\n");
+	printf("usage: ver {hw|hwcmp|git|bdate|gcc|all}\n\n");
 }
 
-void ver_githash(int bShowPrefix)
+static void ver_githash(int bShowPrefix)
 {
 	if (bShowPrefix == 1) {
 		printf("FW git-hash: ");
@@ -76,7 +70,7 @@ void ver_githash(int bShowPrefix)
 	printf("%s\n", FW_GIT);
 }
 
-void ver_hwarch(int bShowPrefix)
+static void ver_hwarch(int bShowPrefix)
 {
 	if (bShowPrefix == 1) {
 		printf("HW arch: ");
@@ -84,35 +78,20 @@ void ver_hwarch(int bShowPrefix)
 	printf("%s\n", HW_ARCH);
 }
 
-void ver_date(int bShowPrefix)
+static void ver_bdate(int bShowPrefix)
 {
 	if (bShowPrefix == 1) {
-		printf("Build date: ");
+		printf("Build datetime: ");
 	}
 	printf("%s %s\n", __DATE__, __TIME__);
 }
 
-void ver_gcclong(int bShowPrefix)
+static void ver_gcclong(int bShowPrefix)
 {
 	if (bShowPrefix == 1) {
-		printf("GCC used (long): ");
-		//printf("Built with GCC : %d.%d.%d\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+		printf("GCC toolchain: ");
 	}
 	printf("%s\n", __VERSION__);
-}
-
-void ver_gccshort(int bShowPrefix)
-{
-	if (bShowPrefix == 1) {
-		printf("GCC used (short): ");
-
-	}
-	printf("%d.%d.%d\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
-}
-
-int ver_gccnum()
-{
-	return (__GNUC__ * 1000) + (__GNUC_MINOR__ * 100) + __GNUC_PATCHLEVEL__;
 }
 
 __EXPORT int ver_main(int argc, char *argv[]);
@@ -124,37 +103,36 @@ int ver_main(int argc, char *argv[])
 	// first check if there are at least 2 params
 	if (argc >= 2) {
 		if (argv[1] != NULL) {
-			if (!strncmp(argv[1], sz_ver_hw_str, strlen(sz_ver_hw_str))) {
+			if (!strncmp(argv[1], sz_ver_hw_str, sizeof(sz_ver_hw_str))) {
 				ver_hwarch(0);
 				ret = 0;
 			}
-			else if (!strncmp(argv[1], sz_ver_hwcmp_str, strlen(sz_ver_hwcmp_str))) {
+			else if (!strncmp(argv[1], sz_ver_hwcmp_str, sizeof(sz_ver_hwcmp_str))) {
 				if (argc >= 3 && argv[2] != NULL) {
 					// compare 3rd parameter with HW_ARCH string, in case of match, return 0
-					ret = strcmp(HW_ARCH, argv[2]) != 0;
+					ret = strncmp(HW_ARCH, argv[2], strlen(HW_ARCH));
 					if (ret == 0) {
-						printf("hw_ver match: %s\n", HW_ARCH);
+						printf("hwver match: %s\n", HW_ARCH);
 					}
 				} else {
-					errx(1, "not enough arguments, try 'version hwcmp PX4FMU_1'");
+					errx(1, "Not enough arguments, try 'ver hwcmp PX4FMU_V2'");
 				}
 			}
-			else if (!strncmp(argv[1], sz_ver_git_str, strlen(sz_ver_git_str))) {
+			else if (!strncmp(argv[1], sz_ver_git_str, sizeof(sz_ver_git_str))) {
 				ver_githash(0);
 				ret = 0;
 			}
-			else if (!strncmp(argv[1], sz_ver_date_str, strlen(sz_ver_date_str))) {
-				ver_date(0);
+			else if (!strncmp(argv[1], sz_ver_bdate_str, sizeof(sz_ver_bdate_str))) {
+				ver_bdate(0);
 				ret = 0;
 			}
-			else if (!strncmp(argv[1], sz_ver_gcc_str, strlen(sz_ver_gcc_str))) {
+			else if (!strncmp(argv[1], sz_ver_gcc_str, sizeof(sz_ver_gcc_str))) {
 				ver_gcclong(0);
 				ret = 0;
 			}
-			else if (!strncmp(argv[1], sz_ver_all_str, strlen(sz_ver_all_str))) {
-				printf("Pixhawk version info\n");
+			else if (!strncmp(argv[1], sz_ver_all_str, sizeof(sz_ver_all_str))) {
 				ver_hwarch(1);
-				ver_date(1);
+				ver_bdate(1);
 				ver_githash(1);
 				ver_gcclong(1);
 				ret = 0;
