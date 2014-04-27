@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013-2014 PX4 Development Team. All rights reserved.
  *   Author: Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
  *           Lorenz Meier <lm@inf.ethz.ch>
  *           Thomas Gubler <thomasgubler@student.ethz.ch>
@@ -383,7 +383,6 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 {
 	/* result of the command */
 	enum VEHICLE_CMD_RESULT result = VEHICLE_CMD_RESULT_UNSUPPORTED;
-	bool ret = false;
 
 	/* only handle commands that are meant to be handled by this system and component */
 	if (cmd->target_system != status->system_id || ((cmd->target_component != status->component_id) && (cmd->target_component != 0))) { // component_id 0: valid for all components
@@ -395,88 +394,72 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 	/* request to set different system mode */
 	switch (cmd->command) {
 	case VEHICLE_CMD_DO_SET_MODE: {
-			uint8_t base_mode = (uint8_t) cmd->param1;
-			uint8_t custom_main_mode = (uint8_t) cmd->param2;
-			transition_result_t arming_res = TRANSITION_NOT_CHANGED;
+		uint8_t base_mode = (uint8_t) cmd->param1;
+		uint8_t custom_main_mode = (uint8_t) cmd->param2;
 
-			/* set HIL state */
-			hil_state_t new_hil_state = (base_mode & MAV_MODE_FLAG_HIL_ENABLED) ? HIL_STATE_ON : HIL_STATE_OFF;
-			int hil_ret = hil_state_transition(new_hil_state, status_pub, status, mavlink_fd);
+		/* set HIL state */
+		hil_state_t new_hil_state = (base_mode & MAV_MODE_FLAG_HIL_ENABLED) ? HIL_STATE_ON : HIL_STATE_OFF;
+		int hil_ret = hil_state_transition(new_hil_state, status_pub, status, mavlink_fd);
 
-			/* if HIL got enabled, reset battery status state */
-			if (hil_ret == OK && status->hil_state == HIL_STATE_ON) {
-				/* reset the arming mode to disarmed */
-				arming_res = arming_state_transition(status, safety, ARMING_STATE_STANDBY, armed);
+		/* if HIL got enabled, reset battery status state */
+		if (hil_ret == OK && status->hil_state == HIL_STATE_ON) {
+			/* reset the arming mode to disarmed */
+			arming_state_transition(status, safety, ARMING_STATE_STANDBY, armed);
+		}
 
-				if (arming_res != TRANSITION_DENIED) {
-					mavlink_log_info(mavlink_fd, "[cmd] HIL: Reset ARMED state to standby");
+		// Transition the arming state
+		transition_result_t arming_res = arm_disarm(base_mode & MAV_MODE_FLAG_SAFETY_ARMED, mavlink_fd, "set mode command");
 
-				} else {
-					mavlink_log_info(mavlink_fd, "[cmd] HIL: FAILED resetting armed state");
-				}
+		/* set main state */
+		transition_result_t main_res = TRANSITION_DENIED;
+
+		if (base_mode & MAV_MODE_FLAG_CUSTOM_MODE_ENABLED) {
+			/* use autopilot-specific mode */
+			if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_MANUAL) {
+				/* MANUAL */
+				main_res = main_state_transition(status, MAIN_STATE_MANUAL);
+
+			} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_SEATBELT) {
+				/* SEATBELT */
+				main_res = main_state_transition(status, MAIN_STATE_SEATBELT);
+
+			} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_EASY) {
+				/* EASY */
+				main_res = main_state_transition(status, MAIN_STATE_EASY);
+
+			} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
+				/* AUTO */
+				main_res = main_state_transition(status, MAIN_STATE_AUTO);
 			}
 
-			if (hil_ret == OK)
-				ret = true;
+		} else {
+			/* use base mode */
+			if (base_mode & MAV_MODE_FLAG_AUTO_ENABLED) {
+				/* AUTO */
+				main_res = main_state_transition(status, MAIN_STATE_AUTO);
 
-            // Transition the arming state
-            arming_res = arm_disarm(base_mode & MAV_MODE_FLAG_SAFETY_ARMED, mavlink_fd, "set mode command");
-
-			if (arming_res == TRANSITION_CHANGED)
-				ret = true;
-
-			/* set main state */
-			transition_result_t main_res = TRANSITION_DENIED;
-
-			if (base_mode & MAV_MODE_FLAG_CUSTOM_MODE_ENABLED) {
-				/* use autopilot-specific mode */
-				if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_MANUAL) {
-					/* MANUAL */
-					main_res = main_state_transition(status, MAIN_STATE_MANUAL);
-
-				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_SEATBELT) {
-					/* SEATBELT */
-					main_res = main_state_transition(status, MAIN_STATE_SEATBELT);
-
-				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_EASY) {
+			} else if (base_mode & MAV_MODE_FLAG_MANUAL_INPUT_ENABLED) {
+				if (base_mode & MAV_MODE_FLAG_GUIDED_ENABLED) {
 					/* EASY */
 					main_res = main_state_transition(status, MAIN_STATE_EASY);
 
-				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
-					/* AUTO */
-					main_res = main_state_transition(status, MAIN_STATE_AUTO);
-				}
-
-			} else {
-				/* use base mode */
-				if (base_mode & MAV_MODE_FLAG_AUTO_ENABLED) {
-					/* AUTO */
-					main_res = main_state_transition(status, MAIN_STATE_AUTO);
-
-				} else if (base_mode & MAV_MODE_FLAG_MANUAL_INPUT_ENABLED) {
-					if (base_mode & MAV_MODE_FLAG_GUIDED_ENABLED) {
-						/* EASY */
-						main_res = main_state_transition(status, MAIN_STATE_EASY);
-
-					} else if (base_mode & MAV_MODE_FLAG_STABILIZE_ENABLED) {
-						/* MANUAL */
-						main_res = main_state_transition(status, MAIN_STATE_MANUAL);
-					}
+				} else if (base_mode & MAV_MODE_FLAG_STABILIZE_ENABLED) {
+					/* MANUAL */
+					main_res = main_state_transition(status, MAIN_STATE_MANUAL);
 				}
 			}
-
-			if (main_res == TRANSITION_CHANGED)
-				ret = true;
-
-			if (arming_res != TRANSITION_DENIED && main_res != TRANSITION_DENIED) {
-				result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-			} else {
-				result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-			}
-
-			break;
 		}
+
+
+		if (arming_res != TRANSITION_DENIED && main_res != TRANSITION_DENIED) {
+			result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+		} else {
+			result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+		}
+
+		break;
+	}
 
 	case VEHICLE_CMD_COMPONENT_ARM_DISARM: {
             // Follow exactly what the mavlink spec says for values: 0.0f for disarm, 1.0f for arm.
@@ -503,13 +486,11 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 				status->set_nav_state = NAVIGATION_STATE_LOITER;
 				mavlink_log_critical(mavlink_fd, "#audio: pause mission cmd");
 				result = VEHICLE_CMD_RESULT_ACCEPTED;
-				ret = true;
 
 			} else if (mav_goto == 1) {	// MAV_GOTO_DO_CONTINUE
 				status->set_nav_state = NAVIGATION_STATE_MISSION;
 				mavlink_log_critical(mavlink_fd, "#audio: continue mission cmd");
 				result = VEHICLE_CMD_RESULT_ACCEPTED;
-				ret = true;
 
 			} else {
 				mavlink_log_info(mavlink_fd, "Unsupported OVERRIDE_GOTO: %f %f %f %f %f %f %f %f", cmd->param1, cmd->param2, cmd->param3, cmd->param4, cmd->param5, cmd->param6, cmd->param7);
@@ -525,7 +506,6 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 			if (armed->armed && cmd->param3 > 0.5 && parachute_enabled) {
 				transition_result_t failsafe_res = failsafe_state_transition(status, FAILSAFE_STATE_TERMINATION);
 				result = VEHICLE_CMD_RESULT_ACCEPTED;
-				ret = true;
 
 			} else {
 				/* reject parachute depoyment not armed */
@@ -981,12 +961,10 @@ int commander_thread_main(int argc, char *argv[])
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid && eph_epv_good, &(status.condition_local_position_valid), &status_changed);
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid, &(status.condition_local_altitude_valid), &status_changed);
 
-		static bool published_condition_landed_fw = false;
 		if (status.condition_local_altitude_valid) {
 			if (status.condition_landed != local_position.landed) {
 				status.condition_landed = local_position.landed;
 				status_changed = true;
-				published_condition_landed_fw = false; //make sure condition_landed is published again if the system type changes
 
 				if (status.condition_landed) {
 					mavlink_log_critical(mavlink_fd, "#audio: LANDED");
@@ -994,12 +972,6 @@ int commander_thread_main(int argc, char *argv[])
 				} else {
 					mavlink_log_critical(mavlink_fd, "#audio: IN AIR");
 				}
-			}
-		} else {
-			if (!published_condition_landed_fw) {
-				status.condition_landed = false; // Fixedwing does not have a landing detector currently
-				published_condition_landed_fw = true;
-				status_changed = true;
 			}
 		}
 
@@ -1265,6 +1237,8 @@ int commander_thread_main(int argc, char *argv[])
 							/* LAND not allowed, set TERMINATION state */
 							transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
 						}
+					} else {
+						status.set_nav_state = NAVIGATION_STATE_MISSION;
 					}
 
 				} else {
@@ -1284,7 +1258,9 @@ int commander_thread_main(int argc, char *argv[])
 							/* LAND not allowed, set TERMINATION state */
 							res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
 						}
-					}
+					} else {
+						status.set_nav_state = NAVIGATION_STATE_RTL;
+					}	
 				}
 
 			} else {
