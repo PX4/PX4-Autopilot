@@ -78,11 +78,7 @@ struct manual_control_setpoint_s {
 
 	switch_pos_t mode_switch;			/**< mode 3 position switch (mandatory): manual, assisted, auto */
 	switch_pos_t return_switch;			/**< land 2 position switch (mandatory): land, no effect */
-<<<<<<< HEAD
 	switch_pos_t easy_switch;			/**< assisted 2 position switch (optional): seatbelt, simple */
-=======
-	switch_pos_t assisted_switch;			/**< assisted 2 position switch (optional): seatbelt, simple */
->>>>>>> ad77ba26427aa9a2d8b8241fc95271667a1c0863
 	switch_pos_t loiter_switch;		/**< mission 2 position switch (optional): mission, loiter */
 }; /**< manual control inputs */
 

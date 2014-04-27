@@ -255,11 +255,7 @@ private:
 
 		int rc_map_mode_sw;
 		int rc_map_return_sw;
-<<<<<<< HEAD
 		int rc_map_easy_sw;
-=======
-		int rc_map_assisted_sw;
->>>>>>> ad77ba26427aa9a2d8b8241fc95271667a1c0863
 		int rc_map_loiter_sw;
 
 //		int rc_map_offboard_ctrl_mode_sw;
@@ -313,11 +309,7 @@ private:
 
 		param_t rc_map_mode_sw;
 		param_t rc_map_return_sw;
-<<<<<<< HEAD
 		param_t rc_map_easy_sw;
-=======
-		param_t rc_map_assisted_sw;
->>>>>>> ad77ba26427aa9a2d8b8241fc95271667a1c0863
 		param_t rc_map_loiter_sw;
 
 //		param_t rc_map_offboard_ctrl_mode_sw;
@@ -534,11 +526,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_flaps = param_find("RC_MAP_FLAPS");
 
 	/* optional mode switches, not mapped per default */
-<<<<<<< HEAD
 	_parameter_handles.rc_map_easy_sw = param_find("RC_MAP_EASY_SW");
-=======
-	_parameter_handles.rc_map_assisted_sw = param_find("RC_MAP_ASSIST_SW");
->>>>>>> ad77ba26427aa9a2d8b8241fc95271667a1c0863
 	_parameter_handles.rc_map_loiter_sw = param_find("RC_MAP_LOITER_SW");
 
 //	_parameter_handles.rc_map_offboard_ctrl_mode_sw = param_find("RC_MAP_OFFB_SW");
@@ -679,7 +667,7 @@ Sensors::parameters_update()
 	}
 
 	if (param_get(_parameter_handles.rc_map_failsafe, &(_parameters.rc_map_failsafe)) != OK) {
-		warnx(paramerr);
+		warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_mode_sw, &(_parameters.rc_map_mode_sw)) != OK) {
@@ -690,21 +678,12 @@ Sensors::parameters_update()
 		warnx("%s", paramerr);
 	}
 
-<<<<<<< HEAD
 	if (param_get(_parameter_handles.rc_map_easy_sw, &(_parameters.rc_map_easy_sw)) != OK) {
-		warnx(paramerr);
-	}
-
-	if (param_get(_parameter_handles.rc_map_loiter_sw, &(_parameters.rc_map_loiter_sw)) != OK) {
-		warnx(paramerr);
-=======
-	if (param_get(_parameter_handles.rc_map_assisted_sw, &(_parameters.rc_map_assisted_sw)) != OK) {
 		warnx("%s", paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_loiter_sw, &(_parameters.rc_map_loiter_sw)) != OK) {
 		warnx("%s", paramerr);
->>>>>>> ad77ba26427aa9a2d8b8241fc95271667a1c0863
 	}
 
 	if (param_get(_parameter_handles.rc_map_flaps, &(_parameters.rc_map_flaps)) != OK) {
@@ -745,11 +724,7 @@ Sensors::parameters_update()
 
 	_rc.function[MODE] = _parameters.rc_map_mode_sw - 1;
 	_rc.function[RETURN] = _parameters.rc_map_return_sw - 1;
-<<<<<<< HEAD
 	_rc.function[EASY] = _parameters.rc_map_easy_sw - 1;
-=======
-	_rc.function[ASSISTED] = _parameters.rc_map_assisted_sw - 1;
->>>>>>> ad77ba26427aa9a2d8b8241fc95271667a1c0863
 	_rc.function[LOITER] = _parameters.rc_map_loiter_sw - 1;
 
 	_rc.function[FLAPS] = _parameters.rc_map_flaps - 1;
@@ -1502,17 +1477,10 @@ Sensors::rc_poll()
 			manual.aux5 = get_rc_value(AUX_5, -1.0, 1.0);
 
 			/* mode switches */
-<<<<<<< HEAD
 			manual.mode_switch = get_rc_sw3pos_position(MODE, _parameters.rc_auto_th, _parameters.rc_auto_inv, _parameters.rc_assisted_th, _parameters.rc_assisted_inv);
 			manual.easy_switch = get_rc_sw2pos_position(EASY, _parameters.rc_easy_th, _parameters.rc_easy_inv);
 			manual.return_switch = get_rc_sw2pos_position(RETURN, _parameters.rc_return_th, _parameters.rc_return_inv);
 			manual.loiter_switch = get_rc_sw2pos_position(LOITER, _parameters.rc_loiter_th, _parameters.rc_loiter_inv);
-=======
-			manual.mode_switch = get_rc_switch_position(MODE);
-			manual.assisted_switch = get_rc_switch_position(ASSISTED);
-			manual.loiter_switch = get_rc_switch_position(LOITER);
-			manual.return_switch = get_rc_switch_position(RETURN);
->>>>>>> ad77ba26427aa9a2d8b8241fc95271667a1c0863
 
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub > 0) {
