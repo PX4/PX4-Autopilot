@@ -43,8 +43,8 @@ bool utc_locked = false;
 uavcan::uint32_t utc_jump_cnt = 0;
 UtcSyncParams utc_sync_params;
 float utc_prev_adj = 0;
-float utc_inv_rate_error_ppm = 0;
-float utc_integrated_error = 0;
+float utc_rel_rate_ppm = 0;
+float utc_rel_rate_error_integral = 0;
 uavcan::int32_t utc_accumulated_correction_nsec = 0;
 uavcan::int32_t utc_correction_nsec_per_overflow = 0;
 uavcan::MonotonicTime prev_utc_adj_at;
@@ -155,39 +155,46 @@ static void updateRatePID(uavcan::UtcDuration adjustment)
     const uavcan::MonotonicTime ts = getMonotonic();
     const float dt = (ts - prev_utc_adj_at).toUSec() / 1e6F;
     prev_utc_adj_at = ts;
-
-    /*
-     * Rate error with lowpass filter
-     */
     const float adj_usec = adjustment.toUSec();
-    const float new_inverted_rate_error_ppm = (adj_usec - utc_prev_adj) / dt;// rate error in [usec/sec], which is PPM
-    utc_prev_adj = adj_usec;
-    utc_inv_rate_error_ppm =
-        lowpass(utc_inv_rate_error_ppm, new_inverted_rate_error_ppm, utc_sync_params.rate_error_corner_freq, dt);
 
     /*
-     * Long term offset error
+     * Target relative rate in PPM
+     * Positive to go faster
      */
-    if (dt < 10)
+    const float target_rel_rate_ppm = adj_usec * utc_sync_params.offset_p;
+
+    /*
+     * Current relative rate in PPM
+     * Positive if the local clock is faster
+     */
+    const float new_rel_rate_ppm = (utc_prev_adj - adj_usec) / dt; // rate error in [usec/sec], which is PPM
+    utc_prev_adj = adj_usec;
+    utc_rel_rate_ppm = lowpass(utc_rel_rate_ppm, new_rel_rate_ppm, utc_sync_params.rate_error_corner_freq, dt);
+
+    const float rel_rate_error = target_rel_rate_ppm - utc_rel_rate_ppm;
+
+    if (dt > 10)
     {
-        const float i = ((adj_usec > 0) == (utc_integrated_error > 0)) ? utc_sync_params.i_fwd : utc_sync_params.i_rev;
-        utc_integrated_error += adj_usec * dt * i;
-        utc_integrated_error = std::max(utc_integrated_error, -utc_sync_params.max_rate_correction_ppm);
-        utc_integrated_error = std::min(utc_integrated_error, utc_sync_params.max_rate_correction_ppm);
+        utc_rel_rate_error_integral = 0;
     }
     else
     {
-        utc_integrated_error = 0;
+        utc_rel_rate_error_integral += rel_rate_error * dt * utc_sync_params.rate_i;
+        utc_rel_rate_error_integral = std::max(utc_rel_rate_error_integral, -utc_sync_params.max_rate_correction_ppm);
+        utc_rel_rate_error_integral = std::min(utc_rel_rate_error_integral, utc_sync_params.max_rate_correction_ppm);
     }
 
     /*
-     * Compute final correction
+     * Rate controller
      */
-    float rate_correction_ppm = utc_inv_rate_error_ppm + utc_integrated_error + adj_usec * utc_sync_params.p;
-    rate_correction_ppm = std::max(rate_correction_ppm, -utc_sync_params.max_rate_correction_ppm);
-    rate_correction_ppm = std::min(rate_correction_ppm, utc_sync_params.max_rate_correction_ppm);
+    float total_rate_correction_ppm = rel_rate_error + utc_rel_rate_error_integral;
+    total_rate_correction_ppm = std::max(total_rate_correction_ppm, -utc_sync_params.max_rate_correction_ppm);
+    total_rate_correction_ppm = std::min(total_rate_correction_ppm, utc_sync_params.max_rate_correction_ppm);
 
-    utc_correction_nsec_per_overflow = (USecPerOverflow * 1000) * (rate_correction_ppm / 1e6F);
+    utc_correction_nsec_per_overflow = (USecPerOverflow * 1000) * (total_rate_correction_ppm / 1e6F);
+
+//    lowsyslog("$ adj=%f   rel_rate=%f   rel_rate_eint=%f   tgt_rel_rate=%f   ppm=%f\n",
+//              adj_usec, utc_rel_rate_ppm, utc_rel_rate_error_integral, target_rel_rate_ppm, total_rate_correction_ppm);
 }
 
 void adjustUtc(uavcan::UtcDuration adjustment)
@@ -215,7 +222,7 @@ void adjustUtc(uavcan::UtcDuration adjustment)
         utc_locked = false;
         utc_jump_cnt++;
         utc_prev_adj = 0;
-        utc_inv_rate_error_ppm = 0;
+        utc_rel_rate_ppm = 0;
     }
     else
     {
@@ -224,7 +231,7 @@ void adjustUtc(uavcan::UtcDuration adjustment)
         if (!utc_locked)
         {
             utc_locked =
-                (std::abs(utc_inv_rate_error_ppm) < utc_sync_params.lock_thres_rate_ppm) &&
+                (std::abs(utc_rel_rate_ppm) < utc_sync_params.lock_thres_rate_ppm) &&
                 (std::abs(utc_prev_adj) < utc_sync_params.lock_thres_offset.toUSec());
         }
     }

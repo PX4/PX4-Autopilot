@@ -41,9 +41,8 @@ void adjustUtc(uavcan::UtcDuration adjustment);
  */
 struct UtcSyncParams
 {
-    float p = 0.01;                                   ///< Correction PPM per 1 usec error
-    float i_fwd = 0.0001;
-    float i_rev = i_fwd * 5.0;
+    float offset_p = 0.01;                  ///< PPM per one usec error
+    float rate_i = 0.02;                    ///< PPM per one PPM error for second
     float rate_error_corner_freq = 0.01;
     float max_rate_correction_ppm = 300;
     float lock_thres_rate_ppm = 2.0;
