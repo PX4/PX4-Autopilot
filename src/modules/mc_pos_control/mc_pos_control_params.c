@@ -100,6 +100,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_D, 0.0f);
  *
  * Maximum vertical velocity in AUTO mode and endpoint for stabilized modes (SEATBELT, EASY).
  *
+ * @unit m/s
  * @min 0.0
  * @group Multicopter Position Control
  */
@@ -155,6 +156,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
  *
  * Maximum horizontal velocity in AUTO mode and endpoint for position stabilized mode (EASY).
  *
+ * @unit m/s
  * @min 0.0
  * @group Multicopter Position Control
  */
@@ -172,31 +174,35 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_XY_FF, 0.5f);
 
 /**
- * Maximum tilt
+ * Maximum tilt angle in air
  *
- * Limits maximum tilt in AUTO and EASY modes.
+ * Limits maximum tilt in AUTO and EASY modes during flight.
  *
+ * @unit deg
  * @min 0.0
- * @max 1.57
+ * @max 90.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_TILT_MAX, 1.0f);
+PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.0f);
+
+/**
+ * Maximum tilt during landing
+ *
+ * Limits maximum tilt angle on landing.
+ *
+ * @unit deg
+ * @min 0.0
+ * @max 90.0
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 15.0f);
 
 /**
  * Landing descend rate
  *
+ * @unit m/s
  * @min 0.0
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 1.0f);
 
-/**
- * Maximum landing tilt
- *
- * Limits maximum tilt on landing.
- *
- * @min 0.0
- * @max 1.57
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_LAND_TILT, 0.3f);
