@@ -979,7 +979,7 @@ FixedwingEstimator::task_main()
 				// struct home_position_s home;
 				// orb_copy(ORB_ID(home_position), _home_sub, &home);
 
-				if (!_gps_initialized && _gps.fix_type > 2 && _gps.eph_m < _parameters.pos_stddev_threshold && _gps.epv_m < _parameters.pos_stddev_threshold) {
+				if (!_gps_initialized && _gps.fix_type > 2 && _gps.eph < _parameters.pos_stddev_threshold && _gps.epv < _parameters.pos_stddev_threshold) {
 					_ekf->velNED[0] = _gps.vel_n_m_s;
 					_ekf->velNED[1] = _gps.vel_e_m_s;
 					_ekf->velNED[2] = _gps.vel_d_m_s;
@@ -1017,7 +1017,7 @@ FixedwingEstimator::task_main()
 					mavlink_log_info(_mavlink_fd, "[ekf] ref: LA %.4f,LO %.4f,ALT %.2f", lat, lon, (double)gps_alt);
 					warnx("HOME/REF: LA %8.4f,LO %8.4f,ALT %8.2f V: %8.4f %8.4f %8.4f", lat, lon, (double)gps_alt,
 						(double)_ekf->velNED[0], (double)_ekf->velNED[1], (double)_ekf->velNED[2]);
-					warnx("GPS: eph: %8.4f, epv: %8.4f", (double)_gps.eph_m, (double)_gps.epv_m);
+					warnx("GPS: eph: %8.4f, epv: %8.4f", (double)_gps.eph, (double)_gps.epv);
 
 					_gps_initialized = true;
 
@@ -1259,8 +1259,8 @@ FixedwingEstimator::task_main()
 					_global_pos.lat = est_lat;
 					_global_pos.lon = est_lon;
 					_global_pos.time_gps_usec = _gps.time_gps_usec;
-					_global_pos.eph = _gps.eph_m;
-					_global_pos.epv = _gps.epv_m;
+					_global_pos.eph = _gps.eph;
+					_global_pos.epv = _gps.epv;
 				}
 
 				if (_local_pos.v_xy_valid) {
