@@ -154,6 +154,7 @@ struct log_ATTC_s {
 struct log_STAT_s {
 	uint8_t main_state;
 	uint8_t arming_state;
+	uint8_t failsafe_state;
 	float battery_remaining;
 	uint8_t battery_warning;
 	uint8_t landed;
@@ -164,6 +165,7 @@ struct log_STAT_s {
 struct log_RC_s {
 	float channel[8];
 	uint8_t channel_count;
+	uint8_t signal_lost;
 };
 
 /* --- OUT0 - ACTUATOR_0 OUTPUT --- */
@@ -209,8 +211,8 @@ struct log_GPOS_s {
 	float vel_n;
 	float vel_e;
 	float vel_d;
-	float baro_alt;
-	uint8_t flags;
+	float eph;
+	float epv;
 };
 
 /* --- GPSP - GLOBAL POSITION SETPOINT --- */
@@ -350,13 +352,13 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(LPSP, "ffff",		"X,Y,Z,Yaw"),
 	LOG_FORMAT(GPS, "QBffLLfffff",		"GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
 	LOG_FORMAT(ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
-	LOG_FORMAT(STAT, "BBfBB",		"MainState,ArmState,BatRem,BatWarn,Landed"),
-	LOG_FORMAT(RC, "ffffffffB",		"Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,Count"),
+	LOG_FORMAT(STAT, "BBBfBB",		"MainState,ArmState,FailsafeState,BatRem,BatWarn,Landed"),
+	LOG_FORMAT(RC, "ffffffffBB",		"Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,Count,SignalLost"),
 	LOG_FORMAT(OUT0, "ffffffff",		"Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 	LOG_FORMAT(AIRS, "fff",			"IndSpeed,TrueSpeed,AirTemp"),
 	LOG_FORMAT(ARSP, "fff",			"RollRateSP,PitchRateSP,YawRateSP"),
 	LOG_FORMAT(FLOW, "hhfffBB",		"RawX,RawY,CompX,CompY,Dist,Q,SensID"),
-	LOG_FORMAT(GPOS, "LLfffffB",		"Lat,Lon,Alt,VelN,VelE,VelD,BaroAlt,Flags"),
+	LOG_FORMAT(GPOS, "LLffffff",		"Lat,Lon,Alt,VelN,VelE,VelD,EPH,EPV"),
 	LOG_FORMAT(GPSP, "BLLffBfbf",		"NavState,Lat,Lon,Alt,Yaw,Type,LoitR,LoitDir,PitMin"),
 	LOG_FORMAT(ESC, "HBBBHHHHHHfH",		"count,nESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff",			"VX,VY,VZ"),

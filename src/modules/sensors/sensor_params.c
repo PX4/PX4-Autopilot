@@ -594,13 +594,13 @@ PARAM_DEFINE_INT32(RC_MAP_RETURN_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_ASSIST_SW, 0);
 
 /**
- * Mission switch channel mapping.
+ * Loiter switch channel mapping.
  *
  * @min 0
  * @max 18
  * @group Radio Calibration
  */
-PARAM_DEFINE_INT32(RC_MAP_MISSIO_SW, 0);
+PARAM_DEFINE_INT32(RC_MAP_LOITER_SW, 0);
 
 //PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
 
@@ -646,27 +646,6 @@ PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);	/**< default function: camera roll */
  */
 PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);
 
-
-/**
- * Roll scaling factor
- *
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC_SCALE_ROLL, 0.6f);
-
-/**
- * Pitch scaling factor
- *
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC_SCALE_PITCH, 0.6f);
-
-/**
- * Yaw scaling factor
- *
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC_SCALE_YAW, 2.0f);
 
 /**
  * Failsafe channel PWM threshold.
