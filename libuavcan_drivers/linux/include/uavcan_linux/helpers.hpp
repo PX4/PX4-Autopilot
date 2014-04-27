@@ -172,4 +172,68 @@ static inline NodePtr makeNode(const std::vector<std::string>& iface_names)
     return makeNode(iface_names, SystemClock::detectPreferredClockAdjustmentMode());
 }
 
+/**
+ * Wrapper over uavcan::ServiceClient<> for blocking calls.
+ * Calls spin() internally.
+ */
+template <typename DataType>
+class BlockingServiceClient : public uavcan::ServiceClient<DataType>
+{
+    typedef uavcan::ServiceClient<DataType> Super;
+
+    typename DataType::Response response_;
+    bool call_was_successful_;
+
+    void callback(const uavcan::ServiceCallResult<DataType>& res)
+    {
+        response_ = res.response;
+        call_was_successful_ = res.isSuccessful();
+    }
+
+    void setup()
+    {
+        Super::setCallback(std::bind(&BlockingServiceClient::callback, this, std::placeholders::_1));
+        call_was_successful_ = false;
+        response_ = typename DataType::Response();
+    }
+
+public:
+    BlockingServiceClient(uavcan::INode& node)
+        : uavcan::ServiceClient<DataType>(node)
+        , call_was_successful_(false)
+    {
+        setup();
+    }
+
+    int blockingCall(uavcan::NodeID server_node_id, const typename DataType::Request& request)
+    {
+        const auto SpinDuration = uavcan::MonotonicDuration::fromMSec(2);
+        setup();
+        const int call_res = Super::call(server_node_id, request);
+        if (call_res >= 0)
+        {
+            while (Super::isPending())
+            {
+                const int spin_res = Super::getNode().spin(SpinDuration);
+                if (spin_res < 0)
+                {
+                    return spin_res;
+                }
+            }
+        }
+        return call_res;
+    }
+
+    int blockingCall(uavcan::NodeID server_node_id, const typename DataType::Request& request,
+                     uavcan::MonotonicDuration timeout)
+    {
+        Super::setRequestTimeout(timeout);
+        return blockingCall(server_node_id, request);
+    }
+
+    bool wasSuccessful() const { return call_was_successful_; }
+
+    const typename DataType::Response& getResponse() const { return response_; }
+};
+
 }
