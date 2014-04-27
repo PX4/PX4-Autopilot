@@ -65,7 +65,7 @@ MODULES		+= systemcmds/nshterm
 MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/hw_ver
 MODULES		+= systemcmds/dumpfile
-MODULES		+= systemcmds/version
+MODULES		+= systemcmds/ver
 
 #
 # General system control

@@ -32,11 +32,12 @@
 ############################################################################
 
 #
-# Show and test hardware version
+# "version" nsh-command displays version infromation for hw,sw, gcc,build etc
+# can be also included and used in own code via "ver.h"
 #
 
-MODULE_COMMAND	 	= version
-SRCS		 		= version.c
+MODULE_COMMAND	 	= ver
+SRCS		 		= ver.c
 
 MODULE_STACKSIZE 	= 1024
 
