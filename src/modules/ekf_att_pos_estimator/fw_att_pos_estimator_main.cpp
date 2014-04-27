@@ -240,6 +240,7 @@ private:
 
 	float						_velocity_xy_filtered;
 	float						_velocity_z_filtered;
+	float						_airspeed_filtered; 						
 
 	/**
 	 * Update our local parameter cache.
@@ -343,7 +344,8 @@ FixedwingEstimator::FixedwingEstimator() :
 	_mavlink_fd(-1),
 	_ekf(nullptr),
 	_velocity_xy_filtered(0.0f),
-	_velocity_z_filtered(0.0f)
+	_velocity_z_filtered(0.0f),
+	_airspeed_filtered(0.0f)
 {
 
 	last_run = hrt_absolute_time();
@@ -1200,16 +1202,17 @@ FixedwingEstimator::task_main()
 				_local_pos.z_global = false;
 				_local_pos.yaw = _att.yaw;
 
-				 _velocity_xy_filtered = 0.9f*_velocity_xy_filtered + 0.1f*sqrtf(_local_pos.vx*_local_pos.vx + _local_pos.vy*_local_pos.vy);
-				 _velocity_z_filtered = 0.9f*_velocity_z_filtered + 0.1f*fabsf(_local_pos.vz);
+				 _velocity_xy_filtered = 0.95f*_velocity_xy_filtered + 0.05f*sqrtf(_local_pos.vx*_local_pos.vx + _local_pos.vy*_local_pos.vy);
+				 _velocity_z_filtered = 0.95f*_velocity_z_filtered + 0.05f*fabsf(_local_pos.vz);
+				 _airspeed_filtered = 0.95*_airspeed_filtered + + 0.05*_airspeed.true_airspeed_m_s;
 
 
 				/* crude land detector for fixedwing only,
 				 * TODO: adapt so that it works for both, maybe move to another location
 				 */
-				if (_velocity_xy_filtered < 2
-					&& _velocity_z_filtered < 2
-					&& _airspeed.true_airspeed_m_s < 10) {
+				if (_velocity_xy_filtered < 5
+					&& _velocity_z_filtered < 10
+					&& _airspeed_filtered < 10) {
 					_local_pos.landed = true;
 				} else {
 					_local_pos.landed = false;
