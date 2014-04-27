@@ -45,3 +45,6 @@ target_link_libraries(test_node_status_monitor ${UAVCAN_LIB} rt)
 
 add_executable(test_time_sync test/test_time_sync.cpp)
 target_link_libraries(test_time_sync ${UAVCAN_LIB} rt)
+
+add_executable(test_param test/test_param.cpp)
+target_link_libraries(test_param ${UAVCAN_LIB} rt)
