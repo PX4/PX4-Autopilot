@@ -121,6 +121,11 @@ protected:
 	bool _dtCalculated;				/**< True if dt has been calculated in this iteration */
 
 	int _counter;
+	bool _debug;					///< Set true to enable debug output
+
+
+	static void	debug_print(const char *fmt, va_list args);
+	void		debug(const char *fmt, ...);
 
 	/*
 	 * Measure and update the time step dt if this was not already done in the current iteration

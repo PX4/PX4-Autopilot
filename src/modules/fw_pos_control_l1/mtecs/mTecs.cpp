@@ -42,7 +42,7 @@
 #include "mTecs.h"
 
 #include <lib/geo/geo.h>
-#include <systemlib/err.h>
+#include <stdio.h>
 
 namespace fwPosctrl {
 
@@ -66,7 +66,8 @@ mTecs::mTecs() :
 	timestampLastIteration(hrt_absolute_time()),
 	_firstIterationAfterReset(true),
 	_dtCalculated(false),
-	_counter(0)
+	_counter(0),
+	_debug(false)
 {
 }
 
@@ -82,8 +83,8 @@ void mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float alt
 
 	float flightPathAngleSp = _controlAltitude.update(altitudeSp - altitude);
 	if (_counter % 10 == 0) {
-		warnx("***");
-		warnx("updateAltitudeSpeed: altitudeSp %.4f, altitude %.4f, flightPathAngleSp %.4f", (double)altitudeSp, (double)altitude, (double)flightPathAngleSp);
+		debug("***");
+		debug("updateAltitudeSpeed: altitudeSp %.4f, altitude %.4f, flightPathAngleSp %.4f", (double)altitudeSp, (double)altitude, (double)flightPathAngleSp);
 	}
 	updateFlightPathAngleSpeed(flightPathAngle, flightPathAngleSp, airspeed, airspeedSp, mode);
 }
@@ -95,7 +96,7 @@ void mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAn
 
 	float accelerationLongitudinalSp = _controlAirSpeed.update(airspeedSp - airspeed);
 	if (_counter % 10 == 0) {
-		warnx("updateFlightPathAngleSpeed airspeedSp %.4f, airspeed %.4f, accelerationLongitudinalSp%.4f", (double)airspeedSp, (double)airspeed, (double)accelerationLongitudinalSp);
+		debug("updateFlightPathAngleSpeed airspeedSp %.4f, airspeed %.4f, accelerationLongitudinalSp%.4f", (double)airspeedSp, (double)airspeed, (double)accelerationLongitudinalSp);
 	}
 	updateFlightPathAngleAcceleration(flightPathAngle, flightPathAngleSp, airspeed, accelerationLongitudinalSp, mode);
 }
@@ -130,9 +131,9 @@ void mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float fligh
 	float energyDistributionRateError2 = energyDistributionRateSp - energyDistributionRate;
 
 	if (_counter % 10 == 0) {
-		warnx("totalEnergyRateSp %.2f, totalEnergyRate %.2f, totalEnergyRateError %.2f totalEnergyRateError2 %.2f airspeedDerivativeNorm %.4f",
+		debug("totalEnergyRateSp %.2f, totalEnergyRate %.2f, totalEnergyRateError %.2f totalEnergyRateError2 %.2f airspeedDerivativeNorm %.4f",
 				(double)totalEnergyRateSp, (double)totalEnergyRate, (double)totalEnergyRateError, (double)totalEnergyRateError2, (double)airspeedDerivativeNorm);
-		warnx("energyDistributionRateSp %.2f, energyDistributionRate %.2f, energyDistributionRateError %.2f energyDistributionRateError2 %.2f",
+		debug("energyDistributionRateSp %.2f, energyDistributionRate %.2f, energyDistributionRateError %.2f energyDistributionRateError2 %.2f",
 				(double)energyDistributionRateSp, (double)energyDistributionRate, (double)energyDistributionRateError, (double)energyDistributionRateError2);
 	}
 
@@ -161,7 +162,7 @@ void mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float fligh
 
 
 	if (_counter % 10 == 0) {
-		warnx("_throttleSp %.1f, _pitchSp %.1f, flightPathAngleSp %.1f, flightPathAngle %.1f accelerationLongitudinalSp %.1f, airspeedDerivative %.1f",
+		debug("_throttleSp %.1f, _pitchSp %.1f, flightPathAngleSp %.1f, flightPathAngle %.1f accelerationLongitudinalSp %.1f, airspeedDerivative %.1f",
 				(double)_throttleSp, (double)_pitchSp,
 				(double)flightPathAngleSp, (double)flightPathAngle,
 				(double)accelerationLongitudinalSp, (double)airspeedDerivative);
@@ -196,6 +197,26 @@ void mTecs::updateTimeMeasurement()
 
 		_dtCalculated = true;
 	}
+}
+
+void mTecs::debug_print(const char *fmt, va_list args)
+{
+	fprintf(stderr, "%s: ", "[mtecs]");
+	vfprintf(stderr, fmt, args);
+
+	fprintf(stderr, "\n");
+}
+
+void mTecs::debug(const char *fmt, ...) {
+
+	if (!_debug) {
+		return;
+	}
+
+	va_list args;
+
+	va_start(args, fmt);
+	debug_print(fmt, args);
 }
 
 } /* namespace fwPosctrl */
