@@ -317,34 +317,34 @@ bool StateMachineHelperTest::mainStateTransitionTest(void)
 		  TRANSITION_CHANGED == main_state_transition(&current_state, new_main_state));
 	ut_assert("new state: manual", MAIN_STATE_MANUAL == current_state.main_state);
 
-	// MANUAL to SEATBELT.
+	// MANUAL to ALTHOLD.
 	current_state.main_state = MAIN_STATE_MANUAL;
 	current_state.condition_local_altitude_valid = true;
-	new_main_state = MAIN_STATE_SEATBELT;
-	ut_assert("tranisition: manual to seatbelt", 
+	new_main_state = MAIN_STATE_ALTHOLD;
+	ut_assert("tranisition: manual to althold",
 		  TRANSITION_CHANGED == main_state_transition(&current_state, new_main_state));
-	ut_assert("new state: seatbelt", MAIN_STATE_SEATBELT == current_state.main_state);
+	ut_assert("new state: althold", MAIN_STATE_ALTHOLD == current_state.main_state);
 
-	// MANUAL to SEATBELT, invalid local altitude.
+	// MANUAL to ALTHOLD, invalid local altitude.
 	current_state.main_state = MAIN_STATE_MANUAL;
 	current_state.condition_local_altitude_valid = false;
-	new_main_state = MAIN_STATE_SEATBELT;
+	new_main_state = MAIN_STATE_ALTHOLD;
 	ut_assert("no transition: invalid local altitude",
 		  TRANSITION_DENIED == main_state_transition(&current_state, new_main_state));
 	ut_assert("current state: manual", MAIN_STATE_MANUAL == current_state.main_state);
 
-	// MANUAL to EASY.
+	// MANUAL to POSHOLD.
 	current_state.main_state = MAIN_STATE_MANUAL;
 	current_state.condition_local_position_valid = true;
-	new_main_state = MAIN_STATE_EASY;
-	ut_assert("transition: manual to easy",
+	new_main_state = MAIN_STATE_POSHOLD;
+	ut_assert("transition: manual to poshold",
 		  TRANSITION_CHANGED == main_state_transition(&current_state, new_main_state));
-	ut_assert("current state: easy", MAIN_STATE_EASY == current_state.main_state);
+	ut_assert("current state: poshold", MAIN_STATE_POSHOLD == current_state.main_state);
 
-	// MANUAL to EASY, invalid local position.
+	// MANUAL to POSHOLD, invalid local position.
 	current_state.main_state = MAIN_STATE_MANUAL;
 	current_state.condition_local_position_valid = false;
-	new_main_state = MAIN_STATE_EASY;
+	new_main_state = MAIN_STATE_POSHOLD;
 	ut_assert("no transition: invalid position",
 		  TRANSITION_DENIED == main_state_transition(&current_state, new_main_state));
 	ut_assert("current state: manual", MAIN_STATE_MANUAL == current_state.main_state);

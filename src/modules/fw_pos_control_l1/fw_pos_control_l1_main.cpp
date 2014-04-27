@@ -153,7 +153,7 @@ private:
 	bool		_setpoint_valid;		/**< flag if the position control setpoint is valid */
 
 	/** manual control states */
-	float		_seatbelt_hold_heading;		/**< heading the system should hold in seatbelt mode */
+	float		_althold_hold_heading;		/**< heading the system should hold in althold mode */
 	double		_loiter_hold_lat;
 	double		_loiter_hold_lon;
 	float		_loiter_hold_alt;
@@ -1051,16 +1051,16 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_att_sp.roll_reset_integral = true;
 		}
 
-	} else if (0/* easy mode enabled */) {
+	} else if (0/* poshold mode enabled */) {
 
-		/** EASY FLIGHT **/
+		/** POSHOLD FLIGHT **/
 
-		if (0/* switched from another mode to easy */) {
-			_seatbelt_hold_heading = _att.yaw;
+		if (0/* switched from another mode to poshold */) {
+			_althold_hold_heading = _att.yaw;
 		}
 
-		if (0/* easy on and manual control yaw non-zero */) {
-			_seatbelt_hold_heading = _att.yaw + _manual.yaw;
+		if (0/* poshold on and manual control yaw non-zero */) {
+			_althold_hold_heading = _att.yaw + _manual.yaw;
 		}
 
 		//XXX not used
@@ -1073,39 +1073,39 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 //			climb_out = true;
 //		}
 
-		/* if in seatbelt mode, set airspeed based on manual control */
+		/* if in althold mode, set airspeed based on manual control */
 
 		// XXX check if ground speed undershoot should be applied here
-		float seatbelt_airspeed = _parameters.airspeed_min +
+		float althold_airspeed = _parameters.airspeed_min +
 					  (_parameters.airspeed_max - _parameters.airspeed_min) *
 					  _manual.throttle;
 
-		_l1_control.navigate_heading(_seatbelt_hold_heading, _att.yaw, ground_speed);
+		_l1_control.navigate_heading(_althold_hold_heading, _att.yaw, ground_speed);
 		_att_sp.roll_body = _l1_control.nav_roll();
 		_att_sp.yaw_body = _l1_control.nav_bearing();
 		_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_pos.alt + _manual.pitch * 2.0f,
-					    seatbelt_airspeed,
+					    althold_airspeed,
 					    _airspeed.indicated_airspeed_m_s, eas2tas,
 					    false, _parameters.pitch_limit_min,
 					    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 					    _parameters.pitch_limit_min, _parameters.pitch_limit_max);
 
-	} else if (0/* seatbelt mode enabled */) {
+	} else if (0/* althold mode enabled */) {
 
-		/** SEATBELT FLIGHT **/
+		/** ALTHOLD FLIGHT **/
 
-		if (0/* switched from another mode to seatbelt */) {
-			_seatbelt_hold_heading = _att.yaw;
+		if (0/* switched from another mode to althold */) {
+			_althold_hold_heading = _att.yaw;
 		}
 
-		if (0/* seatbelt on and manual control yaw non-zero */) {
-			_seatbelt_hold_heading = _att.yaw + _manual.yaw;
+		if (0/* althold on and manual control yaw non-zero */) {
+			_althold_hold_heading = _att.yaw + _manual.yaw;
 		}
 
-		/* if in seatbelt mode, set airspeed based on manual control */
+		/* if in althold mode, set airspeed based on manual control */
 
 		// XXX check if ground speed undershoot should be applied here
-		float seatbelt_airspeed = _parameters.airspeed_min +
+		float althold_airspeed = _parameters.airspeed_min +
 					  (_parameters.airspeed_max - _parameters.airspeed_min) *
 					  _manual.throttle;
 
@@ -1124,11 +1124,11 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			climb_out = true;
 		}
 
-		_l1_control.navigate_heading(_seatbelt_hold_heading, _att.yaw, ground_speed);
+		_l1_control.navigate_heading(_althold_hold_heading, _att.yaw, ground_speed);
 		_att_sp.roll_body =	_manual.roll;
 		_att_sp.yaw_body =	_manual.yaw;
 		_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_pos.alt + _manual.pitch * 2.0f,
-					    seatbelt_airspeed,
+					    althold_airspeed,
 					    _airspeed.indicated_airspeed_m_s, eas2tas,
 					    climb_out, _parameters.pitch_limit_min,
 					    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,

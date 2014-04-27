@@ -77,8 +77,8 @@ struct manual_control_setpoint_s {
 	float aux5;				/**< default function: payload drop */
 
 	switch_pos_t mode_switch;			/**< mode 3 position switch (mandatory): manual, assisted, auto */
-	switch_pos_t return_switch;			/**< land 2 position switch (mandatory): land, no effect */
-	switch_pos_t easy_switch;			/**< assisted 2 position switch (optional): seatbelt, simple */
+	switch_pos_t return_switch;			/**< rturn to launch 2 position switch (mandatory): no effect, return */
+	switch_pos_t poshold_switch;			/**< poshold 2 position switch (optional): althold, poshold */
 	switch_pos_t loiter_switch;		/**< mission 2 position switch (optional): mission, loiter */
 }; /**< manual control inputs */
 
