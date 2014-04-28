@@ -75,7 +75,8 @@ extern "C" {
 	/* The reason for the last reset */
 	typedef enum {
 		DM_INIT_REASON_POWER_ON = 0,	/* Data survives resets */
-		DM_INIT_REASON_IN_FLIGHT	/* Data survives in-flight resets only */
+		DM_INIT_REASON_IN_FLIGHT,		/* Data survives in-flight resets only */
+		DM_INIT_REASON_VOLATILE			/* Data does not survive reset */
 	} dm_reset_reason;
 
 	/* Maximum size in bytes of a single item instance */
@@ -100,7 +101,7 @@ extern "C" {
 		size_t buflen			/* Length in bytes of data to retrieve */
 	);
 
-	/* Retrieve from the data manager store */
+	/* Erase all items of this type */
 	__EXPORT int
 	dm_clear(
 		dm_item_t item			/* The item type to clear */
