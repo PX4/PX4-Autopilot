@@ -2407,6 +2407,19 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3])
     // Clear the init flag
     statesInitialised = false;
 
+    // Clear other flags, waiting for new data
+    fusionModeGPS = 0;
+    fuseVelData = false;
+    fusePosData = false;
+    fuseHgtData = false;
+    fuseMagData = false;
+    fuseVtasData = false;
+    // onGround(true),
+    // staticMode(true),
+    useAirspeed = true;
+    useCompass = true;
+    useRangeFinder = true;
+
     ZeroVariables();
 
     // Calculate initial filter quaternion states from raw measurements
