@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
 		hrt_abstime now = hrt_absolute_time();
 
 		if (partial_frame_count % 25 == 0)
-			sbus_parse(now, frame, &partial_frame_count, rc_values, &num_values, &sbus_failsafe, &sbus_frame_drop, max_channels);
+			//sbus_parse(now, frame, &partial_frame_count, rc_values, &num_values, &sbus_failsafe, &sbus_frame_drop, max_channels);
 	}
 
 	if (ret == EOF) {
