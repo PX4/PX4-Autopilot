@@ -119,20 +119,86 @@ uavcan_linux::NodePtr initNode(const std::vector<std::string>& ifaces, uavcan::N
     return node;
 }
 
+template <typename DataType>
+typename DataType::Response call(uavcan_linux::BlockingServiceClient<DataType>& client,
+                                 uavcan::NodeID server_node_id, const typename DataType::Request& request)
+{
+    const int res = client.blockingCall(server_node_id, request, uavcan::MonotonicDuration::fromMSec(100));
+    ENFORCE(res >= 0);
+    ENFORCE(client.wasSuccessful());
+    return client.getResponse();
+}
+
+void executeCommand(const uavcan_linux::NodePtr& node, const std::string& cmd,
+                    const uavcan::NodeID node_id, const std::vector<std::string>& args)
+{
+    if (cmd == "param")
+    {
+        uavcan_linux::BlockingServiceClient<uavcan::protocol::param::GetSet> get_set(*node);
+        printGetSetResponseHeader();
+        uavcan::protocol::param::GetSet::Request request;
+        if (args.empty())
+        {
+            while (true)
+            {
+                auto response = call(get_set, node_id, request);
+                if (response.name.empty())
+                {
+                    break;
+                }
+                printGetSetResponse(response);
+                request.index++;
+            }
+        }
+        else
+        {
+            request.name = args.at(0).c_str();
+            request.value.value_float.push_back(std::stof(args.at(1)));
+            printGetSetResponse(call(get_set, node_id, request));
+        }
+    }
+    else if (cmd == "param_save" || cmd == "param_erase")
+    {
+        uavcan_linux::BlockingServiceClient<uavcan::protocol::param::SaveErase> save_erase(*node);
+        uavcan::protocol::param::SaveErase::Request request;
+        request.opcode = (cmd == "param_save") ? request.OPCODE_SAVE : request.OPCODE_ERASE;
+        std::cout << call(save_erase, node_id, request) << std::endl;
+    }
+    else if (cmd == "restart")
+    {
+        uavcan_linux::BlockingServiceClient<uavcan::protocol::RestartNode> restart(*node);
+        uavcan::protocol::RestartNode::Request request;
+        request.magic_number = request.MAGIC_NUMBER;
+        (void)restart.blockingCall(node_id, request);
+        if (restart.wasSuccessful())
+        {
+            std::cout << restart.getResponse() << std::endl;
+        }
+        else
+        {
+            std::cout << "<NO RESPONSE>" << std::endl;
+        }
+    }
+    else if (cmd == "info")
+    {
+        uavcan_linux::BlockingServiceClient<uavcan::protocol::GetNodeInfo> client(*node);
+        std::cout << call(client, node_id, uavcan::protocol::GetNodeInfo::Request()) << std::endl;
+    }
+    else if (cmd == "tstat")
+    {
+        uavcan_linux::BlockingServiceClient<uavcan::protocol::GetTransportStats> client(*node);
+        std::cout << call(client, node_id, uavcan::protocol::GetTransportStats::Request()) << std::endl;
+    }
+    else
+    {
+        std::cout << "Invalid command" << std::endl;
+    }
+}
+
 void runForever(const uavcan_linux::NodePtr& node)
 {
-    uavcan_linux::BlockingServiceClient<uavcan::protocol::param::GetSet> get_set(*node);
-    uavcan_linux::BlockingServiceClient<uavcan::protocol::param::SaveErase> save_erase(*node);
-    uavcan_linux::BlockingServiceClient<uavcan::protocol::RestartNode> restart(*node);
-
-    ENFORCE(get_set.init() >= 0);
-    ENFORCE(save_erase.init() >= 0);
-    ENFORCE(restart.init() >= 0);
-
     StdinLineReader stdin_reader;
-
     std::cout << "> " << std::flush;
-
     while (true)
     {
         ENFORCE(node->spin(uavcan::MonotonicDuration::fromMSec(10)) >= 0);
@@ -140,68 +206,23 @@ void runForever(const uavcan_linux::NodePtr& node)
         {
             continue;
         }
-
         const auto words = stdin_reader.getSplitLine();
-        if (words.size() < 2)
+        if (words.size() >= 2)
         {
-            std::cout << "<command> <remote node id> [args...]" << std::endl;
-            continue;
-        }
-
-        const auto cmd = words.at(0);
-        const uavcan::NodeID node_id(std::stoi(words.at(1)));
-
-        if (cmd == "read")
-        {
-            printGetSetResponseHeader();
-            uavcan::protocol::param::GetSet::Request request;
-            while (true)
+            const auto cmd = words.at(0);
+            const uavcan::NodeID node_id(std::stoi(words.at(1)));
+            try
             {
-                (void)get_set.blockingCall(node_id, request, uavcan::MonotonicDuration::fromMSec(100));
-                ENFORCE(get_set.wasSuccessful());
-                if (get_set.getResponse().name.empty())
-                {
-                    break;
-                }
-                printGetSetResponse(get_set.getResponse());
-                request.index++;
+                executeCommand(node, cmd, node_id, std::vector<std::string>(words.begin() + 2, words.end()));
             }
-        }
-        else if (cmd == "set")
-        {
-            printGetSetResponseHeader();
-            uavcan::protocol::param::GetSet::Request request;
-            request.name = words.at(2).c_str();
-            request.value.value_float.push_back(std::stof(words.at(3)));
-            (void)get_set.blockingCall(node_id, request, uavcan::MonotonicDuration::fromMSec(100));
-            ENFORCE(get_set.wasSuccessful());
-            printGetSetResponse(get_set.getResponse());
-        }
-        else if (cmd == "save" || cmd == "erase")
-        {
-            uavcan::protocol::param::SaveErase::Request request;
-            request.opcode = (cmd == "save") ? request.OPCODE_SAVE : request.OPCODE_ERASE;
-            (void)save_erase.blockingCall(node_id, request, uavcan::MonotonicDuration::fromMSec(100));
-            ENFORCE(save_erase.wasSuccessful());
-            std::cout << save_erase.getResponse() << std::endl;
-        }
-        else if (cmd == "restart")
-        {
-            uavcan::protocol::RestartNode::Request request;
-            request.magic_number = request.MAGIC_NUMBER;
-            (void)restart.blockingCall(node_id, request, uavcan::MonotonicDuration::fromMSec(100));
-            if (restart.wasSuccessful())
+            catch (std::exception& ex)
             {
-                std::cout << restart.getResponse() << std::endl;
-            }
-            else
-            {
-                std::cout << "<NO RESPONSE>" << std::endl;
+                std::cout << "FAILURE\n" << ex.what() << std::endl;
             }
         }
         else
         {
-            std::cout << "Invalid command" << std::endl;
+            std::cout << "<command> <remote node id> [args...]" << std::endl;
         }
         std::cout << "> " << std::flush;
     }
