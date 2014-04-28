@@ -43,6 +43,8 @@
 *
 */
 
+#include <geo/geo.h>
+
 
 /** set this always to the sampling in degrees for the table below */
 #define SAMPLING_RES		10
