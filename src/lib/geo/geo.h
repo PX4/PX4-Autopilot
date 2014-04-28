@@ -48,6 +48,8 @@
 #include "uORB/topics/fence.h"
 #include "uORB/topics/vehicle_global_position.h"
 
+#include "geo/geo_mag_declination.h"
+
 __BEGIN_DECLS
 
 #include <stdbool.h>
