@@ -148,17 +148,17 @@ private:
 		param_t xy_vel_d;
 		param_t xy_vel_max;
 		param_t xy_ff;
-		param_t tilt_max;
+		param_t tilt_max_air;
 		param_t land_speed;
-		param_t land_tilt_max;
+		param_t tilt_max_land;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
 		float thr_min;
 		float thr_max;
-		float tilt_max;
+		float tilt_max_air;
 		float land_speed;
-		float land_tilt_max;
+		float tilt_max_land;
 
 		math::Vector<3> pos_p;
 		math::Vector<3> vel_p;
@@ -308,9 +308,9 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.xy_vel_d	= param_find("MPC_XY_VEL_D");
 	_params_handles.xy_vel_max	= param_find("MPC_XY_VEL_MAX");
 	_params_handles.xy_ff		= param_find("MPC_XY_FF");
-	_params_handles.tilt_max	= param_find("MPC_TILT_MAX");
+	_params_handles.tilt_max_air	= param_find("MPC_TILTMAX_AIR");
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
-	_params_handles.land_tilt_max	= param_find("MPC_LAND_TILT");
+	_params_handles.tilt_max_land	= param_find("MPC_TILTMAX_LND");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -355,11 +355,11 @@ MulticopterPositionControl::parameters_update(bool force)
 	if (updated || force) {
 		param_get(_params_handles.thr_min, &_params.thr_min);
 		param_get(_params_handles.thr_max, &_params.thr_max);
-		param_get(_params_handles.tilt_max, &_params.tilt_max);
-		_params.tilt_max = math::radians(_params.tilt_max);
+		param_get(_params_handles.tilt_max_air, &_params.tilt_max_air);
+		_params.tilt_max_air = math::radians(_params.tilt_max_air);
 		param_get(_params_handles.land_speed, &_params.land_speed);
-		param_get(_params_handles.land_tilt_max, &_params.land_tilt_max);
-		_params.land_tilt_max = math::radians(_params.land_tilt_max);
+		param_get(_params_handles.tilt_max_land, &_params.tilt_max_land);
+		_params.tilt_max_land = math::radians(_params.tilt_max_land);
 
 		float v;
 		param_get(_params_handles.xy_p, &v);
@@ -841,13 +841,13 @@ MulticopterPositionControl::task_main()
 						thr_min = 0.0f;
 					}
 
-					float tilt_max = _params.tilt_max;
+					float tilt_max = _params.tilt_max_air;
 
 					/* adjust limits for landing mode */
 					if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
 					    _pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
 						/* limit max tilt and min lift when landing */
-						tilt_max = _params.land_tilt_max;
+						tilt_max = _params.tilt_max_land;
 
 						if (thr_min < 0.0f) {
 							thr_min = 0.0f;
