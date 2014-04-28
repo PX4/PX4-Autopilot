@@ -1004,8 +1004,8 @@ FixedwingEstimator::task_main()
 					_ekf->InitialiseFilter(_ekf->velNED, math::radians(lat), math::radians(lon) - M_PI, gps_alt, declination);
 
 					// Initialize projection
-					_local_pos.ref_lat = _gps.lat;
-					_local_pos.ref_lon = _gps.alt;
+					_local_pos.ref_lat = lat;
+					_local_pos.ref_lon = lon;
 					_local_pos.ref_alt = _baro_ref + _baro_gps_offset;
 					_local_pos.ref_timestamp = _gps.timestamp_position;
 
