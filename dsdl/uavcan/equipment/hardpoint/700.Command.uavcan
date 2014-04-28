@@ -1,0 +1,7 @@
+#
+# Generic cargo holder/hardpoint command.
+# If multiple holders are present and each of them must be controlled separately, unicast transfers should be used.
+#
+
+# May be interpreted as a binary command (0 - release, 1+ - hold) or bitmask
+uint16 command
