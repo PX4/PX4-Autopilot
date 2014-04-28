@@ -452,7 +452,6 @@ then
 		fi		
 	fi
 
-
 	#
 	# Start up ARDrone Motor interface
 	#
