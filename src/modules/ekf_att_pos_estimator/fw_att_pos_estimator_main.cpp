@@ -994,11 +994,14 @@ FixedwingEstimator::task_main()
 					_ekf->velNED[1] = _gps.vel_e_m_s;
 					_ekf->velNED[2] = _gps.vel_d_m_s;
 
-					_ekf->gpsLat = math::radians(_gps.lat / (double)1e7);
-					_ekf->gpsLon = math::radians(_gps.lon / (double)1e7) - M_PI;
-					_ekf->gpsHgt = _gps.alt / 1e3f;
+					_ekf->gpsLat = math::radians(lat);
+					_ekf->gpsLon = math::radians(lon) - M_PI;
+					_ekf->gpsHgt = gps_alt;
 
-					_ekf->InitialiseFilter(_ekf->velNED, math::radians(lat), math::radians(lon) - M_PI, gps_alt);
+					// Look up mag declination based on current position
+					float declination = math::radians(get_mag_declination(lat, lon));
+
+					_ekf->InitialiseFilter(_ekf->velNED, math::radians(lat), math::radians(lon) - M_PI, gps_alt, declination);
 
 					// Initialize projection
 					_local_pos.ref_lat = _gps.lat;
@@ -1024,7 +1027,7 @@ FixedwingEstimator::task_main()
 
 					_ekf->posNE[0] = _ekf->posNED[0];
 					_ekf->posNE[1] = _ekf->posNED[1];
-					_ekf->InitialiseFilter(_ekf->velNED, 0.0, 0.0, 0.0f);
+					_ekf->InitialiseFilter(_ekf->velNED, 0.0, 0.0, 0.0f, 0.0f);
 				}
 			}
 

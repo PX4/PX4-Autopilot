@@ -158,7 +158,8 @@ AttPosEKF::AttPosEKF() :
     gpsHgt(0.0f),
     baroHgt(0.0f),
     GPSstatus(0),
-    VtasMeas(0.0f)
+    VtasMeas(0.0f),
+    magDeclination(0.0f)
 {
     velNED[0] = 0.0f;
     velNED[1] = 0.0f;
@@ -2341,7 +2342,7 @@ int AttPosEKF::CheckAndBound()
     if (StatesNaN(&last_ekf_error)) {
         ekf_debug("re-initializing dynamic");
 
-        InitializeDynamic(velNED);
+        InitializeDynamic(velNED, magDeclination);
 
         return 1;
     }
@@ -2374,7 +2375,7 @@ int AttPosEKF::CheckAndBound()
     return 0;
 }
 
-void AttPosEKF::AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, float *initQuat)
+void AttPosEKF::AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, float declination, float *initQuat)
 {
     float initialRoll, initialPitch;
     float cosRoll, sinRoll, cosPitch, sinPitch;
@@ -2394,6 +2395,8 @@ void AttPosEKF::AttitudeInit(float ax, float ay, float az, float mx, float my, f
     magY = my * cosRoll - mz * sinRoll;
 
     initialHdg = atan2f(-magY, magX);
+    /* true heading is the mag heading minus declination */
+    initialHdg -= declination;
 
     cosRoll = cosf(initialRoll * 0.5f);
     sinRoll = sinf(initialRoll * 0.5f);
@@ -2408,9 +2411,17 @@ void AttPosEKF::AttitudeInit(float ax, float ay, float az, float mx, float my, f
     initQuat[1] = sinRoll * cosPitch * cosHeading - cosRoll * sinPitch * sinHeading;
     initQuat[2] = cosRoll * sinPitch * cosHeading + sinRoll * cosPitch * sinHeading;
     initQuat[3] = cosRoll * cosPitch * sinHeading - sinRoll * sinPitch * cosHeading;
+
+    /* normalize */
+    float norm = sqrtf(initQuat[0]*initQuat[0] + initQuat[1]*initQuat[1] + initQuat[2]*initQuat[2] + initQuat[3]*initQuat[3]);
+
+    initQuat[0] /= norm;
+    initQuat[1] /= norm;
+    initQuat[2] /= norm;
+    initQuat[3] /= norm;
 }
 
-void AttPosEKF::InitializeDynamic(float (&initvelNED)[3])
+void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
 {
 
     // Clear the init flag
@@ -2431,11 +2442,13 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3])
 
     ZeroVariables();
 
+    magDeclination = declination;
+
     // Calculate initial filter quaternion states from raw measurements
     float initQuat[4];
     Vector3f initMagXYZ;
     initMagXYZ   = magData - magBias;
-    AttitudeInit(accel.x, accel.y, accel.z, initMagXYZ.x, initMagXYZ.y, initMagXYZ.z, initQuat);
+    AttitudeInit(accel.x, accel.y, accel.z, initMagXYZ.x, initMagXYZ.y, initMagXYZ.z, declination, initQuat);
 
     // Calculate initial Tbn matrix and rotate Mag measurements into NED
     // to set initial NED magnetic field states
@@ -2451,9 +2464,9 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3])
     magstate.q1 = initQuat[1];
     magstate.q2 = initQuat[2];
     magstate.q3 = initQuat[3];
-    magstate.magN = magData.x;
-    magstate.magE = magData.y;
-    magstate.magD = magData.z;
+    magstate.magN = initMagNED.x;
+    magstate.magE = initMagNED.y;
+    magstate.magD = initMagNED.z;
     magstate.magXbias = magBias.x;
     magstate.magYbias = magBias.y;
     magstate.magZbias = magBias.z;
@@ -2493,7 +2506,7 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3])
     summedDelVel.z = 0.0f;
 }
 
-void AttPosEKF::InitialiseFilter(float (&initvelNED)[3], double referenceLat, double referenceLon, float referenceHgt)
+void AttPosEKF::InitialiseFilter(float (&initvelNED)[3], double referenceLat, double referenceLon, float referenceHgt, float declination)
 {
     //store initial lat,long and height
     latRef = referenceLat;
@@ -2503,7 +2516,7 @@ void AttPosEKF::InitialiseFilter(float (&initvelNED)[3], double referenceLat, do
 
     memset(&last_ekf_error, 0, sizeof(last_ekf_error));
 
-    InitializeDynamic(initvelNED);
+    InitializeDynamic(initvelNED, declination);
 }
 
 void AttPosEKF::ZeroVariables()
