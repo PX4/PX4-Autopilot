@@ -120,6 +120,8 @@ then
 	set EXIT_ON_END no
 	set MAV_TYPE none
 	set LOAD_DEFAULT_APPS yes
+	set GPS yes
+	set GPS_FAKE no
 	
 	#
 	# Set DO_AUTOCONFIG flag to use it in AUTOSTART scripts
@@ -437,9 +439,19 @@ then
 		echo "[init] Start logging"
 		sh /etc/init.d/rc.logging
 	fi
-
-	gps start
 	
+	if [ $GPS == yes ]
+	then
+		echo "[init] Start GPS"
+		if [ $GPS_FAKE == yes ]
+		then
+			echo "[init] Faking GPS"
+			gps start -f
+		else
+			gps start
+		fi		
+	fi
+
 	#
 	# Start up ARDrone Motor interface
 	#
