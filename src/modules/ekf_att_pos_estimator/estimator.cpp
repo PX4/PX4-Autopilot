@@ -153,8 +153,17 @@ AttPosEKF::AttPosEKF() :
     useCompass(true),
     useRangeFinder(true),
     numericalProtection(true),
-    storeIndex(0)
+    refSet(false),
+    storeIndex(0),
+    gpsHgt(0.0f),
+    baroHgt(0.0f),
+    GPSstatus(0),
+    VtasMeas(0.0f)
 {
+    velNED[0] = 0.0f;
+    velNED[1] = 0.0f;
+    velNED[2] = 0.0f;
+
     InitialiseParameters();
     ZeroVariables();
 }
@@ -1967,9 +1976,9 @@ void AttPosEKF::calcLLH(float (&posNED)[3], float lat, float lon, float hgt, flo
 
 void AttPosEKF::OnGroundCheck()
 {
-    onGround = (((sq(velNED[0]) + sq(velNED[1]) + sq(velNED[2])) < 4.0f) && (VtasMeas < 8.0f));
+    onGround = (((sq(velNED[0]) + sq(velNED[1]) + sq(velNED[2])) < 4.0f) && (VtasMeas < 6.0f));
     if (staticMode) {
-        staticMode = !(GPSstatus > GPS_FIX_2D);
+        staticMode = (!refSet || (GPSstatus < GPS_FIX_3D));
     }
 }
 
@@ -2241,21 +2250,21 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
     // check all integrators
     if (!isfinite(summedDelAng.x) || !isfinite(summedDelAng.y) || !isfinite(summedDelAng.z)) {
         err_report->statesNaN = true;
-        ekf_debug("summedDelAng NaN: x: %f y: %f z: %f", summedDelAng.x, summedDelAng.y, summedDelAng.z);
+        ekf_debug("summedDelAng NaN: x: %f y: %f z: %f", (double)summedDelAng.x, (double)summedDelAng.y, (double)summedDelAng.z);
         err = true;
         goto out;
     } // delta angles
 
     if (!isfinite(correctedDelAng.x) || !isfinite(correctedDelAng.y) || !isfinite(correctedDelAng.z)) {
         err_report->statesNaN = true;
-        ekf_debug("correctedDelAng NaN: x: %f y: %f z: %f", correctedDelAng.x, correctedDelAng.y, correctedDelAng.z);
+        ekf_debug("correctedDelAng NaN: x: %f y: %f z: %f", (double)correctedDelAng.x, (double)correctedDelAng.y, (double)correctedDelAng.z);
         err = true;
         goto out;
     } // delta angles
 
     if (!isfinite(summedDelVel.x) || !isfinite(summedDelVel.y) || !isfinite(summedDelVel.z)) {
         err_report->statesNaN = true;
-        ekf_debug("summedDelVel NaN: x: %f y: %f z: %f", summedDelVel.x, summedDelVel.y, summedDelVel.z);
+        ekf_debug("summedDelVel NaN: x: %f y: %f z: %f", (double)summedDelVel.x, (double)summedDelVel.y, (double)summedDelVel.z);
         err = true;
         goto out;
     } // delta velocities
@@ -2298,7 +2307,7 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
         if (!isfinite(states[i])) {
 
             err_report->statesNaN = true;
-            ekf_debug("states NaN: i: %u val: %f", i, states[i]);
+            ekf_debug("states NaN: i: %u val: %f", i, (double)states[i]);
             err = true;
             goto out;
         } // state matrix
@@ -2372,8 +2381,8 @@ void AttPosEKF::AttitudeInit(float ax, float ay, float az, float mx, float my, f
     float magX, magY;
     float initialHdg, cosHeading, sinHeading;
 
-    initialRoll = atan2(-ay, -az);
-    initialPitch = atan2(ax, -az);
+    initialRoll = atan2f(-ay, -az);
+    initialPitch = atan2f(ax, -az);
 
     cosRoll = cosf(initialRoll);
     sinRoll = sinf(initialRoll);
@@ -2490,6 +2499,7 @@ void AttPosEKF::InitialiseFilter(float (&initvelNED)[3], double referenceLat, do
     latRef = referenceLat;
     lonRef = referenceLon;
     hgtRef = referenceHgt;
+    refSet = true;
 
     memset(&last_ekf_error, 0, sizeof(last_ekf_error));
 
@@ -2528,6 +2538,7 @@ void AttPosEKF::ZeroVariables()
     magstate.DCM.identity();
 
     memset(&current_ekf_state, 0, sizeof(current_ekf_state));
+
 }
 
 void AttPosEKF::GetFilterState(struct ekf_status_report *state)

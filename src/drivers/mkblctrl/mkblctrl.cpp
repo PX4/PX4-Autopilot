@@ -1015,7 +1015,7 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case PWM_SERVO_GET(0) ... PWM_SERVO_GET(_max_actuators - 1):
 		/* copy the current output value from the channel */
-		*(servo_position_t *)arg = Motor[cmd - PWM_SERVO_SET(0)].RawPwmValue;
+		*(servo_position_t *)arg = Motor[cmd - PWM_SERVO_GET(0)].RawPwmValue;
 
 		break;
 

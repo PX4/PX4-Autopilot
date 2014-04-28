@@ -211,6 +211,7 @@ public:
     double latRef; // WGS-84 latitude of reference point (rad)
     double lonRef; // WGS-84 longitude of reference point (rad)
     float hgtRef; // WGS-84 height of reference point (m)
+    bool refSet;                ///< flag to indicate if the reference position has been set
     Vector3f magBias; // states representing magnetometer bias vector in XYZ body axes
     unsigned covSkipCount; // Number of state prediction frames (IMU daya updates to skip before doing the covariance prediction
 

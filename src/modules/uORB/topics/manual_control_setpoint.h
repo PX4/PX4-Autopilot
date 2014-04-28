@@ -44,6 +44,16 @@
 #include "../uORB.h"
 
 /**
+ * Switch position
+ */
+typedef enum {
+	SWITCH_POS_NONE = 0,	/**< switch is not mapped */
+	SWITCH_POS_ON,			/**< switch activated (value = 1) */
+	SWITCH_POS_MIDDLE,		/**< middle position (value = 0) */
+	SWITCH_POS_OFF			/**< switch not activated (value = -1) */
+} switch_pos_t;
+
+/**
  * @addtogroup topics
  * @{
  */
@@ -51,32 +61,25 @@
 struct manual_control_setpoint_s {
 	uint64_t timestamp;
 
-	float roll;			 	/**< ailerons roll / roll rate input */
-	float pitch;				/**< elevator / pitch / pitch rate */
-	float yaw;				/**< rudder / yaw rate / yaw */
-	float throttle;				/**< throttle / collective thrust / altitude */
-
-	float mode_switch;			/**< mode 3 position switch (mandatory): manual, assisted, auto */
-	float return_switch;			/**< land 2 position switch (mandatory): land, no effect */
-	float assisted_switch;			/**< assisted 2 position switch (optional): seatbelt, simple */
-	float mission_switch;		/**< mission 2 position switch (optional): mission, loiter */
-
 	/**
-	 * Any of the channels below may not be available and be set to NaN
+	 * Any of the channels may not be available and be set to NaN
 	 * to indicate that it does not contain valid data.
 	 */
-
-	// XXX needed or parameter?
-	//float auto_offboard_input_switch;	/**< controller setpoint source (0 = onboard, 1 = offboard) */
-
-	float flaps;				/**< flap position */
-
+	float roll;			 	/**< ailerons roll / roll rate input, -1..1 */
+	float pitch;			/**< elevator / pitch / pitch rate, -1..1 */
+	float yaw;				/**< rudder / yaw rate / yaw, -1..1 */
+	float throttle;			/**< throttle / collective thrust / altitude, 0..1 */
+	float flaps;			/**< flap position */
 	float aux1;				/**< default function: camera yaw / azimuth */
 	float aux2;				/**< default function: camera pitch / tilt */
 	float aux3;				/**< default function: camera trigger */
 	float aux4;				/**< default function: camera roll */
 	float aux5;				/**< default function: payload drop */
 
+	switch_pos_t mode_switch;			/**< mode 3 position switch (mandatory): manual, assisted, auto */
+	switch_pos_t return_switch;			/**< land 2 position switch (mandatory): land, no effect */
+	switch_pos_t assisted_switch;			/**< assisted 2 position switch (optional): seatbelt, simple */
+	switch_pos_t loiter_switch;		/**< mission 2 position switch (optional): mission, loiter */
 }; /**< manual control inputs */
 
 /**
