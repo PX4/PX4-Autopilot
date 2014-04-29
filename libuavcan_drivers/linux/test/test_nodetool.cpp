@@ -135,14 +135,14 @@ void executeCommand(const uavcan_linux::NodePtr& node, const std::string& cmd,
 {
     if (cmd == "param")
     {
-        uavcan_linux::BlockingServiceClient<uavcan::protocol::param::GetSet> get_set(*node);
+        auto client = node->makeBlockingServiceClient<uavcan::protocol::param::GetSet>();
         printGetSetResponseHeader();
         uavcan::protocol::param::GetSet::Request request;
         if (args.empty())
         {
             while (true)
             {
-                auto response = call(get_set, node_id, request);
+                auto response = call(*client, node_id, request);
                 if (response.name.empty())
                 {
                     break;
@@ -155,25 +155,25 @@ void executeCommand(const uavcan_linux::NodePtr& node, const std::string& cmd,
         {
             request.name = args.at(0).c_str();
             request.value.value_float.push_back(std::stof(args.at(1)));
-            printGetSetResponse(call(get_set, node_id, request));
+            printGetSetResponse(call(*client, node_id, request));
         }
     }
     else if (cmd == "param_save" || cmd == "param_erase")
     {
-        uavcan_linux::BlockingServiceClient<uavcan::protocol::param::SaveErase> save_erase(*node);
+        auto client = node->makeBlockingServiceClient<uavcan::protocol::param::SaveErase>();
         uavcan::protocol::param::SaveErase::Request request;
         request.opcode = (cmd == "param_save") ? request.OPCODE_SAVE : request.OPCODE_ERASE;
-        std::cout << call(save_erase, node_id, request) << std::endl;
+        std::cout << call(*client, node_id, request) << std::endl;
     }
     else if (cmd == "restart")
     {
-        uavcan_linux::BlockingServiceClient<uavcan::protocol::RestartNode> restart(*node);
+        auto client = node->makeBlockingServiceClient<uavcan::protocol::RestartNode>();
         uavcan::protocol::RestartNode::Request request;
         request.magic_number = request.MAGIC_NUMBER;
-        (void)restart.blockingCall(node_id, request);
-        if (restart.wasSuccessful())
+        (void)client->blockingCall(node_id, request);
+        if (client->wasSuccessful())
         {
-            std::cout << restart.getResponse() << std::endl;
+            std::cout << client->getResponse() << std::endl;
         }
         else
         {
@@ -182,13 +182,13 @@ void executeCommand(const uavcan_linux::NodePtr& node, const std::string& cmd,
     }
     else if (cmd == "info")
     {
-        uavcan_linux::BlockingServiceClient<uavcan::protocol::GetNodeInfo> client(*node);
-        std::cout << call(client, node_id, uavcan::protocol::GetNodeInfo::Request()) << std::endl;
+        auto client = node->makeBlockingServiceClient<uavcan::protocol::GetNodeInfo>();
+        std::cout << call(*client, node_id, uavcan::protocol::GetNodeInfo::Request()) << std::endl;
     }
     else if (cmd == "tstat")
     {
-        uavcan_linux::BlockingServiceClient<uavcan::protocol::GetTransportStats> client(*node);
-        std::cout << call(client, node_id, uavcan::protocol::GetTransportStats::Request()) << std::endl;
+        auto client = node->makeBlockingServiceClient<uavcan::protocol::GetTransportStats>();
+        std::cout << call(*client, node_id, uavcan::protocol::GetTransportStats::Request()) << std::endl;
     }
     else if (cmd == "hardpoint")
     {
