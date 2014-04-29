@@ -76,45 +76,86 @@ struct map_projection_reference_s {
 };
 
 /**
- * Initializes the map transformation.
+ * Checks if global projection was initialized
  * @return true if map was initialized before, false else
  */
-__EXPORT bool map_projection_initialized();
-
+__EXPORT bool map_projection_global_initialized();
 
 /**
- * Initializes the map transformation.
+ * Checks if projection given as argument was initialized
+ * @return true if map was initialized before, false else
+ */
+__EXPORT bool map_projection_initialized(const struct map_projection_reference_s *ref);
+
+/**
+ * Get the timestamp of the global map projection
  * @return the timestamp of the map_projection
  */
-__EXPORT uint64_t map_projection_timestamp();
+__EXPORT uint64_t map_projection_global_timestamp();
 
 /**
- * Writes the reference values to ref_lat and ref_lon
+ * Get the timestamp of the map projection given by the argument
+ * @return the timestamp of the map_projection
+ */
+__EXPORT uint64_t map_projection_timestamp(const struct map_projection_reference_s *ref);
+
+/**
+ * Writes the reference values of the global projection to ref_lat and ref_lon
  * @return 0 if map_projection_init was called before, -1 else
  */
-__EXPORT int map_projection_reference(double *ref_lat, double *ref_lon);
+__EXPORT int map_projection_global_reference(double *ref_lat, double *ref_lon);
 
 /**
- * Initializes the map transformation.
+ * Writes the reference values of the projection given by the argument to ref_lat and ref_lon
+ * @return 0 if map_projection_init was called before, -1 else
+ */
+__EXPORT int map_projection_reference(const struct map_projection_reference_s *ref, double *ref_lat, double *ref_lon);
+
+/**
+ * Initializes the global map transformation.
  *
- * Initializes the transformation between the geographic coordinate system and the azimuthal equidistant plane
+ * Initializes the transformation between the geographic coordinate system and
+ * the azimuthal equidistant plane
  * @param lat in degrees (47.1234567°, not 471234567°)
  * @param lon in degrees (8.1234567°, not 81234567°)
  */
-__EXPORT int map_projection_init(double lat_0, double lon_0, uint64_t timestamp);
+__EXPORT int map_projection_global_init(double lat_0, double lon_0, uint64_t timestamp);
 
 /**
- * Transforms a point in the geographic coordinate system to the local azimuthal equidistant plane
+ * Initializes the map transformation given by the argument.
+ *
+ * Initializes the transformation between the geographic coordinate system and
+ * the azimuthal equidistant plane
+ * @param lat in degrees (47.1234567°, not 471234567°)
+ * @param lon in degrees (8.1234567°, not 81234567°)
+ */
+__EXPORT int map_projection_init(struct map_projection_reference_s *ref, double lat_0, double lon_0, uint64_t timestamp);
+
+/**
+ * Transforms a point in the geographic coordinate system to the local
+ * azimuthal equidistant plane using the global projection
  * @param x north
  * @param y east
  * @param lat in degrees (47.1234567°, not 471234567°)
  * @param lon in degrees (8.1234567°, not 81234567°)
  * @return 0 if map_projection_init was called before, -1 else
  */
-__EXPORT int map_projection_project(double lat, double lon, float *x, float *y);
+__EXPORT int map_projection_global_project(double lat, double lon, float *x, float *y);
+
+
+ /* Transforms a point in the geographic coordinate system to the local
+  * azimuthal equidistant plane using the projection given by the argument
+ * @param x north
+ * @param y east
+ * @param lat in degrees (47.1234567°, not 471234567°)
+ * @param lon in degrees (8.1234567°, not 81234567°)
+ * @return 0 if map_projection_init was called before, -1 else
+ */
+__EXPORT int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, float *x, float *y);
 
 /**
- * Transforms a point in the local azimuthal equidistant plane to the geographic coordinate system
+ * Transforms a point in the local azimuthal equidistant plane to the
+ * geographic coordinate system using the global projection
  *
  * @param x north
  * @param y east
@@ -122,7 +163,19 @@ __EXPORT int map_projection_project(double lat, double lon, float *x, float *y);
  * @param lon in degrees (8.1234567°, not 81234567°)
  * @return 0 if map_projection_init was called before, -1 else
  */
-__EXPORT int map_projection_reproject(float x, float y, double *lat, double *lon);
+__EXPORT int map_projection_global_reproject(float x, float y, double *lat, double *lon);
+
+/**
+ * Transforms a point in the local azimuthal equidistant plane to the
+ * geographic coordinate system using the projection given by the argument
+ *
+ * @param x north
+ * @param y east
+ * @param lat in degrees (47.1234567°, not 471234567°)
+ * @param lon in degrees (8.1234567°, not 81234567°)
+ * @return 0 if map_projection_init was called before, -1 else
+ */
+__EXPORT int map_projection_reproject(const struct map_projection_reference_s *ref, float x, float y, double *lat, double *lon);
 
 /**
  * Returns the distance to the next waypoint in meters.
