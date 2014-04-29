@@ -14,6 +14,7 @@
 
 #include <uavcan/protocol/param/GetSet.hpp>
 #include <uavcan/protocol/param/SaveErase.hpp>
+#include <uavcan/equipment/hardpoint/Command.hpp>
 
 namespace
 {
@@ -188,6 +189,20 @@ void executeCommand(const uavcan_linux::NodePtr& node, const std::string& cmd,
     {
         uavcan_linux::BlockingServiceClient<uavcan::protocol::GetTransportStats> client(*node);
         std::cout << call(client, node_id, uavcan::protocol::GetTransportStats::Request()) << std::endl;
+    }
+    else if (cmd == "hardpoint")
+    {
+        uavcan::equipment::hardpoint::Command msg;
+        msg.command = std::stoi(args.at(0));
+        auto pub = node->makePublisher<uavcan::equipment::hardpoint::Command>();
+        if (node_id.isBroadcast())
+        {
+            (void)pub->broadcast(msg);
+        }
+        else
+        {
+            (void)pub->unicast(msg, node_id);
+        }
     }
     else
     {
