@@ -129,7 +129,18 @@ __EXPORT int map_projection_global_init(double lat_0, double lon_0, uint64_t tim
  * @param lat in degrees (47.1234567°, not 471234567°)
  * @param lon in degrees (8.1234567°, not 81234567°)
  */
-__EXPORT int map_projection_init(struct map_projection_reference_s *ref, double lat_0, double lon_0, uint64_t timestamp);
+__EXPORT int map_projection_init_timestamped(struct map_projection_reference_s *ref,
+		double lat_0, double lon_0, uint64_t timestamp);
+
+/**
+ * Initializes the map transformation given by the argument and sets the timestamp to now.
+ *
+ * Initializes the transformation between the geographic coordinate system and
+ * the azimuthal equidistant plane
+ * @param lat in degrees (47.1234567°, not 471234567°)
+ * @param lon in degrees (8.1234567°, not 81234567°)
+ */
+__EXPORT int map_projection_init(struct map_projection_reference_s *ref, double lat_0, double lon_0);
 
 /**
  * Transforms a point in the geographic coordinate system to the local

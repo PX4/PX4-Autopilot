@@ -81,13 +81,13 @@ __EXPORT int map_projection_global_init(double lat_0, double lon_0, uint64_t tim
 {
 	if (strcmp("navigator", getprogname() == 0)) {
 
-		return map_projection_init(&mp_ref, lat_0, lon_0, timestamp);
+		return map_projection_init_timestamped(&mp_ref, lat_0, lon_0, timestamp);
 	} else {
 		return -1;
 	}
 }
 
-__EXPORT int map_projection_init(struct map_projection_reference_s *ref, double lat_0, double lon_0, uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+__EXPORT int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0, uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
 
 	ref->lat = lat_0 / 180.0 * M_PI;
@@ -102,9 +102,14 @@ __EXPORT int map_projection_init(struct map_projection_reference_s *ref, double 
 	return 0;
 }
 
+__EXPORT int map_projection_init(struct map_projection_reference_s *ref, double lat_0, double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+{
+	map_projection_init_timestamped(ref, lat_0, lon_0, hrt_absolute_time());
+}
+
 __EXPORT int map_projection_global_reference(double *ref_lat, double *ref_lon)
 {
-	return map_projection_reference_s(&mp_ref, ref_lat, ref_lon);
+	return map_projection_reference(&mp_ref, ref_lat, ref_lon);
 }
 
 __EXPORT int map_projection_reference(const struct map_projection_reference_s *ref, double *ref_lat, double *ref_lon)
