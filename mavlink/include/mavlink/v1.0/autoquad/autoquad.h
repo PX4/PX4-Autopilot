@@ -40,8 +40,8 @@ enum AUTOQUAD_NAV_STATUS
 	AQ_NAV_STATUS_INIT=0, /* System is initializing | */
 	AQ_NAV_STATUS_STANDBY=1, /* System is standing by, not active | */
 	AQ_NAV_STATUS_MANUAL=2, /* Stabilized, under full manual control | */
-	AQ_NAV_STATUS_ALTHOLD=4, /* Altitude hold engaged | */
-	AQ_NAV_STATUS_POSHOLD=8, /* Position hold engaged | */
+	AQ_NAV_STATUS_ALTCTRL=4, /* Altitude hold engaged | */
+	AQ_NAV_STATUS_POSCTRL=8, /* Position hold engaged | */
 	AQ_NAV_STATUS_DVH=16, /* Dynamic Velocity Hold is active | */
 	AQ_NAV_STATUS_MISSION=32, /* Autonomous mission execution mode | */
 	AQ_NAV_STATUS_CEILING_REACHED=67108864, /* Craft is at ceiling altitude | */

@@ -64,7 +64,7 @@ enum RC_CHANNELS_FUNCTION {
 	YAW      = 3,
 	MODE = 4,
 	RETURN = 5,
-	POSHOLD = 6,
+	POSCTRL = 6,
 	LOITER = 7,
 	OFFBOARD_MODE = 8,
 	FLAPS   = 9,

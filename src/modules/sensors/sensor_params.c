@@ -605,7 +605,7 @@ PARAM_DEFINE_INT32(RC_MAP_RETURN_SW, 0);
  * @max 18
  * @group Radio Calibration
  */
-PARAM_DEFINE_INT32(RC_MAP_POSHLD_SW, 0);
+PARAM_DEFINE_INT32(RC_MAP_POSCTL_SW, 0);
 
 /**
  * Loiter switch channel mapping.
@@ -703,7 +703,7 @@ PARAM_DEFINE_FLOAT(RC_ASSISTED_TH, 0.25f);
 PARAM_DEFINE_FLOAT(RC_AUTO_TH, 0.75f);
 
 /**
- * Threshold for selecting poshold mode
+ * Threshold for selecting posctrl mode
  *
  * min:-1
  * max:+1
@@ -716,7 +716,7 @@ PARAM_DEFINE_FLOAT(RC_AUTO_TH, 0.75f);
  * 		negative : true when channel<th
  *
  */
-PARAM_DEFINE_FLOAT(RC_POSHOLD_TH, 0.5f);
+PARAM_DEFINE_FLOAT(RC_POSCTRL_TH, 0.5f);
 
 /**
  * Threshold for selecting return to launch mode
