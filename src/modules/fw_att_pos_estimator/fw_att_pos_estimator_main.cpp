@@ -797,7 +797,7 @@ FixedwingEstimator::task_main()
 
 			if (hrt_elapsed_time(&start_time) > 100000) {
 
-				if (!_gps_initialized && (_ekf->GPSstatus == 3) && map_projection_initialized()) {
+				if (!_gps_initialized && (_ekf->GPSstatus == 3) && map_projection_global_initialized()) {
 					_ekf->velNED[0] = _gps.vel_n_m_s;
 					_ekf->velNED[1] = _gps.vel_e_m_s;
 					_ekf->velNED[2] = _gps.vel_d_m_s;
@@ -809,9 +809,9 @@ FixedwingEstimator::task_main()
 					_ekf->InitialiseFilter(_ekf->velNED);
 
 					// Initialize projection
-					map_projection_reference(&_local_pos.ref_lat, &_local_pos.ref_lon);
+					map_projection_global_reference(&_local_pos.ref_lat, &_local_pos.ref_lon);
 					_local_pos.ref_alt = alt;
-					_local_pos.ref_timestamp = map_projection_timestamp();
+					_local_pos.ref_timestamp = map_projection_global_timestamp();
 
 					// Store 
 					orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
@@ -1041,7 +1041,7 @@ FixedwingEstimator::task_main()
 
 				if (_local_pos.xy_global) {
 					double est_lat, est_lon;
-					map_projection_reproject(_local_pos.x, _local_pos.y, &est_lat, &est_lon);
+					map_projection_global_reproject(_local_pos.x, _local_pos.y, &est_lat, &est_lon);
 					_global_pos.lat = est_lat;
 					_global_pos.lon = est_lon;
 					_global_pos.time_gps_usec = _gps.time_gps_usec;
