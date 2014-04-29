@@ -177,8 +177,6 @@ private:
 	struct sensor_combined_s			_sensor_combined;
 #endif
 
-	struct map_projection_reference_s	_pos_ref;
-
 	float						_baro_ref;		/**< barometer reference altitude */
 	float						_baro_gps_offset;	/**< offset between GPS and baro */
 
@@ -799,7 +797,7 @@ FixedwingEstimator::task_main()
 
 			if (hrt_elapsed_time(&start_time) > 100000) {
 
-				if (!_gps_initialized && (_ekf->GPSstatus == 3)) {
+				if (!_gps_initialized && (_ekf->GPSstatus == 3) && map_projection_global_initialized()) {
 					_ekf->velNED[0] = _gps.vel_n_m_s;
 					_ekf->velNED[1] = _gps.vel_e_m_s;
 					_ekf->velNED[2] = _gps.vel_d_m_s;
@@ -811,10 +809,9 @@ FixedwingEstimator::task_main()
 					_ekf->InitialiseFilter(_ekf->velNED);
 
 					// Initialize projection
-					_local_pos.ref_lat = _gps.lat;
-					_local_pos.ref_lon = _gps.lon;
+					map_projection_global_reference(&_local_pos.ref_lat, &_local_pos.ref_lon);
 					_local_pos.ref_alt = alt;
-					_local_pos.ref_timestamp = _gps.timestamp_position;
+					_local_pos.ref_timestamp = map_projection_global_timestamp();
 
 					// Store 
 					orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
@@ -822,8 +819,6 @@ FixedwingEstimator::task_main()
 					_ekf->baroHgt = _baro.altitude - _baro_ref;
 					_baro_gps_offset = _baro_ref - _local_pos.ref_alt;
 
-					// XXX this is not multithreading safe
-					map_projection_init(&_pos_ref, lat, lon);
 					mavlink_log_info(_mavlink_fd, "[position estimator] init ref: lat=%.7f, lon=%.7f, alt=%.2f", lat, lon, alt);
 
 					_gps_initialized = true;
@@ -1046,7 +1041,7 @@ FixedwingEstimator::task_main()
 
 				if (_local_pos.xy_global) {
 					double est_lat, est_lon;
-					map_projection_reproject(&_pos_ref, _local_pos.x, _local_pos.y, &est_lat, &est_lon);
+					map_projection_global_reproject(_local_pos.x, _local_pos.y, &est_lat, &est_lon);
 					_global_pos.lat = est_lat;
 					_global_pos.lon = est_lon;
 					_global_pos.time_gps_usec = _gps.time_gps_usec;

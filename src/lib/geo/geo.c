@@ -55,17 +55,87 @@
  * formulas according to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html
  */
 
-__EXPORT void map_projection_init(struct map_projection_reference_s *ref, double lat_0, double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+static struct map_projection_reference_s mp_ref = {0};
+
+__EXPORT bool map_projection_global_initialized()
 {
+	return map_projection_initialized(&mp_ref);
+}
+
+__EXPORT bool map_projection_initialized(const struct map_projection_reference_s *ref)
+{
+	return ref->init_done;
+}
+
+__EXPORT uint64_t map_projection_global_timestamp()
+{
+	return map_projection_timestamp(&mp_ref);
+}
+
+__EXPORT uint64_t map_projection_timestamp(const struct map_projection_reference_s *ref)
+{
+	return ref->timestamp;
+}
+
+__EXPORT int map_projection_global_init(double lat_0, double lon_0, uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+{
+	if (strcmp("navigator", getprogname() == 0)) {
+
+		return map_projection_init_timestamped(&mp_ref, lat_0, lon_0, timestamp);
+	} else {
+		return -1;
+	}
+}
+
+__EXPORT int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0, uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+{
+
 	ref->lat = lat_0 / 180.0 * M_PI;
 	ref->lon = lon_0 / 180.0 * M_PI;
 
 	ref->sin_lat = sin(ref->lat);
 	ref->cos_lat = cos(ref->lat);
+
+	ref->timestamp = timestamp;
+	ref->init_done = true;
+
+	return 0;
 }
 
-__EXPORT void map_projection_project(struct map_projection_reference_s *ref, double lat, double lon, float *x, float *y)
+__EXPORT int map_projection_init(struct map_projection_reference_s *ref, double lat_0, double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
+	map_projection_init_timestamped(ref, lat_0, lon_0, hrt_absolute_time());
+}
+
+__EXPORT int map_projection_global_reference(double *ref_lat, double *ref_lon)
+{
+	return map_projection_reference(&mp_ref, ref_lat, ref_lon);
+}
+
+__EXPORT int map_projection_reference(const struct map_projection_reference_s *ref, double *ref_lat, double *ref_lon)
+{
+	if (!map_projection_initialized(ref)) {
+		return -1;
+	}
+
+	*ref_lat = ref->lat;
+	*ref_lon = ref->lon;
+
+	return 0;
+}
+
+__EXPORT int map_projection_global_project(double lat, double lon, float *x, float *y)
+{
+	return map_projection_project(&mp_ref, lat, lon, x, y);
+
+}
+
+__EXPORT int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, float *x, float *y)
+{
+	if (!map_projection_initialized(ref)) {
+		return -1;
+	}
+
 	double lat_rad = lat / 180.0 * M_PI;
 	double lon_rad = lon / 180.0 * M_PI;
 
@@ -78,10 +148,21 @@ __EXPORT void map_projection_project(struct map_projection_reference_s *ref, dou
 
 	*x = k * (ref->cos_lat * sin_lat - ref->sin_lat * cos_lat * cos_d_lon) * CONSTANTS_RADIUS_OF_EARTH;
 	*y = k * cos_lat * sin(lon_rad - ref->lon) * CONSTANTS_RADIUS_OF_EARTH;
+
+	return 0;
 }
 
-__EXPORT void map_projection_reproject(struct map_projection_reference_s *ref, float x, float y, double *lat, double *lon)
+__EXPORT int map_projection_global_reproject(float x, float y, double *lat, double *lon)
 {
+	map_projection_project(&mp_ref, x, y, lat, lon);
+}
+
+__EXPORT int map_projection_reproject(const struct map_projection_reference_s *ref, float x, float y, double *lat, double *lon)
+{
+	if (!map_projection_initialized(ref)) {
+		return -1;
+	}
+
 	float x_rad = x / CONSTANTS_RADIUS_OF_EARTH;
 	float y_rad = y / CONSTANTS_RADIUS_OF_EARTH;
 	double c = sqrtf(x_rad * x_rad + y_rad * y_rad);
@@ -102,6 +183,8 @@ __EXPORT void map_projection_reproject(struct map_projection_reference_s *ref, f
 
 	*lat = lat_rad * 180.0 / M_PI;
 	*lon = lon_rad * 180.0 / M_PI;
+
+	return 0;
 }
 
 
