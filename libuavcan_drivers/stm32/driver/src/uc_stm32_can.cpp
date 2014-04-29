@@ -8,6 +8,18 @@
 #include <uavcan_stm32/clock.hpp>
 #include "internal.hpp"
 
+
+#if !(defined(STM32F10X_CL) || defined(STM32F2XX) || defined(STM32F4XX))
+// IRQ numbers
+# define CAN1_RX0_IRQn USB_LP_CAN1_RX0_IRQn
+# define CAN1_TX_IRQn USB_HP_CAN1_TX_IRQn
+// IRQ vectors
+# if !defined(CAN1_RX0_IRQHandler) || !defined(CAN1_TX_IRQHandler)
+#  define CAN1_TX_IRQHandler   USB_HP_CAN1_TX_IRQHandler
+#  define CAN1_RX0_IRQHandler  USB_LP_CAN1_RX0_IRQHandler
+# endif
+#endif
+
 namespace uavcan_stm32
 {
 namespace
@@ -672,20 +684,6 @@ bool CanDriver::hadActivity()
 /*
  * Interrupt handlers
  */
-#if !(defined(STM32F10X_CL) || defined(STM32F2XX) || defined(STM32F4XX))
-
-// IRQ numbers
-#define CAN1_RX0_IRQn USB_LP_CAN1_RX0_IRQn
-#define CAN1_TX_IRQn USB_HP_CAN1_TX_IRQn
-
-// IRQ vectors
-#if !defined(CAN1_RX0_IRQHandler) || !defined(CAN1_TX_IRQHandler)
-# define CAN1_TX_IRQHandler   USB_HP_CAN1_TX_IRQHandler
-# define CAN1_RX0_IRQHandler  USB_LP_CAN1_RX0_IRQHandler
-#endif
-
-#endif
-
 extern "C"
 {
 
