@@ -2536,6 +2536,8 @@ void AttPosEKF::ZeroVariables()
     correctedDelAng.zero();
     summedDelAng.zero();
     summedDelVel.zero();
+    magBias.zero();
+    magState.zero();
 
     for (unsigned i = 0; i < data_buffer_size; i++) {
 
