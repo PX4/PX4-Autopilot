@@ -549,7 +549,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(home_position), home_position_sub, &home);
 
-				if (home.timestamp != home_timestamp && map_projection_initialized()) {
+				if (home.timestamp != home_timestamp) {
 					home_timestamp = home.timestamp;
 
 					double est_lat, est_lon;
@@ -558,8 +558,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					if (ref_inited) {
 						/* calculate current estimated position in global frame */
 						est_alt = local_pos.ref_alt - local_pos.z;
-						map_projection_reproject(local_pos.x, local_pos.y, &est_lat, &est_lon);
+						map_projection_reproject(&ref, local_pos.x, local_pos.y, &est_lat, &est_lon);
 					}
+
+					/* update reference */
+					map_projection_init(&ref, home.lat, home.lon);
 
 					/* update baro offset */
 					baro_offset += home.alt - local_pos.ref_alt;
@@ -571,7 +574,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					if (ref_inited) {
 						/* reproject position estimate with new reference */
-						map_projection_project(est_lat, est_lon, &x_est[0], &y_est[0]);
+						map_projection_project(&ref, est_lat, est_lon, &x_est[0], &y_est[0]);
 						z_est[0] = -(est_alt - local_pos.ref_alt);
 					}
 
@@ -602,7 +605,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					}
 				}
 
-				if (gps_valid && map_projection_initialized()) {
+				if (gps_valid) {
 					double lat = gps.lat * 1e-7;
 					double lon = gps.lon * 1e-7;
 					float alt = gps.alt * 1e-3;
@@ -626,17 +629,22 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							z_est[0] = 0.0f;
 							y_est[2] = accel_NED[1];
 
-							map_projection_reference(&local_pos.ref_lat, &local_pos.ref_lon);
-
+							local_pos.ref_lat = lat;
+							local_pos.ref_lon = lon;
 							local_pos.ref_alt = alt;
 							local_pos.ref_timestamp = t;
+
+							/* initialize projection */
+							map_projection_init(&ref, lat, lon);
+							warnx("init ref: lat=%.7f, lon=%.7f, alt=%.2f", lat, lon, alt);
+							mavlink_log_info(mavlink_fd, "[inav] init ref: lat=%.7f, lon=%.7f, alt=%.2f", lat, lon, alt);
 						}
 					}
 
 					if (ref_inited) {
 						/* project GPS lat lon to plane */
 						float gps_proj[2];
-						map_projection_project(lat, lon, &(gps_proj[0]), &(gps_proj[1]));
+						map_projection_project(&ref, lat, lon, &(gps_proj[0]), &(gps_proj[1]));
 
 						/* reset position estimate when GPS becomes good */
 						if (reset_est) {
@@ -930,7 +938,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				global_pos.time_gps_usec = gps.time_gps_usec;
 
 				double est_lat, est_lon;
-				map_projection_reproject(local_pos.x, local_pos.y, &est_lat, &est_lon);
+				map_projection_reproject(&ref, local_pos.x, local_pos.y, &est_lat, &est_lon);
 
 				global_pos.lat = est_lat;
 				global_pos.lon = est_lon;
