@@ -115,8 +115,8 @@ __EXPORT float get_mag_declination(float lat, float lon)
 	}
 
 	/* find index of nearest low sampling point */
-	unsigned min_lat_index = (90 + min_lat)  / SAMPLING_RES;
-	unsigned min_lon_index = (180 + min_lat) / SAMPLING_RES;
+	unsigned min_lat_index = (-(SAMPLING_MIN_LAT) + min_lat)  / SAMPLING_RES;
+	unsigned min_lon_index = (-(SAMPLING_MIN_LON) + min_lon) / SAMPLING_RES;
 
 	float declination_sw = get_lookup_table_val(min_lat_index, min_lon_index);
 	float declination_se = get_lookup_table_val(min_lat_index, min_lon_index + 1);
