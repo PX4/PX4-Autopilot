@@ -32,16 +32,9 @@
  *
  ****************************************************************************/
 
-/**
- * @file unit_test.cpp
- * A unit test library.
- *
- */
-
 #include "unit_test.h"
 
 #include <systemlib/err.h>
-
 
 UnitTest::UnitTest()
 {
@@ -51,15 +44,15 @@ UnitTest::~UnitTest()
 {
 }
 
-void
-UnitTest::print_results(const char* result)
+void UnitTest::printResults(void)
 {
-	if (result != 0) {
-        	warnx("Failed: %s:%d", mu_last_test(), mu_line());
-        	warnx("%s", result);
-    	} else {
-        	warnx("ALL TESTS PASSED");
-        	warnx("  Tests run : %d", mu_tests_run());
-        	warnx("  Assertion : %d", mu_assertion());
-    	}
+    warnx(mu_tests_failed() ? "SOME TESTS FAILED" : "ALL TESTS PASSED");
+    warnx("  Tests passed : %d", mu_tests_passed());
+    warnx("  Tests failed : %d", mu_tests_failed());
+    warnx("  Assertions : %d", mu_assertion());
+}
+
+void UnitTest::printAssert(const char* msg, const char* test, const char* file, int line)
+{
+    warnx("Assertion failed: %s - %s (%s:%d)", msg, test, file, line);
 }
