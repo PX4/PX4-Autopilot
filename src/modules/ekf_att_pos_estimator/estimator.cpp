@@ -2396,7 +2396,7 @@ void AttPosEKF::AttitudeInit(float ax, float ay, float az, float mx, float my, f
 
     initialHdg = atan2f(-magY, magX);
     /* true heading is the mag heading minus declination */
-    initialHdg -= declination;
+    initialHdg += declination;
 
     cosRoll = cosf(initialRoll * 0.5f);
     sinRoll = sinf(initialRoll * 0.5f);
@@ -2528,8 +2528,6 @@ void AttPosEKF::ZeroVariables()
     correctedDelAng.zero();
     summedDelAng.zero();
     summedDelVel.zero();
-    magBias.zero();
-    magData.zero();
 
     for (unsigned i = 0; i < data_buffer_size; i++) {
 
