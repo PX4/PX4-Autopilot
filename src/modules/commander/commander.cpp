@@ -1145,7 +1145,7 @@ int commander_thread_main(int argc, char *argv[])
 			/* arm/disarm by RC */
 			res = TRANSITION_NOT_CHANGED;
 
-			/* check if left stick is in lower left position and we are in MANUAL or AUTO_READY mode or (ASSISTED mode and landed) -> disarm
+			/* check if left stick is in lower left position and we are in MANUAL or AUTO_READY mode or (ASSIST mode and landed) -> disarm
 			 * do it only for rotary wings */
 			if (status.is_rotary_wing &&
 			    (status.arming_state == ARMING_STATE_ARMED || status.arming_state == ARMING_STATE_ARMED_ERROR) &&
@@ -1299,7 +1299,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		// TODO remove this hack
-		/* flight termination in manual mode if assisted switch is on posctrl position */
+		/* flight termination in manual mode if assist switch is on posctrl position */
 		if (!status.is_rotary_wing && parachute_enabled && armed.armed && status.main_state == MAIN_STATE_MANUAL && sp_man.posctrl_switch == SWITCH_POS_ON) {
 			if (TRANSITION_CHANGED == failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION)) {
 				tune_positive(armed.armed);
@@ -1556,7 +1556,7 @@ set_main_state_rc(struct vehicle_status_s *status, struct manual_control_setpoin
 		// TRANSITION_DENIED is not possible here
 		break;
 
-	case SWITCH_POS_MIDDLE:		// ASSISTED
+	case SWITCH_POS_MIDDLE:		// ASSIST
 		if (sp_man->posctrl_switch == SWITCH_POS_ON) {
 			res = main_state_transition(status, MAIN_STATE_POSCTRL);
 

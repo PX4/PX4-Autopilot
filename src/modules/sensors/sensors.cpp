@@ -269,12 +269,12 @@ private:
 		int rc_map_aux5;
 
 		int32_t rc_fails_thr;
-		float rc_assisted_th;
+		float rc_assist_th;
 		float rc_auto_th;
 		float rc_posctrl_th;
 		float rc_return_th;
 		float rc_loiter_th;
-		bool rc_assisted_inv;
+		bool rc_assist_inv;
 		bool rc_auto_inv;
 		bool rc_posctrl_inv;
 		bool rc_return_inv;
@@ -323,7 +323,7 @@ private:
 		param_t rc_map_aux5;
 
 		param_t rc_fails_thr;
-		param_t rc_assisted_th;
+		param_t rc_assist_th;
 		param_t rc_auto_th;
 		param_t rc_posctrl_th;
 		param_t rc_return_th;
@@ -539,7 +539,7 @@ Sensors::Sensors() :
 
 	/* RC thresholds */
 	_parameter_handles.rc_fails_thr = param_find("RC_FAILS_THR");
-	_parameter_handles.rc_assisted_th = param_find("RC_ASSISTED_TH");
+	_parameter_handles.rc_assist_th = param_find("RC_ASSIST_TH");
 	_parameter_handles.rc_auto_th = param_find("RC_AUTO_TH");
 	_parameter_handles.rc_posctrl_th = param_find("RC_POSCTRL_TH");
 	_parameter_handles.rc_return_th = param_find("RC_RETURN_TH");
@@ -700,9 +700,9 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_map_aux4, &(_parameters.rc_map_aux4));
 	param_get(_parameter_handles.rc_map_aux5, &(_parameters.rc_map_aux5));
 	param_get(_parameter_handles.rc_fails_thr, &(_parameters.rc_fails_thr));
-	param_get(_parameter_handles.rc_assisted_th, &(_parameters.rc_assisted_th));
-	_parameters.rc_assisted_inv = (_parameters.rc_assisted_th<0);
-	_parameters.rc_assisted_th = fabs(_parameters.rc_assisted_th);
+	param_get(_parameter_handles.rc_assist_th, &(_parameters.rc_assist_th));
+	_parameters.rc_assist_inv = (_parameters.rc_assist_th<0);
+	_parameters.rc_assist_th = fabs(_parameters.rc_assist_th);
 	param_get(_parameter_handles.rc_auto_th, &(_parameters.rc_auto_th));
 	_parameters.rc_auto_inv = (_parameters.rc_auto_th<0);
 	_parameters.rc_auto_th = fabs(_parameters.rc_auto_th);
@@ -1477,7 +1477,7 @@ Sensors::rc_poll()
 			manual.aux5 = get_rc_value(AUX_5, -1.0, 1.0);
 
 			/* mode switches */
-			manual.mode_switch = get_rc_sw3pos_position(MODE, _parameters.rc_auto_th, _parameters.rc_auto_inv, _parameters.rc_assisted_th, _parameters.rc_assisted_inv);
+			manual.mode_switch = get_rc_sw3pos_position(MODE, _parameters.rc_auto_th, _parameters.rc_auto_inv, _parameters.rc_assist_th, _parameters.rc_assist_inv);
 			manual.posctrl_switch = get_rc_sw2pos_position(POSCTRL, _parameters.rc_posctrl_th, _parameters.rc_posctrl_inv);
 			manual.return_switch = get_rc_sw2pos_position(RETURN, _parameters.rc_return_th, _parameters.rc_return_inv);
 			manual.loiter_switch = get_rc_sw2pos_position(LOITER, _parameters.rc_loiter_th, _parameters.rc_loiter_inv);

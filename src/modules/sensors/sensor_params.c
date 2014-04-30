@@ -671,7 +671,7 @@ PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);
 PARAM_DEFINE_INT32(RC_FAILS_THR, 0);
 
 /**
- * Threshold for selecting assisted mode
+ * Threshold for selecting assist mode
  *
  * min:-1
  * max:+1
@@ -684,7 +684,7 @@ PARAM_DEFINE_INT32(RC_FAILS_THR, 0);
  * 		negative : true when channel<th
  *
  */
-PARAM_DEFINE_FLOAT(RC_ASSISTED_TH, 0.25f);
+PARAM_DEFINE_FLOAT(RC_ASSIST_TH, 0.25f);
 
 /**
  * Threshold for selecting auto mode
