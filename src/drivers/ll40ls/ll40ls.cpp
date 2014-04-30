@@ -79,7 +79,7 @@
 /* LL40LS Registers addresses */
 
 #define LL40LS_MEASURE_REG		0x00		/* Measure range register */
-#define LL40LS_MSRREG_ACQUIRE	0x61		/* Value to initiate a measurement */
+#define LL40LS_MSRREG_ACQUIRE	0x04		/* Value to initiate a measurement, varies based on sensor revision */
 #define LL40LS_DISTHIGH_REG		0x8F		/* High byte of distance register, auto increment */
 
 /* Device limits */
