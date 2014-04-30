@@ -45,15 +45,14 @@
 
 #include <geo/geo.h>
 
-
 /** set this always to the sampling in degrees for the table below */
-#define SAMPLING_RES		10
+#define SAMPLING_RES		10.0f
 #define SAMPLING_MIN_LAT	-60.0f
 #define SAMPLING_MAX_LAT	60.0f
 #define SAMPLING_MIN_LON	-180.0f
 #define SAMPLING_MAX_LON	180.0f
 
-static const char declination_table[13][37] = \
+static const int8_t declination_table[13][37] = \
 {
 	46, 45, 44, 42, 41, 40, 38, 36, 33, 28, 23, 16, 10, 4, -1, -5, -9, -14, -19, -26, -33, -40, -48, -55, -61, \
 	-66, -71, -74, -75, -72, -61, -25, 22, 40, 45, 47, 46, 30, 30, 30, 30, 29, 29, 29, 29, 27, 24, 18, 11, 3, \
@@ -90,8 +89,8 @@ __EXPORT float get_mag_declination(float lat, float lon)
 	}
 
 	/* round down to nearest sampling resolution */
-	int min_lat = (((int)lat) / SAMPLING_RES) * SAMPLING_RES;
-	int min_lon = (((int)lon) / SAMPLING_RES) * SAMPLING_RES;
+	int min_lat = (int)(lat / SAMPLING_RES) * SAMPLING_RES;
+	int min_lon = (int)(lon / SAMPLING_RES) * SAMPLING_RES;
 
 	/* for the rare case of hitting the bounds exactly
 	 * the rounding logic wouldn't fit, so enforce it.
@@ -103,7 +102,7 @@ __EXPORT float get_mag_declination(float lat, float lon)
 	}
 
 	if (lat >= SAMPLING_MAX_LAT) {
-		min_lat = (((int)lat) / SAMPLING_RES) * SAMPLING_RES - SAMPLING_RES;
+		min_lat = (int)(lat / SAMPLING_RES) * SAMPLING_RES - SAMPLING_RES;
 	}
 
 	if (lon <= SAMPLING_MIN_LON) {
@@ -111,7 +110,7 @@ __EXPORT float get_mag_declination(float lat, float lon)
 	}
 
 	if (lon >= SAMPLING_MAX_LON) {
-		min_lon = (((int)lon) / SAMPLING_RES) * SAMPLING_RES - SAMPLING_RES;
+		min_lon = (int)(lon / SAMPLING_RES) * SAMPLING_RES - SAMPLING_RES;
 	}
 
 	/* find index of nearest low sampling point */
@@ -128,7 +127,7 @@ __EXPORT float get_mag_declination(float lat, float lon)
 	float declination_min = ((lon - min_lon) / SAMPLING_RES) * (declination_se - declination_sw) + declination_sw;
 	float declination_max = ((lon - min_lon) / SAMPLING_RES) * (declination_ne - declination_nw) + declination_nw;
 
-	return (lat - min_lat) / SAMPLING_RES * (declination_max - declination_min) + declination_min;
+	return ((lat - min_lat) / SAMPLING_RES) * (declination_max - declination_min) + declination_min;
 }
 
 float get_lookup_table_val(unsigned lat_index, unsigned lon_index)
