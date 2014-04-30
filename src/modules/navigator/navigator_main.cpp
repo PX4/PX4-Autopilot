@@ -1782,8 +1782,7 @@ Navigator::publish_position_setpoint_triplet()
 		_pos_sp_triplet.current.alt = _target_alt - offset(2);
 
 		/* calculate direction to target */
-		// TODO add yaw offset, use actual position instead of offset
-		_pos_sp_triplet.current.yaw = atan2f(-offset(1), -offset(0)) + yaw_relative;
+		_pos_sp_triplet.current.yaw = get_bearing_to_next_waypoint(_global_pos.lat, _global_pos.lon, _target_pos.lat, _target_pos.lon) + yaw_relative;
 
 		_pos_sp_triplet.current.vel_n = _target_pos.vel_n;
 		_pos_sp_triplet.current.vel_e = _target_pos.vel_e;
