@@ -1013,7 +1013,7 @@ FixedwingEstimator::task_main()
 					mavlink_log_info(_mavlink_fd, "[ekf] ref: LA %.4f,LO %.4f,ALT %.2f", lat, lon, (double)gps_alt);
 					warnx("HOME/REF: LA %8.4f,LO %8.4f,ALT %8.2f V: %8.4f %8.4f %8.4f", lat, lon, (double)gps_alt,
 						(double)_ekf->velNED[0], (double)_ekf->velNED[1], (double)_ekf->velNED[2]);
-					warnx("GPS: eph: %8.4f, epv: %8.4f", (double)_gps.eph_m, (double)_gps.epv_m);
+					warnx("GPS: eph: %8.4f, epv: %8.4f, declination: %8.4f", (double)_gps.eph_m, (double)_gps.epv_m, (double)math::degrees(declination));
 
 					_gps_initialized = true;
 
