@@ -194,6 +194,9 @@ private:
 	bool						_baro_init;
 	bool						_gps_initialized;
 	uint64_t					_gps_start_time;
+	bool						_gyro_valid;
+	bool						_accel_valid;
+	bool						_mag_valid;
 
 	int						_mavlink_fd;
 
@@ -341,6 +344,9 @@ FixedwingEstimator::FixedwingEstimator() :
 	_initialized(false),
 	_baro_init(false),
 	_gps_initialized(false),
+	_gyro_valid(false),
+	_accel_valid(false),
+	_mag_valid(false),
 	_mavlink_fd(-1),
 	_ekf(nullptr)
 {
@@ -617,10 +623,30 @@ FixedwingEstimator::task_main()
 
 			perf_count(_perf_gyro);
 
-			/* Reset baro reference if switching to HIL */
+			/* Reset baro reference if switching to HIL, reset sensor states */
 			if (!prev_hil && (_vstatus.hil_state == HIL_STATE_ON)) {
+				/* system is in HIL now, we got plenty of time - make sure real sensors are off */
+				usleep(250000);
+
+#ifndef SENSOR_COMBINED_SUB
+				orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &_gyro);
+				orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
+				orb_copy(ORB_ID(sensor_mag), _mag_sub, &_mag);
+#else
+				/* now read all sensor publications to ensure all real sensor data is purged */
+				orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
+#endif
+
+				/* set sensors to de-initialized state */
+				_gyro_valid = false;
+				_accel_valid = false;
+				_mag_valid = false;
+
 				_baro_init = false;
 				_gps_initialized = false;
+
+				/* now skip this loop and get data on the next one */
+				continue;
 			}
 
 			/**
@@ -663,12 +689,14 @@ FixedwingEstimator::task_main()
 				_ekf->angRate.x = _gyro.x;
 				_ekf->angRate.y = _gyro.y;
 				_ekf->angRate.z = _gyro.z;
+				_gyro_valid = true;
 			}
 
 			if (accel_updated) {
 				_ekf->accel.x = _accel.x;
 				_ekf->accel.y = _accel.y;
 				_ekf->accel.z = _accel.z;
+				_accel_valid = true;
 			}
 
 			_ekf->dAngIMU = 0.5f * (angRate + lastAngRate) * dtIMU;
@@ -713,12 +741,14 @@ FixedwingEstimator::task_main()
 				_ekf->angRate.x = _sensor_combined.gyro_rad_s[0];
 				_ekf->angRate.y = _sensor_combined.gyro_rad_s[1];
 				_ekf->angRate.z = _sensor_combined.gyro_rad_s[2];
+				_gyro_valid = true;
 			}
 
 			if (accel_updated) {
 				_ekf->accel.x = _sensor_combined.accelerometer_m_s2[0];
 				_ekf->accel.y = _sensor_combined.accelerometer_m_s2[1];
 				_ekf->accel.z = _sensor_combined.accelerometer_m_s2[2];
+				_accel_valid = true;
 			}
 
 			_ekf->dAngIMU = 0.5f * (_ekf->angRate + lastAngRate) * _ekf->dtIMU;
@@ -836,6 +866,8 @@ FixedwingEstimator::task_main()
 #endif
 
 			if (mag_updated) {
+
+				_mag_valid = true;
 
 				perf_count(_perf_mag);
 
@@ -961,11 +993,7 @@ FixedwingEstimator::task_main()
 			 *    PART TWO: EXECUTE THE FILTER
 			 **/
 
-			// Wait long enough to ensure all sensors updated once
-			// XXX we rather want to check all updated
-
-
-			if (hrt_elapsed_time(&_gps_start_time) > 50000) {
+			if (_baro_init && _gyro_valid && _accel_valid && _mag_valid) {
 
 				// bool home_set;
 				// orb_check(_home_sub, &home_set);
