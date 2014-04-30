@@ -496,7 +496,8 @@ MulticopterAttitudeControl::control_attitude(float dt)
 			//}
 		} else {
 			/* move yaw setpoint */
-			_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + _manual_control_sp.yaw * _params.man_yaw_max * dt);
+			yaw_sp_move_rate = _manual_control_sp.yaw * _params.man_yaw_max;
+			_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + yaw_sp_move_rate * dt);
 			_v_att_sp.R_valid = false;
 			publish_att_sp = true;
 		}
