@@ -1,0 +1,20 @@
+#
+# Nested type.
+# Energy and capacity are expressed in watt hours (Joules are infeasible because of range limitations).
+# Unknown values should be represented as NAN.
+#
+
+uint8 battery_id
+
+uint8 MASK_IN_USE   = 1
+uint8 MASK_CHARGING = 2
+uint8 MASK_CHARGED  = 4
+uint8 mask
+
+float16 voltage
+float16 power
+float16 consumed_wh
+float16 capacity_wh   # NAN if unknown
+
+uint7 CHARGE_PCT_UNKNOWN = 127
+uint7 charge_pct

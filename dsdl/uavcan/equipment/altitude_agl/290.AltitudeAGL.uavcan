@@ -1,0 +1,19 @@
+#
+# Altitude above ground level.
+# A single node can publish the measurements from different sensors concurrently.
+#
+
+uavcan.Timestamp timestamp
+
+float16 altitude_agl             # +inf - too far, -inf - too close
+float16 altitude_agl_variance    # +inf if too close or too far
+
+float16 sensor_max_range
+float16 sensor_min_range
+
+uint4 SENSOR_UNKNOWN = 0
+uint4 SENSOR_SONAR   = 1
+uint4 SENSOR_LASER   = 2
+uint4 SENSOR_RADAR   = 3
+uint4 SENSOR_CV      = 4
+uint4 sensor_type

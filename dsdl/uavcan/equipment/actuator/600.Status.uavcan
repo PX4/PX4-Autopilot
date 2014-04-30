@@ -1,0 +1,12 @@
+#
+# Generic actuator feedback, if available.
+#
+
+uint8 actuator_id
+
+float16 position
+
+float16 power        # Watt; negative if unknown
+
+uint7 POWER_RATE_PCT_UNKNOWN = 127
+uint7 power_rate_pct

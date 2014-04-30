@@ -1,0 +1,13 @@
+#
+# Raw ESC command.
+# 0 - disarmed, 1+ - armed.
+# Direct transition from disarmed state to high thrust should be rejected by the ESC.
+# Non-zero setpoint value below minimum should be interpreted as min valid setpoint.
+#
+
+uavcan.FigureOfMerit figure_of_merit
+
+uint12 CMD_DISARM = 0
+uint12 CMD_MIN    = 1
+uint12 CMD_MAX    = 4095
+uint12[<16] cmd

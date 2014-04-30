@@ -1,0 +1,12 @@
+#
+# Generic camera settings.
+#
+
+CaptureSettings recording
+CaptureSettings transmission
+
+float32 transmitter_power    # Watts, useful for obey regulatory power; NAN if undefined
+
+---
+
+ResultCode result

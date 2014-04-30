@@ -1,0 +1,8 @@
+#
+# Generic rotor status.
+# If the aircraft has one motor per rotor, rotor_index must match motor index.
+#
+
+uint4 index
+
+uint16 rpm

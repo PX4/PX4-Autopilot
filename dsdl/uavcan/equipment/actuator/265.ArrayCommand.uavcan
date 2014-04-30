@@ -1,0 +1,10 @@
+#
+# Actuator commands.
+# The system supports up to 256 actuators; up to 32 of them can be commanded with one message.
+#
+
+uavcan.FigureOfMerit figure_of_merit
+
+uint8[<=32] actuator_id      # Can be empty, in which case the ID is defined by the command index
+
+float16[<=32] command        # For a servo use [-1; 1]

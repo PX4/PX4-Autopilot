@@ -1,0 +1,8 @@
+#
+# Generic electrical circuit info.
+#
+
+uint8 circuit_id
+
+float16 voltage
+float16 current

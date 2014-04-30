@@ -1,0 +1,9 @@
+#
+# Take a photo.
+#
+
+uint8[<128] description     # To be associated with photo
+
+---
+
+ResultCode result

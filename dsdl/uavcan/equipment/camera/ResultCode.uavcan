@@ -1,0 +1,10 @@
+#
+# Nested type.
+# Camera operation result.
+#
+
+uint8 OK = 0
+uint8 INVALID_PARAMS = 1
+uint8 OUT_OF_STORAGE = 2
+uint8 INTERNAL_ERROR = 255
+uint8 code

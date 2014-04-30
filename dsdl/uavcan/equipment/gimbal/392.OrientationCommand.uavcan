@@ -1,0 +1,11 @@
+#
+# Generic gimbal control.
+#
+
+uavcan.FigureOfMerit figure_of_merit
+
+float16[4] orientation_xyzw
+
+uint2 REFERENCE_FRAME_FIXED = 0
+uint2 REFERENCE_FRAME_BODY  = 1
+uint2 reference_frame

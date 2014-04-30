@@ -1,0 +1,7 @@
+#
+# Nodes that are capable of making noise (e.g. ESC) should obey.
+# Use case: pre-arm warning sound, error indication.
+#
+
+float16 frequency  # Hz
+float16 duration   # Sec

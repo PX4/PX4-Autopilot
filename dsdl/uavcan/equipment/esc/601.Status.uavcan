@@ -1,0 +1,13 @@
+#
+# Generic ESC status.
+#
+
+uint4 index
+
+uint16 rpm
+float16 power               # Watt, NAN if unknown. Can be negative in case of a regenerative braking.
+float16 temperature         # Celsius, NAN if unknown
+
+uint7 power_rate_pct        # Percent of maximum power
+
+uint33 error_count          # Since the motor started

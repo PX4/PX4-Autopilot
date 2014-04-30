@@ -1,0 +1,9 @@
+#
+# Generic gimbal control.
+#
+
+uavcan.FigureOfMerit figure_of_merit
+
+int32 lon_1e7   # 1 LSB = 1e-7 deg
+int32 lat_1e7
+int24 alt_1e2   # 1 LSB = 1e-2 meters (10 mm)

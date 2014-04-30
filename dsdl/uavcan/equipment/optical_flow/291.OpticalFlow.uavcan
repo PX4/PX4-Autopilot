@@ -1,0 +1,9 @@
+#
+# X/Y velocities estimated by simple optical flow sensor.
+#
+
+uavcan.Timestamp timestamp
+
+float16 linear_velocity_x
+float16 linear_velocity_y
+float16 linear_velocity_variance

@@ -1,0 +1,8 @@
+#
+# Nested type.
+# Generic camera capture settings.
+#
+
+float16 fps
+
+uint8 compression_level    # 0 - raw (no compression), 255 - max compression
