@@ -2455,7 +2455,6 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
     Mat3f DCM;
     quat2Tbn(DCM, initQuat);
     Vector3f initMagNED;
-    initMagXYZ   = magData - magBias;
     initMagNED.x = DCM.x.x*initMagXYZ.x + DCM.x.y*initMagXYZ.y + DCM.x.z*initMagXYZ.z;
     initMagNED.y = DCM.y.x*initMagXYZ.x + DCM.y.y*initMagXYZ.y + DCM.y.z*initMagXYZ.z;
     initMagNED.z = DCM.z.x*initMagXYZ.x + DCM.z.y*initMagXYZ.y + DCM.z.z*initMagXYZ.z;
@@ -2497,13 +2496,6 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
     //Define Earth rotation vector in the NED navigation frame
     calcEarthRateNED(earthRateNED, latRef);
 
-    //Initialise summed variables used by covariance prediction
-    summedDelAng.x = 0.0f;
-    summedDelAng.y = 0.0f;
-    summedDelAng.z = 0.0f;
-    summedDelVel.x = 0.0f;
-    summedDelVel.y = 0.0f;
-    summedDelVel.z = 0.0f;
 }
 
 void AttPosEKF::InitialiseFilter(float (&initvelNED)[3], double referenceLat, double referenceLon, float referenceHgt, float declination)
@@ -2537,7 +2529,7 @@ void AttPosEKF::ZeroVariables()
     summedDelAng.zero();
     summedDelVel.zero();
     magBias.zero();
-    magState.zero();
+    magData.zero();
 
     for (unsigned i = 0; i < data_buffer_size; i++) {
 
