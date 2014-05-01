@@ -493,8 +493,8 @@ MulticopterPositionControl::reset_pos_sp()
 {
 	if (_reset_pos_sp) {
 		_reset_pos_sp = false;
-		_pos_sp(0) = _pos(0);
-		_pos_sp(1) = _pos(1);
+		_pos_sp(0) = _pos(0) + _vel(0) / _params.pos_p(0);
+		_pos_sp(1) = _pos(1) + _vel(1) / _params.pos_p(1);
 		mavlink_log_info(_mavlink_fd, "[mpc] reset pos sp: %.2f, %.2f", (double)_pos_sp(0), (double)_pos_sp(1));
 	}
 }
@@ -504,7 +504,7 @@ MulticopterPositionControl::reset_alt_sp()
 {
 	if (_reset_alt_sp) {
 		_reset_alt_sp = false;
-		_pos_sp(2) = _pos(2);
+		_pos_sp(2) = _pos(2) + _vel(2) / _params.pos_p(2);
 		mavlink_log_info(_mavlink_fd, "[mpc] reset alt sp: %.2f", -(double)_pos_sp(2));
 	}
 }
