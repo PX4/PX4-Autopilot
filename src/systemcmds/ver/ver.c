@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-* Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+* Copyright (c) 2014 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -47,7 +47,7 @@
 
 // string constants for version commands
 static const char sz_ver_hw_str[] 	= "hw";
-static const char sz_ver_hwcmp_str[]= "hwcmp";
+static const char sz_ver_hwcmp_str[] = "hwcmp";
 static const char sz_ver_git_str[] 	= "git";
 static const char sz_ver_bdate_str[] = "bdate";
 static const char sz_ver_gcc_str[] 	= "gcc";
@@ -62,38 +62,6 @@ static void usage(const char *reason)
 	printf("usage: ver {hw|hwcmp|git|bdate|gcc|all}\n\n");
 }
 
-static void ver_githash(int bShowPrefix)
-{
-	if (bShowPrefix == 1) {
-		printf("FW git-hash: ");
-	}
-	printf("%s\n", FW_GIT);
-}
-
-static void ver_hwarch(int bShowPrefix)
-{
-	if (bShowPrefix == 1) {
-		printf("HW arch: ");
-	}
-	printf("%s\n", HW_ARCH);
-}
-
-static void ver_bdate(int bShowPrefix)
-{
-	if (bShowPrefix == 1) {
-		printf("Build datetime: ");
-	}
-	printf("%s %s\n", __DATE__, __TIME__);
-}
-
-static void ver_gcclong(int bShowPrefix)
-{
-	if (bShowPrefix == 1) {
-		printf("GCC toolchain: ");
-	}
-	printf("%s\n", __VERSION__);
-}
-
 __EXPORT int ver_main(int argc, char *argv[]);
 
 int ver_main(int argc, char *argv[])
@@ -104,48 +72,50 @@ int ver_main(int argc, char *argv[])
 	if (argc >= 2) {
 		if (argv[1] != NULL) {
 			if (!strncmp(argv[1], sz_ver_hw_str, sizeof(sz_ver_hw_str))) {
-				ver_hwarch(0);
+				printf("%s\n", HW_ARCH);
 				ret = 0;
-			}
-			else if (!strncmp(argv[1], sz_ver_hwcmp_str, sizeof(sz_ver_hwcmp_str))) {
+
+			} else if (!strncmp(argv[1], sz_ver_hwcmp_str, sizeof(sz_ver_hwcmp_str))) {
 				if (argc >= 3 && argv[2] != NULL) {
 					// compare 3rd parameter with HW_ARCH string, in case of match, return 0
 					ret = strncmp(HW_ARCH, argv[2], strlen(HW_ARCH));
+
 					if (ret == 0) {
-						printf("hwver match: %s\n", HW_ARCH);
+						printf("ver hwcmp match: %s\n", HW_ARCH);
 					}
+
 				} else {
 					errx(1, "Not enough arguments, try 'ver hwcmp PX4FMU_V2'");
 				}
-			}
-			else if (!strncmp(argv[1], sz_ver_git_str, sizeof(sz_ver_git_str))) {
-				ver_githash(0);
+
+			} else if (!strncmp(argv[1], sz_ver_git_str, sizeof(sz_ver_git_str))) {
+				printf("%s\n", FW_GIT);
 				ret = 0;
-			}
-			else if (!strncmp(argv[1], sz_ver_bdate_str, sizeof(sz_ver_bdate_str))) {
-				ver_bdate(0);
+
+			} else if (!strncmp(argv[1], sz_ver_bdate_str, sizeof(sz_ver_bdate_str))) {
+				printf("%s %s\n", __DATE__, __TIME__);
 				ret = 0;
-			}
-			else if (!strncmp(argv[1], sz_ver_gcc_str, sizeof(sz_ver_gcc_str))) {
-				ver_gcclong(0);
+
+			} else if (!strncmp(argv[1], sz_ver_gcc_str, sizeof(sz_ver_gcc_str))) {
+				printf("%s\n", __VERSION__);
 				ret = 0;
-			}
-			else if (!strncmp(argv[1], sz_ver_all_str, sizeof(sz_ver_all_str))) {
-				ver_hwarch(1);
-				ver_bdate(1);
-				ver_githash(1);
-				ver_gcclong(1);
+
+			} else if (!strncmp(argv[1], sz_ver_all_str, sizeof(sz_ver_all_str))) {
+				printf("HW arch: %s\n", HW_ARCH);
+				printf("Build datetime: %s %s\n", __DATE__, __TIME__);
+				printf("FW git-hash: %s\n", FW_GIT);
+				printf("GCC toolchain: %s\n", __VERSION__);
 				ret = 0;
-			}
-			else {
+
+			} else {
 				errx(1, "unknown command.\n");
 			}
-		}
-		else {
+
+		} else {
 			usage("Error, input parameter NULL.\n");
 		}
-	}
-	else {
+
+	} else {
 		usage("Error, not enough parameters.");
 	}
 
