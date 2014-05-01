@@ -388,9 +388,11 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.z_vel_max, &v);
 		_params.vel_max(2) = v;
 		param_get(_params_handles.xy_ff, &v);
+		v = math::constrain(v, 0.0f, 1.0f);
 		_params.vel_ff(0) = v;
 		_params.vel_ff(1) = v;
 		param_get(_params_handles.z_ff, &v);
+		v = math::constrain(v, 0.0f, 1.0f);
 		_params.vel_ff(2) = v;
 
 		_params.sp_offs_max = _params.vel_max.edivide(_params.pos_p) * 2.0f;
@@ -493,8 +495,8 @@ MulticopterPositionControl::reset_pos_sp()
 {
 	if (_reset_pos_sp) {
 		_reset_pos_sp = false;
-		_pos_sp(0) = _pos(0) + _vel(0) / _params.pos_p(0);
-		_pos_sp(1) = _pos(1) + _vel(1) / _params.pos_p(1);
+		_pos_sp(0) = _pos(0) + _vel(0) / _params.pos_p(0) * (1.0f - _params.vel_ff(0));
+		_pos_sp(1) = _pos(1) + _vel(1) / _params.pos_p(1) * (1.0f - _params.vel_ff(1));
 		mavlink_log_info(_mavlink_fd, "[mpc] reset pos sp: %.2f, %.2f", (double)_pos_sp(0), (double)_pos_sp(1));
 	}
 }
@@ -504,7 +506,7 @@ MulticopterPositionControl::reset_alt_sp()
 {
 	if (_reset_alt_sp) {
 		_reset_alt_sp = false;
-		_pos_sp(2) = _pos(2) + _vel(2) / _params.pos_p(2);
+		_pos_sp(2) = _pos(2) + _vel(2) / _params.pos_p(2) * (1.0f - _params.vel_ff(2));
 		mavlink_log_info(_mavlink_fd, "[mpc] reset alt sp: %.2f", -(double)_pos_sp(2));
 	}
 }
