@@ -199,15 +199,9 @@ int led_init()
 	}
 
 	/* the blue LED is only available on FMUv1 but not FMUv2 */
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+	(void)ioctl(leds, LED_ON, LED_BLUE);
 
-	if (ioctl(leds, LED_ON, LED_BLUE)) {
-		warnx("Blue LED: ioctl fail\n");
-		return ERROR;
-	}
-
-#endif
-
+	/* we consider the amber led mandatory */
 	if (ioctl(leds, LED_ON, LED_AMBER)) {
 		warnx("Amber LED: ioctl fail\n");
 		return ERROR;
@@ -217,11 +211,7 @@ int led_init()
 	rgbleds = open(RGBLED_DEVICE_PATH, 0);
 
 	if (rgbleds == -1) {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-		errx(1, "Unable to open " RGBLED_DEVICE_PATH);
-#else
-		warnx("No RGB LED found");
-#endif
+		warnx("No RGB LED found at " RGBLED_DEVICE_PATH);
 	}
 
 	return 0;
