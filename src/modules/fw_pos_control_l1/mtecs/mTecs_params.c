@@ -323,3 +323,40 @@ PARAM_DEFINE_FLOAT(MT_USP_PIT_MIN, -45.0f);
  */
 PARAM_DEFINE_FLOAT(MT_USP_PIT_MAX, 0.0f);
 
+/**
+ * Minimal throttle in landing mode (only last phase of landing)
+ *
+ * @min 0.0f
+ * @max 1.0f
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_LND_THR_MIN, 0.0f);
+
+/**
+ * Maximal throttle in landing mode (only last phase of landing)
+ *
+ * @min 0.0f
+ * @max 1.0f
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_LND_THR_MAX, 0.0f);
+
+/**
+ * Minimal pitch in landing mode
+ *
+ * @min -90.0f
+ * @max 90.0f
+ * @unit deg
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_LND_PIT_MIN, -5.0f);
+
+/**
+ * Maximal pitch in landing mode
+ *
+ * @min -90.0f
+ * @max 90.0f
+ * @unit deg
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_LND_PIT_MAX, 15.0f);

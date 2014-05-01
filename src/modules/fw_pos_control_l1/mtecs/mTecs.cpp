@@ -63,6 +63,8 @@ mTecs::mTecs() :
 	_BlockOutputLimiterTakeoffPitch(this, "TKF_PIT", true),
 	_BlockOutputLimiterUnderspeedThrottle(this, "USP_THR"),
 	_BlockOutputLimiterUnderspeedPitch(this, "USP_PIT", true),
+	_BlockOutputLimiterLandThrottle(this, "LND_THR"),
+	_BlockOutputLimiterLandPitch(this, "LND_PIT", true),
 	timestampLastIteration(hrt_absolute_time()),
 	_firstIterationAfterReset(true),
 	_dtCalculated(false),
@@ -148,6 +150,12 @@ void mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float fligh
 	if (mode == TECS_MODE_TAKEOFF) {
 		outputLimiterThrottle = &_BlockOutputLimiterTakeoffThrottle; //XXX: accept prelaunch values from launchdetector
 		outputLimiterPitch = &_BlockOutputLimiterTakeoffPitch;
+	} else if (mode == TECS_MODE_LAND) {
+		// only limit pitch but do not limit throttle
+		outputLimiterPitch = &_BlockOutputLimiterLandPitch;
+	} else if (mode == TECS_MODE_LAND_THROTTLELIM) {
+		outputLimiterThrottle = &_BlockOutputLimiterLandThrottle;
+		outputLimiterPitch = &_BlockOutputLimiterLandPitch;
 	} else if (mode == TECS_MODE_UNDERSPEED) {
 		outputLimiterThrottle = &_BlockOutputLimiterUnderspeedThrottle;
 		outputLimiterPitch = &_BlockOutputLimiterUnderspeedPitch;

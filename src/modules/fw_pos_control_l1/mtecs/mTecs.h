@@ -61,7 +61,9 @@ public:
 	typedef enum {
 		TECS_MODE_NORMAL,
 		TECS_MODE_UNDERSPEED,
-		TECS_MODE_TAKEOFF
+		TECS_MODE_TAKEOFF,
+		TECS_MODE_LAND,
+		TECS_MODE_LAND_THROTTLELIM
 	} tecs_mode;
 
 	/*
@@ -111,8 +113,10 @@ protected:
 	/* Output Limits in special modes */
 	BlockOutputLimiter _BlockOutputLimiterTakeoffThrottle;		/**< Throttle Limits during takeoff */
 	BlockOutputLimiter _BlockOutputLimiterTakeoffPitch;      	/**< Pitch Limit during takeoff */
-	BlockOutputLimiter _BlockOutputLimiterUnderspeedThrottle;	/**< Throttle Limits during takeoff */
-	BlockOutputLimiter _BlockOutputLimiterUnderspeedPitch;   	/**< Pitch Limit during takeoff */
+	BlockOutputLimiter _BlockOutputLimiterUnderspeedThrottle;	/**< Throttle Limits when underspeed is detected */
+	BlockOutputLimiter _BlockOutputLimiterUnderspeedPitch;   	/**< Pitch Limit when underspeed is detected */
+	BlockOutputLimiter _BlockOutputLimiterLandThrottle;		/**< Throttle Limits during landing (only in last phase)*/
+	BlockOutputLimiter _BlockOutputLimiterLandPitch;		/**< Pitch Limit during landing */
 
 	/* Time measurements */
 	hrt_abstime timestampLastIteration;		/**< Saves the result of hrt_absolute_time() of the last iteration */
