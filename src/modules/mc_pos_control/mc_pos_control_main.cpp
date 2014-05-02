@@ -161,6 +161,7 @@ private:
 		param_t follow_dist;
 		param_t follow_alt_offs;
 		param_t follow_yaw_max;
+		param_t follow_use_alt;
 		param_t cam_pitch_max;
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -174,6 +175,7 @@ private:
 		float follow_dist;
 		float follow_alt_offs;
 		float follow_yaw_max;
+		bool follow_use_alt;
 		float cam_pitch_max;
 
 		math::Vector<3> pos_p;
@@ -189,6 +191,7 @@ private:
 	float _ref_alt;
 	hrt_abstime _ref_timestamp;
 	float _target_alt_offs;		/**< target altitude offset, add this value to target altitude */
+	float _alt_start;			/**< start altitude, i.e. when vehicle was armed */
 
 	bool _reset_pos_sp;
 	bool _reset_alt_sp;
@@ -303,6 +306,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_ref_alt(0.0f),
 	_ref_timestamp(0),
 	_target_alt_offs(0.0f),
+	_alt_start(0.0f),
 
 	_reset_pos_sp(true),
 	_reset_alt_sp(true),
@@ -364,10 +368,11 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.tilt_max_air	= param_find("MPC_TILTMAX_AIR");
 	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
 	_params_handles.tilt_max_land	= param_find("MPC_TILTMAX_LND");
-	_params_handles.follow_ff	= param_find("MPC_FOLLOW_FF");
-	_params_handles.follow_dist	= param_find("MPC_FOLLOW_DIST");
-	_params_handles.follow_alt_offs	= param_find("MPC_FOLLOW_AOFF");
-	_params_handles.follow_yaw_max	= param_find("MPC_FOLLOW_YAW");
+	_params_handles.follow_ff	= param_find("MPC_FW_FF");
+	_params_handles.follow_dist	= param_find("MPC_FW_MIN_DIST");
+	_params_handles.follow_alt_offs	= param_find("MPC_FW_ALT_OFF");
+	_params_handles.follow_yaw_max	= param_find("MPC_FW_MAX_YAW");
+	_params_handles.follow_use_alt	= param_find("MPC_FW_USE_ALT");
 	_params_handles.cam_pitch_max	= param_find("MPC_CAM_P_MAX");
 
 	/* fetch initial parameter values */
@@ -425,6 +430,10 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.follow_yaw_max = math::radians(_params.follow_yaw_max);
 		param_get(_params_handles.cam_pitch_max, &_params.cam_pitch_max);
 		_params.cam_pitch_max = math::radians(_params.cam_pitch_max);
+
+		int32_t i;
+		param_get(_params_handles.follow_use_alt, &i);
+		_params.follow_use_alt = (i != 0);
 
 		float v;
 		param_get(_params_handles.xy_p, &v);
@@ -792,7 +801,15 @@ MulticopterPositionControl::task_main()
 			reset_int_z = true;
 			reset_int_xy = true;
 
-			if (_target_pos.valid && _target_pos.timestamp < hrt_absolute_time() + 1000000) {
+			if (_local_pos.timestamp < hrt_absolute_time() + 100000 && _local_pos.ref_timestamp > 0) {
+				_alt_start = _local_pos.ref_alt - _local_pos.z;
+
+			} else {
+				_alt_start = 0.0;
+			}
+
+			if (_target_pos.valid && _target_pos.timestamp < hrt_absolute_time() + 1000000 &&
+					_local_pos.timestamp < hrt_absolute_time() + 100000 && _local_pos.ref_timestamp > 0) {
 				_target_alt_offs = _local_pos.ref_alt - _local_pos.z - _target_pos.alt - _params.follow_alt_offs;
 
 			} else {
@@ -816,11 +833,19 @@ MulticopterPositionControl::task_main()
 		/* project target position to local frame if valid */
 		if (_control_mode.flag_point_to_target || _control_mode.flag_follow_target) {
 			map_projection_project(&_ref_pos, _target_pos.lat, _target_pos.lon, &_tpos.data[0], &_tpos.data[1]);
-			_tpos(2) = -(_target_pos.alt + _target_alt_offs - _ref_alt);
-
 			_tvel(0) = _target_pos.vel_n;
 			_tvel(1) = _target_pos.vel_e;
-			_tvel(2) = _target_pos.vel_d;
+
+			if (_params.follow_use_alt) {
+				/* use real target altitude */
+				_tpos(2) = -(_target_pos.alt + _target_alt_offs - _ref_alt);
+				_tvel(2) = _target_pos.vel_d;
+
+			} else {
+				/* assume that target is always on start altitude */
+				_tpos(2) = -(_alt_start - _ref_alt);
+				_tvel(2) = 0.0f;
+			}
 
 			/* calculate delay between position estimates for vehicle and target */
 			float target_dt = math::constrain(((int64_t)_local_pos.time_gps_usec - (int64_t)_target_pos.time_gps_usec) / 1000000.0f, 0.0f, 1.0f);

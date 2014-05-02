@@ -207,7 +207,7 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 15.0f);
 PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 1.0f);
 
 /**
- * Follow mode feed-forward
+ * Follow mode position feed-forward
  *
  * Target velocity feed-forward in follow mode.
  *
@@ -215,7 +215,7 @@ PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 1.0f);
  * @max 1.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_FOLLOW_FF, 0.0f);
+PARAM_DEFINE_FLOAT(MPC_FW_FF, 0.0f);
 
 /**
  * Follow mode min distance
@@ -225,11 +225,20 @@ PARAM_DEFINE_FLOAT(MPC_FOLLOW_FF, 0.0f);
  * @min 0.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_FOLLOW_DIST, 10.0f);
-PARAM_DEFINE_FLOAT(MPC_FOLLOW_AOFF, 0.0f);
+PARAM_DEFINE_FLOAT(MPC_FW_MIN_DIST, 10.0f);
 
 /**
- * Follow mode yaw scale
+ * Follow mode initial altitude offset
+ *
+ * Altitude offset (copter_alt - target_alt) on copter arming, for altitude estimates synchronization.
+ *
+ * @unit meters
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_FW_ALT_OFF, 0.0f);
+
+/**
+ * Follow mode max yaw offset
  *
  * Maximum yaw offset in FOLLOW mode that can be set by stick.
  *
@@ -237,7 +246,19 @@ PARAM_DEFINE_FLOAT(MPC_FOLLOW_AOFF, 0.0f);
  * @min 0.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_FOLLOW_YAW, 45.0f);
+PARAM_DEFINE_FLOAT(MPC_FW_MAX_YAW, 45.0f);
+
+/**
+ * Use altitude of target to set copter altitude
+ *
+ * 0 (disabled): copter will hold constant altitude, only adjust camera pitch to point to the target.
+ * 1 (enabled): copter will hold constant altitude difference with target.
+ *
+ * @min 0
+ * @max 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_FW_USE_ALT, 0);
 
 /**
  * Maximum camera pitch
