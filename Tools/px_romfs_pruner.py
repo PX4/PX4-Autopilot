@@ -43,29 +43,30 @@ from __future__ import print_function
 import argparse
 import os
 
+
 def main():
-    
+
         # Parse commandline arguments
         parser = argparse.ArgumentParser(description="ROMFS pruner.")
         parser.add_argument('--folder', action="store", help="ROMFS scratch folder.")
         args = parser.parse_args()
-    
+
         print("Pruning ROMFS files.")
-        
-        # go through 
+
+        # go through
         for (root, dirs, files) in os.walk(args.folder):
                 for file in files:
                         # only prune text files
-                        if ".zip" in file or ".bin" in file:
+                        if ".zip" in file or ".bin" or ".swp" in file:
                                 continue
-                        
-                        file_path = os.path.join(root, file)                        
-                        
+
+                        file_path = os.path.join(root, file)
+
                         # read file line by line
                         pruned_content = ""
                         with open(file_path, "r") as f:
-                                for line in  f:
-                                        
+                                for line in f:
+
                                         # handle mixer files differently than startup files
                                         if file_path.endswith(".mix"):
                                                 if line.startswith(("Z:", "M:", "R: ", "O:", "S:")):
@@ -73,11 +74,11 @@ def main():
                                         else:
                                                 if not line.isspace() and not line.strip().startswith("#"):
                                                         pruned_content += line
-                        
+
                         # overwrite old scratch file
                         with open(file_path, "w") as f:
                                 f.write(pruned_content)
-                        
-    
+
+
 if __name__ == '__main__':
         main()
