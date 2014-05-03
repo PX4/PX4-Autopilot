@@ -41,6 +41,7 @@
 
 #include <sys/types.h>
 #include <stdbool.h>
+#include <inttypes.h>
 
 #include <time.h>
 #include <queue.h>
