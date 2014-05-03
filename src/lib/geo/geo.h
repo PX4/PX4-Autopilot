@@ -50,6 +50,8 @@
 
 __BEGIN_DECLS
 
+#include "geo/geo_mag_declination.h"
+
 #include <stdbool.h>
 
 #define CONSTANTS_ONE_G					9.80665f		/* m/s^2		*/
