@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 MAV GEO Library (MAVGEO). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name MAVGEO nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,72 +32,16 @@
  ****************************************************************************/
 
 /**
- * @file mixer_load.c
- *
- * Programmable multi-channel mixer library.
- */
+* @file geo_mag_declination.h
+*
+* Calculation / lookup table for earth magnetic field declination.
+*
+*/
 
-#include <nuttx/config.h>
-#include <string.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <systemlib/err.h>
+#pragma once
 
-#include "mixer_load.h"
+__BEGIN_DECLS
 
-int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
-{
-	FILE		*fp;
-	char		line[120];
+__EXPORT float get_mag_declination(float lat, float lon);
 
-	/* open the mixer definition file */
-	fp = fopen(fname, "r");
-	if (fp == NULL) {
-		warnx("file not found");
-		return -1;
-	}
-
-	/* read valid lines from the file into a buffer */
-	buf[0] = '\0';
-	for (;;) {
-
-		/* get a line, bail on error/EOF */
-		line[0] = '\0';
-		if (fgets(line, sizeof(line), fp) == NULL)
-			break;
-
-		/* if the line doesn't look like a mixer definition line, skip it */
-		if ((strlen(line) < 2) || !isupper(line[0]) || (line[1] != ':'))
-			continue;
-
-		/* compact whitespace in the buffer */
-		char *t, *f;
-		for (f = line; *f != '\0'; f++) {
-			/* scan for space characters */
-			if (*f == ' ') {
-				/* look for additional spaces */
-				t = f + 1;
-				while (*t == ' ')
-					t++;
-				if (*t == '\0') {
-					/* strip trailing whitespace */
-					*f = '\0';
-				} else if (t > (f + 1)) {
-					memmove(f + 1, t, strlen(t) + 1);
-				}
-			}
-		}
-
-		/* if the line is too long to fit in the buffer, bail */
-		if ((strlen(line) + strlen(buf) + 1) >= maxlen) {
-			warnx("line too long");
-			return -1;
-		}
-
-		/* add the line to the buffer */
-		strcat(buf, line);
-	}
-
-	return 0;
-}
-
+__END_DECLS
