@@ -432,8 +432,8 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	memset(&manual, 0, sizeof(manual));
 
 	manual.timestamp = hrt_absolute_time();
-	manual.roll = man.x / 1000.0f;
-	manual.pitch = man.y / 1000.0f;
+	manual.pitch = man.x / 1000.0f;
+	manual.roll = man.y / 1000.0f;
 	manual.yaw = man.r / 1000.0f;
 	manual.throttle = man.z / 1000.0f;
 

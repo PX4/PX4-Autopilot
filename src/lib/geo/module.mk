@@ -35,4 +35,5 @@
 # Geo library
 #
 
-SRCS		 = geo.c
+SRCS		=	geo.c \
+			geo_mag_declination.c

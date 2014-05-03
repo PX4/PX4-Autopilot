@@ -5193,7 +5193,7 @@ void arm_rfft_fast_f32(
     *pIa = Ialpha;
 
     /* Calculating pIb from Ialpha and Ibeta by equation pIb = -(1/2) * Ialpha + (sqrt(3)/2) * Ibeta */
-    *pIb = -0.5 * Ialpha + (float32_t) 0.8660254039 *Ibeta;
+    *pIb = (float32_t)-0.5 * Ialpha + (float32_t) 0.8660254039 *Ibeta;
 
   }
 
