@@ -1353,7 +1353,7 @@ protected:
 		uint8_t orientation = 0;
 		uint8_t covariance = 20;
 
-		mavlink_msg_distance_sensor_send(_channel, range->timestamp / 1000, type, id, orientation, 
+		mavlink_msg_distance_sensor_send(_channel, range->timestamp / 1000, type, id, orientation,
 			range->minimum_distance*100, range->maximum_distance*100, range->distance*100, covariance);
 	}
 };
