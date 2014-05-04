@@ -823,7 +823,7 @@ protected:
 		(void)pos_sp_triplet_sub->update(t);
 		(void)status_sub->update(t);
 
-		if (updated && (status.arming_state == ARMING_STATE_ARMED)) {
+		if (updated && (status->arming_state == ARMING_STATE_ARMED)) {
 			/* translate the current syste state to mavlink state and mode */
 			uint8_t mavlink_state;
 			uint8_t mavlink_base_mode;
