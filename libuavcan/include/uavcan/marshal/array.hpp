@@ -148,7 +148,7 @@ private:
     {
         if (ArrayMode != ArrayModeDynamic)
         {
-            fill(data_, data_ + MaxSize, U());
+            ::uavcan::fill(data_, data_ + MaxSize, U());
         }
     }
     template <typename> void initialize(...) { }
