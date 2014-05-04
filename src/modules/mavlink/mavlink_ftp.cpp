@@ -187,16 +187,57 @@ MavlinkFTP::ErrorCode
 MavlinkFTP::_workList(Request *req)
 {
 	auto hdr = req->header();
+	DIR *dp = opendir(req->dataAsCString());
 
-	// open directory
+	if (dp == nullptr) {
+		return kErrNotDir;
+	}
 
-	// seek in directory
+	ErrorCode errorCode = kErrNone;
+	struct dirent entry, *result = nullptr;
+	unsigned offset = 0;
 
-	// read entries until buffer is full
+	// move to the requested offset
+	seekdir(dp, hdr->offset);
 
-	// send reply
+	for (;;) {
+		// read the directory entry
+		if (readdir_r(dp, &entry, &result)) {
+			errorCode = kErrIO;
+			break;
+		}
 
-	return kErrNone;
+		// no more entries?
+		if (result == nullptr) {
+			break;
+		}
+
+		// name too big to fit?
+		if ((strlen(entry.d_name) + offset + 2) > kMaxDataLength) {
+			break;
+		}
+
+		// store the type marker
+		switch (entry.d_type) {
+		case DTYPE_FILE:
+			hdr->data[offset++] = kDirentFile;
+			break;
+		case DTYPE_DIRECTORY:
+			hdr->data[offset++] = kDirentDir;
+			break;
+		default:
+			hdr->data[offset++] = kDirentUnknown;
+			break;
+		}
+
+		// copy the name, which we know will fit
+		strcpy((char *)&hdr->data[offset], entry.d_name);
+	}
+
+	closedir(dp);
+	hdr->size = offset;
+
+	return errorCode;
 }
 
 MavlinkFTP::ErrorCode

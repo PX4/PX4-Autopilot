@@ -83,13 +83,6 @@ private:
 		uint8_t		data[];
 	};
 
-	struct FileList
-	{
-		uint32_t	fileSize;
-		uint8_t		nameLength;
-		uint8_t		name[];
-	};
-
 	enum Opcode : uint8_t
 	{
 		kCmdNone,	// ignored, always acked
@@ -170,6 +163,9 @@ private:
 	};
 
 	static const uint8_t	kProtocolMagic = 'f';
+	static const char	kDirentFile = 'F';
+	static const char	kDirentDir = 'D';
+	static const char	kDirentUnknown = 'U';
 	static const uint8_t	kMaxDataLength = MAVLINK_MSG_ENCAPSULATED_DATA_FIELD_DATA_LEN - sizeof(RequestHeader);
 
 	/// Request worker; runs on the low-priority work queue to service
