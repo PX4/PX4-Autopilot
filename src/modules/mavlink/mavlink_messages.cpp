@@ -819,11 +819,11 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
-		bool updated = status_sub->update(t);
-		updated |= pos_sp_triplet_sub->update(t);
-		updated |= act_sub->update(t);
+		bool updated = act_sub->update(t);
+		(void)pos_sp_triplet_sub->update(t);
+		(void)status_sub->update(t);
 
-		if (updated) {
+		if (updated && (status.arming_state == ARMING_STATE_ARMED)) {
 			/* translate the current syste state to mavlink state and mode */
 			uint8_t mavlink_state;
 			uint8_t mavlink_base_mode;
