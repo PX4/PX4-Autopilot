@@ -366,7 +366,7 @@ static orb_advert_t status_pub;
 transition_result_t arm_disarm(bool arm, const int mavlink_fd, const char* armedBy)
 {
     transition_result_t arming_res = TRANSITION_NOT_CHANGED;
-    
+
     // Transition the armed state. By passing mavlink_fd to arming_state_transition it will
     // output appropriate error messages if the state cannot transition.
     arming_res = arming_state_transition(&status, &safety, arm ? ARMING_STATE_ARMED : ARMING_STATE_STANDBY, &armed, mavlink_fd);
@@ -375,7 +375,7 @@ transition_result_t arm_disarm(bool arm, const int mavlink_fd, const char* armed
     } else if (arming_res == TRANSITION_DENIED) {
         tune_negative(true);
     }
-    
+
     return arming_res;
 }
 
@@ -1254,7 +1254,8 @@ int commander_thread_main(int argc, char *argv[])
 				status_changed = true;
 			}
 
-			if (armed.armed) {
+			/* Only do RC loss failsafe actions if armed and not in HIL mode */
+			if (armed.armed && status.hil_state != HIL_STATE_ON) {
 				if (status.main_state == MAIN_STATE_AUTO) {
 					/* check if AUTO mode still allowed */
 					transition_result_t res = main_state_transition(&status, MAIN_STATE_AUTO);
