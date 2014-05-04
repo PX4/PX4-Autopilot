@@ -5,7 +5,6 @@
 #pragma once
 
 #include <cassert>
-#include <algorithm>
 #include <uavcan/transport/transfer.hpp>
 #include <uavcan/transport/can_io.hpp>
 #include <uavcan/impl_constants.hpp>

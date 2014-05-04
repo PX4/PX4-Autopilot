@@ -6,7 +6,6 @@
 #pragma once
 
 #include <cassert>
-#include <algorithm>
 #include <uavcan/stdint.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/driver/system_clock.hpp>

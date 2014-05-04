@@ -7,7 +7,6 @@
 #include <uavcan/debug.hpp>
 #include <cstdlib>
 #include <cassert>
-#include <algorithm>
 
 namespace uavcan
 {

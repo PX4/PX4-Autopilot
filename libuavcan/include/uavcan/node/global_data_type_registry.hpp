@@ -5,7 +5,6 @@
 #pragma once
 
 #include <cassert>
-#include <algorithm>
 #include <uavcan/error.hpp>
 #include <uavcan/stdint.hpp>
 #include <uavcan/data_type.hpp>

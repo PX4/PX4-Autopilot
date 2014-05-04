@@ -5,7 +5,6 @@
 
 #include <uavcan/transport/can_io.hpp>
 #include <uavcan/debug.hpp>
-#include <algorithm>
 #include <cassert>
 #include <limits>
 

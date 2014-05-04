@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <algorithm>
 #include <limits>
 #include <uavcan/stdint.hpp>
 #include <uavcan/impl_constants.hpp>

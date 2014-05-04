@@ -6,7 +6,6 @@
 
 #include <cassert>
 #include <cstdio>
-#include <algorithm>
 #include <cstring>
 #include <cmath>
 #include <uavcan/error.hpp>

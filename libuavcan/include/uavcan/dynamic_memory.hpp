@@ -7,7 +7,6 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
-#include <algorithm>
 #include <limits>
 #include <uavcan/stdint.hpp>
 #include <uavcan/util/compile_time.hpp>
@@ -38,11 +37,17 @@ class UAVCAN_EXPORT PoolManager : public IPoolAllocator, Noncopyable
 {
     IPoolAllocator* pools_[MaxPools];
 
-    static bool sortComparePoolAllocators(const IPoolAllocator* a, const IPoolAllocator* b)
+    static int qsortComparePoolAllocators(const void* raw_a, const void* raw_b)
     {
+        const IPoolAllocator* const a = *static_cast<const IPoolAllocator* const*>(raw_a);
+        const IPoolAllocator* const b = *static_cast<const IPoolAllocator* const*>(raw_b);
         const std::size_t a_size = a ? a->getBlockSize() : std::numeric_limits<std::size_t>::max();
         const std::size_t b_size = b ? b->getBlockSize() : std::numeric_limits<std::size_t>::max();
-        return a_size < b_size;
+        if (a_size != b_size)
+        {
+            return (a_size > b_size) ? 1 : -1;
+        }
+        return 0;
     }
 
 public:
@@ -144,7 +149,7 @@ bool PoolManager<MaxPools>::addPool(IPoolAllocator* pool)
         }
     }
     // We need to keep the pools in order, so that smallest blocks go first
-    std::sort(pools_, pools_ + MaxPools, &PoolManager::sortComparePoolAllocators);
+    std::qsort(pools_, MaxPools, sizeof(IPoolAllocator*), &PoolManager::qsortComparePoolAllocators);
     return retval;
 }
 

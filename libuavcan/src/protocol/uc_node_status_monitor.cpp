@@ -4,7 +4,6 @@
 
 #include <uavcan/protocol/node_status_monitor.hpp>
 #include <uavcan/debug.hpp>
-#include <algorithm>
 #include <cassert>
 #include <cstdlib>
 

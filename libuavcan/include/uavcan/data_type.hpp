@@ -6,7 +6,6 @@
 
 #include <cassert>
 #include <cstring>
-#include <algorithm>
 #include <uavcan/stdint.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/transport/transfer.hpp>

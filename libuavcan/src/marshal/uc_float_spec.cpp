@@ -82,7 +82,7 @@ uint16_t IEEE754Converter::nativeNonIeeeToHalf(float value)
         hbits |= ((exp + 14) << 10);
     }
     const int32_t ival = static_cast<int32_t>(value);
-    hbits |= static_cast<uint16_t>(std::abs(ival) & 0x3FFU);
+    hbits |= static_cast<uint16_t>(((ival < 0) ? (-ival) : ival) & 0x3FFU);
     float diff = std::abs(value - static_cast<float>(ival));
     hbits += diff >= 0.5F;
     return hbits;
