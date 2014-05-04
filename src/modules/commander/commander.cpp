@@ -433,18 +433,34 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 				if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_MANUAL) {
 					/* MANUAL */
 					main_res = main_state_transition(status, MAIN_STATE_MANUAL);
+					if (main_res == TRANSITION_CHANGED) {
+					status->set_nav_state = NAV_STATE_NONE;
+					status->set_nav_state_timestamp = hrt_absolute_time();
+					}
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_SEATBELT) {
 					/* SEATBELT */
 					main_res = main_state_transition(status, MAIN_STATE_SEATBELT);
+					if (main_res == TRANSITION_CHANGED) {
+					status->set_nav_state = NAV_STATE_NONE;
+					status->set_nav_state_timestamp = hrt_absolute_time();
+					}
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_EASY) {
 					/* EASY */
 					main_res = main_state_transition(status, MAIN_STATE_EASY);
+					if (main_res == TRANSITION_CHANGED) {
+					status->set_nav_state = NAV_STATE_NONE;
+					status->set_nav_state_timestamp = hrt_absolute_time();
+					}
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
 					/* AUTO */
 					main_res = main_state_transition(status, MAIN_STATE_AUTO);
+					if (main_res == TRANSITION_CHANGED) {
+					status->set_nav_state = NAV_STATE_MISSION;
+					status->set_nav_state_timestamp = hrt_absolute_time();
+					}
 				}
 
 			} else {
@@ -452,6 +468,10 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 				if (base_mode & MAV_MODE_FLAG_AUTO_ENABLED) {
 					/* AUTO */
 					main_res = main_state_transition(status, MAIN_STATE_AUTO);
+					if (main_res == TRANSITION_CHANGED) {
+					status->set_nav_state = NAV_STATE_MISSION;
+					status->set_nav_state_timestamp = hrt_absolute_time();
+					}
 
 				} else if (base_mode & MAV_MODE_FLAG_MANUAL_INPUT_ENABLED) {
 					if (base_mode & MAV_MODE_FLAG_GUIDED_ENABLED) {
@@ -461,6 +481,10 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 					} else if (base_mode & MAV_MODE_FLAG_STABILIZE_ENABLED) {
 						/* MANUAL */
 						main_res = main_state_transition(status, MAIN_STATE_MANUAL);
+					}
+					if (main_res == TRANSITION_CHANGED) {
+					status->set_nav_state = NAV_STATE_NONE;
+					status->set_nav_state_timestamp = hrt_absolute_time();
 					}
 				}
 			}
