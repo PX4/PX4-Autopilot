@@ -270,7 +270,7 @@ PARAM_DEFINE_INT32(MPC_FW_USE_ALT, 0);
  * @max 10.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_INT32(MPC_FW_LPF, 0);
+PARAM_DEFINE_FLOAT(MPC_FW_LPF, 0.0f);
 
 /**
  * Maximum camera pitch
