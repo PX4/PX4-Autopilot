@@ -5,10 +5,13 @@
 #include <uavcan/error.hpp>
 #include <cassert>
 #include <cstdlib>
-#include <stdexcept>
 
 #ifndef UAVCAN_EXCEPTIONS
 # error UAVCAN_EXCEPTIONS
+#endif
+
+#if UAVCAN_EXCEPTIONS
+# include <stdexcept>
 #endif
 
 namespace uavcan

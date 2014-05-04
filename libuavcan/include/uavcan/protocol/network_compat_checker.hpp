@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <bitset>
+#include <uavcan/bitset.hpp>
 #include <uavcan/util/method_binder.hpp>
 #include <uavcan/node/subscriber.hpp>
 #include <uavcan/node/service_client.hpp>
@@ -26,7 +26,7 @@ struct UAVCAN_EXPORT NetworkCompatibilityCheckResult
  */
 class UAVCAN_EXPORT NetworkCompatibilityChecker : Noncopyable
 {
-    typedef std::bitset<NodeID::Max + 1> NodeIDMask;
+    typedef BitSet<NodeID::Max + 1> NodeIDMask;
     typedef MethodBinder<NetworkCompatibilityChecker*,
                          void (NetworkCompatibilityChecker::*)(const ReceivedDataStructure<protocol::NodeStatus>&)>
             NodeStatusCallback;

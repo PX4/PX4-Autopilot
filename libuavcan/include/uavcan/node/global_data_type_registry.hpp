@@ -5,11 +5,11 @@
 #pragma once
 
 #include <cassert>
-#include <bitset>
 #include <algorithm>
 #include <uavcan/error.hpp>
 #include <uavcan/stdint.hpp>
 #include <uavcan/data_type.hpp>
+#include <uavcan/bitset.hpp>
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/linked_list.hpp>
 #if UAVCAN_DEBUG
@@ -19,7 +19,7 @@
 namespace uavcan
 {
 
-typedef std::bitset<DataTypeID::Max + 1> DataTypeIDMask;
+typedef BitSet<DataTypeID::Max + 1> DataTypeIDMask;
 
 class UAVCAN_EXPORT GlobalDataTypeRegistry : Noncopyable
 {

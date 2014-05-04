@@ -5,13 +5,12 @@
 #pragma once
 
 #include <cassert>
-#include <bitset>
 #include <cstdio>
 #include <algorithm>
-#include <stdexcept>
 #include <cstring>
 #include <cmath>
 #include <uavcan/error.hpp>
+#include <uavcan/bitset.hpp>
 #include <uavcan/util/compile_time.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/marshal/type_util.hpp>
@@ -19,6 +18,10 @@
 
 #ifndef UAVCAN_EXCEPTIONS
 # error UAVCAN_EXCEPTIONS
+#endif
+
+#if UAVCAN_EXCEPTIONS
+# include <stdexcept>
 #endif
 
 namespace uavcan
@@ -202,7 +205,7 @@ public:
  */
 template <unsigned MaxSize, ArrayMode ArrayMode, CastMode CastMode>
 class UAVCAN_EXPORT ArrayImpl<IntegerSpec<1, SignednessUnsigned, CastMode>, ArrayMode, MaxSize>
-    : public std::bitset<MaxSize>
+    : public BitSet<MaxSize>
     , public Select<ArrayMode == ArrayModeDynamic, DynamicArrayBase<MaxSize>, StaticArrayBase<MaxSize> >::Result
 {
     typedef typename Select<ArrayMode == ArrayModeDynamic,
@@ -211,14 +214,14 @@ class UAVCAN_EXPORT ArrayImpl<IntegerSpec<1, SignednessUnsigned, CastMode>, Arra
 public:
     enum { IsStringLike = 0 };
 
-    typedef typename std::bitset<MaxSize>::reference Reference;
+    typedef typename BitSet<MaxSize>::Reference Reference;
     typedef typename ArrayBase::SizeType SizeType;
 
     using ArrayBase::size;
     using ArrayBase::capacity;
 
-    Reference at(SizeType pos)  { return std::bitset<MaxSize>::operator[](ArrayBase::validateRange(pos)); }
-    bool at(SizeType pos) const { return std::bitset<MaxSize>::operator[](ArrayBase::validateRange(pos)); }
+    Reference at(SizeType pos)  { return BitSet<MaxSize>::operator[](ArrayBase::validateRange(pos)); }
+    bool at(SizeType pos) const { return BitSet<MaxSize>::operator[](ArrayBase::validateRange(pos)); }
 
     Reference operator[](SizeType pos)  { return at(pos); }
     bool operator[](SizeType pos) const { return at(pos); }
