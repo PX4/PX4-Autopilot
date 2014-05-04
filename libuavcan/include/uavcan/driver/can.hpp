@@ -34,7 +34,7 @@ struct UAVCAN_EXPORT CanFrame
         : id(0)
         , dlc(0)
     {
-        std::fill(data, data + MaxDataLen, 0);
+        fill(data, data + MaxDataLen, 0);
     }
 
     CanFrame(uint32_t arg_id, const uint8_t* arg_data, uint8_t data_len)
@@ -43,13 +43,13 @@ struct UAVCAN_EXPORT CanFrame
     {
         assert(arg_data != NULL);
         assert(data_len == dlc);
-        (void)std::copy(arg_data, arg_data + dlc, this->data);
+        (void)copy(arg_data, arg_data + dlc, this->data);
     }
 
     bool operator!=(const CanFrame& rhs) const { return !operator==(rhs); }
     bool operator==(const CanFrame& rhs) const
     {
-        return (id == rhs.id) && (dlc == rhs.dlc) && std::equal(data, data + dlc, rhs.data);
+        return (id == rhs.id) && (dlc == rhs.dlc) && equal(data, data + dlc, rhs.data);
     }
 
     bool isExtended()                  const { return id & FlagEFF; }

@@ -216,7 +216,7 @@ int DynamicTransferBufferManagerEntry::write(unsigned offset, const uint8_t* dat
     }
 
     const int actually_written = len - left_to_write;
-    max_write_pos_ = std::max(offset + actually_written, unsigned(max_write_pos_));
+    max_write_pos_ = max(offset + actually_written, unsigned(max_write_pos_));
     return actually_written;
 }
 
@@ -239,7 +239,7 @@ int StaticTransferBufferImpl::read(unsigned offset, uint8_t* data, unsigned len)
         len = max_write_pos_ - offset;
     }
     assert((offset + len) <= max_write_pos_);
-    (void)std::copy(data_ + offset, data_ + offset + len, data);
+    (void)copy(data_ + offset, data_ + offset + len, data);
     return len;
 }
 
@@ -259,8 +259,8 @@ int StaticTransferBufferImpl::write(unsigned offset, const uint8_t* data, unsign
         len = size_ - offset;
     }
     assert((offset + len) <= size_);
-    (void)std::copy(data, data + len, data_ + offset);
-    max_write_pos_ = std::max(offset + len, unsigned(max_write_pos_));
+    (void)copy(data, data + len, data_ + offset);
+    max_write_pos_ = max(offset + len, unsigned(max_write_pos_));
     return len;
 }
 
@@ -268,7 +268,7 @@ void StaticTransferBufferImpl::reset()
 {
     max_write_pos_ = 0;
 #if UAVCAN_DEBUG
-    std::fill(data_, data_ + size_, 0);
+    fill(data_, data_ + size_, 0);
 #endif
 }
 

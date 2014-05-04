@@ -64,8 +64,8 @@ TransferSender* GenericPublisherBase::getTransferSender()
 
 void GenericPublisherBase::setTxTimeout(MonotonicDuration tx_timeout)
 {
-    tx_timeout = std::max(tx_timeout, getMinTxTimeout());
-    tx_timeout = std::min(tx_timeout, getMaxTxTimeout());
+    tx_timeout = max(tx_timeout, getMinTxTimeout());
+    tx_timeout = min(tx_timeout, getMaxTxTimeout());
     tx_timeout_ = tx_timeout;
 }
 

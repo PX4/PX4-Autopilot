@@ -42,7 +42,7 @@ public:
     int64_t toUSec() const { return usec_; }
     int64_t toMSec() const { return usec_ / 1000; }
 
-    D getAbs() const { return D::fromUSec(std::abs(usec_)); }
+    D getAbs() const { return D::fromUSec((usec_ < 0) ? (-usec_) : usec_); }
 
     bool isPositive() const { return usec_ > 0; }
     bool isNegative() const { return usec_ < 0; }
@@ -229,8 +229,8 @@ void DurationBase<D>::toString(char buf[StringBufSize]) const
         *ptr++ = '-';
     }
     (void)snprintf(ptr, StringBufSize - 1, "%llu.%06lu",
-                   static_cast<unsigned long long>(std::abs(toUSec() / 1000000L)),
-                   static_cast<unsigned long>(std::abs(toUSec() % 1000000L)));
+                   static_cast<unsigned long long>(getAbs().toUSec() / 1000000L),
+                   static_cast<unsigned long>(getAbs().toUSec() % 1000000L));
 }
 
 

@@ -40,8 +40,8 @@ int Frame::setPayload(const uint8_t* data, unsigned len)
     {
         return maxlen;
     }
-    len = std::min(unsigned(maxlen), len);
-    (void)std::copy(data, data + len, payload_);
+    len = min(unsigned(maxlen), len);
+    (void)copy(data, data + len, payload_);
     payload_len_ = len;
     return len;
 }
@@ -85,7 +85,7 @@ bool Frame::parse(const CanFrame& can_frame)
     {
         dst_node_id_ = NodeID::Broadcast;
         payload_len_ = can_frame.dlc;
-        (void)std::copy(can_frame.data, can_frame.data + can_frame.dlc, payload_);
+        (void)copy(can_frame.data, can_frame.data + can_frame.dlc, payload_);
         break;
     }
     case TransferTypeServiceResponse:
@@ -102,7 +102,7 @@ bool Frame::parse(const CanFrame& can_frame)
         }
         dst_node_id_ = can_frame.data[0] & 0x7F;
         payload_len_ = can_frame.dlc - 1;
-        (void)std::copy(can_frame.data + 1, can_frame.data + can_frame.dlc, payload_);
+        (void)copy(can_frame.data + 1, can_frame.data + can_frame.dlc, payload_);
         break;
     }
     default:
@@ -142,7 +142,7 @@ bool Frame::compile(CanFrame& out_can_frame) const
     case TransferTypeMessageBroadcast:
     {
         out_can_frame.dlc = payload_len_;
-        (void)std::copy(payload_, payload_ + payload_len_, out_can_frame.data);
+        (void)copy(payload_, payload_ + payload_len_, out_can_frame.data);
         break;
     }
     case TransferTypeServiceResponse:
@@ -152,7 +152,7 @@ bool Frame::compile(CanFrame& out_can_frame) const
         assert((payload_len_ + 1) <= sizeof(out_can_frame.data));
         out_can_frame.data[0] = dst_node_id_.get();
         out_can_frame.dlc = payload_len_ + 1;
-        (void)std::copy(payload_, payload_ + payload_len_, out_can_frame.data + 1);
+        (void)copy(payload_, payload_ + payload_len_, out_can_frame.data + 1);
         break;
     }
     default:
@@ -192,7 +192,7 @@ bool Frame::operator==(const Frame& rhs) const
         (transfer_id_   == rhs.transfer_id_) &&
         (last_frame_    == rhs.last_frame_) &&
         (payload_len_   == rhs.payload_len_) &&
-        std::equal(payload_, payload_ + payload_len_, rhs.payload_);
+        equal(payload_, payload_ + payload_len_, rhs.payload_);
 }
 
 #if UAVCAN_TOSTRING

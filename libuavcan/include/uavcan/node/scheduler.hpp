@@ -99,16 +99,16 @@ public:
     MonotonicDuration getDeadlineResolution() const { return deadline_resolution_; }
     void setDeadlineResolution(MonotonicDuration res)
     {
-        res = std::min(res, MonotonicDuration::fromMSec(MaxDeadlineResolutionMs));
-        res = std::max(res, MonotonicDuration::fromMSec(MinDeadlineResolutionMs));
+        res = min(res, MonotonicDuration::fromMSec(MaxDeadlineResolutionMs));
+        res = max(res, MonotonicDuration::fromMSec(MinDeadlineResolutionMs));
         deadline_resolution_ = res;
     }
 
     MonotonicDuration getCleanupPeriod() const { return cleanup_period_; }
     void setCleanupPeriod(MonotonicDuration period)
     {
-        period = std::min(period, MonotonicDuration::fromMSec(MaxCleanupPeriodMs));
-        period = std::max(period, MonotonicDuration::fromMSec(MinCleanupPeriodMs));
+        period = min(period, MonotonicDuration::fromMSec(MaxCleanupPeriodMs));
+        period = max(period, MonotonicDuration::fromMSec(MinCleanupPeriodMs));
         cleanup_period_ = period;
     }
 };

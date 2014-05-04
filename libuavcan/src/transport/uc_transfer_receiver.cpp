@@ -52,8 +52,8 @@ void TransferReceiver::updateTransferTimings()
     if ((!prev_prev_ts.isZero()) && (!prev_transfer_ts_.isZero()) && (prev_transfer_ts_ >= prev_prev_ts))
     {
         uint64_t interval_usec = (prev_transfer_ts_ - prev_prev_ts).toUSec();
-        interval_usec = std::min(interval_usec, uint64_t(MaxTransferIntervalUSec));
-        interval_usec = std::max(interval_usec, uint64_t(MinTransferIntervalUSec));
+        interval_usec = min(interval_usec, uint64_t(MaxTransferIntervalUSec));
+        interval_usec = max(interval_usec, uint64_t(MinTransferIntervalUSec));
         transfer_interval_usec_ = static_cast<uint32_t>((uint64_t(transfer_interval_usec_) * 7 + interval_usec) / 8);
     }
 }

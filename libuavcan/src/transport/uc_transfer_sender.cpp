@@ -49,7 +49,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
 
             buf[0] = crc.get() & 0xFF;       // Transfer CRC, little endian
             buf[1] = (crc.get() >> 8) & 0xFF;
-            (void)std::copy(payload, payload + BUFLEN - 2, buf + 2);
+            (void)copy(payload, payload + BUFLEN - 2, buf + 2);
 
             const int write_res = frame.setPayload(buf, BUFLEN);
             if (write_res < 2)

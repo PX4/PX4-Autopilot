@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <uavcan/error.hpp>
 #include <uavcan/impl_constants.hpp>
+#include <uavcan/util/compile_time.hpp>
 
 #ifndef UAVCAN_CPP_VERSION
 # error UAVCAN_CPP_VERSION
@@ -53,13 +54,13 @@ public:
     LazyConstructor()
         : ptr_(NULL)
     {
-        std::fill(data_.pool, data_.pool + sizeof(T), 0);
+        fill(data_.pool, data_.pool + sizeof(T), 0);
     }
 
     LazyConstructor(const LazyConstructor<T>& rhs)   // Implicit
         : ptr_(NULL)
     {
-        std::fill(data_.pool, data_.pool + sizeof(T), 0);
+        fill(data_.pool, data_.pool + sizeof(T), 0);
         if (rhs)
         {
             construct<const T&>(*rhs);  // Invoke copy constructor
@@ -95,7 +96,7 @@ public:
             ptr_->~T();
         }
         ptr_ = NULL;
-        std::fill(data_.pool, data_.pool + sizeof(T), 0);
+        fill(data_.pool, data_.pool + sizeof(T), 0);
     }
 
     void construct()

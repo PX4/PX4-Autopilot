@@ -45,7 +45,7 @@ public:
         StatusCode result = 0;
         for (unsigned i = 0; i < NumComponents; i++)
         {
-            result = std::max(result, status_array[i]);
+            result = max(result, status_array[i]);
         }
         return result;
     }

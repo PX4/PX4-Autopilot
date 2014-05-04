@@ -128,7 +128,7 @@ MonotonicTime DeadlineScheduler::getEarliestDeadline() const
  */
 MonotonicTime Scheduler::computeDispatcherSpinDeadline(MonotonicTime spin_deadline) const
 {
-    const MonotonicTime earliest = std::min(deadline_scheduler_.getEarliestDeadline(), spin_deadline);
+    const MonotonicTime earliest = min(deadline_scheduler_.getEarliestDeadline(), spin_deadline);
     const MonotonicTime ts = getMonotonicTime();
     if (earliest > ts)
     {

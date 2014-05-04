@@ -136,4 +136,109 @@ template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<49> { enum { Result = 7 }; }
 template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<64> { enum { Result = 8 }; };
 template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<81> { enum { Result = 9 }; };
 
+/**
+ * Replacement for std::copy(..)
+ */
+template <typename InputIt, typename OutputIt>
+UAVCAN_EXPORT
+OutputIt copy(InputIt first, InputIt last, OutputIt result)
+{
+    while (first != last)
+    {
+        *result = *first;
+        ++first;
+        ++result;
+    }
+    return result;
+}
+
+/**
+ * Replacement for std::fill(..)
+ */
+template <typename ForwardIt, typename T>
+UAVCAN_EXPORT
+void fill(ForwardIt first, ForwardIt last, const T& value)
+{
+    while (first != last)
+    {
+        *first = value;
+        ++first;
+    }
+}
+
+/**
+ * Replacement for std::fill_n(..)
+ */
+template<typename OutputIt, typename T>
+UAVCAN_EXPORT
+void fill_n(OutputIt first, std::size_t n, const T& value)
+{
+    while (n--)
+    {
+        *first++ = value;
+    }
+}
+
+/**
+ * Replacement for std::min(..)
+ */
+template <typename T>
+UAVCAN_EXPORT
+const T& min(const T& a, const T& b)
+{
+    return (b < a) ? b : a;
+}
+
+/**
+ * Replacement for std::max(..)
+ */
+template <typename T>
+UAVCAN_EXPORT
+const T& max(const T& a, const T& b)
+{
+    return (a < b) ? b : a;
+}
+
+/**
+ * Replacement for std::lexicographical_compare(..)
+ */
+template<class InputIt1, class InputIt2>
+UAVCAN_EXPORT
+bool lexicographical_compare(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2)
+{
+    while ((first1 != last1) && (first2 != last2))
+    {
+        if (*first1 < *first2)
+        {
+            return true;
+        }
+        if (*first2 < *first1)
+        {
+            return false;
+        }
+        ++first1;
+        ++first2;
+    }
+    return (first1 == last1) && (first2 != last2);
+}
+
+/**
+ * Replacement for std::equal(..)
+ */
+template<class InputIt1, class InputIt2>
+UAVCAN_EXPORT
+bool equal(InputIt1 first1, InputIt1 last1, InputIt2 first2)
+{
+    while (first1 != last1)
+    {
+        if (*first1 != *first2)
+        {
+            return false;
+        }
+        ++first1;
+        ++first2;
+    }
+    return true;
+}
+
 }

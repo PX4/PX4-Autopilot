@@ -148,7 +148,7 @@ private:
     {
         if (ArrayMode != ArrayModeDynamic)
         {
-            std::fill(data_, data_ + MaxSize, U());
+            fill(data_, data_ + MaxSize, U());
         }
     }
     template <typename> void initialize(...) { }
@@ -192,7 +192,7 @@ public:
     template <typename R>
     bool operator<(const R& rhs) const
     {
-        return std::lexicographical_compare(begin(), end(), rhs.begin(), rhs.end());
+        return ::uavcan::lexicographical_compare(begin(), end(), rhs.begin(), rhs.end());
     }
 
     typedef ValueType* iterator;
@@ -437,11 +437,11 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
         }
         else if (this->size() == MaxSize)
         {
-            (void)std::copy(this->begin(), this->end(), it);
+            (void)::uavcan::copy(this->begin(), this->end(), it);
         }
         else
         {
-            std::fill_n(it, MaxSize, 0);
+            ::uavcan::fill_n(it, MaxSize, 0);
         }
     }
 
@@ -628,7 +628,7 @@ public:
         using namespace std; // For snprintf()
         const int ret = snprintf(reinterpret_cast<char*>(ptr), max_size + 1, format, value);
 
-        for (int i = 0; i < std::min(ret, int(max_size)); i++)
+        for (int i = 0; i < min(ret, int(max_size)); i++)
         {
             Base::grow();
         }

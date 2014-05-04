@@ -168,11 +168,11 @@ public:
     MonotonicDuration getRequestTimeout() const { return request_timeout_; }
     void setRequestTimeout(MonotonicDuration timeout)
     {
-        timeout = std::max(timeout, getMinRequestTimeout());
-        timeout = std::min(timeout, getMaxRequestTimeout());
+        timeout = max(timeout, getMinRequestTimeout());
+        timeout = min(timeout, getMaxRequestTimeout());
 
         publisher_.setTxTimeout(timeout);
-        request_timeout_ = std::max(timeout, publisher_.getTxTimeout());  // No less than TX timeout
+        request_timeout_ = max(timeout, publisher_.getTxTimeout());  // No less than TX timeout
     }
 };
 

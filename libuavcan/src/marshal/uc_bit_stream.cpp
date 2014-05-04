@@ -22,7 +22,7 @@ int BitStream::write(const uint8_t* bytes, const int bitlen)
     assert(MaxBytesPerRW >= bytelen);
     tmp[0] = tmp[bytelen - 1] = 0;
 
-    std::fill(tmp, tmp + bytelen, 0);
+    fill(tmp, tmp + bytelen, 0);
     copyBitArray(bytes, 0, bitlen, tmp, bit_offset_ % 8);
 
     const int new_bit_offset = bit_offset_ + bitlen;
@@ -69,7 +69,7 @@ int BitStream::read(uint8_t* bytes, const int bitlen)
         return ResultOutOfBuffer;
     }
 
-    std::fill(bytes, bytes + bitlenToBytelen(bitlen), 0);
+    fill(bytes, bytes + bitlenToBytelen(bitlen), 0);
     copyBitArray(tmp, bit_offset_ % 8, bitlen, bytes, 0);
     bit_offset_ += bitlen;
     return ResultOk;
