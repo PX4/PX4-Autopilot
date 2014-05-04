@@ -15,7 +15,7 @@ namespace uavcan
  * STL-like bitset
  */
 template <std::size_t NumBits>
-class BitSet
+class UAVCAN_EXPORT BitSet
 {
     enum { NumBytes = (NumBits + 7) / 8 };
 
