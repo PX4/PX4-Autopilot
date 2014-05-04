@@ -162,6 +162,7 @@ private:
 		param_t follow_alt_offs;
 		param_t follow_yaw_max;
 		param_t follow_use_alt;
+		param_t follow_lpf;
 		param_t cam_pitch_max;
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -176,6 +177,7 @@ private:
 		float follow_alt_offs;
 		float follow_yaw_max;
 		bool follow_use_alt;
+		float follow_lpf;
 		float cam_pitch_max;
 
 		math::Vector<3> pos_p;
@@ -373,6 +375,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.follow_alt_offs	= param_find("MPC_FW_ALT_OFF");
 	_params_handles.follow_yaw_max	= param_find("MPC_FW_MAX_YAW");
 	_params_handles.follow_use_alt	= param_find("MPC_FW_USE_ALT");
+	_params_handles.follow_lpf	= param_find("MPC_FW_LPF");
 	_params_handles.cam_pitch_max	= param_find("MPC_CAM_P_MAX");
 
 	/* fetch initial parameter values */
@@ -428,6 +431,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.follow_alt_offs, &_params.follow_alt_offs);
 		param_get(_params_handles.follow_yaw_max, &_params.follow_yaw_max);
 		_params.follow_yaw_max = math::radians(_params.follow_yaw_max);
+		param_get(_params_handles.follow_lpf, &_params.follow_lpf);
 		param_get(_params_handles.cam_pitch_max, &_params.cam_pitch_max);
 		_params.cam_pitch_max = math::radians(_params.cam_pitch_max);
 
@@ -833,18 +837,27 @@ MulticopterPositionControl::task_main()
 		/* project target position to local frame if valid */
 		if (_control_mode.flag_point_to_target || _control_mode.flag_follow_target) {
 			map_projection_project(&_ref_pos, _target_pos.lat, _target_pos.lon, &_tpos.data[0], &_tpos.data[1]);
-			_tvel(0) = _target_pos.vel_n;
-			_tvel(1) = _target_pos.vel_e;
+			math::Vector<3> tvel_current;
+			tvel_current(0) = _target_pos.vel_n;
+			tvel_current(1) = _target_pos.vel_e;
 
 			if (_params.follow_use_alt) {
 				/* use real target altitude */
 				_tpos(2) = -(_target_pos.alt + _target_alt_offs - _ref_alt);
-				_tvel(2) = _target_pos.vel_d;
+				tvel_current(2) = _target_pos.vel_d;
 
 			} else {
 				/* assume that target is always on start altitude */
 				_tpos(2) = -(_alt_start - _ref_alt);
-				_tvel(2) = 0.0f;
+				tvel_current(2) = 0.0f;
+			}
+
+			/* Low pass filter for target velocity */
+			if (_params.follow_lpf > 0.0f) {
+				_tvel += (tvel_current - _tvel) * fminf(dt / _params.follow_lpf, 1.0f);
+
+			} else {
+				_tvel = tvel_current;
 			}
 
 			/* calculate delay between position estimates for vehicle and target */
@@ -852,6 +865,9 @@ MulticopterPositionControl::task_main()
 
 			/* target position prediction */
 			_tpos += _tvel * target_dt;
+
+		} else {
+			_tvel.zero();
 		}
 
 		_vel_ff.zero();

@@ -261,6 +261,18 @@ PARAM_DEFINE_FLOAT(MPC_FW_MAX_YAW, 45.0f);
 PARAM_DEFINE_INT32(MPC_FW_USE_ALT, 0);
 
 /**
+ * Low pass filter for target velocity
+ *
+ * Time constant for low pass filter.
+ *
+ * @unit s
+ * @min 0.0
+ * @max 10.0
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_FW_LPF, 0);
+
+/**
  * Maximum camera pitch
  *
  * Camera pitch (degrees) for control signal of 1 (assuming that camera pitch is 0 when control signal is 0).
