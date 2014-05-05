@@ -63,7 +63,6 @@ struct home_position_s
 	double lat;				/**< Latitude in degrees 			*/
 	double lon;				/**< Longitude in degrees			*/
 	float alt;				/**< Altitude in meters				*/
-	bool valid;				/**< True if home position is valid */
 };
 
 /**
