@@ -822,11 +822,6 @@ Navigator::task_main()
 
 		_global_pos_valid = _vstatus.condition_global_position_valid;
 
-		/* set reference for map _projection if global pos is valid and home position is valid and we have not done so already */
-		if (!map_projection_global_initialized() && _global_pos_valid && _home_pos.valid) {
-			map_projection_global_init(_home_pos.lat, _home_pos.lon, _home_pos.timestamp);
-		}
-
 		/* publish position setpoint triplet if updated */
 		if (_pos_sp_triplet_updated) {
 			_pos_sp_triplet_updated = false;

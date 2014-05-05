@@ -87,6 +87,7 @@
 #include <systemlib/err.h>
 #include <systemlib/cpuload.h>
 #include <systemlib/rc_check.h>
+#include <geo/geo.h>
 
 #include "px4_custom_mode.h"
 #include "commander_helper.h"
@@ -366,7 +367,7 @@ static orb_advert_t status_pub;
 transition_result_t arm_disarm(bool arm, const int mavlink_fd, const char* armedBy)
 {
     transition_result_t arming_res = TRANSITION_NOT_CHANGED;
-    
+
     // Transition the armed state. By passing mavlink_fd to arming_state_transition it will
     // output appropriate error messages if the state cannot transition.
     arming_res = arming_state_transition(&status, &safety, arm ? ARMING_STATE_ARMED : ARMING_STATE_STANDBY, &armed, mavlink_fd);
@@ -375,7 +376,7 @@ transition_result_t arm_disarm(bool arm, const int mavlink_fd, const char* armed
     } else if (arming_res == TRANSITION_DENIED) {
         tune_negative(true);
     }
-    
+
     return arming_res;
 }
 
@@ -570,6 +571,9 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home->lat, home->lon, (double)home->alt);
 
 				home->valid = true;
+
+				/* set reference for map _projection */
+				map_projection_global_init(home->lat, home->lon, hrt_absolute_time());
 
 				/* announce new home position */
 				if (*home_pub > 0) {
@@ -958,6 +962,9 @@ int commander_thread_main(int argc, char *argv[])
 			warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home.lat, home.lon, (double)home.alt);
 			mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
 
+			/* set reference for map _projection */
+			map_projection_global_init(home.lat, home.lon, hrt_absolute_time());
+
 			/* announce new home position */
 			if (home_pub > 0) {
 				orb_publish(ORB_ID(home_position), home_pub, &home);
@@ -1344,6 +1351,9 @@ int commander_thread_main(int argc, char *argv[])
 
 				warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home.lat, home.lon, (double)home.alt);
 				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
+
+				/* set reference for map _projection */
+				map_projection_global_init(home.lat, home.lon, hrt_absolute_time());
 
 				/* announce new home position */
 				if (home_pub > 0) {
