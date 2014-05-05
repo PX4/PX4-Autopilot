@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cstdio>
 #include <uavcan/stdint.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/util/templates.hpp>
