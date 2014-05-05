@@ -149,7 +149,7 @@ bool Frame::compile(CanFrame& out_can_frame) const
     case TransferTypeServiceRequest:
     case TransferTypeMessageUnicast:
     {
-        assert((payload_len_ + 1) <= sizeof(out_can_frame.data));
+        assert((payload_len_ + 1U) <= sizeof(out_can_frame.data));
         out_can_frame.data[0] = dst_node_id_.get();
         out_can_frame.dlc = payload_len_ + 1;
         (void)copy(payload_, payload_ + payload_len_, out_can_frame.data + 1);
