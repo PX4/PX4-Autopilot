@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <limits>
 #include <uavcan/stdint.hpp>
 #include <uavcan/error.hpp>
 #include <uavcan/transport/frame.hpp>

@@ -7,7 +7,6 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
-#include <limits>
 #include <uavcan/stdint.hpp>
 #include <uavcan/util/templates.hpp>
 #include <uavcan/impl_constants.hpp>
@@ -41,8 +40,8 @@ class UAVCAN_EXPORT PoolManager : public IPoolAllocator, Noncopyable
     {
         const IPoolAllocator* const a = *static_cast<const IPoolAllocator* const*>(raw_a);
         const IPoolAllocator* const b = *static_cast<const IPoolAllocator* const*>(raw_b);
-        const std::size_t a_size = a ? a->getBlockSize() : std::numeric_limits<std::size_t>::max();
-        const std::size_t b_size = b ? b->getBlockSize() : std::numeric_limits<std::size_t>::max();
+        const std::size_t a_size = a ? a->getBlockSize() : NumericTraits<std::size_t>::max();
+        const std::size_t b_size = b ? b->getBlockSize() : NumericTraits<std::size_t>::max();
         if (a_size != b_size)
         {
             return (a_size > b_size) ? 1 : -1;

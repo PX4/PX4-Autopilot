@@ -3,6 +3,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <limits>
 #include <uavcan/marshal/scalar_codec.hpp>
 #include <uavcan/transport/transfer_buffer.hpp>
 

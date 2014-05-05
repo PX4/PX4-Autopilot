@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <limits>
 #include <cmath>
 #include <uavcan/stdint.hpp>
 #include <uavcan/data_type.hpp>
@@ -18,6 +17,8 @@
 #endif
 #if UAVCAN_CPP_VERSION < UAVCAN_CPP11
 # include <math.h>     // Needed for isfinite()
+#else
+# include <limits>     // Assuming that in C++11 mode all standard headers are available
 #endif
 
 namespace uavcan
@@ -43,8 +44,10 @@ class UAVCAN_EXPORT IEEE754Converter
     IEEE754Converter();
 
 public:
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
     /// UAVCAN requires rounding to nearest for all float conversions
     static std::float_round_style roundstyle() { return std::round_to_nearest; }
+#endif
 
     template <unsigned BitLen>
     static typename IntegerSpec<BitLen, SignednessUnsigned, CastModeTruncate>::StorageType
@@ -118,11 +121,17 @@ public:
 
     typedef typename NativeFloatSelector<BitLen>::Type StorageType;
 
+#if UAVCAN_CPP_VERSION < UAVCAN_CPP11
+    enum { IsExactRepresentation = (sizeof(StorageType) * 8 == BitLen) };
+#else
     enum { IsExactRepresentation = (sizeof(StorageType) * 8 == BitLen) && std::numeric_limits<StorageType>::is_iec559 };
+#endif
 
     using IEEE754Limits<BitLen>::max;
     using IEEE754Limits<BitLen>::epsilon;
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
     static std::float_round_style roundstyle() { return IEEE754Converter::roundstyle(); }
+#endif
 
     static int encode(StorageType value, ScalarCodec& codec, TailArrayOptimizationMode)
     {
@@ -180,11 +189,11 @@ private:
         {
             if (value > max())
             {
-                value = std::numeric_limits<StorageType>::infinity();
+                value = NumericTraits<StorageType>::infinity();
             }
             else if (value < -max())
             {
-                value = -std::numeric_limits<StorageType>::infinity();
+                value = -NumericTraits<StorageType>::infinity();
             }
             else
             {

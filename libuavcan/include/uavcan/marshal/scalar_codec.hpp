@@ -5,7 +5,6 @@
 #pragma once
 
 #include <cassert>
-#include <limits>
 #include <uavcan/stdint.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/util/templates.hpp>
@@ -47,10 +46,10 @@ class UAVCAN_EXPORT ScalarCodec
     convertByteOrder(uint8_t (&)[Size]) { }
 
     template <unsigned BitLen, typename T>
-    static typename EnableIf<std::numeric_limits<T>::is_signed && ((sizeof(T) * 8) > BitLen)>::Type
+    static typename EnableIf<static_cast<bool>(NumericTraits<T>::IsSigned) && ((sizeof(T) * 8) > BitLen)>::Type
     fixTwosComplement(T& value)
     {
-        StaticAssert<std::numeric_limits<T>::is_integer>::check(); // Not applicable to floating point types
+        StaticAssert<NumericTraits<T>::IsInteger>::check(); // Not applicable to floating point types
         if (value & (T(1) << (BitLen - 1)))                        // The most significant bit is set --> negative
         {
             value |= 0xFFFFFFFFFFFFFFFF & ~((T(1) << BitLen) - 1);
@@ -58,7 +57,7 @@ class UAVCAN_EXPORT ScalarCodec
     }
 
     template <unsigned BitLen, typename T>
-    static typename EnableIf<!std::numeric_limits<T>::is_signed || ((sizeof(T) * 8) == BitLen)>::Type
+    static typename EnableIf<!static_cast<bool>(NumericTraits<T>::IsSigned) || ((sizeof(T) * 8) == BitLen)>::Type
     fixTwosComplement(T&) { }
 
     template <unsigned BitLen, typename T>
@@ -77,7 +76,7 @@ class UAVCAN_EXPORT ScalarCodec
     {
         StaticAssert<((sizeof(T) * 8) >= BitLen)>::check();
         StaticAssert<(BitLen <= BitStream::MaxBitsPerRW)>::check();
-        StaticAssert<std::numeric_limits<T>::is_signed ? (BitLen > 1) : 1>::check();
+        StaticAssert<static_cast<bool>(NumericTraits<T>::IsSigned) ? (BitLen > 1) : true>::check();
     }
 
     int encodeBytesImpl(uint8_t* bytes, unsigned bitlen);

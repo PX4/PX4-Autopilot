@@ -10,6 +10,10 @@
 # error UAVCAN_CPP_VERSION
 #endif
 
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+# include <limits>
+#endif
+
 #undef signbit
 #undef isnan
 #undef isinf
@@ -47,7 +51,7 @@ static inline bool isinf(T arg)
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
     return std::isinf(arg);
 #else
-    return arg == std::numeric_limits<T>::infinity() || arg == -std::numeric_limits<T>::infinity();
+    return arg == NumericTraits<T>::infinity() || arg == -NumericTraits<T>::infinity();
 #endif
 }
 
@@ -94,12 +98,20 @@ float IEEE754Converter::halfToNativeNonIeee(uint16_t value)
     unsigned abs = value & 0x7FFFU;
     if (abs > 0x7C00U)
     {
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
         out = std::numeric_limits<float>::has_quiet_NaN ? std::numeric_limits<float>::quiet_NaN() : 0.0F;
+#else
+        out = nanf("");
+#endif
     }
     else if (abs == 0x7C00U)
     {
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
         out = std::numeric_limits<float>::has_infinity ?
               std::numeric_limits<float>::infinity() : std::numeric_limits<float>::max();
+#else
+        out = NumericTraits<float>::infinity();
+#endif
     }
     else if (abs > 0x3FFU)
     {

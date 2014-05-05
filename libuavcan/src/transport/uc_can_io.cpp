@@ -6,7 +6,6 @@
 #include <uavcan/transport/can_io.hpp>
 #include <uavcan/debug.hpp>
 #include <cassert>
-#include <limits>
 
 namespace uavcan
 {
@@ -100,7 +99,7 @@ CanTxQueue::~CanTxQueue()
 
 void CanTxQueue::registerRejectedFrame()
 {
-    if (rejected_frames_cnt_ < std::numeric_limits<uint32_t>::max())
+    if (rejected_frames_cnt_ < NumericTraits<uint32_t>::max())
     {
         rejected_frames_cnt_++;
     }

@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <limits>
 #include <uavcan/stdint.hpp>
 #include <uavcan/data_type.hpp>
 #include <uavcan/util/templates.hpp>
@@ -93,9 +92,9 @@ private:
     {
         StaticAssert<(BitLen <= (sizeof(StorageType) * 8))>::check();
         // coverity[result_independent_of_operands : FALSE]
-        assert(max() <= std::numeric_limits<StorageType>::max());
+        assert(max() <= NumericTraits<StorageType>::max());
         // coverity[result_independent_of_operands : FALSE]
-        assert(min() >= std::numeric_limits<StorageType>::min());
+        assert(min() >= NumericTraits<StorageType>::min());
     }
 
 public:

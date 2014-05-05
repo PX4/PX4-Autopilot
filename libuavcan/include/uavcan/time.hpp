@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <limits>
 #include <uavcan/stdint.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/util/templates.hpp>
@@ -29,7 +28,7 @@ protected:
     }
 
 public:
-    static D getInfinite() { return fromUSec(std::numeric_limits<int64_t>::max()); }
+    static D getInfinite() { return fromUSec(NumericTraits<int64_t>::max()); }
 
     static D fromUSec(int64_t us)
     {
@@ -106,7 +105,7 @@ protected:
     }
 
 public:
-    static T getMax() { return fromUSec(std::numeric_limits<uint64_t>::max()); }
+    static T getMax() { return fromUSec(NumericTraits<uint64_t>::max()); }
 
     static T fromUSec(uint64_t us)
     {
@@ -142,7 +141,7 @@ public:
         {
             if (uint64_t(usec_ + r.toUSec()) < usec_)
             {
-                return fromUSec(std::numeric_limits<uint64_t>::max());
+                return fromUSec(NumericTraits<uint64_t>::max());
             }
         }
         return fromUSec(usec_ + r.toUSec());
