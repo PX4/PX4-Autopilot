@@ -7,7 +7,6 @@
 #include <climits>
 #include <cmath>
 #include <uavcan/impl_constants.hpp>
-#include <uavcan/stdint.hpp>
 
 #ifndef UAVCAN_CPP_VERSION
 # error UAVCAN_CPP_VERSION
@@ -259,76 +258,102 @@ bool equal(InputIt1 first1, InputIt1 last1, InputIt2 first2)
 template <typename T>
 struct UAVCAN_EXPORT NumericTraits;
 
-/// 8 bit
+/// char
 template <>
-struct UAVCAN_EXPORT NumericTraits<int8_t>
+struct UAVCAN_EXPORT NumericTraits<char>
 {
     enum { IsSigned = 1 };
     enum { IsInteger = 1 };
-    static int8_t max() { return 127; }
-    static int8_t min() { return -max() - 1; }
+    static char max() { return CHAR_MAX; }
+    static char min() { return CHAR_MIN; }
 };
 template <>
-struct UAVCAN_EXPORT NumericTraits<uint8_t>
+struct UAVCAN_EXPORT NumericTraits<signed char>
+{
+    enum { IsSigned = 1 };
+    enum { IsInteger = 1 };
+    static signed char max() { return SCHAR_MAX; }
+    static signed char min() { return SCHAR_MIN; }
+};
+template <>
+struct UAVCAN_EXPORT NumericTraits<unsigned char>
 {
     enum { IsSigned = 0 };
     enum { IsInteger = 1 };
-    static uint8_t max() { return 0xFFU; }
-    static uint8_t min() { return 0; }
+    static unsigned char max() { return UCHAR_MAX; }
+    static unsigned char min() { return 0; }
 };
 
-/// 16 bit
+/// short
 template <>
-struct UAVCAN_EXPORT NumericTraits<int16_t>
+struct UAVCAN_EXPORT NumericTraits<short>
 {
     enum { IsSigned = 1 };
     enum { IsInteger = 1 };
-    static int16_t max() { return 32767; }
-    static int16_t min() { return -max() - 1; }
+    static short max() { return SHRT_MAX; }
+    static short min() { return SHRT_MIN; }
 };
 template <>
-struct UAVCAN_EXPORT NumericTraits<uint16_t>
+struct UAVCAN_EXPORT NumericTraits<unsigned short>
 {
     enum { IsSigned = 0 };
     enum { IsInteger = 1 };
-    static uint16_t max() { return 0xFFFFU; }
-    static uint16_t min() { return 0; }
+    static unsigned short max() { return USHRT_MAX; }
+    static unsigned short min() { return 0; }
 };
 
-/// 32 bit
+/// int
 template <>
-struct UAVCAN_EXPORT NumericTraits<int32_t>
+struct UAVCAN_EXPORT NumericTraits<int>
 {
     enum { IsSigned = 1 };
     enum { IsInteger = 1 };
-    static int32_t max() { return 2147483647L; }
-    static int32_t min() { return -max() - 1; }
+    static int max() { return INT_MAX; }
+    static int min() { return INT_MIN; }
 };
 template <>
-struct UAVCAN_EXPORT NumericTraits<uint32_t>
+struct UAVCAN_EXPORT NumericTraits<unsigned int>
 {
     enum { IsSigned = 0 };
     enum { IsInteger = 1 };
-    static uint32_t max() { return 0xFFFFFFFFUL; }
-    static uint32_t min() { return 0UL; }
+    static unsigned int max() { return UINT_MAX; }
+    static unsigned int min() { return 0; }
 };
 
-/// 64 bit
+/// long
 template <>
-struct UAVCAN_EXPORT NumericTraits<int64_t>
+struct UAVCAN_EXPORT NumericTraits<long>
 {
     enum { IsSigned = 1 };
     enum { IsInteger = 1 };
-    static int64_t max() { return 9223372036854775807LL; }
-    static int64_t min() { return -max() - 1; }
+    static long max() { return LONG_MAX; }
+    static long min() { return LONG_MIN; }
 };
 template <>
-struct UAVCAN_EXPORT NumericTraits<uint64_t>
+struct UAVCAN_EXPORT NumericTraits<unsigned long>
 {
     enum { IsSigned = 0 };
     enum { IsInteger = 1 };
-    static uint64_t max() { return 0xFFFFFFFFFFFFFFFFULL; }
-    static uint64_t min() { return 0; }
+    static unsigned long max() { return ULONG_MAX; }
+    static unsigned long min() { return 0; }
+};
+
+/// long long
+template <>
+struct UAVCAN_EXPORT NumericTraits<long long>
+{
+    enum { IsSigned = 1 };
+    enum { IsInteger = 1 };
+    static long long max() { return LLONG_MAX; }
+    static long long min() { return LLONG_MIN; }
+};
+template <>
+struct UAVCAN_EXPORT NumericTraits<unsigned long long>
+{
+    enum { IsSigned = 0 };
+    enum { IsInteger = 1 };
+    static unsigned long long max() { return ULLONG_MAX; }
+    static unsigned long long min() { return 0; }
 };
 
 /// float
