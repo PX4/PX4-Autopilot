@@ -3,6 +3,7 @@
  */
 
 #include <uavcan_lpc11c24/clock.hpp>
+#include <uavcan/util/templates.hpp>
 #include <chip.h>
 #include "internal.hpp"
 
@@ -113,8 +114,10 @@ void adjustUtc(uavcan::UtcDuration adjustment)
     utc_correction_usec_per_overflow_x16 += adjustment.isPositive() ? 1 : -1; // I
     utc_correction_usec_per_overflow_x16 += (adj_delta > 0) ? 1 : -1;         // P
 
-    utc_correction_usec_per_overflow_x16 = std::max(utc_correction_usec_per_overflow_x16, -MaxUtcSpeedCorrectionX16);
-    utc_correction_usec_per_overflow_x16 = std::min(utc_correction_usec_per_overflow_x16,  MaxUtcSpeedCorrectionX16);
+    utc_correction_usec_per_overflow_x16 =
+        uavcan::max(utc_correction_usec_per_overflow_x16, -MaxUtcSpeedCorrectionX16);
+    utc_correction_usec_per_overflow_x16 =
+        uavcan::min(utc_correction_usec_per_overflow_x16,  MaxUtcSpeedCorrectionX16);
 
     if (adjustment.getAbs().toMSec() > 9 || !utc_set)
     {

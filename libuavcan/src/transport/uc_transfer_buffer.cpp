@@ -5,6 +5,7 @@
 #include <uavcan/transport/transfer_buffer.hpp>
 #include <cassert>
 #include <cstdlib>
+#include <new>
 
 namespace uavcan
 {

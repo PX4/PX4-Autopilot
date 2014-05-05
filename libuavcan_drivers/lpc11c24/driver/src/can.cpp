@@ -4,6 +4,7 @@
 
 #include <uavcan_lpc11c24/can.hpp>
 #include <uavcan_lpc11c24/clock.hpp>
+#include <uavcan/util/templates.hpp>
 #include <chip.h>
 #include "internal.hpp"
 
@@ -254,7 +255,7 @@ uavcan::int16_t CanDriver::send(const uavcan::CanFrame& frame, uavcan::Monotonic
         msgobj.mode_id |= CAN_MSGOBJ_RTR;
     }
     msgobj.dlc = frame.dlc;
-    std::copy(frame.data, frame.data + frame.dlc, msgobj.data);
+    uavcan::copy(frame.data, frame.data + frame.dlc, msgobj.data);
 
     /*
      * Transmission
@@ -387,7 +388,7 @@ void canRxCallback(uint8_t msg_obj_num)
 
     // Payload
     frame.dlc = msg_obj.dlc;
-    std::copy(msg_obj.data, msg_obj.data + msg_obj.dlc, frame.data);
+    uavcan::copy(msg_obj.data, msg_obj.data + msg_obj.dlc, frame.data);
 
     uavcan_lpc11c24::rx_queue.push(frame, uavcan_lpc11c24::last_irq_utc_timestamp);
     uavcan_lpc11c24::had_activity = true;

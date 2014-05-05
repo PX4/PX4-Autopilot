@@ -180,16 +180,18 @@ static void updateRatePID(uavcan::UtcDuration adjustment)
     else
     {
         utc_rel_rate_error_integral += rel_rate_error * dt * utc_sync_params.rate_i;
-        utc_rel_rate_error_integral = std::max(utc_rel_rate_error_integral, -utc_sync_params.max_rate_correction_ppm);
-        utc_rel_rate_error_integral = std::min(utc_rel_rate_error_integral, utc_sync_params.max_rate_correction_ppm);
+        utc_rel_rate_error_integral =
+            uavcan::max(utc_rel_rate_error_integral, -utc_sync_params.max_rate_correction_ppm);
+        utc_rel_rate_error_integral =
+            uavcan::min(utc_rel_rate_error_integral, utc_sync_params.max_rate_correction_ppm);
     }
 
     /*
      * Rate controller
      */
     float total_rate_correction_ppm = rel_rate_error + utc_rel_rate_error_integral;
-    total_rate_correction_ppm = std::max(total_rate_correction_ppm, -utc_sync_params.max_rate_correction_ppm);
-    total_rate_correction_ppm = std::min(total_rate_correction_ppm, utc_sync_params.max_rate_correction_ppm);
+    total_rate_correction_ppm = uavcan::max(total_rate_correction_ppm, -utc_sync_params.max_rate_correction_ppm);
+    total_rate_correction_ppm = uavcan::min(total_rate_correction_ppm, utc_sync_params.max_rate_correction_ppm);
 
     utc_correction_nsec_per_overflow = (USecPerOverflow * 1000) * (total_rate_correction_ppm / 1e6F);
 
