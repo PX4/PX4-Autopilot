@@ -52,6 +52,7 @@
 #include <queue.h>
 
 #include <nuttx/wqueue.h>
+#include <systemlib/err.h>
 
 #include "mavlink_messages.h"
 
@@ -146,8 +147,16 @@ private:
 		mavlink_channel_t	channel;
 
 		void		decode(mavlink_channel_t fromChannel, mavlink_message_t *fromMessage) {
-			channel = fromChannel;
-			mavlink_msg_encapsulated_data_decode(fromMessage, &_message);
+			switch (fromMessage->msgid) {
+
+				case MAVLINK_MSG_ID_ENCAPSULATED_DATA:
+					channel = fromChannel;
+					mavlink_msg_encapsulated_data_decode(fromMessage, &_message);
+					warnx("got enc data");
+					break;
+				default:
+					warnx("unknown msg");
+			}
 		}
 
 		RequestHeader 	*header()  { return reinterpret_cast<RequestHeader *>(&_message.data[0]); }
