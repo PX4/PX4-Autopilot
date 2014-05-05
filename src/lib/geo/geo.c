@@ -79,7 +79,7 @@ __EXPORT uint64_t map_projection_timestamp(const struct map_projection_reference
 
 __EXPORT int map_projection_global_init(double lat_0, double lon_0, uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
-	if (strcmp("navigator", getprogname() == 0)) {
+	if (strcmp("commander", getprogname() == 0)) {
 
 		return map_projection_init_timestamped(&mp_ref, lat_0, lon_0, timestamp);
 	} else {

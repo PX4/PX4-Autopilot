@@ -570,9 +570,6 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 				warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home->lat, home->lon, (double)home->alt);
 				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home->lat, home->lon, (double)home->alt);
 
-				/* set reference for map _projection */
-				map_projection_global_init(home->lat, home->lon, hrt_absolute_time());
-
 				/* announce new home position */
 				if (*home_pub > 0) {
 					orb_publish(ORB_ID(home_position), *home_pub, home);
@@ -959,9 +956,6 @@ int commander_thread_main(int argc, char *argv[])
 			warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home.lat, home.lon, (double)home.alt);
 			mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
 
-			/* set reference for map _projection */
-			map_projection_global_init(home.lat, home.lon, hrt_absolute_time());
-
 			/* announce new home position */
 			if (home_pub > 0) {
 				orb_publish(ORB_ID(home_position), home_pub, &home);
@@ -1128,6 +1122,15 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps_position);
+		}
+
+		/* Initialize map projection if gps is valid */
+		if (!map_projection_global_initialized()
+				&& (gps_position.eph < eph_epv_threshold)
+				&& (gps_position.epv < eph_epv_threshold)) {
+			/* set reference for map _projection */
+			map_projection_global_init((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7, hrt_absolute_time());
+
 		}
 
 		/* start RC input check */
@@ -1347,9 +1350,6 @@ int commander_thread_main(int argc, char *argv[])
 
 				warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home.lat, home.lon, (double)home.alt);
 				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
-
-				/* set reference for map _projection */
-				map_projection_global_init(home.lat, home.lon, hrt_absolute_time());
 
 				/* announce new home position */
 				if (home_pub > 0) {
