@@ -5,6 +5,7 @@
 #pragma once
 
 #include <climits>
+#include <cstddef>
 #include <cmath>
 #include <uavcan/impl_constants.hpp>
 
