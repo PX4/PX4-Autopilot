@@ -1,5 +1,6 @@
 # Build outputs
 *.o
+*.d
 lib*.so
 lib*.so.*
 *.a
