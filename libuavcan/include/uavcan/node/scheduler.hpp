@@ -5,7 +5,7 @@
 #pragma once
 
 #include <uavcan/error.hpp>
-#include <uavcan/linked_list.hpp>
+#include <uavcan/util/linked_list.hpp>
 #include <uavcan/transport/dispatcher.hpp>
 
 namespace uavcan

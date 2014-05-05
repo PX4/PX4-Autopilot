@@ -7,7 +7,7 @@
 #include <cstdlib>
 #include <uavcan/error.hpp>
 #include <uavcan/impl_constants.hpp>
-#include <uavcan/util/compile_time.hpp>
+#include <uavcan/util/templates.hpp>
 
 #ifndef UAVCAN_CPP_VERSION
 # error UAVCAN_CPP_VERSION

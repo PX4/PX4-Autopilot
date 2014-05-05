@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <uavcan/bitset.hpp>
+#include <uavcan/util/bitset.hpp>
 #include <uavcan/util/method_binder.hpp>
 #include <uavcan/node/subscriber.hpp>
 #include <uavcan/node/service_client.hpp>

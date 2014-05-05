@@ -12,7 +12,7 @@
 #include <uavcan/transport/transfer_listener.hpp>
 #include <uavcan/transport/outgoing_transfer_registry.hpp>
 #include <uavcan/transport/can_io.hpp>
-#include <uavcan/linked_list.hpp>
+#include <uavcan/util/linked_list.hpp>
 
 namespace uavcan
 {

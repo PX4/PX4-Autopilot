@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <uavcan/util/compile_time.hpp>
+#include <uavcan/util/templates.hpp>
 #include <uavcan/impl_constants.hpp>
 
 namespace uavcan

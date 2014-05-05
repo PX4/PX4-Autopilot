@@ -9,8 +9,8 @@
 #include <uavcan/stdint.hpp>
 #include <uavcan/transport/transfer_receiver.hpp>
 #include <uavcan/transport/perf_counter.hpp>
-#include <uavcan/linked_list.hpp>
-#include <uavcan/map.hpp>
+#include <uavcan/util/linked_list.hpp>
+#include <uavcan/util/map.hpp>
 #include <uavcan/debug.hpp>
 #include <uavcan/transport/crc.hpp>
 #include <uavcan/data_type.hpp>

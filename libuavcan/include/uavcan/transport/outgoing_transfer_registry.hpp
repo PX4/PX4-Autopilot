@@ -7,7 +7,7 @@
 #include <cassert>
 #include <uavcan/stdint.hpp>
 #include <uavcan/impl_constants.hpp>
-#include <uavcan/map.hpp>
+#include <uavcan/util/map.hpp>
 #include <uavcan/debug.hpp>
 #include <uavcan/transport/transfer.hpp>
 #include <uavcan/time.hpp>

@@ -7,7 +7,7 @@
 #include <limits>
 #include <uavcan/stdint.hpp>
 #include <uavcan/impl_constants.hpp>
-#include <uavcan/util/compile_time.hpp>
+#include <uavcan/util/templates.hpp>
 #include <uavcan/Timestamp.hpp>
 
 

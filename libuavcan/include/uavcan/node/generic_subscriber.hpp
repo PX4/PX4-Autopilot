@@ -8,7 +8,7 @@
 #include <uavcan/node/abstract_node.hpp>
 #include <uavcan/data_type.hpp>
 #include <uavcan/node/global_data_type_registry.hpp>
-#include <uavcan/util/compile_time.hpp>
+#include <uavcan/util/templates.hpp>
 #include <uavcan/util/lazy_constructor.hpp>
 #include <uavcan/debug.hpp>
 #include <uavcan/transport/transfer_listener.hpp>

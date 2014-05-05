@@ -19,6 +19,6 @@
 #include <uavcan/node/global_data_type_registry.hpp>
 
 // Util
-#include <uavcan/util/compile_time.hpp>
+#include <uavcan/util/templates.hpp>
 #include <uavcan/util/lazy_constructor.hpp>
 #include <uavcan/util/method_binder.hpp>

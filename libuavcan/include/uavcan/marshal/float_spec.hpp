@@ -8,7 +8,7 @@
 #include <cmath>
 #include <uavcan/stdint.hpp>
 #include <uavcan/data_type.hpp>
-#include <uavcan/util/compile_time.hpp>
+#include <uavcan/util/templates.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/marshal/type_util.hpp>
 #include <uavcan/marshal/integer_spec.hpp>

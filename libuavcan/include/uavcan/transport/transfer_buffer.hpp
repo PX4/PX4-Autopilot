@@ -9,7 +9,7 @@
 #include <uavcan/error.hpp>
 #include <uavcan/transport/frame.hpp>
 #include <uavcan/transport/abstract_transfer_buffer.hpp>
-#include <uavcan/linked_list.hpp>
+#include <uavcan/util/linked_list.hpp>
 #include <uavcan/dynamic_memory.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/debug.hpp>
