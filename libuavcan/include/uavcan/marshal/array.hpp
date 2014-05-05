@@ -771,12 +771,12 @@ class UAVCAN_EXPORT YamlStreamer<Array<T, ArrayMode, MaxSize> >
             if (c < 32 || c > 126)
             {
                 char nibbles[2] = {char((c >> 4) & 0xF), char(c & 0xF)};
-                for (int i = 0; i < 2; i++)
+                for (int k = 0; k < 2; k++)
                 {
-                    nibbles[i] += '0';
-                    if (nibbles[i] > '9')
+                    nibbles[k] += '0';
+                    if (nibbles[k] > '9')
                     {
-                        nibbles[i] += 'A' - '9' - 1;
+                        nibbles[k] += 'A' - '9' - 1;
                     }
                 }
                 s << "\\x" << nibbles[0] << nibbles[1];
