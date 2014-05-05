@@ -5,7 +5,6 @@
 #pragma once
 
 #include <cstdlib>
-#include <new>
 #include <uavcan/error.hpp>
 #include <uavcan/impl_constants.hpp>
 #include <uavcan/util/templates.hpp>

@@ -82,6 +82,16 @@
 # include <cstdio>
 #endif
 
+/**
+ * Some C++ implementations are half-broken and do not implement the placement new operator.
+ * Setting this preprocessor symbol to 1 makes libuavcan implement its own operator new (std::size_t, void*),
+ * and its delete counterpart.
+ * This option may be removed in future.
+ */
+#ifndef UAVCAN_IMPLEMENT_PLACEMENT_NEW
+# define UAVCAN_IMPLEMENT_PLACEMENT_NEW 0
+#endif
+
 namespace uavcan
 {
 

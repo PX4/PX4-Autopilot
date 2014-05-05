@@ -7,9 +7,9 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
-#include <new>
 #include <uavcan/stdint.hpp>
 #include <uavcan/util/templates.hpp>
+#include <uavcan/util/placement_new.hpp>
 #include <uavcan/impl_constants.hpp>
 
 namespace uavcan
