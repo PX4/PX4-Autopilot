@@ -149,7 +149,8 @@ bool PoolManager<MaxPools>::addPool(IPoolAllocator* pool)
         }
     }
     // We need to keep the pools in order, so that smallest blocks go first
-    std::qsort(pools_, MaxPools, sizeof(IPoolAllocator*), &PoolManager::qsortComparePoolAllocators);
+    using namespace std; // for qsort()
+    qsort(pools_, MaxPools, sizeof(IPoolAllocator*), &PoolManager::qsortComparePoolAllocators);
     return retval;
 }
 
