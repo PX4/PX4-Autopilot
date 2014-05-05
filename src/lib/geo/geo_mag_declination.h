@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 MAV GEO Library (MAVGEO). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name MAVGEO nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,42 +32,16 @@
  ****************************************************************************/
 
 /**
- * @file hw_ver.c
- *
- * Show and test hardware version.
- */
+* @file geo_mag_declination.h
+*
+* Calculation / lookup table for earth magnetic field declination.
+*
+*/
 
-#include <nuttx/config.h>
+#pragma once
 
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#include <version/version.h>
+__BEGIN_DECLS
 
-__EXPORT int hw_ver_main(int argc, char *argv[]);
+__EXPORT float get_mag_declination(float lat, float lon);
 
-int
-hw_ver_main(int argc, char *argv[])
-{
-	if (argc >= 2) {
-		if (!strcmp(argv[1], "show")) {
-			printf(HW_ARCH "\n");
-			exit(0);
-		}
-
-		if (!strcmp(argv[1], "compare")) {
-			if (argc >= 3) {
-				int ret = strcmp(HW_ARCH, argv[2]) != 0;
-				if (ret == 0) {
-					printf("hw_ver match: %s\n", HW_ARCH);
-				}
-				exit(ret);
-
-			} else {
-				errx(1, "not enough arguments, try 'compare PX4FMU_1'");
-			}
-		}
-	}
-
-	errx(1, "expected a command, try 'show' or 'compare'");
-}
+__END_DECLS

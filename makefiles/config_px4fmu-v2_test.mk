@@ -29,7 +29,7 @@ MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/nshterm
 MODULES		+= systemcmds/mtd
-MODULES		+= systemcmds/hw_ver
+MODULES		+= systemcmds/ver
 
 #
 # Library modules
