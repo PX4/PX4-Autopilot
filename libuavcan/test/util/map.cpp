@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <memory>
 #include <gtest/gtest.h>
-#include <uavcan/map.hpp>
+#include <uavcan/util/map.hpp>
 
 
 static std::string toString(long x)

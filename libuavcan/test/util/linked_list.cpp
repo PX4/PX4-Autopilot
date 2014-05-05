@@ -3,7 +3,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <uavcan/linked_list.hpp>
+#include <uavcan/util/linked_list.hpp>
 
 struct ListItem : uavcan::LinkedListNode<ListItem>
 {

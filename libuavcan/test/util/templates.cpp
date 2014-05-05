@@ -3,7 +3,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <uavcan/util/compile_time.hpp>
+#include <uavcan/util/templates.hpp>
 
 struct NonConvertible { };
 
