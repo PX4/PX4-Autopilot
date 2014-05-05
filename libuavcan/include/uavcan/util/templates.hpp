@@ -213,7 +213,7 @@ const T& max(const T& a, const T& b)
 /**
  * Replacement for std::lexicographical_compare(..)
  */
-template<class InputIt1, class InputIt2>
+template<typename InputIt1, typename InputIt2>
 UAVCAN_EXPORT
 bool lexicographical_compare(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2)
 {
@@ -236,7 +236,7 @@ bool lexicographical_compare(InputIt1 first1, InputIt1 last1, InputIt2 first2, I
 /**
  * Replacement for std::equal(..)
  */
-template<class InputIt1, class InputIt2>
+template<typename InputIt1, typename InputIt2>
 UAVCAN_EXPORT
 bool equal(InputIt1 first1, InputIt1 last1, InputIt2 first2)
 {

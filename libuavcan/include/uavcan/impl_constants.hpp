@@ -19,12 +19,14 @@
 #define UAVCAN_CPP11    2011
 #define UAVCAN_CPP03    2003
 
-#if __cplusplus > 201200
-# error Unsupported C++ standard
-#elif (__cplusplus > 201100) || defined(__GXX_EXPERIMENTAL_CXX0X__)
-# define UAVCAN_CPP_VERSION    UAVCAN_CPP11
-#else
-# define UAVCAN_CPP_VERSION    UAVCAN_CPP03
+#ifndef UAVCAN_CPP_VERSION
+# if __cplusplus > 201200
+#  error Unsupported C++ standard
+# elif (__cplusplus > 201100) || defined(__GXX_EXPERIMENTAL_CXX0X__)
+#  define UAVCAN_CPP_VERSION    UAVCAN_CPP11
+# else
+#  define UAVCAN_CPP_VERSION    UAVCAN_CPP03
+# endif
 #endif
 
 /**
