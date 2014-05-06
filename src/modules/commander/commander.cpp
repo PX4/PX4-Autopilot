@@ -58,6 +58,7 @@
 #include <string.h>
 #include <math.h>
 #include <poll.h>
+#include <float.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
@@ -788,6 +789,8 @@ int commander_thread_main(int argc, char *argv[])
 	int gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	struct vehicle_gps_position_s gps_position;
 	memset(&gps_position, 0, sizeof(gps_position));
+	gps_position.eph_m = FLT_MAX;
+	gps_position.epv_m = FLT_MAX;
 
 	/* Subscribe to sensor topic */
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
@@ -1127,7 +1130,8 @@ int commander_thread_main(int argc, char *argv[])
 		/* Initialize map projection if gps is valid */
 		if (!map_projection_global_initialized()
 				&& (gps_position.eph_m < eph_epv_threshold)
-				&& (gps_position.epv_m < eph_epv_threshold)) {
+				&& (gps_position.epv_m < eph_epv_threshold)
+				&& hrt_elapsed_time((hrt_abstime*)&gps_position.timestamp_position) < 1e6) {
 			/* set reference for map _projection */
 			map_projection_global_init((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7, hrt_absolute_time());
 
