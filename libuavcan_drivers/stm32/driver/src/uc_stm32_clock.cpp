@@ -2,11 +2,14 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <cassert>
-#include <cmath>
 #include <uavcan_stm32/clock.hpp>
 #include <uavcan_stm32/thread.hpp>
 #include "internal.hpp"
+
+#if UAVCAN_STM32_TIMER_NUMBER
+
+#include <cassert>
+#include <cmath>
 
 /*
  * Timer instance
@@ -338,3 +341,5 @@ UAVCAN_STM32_IRQ_HANDLER(TIMX_IRQHandler)
 
     UAVCAN_STM32_IRQ_EPILOGUE();
 }
+
+#endif

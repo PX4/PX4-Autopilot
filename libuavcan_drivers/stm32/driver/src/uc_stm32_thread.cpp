@@ -54,6 +54,49 @@ void Mutex::unlock()
     chibios_rt::BaseThread::unlockMutex();
 }
 
+#elif UAVCAN_STM32_NUTTX
+
+Event::Event()
+    : sem_()
+{
+    (void)sem_init(&sem_, 0, 0);
+}
+
+bool Event::wait(uavcan::MonotonicDuration duration)
+{
+    if (duration.isNegative())
+    {
+        duration = uavcan::MonotonicDuration();
+    }
+
+    timespec deadline = timespec();
+    if (clock_gettime(CLOCK_REALTIME, &deadline) < 0)
+    {
+        ASSERT(0);
+        return false;
+    }
+    deadline.tv_sec += duration.toUSec() / 1000000;
+    deadline.tv_nsec += (duration.toUSec() % 1000000) * 1000;
+    if (deadline.tv_nsec >= 1000000000L)
+    {
+        deadline.tv_sec += 1;
+        deadline.tv_nsec -= 1000000000L;
+    }
+
+    const int result = sem_timedwait(&sem_, &deadline);
+    return result >= 0;
+}
+
+void Event::signal()
+{
+    (void)sem_post(&sem_);
+}
+
+void Event::signalFromInterrupt()
+{
+    (void)sem_post(&sem_);  // Can be called from ISR http://nuttx.org/Documentation/NuttxUserGuide.html#sempost
+}
+
 #endif
 
 }

@@ -6,6 +6,9 @@
 
 #if UAVCAN_STM32_CHIBIOS
 # include <ch.hpp>
+#elif UAVCAN_STM32_NUTTX
+# include <semaphore.h>
+# include <time.h>
 #else
 # error "Unknown OS"
 #endif
@@ -15,11 +18,11 @@
 namespace uavcan_stm32
 {
 
+#if UAVCAN_STM32_CHIBIOS
+
 class Event
 {
-#if UAVCAN_STM32_CHIBIOS
     chibios_rt::CounterSemaphore sem_;
-#endif
 
 public:
     Event() : sem_(0) { }
@@ -31,18 +34,35 @@ public:
     void signalFromInterrupt();
 };
 
-
 class Mutex
 {
-#if UAVCAN_STM32_CHIBIOS
     chibios_rt::Mutex mtx_;
-#endif
 
 public:
     void lock();
     void unlock();
 };
 
+#elif UAVCAN_STM32_NUTTX
+
+class Event
+{
+    sem_t sem_;
+
+public:
+    Event();
+
+    bool wait(uavcan::MonotonicDuration duration);
+
+    void signal();
+
+    void signalFromInterrupt();
+};
+
+#endif
+
+
+#if UAVCAN_STM32_CHIBIOS
 
 class MutexLocker
 {
@@ -59,5 +79,7 @@ public:
         mutex_.unlock();
     }
 };
+
+#endif
 
 }

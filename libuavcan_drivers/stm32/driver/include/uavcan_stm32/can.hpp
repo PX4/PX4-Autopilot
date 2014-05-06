@@ -6,24 +6,7 @@
 
 #include <uavcan_stm32/thread.hpp>
 #include <uavcan/driver/can.hpp>
-
-#if UAVCAN_STM32_CHIBIOS
-# include <hal.h>
-#else
-# error "Unknown OS"
-#endif
-
-#ifndef UAVCAN_STM32_NUM_IFACES
-# if defined(STM32F10X_CL) || defined(STM32F2XX) || defined(STM32F4XX)
-#  define UAVCAN_STM32_NUM_IFACES   2
-# else
-#  define UAVCAN_STM32_NUM_IFACES   1
-# endif
-#endif
-
-#if UAVCAN_STM32_NUM_IFACES != 1 && UAVCAN_STM32_NUM_IFACES != 2
-# error UAVCAN_STM32_NUM_IFACES
-#endif
+#include <uavcan_stm32/bxcan.hpp>
 
 namespace uavcan_stm32
 {
@@ -108,7 +91,7 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
     enum { NumFilters = 14 };
 
     RxQueue rx_queue_;
-    CAN_TypeDef* const can_;
+    bxcan::CanType* const can_;
     uavcan::uint64_t error_cnt_;
     Event& update_event_;
     TxItem pending_tx_[NumTxMailboxes];
@@ -134,7 +117,7 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 public:
     enum { MaxRxQueueCapacity = 254 };
 
-    CanIface(CAN_TypeDef* can, Event& update_event, uavcan::uint8_t self_index,
+    CanIface(bxcan::CanType* can, Event& update_event, uavcan::uint8_t self_index,
              CanRxItem* rx_queue_buffer, uavcan::uint8_t rx_queue_capacity)
         : rx_queue_(rx_queue_buffer, rx_queue_capacity)
         , can_(can)
@@ -209,9 +192,9 @@ class CanDriver : public uavcan::ICanDriver, uavcan::Noncopyable
 public:
     template <unsigned RxQueueCapacity>
     CanDriver(CanRxItem (&rx_queue_storage)[UAVCAN_STM32_NUM_IFACES][RxQueueCapacity])
-        : if0_(CAN1, update_event_, 0, rx_queue_storage[0], RxQueueCapacity)
+        : if0_(bxcan::Can[0], update_event_, 0, rx_queue_storage[0], RxQueueCapacity)
 #if UAVCAN_STM32_NUM_IFACES > 1
-        , if1_(CAN2, update_event_, 1, rx_queue_storage[1], RxQueueCapacity)
+        , if1_(bxcan::Can[1], update_event_, 1, rx_queue_storage[1], RxQueueCapacity)
 #endif
     {
         uavcan::StaticAssert<(RxQueueCapacity <= CanIface::MaxRxQueueCapacity)>::check();

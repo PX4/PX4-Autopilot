@@ -19,7 +19,8 @@ UDEFS = -DUAVCAN_STM32_CHIBIOS=1         \
         -DUAVCAN_MEM_POOL_BLOCK_SIZE=56  \
         -DUAVCAN_TOSTRING=0              \
         -DUAVCAN_EXCEPTIONS=0            \
-        -DUAVCAN_TINY=1
+        -DUAVCAN_TINY=1                  \
+        -DUAVCAN_STM32_NUM_IFACES=2
 
 include ../../../libuavcan/include.mk
 CPPSRC += $(LIBUAVCAN_SRC)
