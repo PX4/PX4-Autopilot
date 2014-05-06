@@ -134,8 +134,8 @@ __EXPORT int map_projection_project(const struct map_projection_reference_s *ref
 		return -1;
 	}
 
-	double lat_rad = lat / 180.0 * M_PI;
-	double lon_rad = lon / 180.0 * M_PI;
+	double lat_rad = lat * M_DEG_TO_RAD;
+	double lon_rad = lon * M_DEG_TO_RAD;
 
 	double sin_lat = sin(lat_rad);
 	double cos_lat = cos(lat_rad);
@@ -152,7 +152,7 @@ __EXPORT int map_projection_project(const struct map_projection_reference_s *ref
 
 __EXPORT int map_projection_global_reproject(float x, float y, double *lat, double *lon)
 {
-	map_projection_project(&mp_ref, x, y, lat, lon);
+	map_projection_reproject(&mp_ref, x, y, lat, lon);
 }
 
 __EXPORT int map_projection_reproject(const struct map_projection_reference_s *ref, float x, float y, double *lat, double *lon)
