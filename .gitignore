@@ -37,3 +37,4 @@ mavlink/include/mavlink/v0.9/
 tags
 .tags_sorted_by_file
 .pydevproject
+/uavcan
