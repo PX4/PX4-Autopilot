@@ -56,6 +56,7 @@
  */
 
 static struct map_projection_reference_s mp_ref = {0};
+static struct globallocal_converter_reference_s gl_ref = {0};
 
 __EXPORT bool map_projection_global_initialized()
 {
@@ -185,6 +186,41 @@ __EXPORT int map_projection_reproject(const struct map_projection_reference_s *r
 	return 0;
 }
 
+__EXPORT int globallocalconverter_init(double lat_0, double lon_0, float alt_0, uint64_t timestamp)
+{
+	if (strcmp("commander", getprogname() == 0)) {
+		gl_ref.alt = alt_0;
+		gl_ref.init_done = true;
+		return map_projection_global_init(lat_0, lon_0, timestamp);
+	} else {
+		return -1;
+	}
+}
+
+__EXPORT bool globallocalconverter_initialized()
+{
+	return gl_ref.init_done && map_projection_global_initialized();
+}
+
+__EXPORT int globallocalconverter_tolocal(double lat, double lon, float alt, float *x, float *y, float *z)
+{
+	if (!map_projection_global_initialized()) {
+		return -1;
+	}
+
+	map_projection_global_project(lat, lon, x, y);
+	*z = gl_ref.alt - alt;
+}
+
+__EXPORT int globallocalconverter_toglobal(float x, float y, float z,  double *lat, double *lon, float *alt)
+{
+	if (!map_projection_global_initialized()) {
+		return -1;
+	}
+
+	map_projection_global_reproject(x, y, lat, lon);
+	*alt = gl_ref.alt - z;
+}
 
 __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next)
 {

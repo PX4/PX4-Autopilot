@@ -1132,9 +1132,8 @@ int commander_thread_main(int argc, char *argv[])
 				&& (gps_position.eph_m < eph_epv_threshold)
 				&& (gps_position.epv_m < eph_epv_threshold)
 				&& hrt_elapsed_time((hrt_abstime*)&gps_position.timestamp_position) < 1e6) {
-			/* set reference for map _projection */
-			map_projection_global_init((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7, hrt_absolute_time());
-
+			/* set reference for global coordinates <--> local coordiantes conversion and map_projection */
+			globallocalconverter_init((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7, (float)gps_position.alt * 1.0e-3f, hrt_absolute_time());
 		}
 
 		/* start RC input check */
