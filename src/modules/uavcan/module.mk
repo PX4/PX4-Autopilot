@@ -48,8 +48,7 @@ SRCS += uavcan_main.cpp \
 #
 include $(UAVCAN_DIR)/libuavcan/include.mk
 SRCS += $(LIBUAVCAN_SRC)
-# TODO fix include path
-INCLUDE_DIRS += $(LIBUAVCAN_INC) /media/storage/px4/Firmware/Build/px4fmu-v2_default.build/nuttx-export/include/cxx/
+INCLUDE_DIRS += $(LIBUAVCAN_INC)
 EXTRADEFINES += -DUAVCAN_MEM_POOL_BLOCK_SIZE=56 \
                 -DUAVCAN_TOSTRING=0 \
                 -DUAVCAN_CPP_VERSION=UAVCAN_CPP03 \
@@ -61,7 +60,8 @@ EXTRADEFINES += -DUAVCAN_MEM_POOL_BLOCK_SIZE=56 \
 include $(UAVCAN_DIR)/libuavcan_drivers/stm32/driver/include.mk
 SRCS += $(LIBUAVCAN_STM32_SRC)
 INCLUDE_DIRS += $(LIBUAVCAN_STM32_INC)
-EXTRADEFINES += -DUAVCAN_STM32_NUTTX -DUAVCAN_STM32_NUM_IFACES=1
+EXTRADEFINES += -DUAVCAN_STM32_NUTTX \
+                -DUAVCAN_STM32_NUM_IFACES=1
 
 #
 # Invoke DSDL compiler
