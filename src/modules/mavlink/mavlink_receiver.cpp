@@ -217,6 +217,12 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 			_mavlink->_task_should_exit = true;
 
 		} else {
+
+			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
+				warnx("ignoring CMD spoofed with same SYS/COMP ID");
+				return;
+			}
+
 			struct vehicle_command_s vcmd;
 			memset(&vcmd, 0, sizeof(vcmd));
 
