@@ -1339,22 +1339,23 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
-		(void)range_sub->update(t);
+		if (range_sub->update(t)) {
 
-		uint8_t type;
+			uint8_t type;
 
-		switch (range->type) {
-			case RANGE_FINDER_TYPE_LASER:
-			type = MAV_DISTANCE_SENSOR_LASER;
-			break;
+			switch (range->type) {
+				case RANGE_FINDER_TYPE_LASER:
+				type = MAV_DISTANCE_SENSOR_LASER;
+				break;
+			}
+
+			uint8_t id = 0;
+			uint8_t orientation = 0;
+			uint8_t covariance = 20;
+
+			mavlink_msg_distance_sensor_send(_channel, range->timestamp / 1000, type, id, orientation,
+				range->minimum_distance*100, range->maximum_distance*100, range->distance*100, covariance);
 		}
-
-		uint8_t id = 0;
-		uint8_t orientation = 0;
-		uint8_t covariance = 20;
-
-		mavlink_msg_distance_sensor_send(_channel, range->timestamp / 1000, type, id, orientation,
-			range->minimum_distance*100, range->maximum_distance*100, range->distance*100, covariance);
 	}
 };
 
