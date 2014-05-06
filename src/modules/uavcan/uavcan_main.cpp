@@ -37,6 +37,7 @@
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 #include <arch/board/board.h>
+#include <arch/chip/chip.h>
 #include "uavcan_main.hpp"
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
@@ -53,9 +54,14 @@ void print_usage()
 
 int test_thread(int argc, char *argv[])
 {
+	/*
+	 * Forced pull up on CAN2 is required for Pixhawk v1 where the second interface lacks a transceiver.
+	 * If no transceiver is connected, the RX pin will float, occasionally causing CAN controller to
+	 * fail during initialization.
+	 */
 	stm32_configgpio(GPIO_CAN1_RX);
 	stm32_configgpio(GPIO_CAN1_TX);
-	stm32_configgpio(GPIO_CAN2_RX);
+	stm32_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
 	stm32_configgpio(GPIO_CAN2_TX);
 	int res = can_driver.init(1000000);
 	if (res < 0)

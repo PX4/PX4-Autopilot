@@ -61,7 +61,7 @@ include $(UAVCAN_DIR)/libuavcan_drivers/stm32/driver/include.mk
 SRCS += $(LIBUAVCAN_STM32_SRC)
 INCLUDE_DIRS += $(LIBUAVCAN_STM32_INC)
 EXTRADEFINES += -DUAVCAN_STM32_NUTTX \
-                -DUAVCAN_STM32_NUM_IFACES=1
+                -DUAVCAN_STM32_NUM_IFACES=2
 
 #
 # Invoke DSDL compiler
