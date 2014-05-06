@@ -69,8 +69,8 @@ struct crosstrack_error_s {
 
 /* lat/lon are in radians */
 struct map_projection_reference_s {
-	double lat;
-	double lon;
+	double lat_rad;
+	double lon_rad;
 	double sin_lat;
 	double cos_lat;
 	bool init_done;
@@ -105,13 +105,13 @@ __EXPORT uint64_t map_projection_timestamp(const struct map_projection_reference
  * Writes the reference values of the global projection to ref_lat and ref_lon
  * @return 0 if map_projection_init was called before, -1 else
  */
-__EXPORT int map_projection_global_reference(double *ref_lat, double *ref_lon);
+__EXPORT int map_projection_global_reference(double *ref_lat_rad, double *ref_lon_rad);
 
 /**
  * Writes the reference values of the projection given by the argument to ref_lat and ref_lon
  * @return 0 if map_projection_init was called before, -1 else
  */
-__EXPORT int map_projection_reference(const struct map_projection_reference_s *ref, double *ref_lat, double *ref_lon);
+__EXPORT int map_projection_reference(const struct map_projection_reference_s *ref, double *ref_lat_rad, double *ref_lon_rad);
 
 /**
  * Initializes the global map transformation.
