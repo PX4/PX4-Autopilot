@@ -1285,6 +1285,13 @@ int commander_thread_main(int argc, char *argv[])
 						if (res == TRANSITION_DENIED) {
 							/* LAND not allowed, set TERMINATION state */
 							transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
+
+							if (res == TRANSITION_CHANGED) {
+								mavlink_log_critical(mavlink_fd, "#a FAILSAFE: TERMINATION");
+							}
+
+						} else if (res == TRANSITION_CHANGED) {
+							mavlink_log_critical(mavlink_fd, "#a FAILSAFE: LANDING");
 						}
 					}
 
@@ -1295,15 +1302,25 @@ int commander_thread_main(int argc, char *argv[])
 					if (!status.condition_landed) {
 						/* vehicle is not landed, try to perform RTL */
 						res = failsafe_state_transition(&status, FAILSAFE_STATE_RTL);
+
+						if (res == TRANSITION_CHANGED) {
+							mavlink_log_critical(mavlink_fd, "#a FAILSAFE: RETURN TO LAND");
+						}
 					}
 
 					if (res == TRANSITION_DENIED) {
 						/* RTL not allowed (no global position estimate) or not wanted, try LAND */
 						res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
 
+						if (res == TRANSITION_CHANGED) {
+							mavlink_log_critical(mavlink_fd, "#a FAILSAFE: LANDING");
+						}
+
 						if (res == TRANSITION_DENIED) {
 							/* LAND not allowed, set TERMINATION state */
 							res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
+						} else if (res == TRANSITION_CHANGED) {
+							mavlink_log_critical(mavlink_fd, "#a FAILSAFE: TERMINATION");
 						}
 					}
 				}
