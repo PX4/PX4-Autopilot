@@ -16,7 +16,7 @@
 /**
  * Debug output
  */
-#ifndef UAVCAN_STM32_TRACE
+#ifndef UAVCAN_STM32_LOG
 // lowsyslog() crashes the system in this context
 //# if UAVCAN_STM32_NUTTX && CONFIG_ARCH_LOWPUTC
 # if 0
