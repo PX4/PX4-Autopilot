@@ -1,47 +1,39 @@
 
 CC=g++
-CFLAGS=-I. -I../../src/modules -I ../../src/include -I../../src/drivers -I../../src -D__EXPORT="" -Dnullptr="0"
+CFLAGS=-I. -I../../src/modules -I ../../src/include -I../../src/drivers \
+	-I../../src -I../../src/lib -D__EXPORT="" -Dnullptr="0" -lm
 
-ODIR=obj
-LDIR =../lib
+all: mixer_test sbus2_test autodeclination_test
 
-LIBS=-lm
+MIXER_FILES=../../src/systemcmds/tests/test_mixer.cpp \
+		../../src/systemcmds/tests/test_conv.cpp \
+		../../src/modules/systemlib/mixer/mixer_simple.cpp \
+		../../src/modules/systemlib/mixer/mixer_multirotor.cpp \
+		../../src/modules/systemlib/mixer/mixer.cpp \
+		../../src/modules/systemlib/mixer/mixer_group.cpp \
+		../../src/modules/systemlib/mixer/mixer_load.c \
+		../../src/modules/systemlib/pwm_limit/pwm_limit.c \
+		hrt.cpp \
+		mixer_test.cpp
 
-#_DEPS = test.h
-#DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
+SBUS2_FILES=../../src/modules/px4iofirmware/sbus.c \
+		hrt.cpp \
+		sbus2_test.cpp
 
-_OBJ = mixer_test.o test_mixer.o mixer_simple.o mixer_multirotor.o \
-	mixer.o mixer_group.o mixer_load.o test_conv.o pwm_limit.o hrt.o
-OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
+AUTODECLINATION_FILES= ../../src/lib/geo/geo_mag_declination.c \
+		hrt.cpp \
+		autodeclination_test.cpp
 
-#$(DEPS)
-$(ODIR)/%.o: %.cpp
-	mkdir -p obj
-	$(CC) -c -o $@ $< $(CFLAGS)
+mixer_test: $(MIXER_FILES)
+	$(CC) -o mixer_test $(MIXER_FILES) $(CFLAGS)
 
-$(ODIR)/%.o: ../../src/systemcmds/tests/%.cpp
-	$(CC) -c -o $@ $< $(CFLAGS)
+sbus2_test: $(SBUS2_FILES)
+	$(CC) -o sbus2_test $(SBUS2_FILES) $(CFLAGS)
 
-$(ODIR)/%.o: ../../src/modules/systemlib/%.cpp
-	$(CC) -c -o $@ $< $(CFLAGS)
-
-$(ODIR)/%.o: ../../src/modules/systemlib/mixer/%.cpp
-	$(CC) -c -o $@ $< $(CFLAGS)
-
-$(ODIR)/%.o: ../../src/modules/systemlib/pwm_limit/%.cpp
-	$(CC) -c -o $@ $< $(CFLAGS)
-
-$(ODIR)/%.o: ../../src/modules/systemlib/pwm_limit/%.c
-	$(CC) -c -o $@ $< $(CFLAGS)
-
-$(ODIR)/%.o: ../../src/modules/systemlib/mixer/%.c
-	$(CC) -c -o $@ $< $(CFLAGS)
-
-#
-mixer_test: $(OBJ)
-	g++ -o $@ $^ $(CFLAGS) $(LIBS)
+autodeclination_test: $(SBUS2_FILES)
+	$(CC) -o autodeclination_test $(AUTODECLINATION_FILES) $(CFLAGS)
 
 .PHONY: clean
 
 clean:
-	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~
+	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~ mixer_test sbus2_test autodeclination_test

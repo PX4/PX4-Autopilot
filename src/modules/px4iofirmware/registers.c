@@ -463,9 +463,18 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			#ifdef ENABLE_SBUS_OUT
 			ENABLE_SBUS_OUT(value & (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT));
 
-			/* disable the conflicting options */
-			if (value & (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT)) {
-				value &= ~(PX4IO_P_SETUP_FEATURES_PWM_RSSI | PX4IO_P_SETUP_FEATURES_ADC_RSSI);
+			/* disable the conflicting options with SBUS 1 */
+			if (value & (PX4IO_P_SETUP_FEATURES_SBUS1_OUT)) {
+				value &= ~(PX4IO_P_SETUP_FEATURES_PWM_RSSI |
+					PX4IO_P_SETUP_FEATURES_ADC_RSSI |
+					PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
+			}
+
+			/* disable the conflicting options with SBUS 2 */
+			if (value & (PX4IO_P_SETUP_FEATURES_SBUS2_OUT)) {
+				value &= ~(PX4IO_P_SETUP_FEATURES_PWM_RSSI |
+					PX4IO_P_SETUP_FEATURES_ADC_RSSI |
+					PX4IO_P_SETUP_FEATURES_SBUS1_OUT);
 			}
 			#endif
 
@@ -568,6 +577,12 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 		case PX4IO_P_SETUP_DSM:
 			dsm_bind(value & 0x0f, (value >> 4) & 0xF);
+			break;
+
+		case PX4IO_P_SETUP_FORCE_SAFETY_OFF:
+			if (value == PX4IO_FORCE_SAFETY_MAGIC) {
+				r_status_flags |= PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
+			}
 			break;
 
 		default:

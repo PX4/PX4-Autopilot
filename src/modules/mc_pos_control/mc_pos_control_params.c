@@ -174,16 +174,28 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_XY_FF, 0.5f);
 
 /**
- * Maximum tilt
+ * Maximum tilt angle in air
  *
- * Limits maximum tilt in AUTO and EASY modes.
+ * Limits maximum tilt in AUTO and EASY modes during flight.
  *
  * @unit deg
  * @min 0.0
  * @max 90.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_TILT_MAX, 45.0f);
+PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.0f);
+
+/**
+ * Maximum tilt during landing
+ *
+ * Limits maximum tilt angle on landing.
+ *
+ * @unit deg
+ * @min 0.0
+ * @max 90.0
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 15.0f);
 
 /**
  * Landing descend rate
@@ -194,14 +206,3 @@ PARAM_DEFINE_FLOAT(MPC_TILT_MAX, 45.0f);
  */
 PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 1.0f);
 
-/**
- * Maximum landing tilt
- *
- * Limits maximum tilt on landing.
- *
- * @unit deg
- * @min 0.0
- * @max 90.0
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_LAND_TILT, 15.0f);

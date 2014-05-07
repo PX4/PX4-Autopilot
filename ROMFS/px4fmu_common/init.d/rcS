@@ -120,6 +120,8 @@ then
 	set EXIT_ON_END no
 	set MAV_TYPE none
 	set LOAD_DEFAULT_APPS yes
+	set GPS yes
+	set GPS_FAKE no
 	
 	#
 	# Set DO_AUTOCONFIG flag to use it in AUTOSTART scripts
@@ -246,7 +248,7 @@ then
 		echo "[init] ERROR: PX4IO not found, disabling output"
 		
 		# Avoid using ttyS0 for MAVLink on FMUv1
-		if hw_ver compare PX4FMU_V1
+		if ver hwcmp PX4FMU_V1
 		then
 			set FMU_MODE serial
 		fi
@@ -260,7 +262,7 @@ then
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
-		if hw_ver compare PX4FMU_V1
+		if ver hwcmp PX4FMU_V1
 		then
 			set FMU_MODE serial
 		fi
@@ -306,7 +308,7 @@ then
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 			
-			if hw_ver compare PX4FMU_V1
+			if ver hwcmp PX4FMU_V1
 			then
 				if [ $FMU_MODE == pwm -o $FMU_MODE == gpio ]
 				then
@@ -381,7 +383,7 @@ then
 					tone_alarm $TUNE_OUT_ERROR
 				fi
 	
-				if hw_ver compare PX4FMU_V1
+				if ver hwcmp PX4FMU_V1
 				then
 					if [ $FMU_MODE == pwm -o $FMU_MODE == gpio ]
 					then
@@ -437,9 +439,19 @@ then
 		echo "[init] Start logging"
 		sh /etc/init.d/rc.logging
 	fi
-
-	gps start
 	
+	if [ $GPS == yes ]
+	then
+		echo "[init] Start GPS"
+		if [ $GPS_FAKE == yes ]
+		then
+			echo "[init] Faking GPS"
+			gps start -f
+		else
+			gps start
+		fi		
+	fi
+
 	#
 	# Start up ARDrone Motor interface
 	#
