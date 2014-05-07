@@ -1403,7 +1403,9 @@ Sensors::rc_poll()
 
 			/* limit controls */
 			manual.roll = get_rc_value(ROLL, -1.0, 1.0);
-			manual.pitch = get_rc_value(PITCH, -1.0, 1.0);
+			/* pitch input: stick down is negative, but stick down
+			 * is pitching up (pos) in NED, so reverse sign. */
+			manual.pitch = -get_rc_value(PITCH, -1.0, 1.0);
 			manual.yaw = get_rc_value(YAW, -1.0, 1.0);
 			manual.throttle = get_rc_value(THROTTLE, 0.0, 1.0);
 			manual.flaps = get_rc_value(FLAPS, -1.0, 1.0);
