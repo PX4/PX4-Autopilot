@@ -936,7 +936,7 @@ FixedwingEstimator::task_main()
 				{
 					const char* str = "switching to dynamic state";
 					warnx("%s", str);
-					mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
+					mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
 					break;
 				}
 
