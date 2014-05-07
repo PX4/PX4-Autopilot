@@ -683,6 +683,25 @@ PX4IO::init()
 
 		/* send command to arm system via command API */
 		vehicle_command_s cmd;
+		/* send this to itself */
+		param_t sys_id_param = param_find("MAV_SYS_ID");
+		param_t comp_id_param = param_find("MAV_COMP_ID");
+
+		int32_t sys_id;
+		int32_t comp_id;
+
+		if (param_get(sys_id_param, &sys_id)) {
+			errx(1, "PRM SYSID");
+		}
+
+		if (param_get(comp_id_param, &comp_id)) {
+			errx(1, "PRM CMPID");
+		}
+
+		cmd.target_system = sys_id;
+		cmd.target_component = comp_id;
+		cmd.source_system = sys_id;
+		cmd.source_component = comp_id;
 		/* request arming */
 		cmd.param1 = 1.0f;
 		cmd.param2 = 0;
@@ -692,10 +711,7 @@ PX4IO::init()
 		cmd.param6 = 0;
 		cmd.param7 = 0;
 		cmd.command = VEHICLE_CMD_COMPONENT_ARM_DISARM;
-		// cmd.target_system = status.system_id;
-		// cmd.target_component = status.component_id;
-		// cmd.source_system = status.system_id;
-		// cmd.source_component = status.component_id;
+
 		/* ask to confirm command */
 		cmd.confirmation =  1;
 

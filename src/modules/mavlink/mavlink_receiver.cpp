@@ -217,6 +217,12 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 			_mavlink->_task_should_exit = true;
 
 		} else {
+
+			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
+				warnx("ignoring CMD spoofed with same SYS/COMP ID");
+				return;
+			}
+
 			struct vehicle_command_s vcmd;
 			memset(&vcmd, 0, sizeof(vcmd));
 
@@ -432,8 +438,8 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	memset(&manual, 0, sizeof(manual));
 
 	manual.timestamp = hrt_absolute_time();
-	manual.roll = man.x / 1000.0f;
-	manual.pitch = man.y / 1000.0f;
+	manual.pitch = man.x / 1000.0f;
+	manual.roll = man.y / 1000.0f;
 	manual.yaw = man.r / 1000.0f;
 	manual.throttle = man.z / 1000.0f;
 
