@@ -17,7 +17,9 @@
  * Debug output
  */
 #ifndef UAVCAN_STM32_TRACE
-# if UAVCAN_STM32_NUTTX && CONFIG_ARCH_LOWPUTC
+// lowsyslog() crashes the system in this context
+//# if UAVCAN_STM32_NUTTX && CONFIG_ARCH_LOWPUTC
+# if 0
 #  define UAVCAN_STM32_LOG(fmt, ...)  lowsyslog("uavcan_stm32: " fmt "\n", ##__VA_ARGS__)
 # else
 #  define UAVCAN_STM32_LOG(...)       ((void)0)
