@@ -36,4 +36,31 @@
 
 #include <uavcan_stm32/uavcan_stm32.hpp>
 
-// ...
+/**
+ * Implements basic functinality of UAVCAN node.
+ */
+class UavcanNode
+{
+	static constexpr unsigned MemPoolSize        = 10752;
+	static constexpr unsigned RxQueueLenPerIface = 64;
+	static constexpr unsigned StackSize          = 3000;
+
+public:
+	typedef uavcan::Node<MemPoolSize> Node;
+	typedef uavcan_stm32::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
+
+	UavcanNode(uavcan::ICanDriver& can_driver, uavcan::ISystemClock& system_clock)
+		: _node(can_driver, system_clock)
+	{ }
+
+	static int start(uavcan::NodeID node_id, uint32_t bitrate);
+
+	Node& getNode() { return _node; }
+
+private:
+	int init(uavcan::NodeID node_id);
+	int run();
+
+	static UavcanNode* _instance;
+	Node _node;
+};

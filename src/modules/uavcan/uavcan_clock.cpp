@@ -60,6 +60,13 @@ uavcan::uint64_t getUtcUSecFromCanInterrupt()
 	return 0;
 }
 
+} // namespace clock
+
+SystemClock& SystemClock::instance()
+{
+	static SystemClock inst;
+	return inst;
 }
+
 }
 
