@@ -513,7 +513,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		if (!_v_control_mode.flag_control_velocity_enabled) {
 			/* update attitude setpoint if not in position control mode */
 			_v_att_sp.roll_body = _manual_control_sp.roll * _params.man_roll_max;
-			_v_att_sp.pitch_body = -_manual_control_sp.pitch * _params.man_pitch_max;
+			_v_att_sp.pitch_body = _manual_control_sp.pitch * _params.man_pitch_max;
 			_v_att_sp.R_valid = false;
 			publish_att_sp = true;
 		}
