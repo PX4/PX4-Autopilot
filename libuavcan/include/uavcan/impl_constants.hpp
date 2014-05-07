@@ -76,7 +76,12 @@
  * It might make sense to remove toString() methods for an embedded system
  */
 #ifndef UAVCAN_TOSTRING
-# define UAVCAN_TOSTRING 1
+// Objective is to make sure that we're NOT on a resource constrained platform
+# if __linux__ || __linux || __APPLE__ || _WIN64 || _WIN32
+#  define UAVCAN_TOSTRING 1
+# else
+#  define UAVCAN_TOSTRING 0
+# endif
 #endif
 
 #if UAVCAN_TOSTRING
