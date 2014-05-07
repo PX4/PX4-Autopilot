@@ -484,6 +484,11 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
             if (cmd->param1 != 0.0f && (fabsf(cmd->param1 - 1.0f) > 2.0f * FLT_EPSILON)) {
 				mavlink_log_info(mavlink_fd, "Unsupported ARM_DISARM parameter: %.6f", cmd->param1);
             } else {
+
+		// Flick to inair restore first if this comes from an onboard system
+		if (cmd->source_system == status->system_id && cmd->source_component == status->component_id) {
+			status->arming_state = ARMING_STATE_IN_AIR_RESTORE;
+		}
                 transition_result_t arming_res = arm_disarm(cmd->param1 != 0.0f, mavlink_fd, "arm/disarm component command");
                 if (arming_res == TRANSITION_DENIED) {
                     mavlink_log_critical(mavlink_fd, "#audio: REJECTING component arm cmd");
