@@ -49,9 +49,9 @@ SRCS += uavcan_main.cpp \
 include $(UAVCAN_DIR)/libuavcan/include.mk
 SRCS += $(LIBUAVCAN_SRC)
 INCLUDE_DIRS += $(LIBUAVCAN_INC)
-EXTRADEFINES += -DUAVCAN_MEM_POOL_BLOCK_SIZE=56 \
-                -DUAVCAN_TOSTRING=0 \
-                -DUAVCAN_CPP_VERSION=UAVCAN_CPP03
+# Since actual compiler mode is C++11, the library will default to UAVCAN_CPP11, but it will fail to compile
+# because this platform lacks most of the standard library and STL. Hence we need to force C++03 mode.
+EXTRADEFINES += -DUAVCAN_CPP_VERSION=UAVCAN_CPP03
 
 #
 # libuavcan drivers for STM32
