@@ -1,6 +1,6 @@
 /*
- * Copyright (C);2014 Pavel Kirienko <pavel.kirienko@gmail.com>
- * Partly from NuttX STM32 CAN driver.
+ * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
+ * Bit definitions were copied from NuttX STM32 CAN driver.
  */
 
 #pragma once
