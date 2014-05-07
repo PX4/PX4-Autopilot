@@ -625,8 +625,8 @@ FixedwingEstimator::task_main()
 
 			/* Reset baro reference if switching to HIL, reset sensor states */
 			if (!prev_hil && (_vstatus.hil_state == HIL_STATE_ON)) {
-				/* system is in HIL now, we got plenty of time - make sure real sensors are off */
-				usleep(250000);
+				/* system is in HIL now, wait for measurements to come in one last round */
+				usleep(65000);
 
 #ifndef SENSOR_COMBINED_SUB
 				orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &_gyro);
@@ -1399,13 +1399,13 @@ int FixedwingEstimator::trip_nan() {
 		_ekf->states[5] = nan_val;
 		usleep(100000);
 
-		// warnx("tripping covariance #1 with NaN values");
-		// KH[2][2] = nan_val; //  intermediate result used for covariance updates
-		// usleep(100000);
+		warnx("tripping covariance #1 with NaN values");
+		_ekf->KH[2][2] = nan_val; //  intermediate result used for covariance updates
+		usleep(100000);
 
-		// warnx("tripping covariance #2 with NaN values");
-		// KHP[5][5] = nan_val; // intermediate result used for covariance updates
-		// usleep(100000);
+		warnx("tripping covariance #2 with NaN values");
+		_ekf->KHP[5][5] = nan_val; // intermediate result used for covariance updates
+		usleep(100000);
 
 		warnx("tripping covariance #3 with NaN values");
 		_ekf->P[3][3] = nan_val; // covariance matrix
