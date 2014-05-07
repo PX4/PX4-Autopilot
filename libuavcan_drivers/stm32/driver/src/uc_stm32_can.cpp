@@ -39,7 +39,9 @@
 extern "C"
 {
 static int can1_irq(const int irq, void*);
+#if UAVCAN_STM32_NUM_IFACES > 1
 static int can2_irq(const int irq, void*);
+#endif
 }
 #endif
 
