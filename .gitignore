@@ -38,3 +38,5 @@ tags
 .tags_sorted_by_file
 .pydevproject
 /uavcan
+.ropeproject
+*.orig

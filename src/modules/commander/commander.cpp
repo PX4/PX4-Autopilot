@@ -117,9 +117,10 @@ extern struct system_load_s system_load;
 #define STICK_ON_OFF_HYSTERESIS_TIME_MS 1000
 #define STICK_ON_OFF_COUNTER_LIMIT (STICK_ON_OFF_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
-#define POSITION_TIMEOUT 100000 /**< consider the local or global position estimate invalid after 100ms */
-#define RC_TIMEOUT 500000
-#define DIFFPRESS_TIMEOUT 2000000
+#define POSITION_TIMEOUT		(600 * 1000)		/**< consider the local or global position estimate invalid after 600ms */
+#define FAILSAFE_DEFAULT_TIMEOUT	(3 * 1000 * 1000)	/**< hysteresis time - the failsafe will trigger after 3 seconds in this state */
+#define RC_TIMEOUT			500000
+#define DIFFPRESS_TIMEOUT		2000000
 
 #define PRINT_INTERVAL	5000000
 #define PRINT_MODE_REJECT_INTERVAL	2000000
@@ -484,6 +485,11 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
             if (cmd->param1 != 0.0f && (fabsf(cmd->param1 - 1.0f) > 2.0f * FLT_EPSILON)) {
 				mavlink_log_info(mavlink_fd, "Unsupported ARM_DISARM parameter: %.6f", cmd->param1);
             } else {
+
+		// Flick to inair restore first if this comes from an onboard system
+		if (cmd->source_system == status->system_id && cmd->source_component == status->component_id) {
+			status->arming_state = ARMING_STATE_IN_AIR_RESTORE;
+		}
                 transition_result_t arming_res = arm_disarm(cmd->param1 != 0.0f, mavlink_fd, "arm/disarm component command");
                 if (arming_res == TRANSITION_DENIED) {
                     mavlink_log_critical(mavlink_fd, "#audio: REJECTING component arm cmd");
@@ -741,8 +747,9 @@ int commander_thread_main(int argc, char *argv[])
 	bool low_battery_voltage_actions_done = false;
 	bool critical_battery_voltage_actions_done = false;
 
-	uint64_t last_idle_time = 0;
-	uint64_t start_time = 0;
+	hrt_abstime last_idle_time = 0;
+	hrt_abstime start_time = 0;
+	hrt_abstime last_auto_state_valid = 0;
 
 	bool status_changed = true;
 	bool param_init_forced = true;
@@ -771,6 +778,9 @@ int commander_thread_main(int argc, char *argv[])
 	int global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	struct vehicle_global_position_s global_position;
 	memset(&global_position, 0, sizeof(global_position));
+	/* Init EPH and EPV */
+	global_position.eph = 1000.0f;
+	global_position.epv = 1000.0f;
 
 	/* Subscribe to local position data */
 	int local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
@@ -933,11 +943,15 @@ int commander_thread_main(int argc, char *argv[])
 		if (status.condition_global_position_valid) {
 			if (global_position.eph > eph_epv_threshold * 2.0f || global_position.epv > eph_epv_threshold * 2.0f) {
 				eph_epv_good = false;
+			} else {
+				eph_epv_good = true;
 			}
 
 		} else {
 			if (global_position.eph < eph_epv_threshold && global_position.epv < eph_epv_threshold) {
 				eph_epv_good = true;
+			} else {
+				eph_epv_good = false;
 			}
 		}
 		check_valid(global_position.timestamp, POSITION_TIMEOUT, eph_epv_good, &(status.condition_global_position_valid), &status_changed);
@@ -1259,13 +1273,25 @@ int commander_thread_main(int argc, char *argv[])
 					/* check if AUTO mode still allowed */
 					transition_result_t res = main_state_transition(&status, MAIN_STATE_AUTO);
 
-					if (res == TRANSITION_DENIED) {
+					if (res == TRANSITION_NOT_CHANGED) {
+						last_auto_state_valid = hrt_absolute_time();
+					}
+
+					/* still invalid state after the timeout interval, execute failsafe */
+					if ((hrt_elapsed_time(&last_auto_state_valid) > FAILSAFE_DEFAULT_TIMEOUT) && (res == TRANSITION_DENIED)) {
 						/* AUTO mode denied, don't try RTL, switch to failsafe state LAND */
 						res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
 
 						if (res == TRANSITION_DENIED) {
 							/* LAND not allowed, set TERMINATION state */
 							transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
+
+							if (res == TRANSITION_CHANGED) {
+								mavlink_log_critical(mavlink_fd, "#a FAILSAFE: TERMINATION");
+							}
+
+						} else if (res == TRANSITION_CHANGED) {
+							mavlink_log_critical(mavlink_fd, "#a FAILSAFE: LANDING");
 						}
 					}
 
@@ -1276,15 +1302,25 @@ int commander_thread_main(int argc, char *argv[])
 					if (!status.condition_landed) {
 						/* vehicle is not landed, try to perform RTL */
 						res = failsafe_state_transition(&status, FAILSAFE_STATE_RTL);
+
+						if (res == TRANSITION_CHANGED) {
+							mavlink_log_critical(mavlink_fd, "#a FAILSAFE: RETURN TO LAND");
+						}
 					}
 
 					if (res == TRANSITION_DENIED) {
 						/* RTL not allowed (no global position estimate) or not wanted, try LAND */
 						res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
 
+						if (res == TRANSITION_CHANGED) {
+							mavlink_log_critical(mavlink_fd, "#a FAILSAFE: LANDING");
+						}
+
 						if (res == TRANSITION_DENIED) {
 							/* LAND not allowed, set TERMINATION state */
 							res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
+						} else if (res == TRANSITION_CHANGED) {
+							mavlink_log_critical(mavlink_fd, "#a FAILSAFE: TERMINATION");
 						}
 					}
 				}
