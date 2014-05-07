@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
- *   Author: Pavel Kirienko <pavel.kirienko@gmail.com>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,7 +36,15 @@
 #include <uavcan_stm32/uavcan_stm32.hpp>
 
 /**
- * Implements basic functinality of UAVCAN node.
+ * @file uavcan_main.hpp
+ *
+ * Defines basic functinality of UAVCAN node.
+ *
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ */
+
+/**
+ * A UAVCAN node.
  */
 class UavcanNode
 {
@@ -49,18 +56,18 @@ public:
 	typedef uavcan::Node<MemPoolSize> Node;
 	typedef uavcan_stm32::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
 
-	UavcanNode(uavcan::ICanDriver& can_driver, uavcan::ISystemClock& system_clock)
+	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock)
 		: _node(can_driver, system_clock)
 	{ }
 
 	static int start(uavcan::NodeID node_id, uint32_t bitrate);
 
-	Node& getNode() { return _node; }
+	Node &getNode() { return _node; }
 
 private:
 	int init(uavcan::NodeID node_id);
 	int run();
 
-	static UavcanNode* _instance;
+	static UavcanNode *_instance;		///< pointer to the library instance
 	Node _node;
 };

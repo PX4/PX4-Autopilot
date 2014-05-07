@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
- *   Author: Pavel Kirienko <pavel.kirienko@gmail.com>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,10 +39,18 @@
 #include <arch/chip/chip.h>
 #include "uavcan_main.hpp"
 
+/**
+ * @file uavcan_main.cpp
+ *
+ * Implements basic functinality of UAVCAN node.
+ *
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ */
+
 /*
  * UavcanNode
  */
-UavcanNode* UavcanNode::_instance;
+UavcanNode *UavcanNode::_instance;
 
 int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 {
@@ -58,22 +65,25 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	 * If no transceiver is connected, the RX pin will float, occasionally causing CAN controller to
 	 * fail during initialization.
 	 */
-	stm32_configgpio (GPIO_CAN1_RX);
-	stm32_configgpio (GPIO_CAN1_TX);
+	stm32_configgpio(GPIO_CAN1_RX);
+	stm32_configgpio(GPIO_CAN1_TX);
 	stm32_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
-	stm32_configgpio (GPIO_CAN2_TX);
+	stm32_configgpio(GPIO_CAN2_TX);
 
 	/*
 	 * CAN driver init
 	 */
 	static CanInitHelper can;
 	static bool can_initialized = false;
+
 	if (!can_initialized) {
 		const int can_init_res = can.init(bitrate);
+
 		if (can_init_res < 0) {
 			warnx("CAN driver init failed %i", can_init_res);
 			return can_init_res;
 		}
+
 		can_initialized = true;
 	}
 
@@ -81,11 +91,14 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	 * Node init
 	 */
 	_instance = new UavcanNode(can.driver, uavcan_stm32::SystemClock::instance());
+
 	if (_instance == nullptr) {
 		warnx("Out of memory");
 		return -1;
 	}
+
 	const int node_init_res = _instance->init(node_id);
+
 	if (node_init_res < 0) {
 		delete _instance;
 		_instance = nullptr;
@@ -96,9 +109,9 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	/*
 	 * Start the task. Normally it should never exit.
 	 */
-	static auto run_trampoline = [](int, char*[]) {return UavcanNode::_instance->run();};
+	static auto run_trampoline = [](int, char *[]) {return UavcanNode::_instance->run();};
 	return task_spawn_cmd("uavcan", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, StackSize,
-	        static_cast<main_t>(run_trampoline), nullptr);
+			      static_cast<main_t>(run_trampoline), nullptr);
 }
 
 int UavcanNode::init(uavcan::NodeID node_id)
@@ -123,14 +136,17 @@ int UavcanNode::init(uavcan::NodeID node_id)
 int UavcanNode::run()
 {
 	_node.setStatusOk();
+
 	while (true) {
 		// TODO: ORB multiplexing
 		const int res = _node.spin(uavcan::MonotonicDuration::getInfinite());
+
 		if (res < 0) {
 			warnx("Spin error %i", res);
 			::sleep(1);
 		}
 	}
+
 	return -1;
 }
 
@@ -158,32 +174,40 @@ int uavcan_main(int argc, char *argv[])
 			print_usage();
 			::exit(1);
 		}
+
 		/*
 		 * Node ID
 		 */
 		const int node_id = atoi(argv[2]);
+
 		if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
 			warnx("Invalid Node ID %i", node_id);
 			::exit(1);
 		}
+
 		/*
 		 * CAN bitrate
 		 */
 		long bitrate = 0;
+
 		if (argc > 3) {
 			bitrate = atol(argv[3]);
 		}
+
 		if (bitrate <= 0) {
 			bitrate = DEFAULT_CAN_BITRATE;
 		}
+
 		/*
 		 * Start
 		 */
 		warnx("Node ID %i, bitrate %li", node_id, bitrate);
 		return UavcanNode::start(node_id, bitrate);
+
 	} else {
 		print_usage();
 		::exit(1);
 	}
+
 	return 0;
 }
