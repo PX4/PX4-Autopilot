@@ -1029,7 +1029,7 @@ FixedwingEstimator::task_main()
 
 				float initVelNED[3];
 
-				if (!_gps_initialized && _gps.fix_type > 2 && _gps.eph_m < _parameters.pos_stddev_threshold && _gps.epv_m < _parameters.pos_stddev_threshold) {
+				if (!_gps_initialized && _gps.fix_type > 2 && _gps.eph < _parameters.pos_stddev_threshold && _gps.epv < _parameters.pos_stddev_threshold) {
 
 					initVelNED[0] = _gps.vel_n_m_s;
 					initVelNED[1] = _gps.vel_e_m_s;
