@@ -114,6 +114,8 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 
     void handleTxMailboxInterrupt(uavcan::uint8_t mailbox_index, bool txok, uavcan::uint64_t utc_usec);
 
+    bool waitMsrINakBitStateChange(bool target_state);
+
 public:
     enum { MaxRxQueueCapacity = 254 };
 
@@ -135,7 +137,6 @@ public:
      * Assumes:
      *   - Iface clock is enabled
      *   - Iface has been resetted via RCC
-     *   - Interrupts are disabled
      *   - Caller will configure NVIC by itself
      */
     int init(uavcan::uint32_t bitrate);
