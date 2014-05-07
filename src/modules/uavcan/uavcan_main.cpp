@@ -162,7 +162,7 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
 
 int uavcan_main(int argc, char *argv[])
 {
-	constexpr long DEFAULT_CAN_BITRATE = 1000000;
+	constexpr unsigned DEFAULT_CAN_BITRATE = 1000000;
 
 	if (argc < 2) {
 		print_usage();
@@ -188,7 +188,7 @@ int uavcan_main(int argc, char *argv[])
 		/*
 		 * CAN bitrate
 		 */
-		long bitrate = 0;
+		unsigned bitrate = 0;
 
 		if (argc > 3) {
 			bitrate = atol(argv[3]);
@@ -201,7 +201,7 @@ int uavcan_main(int argc, char *argv[])
 		/*
 		 * Start
 		 */
-		warnx("Node ID %i, bitrate %li", node_id, bitrate);
+		warnx("Node ID %u, bitrate %u", node_id, bitrate);
 		return UavcanNode::start(node_id, bitrate);
 
 	} else {
