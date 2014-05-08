@@ -284,7 +284,17 @@ then
 	# If OUTPUT_MODE == none then something is wrong with setup and we shouldn't try to enable output
 	if [ $OUTPUT_MODE != none ]
 	then
-		if [ $OUTPUT_MODE == io ]
+		if [ $OUTPUT_MODE == can ]
+		then
+			if uavcan start 1
+			then
+				echo "CAN UP"
+			else
+				echo "CAN ERR"
+			fi
+		fi
+
+		if [ $OUTPUT_MODE == io -o $OUTPUT_MODE == can ]
 		then
 			echo "[init] Use PX4IO PWM as primary output"
 			if px4io start
