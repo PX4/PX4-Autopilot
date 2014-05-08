@@ -23,14 +23,20 @@
 namespace uavcan_stm32
 {
 
+class CanDriver;
+
 #if UAVCAN_STM32_CHIBIOS
 
-class Event
+class BusEvent
 {
     chibios_rt::CounterSemaphore sem_;
 
 public:
-    Event() : sem_(0) { }
+    BusEvent(CanDriver& can_driver)
+        : sem_(0)
+    {
+        (void)can_driver;
+    }
 
     bool wait(uavcan::MonotonicDuration duration);
 
@@ -50,24 +56,24 @@ public:
 
 #elif UAVCAN_STM32_NUTTX
 
-class Event : uavcan::Noncopyable
+class BusEvent : uavcan::Noncopyable
 {
     static const unsigned MaxPollWaiters = 8;
-    static const unsigned PollEvents = POLLIN | POLLOUT;
 
     ::file_operations file_ops_;
     ::pollfd* pollset_[MaxPollWaiters];
+    CanDriver& can_driver_;
     bool signal_;
 
     static int openTrampoline(::file* filp);
     static int closeTrampoline(::file* filp);
     static int pollTrampoline(::file* filp, ::pollfd* fds, bool setup);
 
-    ::timespec computeDeadline(uavcan::MonotonicDuration duration);
-
     int open(::file* filp);
     int close(::file* filp);
     int poll(::file* filp, ::pollfd* fds, bool setup);
+
+    unsigned makePollMask() const;
 
     int addPollWaiter(::pollfd* fds);
     int removePollWaiter(::pollfd* fds);
@@ -75,8 +81,8 @@ class Event : uavcan::Noncopyable
 public:
     static const char* const DevName;
 
-    Event();
-    ~Event();
+    BusEvent(CanDriver& can_driver);
+    ~BusEvent();
 
     bool wait(uavcan::MonotonicDuration duration);
 

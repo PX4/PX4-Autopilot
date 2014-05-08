@@ -93,7 +93,7 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
     RxQueue rx_queue_;
     bxcan::CanType* const can_;
     uavcan::uint64_t error_cnt_;
-    Event& update_event_;
+    BusEvent& update_event_;
     TxItem pending_tx_[NumTxMailboxes];
     uavcan::uint8_t last_hw_error_code_;
     const uavcan::uint8_t self_index_;
@@ -121,7 +121,7 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 public:
     enum { MaxRxQueueCapacity = 254 };
 
-    CanIface(bxcan::CanType* can, Event& update_event, uavcan::uint8_t self_index,
+    CanIface(bxcan::CanType* can, BusEvent& update_event, uavcan::uint8_t self_index,
              CanRxItem* rx_queue_buffer, uavcan::uint8_t rx_queue_capacity)
         : rx_queue_(rx_queue_buffer, rx_queue_capacity)
         , can_(can)
@@ -181,26 +181,27 @@ public:
  */
 class CanDriver : public uavcan::ICanDriver, uavcan::Noncopyable
 {
-    Event update_event_;
+    BusEvent update_event_;
     CanIface if0_;
 #if UAVCAN_STM32_NUM_IFACES > 1
     CanIface if1_;
 #endif
-
-    uavcan::CanSelectMasks makeSelectMasks() const;
 
     virtual uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks, uavcan::MonotonicTime blocking_deadline);
 
 public:
     template <unsigned RxQueueCapacity>
     CanDriver(CanRxItem (&rx_queue_storage)[UAVCAN_STM32_NUM_IFACES][RxQueueCapacity])
-        : if0_(bxcan::Can[0], update_event_, 0, rx_queue_storage[0], RxQueueCapacity)
+        : update_event_(*this)
+        , if0_(bxcan::Can[0], update_event_, 0, rx_queue_storage[0], RxQueueCapacity)
 #if UAVCAN_STM32_NUM_IFACES > 1
         , if1_(bxcan::Can[1], update_event_, 1, rx_queue_storage[1], RxQueueCapacity)
 #endif
     {
         uavcan::StaticAssert<(RxQueueCapacity <= CanIface::MaxRxQueueCapacity)>::check();
     }
+
+    uavcan::CanSelectMasks makeSelectMasks() const;
 
     int init(uavcan::uint32_t bitrate);
 

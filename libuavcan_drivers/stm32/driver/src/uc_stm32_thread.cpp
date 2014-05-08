@@ -4,6 +4,7 @@
 
 #include <uavcan_stm32/thread.hpp>
 #include <uavcan_stm32/clock.hpp>
+#include <uavcan_stm32/can.hpp>
 #include "internal.hpp"
 
 namespace uavcan_stm32
@@ -11,9 +12,9 @@ namespace uavcan_stm32
 
 #if UAVCAN_STM32_CHIBIOS
 /*
- * Event
+ * BusEvent
  */
-bool Event::wait(uavcan::MonotonicDuration duration)
+bool BusEvent::wait(uavcan::MonotonicDuration duration)
 {
     static const uavcan::int64_t MaxDelayMSec = 0x000FFFFF;
 
@@ -31,12 +32,12 @@ bool Event::wait(uavcan::MonotonicDuration duration)
     return ret == RDY_OK;
 }
 
-void Event::signal()
+void BusEvent::signal()
 {
     sem_.signal();
 }
 
-void Event::signalFromInterrupt()
+void BusEvent::signalFromInterrupt()
 {
     chSysLockFromIsr();
     sem_.signalI();
@@ -58,58 +59,37 @@ void Mutex::unlock()
 
 #elif UAVCAN_STM32_NUTTX
 
-const unsigned Event::MaxPollWaiters;
-const unsigned Event::PollEvents;
-const char* const Event::DevName = "/dev/uavcan/busevent";
+const unsigned BusEvent::MaxPollWaiters;
+const char* const BusEvent::DevName = "/dev/uavcan/busevent";
 
-int Event::openTrampoline(::file* filp)
+int BusEvent::openTrampoline(::file* filp)
 {
-    return static_cast<Event*>(filp->f_inode->i_private)->open(filp);
+    return static_cast<BusEvent*>(filp->f_inode->i_private)->open(filp);
 }
 
-int Event::closeTrampoline(::file* filp)
+int BusEvent::closeTrampoline(::file* filp)
 {
-    return static_cast<Event*>(filp->f_inode->i_private)->close(filp);
+    return static_cast<BusEvent*>(filp->f_inode->i_private)->close(filp);
 }
 
-int Event::pollTrampoline(::file* filp, ::pollfd* fds, bool setup)
+int BusEvent::pollTrampoline(::file* filp, ::pollfd* fds, bool setup)
 {
-    return static_cast<Event*>(filp->f_inode->i_private)->poll(filp, fds, setup);
+    return static_cast<BusEvent*>(filp->f_inode->i_private)->poll(filp, fds, setup);
 }
 
-::timespec Event::computeDeadline(uavcan::MonotonicDuration duration)
-{
-    if (duration.isNegative())
-    {
-        duration = uavcan::MonotonicDuration();
-    }
-    ::timespec deadline = ::timespec();
-    if (::clock_gettime(CLOCK_REALTIME, &deadline) >= 0)
-    {
-        deadline.tv_sec += duration.toUSec() / 1000000;
-        deadline.tv_nsec += (duration.toUSec() % 1000000) * 1000;
-        if (deadline.tv_nsec >= 1000000000L)
-        {
-            deadline.tv_sec += 1;
-            deadline.tv_nsec -= 1000000000L;
-        }
-    }
-    return deadline;
-}
-
-int Event::open(::file* filp)
+int BusEvent::open(::file* filp)
 {
     (void)filp;
     return 0;
 }
 
-int Event::close(::file* filp)
+int BusEvent::close(::file* filp)
 {
     (void)filp;
     return 0;
 }
 
-int Event::poll(::file* filp, ::pollfd* fds, bool setup)
+int BusEvent::poll(::file* filp, ::pollfd* fds, bool setup)
 {
     CriticalSectionLocker locker;
     int ret = -1;
@@ -119,11 +99,7 @@ int Event::poll(::file* filp, ::pollfd* fds, bool setup)
         ret = addPollWaiter(fds);
         if (ret == 0)
         {
-            const unsigned poll_state = signal_ ? PollEvents : 0;
-            signal_ = false;
-
-            // Update fds and signal immediately if needed
-            fds->revents |= fds->events & poll_state;
+            fds->revents |= fds->events & makePollMask();
             if (fds->revents != 0)
             {
                 (void)sem_post(fds->sem);
@@ -138,7 +114,22 @@ int Event::poll(::file* filp, ::pollfd* fds, bool setup)
     return ret;
 }
 
-int Event::addPollWaiter(::pollfd* fds)
+unsigned BusEvent::makePollMask() const
+{
+    const uavcan::CanSelectMasks select_masks = can_driver_.makeSelectMasks();
+    unsigned poll_mask = 0;
+    if (select_masks.read != 0)
+    {
+        poll_mask |= POLLIN;
+    }
+    if (select_masks.write != 0)
+    {
+        poll_mask |= POLLOUT;
+    }
+    return poll_mask;
+}
+
+int BusEvent::addPollWaiter(::pollfd* fds)
 {
     for (unsigned i = 0; i < MaxPollWaiters; i++)
     {
@@ -151,7 +142,7 @@ int Event::addPollWaiter(::pollfd* fds)
     return -ENOMEM;
 }
 
-int Event::removePollWaiter(::pollfd* fds)
+int BusEvent::removePollWaiter(::pollfd* fds)
 {
     for (unsigned i = 0; i < MaxPollWaiters; i++)
     {
@@ -164,14 +155,15 @@ int Event::removePollWaiter(::pollfd* fds)
     return -EINVAL;
 }
 
-Event::Event()
-    : signal_(false)
+BusEvent::BusEvent(CanDriver& can_driver)
+    : can_driver_(can_driver)
+    , signal_(false)
 {
     std::memset(&file_ops_, 0, sizeof(file_ops_));
     std::memset(pollset_, 0, sizeof(pollset_));
-    file_ops_.open  = &Event::openTrampoline;
-    file_ops_.close = &Event::closeTrampoline;
-    file_ops_.poll  = &Event::pollTrampoline;
+    file_ops_.open  = &BusEvent::openTrampoline;
+    file_ops_.close = &BusEvent::closeTrampoline;
+    file_ops_.poll  = &BusEvent::pollTrampoline;
     // TODO: move to init(), add proper error handling
     if (register_driver(DevName, &file_ops_, 0666, static_cast<void*>(this)) != 0)
     {
@@ -179,12 +171,12 @@ Event::Event()
     }
 }
 
-Event::~Event()
+BusEvent::~BusEvent()
 {
     (void)unregister_driver(DevName);
 }
 
-bool Event::wait(uavcan::MonotonicDuration duration)
+bool BusEvent::wait(uavcan::MonotonicDuration duration)
 {
     // TODO blocking wait
     const uavcan::MonotonicTime deadline = clock::getMonotonic() + duration;
@@ -203,15 +195,15 @@ bool Event::wait(uavcan::MonotonicDuration duration)
     return false;
 }
 
-void Event::signalFromInterrupt()
+void BusEvent::signalFromInterrupt()
 {
-    signal_ = true;
+    signal_ = true;  // HACK
     for (unsigned i = 0; i < MaxPollWaiters; i++)
     {
         ::pollfd* const fd = pollset_[i];
         if (fd != nullptr)
         {
-            fd->revents = fd->events & PollEvents;
+            fd->revents = fd->events & makePollMask();
             if ((fd->revents != 0) && (fd->sem->semcount <= 0))
             {
                 (void)sem_post(fd->sem);
