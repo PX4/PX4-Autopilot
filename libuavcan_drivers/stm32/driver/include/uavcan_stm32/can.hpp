@@ -112,6 +112,8 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 
     virtual uavcan::uint16_t getNumFilters() const { return NumFilters; }
 
+    void pollErrorState();
+
     void handleTxMailboxInterrupt(uavcan::uint8_t mailbox_index, bool txok, uavcan::uint64_t utc_usec);
 
     bool waitMsrINakBitStateChange(bool target_state);
@@ -143,7 +145,6 @@ public:
 
     void handleTxInterrupt(uavcan::uint64_t utc_usec);
     void handleRxInterrupt(uavcan::uint8_t fifo_index, uavcan::uint64_t utc_usec);
-    void handleStatusInterrupt();
 
     void discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time);
 
