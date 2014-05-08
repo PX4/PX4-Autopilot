@@ -63,6 +63,7 @@ static void	do_show(const char* search_string);
 static void	do_show_print(void *arg, param_t param);
 static void	do_set(const char* name, const char* val);
 static void	do_compare(const char* name, const char* vals[], unsigned comparisons);
+static void	do_reset();
 
 int
 param_main(int argc, char *argv[])
@@ -129,6 +130,10 @@ param_main(int argc, char *argv[])
 			} else {
 				errx(1, "not enough arguments.\nTry 'param compare PARAM_NAME 3'");
 			}
+		}
+
+		if (!strcmp(argv[1], "reset")) {
+			do_reset();
 		}
 	}
 	
@@ -401,4 +406,17 @@ do_compare(const char* name, const char* vals[], unsigned comparisons)
 	}
 
 	exit(ret);
+}
+
+static void
+do_reset()
+{
+	param_reset_all();
+
+	if (param_save_default()) {
+		warnx("Param export failed.");
+		exit(1);
+	} else {
+		exit(0);
+	}
 }
