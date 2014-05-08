@@ -284,7 +284,7 @@ int UavcanNode::run()
 			}
 
 			//can we mix?
-			if (_mixers != nullptr) {
+			if (controls_updated && (_mixers != nullptr)) {
 
 				// XXX one output group has 8 outputs max,
 				// but this driver could well serve multiple groups.
