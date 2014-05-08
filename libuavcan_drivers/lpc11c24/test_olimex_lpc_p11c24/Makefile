@@ -17,10 +17,7 @@ INC = -Isrc/sys                         \
 # UAVCAN library
 #
 
-DEF += -DUAVCAN_MEM_POOL_BLOCK_SIZE=56  \
-       -DUAVCAN_TOSTRING=0              \
-       -DUAVCAN_EXCEPTIONS=0            \
-       -DUAVCAN_TINY=1
+DEF += -DUAVCAN_TINY=1
 
 include ../../../libuavcan/include.mk
 CPPSRC += $(LIBUAVCAN_SRC)
