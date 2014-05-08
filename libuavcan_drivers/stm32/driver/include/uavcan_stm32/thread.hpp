@@ -7,8 +7,13 @@
 #if UAVCAN_STM32_CHIBIOS
 # include <ch.hpp>
 #elif UAVCAN_STM32_NUTTX
-# include <semaphore.h>
-# include <time.h>
+# include <nuttx/config.h>
+# include <nuttx/fs/fs.h>
+# include <poll.h>
+# include <errno.h>
+# include <cstdio>
+# include <ctime>
+# include <cstring>
 #else
 # error "Unknown OS"
 #endif
@@ -47,15 +52,33 @@ public:
 
 class Event : uavcan::Noncopyable
 {
-    sem_t sem_;
+    static const unsigned MaxPollWaiters = 8;
+    static const unsigned PollEvents = POLLIN | POLLOUT;
+
+    ::file_operations file_ops_;
+    ::pollfd* pollset_[MaxPollWaiters];
+    bool signal_;
+
+    static int openTrampoline(::file* filp);
+    static int closeTrampoline(::file* filp);
+    static int pollTrampoline(::file* filp, ::pollfd* fds, bool setup);
+
+    ::timespec computeDeadline(uavcan::MonotonicDuration duration);
+
+    int open(::file* filp);
+    int close(::file* filp);
+    int poll(::file* filp, ::pollfd* fds, bool setup);
+
+    int addPollWaiter(::pollfd* fds);
+    int removePollWaiter(::pollfd* fds);
 
 public:
+    static const char* const DevName;
+
     Event();
     ~Event();
 
     bool wait(uavcan::MonotonicDuration duration);
-
-    void signal();
 
     void signalFromInterrupt();
 };
