@@ -45,12 +45,13 @@ public:
 
 #elif UAVCAN_STM32_NUTTX
 
-class Event
+class Event : uavcan::Noncopyable
 {
     sem_t sem_;
 
 public:
     Event();
+    ~Event();
 
     bool wait(uavcan::MonotonicDuration duration);
 

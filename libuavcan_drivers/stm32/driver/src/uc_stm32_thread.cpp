@@ -62,6 +62,11 @@ Event::Event()
     (void)sem_init(&sem_, 0, 0);
 }
 
+Event::~Event()
+{
+    (void)sem_destroy(&sem_);
+}
+
 bool Event::wait(uavcan::MonotonicDuration duration)
 {
     if (duration.isNegative())
