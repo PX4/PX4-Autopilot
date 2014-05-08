@@ -559,13 +559,12 @@ PX4FMU::task_main()
 		}
 
 		/* sleep waiting for data, stopping to check for PPM
-		 * input at 100Hz */
+		 * input at 50Hz */
 		int ret = ::poll(_poll_fds, _poll_fds_num, CONTROL_INPUT_DROP_LIMIT_MS);
 
 		/* this would be bad... */
 		if (ret < 0) {
 			log("poll error %d", errno);
-			usleep(1000000);
 			continue;
 
 		} else if (ret == 0) {

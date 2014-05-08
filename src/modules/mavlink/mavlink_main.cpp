@@ -1535,6 +1535,8 @@ Mavlink::mavlink_missionlib_send_gcs_string(const char *string)
 {
 	const int len = MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN;
 	mavlink_statustext_t statustext;
+	statustext.severity = MAV_SEVERITY_INFO;
+
 	int i = 0;
 
 	while (i < len - 1) {
