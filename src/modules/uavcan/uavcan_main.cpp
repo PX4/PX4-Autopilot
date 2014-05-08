@@ -31,14 +31,18 @@
  *
  ****************************************************************************/
 
+#include <nuttx/config.h>
+
 #include <cstdlib>
 #include <cstring>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/mixer/mixer.h>
 #include <arch/board/board.h>
 #include <arch/chip/chip.h>
 
-#include <drivers/device/device.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
 
 #include "uavcan_main.hpp"
 
@@ -55,7 +59,13 @@
  */
 UavcanNode *UavcanNode::_instance;
 
-UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
+UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
+	CDev("uavcan", UAVCAN_DEVICE_PATH),
+	_task(0),
+	_task_should_exit(false),
+	_armed_sub(-1),
+	_is_armed(false),
+	_output_count(0),
 	_node(can_driver, system_clock),
 	_controls({}),
 	_poll_fds({})
@@ -65,8 +75,37 @@ UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
 	_control_topics[2] = ORB_ID(actuator_controls_2);
 	_control_topics[3] = ORB_ID(actuator_controls_3);
 
-	memset(_controls, 0, sizeof(_controls));
-	memset(_poll_fds, 0, sizeof(_poll_fds));
+	// memset(_controls, 0, sizeof(_controls));
+	// memset(_poll_fds, 0, sizeof(_poll_fds));
+}
+
+UavcanNode::~UavcanNode()
+{
+	if (_task != -1) {
+		/* tell the task we want it to go away */
+		_task_should_exit = true;
+
+		unsigned i = 10;
+
+		do {
+			/* wait 50ms - it should wake every 100ms or so worst-case */
+			usleep(50000);
+
+			/* if we have given up, kill it */
+			if (--i == 0) {
+				task_delete(_task);
+				break;
+			}
+
+		} while (_task != -1);
+	}
+
+	/* clean up the alternate device node */
+		// unregister_driver(PWM_OUTPUT_DEVICE_PATH);
+
+	::close(_armed_sub);
+
+	_instance = nullptr;
 }
 
 int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
@@ -123,6 +162,24 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 		return node_init_res;
 	}
 
+	/*
+	 * Start the task. Normally it should never exit.
+	 */
+	static auto run_trampoline = [](int, char *[]) {return UavcanNode::_instance->run();};
+	_instance->_task = task_spawn_cmd("uavcan", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, StackSize,
+			      static_cast<main_t>(run_trampoline), nullptr);
+
+	if (_instance->_task < 0) {
+		warnx("start failed: %d", errno);
+		return -errno;
+	}
+
+	return OK;
+}
+
+int UavcanNode::init(uavcan::NodeID node_id)
+{
+
 	int ret;
 
 	/* do regular cdev init */
@@ -131,16 +188,6 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	if (ret != OK)
 		return ret;
 
-	/*
-	 * Start the task. Normally it should never exit.
-	 */
-	static auto run_trampoline = [](int, char *[]) {return UavcanNode::_instance->run();};
-	return task_spawn_cmd("uavcan", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, StackSize,
-			      static_cast<main_t>(run_trampoline), nullptr);
-}
-
-int UavcanNode::init(uavcan::NodeID node_id)
-{
 	uavcan::protocol::SoftwareVersion swver;
 	swver.major = 12;                        // TODO fill version info
 	swver.minor = 34;
@@ -162,32 +209,35 @@ int UavcanNode::run()
 {
 	_node.setStatusOk();
 
+	// XXX figure out the output count
+	_output_count = 2;
+
+
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
-	while (true) {
-		
+	actuator_outputs_s outputs;
+	memset(&outputs, 0, sizeof(outputs));
+
+	while (!_task_should_exit) {
+
 		if (_groups_subscribed != _groups_required) {
 			subscribe();
 			_groups_subscribed = _groups_required;
-			/* force setting update rate */
-			_current_update_rate = 0;
 		}
 
 		int ret = ::poll(_poll_fds, _poll_fds_num, 5/* 5 ms wait time */);
 
-				/* this would be bad... */
+		// this would be bad...
 		if (ret < 0) {
 			log("poll error %d", errno);
-			usleep(1000000);
 			continue;
 
 		} else if (ret == 0) {
-			/* timeout: no control data, switch to failsafe values */
-//			warnx("no PWM: failsafe");
+			// timeout: no control data, switch to failsafe values
 
 		} else {
 
-			/* get controls for required topics */
+			// get controls for required topics
 			unsigned poll_id = 0;
 			for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 				if (_control_subs[i] > 0) {
@@ -198,7 +248,7 @@ int UavcanNode::run()
 				}
 			}
 
-			/* can we mix? */
+			//can we mix?
 			if (_mixers != nullptr) {
 
 				// XXX one output group has 8 outputs max,
@@ -209,9 +259,9 @@ int UavcanNode::run()
 				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs_max);
 				outputs.timestamp = hrt_absolute_time();
 
-				/* iterate actuators */
+				// iterate actuators
 				for (unsigned i = 0; i < outputs.noutputs; i++) {
-					/* last resort: catch NaN, INF and out-of-band errors */
+					// last resort: catch NaN, INF and out-of-band errors
 					if (!isfinite(outputs.output[i]) ||
 						outputs.output[i] < -1.0f ||
 						outputs.output[i] > 1.0f) {
@@ -224,25 +274,25 @@ int UavcanNode::run()
 					}
 				}
 
-				printf("CAN out: ")
+				printf("CAN out: ");
 				/* output to the bus */
 				for (unsigned i = 0; i < outputs.noutputs; i++) {
-					printf("%u: %8.4f ", i, outputs.output[i])
+					printf("%u: %8.4f ", i, outputs.output[i]);
 					// can_send_xxx
 				}
-				printf("\n");
+				printf("%s\n", (_is_armed) ? "ARMED" : "DISARMED");
 
 			}
 		}
 
-		/* check arming state */
+		// Check arming state
 		bool updated = false;
 		orb_check(_armed_sub, &updated);
 
 		if (updated) {
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 
-			/* update the armed status and check that we're not locked down */
+			// Update the armed status and check that we're not locked down
 			bool set_armed = _armed.armed && !_armed.lockdown;
 
 			arm_actuators(set_armed);
@@ -271,7 +321,7 @@ UavcanNode::control_callback(uintptr_t handle,
 {
 	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
-	input = _controls[control_group].control[control_index];
+	input = controls[control_group].control[control_index];
 	return 0;
 }
 
@@ -287,22 +337,24 @@ UavcanNode::teardown()
 	::close(_armed_sub);
 }
 
-void
+int
 UavcanNode::arm_actuators(bool arm)
 {
-	bool changed = (_armed != arm);
+	bool changed = (_is_armed != arm);
 
-	_armed = arm;
+	_is_armed = arm;
 
 	if (changed) {
 		// Propagate immediately to CAN bus
 	}
+
+	return OK;
 }
 
 void
 UavcanNode::subscribe()
 {
-	/* subscribe/unsubscribe to required actuator control groups */
+	// Subscribe/unsubscribe to required actuator control groups
 	uint32_t sub_groups = _groups_required & ~_groups_subscribed;
 	uint32_t unsub_groups = _groups_subscribed & ~_groups_required;
 	_poll_fds_num = 0;
@@ -326,7 +378,7 @@ UavcanNode::subscribe()
 }
 
 int
-PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
+UavcanNode::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
 

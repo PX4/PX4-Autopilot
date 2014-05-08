@@ -33,8 +33,14 @@
 
 #pragma once
 
+#include <nuttx/config.h>
+
 #include <uavcan_stm32/uavcan_stm32.hpp>
-#include <drivers/drv_pwm_output.h>
+#include <drivers/device/device.h>
+
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/actuator_armed.h>
 
 /**
  * @file uavcan_main.hpp
@@ -43,6 +49,9 @@
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
+
+#define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	4
+#define UAVCAN_DEVICE_PATH	"/dev/uavcan"
 
 /**
  * A UAVCAN node.
@@ -57,21 +66,36 @@ public:
 	typedef uavcan::Node<MemPoolSize> Node;
 	typedef uavcan_stm32::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
 
-	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
+			UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
 
-	static int start(uavcan::NodeID node_id, uint32_t bitrate);
+	virtual		~UavcanNode();
 
-	Node &getNode() { return _node; }
+	static int	start(uavcan::NodeID node_id, uint32_t bitrate);
+
+	Node&		getNode() { return _node; }
 
 	static int	control_callback(uintptr_t handle,
 					 uint8_t control_group,
 					 uint8_t control_index,
 					 float &input);
-	void	subscribe();
+
+	void		subscribe();
+
+	int		teardown();
+	int		arm_actuators(bool arm);
 
 private:
-	int init(uavcan::NodeID node_id);
-	int run();
+	int		init(uavcan::NodeID node_id);
+	int		run();
+	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
+
+	int			_task;			///< handle to the OS task
+	bool			_task_should_exit;	///< flag to indicate to tear down the CAN driver
+	int			_armed_sub;		///< uORB subscription of the arming status
+	actuator_armed_s	_armed;			///< the arming request of the system
+	bool			_is_armed;		///< the arming status of the actuators on the bus
+
+	unsigned		_output_count;		///< number of actuators currently available
 
 	static UavcanNode	*_instance;		///< pointer to the library instance
 	Node			_node;
@@ -80,9 +104,9 @@ private:
 
 	uint32_t		_groups_required;
 	uint32_t		_groups_subscribed;
-	int			_control_subs[NUM_ACTUATOR_CONTROL_GROUPS];
-	actuator_controls_s 	_controls[NUM_ACTUATOR_CONTROL_GROUPS];
-	orb_id_t		_control_topics[NUM_ACTUATOR_CONTROL_GROUPS];
-	pollfd			_poll_fds[NUM_ACTUATOR_CONTROL_GROUPS];
+	int			_control_subs[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
+	actuator_controls_s 	_controls[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
+	orb_id_t		_control_topics[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
+	pollfd			_poll_fds[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
 	unsigned		_poll_fds_num;
 };
