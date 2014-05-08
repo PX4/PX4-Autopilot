@@ -245,7 +245,6 @@ int UavcanNode::run()
 			_groups_subscribed = _groups_required;
 			/*
 			 * This event is needed to wake up the thread on CAN bus activity (RX/TX/Error).
-			 * Actual event type (POLLIN/POLLOUT/...) doesn't matter here.
 			 * Please note that with such multiplexing it is no longer possible to rely only on
 			 * the value returned from poll() to detect whether actuator control has timed out or not.
 			 * Instead, all ORB events need to be checked individually (see below).
