@@ -42,6 +42,8 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 
+#include "esc_controller.hpp"
+
 /**
  * @file uavcan_main.hpp
  *
@@ -94,24 +96,25 @@ private:
 	int		init(uavcan::NodeID node_id);
 	int		run();
 
-	int			_task;			///< handle to the OS task
-	bool			_task_should_exit;	///< flag to indicate to tear down the CAN driver
-	int			_armed_sub;		///< uORB subscription of the arming status
-	actuator_armed_s	_armed;			///< the arming request of the system
-	bool			_is_armed;		///< the arming status of the actuators on the bus
+	int			_task = -1;			///< handle to the OS task
+	bool			_task_should_exit = false;	///< flag to indicate to tear down the CAN driver
+	int			_armed_sub = -1;		///< uORB subscription of the arming status
+	actuator_armed_s	_armed;				///< the arming request of the system
+	bool			_is_armed = false;		///< the arming status of the actuators on the bus
 
-	unsigned		_output_count;		///< number of actuators currently available
+	unsigned		_output_count = 0;		///< number of actuators currently available
 
-	static UavcanNode	*_instance;		///< pointer to the library instance
-	Node			_node;
+	static UavcanNode	*_instance;			///< singleton pointer
+	Node			_node;				///< library instance
+	UavcanEscController	_esc_controller;
 
-	MixerGroup		*_mixers;
+	MixerGroup		*_mixers = nullptr;
 
-	uint32_t		_groups_required;
-	uint32_t		_groups_subscribed;
-	int			_control_subs[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
-	actuator_controls_s 	_controls[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
-	orb_id_t		_control_topics[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
-	pollfd			_poll_fds[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
-	unsigned		_poll_fds_num;
+	uint32_t		_groups_required = 0;
+	uint32_t		_groups_subscribed = 0;
+	int			_control_subs[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
+	actuator_controls_s 	_controls[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
+	orb_id_t		_control_topics[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
+	pollfd			_poll_fds[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
+	unsigned		_poll_fds_num = 0;
 };

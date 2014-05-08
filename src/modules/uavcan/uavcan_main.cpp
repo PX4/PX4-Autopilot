@@ -61,18 +61,8 @@ UavcanNode *UavcanNode::_instance;
 
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
 	CDev("uavcan", UAVCAN_DEVICE_PATH),
-	_task(0),
-	_task_should_exit(false),
-	_armed_sub(-1),
-	_is_armed(false),
-	_output_count(0),
 	_node(can_driver, system_clock),
-	_controls({}),
-	_poll_fds({}),
-	_mixers(nullptr),
-	_groups_required(0),
-	_groups_subscribed(0),
-	_poll_fds_num(0)
+	_esc_controller(_node)
 {
 	_control_topics[0] = ORB_ID(actuator_controls_0);
 	_control_topics[1] = ORB_ID(actuator_controls_1);
@@ -183,13 +173,16 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 
 int UavcanNode::init(uavcan::NodeID node_id)
 {
-
-	int ret;
+	int ret = -1;
 
 	/* do regular cdev init */
 	ret = CDev::init();
 
 	if (ret != OK)
+		return ret;
+
+	ret = _esc_controller.init();
+	if (ret < 0)
 		return ret;
 
 	uavcan::protocol::SoftwareVersion swver;
@@ -221,6 +214,11 @@ int UavcanNode::run()
 
 	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
+
+	/*
+	 * XXX Mixing logic/subscriptions shall be moved into UavcanEscController::update();
+	 *     IO multiplexing shall be done here.
+	 */
 
 	while (!_task_should_exit) {
 
@@ -279,14 +277,16 @@ int UavcanNode::run()
 					}
 				}
 
+				/*
+				 * Output to the bus
+				 */
 				printf("CAN out: ");
-				/* output to the bus */
 				for (unsigned i = 0; i < outputs.noutputs; i++) {
 					printf("%u: %8.4f ", i, outputs.output[i]);
-					// XXX send out via CAN here
 				}
 				printf("%s\n", (_is_armed) ? "ARMED" : "DISARMED");
 
+				_esc_controller.update_outputs(outputs.output, outputs.noutputs);
 			}
 
 		}
@@ -304,13 +304,12 @@ int UavcanNode::run()
 			arm_actuators(set_armed);
 		}
 
-		// Output commands and fetch data
+		// Output commands and fetch data TODO ORB multiplexing
 
-		const int res = _node.spin(uavcan::MonotonicDuration::fromUSec(5000));
+		const int spin_res = _node.spin(uavcan::MonotonicDuration::fromMSec(1));
 
-		if (res < 0) {
-			warnx("Spin error %i", res);
-			::sleep(1);
+		if (spin_res < 0) {
+			warnx("node spin error %i", spin_res);
 		}
 	}
 
@@ -347,14 +346,8 @@ UavcanNode::teardown()
 int
 UavcanNode::arm_actuators(bool arm)
 {
-	bool changed = (_is_armed != arm);
-
 	_is_armed = arm;
-
-	if (changed) {
-		// Propagate immediately to CAN bus
-	}
-
+	_esc_controller.arm_esc(arm);
 	return OK;
 }
 

@@ -40,8 +40,9 @@ MODULE_COMMAND = uavcan
 
 MAXOPTIMIZATION = -Os
 
-SRCS += uavcan_main.cpp \
-        uavcan_clock.cpp
+SRCS += uavcan_main.cpp     \
+        uavcan_clock.cpp    \
+        esc_controller.cpp
 
 #
 # libuavcan
