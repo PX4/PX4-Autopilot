@@ -94,6 +94,7 @@ public:
 
 private:
 	int		init(uavcan::NodeID node_id);
+	void		node_spin_once();
 	int		run();
 
 	int			_task = -1;			///< handle to the OS task
@@ -115,6 +116,6 @@ private:
 	int			_control_subs[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
 	actuator_controls_s 	_controls[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
 	orb_id_t		_control_topics[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
-	pollfd			_poll_fds[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
+	pollfd			_poll_fds[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN + 1] = {};	///< +1 for /dev/uavcan/busevent
 	unsigned		_poll_fds_num = 0;
 };

@@ -35,6 +35,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <fcntl.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/mixer/mixer.h>
@@ -202,9 +203,17 @@ int UavcanNode::init(uavcan::NodeID node_id)
 	return _node.start();
 }
 
+void UavcanNode::node_spin_once()
+{
+	const int spin_res = _node.spin(uavcan::MonotonicTime());
+	if (spin_res < 0) {
+		warnx("node spin error %i", spin_res);
+	}
+}
+
 int UavcanNode::run()
 {
-	_node.setStatusOk();
+	const unsigned PollTimeoutMs = 50;
 
 	// XXX figure out the output count
 	_output_count = 2;
@@ -215,40 +224,63 @@ int UavcanNode::run()
 	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
 
+	const int busevent_fd = ::open(uavcan_stm32::Event::DevName, 0);
+	if (busevent_fd < 0)
+	{
+		warnx("Failed to open %s", uavcan_stm32::Event::DevName);
+		_task_should_exit = true;
+	}
+
 	/*
 	 * XXX Mixing logic/subscriptions shall be moved into UavcanEscController::update();
 	 *     IO multiplexing shall be done here.
 	 */
+
+	_node.setStatusOk();
 
 	while (!_task_should_exit) {
 
 		if (_groups_subscribed != _groups_required) {
 			subscribe();
 			_groups_subscribed = _groups_required;
+			/*
+			 * This event is needed to wake up the thread on CAN bus activity (RX/TX/Error).
+			 * Actual event type (POLLIN/POLLOUT/...) doesn't matter here.
+			 * Please note that with such multiplexing it is no longer possible to rely only on
+			 * the value returned from poll() to detect whether actuator control has timed out or not.
+			 * Instead, all ORB events need to be checked individually (see below).
+			 */
+			_poll_fds[_poll_fds_num] = ::pollfd();
+			_poll_fds[_poll_fds_num].fd = busevent_fd;
+			_poll_fds[_poll_fds_num].events = POLLIN | POLLOUT;
+			_poll_fds_num += 1;
 		}
 
-		int ret = ::poll(_poll_fds, _poll_fds_num, 50/* 50 ms wait time */);
+		const int poll_ret = ::poll(_poll_fds, _poll_fds_num, PollTimeoutMs);
+
+		node_spin_once();  // Non-blocking
 
 		// this would be bad...
-		if (ret < 0) {
+		if (poll_ret < 0) {
 			log("poll error %d", errno);
 			continue;
-
-		} else if (ret == 0) {
-			// timeout: no control data, switch to failsafe values
-			// XXX trigger failsafe
-
 		} else {
-
 			// get controls for required topics
+			bool controls_updated = false;
 			unsigned poll_id = 0;
 			for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 				if (_control_subs[i] > 0) {
 					if (_poll_fds[poll_id].revents & POLLIN) {
+						controls_updated = true;
 						orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 					}
 					poll_id++;
 				}
+			}
+
+			if (!controls_updated) {
+				// timeout: no control data, switch to failsafe values
+				// XXX trigger failsafe
 			}
 
 			//can we mix?
@@ -277,15 +309,7 @@ int UavcanNode::run()
 					}
 				}
 
-				/*
-				 * Output to the bus
-				 */
-				printf("CAN out: ");
-				for (unsigned i = 0; i < outputs.noutputs; i++) {
-					printf("%u: %8.4f ", i, outputs.output[i]);
-				}
-				printf("%s\n", (_is_armed) ? "ARMED" : "DISARMED");
-
+				// Output to the bus
 				_esc_controller.update_outputs(outputs.output, outputs.noutputs);
 			}
 
@@ -302,14 +326,6 @@ int UavcanNode::run()
 			bool set_armed = _armed.armed && !_armed.lockdown;
 
 			arm_actuators(set_armed);
-		}
-
-		// Output commands and fetch data TODO ORB multiplexing
-
-		const int spin_res = _node.spin(uavcan::MonotonicDuration::fromMSec(1));
-
-		if (spin_res < 0) {
-			warnx("node spin error %i", spin_res);
 		}
 	}
 
