@@ -51,7 +51,7 @@
  */
 
 #define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	4
-#define UAVCAN_DEVICE_PATH	"/dev/uavcan"
+#define UAVCAN_DEVICE_PATH	"/dev/uavcan/esc"
 
 /**
  * A UAVCAN node.

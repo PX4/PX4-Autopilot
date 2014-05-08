@@ -27,7 +27,7 @@ then
 
 	if [ $OUTPUT_MODE == can ]
 	then
-		set OUTPUT_DEV /dev/uavcan
+		set OUTPUT_DEV /dev/uavcan/esc
 	fi
 	
 	if mixer load $OUTPUT_DEV $MIXER_FILE
