@@ -66,9 +66,11 @@ public:
 	typedef uavcan::Node<MemPoolSize> Node;
 	typedef uavcan_stm32::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
 
-			UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
+	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
 
 	virtual		~UavcanNode();
+
+	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
 
 	static int	start(uavcan::NodeID node_id, uint32_t bitrate);
 
@@ -84,10 +86,13 @@ public:
 	int		teardown();
 	int		arm_actuators(bool arm);
 
+	void		print_info();
+
+	static UavcanNode* instance() { return _instance; }
+
 private:
 	int		init(uavcan::NodeID node_id);
 	int		run();
-	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
 
 	int			_task;			///< handle to the OS task
 	bool			_task_should_exit;	///< flag to indicate to tear down the CAN driver

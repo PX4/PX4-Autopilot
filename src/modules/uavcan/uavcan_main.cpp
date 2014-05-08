@@ -68,7 +68,11 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_output_count(0),
 	_node(can_driver, system_clock),
 	_controls({}),
-	_poll_fds({})
+	_poll_fds({}),
+	_mixers(nullptr),
+	_groups_required(0),
+	_groups_subscribed(0),
+	_poll_fds_num(0)
 {
 	_control_topics[0] = ORB_ID(actuator_controls_0);
 	_control_topics[1] = ORB_ID(actuator_controls_1);
@@ -225,7 +229,7 @@ int UavcanNode::run()
 			_groups_subscribed = _groups_required;
 		}
 
-		int ret = ::poll(_poll_fds, _poll_fds_num, 5/* 5 ms wait time */);
+		int ret = ::poll(_poll_fds, _poll_fds_num, 50/* 50 ms wait time */);
 
 		// this would be bad...
 		if (ret < 0) {
@@ -234,6 +238,7 @@ int UavcanNode::run()
 
 		} else if (ret == 0) {
 			// timeout: no control data, switch to failsafe values
+			// XXX trigger failsafe
 
 		} else {
 
@@ -278,11 +283,12 @@ int UavcanNode::run()
 				/* output to the bus */
 				for (unsigned i = 0; i < outputs.noutputs; i++) {
 					printf("%u: %8.4f ", i, outputs.output[i]);
-					// can_send_xxx
+					// XXX send out via CAN here
 				}
 				printf("%s\n", (_is_armed) ? "ARMED" : "DISARMED");
 
 			}
+
 		}
 
 		// Check arming state
@@ -300,7 +306,7 @@ int UavcanNode::run()
 
 		// Output commands and fetch data
 
-		const int res = _node.spin(uavcan::MonotonicDuration::getInfinite());
+		const int res = _node.spin(uavcan::MonotonicDuration::fromUSec(5000));
 
 		if (res < 0) {
 			warnx("Spin error %i", res);
@@ -309,6 +315,7 @@ int UavcanNode::run()
 	}
 
 	teardown();
+	warnx("exiting.");
 
 	exit(0);
 }
@@ -378,7 +385,7 @@ UavcanNode::subscribe()
 }
 
 int
-UavcanNode::pwm_ioctl(file *filp, int cmd, unsigned long arg)
+UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
 
@@ -428,7 +435,7 @@ UavcanNode::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				ret = _mixers->load_from_buf(buf, buflen);
 
 				if (ret != 0) {
-					debug("mixer load failed with %d", ret);
+					warnx("mixer load failed with %d", ret);
 					delete _mixers;
 					_mixers = nullptr;
 					_groups_required = 0;
@@ -449,7 +456,22 @@ UavcanNode::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	unlock();
 
+	if (ret == -ENOTTY) {
+		ret = CDev::ioctl(filp, cmd, arg);
+	}
+
 	return ret;
+}
+
+void
+UavcanNode::print_info()
+{
+	if (!_instance) {
+		warnx("not running, start first");
+	}
+
+	warnx("groups: sub: %u / req: %u / fds: %u", (unsigned)_groups_subscribed, (unsigned)_groups_required, _poll_fds_num);
+	warnx("mixer: %s", (_mixers == nullptr) ? "FAIL" : "OK");
 }
 
 /*
@@ -509,6 +531,18 @@ int uavcan_main(int argc, char *argv[])
 	} else {
 		print_usage();
 		::exit(1);
+	}
+
+	/* commands below require the app to be started */
+	UavcanNode *inst = UavcanNode::instance();
+
+	if (!inst) {
+		errx(1, "application not running");
+	}
+
+	if (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info")) {
+		
+			inst->print_info();
 	}
 
 	return 0;
