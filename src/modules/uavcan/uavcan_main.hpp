@@ -34,6 +34,7 @@
 #pragma once
 
 #include <uavcan_stm32/uavcan_stm32.hpp>
+#include <drivers/drv_pwm_output.h>
 
 /**
  * @file uavcan_main.hpp
@@ -46,7 +47,7 @@
 /**
  * A UAVCAN node.
  */
-class UavcanNode
+class UavcanNode : public device::CDev
 {
 	static constexpr unsigned MemPoolSize        = 10752;
 	static constexpr unsigned RxQueueLenPerIface = 64;
@@ -56,18 +57,32 @@ public:
 	typedef uavcan::Node<MemPoolSize> Node;
 	typedef uavcan_stm32::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
 
-	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock)
-		: _node(can_driver, system_clock)
-	{ }
+	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
 
 	static int start(uavcan::NodeID node_id, uint32_t bitrate);
 
 	Node &getNode() { return _node; }
 
+	static int	control_callback(uintptr_t handle,
+					 uint8_t control_group,
+					 uint8_t control_index,
+					 float &input);
+	void	subscribe();
+
 private:
 	int init(uavcan::NodeID node_id);
 	int run();
 
-	static UavcanNode *_instance;		///< pointer to the library instance
-	Node _node;
+	static UavcanNode	*_instance;		///< pointer to the library instance
+	Node			_node;
+
+	MixerGroup		*_mixers;
+
+	uint32_t		_groups_required;
+	uint32_t		_groups_subscribed;
+	int			_control_subs[NUM_ACTUATOR_CONTROL_GROUPS];
+	actuator_controls_s 	_controls[NUM_ACTUATOR_CONTROL_GROUPS];
+	orb_id_t		_control_topics[NUM_ACTUATOR_CONTROL_GROUPS];
+	pollfd			_poll_fds[NUM_ACTUATOR_CONTROL_GROUPS];
+	unsigned		_poll_fds_num;
 };

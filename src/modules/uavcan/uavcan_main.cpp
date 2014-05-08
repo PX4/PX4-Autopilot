@@ -37,6 +37,9 @@
 #include <systemlib/systemlib.h>
 #include <arch/board/board.h>
 #include <arch/chip/chip.h>
+
+#include <drivers/device/device.h>
+
 #include "uavcan_main.hpp"
 
 /**
@@ -51,6 +54,20 @@
  * UavcanNode
  */
 UavcanNode *UavcanNode::_instance;
+
+UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
+	_node(can_driver, system_clock),
+	_controls({}),
+	_poll_fds({})
+{
+	_control_topics[0] = ORB_ID(actuator_controls_0);
+	_control_topics[1] = ORB_ID(actuator_controls_1);
+	_control_topics[2] = ORB_ID(actuator_controls_2);
+	_control_topics[3] = ORB_ID(actuator_controls_3);
+
+	memset(_controls, 0, sizeof(_controls));
+	memset(_poll_fds, 0, sizeof(_poll_fds));
+}
 
 int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 {
@@ -106,6 +123,14 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 		return node_init_res;
 	}
 
+	int ret;
+
+	/* do regular cdev init */
+	ret = CDev::init();
+
+	if (ret != OK)
+		return ret;
+
 	/*
 	 * Start the task. Normally it should never exit.
 	 */
@@ -137,8 +162,94 @@ int UavcanNode::run()
 {
 	_node.setStatusOk();
 
+	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+
 	while (true) {
-		// TODO: ORB multiplexing
+		
+		if (_groups_subscribed != _groups_required) {
+			subscribe();
+			_groups_subscribed = _groups_required;
+			/* force setting update rate */
+			_current_update_rate = 0;
+		}
+
+		int ret = ::poll(_poll_fds, _poll_fds_num, 5/* 5 ms wait time */);
+
+				/* this would be bad... */
+		if (ret < 0) {
+			log("poll error %d", errno);
+			usleep(1000000);
+			continue;
+
+		} else if (ret == 0) {
+			/* timeout: no control data, switch to failsafe values */
+//			warnx("no PWM: failsafe");
+
+		} else {
+
+			/* get controls for required topics */
+			unsigned poll_id = 0;
+			for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+				if (_control_subs[i] > 0) {
+					if (_poll_fds[poll_id].revents & POLLIN) {
+						orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
+					}
+					poll_id++;
+				}
+			}
+
+			/* can we mix? */
+			if (_mixers != nullptr) {
+
+				// XXX one output group has 8 outputs max,
+				// but this driver could well serve multiple groups.
+				unsigned num_outputs_max = 8;
+
+				// Do mixing
+				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs_max);
+				outputs.timestamp = hrt_absolute_time();
+
+				/* iterate actuators */
+				for (unsigned i = 0; i < outputs.noutputs; i++) {
+					/* last resort: catch NaN, INF and out-of-band errors */
+					if (!isfinite(outputs.output[i]) ||
+						outputs.output[i] < -1.0f ||
+						outputs.output[i] > 1.0f) {
+						/*
+						 * Value is NaN, INF or out of band - set to the minimum value.
+						 * This will be clearly visible on the servo status and will limit the risk of accidentally
+						 * spinning motors. It would be deadly in flight.
+						 */
+						outputs.output[i] = -1.0f;
+					}
+				}
+
+				printf("CAN out: ")
+				/* output to the bus */
+				for (unsigned i = 0; i < outputs.noutputs; i++) {
+					printf("%u: %8.4f ", i, outputs.output[i])
+					// can_send_xxx
+				}
+				printf("\n");
+
+			}
+		}
+
+		/* check arming state */
+		bool updated = false;
+		orb_check(_armed_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
+
+			/* update the armed status and check that we're not locked down */
+			bool set_armed = _armed.armed && !_armed.lockdown;
+
+			arm_actuators(set_armed);
+		}
+
+		// Output commands and fetch data
+
 		const int res = _node.spin(uavcan::MonotonicDuration::getInfinite());
 
 		if (res < 0) {
@@ -147,7 +258,146 @@ int UavcanNode::run()
 		}
 	}
 
-	return -1;
+	teardown();
+
+	exit(0);
+}
+
+int
+UavcanNode::control_callback(uintptr_t handle,
+			 uint8_t control_group,
+			 uint8_t control_index,
+			 float &input)
+{
+	const actuator_controls_s *controls = (actuator_controls_s *)handle;
+
+	input = _controls[control_group].control[control_index];
+	return 0;
+}
+
+int
+UavcanNode::teardown()
+{
+	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+		if (_control_subs > 0) {
+			::close(_control_subs[i]);
+			_control_subs[i] = -1;
+		}
+	}
+	::close(_armed_sub);
+}
+
+void
+UavcanNode::arm_actuators(bool arm)
+{
+	bool changed = (_armed != arm);
+
+	_armed = arm;
+
+	if (changed) {
+		// Propagate immediately to CAN bus
+	}
+}
+
+void
+UavcanNode::subscribe()
+{
+	/* subscribe/unsubscribe to required actuator control groups */
+	uint32_t sub_groups = _groups_required & ~_groups_subscribed;
+	uint32_t unsub_groups = _groups_subscribed & ~_groups_required;
+	_poll_fds_num = 0;
+	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+		if (sub_groups & (1 << i)) {
+			warnx("subscribe to actuator_controls_%d", i);
+			_control_subs[i] = orb_subscribe(_control_topics[i]);
+		}
+		if (unsub_groups & (1 << i)) {
+			warnx("unsubscribe from actuator_controls_%d", i);
+			::close(_control_subs[i]);
+			_control_subs[i] = -1;
+		}
+
+		if (_control_subs[i] > 0) {
+			_poll_fds[_poll_fds_num].fd = _control_subs[i];
+			_poll_fds[_poll_fds_num].events = POLLIN;
+			_poll_fds_num++;
+		}
+	}
+}
+
+int
+PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
+{
+	int ret = OK;
+
+	lock();
+
+	switch (cmd) {
+	case PWM_SERVO_ARM:
+		arm_actuators(true);
+		break;
+
+	case PWM_SERVO_SET_ARM_OK:
+	case PWM_SERVO_CLEAR_ARM_OK:
+	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
+		// these are no-ops, as no safety switch
+		break;
+
+	case PWM_SERVO_DISARM:
+		arm_actuators(false);
+		break;
+
+	case MIXERIOCGETOUTPUTCOUNT:
+		*(unsigned *)arg = _output_count;
+		break;
+
+	case MIXERIOCRESET:
+		if (_mixers != nullptr) {
+			delete _mixers;
+			_mixers = nullptr;
+			_groups_required = 0;
+		}
+
+		break;
+
+	case MIXERIOCLOADBUF: {
+			const char *buf = (const char *)arg;
+			unsigned buflen = strnlen(buf, 1024);
+
+			if (_mixers == nullptr)
+				_mixers = new MixerGroup(control_callback, (uintptr_t)_controls);
+
+			if (_mixers == nullptr) {
+				_groups_required = 0;
+				ret = -ENOMEM;
+
+			} else {
+
+				ret = _mixers->load_from_buf(buf, buflen);
+
+				if (ret != 0) {
+					debug("mixer load failed with %d", ret);
+					delete _mixers;
+					_mixers = nullptr;
+					_groups_required = 0;
+					ret = -EINVAL;
+				} else {
+
+					_mixers->groups_required(_groups_required);
+				}
+			}
+
+			break;
+		}
+
+	default:
+		ret = -ENOTTY;
+		break;
+	}
+
+	unlock();
+
+	return ret;
 }
 
 /*
