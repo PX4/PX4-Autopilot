@@ -224,10 +224,10 @@ int UavcanNode::run()
 	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
 
-	const int busevent_fd = ::open(uavcan_stm32::Event::DevName, 0);
+	const int busevent_fd = ::open(uavcan_stm32::BusEvent::DevName, 0);
 	if (busevent_fd < 0)
 	{
-		warnx("Failed to open %s", uavcan_stm32::Event::DevName);
+		warnx("Failed to open %s", uavcan_stm32::BusEvent::DevName);
 		_task_should_exit = true;
 	}
 
@@ -252,7 +252,7 @@ int UavcanNode::run()
 			 */
 			_poll_fds[_poll_fds_num] = ::pollfd();
 			_poll_fds[_poll_fds_num].fd = busevent_fd;
-			_poll_fds[_poll_fds_num].events = POLLIN | POLLOUT;
+			_poll_fds[_poll_fds_num].events = POLLIN;
 			_poll_fds_num += 1;
 		}
 
