@@ -336,12 +336,12 @@ int
 UavcanNode::teardown()
 {
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (_control_subs > 0) {
+		if (_control_subs[i] > 0) {
 			::close(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
 	}
-	::close(_armed_sub);
+	return ::close(_armed_sub);
 }
 
 int
