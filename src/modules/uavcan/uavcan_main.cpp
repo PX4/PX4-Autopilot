@@ -92,8 +92,8 @@ UavcanNode::~UavcanNode()
 		unsigned i = 10;
 
 		do {
-			/* wait 50ms - it should wake every 100ms or so worst-case */
-			usleep(50000);
+			/* wait 5ms - it should wake every 10ms or so worst-case */
+			usleep(5000);
 
 			/* if we have given up, kill it */
 			if (--i == 0) {
@@ -522,15 +522,16 @@ int uavcan_main(int argc, char *argv[])
 			bitrate = DEFAULT_CAN_BITRATE;
 		}
 
+		if (UavcanNode::instance()) {
+			errx(1, "already started");
+		}
+
 		/*
 		 * Start
 		 */
 		warnx("Node ID %u, bitrate %u", node_id, bitrate);
 		return UavcanNode::start(node_id, bitrate);
 
-	} else {
-		print_usage();
-		::exit(1);
 	}
 
 	/* commands below require the app to be started */
@@ -543,7 +544,16 @@ int uavcan_main(int argc, char *argv[])
 	if (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info")) {
 		
 			inst->print_info();
+			return OK;
 	}
 
-	return 0;
+	if (!std::strcmp(argv[1], "stop")) {
+		
+			delete inst;
+			inst = nullptr;
+			return OK;
+	}
+
+	print_usage();
+	::exit(1);
 }
