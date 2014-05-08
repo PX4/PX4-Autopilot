@@ -508,7 +508,7 @@ param_get_default_file(void)
 int
 param_save_default(void)
 {
-	int res;
+	int res = OK;
 	int fd;
 
 	const char *filename = param_get_default_file();
