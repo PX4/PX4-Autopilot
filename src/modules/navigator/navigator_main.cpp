@@ -1291,7 +1291,7 @@ Navigator::set_rtl_item()
 			_mission_item.yaw = NAN;
 			_mission_item.loiter_radius = _parameters.loiter_radius;
 			_mission_item.loiter_direction = 1;
-			_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.acceptance_radius = _parameters.acceptance_radius;
 			_mission_item.time_inside = 0.0f;
 			_mission_item.pitch_min = 0.0f;
@@ -1351,7 +1351,7 @@ Navigator::set_rtl_item()
 			_mission_item.yaw = NAN;
 			_mission_item.loiter_radius = _parameters.loiter_radius;
 			_mission_item.loiter_direction = 1;
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 			_mission_item.acceptance_radius = _parameters.acceptance_radius;
 			_mission_item.time_inside = _parameters.rtl_land_delay < 0.0f ? 0.0f : _parameters.rtl_land_delay;
 			_mission_item.pitch_min = 0.0f;
