@@ -47,7 +47,7 @@ fi
 # from an EXTERNAL_SCRIPTS build option
 if [ -f /etc/init.d/rc.APM ]
 then
-	if usbser
+	if usbser connect
 	then
 		echo "[init] USB interface connected"
 	fi
@@ -64,7 +64,7 @@ then
 	#
 	# Start CDC/ACM serial driver
 	#
-	usbser
+	usbser connect &
 	
 	#
 	# Start the ORB (first app to start)
