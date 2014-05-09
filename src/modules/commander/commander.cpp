@@ -435,13 +435,13 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 					/* MANUAL */
 					main_res = main_state_transition(status, MAIN_STATE_MANUAL);
 
-				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_SEATBELT) {
-					/* SEATBELT */
-					main_res = main_state_transition(status, MAIN_STATE_SEATBELT);
+				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ALTCTRL) {
+					/* ALTCTRL */
+					main_res = main_state_transition(status, MAIN_STATE_ALTCTRL);
 
-				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_EASY) {
-					/* EASY */
-					main_res = main_state_transition(status, MAIN_STATE_EASY);
+				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_POSCTRL) {
+					/* POSCTRL */
+					main_res = main_state_transition(status, MAIN_STATE_POSCTRL);
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
 					/* AUTO */
@@ -456,8 +456,8 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 
 				} else if (base_mode & MAV_MODE_FLAG_MANUAL_INPUT_ENABLED) {
 					if (base_mode & MAV_MODE_FLAG_GUIDED_ENABLED) {
-						/* EASY */
-						main_res = main_state_transition(status, MAIN_STATE_EASY);
+						/* POSCTRL */
+						main_res = main_state_transition(status, MAIN_STATE_POSCTRL);
 
 					} else if (base_mode & MAV_MODE_FLAG_STABILIZE_ENABLED) {
 						/* MANUAL */
@@ -634,8 +634,8 @@ int commander_thread_main(int argc, char *argv[])
 
 	char *main_states_str[MAIN_STATE_MAX];
 	main_states_str[0] = "MANUAL";
-	main_states_str[1] = "SEATBELT";
-	main_states_str[2] = "EASY";
+	main_states_str[1] = "ALTCTRL";
+	main_states_str[2] = "POSCTRL";
 	main_states_str[3] = "AUTO";
 
 	char *arming_states_str[ARMING_STATE_MAX];
@@ -1159,7 +1159,7 @@ int commander_thread_main(int argc, char *argv[])
 			/* arm/disarm by RC */
 			res = TRANSITION_NOT_CHANGED;
 
-			/* check if left stick is in lower left position and we are in MANUAL or AUTO_READY mode or (ASSISTED mode and landed) -> disarm
+			/* check if left stick is in lower left position and we are in MANUAL or AUTO_READY mode or (ASSIST mode and landed) -> disarm
 			 * do it only for rotary wings */
 			if (status.is_rotary_wing &&
 			    (status.arming_state == ARMING_STATE_ARMED || status.arming_state == ARMING_STATE_ARMED_ERROR) &&
@@ -1242,7 +1242,8 @@ int commander_thread_main(int argc, char *argv[])
 				status.set_nav_state_timestamp = hrt_absolute_time();
 
 			} else {
-				/* MISSION switch */
+
+				/* LOITER switch */
 				if (sp_man.loiter_switch == SWITCH_POS_ON) {
 					/* stick is in LOITER position */
 					status.set_nav_state = NAV_STATE_LOITER;
@@ -1334,8 +1335,8 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		// TODO remove this hack
-		/* flight termination in manual mode if assisted switch is on easy position */
-		if (!status.is_rotary_wing && parachute_enabled && armed.armed && status.main_state == MAIN_STATE_MANUAL && sp_man.assisted_switch == SWITCH_POS_ON) {
+		/* flight termination in manual mode if assist switch is on posctrl position */
+		if (!status.is_rotary_wing && parachute_enabled && armed.armed && status.main_state == MAIN_STATE_MANUAL && sp_man.posctrl_switch == SWITCH_POS_ON) {
 			if (TRANSITION_CHANGED == failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION)) {
 				tune_positive(armed.armed);
 			}
@@ -1591,26 +1592,26 @@ set_main_state_rc(struct vehicle_status_s *status, struct manual_control_setpoin
 		// TRANSITION_DENIED is not possible here
 		break;
 
-	case SWITCH_POS_MIDDLE:		// ASSISTED
-		if (sp_man->assisted_switch == SWITCH_POS_ON) {
-			res = main_state_transition(status, MAIN_STATE_EASY);
+	case SWITCH_POS_MIDDLE:		// ASSIST
+		if (sp_man->posctrl_switch == SWITCH_POS_ON) {
+			res = main_state_transition(status, MAIN_STATE_POSCTRL);
 
 			if (res != TRANSITION_DENIED) {
 				break;	// changed successfully or already in this state
 			}
 
-			// else fallback to SEATBELT
-			print_reject_mode(status, "EASY");
+			// else fallback to ALTCTRL
+			print_reject_mode(status, "POSCTRL");
 		}
 
-		res = main_state_transition(status, MAIN_STATE_SEATBELT);
+		res = main_state_transition(status, MAIN_STATE_ALTCTRL);
 
 		if (res != TRANSITION_DENIED) {
 			break;	// changed successfully or already in this mode
 		}
 
-		if (sp_man->assisted_switch != SWITCH_POS_ON) {
-			print_reject_mode(status, "SEATBELT");
+		if (sp_man->posctrl_switch != SWITCH_POS_ON) {
+			print_reject_mode(status, "ALTCTRL");
 		}
 
 		// else fallback to MANUAL
@@ -1625,9 +1626,9 @@ set_main_state_rc(struct vehicle_status_s *status, struct manual_control_setpoin
 			break;	// changed successfully or already in this state
 		}
 
-		// else fallback to SEATBELT (EASY likely will not work too)
+		// else fallback to ALTCTRL (POSCTRL likely will not work too)
 		print_reject_mode(status, "AUTO");
-		res = main_state_transition(status, MAIN_STATE_SEATBELT);
+		res = main_state_transition(status, MAIN_STATE_ALTCTRL);
 
 		if (res != TRANSITION_DENIED) {
 			break;	// changed successfully or already in this state
@@ -1673,7 +1674,7 @@ set_control_mode()
 			control_mode.flag_control_velocity_enabled = false;
 			break;
 
-		case MAIN_STATE_SEATBELT:
+		case MAIN_STATE_ALTCTRL:
 			control_mode.flag_control_manual_enabled = true;
 			control_mode.flag_control_auto_enabled = false;
 			control_mode.flag_control_rates_enabled = true;
@@ -1684,7 +1685,7 @@ set_control_mode()
 			control_mode.flag_control_velocity_enabled = false;
 			break;
 
-		case MAIN_STATE_EASY:
+		case MAIN_STATE_POSCTRL:
 			control_mode.flag_control_manual_enabled = true;
 			control_mode.flag_control_auto_enabled = false;
 			control_mode.flag_control_rates_enabled = true;
