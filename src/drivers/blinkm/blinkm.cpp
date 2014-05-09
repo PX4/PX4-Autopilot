@@ -638,11 +638,11 @@ BlinkM::led()
 
 						if(new_data_vehicle_control_mode || no_data_vehicle_control_mode < 3) {
 							/* indicate main control state */
-							if (vehicle_status_raw.main_state == MAIN_STATE_EASY)
+							if (vehicle_status_raw.main_state == MAIN_STATE_POSCTRL)
 								led_color_4 = LED_GREEN;
 							else if (vehicle_status_raw.main_state == MAIN_STATE_AUTO)
 								led_color_4 = LED_BLUE;
-							else if (vehicle_status_raw.main_state == MAIN_STATE_SEATBELT)
+							else if (vehicle_status_raw.main_state == MAIN_STATE_ALTCTRL)
 								led_color_4 = LED_YELLOW;
 							else if (vehicle_status_raw.main_state == MAIN_STATE_MANUAL)
 								led_color_4 = LED_WHITE;
