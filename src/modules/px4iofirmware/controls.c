@@ -47,8 +47,8 @@
 #include "px4io.h"
 
 #define RC_FAILSAFE_TIMEOUT		2000000		/**< two seconds failsafe timeout */
-#define RC_CHANNEL_HIGH_THRESH		5000
-#define RC_CHANNEL_LOW_THRESH		-5000
+#define RC_CHANNEL_HIGH_THRESH		5000	/* 75% threshold */
+#define RC_CHANNEL_LOW_THRESH		-8000	/* 10% threshold */
 
 static bool	ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len);
 
