@@ -41,11 +41,13 @@
 #define GEOFENCE_H_
 
 #include <uORB/topics/fence.h>
+#include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
 #define GEOFENCE_FILENAME "/fs/microsd/etc/geofence.txt"
 
-class Geofence {
+class Geofence : public control::SuperBlock
+{
 private:
 	orb_advert_t	_fence_pub;			/**< publish fence topic */
 
@@ -85,8 +87,6 @@ public:
 	int loadFromFile(const char *filename);
 
 	bool isEmpty() {return _verticesCount == 0;}
-
-	void updateParams();
 };
 
 

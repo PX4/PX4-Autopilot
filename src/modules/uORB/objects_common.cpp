@@ -90,6 +90,9 @@ ORB_DEFINE(battery_status, struct battery_status_s);
 #include "topics/servorail_status.h"
 ORB_DEFINE(servorail_status, struct servorail_status_s);
 
+#include "topics/system_power.h"
+ORB_DEFINE(system_power, struct system_power_s);
+
 #include "topics/vehicle_global_position.h"
 ORB_DEFINE(vehicle_global_position, struct vehicle_global_position_s);
 
@@ -124,7 +127,7 @@ ORB_DEFINE(position_setpoint_triplet, struct position_setpoint_triplet_s);
 ORB_DEFINE(vehicle_global_velocity_setpoint, struct vehicle_global_velocity_setpoint_s);
 
 #include "topics/mission.h"
-ORB_DEFINE(mission, struct mission_s);
+ORB_DEFINE(offboard_mission, struct mission_s);
 ORB_DEFINE(onboard_mission, struct mission_s);
 
 #include "topics/mission_result.h"
@@ -190,3 +193,9 @@ ORB_DEFINE(navigation_capabilities, struct navigation_capabilities_s);
 
 #include "topics/esc_status.h"
 ORB_DEFINE(esc_status, struct esc_status_s);
+
+#include "topics/encoders.h"
+ORB_DEFINE(encoders, struct encoders_s);
+
+#include "topics/estimator_status.h"
+ORB_DEFINE(estimator_status, struct estimator_status_report);

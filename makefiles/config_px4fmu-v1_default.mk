@@ -56,7 +56,9 @@ MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/config
 MODULES		+= systemcmds/nshterm
 MODULES		+= systemcmds/usbser
-MODULES		+= systemcmds/hw_ver
+MODULES		+= systemcmds/dumpfile
+MODULES		+= systemcmds/ver
+
 
 #
 # General system control
@@ -70,7 +72,7 @@ MODULES		+= modules/gpio_led
 # Estimation modules (EKF/ SO3 / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
-MODULES		+= modules/att_pos_estimator_ekf
+MODULES		+= modules/fw_att_pos_estimator
 MODULES		+= modules/position_estimator_inav
 #MODULES		+= examples/flow_position_estimator
 

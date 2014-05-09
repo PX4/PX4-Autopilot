@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -30,24 +30,27 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
  * @file launchDetection.cpp
  * Auto Detection for different launch methods (e.g. catapult)
  *
- * Authors and acknowledgements in header.
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
 #include "LaunchDetector.h"
 #include "CatapultLaunchMethod.h"
 #include <systemlib/err.h>
 
+namespace launchdetection
+{
+
 LaunchDetector::LaunchDetector() :
-	launchdetection_on(NULL, "LAUN_ALL_ON", false),
-	throttlePreTakeoff(NULL, "LAUN_THR_PRE", false)
+	SuperBlock(NULL, "LAUN"),
+	launchdetection_on(this, "ALL_ON"),
+	throttlePreTakeoff(this, "THR_PRE")
 {
 	/* init all detectors */
-	launchMethods[0] = new CatapultLaunchMethod();
+	launchMethods[0] = new CatapultLaunchMethod(this);
 
 
 	/* update all parameters of all detectors */
@@ -87,12 +90,4 @@ bool LaunchDetector::getLaunchDetected()
 	return false;
 }
 
-void LaunchDetector::updateParams() {
-
-	launchdetection_on.update();
-	throttlePreTakeoff.update();
-
-	for (uint8_t i = 0; i < sizeof(launchMethods)/sizeof(LaunchMethod); i++) {
-		launchMethods[i]->updateParams();
-	}
 }

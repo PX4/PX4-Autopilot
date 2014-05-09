@@ -120,19 +120,25 @@ private:
 	uint32_t	_pwm_alt_rate_channels;
 	unsigned	_current_update_rate;
 	int		_task;
-	int		_t_actuators;
-	int		_t_actuator_armed;
-	orb_advert_t	_t_outputs;
+	int		_armed_sub;
+	orb_advert_t	_outputs_pub;
+	actuator_armed_s	_armed;
 	unsigned	_num_outputs;
 	bool		_primary_pwm_device;
 
 	volatile bool	_task_should_exit;
-	bool		_armed;
+	bool		_servo_armed;
 	bool		_pwm_on;
 
 	MixerGroup	*_mixers;
 
-	actuator_controls_s _controls;
+	uint32_t	_groups_required;
+	uint32_t	_groups_subscribed;
+	int		_control_subs[NUM_ACTUATOR_CONTROL_GROUPS];
+	actuator_controls_s _controls[NUM_ACTUATOR_CONTROL_GROUPS];
+	orb_id_t	_control_topics[NUM_ACTUATOR_CONTROL_GROUPS];
+	pollfd	_poll_fds[NUM_ACTUATOR_CONTROL_GROUPS];
+	unsigned	_poll_fds_num;
 
 	pwm_limit_t	_pwm_limit;
 	uint16_t	_failsafe_pwm[_max_actuators];
@@ -143,13 +149,13 @@ private:
 	unsigned	_num_disarmed_set;
 
 	static void	task_main_trampoline(int argc, char *argv[]);
-	void		task_main() __attribute__((noreturn));
+	void		task_main();
 
 	static int	control_callback(uintptr_t handle,
 					 uint8_t control_group,
 					 uint8_t control_index,
 					 float &input);
-
+	void	subscribe();
 	int		set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
 	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
 
@@ -216,15 +222,18 @@ PX4FMU::PX4FMU() :
 	_pwm_alt_rate_channels(0),
 	_current_update_rate(0),
 	_task(-1),
-	_t_actuators(-1),
-	_t_actuator_armed(-1),
-	_t_outputs(0),
+	_control_subs({-1}),
+	_poll_fds_num(0),
+	_armed_sub(-1),
+	_outputs_pub(-1),
 	_num_outputs(0),
 	_primary_pwm_device(false),
 	_task_should_exit(false),
-	_armed(false),
+	_servo_armed(false),
 	_pwm_on(false),
 	_mixers(nullptr),
+	_groups_required(0),
+	_groups_subscribed(0),
 	_failsafe_pwm({0}),
 	      _disarmed_pwm({0}),
 	      _num_failsafe_set(0),
@@ -234,6 +243,14 @@ PX4FMU::PX4FMU() :
 		_min_pwm[i] = PWM_DEFAULT_MIN;
 		_max_pwm[i] = PWM_DEFAULT_MAX;
 	}
+
+	_control_topics[0] = ORB_ID(actuator_controls_0);
+	_control_topics[1] = ORB_ID(actuator_controls_1);
+	_control_topics[2] = ORB_ID(actuator_controls_2);
+	_control_topics[3] = ORB_ID(actuator_controls_3);
+
+	memset(_controls, 0, sizeof(_controls));
+	memset(_poll_fds, 0, sizeof(_poll_fds));
 
 	_debug_enabled = true;
 }
@@ -448,32 +465,42 @@ PX4FMU::set_pwm_alt_channels(uint32_t channels)
 }
 
 void
+PX4FMU::subscribe()
+{
+	/* subscribe/unsubscribe to required actuator control groups */
+	uint32_t sub_groups = _groups_required & ~_groups_subscribed;
+	uint32_t unsub_groups = _groups_subscribed & ~_groups_required;
+	_poll_fds_num = 0;
+	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+		if (sub_groups & (1 << i)) {
+			warnx("subscribe to actuator_controls_%d", i);
+			_control_subs[i] = orb_subscribe(_control_topics[i]);
+		}
+		if (unsub_groups & (1 << i)) {
+			warnx("unsubscribe from actuator_controls_%d", i);
+			::close(_control_subs[i]);
+			_control_subs[i] = -1;
+		}
+
+		if (_control_subs[i] > 0) {
+			_poll_fds[_poll_fds_num].fd = _control_subs[i];
+			_poll_fds[_poll_fds_num].events = POLLIN;
+			_poll_fds_num++;
+		}
+	}
+}
+
+void
 PX4FMU::task_main()
 {
-	/*
-	 * Subscribe to the appropriate PWM output topic based on whether we are the
-	 * primary PWM output or not.
-	 */
-	_t_actuators = orb_subscribe(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
-				     ORB_ID(actuator_controls_1));
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
 
-	_t_actuator_armed = orb_subscribe(ORB_ID(actuator_armed));
-	orb_set_interval(_t_actuator_armed, 200);		/* 5Hz update rate */
+	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
-	/* advertise the mixed control outputs */
-	_t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
-				   &outputs);
-
-	pollfd fds[2];
-	fds[0].fd = _t_actuators;
-	fds[0].events = POLLIN;
-	fds[1].fd = _t_actuator_armed;
-	fds[1].events = POLLIN;
 
 #ifdef HRT_PPM_CHANNEL
 	// rc input, published to ORB
@@ -491,6 +518,12 @@ PX4FMU::task_main()
 
 	/* loop until killed */
 	while (!_task_should_exit) {
+		if (_groups_subscribed != _groups_required) {
+			subscribe();
+			_groups_subscribed = _groups_required;
+			/* force setting update rate */
+			_current_update_rate = 0;
+		}
 
 		/*
 		 * Adjust actuator topic update rate to keep up with
@@ -515,20 +548,23 @@ PX4FMU::task_main()
 			}
 
 			debug("adjusted actuator update interval to %ums", update_rate_in_ms);
-			orb_set_interval(_t_actuators, update_rate_in_ms);
+			for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+				if (_control_subs[i] > 0) {
+					orb_set_interval(_control_subs[i], update_rate_in_ms);
+				}
+			}
 
 			// set to current max rate, even if we are actually checking slower/faster
 			_current_update_rate = max_rate;
 		}
 
 		/* sleep waiting for data, stopping to check for PPM
-		 * input at 100Hz */
-		int ret = ::poll(&fds[0], 2, CONTROL_INPUT_DROP_LIMIT_MS);
+		 * input at 50Hz */
+		int ret = ::poll(_poll_fds, _poll_fds_num, CONTROL_INPUT_DROP_LIMIT_MS);
 
 		/* this would be bad... */
 		if (ret < 0) {
 			log("poll error %d", errno);
-			usleep(1000000);
 			continue;
 
 		} else if (ret == 0) {
@@ -537,89 +573,98 @@ PX4FMU::task_main()
 
 		} else {
 
-			/* do we have a control update? */
-			if (fds[0].revents & POLLIN) {
-
-				/* get controls - must always do this to avoid spinning */
-				orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS : ORB_ID(actuator_controls_1), _t_actuators, &_controls);
-
-				/* can we mix? */
-				if (_mixers != nullptr) {
-
-					unsigned num_outputs;
-
-					switch (_mode) {
-					case MODE_2PWM:
-						num_outputs = 2;
-						break;
-
-					case MODE_4PWM:
-						num_outputs = 4;
-						break;
-
-					case MODE_6PWM:
-						num_outputs = 6;
-						break;
-
-					default:
-						num_outputs = 0;
-						break;
+			/* get controls for required topics */
+			unsigned poll_id = 0;
+			for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+				if (_control_subs[i] > 0) {
+					if (_poll_fds[poll_id].revents & POLLIN) {
+						orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 					}
-
-					/* do mixing */
-					outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs);
-					outputs.timestamp = hrt_absolute_time();
-
-					/* iterate actuators */
-					for (unsigned i = 0; i < num_outputs; i++) {
-						/* last resort: catch NaN, INF and out-of-band errors */
-						if (i >= outputs.noutputs ||
-						    !isfinite(outputs.output[i]) ||
-						    outputs.output[i] < -1.0f ||
-						    outputs.output[i] > 1.0f) {
-							/*
-							 * Value is NaN, INF or out of band - set to the minimum value.
-							 * This will be clearly visible on the servo status and will limit the risk of accidentally
-							 * spinning motors. It would be deadly in flight.
-							 */
-							outputs.output[i] = -1.0f;
-						}
-					}
-
-					uint16_t pwm_limited[num_outputs];
-
-					pwm_limit_calc(_armed, num_outputs, _disarmed_pwm, _min_pwm, _max_pwm, outputs.output, pwm_limited, &_pwm_limit);
-
-					/* output to the servos */
-					for (unsigned i = 0; i < num_outputs; i++) {
-						up_pwm_servo_set(i, pwm_limited[i]);
-					}
-
-					/* and publish for anyone that cares to see */
-					orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), _t_outputs, &outputs);
+					poll_id++;
 				}
 			}
 
-			/* how about an arming update? */
-			if (fds[1].revents & POLLIN) {
-				actuator_armed_s aa;
+			/* can we mix? */
+			if (_mixers != nullptr) {
 
-				/* get new value */
-				orb_copy(ORB_ID(actuator_armed), _t_actuator_armed, &aa);
+				unsigned num_outputs;
 
-				/* update the armed status and check that we're not locked down */
-				bool set_armed = aa.armed && !aa.lockdown;
+				switch (_mode) {
+				case MODE_2PWM:
+					num_outputs = 2;
+					break;
 
-				if (_armed != set_armed)
-					_armed = set_armed;
+				case MODE_4PWM:
+					num_outputs = 4;
+					break;
 
-				/* update PWM status if armed or if disarmed PWM values are set */
-				bool pwm_on = (aa.armed || _num_disarmed_set > 0);
+				case MODE_6PWM:
+					num_outputs = 6;
+					break;
 
-				if (_pwm_on != pwm_on) {
-					_pwm_on = pwm_on;
-					up_pwm_servo_arm(pwm_on);
+				default:
+					num_outputs = 0;
+					break;
 				}
+
+				/* do mixing */
+				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs);
+				outputs.timestamp = hrt_absolute_time();
+
+				/* iterate actuators */
+				for (unsigned i = 0; i < num_outputs; i++) {
+					/* last resort: catch NaN, INF and out-of-band errors */
+					if (i >= outputs.noutputs ||
+						!isfinite(outputs.output[i]) ||
+						outputs.output[i] < -1.0f ||
+						outputs.output[i] > 1.0f) {
+						/*
+						 * Value is NaN, INF or out of band - set to the minimum value.
+						 * This will be clearly visible on the servo status and will limit the risk of accidentally
+						 * spinning motors. It would be deadly in flight.
+						 */
+						outputs.output[i] = -1.0f;
+					}
+				}
+
+				uint16_t pwm_limited[num_outputs];
+
+				pwm_limit_calc(_servo_armed, num_outputs, _disarmed_pwm, _min_pwm, _max_pwm, outputs.output, pwm_limited, &_pwm_limit);
+
+				/* output to the servos */
+				for (unsigned i = 0; i < num_outputs; i++) {
+					up_pwm_servo_set(i, pwm_limited[i]);
+				}
+
+				/* publish mixed control outputs */
+				if (_outputs_pub < 0) {
+					_outputs_pub = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), &outputs);
+				} else {
+
+					orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), _outputs_pub, &outputs);
+				}
+			}
+		}
+
+		/* check arming state */
+		bool updated = false;
+		orb_check(_armed_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
+
+			/* update the armed status and check that we're not locked down */
+			bool set_armed = _armed.armed && !_armed.lockdown;
+
+			if (_servo_armed != set_armed)
+				_servo_armed = set_armed;
+
+			/* update PWM status if armed or if disarmed PWM values are set */
+			bool pwm_on = (_armed.armed || _num_disarmed_set > 0);
+
+			if (_pwm_on != pwm_on) {
+				_pwm_on = pwm_on;
+				up_pwm_servo_arm(pwm_on);
 			}
 		}
 
@@ -661,8 +706,13 @@ PX4FMU::task_main()
 
 	}
 
-	::close(_t_actuators);
-	::close(_t_actuator_armed);
+	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+		if (_control_subs > 0) {
+			::close(_control_subs[i]);
+			_control_subs[i] = -1;
+		}
+	}
+	::close(_armed_sub);
 
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
@@ -684,7 +734,7 @@ PX4FMU::control_callback(uintptr_t handle,
 {
 	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
-	input = controls->control[control_index];
+	input = controls[control_group].control[control_index];
 	return 0;
 }
 
@@ -736,6 +786,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case PWM_SERVO_SET_ARM_OK:
 	case PWM_SERVO_CLEAR_ARM_OK:
+	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
 		// these are no-ops, as no safety switch
 		break;
 
@@ -1052,6 +1103,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		if (_mixers != nullptr) {
 			delete _mixers;
 			_mixers = nullptr;
+			_groups_required = 0;
 		}
 
 		break;
@@ -1060,18 +1112,20 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			mixer_simple_s *mixinfo = (mixer_simple_s *)arg;
 
 			SimpleMixer *mixer = new SimpleMixer(control_callback,
-							     (uintptr_t)&_controls, mixinfo);
+							     (uintptr_t)_controls, mixinfo);
 
 			if (mixer->check()) {
 				delete mixer;
+				_groups_required = 0;
 				ret = -EINVAL;
 
 			} else {
 				if (_mixers == nullptr)
 					_mixers = new MixerGroup(control_callback,
-								 (uintptr_t)&_controls);
+								 (uintptr_t)_controls);
 
 				_mixers->add_mixer(mixer);
+				_mixers->groups_required(_groups_required);
 			}
 
 			break;
@@ -1082,9 +1136,10 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			unsigned buflen = strnlen(buf, 1024);
 
 			if (_mixers == nullptr)
-				_mixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
+				_mixers = new MixerGroup(control_callback, (uintptr_t)_controls);
 
 			if (_mixers == nullptr) {
+				_groups_required = 0;
 				ret = -ENOMEM;
 
 			} else {
@@ -1095,7 +1150,11 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 					debug("mixer load failed with %d", ret);
 					delete _mixers;
 					_mixers = nullptr;
+					_groups_required = 0;
 					ret = -EINVAL;
+				} else {
+
+					_mixers->groups_required(_groups_required);
 				}
 			}
 

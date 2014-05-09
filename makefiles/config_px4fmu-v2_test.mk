@@ -30,7 +30,7 @@ MODULES		+= systemcmds/usbser
 MODULES		+= systemcmds/nshterm
 MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/mtd
-MODULES		+= systemcmds/hw_ver
+MODULES		+= systemcmds/ver
 
 #
 # Library modules

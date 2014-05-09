@@ -46,6 +46,10 @@
 
 #define RANGE_FINDER_DEVICE_PATH	"/dev/range_finder"
 
+enum RANGE_FINDER_TYPE {
+	RANGE_FINDER_TYPE_LASER = 0,
+};
+
 /**
  * range finder report structure.  Reads from the device must be in multiples of this
  * structure.
@@ -53,8 +57,11 @@
 struct range_finder_report {
 	uint64_t timestamp;
 	uint64_t error_count;
-	float distance; 			/** in meters */
-	uint8_t valid;				/** 1 == within sensor range, 0 = outside sensor range */
+	unsigned type;				/**< type, following RANGE_FINDER_TYPE enum */
+	float distance; 			/**< in meters */
+	float minimum_distance;			/**< minimum distance the sensor can measure */
+	float maximum_distance;			/**< maximum distance the sensor can measure */
+	uint8_t valid;				/**< 1 == within sensor range, 0 = outside sensor range */
 };
 
 /*

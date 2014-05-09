@@ -1,5 +1,5 @@
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2012-2014 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -125,7 +125,11 @@ ARCHWARNINGS		 = -Wall \
 			   -Wlogical-op \
 			   -Wmissing-declarations \
 			   -Wpacked \
-			   -Wno-unused-parameter
+			   -Wno-unused-parameter \
+			   -Werror=format-security \
+			   -Werror=array-bounds \
+			   -Wfatal-errors \
+			   -Wformat=1
 #   -Wcast-qual  - generates spurious noreturn attribute warnings, try again later
 #   -Wconversion - would be nice, but too many "risky-but-safe" conversions in the code
 #   -Wcast-align - would help catch bad casts in some cases, but generates too many false positives
@@ -142,7 +146,8 @@ ARCHCWARNINGS		 = $(ARCHWARNINGS) \
 
 # C++-specific warnings
 #
-ARCHWARNINGSXX		 = $(ARCHWARNINGS)
+ARCHWARNINGSXX		 = $(ARCHWARNINGS) \
+			   -Wno-missing-field-initializers
 
 # pull in *just* libm from the toolchain ... this is grody
 LIBM			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a)

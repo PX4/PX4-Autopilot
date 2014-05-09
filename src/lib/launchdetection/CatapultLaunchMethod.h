@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -10,9 +10,9 @@
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in
- *    the documentation4 and/or other materials provided with the
+ *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -44,17 +44,20 @@
 #include "LaunchMethod.h"
 
 #include <drivers/drv_hrt.h>
+#include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
-class CatapultLaunchMethod : public LaunchMethod
+namespace launchdetection
+{
+
+class CatapultLaunchMethod : public LaunchMethod, public control::SuperBlock
 {
 public:
-	CatapultLaunchMethod();
+	CatapultLaunchMethod(SuperBlock *parent);
 	~CatapultLaunchMethod();
 
 	void update(float accel_x);
 	bool getLaunchDetected();
-	void updateParams();
 	void reset();
 
 private:
@@ -68,3 +71,5 @@ private:
 };
 
 #endif /* CATAPULTLAUNCHMETHOD_H_ */
+
+}
