@@ -2119,9 +2119,7 @@ void AttPosEKF::ConstrainStates()
     }
 
     // Constrain delta velocity bias
-    ekf_debug("pre delta vel");
     states[13] = ConstrainFloat(states[13], -1.0f * dtIMU, 1.0f * dtIMU);
-    ekf_debug("post delta vel");
 
     // Wind velocity limits - assume 120 m/s max velocity
     for (unsigned i = 14; i <= 15; i++) {
