@@ -504,14 +504,13 @@ FixedwingEstimator::task_main_trampoline(int argc, char *argv[])
 	estimator::g_estimator->task_main();
 }
 
-float dt = 0.0f; // time lapsed since last covariance prediction
-
 void
 FixedwingEstimator::task_main()
 {
 	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
 	_ekf = new AttPosEKF();
+	float dt = 0.0f; // time lapsed since last covariance prediction
 
 	if (!_ekf) {
 		errx(1, "failed allocating EKF filter - out of RAM!");
