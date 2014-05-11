@@ -258,8 +258,6 @@ private:
 		int rc_map_posctl_sw;
 		int rc_map_loiter_sw;
 
-//		int rc_map_offboard_ctrl_mode_sw;
-
 		int rc_map_flaps;
 
 		int rc_map_aux1;
@@ -311,8 +309,6 @@ private:
 		param_t rc_map_return_sw;
 		param_t rc_map_posctl_sw;
 		param_t rc_map_loiter_sw;
-
-//		param_t rc_map_offboard_ctrl_mode_sw;
 
 		param_t rc_map_flaps;
 
@@ -529,8 +525,6 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_posctl_sw = param_find("RC_MAP_POSCTL_SW");
 	_parameter_handles.rc_map_loiter_sw = param_find("RC_MAP_LOITER_SW");
 
-//	_parameter_handles.rc_map_offboard_ctrl_mode_sw = param_find("RC_MAP_OFFB_SW");
-
 	_parameter_handles.rc_map_aux1 = param_find("RC_MAP_AUX1");
 	_parameter_handles.rc_map_aux2 = param_find("RC_MAP_AUX2");
 	_parameter_handles.rc_map_aux3 = param_find("RC_MAP_AUX3");
@@ -691,10 +685,6 @@ Sensors::parameters_update()
 		warnx("%s", paramerr);
 	}
 
-//	if (param_get(_parameter_handles.rc_map_offboard_ctrl_mode_sw, &(_parameters.rc_map_offboard_ctrl_mode_sw)) != OK) {
-//		warnx("Failed getting offboard control mode sw chan index");
-//	}
-
 	param_get(_parameter_handles.rc_map_aux1, &(_parameters.rc_map_aux1));
 	param_get(_parameter_handles.rc_map_aux2, &(_parameters.rc_map_aux2));
 	param_get(_parameter_handles.rc_map_aux3, &(_parameters.rc_map_aux3));
@@ -729,8 +719,6 @@ Sensors::parameters_update()
 	_rc.function[LOITER] = _parameters.rc_map_loiter_sw - 1;
 
 	_rc.function[FLAPS] = _parameters.rc_map_flaps - 1;
-
-//	_rc.function[OFFBOARD_MODE] = _parameters.rc_map_offboard_ctrl_mode_sw - 1;
 
 	_rc.function[AUX_1] = _parameters.rc_map_aux1 - 1;
 	_rc.function[AUX_2] = _parameters.rc_map_aux2 - 1;
