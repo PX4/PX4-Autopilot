@@ -35,8 +35,8 @@ void BlockSegwayController::update() {
 
 	// handle autopilot modes
 	if (_status.main_state == MAIN_STATE_AUTO ||
-	    _status.main_state == MAIN_STATE_ALTCTRL ||
-	    _status.main_state == MAIN_STATE_POSCTRL) {
+	    _status.main_state == MAIN_STATE_ALTCTL ||
+	    _status.main_state == MAIN_STATE_POSCTL) {
 		_actuators.control[0] = spdCmd;
 		_actuators.control[1] = spdCmd;
 

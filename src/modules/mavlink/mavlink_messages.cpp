@@ -124,13 +124,13 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
 
-		} else if (status->main_state == MAIN_STATE_ALTCTRL) {
+		} else if (status->main_state == MAIN_STATE_ALTCTL) {
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ALTCTRL;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ALTCTL;
 
-		} else if (status->main_state == MAIN_STATE_POSCTRL) {
+		} else if (status->main_state == MAIN_STATE_POSCTL) {
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_POSCTRL;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
 
 		} else if (status->main_state == MAIN_STATE_AUTO) {
 			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;

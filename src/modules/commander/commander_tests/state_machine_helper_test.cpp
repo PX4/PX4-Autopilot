@@ -320,15 +320,15 @@ bool StateMachineHelperTest::mainStateTransitionTest(void)
 	// MANUAL to ALTCTRL.
 	current_state.main_state = MAIN_STATE_MANUAL;
 	current_state.condition_local_altitude_valid = true;
-	new_main_state = MAIN_STATE_ALTCTRL;
+	new_main_state = MAIN_STATE_ALTCTL;
 	ut_assert("tranisition: manual to altctrl",
 		  TRANSITION_CHANGED == main_state_transition(&current_state, new_main_state));
-	ut_assert("new state: altctrl", MAIN_STATE_ALTCTRL == current_state.main_state);
+	ut_assert("new state: altctrl", MAIN_STATE_ALTCTL == current_state.main_state);
 
 	// MANUAL to ALTCTRL, invalid local altitude.
 	current_state.main_state = MAIN_STATE_MANUAL;
 	current_state.condition_local_altitude_valid = false;
-	new_main_state = MAIN_STATE_ALTCTRL;
+	new_main_state = MAIN_STATE_ALTCTL;
 	ut_assert("no transition: invalid local altitude",
 		  TRANSITION_DENIED == main_state_transition(&current_state, new_main_state));
 	ut_assert("current state: manual", MAIN_STATE_MANUAL == current_state.main_state);
@@ -336,15 +336,15 @@ bool StateMachineHelperTest::mainStateTransitionTest(void)
 	// MANUAL to POSCTRL.
 	current_state.main_state = MAIN_STATE_MANUAL;
 	current_state.condition_local_position_valid = true;
-	new_main_state = MAIN_STATE_POSCTRL;
+	new_main_state = MAIN_STATE_POSCTL;
 	ut_assert("transition: manual to posctrl",
 		  TRANSITION_CHANGED == main_state_transition(&current_state, new_main_state));
-	ut_assert("current state: posctrl", MAIN_STATE_POSCTRL == current_state.main_state);
+	ut_assert("current state: posctrl", MAIN_STATE_POSCTL == current_state.main_state);
 
 	// MANUAL to POSCTRL, invalid local position.
 	current_state.main_state = MAIN_STATE_MANUAL;
 	current_state.condition_local_position_valid = false;
-	new_main_state = MAIN_STATE_POSCTRL;
+	new_main_state = MAIN_STATE_POSCTL;
 	ut_assert("no transition: invalid position",
 		  TRANSITION_DENIED == main_state_transition(&current_state, new_main_state));
 	ut_assert("current state: manual", MAIN_STATE_MANUAL == current_state.main_state);
