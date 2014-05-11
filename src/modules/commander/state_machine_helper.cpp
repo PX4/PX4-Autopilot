@@ -215,7 +215,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		ret = TRANSITION_CHANGED;
 		break;
 
-	case MAIN_STATE_ALTCTRL:
+	case MAIN_STATE_ALTCTL:
 
 		/* need at minimum altitude estimate */
 		if (!status->is_rotary_wing ||
@@ -226,7 +226,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 		break;
 
-	case MAIN_STATE_POSCTRL:
+	case MAIN_STATE_POSCTL:
 
 		/* need at minimum local position estimate */
 		if (status->condition_local_position_valid ||
