@@ -1268,7 +1268,7 @@ void AttPosEKF::FuseMagnetometer()
     for (uint8_t i = 0; i < n_states; i++) {
         H_MAG[i] = 0.0f;
     }
-    uint8_t indexLimit;
+    unsigned indexLimit;
 
 // Perform sequential fusion of Magnetometer measurements.
 // This assumes that the errors in the different components are
@@ -1281,11 +1281,11 @@ void AttPosEKF::FuseMagnetometer()
         // Limit range of states modified when on ground
         if(!onGround)
         {
-            indexLimit = 22;
+            indexLimit = n_states;
         }
         else
         {
-            indexLimit = 13;
+            indexLimit = 13 + 1;
         }
 
         // Sequential fusion of XYZ components to spread processing load across
@@ -1483,7 +1483,7 @@ void AttPosEKF::FuseMagnetometer()
         if ((innovMag[obsIndex]*innovMag[obsIndex]/varInnovMag[obsIndex]) < 25.0)
         {
             // correct the state vector
-            for (uint8_t j= 0; j<=indexLimit; j++)
+            for (uint8_t j= 0; j < indexLimit; j++)
             {
                 states[j] = states[j] - Kfusion[j] * innovMag[obsIndex];
             }
@@ -1500,7 +1500,7 @@ void AttPosEKF::FuseMagnetometer()
             // correct the covariance P = (I - K*H)*P
             // take advantage of the empty columns in KH to reduce the
             // number of operations
-            for (uint8_t i = 0; i<=indexLimit; i++)
+            for (uint8_t i = 0; i < indexLimit; i++)
             {
                 for (uint8_t j = 0; j <= 3; j++)
                 {
@@ -1522,9 +1522,9 @@ void AttPosEKF::FuseMagnetometer()
                     }
                 }
             }
-            for (uint8_t i = 0; i<=indexLimit; i++)
+            for (uint8_t i = 0; i < indexLimit; i++)
             {
-                for (uint8_t j = 0; j<=indexLimit; j++)
+                for (uint8_t j = 0; j < indexLimit; j++)
                 {
                     KHP[i][j] = 0.0f;
                     for (uint8_t k = 0; k <= 3; k++)
@@ -1541,9 +1541,9 @@ void AttPosEKF::FuseMagnetometer()
                 }
             }
         }
-        for (uint8_t i = 0; i <= indexLimit; i++)
+        for (uint8_t i = 0; i < indexLimit; i++)
         {
-            for (uint8_t j = 0; j <= indexLimit; j++)
+            for (uint8_t j = 0; j < indexLimit; j++)
             {
                 P[i][j] = P[i][j] - KHP[i][j];
             }
@@ -2001,7 +2001,22 @@ void AttPosEKF::CovarianceInit()
 
 float AttPosEKF::ConstrainFloat(float val, float min, float max)
 {
-    return (val > max) ? max : ((val < min) ? min : val);
+    float ret;
+    if (val > max) {
+        ret = max;
+        ekf_debug("> max: %8.4f, val: %8.4f", min);
+    } else if (val < min) {
+        ret = min;
+        ekf_debug("< min: %8.4f, val: %8.4f", max);
+    } else {
+        ret = val;
+    }
+
+    if (!isfinite) {
+        ekf_debug("constrain: non-finite!");
+    }
+
+    return ret;
 }
 
 void AttPosEKF::ConstrainVariances()
