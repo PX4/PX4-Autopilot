@@ -124,13 +124,13 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
 
-		} else if (status->main_state == MAIN_STATE_SEATBELT) {
+		} else if (status->main_state == MAIN_STATE_ALTCTL) {
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_SEATBELT;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ALTCTL;
 
-		} else if (status->main_state == MAIN_STATE_EASY) {
+		} else if (status->main_state == MAIN_STATE_POSCTL) {
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_EASY;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
 
 		} else if (status->main_state == MAIN_STATE_AUTO) {
 			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
@@ -1399,22 +1399,23 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
-		(void)range_sub->update(t);
+		if (range_sub->update(t)) {
 
-		uint8_t type;
+			uint8_t type;
 
-		switch (range->type) {
-			case RANGE_FINDER_TYPE_LASER:
-			type = MAV_DISTANCE_SENSOR_LASER;
-			break;
+			switch (range->type) {
+				case RANGE_FINDER_TYPE_LASER:
+				type = MAV_DISTANCE_SENSOR_LASER;
+				break;
+			}
+
+			uint8_t id = 0;
+			uint8_t orientation = 0;
+			uint8_t covariance = 20;
+
+			mavlink_msg_distance_sensor_send(_channel, range->timestamp / 1000, type, id, orientation,
+				range->minimum_distance*100, range->maximum_distance*100, range->distance*100, covariance);
 		}
-
-		uint8_t id = 0;
-		uint8_t orientation = 0;
-		uint8_t covariance = 20;
-
-		mavlink_msg_distance_sensor_send(_channel, range->timestamp / 1000, type, id, orientation,
-			range->minimum_distance*100, range->maximum_distance*100, range->distance*100, covariance);
 	}
 };
 
