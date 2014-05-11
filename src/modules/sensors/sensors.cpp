@@ -255,7 +255,7 @@ private:
 
 		int rc_map_mode_sw;
 		int rc_map_return_sw;
-		int rc_map_posctrl_sw;
+		int rc_map_posctl_sw;
 		int rc_map_loiter_sw;
 
 //		int rc_map_offboard_ctrl_mode_sw;
@@ -271,12 +271,12 @@ private:
 		int32_t rc_fails_thr;
 		float rc_assist_th;
 		float rc_auto_th;
-		float rc_posctrl_th;
+		float rc_posctl_th;
 		float rc_return_th;
 		float rc_loiter_th;
 		bool rc_assist_inv;
 		bool rc_auto_inv;
-		bool rc_posctrl_inv;
+		bool rc_posctl_inv;
 		bool rc_return_inv;
 		bool rc_loiter_inv;
 
@@ -309,7 +309,7 @@ private:
 
 		param_t rc_map_mode_sw;
 		param_t rc_map_return_sw;
-		param_t rc_map_posctrl_sw;
+		param_t rc_map_posctl_sw;
 		param_t rc_map_loiter_sw;
 
 //		param_t rc_map_offboard_ctrl_mode_sw;
@@ -325,7 +325,7 @@ private:
 		param_t rc_fails_thr;
 		param_t rc_assist_th;
 		param_t rc_auto_th;
-		param_t rc_posctrl_th;
+		param_t rc_posctl_th;
 		param_t rc_return_th;
 		param_t rc_loiter_th;
 
@@ -526,7 +526,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_flaps = param_find("RC_MAP_FLAPS");
 
 	/* optional mode switches, not mapped per default */
-	_parameter_handles.rc_map_posctrl_sw = param_find("RC_MAP_POSCTL_SW");
+	_parameter_handles.rc_map_posctl_sw = param_find("RC_MAP_POSCTL_SW");
 	_parameter_handles.rc_map_loiter_sw = param_find("RC_MAP_LOITER_SW");
 
 //	_parameter_handles.rc_map_offboard_ctrl_mode_sw = param_find("RC_MAP_OFFB_SW");
@@ -541,7 +541,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_fails_thr = param_find("RC_FAILS_THR");
 	_parameter_handles.rc_assist_th = param_find("RC_ASSIST_TH");
 	_parameter_handles.rc_auto_th = param_find("RC_AUTO_TH");
-	_parameter_handles.rc_posctrl_th = param_find("RC_POSCTRL_TH");
+	_parameter_handles.rc_posctl_th = param_find("RC_POSCTL_TH");
 	_parameter_handles.rc_return_th = param_find("RC_RETURN_TH");
 	_parameter_handles.rc_loiter_th = param_find("RC_LOITER_TH");
 
@@ -678,7 +678,7 @@ Sensors::parameters_update()
 		warnx("%s", paramerr);
 	}
 
-	if (param_get(_parameter_handles.rc_map_posctrl_sw, &(_parameters.rc_map_posctrl_sw)) != OK) {
+	if (param_get(_parameter_handles.rc_map_posctl_sw, &(_parameters.rc_map_posctl_sw)) != OK) {
 		warnx("%s", paramerr);
 	}
 
@@ -706,9 +706,9 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_auto_th, &(_parameters.rc_auto_th));
 	_parameters.rc_auto_inv = (_parameters.rc_auto_th<0);
 	_parameters.rc_auto_th = fabs(_parameters.rc_auto_th);
-	param_get(_parameter_handles.rc_posctrl_th, &(_parameters.rc_posctrl_th));
-	_parameters.rc_posctrl_inv = (_parameters.rc_posctrl_th<0);
-	_parameters.rc_posctrl_th = fabs(_parameters.rc_posctrl_th);
+	param_get(_parameter_handles.rc_posctl_th, &(_parameters.rc_posctl_th));
+	_parameters.rc_posctl_inv = (_parameters.rc_posctl_th<0);
+	_parameters.rc_posctl_th = fabs(_parameters.rc_posctl_th);
 	param_get(_parameter_handles.rc_return_th, &(_parameters.rc_return_th));
 	_parameters.rc_return_inv = (_parameters.rc_return_th<0);
 	_parameters.rc_return_th = fabs(_parameters.rc_return_th);
@@ -724,7 +724,7 @@ Sensors::parameters_update()
 
 	_rc.function[MODE] = _parameters.rc_map_mode_sw - 1;
 	_rc.function[RETURN] = _parameters.rc_map_return_sw - 1;
-	_rc.function[POSCTRL] = _parameters.rc_map_posctrl_sw - 1;
+	_rc.function[POSCTL] = _parameters.rc_map_posctl_sw - 1;
 	_rc.function[LOITER] = _parameters.rc_map_loiter_sw - 1;
 
 	_rc.function[FLAPS] = _parameters.rc_map_flaps - 1;
@@ -1478,7 +1478,7 @@ Sensors::rc_poll()
 
 			/* mode switches */
 			manual.mode_switch = get_rc_sw3pos_position(MODE, _parameters.rc_auto_th, _parameters.rc_auto_inv, _parameters.rc_assist_th, _parameters.rc_assist_inv);
-			manual.posctrl_switch = get_rc_sw2pos_position(POSCTRL, _parameters.rc_posctrl_th, _parameters.rc_posctrl_inv);
+			manual.posctl_switch = get_rc_sw2pos_position(POSCTL, _parameters.rc_posctl_th, _parameters.rc_posctl_inv);
 			manual.return_switch = get_rc_sw2pos_position(RETURN, _parameters.rc_return_th, _parameters.rc_return_inv);
 			manual.loiter_switch = get_rc_sw2pos_position(LOITER, _parameters.rc_loiter_th, _parameters.rc_loiter_inv);
 

@@ -599,7 +599,7 @@ PARAM_DEFINE_INT32(RC_MAP_MODE_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_RETURN_SW, 0);
 
 /**
- * Assist switch channel mapping.
+ * Posctl switch channel mapping.
  *
  * @min 0
  * @max 18
@@ -703,7 +703,7 @@ PARAM_DEFINE_FLOAT(RC_ASSIST_TH, 0.25f);
 PARAM_DEFINE_FLOAT(RC_AUTO_TH, 0.75f);
 
 /**
- * Threshold for selecting posctrl mode
+ * Threshold for selecting posctl mode
  *
  * min:-1
  * max:+1
@@ -716,7 +716,7 @@ PARAM_DEFINE_FLOAT(RC_AUTO_TH, 0.75f);
  * 		negative : true when channel<th
  *
  */
-PARAM_DEFINE_FLOAT(RC_POSCTRL_TH, 0.5f);
+PARAM_DEFINE_FLOAT(RC_POSCTL_TH, 0.5f);
 
 /**
  * Threshold for selecting return to launch mode
