@@ -1379,7 +1379,7 @@ FixedwingEstimator::print_status()
 	// 15-17: Earth Magnetic Field Vector - gauss (North, East, Down)
 	// 18-20: Body Magnetic Field Vector - gauss (X,Y,Z)
 
-	printf("dtIMU: %8.6f dt: %8.6f IMUmsec: %d\n", (double)_ekf->dtIMU, (double)dt, (int)IMUmsec);
+	printf("dtIMU: %8.6f IMUmsec: %d\n", (double)_ekf->dtIMU, (int)IMUmsec);
 	printf("dvel: %8.6f %8.6f %8.6f accel: %8.6f %8.6f %8.6f\n", (double)_ekf->dVelIMU.x, (double)_ekf->dVelIMU.y, (double)_ekf->dVelIMU.z, (double)_ekf->accel.x, (double)_ekf->accel.y, (double)_ekf->accel.z);
 	printf("dang: %8.4f %8.4f %8.4f dang corr: %8.4f %8.4f %8.4f\n" , (double)_ekf->dAngIMU.x, (double)_ekf->dAngIMU.y, (double)_ekf->dAngIMU.z, (double)_ekf->correctedDelAng.x, (double)_ekf->correctedDelAng.y, (double)_ekf->correctedDelAng.z);
 	printf("states (quat)        [1-4]: %8.4f, %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[0], (double)_ekf->states[1], (double)_ekf->states[2], (double)_ekf->states[3]);

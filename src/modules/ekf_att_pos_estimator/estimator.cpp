@@ -2004,15 +2004,15 @@ float AttPosEKF::ConstrainFloat(float val, float min, float max)
     float ret;
     if (val > max) {
         ret = max;
-        ekf_debug("> max: %8.4f, val: %8.4f", min);
+        ekf_debug("> max: %8.4f, val: %8.4f", max, val);
     } else if (val < min) {
         ret = min;
-        ekf_debug("< min: %8.4f, val: %8.4f", max);
+        ekf_debug("< min: %8.4f, val: %8.4f", min, val);
     } else {
         ret = val;
     }
 
-    if (!isfinite) {
+    if (!isfinite(val)) {
         ekf_debug("constrain: non-finite!");
     }
 
@@ -2119,7 +2119,9 @@ void AttPosEKF::ConstrainStates()
     }
 
     // Constrain delta velocity bias
+    ekf_debug("pre delta vel");
     states[13] = ConstrainFloat(states[13], -1.0f * dtIMU, 1.0f * dtIMU);
+    ekf_debug("post delta vel");
 
     // Wind velocity limits - assume 120 m/s max velocity
     for (unsigned i = 14; i <= 15; i++) {
