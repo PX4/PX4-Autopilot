@@ -97,6 +97,7 @@ __EXPORT uint32_t millis();
 
 static uint64_t last_run = 0;
 static uint64_t IMUmsec = 0;
+static const uint64_t FILTER_INIT_DELAY = 1 * 1000 * 1000;
 
 uint32_t millis()
 {
@@ -194,6 +195,7 @@ private:
 	bool						_baro_init;
 	bool						_gps_initialized;
 	uint64_t					_gps_start_time;
+	uint64_t					_filter_start_time;
 	bool						_gyro_valid;
 	bool						_accel_valid;
 	bool						_mag_valid;
@@ -511,6 +513,7 @@ FixedwingEstimator::task_main()
 
 	_ekf = new AttPosEKF();
 	float dt = 0.0f; // time lapsed since last covariance prediction
+	_filter_start_time = hrt_absolute_time();
 
 	if (!_ekf) {
 		errx(1, "failed allocating EKF filter - out of RAM!");
@@ -636,6 +639,7 @@ FixedwingEstimator::task_main()
 
 				_ekf->ZeroVariables();
 				_ekf->dtIMU = 0.01f;
+				_filter_start_time = last_sensor_timestamp;
 
 				/* now skip this loop and get data on the next one, which will also re-init the filter */
 				continue;
@@ -1020,7 +1024,7 @@ FixedwingEstimator::task_main()
 			 *    PART TWO: EXECUTE THE FILTER
 			 **/
 
-			if (hrt_absolute_time() > 2 * 1000 * 1000 && _baro_init && _gyro_valid && _accel_valid && _mag_valid) {
+			if ((hrt_elapsed_time(&_filter_start_time) > FILTER_INIT_DELAY) && _baro_init && _gyro_valid && _accel_valid && _mag_valid) {
 
 				float initVelNED[3];
 
