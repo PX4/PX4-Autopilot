@@ -1178,10 +1178,10 @@ int commander_thread_main(int argc, char *argv[])
 
 			status.rc_signal_lost = false;
 
-			transition_result_t res;	// store all transitions results here
+			transition_result_t arming_res;	// store all transitions results here
 
 			/* arm/disarm by RC */
-			res = TRANSITION_NOT_CHANGED;
+			arming_res = TRANSITION_NOT_CHANGED;
 
 			/* check if left stick is in lower left position and we are in MANUAL or AUTO_READY mode or (ASSIST mode and landed) -> disarm
 			 * do it only for rotary wings */
@@ -1193,7 +1193,7 @@ int commander_thread_main(int argc, char *argv[])
 				if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
 					arming_state_t new_arming_state = (status.arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
-					res = arming_state_transition(&status, &safety, new_arming_state, &armed);
+					arming_res = arming_state_transition(&status, &safety, new_arming_state, &armed);
 					stick_off_counter = 0;
 
 				} else {
@@ -1215,7 +1215,7 @@ int commander_thread_main(int argc, char *argv[])
 						print_reject_arm("NOT ARMING: Switch to MANUAL mode first.");
 
 					} else {
-						res = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed);
+						arming_res = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed);
 					}
 
 					stick_on_counter = 0;
@@ -1228,7 +1228,7 @@ int commander_thread_main(int argc, char *argv[])
 				stick_on_counter = 0;
 			}
 
-			if (res == TRANSITION_CHANGED) {
+			if (arming_res == TRANSITION_CHANGED) {
 				if (status.arming_state == ARMING_STATE_ARMED) {
 					mavlink_log_info(mavlink_fd, "[cmd] ARMED by RC");
 
@@ -1236,24 +1236,24 @@ int commander_thread_main(int argc, char *argv[])
 					mavlink_log_info(mavlink_fd, "[cmd] DISARMED by RC");
 				}
 
-			} else if (res == TRANSITION_DENIED) {
+			} else if (arming_res == TRANSITION_DENIED) {
 				/* DENIED here indicates bug in the commander */
 				mavlink_log_critical(mavlink_fd, "ERROR: arming state transition denied");
 			}
 
 			if (status.failsafe_state != FAILSAFE_STATE_NORMAL) {
 				/* recover from failsafe */
-				transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_NORMAL);
+				(void)failsafe_state_transition(&status, FAILSAFE_STATE_NORMAL);
 			}
 
 			/* evaluate the main state machine according to mode switches */
-			res = set_main_state_rc(&status, &sp_man);
+			transition_result_t main_res = set_main_state_rc(&status, &sp_man);
 
 			/* play tune on mode change only if armed, blink LED always */
-			if (res == TRANSITION_CHANGED) {
+			if (main_res == TRANSITION_CHANGED) {
 				tune_positive(armed.armed);
 
-			} else if (res == TRANSITION_DENIED) {
+			} else if (main_res == TRANSITION_DENIED) {
 				/* DENIED here indicates bug in the commander */
 				mavlink_log_critical(mavlink_fd, "ERROR: main state transition denied");
 			}
@@ -1296,57 +1296,39 @@ int commander_thread_main(int argc, char *argv[])
 			if (armed.armed) {
 				if (status.main_state == MAIN_STATE_AUTO) {
 					/* check if AUTO mode still allowed */
-					transition_result_t res = main_state_transition(&status, MAIN_STATE_AUTO);
+					transition_result_t auto_res = main_state_transition(&status, MAIN_STATE_AUTO);
 
-					if (res == TRANSITION_NOT_CHANGED) {
+					if (auto_res == TRANSITION_NOT_CHANGED) {
 						last_auto_state_valid = hrt_absolute_time();
 					}
 
 					/* still invalid state after the timeout interval, execute failsafe */
-					if ((hrt_elapsed_time(&last_auto_state_valid) > FAILSAFE_DEFAULT_TIMEOUT) && (res == TRANSITION_DENIED)) {
+					if ((hrt_elapsed_time(&last_auto_state_valid) > FAILSAFE_DEFAULT_TIMEOUT) && (auto_res == TRANSITION_DENIED)) {
 						/* AUTO mode denied, don't try RTL, switch to failsafe state LAND */
-						res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
+						auto_res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
 
-						if (res == TRANSITION_DENIED) {
+						if (auto_res == TRANSITION_DENIED) {
 							/* LAND not allowed, set TERMINATION state */
-							transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
-
-							if (res == TRANSITION_CHANGED) {
-								mavlink_log_critical(mavlink_fd, "#a FAILSAFE: TERMINATION");
-							}
-
-						} else if (res == TRANSITION_CHANGED) {
-							mavlink_log_critical(mavlink_fd, "#a FAILSAFE: LANDING");
+							(void)failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
 						}
 					}
 
 				} else {
 					/* failsafe for manual modes */
-					transition_result_t res = TRANSITION_DENIED;
+					transition_result_t manual_res = TRANSITION_DENIED;
 
 					if (!status.condition_landed) {
 						/* vehicle is not landed, try to perform RTL */
-						res = failsafe_state_transition(&status, FAILSAFE_STATE_RTL);
-
-						if (res == TRANSITION_CHANGED) {
-							mavlink_log_critical(mavlink_fd, "#a FAILSAFE: RETURN TO LAND");
-						}
+						manual_res = failsafe_state_transition(&status, FAILSAFE_STATE_RTL);
 					}
 
-					if (res == TRANSITION_DENIED) {
+					if (manual_res == TRANSITION_DENIED) {
 						/* RTL not allowed (no global position estimate) or not wanted, try LAND */
-						res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
+						manual_res = failsafe_state_transition(&status, FAILSAFE_STATE_LAND);
 
-						if (res == TRANSITION_CHANGED) {
-							mavlink_log_critical(mavlink_fd, "#a FAILSAFE: LANDING");
-						}
-
-						if (res == TRANSITION_DENIED) {
+						if (manual_res == TRANSITION_DENIED) {
 							/* LAND not allowed, set TERMINATION state */
-							res = failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
-
-						} else if (res == TRANSITION_CHANGED) {
-							mavlink_log_critical(mavlink_fd, "#a FAILSAFE: TERMINATION");
+							(void)failsafe_state_transition(&status, FAILSAFE_STATE_TERMINATION);
 						}
 					}
 				}
@@ -1354,7 +1336,7 @@ int commander_thread_main(int argc, char *argv[])
 			} else {
 				if (status.failsafe_state != FAILSAFE_STATE_NORMAL) {
 					/* reset failsafe when disarmed */
-					transition_result_t res = failsafe_state_transition(&status, FAILSAFE_STATE_NORMAL);
+					(void)failsafe_state_transition(&status, FAILSAFE_STATE_NORMAL);
 				}
 			}
 		}
