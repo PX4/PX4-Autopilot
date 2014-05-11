@@ -1021,7 +1021,7 @@ FixedwingEstimator::task_main()
 			 *    PART TWO: EXECUTE THE FILTER
 			 **/
 
-			if (_baro_init && _gyro_valid && _accel_valid && _mag_valid) {
+			if (hrt_absolute_time() > 2 * 1000 * 1000 && _baro_init && _gyro_valid && _accel_valid && _mag_valid) {
 
 				float initVelNED[3];
 
