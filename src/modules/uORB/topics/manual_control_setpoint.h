@@ -80,6 +80,7 @@ struct manual_control_setpoint_s {
 	switch_pos_t return_switch;			/**< rturn to launch 2 position switch (mandatory): normal, return */
 	switch_pos_t posctl_switch;			/**< posctrl 2 position switch (optional): altctl, posctl */
 	switch_pos_t loiter_switch;		/**< mission 2 position switch (optional): mission, loiter */
+	switch_pos_t follow_switch;		/**< follow 2 position switch (optional): normal, follow */
 }; /**< manual control inputs */
 
 /**

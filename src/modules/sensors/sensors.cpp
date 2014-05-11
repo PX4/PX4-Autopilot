@@ -257,6 +257,7 @@ private:
 		int rc_map_return_sw;
 		int rc_map_posctl_sw;
 		int rc_map_loiter_sw;
+		int rc_map_follow_sw;
 
 		int rc_map_flaps;
 
@@ -272,11 +273,13 @@ private:
 		float rc_posctl_th;
 		float rc_return_th;
 		float rc_loiter_th;
+		float rc_follow_th;
 		bool rc_assist_inv;
 		bool rc_auto_inv;
 		bool rc_posctl_inv;
 		bool rc_return_inv;
 		bool rc_loiter_inv;
+		bool rc_follow_inv;
 
 		float battery_voltage_scaling;
 		float battery_current_scaling;
@@ -309,6 +312,7 @@ private:
 		param_t rc_map_return_sw;
 		param_t rc_map_posctl_sw;
 		param_t rc_map_loiter_sw;
+		param_t rc_map_follow_sw;
 
 		param_t rc_map_flaps;
 
@@ -324,6 +328,7 @@ private:
 		param_t rc_posctl_th;
 		param_t rc_return_th;
 		param_t rc_loiter_th;
+		param_t rc_follow_th;
 
 		param_t battery_voltage_scaling;
 		param_t battery_current_scaling;
@@ -524,6 +529,7 @@ Sensors::Sensors() :
 	/* optional mode switches, not mapped per default */
 	_parameter_handles.rc_map_posctl_sw = param_find("RC_MAP_POSCTL_SW");
 	_parameter_handles.rc_map_loiter_sw = param_find("RC_MAP_LOITER_SW");
+	_parameter_handles.rc_map_follow_sw = param_find("RC_MAP_FOLLOW_SW");
 
 	_parameter_handles.rc_map_aux1 = param_find("RC_MAP_AUX1");
 	_parameter_handles.rc_map_aux2 = param_find("RC_MAP_AUX2");
@@ -538,6 +544,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_posctl_th = param_find("RC_POSCTL_TH");
 	_parameter_handles.rc_return_th = param_find("RC_RETURN_TH");
 	_parameter_handles.rc_loiter_th = param_find("RC_LOITER_TH");
+	_parameter_handles.rc_follow_th = param_find("RC_FOLLOW_TH");
 
 	/* gyro offsets */
 	_parameter_handles.gyro_offset[0] = param_find("SENS_GYRO_XOFF");
@@ -681,6 +688,10 @@ Sensors::parameters_update()
 		warnx("%s", paramerr);
 	}
 
+	if (param_get(_parameter_handles.rc_map_follow_sw, &(_parameters.rc_map_follow_sw)) != OK) {
+		warnx("%s", paramerr);
+	}
+
 	if (param_get(_parameter_handles.rc_map_flaps, &(_parameters.rc_map_flaps)) != OK) {
 		warnx("%s", paramerr);
 	}
@@ -706,6 +717,9 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_loiter_th, &(_parameters.rc_loiter_th));
 	_parameters.rc_loiter_inv = (_parameters.rc_loiter_th < 0);
 	_parameters.rc_loiter_th = fabs(_parameters.rc_loiter_th);
+	param_get(_parameter_handles.rc_follow_th, &(_parameters.rc_follow_th));
+	_parameters.rc_follow_inv = (_parameters.rc_follow_th < 0);
+	_parameters.rc_follow_th = fabs(_parameters.rc_follow_th);
 
 	/* update RC function mappings */
 	_rc.function[THROTTLE] = _parameters.rc_map_throttle - 1;
@@ -717,6 +731,7 @@ Sensors::parameters_update()
 	_rc.function[RETURN] = _parameters.rc_map_return_sw - 1;
 	_rc.function[POSCTL] = _parameters.rc_map_posctl_sw - 1;
 	_rc.function[LOITER] = _parameters.rc_map_loiter_sw - 1;
+	_rc.function[FOLLOW] = _parameters.rc_map_follow_sw - 1;
 
 	_rc.function[FLAPS] = _parameters.rc_map_flaps - 1;
 
@@ -1502,6 +1517,7 @@ Sensors::rc_poll()
 			manual.posctl_switch = get_rc_sw2pos_position(POSCTL, _parameters.rc_posctl_th, _parameters.rc_posctl_inv);
 			manual.return_switch = get_rc_sw2pos_position(RETURN, _parameters.rc_return_th, _parameters.rc_return_inv);
 			manual.loiter_switch = get_rc_sw2pos_position(LOITER, _parameters.rc_loiter_th, _parameters.rc_loiter_inv);
+			manual.follow_switch = get_rc_sw2pos_position(FOLLOW, _parameters.rc_posctl_th, _parameters.rc_posctl_inv);
 
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub > 0) {
