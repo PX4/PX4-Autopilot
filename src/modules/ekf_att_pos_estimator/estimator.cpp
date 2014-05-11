@@ -1815,41 +1815,41 @@ int AttPosEKF::RecallStates(float* statesForFusion, uint64_t msec)
 {
     int ret = 0;
 
-    // int64_t bestTimeDelta = 200;
-    // unsigned bestStoreIndex = 0;
-    // for (unsigned storeIndex = 0; storeIndex < data_buffer_size; storeIndex++)
-    // {
-    //     // Work around a GCC compiler bug - we know 64bit support on ARM is
-    //     // sketchy in GCC.
-    //     uint64_t timeDelta;
+    int64_t bestTimeDelta = 200;
+    unsigned bestStoreIndex = 0;
+    for (unsigned storeIndex = 0; storeIndex < data_buffer_size; storeIndex++)
+    {
+        // Work around a GCC compiler bug - we know 64bit support on ARM is
+        // sketchy in GCC.
+        uint64_t timeDelta;
 
-    //     if (msec > statetimeStamp[storeIndex]) {
-    //         timeDelta = msec - statetimeStamp[storeIndex];
-    //     } else {
-    //         timeDelta = statetimeStamp[storeIndex] - msec;
-    //     }
+        if (msec > statetimeStamp[storeIndex]) {
+            timeDelta = msec - statetimeStamp[storeIndex];
+        } else {
+            timeDelta = statetimeStamp[storeIndex] - msec;
+        }
 
-    //     if (timeDelta < bestTimeDelta)
-    //     {
-    //         bestStoreIndex = storeIndex;
-    //         bestTimeDelta = timeDelta;
-    //     }
-    // }
-    // if (bestTimeDelta < 200) // only output stored state if < 200 msec retrieval error
-    // {
-    //     for (unsigned i=0; i < n_states; i++) {
-    //         if (isfinite(storedStates[i][bestStoreIndex])) {
-    //             statesForFusion[i] = storedStates[i][bestStoreIndex];
-    //         } else if (isfinite(states[i])) {
-    //             statesForFusion[i] = states[i];
-    //         } else {
-    //             // There is not much we can do here, except reporting the error we just
-    //             // found.
-    //             ret++;
-    //         }
-    //     }
-    // }
-    // else // otherwise output current state
+        if (timeDelta < bestTimeDelta)
+        {
+            bestStoreIndex = storeIndex;
+            bestTimeDelta = timeDelta;
+        }
+    }
+    if (bestTimeDelta < 200) // only output stored state if < 200 msec retrieval error
+    {
+        for (unsigned i=0; i < n_states; i++) {
+            if (isfinite(storedStates[i][bestStoreIndex])) {
+                statesForFusion[i] = storedStates[i][bestStoreIndex];
+            } else if (isfinite(states[i])) {
+                statesForFusion[i] = states[i];
+            } else {
+                // There is not much we can do here, except reporting the error we just
+                // found.
+                ret++;
+            }
+        }
+    }
+    else // otherwise output current state
     {
         for (unsigned i = 0; i < n_states; i++) {
             if (isfinite(states[i])) {
