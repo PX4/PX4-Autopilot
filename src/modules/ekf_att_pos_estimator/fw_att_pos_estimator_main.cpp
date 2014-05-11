@@ -302,6 +302,8 @@ FixedwingEstimator::FixedwingEstimator() :
 	_vstatus_sub(-1),
 	_params_sub(-1),
 	_manual_control_sub(-1),
+	_mission_sub(-1),
+	_home_sub(-1),
 
 /* publications */
 	_att_pub(-1),
@@ -712,6 +714,8 @@ FixedwingEstimator::task_main()
 
 			if (last_accel != _sensor_combined.accelerometer_timestamp) {
 				accel_updated = true;
+			} else {
+				accel_updated = false;
 			}
 
 			last_accel = _sensor_combined.accelerometer_timestamp;
@@ -802,7 +806,6 @@ FixedwingEstimator::task_main()
 				perf_count(_perf_gps);
 
 				if (_gps.fix_type < 3) {
-					gps_updated = false;
 					newDataGps = false;
 
 				} else {
