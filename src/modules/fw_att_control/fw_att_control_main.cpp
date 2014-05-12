@@ -717,9 +717,9 @@ FixedwingAttitudeControl::task_main()
 					 * the intended attitude setpoint. Later, after the rate control step the
 					 * trim is added again to the control signal.
 					 */
-					roll_sp = (_manual.roll * _parameters.man_roll_max - _parameters.trim_roll) + _parameters.rollsp_offset_rad;
-					pitch_sp = (-_manual.pitch * _parameters.man_pitch_max - _parameters.trim_pitch) + _parameters.pitchsp_offset_rad;
-					throttle_sp = _manual.throttle;
+					roll_sp = (_manual.y * _parameters.man_roll_max - _parameters.trim_roll) + _parameters.rollsp_offset_rad;
+					pitch_sp = (-_manual.x * _parameters.man_pitch_max - _parameters.trim_pitch) + _parameters.pitchsp_offset_rad;
+					throttle_sp = _manual.z;
 					_actuators.control[4] = _manual.flaps;
 
 					/*
@@ -825,10 +825,10 @@ FixedwingAttitudeControl::task_main()
 
 			} else {
 				/* manual/direct control */
-				_actuators.control[0] = _manual.roll;
-				_actuators.control[1] = -_manual.pitch;
-				_actuators.control[2] = _manual.yaw;
-				_actuators.control[3] = _manual.throttle;
+				_actuators.control[0] = _manual.y;
+				_actuators.control[1] = -_manual.x;
+				_actuators.control[2] = _manual.r;
+				_actuators.control[3] = _manual.z;
 				_actuators.control[4] = _manual.flaps;
 			}
 
