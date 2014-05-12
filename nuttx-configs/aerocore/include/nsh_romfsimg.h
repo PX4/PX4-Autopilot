@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,44 +32,11 @@
  ****************************************************************************/
 
 /**
- * @file drv_gps.h
+ * nsh_romfsetc.h
  *
- * GPS driver interface.
+ * This file is a stub for 'make export' purposes; the actual ROMFS
+ * must be supplied by the library client.
  */
 
-#ifndef _DRV_GPS_H
-#define _DRV_GPS_H
-
-#include <stdint.h>
-#include <sys/ioctl.h>
-
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
-
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define GPS_DEFAULT_UART_PORT "/dev/ttyS0"
-#else
-#define GPS_DEFAULT_UART_PORT "/dev/ttyS3"
-#endif
-
-#define GPS_DEVICE_PATH	"/dev/gps"
-
-typedef enum {
-	GPS_DRIVER_MODE_NONE = 0,
-	GPS_DRIVER_MODE_UBX,
-	GPS_DRIVER_MODE_MTK
-} gps_driver_mode_t;
-
-
-/*
- * ObjDev tag for GPS data.
- */
-ORB_DECLARE(gps);
-
-/*
- * ioctl() definitions
- */
-#define _GPSIOCBASE			(0x2800)            //TODO: arbitrary choice...
-#define _GPSIOC(_n)		(_IOC(_GPSIOCBASE, _n))
-
-#endif /* _DRV_GPS_H */
+extern unsigned char romfs_img[];
+extern unsigned int romfs_img_len;
