@@ -62,7 +62,6 @@ static int _airspeed_sub = -1;
 static int _esc_sub = -1;
 
 static orb_advert_t _esc_pub;
-struct esc_status_s _esc;
 
 static bool _home_position_set = false;
 static double _home_lat = 0.0d;
@@ -82,8 +81,6 @@ init_sub_messages(void)
 void 
 init_pub_messages(void)
 {
-	memset(&_esc, 0, sizeof(_esc));
-	_esc_pub = orb_advertise(ORB_ID(esc_status), &_esc);
 }
 
 void
@@ -106,13 +103,8 @@ publish_gam_message(const uint8_t *buffer)
 	size_t size = sizeof(msg);
 	memset(&msg, 0, size);
 	memcpy(&msg, buffer, size);
-
-	/* announce the esc if needed, just publish else */
-	if (_esc_pub > 0) {
-		orb_publish(ORB_ID(esc_status), _esc_pub, &_esc);
-	} else {
-		_esc_pub = orb_advertise(ORB_ID(esc_status), &_esc);
-	}
+	struct esc_status_s _esc;
+	memset(&_esc, 0, sizeof(_esc));
 
 	// Publish it.
 	_esc.esc_count = 1;
@@ -123,6 +115,13 @@ publish_gam_message(const uint8_t *buffer)
 	_esc.esc[0].esc_temperature = msg.temperature1 - 20; 
 	_esc.esc[0].esc_voltage = (uint16_t)((msg.main_voltage_H << 8) | (msg.main_voltage_L & 0xff));
 	_esc.esc[0].esc_current = (uint16_t)((msg.current_H << 8) | (msg.current_L & 0xff));
+
+	/* announce the esc if needed, just publish else */
+	if (_esc_pub > 0) {
+		orb_publish(ORB_ID(esc_status), _esc_pub, &_esc);
+	} else {
+		_esc_pub = orb_advertise(ORB_ID(esc_status), &_esc);
+	}
 }
 
 void 
