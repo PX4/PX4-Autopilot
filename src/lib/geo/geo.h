@@ -50,7 +50,7 @@
 
 __BEGIN_DECLS
 
-#include "geo/geo_mag_declination.h"
+#include "geo_mag_declination.h"
 
 #include <stdbool.h>
 
