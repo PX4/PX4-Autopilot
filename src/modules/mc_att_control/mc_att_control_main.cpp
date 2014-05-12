@@ -478,7 +478,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 		if (!_v_control_mode.flag_control_climb_rate_enabled) {
 			/* pass throttle directly if not in altitude stabilized mode */
-			_v_att_sp.thrust = _manual_control_sp.throttle;
+			_v_att_sp.thrust = _manual_control_sp.z;
 			publish_att_sp = true;
 		}
 
@@ -496,7 +496,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 			//}
 		} else {
 			/* move yaw setpoint */
-			yaw_sp_move_rate = _manual_control_sp.yaw * _params.man_yaw_max;
+			yaw_sp_move_rate = _manual_control_sp.r * _params.man_yaw_max;
 			_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + yaw_sp_move_rate * dt);
 			_v_att_sp.R_valid = false;
 			publish_att_sp = true;
@@ -512,8 +512,8 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 		if (!_v_control_mode.flag_control_velocity_enabled) {
 			/* update attitude setpoint if not in position control mode */
-			_v_att_sp.roll_body = _manual_control_sp.roll * _params.man_roll_max;
-			_v_att_sp.pitch_body = -_manual_control_sp.pitch * _params.man_pitch_max;
+			_v_att_sp.roll_body = _manual_control_sp.y * _params.man_roll_max;
+			_v_att_sp.pitch_body = -_manual_control_sp.x * _params.man_pitch_max;
 			_v_att_sp.R_valid = false;
 			publish_att_sp = true;
 		}
