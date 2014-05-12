@@ -1,5 +1,6 @@
 #include "estimator.h"
 #include <string.h>
+#include <stdarg.h>
 
 // Define EKF_DEBUG here to enable the debug print calls
 // if the macro is not set, these will be completely
@@ -2119,9 +2120,7 @@ void AttPosEKF::ConstrainStates()
     }
 
     // Constrain delta velocity bias
-    ekf_debug("pre delta vel");
     states[13] = ConstrainFloat(states[13], -1.0f * dtIMU, 1.0f * dtIMU);
-    ekf_debug("post delta vel");
 
     // Wind velocity limits - assume 120 m/s max velocity
     for (unsigned i = 14; i <= 15; i++) {
@@ -2483,11 +2482,17 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
 
 void AttPosEKF::InitialiseFilter(float (&initvelNED)[3], double referenceLat, double referenceLon, float referenceHgt, float declination)
 {
-    //store initial lat,long and height
+    // store initial lat,long and height
     latRef = referenceLat;
     lonRef = referenceLon;
     hgtRef = referenceHgt;
     refSet = true;
+
+    // we are at reference altitude, so measurement must be zero
+    hgtMea = 0.0f;
+
+    // the baro offset must be this difference now
+    baroHgtOffset = baroHgt - referenceHgt;
 
     memset(&last_ekf_error, 0, sizeof(last_ekf_error));
 
