@@ -536,6 +536,20 @@ PARAM_DEFINE_INT32(RC_MAP_ROLL, 1);
 PARAM_DEFINE_INT32(RC_MAP_PITCH, 2);
 
 /**
+ * Failsafe channel mapping.
+ *
+ * The RC mapping index indicates which channel is used for failsafe
+ * If 0, whichever channel is mapped to throttle is used
+ * otherwise the value indicates the specific rc channel to use
+ *
+ * @min 0
+ * @max 18
+ *
+ *
+ */
+PARAM_DEFINE_INT32(RC_MAP_FAILSAFE, 0);  //Default to throttle function
+
+/**
  * Throttle control channel mapping.
  *
  * The channel index (starting from 1 for channel 1) indicates
@@ -585,24 +599,22 @@ PARAM_DEFINE_INT32(RC_MAP_MODE_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_RETURN_SW, 0);
 
 /**
- * Assist switch channel mapping.
+ * Posctl switch channel mapping.
  *
  * @min 0
  * @max 18
  * @group Radio Calibration
  */
-PARAM_DEFINE_INT32(RC_MAP_ASSIST_SW, 0);
+PARAM_DEFINE_INT32(RC_MAP_POSCTL_SW, 0);
 
 /**
- * Mission switch channel mapping.
+ * Loiter switch channel mapping.
  *
  * @min 0
  * @max 18
  * @group Radio Calibration
  */
-PARAM_DEFINE_INT32(RC_MAP_MISSIO_SW, 0);
-
-//PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
+PARAM_DEFINE_INT32(RC_MAP_LOITER_SW, 0);
 
 /**
  * Flaps channel mapping.
@@ -648,27 +660,6 @@ PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);
 
 
 /**
- * Roll scaling factor
- *
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC_SCALE_ROLL, 0.6f);
-
-/**
- * Pitch scaling factor
- *
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC_SCALE_PITCH, 0.6f);
-
-/**
- * Yaw scaling factor
- *
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC_SCALE_YAW, 2.0f);
-
-/**
  * Failsafe channel PWM threshold.
  *
  * @min 800
@@ -676,3 +667,83 @@ PARAM_DEFINE_FLOAT(RC_SCALE_YAW, 2.0f);
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_FAILS_THR, 0);
+
+/**
+ * Threshold for selecting assist mode
+ *
+ * min:-1
+ * max:+1
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_ASSIST_TH, 0.25f);
+
+/**
+ * Threshold for selecting auto mode
+ *
+ * min:-1
+ * max:+1
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_AUTO_TH, 0.75f);
+
+/**
+ * Threshold for selecting posctl mode
+ *
+ * min:-1
+ * max:+1
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_POSCTL_TH, 0.5f);
+
+/**
+ * Threshold for selecting return to launch mode
+ *
+ * min:-1
+ * max:+1
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_RETURN_TH, 0.5f);
+
+/**
+ * Threshold for selecting loiter mode
+ *
+ * min:-1
+ * max:+1
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_LOITER_TH, 0.5f);

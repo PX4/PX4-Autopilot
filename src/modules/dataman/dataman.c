@@ -44,7 +44,9 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/err.h>
 #include <queue.h>
+#include <string.h>
 
 #include "dataman.h"
 
@@ -414,26 +416,26 @@ static int
 _restart(dm_reset_reason reason)
 {
 	unsigned char buffer[2];
-	int offset, result = 0;
+	int offset = 0, result = 0;
 
 	/* We need to scan the entire file and invalidate and data that should not persist after the last reset */
 
 	/* Loop through all of the data segments and delete those that are not persistent */
-	offset = 0;
-
 	while (1) {
 		size_t len;
 
 		/* Get data segment at current offset */
 		if (lseek(g_task_fd, offset, SEEK_SET) != offset) {
-			result = -1;
+			/* must be at eof */
 			break;
 		}
 
 		len = read(g_task_fd, buffer, sizeof(buffer));
 
-		if (len == 0)
+		if (len != sizeof(buffer)) {
+			/* must be at eof */
 			break;
+		}
 
 		/* check if segment contains data */
 		if (buffer[0]) {
@@ -441,12 +443,12 @@ _restart(dm_reset_reason reason)
 
 			/* Whether data gets deleted depends on reset type and data segment's persistence setting */
 			if (reason == DM_INIT_REASON_POWER_ON) {
-				if (buffer[1] != DM_PERSIST_POWER_ON_RESET) {
+				if (buffer[1] > DM_PERSIST_POWER_ON_RESET) {
 					clear_entry = 1;
 				}
 
 			} else {
-				if ((buffer[1] != DM_PERSIST_POWER_ON_RESET) && (buffer[1] != DM_PERSIST_IN_FLIGHT_RESET)) {
+				if (buffer[1] > DM_PERSIST_IN_FLIGHT_RESET) {
 					clear_entry = 1;
 				}
 			}
@@ -594,6 +596,20 @@ task_main(int argc, char *argv[])
 
 	sem_init(&g_work_queued_sema, 1, 0);
 
+	/* See if the data manage file exists and is a multiple of the sector size */
+	g_task_fd = open(k_data_manager_device_path, O_RDONLY | O_BINARY);
+	if (g_task_fd >= 0) {
+		/* File exists, check its size */
+		int file_size = lseek(g_task_fd, 0, SEEK_END);
+		if ((file_size % k_sector_size) != 0) {
+			warnx("Incompatible data manager file %s, resetting it", k_data_manager_device_path);
+			close(g_task_fd);
+			unlink(k_data_manager_device_path);
+		}
+		else
+			close(g_task_fd);
+	}
+
 	/* Open or create the data manager file */
 	g_task_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY);
 
@@ -603,7 +619,7 @@ task_main(int argc, char *argv[])
 		return -1;
 	}
 
-	if (lseek(g_task_fd, max_offset, SEEK_SET) != max_offset) {
+	if ((unsigned)lseek(g_task_fd, max_offset, SEEK_SET) != max_offset) {
 		close(g_task_fd);
 		warnx("Could not seek data manager file %s", k_data_manager_device_path);
 		sem_post(&g_init_sema); /* Don't want to hang startup */
@@ -611,6 +627,23 @@ task_main(int argc, char *argv[])
 	}
 
 	fsync(g_task_fd);
+
+	/* see if we need to erase any items based on restart type */
+	int sys_restart_val;
+	if (param_get(param_find("SYS_RESTART_TYPE"), &sys_restart_val) == OK) {
+		if (sys_restart_val == DM_INIT_REASON_POWER_ON) {
+			warnx("Power on restart");
+			_restart(DM_INIT_REASON_POWER_ON);
+		}
+		else if (sys_restart_val == DM_INIT_REASON_IN_FLIGHT) {
+			warnx("In flight restart");
+			_restart(DM_INIT_REASON_IN_FLIGHT);
+		}
+		else
+			warnx("Unknown restart");
+	}
+	else
+		warnx("Unknown restart");
 
 	/* We use two file descriptors, one for the caller context and one for the worker thread */
 	/* They are actually the same but we need to some way to reject caller request while the */
@@ -708,7 +741,7 @@ start(void)
 		return -1;
 	}
 
-	/* wait for the thread to actuall initialize */
+	/* wait for the thread to actually initialize */
 	sem_wait(&g_init_sema);
 	sem_destroy(&g_init_sema);
 
@@ -776,4 +809,3 @@ dataman_main(int argc, char *argv[])
 
 	exit(1);
 }
-

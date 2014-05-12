@@ -908,9 +908,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	hrt_abstime barometer_timestamp = 0;
 	hrt_abstime differential_pressure_timestamp = 0;
 
-	/* track changes in distance status */
-	bool dist_bottom_present = false;
-
 	/* enable logging on start if needed */
 	if (log_on_start) {
 		/* check GPS topic to get GPS time */
@@ -963,6 +960,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.msg_type = LOG_STAT_MSG;
 			log_msg.body.log_STAT.main_state = (uint8_t) buf_status.main_state;
 			log_msg.body.log_STAT.arming_state = (uint8_t) buf_status.arming_state;
+			log_msg.body.log_STAT.failsafe_state = (uint8_t) buf_status.failsafe_state;
 			log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
 			log_msg.body.log_STAT.battery_warning = (uint8_t) buf_status.battery_warning;
 			log_msg.body.log_STAT.landed = (uint8_t) buf_status.condition_landed;
@@ -1099,28 +1097,19 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_LPOS.x = buf.local_pos.x;
 			log_msg.body.log_LPOS.y = buf.local_pos.y;
 			log_msg.body.log_LPOS.z = buf.local_pos.z;
+			log_msg.body.log_LPOS.ground_dist = buf.local_pos.dist_bottom;
+			log_msg.body.log_LPOS.ground_dist_rate = buf.local_pos.dist_bottom_rate;
 			log_msg.body.log_LPOS.vx = buf.local_pos.vx;
 			log_msg.body.log_LPOS.vy = buf.local_pos.vy;
 			log_msg.body.log_LPOS.vz = buf.local_pos.vz;
-			log_msg.body.log_LPOS.ref_lat = buf.local_pos.ref_lat;
-			log_msg.body.log_LPOS.ref_lon = buf.local_pos.ref_lon;
+			log_msg.body.log_LPOS.ref_lat = buf.local_pos.ref_lat * 1e7;
+			log_msg.body.log_LPOS.ref_lon = buf.local_pos.ref_lon * 1e7;
 			log_msg.body.log_LPOS.ref_alt = buf.local_pos.ref_alt;
 			log_msg.body.log_LPOS.xy_flags = (buf.local_pos.xy_valid ? 1 : 0) | (buf.local_pos.v_xy_valid ? 2 : 0) | (buf.local_pos.xy_global ? 8 : 0);
 			log_msg.body.log_LPOS.z_flags = (buf.local_pos.z_valid ? 1 : 0) | (buf.local_pos.v_z_valid ? 2 : 0) | (buf.local_pos.z_global ? 8 : 0);
 			log_msg.body.log_LPOS.landed = buf.local_pos.landed;
+			log_msg.body.log_LPOS.ground_dist_flags = (buf.local_pos.dist_bottom_valid ? 1 : 0);
 			LOGBUFFER_WRITE_AND_COUNT(LPOS);
-
-			if (buf.local_pos.dist_bottom_valid) {
-				dist_bottom_present = true;
-			}
-
-			if (dist_bottom_present) {
-				log_msg.msg_type = LOG_DIST_MSG;
-				log_msg.body.log_DIST.bottom = buf.local_pos.dist_bottom;
-				log_msg.body.log_DIST.bottom_rate = buf.local_pos.dist_bottom_rate;
-				log_msg.body.log_DIST.flags = (buf.local_pos.dist_bottom_valid ? 1 : 0);
-				LOGBUFFER_WRITE_AND_COUNT(DIST);
-			}
 		}
 
 		/* --- LOCAL POSITION SETPOINT --- */
@@ -1142,8 +1131,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_GPOS.vel_n = buf.global_pos.vel_n;
 			log_msg.body.log_GPOS.vel_e = buf.global_pos.vel_e;
 			log_msg.body.log_GPOS.vel_d = buf.global_pos.vel_d;
-			log_msg.body.log_GPOS.baro_alt = buf.global_pos.baro_alt;
-			log_msg.body.log_GPOS.flags = (buf.global_pos.baro_valid ? 1 : 0) | (buf.global_pos.global_valid ? 2 : 0);
+			log_msg.body.log_GPOS.eph = buf.global_pos.eph;
+			log_msg.body.log_GPOS.epv = buf.global_pos.epv;
 			LOGBUFFER_WRITE_AND_COUNT(GPOS);
 		}
 
@@ -1193,6 +1182,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* Copy only the first 8 channels of 14 */
 			memcpy(log_msg.body.log_RC.channel, buf.rc.chan, sizeof(log_msg.body.log_RC.channel));
 			log_msg.body.log_RC.channel_count = buf.rc.chan_count;
+			log_msg.body.log_RC.signal_lost = buf.rc.signal_lost;
 			LOGBUFFER_WRITE_AND_COUNT(RC);
 		}
 

@@ -173,6 +173,42 @@ static inline void mavlink_msg_pattern_detected_send(mavlink_channel_t chan, uin
 #endif
 }
 
+#if MAVLINK_MSG_ID_PATTERN_DETECTED_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_pattern_detected_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint8_t type, float confidence, const char *file, uint8_t detected)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+	_mav_put_float(buf, 0, confidence);
+	_mav_put_uint8_t(buf, 4, type);
+	_mav_put_uint8_t(buf, 105, detected);
+	_mav_put_char_array(buf, 5, file, 100);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_PATTERN_DETECTED, buf, MAVLINK_MSG_ID_PATTERN_DETECTED_LEN, MAVLINK_MSG_ID_PATTERN_DETECTED_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_PATTERN_DETECTED, buf, MAVLINK_MSG_ID_PATTERN_DETECTED_LEN);
+#endif
+#else
+	mavlink_pattern_detected_t *packet = (mavlink_pattern_detected_t *)msgbuf;
+	packet->confidence = confidence;
+	packet->type = type;
+	packet->detected = detected;
+	mav_array_memcpy(packet->file, file, sizeof(char)*100);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_PATTERN_DETECTED, (const char *)packet, MAVLINK_MSG_ID_PATTERN_DETECTED_LEN, MAVLINK_MSG_ID_PATTERN_DETECTED_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_PATTERN_DETECTED, (const char *)packet, MAVLINK_MSG_ID_PATTERN_DETECTED_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE PATTERN_DETECTED UNPACKING

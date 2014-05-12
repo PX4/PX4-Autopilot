@@ -211,6 +211,10 @@ enum {							/* DSM bind states */
 						/* 12 occupied by CRC */
 #define PX4IO_P_SETUP_RC_THR_FAILSAFE_US	13	/**< the throttle failsafe pulse length in microseconds */
 
+#define PX4IO_P_SETUP_FORCE_SAFETY_OFF	       12	/* force safety switch into
+                                                           'armed' (PWM enabled) state */
+#define PX4IO_FORCE_SAFETY_MAGIC            22027       /* required argument for force safety (random) */
+
 /* autopilot control values, -10000..10000 */
 #define PX4IO_PAGE_CONTROLS			51		/**< actuator control groups, one after the other, 8 wide */
 #define PX4IO_P_CONTROLS_GROUP_0		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 0)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */

@@ -88,8 +88,6 @@ static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
 
-	_manual_sub(-1),
-
 	_global_pos_pub(-1),
 	_local_pos_pub(-1),
 	_attitude_pub(-1),
@@ -162,15 +160,14 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	 * The HIL mode is enabled by the HIL bit flag
 	 * in the system mode. Either send a set mode
 	 * COMMAND_LONG message or a SET_MODE message
+	 *
+	 * Accept HIL GPS messages if use_hil_gps flag is true.
+	 * This allows to provide fake gps measurements to the system.
 	 */
 	if (_mavlink->get_hil_enabled()) {
 		switch (msg->msgid) {
 		case MAVLINK_MSG_ID_HIL_SENSOR:
 			handle_message_hil_sensor(msg);
-			break;
-
-		case MAVLINK_MSG_ID_HIL_GPS:
-			handle_message_hil_gps(msg);
 			break;
 
 		case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
@@ -181,6 +178,23 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 			break;
 		}
 	}
+
+
+   	if (_mavlink->get_hil_enabled() || (_mavlink->get_use_hil_gps() && msg->sysid == mavlink_system.sysid)) {
+		switch (msg->msgid) {
+		case MAVLINK_MSG_ID_HIL_GPS:
+			handle_message_hil_gps(msg);
+			break;
+
+		default:
+			break;
+		}
+
+	}
+	
+    /* If we've received a valid message, mark the flag indicating so.
+	   This is used in the '-w' command-line flag. */
+	_mavlink->set_has_received_messages(true);
 }
 
 void
@@ -203,6 +217,12 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 			_mavlink->_task_should_exit = true;
 
 		} else {
+
+			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
+				warnx("ignoring CMD spoofed with same SYS/COMP ID");
+				return;
+			}
+
 			struct vehicle_command_s vcmd;
 			memset(&vcmd, 0, sizeof(vcmd));
 
@@ -243,6 +263,7 @@ MavlinkReceiver::handle_message_optical_flow(mavlink_message_t *msg)
 	memset(&f, 0, sizeof(f));
 
 	f.timestamp = hrt_absolute_time();
+	f.flow_timestamp = flow.time_usec;
 	f.flow_raw_x = flow.flow_x;
 	f.flow_raw_y = flow.flow_y;
 	f.flow_comp_x_m = flow.flow_comp_m_x;
@@ -413,47 +434,20 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	mavlink_manual_control_t man;
 	mavlink_msg_manual_control_decode(msg, &man);
 
-	/* rc channels */
-	{
-		struct rc_channels_s rc;
-		memset(&rc, 0, sizeof(rc));
+	struct manual_control_setpoint_s manual;
+	memset(&manual, 0, sizeof(manual));
 
-		rc.timestamp = hrt_absolute_time();
-		rc.chan_count = 4;
+	manual.timestamp = hrt_absolute_time();
+	manual.pitch = man.x / 1000.0f;
+	manual.roll = man.y / 1000.0f;
+	manual.yaw = man.r / 1000.0f;
+	manual.throttle = man.z / 1000.0f;
 
-		rc.chan[0].scaled = man.x / 1000.0f;
-		rc.chan[1].scaled = man.y / 1000.0f;
-		rc.chan[2].scaled = man.r / 1000.0f;
-		rc.chan[3].scaled = man.z / 1000.0f;
+	if (_manual_pub < 0) {
+		_manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
 
-		if (_rc_pub < 0) {
-			_rc_pub = orb_advertise(ORB_ID(rc_channels), &rc);
-
-		} else {
-			orb_publish(ORB_ID(rc_channels), _rc_pub, &rc);
-		}
-	}
-
-	/* manual control */
-	{
-		struct manual_control_setpoint_s manual;
-		memset(&manual, 0, sizeof(manual));
-
-		/* get a copy first, to prevent altering values that are not sent by the mavlink command */
-		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &manual);
-
-		manual.timestamp = hrt_absolute_time();
-		manual.roll = man.x / 1000.0f;
-		manual.pitch = man.y / 1000.0f;
-		manual.yaw = man.r / 1000.0f;
-		manual.throttle = man.z / 1000.0f;
-
-		if (_manual_pub < 0) {
-			_manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
-
-		} else {
-			orb_publish(ORB_ID(manual_control_setpoint), _manual_pub, &manual);
-		}
+	} else {
+		orb_publish(ORB_ID(manual_control_setpoint), _manual_pub, &manual);
 	}
 }
 
@@ -764,7 +758,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		memset(&hil_global_pos, 0, sizeof(hil_global_pos));
 
 		hil_global_pos.timestamp = timestamp;
-		hil_global_pos.global_valid = true;
 		hil_global_pos.lat = hil_state.lat;
 		hil_global_pos.lon = hil_state.lon;
 		hil_global_pos.alt = hil_state.alt / 1000.0f;
@@ -772,6 +765,8 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_global_pos.vel_e = hil_state.vy / 100.0f;
 		hil_global_pos.vel_d = hil_state.vz / 100.0f;
 		hil_global_pos.yaw = hil_attitude.yaw;
+		hil_global_pos.eph = 2.0f;
+		hil_global_pos.epv = 4.0f;
 
 		if (_global_pos_pub < 0) {
 			_global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
@@ -783,19 +778,22 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 	/* local position */
 	{
+		double lat = hil_state.lat * 1e-7;
+		double lon = hil_state.lon * 1e-7;
+
 		if (!_hil_local_proj_inited) {
 			_hil_local_proj_inited = true;
 			_hil_local_alt0 = hil_state.alt / 1000.0f;
-			map_projection_init(hil_state.lat, hil_state.lon);
+			map_projection_init(&_hil_local_proj_ref, hil_state.lat, hil_state.lon);
 			hil_local_pos.ref_timestamp = timestamp;
-			hil_local_pos.ref_lat = hil_state.lat;
-			hil_local_pos.ref_lon = hil_state.lon;
+			hil_local_pos.ref_lat = lat;
+			hil_local_pos.ref_lon = lon;
 			hil_local_pos.ref_alt = _hil_local_alt0;
 		}
 
 		float x;
 		float y;
-		map_projection_project(hil_state.lat * 1e-7, hil_state.lon * 1e-7, &x, &y);
+		map_projection_project(&_hil_local_proj_ref, lat, lon, &x, &y);
 		hil_local_pos.timestamp = timestamp;
 		hil_local_pos.xy_valid = true;
 		hil_local_pos.z_valid = true;
@@ -882,8 +880,6 @@ MavlinkReceiver::receive_thread(void *arg)
 	char thread_name[24];
 	sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
 	prctl(PR_SET_NAME, thread_name, getpid());
-
-	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	struct pollfd fds[1];
 	fds[0].fd = uart_fd;

@@ -97,6 +97,8 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 {
 	using namespace math;
 
+	memset(&ref, 0, sizeof(ref));
+
 	F.zero();
 	G.zero();
 	V.zero();
@@ -247,11 +249,7 @@ void KalmanNav::update()
 		lat0 = lat;
 		lon0 = lon;
 		alt0 = alt;
-		// XXX map_projection has internal global
-		// states that multiple things could change, 
-		// should make map_projection take reference
-		// lat/lon and not have init
-		map_projection_init(lat0, lon0);
+		map_projection_init(&ref, lat0, lon0);
 		_positionInitialized = true;
 		warnx("initialized EKF state with GPS");
 		warnx("vN: %8.4f, vE: %8.4f, vD: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f",
@@ -314,7 +312,6 @@ void KalmanNav::updatePublications()
 	// global position publication
 	_pos.timestamp = _pubTimeStamp;
 	_pos.time_gps_usec = _gps.timestamp_position;
-	_pos.global_valid = true;
 	_pos.lat = lat * M_RAD_TO_DEG;
 	_pos.lon = lon * M_RAD_TO_DEG;
 	_pos.alt = float(alt);
@@ -327,7 +324,7 @@ void KalmanNav::updatePublications()
 	float x;
 	float y;
 	bool landed = alt < (alt0 + 0.1); // XXX improve?
-	map_projection_project(lat, lon, &x, &y); 
+	map_projection_project(&ref, lat, lon, &x, &y);
 	_localPos.timestamp = _pubTimeStamp;
 	_localPos.xy_valid = true;
 	_localPos.z_valid = true;
@@ -343,8 +340,8 @@ void KalmanNav::updatePublications()
 	_localPos.xy_global = true;
 	_localPos.z_global = true;
 	_localPos.ref_timestamp = _pubTimeStamp;
-	_localPos.ref_lat = getLatDegE7();
-	_localPos.ref_lon = getLonDegE7();
+	_localPos.ref_lat = lat * M_RAD_TO_DEG;
+	_localPos.ref_lon = lon * M_RAD_TO_DEG;
 	_localPos.ref_alt = 0;
 	_localPos.landed = landed;
 

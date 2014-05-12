@@ -212,6 +212,50 @@ static inline void mavlink_msg_airspeeds_send(mavlink_channel_t chan, uint32_t t
 #endif
 }
 
+#if MAVLINK_MSG_ID_AIRSPEEDS_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_airspeeds_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint32_t time_boot_ms, int16_t airspeed_imu, int16_t airspeed_pitot, int16_t airspeed_hot_wire, int16_t airspeed_ultrasonic, int16_t aoa, int16_t aoy)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+	_mav_put_uint32_t(buf, 0, time_boot_ms);
+	_mav_put_int16_t(buf, 4, airspeed_imu);
+	_mav_put_int16_t(buf, 6, airspeed_pitot);
+	_mav_put_int16_t(buf, 8, airspeed_hot_wire);
+	_mav_put_int16_t(buf, 10, airspeed_ultrasonic);
+	_mav_put_int16_t(buf, 12, aoa);
+	_mav_put_int16_t(buf, 14, aoy);
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_AIRSPEEDS, buf, MAVLINK_MSG_ID_AIRSPEEDS_LEN, MAVLINK_MSG_ID_AIRSPEEDS_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_AIRSPEEDS, buf, MAVLINK_MSG_ID_AIRSPEEDS_LEN);
+#endif
+#else
+	mavlink_airspeeds_t *packet = (mavlink_airspeeds_t *)msgbuf;
+	packet->time_boot_ms = time_boot_ms;
+	packet->airspeed_imu = airspeed_imu;
+	packet->airspeed_pitot = airspeed_pitot;
+	packet->airspeed_hot_wire = airspeed_hot_wire;
+	packet->airspeed_ultrasonic = airspeed_ultrasonic;
+	packet->aoa = aoa;
+	packet->aoy = aoy;
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_AIRSPEEDS, (const char *)packet, MAVLINK_MSG_ID_AIRSPEEDS_LEN, MAVLINK_MSG_ID_AIRSPEEDS_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_AIRSPEEDS, (const char *)packet, MAVLINK_MSG_ID_AIRSPEEDS_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE AIRSPEEDS UNPACKING

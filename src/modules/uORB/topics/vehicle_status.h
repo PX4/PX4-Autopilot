@@ -63,12 +63,14 @@
 /* main state machine */
 typedef enum {
 	MAIN_STATE_MANUAL = 0,
-	MAIN_STATE_SEATBELT,
-	MAIN_STATE_EASY,
+	MAIN_STATE_ALTCTL,
+	MAIN_STATE_POSCTL,
 	MAIN_STATE_AUTO,
 	MAIN_STATE_MAX
 } main_state_t;
 
+// If you change the order, add or remove arming_state_t states make sure to update the arrays
+// in state_machine_helper.cpp as well.
 typedef enum {
 	ARMING_STATE_INIT = 0,
 	ARMING_STATE_STANDBY,
@@ -92,29 +94,6 @@ typedef enum {
 	FAILSAFE_STATE_TERMINATION,		/**< Disable motors and use parachute, can't be recovered */
 	FAILSAFE_STATE_MAX
 } failsafe_state_t;
-
-typedef enum {
-	MODE_SWITCH_MANUAL = 0,
-	MODE_SWITCH_ASSISTED,
-	MODE_SWITCH_AUTO
-} mode_switch_pos_t;
-
-typedef enum {
-	ASSISTED_SWITCH_SEATBELT = 0,
-	ASSISTED_SWITCH_EASY
-} assisted_switch_pos_t;
-
-typedef enum {
-	RETURN_SWITCH_NONE = 0,
-	RETURN_SWITCH_NORMAL,
-	RETURN_SWITCH_RETURN
-} return_switch_pos_t;
-
-typedef enum {
-	MISSION_SWITCH_NONE = 0,
-	MISSION_SWITCH_LOITER,
-	MISSION_SWITCH_MISSION
-} mission_switch_pos_t;
 
 enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_SAFETY_ARMED = 128,
@@ -186,11 +165,6 @@ struct vehicle_status_s {
 	int32_t component_id;				/**< subsystem / component id, inspired by MAVLink's component ID field */
 
 	bool is_rotary_wing;
-
-	mode_switch_pos_t mode_switch;
-	return_switch_pos_t return_switch;
-	assisted_switch_pos_t assisted_switch;
-	mission_switch_pos_t mission_switch;
 
 	bool condition_battery_voltage_valid;
 	bool condition_system_in_air_restore;	/**< true if we can restore in mid air */

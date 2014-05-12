@@ -177,6 +177,8 @@ private:
 	struct sensor_combined_s			_sensor_combined;
 #endif
 
+	struct map_projection_reference_s	_pos_ref;
+
 	float						_baro_ref;		/**< barometer reference altitude */
 	float						_baro_gps_offset;	/**< offset between GPS and baro */
 
@@ -235,7 +237,7 @@ private:
 	/**
 	 * Main sensor collection task.
 	 */
-	void		task_main() __attribute__((noreturn));
+	void		task_main();
 };
 
 namespace estimator
@@ -732,21 +734,21 @@ FixedwingEstimator::task_main()
 				case 1:
 				{
 					const char* str = "NaN in states, resetting";
-					warnx(str);
+					warnx("%s", str);
 					mavlink_log_critical(_mavlink_fd, str);
 					break;
 				}
 				case 2:
 				{
 					const char* str = "stale IMU data, resetting";
-					warnx(str);
+					warnx("%s", str);
 					mavlink_log_critical(_mavlink_fd, str);
 					break;
 				}
 				case 3:
 				{
 					const char* str = "switching dynamic / static state";
-					warnx(str);
+					warnx("%s", str);
 					mavlink_log_critical(_mavlink_fd, str);
 					break;
 				}
@@ -821,7 +823,7 @@ FixedwingEstimator::task_main()
 					_baro_gps_offset = _baro_ref - _local_pos.ref_alt;
 
 					// XXX this is not multithreading safe
-					map_projection_init(lat, lon);
+					map_projection_init(&_pos_ref, lat, lon);
 					mavlink_log_info(_mavlink_fd, "[position estimator] init ref: lat=%.7f, lon=%.7f, alt=%.2f", lat, lon, alt);
 
 					_gps_initialized = true;
@@ -959,7 +961,7 @@ FixedwingEstimator::task_main()
 			}
 
 			// Publish results
-			if (_initialized) {
+			if (_initialized && (check == OK)) {
 
 
 
@@ -1042,18 +1044,14 @@ FixedwingEstimator::task_main()
 
 				_global_pos.timestamp = _local_pos.timestamp;
 
-				_global_pos.baro_valid = true;
-				_global_pos.global_valid = true;
-
 				if (_local_pos.xy_global) {
 					double est_lat, est_lon;
-					map_projection_reproject(_local_pos.x, _local_pos.y, &est_lat, &est_lon);
+					map_projection_reproject(&_pos_ref, _local_pos.x, _local_pos.y, &est_lat, &est_lon);
 					_global_pos.lat = est_lat;
 					_global_pos.lon = est_lon;
 					_global_pos.time_gps_usec = _gps.time_gps_usec;
 				}
 
-				/* set valid values even if position is not valid */
 				if (_local_pos.v_xy_valid) {
 					_global_pos.vel_n = _local_pos.vx;
 					_global_pos.vel_e = _local_pos.vy;
@@ -1065,15 +1063,14 @@ FixedwingEstimator::task_main()
 				/* local pos alt is negative, change sign and add alt offset */
 				_global_pos.alt = _local_pos.ref_alt + (-_local_pos.z);
 
-				if (_local_pos.z_valid) {
-					_global_pos.baro_alt = _local_pos.ref_alt - _baro_gps_offset - _local_pos.z;
-				}
-
 				if (_local_pos.v_z_valid) {
 					_global_pos.vel_d = _local_pos.vz;
 				}
 
 				_global_pos.yaw = _local_pos.yaw;
+
+				_global_pos.eph = _gps.eph_m;
+				_global_pos.epv = _gps.epv_m;
 
 				_global_pos.timestamp = _local_pos.timestamp;
 

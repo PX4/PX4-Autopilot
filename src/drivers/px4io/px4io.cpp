@@ -91,6 +91,8 @@
 
 #include "uploader.h"
 
+#include "modules/dataman/dataman.h"
+
 extern device::Device *PX4IO_i2c_interface() weak_function;
 extern device::Device *PX4IO_serial_interface() weak_function;
 
@@ -568,8 +570,14 @@ int
 PX4IO::init()
 {
 	int ret;
+	param_t sys_restart_param;
+	int sys_restart_val = DM_INIT_REASON_VOLATILE;
 
 	ASSERT(_task == -1);
+
+	sys_restart_param = param_find("SYS_RESTART_TYPE");
+	/* Indicate restart type is unknown */
+	param_set(sys_restart_param, &sys_restart_val);
 
 	/* do regular cdev init */
 	ret = CDev::init();
@@ -675,6 +683,25 @@ PX4IO::init()
 
 		/* send command to arm system via command API */
 		vehicle_command_s cmd;
+		/* send this to itself */
+		param_t sys_id_param = param_find("MAV_SYS_ID");
+		param_t comp_id_param = param_find("MAV_COMP_ID");
+
+		int32_t sys_id;
+		int32_t comp_id;
+
+		if (param_get(sys_id_param, &sys_id)) {
+			errx(1, "PRM SYSID");
+		}
+
+		if (param_get(comp_id_param, &comp_id)) {
+			errx(1, "PRM CMPID");
+		}
+
+		cmd.target_system = sys_id;
+		cmd.target_component = comp_id;
+		cmd.source_system = sys_id;
+		cmd.source_component = comp_id;
 		/* request arming */
 		cmd.param1 = 1.0f;
 		cmd.param2 = 0;
@@ -684,10 +711,7 @@ PX4IO::init()
 		cmd.param6 = 0;
 		cmd.param7 = 0;
 		cmd.command = VEHICLE_CMD_COMPONENT_ARM_DISARM;
-		// cmd.target_system = status.system_id;
-		// cmd.target_component = status.component_id;
-		// cmd.source_system = status.system_id;
-		// cmd.source_component = status.component_id;
+
 		/* ask to confirm command */
 		cmd.confirmation =  1;
 
@@ -720,6 +744,11 @@ PX4IO::init()
 			/* keep waiting for state change for 2 s */
 		} while (!safety.armed);
 
+		/* Indicate restart type is in-flight */
+		sys_restart_val = DM_INIT_REASON_IN_FLIGHT;
+		param_set(sys_restart_param, &sys_restart_val);
+
+
 		/* regular boot, no in-air restart, init IO */
 
 	} else {
@@ -744,6 +773,10 @@ PX4IO::init()
 				return ret;
 			}
 		}
+
+		/* Indicate restart type is power on */
+		sys_restart_val = DM_INIT_REASON_POWER_ON;
+		param_set(sys_restart_param, &sys_restart_val);
 
 	}
 
@@ -2129,6 +2162,10 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 
 	case PWM_SERVO_GET_DISABLE_LOCKDOWN:
 		*(unsigned *)arg = _lockdown_override;
+
+	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
+		/* force safety swith off */
+		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, PX4IO_FORCE_SAFETY_MAGIC);
 		break;
 
 	case DSM_BIND_START:

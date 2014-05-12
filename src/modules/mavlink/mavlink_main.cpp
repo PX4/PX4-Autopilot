@@ -167,12 +167,12 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 	int buf_free = 0;
 
 	if (instance->get_flow_control_enabled()
-	    && ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
+		&& ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
 
 		if (buf_free == 0) {
 
 			if (last_write_times[(unsigned)channel] != 0 &&
-			    hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500 * 1000UL) {
+				hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500 * 1000UL) {
 
 				warnx("DISABLING HARDWARE FLOW CONTROL");
 				instance->enable_flow_control(false);
@@ -186,11 +186,16 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 		}
 	}
 
-	ssize_t ret = write(uart, ch, desired);
-
-	if (ret != desired) {
-		// XXX do something here, but change to using FIONWRITE and OS buf size for detection
+	/* If the wait until transmit flag is on, only transmit after we've received messages.
+	   Otherwise, transmit all the time. */
+	if (instance->should_transmit()) {
+	   ssize_t ret = write(uart, ch, desired);
+		if (ret != desired) {
+			// XXX do something here, but change to using FIONWRITE and OS buf size for detection
+		}
 	}
+
+
 
 }
 
@@ -203,7 +208,10 @@ Mavlink::Mavlink() :
 	_mavlink_fd(-1),
 	_task_running(false),
 	_hil_enabled(false),
+	_use_hil_gps(false),
 	_is_usb_uart(false),
+	_wait_to_transmit(false),
+	_received_messages(false),
 	_main_loop_delay(1000),
 	_subscriptions(nullptr),
 	_streams(nullptr),
@@ -480,11 +488,13 @@ void Mavlink::mavlink_update_system(void)
 	static param_t param_system_id;
 	static param_t param_component_id;
 	static param_t param_system_type;
+	static param_t param_use_hil_gps;
 
 	if (!initialized) {
 		param_system_id = param_find("MAV_SYS_ID");
 		param_component_id = param_find("MAV_COMP_ID");
 		param_system_type = param_find("MAV_TYPE");
+		param_use_hil_gps = param_find("MAV_USEHILGPS");
 		initialized = true;
 	}
 
@@ -509,6 +519,11 @@ void Mavlink::mavlink_update_system(void)
 	if (system_type >= 0 && system_type < MAV_TYPE_ENUM_END) {
 		mavlink_system.type = system_type;
 	}
+
+	int32_t use_hil_gps;
+	param_get(param_use_hil_gps, &use_hil_gps);
+
+	_use_hil_gps = (bool)use_hil_gps;
 }
 
 int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_config_original, bool *is_usb)
@@ -566,6 +581,11 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 
 	/* open uart */
 	_uart_fd = open(uart_name, O_RDWR | O_NOCTTY);
+
+	if (_uart_fd < 0) {
+		return _uart_fd;
+	}
+
 
 	/* Try to set baud rate */
 	struct termios uart_config;
@@ -825,10 +845,10 @@ void Mavlink::publish_mission()
 {
 	/* Initialize mission publication if necessary */
 	if (_mission_pub < 0) {
-		_mission_pub = orb_advertise(ORB_ID(mission), &mission);
+		_mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
 
 	} else {
-		orb_publish(ORB_ID(mission), _mission_pub, &mission);
+		orb_publish(ORB_ID(offboard_mission), _mission_pub, &mission);
 	}
 }
 
@@ -1515,6 +1535,8 @@ Mavlink::mavlink_missionlib_send_gcs_string(const char *string)
 {
 	const int len = MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN;
 	mavlink_statustext_t statustext;
+	statustext.severity = MAV_SEVERITY_INFO;
+
 	int i = 0;
 
 	while (i < len - 1) {
@@ -1768,7 +1790,7 @@ Mavlink::task_main(int argc, char *argv[])
 	 * set error flag instead */
 	bool err_flag = false;
 
-	while ((ch = getopt(argc, argv, "b:r:d:m:fpv")) != EOF) {
+	while ((ch = getopt(argc, argv, "b:r:d:m:fpvw")) != EOF) {
 		switch (ch) {
 		case 'b':
 			_baudrate = strtoul(optarg, NULL, 10);
@@ -1818,6 +1840,10 @@ Mavlink::task_main(int argc, char *argv[])
 
 		case 'v':
 			_verbose = true;
+			break;
+
+		case 'w':
+			_wait_to_transmit = true;
 			break;
 
 		default:
@@ -1942,6 +1968,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAMED_VALUE_FLOAT", 1.0f * rate_mult);
 		configure_stream("GLOBAL_POSITION_SETPOINT_INT", 3.0f * rate_mult);
 		configure_stream("ROLL_PITCH_YAW_THRUST_SETPOINT", 3.0f * rate_mult);
+		configure_stream("DISTANCE_SENSOR", 0.5f);
 		break;
 
 	case MAVLINK_MODE_CAMERA:
@@ -2264,7 +2291,7 @@ Mavlink::stream(int argc, char *argv[])
 
 static void usage()
 {
-	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-b baudrate] [-r rate] [-m mode] [-s stream] [-f] [-p] [-v]");
+	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-b baudrate] [-r rate] [-m mode] [-s stream] [-f] [-p] [-v] [-w]");
 }
 
 int mavlink_main(int argc, char *argv[])
