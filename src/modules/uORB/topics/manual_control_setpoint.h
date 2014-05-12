@@ -86,10 +86,10 @@ struct manual_control_setpoint_s {
 	float aux4;			/**< default function: camera roll */
 	float aux5;			/**< default function: payload drop */
 
-	switch_pos_t mode_switch;	/**< mode 3 position switch (mandatory): manual, assisted, auto */
-	switch_pos_t return_switch;	/**< land 2 position switch (mandatory): land, no effect */
-	switch_pos_t assisted_switch;	/**< assisted 2 position switch (optional): seatbelt, simple */
-	switch_pos_t loiter_switch;	/**< mission 2 position switch (optional): mission, loiter */
+	switch_pos_t mode_switch;			/**< main mode 3 position switch (mandatory): _MANUAL_, ASSIST, AUTO */
+	switch_pos_t return_switch;			/**< return to launch 2 position switch (mandatory): _NORMAL_, RTL */
+	switch_pos_t posctl_switch;			/**< position control 2 position switch (optional): _ALTCTL_, POSCTL */
+	switch_pos_t loiter_switch;			/**< loiter 2 position switch (optional): _MISSION_, LOITER */
 }; /**< manual control inputs */
 
 /**
