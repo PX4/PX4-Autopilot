@@ -1138,10 +1138,10 @@ protected:
 		if (manual_sub->update(t)) {
 			mavlink_msg_manual_control_send(_channel,
 							mavlink_system.sysid,
-							manual->roll * 1000,
-							manual->pitch * 1000,
-							manual->yaw * 1000,
-							manual->throttle * 1000,
+							manual->x * 1000,
+							manual->y * 1000,
+							manual->z * 1000,
+							manual->r * 1000,
 							0);
 		}
 	}
