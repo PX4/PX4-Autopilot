@@ -367,7 +367,7 @@ static orb_advert_t status_pub;
 transition_result_t arm_disarm(bool arm, const int mavlink_fd, const char* armedBy)
 {
     transition_result_t arming_res = TRANSITION_NOT_CHANGED;
-    
+
     // Transition the armed state. By passing mavlink_fd to arming_state_transition it will
     // output appropriate error messages if the state cannot transition.
     arming_res = arming_state_transition(&status, &safety, arm ? ARMING_STATE_ARMED : ARMING_STATE_STANDBY, &armed, mavlink_fd);
@@ -376,7 +376,7 @@ transition_result_t arm_disarm(bool arm, const int mavlink_fd, const char* armed
     } else if (arming_res == TRANSITION_DENIED) {
         tune_negative(true);
     }
-    
+
     return arming_res;
 }
 
@@ -1164,7 +1164,7 @@ int commander_thread_main(int argc, char *argv[])
 			if (status.is_rotary_wing &&
 			    (status.arming_state == ARMING_STATE_ARMED || status.arming_state == ARMING_STATE_ARMED_ERROR) &&
 			    (status.main_state == MAIN_STATE_MANUAL || status.condition_landed) &&
-			    sp_man.yaw < -STICK_ON_OFF_LIMIT && sp_man.throttle < 0.1f) {
+			    sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) {
 
 				if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
@@ -1182,7 +1182,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* check if left stick is in lower right position and we're in MANUAL mode -> arm */
 			if (status.arming_state == ARMING_STATE_STANDBY &&
-			    sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < 0.1f) {
+			    sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) {
 				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 					if (safety.safety_switch_available && !safety.safety_off && status.hil_state == HIL_STATE_OFF) {
 						print_reject_arm("NOT ARMING: Press safety switch first.");
