@@ -43,6 +43,19 @@
 
 #include "mavlink_stream.h"
 
-extern MavlinkStream *streams_list[];
+class StreamListItem {
+
+public:
+	MavlinkStream* (*new_instance)();
+	const char* (*get_name)();
+
+	StreamListItem(MavlinkStream* (*inst)(), const char* (*name)()) :
+		new_instance(inst),
+		get_name(name) {};
+
+	~StreamListItem() {};
+};
+
+extern StreamListItem *streams_list[];
 
 #endif /* MAVLINK_MESSAGES_H_ */

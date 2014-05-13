@@ -48,12 +48,12 @@
 class MavlinkOrbSubscription
 {
 public:
-	MavlinkOrbSubscription *next;	/*< pointer to next subscription in list */
+	MavlinkOrbSubscription *next;	///< pointer to next subscription in list
 
 	MavlinkOrbSubscription(const orb_id_t topic);
 	~MavlinkOrbSubscription();
 
-	bool update(const hrt_abstime t);
+	bool update(const hrt_abstime t, void* data);
 
 	/**
 	 * Check if the topic has been published.
@@ -62,16 +62,14 @@ public:
 	 * @return true if the topic has been published at least once.
 	 */
 	bool is_published();
-	void *get_data();
-	const orb_id_t get_topic();
+	orb_id_t get_topic() const;
 
 private:
-	const orb_id_t _topic;		/*< topic metadata */
-	int _fd;					/*< subscription handle */
-	bool _published;			/*< topic was ever published */
-	void *_data;				/*< pointer to data buffer */
-	hrt_abstime _last_check;	/*< time of last check */
-	bool _updated;				/*< updated on last check */
+	const orb_id_t _topic;		///< topic metadata
+	int _fd;			///< subscription handle
+	bool _published;		///< topic was ever published
+	hrt_abstime _last_check;	///< time of last check
+	bool _updated;			///< updated on last check
 };
 
 
