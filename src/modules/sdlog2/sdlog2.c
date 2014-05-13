@@ -684,7 +684,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		case 'r': {
 				unsigned long r = strtoul(optarg, NULL, 10);
 
-				if (r <= 0) {
+				if (r == 0) {
 					r = 1;
 				}
 
