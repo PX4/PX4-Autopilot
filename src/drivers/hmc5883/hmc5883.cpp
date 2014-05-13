@@ -158,6 +158,7 @@ private:
 	int			_class_instance;
 
 	orb_advert_t		_mag_topic;
+	orb_advert_t		_subsystem_pub;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
@@ -324,7 +325,9 @@ HMC5883::HMC5883(int bus) :
 	_reports(nullptr),
 	_range_scale(0), /* default range scale from counts to gauss */
 	_range_ga(1.3f),
+	_collect_phase(false),
 	_mag_topic(-1),
+	_subsystem_pub(-1),
 	_class_instance(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "hmc5883_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "hmc5883_comms_errors")),
@@ -1137,13 +1140,12 @@ int HMC5883::check_calibration()
 			true,
 			_calibrated,
 			SUBSYSTEM_TYPE_MAG};
-		static orb_advert_t pub = -1;
 
 		if (!(_pub_blocked)) {
-			if (pub > 0) {
-				orb_publish(ORB_ID(subsystem_info), pub, &info);
+			if (_subsystem_pub > 0) {
+				orb_publish(ORB_ID(subsystem_info), _subsystem_pub, &info);
 			} else {
-				pub = orb_advertise(ORB_ID(subsystem_info), &info);
+				_subsystem_pub = orb_advertise(ORB_ID(subsystem_info), &info);
 			}
 		}
 	}
