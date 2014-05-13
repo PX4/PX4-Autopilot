@@ -51,6 +51,8 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_gps_position.h>
 
+#include <drivers/drv_hrt.h>
+
 /* The board is very roughly 5 deg warmer than the surrounding air */
 #define BOARD_TEMP_OFFSET_DEG 5
 
@@ -103,24 +105,25 @@ publish_gam_message(const uint8_t *buffer)
 	size_t size = sizeof(msg);
 	memset(&msg, 0, size);
 	memcpy(&msg, buffer, size);
-	struct esc_status_s _esc;
-	memset(&_esc, 0, sizeof(_esc));
+	struct esc_status_s esc;
+	memset(&esc, 0, sizeof(esc));
 
 	// Publish it.
-	_esc.esc_count = 1;
-	_esc.esc_connectiontype = ESC_CONNECTION_TYPE_PPM;
+	esc.timestamp = hrt_absolute_time();
+	esc.esc_count = 1;
+	esc.esc_connectiontype = ESC_CONNECTION_TYPE_PPM;
 
-	_esc.esc[0].esc_vendor = ESC_VENDOR_GRAUPNER_HOTT;
-	_esc.esc[0].esc_rpm = (uint16_t)((msg.rpm_H << 8) | (msg.rpm_L & 0xff)) * 10;
-	_esc.esc[0].esc_temperature = msg.temperature1 - 20; 
-	_esc.esc[0].esc_voltage = (uint16_t)((msg.main_voltage_H << 8) | (msg.main_voltage_L & 0xff));
-	_esc.esc[0].esc_current = (uint16_t)((msg.current_H << 8) | (msg.current_L & 0xff));
+	esc.esc[0].esc_vendor = ESC_VENDOR_GRAUPNER_HOTT;
+	esc.esc[0].esc_rpm = (uint16_t)((msg.rpm_H << 8) | (msg.rpm_L & 0xff)) * 10;
+	esc.esc[0].esc_temperature = msg.temperature1 - 20; 
+	esc.esc[0].esc_voltage = (uint16_t)((msg.main_voltage_H << 8) | (msg.main_voltage_L & 0xff));
+	esc.esc[0].esc_current = (uint16_t)((msg.current_H << 8) | (msg.current_L & 0xff));
 
 	/* announce the esc if needed, just publish else */
 	if (_esc_pub > 0) {
-		orb_publish(ORB_ID(esc_status), _esc_pub, &_esc);
+		orb_publish(ORB_ID(esc_status), _esc_pub, &esc);
 	} else {
-		_esc_pub = orb_advertise(ORB_ID(esc_status), &_esc);
+		_esc_pub = orb_advertise(ORB_ID(esc_status), &esc);
 	}
 }
 
