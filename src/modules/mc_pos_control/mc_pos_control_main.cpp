@@ -617,7 +617,7 @@ MulticopterPositionControl::task_main()
 					reset_alt_sp();
 
 					/* move altitude setpoint with throttle stick */
-					sp_move_rate(2) = -scale_control(_manual.throttle - 0.5f, 0.5f, alt_ctl_dz);
+					sp_move_rate(2) = -scale_control(_manual.z - 0.5f, 0.5f, alt_ctl_dz);
 				}
 
 				if (_control_mode.flag_control_position_enabled) {
@@ -625,8 +625,8 @@ MulticopterPositionControl::task_main()
 					reset_pos_sp();
 
 					/* move position setpoint with roll/pitch stick */
-					sp_move_rate(0) = _manual.pitch;
-					sp_move_rate(1) = _manual.roll;
+					sp_move_rate(0) = _manual.x;
+					sp_move_rate(1) = _manual.y;
 				}
 
 				/* limit setpoint move rate */
@@ -782,7 +782,7 @@ MulticopterPositionControl::task_main()
 							float i = _params.thr_min;
 
 							if (reset_int_z_manual) {
-								i = _manual.throttle;
+								i = _manual.z;
 
 								if (i < _params.thr_min) {
 									i = _params.thr_min;

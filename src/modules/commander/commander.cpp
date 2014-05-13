@@ -1188,7 +1188,7 @@ int commander_thread_main(int argc, char *argv[])
 			if (status.is_rotary_wing &&
 			    (status.arming_state == ARMING_STATE_ARMED || status.arming_state == ARMING_STATE_ARMED_ERROR) &&
 			    (status.main_state == MAIN_STATE_MANUAL || status.condition_landed) &&
-			    sp_man.yaw < -STICK_ON_OFF_LIMIT && sp_man.throttle < 0.1f) {
+			    sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) {
 
 				if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
@@ -1206,7 +1206,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* check if left stick is in lower right position and we're in MANUAL mode -> arm */
 			if (status.arming_state == ARMING_STATE_STANDBY &&
-			    sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < 0.1f) {
+			    sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) {
 				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 					if (safety.safety_switch_available && !safety.safety_off && status.hil_state == HIL_STATE_OFF) {
 						print_reject_arm("NOT ARMING: Press safety switch first.");

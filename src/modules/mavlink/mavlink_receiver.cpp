@@ -191,7 +191,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		}
 
 	}
-	
+
     /* If we've received a valid message, mark the flag indicating so.
 	   This is used in the '-w' command-line flag. */
 	_mavlink->set_has_received_messages(true);
@@ -438,10 +438,10 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	memset(&manual, 0, sizeof(manual));
 
 	manual.timestamp = hrt_absolute_time();
-	manual.pitch = man.x / 1000.0f;
-	manual.roll = man.y / 1000.0f;
-	manual.yaw = man.r / 1000.0f;
-	manual.throttle = man.z / 1000.0f;
+	manual.x = man.x / 1000.0f;
+	manual.y = man.y / 1000.0f;
+	manual.r = man.r / 1000.0f;
+	manual.z = man.z / 1000.0f;
 
 	if (_manual_pub < 0) {
 		_manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
