@@ -1114,7 +1114,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 
 		if (0/* posctrl on and manual control yaw non-zero */) {
-			_altctrl_hold_heading = _att.yaw + _manual.yaw;
+			_altctrl_hold_heading = _att.yaw + _manual.r;
 		}
 
 		//XXX not used
@@ -1132,12 +1132,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		// XXX check if ground speed undershoot should be applied here
 		float altctrl_airspeed = _parameters.airspeed_min +
 					  (_parameters.airspeed_max - _parameters.airspeed_min) *
-					  _manual.throttle;
+					  _manual.z;
 
 		_l1_control.navigate_heading(_altctrl_hold_heading, _att.yaw, ground_speed);
 		_att_sp.roll_body = _l1_control.nav_roll();
 		_att_sp.yaw_body = _l1_control.nav_bearing();
-		_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_pos.alt + _manual.pitch * 2.0f,
+		_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_pos.alt + _manual.x * 2.0f,
 					    altctrl_airspeed,
 					    _airspeed.indicated_airspeed_m_s, eas2tas,
 					    false, _parameters.pitch_limit_min,
@@ -1153,7 +1153,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 
 		if (0/* altctrl on and manual control yaw non-zero */) {
-			_altctrl_hold_heading = _att.yaw + _manual.yaw;
+			_altctrl_hold_heading = _att.yaw + _manual.r;
 		}
 
 		/* if in altctrl mode, set airspeed based on manual control */
@@ -1161,10 +1161,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		// XXX check if ground speed undershoot should be applied here
 		float altctrl_airspeed = _parameters.airspeed_min +
 					  (_parameters.airspeed_max - _parameters.airspeed_min) *
-					  _manual.throttle;
+					  _manual.z;
 
 		/* user switched off throttle */
-		if (_manual.throttle < 0.1f) {
+		if (_manual.z < 0.1f) {
 			throttle_max = 0.0f;
 			/* switch to pure pitch based altitude control, give up speed */
 			_tecs.set_speed_weight(0.0f);
@@ -1174,14 +1174,14 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		bool climb_out = false;
 
 		/* user wants to climb out */
-		if (_manual.pitch > 0.3f && _manual.throttle > 0.8f) {
+		if (_manual.x > 0.3f && _manual.z > 0.8f) {
 			climb_out = true;
 		}
 
 		_l1_control.navigate_heading(_altctrl_hold_heading, _att.yaw, ground_speed);
-		_att_sp.roll_body =	_manual.roll;
-		_att_sp.yaw_body =	_manual.yaw;
-		_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_pos.alt + _manual.pitch * 2.0f,
+		_att_sp.roll_body =	_manual.y;
+		_att_sp.yaw_body =	_manual.r;
+		_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_pos.alt + _manual.x * 2.0f,
 					    altctrl_airspeed,
 					    _airspeed.indicated_airspeed_m_s, eas2tas,
 					    climb_out, _parameters.pitch_limit_min,

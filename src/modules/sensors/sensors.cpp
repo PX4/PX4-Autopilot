@@ -1486,10 +1486,10 @@ Sensors::rc_poll()
 			manual.timestamp = rc_input.timestamp_last_signal;
 
 			/* limit controls */
-			manual.roll = get_rc_value(ROLL, -1.0, 1.0);
-			manual.pitch = get_rc_value(PITCH, -1.0, 1.0);
-			manual.yaw = get_rc_value(YAW, -1.0, 1.0);
-			manual.throttle = get_rc_value(THROTTLE, 0.0, 1.0);
+			manual.y = get_rc_value(ROLL, -1.0, 1.0);
+			manual.x = get_rc_value(PITCH, -1.0, 1.0);
+			manual.r = get_rc_value(YAW, -1.0, 1.0);
+			manual.z = get_rc_value(THROTTLE, 0.0, 1.0);
 			manual.flaps = get_rc_value(FLAPS, -1.0, 1.0);
 			manual.aux1 = get_rc_value(AUX_1, -1.0, 1.0);
 			manual.aux2 = get_rc_value(AUX_2, -1.0, 1.0);
@@ -1517,10 +1517,10 @@ Sensors::rc_poll()
 
 			actuator_group_3.timestamp = rc_input.timestamp_last_signal;
 
-			actuator_group_3.control[0] = manual.roll;
-			actuator_group_3.control[1] = manual.pitch;
-			actuator_group_3.control[2] = manual.yaw;
-			actuator_group_3.control[3] = manual.throttle;
+			actuator_group_3.control[0] = manual.y;
+			actuator_group_3.control[1] = manual.x;
+			actuator_group_3.control[2] = manual.r;
+			actuator_group_3.control[3] = manual.z;
 			actuator_group_3.control[4] = manual.flaps;
 			actuator_group_3.control[5] = manual.aux1;
 			actuator_group_3.control[6] = manual.aux2;
