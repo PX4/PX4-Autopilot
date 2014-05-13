@@ -727,9 +727,9 @@ int Mavlink::mavlink_pm_send_param(param_t param)
 	if (param == PARAM_INVALID) { return 1; }
 
 	/* buffers for param transmission */
-	static char name_buf[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN];
+	char name_buf[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN];
 	float val_buf;
-	static mavlink_message_t tx_msg;
+	mavlink_message_t tx_msg;
 
 	/* query parameter type */
 	param_type_t type = param_type(param);
@@ -1535,6 +1535,8 @@ Mavlink::mavlink_missionlib_send_gcs_string(const char *string)
 {
 	const int len = MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN;
 	mavlink_statustext_t statustext;
+	statustext.severity = MAV_SEVERITY_INFO;
+
 	int i = 0;
 
 	while (i < len - 1) {

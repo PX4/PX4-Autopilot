@@ -237,7 +237,7 @@ private:
 	/**
 	 * Main sensor collection task.
 	 */
-	void		task_main() __attribute__((noreturn));
+	void		task_main();
 };
 
 namespace estimator

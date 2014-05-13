@@ -71,7 +71,7 @@
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
-#include <mathlib/mathlib.h>
+#include <lib/mathlib/mathlib.h>
 #include <lib/geo/geo.h>
 
 /**
@@ -156,6 +156,7 @@ private:
 		param_t yaw_rate_i;
 		param_t yaw_rate_d;
 		param_t yaw_ff;
+		param_t yaw_rate_max;
 
 		param_t man_roll_max;
 		param_t man_pitch_max;
@@ -168,6 +169,7 @@ private:
 		math::Vector<3> rate_i;				/**< I gain for angular rate error */
 		math::Vector<3> rate_d;				/**< D gain for angular rate error */
 		float yaw_ff;						/**< yaw control feed-forward */
+		float yaw_rate_max;					/**< max yaw rate */
 
 		float man_roll_max;
 		float man_pitch_max;
@@ -225,9 +227,9 @@ private:
 	static void	task_main_trampoline(int argc, char *argv[]);
 
 	/**
-	 * Main sensor collection task.
+	 * Main attitude control task.
 	 */
-	void		task_main() __attribute__((noreturn));
+	void		task_main();
 };
 
 namespace mc_att_control
@@ -276,6 +278,11 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.rate_p.zero();
 	_params.rate_i.zero();
 	_params.rate_d.zero();
+	_params.yaw_ff = 0.0f;
+	_params.yaw_rate_max = 0.0f;
+	_params.man_roll_max = 0.0f;
+	_params.man_pitch_max = 0.0f;
+	_params.man_yaw_max = 0.0f;
 
 	_rates_prev.zero();
 	_rates_sp.zero();
@@ -298,7 +305,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.yaw_rate_i		= 	param_find("MC_YAWRATE_I");
 	_params_handles.yaw_rate_d		= 	param_find("MC_YAWRATE_D");
 	_params_handles.yaw_ff			= 	param_find("MC_YAW_FF");
-
+	_params_handles.yaw_rate_max	= 	param_find("MC_YAWRATE_MAX");
 	_params_handles.man_roll_max	= 	param_find("MC_MAN_R_MAX");
 	_params_handles.man_pitch_max	= 	param_find("MC_MAN_P_MAX");
 	_params_handles.man_yaw_max		= 	param_find("MC_MAN_Y_MAX");
@@ -367,15 +374,16 @@ MulticopterAttitudeControl::parameters_update()
 	_params.rate_d(2) = v;
 
 	param_get(_params_handles.yaw_ff, &_params.yaw_ff);
+	param_get(_params_handles.yaw_rate_max, &_params.yaw_rate_max);
+	_params.yaw_rate_max = math::radians(_params.yaw_rate_max);
 
 	/* manual control scale */
 	param_get(_params_handles.man_roll_max, &_params.man_roll_max);
 	param_get(_params_handles.man_pitch_max, &_params.man_pitch_max);
 	param_get(_params_handles.man_yaw_max, &_params.man_yaw_max);
-
-	_params.man_roll_max *= M_PI / 180.0;
-	_params.man_pitch_max *= M_PI / 180.0;
-	_params.man_yaw_max *= M_PI / 180.0;
+	_params.man_roll_max = math::radians(_params.man_roll_max);
+	_params.man_pitch_max = math::radians(_params.man_pitch_max);
+	_params.man_yaw_max = math::radians(_params.man_yaw_max);
 
 	return OK;
 }
@@ -478,7 +486,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 		if (!_v_control_mode.flag_control_climb_rate_enabled) {
 			/* pass throttle directly if not in altitude stabilized mode */
-			_v_att_sp.thrust = _manual_control_sp.throttle;
+			_v_att_sp.thrust = _manual_control_sp.z;
 			publish_att_sp = true;
 		}
 
@@ -496,7 +504,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 			//}
 		} else {
 			/* move yaw setpoint */
-			yaw_sp_move_rate = _manual_control_sp.yaw * _params.man_yaw_max;
+			yaw_sp_move_rate = _manual_control_sp.r * _params.man_yaw_max;
 			_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + yaw_sp_move_rate * dt);
 			_v_att_sp.R_valid = false;
 			publish_att_sp = true;
@@ -512,8 +520,8 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 		if (!_v_control_mode.flag_control_velocity_enabled) {
 			/* update attitude setpoint if not in position control mode */
-			_v_att_sp.roll_body = _manual_control_sp.roll * _params.man_roll_max;
-			_v_att_sp.pitch_body = -_manual_control_sp.pitch * _params.man_pitch_max;
+			_v_att_sp.roll_body = _manual_control_sp.y * _params.man_roll_max;
+			_v_att_sp.pitch_body = -_manual_control_sp.x * _params.man_pitch_max;
 			_v_att_sp.R_valid = false;
 			publish_att_sp = true;
 		}
@@ -625,6 +633,9 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 	/* calculate angular rates setpoint */
 	_rates_sp = _params.att_p.emult(e_R);
+
+	/* limit yaw rate */
+	_rates_sp(2) = math::constrain(_rates_sp(2), -_params.yaw_rate_max, _params.yaw_rate_max);
 
 	/* feed forward yaw setpoint rate */
 	_rates_sp(2) += yaw_sp_move_rate * yaw_w * _params.yaw_ff;
