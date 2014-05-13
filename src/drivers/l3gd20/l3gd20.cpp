@@ -446,7 +446,9 @@ L3GD20::probe()
 	/* Detect the L3G4200D used on AeroCore */
 	if (read_reg(ADDR_WHO_AM_I) == WHO_I_AM_L3G4200D) {
 		_is_l3g4200d = true;
-		_orientation = SENSOR_BOARD_ROTATION_270_DEG;
+		#ifdef CONFIG_ARCH_BOARD_AEROCORE
+			_orientation = SENSOR_BOARD_ROTATION_270_DEG;
+		#endif
 		success = true;
 	}
 
@@ -522,8 +524,9 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 				/* set default/max polling rate */
 			case SENSOR_POLLRATE_MAX:
 			case SENSOR_POLLRATE_DEFAULT:
-				if (_is_l3g4200d)
+				if (_is_l3g4200d) {
 					return ioctl(filp, SENSORIOCSPOLLRATE, L3G4200D_DEFAULT_RATE);
+				}
 				return ioctl(filp, SENSORIOCSPOLLRATE, L3GD20_DEFAULT_RATE);
 
 				/* adjust to a legal polling interval in Hz */
@@ -705,41 +708,26 @@ L3GD20::set_samplerate(unsigned frequency)
 	uint8_t bits = REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE;
 
 	if (frequency == 0)
-		if (_is_l3g4200d)
-			frequency = 800;
-		else
-			frequency = 760;
+		frequency = _is_l3g4200d ? 800 : 760;
 
 	/*
 	 * Use limits good for H or non-H models. Rates are slightly different
 	 * for L3G4200D part but register settings are the same.
 	 */
 	if (frequency <= 100) {
-		if (_is_l3g4200d)
-			_current_rate = 100;
-		else
-			_current_rate = 95;
+		_current_rate = _is_l3g4200d ? 100 : 95;
 		bits |= RATE_95HZ_LP_25HZ;
 
 	} else if (frequency <= 200) {
-		if (_is_l3g4200d)
-			_current_rate = 200;
-		else
-			_current_rate = 190;
+		_current_rate = _is_l3g4200d ? 200 : 190;
 		bits |= RATE_190HZ_LP_50HZ;
 
 	} else if (frequency <= 400) {
-		if (_is_l3g4200d)
-			_current_rate = 400;
-		else
-			_current_rate = 380;
+		_current_rate = _is_l3g4200d ? 400 : 380;
 		bits |= RATE_380HZ_LP_50HZ;
 
 	} else if (frequency <= 800) {
-		if (_is_l3g4200d)
-			_current_rate = 800;
-		else
-			_current_rate = 760;
+		_current_rate = _is_l3g4200d ? 800 : 760;
 		bits |= RATE_760HZ_LP_50HZ;
 	} else {
 		return -EINVAL;
