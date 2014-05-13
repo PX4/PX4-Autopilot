@@ -834,6 +834,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_ESTM_s log_ESTM;
 			struct log_PWR_s log_PWR;
 			struct log_VICN_s log_VICN;
+			struct log_GSN0_s log_GSN0;
+			struct log_GSN1_s log_GSN1;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -982,6 +984,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_GPS.vel_d = buf_gps_pos.vel_d_m_s;
 			log_msg.body.log_GPS.cog = buf_gps_pos.cog_rad;
 			LOGBUFFER_WRITE_AND_COUNT(GPS);
+
+			/* log the SNR of each satellite for a detailed view of signal quality */
+			log_msg.msg_type = LOG_GSN0_MSG;
+			/* pick the smaller number so we do not overflow any of the arrays */
+			unsigned gps_msg_max_snr = sizeof(buf_gps_pos.satellite_snr) / sizeof(buf_gps_pos.satellite_snr[0]);
+			unsigned log_max_snr = sizeof(log_msg.body.log_GSN0.satellite_snr) / sizeof(log_msg.body.log_GSN0.satellite_snr[0]);
+			unsigned sat_max_snr = (gps_msg_max_snr < log_max_snr) ? gps_msg_max_snr : log_max_snr;
+
+			for (unsigned i = 0; i < sat_max_snr; i++) {
+				log_msg.body.log_GSN0.satellite_snr[i] = buf_gps_pos.satellite_snr[i];
+			}
+			LOGBUFFER_WRITE_AND_COUNT(GSN0);
 		}
 
 		/* --- SENSOR COMBINED --- */
