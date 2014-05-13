@@ -278,11 +278,15 @@ private:
 		int size;
 		char *data;
 	};
-	mavlink_message_buffer _message_buffer;
+	mavlink_message_buffer	_message_buffer;
 
-	pthread_mutex_t _message_buffer_mutex;
+	pthread_mutex_t		_message_buffer_mutex;
 
-
+	bool			_param_initialized;
+	param_t			_param_system_id;
+	param_t			_param_component_id;
+	param_t			_param_system_type;
+	param_t			_param_use_hil_gps;
 
 	/**
 	 * Send one parameter.

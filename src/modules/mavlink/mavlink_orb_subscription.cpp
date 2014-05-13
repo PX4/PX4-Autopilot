@@ -53,30 +53,21 @@ MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic) :
 	_last_check(0),
 	next(nullptr)
 {
-	_data = malloc(topic->o_size);
-	memset(_data, 0, topic->o_size);
 }
 
 MavlinkOrbSubscription::~MavlinkOrbSubscription()
 {
 	close(_fd);
-	free(_data);
 }
 
-const orb_id_t
-MavlinkOrbSubscription::get_topic()
+orb_id_t
+MavlinkOrbSubscription::get_topic() const
 {
 	return _topic;
 }
 
-void *
-MavlinkOrbSubscription::get_data()
-{
-	return _data;
-}
-
 bool
-MavlinkOrbSubscription::update(const hrt_abstime t)
+MavlinkOrbSubscription::update(const hrt_abstime t, void* data)
 {
 	if (_last_check == t) {
 		/* already checked right now, return result of the check */
@@ -86,8 +77,8 @@ MavlinkOrbSubscription::update(const hrt_abstime t)
 		_last_check = t;
 		orb_check(_fd, &_updated);
 
-		if (_updated) {
-			orb_copy(_topic, _fd, _data);
+		if (_updated && data) {
+			orb_copy(_topic, _fd, data);
 			_published = true;
 			return true;
 		}
