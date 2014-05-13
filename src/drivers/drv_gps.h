@@ -43,12 +43,12 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
+#include "board_config.h"
+
 #include "drv_sensor.h"
 #include "drv_orb_dev.h"
 
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define GPS_DEFAULT_UART_PORT "/dev/ttyS0"
-#else
+#ifndef GPS_DEFAULT_UART_PORT
 #define GPS_DEFAULT_UART_PORT "/dev/ttyS3"
 #endif
 
