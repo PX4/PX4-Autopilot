@@ -282,56 +282,52 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	float		yaw     = get_control(0, 2) * _yaw_scale;
 	float		thrust  = get_control(0, 3);
 	//lowsyslog("thrust: %d, get_control3: %d\n", (int)(thrust), (int)(get_control(0, 3)));
-	float		max     = 0.0f;
+	float		min_out = 0.0f;
+	float		max_out = 0.0f;
 	float		fixup_scale;
 
-	/* use an output factor to prevent too strong control signals at low throttle */
-	float min_thrust = 0.05f;
-	float max_thrust = 1.0f;
-	float startpoint_full_control = 0.40f;
-	float output_factor;
-
-	/* keep roll, pitch and yaw control to 0 below min thrust */
-	if (thrust <= min_thrust) {
-		output_factor = 0.0f;
-		/* linearly increase the output factor from 0 to 1 between min_thrust and startpoint_full_control */
-
-	} else if (thrust < startpoint_full_control && thrust > min_thrust) {
-		output_factor = (thrust / max_thrust) / (startpoint_full_control - min_thrust);
-		/* and then stay at full control */
-
-	} else {
-		output_factor = max_thrust;
-	}
-
-	roll *= output_factor;
-	pitch *= output_factor;
-	yaw *= output_factor;
-
-
-	/* perform initial mix pass yielding un-bounded outputs */
+	/* perform initial mix pass yielding unbounded outputs */
 	for (unsigned i = 0; i < _rotor_count; i++) {
-		float tmp = roll  * _rotors[i].roll_scale +
+		float out = roll * _rotors[i].roll_scale +
 			    pitch * _rotors[i].pitch_scale +
-			    yaw   * _rotors[i].yaw_scale +
+			    yaw * _rotors[i].yaw_scale +
 			    thrust;
 
-		if (tmp > max)
-			max = tmp;
+		if (out < min_out) {
+			min_out = out;
+		}
+		if (out > max_out) {
+			max_out = out;
+		}
 
-		outputs[i] = tmp;
+		outputs[i] = out;
 	}
 
-	/* scale values into the -1.0 - 1.0 range */
-	if (max > 1.0f) {
-		fixup_scale = 2.0f / max;
+	/* scale down controls if some outputs are negative, keep total thrust */
+	if (min_out < 0.0) {
+		float scale_in = thrust / (thrust - min_out);
+
+		/* mix again with adjusted controls */
+		for (unsigned i = 0; i < _rotor_count; i++) {
+			outputs[i] = scale_in * (roll * _rotors[i].roll_scale +
+				    pitch * _rotors[i].pitch_scale +
+				    yaw * _rotors[i].yaw_scale) +
+				    thrust;
+		}
+	}
+
+	/* scale down all outputs if some outputs are too large, reduce total thrust */
+	float scale_out;
+	if (max_out > 1.0f) {
+		scale_out = 1.0f / max_out;
 
 	} else {
-		fixup_scale = 2.0f;
+		scale_out = 1.0f;
 	}
 
-	for (unsigned i = 0; i < _rotor_count; i++)
-		outputs[i] = -1.0f + (outputs[i] * fixup_scale);
+	for (unsigned i = 0; i < _rotor_count; i++) {
+		outputs[i] = -1.0f + (outputs[i] * 2 * scale_out);
+	}
 
 	/* ensure outputs are out of the deadband */
 	for (unsigned i = 0; i < _rotor_count; i++)
