@@ -171,9 +171,13 @@ static const int ERROR = -1;
 #define FIFO_CTRL_BYPASS_TO_STREAM_MODE		(1<<7)
 
 #define L3GD20_DEFAULT_RATE			760
-#define L3G4200D_DEFAULT_RATE		800
+#define L3G4200D_DEFAULT_RATE			800
 #define L3GD20_DEFAULT_RANGE_DPS		2000
 #define L3GD20_DEFAULT_FILTER_FREQ		30
+
+#ifndef SENSOR_BOARD_ROTATION_DEFAULT
+#define SENSOR_BOARD_ROTATION_DEFAULT		SENSOR_BOARD_ROTATION_270_DEG
+#endif
 
 extern "C" { __EXPORT int l3gd20_main(int argc, char *argv[]); }
 
@@ -333,7 +337,7 @@ L3GD20::L3GD20(int bus, const char* path, spi_dev_e device) :
 	_gyro_topic(-1),
 	_class_instance(-1),
 	_current_rate(0),
-	_orientation(SENSOR_BOARD_ROTATION_270_DEG),
+	_orientation(SENSOR_BOARD_ROTATION_DEFAULT),
 	_read(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "l3gd20_read")),
 	_reschedules(perf_alloc(PC_COUNT, "l3gd20_reschedules")),
@@ -423,17 +427,7 @@ L3GD20::probe()
 	/* verify that the device is attached and functioning, accept L3GD20 and L3GD20H */
 	if (read_reg(ADDR_WHO_AM_I) == WHO_I_AM) {
 
-		#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-			_orientation = SENSOR_BOARD_ROTATION_270_DEG;
-		#elif CONFIG_ARCH_BOARD_PX4FMU_V2
-			_orientation = SENSOR_BOARD_ROTATION_270_DEG;
-		/* AeroCore won't reach here but the pre-processor doesn't know this so it hits the error condition */
-		#elif CONFIG_ARCH_BOARD_AEROCORE
-			_orientation = SENSOR_BOARD_ROTATION_270_DEG;
-		#else
-			#error This driver needs a board selection, either CONFIG_ARCH_BOARD_PX4FMU_V1, CONFIG_ARCH_BOARD_PX4FMU_V2 or CONFIG_ARCH_BOARD_AEROCORE
-		#endif
-
+		_orientation = SENSOR_BOARD_ROTATION_DEFAULT;
 		success = true;
 	}
 
@@ -446,9 +440,7 @@ L3GD20::probe()
 	/* Detect the L3G4200D used on AeroCore */
 	if (read_reg(ADDR_WHO_AM_I) == WHO_I_AM_L3G4200D) {
 		_is_l3g4200d = true;
-		#ifdef CONFIG_ARCH_BOARD_AEROCORE
-			_orientation = SENSOR_BOARD_ROTATION_270_DEG;
-		#endif
+		_orientation = SENSOR_BOARD_ROTATION_DEFAULT;
 		success = true;
 	}
 
