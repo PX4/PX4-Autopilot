@@ -75,7 +75,8 @@ typedef enum {
 typedef struct {
 	sq_entry_t link;	/**< list linkage */
 	sem_t wait_sem;
-	dm_function_t func;
+	unsigned char first;
+	unsigned char func;
 	ssize_t result;
 	union {
 		struct {
@@ -183,9 +184,12 @@ create_work_item(void)
 	if (item == NULL) {
 		item = (work_q_item_t *)malloc(k_work_item_allocation_chunk_size * sizeof(work_q_item_t));
 		if (item) {
+			item->first = 1;
 			lock_queue(&g_free_q);
-			for (int i = 1; i < k_work_item_allocation_chunk_size; i++)
+			for (int i = 1; i < k_work_item_allocation_chunk_size; i++) {
+				(item + i)->first = 0;
 				sq_addfirst(&(item + i)->link, &(g_free_q.q));
+			}
 			/* Update the queue size and potentially the maximum queue size */
 			g_free_q.size += k_work_item_allocation_chunk_size - 1;
 			if (g_free_q.size > g_free_q.max_size)
@@ -730,8 +734,8 @@ task_main(int argc, char *argv[])
 	for (;;) {
 		if ((work = (work_q_item_t *)sq_remfirst(&(g_free_q.q))) == NULL)
 			break;
-
-		free(work);
+		if (work->first)
+			free(work);
 	}
 
 	destroy_q(&g_work_q);
