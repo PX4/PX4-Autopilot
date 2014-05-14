@@ -79,6 +79,11 @@ mTecs::~mTecs()
 
 int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed, float airspeedSp, tecs_mode mode)
 {
+	/* check if all input arguments are numbers and abort if not so */
+	if (!isfinite(flightPathAngle) || !isfinite(altitude) ||
+			!isfinite(altitudeSp) || !isfinite(airspeed) || !isfinite(airspeedSp) || !isfinite(mode)) {
+		return -1;
+	}
 
 	/* time measurement */
 	updateTimeMeasurement();
@@ -96,7 +101,13 @@ int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float alti
 	return updateFlightPathAngleSpeed(flightPathAngle, flightPathAngleSp, airspeed, airspeedSp, mode);
 }
 
-int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed, float airspeedSp, tecs_mode mode) {
+int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed, float airspeedSp, tecs_mode mode)
+{
+	/* check if all input arguments are numbers and abort if not so */
+	if (!isfinite(flightPathAngle) || !isfinite(flightPathAngleSp) ||
+			!isfinite(airspeed) || !isfinite(airspeedSp) || !isfinite(mode)) {
+		return -1;
+	}
 
 	/* time measurement */
 	updateTimeMeasurement();
@@ -115,6 +126,11 @@ int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAng
 
 int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeed, float accelerationLongitudinalSp, tecs_mode mode)
 {
+	/* check if all input arguments are numbers and abort if not so */
+	if (!isfinite(flightPathAngle) || !isfinite(flightPathAngleSp) ||
+			!isfinite(airspeed) || !isfinite(accelerationLongitudinalSp) || !isfinite(mode)) {
+		return -1;
+	}
 	/* time measurement */
 	updateTimeMeasurement();
 
