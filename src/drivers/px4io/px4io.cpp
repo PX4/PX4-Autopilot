@@ -1508,7 +1508,7 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 
 	/* last thing set are the actual channel values as 16 bit values */
 	for (unsigned i = 0; i < channel_count; i++) {
-		input_rc.values[i] = &regs[prolog + i];
+		input_rc.values[i] = regs[prolog + i];
 	}
 
 	return ret;
