@@ -77,33 +77,43 @@ mTecs::~mTecs()
 {
 }
 
-void mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed, float airspeedSp, tecs_mode mode)
+int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed, float airspeedSp, tecs_mode mode)
 {
 
 	/* time measurement */
 	updateTimeMeasurement();
 
+	/* calculate flight path angle setpoint from altitude setpoint */
 	float flightPathAngleSp = _controlAltitude.update(altitudeSp - altitude);
+
+	/* Debug output */
 	if (_counter % 10 == 0) {
 		debug("***");
 		debug("updateAltitudeSpeed: altitudeSp %.4f, altitude %.4f, flightPathAngleSp %.4f", (double)altitudeSp, (double)altitude, (double)flightPathAngleSp);
 	}
-	updateFlightPathAngleSpeed(flightPathAngle, flightPathAngleSp, airspeed, airspeedSp, mode);
+
+	/* use flightpath angle setpoint for total energy control */
+	return updateFlightPathAngleSpeed(flightPathAngle, flightPathAngleSp, airspeed, airspeedSp, mode);
 }
 
-void mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed, float airspeedSp, tecs_mode mode) {
+int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed, float airspeedSp, tecs_mode mode) {
 
 	/* time measurement */
 	updateTimeMeasurement();
 
+	/* calculate longitudinal acceleration setpoint from airspeed setpoint*/
 	float accelerationLongitudinalSp = _controlAirSpeed.update(airspeedSp - airspeed);
+
+	/* Debug output */
 	if (_counter % 10 == 0) {
 		debug("updateFlightPathAngleSpeed airspeedSp %.4f, airspeed %.4f, accelerationLongitudinalSp%.4f", (double)airspeedSp, (double)airspeed, (double)accelerationLongitudinalSp);
 	}
-	updateFlightPathAngleAcceleration(flightPathAngle, flightPathAngleSp, airspeed, accelerationLongitudinalSp, mode);
+
+	/* use longitudinal acceleration setpoint for total energy control */
+	return updateFlightPathAngleAcceleration(flightPathAngle, flightPathAngleSp, airspeed, accelerationLongitudinalSp, mode);
 }
 
-void mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeed, float accelerationLongitudinalSp, tecs_mode mode)
+int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeed, float accelerationLongitudinalSp, tecs_mode mode)
 {
 	/* time measurement */
 	updateTimeMeasurement();
@@ -132,6 +142,7 @@ void mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float fligh
 	float energyDistributionRateSp = flightPathAngleSp - airspeedSpDerivativeNorm;
 	float energyDistributionRateError2 = energyDistributionRateSp - energyDistributionRate;
 
+	/* Debug output */
 	if (_counter % 10 == 0) {
 		debug("totalEnergyRateSp %.2f, totalEnergyRate %.2f, totalEnergyRateError %.2f totalEnergyRateError2 %.2f airspeedDerivativeNorm %.4f",
 				(double)totalEnergyRateSp, (double)totalEnergyRate, (double)totalEnergyRateError, (double)totalEnergyRateError2, (double)airspeedDerivativeNorm);
@@ -182,6 +193,8 @@ void mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float fligh
 	_dtCalculated = false;
 
 	_counter++;
+
+	return 0;
 }
 
 void mTecs::resetIntegrators()

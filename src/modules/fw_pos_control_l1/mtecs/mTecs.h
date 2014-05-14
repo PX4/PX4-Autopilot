@@ -69,17 +69,17 @@ public:
 	/*
 	 * Control in altitude setpoint and speed mode
 	 */
-	void updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed, float airspeedSp, tecs_mode mode);
+	int updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed, float airspeedSp, tecs_mode mode);
 
 	/*
 	 * Control in flightPathAngle setpoint (flollow a slope etc.) and speed mode
 	 */
-	void updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed, float airspeedSp, tecs_mode mode);
+	int updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed, float airspeedSp, tecs_mode mode);
 
 	/*
 	 * Control in flightPathAngle setpoint (flollow a slope etc.) and acceleration mode (base case)
 	 */
-	void updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeed, float accelerationLongitudinalSp, tecs_mode mode);
+	int updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeed, float accelerationLongitudinalSp, tecs_mode mode);
 
 	/*
 	 * Reset all integrators
