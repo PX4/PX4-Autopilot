@@ -47,3 +47,7 @@ SRCS		 	= commander.cpp \
 			baro_calibration.cpp \
 			rc_calibration.cpp \
 			airspeed_calibration.cpp
+
+MODULE_STACKSIZE = 1200
+
+MAXOPTIMIZATION	 = -Os
