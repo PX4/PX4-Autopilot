@@ -666,7 +666,9 @@ MPU6000::_set_dlpf_filter(uint16_t frequency_hz)
 	/* 
 	   choose next highest filter frequency available
 	 */
-	if (frequency_hz <= 5) {
+        if (frequency_hz == 0) {
+		filter = BITS_DLPF_CFG_2100HZ_NOLPF;
+        } else if (frequency_hz <= 5) {
 		filter = BITS_DLPF_CFG_5HZ;
 	} else if (frequency_hz <= 10) {
 		filter = BITS_DLPF_CFG_10HZ;
@@ -922,10 +924,11 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return _accel_filter_x.get_cutoff_freq();
 
 	case ACCELIOCSLOWPASS:
-		
-		// XXX decide on relationship of both filters
-		// i.e. disable the on-chip filter
-		//_set_dlpf_filter((uint16_t)arg);
+		if (arg == 0) {
+			// allow disabling of on-chip filter using
+			// zero as desired filter frequency
+			_set_dlpf_filter(0);
+		}
 		_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_accel_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
@@ -1009,8 +1012,11 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		_gyro_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_gyro_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		_gyro_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		// XXX check relation to the internal lowpass
-		//_set_dlpf_filter((uint16_t)arg);
+		if (arg == 0) {
+			// allow disabling of on-chip filter using 0
+			// as desired frequency
+			_set_dlpf_filter(0);
+		}
 		return OK;
 
 	case GYROIOCSSCALE:
