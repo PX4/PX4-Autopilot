@@ -1,9 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
- *   Author: @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,8 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file mc_att_control_main.c
+ * @file mc_att_control_main.cpp
  * Multicopter attitude controller.
+ *
+ * @author Tobias Naegeli <naegelit@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  *
  * The controller has two loops: P loop for angular error and PD loop for angular rate error.
  * Desired rotation calculated keeping in mind that yaw response is normally slower than roll/pitch.
@@ -825,7 +826,7 @@ MulticopterAttitudeControl::start()
 	_control_task = task_spawn_cmd("mc_att_control",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       2048,
+				       2000,
 				       (main_t)&MulticopterAttitudeControl::task_main_trampoline,
 				       nullptr);
 

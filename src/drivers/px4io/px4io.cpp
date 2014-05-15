@@ -529,6 +529,11 @@ PX4IO::~PX4IO()
 	if (_interface != nullptr)
 		delete _interface;
 
+	/* deallocate perfs */
+	perf_free(_perf_update);
+	perf_free(_perf_write);
+	perf_free(_perf_chan_count);
+
 	g_dev = nullptr;
 }
 
