@@ -1,8 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Thomas Gubler <thomasgubler@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +33,9 @@
 /**
  * @file mission_feasibility_checker.cpp
  * Provides checks if mission is feasible given the navigation capabilities
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
  */
 
 #include "mission_feasibility_checker.h"

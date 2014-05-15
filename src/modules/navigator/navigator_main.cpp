@@ -1,10 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Jean Cyr <jean.m.cyr@gmail.com>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +31,7 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_main.c
+ * @file navigator_main.cpp
  * Implementation of the main navigation state machine.
  *
  * Handles missions, geo fencing and failsafe navigation behavior.
