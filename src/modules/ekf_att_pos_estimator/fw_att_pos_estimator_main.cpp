@@ -1041,9 +1041,9 @@ FixedwingEstimator::task_main()
 
 					// Set up height correctly
 					orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
-					_baro_gps_offset = gps_alt - _baro.altitude;
+					_baro_gps_offset = _baro_ref - _baro.altitude;
 					_ekf->baroHgt = _baro.altitude;
-					_ekf->hgtMea = 1.0f * (_ekf->baroHgt - _baro_ref);
+					_ekf->hgtMea = 1.0f * (_ekf->baroHgt - (_baro_ref));
 
 					// Set up position variables correctly
 					_ekf->GPSstatus = _gps.fix_type;
@@ -1060,14 +1060,14 @@ FixedwingEstimator::task_main()
 					// Initialize projection
 					_local_pos.ref_lat = lat;
 					_local_pos.ref_lon = lon;
-					_local_pos.ref_alt = _baro_ref + _baro_gps_offset;
+					_local_pos.ref_alt = gps_alt;
 					_local_pos.ref_timestamp = _gps.timestamp_position;
 
 					map_projection_init(&_pos_ref, lat, lon);
 					mavlink_log_info(_mavlink_fd, "[ekf] ref: LA %.4f,LO %.4f,ALT %.2f", lat, lon, (double)gps_alt);
 					warnx("HOME/REF: LA %8.4f,LO %8.4f,ALT %8.2f V: %8.4f %8.4f %8.4f", lat, lon, (double)gps_alt,
 						(double)_ekf->velNED[0], (double)_ekf->velNED[1], (double)_ekf->velNED[2]);
-					warnx("BARO: %8.4f m / ref: %8.4f m", _ekf->baroHgt, _ekf->hgtMea);
+					warnx("BARO: %8.4f m / ref: %8.4f m / gps offs: %8.4f m", _ekf->baroHgt, _baro_ref, _baro_gps_offset);
 					warnx("GPS: eph: %8.4f, epv: %8.4f, declination: %8.4f", (double)_gps.eph_m, (double)_gps.epv_m, (double)math::degrees(declination));
 
 					_gps_initialized = true;
@@ -1083,6 +1083,10 @@ FixedwingEstimator::task_main()
 
 					_ekf->posNE[0] = _ekf->posNED[0];
 					_ekf->posNE[1] = _ekf->posNED[1];
+
+					_local_pos.ref_alt = _baro_ref;
+					_baro_gps_offset = 0.0f;
+
 					_ekf->InitialiseFilter(initVelNED, 0.0, 0.0, 0.0f, 0.0f);
 				}
 			}
@@ -1262,7 +1266,8 @@ FixedwingEstimator::task_main()
 				_local_pos.timestamp = last_sensor_timestamp;
 				_local_pos.x = _ekf->states[7];
 				_local_pos.y = _ekf->states[8];
-				_local_pos.z = _ekf->states[9] + _baro_gps_offset;
+				// XXX need to announce change of Z reference somehow elegantly
+				_local_pos.z = _ekf->states[9] - _baro_gps_offset;
 
 				_local_pos.vx = _ekf->states[4];
 				_local_pos.vy = _ekf->states[5];
@@ -1307,8 +1312,8 @@ FixedwingEstimator::task_main()
 					_global_pos.vel_e = 0.0f;
 				}
 
-				/* local pos alt is negative, change sign and add alt offset */
-				_global_pos.alt = _local_pos.ref_alt + (-_local_pos.z);
+				/* local pos alt is negative, change sign and add alt offsets */
+				_global_pos.alt = _local_pos.ref_alt + _baro_gps_offset + (-_local_pos.z);
 
 				if (_local_pos.v_z_valid) {
 					_global_pos.vel_d = _local_pos.vz;
@@ -1384,6 +1389,7 @@ FixedwingEstimator::print_status()
 	// 18-20: Body Magnetic Field Vector - gauss (X,Y,Z)
 
 	printf("dtIMU: %8.6f IMUmsec: %d\n", (double)_ekf->dtIMU, (int)IMUmsec);
+	printf("ref alt: %8.6f\n", (double)_local_pos.ref_alt);
 	printf("dvel: %8.6f %8.6f %8.6f accel: %8.6f %8.6f %8.6f\n", (double)_ekf->dVelIMU.x, (double)_ekf->dVelIMU.y, (double)_ekf->dVelIMU.z, (double)_ekf->accel.x, (double)_ekf->accel.y, (double)_ekf->accel.z);
 	printf("dang: %8.4f %8.4f %8.4f dang corr: %8.4f %8.4f %8.4f\n" , (double)_ekf->dAngIMU.x, (double)_ekf->dAngIMU.y, (double)_ekf->dAngIMU.z, (double)_ekf->correctedDelAng.x, (double)_ekf->correctedDelAng.y, (double)_ekf->correctedDelAng.z);
 	printf("states (quat)        [1-4]: %8.4f, %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[0], (double)_ekf->states[1], (double)_ekf->states[2], (double)_ekf->states[3]);
