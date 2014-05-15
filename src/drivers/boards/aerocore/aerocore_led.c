@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,34 +32,90 @@
  ****************************************************************************/
 
 /**
- * @file version.h
+ * @file aerocore_led.c
  *
- * Tools for system version detection.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * AeroCore LED backend.
  */
 
-#ifndef VERSION_H_
-#define VERSION_H_
+#include <nuttx/config.h>
+
+#include <stdbool.h>
+
+#include "stm32.h"
+#include "board_config.h"
+
+#include <arch/board/board.h>
 
 /*
- GIT_VERSION is defined at build time via a Makefile call to the
- git command line.
+ * Ideally we'd be able to get these from up_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
  */
-#define FREEZE_STR(s) #s
-#define STRINGIFY(s) FREEZE_STR(s)
-#define FW_GIT STRINGIFY(GIT_VERSION)
+__BEGIN_DECLS
+extern void led_init();
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
+__END_DECLS
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#define	HW_ARCH "PX4FMU_V1"
-#endif
+__EXPORT void led_init()
+{
+	stm32_configgpio(GPIO_LED0);
+	stm32_configgpio(GPIO_LED1);
+}
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#define	HW_ARCH "PX4FMU_V2"
-#endif
+__EXPORT void led_on(int led)
+{
+	switch (led) {
+	case 0:
+		stm32_gpiowrite(GPIO_LED0, true);
+		break;
 
-#ifdef CONFIG_ARCH_BOARD_AEROCORE
-#define	HW_ARCH "AEROCORE"
-#endif
+	case 1:
+		stm32_gpiowrite(GPIO_LED1, true);
+		break;
 
-#endif /* VERSION_H_ */
+	default:
+		warnx("LED ID not recognized\n");
+	}
+}
+
+__EXPORT void led_off(int led)
+{
+	switch (led) {
+	case 0:
+		stm32_gpiowrite(GPIO_LED0, false);
+		break;
+
+	case 1:
+		stm32_gpiowrite(GPIO_LED1, false);
+		break;
+
+	default:
+		warnx("LED ID not recognized\n");
+	}
+}
+
+__EXPORT void led_toggle(int led)
+{
+	switch (led) {
+	case 0:
+		if (stm32_gpioread(GPIO_LED0))
+			stm32_gpiowrite(GPIO_LED0, false);
+		else
+			stm32_gpiowrite(GPIO_LED0, true);
+		break;
+
+	case 1:
+		if (stm32_gpioread(GPIO_LED1))
+			stm32_gpiowrite(GPIO_LED1, false);
+		else
+			stm32_gpiowrite(GPIO_LED1, true);
+		break;
+
+	default:
+		warnx("LED ID not recognized\n");
+	}
+}

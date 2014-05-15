@@ -92,6 +92,7 @@ public:
 		MODE_2PWM,
 		MODE_4PWM,
 		MODE_6PWM,
+		MODE_8PWM,
 	};
 	PX4FMU();
 	virtual ~PX4FMU();
@@ -112,6 +113,9 @@ private:
 #endif
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 	static const unsigned _max_actuators = 6;
+#endif
+#if defined(CONFIG_ARCH_BOARD_AEROCORE)
+	static const unsigned _max_actuators = 8;
 #endif
 
 	Mode		_mode;
@@ -202,6 +206,20 @@ const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
 	{GPIO_VDD_SERVO_VALID,   0,                       0},
 	{GPIO_VDD_5V_HIPOWER_OC, 0,                       0},
 	{GPIO_VDD_5V_PERIPH_OC,  0,                       0},
+#endif
+#if defined(CONFIG_ARCH_BOARD_AEROCORE)
+	/* AeroCore breaks out User GPIOs on J11 */
+	{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0},
+	{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0},
+	{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,       0},
+	{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0},
+	{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0},
+	{GPIO_GPIO6_INPUT,       GPIO_GPIO6_OUTPUT,       0},
+	{GPIO_GPIO7_INPUT,       GPIO_GPIO7_OUTPUT,       0},
+	{GPIO_GPIO8_INPUT,       GPIO_GPIO8_OUTPUT,       0},
+	{GPIO_GPIO9_INPUT,       GPIO_GPIO9_OUTPUT,       0},
+	{GPIO_GPIO10_INPUT,      GPIO_GPIO10_OUTPUT,      0},
+	{GPIO_GPIO11_INPUT,      GPIO_GPIO11_OUTPUT,      0},
 #endif
 };
 
@@ -381,6 +399,20 @@ PX4FMU::set_mode(Mode mode)
 		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
 
 		break;
+
+#ifdef CONFIG_ARCH_BOARD_AEROCORE
+	case MODE_8PWM: // AeroCore PWMs as 8 PWM outs
+		debug("MODE_8PWM");
+		/* default output rates */
+		_pwm_default_rate = 50;
+		_pwm_alt_rate = 50;
+		_pwm_alt_rate_channels = 0;
+
+		/* XXX magic numbers */
+		up_pwm_servo_init(0xff);
+		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
+		break;
+#endif
 
 	case MODE_NONE:
 		debug("MODE_NONE");
@@ -602,6 +634,9 @@ PX4FMU::task_main()
 					num_outputs = 6;
 					break;
 
+				case MODE_8PWM:
+					num_outputs = 8;
+					break;
 				default:
 					num_outputs = 0;
 					break;
@@ -757,6 +792,9 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 	case MODE_2PWM:
 	case MODE_4PWM:
 	case MODE_6PWM:
+#ifdef CONFIG_ARCH_BOARD_AEROCORE
+	case MODE_8PWM:
+#endif
 		ret = pwm_ioctl(filp, cmd, arg);
 		break;
 
@@ -986,6 +1024,15 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+#ifdef CONFIG_ARCH_BOARD_AEROCORE
+	case PWM_SERVO_SET(7):
+	case PWM_SERVO_SET(6):
+		if (_mode < MODE_8PWM) {
+			ret = -EINVAL;
+			break;
+		}
+#endif
+
 	case PWM_SERVO_SET(5):
 	case PWM_SERVO_SET(4):
 		if (_mode < MODE_6PWM) {
@@ -1012,6 +1059,15 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		}
 
 		break;
+
+#ifdef CONFIG_ARCH_BOARD_AEROCORE
+	case PWM_SERVO_GET(7):
+	case PWM_SERVO_GET(6):
+		if (_mode < MODE_8PWM) {
+			ret = -EINVAL;
+			break;
+		}
+#endif
 
 	case PWM_SERVO_GET(5):
 	case PWM_SERVO_GET(4):
@@ -1040,12 +1096,22 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_RATEGROUP(3):
 	case PWM_SERVO_GET_RATEGROUP(4):
 	case PWM_SERVO_GET_RATEGROUP(5):
+#ifdef CONFIG_ARCH_BOARD_AEROCORE
+	case PWM_SERVO_GET_RATEGROUP(6):
+	case PWM_SERVO_GET_RATEGROUP(7):
+#endif
 		*(uint32_t *)arg = up_pwm_servo_get_rate_group(cmd - PWM_SERVO_GET_RATEGROUP(0));
 		break;
 
 	case PWM_SERVO_GET_COUNT:
 	case MIXERIOCGETOUTPUTCOUNT:
 		switch (_mode) {
+#ifdef CONFIG_ARCH_BOARD_AEROCORE
+		case MODE_8PWM:
+			*(unsigned *)arg = 8;
+			break;
+#endif
+
 		case MODE_6PWM:
 			*(unsigned *)arg = 6;
 			break;
@@ -1089,6 +1155,11 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 		case 6:
 			set_mode(MODE_6PWM);
+			break;
+#endif
+#if defined(CONFIG_ARCH_BOARD_AEROCORE)
+		case 8:
+			set_mode(MODE_8PWM);
 			break;
 #endif
 
@@ -1181,10 +1252,17 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 	unsigned count = len / 2;
 	uint16_t values[6];
 
+#ifdef CONFIG_ARCH_BOARD_AEROCORE
+	if (count > 8) {
+		// we have at most 8 outputs
+		count = 8;
+	}
+#else
 	if (count > 6) {
 		// we have at most 6 outputs
 		count = 6;
 	}
+#endif
 
 	// allow for misaligned values
 	memcpy(values, buffer, count * 2);
@@ -1458,6 +1536,9 @@ fmu_new_mode(PortMode new_mode)
 #endif
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 		servo_mode = PX4FMU::MODE_6PWM;
+#endif
+#if defined(CONFIG_ARCH_BOARD_AEROCORE)
+		servo_mode = PX4FMU::MODE_8PWM;
 #endif
 		break;
 
@@ -1776,7 +1857,7 @@ fmu_main(int argc, char *argv[])
 	fprintf(stderr, "FMU: unrecognised command %s, try:\n", verb);
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, test\n");
-#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_AEROCORE)
 	fprintf(stderr, "  mode_gpio, mode_pwm, test, sensor_reset [milliseconds]\n");
 #endif
 	exit(1);
