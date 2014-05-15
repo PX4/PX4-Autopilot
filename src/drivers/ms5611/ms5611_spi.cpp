@@ -117,7 +117,7 @@ private:
 device::Device *
 MS5611_spi_interface(ms5611::prom_u &prom_buf)
 {
-	return new MS5611_SPI(1 /* XXX MAGIC NUMBER */, (spi_dev_e)PX4_SPIDEV_BARO, prom_buf);
+	return new MS5611_SPI(PX4_SPI_BUS_SENSORS, (spi_dev_e)PX4_SPIDEV_BARO, prom_buf);
 }
 
 MS5611_SPI::MS5611_SPI(int bus, spi_dev_e device, ms5611::prom_u &prom_buf) :
