@@ -63,8 +63,8 @@
 /* main state machine */
 typedef enum {
 	MAIN_STATE_MANUAL = 0,
-	MAIN_STATE_SEATBELT,
-	MAIN_STATE_EASY,
+	MAIN_STATE_ALTCTL,
+	MAIN_STATE_POSCTL,
 	MAIN_STATE_AUTO,
 	MAIN_STATE_MAX
 } main_state_t;

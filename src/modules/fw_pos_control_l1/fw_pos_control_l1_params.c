@@ -375,3 +375,14 @@ PARAM_DEFINE_FLOAT(FW_LND_TLALT, 5.0f);
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
+
+/**
+ * Relative altitude threshold for range finder measurements for use during landing
+ *
+ * range finder measurements will only be used if the estimated relative altitude (gobal_pos.alt - landing_waypoint.alt) is < FW_LND_RFRALT
+ * set to < 0 to disable
+ * the correct value of this parameter depends on your range measuring device as well as on the terrain at the landing location
+ *
+ * @group L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_RFRALT, -1.0f);

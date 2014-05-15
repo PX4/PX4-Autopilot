@@ -64,22 +64,39 @@ struct manual_control_setpoint_s {
 	/**
 	 * Any of the channels may not be available and be set to NaN
 	 * to indicate that it does not contain valid data.
+	 * The variable names follow the definition of the
+	 * MANUAL_CONTROL mavlink message.
+	 * The default range is from -1 to 1 (mavlink message -1000 to 1000)
+	 * The range for the z variable is defined from 0 to 1. (The z field of
+	 * the MANUAL_CONTROL mavlink message is defined from -1000 to 1000)
 	 */
-	float roll;			 	/**< ailerons roll / roll rate input, -1..1 */
-	float pitch;			/**< elevator / pitch / pitch rate, -1..1 */
-	float yaw;				/**< rudder / yaw rate / yaw, -1..1 */
-	float throttle;			/**< throttle / collective thrust / altitude, 0..1 */
+	float x;			/**< stick position in x direction -1..1
+					  in general corresponds to forward/back motion or pitch of vehicle,
+					  in general a positive value means forward or negative pitch and
+					  a negative value means backward or positive pitch */
+	float y;			/**< stick position in y direction -1..1
+					  in general corresponds to right/left motion or roll of vehicle,
+					  in general a positive value means right or positive roll and
+					  a negative value means left or negative roll */
+	float z;			/**< throttle stick position 0..1
+					  in general corresponds to up/down motion or thrust of vehicle,
+					  in general the value corresponds to the demanded throttle by the user,
+					  if the input is used for setting the setpoint of a vertical position
+					  controller any value > 0.5 means up and any value < 0.5 means down */
+	float r;			/**< yaw stick/twist positon, -1..1
+					  in general corresponds to the righthand rotation around the vertical
+					  (downwards) axis of the vehicle */
 	float flaps;			/**< flap position */
-	float aux1;				/**< default function: camera yaw / azimuth */
-	float aux2;				/**< default function: camera pitch / tilt */
-	float aux3;				/**< default function: camera trigger */
-	float aux4;				/**< default function: camera roll */
-	float aux5;				/**< default function: payload drop */
+	float aux1;			/**< default function: camera yaw / azimuth */
+	float aux2;			/**< default function: camera pitch / tilt */
+	float aux3;			/**< default function: camera trigger */
+	float aux4;			/**< default function: camera roll */
+	float aux5;			/**< default function: payload drop */
 
-	switch_pos_t mode_switch;			/**< mode 3 position switch (mandatory): manual, assisted, auto */
-	switch_pos_t return_switch;			/**< land 2 position switch (mandatory): land, no effect */
-	switch_pos_t assisted_switch;			/**< assisted 2 position switch (optional): seatbelt, simple */
-	switch_pos_t loiter_switch;		/**< mission 2 position switch (optional): mission, loiter */
+	switch_pos_t mode_switch;			/**< main mode 3 position switch (mandatory): _MANUAL_, ASSIST, AUTO */
+	switch_pos_t return_switch;			/**< return to launch 2 position switch (mandatory): _NORMAL_, RTL */
+	switch_pos_t posctl_switch;			/**< position control 2 position switch (optional): _ALTCTL_, POSCTL */
+	switch_pos_t loiter_switch;			/**< loiter 2 position switch (optional): _MISSION_, LOITER */
 }; /**< manual control inputs */
 
 /**

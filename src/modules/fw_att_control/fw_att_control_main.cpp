@@ -273,7 +273,7 @@ private:
 	/**
 	 * Main sensor collection task.
 	 */
-	void		task_main() __attribute__((noreturn));
+	void		task_main();
 };
 
 namespace att_control
@@ -706,20 +706,21 @@ FixedwingAttitudeControl::task_main()
 				} else {
 					/*
 					 * Scale down roll and pitch as the setpoints are radians
-					 * and a typical remote can only do 45 degrees, the mapping is
-					 * -1..+1 to -45..+45 degrees or -0.75..+0.75 radians.
+					 * and a typical remote can only do around 45 degrees, the mapping is
+					 * -1..+1 to -man_roll_max rad..+man_roll_max rad (equivalent for pitch)
 					 *
 					 * With this mapping the stick angle is a 1:1 representation of
-					 * the commanded attitude. If more than 45 degrees are desired,
-					 * a scaling parameter can be applied to the remote.
+					 * the commanded attitude.
 					 *
 					 * The trim gets subtracted here from the manual setpoint to get
 					 * the intended attitude setpoint. Later, after the rate control step the
 					 * trim is added again to the control signal.
 					 */
-					roll_sp = (_manual.roll * _parameters.man_roll_max - _parameters.trim_roll) + _parameters.rollsp_offset_rad;
-					pitch_sp = (-_manual.pitch * _parameters.man_pitch_max - _parameters.trim_pitch) + _parameters.pitchsp_offset_rad;
-					throttle_sp = _manual.throttle;
+					roll_sp = (_manual.y * _parameters.man_roll_max - _parameters.trim_roll)
+						+ _parameters.rollsp_offset_rad;
+					pitch_sp = -(_manual.x * _parameters.man_pitch_max - _parameters.trim_pitch)
+						+ _parameters.pitchsp_offset_rad;
+					throttle_sp = _manual.z;
 					_actuators.control[4] = _manual.flaps;
 
 					/*
@@ -825,10 +826,10 @@ FixedwingAttitudeControl::task_main()
 
 			} else {
 				/* manual/direct control */
-				_actuators.control[0] = _manual.roll;
-				_actuators.control[1] = -_manual.pitch;
-				_actuators.control[2] = _manual.yaw;
-				_actuators.control[3] = _manual.throttle;
+				_actuators.control[0] = _manual.y;
+				_actuators.control[1] = -_manual.x;
+				_actuators.control[2] = _manual.r;
+				_actuators.control[3] = _manual.z;
 				_actuators.control[4] = _manual.flaps;
 			}
 
