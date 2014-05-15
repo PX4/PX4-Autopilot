@@ -289,15 +289,20 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	//lowsyslog("thrust: %d, get_control3: %d\n", (int)(thrust), (int)(get_control(0, 3)));
 	float		min_out = 0.0f;
 	float		max_out = 0.0f;
-	float		fixup_scale;
+	float		scale_yaw = 1.0f;
 
-	/* perform initial mix pass yielding unbounded outputs */
+	/* perform initial mix pass yielding unbounded outputs, ignore yaw */
 	for (unsigned i = 0; i < _rotor_count; i++) {
 		float out = roll * _rotors[i].roll_scale +
 			    pitch * _rotors[i].pitch_scale +
-			    yaw * _rotors[i].yaw_scale +
 			    thrust;
 
+		/* limit yaw if it causes outputs clipping */
+		if (out >= 0.0f && out < -yaw * _rotors[i].yaw_scale) {
+			yaw = out / _rotors[i].yaw_scale;
+		}
+
+		/* calculate min and max output values */
 		if (out < min_out) {
 			min_out = out;
 		}
@@ -308,16 +313,19 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		outputs[i] = out;
 	}
 
-	/* scale down controls if some outputs are negative, keep total thrust */
+	/* scale down roll/pitch controls if some outputs are negative, don't add yaw, keep total thrust */
 	if (min_out < 0.0) {
 		float scale_in = thrust / (thrust - min_out);
 
 		/* mix again with adjusted controls */
 		for (unsigned i = 0; i < _rotor_count; i++) {
-			outputs[i] = scale_in * (roll * _rotors[i].roll_scale +
-				    pitch * _rotors[i].pitch_scale +
-				    yaw * _rotors[i].yaw_scale) +
-				    thrust;
+			outputs[i] = scale_in * (roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale) + thrust;
+		}
+
+	} else {
+		/* roll/pitch mixed without limiting, add yaw control */
+		for (unsigned i = 0; i < _rotor_count; i++) {
+			outputs[i] += yaw * _rotors[i].yaw_scale;
 		}
 	}
 
