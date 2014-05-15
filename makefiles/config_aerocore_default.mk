@@ -53,7 +53,7 @@ MODULES		+= modules/mavlink
 #
 MODULES		+= modules/attitude_estimator_ekf
 MODULES		+= modules/attitude_estimator_so3
-MODULES		+= modules/fw_att_pos_estimator
+MODULES		+= modules/ekf_att_pos_estimator
 MODULES		+= modules/position_estimator_inav
 
 #
