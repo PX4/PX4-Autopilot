@@ -38,6 +38,7 @@
  */
 
 #include <stdint.h>
+#include <crc32.h>
 
 #include <nuttx/arch.h>
 #include <arch/board/board.h>
@@ -74,14 +75,12 @@ static void		i2c_dump(void);
 static DMA_HANDLE	rx_dma;
 static DMA_HANDLE	tx_dma;
 
-static uint8_t		rx_buf[68];
+static uint8_t		xfer_buf[72];
 static unsigned		rx_len;
 
-static const uint8_t	junk_buf[] = { 0xff, 0xff, 0xff, 0xff };
-
-static const uint8_t	*tx_buf = junk_buf;
-static unsigned		tx_len = sizeof(junk_buf);
+static unsigned		tx_len;
 unsigned		tx_count;
+volatile unsigned	i2c_crc_errors;
 
 static uint8_t		selected_page;
 static uint8_t		selected_offset;
@@ -244,7 +243,7 @@ i2c_rx_setup(void)
 	 * bailing out of a transaction while the master is still babbling at us.
 	 */
 	rx_len = 0;
-	stm32_dmasetup(rx_dma, (uintptr_t)&rDR, (uintptr_t)&rx_buf[0], sizeof(rx_buf),
+	stm32_dmasetup(rx_dma, (uintptr_t)&rDR, (uintptr_t)&xfer_buf[0], sizeof(xfer_buf),
 		DMA_CCR_CIRC |
 		DMA_CCR_MINC |
 		DMA_CCR_PSIZE_32BITS |
@@ -257,39 +256,55 @@ i2c_rx_setup(void)
 static void
 i2c_rx_complete(void)
 {
-	rx_len = sizeof(rx_buf) - stm32_dmaresidual(rx_dma);
+	rx_len = sizeof(xfer_buf) - stm32_dmaresidual(rx_dma);
 	stm32_dmastop(rx_dma);
 
-	if (rx_len >= 2) {
-		selected_page = rx_buf[0];
-		selected_offset = rx_buf[1];
+	// 2 bytes = address, count
+	if (rx_len == 2) {
+		uint16_t *regs;
+		unsigned reg_count;
 
-		/* work out how many registers are being written */
-		unsigned count = (rx_len - 2) / 2;
-		if (count > 0) {
-			registers_set(selected_page, selected_offset, (const uint16_t *)&rx_buf[2], count);
+		/* initial CRC over the address/count */
+		uint32_t crc = crc32(xfer_buf, rx_len, 0);
+
+		/* work out which registers are being addressed */
+		int ret = registers_get(selected_page, selected_offset, &regs, &reg_count);
+		if (ret == 0) {
+			tx_len = reg_count * 2;
+			memcpy(xfer_buf, regs, tx_len);
 		} else {
-			/* no registers written, must be an address cycle */
-			uint16_t *regs;
-			unsigned reg_count;
+			tx_len = 4;
+			memset(xfer_buf, 0xff, tx_len);
+		}
 
-			/* work out which registers are being addressed */
-			int ret = registers_get(selected_page, selected_offset, &regs, &reg_count);
-			if (ret == 0) {
-				tx_buf = (uint8_t *)regs;
-				tx_len = reg_count * 2;
-			} else {
-				tx_buf = junk_buf;
-				tx_len = sizeof(junk_buf);
+		/* incremental CRC update with the data */
+		*(uint32_t *)&xfer_buf[tx_len] = crc32(xfer_buf, tx_len, crc);
+		tx_len += 4;
+
+		/* disable interrupts while reconfiguring DMA for the selected registers */
+		irqstate_t flags = irqsave();
+
+		stm32_dmastop(tx_dma);
+		i2c_tx_setup();
+
+		irqrestore(flags);
+	}
+
+	// > 6 bytes = address, count, registers, crc32
+	if (rx_len > 6) {
+
+		// check CRC
+		if (crc32(xfer_buf, rx_len - 4, 0) != *(uint32_t *)&xfer_buf[rx_len - 4]) {
+			i2c_crc_errors++;
+		} else {
+			selected_page = xfer_buf[0];
+			selected_offset = xfer_buf[1];
+
+			/* work out how many registers are being written */
+			unsigned count = (rx_len - 2) / 2;
+			if (count > 0) {
+				registers_set(selected_page, selected_offset, (const uint16_t *)&xfer_buf[2], count);
 			}
-
-			/* disable interrupts while reconfiguring DMA for the selected registers */
-			irqstate_t flags = irqsave();
-
-			stm32_dmastop(tx_dma);
-			i2c_tx_setup();
-
-			irqrestore(flags);
 		}
 	}
 
@@ -306,7 +321,7 @@ i2c_tx_setup(void)
 	 * to deal with bailing out of a transaction while the master is still 
 	 * babbling at us.
 	 */
-	stm32_dmasetup(tx_dma, (uintptr_t)&rDR, (uintptr_t)&tx_buf[0], tx_len,
+	stm32_dmasetup(tx_dma, (uintptr_t)&rDR, (uintptr_t)&xfer_buf[0], tx_len,
 		DMA_CCR_DIR |
 		DMA_CCR_CIRC |
 		DMA_CCR_MINC |
@@ -324,8 +339,6 @@ i2c_tx_complete(void)
 	stm32_dmastop(tx_dma);
 
 	/* for debug purposes, save the length of the last transmit as seen by the DMA */
-
-	/* leave tx_buf/tx_len alone, so that a retry will see the same data */
 
 	/* prepare for the next transaction */
 	i2c_tx_setup();
