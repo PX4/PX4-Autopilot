@@ -121,6 +121,20 @@ int do_mag_calibration(int mavlink_fd)
 
 		if (x == NULL || y == NULL || z == NULL) {
 			mavlink_log_critical(mavlink_fd, "ERROR: out of memory");
+
+			/* clean up */
+			if (x != NULL) {
+				free(x);
+			}
+
+			if (y != NULL) {
+				free(y);
+			}
+
+			if (z != NULL) {
+				free(z);
+			}
+
 			res = ERROR;
 			return res;
 		}
