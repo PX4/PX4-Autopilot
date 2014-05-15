@@ -1669,7 +1669,7 @@ Sensors::start()
 	_sensors_task = task_spawn_cmd("sensors_task",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       2048,
+				       2000,
 				       (main_t)&Sensors::task_main_trampoline,
 				       nullptr);
 
