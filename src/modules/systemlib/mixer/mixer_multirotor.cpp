@@ -299,7 +299,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 
 		/* limit yaw if it causes outputs clipping */
 		if (out >= 0.0f && out < -yaw * _rotors[i].yaw_scale) {
-			yaw = out / _rotors[i].yaw_scale;
+			yaw = -out / _rotors[i].yaw_scale;
 		}
 
 		/* calculate min and max output values */
