@@ -507,6 +507,14 @@ MulticopterAttitudeControl::control_attitude(float dt)
 			/* move yaw setpoint */
 			yaw_sp_move_rate = _manual_control_sp.r * _params.man_yaw_max;
 			_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + yaw_sp_move_rate * dt);
+			float yaw_offs_max = _params.man_yaw_max / _params.att_p(2);
+			float yaw_offs = _wrap_pi(_v_att_sp.yaw_body - _v_att.yaw);
+			if (yaw_offs < - yaw_offs_max) {
+				_v_att_sp.yaw_body = _wrap_pi(_v_att.yaw - yaw_offs_max);
+
+			} else if (yaw_offs > yaw_offs_max) {
+				_v_att_sp.yaw_body = _wrap_pi(_v_att.yaw + yaw_offs_max);
+			}
 			_v_att_sp.R_valid = false;
 			publish_att_sp = true;
 		}
