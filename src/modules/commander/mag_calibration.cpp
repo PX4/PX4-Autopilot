@@ -72,7 +72,7 @@ int do_mag_calibration(int mavlink_fd)
 	uint64_t calibration_interval = 45 * 1000 * 1000;
 
 	/* maximum 500 values */
-	const unsigned int calibration_maxcount = 500;
+	const unsigned int calibration_maxcount = 240;
 	unsigned int calibration_counter;
 
 	struct mag_scale mscale_null = {
