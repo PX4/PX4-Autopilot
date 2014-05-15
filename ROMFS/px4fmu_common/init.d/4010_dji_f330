@@ -21,6 +21,10 @@ then
 	param set MC_YAWRATE_P 0.2
 	param set MC_YAWRATE_I 0.0
 	param set MC_YAWRATE_D 0.0
+
+	param set BAT_CAPACITY 2600.0
+	param set BAT_V_EMPTY 3.4
+	param set BAT_V_FULL 3.8
 fi
 
 set PWM_MIN 1175
