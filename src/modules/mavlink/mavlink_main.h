@@ -237,7 +237,6 @@ private:
 
 	orb_advert_t	_mission_pub;
 	struct mission_s mission;
-	uint8_t missionlib_msg_buf[MAVLINK_MAX_PACKET_LEN];
 	MAVLINK_MODE _mode;
 
 	uint8_t _mavlink_wpm_comp_id;
