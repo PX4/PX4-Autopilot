@@ -1523,6 +1523,8 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 void
 Mavlink::mavlink_missionlib_send_message(mavlink_message_t *msg)
 {
+	uint8_t missionlib_msg_buf[MAVLINK_MAX_PACKET_LEN];
+
 	uint16_t len = mavlink_msg_to_send_buffer(missionlib_msg_buf, msg);
 
 	mavlink_send_uart_bytes(_channel, missionlib_msg_buf, len);
