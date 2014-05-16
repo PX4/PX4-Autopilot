@@ -81,6 +81,7 @@
 #include "mavlink_messages.h"
 #include "mavlink_receiver.h"
 #include "mavlink_rate_limiter.h"
+#include "mavlink_commands.h"
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -166,12 +167,12 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 	int buf_free = 0;
 
 	if (instance->get_flow_control_enabled()
-	    && ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
+		&& ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
 
 		if (buf_free == 0) {
 
 			if (last_write_times[(unsigned)channel] != 0 &&
-			    hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500 * 1000UL) {
+				hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500 * 1000UL) {
 
 				warnx("DISABLING HARDWARE FLOW CONTROL");
 				instance->enable_flow_control(false);
@@ -185,11 +186,25 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 		}
 	}
 
-	ssize_t ret = write(uart, ch, desired);
+	/* If the wait until transmit flag is on, only transmit after we've received messages.
+	   Otherwise, transmit all the time. */
+	if (instance->should_transmit()) {
 
-	if (ret != desired) {
-		// XXX do something here, but change to using FIONWRITE and OS buf size for detection
+		/* check if there is space in the buffer, let it overflow else */
+		if (!ioctl(uart, FIONWRITE, (unsigned long)&buf_free)) {
+
+			if (desired > buf_free) {
+				desired = buf_free;
+			}
+		}
+
+		ssize_t ret = write(uart, ch, desired);
+		if (ret != desired) {
+			warnx("TX FAIL");
+		}
 	}
+
+
 
 }
 
@@ -202,15 +217,23 @@ Mavlink::Mavlink() :
 	_mavlink_fd(-1),
 	_task_running(false),
 	_hil_enabled(false),
+	_use_hil_gps(false),
 	_is_usb_uart(false),
+	_wait_to_transmit(false),
+	_received_messages(false),
 	_main_loop_delay(1000),
 	_subscriptions(nullptr),
 	_streams(nullptr),
 	_mission_pub(-1),
+	_verbose(false),
+	_forwarding_on(false),
+	_passing_on(false),
+	_uart_fd(-1),
 	_mavlink_param_queue_index(0),
 	_subscribe_to_stream(nullptr),
 	_subscribe_to_stream_rate(0.0f),
 	_flow_control_enabled(true),
+	_message_buffer({}),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink"))
@@ -261,7 +284,6 @@ Mavlink::Mavlink() :
 		errx(1, "instance ID is out of range");
 		break;
 	}
-
 }
 
 Mavlink::~Mavlink()
@@ -394,6 +416,18 @@ Mavlink::instance_exists(const char *device_name, Mavlink *self)
 	return false;
 }
 
+void
+Mavlink::forward_message(mavlink_message_t *msg, Mavlink *self)
+{
+	
+	Mavlink *inst;
+	LL_FOREACH(_mavlink_instances, inst) {
+		if (inst != self) {
+			inst->pass_message(msg);
+		}
+	}
+}
+
 int
 Mavlink::get_uart_fd(unsigned index)
 {
@@ -463,11 +497,13 @@ void Mavlink::mavlink_update_system(void)
 	static param_t param_system_id;
 	static param_t param_component_id;
 	static param_t param_system_type;
+	static param_t param_use_hil_gps;
 
 	if (!initialized) {
 		param_system_id = param_find("MAV_SYS_ID");
 		param_component_id = param_find("MAV_COMP_ID");
 		param_system_type = param_find("MAV_TYPE");
+		param_use_hil_gps = param_find("MAV_USEHILGPS");
 		initialized = true;
 	}
 
@@ -492,6 +528,11 @@ void Mavlink::mavlink_update_system(void)
 	if (system_type >= 0 && system_type < MAV_TYPE_ENUM_END) {
 		mavlink_system.type = system_type;
 	}
+
+	int32_t use_hil_gps;
+	param_get(param_use_hil_gps, &use_hil_gps);
+
+	_use_hil_gps = (bool)use_hil_gps;
 }
 
 int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_config_original, bool *is_usb)
@@ -549,6 +590,11 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 
 	/* open uart */
 	_uart_fd = open(uart_name, O_RDWR | O_NOCTTY);
+
+	if (_uart_fd < 0) {
+		return _uart_fd;
+	}
+
 
 	/* Try to set baud rate */
 	struct termios uart_config;
@@ -690,9 +736,9 @@ int Mavlink::mavlink_pm_send_param(param_t param)
 	if (param == PARAM_INVALID) { return 1; }
 
 	/* buffers for param transmission */
-	static char name_buf[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN];
+	char name_buf[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN];
 	float val_buf;
-	static mavlink_message_t tx_msg;
+	mavlink_message_t tx_msg;
 
 	/* query parameter type */
 	param_type_t type = param_type(param);
@@ -808,10 +854,10 @@ void Mavlink::publish_mission()
 {
 	/* Initialize mission publication if necessary */
 	if (_mission_pub < 0) {
-		_mission_pub = orb_advertise(ORB_ID(mission), &mission);
+		_mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
 
 	} else {
-		orb_publish(ORB_ID(mission), _mission_pub, &mission);
+		orb_publish(ORB_ID(offboard_mission), _mission_pub, &mission);
 	}
 }
 
@@ -1486,6 +1532,8 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 void
 Mavlink::mavlink_missionlib_send_message(mavlink_message_t *msg)
 {
+	uint8_t missionlib_msg_buf[MAVLINK_MAX_PACKET_LEN];
+
 	uint16_t len = mavlink_msg_to_send_buffer(missionlib_msg_buf, msg);
 
 	mavlink_send_uart_bytes(_channel, missionlib_msg_buf, len);
@@ -1498,6 +1546,8 @@ Mavlink::mavlink_missionlib_send_gcs_string(const char *string)
 {
 	const int len = MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN;
 	mavlink_statustext_t statustext;
+	statustext.severity = MAV_SEVERITY_INFO;
+
 	int i = 0;
 
 	while (i < len - 1) {
@@ -1617,6 +1667,125 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 }
 
 int
+Mavlink::message_buffer_init(int size)
+{
+	_message_buffer.size = size;
+	_message_buffer.write_ptr = 0;
+	_message_buffer.read_ptr = 0;
+	_message_buffer.data = (char*)malloc(_message_buffer.size);
+	return (_message_buffer.data == 0) ? ERROR : OK;
+}
+
+void
+Mavlink::message_buffer_destroy()
+{
+	_message_buffer.size = 0;
+	_message_buffer.write_ptr = 0;
+	_message_buffer.read_ptr = 0;
+	free(_message_buffer.data);
+}
+
+int
+Mavlink::message_buffer_count()
+{
+	int n = _message_buffer.write_ptr - _message_buffer.read_ptr;
+
+	if (n < 0) {
+		n += _message_buffer.size;
+	}
+
+	return n;
+}
+
+int
+Mavlink::message_buffer_is_empty()
+{
+	return _message_buffer.read_ptr == _message_buffer.write_ptr;
+}
+
+
+bool
+Mavlink::message_buffer_write(void *ptr, int size)
+{
+	// bytes available to write
+	int available = _message_buffer.read_ptr - _message_buffer.write_ptr - 1;
+
+	if (available < 0) {
+		available += _message_buffer.size;
+	}
+
+	if (size > available) {
+		// buffer overflow
+		return false;
+	}
+
+	char *c = (char *) ptr;
+	int n = _message_buffer.size - _message_buffer.write_ptr;	// bytes to end of the buffer
+
+	if (n < size) {
+		// message goes over end of the buffer
+		memcpy(&(_message_buffer.data[_message_buffer.write_ptr]), c, n);
+		_message_buffer.write_ptr = 0;
+
+	} else {
+		n = 0;
+	}
+
+	// now: n = bytes already written
+	int p = size - n;	// number of bytes to write
+	memcpy(&(_message_buffer.data[_message_buffer.write_ptr]), &(c[n]), p);
+	_message_buffer.write_ptr = (_message_buffer.write_ptr + p) % _message_buffer.size;
+	return true;
+}
+
+int
+Mavlink::message_buffer_get_ptr(void **ptr, bool *is_part)
+{
+	// bytes available to read
+	int available = _message_buffer.write_ptr - _message_buffer.read_ptr;
+
+	if (available == 0) {
+		return 0;	// buffer is empty
+	}
+
+	int n = 0;
+
+	if (available > 0) {
+		// read pointer is before write pointer, all available bytes can be read
+		n = available;
+		*is_part = false;
+
+	} else {
+		// read pointer is after write pointer, read bytes from read_ptr to end of the buffer
+		n = _message_buffer.size - _message_buffer.read_ptr;
+		*is_part = _message_buffer.write_ptr > 0;
+	}
+
+	*ptr = &(_message_buffer.data[_message_buffer.read_ptr]);
+	return n;
+}
+
+void
+Mavlink::message_buffer_mark_read(int n)
+{
+	_message_buffer.read_ptr = (_message_buffer.read_ptr + n) % _message_buffer.size;
+}
+
+void
+Mavlink::pass_message(mavlink_message_t *msg)
+{
+	if (_passing_on) {
+		/* size is 8 bytes plus variable payload */
+		int size = MAVLINK_NUM_NON_PAYLOAD_BYTES + msg->len;
+		pthread_mutex_lock(&_message_buffer_mutex);
+		message_buffer_write(msg, size);
+		pthread_mutex_unlock(&_message_buffer_mutex);
+	}
+}
+
+
+
+int
 Mavlink::task_main(int argc, char *argv[])
 {
 	int ch;
@@ -1632,7 +1801,7 @@ Mavlink::task_main(int argc, char *argv[])
 	 * set error flag instead */
 	bool err_flag = false;
 
-	while ((ch = getopt(argc, argv, "b:r:d:m:v")) != EOF) {
+	while ((ch = getopt(argc, argv, "b:r:d:m:fpvw")) != EOF) {
 		switch (ch) {
 		case 'b':
 			_baudrate = strtoul(optarg, NULL, 10);
@@ -1672,8 +1841,20 @@ Mavlink::task_main(int argc, char *argv[])
 
 			break;
 
+		case 'f':
+			_forwarding_on = true;
+			break;
+
+		case 'p':
+			_passing_on = true;
+			break;
+
 		case 'v':
 			_verbose = true;
+			break;
+
+		case 'w':
+			_wait_to_transmit = true;
 			break;
 
 		default:
@@ -1740,6 +1921,17 @@ Mavlink::task_main(int argc, char *argv[])
 	/* initialize mavlink text message buffering */
 	mavlink_logbuffer_init(&_logbuffer, 5);
 
+	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
+	if (_passing_on) {
+		/* initialize message buffer if multiplexing is on */
+		if (OK != message_buffer_init(500)) {
+			errx(1, "can't allocate message buffer, exiting");
+		}
+
+		/* initialize message buffer mutex */
+		pthread_mutex_init(&_message_buffer_mutex, NULL);
+	}
+
 	/* create the device node that's used for sending text log messages, etc. */
 	register_driver(MAVLINK_LOG_DEVICE, &fops, 0666, NULL);
 
@@ -1766,6 +1958,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 	struct vehicle_status_s *status = (struct vehicle_status_s *) status_sub->get_data();
 
+	MavlinkCommandsStream commands_stream(this, _channel);
+
 	/* add default streams depending on mode and intervals depending on datarate */
 	float rate_mult = _datarate / 1000.0f;
 
@@ -1783,6 +1977,9 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("LOCAL_POSITION_NED", 3.0f * rate_mult);
 		configure_stream("RC_CHANNELS_RAW", 1.0f * rate_mult);
 		configure_stream("NAMED_VALUE_FLOAT", 1.0f * rate_mult);
+		configure_stream("GLOBAL_POSITION_SETPOINT_INT", 3.0f * rate_mult);
+		configure_stream("ROLL_PITCH_YAW_THRUST_SETPOINT", 3.0f * rate_mult);
+		configure_stream("DISTANCE_SENSOR", 0.5f);
 		break;
 
 	case MAVLINK_MODE_CAMERA:
@@ -1825,6 +2022,9 @@ Mavlink::task_main(int argc, char *argv[])
 			/* switch HIL mode if required */
 			set_hil_enabled(status->hil_state == HIL_STATE_ON);
 		}
+
+		/* update commands stream */
+		commands_stream.update(t);
 
 		/* check for requested subscriptions */
 		if (_subscribe_to_stream != nullptr) {
@@ -1884,6 +2084,37 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 		}
 
+		/* pass messages from other UARTs */
+		if (_passing_on) {
+
+			bool is_part;
+			void *read_ptr;
+
+			/* guard get ptr by mutex */
+			pthread_mutex_lock(&_message_buffer_mutex);
+			int available = message_buffer_get_ptr(&read_ptr, &is_part);
+			pthread_mutex_unlock(&_message_buffer_mutex);
+
+			if (available > 0) {
+				/* write first part of buffer */
+				_mavlink_resend_uart(_channel, (const mavlink_message_t*)read_ptr);
+				message_buffer_mark_read(available);
+
+				/* write second part of buffer if there is some */
+				if (is_part) {
+					/* guard get ptr by mutex */
+					pthread_mutex_lock(&_message_buffer_mutex);
+					available = message_buffer_get_ptr(&read_ptr, &is_part);
+					pthread_mutex_unlock(&_message_buffer_mutex);
+
+					_mavlink_resend_uart(_channel, (const mavlink_message_t*)read_ptr);
+					message_buffer_mark_read(available);
+				}
+			}
+		}
+
+
+
 		perf_end(_loop_perf);
 	}
 
@@ -1928,6 +2159,10 @@ Mavlink::task_main(int argc, char *argv[])
 	/* close mavlink logging device */
 	close(_mavlink_fd);
 
+	if (_passing_on) {
+		message_buffer_destroy();
+		pthread_mutex_destroy(&_message_buffer_mutex);
+	}
 	/* destroy log buffer */
 	mavlink_logbuffer_destroy(&_logbuffer);
 
@@ -1969,7 +2204,7 @@ Mavlink::start(int argc, char *argv[])
 	task_spawn_cmd(buf,
 		       SCHED_DEFAULT,
 		       SCHED_PRIORITY_DEFAULT,
-		       2048,
+		       2000,
 		       (main_t)&Mavlink::start_helper,
 		       (const char **)argv);
 
@@ -2067,7 +2302,7 @@ Mavlink::stream(int argc, char *argv[])
 
 static void usage()
 {
-	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-b baudrate] [-r rate] [-m mode] [-s stream] [-v]");
+	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-b baudrate] [-r rate] [-m mode] [-s stream] [-f] [-p] [-v] [-w]");
 }
 
 int mavlink_main(int argc, char *argv[])

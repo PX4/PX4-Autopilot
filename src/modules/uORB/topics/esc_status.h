@@ -60,7 +60,7 @@
 enum ESC_VENDOR {
 	ESC_VENDOR_GENERIC = 0,					/**< generic ESC */
 	ESC_VENDOR_MIKROKOPTER,					/**< Mikrokopter */
-	ESC_VENDOR_GRAUPNER_HOTT				/**< Graupner HoTT ESC */	
+	ESC_VENDOR_GRAUPNER_HOTT				/**< Graupner HoTT ESC */
 };
 
 enum ESC_CONNECTION_TYPE {
@@ -79,16 +79,15 @@ enum ESC_CONNECTION_TYPE {
 /**
  * Electronic speed controller status.
  */
-struct esc_status_s
-{
+struct esc_status_s {
 	/* use of a counter and timestamp recommended (but not necessary) */
 
 	uint16_t counter;   		/**< incremented by the writing thread everytime new data is stored */
 	uint64_t timestamp; 		/**< in microseconds since system start, is set whenever the writing thread stores new data */
-	
+
 	uint8_t esc_count;			/**< number of connected ESCs */
 	enum ESC_CONNECTION_TYPE esc_connectiontype;	/**< how ESCs connected to the system */
-	
+
 	struct {
 		uint16_t esc_address;			/**< Address of current ESC (in most cases 1-8 / must be set by driver) */
 		enum ESC_VENDOR esc_vendor;		/**< Vendor of current ESC */

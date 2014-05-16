@@ -40,3 +40,5 @@ MODULE_COMMAND	 = preflight_check
 SRCS		 = preflight_check.c
 
 MAXOPTIMIZATION	 = -Os
+
+MODULE_STACKSIZE = 1800

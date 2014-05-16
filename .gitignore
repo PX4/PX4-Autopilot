@@ -34,11 +34,8 @@ mavlink/include/mavlink/v0.9/
 /Documentation/html/
 /Documentation/doxygen*objdb*tmp
 .tags
+tags
 .tags_sorted_by_file
 .pydevproject
-*.creator
-*.includes
-*.files
-*.config
-*.user
-*.autosave
+.ropeproject
+*.orig

@@ -120,7 +120,6 @@ private:
 
 	mavlink_status_t status;
 	struct vehicle_local_position_s hil_local_pos;
-	int _manual_sub;
 	orb_advert_t _global_pos_pub;
 	orb_advert_t _local_pos_pub;
 	orb_advert_t _attitude_pub;
@@ -143,4 +142,5 @@ private:
 	uint64_t _old_timestamp;
 	bool _hil_local_proj_inited;
 	float _hil_local_alt0;
+	struct map_projection_reference_s _hil_local_proj_ref;
 };

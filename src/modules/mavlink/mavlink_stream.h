@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_stream.cpp
+ * @file mavlink_stream.h
  * Mavlink messages stream definition.
  *
  * @author Anton Babushkin <anton.babushkin@me.com>

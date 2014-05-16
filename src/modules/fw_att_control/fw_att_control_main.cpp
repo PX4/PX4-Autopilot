@@ -173,6 +173,8 @@ private:
 		float pitchsp_offset_deg;			/**< Pitch Setpoint Offset in deg */
 		float rollsp_offset_rad;			/**< Roll Setpoint Offset in rad */
 		float pitchsp_offset_rad;			/**< Pitch Setpoint Offset in rad */
+		float man_roll_max;						/**< Max Roll in rad */
+		float man_pitch_max;					/**< Max Pitch in rad */
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -211,6 +213,8 @@ private:
 		param_t trim_yaw;
 		param_t rollsp_offset_deg;
 		param_t pitchsp_offset_deg;
+		param_t man_roll_max;
+		param_t man_pitch_max;
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -269,7 +273,7 @@ private:
 	/**
 	 * Main sensor collection task.
 	 */
-	void		task_main() __attribute__((noreturn));
+	void		task_main();
 };
 
 namespace att_control
@@ -354,6 +358,9 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.rollsp_offset_deg = param_find("FW_RSP_OFF");
 	_parameter_handles.pitchsp_offset_deg = param_find("FW_PSP_OFF");
 
+	_parameter_handles.man_roll_max = param_find("FW_MAN_R_MAX");
+	_parameter_handles.man_pitch_max = param_find("FW_MAN_P_MAX");
+
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -421,6 +428,10 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.pitchsp_offset_deg, &(_parameters.pitchsp_offset_deg));
 	_parameters.rollsp_offset_rad = math::radians(_parameters.rollsp_offset_deg);
 	_parameters.pitchsp_offset_rad = math::radians(_parameters.pitchsp_offset_deg);
+	param_get(_parameter_handles.man_roll_max, &(_parameters.man_roll_max));
+	param_get(_parameter_handles.man_pitch_max, &(_parameters.man_pitch_max));
+	_parameters.man_roll_max = math::radians(_parameters.man_roll_max);
+	_parameters.man_pitch_max = math::radians(_parameters.man_pitch_max);
 
 
 	/* pitch control parameters */
@@ -660,18 +671,24 @@ FixedwingAttitudeControl::task_main()
 
 				float airspeed;
 
-				/* if airspeed is smaller than min, the sensor is not giving good readings */
-				if ((_airspeed.indicated_airspeed_m_s < 0.5f * _parameters.airspeed_min) ||
-				    !isfinite(_airspeed.indicated_airspeed_m_s) ||
+				/* if airspeed is not updating, we assume the normal average speed */
+				if (!isfinite(_airspeed.true_airspeed_m_s) ||
 				    hrt_elapsed_time(&_airspeed.timestamp) > 1e6) {
 					airspeed = _parameters.airspeed_trim;
 
 				} else {
-					airspeed = _airspeed.indicated_airspeed_m_s;
+					airspeed = _airspeed.true_airspeed_m_s;
 				}
 
-				float airspeed_scaling = _parameters.airspeed_trim / airspeed;
-				//warnx("aspd scale: %6.2f act scale: %6.2f", airspeed_scaling, actuator_scaling);
+				/*
+				 * For scaling our actuators using anything less than the min (close to stall)
+				 * speed doesn't make any sense - its the strongest reasonable deflection we
+				 * want to do in flight and its the baseline a human pilot would choose.
+				 *
+				 * Forcing the scaling to this value allows reasonable handheld tests.
+				 */
+
+				float airspeed_scaling = _parameters.airspeed_trim / ((airspeed < _parameters.airspeed_min) ? _parameters.airspeed_min : airspeed);
 
 				float roll_sp = _parameters.rollsp_offset_rad;
 				float pitch_sp = _parameters.pitchsp_offset_rad;
@@ -689,20 +706,21 @@ FixedwingAttitudeControl::task_main()
 				} else {
 					/*
 					 * Scale down roll and pitch as the setpoints are radians
-					 * and a typical remote can only do 45 degrees, the mapping is
-					 * -1..+1 to -45..+45 degrees or -0.75..+0.75 radians.
+					 * and a typical remote can only do around 45 degrees, the mapping is
+					 * -1..+1 to -man_roll_max rad..+man_roll_max rad (equivalent for pitch)
 					 *
 					 * With this mapping the stick angle is a 1:1 representation of
-					 * the commanded attitude. If more than 45 degrees are desired,
-					 * a scaling parameter can be applied to the remote.
+					 * the commanded attitude.
 					 *
 					 * The trim gets subtracted here from the manual setpoint to get
 					 * the intended attitude setpoint. Later, after the rate control step the
 					 * trim is added again to the control signal.
 					 */
-					roll_sp = (_manual.roll - _parameters.trim_roll) * 0.75f + _parameters.rollsp_offset_rad;
-					pitch_sp = (_manual.pitch - _parameters.trim_pitch) * 0.75f + _parameters.pitchsp_offset_rad;
-					throttle_sp = _manual.throttle;
+					roll_sp = (_manual.y * _parameters.man_roll_max - _parameters.trim_roll)
+						+ _parameters.rollsp_offset_rad;
+					pitch_sp = -(_manual.x * _parameters.man_pitch_max - _parameters.trim_pitch)
+						+ _parameters.pitchsp_offset_rad;
+					throttle_sp = _manual.z;
 					_actuators.control[4] = _manual.flaps;
 
 					/*
@@ -765,7 +783,7 @@ FixedwingAttitudeControl::task_main()
 					_actuators.control[1] = (isfinite(pitch_u)) ? pitch_u + _parameters.trim_pitch : _parameters.trim_pitch;
 					if (!isfinite(pitch_u)) {
 						warnx("pitch_u %.4f, _yaw_ctrl.get_desired_rate() %.4f, airspeed %.4f, airspeed_scaling %.4f, roll_sp %.4f, pitch_sp %.4f, _roll_ctrl.get_desired_rate() %.4f, _pitch_ctrl.get_desired_rate() %.4f att_sp.roll_body %.4f",
-								pitch_u, _yaw_ctrl.get_desired_rate(), airspeed, airspeed_scaling, roll_sp, pitch_sp, _roll_ctrl.get_desired_rate(), _pitch_ctrl.get_desired_rate(), _att_sp.roll_body);
+								(double)pitch_u, (double)_yaw_ctrl.get_desired_rate(), (double)airspeed, (double)airspeed_scaling, (double)roll_sp, (double)pitch_sp, (double)_roll_ctrl.get_desired_rate(), (double)_pitch_ctrl.get_desired_rate(), (double)_att_sp.roll_body);
 					}
 
 					float yaw_u = _yaw_ctrl.control_bodyrate(_att.roll, _att.pitch,
@@ -774,16 +792,16 @@ FixedwingAttitudeControl::task_main()
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
 					_actuators.control[2] = (isfinite(yaw_u)) ? yaw_u + _parameters.trim_yaw : _parameters.trim_yaw;
 					if (!isfinite(yaw_u)) {
-						warnx("yaw_u %.4f", yaw_u);
+						warnx("yaw_u %.4f", (double)yaw_u);
 					}
 
 					/* throttle passed through */
 					_actuators.control[3] = (isfinite(throttle_sp)) ? throttle_sp : 0.0f;
 					if (!isfinite(throttle_sp)) {
-						warnx("throttle_sp %.4f", throttle_sp);
+						warnx("throttle_sp %.4f", (double)throttle_sp);
 					}
 				} else {
-					warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", roll_sp, pitch_sp);
+					warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", (double)roll_sp, (double)pitch_sp);
 				}
 
 				/*
@@ -808,10 +826,10 @@ FixedwingAttitudeControl::task_main()
 
 			} else {
 				/* manual/direct control */
-				_actuators.control[0] = _manual.roll;
-				_actuators.control[1] = _manual.pitch;
-				_actuators.control[2] = _manual.yaw;
-				_actuators.control[3] = _manual.throttle;
+				_actuators.control[0] = _manual.y;
+				_actuators.control[1] = -_manual.x;
+				_actuators.control[2] = _manual.r;
+				_actuators.control[3] = _manual.z;
 				_actuators.control[4] = _manual.flaps;
 			}
 

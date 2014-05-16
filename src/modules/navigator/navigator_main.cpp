@@ -1,10 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Jean Cyr <jean.m.cyr@gmail.com>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +31,7 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_main.c
+ * @file navigator_main.cpp
  * Implementation of the main navigation state machine.
  *
  * Handles missions, geo fencing and failsafe navigation behavior.
@@ -177,7 +173,7 @@ private:
 	class 		Mission				_mission;
 
 	bool		_mission_item_valid;		/**< current mission item valid */
-	bool		_global_pos_valid;		/**< track changes of global_position.global_valid flag */
+	bool		_global_pos_valid;		/**< track changes of global_position */
 	bool		_reset_loiter_pos;		/**< if true then loiter position should be set to current position */
 	bool		_waypoint_position_reached;
 	bool		_waypoint_yaw_reached;
@@ -510,7 +506,7 @@ Navigator::offboard_mission_update(bool isrotaryWing)
 {
 	struct mission_s offboard_mission;
 
-	if (orb_copy(ORB_ID(mission), _offboard_mission_sub, &offboard_mission) == OK) {
+	if (orb_copy(ORB_ID(offboard_mission), _offboard_mission_sub, &offboard_mission) == OK) {
 
 		/* Check mission feasibility, for now do not handle the return value,
 		 * however warnings are issued to the gcs via mavlink from inside the MissionFeasiblityChecker */
@@ -543,7 +539,7 @@ Navigator::onboard_mission_update()
 {
 	struct mission_s onboard_mission;
 
-	if (orb_copy(ORB_ID(mission), _onboard_mission_sub, &onboard_mission) == OK) {
+	if (orb_copy(ORB_ID(onboard_mission), _onboard_mission_sub, &onboard_mission) == OK) {
 
 		_mission.set_onboard_mission_count(onboard_mission.count);
 		_mission.set_current_onboard_mission_index(onboard_mission.current_index);
@@ -611,7 +607,7 @@ Navigator::task_main()
 	 * do subscriptions
 	 */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
+	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -690,84 +686,56 @@ Navigator::task_main()
 		if (fds[6].revents & POLLIN) {
 			vehicle_status_update();
 
-			/* evaluate state machine from commander and set the navigator mode accordingly */
+			/* evaluate state requested by commander */
 			if (_control_mode.flag_armed && _control_mode.flag_control_auto_enabled) {
-				bool stick_mode = false;
+				/* publish position setpoint triplet on each status update if navigator active */
+				_pos_sp_triplet_updated = true;
 
-				if (!_vstatus.rc_signal_lost) {
-					/* RC signal available, use control switches to set mode */
-					/* RETURN switch, overrides MISSION switch */
-					if (_vstatus.return_switch == RETURN_SWITCH_RETURN) {
-						/* switch to RTL if not already landed after RTL and home position set */
+				if (_vstatus.set_nav_state_timestamp != _set_nav_state_timestamp) {
+					/* commander requested new navigation mode, try to set it */
+					switch (_vstatus.set_nav_state) {
+					case NAV_STATE_NONE:
+						/* nothing to do */
+						break;
+
+					case NAV_STATE_LOITER:
+						request_loiter_or_ready();
+						break;
+
+					case NAV_STATE_MISSION:
+						request_mission_if_available();
+						break;
+
+					case NAV_STATE_RTL:
 						if (!(_rtl_state == RTL_STATE_DESCEND &&
-						      (myState == NAV_STATE_LAND || myState == NAV_STATE_LOITER)) &&
-						    _vstatus.condition_home_position_valid) {
+							  (myState == NAV_STATE_LAND || myState == NAV_STATE_LOITER)) &&
+							_vstatus.condition_home_position_valid) {
 							dispatch(EVENT_RTL_REQUESTED);
 						}
 
-						stick_mode = true;
+						break;
 
-					} else {
-						/* MISSION switch */
-						if (_vstatus.mission_switch == MISSION_SWITCH_LOITER) {
-							request_loiter_or_ready();
-							stick_mode = true;
+					case NAV_STATE_LAND:
+						dispatch(EVENT_LAND_REQUESTED);
 
-						} else if (_vstatus.mission_switch == MISSION_SWITCH_MISSION) {
-							request_mission_if_available();
-							stick_mode = true;
-						}
+						break;
 
-						if (!stick_mode && _vstatus.return_switch == RETURN_SWITCH_NORMAL && myState == NAV_STATE_RTL) {
-							/* RETURN switch is in normal mode, no MISSION switch mapped, interrupt if in RTL state */
-							request_mission_if_available();
-							stick_mode = true;
-						}
+					default:
+						warnx("ERROR: Requested navigation state not supported");
+						break;
+					}
+
+				} else {
+					/* on first switch to AUTO try mission by default, if none is available fallback to loiter */
+					if (myState == NAV_STATE_NONE) {
+						request_mission_if_available();
 					}
 				}
 
-				if (!stick_mode) {
-					if (_vstatus.set_nav_state_timestamp != _set_nav_state_timestamp) {
-						/* commander requested new navigation mode, try to set it */
-						_set_nav_state_timestamp = _vstatus.set_nav_state_timestamp;
-
-						switch (_vstatus.set_nav_state) {
-						case NAV_STATE_NONE:
-							/* nothing to do */
-							break;
-
-						case NAV_STATE_LOITER:
-							request_loiter_or_ready();
-							break;
-
-						case NAV_STATE_MISSION:
-							request_mission_if_available();
-							break;
-
-						case NAV_STATE_RTL:
-							if (!(_rtl_state == RTL_STATE_DESCEND &&
-							      (myState == NAV_STATE_LAND || myState == NAV_STATE_LOITER)) &&
-							    _vstatus.condition_home_position_valid) {
-								dispatch(EVENT_RTL_REQUESTED);
-							}
-
-							break;
-
-						case NAV_STATE_LAND:
-							dispatch(EVENT_LAND_REQUESTED);
-
-							break;
-
-						default:
-							warnx("ERROR: Requested navigation state not supported");
-							break;
-						}
-
-					} else {
-						/* on first switch to AUTO try mission by default, if none is available fallback to loiter */
-						if (myState == NAV_STATE_NONE) {
-							request_mission_if_available();
-						}
+				/* check if waypoint has been reached in MISSION, RTL and LAND modes */
+				if (myState == NAV_STATE_MISSION || myState == NAV_STATE_RTL || myState == NAV_STATE_LAND) {
+					if (check_mission_item_reached()) {
+						on_mission_item_reached();
 					}
 				}
 
@@ -775,6 +743,8 @@ Navigator::task_main()
 				/* navigator shouldn't act */
 				dispatch(EVENT_NONE_REQUESTED);
 			}
+
+			_set_nav_state_timestamp = _vstatus.set_nav_state_timestamp;
 		}
 
 		/* parameters updated */
@@ -813,16 +783,14 @@ Navigator::task_main()
 		if (fds[1].revents & POLLIN) {
 			global_position_update();
 
-			/* publish position setpoint triplet on each position update if navigator active */
 			if (_control_mode.flag_armed && _control_mode.flag_control_auto_enabled) {
+				/* publish position setpoint triplet on each position update if navigator active */
 				_pos_sp_triplet_updated = true;
 
-				if (myState == NAV_STATE_LAND && _global_pos.global_valid && !_global_pos_valid) {
+				if (myState == NAV_STATE_LAND && !_global_pos_valid) {
 					/* got global position when landing, update setpoint */
 					start_land();
 				}
-
-				_global_pos_valid = _global_pos.global_valid;
 
 				/* check if waypoint has been reached in MISSION, RTL and LAND modes */
 				if (myState == NAV_STATE_MISSION || myState == NAV_STATE_RTL || myState == NAV_STATE_LAND) {
@@ -847,6 +815,8 @@ Navigator::task_main()
 				_geofence_violation_warning_sent = false;
 			}
 		}
+
+		_global_pos_valid = _vstatus.condition_global_position_valid;
 
 		/* publish position setpoint triplet if updated */
 		if (_pos_sp_triplet_updated) {
@@ -878,7 +848,7 @@ Navigator::start()
 	_navigator_task = task_spawn_cmd("navigator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 5,
-					 2048,
+					 2000,
 					 (main_t)&Navigator::task_main_trampoline,
 					 nullptr);
 
@@ -893,9 +863,9 @@ Navigator::start()
 void
 Navigator::status()
 {
-	warnx("Global position is %svalid", _global_pos.global_valid ? "" : "in");
+	warnx("Global position: %svalid", _global_pos_valid ? "" : "in");
 
-	if (_global_pos.global_valid) {
+	if (_global_pos_valid) {
 		warnx("Longitude %5.5f degrees, latitude %5.5f degrees", _global_pos.lon, _global_pos.lat);
 		warnx("Altitude %5.5f meters, altitude above home %5.5f meters",
 		      (double)_global_pos.alt, (double)(_global_pos.alt - _home_pos.alt));
@@ -1317,7 +1287,7 @@ Navigator::set_rtl_item()
 			_mission_item.yaw = NAN;
 			_mission_item.loiter_radius = _parameters.loiter_radius;
 			_mission_item.loiter_direction = 1;
-			_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.acceptance_radius = _parameters.acceptance_radius;
 			_mission_item.time_inside = 0.0f;
 			_mission_item.pitch_min = 0.0f;
@@ -1377,7 +1347,7 @@ Navigator::set_rtl_item()
 			_mission_item.yaw = NAN;
 			_mission_item.loiter_radius = _parameters.loiter_radius;
 			_mission_item.loiter_direction = 1;
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 			_mission_item.acceptance_radius = _parameters.acceptance_radius;
 			_mission_item.time_inside = _parameters.rtl_land_delay < 0.0f ? 0.0f : _parameters.rtl_land_delay;
 			_mission_item.pitch_min = 0.0f;
@@ -1539,7 +1509,7 @@ Navigator::check_mission_item_reached()
 			/* check yaw if defined only for rotary wing except takeoff */
 			float yaw_err = _wrap_pi(_mission_item.yaw - _global_pos.yaw);
 
-			if (fabsf(yaw_err) < 0.05f) { /* XXX get rid of magic number */
+			if (fabsf(yaw_err) < 0.2f) { /* XXX get rid of magic number */
 				_waypoint_yaw_reached = true;
 			}
 

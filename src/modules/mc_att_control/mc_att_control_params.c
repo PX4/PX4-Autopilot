@@ -1,9 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
- *   Author: @author Tobias Naegeli <naegelit@student.ethz.ch>
- *   	     @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +34,10 @@
 /**
  * @file mc_att_control_params.c
  * Parameters for multicopter attitude controller.
+ *
+ * @author Tobias Naegeli <naegelit@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <systemlib/param/param.h>
@@ -173,3 +174,44 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_YAW_FF, 0.5f);
+
+/**
+ * Max yaw rate
+ *
+ * Limit for yaw rate, has effect for large rotations in autonomous mode, to avoid large control output and mixer saturation.
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 360.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 120.0f);
+
+/**
+ * Max manual roll
+ *
+ * @unit deg
+ * @min 0.0
+ * @max 90.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_MAN_R_MAX, 35.0f);
+
+/**
+ * Max manual pitch
+ *
+ * @unit deg
+ * @min 0.0
+ * @max 90.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_MAN_P_MAX, 35.0f);
+
+/**
+ * Max manual yaw rate
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_MAN_Y_MAX, 120.0f);

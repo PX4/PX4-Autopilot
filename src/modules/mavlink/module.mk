@@ -42,6 +42,11 @@ SRCS		 += mavlink_main.cpp \
 			mavlink_orb_subscription.cpp \
 			mavlink_messages.cpp \
 			mavlink_stream.cpp \
-			mavlink_rate_limiter.cpp
+			mavlink_rate_limiter.cpp \
+			mavlink_commands.cpp
 
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
+
+MAXOPTIMIZATION	 = -Os
+
+MODULE_STACKSIZE = 1024

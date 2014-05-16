@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +34,10 @@
 /**
  * @file vehicle_global_position.h
  * Definition of the global fused WGS84 position uORB topic.
+ *
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #ifndef VEHICLE_GLOBAL_POSITION_T_H_
@@ -59,12 +60,8 @@
  * estimator, which will take more sources of information into account than just GPS,
  * e.g. control inputs of the vehicle in a Kalman-filter implementation.
  */
-struct vehicle_global_position_s
-{
+struct vehicle_global_position_s {
 	uint64_t timestamp;		/**< Time of this estimate, in microseconds since system start */
-
-	bool global_valid;		/**< true if position satisfies validity criteria of estimator */
-	bool baro_valid;		/**< true if baro_alt is valid (vel_d is also valid in this case) */
 
 	uint64_t time_gps_usec; /**< GPS timestamp in microseconds					   */
 	double lat;			/**< Latitude in degrees							 	   */
@@ -74,8 +71,8 @@ struct vehicle_global_position_s
 	float vel_e;		/**< Ground east velocity, m/s							   */
 	float vel_d;		/**< Ground downside velocity, m/s						   */
 	float yaw; 			/**< Yaw in radians -PI..+PI.							   */
-
-	float baro_alt;		/**< Barometric altitude (not raw baro but fused with accelerometer) */
+	float eph;
+	float epv;
 };
 
 /**

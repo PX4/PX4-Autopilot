@@ -63,6 +63,8 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
 
+#include <board_config.h>
+
 #include "ubx.h"
 #include "mtk.h"
 
@@ -276,14 +278,14 @@ GPS::task_main()
 			_report.timestamp_position = hrt_absolute_time();
 			_report.lat = (int32_t)47.378301e7f;
 			_report.lon = (int32_t)8.538777e7f;
-			_report.alt = (int32_t)400e3f;
+			_report.alt = (int32_t)1200e3f;
 			_report.timestamp_variance = hrt_absolute_time();
 			_report.s_variance_m_s = 10.0f;
 			_report.p_variance_m = 10.0f;
 			_report.c_variance_rad = 0.1f;
 			_report.fix_type = 3;
-			_report.eph_m = 10.0f;
-			_report.epv_m = 10.0f;
+			_report.eph_m = 0.9f;
+			_report.epv_m = 1.8f;
 			_report.timestamp_velocity = hrt_absolute_time();
 			_report.vel_n_m_s = 0.0f;
 			_report.vel_e_m_s = 0.0f;
@@ -421,7 +423,14 @@ GPS::task_main()
 void
 GPS::cmd_reset()
 {
-	//XXX add reset?
+#ifdef GPIO_GPS_NRESET
+	warnx("Toggling GPS reset pin");
+	stm32_configgpio(GPIO_GPS_NRESET);
+	stm32_gpiowrite(GPIO_GPS_NRESET, 0);
+	usleep(100);
+	stm32_gpiowrite(GPIO_GPS_NRESET, 1);
+	warnx("Toggled GPS reset pin");
+#endif
 }
 
 void

@@ -154,6 +154,38 @@ static inline void mavlink_msg_filt_rot_vel_send(mavlink_channel_t chan, const f
 #endif
 }
 
+#if MAVLINK_MSG_ID_FILT_ROT_VEL_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_filt_rot_vel_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  const float *rotVel)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+
+	_mav_put_float_array(buf, 0, rotVel, 3);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_FILT_ROT_VEL, buf, MAVLINK_MSG_ID_FILT_ROT_VEL_LEN, MAVLINK_MSG_ID_FILT_ROT_VEL_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_FILT_ROT_VEL, buf, MAVLINK_MSG_ID_FILT_ROT_VEL_LEN);
+#endif
+#else
+	mavlink_filt_rot_vel_t *packet = (mavlink_filt_rot_vel_t *)msgbuf;
+
+	mav_array_memcpy(packet->rotVel, rotVel, sizeof(float)*3);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_FILT_ROT_VEL, (const char *)packet, MAVLINK_MSG_ID_FILT_ROT_VEL_LEN, MAVLINK_MSG_ID_FILT_ROT_VEL_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_FILT_ROT_VEL, (const char *)packet, MAVLINK_MSG_ID_FILT_ROT_VEL_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE FILT_ROT_VEL UNPACKING

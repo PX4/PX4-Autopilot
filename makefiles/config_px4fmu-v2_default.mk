@@ -63,8 +63,8 @@ MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/config
 MODULES		+= systemcmds/nshterm
 MODULES		+= systemcmds/mtd
-MODULES		+= systemcmds/hw_ver
 MODULES		+= systemcmds/dumpfile
+MODULES		+= systemcmds/ver
 
 #
 # General system control
@@ -79,7 +79,7 @@ MODULES		+= modules/gpio_led
 #
 MODULES		+= modules/attitude_estimator_ekf
 MODULES		+= modules/attitude_estimator_so3
-MODULES		+= modules/att_pos_estimator_ekf
+MODULES		+= modules/ekf_att_pos_estimator
 MODULES		+= modules/position_estimator_inav
 MODULES		+= examples/flow_position_estimator
 
@@ -143,7 +143,6 @@ MODULES		+= examples/px4_simple_app
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/example_fixedwing_control
 #MODULES			+= examples/fixedwing_control
-MODULES			+= examples/jetdrive_control
 
 # Hardware test
 #MODULES			+= examples/hwtest
