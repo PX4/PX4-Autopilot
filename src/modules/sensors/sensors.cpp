@@ -1523,7 +1523,7 @@ Sensors::rc_poll()
 			manual.posctl_switch = get_rc_sw2pos_position(POSCTL, _parameters.rc_posctl_th, _parameters.rc_posctl_inv);
 			manual.return_switch = get_rc_sw2pos_position(RETURN, _parameters.rc_return_th, _parameters.rc_return_inv);
 			manual.loiter_switch = get_rc_sw2pos_position(LOITER, _parameters.rc_loiter_th, _parameters.rc_loiter_inv);
-			manual.follow_switch = get_rc_sw2pos_position(FOLLOW, _parameters.rc_posctl_th, _parameters.rc_posctl_inv);
+			manual.follow_switch = get_rc_sw2pos_position(FOLLOW, _parameters.rc_follow_th, _parameters.rc_follow_inv);
 
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub > 0) {
