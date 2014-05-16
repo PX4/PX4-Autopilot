@@ -35,6 +35,8 @@
 /**
  * @file mc_pos_control_params.c
  * Multicopter position controller parameters.
+ *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <systemlib/param/param.h>

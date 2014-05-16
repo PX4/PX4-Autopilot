@@ -39,3 +39,5 @@ MODULE_COMMAND	= ex_fixedwing_control
 
 SRCS		= main.c \
 		  params.c
+
+MODULE_STACKSIZE = 1200

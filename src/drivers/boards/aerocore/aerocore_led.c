@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,86 +32,90 @@
  ****************************************************************************/
 
 /**
- * @file fw_att_pos_estimator_params.c
+ * @file aerocore_led.c
  *
- * Parameters defined by the attitude and position estimator task
- *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * AeroCore LED backend.
  */
 
 #include <nuttx/config.h>
 
-#include <systemlib/param/param.h>
+#include <stdbool.h>
+
+#include "stm32.h"
+#include "board_config.h"
+
+#include <arch/board/board.h>
 
 /*
- * Estimator parameters, accessible via MAVLink
- *
+ * Ideally we'd be able to get these from up_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
  */
+__BEGIN_DECLS
+extern void led_init();
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
+__END_DECLS
 
-/**
- * Velocity estimate delay
- *
- * The delay in milliseconds of the velocity estimate from GPS.
- *
- * @min 0
- * @max 1000
- * @group Position Estimator
- */
-PARAM_DEFINE_INT32(PE_VEL_DELAY_MS, 230);
+__EXPORT void led_init()
+{
+	stm32_configgpio(GPIO_LED0);
+	stm32_configgpio(GPIO_LED1);
+}
 
-/**
- * Position estimate delay
- *
- * The delay in milliseconds of the position estimate from GPS.
- *
- * @min 0
- * @max 1000
- * @group Position Estimator
- */
-PARAM_DEFINE_INT32(PE_POS_DELAY_MS, 210);
+__EXPORT void led_on(int led)
+{
+	switch (led) {
+	case 0:
+		stm32_gpiowrite(GPIO_LED0, true);
+		break;
 
-/**
- * Height estimate delay
- *
- * The delay in milliseconds of the height estimate from the barometer.
- *
- * @min 0
- * @max 1000
- * @group Position Estimator
- */
-PARAM_DEFINE_INT32(PE_HGT_DELAY_MS, 350);
+	case 1:
+		stm32_gpiowrite(GPIO_LED1, true);
+		break;
 
-/**
- * Mag estimate delay
- *
- * The delay in milliseconds of the magnetic field estimate from
- * the magnetometer.
- *
- * @min 0
- * @max 1000
- * @group Position Estimator
- */
-PARAM_DEFINE_INT32(PE_MAG_DELAY_MS, 30);
+	default:
+		warnx("LED ID not recognized\n");
+	}
+}
 
-/**
- * True airspeeed estimate delay
- *
- * The delay in milliseconds of the airspeed estimate.
- *
- * @min 0
- * @max 1000
- * @group Position Estimator
- */
-PARAM_DEFINE_INT32(PE_TAS_DELAY_MS, 210);
+__EXPORT void led_off(int led)
+{
+	switch (led) {
+	case 0:
+		stm32_gpiowrite(GPIO_LED0, false);
+		break;
 
-/**
- * GPS vs. barometric altitude update weight
- *
- * RE-CHECK this.
- *
- * @min 0.0
- * @max 1.0
- * @group Position Estimator
- */
-PARAM_DEFINE_FLOAT(PE_GPS_ALT_WGT, 0.9f);
+	case 1:
+		stm32_gpiowrite(GPIO_LED1, false);
+		break;
 
+	default:
+		warnx("LED ID not recognized\n");
+	}
+}
+
+__EXPORT void led_toggle(int led)
+{
+	switch (led) {
+	case 0:
+		if (stm32_gpioread(GPIO_LED0))
+			stm32_gpiowrite(GPIO_LED0, false);
+		else
+			stm32_gpiowrite(GPIO_LED0, true);
+		break;
+
+	case 1:
+		if (stm32_gpioread(GPIO_LED1))
+			stm32_gpiowrite(GPIO_LED1, false);
+		else
+			stm32_gpiowrite(GPIO_LED1, true);
+		break;
+
+	default:
+		warnx("LED ID not recognized\n");
+	}
+}

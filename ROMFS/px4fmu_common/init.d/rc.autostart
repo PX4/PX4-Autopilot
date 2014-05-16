@@ -195,6 +195,11 @@ then
 	sh /etc/init.d/10016_3dr_iris
 fi
 
+if param compare SYS_AUTOSTART 10017
+then
+	sh /etc/init.d/10017_steadidrone_qu4d
+fi
+
 #
 # Hexa Coaxial
 #
