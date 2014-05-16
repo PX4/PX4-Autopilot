@@ -161,8 +161,8 @@ volatile uint16_t	r_page_setup[] =
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V1
 	[PX4IO_P_SETUP_RELAYS]			= 0,
 #else
-	/* this is unused, but we will pad it to be safe */
-	[PX4IO_P_SETUP_RELAYS]			= 0,
+	/* this is unused, but we will pad it for readability (the compiler pads it automatically) */
+	[PX4IO_P_SETUP_RELAYS_PAD]		= 0,
 #endif
 #ifdef ADC_VSERVO
 	[PX4IO_P_SETUP_VSERVO_SCALE]		= 10000,
@@ -526,18 +526,22 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			break;
 
 		case PX4IO_P_SETUP_PWM_DEFAULTRATE:
-			if (value < 50)
+			if (value < 50) {
 				value = 50;
-			if (value > 400)
+			}
+			if (value > 400) {
 				value = 400;
+			}
 			pwm_configure_rates(r_setup_pwm_rates, value, r_setup_pwm_altrate);
 			break;
 
 		case PX4IO_P_SETUP_PWM_ALTRATE:
-			if (value < 50)
+			if (value < 50) {
 				value = 50;
-			if (value > 400)
+			}
+			if (value > 400) {
 				value = 400;
+			}
 			pwm_configure_rates(r_setup_pwm_rates, r_setup_pwm_defaultrate, value);
 			break;
 
@@ -565,12 +569,13 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ||
 			    (r_status_flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
 				// don't allow reboot while armed
-				return -1;
+				break;
 			}
 
 			// check the magic value
-			if (value != PX4IO_REBOOT_BL_MAGIC)
-				return -1;
+			if (value != PX4IO_REBOOT_BL_MAGIC) {
+				break;
+			}
 
                         // we schedule a reboot rather than rebooting
                         // immediately to allow the IO board to ACK
@@ -585,16 +590,12 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_FORCE_SAFETY_OFF:
 			if (value == PX4IO_FORCE_SAFETY_MAGIC) {
 				r_status_flags |= PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
-			} else {
-				return -1;
 			}
 			break;
 
 		case PX4IO_P_SETUP_RC_THR_FAILSAFE_US:
 			if (value > 650 && value < 2350) {
 				r_page_setup[PX4IO_P_SETUP_RC_THR_FAILSAFE_US] = value;
-			} else {
-				return -1;
 			}
 			break;
 
