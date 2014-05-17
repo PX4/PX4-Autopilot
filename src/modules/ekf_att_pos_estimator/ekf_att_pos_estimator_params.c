@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file fw_att_pos_estimator_params.c
+ * @file ekf_att_pos_estimator_params.c
  *
  * Parameters defined by the attitude and position estimator task
  *
