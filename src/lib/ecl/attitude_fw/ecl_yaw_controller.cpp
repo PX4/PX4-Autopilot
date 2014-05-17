@@ -66,6 +66,12 @@ float ECL_YawController::control_attitude(float roll, float pitch,
 		float speed_body_u, float speed_body_v, float speed_body_w,
 		float roll_rate_setpoint, float pitch_rate_setpoint)
 {
+	/* Do not calculate control signal with bad inputs */
+	if (!(isfinite(roll) && isfinite(pitch) && isfinite(speed_body_u) && isfinite(speed_body_v) &&
+				isfinite(speed_body_w) && isfinite(roll_rate_setpoint) &&
+				isfinite(pitch_rate_setpoint))) {
+		return _rate_setpoint;
+	}
 //	static int counter = 0;
 	/* Calculate desired yaw rate from coordinated turn constraint / (no side forces) */
 	_rate_setpoint = 0.0f;
@@ -103,6 +109,12 @@ float ECL_YawController::control_bodyrate(float roll, float pitch,
 		float pitch_rate_setpoint,
 		float airspeed_min, float airspeed_max, float airspeed, float scaler, bool lock_integrator)
 {
+	/* Do not calculate control signal with bad inputs */
+	if (!(isfinite(roll) && isfinite(pitch) && isfinite(pitch_rate) && isfinite(yaw_rate) &&
+				isfinite(pitch_rate_setpoint) && isfinite(airspeed_min) &&
+				isfinite(airspeed_max) && isfinite(scaler))) {
+		return math::constrain(_last_output, -1.0f, 1.0f);
+	}
 	/* get the usual dt estimate */
 	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
 	_last_run = ecl_absolute_time();
