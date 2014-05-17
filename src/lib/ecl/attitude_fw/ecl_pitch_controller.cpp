@@ -67,7 +67,11 @@ ECL_PitchController::ECL_PitchController() :
 
 float ECL_PitchController::control_attitude(float pitch_setpoint, float roll, float pitch, float airspeed)
 {
-
+	/* Do not calculate control signal with bad inputs */
+	if (!(isfinite(pitch_setpoint) && isfinite(roll) && isfinite(pitch) && isfinite(airspeed))) {
+		warnx("not controlling pitch");
+		return _rate_setpoint;
+	}
 
 	/* flying inverted (wings upside down) ? */
 	bool inverted = false;
@@ -123,6 +127,13 @@ float ECL_PitchController::control_bodyrate(float roll, float pitch,
 		float yaw_rate_setpoint,
 		float airspeed_min, float airspeed_max, float airspeed, float scaler, bool lock_integrator)
 {
+	/* Do not calculate control signal with bad inputs */
+	if (!(isfinite(roll) && isfinite(pitch) && isfinite(pitch_rate) && isfinite(yaw_rate) &&
+				isfinite(yaw_rate_setpoint) && isfinite(airspeed_min) &&
+				isfinite(airspeed_max) && isfinite(scaler))) {
+		return math::constrain(_last_output, -1.0f, 1.0f);
+	}
+
 	/* get the usual dt estimate */
 	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
 	_last_run = ecl_absolute_time();

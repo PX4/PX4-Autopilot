@@ -65,6 +65,10 @@ ECL_RollController::ECL_RollController() :
 
 float ECL_RollController::control_attitude(float roll_setpoint, float roll)
 {
+	/* Do not calculate control signal with bad inputs */
+	if (!(isfinite(roll_setpoint) && isfinite(roll))) {
+		return _rate_setpoint;
+	}
 
 	/* Calculate error */
 	float roll_error = roll_setpoint - roll;
@@ -86,6 +90,13 @@ float ECL_RollController::control_bodyrate(float pitch,
 		float yaw_rate_setpoint,
 		float airspeed_min, float airspeed_max, float airspeed, float scaler, bool lock_integrator)
 {
+	/* Do not calculate control signal with bad inputs */
+	if (!(isfinite(pitch) && isfinite(roll_rate) && isfinite(yaw_rate) && isfinite(yaw_rate_setpoint) &&
+			isfinite(airspeed_min) && isfinite(airspeed_max) &&
+			isfinite(scaler))) {
+		return math::constrain(_last_output, -1.0f, 1.0f);
+	}
+
 	/* get the usual dt estimate */
 	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
 	_last_run = ecl_absolute_time();
@@ -122,8 +133,8 @@ float ECL_RollController::control_bodyrate(float pitch,
 		float id = _rate_error * dt;
 
 		/*
-		 * anti-windup: do not allow integrator to increase if actuator is at limit
-		 */
+		* anti-windup: do not allow integrator to increase if actuator is at limit
+		*/
 		if (_last_output < -1.0f) {
 			/* only allow motion to center: increase value */
 			id = math::max(id, 0.0f);
