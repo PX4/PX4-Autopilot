@@ -1047,11 +1047,17 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					altitude_desired_rel =  math::max(relative_alt, L_altitude_rel);
 				}
 
-				tecs_update_pitch_throttle(_pos_sp_triplet.current.alt + altitude_desired_rel, calculate_target_airspeed(airspeed_approach), eas2tas,
-						math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
-						_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
+				tecs_update_pitch_throttle(_pos_sp_triplet.current.alt + altitude_desired_rel,
+						calculate_target_airspeed(airspeed_approach), eas2tas,
+						math::radians(_parameters.pitch_limit_min),
+						math::radians(_parameters.pitch_limit_max),
+						_parameters.throttle_min,
+						_parameters.throttle_max,
+						_parameters.throttle_cruise,
+						false,
+						math::radians(_parameters.pitch_limit_min),
 						_pos_sp_triplet.current.alt + relative_alt,
-						false, math::radians(_parameters.pitch_limit_min), ground_speed);
+						ground_speed);
 			}
 
 		} else if (pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF) {
@@ -1107,10 +1113,18 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f), math::radians(15.0f));
 
 				} else {
-					tecs_update_pitch_throttle(_pos_sp_triplet.current.alt, calculate_target_airspeed(_parameters.airspeed_trim), eas2tas,
-								math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
-								_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
-								false, math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
+					tecs_update_pitch_throttle(_pos_sp_triplet.current.alt,
+							calculate_target_airspeed(_parameters.airspeed_trim),
+							eas2tas,
+								math::radians(_parameters.pitch_limit_min),
+								math::radians(_parameters.pitch_limit_max),
+								_parameters.throttle_min,
+								_parameters.throttle_max,
+								_parameters.throttle_cruise,
+								false,
+								math::radians(_parameters.pitch_limit_min),
+								_global_pos.alt,
+								ground_speed);
 				}
 
 			} else {
