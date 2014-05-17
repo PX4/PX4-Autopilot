@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -56,6 +56,7 @@
 #include <arch/board/board.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/i2c.h>
+#include <systemlib/systemlib.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/scheduling_priorities.h>
 #include <systemlib/err.h>
@@ -77,12 +78,6 @@
 # undef ERROR
 #endif
 static const int ERROR = -1;
-
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
-
-
 
 class GPS : public device::CDev
 {
@@ -211,7 +206,8 @@ GPS::init()
 		goto out;
 
 	/* start the GPS driver worker task */
-	_task = task_create("gps", SCHED_PRIORITY_SLOW_DRIVER, 2048, (main_t)&GPS::task_main_trampoline, nullptr);
+	_task = task_spawn_cmd("gps", SCHED_DEFAULT,
+				SCHED_PRIORITY_SLOW_DRIVER, 2000, (main_t)&GPS::task_main_trampoline, nullptr);
 
 	if (_task < 0) {
 		warnx("task start failed: %d", errno);

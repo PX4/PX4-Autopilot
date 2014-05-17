@@ -53,6 +53,8 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
 
+#include <drivers/drv_hrt.h>
+
 /* FrSky sensor hub data IDs */
 #define FRSKY_ID_GPS_ALT_BP     0x01
 #define FRSKY_ID_TEMP1          0x02

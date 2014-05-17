@@ -1710,6 +1710,7 @@ set_control_mode()
 
 		case MAIN_STATE_AUTO:
 			navigator_enabled = true;
+			break;
 
 		default:
 			break;
