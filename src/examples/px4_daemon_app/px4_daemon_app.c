@@ -98,7 +98,7 @@ int px4_daemon_app_main(int argc, char *argv[])
 		daemon_task = task_spawn_cmd("daemon",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT,
-					 4096,
+					 2000,
 					 px4_daemon_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);

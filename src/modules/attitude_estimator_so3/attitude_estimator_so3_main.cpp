@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Hyon Lim <limhyon@gmail.com>
- *           Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +33,9 @@
  
  /*
  * @file attitude_estimator_so3_main.cpp
+ *
+ * @author Hyon Lim <limhyon@gmail.com>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  *
  * Implementation of nonlinear complementary filters on the SO(3).
  * This code performs attitude estimation by using accelerometer, gyroscopes and magnetometer.
@@ -131,7 +132,7 @@ usage(const char *reason)
  * Makefile does only apply to this management task.
  *
  * The actual stack size should be set in the call
- * to task_create().
+ * to task_spawn_cmd().
  */
 int attitude_estimator_so3_main(int argc, char *argv[])
 {

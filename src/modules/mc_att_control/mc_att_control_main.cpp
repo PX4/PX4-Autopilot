@@ -1,9 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
- *   Author: @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,8 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file mc_att_control_main.c
+ * @file mc_att_control_main.cpp
  * Multicopter attitude controller.
+ *
+ * @author Tobias Naegeli <naegelit@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  *
  * The controller has two loops: P loop for angular error and PD loop for angular rate error.
  * Desired rotation calculated keeping in mind that yaw response is normally slower than roll/pitch.
@@ -506,6 +507,14 @@ MulticopterAttitudeControl::control_attitude(float dt)
 			/* move yaw setpoint */
 			yaw_sp_move_rate = _manual_control_sp.r * _params.man_yaw_max;
 			_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + yaw_sp_move_rate * dt);
+			float yaw_offs_max = _params.man_yaw_max / _params.att_p(2);
+			float yaw_offs = _wrap_pi(_v_att_sp.yaw_body - _v_att.yaw);
+			if (yaw_offs < - yaw_offs_max) {
+				_v_att_sp.yaw_body = _wrap_pi(_v_att.yaw - yaw_offs_max);
+
+			} else if (yaw_offs > yaw_offs_max) {
+				_v_att_sp.yaw_body = _wrap_pi(_v_att.yaw + yaw_offs_max);
+			}
 			_v_att_sp.R_valid = false;
 			publish_att_sp = true;
 		}
@@ -817,7 +826,7 @@ MulticopterAttitudeControl::start()
 	_control_task = task_spawn_cmd("mc_att_control",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       2048,
+				       2000,
 				       (main_t)&MulticopterAttitudeControl::task_main_trampoline,
 				       nullptr);
 

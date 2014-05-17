@@ -1,6 +1,8 @@
 ############################################################################
+# configs/aerocore/nsh/appconfig
 #
-#   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -12,7 +14,7 @@
 #    notice, this list of conditions and the following disclaimer in
 #    the documentation and/or other materials provided with the
 #    distribution.
-# 3. Neither the name PX4 nor the names of its contributors may be
+# 3. Neither the name NuttX nor the names of its contributors may be
 #    used to endorse or promote products derived from this software
 #    without specific prior written permission.
 #
@@ -31,12 +33,10 @@
 #
 ############################################################################
 
-#
-# Main Attitude and Position Estimator for Fixed Wing Aircraft
-#
+# Path to example in apps/examples containing the user_start entry point
 
-MODULE_COMMAND	= fw_att_pos_estimator
+CONFIGURED_APPS	+= examples/nsh
 
-SRCS		= fw_att_pos_estimator_main.cpp \
-		  fw_att_pos_estimator_params.c \
-		  estimator.cpp
+# The NSH application library
+CONFIGURED_APPS += nshlib
+CONFIGURED_APPS += system/readline

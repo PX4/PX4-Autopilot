@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,19 +31,12 @@
  *
  ****************************************************************************/
 
-#include <systemlib/param/param.h>
+/**
+ * nsh_romfsetc.h
+ *
+ * This file is a stub for 'make export' purposes; the actual ROMFS
+ * must be supplied by the library client.
+ */
 
-/*PARAM_DEFINE_FLOAT(NAME,0.0f);*/
-PARAM_DEFINE_FLOAT(KF_V_GYRO, 0.008f);
-PARAM_DEFINE_FLOAT(KF_V_ACCEL, 1.0f);
-PARAM_DEFINE_FLOAT(KF_R_MAG, 0.8f);
-PARAM_DEFINE_FLOAT(KF_R_GPS_VEL, 0.5f);
-PARAM_DEFINE_FLOAT(KF_R_GPS_POS, 2.0f);
-PARAM_DEFINE_FLOAT(KF_R_GPS_ALT, 3.0f);
-PARAM_DEFINE_FLOAT(KF_R_PRESS_ALT, 0.1f);
-PARAM_DEFINE_FLOAT(KF_R_ACCEL, 1.0f);
-PARAM_DEFINE_FLOAT(KF_FAULT_POS, 10.0f);
-PARAM_DEFINE_FLOAT(KF_FAULT_ATT, 10.0f);
-PARAM_DEFINE_FLOAT(KF_ENV_G, 9.765f);
-PARAM_DEFINE_FLOAT(KF_ENV_MAG_DIP, 60.0f);
-PARAM_DEFINE_FLOAT(KF_ENV_MAG_DEC, 0.0f);
+extern unsigned char romfs_img[];
+extern unsigned int romfs_img_len;

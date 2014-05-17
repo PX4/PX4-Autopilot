@@ -189,9 +189,18 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 	/* If the wait until transmit flag is on, only transmit after we've received messages.
 	   Otherwise, transmit all the time. */
 	if (instance->should_transmit()) {
-	   ssize_t ret = write(uart, ch, desired);
+
+		/* check if there is space in the buffer, let it overflow else */
+		if (!ioctl(uart, FIONWRITE, (unsigned long)&buf_free)) {
+
+			if (desired > buf_free) {
+				desired = buf_free;
+			}
+		}
+
+		ssize_t ret = write(uart, ch, desired);
 		if (ret != desired) {
-			// XXX do something here, but change to using FIONWRITE and OS buf size for detection
+			warnx("TX FAIL");
 		}
 	}
 
@@ -1523,6 +1532,8 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 void
 Mavlink::mavlink_missionlib_send_message(mavlink_message_t *msg)
 {
+	uint8_t missionlib_msg_buf[MAVLINK_MAX_PACKET_LEN];
+
 	uint16_t len = mavlink_msg_to_send_buffer(missionlib_msg_buf, msg);
 
 	mavlink_send_uart_bytes(_channel, missionlib_msg_buf, len);
@@ -2193,7 +2204,7 @@ Mavlink::start(int argc, char *argv[])
 	task_spawn_cmd(buf,
 		       SCHED_DEFAULT,
 		       SCHED_PRIORITY_DEFAULT,
-		       2048,
+		       1950,
 		       (main_t)&Mavlink::start_helper,
 		       (const char **)argv);
 
