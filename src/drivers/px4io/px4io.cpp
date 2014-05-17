@@ -794,7 +794,12 @@ PX4IO::init()
 	}
 
 	/* start the IO interface task */
-	_task = task_create("px4io", SCHED_PRIORITY_ACTUATOR_OUTPUTS, 2048, (main_t)&PX4IO::task_main_trampoline, nullptr);
+	_task = task_spawn_cmd("px4io",
+					SCHED_DEFAULT,
+					SCHED_PRIORITY_ACTUATOR_OUTPUTS,
+					2000,
+					(main_t)&PX4IO::task_main_trampoline,
+					nullptr);
 
 	if (_task < 0) {
 		debug("task start failed: %d", errno);
@@ -989,13 +994,17 @@ PX4IO::task_main()
 				int32_t failsafe_param_val;
 				param_t failsafe_param = param_find("RC_FAILS_THR");
 
-				if (failsafe_param > 0) {
+				if (failsafe_param != PARAM_INVALID) {
 
 					param_get(failsafe_param, &failsafe_param_val);
-					uint16_t failsafe_thr = failsafe_param_val;
-					pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RC_THR_FAILSAFE_US, &failsafe_thr, 1);
-					if (pret != OK) {
-						log("failsafe upload failed");
+
+					if (failsafe_param_val > 0) {
+
+						uint16_t failsafe_thr = failsafe_param_val;
+						pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RC_THR_FAILSAFE_US, &failsafe_thr, 1);
+						if (pret != OK) {
+							log("failsafe upload failed, FS: %d us", (int)failsafe_thr);
+						}
 					}
 				}
 
