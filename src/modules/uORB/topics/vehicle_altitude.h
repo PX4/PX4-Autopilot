@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,18 +32,16 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_local_position.h
- * Definition of the local fused NED position uORB topic.
+ * @file vehicle_altitude.h
+ * Definition of the estimated altitude uORB topic.
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#ifndef TOPIC_VEHICLE_LOCAL_POSITION_H_
-#define TOPIC_VEHICLE_LOCAL_POSITION_H_
+#ifndef TOPIC_VEHICLE_ALTITUDE_H_
+#define TOPIC_VEHICLE_ALTITUDE_H_
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "../uORB.h"
 
 /**
@@ -52,28 +50,12 @@
  */
 
 /**
- * Fused local position in NED.
+ * Estimated altitude.
  */
-struct vehicle_local_position_s {
+struct vehicle_altitude_s {
 	uint64_t timestamp;		/**< Time of this estimate, in microseconds since system start */
-	/* Position in local NED frame */
-	float x;				/**< X position in meters in NED earth-fixed frame */
-	float y;				/**< X position in meters in NED earth-fixed frame */
-	float z;				/**< Z position in meters in NED earth-fixed frame (negative altitude) */
-	/* Velocity in NED frame */
-	float vx; 				/**< Ground X Speed (Latitude), m/s in NED */
-	float vy;				/**< Ground Y Speed (Longitude), m/s in NED */
-	float vz;				/**< Ground Z Speed (Altitude), m/s	in NED */
-	/* Reference position in GPS / WGS84 frame */
-	uint64_t ref_timestamp;	/**< Time when reference position was set, 0 means no global reference */
-	double ref_lat;		/**< Reference point latitude in degrees */
-	double ref_lon;		/**< Reference point longitude in degrees */
-	float ref_alt;			/**< Reference altitude AMSL in meters, MUST be set to current (not at reference point!) ground level */
-	bool landed;			/**< true if vehicle is landed */
-	/* Distance to surface */
-	float dist_bottom;		/**< Distance to bottom surface (ground) */
-	float dist_bottom_rate;		/**< Distance to bottom surface (ground) change rate */
-	uint64_t surface_bottom_timestamp;		/**< Time when new bottom surface found, 0 means no bottom distance estimate */
+	float baro_alt;			/**< Barometric altitude */
+	float climb_rate;		/**< Climb rate */
 };
 
 /**
@@ -81,6 +63,6 @@ struct vehicle_local_position_s {
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(vehicle_local_position);
+ORB_DECLARE(vehicle_altitude);
 
 #endif
