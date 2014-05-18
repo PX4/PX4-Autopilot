@@ -169,8 +169,8 @@ public:
     float storedStates[n_states][data_buffer_size]; // state vectors stored for the last 50 time steps
     uint32_t statetimeStamp[data_buffer_size]; // time stamp for each state vector stored
 
-    float statesAtVelTime[n_states]; // States at the effective measurement time for posNE and velNED measurements
-    float statesAtPosTime[n_states]; // States at the effective measurement time for posNE and velNED measurements
+    float statesAtVelTime[n_states]; // States at the effective measurement time for velNED measurements
+    float statesAtPosTime[n_states]; // States at the effective measurement time for posNE measurements
     float statesAtHgtTime[n_states]; // States at the effective measurement time for the hgtMea measurement
     float statesAtMagMeasTime[n_states]; // filter satates at the effective measurement time
     float statesAtVtasMeasTime[n_states]; // filter states at the effective measurement time
