@@ -98,6 +98,7 @@ __EXPORT uint32_t millis();
 static uint64_t last_run = 0;
 static uint64_t IMUmsec = 0;
 static const uint64_t FILTER_INIT_DELAY = 1 * 1000 * 1000;
+static const uint64_t TIMEOUT_GPS = 500 * 1000;
 
 uint32_t millis()
 {
@@ -194,8 +195,8 @@ private:
 	bool						_initialized;
 	bool						_baro_init;
 	bool						_gps_initialized;
-	uint64_t					_gps_start_time;
 	uint64_t					_filter_start_time;
+	bool						_gps_valid;
 	bool						_gyro_valid;
 	bool						_accel_valid;
 	bool						_mag_valid;
@@ -348,6 +349,7 @@ FixedwingEstimator::FixedwingEstimator() :
 	_initialized(false),
 	_baro_init(false),
 	_gps_initialized(false),
+	_gps_valid(false),
 	_gyro_valid(false),
 	_accel_valid(false),
 	_mag_valid(false),
@@ -567,7 +569,6 @@ FixedwingEstimator::task_main()
 	fds[1].events = POLLIN;
 #endif
 
-	bool newDataGps = false;
 	bool newHgtData = false;
 	bool newAdsData = false;
 	bool newDataMag = false;
@@ -634,6 +635,7 @@ FixedwingEstimator::task_main()
 
 				_baro_init = false;
 				_gps_initialized = false;
+				_gps_valid = false;
 				last_sensor_timestamp = hrt_absolute_time();
 				last_run = last_sensor_timestamp;
 
@@ -805,13 +807,10 @@ FixedwingEstimator::task_main()
 				orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &_gps);
 				perf_count(_perf_gps);
 
-				if (_gps.fix_type < 3) {
-					newDataGps = false;
+				_ekf->GPSstatus = _gps.fix_type;
 
-				} else {
-
-					/* store time of valid GPS measurement */
-					_gps_start_time = hrt_absolute_time();
+				if (_gps.fix_type > 2) {
+					_gps_valid = true;
 
 					/* check if we had a GPS outage for a long time */
 					if (hrt_elapsed_time(&_gps.timestamp_position) > 5 * 1000 * 1000) {
@@ -823,7 +822,6 @@ FixedwingEstimator::task_main()
 					/* fuse GPS updates */
 
 					//_gps.timestamp / 1e3;
-					_ekf->GPSstatus = _gps.fix_type;
 					_ekf->velNED[0] = _gps.vel_n_m_s;
 					_ekf->velNED[1] = _gps.vel_e_m_s;
 					_ekf->velNED[2] = _gps.vel_d_m_s;
@@ -848,11 +846,17 @@ FixedwingEstimator::task_main()
 
 					// warnx("vel: %8.4f pos: %8.4f", _gps.s_variance_m_s, _gps.p_variance_m);
 
-					newDataGps = true;
-
+				} else {
+					_gps_valid = false;
 				}
 
+			} else if (hrt_elapsed_time(&_gps.timestamp_position) > TIMEOUT_GPS) {
+				/* reset GPS status after timeout */
+				_gps_valid = false;
 			}
+
+			/* set GPS status */
+			_ekf->GPSstatus = _gps_valid ? 3 : 0;
 
 			bool baro_updated;
 			orb_check(_baro_sub, &baro_updated);
@@ -1004,7 +1008,12 @@ FixedwingEstimator::task_main()
 				_mag_valid = false;
 
 				_baro_init = false;
-				_gps_initialized = false;
+
+				if (check != 3) {
+					/* don't reset GPS when switching to dynamic mode */
+					_gps_initialized = false;
+					_gps_valid = false;
+				}
 				last_sensor_timestamp = hrt_absolute_time();
 				last_run = last_sensor_timestamp;
 
@@ -1025,7 +1034,7 @@ FixedwingEstimator::task_main()
 
 				float initVelNED[3];
 
-				if (!_gps_initialized && _gps.fix_type > 2 && _gps.eph_m < _parameters.pos_stddev_threshold && _gps.epv_m < _parameters.pos_stddev_threshold) {
+				if (!_gps_initialized && _gps_valid && _gps.eph_m < _parameters.pos_stddev_threshold && _gps.epv_m < _parameters.pos_stddev_threshold) {
 
 					initVelNED[0] = _gps.vel_n_m_s;
 					initVelNED[1] = _gps.vel_e_m_s;
@@ -1043,8 +1052,6 @@ FixedwingEstimator::task_main()
 					_ekf->hgtMea = 1.0f * (_ekf->baroHgt - (_baro_ref));
 
 					// Set up position variables correctly
-					_ekf->GPSstatus = _gps.fix_type;
-
 					_ekf->gpsLat = math::radians(lat);
 					_ekf->gpsLon = math::radians(lon) - M_PI;
 					_ekf->gpsHgt = gps_alt;
@@ -1129,7 +1136,7 @@ FixedwingEstimator::task_main()
 			}
 
 			// Fuse GPS Measurements
-			if (newDataGps && _gps_initialized) {
+			if (_gps_initialized && _gps_valid) {
 				// Convert GPS measurements to Pos NE, hgt and Vel NED
 				_ekf->velNED[0] = _gps.vel_n_m_s;
 				_ekf->velNED[1] = _gps.vel_e_m_s;
@@ -1142,28 +1149,8 @@ FixedwingEstimator::task_main()
 				_ekf->fuseVelData = true;
 				_ekf->fusePosData = true;
 				// recall states stored at time of measurement after adjusting for delays
-				_ekf->RecallStates(_ekf->statesAtVelTime, (IMUmsec - _parameters.vel_delay_ms));
-				_ekf->RecallStates(_ekf->statesAtPosTime, (IMUmsec - _parameters.pos_delay_ms));
-				// run the fusion step
-				_ekf->FuseVelposNED();
-
-			} else if (_ekf->statesInitialised) {
-				// Convert GPS measurements to Pos NE, hgt and Vel NED
-				_ekf->velNED[0] = 0.0f;
-				_ekf->velNED[1] = 0.0f;
-				_ekf->velNED[2] = 0.0f;
-				_ekf->posNED[0] = 0.0f;
-				_ekf->posNED[1] = 0.0f;
-				_ekf->posNED[2] = 0.0f;
-
-				_ekf->posNE[0] = _ekf->posNED[0];
-				_ekf->posNE[1] = _ekf->posNED[1];
-				// set fusion flags
-				_ekf->fuseVelData = true;
-				_ekf->fusePosData = true;
-				// recall states stored at time of measurement after adjusting for delays
-				_ekf->RecallStates(_ekf->statesAtVelTime, (IMUmsec - _parameters.vel_delay_ms));
-				_ekf->RecallStates(_ekf->statesAtPosTime, (IMUmsec - _parameters.pos_delay_ms));
+				_ekf->RecallStates(_ekf->statesAtVelTime, (_gps.timestamp_velocity - _parameters.vel_delay_ms));
+				_ekf->RecallStates(_ekf->statesAtPosTime, (_gps.timestamp_position - _parameters.pos_delay_ms));
 				// run the fusion step
 				_ekf->FuseVelposNED();
 
