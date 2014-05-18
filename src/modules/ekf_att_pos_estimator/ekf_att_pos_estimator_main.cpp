@@ -802,9 +802,6 @@ FixedwingEstimator::task_main()
 			orb_check(_gps_sub, &gps_updated);
 
 			if (gps_updated) {
-
-				uint64_t last_gps = _gps.timestamp_position;
-
 				orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &_gps);
 				perf_count(_perf_gps);
 
@@ -817,7 +814,7 @@ FixedwingEstimator::task_main()
 					_gps_start_time = hrt_absolute_time();
 
 					/* check if we had a GPS outage for a long time */
-					if (hrt_elapsed_time(&last_gps) > 5 * 1000 * 1000) {
+					if (hrt_elapsed_time(&_gps.timestamp_position) > 5 * 1000 * 1000) {
 						_ekf->ResetPosition();
 						_ekf->ResetVelocity();
 						_ekf->ResetStoredStates();
