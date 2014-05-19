@@ -360,3 +360,21 @@ PARAM_DEFINE_FLOAT(MT_LND_PIT_MIN, -5.0f);
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_LND_PIT_MAX, 15.0f);
+
+/**
+ * Integrator Limit for Total Energy Rate Control
+ *
+ * @min 0.0f
+ * @max 10.0f
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_THR_I_MAX, 10.0f);
+
+/**
+ * Integrator Limit for Energy Distribution Rate Control
+ *
+ * @min 0.0f
+ * @max 10.0f
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_PIT_I_MAX, 10.0f);

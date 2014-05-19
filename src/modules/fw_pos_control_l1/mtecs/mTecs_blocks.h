@@ -51,27 +51,6 @@ namespace fwPosctrl
 
 using namespace control;
 
-/* Integrator without limit */
-class BlockIntegralNoLimit: public SuperBlock
-{
-public:
-// methods
-	BlockIntegralNoLimit(SuperBlock *parent, const char *name) :
-		SuperBlock(parent, name),
-		_y(0) {};
-	virtual ~BlockIntegralNoLimit() {};
-	float update(float input) {
-		setY(getY() + input * getDt());
-		return getY();
-	};
-// accessors
-	float getY() {return _y;}
-	void setY(float y) {_y = y;}
-protected:
-// attributes
-	float _y; /**< previous output */
-};
-
 /* An block which can be used to limit the output */
 class BlockOutputLimiter: public SuperBlock
 {
@@ -128,7 +107,7 @@ public:
 	virtual ~BlockFFPILimited() {};
 	float update(float inputValue, float inputError) { return calcLimitedOutput(inputValue, inputError, _outputLimiter); }
 // accessors
-	BlockIntegralNoLimit &getIntegral() { return _integral; }
+	BlockIntegral &getIntegral() { return _integral; }
 	float getKFF() { return _kFF.get(); }
 	float getKP() { return _kP.get(); }
 	float getKI() { return _kI.get(); }
@@ -143,14 +122,14 @@ protected:
 		float integralYPrevious = _integral.getY();
 		float output = calcUnlimitedOutput(inputValue, inputError);
 		if(!outputLimiter.limit(output, difference) &&
-			(((difference < 0) && (getKI() * getIntegral().update(inputError) < 0)) ||
-			((difference > 0) && (getKI() * getIntegral().update(inputError) > 0)))) {
+			(((difference < 0) && (getKI() * getIntegral().getY() < 0)) ||
+			((difference > 0) && (getKI() * getIntegral().getY() > 0)))) {
 				getIntegral().setY(integralYPrevious);
 		}
 		return output;
 	}
 private:
-	BlockIntegralNoLimit _integral;
+	BlockIntegral _integral;
 	BlockParamFloat _kFF;
 	BlockParamFloat _kP;
 	BlockParamFloat _kI;
