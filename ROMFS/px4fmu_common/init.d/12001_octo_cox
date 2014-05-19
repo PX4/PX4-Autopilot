@@ -1,12 +1,12 @@
 #!nsh
 #
-# Generic 10” Octo coaxial geometry
+# Generic 10" Octo coaxial geometry
 #
 # Lorenz Meier <lm@inf.ethz.ch>
 #
 
 sh /etc/init.d/rc.mc_defaults
 
-set MIXER octo_cox
+set MIXER FMU_octo_cox
 
 set PWM_OUTPUTS 12345678

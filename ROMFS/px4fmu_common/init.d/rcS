@@ -20,7 +20,7 @@ echo "[init] Looking for microSD..."
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
 	set LOG_FILE /fs/microsd/bootlog.txt
-	echo "[init] microSD card mounted at /fs/microsd"
+	echo "[init] microSD mounted: /fs/microsd"
 	# Start playing the startup tune
 	tone_alarm start
 else
@@ -83,9 +83,9 @@ then
 	param select $PARAM_FILE
 	if param load
 	then
-		echo "[init] Parameters loaded: $PARAM_FILE"
+		echo "[init] Params loaded: $PARAM_FILE"
 	else
-		echo "[init] ERROR: Parameters loading failed: $PARAM_FILE"
+		echo "[init] ERROR: Params loading failed: $PARAM_FILE"
 	fi
 	
 	#
@@ -108,7 +108,6 @@ then
 	set HIL no
 	set VEHICLE_TYPE none
 	set MIXER none
-	set USE_IO yes
 	set OUTPUT_MODE none
 	set PWM_OUTPUTS none
 	set PWM_RATE none
@@ -117,7 +116,12 @@ then
 	set PWM_MAX none
 	set MKBLCTRL_MODE none
 	set FMU_MODE pwm
+	set MAVLINK_FLAGS default
+	set EXIT_ON_END no
 	set MAV_TYPE none
+	set LOAD_DEFAULT_APPS yes
+	set GPS yes
+	set GPS_FAKE no
 	
 	#
 	# Set DO_AUTOCONFIG flag to use it in AUTOSTART scripts
@@ -128,13 +132,23 @@ then
 	else
 		set DO_AUTOCONFIG no
 	fi
+	
+	#
+	# Set USE_IO flag
+	#
+	if param compare SYS_USE_IO 1
+	then
+		set USE_IO yes
+	else
+		set USE_IO no
+	fi
 		
 	#
 	# Set parameters and env variables for selected AUTOSTART
 	#
 	if param compare SYS_AUTOSTART 0
 	then
-		echo "[init] Don't try to find autostart script"
+		echo "[init] No autostart"
 	else
 		sh /etc/init.d/rc.autostart
 	fi
@@ -144,10 +158,10 @@ then
 	#
 	if [ -f $CONFIG_FILE ]
 	then
-		echo "[init] Reading config: $CONFIG_FILE"
+		echo "[init] Config: $CONFIG_FILE"
 		sh $CONFIG_FILE
 	else
-		echo "[init] Config file not found: $CONFIG_FILE"
+		echo "[init] Config not found: $CONFIG_FILE"
 	fi
 
 	#
@@ -234,7 +248,7 @@ then
 		echo "[init] ERROR: PX4IO not found, disabling output"
 		
 		# Avoid using ttyS0 for MAVLink on FMUv1
-		if hw_ver compare PX4FMU_V1
+		if ver hwcmp PX4FMU_V1
 		then
 			set FMU_MODE serial
 		fi
@@ -248,14 +262,14 @@ then
 	if [ $HIL == yes ]
 	then
 		set OUTPUT_MODE hil
-		if hw_ver compare PX4FMU_V1
+		if ver hwcmp PX4FMU_V1
 		then
 			set FMU_MODE serial
 		fi
-	else
-		# Try to get an USB console if not in HIL mode
-		nshterm /dev/ttyACM0 &
 	fi
+
+	# Try to get an USB console
+	nshterm /dev/ttyACM0 &
 	
 	#
 	# Start the Commander (needs to be this early for in-air-restarts)
@@ -282,6 +296,7 @@ then
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 		fi
+		
 		if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == ardrone ]
 		then
 			echo "[init] Use FMU as primary output"
@@ -293,7 +308,7 @@ then
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 			
-			if hw_ver compare PX4FMU_V1
+			if ver hwcmp PX4FMU_V1
 			then
 				if [ $FMU_MODE == pwm -o $FMU_MODE == gpio ]
 				then
@@ -305,6 +320,7 @@ then
 				fi
 			fi
 		fi
+		
 		if [ $OUTPUT_MODE == mkblctrl ]
 		then
 			echo "[init] Use MKBLCTRL as primary output"
@@ -326,7 +342,8 @@ then
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 			
-		fi		
+		fi
+				
 		if [ $OUTPUT_MODE == hil ]
 		then
 			echo "[init] Use HIL as primary output"
@@ -366,7 +383,7 @@ then
 					tone_alarm $TUNE_OUT_ERROR
 				fi
 	
-				if hw_ver compare PX4FMU_V1
+				if ver hwcmp PX4FMU_V1
 				then
 					if [ $FMU_MODE == pwm -o $FMU_MODE == gpio ]
 					then
@@ -384,54 +401,47 @@ then
 	#
 	# MAVLink
 	#
-	set EXIT_ON_END no
-	
-	if [ $HIL == yes ]
+	if [ $MAVLINK_FLAGS == default ]
 	then
-		sleep 1
-		mavlink start -b 230400 -d /dev/ttyACM0 
-		usleep 5000
-	else
+		# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
 		if [ $TTYS1_BUSY == yes ]
 		then
 			# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
-			mavlink start -d /dev/ttyS0
-			usleep 5000
-			
+			set MAVLINK_FLAGS "-r 1000 -d /dev/ttyS0"
+
 			# Exit from nsh to free port for mavlink
 			set EXIT_ON_END yes
 		else
 			# Start MAVLink on default port: ttyS1
-			mavlink start
-			usleep 5000
+			set MAVLINK_FLAGS "-r 1000"
 		fi
 	fi
-	
-	#
-	# Start the datamanager
-	#
-	dataman start
-	
-	#
-	# Start the navigator
-	#
-	navigator start
+
+	mavlink start $MAVLINK_FLAGS
 	
 	#
 	# Sensors, Logging, GPS
 	#
-	echo "[init] Start sensors"
 	sh /etc/init.d/rc.sensors
 
 	if [ $HIL == no ]
 	then
 		echo "[init] Start logging"
 		sh /etc/init.d/rc.logging
-		
-		echo "[init] Start GPS"
-		gps start
 	fi
 	
+	if [ $GPS == yes ]
+	then
+		echo "[init] Start GPS"
+		if [ $GPS_FAKE == yes ]
+		then
+			echo "[init] Faking GPS"
+			gps start -f
+		else
+			gps start
+		fi		
+	fi
+
 	#
 	# Start up ARDrone Motor interface
 	#
@@ -465,7 +475,10 @@ then
 		sh /etc/init.d/rc.interface
 		
 		# Start standard fixedwing apps
-		sh /etc/init.d/rc.fw_apps
+		if [ $LOAD_DEFAULT_APPS == yes ]
+		then
+			sh /etc/init.d/rc.fw_apps
+		fi
 	fi
 
 	#
@@ -495,7 +508,7 @@ then
 			then
 				set MAV_TYPE 13
 			fi
-			if [ $MIXER == hexa_cox ]
+			if [ $MIXER == FMU_hexa_cox ]
 			then
 				set MAV_TYPE 13
 			fi
@@ -521,8 +534,21 @@ then
 		sh /etc/init.d/rc.interface
 		
 		# Start standard multicopter apps
-		sh /etc/init.d/rc.mc_apps
+		if [ $LOAD_DEFAULT_APPS == yes ]
+		then
+			sh /etc/init.d/rc.mc_apps
+		fi
 	fi
+
+	#
+	# Start the datamanager
+	#
+	dataman start
+
+	#
+	# Start the navigator
+	#
+	navigator start
 
 	#
 	# Generic setup (autostart ID not found)
@@ -539,11 +565,12 @@ then
 		echo "[init] Starting addons script: $EXTRAS_FILE"
 		sh $EXTRAS_FILE
 	else
-		echo "[init] Addons script not found: $EXTRAS_FILE"
+		echo "[init] No addons script: $EXTRAS_FILE"
 	fi
 
 	if [ $EXIT_ON_END == yes ]
 	then
+		echo "[init] Exit from nsh"
 		exit
 	fi
 

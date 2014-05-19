@@ -50,3 +50,5 @@ SRCS		 = attitude_estimator_ekf_main.cpp \
 		   codegen/rtGetNaN.c \
 		   codegen/norm.c \
 		   codegen/cross.c
+
+MODULE_STACKSIZE = 1200

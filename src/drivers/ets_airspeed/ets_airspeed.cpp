@@ -132,7 +132,6 @@ ETSAirspeed::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		log("i2c::transfer returned %d", ret);
 	}
 
 	return ret;
@@ -177,11 +176,14 @@ ETSAirspeed::collect()
 		_max_differential_pressure_pa = diff_pres_pa;
 	}
 
-	// XXX we may want to smooth out the readings to remove noise.
 	differential_pressure_s report;
 	report.timestamp = hrt_absolute_time();
         report.error_count = perf_event_count(_comms_errors);
 	report.differential_pressure_pa = (float)diff_pres_pa;
+
+	// XXX we may want to smooth out the readings to remove noise.
+	report.differential_pressure_filtered_pa = (float)diff_pres_pa;
+	report.temperature = -1000.0f;
 	report.voltage = 0;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
@@ -205,14 +207,18 @@ ETSAirspeed::collect()
 void
 ETSAirspeed::cycle()
 {
+	int ret;
+
 	/* collection phase? */
 	if (_collect_phase) {
 
 		/* perform collection */
-		if (OK != collect()) {
+		ret = collect();
+		if (OK != ret) {
 			perf_count(_comms_errors);
 			/* restart the measurement state machine */
 			start();
+			_sensor_ok = false;
 			return;
 		}
 
@@ -236,8 +242,12 @@ ETSAirspeed::cycle()
 	}
 
 	/* measurement phase */
-	if (OK != measure())
-		log("measure error");
+	ret = measure();
+	if (OK != ret) {
+		debug("measure error");
+	}
+
+	_sensor_ok = (ret == OK);
 
 	/* next phase is collection */
 	_collect_phase = true;
@@ -308,7 +318,7 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	errx(1, "no ETS airspeed sensor connected");
 }
 
 /**

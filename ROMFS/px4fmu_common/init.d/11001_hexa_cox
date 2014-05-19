@@ -2,14 +2,14 @@
 #
 # UNTESTED UNTESTED!
 #
-# Generic 10” Hexa coaxial geometry
+# Generic 10" Hexa coaxial geometry
 #
 # Lorenz Meier <lm@inf.ethz.ch>
 #
 
 sh /etc/init.d/rc.mc_defaults
 
-set MIXER hexa_cox
+set MIXER FMU_hexa_cox
 
 # We only can run one channel group with one rate, so set all 8 channels
 set PWM_OUTPUTS 12345678

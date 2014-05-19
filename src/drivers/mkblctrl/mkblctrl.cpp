@@ -92,8 +92,20 @@
 #define MOTOR_SPINUP_COUNTER			30
 #define ESC_UORB_PUBLISH_DELAY		500000
 
-
-
+struct MotorData_t {
+	unsigned int Version;                        // the version of the BL (0 = old)
+	unsigned int SetPoint;                       // written by attitude controller
+	unsigned int SetPointLowerBits;      // for higher Resolution of new BLs
+	float SetPoint_PX4; 			     // Values from PX4
+	unsigned int State;                          // 7 bit for I2C error counter, highest bit indicates if motor is present
+	unsigned int ReadMode;                       // select data to read
+	unsigned short RawPwmValue;							// length of PWM pulse
+	// the following bytes must be exactly in that order!
+	unsigned int Current;                        // in 0.1 A steps, read back from BL
+	unsigned int MaxPWM;                         // read back from BL is less than 255 if BL is in current limit
+	unsigned int Temperature;            // old BL-Ctrl will return a 255 here, the new version the temp. in
+	unsigned int RoundCount;
+};
 
 class MK : public device::I2C
 {
@@ -154,8 +166,10 @@ private:
 
 	actuator_controls_s _controls;
 
+	MotorData_t Motor[MAX_MOTORS];
+
 	static void	task_main_trampoline(int argc, char *argv[]);
-	void		task_main() __attribute__((noreturn));
+	void		task_main();
 
 	static int	control_callback(uintptr_t handle,
 					 uint8_t control_group,
@@ -194,24 +208,6 @@ const int blctrlAddr_octo_x[] = { 1, 4, 0, 1, -4, 1, 1, -4 };	// Addresstranslat
 const int blctrlAddr_px4[]  = { 0, 0, 0, 0, 0, 0, 0, 0};
 
 int addrTranslator[] = {0, 0, 0, 0, 0, 0, 0, 0};
-
-struct MotorData_t {
-	unsigned int Version;                        // the version of the BL (0 = old)
-	unsigned int SetPoint;                       // written by attitude controller
-	unsigned int SetPointLowerBits;      // for higher Resolution of new BLs
-	float SetPoint_PX4; 			     // Values from PX4
-	unsigned int State;                          // 7 bit for I2C error counter, highest bit indicates if motor is present
-	unsigned int ReadMode;                       // select data to read
-	unsigned short RawPwmValue;							// length of PWM pulse
-	// the following bytes must be exactly in that order!
-	unsigned int Current;                        // in 0.1 A steps, read back from BL
-	unsigned int MaxPWM;                         // read back from BL is less than 255 if BL is in current limit
-	unsigned int Temperature;            // old BL-Ctrl will return a 255 here, the new version the temp. in
-	unsigned int RoundCount;
-};
-
-MotorData_t Motor[MAX_MOTORS];
-
 
 namespace
 {
@@ -1015,7 +1011,7 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case PWM_SERVO_GET(0) ... PWM_SERVO_GET(_max_actuators - 1):
 		/* copy the current output value from the channel */
-		*(servo_position_t *)arg = Motor[cmd - PWM_SERVO_SET(0)].RawPwmValue;
+		*(servo_position_t *)arg = Motor[cmd - PWM_SERVO_GET(0)].RawPwmValue;
 
 		break;
 

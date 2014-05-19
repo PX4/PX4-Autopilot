@@ -69,11 +69,11 @@ int do_trim_calibration(int mavlink_fd)
 	orb_copy(ORB_ID(manual_control_setpoint), sub_man, &sp);
 
 	/* set parameters */
-	float p = sp.roll;
+	float p = sp.y;
 	param_set(param_find("TRIM_ROLL"), &p);
-	p = sp.pitch;
+	p = sp.x;
 	param_set(param_find("TRIM_PITCH"), &p);
-	p = sp.yaw;
+	p = sp.r;
 	param_set(param_find("TRIM_YAW"), &p);
 
 	/* store to permanent storage */

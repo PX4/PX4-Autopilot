@@ -91,6 +91,8 @@
 
 #include "uploader.h"
 
+#include "modules/dataman/dataman.h"
+
 extern device::Device *PX4IO_i2c_interface() weak_function;
 extern device::Device *PX4IO_serial_interface() weak_function;
 
@@ -527,6 +529,11 @@ PX4IO::~PX4IO()
 	if (_interface != nullptr)
 		delete _interface;
 
+	/* deallocate perfs */
+	perf_free(_perf_update);
+	perf_free(_perf_write);
+	perf_free(_perf_chan_count);
+
 	g_dev = nullptr;
 }
 
@@ -568,8 +575,14 @@ int
 PX4IO::init()
 {
 	int ret;
+	param_t sys_restart_param;
+	int sys_restart_val = DM_INIT_REASON_VOLATILE;
 
 	ASSERT(_task == -1);
+
+	sys_restart_param = param_find("SYS_RESTART_TYPE");
+	/* Indicate restart type is unknown */
+	param_set(sys_restart_param, &sys_restart_val);
 
 	/* do regular cdev init */
 	ret = CDev::init();
@@ -675,6 +688,25 @@ PX4IO::init()
 
 		/* send command to arm system via command API */
 		vehicle_command_s cmd;
+		/* send this to itself */
+		param_t sys_id_param = param_find("MAV_SYS_ID");
+		param_t comp_id_param = param_find("MAV_COMP_ID");
+
+		int32_t sys_id;
+		int32_t comp_id;
+
+		if (param_get(sys_id_param, &sys_id)) {
+			errx(1, "PRM SYSID");
+		}
+
+		if (param_get(comp_id_param, &comp_id)) {
+			errx(1, "PRM CMPID");
+		}
+
+		cmd.target_system = sys_id;
+		cmd.target_component = comp_id;
+		cmd.source_system = sys_id;
+		cmd.source_component = comp_id;
 		/* request arming */
 		cmd.param1 = 1.0f;
 		cmd.param2 = 0;
@@ -684,10 +716,7 @@ PX4IO::init()
 		cmd.param6 = 0;
 		cmd.param7 = 0;
 		cmd.command = VEHICLE_CMD_COMPONENT_ARM_DISARM;
-		// cmd.target_system = status.system_id;
-		// cmd.target_component = status.component_id;
-		// cmd.source_system = status.system_id;
-		// cmd.source_component = status.component_id;
+
 		/* ask to confirm command */
 		cmd.confirmation =  1;
 
@@ -720,6 +749,11 @@ PX4IO::init()
 			/* keep waiting for state change for 2 s */
 		} while (!safety.armed);
 
+		/* Indicate restart type is in-flight */
+		sys_restart_val = DM_INIT_REASON_IN_FLIGHT;
+		param_set(sys_restart_param, &sys_restart_val);
+
+
 		/* regular boot, no in-air restart, init IO */
 
 	} else {
@@ -745,6 +779,10 @@ PX4IO::init()
 			}
 		}
 
+		/* Indicate restart type is power on */
+		sys_restart_val = DM_INIT_REASON_POWER_ON;
+		param_set(sys_restart_param, &sys_restart_val);
+
 	}
 
 	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
@@ -756,7 +794,12 @@ PX4IO::init()
 	}
 
 	/* start the IO interface task */
-	_task = task_create("px4io", SCHED_PRIORITY_ACTUATOR_OUTPUTS, 2048, (main_t)&PX4IO::task_main_trampoline, nullptr);
+	_task = task_spawn_cmd("px4io",
+					SCHED_DEFAULT,
+					SCHED_PRIORITY_ACTUATOR_OUTPUTS,
+					2000,
+					(main_t)&PX4IO::task_main_trampoline,
+					nullptr);
 
 	if (_task < 0) {
 		debug("task start failed: %d", errno);
@@ -944,8 +987,27 @@ PX4IO::task_main()
 				int pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE, &scaling, 1);
 
 				if (pret != OK) {
-					log("voltage scaling upload failed");
+					log("vscale upload failed");
 				}
+
+				/* send RC throttle failsafe value to IO */
+				int32_t failsafe_param_val;
+				param_t failsafe_param = param_find("RC_FAILS_THR");
+
+				if (failsafe_param != PARAM_INVALID) {
+
+					param_get(failsafe_param, &failsafe_param_val);
+
+					if (failsafe_param_val > 0) {
+
+						uint16_t failsafe_thr = failsafe_param_val;
+						pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RC_THR_FAILSAFE_US, &failsafe_thr, 1);
+						if (pret != OK) {
+							log("failsafe upload failed, FS: %d us", (int)failsafe_thr);
+						}
+					}
+				}
+
 			}
 
 		}
@@ -1332,12 +1394,15 @@ PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 	battery_status.discharged_mah = _battery_mamphour_total;
 	_battery_last_timestamp = battery_status.timestamp;
 
-	/* lazily publish the battery voltage */
-	if (_to_battery > 0) {
-		orb_publish(ORB_ID(battery_status), _to_battery, &battery_status);
+	/* the announced battery status would conflict with the simulated battery status in HIL */
+	if (!(_pub_blocked)) {
+		/* lazily publish the battery voltage */
+		if (_to_battery > 0) {
+			orb_publish(ORB_ID(battery_status), _to_battery, &battery_status);
 
-	} else {
-		_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status);
+		} else {
+			_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status);
+		}
 	}
 }
 
@@ -1397,7 +1462,7 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	/* we don't have the status bits, so input_source has to be set elsewhere */
 	input_rc.input_source = RC_INPUT_SOURCE_UNKNOWN;
 
-	static const unsigned prolog = (PX4IO_P_RAW_RC_BASE - PX4IO_P_RAW_RC_COUNT);
+	const unsigned prolog = (PX4IO_P_RAW_RC_BASE - PX4IO_P_RAW_RC_COUNT);
 	uint16_t regs[RC_INPUT_MAX_CHANNELS + prolog];
 
 	/*
@@ -1405,8 +1470,6 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	 *
 	 * This should be the common case (9 channel R/C control being a reasonable upper bound).
 	 */
-	input_rc.timestamp_publication = hrt_absolute_time();
-
 	ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT, &regs[0], prolog + 9);
 
 	if (ret != OK)
@@ -1418,22 +1481,37 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	 */
 	channel_count = regs[PX4IO_P_RAW_RC_COUNT];
 
-	if (channel_count != _rc_chan_count)
+	/* limit the channel count */
+	if (channel_count > RC_INPUT_MAX_CHANNELS) {
+		channel_count = RC_INPUT_MAX_CHANNELS;
+	}
+
+	/* count channel count changes to identify signal integrity issues */
+	if (channel_count != _rc_chan_count) {
 		perf_count(_perf_chan_count);
+	}
 
 	_rc_chan_count = channel_count;
+
+	input_rc.timestamp_publication = hrt_absolute_time();
 
 	input_rc.rc_ppm_frame_length = regs[PX4IO_P_RAW_RC_DATA];
 	input_rc.rssi = regs[PX4IO_P_RAW_RC_NRSSI];
 	input_rc.rc_failsafe = (regs[PX4IO_P_RAW_RC_FLAGS] & PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+	input_rc.rc_lost = !(regs[PX4IO_P_RAW_RC_FLAGS] & PX4IO_P_RAW_RC_FLAGS_RC_OK);
 	input_rc.rc_lost_frame_count = regs[PX4IO_P_RAW_LOST_FRAME_COUNT];
 	input_rc.rc_total_frame_count = regs[PX4IO_P_RAW_FRAME_COUNT];
+	input_rc.channel_count = channel_count;
 
 	/* rc_lost has to be set before the call to this function */
-	if (!input_rc.rc_lost && !input_rc.rc_failsafe)
+	if (!input_rc.rc_lost && !input_rc.rc_failsafe) {
 		_rc_last_valid = input_rc.timestamp_publication;
+	}
 
 	input_rc.timestamp_last_signal = _rc_last_valid;
+
+	/* FIELDS NOT SET HERE */
+	/* input_rc.input_source is set after this call XXX we might want to mirror the flags in the RC struct */
 
 	if (channel_count > 9) {
 		ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE + 9, &regs[prolog + 9], channel_count - 9);
@@ -1442,8 +1520,10 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 			return ret;
 	}
 
-	input_rc.channel_count = channel_count;
-	memcpy(input_rc.values, &regs[prolog], channel_count * 2);
+	/* last thing set are the actual channel values as 16 bit values */
+	for (unsigned i = 0; i < channel_count; i++) {
+		input_rc.values[i] = regs[prolog + i];
+	}
 
 	return ret;
 }
@@ -1476,10 +1556,11 @@ PX4IO::io_publish_raw_rc()
 	} else {
 		rc_val.input_source = RC_INPUT_SOURCE_UNKNOWN;
 
-		/* we do not know the RC input, only publish if RC OK flag is set */
-		/* if no raw RC, just don't publish */
-		if (!(_status & PX4IO_P_STATUS_FLAGS_RC_OK))
+		/* only keep publishing RC input if we ever got a valid input */
+		if (_rc_last_valid == 0) {
+			/* we have never seen valid RC signals, abort */
 			return OK;
+		}
 	}
 
 	/* lazily advertise on first publication */
@@ -1921,12 +2002,14 @@ PX4IO::print_status()
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE));
 #endif
 	printf("debuglevel %u\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG));
-	printf("controls");
+	for (unsigned group = 0; group < 4; group++) {
+		printf("controls %u:", group);
 
-	for (unsigned i = 0; i < _max_controls; i++)
-		printf(" %u", io_reg_get(PX4IO_PAGE_CONTROLS, i));
+		for (unsigned i = 0; i < _max_controls; i++)
+			printf(" %d", (int16_t) io_reg_get(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT + i));
 
-	printf("\n");
+		printf("\n");
+	}
 
 	for (unsigned i = 0; i < _max_rc_input; i++) {
 		unsigned base = PX4IO_P_RC_CONFIG_STRIDE * i;
@@ -1957,8 +2040,7 @@ PX4IO::print_status()
 }
 
 int
-PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
-/* Make it obvious that file * isn't used here */
+PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 {
 	int ret = OK;
 
@@ -2109,6 +2191,10 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 
 	case PWM_SERVO_GET_DISABLE_LOCKDOWN:
 		*(unsigned *)arg = _lockdown_override;
+
+	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
+		/* force safety swith off */
+		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, PX4IO_FORCE_SAFETY_MAGIC);
 		break;
 
 	case DSM_BIND_START:
@@ -2370,8 +2456,9 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		break;
 
 	default:
-		/* not a recognized value */
-		ret = -ENOTTY;
+		/* see if the parent class can make any use of it */
+		ret = CDev::ioctl(filep, cmd, arg);
+		break;
 	}
 
 	return ret;

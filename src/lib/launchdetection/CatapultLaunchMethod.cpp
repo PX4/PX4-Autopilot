@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -10,9 +10,9 @@
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in
- *    the documentation4 and/or other materials provided with the
+ *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -33,20 +33,25 @@
 
 /**
  * @file CatapultLaunchMethod.cpp
- * Catpult Launch detection
+ * Catapult Launch detection
  *
- * Authors and acknowledgements in header.
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ *
  */
 
 #include "CatapultLaunchMethod.h"
 #include <systemlib/err.h>
 
-CatapultLaunchMethod::CatapultLaunchMethod() :
+namespace launchdetection
+{
+
+CatapultLaunchMethod::CatapultLaunchMethod(SuperBlock *parent) :
+	SuperBlock(parent, "CAT"),
 	last_timestamp(hrt_absolute_time()),
 	integrator(0.0f),
 	launchDetected(false),
-	threshold_accel(NULL, "LAUN_CAT_A", false),
-	threshold_time(NULL, "LAUN_CAT_T", false)
+	threshold_accel(this, "A"),
+	threshold_time(this, "T")
 {
 
 }
@@ -83,14 +88,11 @@ bool CatapultLaunchMethod::getLaunchDetected()
 	return launchDetected;
 }
 
-void CatapultLaunchMethod::updateParams()
-{
-	threshold_accel.update();
-	threshold_time.update();
-}
 
 void CatapultLaunchMethod::reset()
 {
 	integrator = 0.0f;
 	launchDetected = false;
+}
+
 }

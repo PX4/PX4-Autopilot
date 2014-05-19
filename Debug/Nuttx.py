@@ -306,12 +306,15 @@ class NX_show_heap (gdb.Command):
 
 	def __init__(self):
 		super(NX_show_heap, self).__init__('show heap', gdb.COMMAND_USER)
-		if gdb.lookup_type('struct mm_allocnode_s').sizeof == 8:
-			self._allocflag = 0x80000000
-			self._allocnodesize = 8
-		else:
+                struct_mm_allocnode_s = gdb.lookup_type('struct mm_allocnode_s')
+                preceding_size = struct_mm_allocnode_s['preceding'].type.sizeof
+                if preceding_size == 2:
 			self._allocflag = 0x8000
-			self._allocnodesize = 4
+                elif preceding_size == 4:
+			self._allocflag = 0x80000000
+                else:
+                        raise gdb.GdbError('invalid mm_allocnode_s.preceding size %u' % preceding_size)
+                self._allocnodesize = struct_mm_allocnode_s.sizeof
 
 	def _node_allocated(self, allocnode):
 		if allocnode['preceding'] & self._allocflag:
@@ -333,7 +336,8 @@ class NX_show_heap (gdb.Command):
 				state = ''
 			else:
 				state = '(free)'
-			print '  {} {} {}'.format(allocnode.address + 8, self._node_size(allocnode), state)
+			print '  {} {} {}'.format(allocnode.address + self._allocnodesize,
+                                                  self._node_size(allocnode), state)
 			cursor += self._node_size(allocnode) / self._allocnodesize
 
 	def invoke(self, args, from_tty):

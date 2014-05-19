@@ -77,8 +77,7 @@ enum ORIGIN {
  * This is the position the MAV is heading towards. If it of type loiter,
  * the MAV is circling around it with the given loiter radius in meters.
  */
-struct mission_item_s
-{
+struct mission_item_s {
 	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
 	double lat;			/**< latitude in degrees				*/
 	double lon;			/**< longitude in degrees				*/
@@ -106,7 +105,7 @@ struct mission_s
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(mission);
+ORB_DECLARE(offboard_mission);
 ORB_DECLARE(onboard_mission);
 
 #endif

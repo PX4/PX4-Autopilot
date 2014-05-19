@@ -113,17 +113,22 @@ void buzzer_deinit()
 	close(buzzer);
 }
 
-void set_tune(int tune) {
+void set_tune(int tune)
+{
 	unsigned int new_tune_duration = tune_durations[tune];
+
 	/* don't interrupt currently playing non-repeating tune by repeating */
 	if (tune_end == 0 || new_tune_duration != 0 || hrt_absolute_time() > tune_end) {
 		/* allow interrupting current non-repeating tune by the same tune */
 		if (tune != tune_current || new_tune_duration != 0) {
 			ioctl(buzzer, TONE_SET_ALARM, tune);
 		}
+
 		tune_current = tune;
+
 		if (new_tune_duration != 0) {
 			tune_end = hrt_absolute_time() + new_tune_duration;
+
 		} else {
 			tune_end = 0;
 		}
@@ -138,6 +143,7 @@ void tune_positive(bool use_buzzer)
 	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
 	rgbled_set_color(RGBLED_COLOR_GREEN);
 	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
+
 	if (use_buzzer) {
 		set_tune(TONE_NOTIFY_POSITIVE_TUNE);
 	}
@@ -151,6 +157,7 @@ void tune_neutral(bool use_buzzer)
 	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
 	rgbled_set_color(RGBLED_COLOR_WHITE);
 	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
+
 	if (use_buzzer) {
 		set_tune(TONE_NOTIFY_NEUTRAL_TUNE);
 	}
@@ -164,6 +171,7 @@ void tune_negative(bool use_buzzer)
 	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
 	rgbled_set_color(RGBLED_COLOR_RED);
 	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
+
 	if (use_buzzer) {
 		set_tune(TONE_NOTIFY_NEGATIVE_TUNE);
 	}
@@ -198,16 +206,10 @@ int led_init()
 		return ERROR;
 	}
 
-	/* the blue LED is only available on FMUv1 but not FMUv2 */
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+	/* the blue LED is only available on FMUv1 & AeroCore but not FMUv2 */
+	(void)ioctl(leds, LED_ON, LED_BLUE);
 
-	if (ioctl(leds, LED_ON, LED_BLUE)) {
-		warnx("Blue LED: ioctl fail\n");
-		return ERROR;
-	}
-
-#endif
-
+	/* we consider the amber led mandatory */
 	if (ioctl(leds, LED_ON, LED_AMBER)) {
 		warnx("Amber LED: ioctl fail\n");
 		return ERROR;
@@ -217,11 +219,7 @@ int led_init()
 	rgbleds = open(RGBLED_DEVICE_PATH, 0);
 
 	if (rgbleds == -1) {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-		errx(1, "Unable to open " RGBLED_DEVICE_PATH);
-#else
-		warnx("No RGB LED found");
-#endif
+		warnx("No RGB LED found at " RGBLED_DEVICE_PATH);
 	}
 
 	return 0;
@@ -254,22 +252,25 @@ int led_off(int led)
 void rgbled_set_color(rgbled_color_t color)
 {
 
-	if (rgbleds != -1)
+	if (rgbleds != -1) {
 		ioctl(rgbleds, RGBLED_SET_COLOR, (unsigned long)color);
+	}
 }
 
 void rgbled_set_mode(rgbled_mode_t mode)
 {
 
-	if (rgbleds != -1)
+	if (rgbleds != -1) {
 		ioctl(rgbleds, RGBLED_SET_MODE, (unsigned long)mode);
+	}
 }
 
 void rgbled_set_pattern(rgbled_pattern_t *pattern)
 {
 
-	if (rgbleds != -1)
+	if (rgbleds != -1) {
 		ioctl(rgbleds, RGBLED_SET_PATTERN, (unsigned long)pattern);
+	}
 }
 
 float battery_remaining_estimate_voltage(float voltage, float discharged)
@@ -309,6 +310,7 @@ float battery_remaining_estimate_voltage(float voltage, float discharged)
 	if (bat_capacity > 0.0f) {
 		/* if battery capacity is known, use discharged current for estimate, but don't show more than voltage estimate */
 		ret = fminf(remaining_voltage, 1.0f - discharged / bat_capacity);
+
 	} else {
 		/* else use voltage */
 		ret = remaining_voltage;

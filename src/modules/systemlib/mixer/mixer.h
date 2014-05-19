@@ -516,7 +516,7 @@ private:
 	float				_roll_scale;
 	float				_pitch_scale;
 	float				_yaw_scale;
-	float				_deadband;
+	float				_idle_speed;
 
 	unsigned			_rotor_count;
 	const Rotor			*_rotors;

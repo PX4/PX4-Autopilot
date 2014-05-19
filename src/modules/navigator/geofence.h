@@ -1,8 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Jean Cyr <jean.m.cyr@gmail.com>
- *           @author Thomas Gubler <thomasgubler@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,17 +33,22 @@
 /**
  * @file geofence.h
  * Provides functions for handling the geofence
+ *
+ * @author Jean Cyr <jean.m.cyr@gmail.com>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
 #ifndef GEOFENCE_H_
 #define GEOFENCE_H_
 
 #include <uORB/topics/fence.h>
+#include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
 #define GEOFENCE_FILENAME "/fs/microsd/etc/geofence.txt"
 
-class Geofence {
+class Geofence : public control::SuperBlock
+{
 private:
 	orb_advert_t	_fence_pub;			/**< publish fence topic */
 
@@ -85,8 +88,6 @@ public:
 	int loadFromFile(const char *filename);
 
 	bool isEmpty() {return _verticesCount == 0;}
-
-	void updateParams();
 };
 
 

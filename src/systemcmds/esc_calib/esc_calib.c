@@ -182,7 +182,7 @@ esc_calib_main(int argc, char *argv[])
 
 	if (orb_updated) {
 		errx(1, "ABORTING! Attitude control still active. Please ensure to shut down all controllers:\n"
-			"\tmultirotor_att_control stop\n"
+			"\tmc_att_control stop\n"
 			"\tfw_att_control stop\n");
 	}
 

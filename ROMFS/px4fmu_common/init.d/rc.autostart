@@ -68,6 +68,12 @@ then
 	set MODE custom
 fi
 
+if param compare SYS_AUTOSTART 2103 103
+then
+        sh /etc/init.d/2103_skyhunter_1800
+        set MODE custom
+fi
+
 #
 # Flying wing
 #
@@ -95,6 +101,11 @@ fi
 if param compare SYS_AUTOSTART 3034 34
 then
 	sh /etc/init.d/3034_fx79
+fi
+
+if param compare SYS_AUTOSTART 3100
+then
+	sh /etc/init.d/3100_tbs_caipirinha
 fi
 
 #
@@ -182,6 +193,11 @@ fi
 if param compare SYS_AUTOSTART 10016 16
 then
 	sh /etc/init.d/10016_3dr_iris
+fi
+
+if param compare SYS_AUTOSTART 10017
+then
+	sh /etc/init.d/10017_steadidrone_qu4d
 fi
 
 #

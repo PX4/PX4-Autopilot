@@ -59,4 +59,8 @@
 #define	HW_ARCH "PX4FMU_V2"
 #endif
 
+#ifdef CONFIG_ARCH_BOARD_AEROCORE
+#define	HW_ARCH "AEROCORE"
+#endif
+
 #endif /* VERSION_H_ */

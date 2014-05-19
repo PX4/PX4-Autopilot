@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Tobias Naegeli <naegelit@student.ethz.ch>
- *           Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,9 +32,12 @@
  ****************************************************************************/
 
 /*
- * @file attitude_estimator_ekf_main.c
+ * @file attitude_estimator_ekf_main.cpp
  *
  * Extended Kalman Filter for Attitude Estimation.
+ *
+ * @author Tobias Naegeli <naegelit@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #include <nuttx/config.h>
@@ -111,7 +112,7 @@ usage(const char *reason)
  * Makefile does only apply to this management task.
  *
  * The actual stack size should be set in the call
- * to task_create().
+ * to task_spawn_cmd().
  */
 int attitude_estimator_ekf_main(int argc, char *argv[])
 {
@@ -277,7 +278,6 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	// XXX write this out to perf regs
 
 	/* keep track of sensor updates */
-	uint32_t sensor_last_count[3] = {0, 0, 0};
 	uint64_t sensor_last_timestamp[3] = {0, 0, 0};
 
 	struct attitude_estimator_ekf_params ekf_params;
@@ -380,9 +380,8 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					uint8_t update_vect[3] = {0, 0, 0};
 
 					/* Fill in gyro measurements */
-					if (sensor_last_count[0] != raw.gyro_counter) {
+					if (sensor_last_timestamp[0] != raw.timestamp) {
 						update_vect[0] = 1;
-						sensor_last_count[0] = raw.gyro_counter;
 						sensor_update_hz[0] = 1e6f / (raw.timestamp - sensor_last_timestamp[0]);
 						sensor_last_timestamp[0] = raw.timestamp;
 					}
@@ -392,11 +391,10 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					z_k[2] =  raw.gyro_rad_s[2] - gyro_offsets[2];
 
 					/* update accelerometer measurements */
-					if (sensor_last_count[1] != raw.accelerometer_counter) {
+					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp) {
 						update_vect[1] = 1;
-						sensor_last_count[1] = raw.accelerometer_counter;
 						sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
-						sensor_last_timestamp[1] = raw.timestamp;
+						sensor_last_timestamp[1] = raw.accelerometer_timestamp;
 					}
 
 					hrt_abstime vel_t = 0;
@@ -410,7 +408,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 							vel(2) = gps.vel_d_m_s;
 						}
 
-					} else if (ekf_params.acc_comp == 2 && global_pos.global_valid && hrt_absolute_time() < global_pos.timestamp + 500000) {
+					} else if (ekf_params.acc_comp == 2 && gps.eph_m < 5.0f && global_pos.timestamp != 0 && hrt_absolute_time() < global_pos.timestamp + 20000) {
 						vel_valid = true;
 						if (global_pos_updated) {
 							vel_t = global_pos.timestamp;
@@ -445,11 +443,10 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					z_k[5] = raw.accelerometer_m_s2[2] - acc(2);
 
 					/* update magnetometer measurements */
-					if (sensor_last_count[2] != raw.magnetometer_counter) {
+					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp) {
 						update_vect[2] = 1;
-						sensor_last_count[2] = raw.magnetometer_counter;
 						sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
-						sensor_last_timestamp[2] = raw.timestamp;
+						sensor_last_timestamp[2] = raw.magnetometer_timestamp;
 					}
 
 					z_k[6] = raw.magnetometer_ga[0];
@@ -476,6 +473,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					if (!const_initialized && dt < 0.05f && dt > 0.001f) {
 						dt = 0.005f;
 						parameters_update(&ekf_param_handles, &ekf_params);
+
+						/* update mag declination rotation matrix */
+						R_decl.from_euler(0.0f, 0.0f, ekf_params.mag_decl);
 
 						x_aposteriori_k[0] = z_k[0];
 						x_aposteriori_k[1] = z_k[1];

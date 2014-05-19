@@ -72,7 +72,7 @@ int do_mag_calibration(int mavlink_fd)
 	uint64_t calibration_interval = 45 * 1000 * 1000;
 
 	/* maximum 500 values */
-	const unsigned int calibration_maxcount = 500;
+	const unsigned int calibration_maxcount = 240;
 	unsigned int calibration_counter;
 
 	struct mag_scale mscale_null = {
@@ -121,9 +121,24 @@ int do_mag_calibration(int mavlink_fd)
 
 		if (x == NULL || y == NULL || z == NULL) {
 			mavlink_log_critical(mavlink_fd, "ERROR: out of memory");
+
+			/* clean up */
+			if (x != NULL) {
+				free(x);
+			}
+
+			if (y != NULL) {
+				free(y);
+			}
+
+			if (z != NULL) {
+				free(z);
+			}
+
 			res = ERROR;
 			return res;
 		}
+
 	} else {
 		/* exit */
 		return ERROR;
@@ -163,8 +178,9 @@ int do_mag_calibration(int mavlink_fd)
 
 				calibration_counter++;
 
-				if (calibration_counter % (calibration_maxcount / 20) == 0)
+				if (calibration_counter % (calibration_maxcount / 20) == 0) {
 					mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 20 + (calibration_counter * 50) / calibration_maxcount);
+				}
 
 			} else {
 				poll_errcount++;
@@ -198,14 +214,17 @@ int do_mag_calibration(int mavlink_fd)
 		}
 	}
 
-	if (x != NULL)
+	if (x != NULL) {
 		free(x);
+	}
 
-	if (y != NULL)
+	if (y != NULL) {
 		free(y);
+	}
 
-	if (z != NULL)
+	if (z != NULL) {
 		free(z);
+	}
 
 	if (res == OK) {
 		/* apply calibration and set parameters */
@@ -234,23 +253,29 @@ int do_mag_calibration(int mavlink_fd)
 
 		if (res == OK) {
 			/* set parameters */
-			if (param_set(param_find("SENS_MAG_XOFF"), &(mscale.x_offset)))
+			if (param_set(param_find("SENS_MAG_XOFF"), &(mscale.x_offset))) {
 				res = ERROR;
+			}
 
-			if (param_set(param_find("SENS_MAG_YOFF"), &(mscale.y_offset)))
+			if (param_set(param_find("SENS_MAG_YOFF"), &(mscale.y_offset))) {
 				res = ERROR;
+			}
 
-			if (param_set(param_find("SENS_MAG_ZOFF"), &(mscale.z_offset)))
+			if (param_set(param_find("SENS_MAG_ZOFF"), &(mscale.z_offset))) {
 				res = ERROR;
+			}
 
-			if (param_set(param_find("SENS_MAG_XSCALE"), &(mscale.x_scale)))
+			if (param_set(param_find("SENS_MAG_XSCALE"), &(mscale.x_scale))) {
 				res = ERROR;
+			}
 
-			if (param_set(param_find("SENS_MAG_YSCALE"), &(mscale.y_scale)))
+			if (param_set(param_find("SENS_MAG_YSCALE"), &(mscale.y_scale))) {
 				res = ERROR;
+			}
 
-			if (param_set(param_find("SENS_MAG_ZSCALE"), &(mscale.z_scale)))
+			if (param_set(param_find("SENS_MAG_ZSCALE"), &(mscale.z_scale))) {
 				res = ERROR;
+			}
 
 			if (res != OK) {
 				mavlink_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);

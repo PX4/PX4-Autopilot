@@ -245,7 +245,7 @@ PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
 /**
  * Maximum vertical acceleration
  *
- * This is the maximum vertical acceleration (in metres/second^2) 
+ * This is the maximum vertical acceleration (in metres/second square)
  * either up or down that the controller will use to correct speed 
  * or height errors. The default value of 7 m/s/s (equivalent to +- 0.7 g) 
  * allows for reasonably aggressive pitch changes if required to recover 
@@ -375,3 +375,14 @@ PARAM_DEFINE_FLOAT(FW_LND_TLALT, 5.0f);
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
+
+/**
+ * Relative altitude threshold for range finder measurements for use during landing
+ *
+ * range finder measurements will only be used if the estimated relative altitude (gobal_pos.alt - landing_waypoint.alt) is < FW_LND_RFRALT
+ * set to < 0 to disable
+ * the correct value of this parameter depends on your range measuring device as well as on the terrain at the landing location
+ *
+ * @group L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_RFRALT, -1.0f);

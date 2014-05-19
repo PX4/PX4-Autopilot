@@ -3,6 +3,13 @@
 # Standard apps for fixed wing
 #
 
-att_pos_estimator_ekf start
+#
+# Start the attitude and position estimator
+#
+ekf_att_pos_estimator start
+
+#
+# Start attitude controller
+#
 fw_att_control start
 fw_pos_control_l1 start

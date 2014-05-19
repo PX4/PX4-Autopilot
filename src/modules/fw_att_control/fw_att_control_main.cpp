@@ -108,14 +108,14 @@ private:
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	int		_control_task;			/**< task handle for sensor task */
 
-	int		_att_sub;				/**< vehicle attitude subscription */
-	int		_accel_sub;				/**< accelerometer subscription */
+	int		_att_sub;			/**< vehicle attitude subscription */
+	int		_accel_sub;			/**< accelerometer subscription */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
 	int		_attitude_sub;			/**< raw rc channels data subscription */
 	int		_airspeed_sub;			/**< airspeed subscription */
 	int		_vcontrol_mode_sub;		/**< vehicle status subscription */
-	int 	_params_sub;			/**< notification of parameter updates */
-	int 	_manual_sub;			/**< notification of manual control updates */
+	int 		_params_sub;			/**< notification of parameter updates */
+	int 		_manual_sub;			/**< notification of manual control updates */
 	int		_global_pos_sub;		/**< global position subscription */
 
 	orb_advert_t	_rate_sp_pub;			/**< rate setpoint publication */
@@ -123,20 +123,19 @@ private:
 	orb_advert_t	_actuators_0_pub;		/**< actuator control group 0 setpoint */
 	orb_advert_t	_actuators_1_pub;		/**< actuator control group 1 setpoint (Airframe) */
 
-	struct vehicle_attitude_s				_att;			/**< vehicle attitude */
-	struct accel_report						_accel;			/**< body frame accelerations */
+	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
+	struct accel_report				_accel;			/**< body frame accelerations */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
-	struct airspeed_s						_airspeed;		/**< airspeed */
-	struct vehicle_control_mode_s			_vcontrol_mode;	/**< vehicle control mode */
+	struct airspeed_s				_airspeed;		/**< airspeed */
+	struct vehicle_control_mode_s			_vcontrol_mode;		/**< vehicle control mode */
 	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
-	struct actuator_controls_s			_actuators_airframe;		/**< actuator control inputs */
-	struct vehicle_global_position_s		_global_pos;	/**< global position */
+	struct actuator_controls_s			_actuators_airframe;	/**< actuator control inputs */
+	struct vehicle_global_position_s		_global_pos;		/**< global position */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	bool		_setpoint_valid;		/**< flag if the position control setpoint is valid */
-	bool		_airspeed_valid;		/**< flag if the airspeed measurement is valid */
 
 	struct {
 		float tconst;
@@ -166,6 +165,17 @@ private:
 		float airspeed_min;
 		float airspeed_trim;
 		float airspeed_max;
+
+		float trim_roll;
+		float trim_pitch;
+		float trim_yaw;
+		float rollsp_offset_deg;			/**< Roll Setpoint Offset in deg */
+		float pitchsp_offset_deg;			/**< Pitch Setpoint Offset in deg */
+		float rollsp_offset_rad;			/**< Roll Setpoint Offset in rad */
+		float pitchsp_offset_rad;			/**< Pitch Setpoint Offset in rad */
+		float man_roll_max;						/**< Max Roll in rad */
+		float man_pitch_max;					/**< Max Pitch in rad */
+
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -197,6 +207,14 @@ private:
 		param_t airspeed_min;
 		param_t airspeed_trim;
 		param_t airspeed_max;
+
+		param_t trim_roll;
+		param_t trim_pitch;
+		param_t trim_yaw;
+		param_t rollsp_offset_deg;
+		param_t pitchsp_offset_deg;
+		param_t man_roll_max;
+		param_t man_pitch_max;
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -230,7 +248,7 @@ private:
 	/**
 	 * Check for airspeed updates.
 	 */
-	bool		vehicle_airspeed_poll();
+	void		vehicle_airspeed_poll();
 
 	/**
 	 * Check for accel updates.
@@ -255,7 +273,7 @@ private:
 	/**
 	 * Main sensor collection task.
 	 */
-	void		task_main() __attribute__((noreturn));
+	void		task_main();
 };
 
 namespace att_control
@@ -293,19 +311,18 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw att control")),
 /* states */
-	_setpoint_valid(false),
-	_airspeed_valid(false)
+	_setpoint_valid(false)
 {
 	/* safely initialize structs */
-	_att = {0};
-	_accel = {0};
-	_att_sp = {0};
-	_manual = {0};
-	_airspeed = {0};
-	_vcontrol_mode = {0};
-	_actuators = {0};
-	_actuators_airframe = {0};
-	_global_pos = {0};
+	_att = {};
+	_accel = {};
+	_att_sp = {};
+	_manual = {};
+	_airspeed = {};
+	_vcontrol_mode = {};
+	_actuators = {};
+	_actuators_airframe = {};
+	_global_pos = {};
 
 
 	_parameter_handles.tconst = param_find("FW_ATT_TC");
@@ -334,6 +351,15 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.airspeed_max = param_find("FW_AIRSPD_MAX");
 
 	_parameter_handles.y_coordinated_min_speed = param_find("FW_YCO_VMIN");
+
+	_parameter_handles.trim_roll = param_find("TRIM_ROLL");
+	_parameter_handles.trim_pitch = param_find("TRIM_PITCH");
+	_parameter_handles.trim_yaw = param_find("TRIM_YAW");
+	_parameter_handles.rollsp_offset_deg = param_find("FW_RSP_OFF");
+	_parameter_handles.pitchsp_offset_deg = param_find("FW_PSP_OFF");
+
+	_parameter_handles.man_roll_max = param_find("FW_MAN_R_MAX");
+	_parameter_handles.man_pitch_max = param_find("FW_MAN_P_MAX");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -395,6 +421,19 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.airspeed_trim, &(_parameters.airspeed_trim));
 	param_get(_parameter_handles.airspeed_max, &(_parameters.airspeed_max));
 
+	param_get(_parameter_handles.trim_roll, &(_parameters.trim_roll));
+	param_get(_parameter_handles.trim_pitch, &(_parameters.trim_pitch));
+	param_get(_parameter_handles.trim_yaw, &(_parameters.trim_yaw));
+	param_get(_parameter_handles.rollsp_offset_deg, &(_parameters.rollsp_offset_deg));
+	param_get(_parameter_handles.pitchsp_offset_deg, &(_parameters.pitchsp_offset_deg));
+	_parameters.rollsp_offset_rad = math::radians(_parameters.rollsp_offset_deg);
+	_parameters.pitchsp_offset_rad = math::radians(_parameters.pitchsp_offset_deg);
+	param_get(_parameter_handles.man_roll_max, &(_parameters.man_roll_max));
+	param_get(_parameter_handles.man_pitch_max, &(_parameters.man_pitch_max));
+	_parameters.man_roll_max = math::radians(_parameters.man_roll_max);
+	_parameters.man_pitch_max = math::radians(_parameters.man_pitch_max);
+
+
 	/* pitch control parameters */
 	_pitch_ctrl.set_time_constant(_parameters.tconst);
 	_pitch_ctrl.set_k_p(_parameters.p_p);
@@ -452,7 +491,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 	}
 }
 
-bool
+void
 FixedwingAttitudeControl::vehicle_airspeed_poll()
 {
 	/* check if there is a new position */
@@ -462,10 +501,7 @@ FixedwingAttitudeControl::vehicle_airspeed_poll()
 	if (airspeed_updated) {
 		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
 //		warnx("airspeed poll: ind: %.4f,  true: %.4f", _airspeed.indicated_airspeed_m_s, _airspeed.true_airspeed_m_s);
-		return true;
 	}
-
-	return false;
 }
 
 void
@@ -539,7 +575,7 @@ FixedwingAttitudeControl::task_main()
 	parameters_update();
 
 	/* get an initial update for all sensor and status data */
-	(void)vehicle_airspeed_poll();
+	vehicle_airspeed_poll();
 	vehicle_setpoint_poll();
 	vehicle_accel_poll();
 	vehicle_control_mode_poll();
@@ -596,7 +632,7 @@ FixedwingAttitudeControl::task_main()
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
 
-			_airspeed_valid = vehicle_airspeed_poll();
+			vehicle_airspeed_poll();
 
 			vehicle_setpoint_poll();
 
@@ -635,26 +671,32 @@ FixedwingAttitudeControl::task_main()
 
 				float airspeed;
 
-				/* if airspeed is smaller than min, the sensor is not giving good readings */
-				if (!_airspeed_valid ||
-				    (_airspeed.indicated_airspeed_m_s < 0.5f * _parameters.airspeed_min) ||
-				    !isfinite(_airspeed.indicated_airspeed_m_s)) {
+				/* if airspeed is not updating, we assume the normal average speed */
+				if (!isfinite(_airspeed.true_airspeed_m_s) ||
+				    hrt_elapsed_time(&_airspeed.timestamp) > 1e6) {
 					airspeed = _parameters.airspeed_trim;
 
 				} else {
-					airspeed = _airspeed.indicated_airspeed_m_s;
+					airspeed = _airspeed.true_airspeed_m_s;
 				}
 
-				float airspeed_scaling = _parameters.airspeed_trim / airspeed;
-				//warnx("aspd scale: %6.2f act scale: %6.2f", airspeed_scaling, actuator_scaling);
+				/*
+				 * For scaling our actuators using anything less than the min (close to stall)
+				 * speed doesn't make any sense - its the strongest reasonable deflection we
+				 * want to do in flight and its the baseline a human pilot would choose.
+				 *
+				 * Forcing the scaling to this value allows reasonable handheld tests.
+				 */
 
-				float roll_sp = 0.0f;
-				float pitch_sp = 0.0f;
+				float airspeed_scaling = _parameters.airspeed_trim / ((airspeed < _parameters.airspeed_min) ? _parameters.airspeed_min : airspeed);
+
+				float roll_sp = _parameters.rollsp_offset_rad;
+				float pitch_sp = _parameters.pitchsp_offset_rad;
 				float throttle_sp = 0.0f;
 
 				if (_vcontrol_mode.flag_control_velocity_enabled || _vcontrol_mode.flag_control_position_enabled) {
-					roll_sp = _att_sp.roll_body;
-					pitch_sp = _att_sp.pitch_body;
+					roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
+					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
 					throttle_sp = _att_sp.thrust;
 
 					/* reset integrals where needed */
@@ -664,16 +706,21 @@ FixedwingAttitudeControl::task_main()
 				} else {
 					/*
 					 * Scale down roll and pitch as the setpoints are radians
-					 * and a typical remote can only do 45 degrees, the mapping is
-					 * -1..+1 to -45..+45 degrees or -0.75..+0.75 radians.
+					 * and a typical remote can only do around 45 degrees, the mapping is
+					 * -1..+1 to -man_roll_max rad..+man_roll_max rad (equivalent for pitch)
 					 *
 					 * With this mapping the stick angle is a 1:1 representation of
-					 * the commanded attitude. If more than 45 degrees are desired,
-					 * a scaling parameter can be applied to the remote.
+					 * the commanded attitude.
+					 *
+					 * The trim gets subtracted here from the manual setpoint to get
+					 * the intended attitude setpoint. Later, after the rate control step the
+					 * trim is added again to the control signal.
 					 */
-					roll_sp = _manual.roll * 0.75f;
-					pitch_sp = _manual.pitch * 0.75f;
-					throttle_sp = _manual.throttle;
+					roll_sp = (_manual.y * _parameters.man_roll_max - _parameters.trim_roll)
+						+ _parameters.rollsp_offset_rad;
+					pitch_sp = -(_manual.x * _parameters.man_pitch_max - _parameters.trim_pitch)
+						+ _parameters.pitchsp_offset_rad;
+					throttle_sp = _manual.z;
 					_actuators.control[4] = _manual.flaps;
 
 					/*
@@ -685,7 +732,7 @@ FixedwingAttitudeControl::task_main()
 					att_sp.timestamp = hrt_absolute_time();
 					att_sp.roll_body = roll_sp;
 					att_sp.pitch_body = pitch_sp;
-					att_sp.yaw_body = 0.0f;
+					att_sp.yaw_body = 0.0f - _parameters.trim_yaw;
 					att_sp.thrust = throttle_sp;
 
 					/* lazily publish the setpoint only once available */
@@ -719,12 +766,12 @@ FixedwingAttitudeControl::task_main()
 							speed_body_u, speed_body_v, speed_body_w,
 							_roll_ctrl.get_desired_rate(), _pitch_ctrl.get_desired_rate()); //runs last, because is depending on output of roll and pitch attitude
 
-					/* Run attitude RATE controllers which need the desired attitudes from above */
+					/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
 					float roll_u = _roll_ctrl.control_bodyrate(_att.pitch,
 							_att.rollspeed, _att.yawspeed,
 							_yaw_ctrl.get_desired_rate(),
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
-					_actuators.control[0] = (isfinite(roll_u)) ? roll_u : 0.0f;
+					_actuators.control[0] = (isfinite(roll_u)) ? roll_u + _parameters.trim_roll : _parameters.trim_roll;
 					if (!isfinite(roll_u)) {
 						warnx("roll_u %.4f", roll_u);
 					}
@@ -733,33 +780,29 @@ FixedwingAttitudeControl::task_main()
 							_att.pitchspeed, _att.yawspeed,
 							_yaw_ctrl.get_desired_rate(),
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
-					_actuators.control[1] = (isfinite(pitch_u)) ? pitch_u : 0.0f;
+					_actuators.control[1] = (isfinite(pitch_u)) ? pitch_u + _parameters.trim_pitch : _parameters.trim_pitch;
 					if (!isfinite(pitch_u)) {
 						warnx("pitch_u %.4f, _yaw_ctrl.get_desired_rate() %.4f, airspeed %.4f, airspeed_scaling %.4f, roll_sp %.4f, pitch_sp %.4f, _roll_ctrl.get_desired_rate() %.4f, _pitch_ctrl.get_desired_rate() %.4f att_sp.roll_body %.4f",
-								pitch_u, _yaw_ctrl.get_desired_rate(), airspeed, airspeed_scaling, roll_sp, pitch_sp, _roll_ctrl.get_desired_rate(), _pitch_ctrl.get_desired_rate(), _att_sp.roll_body);
+								(double)pitch_u, (double)_yaw_ctrl.get_desired_rate(), (double)airspeed, (double)airspeed_scaling, (double)roll_sp, (double)pitch_sp, (double)_roll_ctrl.get_desired_rate(), (double)_pitch_ctrl.get_desired_rate(), (double)_att_sp.roll_body);
 					}
 
 					float yaw_u = _yaw_ctrl.control_bodyrate(_att.roll, _att.pitch,
 							_att.pitchspeed, _att.yawspeed,
 							_pitch_ctrl.get_desired_rate(),
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
-					_actuators.control[2] = (isfinite(yaw_u)) ? yaw_u : 0.0f;
+					_actuators.control[2] = (isfinite(yaw_u)) ? yaw_u + _parameters.trim_yaw : _parameters.trim_yaw;
 					if (!isfinite(yaw_u)) {
-						warnx("yaw_u %.4f", yaw_u);
+						warnx("yaw_u %.4f", (double)yaw_u);
 					}
 
 					/* throttle passed through */
 					_actuators.control[3] = (isfinite(throttle_sp)) ? throttle_sp : 0.0f;
 					if (!isfinite(throttle_sp)) {
-						warnx("throttle_sp %.4f", throttle_sp);
+						warnx("throttle_sp %.4f", (double)throttle_sp);
 					}
 				} else {
-					warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", roll_sp, pitch_sp);
+					warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", (double)roll_sp, (double)pitch_sp);
 				}
-
-				// warnx("aspd: %s: %6.2f, aspd scaling: %6.2f, controls: %5.2f %5.2f %5.2f %5.2f", (_airspeed_valid) ? "valid" : "unknown",
-				// 			airspeed, airspeed_scaling, _actuators.control[0], _actuators.control[1],
-				// 			_actuators.control[2], _actuators.control[3]);
 
 				/*
 				 * Lazily publish the rate setpoint (for analysis, the actuators are published below)
@@ -783,10 +826,10 @@ FixedwingAttitudeControl::task_main()
 
 			} else {
 				/* manual/direct control */
-				_actuators.control[0] = _manual.roll;
-				_actuators.control[1] = _manual.pitch;
-				_actuators.control[2] = _manual.yaw;
-				_actuators.control[3] = _manual.throttle;
+				_actuators.control[0] = _manual.y;
+				_actuators.control[1] = -_manual.x;
+				_actuators.control[2] = _manual.r;
+				_actuators.control[3] = _manual.z;
 				_actuators.control[4] = _manual.flaps;
 			}
 

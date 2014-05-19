@@ -27,6 +27,7 @@ MODULES		+= drivers/l3gd20
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
 MODULES		+= drivers/mb12xx
+MODULES		+= drivers/sf0x
 MODULES		+= drivers/gps
 MODULES		+= drivers/hil
 MODULES		+= drivers/hott/hott_telemetry
@@ -62,7 +63,8 @@ MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/config
 MODULES		+= systemcmds/nshterm
 MODULES		+= systemcmds/mtd
-MODULES		+= systemcmds/hw_ver
+MODULES		+= systemcmds/dumpfile
+MODULES		+= systemcmds/ver
 
 #
 # General system control
@@ -70,14 +72,14 @@ MODULES		+= systemcmds/hw_ver
 MODULES		+= modules/commander
 MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
-MODULES		+= modules/mavlink_onboard
+MODULES		+= modules/gpio_led
 
 #
 # Estimation modules (EKF/ SO3 / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
 MODULES		+= modules/attitude_estimator_so3
-MODULES		+= modules/att_pos_estimator_ekf
+MODULES		+= modules/ekf_att_pos_estimator
 MODULES		+= modules/position_estimator_inav
 MODULES		+= examples/flow_position_estimator
 

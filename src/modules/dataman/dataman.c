@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: 	Lorenz Meier
- *              Jean Cyr
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,22 +33,21 @@
 /**
  * @file dataman.c
  * DATAMANAGER driver.
+ *
+ * @author Jean Cyr
+ * @author Lorenz Meier
+ * @author Julian Oes
+ * @author Thomas Gubler
  */
 
 #include <nuttx/config.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <poll.h>
-#include <time.h>
-#include <sys/ioctl.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <queue.h>
+#include <string.h>
 
 #include "dataman.h"
 
@@ -66,7 +63,7 @@ __EXPORT ssize_t dm_write(dm_item_t  item, unsigned char index, dm_persitence_t 
 __EXPORT int dm_clear(dm_item_t item);
 __EXPORT int dm_restart(dm_reset_reason restart_type);
 
-/* Types of function calls supported by the worker task */
+/** Types of function calls supported by the worker task */
 typedef enum {
 	dm_write_func = 0,
 	dm_read_func,
@@ -75,11 +72,12 @@ typedef enum {
 	dm_number_of_funcs
 } dm_function_t;
 
-/* Work task work item */
+/** Work task work item */
 typedef struct {
 	sq_entry_t link;	/**< list linkage */
 	sem_t wait_sem;
-	dm_function_t func;
+	unsigned char first;
+	unsigned char func;
 	ssize_t result;
 	union {
 		struct {
@@ -103,6 +101,8 @@ typedef struct {
 		} restart_params;
 	};
 } work_q_item_t;
+
+const size_t k_work_item_allocation_chunk_size = 8;
 
 /* Usage statistics */
 static unsigned g_func_counts[dm_number_of_funcs];
@@ -175,13 +175,29 @@ create_work_item(void)
 
 	/* Try to reuse item from free item queue */
 	lock_queue(&g_free_q);
+
 	if ((item = (work_q_item_t *)sq_remfirst(&(g_free_q.q))))
 		g_free_q.size--;
+
 	unlock_queue(&g_free_q);
 
-	/* If we there weren't any free items then obtain memory for a new one */
-	if (item == NULL)
-		item = (work_q_item_t *)malloc(sizeof(work_q_item_t));
+	/* If we there weren't any free items then obtain memory for a new ones */
+	if (item == NULL) {
+		item = (work_q_item_t *)malloc(k_work_item_allocation_chunk_size * sizeof(work_q_item_t));
+		if (item) {
+			item->first = 1;
+			lock_queue(&g_free_q);
+			for (int i = 1; i < k_work_item_allocation_chunk_size; i++) {
+				(item + i)->first = 0;
+				sq_addfirst(&(item + i)->link, &(g_free_q.q));
+			}
+			/* Update the queue size and potentially the maximum queue size */
+			g_free_q.size += k_work_item_allocation_chunk_size - 1;
+			if (g_free_q.size > g_free_q.max_size)
+				g_free_q.max_size = g_free_q.size;
+			unlock_queue(&g_free_q);
+		}
+	}
 
 	/* If we got one then lock the item*/
 	if (item)
@@ -289,11 +305,11 @@ _write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const v
 	offset = calculate_offset(item, index);
 
 	/* If item type or index out of range, return error */
-	if (offset < 0) 
+	if (offset < 0)
 		return -1;
 
 	/* Make sure caller has not given us more data than we can handle */
-	if (count > DM_MAX_DATA_SIZE) 
+	if (count > DM_MAX_DATA_SIZE)
 		return -1;
 
 	/* Write out the data, prefixed with length and persistence level */
@@ -339,6 +355,7 @@ _read(dm_item_t item, unsigned char index, void *buf, size_t count)
 
 	/* Read the prefix and data */
 	len = -1;
+
 	if (lseek(g_task_fd, offset, SEEK_SET) == offset)
 		len = read(g_task_fd, buffer, count + DM_SECTOR_HDR_SIZE);
 
@@ -412,31 +429,31 @@ _clear(dm_item_t item)
 	return result;
 }
 
-/* Tell the data manager about the type of the last reset */
+/** Tell the data manager about the type of the last reset */
 static int
 _restart(dm_reset_reason reason)
 {
 	unsigned char buffer[2];
-	int offset, result = 0;
+	int offset = 0, result = 0;
 
 	/* We need to scan the entire file and invalidate and data that should not persist after the last reset */
 
 	/* Loop through all of the data segments and delete those that are not persistent */
-	offset = 0;
-
 	while (1) {
 		size_t len;
 
 		/* Get data segment at current offset */
 		if (lseek(g_task_fd, offset, SEEK_SET) != offset) {
-			result = -1;
+			/* must be at eof */
 			break;
 		}
 
 		len = read(g_task_fd, buffer, sizeof(buffer));
 
-		if (len == 0)
+		if (len != sizeof(buffer)) {
+			/* must be at eof */
 			break;
+		}
 
 		/* check if segment contains data */
 		if (buffer[0]) {
@@ -444,12 +461,12 @@ _restart(dm_reset_reason reason)
 
 			/* Whether data gets deleted depends on reset type and data segment's persistence setting */
 			if (reason == DM_INIT_REASON_POWER_ON) {
-				if (buffer[1] != DM_PERSIST_POWER_ON_RESET) {
+				if (buffer[1] > DM_PERSIST_POWER_ON_RESET) {
 					clear_entry = 1;
 				}
 
 			} else {
-				if ((buffer[1] != DM_PERSIST_POWER_ON_RESET) && (buffer[1] != DM_PERSIST_IN_FLIGHT_RESET)) {
+				if (buffer[1] > DM_PERSIST_IN_FLIGHT_RESET) {
 					clear_entry = 1;
 				}
 			}
@@ -481,7 +498,7 @@ _restart(dm_reset_reason reason)
 	return result;
 }
 
-/* write to the data manager file */
+/** Write to the data manager file */
 __EXPORT ssize_t
 dm_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const void *buf, size_t count)
 {
@@ -492,7 +509,7 @@ dm_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const
 		return -1;
 
 	/* get a work item and queue up a write request */
-	if ((work = create_work_item()) == NULL) 
+	if ((work = create_work_item()) == NULL)
 		return -1;
 
 	work->func = dm_write_func;
@@ -506,7 +523,7 @@ dm_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const
 	return (ssize_t)enqueue_work_item_and_wait_for_result(work);
 }
 
-/* Retrieve from the data manager file */
+/** Retrieve from the data manager file */
 __EXPORT ssize_t
 dm_read(dm_item_t item, unsigned char index, void *buf, size_t count)
 {
@@ -597,20 +614,54 @@ task_main(int argc, char *argv[])
 
 	sem_init(&g_work_queued_sema, 1, 0);
 
+	/* See if the data manage file exists and is a multiple of the sector size */
+	g_task_fd = open(k_data_manager_device_path, O_RDONLY | O_BINARY);
+	if (g_task_fd >= 0) {
+		/* File exists, check its size */
+		int file_size = lseek(g_task_fd, 0, SEEK_END);
+		if ((file_size % k_sector_size) != 0) {
+			warnx("Incompatible data manager file %s, resetting it", k_data_manager_device_path);
+			close(g_task_fd);
+			unlink(k_data_manager_device_path);
+		}
+		else
+			close(g_task_fd);
+	}
+
 	/* Open or create the data manager file */
 	g_task_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY);
+
 	if (g_task_fd < 0) {
 		warnx("Could not open data manager file %s", k_data_manager_device_path);
 		sem_post(&g_init_sema); /* Don't want to hang startup */
 		return -1;
 	}
-	if (lseek(g_task_fd, max_offset, SEEK_SET) != max_offset) {
+
+	if ((unsigned)lseek(g_task_fd, max_offset, SEEK_SET) != max_offset) {
 		close(g_task_fd);
 		warnx("Could not seek data manager file %s", k_data_manager_device_path);
 		sem_post(&g_init_sema); /* Don't want to hang startup */
 		return -1;
 	}
+
 	fsync(g_task_fd);
+
+	/* see if we need to erase any items based on restart type */
+	int sys_restart_val;
+	if (param_get(param_find("SYS_RESTART_TYPE"), &sys_restart_val) == OK) {
+		if (sys_restart_val == DM_INIT_REASON_POWER_ON) {
+			warnx("Power on restart");
+			_restart(DM_INIT_REASON_POWER_ON);
+		}
+		else if (sys_restart_val == DM_INIT_REASON_IN_FLIGHT) {
+			warnx("In flight restart");
+			_restart(DM_INIT_REASON_IN_FLIGHT);
+		}
+		else
+			warnx("Unknown restart");
+	}
+	else
+		warnx("Unknown restart");
 
 	/* We use two file descriptors, one for the caller context and one for the worker thread */
 	/* They are actually the same but we need to some way to reject caller request while the */
@@ -684,8 +735,8 @@ task_main(int argc, char *argv[])
 	for (;;) {
 		if ((work = (work_q_item_t *)sq_remfirst(&(g_free_q.q))) == NULL)
 			break;
-
-		free(work);
+		if (work->first)
+			free(work);
 	}
 
 	destroy_q(&g_work_q);
@@ -703,12 +754,12 @@ start(void)
 	sem_init(&g_init_sema, 1, 0);
 
 	/* start the worker thread */
-	if ((task = task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 2048, task_main, NULL)) <= 0) {
+	if ((task = task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 2000, task_main, NULL)) <= 0) {
 		warn("task start failed");
 		return -1;
 	}
 
-	/* wait for the thread to actuall initialize */
+	/* wait for the thread to actually initialize */
 	sem_wait(&g_init_sema);
 	sem_destroy(&g_init_sema);
 
@@ -767,13 +818,12 @@ dataman_main(int argc, char *argv[])
 		stop();
 	else if (!strcmp(argv[1], "status"))
 		status();
-    else if (!strcmp(argv[1], "poweronrestart"))
-        dm_restart(DM_INIT_REASON_POWER_ON);
-    else if (!strcmp(argv[1], "inflightrestart"))
-        dm_restart(DM_INIT_REASON_IN_FLIGHT);
+	else if (!strcmp(argv[1], "poweronrestart"))
+		dm_restart(DM_INIT_REASON_POWER_ON);
+	else if (!strcmp(argv[1], "inflightrestart"))
+		dm_restart(DM_INIT_REASON_IN_FLIGHT);
 	else
 		usage();
 
 	exit(1);
 }
-

@@ -54,7 +54,8 @@
 struct mission_result_s
 {
 	bool mission_reached;		/**< true if mission has been reached			*/
-	unsigned mission_index;		/**< index of the mission which has been reached	*/
+	unsigned mission_index_reached;	/**< index of the mission which has been reached	*/
+	unsigned index_current_mission; /**< index of the current mission			*/
 };
 
 /**

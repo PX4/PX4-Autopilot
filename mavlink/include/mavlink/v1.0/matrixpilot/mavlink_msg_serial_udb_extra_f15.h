@@ -158,6 +158,40 @@ static inline void mavlink_msg_serial_udb_extra_f15_send(mavlink_channel_t chan,
 #endif
 }
 
+#if MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F15_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_serial_udb_extra_f15_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  const uint8_t *sue_ID_VEHICLE_MODEL_NAME, const uint8_t *sue_ID_VEHICLE_REGISTRATION)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+
+	_mav_put_uint8_t_array(buf, 0, sue_ID_VEHICLE_MODEL_NAME, 40);
+	_mav_put_uint8_t_array(buf, 40, sue_ID_VEHICLE_REGISTRATION, 20);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F15, buf, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F15_LEN, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F15_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F15, buf, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F15_LEN);
+#endif
+#else
+	mavlink_serial_udb_extra_f15_t *packet = (mavlink_serial_udb_extra_f15_t *)msgbuf;
+
+	mav_array_memcpy(packet->sue_ID_VEHICLE_MODEL_NAME, sue_ID_VEHICLE_MODEL_NAME, sizeof(uint8_t)*40);
+	mav_array_memcpy(packet->sue_ID_VEHICLE_REGISTRATION, sue_ID_VEHICLE_REGISTRATION, sizeof(uint8_t)*20);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F15, (const char *)packet, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F15_LEN, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F15_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F15, (const char *)packet, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F15_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE SERIAL_UDB_EXTRA_F15 UNPACKING
