@@ -249,6 +249,12 @@ MTK::handle_message(gps_mtk_packet_t &packet)
 		warnx("mtk: unknown revision");
 		_gps_position->lat = 0;
 		_gps_position->lon = 0;
+
+		// Indicate this data is not usable and bail out
+		_gps_position->eph_m = 1000.0f;
+		_gps_position->epv_m = 1000.0f;
+		_gps_position->fix_type = 0;
+		return;
 	}
 
 	_gps_position->alt = (int32_t)(packet.msl_altitude * 10); // from cm to mm
