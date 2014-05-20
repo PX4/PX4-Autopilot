@@ -1192,7 +1192,7 @@ int commander_thread_main(int argc, char *argv[])
 			 * do it only for rotary wings */
 			if (status.is_rotary_wing &&
 			    (status.arming_state == ARMING_STATE_ARMED || status.arming_state == ARMING_STATE_ARMED_ERROR) &&
-			    (status.main_state == MAIN_STATE_MANUAL || status.condition_landed) &&
+			    (status.main_state == MAIN_STATE_MANUAL || status.main_state == MAIN_STATE_ACRO || status.condition_landed) &&
 			    sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) {
 
 				if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
