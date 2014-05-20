@@ -75,6 +75,10 @@
 #endif
 static const int ERROR = -1;
 
+// enable this to debug the buggy lsm303d sensor in very early
+// prototype pixhawk boards
+#define CHECK_EXTREMES 0
+
 /* SPI protocol address bits */
 #define DIR_READ				(1<<7)
 #define DIR_WRITE				(0<<7)
@@ -830,7 +834,9 @@ LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 		 */
 		while (count--) {
 			if (_accel_reports->get(arb)) {
+#if CHECK_EXTREMES
 				check_extremes(arb);
+#endif
 				ret += sizeof(*arb);
 				arb++;
 			}
