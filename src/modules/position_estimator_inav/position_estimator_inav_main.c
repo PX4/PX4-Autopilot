@@ -199,6 +199,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float y_est[3] = { 0.0f, 0.0f, 0.0f };
 	float z_est[3] = { 0.0f, 0.0f, 0.0f };
 
+	float eph = 1.0;
+	float epv = 1.0;
+
 	float x_est_prev[3], y_est_prev[3], z_est_prev[3];
 	memset(x_est_prev, 0, sizeof(x_est_prev));
 	memset(y_est_prev, 0, sizeof(y_est_prev));
@@ -535,6 +538,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					flow_valid = true;
 
+					eph = fminf(eph, 0.1 / att.R[2][2] / flow_q * fmaxf(1.0f, flow_dist));	// under ideal conditions, on 1m distance assume EPH = 10cm
+
 				} else {
 					w_flow = 0.0f;
 					flow_valid = false;
@@ -673,6 +678,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							corr_gps[2][1] = 0.0f;
 						}
 
+						eph = fminf(eph, gps.eph_m);
+						epv = fminf(epv, gps.epv_m);
+
 						w_gps_xy = min_eph_epv / fmaxf(min_eph_epv, gps.eph_m);
 						w_gps_z = min_eph_epv / fmaxf(min_eph_epv, gps.epv_m);
 					}
@@ -712,6 +720,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		dt = fmaxf(fminf(0.02, dt), 0.002);		// constrain dt from 2 to 20 ms
 		t_prev = t;
 
+		/* increase EPH/EPV on each step */
+		eph *= 1.0 + dt;
+		epv += 0.005 * dt;	// add 1m to EPV each 200s (baro drift)
+
 		/* use GPS if it's valid and reference position initialized */
 		bool use_gps_xy = ref_inited && gps_valid && params.w_xy_gps_p > MIN_VALID_W;
 		bool use_gps_z = ref_inited && gps_valid && params.w_z_gps_p > MIN_VALID_W;
@@ -723,7 +735,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			xy_src_time = t;
 		}
 
-		bool can_estimate_xy = (t < xy_src_time + xy_src_timeout);
+		bool can_estimate_xy = eph < max_eph_epv * 1.5;
 
 		bool dist_bottom_valid = (t < sonar_valid_time + sonar_valid_timeout);
 
@@ -922,6 +934,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.landed = landed;
 			local_pos.yaw = att.yaw;
 			local_pos.dist_bottom_valid = dist_bottom_valid;
+			local_pos.eph = eph;
+			local_pos.epv = epv;
 
 			if (local_pos.dist_bottom_valid) {
 				local_pos.dist_bottom = -z_est[0] - surface_offset;
@@ -950,9 +964,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				global_pos.yaw = local_pos.yaw;
 
-				// TODO implement dead-reckoning
-				global_pos.eph = gps.eph_m;
-				global_pos.epv = gps.epv_m;
+				global_pos.eph = eph;
+				global_pos.epv = epv;
 
 				if (vehicle_global_position_pub < 0) {
 					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
