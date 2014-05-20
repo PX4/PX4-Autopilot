@@ -45,7 +45,6 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/rc_channels.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>

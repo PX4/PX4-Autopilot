@@ -1202,9 +1202,9 @@ Sensors::parameter_update_poll(bool forced)
 		}
 
 #if 0
-		printf("CH0: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n", (int)_parameters.max[0], (int)_parameters.min[0], (int)(_rc.chan[0].scaling_factor * 10000), (int)(_rc.chan[0].mid), (int)_rc.function[0]);
-		printf("CH1: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n", (int)_parameters.max[1], (int)_parameters.min[1], (int)(_rc.chan[1].scaling_factor * 10000), (int)(_rc.chan[1].mid), (int)_rc.function[1]);
-		printf("MAN: %d %d\n", (int)(_rc.chan[0].scaled * 100), (int)(_rc.chan[1].scaled * 100));
+		printf("CH0: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n", (int)_parameters.max[0], (int)_parameters.min[0], (int)(_rc.channels[0].scaling_factor * 10000), (int)(_rc.channels[0].mid), (int)_rc.function[0]);
+		printf("CH1: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n", (int)_parameters.max[1], (int)_parameters.min[1], (int)(_rc.channels[1].scaling_factor * 10000), (int)(_rc.channels[1].mid), (int)_rc.function[1]);
+		printf("MAN: %d %d\n", (int)(_rc.channels[0] * 100), (int)(_rc.channels[1] * 100));
 		fflush(stdout);
 		usleep(5000);
 #endif
@@ -1334,7 +1334,7 @@ float
 Sensors::get_rc_value(enum RC_CHANNELS_FUNCTION func, float min_value, float max_value)
 {
 	if (_rc.function[func] >= 0) {
-		float value = _rc.chan[_rc.function[func]].scaled;
+		float value = _rc.channels[_rc.function[func]];
 
 		if (value < min_value) {
 			return min_value;
@@ -1355,7 +1355,7 @@ switch_pos_t
 Sensors::get_rc_sw3pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv, float mid_th, bool mid_inv)
 {
 	if (_rc.function[func] >= 0) {
-		float value = 0.5f * _rc.chan[_rc.function[func]].scaled + 0.5f;
+		float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
 
 		if (on_inv ? value < on_th : value > on_th) {
 			return SWITCH_POS_ON;
@@ -1376,7 +1376,7 @@ switch_pos_t
 Sensors::get_rc_sw2pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv)
 {
 	if (_rc.function[func] >= 0) {
-		float value = 0.5f * _rc.chan[_rc.function[func]].scaled + 0.5f;
+		float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
 
 		if (on_inv ? value < on_th : value > on_th) {
 			return SWITCH_POS_ON;
@@ -1468,25 +1468,25 @@ Sensors::rc_poll()
 			 * DO NOT REMOVE OR ALTER STEP 1!
 			 */
 			if (rc_input.values[i] > (_parameters.trim[i] + _parameters.dz[i])) {
-				_rc.chan[i].scaled = (rc_input.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(_parameters.max[i] - _parameters.trim[i] - _parameters.dz[i]);
+				_rc.channels[i] = (rc_input.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(_parameters.max[i] - _parameters.trim[i] - _parameters.dz[i]);
 
 			} else if (rc_input.values[i] < (_parameters.trim[i] - _parameters.dz[i])) {
-				_rc.chan[i].scaled = (rc_input.values[i] - _parameters.trim[i] + _parameters.dz[i]) / (float)(_parameters.trim[i] - _parameters.min[i] - _parameters.dz[i]);
+				_rc.channels[i] = (rc_input.values[i] - _parameters.trim[i] + _parameters.dz[i]) / (float)(_parameters.trim[i] - _parameters.min[i] - _parameters.dz[i]);
 
 			} else {
 				/* in the configured dead zone, output zero */
-				_rc.chan[i].scaled = 0.0f;
+				_rc.channels[i] = 0.0f;
 			}
 
-			_rc.chan[i].scaled *= _parameters.rev[i];
+			_rc.channels[i] *= _parameters.rev[i];
 
 			/* handle any parameter-induced blowups */
-			if (!isfinite(_rc.chan[i].scaled)) {
-				_rc.chan[i].scaled = 0.0f;
+			if (!isfinite(_rc.channels[i])) {
+				_rc.channels[i] = 0.0f;
 			}
 		}
 
-		_rc.chan_count = rc_input.channel_count;
+		_rc.channel_count = rc_input.channel_count;
 		_rc.rssi = rc_input.rssi;
 		_rc.signal_lost = signal_lost;
 		_rc.timestamp = rc_input.timestamp_last_signal;
