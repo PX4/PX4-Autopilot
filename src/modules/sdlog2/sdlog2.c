@@ -1119,10 +1119,16 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_LPOS.ref_lat = buf.local_pos.ref_lat * 1e7;
 			log_msg.body.log_LPOS.ref_lon = buf.local_pos.ref_lon * 1e7;
 			log_msg.body.log_LPOS.ref_alt = buf.local_pos.ref_alt;
-			log_msg.body.log_LPOS.xy_flags = (buf.local_pos.xy_valid ? 1 : 0) | (buf.local_pos.v_xy_valid ? 2 : 0) | (buf.local_pos.xy_global ? 8 : 0);
-			log_msg.body.log_LPOS.z_flags = (buf.local_pos.z_valid ? 1 : 0) | (buf.local_pos.v_z_valid ? 2 : 0) | (buf.local_pos.z_global ? 8 : 0);
+			log_msg.body.log_LPOS.pos_flags = (buf.local_pos.xy_valid ? 1 : 0) |
+											  (buf.local_pos.z_valid ? 2 : 0) |
+											  (buf.local_pos.v_xy_valid ? 4 : 0) |
+											  (buf.local_pos.v_z_valid ? 8 : 0) |
+											  (buf.local_pos.xy_global ? 16 : 0) |
+											  (buf.local_pos.z_global ? 32 : 0);
 			log_msg.body.log_LPOS.landed = buf.local_pos.landed;
 			log_msg.body.log_LPOS.ground_dist_flags = (buf.local_pos.dist_bottom_valid ? 1 : 0);
+			log_msg.body.log_LPOS.eph = buf.local_pos.eph;
+			log_msg.body.log_LPOS.epv = buf.local_pos.epv;
 			LOGBUFFER_WRITE_AND_COUNT(LPOS);
 		}
 

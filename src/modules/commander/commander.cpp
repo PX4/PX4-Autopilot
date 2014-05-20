@@ -1012,7 +1012,26 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* update condition_local_position_valid and condition_local_altitude_valid */
-		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid && eph_epv_good, &(status.condition_local_position_valid), &status_changed);
+		/* hysteresis for EPH */
+		bool local_eph_good;
+
+		if (status.condition_global_position_valid) {
+			if (local_position.eph > eph_epv_threshold * 2.0f) {
+				local_eph_good = false;
+
+			} else {
+				local_eph_good = true;
+			}
+
+		} else {
+			if (local_position.eph < eph_epv_threshold) {
+				local_eph_good = true;
+
+			} else {
+				local_eph_good = false;
+			}
+		}
+		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid && local_eph_good, &(status.condition_local_position_valid), &status_changed);
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid, &(status.condition_local_altitude_valid), &status_changed);
 
 		static bool published_condition_landed_fw = false;
