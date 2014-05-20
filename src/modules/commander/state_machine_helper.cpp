@@ -222,6 +222,10 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		ret = TRANSITION_CHANGED;
 		break;
 
+	case MAIN_STATE_ACRO:
+		ret = TRANSITION_CHANGED;
+		break;
+
 	case MAIN_STATE_ALTCTL:
 
 		/* need at minimum altitude estimate */

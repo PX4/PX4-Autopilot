@@ -447,6 +447,7 @@ public:
 		QUAD_WIDE,	/**< quad in wide configuration */
 		HEX_X,		/**< hex in X configuration */
 		HEX_PLUS,	/**< hex in + configuration */
+		HEX_COX,
 		OCTA_X,
 		OCTA_PLUS,
 		OCTA_COX,
@@ -516,7 +517,7 @@ private:
 	float				_roll_scale;
 	float				_pitch_scale;
 	float				_yaw_scale;
-	float				_deadband;
+	float				_idle_speed;
 
 	unsigned			_rotor_count;
 	const Rotor			*_rotors;
