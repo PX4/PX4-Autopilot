@@ -803,6 +803,9 @@ MulticopterAttitudeControl::task_main()
 					_rates_sp = math::Vector<3>(_manual_control_sp.y, -_manual_control_sp.x, _manual_control_sp.r).emult(_params.acro_rate_max);
 					_thrust_sp = _manual_control_sp.z;
 
+					/* reset yaw setpoint after ACRO */
+					_reset_yaw_sp = true;
+
 					/* publish attitude rates setpoint */
 					_v_rates_sp.roll = _rates_sp(0);
 					_v_rates_sp.pitch = _rates_sp(1);
