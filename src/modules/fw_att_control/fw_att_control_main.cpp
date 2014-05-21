@@ -304,8 +304,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 /* publications */
 	_rate_sp_pub(-1),
-	_actuators_0_pub(-1),
 	_attitude_sp_pub(-1),
+	_actuators_0_pub(-1),
 	_actuators_1_pub(-1),
 
 /* performance counters */
@@ -773,7 +773,7 @@ FixedwingAttitudeControl::task_main()
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
 					_actuators.control[0] = (isfinite(roll_u)) ? roll_u + _parameters.trim_roll : _parameters.trim_roll;
 					if (!isfinite(roll_u)) {
-						warnx("roll_u %.4f", roll_u);
+						warnx("roll_u %.4f", (double)roll_u);
 					}
 
 					float pitch_u = _pitch_ctrl.control_bodyrate(_att.roll, _att.pitch,
