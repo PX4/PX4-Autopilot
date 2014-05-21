@@ -304,8 +304,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 /* publications */
 	_rate_sp_pub(-1),
-	_actuators_0_pub(-1),
 	_attitude_sp_pub(-1),
+	_actuators_0_pub(-1),
 	_actuators_1_pub(-1),
 
 /* performance counters */
@@ -779,7 +779,7 @@ FixedwingAttitudeControl::task_main()
 					if (!isfinite(roll_u)) {
 						_roll_ctrl.reset_integrator();
 						if (loop_counter % 10 == 0) {
-							warnx("roll_u %.4f", roll_u);
+							warnx("roll_u %.4f", (double)roll_u);
 						}
 					}
 
