@@ -134,6 +134,8 @@ private:
 	struct vehicle_global_position_s		_global_pos;		/**< global position */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
+	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
+	perf_counter_t	_nonfinite_output_perf;		/**< performance counter for non finite output */
 
 	bool		_setpoint_valid;		/**< flag if the position control setpoint is valid */
 
@@ -310,6 +312,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw att control")),
+	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control nonfinite input")),
+	_nonfinite_output_perf(perf_alloc(PC_COUNT, "fw att control nonfinite output")),
 /* states */
 	_setpoint_valid(false)
 {
@@ -386,6 +390,10 @@ FixedwingAttitudeControl::~FixedwingAttitudeControl()
 			}
 		} while (_control_task != -1);
 	}
+
+	perf_free(_loop_perf);
+	perf_free(_nonfinite_input_perf);
+	perf_free(_nonfinite_output_perf);
 
 	att_control::g_control = nullptr;
 }
@@ -674,10 +682,12 @@ FixedwingAttitudeControl::task_main()
 				float airspeed;
 
 				/* if airspeed is not updating, we assume the normal average speed */
-				if (!isfinite(_airspeed.true_airspeed_m_s) ||
+				if (bool nonfinite = !isfinite(_airspeed.true_airspeed_m_s) ||
 				    hrt_elapsed_time(&_airspeed.timestamp) > 1e6) {
 					airspeed = _parameters.airspeed_trim;
-
+					if (nonfinite) {
+						perf_count(_nonfinite_input_perf);
+					}
 				} else {
 					airspeed = _airspeed.true_airspeed_m_s;
 				}
@@ -778,6 +788,8 @@ FixedwingAttitudeControl::task_main()
 					_actuators.control[0] = (isfinite(roll_u)) ? roll_u + _parameters.trim_roll : _parameters.trim_roll;
 					if (!isfinite(roll_u)) {
 						_roll_ctrl.reset_integrator();
+						perf_count(_nonfinite_output_perf);
+
 						if (loop_counter % 10 == 0) {
 							warnx("roll_u %.4f", (double)roll_u);
 						}
@@ -790,6 +802,7 @@ FixedwingAttitudeControl::task_main()
 					_actuators.control[1] = (isfinite(pitch_u)) ? pitch_u + _parameters.trim_pitch : _parameters.trim_pitch;
 					if (!isfinite(pitch_u)) {
 						_pitch_ctrl.reset_integrator();
+						perf_count(_nonfinite_output_perf);
 						if (loop_counter % 10 == 0) {
 							warnx("pitch_u %.4f, _yaw_ctrl.get_desired_rate() %.4f,"
 								" airspeed %.4f, airspeed_scaling %.4f,"
@@ -813,6 +826,7 @@ FixedwingAttitudeControl::task_main()
 					_actuators.control[2] = (isfinite(yaw_u)) ? yaw_u + _parameters.trim_yaw : _parameters.trim_yaw;
 					if (!isfinite(yaw_u)) {
 						_yaw_ctrl.reset_integrator();
+						perf_count(_nonfinite_output_perf);
 						if (loop_counter % 10 == 0) {
 							warnx("yaw_u %.4f", (double)yaw_u);
 						}
@@ -826,6 +840,7 @@ FixedwingAttitudeControl::task_main()
 						}
 					}
 				} else {
+					perf_count(_nonfinite_input_perf);
 					if (loop_counter % 10 == 0) {
 						warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", (double)roll_sp, (double)pitch_sp);
 					}
