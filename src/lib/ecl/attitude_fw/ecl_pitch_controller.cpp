@@ -63,12 +63,19 @@ ECL_PitchController::ECL_PitchController() :
 	_rate_setpoint(0.0f),
 	_bodyrate_setpoint(0.0f)
 {
+	perf_alloc(PC_COUNT, "fw att control pitch nonfinite input");
+}
+
+ECL_PitchController::~ECL_PitchController()
+{
+	perf_free(_nonfinite_input_perf);
 }
 
 float ECL_PitchController::control_attitude(float pitch_setpoint, float roll, float pitch, float airspeed)
 {
 	/* Do not calculate control signal with bad inputs */
 	if (!(isfinite(pitch_setpoint) && isfinite(roll) && isfinite(pitch) && isfinite(airspeed))) {
+		perf_count(_nonfinite_input_perf);
 		warnx("not controlling pitch");
 		return _rate_setpoint;
 	}
@@ -131,6 +138,7 @@ float ECL_PitchController::control_bodyrate(float roll, float pitch,
 	if (!(isfinite(roll) && isfinite(pitch) && isfinite(pitch_rate) && isfinite(yaw_rate) &&
 				isfinite(yaw_rate_setpoint) && isfinite(airspeed_min) &&
 				isfinite(airspeed_max) && isfinite(scaler))) {
+		perf_count(_nonfinite_input_perf);
 		return math::constrain(_last_output, -1.0f, 1.0f);
 	}
 
