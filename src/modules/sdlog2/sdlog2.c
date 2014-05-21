@@ -89,6 +89,7 @@
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
+#include <systemlib/perf_counter.h>
 #include <version/version.h>
 
 #include <mavlink/mavlink_log.h>
@@ -217,6 +218,8 @@ static int create_log_dir(void);
  * Select first free log file name and open it.
  */
 static int open_log_file(void);
+
+static int open_perf_file(const char* str);
 
 static void
 sdlog2_usage(const char *reason)
@@ -349,8 +352,8 @@ int create_log_dir()
 int open_log_file()
 {
 	/* string to hold the path to the log */
-	char log_file_name[16] = "";
-	char log_file_path[48] = "";
+	char log_file_name[32] = "";
+	char log_file_path[64] = "";
 
 	if (log_name_timestamp && gps_time != 0) {
 		/* use GPS time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
@@ -378,7 +381,7 @@ int open_log_file()
 
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
-			warnx("all %d possible files exist already", MAX_NO_LOGFILE);
+			mavlink_log_critical(mavlink_fd, "[sdlog2] ERR: max files %d", MAX_NO_LOGFILE);
 			return -1;
 		}
 	}
@@ -387,7 +390,58 @@ int open_log_file()
 
 	if (fd < 0) {
 		warn("failed opening log: %s", log_file_name);
-		mavlink_log_info(mavlink_fd, "[sdlog2] failed opening log: %s", log_file_name);
+		mavlink_log_critical(mavlink_fd, "[sdlog2] failed opening log: %s", log_file_name);
+
+	} else {
+		warnx("log file: %s", log_file_name);
+		mavlink_log_info(mavlink_fd, "[sdlog2] log file: %s", log_file_name);
+	}
+
+	return fd;
+}
+
+int open_perf_file(const char* str)
+{
+	/* string to hold the path to the log */
+	char log_file_name[32] = "";
+	char log_file_path[64] = "";
+
+	if (log_name_timestamp && gps_time != 0) {
+		/* use GPS time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.bin */
+		time_t gps_time_sec = gps_time / 1000000;
+		struct tm t;
+		gmtime_r(&gps_time_sec, &t);
+		strftime(log_file_name, sizeof(log_file_name), "perf%H_%M_%S.txt", &t);
+		snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name);
+
+	} else {
+		unsigned file_number = 1; // start with file log001
+
+		/* look for the next file that does not exist */
+		while (file_number <= MAX_NO_LOGFILE) {
+			/* format log file path: e.g. /fs/microsd/sess001/log001.bin */
+			snprintf(log_file_name, sizeof(log_file_name), "perf%03u.txt", file_number);
+			snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name);
+
+			if (!file_exist(log_file_path)) {
+				break;
+			}
+
+			file_number++;
+		}
+
+		if (file_number > MAX_NO_LOGFILE) {
+			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
+			mavlink_log_critical(mavlink_fd, "[sdlog2] ERR: max files %d", MAX_NO_LOGFILE);
+			return -1;
+		}
+	}
+
+	int fd = open(log_file_path, O_CREAT | O_WRONLY | O_DSYNC);
+
+	if (fd < 0) {
+		warn("failed opening log: %s", log_file_name);
+		mavlink_log_critical(mavlink_fd, "[sdlog2] failed opening log: %s", log_file_name);
 
 	} else {
 		warnx("log file: %s", log_file_name);
@@ -529,6 +583,12 @@ void sdlog2_start_log()
 		errx(1, "error creating logwriter thread");
 	}
 
+	/* write all performance counters */
+	int perf_fd = open_perf_file("preflight");
+	dprintf(perf_fd, "PERFORMANCE COUNTERS PRE-FLIGHT\n\n");
+	perf_print_all(perf_fd);
+	close(perf_fd);
+
 	logging_enabled = true;
 }
 
@@ -555,6 +615,12 @@ void sdlog2_stop_log()
 
 	logwriter_pthread = 0;
 	pthread_attr_destroy(&logwriter_attr);
+
+	/* write all performance counters */
+	int perf_fd = open_perf_file("postflight");
+	dprintf(perf_fd, "PERFORMANCE COUNTERS POST-FLIGHT\n\n");
+	perf_print_all(perf_fd);
+	close(perf_fd);
 
 	sdlog2_status();
 }
@@ -992,7 +1058,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			unsigned log_max_snr = sizeof(log_msg.body.log_GS0A.satellite_snr) / sizeof(log_msg.body.log_GS0A.satellite_snr[0]);
 
 			log_msg.msg_type = LOG_GS0A_MSG;
-			memset(log_msg.body.log_GS0A, 0, sizeof(log_msg.body.log_GS0A));
+			memset(&log_msg.body.log_GS0A, 0, sizeof(log_msg.body.log_GS0A));
 			/* fill set A */
 			unsigned max_sats_a = (log_max_snr > gps_msg_max_snr) ? gps_msg_max_snr : log_max_snr;
 
@@ -1004,7 +1070,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* do we need a 2nd set? */
 			if (gps_msg_max_snr > log_max_snr) {
 				log_msg.msg_type = LOG_GS0B_MSG;
-				memset(log_msg.body.log_GS0B, 0, sizeof(log_msg.body.log_GS0B));
+				memset(&log_msg.body.log_GS0B, 0, sizeof(log_msg.body.log_GS0B));
 				/* fill set B - deduct the count we already have taken care of */
 				gps_msg_max_snr -= log_max_snr;
 				unsigned max_sats_b = (log_max_snr > gps_msg_max_snr) ? gps_msg_max_snr : log_max_snr;
