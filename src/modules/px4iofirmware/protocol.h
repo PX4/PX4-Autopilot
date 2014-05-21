@@ -190,6 +190,8 @@
 #define PX4IO_P_SETUP_RELAYS_POWER2		(1<<1)	/* hardware rev [1] power relay 2 */
 #define PX4IO_P_SETUP_RELAYS_ACC1		(1<<2)	/* hardware rev [1] accessory power 1 */
 #define PX4IO_P_SETUP_RELAYS_ACC2		(1<<3)	/* hardware rev [1] accessory power 2 */
+#else
+#define PX4IO_P_SETUP_RELAYS_PAD		5
 #endif
 
 #define PX4IO_P_SETUP_VBATT_SCALE		6	/* hardware rev [1] battery voltage correction factor (float) */
@@ -209,15 +211,16 @@ enum {							/* DSM bind states */
 #define PX4IO_REBOOT_BL_MAGIC			14662	/* required argument for reboot (random) */
 
 #define PX4IO_P_SETUP_CRC			11	/* get CRC of IO firmware */
-						/* 12 occupied by CRC */
+						/* storage space of 12 occupied by CRC */
+#define PX4IO_P_SETUP_FORCE_SAFETY_OFF		12	/* force safety switch into
+                                                           'armed' (PWM enabled) state - this is a non-data write and
+                                                           hence index 12 can safely be used. */
 #define PX4IO_P_SETUP_RC_THR_FAILSAFE_US	13	/**< the throttle failsafe pulse length in microseconds */
 
-#define PX4IO_P_SETUP_FORCE_SAFETY_OFF	       12	/* force safety switch into
-                                                           'armed' (PWM enabled) state */
-#define PX4IO_FORCE_SAFETY_MAGIC            22027       /* required argument for force safety (random) */
+#define PX4IO_FORCE_SAFETY_MAGIC		22027	/* required argument for force safety (random) */
 
 /* autopilot control values, -10000..10000 */
-#define PX4IO_PAGE_CONTROLS			51		/**< actuator control groups, one after the other, 8 wide */
+#define PX4IO_PAGE_CONTROLS			51	/**< actuator control groups, one after the other, 8 wide */
 #define PX4IO_P_CONTROLS_GROUP_0		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 0)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */
 #define PX4IO_P_CONTROLS_GROUP_1		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 1)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */
 #define PX4IO_P_CONTROLS_GROUP_2		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 2)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */

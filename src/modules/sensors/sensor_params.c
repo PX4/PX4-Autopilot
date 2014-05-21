@@ -626,6 +626,15 @@ PARAM_DEFINE_INT32(RC_MAP_POSCTL_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_LOITER_SW, 0);
 
 /**
+ * Acro switch channel mapping.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_MAP_ACRO_SW, 0);
+
+/**
  * Offboard switch channel mapping.
  *
  * @min 0
@@ -767,7 +776,7 @@ PARAM_DEFINE_FLOAT(RC_RETURN_TH, 0.5f);
 PARAM_DEFINE_FLOAT(RC_LOITER_TH, 0.5f);
 
 /**
- * Threshold for selecting offboard mode
+ * Threshold for selecting acro mode
  *
  * min:-1
  * max:+1
@@ -780,4 +789,4 @@ PARAM_DEFINE_FLOAT(RC_LOITER_TH, 0.5f);
  * 		negative : true when channel<th
  *
  */
-PARAM_DEFINE_FLOAT(RC_OFFB_TH, 0.5f);
+PARAM_DEFINE_FLOAT(RC_ACRO_TH, 0.5f);
