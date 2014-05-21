@@ -834,8 +834,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_ESTM_s log_ESTM;
 			struct log_PWR_s log_PWR;
 			struct log_VICN_s log_VICN;
-			struct log_GSN0_s log_GSN0;
-			struct log_GSN1_s log_GSN1;
+			struct log_GS0A_s log_GS0A;
+			struct log_GS0B_s log_GS0B;
+			struct log_GS1A_s log_GS1A;
+			struct log_GS1B_s log_GS1B;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -969,7 +971,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			LOGBUFFER_WRITE_AND_COUNT(STAT);
 		}
 
-		/* --- GPS POSITION --- */
+		/* --- GPS POSITION - UNIT #1 --- */
 		if (gps_pos_updated) {
 			log_msg.msg_type = LOG_GPS_MSG;
 			log_msg.body.log_GPS.gps_time = buf_gps_pos.time_gps_usec;
@@ -986,16 +988,33 @@ int sdlog2_thread_main(int argc, char *argv[])
 			LOGBUFFER_WRITE_AND_COUNT(GPS);
 
 			/* log the SNR of each satellite for a detailed view of signal quality */
-			log_msg.msg_type = LOG_GSN0_MSG;
-			/* pick the smaller number so we do not overflow any of the arrays */
 			unsigned gps_msg_max_snr = sizeof(buf_gps_pos.satellite_snr) / sizeof(buf_gps_pos.satellite_snr[0]);
-			unsigned log_max_snr = sizeof(log_msg.body.log_GSN0.satellite_snr) / sizeof(log_msg.body.log_GSN0.satellite_snr[0]);
-			unsigned sat_max_snr = (gps_msg_max_snr < log_max_snr) ? gps_msg_max_snr : log_max_snr;
+			unsigned log_max_snr = sizeof(log_msg.body.log_GS0A.satellite_snr) / sizeof(log_msg.body.log_GS0A.satellite_snr[0]);
 
-			for (unsigned i = 0; i < sat_max_snr; i++) {
-				log_msg.body.log_GSN0.satellite_snr[i] = buf_gps_pos.satellite_snr[i];
+			log_msg.msg_type = LOG_GS0A_MSG;
+			memset(log_msg.body.log_GS0A, 0, sizeof(log_msg.body.log_GS0A));
+			/* fill set A */
+			unsigned max_sats_a = (log_max_snr > gps_msg_max_snr) ? gps_msg_max_snr : log_max_snr;
+
+			for (unsigned i = 0; i < max_sats_a; i++) {
+				log_msg.body.log_GS0A.satellite_snr[i] = buf_gps_pos.satellite_snr[i];
 			}
-			LOGBUFFER_WRITE_AND_COUNT(GSN0);
+			LOGBUFFER_WRITE_AND_COUNT(GS0A);
+
+			/* do we need a 2nd set? */
+			if (gps_msg_max_snr > log_max_snr) {
+				log_msg.msg_type = LOG_GS0B_MSG;
+				memset(log_msg.body.log_GS0B, 0, sizeof(log_msg.body.log_GS0B));
+				/* fill set B - deduct the count we already have taken care of */
+				gps_msg_max_snr -= log_max_snr;
+				unsigned max_sats_b = (log_max_snr > gps_msg_max_snr) ? gps_msg_max_snr : log_max_snr;
+
+				for (unsigned i = 0; i < max_sats_b; i++) {
+					/* count from zero, but obey offset of log_max_snr consumed units */
+					log_msg.body.log_GS0B.satellite_snr[i] = buf_gps_pos.satellite_snr[log_max_snr + i];
+				}
+				LOGBUFFER_WRITE_AND_COUNT(GS0B);
+			}
 		}
 
 		/* --- SENSOR COMBINED --- */
