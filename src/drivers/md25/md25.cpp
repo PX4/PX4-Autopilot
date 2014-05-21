@@ -615,7 +615,7 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address, float amplitu
 		strncpy(debug_msg.key, "md25 out  ", 10);
 		debug_msg.timestamp_ms = 1000*timestamp;
 		debug_msg.value = current_revolution;
-		debug_msg.update();
+		debug_msg.publish();
 
 		if (t > t_final) break;
 

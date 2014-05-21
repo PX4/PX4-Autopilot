@@ -91,7 +91,7 @@ BlockUorbEnabledAutopilot::BlockUorbEnabledAutopilot(SuperBlock *parent, const c
 	_status(&getSubscriptions(), ORB_ID(vehicle_status), 20),
 	_param_update(&getSubscriptions(), ORB_ID(parameter_update), 1000), // limit to 1 Hz
 	// publications
-	_actuators(&getPublications(), ORB_ID(actuator_controls_0))
+	_actuators(ORB_ID(actuator_controls_0))
 {
 }
 

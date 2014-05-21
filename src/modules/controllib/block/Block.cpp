@@ -119,6 +119,7 @@ void Block::updateSubscriptions()
 
 void Block::updatePublications()
 {
+	/*
 	uORB::PublicationBase *pub = getPublications().getHead();
 	int count = 0;
 
@@ -130,9 +131,10 @@ void Block::updatePublications()
 			break;
 		}
 
-		pub->update();
+		pub->publish();
 		pub = pub->getSibling();
 	}
+	*/
 }
 
 void SuperBlock::setDt(float dt)

@@ -39,7 +39,6 @@
 #pragma once
 
 #include <uORB/uORB.h>
-#include <containers/List.hpp>
 
 
 namespace uORB
@@ -49,41 +48,52 @@ namespace uORB
  * Base publication warapper class, used in list traversal
  * of various publications.
  */
-class __EXPORT PublicationBase : public ListNode<uORB::PublicationBase *>
+class __EXPORT PublicationBase
 {
 public:
+	PublicationBase(const struct orb_metadata *meta) : _meta(meta), _handle(-1) {}
 
-	PublicationBase(
-		List<PublicationBase *> * list,
-		const struct orb_metadata *meta) :
-		_meta(meta),
-		_handle(-1) {
-		if (list != NULL) list->add(this);
-	}
-	void update() {
+	void publish() {
 		if (_handle > 0) {
-			orb_publish(getMeta(), getHandle(), getDataVoidPtr());
+			orb_publish(get_meta(), get_handle(), get_data_ptr());
+
 		} else {
-			setHandle(orb_advertise(getMeta(), getDataVoidPtr()));
+			set_handle(orb_advertise(get_meta(), get_data_ptr()));
 		}
 	}
-	virtual void *getDataVoidPtr() = 0;
-	virtual ~PublicationBase() {
-		orb_unsubscribe(getHandle());
+
+	virtual void *get_data_ptr() {
+		return (void *)this;
 	}
-	const struct orb_metadata *getMeta() { return _meta; }
-	int getHandle() { return _handle; }
+
+	virtual ~PublicationBase() {
+		if (_handle > 0) {
+			orb_unsubscribe(get_handle());
+		}
+	}
+
+	const struct orb_metadata *get_meta() const {
+		return _meta;
+	}
+
+	const int get_handle() const {
+		return _handle;
+	}
+
 protected:
-	void setHandle(orb_advert_t handle) { _handle = handle; }
 	const struct orb_metadata *_meta;
 	orb_advert_t _handle;
+
+	void set_handle(const orb_advert_t handle) {
+		_handle = handle;
+	}
 };
 
 /**
  * Publication wrapper class
  */
 template<class T>
-class Publication :
+class __EXPORT Publication :
 	public T, // this must be first!
 	public PublicationBase
 {
@@ -95,17 +105,9 @@ public:
 	 * @param meta		The uORB metadata (usually from the ORB_ID() macro)
 	 *			for the topic.
 	 */
-	Publication(List<PublicationBase *> * list,
-		const struct orb_metadata *meta);
-	virtual ~Publication();
-	/*
-	 * XXX
-	 * This function gets the T struct, assuming
-	 * the struct is the first base class, this
-	 * should use dynamic cast, but doesn't
-	 * seem to be available
-	 */
-	void *getDataVoidPtr();
+	Publication(const struct orb_metadata *meta) : T(), PublicationBase(meta) {}
+
+	~Publication() {}
 };
 
 } // namespace uORB

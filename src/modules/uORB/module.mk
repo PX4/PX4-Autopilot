@@ -42,5 +42,4 @@ MODULE_STACKSIZE	= 4096
 
 SRCS			= uORB.cpp \
 			  objects_common.cpp \
-			  Publication.cpp \
 			  Subscription.cpp
