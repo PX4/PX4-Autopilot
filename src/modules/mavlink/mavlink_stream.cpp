@@ -81,5 +81,9 @@ MavlinkStream::update(const hrt_abstime t)
 		/* interval expired, send message */
 		send(t);
 		_last_sent = (t / _interval) * _interval;
+
+		return 0;
 	}
+
+	return -1;
 }
