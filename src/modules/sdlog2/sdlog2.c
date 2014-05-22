@@ -119,6 +119,8 @@ static const int LOG_BUFFER_SIZE_DEFAULT = 8192;
 static const int MAX_WRITE_CHUNK = 512;
 static const int MIN_BYTES_TO_WRITE = 512;
 
+static bool _extended_logging = false;
+
 static const char *log_root = "/fs/microsd/log";
 static int mavlink_fd = -1;
 struct logbuffer_s lb;
@@ -228,12 +230,13 @@ sdlog2_usage(const char *reason)
 		fprintf(stderr, "%s\n", reason);
 	}
 
-	errx(1, "usage: sdlog2 {start|stop|status} [-r <log rate>] [-b <buffer size>] -e -a -t\n"
+	errx(1, "usage: sdlog2 {start|stop|status} [-r <log rate>] [-b <buffer size>] -e -a -t -x\n"
 		 "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
 		 "\t-b\tLog buffer size in KiB, default is 8\n"
 		 "\t-e\tEnable logging by default (if not, can be started by command)\n"
 		 "\t-a\tLog only when armed (can be still overriden by command)\n"
-		 "\t-t\tUse date/time for naming log directories and files\n");
+		 "\t-t\tUse date/time for naming log directories and files\n"
+		 "\t-x\tExtended logging");
 }
 
 /**
@@ -745,7 +748,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	 * set error flag instead */
 	bool err_flag = false;
 
-	while ((ch = getopt(argc, argv, "r:b:eat")) != EOF) {
+	while ((ch = getopt(argc, argv, "r:b:eatx")) != EOF) {
 		switch (ch) {
 		case 'r': {
 				unsigned long r = strtoul(optarg, NULL, 10);
@@ -779,6 +782,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		case 't':
 			log_name_timestamp = true;
+			break;
+
+		case 'x':
+			_extended_logging = true;
 			break;
 
 		case '?':
@@ -1053,33 +1060,35 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_GPS.cog = buf_gps_pos.cog_rad;
 			LOGBUFFER_WRITE_AND_COUNT(GPS);
 
-			/* log the SNR of each satellite for a detailed view of signal quality */
-			unsigned gps_msg_max_snr = sizeof(buf_gps_pos.satellite_snr) / sizeof(buf_gps_pos.satellite_snr[0]);
-			unsigned log_max_snr = sizeof(log_msg.body.log_GS0A.satellite_snr) / sizeof(log_msg.body.log_GS0A.satellite_snr[0]);
+			if (_extended_logging) {
+				/* log the SNR of each satellite for a detailed view of signal quality */
+				unsigned gps_msg_max_snr = sizeof(buf_gps_pos.satellite_snr) / sizeof(buf_gps_pos.satellite_snr[0]);
+				unsigned log_max_snr = sizeof(log_msg.body.log_GS0A.satellite_snr) / sizeof(log_msg.body.log_GS0A.satellite_snr[0]);
 
-			log_msg.msg_type = LOG_GS0A_MSG;
-			memset(&log_msg.body.log_GS0A, 0, sizeof(log_msg.body.log_GS0A));
-			/* fill set A */
-			unsigned max_sats_a = (log_max_snr > gps_msg_max_snr) ? gps_msg_max_snr : log_max_snr;
+				log_msg.msg_type = LOG_GS0A_MSG;
+				memset(&log_msg.body.log_GS0A, 0, sizeof(log_msg.body.log_GS0A));
+				/* fill set A */
+				unsigned max_sats_a = (log_max_snr > gps_msg_max_snr) ? gps_msg_max_snr : log_max_snr;
 
-			for (unsigned i = 0; i < max_sats_a; i++) {
-				log_msg.body.log_GS0A.satellite_snr[i] = buf_gps_pos.satellite_snr[i];
-			}
-			LOGBUFFER_WRITE_AND_COUNT(GS0A);
-
-			/* do we need a 2nd set? */
-			if (gps_msg_max_snr > log_max_snr) {
-				log_msg.msg_type = LOG_GS0B_MSG;
-				memset(&log_msg.body.log_GS0B, 0, sizeof(log_msg.body.log_GS0B));
-				/* fill set B - deduct the count we already have taken care of */
-				gps_msg_max_snr -= log_max_snr;
-				unsigned max_sats_b = (log_max_snr > gps_msg_max_snr) ? gps_msg_max_snr : log_max_snr;
-
-				for (unsigned i = 0; i < max_sats_b; i++) {
-					/* count from zero, but obey offset of log_max_snr consumed units */
-					log_msg.body.log_GS0B.satellite_snr[i] = buf_gps_pos.satellite_snr[log_max_snr + i];
+				for (unsigned i = 0; i < max_sats_a; i++) {
+					log_msg.body.log_GS0A.satellite_snr[i] = buf_gps_pos.satellite_snr[i];
 				}
-				LOGBUFFER_WRITE_AND_COUNT(GS0B);
+				LOGBUFFER_WRITE_AND_COUNT(GS0A);
+
+				/* do we need a 2nd set? */
+				if (gps_msg_max_snr > log_max_snr) {
+					log_msg.msg_type = LOG_GS0B_MSG;
+					memset(&log_msg.body.log_GS0B, 0, sizeof(log_msg.body.log_GS0B));
+					/* fill set B - deduct the count we already have taken care of */
+					gps_msg_max_snr -= log_max_snr;
+					unsigned max_sats_b = (log_max_snr > gps_msg_max_snr) ? gps_msg_max_snr : log_max_snr;
+
+					for (unsigned i = 0; i < max_sats_b; i++) {
+						/* count from zero, but obey offset of log_max_snr consumed units */
+						log_msg.body.log_GS0B.satellite_snr[i] = buf_gps_pos.satellite_snr[log_max_snr + i];
+					}
+					LOGBUFFER_WRITE_AND_COUNT(GS0B);
+				}
 			}
 		}
 
@@ -1425,6 +1434,7 @@ void sdlog2_status()
 	float seconds = ((float)(hrt_absolute_time() - start_time)) / 1000000.0f;
 
 	warnx("wrote %lu msgs, %4.2f MiB (average %5.3f KiB/s), skipped %lu msgs", log_msgs_written, (double)mebibytes, (double)(kibibytes / seconds), log_msgs_skipped);
+	warnx("extended logging: %s", (_extended_logging) ? "ON" : "OFF");
 	mavlink_log_info(mavlink_fd, "[sdlog2] wrote %lu msgs, skipped %lu msgs", log_msgs_written, log_msgs_skipped);
 }
 
