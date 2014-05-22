@@ -1742,7 +1742,7 @@ Navigator::publish_position_setpoint_triplet()
 	if (myState == NAV_STATE_MISSION && _roi_item_valid && _roi_item.roi_mode == ROI_MODE_FOLLOW &&
 			(_follow_offset_prev.valid || _follow_offset_next.valid) && _vstatus.condition_target_position_valid && !_do_takeoff) {
 		_pos_sp_triplet.current.valid = true;
-		_pos_sp_triplet.current.type = SETPOINT_TYPE_NORMAL;
+		_pos_sp_triplet.current.type = SETPOINT_TYPE_MOVING;
 
 		/* calculate current desired offset from target position and relative yaw */
 		math::Vector<3> offset;

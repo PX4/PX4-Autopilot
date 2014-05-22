@@ -58,6 +58,7 @@ enum SETPOINT_TYPE
 	SETPOINT_TYPE_LOITER,			/**< loiter setpoint */
 	SETPOINT_TYPE_TAKEOFF,			/**< takeoff setpoint */
 	SETPOINT_TYPE_LAND,			/**< land setpoint, altitude must be ignored, vehicle must descend until landing */
+	SETPOINT_TYPE_MOVING,			/**< moving setpoint, current velocity of the setpoint set */
 	SETPOINT_TYPE_IDLE,			/**< do nothing, switch off motors or keep at idle speed (MC) */
 };
 
