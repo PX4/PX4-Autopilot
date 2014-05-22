@@ -196,6 +196,11 @@ __EXPORT int map_projection_global_reproject(float x, float y, double *lat, doub
 __EXPORT int map_projection_reproject(const struct map_projection_reference_s *ref, float x, float y, double *lat, double *lon);
 
 /**
+ * Get reference position of the global map projection
+ */
+__EXPORT int map_projection_global_getref(double *lat_0, double *lon_0);
+
+/**
  * Initialize the global mapping between global position (spherical) and local position (NED).
  */
 __EXPORT int globallocalconverter_init(double lat_0, double lon_0, float alt_0, uint64_t timestamp);
@@ -215,6 +220,11 @@ __EXPORT int globallocalconverter_tolocal(double lat, double lon, float alt, flo
  * Convert from local position coordinates to global position coordinates using the global reference
  */
 __EXPORT int globallocalconverter_toglobal(float x, float y, float z,  double *lat, double *lon, float *alt);
+
+/**
+ * Get reference position of the global to local converter
+ */
+__EXPORT int globallocalconverter_getref(double *lat_0, double *lon_0, float *alt_0);
 
 /**
  * Returns the distance to the next waypoint in meters.

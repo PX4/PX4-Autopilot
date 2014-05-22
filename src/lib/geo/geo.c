@@ -186,6 +186,23 @@ __EXPORT int map_projection_reproject(const struct map_projection_reference_s *r
 	return 0;
 }
 
+__EXPORT int map_projection_global_getref(double *lat_0, double *lon_0)
+{
+	if (!map_projection_global_initialized()) {
+		return -1;
+	}
+
+	if (lat_0 != NULL) {
+		*lat_0 = M_RAD_TO_DEG * mp_ref.lat_rad;
+	}
+
+	if (lon_0 != NULL) {
+		*lon_0 = M_RAD_TO_DEG * mp_ref.lon_rad;
+	}
+
+	return 0;
+
+}
 __EXPORT int globallocalconverter_init(double lat_0, double lon_0, float alt_0, uint64_t timestamp)
 {
 	if (strcmp("commander", getprogname() == 0)) {
@@ -210,6 +227,8 @@ __EXPORT int globallocalconverter_tolocal(double lat, double lon, float alt, flo
 
 	map_projection_global_project(lat, lon, x, y);
 	*z = gl_ref.alt - alt;
+
+	return 0;
 }
 
 __EXPORT int globallocalconverter_toglobal(float x, float y, float z,  double *lat, double *lon, float *alt)
@@ -220,6 +239,26 @@ __EXPORT int globallocalconverter_toglobal(float x, float y, float z,  double *l
 
 	map_projection_global_reproject(x, y, lat, lon);
 	*alt = gl_ref.alt - z;
+
+	return 0;
+}
+
+__EXPORT int globallocalconverter_getref(double *lat_0, double *lon_0, float *alt_0)
+{
+	if (!map_projection_global_initialized()) {
+		return -1;
+	}
+
+	if (map_projection_global_getref(lat_0, lon_0))
+	{
+		return -1;
+	}
+
+	if (alt_0 != NULL) {
+		*alt_0 = gl_ref.alt;
+	}
+
+	return 0;
 }
 
 __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next)
