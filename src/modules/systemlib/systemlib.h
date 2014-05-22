@@ -65,6 +65,14 @@ __EXPORT int task_spawn_cmd(const char *name,
 			main_t entry,
 			const char *argv[]);
 
+/** Starts a task and performs any specific accounting, scheduler setup, etc. */
+__EXPORT int task_spawn_instance(const char *name,
+			int priority,
+			int scheduler,
+			int stack_size,
+			main_t entry,
+			void *arg);
+
 enum MULT_PORTS {
 	MULT_0_US2_RXTX = 0,
 	MULT_1_US2_FLOW,

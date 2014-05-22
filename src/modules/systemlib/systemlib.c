@@ -105,3 +105,28 @@ int task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size
 
 	return pid;
 }
+
+int task_spawn_instance(const char *name, int scheduler, int priority, int stack_size, main_t entry, void *arg)
+{
+	int pid;
+
+	sched_lock();
+
+	/* create the task */
+	pid = task_create(name, priority, stack_size, entry, arg);
+
+	if (pid > 0) {
+
+		/* configure the scheduler */
+		struct sched_param param;
+
+		param.sched_priority = priority;
+		sched_setscheduler(pid, scheduler, &param);
+
+		/* XXX do any other private task accounting here before the task starts */
+	}
+
+	sched_unlock();
+
+	return pid;
+}
