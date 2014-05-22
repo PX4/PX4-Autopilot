@@ -687,10 +687,10 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	hil_gps.satellites_visible = gps.satellites_visible;
 
 	if (_gps_pub < 0) {
-		_gps_pub = orb_advertise(ORB_ID(vehicle_gps_position), &hil_gps);
+		_gps_pub = orb_advertise(ORB_ID(vehicle_gps_position_0), &hil_gps);
 
 	} else {
-		orb_publish(ORB_ID(vehicle_gps_position), _gps_pub, &hil_gps);
+		orb_publish(ORB_ID(vehicle_gps_position_0), _gps_pub, &hil_gps);
 	}
 }
 

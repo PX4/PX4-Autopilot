@@ -73,7 +73,9 @@ ORB_DEFINE(vehicle_attitude, struct vehicle_attitude_s);
 ORB_DEFINE(sensor_combined, struct sensor_combined_s);
 
 #include "topics/vehicle_gps_position.h"
-ORB_DEFINE(vehicle_gps_position, struct vehicle_gps_position_s);
+ORB_DEFINE(vehicle_gps_position_0, struct vehicle_gps_position_s);
+ORB_DEFINE(vehicle_gps_position_1, struct vehicle_gps_position_s);
+ORB_DEFINE(vehicle_gps_position_2, struct vehicle_gps_position_s);
 
 #include "topics/home_position.h"
 ORB_DEFINE(home_position, struct home_position_s);

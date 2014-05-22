@@ -251,7 +251,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	orb_set_interval(sub_raw, 3);
 
 	/* subscribe to GPS */
-	int sub_gps = orb_subscribe(ORB_ID(vehicle_gps_position));
+	int sub_gps = orb_subscribe(ORB_ID(vehicle_gps_position_0));
 
 	/* subscribe to GPS */
 	int sub_global_pos = orb_subscribe(ORB_ID(vehicle_global_position));
@@ -339,7 +339,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 				bool gps_updated;
 				orb_check(sub_gps, &gps_updated);
 				if (gps_updated) {
-					orb_copy(ORB_ID(vehicle_gps_position), sub_gps, &gps);
+					orb_copy(ORB_ID(vehicle_gps_position_0), sub_gps, &gps);
 				}
 
 				bool global_pos_updated;

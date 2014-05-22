@@ -841,11 +841,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	struct vehicle_status_s buf_status;
 
-	struct vehicle_gps_position_s buf_gps_pos;
+	struct vehicle_gps_position_s buf_gps_pos_0;
+	struct vehicle_gps_position_s buf_gps_pos_1;
 
 	memset(&buf_status, 0, sizeof(buf_status));
 
-	memset(&buf_gps_pos, 0, sizeof(buf_gps_pos));
+	memset(&buf_gps_pos_0, 0, sizeof(buf_gps_pos_0));
+	memset(&buf_gps_pos_1, 0, sizeof(buf_gps_pos_1));
 
 	/* warning! using union here to save memory, elements should be used separately! */
 	union {
@@ -931,7 +933,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int local_pos_sp_sub;
 		int global_pos_sub;
 		int triplet_sub;
-		int gps_pos_sub;
+		int gps_pos_sub_0;
+		int gps_pos_sub_1;
 		int vicon_pos_sub;
 		int flow_sub;
 		int rc_sub;
@@ -948,7 +951,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 	subs.status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	subs.gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	subs.gps_pos_sub_0 = orb_subscribe(ORB_ID(vehicle_gps_position_0));
+	subs.gps_pos_sub_1 = orb_subscribe(ORB_ID(vehicle_gps_position_1));
 	subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	subs.att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	subs.att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
@@ -989,8 +993,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	if (log_on_start) {
 		/* check GPS topic to get GPS time */
 		if (log_name_timestamp) {
-			if (copy_if_updated(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf_gps_pos)) {
-				gps_time = buf_gps_pos.time_gps_usec;
+			if (copy_if_updated(ORB_ID(vehicle_gps_position_0), subs.gps_pos_sub_0, &buf_gps_pos_0)) {
+				gps_time = buf_gps_pos_0.time_gps_usec;
 			}
 		}
 
@@ -1015,10 +1019,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
 		/* --- GPS POSITION - LOG MANAGEMENT --- */
-		bool gps_pos_updated = copy_if_updated(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf_gps_pos);
+		bool gps_pos_0_updated = copy_if_updated(ORB_ID(vehicle_gps_position_0), subs.gps_pos_sub_0, &buf_gps_pos_0);
+		bool gps_pos_1_updated = copy_if_updated(ORB_ID(vehicle_gps_position_1), subs.gps_pos_sub_1, &buf_gps_pos_1);
 
-		if (gps_pos_updated && log_name_timestamp) {
-			gps_time = buf_gps_pos.time_gps_usec;
+		if (gps_pos_0_updated && log_name_timestamp) {
+			gps_time = buf_gps_pos_0.time_gps_usec;
 		}
 
 		if (!logging_enabled) {
@@ -1044,25 +1049,25 @@ int sdlog2_thread_main(int argc, char *argv[])
 			LOGBUFFER_WRITE_AND_COUNT(STAT);
 		}
 
-		/* --- GPS POSITION - UNIT #1 --- */
-		if (gps_pos_updated) {
+		/* --- GPS POSITION - UNIT #0 --- */
+		if (gps_pos_0_updated) {
 			log_msg.msg_type = LOG_GPS_MSG;
-			log_msg.body.log_GPS.gps_time = buf_gps_pos.time_gps_usec;
-			log_msg.body.log_GPS.fix_type = buf_gps_pos.fix_type;
-			log_msg.body.log_GPS.eph = buf_gps_pos.eph_m;
-			log_msg.body.log_GPS.epv = buf_gps_pos.epv_m;
-			log_msg.body.log_GPS.lat = buf_gps_pos.lat;
-			log_msg.body.log_GPS.lon = buf_gps_pos.lon;
-			log_msg.body.log_GPS.alt = buf_gps_pos.alt * 0.001f;
-			log_msg.body.log_GPS.vel_n = buf_gps_pos.vel_n_m_s;
-			log_msg.body.log_GPS.vel_e = buf_gps_pos.vel_e_m_s;
-			log_msg.body.log_GPS.vel_d = buf_gps_pos.vel_d_m_s;
-			log_msg.body.log_GPS.cog = buf_gps_pos.cog_rad;
+			log_msg.body.log_GPS.gps_time = buf_gps_pos_0.time_gps_usec;
+			log_msg.body.log_GPS.fix_type = buf_gps_pos_0.fix_type;
+			log_msg.body.log_GPS.eph = buf_gps_pos_0.eph_m;
+			log_msg.body.log_GPS.epv = buf_gps_pos_0.epv_m;
+			log_msg.body.log_GPS.lat = buf_gps_pos_0.lat;
+			log_msg.body.log_GPS.lon = buf_gps_pos_0.lon;
+			log_msg.body.log_GPS.alt = buf_gps_pos_0.alt * 0.001f;
+			log_msg.body.log_GPS.vel_n = buf_gps_pos_0.vel_n_m_s;
+			log_msg.body.log_GPS.vel_e = buf_gps_pos_0.vel_e_m_s;
+			log_msg.body.log_GPS.vel_d = buf_gps_pos_0.vel_d_m_s;
+			log_msg.body.log_GPS.cog = buf_gps_pos_0.cog_rad;
 			LOGBUFFER_WRITE_AND_COUNT(GPS);
 
 			if (_extended_logging) {
 				/* log the SNR of each satellite for a detailed view of signal quality */
-				unsigned gps_msg_max_snr = sizeof(buf_gps_pos.satellite_snr) / sizeof(buf_gps_pos.satellite_snr[0]);
+				unsigned gps_msg_max_snr = sizeof(buf_gps_pos_0.satellite_snr) / sizeof(buf_gps_pos_0.satellite_snr[0]);
 				unsigned log_max_snr = sizeof(log_msg.body.log_GS0A.satellite_snr) / sizeof(log_msg.body.log_GS0A.satellite_snr[0]);
 
 				log_msg.msg_type = LOG_GS0A_MSG;
@@ -1071,7 +1076,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				unsigned max_sats_a = (log_max_snr > gps_msg_max_snr) ? gps_msg_max_snr : log_max_snr;
 
 				for (unsigned i = 0; i < max_sats_a; i++) {
-					log_msg.body.log_GS0A.satellite_snr[i] = buf_gps_pos.satellite_snr[i];
+					log_msg.body.log_GS0A.satellite_snr[i] = buf_gps_pos_0.satellite_snr[i];
 				}
 				LOGBUFFER_WRITE_AND_COUNT(GS0A);
 
@@ -1085,11 +1090,17 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 					for (unsigned i = 0; i < max_sats_b; i++) {
 						/* count from zero, but obey offset of log_max_snr consumed units */
-						log_msg.body.log_GS0B.satellite_snr[i] = buf_gps_pos.satellite_snr[log_max_snr + i];
+						log_msg.body.log_GS0B.satellite_snr[i] = buf_gps_pos_0.satellite_snr[log_max_snr + i];
 					}
 					LOGBUFFER_WRITE_AND_COUNT(GS0B);
 				}
 			}
+		}
+
+		/* --- GPS POSITION - UNIT #1 --- */
+		if (gps_pos_1_updated) {
+			// XXX actually log here
+			warnx("second GPS unit updated!");
 		}
 
 		/* --- SENSOR COMBINED --- */

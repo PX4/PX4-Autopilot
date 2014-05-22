@@ -814,7 +814,7 @@ int commander_thread_main(int argc, char *argv[])
 	 */
 
 	/* Subscribe to GPS topic */
-	int gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	int gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position_0));
 	struct vehicle_gps_position_s gps_position;
 	memset(&gps_position, 0, sizeof(gps_position));
 
@@ -1182,7 +1182,7 @@ int commander_thread_main(int argc, char *argv[])
 		orb_check(gps_sub, &updated);
 
 		if (updated) {
-			orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps_position);
+			orb_copy(ORB_ID(vehicle_gps_position_0), gps_sub, &gps_position);
 		}
 
 		/* start RC input check */

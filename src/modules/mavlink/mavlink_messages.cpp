@@ -531,7 +531,7 @@ private:
 protected:
 	void subscribe(Mavlink *mavlink)
 	{
-		gps_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_gps_position));
+		gps_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_gps_position_0));
 		gps = (struct vehicle_gps_position_s *)gps_sub->get_data();
 	}
 

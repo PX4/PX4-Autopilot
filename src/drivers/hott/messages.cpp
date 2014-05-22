@@ -73,7 +73,7 @@ void
 init_sub_messages(void)
 {
 	_battery_sub = orb_subscribe(ORB_ID(battery_status));
-	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position_0));
 	_home_sub = orb_subscribe(ORB_ID(home_position));
 	_sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
@@ -216,7 +216,7 @@ build_gps_response(uint8_t *buffer, size_t *size)
  	/* get a local copy of the battery data */
 	struct vehicle_gps_position_s gps;
 	memset(&gps, 0, sizeof(gps));
-	orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &gps);
+	orb_copy(ORB_ID(vehicle_gps_position_0), _gps_sub, &gps);
 
 	struct gps_module_msg msg;
 	*size = sizeof(msg);
