@@ -124,18 +124,22 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
 
-		} else if (status->main_state == MAIN_STATE_SEATBELT) {
+		} else if (status->main_state == MAIN_STATE_ALTCTL) {
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_SEATBELT;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ALTCTL;
 
-		} else if (status->main_state == MAIN_STATE_EASY) {
+		} else if (status->main_state == MAIN_STATE_POSCTL) {
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_EASY;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
 
 		} else if (status->main_state == MAIN_STATE_AUTO) {
 			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
+
+		} else if (status->main_state == MAIN_STATE_ACRO) {
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ACRO;
 		}
 
 	} else {
@@ -1138,10 +1142,10 @@ protected:
 		if (manual_sub->update(t)) {
 			mavlink_msg_manual_control_send(_channel,
 							mavlink_system.sysid,
-							manual->roll * 1000,
-							manual->pitch * 1000,
-							manual->yaw * 1000,
-							manual->throttle * 1000,
+							manual->x * 1000,
+							manual->y * 1000,
+							manual->z * 1000,
+							manual->r * 1000,
 							0);
 		}
 	}

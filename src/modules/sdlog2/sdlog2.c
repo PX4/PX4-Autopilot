@@ -684,7 +684,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		case 'r': {
 				unsigned long r = strtoul(optarg, NULL, 10);
 
-				if (r <= 0) {
+				if (r == 0) {
 					r = 1;
 				}
 
@@ -834,6 +834,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_ESTM_s log_ESTM;
 			struct log_PWR_s log_PWR;
 			struct log_VICN_s log_VICN;
+			struct log_GSN0_s log_GSN0;
+			struct log_GSN1_s log_GSN1;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -982,6 +984,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_GPS.vel_d = buf_gps_pos.vel_d_m_s;
 			log_msg.body.log_GPS.cog = buf_gps_pos.cog_rad;
 			LOGBUFFER_WRITE_AND_COUNT(GPS);
+
+			/* log the SNR of each satellite for a detailed view of signal quality */
+			log_msg.msg_type = LOG_GSN0_MSG;
+			/* pick the smaller number so we do not overflow any of the arrays */
+			unsigned gps_msg_max_snr = sizeof(buf_gps_pos.satellite_snr) / sizeof(buf_gps_pos.satellite_snr[0]);
+			unsigned log_max_snr = sizeof(log_msg.body.log_GSN0.satellite_snr) / sizeof(log_msg.body.log_GSN0.satellite_snr[0]);
+			unsigned sat_max_snr = (gps_msg_max_snr < log_max_snr) ? gps_msg_max_snr : log_max_snr;
+
+			for (unsigned i = 0; i < sat_max_snr; i++) {
+				log_msg.body.log_GSN0.satellite_snr[i] = buf_gps_pos.satellite_snr[i];
+			}
+			LOGBUFFER_WRITE_AND_COUNT(GSN0);
 		}
 
 		/* --- SENSOR COMBINED --- */
@@ -1105,10 +1119,16 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_LPOS.ref_lat = buf.local_pos.ref_lat * 1e7;
 			log_msg.body.log_LPOS.ref_lon = buf.local_pos.ref_lon * 1e7;
 			log_msg.body.log_LPOS.ref_alt = buf.local_pos.ref_alt;
-			log_msg.body.log_LPOS.xy_flags = (buf.local_pos.xy_valid ? 1 : 0) | (buf.local_pos.v_xy_valid ? 2 : 0) | (buf.local_pos.xy_global ? 8 : 0);
-			log_msg.body.log_LPOS.z_flags = (buf.local_pos.z_valid ? 1 : 0) | (buf.local_pos.v_z_valid ? 2 : 0) | (buf.local_pos.z_global ? 8 : 0);
+			log_msg.body.log_LPOS.pos_flags = (buf.local_pos.xy_valid ? 1 : 0) |
+											  (buf.local_pos.z_valid ? 2 : 0) |
+											  (buf.local_pos.v_xy_valid ? 4 : 0) |
+											  (buf.local_pos.v_z_valid ? 8 : 0) |
+											  (buf.local_pos.xy_global ? 16 : 0) |
+											  (buf.local_pos.z_global ? 32 : 0);
 			log_msg.body.log_LPOS.landed = buf.local_pos.landed;
 			log_msg.body.log_LPOS.ground_dist_flags = (buf.local_pos.dist_bottom_valid ? 1 : 0);
+			log_msg.body.log_LPOS.eph = buf.local_pos.eph;
+			log_msg.body.log_LPOS.epv = buf.local_pos.epv;
 			LOGBUFFER_WRITE_AND_COUNT(LPOS);
 		}
 

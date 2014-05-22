@@ -109,10 +109,11 @@ struct log_LPOS_s {
 	int32_t ref_lat;
 	int32_t ref_lon;
 	float ref_alt;
-	uint8_t xy_flags;
-	uint8_t z_flags;
+	uint8_t pos_flags;
 	uint8_t landed;
 	uint8_t ground_dist_flags;
+	float eph;
+	float epv;
 };
 
 /* --- LPSP - LOCAL POSITION SETPOINT --- */
@@ -317,6 +318,18 @@ struct log_VICN_s {
 	float yaw;
 };
 
+/* --- GSN0 - GPS SNR #0 --- */
+#define LOG_GSN0_MSG 26
+struct log_GSN0_s {
+	uint8_t satellite_snr[16];			/**< Signal to noise ratio of satellite. 0 for none, 255 for max. */
+};
+
+/* --- GSN1 - GPS SNR #1 --- */
+#define LOG_GSN1_MSG 27
+struct log_GSN1_s {
+	uint8_t satellite_snr[16];			/**< Signal to noise ratio of satellite. 0 for none, 255 for max. */
+};
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -348,7 +361,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(ATSP, "ffff",		"RollSP,PitchSP,YawSP,ThrustSP"),
 	LOG_FORMAT(IMU, "fffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
 	LOG_FORMAT(SENS, "fffff",		"BaroPres,BaroAlt,BaroTemp,DiffPres,DiffPresFilt"),
-	LOG_FORMAT(LPOS, "ffffffffLLfBBBB",	"X,Y,Z,dist,distR,VX,VY,VZ,RLat,RLon,RAlt,XYFlg,ZFlg,LFlg,GFlg"),
+	LOG_FORMAT(LPOS, "ffffffffLLfBBBff",	"X,Y,Z,Dist,DistR,VX,VY,VZ,RLat,RLon,RAlt,PFlg,LFlg,GFlg,EPH,EPV"),
 	LOG_FORMAT(LPSP, "ffff",		"X,Y,Z,Yaw"),
 	LOG_FORMAT(GPS, "QBffLLfffff",		"GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
 	LOG_FORMAT(ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
@@ -368,6 +381,8 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(ESTM, "ffffffffffBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,nStat,statNaN,covNaN,kGainNaN"),
 	LOG_FORMAT(PWR, "fffBBBBB",		"Periph5V,Servo5V,RSSI,UsbOk,BrickOk,ServoOk,PeriphOC,HipwrOC"),
 	LOG_FORMAT(VICN, "ffffff",		"X,Y,Z,Roll,Pitch,Yaw"),
+	LOG_FORMAT(GSN0, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
+	LOG_FORMAT(GSN1, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */

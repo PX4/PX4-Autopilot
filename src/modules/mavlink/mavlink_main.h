@@ -221,8 +221,6 @@ private:
 	int		_mavlink_fd;
 	bool		_task_running;
 
-	perf_counter_t	_loop_perf;			/**< loop performance counter */
-
 	/* states */
 	bool		_hil_enabled;		/**< Hardware In the Loop mode */
 	bool		_use_hil_gps;		/**< Accept GPS HIL messages (for example from an external motion capturing system to fake indoor gps) */
@@ -237,7 +235,6 @@ private:
 
 	orb_advert_t	_mission_pub;
 	struct mission_s mission;
-	uint8_t missionlib_msg_buf[MAVLINK_MAX_PACKET_LEN];
 	MAVLINK_MODE _mode;
 
 	uint8_t _mavlink_wpm_comp_id;
@@ -283,7 +280,7 @@ private:
 
 	pthread_mutex_t _message_buffer_mutex;
 
-
+	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	/**
 	 * Send one parameter.

@@ -75,38 +75,38 @@ static bool failsafe_state_changed = true;
 // though the transition is marked as true additional checks must be made. See arming_state_transition
 // code for those checks.
 static const bool arming_transitions[ARMING_STATE_MAX][ARMING_STATE_MAX] = {
-    //                                  INIT,   STANDBY,    ARMED,  ARMED_ERROR,    STANDBY_ERROR,  REBOOT,     IN_AIR_RESTORE
-    { /* ARMING_STATE_INIT */           true,   true,       false,  false,          false,          false,      false },
-    { /* ARMING_STATE_STANDBY */        true,   true,       true,   true,           false,          false,      false },
-    { /* ARMING_STATE_ARMED */          false,  true,       true,   false,          false,          false,      true },
-    { /* ARMING_STATE_ARMED_ERROR */    false,  false,      true,   true,           false,          false,      false },
-    { /* ARMING_STATE_STANDBY_ERROR */  true,   true,       false,  true,           true,           false,      false },
-    { /* ARMING_STATE_REBOOT */         true,   true,       false,  false,          true,           true,       true },
-    { /* ARMING_STATE_IN_AIR_RESTORE */ false,  false,      false,  false,          false,          false,      false }, // NYI
+	//                                  INIT,   STANDBY,    ARMED,  ARMED_ERROR,    STANDBY_ERROR,  REBOOT,     IN_AIR_RESTORE
+	{ /* ARMING_STATE_INIT */           true,   true,       false,  false,          false,          false,      false },
+	{ /* ARMING_STATE_STANDBY */        true,   true,       true,   true,           false,          false,      false },
+	{ /* ARMING_STATE_ARMED */          false,  true,       true,   false,          false,          false,      true },
+	{ /* ARMING_STATE_ARMED_ERROR */    false,  false,      true,   true,           false,          false,      false },
+	{ /* ARMING_STATE_STANDBY_ERROR */  true,   true,       false,  true,           true,           false,      false },
+	{ /* ARMING_STATE_REBOOT */         true,   true,       false,  false,          true,           true,       true },
+	{ /* ARMING_STATE_IN_AIR_RESTORE */ false,  false,      false,  false,          false,          false,      false }, // NYI
 };
 
 // You can index into the array with an arming_state_t in order to get it's textual representation
-static const char* state_names[ARMING_STATE_MAX] = {
-    "ARMING_STATE_INIT",
-    "ARMING_STATE_STANDBY",
-    "ARMING_STATE_ARMED",
-    "ARMING_STATE_ARMED_ERROR",
-    "ARMING_STATE_STANDBY_ERROR",
-    "ARMING_STATE_REBOOT",
-    "ARMING_STATE_IN_AIR_RESTORE",
+static const char *state_names[ARMING_STATE_MAX] = {
+	"ARMING_STATE_INIT",
+	"ARMING_STATE_STANDBY",
+	"ARMING_STATE_ARMED",
+	"ARMING_STATE_ARMED_ERROR",
+	"ARMING_STATE_STANDBY_ERROR",
+	"ARMING_STATE_REBOOT",
+	"ARMING_STATE_IN_AIR_RESTORE",
 };
 
 transition_result_t
 arming_state_transition(struct vehicle_status_s *status,            /// current vehicle status
-                        const struct safety_s   *safety,            /// current safety settings
-                        arming_state_t          new_arming_state,   /// arming state requested
-                        struct actuator_armed_s *armed,             /// current armed status
-                        const int               mavlink_fd)         /// mavlink fd for error reporting, 0 for none
+			const struct safety_s   *safety,            /// current safety settings
+			arming_state_t          new_arming_state,   /// arming state requested
+			struct actuator_armed_s *armed,             /// current armed status
+			const int               mavlink_fd)         /// mavlink fd for error reporting, 0 for none
 {
-    // Double check that our static arrays are still valid
-    ASSERT(ARMING_STATE_INIT == 0);
-    ASSERT(ARMING_STATE_IN_AIR_RESTORE == ARMING_STATE_MAX - 1);
-    
+	// Double check that our static arrays are still valid
+	ASSERT(ARMING_STATE_INIT == 0);
+	ASSERT(ARMING_STATE_IN_AIR_RESTORE == ARMING_STATE_MAX - 1);
+
 	/*
 	 * Perform an atomic state update
 	 */
@@ -117,63 +117,70 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 	/* only check transition if the new state is actually different from the current one */
 	if (new_arming_state == status->arming_state) {
 		ret = TRANSITION_NOT_CHANGED;
+
 	} else {
 		/* enforce lockdown in HIL */
 		if (status->hil_state == HIL_STATE_ON) {
 			armed->lockdown = true;
+
 		} else {
 			armed->lockdown = false;
 		}
-        
-        // Check that we have a valid state transition
-        bool valid_transition = arming_transitions[new_arming_state][status->arming_state];
-        if (valid_transition) {
-            // We have a good transition. Now perform any secondary validation.
-            if (new_arming_state == ARMING_STATE_ARMED) {
-                // Fail transition if we need safety switch press
-                //      Allow if coming from in air restore
-                //      Allow if HIL_STATE_ON
-                if (status->arming_state != ARMING_STATE_IN_AIR_RESTORE && status->hil_state == HIL_STATE_OFF && safety->safety_switch_available && !safety->safety_off) {
-                    if (mavlink_fd) {
-                        mavlink_log_critical(mavlink_fd, "NOT ARMING: Press safety switch first.");
-                    }
-                    valid_transition = false;
-                }
-            } else if (new_arming_state == ARMING_STATE_STANDBY && status->arming_state == ARMING_STATE_ARMED_ERROR) {
-                new_arming_state = ARMING_STATE_STANDBY_ERROR;
-            }
-        }
-        
-        // HIL can always go to standby
-        if (status->hil_state == HIL_STATE_ON && new_arming_state == ARMING_STATE_STANDBY) {
-            valid_transition = true;
-        }
-        
-        /* Sensors need to be initialized for STANDBY state */
-        if (new_arming_state == ARMING_STATE_STANDBY && !status->condition_system_sensors_initialized) {
-            valid_transition = false;
-        }
 
-        // Finish up the state transition
-        if (valid_transition) {
-            armed->armed = new_arming_state == ARMING_STATE_ARMED || new_arming_state == ARMING_STATE_ARMED_ERROR;
-            armed->ready_to_arm = new_arming_state == ARMING_STATE_ARMED || new_arming_state == ARMING_STATE_STANDBY;
-            ret = TRANSITION_CHANGED;
-            status->arming_state = new_arming_state;
-            arming_state_changed = true;
-        }
-    }
-    
+		// Check that we have a valid state transition
+		bool valid_transition = arming_transitions[new_arming_state][status->arming_state];
+
+		if (valid_transition) {
+			// We have a good transition. Now perform any secondary validation.
+			if (new_arming_state == ARMING_STATE_ARMED) {
+				// Fail transition if we need safety switch press
+				//      Allow if coming from in air restore
+				//      Allow if HIL_STATE_ON
+				if (status->arming_state != ARMING_STATE_IN_AIR_RESTORE && status->hil_state == HIL_STATE_OFF && safety->safety_switch_available && !safety->safety_off) {
+					if (mavlink_fd) {
+						mavlink_log_critical(mavlink_fd, "NOT ARMING: Press safety switch first.");
+					}
+
+					valid_transition = false;
+				}
+
+			} else if (new_arming_state == ARMING_STATE_STANDBY && status->arming_state == ARMING_STATE_ARMED_ERROR) {
+				new_arming_state = ARMING_STATE_STANDBY_ERROR;
+			}
+		}
+
+		// HIL can always go to standby
+		if (status->hil_state == HIL_STATE_ON && new_arming_state == ARMING_STATE_STANDBY) {
+			valid_transition = true;
+		}
+
+		/* Sensors need to be initialized for STANDBY state */
+		if (new_arming_state == ARMING_STATE_STANDBY && !status->condition_system_sensors_initialized) {
+			valid_transition = false;
+		}
+
+		// Finish up the state transition
+		if (valid_transition) {
+			armed->armed = new_arming_state == ARMING_STATE_ARMED || new_arming_state == ARMING_STATE_ARMED_ERROR;
+			armed->ready_to_arm = new_arming_state == ARMING_STATE_ARMED || new_arming_state == ARMING_STATE_STANDBY;
+			ret = TRANSITION_CHANGED;
+			status->arming_state = new_arming_state;
+			arming_state_changed = true;
+		}
+	}
+
 	/* end of atomic state update */
 	irqrestore(flags);
 
-    if (ret == TRANSITION_DENIED) {
-        static const char* errMsg = "Invalid arming transition from %s to %s";
-        if (mavlink_fd) {
-            mavlink_log_critical(mavlink_fd, errMsg, state_names[status->arming_state], state_names[new_arming_state]);
-        }
-        warnx(errMsg, state_names[status->arming_state], state_names[new_arming_state]);
-    }
+	if (ret == TRANSITION_DENIED) {
+		static const char *errMsg = "Invalid arming transition from %s to %s";
+
+		if (mavlink_fd) {
+			mavlink_log_critical(mavlink_fd, errMsg, state_names[status->arming_state], state_names[new_arming_state]);
+		}
+
+		warnx(errMsg, state_names[status->arming_state], state_names[new_arming_state]);
+	}
 
 	return ret;
 }
@@ -215,7 +222,11 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		ret = TRANSITION_CHANGED;
 		break;
 
-	case MAIN_STATE_SEATBELT:
+	case MAIN_STATE_ACRO:
+		ret = TRANSITION_CHANGED;
+		break;
+
+	case MAIN_STATE_ALTCTL:
 
 		/* need at minimum altitude estimate */
 		if (!status->is_rotary_wing ||
@@ -226,7 +237,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 		break;
 
-	case MAIN_STATE_EASY:
+	case MAIN_STATE_POSCTL:
 
 		/* need at minimum local position estimate */
 		if (status->condition_local_position_valid ||
@@ -320,6 +331,7 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 				/* list directory */
 				DIR		*d;
 				d = opendir("/dev");
+
 				if (d) {
 
 					struct dirent	*direntry;
@@ -331,26 +343,32 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 						if (!strncmp("tty", direntry->d_name, 3)) {
 							continue;
 						}
+
 						/* skip mtd devices */
 						if (!strncmp("mtd", direntry->d_name, 3)) {
 							continue;
 						}
+
 						/* skip ram devices */
 						if (!strncmp("ram", direntry->d_name, 3)) {
 							continue;
 						}
+
 						/* skip MMC devices */
 						if (!strncmp("mmc", direntry->d_name, 3)) {
 							continue;
 						}
+
 						/* skip mavlink */
 						if (!strcmp("mavlink", direntry->d_name)) {
 							continue;
 						}
+
 						/* skip console */
 						if (!strcmp("console", direntry->d_name)) {
 							continue;
 						}
+
 						/* skip null */
 						if (!strcmp("null", direntry->d_name)) {
 							continue;
