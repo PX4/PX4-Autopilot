@@ -181,6 +181,7 @@ private:
 
 	struct follow_offset_s	_follow_offset_prev;		/**< offset from target for previous "follow" waypoint */
 	struct follow_offset_s	_follow_offset_next;		/**< offset from target for next "follow" waypoint */
+	float _follow_progress;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -441,7 +442,8 @@ Navigator::Navigator() :
 	_roi_item_valid(false),
 	_target_lat(0.0),
 	_target_lon(0.0),
-	_target_alt(0.0f)
+	_target_alt(0.0f),
+	_follow_progress(0.0f)
 {
 	_parameter_handles.min_altitude = param_find("NAV_MIN_ALT");
 	_parameter_handles.acceptance_radius = param_find("NAV_ACCEPT_RAD");
@@ -893,6 +895,33 @@ Navigator::task_main()
 			/* predict current target position */
 			add_vector_to_global_position(_target_pos.lat, _target_pos.lon, dpos(0), dpos(1), &_target_lat, &_target_lon);
 			_target_alt = _target_pos.alt - dpos(2);
+
+			if (_follow_offset_prev.valid && _follow_offset_next.valid) {
+				math::Vector<3> trajectory;
+				get_vector_to_next_waypoint_fast(_follow_offset_prev.lat, _follow_offset_prev.lon,
+						_follow_offset_next.lat, _follow_offset_next.lon,
+						&trajectory.data[0], &trajectory.data[1]);
+				trajectory(2) = -(_follow_offset_next.alt - _follow_offset_prev.alt);
+
+				math::Vector<3> pos;
+				get_vector_to_next_waypoint_fast(_follow_offset_prev.lat, _follow_offset_prev.lon,
+						_target_lat, _target_lon,
+						&pos.data[0], &pos.data[1]);
+				pos(2) = -(_target_alt - _follow_offset_prev.alt);
+
+				if (trajectory.length_squared() > 0.01f) {
+					_follow_progress = fminf(1.0f, fmaxf(0.0f, pos * trajectory / trajectory.length_squared()));
+
+				} else {
+					_follow_progress = 1.0f;
+				}
+
+			} else if (_follow_offset_prev.valid) {
+				_follow_progress = 0.0f;
+
+			} else if (_follow_offset_next.valid) {
+				_follow_progress = 1.0f;
+			}
 		}
 
 		/* publish position setpoint triplet if updated */
@@ -1612,7 +1641,7 @@ Navigator::check_mission_item_reached()
 				get_vector_to_next_waypoint_fast(_target_lat, _target_lon, _follow_offset_next.lat, _follow_offset_next.lon, &current_offset.data[0], &current_offset.data[1]);
 				current_offset(2) = -(_follow_offset_next.alt - _target_alt);
 
-				if (current_offset.length() <= acceptance_radius) {
+				if (current_offset.length() <= acceptance_radius && _follow_progress >= 1.0f) {
 					_waypoint_position_reached = true;
 				}
 
@@ -1757,17 +1786,8 @@ Navigator::publish_position_setpoint_triplet()
 			yaw_relative = _follow_offset_prev.yaw;
 
 		} else {
-			float dist_prev = get_distance_to_point_global_wgs84(
-					_target_lat, _target_lon, _target_alt,
-					_follow_offset_prev.lat, _follow_offset_prev.lon, _follow_offset_prev.alt,
-					NULL, NULL);
-			float dist_next = get_distance_to_point_global_wgs84(
-					_target_lat, _target_lon, _target_alt,
-					_follow_offset_next.lat, _follow_offset_next.lon, _follow_offset_next.alt,
-					NULL, NULL);
-			float progress = dist_prev / (dist_prev + dist_next);
-			offset = _follow_offset_prev.offset + (_follow_offset_next.offset - _follow_offset_prev.offset) * progress;
-			yaw_relative = _follow_offset_prev.yaw + (_follow_offset_next.yaw - _follow_offset_prev.yaw) * progress;
+			offset = _follow_offset_prev.offset + (_follow_offset_next.offset - _follow_offset_prev.offset) * _follow_progress;
+			yaw_relative = _follow_offset_prev.yaw + (_follow_offset_next.yaw - _follow_offset_prev.yaw) * _follow_progress;
 		}
 
 		/* add offset to target position */
