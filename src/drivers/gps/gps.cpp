@@ -82,7 +82,7 @@ static const int ERROR = -1;
 class GPS : public device::CDev
 {
 public:
-	GPS(const char *uart_path, bool fake_gps);
+	GPS(const char *uart_path, const char *device_path, bool fake_gps);
 	virtual ~GPS();
 
 	virtual int			init();
@@ -110,6 +110,7 @@ private:
 	orb_advert_t			_report_pub;					///< uORB pub for gps position
 	float				_rate;						///< position update rate
 	bool				_fake_gps;					///< fake gps output
+	unsigned			_instance;					///< the instance ID
 
 
 	/**
@@ -146,16 +147,19 @@ private:
  */
 extern "C" __EXPORT int gps_main(int argc, char *argv[]);
 
-namespace
+static unsigned _instance_count = 0;
+static const unsigned max_instance_count = 3;
+
+namespace gps
 {
 
-GPS	*g_dev;
+GPS	*g_dev[max_instance_count] = {0};
 
 }
 
 
-GPS::GPS(const char *uart_path, bool fake_gps) :
-	CDev("gps", GPS_DEVICE_PATH),
+GPS::GPS(const char *uart_path, const char *device_path, bool fake_gps) :
+	CDev("gps", device_path),
 	_task_should_exit(false),
 	_healthy(false),
 	_mode_changed(false),
@@ -163,18 +167,22 @@ GPS::GPS(const char *uart_path, bool fake_gps) :
 	_Helper(nullptr),
 	_report_pub(-1),
 	_rate(0.0f),
-	_fake_gps(fake_gps)
+	_fake_gps(fake_gps),
+	_instance(_instance_count)
 {
+	gps::g_dev[_instance_count] = this;
+
 	/* store port name */
 	strncpy(_port, uart_path, sizeof(_port));
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
 
 	/* we need this potentially before it could be set in task_main */
-	g_dev = this;
 	memset(&_report, 0, sizeof(_report));
 
 	_debug_enabled = true;
+
+	_instance_count++;
 }
 
 GPS::~GPS()
@@ -192,7 +200,15 @@ GPS::~GPS()
 	if (_task != -1)
 		task_delete(_task);
 
-	g_dev = nullptr;
+	unsigned i = 0;
+	while (i < max_instance_count) {
+		if (gps::g_dev[i] == this) {
+			gps::g_dev[i] = nullptr;
+		}
+		_instance_count--;
+		i++;
+	}
+
 
 }
 
@@ -205,9 +221,12 @@ GPS::init()
 	if (CDev::init() != OK)
 		goto out;
 
+	char buf[16];
+	sprintf(buf, "gps%u", _instance_count);
+
 	/* start the GPS driver worker task */
-	_task = task_spawn_cmd("gps", SCHED_DEFAULT,
-				SCHED_PRIORITY_SLOW_DRIVER, 2000, (main_t)&GPS::task_main_trampoline, nullptr);
+	_task = task_spawn_instance(buf, SCHED_DEFAULT,
+				SCHED_PRIORITY_SLOW_DRIVER, 2000, (main_t)&GPS::task_main_trampoline, this);
 
 	if (_task < 0) {
 		warnx("task start failed: %d", errno);
@@ -245,7 +264,7 @@ GPS::ioctl(struct file *filp, int cmd, unsigned long arg)
 void
 GPS::task_main_trampoline(void *arg)
 {
-	g_dev->task_main();
+	((GPS*)arg)->task_main();
 }
 
 void
@@ -294,10 +313,31 @@ GPS::task_main()
 
 			if (!(_pub_blocked)) {
 				if (_report_pub > 0) {
-					orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
+					switch (_instance) {
+						case 0:
+							orb_publish(ORB_ID(vehicle_gps_position_0), _report_pub, &_report);
+						break;
+						case 1:
+							orb_publish(ORB_ID(vehicle_gps_position_1), _report_pub, &_report);
+						break;
+						case 2:
+							orb_publish(ORB_ID(vehicle_gps_position_2), _report_pub, &_report);
+						break;
+					}
 
 				} else {
-					_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report);
+					
+					switch (_instance) {
+						case 0:
+							_report_pub = orb_advertise(ORB_ID(vehicle_gps_position_0), &_report);
+						break;
+						case 1:
+							_report_pub = orb_advertise(ORB_ID(vehicle_gps_position_1), &_report);
+						break;
+						case 2:
+							_report_pub = orb_advertise(ORB_ID(vehicle_gps_position_2), &_report);
+						break;
+					}
 				}
 			}
 
@@ -338,10 +378,31 @@ GPS::task_main()
 
 					if (!(_pub_blocked)) {
 						if (_report_pub > 0) {
-							orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
+							switch (_instance) {
+								case 0:
+									orb_publish(ORB_ID(vehicle_gps_position_0), _report_pub, &_report);
+								break;
+								case 1:
+									orb_publish(ORB_ID(vehicle_gps_position_1), _report_pub, &_report);
+								break;
+								case 2:
+									orb_publish(ORB_ID(vehicle_gps_position_2), _report_pub, &_report);
+								break;
+							}
 
 						} else {
-							_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report);
+							
+							switch (_instance) {
+								case 0:
+									_report_pub = orb_advertise(ORB_ID(vehicle_gps_position_0), &_report);
+								break;
+								case 1:
+									_report_pub = orb_advertise(ORB_ID(vehicle_gps_position_1), &_report);
+								break;
+								case 2:
+									_report_pub = orb_advertise(ORB_ID(vehicle_gps_position_2), &_report);
+								break;
+							}
 						}
 					}
 
@@ -467,8 +528,6 @@ GPS::print_info()
 namespace gps
 {
 
-GPS	*g_dev;
-
 void	start(const char *uart_path, bool fake_gps);
 void	stop();
 void	test();
@@ -483,23 +542,27 @@ start(const char *uart_path, bool fake_gps)
 {
 	int fd;
 
-	if (g_dev != nullptr)
-		errx(1, "already started");
+	if (_instance_count == max_instance_count)
+		errx(1, "already max (%u) instances started", max_instance_count);
+
+	/* generate the right device path */
+	char buf[32];
+	sprintf(buf, "%s%u", GPS_DEVICE_PATH, _instance_count);
 
 	/* create the driver */
-	g_dev = new GPS(uart_path, fake_gps);
+	GPS *newdev = new GPS(uart_path, buf, fake_gps);
 
-	if (g_dev == nullptr)
+	if (newdev == nullptr)
 		goto fail;
 
-	if (OK != g_dev->init())
+	if (OK != newdev->init())
 		goto fail;
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(GPS_DEVICE_PATH, O_RDONLY);
+	fd = open(buf, O_RDONLY);
 
 	if (fd < 0) {
-		errx(1, "Could not open device path: %s\n", GPS_DEVICE_PATH);
+		errx(1, "Could not open device path: %s\n", buf);
 		goto fail;
 	}
 
@@ -507,9 +570,8 @@ start(const char *uart_path, bool fake_gps)
 
 fail:
 
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
+	if (newdev != nullptr) {
+		delete newdev;
 	}
 
 	errx(1, "driver start failed");
@@ -519,10 +581,14 @@ fail:
  * Stop the driver.
  */
 void
-stop()
+stop_all()
 {
-	delete g_dev;
-	g_dev = nullptr;
+	unsigned i = 0;
+	while (i < max_instance_count && g_dev[i] != nullptr) {
+		delete g_dev[i];
+		g_dev[i] = nullptr;
+		i++;
+	}
 
 	exit(0);
 }
@@ -543,9 +609,11 @@ test()
  * Reset the driver.
  */
 void
-reset()
+reset(unsigned instance)
 {
-	int fd = open(GPS_DEVICE_PATH, O_RDONLY);
+	char buf[32];
+	sprintf(buf, "%s%u", GPS_DEVICE_PATH, _instance_count - 1);
+	int fd = open(buf, O_RDONLY);
 
 	if (fd < 0)
 		err(1, "failed ");
@@ -562,10 +630,15 @@ reset()
 void
 info()
 {
-	if (g_dev == nullptr)
+	if (g_dev[0] == nullptr)
 		errx(1, "driver not running");
 
-	g_dev->print_info();
+	unsigned i = 0;
+	while (i < max_instance_count && g_dev[i] != nullptr) {
+		warnx("UNIT #%u:", i);
+		g_dev[i]->print_info();
+		i++;
+	}
 
 	exit(0);
 }
@@ -604,8 +677,8 @@ gps_main(int argc, char *argv[])
 		gps::start(device_name, fake_gps);
 	}
 
-	if (!strcmp(argv[1], "stop"))
-		gps::stop();
+	if (!strcmp(argv[1], "stop-all"))
+		gps::stop_all();
 
 	/*
 	 * Test the driver/device.
@@ -616,8 +689,13 @@ gps_main(int argc, char *argv[])
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(argv[1], "reset"))
-		gps::reset();
+	if (!strcmp(argv[1], "reset")) {
+		if (argc > 2) {
+
+			// XXX
+			gps::reset(0);
+		}
+	}
 
 	/*
 	 * Print driver status.
