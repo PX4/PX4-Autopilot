@@ -1166,6 +1166,7 @@ void
 Navigator::start_mission()
 {
 	_need_takeoff = true;
+	_follow_offset_next.valid = false;
 
 	set_mission_item();
 }
