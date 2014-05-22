@@ -51,11 +51,14 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <systemlib/perf_counter.h>
 
 class __EXPORT ECL_PitchController //XXX: create controller superclass
 {
 public:
 	ECL_PitchController();
+
+	~ECL_PitchController();
 
 	float control_attitude(float pitch_setpoint, float roll, float pitch, float airspeed);
 
@@ -126,6 +129,7 @@ private:
 	float _rate_error;
 	float _rate_setpoint;
 	float _bodyrate_setpoint;
+	perf_counter_t _nonfinite_input_perf;
 };
 
 #endif // ECL_PITCH_CONTROLLER_H
