@@ -321,25 +321,25 @@ struct log_VICN_s {
 /* --- GS0A - GPS SNR #0, SAT GROUP A --- */
 #define LOG_GS0A_MSG 26
 struct log_GS0A_s {
-	uint8_t satellite_snr[16];			/**< Signal to noise ratio of satellite. 0 for none, 255 for max. */
+	uint8_t satellite_snr[16];			/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99 */
 };
 
 /* --- GS0B - GPS SNR #0, SAT GROUP B --- */
 #define LOG_GS0B_MSG 27
 struct log_GS0B_s {
-	uint8_t satellite_snr[16];			/**< Signal to noise ratio of satellite. 0 for none, 255 for max. */
+	uint8_t satellite_snr[16];			/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99 */
 };
 
 /* --- GS1A - GPS SNR #1, SAT GROUP A --- */
 #define LOG_GS1A_MSG 28
 struct log_GS1A_s {
-	uint8_t satellite_snr[16];			/**< Signal to noise ratio of satellite. 0 for none, 255 for max. */
+	uint8_t satellite_snr[16];			/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99 */
 };
 
 /* --- GS1B - GPS SNR #1, SAT GROUP B --- */
 #define LOG_GS1B_MSG 29
 struct log_GS1B_s {
-	uint8_t satellite_snr[16];			/**< Signal to noise ratio of satellite. 0 for none, 255 for max. */
+	uint8_t satellite_snr[16];			/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99 */
 };
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
