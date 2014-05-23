@@ -226,6 +226,13 @@ UBX::configure(unsigned &baudrate)
 		return 1;
 	}
 
+	configure_message_rate(UBX_CLASS_MON, UBX_MESSAGE_MON_HW, 1);
+
+	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
+		warnx("MSG CFG FAIL: MON HW");
+		return 1;
+	}
+
 	_configured = true;
 	return 0;
 }
@@ -565,6 +572,24 @@ UBX::handle_message()
 				ret = 1;
 				break;
 			}
+
+		case UBX_CLASS_MON: {
+			switch (_message_id) {
+			case UBX_MESSAGE_MON_HW: {
+
+					struct gps_bin_mon_hw_packet *p = (struct gps_bin_mon_hw_packet*) _rx_buffer;
+
+					_gps_position->noise_per_ms = p->noisePerMS;
+					_gps_position->jamming_indicator = p->jamInd;
+
+					ret = 1;
+					break;
+				}
+
+			default:
+				break;
+			}
+		}
 
 		default:
 			break;

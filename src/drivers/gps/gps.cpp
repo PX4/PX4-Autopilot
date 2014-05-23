@@ -448,10 +448,10 @@ GPS::print_info()
 	warnx("port: %s, baudrate: %d, status: %s", _port, _baudrate, (_healthy) ? "OK" : "NOT OK");
 
 	if (_report.timestamp_position != 0) {
-		warnx("position lock: %dD, satellites: %d, last update: %fms ago", (int)_report.fix_type,
-				_report.satellites_visible, (hrt_absolute_time() - _report.timestamp_position) / 1000.0f);
+		warnx("position lock: %dD, satellites: %d, last update: %8.4fms ago", (int)_report.fix_type,
+				_report.satellites_visible, (double)(hrt_absolute_time() - _report.timestamp_position) / 1000.0f);
 		warnx("lat: %d, lon: %d, alt: %d", _report.lat, _report.lon, _report.alt);
-		warnx("eph: %.2fm, epv: %.2fm", _report.eph_m, _report.epv_m);
+		warnx("eph: %.2fm, epv: %.2fm", (double)_report.eph_m, (double)_report.epv_m);
 		warnx("rate position: \t%6.2f Hz", (double)_Helper->get_position_update_rate());
 		warnx("rate velocity: \t%6.2f Hz", (double)_Helper->get_velocity_update_rate());
 		warnx("rate publication:\t%6.2f Hz", (double)_rate);
