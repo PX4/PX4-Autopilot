@@ -98,6 +98,36 @@
 #include "sdlog2_format.h"
 #include "sdlog2_messages.h"
 
+/**
+ * Logging rate.
+ *
+ * A value of -1 indicates the commandline argument
+ * should be obeyed. A value of 0 sets the minimum rate,
+ * any other value is interpreted as rate in Hertz. This
+ * parameter is only read out before logging starts (which
+ * commonly is before arming).
+ *
+ * @min -1
+ * @max  1
+ * @group SD Logging
+ */
+PARAM_DEFINE_INT32(SDLOG_RATE, -1);
+
+/**
+ * Enable extended logging mode.
+ *
+ * A value of -1 indicates the commandline argument
+ * should be obeyed. A value of 0 disables extended
+ * logging mode, a value of 1 enables it. This
+ * parameter is only read out before logging starts
+ * (which commonly is before arming).
+ *
+ * @min -1
+ * @max  1
+ * @group SD Logging
+ */
+PARAM_DEFINE_INT32(SDLOG_EXT, -1);
+
 #define LOGBUFFER_WRITE_AND_COUNT(_msg) if (logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(_msg))) { \
 		log_msgs_written++; \
 	} else { \
@@ -813,6 +843,44 @@ int sdlog2_thread_main(int argc, char *argv[])
 	}
 
 	gps_time = 0;
+
+	/* interpret logging params */
+
+	param_t log_rate_ph = param_find("SDLOG_RATE");
+
+	if (log_rate_ph != PARAM_INVALID) {
+		int32_t param_log_rate;
+		param_get(log_rate_ph, &param_log_rate);
+
+		if (param_log_rate > 0) {
+
+			/* we can't do more than ~ 500 Hz, even with a massive buffer */
+			if (param_log_rate > 500) {
+				param_log_rate = 500;
+			}
+
+			sleep_delay = 1000000 / param_log_rate;
+		} else if (param_log_rate == 0) {
+			/* we need at minimum 10 Hz to be able to see anything */
+			sleep_delay = 1000000 / 10;
+		}
+	}
+
+	param_t log_ext_ph = param_find("SDLOG_EXT");
+
+	if (log_ext_ph != PARAM_INVALID) {
+
+		int32_t param_log_extended;
+		param_get(log_ext_ph, &param_log_extended);
+
+		if (param_log_extended > 0) {
+			_extended_logging = true;
+		} else if (param_log_extended == 0) {
+			_extended_logging = false;
+		}
+		/* any other value means to ignore the parameter, so no else case */
+
+	}
 
 	/* create log root dir */
 	int mkdir_ret = mkdir(log_root, S_IRWXU | S_IRWXG | S_IRWXO);
