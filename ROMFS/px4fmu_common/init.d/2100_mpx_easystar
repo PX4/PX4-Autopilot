@@ -5,4 +5,4 @@
 
 sh /etc/init.d/rc.fw_defaults
  
-set MIXER easystar.mix
+set MIXER easystar

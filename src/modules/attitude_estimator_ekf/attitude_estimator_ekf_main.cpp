@@ -266,16 +266,12 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	orb_advert_t pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
 
 	int loopcounter = 0;
-	int printcounter = 0;
 
 	thread_running = true;
 
 	/* advertise debug value */
 	// struct debug_key_value_s dbg = { .key = "", .value = 0.0f };
 	// orb_advert_t pub_dbg = -1;
-
-	float sensor_update_hz[3] = {0.0f, 0.0f, 0.0f};
-	// XXX write this out to perf regs
 
 	/* keep track of sensor updates */
 	uint64_t sensor_last_timestamp[3] = {0, 0, 0};
@@ -287,11 +283,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	/* initialize parameter handles */
 	parameters_init(&ekf_param_handles);
 
-	uint64_t start_time = hrt_absolute_time();
 	bool initialized = false;
 
 	float gyro_offsets[3] = { 0.0f, 0.0f, 0.0f };
-	unsigned offset_count = 0;
 
 	/* rotation matrix for magnetic declination */
 	math::Matrix<3, 3> R_decl;
@@ -382,7 +376,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					/* Fill in gyro measurements */
 					if (sensor_last_timestamp[0] != raw.timestamp) {
 						update_vect[0] = 1;
-						sensor_update_hz[0] = 1e6f / (raw.timestamp - sensor_last_timestamp[0]);
+						// sensor_update_hz[0] = 1e6f / (raw.timestamp - sensor_last_timestamp[0]);
 						sensor_last_timestamp[0] = raw.timestamp;
 					}
 
@@ -393,7 +387,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					/* update accelerometer measurements */
 					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp) {
 						update_vect[1] = 1;
-						sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
+						// sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
 						sensor_last_timestamp[1] = raw.accelerometer_timestamp;
 					}
 
@@ -445,7 +439,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					/* update magnetometer measurements */
 					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp) {
 						update_vect[2] = 1;
-						sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
+						// sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
 						sensor_last_timestamp[2] = raw.magnetometer_timestamp;
 					}
 
@@ -497,8 +491,6 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					if (!const_initialized) {
 						continue;
 					}
-
-					uint64_t timing_start = hrt_absolute_time();
 
 					attitudeKalmanfilter(update_vect, dt, z_k, x_aposteriori_k, P_aposteriori_k, ekf_params.q, ekf_params.r,
 							     euler, Rot_matrix, x_aposteriori, P_aposteriori);
