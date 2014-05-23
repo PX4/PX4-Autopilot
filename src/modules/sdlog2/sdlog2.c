@@ -1069,9 +1069,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 				memset(&log_msg.body.log_GS0A, 0, sizeof(log_msg.body.log_GS0A));
 				/* fill set A */
 				for (unsigned i = 0; i < gps_msg_max_snr; i++) {
-					if (buf_gps_pos.satellite_prn[i] < log_max_snr) {
+
+					int satindex = buf_gps_pos.satellite_prn[i] - 1;
+
+					/* handles index exceeding and wraps to to arithmetic errors */
+					if ((satindex >= 0) && (satindex < log_max_snr)) {
 						/* map satellites by their ID so that logs from two receivers can be compared */
-						log_msg.body.log_GS0A.satellite_snr[buf_gps_pos.satellite_prn[i]] = buf_gps_pos.satellite_snr[i];
+						log_msg.body.log_GS0A.satellite_snr[satindex] = buf_gps_pos.satellite_snr[i];
 					}
 				}
 				LOGBUFFER_WRITE_AND_COUNT(GS0A);
@@ -1080,9 +1084,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 				memset(&log_msg.body.log_GS0B, 0, sizeof(log_msg.body.log_GS0B));
 				/* fill set B */
 				for (unsigned i = 0; i < gps_msg_max_snr; i++) {
-					if (buf_gps_pos.satellite_prn[i] < log_max_snr) {
+
+					/* get second bank of satellites, thus deduct bank size from index */
+					int satindex = buf_gps_pos.satellite_prn[i] - 1 - log_max_snr;
+
+					/* handles index exceeding and wraps to to arithmetic errors */
+					if ((satindex >= 0) && (satindex < log_max_snr)) {
 						/* map satellites by their ID so that logs from two receivers can be compared */
-						log_msg.body.log_GS0B.satellite_snr[buf_gps_pos.satellite_prn[i]] = buf_gps_pos.satellite_snr[i];
+						log_msg.body.log_GS0B.satellite_snr[satindex] = buf_gps_pos.satellite_snr[i];
 					}
 				}
 				LOGBUFFER_WRITE_AND_COUNT(GS0B);
