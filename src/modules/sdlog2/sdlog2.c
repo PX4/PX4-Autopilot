@@ -113,8 +113,8 @@ static bool main_thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;			/**< Deamon status flag */
 static int deamon_task;						/**< Handle of deamon task / thread */
 static bool logwriter_should_exit = false;	/**< Logwriter thread exit flag */
-static const int MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
-static const int MAX_NO_LOGFILE = 999;		/**< Maximum number of log files */
+static const unsigned MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log dirs */
+static const unsigned MAX_NO_LOGFILE = 999;		/**< Maximum number of log files */
 static const int LOG_BUFFER_SIZE_DEFAULT = 8192;
 static const int MAX_WRITE_CHUNK = 512;
 static const int MIN_BYTES_TO_WRITE = 512;
@@ -641,7 +641,7 @@ int write_formats(int fd)
 	int written = 0;
 
 	/* fill message format packet for each format and write it */
-	for (int i = 0; i < log_formats_num; i++) {
+	for (unsigned i = 0; i < log_formats_num; i++) {
 		log_msg_format.body = log_formats[i];
 		written += write(fd, &log_msg_format, sizeof(log_msg_format));
 	}
@@ -1046,6 +1046,15 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		/* --- GPS POSITION - UNIT #1 --- */
 		if (gps_pos_updated) {
+
+			float snr_mean = 0.0f;
+
+			for (unsigned i = 0; i < buf_gps_pos.satellites_visible; i++) {
+				snr_mean += buf_gps_pos.satellite_snr[i];
+			}
+
+			snr_mean /= buf_gps_pos.satellites_visible;
+
 			log_msg.msg_type = LOG_GPS_MSG;
 			log_msg.body.log_GPS.gps_time = buf_gps_pos.time_gps_usec;
 			log_msg.body.log_GPS.fix_type = buf_gps_pos.fix_type;
@@ -1058,6 +1067,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_GPS.vel_e = buf_gps_pos.vel_e_m_s;
 			log_msg.body.log_GPS.vel_d = buf_gps_pos.vel_d_m_s;
 			log_msg.body.log_GPS.cog = buf_gps_pos.cog_rad;
+			log_msg.body.log_GPS.sats = buf_gps_pos.satellites_visible;
+			log_msg.body.log_GPS.snr_mean = snr_mean;
+			log_msg.body.log_GPS.noise_per_ms = buf_gps_pos.noise_per_ms;
+			log_msg.body.log_GPS.jamming_indicator = buf_gps_pos.jamming_indicator;
 			LOGBUFFER_WRITE_AND_COUNT(GPS);
 
 			if (_extended_logging) {
@@ -1073,7 +1086,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 					int satindex = buf_gps_pos.satellite_prn[i] - 1;
 
 					/* handles index exceeding and wraps to to arithmetic errors */
-					if ((satindex >= 0) && (satindex < log_max_snr)) {
+					if ((satindex >= 0) && (satindex < (int)log_max_snr)) {
 						/* map satellites by their ID so that logs from two receivers can be compared */
 						log_msg.body.log_GS0A.satellite_snr[satindex] = buf_gps_pos.satellite_snr[i];
 					}
@@ -1089,7 +1102,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 					int satindex = buf_gps_pos.satellite_prn[i] - 1 - log_max_snr;
 
 					/* handles index exceeding and wraps to to arithmetic errors */
-					if ((satindex >= 0) && (satindex < log_max_snr)) {
+					if ((satindex >= 0) && (satindex < (int)log_max_snr)) {
 						/* map satellites by their ID so that logs from two receivers can be compared */
 						log_msg.body.log_GS0B.satellite_snr[satindex] = buf_gps_pos.satellite_snr[i];
 					}
