@@ -138,7 +138,7 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 				//      Allow if HIL_STATE_ON
 				if (status->arming_state != ARMING_STATE_IN_AIR_RESTORE && status->hil_state == HIL_STATE_OFF && safety->safety_switch_available && !safety->safety_off) {
 					if (mavlink_fd) {
-						mavlink_log_critical(mavlink_fd, "NOT ARMING: Press safety switch first.");
+						mavlink_log_critical(mavlink_fd, "#audio: NOT ARMING: Press safety switch first.");
 					}
 
 					valid_transition = false;
@@ -219,6 +219,10 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 	/* transition may be denied even if requested the same state because conditions may be changed */
 	switch (new_main_state) {
 	case MAIN_STATE_MANUAL:
+		ret = TRANSITION_CHANGED;
+		break;
+
+	case MAIN_STATE_ACRO:
 		ret = TRANSITION_CHANGED;
 		break;
 
@@ -308,7 +312,7 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 		case HIL_STATE_OFF:
 
 			/* we're in HIL and unexpected things can happen if we disable HIL now */
-			mavlink_log_critical(mavlink_fd, "Not switching off HIL (safety)");
+			mavlink_log_critical(mavlink_fd, "#audio: Not switching off HIL (safety)");
 			valid_transition = false;
 
 			break;

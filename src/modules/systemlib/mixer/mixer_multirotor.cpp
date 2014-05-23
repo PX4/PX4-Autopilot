@@ -115,6 +115,14 @@ const MultirotorMixer::Rotor _config_hex_plus[] = {
 	{  0.866025,  0.500000,  1.00 },
 	{ -0.866025, -0.500000, -1.00 },
 };
+const MultirotorMixer::Rotor _config_hex_cox[] = {
+	{ -0.866025,  0.500000, -1.00 },
+	{ -0.866025,  0.500000,  1.00 },
+	{ -0.000000, -1.000000, -1.00 },
+	{ -0.000000, -1.000000,  1.00 },
+	{  0.866025,  0.500000, -1.00 },
+	{  0.866025,  0.500000,  1.00 },
+};
 const MultirotorMixer::Rotor _config_octa_x[] = {
 	{ -0.382683,  0.923880, -1.00 },
 	{  0.382683, -0.923880, -1.00 },
@@ -152,6 +160,7 @@ const MultirotorMixer::Rotor *_config_index[MultirotorMixer::MAX_GEOMETRY] = {
 	&_config_quad_wide[0],
 	&_config_hex_x[0],
 	&_config_hex_plus[0],
+	&_config_hex_cox[0],
 	&_config_octa_x[0],
 	&_config_octa_plus[0],
 	&_config_octa_cox[0],
@@ -163,6 +172,7 @@ const unsigned _config_rotor_count[MultirotorMixer::MAX_GEOMETRY] = {
 	4, /* quad_wide */
 	6, /* hex_x */
 	6, /* hex_plus */
+	6, /* hex_cox */
 	8, /* octa_x */
 	8, /* octa_plus */
 	8, /* octa_cox */
@@ -252,6 +262,9 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	} else if (!strcmp(geomname, "6x")) {
 		geometry = MultirotorMixer::HEX_X;
 
+	} else if (!strcmp(geomname, "6c")) {
+		geometry = MultirotorMixer::HEX_COX;
+
 	} else if (!strcmp(geomname, "8+")) {
 		geometry = MultirotorMixer::OCTA_PLUS;
 
@@ -338,9 +351,9 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		scale_out = 1.0f;
 	}
 
-	/* scale outputs to range _idle_speed..1 */
+	/* scale outputs to range _idle_speed..1, and do final limiting */
 	for (unsigned i = 0; i < _rotor_count; i++) {
-		outputs[i] = _idle_speed + (outputs[i] * (1.0f - _idle_speed) * scale_out);
+		outputs[i] = constrain(_idle_speed + (outputs[i] * (1.0f - _idle_speed) * scale_out), _idle_speed, 1.0f);
 	}
 
 	return _rotor_count;
