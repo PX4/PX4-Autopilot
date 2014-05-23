@@ -139,6 +139,10 @@ struct log_GPS_s {
 	float vel_e;
 	float vel_d;
 	float cog;
+	uint8_t sats;
+	uint16_t snr_mean;
+	uint16_t noise_per_ms;
+	uint16_t jamming_indicator;
 };
 
 /* --- ATTC - ATTITUDE CONTROLS (ACTUATOR_0 CONTROLS)--- */
@@ -321,25 +325,25 @@ struct log_VICN_s {
 /* --- GS0A - GPS SNR #0, SAT GROUP A --- */
 #define LOG_GS0A_MSG 26
 struct log_GS0A_s {
-	uint8_t satellite_snr[16];			/**< Signal to noise ratio of satellite. 0 for none, 255 for max. */
+	uint8_t satellite_snr[16];			/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99 */
 };
 
 /* --- GS0B - GPS SNR #0, SAT GROUP B --- */
 #define LOG_GS0B_MSG 27
 struct log_GS0B_s {
-	uint8_t satellite_snr[16];			/**< Signal to noise ratio of satellite. 0 for none, 255 for max. */
+	uint8_t satellite_snr[16];			/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99 */
 };
 
 /* --- GS1A - GPS SNR #1, SAT GROUP A --- */
 #define LOG_GS1A_MSG 28
 struct log_GS1A_s {
-	uint8_t satellite_snr[16];			/**< Signal to noise ratio of satellite. 0 for none, 255 for max. */
+	uint8_t satellite_snr[16];			/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99 */
 };
 
 /* --- GS1B - GPS SNR #1, SAT GROUP B --- */
 #define LOG_GS1B_MSG 29
 struct log_GS1B_s {
-	uint8_t satellite_snr[16];			/**< Signal to noise ratio of satellite. 0 for none, 255 for max. */
+	uint8_t satellite_snr[16];			/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99 */
 };
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
@@ -375,7 +379,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(SENS, "fffff",		"BaroPres,BaroAlt,BaroTemp,DiffPres,DiffPresFilt"),
 	LOG_FORMAT(LPOS, "ffffffffLLfBBBff",	"X,Y,Z,Dist,DistR,VX,VY,VZ,RLat,RLon,RAlt,PFlg,LFlg,GFlg,EPH,EPV"),
 	LOG_FORMAT(LPSP, "ffff",		"X,Y,Z,Yaw"),
-	LOG_FORMAT(GPS, "QBffLLfffff",		"GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
+	LOG_FORMAT(GPS, "QBffLLfffffBHHH",	"GPSTime,Fix,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog,nSat,SNR,N,J"),
 	LOG_FORMAT(ATTC, "ffff",		"Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT(STAT, "BBBfBB",		"MainState,ArmState,FailsafeState,BatRem,BatWarn,Landed"),
 	LOG_FORMAT(RC, "ffffffffBB",		"Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,Count,SignalLost"),

@@ -1233,10 +1233,10 @@ int commander_thread_main(int argc, char *argv[])
 			    sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) {
 				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 					if (safety.safety_switch_available && !safety.safety_off && status.hil_state == HIL_STATE_OFF) {
-						print_reject_arm("NOT ARMING: Press safety switch first.");
+						print_reject_arm("#audio: NOT ARMING: Press safety switch first.");
 
 					} else if (status.main_state != MAIN_STATE_MANUAL) {
-						print_reject_arm("NOT ARMING: Switch to MANUAL mode first.");
+						print_reject_arm("#audio: NOT ARMING: Switch to MANUAL mode first.");
 
 					} else {
 						arming_res = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed);
@@ -1408,7 +1408,7 @@ int commander_thread_main(int argc, char *argv[])
 				home.alt = global_position.alt;
 
 				warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home.lat, home.lon, (double)home.alt);
-				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
+				mavlink_log_info(mavlink_fd, "#audio: home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
 
 				/* announce new home position */
 				if (home_pub > 0) {
@@ -1848,7 +1848,8 @@ void answer_command(struct vehicle_command_s &cmd, enum VEHICLE_CMD_RESULT resul
 		break;
 
 	case VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:
-		mavlink_log_critical(mavlink_fd, "#audio: command temporarily rejected: %u", cmd.command);
+		/* this needs additional hints to the user - so let other messages pass and be spoken */
+		mavlink_log_critical(mavlink_fd, "command temporarily rejected: %u", cmd.command);
 		tune_negative(true);
 		break;
 

@@ -351,9 +351,9 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		scale_out = 1.0f;
 	}
 
-	/* scale outputs to range _idle_speed..1 */
+	/* scale outputs to range _idle_speed..1, and do final limiting */
 	for (unsigned i = 0; i < _rotor_count; i++) {
-		outputs[i] = _idle_speed + (outputs[i] * (1.0f - _idle_speed) * scale_out);
+		outputs[i] = constrain(_idle_speed + (outputs[i] * (1.0f - _idle_speed) * scale_out), _idle_speed, 1.0f);
 	}
 
 	return _rotor_count;
