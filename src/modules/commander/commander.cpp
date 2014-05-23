@@ -1848,7 +1848,8 @@ void answer_command(struct vehicle_command_s &cmd, enum VEHICLE_CMD_RESULT resul
 		break;
 
 	case VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:
-		mavlink_log_critical(mavlink_fd, "#audio: command temporarily rejected: %u", cmd.command);
+		/* this needs additional hints to the user - so let other messages pass and be spoken */
+		mavlink_log_critical(mavlink_fd, "command temporarily rejected: %u", cmd.command);
 		tune_negative(true);
 		break;
 
