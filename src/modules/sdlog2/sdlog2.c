@@ -1068,27 +1068,24 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.msg_type = LOG_GS0A_MSG;
 				memset(&log_msg.body.log_GS0A, 0, sizeof(log_msg.body.log_GS0A));
 				/* fill set A */
-				unsigned max_sats_a = (log_max_snr > gps_msg_max_snr) ? gps_msg_max_snr : log_max_snr;
-
-				for (unsigned i = 0; i < max_sats_a; i++) {
-					log_msg.body.log_GS0A.satellite_snr[i] = buf_gps_pos.satellite_snr[i];
+				for (unsigned i = 0; i < gps_msg_max_snr; i++) {
+					if (buf_gps_pos.satellite_prn[i] < log_max_snr) {
+						/* map satellites by their ID so that logs from two receivers can be compared */
+						log_msg.body.log_GS0A.satellite_snr[buf_gps_pos.satellite_prn[i]] = buf_gps_pos.satellite_snr[i];
+					}
 				}
 				LOGBUFFER_WRITE_AND_COUNT(GS0A);
 
-				/* do we need a 2nd set? */
-				if (gps_msg_max_snr > log_max_snr) {
-					log_msg.msg_type = LOG_GS0B_MSG;
-					memset(&log_msg.body.log_GS0B, 0, sizeof(log_msg.body.log_GS0B));
-					/* fill set B - deduct the count we already have taken care of */
-					gps_msg_max_snr -= log_max_snr;
-					unsigned max_sats_b = (log_max_snr > gps_msg_max_snr) ? gps_msg_max_snr : log_max_snr;
-
-					for (unsigned i = 0; i < max_sats_b; i++) {
-						/* count from zero, but obey offset of log_max_snr consumed units */
-						log_msg.body.log_GS0B.satellite_snr[i] = buf_gps_pos.satellite_snr[log_max_snr + i];
+				log_msg.msg_type = LOG_GS0B_MSG;
+				memset(&log_msg.body.log_GS0B, 0, sizeof(log_msg.body.log_GS0B));
+				/* fill set B */
+				for (unsigned i = 0; i < gps_msg_max_snr; i++) {
+					if (buf_gps_pos.satellite_prn[i] < log_max_snr) {
+						/* map satellites by their ID so that logs from two receivers can be compared */
+						log_msg.body.log_GS0B.satellite_snr[buf_gps_pos.satellite_prn[i]] = buf_gps_pos.satellite_snr[i];
 					}
-					LOGBUFFER_WRITE_AND_COUNT(GS0B);
 				}
+				LOGBUFFER_WRITE_AND_COUNT(GS0B);
 			}
 		}
 
