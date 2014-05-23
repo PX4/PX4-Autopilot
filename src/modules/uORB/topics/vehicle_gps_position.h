@@ -68,6 +68,9 @@ struct vehicle_gps_position_s {
 	float eph_m;					/**< GPS HDOP horizontal dilution of position in m */
 	float epv_m;					/**< GPS VDOP horizontal dilution of position in m */
 
+	unsigned noise_per_ms;				/**< */
+	unsigned jamming_indicator;			/**< */
+
 	uint64_t timestamp_velocity;			/**< Timestamp for velocity informations */
 	float vel_m_s;					/**< GPS ground speed (m/s) */
 	float vel_n_m_s;				/**< GPS ground speed in m/s */
