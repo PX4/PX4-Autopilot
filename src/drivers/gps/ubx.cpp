@@ -164,7 +164,7 @@ UBX::configure(unsigned &baudrate)
 	send_config_packet(_fd, (uint8_t *)&cfg_rate_packet, sizeof(cfg_rate_packet));
 
 	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
-		warnx("ubx: configuration failed: RATE");
+		warnx("CFG FAIL: RATE");
 		return 1;
 	}
 
@@ -185,7 +185,7 @@ UBX::configure(unsigned &baudrate)
 	send_config_packet(_fd, (uint8_t *)&cfg_nav5_packet, sizeof(cfg_nav5_packet));
 
 	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
-		warnx("ubx: configuration failed: NAV5");
+		warnx("CFG FAIL: NAV5");
 		return 1;
 	}
 
@@ -194,35 +194,42 @@ UBX::configure(unsigned &baudrate)
 	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_POSLLH, 1);
 
 	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
-		warnx("ubx: msg rate configuration failed: NAV POSLLH");
+		warnx("MSG CFG FAIL: NAV POSLLH");
 		return 1;
 	}
 
 	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_TIMEUTC, 1);
 
 	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
-		warnx("ubx: msg rate configuration failed: NAV TIMEUTC");
+		warnx("MSG CFG FAIL: NAV TIMEUTC");
 		return 1;
 	}
 
 	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_SOL, 1);
 
 	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
-		warnx("ubx: msg rate configuration failed: NAV SOL");
+		warnx("MSG CFG FAIL: NAV SOL");
 		return 1;
 	}
 
 	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_VELNED, 1);
 
 	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
-		warnx("ubx: msg rate configuration failed: NAV VELNED");
+		warnx("MSG CFG FAIL: NAV VELNED");
 		return 1;
 	}
 
 	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_SVINFO, 5);
 
 	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
-		warnx("ubx: msg rate configuration failed: NAV SVINFO");
+		warnx("MSG CFG FAIL: NAV SVINFO");
+		return 1;
+	}
+
+	configure_message_rate(UBX_CLASS_MON, UBX_MESSAGE_MON_HW, 1);
+
+	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
+		warnx("MSG CFG FAIL: MON HW");
 		return 1;
 	}
 
@@ -274,7 +281,7 @@ UBX::receive(unsigned timeout)
 
 		if (ret < 0) {
 			/* something went wrong when polling */
-			warnx("ubx: poll error");
+			warnx("poll error");
 			return -1;
 
 		} else if (ret == 0) {
@@ -310,7 +317,7 @@ UBX::receive(unsigned timeout)
 
 		/* abort after timeout if no useful packets received */
 		if (time_started + timeout * 1000 < hrt_absolute_time()) {
-			warnx("ubx: timeout - no useful messages");
+			warnx("timeout - no useful messages");
 			return -1;
 		}
 	}
@@ -383,7 +390,7 @@ UBX::parse_char(uint8_t b)
 				return 1;	// message received successfully
 
 			} else {
-				warnx("ubx: checksum wrong");
+				warnx("checksum wrong");
 				decode_init();
 				return -1;
 			}
@@ -392,7 +399,7 @@ UBX::parse_char(uint8_t b)
 			_rx_count++;
 
 		} else {
-			warnx("ubx: buffer full");
+			warnx("buffer full");
 			decode_init();
 			return -1;
 		}
@@ -565,6 +572,24 @@ UBX::handle_message()
 				ret = 1;
 				break;
 			}
+
+		case UBX_CLASS_MON: {
+			switch (_message_id) {
+			case UBX_MESSAGE_MON_HW: {
+
+					struct gps_bin_mon_hw_packet *p = (struct gps_bin_mon_hw_packet*) _rx_buffer;
+
+					_gps_position->noise_per_ms = p->noisePerMS;
+					_gps_position->jamming_indicator = p->jamInd;
+
+					ret = 1;
+					break;
+				}
+
+			default:
+				break;
+			}
+		}
 
 		default:
 			break;
