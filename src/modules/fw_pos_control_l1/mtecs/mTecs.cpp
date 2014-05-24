@@ -51,6 +51,8 @@ mTecs::mTecs() :
 	/* Parameters */
 	_mTecsEnabled(this, "ENABLED"),
 	_airspeedMin(this, "FW_AIRSPD_MIN", false),
+	/* Publications */
+	_status(&getPublications(), ORB_ID(tecs_status)),
 	/* control blocks */
 	_controlTotalEnergy(this, "THR"),
 	_controlEnergyDistribution(this, "PIT", true),
@@ -97,6 +99,11 @@ int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float alti
 		debug("updateAltitudeSpeed: altitudeSp %.4f, altitude %.4f, flightPathAngleSp %.4f", (double)altitudeSp, (double)altitude, (double)flightPathAngleSp);
 	}
 
+	/* Write part of the status message */
+	_status.altitudeSp = altitudeSp;
+	_status.altitude = altitude;
+
+
 	/* use flightpath angle setpoint for total energy control */
 	return updateFlightPathAngleSpeed(flightPathAngle, flightPathAngleSp, airspeed, airspeedSp, mode);
 }
@@ -119,6 +126,13 @@ int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAng
 	if (_counter % 10 == 0) {
 		debug("updateFlightPathAngleSpeed airspeedSp %.4f, airspeed %.4f, accelerationLongitudinalSp%.4f", (double)airspeedSp, (double)airspeed, (double)accelerationLongitudinalSp);
 	}
+
+	/* Write part of the status message */
+	_status.flightPathAngleSp = flightPathAngleSp;
+	_status.flightPathAngle = flightPathAngle;
+	_status.airspeedSp = airspeedSp;
+	_status.airspeed = airspeed;
+
 
 	/* use longitudinal acceleration setpoint for total energy control */
 	return updateFlightPathAngleAcceleration(flightPathAngle, flightPathAngleSp, airspeed, accelerationLongitudinalSp, mode);
@@ -144,18 +158,18 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 		airspeedDerivative = _airspeedDerivative.update(airspeed);
 	}
 	float airspeedDerivativeNorm = airspeedDerivative / CONSTANTS_ONE_G;
-	float airspeedSpDerivative = accelerationLongitudinalSp;
-	float airspeedSpDerivativeNorm = airspeedSpDerivative / CONSTANTS_ONE_G;
-	float airspeedSpDerivativeNormError = airspeedSpDerivativeNorm - airspeedDerivativeNorm;
+	float airspeedDerivativeSp = accelerationLongitudinalSp;
+	float airspeedDerivativeNormSp = airspeedDerivativeSp / CONSTANTS_ONE_G;
+	float airspeedDerivativeNormErrorSp = airspeedDerivativeNormSp - airspeedDerivativeNorm;
 
 	float totalEnergyRate = flightPathAngle + airspeedDerivativeNorm;
-	float totalEnergyRateError = flightPathAngleError + airspeedSpDerivativeNormError;
-	float totalEnergyRateSp = flightPathAngleSp + airspeedSpDerivativeNorm;
+	float totalEnergyRateError = flightPathAngleError + airspeedDerivativeNormErrorSp;
+	float totalEnergyRateSp = flightPathAngleSp + airspeedDerivativeNormSp;
 	float totalEnergyRateError2 = totalEnergyRateSp - totalEnergyRate;
 
 	float energyDistributionRate = flightPathAngle - airspeedDerivativeNorm;
-	float energyDistributionRateError = flightPathAngleError - airspeedSpDerivativeNormError;
-	float energyDistributionRateSp = flightPathAngleSp - airspeedSpDerivativeNorm;
+	float energyDistributionRateError = flightPathAngleError - airspeedDerivativeNormErrorSp;
+	float energyDistributionRateSp = flightPathAngleSp - airspeedDerivativeNormSp;
 	float energyDistributionRateError2 = energyDistributionRateSp - energyDistributionRate;
 
 	/* Debug output */
@@ -188,6 +202,14 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 		outputLimiterPitch = &_BlockOutputLimiterUnderspeedPitch;
 	}
 
+	/* Write part of the status message */
+	_status.airspeedDerivativeSp = airspeedDerivativeSp;
+	_status.airspeedDerivative = airspeedDerivative;
+	_status.totalEnergyRateSp = totalEnergyRateSp;
+	_status.totalEnergyRate = totalEnergyRate;
+	_status.energyDistributionRateSp = energyDistributionRateSp;
+	_status.energyDistributionRate = energyDistributionRate;
+
 	/** update control blocks **/
 	/* update total energy rate control block */
 	_throttleSp = _controlTotalEnergy.update(totalEnergyRateSp, totalEnergyRateError, outputLimiterThrottle);
@@ -203,6 +225,8 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 				(double)accelerationLongitudinalSp, (double)airspeedDerivative);
 	}
 
+	/* publish status messge */
+	_status.update();
 
 	/* clean up */
 	_firstIterationAfterReset = false;

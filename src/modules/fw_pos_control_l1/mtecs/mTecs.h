@@ -47,6 +47,8 @@
 
 #include <controllib/block/BlockParam.hpp>
 #include <drivers/drv_hrt.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/tecs_status.h>
 
 namespace fwPosctrl
 {
@@ -96,6 +98,9 @@ protected:
 	/* parameters */
 	control::BlockParamInt _mTecsEnabled;		/**< 1 if mTecs is enabled */
 	control::BlockParamFloat _airspeedMin;		/**< minimal airspeed */
+
+	/* Publications */
+	uORB::Publication<tecs_status_s> _status;	/**< publish internal values for logging */
 
 	/* control blocks */
 	BlockFFPILimitedCustom _controlTotalEnergy;		/**< FFPI controller for total energy control: output is throttle */
