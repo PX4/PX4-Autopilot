@@ -84,6 +84,7 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/tecs_status.h>
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/servorail_status.h>
 
@@ -939,6 +940,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct telemetry_status_s telemetry;
 		struct range_finder_report range_finder;
 		struct estimator_status_report estimator_status;
+		struct tecs_status_s tecs_status;
 		struct system_power_s system_power;
 		struct servorail_status_s servorail_status;
 	} buf;
@@ -979,6 +981,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_GS0B_s log_GS0B;
 			struct log_GS1A_s log_GS1A;
 			struct log_GS1B_s log_GS1B;
+			struct log_TECS_s log_TECS;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1010,6 +1013,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int telemetry_sub;
 		int range_finder_sub;
 		int estimator_status_sub;
+		int tecs_status_sub;
 		int system_power_sub;
 		int servorail_status_sub;
 	} subs;
@@ -1037,6 +1041,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.telemetry_sub = orb_subscribe(ORB_ID(telemetry_status));
 	subs.range_finder_sub = orb_subscribe(ORB_ID(sensor_range_finder));
 	subs.estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
+	subs.tecs_status_sub = orb_subscribe(ORB_ID(tecs_status));
 	subs.system_power_sub = orb_subscribe(ORB_ID(system_power));
 	subs.servorail_status_sub = orb_subscribe(ORB_ID(servorail_status));
 
@@ -1486,6 +1491,24 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_ESTM.covariance_nan = buf.estimator_status.covariance_nan;
 			log_msg.body.log_ESTM.kalman_gain_nan = buf.estimator_status.kalman_gain_nan;
 			LOGBUFFER_WRITE_AND_COUNT(ESTM);
+		}
+
+		/* --- TECS STATUS --- */
+		if (copy_if_updated(ORB_ID(tecs_status), subs.tecs_status_sub, &buf.tecs_status)) {
+			log_msg.msg_type = LOG_TECS_MSG;
+			log_msg.body.log_TECS.altitudeSp = buf.tecs_status.altitudeSp;
+			log_msg.body.log_TECS.altitude = buf.tecs_status.altitude;
+			log_msg.body.log_TECS.flightPathAngleSp = buf.tecs_status.flightPathAngleSp;
+			log_msg.body.log_TECS.flightPathAngle = buf.tecs_status.flightPathAngle;
+			log_msg.body.log_TECS.airspeedSp = buf.tecs_status.airspeedSp;
+			log_msg.body.log_TECS.airspeed = buf.tecs_status.airspeed;
+			log_msg.body.log_TECS.airspeedDerivativeSp = buf.tecs_status.airspeedDerivativeSp;
+			log_msg.body.log_TECS.airspeedDerivative = buf.tecs_status.airspeedDerivative;
+			log_msg.body.log_TECS.totalEnergyRateSp = buf.tecs_status.totalEnergyRateSp;
+			log_msg.body.log_TECS.totalEnergyRate = buf.tecs_status.totalEnergyRate;
+			log_msg.body.log_TECS.energyDistributionRateSp = buf.tecs_status.energyDistributionRateSp;
+			log_msg.body.log_TECS.energyDistributionRate = buf.tecs_status.energyDistributionRate;
+			LOGBUFFER_WRITE_AND_COUNT(TECS);
 		}
 
 		/* signal the other thread new data, but not yet unlock */
