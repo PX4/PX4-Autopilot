@@ -63,6 +63,14 @@ public:
 		_max(this, "MAX")
 	{};
 	virtual ~BlockOutputLimiter() {};
+	/*
+	 * Imposes the limits given by _min and _max on value
+	 *
+	 * @param value is changed to be on the interval _min to _max
+	 * @param difference if the value is changed this corresponds to the change of value * (-1)
+     * otherwise unchanged
+	 * @return: true if the limit is applied, false otherwise
+	 */
 	bool limit(float& value, float& difference) {
 		float minimum = isAngularLimit() ? getMin() * M_DEG_TO_RAD_F : getMin();
 		float maximum = isAngularLimit() ? getMax() * M_DEG_TO_RAD_F : getMax();
@@ -121,7 +129,7 @@ protected:
 		float difference = 0.0f;
 		float integralYPrevious = _integral.getY();
 		float output = calcUnlimitedOutput(inputValue, inputError);
-		if(!outputLimiter.limit(output, difference) &&
+		if(outputLimiter.limit(output, difference) &&
 			(((difference < 0) && (getKI() * getIntegral().getY() < 0)) ||
 			((difference > 0) && (getKI() * getIntegral().getY() > 0)))) {
 				getIntegral().setY(integralYPrevious);
