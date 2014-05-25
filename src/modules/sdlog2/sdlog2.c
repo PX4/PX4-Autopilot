@@ -981,8 +981,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_GS0B_s log_GS0B;
 			struct log_GS1A_s log_GS1A;
 			struct log_GS1B_s log_GS1B;
-			struct log_GSN0_s log_GSN0;
-			struct log_GSN1_s log_GSN1;
 			struct log_TPOS_s log_TPOS;
 		} body;
 	} log_msg = {

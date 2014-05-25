@@ -351,7 +351,7 @@ struct log_GS1B_s {
 };
 
 /* --- TPOS - TARGET GLOBAL POSITION --- */
-#define LOG_TPOS_MSG 28
+#define LOG_TPOS_MSG 30
 struct log_TPOS_s {
 	uint8_t sysid;
 	uint64_t time;
