@@ -72,6 +72,7 @@
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/circuit_breaker.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/geo/geo.h>
 
@@ -122,6 +123,8 @@ private:
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
 	orb_advert_t	_actuators_0_pub;		/**< attitude actuator controls publication */
+
+	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
 
 	struct vehicle_attitude_s			_v_att;				/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s	_v_att_sp;			/**< vehicle attitude setpoint */
@@ -267,6 +270,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_v_rates_sp_pub(-1),
 	_actuators_0_pub(-1),
 
+	_actuators_0_circuit_breaker_enabled(false),
+
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
 
@@ -401,6 +406,8 @@ MulticopterAttitudeControl::parameters_update()
 	_params.acro_rate_max(1) = math::radians(v);
 	param_get(_params_handles.acro_yaw_max, &v);
 	_params.acro_rate_max(2) = math::radians(v);
+
+	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
 
 	return OK;
 }
@@ -840,11 +847,13 @@ MulticopterAttitudeControl::task_main()
 				_actuators.control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
 				_actuators.timestamp = hrt_absolute_time();
 
-				if (_actuators_0_pub > 0) {
-					orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
+				if (!_actuators_0_circuit_breaker_enabled) {
+					if (_actuators_0_pub > 0) {
+						orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
 
-				} else {
-					_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
+					} else {
+						_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
+					}
 				}
 			}
 		}
