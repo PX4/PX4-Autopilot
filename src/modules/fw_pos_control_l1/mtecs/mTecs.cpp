@@ -160,15 +160,15 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 	float airspeedDerivativeNorm = airspeedDerivative / CONSTANTS_ONE_G;
 	float airspeedDerivativeSp = accelerationLongitudinalSp;
 	float airspeedDerivativeNormSp = airspeedDerivativeSp / CONSTANTS_ONE_G;
-	float airspeedDerivativeNormErrorSp = airspeedDerivativeNormSp - airspeedDerivativeNorm;
+	float airspeedDerivativeNormError = airspeedDerivativeNormSp - airspeedDerivativeNorm;
 
 	float totalEnergyRate = flightPathAngle + airspeedDerivativeNorm;
-	float totalEnergyRateError = flightPathAngleError + airspeedDerivativeNormErrorSp;
+	float totalEnergyRateError = flightPathAngleError + airspeedDerivativeNormError;
 	float totalEnergyRateSp = flightPathAngleSp + airspeedDerivativeNormSp;
 	float totalEnergyRateError2 = totalEnergyRateSp - totalEnergyRate;
 
 	float energyDistributionRate = flightPathAngle - airspeedDerivativeNorm;
-	float energyDistributionRateError = flightPathAngleError - airspeedDerivativeNormErrorSp;
+	float energyDistributionRateError = flightPathAngleError - airspeedDerivativeNormError;
 	float energyDistributionRateSp = flightPathAngleSp - airspeedDerivativeNormSp;
 	float energyDistributionRateError2 = energyDistributionRateSp - energyDistributionRate;
 
