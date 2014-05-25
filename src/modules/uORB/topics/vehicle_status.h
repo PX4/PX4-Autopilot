@@ -208,6 +208,8 @@ struct vehicle_status_s {
 	uint16_t errors_count2;
 	uint16_t errors_count3;
 	uint16_t errors_count4;
+
+	bool circuit_breaker_engaged_power_check;
 };
 
 /**
