@@ -72,6 +72,7 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/scheduling_priorities.h>
 #include <systemlib/param/param.h>
+#include <systemlib/circuit_breaker.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -1007,6 +1008,19 @@ PX4IO::task_main()
 						if (pret != OK) {
 							log("failsafe upload failed, FS: %d us", (int)failsafe_thr);
 						}
+					}
+				}
+
+				int32_t safety_param_val;
+				param_t safety_param = param_find("RC_FAILS_THR");
+
+				if (safety_param != PARAM_INVALID) {
+
+					param_get(safety_param, &safety_param_val);
+
+					if (safety_param_val == PX4IO_FORCE_SAFETY_MAGIC) {
+						/* disable IO safety if circuit breaker asked for it */
+						(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, safety_param_val);
 					}
 				}
 
