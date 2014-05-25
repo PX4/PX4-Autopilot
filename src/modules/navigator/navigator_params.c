@@ -130,6 +130,13 @@ PARAM_DEFINE_FLOAT(NAV_RTL_ALT, 30.0f);
 PARAM_DEFINE_FLOAT(NAV_RTL_LAND_T, -1.0f);
 
 /**
+ * Use target altitude for 'follow' waypoints
+ *
+ * @group Navigation
+ */
+PARAM_DEFINE_INT32(NAV_USE_T_ALT, 0);
+
+/**
  * Enable parachute deployment
  *
  * @group Navigation
