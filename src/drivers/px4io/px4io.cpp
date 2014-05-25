@@ -581,8 +581,10 @@ PX4IO::init()
 	ASSERT(_task == -1);
 
 	sys_restart_param = param_find("SYS_RESTART_TYPE");
-	/* Indicate restart type is unknown */
-	param_set(sys_restart_param, &sys_restart_val);
+	if (sys_restart_param != PARAM_INVALID) {
+		/* Indicate restart type is unknown */
+		param_set(sys_restart_param, &sys_restart_val);
+	}
 
 	/* do regular cdev init */
 	ret = CDev::init();

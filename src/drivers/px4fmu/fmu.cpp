@@ -648,11 +648,9 @@ PX4FMU::task_main()
 
 				/* iterate actuators */
 				for (unsigned i = 0; i < num_outputs; i++) {
-					/* last resort: catch NaN, INF and out-of-band errors */
-					if (i >= outputs.noutputs ||
-						!isfinite(outputs.output[i]) ||
-						outputs.output[i] < -1.0f ||
-						outputs.output[i] > 1.0f) {
+					/* last resort: catch NaN and INF */
+					if ((i >= outputs.noutputs) ||
+						!isfinite(outputs.output[i])) {
 						/*
 						 * Value is NaN, INF or out of band - set to the minimum value.
 						 * This will be clearly visible on the servo status and will limit the risk of accidentally
@@ -664,6 +662,7 @@ PX4FMU::task_main()
 
 				uint16_t pwm_limited[num_outputs];
 
+				/* the PWM limit call takes care of out of band errors and constrains */
 				pwm_limit_calc(_servo_armed, num_outputs, _disarmed_pwm, _min_pwm, _max_pwm, outputs.output, pwm_limited, &_pwm_limit);
 
 				/* output to the servos */
