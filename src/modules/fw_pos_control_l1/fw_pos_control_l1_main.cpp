@@ -977,7 +977,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			/* Calculate distance (to landing waypoint) and altitude of last ordinary waypoint L */
 			float L_wp_distance = get_distance_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1));
-			float L_altitude_rel = landingslope.getLandingSlopeRelativeAltitude(L_wp_distance);
+			float L_altitude_rel = _pos_sp_triplet.previous.valid ? _pos_sp_triplet.previous.alt - _pos_sp_triplet.current.alt : 0.0f;
 
 			float bearing_airplane_currwp = get_bearing_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
 			float landing_slope_alt_rel_desired = landingslope.getLandingSlopeRelativeAltitudeSave(wp_distance, bearing_lastwp_currwp, bearing_airplane_currwp);
@@ -1032,10 +1032,13 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				 /* intersect glide slope:
 				  * minimize speed to approach speed
 				  * if current position is higher or within 10m of slope follow the glide slope
-				  * if current position is below slope -10m continue on maximum of previous wp altitude or L_altitude until the intersection with the slope
+				  * also if the system captures the slope it should stay
+				  * on the slope (bool land_onslope)
+				  * if current position is below slope -10m continue at previous wp altitude
+				  * until the intersection with slope
 				  * */
 				float altitude_desired_rel = relative_alt;
-				if (relative_alt > landing_slope_alt_rel_desired - 10.0f) {
+				if (relative_alt > landing_slope_alt_rel_desired - 10.0f || land_onslope) {
 					/* stay on slope */
 					altitude_desired_rel = landing_slope_alt_rel_desired;
 					if (!land_onslope) {
@@ -1044,7 +1047,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					}
 				} else {
 					/* continue horizontally */
-					altitude_desired_rel =  math::max(relative_alt, L_altitude_rel);
+					altitude_desired_rel =  _pos_sp_triplet.previous.valid ? L_altitude_rel : relative_alt;
 				}
 
 				tecs_update_pitch_throttle(_pos_sp_triplet.current.alt + altitude_desired_rel,
