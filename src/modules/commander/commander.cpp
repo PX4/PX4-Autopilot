@@ -52,6 +52,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <systemlib/err.h>
+#include <systemlib/circuit_breaker.h>
 #include <debug.h>
 #include <sys/prctl.h>
 #include <sys/stat.h>
@@ -721,6 +722,9 @@ int commander_thread_main(int argc, char *argv[])
 	status.condition_power_input_valid = true;
 	status.avionics_power_rail_voltage = -1.0f;
 
+	// CIRCUIT BREAKERS
+	status.circuit_breaker_engaged_power_check = false;
+
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
 
@@ -907,6 +911,9 @@ int commander_thread_main(int argc, char *argv[])
 				/* check and update system / component ID */
 				param_get(_param_system_id, &(status.system_id));
 				param_get(_param_component_id, &(status.component_id));
+
+				status.circuit_breaker_engaged_power_check = circuit_breaker_enabled("CBRK_SUPPLY_CHK", CBRK_SUPPLY_CHK_KEY);
+
 				status_changed = true;
 
 				/* re-check RC calibration */
