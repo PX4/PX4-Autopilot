@@ -73,7 +73,7 @@ int perf_main(int argc, char *argv[])
 		return -1;
 	}
 
-	perf_print_all();
+	perf_print_all(0 /* stdout */);
 	fflush(stdout);
 	return 0;
 }

@@ -420,16 +420,6 @@ then
 	mavlink start $MAVLINK_FLAGS
 	
 	#
-	# Start the datamanager
-	#
-	dataman start
-	
-	#
-	# Start the navigator
-	#
-	navigator start
-	
-	#
 	# Sensors, Logging, GPS
 	#
 	sh /etc/init.d/rc.sensors
@@ -549,6 +539,16 @@ then
 			sh /etc/init.d/rc.mc_apps
 		fi
 	fi
+
+	#
+	# Start the datamanager
+	#
+	dataman start
+
+	#
+	# Start the navigator
+	#
+	navigator start
 
 	#
 	# Generic setup (autostart ID not found)

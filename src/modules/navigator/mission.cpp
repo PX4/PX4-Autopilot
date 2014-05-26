@@ -139,7 +139,7 @@ Mission::get_current_mission_item(struct mission_item_s *new_mission_item, bool 
 			return true;
 		}
 	}
-	
+
 	/* otherwise fallback to offboard */
 	if (_current_offboard_mission_index < _offboard_mission_item_count) {
 
@@ -246,7 +246,7 @@ void
 Mission::move_to_next()
 {
 	report_mission_item_reached();
-	
+
 	switch (_current_mission_type) {
 	case MISSION_TYPE_ONBOARD:
 		_current_onboard_mission_index++;

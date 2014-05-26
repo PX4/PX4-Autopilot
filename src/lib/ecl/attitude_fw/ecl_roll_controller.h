@@ -51,11 +51,14 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <systemlib/perf_counter.h>
 
 class __EXPORT ECL_RollController //XXX: create controller superclass
 {
 public:
 	ECL_RollController();
+
+	~ECL_RollController();
 
 	float control_attitude(float roll_setpoint, float roll);
 
@@ -117,6 +120,7 @@ private:
 	float _rate_error;
 	float _rate_setpoint;
 	float _bodyrate_setpoint;
+	perf_counter_t _nonfinite_input_perf;
 };
 
 #endif // ECL_ROLL_CONTROLLER_H

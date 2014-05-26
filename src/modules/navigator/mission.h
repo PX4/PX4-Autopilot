@@ -34,6 +34,8 @@
  * @file navigator_mission.h
  * Helper class to access missions
  * @author Julian Oes <julian@oes.ch>
+ *
+ * @author Julian Oes <joes@student.ethz.ch>
  */
 
 #ifndef NAVIGATOR_MISSION_H

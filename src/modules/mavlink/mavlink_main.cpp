@@ -149,10 +149,7 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 		instance = Mavlink::get_instance(6);
 		break;
 #endif
-	}
-
-	/* no valid instance, bail */
-	if (!instance) {
+		default:
 		return;
 	}
 
@@ -211,9 +208,9 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 static void usage(void);
 
 Mavlink::Mavlink() :
-	next(nullptr),
 	_device_name(DEFAULT_DEVICE_NAME),
 	_task_should_exit(false),
+	next(nullptr),
 	_mavlink_fd(-1),
 	_task_running(false),
 	_hil_enabled(false),
@@ -234,7 +231,6 @@ Mavlink::Mavlink() :
 	_subscribe_to_stream_rate(0.0f),
 	_flow_control_enabled(true),
 	_message_buffer({}),
-
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink"))
 {
@@ -736,9 +732,9 @@ int Mavlink::mavlink_pm_send_param(param_t param)
 	if (param == PARAM_INVALID) { return 1; }
 
 	/* buffers for param transmission */
-	static char name_buf[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN];
+	char name_buf[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN];
 	float val_buf;
-	static mavlink_message_t tx_msg;
+	mavlink_message_t tx_msg;
 
 	/* query parameter type */
 	param_type_t type = param_type(param);
@@ -1543,6 +1539,8 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 void
 Mavlink::mavlink_missionlib_send_message(mavlink_message_t *msg)
 {
+	uint8_t missionlib_msg_buf[MAVLINK_MAX_PACKET_LEN];
+
 	uint16_t len = mavlink_msg_to_send_buffer(missionlib_msg_buf, msg);
 
 	mavlink_send_uart_bytes(_channel, missionlib_msg_buf, len);
@@ -2039,14 +2037,14 @@ Mavlink::task_main(int argc, char *argv[])
 		if (_subscribe_to_stream != nullptr) {
 			if (OK == configure_stream(_subscribe_to_stream, _subscribe_to_stream_rate)) {
 				if (_subscribe_to_stream_rate > 0.0f) {
-					warnx("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, _device_name, _subscribe_to_stream_rate);
+					warnx("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, _device_name, (double)_subscribe_to_stream_rate);
 
 				} else {
 					warnx("stream %s on device %s disabled", _subscribe_to_stream, _device_name);
 				}
 
 			} else {
-				warnx("stream %s not found", _subscribe_to_stream, _device_name);
+				warnx("stream %s on device %s not found", _subscribe_to_stream, _device_name);
 			}
 
 			delete _subscribe_to_stream;
@@ -2213,7 +2211,7 @@ Mavlink::start(int argc, char *argv[])
 	task_spawn_cmd(buf,
 		       SCHED_DEFAULT,
 		       SCHED_PRIORITY_DEFAULT,
-		       2048,
+		       1950,
 		       (main_t)&Mavlink::start_helper,
 		       (const char **)argv);
 
@@ -2252,7 +2250,6 @@ Mavlink::stream(int argc, char *argv[])
 	const char *device_name = DEFAULT_DEVICE_NAME;
 	float rate = -1.0f;
 	const char *stream_name = nullptr;
-	int ch;
 
 	argc -= 2;
 	argv += 2;
@@ -2289,7 +2286,7 @@ Mavlink::stream(int argc, char *argv[])
 		i++;
 	}
 
-	if (!err_flag && rate >= 0.0 && stream_name != nullptr) {
+	if (!err_flag && rate >= 0.0f && stream_name != nullptr) {
 		Mavlink *inst = get_instance_for_device(device_name);
 
 		if (inst != nullptr) {

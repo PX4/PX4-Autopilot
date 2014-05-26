@@ -291,6 +291,7 @@ controls_tick() {
 
 		/* set RC OK flag, as we got an update */
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_OK;
+		r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_OK;
 
 		/* if we have enough channels (5) to control the vehicle, the mapping is ok */
 		if (assigned_channels > 4) {
@@ -335,6 +336,9 @@ controls_tick() {
 		r_status_flags &= ~(
 			PX4IO_P_STATUS_FLAGS_OVERRIDE |
 			PX4IO_P_STATUS_FLAGS_RC_OK);
+
+		/* flag raw RC as lost */
+		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_RC_OK);
 
 		/* Mark all channels as invalid, as we just lost the RX */
 		r_rc_valid = 0;
@@ -405,8 +409,9 @@ ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len)
 		if (*num_values > PX4IO_RC_INPUT_CHANNELS)
 			*num_values = PX4IO_RC_INPUT_CHANNELS;
 
-		for (unsigned i = 0; i < *num_values; i++)
+		for (unsigned i = 0; i < *num_values; i++) {
 			values[i] = ppm_buffer[i];
+		}
 
 		/* clear validity */
 		ppm_last_valid_decode = 0;

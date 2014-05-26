@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
- *   Author: Samuel Zihlmann <samuezih@ee.ethz.ch>
- *   		 Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,68 +31,12 @@
  *
  ****************************************************************************/
 
-/*
- * @file flow_position_control_params.h
- * 
- * Parameters for position controller
- */
-
-#include <systemlib/param/param.h>
-
-struct flow_position_control_params {
-	float pos_p;
-	float pos_d;
-	float height_p;
-	float height_i;
-	float height_d;
-	float height_rate;
-	float height_min;
-	float height_max;
-	float thrust_feedforward;
-	float limit_speed_x;
-	float limit_speed_y;
-	float limit_height_error;
-	float limit_thrust_int;
-	float limit_thrust_upper;
-	float limit_thrust_lower;
-	float limit_yaw_step;
-	float manual_threshold;
-	float rc_scale_pitch;
-	float rc_scale_roll;
-	float rc_scale_yaw;
-};
-
-struct flow_position_control_param_handles {
-	param_t pos_p;
-	param_t pos_d;
-	param_t height_p;
-	param_t height_i;
-	param_t height_d;
-	param_t height_rate;
-	param_t height_min;
-	param_t height_max;
-	param_t thrust_feedforward;
-	param_t limit_speed_x;
-	param_t limit_speed_y;
-	param_t limit_height_error;
-	param_t limit_thrust_int;
-	param_t limit_thrust_upper;
-	param_t limit_thrust_lower;
-	param_t limit_yaw_step;
-	param_t manual_threshold;
-	param_t rc_scale_pitch;
-	param_t rc_scale_roll;
-	param_t rc_scale_yaw;
-};
-
 /**
- * Initialize all parameter handles and values
+ * nsh_romfsetc.h
  *
+ * This file is a stub for 'make export' purposes; the actual ROMFS
+ * must be supplied by the library client.
  */
-int parameters_init(struct flow_position_control_param_handles *h);
 
-/**
- * Update all parameters
- *
- */
-int parameters_update(const struct flow_position_control_param_handles *h, struct flow_position_control_params *p);
+extern unsigned char romfs_img[];
+extern unsigned int romfs_img_len;

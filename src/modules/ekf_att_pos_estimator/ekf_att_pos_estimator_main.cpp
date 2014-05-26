@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file fw_att_pos_estimator_main.cpp
+ * @file ekf_att_pos_estimator_main.cpp
  * Implementation of the attitude and position estimator.
  *
  * @author Paul Riseborough <p_riseborough@live.com.au>
@@ -97,6 +97,7 @@ __EXPORT uint32_t millis();
 
 static uint64_t last_run = 0;
 static uint64_t IMUmsec = 0;
+static const uint64_t FILTER_INIT_DELAY = 1 * 1000 * 1000;
 
 uint32_t millis()
 {
@@ -194,6 +195,7 @@ private:
 	bool						_baro_init;
 	bool						_gps_initialized;
 	uint64_t					_gps_start_time;
+	uint64_t					_filter_start_time;
 	bool						_gyro_valid;
 	bool						_accel_valid;
 	bool						_mag_valid;
@@ -246,7 +248,7 @@ private:
 
 	float						_velocity_xy_filtered;
 	float						_velocity_z_filtered;
-	float						_airspeed_filtered; 						
+	float						_airspeed_filtered;
 
 	/**
 	 * Update our local parameter cache.
@@ -272,7 +274,7 @@ private:
 	/**
 	 * Main sensor collection task.
 	 */
-	void		task_main() __attribute__((noreturn));
+	void		task_main();
 };
 
 namespace estimator
@@ -306,6 +308,8 @@ FixedwingEstimator::FixedwingEstimator() :
 	_vstatus_sub(-1),
 	_params_sub(-1),
 	_manual_control_sub(-1),
+	_mission_sub(-1),
+	_home_sub(-1),
 
 /* publications */
 	_att_pub(-1),
@@ -336,13 +340,13 @@ FixedwingEstimator::FixedwingEstimator() :
 	_baro_gps_offset(0.0f),
 
 /* performance counters */
-	_loop_perf(perf_alloc(PC_COUNT, "fw_att_pos_estimator")),
-	_perf_gyro(perf_alloc(PC_COUNT, "fw_ekf_gyro_upd")),
-	_perf_accel(perf_alloc(PC_COUNT, "fw_ekf_accel_upd")),
-	_perf_mag(perf_alloc(PC_COUNT, "fw_ekf_mag_upd")),
-	_perf_gps(perf_alloc(PC_COUNT, "fw_ekf_gps_upd")),
-	_perf_baro(perf_alloc(PC_COUNT, "fw_ekf_baro_upd")),
-	_perf_airspeed(perf_alloc(PC_COUNT, "fw_ekf_aspd_upd")),
+	_loop_perf(perf_alloc(PC_COUNT, "ekf_att_pos_estimator")),
+	_perf_gyro(perf_alloc(PC_COUNT, "ekf_att_pos_gyro_upd")),
+	_perf_accel(perf_alloc(PC_COUNT, "ekf_att_pos_accel_upd")),
+	_perf_mag(perf_alloc(PC_COUNT, "ekf_att_pos_mag_upd")),
+	_perf_gps(perf_alloc(PC_COUNT, "ekf_att_pos_gps_upd")),
+	_perf_baro(perf_alloc(PC_COUNT, "ekf_att_pos_baro_upd")),
+	_perf_airspeed(perf_alloc(PC_COUNT, "ekf_att_pos_aspd_upd")),
 
 /* states */
 	_initialized(false),
@@ -509,14 +513,14 @@ FixedwingEstimator::task_main_trampoline(int argc, char *argv[])
 	estimator::g_estimator->task_main();
 }
 
-float dt = 0.0f; // time lapsed since last covariance prediction
-
 void
 FixedwingEstimator::task_main()
 {
 	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
 	_ekf = new AttPosEKF();
+	float dt = 0.0f; // time lapsed since last covariance prediction
+	_filter_start_time = hrt_absolute_time();
 
 	if (!_ekf) {
 		errx(1, "failed allocating EKF filter - out of RAM!");
@@ -642,6 +646,7 @@ FixedwingEstimator::task_main()
 
 				_ekf->ZeroVariables();
 				_ekf->dtIMU = 0.01f;
+				_filter_start_time = last_sensor_timestamp;
 
 				/* now skip this loop and get data on the next one, which will also re-init the filter */
 				continue;
@@ -719,6 +724,8 @@ FixedwingEstimator::task_main()
 
 			if (last_accel != _sensor_combined.accelerometer_timestamp) {
 				accel_updated = true;
+			} else {
+				accel_updated = false;
 			}
 
 			last_accel = _sensor_combined.accelerometer_timestamp;
@@ -809,7 +816,6 @@ FixedwingEstimator::task_main()
 				perf_count(_perf_gps);
 
 				if (_gps.fix_type < 3) {
-					gps_updated = false;
 					newDataGps = false;
 
 				} else {
@@ -1025,7 +1031,7 @@ FixedwingEstimator::task_main()
 			 *    PART TWO: EXECUTE THE FILTER
 			 **/
 
-			if (_baro_init && _gyro_valid && _accel_valid && _mag_valid) {
+			if ((hrt_elapsed_time(&_filter_start_time) > FILTER_INIT_DELAY) && _baro_init && _gyro_valid && _accel_valid && _mag_valid) {
 
 				float initVelNED[3];
 
@@ -1042,9 +1048,9 @@ FixedwingEstimator::task_main()
 
 					// Set up height correctly
 					orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
-					_baro_gps_offset = gps_alt - _baro.altitude;
+					_baro_gps_offset = _baro_ref - _baro.altitude;
 					_ekf->baroHgt = _baro.altitude;
-					_ekf->hgtMea = 1.0f * (_ekf->baroHgt - _baro_ref);
+					_ekf->hgtMea = 1.0f * (_ekf->baroHgt - (_baro_ref));
 
 					// Set up position variables correctly
 					_ekf->GPSstatus = _gps.fix_type;
@@ -1061,14 +1067,14 @@ FixedwingEstimator::task_main()
 					// Initialize projection
 					_local_pos.ref_lat = lat;
 					_local_pos.ref_lon = lon;
-					_local_pos.ref_alt = _baro_ref + _baro_gps_offset;
+					_local_pos.ref_alt = gps_alt;
 					_local_pos.ref_timestamp = _gps.timestamp_position;
 
 					map_projection_init(&_pos_ref, lat, lon);
 					mavlink_log_info(_mavlink_fd, "[ekf] ref: LA %.4f,LO %.4f,ALT %.2f", lat, lon, (double)gps_alt);
 					warnx("HOME/REF: LA %8.4f,LO %8.4f,ALT %8.2f V: %8.4f %8.4f %8.4f", lat, lon, (double)gps_alt,
 						(double)_ekf->velNED[0], (double)_ekf->velNED[1], (double)_ekf->velNED[2]);
-					warnx("BARO: %8.4f m / ref: %8.4f m", _ekf->baroHgt, _ekf->hgtMea);
+					warnx("BARO: %8.4f m / ref: %8.4f m / gps offs: %8.4f m", (double)_ekf->baroHgt, (double)_baro_ref, (double)_baro_gps_offset);
 					warnx("GPS: eph: %8.4f, epv: %8.4f, declination: %8.4f", (double)_gps.eph, (double)_gps.epv, (double)math::degrees(declination));
 
 					_gps_initialized = true;
@@ -1084,6 +1090,10 @@ FixedwingEstimator::task_main()
 
 					_ekf->posNE[0] = _ekf->posNED[0];
 					_ekf->posNE[1] = _ekf->posNED[1];
+
+					_local_pos.ref_alt = _baro_ref;
+					_baro_gps_offset = 0.0f;
+
 					_ekf->InitialiseFilter(initVelNED, 0.0, 0.0, 0.0f, 0.0f);
 				}
 			}
@@ -1263,7 +1273,8 @@ FixedwingEstimator::task_main()
 				_local_pos.timestamp = last_sensor_timestamp;
 				_local_pos.x = _ekf->states[7];
 				_local_pos.y = _ekf->states[8];
-				_local_pos.z = _ekf->states[9] + _baro_gps_offset;
+				// XXX need to announce change of Z reference somehow elegantly
+				_local_pos.z = _ekf->states[9] - _baro_gps_offset;
 
 				_local_pos.vx = _ekf->states[4];
 				_local_pos.vy = _ekf->states[5];
@@ -1324,8 +1335,8 @@ FixedwingEstimator::task_main()
 					_global_pos.vel_e = 0.0f;
 				}
 
-				/* local pos alt is negative, change sign and add alt offset */
-				_global_pos.alt = _local_pos.ref_alt + (-_local_pos.z);
+				/* local pos alt is negative, change sign and add alt offsets */
+				_global_pos.alt = _local_pos.ref_alt + _baro_gps_offset + (-_local_pos.z);
 
 				if (_local_pos.v_z_valid) {
 					_global_pos.vel_d = _local_pos.vz;
@@ -1400,7 +1411,8 @@ FixedwingEstimator::print_status()
 	// 15-17: Earth Magnetic Field Vector - gauss (North, East, Down)
 	// 18-20: Body Magnetic Field Vector - gauss (X,Y,Z)
 
-	printf("dtIMU: %8.6f dt: %8.6f IMUmsec: %d\n", (double)_ekf->dtIMU, (double)dt, (int)IMUmsec);
+	printf("dtIMU: %8.6f IMUmsec: %d\n", (double)_ekf->dtIMU, (int)IMUmsec);
+	printf("ref alt: %8.6f\n", (double)_local_pos.ref_alt);
 	printf("dvel: %8.6f %8.6f %8.6f accel: %8.6f %8.6f %8.6f\n", (double)_ekf->dVelIMU.x, (double)_ekf->dVelIMU.y, (double)_ekf->dVelIMU.z, (double)_ekf->accel.x, (double)_ekf->accel.y, (double)_ekf->accel.z);
 	printf("dang: %8.4f %8.4f %8.4f dang corr: %8.4f %8.4f %8.4f\n" , (double)_ekf->dAngIMU.x, (double)_ekf->dAngIMU.y, (double)_ekf->dAngIMU.z, (double)_ekf->correctedDelAng.x, (double)_ekf->correctedDelAng.y, (double)_ekf->correctedDelAng.z);
 	printf("states (quat)        [1-4]: %8.4f, %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[0], (double)_ekf->states[1], (double)_ekf->states[2], (double)_ekf->states[3]);

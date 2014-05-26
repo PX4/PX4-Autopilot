@@ -35,6 +35,8 @@
 /**
  * @file mc_pos_control_params.c
  * Multicopter position controller parameters.
+ *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <systemlib/param/param.h>
@@ -98,7 +100,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_D, 0.0f);
 /**
  * Maximum vertical velocity
  *
- * Maximum vertical velocity in AUTO mode and endpoint for stabilized modes (SEATBELT, EASY).
+ * Maximum vertical velocity in AUTO mode and endpoint for stabilized modes (ALTCTRL, POSCTRL).
  *
  * @unit m/s
  * @min 0.0
@@ -109,7 +111,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX, 5.0f);
 /**
  * Vertical velocity feed forward
  *
- * Feed forward weight for altitude control in stabilized modes (SEATBELT, EASY). 0 will give slow responce and no overshot, 1 - fast responce and big overshot.
+ * Feed forward weight for altitude control in stabilized modes (ALTCTRL, POSCTRL). 0 will give slow responce and no overshot, 1 - fast responce and big overshot.
  *
  * @min 0.0
  * @max 1.0
@@ -154,7 +156,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 /**
  * Maximum horizontal velocity
  *
- * Maximum horizontal velocity in AUTO mode and endpoint for position stabilized mode (EASY).
+ * Maximum horizontal velocity in AUTO mode and endpoint for position stabilized mode (POSCTRL).
  *
  * @unit m/s
  * @min 0.0
@@ -165,7 +167,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 5.0f);
 /**
  * Horizontal velocity feed forward
  *
- * Feed forward weight for position control in position control mode (EASY). 0 will give slow responce and no overshot, 1 - fast responce and big overshot.
+ * Feed forward weight for position control in position control mode (POSCTRL). 0 will give slow responce and no overshot, 1 - fast responce and big overshot.
  *
  * @min 0.0
  * @max 1.0
@@ -176,7 +178,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_FF, 0.5f);
 /**
  * Maximum tilt angle in air
  *
- * Limits maximum tilt in AUTO and EASY modes during flight.
+ * Limits maximum tilt in AUTO and POSCTRL modes during flight.
  *
  * @unit deg
  * @min 0.0

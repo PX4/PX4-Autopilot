@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -410,7 +410,7 @@ Navigator::parameters_update()
 	param_get(_parameter_handles.acceptance_radius, &(_parameters.acceptance_radius));
 	param_get(_parameter_handles.loiter_radius, &(_parameters.loiter_radius));
 	param_get(_parameter_handles.onboard_mission_enabled, &(_parameters.onboard_mission_enabled));
-	param_get(_parameter_handles.takeoff_alt, &(_parameters.takeoff_alt));	
+	param_get(_parameter_handles.takeoff_alt, &(_parameters.takeoff_alt));
 
 	_mission.set_onboard_mission_allowed((bool)_parameters.onboard_mission_enabled);
 
@@ -728,7 +728,7 @@ Navigator::start()
 	_navigator_task = task_spawn_cmd("navigator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 5,
-					 2048,
+					 2000,
 					 (main_t)&Navigator::task_main_trampoline,
 					 nullptr);
 
@@ -946,7 +946,7 @@ Navigator::start_loiter()
 	mavlink_log_info(_mavlink_fd, "#audio: loiter at current altitude");
 
 	_update_triplet = true;
-	return true;	
+	return true;
 }
 
 bool
@@ -999,7 +999,7 @@ Navigator::set_mission_items()
 	/* convert the current mission item and set it valid */
 	mission_item_to_position_setpoint(&_mission_item, &_pos_sp_triplet.current);
 	_pos_sp_triplet.current.valid = true;
-	
+
 
 	mission_item_s next_mission_item;
 
@@ -1206,7 +1206,7 @@ Navigator::check_mission_item_reached()
 	}
 
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
-		
+
 		/* TODO: removed takeoff, why? */
 		if (_vstatus.is_rotary_wing && isfinite(_mission_item.yaw)) {
 

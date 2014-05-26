@@ -198,6 +198,7 @@ public:
     float velNED[3]; // North, East, Down velocity obs (m/s)
     float posNE[2]; // North, East position obs (m)
     float hgtMea; //  measured height (m)
+    float baroHgtOffset;        ///< the baro (weather) offset from normalized altitude
     float rngMea; // Ground distance
     float posNED[3]; // North, East Down position (m)
 
