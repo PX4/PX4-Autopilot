@@ -346,7 +346,7 @@ struct log_GS1B_s {
 	uint8_t satellite_snr[16];			/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99 */
 };
 
-/* --- TECS - TECS STAUS --- */
+/* --- TECS - TECS STATUS --- */
 #define LOG_TECS_MSG 30
 struct log_TECS_s {
 	float altitudeSp;
