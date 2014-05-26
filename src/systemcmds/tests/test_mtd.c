@@ -57,6 +57,8 @@
 #define PARAM_FILE_NAME "/fs/mtd_params"
 
 static int check_user_abort(int fd);
+static void print_fail(void);
+static void print_success(void);
 
 int check_user_abort(int fd) {
 	/* check if user wants to abort */
@@ -126,7 +128,7 @@ test_mtd(int argc, char *argv[])
 		uint8_t write_buf[chunk_sizes[c]] __attribute__((aligned(64)));
 
 		/* fill write buffer with known values */
-		for (int i = 0; i < sizeof(write_buf); i++) {
+		for (unsigned i = 0; i < sizeof(write_buf); i++) {
 			/* this will wrap, but we just need a known value with spacing */
 			write_buf[i] = i+11;
 		}
@@ -137,11 +139,14 @@ test_mtd(int argc, char *argv[])
 		int fd = open(PARAM_FILE_NAME, O_RDONLY);
 		int rret = read(fd, read_buf, chunk_sizes[c]);
 		close(fd);
+		if (rret <= 0) {
+			err(1, "read error");
+		}
 
 		fd = open(PARAM_FILE_NAME, O_WRONLY);
 
 		printf("printing 2 percent of the first chunk:\n");
-		for (int i = 0; i < sizeof(read_buf) / 50; i++) {
+		for (unsigned i = 0; i < sizeof(read_buf) / 50; i++) {
 			printf("%02X", read_buf[i]);
 		}
 		printf("\n");
@@ -171,9 +176,9 @@ test_mtd(int argc, char *argv[])
 
 		/* read back data for validation */
 		for (unsigned i = 0; i < iterations; i++) {
-			int rret = read(fd, read_buf, chunk_sizes[c]);
+			int rret2 = read(fd, read_buf, chunk_sizes[c]);
 
-			if (rret != chunk_sizes[c]) {
+			if (rret2 != (int)chunk_sizes[c]) {
 				warnx("READ ERROR!");
 				print_fail();
 				return 1;
@@ -182,7 +187,7 @@ test_mtd(int argc, char *argv[])
 			/* compare value */
 			bool compare_ok = true;
 
-			for (int j = 0; j < chunk_sizes[c]; j++) {
+			for (unsigned j = 0; j < chunk_sizes[c]; j++) {
 				if (read_buf[j] != write_buf[j]) {
 					warnx("COMPARISON ERROR: byte %d", j);
 					print_fail();
@@ -211,7 +216,7 @@ test_mtd(int argc, char *argv[])
 	char ffbuf[64];
 	memset(ffbuf, 0xFF, sizeof(ffbuf));
 	int fd = open(PARAM_FILE_NAME, O_WRONLY);
-	for (int i = 0; i < file_size / sizeof(ffbuf); i++) {
+	for (unsigned i = 0; i < file_size / sizeof(ffbuf); i++) {
 		int ret = write(fd, ffbuf, sizeof(ffbuf));
 
 		if (ret != sizeof(ffbuf)) {
