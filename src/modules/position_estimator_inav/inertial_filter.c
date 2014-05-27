@@ -9,15 +9,18 @@
 
 #include "inertial_filter.h"
 
-void inertial_filter_predict(float dt, float x[3])
+void inertial_filter_predict(float dt, float x[2], float acc)
 {
 	if (isfinite(dt)) {
-		x[0] += x[1] * dt + x[2] * dt * dt / 2.0f;
-		x[1] += x[2] * dt;
+		if (!isfinite(acc)) {
+			acc = 0.0f;
+		}
+		x[0] += x[1] * dt + acc * dt * dt / 2.0f;
+		x[1] += acc * dt;
 	}
 }
 
-void inertial_filter_correct(float e, float dt, float x[3], int i, float w)
+void inertial_filter_correct(float e, float dt, float x[2], int i, float w)
 {
 	if (isfinite(e) && isfinite(w) && isfinite(dt)) {
 		float ewdt = e * w * dt;
@@ -25,10 +28,6 @@ void inertial_filter_correct(float e, float dt, float x[3], int i, float w)
 
 		if (i == 0) {
 			x[1] += w * ewdt;
-			x[2] += w * w * ewdt / 3.0;
-
-		} else if (i == 1) {
-			x[2] += w * ewdt;
 		}
 	}
 }
