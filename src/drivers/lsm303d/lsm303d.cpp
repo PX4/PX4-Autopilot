@@ -1793,15 +1793,29 @@ start()
 		errx(0, "already started");
 
 	/* create the driver */
-	g_dev = new LSM303D(PX4_SPI_BUS_SENSORS, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG);
+	g_dev = new LSM303D(4, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_EXT0);
 
 	if (g_dev == nullptr) {
 		warnx("failed instantiating LSM303D obj");
 		goto fail;
 	}
 
-	if (OK != g_dev->init())
-		goto fail;
+	if (OK != g_dev->init()) {
+
+		delete g_dev;
+
+		g_dev = new LSM303D(PX4_SPI_BUS_SENSORS, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG);
+
+		if (g_dev == nullptr) {
+			warnx("failed instantiating LSM303D obj");
+			goto fail;
+		}
+
+		if (OK != g_dev->init())
+			goto fail;
+	} else {
+		warnx("external");
+	}
 
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(LSM303D_DEVICE_PATH_ACCEL, O_RDONLY);
