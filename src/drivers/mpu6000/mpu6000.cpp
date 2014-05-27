@@ -394,7 +394,7 @@ MPU6000::MPU6000(int bus, spi_dev_e device) :
 	_gyro_filter_z(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ)
 {
 	// disable debug() calls
-	_debug_enabled = false;
+	_debug_enabled = true;
 
 	// default accel scale factors
 	_accel_scale.x_offset = 0;
@@ -1427,13 +1427,25 @@ start()
 		errx(0, "already started");
 
 	/* create the driver */
-	g_dev = new MPU6000(1 /* XXX magic number */, (spi_dev_e)PX4_SPIDEV_MPU);
+	g_dev = new MPU6000(4 /* XXX magic number */, (spi_dev_e)PX4_SPIDEV_EXT1);
 
 	if (g_dev == nullptr)
 		goto fail;
 
-	if (OK != g_dev->init())
-		goto fail;
+	if (OK != g_dev->init()) {
+
+		delete g_dev;
+
+		g_dev = new MPU6000(1 /* XXX magic number */, (spi_dev_e)PX4_SPIDEV_MPU);
+
+		if (g_dev == nullptr)
+			goto fail;
+
+		if (OK != g_dev->init())
+			goto fail;
+	} else {
+		warnx("external");
+	}
 
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(MPU_DEVICE_PATH_ACCEL, O_RDONLY);
