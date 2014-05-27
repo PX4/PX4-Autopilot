@@ -89,6 +89,8 @@ public:
 	bool isAngularLimit() {return _isAngularLimit ;}
 	float getMin() { return _min.get(); }
 	float getMax() { return _max.get(); }
+	void setMin(float value) { _min.set(value); }
+	void setMax(float value) { _max.set(value); }
 protected:
 //attributes
 	bool _isAngularLimit;
@@ -96,7 +98,6 @@ protected:
 	control::BlockParamFloat _max;
 };
 
-typedef
 
 /* A combination of feed forward, P and I gain using the output limiter*/
 class BlockFFPILimited: public SuperBlock
