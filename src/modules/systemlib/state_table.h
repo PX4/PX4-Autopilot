@@ -33,7 +33,7 @@
 
 /**
  * @file state_table.h
- * 
+ *
  * Finite-State-Machine helper class for state table
  * @author: Julian Oes <julian@oes.ch>
  */
@@ -44,32 +44,32 @@
 class StateTable
 {
 public:
-	typedef bool (StateTable::*Action)();
+	typedef void (StateTable::*Action)();
 	struct Tran {
 		Action action;
 		unsigned nextState;
 	};
-	
+
 	StateTable(Tran const *table, unsigned nStates, unsigned nSignals)
 	: myTable(table), myNsignals(nSignals), myNstates(nStates) {}
-	
+
 	#define NO_ACTION &StateTable::doNothing
 	#define ACTION(_target) StateTable::Action(_target)
 
 	virtual ~StateTable() {}
-	
+
 	void dispatch(unsigned const sig) {
 		/* get transition using state table */
 		Tran const *t = myTable + myState*myNsignals + sig;
-		/* first up change state, this allows to do further dispatchs in the state functions */
-		
-		/* now execute state function, if it runs with success, accept new state */
-		if ((this->*(t->action))()) {
-			myState = t->nextState;
-		}
+
+		/* accept new state */
+		myState = t->nextState;
+
+		/*  */
+		(this->*(t->action))();
 	}
-	bool doNothing() {
-		return true;
+	void doNothing() {
+		return;
 	}
 protected:
 	unsigned myState;

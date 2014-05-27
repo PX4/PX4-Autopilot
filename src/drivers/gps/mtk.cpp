@@ -251,8 +251,8 @@ MTK::handle_message(gps_mtk_packet_t &packet)
 		_gps_position->lon = 0;
 
 		// Indicate this data is not usable and bail out
-		_gps_position->eph_m = 1000.0f;
-		_gps_position->epv_m = 1000.0f;
+		_gps_position->eph = 1000.0f;
+		_gps_position->epv = 1000.0f;
 		_gps_position->fix_type = 0;
 		return;
 	}

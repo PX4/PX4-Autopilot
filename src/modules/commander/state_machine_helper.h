@@ -56,25 +56,17 @@ typedef enum {
 
 } transition_result_t;
 
+bool is_safe(const struct vehicle_status_s *current_state, const struct safety_s *safety, const struct actuator_armed_s *armed);
+
 transition_result_t arming_state_transition(struct vehicle_status_s *current_state, const struct safety_s *safety,
 		arming_state_t new_arming_state, struct actuator_armed_s *armed, const int mavlink_fd = 0);
 
-bool is_safe(const struct vehicle_status_s *current_state, const struct safety_s *safety, const struct actuator_armed_s *armed);
-
-bool check_arming_state_changed();
-
 transition_result_t main_state_transition(struct vehicle_status_s *current_state, main_state_t new_main_state);
-
-bool check_main_state_changed();
 
 transition_result_t failsafe_state_transition(struct vehicle_status_s *status, failsafe_state_t new_failsafe_state);
 
-bool check_navigation_state_changed();
+transition_result_t hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_status_s *current_state, const int mavlink_fd);
 
-bool check_failsafe_state_changed();
-
-void set_navigation_state_changed();
-
-int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_status_s *current_state, const int mavlink_fd);
+void set_nav_state(struct vehicle_status_s *status);
 
 #endif /* STATE_MACHINE_HELPER_H_ */
