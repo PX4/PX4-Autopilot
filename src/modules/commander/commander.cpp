@@ -625,8 +625,10 @@ int commander_thread_main(int argc, char *argv[])
 	main_states_str[0] = "MANUAL";
 	main_states_str[1] = "ALTCTL";
 	main_states_str[2] = "POSCTL";
-	main_states_str[3] = "AUTO";
-	main_states_str[4] = "ACRO";
+	main_states_str[3] = "AUTO_MISSION";
+	main_states_str[4] = "AUTO_LOITER";
+	main_states_str[5] = "AUTO_RTL";
+	main_states_str[6] = "ACRO";
 
 	char *arming_states_str[ARMING_STATE_MAX];
 	arming_states_str[0] = "INIT";
@@ -639,9 +641,10 @@ int commander_thread_main(int argc, char *argv[])
 
 	char *failsafe_states_str[FAILSAFE_STATE_MAX];
 	failsafe_states_str[0] = "NORMAL";
-	failsafe_states_str[1] = "RTL";
-	failsafe_states_str[2] = "LAND";
-	failsafe_states_str[3] = "TERMINATION";
+	failsafe_states_str[1] = "RTL_RC";
+	failsafe_states_str[2] = "RTL_DL";
+	failsafe_states_str[3] = "LAND";
+	failsafe_states_str[4] = "TERMINATION";
 
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
@@ -1151,12 +1154,9 @@ int commander_thread_main(int argc, char *argv[])
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (status.arming_state == ARMING_STATE_INIT && low_prio_task == LOW_PRIO_TASK_NONE) {
 			/* TODO: check for sensors */
-			warnx("arming status1: %d", status.arming_state);
 			arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_STANDBY, &armed);
-			warnx("arming status2: %d", status.arming_state);
 
 			if (arming_ret == TRANSITION_CHANGED) {
-				warnx("changed");
 				arming_state_changed = true;
 			}
 
@@ -1198,6 +1198,9 @@ int commander_thread_main(int argc, char *argv[])
 				if (status.rc_signal_lost) {
 					mavlink_log_critical(mavlink_fd, "#audio: RC signal regained");
 					status_changed = true;
+
+					status.failsafe_state = FAILSAFE_STATE_NORMAL;
+					failsafe_state_changed = true;
 				}
 			}
 
@@ -1215,7 +1218,6 @@ int commander_thread_main(int argc, char *argv[])
 					arming_state_t new_arming_state = (status.arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
 					arming_ret = arming_state_transition(&status, &safety, new_arming_state, &armed);
 					if (arming_ret == TRANSITION_CHANGED) {
-						warnx("stick 1");
 						arming_state_changed = true;
 					}
 					stick_off_counter = 0;
@@ -1241,7 +1243,6 @@ int commander_thread_main(int argc, char *argv[])
 					} else {
 						arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed);
 						if (arming_ret == TRANSITION_CHANGED) {
-							warnx("stick 2");
 							arming_state_changed = true;
 						}
 					}
@@ -1294,29 +1295,19 @@ int commander_thread_main(int argc, char *argv[])
 				mavlink_log_critical(mavlink_fd, "#audio: CRITICAL: RC SIGNAL LOST");
 				status.rc_signal_lost = true;
 				status_changed = true;
-			}
-		}
 
-		if (armed.armed) {
-			/* if RC is lost, switch to RTL_RC or Termination unless a mission is running
-			 * and not yet finished) */
-			if (status.rc_signal_lost
-		            && !(status.set_nav_state == NAVIGATION_STATE_AUTO_MISSION && !mission_result.mission_finished)) {
 
-				/* if we have a global position, we can switch to RTL, if not, we can try to land */
-				if (status.condition_global_position_valid) {
-					status.failsafe_state = FAILSAFE_STATE_RTL_RC;
-				} else {
-					status.failsafe_state = FAILSAFE_STATE_LAND;
+				if (!(status.set_nav_state == NAVIGATION_STATE_AUTO_MISSION && !mission_result.mission_finished)) {
+
+					/* if we have a global position, we can switch to RTL, if not, we can try to land */
+					if (status.condition_global_position_valid) {
+						status.failsafe_state = FAILSAFE_STATE_RTL_RC;
+					} else {
+						status.failsafe_state = FAILSAFE_STATE_LAND;
+					}
+					failsafe_state_changed = true;
 				}
 			}
-
-			/* if the data link is lost, switch to RTL_DL or Termination */
-			/* TODO: add this */
-
-		} else {
-			/* reset failsafe when disarmed */
-			status.failsafe_state = FAILSAFE_STATE_NORMAL;
 		}
 
 		/* handle commands last, as the system needs to be updated to handle them */
@@ -1613,10 +1604,24 @@ set_main_state_rc(struct vehicle_status_s *status, struct manual_control_setpoin
 		break;
 
 	case SWITCH_POS_ON:			// AUTO
-		res = main_state_transition(status, MAIN_STATE_AUTO_MISSION);
+		if (sp_man->return_switch == SWITCH_POS_ON) {
+			res = main_state_transition(status, MAIN_STATE_AUTO_RTL);
 
-		if (res != TRANSITION_DENIED) {
-			break;	// changed successfully or already in this state
+			if (res != TRANSITION_DENIED) {
+				break;	// changed successfully or already in this state
+			}
+		} else if (sp_man->loiter_switch == SWITCH_POS_ON) {
+			res = main_state_transition(status, MAIN_STATE_AUTO_LOITER);
+
+			if (res != TRANSITION_DENIED) {
+				break;	// changed successfully or already in this state
+			}
+		} else {
+			res = main_state_transition(status, MAIN_STATE_AUTO_MISSION);
+
+			if (res != TRANSITION_DENIED) {
+				break;	// changed successfully or already in this state
+			}
 		}
 
 		// else fallback to ALTCTL (POSCTL likely will not work too)
