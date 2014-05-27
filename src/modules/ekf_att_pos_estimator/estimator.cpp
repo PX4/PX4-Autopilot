@@ -5,7 +5,7 @@
 // Define EKF_DEBUG here to enable the debug print calls
 // if the macro is not set, these will be completely
 // optimized out by the compiler.
-#define EKF_DEBUG
+//#define EKF_DEBUG
 
 #ifdef EKF_DEBUG
 #include <stdio.h>
