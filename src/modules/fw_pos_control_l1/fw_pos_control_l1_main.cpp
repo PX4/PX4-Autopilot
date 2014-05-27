@@ -1031,14 +1031,15 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 				 /* intersect glide slope:
 				  * minimize speed to approach speed
-				  * if current position is higher or within 10m of slope follow the glide slope
+				  * if current position is higher than the slope follow the glide slope (sink to the
+				  * glide slope)
 				  * also if the system captures the slope it should stay
 				  * on the slope (bool land_onslope)
-				  * if current position is below slope -10m continue at previous wp altitude
+				  * if current position is below the slope continue at previous wp altitude
 				  * until the intersection with slope
 				  * */
 				float altitude_desired_rel = relative_alt;
-				if (relative_alt > landing_slope_alt_rel_desired - 10.0f || land_onslope) {
+				if (relative_alt > landing_slope_alt_rel_desired || land_onslope) {
 					/* stay on slope */
 					altitude_desired_rel = landing_slope_alt_rel_desired;
 					if (!land_onslope) {
