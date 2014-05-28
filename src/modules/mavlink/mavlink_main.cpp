@@ -415,7 +415,7 @@ Mavlink::instance_exists(const char *device_name, Mavlink *self)
 void
 Mavlink::forward_message(mavlink_message_t *msg, Mavlink *self)
 {
-	
+
 	Mavlink *inst;
 	LL_FOREACH(_mavlink_instances, inst) {
 		if (inst != self) {
@@ -886,7 +886,7 @@ int Mavlink::map_mavlink_mission_item_to_mission_item(const mavlink_mission_item
 
 	switch (mavlink_mission_item->command) {
 	case MAV_CMD_NAV_TAKEOFF:
-		mission_item->pitch_min = mavlink_mission_item->param2;
+		mission_item->pitch_min = mavlink_mission_item->param1;
 		break;
 
 	default:
