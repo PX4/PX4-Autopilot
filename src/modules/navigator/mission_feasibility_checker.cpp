@@ -63,7 +63,7 @@ MissionFeasibilityChecker::MissionFeasibilityChecker() : _mavlink_fd(-1), _capab
 }
 
 
-bool MissionFeasibilityChecker::checkMissionFeasible(bool isRotarywing, dm_item_t dm_current, size_t nMissionItems, Geofence &geofence)
+bool MissionFeasibilityChecker::checkMissionFeasible(bool isRotarywing, dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt)
 {
 	/* Init if not done yet */
 	init();
@@ -76,24 +76,24 @@ bool MissionFeasibilityChecker::checkMissionFeasible(bool isRotarywing, dm_item_
 
 
 	if (isRotarywing)
-		return checkMissionFeasibleRotarywing(dm_current, nMissionItems, geofence);
+		return checkMissionFeasibleRotarywing(dm_current, nMissionItems, geofence, home_alt);
 	else
-		return checkMissionFeasibleFixedwing(dm_current, nMissionItems, geofence);
+		return checkMissionFeasibleFixedwing(dm_current, nMissionItems, geofence, home_alt);
 }
 
-bool MissionFeasibilityChecker::checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence)
+bool MissionFeasibilityChecker::checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt)
 {
 
-	return checkGeofence(dm_current, nMissionItems, geofence);
+	return  (checkGeofence(dm_current, nMissionItems, geofence) && checkHomePositionAltitude(dm_current, nMissionItems, home_alt));
 }
 
-bool MissionFeasibilityChecker::checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence)
+bool MissionFeasibilityChecker::checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt)
 {
 	/* Update fixed wing navigation capabilites */
 	updateNavigationCapabilities();
 //	warnx("_nav_caps.landing_slope_angle_rad %.4f, _nav_caps.landing_horizontal_slope_displacement %.4f", _nav_caps.landing_slope_angle_rad, _nav_caps.landing_horizontal_slope_displacement);
 
-	return (checkFixedWingLanding(dm_current, nMissionItems) && checkGeofence(dm_current, nMissionItems, geofence));
+	return (checkFixedWingLanding(dm_current, nMissionItems) && checkGeofence(dm_current, nMissionItems, geofence) && checkHomePositionAltitude(dm_current, nMissionItems, home_alt));
 }
 
 bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence)
@@ -109,9 +109,39 @@ bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMiss
 				return false;
 			}
 
-			if (!geofence.inside(missionitem.lat, missionitem.lon, missionitem.altitude)) { //xxx: handle relative altitude
+			if (!geofence.inside(missionitem.lat, missionitem.lon, missionitem.altitude)) {
 				mavlink_log_info(_mavlink_fd, "#audio: Geofence violation waypoint %d", i);
 				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+bool MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, size_t nMissionItems, float home_alt, bool throw_error)
+{
+	/* Check if all all waypoints are above the home altitude, only return false if bool throw_error = true */
+	for (size_t i = 0; i < nMissionItems; i++) {
+		static struct mission_item_s missionitem;
+		const ssize_t len = sizeof(struct mission_item_s);
+
+		if (dm_read(dm_current, i, &missionitem, len) != len) {
+			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+			if (throw_error) {
+				return false;
+			} else	{
+				return true;
+			}
+		}
+
+		if (home_alt > missionitem.altitude) {
+			if (throw_error) {
+				mavlink_log_info(_mavlink_fd, "Waypoint %d below home", i);
+				return false;
+			} else	{
+				mavlink_log_info(_mavlink_fd, "#audio: warning waypoint %d below home", i);
+				return true;
 			}
 		}
 	}
