@@ -192,6 +192,7 @@ stm32_boardinitialize(void)
 
 static struct spi_dev_s *spi1;
 static struct spi_dev_s *spi2;
+static struct spi_dev_s *spi4;
 static struct sdio_dev_s *sdio;
 
 #include <math.h>
@@ -304,6 +305,17 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SELECT(spi2, SPIDEV_FLASH, false);
 
 	message("[boot] Initialized SPI port 2 (RAMTRON FRAM)\n");
+
+	spi4 = up_spiinitialize(4);
+
+	/* Default SPI4 to 1MHz and de-assert the known chip selects. */
+	SPI_SETFREQUENCY(spi4, 10000000);
+	SPI_SETBITS(spi4, 8);
+	SPI_SETMODE(spi4, SPIDEV_MODE3);
+	SPI_SELECT(spi4, PX4_SPIDEV_EXT0, false);
+	SPI_SELECT(spi4, PX4_SPIDEV_EXT1, false);
+
+	message("[boot] Initialized SPI port 4\n");
 
 	#ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */
