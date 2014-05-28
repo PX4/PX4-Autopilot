@@ -79,7 +79,8 @@ mTecs::~mTecs()
 {
 }
 
-int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed, float airspeedSp, tecs_mode mode)
+int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed,
+		float airspeedSp, tecs_mode mode, LimitOverride limitOverride)
 {
 	/* check if all input arguments are numbers and abort if not so */
 	if (!isfinite(flightPathAngle) || !isfinite(altitude) ||
@@ -105,10 +106,12 @@ int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float alti
 
 
 	/* use flightpath angle setpoint for total energy control */
-	return updateFlightPathAngleSpeed(flightPathAngle, flightPathAngleSp, airspeed, airspeedSp, mode);
+	return updateFlightPathAngleSpeed(flightPathAngle, flightPathAngleSp, airspeed,
+			airspeedSp, mode, limitOverride);
 }
 
-int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed, float airspeedSp, tecs_mode mode)
+int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed,
+		float airspeedSp, tecs_mode mode, LimitOverride limitOverride)
 {
 	/* check if all input arguments are numbers and abort if not so */
 	if (!isfinite(flightPathAngle) || !isfinite(flightPathAngleSp) ||
@@ -135,10 +138,12 @@ int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAng
 
 
 	/* use longitudinal acceleration setpoint for total energy control */
-	return updateFlightPathAngleAcceleration(flightPathAngle, flightPathAngleSp, airspeed, accelerationLongitudinalSp, mode);
+	return updateFlightPathAngleAcceleration(flightPathAngle, flightPathAngleSp, airspeed,
+			accelerationLongitudinalSp, mode, limitOverride);
 }
 
-int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeed, float accelerationLongitudinalSp, tecs_mode mode)
+int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeed,
+		float accelerationLongitudinalSp, tecs_mode mode, LimitOverride limitOverride)
 {
 	/* check if all input arguments are numbers and abort if not so */
 	if (!isfinite(flightPathAngle) || !isfinite(flightPathAngleSp) ||
@@ -180,8 +185,8 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 				(double)energyDistributionRateSp, (double)energyDistributionRate, (double)energyDistributionRateError, (double)energyDistributionRateError2);
 	}
 
-	/* Check airspeed: if below safe value switch to underspeed mode */
-	if (airspeed < _airspeedMin.get()) {
+	/* Check airspeed: if below safe value switch to underspeed mode (if not in takeoff mode) */
+	if (!TECS_MODE_LAND && airspeed < _airspeedMin.get()) {
 		mode = TECS_MODE_UNDERSPEED;
 	}
 
@@ -201,6 +206,16 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 		outputLimiterThrottle = &_BlockOutputLimiterUnderspeedThrottle;
 		outputLimiterPitch = &_BlockOutputLimiterUnderspeedPitch;
 	}
+
+	/* Apply overrride given by the limitOverride argument (this is used for limits which are not given by
+	 * parameters such as pitch limits with takeoff waypoints or throttle limits when the launchdetector
+	 * is running) */
+	bool limitApplied = limitOverride.applyOverride(outputLimiterThrottle == NULL ?
+			_controlTotalEnergy.getOutputLimiter() :
+			*outputLimiterThrottle,
+			outputLimiterPitch == NULL ?
+			_controlEnergyDistribution.getOutputLimiter() :
+			*outputLimiterPitch);
 
 	/* Write part of the status message */
 	_status.airspeedDerivativeSp = airspeedDerivativeSp;
@@ -280,5 +295,29 @@ void mTecs::debug(const char *fmt, ...) {
 	debug_print(fmt, args);
 }
 
-} /* namespace fwPosctrl */
+bool mTecs::LimitOverride::applyOverride(BlockOutputLimiter &outputLimiterThrottle,
+		BlockOutputLimiter &outputLimiterPitch)
+{
+	bool ret = false;
 
+	if (overrideThrottleMinEnabled)	{
+		outputLimiterThrottle.setMin(overrideThrottleMin);
+		ret = true;
+	}
+	if (overrideThrottleMaxEnabled)	{
+		outputLimiterThrottle.setMax(overrideThrottleMax);
+		ret = true;
+	}
+	if (overridePitchMinEnabled)	{
+		outputLimiterPitch.setMin(overridePitchMin);
+		ret = true;
+	}
+	if (overridePitchMaxEnabled)	{
+		outputLimiterPitch.setMax(overridePitchMax);
+		ret = true;
+	}
+
+	return ret;
+}
+
+} /* namespace fwPosctrl */

@@ -68,20 +68,81 @@ public:
 		TECS_MODE_LAND_THROTTLELIM
 	} tecs_mode;
 
+
+	/* A small class which provides helper fucntions to override control output limits which are usually set by
+	 * parameters in special cases
+	 */
+	class LimitOverride
+	{
+	public:
+		LimitOverride() :
+			overrideThrottleMinEnabled(false),
+			overrideThrottleMaxEnabled(false),
+			overridePitchMinEnabled(false),
+			overridePitchMaxEnabled(false)
+		{};
+
+		~LimitOverride() {};
+
+		/*
+		 * Override the limits of the outputlimiter instances given by the arguments with the limits saved in
+		 * this class (if enabled)
+		 * @return true if the limit was applied
+		 */
+		bool applyOverride(BlockOutputLimiter &outputLimiterThrottle,
+				BlockOutputLimiter &outputLimiterPitch);
+
+		/* Functions to enable or disable the override */
+		void enableThrottleMinOverride(float value) { enable(&overrideThrottleMinEnabled,
+				&overrideThrottleMin, value); }
+		void disableThrottleMinOverride() { disable(&overrideThrottleMinEnabled); }
+		void enableThrottleMaxOverride(float value) { enable(&overrideThrottleMaxEnabled,
+				&overrideThrottleMax, value); }
+		void disableThrottleMaxOverride() { disable(&overrideThrottleMaxEnabled); }
+		void enablePitchMinOverride(float value) { enable(&overridePitchMinEnabled,
+				&overridePitchMin, value); }
+		void disablePitchMinOverride() { disable(&overridePitchMinEnabled); }
+		void enablePitchMaxOverride(float value) { enable(&overridePitchMaxEnabled,
+				&overridePitchMax, value); }
+		void disablePitchMaxOverride() { disable(&overridePitchMaxEnabled); }
+
+	protected:
+		bool overrideThrottleMinEnabled;
+		float overrideThrottleMin;
+		bool overrideThrottleMaxEnabled;
+		float overrideThrottleMax;
+		bool overridePitchMinEnabled;
+		float overridePitchMin; //in degrees (replaces param values)
+		bool overridePitchMaxEnabled;
+		float overridePitchMax; //in degrees (replaces param values)
+
+		/* Enable a specific limit override */
+		void enable(bool *flag, float *limit, float value) { *flag = true; *limit = value;
+		warnx("value %.3f", value);
+		};
+		/* Disable a specific limit override */
+		void disable(bool *flag) { *flag = false; };
+
+
+	};
+
 	/*
 	 * Control in altitude setpoint and speed mode
 	 */
-	int updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed, float airspeedSp, tecs_mode mode);
+	int updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed,
+			float airspeedSp, tecs_mode mode, LimitOverride limitOverride);
 
 	/*
 	 * Control in flightPathAngle setpoint (flollow a slope etc.) and speed mode
 	 */
-	int updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed, float airspeedSp, tecs_mode mode);
+	int updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed,
+			float airspeedSp, tecs_mode mode, LimitOverride limitOverride);
 
 	/*
 	 * Control in flightPathAngle setpoint (flollow a slope etc.) and acceleration mode (base case)
 	 */
-	int updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeed, float accelerationLongitudinalSp, tecs_mode mode);
+	int updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeed,
+			float accelerationLongitudinalSp, tecs_mode mode, LimitOverride limitOverride);
 
 	/*
 	 * Reset all integrators

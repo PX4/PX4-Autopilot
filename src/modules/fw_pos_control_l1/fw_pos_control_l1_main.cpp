@@ -1452,13 +1452,22 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		fwPosctrl::mTecs::tecs_mode mode)
 {
 	if (_mTecs.getEnabled()) {
+		/* Using mtecs library: prepare arguments for mtecs call */
 		float flightPathAngle = 0.0f;
 		float ground_speed_length = ground_speed.length();
 		if (ground_speed_length > FLT_EPSILON) {
 			flightPathAngle = -asinf(ground_speed(2)/ground_speed_length);
 		}
-		_mTecs.updateAltitudeSpeed(flightPathAngle, altitude, alt_sp, _airspeed.true_airspeed_m_s, v_sp, mode);
+		fwPosctrl::mTecs::LimitOverride limitOverride;
+		if (climbout_mode) {
+			limitOverride.enablePitchMinOverride(M_RAD_TO_DEG_F * climbout_pitch_min_rad);
+		} else {
+			limitOverride.disablePitchMinOverride();
+		}
+		_mTecs.updateAltitudeSpeed(flightPathAngle, altitude, alt_sp, _airspeed.true_airspeed_m_s, v_sp, mode,
+				limitOverride);
 	} else {
+		/* Using tecs library */
 		_tecs.update_pitch_throttle(_R_nb, _att.pitch, altitude, alt_sp, v_sp,
 					    _airspeed.indicated_airspeed_m_s, eas2tas,
 					    climbout_mode, climbout_pitch_min_rad,
