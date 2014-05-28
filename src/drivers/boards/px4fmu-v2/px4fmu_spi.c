@@ -172,14 +172,14 @@ __EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 	switch (devid) {
 	case PX4_SPIDEV_EXT0:
 		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(PX4_SPIDEV_EXT0, !selected);
-		stm32_gpiowrite(PX4_SPIDEV_EXT1, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_EXT0, !selected);
+		stm32_gpiowrite(GPIO_SPI_CS_EXT1, 1);
 		break;
 
 	case PX4_SPIDEV_EXT1:
 		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(PX4_SPIDEV_EXT1, !selected);
-		stm32_gpiowrite(PX4_SPIDEV_EXT0, 1);
+		stm32_gpiowrite(GPIO_SPI_CS_EXT1, !selected);
+		stm32_gpiowrite(GPIO_SPI_CS_EXT0, 1);
 		break;
 
 	default:
