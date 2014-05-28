@@ -117,8 +117,10 @@ __BEGIN_DECLS
 #define PX4_SPIDEV_ACCEL_MAG	2
 #define PX4_SPIDEV_BARO		3
 #define PX4_SPIDEV_MPU		4
-#define PX4_SPIDEV_EXT0		5
-#define PX4_SPIDEV_EXT1		6
+
+/* External bus */
+#define PX4_SPIDEV_EXT0		1
+#define PX4_SPIDEV_EXT1		2
 
 /* I2C busses */
 #define PX4_I2C_BUS_EXPANSION	1
