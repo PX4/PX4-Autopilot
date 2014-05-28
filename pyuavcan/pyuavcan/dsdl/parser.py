@@ -478,7 +478,7 @@ def validate_data_struct_len(t):
                  'Max data structure length is invalid: %d bits, %d bytes', bitlen, bytelen)
 
 
-def parse_namespaces(source_dirs, search_dirs):
+def parse_namespaces(source_dirs, search_dirs=None):
     def walk():
         import fnmatch
         from functools import partial
@@ -502,7 +502,7 @@ def parse_namespaces(source_dirs, search_dirs):
             error('Default data type ID collision: [%s] [%s]', first, second)
         all_default_dtid[key] = filename
 
-    parser = Parser(source_dirs + search_dirs)
+    parser = Parser(source_dirs + (search_dirs or []))
     output_types = []
     for filename in walk():
         t = parser.parse(filename)
