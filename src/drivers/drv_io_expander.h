@@ -49,17 +49,23 @@
 #define _IOXIOCBASE		(0x2800)
 #define _IOXIOC(_n)		(_IOC(_IOXIOCBASE, _n))
 
-/** enable the device */
-#define IOX_ENABLE		_IOXIOC(1)
+/** set a bitmask (non-blocking) */
+#define IOX_SET_MASK		_IOXIOC(1)
 
-/** set constant values */
-#define IOX_SET_VALUE		_IOXIOC(2)
+/** get a bitmask (blocking) */
+#define IOX_GET_MASK		_IOXIOC(2)
 
-/** set constant values */
+/** set device mode (non-blocking) */
 #define IOX_SET_MODE		_IOXIOC(3)
+
+/** set constant values (non-blocking) */
+#define IOX_SET_VALUE		_IOXIOC(4)
+
+/* ... to IOX_SET_VALUE + 8 */
 
 /* enum passed to RGBLED_SET_MODE ioctl()*/
 enum IOX_MODE {
 	IOX_MODE_OFF,
-	IOX_MODE_ON
+	IOX_MODE_ON,
+	IOX_MODE_TEST_OUT
 };

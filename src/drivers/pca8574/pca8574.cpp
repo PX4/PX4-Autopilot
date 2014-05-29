@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012, 2013 PX4 Development Team. All rights reserved.
- *   Author: Julian Oes <joes@student.ethz.ch>
- *           Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,8 +34,11 @@
 /**
  * @file pca8574.cpp
  *
- * Driver for the onboard RGB LED controller (TCA62724FMG) connected via I2C.
+ * Driver for an 8 I/O controller (PC8574) connected via I2C.
  *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <nuttx/config.h>
@@ -68,16 +69,7 @@
 #define PCA8574_OFFTIME 120
 #define PCA8574_DEVICE_PATH "/dev/pca8574"
 
-#define ADDR			0x20	/**< I2C adress of PCA8574 (default, A0-A2 pulled to GND) */
-#define SUB_ADDR_START		0x01	/**< write everything (with auto-increment) */
-#define SUB_ADDR_PWM0		0x81	/**< blue     (without auto-increment) */
-#define SUB_ADDR_PWM1		0x82	/**< green    (without auto-increment) */
-#define SUB_ADDR_PWM2		0x83	/**< red      (without auto-increment) */
-#define SUB_ADDR_SETTINGS	0x84	/**< settings (without auto-increment)*/
-
-#define SETTING_NOT_POWERSAVE	0x01	/**< power-save mode not off */
-#define SETTING_ENABLE   	0x02	/**< on */
-
+#define ADDR			0x20	///< I2C adress of PCA8574 (default, A0-A2 pulled to GND)
 
 class PCA8574 : public device::I2C
 {
@@ -94,20 +86,23 @@ public:
 private:
 	work_s			_work;
 
-	uint8_t			_values[8];
-	float			_brightness;
+	uint8_t			_values_out;
+	uint8_t			_values_in;
 
 	enum IOX_MODE		_mode;
 	bool			_running;
 	int			_led_interval;
 	bool			_should_run;
+	bool			_update_out;
 	int			_counter;
 
 	static void		led_trampoline(void *arg);
 	void			led();
 
-	int			send_led_enable(bool enable);
+	int			send_led_enable(uint8_t arg);
 	int			send_led_values();
+
+	int			get(uint8_t &vals);
 };
 
 /* for now, we only support one PCA8574 */
@@ -122,12 +117,13 @@ extern "C" __EXPORT int pca8574_main(int argc, char *argv[]);
 
 PCA8574::PCA8574(int bus, int pca8574) :
 	I2C("pca8574", PCA8574_DEVICE_PATH, bus, pca8574, 100000),
+	_values_out(0),
+	_values_in(0),
 	_mode(IOX_MODE_OFF),
-	_values({}),
-	_brightness(1.0f),
 	_running(false),
 	_led_interval(0),
 	_should_run(false),
+	_update_out(false),
 	_counter(0)
 {
 	memset(&_work, 0, sizeof(_work));
@@ -147,10 +143,10 @@ PCA8574::init()
 		return ret;
 	}
 
-	/* switch off LED on start */
-	send_led_enable(false);
+	// switch off LED on start (active low on Pixhawk)
+	send_led_enable(0xFF);
 
-	/* kick it in */
+	// kick it in
 	_should_run = true;
 	_led_interval = 80;
 	work_queue(LPWORK, &_work, (worker_t)&PCA8574::led_trampoline, this, 1);
@@ -179,24 +175,69 @@ PCA8574::ioctl(struct file *filp, int cmd, unsigned long arg)
 	int ret = ENOTTY;
 
 	switch (cmd) {
-	case IOX_SET_VALUE ... (IOX_SET_VALUE + 8):
-	{
-		/* set the specified color */
-		unsigned prev = _values[cmd - IOX_SET_VALUE];
-		_values[cmd - IOX_SET_VALUE] = arg;
-		if (_values[cmd - IOX_SET_VALUE] != prev) {
-			// XXX will be done with a change flag
-			send_led_values();
-		}
-		return OK;
-	}
+	case IOX_SET_VALUE ...(IOX_SET_VALUE + 8): {
+			// set the specified on / off state
+			uint8_t position = (1 << (cmd - IOX_SET_VALUE));
+			uint8_t prev = _values_out;
 
-	case IOX_ENABLE:
+			if (arg) {
+				_values_out |= position;
+
+			} else {
+				_values_out &= ~(position);
+			}
+
+			if (_values_out != prev) {
+				send_led_values();
+			}
+
+			return OK;
+		}
+
+	case IOX_SET_MASK:
 		send_led_enable(arg);
 		return OK;
 
+	case IOX_GET_MASK: {
+			uint8_t val;
+			ret = get(val);
+
+			if (ret == OK) {
+				return val;
+
+			} else {
+				return -1;
+			}
+		}
+
+	case IOX_SET_MODE:
+
+		if (_mode != (IOX_MODE)arg) {
+
+			switch ((IOX_MODE)arg) {
+			case IOX_MODE_OFF:
+				_values_out = 0xFF;
+				break;
+
+			case IOX_MODE_ON:
+				_values_out = 0;
+				break;
+
+			case IOX_MODE_TEST_OUT:
+				break;
+
+			default:
+				return -1;
+			}
+
+			_mode = (IOX_MODE)arg;
+			send_led_values();
+		}
+
+		return OK;
+
 	default:
-		/* see if the parent class can make any use of it */
+		// see if the parent class can make any use of it
 		ret = CDev::ioctl(filp, cmd, arg);
 		break;
 	}
@@ -224,204 +265,93 @@ PCA8574::led()
 		return;
 	}
 
-	// switch (_mode) {
-	// case PCA8574_MODE_BLINK_SLOW:
-	// case PCA8574_MODE_BLINK_NORMAL:
-	// case PCA8574_MODE_BLINK_FAST:
-	// 	if (_counter >= 2)
-	// 		_counter = 0;
+	if (_mode == IOX_MODE_TEST_OUT) {
 
-	// 	send_led_enable(_counter == 0);
+		// we count only seven states
+		_counter &= 0xF;
+		_counter++;
 
-	// 	break;
+		for (int i = 0; i < 8; i++) {
+			if (i < _counter) {
+				_values_out |= (1 << i);
 
-	// case PCA8574_MODE_BREATHE:
+			} else {
+				_values_out &= ~(1 << i);
+			}
+		}
 
-	// 	if (_counter >= 62)
-	// 		_counter = 0;
+		_update_out = true;
+	}
 
-	// 	int n;
+	if (_update_out) {
+		uint8_t msg = _values_out;
 
-	// 	if (_counter < 32) {
-	// 		n = _counter;
+		int ret = transfer(&msg, sizeof(msg), nullptr, 0);
 
-	// 	} else {
-	// 		n = 62 - _counter;
-	// 	}
-
-	// 	_brightness = n * n / (31.0f * 31.0f);
-	// 	send_led_rgb();
-	// 	break;
-
-	// case PCA8574_MODE_PATTERN:
-
-	// 	/* don't run out of the pattern array and stop if the next frame is 0 */
-	// 	if (_counter >= PCA8574_PATTERN_LENGTH || _pattern.duration[_counter] <= 0)
-	// 		_counter = 0;
-
-	// 	set_color(_pattern.color[_counter]);
-	// 	send_led_rgb();
-	// 	_led_interval = _pattern.duration[_counter];
-	// 	break;
-
-	// default:
-	// 	break;
-	// }
-
-
-	// we count only seven states
-	_counter &= 0xF;
-	_counter++;
-
-	for (int i = 0; i < 8; i++) {
-		if (i < _counter) {
-			_values[i] = 1;
-		} else {
-			_values[i] = 0;
+		if (!ret) {
+			_update_out = false;
 		}
 	}
 
-	send_led_values();
+	// check if any activity remains, else stp
+	if (!_update_out) {
+		_running = false;
+		return;
+	}
 
-	/* re-queue ourselves to run again later */
+	// re-queue ourselves to run again later
 	work_queue(LPWORK, &_work, (worker_t)&PCA8574::led_trampoline, this, _led_interval);
 }
-
-// /**
-//  * Set mode, if mode not changed has no any effect (doesn't reset blinks phase)
-//  */
-// void
-// PCA8574::set_mode(pca8574_mode_t mode)
-// {
-// 	if (mode != _mode) {
-// 		_mode = mode;
-
-// 		switch (mode) {
-// 		// case PCA8574_MODE_OFF:
-// 		// 	_should_run = false;
-// 		// 	send_led_enable(false);
-// 		// 	break;
-
-// 		// case PCA8574_MODE_ON:
-// 		// 	_brightness = 1.0f;
-// 		// 	send_led_rgb();
-// 		// 	send_led_enable(true);
-// 		// 	break;
-
-// 		// case PCA8574_MODE_BLINK_SLOW:
-// 		// 	_should_run = true;
-// 		// 	_counter = 0;
-// 		// 	_led_interval = 2000;
-// 		// 	_brightness = 1.0f;
-// 		// 	send_led_rgb();
-// 		// 	break;
-
-// 		// case PCA8574_MODE_BLINK_NORMAL:
-// 		// 	_should_run = true;
-// 		// 	_counter = 0;
-// 		// 	_led_interval = 500;
-// 		// 	_brightness = 1.0f;
-// 		// 	send_led_rgb();
-// 		// 	break;
-
-// 		// case PCA8574_MODE_BLINK_FAST:
-// 		// 	_should_run = true;
-// 		// 	_counter = 0;
-// 		// 	_led_interval = 100;
-// 		// 	_brightness = 1.0f;
-// 		// 	send_led_rgb();
-// 		// 	break;
-
-// 		// case PCA8574_MODE_BREATHE:
-// 		// 	_should_run = true;
-// 		// 	_counter = 0;
-// 		// 	_led_interval = 25;
-// 		// 	send_led_enable(true);
-// 		// 	break;
-
-// 		// case PCA8574_MODE_PATTERN:
-// 		// 	_should_run = true;
-// 		// 	_counter = 0;
-// 		// 	_brightness = 1.0f;
-// 		// 	send_led_enable(true);
-// 		// 	break;
-
-// 		default:
-// 			warnx("mode unknown");
-// 			break;
-// 		}
-
-// 		/* if it should run now, start the workq */
-// 		if (_should_run && !_running) {
-// 			_running = true;
-// 			work_queue(LPWORK, &_work, (worker_t)&PCA8574::led_trampoline, this, 1);
-// 		}
-
-// 	}
-// }
 
 /**
  * Sent ENABLE flag to LED driver
  */
 int
-PCA8574::send_led_enable(bool enable)
+PCA8574::send_led_enable(uint8_t arg)
 {
-	uint8_t msg;
 
-	if (enable) {
-		/* active low */
-		msg = 0x00;
-	} else {
-		/* active low, so off */
-		msg = 0xFF;
-	}
-
-	int ret = transfer(&msg, sizeof(msg), nullptr, 0);
+	int ret = transfer(&arg, sizeof(arg), nullptr, 0);
 
 	return ret;
 }
 
 /**
- * Send RGB PWM settings to LED driver according to current color and brightness
+ * Send 8 outputs
  */
 int
 PCA8574::send_led_values()
 {
-	uint8_t msg = 0;
+	_update_out = true;
+	_should_run = true;
 
-	for (int i = 0; i < 8; i++) {
-		if (_values[i]) {
-			msg |= (1 << i);
-		}
+	// if not active, kick it
+	if (!_running) {
+		work_queue(LPWORK, &_work, (worker_t)&PCA8574::led_trampoline, this, 1);
 	}
 
-	int ret = transfer(&msg, sizeof(msg), nullptr, 0);
+	return 0;
 }
 
-// int
-// PCA8574::get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b)
-// {
-// 	uint8_t result[2];
-// 	int ret;
+int
+PCA8574::get(uint8_t &vals)
+{
+	uint8_t result;
+	int ret;
 
-// 	ret = transfer(nullptr, 0, &result[0], 2);
+	ret = transfer(nullptr, 0, &result, 1);
 
-// 	if (ret == OK) {
-// 		on = result[0] & SETTING_ENABLE;
-// 		powersave = !(result[0] & SETTING_NOT_POWERSAVE);
-// 		/* XXX check, looks wrong */
-// 		r = (result[0] & 0x0f) << 4;
-// 		g = (result[1] & 0xf0);
-// 		b = (result[1] & 0x0f) << 4;
-// 	}
+	if (ret == OK) {
+		_values_in = result;
+		vals = result;
+	}
 
-// 	return ret;
-// }
+	return ret;
+}
 
 void
 pca8574_usage()
 {
-	warnx("missing command: try 'start', 'test', 'info', 'off', 'stop', 'val 0 100'");
+	warnx("missing command: try 'start', 'test', 'info', 'off', 'stop', 'val 0 1'");
 	warnx("options:");
 	warnx("    -b i2cbus (%d)", PX4_I2C_BUS_LED);
 	warnx("    -a addr (0x%x)", ADDR);
@@ -431,11 +361,11 @@ int
 pca8574_main(int argc, char *argv[])
 {
 	int i2cdevice = -1;
-	int pca8574adr = ADDR; /* 7bit */
+	int pca8574adr = ADDR; // 7bit
 
 	int ch;
 
-	/* jump over start/off/etc and look at options first */
+	// jump over start/off/etc and look at options first
 	while ((ch = getopt(argc, argv, "a:b:")) != EOF) {
 		switch (ch) {
 		case 'a':
@@ -452,10 +382,10 @@ pca8574_main(int argc, char *argv[])
 		}
 	}
 
-        if (optind >= argc) {
-            pca8574_usage();
-            exit(1);
-        }
+	if (optind >= argc) {
+		pca8574_usage();
+		exit(1);
+	}
 
 	const char *verb = argv[optind];
 
@@ -463,8 +393,9 @@ pca8574_main(int argc, char *argv[])
 	int ret;
 
 	if (!strcmp(verb, "start")) {
-		if (g_pca8574 != nullptr)
+		if (g_pca8574 != nullptr) {
 			errx(1, "already started");
+		}
 
 		if (i2cdevice == -1) {
 			// try the external bus first
@@ -481,6 +412,7 @@ pca8574_main(int argc, char *argv[])
 				if (PX4_I2C_BUS_LED == PX4_I2C_BUS_EXPANSION) {
 					errx(1, "init failed");
 				}
+
 				i2cdevice = PX4_I2C_BUS_LED;
 			}
 		}
@@ -488,8 +420,9 @@ pca8574_main(int argc, char *argv[])
 		if (g_pca8574 == nullptr) {
 			g_pca8574 = new PCA8574(i2cdevice, pca8574adr);
 
-			if (g_pca8574 == nullptr)
+			if (g_pca8574 == nullptr) {
 				errx(1, "new failed");
+			}
 
 			if (OK != g_pca8574->init()) {
 				delete g_pca8574;
@@ -501,7 +434,7 @@ pca8574_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	/* need the driver past this point */
+	// need the driver past this point
 	if (g_pca8574 == nullptr) {
 		warnx("not started");
 		pca8574_usage();
@@ -515,8 +448,7 @@ pca8574_main(int argc, char *argv[])
 			errx(1, "Unable to open " PCA8574_DEVICE_PATH);
 		}
 
-		ret = ioctl(fd, IOX_SET_VALUE, 255);
-		// ret = ioctl(fd, PCA8574_SET_MODE, (unsigned long)PCA8574_MODE_PATTERN);
+		ret = ioctl(fd, IOX_SET_MODE, (unsigned long)IOX_MODE_TEST_OUT);
 
 		close(fd);
 		exit(ret);
@@ -547,7 +479,7 @@ pca8574_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "val")) {
 		if (argc < 4) {
-			errx(1, "Usage: pca8574 val <channel> <value>");
+			errx(1, "Usage: pca8574 val <channel> <0 or 1>");
 		}
 
 		fd = open(PCA8574_DEVICE_PATH, 0);
@@ -558,8 +490,7 @@ pca8574_main(int argc, char *argv[])
 
 		unsigned channel = strtol(argv[2], NULL, 0);
 		unsigned val = strtol(argv[3], NULL, 0);
-		ret = ioctl(fd, (IOX_SET_VALUE+channel), val);
-		ret = ioctl(fd, IOX_ENABLE, 1);
+		ret = ioctl(fd, (IOX_SET_VALUE + channel), val);
 		close(fd);
 		exit(ret);
 	}
