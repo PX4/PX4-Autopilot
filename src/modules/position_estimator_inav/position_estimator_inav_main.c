@@ -71,6 +71,8 @@
 #include "inertial_filter.h"
 
 #define MIN_VALID_W 0.00001f
+#define PUB_INTERVAL 10000	// limit publish rate to 100 Hz
+#define EST_BUF_SIZE 500000 / PUB_INTERVAL		// buffer size is 0.5s
 
 static bool thread_should_exit = false; /**< Deamon exit flag */
 static bool thread_running = false; /**< Deamon status flag */
@@ -83,7 +85,6 @@ static const hrt_abstime sonar_timeout = 150000;	// sonar timeout = 150ms
 static const hrt_abstime sonar_valid_timeout = 1000000;	// estimate sonar distance during this time after sonar loss
 static const hrt_abstime xy_src_timeout = 2000000;	// estimate position during this time after position sources loss
 static const uint32_t updates_counter_len = 1000000;
-static const uint32_t pub_interval = 10000;	// limit publish rate to 100 Hz
 static const float max_flow = 1.0f;	// max flow value that can be used, rad/s
 
 __EXPORT int position_estimator_inav_main(int argc, char *argv[]);
@@ -91,6 +92,16 @@ __EXPORT int position_estimator_inav_main(int argc, char *argv[]);
 int position_estimator_inav_thread_main(int argc, char *argv[]);
 
 static void usage(const char *reason);
+
+static inline int min(int val1, int val2)
+{
+	return (val1 < val2) ? val1 : val2;
+}
+
+static inline int max(int val1, int val2)
+{
+	return (val1 > val2) ? val1 : val2;
+}
 
 /**
  * Print the correct usage.
@@ -198,6 +209,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float x_est[2] = { 0.0f, 0.0f };	// pos, vel
 	float y_est[2] = { 0.0f, 0.0f };	// pos, vel
 	float z_est[2] = { 0.0f, 0.0f };	// pos, vel
+
+	float est_buf[EST_BUF_SIZE][3][2];
+	memset(est_buf, 0, sizeof(est_buf));
+	int est_buf_ptr = 0;
 
 	float eph = 1.0;
 	float epv = 1.0;
@@ -657,16 +672,22 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							y_est[1] = gps.vel_e_m_s;
 						}
 
+						/* calculate index of estimated values in buffer */
+						int est_i = est_buf_ptr - 1 - min(EST_BUF_SIZE - 1, max(0, (int)(params.delay_gps * 1000000.0f / PUB_INTERVAL)));
+						if (est_i < 0) {
+							est_i += EST_BUF_SIZE;
+						}
+
 						/* calculate correction for position */
-						corr_gps[0][0] = gps_proj[0] - x_est[0];
-						corr_gps[1][0] = gps_proj[1] - y_est[0];
-						corr_gps[2][0] = local_pos.ref_alt - alt - z_est[0];
+						corr_gps[0][0] = gps_proj[0] - est_buf[est_i][0][0];
+						corr_gps[1][0] = gps_proj[1] - est_buf[est_i][1][0];
+						corr_gps[2][0] = local_pos.ref_alt - alt - est_buf[est_i][2][0];
 
 						/* calculate correction for velocity */
 						if (gps.vel_ned_valid) {
-							corr_gps[0][1] = gps.vel_n_m_s - x_est[1];
-							corr_gps[1][1] = gps.vel_e_m_s - y_est[1];
-							corr_gps[2][1] = gps.vel_d_m_s - z_est[1];
+							corr_gps[0][1] = gps.vel_n_m_s - est_buf[est_i][0][1];
+							corr_gps[1][1] = gps.vel_e_m_s - est_buf[est_i][1][1];
+							corr_gps[2][1] = gps.vel_d_m_s - est_buf[est_i][2][1];
 
 						} else {
 							corr_gps[0][1] = 0.0f;
@@ -910,8 +931,21 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 		}
 
-		if (t > pub_last + pub_interval) {
+		if (t > pub_last + PUB_INTERVAL) {
 			pub_last = t;
+
+			/* push current estimate to FIFO buffer */
+			est_buf[est_buf_ptr][0][0] = x_est[0];
+			est_buf[est_buf_ptr][0][1] = x_est[1];
+			est_buf[est_buf_ptr][1][0] = y_est[0];
+			est_buf[est_buf_ptr][1][1] = y_est[1];
+			est_buf[est_buf_ptr][2][0] = z_est[0];
+			est_buf[est_buf_ptr][2][1] = z_est[1];
+			est_buf_ptr++;
+			if (est_buf_ptr >= EST_BUF_SIZE) {
+				est_buf_ptr = 0;
+			}
+
 			/* publish local position */
 			local_pos.xy_valid = can_estimate_xy;
 			local_pos.v_xy_valid = can_estimate_xy;
