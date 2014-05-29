@@ -93,13 +93,17 @@ then
 	#
 	if rgbled start
 	then
-		echo "[init] Using external RGB Led"
+		echo "[init] RGB Led"
 	else
 		if blinkm start
 		then
-			echo "[init] Using blinkm"
+			echo "[init] BlinkM"
 			blinkm systemstate
 		fi
+	fi
+
+	if pca8574 start
+	then
 	fi
 	
 	#
