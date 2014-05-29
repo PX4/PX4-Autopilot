@@ -59,6 +59,7 @@
 #include <arch/board/board.h>
 
 #include "systemlib/systemlib.h"
+#include "systemlib/param/param.h"
 #include "systemlib/err.h"
 #include "drivers/drv_pwm_output.h"
 
@@ -82,7 +83,35 @@ usage(const char *reason)
 		"    [-c <channels>]     Supply channels (e.g. 1234)\n"
 		"    [-m <chanmask> ]    Directly supply channel mask (e.g. 0xF)\n"
 		"    [-a]                Use all outputs\n"
+		"    [-r]                Use parameters RCx_MIN and RCx_MAX to set low and high PWM values for each ESC controller separately."
 		, PWM_DEFAULT_MIN, PWM_DEFAULT_MAX);
+}
+
+uint16_t
+get_pwm_param_value(int index, char *pattern, int is_maximum)
+{
+	char s[100];
+	float f;
+	param_t p;
+	param_type_t t;
+
+	sprintf(s, pattern, index);
+	p = param_find(s);
+
+	if (p == PARAM_INVALID) {
+		return is_maximum ? PWM_DEFAULT_MAX : PWM_DEFAULT_MIN;
+	}
+
+	param_get(p, &f);
+	t = param_type(p);
+
+	if (t == PARAM_TYPE_INT32) {
+		return (uint16_t) ((uint32_t) f);
+	} else if (t == PARAM_TYPE_FLOAT) {
+		return (uint16_t) f;
+	}
+
+	return is_maximum ? PWM_DEFAULT_MAX : PWM_DEFAULT_MIN;
 }
 
 int
@@ -102,6 +131,7 @@ esc_calib_main(int argc, char *argv[])
 
 	uint16_t pwm_high = PWM_DEFAULT_MAX;
 	uint16_t pwm_low = PWM_DEFAULT_MIN;
+	char from_env = 0;
 
 	struct pollfd fds;
 	fds.fd = 0; /* stdin */
@@ -113,7 +143,7 @@ esc_calib_main(int argc, char *argv[])
 
 	int arg_consumed = 0;
 
-	while ((ch = getopt(argc, argv, "d:c:m:al:h:")) != EOF) {
+	while ((ch = getopt(argc, argv, "d:c:m:al:h:r")) != EOF) {
 		switch (ch) {
 
 		case 'd':
@@ -158,6 +188,11 @@ esc_calib_main(int argc, char *argv[])
 			if (*ep != '\0' || pwm_high > PWM_HIGHEST_MAX || pwm_high < PWM_LOWEST_MAX)
 				usage("high PWM invalid");
 			break;
+
+		case 'r':
+			from_env = 1;
+			break;
+
 		default:
 			usage(NULL);
 		}
@@ -250,10 +285,23 @@ esc_calib_main(int argc, char *argv[])
 
 
 	/* wait for user confirmation */
-	printf("\nHigh PWM set: %d\n"
-	       "\n"
-	       "Connect battery now and hit ENTER after the ESCs confirm the first calibration step\n"
-	       "\n", pwm_high);
+	if (from_env) {
+		printf("\n");
+		for (unsigned i = 0; i < max_channels; i++) {
+			if (set_mask & 1<<i) {
+				pwm_high = get_pwm_param_value(i+1, "RC%d_MAX", TRUE);
+				printf("ESC %2d high PWM will be set to %d\n", i+1, pwm_high);
+			}
+		}
+		printf("\n"
+				"Connect battery now and hit ENTER after the ESCs confirm the first calibration step\n"
+				"\n");
+	} else {
+		printf("\nHigh PWM set: %d\n"
+		       "\n"
+		       "Connect battery now and hit ENTER after the ESCs confirm the first calibration step\n"
+		       "\n", pwm_high);
+	}
 	fflush(stdout);
 
 	while (1) {
@@ -261,6 +309,10 @@ esc_calib_main(int argc, char *argv[])
 		for (unsigned i = 0; i < max_channels; i++) {
 
 			if (set_mask & 1<<i) {
+				if (from_env) {
+					pwm_high = get_pwm_param_value(i+1, "RC%d_MAX", TRUE);
+				}
+
 				ret = ioctl(fd, PWM_SERVO_SET(i), pwm_high);
 
 				if (ret != OK)
@@ -288,16 +340,34 @@ esc_calib_main(int argc, char *argv[])
 		usleep(50000);
 	}
 
-	printf("Low PWM set: %d\n"
-	       "\n"
-	       "Hit ENTER when finished\n"
-	       "\n", pwm_low);
+
+	if (from_env) {
+		printf("\n");
+		for (unsigned i = 0; i < max_channels; i++) {
+			if (set_mask & 1<<i) {
+				pwm_low = get_pwm_param_value(i+1, "RC%d_MIN", FALSE);
+				printf("ESC %2d low PWM will be set to %d\n", i+1, pwm_low);
+			}
+		}
+		printf("\n"
+				"Hit ENTER when finished\n"
+				"\n");
+	} else {
+		printf("Low PWM set: %d\n"
+			   "\n"
+			   "Hit ENTER when finished\n"
+			   "\n", pwm_low);
+	}
 
 	while (1) {
 
 		/* set disarmed PWM */
 		for (unsigned i = 0; i < max_channels; i++) {
 			if (set_mask & 1<<i) {
+				if (from_env) {
+					pwm_low = get_pwm_param_value(i+1, "RC%d_MIN", FALSE);
+				}
+
 				ret = ioctl(fd, PWM_SERVO_SET(i), pwm_low);
 
 				if (ret != OK)
