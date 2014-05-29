@@ -82,12 +82,15 @@ public:
 	virtual int		probe();
 	virtual int		info();
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+	bool			is_running() { return _running; }
 
 private:
 	work_s			_work;
 
 	uint8_t			_values_out;
 	uint8_t			_values_in;
+	uint8_t			_blinking;
+	uint8_t			_blink_phase;
 
 	enum IOX_MODE		_mode;
 	bool			_running;
@@ -119,9 +122,11 @@ PCA8574::PCA8574(int bus, int pca8574) :
 	I2C("pca8574", PCA8574_DEVICE_PATH, bus, pca8574, 100000),
 	_values_out(0),
 	_values_in(0),
+	_blinking(0),
+	_blink_phase(0),
 	_mode(IOX_MODE_OFF),
 	_running(false),
-	_led_interval(0),
+	_led_interval(80),
 	_should_run(false),
 	_update_out(false),
 	_counter(0)
@@ -143,22 +148,14 @@ PCA8574::init()
 		return ret;
 	}
 
-	// switch off LED on start (active low on Pixhawk)
-	send_led_enable(0xFF);
-
-	// kick it in
-	_should_run = true;
-	_led_interval = 80;
-	work_queue(LPWORK, &_work, (worker_t)&PCA8574::led_trampoline, this, 1);
-
 	return OK;
 }
 
 int
 PCA8574::probe()
 {
-
-	return send_led_enable(false);
+	uint8_t val;
+	return get(val);
 }
 
 int
@@ -188,6 +185,9 @@ PCA8574::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 
 			if (_values_out != prev) {
+				if (_values_out) {
+					_mode = IOX_MODE_ON;
+				}
 				send_led_values();
 			}
 
@@ -260,11 +260,6 @@ PCA8574::led_trampoline(void *arg)
 void
 PCA8574::led()
 {
-	if (!_should_run) {
-		_running = false;
-		return;
-	}
-
 	if (_mode == IOX_MODE_TEST_OUT) {
 
 		// we count only seven states
@@ -281,10 +276,37 @@ PCA8574::led()
 		}
 
 		_update_out = true;
+		_should_run = true;
+	} else if (_mode == IOX_MODE_OFF) {
+		_update_out = true;
+		_should_run = false;
+	} else {
+
+		// Any of the normal modes
+		if (_blinking > 0) {
+			/* we need to be running to blink */
+			_should_run = true;
+		} else {
+			_should_run = false;
+		}
 	}
 
 	if (_update_out) {
-		uint8_t msg = _values_out;
+		uint8_t msg;
+
+		if (_blinking) {
+			msg = (_values_out & _blinking & _blink_phase);
+
+			// wipe out all positions that are marked as blinking
+			msg &= ~(_blinking);
+
+			// fill blink positions
+			msg |= ((_blink_phase) ? _blinking : 0);
+
+			_blink_phase = !_blink_phase;
+		} else {
+			msg = _values_out;
+		}
 
 		int ret = transfer(&msg, sizeof(msg), nullptr, 0);
 
@@ -294,12 +316,13 @@ PCA8574::led()
 	}
 
 	// check if any activity remains, else stp
-	if (!_update_out) {
+	if (!_should_run) {
 		_running = false;
 		return;
 	}
 
 	// re-queue ourselves to run again later
+	_running = true;
 	work_queue(LPWORK, &_work, (worker_t)&PCA8574::led_trampoline, this, _led_interval);
 }
 
@@ -322,10 +345,10 @@ int
 PCA8574::send_led_values()
 {
 	_update_out = true;
-	_should_run = true;
 
 	// if not active, kick it
 	if (!_running) {
+		_running = true;
 		work_queue(LPWORK, &_work, (worker_t)&PCA8574::led_trampoline, this, 1);
 	}
 
@@ -436,8 +459,7 @@ pca8574_main(int argc, char *argv[])
 
 	// need the driver past this point
 	if (g_pca8574 == nullptr) {
-		warnx("not started");
-		pca8574_usage();
+		warnx("not started, run pca8574 start");
 		exit(1);
 	}
 
@@ -459,10 +481,10 @@ pca8574_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	if (!strcmp(verb, "off") || !strcmp(verb, "stop")) {
+	if (!strcmp(verb, "off")) {
 		fd = open(PCA8574_DEVICE_PATH, 0);
 
-		if (fd == -1) {
+		if (fd < 0) {
 			errx(1, "Unable to open " PCA8574_DEVICE_PATH);
 		}
 
@@ -472,9 +494,36 @@ pca8574_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "stop")) {
-		delete g_pca8574;
-		g_pca8574 = nullptr;
-		exit(0);
+		fd = open(PCA8574_DEVICE_PATH, 0);
+
+		if (fd == -1) {
+			errx(1, "Unable to open " PCA8574_DEVICE_PATH);
+		}
+
+		ret = ioctl(fd, IOX_SET_MODE, (unsigned long)IOX_MODE_OFF);
+		close(fd);
+
+		// wait until we're not running any more
+		for (unsigned i = 0; i < 15; i++) {
+			if (!g_pca8574->is_running()) {
+				break;
+			}
+
+			usleep(50000);
+			printf(".");
+			fflush(stdout);
+		}
+		printf("\n");
+		fflush(stdout);
+
+		if (!g_pca8574->is_running()) {
+			delete g_pca8574;
+			g_pca8574 = nullptr;
+			exit(0);
+		} else {
+			warnx("stop failed.");
+			exit(1);
+		}
 	}
 
 	if (!strcmp(verb, "val")) {
@@ -490,7 +539,12 @@ pca8574_main(int argc, char *argv[])
 
 		unsigned channel = strtol(argv[2], NULL, 0);
 		unsigned val = strtol(argv[3], NULL, 0);
-		ret = ioctl(fd, (IOX_SET_VALUE + channel), val);
+
+		if (channel < 8) {
+			ret = ioctl(fd, (IOX_SET_VALUE + channel), val);
+		} else {
+			ret = -1;
+		}
 		close(fd);
 		exit(ret);
 	}
