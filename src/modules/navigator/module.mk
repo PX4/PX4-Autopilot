@@ -45,3 +45,5 @@ SRCS		= navigator_main.cpp \
 		  geofence_params.c
 
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
+
+MODULE_STACKSIZE = 1200

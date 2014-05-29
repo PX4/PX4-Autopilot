@@ -32,9 +32,15 @@ then
 	param set MPC_Z_VEL_D 0.0
 	param set MPC_Z_VEL_MAX 3
 	param set MPC_Z_FF 0.5
-	param set MPC_TILT_MAX 1.0
+	param set MPC_TILTMAX_AIR 45.0
+	param set MPC_TILTMAX_LND 15.0
 	param set MPC_LAND_SPEED 1.0
-	param set MPC_LAND_TILT 0.3
+
+	param set PE_VELNE_NOISE 0.5
+	param set PE_VELNE_NOISE 0.7
+	param set PE_POSNE_NOISE 0.5
+	param set PE_POSD_NOISE 1.0
+
 fi
 
 set PWM_RATE 400

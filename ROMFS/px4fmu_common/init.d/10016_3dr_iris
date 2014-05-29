@@ -18,9 +18,9 @@ then
 	param set MC_PITCHRATE_P 0.13
 	param set MC_PITCHRATE_I 0.0
 	param set MC_PITCHRATE_D 0.004
-	param set MC_YAW_P 0.5
-	param set MC_YAWRATE_P 0.2
-	param set MC_YAWRATE_I 0.0
+	param set MC_YAW_P 2.5
+	param set MC_YAWRATE_P 0.25
+	param set MC_YAWRATE_I 0.25
 	param set MC_YAWRATE_D 0.0
 
 	param set BAT_V_SCALING 0.00989

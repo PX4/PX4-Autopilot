@@ -145,7 +145,7 @@ private:
 
 ADC::ADC(uint32_t channels) :
 	CDev("adc", ADC_DEVICE_PATH),
-	_sample_perf(perf_alloc(PC_ELAPSED, "ADC samples")),
+	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_channel_count(0),
 	_samples(nullptr),
 	_to_system_power(0)
@@ -418,6 +418,10 @@ adc_main(int argc, char *argv[])
 		/* XXX this hardcodes the default channel set for PX4FMUv2 - should be configurable */
 		g_adc = new ADC((1 << 2) | (1 << 3) | (1 << 4) | 
 			(1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14) | (1 << 15));
+#endif
+#ifdef CONFIG_ARCH_BOARD_AEROCORE
+		/* XXX this hardcodes the default channel set for AeroCore - should be configurable */
+		g_adc = new ADC((1 << 10) | (1 << 11) | (1 << 12) | (1 << 13));
 #endif
 
 		if (g_adc == nullptr)

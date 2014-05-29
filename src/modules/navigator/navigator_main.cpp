@@ -1,10 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Jean Cyr <jean.m.cyr@gmail.com>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +31,7 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_main.c
+ * @file navigator_main.cpp
  * Implementation of the main navigation state machine.
  *
  * Handles missions, geo fencing and failsafe navigation behavior.
@@ -523,7 +519,7 @@ Navigator::offboard_mission_update(bool isrotaryWing)
 			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_1;
 		}
 
-		missionFeasiblityChecker.checkMissionFeasible(isrotaryWing, dm_current, (size_t)offboard_mission.count, _geofence);
+		missionFeasiblityChecker.checkMissionFeasible(isrotaryWing, dm_current, (size_t)offboard_mission.count, _geofence, _home_pos.alt);
 
 		_mission.set_offboard_dataman_id(offboard_mission.dataman_id);
 
@@ -852,7 +848,7 @@ Navigator::start()
 	_navigator_task = task_spawn_cmd("navigator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 5,
-					 2048,
+					 2000,
 					 (main_t)&Navigator::task_main_trampoline,
 					 nullptr);
 
@@ -1291,7 +1287,7 @@ Navigator::set_rtl_item()
 			_mission_item.yaw = NAN;
 			_mission_item.loiter_radius = _parameters.loiter_radius;
 			_mission_item.loiter_direction = 1;
-			_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.acceptance_radius = _parameters.acceptance_radius;
 			_mission_item.time_inside = 0.0f;
 			_mission_item.pitch_min = 0.0f;
@@ -1351,7 +1347,7 @@ Navigator::set_rtl_item()
 			_mission_item.yaw = NAN;
 			_mission_item.loiter_radius = _parameters.loiter_radius;
 			_mission_item.loiter_direction = 1;
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 			_mission_item.acceptance_radius = _parameters.acceptance_radius;
 			_mission_item.time_inside = _parameters.rtl_land_delay < 0.0f ? 0.0f : _parameters.rtl_land_delay;
 			_mission_item.pitch_min = 0.0f;

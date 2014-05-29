@@ -103,8 +103,6 @@
 #define GPIO_USART2_RTS	0xffffffff
 #undef GPIO_USART2_CK
 #define GPIO_USART2_CK 	0xffffffff
-#undef GPIO_USART3_TX
-#define GPIO_USART3_TX 	0xffffffff
 #undef GPIO_USART3_CK
 #define GPIO_USART3_CK 	0xffffffff
 #undef GPIO_USART3_CTS

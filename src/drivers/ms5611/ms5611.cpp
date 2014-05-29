@@ -526,6 +526,7 @@ void
 MS5611::cycle()
 {
 	int ret;
+	unsigned dummy;
 
 	/* collection phase? */
 	if (_collect_phase) {
@@ -542,6 +543,8 @@ MS5611::cycle()
 			} else {
 				//log("collection error %d", ret);
 			}
+			/* issue a reset command to the sensor */
+			_interface->ioctl(IOCTL_RESET, dummy);
 			/* reset the collection state machine and try again */
 			start_cycle();
 			return;
@@ -573,6 +576,8 @@ MS5611::cycle()
 	ret = measure();
 	if (ret != OK) {
 		//log("measure error %d", ret);
+		/* issue a reset command to the sensor */
+		_interface->ioctl(IOCTL_RESET, dummy);
 		/* reset the collection state machine and try again */
 		start_cycle();
 		return;
@@ -748,8 +753,8 @@ MS5611::print_info()
 	printf("TEMP:           %d\n", _TEMP);
 	printf("SENS:           %lld\n", _SENS);
 	printf("OFF:            %lld\n", _OFF);
-	printf("P:              %.3f\n", _P);
-	printf("T:              %.3f\n", _T);
+	printf("P:              %.3f\n", (double)_P);
+	printf("T:              %.3f\n", (double)_T);
 	printf("MSL pressure:   %10.4f\n", (double)(_msl_pressure / 100.f));
 
 	printf("factory_setup             %u\n", _prom.factory_setup);
