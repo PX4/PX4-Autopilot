@@ -219,12 +219,14 @@ UBX::configure(unsigned &baudrate)
 		return 1;
 	}
 
+#ifdef	UBX_ENABLE_NAV_SVINFO
 	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_SVINFO, 5);
 
 	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
 		warnx("MSG CFG FAIL: NAV SVINFO");
 		return 1;
 	}
+#endif
 
 	configure_message_rate(UBX_CLASS_MON, UBX_MESSAGE_MON_HW, 1);
 
@@ -386,7 +388,6 @@ UBX::parse_char(uint8_t b)
 		if (_rx_count >= _payload_size + 1) { //+1 because of 2 checksum bytes
 			/* compare checksum */
 			if (_rx_ck_a == _rx_buffer[_rx_count - 1] && _rx_ck_b == _rx_buffer[_rx_count]) {
-				decode_init();
 				return 1;	// message received successfully
 
 			} else {
@@ -399,7 +400,7 @@ UBX::parse_char(uint8_t b)
 			_rx_count++;
 
 		} else {
-			warnx("buffer full");
+			warnx("ubx: buffer full 0x%02x-0x%02x L%u", (unsigned)_message_class, (unsigned)_message_id, _payload_size);
 			decode_init();
 			return -1;
 		}
@@ -450,6 +451,7 @@ UBX::handle_message()
 					_gps_position->s_variance_m_s = packet->sAcc;
 					_gps_position->p_variance_m = packet->pAcc;
 					_gps_position->timestamp_variance = hrt_absolute_time();
+					_gps_position->satellites_visible = packet->numSV;
 
 					ret = 1;
 					break;
@@ -486,6 +488,7 @@ UBX::handle_message()
 					break;
 				}
 
+#ifdef UBX_ENABLE_NAV_SVINFO
 			case UBX_MESSAGE_NAV_SVINFO: {
 					//printf("GOT NAV_SVINFO\n");
 					const int length_part1 = 8;
@@ -527,7 +530,9 @@ UBX::handle_message()
 						_gps_position->satellite_azimuth[i] = 0;
 					}
 
-					_gps_position->satellites_visible = satellites_used; // visible ~= used but we are interested in the used ones
+					/* Note: _gps_position->satellites_visible is taken from NAV-SOL now. */
+					/* _gps_position->satellites_visible = satellites_used; */ // visible ~= used but we are interested in the used ones
+					/* TODO: satellites_used may be written into a new field after sat monitoring data got separated from _gps_position */
 
 					if (packet_part1->numCh > 0) {
 						_gps_position->satellite_info_available = true;
@@ -541,6 +546,7 @@ UBX::handle_message()
 					ret = 1;
 					break;
 				}
+#endif /* #ifdef UBX_ENABLE_NAV_SVINFO */
 
 			case UBX_MESSAGE_NAV_VELNED: {
 					// printf("GOT NAV_VELNED\n");
@@ -573,23 +579,34 @@ UBX::handle_message()
 				break;
 			}
 
-		case UBX_CLASS_MON: {
+		case UBX_CLASS_MON:
 			switch (_message_id) {
-			case UBX_MESSAGE_MON_HW: {
 
-					struct gps_bin_mon_hw_packet *p = (struct gps_bin_mon_hw_packet*) _rx_buffer;
+			case UBX_MESSAGE_MON_HW:
+				switch (_payload_size) {
 
-					_gps_position->noise_per_ms = p->noisePerMS;
-					_gps_position->jamming_indicator = p->jamInd;
-
+				case UBX_MON_HW_UBX6_RX_PAYLOAD_SIZE:	/* u-blox 6 msg format */
+					_gps_position->noise_per_ms      = ((struct gps_bin_mon_hw_ubx6_packet*) _rx_buffer)->noisePerMS;
+					_gps_position->jamming_indicator = ((struct gps_bin_mon_hw_ubx6_packet*) _rx_buffer)->jamInd;
 					ret = 1;
 					break;
+
+				case UBX_MON_HW_UBX7_RX_PAYLOAD_SIZE:	/* u-blox 7+ msg format */
+					_gps_position->noise_per_ms      = ((struct gps_bin_mon_hw_ubx7_packet*) _rx_buffer)->noisePerMS;
+					_gps_position->jamming_indicator = ((struct gps_bin_mon_hw_ubx7_packet*) _rx_buffer)->jamInd;
+					ret = 1;
+					break;
+
+				default:		// unexpected payload size:
+					ret = 1;	// ignore but don't disable msg
+					break;
 				}
+				break;
 
 			default:
 				break;
 			}
-		}
+			break;
 
 		default:
 			break;
@@ -597,7 +614,7 @@ UBX::handle_message()
 
 		if (ret == 0) {
 			/* message not handled */
-			warnx("ubx: unknown message received: 0x%02x-0x%02x", (unsigned)_message_class, (unsigned)_message_id);
+			warnx("ubx: message not handled: 0x%02x-0x%02x L%u", (unsigned)_message_class, (unsigned)_message_id, _payload_size);
 
 			hrt_abstime t = hrt_absolute_time();
 

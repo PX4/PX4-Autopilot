@@ -48,6 +48,10 @@
 
 #include "gps_helper.h"
 
+/* TODO: processing of NAV_SVINFO disabled, has to be re-written as an optional feature */
+/* TODO: make this a command line option, allocate buffer dynamically */
+#undef UBX_ENABLE_NAV_SVINFO
+
 #define UBX_SYNC1 0xB5
 #define UBX_SYNC2 0x62
 
@@ -60,10 +64,8 @@
 
 /* MessageIDs (the ones that are used) */
 #define UBX_MESSAGE_NAV_POSLLH 0x02
-//#define UBX_MESSAGE_NAV_DOP 0x04
 #define UBX_MESSAGE_NAV_SOL 0x06
 #define UBX_MESSAGE_NAV_VELNED 0x12
-//#define UBX_MESSAGE_RXM_SVSI 0x20
 #define UBX_MESSAGE_NAV_TIMEUTC 0x21
 #define UBX_MESSAGE_NAV_SVINFO 0x30
 #define UBX_MESSAGE_ACK_NAK 0x00
@@ -72,9 +74,22 @@
 #define UBX_MESSAGE_CFG_MSG 0x01
 #define UBX_MESSAGE_CFG_RATE 0x08
 #define UBX_MESSAGE_CFG_NAV5 0x24
-
 #define UBX_MESSAGE_MON_HW	0x09
 
+/* Rx msg payload sizes */
+#define UBX_NAV_POSLLH_RX_PAYLOAD_SIZE   28		/**< NAV_POSLLH  Rx msg payload size */
+#define UBX_NAV_SOL_RX_PAYLOAD_SIZE      52		/**< NAV_SOL     Rx msg payload size */
+#define UBX_NAV_VELNED_RX_PAYLOAD_SIZE   36		/**< NAV_VELNED  Rx msg payload size */
+#define UBX_NAV_TIMEUTC_RX_PAYLOAD_SIZE  20		/**< NAV_TIMEUTC Rx msg payload size */
+#define UBX_MON_HW_UBX6_RX_PAYLOAD_SIZE  68		/**< MON_HW      Rx msg payload size for u-blox 6 and below */
+#define UBX_MON_HW_UBX7_RX_PAYLOAD_SIZE  60		/**< MON_HW      Rx msg payload size for u-blox 7 and above */
+#define UBX_MAX_RX_PAYLOAD_SIZE          70		/**< arbitrary maximum for calculating parser buffer size w/o NAV_SVINFO active */
+
+/* NAV_SVINFO has variable length w/o a published max size, so limit processing to UBX_MAX_NUM_SAT */
+#define UBX_MAX_NUM_SAT                  50							/**< Practical observed max number of satellites in SVNFO msg */
+#define UBX_NAV_SVINFO_RX_PAYLOAD_SIZE   (8 + 12 * UBX_MAX_NUM_SAT)	/**< NAV_SVINFO Rx msg payload size */
+
+/* CFG class Tx msg defs */
 #define UBX_CFG_PRT_LENGTH 20
 #define UBX_CFG_PRT_PAYLOAD_PORTID 0x01			/**< UART1 */
 #define UBX_CFG_PRT_PAYLOAD_MODE 0x000008D0		/**< 0b0000100011010000: 8N1 */
@@ -87,7 +102,6 @@
 #define UBX_CFG_RATE_PAYLOAD_NAVRATE 1			/**< cannot be changed */
 #define UBX_CFG_RATE_PAYLOAD_TIMEREF 0			/**< 0: UTC, 1: GPS time */
 
-
 #define UBX_CFG_NAV5_LENGTH 36
 #define UBX_CFG_NAV5_PAYLOAD_MASK 0x0005		/**< XXX only update dynamic model and fix mode */
 #define UBX_CFG_NAV5_PAYLOAD_DYNMODEL 7			/**< 0: portable, 2: stationary, 3: pedestrian, 4: automotive, 5: sea, 6: airborne <1g, 7: airborne <2g, 8: airborne <4g */
@@ -98,7 +112,6 @@
 #define UBX_CFG_MSG_PAYLOAD_RATE1_1HZ 0x05		/**< {0x00, 0x05, 0x00, 0x00, 0x00, 0x00} the second entry is for UART1 */
 #define UBX_CFG_MSG_PAYLOAD_RATE1_05HZ 10
 
-#define UBX_MAX_PAYLOAD_LENGTH 500
 
 // ************
 /** the structures of the binary packets */
@@ -140,7 +153,7 @@ typedef struct {
 	uint32_t sAcc;
 	uint16_t pDOP;
 	uint8_t reserved1;
-	uint8_t numSV;
+	uint8_t numSV;					/**< Number of SVs used in Nav Solution */
 	uint32_t reserved2;
 	uint8_t ck_a;
 	uint8_t ck_b;
@@ -213,7 +226,7 @@ typedef struct {
 	uint8_t ck_b;
 } gps_bin_nav_velned_packet_t;
 
-struct gps_bin_mon_hw_packet {
+struct gps_bin_mon_hw_ubx6_packet {
 	uint32_t pinSel;
 	uint32_t pinBank;
 	uint32_t pinDir;
@@ -233,6 +246,25 @@ struct gps_bin_mon_hw_packet {
 	uint32_t pullL;
 };
 
+struct gps_bin_mon_hw_ubx7_packet {
+	uint32_t pinSel;
+	uint32_t pinBank;
+	uint32_t pinDir;
+	uint32_t pinVal;
+	uint16_t noisePerMS;
+	uint16_t agcCnt;
+	uint8_t aStatus;
+	uint8_t aPower;
+	uint8_t flags;
+	uint8_t __reserved1;
+	uint32_t usedMask;
+	uint8_t VP[17];
+	uint8_t jamInd;
+	uint16_t __reserved3;
+	uint32_t pinIrq;
+	uint32_t pulLH;
+	uint32_t pullL;
+};
 
 //typedef struct {
 //	int32_t time_milliseconds; 		/**< Measurement integer millisecond GPS time of week */
@@ -343,7 +375,14 @@ typedef enum {
 //typedef type_gps_bin_ubx_state gps_bin_ubx_state_t;
 #pragma pack(pop)
 
-#define RECV_BUFFER_SIZE 300 //The NAV-SOL messages really need such a big buffer
+/* calculate parser rx buffer size dependent on NAV_SVINFO enabled or not */
+/* TODO: make this a command line option, allocate buffer dynamically */
+#define RECV_BUFFER_OVERHEAD	10	// add this to the maximum Rx msg payload size to account for msg overhead */
+#ifdef UBX_ENABLE_NAV_SVINFO
+	#define RECV_BUFFER_SIZE (UBX_NAV_SVINFO_RX_PAYLOAD_SIZE + RECV_BUFFER_OVERHEAD)
+#else
+	#define RECV_BUFFER_SIZE (UBX_MAX_RX_PAYLOAD_SIZE        + RECV_BUFFER_OVERHEAD)
+#endif
 
 class UBX : public GPS_Helper
 {
