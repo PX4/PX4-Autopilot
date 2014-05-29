@@ -2,11 +2,11 @@
 # Generic gimbal status.
 #
 
-float16[4] orientation_xyzw
-float16[<=9] orientation_covariance   # +inf for non-existent axes
-
 uint4 MODE_ANGULAR_VELOCITY        = 0
 uint4 MODE_ORIENTATION_FIXED_FRAME = 1
 uint4 MODE_ORIENTATION_BODY_FRAME  = 2
 uint4 MODE_GEO_POI                 = 3
 uint4 mode
+
+float16[4] orientation_xyzw
+float16[<=9] orientation_covariance   # +inf for non-existent axes
