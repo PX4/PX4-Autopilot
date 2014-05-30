@@ -519,7 +519,7 @@ Navigator::offboard_mission_update(bool isrotaryWing)
 			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_1;
 		}
 
-		missionFeasiblityChecker.checkMissionFeasible(isrotaryWing, dm_current, (size_t)offboard_mission.count, _geofence);
+		missionFeasiblityChecker.checkMissionFeasible(isrotaryWing, dm_current, (size_t)offboard_mission.count, _geofence, _home_pos.alt);
 
 		_mission.set_offboard_dataman_id(offboard_mission.dataman_id);
 

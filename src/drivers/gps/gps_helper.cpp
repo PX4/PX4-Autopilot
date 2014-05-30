@@ -56,7 +56,7 @@ GPS_Helper::get_velocity_update_rate()
 	return _rate_vel;
 }
 
-float
+void
 GPS_Helper::reset_update_rates()
 {
 	_rate_count_vel = 0;
@@ -64,7 +64,7 @@ GPS_Helper::reset_update_rates()
 	_interval_rate_start = hrt_absolute_time();
 }
 
-float
+void
 GPS_Helper::store_update_rates()
 {
 	_rate_vel = _rate_count_vel / (((float)(hrt_absolute_time() - _interval_rate_start)) / 1000000.0f);
