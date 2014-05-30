@@ -72,7 +72,7 @@
 
 #define MIN_VALID_W 0.00001f
 #define PUB_INTERVAL 10000	// limit publish rate to 100 Hz
-#define EST_BUF_SIZE 500000 / PUB_INTERVAL		// buffer size is 0.5s
+#define EST_BUF_SIZE 250000 / PUB_INTERVAL		// buffer size is 0.5s
 
 static bool thread_should_exit = false; /**< Deamon exit flag */
 static bool thread_running = false; /**< Deamon status flag */
@@ -146,7 +146,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		position_estimator_inav_task = task_spawn_cmd("position_estimator_inav",
-					       SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 4000,
+					       SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 5000,
 					       position_estimator_inav_thread_main,
 					       (argv) ? (const char **) &argv[2] : (const char **) NULL);
 		exit(0);
@@ -210,9 +210,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float y_est[2] = { 0.0f, 0.0f };	// pos, vel
 	float z_est[2] = { 0.0f, 0.0f };	// pos, vel
 
-	float est_buf[EST_BUF_SIZE][3][2];
+	float est_buf[EST_BUF_SIZE][3][2];	// estimated position buffer
+	float R_buf[EST_BUF_SIZE][3][3];	// rotation matrix buffer
+	float R_gps[3][3];					// rotation matrix for GPS correction moment
 	memset(est_buf, 0, sizeof(est_buf));
-	int est_buf_ptr = 0;
+	memset(R_buf, 0, sizeof(R_buf));
+	memset(R_gps, 0, sizeof(R_gps));
+	int buf_ptr = 0;
 
 	float eph = 1.0;
 	float epv = 1.0;
@@ -673,7 +677,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						}
 
 						/* calculate index of estimated values in buffer */
-						int est_i = est_buf_ptr - 1 - min(EST_BUF_SIZE - 1, max(0, (int)(params.delay_gps * 1000000.0f / PUB_INTERVAL)));
+						int est_i = buf_ptr - 1 - min(EST_BUF_SIZE - 1, max(0, (int)(params.delay_gps * 1000000.0f / PUB_INTERVAL)));
 						if (est_i < 0) {
 							est_i += EST_BUF_SIZE;
 						}
@@ -694,6 +698,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							corr_gps[1][1] = 0.0f;
 							corr_gps[2][1] = 0.0f;
 						}
+
+						/* save rotation matrix at this moment */
+						memcpy(R_gps, R_buf[est_i], sizeof(R_gps));
 
 						eph = fminf(eph, gps.eph_m);
 						epv = fminf(epv, gps.epv_m);
@@ -784,7 +791,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			corr_baro += offs_corr;
 		}
 
-		/* accelerometer bias correction */
+		/* accelerometer bias correction for GPS (use buffered rotation matrix) */
 		float accel_bias_corr[3] = { 0.0f, 0.0f, 0.0f };
 
 		if (use_gps_xy) {
@@ -797,6 +804,24 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		if (use_gps_z) {
 			accel_bias_corr[2] -= corr_gps[2][0] * w_z_gps_p * w_z_gps_p;
 		}
+
+		/* transform error vector from NED frame to body frame */
+		for (int i = 0; i < 3; i++) {
+			float c = 0.0f;
+
+			for (int j = 0; j < 3; j++) {
+				c += R_gps[j][i] * accel_bias_corr[j];
+			}
+
+			if (isfinite(c)) {
+				acc_bias[i] += c * params.w_acc_bias * dt;
+			}
+		}
+
+		/* accelerometer bias correction for flow and baro (assume that there is no delay) */
+		accel_bias_corr[0] = 0.0f;
+		accel_bias_corr[1] = 0.0f;
+		accel_bias_corr[2] = 0.0f;
 
 		if (use_flow) {
 			accel_bias_corr[0] -= corr_flow[0] * params.w_xy_flow;
@@ -934,16 +959,20 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		if (t > pub_last + PUB_INTERVAL) {
 			pub_last = t;
 
-			/* push current estimate to FIFO buffer */
-			est_buf[est_buf_ptr][0][0] = x_est[0];
-			est_buf[est_buf_ptr][0][1] = x_est[1];
-			est_buf[est_buf_ptr][1][0] = y_est[0];
-			est_buf[est_buf_ptr][1][1] = y_est[1];
-			est_buf[est_buf_ptr][2][0] = z_est[0];
-			est_buf[est_buf_ptr][2][1] = z_est[1];
-			est_buf_ptr++;
-			if (est_buf_ptr >= EST_BUF_SIZE) {
-				est_buf_ptr = 0;
+			/* push current estimate to buffer */
+			est_buf[buf_ptr][0][0] = x_est[0];
+			est_buf[buf_ptr][0][1] = x_est[1];
+			est_buf[buf_ptr][1][0] = y_est[0];
+			est_buf[buf_ptr][1][1] = y_est[1];
+			est_buf[buf_ptr][2][0] = z_est[0];
+			est_buf[buf_ptr][2][1] = z_est[1];
+
+			/* push current rotation matrix to buffer */
+			memcpy(R_buf[buf_ptr], att.R, sizeof(att.R));
+
+			buf_ptr++;
+			if (buf_ptr >= EST_BUF_SIZE) {
+				buf_ptr = 0;
 			}
 
 			/* publish local position */
