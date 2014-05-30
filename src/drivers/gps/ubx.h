@@ -34,7 +34,7 @@
 /**
  * @file ubx.h
  *
- * U-Blox protocol definition. Following u-blox 6/7 Receiver Description
+ * U-Blox protocol definition. Following u-blox 6/7/8 Receiver Description
  * including Prototol Specification.
  *
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
@@ -86,7 +86,7 @@
 #define UBX_MAX_RX_PAYLOAD_SIZE          70		/**< arbitrary maximum for calculating parser buffer size w/o NAV_SVINFO active */
 
 /* NAV_SVINFO has variable length w/o a published max size, so limit processing to UBX_MAX_NUM_SAT */
-#define UBX_MAX_NUM_SAT                  50							/**< Practical observed max number of satellites in SVNFO msg */
+#define UBX_MAX_NUM_SAT                  50				/**< Practical observed max number of satellites in SVNFO msg */
 #define UBX_NAV_SVINFO_RX_PAYLOAD_SIZE   (8 + 12 * UBX_MAX_NUM_SAT)	/**< NAV_SVINFO Rx msg payload size */
 
 /* CFG class Tx msg defs */
@@ -127,21 +127,21 @@ struct ubx_header {
 
 typedef struct {
 	uint32_t time_milliseconds;		/**<  GPS Millisecond Time of Week */
-	int32_t lon;					/**<  Longitude * 1e-7, deg */
-	int32_t lat;					/**<  Latitude * 1e-7, deg */
-	int32_t height;					/**<  Height above Ellipsoid, mm */
-	int32_t height_msl;				/**<  Height above mean sea level, mm */
-	uint32_t hAcc;  				/**< Horizontal Accuracy Estimate, mm */
-	uint32_t vAcc;  				/**< Vertical Accuracy Estimate, mm */
+	int32_t lon;				/**<  Longitude * 1e-7, deg */
+	int32_t lat;				/**<  Latitude * 1e-7, deg */
+	int32_t height;				/**<  Height above Ellipsoid, mm */
+	int32_t height_msl;			/**<  Height above mean sea level, mm */
+	uint32_t hAcc;  			/**< Horizontal Accuracy Estimate, mm */
+	uint32_t vAcc;  			/**< Vertical Accuracy Estimate, mm */
 	uint8_t ck_a;
 	uint8_t ck_b;
 } gps_bin_nav_posllh_packet_t;
 
 typedef struct {
-	uint32_t time_milliseconds; 	/**< GPS Millisecond Time of Week */
+	uint32_t time_milliseconds; 		/**< GPS Millisecond Time of Week */
 	int32_t time_nanoseconds;		/**< Fractional Nanoseconds remainder of rounded ms above, range -500000 .. 500000 */
-	int16_t week;					/**< GPS week (GPS time) */
-	uint8_t gpsFix;					/**< GPS Fix: 0 = No fix, 1 = Dead Reckoning only, 2 = 2D fix, 3 = 3d-fix, 4 = GPS + dead reckoning, 5 = time only fix */
+	int16_t week;				/**< GPS week (GPS time) */
+	uint8_t gpsFix;				/**< GPS Fix: 0 = No fix, 1 = Dead Reckoning only, 2 = 2D fix, 3 = 3d-fix, 4 = GPS + dead reckoning, 5 = time only fix */
 	uint8_t flags;
 	int32_t ecefX;
 	int32_t ecefY;
@@ -153,7 +153,7 @@ typedef struct {
 	uint32_t sAcc;
 	uint16_t pDOP;
 	uint8_t reserved1;
-	uint8_t numSV;					/**< Number of SVs used in Nav Solution */
+	uint8_t numSV;				/**< Number of SVs used in Nav Solution */
 	uint32_t reserved2;
 	uint8_t ck_a;
 	uint8_t ck_b;
@@ -163,47 +163,47 @@ typedef struct {
 	uint32_t time_milliseconds;		/**< GPS Millisecond Time of Week */
 	uint32_t time_accuracy; 		/**< Time Accuracy Estimate, ns */
 	int32_t time_nanoseconds; 		/**< Nanoseconds of second, range -1e9 .. 1e9 (UTC) */
-	uint16_t year; 					/**< Year, range 1999..2099 (UTC) */
-	uint8_t month; 					/**< Month, range 1..12 (UTC) */
-	uint8_t day; 					/**< Day of Month, range 1..31 (UTC) */
-	uint8_t hour; 					/**< Hour of Day, range 0..23 (UTC) */
-	uint8_t min; 					/**< Minute of Hour, range 0..59 (UTC) */
-	uint8_t sec; 					/**< Seconds of Minute, range 0..59 (UTC) */
+	uint16_t year; 				/**< Year, range 1999..2099 (UTC) */
+	uint8_t month; 				/**< Month, range 1..12 (UTC) */
+	uint8_t day; 				/**< Day of Month, range 1..31 (UTC) */
+	uint8_t hour; 				/**< Hour of Day, range 0..23 (UTC) */
+	uint8_t min; 				/**< Minute of Hour, range 0..59 (UTC) */
+	uint8_t sec;				/**< Seconds of Minute, range 0..59 (UTC) */
 	uint8_t valid_flag; 			/**< Validity Flags (see ubx documentation) */
 	uint8_t ck_a;
 	uint8_t ck_b;
 } gps_bin_nav_timeutc_packet_t;
 
 //typedef struct {
-//	uint32_t time_milliseconds; 	/**<  GPS Millisecond Time of Week */
-//	uint16_t gDOP; 					/**< Geometric DOP (scaling 0.01) */
-//	uint16_t pDOP; 					/**< Position DOP (scaling 0.01) */
-//	uint16_t tDOP; 					/**< Time DOP (scaling 0.01) */
-//	uint16_t vDOP; 					/**< Vertical DOP (scaling 0.01) */
-//	uint16_t hDOP; 					/**< Horizontal DOP (scaling 0.01) */
-//	uint16_t nDOP; 					/**< Northing DOP (scaling 0.01) */
-//	uint16_t eDOP; 					/**< Easting DOP (scaling 0.01) */
+//	uint32_t time_milliseconds; 		/**<  GPS Millisecond Time of Week */
+//	uint16_t gDOP; 				/**< Geometric DOP (scaling 0.01) */
+//	uint16_t pDOP; 				/**< Position DOP (scaling 0.01) */
+//	uint16_t tDOP; 				/**< Time DOP (scaling 0.01) */
+//	uint16_t vDOP; 				/**< Vertical DOP (scaling 0.01) */
+//	uint16_t hDOP; 				/**< Horizontal DOP (scaling 0.01) */
+//	uint16_t nDOP; 				/**< Northing DOP (scaling 0.01) */
+//	uint16_t eDOP; 				/**< Easting DOP (scaling 0.01) */
 //	uint8_t ck_a;
 //	uint8_t ck_b;
 //} gps_bin_nav_dop_packet_t;
 
 typedef struct {
-	uint32_t time_milliseconds; 	/**<  GPS Millisecond Time of Week */
-	uint8_t numCh; 					/**< Number of channels */
+	uint32_t time_milliseconds; 		/**<  GPS Millisecond Time of Week */
+	uint8_t numCh; 				/**< Number of channels */
 	uint8_t globalFlags;
 	uint16_t reserved2;
 
 } gps_bin_nav_svinfo_part1_packet_t;
 
 typedef struct {
-	uint8_t chn; 					/**< Channel number, 255 for SVs not assigned to a channel */
-	uint8_t svid; 					/**< Satellite ID */
+	uint8_t chn; 				/**< Channel number, 255 for SVs not assigned to a channel */
+	uint8_t svid; 				/**< Satellite ID */
 	uint8_t flags;
 	uint8_t quality;
-	uint8_t cno; 					/**< Carrier to Noise Ratio (Signal Strength), dbHz */
-	int8_t elev; 					/**< Elevation in integer degrees */
-	int16_t azim; 					/**< Azimuth in integer degrees */
-	int32_t prRes; 					/**< Pseudo range residual in centimetres */
+	uint8_t cno;				/**< Carrier to Noise Ratio (Signal Strength), dbHz */
+	int8_t elev; 				/**< Elevation in integer degrees */
+	int16_t azim; 				/**< Azimuth in integer degrees */
+	int32_t prRes; 				/**< Pseudo range residual in centimetres */
 
 } gps_bin_nav_svinfo_part2_packet_t;
 
@@ -268,8 +268,8 @@ struct gps_bin_mon_hw_ubx7_packet {
 
 //typedef struct {
 //	int32_t time_milliseconds; 		/**< Measurement integer millisecond GPS time of week */
-//	int16_t week; 					/**< Measurement GPS week number */
-//	uint8_t numVis;					/**< Number of visible satellites */
+//	int16_t week; 				/**< Measurement GPS week number */
+//	uint8_t numVis;				/**< Number of visible satellites */
 //
 //	//... rest of package is not used in this implementation
 //
@@ -395,7 +395,7 @@ public:
 private:
 
 	/**
-	 * Parse the binary MTK packet
+	 * Parse the binary UBX packet
 	 */
 	int			parse_char(uint8_t b);
 

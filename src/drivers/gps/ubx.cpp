@@ -59,10 +59,10 @@
 
 #include "ubx.h"
 
-#define UBX_CONFIG_TIMEOUT		200		// ms, timeout for waiting ACK
-#define UBX_PACKET_TIMEOUT		2		// ms, if now data during this delay assume that full update received
+#define UBX_CONFIG_TIMEOUT	200		// ms, timeout for waiting ACK
+#define UBX_PACKET_TIMEOUT	2		// ms, if now data during this delay assume that full update received
 #define UBX_WAIT_BEFORE_READ	20		// ms, wait before reading to save read() calls
-#define DISABLE_MSG_INTERVAL	1000000	// us, try to disable message with this interval
+#define DISABLE_MSG_INTERVAL	1000000		// us, try to disable message with this interval
 
 UBX::UBX(const int &fd, struct vehicle_gps_position_s *gps_position) :
 	_fd(fd),
