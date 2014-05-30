@@ -219,19 +219,19 @@ UBX::configure(unsigned &baudrate)
 		return 1;
 	}
 
-	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_SVINFO, 5);
-
-	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
-		warnx("MSG CFG FAIL: NAV SVINFO");
-		return 1;
-	}
-
-	configure_message_rate(UBX_CLASS_MON, UBX_MESSAGE_MON_HW, 1);
-
-	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
-		warnx("MSG CFG FAIL: MON HW");
-		return 1;
-	}
+//	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_SVINFO, 5);
+//
+//	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
+//		warnx("MSG CFG FAIL: NAV SVINFO");
+//		return 1;
+//	}
+//
+//	configure_message_rate(UBX_CLASS_MON, UBX_MESSAGE_MON_HW, 1);
+//
+//	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
+//		warnx("MSG CFG FAIL: MON HW");
+//		return 1;
+//	}
 
 	_configured = true;
 	return 0;
@@ -486,61 +486,61 @@ UBX::handle_message()
 					break;
 				}
 
-			case UBX_MESSAGE_NAV_SVINFO: {
-					//printf("GOT NAV_SVINFO\n");
-					const int length_part1 = 8;
-					gps_bin_nav_svinfo_part1_packet_t *packet_part1 = (gps_bin_nav_svinfo_part1_packet_t *) _rx_buffer;
-					const int length_part2 = 12;
-					gps_bin_nav_svinfo_part2_packet_t *packet_part2;
-
-					uint8_t satellites_used = 0;
-					int i;
-
-					//printf("Number of Channels: %d\n", packet_part1->numCh);
-					for (i = 0; i < packet_part1->numCh; i++) {
-						/* set pointer to sattelite_i information */
-						packet_part2 = (gps_bin_nav_svinfo_part2_packet_t *) & (_rx_buffer[length_part1 + i * length_part2]);
-
-						/* write satellite information to global storage */
-						uint8_t sv_used = packet_part2->flags & 0x01;
-
-						if (sv_used) {
-							/* count SVs used for NAV */
-							satellites_used++;
-						}
-
-						/* record info for all channels, whether or not the SV is used for NAV */
-						_gps_position->satellite_used[i] = sv_used;
-						_gps_position->satellite_snr[i] = packet_part2->cno;
-						_gps_position->satellite_elevation[i] = (uint8_t)(packet_part2->elev);
-						_gps_position->satellite_azimuth[i] = (uint8_t)((float)packet_part2->azim * 255.0f / 360.0f);
-						_gps_position->satellite_prn[i] = packet_part2->svid;
-						//printf("SAT %d: %d %d %d %d\n", i, (int)sv_used, (int)packet_part2->cno, (int)(uint8_t)(packet_part2->elev), (int)packet_part2->svid);
-					}
-
-					for (i = packet_part1->numCh; i < 20; i++) {
-						/* unused channels have to be set to zero for e.g. MAVLink */
-						_gps_position->satellite_prn[i] = 0;
-						_gps_position->satellite_used[i] = 0;
-						_gps_position->satellite_snr[i] = 0;
-						_gps_position->satellite_elevation[i] = 0;
-						_gps_position->satellite_azimuth[i] = 0;
-					}
-
-					_gps_position->satellites_visible = satellites_used; // visible ~= used but we are interested in the used ones
-
-					if (packet_part1->numCh > 0) {
-						_gps_position->satellite_info_available = true;
-
-					} else {
-						_gps_position->satellite_info_available = false;
-					}
-
-					_gps_position->timestamp_satellites = hrt_absolute_time();
-
-					ret = 1;
-					break;
-				}
+//			case UBX_MESSAGE_NAV_SVINFO: {
+//					//printf("GOT NAV_SVINFO\n");
+//					const int length_part1 = 8;
+//					gps_bin_nav_svinfo_part1_packet_t *packet_part1 = (gps_bin_nav_svinfo_part1_packet_t *) _rx_buffer;
+//					const int length_part2 = 12;
+//					gps_bin_nav_svinfo_part2_packet_t *packet_part2;
+//
+//					uint8_t satellites_used = 0;
+//					int i;
+//
+//					//printf("Number of Channels: %d\n", packet_part1->numCh);
+//					for (i = 0; i < packet_part1->numCh; i++) {
+//						/* set pointer to sattelite_i information */
+//						packet_part2 = (gps_bin_nav_svinfo_part2_packet_t *) & (_rx_buffer[length_part1 + i * length_part2]);
+//
+//						/* write satellite information to global storage */
+//						uint8_t sv_used = packet_part2->flags & 0x01;
+//
+//						if (sv_used) {
+//							/* count SVs used for NAV */
+//							satellites_used++;
+//						}
+//
+//						/* record info for all channels, whether or not the SV is used for NAV */
+//						_gps_position->satellite_used[i] = sv_used;
+//						_gps_position->satellite_snr[i] = packet_part2->cno;
+//						_gps_position->satellite_elevation[i] = (uint8_t)(packet_part2->elev);
+//						_gps_position->satellite_azimuth[i] = (uint8_t)((float)packet_part2->azim * 255.0f / 360.0f);
+//						_gps_position->satellite_prn[i] = packet_part2->svid;
+//						//printf("SAT %d: %d %d %d %d\n", i, (int)sv_used, (int)packet_part2->cno, (int)(uint8_t)(packet_part2->elev), (int)packet_part2->svid);
+//					}
+//
+//					for (i = packet_part1->numCh; i < 20; i++) {
+//						/* unused channels have to be set to zero for e.g. MAVLink */
+//						_gps_position->satellite_prn[i] = 0;
+//						_gps_position->satellite_used[i] = 0;
+//						_gps_position->satellite_snr[i] = 0;
+//						_gps_position->satellite_elevation[i] = 0;
+//						_gps_position->satellite_azimuth[i] = 0;
+//					}
+//
+//					_gps_position->satellites_visible = satellites_used; // visible ~= used but we are interested in the used ones
+//
+//					if (packet_part1->numCh > 0) {
+//						_gps_position->satellite_info_available = true;
+//
+//					} else {
+//						_gps_position->satellite_info_available = false;
+//					}
+//
+//					_gps_position->timestamp_satellites = hrt_absolute_time();
+//
+//					ret = 1;
+//					break;
+//				}
 
 			case UBX_MESSAGE_NAV_VELNED: {
 					// printf("GOT NAV_VELNED\n");
@@ -573,23 +573,23 @@ UBX::handle_message()
 				break;
 			}
 
-		case UBX_CLASS_MON: {
-			switch (_message_id) {
-			case UBX_MESSAGE_MON_HW: {
-
-					struct gps_bin_mon_hw_packet *p = (struct gps_bin_mon_hw_packet*) _rx_buffer;
-
-					_gps_position->noise_per_ms = p->noisePerMS;
-					_gps_position->jamming_indicator = p->jamInd;
-
-					ret = 1;
-					break;
-				}
-
-			default:
-				break;
-			}
-		}
+//		case UBX_CLASS_MON: {
+//			switch (_message_id) {
+//			case UBX_MESSAGE_MON_HW: {
+//
+//					struct gps_bin_mon_hw_packet *p = (struct gps_bin_mon_hw_packet*) _rx_buffer;
+//
+//					_gps_position->noise_per_ms = p->noisePerMS;
+//					_gps_position->jamming_indicator = p->jamInd;
+//
+//					ret = 1;
+//					break;
+//				}
+//
+//			default:
+//				break;
+//			}
+//		}
 
 		default:
 			break;
