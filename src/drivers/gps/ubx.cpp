@@ -447,8 +447,8 @@ UBX::handle_message()
 					gps_bin_nav_sol_packet_t *packet = (gps_bin_nav_sol_packet_t *) _rx_buffer;
 
 					_gps_position->fix_type = packet->gpsFix;
-					_gps_position->s_variance_m_s = packet->sAcc;
-					_gps_position->p_variance_m = packet->pAcc;
+					_gps_position->s_variance_m_s = (float)packet->sAcc * 1e-2f; // from cm/s to m/s
+					_gps_position->p_variance_m = (float)packet->pAcc * 1e-2f; // from cm to m
 					_gps_position->timestamp_variance = hrt_absolute_time();
 
 					ret = 1;
