@@ -449,7 +449,7 @@ GPS::print_info()
 
 	if (_report.timestamp_position != 0) {
 		warnx("position lock: %dD, satellites: %d, last update: %8.4fms ago", (int)_report.fix_type,
-				_report.satellites_visible, (double)(hrt_absolute_time() - _report.timestamp_position) / 1000.0f);
+				_report.satellites_used, (double)(hrt_absolute_time() - _report.timestamp_position) / 1000.0f);
 		warnx("lat: %d, lon: %d, alt: %d", _report.lat, _report.lon, _report.alt);
 		warnx("eph: %.2fm, epv: %.2fm", (double)_report.eph_m, (double)_report.epv_m);
 		warnx("rate position: \t%6.2f Hz", (double)_Helper->get_position_update_rate());

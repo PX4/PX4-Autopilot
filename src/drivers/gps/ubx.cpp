@@ -55,6 +55,7 @@
 #include <systemlib/err.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/satellite_info.h>
 #include <drivers/drv_hrt.h>
 
 #include "ubx.h"
@@ -451,7 +452,7 @@ UBX::handle_message()
 					_gps_position->s_variance_m_s = packet->sAcc;
 					_gps_position->p_variance_m = packet->pAcc;
 					_gps_position->timestamp_variance = hrt_absolute_time();
-					_gps_position->satellites_visible = packet->numSV;
+					_gps_position->satellites_used = packet->numSV;
 
 					ret = 1;
 					break;

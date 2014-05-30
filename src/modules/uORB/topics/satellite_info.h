@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
  *           @author Julian Oes <joes@student.ethz.ch>
  *           @author Lorenz Meier <lm@inf.ethz.ch>
@@ -35,12 +35,12 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_gps_position.h
- * Definition of the GPS WGS84 uORB topic.
+ * @file satellite_info.h
+ * Definition of the GNSS satellite info uORB topic.
  */
 
-#ifndef TOPIC_VEHICLE_GPS_H_
-#define TOPIC_VEHICLE_GPS_H_
+#ifndef TOPIC_SAT_INFO_H_
+#define TOPIC_SAT_INFO_H_
 
 #include <stdint.h>
 #include "../uORB.h"
@@ -51,45 +51,36 @@
  */
 
 /**
- * GPS position in WGS84 coordinates.
+ * GNSS Satellite Info.
  */
-struct vehicle_gps_position_s {
-	uint64_t timestamp_position;			/**< Timestamp for position information */
-	int32_t lat;					/**< Latitude in 1E-7 degrees */
-	int32_t lon;					/**< Longitude in 1E-7 degrees */
-	int32_t alt;					/**< Altitude in 1E-3 meters (millimeters) above MSL  */
-
-	uint64_t timestamp_variance;
-	float s_variance_m_s;				/**< speed accuracy estimate m/s */
-	float p_variance_m;				/**< position accuracy estimate m */
-	float c_variance_rad;				/**< course accuracy estimate rad */
-	uint8_t fix_type; 				/**< 0-1: no fix, 2: 2D fix, 3: 3D fix. Some applications will not use the value of this field unless it is at least two, so always correctly fill in the fix.   */
-
-	float eph_m;					/**< GPS HDOP horizontal dilution of position in m */
-	float epv_m;					/**< GPS VDOP horizontal dilution of position in m */
-
-	unsigned noise_per_ms;				/**< */
-	unsigned jamming_indicator;			/**< */
-
-	uint64_t timestamp_velocity;			/**< Timestamp for velocity informations */
-	float vel_m_s;					/**< GPS ground speed (m/s) */
-	float vel_n_m_s;				/**< GPS ground speed in m/s */
-	float vel_e_m_s;				/**< GPS ground speed in m/s */
-	float vel_d_m_s;				/**< GPS ground speed in m/s */
-	float cog_rad;					/**< Course over ground (NOT heading, but direction of movement) in rad, -PI..PI */
-	bool vel_ned_valid;				/**< Flag to indicate if NED speed is valid */
-
-	uint64_t timestamp_time;			/**< Timestamp for time information */
-	uint64_t time_gps_usec;				/**< Timestamp (microseconds in GPS format), this is the timestamp which comes from the gps module   */
-
-	uint8_t satellites_used;			/**< Number of satellites used */
+struct satellite_info_s {
+	uint64_t timestamp;	/**< Timestamp of satellite information */
+	uint8_t count;		/**< Number of satellites in satellite_...[] arrays */
+	uint8_t svid[20]; 	/**< Space vehicle ID [1..255], see scheme below  */
+	uint8_t used[20];	/**< 0: Satellite not used, 1: used for navigation */
+	uint8_t elevation[20];	/**< Elevation (0: right on top of receiver, 90: on the horizon) of satellite */
+	uint8_t azimuth[20];	/**< Direction of satellite, 0: 0 deg, 255: 360 deg. */
+	uint8_t snr[20];	/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99, zero when not tracking this satellite. */
 };
+
+/**
+ * NAV_SVINFO space vehicle ID (svid) scheme according to u-blox protocol specs
+ * u-bloxM8-V15_ReceiverDescriptionProtocolSpec_Public_(UBX-13003221).pdf
+ *
+ * GPS		1-32
+ * SBAS		120-158
+ * Galileo	211-246
+ * BeiDou	159-163, 33-64
+ * QZSS		193-197
+ * GLONASS	65-96, 255
+ *
+ */
 
 /**
  * @}
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(vehicle_gps_position);
+ORB_DECLARE(satellite_info);
 
 #endif
