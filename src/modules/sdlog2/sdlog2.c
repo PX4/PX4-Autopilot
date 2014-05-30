@@ -1508,6 +1508,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_TECS.totalEnergyRate = buf.tecs_status.totalEnergyRate;
 			log_msg.body.log_TECS.energyDistributionRateSp = buf.tecs_status.energyDistributionRateSp;
 			log_msg.body.log_TECS.energyDistributionRate = buf.tecs_status.energyDistributionRate;
+			log_msg.body.log_TECS.mode = (uint8_t)buf.tecs_status.mode;
 			LOGBUFFER_WRITE_AND_COUNT(TECS);
 		}
 
