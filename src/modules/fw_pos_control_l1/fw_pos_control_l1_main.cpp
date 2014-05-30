@@ -386,7 +386,7 @@ private:
 			bool climbout_mode, float climbout_pitch_min_rad,
 			float altitude,
 			const math::Vector<3> &ground_speed,
-			fwPosctrl::mTecs::tecs_mode mode = fwPosctrl::mTecs::TECS_MODE_NORMAL);
+			tecs_mode mode = TECS_MODE_NORMAL);
 
 };
 
@@ -1018,7 +1018,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						0.0f, throttle_max, throttle_land,
 						false, flare_pitch_angle_rad,
 						_pos_sp_triplet.current.alt + relative_alt, ground_speed,
-						land_motor_lim ? fwPosctrl::mTecs::TECS_MODE_LAND_THROTTLELIM : fwPosctrl::mTecs::TECS_MODE_LAND);
+						land_motor_lim ? TECS_MODE_LAND_THROTTLELIM : TECS_MODE_LAND);
 
 				if (!land_noreturn_vertical) {
 					mavlink_log_info(_mavlink_fd, "#audio: Landing, flaring");
@@ -1111,7 +1111,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							math::radians(10.0f)),
 							_global_pos.alt,
 							ground_speed,
-							fwPosctrl::mTecs::TECS_MODE_TAKEOFF);
+							TECS_MODE_TAKEOFF);
 
 					/* limit roll motion to ensure enough lift */
 					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f), math::radians(15.0f));
@@ -1449,7 +1449,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		bool climbout_mode, float climbout_pitch_min_rad,
 		float altitude,
 		const math::Vector<3> &ground_speed,
-		fwPosctrl::mTecs::tecs_mode mode)
+		tecs_mode mode)
 {
 	if (_mTecs.getEnabled()) {
 		/* Using mtecs library: prepare arguments for mtecs call */

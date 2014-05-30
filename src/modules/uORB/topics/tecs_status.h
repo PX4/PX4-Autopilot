@@ -50,6 +50,14 @@
  * @{
  */
 
+typedef enum {
+	TECS_MODE_NORMAL,
+	TECS_MODE_UNDERSPEED,
+	TECS_MODE_TAKEOFF,
+	TECS_MODE_LAND,
+	TECS_MODE_LAND_THROTTLELIM
+} tecs_mode;
+
  /**
  * Internal values of the (m)TECS fixed wing speed alnd altitude control system
  */
@@ -69,6 +77,8 @@ struct tecs_status_s {
 	float totalEnergyRate;
 	float energyDistributionRateSp;
 	float energyDistributionRate;
+
+	tecs_mode mode;
 };
 
 /**

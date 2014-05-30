@@ -60,15 +60,6 @@ public:
 	mTecs();
 	virtual ~mTecs();
 
-	typedef enum {
-		TECS_MODE_NORMAL,
-		TECS_MODE_UNDERSPEED,
-		TECS_MODE_TAKEOFF,
-		TECS_MODE_LAND,
-		TECS_MODE_LAND_THROTTLELIM
-	} tecs_mode;
-
-
 	/* A small class which provides helper fucntions to override control output limits which are usually set by
 	 * parameters in special cases
 	 */

@@ -224,6 +224,7 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 	_status.totalEnergyRate = totalEnergyRate;
 	_status.energyDistributionRateSp = energyDistributionRateSp;
 	_status.energyDistributionRate = energyDistributionRate;
+	_status.mode = mode;
 
 	/** update control blocks **/
 	/* update total energy rate control block */
