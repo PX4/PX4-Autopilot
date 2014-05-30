@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 Anton Babushkin. All rights reserved.
- *   Author: 	Anton Babushkin	<rk3dov@gmail.com>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,58 +31,41 @@
  *
  ****************************************************************************/
 
+/**
+ * @file drv_io_expander.h
+ *
+ * IO expander device API
+ */
+
+#pragma once
+
+#include <stdint.h>
+#include <sys/ioctl.h>
+
 /*
- * @file position_estimator_inav_params.h
- *
- * Parameters for Position Estimator
+ * ioctl() definitions
  */
 
-#include <systemlib/param/param.h>
+#define _IOXIOCBASE		(0x2800)
+#define _IOXIOC(_n)		(_IOC(_IOXIOCBASE, _n))
 
-struct position_estimator_inav_params {
-	float w_z_baro;
-	float w_z_gps_p;
-	float w_z_sonar;
-	float w_xy_gps_p;
-	float w_xy_gps_v;
-	float w_xy_flow;
-	float w_gps_flow;
-	float w_acc_bias;
-	float flow_k;
-	float flow_q_min;
-	float sonar_filt;
-	float sonar_err;
-	float land_t;
-	float land_disp;
-	float land_thr;
+/** set a bitmask (non-blocking) */
+#define IOX_SET_MASK		_IOXIOC(1)
+
+/** get a bitmask (blocking) */
+#define IOX_GET_MASK		_IOXIOC(2)
+
+/** set device mode (non-blocking) */
+#define IOX_SET_MODE		_IOXIOC(3)
+
+/** set constant values (non-blocking) */
+#define IOX_SET_VALUE		_IOXIOC(4)
+
+/* ... to IOX_SET_VALUE + 8 */
+
+/* enum passed to RGBLED_SET_MODE ioctl()*/
+enum IOX_MODE {
+	IOX_MODE_OFF,
+	IOX_MODE_ON,
+	IOX_MODE_TEST_OUT
 };
-
-struct position_estimator_inav_param_handles {
-	param_t w_z_baro;
-	param_t w_z_gps_p;
-	param_t w_z_sonar;
-	param_t w_xy_gps_p;
-	param_t w_xy_gps_v;
-	param_t w_xy_flow;
-	param_t w_gps_flow;
-	param_t w_acc_bias;
-	param_t flow_k;
-	param_t flow_q_min;
-	param_t sonar_filt;
-	param_t sonar_err;
-	param_t land_t;
-	param_t land_disp;
-	param_t land_thr;
-};
-
-/**
- * Initialize all parameter handles and values
- *
- */
-int parameters_init(struct position_estimator_inav_param_handles *h);
-
-/**
- * Update all parameters
- *
- */
-int parameters_update(const struct position_estimator_inav_param_handles *h, struct position_estimator_inav_params *p);
