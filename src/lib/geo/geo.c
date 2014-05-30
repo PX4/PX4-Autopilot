@@ -207,8 +207,14 @@ __EXPORT int globallocalconverter_init(double lat_0, double lon_0, float alt_0, 
 {
 	if (strcmp("commander", getprogname() == 0)) {
 		gl_ref.alt = alt_0;
-		gl_ref.init_done = true;
-		return map_projection_global_init(lat_0, lon_0, timestamp);
+		if (!map_projection_global_init(lat_0, lon_0, timestamp))
+		{
+			gl_ref.init_done = true;
+			return 0;
+		} else {
+			gl_ref.init_done = false;
+			return -1;
+		}
 	} else {
 		return -1;
 	}
