@@ -79,7 +79,7 @@ static bool thread_running = false; /**< Deamon status flag */
 static int position_estimator_inav_task; /**< Handle of deamon task / thread */
 static bool verbose_mode = false;
 
-static const hrt_abstime gps_topic_timeout = 1000000;		// GPS topic timeout = 1s
+static const hrt_abstime gps_topic_timeout = 500000;		// GPS topic timeout = 0.5s
 static const hrt_abstime flow_topic_timeout = 1000000;	// optical flow topic timeout = 1s
 static const hrt_abstime sonar_timeout = 150000;	// sonar timeout = 150ms
 static const hrt_abstime sonar_valid_timeout = 1000000;	// estimate sonar distance during this time after sonar loss
@@ -218,8 +218,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(R_gps, 0, sizeof(R_gps));
 	int buf_ptr = 0;
 
-	float eph = 1.0;
-	float epv = 1.0;
+	static const float min_eph_epv = 2.0f;	// min EPH/EPV, used for weight calculation
+	static const float max_eph_epv = 20.0f;	// max EPH/EPV acceptable for estimation
+
+	float eph = max_eph_epv;
+	float epv = 1.0f;
+
+	float eph_flow = 1.0f;
 
 	float x_est_prev[2], y_est_prev[2], z_est_prev[2];
 	memset(x_est_prev, 0, sizeof(x_est_prev));
@@ -275,9 +280,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	float corr_flow[] = { 0.0f, 0.0f };	// N E
 	float w_flow = 0.0f;
-
-	static float min_eph_epv = 2.0f;	// min EPH/EPV, used for weight calculation
-	static float max_eph_epv = 10.0f;	// max EPH/EPV acceptable for estimation
 
 	float sonar_prev = 0.0f;
 	hrt_abstime flow_prev = 0;			// time of last flow measurement
@@ -555,9 +557,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						w_flow *= 0.05f;
 					}
 
-					flow_valid = true;
+					/* under ideal conditions, on 1m distance assume EPH = 10cm */
+					eph_flow = 0.1 / w_flow;
 
-					eph = fminf(eph, 0.1 / att.R[2][2] / flow_q * fmaxf(1.0f, flow_dist));	// under ideal conditions, on 1m distance assume EPH = 10cm
+					flow_valid = true;
 
 				} else {
 					w_flow = 0.0f;
@@ -616,13 +619,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				/* hysteresis for GPS quality */
 				if (gps_valid) {
-					if (gps.eph_m > max_eph_epv * 1.5f || gps.epv_m > max_eph_epv * 1.5f || gps.fix_type < 3) {
+					if (gps.eph_m > max_eph_epv || gps.epv_m > max_eph_epv || gps.fix_type < 3) {
 						gps_valid = false;
 						mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
 					}
 
 				} else {
-					if (gps.eph_m < max_eph_epv && gps.epv_m < max_eph_epv && gps.fix_type >= 3) {
+					if (gps.eph_m < max_eph_epv * 0.7f && gps.epv_m < max_eph_epv * 0.7f && gps.fix_type >= 3) {
 						gps_valid = true;
 						reset_est = true;
 						mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
@@ -702,9 +705,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						/* save rotation matrix at this moment */
 						memcpy(R_gps, R_buf[est_i], sizeof(R_gps));
 
-						eph = fminf(eph, gps.eph_m);
-						epv = fminf(epv, gps.epv_m);
-
 						w_gps_xy = min_eph_epv / fmaxf(min_eph_epv, gps.eph_m);
 						w_gps_z = min_eph_epv / fmaxf(min_eph_epv, gps.epv_m);
 					}
@@ -745,8 +745,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		t_prev = t;
 
 		/* increase EPH/EPV on each step */
-		eph *= 1.0 + dt;
-		epv += 0.005 * dt;	// add 1m to EPV each 200s (baro drift)
+		if (eph < max_eph_epv) {
+			eph *= 1.0 + dt;
+		}
+		if (epv < max_eph_epv) {
+			epv += 0.005 * dt;	// add 1m to EPV each 200s (baro drift)
+		}
 
 		/* use GPS if it's valid and reference position initialized */
 		bool use_gps_xy = ref_inited && gps_valid && params.w_xy_gps_p > MIN_VALID_W;
@@ -759,7 +763,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			xy_src_time = t;
 		}
 
-		bool can_estimate_xy = eph < max_eph_epv * 1.5;
+		bool can_estimate_xy = (eph < max_eph_epv) || use_gps_xy || use_flow;
 
 		bool dist_bottom_valid = (t < sonar_valid_time + sonar_valid_timeout);
 
@@ -853,7 +857,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		/* inertial filter correction for altitude */
 		inertial_filter_correct(corr_baro, dt, z_est, 0, params.w_z_baro);
-		inertial_filter_correct(corr_gps[2][0], dt, z_est, 0, w_z_gps_p);
+
+		if (use_gps_z) {
+			epv = fminf(epv, gps.epv_m);
+
+			inertial_filter_correct(corr_gps[2][0], dt, z_est, 0, w_z_gps_p);
+		}
 
 		if (!(isfinite(z_est[0]) && isfinite(z_est[1]))) {
 			write_debug_log("BAD ESTIMATE AFTER Z CORRECTION", dt, x_est, y_est, z_est, x_est_prev, y_est_prev, z_est_prev, acc, corr_gps, w_xy_gps_p, w_xy_gps_v);
@@ -878,11 +887,15 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			/* inertial filter correction for position */
 			if (use_flow) {
+				eph = fminf(eph, eph_flow);
+
 				inertial_filter_correct(corr_flow[0], dt, x_est, 1, params.w_xy_flow * w_flow);
 				inertial_filter_correct(corr_flow[1], dt, y_est, 1, params.w_xy_flow * w_flow);
 			}
 
 			if (use_gps_xy) {
+				eph = fminf(eph, gps.eph_m);
+
 				inertial_filter_correct(corr_gps[0][0], dt, x_est, 0, w_xy_gps_p);
 				inertial_filter_correct(corr_gps[1][0], dt, y_est, 0, w_xy_gps_p);
 
