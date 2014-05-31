@@ -105,7 +105,8 @@ static struct file_operations fops;
  */
 extern "C" __EXPORT int mavlink_main(int argc, char *argv[]);
 
-static uint64_t last_write_times[6] = {0};
+static uint64_t last_write_success_times[6] = {0};
+static uint64_t last_write_try_times[6] = {0};
 
 /*
  * Internal function to send the bytes through the right serial port
@@ -166,26 +167,25 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 	if (instance->get_flow_control_enabled()
 		&& ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
 
-		if (buf_free == 0) {
-
-			if (last_write_times[(unsigned)channel] != 0 &&
-				hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500 * 1000UL) {
-
-				warnx("DISABLING HARDWARE FLOW CONTROL");
-				instance->enable_flow_control(false);
-			}
-
-		} else {
-
-			/* apparently there is space left, although we might be
-			 * partially overflooding the buffer already */
-			last_write_times[(unsigned)channel] = hrt_absolute_time();
+		/* Disable hardware flow control:
+		 * if no successful write since a defined time
+		 * and if the last try was not the last successful write
+		 */
+		if (last_write_try_times[(unsigned)channel] != 0 &&
+			hrt_elapsed_time(&last_write_success_times[(unsigned)channel]) > 500 * 1000UL &&
+			last_write_success_times[(unsigned)channel] !=
+			last_write_try_times[(unsigned)channel])
+		{
+			warnx("DISABLING HARDWARE FLOW CONTROL");
+			instance->enable_flow_control(false);
 		}
+
 	}
 
 	/* If the wait until transmit flag is on, only transmit after we've received messages.
 	   Otherwise, transmit all the time. */
 	if (instance->should_transmit()) {
+		last_write_try_times[(unsigned)channel] = hrt_absolute_time();
 
 		/* check if there is space in the buffer, let it overflow else */
 		if (!ioctl(uart, FIONWRITE, (unsigned long)&buf_free)) {
@@ -199,6 +199,8 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 		ssize_t ret = write(uart, ch, desired);
 		if (ret != desired) {
 			warnx("TX FAIL");
+		} else {
+			last_write_success_times[(unsigned)channel] = last_write_try_times[(unsigned)channel];
 		}
 	}
 
