@@ -190,8 +190,9 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 		/* check if there is space in the buffer, let it overflow else */
 		if (!ioctl(uart, FIONWRITE, (unsigned long)&buf_free)) {
 
-			if (desired > buf_free) {
-				desired = buf_free;
+			if (buf_free < desired) {
+				/* we don't want to send anything just in half, so return */
+				return;
 			}
 		}
 
@@ -222,6 +223,8 @@ Mavlink::Mavlink() :
 	_subscriptions(nullptr),
 	_streams(nullptr),
 	_mission_pub(-1),
+	_mode(MAVLINK_MODE_NORMAL),
+	_total_counter(0),
 	_verbose(false),
 	_forwarding_on(false),
 	_passing_on(false),
