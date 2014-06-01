@@ -845,7 +845,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
 	math::Vector<3> accel_earth = _R_nb * accel_body;
 
-	_tecs.update_50hz(baro_altitude, _airspeed.indicated_airspeed_m_s, _R_nb, accel_body, accel_earth);
+	if (!_mTecs.getEnabled()) {
+		_tecs.update_50hz(baro_altitude, _airspeed.indicated_airspeed_m_s, _R_nb, accel_body, accel_earth);
+	}
+
 	float altitude_error = _pos_sp_triplet.current.alt - _global_pos.alt;
 
 	/* no throttle limit as default */
