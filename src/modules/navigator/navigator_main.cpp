@@ -1458,7 +1458,6 @@ Navigator::check_mission_item_reached()
 
 	/* XXX TODO count turns */
 	if ((_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-	     _mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 	     _mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED) &&
 	    _mission_item.loiter_radius > 0.01f) {
 
@@ -1567,7 +1566,14 @@ Navigator::on_mission_item_reached()
 		}
 
 		if (_mission.current_mission_available()) {
-			set_mission_item();
+			if (_mission_item.autocontinue) {
+				/* continue mission */
+				set_mission_item();
+
+			} else {
+				/* autocontinue disabled for this item */
+				request_loiter_or_ready();
+			}
 
 		} else {
 			/* if no more mission items available then finish mission */
