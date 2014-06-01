@@ -109,7 +109,6 @@ public:
 
 		/* Enable a specific limit override */
 		void enable(bool *flag, float *limit, float value) { *flag = true; *limit = value;
-		warnx("value %.3f", value);
 		};
 		/* Disable a specific limit override */
 		void disable(bool *flag) { *flag = false; };
