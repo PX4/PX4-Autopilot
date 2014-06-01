@@ -366,6 +366,15 @@ struct log_TECS_s {
 	uint8_t mode;
 };
 
+/* --- WIND - WIND ESTIMATE --- */
+#define LOG_WIND_MSG 31
+struct log_WIND_s {
+	float x;
+	float y;
+	float cov_x;
+	float cov_y;
+};
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -422,6 +431,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GS1A, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(GS1B, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(TECS, "ffffffffffffB",	"AltSP,Alt,FpaSP,Fpa,AsSP,As,AsDSP,AsD,TERSP,TER,EDRSP,EDR,Mod"),
+	LOG_FORMAT(WIND, "fff",	"X,Y,Cov"),
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
