@@ -169,6 +169,7 @@ private:
 	double	_target_lat;		/**< prediction for target latitude */
 	double	_target_lon;		/**< prediction for target longitude */
 	float	_target_alt;		/**< prediction for target altitude */
+	math::Vector<3>	_target_vel;	/**< target velocity vector */
 
 	struct follow_offset_s {
 		bool valid;
@@ -182,6 +183,7 @@ private:
 	struct follow_offset_s	_follow_offset_prev;		/**< offset from target for previous "follow" waypoint */
 	struct follow_offset_s	_follow_offset_next;		/**< offset from target for next "follow" waypoint */
 	float _follow_progress;
+	float _follow_progress_rate;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -445,7 +447,8 @@ Navigator::Navigator() :
 	_target_lat(0.0),
 	_target_lon(0.0),
 	_target_alt(0.0f),
-	_follow_progress(0.0f)
+	_follow_progress(0.0f),
+	_follow_progress_rate(0.0f)
 {
 	_parameter_handles.min_altitude = param_find("NAV_MIN_ALT");
 	_parameter_handles.acceptance_radius = param_find("NAV_ACCEPT_RAD");
@@ -463,6 +466,7 @@ Navigator::Navigator() :
 	memset(&_follow_offset_prev, 0, sizeof(_follow_offset_prev));
 	memset(&_follow_offset_next, 0, sizeof(_follow_offset_next));
 	memset(&_target_pos, 0, sizeof(_target_pos));
+	_target_vel.zero();
 
 	memset(&nav_states_str, 0, sizeof(nav_states_str));
 	nav_states_str[0] = "NONE";
@@ -900,6 +904,10 @@ Navigator::task_main()
 			add_vector_to_global_position(_target_pos.lat, _target_pos.lon, dpos(0), dpos(1), &_target_lat, &_target_lon);
 			_target_alt = _parameters.use_target_alt ? (_target_pos.alt - dpos(2)) : 0.0f;
 
+			_target_vel(0) = _target_pos.vel_n;
+			_target_vel(1) = _target_pos.vel_e;
+			_target_vel(2) = _target_pos.vel_d;
+
 			if (_follow_offset_prev.valid && _follow_offset_next.valid) {
 				math::Vector<3> trajectory;
 				get_vector_to_next_waypoint_fast(_follow_offset_prev.lat, _follow_offset_prev.lon,
@@ -914,17 +922,31 @@ Navigator::task_main()
 				pos(2) = -(_target_alt - _follow_offset_prev.alt);
 
 				if (trajectory.length_squared() > 0.01f) {
-					_follow_progress = fminf(1.0f, fmaxf(0.0f, pos * trajectory / trajectory.length_squared()));
+					_follow_progress = pos * trajectory / trajectory.length_squared();
+					if (_follow_progress < 0.0f) {
+						_follow_progress = 0.0f;
+						_follow_progress_rate = 0.0f;
+
+					} else if (_follow_progress > 1.0f) {
+						_follow_progress = 1.0f;
+						_follow_progress_rate = 0.0f;
+
+					} else {
+						_follow_progress_rate = _target_vel * trajectory / trajectory.length_squared();
+					}
 
 				} else {
 					_follow_progress = 1.0f;
+					_follow_progress_rate = 0.0f;
 				}
 
 			} else if (_follow_offset_prev.valid) {
 				_follow_progress = 0.0f;
+				_follow_progress_rate = 0.0f;
 
 			} else if (_follow_offset_next.valid) {
 				_follow_progress = 1.0f;
+				_follow_progress_rate = 0.0f;
 			}
 		}
 
@@ -1795,6 +1817,7 @@ Navigator::publish_position_setpoint_triplet()
 		/* calculate current desired offset from target position and relative yaw */
 		math::Vector<3> offset;
 		float yaw_relative = 0.0f;
+		math::Vector<3> vel_ff = _target_vel;
 
 		if (!_follow_offset_prev.valid) {
 			offset = _follow_offset_next.offset;
@@ -1807,6 +1830,7 @@ Navigator::publish_position_setpoint_triplet()
 		} else {
 			offset = _follow_offset_prev.offset + (_follow_offset_next.offset - _follow_offset_prev.offset) * _follow_progress;
 			yaw_relative = _follow_offset_prev.yaw + (_follow_offset_next.yaw - _follow_offset_prev.yaw) * _follow_progress;
+			vel_ff += (_follow_offset_next.offset - _follow_offset_prev.offset) * _follow_progress_rate;
 		}
 
 		/* add offset to target position */
@@ -1819,9 +1843,9 @@ Navigator::publish_position_setpoint_triplet()
 		/* calculate direction to target */
 		_pos_sp_triplet.current.yaw = get_bearing_to_next_waypoint(_global_pos.lat, _global_pos.lon, _target_pos.lat, _target_pos.lon) + yaw_relative;
 
-		_pos_sp_triplet.current.vel_n = _target_pos.vel_n;
-		_pos_sp_triplet.current.vel_e = _target_pos.vel_e;
-		_pos_sp_triplet.current.vel_d = _target_pos.vel_d;
+		_pos_sp_triplet.current.vel_n = vel_ff(0);
+		_pos_sp_triplet.current.vel_e = vel_ff(1);
+		_pos_sp_triplet.current.vel_d = vel_ff(2);
 
 		_pos_sp_triplet.current.loiter_radius = _parameters.loiter_radius;
 		_pos_sp_triplet.current.loiter_direction = 1;
