@@ -71,7 +71,6 @@ UBX::UBX(const int &fd, struct vehicle_gps_position_s *gps_position) :
 	_waiting_for_ack(false),
 	_got_posllh(false),
 	_got_velned(false),
-	_got_timeutc(false),
 	_disable_cmd_last(0)
 {
 	decode_init();
@@ -201,7 +200,7 @@ UBX::configure(unsigned &baudrate)
 		return 1;
 	}
 
-	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_TIMEUTC, 1);
+	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_TIMEUTC, 5);
 
 	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
 		warnx("MSG CFG FAIL: NAV TIMEUTC");
@@ -278,7 +277,7 @@ UBX::receive(unsigned timeout)
 	bool handled = false;
 
 	while (true) {
-		bool ready_to_return = _configured ? (_got_posllh && _got_velned && _got_timeutc) : handled;
+		bool ready_to_return = _configured ? (_got_posllh && _got_velned) : handled;
 
 		/* poll for new data, wait for only UBX_PACKET_TIMEOUT (2ms) if something already received */
 		int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), ready_to_return ? UBX_PACKET_TIMEOUT : timeout);
@@ -293,7 +292,6 @@ UBX::receive(unsigned timeout)
 			if (ready_to_return) {
 				_got_posllh = false;
 				_got_velned = false;
-				_got_timeutc = false;
 				return 1;
 
 			} else {
@@ -490,7 +488,6 @@ UBX::handle_message()
 					_gps_position->time_gps_usec += (uint64_t)(packet->time_nanoseconds * 1e-3f);
 					_gps_position->timestamp_time = hrt_absolute_time();
 
-					_got_timeutc = true;
 					ret = 1;
 					break;
 				}
