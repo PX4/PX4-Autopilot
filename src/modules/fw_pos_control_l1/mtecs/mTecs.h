@@ -139,6 +139,10 @@ public:
 	 */
 	void resetIntegrators();
 
+	/*
+	 * Reset all derivative calculations
+	 */
+	void resetDerivatives(float airspeed);
 
 	/* Accessors */
 	bool getEnabled() {return _mTecsEnabled.get() > 0;}

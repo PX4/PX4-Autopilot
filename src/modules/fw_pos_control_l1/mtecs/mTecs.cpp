@@ -261,6 +261,12 @@ void mTecs::resetIntegrators()
 	_firstIterationAfterReset = true;
 }
 
+void mTecs::resetDerivatives(float airspeed)
+{
+	_airspeedDerivative.setU(airspeed);
+}
+
+
 void mTecs::updateTimeMeasurement()
 {
 	if (!_dtCalculated) {
