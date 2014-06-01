@@ -38,3 +38,5 @@
 SRCS		 = 	LaunchDetector.cpp \
 			CatapultLaunchMethod.cpp \
 			launchdetection_params.c
+
+MAXOPTIMIZATION	 = -Os
