@@ -52,3 +52,5 @@ SRCS		 = attitude_estimator_ekf_main.cpp \
 		   codegen/cross.c
 
 MODULE_STACKSIZE = 1200
+
+MAXOPTIMIZATION	 = -Os
