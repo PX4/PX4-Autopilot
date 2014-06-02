@@ -185,8 +185,8 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 				(double)energyDistributionRateSp, (double)energyDistributionRate, (double)energyDistributionRateError, (double)energyDistributionRateError2);
 	}
 
-	/* Check airspeed: if below safe value switch to underspeed mode (if not in takeoff mode) */
-	if (mode != TECS_MODE_LAND && airspeed < _airspeedMin.get()) {
+	/* Check airspeed: if below safe value switch to underspeed mode (if not in land or takeoff mode) */
+	if (mode != TECS_MODE_LAND && mode != TECS_MODE_TAKEOFF && airspeed < _airspeedMin.get()) {
 		mode = TECS_MODE_UNDERSPEED;
 	}
 
