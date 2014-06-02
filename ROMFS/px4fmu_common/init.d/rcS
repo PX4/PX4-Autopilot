@@ -316,6 +316,20 @@ then
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 
+			if ver hwcmp AEROCORE
+			then
+				if param compare AEROCORE_RC 1
+				then
+					echo "[init] Starting PWM RC input"
+					input_pwm start
+				fi
+				if param compare AEROCORE_RC 2
+				then
+					echo "[init] Starting Spektrum RC input"
+					# not implemented yet
+				fi
+			fi
+
 			if ver hwcmp PX4FMU_V1
 			then
 				if [ $FMU_MODE == pwm -o $FMU_MODE == gpio ]

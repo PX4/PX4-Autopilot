@@ -23,6 +23,7 @@ MODULES		+= drivers/ms5611
 MODULES		+= drivers/gps
 MODULES		+= drivers/hil
 MODULES		+= modules/sensors
+MODULES		+= drivers/input_pwm
 
 #
 # System commands
