@@ -74,6 +74,7 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/wind_estimate.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <geo/geo.h>
@@ -158,6 +159,7 @@ private:
 	orb_advert_t	_global_pos_pub;		/**< global position */
 	orb_advert_t	_local_pos_pub;			/**< position in local frame */
 	orb_advert_t	_estimator_status_pub;		/**< status of the estimator */
+	orb_advert_t	_wind_pub;			/**< wind estimate */
 
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
 	struct gyro_report				_gyro;
@@ -169,6 +171,7 @@ private:
 	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
 	struct vehicle_local_position_s			_local_pos;		/**< local vehicle position */
 	struct vehicle_gps_position_s			_gps;			/**< GPS position */
+	struct wind_estimate_s				_wind;			/**< Wind estimate */
 
 	struct gyro_scale				_gyro_offsets;
 	struct accel_scale				_accel_offsets;
@@ -312,6 +315,7 @@ FixedwingEstimator::FixedwingEstimator() :
 	_global_pos_pub(-1),
 	_local_pos_pub(-1),
 	_estimator_status_pub(-1),
+	_wind_pub(-1),
 
 	_att({}),
 	_gyro({}),
@@ -323,6 +327,7 @@ FixedwingEstimator::FixedwingEstimator() :
 	_global_pos({}),
 	_local_pos({}),
 	_gps({}),
+	_wind({}),
 
 	_gyro_offsets({}),
 	_accel_offsets({}),
@@ -1328,12 +1333,30 @@ FixedwingEstimator::task_main()
 
 				/* lazily publish the global position only once available */
 				if (_global_pos_pub > 0) {
-					/* publish the attitude setpoint */
+					/* publish the global position */
 					orb_publish(ORB_ID(vehicle_global_position), _global_pos_pub, &_global_pos);
 
 				} else {
 					/* advertise and publish */
 					_global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &_global_pos);
+				}
+
+				if (hrt_elapsed_time(&_wind.timestamp) > 99000) {
+					_wind.timestamp = _global_pos.timestamp;
+					_wind.windspeed_north = _ekf->states[14];
+					_wind.windspeed_east = _ekf->states[15];
+					_wind.covariance_north = 0.0f; // XXX get form filter
+					_wind.covariance_east = 0.0f;
+
+					/* lazily publish the wind estimate only once available */
+					if (_wind_pub > 0) {
+						/* publish the wind estimate */
+						orb_publish(ORB_ID(wind_estimate), _wind_pub, &_wind);
+
+					} else {
+						/* advertise and publish */
+						_wind_pub = orb_advertise(ORB_ID(wind_estimate), &_wind);
+					}
 				}
 			}
 
@@ -1396,9 +1419,11 @@ FixedwingEstimator::print_status()
 	printf("states (vel m/s)     [5-7]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[4], (double)_ekf->states[5], (double)_ekf->states[6]);
 	printf("states (pos m)      [8-10]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[7], (double)_ekf->states[8], (double)_ekf->states[9]);
 	printf("states (delta ang) [11-13]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[10], (double)_ekf->states[11], (double)_ekf->states[12]);
-	printf("states (wind)      [14-15]: %8.4f, %8.4f\n", (double)_ekf->states[13], (double)_ekf->states[14]);
-	printf("states (earth mag) [16-18]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[15], (double)_ekf->states[16], (double)_ekf->states[17]);
-	printf("states (body mag)  [19-21]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[18], (double)_ekf->states[19], (double)_ekf->states[20]);
+	printf("states (accel offs)   [14]: %8.4f\n", (double)_ekf->states[13]);
+	printf("states (wind)      [15-16]: %8.4f, %8.4f\n", (double)_ekf->states[14], (double)_ekf->states[15]);
+	printf("states (earth mag) [17-19]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[16], (double)_ekf->states[17], (double)_ekf->states[18]);
+	printf("states (body mag)  [20-22]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[19], (double)_ekf->states[20], (double)_ekf->states[21]);
+	printf("states (terrain)      [23]: %8.4f\n", (double)_ekf->states[22]);
 	printf("states: %s %s %s %s %s %s %s %s %s %s\n",
 	       (_ekf->statesInitialised) ? "INITIALIZED" : "NON_INIT",
 	       (_ekf->onGround) ? "ON_GROUND" : "AIRBORNE",

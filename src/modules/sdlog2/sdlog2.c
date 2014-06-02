@@ -87,6 +87,7 @@
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/servorail_status.h>
+#include <uORB/topics/wind_estimate.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -943,6 +944,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct tecs_status_s tecs_status;
 		struct system_power_s system_power;
 		struct servorail_status_s servorail_status;
+		struct wind_estimate_s wind_estimate;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -982,6 +984,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_GS1A_s log_GS1A;
 			struct log_GS1B_s log_GS1B;
 			struct log_TECS_s log_TECS;
+			struct log_WIND_s log_WIND;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1016,6 +1019,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int tecs_status_sub;
 		int system_power_sub;
 		int servorail_status_sub;
+		int wind_sub;
 	} subs;
 
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -1044,6 +1048,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.tecs_status_sub = orb_subscribe(ORB_ID(tecs_status));
 	subs.system_power_sub = orb_subscribe(ORB_ID(system_power));
 	subs.servorail_status_sub = orb_subscribe(ORB_ID(servorail_status));
+	subs.wind_sub = orb_subscribe(ORB_ID(wind_estimate));
+	/* we need to rate-limit wind, as we do not need the full update rate */
+	orb_set_interval(subs.wind_sub, 90);
 
 	thread_running = true;
 
@@ -1510,6 +1517,16 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_TECS.energyDistributionRate = buf.tecs_status.energyDistributionRate;
 			log_msg.body.log_TECS.mode = (uint8_t)buf.tecs_status.mode;
 			LOGBUFFER_WRITE_AND_COUNT(TECS);
+		}
+
+		/* --- WIND ESTIMATE --- */
+		if (copy_if_updated(ORB_ID(wind_estimate), subs.wind_sub, &buf.wind_estimate)) {
+			log_msg.msg_type = LOG_WIND_MSG;
+			log_msg.body.log_WIND.x = buf.wind_estimate.windspeed_north;
+			log_msg.body.log_WIND.y = buf.wind_estimate.windspeed_east;
+			log_msg.body.log_WIND.cov_x = buf.wind_estimate.covariance_north;
+			log_msg.body.log_WIND.cov_y = buf.wind_estimate.covariance_east;
+			LOGBUFFER_WRITE_AND_COUNT(WIND);
 		}
 
 		/* signal the other thread new data, but not yet unlock */
