@@ -1039,8 +1039,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				global_pos.lon = est_lon;
 				global_pos.alt = local_pos.ref_alt - local_pos.z;
 
-				global_pos.time_gps_usec = gps.time_gps_usec + t - gps.timestamp_time;
-
 				global_pos.vel_n = local_pos.vx;
 				global_pos.vel_e = local_pos.vy;
 				global_pos.vel_d = local_pos.vz;
