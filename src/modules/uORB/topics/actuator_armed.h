@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,15 +44,25 @@
 #include <stdint.h>
 #include "../uORB.h"
 
+/**
+ * @addtogroup topics
+ * @{
+ */
+
 /** global 'actuator output is live' control. */
 struct actuator_armed_s {
 
-	uint64_t	timestamp;
-	bool	armed;		/**< Set to true if system is armed */
-	bool	ready_to_arm;	/**< Set to true if system is ready to be armed */
-	bool	lockdown;	/**< Set to true if actuators are forced to being disabled (due to emergency or HIL) */
+	uint64_t	timestamp;	/**< Microseconds since system boot */
+	bool		armed;		/**< Set to true if system is armed */
+	bool		ready_to_arm;	/**< Set to true if system is ready to be armed */
+	bool		lockdown;	/**< Set to true if actuators are forced to being disabled (due to emergency or HIL) */
 };
 
+/**
+ * @}
+ */
+
+/* register this as object request broker structure */
 ORB_DECLARE(actuator_armed);
 
 #endif
