@@ -50,6 +50,7 @@
 #include <geo/geo.h>
 
 #include <uORB/uORB.h>
+#include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 
 #include "navigator.h"
@@ -61,8 +62,6 @@ Mission::Mission(Navigator *navigator) :
 	_navigator(navigator),
 	_first_run(true),
 	_param_onboard_enabled(this, "ONBOARD_EN"),
-	_onboard_mission_sub(-1),
-	_offboard_mission_sub(-1),
 	_onboard_mission({0}),
 	_offboard_mission({0}),
 	_mission_item({0}),
@@ -74,6 +73,9 @@ Mission::Mission(Navigator *navigator) :
 	updateParams();
 	/* set initial mission items */
 	reset();
+
+	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
+	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 }
 
 Mission::~Mission()
@@ -89,9 +91,14 @@ Mission::reset()
 bool
 Mission::update(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
+	/* check if anything has changed */
+	bool onboard_updated = false; //is_onboard_mission_updated();
+	bool offboard_updated = is_offboard_mission_updated();
+
 	bool updated = false;
-	/* check if anything has changed, and reset mission items if needed */
-	if (is_onboard_mission_updated() || is_offboard_mission_updated() || _first_run) {
+
+	/* reset mission items if needed */
+	if (onboard_updated || offboard_updated) {
 		set_mission_items(pos_sp_triplet);
 		updated = true;
 		_first_run = false;
@@ -229,7 +236,7 @@ Mission::is_onboard_mission_updated()
 	bool updated;
 	orb_check(_onboard_mission_sub, &updated);
 
-	if (!updated) {
+	if (!updated && !_first_run) {
 		return false;
 	}
 
@@ -244,12 +251,17 @@ bool
 Mission::is_offboard_mission_updated()
 {
 	bool updated;
+	warnx("sub: %d", _offboard_mission_sub);
 	orb_check(_offboard_mission_sub, &updated);
-	if (!updated) {
+	if (!updated && !_first_run) {
+		warnx("not updated");
 		return false;
 	}
-
-	if (orb_copy(ORB_ID(offboard_mission), _offboard_mission_sub, &_offboard_mission) == OK) {
+	struct mission_s offboard_mission;
+	int ret = orb_copy(ORB_ID(offboard_mission), _offboard_mission_sub, &offboard_mission);
+	warnx("ret: %d", ret);
+	if (ret == OK) {
+		warnx("copy new offboard mission");
 
 		/* Check mission feasibility, for now do not handle the return value,
 		 * however warnings are issued to the gcs via mavlink from inside the MissionFeasiblityChecker */
@@ -263,8 +275,10 @@ Mission::is_offboard_mission_updated()
 
 		missionFeasiblityChecker.checkMissionFeasible(_navigator->get_vstatus()->is_rotary_wing, dm_current,
 			                                      (size_t)_offboard_mission.count,
-							      _navigator->get_geofence());
+							      _navigator->get_geofence(),
+							      _navigator->get_home_position()->alt);
 	} else {
+		warnx("no success with orb_copy");
 		_offboard_mission.count = 0;
 		_offboard_mission.current_index = 0;
 	}
@@ -341,7 +355,9 @@ Mission::is_current_onboard_mission_item_set(struct position_setpoint_s *current
 bool
 Mission::is_current_offboard_mission_item_set(struct position_setpoint_s *current_pos_sp)
 {
+	warnx("try offboard mission: %d, %d", _offboard_mission.current_index, _offboard_mission.count );
 	if (_offboard_mission.current_index < (int)_offboard_mission.count) {
+		warnx("theoretically possible");
 		dm_item_t dm_current;
 		if (_offboard_mission.dataman_id == 0) {
 			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_0;
@@ -356,8 +372,11 @@ Mission::is_current_offboard_mission_item_set(struct position_setpoint_s *curren
 
 			report_current_offboard_mission_item();
 			return true;
+		} else {
+			warnx("read fail");
 		}
 	}
+	warnx("failed with offboard mission");
 	return false;
 }
 

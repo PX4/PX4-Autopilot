@@ -103,8 +103,6 @@ Navigator::Navigator() :
 	_home_pos_sub(-1),
 	_vstatus_sub(-1),
 	_params_sub(-1),
-	_offboard_mission_sub(-1),
-	_onboard_mission_sub(-1),
 	_capabilities_sub(-1),
 	_control_mode_sub(-1),
 	_pos_sp_triplet_pub(-1),
@@ -248,8 +246,6 @@ Navigator::task_main()
 
 	/* do subscriptions */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
-	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -360,6 +356,8 @@ Navigator::task_main()
 			case NAVIGATION_STATE_ACRO:
 			case NAVIGATION_STATE_ALTCTL:
 			case NAVIGATION_STATE_POSCTL:
+				_mission.reset();
+				_rtl.reset();
 				break;
 			case NAVIGATION_STATE_AUTO_MISSION:
 				_update_triplet = _mission.update(&_pos_sp_triplet);
@@ -660,8 +658,6 @@ Navigator::start_land()
 	_update_triplet = true;
 	return true;
 }
-#endif
-#if 0
 bool
 Navigator::check_mission_item_reached()
 {
@@ -766,6 +762,7 @@ Navigator::reset_reached()
 	_waypoint_yaw_reached = false;
 
 }
+#endif
 void
 Navigator::publish_position_setpoint_triplet()
 {
