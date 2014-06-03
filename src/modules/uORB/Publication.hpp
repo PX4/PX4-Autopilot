@@ -45,30 +45,25 @@ namespace uORB
 {
 
 /**
- * Base publication warapper class, used in list traversal
- * of various publications.
+ * Base publication warapper class
  */
-class __EXPORT PublicationBase
+class __EXPORT Publication
 {
 public:
-	PublicationBase(const struct orb_metadata *meta) : _meta(meta), _handle(-1) {}
+	Publication(const struct orb_metadata *meta) : _meta(meta), _handle(-1) {}
 
-	void publish() {
+	void publish(const void *data) {
 		if (_handle > 0) {
-			orb_publish(get_meta(), get_handle(), get_data_ptr());
+			orb_publish(_meta, _handle, data);
 
 		} else {
-			set_handle(orb_advertise(get_meta(), get_data_ptr()));
+			_handle = orb_advertise(_meta, data);
 		}
 	}
 
-	virtual void *get_data_ptr() {
-		return (void *)this;
-	}
-
-	virtual ~PublicationBase() {
+	~Publication() {
 		if (_handle > 0) {
-			orb_unsubscribe(get_handle());
+			close(_handle);
 		}
 	}
 
@@ -83,31 +78,6 @@ public:
 protected:
 	const struct orb_metadata *_meta;
 	orb_advert_t _handle;
-
-	void set_handle(const orb_advert_t handle) {
-		_handle = handle;
-	}
-};
-
-/**
- * Publication wrapper class
- */
-template<class T>
-class __EXPORT Publication :
-	public T, // this must be first!
-	public PublicationBase
-{
-public:
-	/**
-	 * Constructor
-	 *
-	 * @param list      A list interface for adding to list during construction
-	 * @param meta		The uORB metadata (usually from the ORB_ID() macro)
-	 *			for the topic.
-	 */
-	Publication(const struct orb_metadata *meta) : T(), PublicationBase(meta) {}
-
-	~Publication() {}
 };
 
 } // namespace uORB
