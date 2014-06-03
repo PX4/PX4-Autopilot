@@ -1054,6 +1054,7 @@ void Mavlink::mavlink_wpm_send_waypoint(uint8_t sysid, uint8_t compid, uint16_t 
 
 	} else {
 		mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ERROR);
+		mavlink_missionlib_send_gcs_string("#audio: Unable to read from micro SD");
 
 		if (_verbose) { warnx("ERROR: could not read WP%u", seq); }
 	}
@@ -1440,6 +1441,7 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 
 				if (dm_write(dm_next, wp.seq, DM_PERSIST_IN_FLIGHT_RESET, &mission_item, len) != len) {
 					mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ERROR);
+					mavlink_missionlib_send_gcs_string("#audio: Unable to write on micro SD");
 					_wpm->current_state = MAVLINK_WPM_STATE_IDLE;
 					break;
 				}
