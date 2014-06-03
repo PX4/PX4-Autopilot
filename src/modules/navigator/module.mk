@@ -41,7 +41,6 @@ SRCS		= navigator_main.cpp \
 		  navigator_params.c \
 		  mission.cpp \
 		  rtl.cpp \
-		  rtl_params.c \
 		  mission_feasibility_checker.cpp \
 		  geofence.cpp \
 		  geofence_params.c

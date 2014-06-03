@@ -62,11 +62,8 @@
 #include <arch/board/board.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
@@ -74,24 +71,13 @@
 
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
-#include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <geo/geo.h>
 #include <dataman/dataman.h>
 #include <mathlib/mathlib.h>
 #include <mavlink/mavlink_log.h>
 
-#include "mission.h"
-#include "rtl.h"
-#include "mission_feasibility_checker.h"
-#include "geofence.h"
-
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
+#include "navigator.h"
 
 /**
  * navigator app start / stop handling function
@@ -100,173 +86,9 @@ static const int ERROR = -1;
  */
 extern "C" __EXPORT int navigator_main(int argc, char *argv[]);
 
-class Navigator
-{
-public:
-	/**
-	 * Constructor
-	 */
-	Navigator();
-
-	/**
-	 * Destructor, also kills the navigators task.
-	 */
-	~Navigator();
-
-	/**
-	 * Start the navigator task.
-	 *
-	 * @return		OK on success.
-	 */
-	int		start();
-
-	/**
-	 * Display the navigator status.
-	 */
-	void		status();
-
-	/**
-	 * Add point to geofence
-	 */
-	void		add_fence_point(int argc, char *argv[]);
-
-	/**
-	 * Load fence from file
-	 */
-	void		load_fence_from_file(const char *filename);
-
-private:
-
-	bool		_task_should_exit;		/**< if true, sensor task should exit */
-	int		_navigator_task;		/**< task handle for sensor task */
-
-	int		_mavlink_fd;			/**< the file descriptor to send messages over mavlink */
-
-	int		_global_pos_sub;		/**< global position subscription */
-	int		_home_pos_sub;			/**< home position subscription */
-	int		_vstatus_sub;			/**< vehicle status subscription */
-	int		_params_sub;			/**< notification of parameter updates */
-	int		_offboard_mission_sub;		/**< notification of offboard mission updates */
-	int 		_onboard_mission_sub;		/**< notification of onboard mission updates */
-	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
-	int		_control_mode_sub;		/**< vehicle control mode subscription */
-
-	orb_advert_t	_pos_sp_triplet_pub;		/**< publish position setpoint triplet */
-
-	vehicle_status_s				_vstatus;		/**< vehicle status */
-	vehicle_control_mode_s				_control_mode;		/**< vehicle control mode */
-	vehicle_global_position_s			_global_pos;		/**< global vehicle position */
-	home_position_s					_home_pos;		/**< home position for RTL */
-	mission_item_s 					_mission_item;		/**< current mission item */
-	navigation_capabilities_s			_nav_caps;		/**< navigation capabilities */
-	position_setpoint_triplet_s			_pos_sp_triplet;	/**< triplet of position setpoints */
-
-	bool 		_mission_item_valid;		/**< flags if the current mission item is valid */
-
-	perf_counter_t	_loop_perf;			/**< loop performance counter */
-
-	Geofence	_geofence;			/**< class that handles the geofence */
-	bool		_geofence_violation_warning_sent; /**< prevents spaming to mavlink */
-
-	bool		_fence_valid;			/**< flag if fence is valid */
-	bool		_inside_fence;			/**< vehicle is inside fence */
-
-
-	Mission		_mission;			/**< class that handles the missions */
-
-	RTL 		_rtl;				/**< class that handles RTL */
-
-	bool		_waypoint_position_reached;	/**< flags if the position of the mission item has been reached */
-	bool		_waypoint_yaw_reached;		/**< flags if the yaw position of the mission item has been reached */
-	uint64_t	_time_first_inside_orbit;	/**< the time when we were first in the acceptance radius of the mission item */
-
-	MissionFeasibilityChecker			missionFeasiblityChecker; /**< class that checks if a mission is feasible */
-
-	bool		_update_triplet;		/**< flags if position setpoint triplet needs to be published */
-
-	struct {
-		float acceptance_radius;
-		float loiter_radius;
-		int onboard_mission_enabled;
-		float takeoff_alt;
-	}		_parameters;			/**< local copies of parameters */
-
-	struct {
-		param_t acceptance_radius;
-		param_t loiter_radius;
-		param_t onboard_mission_enabled;
-		param_t takeoff_alt;
-	}		_parameter_handles;		/**< handles for parameters */
-
-	/**
-	 * Update our local parameter cache.
-	 */
-	void		parameters_update();
-
-	/**
-	 * Retrieve global position
-	 */
-	void		global_position_update();
-
-	/**
-	 * Retrieve home position
-	 */
-	void		home_position_update();
-
-	/**
-	 * Retreive navigation capabilities
-	 */
-	void		navigation_capabilities_update();
-
-	/**
-	 * Retrieve offboard mission.
-	 */
-	void		offboard_mission_update();
-
-	/**
-	 * Retrieve onboard mission.
-	 */
-	void		onboard_mission_update();
-
-	/**
-	 * Retrieve vehicle status
-	 */
-	void		vehicle_status_update();
-
-	/**
-	 * Retrieve vehicle control mode
-	 */
-	void		vehicle_control_mode_update();
-
-	/**
-	 * Shim for calling task_main from task_create.
-	 */
-	static void	task_main_trampoline(int argc, char *argv[]);
-
-	/**
-	 * Main task.
-	 */
-	void		task_main();
-
-	/**
-	 * Translate mission item to a position setpoint.
-	 */
-	void		mission_item_to_position_setpoint(const mission_item_s *item, position_setpoint_s *sp);
-
-	/**
-	 * Publish a new position setpoint triplet for position controllers
-	 */
-	void		publish_position_setpoint_triplet();
-};
 
 namespace navigator
 {
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 Navigator	*g_navigator;
 }
@@ -299,8 +121,9 @@ Navigator::Navigator() :
 	_geofence_violation_warning_sent(false),
 	_fence_valid(false),
 	_inside_fence(true),
-	_mission({}),
-	_rtl({}),
+	_mission(this),
+	//_loiter(&_global_pos, &_home_pos, &_vstatus),
+	_rtl(this),
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
 	_time_first_inside_orbit(0),
@@ -351,7 +174,7 @@ Navigator::parameters_update()
 	param_get(_parameter_handles.onboard_mission_enabled, &(_parameters.onboard_mission_enabled));
 	param_get(_parameter_handles.takeoff_alt, &(_parameters.takeoff_alt));
 
-	_mission.set_onboard_mission_allowed((bool)_parameters.onboard_mission_enabled);
+	//_mission.set_onboard_mission_allowed((bool)_parameters.onboard_mission_enabled);
 
 	_geofence.updateParams();
 }
@@ -366,62 +189,12 @@ void
 Navigator::home_position_update()
 {
 	orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
-
-	_rtl.set_home_position(&_home_pos);
 }
 
 void
 Navigator::navigation_capabilities_update()
 {
 	orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
-}
-
-
-void
-Navigator::offboard_mission_update()
-{
-	struct mission_s offboard_mission;
-
-	if (orb_copy(ORB_ID(offboard_mission), _offboard_mission_sub, &offboard_mission) == OK) {
-
-		/* Check mission feasibility, for now do not handle the return value,
-		 * however warnings are issued to the gcs via mavlink from inside the MissionFeasiblityChecker */
-		dm_item_t dm_current;
-
-		if (offboard_mission.dataman_id == 0) {
-			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_0;
-
-		} else {
-			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_1;
-		}
-
-		missionFeasiblityChecker.checkMissionFeasible(_vstatus.is_rotary_wing, dm_current, (size_t)offboard_mission.count, _geofence);
-
-		_mission.set_offboard_dataman_id(offboard_mission.dataman_id);
-
-		_mission.set_offboard_mission_count(offboard_mission.count);
-		_mission.command_current_offboard_mission_index(offboard_mission.current_index);
-
-	} else {
-		_mission.set_offboard_mission_count(0);
-		_mission.command_current_offboard_mission_index(0);
-	}
-}
-
-void
-Navigator::onboard_mission_update()
-{
-	struct mission_s onboard_mission;
-
-	if (orb_copy(ORB_ID(onboard_mission), _onboard_mission_sub, &onboard_mission) == OK) {
-
-		_mission.set_onboard_mission_count(onboard_mission.count);
-		_mission.command_current_onboard_mission_index(onboard_mission.current_index);
-
-	} else {
-		_mission.set_onboard_mission_count(0);
-		_mission.command_current_onboard_mission_index(0);
-	}
 }
 
 void
@@ -459,8 +232,7 @@ Navigator::task_main()
 
 	/* Try to load the geofence:
 	 * if /fs/microsd/etc/geofence.txt load from this file
-	 * else clear geofence data in datamanager
-	 */
+	 * else clear geofence data in datamanager */
 	struct stat buffer;
 
 	if (stat(GEOFENCE_FILENAME, &buffer) == 0) {
@@ -474,9 +246,7 @@ Navigator::task_main()
 			warnx("Could not clear geofence");
 	}
 
-	/*
-	 * do subscriptions
-	 */
+	/* do subscriptions */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
@@ -493,8 +263,6 @@ Navigator::task_main()
 	global_position_update();
 	home_position_update();
 	navigation_capabilities_update();
-	offboard_mission_update();
-	onboard_mission_update();
 
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
@@ -503,7 +271,7 @@ Navigator::task_main()
 	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source(s) */
-	struct pollfd fds[8];
+	struct pollfd fds[6];
 
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
@@ -514,14 +282,10 @@ Navigator::task_main()
 	fds[2].events = POLLIN;
 	fds[3].fd = _capabilities_sub;
 	fds[3].events = POLLIN;
-	fds[4].fd = _offboard_mission_sub;
+	fds[4].fd = _vstatus_sub;
 	fds[4].events = POLLIN;
-	fds[5].fd = _onboard_mission_sub;
+	fds[5].fd = _control_mode_sub;
 	fds[5].events = POLLIN;
-	fds[6].fd = _vstatus_sub;
-	fds[6].events = POLLIN;
-	fds[7].fd = _control_mode_sub;
-	fds[7].events = POLLIN;
 
 	while (!_task_should_exit) {
 
@@ -547,12 +311,12 @@ Navigator::task_main()
 		}
 
 		/* vehicle control mode updated */
-		if (fds[7].revents & POLLIN) {
+		if (fds[5].revents & POLLIN) {
 			vehicle_control_mode_update();
 		}
 
 		/* vehicle status updated */
-		if (fds[6].revents & POLLIN) {
+		if (fds[4].revents & POLLIN) {
 			vehicle_status_update();
 		}
 
@@ -565,16 +329,6 @@ Navigator::task_main()
 		/* navigation capabilities updated */
 		if (fds[3].revents & POLLIN) {
 			navigation_capabilities_update();
-		}
-
-		/* offboard mission updated */
-		if (fds[4].revents & POLLIN) {
-			offboard_mission_update();
-		}
-
-		/* onboard mission updated */
-		if (fds[5].revents & POLLIN) {
-			onboard_mission_update();
 		}
 
 		/* home position updated */
@@ -598,6 +352,33 @@ Navigator::task_main()
 				/* Reset the _geofence_violation_warning_sent field */
 				_geofence_violation_warning_sent = false;
 			}
+		}
+
+		/* Do stuff according to navigation state set by commander */
+		switch (_vstatus.set_nav_state) {
+			case NAVIGATION_STATE_MANUAL:
+			case NAVIGATION_STATE_ACRO:
+			case NAVIGATION_STATE_ALTCTL:
+			case NAVIGATION_STATE_POSCTL:
+				break;
+			case NAVIGATION_STATE_AUTO_MISSION:
+				_update_triplet = _mission.update(&_pos_sp_triplet);
+				_rtl.reset();
+				break;
+			case NAVIGATION_STATE_AUTO_LOITER:
+				//_loiter.update();
+				break;
+			case NAVIGATION_STATE_AUTO_RTL:
+			case NAVIGATION_STATE_AUTO_RTL_RC:
+			case NAVIGATION_STATE_AUTO_RTL_DL:
+				_mission.reset();
+				_update_triplet = _rtl.update(&_pos_sp_triplet);
+				break;
+			case NAVIGATION_STATE_LAND:
+			case NAVIGATION_STATE_TERMINATION:
+			default:
+				break;
+
 		}
 
 		if (_update_triplet ) {
@@ -880,47 +661,6 @@ Navigator::start_land()
 	return true;
 }
 #endif
-void
-Navigator::mission_item_to_position_setpoint(const mission_item_s *item, position_setpoint_s *sp)
-{
-	sp->valid = true;
-
-	if (item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
-
-		if (_pos_sp_triplet.previous.valid) {
-			/* if previous setpoint is valid then use it to calculate heading to home */
-			sp->yaw = get_bearing_to_next_waypoint(_pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon, sp->lat, sp->lon);
-
-		} else {
-			/* else use current position */
-			sp->yaw = get_bearing_to_next_waypoint(_global_pos.lat, _global_pos.lon, sp->lat, sp->lon);
-		}
-
-	} else {
-		sp->lat = item->lat;
-		sp->lon = item->lon;
-		sp->alt = item->altitude_is_relative ? item->altitude + _home_pos.alt : item->altitude;
-		sp->yaw = item->yaw;
-		sp->loiter_radius = item->loiter_radius;
-		sp->loiter_direction = item->loiter_direction;
-		sp->pitch_min = item->pitch_min;
-	}
-
-	if (item->nav_cmd == NAV_CMD_TAKEOFF) {
-		sp->type = SETPOINT_TYPE_TAKEOFF;
-
-	} else if (item->nav_cmd == NAV_CMD_LAND) {
-		sp->type = SETPOINT_TYPE_LAND;
-
-	} else if (item->nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-		   item->nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-		   item->nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
-		sp->type = SETPOINT_TYPE_LOITER;
-
-	} else {
-		sp->type = SETPOINT_TYPE_NORMAL;
-	}
-}
 #if 0
 bool
 Navigator::check_mission_item_reached()

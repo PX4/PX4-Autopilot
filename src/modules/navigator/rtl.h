@@ -1,4 +1,4 @@
-/****************************************************************************
+/***************************************************************************
  *
  *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
  *
@@ -44,22 +44,32 @@
 #include <controllib/block/BlockParam.hpp>
 
 #include <uORB/topics/mission.h>
+#include <uORB/topics/mission.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 
-class RTL : public control::SuperBlock
+#include "mission.h"
+
+class Navigator;
+
+class RTL : public Mission
 {
 public:
 	/**
 	 * Constructor
 	 */
-	RTL();
+	RTL(Navigator *navigator);
 
 	/**
 	 * Destructor
 	 */
-	~RTL();
+	virtual ~RTL();
 
+	virtual bool update(struct position_setpoint_triplet_s *pos_sp_triplet);
+
+	virtual void reset();
+
+private:
 	void		set_home_position(const home_position_s *home_position);
 
 	bool		get_current_rtl_item(const vehicle_global_position_s *global_position, mission_item_s *new_mission_item);
@@ -67,7 +77,6 @@ public:
 
 	void		move_to_next();
 
-private:
 	int 		_mavlink_fd;
 
 	enum RTLState {
@@ -77,7 +86,7 @@ private:
 		RTL_STATE_DESCEND,
 		RTL_STATE_LAND,
 		RTL_STATE_FINISHED,
-	}		_rtl_state;
+	} _rtl_state;
 
 	home_position_s _home_position;
 	float		_loiter_radius;

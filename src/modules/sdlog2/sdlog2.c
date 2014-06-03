@@ -1340,7 +1340,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- GLOBAL POSITION SETPOINT --- */
 		if (copy_if_updated(ORB_ID(position_setpoint_triplet), subs.triplet_sub, &buf.triplet)) {
 			log_msg.msg_type = LOG_GPSP_MSG;
-			log_msg.body.log_GPSP.nav_state = buf.triplet.nav_state;
+			log_msg.body.log_GPSP.nav_state = 0;  /* TODO: Fix this */
 			log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * 1e7d);
 			log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * 1e7d);
 			log_msg.body.log_GPSP.alt = buf.triplet.current.alt;

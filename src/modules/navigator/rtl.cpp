@@ -51,24 +51,39 @@
 
 #include "rtl.h"
 
-
-RTL::RTL() :
-	SuperBlock(NULL, "RTL"),
+RTL::RTL(Navigator *navigator) :
+	Mission(navigator),
 	_mavlink_fd(-1),
 	_rtl_state(RTL_STATE_NONE),
 	_home_position({}),
+	_loiter_radius(50),
+	_acceptance_radius(50),
 	_param_return_alt(this, "RETURN_ALT"),
 	_param_descend_alt(this, "DESCEND_ALT"),
-	_param_land_delay(this, "LAND_DELAY"),
-	_loiter_radius(50),
-	_acceptance_radius(50)
+	_param_land_delay(this, "LAND_DELAY")
 {
 	/* load initial params */
 	updateParams();
+	/* initial reset */
+	reset();
 }
 
 RTL::~RTL()
 {
+}
+
+bool
+RTL::update(struct position_setpoint_triplet_s *pos_sp_triplet)
+{
+	bool updated = false;
+
+	return updated;
+}
+
+void
+RTL::reset()
+{
+
 }
 
 void
@@ -206,7 +221,7 @@ RTL::get_current_rtl_item(const vehicle_global_position_s *global_position, miss
 	}
 
 	default:
-		return false;	
+		return false;
 	}
 
 	return true;
@@ -226,7 +241,7 @@ RTL::move_to_next()
 	case RTL_STATE_CLIMB:
 		_rtl_state = RTL_STATE_RETURN;
 		break;
-	
+
 	case RTL_STATE_RETURN:
 		_rtl_state = RTL_STATE_DESCEND;
 		break;

@@ -31,70 +31,172 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_mission.h
+ * @file mission.h
  * Helper class to access missions
- * @author Julian Oes <julian@oes.ch>
  *
- * @author Julian Oes <joes@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  */
 
 #ifndef NAVIGATOR_MISSION_H
 #define NAVIGATOR_MISSION_H
 
-#include <uORB/topics/mission.h>
-#include <uORB/topics/mission_result.h>
+#include <drivers/drv_hrt.h>
+
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
+
 #include <dataman/dataman.h>
 
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/mission_result.h>
 
-class __EXPORT Mission
+#include "mission_feasibility_checker.h"
+
+class Navigator;
+
+class Mission : public control::SuperBlock
 {
 public:
 	/**
 	 * Constructor
 	 */
-	Mission();
+	Mission(Navigator *navigator);
 
 	/**
 	 * Destructor
 	 */
-	~Mission();
+	virtual ~Mission();
 
-	void		set_offboard_dataman_id(const int new_id);
-	void		set_offboard_mission_count(const int new_count);
-	void		set_onboard_mission_count(const int new_count);
-	void		set_onboard_mission_allowed(const bool allowed);
+	/**
+	 * This function is called while the mode is inactive
+	 */
+	virtual void reset();
 
-	bool		command_current_offboard_mission_index(const int new_index);
-	bool		command_current_onboard_mission_index(const int new_index);
+	/**
+	 * This function is called while the mode is active
+	 */
+	virtual bool update(struct position_setpoint_triplet_s *pos_sp_triplet);
 
-	bool		get_current_mission_item(struct mission_item_s *mission_item, bool *onboard, int *index);
-	bool		get_next_mission_item(struct mission_item_s *mission_item);
+protected:
+	/**
+	 * Check if mission item has been reached
+	 * @return true if successfully reached
+	 */
+	bool is_mission_item_reached();
+	/**
+	 * Reset all reached flags
+	 */
+	void reset_mission_item_reached();
 
-	void		move_to_next();
+	/**
+	 * Convert a mission item to a position setpoint
+	 */
+	void mission_item_to_position_setpoint(const struct mission_item_s *item, struct position_setpoint_s *sp);
+
+	class Navigator *_navigator;
+
+	bool _waypoint_position_reached;
+	bool _waypoint_yaw_reached;
+	hrt_abstime _time_first_inside_orbit;
+
+	bool _first_run;
 
 private:
-	bool		read_mission_item(const dm_item_t dm_item, const bool is_current, int *mission_index, struct mission_item_s *new_mission_item);
+	/**
+	 * Update onboard mission topic
+	 * @return true if onboard mission has been updated
+	 */
+	bool is_onboard_mission_updated();
 
-	void		report_mission_item_reached();
-	void		report_current_offboard_mission_item();
+	/**
+	 * Update offboard mission topic
+	 * @return true if offboard mission has been updated
+	 */
+	bool is_offboard_mission_updated();
 
-	void		publish_mission_result();
+	/**
+	 * Move on to next mission item or switch to loiter
+	 */
+	void advance_mission();
 
-	int 		_offboard_dataman_id;
-	int		_current_offboard_mission_index;
-	int		_current_onboard_mission_index;
-	int		_offboard_mission_item_count;		/** number of offboard mission items available */
-	int		_onboard_mission_item_count;		/** number of onboard mission items available */
-	bool		_onboard_mission_allowed;
+	/**
+	 * Set new mission items
+	 */
+	void set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet);
+
+	/**
+	 * Set previous position setpoint
+	 */
+	void set_previous_pos_setpoint(const struct position_setpoint_s *current_pos_sp,
+			               struct position_setpoint_s *previous_pos_sp);
+
+	/**
+	 * Try to set the current position setpoint from an onboard mission item
+	 * @return true if mission item successfully set
+	 */
+	bool is_current_onboard_mission_item_set(struct position_setpoint_s *current_pos_sp);
+
+	/**
+	 * Try to set the current position setpoint from an offboard mission item
+	 * @return true if mission item successfully set
+	 */
+	bool is_current_offboard_mission_item_set(struct position_setpoint_s *current_pos_sp);
+
+	/**
+	 * Try to set the next position setpoint from an onboard mission item
+	 */
+	void get_next_onboard_mission_item(struct position_setpoint_s *next_pos_sp);
+
+	/**
+	 * Try to set the next position setpoint from an offboard mission item
+	 */
+	void get_next_offboard_mission_item(struct position_setpoint_s *next_pos_sp);
+
+	/**
+	 * Read a mission item from the dataman and watch out for DO_JUMPS
+	 * @return true if successful
+	 */
+	bool read_mission_item(const dm_item_t dm_item, bool is_current, int *mission_index,
+			       struct mission_item_s *new_mission_item);
+
+	/**
+	 * Report that a mission item has been reached
+	 */
+	void report_mission_item_reached();
+
+	/**
+	 * Rport the current mission item
+	 */
+	void report_current_offboard_mission_item();
+
+	/**
+	 * Publish the mission result so commander and mavlink know what is going on
+	 */
+	void publish_mission_result();
+
+	control::BlockParamFloat _param_onboard_enabled;
+
+	int _onboard_mission_sub;
+	int _offboard_mission_sub;
+
+	struct mission_s _onboard_mission;
+	struct mission_s _offboard_mission;
+
+	struct mission_item_s _mission_item;
+
+	orb_advert_t _mission_result_pub;
+	struct mission_result_s _mission_result;
 
 	enum {
 		MISSION_TYPE_NONE,
 		MISSION_TYPE_ONBOARD,
-		MISSION_TYPE_OFFBOARD,
-	} 		_current_mission_type;
+		MISSION_TYPE_OFFBOARD
+	} _mission_type;
 
-	orb_advert_t	 _mission_result_pub;			/**< publish mission result topic */
-	mission_result_s _mission_result;			/**< mission result for commander/mavlink */
+	MissionFeasibilityChecker missionFeasiblityChecker; /**< class that checks if a mission is feasible */
+
 };
 
 #endif

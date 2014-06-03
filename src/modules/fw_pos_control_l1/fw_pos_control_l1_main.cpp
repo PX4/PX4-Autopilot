@@ -861,7 +861,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		}
 
-		if (pos_sp_triplet.current.type == SETPOINT_TYPE_NORMAL) {
+		if (pos_sp_triplet.current.type == SETPOINT_TYPE_POSITION) {
 			/* waypoint is a plain navigation waypoint */
 			_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed);
 			_att_sp.roll_body = _l1_control.nav_roll();

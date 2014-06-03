@@ -1,9 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +34,9 @@
 /**
  * @file mission.h
  * Definition of a mission consisting of mission items.
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #ifndef TOPIC_MISSION_H_
@@ -92,9 +92,9 @@ struct mission_item_s {
 	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
 	bool autocontinue;		/**< true if next waypoint should follow after this one */
 	enum ORIGIN origin;		/**< where the waypoint has been generated		*/
-	int do_jump_mission_index;	/**< the mission index that we want to jump to		*/
-	int do_jump_repeat_count;	/**< how many times the jump should be repeated		*/
-	int do_jump_current_count;	/**< how many times the jump has already been repeated	*/
+	int do_jump_mission_index;	/**< index where the do jump will go to                 */
+	unsigned do_jump_repeat_count;	/**< how many times do jump needs to be done            */
+	unsigned do_jump_current_count;	/**< count how many times the jump has been done	*/
 };
 
 struct mission_s
