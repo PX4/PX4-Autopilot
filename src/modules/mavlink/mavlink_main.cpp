@@ -105,7 +105,8 @@ static struct file_operations fops;
  */
 extern "C" __EXPORT int mavlink_main(int argc, char *argv[]);
 
-static uint64_t last_write_times[6] = {0};
+static uint64_t last_write_success_times[6] = {0};
+static uint64_t last_write_try_times[6] = {0};
 
 /*
  * Internal function to send the bytes through the right serial port
@@ -166,38 +167,40 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 	if (instance->get_flow_control_enabled()
 		&& ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
 
-		if (buf_free == 0) {
-
-			if (last_write_times[(unsigned)channel] != 0 &&
-				hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500 * 1000UL) {
-
-				warnx("DISABLING HARDWARE FLOW CONTROL");
-				instance->enable_flow_control(false);
-			}
-
-		} else {
-
-			/* apparently there is space left, although we might be
-			 * partially overflooding the buffer already */
-			last_write_times[(unsigned)channel] = hrt_absolute_time();
+		/* Disable hardware flow control:
+		 * if no successful write since a defined time
+		 * and if the last try was not the last successful write
+		 */
+		if (last_write_try_times[(unsigned)channel] != 0 &&
+			hrt_elapsed_time(&last_write_success_times[(unsigned)channel]) > 500 * 1000UL &&
+			last_write_success_times[(unsigned)channel] !=
+			last_write_try_times[(unsigned)channel])
+		{
+			warnx("DISABLING HARDWARE FLOW CONTROL");
+			instance->enable_flow_control(false);
 		}
+
 	}
 
 	/* If the wait until transmit flag is on, only transmit after we've received messages.
 	   Otherwise, transmit all the time. */
 	if (instance->should_transmit()) {
+		last_write_try_times[(unsigned)channel] = hrt_absolute_time();
 
 		/* check if there is space in the buffer, let it overflow else */
 		if (!ioctl(uart, FIONWRITE, (unsigned long)&buf_free)) {
 
-			if (desired > buf_free) {
-				desired = buf_free;
+			if (buf_free < desired) {
+				/* we don't want to send anything just in half, so return */
+				return;
 			}
 		}
 
 		ssize_t ret = write(uart, ch, desired);
 		if (ret != desired) {
 			warnx("TX FAIL");
+		} else {
+			last_write_success_times[(unsigned)channel] = last_write_try_times[(unsigned)channel];
 		}
 	}
 
@@ -222,6 +225,8 @@ Mavlink::Mavlink() :
 	_subscriptions(nullptr),
 	_streams(nullptr),
 	_mission_pub(-1),
+	_mode(MAVLINK_MODE_NORMAL),
+	_total_counter(0),
 	_verbose(false),
 	_forwarding_on(false),
 	_passing_on(false),
@@ -886,7 +891,7 @@ int Mavlink::map_mavlink_mission_item_to_mission_item(const mavlink_mission_item
 
 	switch (mavlink_mission_item->command) {
 	case MAV_CMD_NAV_TAKEOFF:
-		mission_item->pitch_min = mavlink_mission_item->param2;
+		mission_item->pitch_min = mavlink_mission_item->param1;
 		break;
 	case MAV_CMD_DO_JUMP:
 		mission_item->do_jump_mission_index = mavlink_mission_item->param1;
@@ -894,6 +899,7 @@ int Mavlink::map_mavlink_mission_item_to_mission_item(const mavlink_mission_item
 		break;
 	default:
 		mission_item->acceptance_radius = mavlink_mission_item->param2;
+		mission_item->time_inside = mavlink_mission_item->param1;
 		break;
 	}
 
@@ -902,7 +908,6 @@ int Mavlink::map_mavlink_mission_item_to_mission_item(const mavlink_mission_item
 	mission_item->loiter_direction = (mavlink_mission_item->param3 > 0) ? 1 : -1; /* 1 if positive CW, -1 if negative CCW */
 	mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
 
-	mission_item->time_inside = mavlink_mission_item->param1;
 	mission_item->autocontinue = mavlink_mission_item->autocontinue;
 	// mission_item->index = mavlink_mission_item->seq;
 	mission_item->origin = ORIGIN_MAVLINK;
@@ -924,7 +929,7 @@ int Mavlink::map_mission_item_to_mavlink_mission_item(const struct mission_item_
 
 	switch (mission_item->nav_cmd) {
 	case NAV_CMD_TAKEOFF:
-		mavlink_mission_item->param2 = mission_item->pitch_min;
+		mavlink_mission_item->param1 = mission_item->pitch_min;
 		break;
 
 	case NAV_CMD_DO_JUMP:
@@ -934,6 +939,7 @@ int Mavlink::map_mission_item_to_mavlink_mission_item(const struct mission_item_
 
 	default:
 		mavlink_mission_item->param2 = mission_item->acceptance_radius;
+		mavlink_mission_item->param1 = mission_item->time_inside;
 		break;
 	}
 
@@ -944,7 +950,6 @@ int Mavlink::map_mission_item_to_mavlink_mission_item(const struct mission_item_
 	mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
 	mavlink_mission_item->param3 = mission_item->loiter_radius * (float)mission_item->loiter_direction;
 	mavlink_mission_item->command = mission_item->nav_cmd;
-	mavlink_mission_item->param1 = mission_item->time_inside;
 	mavlink_mission_item->autocontinue = mission_item->autocontinue;
 	// mavlink_mission_item->seq = mission_item->index;
 

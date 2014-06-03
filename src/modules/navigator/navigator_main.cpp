@@ -674,11 +674,10 @@ Navigator::check_mission_item_reached()
 		return _vstatus.condition_landed;
 	}
 
-	/* TODO: count turns */
-	// if ((_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-	//      _mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-	//      _mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED) &&
-	//     _mission_item.loiter_radius > 0.01f) {
+	/* XXX TODO count turns */
+	if ((_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
+	     _mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED) &&
+	    _mission_item.loiter_radius > 0.01f) {
 
 	// 	return false;
 	// }
@@ -695,24 +694,26 @@ Navigator::check_mission_item_reached()
 			acceptance_radius = _parameters.acceptance_radius;
 		}
 
-		float dist = -1.0f;
-		float dist_xy = -1.0f;
-		float dist_z = -1.0f;
-
-		float altitude_amsl = _mission_item.altitude_is_relative
-					? _mission_item.altitude + _home_pos.alt : _mission_item.altitude;
-
-		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, altitude_amsl,
-				_global_pos.lat, _global_pos.lon, _global_pos.alt,
-				&dist_xy, &dist_z);
-
-		if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
-
+		if (_do_takeoff) {
 			/* require only altitude for takeoff */
-			if (_global_pos.alt > altitude_amsl - acceptance_radius) {
+			if (_global_pos.alt > _pos_sp_triplet.current.alt - acceptance_radius) {
 				_waypoint_position_reached = true;
 			}
 		} else {
+			float dist = -1.0f;
+			float dist_xy = -1.0f;
+			float dist_z = -1.0f;
+
+			/* calculate AMSL altitude for this waypoint */
+			float wp_alt_amsl = _mission_item.altitude;
+
+			if (_mission_item.altitude_is_relative)
+				wp_alt_amsl += _home_pos.alt;
+
+			dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, wp_alt_amsl,
+					(double)_global_pos.lat, (double)_global_pos.lon, _global_pos.alt,
+					&dist_xy, &dist_z);
+
 			if (dist >= 0.0f && dist <= acceptance_radius) {
 				_waypoint_position_reached = true;
 			}
@@ -765,7 +766,6 @@ Navigator::reset_reached()
 	_waypoint_yaw_reached = false;
 
 }
-#endif
 void
 Navigator::publish_position_setpoint_triplet()
 {

@@ -1344,7 +1344,7 @@ int commander_thread_main(int argc, char *argv[])
 				home.z = local_position.z;
 
 				warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home.lat, home.lon, (double)home.alt);
-				mavlink_log_info(mavlink_fd, "#audio: home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
+				mavlink_log_info(mavlink_fd, "home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
 
 				/* announce new home position */
 				if (home_pub > 0) {

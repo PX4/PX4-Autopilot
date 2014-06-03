@@ -295,7 +295,7 @@ protected:
 						status->onboard_control_sensors_health,
 						status->load * 1000.0f,
 						status->battery_voltage * 1000.0f,
-						status->battery_current * 1000.0f,
+						status->battery_current * 100.0f,
 						status->battery_remaining * 100.0f,
 						status->drop_rate_comm,
 						status->errors_comm,
