@@ -137,6 +137,7 @@ private:
 	orb_advert_t _cmd_pub;
 	orb_advert_t _flow_pub;
 	orb_advert_t _offboard_control_sp_pub;
+	orb_advert_t _local_pos_sp_pub
 	orb_advert_t _att_sp_pub;
 	orb_advert_t _rates_sp_pub;
 	orb_advert_t _vicon_position_pub;

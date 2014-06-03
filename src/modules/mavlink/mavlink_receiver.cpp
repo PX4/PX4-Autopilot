@@ -102,6 +102,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_cmd_pub(-1),
 	_flow_pub(-1),
 	_offboard_control_sp_pub(-1),
+	_local_pos_sp_pub(-1),
 	_att_sp_pub(-1),
 	_rates_sp_pub(-1),
 	_vicon_position_pub(-1),
@@ -411,7 +412,21 @@ MavlinkReceiver::handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message
 
 			if (_control_mode.flag_control_offboard_enabled) {
 				if (_control_mode.flag_control_position_enabled) {
-					// TODO
+					// TODO Use something else then quad_swarm_roll_pitch_yaw_thrust
+					struct vehicle_local_position_setpoint_s loc_pos_sp;
+					memset(&loc_pos_sp, 0, sizeof(loc_pos_sp));
+
+					loc_pos_sp.x = offboard_control_sp.p1;
+					loc_pos_sp.y = offboard_control_sp.p2;
+					loc_pos_sp.yaw = offboard_control_sp.p3;
+					loc_pos_sp.z = offboard_control_sp.p4;
+
+					if (_local_pos_sp_pub < 0) {
+						_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp_pub);
+
+					} else {
+						orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &loc_pos_sp);
+					}
 
 				} else if (_control_mode.flag_control_velocity_enabled) {
 					// TODO
