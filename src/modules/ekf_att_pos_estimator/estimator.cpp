@@ -2537,6 +2537,8 @@ void AttPosEKF::InitialiseFilter(float (&initvelNED)[3], double referenceLat, do
 
     // we are at reference altitude, so measurement must be zero
     hgtMea = 0.0f;
+    posNE[0] = 0.0f;
+    posNE[1] = 0.0f;
 
     // the baro offset must be this difference now
     baroHgtOffset = baroHgt - referenceHgt;
