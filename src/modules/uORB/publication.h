@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file Publication.h
+ * @file publication.h
  *
  */
 
@@ -45,10 +45,14 @@ namespace uORB
 {
 
 /**
- * Base publication warapper class
+ * Base publication warapper class.
  */
 class __EXPORT Publication
 {
+private:
+	const struct orb_metadata *_meta;
+	orb_advert_t _handle;
+
 public:
 	Publication(const struct orb_metadata *meta) : _meta(meta), _handle(-1) {}
 
@@ -71,13 +75,9 @@ public:
 		return _meta;
 	}
 
-	const int get_handle() const {
+	const orb_advert_t get_handle() const {
 		return _handle;
 	}
-
-protected:
-	const struct orb_metadata *_meta;
-	orb_advert_t _handle;
 };
 
 } // namespace uORB

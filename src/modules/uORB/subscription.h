@@ -32,97 +32,56 @@
  ****************************************************************************/
 
 /**
- * @file Subscription.h
+ * @file subscription.h
  *
  */
 
 #pragma once
 
 #include <uORB/uORB.h>
-#include <containers/List.hpp>
 
 
 namespace uORB
 {
 
 /**
- * Base subscription warapper class, used in list traversal
- * of various subscriptions.
+ * Base subscription warapper class.
  */
-class __EXPORT SubscriptionBase :
-	public ListNode<SubscriptionBase *>
+class __EXPORT Subscription
 {
-public:
-// methods
-
-	/**
-	 * Constructor
-	 *
-	 * @param meta		The uORB metadata (usually from the ORB_ID() macro)
-	 *			for the topic.
-	 */
-	SubscriptionBase(
-		List<SubscriptionBase *> * list,
-		const struct orb_metadata *meta) :
-		_meta(meta),
-		_handle() {
-		if (list != NULL) list->add(this);
-	}
-	bool updated();
-	void update() {
-		if (updated()) {
-			orb_copy(_meta, _handle, getDataVoidPtr());
-		}
-	}
-	virtual void *getDataVoidPtr() = 0;
-	virtual ~SubscriptionBase() {
-		orb_unsubscribe(_handle);
-	}
-// accessors
-	const struct orb_metadata *getMeta() { return _meta; }
-	int getHandle() { return _handle; }
-protected:
-// accessors
-	void setHandle(int handle) { _handle = handle; }
-// attributes
+private:
 	const struct orb_metadata *_meta;
 	int _handle;
-};
 
-/**
- * Subscription wrapper class
- */
-template<class T>
-class __EXPORT Subscription :
-	public T, // this must be first!
-	public SubscriptionBase
-{
 public:
-	/**
-	 * Constructor
-	 *
-	 * @param list      A list interface for adding to list during construction
-	 * @param meta		The uORB metadata (usually from the ORB_ID() macro)
-	 *			for the topic.
-	 * @param interval  The minimum interval in milliseconds between updates
-	 */
-	Subscription(
-		List<SubscriptionBase *> * list,
-		const struct orb_metadata *meta, unsigned interval);
-	/**
-	 * Deconstructor
-	 */
-	virtual ~Subscription();
+	Subscription(const struct orb_metadata *meta) : _meta(meta) {
+		_handle = orb_subscribe(_meta);
+	}
 
-	/*
-	 * XXX
-	 * This function gets the T struct, assuming
-	 * the struct is the first base class, this
-	 * should use dynamic cast, but doesn't
-	 * seem to be available
-	 */
-	void *getDataVoidPtr();
-	T getData();
+	bool update(void *data) {
+		bool updated;
+
+		orb_check(_handle, &updated);
+
+		if (updated) {
+			orb_copy(_meta, _handle, data);
+			return true;
+		}
+
+		return false;
+	}
+
+	virtual ~Subscription() {
+		orb_unsubscribe(_handle);
+	}
+
+	const struct orb_metadata *get_meta() const {
+		return _meta;
+	}
+
+	const int get_handle() const {
+		return _handle;
+	}
 };
 
 } // namespace uORB
