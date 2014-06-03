@@ -68,6 +68,9 @@ struct vehicle_gps_position_s {
 	float eph_m;					/**< GPS HDOP horizontal dilution of position in m */
 	float epv_m;					/**< GPS VDOP horizontal dilution of position in m */
 
+	unsigned noise_per_ms;				/**< */
+	unsigned jamming_indicator;			/**< */
+
 	uint64_t timestamp_velocity;			/**< Timestamp for velocity informations */
 	float vel_m_s;					/**< GPS ground speed (m/s) */
 	float vel_n_m_s;				/**< GPS ground speed in m/s */
@@ -85,7 +88,7 @@ struct vehicle_gps_position_s {
 	uint8_t satellite_used[20];			/**< 0: Satellite not used, 1: used for localization */
 	uint8_t satellite_elevation[20]; 		/**< Elevation (0: right on top of receiver, 90: on the horizon) of satellite */
 	uint8_t satellite_azimuth[20];			/**< Direction of satellite, 0: 0 deg, 255: 360 deg. */
-	uint8_t satellite_snr[20];			/**< Signal to noise ratio of satellite   */
+	uint8_t satellite_snr[20];			/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99, zero when not tracking this satellite. */
 	bool satellite_info_available;			/**< 0 for no info, 1 for info available */
 };
 

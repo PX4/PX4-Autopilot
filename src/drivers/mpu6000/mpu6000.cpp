@@ -1380,7 +1380,6 @@ MPU6000_gyro::init()
 
 	_gyro_class_instance = register_class_devname(GYRO_DEVICE_PATH);
 
-out:
 	return ret;
 }
 

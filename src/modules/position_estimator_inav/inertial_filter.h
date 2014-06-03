@@ -8,6 +8,6 @@
 #include <stdbool.h>
 #include <drivers/drv_hrt.h>
 
-void inertial_filter_predict(float dt, float x[3]);
+void inertial_filter_predict(float dt, float x[3], float acc);
 
 void inertial_filter_correct(float e, float dt, float x[3], int i, float w);

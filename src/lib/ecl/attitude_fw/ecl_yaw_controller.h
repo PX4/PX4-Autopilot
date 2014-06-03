@@ -50,11 +50,14 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <systemlib/perf_counter.h>
 
 class __EXPORT ECL_YawController //XXX: create controller superclass
 {
 public:
 	ECL_YawController();
+
+	~ECL_YawController();
 
 	float control_attitude(float roll, float pitch,
 			float speed_body_u, float speed_body_v, float speed_body_w,
@@ -118,6 +121,7 @@ private:
 	float _rate_setpoint;
 	float _bodyrate_setpoint;
 	float _coordinated_min_speed;
+	perf_counter_t _nonfinite_input_perf;
 
 };
 

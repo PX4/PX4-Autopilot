@@ -105,7 +105,8 @@ static struct file_operations fops;
  */
 extern "C" __EXPORT int mavlink_main(int argc, char *argv[]);
 
-static uint64_t last_write_times[6] = {0};
+static uint64_t last_write_success_times[6] = {0};
+static uint64_t last_write_try_times[6] = {0};
 
 /*
  * Internal function to send the bytes through the right serial port
@@ -149,10 +150,7 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 		instance = Mavlink::get_instance(6);
 		break;
 #endif
-	}
-
-	/* no valid instance, bail */
-	if (!instance) {
+		default:
 		return;
 	}
 
@@ -169,38 +167,40 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 	if (instance->get_flow_control_enabled()
 		&& ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
 
-		if (buf_free == 0) {
-
-			if (last_write_times[(unsigned)channel] != 0 &&
-				hrt_elapsed_time(&last_write_times[(unsigned)channel]) > 500 * 1000UL) {
-
-				warnx("DISABLING HARDWARE FLOW CONTROL");
-				instance->enable_flow_control(false);
-			}
-
-		} else {
-
-			/* apparently there is space left, although we might be
-			 * partially overflooding the buffer already */
-			last_write_times[(unsigned)channel] = hrt_absolute_time();
+		/* Disable hardware flow control:
+		 * if no successful write since a defined time
+		 * and if the last try was not the last successful write
+		 */
+		if (last_write_try_times[(unsigned)channel] != 0 &&
+			hrt_elapsed_time(&last_write_success_times[(unsigned)channel]) > 500 * 1000UL &&
+			last_write_success_times[(unsigned)channel] !=
+			last_write_try_times[(unsigned)channel])
+		{
+			warnx("DISABLING HARDWARE FLOW CONTROL");
+			instance->enable_flow_control(false);
 		}
+
 	}
 
 	/* If the wait until transmit flag is on, only transmit after we've received messages.
 	   Otherwise, transmit all the time. */
 	if (instance->should_transmit()) {
+		last_write_try_times[(unsigned)channel] = hrt_absolute_time();
 
 		/* check if there is space in the buffer, let it overflow else */
 		if (!ioctl(uart, FIONWRITE, (unsigned long)&buf_free)) {
 
-			if (desired > buf_free) {
-				desired = buf_free;
+			if (buf_free < desired) {
+				/* we don't want to send anything just in half, so return */
+				return;
 			}
 		}
 
 		ssize_t ret = write(uart, ch, desired);
 		if (ret != desired) {
 			warnx("TX FAIL");
+		} else {
+			last_write_success_times[(unsigned)channel] = last_write_try_times[(unsigned)channel];
 		}
 	}
 
@@ -211,9 +211,9 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 static void usage(void);
 
 Mavlink::Mavlink() :
-	next(nullptr),
 	_device_name(DEFAULT_DEVICE_NAME),
 	_task_should_exit(false),
+	next(nullptr),
 	_mavlink_fd(-1),
 	_task_running(false),
 	_hil_enabled(false),
@@ -225,6 +225,8 @@ Mavlink::Mavlink() :
 	_subscriptions(nullptr),
 	_streams(nullptr),
 	_mission_pub(-1),
+	_mode(MAVLINK_MODE_NORMAL),
+	_total_counter(0),
 	_verbose(false),
 	_forwarding_on(false),
 	_passing_on(false),
@@ -234,7 +236,6 @@ Mavlink::Mavlink() :
 	_subscribe_to_stream_rate(0.0f),
 	_flow_control_enabled(true),
 	_message_buffer({}),
-
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink"))
 {
@@ -419,7 +420,7 @@ Mavlink::instance_exists(const char *device_name, Mavlink *self)
 void
 Mavlink::forward_message(mavlink_message_t *msg, Mavlink *self)
 {
-	
+
 	Mavlink *inst;
 	LL_FOREACH(_mavlink_instances, inst) {
 		if (inst != self) {
@@ -890,11 +891,12 @@ int Mavlink::map_mavlink_mission_item_to_mission_item(const mavlink_mission_item
 
 	switch (mavlink_mission_item->command) {
 	case MAV_CMD_NAV_TAKEOFF:
-		mission_item->pitch_min = mavlink_mission_item->param2;
+		mission_item->pitch_min = mavlink_mission_item->param1;
 		break;
 
 	default:
 		mission_item->acceptance_radius = mavlink_mission_item->param2;
+		mission_item->time_inside = mavlink_mission_item->param1;
 		break;
 	}
 
@@ -903,7 +905,6 @@ int Mavlink::map_mavlink_mission_item_to_mission_item(const mavlink_mission_item
 	mission_item->loiter_direction = (mavlink_mission_item->param3 > 0) ? 1 : -1; /* 1 if positive CW, -1 if negative CCW */
 	mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
 
-	mission_item->time_inside = mavlink_mission_item->param1;
 	mission_item->autocontinue = mavlink_mission_item->autocontinue;
 	// mission_item->index = mavlink_mission_item->seq;
 	mission_item->origin = ORIGIN_MAVLINK;
@@ -922,11 +923,12 @@ int Mavlink::map_mission_item_to_mavlink_mission_item(const struct mission_item_
 
 	switch (mission_item->nav_cmd) {
 	case NAV_CMD_TAKEOFF:
-		mavlink_mission_item->param2 = mission_item->pitch_min;
+		mavlink_mission_item->param1 = mission_item->pitch_min;
 		break;
 
 	default:
 		mavlink_mission_item->param2 = mission_item->acceptance_radius;
+		mavlink_mission_item->param1 = mission_item->time_inside;
 		break;
 	}
 
@@ -937,7 +939,6 @@ int Mavlink::map_mission_item_to_mavlink_mission_item(const struct mission_item_
 	mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
 	mavlink_mission_item->param3 = mission_item->loiter_radius * (float)mission_item->loiter_direction;
 	mavlink_mission_item->command = mission_item->nav_cmd;
-	mavlink_mission_item->param1 = mission_item->time_inside;
 	mavlink_mission_item->autocontinue = mission_item->autocontinue;
 	// mavlink_mission_item->seq = mission_item->index;
 
@@ -1053,6 +1054,7 @@ void Mavlink::mavlink_wpm_send_waypoint(uint8_t sysid, uint8_t compid, uint16_t 
 
 	} else {
 		mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ERROR);
+		mavlink_missionlib_send_gcs_string("#audio: Unable to read from micro SD");
 
 		if (_verbose) { warnx("ERROR: could not read WP%u", seq); }
 	}
@@ -1439,6 +1441,7 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 
 				if (dm_write(dm_next, wp.seq, DM_PERSIST_IN_FLIGHT_RESET, &mission_item, len) != len) {
 					mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ERROR);
+					mavlink_missionlib_send_gcs_string("#audio: Unable to write on micro SD");
 					_wpm->current_state = MAVLINK_WPM_STATE_IDLE;
 					break;
 				}
@@ -2030,14 +2033,14 @@ Mavlink::task_main(int argc, char *argv[])
 		if (_subscribe_to_stream != nullptr) {
 			if (OK == configure_stream(_subscribe_to_stream, _subscribe_to_stream_rate)) {
 				if (_subscribe_to_stream_rate > 0.0f) {
-					warnx("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, _device_name, _subscribe_to_stream_rate);
+					warnx("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, _device_name, (double)_subscribe_to_stream_rate);
 
 				} else {
 					warnx("stream %s on device %s disabled", _subscribe_to_stream, _device_name);
 				}
 
 			} else {
-				warnx("stream %s not found", _subscribe_to_stream, _device_name);
+				warnx("stream %s on device %s not found", _subscribe_to_stream, _device_name);
 			}
 
 			delete _subscribe_to_stream;
@@ -2243,7 +2246,6 @@ Mavlink::stream(int argc, char *argv[])
 	const char *device_name = DEFAULT_DEVICE_NAME;
 	float rate = -1.0f;
 	const char *stream_name = nullptr;
-	int ch;
 
 	argc -= 2;
 	argv += 2;
@@ -2280,7 +2282,7 @@ Mavlink::stream(int argc, char *argv[])
 		i++;
 	}
 
-	if (!err_flag && rate >= 0.0 && stream_name != nullptr) {
+	if (!err_flag && rate >= 0.0f && stream_name != nullptr) {
 		Mavlink *inst = get_instance_for_device(device_name);
 
 		if (inst != nullptr) {

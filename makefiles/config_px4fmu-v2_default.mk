@@ -40,6 +40,7 @@ MODULES		+= drivers/meas_airspeed
 MODULES		+= drivers/frsky_telemetry
 MODULES		+= modules/sensors
 MODULES		+= drivers/mkblctrl
+MODULES		+= drivers/pca8574
 
 
 # Needs to be burned to the ground and re-written; for now,
