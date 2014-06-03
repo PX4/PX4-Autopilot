@@ -45,7 +45,7 @@ namespace uORB
 {
 
 /**
- * Base publication warapper class.
+ * uORB publication wrapper class.
  */
 class __EXPORT Publication
 {

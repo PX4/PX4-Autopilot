@@ -45,7 +45,7 @@ namespace uORB
 {
 
 /**
- * Base subscription warapper class.
+ * uORB subscription wrapper class.
  */
 class __EXPORT Subscription
 {
