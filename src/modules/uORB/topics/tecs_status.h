@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,51 +32,50 @@
  ****************************************************************************/
 
 /**
- * @file Publication.cpp
+ * @file vehicle_global_position.h
+ * Definition of the global fused WGS84 position uORB topic.
  *
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
  */
 
-#include "Publication.hpp"
-#include "topics/vehicle_attitude.h"
-#include "topics/vehicle_local_position.h"
-#include "topics/vehicle_global_position.h"
-#include "topics/debug_key_value.h"
-#include "topics/actuator_controls.h"
-#include "topics/vehicle_global_velocity_setpoint.h"
-#include "topics/vehicle_attitude_setpoint.h"
-#include "topics/vehicle_rates_setpoint.h"
-#include "topics/actuator_outputs.h"
-#include "topics/encoders.h"
-#include "topics/tecs_status.h"
+#ifndef TECS_STATUS_T_H_
+#define TECS_STATUS_T_H_
 
-namespace uORB {
+#include <stdint.h>
+#include <stdbool.h>
+#include "../uORB.h"
 
-template<class T>
-Publication<T>::Publication(
-	List<PublicationBase *> * list,
-	const struct orb_metadata *meta) :
-	T(), // initialize data structure to zero
-	PublicationBase(list, meta) {
-}
+/**
+ * @addtogroup topics
+ * @{
+ */
 
-template<class T>
-Publication<T>::~Publication() {}
+ /**
+ * Internal values of the (m)TECS fixed wing speed alnd altitude control system
+ */
+struct tecs_status_s {
+	uint64_t timestamp;		/**< timestamp, in microseconds since system start */
 
-template<class T>
-void * Publication<T>::getDataVoidPtr() {
-	return (void *)(T *)(this);
-}
+	float altitudeSp;
+	float altitude;
+	float flightPathAngleSp;
+	float flightPathAngle;
+	float airspeedSp;
+	float airspeed;
+	float airspeedDerivativeSp;
+	float airspeedDerivative;
 
-template class __EXPORT Publication<vehicle_attitude_s>;
-template class __EXPORT Publication<vehicle_local_position_s>;
-template class __EXPORT Publication<vehicle_global_position_s>;
-template class __EXPORT Publication<debug_key_value_s>;
-template class __EXPORT Publication<actuator_controls_s>;
-template class __EXPORT Publication<vehicle_global_velocity_setpoint_s>;
-template class __EXPORT Publication<vehicle_attitude_setpoint_s>;
-template class __EXPORT Publication<vehicle_rates_setpoint_s>;
-template class __EXPORT Publication<actuator_outputs_s>;
-template class __EXPORT Publication<encoders_s>;
-template class __EXPORT Publication<tecs_status_s>;
+	float totalEnergyRateSp;
+	float totalEnergyRate;
+	float energyDistributionRateSp;
+	float energyDistributionRate;
+};
 
-}
+/**
+ * @}
+ */
+
+/* register this as object request broker structure */
+ORB_DECLARE(tecs_status);
+
+#endif
