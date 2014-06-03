@@ -58,7 +58,7 @@
 
 class Navigator;
 
-class Mission : public control::SuperBlock
+class __EXPORT Mission : public control::SuperBlock
 {
 public:
 	/**
@@ -96,6 +96,11 @@ protected:
 	 * Convert a mission item to a position setpoint
 	 */
 	void mission_item_to_position_setpoint(const struct mission_item_s *item, struct position_setpoint_s *sp);
+
+	/**
+	 * Set a loiter item, if possible reuse the position setpoint, otherwise take the current position
+	 */
+	void set_loiter_item(bool reuse_current_pos_sp, struct position_setpoint_triplet_s *pos_sp_triplet);
 
 	class Navigator *_navigator;
 
@@ -179,12 +184,13 @@ private:
 	void publish_mission_result();
 
 	control::BlockParamFloat _param_onboard_enabled;
-
-	int _onboard_mission_sub;
-	int _offboard_mission_sub;
+	control::BlockParamFloat _param_loiter_radius;
 
 	struct mission_s _onboard_mission;
 	struct mission_s _offboard_mission;
+
+	int _current_onboard_mission_index;
+	int _current_offboard_mission_index;
 
 	struct mission_item_s _mission_item;
 
@@ -196,6 +202,8 @@ private:
 		MISSION_TYPE_ONBOARD,
 		MISSION_TYPE_OFFBOARD
 	} _mission_type;
+
+	bool _loiter_set;
 
 	MissionFeasibilityChecker missionFeasiblityChecker; /**< class that checks if a mission is feasible */
 

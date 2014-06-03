@@ -106,6 +106,8 @@ Navigator::Navigator() :
 	_capabilities_sub(-1),
 	_control_mode_sub(-1),
 	_pos_sp_triplet_pub(-1),
+	_onboard_mission_sub(-1),
+	_offboard_mission_sub(-1),
 	_vstatus({}),
 	_control_mode({}),
 	_global_pos({}),
@@ -251,6 +253,8 @@ Navigator::task_main()
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
+	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
+	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 
 	/* copy all topics first time */
 	vehicle_status_update();

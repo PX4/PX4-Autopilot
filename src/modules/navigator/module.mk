@@ -40,6 +40,7 @@ MODULE_COMMAND	= navigator
 SRCS		= navigator_main.cpp \
 		  navigator_params.c \
 		  mission.cpp \
+		  mission_params.c \
 		  rtl.cpp \
 		  mission_feasibility_checker.cpp \
 		  geofence.cpp \

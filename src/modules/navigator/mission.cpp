@@ -62,20 +62,22 @@ Mission::Mission(Navigator *navigator) :
 	_navigator(navigator),
 	_first_run(true),
 	_param_onboard_enabled(this, "ONBOARD_EN"),
+	_param_loiter_radius(this, "LOITER_RAD"),
 	_onboard_mission({0}),
 	_offboard_mission({0}),
+	_current_onboard_mission_index(-1),
+	_current_offboard_mission_index(-1),
 	_mission_item({0}),
 	_mission_result_pub(-1),
 	_mission_result({0}),
-	_mission_type(MISSION_TYPE_NONE)
+	_mission_type(MISSION_TYPE_NONE),
+	_loiter_set(false)
 {
 	/* load initial params */
 	updateParams();
 	/* set initial mission items */
 	reset();
 
-	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
-	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 }
 
 Mission::~Mission()
@@ -86,13 +88,15 @@ void
 Mission::reset()
 {
 	_first_run = true;
+	_loiter_set = false;
 }
 
 bool
 Mission::update(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
+
 	/* check if anything has changed */
-	bool onboard_updated = false; //is_onboard_mission_updated();
+	bool onboard_updated = is_onboard_mission_updated();
 	bool offboard_updated = is_offboard_mission_updated();
 
 	bool updated = false;
@@ -104,10 +108,19 @@ Mission::update(struct position_setpoint_triplet_s *pos_sp_triplet)
 		_first_run = false;
 	}
 
+	/* lets check if we reached the current mission item */
 	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
 		advance_mission();
 		set_mission_items(pos_sp_triplet);
 		updated = true;
+	}
+
+	/* maybe we couldn't actually set a mission, therefore lets set a loiter setpoint */
+	if (_mission_type == MISSION_TYPE_NONE && !_loiter_set) {
+		bool use_current_pos_sp = (pos_sp_triplet->current.valid && _waypoint_position_reached);
+		set_loiter_item(use_current_pos_sp, pos_sp_triplet);
+		updated = true;
+		_loiter_set = true;
 	}
 	return updated;
 }
@@ -195,17 +208,17 @@ Mission::is_mission_item_reached()
 }
 
 void
-Mission::reset_mission_item_reached() {
+Mission::reset_mission_item_reached()
+{
 	_waypoint_position_reached = false;
 	_waypoint_yaw_reached = false;
 	_time_first_inside_orbit = 0;
 }
 
 void
-Mission::mission_item_to_position_setpoint(const mission_item_s *item, position_setpoint_s *sp)
+Mission::mission_item_to_position_setpoint(const struct mission_item_s *item, struct position_setpoint_s *sp)
 {
 	sp->valid = true;
-
 	sp->lat = item->lat;
 	sp->lon = item->lon;
 	sp->alt = item->altitude_is_relative ? item->altitude + _navigator->get_home_position()->alt : item->altitude;
@@ -230,19 +243,56 @@ Mission::mission_item_to_position_setpoint(const mission_item_s *item, position_
 	}
 }
 
+void
+Mission::set_loiter_item(bool reuse_current_pos_sp, struct position_setpoint_triplet_s *pos_sp_triplet)
+{
+	if (reuse_current_pos_sp && pos_sp_triplet->current.valid) {
+		/* nothing to be done, just use the current item */
+	} else {
+		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
+		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
+		pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
+		pos_sp_triplet->current.yaw = NAN;	/* NAN means to use current yaw */
+	}
+	pos_sp_triplet->current.type = SETPOINT_TYPE_LOITER;
+	pos_sp_triplet->current.loiter_radius = _param_loiter_radius.get();
+	pos_sp_triplet->current.loiter_direction = 1;
+
+	pos_sp_triplet->previous.valid = false;
+	pos_sp_triplet->current.valid = true;
+	pos_sp_triplet->next.valid = false;
+}
+
+
 bool
 Mission::is_onboard_mission_updated()
 {
 	bool updated;
-	orb_check(_onboard_mission_sub, &updated);
+	orb_check(_navigator->get_onboard_mission_sub(), &updated);
 
 	if (!updated && !_first_run) {
 		return false;
 	}
 
-	if (orb_copy(ORB_ID(onboard_mission), _onboard_mission_sub, &_onboard_mission) != OK) {
+	if (orb_copy(ORB_ID(onboard_mission), _navigator->get_onboard_mission_sub(), &_onboard_mission) == OK) {
+		/* accept the current index set by the onboard mission if it is within bounds */
+		if (_onboard_mission.current_index >=0
+		&& _onboard_mission.current_index < (int)_onboard_mission.count) {
+			_current_onboard_mission_index = _onboard_mission.current_index;
+		} else {
+			/* if less WPs available, reset to first WP */
+			if (_current_onboard_mission_index >= (int)_onboard_mission.count) {
+				_current_onboard_mission_index = 0;
+			/* if not initialized, set it to 0 */
+			} else if (_current_onboard_mission_index < 0) {
+				_current_onboard_mission_index = 0;
+			}
+			/* otherwise, just leave it */
+		}
+	} else {
 		_onboard_mission.count = 0;
 		_onboard_mission.current_index = 0;
+		_current_onboard_mission_index = 0;
 	}
 	return true;
 }
@@ -251,17 +301,27 @@ bool
 Mission::is_offboard_mission_updated()
 {
 	bool updated;
-	warnx("sub: %d", _offboard_mission_sub);
-	orb_check(_offboard_mission_sub, &updated);
+	orb_check(_navigator->get_offboard_mission_sub(), &updated);
+
 	if (!updated && !_first_run) {
-		warnx("not updated");
 		return false;
 	}
-	struct mission_s offboard_mission;
-	int ret = orb_copy(ORB_ID(offboard_mission), _offboard_mission_sub, &offboard_mission);
-	warnx("ret: %d", ret);
-	if (ret == OK) {
-		warnx("copy new offboard mission");
+	if (orb_copy(ORB_ID(offboard_mission), _navigator->get_offboard_mission_sub(), &_offboard_mission) == OK) {
+
+		/* determine current index */
+		if (_offboard_mission.current_index >= 0
+		    && _offboard_mission.current_index < (int)_offboard_mission.count) {
+			_current_offboard_mission_index = _offboard_mission.current_index;
+		} else {
+			/* if less WPs available, reset to first WP */
+			if (_current_offboard_mission_index >= (int)_offboard_mission.count) {
+				_current_offboard_mission_index = 0;
+			/* if not initialized, set it to 0 */
+			} else if (_current_offboard_mission_index < 0) {
+				_current_offboard_mission_index = 0;
+			}
+			/* otherwise, just leave it */
+		}
 
 		/* Check mission feasibility, for now do not handle the return value,
 		 * however warnings are issued to the gcs via mavlink from inside the MissionFeasiblityChecker */
@@ -278,9 +338,9 @@ Mission::is_offboard_mission_updated()
 							      _navigator->get_geofence(),
 							      _navigator->get_home_position()->alt);
 	} else {
-		warnx("no success with orb_copy");
 		_offboard_mission.count = 0;
 		_offboard_mission.current_index = 0;
+		_current_offboard_mission_index = 0;
 	}
 	return true;
 }
@@ -291,11 +351,11 @@ Mission::advance_mission()
 {
 	switch (_mission_type) {
 	case MISSION_TYPE_ONBOARD:
-		_onboard_mission.current_index++;
+		_current_onboard_mission_index++;
 		break;
 
 	case MISSION_TYPE_OFFBOARD:
-		_offboard_mission.current_index++;
+		_current_offboard_mission_index++;
 		break;
 
 	case MISSION_TYPE_NONE:
@@ -307,17 +367,17 @@ Mission::advance_mission()
 void
 Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
-	warnx("set mission items");
-
 	set_previous_pos_setpoint(&pos_sp_triplet->current, &pos_sp_triplet->previous);
 
 	if (is_current_onboard_mission_item_set(&pos_sp_triplet->current)) {
 		/* try setting onboard mission item */
 		_mission_type = MISSION_TYPE_ONBOARD;
+		_loiter_set = false;
 
 	} else if (is_current_offboard_mission_item_set(&pos_sp_triplet->current)) {
 		/* try setting offboard mission item */
 		_mission_type = MISSION_TYPE_OFFBOARD;
+		_loiter_set = false;
 	} else {
 		_mission_type = MISSION_TYPE_NONE;
 	}
@@ -337,15 +397,18 @@ bool
 Mission::is_current_onboard_mission_item_set(struct position_setpoint_s *current_pos_sp)
 {
 	if (_param_onboard_enabled.get() > 0
-	    && _onboard_mission.current_index < (int)_onboard_mission.count) {
+	    && _current_onboard_mission_index < (int)_onboard_mission.count) {
 		struct mission_item_s new_mission_item;
-		if (read_mission_item(DM_KEY_WAYPOINTS_ONBOARD, true, &_onboard_mission.current_index,
+		if (read_mission_item(DM_KEY_WAYPOINTS_ONBOARD, true, &_current_onboard_mission_index,
 					&new_mission_item)) {
 			/* convert the current mission item and set it valid */
-			mission_item_to_position_setpoint(&_mission_item, current_pos_sp);
+			mission_item_to_position_setpoint(&new_mission_item, current_pos_sp);
 			current_pos_sp->valid = true;
 
+			reset_mission_item_reached();
+
 			/* TODO: report this somehow */
+			memcpy(&_mission_item, &new_mission_item, sizeof(struct mission_item_s));
 			return true;
 		}
 	}
@@ -355,9 +418,7 @@ Mission::is_current_onboard_mission_item_set(struct position_setpoint_s *current
 bool
 Mission::is_current_offboard_mission_item_set(struct position_setpoint_s *current_pos_sp)
 {
-	warnx("try offboard mission: %d, %d", _offboard_mission.current_index, _offboard_mission.count );
-	if (_offboard_mission.current_index < (int)_offboard_mission.count) {
-		warnx("theoretically possible");
+	if (_current_offboard_mission_index < (int)_offboard_mission.count) {
 		dm_item_t dm_current;
 		if (_offboard_mission.dataman_id == 0) {
 			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_0;
@@ -365,18 +426,20 @@ Mission::is_current_offboard_mission_item_set(struct position_setpoint_s *curren
 			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_1;
 		}
 		struct mission_item_s new_mission_item;
-		if (read_mission_item(dm_current, true, &_offboard_mission.current_index, &new_mission_item)) {
+		if (read_mission_item(dm_current, true, &_current_offboard_mission_index, &new_mission_item)) {
 			/* convert the current mission item and set it valid */
-			mission_item_to_position_setpoint(&_mission_item, current_pos_sp);
+			mission_item_to_position_setpoint(&new_mission_item, current_pos_sp);
 			current_pos_sp->valid = true;
 
+			reset_mission_item_reached();
+
 			report_current_offboard_mission_item();
+			memcpy(&_mission_item, &new_mission_item, sizeof(struct mission_item_s));
 			return true;
 		} else {
-			warnx("read fail");
+			warnx("ERROR: WP read fail");
 		}
 	}
-	warnx("failed with offboard mission");
 	return false;
 }
 
@@ -443,6 +506,7 @@ Mission::read_mission_item(const dm_item_t dm_item, bool is_current, int *missio
 		/* check for DO_JUMP item, and whether it hasn't not already been repeated enough times */
 		if (new_mission_item->nav_cmd == NAV_CMD_DO_JUMP) {
 
+			/* TODO: do this check more gracefully since it is not a serious error */
 			if (new_mission_item->do_jump_current_count >= new_mission_item->do_jump_repeat_count) {
 				return false;
 			}
@@ -458,6 +522,7 @@ Mission::read_mission_item(const dm_item_t dm_item, bool is_current, int *missio
 					/* not supposed to happen unless the datamanager can't access the dataman */
 					return false;
 				}
+				/* TODO: report about DO JUMP count */
 			}
 			/* set new mission item index and repeat
 			 * we don't have to validate here, if it's invalid, we should realize this later .*/
@@ -479,7 +544,7 @@ Mission::report_mission_item_reached()
 {
 	if (_mission_type == MISSION_TYPE_OFFBOARD) {
 		_mission_result.mission_reached = true;
-		_mission_result.mission_index_reached = _offboard_mission.current_index;
+		_mission_result.mission_index_reached = _current_offboard_mission_index;
 	}
 	publish_mission_result();
 }
@@ -487,7 +552,7 @@ Mission::report_mission_item_reached()
 void
 Mission::report_current_offboard_mission_item()
 {
-	_mission_result.index_current_mission = _offboard_mission.current_index;
+	_mission_result.index_current_mission = _current_offboard_mission_index;
 	publish_mission_result();
 }
 

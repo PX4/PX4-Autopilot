@@ -87,9 +87,14 @@ public:
 	 */
 	void		load_fence_from_file(const char *filename);
 
+	/**
+	 * Getters
+	 */
 	struct vehicle_status_s* get_vstatus() { return &_vstatus; }
 	struct vehicle_global_position_s* get_global_position() { return &_global_pos; }
 	struct home_position_s* get_home_position() { return &_home_pos; }
+	int get_onboard_mission_sub() { return _onboard_mission_sub; }
+	int get_offboard_mission_sub() { return _offboard_mission_sub; }
 	Geofence& get_geofence() { return _geofence; }
 
 private:
@@ -105,6 +110,8 @@ private:
 	int		_params_sub;			/**< notification of parameter updates */
 	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
+	int		_onboard_mission_sub;		/**< onboard mission subscription */
+	int		_offboard_mission_sub;		/**< offboard mission subscription */
 
 	orb_advert_t	_pos_sp_triplet_pub;		/**< publish position setpoint triplet */
 
