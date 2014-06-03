@@ -145,7 +145,7 @@ AttPosEKF::AttPosEKF()
      * instead to allow clean in-air re-initialization.
      */
 {
-
+    memset(&last_ekf_error, 0, sizeof(last_ekf_error));
     ZeroVariables();
     InitialiseParameters();
 }
@@ -2382,7 +2382,7 @@ int AttPosEKF::CheckAndBound()
 
     // Reset the filter if the IMU data is too old
     if (dtIMU > 0.3f) {
-
+        FillErrorReport(&last_ekf_error);
         ResetVelocity();
         ResetPosition();
         ResetHeight();
@@ -2397,12 +2397,22 @@ int AttPosEKF::CheckAndBound()
 
     // Check if we switched between states
     if (currStaticMode != staticMode) {
+        FillErrorReport(&last_ekf_error);
         ResetVelocity();
         ResetPosition();
         ResetHeight();
         ResetStoredStates();
 
         return 3;
+    }
+
+    // Reset the filter if gyro offsets are excessive
+    if (fabs(states[10]) > 1.0f || fabsf(states[11]) > 1.0f || fabsf(states[12]) > 1.0f) {
+        
+        InitializeDynamic(velNED, magDeclination);
+
+        // that's all we can do here, return
+        return 4;
     }
 
     return 0;
@@ -2530,8 +2540,6 @@ void AttPosEKF::InitialiseFilter(float (&initvelNED)[3], double referenceLat, do
 
     // the baro offset must be this difference now
     baroHgtOffset = baroHgt - referenceHgt;
-
-    memset(&last_ekf_error, 0, sizeof(last_ekf_error));
 
     InitializeDynamic(initvelNED, declination);
 }

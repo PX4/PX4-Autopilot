@@ -200,7 +200,6 @@ public:
     float hgtMea; //  measured height (m)
     float baroHgtOffset;        ///< the baro (weather) offset from normalized altitude
     float rngMea; // Ground distance
-    float posNED[3]; // North, East Down position (m)
 
     float innovMag[3]; // innovation output
     float varInnovMag[3]; // innovation variance output
