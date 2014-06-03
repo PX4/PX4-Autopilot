@@ -59,7 +59,7 @@
 #include <poll.h>
 #include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
-#include <uORB/Publication.hpp>
+#include <uORB/publication.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -112,21 +112,24 @@ private:
 	bool	_task_should_exit;		/**< if true, sensor task should exit */
 	int		_control_task;			/**< task handle for sensor task */
 
-	int		_v_att_sub;				/**< vehicle attitude subscription */
-	int		_v_att_sp_sub;			/**< vehicle attitude setpoint subscription */
-	int		_v_rates_sp_sub;		/**< vehicle rates setpoint subscription */
-	int		_v_control_mode_sub;	/**< vehicle control mode subscription */
-	int		_params_sub;			/**< parameter updates subscription */
-	int		_manual_control_sp_sub;	/**< manual control setpoint subscription */
-	int		_armed_sub;				/**< arming status subscription */
+	uORB::Subscription		_v_att_sub;				/**< vehicle attitude subscription */
+	uORB::Subscription		_v_att_sp_sub;			/**< vehicle attitude setpoint subscription */
+	uORB::Subscription		_v_rates_sp_sub;		/**< vehicle rates setpoint subscription */
+	uORB::Subscription		_v_control_mode_sub;	/**< vehicle control mode subscription */
+	uORB::Subscription		_params_sub;			/**< parameter updates subscription */
+	uORB::Subscription		_manual_control_sp_sub;	/**< manual control setpoint subscription */
+	uORB::Subscription		_armed_sub;				/**< arming status subscription */
 
-	uORB::Publication<vehicle_attitude_setpoint_s>	_att_sp_pub;		/**< attitude setpoint publication */
-	uORB::Publication<vehicle_rates_setpoint_s>		_rates_sp_pub;		/**< rate setpoint publication */
-	uORB::Publication<actuator_controls_s>			_actuators_0_pub;	/**< attitude actuator controls publication */
+	uORB::Publication	_att_sp_pub;			/**< attitude setpoint publication */
+	uORB::Publication	_v_rates_sp_pub;		/**< rate setpoint publication */
+	uORB::Publication	_actuators_0_pub;		/**< attitude actuator controls publication */
 
 	struct vehicle_attitude_s			_v_att;				/**< vehicle attitude */
+	struct vehicle_attitude_setpoint_s	_v_att_sp;			/**< vehicle attitude setpoint */
+	struct vehicle_rates_setpoint_s		_v_rates_sp;		/**< vehicle rates setpoint */
 	struct manual_control_setpoint_s	_manual_control_sp;	/**< manual control setpoint */
 	struct vehicle_control_mode_s		_v_control_mode;	/**< vehicle control mode */
+	struct actuator_controls_s			_actuators;			/**< actuator controls */
 	struct actuator_armed_s				_armed;				/**< actuator arming status */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
@@ -185,36 +188,6 @@ private:
 	int			parameters_update();
 
 	/**
-	 * Check for parameter update and handle it.
-	 */
-	void		parameter_update_poll();
-
-	/**
-	 * Check for changes in vehicle control mode.
-	 */
-	void		vehicle_control_mode_poll();
-
-	/**
-	 * Check for changes in manual inputs.
-	 */
-	void		vehicle_manual_poll();
-
-	/**
-	 * Check for attitude setpoint updates.
-	 */
-	void		vehicle_attitude_setpoint_poll();
-
-	/**
-	 * Check for rates setpoint updates.
-	 */
-	void		vehicle_rates_setpoint_poll();
-
-	/**
-	 * Check for arming status updates.
-	 */
-	void		arming_status_poll();
-
-	/**
 	 * Attitude controller.
 	 */
 	void		control_attitude(float dt);
@@ -253,16 +226,16 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_control_task(-1),
 
 /* subscriptions */
-	_v_att_sub(-1),
-	_v_att_sp_sub(-1),
-	_v_control_mode_sub(-1),
-	_params_sub(-1),
-	_manual_control_sp_sub(-1),
-	_armed_sub(-1),
+	_v_att_sub(ORB_ID(vehicle_attitude)),
+	_v_att_sp_sub(ORB_ID(vehicle_attitude_setpoint)),
+	_v_control_mode_sub(ORB_ID(vehicle_control_mode)),
+	_params_sub(ORB_ID(parameter_update)),
+	_manual_control_sp_sub(ORB_ID(manual_control_setpoint)),
+	_armed_sub(ORB_ID(actuator_armed)),
 
 /* publications */
 	_att_sp_pub(ORB_ID(vehicle_attitude_setpoint)),
-	_rates_sp_pub(ORB_ID(vehicle_rates_setpoint)),
+	_v_rates_sp_pub(ORB_ID(vehicle_rates_setpoint)),
 	_actuators_0_pub(ORB_ID_VEHICLE_ATTITUDE_CONTROLS),
 
 /* performance counters */
@@ -270,8 +243,11 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 {
 	memset(&_v_att, 0, sizeof(_v_att));
+	memset(&_v_att_sp, 0, sizeof(_v_att_sp));
+	memset(&_v_rates_sp, 0, sizeof(_v_rates_sp));
 	memset(&_manual_control_sp, 0, sizeof(_manual_control_sp));
 	memset(&_v_control_mode, 0, sizeof(_v_control_mode));
+	memset(&_actuators, 0, sizeof(_actuators));
 	memset(&_armed, 0, sizeof(_armed));
 
 	_params.att_p.zero();
@@ -400,83 +376,6 @@ MulticopterAttitudeControl::parameters_update()
 	return OK;
 }
 
-void
-MulticopterAttitudeControl::parameter_update_poll()
-{
-	bool updated;
-
-	/* Check HIL state if vehicle status has changed */
-	orb_check(_params_sub, &updated);
-
-	if (updated) {
-		struct parameter_update_s param_update;
-		orb_copy(ORB_ID(parameter_update), _params_sub, &param_update);
-		parameters_update();
-	}
-}
-
-void
-MulticopterAttitudeControl::vehicle_control_mode_poll()
-{
-	bool updated;
-
-	/* Check HIL state if vehicle status has changed */
-	orb_check(_v_control_mode_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_control_mode), _v_control_mode_sub, &_v_control_mode);
-	}
-}
-
-void
-MulticopterAttitudeControl::vehicle_manual_poll()
-{
-	bool updated;
-
-	/* get pilots inputs */
-	orb_check(_manual_control_sp_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(manual_control_setpoint), _manual_control_sp_sub, &_manual_control_sp);
-	}
-}
-
-void
-MulticopterAttitudeControl::vehicle_attitude_setpoint_poll()
-{
-	/* check if there is a new setpoint */
-	bool updated;
-	orb_check(_v_att_sp_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_attitude_setpoint), _v_att_sp_sub, &_att_sp_pub);
-	}
-}
-
-void
-MulticopterAttitudeControl::vehicle_rates_setpoint_poll()
-{
-	/* check if there is a new setpoint */
-	bool updated;
-	orb_check(_v_rates_sp_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_sub, &_rates_sp_pub);
-	}
-}
-
-void
-MulticopterAttitudeControl::arming_status_poll()
-{
-	/* check if there is a new setpoint */
-	bool updated;
-	orb_check(_armed_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
-	}
-}
-
 /*
  * Attitude controller.
  * Input: 'manual_control_setpoint' and 'vehicle_attitude_setpoint' topics (depending on mode)
@@ -493,12 +392,12 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 		if (_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_climb_rate_enabled) {
 			/* in assisted modes poll 'vehicle_attitude_setpoint' topic and modify it */
-			vehicle_attitude_setpoint_poll();
+			(void) _v_att_sp_sub.update(_v_att_sp);
 		}
 
 		if (!_v_control_mode.flag_control_climb_rate_enabled) {
 			/* pass throttle directly if not in altitude stabilized mode */
-			_att_sp_pub.thrust = _manual_control_sp.z;
+			_v_att_sp.thrust = _manual_control_sp.z;
 			publish_att_sp = true;
 		}
 
@@ -508,7 +407,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		}
 
 		/* move yaw setpoint in all modes */
-		if (_att_sp_pub.thrust < 0.1f) {
+		if (_v_att_sp.thrust < 0.1f) {
 			// TODO
 			//if (_status.condition_landed) {
 			/* reset yaw setpoint if on ground */
@@ -517,65 +416,71 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		} else {
 			/* move yaw setpoint */
 			yaw_sp_move_rate = _manual_control_sp.r * _params.man_yaw_max;
-			_att_sp_pub.yaw_body = _wrap_pi(_att_sp_pub.yaw_body + yaw_sp_move_rate * dt);
+			_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + yaw_sp_move_rate * dt);
 			float yaw_offs_max = _params.man_yaw_max / _params.att_p(2);
-			float yaw_offs = _wrap_pi(_att_sp_pub.yaw_body - _v_att.yaw);
+			float yaw_offs = _wrap_pi(_v_att_sp.yaw_body - _v_att.yaw);
 			if (yaw_offs < - yaw_offs_max) {
-				_att_sp_pub.yaw_body = _wrap_pi(_v_att.yaw - yaw_offs_max);
+				_v_att_sp.yaw_body = _wrap_pi(_v_att.yaw - yaw_offs_max);
 
 			} else if (yaw_offs > yaw_offs_max) {
-				_att_sp_pub.yaw_body = _wrap_pi(_v_att.yaw + yaw_offs_max);
+				_v_att_sp.yaw_body = _wrap_pi(_v_att.yaw + yaw_offs_max);
 			}
-			_att_sp_pub.R_valid = false;
+			_v_att_sp.R_valid = false;
 			publish_att_sp = true;
 		}
 
 		/* reset yaw setpint to current position if needed */
 		if (_reset_yaw_sp) {
 			_reset_yaw_sp = false;
-			_att_sp_pub.yaw_body = _v_att.yaw;
-			_att_sp_pub.R_valid = false;
+			_v_att_sp.yaw_body = _v_att.yaw;
+			_v_att_sp.R_valid = false;
 			publish_att_sp = true;
 		}
 
 		if (!_v_control_mode.flag_control_velocity_enabled) {
 			/* update attitude setpoint if not in position control mode */
-			_att_sp_pub.roll_body = _manual_control_sp.y * _params.man_roll_max;
-			_att_sp_pub.pitch_body = -_manual_control_sp.x * _params.man_pitch_max;
-			_att_sp_pub.R_valid = false;
+			_v_att_sp.roll_body = _manual_control_sp.y * _params.man_roll_max;
+			_v_att_sp.pitch_body = -_manual_control_sp.x * _params.man_pitch_max;
+			_v_att_sp.R_valid = false;
 			publish_att_sp = true;
 		}
 
 	} else {
 		/* in non-manual mode use 'vehicle_attitude_setpoint' topic */
-		vehicle_attitude_setpoint_poll();
+		(void) _v_att_sp_sub.update(_v_att_sp);
 
 		/* reset yaw setpoint after non-manual control mode */
 		_reset_yaw_sp = true;
 	}
 
-	_thrust_sp = _att_sp_pub.thrust;
+	_thrust_sp = _v_att_sp.thrust;
 
 	/* construct attitude setpoint rotation matrix */
 	math::Matrix<3, 3> R_sp;
 
-	if (_att_sp_pub.R_valid) {
+	if (_v_att_sp.R_valid) {
 		/* rotation matrix in _att_sp is valid, use it */
-		R_sp.set(&_att_sp_pub.R_body[0][0]);
+		R_sp.set(&_v_att_sp.R_body[0][0]);
 
 	} else {
 		/* rotation matrix in _att_sp is not valid, use euler angles instead */
-		R_sp.from_euler(_att_sp_pub.roll_body, _att_sp_pub.pitch_body, _att_sp_pub.yaw_body);
+		R_sp.from_euler(_v_att_sp.roll_body, _v_att_sp.pitch_body, _v_att_sp.yaw_body);
 
 		/* copy rotation matrix back to setpoint struct */
-		memcpy(&_att_sp_pub.R_body[0][0], &R_sp.data[0][0], sizeof(_att_sp_pub.R_body));
-		_att_sp_pub.R_valid = true;
+		memcpy(&_v_att_sp.R_body[0][0], &R_sp.data[0][0], sizeof(_v_att_sp.R_body));
+		_v_att_sp.R_valid = true;
 	}
 
 	/* publish the attitude setpoint if needed */
 	if (publish_att_sp) {
-		_att_sp_pub.timestamp = hrt_absolute_time();
-		_att_sp_pub.publish();
+		_v_att_sp.timestamp = hrt_absolute_time();
+
+		if (_att_sp_pub > 0) {
+			orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_v_att_sp);
+
+		} else {
+			_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_v_att_sp);
+		}
 	}
 
 	/* rotation matrix for current state */
@@ -763,22 +668,25 @@ MulticopterAttitudeControl::task_main()
 			orb_copy(ORB_ID(vehicle_attitude), _v_att_sub, &_v_att);
 
 			/* check for updates in other topics */
-			parameter_update_poll();
-			vehicle_control_mode_poll();
-			arming_status_poll();
-			vehicle_manual_poll();
+			struct parameter_update_s param_update;
+			if (_params_sub.update(param_update)) {
+				parameters_update();
+			}
+			(void) _v_control_mode_sub.update(_v_control_mode);
+			(void) _armed_sub.update(_armed);
+			(void) _manual_control_sp_sub.update(_manual_control_sp);
 
 			if (_v_control_mode.flag_control_attitude_enabled) {
 				control_attitude(dt);
 
 				/* publish attitude rates setpoint */
-				_rates_sp_pub.roll = _rates_sp(0);
-				_rates_sp_pub.pitch = _rates_sp(1);
-				_rates_sp_pub.yaw = _rates_sp(2);
-				_rates_sp_pub.thrust = _thrust_sp;
-				_rates_sp_pub.timestamp = hrt_absolute_time();
+				_v_rates_sp.roll = _rates_sp(0);
+				_v_rates_sp.pitch = _rates_sp(1);
+				_v_rates_sp.yaw = _rates_sp(2);
+				_v_rates_sp.thrust = _thrust_sp;
+				_v_rates_sp.timestamp = hrt_absolute_time();
 
-				_rates_sp_pub.publish();
+				_v_rates_sp_pub.publish(&_v_rates_sp);
 
 			} else {
 				/* attitude controller disabled, poll rates setpoint topic */
@@ -791,21 +699,26 @@ MulticopterAttitudeControl::task_main()
 					_reset_yaw_sp = true;
 
 					/* publish attitude rates setpoint */
-					_rates_sp_pub.roll = _rates_sp(0);
-					_rates_sp_pub.pitch = _rates_sp(1);
-					_rates_sp_pub.yaw = _rates_sp(2);
-					_rates_sp_pub.thrust = _thrust_sp;
-					_rates_sp_pub.timestamp = hrt_absolute_time();
+					_v_rates_sp.roll = _rates_sp(0);
+					_v_rates_sp.pitch = _rates_sp(1);
+					_v_rates_sp.yaw = _rates_sp(2);
+					_v_rates_sp.thrust = _thrust_sp;
+					_v_rates_sp.timestamp = hrt_absolute_time();
 
-					_rates_sp_pub.publish();
+					if (_v_rates_sp_pub > 0) {
+						orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
+
+					} else {
+						_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_v_rates_sp);
+					}
 
 				} else {
 					/* attitude controller disabled, poll rates setpoint topic */
-					vehicle_rates_setpoint_poll();
-					_rates_sp(0) = _rates_sp_pub.roll;
-					_rates_sp(1) = _rates_sp_pub.pitch;
-					_rates_sp(2) = _rates_sp_pub.yaw;
-					_thrust_sp = _rates_sp_pub.thrust;
+					_v_rates_sp_sub.update(_v_rates_sp);
+					_rates_sp(0) = _v_rates_sp.roll;
+					_rates_sp(1) = _v_rates_sp.pitch;
+					_rates_sp(2) = _v_rates_sp.yaw;
+					_thrust_sp = _v_rates_sp.thrust;
 				}
 			}
 
@@ -813,13 +726,18 @@ MulticopterAttitudeControl::task_main()
 				control_attitude_rates(dt);
 
 				/* publish actuator controls */
-				_actuators_0_pub.control[0] = (isfinite(_att_control(0))) ? _att_control(0) : 0.0f;
-				_actuators_0_pub.control[1] = (isfinite(_att_control(1))) ? _att_control(1) : 0.0f;
-				_actuators_0_pub.control[2] = (isfinite(_att_control(2))) ? _att_control(2) : 0.0f;
-				_actuators_0_pub.control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
-				_actuators_0_pub.timestamp = hrt_absolute_time();
+				_actuators.control[0] = (isfinite(_att_control(0))) ? _att_control(0) : 0.0f;
+				_actuators.control[1] = (isfinite(_att_control(1))) ? _att_control(1) : 0.0f;
+				_actuators.control[2] = (isfinite(_att_control(2))) ? _att_control(2) : 0.0f;
+				_actuators.control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
+				_actuators.timestamp = hrt_absolute_time();
 
-				_actuators_0_pub.publish();
+				if (_actuators_0_pub > 0) {
+					orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
+
+				} else {
+					_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
+				}
 			}
 		}
 
