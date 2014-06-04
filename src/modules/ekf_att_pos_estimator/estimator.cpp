@@ -2283,21 +2283,21 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
 
     // check all integrators
     if (!isfinite(summedDelAng.x) || !isfinite(summedDelAng.y) || !isfinite(summedDelAng.z)) {
-        err_report->statesNaN = true;
+        err_report->angNaN = true;
         ekf_debug("summedDelAng NaN: x: %f y: %f z: %f", (double)summedDelAng.x, (double)summedDelAng.y, (double)summedDelAng.z);
         err = true;
         goto out;
     } // delta angles
 
     if (!isfinite(correctedDelAng.x) || !isfinite(correctedDelAng.y) || !isfinite(correctedDelAng.z)) {
-        err_report->statesNaN = true;
+        err_report->angNaN = true;
         ekf_debug("correctedDelAng NaN: x: %f y: %f z: %f", (double)correctedDelAng.x, (double)correctedDelAng.y, (double)correctedDelAng.z);
         err = true;
         goto out;
     } // delta angles
 
     if (!isfinite(summedDelVel.x) || !isfinite(summedDelVel.y) || !isfinite(summedDelVel.z)) {
-        err_report->statesNaN = true;
+        err_report->summedDelVelNaN = true;
         ekf_debug("summedDelVel NaN: x: %f y: %f z: %f", (double)summedDelVel.x, (double)summedDelVel.y, (double)summedDelVel.z);
         err = true;
         goto out;
@@ -2308,7 +2308,7 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
         for (unsigned j = 0; j < n_states; j++) {
             if (!isfinite(KH[i][j])) {
 
-                err_report->covarianceNaN = true;
+                err_report->KHNaN = true;
                 err = true;
                 ekf_debug("KH NaN");
                 goto out;
@@ -2316,7 +2316,7 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
 
             if (!isfinite(KHP[i][j])) {
 
-                err_report->covarianceNaN = true;
+                err_report->KHPNaN = true;
                 err = true;
                 ekf_debug("KHP NaN");
                 goto out;

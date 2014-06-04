@@ -66,9 +66,14 @@ struct ekf_status_report {
     uint32_t posFailTime;
     uint32_t hgtFailTime;
     float states[n_states];
-    bool statesNaN;
+    bool angNaN;
+    bool summedDelVelNaN;
+    bool KHNaN;
+    bool KHPNaN;
+    bool PNaN;
     bool covarianceNaN;
     bool kalmanGainsNaN;
+    bool statesNaN;
 };
 
 class AttPosEKF {
