@@ -58,7 +58,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	RTL(Navigator *navigator);
+	RTL(Navigator *navigator, const char *name);
 
 	/**
 	 * Destructor

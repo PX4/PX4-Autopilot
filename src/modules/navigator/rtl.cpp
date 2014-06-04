@@ -51,8 +51,8 @@
 
 #include "rtl.h"
 
-RTL::RTL(Navigator *navigator) :
-	Mission(navigator),
+RTL::RTL(Navigator *navigator, const char *name) :
+	Mission(navigator, name),
 	_mavlink_fd(-1),
 	_rtl_state(RTL_STATE_NONE),
 	_home_position({}),

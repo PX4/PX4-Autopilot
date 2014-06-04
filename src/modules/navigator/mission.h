@@ -64,7 +64,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	Mission(Navigator *navigator);
+	Mission(Navigator *navigator, const char *name);
 
 	/**
 	 * Destructor

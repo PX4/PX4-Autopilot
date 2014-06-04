@@ -57,8 +57,8 @@
 #include "mission.h"
 
 
-Mission::Mission(Navigator *navigator) :
-	SuperBlock(NULL, "MIS"),
+Mission::Mission(Navigator *navigator, const char *name) :
+	SuperBlock(NULL, name),
 	_navigator(navigator),
 	_first_run(true),
 	_param_onboard_enabled(this, "ONBOARD_EN"),
