@@ -133,7 +133,7 @@ private:
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;	/**< vehicle global velocity setpoint */
-	struct offboard_control_setpoint_s 	_offboard_control_pos_sp; /**< offboard control position setpoint
+	struct vehicle_local_position_setpoint_s 	_offboard_control_pos_sp; /**< offboard control position setpoint */
 		
 
 	struct {
@@ -532,7 +532,7 @@ MulticopterPositionControl::task_main()
 	_arming_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
-	_offboard_control_pos_sp_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
+	_offboard_control_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 
 	parameters_update(true);
 
@@ -676,15 +676,15 @@ MulticopterPositionControl::task_main()
 				orb_check(_offboard_control_pos_sp_sub, &updated);
 
 				if (updated) {
-					orb_copy(ORB_ID(offboard_control_setpoint), _offboard_control_pos_sp_sub,
+					orb_copy(ORB_ID(vehicle_local_position_setpoint), _offboard_control_pos_sp_sub,
 					         &_offboard_control_pos_sp);
 				}
 
 				/* Hopefully no one dies from this */
-				pos(0) = _offboard_control_pos_sp.p1;
-				pos(1) = _offboard_control_pos_sp.p2;
-				pos(2) = _offboard_control_pos_sp.p4;
-				_att_sp.yaw_body = _offboard_control_pos_sp.p3;
+				_pos_sp(0) = _offboard_control_pos_sp.x;
+				_pos_sp(1) = _offboard_control_pos_sp.y;
+				_pos_sp(2) = _offboard_control_pos_sp.z;
+				_att_sp.yaw_body = _offboard_control_pos_sp.yaw;
 			
 			} else {
 				/* AUTO */

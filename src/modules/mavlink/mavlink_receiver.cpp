@@ -379,6 +379,7 @@ MavlinkReceiver::handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message
 
 		case 4:
 			ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_POSITION;
+			ml_armed = true;
 			break;
 		default:
 			break;
