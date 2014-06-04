@@ -58,7 +58,8 @@
 PARAM_DEFINE_INT32(MT_ENABLED, 1);
 
 /**
- * Total Energy Rate Control FF
+ * Total Energy Rate Control Feedforward
+ * Maps the total energy rate setpoint to the throttle setpoint
  *
  * @min 0.0
  * @max 10.0
@@ -68,6 +69,7 @@ PARAM_DEFINE_FLOAT(MT_THR_FF, 0.2f);
 
 /**
  * Total Energy Rate Control P
+ * Maps the total energy rate error to the throttle setpoint
  *
  * @min 0.0
  * @max 10.0
@@ -77,6 +79,7 @@ PARAM_DEFINE_FLOAT(MT_THR_P, 0.03f);
 
 /**
  * Total Energy Rate Control I
+ * Maps the integrated total energy rate to the throttle setpoint
  *
  * @min 0.0
  * @max 10.0
@@ -85,7 +88,7 @@ PARAM_DEFINE_FLOAT(MT_THR_P, 0.03f);
 PARAM_DEFINE_FLOAT(MT_THR_I, 0.1f);
 
 /**
- * Total Energy Rate Control OFF (Cruise throttle)
+ * Total Energy Rate Control Offset (Cruise throttle sp)
  *
  * @min 0.0
  * @max 10.0
@@ -94,7 +97,8 @@ PARAM_DEFINE_FLOAT(MT_THR_I, 0.1f);
 PARAM_DEFINE_FLOAT(MT_THR_OFF, 0.7f);
 
 /**
- * Energy Distribution Rate Control FF
+ * Energy Distribution Rate Control Feedforward
+ * Maps the energy distribution rate setpoint to the pitch setpoint
  *
  * @min 0.0
  * @max 10.0
@@ -104,6 +108,7 @@ PARAM_DEFINE_FLOAT(MT_PIT_FF, 0.1f);
 
 /**
  * Energy Distribution Rate Control P
+ * Maps the energy distribution rate error to the pitch setpoint
  *
  * @min 0.0
  * @max 10.0
@@ -113,6 +118,7 @@ PARAM_DEFINE_FLOAT(MT_PIT_P, 0.03f);
 
 /**
  * Energy Distribution Rate Control I
+ * Maps the integrated energy distribution rate error to the pitch setpoint
  *
  * @min 0.0
  * @max 10.0
@@ -122,7 +128,7 @@ PARAM_DEFINE_FLOAT(MT_PIT_I, 0.03f);
 
 
 /**
- * Total Energy Distribution OFF (Cruise pitch sp)
+ * Total Energy Distribution Offset (Cruise pitch sp)
  *
  * @min 0.0
  * @max 10.0
@@ -170,6 +176,7 @@ PARAM_DEFINE_FLOAT(MT_PIT_MAX, 20.0f);
 
 /**
  * P gain for the altitude control
+ * Maps the altitude error to the flight path angle setpoint
  *
  * @min 0.0f
  * @max 10.0f
@@ -179,6 +186,7 @@ PARAM_DEFINE_FLOAT(MT_FPA_P, 0.2f);
 
 /**
  * D gain for the altitude control
+ * Maps the change of altitude error to the flight path angle setpoint
  *
  * @min 0.0f
  * @max 10.0f
@@ -187,7 +195,7 @@ PARAM_DEFINE_FLOAT(MT_FPA_P, 0.2f);
 PARAM_DEFINE_FLOAT(MT_FPA_D, 0.0f);
 
 /**
- * Lowpass for FPA error derivative (see MT_FPA_D)
+ * Lowpass for FPA error derivative calculation (see MT_FPA_D)
  *
  * @group mTECS
  */
@@ -217,6 +225,7 @@ PARAM_DEFINE_FLOAT(MT_FPA_MAX, 30.0f);
 
 /**
  * P gain for the airspeed control
+ * Maps the airspeed error to the acceleration setpoint
  *
  * @min 0.0f
  * @max 10.0f
@@ -241,7 +250,7 @@ PARAM_DEFINE_FLOAT(MT_ACC_MIN, -40.0f);
 PARAM_DEFINE_FLOAT(MT_ACC_MAX, 40.0f);
 
 /**
- * Airspeed derivative lowpass
+ * Airspeed derivative calculation lowpass
  *
  * @group mTECS
  */
