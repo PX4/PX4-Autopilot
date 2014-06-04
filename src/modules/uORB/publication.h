@@ -75,7 +75,7 @@ public:
 		return _meta;
 	}
 
-	const orb_advert_t get_handle() const {
+	orb_advert_t get_handle() const {
 		return _handle;
 	}
 };

@@ -58,17 +58,26 @@ public:
 		_handle = orb_subscribe(_meta);
 	}
 
+	/**
+	 * Update subscription. If update available put it to 'data' and return 'true'.
+	 * If update is not available or error return 'false'.
+	 */
 	bool update(void *data) {
 		bool updated;
 
-		orb_check(_handle, &updated);
-
-		if (updated) {
-			orb_copy(_meta, _handle, data);
-			return true;
+		if (!orb_check(_handle, &updated) && updated) {
+			return !orb_copy(_meta, _handle, data);
 		}
 
 		return false;
+	}
+
+	/**
+	 * Copy topic to 'data'. Return 'true' if topic was published at least once.
+	 * If topic was never published or error return 'false'.
+	 */
+	bool copy(void *data) {
+		return !orb_copy(_meta, _handle, data);
 	}
 
 	virtual ~Subscription() {
@@ -79,7 +88,7 @@ public:
 		return _meta;
 	}
 
-	const int get_handle() const {
+	int get_handle() const {
 		return _handle;
 	}
 };

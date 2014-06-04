@@ -59,8 +59,9 @@
 #include <poll.h>
 #include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
-#include <uORB/publication.h>
 #include <uORB/uORB.h>
+#include <uORB/subscription.h>
+#include <uORB/publication.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
@@ -228,6 +229,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 /* subscriptions */
 	_v_att_sub(ORB_ID(vehicle_attitude)),
 	_v_att_sp_sub(ORB_ID(vehicle_attitude_setpoint)),
+	_v_rates_sp_sub(ORB_ID(vehicle_rates_setpoint)),
 	_v_control_mode_sub(ORB_ID(vehicle_control_mode)),
 	_params_sub(ORB_ID(parameter_update)),
 	_manual_control_sp_sub(ORB_ID(manual_control_setpoint)),
@@ -392,7 +394,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 		if (_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_climb_rate_enabled) {
 			/* in assisted modes poll 'vehicle_attitude_setpoint' topic and modify it */
-			(void) _v_att_sp_sub.update(_v_att_sp);
+			(void) _v_att_sp_sub.update(&_v_att_sp);
 		}
 
 		if (!_v_control_mode.flag_control_climb_rate_enabled) {
@@ -447,7 +449,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 	} else {
 		/* in non-manual mode use 'vehicle_attitude_setpoint' topic */
-		(void) _v_att_sp_sub.update(_v_att_sp);
+		(void) _v_att_sp_sub.update(&_v_att_sp);
 
 		/* reset yaw setpoint after non-manual control mode */
 		_reset_yaw_sp = true;
@@ -475,12 +477,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	if (publish_att_sp) {
 		_v_att_sp.timestamp = hrt_absolute_time();
 
-		if (_att_sp_pub > 0) {
-			orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_v_att_sp);
-
-		} else {
-			_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_v_att_sp);
-		}
+		_att_sp_pub.publish(&_v_att_sp);
 	}
 
 	/* rotation matrix for current state */
@@ -611,24 +608,13 @@ MulticopterAttitudeControl::task_main()
 	warnx("started");
 	fflush(stdout);
 
-	/*
-	 * do subscriptions
-	 */
-	_v_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-	_v_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
-	_v_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_v_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-
 	/* initialize parameters cache */
 	parameters_update();
 
 	/* wakeup source: vehicle attitude */
 	struct pollfd fds[1];
 
-	fds[0].fd = _v_att_sub;
+	fds[0].fd = _v_att_sub.get_handle();
 	fds[0].events = POLLIN;
 
 	while (!_task_should_exit) {
@@ -665,16 +651,16 @@ MulticopterAttitudeControl::task_main()
 			}
 
 			/* copy attitude topic */
-			orb_copy(ORB_ID(vehicle_attitude), _v_att_sub, &_v_att);
+			_v_att_sub.copy(&_v_att);
 
 			/* check for updates in other topics */
 			struct parameter_update_s param_update;
-			if (_params_sub.update(param_update)) {
+			if (_params_sub.update(&param_update)) {
 				parameters_update();
 			}
-			(void) _v_control_mode_sub.update(_v_control_mode);
-			(void) _armed_sub.update(_armed);
-			(void) _manual_control_sp_sub.update(_manual_control_sp);
+			(void) _v_control_mode_sub.update(&_v_control_mode);
+			(void) _armed_sub.update(&_armed);
+			(void) _manual_control_sp_sub.update(&_manual_control_sp);
 
 			if (_v_control_mode.flag_control_attitude_enabled) {
 				control_attitude(dt);
@@ -705,16 +691,11 @@ MulticopterAttitudeControl::task_main()
 					_v_rates_sp.thrust = _thrust_sp;
 					_v_rates_sp.timestamp = hrt_absolute_time();
 
-					if (_v_rates_sp_pub > 0) {
-						orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
-
-					} else {
-						_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_v_rates_sp);
-					}
+					_v_rates_sp_pub.publish(&_v_rates_sp);
 
 				} else {
 					/* attitude controller disabled, poll rates setpoint topic */
-					_v_rates_sp_sub.update(_v_rates_sp);
+					_v_rates_sp_sub.update(&_v_rates_sp);
 					_rates_sp(0) = _v_rates_sp.roll;
 					_rates_sp(1) = _v_rates_sp.pitch;
 					_rates_sp(2) = _v_rates_sp.yaw;
@@ -732,12 +713,7 @@ MulticopterAttitudeControl::task_main()
 				_actuators.control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
 				_actuators.timestamp = hrt_absolute_time();
 
-				if (_actuators_0_pub > 0) {
-					orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
-
-				} else {
-					_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
-				}
+				_actuators_0_pub.publish(&_actuators);
 			}
 		}
 
