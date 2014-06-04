@@ -118,6 +118,7 @@ private:
 	int		_arming_sub;			/**< arming status of outputs */
 	int		_local_pos_sub;			/**< vehicle local position */
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
+	int 	_offboard_control_pos_sp_sub;	/**< offboard control position setpoint */
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
@@ -132,6 +133,8 @@ private:
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;	/**< vehicle global velocity setpoint */
+	struct offboard_control_setpoint_s 	_offboard_control_pos_sp; /**< offboard control position setpoint
+		
 
 	struct {
 		param_t thr_min;
@@ -277,6 +280,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	memset(&_pos_sp_triplet, 0, sizeof(_pos_sp_triplet));
 	memset(&_local_pos_sp, 0, sizeof(_local_pos_sp));
 	memset(&_global_vel_sp, 0, sizeof(_global_vel_sp));
+	memset(&_offboard_control_pos_sp, 0, sizeof(_offboard_control_pos_sp));
 
 	memset(&_ref_pos, 0, sizeof(_ref_pos));
 
@@ -528,6 +532,7 @@ MulticopterPositionControl::task_main()
 	_arming_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
+	_offboard_control_pos_sp_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
 
 	parameters_update(true);
 
@@ -664,6 +669,23 @@ MulticopterPositionControl::task_main()
 					_pos_sp = _pos + pos_sp_offs.emult(_params.sp_offs_max);
 				}
 
+			} else if (_control_mode.flag_control_offboard_enabled) {
+				/* Offboard control */
+				/* Team elikos doesn't really know what it is doing */
+				bool updated;
+				orb_check(_offboard_control_pos_sp_sub, &updated);
+
+				if (updated) {
+					orb_copy(ORB_ID(offboard_control_setpoint), _offboard_control_pos_sp_sub,
+					         &_offboard_control_pos_sp);
+				}
+
+				/* Hopefully no one dies from this */
+				pos(0) = _offboard_control_pos_sp.p1;
+				pos(1) = _offboard_control_pos_sp.p2;
+				pos(2) = _offboard_control_pos_sp.p4;
+				_att_sp.yaw_body = _offboard_control_pos_sp.p3;
+			
 			} else {
 				/* AUTO */
 				bool updated;
