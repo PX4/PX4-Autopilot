@@ -92,6 +92,7 @@ private:
 	float		_loiter_radius;
 	float		_acceptance_radius;
 
+	control::BlockParamFloat _param_loiter_rad;
 	control::BlockParamFloat _param_return_alt;
 	control::BlockParamFloat _param_descend_alt;
 	control::BlockParamFloat _param_land_delay;

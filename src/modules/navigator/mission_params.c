@@ -48,9 +48,20 @@
  */
 
 /**
- * Loiter radius (fixed wing only)
+ * Take-off altitude
  *
- * Default value of loiter radius (if not specified in mission item).
+ * Even if first waypoint has altitude less then MIS_TAKEOFF_ALT above home position, system will climb to
+ * MIS_TAKEOFF_ALT on takeoff, then go to waypoint.
+ *
+ * @unit meters
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 10.0f);
+
+/**
+ * Loiter radius after/during mission (FW only)
+ *
+ * Default value of loiter radius (fixedwing only).
  *
  * @unit meters
  * @min 0.0

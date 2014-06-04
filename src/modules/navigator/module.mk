@@ -38,10 +38,10 @@
 MODULE_COMMAND	= navigator
 
 SRCS		= navigator_main.cpp \
-		  navigator_params.c \
 		  mission.cpp \
 		  mission_params.c \
 		  rtl.cpp \
+		  rtl_params.c \
 		  mission_feasibility_checker.cpp \
 		  geofence.cpp \
 		  geofence_params.c

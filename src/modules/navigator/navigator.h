@@ -107,7 +107,6 @@ private:
 	int		_global_pos_sub;		/**< global position subscription */
 	int		_home_pos_sub;			/**< home position subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
-	int		_params_sub;			/**< notification of parameter updates */
 	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
 	int		_onboard_mission_sub;		/**< onboard mission subscription */
@@ -142,25 +141,6 @@ private:
 	uint64_t	_time_first_inside_orbit;	/**< the time when we were first in the acceptance radius of the mission item */
 
 	bool		_update_triplet;		/**< flags if position setpoint triplet needs to be published */
-
-	struct {
-		float acceptance_radius;
-		float loiter_radius;
-		int onboard_mission_enabled;
-		float takeoff_alt;
-	}		_parameters;			/**< local copies of parameters */
-
-	struct {
-		param_t acceptance_radius;
-		param_t loiter_radius;
-		param_t onboard_mission_enabled;
-		param_t takeoff_alt;
-	}		_parameter_handles;		/**< handles for parameters */
-
-	/**
-	 * Update our local parameter cache.
-	 */
-	void		parameters_update();
 
 	/**
 	 * Retrieve global position

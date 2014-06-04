@@ -64,12 +64,10 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
 #include <uORB/topics/navigation_capabilities.h>
 
-#include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 #include <geo/geo.h>
@@ -102,7 +100,6 @@ Navigator::Navigator() :
 	_global_pos_sub(-1),
 	_home_pos_sub(-1),
 	_vstatus_sub(-1),
-	_params_sub(-1),
 	_capabilities_sub(-1),
 	_control_mode_sub(-1),
 	_pos_sp_triplet_pub(-1),
@@ -127,14 +124,8 @@ Navigator::Navigator() :
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
 	_time_first_inside_orbit(0),
-	_update_triplet(false),
-	_parameters({}),
-	_parameter_handles({})
+	_update_triplet(false)
 {
-	_parameter_handles.acceptance_radius = param_find("NAV_ACCEPT_RAD");
-	_parameter_handles.loiter_radius = param_find("NAV_LOITER_RAD");
-	_parameter_handles.onboard_mission_enabled = param_find("NAV_ONB_MIS_EN");
-	_parameter_handles.takeoff_alt = param_find("NAV_TAKEOFF_ALT");
 }
 
 Navigator::~Navigator()
@@ -160,23 +151,6 @@ Navigator::~Navigator()
 	}
 
 	navigator::g_navigator = nullptr;
-}
-
-void
-Navigator::parameters_update()
-{
-	/* read from param to clear updated flag */
-	struct parameter_update_s update;
-	orb_copy(ORB_ID(parameter_update), _params_sub, &update);
-
-	param_get(_parameter_handles.acceptance_radius, &(_parameters.acceptance_radius));
-	param_get(_parameter_handles.loiter_radius, &(_parameters.loiter_radius));
-	param_get(_parameter_handles.onboard_mission_enabled, &(_parameters.onboard_mission_enabled));
-	param_get(_parameter_handles.takeoff_alt, &(_parameters.takeoff_alt));
-
-	//_mission.set_onboard_mission_allowed((bool)_parameters.onboard_mission_enabled);
-
-	_geofence.updateParams();
 }
 
 void
@@ -251,7 +225,6 @@ Navigator::task_main()
 	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
@@ -259,7 +232,6 @@ Navigator::task_main()
 	/* copy all topics first time */
 	vehicle_status_update();
 	vehicle_control_mode_update();
-	parameters_update();
 	global_position_update();
 	home_position_update();
 	navigation_capabilities_update();
@@ -271,21 +243,19 @@ Navigator::task_main()
 	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source(s) */
-	struct pollfd fds[6];
+	struct pollfd fds[5];
 
 	/* Setup of loop */
-	fds[0].fd = _params_sub;
+	fds[0].fd = _global_pos_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _global_pos_sub;
+	fds[1].fd = _home_pos_sub;
 	fds[1].events = POLLIN;
-	fds[2].fd = _home_pos_sub;
+	fds[2].fd = _capabilities_sub;
 	fds[2].events = POLLIN;
-	fds[3].fd = _capabilities_sub;
+	fds[3].fd = _vstatus_sub;
 	fds[3].events = POLLIN;
-	fds[4].fd = _vstatus_sub;
+	fds[4].fd = _control_mode_sub;
 	fds[4].events = POLLIN;
-	fds[5].fd = _control_mode_sub;
-	fds[5].events = POLLIN;
 
 	while (!_task_should_exit) {
 
@@ -311,33 +281,27 @@ Navigator::task_main()
 		}
 
 		/* vehicle control mode updated */
-		if (fds[5].revents & POLLIN) {
+		if (fds[4].revents & POLLIN) {
 			vehicle_control_mode_update();
 		}
 
 		/* vehicle status updated */
-		if (fds[4].revents & POLLIN) {
+		if (fds[3].revents & POLLIN) {
 			vehicle_status_update();
 		}
 
-		/* parameters updated */
-		if (fds[0].revents & POLLIN) {
-			parameters_update();
-			/* note that these new parameters won't be in effect until a mission triplet is published again */
-		}
-
 		/* navigation capabilities updated */
-		if (fds[3].revents & POLLIN) {
+		if (fds[2].revents & POLLIN) {
 			navigation_capabilities_update();
 		}
 
 		/* home position updated */
-		if (fds[2].revents & POLLIN) {
+		if (fds[1].revents & POLLIN) {
 			home_position_update();
 		}
 
 		/* global position updated */
-		if (fds[1].revents & POLLIN) {
+		if (fds[0].revents & POLLIN) {
 			global_position_update();
 
 			/* Check geofence violation */

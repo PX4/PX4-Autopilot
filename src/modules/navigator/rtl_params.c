@@ -48,6 +48,17 @@
  */
 
 /**
+ * Loiter radius after RTL (FW only)
+ *
+ * Default value of loiter radius after RTL (fixedwing only).
+ *
+ * @unit meters
+ * @min 0.0
+ * @group RTL
+ */
+PARAM_DEFINE_FLOAT(RTL_LOITER_RAD, 50.0f);
+
+/**
  * RTL altitude
  *
  * Altitude to fly back in RTL in meters
