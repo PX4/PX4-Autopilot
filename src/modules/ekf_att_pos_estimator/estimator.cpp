@@ -2610,6 +2610,12 @@ void AttPosEKF::ZeroVariables()
 
 void AttPosEKF::GetFilterState(struct ekf_status_report *state)
 {
+
+    // Copy states
+    for (unsigned i = 0; i < n_states; i++) {
+        current_ekf_state.states[i] = states[i];
+    }
+
     memcpy(state, &current_ekf_state, sizeof(*state));
 }
 

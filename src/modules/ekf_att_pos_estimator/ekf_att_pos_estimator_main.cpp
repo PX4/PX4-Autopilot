@@ -1042,33 +1042,30 @@ FixedwingEstimator::task_main()
 			if (_ekf_logging || check) {
 				rep.timestamp = hrt_absolute_time();
 
-				rep.nan_flags |= (((uint8_t)ekf_report.angNaN) << 0);
-				rep.nan_flags |= (((uint8_t)ekf_report.summedDelVelNaN) << 1);
-				rep.nan_flags |= (((uint8_t)ekf_report.KHNaN) << 2);
-				rep.nan_flags |= (((uint8_t)ekf_report.KHPNaN) << 3);
-				rep.nan_flags |= (((uint8_t)ekf_report.PNaN) << 4);
-				rep.nan_flags |= (((uint8_t)ekf_report.covarianceNaN) << 5);
-				rep.nan_flags |= (((uint8_t)ekf_report.kalmanGainsNaN) << 6);
-				rep.nan_flags |= (((uint8_t)ekf_report.statesNaN) << 7);
+				rep.nan_flags |= (((uint8_t)ekf_report.angNaN)		<< 0);
+				rep.nan_flags |= (((uint8_t)ekf_report.summedDelVelNaN)	<< 1);
+				rep.nan_flags |= (((uint8_t)ekf_report.KHNaN)		<< 2);
+				rep.nan_flags |= (((uint8_t)ekf_report.KHPNaN)		<< 3);
+				rep.nan_flags |= (((uint8_t)ekf_report.PNaN)		<< 4);
+				rep.nan_flags |= (((uint8_t)ekf_report.covarianceNaN)	<< 5);
+				rep.nan_flags |= (((uint8_t)ekf_report.kalmanGainsNaN)	<< 6);
+				rep.nan_flags |= (((uint8_t)ekf_report.statesNaN)	<< 7);
 
-				rep.health_flags |= (((uint8_t)ekf_report.velHealth) << 0);
-				rep.health_flags |= (((uint8_t)ekf_report.posHealth) << 1);
-				rep.health_flags |= (((uint8_t)ekf_report.hgtHealth) << 2);
+				rep.health_flags |= (((uint8_t)ekf_report.velHealth)	<< 0);
+				rep.health_flags |= (((uint8_t)ekf_report.posHealth)	<< 1);
+				rep.health_flags |= (((uint8_t)ekf_report.hgtHealth)	<< 2);
 
-				rep.timeout_flags |= (((uint8_t)ekf_report.velTimeout) << 0);
-				rep.timeout_flags |= (((uint8_t)ekf_report.posTimeout) << 1);
-				rep.timeout_flags |= (((uint8_t)ekf_report.hgtTimeout) << 2);
+				rep.timeout_flags |= (((uint8_t)ekf_report.velTimeout)	<< 0);
+				rep.timeout_flags |= (((uint8_t)ekf_report.posTimeout)	<< 1);
+				rep.timeout_flags |= (((uint8_t)ekf_report.hgtTimeout)	<< 2);
 
 				// Copy all states or at least all that we can fit
-				unsigned i = 0;
 				unsigned ekf_n_states = (sizeof(ekf_report.states) / sizeof(ekf_report.states[0]));
 				unsigned max_states = (sizeof(rep.states) / sizeof(rep.states[0]));
 				rep.n_states = (ekf_n_states < max_states) ? ekf_n_states : max_states;
 
-				while ((i < ekf_n_states) && (i < max_states)) {
-
+				for (unsigned i = 0; i < rep.n_states; i++) {
 					rep.states[i] = ekf_report.states[i];
-					i++;
 				}
 
 				if (_estimator_status_pub > 0) {
