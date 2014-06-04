@@ -680,12 +680,6 @@ MulticopterPositionControl::task_main()
 					         &_offboard_control_pos_sp);
 				}
 
-				/* Hopefully no one dies from this */
-				_pos_sp(0) = _offboard_control_pos_sp.x;
-				_pos_sp(1) = _offboard_control_pos_sp.y;
-				_pos_sp(2) = _offboard_control_pos_sp.z;
-				_att_sp.yaw_body = _offboard_control_pos_sp.yaw;
-
 				/* Make sure position control is selected i.e. not only velocity control */
 				if (_control_mode.flag_control_position_enabled) {
 				_pos_sp(0) = _offboard_control_pos_sp.x;
