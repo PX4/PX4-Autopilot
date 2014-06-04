@@ -44,14 +44,12 @@
 
 #include <containers/List.hpp>
 
-// forward declaration
-namespace uORB {
-	class SubscriptionBase;
-	class PublicationBase;
-}
-
 namespace control
 {
+
+// forward declaration
+class SubscriptionBase;
+class PublicationBase;
 
 static const uint16_t maxChildrenPerBlock = 100;
 static const uint16_t maxParamsPerBlock = 100;
@@ -83,15 +81,15 @@ public:
 protected:
 // accessors
 	SuperBlock *getParent() { return _parent; }
-	List<uORB::SubscriptionBase *> & getSubscriptions() { return _subscriptions; }
-	List<uORB::PublicationBase *> & getPublications() { return _publications; }
+	List<control::SubscriptionBase *> & getSubscriptions() { return _subscriptions; }
+	List<control::PublicationBase *> & getPublications() { return _publications; }
 	List<BlockParamBase *> & getParams() { return _params; }
 // attributes
 	const char *_name;
 	SuperBlock *_parent;
 	float _dt;
-	List<uORB::SubscriptionBase *> _subscriptions;
-	List<uORB::PublicationBase *> _publications;
+	List<control::SubscriptionBase *> _subscriptions;
+	List<control::PublicationBase *> _publications;
 	List<BlockParamBase *> _params;
 };
 

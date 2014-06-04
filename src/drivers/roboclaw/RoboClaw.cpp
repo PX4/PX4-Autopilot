@@ -53,7 +53,7 @@
 #include <arch/board/board.h>
 #include <mavlink/mavlink_log.h>
 
-#include <uORB/Publication.hpp>
+#include <controllib/uorb/Publication.hpp>
 #include <uORB/topics/debug_key_value.h>
 #include <drivers/drv_hrt.h>
 
