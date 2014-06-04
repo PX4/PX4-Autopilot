@@ -135,6 +135,11 @@ public:
 	 */
 	int		trip_nan();
 
+	/**
+	 * Enable logging.
+	 */
+	int		enable_logging(bool enable);
+
 private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
@@ -202,6 +207,7 @@ private:
 	bool						_gyro_valid;
 	bool						_accel_valid;
 	bool						_mag_valid;
+	bool						_ekf_logging;		///< log EKF state
 
 	int						_mavlink_fd;
 
@@ -356,6 +362,7 @@ FixedwingEstimator::FixedwingEstimator() :
 	_gyro_valid(false),
 	_accel_valid(false),
 	_mag_valid(false),
+	_ekf_logging(true),
 	_mavlink_fd(-1),
 	_ekf(nullptr)
 {
@@ -445,6 +452,14 @@ FixedwingEstimator::~FixedwingEstimator()
 	}
 
 	estimator::g_estimator = nullptr;
+}
+
+int
+FixedwingEstimator::enable_logging(bool logging)
+{
+	_ekf_logging = logging;
+
+	return 0;
 }
 
 int
@@ -992,38 +1007,15 @@ FixedwingEstimator::task_main()
 				warnx("NUMERIC ERROR IN FILTER");
 			}
 
+			struct estimator_status_report rep;
+			memset(&rep, 0, sizeof(rep));
+
+			struct ekf_status_report ekf_report;
+
 			// If non-zero, we got a filter reset
 			if (check > 0 && check != 3) {
 
-				struct ekf_status_report ekf_report;
-
 				_ekf->GetLastErrorState(&ekf_report);
-
-				struct estimator_status_report rep;
-				memset(&rep, 0, sizeof(rep));
-				rep.timestamp = hrt_absolute_time();
-
-				rep.states_nan = ekf_report.statesNaN;
-				rep.covariance_nan = ekf_report.covarianceNaN;
-				rep.kalman_gain_nan = ekf_report.kalmanGainsNaN;
-
-				// Copy all states or at least all that we can fit
-				unsigned i = 0;
-				unsigned ekf_n_states = (sizeof(ekf_report.states) / sizeof(ekf_report.states[0]));
-				unsigned max_states = (sizeof(rep.states) / sizeof(rep.states[0]));
-				rep.n_states = (ekf_n_states < max_states) ? ekf_n_states : max_states;
-
-				while ((i < ekf_n_states) && (i < max_states)) {
-
-					rep.states[i] = ekf_report.states[i];
-					i++;
-				}
-
-				if (_estimator_status_pub > 0) {
-					orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &rep);
-				} else {
-					_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &rep);
-				}
 
 				/* set sensors to de-initialized state */
 				_gyro_valid = false;
@@ -1043,6 +1035,47 @@ FixedwingEstimator::task_main()
 				// Let the system re-initialize itself
 				continue;
 
+			} else if (_ekf_logging) {
+				_ekf->GetFilterState(&ekf_report);
+			}
+
+			if (_ekf_logging || check) {
+				rep.timestamp = hrt_absolute_time();
+
+				rep.nan_flags |= (((uint8_t)ekf_report.angNaN) << 0);
+				rep.nan_flags |= (((uint8_t)ekf_report.summedDelVelNaN) << 1);
+				rep.nan_flags |= (((uint8_t)ekf_report.KHNaN) << 2);
+				rep.nan_flags |= (((uint8_t)ekf_report.KHPNaN) << 3);
+				rep.nan_flags |= (((uint8_t)ekf_report.PNaN) << 4);
+				rep.nan_flags |= (((uint8_t)ekf_report.covarianceNaN) << 5);
+				rep.nan_flags |= (((uint8_t)ekf_report.kalmanGainsNaN) << 6);
+				rep.nan_flags |= (((uint8_t)ekf_report.statesNaN) << 7);
+
+				rep.health_flags |= (((uint8_t)ekf_report.velHealth) << 0);
+				rep.health_flags |= (((uint8_t)ekf_report.posHealth) << 1);
+				rep.health_flags |= (((uint8_t)ekf_report.hgtHealth) << 2);
+
+				rep.timeout_flags |= (((uint8_t)ekf_report.velTimeout) << 0);
+				rep.timeout_flags |= (((uint8_t)ekf_report.posTimeout) << 1);
+				rep.timeout_flags |= (((uint8_t)ekf_report.hgtTimeout) << 2);
+
+				// Copy all states or at least all that we can fit
+				unsigned i = 0;
+				unsigned ekf_n_states = (sizeof(ekf_report.states) / sizeof(ekf_report.states[0]));
+				unsigned max_states = (sizeof(rep.states) / sizeof(rep.states[0]));
+				rep.n_states = (ekf_n_states < max_states) ? ekf_n_states : max_states;
+
+				while ((i < ekf_n_states) && (i < max_states)) {
+
+					rep.states[i] = ekf_report.states[i];
+					i++;
+				}
+
+				if (_estimator_status_pub > 0) {
+					orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &rep);
+				} else {
+					_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &rep);
+				}
 			}
 
 
@@ -1503,7 +1536,7 @@ int FixedwingEstimator::trip_nan() {
 int ekf_att_pos_estimator_main(int argc, char *argv[])
 {
 	if (argc < 1)
-		errx(1, "usage: ekf_att_pos_estimator {start|stop|status}");
+		errx(1, "usage: ekf_att_pos_estimator {start|stop|status|logging}");
 
 	if (!strcmp(argv[1], "start")) {
 
@@ -1549,6 +1582,17 @@ int ekf_att_pos_estimator_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "trip")) {
 		if (estimator::g_estimator) {
 			int ret = estimator::g_estimator->trip_nan();
+
+			exit(ret);
+
+		} else {
+			errx(1, "not running");
+		}
+	}
+
+	if (!strcmp(argv[1], "logging")) {
+		if (estimator::g_estimator) {
+			int ret = estimator::g_estimator->enable_logging(true);
 
 			exit(ret);
 
