@@ -58,6 +58,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/optical_flow.h>
 #include <mavlink/mavlink_log.h>
@@ -78,6 +79,7 @@ static int position_estimator_inav_task; /**< Handle of deamon task / thread */
 static bool verbose_mode = false;
 
 static const hrt_abstime gps_topic_timeout = 1000000;		// GPS topic timeout = 1s
+static const hrt_abstime vision_topic_timeout = 1000000;	// Vision topic timeout = 1s
 static const hrt_abstime flow_topic_timeout = 1000000;	// optical flow topic timeout = 1s
 static const hrt_abstime sonar_timeout = 150000;	// sonar timeout = 150ms
 static const hrt_abstime sonar_valid_timeout = 1000000;	// estimate sonar distance during this time after sonar loss
@@ -270,6 +272,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	bool sonar_valid = false;		// sonar is valid
 	bool flow_valid = false;		// flow is valid
 	bool flow_accurate = false;		// flow should be accurate (this flag not updated if flow_valid == false)
+	bool vision_valid = false;
 
 	/* declare and safely initialize all structs */
 	struct actuator_controls_s actuator;
@@ -288,6 +291,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&local_pos, 0, sizeof(local_pos));
 	struct optical_flow_s flow;
 	memset(&flow, 0, sizeof(flow));
+	struct vision_position_estimate vision;
+	memset(&vision, 0, sizeof(vision));
 	struct vehicle_global_position_s global_pos;
 	memset(&global_pos, 0, sizeof(global_pos));
 
@@ -299,6 +304,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	int vision_position_estimate_sub = orb_subscribe(ORB_ID(vision_position_estimate));
 	int home_position_sub = orb_subscribe(ORB_ID(home_position));
 
 	/* advertise */
@@ -587,6 +593,53 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				}
 			}
 
+
+			/* check no vision circuit breaker is set */
+			if (params.no_vision != CBRK_NO_VISION) {
+				/* vehicle vision position */
+				orb_check(vision_position_estimate_sub, &updated);
+
+
+
+				// XXX THIS IS EVIL UNTESTED CODE
+				// set CBRK_NO_VISION to 0 to disengage the circuit breaker
+				// and activate this section
+
+
+				if (updated) {
+					orb_copy(ORB_ID(vision_position_estimate), vision_position_estimate_sub, &vision);
+
+					/* reset position estimate on first vision update */
+					if (!vision_valid) {
+						x_est[0] = vision.x;
+						x_est[1] = vision.vx;
+						y_est[0] = vision.y;
+						y_est[1] = vision.vy;
+						z_est[0] = vision.z;
+						z_est[1] = vision.vz;
+
+						vision_valid = true;
+					}
+
+					/* calculate correction for position */
+					corr_gps[0][0] = vision.x - x_est[0];
+					corr_gps[1][0] = vision.y - y_est[0];
+					corr_gps[2][0] = vision.z - z_est[0];
+
+					/* calculate correction for velocity */
+					corr_gps[0][1] = vision.vx - x_est[1];
+					corr_gps[1][1] = vision.vy - y_est[1];
+					corr_gps[2][1] = vision.vz - z_est[1];
+
+					eph = 0.05f;
+					epv = 0.05f;
+
+					w_gps_xy = min_eph_epv / fmaxf(min_eph_epv, gps.eph_m);
+					w_gps_z = min_eph_epv / fmaxf(min_eph_epv, gps.epv_m);
+
+				}
+			}
+
 			/* vehicle GPS position */
 			orb_check(vehicle_gps_position_sub, &updated);
 
@@ -706,6 +759,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			mavlink_log_info(mavlink_fd, "[inav] GPS timeout");
 		}
 
+		/* check for timeout on vision topic */
+		if (vision_valid && t > vision.timestamp_boot + vision_topic_timeout) {
+			vision_valid = false;
+			warnx("VISION timeout");
+			mavlink_log_info(mavlink_fd, "[inav] VISION timeout");
+		}
+
 		/* check for sonar measurement timeout */
 		if (sonar_valid && t > sonar_time + sonar_timeout) {
 			corr_sonar = 0.0f;
@@ -731,7 +791,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			xy_src_time = t;
 		}
 
-		bool can_estimate_xy = eph < max_eph_epv * 1.5;
+		bool can_estimate_xy = (eph < max_eph_epv * 1.5) || vision_valid;
 
 		bool dist_bottom_valid = (t < sonar_valid_time + sonar_valid_timeout);
 
