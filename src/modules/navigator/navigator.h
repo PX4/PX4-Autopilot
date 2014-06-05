@@ -49,6 +49,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 
 #include "mission.h"
+#include "loiter.h"
 #include "rtl.h"
 #include "geofence.h"
 
@@ -88,14 +89,20 @@ public:
 	void		load_fence_from_file(const char *filename);
 
 	/**
+	 * Setters
+	 */
+	void		set_is_in_loiter(bool is_in_loiter) { _is_in_loiter = is_in_loiter; }
+
+	/**
 	 * Getters
 	 */
-	struct vehicle_status_s* get_vstatus() { return &_vstatus; }
-	struct vehicle_global_position_s* get_global_position() { return &_global_pos; }
-	struct home_position_s* get_home_position() { return &_home_pos; }
-	int get_onboard_mission_sub() { return _onboard_mission_sub; }
-	int get_offboard_mission_sub() { return _offboard_mission_sub; }
-	Geofence& get_geofence() { return _geofence; }
+	struct vehicle_status_s*	    get_vstatus() { return &_vstatus; }
+	struct vehicle_global_position_s*   get_global_position() { return &_global_pos; }
+	struct home_position_s*		    get_home_position() { return &_home_pos; }
+	int		get_onboard_mission_sub() { return _onboard_mission_sub; }
+	int		get_offboard_mission_sub() { return _offboard_mission_sub; }
+	Geofence&	get_geofence() { return _geofence; }
+	bool		get_is_in_loiter() { return _is_in_loiter; }
 
 private:
 
@@ -133,14 +140,11 @@ private:
 	bool		_inside_fence;			/**< vehicle is inside fence */
 
 	Mission		_mission;			/**< class that handles the missions */
-	//Loiter		_loiter;			/**< class that handles loiter */
+	Loiter		_loiter;			/**< class that handles loiter */
 	RTL 		_rtl;				/**< class that handles RTL */
 
-	bool		_waypoint_position_reached;	/**< flags if the position of the mission item has been reached */
-	bool		_waypoint_yaw_reached;		/**< flags if the yaw position of the mission item has been reached */
-	uint64_t	_time_first_inside_orbit;	/**< the time when we were first in the acceptance radius of the mission item */
-
-	bool		_update_triplet;		/**< flags if position setpoint triplet needs to be published */
+	bool		_is_in_loiter;			/**< flags if current position SP can be used to loiter */
+	bool		_update_triplet;		/**< flags if position SP triplet needs to be published */
 
 	/**
 	 * Retrieve global position

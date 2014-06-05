@@ -70,8 +70,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_mission_item({0}),
 	_mission_result_pub(-1),
 	_mission_result({0}),
-	_mission_type(MISSION_TYPE_NONE),
-	_loiter_set(false)
+	_mission_type(MISSION_TYPE_NONE)
 {
 	/* load initial params */
 	updateParams();
@@ -88,13 +87,11 @@ void
 Mission::reset()
 {
 	_first_run = true;
-	_loiter_set = false;
 }
 
 bool
 Mission::update(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
-
 	/* check if anything has changed */
 	bool onboard_updated = is_onboard_mission_updated();
 	bool offboard_updated = is_offboard_mission_updated();
@@ -115,13 +112,6 @@ Mission::update(struct position_setpoint_triplet_s *pos_sp_triplet)
 		updated = true;
 	}
 
-	/* maybe we couldn't actually set a mission, therefore lets set a loiter setpoint */
-	if (_mission_type == MISSION_TYPE_NONE && !_loiter_set) {
-		bool use_current_pos_sp = (pos_sp_triplet->current.valid && _waypoint_position_reached);
-		set_loiter_item(use_current_pos_sp, pos_sp_triplet);
-		updated = true;
-		_loiter_set = true;
-	}
 	return updated;
 }
 
@@ -243,12 +233,18 @@ Mission::mission_item_to_position_setpoint(const struct mission_item_s *item, st
 	}
 }
 
-void
+bool
 Mission::set_loiter_item(bool reuse_current_pos_sp, struct position_setpoint_triplet_s *pos_sp_triplet)
 {
+	if (_navigator->get_is_in_loiter()) {
+		/* already loitering, bail out */
+		return false;
+	}
+
 	if (reuse_current_pos_sp && pos_sp_triplet->current.valid) {
-		/* nothing to be done, just use the current item */
+		/* leave position setpoint as is */
 	} else {
+		/* use current position */
 		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
 		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
 		pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
@@ -261,6 +257,9 @@ Mission::set_loiter_item(bool reuse_current_pos_sp, struct position_setpoint_tri
 	pos_sp_triplet->previous.valid = false;
 	pos_sp_triplet->current.valid = true;
 	pos_sp_triplet->next.valid = false;
+
+	_navigator->set_is_in_loiter(true);
+	return true;
 }
 
 
@@ -372,14 +371,18 @@ Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
 	if (is_current_onboard_mission_item_set(&pos_sp_triplet->current)) {
 		/* try setting onboard mission item */
 		_mission_type = MISSION_TYPE_ONBOARD;
-		_loiter_set = false;
+		_navigator->set_is_in_loiter(false);
 
 	} else if (is_current_offboard_mission_item_set(&pos_sp_triplet->current)) {
 		/* try setting offboard mission item */
 		_mission_type = MISSION_TYPE_OFFBOARD;
-		_loiter_set = false;
+		_navigator->set_is_in_loiter(false);
 	} else {
 		_mission_type = MISSION_TYPE_NONE;
+
+		bool use_current_pos_sp = pos_sp_triplet->current.valid && _waypoint_position_reached;
+		reset_mission_item_reached();
+		set_loiter_item(use_current_pos_sp, pos_sp_triplet);
 	}
 }
 

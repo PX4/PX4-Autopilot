@@ -32,6 +32,7 @@
  ****************************************************************************/
 /**
  * @file mission.h
+ *
  * Helper class to access missions
  *
  * @author Julian Oes <julian@oes.ch>
@@ -58,7 +59,7 @@
 
 class Navigator;
 
-class __EXPORT Mission : public control::SuperBlock
+class Mission : public control::SuperBlock
 {
 public:
 	/**
@@ -99,16 +100,11 @@ protected:
 
 	/**
 	 * Set a loiter item, if possible reuse the position setpoint, otherwise take the current position
+	 * @return true if setpoint has changed
 	 */
-	void set_loiter_item(bool reuse_current_pos_sp, struct position_setpoint_triplet_s *pos_sp_triplet);
+	bool set_loiter_item(bool reuse_current_pos_sp, struct position_setpoint_triplet_s *pos_sp_triplet);
 
 	class Navigator *_navigator;
-
-	bool _waypoint_position_reached;
-	bool _waypoint_yaw_reached;
-	hrt_abstime _time_first_inside_orbit;
-
-	bool _first_run;
 
 private:
 	/**
@@ -183,6 +179,12 @@ private:
 	 */
 	void publish_mission_result();
 
+	bool _waypoint_position_reached;
+	bool _waypoint_yaw_reached;
+	hrt_abstime _time_first_inside_orbit;
+
+	bool _first_run;
+
 	control::BlockParamFloat _param_onboard_enabled;
 	control::BlockParamFloat _param_loiter_radius;
 
@@ -202,8 +204,6 @@ private:
 		MISSION_TYPE_ONBOARD,
 		MISSION_TYPE_OFFBOARD
 	} _mission_type;
-
-	bool _loiter_set;
 
 	MissionFeasibilityChecker missionFeasiblityChecker; /**< class that checks if a mission is feasible */
 

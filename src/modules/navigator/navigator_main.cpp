@@ -102,9 +102,9 @@ Navigator::Navigator() :
 	_vstatus_sub(-1),
 	_capabilities_sub(-1),
 	_control_mode_sub(-1),
-	_pos_sp_triplet_pub(-1),
 	_onboard_mission_sub(-1),
 	_offboard_mission_sub(-1),
+	_pos_sp_triplet_pub(-1),
 	_vstatus({}),
 	_control_mode({}),
 	_global_pos({}),
@@ -119,11 +119,8 @@ Navigator::Navigator() :
 	_fence_valid(false),
 	_inside_fence(true),
 	_mission(this, "MIS"),
-	//_loiter(&_global_pos, &_home_pos, &_vstatus),
+	_loiter(this, "LOI"),
 	_rtl(this, "RTL"),
-	_waypoint_position_reached(false),
-	_waypoint_yaw_reached(false),
-	_time_first_inside_orbit(0),
 	_update_triplet(false)
 {
 }
@@ -325,26 +322,29 @@ Navigator::task_main()
 			case NAVIGATION_STATE_ALTCTL:
 			case NAVIGATION_STATE_POSCTL:
 				_mission.reset();
+				_loiter.reset();
 				_rtl.reset();
+				_is_in_loiter = false;
 				break;
 			case NAVIGATION_STATE_AUTO_MISSION:
 				_update_triplet = _mission.update(&_pos_sp_triplet);
-				_rtl.reset();
 				break;
 			case NAVIGATION_STATE_AUTO_LOITER:
-				//_loiter.update();
+				_update_triplet = _loiter.update(&_pos_sp_triplet);
 				break;
 			case NAVIGATION_STATE_AUTO_RTL:
 			case NAVIGATION_STATE_AUTO_RTL_RC:
 			case NAVIGATION_STATE_AUTO_RTL_DL:
-				_mission.reset();
 				_update_triplet = _rtl.update(&_pos_sp_triplet);
 				break;
 			case NAVIGATION_STATE_LAND:
 			case NAVIGATION_STATE_TERMINATION:
 			default:
+				_mission.reset();
+				_loiter.reset();
+				_rtl.reset();
+				_is_in_loiter = false;
 				break;
-
 		}
 
 		if (_update_triplet ) {
@@ -354,7 +354,6 @@ Navigator::task_main()
 
 		perf_end(_loop_perf);
 	}
-
 	warnx("exiting.");
 
 	_navigator_task = -1;

@@ -40,6 +40,7 @@ MODULE_COMMAND	= navigator
 SRCS		= navigator_main.cpp \
 		  mission.cpp \
 		  mission_params.c \
+		  loiter.cpp \
 		  rtl.cpp \
 		  rtl_params.c \
 		  mission_feasibility_checker.cpp \
