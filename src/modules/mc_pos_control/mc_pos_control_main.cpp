@@ -734,8 +734,14 @@ MulticopterPositionControl::task_main()
 			if (_local_pos_sp_pub > 0) {
 				orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &_local_pos_sp);
 
-			} else {
+			} else if (!_control_mode.flag_control_offboard_enabled) {
 				_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
+			}
+
+			/* Close fd to let offboard pos sp be advertised in mavlink receiver*/
+			if (_control_mode.flag_control_offboard_enabled && _local_pos_sp_pub > 0) {
+				close(_local_pos_sp_pub);
+				_local_pos_sp_pub = -1;
 			}
 
 			if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_IDLE) {

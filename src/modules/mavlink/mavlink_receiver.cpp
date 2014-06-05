@@ -422,6 +422,17 @@ MavlinkReceiver::handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message
 					loc_pos_sp.yaw = offboard_control_sp.p3;
 					loc_pos_sp.z = offboard_control_sp.p4;
 
+					/* Close fds to allow position controller to use attitude controller */
+					if (_att_sp_pub > 0) {
+						close(_att_sp_pub);
+						_att_sp_pub = -1;
+					}
+
+					if (_rates_sp_pub > 0) {
+						close(_rates_sp_pub);
+						_rates_sp_pub = -1;
+					}
+
 					if (_local_pos_sp_pub < 0) {
 						_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp_pub);
 
@@ -443,6 +454,12 @@ MavlinkReceiver::handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message
 					att_sp.thrust = offboard_control_sp.p4;
 
 					att_sp.timestamp = hrt_absolute_time();
+
+					/* Close fd to allow attitude controller to publish its own rates sp*/
+					if (_rates_sp_pub > 0) {
+						close(_rates_sp_pub);
+						_rates_sp_pub = -1;
+					}
 
 					if (_att_sp_pub < 0) {
 						_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
@@ -990,6 +1007,28 @@ MavlinkReceiver::receive_thread(void *arg)
 						/* forward any messages to other mavlink instances */
 						Mavlink::forward_message(&msg, _mavlink);
 					}
+				}
+			}
+		}
+		/* Close unused fds when not in offboard mode anymore */
+		bool updated;
+		orb_check(_control_mode_sub, &updated);
+		if (updated) {
+			orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
+			if (!_control_mode.flag_control_offboard_enabled) {
+				if (_local_pos_sp_pub > 0) {
+					close(_local_pos_sp_pub);
+					_local_pos_sp_pub = -1;
+				}
+
+				if (_att_sp_pub > 0) {
+					close(_att_sp_pub);
+					_att_sp_pub = -1;
+				}
+
+				if (_rates_sp_pub > 0) {
+					close(_rates_sp_pub);
+					_rates_sp_pub = -1;
 				}
 			}
 		}
