@@ -880,7 +880,7 @@ LSM303D::mag_read(struct file *filp, char *buffer, size_t buflen)
 
 	/* manual measurement */
 	_mag_reports->flush();
-	measure();
+	_mag->measure();
 
 	/* measurement will have generated a report, copy it out */
 	if (_mag_reports->get(mrb))
