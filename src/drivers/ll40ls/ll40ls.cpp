@@ -86,7 +86,7 @@
 #define LL40LS_MIN_DISTANCE (0.00f)
 #define LL40LS_MAX_DISTANCE (14.00f)
 
-#define LL40LS_CONVERSION_INTERVAL 60000 /* 60ms */
+#define LL40LS_CONVERSION_INTERVAL 100000 /* 100ms */
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -517,8 +517,8 @@ LL40LS::collect()
 		return ret;
 	}
 
-	uint16_t distance = val[0] << 8 | val[1];
-	float si_units = (distance * 1.0f) / 100.0f; /* cm to m */
+	uint16_t distance = (val[0] << 8) | val[1];
+	float si_units = distance * 0.01f; /* cm to m */
 	struct range_finder_report report;
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
@@ -532,8 +532,10 @@ LL40LS::collect()
 		report.valid = 0;
 	}
 
-	/* publish it */
-	orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
+	/* publish it, if we are the primary */
+	if (_range_finder_topic >= 0) {
+		orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
+	}
 
 	if (_reports->force(&report)) {
 		perf_count(_buffer_overflows);
