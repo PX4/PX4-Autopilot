@@ -962,6 +962,17 @@ void Mavlink::mavlink_wpm_init(mavlink_wpm_storage *state)
 	state->timestamp_last_send_request = 0;
 	state->timeout = MAVLINK_WPM_PROTOCOL_TIMEOUT_DEFAULT;
 	state->current_dataman_id = 0;
+
+	/* count items in dataman storage */
+	struct mission_item_s mission_item;
+	ssize_t len = sizeof(struct mission_item_s);
+
+	int seq = 0;
+	while (dm_read(DM_KEY_WAYPOINTS_OFFBOARD_0, seq++, &mission_item, len) == len);
+
+	state->size = seq;
+	mission.count = state->size;
+	mission.dataman_id = state->current_dataman_id;
 }
 
 /*
