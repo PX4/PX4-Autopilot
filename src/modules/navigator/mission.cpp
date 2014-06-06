@@ -56,18 +56,15 @@
 #include "navigator.h"
 #include "mission.h"
 
-
 Mission::Mission(Navigator *navigator, const char *name) :
-	SuperBlock(NULL, name),
-	_navigator(navigator),
-	_first_run(true),
+	NavigatorMode(navigator, name),
+	MissionBlock(navigator),
 	_param_onboard_enabled(this, "ONBOARD_EN"),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_onboard_mission({0}),
 	_offboard_mission({0}),
 	_current_onboard_mission_index(-1),
 	_current_offboard_mission_index(-1),
-	_mission_item({0}),
 	_mission_result_pub(-1),
 	_mission_result({0}),
 	_mission_type(MISSION_TYPE_NONE)
@@ -92,14 +89,23 @@ Mission::reset()
 bool
 Mission::update(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
-	/* check if anything has changed */
-	bool onboard_updated = is_onboard_mission_updated();
-	bool offboard_updated = is_offboard_mission_updated();
+	bool updated;
 
-	bool updated = false;
+	/* check if anything has changed */
+	bool onboard_updated;
+	orb_check(_navigator->get_onboard_mission_sub(), &onboard_updated);
+	if (onboard_updated) {
+		update_onboard_mission();
+	}
+
+	bool offboard_updated;
+	orb_check(_navigator->get_offboard_mission_sub(), &offboard_updated);
+	if (offboard_updated) {
+		update_offboard_mission();
+	}
 
 	/* reset mission items if needed */
-	if (onboard_updated || offboard_updated) {
+	if (onboard_updated || offboard_updated || _first_run) {
 		set_mission_items(pos_sp_triplet);
 		updated = true;
 		_first_run = false;
@@ -115,164 +121,9 @@ Mission::update(struct position_setpoint_triplet_s *pos_sp_triplet)
 	return updated;
 }
 
-bool
-Mission::is_mission_item_reached()
-{
-	/* TODO: count turns */
-#if 0
-	if ((_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-	     _mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-	     _mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED) &&
-	    _mission_item.loiter_radius > 0.01f) {
-
-		return false;
-	}
-#endif
-
-	hrt_abstime now = hrt_absolute_time();
-
-	if (!_waypoint_position_reached) {
-
-		float dist = -1.0f;
-		float dist_xy = -1.0f;
-		float dist_z = -1.0f;
-
-		float altitude_amsl = _mission_item.altitude_is_relative
-				      ? _mission_item.altitude + _navigator->get_home_position()->alt
-			              : _mission_item.altitude;
-
-		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, altitude_amsl,
-				                          _navigator->get_global_position()->lat,
-							  _navigator->get_global_position()->lon,
-							  _navigator->get_global_position()->alt,
-				&dist_xy, &dist_z);
-
-		if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
-
-			/* require only altitude for takeoff */
-			if (_navigator->get_global_position()->alt > altitude_amsl - _mission_item.acceptance_radius) {
-				_waypoint_position_reached = true;
-			}
-		} else {
-			if (dist >= 0.0f && dist <= _mission_item.acceptance_radius) {
-				_waypoint_position_reached = true;
-			}
-		}
-	}
-
-	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
-
-		/* TODO: removed takeoff, why? */
-		if (_navigator->get_vstatus()->is_rotary_wing && isfinite(_mission_item.yaw)) {
-
-			/* check yaw if defined only for rotary wing except takeoff */
-			float yaw_err = _wrap_pi(_mission_item.yaw - _navigator->get_global_position()->yaw);
-
-			if (fabsf(yaw_err) < 0.2f) { /* TODO: get rid of magic number */
-				_waypoint_yaw_reached = true;
-			}
-
-		} else {
-			_waypoint_yaw_reached = true;
-		}
-	}
-
-	/* check if the current waypoint was reached */
-	if (_waypoint_position_reached && _waypoint_yaw_reached) {
-
-		if (_time_first_inside_orbit == 0) {
-			_time_first_inside_orbit = now;
-
-			// if (_mission_item.time_inside > 0.01f) {
-			// 	mavlink_log_info(_mavlink_fd, "#audio: waypoint reached, wait for %.1fs",
-			// 		(double)_mission_item.time_inside);
-			// }
-		}
-
-		/* check if the MAV was long enough inside the waypoint orbit */
-		if (now - _time_first_inside_orbit >= (hrt_abstime)_mission_item.time_inside * 1e6f) {
-			return true;
-		}
-	}
-	return false;
-}
-
 void
-Mission::reset_mission_item_reached()
+Mission::update_onboard_mission()
 {
-	_waypoint_position_reached = false;
-	_waypoint_yaw_reached = false;
-	_time_first_inside_orbit = 0;
-}
-
-void
-Mission::mission_item_to_position_setpoint(const struct mission_item_s *item, struct position_setpoint_s *sp)
-{
-	sp->valid = true;
-	sp->lat = item->lat;
-	sp->lon = item->lon;
-	sp->alt = item->altitude_is_relative ? item->altitude + _navigator->get_home_position()->alt : item->altitude;
-	sp->yaw = item->yaw;
-	sp->loiter_radius = item->loiter_radius;
-	sp->loiter_direction = item->loiter_direction;
-	sp->pitch_min = item->pitch_min;
-
-	if (item->nav_cmd == NAV_CMD_TAKEOFF) {
-		sp->type = SETPOINT_TYPE_TAKEOFF;
-
-	} else if (item->nav_cmd == NAV_CMD_LAND) {
-		sp->type = SETPOINT_TYPE_LAND;
-
-	} else if (item->nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-		   item->nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-		   item->nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
-		sp->type = SETPOINT_TYPE_LOITER;
-
-	} else {
-		sp->type = SETPOINT_TYPE_POSITION;
-	}
-}
-
-bool
-Mission::set_loiter_item(bool reuse_current_pos_sp, struct position_setpoint_triplet_s *pos_sp_triplet)
-{
-	if (_navigator->get_is_in_loiter()) {
-		/* already loitering, bail out */
-		return false;
-	}
-
-	if (reuse_current_pos_sp && pos_sp_triplet->current.valid) {
-		/* leave position setpoint as is */
-	} else {
-		/* use current position */
-		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
-		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
-		pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
-		pos_sp_triplet->current.yaw = NAN;	/* NAN means to use current yaw */
-	}
-	pos_sp_triplet->current.type = SETPOINT_TYPE_LOITER;
-	pos_sp_triplet->current.loiter_radius = _param_loiter_radius.get();
-	pos_sp_triplet->current.loiter_direction = 1;
-
-	pos_sp_triplet->previous.valid = false;
-	pos_sp_triplet->current.valid = true;
-	pos_sp_triplet->next.valid = false;
-
-	_navigator->set_is_in_loiter(true);
-	return true;
-}
-
-
-bool
-Mission::is_onboard_mission_updated()
-{
-	bool updated;
-	orb_check(_navigator->get_onboard_mission_sub(), &updated);
-
-	if (!updated && !_first_run) {
-		return false;
-	}
-
 	if (orb_copy(ORB_ID(onboard_mission), _navigator->get_onboard_mission_sub(), &_onboard_mission) == OK) {
 		/* accept the current index set by the onboard mission if it is within bounds */
 		if (_onboard_mission.current_index >=0
@@ -293,18 +144,11 @@ Mission::is_onboard_mission_updated()
 		_onboard_mission.current_index = 0;
 		_current_onboard_mission_index = 0;
 	}
-	return true;
 }
 
-bool
-Mission::is_offboard_mission_updated()
+void
+Mission::update_offboard_mission()
 {
-	bool updated;
-	orb_check(_navigator->get_offboard_mission_sub(), &updated);
-
-	if (!updated && !_first_run) {
-		return false;
-	}
 	if (orb_copy(ORB_ID(offboard_mission), _navigator->get_offboard_mission_sub(), &_offboard_mission) == OK) {
 
 		/* determine current index */
@@ -341,7 +185,6 @@ Mission::is_offboard_mission_updated()
 		_offboard_mission.current_index = 0;
 		_current_offboard_mission_index = 0;
 	}
-	return true;
 }
 
 
@@ -381,7 +224,6 @@ Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
 		_mission_type = MISSION_TYPE_NONE;
 
 		bool use_current_pos_sp = pos_sp_triplet->current.valid && _waypoint_position_reached;
-		reset_mission_item_reached();
 		set_loiter_item(use_current_pos_sp, pos_sp_triplet);
 	}
 }

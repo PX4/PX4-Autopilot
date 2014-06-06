@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,50 +31,75 @@
  *
  ****************************************************************************/
 /**
- * @file loiter.cpp
+ * @file mission_block.h
  *
- * Helper class to loiter
+ * Helper class to use mission items
  *
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <math.h>
-#include <fcntl.h>
+#ifndef NAVIGATOR_MISSION_BLOCK_H
+#define NAVIGATOR_MISSION_BLOCK_H
 
-#include <mavlink/mavlink_log.h>
-#include <systemlib/err.h>
+#include <drivers/drv_hrt.h>
 
-#include <uORB/uORB.h>
+#include <uORB/topics/mission.h>
+#include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 
-#include "loiter.h"
+class Navigator;
 
-Loiter::Loiter(Navigator *navigator, const char *name) :
-	NavigatorMode(navigator, name),
-	MissionBlock(navigator)
+class MissionBlock
 {
-	/* load initial params */
-	updateParams();
-	/* initial reset */
-	reset();
-}
+public:
+	/**
+	 * Constructor
+	 *
+	 * @param pointer to parent class
+	 */
+	MissionBlock(Navigator *navigator);
 
-Loiter::~Loiter()
-{
-}
+	/**
+	 * Destructor
+	 */
+	virtual ~MissionBlock();
 
-bool
-Loiter::update(struct position_setpoint_triplet_s *pos_sp_triplet)
-{
-	/* set loiter item, don't reuse an existing position setpoint */
-	return set_loiter_item(false, pos_sp_triplet);;
-}
+	/**
+	 * Check if mission item has been reached
+	 * @return true if successfully reached
+	 */
+	bool is_mission_item_reached();
+	/**
+	 * Reset all reached flags
+	 */
+	void reset_mission_item_reached();
 
-void
-Loiter::reset()
-{
-}
+	/**
+	 * Convert a mission item to a position setpoint
+	 *
+	 * @param the mission item to convert
+	 * @param the position setpoint that needs to be set
+	 */
+	void mission_item_to_position_setpoint(const mission_item_s *item, position_setpoint_s *sp);
 
+	/**
+	 * Set a loiter item, if possible reuse the position setpoint, otherwise take the current position
+	 *
+	 * @param true if the current position setpoint should be re-used
+	 * @param the position setpoint triplet to set
+	 * @return true if setpoint has changed
+	 */
+	bool set_loiter_item(const bool reuse_current_pos_sp, position_setpoint_triplet_s *pos_sp_triplet);
+
+	bool _waypoint_position_reached;
+	bool _waypoint_yaw_reached;
+	hrt_abstime _time_first_inside_orbit;
+
+	mission_item_s _mission_item;
+	bool _mission_item_valid;
+
+private:
+	Navigator *_navigator_priv;
+};
+
+#endif

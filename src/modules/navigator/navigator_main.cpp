@@ -118,6 +118,7 @@ Navigator::Navigator() :
 	_geofence_violation_warning_sent(false),
 	_fence_valid(false),
 	_inside_fence(true),
+	_navigation_mode(nullptr),
 	_mission(this, "MIS"),
 	_loiter(this, "LOI"),
 	_rtl(this, "RTL"),
@@ -321,30 +322,45 @@ Navigator::task_main()
 			case NAVIGATION_STATE_ACRO:
 			case NAVIGATION_STATE_ALTCTL:
 			case NAVIGATION_STATE_POSCTL:
-				_mission.reset();
-				_loiter.reset();
-				_rtl.reset();
+				_navigation_mode = nullptr;
 				_is_in_loiter = false;
 				break;
 			case NAVIGATION_STATE_AUTO_MISSION:
-				_update_triplet = _mission.update(&_pos_sp_triplet);
+				_navigation_mode = &_mission;
 				break;
 			case NAVIGATION_STATE_AUTO_LOITER:
-				_update_triplet = _loiter.update(&_pos_sp_triplet);
+				_navigation_mode = &_loiter;
 				break;
 			case NAVIGATION_STATE_AUTO_RTL:
 			case NAVIGATION_STATE_AUTO_RTL_RC:
 			case NAVIGATION_STATE_AUTO_RTL_DL:
-				_update_triplet = _rtl.update(&_pos_sp_triplet);
+				_navigation_mode = &_rtl;
 				break;
 			case NAVIGATION_STATE_LAND:
 			case NAVIGATION_STATE_TERMINATION:
 			default:
-				_mission.reset();
-				_loiter.reset();
-				_rtl.reset();
+				_navigation_mode = nullptr;
 				_is_in_loiter = false;
 				break;
+		}
+
+		/* TODO: make list of modes and loop through it */
+		if (_navigation_mode == &_mission) {
+			_update_triplet = _mission.update(&_pos_sp_triplet);
+		} else {
+			_mission.reset();
+		}
+
+		if (_navigation_mode == &_rtl) {
+			_update_triplet = _rtl.update(&_pos_sp_triplet);
+		} else {
+			_rtl.reset();
+		}
+
+		if (_navigation_mode == &_loiter) {
+			_update_triplet = _loiter.update(&_pos_sp_triplet);
+		} else {
+			_loiter.reset();
 		}
 
 		if (_update_triplet ) {

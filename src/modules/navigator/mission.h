@@ -33,7 +33,7 @@
 /**
  * @file mission.h
  *
- * Helper class to access missions
+ * Navigator mode to access missions
  *
  * @author Julian Oes <julian@oes.ch>
  */
@@ -50,16 +50,19 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 
+#include "navigator_mode.h"
+#include "mission_block.h"
 #include "mission_feasibility_checker.h"
 
 class Navigator;
 
-class Mission : public control::SuperBlock
+class Mission : public NavigatorMode, MissionBlock
 {
 public:
 	/**
@@ -82,42 +85,16 @@ public:
 	 */
 	virtual bool update(struct position_setpoint_triplet_s *pos_sp_triplet);
 
-protected:
-	/**
-	 * Check if mission item has been reached
-	 * @return true if successfully reached
-	 */
-	bool is_mission_item_reached();
-	/**
-	 * Reset all reached flags
-	 */
-	void reset_mission_item_reached();
-
-	/**
-	 * Convert a mission item to a position setpoint
-	 */
-	void mission_item_to_position_setpoint(const struct mission_item_s *item, struct position_setpoint_s *sp);
-
-	/**
-	 * Set a loiter item, if possible reuse the position setpoint, otherwise take the current position
-	 * @return true if setpoint has changed
-	 */
-	bool set_loiter_item(bool reuse_current_pos_sp, struct position_setpoint_triplet_s *pos_sp_triplet);
-
-	class Navigator *_navigator;
-
 private:
 	/**
 	 * Update onboard mission topic
-	 * @return true if onboard mission has been updated
 	 */
-	bool is_onboard_mission_updated();
+	void update_onboard_mission();
 
 	/**
 	 * Update offboard mission topic
-	 * @return true if offboard mission has been updated
 	 */
-	bool is_offboard_mission_updated();
+	void update_offboard_mission();
 
 	/**
 	 * Move on to next mission item or switch to loiter
@@ -179,12 +156,6 @@ private:
 	 */
 	void publish_mission_result();
 
-	bool _waypoint_position_reached;
-	bool _waypoint_yaw_reached;
-	hrt_abstime _time_first_inside_orbit;
-
-	bool _first_run;
-
 	control::BlockParamFloat _param_onboard_enabled;
 	control::BlockParamFloat _param_loiter_radius;
 
@@ -193,8 +164,6 @@ private:
 
 	int _current_onboard_mission_index;
 	int _current_offboard_mission_index;
-
-	struct mission_item_s _mission_item;
 
 	orb_advert_t _mission_result_pub;
 	struct mission_result_s _mission_result;
@@ -206,7 +175,6 @@ private:
 	} _mission_type;
 
 	MissionFeasibilityChecker missionFeasiblityChecker; /**< class that checks if a mission is feasible */
-
 };
 
 #endif

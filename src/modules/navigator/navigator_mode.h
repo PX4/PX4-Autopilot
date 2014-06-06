@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,50 +31,56 @@
  *
  ****************************************************************************/
 /**
- * @file loiter.cpp
+ * @file navigator_mode.h
  *
- * Helper class to loiter
+ * Helper class for different modes in navigator
  *
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <math.h>
-#include <fcntl.h>
+#ifndef NAVIGATOR_MODE_H
+#define NAVIGATOR_MODE_H
 
-#include <mavlink/mavlink_log.h>
-#include <systemlib/err.h>
+#include <drivers/drv_hrt.h>
 
-#include <uORB/uORB.h>
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
+
+#include <dataman/dataman.h>
+
 #include <uORB/topics/position_setpoint_triplet.h>
 
-#include "loiter.h"
+class Navigator;
 
-Loiter::Loiter(Navigator *navigator, const char *name) :
-	NavigatorMode(navigator, name),
-	MissionBlock(navigator)
+class NavigatorMode : public control::SuperBlock
 {
-	/* load initial params */
-	updateParams();
-	/* initial reset */
-	reset();
-}
+public:
+	/**
+	 * Constructor
+	 */
+	NavigatorMode(Navigator *navigator, const char *name);
 
-Loiter::~Loiter()
-{
-}
+	/**
+	 * Destructor
+	 */
+	virtual ~NavigatorMode();
 
-bool
-Loiter::update(struct position_setpoint_triplet_s *pos_sp_triplet)
-{
-	/* set loiter item, don't reuse an existing position setpoint */
-	return set_loiter_item(false, pos_sp_triplet);;
-}
+	/**
+	 * This function is called while the mode is inactive
+	 */
+	virtual void reset();
 
-void
-Loiter::reset()
-{
-}
+	/**
+	 * This function is called while the mode is active
+	 *
+	 * @param position setpoint triplet to set
+	 * @return true if position setpoint triplet has been changed
+	 */
+	virtual bool update(struct position_setpoint_triplet_s *pos_sp_triplet);
 
+protected:
+	Navigator *_navigator;
+	bool _first_run;
+};
+
+#endif

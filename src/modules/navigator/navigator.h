@@ -48,6 +48,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_position.h>
 
+#include "navigator_mode.h"
 #include "mission.h"
 #include "loiter.h"
 #include "rtl.h"
@@ -104,6 +105,8 @@ public:
 	Geofence&	get_geofence() { return _geofence; }
 	bool		get_is_in_loiter() { return _is_in_loiter; }
 
+	float		get_loiter_radius() { return 50.0f; }; /* TODO: make param*/
+
 private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
@@ -139,6 +142,7 @@ private:
 	bool		_fence_valid;			/**< flag if fence is valid */
 	bool		_inside_fence;			/**< vehicle is inside fence */
 
+	NavigatorMode	*_navigation_mode;		/**< abstract pointer to current navigation mode class */
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	RTL 		_rtl;				/**< class that handles RTL */

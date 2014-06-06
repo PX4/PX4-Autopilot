@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,50 +31,40 @@
  *
  ****************************************************************************/
 /**
- * @file loiter.cpp
+ * @file navigator_mode.cpp
  *
- * Helper class to loiter
+ * Helper class for different modes in navigator
  *
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <math.h>
-#include <fcntl.h>
+#include "navigator_mode.h"
 
-#include <mavlink/mavlink_log.h>
-#include <systemlib/err.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-
-#include "loiter.h"
-
-Loiter::Loiter(Navigator *navigator, const char *name) :
-	NavigatorMode(navigator, name),
-	MissionBlock(navigator)
+NavigatorMode::NavigatorMode(Navigator *navigator, const char *name) :
+	SuperBlock(NULL, name),
+	_navigator(navigator),
+	_first_run(true)
 {
 	/* load initial params */
 	updateParams();
-	/* initial reset */
+	/* set initial mission items */
 	reset();
 }
 
-Loiter::~Loiter()
+NavigatorMode::~NavigatorMode()
 {
-}
-
-bool
-Loiter::update(struct position_setpoint_triplet_s *pos_sp_triplet)
-{
-	/* set loiter item, don't reuse an existing position setpoint */
-	return set_loiter_item(false, pos_sp_triplet);;
 }
 
 void
-Loiter::reset()
+NavigatorMode::reset()
 {
+	_first_run = true;
 }
 
+bool
+NavigatorMode::update(struct position_setpoint_triplet_s *pos_sp_triplet)
+{
+	pos_sp_triplet->current.valid = false;
+	_first_run = false;
+	return false;
+}

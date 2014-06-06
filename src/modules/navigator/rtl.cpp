@@ -52,13 +52,13 @@
 #include "rtl.h"
 
 RTL::RTL(Navigator *navigator, const char *name) :
-	Mission(navigator, name),
+	NavigatorMode(navigator, name),
+	MissionBlock(navigator),
 	_mavlink_fd(-1),
 	_rtl_state(RTL_STATE_NONE),
 	_home_position({}),
 	_loiter_radius(50),
 	_acceptance_radius(50),
-	_param_loiter_rad(this, "LOITER_RAD"),
 	_param_return_alt(this, "RETURN_ALT"),
 	_param_descend_alt(this, "DESCEND_ALT"),
 	_param_land_delay(this, "LAND_DELAY")

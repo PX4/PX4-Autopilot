@@ -44,11 +44,10 @@
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
-#include "mission.h"
+#include "navigator_mode.h"
+#include "mission_block.h"
 
-class Navigator;
-
-class Loiter : public Mission
+class Loiter : public NavigatorMode, MissionBlock
 {
 public:
 	/**
@@ -59,11 +58,17 @@ public:
 	/**
 	 * Destructor
 	 */
-	virtual ~Loiter();
+	~Loiter();
 
-	virtual bool update(struct position_setpoint_triplet_s *pos_sp_triplet);
+	/**
+	 * This function is called while the mode is inactive
+	 */
+	bool update(struct position_setpoint_triplet_s *pos_sp_triplet);
 
-	virtual void reset();
+	/**
+	 * This function is called while the mode is active
+	 */
+	void reset();
 };
 
 #endif

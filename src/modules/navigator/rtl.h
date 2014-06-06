@@ -31,8 +31,9 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_mission.h
- * Helper class to access missions
+ * @file navigator_rtl.h
+ * Helper class for RTL
+ *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
@@ -48,11 +49,12 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 
-#include "mission.h"
+#include "navigator_mode.h"
+#include "mission_block.h"
 
 class Navigator;
 
-class RTL : public Mission
+class RTL : public NavigatorMode, MissionBlock
 {
 public:
 	/**
@@ -63,11 +65,18 @@ public:
 	/**
 	 * Destructor
 	 */
-	virtual ~RTL();
+	~RTL();
 
-	virtual bool update(struct position_setpoint_triplet_s *pos_sp_triplet);
+	/**
+	 * This function is called while the mode is inactive
+	 */
+	void reset();
 
-	virtual void reset();
+	/**
+	 * This function is called while the mode is active
+	 */
+	bool update(struct position_setpoint_triplet_s *pos_sp_triplet);
+
 
 private:
 	void		set_home_position(const home_position_s *home_position);
@@ -92,7 +101,6 @@ private:
 	float		_loiter_radius;
 	float		_acceptance_radius;
 
-	control::BlockParamFloat _param_loiter_rad;
 	control::BlockParamFloat _param_return_alt;
 	control::BlockParamFloat _param_descend_alt;
 	control::BlockParamFloat _param_land_delay;
