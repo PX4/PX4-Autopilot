@@ -157,7 +157,6 @@ private:
 	void publish_mission_result();
 
 	control::BlockParamFloat _param_onboard_enabled;
-	control::BlockParamFloat _param_loiter_radius;
 
 	struct mission_s _onboard_mission;
 	struct mission_s _offboard_mission;

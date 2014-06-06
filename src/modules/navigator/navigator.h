@@ -42,11 +42,15 @@
 
 #include <systemlib/perf_counter.h>
 
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
+
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/parameter_update.h>
 
 #include "navigator_mode.h"
 #include "mission.h"
@@ -54,7 +58,7 @@
 #include "rtl.h"
 #include "geofence.h"
 
-class Navigator
+class Navigator : public control::SuperBlock
 {
 public:
 	/**
@@ -105,7 +109,7 @@ public:
 	Geofence&	get_geofence() { return _geofence; }
 	bool		get_is_in_loiter() { return _is_in_loiter; }
 
-	float		get_loiter_radius() { return 50.0f; }; /* TODO: make param*/
+	float		get_loiter_radius() { return _param_loiter_radius.get(); };
 
 private:
 
@@ -121,6 +125,7 @@ private:
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
 	int		_onboard_mission_sub;		/**< onboard mission subscription */
 	int		_offboard_mission_sub;		/**< offboard mission subscription */
+	int		_param_update_sub;		/**< param update subscription */
 
 	orb_advert_t	_pos_sp_triplet_pub;		/**< publish position setpoint triplet */
 
@@ -150,6 +155,7 @@ private:
 	bool		_is_in_loiter;			/**< flags if current position SP can be used to loiter */
 	bool		_update_triplet;		/**< flags if position SP triplet needs to be published */
 
+	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
 	/**
 	 * Retrieve global position
 	 */
@@ -174,6 +180,11 @@ private:
 	 * Retrieve vehicle control mode
 	 */
 	void		vehicle_control_mode_update();
+
+	/**
+	 * Update parameters
+	 */
+	void		params_update();
 
 	/**
 	 * Shim for calling task_main from task_create.

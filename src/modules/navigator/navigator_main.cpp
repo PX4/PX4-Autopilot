@@ -92,8 +92,7 @@ Navigator	*g_navigator;
 }
 
 Navigator::Navigator() :
-
-	/* state machine transition table */
+	SuperBlock(NULL, "NAV"),
 	_task_should_exit(false),
 	_navigator_task(-1),
 	_mavlink_fd(-1),
@@ -122,8 +121,10 @@ Navigator::Navigator() :
 	_mission(this, "MIS"),
 	_loiter(this, "LOI"),
 	_rtl(this, "RTL"),
-	_update_triplet(false)
+	_update_triplet(false),
+	_param_loiter_radius(this, "LOITER_RAD")
 {
+	updateParams();
 }
 
 Navigator::~Navigator()
@@ -189,6 +190,13 @@ Navigator::vehicle_control_mode_update()
 }
 
 void
+Navigator::params_update()
+{
+	parameter_update_s param_update;
+	orb_copy(ORB_ID(parameter_update), _param_update_sub, &param_update);
+}
+
+void
 Navigator::task_main_trampoline(int argc, char *argv[])
 {
 	navigator::g_navigator->task_main();
@@ -226,6 +234,7 @@ Navigator::task_main()
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
+	_param_update_sub - orb_subscribe(ORB_ID(parameter_update));
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -233,6 +242,7 @@ Navigator::task_main()
 	global_position_update();
 	home_position_update();
 	navigation_capabilities_update();
+	params_update();
 
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
@@ -241,7 +251,7 @@ Navigator::task_main()
 	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source(s) */
-	struct pollfd fds[5];
+	struct pollfd fds[6];
 
 	/* Setup of loop */
 	fds[0].fd = _global_pos_sub;
@@ -254,6 +264,8 @@ Navigator::task_main()
 	fds[3].events = POLLIN;
 	fds[4].fd = _control_mode_sub;
 	fds[4].events = POLLIN;
+	fds[5].fd = _param_update_sub;
+	fds[5].events = POLLIN;
 
 	while (!_task_should_exit) {
 
@@ -276,6 +288,12 @@ Navigator::task_main()
 			/* try to reopen the mavlink log device with specified interval */
 			mavlink_open_time = hrt_abstime() + mavlink_open_interval;
 			_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+		}
+
+		/* parameters updated */
+		if (fds[5].revents & POLLIN) {
+			params_update();
+			updateParams();
 		}
 
 		/* vehicle control mode updated */

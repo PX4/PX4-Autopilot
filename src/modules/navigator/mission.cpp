@@ -60,7 +60,6 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	NavigatorMode(navigator, name),
 	MissionBlock(navigator),
 	_param_onboard_enabled(this, "ONBOARD_EN"),
-	_param_loiter_radius(this, "LOITER_RAD"),
 	_onboard_mission({0}),
 	_offboard_mission({0}),
 	_current_onboard_mission_index(-1),
@@ -241,6 +240,8 @@ Mission::set_previous_pos_setpoint(const struct position_setpoint_s *current_pos
 bool
 Mission::is_current_onboard_mission_item_set(struct position_setpoint_s *current_pos_sp)
 {
+	/* make sure param is up to date */
+	updateParams();
 	if (_param_onboard_enabled.get() > 0
 	    && _current_onboard_mission_index < (int)_onboard_mission.count) {
 		struct mission_item_s new_mission_item;

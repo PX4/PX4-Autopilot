@@ -38,6 +38,7 @@
 MODULE_COMMAND	= navigator
 
 SRCS		= navigator_main.cpp \
+		  navigator_params.c \
 		  navigator_mode.cpp \
 		  mission_block.cpp \
 		  mission.cpp \
