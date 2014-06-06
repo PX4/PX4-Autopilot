@@ -46,6 +46,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <dataman/dataman.h>
+#include <mavlink/mavlink_log.h>
 #include <systemlib/err.h>
 #include <geo/geo.h>
 
@@ -210,20 +211,39 @@ Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
 	set_previous_pos_setpoint(&pos_sp_triplet->current, &pos_sp_triplet->previous);
 
+	/* try setting onboard mission item */
 	if (is_current_onboard_mission_item_set(&pos_sp_triplet->current)) {
-		/* try setting onboard mission item */
+		/* if mission type changed, notify */
+		if (_mission_type != MISSION_TYPE_ONBOARD) {
+			mavlink_log_info(_navigator->get_mavlink_fd(),
+					"#audio: onboard mission running");
+		}
 		_mission_type = MISSION_TYPE_ONBOARD;
 		_navigator->set_is_in_loiter(false);
 
+	/* try setting offboard mission item */
 	} else if (is_current_offboard_mission_item_set(&pos_sp_triplet->current)) {
-		/* try setting offboard mission item */
+		/* if mission type changed, notify */
+		if (_mission_type != MISSION_TYPE_OFFBOARD) {
+			mavlink_log_info(_navigator->get_mavlink_fd(),
+					"#audio: offboard mission running");
+		}
 		_mission_type = MISSION_TYPE_OFFBOARD;
 		_navigator->set_is_in_loiter(false);
 	} else {
+		if (_mission_type != MISSION_TYPE_NONE) {
+			mavlink_log_info(_navigator->get_mavlink_fd(),
+					"#audio: mission finished");
+		} else {
+			mavlink_log_info(_navigator->get_mavlink_fd(),
+					"#audio: no mission available");
+		}
 		_mission_type = MISSION_TYPE_NONE;
 
 		bool use_current_pos_sp = pos_sp_triplet->current.valid && _waypoint_position_reached;
 		set_loiter_item(use_current_pos_sp, pos_sp_triplet);
+		reset_mission_item_reached();
+		report_mission_finished();
 	}
 }
 
@@ -242,8 +262,9 @@ Mission::is_current_onboard_mission_item_set(struct position_setpoint_s *current
 {
 	/* make sure param is up to date */
 	updateParams();
-	if (_param_onboard_enabled.get() > 0
-	    && _current_onboard_mission_index < (int)_onboard_mission.count) {
+	if (_param_onboard_enabled.get() > 0 &&
+	    _current_onboard_mission_index >= 0&&
+	    _current_onboard_mission_index < (int)_onboard_mission.count) {
 		struct mission_item_s new_mission_item;
 		if (read_mission_item(DM_KEY_WAYPOINTS_ONBOARD, true, &_current_onboard_mission_index,
 					&new_mission_item)) {
@@ -264,7 +285,8 @@ Mission::is_current_onboard_mission_item_set(struct position_setpoint_s *current
 bool
 Mission::is_current_offboard_mission_item_set(struct position_setpoint_s *current_pos_sp)
 {
-	if (_current_offboard_mission_index < (int)_offboard_mission.count) {
+	if (_current_offboard_mission_index >= 0 &&
+	    _current_offboard_mission_index < (int)_offboard_mission.count) {
 		dm_item_t dm_current;
 		if (_offboard_mission.dataman_id == 0) {
 			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_0;
@@ -282,8 +304,6 @@ Mission::is_current_offboard_mission_item_set(struct position_setpoint_s *curren
 			report_current_offboard_mission_item();
 			memcpy(&_mission_item, &new_mission_item, sizeof(struct mission_item_s));
 			return true;
-		} else {
-			warnx("ERROR: WP read fail");
 		}
 	}
 	return false;
@@ -295,7 +315,8 @@ Mission::get_next_onboard_mission_item(struct position_setpoint_s *next_pos_sp)
 	int next_temp_mission_index = _onboard_mission.current_index + 1;
 
 	/* try if there is a next onboard mission */
-	if (next_temp_mission_index < (int)_onboard_mission.count) {
+	if (_onboard_mission.current_index >= 0 &&
+	    next_temp_mission_index < (int)_onboard_mission.count) {
 		struct mission_item_s new_mission_item;
 		if (read_mission_item(DM_KEY_WAYPOINTS_ONBOARD, false, &next_temp_mission_index, &new_mission_item)) {
 			/* convert next mission item to position setpoint */
@@ -315,7 +336,9 @@ Mission::get_next_offboard_mission_item(struct position_setpoint_s *next_pos_sp)
 {
 	/* try if there is a next offboard mission */
 	int next_temp_mission_index = _offboard_mission.current_index + 1;
-	if (next_temp_mission_index < (int)_offboard_mission.count) {
+	warnx("next index: %d, count; %d", next_temp_mission_index, _offboard_mission.count);
+	if (_offboard_mission.current_index >= 0 &&
+	    next_temp_mission_index < (int)_offboard_mission.count) {
 		dm_item_t dm_current;
 		if (_offboard_mission.dataman_id == 0) {
 			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_0;
@@ -346,14 +369,17 @@ Mission::read_mission_item(const dm_item_t dm_item, bool is_current, int *missio
 		/* read mission item from datamanager */
 		if (dm_read(dm_item, *mission_index, new_mission_item, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+			mavlink_log_critical(_navigator->get_mavlink_fd(),
+			                     "#audio: ERROR waypoint could not be read");
 			return false;
 		}
 
 		/* check for DO_JUMP item, and whether it hasn't not already been repeated enough times */
 		if (new_mission_item->nav_cmd == NAV_CMD_DO_JUMP) {
 
-			/* TODO: do this check more gracefully since it is not a serious error */
 			if (new_mission_item->do_jump_current_count >= new_mission_item->do_jump_repeat_count) {
+				mavlink_log_info(_navigator->get_mavlink_fd(),
+						 "#audio: DO JUMP repetitions completed");
 				return false;
 			}
 
@@ -366,9 +392,10 @@ Mission::read_mission_item(const dm_item_t dm_item, bool is_current, int *missio
 				if (dm_write(dm_item, *mission_index, DM_PERSIST_IN_FLIGHT_RESET,
 					     new_mission_item, len) != len) {
 					/* not supposed to happen unless the datamanager can't access the dataman */
+					mavlink_log_critical(_navigator->get_mavlink_fd(),
+							     "#audio: ERROR DO JUMP waypoint could not be written");
 					return false;
 				}
-				/* TODO: report about DO JUMP count */
 			}
 			/* set new mission item index and repeat
 			 * we don't have to validate here, if it's invalid, we should realize this later .*/
@@ -381,7 +408,8 @@ Mission::read_mission_item(const dm_item_t dm_item, bool is_current, int *missio
 	}
 
 	/* we have given up, we don't want to cycle forever */
-	warnx("ERROR: cycling through mission items without success");
+	mavlink_log_critical(_navigator->get_mavlink_fd(),
+			     "#audio: ERROR DO JUMP is cycling, giving up");
 	return false;
 }
 
@@ -403,6 +431,13 @@ Mission::report_current_offboard_mission_item()
 }
 
 void
+Mission::report_mission_finished()
+{
+	_mission_result.mission_finished = true;
+	publish_mission_result();
+}
+
+void
 Mission::publish_mission_result()
 {
 	/* lazily publish the mission result only once available */
@@ -416,4 +451,5 @@ Mission::publish_mission_result()
 	}
 	/* reset reached bool */
 	_mission_result.mission_reached = false;
+	_mission_result.mission_finished = false;
 }

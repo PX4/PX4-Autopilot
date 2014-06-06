@@ -152,6 +152,11 @@ private:
 	void report_current_offboard_mission_item();
 
 	/**
+	 * Report that the mission is finished if one exists or that none exists
+	 */
+	void report_mission_finished();
+
+	/**
 	 * Publish the mission result so commander and mavlink know what is going on
 	 */
 	void publish_mission_result();

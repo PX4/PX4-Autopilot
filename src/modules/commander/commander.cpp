@@ -1296,7 +1296,6 @@ int commander_thread_main(int argc, char *argv[])
 				status.rc_signal_lost = true;
 				status_changed = true;
 
-
 				if (!(status.set_nav_state == NAVIGATION_STATE_AUTO_MISSION && !mission_result.mission_finished)) {
 
 					/* if we have a global position, we can switch to RTL, if not, we can try to land */
@@ -1306,8 +1305,24 @@ int commander_thread_main(int argc, char *argv[])
 						status.failsafe_state = FAILSAFE_STATE_LAND;
 					}
 					failsafe_state_changed = true;
+				} else {
+					mavlink_log_info(mavlink_fd, "#audio: no RTL during Mission");
 				}
 			}
+		}
+
+		/* hack to detect if we finished a mission after we lost RC, so that we can trigger RTL now */
+		if (status.rc_signal_lost && status.set_nav_state == NAVIGATION_STATE_AUTO_MISSION &&
+		    mission_result.mission_finished && status.failsafe_state != FAILSAFE_STATE_RTL_RC) {
+			/* if we have a global position, we can switch to RTL, if not, we can try to land */
+			if (status.condition_global_position_valid) {
+				status.failsafe_state = FAILSAFE_STATE_RTL_RC;
+				mavlink_log_info(mavlink_fd, "#audio: RTL after Mission is finished");
+			} else {
+				/* this probably doesn't make sense since we are in mission and have global position */
+				status.failsafe_state = FAILSAFE_STATE_LAND;
+			}
+			failsafe_state_changed = true;
 		}
 
 		/* handle commands last, as the system needs to be updated to handle them */

@@ -112,6 +112,7 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 		/* for safety reasons don't go into RTL if landed */
 		if (_navigator->get_vstatus()->condition_landed) {
 			_rtl_state = RTL_STATE_FINISHED;
+			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: no RTL when landed");
 		/* if lower than return altitude, climb up first */
 		} else if (_navigator->get_global_position()->alt < _navigator->get_home_position()->alt
 			   + _param_return_alt.get()) {
@@ -132,11 +133,6 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 	case RTL_STATE_CLIMB: {
 
 		float climb_alt = _navigator->get_home_position()->alt + _param_return_alt.get();
-
-		/* TODO understand and fix this */
-		// if (_vstatus.condition_landed) {
-		// 	climb_alt = fmaxf(climb_alt, _global_pos.alt + _parameters.rtl_alt);
-		// }
 
 		_mission_item.lat = _navigator->get_global_position()->lat;
 		_mission_item.lon = _navigator->get_global_position()->lon;
