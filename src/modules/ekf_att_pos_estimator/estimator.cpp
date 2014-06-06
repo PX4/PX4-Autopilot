@@ -2042,10 +2042,10 @@ float AttPosEKF::ConstrainFloat(float val, float min, float max)
     float ret;
     if (val > max) {
         ret = max;
-        ekf_debug("> max: %8.4f, val: %8.4f", max, val);
+        ekf_debug("> max: %8.4f, val: %8.4f", (double)max, (double)val);
     } else if (val < min) {
         ret = min;
-        ekf_debug("< min: %8.4f, val: %8.4f", min, val);
+        ekf_debug("< min: %8.4f, val: %8.4f", (double)min, (double)val);
     } else {
         ret = val;
     }

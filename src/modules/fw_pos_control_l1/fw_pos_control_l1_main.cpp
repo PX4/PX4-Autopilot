@@ -380,7 +380,7 @@ private:
 			bool climbout_mode, float climbout_pitch_min_rad,
 			float altitude,
 			const math::Vector<3> &ground_speed,
-			fwPosctrl::mTecs::tecs_mode mode = fwPosctrl::mTecs::TECS_MODE_NORMAL);
+			tecs_mode mode = TECS_MODE_NORMAL);
 
 };
 
@@ -835,7 +835,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
 	math::Vector<3> accel_earth = _R_nb * accel_body;
 
-	_tecs.update_50hz(baro_altitude, _airspeed.indicated_airspeed_m_s, _R_nb, accel_body, accel_earth);
+	if (!_mTecs.getEnabled()) {
+		_tecs.update_50hz(baro_altitude, _airspeed.indicated_airspeed_m_s, _R_nb, accel_body, accel_earth);
+	}
+
 	float altitude_error = _pos_sp_triplet.current.alt - _global_pos.alt;
 
 	/* no throttle limit as default */
@@ -851,6 +854,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			/* reset integrators */
 			if (_mTecs.getEnabled()) {
 				_mTecs.resetIntegrators();
+				_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
 			}
 		}
 
@@ -1008,7 +1012,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						0.0f, throttle_max, throttle_land,
 						false, flare_pitch_angle_rad,
 						_pos_sp_triplet.current.alt + relative_alt, ground_speed,
-						land_motor_lim ? fwPosctrl::mTecs::TECS_MODE_LAND_THROTTLELIM : fwPosctrl::mTecs::TECS_MODE_LAND);
+						land_motor_lim ? TECS_MODE_LAND_THROTTLELIM : TECS_MODE_LAND);
 
 				if (!land_noreturn_vertical) {
 					mavlink_log_info(_mavlink_fd, "#audio: Landing, flaring");
@@ -1101,7 +1105,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							math::radians(10.0f)),
 							_global_pos.alt,
 							ground_speed,
-							fwPosctrl::mTecs::TECS_MODE_TAKEOFF);
+							TECS_MODE_TAKEOFF);
 
 					/* limit roll motion to ensure enough lift */
 					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f), math::radians(15.0f));
@@ -1439,16 +1443,25 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		bool climbout_mode, float climbout_pitch_min_rad,
 		float altitude,
 		const math::Vector<3> &ground_speed,
-		fwPosctrl::mTecs::tecs_mode mode)
+		tecs_mode mode)
 {
 	if (_mTecs.getEnabled()) {
+		/* Using mtecs library: prepare arguments for mtecs call */
 		float flightPathAngle = 0.0f;
 		float ground_speed_length = ground_speed.length();
 		if (ground_speed_length > FLT_EPSILON) {
 			flightPathAngle = -asinf(ground_speed(2)/ground_speed_length);
 		}
-		_mTecs.updateAltitudeSpeed(flightPathAngle, altitude, alt_sp, _airspeed.true_airspeed_m_s, v_sp, mode);
+		fwPosctrl::mTecs::LimitOverride limitOverride;
+		if (climbout_mode) {
+			limitOverride.enablePitchMinOverride(M_RAD_TO_DEG_F * climbout_pitch_min_rad);
+		} else {
+			limitOverride.disablePitchMinOverride();
+		}
+		_mTecs.updateAltitudeSpeed(flightPathAngle, altitude, alt_sp, _airspeed.true_airspeed_m_s, v_sp, mode,
+				limitOverride);
 	} else {
+		/* Using tecs library */
 		_tecs.update_pitch_throttle(_R_nb, _att.pitch, altitude, alt_sp, v_sp,
 					    _airspeed.indicated_airspeed_m_s, eas2tas,
 					    climbout_mode, climbout_pitch_min_rad,
