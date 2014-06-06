@@ -397,6 +397,8 @@ private:
 	struct vehicle_gps_position_s *_gps_position;
 	bool			_configured;
 	bool			_waiting_for_ack;
+	bool			_got_posllh;
+	bool			_got_velned;
 	uint8_t			_message_class_needed;
 	uint8_t			_message_id_needed;
 	ubx_decode_state_t	_decode_state;
