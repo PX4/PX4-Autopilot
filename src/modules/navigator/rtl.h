@@ -74,19 +74,23 @@ public:
 
 	/**
 	 * This function is called while the mode is active
+	 *
+	 * @param position setpoint triplet that needs to be set
+	 * @return true if updated
 	 */
-	bool update(struct position_setpoint_triplet_s *pos_sp_triplet);
+	bool update(position_setpoint_triplet_s *pos_sp_triplet);
 
 
 private:
-	void		set_home_position(const home_position_s *home_position);
+	/**
+	 * Set the RTL item
+	 */
+	void		set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet);
 
-	bool		get_current_rtl_item(const vehicle_global_position_s *global_position, mission_item_s *new_mission_item);
-	bool		get_next_rtl_item(mission_item_s *mission_item);
-
-	void		move_to_next();
-
-	int 		_mavlink_fd;
+	/**
+	 * Move to next RTL item
+	 */
+	void		advance_rtl();
 
 	enum RTLState {
 		RTL_STATE_NONE = 0,
@@ -97,13 +101,10 @@ private:
 		RTL_STATE_FINISHED,
 	} _rtl_state;
 
-	home_position_s _home_position;
-	float		_loiter_radius;
-	float		_acceptance_radius;
-
 	control::BlockParamFloat _param_return_alt;
 	control::BlockParamFloat _param_descend_alt;
 	control::BlockParamFloat _param_land_delay;
+	control::BlockParamFloat _param_acceptance_radius;
 };
 
 #endif

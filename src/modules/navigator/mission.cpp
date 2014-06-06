@@ -88,7 +88,7 @@ Mission::reset()
 bool
 Mission::update(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
-	bool updated;
+	bool updated = false;
 
 	/* check if anything has changed */
 	bool onboard_updated;

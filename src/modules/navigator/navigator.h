@@ -108,8 +108,8 @@ public:
 	int		get_offboard_mission_sub() { return _offboard_mission_sub; }
 	Geofence&	get_geofence() { return _geofence; }
 	bool		get_is_in_loiter() { return _is_in_loiter; }
-
-	float		get_loiter_radius() { return _param_loiter_radius.get(); };
+	float		get_loiter_radius() { return _param_loiter_radius.get(); }
+	int		get_mavlink_fd() { return _mavlink_fd; }
 
 private:
 
