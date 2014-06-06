@@ -234,7 +234,7 @@ Navigator::task_main()
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
-	_param_update_sub - orb_subscribe(ORB_ID(parameter_update));
+	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	/* copy all topics first time */
 	vehicle_status_update();
