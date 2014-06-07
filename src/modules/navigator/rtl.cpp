@@ -90,8 +90,7 @@ RTL::update(struct position_setpoint_triplet_s *pos_sp_triplet)
 	}
 
 	if ((_rtl_state == RTL_STATE_CLIMB
-	     || _rtl_state == RTL_STATE_RETURN
-	     || _rtl_state == RTL_STATE_DESCEND)
+	     || _rtl_state == RTL_STATE_RETURN)
 	    && is_mission_item_reached()) {
 		advance_rtl();
 		set_rtl_item(pos_sp_triplet);
