@@ -83,7 +83,7 @@
 #include <mathlib/mathlib.h>
 #include <mavlink/mavlink_log.h>
 
-#include "estimator_21states.h"
+#include "estimator_23states.h"
 
 
 
@@ -451,6 +451,8 @@ FixedwingEstimator::~FixedwingEstimator()
 		} while (_estimator_task != -1);
 	}
 
+	delete _ekf;
+
 	estimator::g_estimator = nullptr;
 }
 
@@ -564,7 +566,7 @@ FixedwingEstimator::task_main()
 #else
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	/* XXX remove this!, BUT increase the data buffer size! */
-	orb_set_interval(_sensor_combined_sub, 4);
+	orb_set_interval(_sensor_combined_sub, 9);
 #endif
 
 	/* sets also parameters in the EKF object */
@@ -808,6 +810,8 @@ FixedwingEstimator::task_main()
 			last_mag = _sensor_combined.magnetometer_timestamp;
 
 #endif
+
+			//warnx("dang: %8.4f %8.4f dvel: %8.4f %8.4f", _ekf->dAngIMU.x, _ekf->dAngIMU.z, _ekf->dVelIMU.x, _ekf->dVelIMU.z);
 
 			bool airspeed_updated;
 			orb_check(_airspeed_sub, &airspeed_updated);
@@ -1247,11 +1251,14 @@ FixedwingEstimator::task_main()
 						_ekf->fuseMagData = true;
 						_ekf->RecallStates(_ekf->statesAtMagMeasTime, (IMUmsec - _parameters.mag_delay_ms)); // Assume 50 msec avg delay for magnetometer data
 
+						_ekf->magstate.obsIndex = 0;
+						_ekf->FuseMagnetometer();
+						_ekf->FuseMagnetometer();
+						_ekf->FuseMagnetometer();
+
 					} else {
 						_ekf->fuseMagData = false;
 					}
-
-					if (_ekf->statesInitialised) _ekf->FuseMagnetometer();
 
 					// Fuse Airspeed Measurements
 					if (newAdsData && _ekf->statesInitialised && _ekf->VtasMeas > 8.0f) {

@@ -1,4 +1,4 @@
-#include "estimator.h"
+#include "estimator_23states.h"
 #include <string.h>
 #include <stdarg.h>
 
@@ -1140,7 +1140,7 @@ void AttPosEKF::FuseMagnetometer()
 // data fit is the only assumption we can make
 // so we might as well take advantage of the computational efficiencies
 // associated with sequential fusion
-    if (useCompass && (fuseMagData || obsIndex == 1 || obsIndex == 2))
+    if (useCompass && fuseMagData && (obsIndex < 3))
     {
         // Limit range of states modified when on ground
         if(!onGround)
@@ -1156,7 +1156,7 @@ void AttPosEKF::FuseMagnetometer()
         // three prediction time steps.
 
         // Calculate observation jacobians and Kalman gains
-        if (fuseMagData)
+        if (obsIndex == 0)
         {
             // Copy required states to local variable names
             q0       = statesAtMagMeasTime[0];
@@ -1251,11 +1251,6 @@ void AttPosEKF::FuseMagnetometer()
             Kfusion[22] = SK_MX[0]*(P[22][19] + P[22][1]*SH_MAG[0] + P[22][3]*SH_MAG[2] + P[22][0]*SK_MX[3] - P[22][2]*SK_MX[2] - P[22][16]*SK_MX[1] + P[22][17]*SK_MX[5] - P[22][18]*SK_MX[4]);
             varInnovMag[0] = 1.0f/SK_MX[0];
             innovMag[0] = MagPred[0] - magData.x;
-
-            // reset the observation index to 0 (we start by fusing the X
-            // measurement)
-            obsIndex = 0;
-            fuseMagData = false;
         }
         else if (obsIndex == 1) // we are now fusing the Y measurement
         {

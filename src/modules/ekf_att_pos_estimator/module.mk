@@ -39,5 +39,5 @@ MODULE_COMMAND	= ekf_att_pos_estimator
 
 SRCS		= ekf_att_pos_estimator_main.cpp \
 		  ekf_att_pos_estimator_params.c \
-		  estimator_21states.cpp \
+		  estimator_23states.cpp \
 		  estimator_utilities.cpp

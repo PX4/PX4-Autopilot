@@ -61,8 +61,8 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
 
 // Apply corrections for earths rotation rate and coning errors
 // * and + operators have been overloaded
-    correctedDelAng   = correctedDelAng - Tnb*earthRateNED*dtIMU + 8.333333333333333e-2f*(prevDelAng % correctedDelAng);
-
+    correctedDelAng   = dAngIMU;//correctedDelAng - Tnb*earthRateNED*dtIMU + 8.333333333333333e-2f*(prevDelAng % correctedDelAng);
+    correctedDelAng.z = 0;
 // Convert the rotation vector to its equivalent quaternion
     rotationMag = correctedDelAng.length();
     if (rotationMag < 1e-12f)
@@ -151,7 +151,7 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
     states[9] = states[9] + 0.5f*(states[6] + lastVelocity[2])*dtIMU;
 
     // Constrain states (to protect against filter divergence)
-    ConstrainStates();
+    //ConstrainStates();
 }
 
 void AttPosEKF::CovariancePrediction(float dt)
