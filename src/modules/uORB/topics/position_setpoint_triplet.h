@@ -76,6 +76,7 @@ struct position_setpoint_s
 	float vel_n;				/**< feed forward North velocity */
 	float vel_e;				/**< feed forward East velocity */
 	float vel_d;				/**< feed forward Downside velocity */
+	float camera_pitch;			/**< camera pitch */
 };
 
 /**

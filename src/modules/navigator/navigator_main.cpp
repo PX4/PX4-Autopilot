@@ -526,6 +526,10 @@ Navigator::parameters_update()
 	param_get(_parameter_handles.rtl_land_delay, &(_parameters.rtl_land_delay));
 	param_get(_parameter_handles.target_alt_use, &(_parameters.target_alt_use));
 	param_get(_parameter_handles.target_alt_repeat, &(_parameters.target_alt_repeat));
+	if (!_parameters.target_alt_use) {
+		/* if target altitude not used NAV_TALT_RPT has no effect */
+		_parameters.target_alt_repeat = 1;
+	}
 
 	_mission.set_onboard_mission_allowed((bool)_parameter_handles.onboard_mission_enabled);
 
@@ -972,15 +976,21 @@ Navigator::task_main()
 				} else {
 					_follow_progress = 1.0f;
 					_follow_progress_rate = 0.0f;
+					_target_alt = _follow_offset_next.alt;
+					_target_vel(2) = 0.0f;
 				}
 
 			} else if (_follow_offset_prev.valid) {
 				_follow_progress = 0.0f;
 				_follow_progress_rate = 0.0f;
+				_target_alt = _follow_offset_prev.alt;
+				_target_vel(2) = 0.0f;
 
 			} else if (_follow_offset_next.valid) {
 				_follow_progress = 1.0f;
 				_follow_progress_rate = 0.0f;
+				_target_alt = _follow_offset_next.alt;
+				_target_vel(2) = 0.0f;
 			}
 		}
 
@@ -1197,6 +1207,7 @@ Navigator::start_loiter()
 		_pos_sp_triplet.current.lat = _global_pos.lat;
 		_pos_sp_triplet.current.lon = _global_pos.lon;
 		_pos_sp_triplet.current.yaw = NAN;	// NAN means to use current yaw
+		_pos_sp_triplet.current.camera_pitch = 0.0f;
 
 		float min_alt_amsl = _parameters.min_altitude + _home_pos.alt;
 
@@ -1332,6 +1343,7 @@ Navigator::set_mission_item()
 						_pos_sp_triplet.current.lon = _global_pos.lon;
 						_pos_sp_triplet.current.alt = takeoff_alt_amsl;
 						_pos_sp_triplet.current.yaw = NAN;
+						_pos_sp_triplet.current.camera_pitch = 0.0f;
 						_pos_sp_triplet.current.type = SETPOINT_TYPE_TAKEOFF;
 					}
 
@@ -1633,6 +1645,8 @@ Navigator::position_setpoint_from_mission_item(position_setpoint_s *sp, mission_
 		sp->pitch_min = item->pitch_min;
 	}
 
+	sp->camera_pitch = 0.0f;
+
 	if (item->nav_cmd == NAV_CMD_TAKEOFF) {
 		sp->type = SETPOINT_TYPE_TAKEOFF;
 
@@ -1886,8 +1900,27 @@ Navigator::publish_position_setpoint_triplet()
 			_pos_sp_triplet.current.alt = _follow_offset_prev.alt + _follow_progress * (_follow_offset_next.alt - _follow_offset_prev.alt) - offset(2);
 		}
 
-		/* calculate direction to target */
-		_pos_sp_triplet.current.yaw = get_bearing_to_next_waypoint(_global_pos.lat, _global_pos.lon, _target_pos.lat, _target_pos.lon) + yaw_relative;
+		/* calculate current offset */
+		math::Vector<3> current_offset;
+		get_vector_to_next_waypoint_fast(_target_lat, _target_lon, _global_pos.lat, _global_pos.lon, &current_offset.data[0], &current_offset.data[1]);
+		current_offset(2) = -(_global_pos.alt - _target_alt);
+
+		math::Vector<2> current_offset_xy(current_offset(0), current_offset(1));
+		float current_offset_xy_len = current_offset_xy.length();
+		if (current_offset_xy_len > 2.0f) {
+			/* calculate yaw setpoint from current positions */
+			_pos_sp_triplet.current.yaw = _wrap_pi(atan2f(-current_offset_xy(1), -current_offset_xy(0)) + yaw_relative);
+
+			/* feed forward attitude rates */
+			/*
+			math::Vector<2> offs_vel_xy(_vel(0) - _tvel(0), _vel(1) - _tvel(1));
+			_att_rates_ff(2) = (current_offset_xy % offs_vel_xy) / current_offset_xy_len / current_offset_xy_len;
+			*/
+		}
+
+		_pos_sp_triplet.current.camera_pitch = atan2f(current_offset(2), current_offset_xy_len);
+
+		mavlink_log_info(_mavlink_fd, "coff %.2f %.2f %.2f p %.2f", current_offset(0), current_offset(1), current_offset(2), _pos_sp_triplet.current.camera_pitch);
 
 		_pos_sp_triplet.current.vel_n = vel_ff(0);
 		_pos_sp_triplet.current.vel_e = vel_ff(1);
