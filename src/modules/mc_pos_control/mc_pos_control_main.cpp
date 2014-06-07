@@ -258,7 +258,7 @@ private:
 	/**
 	 * Control camera and copter yaw depending on mode
 	 */
-	void		control_camera();
+	void		point_to_target();
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -689,40 +689,26 @@ MulticopterPositionControl::control_sp_follow(float dt)
 }
 
 void
-MulticopterPositionControl::control_camera()
+MulticopterPositionControl::point_to_target()
 {
-	if (_control_mode.flag_point_to_target) {
-		/* change yaw to keep direction to target */
-		/* calculate current offset (not offset setpoint) */
-		math::Vector<3> current_offset = _pos - _tpos;
-		math::Vector<2> current_offset_xy(current_offset(0), current_offset(1));
+	/* change yaw to keep direction to target */
+	/* calculate current offset (not offset setpoint) */
+	math::Vector<3> current_offset = _pos - _tpos;
+	math::Vector<2> current_offset_xy(current_offset(0), current_offset(1));
 
-		/* don't try to rotate near singularity */
-		float current_offset_xy_len = current_offset_xy.length();
-		if (current_offset_xy_len > FOLLOW_OFFS_XY_MIN) {
-			/* calculate yaw setpoint from current positions and control offset with yaw stick */
-			_att_sp.yaw_body = _wrap_pi(atan2f(-current_offset_xy(1), -current_offset_xy(0)) + _manual.r * _params.follow_yaw_max);
+	/* don't try to rotate near singularity */
+	float current_offset_xy_len = current_offset_xy.length();
+	if (current_offset_xy_len > FOLLOW_OFFS_XY_MIN) {
+		/* calculate yaw setpoint from current positions and control offset with yaw stick */
+		_att_sp.yaw_body = _wrap_pi(atan2f(-current_offset_xy(1), -current_offset_xy(0)) + _manual.r * _params.follow_yaw_max);
 
-			/* feed forward attitude rates */
-			math::Vector<2> offs_vel_xy(_vel(0) - _tvel(0), _vel(1) - _tvel(1));
-			_att_rates_ff(2) = (current_offset_xy % offs_vel_xy) / current_offset_xy_len / current_offset_xy_len;
-		}
-
-		/* control camera pitch in global frame (for BL camera gimbal) */
-		_cam_control.control[1] = atan2f(current_offset(2), current_offset_xy_len) / _params.cam_pitch_max + _manual.aux2;
-
-	} else {
-		/* manual camera pitch control */
-		_cam_control.control[1] = _manual.aux2;
+		/* feed forward attitude rates */
+		math::Vector<2> offs_vel_xy(_vel(0) - _tvel(0), _vel(1) - _tvel(1));
+		_att_rates_ff(2) = (current_offset_xy % offs_vel_xy) / current_offset_xy_len / current_offset_xy_len;
 	}
 
-	/* publish camera control */
-	if (_cam_control_pub < 0) {
-		_cam_control_pub = orb_advertise(ORB_ID(actuator_controls_2), &_cam_control);
-
-	} else {
-		orb_publish(ORB_ID(actuator_controls_2), _cam_control_pub, &_cam_control);
-	}
+	/* control camera pitch in global frame (for BL camera gimbal) */
+	_cam_control.control[1] = atan2f(current_offset(2), current_offset_xy_len) / _params.cam_pitch_max + _manual.aux2;
 }
 
 void
@@ -874,9 +860,6 @@ MulticopterPositionControl::task_main()
 		_sp_move_rate.zero();
 		_att_rates_ff.zero();
 
-		/* control camera even if position controller disabled (pass through) */
-		control_camera();
-
 		if (_control_mode.flag_control_altitude_enabled ||
 		    _control_mode.flag_control_position_enabled ||
 		    _control_mode.flag_control_climb_rate_enabled ||
@@ -952,6 +935,15 @@ MulticopterPositionControl::task_main()
 					_pos_sp = _pos + pos_sp_offs.emult(_params.sp_offs_max);
 				}
 
+				/* control yaw and camera */
+				if (_control_mode.flag_point_to_target) {
+					point_to_target();
+
+				} else {
+					/* manual camera pitch control */
+					_cam_control.control[1] = _manual.aux2;
+				}
+
 			} else {
 				/* AUTO */
 				bool updated;
@@ -972,15 +964,26 @@ MulticopterPositionControl::task_main()
 							       &_pos_sp.data[0], &_pos_sp.data[1]);
 					_pos_sp(2) = -(_pos_sp_triplet.current.alt - _ref_alt);
 
+					/* feed forward velocity of moving setpoint */
+					if (_pos_sp_triplet.current.type == SETPOINT_TYPE_MOVING) {
+						_vel_ff(0) = _pos_sp_triplet.current.vel_n;
+						_vel_ff(1) = _pos_sp_triplet.current.vel_e;
+						_vel_ff(2) = _pos_sp_triplet.current.vel_d;
+					}
+
 					/* update yaw setpoint if needed */
 					if (isfinite(_pos_sp_triplet.current.yaw)) {
 						_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
 					}
 
+					_cam_control.control[1] = _pos_sp_triplet.current.camera_pitch / _params.cam_pitch_max;
+
 				} else {
 					/* no waypoint, loiter, reset position setpoint if needed */
 					reset_pos_sp();
 					reset_alt_sp();
+
+					_cam_control.control[1] = 0.0f;
 				}
 
 				_reset_follow_offset = true;
@@ -1340,10 +1343,21 @@ MulticopterPositionControl::task_main()
 			_reset_follow_offset = true;
 			reset_int_z = true;
 			reset_int_xy = true;
+
+			/* manual camera pitch control */
+			_cam_control.control[1] = _manual.aux2;
 		}
 
 		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */
 		reset_int_z_manual = _control_mode.flag_armed && _control_mode.flag_control_manual_enabled && !_control_mode.flag_control_climb_rate_enabled;
+
+		/* publish camera control in all modes */
+		if (_cam_control_pub < 0) {
+			_cam_control_pub = orb_advertise(ORB_ID(actuator_controls_2), &_cam_control);
+
+		} else {
+			orb_publish(ORB_ID(actuator_controls_2), _cam_control_pub, &_cam_control);
+		}
 	}
 
 	warnx("stopped");
