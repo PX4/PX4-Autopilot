@@ -73,10 +73,13 @@ MavlinkFTP::handle_message(mavlink_message_t *msg, mavlink_channel_t channel)
 	if (req != nullptr) {
 
 		// decode the request
-		req->decode(channel, msg);
+		if (req->decode(msg, channel)) {
 
-		// and queue it for the worker
-		work_queue(LPWORK, &req->work, &MavlinkFTP::_workerTrampoline, req, 0);
+			// and queue it for the worker
+			work_queue(LPWORK, &req->work, &MavlinkFTP::_workerTrampoline, req, 0);
+		} else {
+			_qFree(req);
+		}
 	}
 }
 
@@ -112,7 +115,7 @@ MavlinkFTP::_worker(Request *req)
 		printf("ftp: bad crc\n");
 	}
 
-	printf("ftp: opc %u size %u offset %u\n", hdr->opcode, hdr->size, hdr->offset);
+	printf("ftp: channel %u opc %u size %u offset %u\n", req->channel(), hdr->opcode, hdr->size, hdr->offset);
 
 	switch (hdr->opcode) {
 	case kCmdNone:
@@ -186,7 +189,7 @@ MavlinkFTP::_reply(Request *req)
 	hdr->crc32 = crc32(req->rawData(), req->dataSize());
 
 	// then pack and send the reply back to the request source
-	mavlink_msg_encapsulated_data_send(req->channel, req->sequence(), req->rawData());
+	req->reply();
 }
 
 MavlinkFTP::ErrorCode
