@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +33,8 @@
 /**
  * @file navigator_mission.cpp
  * Helper class to access missions
+ *
+ * @author Julian Oes <joes@student.ethz.ch>
  */
 
 #include <string.h>

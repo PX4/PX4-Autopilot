@@ -34,6 +34,9 @@
 /**
  * @file l3gd20.cpp
  * Driver for the ST L3GD20 MEMS gyro connected via SPI.
+ *
+ * Note: With the exception of the self-test feature, the ST L3G4200D is
+ *       also supported by this driver.
  */
 
 #include <nuttx/config.h>
@@ -89,9 +92,11 @@ static const int ERROR = -1;
 #define ADDR_WHO_AM_I			0x0F
 #define WHO_I_AM_H 				0xD7
 #define WHO_I_AM				0xD4
+#define WHO_I_AM_L3G4200D		0xD3	/* for L3G4200D */
 
 #define ADDR_CTRL_REG1			0x20
 #define REG1_RATE_LP_MASK			0xF0 /* Mask to guard partial register update */
+
 /* keep lowpass low to avoid noise issues */
 #define RATE_95HZ_LP_25HZ		((0<<7) | (0<<6) | (0<<5) | (1<<4))
 #define RATE_190HZ_LP_25HZ		((0<<7) | (1<<6) | (0<<5) | (1<<4))
@@ -166,8 +171,13 @@ static const int ERROR = -1;
 #define FIFO_CTRL_BYPASS_TO_STREAM_MODE		(1<<7)
 
 #define L3GD20_DEFAULT_RATE			760
+#define L3G4200D_DEFAULT_RATE			800
 #define L3GD20_DEFAULT_RANGE_DPS		2000
 #define L3GD20_DEFAULT_FILTER_FREQ		30
+
+#ifndef SENSOR_BOARD_ROTATION_DEFAULT
+#define SENSOR_BOARD_ROTATION_DEFAULT		SENSOR_BOARD_ROTATION_270_DEG
+#endif
 
 extern "C" { __EXPORT int l3gd20_main(int argc, char *argv[]); }
 
@@ -215,6 +225,9 @@ private:
 	math::LowPassFilter2p	_gyro_filter_x;
 	math::LowPassFilter2p	_gyro_filter_y;
 	math::LowPassFilter2p	_gyro_filter_z;
+
+	/* true if an L3G4200D is detected */
+	bool	_is_l3g4200d;
 
 	/**
 	 * Start automatic measurement.
@@ -324,14 +337,15 @@ L3GD20::L3GD20(int bus, const char* path, spi_dev_e device) :
 	_gyro_topic(-1),
 	_class_instance(-1),
 	_current_rate(0),
-	_orientation(SENSOR_BOARD_ROTATION_270_DEG),
+	_orientation(SENSOR_BOARD_ROTATION_DEFAULT),
 	_read(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "l3gd20_read")),
 	_reschedules(perf_alloc(PC_COUNT, "l3gd20_reschedules")),
 	_errors(perf_alloc(PC_COUNT, "l3gd20_errors")),
 	_gyro_filter_x(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
 	_gyro_filter_y(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
-	_gyro_filter_z(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ)
+	_gyro_filter_z(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
+	_is_l3g4200d(false)
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -413,20 +427,20 @@ L3GD20::probe()
 	/* verify that the device is attached and functioning, accept L3GD20 and L3GD20H */
 	if (read_reg(ADDR_WHO_AM_I) == WHO_I_AM) {
 
-		#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-			_orientation = SENSOR_BOARD_ROTATION_270_DEG;
-		#elif CONFIG_ARCH_BOARD_PX4FMU_V2
-			_orientation = SENSOR_BOARD_ROTATION_270_DEG;
-		#else
-			#error This driver needs a board selection, either CONFIG_ARCH_BOARD_PX4FMU_V1 or CONFIG_ARCH_BOARD_PX4FMU_V2
-		#endif
-
+		_orientation = SENSOR_BOARD_ROTATION_DEFAULT;
 		success = true;
 	}
 
 
 	if (read_reg(ADDR_WHO_AM_I) == WHO_I_AM_H) {
 		_orientation = SENSOR_BOARD_ROTATION_180_DEG;
+		success = true;
+	}
+
+	/* Detect the L3G4200D used on AeroCore */
+	if (read_reg(ADDR_WHO_AM_I) == WHO_I_AM_L3G4200D) {
+		_is_l3g4200d = true;
+		_orientation = SENSOR_BOARD_ROTATION_DEFAULT;
 		success = true;
 	}
 
@@ -502,6 +516,9 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 				/* set default/max polling rate */
 			case SENSOR_POLLRATE_MAX:
 			case SENSOR_POLLRATE_DEFAULT:
+				if (_is_l3g4200d) {
+					return ioctl(filp, SENSORIOCSPOLLRATE, L3G4200D_DEFAULT_RATE);
+				}
 				return ioctl(filp, SENSORIOCSPOLLRATE, L3GD20_DEFAULT_RATE);
 
 				/* adjust to a legal polling interval in Hz */
@@ -683,23 +700,26 @@ L3GD20::set_samplerate(unsigned frequency)
 	uint8_t bits = REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE;
 
 	if (frequency == 0)
-		frequency = 760;
+		frequency = _is_l3g4200d ? 800 : 760;
 
-	/* use limits good for H or non-H models */
+	/*
+	 * Use limits good for H or non-H models. Rates are slightly different
+	 * for L3G4200D part but register settings are the same.
+	 */
 	if (frequency <= 100) {
-		_current_rate = 95;
+		_current_rate = _is_l3g4200d ? 100 : 95;
 		bits |= RATE_95HZ_LP_25HZ;
 
 	} else if (frequency <= 200) {
-		_current_rate = 190;
+		_current_rate = _is_l3g4200d ? 200 : 190;
 		bits |= RATE_190HZ_LP_50HZ;
 
 	} else if (frequency <= 400) {
-		_current_rate = 380;
+		_current_rate = _is_l3g4200d ? 400 : 380;
 		bits |= RATE_380HZ_LP_50HZ;
 
 	} else if (frequency <= 800) {
-		_current_rate = 760;
+		_current_rate = _is_l3g4200d ? 800 : 760;
 		bits |= RATE_760HZ_LP_50HZ;
 	} else {
 		return -EINVAL;
@@ -772,7 +792,7 @@ L3GD20::reset()
 	 * callback fast enough to not miss data. */
 	write_reg(ADDR_FIFO_CTRL_REG, FIFO_CTRL_BYPASS_MODE);
 
-	set_samplerate(0); // 760Hz
+	set_samplerate(0); // 760Hz or 800Hz
 	set_range(L3GD20_DEFAULT_RANGE_DPS);
 	set_driver_lowpass_filter(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ);
 
@@ -971,7 +991,7 @@ start()
 		errx(0, "already started");
 
 	/* create the driver */
-	g_dev = new L3GD20(1 /* SPI bus 1 */, L3GD20_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_GYRO);
+	g_dev = new L3GD20(PX4_SPI_BUS_SENSORS, L3GD20_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_GYRO);
 
 	if (g_dev == nullptr)
 		goto fail;

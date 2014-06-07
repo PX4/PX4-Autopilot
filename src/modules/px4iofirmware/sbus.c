@@ -93,7 +93,7 @@ int
 sbus_init(const char *device)
 {
 	if (sbus_fd < 0)
-		sbus_fd = open(device, O_RDONLY | O_NONBLOCK);
+		sbus_fd = open(device, O_RDWR | O_NONBLOCK);
 
 	if (sbus_fd >= 0) {
 		struct termios t;
@@ -113,8 +113,19 @@ sbus_init(const char *device)
 	} else {
 		debug("S.Bus: open failed");
 	}
-
 	return sbus_fd;
+}
+
+bool
+sbus1_output(uint16_t *values, uint16_t num_values)
+{
+	write(sbus_fd, 'A', 1);
+}
+
+bool
+sbus2_output(uint16_t *values, uint16_t num_values)
+{
+	write(sbus_fd, 'B', 1);
 }
 
 bool

@@ -70,7 +70,7 @@ MODULES		+= modules/gpio_led
 # Estimation modules (EKF/ SO3 / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
-MODULES		+= modules/fw_att_pos_estimator
+MODULES		+= modules/ekf_att_pos_estimator
 MODULES		+= modules/position_estimator_inav
 #MODULES		+= examples/flow_position_estimator
 

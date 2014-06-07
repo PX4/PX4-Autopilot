@@ -63,7 +63,7 @@ MavlinkOrbSubscription::~MavlinkOrbSubscription()
 	free(_data);
 }
 
-const orb_id_t
+orb_id_t
 MavlinkOrbSubscription::get_topic()
 {
 	return _topic;

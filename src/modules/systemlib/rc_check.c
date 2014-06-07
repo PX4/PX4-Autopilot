@@ -140,7 +140,7 @@ int rc_calibration_check(int mavlink_fd) {
 		/* sanity checks pass, enable channel */
 		if (count) {
 			mavlink_log_critical(mavlink_fd, "ERROR: %d config error(s) for RC channel %d.", count, (i + 1));
-			warnx(mavlink_fd, "ERROR: %d config error(s) for RC channel %d.", count, (i + 1));
+			warnx("ERROR: %d config error(s) for RC channel %d.", count, (i + 1));
 			usleep(100000);
 		}
 

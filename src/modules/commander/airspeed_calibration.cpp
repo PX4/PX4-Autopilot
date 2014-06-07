@@ -82,12 +82,15 @@ int do_airspeed_calibration(int mavlink_fd)
 
 	bool paramreset_successful = false;
 	int  fd = open(AIRSPEED_DEVICE_PATH, 0);
+
 	if (fd > 0) {
 		if (OK == ioctl(fd, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
 			paramreset_successful = true;
+
 		} else {
 			mavlink_log_critical(mavlink_fd, "airspeed offset zero failed");
 		}
+
 		close(fd);
 	}
 
@@ -112,8 +115,9 @@ int do_airspeed_calibration(int mavlink_fd)
 			diff_pres_offset += diff_pres.differential_pressure_raw_pa;
 			calibration_counter++;
 
-			if (calibration_counter % (calibration_count / 20) == 0)
+			if (calibration_counter % (calibration_count / 20) == 0) {
 				mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, (calibration_counter * 100) / calibration_count);
+			}
 
 		} else if (poll_ret == 0) {
 			/* any poll failure for 1s is a reason to abort */

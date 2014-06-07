@@ -63,9 +63,13 @@ public:
 	MavlinkStream *next;
 
 	MavlinkStream();
-	~MavlinkStream();
+	virtual ~MavlinkStream();
 	void set_interval(const unsigned int interval);
 	void set_channel(mavlink_channel_t channel);
+
+	/**
+	 * @return 0 if updated / sent, -1 if unchanged
+	 */
 	int update(const hrt_abstime t);
 	virtual MavlinkStream *new_instance() = 0;
 	virtual void subscribe(Mavlink *mavlink) = 0;

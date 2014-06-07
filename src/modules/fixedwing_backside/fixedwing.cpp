@@ -229,8 +229,8 @@ void BlockMultiModeBacksideAutopilot::update()
 		_actuators.control[CH_RDR] = _manual.yaw;
 		_actuators.control[CH_THR] = _manual.throttle;
 
-	} else if (_status.main_state == MAIN_STATE_SEATBELT ||
-		_status.main_state == MAIN_STATE_EASY /* TODO, implement easy */) {
+	} else if (_status.main_state == MAIN_STATE_ALTCTL ||
+		_status.main_state == MAIN_STATE_POSCTL /* TODO, implement pos control */) {
 
 		// calculate velocity, XXX should be airspeed, but using ground speed for now
 		// for the purpose of control we will limit the velocity feedback between

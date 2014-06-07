@@ -1,10 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Jean Cyr <jean.m.cyr@gmail.com>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +31,7 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_main.c
+ * @file navigator_main.cpp
  * Implementation of the main navigation state machine.
  *
  * Handles missions, geo fencing and failsafe navigation behavior.
@@ -523,7 +519,7 @@ Navigator::offboard_mission_update(bool isrotaryWing)
 			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_1;
 		}
 
-		missionFeasiblityChecker.checkMissionFeasible(isrotaryWing, dm_current, (size_t)offboard_mission.count, _geofence);
+		missionFeasiblityChecker.checkMissionFeasible(isrotaryWing, dm_current, (size_t)offboard_mission.count, _geofence, _home_pos.alt);
 
 		_mission.set_offboard_dataman_id(offboard_mission.dataman_id);
 
@@ -852,7 +848,7 @@ Navigator::start()
 	_navigator_task = task_spawn_cmd("navigator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 5,
-					 2048,
+					 2000,
 					 (main_t)&Navigator::task_main_trampoline,
 					 nullptr);
 
@@ -1291,7 +1287,7 @@ Navigator::set_rtl_item()
 			_mission_item.yaw = NAN;
 			_mission_item.loiter_radius = _parameters.loiter_radius;
 			_mission_item.loiter_direction = 1;
-			_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.acceptance_radius = _parameters.acceptance_radius;
 			_mission_item.time_inside = 0.0f;
 			_mission_item.pitch_min = 0.0f;
@@ -1351,7 +1347,7 @@ Navigator::set_rtl_item()
 			_mission_item.yaw = NAN;
 			_mission_item.loiter_radius = _parameters.loiter_radius;
 			_mission_item.loiter_direction = 1;
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 			_mission_item.acceptance_radius = _parameters.acceptance_radius;
 			_mission_item.time_inside = _parameters.rtl_land_delay < 0.0f ? 0.0f : _parameters.rtl_land_delay;
 			_mission_item.pitch_min = 0.0f;
@@ -1462,7 +1458,6 @@ Navigator::check_mission_item_reached()
 
 	/* XXX TODO count turns */
 	if ((_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-	     _mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 	     _mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED) &&
 	    _mission_item.loiter_radius > 0.01f) {
 
@@ -1481,27 +1476,27 @@ Navigator::check_mission_item_reached()
 			acceptance_radius = _parameters.acceptance_radius;
 		}
 
-		float dist = -1.0f;
-		float dist_xy = -1.0f;
-		float dist_z = -1.0f;
-
-		/* calculate AMSL altitude for this waypoint */
-		float wp_alt_amsl = _mission_item.altitude;
-
-		if (_mission_item.altitude_is_relative)
-			wp_alt_amsl += _home_pos.alt;
-
-		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, wp_alt_amsl,
-				(double)_global_pos.lat, (double)_global_pos.lon, _global_pos.alt,
-				&dist_xy, &dist_z);
-
 		if (_do_takeoff) {
-			if (_global_pos.alt > wp_alt_amsl - acceptance_radius) {
-				/* require only altitude for takeoff */
+			/* require only altitude for takeoff */
+			if (_global_pos.alt > _pos_sp_triplet.current.alt - acceptance_radius) {
 				_waypoint_position_reached = true;
 			}
 
 		} else {
+			float dist = -1.0f;
+			float dist_xy = -1.0f;
+			float dist_z = -1.0f;
+
+			/* calculate AMSL altitude for this waypoint */
+			float wp_alt_amsl = _mission_item.altitude;
+
+			if (_mission_item.altitude_is_relative)
+				wp_alt_amsl += _home_pos.alt;
+
+			dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, wp_alt_amsl,
+					(double)_global_pos.lat, (double)_global_pos.lon, _global_pos.alt,
+					&dist_xy, &dist_z);
+
 			if (dist >= 0.0f && dist <= acceptance_radius) {
 				_waypoint_position_reached = true;
 			}
@@ -1571,7 +1566,14 @@ Navigator::on_mission_item_reached()
 		}
 
 		if (_mission.current_mission_available()) {
-			set_mission_item();
+			if (_mission_item.autocontinue) {
+				/* continue mission */
+				set_mission_item();
+
+			} else {
+				/* autocontinue disabled for this item */
+				request_loiter_or_ready();
+			}
 
 		} else {
 			/* if no more mission items available then finish mission */

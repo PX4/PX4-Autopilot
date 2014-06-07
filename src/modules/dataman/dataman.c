@@ -1,10 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: 	Jean Cyr
- *              Lorenz Meier
- *              Julian Oes
- *              Thomas Gubler
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +33,11 @@
 /**
  * @file dataman.c
  * DATAMANAGER driver.
+ *
+ * @author Jean Cyr
+ * @author Lorenz Meier
+ * @author Julian Oes
+ * @author Thomas Gubler
  */
 
 #include <nuttx/config.h>
@@ -62,7 +63,7 @@ __EXPORT ssize_t dm_write(dm_item_t  item, unsigned char index, dm_persitence_t 
 __EXPORT int dm_clear(dm_item_t item);
 __EXPORT int dm_restart(dm_reset_reason restart_type);
 
-/* Types of function calls supported by the worker task */
+/** Types of function calls supported by the worker task */
 typedef enum {
 	dm_write_func = 0,
 	dm_read_func,
@@ -71,11 +72,12 @@ typedef enum {
 	dm_number_of_funcs
 } dm_function_t;
 
-/* Work task work item */
+/** Work task work item */
 typedef struct {
 	sq_entry_t link;	/**< list linkage */
 	sem_t wait_sem;
-	dm_function_t func;
+	unsigned char first;
+	unsigned char func;
 	ssize_t result;
 	union {
 		struct {
@@ -99,6 +101,8 @@ typedef struct {
 		} restart_params;
 	};
 } work_q_item_t;
+
+const size_t k_work_item_allocation_chunk_size = 8;
 
 /* Usage statistics */
 static unsigned g_func_counts[dm_number_of_funcs];
@@ -177,9 +181,23 @@ create_work_item(void)
 
 	unlock_queue(&g_free_q);
 
-	/* If we there weren't any free items then obtain memory for a new one */
-	if (item == NULL)
-		item = (work_q_item_t *)malloc(sizeof(work_q_item_t));
+	/* If we there weren't any free items then obtain memory for a new ones */
+	if (item == NULL) {
+		item = (work_q_item_t *)malloc(k_work_item_allocation_chunk_size * sizeof(work_q_item_t));
+		if (item) {
+			item->first = 1;
+			lock_queue(&g_free_q);
+			for (int i = 1; i < k_work_item_allocation_chunk_size; i++) {
+				(item + i)->first = 0;
+				sq_addfirst(&(item + i)->link, &(g_free_q.q));
+			}
+			/* Update the queue size and potentially the maximum queue size */
+			g_free_q.size += k_work_item_allocation_chunk_size - 1;
+			if (g_free_q.size > g_free_q.max_size)
+				g_free_q.max_size = g_free_q.size;
+			unlock_queue(&g_free_q);
+		}
+	}
 
 	/* If we got one then lock the item*/
 	if (item)
@@ -411,7 +429,7 @@ _clear(dm_item_t item)
 	return result;
 }
 
-/* Tell the data manager about the type of the last reset */
+/** Tell the data manager about the type of the last reset */
 static int
 _restart(dm_reset_reason reason)
 {
@@ -480,7 +498,7 @@ _restart(dm_reset_reason reason)
 	return result;
 }
 
-/* write to the data manager file */
+/** Write to the data manager file */
 __EXPORT ssize_t
 dm_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const void *buf, size_t count)
 {
@@ -505,7 +523,7 @@ dm_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const
 	return (ssize_t)enqueue_work_item_and_wait_for_result(work);
 }
 
-/* Retrieve from the data manager file */
+/** Retrieve from the data manager file */
 __EXPORT ssize_t
 dm_read(dm_item_t item, unsigned char index, void *buf, size_t count)
 {
@@ -717,8 +735,8 @@ task_main(int argc, char *argv[])
 	for (;;) {
 		if ((work = (work_q_item_t *)sq_remfirst(&(g_free_q.q))) == NULL)
 			break;
-
-		free(work);
+		if (work->first)
+			free(work);
 	}
 
 	destroy_q(&g_work_q);
@@ -736,7 +754,7 @@ start(void)
 	sem_init(&g_init_sema, 1, 0);
 
 	/* start the worker thread */
-	if ((task = task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 2048, task_main, NULL)) <= 0) {
+	if ((task = task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 2000, task_main, NULL)) <= 0) {
 		warn("task start failed");
 		return -1;
 	}

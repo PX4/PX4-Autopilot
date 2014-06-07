@@ -194,6 +194,26 @@ private:
 
 	bool systemstate_run;
 
+	int vehicle_status_sub_fd;
+	int vehicle_control_mode_sub_fd;
+	int vehicle_gps_position_sub_fd;
+	int actuator_armed_sub_fd;
+	int safety_sub_fd;
+
+	int num_of_cells;
+	int detected_cells_runcount;
+
+	int t_led_color[8];
+	int t_led_blink;
+	int led_thread_runcount;
+	int led_interval;
+
+	bool topic_initialized;
+	bool detected_cells_blinked;
+	bool led_thread_ready;
+
+	int num_of_used_sats;
+
 	void 			setLEDColor(int ledcolor);
 	static void		led_trampoline(void *arg);
 	void			led();
@@ -265,7 +285,22 @@ BlinkM::BlinkM(int bus, int blinkm) :
 	led_color_7(LED_OFF),
 	led_color_8(LED_OFF),
 	led_blink(LED_NOBLINK),
-	systemstate_run(false)
+	systemstate_run(false),
+	vehicle_status_sub_fd(-1),
+	vehicle_control_mode_sub_fd(-1),
+	vehicle_gps_position_sub_fd(-1),
+	actuator_armed_sub_fd(-1),
+	safety_sub_fd(-1),
+	num_of_cells(0),
+	detected_cells_runcount(0),
+	t_led_color({0}),
+	t_led_blink(0),
+	led_thread_runcount(0),
+	led_interval(1000),
+	topic_initialized(false),
+	detected_cells_blinked(false),
+	led_thread_ready(true),
+	num_of_used_sats(0)
 {
 	memset(&_work, 0, sizeof(_work));
 }
@@ -382,31 +417,6 @@ void
 BlinkM::led()
 {
 
-	static int vehicle_status_sub_fd;
-	static int vehicle_control_mode_sub_fd;
-	static int vehicle_gps_position_sub_fd;
-	static int actuator_armed_sub_fd;
-	static int safety_sub_fd;
-
-	static int num_of_cells = 0;
-	static int detected_cells_runcount = 0;
-
-	static int t_led_color[8] = { 0, 0, 0, 0, 0, 0, 0, 0};
-	static int t_led_blink = 0;
-	static int led_thread_runcount=0;
-	static int led_interval = 1000;
-
-	static int no_data_vehicle_status = 0;
-	static int no_data_vehicle_control_mode = 0;
-	static int no_data_actuator_armed = 0;
-	static int no_data_vehicle_gps_position = 0;
-
-	static bool topic_initialized = false;
-	static bool detected_cells_blinked = false;
-	static bool led_thread_ready = true;
-
-	int num_of_used_sats = 0;
-
 	if(!topic_initialized) {
 		vehicle_status_sub_fd = orb_subscribe(ORB_ID(vehicle_status));
 		orb_set_interval(vehicle_status_sub_fd, 250);
@@ -493,6 +503,11 @@ BlinkM::led()
 		bool new_data_safety;
 
 		orb_check(vehicle_status_sub_fd, &new_data_vehicle_status);
+
+		int no_data_vehicle_status = 0;
+		int no_data_vehicle_control_mode = 0;
+		int no_data_actuator_armed = 0;
+		int no_data_vehicle_gps_position = 0;
 
 		if (new_data_vehicle_status) {
 			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub_fd, &vehicle_status_raw);
@@ -638,11 +653,11 @@ BlinkM::led()
 
 						if(new_data_vehicle_control_mode || no_data_vehicle_control_mode < 3) {
 							/* indicate main control state */
-							if (vehicle_status_raw.main_state == MAIN_STATE_EASY)
+							if (vehicle_status_raw.main_state == MAIN_STATE_POSCTL)
 								led_color_4 = LED_GREEN;
 							else if (vehicle_status_raw.main_state == MAIN_STATE_AUTO)
 								led_color_4 = LED_BLUE;
-							else if (vehicle_status_raw.main_state == MAIN_STATE_SEATBELT)
+							else if (vehicle_status_raw.main_state == MAIN_STATE_ALTCTL)
 								led_color_4 = LED_YELLOW;
 							else if (vehicle_status_raw.main_state == MAIN_STATE_MANUAL)
 								led_color_4 = LED_WHITE;

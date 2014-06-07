@@ -880,7 +880,7 @@ LSM303D::mag_read(struct file *filp, char *buffer, size_t buflen)
 
 	/* manual measurement */
 	_mag_reports->flush();
-	measure();
+	_mag->measure();
 
 	/* measurement will have generated a report, copy it out */
 	if (_mag_reports->get(mrb))
@@ -1793,7 +1793,7 @@ start()
 		errx(0, "already started");
 
 	/* create the driver */
-	g_dev = new LSM303D(1 /* SPI dev 1 */, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG);
+	g_dev = new LSM303D(PX4_SPI_BUS_SENSORS, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG);
 
 	if (g_dev == nullptr) {
 		warnx("failed instantiating LSM303D obj");

@@ -136,12 +136,26 @@ void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_
 					}
 
 					effective_pwm[i] = output[i] * (max_pwm[i] - ramp_min_pwm)/2 + (max_pwm[i] + ramp_min_pwm)/2;
+
+					/* last line of defense against invalid inputs */
+					if (effective_pwm[i] < ramp_min_pwm) {
+						effective_pwm[i] = ramp_min_pwm;
+					} else if (effective_pwm[i] > max_pwm[i]) {
+						effective_pwm[i] = max_pwm[i];
+					}
 				}
 			}
 			break;
 		case PWM_LIMIT_STATE_ON:
 			for (unsigned i=0; i<num_channels; i++) {
 				effective_pwm[i] = output[i] * (max_pwm[i] - min_pwm[i])/2 + (max_pwm[i] + min_pwm[i])/2;
+
+				/* last line of defense against invalid inputs */
+				if (effective_pwm[i] < min_pwm[i]) {
+					effective_pwm[i] = min_pwm[i];
+				} else if (effective_pwm[i] > max_pwm[i]) {
+					effective_pwm[i] = max_pwm[i];
+				}
 			}
 			break;
 		default:

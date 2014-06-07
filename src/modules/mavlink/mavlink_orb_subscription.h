@@ -63,7 +63,7 @@ public:
 	 */
 	bool is_published();
 	void *get_data();
-	const orb_id_t get_topic();
+	orb_id_t get_topic();
 
 private:
 	const orb_id_t _topic;		/*< topic metadata */

@@ -1,8 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Jean Cyr <jean.m.cyr@gmail.com>
- *           @author Thomas Gubler <thomasgubler@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +33,9 @@
 /**
  * @file geofence.cpp
  * Provides functions for handling the geofence
+ *
+ * @author Jean Cyr <jean.m.cyr@gmail.com>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 #include "geofence.h"
 
