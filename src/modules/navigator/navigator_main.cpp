@@ -223,7 +223,8 @@ private:
 		float land_alt;
 		float rtl_alt;
 		float rtl_land_delay;
-		int use_target_alt;
+		int target_alt_use;
+		int target_alt_repeat;
 	}		_parameters;			/**< local copies of parameters */
 
 	struct {
@@ -235,7 +236,8 @@ private:
 		param_t land_alt;
 		param_t rtl_alt;
 		param_t rtl_land_delay;
-		param_t use_target_alt;
+		param_t target_alt_use;
+		param_t target_alt_repeat;
 	}		_parameter_handles;		/**< handles for parameters */
 
 	enum Event {
@@ -458,7 +460,8 @@ Navigator::Navigator() :
 	_parameter_handles.land_alt = param_find("NAV_LAND_ALT");
 	_parameter_handles.rtl_alt = param_find("NAV_RTL_ALT");
 	_parameter_handles.rtl_land_delay = param_find("NAV_RTL_LAND_T");
-	_parameter_handles.use_target_alt = param_find("NAV_USE_T_ALT");
+	_parameter_handles.target_alt_use = param_find("NAV_TALT_USE");
+	_parameter_handles.target_alt_repeat = param_find("NAV_TALT_RPT");
 
 	memset(&_pos_sp_triplet, 0, sizeof(struct position_setpoint_triplet_s));
 	memset(&_mission_item, 0, sizeof(struct mission_item_s));
@@ -521,7 +524,8 @@ Navigator::parameters_update()
 	param_get(_parameter_handles.land_alt, &(_parameters.land_alt));
 	param_get(_parameter_handles.rtl_alt, &(_parameters.rtl_alt));
 	param_get(_parameter_handles.rtl_land_delay, &(_parameters.rtl_land_delay));
-	param_get(_parameter_handles.use_target_alt, &(_parameters.use_target_alt));
+	param_get(_parameter_handles.target_alt_use, &(_parameters.target_alt_use));
+	param_get(_parameter_handles.target_alt_repeat, &(_parameters.target_alt_repeat));
 
 	_mission.set_onboard_mission_allowed((bool)_parameter_handles.onboard_mission_enabled);
 
@@ -896,18 +900,18 @@ Navigator::task_main()
 			/* time interval between target and vehicle position estimates */
 			float target_dt = math::constrain(((int64_t)_global_pos.time_gps_usec - (int64_t)_target_pos.time_gps_usec) / 1000000.0f, 0.0f, 1.0f);
 
-			/* position change prediction */
-			math::Vector<3> dpos(_target_pos.vel_n, _target_pos.vel_e, _target_pos.vel_d);
-			dpos *= target_dt;
-
-			/* predict current target position */
-			add_vector_to_global_position(_target_pos.lat, _target_pos.lon, dpos(0), dpos(1), &_target_lat, &_target_lon);
-			_target_alt = _parameters.use_target_alt ? (_target_pos.alt - dpos(2)) : 0.0f;
-
+			/* target velocity */
 			_target_vel(0) = _target_pos.vel_n;
 			_target_vel(1) = _target_pos.vel_e;
 			_target_vel(2) = _target_pos.vel_d;
 
+			/* predict current target position */
+			add_vector_to_global_position(_target_pos.lat, _target_pos.lon,
+					_target_vel(0) * target_dt, _target_vel(1) * target_dt,
+					&_target_lat, &_target_lon);
+			_target_alt = _target_pos.alt - _target_vel(2) * target_dt;
+
+			/* calculate progress for follow mode */
 			if (_follow_offset_prev.valid && _follow_offset_next.valid) {
 				math::Vector<3> trajectory;
 				get_vector_to_next_waypoint_fast(_follow_offset_prev.lat, _follow_offset_prev.lon,
@@ -922,17 +926,47 @@ Navigator::task_main()
 				pos(2) = -(_target_alt - _follow_offset_prev.alt);
 
 				if (trajectory.length_squared() > 0.01f) {
-					_follow_progress = pos * trajectory / trajectory.length_squared();
-					if (_follow_progress < 0.0f) {
-						_follow_progress = 0.0f;
-						_follow_progress_rate = 0.0f;
+					if (_parameters.target_alt_use) {
+						/* use 3D target position for progress calculation */
+						_follow_progress = pos * trajectory / trajectory.length_squared();
 
-					} else if (_follow_progress > 1.0f) {
-						_follow_progress = 1.0f;
-						_follow_progress_rate = 0.0f;
+						if (_follow_progress < 0.0f) {
+							_follow_progress = 0.0f;
+							_follow_progress_rate = 0.0f;
+
+						} else if (_follow_progress > 1.0f) {
+							_follow_progress = 1.0f;
+							_follow_progress_rate = 0.0f;
+
+						} else {
+							/* use 3D target velocity for progress rate calculation */
+							_follow_progress_rate = _target_vel * trajectory / trajectory.length_squared();
+						}
 
 					} else {
-						_follow_progress_rate = _target_vel * trajectory / trajectory.length_squared();
+						/* ignore target altitude, use 2D target position */
+						math::Vector<2> pos2D(pos(0), pos(1));
+						math::Vector<2> trajectory2D(trajectory(0), trajectory(1));
+						float trajectory2Dlen2 = trajectory2D.length_squared();
+						_follow_progress = pos2D * trajectory2D / trajectory2Dlen2;
+
+						if (_follow_progress < 0.0f) {
+							_follow_progress = 0.0f;
+							_follow_progress_rate = 0.0f;
+
+						} else if (_follow_progress > 1.0f) {
+							_follow_progress = 1.0f;
+							_follow_progress_rate = 0.0f;
+
+						} else {
+							/* ignore target altitude, use 2D target velocity */
+							math::Vector<2> target_vel2D(_target_vel(0), _target_vel(1));
+							_follow_progress_rate = target_vel2D * trajectory2D / trajectory2Dlen2;
+						}
+
+						/* update target altitude and vertical velocity */
+						_target_alt = _follow_offset_prev.alt - trajectory(2) * _follow_progress;
+						_target_vel(2) = trajectory(2) * _follow_progress_rate;
 					}
 
 				} else {
@@ -1236,12 +1270,7 @@ Navigator::set_mission_item()
 				memcpy(&_follow_offset_prev, &_follow_offset_next, sizeof(_follow_offset_prev));
 
 				/* set offset for target following items */
-				float roi_alt_amsl;
-				if (_parameters.use_target_alt) {
-					roi_alt_amsl = _roi_item.altitude_is_relative ? (_roi_item.altitude + _home_pos.alt) : _roi_item.altitude;
-				} else {
-					roi_alt_amsl = 0.0f;
-				}
+				float roi_alt_amsl = _roi_item.altitude_is_relative ? (_roi_item.altitude + _home_pos.alt) : _roi_item.altitude;
 
 				_follow_offset_next.valid = true;
 				_follow_offset_next.lat = _roi_item.lat;
@@ -1819,6 +1848,16 @@ Navigator::publish_position_setpoint_triplet()
 		float yaw_relative = 0.0f;
 		math::Vector<3> vel_ff = _target_vel;
 
+		if (!_parameters.target_alt_repeat) {
+			/* if not repeating target altitude set velocity of trajectory */
+			if (_follow_offset_prev.valid && _follow_offset_next.valid) {
+				vel_ff(2) = -(_follow_offset_next.alt - _follow_offset_prev.alt) * _follow_progress_rate;
+
+			} else {
+				vel_ff(2) = 0.0f;
+			}
+		}
+
 		if (!_follow_offset_prev.valid) {
 			offset = _follow_offset_next.offset;
 			yaw_relative = _follow_offset_next.yaw;
@@ -1838,7 +1877,14 @@ Navigator::publish_position_setpoint_triplet()
 				_target_lat, _target_lon,
 				offset(0), offset(1),
 				&_pos_sp_triplet.current.lat, &_pos_sp_triplet.current.lon);
-		_pos_sp_triplet.current.alt = _target_alt - offset(2);
+
+		if (_parameters.target_alt_repeat) {
+			_pos_sp_triplet.current.alt = _target_alt - offset(2);
+
+		} else {
+			/* if not repeating target altitude set altitude of trajectory */
+			_pos_sp_triplet.current.alt = _follow_offset_prev.alt + _follow_progress * (_follow_offset_next.alt - _follow_offset_prev.alt) - offset(2);
+		}
 
 		/* calculate direction to target */
 		_pos_sp_triplet.current.yaw = get_bearing_to_next_waypoint(_global_pos.lat, _global_pos.lon, _target_pos.lat, _target_pos.lon) + yaw_relative;

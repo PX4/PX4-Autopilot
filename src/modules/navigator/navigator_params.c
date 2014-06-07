@@ -130,11 +130,23 @@ PARAM_DEFINE_FLOAT(NAV_RTL_ALT, 30.0f);
 PARAM_DEFINE_FLOAT(NAV_RTL_LAND_T, -1.0f);
 
 /**
- * Use target altitude for 'follow' waypoints
+ * Use target altitude (for 'follow' ROI mode).
+ * 0: Don't use real target altitude, assume that target follows at ROI altitude.
+ * 1: Use actual target altitude.
  *
  * @group Navigation
  */
-PARAM_DEFINE_INT32(NAV_USE_T_ALT, 0);
+PARAM_DEFINE_INT32(NAV_TALT_USE, 0);
+
+/**
+ * Repeat target altitude (for 'follow' ROI mode).
+ * 0: Don't change altitude together with target.
+ * 1: Change altitude together with target, has no effect if NAV_TALT_USE=0.
+ * Camera will follow target in both cases.
+ *
+ * @group Navigation
+ */
+PARAM_DEFINE_INT32(NAV_TALT_RPT, 0);
 
 /**
  * Enable parachute deployment
