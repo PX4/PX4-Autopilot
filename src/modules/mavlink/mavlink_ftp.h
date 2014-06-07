@@ -159,8 +159,9 @@ private:
 			}
 		}
 
+		uint8_t		*rawData() { return &_message.data[0]; }
 		RequestHeader 	*header()  { return reinterpret_cast<RequestHeader *>(&_message.data[0]); }
-		uint8_t		*data()    { return &_message.data[0]; }
+		uint8_t         *requestData() { return &(header()->data[0]); }
 		unsigned	dataSize() { return header()->size + sizeof(RequestHeader); }
 		uint16_t	sequence() const { return _message.seqnr; }
 

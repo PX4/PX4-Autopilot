@@ -33,6 +33,7 @@
 
 #include <crc32.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <fcntl.h>
 
 #include "mavlink_ftp.h"
@@ -105,10 +106,13 @@ MavlinkFTP::_worker(Request *req)
 	// check request CRC to make sure this is one of ours
 	messageCRC = hdr->crc32;
 	hdr->crc32 = 0;
-	if (crc32(req->data(), req->dataSize()) != messageCRC) {
+	if (crc32(req->rawData(), req->dataSize()) != messageCRC) {
 		errorCode = kErrNoRequest;
 		goto out;
+		printf("ftp: bad crc\n");
 	}
+
+	printf("ftp: opc %u size %u offset %u\n", hdr->opcode, hdr->size, hdr->offset);
 
 	switch (hdr->opcode) {
 	case kCmdNone:
@@ -157,7 +161,9 @@ out:
 	// handle success vs. error
 	if (errorCode == kErrNone) {
 		hdr->opcode = kRspAck;
+		printf("FTP: ack\n");
 	} else {
+		printf("FTP: nak %u\n", errorCode);
 		hdr->opcode = kRspNak;
 		hdr->size = 1;
 		hdr->data[0] = errorCode;
@@ -177,10 +183,10 @@ MavlinkFTP::_reply(Request *req)
 
 	// message is assumed to be already constructed in the request buffer, so generate the CRC
 	hdr->crc32 = 0;
-	hdr->crc32 = crc32(req->data(), req->dataSize());
+	hdr->crc32 = crc32(req->rawData(), req->dataSize());
 
 	// then pack and send the reply back to the request source
-	mavlink_msg_encapsulated_data_send(req->channel, req->sequence(), req->data());
+	mavlink_msg_encapsulated_data_send(req->channel, req->sequence(), req->rawData());
 }
 
 MavlinkFTP::ErrorCode
@@ -190,6 +196,7 @@ MavlinkFTP::_workList(Request *req)
 	DIR *dp = opendir(req->dataAsCString());
 
 	if (dp == nullptr) {
+		printf("FTP: can't open path '%s'\n", req->dataAsCString());
 		return kErrNotDir;
 	}
 
@@ -232,6 +239,7 @@ MavlinkFTP::_workList(Request *req)
 
 		// copy the name, which we know will fit
 		strcpy((char *)&hdr->data[offset], entry.d_name);
+		printf("FTP: list %s\n", entry.d_name);
 	}
 
 	closedir(dp);
@@ -408,11 +416,11 @@ MavlinkFTP::Request::dataAsCString()
 {
 	// guarantee nul termination
 	if (header()->size < kMaxDataLength) {
-		data()[header()->size] = '\0';
+		requestData()[header()->size] = '\0';
 	} else {
-		data()[kMaxDataLength - 1] = '\0';
+		requestData()[kMaxDataLength - 1] = '\0';
 	}
 
 	// and return data
-	return (char *)data();
+	return (char *)&(header()->data[0]);
 }
