@@ -1920,8 +1920,6 @@ Navigator::publish_position_setpoint_triplet()
 
 		_pos_sp_triplet.current.camera_pitch = atan2f(current_offset(2), current_offset_xy_len);
 
-		mavlink_log_info(_mavlink_fd, "coff %.2f %.2f %.2f p %.2f", current_offset(0), current_offset(1), current_offset(2), _pos_sp_triplet.current.camera_pitch);
-
 		_pos_sp_triplet.current.vel_n = vel_ff(0);
 		_pos_sp_triplet.current.vel_e = vel_ff(1);
 		_pos_sp_triplet.current.vel_d = vel_ff(2);
