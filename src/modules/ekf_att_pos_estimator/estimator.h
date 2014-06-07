@@ -66,9 +66,14 @@ struct ekf_status_report {
     uint32_t posFailTime;
     uint32_t hgtFailTime;
     float states[n_states];
-    bool statesNaN;
+    bool angNaN;
+    bool summedDelVelNaN;
+    bool KHNaN;
+    bool KHPNaN;
+    bool PNaN;
     bool covarianceNaN;
     bool kalmanGainsNaN;
+    bool statesNaN;
 };
 
 class AttPosEKF {
@@ -200,7 +205,6 @@ public:
     float hgtMea; //  measured height (m)
     float baroHgtOffset;        ///< the baro (weather) offset from normalized altitude
     float rngMea; // Ground distance
-    float posNED[3]; // North, East Down position (m)
 
     float innovMag[3]; // innovation output
     float varInnovMag[3]; // innovation variance output

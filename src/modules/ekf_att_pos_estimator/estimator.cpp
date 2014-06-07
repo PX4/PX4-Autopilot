@@ -145,7 +145,7 @@ AttPosEKF::AttPosEKF()
      * instead to allow clean in-air re-initialization.
      */
 {
-
+    memset(&last_ekf_error, 0, sizeof(last_ekf_error));
     ZeroVariables();
     InitialiseParameters();
 }
@@ -2283,21 +2283,21 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
 
     // check all integrators
     if (!isfinite(summedDelAng.x) || !isfinite(summedDelAng.y) || !isfinite(summedDelAng.z)) {
-        err_report->statesNaN = true;
+        err_report->angNaN = true;
         ekf_debug("summedDelAng NaN: x: %f y: %f z: %f", (double)summedDelAng.x, (double)summedDelAng.y, (double)summedDelAng.z);
         err = true;
         goto out;
     } // delta angles
 
     if (!isfinite(correctedDelAng.x) || !isfinite(correctedDelAng.y) || !isfinite(correctedDelAng.z)) {
-        err_report->statesNaN = true;
+        err_report->angNaN = true;
         ekf_debug("correctedDelAng NaN: x: %f y: %f z: %f", (double)correctedDelAng.x, (double)correctedDelAng.y, (double)correctedDelAng.z);
         err = true;
         goto out;
     } // delta angles
 
     if (!isfinite(summedDelVel.x) || !isfinite(summedDelVel.y) || !isfinite(summedDelVel.z)) {
-        err_report->statesNaN = true;
+        err_report->summedDelVelNaN = true;
         ekf_debug("summedDelVel NaN: x: %f y: %f z: %f", (double)summedDelVel.x, (double)summedDelVel.y, (double)summedDelVel.z);
         err = true;
         goto out;
@@ -2308,7 +2308,7 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
         for (unsigned j = 0; j < n_states; j++) {
             if (!isfinite(KH[i][j])) {
 
-                err_report->covarianceNaN = true;
+                err_report->KHNaN = true;
                 err = true;
                 ekf_debug("KH NaN");
                 goto out;
@@ -2316,7 +2316,7 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
 
             if (!isfinite(KHP[i][j])) {
 
-                err_report->covarianceNaN = true;
+                err_report->KHPNaN = true;
                 err = true;
                 ekf_debug("KHP NaN");
                 goto out;
@@ -2382,7 +2382,7 @@ int AttPosEKF::CheckAndBound()
 
     // Reset the filter if the IMU data is too old
     if (dtIMU > 0.3f) {
-
+        FillErrorReport(&last_ekf_error);
         ResetVelocity();
         ResetPosition();
         ResetHeight();
@@ -2397,12 +2397,22 @@ int AttPosEKF::CheckAndBound()
 
     // Check if we switched between states
     if (currStaticMode != staticMode) {
+        FillErrorReport(&last_ekf_error);
         ResetVelocity();
         ResetPosition();
         ResetHeight();
         ResetStoredStates();
 
         return 3;
+    }
+
+    // Reset the filter if gyro offsets are excessive
+    if (fabs(states[10]) > 1.0f || fabsf(states[11]) > 1.0f || fabsf(states[12]) > 1.0f) {
+        
+        InitializeDynamic(velNED, magDeclination);
+
+        // that's all we can do here, return
+        return 4;
     }
 
     return 0;
@@ -2527,11 +2537,11 @@ void AttPosEKF::InitialiseFilter(float (&initvelNED)[3], double referenceLat, do
 
     // we are at reference altitude, so measurement must be zero
     hgtMea = 0.0f;
+    posNE[0] = 0.0f;
+    posNE[1] = 0.0f;
 
     // the baro offset must be this difference now
     baroHgtOffset = baroHgt - referenceHgt;
-
-    memset(&last_ekf_error, 0, sizeof(last_ekf_error));
 
     InitializeDynamic(initvelNED, declination);
 }
@@ -2600,6 +2610,12 @@ void AttPosEKF::ZeroVariables()
 
 void AttPosEKF::GetFilterState(struct ekf_status_report *state)
 {
+
+    // Copy states
+    for (unsigned i = 0; i < n_states; i++) {
+        current_ekf_state.states[i] = states[i];
+    }
+
     memcpy(state, &current_ekf_state, sizeof(*state));
 }
 

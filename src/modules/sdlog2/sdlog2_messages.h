@@ -288,15 +288,7 @@ struct log_TELE_s {
 	uint8_t txbuf;
 };
 
-/* --- ESTM - ESTIMATOR STATUS --- */
-#define LOG_ESTM_MSG 23
-struct log_ESTM_s {
-	float s[10];
-	uint8_t n_states;
-	uint8_t states_nan;
-	uint8_t covariance_nan;
-	uint8_t kalman_gain_nan;
-};
+// ID 23 available
 
 /* --- PWR - ONBOARD POWER SYSTEM --- */
 #define LOG_PWR_MSG 24
@@ -375,6 +367,22 @@ struct log_WIND_s {
 	float cov_y;
 };
 
+/* --- EST0 - ESTIMATOR STATUS --- */
+#define LOG_EST0_MSG 32
+struct log_EST0_s {
+	float s[12];
+	uint8_t n_states;
+	uint8_t nan_flags;
+	uint8_t health_flags;
+	uint8_t timeout_flags;
+};
+
+/* --- EST1 - ESTIMATOR STATUS --- */
+#define LOG_EST1_MSG 33
+struct log_EST1_s {
+	float s[16];
+};
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -423,7 +431,8 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(BATT, "ffff",		"V,VFilt,C,Discharged"),
 	LOG_FORMAT(DIST, "ffB",			"Bottom,BottomRate,Flags"),
 	LOG_FORMAT(TELE, "BBBBHHB",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf"),
-	LOG_FORMAT(ESTM, "ffffffffffBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,nStat,statNaN,covNaN,kGainNaN"),
+	LOG_FORMAT(EST0, "ffffffffffffBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,nStat,fNaN,fHealth,fTOut"),
+	LOG_FORMAT(EST1, "ffffffffffffffff",	"s12,s13,s14,s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27"),
 	LOG_FORMAT(PWR, "fffBBBBB",		"Periph5V,Servo5V,RSSI,UsbOk,BrickOk,ServoOk,PeriphOC,HipwrOC"),
 	LOG_FORMAT(VICN, "ffffff",		"X,Y,Z,Roll,Pitch,Yaw"),
 	LOG_FORMAT(GS0A, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),

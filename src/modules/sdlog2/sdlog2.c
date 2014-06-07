@@ -976,7 +976,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_BATT_s log_BATT;
 			struct log_DIST_s log_DIST;
 			struct log_TELE_s log_TELE;
-			struct log_ESTM_s log_ESTM;
+			struct log_EST0_s log_EST0;
+			struct log_EST1_s log_EST1;
 			struct log_PWR_s log_PWR;
 			struct log_VICN_s log_VICN;
 			struct log_GS0A_s log_GS0A;
@@ -1489,15 +1490,21 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		/* --- ESTIMATOR STATUS --- */
 		if (copy_if_updated(ORB_ID(estimator_status), subs.estimator_status_sub, &buf.estimator_status)) {
-			log_msg.msg_type = LOG_ESTM_MSG;
-			unsigned maxcopy = (sizeof(buf.estimator_status.states) < sizeof(log_msg.body.log_ESTM.s)) ? sizeof(buf.estimator_status.states) : sizeof(log_msg.body.log_ESTM.s);
-			memset(&(log_msg.body.log_ESTM.s), 0, sizeof(log_msg.body.log_ESTM.s));
-			memcpy(&(log_msg.body.log_ESTM.s), buf.estimator_status.states, maxcopy);
-			log_msg.body.log_ESTM.n_states = buf.estimator_status.n_states;
-			log_msg.body.log_ESTM.states_nan = buf.estimator_status.states_nan;
-			log_msg.body.log_ESTM.covariance_nan = buf.estimator_status.covariance_nan;
-			log_msg.body.log_ESTM.kalman_gain_nan = buf.estimator_status.kalman_gain_nan;
-			LOGBUFFER_WRITE_AND_COUNT(ESTM);
+			log_msg.msg_type = LOG_EST0_MSG;
+			unsigned maxcopy0 = (sizeof(buf.estimator_status.states) < sizeof(log_msg.body.log_EST0.s)) ? sizeof(buf.estimator_status.states) : sizeof(log_msg.body.log_EST0.s);
+			memset(&(log_msg.body.log_EST0.s), 0, sizeof(log_msg.body.log_EST0.s));
+			memcpy(&(log_msg.body.log_EST0.s), buf.estimator_status.states, maxcopy0);
+			log_msg.body.log_EST0.n_states = buf.estimator_status.n_states;
+			log_msg.body.log_EST0.nan_flags = buf.estimator_status.nan_flags;
+			log_msg.body.log_EST0.health_flags = buf.estimator_status.health_flags;
+			log_msg.body.log_EST0.timeout_flags = buf.estimator_status.timeout_flags;
+			LOGBUFFER_WRITE_AND_COUNT(EST0);
+
+			log_msg.msg_type = LOG_EST1_MSG;
+			unsigned maxcopy1 = ((sizeof(buf.estimator_status.states) - maxcopy0) < sizeof(log_msg.body.log_EST1.s)) ? (sizeof(buf.estimator_status.states) - maxcopy0) : sizeof(log_msg.body.log_EST1.s);
+			memset(&(log_msg.body.log_EST1.s), 0, sizeof(log_msg.body.log_EST1.s));
+			memcpy(&(log_msg.body.log_EST1.s), buf.estimator_status.states + maxcopy0, maxcopy1);
+			LOGBUFFER_WRITE_AND_COUNT(EST1);
 		}
 
 		/* --- TECS STATUS --- */
