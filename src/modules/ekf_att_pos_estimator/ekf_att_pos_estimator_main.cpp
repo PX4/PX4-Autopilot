@@ -83,7 +83,7 @@
 #include <mathlib/mathlib.h>
 #include <mavlink/mavlink_log.h>
 
-#include "estimator.h"
+#include "estimator_23states.h"
 
 
 
@@ -458,6 +458,8 @@ FixedwingEstimator::~FixedwingEstimator()
 		} while (_estimator_task != -1);
 	}
 
+	delete _ekf;
+
 	estimator::g_estimator = nullptr;
 }
 
@@ -571,7 +573,7 @@ FixedwingEstimator::task_main()
 #else
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	/* XXX remove this!, BUT increase the data buffer size! */
-	orb_set_interval(_sensor_combined_sub, 4);
+	orb_set_interval(_sensor_combined_sub, 9);
 #endif
 
 	/* sets also parameters in the EKF object */
@@ -815,6 +817,8 @@ FixedwingEstimator::task_main()
 			last_mag = _sensor_combined.magnetometer_timestamp;
 
 #endif
+
+			//warnx("dang: %8.4f %8.4f dvel: %8.4f %8.4f", _ekf->dAngIMU.x, _ekf->dAngIMU.z, _ekf->dVelIMU.x, _ekf->dVelIMU.z);
 
 			bool airspeed_updated;
 			orb_check(_airspeed_sub, &airspeed_updated);
@@ -1254,11 +1258,14 @@ FixedwingEstimator::task_main()
 						_ekf->fuseMagData = true;
 						_ekf->RecallStates(_ekf->statesAtMagMeasTime, (IMUmsec - _parameters.mag_delay_ms)); // Assume 50 msec avg delay for magnetometer data
 
+						_ekf->magstate.obsIndex = 0;
+						_ekf->FuseMagnetometer();
+						_ekf->FuseMagnetometer();
+						_ekf->FuseMagnetometer();
+
 					} else {
 						_ekf->fuseMagData = false;
 					}
-
-					if (_ekf->statesInitialised) _ekf->FuseMagnetometer();
 
 					// Fuse Airspeed Measurements
 					if (newAdsData && _ekf->statesInitialised && _ekf->VtasMeas > 8.0f) {
@@ -1478,30 +1485,55 @@ FixedwingEstimator::print_status()
 	// 16-18: Earth Magnetic Field Vector - gauss (North, East, Down)
 	// 19-21: Body Magnetic Field Vector - gauss (X,Y,Z)
 
-	printf("dtIMU: %8.6f IMUmsec: %d\n", (double)_ekf->dtIMU, (int)IMUmsec);
-	printf("ref alt: %8.6f\n", (double)_local_pos.ref_alt);
-	printf("dvel: %8.6f %8.6f %8.6f accel: %8.6f %8.6f %8.6f\n", (double)_ekf->dVelIMU.x, (double)_ekf->dVelIMU.y, (double)_ekf->dVelIMU.z, (double)_ekf->accel.x, (double)_ekf->accel.y, (double)_ekf->accel.z);
-	printf("dang: %8.4f %8.4f %8.4f dang corr: %8.4f %8.4f %8.4f\n" , (double)_ekf->dAngIMU.x, (double)_ekf->dAngIMU.y, (double)_ekf->dAngIMU.z, (double)_ekf->correctedDelAng.x, (double)_ekf->correctedDelAng.y, (double)_ekf->correctedDelAng.z);
-	printf("states (quat)        [0-3]: %8.4f, %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[0], (double)_ekf->states[1], (double)_ekf->states[2], (double)_ekf->states[3]);
-	printf("states (vel m/s)     [4-6]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[4], (double)_ekf->states[5], (double)_ekf->states[6]);
-	printf("states (pos m)      [7-9]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[7], (double)_ekf->states[8], (double)_ekf->states[9]);
-	printf("states (delta ang) [10-12]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[10], (double)_ekf->states[11], (double)_ekf->states[12]);
-	printf("states (accel offs)   [13]: %8.4f\n", (double)_ekf->states[13]);
-	printf("states (wind)      [14-15]: %8.4f, %8.4f\n", (double)_ekf->states[14], (double)_ekf->states[15]);
-	printf("states (earth mag) [16-18]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[16], (double)_ekf->states[17], (double)_ekf->states[18]);
-	printf("states (body mag)  [19-21]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[19], (double)_ekf->states[20], (double)_ekf->states[21]);
-	printf("states (terrain)      [22]: %8.4f\n", (double)_ekf->states[22]);
-	printf("states: %s %s %s %s %s %s %s %s %s %s\n",
-	       (_ekf->statesInitialised) ? "INITIALIZED" : "NON_INIT",
-	       (_ekf->onGround) ? "ON_GROUND" : "AIRBORNE",
-	       (_ekf->fuseVelData) ? "FUSE_VEL" : "INH_VEL",
-	       (_ekf->fusePosData) ? "FUSE_POS" : "INH_POS",
-	       (_ekf->fuseHgtData) ? "FUSE_HGT" : "INH_HGT",
-	       (_ekf->fuseMagData) ? "FUSE_MAG" : "INH_MAG",
-	       (_ekf->fuseVtasData) ? "FUSE_VTAS" : "INH_VTAS",
-	       (_ekf->useAirspeed) ? "USE_AIRSPD" : "IGN_AIRSPD",
-	       (_ekf->useCompass) ? "USE_COMPASS" : "IGN_COMPASS",
-	       (_ekf->staticMode) ? "STATIC_MODE" : "DYNAMIC_MODE");
+	if (n_states == 23) {
+		printf("dtIMU: %8.6f IMUmsec: %d\n", (double)_ekf->dtIMU, (int)IMUmsec);
+		printf("ref alt: %8.6f\n", (double)_local_pos.ref_alt);
+		printf("dvel: %8.6f %8.6f %8.6f accel: %8.6f %8.6f %8.6f\n", (double)_ekf->dVelIMU.x, (double)_ekf->dVelIMU.y, (double)_ekf->dVelIMU.z, (double)_ekf->accel.x, (double)_ekf->accel.y, (double)_ekf->accel.z);
+		printf("dang: %8.4f %8.4f %8.4f dang corr: %8.4f %8.4f %8.4f\n" , (double)_ekf->dAngIMU.x, (double)_ekf->dAngIMU.y, (double)_ekf->dAngIMU.z, (double)_ekf->correctedDelAng.x, (double)_ekf->correctedDelAng.y, (double)_ekf->correctedDelAng.z);
+		printf("states (quat)        [0-3]: %8.4f, %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[0], (double)_ekf->states[1], (double)_ekf->states[2], (double)_ekf->states[3]);
+		printf("states (vel m/s)     [4-6]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[4], (double)_ekf->states[5], (double)_ekf->states[6]);
+		printf("states (pos m)      [7-9]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[7], (double)_ekf->states[8], (double)_ekf->states[9]);
+		printf("states (delta ang) [10-12]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[10], (double)_ekf->states[11], (double)_ekf->states[12]);
+		printf("states (accel offs)   [13]: %8.4f\n", (double)_ekf->states[13]);
+		printf("states (wind)      [14-15]: %8.4f, %8.4f\n", (double)_ekf->states[14], (double)_ekf->states[15]);
+		printf("states (earth mag) [16-18]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[16], (double)_ekf->states[17], (double)_ekf->states[18]);
+		printf("states (body mag)  [19-21]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[19], (double)_ekf->states[20], (double)_ekf->states[21]);
+		printf("states (terrain)      [22]: %8.4f\n", (double)_ekf->states[22]);
+		printf("states: %s %s %s %s %s %s %s %s %s %s\n",
+		       (_ekf->statesInitialised) ? "INITIALIZED" : "NON_INIT",
+		       (_ekf->onGround) ? "ON_GROUND" : "AIRBORNE",
+		       (_ekf->fuseVelData) ? "FUSE_VEL" : "INH_VEL",
+		       (_ekf->fusePosData) ? "FUSE_POS" : "INH_POS",
+		       (_ekf->fuseHgtData) ? "FUSE_HGT" : "INH_HGT",
+		       (_ekf->fuseMagData) ? "FUSE_MAG" : "INH_MAG",
+		       (_ekf->fuseVtasData) ? "FUSE_VTAS" : "INH_VTAS",
+		       (_ekf->useAirspeed) ? "USE_AIRSPD" : "IGN_AIRSPD",
+		       (_ekf->useCompass) ? "USE_COMPASS" : "IGN_COMPASS",
+		       (_ekf->staticMode) ? "STATIC_MODE" : "DYNAMIC_MODE");
+	} else {
+		printf("dtIMU: %8.6f IMUmsec: %d\n", (double)_ekf->dtIMU, (int)IMUmsec);
+		printf("ref alt: %8.6f\n", (double)_local_pos.ref_alt);
+		printf("dvel: %8.6f %8.6f %8.6f accel: %8.6f %8.6f %8.6f\n", (double)_ekf->dVelIMU.x, (double)_ekf->dVelIMU.y, (double)_ekf->dVelIMU.z, (double)_ekf->accel.x, (double)_ekf->accel.y, (double)_ekf->accel.z);
+		printf("dang: %8.4f %8.4f %8.4f dang corr: %8.4f %8.4f %8.4f\n" , (double)_ekf->dAngIMU.x, (double)_ekf->dAngIMU.y, (double)_ekf->dAngIMU.z, (double)_ekf->correctedDelAng.x, (double)_ekf->correctedDelAng.y, (double)_ekf->correctedDelAng.z);
+		printf("states (quat)        [0-3]: %8.4f, %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[0], (double)_ekf->states[1], (double)_ekf->states[2], (double)_ekf->states[3]);
+		printf("states (vel m/s)     [4-6]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[4], (double)_ekf->states[5], (double)_ekf->states[6]);
+		printf("states (pos m)      [7-9]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[7], (double)_ekf->states[8], (double)_ekf->states[9]);
+		printf("states (delta ang) [10-12]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[10], (double)_ekf->states[11], (double)_ekf->states[12]);
+		printf("states (wind)      [13-14]: %8.4f, %8.4f\n", (double)_ekf->states[13], (double)_ekf->states[14]);
+		printf("states (earth mag) [15-17]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[15], (double)_ekf->states[16], (double)_ekf->states[17]);
+		printf("states (body mag)  [18-20]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[18], (double)_ekf->states[19], (double)_ekf->states[20]);
+		printf("states: %s %s %s %s %s %s %s %s %s %s\n",
+		       (_ekf->statesInitialised) ? "INITIALIZED" : "NON_INIT",
+		       (_ekf->onGround) ? "ON_GROUND" : "AIRBORNE",
+		       (_ekf->fuseVelData) ? "FUSE_VEL" : "INH_VEL",
+		       (_ekf->fusePosData) ? "FUSE_POS" : "INH_POS",
+		       (_ekf->fuseHgtData) ? "FUSE_HGT" : "INH_HGT",
+		       (_ekf->fuseMagData) ? "FUSE_MAG" : "INH_MAG",
+		       (_ekf->fuseVtasData) ? "FUSE_VTAS" : "INH_VTAS",
+		       (_ekf->useAirspeed) ? "USE_AIRSPD" : "IGN_AIRSPD",
+		       (_ekf->useCompass) ? "USE_COMPASS" : "IGN_COMPASS",
+		       (_ekf->staticMode) ? "STATIC_MODE" : "DYNAMIC_MODE");
+	}
 }
 
 int FixedwingEstimator::trip_nan() {

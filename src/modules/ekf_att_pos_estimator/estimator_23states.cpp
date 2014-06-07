@@ -1,143 +1,6 @@
-#include "estimator.h"
+#include "estimator_23states.h"
 #include <string.h>
 #include <stdarg.h>
-
-// Define EKF_DEBUG here to enable the debug print calls
-// if the macro is not set, these will be completely
-// optimized out by the compiler.
-//#define EKF_DEBUG
-
-#ifdef EKF_DEBUG
-#include <stdio.h>
-
-static void
-ekf_debug_print(const char *fmt, va_list args)
-{
-    fprintf(stderr, "%s: ", "[ekf]");
-    vfprintf(stderr, fmt, args);
-
-    fprintf(stderr, "\n");
-}
-
-static void
-ekf_debug(const char *fmt, ...)
-{
-    va_list args;
-
-    va_start(args, fmt);
-    ekf_debug_print(fmt, args);
-}
-
-#else
-
-static void ekf_debug(const char *fmt, ...) { while(0){} }
-#endif
-
-float Vector3f::length(void) const
-{
-    return sqrt(x*x + y*y + z*z);
-}
-
-void Vector3f::zero(void)
-{
-    x = 0.0f;
-    y = 0.0f;
-    z = 0.0f;
-}
-
-Mat3f::Mat3f() {
-    identity();
-}
-
-void Mat3f::identity() {
-    x.x = 1.0f;
-    x.y = 0.0f;
-    x.z = 0.0f;
-
-    y.x = 0.0f;
-    y.y = 1.0f;
-    y.z = 0.0f;
-
-    z.x = 0.0f;
-    z.y = 0.0f;
-    z.z = 1.0f;
-}
-
-Mat3f Mat3f::transpose(void) const
-{
-    Mat3f ret = *this;
-    swap_var(ret.x.y, ret.y.x);
-    swap_var(ret.x.z, ret.z.x);
-    swap_var(ret.y.z, ret.z.y);
-    return ret;
-}
-
-// overload + operator to provide a vector addition
-Vector3f operator+( Vector3f vecIn1, Vector3f vecIn2)
-{
-    Vector3f vecOut;
-    vecOut.x = vecIn1.x + vecIn2.x;
-    vecOut.y = vecIn1.y + vecIn2.y;
-    vecOut.z = vecIn1.z + vecIn2.z;
-    return vecOut;
-}
-
-// overload - operator to provide a vector subtraction
-Vector3f operator-( Vector3f vecIn1, Vector3f vecIn2)
-{
-    Vector3f vecOut;
-    vecOut.x = vecIn1.x - vecIn2.x;
-    vecOut.y = vecIn1.y - vecIn2.y;
-    vecOut.z = vecIn1.z - vecIn2.z;
-    return vecOut;
-}
-
-// overload * operator to provide a matrix vector product
-Vector3f operator*( Mat3f matIn, Vector3f vecIn)
-{
-    Vector3f vecOut;
-    vecOut.x = matIn.x.x*vecIn.x + matIn.x.y*vecIn.y + matIn.x.z*vecIn.z;
-    vecOut.y = matIn.y.x*vecIn.x + matIn.y.y*vecIn.y + matIn.y.z*vecIn.z;
-    vecOut.z = matIn.x.x*vecIn.x + matIn.z.y*vecIn.y + matIn.z.z*vecIn.z;
-    return vecOut;
-}
-
-// overload % operator to provide a vector cross product
-Vector3f operator%( Vector3f vecIn1, Vector3f vecIn2)
-{
-    Vector3f vecOut;
-    vecOut.x = vecIn1.y*vecIn2.z - vecIn1.z*vecIn2.y;
-    vecOut.y = vecIn1.z*vecIn2.x - vecIn1.x*vecIn2.z;
-    vecOut.z = vecIn1.x*vecIn2.y - vecIn1.y*vecIn2.x;
-    return vecOut;
-}
-
-// overload * operator to provide a vector scaler product
-Vector3f operator*(Vector3f vecIn1, float sclIn1)
-{
-    Vector3f vecOut;
-    vecOut.x = vecIn1.x * sclIn1;
-    vecOut.y = vecIn1.y * sclIn1;
-    vecOut.z = vecIn1.z * sclIn1;
-    return vecOut;
-}
-
-// overload * operator to provide a vector scaler product
-Vector3f operator*(float sclIn1, Vector3f vecIn1)
-{
-    Vector3f vecOut;
-    vecOut.x = vecIn1.x * sclIn1;
-    vecOut.y = vecIn1.y * sclIn1;
-    vecOut.z = vecIn1.z * sclIn1;
-    return vecOut;
-}
-
-void swap_var(float &d1, float &d2)
-{
-    float tmp = d1;
-    d1 = d2;
-    d2 = tmp;
-}
 
 AttPosEKF::AttPosEKF()
 
@@ -170,7 +33,7 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
     float rotationMag;
     float qUpdated[4];
     float quatMag;
-    float deltaQuat[4];
+    double deltaQuat[4];
     const Vector3f gravityNED = {0.0,0.0,GRAVITY_MSS};
 
 // Remove sensor bias errors
@@ -199,8 +62,8 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
     }
     else
     {
-        deltaQuat[0] = cosf(0.5f*rotationMag);
-        float rotScaler = (sinf(0.5f*rotationMag))/rotationMag;
+        deltaQuat[0] = cos(0.5f*rotationMag);
+        double rotScaler = (sin(0.5f*rotationMag))/rotationMag;
         deltaQuat[1] = correctedDelAng.x*rotScaler;
         deltaQuat[2] = correctedDelAng.y*rotScaler;
         deltaQuat[3] = correctedDelAng.z*rotScaler;
@@ -1277,7 +1140,7 @@ void AttPosEKF::FuseMagnetometer()
 // data fit is the only assumption we can make
 // so we might as well take advantage of the computational efficiencies
 // associated with sequential fusion
-    if (useCompass && (fuseMagData || obsIndex == 1 || obsIndex == 2))
+    if (useCompass && fuseMagData && (obsIndex < 3))
     {
         // Limit range of states modified when on ground
         if(!onGround)
@@ -1293,7 +1156,7 @@ void AttPosEKF::FuseMagnetometer()
         // three prediction time steps.
 
         // Calculate observation jacobians and Kalman gains
-        if (fuseMagData)
+        if (obsIndex == 0)
         {
             // Copy required states to local variable names
             q0       = statesAtMagMeasTime[0];
@@ -1388,11 +1251,6 @@ void AttPosEKF::FuseMagnetometer()
             Kfusion[22] = SK_MX[0]*(P[22][19] + P[22][1]*SH_MAG[0] + P[22][3]*SH_MAG[2] + P[22][0]*SK_MX[3] - P[22][2]*SK_MX[2] - P[22][16]*SK_MX[1] + P[22][17]*SK_MX[5] - P[22][18]*SK_MX[4]);
             varInnovMag[0] = 1.0f/SK_MX[0];
             innovMag[0] = MagPred[0] - magData.x;
-
-            // reset the observation index to 0 (we start by fusing the X
-            // measurement)
-            obsIndex = 0;
-            fuseMagData = false;
         }
         else if (obsIndex == 1) // we are now fusing the Y measurement
         {
