@@ -952,6 +952,8 @@ int Mavlink::map_mission_item_to_mavlink_mission_item(const struct mission_item_
 
 void Mavlink::mavlink_wpm_init(mavlink_wpm_storage *state)
 {
+	persistent_system_state_t sys_state;
+
 	state->size = 0;
 	state->max_size = MAVLINK_WPM_MAX_WP_COUNT;
 	state->current_state = MAVLINK_WPM_STATE_IDLE;
@@ -962,6 +964,10 @@ void Mavlink::mavlink_wpm_init(mavlink_wpm_storage *state)
 	state->timestamp_last_send_request = 0;
 	state->timeout = MAVLINK_WPM_PROTOCOL_TIMEOUT_DEFAULT;
 	state->current_dataman_id = 0;
+	if (dm_read(DM_KEY_SYSTEM_STATE, 0, &sys_state, sizeof(sys_state)) == sizeof(sys_state)) {
+		if ((sys_state.current_offboard_waypoint_id >= 0) && (sys_state.current_offboard_waypoint_id <= 1))
+			state->current_dataman_id = sys_state.current_offboard_waypoint_id;
+	}
 }
 
 /*
@@ -1428,12 +1434,38 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 					mission.dataman_id = 0;
 				}
 
-				if (dm_write(dm_next, wp.seq, DM_PERSIST_IN_FLIGHT_RESET, &mission_item, len) != len) {
+				if (dm_write(dm_next, wp.seq, DM_PERSIST_POWER_ON_RESET, &mission_item, len) != len) {
 					mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ERROR);
 					mavlink_missionlib_send_gcs_string("#audio: Unable to write on micro SD");
 					_wpm->current_state = MAVLINK_WPM_STATE_IDLE;
 					break;
 				}
+				// offboard mission data saved correctly, now update the persistent system state
+				{
+					persistent_system_state_t state;
+					bool dm_result;
+					// Since we are doing a read-modify-write we must lock the item type
+					dm_lock(DM_KEY_SYSTEM_STATE);
+					// first read in the current state data. There may eventually be data other than the offboard index
+					// and we must preserve it
+					if (dm_read(DM_KEY_SYSTEM_STATE, 0, &state, sizeof(state)) != sizeof(state)) {
+						// Not sure how to handle this? It means that either the item was never
+						// written, or fields have been added to the system state struct. In any case
+						// fields that may not be ours need to be initialized to sane values.
+						// For now the offboard index is the only field, so for now there
+						// is nothing to do here.
+					}
+					state.current_offboard_waypoint_id = mission.dataman_id;
+					dm_result = dm_write(DM_KEY_SYSTEM_STATE, 0, DM_PERSIST_POWER_ON_RESET, &state, sizeof(state)) != sizeof(state);
+					dm_unlock(DM_KEY_SYSTEM_STATE);
+					if (dm_result) {
+						mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ERROR);
+						mavlink_missionlib_send_gcs_string("#audio: Unable to write on micro SD");
+						_wpm->current_state = MAVLINK_WPM_STATE_IDLE;
+						break;
+					}
+				}
+
 
 //				if (wp.current) {
 //					warnx("current is: %d", wp.seq);
@@ -1485,7 +1517,25 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 					publish_mission();
 
 					if (dm_clear(DM_KEY_WAYPOINTS_OFFBOARD_0) == OK && dm_clear(DM_KEY_WAYPOINTS_OFFBOARD_1) == OK) {
-						mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ACCEPTED);
+						persistent_system_state_t state;
+						bool dm_result;
+						dm_lock(DM_KEY_SYSTEM_STATE);
+						// first read in the current state data. There may eventually be data other than the offboard index
+						// and we must preserve it
+						if (dm_read(DM_KEY_SYSTEM_STATE, 0, &state, sizeof(state)) != sizeof(state)) {
+							// Not sure how to handle this? It means that either the item was never
+							// written, or fields have been added to the system state struct. In any case
+							// fields that may not be ours need to be initialized to sane values.
+							// For now the offboard index is the only field, so we can deal with it here.
+						}
+						state.current_offboard_waypoint_id = -1;
+						dm_result = dm_write(DM_KEY_SYSTEM_STATE, 0, DM_PERSIST_POWER_ON_RESET, &state, sizeof(state)) == sizeof(state);
+						dm_unlock(DM_KEY_SYSTEM_STATE);
+						if (dm_result) {
+							mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ACCEPTED);
+						} else {
+							mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ERROR);
+						}
 
 					} else {
 						mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ERROR);
