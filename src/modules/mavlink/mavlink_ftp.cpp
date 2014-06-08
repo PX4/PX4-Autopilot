@@ -242,6 +242,7 @@ MavlinkFTP::_workList(Request *req)
 
 		// copy the name, which we know will fit
 		strcpy((char *)&hdr->data[offset], entry.d_name);
+		offset += strlen(entry.d_name) + 1;
 		printf("FTP: list %s\n", entry.d_name);
 	}
 
