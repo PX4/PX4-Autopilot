@@ -83,7 +83,7 @@ static const int ERROR = -1;
 class GPS : public device::CDev
 {
 public:
-	GPS(const char *uart_path, bool fake_gps);
+	GPS(const char *uart_path, bool fake_gps, bool enable_sat_info);
 	virtual ~GPS();
 
 	virtual int			init();
@@ -113,6 +113,7 @@ private:
 	orb_advert_t			_report_sat_info_pub;				///< uORB pub for satellite info
 	float				_rate;						///< position update rate
 	bool				_fake_gps;					///< fake gps output
+	bool				_enable_sat_info;				///< enable sat info
 
 
 	/**
@@ -157,7 +158,7 @@ GPS	*g_dev;
 }
 
 
-GPS::GPS(const char *uart_path, bool fake_gps) :
+GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 	CDev("gps", GPS_DEVICE_PATH),
 	_task_should_exit(false),
 	_healthy(false),
@@ -167,7 +168,8 @@ GPS::GPS(const char *uart_path, bool fake_gps) :
 	_report_gps_pos_pub(-1),
 	_report_sat_info_pub(-1),
 	_rate(0.0f),
-	_fake_gps(fake_gps)
+	_fake_gps(fake_gps),
+	_enable_sat_info(enable_sat_info)
 {
 	/* store port name */
 	strncpy(_port, uart_path, sizeof(_port));
@@ -318,7 +320,7 @@ GPS::task_main()
 
 			switch (_mode) {
 			case GPS_DRIVER_MODE_UBX:
-				_Helper = new UBX(_serial_fd, &_report_gps_pos, &_report_sat_info, UBX_ENABLE_NAV_SVINFO);
+				_Helper = new UBX(_serial_fd, &_report_gps_pos, &_report_sat_info, _enable_sat_info);
 				break;
 
 			case GPS_DRIVER_MODE_MTK:
@@ -464,6 +466,7 @@ GPS::print_info()
 	}
 
 	warnx("port: %s, baudrate: %d, status: %s", _port, _baudrate, (_healthy) ? "OK" : "NOT OK");
+	warnx("sat info: %s", (_enable_sat_info) ? "enabled" : "disabled");
 
 	if (_report_gps_pos.timestamp_position != 0) {
 		warnx("position lock: %dD, satellites: %d, last update: %8.4fms ago", (int)_report_gps_pos.fix_type,
@@ -487,7 +490,7 @@ namespace gps
 
 GPS	*g_dev;
 
-void	start(const char *uart_path, bool fake_gps);
+void	start(const char *uart_path, bool fake_gps, bool enable_sat_info);
 void	stop();
 void	test();
 void	reset();
@@ -497,7 +500,7 @@ void	info();
  * Start the driver.
  */
 void
-start(const char *uart_path, bool fake_gps)
+start(const char *uart_path, bool fake_gps, bool enable_sat_info)
 {
 	int fd;
 
@@ -505,7 +508,7 @@ start(const char *uart_path, bool fake_gps)
 		errx(1, "already started");
 
 	/* create the driver */
-	g_dev = new GPS(uart_path, fake_gps);
+	g_dev = new GPS(uart_path, fake_gps, enable_sat_info);
 
 	if (g_dev == nullptr)
 		goto fail;
@@ -598,6 +601,7 @@ gps_main(int argc, char *argv[])
 	/* set to default */
 	const char *device_name = GPS_DEFAULT_UART_PORT;
 	bool fake_gps = false;
+	bool enable_sat_info = false;
 
 	/*
 	 * Start/load the driver.
@@ -619,7 +623,13 @@ gps_main(int argc, char *argv[])
 				fake_gps = true;
 		}
 
-		gps::start(device_name, fake_gps);
+		/* Detect sat info option */
+		for (int i = 2; i < argc; i++) {
+			if (!strcmp(argv[i], "-s"))
+				enable_sat_info = true;
+		}
+
+		gps::start(device_name, fake_gps, enable_sat_info);
 	}
 
 	if (!strcmp(argv[1], "stop"))
@@ -644,5 +654,5 @@ gps_main(int argc, char *argv[])
 		gps::info();
 
 out:
-	errx(1, "unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status' [-d /dev/ttyS0-n][-f]");
+	errx(1, "unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status' [-d /dev/ttyS0-n][-f][-s]");
 }
