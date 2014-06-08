@@ -74,6 +74,8 @@ UBX::UBX(const int &fd, struct vehicle_gps_position_s *gps_position, struct sate
 	_enable_sat_info(enable_sat_info),
 	_configured(false),
 	_waiting_for_ack(false),
+	_got_posllh(false),
+	_got_velned(false),
 	_disable_cmd_last(0)
 {
 	decode_init();
@@ -208,7 +210,7 @@ UBX::configure(unsigned &baudrate)
 		return 1;
 	}
 
-	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_TIMEUTC, 1);
+	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_TIMEUTC, 5);
 
 	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
 		warnx("MSG CFG FAIL: NAV TIMEUTC");
@@ -286,9 +288,10 @@ UBX::receive(unsigned timeout)
 	int handled = 0;
 
 	while (true) {
+		bool ready_to_return = _configured ? (_got_posllh && _got_velned) : handled;
 
 		/* poll for new data, wait for only UBX_PACKET_TIMEOUT (2ms) if something already received */
-		int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), handled ? UBX_PACKET_TIMEOUT : timeout);
+		int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), ready_to_return ? UBX_PACKET_TIMEOUT : timeout);
 
 		if (ret < 0) {
 			/* something went wrong when polling */
@@ -297,7 +300,9 @@ UBX::receive(unsigned timeout)
 
 		} else if (ret == 0) {
 			/* return success after short delay after receiving a packet or timeout after long delay */
-			if (handled) {
+			if (ready_to_return) {
+				_got_posllh = false;
+				_got_velned = false;
 				return handled;
 
 			} else {
@@ -456,7 +461,8 @@ UBX::handle_message()
 
 					_rate_count_lat_lon++;
 
-					ret = 1;
+					_got_posllh = true;
+  					ret = 1;
 					break;
 				}
 
@@ -552,6 +558,7 @@ UBX::handle_message()
 
 					_rate_count_vel++;
 
+					_got_velned = true;
 					ret = 1;
 					break;
 				}
