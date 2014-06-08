@@ -154,7 +154,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_ENCAPSULATED_DATA:
-		MavlinkFTP::getServer()->handle_message(msg, _mavlink->get_channel());
+		MavlinkFTP::getServer()->handle_message(_mavlink, msg);
 		break;
 
 	default:

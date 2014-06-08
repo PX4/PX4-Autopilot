@@ -64,7 +64,7 @@ MavlinkFTP::MavlinkFTP()
 }
 
 void
-MavlinkFTP::handle_message(mavlink_message_t *msg, mavlink_channel_t channel)
+MavlinkFTP::handle_message(Mavlink* mavlink, mavlink_message_t *msg)
 {
 	// get a free request
 	auto req = _dqFree();
@@ -73,7 +73,7 @@ MavlinkFTP::handle_message(mavlink_message_t *msg, mavlink_channel_t channel)
 	if (req != nullptr) {
 
 		// decode the request
-		if (req->decode(msg, channel)) {
+		if (req->decode(mavlink, msg)) {
 
 			// and queue it for the worker
 			work_queue(LPWORK, &req->work, &MavlinkFTP::_workerTrampoline, req, 0);

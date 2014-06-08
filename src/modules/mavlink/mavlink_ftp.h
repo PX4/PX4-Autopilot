@@ -64,8 +64,8 @@ public:
 	static MavlinkFTP	*getServer();
 
 	// static interface
-	void			handle_message(mavlink_message_t *msg,
-					       mavlink_channel_t channel);
+	void			handle_message(Mavlink* mavlink,
+					mavlink_message_t *msg);
 
 private:
 
@@ -145,9 +145,9 @@ private:
 			work_s		work;
 		};
 
-		bool		decode(mavlink_message_t *fromMessage, mavlink_channel_t fromChannel) {
+		bool		decode(Mavlink *mavlink, mavlink_message_t *fromMessage) {
 			if (fromMessage->msgid == MAVLINK_MSG_ID_ENCAPSULATED_DATA) {
-				_channel = fromChannel;
+				_mavlink = mavlink;
 				mavlink_msg_encapsulated_data_decode(fromMessage, &_message);
 				return true;
 			}
@@ -155,7 +155,26 @@ private:
 		}
 
 		void		reply() {
-			mavlink_msg_encapsulated_data_send(_channel, sequence(), rawData());
+
+			// XXX the proper way would be an IOCTL / uORB call, rather than exploiting the
+			// flat memory architecture, as we're operating between threads here.
+			mavlink_message_t msg;
+			msg.checksum = 0;
+			unsigned len = mavlink_msg_encapsulated_data_pack_chan(_mavlink->get_system_id(), _mavlink->get_component_id(),
+				_mavlink->get_channel(), &msg, sequence(), rawData());
+			// unsigned len = mavlink_msg_system_time_pack_chan(_mavlink->get_system_id(), _mavlink->get_component_id(),
+			// 	_mavlink->get_channel(), &msg, 255, 255);
+
+			if (!_mavlink->message_buffer_write(&msg, len+2)) {
+				warnx("FTP TX ERR");
+			} else {
+				warnx("wrote: sys: %d, comp: %d, chan: %d, len: %d, checksum: %d",
+					_mavlink->get_system_id(),
+					_mavlink->get_component_id(),
+					_mavlink->get_channel(),
+					len,
+					msg.checksum);
+			}
 		}
 
 		uint8_t		*rawData() { return &_message.data[0]; }
@@ -163,12 +182,12 @@ private:
 		uint8_t         *requestData() { return &(header()->data[0]); }
 		unsigned	dataSize() { return header()->size + sizeof(RequestHeader); }
 		uint16_t	sequence() const { return _message.seqnr; }
-		mavlink_channel_t &channel() { return _channel; }
+		mavlink_channel_t channel() { return _mavlink->get_channel(); }
 
 		char		*dataAsCString();
 
 	private:
-		mavlink_channel_t	_channel;
+		Mavlink			*_mavlink;
 		mavlink_encapsulated_data_t _message;
 
 	};
