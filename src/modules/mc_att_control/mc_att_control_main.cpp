@@ -491,7 +491,6 @@ void
 MulticopterAttitudeControl::control_attitude(float dt)
 {
 	float yaw_sp_move_rate = 0.0f;
-	bool publish_att_sp = false;
 
 	if (_v_control_mode.flag_control_manual_enabled) {
 		/* manual input, set or modify attitude setpoint */
@@ -504,7 +503,6 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		if (!_v_control_mode.flag_control_climb_rate_enabled) {
 			/* pass throttle directly if not in altitude stabilized mode */
 			_v_att_sp.thrust = _manual_control_sp.z;
-			publish_att_sp = true;
 		}
 
 		if (!_armed.armed) {
@@ -532,7 +530,6 @@ MulticopterAttitudeControl::control_attitude(float dt)
 				_v_att_sp.yaw_body = _wrap_pi(_v_att.yaw + yaw_offs_max);
 			}
 			_v_att_sp.R_valid = false;
-			publish_att_sp = true;
 		}
 
 		/* reset yaw setpint to current position if needed */
@@ -540,7 +537,6 @@ MulticopterAttitudeControl::control_attitude(float dt)
 			_reset_yaw_sp = false;
 			_v_att_sp.yaw_body = _v_att.yaw;
 			_v_att_sp.R_valid = false;
-			publish_att_sp = true;
 		}
 
 		if (!_v_control_mode.flag_control_velocity_enabled) {
@@ -548,7 +544,6 @@ MulticopterAttitudeControl::control_attitude(float dt)
 			_v_att_sp.roll_body = _manual_control_sp.y * _params.man_roll_max;
 			_v_att_sp.pitch_body = -_manual_control_sp.x * _params.man_pitch_max;
 			_v_att_sp.R_valid = false;
-			publish_att_sp = true;
 		}
 
 	} else {
@@ -577,8 +572,26 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		_v_att_sp.R_valid = true;
 	}
 
-	/* publish the attitude setpoint if needed */
-	if (publish_att_sp) {
+	/* feed forward attitude rates from vehicle_attitude_setpoint topic */
+	math::Vector<3> rates_ff;
+
+	if (_v_control_mode.flag_control_velocity_enabled) {
+		rates_ff(0) = _v_att_sp.rollrate_ff;
+		rates_ff(1) = _v_att_sp.pitchrate_ff;
+		rates_ff(2) = _v_att_sp.yawrate_ff;
+
+	} else {
+		rates_ff.zero();
+	}
+
+	if (_v_control_mode.flag_control_manual_enabled) {
+		/* feed forward yaw setpoint rate */
+		rates_ff(2) += yaw_sp_move_rate * _params.yaw_ff;
+
+		/* copy yaw rate back to topic for logging */
+		_v_att_sp.yawrate_ff = rates_ff(2);
+
+		/* publish attitude setpoint topic */
 		_v_att_sp.timestamp = hrt_absolute_time();
 
 		if (_att_sp_pub > 0) {
@@ -588,6 +601,9 @@ MulticopterAttitudeControl::control_attitude(float dt)
 			_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_v_att_sp);
 		}
 	}
+
+	/* convert ff rates from NED frame to body frame */
+	rates_ff = R_sp.transposed() * rates_ff;
 
 	/* rotation matrix for current state */
 	math::Matrix<3, 3> R;
@@ -662,8 +678,8 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	/* limit yaw rate */
 	_rates_sp(2) = math::constrain(_rates_sp(2), -_params.yaw_rate_max, _params.yaw_rate_max);
 
-	/* feed forward yaw setpoint rate */
-	_rates_sp(2) += yaw_sp_move_rate * yaw_w * _params.yaw_ff;
+	/* feed forward attitude rates */
+	_rates_sp += rates_ff;
 }
 
 /*
