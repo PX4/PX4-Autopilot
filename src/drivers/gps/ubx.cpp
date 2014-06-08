@@ -65,9 +65,13 @@
 #define UBX_WAIT_BEFORE_READ	20		// ms, wait before reading to save read() calls
 #define DISABLE_MSG_INTERVAL	1000000		// us, try to disable message with this interval
 
-UBX::UBX(const int &fd, struct vehicle_gps_position_s *gps_position) :
+#define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
+
+UBX::UBX(const int &fd, struct vehicle_gps_position_s *gps_position, struct satellite_info_s *satellite_info, const bool &enable_sat_info) :
 	_fd(fd),
 	_gps_position(gps_position),
+	_satellite_info(satellite_info),
+	_enable_sat_info(enable_sat_info),
 	_configured(false),
 	_waiting_for_ack(false),
 	_disable_cmd_last(0)
@@ -84,13 +88,18 @@ UBX::configure(unsigned &baudrate)
 {
 	_configured = false;
 	/* try different baudrates */
-	const unsigned baudrates_to_try[] = {9600, 38400, 19200, 57600, 115200};
+	const unsigned baudrates[] = {9600, 38400, 19200, 57600, 115200};
 
-	int baud_i;
+	unsigned baud_i;
 
-	for (baud_i = 0; baud_i < 5; baud_i++) {
-		baudrate = baudrates_to_try[baud_i];
+	for (baud_i = 0; baud_i < sizeof(baudrates) / sizeof(baudrates[0]); baud_i++) {
+		baudrate = baudrates[baud_i];
 		set_baudrate(_fd, baudrate);
+
+		/* flush input and wait for at least 20 ms silence */
+		decode_init();
+		wait_for_ack(20);
+		decode_init();
 
 		/* Send a CFG-PRT message to set the UBX protocol for in and out
 		 * and leave the baudrate as it is, we just want an ACK-ACK from this
@@ -107,7 +116,7 @@ UBX::configure(unsigned &baudrate)
 		cfg_prt_packet.msgID		= UBX_MESSAGE_CFG_PRT;
 		cfg_prt_packet.length		= UBX_CFG_PRT_LENGTH;
 		cfg_prt_packet.portID		= UBX_CFG_PRT_PAYLOAD_PORTID;
-		cfg_prt_packet.mode			= UBX_CFG_PRT_PAYLOAD_MODE;
+		cfg_prt_packet.mode		= UBX_CFG_PRT_PAYLOAD_MODE;
 		cfg_prt_packet.baudRate		= baudrate;
 		cfg_prt_packet.inProtoMask	= UBX_CFG_PRT_PAYLOAD_INPROTOMASK;
 		cfg_prt_packet.outProtoMask	= UBX_CFG_PRT_PAYLOAD_OUTPROTOMASK;
@@ -125,7 +134,7 @@ UBX::configure(unsigned &baudrate)
 		cfg_prt_packet.msgID		= UBX_MESSAGE_CFG_PRT;
 		cfg_prt_packet.length		= UBX_CFG_PRT_LENGTH;
 		cfg_prt_packet.portID		= UBX_CFG_PRT_PAYLOAD_PORTID;
-		cfg_prt_packet.mode			= UBX_CFG_PRT_PAYLOAD_MODE;
+		cfg_prt_packet.mode		= UBX_CFG_PRT_PAYLOAD_MODE;
 		cfg_prt_packet.baudRate		= UBX_CFG_PRT_PAYLOAD_BAUDRATE;
 		cfg_prt_packet.inProtoMask	= UBX_CFG_PRT_PAYLOAD_INPROTOMASK;
 		cfg_prt_packet.outProtoMask	= UBX_CFG_PRT_PAYLOAD_OUTPROTOMASK;
@@ -144,7 +153,7 @@ UBX::configure(unsigned &baudrate)
 		break;
 	}
 
-	if (baud_i >= 5) {
+	if (baud_i >= sizeof(baudrates) / sizeof(baudrates[0])) {
 		return 1;
 	}
 
@@ -220,14 +229,14 @@ UBX::configure(unsigned &baudrate)
 		return 1;
 	}
 
-#ifdef	UBX_ENABLE_NAV_SVINFO
-	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_SVINFO, 5);
+	if (_enable_sat_info) {
+		configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_SVINFO, 5);
 
-	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
-		warnx("MSG CFG FAIL: NAV SVINFO");
-		return 1;
+		if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
+			warnx("MSG CFG FAIL: NAV SVINFO");
+			return 1;
+		}
 	}
-#endif
 
 	configure_message_rate(UBX_CLASS_MON, UBX_MESSAGE_MON_HW, 1);
 
@@ -244,14 +253,13 @@ int
 UBX::wait_for_ack(unsigned timeout)
 {
 	_waiting_for_ack = true;
-	uint64_t time_started = hrt_absolute_time();
+	uint64_t time_end = hrt_absolute_time() + timeout * 1000;
 
-	while (hrt_absolute_time() < time_started + timeout * 1000) {
+	while ((timeout = (time_end - hrt_absolute_time()) / 1000) > 0) {
 		if (receive(timeout) > 0) {
 			if (!_waiting_for_ack) {
 				return 1;
 			}
-
 		} else {
 			return -1;	// timeout or error receiving, or NAK
 		}
@@ -275,7 +283,7 @@ UBX::receive(unsigned timeout)
 
 	ssize_t count = 0;
 
-	bool handled = false;
+	int handled = 0;
 
 	while (true) {
 
@@ -290,7 +298,7 @@ UBX::receive(unsigned timeout)
 		} else if (ret == 0) {
 			/* return success after short delay after receiving a packet or timeout after long delay */
 			if (handled) {
-				return 1;
+				return handled;
 
 			} else {
 				return -1;
@@ -311,8 +319,7 @@ UBX::receive(unsigned timeout)
 				/* pass received bytes to the packet decoder */
 				for (int i = 0; i < count; i++) {
 					if (parse_char(buf[i]) > 0) {
-						if (handle_message() > 0)
-							handled = true;
+						handled |= handle_message();
 					}
 				}
 			}
@@ -334,6 +341,7 @@ UBX::parse_char(uint8_t b)
 	case UBX_DECODE_UNINIT:
 		if (b == UBX_SYNC1) {
 			_decode_state = UBX_DECODE_GOT_SYNC1;
+			//### printf("\nA");
 		}
 
 		break;
@@ -342,11 +350,13 @@ UBX::parse_char(uint8_t b)
 	case UBX_DECODE_GOT_SYNC1:
 		if (b == UBX_SYNC2) {
 			_decode_state = UBX_DECODE_GOT_SYNC2;
+			//### printf("B");
 
 		} else {
 			/* Second start symbol was wrong, reset state machine */
 			decode_init();
 			/* don't return error, it can be just false sync1 */
+			//### printf("-");
 		}
 
 		break;
@@ -357,24 +367,28 @@ UBX::parse_char(uint8_t b)
 		add_byte_to_checksum(b);
 		_message_class = b;
 		_decode_state = UBX_DECODE_GOT_CLASS;
+		//### printf("C");
 		break;
 
 	case UBX_DECODE_GOT_CLASS:
 		add_byte_to_checksum(b);
 		_message_id = b;
 		_decode_state = UBX_DECODE_GOT_MESSAGEID;
+		//### printf("D");
 		break;
 
 	case UBX_DECODE_GOT_MESSAGEID:
 		add_byte_to_checksum(b);
 		_payload_size = b; //this is the first length byte
 		_decode_state = UBX_DECODE_GOT_LENGTH1;
+		//### printf("E");
 		break;
 
 	case UBX_DECODE_GOT_LENGTH1:
 		add_byte_to_checksum(b);
 		_payload_size += b << 8; // here comes the second byte of length
 		_decode_state = UBX_DECODE_GOT_LENGTH2;
+		//### printf("F");
 		break;
 
 	case UBX_DECODE_GOT_LENGTH2:
@@ -389,6 +403,7 @@ UBX::parse_char(uint8_t b)
 		if (_rx_count >= _payload_size + 1) { //+1 because of 2 checksum bytes
 			/* compare checksum */
 			if (_rx_ck_a == _rx_buffer[_rx_count - 1] && _rx_ck_b == _rx_buffer[_rx_count]) {
+				//### printf("O\n");
 				return 1;	// message received successfully
 
 			} else {
@@ -399,6 +414,7 @@ UBX::parse_char(uint8_t b)
 
 		} else if (_rx_count < RECV_BUFFER_SIZE) {
 			_rx_count++;
+			//### printf(".");
 
 		} else {
 			warnx("ubx: buffer full 0x%02x-0x%02x L%u", (unsigned)_message_class, (unsigned)_message_id, _payload_size);
@@ -489,65 +505,37 @@ UBX::handle_message()
 					break;
 				}
 
-#ifdef UBX_ENABLE_NAV_SVINFO
 			case UBX_MESSAGE_NAV_SVINFO: {
 					//printf("GOT NAV_SVINFO\n");
+					if (!_enable_sat_info) {	// if satellite info processing not enabled:
+						break;		// ignore and disable NAV-SVINFO message
+					}
 					const int length_part1 = 8;
 					gps_bin_nav_svinfo_part1_packet_t *packet_part1 = (gps_bin_nav_svinfo_part1_packet_t *) _rx_buffer;
 					const int length_part2 = 12;
 					gps_bin_nav_svinfo_part2_packet_t *packet_part2;
 
-					uint8_t satellites_used = 0;
-					int i;
-
 					//printf("Number of Channels: %d\n", packet_part1->numCh);
-					for (i = 0; i < packet_part1->numCh; i++) {
-						/* set pointer to sattelite_i information */
-						packet_part2 = (gps_bin_nav_svinfo_part2_packet_t *) & (_rx_buffer[length_part1 + i * length_part2]);
+					for (_satellite_info->count = 0;
+					     _satellite_info->count < MIN(packet_part1->numCh, sizeof(_satellite_info->snr) / sizeof(_satellite_info->snr[0]));
+					     _satellite_info->count++) {
+						/* set pointer to satellite_i information */
+						packet_part2 = (gps_bin_nav_svinfo_part2_packet_t *) & (_rx_buffer[length_part1 + _satellite_info->count* length_part2]);
 
 						/* write satellite information to global storage */
-						uint8_t sv_used = packet_part2->flags & 0x01;
-
-						if (sv_used) {
-							/* count SVs used for NAV */
-							satellites_used++;
-						}
-
-						/* record info for all channels, whether or not the SV is used for NAV */
-						_gps_position->satellite_used[i] = sv_used;
-						_gps_position->satellite_snr[i] = packet_part2->cno;
-						_gps_position->satellite_elevation[i] = (uint8_t)(packet_part2->elev);
-						_gps_position->satellite_azimuth[i] = (uint8_t)((float)packet_part2->azim * 255.0f / 360.0f);
-						_gps_position->satellite_prn[i] = packet_part2->svid;
-						//printf("SAT %d: %d %d %d %d\n", i, (int)sv_used, (int)packet_part2->cno, (int)(uint8_t)(packet_part2->elev), (int)packet_part2->svid);
+						_satellite_info->used[_satellite_info->count] = packet_part2->flags & 0x01;
+						_satellite_info->snr[_satellite_info->count] = packet_part2->cno;
+						_satellite_info->elevation[_satellite_info->count] = (uint8_t)(packet_part2->elev);
+						_satellite_info->azimuth[_satellite_info->count] = (uint8_t)((float)packet_part2->azim * 255.0f / 360.0f);
+						_satellite_info->svid[_satellite_info->count] = packet_part2->svid;
+						//printf("SAT %d: %d %d %d %d\n", _satellite_info->count, (int)sv_used, (int)packet_part2->cno, (int)(uint8_t)(packet_part2->elev), (int)packet_part2->svid);
 					}
 
-					for (i = packet_part1->numCh; i < 20; i++) {
-						/* unused channels have to be set to zero for e.g. MAVLink */
-						_gps_position->satellite_prn[i] = 0;
-						_gps_position->satellite_used[i] = 0;
-						_gps_position->satellite_snr[i] = 0;
-						_gps_position->satellite_elevation[i] = 0;
-						_gps_position->satellite_azimuth[i] = 0;
-					}
+					_satellite_info->timestamp = hrt_absolute_time();
 
-					/* Note: _gps_position->satellites_visible is taken from NAV-SOL now. */
-					/* _gps_position->satellites_visible = satellites_used; */ // visible ~= used but we are interested in the used ones
-					/* TODO: satellites_used may be written into a new field after sat monitoring data got separated from _gps_position */
-
-					if (packet_part1->numCh > 0) {
-						_gps_position->satellite_info_available = true;
-
-					} else {
-						_gps_position->satellite_info_available = false;
-					}
-
-					_gps_position->timestamp_satellites = hrt_absolute_time();
-
-					ret = 1;
+					ret = 2;
 					break;
 				}
-#endif /* #ifdef UBX_ENABLE_NAV_SVINFO */
 
 			case UBX_MESSAGE_NAV_VELNED: {
 					// printf("GOT NAV_VELNED\n");
@@ -650,7 +638,6 @@ UBX::handle_message()
 					warnx("ubx: not acknowledged");
 					/* configuration obviously not successful */
 					_waiting_for_ack = false;
-					ret = -1;
 					break;
 				}
 

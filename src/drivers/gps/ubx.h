@@ -48,9 +48,7 @@
 
 #include "gps_helper.h"
 
-/* TODO: processing of NAV_SVINFO disabled, has to be re-written as an optional feature */
-/* TODO: make this a command line option, allocate buffer dynamically */
-#undef UBX_ENABLE_NAV_SVINFO
+#define UBX_ENABLE_NAV_SVINFO	1	/* TODO: make this a command line option, allocate buffer(s) dynamically */
 
 #define UBX_SYNC1 0xB5
 #define UBX_SYNC2 0x62
@@ -378,7 +376,7 @@ typedef enum {
 /* calculate parser rx buffer size dependent on NAV_SVINFO enabled or not */
 /* TODO: make this a command line option, allocate buffer dynamically */
 #define RECV_BUFFER_OVERHEAD	10	// add this to the maximum Rx msg payload size to account for msg overhead */
-#ifdef UBX_ENABLE_NAV_SVINFO
+#if (UBX_ENABLE_NAV_SVINFO != 0)
 	#define RECV_BUFFER_SIZE (UBX_NAV_SVINFO_RX_PAYLOAD_SIZE + RECV_BUFFER_OVERHEAD)
 #else
 	#define RECV_BUFFER_SIZE (UBX_MAX_RX_PAYLOAD_SIZE        + RECV_BUFFER_OVERHEAD)
@@ -387,7 +385,7 @@ typedef enum {
 class UBX : public GPS_Helper
 {
 public:
-	UBX(const int &fd, struct vehicle_gps_position_s *gps_position);
+	UBX(const int &fd, struct vehicle_gps_position_s *gps_position, struct satellite_info_s *satellite_info, const bool &enable_sat_info);
 	~UBX();
 	int			receive(unsigned timeout);
 	int			configure(unsigned &baudrate);
@@ -434,6 +432,8 @@ private:
 
 	int			_fd;
 	struct vehicle_gps_position_s *_gps_position;
+	struct satellite_info_s *_satellite_info;
+	bool			_enable_sat_info;
 	bool			_configured;
 	bool			_waiting_for_ack;
 	uint8_t			_message_class_needed;
