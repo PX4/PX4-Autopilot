@@ -62,8 +62,8 @@ protected:
 	uint8_t _rate_count_lat_lon;
 	uint8_t _rate_count_vel;
 
-	float _rate_lat_lon;
-	float _rate_vel;
+	float _rate_lat_lon = 0.0f;
+	float _rate_vel = 0.0f;
 
 	uint64_t _interval_rate_start;
 };
