@@ -84,18 +84,19 @@ enum MAVLINK_WPM_CODES {
 
 
 struct mavlink_wpm_storage {
-	uint16_t size;
-	uint16_t max_size;
-	enum MAVLINK_WPM_STATES current_state;
-	int16_t current_wp_id;	///< Waypoint in current transmission
-	uint16_t current_count;
+	uint16_t size;							///< Count of waypoints in active mission
+	uint16_t max_size;						///< Maximal count of waypoints
+	int dataman_id;							///< Dataman storage ID for active mission
+	enum MAVLINK_WPM_STATES current_state;	///< Current waypoint manager state
+	int16_t current_wp_id;					///< Waypoint ID in current transmission
+	uint16_t current_count;					///< Waypoints count in current transmission
 	uint8_t current_partner_sysid;
 	uint8_t current_partner_compid;
+	int current_dataman_id;					///< Dataman storage ID for current transmission
 	uint64_t timestamp_lastaction;
 	uint64_t timestamp_last_send_setpoint;
 	uint64_t timestamp_last_send_request;
 	uint32_t timeout;
-	int current_dataman_id;
 };
 
 
