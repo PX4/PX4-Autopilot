@@ -366,11 +366,11 @@ PARAM_DEFINE_FLOAT(FW_LND_TLALT, 5.0f);
 PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
 
 /**
- * Altitude error threshold that will force minimum pitch and roll limits during takeoff
+ * Takeoff altitude error threshold
  *
- * During takeoff, the current altitude is checked against the target altitude. If the
+ * During takeoff, the current altitude is checked against the takeoff waypoint altitude. If the
  * altitude error is greater than this parameter, the vehicle will maintain a minimum
- * pitch and reduced the allowed roll to ensure enough lift.
+ * pitch and limit the allowed roll to ensure enough lift.
  *
  * @unit meters
  * @min 1.0
