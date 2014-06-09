@@ -242,6 +242,9 @@ private:
 		float land_heading_hold_horizontal_distance;
 		float range_finder_rel_alt;
 
+		float takeoff_alt_error_threshold;
+		float takeoff_roll_max;
+
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -284,6 +287,9 @@ private:
 		param_t land_thrust_lim_alt_relative;
 		param_t land_heading_hold_horizontal_distance;
 		param_t range_finder_rel_alt;
+
+		param_t takeoff_alt_error_threshold;
+		param_t takeoff_roll_max;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -457,6 +463,9 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_heading_hold_horizontal_distance = param_find("FW_LND_HHDIST");
 	_parameter_handles.range_finder_rel_alt = param_find("FW_LND_RFRALT");
 
+	_parameter_handles.takeoff_alt_error_threshold = param_find("FW_TKOF_ALT_ERR");
+	_parameter_handles.takeoff_roll_max = param_find("FW_TKOF_ROLL_MAX");
+
 	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
 	_parameter_handles.min_sink_rate = 			param_find("FW_T_SINK_MIN");
 	_parameter_handles.max_sink_rate =			param_find("FW_T_SINK_MAX");
@@ -545,6 +554,9 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_heading_hold_horizontal_distance, &(_parameters.land_heading_hold_horizontal_distance));
 
 	param_get(_parameter_handles.range_finder_rel_alt, &(_parameters.range_finder_rel_alt));
+
+	param_get(_parameter_handles.takeoff_alt_error_threshold, &(_parameters.takeoff_alt_error_threshold));
+	param_get(_parameter_handles.takeoff_roll_max, &(_parameters.takeoff_roll_max));
 
 	_l1_control.set_l1_damping(_parameters.l1_damping);
 	_l1_control.set_l1_period(_parameters.l1_period);
@@ -1048,18 +1060,20 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			if (launch_detected) {
 				usePreTakeoffThrust = false;
 
-				/* apply minimum pitch and limit roll if target altitude is not within 10 meters */
-				if (altitude_error > 15.0f) {
+				/* apply minimum pitch and limit roll if target altitude is not within the altitude error threshold */
+				if (altitude_error > _parameters.takeoff_alt_error_threshold) {
 
-					/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
+					/* enforce a minimum of 10 degrees pitch up on takeoff, or use takeoff waypoint pitch parameter */
+					float climbout_pitch = math::max(math::radians(pos_sp_triplet.current.pitch_min), math::radians(10.0f));
+
 					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _pos_sp_triplet.current.alt, calculate_target_airspeed(1.3f * _parameters.airspeed_min),
 									_airspeed.indicated_airspeed_m_s, eas2tas,
-									true, math::max(math::radians(pos_sp_triplet.current.pitch_min), math::radians(10.0f)),
+									true, climbout_pitch,
 									_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 									math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
 
 					/* limit roll motion to ensure enough lift */
-					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f), math::radians(15.0f));
+					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-_parameters.takeoff_roll_max), math::radians(_parameters.takeoff_roll_max));
 
 				} else {
 
