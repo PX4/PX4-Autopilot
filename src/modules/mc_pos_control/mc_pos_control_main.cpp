@@ -1071,6 +1071,12 @@ MulticopterPositionControl::task_main()
 			_reset_pos_sp = true;
 			reset_int_z = true;
 			reset_int_xy = true;
+
+			/* Close att_sp pub to allow offboard mode or att controller to advertise */
+			if (_att_sp_pub > 0) {
+				close(_att_sp_pub);
+				_att_sp_pub = -1;
+			}
 		}
 
 		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */
