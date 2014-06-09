@@ -157,10 +157,6 @@ private:
 
 	/** manual control states */
 	float		_altctrl_hold_heading;		/**< heading the system should hold in altctrl mode */
-	double		_loiter_hold_lat;
-	double		_loiter_hold_lon;
-	float		_loiter_hold_alt;
-	bool		_loiter_hold;
 
 	double		_launch_lat;
 	double		_launch_lon;
@@ -413,7 +409,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 
 /* states */
 	_setpoint_valid(false),
-	_loiter_hold(false),
 	land_noreturn_horizontal(false),
 	land_noreturn_vertical(false),
 	land_stayonground(false),
@@ -1093,10 +1088,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		//       (double)_l1_control.bearing_error(), (double)_l1_control.target_bearing());
 		// warnx("prev wp: %8.4f/%8.4f, next wp: %8.4f/%8.4f prev:%s", (double)prev_wp(0), (double)prev_wp(1),
 		//       (double)next_wp(0), (double)next_wp(1), (pos_sp_triplet.previous_valid) ? "valid" : "invalid");
-
-		// XXX at this point we always want no loiter hold if a
-		// mission is active
-		_loiter_hold = false;
 
 		/* reset landing state */
 		if (pos_sp_triplet.current.type != SETPOINT_TYPE_LAND) {
