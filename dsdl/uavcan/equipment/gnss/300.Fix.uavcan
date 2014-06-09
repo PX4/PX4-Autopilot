@@ -13,7 +13,7 @@ int24 alt_1e2
 
 float16[3] ned_velocity
 
-uint4 sats_used
+uint5 sats_used
 
 uint2 STATUS_NO_FIX    = 0
 uint2 STATUS_TIME_ONLY = 1
