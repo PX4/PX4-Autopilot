@@ -59,9 +59,9 @@ ECL_RollController::ECL_RollController() :
 	_integrator(0.0f),
 	_rate_error(0.0f),
 	_rate_setpoint(0.0f),
-	_bodyrate_setpoint(0.0f)
+	_bodyrate_setpoint(0.0f),
+	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control roll nonfinite input"))
 {
-	perf_alloc(PC_COUNT, "fw att control roll nonfinite input");
 }
 
 ECL_RollController::~ECL_RollController()
