@@ -324,7 +324,9 @@ _write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const v
 	buffer[1] = persistence;
 	buffer[2] = 0;
 	buffer[3] = 0;
-	memcpy(buffer + DM_SECTOR_HDR_SIZE, buf, count);
+	if (count > 0) {
+		memcpy(buffer + DM_SECTOR_HDR_SIZE, buf, count);
+	}
 	count += DM_SECTOR_HDR_SIZE;
 
 	len = -1;

@@ -133,7 +133,7 @@ extern "C" {
 	   in this header, but till I find it a better home here it is */
 
 	typedef struct {
-		char current_offboard_waypoint_id;	/* the index of the active offboard waypoint data */
+		char offboard_waypoint_id;	/* the index of the active offboard waypoint data */
 							/* (DM_KEY_WAYPOINTS_OFFBOARD_n) or -1 for none */
 	} persistent_system_state_t;
 
