@@ -81,7 +81,8 @@ struct accel_scale {
 /*
  * ObjDev tag for raw accelerometer data.
  */
-ORB_DECLARE(sensor_accel);
+ORB_DECLARE(sensor_accel0);
+ORB_DECLARE(sensor_accel1);
 
 /*
  * ioctl() definitions

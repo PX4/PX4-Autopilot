@@ -81,7 +81,8 @@ struct gyro_scale {
 /*
  * ObjDev tag for raw gyro data.
  */
-ORB_DECLARE(sensor_gyro);
+ORB_DECLARE(sensor_gyro0);
+ORB_DECLARE(sensor_gyro1);
 
 /*
  * ioctl() definitions
