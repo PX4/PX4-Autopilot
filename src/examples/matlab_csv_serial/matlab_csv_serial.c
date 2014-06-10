@@ -95,7 +95,7 @@ int matlab_csv_serial_main(int argc, char *argv[])
 	{
 		if (thread_running)
 		{
-			printf("flow position estimator already running\n");
+			warnx("already running\n");
 			/* this is not an error */
 			exit(0);
 		}
@@ -133,19 +133,21 @@ int matlab_csv_serial_main(int argc, char *argv[])
 
 int matlab_csv_serial_thread_main(int argc, char *argv[])
 {
-	/* welcome user */
-	thread_running = true;
 
 	if (argc < 2) {
 		errx(1, "need a serial port name as argument");
 	}
 
-	int serial_fd = open(argv[1], O_RDWR | O_NOCTTY);
+	const char* uart_name = argv[1];
+
+	warnx("opening port %s", uart_name);
+
+	int serial_fd = open(uart_name, O_RDWR | O_NOCTTY);
 
 	unsigned speed = 921600;
 
 	if (serial_fd < 0) {
-		err(1, "failed to open port: %s", argv[1]);
+		err(1, "failed to open port: %s", uart_name);
 	}
 
 	/* Try to set baud rate */
@@ -154,14 +156,11 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 	bool is_usb = false;
 
 	/* Back up the original uart configuration to restore it after exit */
-	if ((termios_state = tcgetattr(_uart_fd, uart_config_original)) < 0) {
+	if ((termios_state = tcgetattr(serial_fd, &uart_config)) < 0) {
 		warnx("ERR GET CONF %s: %d\n", uart_name, termios_state);
-		close(_uart_fd);
+		close(serial_fd);
 		return -1;
 	}
-
-	/* Fill the struct for the new configuration */
-	tcgetattr(_uart_fd, &uart_config);
 
 	/* Clear ONLCR flag (which appends a CR for every LF) */
 	uart_config.c_oflag &= ~ONLCR;
@@ -171,7 +170,7 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 
 		/* Set baud rate */
 		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-			warnx("ERR SET BAUD %s: %d\n", argv[1], termios_state);
+			warnx("ERR SET BAUD %s: %d\n", uart_name, termios_state);
 			close(serial_fd);
 			return -1;
 		}
@@ -179,7 +178,7 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 	}
 
 	if ((termios_state = tcsetattr(serial_fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERR SET CONF %s\n", argv[1]);
+		warnx("ERR SET CONF %s\n", uart_name);
 		close(serial_fd);
 		return -1;
 	}
@@ -191,20 +190,19 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 	struct gyro_report gyro1;
 
 	/* subscribe to parameter changes */
-	int accel0_sub = orb_subscribe(ORB_ID(sensor_accel));
-	int accel1_sub;
-	int gyro0_sub;
-	int gyro1_sub;
+	int accel0_sub = orb_subscribe(ORB_ID(sensor_accel0));
+	int accel1_sub = orb_subscribe(ORB_ID(sensor_accel1));
+	int gyro0_sub = orb_subscribe(ORB_ID(sensor_gyro0));
+	int gyro1_sub = orb_subscribe(ORB_ID(sensor_gyro1));
+
+	thread_running = true;
 
 	while (!thread_should_exit)
 	{
 
 		/*This runs at the rate of the sensors */
 		struct pollfd fds[] = {
-				{ .fd = accel0_sub, .events = POLLIN },
-				{ .fd = accel1_sub,   .events = POLLIN },
-				{ .fd = gyro0_sub,   .events = POLLIN },
-				{ .fd = gyro1_sub,   .events = POLLIN }
+				{ .fd = accel0_sub, .events = POLLIN }
 		};
 
 		/* wait for a sensor update, check for exit condition every 500 ms */
@@ -212,8 +210,7 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 
 		if (ret < 0)
 		{
-			/* poll error, count it in perf */
-			perf_count(mc_err_perf);
+			/* poll error, ignore */
 
 		}
 		else if (ret == 0)
@@ -224,13 +221,17 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 		else
 		{
 
-			/* parameter update available? */
+			/* accel0 update available? */
 			if (fds[0].revents & POLLIN)
 			{
-				orb_copy(ORB_ID(sensor_accel), accel0_sub, &accel0);
+				orb_copy(ORB_ID(sensor_accel0), accel0_sub, &accel0);
+				orb_copy(ORB_ID(sensor_accel1), accel0_sub, &accel1);
+				orb_copy(ORB_ID(sensor_gyro0), gyro0_sub, &gyro0);
+				orb_copy(ORB_ID(sensor_gyro1), gyro1_sub, &gyro1);
 
 				// write out on accel 0, but collect for all other sensors as they have updates
-				vdprintf(serial_fd, "%llu,%d\n", accel0.timestamp, (int)accel0.x_raw);
+				dprintf(serial_fd, "%llu,%d,%d,%d,%d,%d,%d\n", accel0.timestamp, (int)accel0.x_raw, (int)accel0.y_raw, (int)accel0.z_raw,
+					(int)accel1.x_raw, (int)accel1.y_raw, (int)accel1.z_raw);
 			}
 
 		}

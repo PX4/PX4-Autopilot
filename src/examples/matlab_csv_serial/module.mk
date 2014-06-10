@@ -37,5 +37,4 @@
 
 MODULE_COMMAND		= matlab_csv_serial
 
-SRCS		= matlab_csv_serial.c \
-		  matlab_csv_serial.c
+SRCS		= matlab_csv_serial.c
