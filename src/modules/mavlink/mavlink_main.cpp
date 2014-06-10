@@ -965,7 +965,8 @@ void Mavlink::mavlink_wpm_init(mavlink_wpm_storage *state)
 	state->timestamp_lastaction = 0;
 	state->timestamp_last_send_setpoint = 0;
 	state->timestamp_last_send_request = 0;
-	state->timeout = MAVLINK_WPM_PROTOCOL_TIMEOUT_DEFAULT;
+	state->action_timeout = MAVLINK_WPM_PROTOCOL_TIMEOUT_DEFAULT;
+	state->retry_timeout = MAVLINK_WPM_RETRY_TIMEOUT_DEFAULT;
 
 	int sys_state_size = dm_read(DM_KEY_SYSTEM_STATE, 0, &sys_state, sizeof(sys_state));
 	if (sys_state_size == sizeof(sys_state)) {
@@ -1138,7 +1139,7 @@ void Mavlink::mavlink_wpm_send_waypoint_reached(uint16_t seq)
 void Mavlink::mavlink_waypoint_eventloop(uint64_t now)
 {
 	/* check for timed-out operations */
-	if (now - _wpm->timestamp_lastaction > _wpm->timeout && _wpm->current_state != MAVLINK_WPM_STATE_IDLE) {
+	if (now - _wpm->timestamp_lastaction > _wpm->action_timeout && _wpm->current_state != MAVLINK_WPM_STATE_IDLE) {
 
 		mavlink_missionlib_send_gcs_string("Operation timeout");
 
@@ -1148,7 +1149,7 @@ void Mavlink::mavlink_waypoint_eventloop(uint64_t now)
 		_wpm->current_partner_sysid = 0;
 		_wpm->current_partner_compid = 0;
 
-	} else if (now - _wpm->timestamp_last_send_request > 500000 && _wpm->current_state == MAVLINK_WPM_STATE_GETLIST_GETWPS) {
+	} else if (now - _wpm->timestamp_last_send_request > _wpm->retry_timeout && _wpm->current_state == MAVLINK_WPM_STATE_GETLIST_GETWPS) {
 		/* try to get WP again after short timeout */
 		mavlink_wpm_send_waypoint_request(_wpm->current_partner_sysid, _wpm->current_partner_compid, _wpm->current_wp_id);
 	}

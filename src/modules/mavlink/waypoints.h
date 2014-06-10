@@ -88,7 +88,7 @@ struct mavlink_wpm_storage {
 	uint8_t current_partner_compid;
 	uint64_t timestamp_lastaction;
 	uint64_t timestamp_last_send_setpoint;
-	uint32_t timeout;
+	uint32_t action_timeout;
 	int current_dataman_id;
 };
 

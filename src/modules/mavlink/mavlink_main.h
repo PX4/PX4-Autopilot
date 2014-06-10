@@ -78,8 +78,9 @@ enum MAVLINK_WPM_CODES {
 
 
 #define MAVLINK_WPM_MAX_WP_COUNT 255
-#define MAVLINK_WPM_PROTOCOL_TIMEOUT_DEFAULT 5000000 ///< Protocol communication timeout in useconds
-#define MAVLINK_WPM_SETPOINT_DELAY_DEFAULT 1000000 ///< When to send a new setpoint
+#define MAVLINK_WPM_PROTOCOL_TIMEOUT_DEFAULT 5000000    ///< Protocol communication action timeout in useconds
+#define MAVLINK_WPM_RETRY_TIMEOUT_DEFAULT 500000        ///< Protocol communication retry timeout in useconds
+#define MAVLINK_WPM_SETPOINT_DELAY_DEFAULT 1000000      ///< When to send a new setpoint
 #define MAVLINK_WPM_PROTOCOL_DELAY_DEFAULT 40000
 
 
@@ -96,7 +97,8 @@ struct mavlink_wpm_storage {
 	uint64_t timestamp_lastaction;
 	uint64_t timestamp_last_send_setpoint;
 	uint64_t timestamp_last_send_request;
-	uint32_t timeout;
+	uint32_t action_timeout;
+	uint32_t retry_timeout;
 };
 
 
