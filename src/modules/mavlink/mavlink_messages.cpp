@@ -938,6 +938,8 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
+		/* always send this message, even if it has not been updated */
+		pos_sp_triplet_sub->update(t);
 		mavlink_msg_global_position_setpoint_int_send(_channel,
 			MAV_FRAME_GLOBAL,
 			(int32_t)(pos_sp_triplet->current.lat * 1e7),
