@@ -491,31 +491,44 @@ MPU6000::init()
 
 	measure();
 
-	if (_accel_class_instance == CLASS_DEVICE_PRIMARY) {
+	/* advertise sensor topic, measure manually to initialize valid report */
+	struct accel_report arp;
+	_accel_reports->get(&arp);
 
-		/* advertise sensor topic, measure manually to initialize valid report */
-		struct accel_report arp;
-		_accel_reports->get(&arp);
-
-		/* measurement will have generated a report, publish */
-		_accel_topic = orb_advertise(ORB_ID(sensor_accel), &arp);
-
-		if (_accel_topic < 0)
-			debug("failed to create sensor_accel publication");
+	/* measurement will have generated a report, publish */
+	switch (_accel_class_instance) {
+		case CLASS_DEVICE_PRIMARY:
+			_accel_topic = orb_advertise(ORB_ID(sensor_accel0), &arp);
+			break;
+		
+		case CLASS_DEVICE_SECONDARY:
+			_accel_topic = orb_advertise(ORB_ID(sensor_accel1), &arp);
+			break;
 
 	}
 
-	if (_gyro->_gyro_class_instance == CLASS_DEVICE_PRIMARY) {
+	if (_accel_topic < 0) {
+		warnx("failed to create sensor_accel publication");
+	}
 
-		/* advertise sensor topic, measure manually to initialize valid report */
-		struct gyro_report grp;
-		_gyro_reports->get(&grp);
 
-		_gyro->_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &grp);
+	/* advertise sensor topic, measure manually to initialize valid report */
+	struct gyro_report grp;
+	_gyro_reports->get(&grp);
 
-		if (_gyro->_gyro_topic < 0)
-			debug("failed to create sensor_gyro publication");
+	switch (_gyro->_gyro_class_instance) {
+		case CLASS_DEVICE_PRIMARY:
+			_gyro->_gyro_topic = orb_advertise(ORB_ID(sensor_gyro0), &grp);
+			break;
 
+		case CLASS_DEVICE_SECONDARY:
+			_gyro->_gyro_topic = orb_advertise(ORB_ID(sensor_gyro1), &grp);
+			break;
+
+	}
+
+	if (_gyro->_gyro_topic < 0) {
+		warnx("failed to create sensor_gyro publication");
 	}
 
 out:
@@ -1326,14 +1339,30 @@ MPU6000::measure()
 	poll_notify(POLLIN);
 	_gyro->parent_poll_notify();
 
-	if (_accel_topic > 0 && !(_pub_blocked)) {
+	if (!(_pub_blocked)) {
 		/* publish it */
-		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
+		switch (_accel_class_instance) {
+			case CLASS_DEVICE_PRIMARY:
+				orb_publish(ORB_ID(sensor_accel0), _accel_topic, &arb);
+				break;
+
+			case CLASS_DEVICE_SECONDARY:
+				orb_publish(ORB_ID(sensor_accel1), _accel_topic, &arb);
+				break;
+		}
 	}
 
-	if (_gyro->_gyro_topic > 0 && !(_pub_blocked)) {
+	if (!(_pub_blocked)) {
 		/* publish it */
-		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
+		switch (_gyro->_gyro_class_instance) {
+			case CLASS_DEVICE_PRIMARY:
+				orb_publish(ORB_ID(sensor_gyro0), _gyro->_gyro_topic, &grb);
+				break;
+
+			case CLASS_DEVICE_SECONDARY:
+				orb_publish(ORB_ID(sensor_gyro1), _gyro->_gyro_topic, &grb);
+				break;
+		}
 	}
 
 	/* stop measuring */
