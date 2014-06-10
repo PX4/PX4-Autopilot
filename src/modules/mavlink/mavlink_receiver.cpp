@@ -365,30 +365,47 @@ MavlinkReceiver::handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message
 		case 1:
 			ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_RATES;
 			ml_armed = true;
+
 			break;
 
 		case 2:
 			ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE;
 			ml_armed = true;
+
 			break;
 
 		case 3:
 			ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY;
 			ml_armed = true;
+
 			break;
 
 		case 4:
 			ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_POSITION;
 			ml_armed = true;
+
 			break;
 		default:
 			break;
 		}
 
-		offboard_control_sp.p1 = (float)quad_motors_setpoint.roll[mavlink_system.sysid - 1]   / (float)INT16_MAX;
-		offboard_control_sp.p2 = (float)quad_motors_setpoint.pitch[mavlink_system.sysid - 1]  / (float)INT16_MAX;
-		offboard_control_sp.p3 = (float)quad_motors_setpoint.yaw[mavlink_system.sysid - 1]    / (float)INT16_MAX;
-		offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid - 1] / (float)UINT16_MAX;
+		if (m1_mode == OFFBOARD_CONTROL_MODE_DIRECT_RATES || m1_mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE) {
+
+			offboard_control_sp.p1 = (float)quad_motors_setpoint.roll[mavlink_system.sysid - 1]   / (float)INT16_MAX;
+			offboard_control_sp.p2 = (float)quad_motors_setpoint.pitch[mavlink_system.sysid - 1]  / (float)INT16_MAX;
+			offboard_control_sp.p3 = (float)quad_motors_setpoint.yaw[mavlink_system.sysid - 1]    / (float)INT16_MAX;
+			offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid - 1] / (float)UINT16_MAX;
+
+		} else if (m1_mode == OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY || m1_mode == OFFBOARD_CONTROL_MODE_DIRECT_POSITION) {
+
+			/*Temporary hack to use set_quad_swarm_roll_pitch_yaw_thrust msg for position or velocity */ 
+			/* Converts INT16 centimeters to float meters */
+			offboard_control_sp.p1 = (float)quad_motors_setpoint.roll[mavlink_system.sysid - 1] / 100.0f;
+			offboard_control_sp.p2 = (float)quad_motors_setpoint.pitch[mavlink_system.sysid - 1] / 100.0f;
+			offboard_control_sp.p3 = (float)quad_motors_setpoint.yaw[mavlink_system.sysid - 1] / 100.0f;
+			offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid - 1] / 100.0f;
+
+		}
 
 		if (quad_motors_setpoint.thrust[mavlink_system.sysid - 1] == 0) {
 			ml_armed = false;
@@ -420,7 +437,7 @@ MavlinkReceiver::handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message
 					loc_pos_sp.x = offboard_control_sp.p1;
 					loc_pos_sp.y = offboard_control_sp.p2;
 					loc_pos_sp.yaw = offboard_control_sp.p3;
-					loc_pos_sp.z = offboard_control_sp.p4;
+					loc_pos_sp.z = -offboard_control_sp.p4;
 
 					/* Close fds to allow position controller to use attitude controller */
 					if (_att_sp_pub > 0) {
