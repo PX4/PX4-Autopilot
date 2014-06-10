@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file fw_att_pos_estimator_params.c
+ * @file ekf_att_pos_estimator_params.c
  *
  * Parameters defined by the attitude and position estimator task
  *
@@ -226,11 +226,11 @@ PARAM_DEFINE_FLOAT(PE_GBIAS_PNOISE, 1e-07f);
  * Generic defaults: 0.0001f, multicopters: 0.0001f, ground vehicles: 0.0001f.
  * Increasing this value makes the bias estimation faster and noisier.
  *
- * @min 0.0001
+ * @min 0.00001
  * @max 0.001
  * @group Position Estimator
  */
-PARAM_DEFINE_FLOAT(PE_ABIAS_PNOISE, 0.0001f);
+PARAM_DEFINE_FLOAT(PE_ABIAS_PNOISE, 0.00005f);
 
 /**
  * Magnetometer earth frame offsets process noise

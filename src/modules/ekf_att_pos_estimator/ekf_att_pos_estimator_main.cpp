@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file fw_att_pos_estimator_main.cpp
+ * @file ekf_att_pos_estimator_main.cpp
  * Implementation of the attitude and position estimator.
  *
  * @author Paul Riseborough <p_riseborough@live.com.au>
@@ -336,13 +336,13 @@ FixedwingEstimator::FixedwingEstimator() :
 	_baro_gps_offset(0.0f),
 
 /* performance counters */
-	_loop_perf(perf_alloc(PC_COUNT, "fw_att_pos_estimator")),
-	_perf_gyro(perf_alloc(PC_COUNT, "fw_ekf_gyro_upd")),
-	_perf_accel(perf_alloc(PC_COUNT, "fw_ekf_accel_upd")),
-	_perf_mag(perf_alloc(PC_COUNT, "fw_ekf_mag_upd")),
-	_perf_gps(perf_alloc(PC_COUNT, "fw_ekf_gps_upd")),
-	_perf_baro(perf_alloc(PC_COUNT, "fw_ekf_baro_upd")),
-	_perf_airspeed(perf_alloc(PC_COUNT, "fw_ekf_aspd_upd")),
+	_loop_perf(perf_alloc(PC_COUNT, "ekf_att_pos_estimator")),
+	_perf_gyro(perf_alloc(PC_COUNT, "ekf_att_pos_gyro_upd")),
+	_perf_accel(perf_alloc(PC_COUNT, "ekf_att_pos_accel_upd")),
+	_perf_mag(perf_alloc(PC_COUNT, "ekf_att_pos_mag_upd")),
+	_perf_gps(perf_alloc(PC_COUNT, "ekf_att_pos_gps_upd")),
+	_perf_baro(perf_alloc(PC_COUNT, "ekf_att_pos_baro_upd")),
+	_perf_airspeed(perf_alloc(PC_COUNT, "ekf_att_pos_aspd_upd")),
 
 /* states */
 	_initialized(false),
@@ -1067,7 +1067,7 @@ FixedwingEstimator::task_main()
 					mavlink_log_info(_mavlink_fd, "[ekf] ref: LA %.4f,LO %.4f,ALT %.2f", lat, lon, (double)gps_alt);
 					warnx("HOME/REF: LA %8.4f,LO %8.4f,ALT %8.2f V: %8.4f %8.4f %8.4f", lat, lon, (double)gps_alt,
 						(double)_ekf->velNED[0], (double)_ekf->velNED[1], (double)_ekf->velNED[2]);
-					warnx("BARO: %8.4f m / ref: %8.4f m / gps offs: %8.4f m", _ekf->baroHgt, _baro_ref, _baro_gps_offset);
+					warnx("BARO: %8.4f m / ref: %8.4f m / gps offs: %8.4f m", (double)_ekf->baroHgt, (double)_baro_ref, (double)_baro_gps_offset);
 					warnx("GPS: eph: %8.4f, epv: %8.4f, declination: %8.4f", (double)_gps.eph_m, (double)_gps.epv_m, (double)math::degrees(declination));
 
 					_gps_initialized = true;

@@ -194,17 +194,12 @@ void frsky_send_frame1(int uart)
 }
 
 /**
- * Formats the decimal latitude/longitude to the required degrees/minutes/seconds.
+ * Formats the decimal latitude/longitude to the required degrees/minutes.
  */
 static float frsky_format_gps(float dec)
 {
-	float dms_deg = (int) dec;
-	float dec_deg = dec - dms_deg;
-	float dms_min = (int) (dec_deg * 60);
-	float dec_min = (dec_deg * 60) - dms_min;
-	float dms_sec = dec_min * 60;
-
-	return (dms_deg * 100.0f) + dms_min + (dms_sec / 100.0f);
+	float dm_deg = (int) dec;
+	return (dm_deg * 100.0f) + (dec - dm_deg) * 60;
 }
 
 /**
@@ -232,9 +227,9 @@ void frsky_send_frame2(int uart)
 		struct tm *tm_gps = gmtime(&time_gps);
 
 		course = (global_pos.yaw + M_PI_F) / M_PI_F * 180.0f;
-		lat    = frsky_format_gps(abs(global_pos.lat));
+		lat    = frsky_format_gps(fabsf(global_pos.lat));
 		lat_ns = (global_pos.lat < 0) ? 'S' : 'N';
-		lon    = frsky_format_gps(abs(global_pos.lon));
+		lon    = frsky_format_gps(fabsf(global_pos.lon));
 		lon_ew = (global_pos.lon < 0) ? 'W' : 'E';
 		speed  = sqrtf(global_pos.vel_n * global_pos.vel_n + global_pos.vel_e * global_pos.vel_e)
 				* 25.0f / 46.0f;

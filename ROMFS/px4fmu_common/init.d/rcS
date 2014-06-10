@@ -65,12 +65,12 @@ then
 	# Start CDC/ACM serial driver
 	#
 	sercon
-	
+
 	#
 	# Start the ORB (first app to start)
 	#
 	uorb start
-	
+
 	#
 	# Load parameters
 	#
@@ -79,7 +79,7 @@ then
 	then
 		set PARAM_FILE /fs/mtd_params
 	fi
-	
+
 	param select $PARAM_FILE
 	if param load
 	then
@@ -87,21 +87,25 @@ then
 	else
 		echo "[init] ERROR: Params loading failed: $PARAM_FILE"
 	fi
-	
+
 	#
 	# Start system state indicator
 	#
 	if rgbled start
 	then
-		echo "[init] Using external RGB Led"
+		echo "[init] RGB Led"
 	else
 		if blinkm start
 		then
-			echo "[init] Using blinkm"
+			echo "[init] BlinkM"
 			blinkm systemstate
 		fi
 	fi
-	
+
+	if pca8574 start
+	then
+	fi
+
 	#
 	# Set default values
 	#
@@ -122,7 +126,7 @@ then
 	set LOAD_DEFAULT_APPS yes
 	set GPS yes
 	set GPS_FAKE no
-	
+
 	#
 	# Set DO_AUTOCONFIG flag to use it in AUTOSTART scripts
 	#
@@ -132,7 +136,7 @@ then
 	else
 		set DO_AUTOCONFIG no
 	fi
-	
+
 	#
 	# Set USE_IO flag
 	#
@@ -142,7 +146,7 @@ then
 	else
 		set USE_IO no
 	fi
-		
+
 	#
 	# Set parameters and env variables for selected AUTOSTART
 	#
@@ -172,9 +176,9 @@ then
 		param set SYS_AUTOCONFIG 0
 		param save
 	fi
-	
+
 	set IO_PRESENT no
-	
+
 	if [ $USE_IO == yes ]
 	then
 		#
@@ -186,19 +190,19 @@ then
 		else
 			set IO_FILE /etc/extras/px4io-v1_default.bin
 		fi
-		
+
 		if px4io checkcrc $IO_FILE
 		then
 			echo "[init] PX4IO CRC OK"
 			echo "PX4IO CRC OK" >> $LOG_FILE
-	
+
 			set IO_PRESENT yes
 		else
 			echo "[init] Trying to update"
 			echo "PX4IO Trying to update" >> $LOG_FILE
-			
+
 			tone_alarm MLL32CP8MB
-			
+
 			if px4io forceupdate 14662 $IO_FILE
 			then
 				usleep 500000
@@ -207,7 +211,7 @@ then
 					echo "[init] PX4IO CRC OK, update successful"
 					echo "PX4IO CRC OK after updating" >> $LOG_FILE
 					tone_alarm MLL8CDE
-	
+
 					set IO_PRESENT yes
 				else
 					echo "[init] ERROR: PX4IO update failed"
@@ -220,14 +224,14 @@ then
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 		fi
-		
+
 		if [ $IO_PRESENT == no ]
 		then
 			echo "[init] ERROR: PX4IO not found"
 			tone_alarm $TUNE_OUT_ERROR
 		fi
 	fi
-	
+
 	#
 	# Set default output if not set
 	#
@@ -246,7 +250,7 @@ then
 		# Need IO for output but it not present, disable output
 		set OUTPUT_MODE none
 		echo "[init] ERROR: PX4IO not found, disabling output"
-		
+
 		# Avoid using ttyS0 for MAVLink on FMUv1
 		if ver hwcmp PX4FMU_V1
 		then
@@ -270,17 +274,17 @@ then
 
 	# Try to get an USB console
 	nshterm /dev/ttyACM0 &
-	
+
 	#
 	# Start the Commander (needs to be this early for in-air-restarts)
 	#
 	commander start
-	
+
 	#
 	# Start primary output
 	#
 	set TTYS1_BUSY no
-	
+
 	# If OUTPUT_MODE == none then something is wrong with setup and we shouldn't try to enable output
 	if [ $OUTPUT_MODE != none ]
 	then
@@ -296,7 +300,7 @@ then
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 		fi
-		
+
 		if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == ardrone ]
 		then
 			echo "[init] Use FMU as primary output"
@@ -307,7 +311,7 @@ then
 				echo "[init] ERROR: FMU mode_$FMU_MODE start failed"
 				tone_alarm $TUNE_OUT_ERROR
 			fi
-			
+
 			if ver hwcmp PX4FMU_V1
 			then
 				if [ $FMU_MODE == pwm -o $FMU_MODE == gpio ]
@@ -320,7 +324,7 @@ then
 				fi
 			fi
 		fi
-		
+
 		if [ $OUTPUT_MODE == mkblctrl ]
 		then
 			echo "[init] Use MKBLCTRL as primary output"
@@ -333,7 +337,7 @@ then
 			then
 				set MKBLCTRL_ARG "-mkmode +"
 			fi
-			
+
 			if mkblctrl $MKBLCTRL_ARG
 			then
 				echo "[init] MKBLCTRL started"
@@ -341,9 +345,9 @@ then
 				echo "[init] ERROR: MKBLCTRL start failed"
 				tone_alarm $TUNE_OUT_ERROR
 			fi
-			
+
 		fi
-				
+
 		if [ $OUTPUT_MODE == hil ]
 		then
 			echo "[init] Use HIL as primary output"
@@ -355,7 +359,7 @@ then
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 		fi
-		
+
 		#
 		# Start IO or FMU for RC PPM input if needed
 		#
@@ -382,7 +386,7 @@ then
 					echo "[init] ERROR: FMU mode_$FMU_MODE start failed"
 					tone_alarm $TUNE_OUT_ERROR
 				fi
-	
+
 				if ver hwcmp PX4FMU_V1
 				then
 					if [ $FMU_MODE == pwm -o $FMU_MODE == gpio ]
@@ -397,7 +401,7 @@ then
 			fi
 		fi
 	fi
-	
+
 	#
 	# MAVLink
 	#
@@ -418,7 +422,7 @@ then
 	fi
 
 	mavlink start $MAVLINK_FLAGS
-	
+
 	#
 	# Sensors, Logging, GPS
 	#
@@ -429,7 +433,7 @@ then
 		echo "[init] Start logging"
 		sh /etc/init.d/rc.logging
 	fi
-	
+
 	if [ $GPS == yes ]
 	then
 		echo "[init] Start GPS"
@@ -439,7 +443,7 @@ then
 			gps start -f
 		else
 			gps start
-		fi		
+		fi
 	fi
 
 	#
@@ -456,24 +460,24 @@ then
 	if [ $VEHICLE_TYPE == fw ]
 	then
 		echo "[init] Vehicle type: FIXED WING"
-		
+
 		if [ $MIXER == none ]
 		then
 			# Set default mixer for fixed wing if not defined
 			set MIXER FMU_AERT
 		fi
-		
+
 		if [ $MAV_TYPE == none ]
 		then
 			# Use MAV_TYPE = 1 (fixed wing) if not defined
 			set MAV_TYPE 1
 		fi
-		
+
 		param set MAV_TYPE $MAV_TYPE
-		
+
 		# Load mixer and configure outputs
 		sh /etc/init.d/rc.interface
-		
+
 		# Start standard fixedwing apps
 		if [ $LOAD_DEFAULT_APPS == yes ]
 		then
@@ -521,7 +525,7 @@ then
 				set MAV_TYPE 14
 			fi
 		fi
-		
+
 		# Still no MAV_TYPE found
 		if [ $MAV_TYPE == none ]
 		then
@@ -529,10 +533,10 @@ then
 		else
 			param set MAV_TYPE $MAV_TYPE
 		fi
-		
+
 		# Load mixer and configure outputs
 		sh /etc/init.d/rc.interface
-		
+
 		# Start standard multicopter apps
 		if [ $LOAD_DEFAULT_APPS == yes ]
 		then

@@ -138,6 +138,10 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
+
+		} else if (status->main_state == MAIN_STATE_ACRO) {
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ACRO;
 		}
 
 	} else {
@@ -290,7 +294,7 @@ protected:
 						status.onboard_control_sensors_health,
 						status.load * 1000.0f,
 						status.battery_voltage * 1000.0f,
-						status.battery_current * 1000.0f,
+						status.battery_current * 100.0f,
 						status.battery_remaining * 100.0f,
 						status.drop_rate_comm,
 						status.errors_comm,
@@ -305,7 +309,7 @@ protected:
 class MavlinkStreamHighresIMU : public MavlinkStream
 {
 public:
-	~MavlinkStreamHighresIMU();
+	~MavlinkStreamHighresIMU() {};
 
 	const char *get_name() const
 	{
