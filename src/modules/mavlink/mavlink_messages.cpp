@@ -938,14 +938,12 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
-		if (pos_sp_triplet_sub->update(t)) {
-			mavlink_msg_global_position_setpoint_int_send(_channel,
-					MAV_FRAME_GLOBAL,
-					(int32_t)(pos_sp_triplet->current.lat * 1e7),
-					(int32_t)(pos_sp_triplet->current.lon * 1e7),
-					(int32_t)(pos_sp_triplet->current.alt * 1000),
-					(int16_t)(pos_sp_triplet->current.yaw * M_RAD_TO_DEG_F * 100.0f));
-		}
+		mavlink_msg_global_position_setpoint_int_send(_channel,
+			MAV_FRAME_GLOBAL,
+			(int32_t)(pos_sp_triplet->current.lat * 1e7),
+			(int32_t)(pos_sp_triplet->current.lon * 1e7),
+			(int32_t)(pos_sp_triplet->current.alt * 1000),
+			(int16_t)(pos_sp_triplet->current.yaw * M_RAD_TO_DEG_F * 100.0f));
 	}
 };
 
