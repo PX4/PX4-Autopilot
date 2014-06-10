@@ -866,9 +866,9 @@ HMC5883::collect()
 
 		if (_mag_topic != -1) {
 			/* publish it */
-			orb_publish(ORB_ID(sensor_mag), _mag_topic, &new_report);
+			orb_publish(ORB_ID(sensor_mag0), _mag_topic, &new_report);
 		} else {
-			_mag_topic = orb_advertise(ORB_ID(sensor_mag), &new_report);
+			_mag_topic = orb_advertise(ORB_ID(sensor_mag0), &new_report);
 
 			if (_mag_topic < 0)
 				debug("failed to create sensor_mag publication");
