@@ -967,7 +967,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 	if (accel_updated) {
 		struct accel_report	accel_report;
 
-		orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
+		orb_copy(ORB_ID(sensor_accel0), _accel_sub, &accel_report);
 
 		math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
 		vect = _board_rotation * vect;
@@ -993,7 +993,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 	if (gyro_updated) {
 		struct gyro_report	gyro_report;
 
-		orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &gyro_report);
+		orb_copy(ORB_ID(sensor_gyro0), _gyro_sub, &gyro_report);
 
 		math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
 		vect = _board_rotation * vect;
@@ -1019,7 +1019,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 	if (mag_updated) {
 		struct mag_report	mag_report;
 
-		orb_copy(ORB_ID(sensor_mag), _mag_sub, &mag_report);
+		orb_copy(ORB_ID(sensor_mag0), _mag_sub, &mag_report);
 
 		math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
 
@@ -1050,7 +1050,7 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 
 	if (baro_updated) {
 
-		orb_copy(ORB_ID(sensor_baro), _baro_sub, &_barometer);
+		orb_copy(ORB_ID(sensor_baro0), _baro_sub, &_barometer);
 
 		raw.baro_pres_mbar = _barometer.pressure; // Pressure in mbar
 		raw.baro_alt_meter = _barometer.altitude; // Altitude in meters
@@ -1579,11 +1579,11 @@ Sensors::task_main()
 	/*
 	 * do subscriptions
 	 */
-	_gyro_sub = orb_subscribe(ORB_ID(sensor_gyro));
-	_accel_sub = orb_subscribe(ORB_ID(sensor_accel));
-	_mag_sub = orb_subscribe(ORB_ID(sensor_mag));
+	_gyro_sub = orb_subscribe(ORB_ID(sensor_gyro0));
+	_accel_sub = orb_subscribe(ORB_ID(sensor_accel0));
+	_mag_sub = orb_subscribe(ORB_ID(sensor_mag0));
 	_rc_sub = orb_subscribe(ORB_ID(input_rc));
-	_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
+	_baro_sub = orb_subscribe(ORB_ID(sensor_baro0));
 	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
