@@ -1,0 +1,8 @@
+#
+# Orientation and thrust setpoint for VTOL crafts.
+#
+
+uavcan.FigureOfMerit figure_of_merit
+
+float16[4] orientation_xyzw
+float16 thrust  # Range [0; 1]
