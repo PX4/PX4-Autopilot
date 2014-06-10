@@ -600,34 +600,45 @@ LSM303D::init()
 	/* fill report structures */
 	measure();
 
-	if (_mag->_mag_class_instance == CLASS_DEVICE_PRIMARY) {
+	/* advertise sensor topic, measure manually to initialize valid report */
+	struct mag_report mrp;
+	_mag_reports->get(&mrp);
 
-		/* advertise sensor topic, measure manually to initialize valid report */
-		struct mag_report mrp;
-		_mag_reports->get(&mrp);
+	/* measurement will have generated a report, publish */
+	switch (_mag->_mag_class_instance) {
+		case CLASS_DEVICE_PRIMARY:
+			_mag->_mag_topic = orb_advertise(ORB_ID(sensor_mag0), &mrp);
+			break;
 
-		/* measurement will have generated a report, publish */
-		_mag->_mag_topic = orb_advertise(ORB_ID(sensor_mag), &mrp);
+		case CLASS_DEVICE_SECONDARY:
+			_mag->_mag_topic = orb_advertise(ORB_ID(sensor_mag1), &mrp);
+			break;
+	}
 
-		if (_mag->_mag_topic < 0)
-			debug("failed to create sensor_mag publication");
-
+	if (_mag->_mag_topic < 0) {
+		warnx("failed to create sensor_mag publication");
 	}
 
 	_accel_class_instance = register_class_devname(ACCEL_DEVICE_PATH);
 
-	if (_accel_class_instance == CLASS_DEVICE_PRIMARY) {
+	/* advertise sensor topic, measure manually to initialize valid report */
+	struct accel_report arp;
+	_accel_reports->get(&arp);
 
-		/* advertise sensor topic, measure manually to initialize valid report */
-		struct accel_report arp;
-		_accel_reports->get(&arp);
+	/* measurement will have generated a report, publish */
+	switch (_accel_class_instance) {
+		case CLASS_DEVICE_PRIMARY:
+			_accel_topic = orb_advertise(ORB_ID(sensor_accel0), &arp);
+			break;
 
-		/* measurement will have generated a report, publish */
-		_accel_topic = orb_advertise(ORB_ID(sensor_accel), &arp);
+		case CLASS_DEVICE_SECONDARY:
+			_accel_topic = orb_advertise(ORB_ID(sensor_accel1), &arp);
+			break;
 
-		if (_accel_topic < 0)
-			debug("failed to create sensor_accel publication");
+	}
 
+	if (_accel_topic < 0) {
+		warnx("failed to create sensor_accel publication");
 	}
 
 out:
@@ -1541,9 +1552,17 @@ LSM303D::measure()
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
-	if (_accel_topic > 0 && !(_pub_blocked)) {
+	if (!(_pub_blocked)) {
 		/* publish it */
-		orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
+		switch (_accel_class_instance) {
+			case CLASS_DEVICE_PRIMARY:
+				orb_publish(ORB_ID(sensor_accel0), _accel_topic, &accel_report);
+				break;
+
+			case CLASS_DEVICE_SECONDARY:
+				orb_publish(ORB_ID(sensor_accel1), _accel_topic, &accel_report);
+				break;
+		}
 	}
 
 	_accel_read++;
@@ -1615,9 +1634,17 @@ LSM303D::mag_measure()
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
-	if (_mag->_mag_topic > 0 && !(_pub_blocked)) {
+	if (!(_pub_blocked)) {
 		/* publish it */
-		orb_publish(ORB_ID(sensor_mag), _mag->_mag_topic, &mag_report);
+		switch (_mag->_mag_class_instance) {
+			case CLASS_DEVICE_PRIMARY:
+				orb_publish(ORB_ID(sensor_mag0), _mag->_mag_topic, &mag_report);
+				break;
+
+			case CLASS_DEVICE_SECONDARY:
+				orb_publish(ORB_ID(sensor_mag1), _mag->_mag_topic, &mag_report);
+				break;
+		}
 	}
 
 	_mag_read++;
