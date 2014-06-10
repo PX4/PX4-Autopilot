@@ -109,6 +109,7 @@ public:
 	Geofence&	get_geofence() { return _geofence; }
 	bool		get_is_in_loiter() { return _is_in_loiter; }
 	float		get_loiter_radius() { return _param_loiter_radius.get(); }
+	float		get_takeoff_acceptance_radius() { return _param_takeoff_acceptance_radius.get(); }
 	int		get_mavlink_fd() { return _mavlink_fd; }
 
 private:
@@ -156,6 +157,7 @@ private:
 	bool		_update_triplet;		/**< flags if position SP triplet needs to be published */
 
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
+	control::BlockParamFloat _param_takeoff_acceptance_radius;	/**< acceptance for takeoff */
 	/**
 	 * Retrieve global position
 	 */

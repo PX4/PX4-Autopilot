@@ -53,3 +53,14 @@
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
+
+/**
+ * Takeoff Acceptance Radius (FW only)
+ *
+ * Acceptance radius for fixedwing.
+ *
+ * @unit meters
+ * @min 1.0
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(NAV_TF_ACC_RAD, 25.0f);

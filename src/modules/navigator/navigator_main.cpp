@@ -122,7 +122,8 @@ Navigator::Navigator() :
 	_loiter(this, "LOI"),
 	_rtl(this, "RTL"),
 	_update_triplet(false),
-	_param_loiter_radius(this, "LOITER_RAD")
+	_param_loiter_radius(this, "LOITER_RAD"),
+	_param_takeoff_acceptance_radius(this, "TF_ACC_RAD")
 {
 	updateParams();
 }
