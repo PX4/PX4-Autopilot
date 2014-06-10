@@ -84,6 +84,19 @@ void
 Mission::reset()
 {
 	_first_run = true;
+
+	/* check anyway if missions have changed so that feedback to groundstation is given */
+	bool onboard_updated;
+	orb_check(_navigator->get_onboard_mission_sub(), &onboard_updated);
+	if (onboard_updated) {
+		update_onboard_mission();
+	}
+
+	bool offboard_updated;
+	orb_check(_navigator->get_offboard_mission_sub(), &offboard_updated);
+	if (offboard_updated) {
+		update_offboard_mission();
+	}
 }
 
 bool
@@ -185,6 +198,7 @@ Mission::update_offboard_mission()
 		_offboard_mission.current_index = 0;
 		_current_offboard_mission_index = 0;
 	}
+	report_current_offboard_mission_item();
 }
 
 
