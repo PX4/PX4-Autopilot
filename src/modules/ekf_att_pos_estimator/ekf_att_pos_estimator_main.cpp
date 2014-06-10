@@ -522,7 +522,7 @@ FixedwingEstimator::task_main()
 	/*
 	 * do subscriptions
 	 */
-	_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
+	_baro_sub = orb_subscribe(ORB_ID(sensor_baro0));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -861,7 +861,7 @@ FixedwingEstimator::task_main()
 			orb_check(_baro_sub, &baro_updated);
 
 			if (baro_updated) {
-				orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
+				orb_copy(ORB_ID(sensor_baro0), _baro_sub, &_baro);
 
 				_ekf->baroHgt = _baro.altitude;
 
@@ -1040,7 +1040,7 @@ FixedwingEstimator::task_main()
 					float gps_alt = _gps.alt / 1e3f;
 
 					// Set up height correctly
-					orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
+					orb_copy(ORB_ID(sensor_baro0), _baro_sub, &_baro);
 					_baro_gps_offset = _baro_ref - _baro.altitude;
 					_ekf->baroHgt = _baro.altitude;
 					_ekf->hgtMea = 1.0f * (_ekf->baroHgt - (_baro_ref));
