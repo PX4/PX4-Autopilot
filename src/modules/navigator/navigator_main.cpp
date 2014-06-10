@@ -381,6 +381,14 @@ Navigator::task_main()
 			_loiter.reset();
 		}
 
+		/* if nothing is running, set position setpoint triplet invalid */
+		if (_navigation_mode == nullptr) {
+			_pos_sp_triplet.previous.valid = false;
+			_pos_sp_triplet.current.valid = false;
+			_pos_sp_triplet.next.valid = false;
+			_update_triplet = true;
+		}
+
 		if (_update_triplet ) {
 			publish_position_setpoint_triplet();
 			_update_triplet = false;
