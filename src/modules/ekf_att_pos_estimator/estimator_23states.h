@@ -72,7 +72,7 @@ public:
         accelProcessNoise = 0.5f;
     }
 
-    struct {
+    struct mag_state_struct {
         unsigned obsIndex;
         float MagPred[3];
         float SH_MAG[9];
@@ -88,7 +88,12 @@ public:
         float magZbias;
         float R_MAG;
         Mat3f DCM;
-    } magstate;
+    };
+
+    struct mag_state_struct magstate;
+    struct mag_state_struct resetMagState;
+
+
 
 
     // Global variables
@@ -97,6 +102,7 @@ public:
     float P[n_states][n_states]; // covariance matrix
     float Kfusion[n_states]; // Kalman gains
     float states[n_states]; // state matrix
+    float resetStates[n_states];
     float storedStates[n_states][data_buffer_size]; // state vectors stored for the last 50 time steps
     uint32_t statetimeStamp[data_buffer_size]; // time stamp for each state vector stored
 
@@ -114,6 +120,7 @@ public:
     float accNavMag; // magnitude of navigation accel (- used to adjust GPS obs variance (m/s^2)
     Vector3f earthRateNED; // earths angular rate vector in NED (rad/s)
     Vector3f angRate; // angular rate vector in XYZ body axes measured by the IMU (rad/s)
+    Vector3f lastGyroOffset;    // Last gyro offset
 
     Mat3f Tbn; // transformation matrix from body to NED coordinates
     Mat3f Tnb; // transformation amtrix from NED to body coordinates
@@ -271,6 +278,8 @@ void InitializeDynamic(float (&initvelNED)[3], float declination);
 protected:
 
 bool FilterHealthy();
+
+bool GyroOffsetsDiverged();
 
 void ResetHeight(void);
 

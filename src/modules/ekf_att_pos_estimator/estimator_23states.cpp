@@ -2,12 +2,38 @@
 #include <string.h>
 #include <stdarg.h>
 
+#define EKF_COVARIANCE_DIVERGED 1.0e8f
+
 AttPosEKF::AttPosEKF()
 
     /* NOTE: DO NOT initialize class members here. Use ZeroVariables()
      * instead to allow clean in-air re-initialization.
      */
 {
+    summedDelAng.zero();
+    summedDelVel.zero();
+
+    fuseVelData = false;
+    fusePosData = false;
+    fuseHgtData = false;
+    fuseMagData = false;
+    fuseVtasData = false;
+    onGround = true;
+    staticMode = true;
+    useAirspeed = true;
+    useCompass = true;
+    useRangeFinder = true;
+    numericalProtection = true;
+    refSet = false;
+    storeIndex = 0;
+    gpsHgt = 0.0f;
+    baroHgt = 0.0f;
+    GPSstatus = 0;
+    VtasMeas = 0.0f;
+    magDeclination = 0.0f;
+    dAngIMU.zero();
+    dVelIMU.zero();
+
     memset(&last_ekf_error, 0, sizeof(last_ekf_error));
     ZeroVariables();
     InitialiseParameters();
@@ -2052,8 +2078,43 @@ void AttPosEKF::ForceSymmetry()
         {
             P[i][j] = 0.5f * (P[i][j] + P[j][i]);
             P[j][i] = P[i][j];
+
+            if ((fabsf(P[i][j]) > EKF_COVARIANCE_DIVERGED) ||
+                (fabsf(P[j][i]) > EKF_COVARIANCE_DIVERGED)) {
+                // XXX divergence report error
+                InitializeDynamic(velNED, magDeclination);
+                return;
+            }
+
+            float symmetric = 0.5f * (P[i][j] + P[j][i]);
+            P[i][j] = symmetric;
+            P[j][i] = symmetric;
         }
     }
+}
+
+bool AttPosEKF::GyroOffsetsDiverged()
+{
+    // Detect divergence by looking for rapid changes of the gyro offset
+    Vector3f current_bias;
+    current_bias.x = states[10];
+    current_bias.y = states[11];
+    current_bias.z = states[12];
+
+    Vector3f delta = current_bias - lastGyroOffset;
+    float delta_len = delta.length();
+    float delta_len_scaled = 0.0f;
+
+    // Protect against division by zero
+    if (delta_len > 0.0f) {
+        float cov_mag = ConstrainFloat((P[10][10] + P[11][11] + P[12][12]), 1e-12f, 1e-8f);
+        delta_len_scaled = (5e-7 / cov_mag) * delta_len / dtIMU;
+    }
+
+    bool diverged = (delta_len_scaled > 1.0f);
+    lastGyroOffset = current_bias;
+
+    return diverged;
 }
 
 bool AttPosEKF::FilterHealthy()
@@ -2265,7 +2326,7 @@ int AttPosEKF::CheckAndBound()
     }
 
     // Reset the filter if gyro offsets are excessive
-    if (fabs(states[10]) > 1.0f || fabsf(states[11]) > 1.0f || fabsf(states[12]) > 1.0f) {
+    if (GyroOffsetsDiverged()) {
         FillErrorReport(&last_ekf_error);
         InitializeDynamic(velNED, magDeclination);
 
@@ -2408,27 +2469,7 @@ void AttPosEKF::ZeroVariables()
 {
 
     // Initialize on-init initialized variables
-    fusionModeGPS = 0;
-    covSkipCount = 0;
-    statesInitialised = false;
-    fuseVelData = false;
-    fusePosData = false;
-    fuseHgtData = false;
-    fuseMagData = false;
-    fuseVtasData = false;
-    onGround = true;
-    staticMode = true;
-    useAirspeed = true;
-    useCompass = true;
-    useRangeFinder = true;
-    numericalProtection = true;
-    refSet = false;
     storeIndex = 0;
-    gpsHgt = 0.0f;
-    baroHgt = 0.0f;
-    GPSstatus = 0;
-    VtasMeas = 0.0f;
-    magDeclination = 0.0f;
 
     // Do the data structure init
     for (unsigned i = 0; i < n_states; i++) {
@@ -2445,9 +2486,6 @@ void AttPosEKF::ZeroVariables()
     correctedDelAng.zero();
     summedDelAng.zero();
     summedDelVel.zero();
-
-    dAngIMU.zero();
-    dVelIMU.zero();
 
     for (unsigned i = 0; i < data_buffer_size; i++) {
 
