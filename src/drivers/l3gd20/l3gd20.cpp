@@ -398,17 +398,19 @@ L3GD20::init()
 
 	measure();
 
+	/* advertise sensor topic, measure manually to initialize valid report */
+	struct gyro_report grp;
+	_reports->get(&grp);
+
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+		_gyro_topic = orb_advertise(ORB_ID(sensor_gyro0), &grp);
 
-		/* advertise sensor topic, measure manually to initialize valid report */
-		struct gyro_report grp;
-		_reports->get(&grp);
+	} else if (_class_instance == CLASS_DEVICE_SECONDARY) {
+		_gyro_topic = orb_advertise(ORB_ID(sensor_gyro1), &grp);
+	}
 
-		_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &grp);
-
-		if (_gyro_topic < 0)
-			debug("failed to create sensor_gyro publication");
-
+	if (_gyro_topic < 0) {
+		debug("failed to create sensor_gyro publication");
 	}
 
 	ret = OK;
@@ -923,9 +925,17 @@ L3GD20::measure()
 	poll_notify(POLLIN);
 
 	/* publish for subscribers */
-	if (_gyro_topic > 0 && !(_pub_blocked)) {
+	if (!(_pub_blocked)) {
 		/* publish it */
-		orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &report);
+		switch (_class_instance) {
+			case CLASS_DEVICE_PRIMARY:
+				orb_publish(ORB_ID(sensor_gyro0), _gyro_topic, &report);
+				break;
+
+			case CLASS_DEVICE_SECONDARY:
+				orb_publish(ORB_ID(sensor_gyro1), _gyro_topic, &report);
+				break;
+		}
 	}
 
 	_read++;
