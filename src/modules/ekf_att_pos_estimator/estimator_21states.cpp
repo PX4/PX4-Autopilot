@@ -61,8 +61,7 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
 
 // Apply corrections for earths rotation rate and coning errors
 // * and + operators have been overloaded
-    correctedDelAng   = dAngIMU;//correctedDelAng - Tnb*earthRateNED*dtIMU + 8.333333333333333e-2f*(prevDelAng % correctedDelAng);
-    correctedDelAng.z = 0;
+    correctedDelAng   = correctedDelAng - Tnb*earthRateNED*dtIMU + 8.333333333333333e-2f*(prevDelAng % correctedDelAng);
 // Convert the rotation vector to its equivalent quaternion
     rotationMag = correctedDelAng.length();
     if (rotationMag < 1e-12f)

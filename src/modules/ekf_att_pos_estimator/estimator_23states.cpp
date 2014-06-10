@@ -2266,7 +2266,7 @@ int AttPosEKF::CheckAndBound()
 
     // Reset the filter if gyro offsets are excessive
     if (fabs(states[10]) > 1.0f || fabsf(states[11]) > 1.0f || fabsf(states[12]) > 1.0f) {
-        
+        FillErrorReport(&last_ekf_error);
         InitializeDynamic(velNED, magDeclination);
 
         // that's all we can do here, return
