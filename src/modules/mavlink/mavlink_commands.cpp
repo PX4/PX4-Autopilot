@@ -40,13 +40,9 @@
 
 #include "mavlink_commands.h"
 
-MavlinkCommandsStream::MavlinkCommandsStream(Mavlink *mavlink, mavlink_channel_t channel) : _channel(channel)
+MavlinkCommandsStream::MavlinkCommandsStream(Mavlink *mavlink, mavlink_channel_t channel) : _channel(channel), _cmd_time(0)
 {
 	_cmd_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_command));
-}
-
-MavlinkCommandsStream::~MavlinkCommandsStream()
-{
 }
 
 void
@@ -54,7 +50,7 @@ MavlinkCommandsStream::update(const hrt_abstime t)
 {
 	struct vehicle_command_s cmd;
 
-	if (_cmd_sub->update(t, &cmd)) {
+	if (_cmd_sub->update(&_cmd_time, &cmd)) {
 		/* only send commands for other systems/components */
 		if (cmd.target_system != mavlink_system.sysid || cmd.target_component != mavlink_system.compid) {
 			mavlink_msg_command_long_send(_channel,

@@ -50,7 +50,6 @@ MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic) :
 	_fd(orb_subscribe(_topic)),
 	_published(false),
 	_topic(topic),
-	_last_check(0),
 	next(nullptr)
 {
 }
@@ -67,24 +66,39 @@ MavlinkOrbSubscription::get_topic() const
 }
 
 bool
-MavlinkOrbSubscription::update(const hrt_abstime t, void* data)
+MavlinkOrbSubscription::update(uint64_t *time, void* data)
 {
-	if (_last_check == t) {
-		/* already checked right now, return result of the check */
-		return _updated;
+	// TODO this is NOT atomic operation, we can get data newer than time
+	// if topic was published between orb_stat and orb_copy calls.
 
-	} else {
-		_last_check = t;
-		orb_check(_fd, &_updated);
-
-		if (_updated && data) {
-			orb_copy(_topic, _fd, data);
-			_published = true;
-			return true;
-		}
+	uint64_t time_topic;
+	if (orb_stat(_fd, &time_topic)) {
+		/* error getting last topic publication time */
+		time_topic = 0;
 	}
 
-	return false;
+	if (orb_copy(_topic, _fd, data)) {
+		/* error copying topic data */
+		memset(data, 0, _topic->o_size);
+		return false;
+
+	} else {
+		/* data copied successfully */
+		_published = true;
+		if (time_topic != *time) {
+			*time = time_topic;
+			return true;
+
+		} else {
+			return false;
+		}
+	}
+}
+
+bool
+MavlinkOrbSubscription::update(void* data)
+{
+	return !orb_copy(_topic, _fd, data);
 }
 
 bool

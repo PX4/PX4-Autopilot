@@ -1900,10 +1900,12 @@ Mavlink::task_main(int argc, char *argv[])
 	_task_running = true;
 
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
+	uint64_t param_time = 0;
 	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status));
+	uint64_t status_time = 0;
 
 	struct vehicle_status_s status;
-	status_sub->update(0, &status);
+	status_sub->update(&status_time, &status);
 
 	MavlinkCommandsStream commands_stream(this, _channel);
 
@@ -1960,12 +1962,12 @@ Mavlink::task_main(int argc, char *argv[])
 
 		hrt_abstime t = hrt_absolute_time();
 
-		if (param_sub->update(t, nullptr)) {
+		if (param_sub->update(&param_time, nullptr)) {
 			/* parameters updated */
 			mavlink_update_system();
 		}
 
-		if (status_sub->update(t, &status)) {
+		if (status_sub->update(&status_time, &status)) {
 			/* switch HIL mode if required */
 			set_hil_enabled(status.hil_state == HIL_STATE_ON);
 		}

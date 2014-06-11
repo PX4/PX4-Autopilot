@@ -195,9 +195,6 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 class MavlinkStreamHeartbeat : public MavlinkStream
 {
 public:
-
-	~MavlinkStreamHeartbeat() {};
-
 	const char *get_name() const
 	{
 		return MavlinkStreamHeartbeat::get_name_static();
@@ -216,12 +213,8 @@ public:
 private:
 	MavlinkOrbSubscription *status_sub;
 	MavlinkOrbSubscription *pos_sp_triplet_sub;
-	
 
 protected:
-
-	explicit MavlinkStreamHeartbeat() {};
-
 	void subscribe(Mavlink *mavlink)
 	{
 		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status));
@@ -233,21 +226,19 @@ protected:
 		struct vehicle_status_s status;
 		struct position_setpoint_triplet_s pos_sp_triplet;
 
-		(void)status_sub->update(t, &status);
-		(void)pos_sp_triplet_sub->update(t, &pos_sp_triplet);
+		if (status_sub->update(&status) && pos_sp_triplet_sub->update(&pos_sp_triplet)) {
+			uint8_t mavlink_state = 0;
+			uint8_t mavlink_base_mode = 0;
+			uint32_t mavlink_custom_mode = 0;
+			get_mavlink_mode_state(&status, &pos_sp_triplet, &mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
 
-		uint8_t mavlink_state = 0;
-		uint8_t mavlink_base_mode = 0;
-		uint32_t mavlink_custom_mode = 0;
-		get_mavlink_mode_state(&status, &pos_sp_triplet, &mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
-
-		mavlink_msg_heartbeat_send(_channel,
-					   mavlink_system.type,
-					   MAV_AUTOPILOT_PX4,
-					   mavlink_base_mode,
-					   mavlink_custom_mode,
-					   mavlink_state);
-
+			mavlink_msg_heartbeat_send(_channel,
+						   mavlink_system.type,
+						   MAV_AUTOPILOT_PX4,
+						   mavlink_base_mode,
+						   mavlink_custom_mode,
+						   mavlink_state);
+		}
 	}
 };
 
@@ -255,8 +246,6 @@ protected:
 class MavlinkStreamSysStatus : public MavlinkStream
 {
 public:
-	~MavlinkStreamSysStatus() {};
-
 	const char *get_name() const
 	{
 		return MavlinkStreamSysStatus::get_name_static();
@@ -274,11 +263,8 @@ public:
 
 private:
 	MavlinkOrbSubscription *status_sub;
-	struct vehicle_status_s *status;
 
 protected:
-	explicit MavlinkStreamSysStatus() {};
-
 	void subscribe(Mavlink *mavlink)
 	{
 		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status));
@@ -287,21 +273,23 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		struct vehicle_status_s status;
-		(void)status_sub->update(t, &status);
-		mavlink_msg_sys_status_send(_channel,
-						status.onboard_control_sensors_present,
-						status.onboard_control_sensors_enabled,
-						status.onboard_control_sensors_health,
-						status.load * 1000.0f,
-						status.battery_voltage * 1000.0f,
-						status.battery_current * 100.0f,
-						status.battery_remaining * 100.0f,
-						status.drop_rate_comm,
-						status.errors_comm,
-						status.errors_count1,
-						status.errors_count2,
-						status.errors_count3,
-						status.errors_count4);
+
+		if (status_sub->update(&status)) {
+			mavlink_msg_sys_status_send(_channel,
+							status.onboard_control_sensors_present,
+							status.onboard_control_sensors_enabled,
+							status.onboard_control_sensors_health,
+							status.load * 1000.0f,
+							status.battery_voltage * 1000.0f,
+							status.battery_current * 100.0f,
+							status.battery_remaining * 100.0f,
+							status.drop_rate_comm,
+							status.errors_comm,
+							status.errors_count1,
+							status.errors_count2,
+							status.errors_count3,
+							status.errors_count4);
+		}
 	}
 };
 
@@ -309,8 +297,6 @@ protected:
 class MavlinkStreamHighresIMU : public MavlinkStream
 {
 public:
-	~MavlinkStreamHighresIMU() {};
-
 	const char *get_name() const
 	{
 		return MavlinkStreamHighresIMU::get_name_static();
@@ -328,6 +314,7 @@ public:
 
 private:
 	MavlinkOrbSubscription *sensor_sub;
+	uint64_t sensor_time;
 
 	uint64_t accel_timestamp;
 	uint64_t gyro_timestamp;
@@ -335,9 +322,13 @@ private:
 	uint64_t baro_timestamp;
 
 protected:
-	explicit MavlinkStreamHighresIMU() : MavlinkStream(), accel_timestamp(0), gyro_timestamp(0), mag_timestamp(0), baro_timestamp(0)
-	{
-	}
+	explicit MavlinkStreamHighresIMU() : MavlinkStream(),
+		sensor_time(0),
+		accel_timestamp(0),
+		gyro_timestamp(0),
+		mag_timestamp(0),
+		baro_timestamp(0)
+	{}
 
 	void subscribe(Mavlink *mavlink)
 	{
@@ -347,7 +338,8 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		struct sensor_combined_s sensor;
-		if (sensor_sub->update(t, &sensor)) {
+
+		if (sensor_sub->update(&sensor_time, &sensor)) {
 			uint16_t fields_updated = 0;
 
 			if (accel_timestamp != sensor.accelerometer_timestamp) {
@@ -407,9 +399,13 @@ public:
 
 private:
 	MavlinkOrbSubscription *att_sub;
-	struct vehicle_attitude_s *att;
+	uint64_t att_time;
 
 protected:
+	explicit MavlinkStreamAttitude() : MavlinkStream(),
+		att_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		att_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_attitude));
@@ -419,7 +415,7 @@ protected:
 	{
 		struct vehicle_attitude_s att;
 
-		if (att_sub->update(t, &att)) {
+		if (att_sub->update(&att_time, &att)) {
 			mavlink_msg_attitude_send(_channel,
 						  att.timestamp / 1000,
 						  att.roll, att.pitch, att.yaw,
@@ -449,8 +445,13 @@ public:
 
 private:
 	MavlinkOrbSubscription *att_sub;
+	uint64_t att_time;
 
 protected:
+	explicit MavlinkStreamAttitudeQuaternion() : MavlinkStream(),
+		att_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		att_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_attitude));
@@ -460,7 +461,7 @@ protected:
 	{
 		struct vehicle_attitude_s att;
 
-		if (att_sub->update(t, &att)) {
+		if (att_sub->update(&att_time, &att)) {
 			mavlink_msg_attitude_quaternion_send(_channel,
 							     att.timestamp / 1000,
 							     att.q[0],
@@ -496,21 +497,29 @@ public:
 
 private:
 	MavlinkOrbSubscription *att_sub;
-	struct vehicle_attitude_s *att;
+	uint64_t att_time;
 
 	MavlinkOrbSubscription *pos_sub;
-	struct vehicle_global_position_s *pos;
+	uint64_t pos_time;
 
 	MavlinkOrbSubscription *armed_sub;
-	struct actuator_armed_s *armed;
+	uint64_t armed_time;
 
 	MavlinkOrbSubscription *act_sub;
-	struct actuator_controls_s *act;
+	uint64_t act_time;
 
 	MavlinkOrbSubscription *airspeed_sub;
-	struct airspeed_s *airspeed;
+	uint64_t airspeed_time;
 
 protected:
+	explicit MavlinkStreamVFRHUD() : MavlinkStream(),
+		att_time(0),
+		pos_time(0),
+		armed_time(0),
+		act_time(0),
+		airspeed_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		att_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_attitude));
@@ -528,11 +537,11 @@ protected:
 		struct actuator_controls_s act;
 		struct airspeed_s airspeed;
 
-		bool updated = att_sub->update(t, &att);
-		updated |= pos_sub->update(t, &pos);
-		updated |= armed_sub->update(t, &armed);
-		updated |= act_sub->update(t, &act);
-		updated |= airspeed_sub->update(t, &airspeed);
+		bool updated = att_sub->update(&att_time, &att);
+		updated |= pos_sub->update(&pos_time, &pos);
+		updated |= armed_sub->update(&armed_time, &armed);
+		updated |= act_sub->update(&act_time, &act);
+		updated |= airspeed_sub->update(&airspeed_time, &airspeed);
 
 		if (updated) {
 			float groundspeed = sqrtf(pos.vel_n * pos.vel_n + pos.vel_e * pos.vel_e);
@@ -571,9 +580,13 @@ public:
 
 private:
 	MavlinkOrbSubscription *gps_sub;
-	struct vehicle_gps_position_s *gps;
+	uint64_t gps_time;
 
 protected:
+	explicit MavlinkStreamGPSRawInt() : MavlinkStream(),
+		gps_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		gps_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_gps_position));
@@ -583,7 +596,7 @@ protected:
 	{
 		struct vehicle_gps_position_s gps;
 
-		if (gps_sub->update(t, &gps)) {
+		if (gps_sub->update(&gps_time, &gps)) {
 			mavlink_msg_gps_raw_int_send(_channel,
 						     gps.timestamp_position,
 						     gps.fix_type,
@@ -620,9 +633,17 @@ public:
 
 private:
 	MavlinkOrbSubscription *pos_sub;
+	uint64_t pos_time;
+
 	MavlinkOrbSubscription *home_sub;
+	uint64_t home_time;
 
 protected:
+	explicit MavlinkStreamGlobalPositionInt() : MavlinkStream(),
+		pos_time(0),
+		home_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_global_position));
@@ -634,8 +655,8 @@ protected:
 		struct vehicle_global_position_s pos;
 		struct home_position_s home;
 
-		bool updated = pos_sub->update(t, &pos);
-		updated |= home_sub->update(t, &home);
+		bool updated = pos_sub->update(&pos_time, &pos);
+		updated |= home_sub->update(&home_time, &home);
 
 		if (updated) {
 			mavlink_msg_global_position_int_send(_channel,
@@ -673,8 +694,13 @@ public:
 
 private:
 	MavlinkOrbSubscription *pos_sub;
+	uint64_t pos_time;
 
 protected:
+	explicit MavlinkStreamLocalPositionNED() : MavlinkStream(),
+		pos_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_local_position));
@@ -684,7 +710,7 @@ protected:
 	{
 		struct vehicle_local_position_s pos;
 
-		if (pos_sub->update(t, &pos)) {
+		if (pos_sub->update(&pos_time, &pos)) {
 			mavlink_msg_local_position_ned_send(_channel,
 							    pos.timestamp / 1000,
 							    pos.x,
@@ -719,8 +745,13 @@ public:
 
 private:
 	MavlinkOrbSubscription *pos_sub;
+	uint64_t pos_time;
 
 protected:
+	explicit MavlinkStreamViconPositionEstimate() : MavlinkStream(),
+		pos_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		pos_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_vicon_position));
@@ -730,7 +761,7 @@ protected:
 	{
 		struct vehicle_vicon_position_s pos;
 
-		if (pos_sub->update(t, &pos)) {
+		if (pos_sub->update(&pos_time, &pos)) {
 			mavlink_msg_vicon_position_estimate_send(_channel,
 								pos.timestamp / 1000,
 								pos.x,
@@ -777,38 +808,29 @@ protected:
 		 * the GCS does pick it up at one point */
 		if (home_sub->is_published()) {
 			struct home_position_s home;
-			home_sub->update(t, &home);
 
-			mavlink_msg_gps_global_origin_send(_channel,
-							   (int32_t)(home.lat * 1e7),
-							   (int32_t)(home.lon * 1e7),
-							   (int32_t)(home.alt) * 1000.0f);
+			if (home_sub->update(&home)) {
+				mavlink_msg_gps_global_origin_send(_channel,
+								   (int32_t)(home.lat * 1e7),
+								   (int32_t)(home.lon * 1e7),
+								   (int32_t)(home.alt) * 1000.0f);
+			}
 		}
 	}
 };
 
-
+template <int N>
 class MavlinkStreamServoOutputRaw : public MavlinkStream
 {
 public:
-	MavlinkStreamServoOutputRaw() : MavlinkStream()
-	{
-		_instance = _n++;
-	}
-
 	const char *get_name() const
 	{
-		return get_name_static_int(_instance);
+		return MavlinkStreamServoOutputRaw<N>::get_name_static();
 	}
 
 	static const char *get_name_static()
 	{
-		return get_name_static_int(_n);
-	}
-
-	static const char *get_name_static_int(unsigned n)
-	{
-		switch (n) {
+		switch (N) {
 			case 0:
 			return "SERVO_OUTPUT_RAW_0";
 
@@ -825,17 +847,18 @@ public:
 
 	static MavlinkStream *new_instance()
 	{
-		return new MavlinkStreamServoOutputRaw();
+		return new MavlinkStreamServoOutputRaw<N>();
 	}
 
-	static unsigned _n;
-
 private:
-	MavlinkOrbSubscription *_act_sub;
-
-	unsigned _instance;
+	MavlinkOrbSubscription *act_sub;
+	uint64_t act_time;
 
 protected:
+	explicit MavlinkStreamServoOutputRaw() : MavlinkStream(),
+		act_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		orb_id_t act_topics[] = {
@@ -845,17 +868,17 @@ protected:
 			ORB_ID(actuator_outputs_3)
 		};
 
-		_act_sub = mavlink->add_orb_subscription(act_topics[_instance]);
+		act_sub = mavlink->add_orb_subscription(act_topics[N]);
 	}
 
 	void send(const hrt_abstime t)
 	{
 		struct actuator_outputs_s act;
 
-		if (_act_sub->update(t, &act)) {
+		if (act_sub->update(&act_time, &act)) {
 			mavlink_msg_servo_output_raw_send(_channel,
 							  act.timestamp / 1000,
-							  _instance,
+							  N,
 							  act.output[0],
 							  act.output[1],
 							  act.output[2],
@@ -889,10 +912,21 @@ public:
 
 private:
 	MavlinkOrbSubscription *status_sub;
+	uint64_t status_time;
+
 	MavlinkOrbSubscription *pos_sp_triplet_sub;
+	uint64_t pos_sp_triplet_time;
+
 	MavlinkOrbSubscription *act_sub;
+	uint64_t act_time;
 
 protected:
+	explicit MavlinkStreamHILControls() : MavlinkStream(),
+		status_time(0),
+		pos_sp_triplet_time(0),
+		act_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status));
@@ -906,9 +940,9 @@ protected:
 		struct position_setpoint_triplet_s pos_sp_triplet;
 		struct actuator_outputs_s act;
 
-		bool updated = act_sub->update(t, &act);
-		(void)pos_sp_triplet_sub->update(t, &pos_sp_triplet);
-		(void)status_sub->update(t, &status);
+		bool updated = act_sub->update(&act_time, &act);
+		updated |= pos_sp_triplet_sub->update(&pos_sp_triplet_time, &pos_sp_triplet);
+		updated |= status_sub->update(&status_time, &status);
 
 		if (updated && (status.arming_state == ARMING_STATE_ARMED)) {
 			/* translate the current syste state to mavlink state and mode */
@@ -1015,8 +1049,13 @@ public:
 
 private:
 	MavlinkOrbSubscription *pos_sp_triplet_sub;
+	uint64_t pos_sp_triplet_time;
 
 protected:
+	explicit MavlinkStreamGlobalPositionSetpointInt() : MavlinkStream(),
+		pos_sp_triplet_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		pos_sp_triplet_sub = mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet));
@@ -1025,7 +1064,8 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		struct position_setpoint_triplet_s pos_sp_triplet;
-		if (pos_sp_triplet_sub->update(t, &pos_sp_triplet)) {
+
+		if (pos_sp_triplet_sub->update(&pos_sp_triplet_time, &pos_sp_triplet)) {
 			mavlink_msg_global_position_setpoint_int_send(_channel,
 					MAV_FRAME_GLOBAL,
 					(int32_t)(pos_sp_triplet.current.lat * 1e7),
@@ -1057,8 +1097,13 @@ public:
 
 private:
 	MavlinkOrbSubscription *pos_sp_sub;
+	uint64_t pos_sp_time;
 
 protected:
+	explicit MavlinkStreamLocalPositionSetpoint() : MavlinkStream(),
+		pos_sp_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		pos_sp_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_local_position_setpoint));
@@ -1067,7 +1112,8 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		struct vehicle_local_position_setpoint_s pos_sp;
-		if (pos_sp_sub->update(t, &pos_sp)) {
+
+		if (pos_sp_sub->update(&pos_sp_time, &pos_sp)) {
 			mavlink_msg_local_position_setpoint_send(_channel,
 					MAV_FRAME_LOCAL_NED,
 					pos_sp.x,
@@ -1099,8 +1145,13 @@ public:
 
 private:
 	MavlinkOrbSubscription *att_sp_sub;
+	uint64_t att_sp_time;
 
 protected:
+	explicit MavlinkStreamRollPitchYawThrustSetpoint() : MavlinkStream(),
+		att_sp_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		att_sp_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_attitude_setpoint));
@@ -1109,7 +1160,8 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		struct vehicle_attitude_setpoint_s att_sp;
-		if (att_sp_sub->update(t, &att_sp)) {
+
+		if (att_sp_sub->update(&att_sp_time, &att_sp)) {
 			mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(_channel,
 					att_sp.timestamp / 1000,
 					att_sp.roll_body,
@@ -1141,8 +1193,13 @@ public:
 
 private:
 	MavlinkOrbSubscription *att_rates_sp_sub;
+	uint64_t att_rates_sp_time;
 
 protected:
+	explicit MavlinkStreamRollPitchYawRatesThrustSetpoint() : MavlinkStream(),
+		att_rates_sp_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		att_rates_sp_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_rates_setpoint));
@@ -1151,7 +1208,8 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		struct vehicle_rates_setpoint_s att_rates_sp;
-		if (att_rates_sp_sub->update(t, &att_rates_sp)) {
+
+		if (att_rates_sp_sub->update(&att_rates_sp_time, &att_rates_sp)) {
 			mavlink_msg_roll_pitch_yaw_rates_thrust_setpoint_send(_channel,
 					att_rates_sp.timestamp / 1000,
 					att_rates_sp.roll,
@@ -1183,8 +1241,13 @@ public:
 
 private:
 	MavlinkOrbSubscription *rc_sub;
+	uint64_t rc_time;
 
 protected:
+	explicit MavlinkStreamRCChannelsRaw() : MavlinkStream(),
+		rc_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		rc_sub = mavlink->add_orb_subscription(ORB_ID(input_rc));
@@ -1194,7 +1257,7 @@ protected:
 	{
 		struct rc_input_values rc;
 
-		if (rc_sub->update(t, &rc)) {
+		if (rc_sub->update(&rc_time, &rc)) {
 			const unsigned port_width = 8;
 
 			// Deprecated message (but still needed for compatibility!)
@@ -1262,8 +1325,13 @@ public:
 
 private:
 	MavlinkOrbSubscription *manual_sub;
+	uint64_t manual_time;
 
 protected:
+	explicit MavlinkStreamManualControl() : MavlinkStream(),
+		manual_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		manual_sub = mavlink->add_orb_subscription(ORB_ID(manual_control_setpoint));
@@ -1273,7 +1341,7 @@ protected:
 	{
 		struct manual_control_setpoint_s manual;
 
-		if (manual_sub->update(t, &manual)) {
+		if (manual_sub->update(&manual_time, &manual)) {
 			mavlink_msg_manual_control_send(_channel,
 							mavlink_system.sysid,
 							manual.x * 1000,
@@ -1306,8 +1374,13 @@ public:
 
 private:
 	MavlinkOrbSubscription *flow_sub;
+	uint64_t flow_time;
 
 protected:
+	explicit MavlinkStreamOpticalFlow() : MavlinkStream(),
+		flow_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		flow_sub = mavlink->add_orb_subscription(ORB_ID(optical_flow));
@@ -1317,7 +1390,7 @@ protected:
 	{
 		struct optical_flow_s flow;
 
-		if (flow_sub->update(t, &flow)) {
+		if (flow_sub->update(&flow_time, &flow)) {
 			mavlink_msg_optical_flow_send(_channel,
 						      flow.timestamp,
 						      flow.sensor_id,
@@ -1349,8 +1422,13 @@ public:
 
 private:
 	MavlinkOrbSubscription *att_ctrl_sub;
+	uint64_t att_ctrl_time;
 
 protected:
+	explicit MavlinkStreamAttitudeControls() : MavlinkStream(),
+		att_ctrl_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		att_ctrl_sub = mavlink->add_orb_subscription(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
@@ -1360,7 +1438,7 @@ protected:
 	{
 		struct actuator_controls_s att_ctrl;
 
-		if (att_ctrl_sub->update(t, &att_ctrl)) {
+		if (att_ctrl_sub->update(&att_ctrl_time, &att_ctrl)) {
 			/* send, add spaces so that string buffer is at least 10 chars long */
 			mavlink_msg_named_value_float_send(_channel,
 							   att_ctrl.timestamp / 1000,
@@ -1402,8 +1480,13 @@ public:
 
 private:
 	MavlinkOrbSubscription *debug_sub;
+	uint64_t debug_time;
 
 protected:
+	explicit MavlinkStreamNamedValueFloat() : MavlinkStream(),
+		debug_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		debug_sub = mavlink->add_orb_subscription(ORB_ID(debug_key_value));
@@ -1413,7 +1496,7 @@ protected:
 	{
 		struct debug_key_value_s debug;
 
-		if (debug_sub->update(t, &debug)) {
+		if (debug_sub->update(&debug_time, &debug)) {
 			/* enforce null termination */
 			debug.key[sizeof(debug.key) - 1] = '\0';
 
@@ -1455,7 +1538,7 @@ protected:
 	void send(const hrt_abstime t)
 	{
 		struct vehicle_status_s status;
-		(void)status_sub->update(t, &status);
+		(void)status_sub->update(&status);
 
 		if (status.arming_state == ARMING_STATE_ARMED
 		    || status.arming_state == ARMING_STATE_ARMED_ERROR) {
@@ -1490,8 +1573,13 @@ public:
 
 private:
 	MavlinkOrbSubscription *range_sub;
+	uint64_t range_time;
 
 protected:
+	explicit MavlinkStreamDistanceSensor() : MavlinkStream(),
+		range_time(0)
+	{}
+
 	void subscribe(Mavlink *mavlink)
 	{
 		range_sub = mavlink->add_orb_subscription(ORB_ID(sensor_range_finder));
@@ -1501,7 +1589,7 @@ protected:
 	{
 		struct range_finder_report range;
 
-		if (range_sub->update(t, &range)) {
+		if (range_sub->update(&range_time, &range)) {
 
 			uint8_t type;
 
@@ -1521,7 +1609,6 @@ protected:
 	}
 };
 
-unsigned MavlinkStreamServoOutputRaw::_n = 0;
 
 StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static),
@@ -1534,10 +1621,10 @@ StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamGlobalPositionInt::new_instance, &MavlinkStreamGlobalPositionInt::get_name_static),
 	new StreamListItem(&MavlinkStreamLocalPositionNED::new_instance, &MavlinkStreamLocalPositionNED::get_name_static),
 	new StreamListItem(&MavlinkStreamGPSGlobalOrigin::new_instance, &MavlinkStreamGPSGlobalOrigin::get_name_static),
-	new StreamListItem(&MavlinkStreamServoOutputRaw::new_instance, &MavlinkStreamServoOutputRaw::get_name_static),
-	new StreamListItem(&MavlinkStreamServoOutputRaw::new_instance, &MavlinkStreamServoOutputRaw::get_name_static),
-	new StreamListItem(&MavlinkStreamServoOutputRaw::new_instance, &MavlinkStreamServoOutputRaw::get_name_static),
-	new StreamListItem(&MavlinkStreamServoOutputRaw::new_instance, &MavlinkStreamServoOutputRaw::get_name_static),
+	new StreamListItem(&MavlinkStreamServoOutputRaw<0>::new_instance, &MavlinkStreamServoOutputRaw<0>::get_name_static),
+	new StreamListItem(&MavlinkStreamServoOutputRaw<1>::new_instance, &MavlinkStreamServoOutputRaw<1>::get_name_static),
+	new StreamListItem(&MavlinkStreamServoOutputRaw<2>::new_instance, &MavlinkStreamServoOutputRaw<2>::get_name_static),
+	new StreamListItem(&MavlinkStreamServoOutputRaw<3>::new_instance, &MavlinkStreamServoOutputRaw<3>::get_name_static),
 	new StreamListItem(&MavlinkStreamHILControls::new_instance, &MavlinkStreamHILControls::get_name_static),
 	new StreamListItem(&MavlinkStreamGlobalPositionSetpointInt::new_instance, &MavlinkStreamGlobalPositionSetpointInt::get_name_static),
 	new StreamListItem(&MavlinkStreamLocalPositionSetpoint::new_instance, &MavlinkStreamLocalPositionSetpoint::get_name_static),
