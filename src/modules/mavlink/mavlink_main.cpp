@@ -790,9 +790,14 @@ void Mavlink::mavlink_pm_message_handler(const mavlink_channel_t chan, const mav
 {
 	switch (msg->msgid) {
 	case MAVLINK_MSG_ID_PARAM_REQUEST_LIST: {
-			/* Start sending parameters */
-			mavlink_pm_start_queued_send();
-			mavlink_missionlib_send_gcs_string("[mavlink pm] sending list");
+			mavlink_param_request_list_t req;
+			mavlink_msg_param_request_list_decode(msg, &req);
+			if (req.target_system == mavlink_system.sysid &&
+					(req.target_component == mavlink_system.compid || req.target_component == MAV_COMP_ID_ALL)) {
+				/* Start sending parameters */
+				mavlink_pm_start_queued_send();
+				mavlink_missionlib_send_gcs_string("[mavlink pm] sending list");
+			}
 		} break;
 
 	case MAVLINK_MSG_ID_PARAM_SET: {
@@ -954,6 +959,7 @@ void Mavlink::mavlink_wpm_init(mavlink_wpm_storage *state)
 	state->current_partner_compid = 0;
 	state->timestamp_lastaction = 0;
 	state->timestamp_last_send_setpoint = 0;
+	state->timestamp_last_send_request = 0;
 	state->timeout = MAVLINK_WPM_PROTOCOL_TIMEOUT_DEFAULT;
 	state->current_dataman_id = 0;
 }
@@ -1054,6 +1060,7 @@ void Mavlink::mavlink_wpm_send_waypoint(uint8_t sysid, uint8_t compid, uint16_t 
 
 	} else {
 		mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ERROR);
+		mavlink_missionlib_send_gcs_string("#audio: Unable to read from micro SD");
 
 		if (_verbose) { warnx("ERROR: could not read WP%u", seq); }
 	}
@@ -1069,6 +1076,7 @@ void Mavlink::mavlink_wpm_send_waypoint_request(uint8_t sysid, uint8_t compid, u
 		wpr.seq = seq;
 		mavlink_msg_mission_request_encode_chan(mavlink_system.sysid, _mavlink_wpm_comp_id, _channel, &msg, &wpr);
 		mavlink_missionlib_send_message(&msg);
+		_wpm->timestamp_last_send_request = hrt_absolute_time();
 
 		if (_verbose) { warnx("Sent waypoint request %u to ID %u", wpr.seq, wpr.target_system); }
 
@@ -1111,6 +1119,10 @@ void Mavlink::mavlink_waypoint_eventloop(uint64_t now)
 		_wpm->current_state = MAVLINK_WPM_STATE_IDLE;
 		_wpm->current_partner_sysid = 0;
 		_wpm->current_partner_compid = 0;
+
+	} else if (now - _wpm->timestamp_last_send_request > 500000 && _wpm->current_state == MAVLINK_WPM_STATE_GETLIST_GETWPS) {
+		/* try to get WP again after short timeout */
+		mavlink_wpm_send_waypoint_request(_wpm->current_partner_sysid, _wpm->current_partner_compid, _wpm->current_wp_id);
 	}
 }
 
@@ -1173,11 +1185,6 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 					if (_verbose) { warnx("IGN WP CURR CMD: Busy"); }
 
 				}
-
-			} else {
-				mavlink_missionlib_send_gcs_string("REJ. WP CMD: target id mismatch");
-
-				if (_verbose) { warnx("REJ. WP CMD: target id mismatch"); }
 			}
 
 			break;
@@ -1210,11 +1217,6 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 
 					if (_verbose) { warnx("IGN REQUEST LIST: Busy"); }
 				}
-
-			} else {
-				mavlink_missionlib_send_gcs_string("REJ. REQUEST LIST: target id mismatch");
-
-				if (_verbose) { warnx("REJ. REQUEST LIST: target id mismatch"); }
 			}
 
 			break;
@@ -1303,12 +1305,6 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 					mavlink_missionlib_send_gcs_string("REJ. WP CMD: Busy");
 
 					if (_verbose) { warnx("Ignored MAVLINK_MSG_ID_MISSION_ITEM_REQUEST from ID %u because i'm already talking to ID %u.", msg->sysid, _wpm->current_partner_sysid); }
-
-				} else {
-
-					mavlink_missionlib_send_gcs_string("REJ. WP CMD: target id mismatch");
-
-					if (_verbose) { warnx("IGNORED WAYPOINT COMMAND BECAUSE TARGET SYSTEM AND COMPONENT OR COMM PARTNER ID MISMATCH"); }
 				}
 			}
 
@@ -1367,12 +1363,6 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 
 					if (_verbose) { warnx("IGN MISSION_COUNT CMD: Busy"); }
 				}
-
-			} else {
-
-				mavlink_missionlib_send_gcs_string("REJ. WP COUNT CMD: target id mismatch");
-
-				if (_verbose) { warnx("IGNORED WAYPOINT COUNT COMMAND BECAUSE TARGET SYSTEM AND COMPONENT OR COMM PARTNER ID MISMATCH"); }
 			}
 		}
 		break;
@@ -1440,6 +1430,7 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 
 				if (dm_write(dm_next, wp.seq, DM_PERSIST_IN_FLIGHT_RESET, &mission_item, len) != len) {
 					mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ERROR);
+					mavlink_missionlib_send_gcs_string("#audio: Unable to write on micro SD");
 					_wpm->current_state = MAVLINK_WPM_STATE_IDLE;
 					break;
 				}
@@ -1471,11 +1462,6 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 				} else {
 					mavlink_wpm_send_waypoint_request(_wpm->current_partner_sysid, _wpm->current_partner_compid, _wpm->current_wp_id);
 				}
-
-			} else {
-				mavlink_missionlib_send_gcs_string("REJ. WP CMD: target id mismatch");
-
-				if (_verbose) { warnx("IGNORED WAYPOINT COMMAND BECAUSE TARGET SYSTEM AND COMPONENT OR COMM PARTNER ID MISMATCH"); }
 			}
 
 			break;
@@ -1511,13 +1497,6 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 
 					if (_verbose) { warnx("IGN WP CLEAR CMD: Busy"); }
 				}
-
-
-			} else if (wpca.target_system == mavlink_system.sysid /*&& wpca.target_component == mavlink_wpm_comp_id */ && _wpm->current_state != MAVLINK_WPM_STATE_IDLE) {
-
-				mavlink_missionlib_send_gcs_string("REJ. WP CLERR CMD: target id mismatch");
-
-				if (_verbose) { warnx("IGNORED WAYPOINT CLEAR COMMAND BECAUSE TARGET SYSTEM AND COMPONENT OR COMM PARTNER ID MISMATCH"); }
 			}
 
 			break;
