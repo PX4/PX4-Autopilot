@@ -1065,6 +1065,7 @@ FixedwingEstimator::task_main()
 				rep.health_flags |= (((uint8_t)ekf_report.velHealth)	<< 0);
 				rep.health_flags |= (((uint8_t)ekf_report.posHealth)	<< 1);
 				rep.health_flags |= (((uint8_t)ekf_report.hgtHealth)	<< 2);
+				rep.health_flags |= ((!(check == 4))			<< 3);
 
 				rep.timeout_flags |= (((uint8_t)ekf_report.velTimeout)	<< 0);
 				rep.timeout_flags |= (((uint8_t)ekf_report.posTimeout)	<< 1);
