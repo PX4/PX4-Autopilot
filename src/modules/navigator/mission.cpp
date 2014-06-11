@@ -391,29 +391,32 @@ Mission::read_mission_item(const dm_item_t dm_item, bool is_current, int *missio
 		/* check for DO_JUMP item, and whether it hasn't not already been repeated enough times */
 		if (new_mission_item->nav_cmd == NAV_CMD_DO_JUMP) {
 
-			if (new_mission_item->do_jump_current_count >= new_mission_item->do_jump_repeat_count) {
+			/* do DO_JUMP as many times as requested */
+			if (new_mission_item->do_jump_current_count < new_mission_item->do_jump_repeat_count) {
+
+				/* only raise the repeat count if this is for the current mission item
+				* but not for the next mission item */
+				if (is_current) {
+					(new_mission_item->do_jump_current_count)++;
+					/* save repeat count */
+					if (dm_write(dm_item, *mission_index, DM_PERSIST_IN_FLIGHT_RESET,
+						new_mission_item, len) != len) {
+						/* not supposed to happen unless the datamanager can't access the
+						 * dataman */
+						mavlink_log_critical(_navigator->get_mavlink_fd(),
+								"#audio: ERROR DO JUMP waypoint could not be written");
+						return false;
+					}
+				}
+				/* set new mission item index and repeat
+				* we don't have to validate here, if it's invalid, we should realize this later .*/
+				*mission_index = new_mission_item->do_jump_mission_index;
+			} else {
 				mavlink_log_info(_navigator->get_mavlink_fd(),
 						 "#audio: DO JUMP repetitions completed");
-				return false;
+				/* no more DO_JUMPS, therefore just try to continue with next mission item */
+				(*mission_index)++;
 			}
-
-			/* only raise the repeat count if this is for the current mission item
-			 * but not for the next mission item */
-			if (is_current) {
-				(new_mission_item->do_jump_current_count)++;
-
-				/* save repeat count */
-				if (dm_write(dm_item, *mission_index, DM_PERSIST_IN_FLIGHT_RESET,
-					     new_mission_item, len) != len) {
-					/* not supposed to happen unless the datamanager can't access the dataman */
-					mavlink_log_critical(_navigator->get_mavlink_fd(),
-							     "#audio: ERROR DO JUMP waypoint could not be written");
-					return false;
-				}
-			}
-			/* set new mission item index and repeat
-			 * we don't have to validate here, if it's invalid, we should realize this later .*/
-			*mission_index = new_mission_item->do_jump_mission_index;
 
 		} else {
 			/* if it's not a DO_JUMP, then we were successful */
