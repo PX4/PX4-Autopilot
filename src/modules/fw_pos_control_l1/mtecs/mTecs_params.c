@@ -234,6 +234,23 @@ PARAM_DEFINE_FLOAT(MT_FPA_MAX, 30.0f);
 PARAM_DEFINE_FLOAT(MT_ACC_P, 1.5f);
 
 /**
+ * D gain for the airspeed control
+ * Maps the change of airspeed error to the acceleration setpoint
+ *
+ * @min 0.0f
+ * @max 10.0f
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_ACC_D, 0.0f);
+
+/**
+ * Lowpass for ACC error derivative calculation (see MT_ACC_D)
+ *
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_ACC_D_LP, 1.0f);
+
+/**
  * Minimal acceleration (air)
  *
  * @unit m/s^2
