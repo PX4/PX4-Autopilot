@@ -1456,7 +1456,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		if (ground_speed_length > FLT_EPSILON) {
 			flightPathAngle = -asinf(ground_speed(2)/ground_speed_length);
 		}
-		fwPosctrl::mTecs::LimitOverride limitOverride;
+		fwPosctrl::LimitOverride limitOverride;
 		if (climbout_mode) {
 			limitOverride.enablePitchMinOverride(M_RAD_TO_DEG_F * climbout_pitch_min_rad);
 		} else {

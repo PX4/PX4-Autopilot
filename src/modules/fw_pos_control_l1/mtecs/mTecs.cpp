@@ -302,29 +302,4 @@ void mTecs::debug(const char *fmt, ...) {
 	debug_print(fmt, args);
 }
 
-bool mTecs::LimitOverride::applyOverride(BlockOutputLimiter &outputLimiterThrottle,
-		BlockOutputLimiter &outputLimiterPitch)
-{
-	bool ret = false;
-
-	if (overrideThrottleMinEnabled)	{
-		outputLimiterThrottle.setMin(overrideThrottleMin);
-		ret = true;
-	}
-	if (overrideThrottleMaxEnabled)	{
-		outputLimiterThrottle.setMax(overrideThrottleMax);
-		ret = true;
-	}
-	if (overridePitchMinEnabled)	{
-		outputLimiterPitch.setMin(overridePitchMin);
-		ret = true;
-	}
-	if (overridePitchMaxEnabled)	{
-		outputLimiterPitch.setMax(overridePitchMax);
-		ret = true;
-	}
-
-	return ret;
-}
-
 } /* namespace fwPosctrl */
