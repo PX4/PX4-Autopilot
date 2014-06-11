@@ -58,6 +58,7 @@ mTecs::mTecs() :
 	_controlEnergyDistribution(this, "PIT", true),
 	_controlAltitude(this, "FPA", true),
 	_controlAirSpeed(this, "ACC"),
+	_airspeedLowpass(this, "A_LP"),
 	_airspeedDerivative(this, "AD"),
 	_throttleSp(0.0f),
 	_pitchSp(0.0f),
@@ -122,12 +123,18 @@ int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAng
 	/* time measurement */
 	updateTimeMeasurement();
 
+	/* Filter arispeed */
+	float airspeedFiltered = _airspeedLowpass.update(airspeed);
+
 	/* calculate longitudinal acceleration setpoint from airspeed setpoint*/
-	float accelerationLongitudinalSp = _controlAirSpeed.update(airspeedSp - airspeed);
+	float accelerationLongitudinalSp = _controlAirSpeed.update(airspeedSp - airspeedFiltered);
 
 	/* Debug output */
 	if (_counter % 10 == 0) {
-		debug("updateFlightPathAngleSpeed airspeedSp %.4f, airspeed %.4f, accelerationLongitudinalSp%.4f", (double)airspeedSp, (double)airspeed, (double)accelerationLongitudinalSp);
+		debug("updateFlightPathAngleSpeed airspeedSp %.4f, airspeed %.4f airspeedFiltered %.4f,"
+				"accelerationLongitudinalSp%.4f",
+				(double)airspeedSp, (double)airspeed,
+				(double)airspeedFiltered, (double)accelerationLongitudinalSp);
 	}
 
 	/* Write part of the status message */
@@ -135,19 +142,20 @@ int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAng
 	_status.flightPathAngle = flightPathAngle;
 	_status.airspeedSp = airspeedSp;
 	_status.airspeed = airspeed;
+	_status.airspeedFiltered = airspeedFiltered;
 
 
 	/* use longitudinal acceleration setpoint for total energy control */
-	return updateFlightPathAngleAcceleration(flightPathAngle, flightPathAngleSp, airspeed,
+	return updateFlightPathAngleAcceleration(flightPathAngle, flightPathAngleSp, airspeedFiltered,
 			accelerationLongitudinalSp, mode, limitOverride);
 }
 
-int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeed,
+int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeedFiltered,
 		float accelerationLongitudinalSp, tecs_mode mode, LimitOverride limitOverride)
 {
 	/* check if all input arguments are numbers and abort if not so */
 	if (!isfinite(flightPathAngle) || !isfinite(flightPathAngleSp) ||
-			!isfinite(airspeed) || !isfinite(accelerationLongitudinalSp) || !isfinite(mode)) {
+			!isfinite(airspeedFiltered) || !isfinite(accelerationLongitudinalSp) || !isfinite(mode)) {
 		return -1;
 	}
 	/* time measurement */
@@ -160,7 +168,7 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 	float flightPathAngleError = flightPathAngleSp - flightPathAngle;
 	float airspeedDerivative = 0.0f;
 	if(_airspeedDerivative.getDt() > 0.0f) {
-		airspeedDerivative = _airspeedDerivative.update(airspeed);
+		airspeedDerivative = _airspeedDerivative.update(airspeedFiltered);
 	}
 	float airspeedDerivativeNorm = airspeedDerivative / CONSTANTS_ONE_G;
 	float airspeedDerivativeSp = accelerationLongitudinalSp;
@@ -186,7 +194,7 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 	}
 
 	/* Check airspeed: if below safe value switch to underspeed mode (if not in land or takeoff mode) */
-	if (mode != TECS_MODE_LAND && mode != TECS_MODE_TAKEOFF && airspeed < _airspeedMin.get()) {
+	if (mode != TECS_MODE_LAND && mode != TECS_MODE_TAKEOFF && airspeedFiltered < _airspeedMin.get()) {
 		mode = TECS_MODE_UNDERSPEED;
 	}
 

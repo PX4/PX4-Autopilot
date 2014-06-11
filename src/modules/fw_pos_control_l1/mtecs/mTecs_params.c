@@ -222,6 +222,12 @@ PARAM_DEFINE_FLOAT(MT_FPA_MIN, -10.0f);
  */
 PARAM_DEFINE_FLOAT(MT_FPA_MAX, 30.0f);
 
+/**
+ * Lowpass (cutoff freq.) for airspeed
+ *
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_A_LP, 1.0f);
 
 /**
  * P gain for the airspeed control

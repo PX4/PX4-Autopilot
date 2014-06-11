@@ -70,6 +70,7 @@ struct tecs_status_s {
 	float flightPathAngle;
 	float airspeedSp;
 	float airspeed;
+	float airspeedFiltered;
 	float airspeedDerivativeSp;
 	float airspeedDerivative;
 

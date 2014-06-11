@@ -76,7 +76,7 @@ public:
 	/*
 	 * Control in flightPathAngle setpoint (flollow a slope etc.) and acceleration mode (base case)
 	 */
-	int updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeed,
+	int updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeedFiltered,
 			float accelerationLongitudinalSp, tecs_mode mode, LimitOverride limitOverride);
 
 	/*
@@ -90,9 +90,10 @@ public:
 	void resetDerivatives(float airspeed);
 
 	/* Accessors */
-	bool getEnabled() {return _mTecsEnabled.get() > 0;}
-	float getThrottleSetpoint() {return _throttleSp;}
-	float getPitchSetpoint() {return _pitchSp;}
+	bool getEnabled() { return _mTecsEnabled.get() > 0; }
+	float getThrottleSetpoint() { return _throttleSp; }
+	float getPitchSetpoint() { return _pitchSp; }
+	float airspeedLowpassUpdate(float input) { return _airspeedLowpass.update(input); }
 
 protected:
 	/* parameters */
@@ -109,7 +110,8 @@ protected:
 	BlockPDLimited	_controlAirSpeed;			/**< PD controller for airspeed: output is acceleration setpoint */
 
 	/* Other calculation Blocks */
-	control::BlockDerivative _airspeedDerivative;
+	control::BlockLowPass _airspeedLowpass;		/**< low pass filter for airspeed */
+	control::BlockDerivative _airspeedDerivative;	/**< airspeed derivative calulation */
 
 	/* Output setpoints */
 	float _throttleSp;				/**< Throttle Setpoint from 0 to 1 */
