@@ -406,12 +406,12 @@ void set_nav_state(struct vehicle_status_s *status)
 		}
 		break;
 
-	case FAILSAFE_STATE_RTL_RC:
-		status->set_nav_state = NAVIGATION_STATE_AUTO_RTL_RC;
+	case FAILSAFE_STATE_RC_LOSS:
+		status->set_nav_state = NAVIGATION_STATE_AUTO_FAILSAFE_RC_LOSS;
 		break;
 
-	case FAILSAFE_STATE_RTL_DL:
-		status->set_nav_state = NAVIGATION_STATE_AUTO_RTL_DL;
+	case FAILSAFE_STATE_DL_LOSS:
+		status->set_nav_state = NAVIGATION_STATE_AUTO_FAILSAFE_DL_LOSS;
 		break;
 
 	case FAILSAFE_STATE_LAND:

@@ -161,8 +161,8 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 			break;
 
 		case NAVIGATION_STATE_AUTO_RTL:
-		case NAVIGATION_STATE_AUTO_RTL_RC:
-		case NAVIGATION_STATE_AUTO_RTL_DL:
+		case NAVIGATION_STATE_AUTO_FAILSAFE_RC_LOSS:
+		case NAVIGATION_STATE_AUTO_FAILSAFE_DL_LOSS:
 			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
 			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
 					      | MAV_MODE_FLAG_GUIDED_ENABLED;

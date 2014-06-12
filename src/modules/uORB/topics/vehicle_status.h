@@ -1,10 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
- *           @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
+ *   Copyright (C) 2012 - 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,6 +41,11 @@
  * All apps should write to subsystem_info:
  *
  *  (any app) --> subsystem_info (published) --> (commander app state machine)  --> vehicle_status --> (mavlink app)
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  */
 
 #ifndef VEHICLE_STATUS_H_
@@ -90,25 +91,25 @@ typedef enum {
 
 typedef enum {
 	FAILSAFE_STATE_NORMAL = 0,		/**< Normal operation */
-	FAILSAFE_STATE_RTL_RC,			/**< Return To Launch on remote control loss */
-	FAILSAFE_STATE_RTL_DL,			/**< Return To Launch on datalink loss */
+	FAILSAFE_STATE_RC_LOSS,			/**< Return To Launch on remote control loss */
+	FAILSAFE_STATE_DL_LOSS,			/**< Return To Launch on datalink loss */
 	FAILSAFE_STATE_LAND,			/**< Land as safe as possible */
 	FAILSAFE_STATE_TERMINATION,		/**< Disable motors and use parachute, can't be recovered */
 	FAILSAFE_STATE_MAX,
 } failsafe_state_t;
 
 typedef enum {
-	NAVIGATION_STATE_MANUAL = 0,
-	NAVIGATION_STATE_ACRO,
-	NAVIGATION_STATE_ALTCTL,
-	NAVIGATION_STATE_POSCTL,
-	NAVIGATION_STATE_AUTO_MISSION,
-	NAVIGATION_STATE_AUTO_LOITER,
-	NAVIGATION_STATE_AUTO_RTL,
-	NAVIGATION_STATE_AUTO_RTL_RC,
-	NAVIGATION_STATE_AUTO_RTL_DL,
-	NAVIGATION_STATE_LAND,
-	NAVIGATION_STATE_TERMINATION,
+	NAVIGATION_STATE_MANUAL = 0,		/**< Manual mode */
+	NAVIGATION_STATE_ACRO,			/**< Acro mode */
+	NAVIGATION_STATE_ALTCTL,		/**< Altitude control mode */
+	NAVIGATION_STATE_POSCTL,		/**< Position control mode */
+	NAVIGATION_STATE_AUTO_MISSION,		/**< Auto mission mode */
+	NAVIGATION_STATE_AUTO_LOITER,		/**< Auto loiter mode */
+	NAVIGATION_STATE_AUTO_RTL,		/**< Auto RTL mode */
+	NAVIGATION_STATE_AUTO_FAILSAFE_RC_LOSS,	/**< Auto failsafe on RC loss mode */
+	NAVIGATION_STATE_AUTO_FAILSAFE_DL_LOSS,	/**< Auto failsafe on datalink loss mode */
+	NAVIGATION_STATE_LAND,			/**< Land mode */
+	NAVIGATION_STATE_TERMINATION,		/**< Termination mode */
 } navigation_state_t;
 
 enum VEHICLE_MODE_FLAG {
