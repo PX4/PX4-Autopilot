@@ -2140,7 +2140,7 @@ bool AttPosEKF::VelNEDDiverged()
     Vector3f delta = current_vel - gps_vel;
     float delta_len = delta.length();
 
-    return (delta_len > 8.0f);
+    return (delta_len > 20.0f);
 }
 
 bool AttPosEKF::FilterHealthy()
