@@ -51,7 +51,7 @@ extern "C" {
 		DM_KEY_SAFE_POINTS = 0,		/* Safe points coordinates, safe point 0 is home point */
 		DM_KEY_FENCE_POINTS,		/* Fence vertex coordinates */
 		DM_KEY_WAYPOINTS_OFFBOARD_0,	/* Mission way point coordinates sent over mavlink */
-		DM_KEY_WAYPOINTS_OFFBOARD_1,	/* (alernate between 0 and 1) */
+		DM_KEY_WAYPOINTS_OFFBOARD_1,	/* (alternate between 0 and 1) */
 		DM_KEY_WAYPOINTS_ONBOARD,	/* Mission way point coordinates generated onboard */
 		DM_KEY_NUM_KEYS			/* Total number of item types defined */
 	} dm_item_t;
