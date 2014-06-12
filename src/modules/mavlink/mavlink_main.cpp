@@ -236,6 +236,12 @@ Mavlink::Mavlink() :
 	_subscribe_to_stream_rate(0.0f),
 	_flow_control_enabled(true),
 	_message_buffer({}),
+	_param_initialized(false),
+	_param_system_id(0),
+	_param_component_id(0),
+	_param_system_type(0),
+	_param_use_hil_gps(0),
+
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink"))
 {
@@ -494,44 +500,39 @@ Mavlink::mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 
 void Mavlink::mavlink_update_system(void)
 {
-	static bool initialized = false;
-	static param_t param_system_id;
-	static param_t param_component_id;
-	static param_t param_system_type;
-	static param_t param_use_hil_gps;
 
-	if (!initialized) {
-		param_system_id = param_find("MAV_SYS_ID");
-		param_component_id = param_find("MAV_COMP_ID");
-		param_system_type = param_find("MAV_TYPE");
-		param_use_hil_gps = param_find("MAV_USEHILGPS");
-		initialized = true;
+	if (!_param_initialized) {
+		_param_system_id = param_find("MAV_SYS_ID");
+		_param_component_id = param_find("MAV_COMP_ID");
+		_param_system_type = param_find("MAV_TYPE");
+		_param_use_hil_gps = param_find("MAV_USEHILGPS");
+		_param_initialized = true;
 	}
 
 	/* update system and component id */
 	int32_t system_id;
-	param_get(param_system_id, &system_id);
+	param_get(_param_system_id, &system_id);
 
 	if (system_id > 0 && system_id < 255) {
 		mavlink_system.sysid = system_id;
 	}
 
 	int32_t component_id;
-	param_get(param_component_id, &component_id);
+	param_get(_param_component_id, &component_id);
 
 	if (component_id > 0 && component_id < 255) {
 		mavlink_system.compid = component_id;
 	}
 
 	int32_t system_type;
-	param_get(param_system_type, &system_type);
+	param_get(_param_system_type, &system_type);
 
 	if (system_type >= 0 && system_type < MAV_TYPE_ENUM_END) {
 		mavlink_system.type = system_type;
 	}
 
 	int32_t use_hil_gps;
-	param_get(param_use_hil_gps, &use_hil_gps);
+	param_get(_param_use_hil_gps, &use_hil_gps);
 
 	_use_hil_gps = (bool)use_hil_gps;
 }
@@ -819,7 +820,7 @@ void Mavlink::mavlink_pm_message_handler(const mavlink_channel_t chan, const mav
 
 					if (param == PARAM_INVALID) {
 						char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
-						sprintf(buf, "[mavlink pm] unknown: %s", name);
+						sprintf(buf, "[pm] unknown: %s", name);
 						mavlink_missionlib_send_gcs_string(buf);
 
 					} else {
@@ -1564,11 +1565,10 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 void
 Mavlink::mavlink_missionlib_send_message(mavlink_message_t *msg)
 {
-	uint8_t missionlib_msg_buf[MAVLINK_MAX_PACKET_LEN];
+	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
 
-	uint16_t len = mavlink_msg_to_send_buffer(missionlib_msg_buf, msg);
-
-	mavlink_send_uart_bytes(_channel, missionlib_msg_buf, len);
+	uint16_t len = mavlink_msg_to_send_buffer(buf, msg);
+	mavlink_send_uart_bytes(_channel, buf, len);
 }
 
 
@@ -1650,6 +1650,7 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	if (interval > 0) {
 		/* search for stream with specified name in supported streams list */
 		for (unsigned int i = 0; streams_list[i] != nullptr; i++) {
+
 			if (strcmp(stream_name, streams_list[i]->get_name()) == 0) {
 				/* create new instance */
 				stream = streams_list[i]->new_instance();
@@ -1955,7 +1956,7 @@ Mavlink::task_main(int argc, char *argv[])
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
 	if (_passing_on) {
 		/* initialize message buffer if multiplexing is on */
-		if (OK != message_buffer_init(500)) {
+		if (OK != message_buffer_init(300)) {
 			errx(1, "can't allocate message buffer, exiting");
 		}
 
@@ -1985,9 +1986,12 @@ Mavlink::task_main(int argc, char *argv[])
 	_task_running = true;
 
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
+	uint64_t param_time = 0;
 	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status));
+	uint64_t status_time = 0;
 
-	struct vehicle_status_s *status = (struct vehicle_status_s *) status_sub->get_data();
+	struct vehicle_status_s status;
+	status_sub->update(&status_time, &status);
 
 	MavlinkCommandsStream commands_stream(this, _channel);
 
@@ -2044,14 +2048,14 @@ Mavlink::task_main(int argc, char *argv[])
 
 		hrt_abstime t = hrt_absolute_time();
 
-		if (param_sub->update(t)) {
+		if (param_sub->update(&param_time, nullptr)) {
 			/* parameters updated */
 			mavlink_update_system();
 		}
 
-		if (status_sub->update(t)) {
+		if (status_sub->update(&status_time, &status)) {
 			/* switch HIL mode if required */
-			set_hil_enabled(status->hil_state == HIL_STATE_ON);
+			set_hil_enabled(status.hil_state == HIL_STATE_ON);
 		}
 
 		/* update commands stream */
