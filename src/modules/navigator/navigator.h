@@ -40,8 +40,6 @@
 #ifndef NAVIGATOR_H
 #define NAVIGATOR_H
 
-#include <vector>
-
 #include <systemlib/perf_counter.h>
 
 #include <controllib/blocks.hpp>
@@ -59,6 +57,8 @@
 #include "loiter.h"
 #include "rtl.h"
 #include "geofence.h"
+
+#define NAVIGATOR_MODE_ARRAY_SIZE 3
 
 class Navigator : public control::SuperBlock
 {
@@ -155,7 +155,7 @@ private:
 	Loiter		_loiter;			/**< class that handles loiter */
 	RTL 		_rtl;				/**< class that handles RTL */
 
-	std::vector<NavigatorMode*> _navigation_mode_vector;
+	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
 	bool		_is_in_loiter;			/**< flags if current position SP can be used to loiter */
 	bool		_update_triplet;		/**< flags if position SP triplet needs to be published */
