@@ -53,7 +53,7 @@ extern "C" {
 		DM_KEY_WAYPOINTS_OFFBOARD_0,	/* Mission way point coordinates sent over mavlink */
 		DM_KEY_WAYPOINTS_OFFBOARD_1,	/* (alernate between 0 and 1) */
 		DM_KEY_WAYPOINTS_ONBOARD,	/* Mission way point coordinates generated onboard */
-		DM_KEY_SYSTEM_STATE,		/* Persistent system state storage */
+		DM_KEY_MISSION_STATE,			/* Persistent mission state */
 		DM_KEY_NUM_KEYS			/* Total number of item types defined */
 	} dm_item_t;
 
@@ -64,7 +64,7 @@ extern "C" {
 		DM_KEY_WAYPOINTS_OFFBOARD_0_MAX = NUM_MISSIONS_SUPPORTED,
 		DM_KEY_WAYPOINTS_OFFBOARD_1_MAX = NUM_MISSIONS_SUPPORTED,
 		DM_KEY_WAYPOINTS_ONBOARD_MAX = NUM_MISSIONS_SUPPORTED,
-		DM_KEY_SYSTEM_STATE_MAX = 1
+		DM_KEY_MISSION_STATE_MAX = 1
 	};
 
 	/** Data persistence levels */

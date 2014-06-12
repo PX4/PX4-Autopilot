@@ -969,7 +969,7 @@ void Mavlink::mavlink_wpm_init(mavlink_wpm_storage *state)
 	state->action_timeout = MAVLINK_WPM_PROTOCOL_TIMEOUT_DEFAULT;
 	state->retry_timeout = MAVLINK_WPM_RETRY_TIMEOUT_DEFAULT;
 
-	int sys_state_size = dm_read(DM_KEY_SYSTEM_STATE, 0, &sys_state, sizeof(sys_state));
+	int sys_state_size = dm_read(DM_KEY_MISSION_STATE, 0, &sys_state, sizeof(sys_state));
 	if (sys_state_size == sizeof(sys_state)) {
 		if ((sys_state.offboard_waypoint_id >= 0) && (sys_state.offboard_waypoint_id <= 1)) {
 			state->dataman_id = sys_state.offboard_waypoint_id;
@@ -990,11 +990,11 @@ void Mavlink::mavlink_wpm_init(mavlink_wpm_storage *state)
 			state->size = seq;
 
 		} else {
-			if (_verbose) { warnx("WPM init: invalid dataman ID %d stored in SYSTEM_STATE", sys_state.offboard_waypoint_id); }
+			if (_verbose) { warnx("WPM init: invalid dataman ID %d stored in MISSION_STATE", sys_state.offboard_waypoint_id); }
 		}
 
 	} else {
-		if (_verbose) { warnx("WPM init: dataman SYSTEM_STATE item has wrong size (%i, should be %u), ignoring", sys_state_size, sizeof(sys_state)); }
+		if (_verbose) { warnx("WPM init: dataman MISSION_STATE item has wrong size (%i, should be %u), ignoring", sys_state_size, sizeof(sys_state)); }
 	}
 
 	/* init mission topic */
@@ -1467,25 +1467,25 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 					bool dm_result;
 
 					/* since we are doing a read-modify-write we must lock the item type */
-					dm_lock(DM_KEY_SYSTEM_STATE);
+					dm_lock(DM_KEY_MISSION_STATE);
 
 					/* first read in the current state data, there may eventually be data other than the offboard index
 					 * and we must preserve it */
-					ssize_t dm_state_size = dm_read(DM_KEY_SYSTEM_STATE, 0, &state, sizeof(state));
+					ssize_t dm_state_size = dm_read(DM_KEY_MISSION_STATE, 0, &state, sizeof(state));
 					if (dm_state_size != sizeof(state)) {
-						warnx("dataman SYSTEM_STATE size invalid: %d, should be %d", dm_state_size, sizeof(state));
+						warnx("dataman MISSION_STATE size invalid: %d, should be %d", dm_state_size, sizeof(state));
 					}
 
 					/* set new dataman storage ID */
 					state.offboard_waypoint_id = _wpm->current_dataman_id;
 
 					/* write back to dataman */
-					dm_result = dm_write(DM_KEY_SYSTEM_STATE, 0, DM_PERSIST_POWER_ON_RESET, &state, sizeof(state)) != sizeof(state);
+					dm_result = dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &state, sizeof(state)) != sizeof(state);
 
-					dm_unlock(DM_KEY_SYSTEM_STATE);
+					dm_unlock(DM_KEY_MISSION_STATE);
 
 					if (dm_result) {
-						if (_verbose) { warnx("WPM: MISSION_ITEM ERROR unable to write storage ID = %d to dataman SYSTEM_STATE", state.offboard_waypoint_id); }
+						if (_verbose) { warnx("WPM: MISSION_ITEM ERROR unable to write storage ID = %d to dataman MISSION_STATE", state.offboard_waypoint_id); }
 
 						mavlink_wpm_send_waypoint_ack(_wpm->current_partner_sysid, _wpm->current_partner_compid, MAV_MISSION_ERROR);
 						mavlink_missionlib_send_gcs_string("#audio: Unable to write on micro SD");

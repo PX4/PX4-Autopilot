@@ -116,7 +116,7 @@ static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
 	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX,
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX,
 	DM_KEY_WAYPOINTS_ONBOARD_MAX,
-	DM_KEY_SYSTEM_STATE_MAX
+	DM_KEY_MISSION_STATE_MAX
 };
 
 /* Table of offset for index 0 of each item type */
@@ -642,11 +642,11 @@ task_main(int argc, char *argv[])
 	for (unsigned i = 0; i < dm_number_of_funcs; i++)
 		g_func_counts[i] = 0;
 
-	/* Initialize the item type locks, for now only DM_KEY_SYSTEM_STATE supports locking */
+	/* Initialize the item type locks, for now only DM_KEY_MISSION_STATE supports locking */
 	sem_init(&g_sys_state_mutex, 1, 1); /* Initially unlocked */
 	for (unsigned i = 0; i < DM_KEY_NUM_KEYS; i++)
 		g_item_locks[i] = NULL;
-	g_item_locks[DM_KEY_SYSTEM_STATE] = &g_sys_state_mutex;
+	g_item_locks[DM_KEY_MISSION_STATE] = &g_sys_state_mutex;
 
 	g_task_should_exit = false;
 
