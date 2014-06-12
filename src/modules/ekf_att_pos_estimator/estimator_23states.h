@@ -2,6 +2,9 @@
 
 #include "estimator_utilities.h"
 
+const unsigned int n_states = 23;
+const unsigned int data_buffer_size = 50;
+
 class AttPosEKF {
 
 public:
@@ -121,6 +124,7 @@ public:
     Vector3f earthRateNED; // earths angular rate vector in NED (rad/s)
     Vector3f angRate; // angular rate vector in XYZ body axes measured by the IMU (rad/s)
     Vector3f lastGyroOffset;    // Last gyro offset
+    Vector3f delAngTotal;
 
     Mat3f Tbn; // transformation matrix from body to NED coordinates
     Mat3f Tnb; // transformation amtrix from NED to body coordinates
@@ -179,6 +183,8 @@ public:
     bool useAirspeed;    ///< boolean true if airspeed data is being used
     bool useCompass;    ///< boolean true if magnetometer data is being used
     bool useRangeFinder;     ///< true when rangefinder is being used
+
+    bool ekfDiverged;
 
     struct ekf_status_report current_ekf_state;
     struct ekf_status_report last_ekf_error;
@@ -280,6 +286,8 @@ protected:
 bool FilterHealthy();
 
 bool GyroOffsetsDiverged();
+
+bool VelNEDDiverged();
 
 void ResetHeight(void);
 
