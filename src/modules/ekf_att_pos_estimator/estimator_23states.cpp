@@ -2376,6 +2376,12 @@ int AttPosEKF::CheckAndBound()
         ret = 5;
     }
 
+    if (current_ekf_state.covariancesExcessive) {
+        FillErrorReport(&last_ekf_error);
+        current_ekf_state.covariancesExcessive = false;
+        ret = 6;
+    }
+
     if (ret) {
         ekfDiverged = true;
     }
