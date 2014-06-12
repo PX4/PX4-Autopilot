@@ -554,7 +554,7 @@ protected:
 						 heading,
 						 throttle,
 						 pos.alt,
-						 pos.vel_d);
+						 -pos.vel_d);
 		}
 	}
 };
