@@ -54,8 +54,6 @@
 #include <stdbool.h>
 #include "../uORB.h"
 
-#include <navigator/navigator_state.h>
-
 /**
  * @addtogroup topics @{
  */
@@ -65,9 +63,11 @@ typedef enum {
 	MAIN_STATE_MANUAL = 0,
 	MAIN_STATE_ALTCTL,
 	MAIN_STATE_POSCTL,
-	MAIN_STATE_AUTO,
+	MAIN_STATE_AUTO_MISSION,
+	MAIN_STATE_AUTO_LOITER,
+	MAIN_STATE_AUTO_RTL,
 	MAIN_STATE_ACRO,
-	MAIN_STATE_MAX
+	MAIN_STATE_MAX,
 } main_state_t;
 
 // If you change the order, add or remove arming_state_t states make sure to update the arrays
@@ -80,7 +80,7 @@ typedef enum {
 	ARMING_STATE_STANDBY_ERROR,
 	ARMING_STATE_REBOOT,
 	ARMING_STATE_IN_AIR_RESTORE,
-	ARMING_STATE_MAX
+	ARMING_STATE_MAX,
 } arming_state_t;
 
 typedef enum {
@@ -90,11 +90,26 @@ typedef enum {
 
 typedef enum {
 	FAILSAFE_STATE_NORMAL = 0,		/**< Normal operation */
-	FAILSAFE_STATE_RTL,				/**< Return To Launch */
-	FAILSAFE_STATE_LAND,			/**< Land without position control */
+	FAILSAFE_STATE_RTL_RC,			/**< Return To Launch on remote control loss */
+	FAILSAFE_STATE_RTL_DL,			/**< Return To Launch on datalink loss */
+	FAILSAFE_STATE_LAND,			/**< Land as safe as possible */
 	FAILSAFE_STATE_TERMINATION,		/**< Disable motors and use parachute, can't be recovered */
-	FAILSAFE_STATE_MAX
+	FAILSAFE_STATE_MAX,
 } failsafe_state_t;
+
+typedef enum {
+	NAVIGATION_STATE_MANUAL = 0,
+	NAVIGATION_STATE_ACRO,
+	NAVIGATION_STATE_ALTCTL,
+	NAVIGATION_STATE_POSCTL,
+	NAVIGATION_STATE_AUTO_MISSION,
+	NAVIGATION_STATE_AUTO_LOITER,
+	NAVIGATION_STATE_AUTO_RTL,
+	NAVIGATION_STATE_AUTO_RTL_RC,
+	NAVIGATION_STATE_AUTO_RTL_DL,
+	NAVIGATION_STATE_LAND,
+	NAVIGATION_STATE_TERMINATION,
+} navigation_state_t;
 
 enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_SAFETY_ARMED = 128,
@@ -154,11 +169,10 @@ struct vehicle_status_s {
 	uint16_t counter;   /**< incremented by the writing thread everytime new data is stored */
 	uint64_t timestamp; /**< in microseconds since system start, is set whenever the writing thread stores new data */
 
-	main_state_t main_state;				/**< main state machine */
-	unsigned int set_nav_state;	/**< set navigation state machine to specified value */
-	uint64_t set_nav_state_timestamp;	/**< timestamp of latest change of set_nav_state */
+	main_state_t main_state;		    	/**< main state machine */
+	navigation_state_t set_nav_state;		/**< set navigation state machine to specified value */
 	arming_state_t arming_state;			/**< current arming state */
-	hil_state_t hil_state;					/**< current hil state */
+	hil_state_t hil_state;				/**< current hil state */
 	failsafe_state_t failsafe_state;		/**< current failsafe state */
 
 	int32_t system_type;				/**< system type, inspired by MAVLink's VEHICLE_TYPE enum */

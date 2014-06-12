@@ -215,11 +215,12 @@ bool MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size
 
 
 //	float slope_alt = wp_altitude + _H0 * expf(-math::max(0.0f, _flare_length - wp_distance)/_flare_constant) - _H1_virt;
+	return false;
 }
 
 void MissionFeasibilityChecker::updateNavigationCapabilities()
 {
-	int res = orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
+	(void)orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
 }
 
 void MissionFeasibilityChecker::init()

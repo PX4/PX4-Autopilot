@@ -1,8 +1,6 @@
-/****************************************************************************
+/***************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,47 +30,81 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file home_position.h
- * Definition of the home position uORB topic.
+ * @file navigator_rtl.h
+ * Helper class for RTL
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#ifndef TOPIC_HOME_POSITION_H_
-#define TOPIC_HOME_POSITION_H_
+#ifndef NAVIGATOR_RTL_H
+#define NAVIGATOR_RTL_H
 
-#include <stdint.h>
-#include "../uORB.h"
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
 
-/**
- * @addtogroup topics
- * @{
- */
+#include <uORB/topics/mission.h>
+#include <uORB/topics/mission.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_global_position.h>
 
-/**
- * GPS home position in WGS84 coordinates.
- */
-struct home_position_s
+#include "navigator_mode.h"
+#include "mission_block.h"
+
+class Navigator;
+
+class RTL : public NavigatorMode, MissionBlock
 {
-	uint64_t timestamp;			/**< Timestamp (microseconds since system boot)	*/
+public:
+	/**
+	 * Constructor
+	 */
+	RTL(Navigator *navigator, const char *name);
 
-	double lat;				/**< Latitude in degrees 			*/
-	double lon;				/**< Longitude in degrees			*/
-	float alt;				/**< Altitude in meters				*/
+	/**
+	 * Destructor
+	 */
+	~RTL();
 
-	float x;				/**< X coordinate in meters			*/
-	float y;				/**< Y coordinate in meters			*/
-	float z;				/**< Z coordinate in meters			*/
+	/**
+	 * This function is called while the mode is inactive
+	 */
+	void reset();
+
+	/**
+	 * This function is called while the mode is active
+	 *
+	 * @param position setpoint triplet that needs to be set
+	 * @return true if updated
+	 */
+	bool update(position_setpoint_triplet_s *pos_sp_triplet);
+
+
+private:
+	/**
+	 * Set the RTL item
+	 */
+	void		set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet);
+
+	/**
+	 * Move to next RTL item
+	 */
+	void		advance_rtl();
+
+	enum RTLState {
+		RTL_STATE_NONE = 0,
+		RTL_STATE_CLIMB,
+		RTL_STATE_RETURN,
+		RTL_STATE_DESCEND,
+		RTL_STATE_LAND,
+		RTL_STATE_FINISHED,
+	} _rtl_state;
+
+	control::BlockParamFloat _param_return_alt;
+	control::BlockParamFloat _param_descend_alt;
+	control::BlockParamFloat _param_land_delay;
+	control::BlockParamFloat _param_acceptance_radius;
 };
-
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(home_position);
 
 #endif

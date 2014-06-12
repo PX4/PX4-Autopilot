@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,26 +30,51 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file navigator_state.h
+ * @file loiter.cpp
  *
- * Navigator state
+ * Helper class to loiter
  *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef NAVIGATOR_STATE_H_
-#define NAVIGATOR_STATE_H_
+#include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <math.h>
+#include <fcntl.h>
 
-typedef enum {
-	NAV_STATE_NONE = 0,
-	NAV_STATE_READY,
-	NAV_STATE_LOITER,
-	NAV_STATE_MISSION,
-	NAV_STATE_RTL,
-	NAV_STATE_LAND,
-	NAV_STATE_MAX
-} nav_state_t;
+#include <mavlink/mavlink_log.h>
+#include <systemlib/err.h>
 
-#endif /* NAVIGATOR_STATE_H_ */
+#include <uORB/uORB.h>
+#include <uORB/topics/position_setpoint_triplet.h>
+
+#include "loiter.h"
+
+Loiter::Loiter(Navigator *navigator, const char *name) :
+	NavigatorMode(navigator, name),
+	MissionBlock(navigator)
+{
+	/* load initial params */
+	updateParams();
+	/* initial reset */
+	reset();
+}
+
+Loiter::~Loiter()
+{
+}
+
+bool
+Loiter::update(struct position_setpoint_triplet_s *pos_sp_triplet)
+{
+	/* set loiter item, don't reuse an existing position setpoint */
+	return set_loiter_item(false, pos_sp_triplet);;
+}
+
+void
+Loiter::reset()
+{
+}
+

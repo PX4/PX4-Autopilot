@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,41 +30,57 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file state_machine_helper.h
- * State machine helper functions definitions
+ * @file navigator_mode.h
+ *
+ * Helper class for different modes in navigator
+ *
+ * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef STATE_MACHINE_HELPER_H_
-#define STATE_MACHINE_HELPER_H_
+#ifndef NAVIGATOR_MODE_H
+#define NAVIGATOR_MODE_H
 
-#define GPS_NOFIX_COUNTER_LIMIT 4 //need GPS_NOFIX_COUNTER_LIMIT gps packets with a bad fix to call an error (if outdoor)
-#define GPS_GOTFIX_COUNTER_REQUIRED 4 //need GPS_GOTFIX_COUNTER_REQUIRED gps packets with a good fix to obtain position lock
+#include <drivers/drv_hrt.h>
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/safety.h>
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
 
-typedef enum {
-	TRANSITION_DENIED = -1,
-	TRANSITION_NOT_CHANGED = 0,
-	TRANSITION_CHANGED
+#include <dataman/dataman.h>
 
-} transition_result_t;
+#include <uORB/topics/position_setpoint_triplet.h>
 
-bool is_safe(const struct vehicle_status_s *current_state, const struct safety_s *safety, const struct actuator_armed_s *armed);
+class Navigator;
 
-transition_result_t arming_state_transition(struct vehicle_status_s *current_state, const struct safety_s *safety,
-		arming_state_t new_arming_state, struct actuator_armed_s *armed, const int mavlink_fd = 0);
+class NavigatorMode : public control::SuperBlock
+{
+public:
+	/**
+	 * Constructor
+	 */
+	NavigatorMode(Navigator *navigator, const char *name);
 
-transition_result_t main_state_transition(struct vehicle_status_s *current_state, main_state_t new_main_state);
+	/**
+	 * Destructor
+	 */
+	virtual ~NavigatorMode();
 
-transition_result_t failsafe_state_transition(struct vehicle_status_s *status, failsafe_state_t new_failsafe_state);
+	/**
+	 * This function is called while the mode is inactive
+	 */
+	virtual void reset();
 
-transition_result_t hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_status_s *current_state, const int mavlink_fd);
+	/**
+	 * This function is called while the mode is active
+	 *
+	 * @param position setpoint triplet to set
+	 * @return true if position setpoint triplet has been changed
+	 */
+	virtual bool update(struct position_setpoint_triplet_s *pos_sp_triplet);
 
-void set_nav_state(struct vehicle_status_s *status);
+protected:
+	Navigator *_navigator;
+	bool _first_run;
+};
 
-#endif /* STATE_MACHINE_HELPER_H_ */
+#endif

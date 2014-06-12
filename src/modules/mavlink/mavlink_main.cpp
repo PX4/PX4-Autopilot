@@ -899,7 +899,10 @@ int Mavlink::map_mavlink_mission_item_to_mission_item(const mavlink_mission_item
 	case MAV_CMD_NAV_TAKEOFF:
 		mission_item->pitch_min = mavlink_mission_item->param1;
 		break;
-
+	case MAV_CMD_DO_JUMP:
+		mission_item->do_jump_mission_index = mavlink_mission_item->param1;
+		mission_item->do_jump_repeat_count = mavlink_mission_item->param2;
+		break;
 	default:
 		mission_item->acceptance_radius = mavlink_mission_item->param2;
 		mission_item->time_inside = mavlink_mission_item->param1;
@@ -914,6 +917,9 @@ int Mavlink::map_mavlink_mission_item_to_mission_item(const mavlink_mission_item
 	mission_item->autocontinue = mavlink_mission_item->autocontinue;
 	// mission_item->index = mavlink_mission_item->seq;
 	mission_item->origin = ORIGIN_MAVLINK;
+
+	/* reset DO_JUMP count */
+	mission_item->do_jump_current_count = 0;
 
 	return OK;
 }
@@ -930,6 +936,11 @@ int Mavlink::map_mission_item_to_mavlink_mission_item(const struct mission_item_
 	switch (mission_item->nav_cmd) {
 	case NAV_CMD_TAKEOFF:
 		mavlink_mission_item->param1 = mission_item->pitch_min;
+		break;
+
+	case NAV_CMD_DO_JUMP:
+		mavlink_mission_item->param1 = mission_item->do_jump_mission_index;
+		mavlink_mission_item->param2 = mission_item->do_jump_repeat_count;
 		break;
 
 	default:

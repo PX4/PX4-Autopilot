@@ -1,8 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Author: 	@author Thomas Gubler <thomasgubler@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,40 +32,40 @@
  *
  ****************************************************************************/
 
+
 /**
- * @file state_machine_helper.h
- * State machine helper functions definitions
+ * @file limitoverride.cpp
+ *
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef STATE_MACHINE_HELPER_H_
-#define STATE_MACHINE_HELPER_H_
+#include "limitoverride.h"
 
-#define GPS_NOFIX_COUNTER_LIMIT 4 //need GPS_NOFIX_COUNTER_LIMIT gps packets with a bad fix to call an error (if outdoor)
-#define GPS_GOTFIX_COUNTER_REQUIRED 4 //need GPS_GOTFIX_COUNTER_REQUIRED gps packets with a good fix to obtain position lock
+namespace fwPosctrl {
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/safety.h>
+bool LimitOverride::applyOverride(BlockOutputLimiter &outputLimiterThrottle,
+		BlockOutputLimiter &outputLimiterPitch)
+{
+	bool ret = false;
 
-typedef enum {
-	TRANSITION_DENIED = -1,
-	TRANSITION_NOT_CHANGED = 0,
-	TRANSITION_CHANGED
+	if (overrideThrottleMinEnabled)	{
+		outputLimiterThrottle.setMin(overrideThrottleMin);
+		ret = true;
+	}
+	if (overrideThrottleMaxEnabled)	{
+		outputLimiterThrottle.setMax(overrideThrottleMax);
+		ret = true;
+	}
+	if (overridePitchMinEnabled)	{
+		outputLimiterPitch.setMin(overridePitchMin);
+		ret = true;
+	}
+	if (overridePitchMaxEnabled)	{
+		outputLimiterPitch.setMax(overridePitchMax);
+		ret = true;
+	}
 
-} transition_result_t;
+	return ret;
+}
 
-bool is_safe(const struct vehicle_status_s *current_state, const struct safety_s *safety, const struct actuator_armed_s *armed);
-
-transition_result_t arming_state_transition(struct vehicle_status_s *current_state, const struct safety_s *safety,
-		arming_state_t new_arming_state, struct actuator_armed_s *armed, const int mavlink_fd = 0);
-
-transition_result_t main_state_transition(struct vehicle_status_s *current_state, main_state_t new_main_state);
-
-transition_result_t failsafe_state_transition(struct vehicle_status_s *status, failsafe_state_t new_failsafe_state);
-
-transition_result_t hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_status_s *current_state, const int mavlink_fd);
-
-void set_nav_state(struct vehicle_status_s *status);
-
-#endif /* STATE_MACHINE_HELPER_H_ */
+} /* namespace fwPosctrl */

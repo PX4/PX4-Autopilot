@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -19,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -34,45 +32,79 @@
  ****************************************************************************/
 
 /**
- * @file home_position.h
- * Definition of the home position uORB topic.
+ * @file rtl_params.c
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * Parameters for RTL
+ *
+ * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef TOPIC_HOME_POSITION_H_
-#define TOPIC_HOME_POSITION_H_
+#include <nuttx/config.h>
 
-#include <stdint.h>
-#include "../uORB.h"
+#include <systemlib/param/param.h>
 
-/**
- * @addtogroup topics
- * @{
+/*
+ * RTL parameters, accessible via MAVLink
  */
 
 /**
- * GPS home position in WGS84 coordinates.
+ * Loiter radius after RTL (FW only)
+ *
+ * Default value of loiter radius after RTL (fixedwing only).
+ *
+ * @unit meters
+ * @min 0.0
+ * @group RTL
  */
-struct home_position_s
-{
-	uint64_t timestamp;			/**< Timestamp (microseconds since system boot)	*/
-
-	double lat;				/**< Latitude in degrees 			*/
-	double lon;				/**< Longitude in degrees			*/
-	float alt;				/**< Altitude in meters				*/
-
-	float x;				/**< X coordinate in meters			*/
-	float y;				/**< Y coordinate in meters			*/
-	float z;				/**< Z coordinate in meters			*/
-};
+PARAM_DEFINE_FLOAT(RTL_LOITER_RAD, 50.0f);
 
 /**
- * @}
+ * RTL altitude
+ *
+ * Altitude to fly back in RTL in meters
+ *
+ * @unit meters
+ * @min 0
+ * @max 1
+ * @group RTL
  */
+PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 100);
 
-/* register this as object request broker structure */
-ORB_DECLARE(home_position);
 
-#endif
+/**
+ * RTL loiter altitude
+ *
+ * Stay at this altitude above home position after RTL descending.
+ * Land (i.e. slowly descend) from this altitude if autolanding allowed.
+ *
+ * @unit meters
+ * @min 0
+ * @max 100
+ * @group RTL
+ */
+PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 20);
+
+/**
+ * RTL delay
+ *
+ * Delay after descend before landing in RTL mode.
+ * If set to -1 the system will not land but loiter at NAV_LAND_ALT.
+ *
+ * @unit seconds
+ * @min -1
+ * @max
+ * @group RTL
+ */
+PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
+
+/**
+ * RTL acceptance radius
+ *
+ * Acceptance radius for waypoints set for RTL
+ *
+ * @unit meters
+ * @min 1
+ * @max
+ * @group RTL
+ */
+PARAM_DEFINE_FLOAT(RTL_ACCEPT_RAD, 25.0f);

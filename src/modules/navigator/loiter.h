@@ -1,8 +1,6 @@
-/****************************************************************************
+/***************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,47 +30,45 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file home_position.h
- * Definition of the home position uORB topic.
+ * @file loiter.h
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * Helper class to loiter
+ *
+ * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef TOPIC_HOME_POSITION_H_
-#define TOPIC_HOME_POSITION_H_
+#ifndef NAVIGATOR_LOITER_H
+#define NAVIGATOR_LOITER_H
 
-#include <stdint.h>
-#include "../uORB.h"
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
 
-/**
- * @addtogroup topics
- * @{
- */
+#include "navigator_mode.h"
+#include "mission_block.h"
 
-/**
- * GPS home position in WGS84 coordinates.
- */
-struct home_position_s
+class Loiter : public NavigatorMode, MissionBlock
 {
-	uint64_t timestamp;			/**< Timestamp (microseconds since system boot)	*/
+public:
+	/**
+	 * Constructor
+	 */
+	Loiter(Navigator *navigator, const char *name);
 
-	double lat;				/**< Latitude in degrees 			*/
-	double lon;				/**< Longitude in degrees			*/
-	float alt;				/**< Altitude in meters				*/
+	/**
+	 * Destructor
+	 */
+	~Loiter();
 
-	float x;				/**< X coordinate in meters			*/
-	float y;				/**< Y coordinate in meters			*/
-	float z;				/**< Z coordinate in meters			*/
+	/**
+	 * This function is called while the mode is inactive
+	 */
+	bool update(struct position_setpoint_triplet_s *pos_sp_triplet);
+
+	/**
+	 * This function is called while the mode is active
+	 */
+	void reset();
 };
-
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(home_position);
 
 #endif

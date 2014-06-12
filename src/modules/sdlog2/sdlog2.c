@@ -84,8 +84,10 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/tecs_status.h>
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/servorail_status.h>
+#include <uORB/topics/wind_estimate.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -939,8 +941,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct telemetry_status_s telemetry;
 		struct range_finder_report range_finder;
 		struct estimator_status_report estimator_status;
+		struct tecs_status_s tecs_status;
 		struct system_power_s system_power;
 		struct servorail_status_s servorail_status;
+		struct wind_estimate_s wind_estimate;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -979,6 +983,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_GS0B_s log_GS0B;
 			struct log_GS1A_s log_GS1A;
 			struct log_GS1B_s log_GS1B;
+			struct log_TECS_s log_TECS;
+			struct log_WIND_s log_WIND;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1010,8 +1016,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int telemetry_sub;
 		int range_finder_sub;
 		int estimator_status_sub;
+		int tecs_status_sub;
 		int system_power_sub;
 		int servorail_status_sub;
+		int wind_sub;
 	} subs;
 
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -1037,8 +1045,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.telemetry_sub = orb_subscribe(ORB_ID(telemetry_status));
 	subs.range_finder_sub = orb_subscribe(ORB_ID(sensor_range_finder));
 	subs.estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
+	subs.tecs_status_sub = orb_subscribe(ORB_ID(tecs_status));
 	subs.system_power_sub = orb_subscribe(ORB_ID(system_power));
 	subs.servorail_status_sub = orb_subscribe(ORB_ID(servorail_status));
+	subs.wind_sub = orb_subscribe(ORB_ID(wind_estimate));
+	/* we need to rate-limit wind, as we do not need the full update rate */
+	orb_set_interval(subs.wind_sub, 90);
 
 	thread_running = true;
 
@@ -1126,8 +1138,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.msg_type = LOG_GPS_MSG;
 			log_msg.body.log_GPS.gps_time = buf_gps_pos.time_gps_usec;
 			log_msg.body.log_GPS.fix_type = buf_gps_pos.fix_type;
-			log_msg.body.log_GPS.eph = buf_gps_pos.eph_m;
-			log_msg.body.log_GPS.epv = buf_gps_pos.epv_m;
+			log_msg.body.log_GPS.eph = buf_gps_pos.eph;
+			log_msg.body.log_GPS.epv = buf_gps_pos.epv;
 			log_msg.body.log_GPS.lat = buf_gps_pos.lat;
 			log_msg.body.log_GPS.lon = buf_gps_pos.lon;
 			log_msg.body.log_GPS.alt = buf_gps_pos.alt * 0.001f;
@@ -1340,7 +1352,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- GLOBAL POSITION SETPOINT --- */
 		if (copy_if_updated(ORB_ID(position_setpoint_triplet), subs.triplet_sub, &buf.triplet)) {
 			log_msg.msg_type = LOG_GPSP_MSG;
-			log_msg.body.log_GPSP.nav_state = buf.triplet.nav_state;
+			log_msg.body.log_GPSP.nav_state = 0;  /* TODO: Fix this */
 			log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * 1e7d);
 			log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * 1e7d);
 			log_msg.body.log_GPSP.alt = buf.triplet.current.alt;
@@ -1486,6 +1498,36 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_ESTM.covariance_nan = buf.estimator_status.covariance_nan;
 			log_msg.body.log_ESTM.kalman_gain_nan = buf.estimator_status.kalman_gain_nan;
 			LOGBUFFER_WRITE_AND_COUNT(ESTM);
+		}
+
+		/* --- TECS STATUS --- */
+		if (copy_if_updated(ORB_ID(tecs_status), subs.tecs_status_sub, &buf.tecs_status)) {
+			log_msg.msg_type = LOG_TECS_MSG;
+			log_msg.body.log_TECS.altitudeSp = buf.tecs_status.altitudeSp;
+			log_msg.body.log_TECS.altitude = buf.tecs_status.altitude;
+			log_msg.body.log_TECS.flightPathAngleSp = buf.tecs_status.flightPathAngleSp;
+			log_msg.body.log_TECS.flightPathAngle = buf.tecs_status.flightPathAngle;
+			log_msg.body.log_TECS.airspeedSp = buf.tecs_status.airspeedSp;
+			log_msg.body.log_TECS.airspeed = buf.tecs_status.airspeed;
+			log_msg.body.log_TECS.airspeedFiltered = buf.tecs_status.airspeedFiltered;
+			log_msg.body.log_TECS.airspeedDerivativeSp = buf.tecs_status.airspeedDerivativeSp;
+			log_msg.body.log_TECS.airspeedDerivative = buf.tecs_status.airspeedDerivative;
+			log_msg.body.log_TECS.totalEnergyRateSp = buf.tecs_status.totalEnergyRateSp;
+			log_msg.body.log_TECS.totalEnergyRate = buf.tecs_status.totalEnergyRate;
+			log_msg.body.log_TECS.energyDistributionRateSp = buf.tecs_status.energyDistributionRateSp;
+			log_msg.body.log_TECS.energyDistributionRate = buf.tecs_status.energyDistributionRate;
+			log_msg.body.log_TECS.mode = (uint8_t)buf.tecs_status.mode;
+			LOGBUFFER_WRITE_AND_COUNT(TECS);
+		}
+
+		/* --- WIND ESTIMATE --- */
+		if (copy_if_updated(ORB_ID(wind_estimate), subs.wind_sub, &buf.wind_estimate)) {
+			log_msg.msg_type = LOG_WIND_MSG;
+			log_msg.body.log_WIND.x = buf.wind_estimate.windspeed_north;
+			log_msg.body.log_WIND.y = buf.wind_estimate.windspeed_east;
+			log_msg.body.log_WIND.cov_x = buf.wind_estimate.covariance_north;
+			log_msg.body.log_WIND.cov_y = buf.wind_estimate.covariance_east;
+			LOGBUFFER_WRITE_AND_COUNT(WIND);
 		}
 
 		/* signal the other thread new data, but not yet unlock */
