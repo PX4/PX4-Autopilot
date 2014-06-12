@@ -48,7 +48,7 @@ NavigatorMode::NavigatorMode(Navigator *navigator, const char *name) :
 	/* load initial params */
 	updateParams();
 	/* set initial mission items */
-	reset();
+	on_inactive();
 }
 
 NavigatorMode::~NavigatorMode()
@@ -56,13 +56,13 @@ NavigatorMode::~NavigatorMode()
 }
 
 void
-NavigatorMode::reset()
+NavigatorMode::on_inactive()
 {
 	_first_run = true;
 }
 
 bool
-NavigatorMode::update(struct position_setpoint_triplet_s *pos_sp_triplet)
+NavigatorMode::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
 	pos_sp_triplet->current.valid = false;
 	_first_run = false;

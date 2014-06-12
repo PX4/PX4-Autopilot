@@ -72,7 +72,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	/* load initial params */
 	updateParams();
 	/* set initial mission items */
-	reset();
+	on_inactive();
 
 }
 
@@ -81,7 +81,7 @@ Mission::~Mission()
 }
 
 void
-Mission::reset()
+Mission::on_inactive()
 {
 	_first_run = true;
 
@@ -100,7 +100,7 @@ Mission::reset()
 }
 
 bool
-Mission::update(struct position_setpoint_triplet_s *pos_sp_triplet)
+Mission::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
 	bool updated = false;
 
