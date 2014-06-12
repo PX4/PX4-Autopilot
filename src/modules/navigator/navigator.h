@@ -40,6 +40,8 @@
 #ifndef NAVIGATOR_H
 #define NAVIGATOR_H
 
+#include <vector>
+
 #include <systemlib/perf_counter.h>
 
 #include <controllib/blocks.hpp>
@@ -152,6 +154,8 @@ private:
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	RTL 		_rtl;				/**< class that handles RTL */
+
+	std::vector<NavigatorMode*> _navigation_mode_vector;
 
 	bool		_is_in_loiter;			/**< flags if current position SP can be used to loiter */
 	bool		_update_triplet;		/**< flags if position SP triplet needs to be published */
