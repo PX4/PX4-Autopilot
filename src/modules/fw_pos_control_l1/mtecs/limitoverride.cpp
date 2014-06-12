@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Author: 	@author Thomas Gubler <thomasgubler@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,62 +32,40 @@
  *
  ****************************************************************************/
 
+
 /**
- * @file vehicle_global_position.h
- * Definition of the global fused WGS84 position uORB topic.
+ * @file limitoverride.cpp
  *
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef TECS_STATUS_T_H_
-#define TECS_STATUS_T_H_
+#include "limitoverride.h"
 
-#include <stdint.h>
-#include <stdbool.h>
-#include "../uORB.h"
+namespace fwPosctrl {
 
-/**
- * @addtogroup topics
- * @{
- */
+bool LimitOverride::applyOverride(BlockOutputLimiter &outputLimiterThrottle,
+		BlockOutputLimiter &outputLimiterPitch)
+{
+	bool ret = false;
 
-typedef enum {
-	TECS_MODE_NORMAL,
-	TECS_MODE_UNDERSPEED,
-	TECS_MODE_TAKEOFF,
-	TECS_MODE_LAND,
-	TECS_MODE_LAND_THROTTLELIM
-} tecs_mode;
+	if (overrideThrottleMinEnabled)	{
+		outputLimiterThrottle.setMin(overrideThrottleMin);
+		ret = true;
+	}
+	if (overrideThrottleMaxEnabled)	{
+		outputLimiterThrottle.setMax(overrideThrottleMax);
+		ret = true;
+	}
+	if (overridePitchMinEnabled)	{
+		outputLimiterPitch.setMin(overridePitchMin);
+		ret = true;
+	}
+	if (overridePitchMaxEnabled)	{
+		outputLimiterPitch.setMax(overridePitchMax);
+		ret = true;
+	}
 
- /**
- * Internal values of the (m)TECS fixed wing speed alnd altitude control system
- */
-struct tecs_status_s {
-	uint64_t timestamp;		/**< timestamp, in microseconds since system start */
+	return ret;
+}
 
-	float altitudeSp;
-	float altitude;
-	float flightPathAngleSp;
-	float flightPathAngle;
-	float airspeedSp;
-	float airspeed;
-	float airspeedFiltered;
-	float airspeedDerivativeSp;
-	float airspeedDerivative;
-
-	float totalEnergyRateSp;
-	float totalEnergyRate;
-	float energyDistributionRateSp;
-	float energyDistributionRate;
-
-	tecs_mode mode;
-};
-
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(tecs_status);
-
-#endif
+} /* namespace fwPosctrl */

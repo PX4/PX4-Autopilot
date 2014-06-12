@@ -1509,6 +1509,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_TECS.flightPathAngle = buf.tecs_status.flightPathAngle;
 			log_msg.body.log_TECS.airspeedSp = buf.tecs_status.airspeedSp;
 			log_msg.body.log_TECS.airspeed = buf.tecs_status.airspeed;
+			log_msg.body.log_TECS.airspeedFiltered = buf.tecs_status.airspeedFiltered;
 			log_msg.body.log_TECS.airspeedDerivativeSp = buf.tecs_status.airspeedDerivativeSp;
 			log_msg.body.log_TECS.airspeedDerivative = buf.tecs_status.airspeedDerivative;
 			log_msg.body.log_TECS.totalEnergyRateSp = buf.tecs_status.totalEnergyRateSp;
