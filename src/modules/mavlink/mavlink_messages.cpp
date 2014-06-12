@@ -1049,13 +1049,8 @@ public:
 
 private:
 	MavlinkOrbSubscription *pos_sp_triplet_sub;
-	uint64_t pos_sp_triplet_time;
 
 protected:
-	explicit MavlinkStreamGlobalPositionSetpointInt() : MavlinkStream(),
-		pos_sp_triplet_time(0)
-	{}
-
 	void subscribe(Mavlink *mavlink)
 	{
 		pos_sp_triplet_sub = mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet));
@@ -1065,7 +1060,7 @@ protected:
 	{
 		struct position_setpoint_triplet_s pos_sp_triplet;
 
-		if (pos_sp_triplet_sub->update(&pos_sp_triplet_time, &pos_sp_triplet)) {
+		if (pos_sp_triplet_sub->update(&pos_sp_triplet)) {
 			mavlink_msg_global_position_setpoint_int_send(_channel,
 					MAV_FRAME_GLOBAL,
 					(int32_t)(pos_sp_triplet.current.lat * 1e7),
