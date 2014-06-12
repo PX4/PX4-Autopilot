@@ -44,6 +44,7 @@
 #define MTECS_H_
 
 #include "mTecs_blocks.h"
+#include "limitoverride.h"
 
 #include <controllib/block/BlockParam.hpp>
 #include <drivers/drv_hrt.h>
@@ -60,62 +61,6 @@ public:
 	mTecs();
 	virtual ~mTecs();
 
-	/* A small class which provides helper fucntions to override control output limits which are usually set by
-	 * parameters in special cases
-	 */
-	class LimitOverride
-	{
-	public:
-		LimitOverride() :
-			overrideThrottleMinEnabled(false),
-			overrideThrottleMaxEnabled(false),
-			overridePitchMinEnabled(false),
-			overridePitchMaxEnabled(false)
-		{};
-
-		~LimitOverride() {};
-
-		/*
-		 * Override the limits of the outputlimiter instances given by the arguments with the limits saved in
-		 * this class (if enabled)
-		 * @return true if the limit was applied
-		 */
-		bool applyOverride(BlockOutputLimiter &outputLimiterThrottle,
-				BlockOutputLimiter &outputLimiterPitch);
-
-		/* Functions to enable or disable the override */
-		void enableThrottleMinOverride(float value) { enable(&overrideThrottleMinEnabled,
-				&overrideThrottleMin, value); }
-		void disableThrottleMinOverride() { disable(&overrideThrottleMinEnabled); }
-		void enableThrottleMaxOverride(float value) { enable(&overrideThrottleMaxEnabled,
-				&overrideThrottleMax, value); }
-		void disableThrottleMaxOverride() { disable(&overrideThrottleMaxEnabled); }
-		void enablePitchMinOverride(float value) { enable(&overridePitchMinEnabled,
-				&overridePitchMin, value); }
-		void disablePitchMinOverride() { disable(&overridePitchMinEnabled); }
-		void enablePitchMaxOverride(float value) { enable(&overridePitchMaxEnabled,
-				&overridePitchMax, value); }
-		void disablePitchMaxOverride() { disable(&overridePitchMaxEnabled); }
-
-	protected:
-		bool overrideThrottleMinEnabled;
-		float overrideThrottleMin;
-		bool overrideThrottleMaxEnabled;
-		float overrideThrottleMax;
-		bool overridePitchMinEnabled;
-		float overridePitchMin; //in degrees (replaces param values)
-		bool overridePitchMaxEnabled;
-		float overridePitchMax; //in degrees (replaces param values)
-
-		/* Enable a specific limit override */
-		void enable(bool *flag, float *limit, float value) { *flag = true; *limit = value;
-		};
-		/* Disable a specific limit override */
-		void disable(bool *flag) { *flag = false; };
-
-
-	};
-
 	/*
 	 * Control in altitude setpoint and speed mode
 	 */
@@ -131,7 +76,7 @@ public:
 	/*
 	 * Control in flightPathAngle setpoint (flollow a slope etc.) and acceleration mode (base case)
 	 */
-	int updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeed,
+	int updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeedFiltered,
 			float accelerationLongitudinalSp, tecs_mode mode, LimitOverride limitOverride);
 
 	/*
@@ -145,9 +90,10 @@ public:
 	void resetDerivatives(float airspeed);
 
 	/* Accessors */
-	bool getEnabled() {return _mTecsEnabled.get() > 0;}
-	float getThrottleSetpoint() {return _throttleSp;}
-	float getPitchSetpoint() {return _pitchSp;}
+	bool getEnabled() { return _mTecsEnabled.get() > 0; }
+	float getThrottleSetpoint() { return _throttleSp; }
+	float getPitchSetpoint() { return _pitchSp; }
+	float airspeedLowpassUpdate(float input) { return _airspeedLowpass.update(input); }
 
 protected:
 	/* parameters */
@@ -160,11 +106,12 @@ protected:
 	/* control blocks */
 	BlockFFPILimitedCustom _controlTotalEnergy;		/**< FFPI controller for total energy control: output is throttle */
 	BlockFFPILimitedCustom _controlEnergyDistribution;	/**< FFPI controller for energy distribution control: output is pitch */
-	BlockPDLimited	_controlAltitude;		/**< P controller for altitude: output is the flight path angle setpoint */
-	BlockPLimited	_controlAirSpeed;			/**< P controller for airspeed: output is acceleration setpoint */
+	BlockPDLimited	_controlAltitude;		/**< PD controller for altitude: output is the flight path angle setpoint */
+	BlockPDLimited	_controlAirSpeed;			/**< PD controller for airspeed: output is acceleration setpoint */
 
 	/* Other calculation Blocks */
-	control::BlockDerivative _airspeedDerivative;
+	control::BlockLowPass _airspeedLowpass;		/**< low pass filter for airspeed */
+	control::BlockDerivative _airspeedDerivative;	/**< airspeed derivative calulation */
 
 	/* Output setpoints */
 	float _throttleSp;				/**< Throttle Setpoint from 0 to 1 */
