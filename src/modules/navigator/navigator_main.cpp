@@ -351,8 +351,8 @@ Navigator::task_main()
 				_navigation_mode = &_loiter;
 				break;
 			case NAVIGATION_STATE_AUTO_RTL:
-			case NAVIGATION_STATE_AUTO_RTL_RC:
-			case NAVIGATION_STATE_AUTO_RTL_DL:
+			case NAVIGATION_STATE_AUTO_FAILSAFE_RC_LOSS:
+			case NAVIGATION_STATE_AUTO_FAILSAFE_DL_LOSS:
 				_navigation_mode = &_rtl;
 				break;
 			case NAVIGATION_STATE_LAND:
@@ -365,21 +365,21 @@ Navigator::task_main()
 
 		/* TODO: make list of modes and loop through it */
 		if (_navigation_mode == &_mission) {
-			_update_triplet = _mission.update(&_pos_sp_triplet);
+			_update_triplet = _mission.on_active(&_pos_sp_triplet);
 		} else {
-			_mission.reset();
+			_mission.on_inactive();
 		}
 
 		if (_navigation_mode == &_rtl) {
-			_update_triplet = _rtl.update(&_pos_sp_triplet);
+			_update_triplet = _rtl.on_active(&_pos_sp_triplet);
 		} else {
-			_rtl.reset();
+			_rtl.on_inactive();
 		}
 
 		if (_navigation_mode == &_loiter) {
-			_update_triplet = _loiter.update(&_pos_sp_triplet);
+			_update_triplet = _loiter.on_active(&_pos_sp_triplet);
 		} else {
-			_loiter.reset();
+			_loiter.on_inactive();
 		}
 
 		/* if nothing is running, set position setpoint triplet invalid */

@@ -68,7 +68,7 @@ public:
 	/**
 	 * This function is called while the mode is inactive
 	 */
-	virtual void reset();
+	virtual void on_inactive();
 
 	/**
 	 * This function is called while the mode is active
@@ -76,7 +76,7 @@ public:
 	 * @param position setpoint triplet to set
 	 * @return true if position setpoint triplet has been changed
 	 */
-	virtual bool update(struct position_setpoint_triplet_s *pos_sp_triplet);
+	virtual bool on_active(struct position_setpoint_triplet_s *pos_sp_triplet);
 
 protected:
 	Navigator *_navigator;
