@@ -37,10 +37,11 @@ then
 	param set MPC_LAND_SPEED 1.0
 
 	param set PE_VELNE_NOISE 0.5
-	param set PE_VELNE_NOISE 0.7
+	param set PE_VELD_NOISE 0.7
 	param set PE_POSNE_NOISE 0.5
 	param set PE_POSD_NOISE 1.0
 
+	param set NAV_ACCEPT_RAD 2.0
 fi
 
 set PWM_RATE 400

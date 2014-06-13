@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,57 +30,42 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file mission_feasibility_checker.h
- * Provides checks if mission is feasible given the navigation capabilities
+ * @file drv_io_expander.h
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * IO expander device API
  */
 
-#ifndef MISSION_FEASIBILITY_CHECKER_H_
-#define MISSION_FEASIBILITY_CHECKER_H_
+#pragma once
 
-#include <unistd.h>
-#include <uORB/topics/mission.h>
-#include <uORB/topics/navigation_capabilities.h>
-#include <dataman/dataman.h>
-#include "geofence.h"
+#include <stdint.h>
+#include <sys/ioctl.h>
 
+/*
+ * ioctl() definitions
+ */
 
-class MissionFeasibilityChecker
-{
-private:
-	int		_mavlink_fd;
+#define _IOXIOCBASE		(0x2800)
+#define _IOXIOC(_n)		(_IOC(_IOXIOCBASE, _n))
 
-	int _capabilities_sub;
-	struct navigation_capabilities_s _nav_caps;
+/** set a bitmask (non-blocking) */
+#define IOX_SET_MASK		_IOXIOC(1)
 
-	bool _initDone;
-	void init();
+/** get a bitmask (blocking) */
+#define IOX_GET_MASK		_IOXIOC(2)
 
-	/* Checks for all airframes */
-	bool checkGeofence(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence);
-	bool checkHomePositionAltitude(dm_item_t dm_current, size_t nMissionItems, float home_alt, bool throw_error = false);
+/** set device mode (non-blocking) */
+#define IOX_SET_MODE		_IOXIOC(3)
 
-	/* Checks specific to fixedwing airframes */
-	bool checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt);
-	bool checkFixedWingLanding(dm_item_t dm_current, size_t nMissionItems);
-	void updateNavigationCapabilities();
+/** set constant values (non-blocking) */
+#define IOX_SET_VALUE		_IOXIOC(4)
 
-	/* Checks specific to rotarywing airframes */
-	bool checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt);
-public:
+/* ... to IOX_SET_VALUE + 8 */
 
-	MissionFeasibilityChecker();
-	~MissionFeasibilityChecker() {}
-
-	/*
-	 * Returns true if mission is feasible and false otherwise
-	 */
-	bool checkMissionFeasible(bool isRotarywing, dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt);
-
+/* enum passed to RGBLED_SET_MODE ioctl()*/
+enum IOX_MODE {
+	IOX_MODE_OFF,
+	IOX_MODE_ON,
+	IOX_MODE_TEST_OUT
 };
-
-
-#endif /* MISSION_FEASIBILITY_CHECKER_H_ */

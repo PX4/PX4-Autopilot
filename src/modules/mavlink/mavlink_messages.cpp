@@ -274,7 +274,7 @@ protected:
 						status->onboard_control_sensors_health,
 						status->load * 1000.0f,
 						status->battery_voltage * 1000.0f,
-						status->battery_current * 1000.0f,
+						status->battery_current * 100.0f,
 						status->battery_remaining * 100.0f,
 						status->drop_rate_comm,
 						status->errors_comm,
@@ -938,14 +938,14 @@ protected:
 
 	void send(const hrt_abstime t)
 	{
-		if (pos_sp_triplet_sub->update(t)) {
-			mavlink_msg_global_position_setpoint_int_send(_channel,
-					MAV_FRAME_GLOBAL,
-					(int32_t)(pos_sp_triplet->current.lat * 1e7),
-					(int32_t)(pos_sp_triplet->current.lon * 1e7),
-					(int32_t)(pos_sp_triplet->current.alt * 1000),
-					(int16_t)(pos_sp_triplet->current.yaw * M_RAD_TO_DEG_F * 100.0f));
-		}
+		/* always send this message, even if it has not been updated */
+		pos_sp_triplet_sub->update(t);
+		mavlink_msg_global_position_setpoint_int_send(_channel,
+			MAV_FRAME_GLOBAL,
+			(int32_t)(pos_sp_triplet->current.lat * 1e7),
+			(int32_t)(pos_sp_triplet->current.lon * 1e7),
+			(int32_t)(pos_sp_triplet->current.alt * 1000),
+			(int16_t)(pos_sp_triplet->current.yaw * M_RAD_TO_DEG_F * 100.0f));
 	}
 };
 
