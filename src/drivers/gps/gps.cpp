@@ -80,6 +80,14 @@
 #endif
 static const int ERROR = -1;
 
+/* class for dynamic allocation of satellite info data */
+class GPS_Sat_Info
+{
+public:
+	struct satellite_info_s 	_data;
+};
+
+
 class GPS : public device::CDev
 {
 public:
@@ -103,17 +111,17 @@ private:
 	char				_port[20];					///< device / serial port path
 	volatile int			_task;						//< worker task
 	bool				_healthy;					///< flag to signal if the GPS is ok
-	bool 				_baudrate_changed;				///< flag to signal that the baudrate with the GPS has changed
+	bool				_baudrate_changed;				///< flag to signal that the baudrate with the GPS has changed
 	bool				_mode_changed;					///< flag that the GPS mode has changed
 	gps_driver_mode_t		_mode;						///< current mode
 	GPS_Helper			*_Helper;					///< instance of GPS parser
-	struct vehicle_gps_position_s 	_report_gps_pos;				///< uORB topic for gps position
+	GPS_Sat_Info			*_Sat_Info;					///< instance of GPS sat info data object
+	struct vehicle_gps_position_s	_report_gps_pos;				///< uORB topic for gps position
 	orb_advert_t			_report_gps_pos_pub;				///< uORB pub for gps position
-	struct satellite_info_s 	_report_sat_info;				///< uORB topic for satellite info
+	struct satellite_info_s		*_p_report_sat_info;				///< pointer to uORB topic for satellite info
 	orb_advert_t			_report_sat_info_pub;				///< uORB pub for satellite info
 	float				_rate;						///< position update rate
 	bool				_fake_gps;					///< fake gps output
-	bool				_enable_sat_info;				///< enable sat info
 
 
 	/**
@@ -165,11 +173,12 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 	_mode_changed(false),
 	_mode(GPS_DRIVER_MODE_UBX),
 	_Helper(nullptr),
+	_Sat_Info(nullptr),
 	_report_gps_pos_pub(-1),
+	_p_report_sat_info(nullptr),
 	_report_sat_info_pub(-1),
 	_rate(0.0f),
-	_fake_gps(fake_gps),
-	_enable_sat_info(enable_sat_info)
+	_fake_gps(fake_gps)
 {
 	/* store port name */
 	strncpy(_port, uart_path, sizeof(_port));
@@ -179,7 +188,13 @@ GPS::GPS(const char *uart_path, bool fake_gps, bool enable_sat_info) :
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
 	memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
-	memset(&_report_sat_info, 0, sizeof(_report_sat_info));
+
+	/* create satellite info data object if requested */
+	if (enable_sat_info) {
+		_Sat_Info = new(GPS_Sat_Info);
+		_p_report_sat_info = &_Sat_Info->_data;
+		memset(_p_report_sat_info, 0, sizeof(*_p_report_sat_info));
+	}
 
 	_debug_enabled = true;
 }
@@ -214,7 +229,7 @@ GPS::init()
 
 	/* start the GPS driver worker task */
 	_task = task_spawn_cmd("gps", SCHED_DEFAULT,
-				SCHED_PRIORITY_SLOW_DRIVER, 2000, (main_t)&GPS::task_main_trampoline, nullptr);
+				SCHED_PRIORITY_SLOW_DRIVER, 1500, (main_t)&GPS::task_main_trampoline, nullptr);
 
 	if (_task < 0) {
 		warnx("task start failed: %d", errno);
@@ -320,7 +335,7 @@ GPS::task_main()
 
 			switch (_mode) {
 			case GPS_DRIVER_MODE_UBX:
-				_Helper = new UBX(_serial_fd, &_report_gps_pos, &_report_sat_info, _enable_sat_info);
+				_Helper = new UBX(_serial_fd, &_report_gps_pos, _p_report_sat_info);
 				break;
 
 			case GPS_DRIVER_MODE_MTK:
@@ -353,12 +368,12 @@ GPS::task_main()
 								_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
 							}
 						}
-						if (helper_ret & 2) {
+						if (_p_report_sat_info && (helper_ret & 2)) {
 							if (_report_sat_info_pub > 0) {
-								orb_publish(ORB_ID(satellite_info), _report_sat_info_pub, &_report_sat_info);
+								orb_publish(ORB_ID(satellite_info), _report_sat_info_pub, _p_report_sat_info);
 
 							} else {
-								_report_sat_info_pub = orb_advertise(ORB_ID(satellite_info), &_report_sat_info);
+								_report_sat_info_pub = orb_advertise(ORB_ID(satellite_info), _p_report_sat_info);
 							}
 						}
 					}
@@ -466,7 +481,7 @@ GPS::print_info()
 	}
 
 	warnx("port: %s, baudrate: %d, status: %s", _port, _baudrate, (_healthy) ? "OK" : "NOT OK");
-	warnx("sat info: %s", (_enable_sat_info) ? "enabled" : "disabled");
+	warnx("sat info: %s", (_p_report_sat_info != nullptr) ? "enabled" : "disabled");
 
 	if (_report_gps_pos.timestamp_position != 0) {
 		warnx("position lock: %dD, satellites: %d, last update: %8.4fms ago", (int)_report_gps_pos.fix_type,
