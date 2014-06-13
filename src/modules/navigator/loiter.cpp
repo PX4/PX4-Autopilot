@@ -59,7 +59,7 @@ Loiter::Loiter(Navigator *navigator, const char *name) :
 	/* load initial params */
 	updateParams();
 	/* initial reset */
-	reset();
+	on_inactive();
 }
 
 Loiter::~Loiter()
@@ -67,14 +67,14 @@ Loiter::~Loiter()
 }
 
 bool
-Loiter::update(struct position_setpoint_triplet_s *pos_sp_triplet)
+Loiter::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
 	/* set loiter item, don't reuse an existing position setpoint */
 	return set_loiter_item(false, pos_sp_triplet);;
 }
 
 void
-Loiter::reset()
+Loiter::on_inactive()
 {
 }
 

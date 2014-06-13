@@ -64,7 +64,7 @@ RTL::RTL(Navigator *navigator, const char *name) :
 	/* load initial params */
 	updateParams();
 	/* initial reset */
-	reset();
+	on_inactive();
 }
 
 RTL::~RTL()
@@ -72,14 +72,14 @@ RTL::~RTL()
 }
 
 void
-RTL::reset()
+RTL::on_inactive()
 {
 	_first_run = true;
 	_rtl_state = RTL_STATE_NONE;
 }
 
 bool
-RTL::update(struct position_setpoint_triplet_s *pos_sp_triplet)
+RTL::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
 	bool updated = false;
 

@@ -1300,7 +1300,7 @@ int commander_thread_main(int argc, char *argv[])
 
 					/* if we have a global position, we can switch to RTL, if not, we can try to land */
 					if (status.condition_global_position_valid) {
-						status.failsafe_state = FAILSAFE_STATE_RTL_RC;
+						status.failsafe_state = FAILSAFE_STATE_RC_LOSS;
 					} else {
 						status.failsafe_state = FAILSAFE_STATE_LAND;
 					}
@@ -1313,10 +1313,10 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* hack to detect if we finished a mission after we lost RC, so that we can trigger RTL now */
 		if (status.rc_signal_lost && status.set_nav_state == NAVIGATION_STATE_AUTO_MISSION &&
-		    mission_result.mission_finished && status.failsafe_state != FAILSAFE_STATE_RTL_RC) {
+		    mission_result.mission_finished && status.failsafe_state != FAILSAFE_STATE_RC_LOSS) {
 			/* if we have a global position, we can switch to RTL, if not, we can try to land */
 			if (status.condition_global_position_valid) {
-				status.failsafe_state = FAILSAFE_STATE_RTL_RC;
+				status.failsafe_state = FAILSAFE_STATE_RC_LOSS;
 				mavlink_log_info(mavlink_fd, "#audio: RTL after Mission is finished");
 			} else {
 				/* this probably doesn't make sense since we are in mission and have global position */
@@ -1719,8 +1719,8 @@ set_control_mode()
 	case NAVIGATION_STATE_AUTO_MISSION:
 	case NAVIGATION_STATE_AUTO_LOITER:
 	case NAVIGATION_STATE_AUTO_RTL:
-	case NAVIGATION_STATE_AUTO_RTL_RC:
-	case NAVIGATION_STATE_AUTO_RTL_DL:
+	case NAVIGATION_STATE_AUTO_FAILSAFE_RC_LOSS:
+	case NAVIGATION_STATE_AUTO_FAILSAFE_DL_LOSS:
 		control_mode.flag_control_manual_enabled = false;
 		control_mode.flag_control_auto_enabled = true;
 		control_mode.flag_control_rates_enabled = true;

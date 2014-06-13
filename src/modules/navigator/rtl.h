@@ -70,7 +70,7 @@ public:
 	/**
 	 * This function is called while the mode is inactive
 	 */
-	void reset();
+	void on_inactive();
 
 	/**
 	 * This function is called while the mode is active
@@ -78,7 +78,7 @@ public:
 	 * @param position setpoint triplet that needs to be set
 	 * @return true if updated
 	 */
-	bool update(position_setpoint_triplet_s *pos_sp_triplet);
+	bool on_active(position_setpoint_triplet_s *pos_sp_triplet);
 
 
 private:
