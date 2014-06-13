@@ -72,8 +72,6 @@
 #include <mavlink/mavlink_log.h>
 
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/mission.h>
-#include <uORB/topics/mission_result.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_main.h"
@@ -245,7 +243,7 @@ Mavlink::Mavlink() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink"))
 {
 	_wpm = &_wpm_s;
-	mission.count = 0;
+
 	fops.ioctl = (int (*)(file *, int, long unsigned int))&mavlink_dev_ioctl;
 
 	_instance_id = Mavlink::instance_count();
@@ -860,10 +858,10 @@ void Mavlink::publish_mission()
 {
 	/* Initialize mission publication if necessary */
 	if (_mission_pub < 0) {
-		_mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
+		_mission_pub = orb_advertise(ORB_ID(offboard_mission), &_mission);
 
 	} else {
-		orb_publish(ORB_ID(offboard_mission), _mission_pub, &mission);
+		orb_publish(ORB_ID(offboard_mission), _mission_pub, &_mission);
 	}
 }
 
@@ -963,10 +961,20 @@ int Mavlink::map_mission_item_to_mavlink_mission_item(const struct mission_item_
 
 void Mavlink::mavlink_wpm_init(mavlink_wpm_storage *state)
 {
+	/* get offboard_mission topic */
+	int mission_sub = orb_subscribe(ORB_ID(offboard_mission));
+	if (orb_copy(ORB_ID(offboard_mission), mission_sub, &_mission)) {
+		/* error getting topic, init to safe values */
+		_mission.dataman_id = 0;
+		_mission.count = 0;
+		_mission.current_index = -1;
+	}
+	close(mission_sub);
+
 	/* init WPM state */
-	state->size = 0;
+	state->size = _mission.count;
 	state->max_size = MAVLINK_WPM_MAX_WP_COUNT;
-	state->dataman_id = 0;
+	state->dataman_id = _mission.dataman_id;
 	state->current_state = MAVLINK_WPM_STATE_IDLE;
 	state->current_partner_sysid = 0;
 	state->current_partner_compid = 0;
@@ -977,7 +985,7 @@ void Mavlink::mavlink_wpm_init(mavlink_wpm_storage *state)
 	state->action_timeout = MAVLINK_WPM_PROTOCOL_TIMEOUT_DEFAULT;
 	state->retry_timeout = MAVLINK_WPM_RETRY_TIMEOUT_DEFAULT;
 
-	
+	warnx("wpm init: dataman_id=%d, count=%u, current=%d", state->dataman_id, state->size, _mission.current_index);
 }
 
 /*
@@ -1035,7 +1043,7 @@ void Mavlink::mavlink_wpm_send_waypoint_count(uint8_t sysid, uint8_t compid, uin
 
 	wpc.target_system = sysid;
 	wpc.target_component = compid;
-	wpc.count = mission.count;
+	wpc.count = _wpm->size;
 
 	mavlink_msg_mission_count_encode_chan(mavlink_system.sysid, _mavlink_wpm_comp_id, _channel, &msg, &wpc);
 	mavlink_missionlib_send_message(&msg);
@@ -1058,6 +1066,7 @@ void Mavlink::mavlink_wpm_send_waypoint(uint8_t sysid, uint8_t compid, uint16_t 
 		wp.target_system = sysid;
 		wp.target_component = compid;
 		wp.seq = seq;
+		wp.current = (_mission_result.index_current_mission == seq) ? 1 : 0;
 		mavlink_msg_mission_item_encode_chan(mavlink_system.sysid, _mavlink_wpm_comp_id, _channel, &msg, &wp);
 		mavlink_missionlib_send_message(&msg);
 
@@ -1175,7 +1184,7 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 					if (wpc.seq < _wpm->size) {
 						if (_verbose) { warnx("WPM: MISSION_SET_CURRENT OK (%d)", wpc.seq); }
 
-						mission.current_index = wpc.seq;
+						_mission.current_index = wpc.seq;
 						publish_mission();
 
 					} else {
@@ -1353,7 +1362,7 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 				_wpm->current_count = wpc.count;
 				_wpm->current_dataman_id = _wpm->dataman_id == 0 ? 1 : 0;	// use inactive storage for transmission
 
-				mission.current_index = -1;
+				_mission.current_index = -1;
 
 				mavlink_wpm_send_waypoint_request(_wpm->current_partner_sysid, _wpm->current_partner_compid, _wpm->current_wp_id);
 			}
@@ -1418,7 +1427,7 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 
 				/* waypoint marked as current */
 				if (wp.current) {
-					mission.current_index = wp.seq;
+					_mission.current_index = wp.seq;
 				}
 
 				if (_verbose) { warnx("WPM: MISSION_ITEM seq %u received", wp.seq); }
@@ -1438,8 +1447,8 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 					_wpm->size = _wpm->current_count;
 
 					/* update mission topic */
-					mission.dataman_id = _wpm->dataman_id;
-					mission.count = _wpm->current_count;
+					_mission.dataman_id = _wpm->dataman_id;
+					_mission.count = _wpm->current_count;
 
 					publish_mission();
 
@@ -1471,9 +1480,9 @@ void Mavlink::mavlink_wpm_message_handler(const mavlink_message_t *msg)
 						_wpm->size = 0;
 
 						/* update mission topic */
-						mission.dataman_id = _wpm->dataman_id;
-						mission.count = 0;
-						mission.current_index = -1;
+						_mission.dataman_id = _wpm->dataman_id;
+						_mission.count = 0;
+						_mission.current_index = -1;
 
 						publish_mission();
 
@@ -1754,7 +1763,6 @@ Mavlink::pass_message(mavlink_message_t *msg)
 }
 
 
-
 int
 Mavlink::task_main(int argc, char *argv[])
 {
@@ -1918,8 +1926,7 @@ Mavlink::task_main(int argc, char *argv[])
 	mavlink_wpm_init(_wpm);
 
 	int mission_result_sub = orb_subscribe(ORB_ID(mission_result));
-	struct mission_result_s mission_result;
-	memset(&mission_result, 0, sizeof(mission_result));
+	memset(&_mission_result, 0, sizeof(_mission_result));
 
 	_task_running = true;
 
@@ -2027,19 +2034,19 @@ Mavlink::task_main(int argc, char *argv[])
 		orb_check(mission_result_sub, &updated);
 
 		if (updated) {
-			orb_copy(ORB_ID(mission_result), mission_result_sub, &mission_result);
+			orb_copy(ORB_ID(mission_result), mission_result_sub, &_mission_result);
 
-			if (_verbose) { warnx("Got mission result: new current: %d", mission_result.index_current_mission); }
+			if (_verbose) { warnx("WPM: got mission result, new current: %d", _mission_result.index_current_mission); }
 
-			if (mission_result.mission_reached) {
-				mavlink_wpm_send_waypoint_reached((uint16_t)mission_result.mission_index_reached);
+			if (_mission_result.mission_reached) {
+				mavlink_wpm_send_waypoint_reached((uint16_t)_mission_result.mission_index_reached);
 			}
 
-			mavlink_wpm_send_waypoint_current((uint16_t)mission_result.index_current_mission);
+			mavlink_wpm_send_waypoint_current((uint16_t)_mission_result.index_current_mission);
 
 		} else {
 			if (slow_rate_limiter.check(t)) {
-				mavlink_wpm_send_waypoint_current((uint16_t)mission_result.index_current_mission);
+				mavlink_wpm_send_waypoint_current((uint16_t)_mission_result.index_current_mission);
 			}
 		}
 

@@ -50,6 +50,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
+#include <uORB/topics/mission_result.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_orb_subscription.h"
@@ -238,7 +239,8 @@ private:
 	MavlinkStream *_streams;
 
 	orb_advert_t	_mission_pub;
-	struct mission_s mission;
+	struct mission_s _mission;
+	struct mission_result_s _mission_result;
 	MAVLINK_MODE _mode;
 
 	uint8_t _mavlink_wpm_comp_id;
