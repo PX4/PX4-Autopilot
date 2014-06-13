@@ -65,7 +65,7 @@ PARAM_DEFINE_INT32(MT_ENABLED, 1);
  * @max 10.0
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_THR_FF, 0.2f);
+PARAM_DEFINE_FLOAT(MT_THR_FF, 0.7f);
 
 /**
  * Total Energy Rate Control P
@@ -75,7 +75,7 @@ PARAM_DEFINE_FLOAT(MT_THR_FF, 0.2f);
  * @max 10.0
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_THR_P, 0.03f);
+PARAM_DEFINE_FLOAT(MT_THR_P, 0.1f);
 
 /**
  * Total Energy Rate Control I
@@ -85,7 +85,7 @@ PARAM_DEFINE_FLOAT(MT_THR_P, 0.03f);
  * @max 10.0
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_THR_I, 0.1f);
+PARAM_DEFINE_FLOAT(MT_THR_I, 0.25f);
 
 /**
  * Total Energy Rate Control Offset (Cruise throttle sp)
@@ -104,7 +104,7 @@ PARAM_DEFINE_FLOAT(MT_THR_OFF, 0.7f);
  * @max 10.0
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_PIT_FF, 0.1f);
+PARAM_DEFINE_FLOAT(MT_PIT_FF, 0.4f);
 
 /**
  * Energy Distribution Rate Control P
@@ -182,7 +182,7 @@ PARAM_DEFINE_FLOAT(MT_PIT_MAX, 20.0f);
  * @max 10.0f
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_FPA_P, 0.2f);
+PARAM_DEFINE_FLOAT(MT_FPA_P, 0.3f);
 
 /**
  * D gain for the altitude control
@@ -210,7 +210,7 @@ PARAM_DEFINE_FLOAT(MT_FPA_D_LP, 1.0f);
  * @unit deg
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_FPA_MIN, -10.0f);
+PARAM_DEFINE_FLOAT(MT_FPA_MIN, -20.0f);
 
 /**
  * Maximal flight path angle setpoint
@@ -237,7 +237,7 @@ PARAM_DEFINE_FLOAT(MT_A_LP, 1.0f);
  * @max 10.0f
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_ACC_P, 1.5f);
+PARAM_DEFINE_FLOAT(MT_ACC_P, 0.3f);
 
 /**
  * D gain for the airspeed control
