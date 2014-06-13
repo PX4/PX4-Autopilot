@@ -721,6 +721,10 @@ MulticopterPositionControl::task_main()
 				_att_sp.yaw_body = _att.yaw;
 				_att_sp.thrust = 0.0f;
 
+				_att_sp.rollrate_ff = 0.0f;
+				_att_sp.pitchrate_ff = 0.0f;
+				_att_sp.yawrate_ff = 0.0f;
+
 				_att_sp.timestamp = hrt_absolute_time();
 
 				/* publish attitude setpoint */
@@ -1004,6 +1008,18 @@ MulticopterPositionControl::task_main()
 						_att_sp.pitch_body = euler(1);
 						/* yaw already used to construct rot matrix, but actual rotation matrix can have different yaw near singularity */
 
+						math::Vector<3> rates_ff;
+						if (thrust_abs > SIGMA) {
+							rates_ff = (thrust_sp % vel_err_d) * _params.vel_p(0) / thrust_abs / thrust_abs;
+
+						} else {
+							rates_ff.zero();
+						}
+
+						_att_sp.rollrate_ff = rates_ff(0);
+						_att_sp.pitchrate_ff = rates_ff(1);
+						_att_sp.yawrate_ff = rates_ff(2);
+
 					} else if (!_control_mode.flag_control_manual_enabled) {
 						/* autonomous altitude control without position control (failsafe landing),
 						 * force level attitude, don't change yaw */
@@ -1015,6 +1031,10 @@ MulticopterPositionControl::task_main()
 
 						_att_sp.roll_body = 0.0f;
 						_att_sp.pitch_body = 0.0f;
+
+						_att_sp.rollrate_ff = 0.0f;
+						_att_sp.pitchrate_ff = 0.0f;
+						_att_sp.yawrate_ff = 0.0f;
 					}
 
 					_att_sp.thrust = thrust_abs;
