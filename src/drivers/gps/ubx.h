@@ -88,10 +88,6 @@
 #define UBX_MSG_CFG_NAV5	((UBX_CLASS_CFG) | UBX_ID_CFG_NAV5 << 8)
 #define UBX_MSG_MON_HW		((UBX_CLASS_MON) | UBX_ID_MON_HW << 8)
 
-/* NAV_SVINFO has variable length w/o a published max size, so limit processing to UBX_MAX_NUM_SAT */
-#define UBX_MAX_NUM_SAT_SVINFO		50				/**< Practical observed max number of satellites in SVNFO msg */
-#define UBX_PAYLOAD_NAV_SVINFO	(8 + 12 * UBX_MAX_NUM_SAT_SVINFO)	/**< NAV_SVINFO Rx msg payload size */
-
 /* TX CFG-PRT message contents */
 #define UBX_TX_CFG_PRT_PORTID		0x01		/**< UART1 */
 #define UBX_TX_CFG_PRT_MODE		0x000008D0	/**< 0b0000100011010000: 8N1 */
