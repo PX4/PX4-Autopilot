@@ -63,12 +63,12 @@ public:
 	/**
 	 * This function is called while the mode is inactive
 	 */
-	bool update(struct position_setpoint_triplet_s *pos_sp_triplet);
+	virtual void on_inactive();
 
 	/**
 	 * This function is called while the mode is active
 	 */
-	void reset();
+	virtual bool on_active(struct position_setpoint_triplet_s *pos_sp_triplet);
 };
 
 #endif
