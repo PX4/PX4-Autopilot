@@ -46,9 +46,6 @@ Vector3f operator*(Vector3f vecIn1, float sclIn1);
 
 void swap_var(float &d1, float &d2);
 
-const unsigned int n_states = 23;
-const unsigned int data_buffer_size = 50;
-
 enum GPS_FIX {
     GPS_FIX_NOFIX = 0,
     GPS_FIX_2D = 2,
@@ -65,7 +62,8 @@ struct ekf_status_report {
     uint32_t velFailTime;
     uint32_t posFailTime;
     uint32_t hgtFailTime;
-    float states[n_states];
+    float states[32];
+    unsigned n_states;
     bool angNaN;
     bool summedDelVelNaN;
     bool KHNaN;
@@ -74,6 +72,8 @@ struct ekf_status_report {
     bool covarianceNaN;
     bool kalmanGainsNaN;
     bool statesNaN;
+    bool gyroOffsetsExcessive;
+    bool covariancesExcessive;
 };
 
 void ekf_debug(const char *fmt, ...);

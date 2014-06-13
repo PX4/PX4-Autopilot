@@ -1,5 +1,6 @@
 #include "estimator_23states.h"
 #include <string.h>
+#include <stdio.h>
 #include <stdarg.h>
 
 #define EKF_COVARIANCE_DIVERGED 1.0e8f
@@ -33,6 +34,8 @@ AttPosEKF::AttPosEKF()
     magDeclination = 0.0f;
     dAngIMU.zero();
     dVelIMU.zero();
+    ekfDiverged = false;
+    delAngTotal.zero();
 
     memset(&last_ekf_error, 0, sizeof(last_ekf_error));
     ZeroVariables();
@@ -69,6 +72,10 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
     dVelIMU.x = dVelIMU.x;
     dVelIMU.y = dVelIMU.y;
     dVelIMU.z = dVelIMU.z - states[13];
+
+    delAngTotal.x += correctedDelAng.x;
+    delAngTotal.y += correctedDelAng.y;
+    delAngTotal.z += correctedDelAng.z;
 
 // Save current measurements
     Vector3f  prevDelAng = correctedDelAng;
@@ -201,7 +208,8 @@ void AttPosEKF::CovariancePrediction(float dt)
     float nextP[n_states][n_states];
 
     // calculate covariance prediction process noise
-    for (uint8_t i= 0; i<=9;  i++) processNoise[i] = 1.0e-9f;
+    for (uint8_t i= 0; i<4;  i++) processNoise[i] = 1.0e-9f;
+    for (uint8_t i= 4; i<10;  i++) processNoise[i] = 1.0e-9f;
     for (uint8_t i=10; i<=12; i++) processNoise[i] = dt * dAngBiasSigma;
     // scale gyro bias noise when on ground to allow for faster bias estimation
     for (uint8_t i=10; i<=12; i++) processNoise[i] = dt * dAngBiasSigma;
@@ -2081,7 +2089,7 @@ void AttPosEKF::ForceSymmetry()
 
             if ((fabsf(P[i][j]) > EKF_COVARIANCE_DIVERGED) ||
                 (fabsf(P[j][i]) > EKF_COVARIANCE_DIVERGED)) {
-                // XXX divergence report error
+                last_ekf_error.covariancesExcessive = true;
                 InitializeDynamic(velNED, magDeclination);
                 return;
             }
@@ -2115,6 +2123,24 @@ bool AttPosEKF::GyroOffsetsDiverged()
     lastGyroOffset = current_bias;
 
     return diverged;
+}
+
+bool AttPosEKF::VelNEDDiverged()
+{
+    Vector3f current_vel;
+    current_vel.x = states[4];
+    current_vel.y = states[5];
+    current_vel.z = states[6];
+
+    Vector3f gps_vel;
+    gps_vel.x = velNED[0];
+    gps_vel.y = velNED[1];
+    gps_vel.z = velNED[2];
+
+    Vector3f delta = current_vel - gps_vel;
+    float delta_len = delta.length();
+
+    return (delta_len > 20.0f);
 }
 
 bool AttPosEKF::FilterHealthy()
@@ -2188,6 +2214,7 @@ void AttPosEKF::FillErrorReport(struct ekf_status_report *err)
     {
         err->states[i] = states[i];
     }
+    err->n_states = n_states;
 
     err->velHealth = current_ekf_state.velHealth;
     err->posHealth = current_ekf_state.posHealth;
@@ -2290,13 +2317,19 @@ int AttPosEKF::CheckAndBound()
     // Store the old filter state
     bool currStaticMode = staticMode;
 
+    if (ekfDiverged) {
+        ekfDiverged = false;
+    }
+
+    int ret = 0;
+
     // Reset the filter if the states went NaN
     if (StatesNaN(&last_ekf_error)) {
         ekf_debug("re-initializing dynamic");
 
         InitializeDynamic(velNED, magDeclination);
 
-        return 1;
+        ret = 1;
     }
 
     // Reset the filter if the IMU data is too old
@@ -2308,7 +2341,7 @@ int AttPosEKF::CheckAndBound()
         ResetStoredStates();
 
         // that's all we can do here, return
-        return 2;
+        ret = 2;
     }
 
     // Check if we're on ground - this also sets static mode.
@@ -2322,7 +2355,7 @@ int AttPosEKF::CheckAndBound()
         ResetHeight();
         ResetStoredStates();
 
-        return 3;
+        ret = 3;
     }
 
     // Reset the filter if gyro offsets are excessive
@@ -2331,10 +2364,29 @@ int AttPosEKF::CheckAndBound()
         InitializeDynamic(velNED, magDeclination);
 
         // that's all we can do here, return
-        return 4;
+        ret = 4;
     }
 
-    return 0;
+    // Reset the filter if it diverges too far from GPS
+    if (VelNEDDiverged()) {
+        FillErrorReport(&last_ekf_error);
+        InitializeDynamic(velNED, magDeclination);
+
+        // that's all we can do here, return
+        ret = 5;
+    }
+
+    if (current_ekf_state.covariancesExcessive) {
+        FillErrorReport(&last_ekf_error);
+        current_ekf_state.covariancesExcessive = false;
+        ret = 6;
+    }
+
+    if (ret) {
+        ekfDiverged = true;
+    }
+
+    return ret;
 }
 
 void AttPosEKF::AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, float declination, float *initQuat)
@@ -2385,6 +2437,8 @@ void AttPosEKF::AttitudeInit(float ax, float ay, float az, float mx, float my, f
 
 void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
 {
+
+    ZeroVariables();
 
     // Fill variables with valid data
     velNED[0] = initvelNED[0];
@@ -2469,6 +2523,7 @@ void AttPosEKF::ZeroVariables()
 {
 
     // Initialize on-init initialized variables
+
     storeIndex = 0;
 
     // Do the data structure init
@@ -2486,6 +2541,7 @@ void AttPosEKF::ZeroVariables()
     correctedDelAng.zero();
     summedDelAng.zero();
     summedDelVel.zero();
+    lastGyroOffset.zero();
 
     for (unsigned i = 0; i < data_buffer_size; i++) {
 
