@@ -76,6 +76,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/safety.h>
+#include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 
 #include <drivers/drv_led.h>
@@ -89,6 +90,7 @@
 #include <systemlib/cpuload.h>
 #include <systemlib/rc_check.h>
 #include <systemlib/state_table.h>
+#include <dataman/dataman.h>
 
 #include "px4_custom_mode.h"
 #include "commander_helper.h"
@@ -691,6 +693,11 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
+	if (status_pub < 0) {
+		warnx("ERROR: orb_advertise for topic vehicle_status failed (uorb app running?).\n");
+		warnx("exiting.");
+		exit(ERROR);
+	}
 
 	/* armed topic */
 	orb_advert_t armed_pub;
@@ -708,10 +715,17 @@ int commander_thread_main(int argc, char *argv[])
 	struct home_position_s home;
 	memset(&home, 0, sizeof(home));
 
-	if (status_pub < 0) {
-		warnx("ERROR: orb_advertise for topic vehicle_status failed (uorb app running?).\n");
-		warnx("exiting.");
-		exit(ERROR);
+	/* init mission state */
+	mission_s mission;
+	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
+		if (mission.dataman_id >= 0 && mission.dataman_id <= 1) {
+			mavlink_log_info(mavlink_fd, "[cmd] dataman ID: %i, count: %u, current: %i",
+												mission.dataman_id, mission.count, mission.current_index);
+			orb_advert_t mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
+			close(mission_pub);
+		} else {
+			mavlink_log_info(mavlink_fd, "[cmd] reading mission state failed");
+		}
 	}
 
 	mavlink_log_info(mavlink_fd, "[cmd] started");

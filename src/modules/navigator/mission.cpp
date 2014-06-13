@@ -431,6 +431,37 @@ Mission::read_mission_item(const dm_item_t dm_item, bool is_current, int *missio
 }
 
 void
+Mission::save_offboard_mission_state()
+{
+	mission_s mission_state;
+
+	/* lock MISSION_STATE item */
+	dm_lock(DM_KEY_MISSION_STATE);
+
+	/* read current state */
+	int read_res = dm_read(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s));
+
+	/* check if state actually changed to save flash write cycles */
+	if (read_res != sizeof(mission_s) || mission_state.dataman_id != _offboard_mission.dataman_id ||
+			mission_state.count != _offboard_mission.count ||
+	    		mission_state.current_index != _current_offboard_mission_index) {
+
+		mission_state.dataman_id = _offboard_mission.dataman_id;
+		mission_state.count = _offboard_mission.count;
+		mission_state.current_index = _current_offboard_mission_index;
+
+		/* write modifyed state only if changed */
+		if (dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission_state, sizeof(mission_s)) != sizeof(mission_s)) {
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "error saving mission state");
+
+		}
+	}
+
+	/* unlock MISSION_STATE item */
+	dm_unlock(DM_KEY_MISSION_STATE);
+}
+
+void
 Mission::report_mission_item_reached()
 {
 	if (_mission_type == MISSION_TYPE_OFFBOARD) {
@@ -445,6 +476,8 @@ Mission::report_current_offboard_mission_item()
 {
 	_mission_result.index_current_mission = _current_offboard_mission_index;
 	publish_mission_result();
+
+	save_offboard_mission_state();
 }
 
 void

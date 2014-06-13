@@ -53,7 +53,7 @@ extern "C" {
 		DM_KEY_WAYPOINTS_OFFBOARD_0,	/* Mission way point coordinates sent over mavlink */
 		DM_KEY_WAYPOINTS_OFFBOARD_1,	/* (alernate between 0 and 1) */
 		DM_KEY_WAYPOINTS_ONBOARD,	/* Mission way point coordinates generated onboard */
-		DM_KEY_MISSION_STATE,			/* Persistent mission state */
+		DM_KEY_MISSION_STATE,		/* Persistent mission state */
 		DM_KEY_NUM_KEYS			/* Total number of item types defined */
 	} dm_item_t;
 
@@ -126,16 +126,6 @@ extern "C" {
 	dm_restart(
 		dm_reset_reason restart_type	/* The last reset type */
 	);
-
-	/* NOTE: The following structure defines the persistent system state data stored in the single
-	   entry DM_KEY_SYSTEM_STATE_KEY item type. It contains global system state information that
-	   needs to survive restarts. This definition is application specific so it doesn't really belong
-	   in this header, but till I find it a better home here it is */
-
-	typedef struct {
-		char offboard_waypoint_id;	/* the index of the active offboard waypoint data */
-							/* (DM_KEY_WAYPOINTS_OFFBOARD_n) or -1 for none */
-	} persistent_system_state_t;
 
 #ifdef __cplusplus
 }

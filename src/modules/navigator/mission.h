@@ -142,6 +142,11 @@ private:
 			       struct mission_item_s *new_mission_item);
 
 	/**
+	 * Save current offboard mission state to dataman
+	 */
+	void save_offboard_mission_state();
+
+	/**
 	 * Report that a mission item has been reached
 	 */
 	void report_mission_item_reached();
