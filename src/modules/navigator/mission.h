@@ -183,6 +183,8 @@ private:
 		MISSION_TYPE_OFFBOARD
 	} _mission_type;
 
+	bool _inited;
+
 	MissionFeasibilityChecker missionFeasiblityChecker; /**< class that checks if a mission is feasible */
 };
 

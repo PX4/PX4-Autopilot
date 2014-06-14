@@ -67,13 +67,11 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_current_offboard_mission_index(-1),
 	_mission_result_pub(-1),
 	_mission_result({0}),
-	_mission_type(MISSION_TYPE_NONE)
+	_mission_type(MISSION_TYPE_NONE),
+	_inited(false)
 {
 	/* load initial params */
 	updateParams();
-	/* set initial mission items */
-	on_inactive();
-
 }
 
 Mission::~Mission()
@@ -85,16 +83,25 @@ Mission::on_inactive()
 {
 	_first_run = true;
 
-	/* check anyway if missions have changed so that feedback to groundstation is given */
-	bool onboard_updated;
-	orb_check(_navigator->get_onboard_mission_sub(), &onboard_updated);
-	if (onboard_updated) {
-		update_onboard_mission();
-	}
+	if (_inited) {
+		/* check if missions have changed so that feedback to ground station is given */
+		bool onboard_updated = false;
+		orb_check(_navigator->get_onboard_mission_sub(), &onboard_updated);
+		if (onboard_updated) {
+			update_onboard_mission();
+		}
 
-	bool offboard_updated;
-	orb_check(_navigator->get_offboard_mission_sub(), &offboard_updated);
-	if (offboard_updated) {
+		bool offboard_updated = false;
+		orb_check(_navigator->get_offboard_mission_sub(), &offboard_updated);
+		if (offboard_updated) {
+			update_offboard_mission();
+		}
+
+	} else {
+		/* read mission topics on initialization */
+		_inited = true;
+
+		update_onboard_mission();
 		update_offboard_mission();
 	}
 }
@@ -105,13 +112,13 @@ Mission::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
 	bool updated = false;
 
 	/* check if anything has changed */
-	bool onboard_updated;
+	bool onboard_updated = false;
 	orb_check(_navigator->get_onboard_mission_sub(), &onboard_updated);
 	if (onboard_updated) {
 		update_onboard_mission();
 	}
 
-	bool offboard_updated;
+	bool offboard_updated = false;
 	orb_check(_navigator->get_offboard_mission_sub(), &offboard_updated);
 	if (offboard_updated) {
 		update_offboard_mission();
@@ -139,9 +146,9 @@ Mission::update_onboard_mission()
 {
 	if (orb_copy(ORB_ID(onboard_mission), _navigator->get_onboard_mission_sub(), &_onboard_mission) == OK) {
 		/* accept the current index set by the onboard mission if it is within bounds */
-		if (_onboard_mission.current_index >=0
-		&& _onboard_mission.current_index < (int)_onboard_mission.count) {
-			_current_onboard_mission_index = _onboard_mission.current_index;
+		if (_onboard_mission.current_seq >=0
+		&& _onboard_mission.current_seq < (int)_onboard_mission.count) {
+			_current_onboard_mission_index = _onboard_mission.current_seq;
 		} else {
 			/* if less WPs available, reset to first WP */
 			if (_current_onboard_mission_index >= (int)_onboard_mission.count) {
@@ -154,7 +161,7 @@ Mission::update_onboard_mission()
 		}
 	} else {
 		_onboard_mission.count = 0;
-		_onboard_mission.current_index = 0;
+		_onboard_mission.current_seq = 0;
 		_current_onboard_mission_index = 0;
 	}
 }
@@ -163,13 +170,12 @@ void
 Mission::update_offboard_mission()
 {
 	if (orb_copy(ORB_ID(offboard_mission), _navigator->get_offboard_mission_sub(), &_offboard_mission) == OK) {
-
+		warnx("offboard mission updated: dataman_id=%d, count=%d, current_seq=%d", _offboard_mission.dataman_id, _offboard_mission.count, _offboard_mission.current_seq);
 		/* determine current index */
-		if (_offboard_mission.current_index >= 0
-		    && _offboard_mission.current_index < (int)_offboard_mission.count) {
-			_current_offboard_mission_index = _offboard_mission.current_index;
+		if (_offboard_mission.current_seq >= 0 && _offboard_mission.current_seq < (int)_offboard_mission.count) {
+			_current_offboard_mission_index = _offboard_mission.current_seq;
 		} else {
-			/* if less WPs available, reset to first WP */
+			/* if less items available, reset to first item */
 			if (_current_offboard_mission_index >= (int)_offboard_mission.count) {
 				_current_offboard_mission_index = 0;
 			/* if not initialized, set it to 0 */
@@ -194,10 +200,12 @@ Mission::update_offboard_mission()
 							      _navigator->get_geofence(),
 							      _navigator->get_home_position()->alt);
 	} else {
+		warnx("offboard mission update failed");
 		_offboard_mission.count = 0;
-		_offboard_mission.current_index = 0;
+		_offboard_mission.current_seq = 0;
 		_current_offboard_mission_index = 0;
 	}
+
 	report_current_offboard_mission_item();
 }
 
@@ -326,10 +334,10 @@ Mission::is_current_offboard_mission_item_set(struct position_setpoint_s *curren
 void
 Mission::get_next_onboard_mission_item(struct position_setpoint_s *next_pos_sp)
 {
-	int next_temp_mission_index = _onboard_mission.current_index + 1;
+	int next_temp_mission_index = _onboard_mission.current_seq + 1;
 
 	/* try if there is a next onboard mission */
-	if (_onboard_mission.current_index >= 0 &&
+	if (_onboard_mission.current_seq >= 0 &&
 	    next_temp_mission_index < (int)_onboard_mission.count) {
 		struct mission_item_s new_mission_item;
 		if (read_mission_item(DM_KEY_WAYPOINTS_ONBOARD, false, &next_temp_mission_index, &new_mission_item)) {
@@ -349,9 +357,9 @@ void
 Mission::get_next_offboard_mission_item(struct position_setpoint_s *next_pos_sp)
 {
 	/* try if there is a next offboard mission */
-	int next_temp_mission_index = _offboard_mission.current_index + 1;
+	int next_temp_mission_index = _offboard_mission.current_seq + 1;
 	warnx("next index: %d, count; %d", next_temp_mission_index, _offboard_mission.count);
-	if (_offboard_mission.current_index >= 0 &&
+	if (_offboard_mission.current_seq >= 0 &&
 	    next_temp_mission_index < (int)_offboard_mission.count) {
 		dm_item_t dm_current;
 		if (_offboard_mission.dataman_id == 0) {
@@ -441,19 +449,31 @@ Mission::save_offboard_mission_state()
 	/* read current state */
 	int read_res = dm_read(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s));
 
-	/* check if state actually changed to save flash write cycles */
-	if (read_res != sizeof(mission_s) || mission_state.dataman_id != _offboard_mission.dataman_id ||
-			mission_state.count != _offboard_mission.count ||
-	    		mission_state.current_index != _current_offboard_mission_index) {
+	if (read_res == sizeof(mission_s)) {
+		/* data read successfully, check dataman ID and items count */
+		if (mission_state.dataman_id == _offboard_mission.dataman_id && mission_state.count == _offboard_mission.count) {
+			/* navigator may modify only sequence, write modified state only if it changed */
+			if (mission_state.current_seq != _current_offboard_mission_index) {
+				if (dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission_state, sizeof(mission_s)) != sizeof(mission_s)) {
+					warnx("ERROR: can't save mission state");
+					mavlink_log_critical(_navigator->get_mavlink_fd(), "ERROR: can't save mission state");
+				}
+			}
+		}
 
+	} else {
+		/* invalid data, this must not happen and indicates error in offboard_mission publisher */
 		mission_state.dataman_id = _offboard_mission.dataman_id;
 		mission_state.count = _offboard_mission.count;
-		mission_state.current_index = _current_offboard_mission_index;
+		mission_state.current_seq = _current_offboard_mission_index;
 
-		/* write modifyed state only if changed */
+		warnx("ERROR: invalid mission state");
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "ERROR: invalid mission state");
+
+		/* write modified state only if changed */
 		if (dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission_state, sizeof(mission_s)) != sizeof(mission_s)) {
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "error saving mission state");
-
+			warnx("ERROR: can't save mission state");
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "ERROR: can't save mission state");
 		}
 	}
 
@@ -465,8 +485,8 @@ void
 Mission::report_mission_item_reached()
 {
 	if (_mission_type == MISSION_TYPE_OFFBOARD) {
-		_mission_result.mission_reached = true;
-		_mission_result.mission_index_reached = _current_offboard_mission_index;
+		_mission_result.reached = true;
+		_mission_result.seq_reached = _current_offboard_mission_index;
 	}
 	publish_mission_result();
 }
@@ -474,7 +494,8 @@ Mission::report_mission_item_reached()
 void
 Mission::report_current_offboard_mission_item()
 {
-	_mission_result.index_current_mission = _current_offboard_mission_index;
+	warnx("current offboard mission index: %d", _current_offboard_mission_index);
+	_mission_result.seq_current = _current_offboard_mission_index;
 	publish_mission_result();
 
 	save_offboard_mission_state();
@@ -483,7 +504,7 @@ Mission::report_current_offboard_mission_item()
 void
 Mission::report_mission_finished()
 {
-	_mission_result.mission_finished = true;
+	_mission_result.finished = true;
 	publish_mission_result();
 }
 
@@ -500,6 +521,6 @@ Mission::publish_mission_result()
 		_mission_result_pub = orb_advertise(ORB_ID(mission_result), &_mission_result);
 	}
 	/* reset reached bool */
-	_mission_result.mission_reached = false;
-	_mission_result.mission_finished = false;
+	_mission_result.reached = false;
+	_mission_result.finished = false;
 }

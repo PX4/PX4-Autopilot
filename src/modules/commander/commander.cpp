@@ -715,17 +715,27 @@ int commander_thread_main(int argc, char *argv[])
 	struct home_position_s home;
 	memset(&home, 0, sizeof(home));
 
-	/* init mission state */
+	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
+	orb_advert_t mission_pub = -1;
 	mission_s mission;
 	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
 		if (mission.dataman_id >= 0 && mission.dataman_id <= 1) {
-			mavlink_log_info(mavlink_fd, "[cmd] dataman ID: %i, count: %u, current: %i",
-												mission.dataman_id, mission.count, mission.current_index);
-			orb_advert_t mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
-			close(mission_pub);
+			warnx("loaded mission state: dataman_id=%d, count=%u, current=%d", mission.dataman_id, mission.count, mission.current_seq);
+			mavlink_log_info(mavlink_fd, "[cmd] dataman_id=%d, count=%u, current=%d",
+												mission.dataman_id, mission.count, mission.current_seq);
 		} else {
+			warnx("reading mission state failed");
 			mavlink_log_info(mavlink_fd, "[cmd] reading mission state failed");
+
+			/* initialize mission state in dataman */
+			mission.dataman_id = 0;
+			mission.count = 0;
+			mission.current_seq = 0;
+			dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission, sizeof(mission_s));
 		}
+
+		mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
+		orb_publish(ORB_ID(offboard_mission), mission_pub, &mission);
 	}
 
 	mavlink_log_info(mavlink_fd, "[cmd] started");
@@ -1310,7 +1320,7 @@ int commander_thread_main(int argc, char *argv[])
 				status.rc_signal_lost = true;
 				status_changed = true;
 
-				if (!(status.set_nav_state == NAVIGATION_STATE_AUTO_MISSION && !mission_result.mission_finished)) {
+				if (!(status.set_nav_state == NAVIGATION_STATE_AUTO_MISSION && !mission_result.finished)) {
 
 					/* if we have a global position, we can switch to RTL, if not, we can try to land */
 					if (status.condition_global_position_valid) {
@@ -1327,7 +1337,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* hack to detect if we finished a mission after we lost RC, so that we can trigger RTL now */
 		if (status.rc_signal_lost && status.set_nav_state == NAVIGATION_STATE_AUTO_MISSION &&
-		    mission_result.mission_finished && status.failsafe_state != FAILSAFE_STATE_RC_LOSS) {
+		    mission_result.finished && status.failsafe_state != FAILSAFE_STATE_RC_LOSS) {
 			/* if we have a global position, we can switch to RTL, if not, we can try to land */
 			if (status.condition_global_position_valid) {
 				status.failsafe_state = FAILSAFE_STATE_RC_LOSS;
@@ -1488,6 +1498,7 @@ int commander_thread_main(int argc, char *argv[])
 	close(diff_pres_sub);
 	close(param_changed_sub);
 	close(battery_sub);
+	close(mission_pub);
 
 	thread_running = false;
 
