@@ -117,9 +117,9 @@ private:
 	int 	_manual_sub;			/**< notification of manual control updates */
 	int		_arming_sub;			/**< arming status of outputs */
 	int		_local_pos_sub;			/**< vehicle local position */
-	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
-	int 		_local_pos_sp_sub;		/**< offboard local position setpoint */
-	int 		_global_vel_sp_sub;		/**< offboard global velocity setpoint */
+	int		_pos_sp_triplet_sub;	/**< position setpoint triplet */
+	int 	_local_pos_sp_sub;		/**< offboard local position setpoint */
+	int 	_global_vel_sp_sub;		/**< offboard global velocity setpoint */
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
@@ -802,6 +802,7 @@ MulticopterPositionControl::task_main()
 					if (!_control_mode.flag_control_position_enabled && _control_mode.flag_control_velocity_enabled) {
 						_vel_sp(0) = _global_vel_sp.vx;
 						_vel_sp(1) = _global_vel_sp.vy;
+					}
 				}
 
 				if (!_control_mode.flag_control_manual_enabled) {
@@ -827,7 +828,7 @@ MulticopterPositionControl::task_main()
 
 				/* Close fd to let offboard vel sp be advertised in mavlink receiver */
 				if (_control_mode.flag_control_offboard_enabled && _global_vel_sp_pub > 0) {
-					close (_global_vel_sp);
+					close(_global_vel_sp_pub);
 					_global_vel_sp_pub = -1;
 				}
 
