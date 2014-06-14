@@ -119,6 +119,7 @@ private:
 	int		_local_pos_sub;			/**< vehicle local position */
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
 	int 		_local_pos_sp_sub;		/**< offboard local position setpoint */
+	int 		_global_vel_sp_sub;		/**< offboard global velocity setpoint */
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
@@ -257,6 +258,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_manual_sub(-1),
 	_arming_sub(-1),
 	_local_pos_sub(-1),
+	_global_vel_sp_sub(-1),
 	_pos_sp_triplet_sub(-1),
 
 /* publications */
@@ -784,6 +786,24 @@ MulticopterPositionControl::task_main()
 					_vel_sp(2) = _params.land_speed;
 				}
 
+				/* Offboard velocity control mode */
+				if (_control_mode.flag_control_offboard_enabled) {
+					bool updated;
+					orb_check(_global_vel_sp_sub, &updated);
+
+					if (updated) {
+						orb_copy(ORB_ID(vehicle_global_velocity_setpoint), _global_vel_sp_sub, &_global_vel_sp);
+					}
+
+					if (!_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_climb_rate_enabled) {
+						_vel_sp(2) = _global_vel_sp.vz;
+					}
+
+					if (!_control_mode.flag_control_position_enabled && _control_mode.flag_control_velocity_enabled) {
+						_vel_sp(0) = _global_vel_sp.vx;
+						_vel_sp(1) = _global_vel_sp.vy;
+				}
+
 				if (!_control_mode.flag_control_manual_enabled) {
 					/* limit 3D speed only in non-manual modes */
 					float vel_sp_norm = _vel_sp.edivide(_params.vel_max).length();
@@ -801,8 +821,14 @@ MulticopterPositionControl::task_main()
 				if (_global_vel_sp_pub > 0) {
 					orb_publish(ORB_ID(vehicle_global_velocity_setpoint), _global_vel_sp_pub, &_global_vel_sp);
 
-				} else {
+				} else if (!_control_mode.flag_control_offboard_enabled) {
 					_global_vel_sp_pub = orb_advertise(ORB_ID(vehicle_global_velocity_setpoint), &_global_vel_sp);
+				}
+
+				/* Close fd to let offboard vel sp be advertised in mavlink receiver */
+				if (_control_mode.flag_control_offboard_enabled && _global_vel_sp_pub > 0) {
+					close (_global_vel_sp);
+					_global_vel_sp_pub = -1;
 				}
 
 				if (_control_mode.flag_control_climb_rate_enabled || _control_mode.flag_control_velocity_enabled) {
