@@ -679,12 +679,12 @@ MulticopterPositionControl::task_main()
 
 				/* Make sure position control is selected i.e. not only velocity control */
 				if (_control_mode.flag_control_position_enabled) {
-				_pos_sp(0) = _local_pos_sp.x;
-				_pos_sp(1) = _local_pos_sp.y;
+					_pos_sp(0) = _local_pos_sp.x;
+					_pos_sp(1) = _local_pos_sp.y;
 				}
 
 				if (_control_mode.flag_control_altitude_enabled) {
-				_pos_sp(2) = _local_pos_sp.z;
+					_pos_sp(2) = _local_pos_sp.z;
 				}
 
 				_att_sp.yaw_body = _local_pos_sp.yaw;
