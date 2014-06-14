@@ -55,6 +55,7 @@
 #include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -138,6 +139,7 @@ private:
 	orb_advert_t _flow_pub;
 	orb_advert_t _offboard_control_sp_pub;
 	orb_advert_t _local_pos_sp_pub;
+	orb_advert_t _global_vel_sp_pub;
 	orb_advert_t _att_sp_pub;
 	orb_advert_t _rates_sp_pub;
 	orb_advert_t _vicon_position_pub;
