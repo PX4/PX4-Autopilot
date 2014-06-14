@@ -40,6 +40,7 @@ class UAVCAN_EXPORT NetworkCompatibilityChecker : Noncopyable
     NodeIDMask nid_mask_checked_;
     NetworkCompatibilityCheckResult result_;
     DataTypeKind checking_dtkind_;
+    uint8_t num_failed_nodes_;
     bool last_cats_request_ok_;
 
     INode& getNode() { return ns_sub_.getNode(); }
@@ -63,10 +64,13 @@ public:
         : ns_sub_(node)
         , cats_cln_(node)
         , checking_dtkind_(DataTypeKindService)
+        , num_failed_nodes_(0)
         , last_cats_request_ok_(false)
     { }
 
     int execute();
+
+    uint8_t getNumFailedNodes() const { return num_failed_nodes_; }
 
     const NetworkCompatibilityCheckResult& getResult() const { return result_; }
 

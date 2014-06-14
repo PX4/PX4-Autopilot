@@ -132,21 +132,18 @@ int NetworkCompatibilityChecker::checkOneNode(NodeID nid)
 int NetworkCompatibilityChecker::checkNodes()
 {
     (void)nid_mask_checked_.reset();
-    while (true)
+    num_failed_nodes_ = 0;
+    result_ = NetworkCompatibilityCheckResult();
+
+    while (result_.isOk())
     {
         const NodeID nid = findNextUncheckedNode();
         if (nid.isValid())
         {
             UAVCAN_TRACE("NodeInitializer", "Checking nid=%i", int(nid.get()));
             const int res = checkOneNode(nid);
-            if (res < 0 || !result_.isOk())
-            {
-                return res;
-            }
-            if (cats_cln_.getResponseFailureCount() > 0)
-            {
-                return -cats_cln_.getResponseFailureCount();
-            }
+            num_failed_nodes_ += (res < 0) ? 1U : 0U;
+            UAVCAN_TRACE("NodeInitializer", "Checked nid=%i result=%i", int(nid.get()), res);
         }
         else { break; }
     }

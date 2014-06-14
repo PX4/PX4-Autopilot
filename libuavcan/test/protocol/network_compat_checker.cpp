@@ -22,12 +22,12 @@ static void registerTypes()
 }
 
 
-struct NodeInitializerRemoteContext
+struct NetworkCompatibilityCheckerRemoteContext
 {
     uavcan::NodeStatusProvider node_status_provider;
     uavcan::DataTypeInfoProvider data_type_info_provider;
 
-    NodeInitializerRemoteContext(uavcan::INode& node)
+    NetworkCompatibilityCheckerRemoteContext(uavcan::INode& node)
         : node_status_provider(node)
         , data_type_info_provider(node)
     {
@@ -71,7 +71,7 @@ TEST(NetworkCompatibilityChecker, Success)
 {
     registerTypes();
     InterlinkedTestNodesWithSysClock nodes;
-    NodeInitializerRemoteContext remote(nodes.b);
+    NetworkCompatibilityCheckerRemoteContext remote(nodes.b);
     remote.start();
 
     BackgroundSpinner bgspinner(nodes.b, nodes.a);
@@ -89,13 +89,18 @@ TEST(NetworkCompatibilityChecker, RequestTimeout)
 {
     registerTypes();
     InterlinkedTestNodesWithSysClock nodes;
-    NodeInitializerRemoteContext remote(nodes.b);
+    NetworkCompatibilityCheckerRemoteContext remote(nodes.b);
     remote.start();
 
     ASSERT_LE(0, uavcan::NetworkCompatibilityChecker::publishGlobalDiscoveryRequest(nodes.a));
 
     uavcan::NetworkCompatibilityChecker ni(nodes.a);
-    ASSERT_GT(0, ni.execute());            // There is no background spinner, so CATS request will time out
+    // There is no background spinner, so CATS request will time out
+    // Despite the time out, the checker will not report failure
+    ASSERT_EQ(0, ni.execute());
+
+    // The one (and only) node has failed
+    ASSERT_EQ(1, ni.getNumFailedNodes());
 }
 
 
@@ -103,7 +108,7 @@ TEST(NetworkCompatibilityChecker, NodeIDCollision)
 {
     registerTypes();
     InterlinkedTestNodesWithSysClock nodes(8, 8);   // Same NID
-    NodeInitializerRemoteContext remote(nodes.b);
+    NetworkCompatibilityCheckerRemoteContext remote(nodes.b);
     remote.start();
 
     BackgroundSpinner bgspinner(nodes.b, nodes.a);
