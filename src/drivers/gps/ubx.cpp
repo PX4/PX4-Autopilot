@@ -93,6 +93,8 @@ UBX::UBX(const int &fd, struct vehicle_gps_position_s *gps_position, struct sate
 	_ack_waiting_msg(0)
 {
 	decode_init();
+	memset(_ubx_sw_version, 0, sizeof(_ubx_sw_version));
+	memset(_ubx_hw_version, 0, sizeof(_ubx_hw_version));
 }
 
 UBX::~UBX()
@@ -220,6 +222,9 @@ UBX::configure(unsigned &baudrate)
 	if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 		return 1;
 	}
+
+	/* request module version information by sending an empty MON-VER message */
+	send_message(UBX_MSG_MON_VER, nullptr, 0);
 
 	_configured = true;
 	return 0;
@@ -385,10 +390,16 @@ UBX::parse_char(const uint8_t b)
 	case UBX_DECODE_PAYLOAD:
 		UBX_TRACE_PARSER(".");
 		add_byte_to_checksum(b);
-		if (_rx_msg != UBX_MSG_NAV_SVINFO) {
-			ret = payload_rx_add(b);	// add a payload byte
-		} else {
-			ret = payload_rx_add_svinfo(b);	// add a svinfo payload byte
+		switch (_rx_msg) {
+		case UBX_MSG_NAV_SVINFO:
+			ret = payload_rx_add_nav_svinfo(b);	// add a NAV-SVINFO payload byte
+			break;
+		case UBX_MSG_MON_VER:
+			ret = payload_rx_add_mon_ver(b);	// add a MON-VER payload byte
+			break;
+		default:
+			ret = payload_rx_add(b);		// add a payload byte
+			break;
 		}
 		if (ret < 0) {
 			// payload not handled, discard message
@@ -477,6 +488,9 @@ UBX::payload_rx_init()
 			_rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
 		break;
 
+	case UBX_MSG_MON_VER:
+		break;		// unconditionally handle this message
+
 	case UBX_MSG_MON_HW:
 		if (   (_rx_payload_length != sizeof(ubx_payload_rx_mon_hw_ubx6_t))	/* u-blox 6 msg format */
 		    && (_rx_payload_length != sizeof(ubx_payload_rx_mon_hw_ubx7_t)))	/* u-blox 7+ msg format */
@@ -559,10 +573,10 @@ UBX::payload_rx_add(const uint8_t b)
 }
 
 /**
- * Add svinfo payload rx byte
+ * Add NAV-SVINFO payload rx byte
  */
 int	// -1 = error, 0 = ok, 1 = payload completed
-UBX::payload_rx_add_svinfo(const uint8_t b)
+UBX::payload_rx_add_nav_svinfo(const uint8_t b)
 {
 	int ret = 0;
 
@@ -596,6 +610,41 @@ UBX::payload_rx_add_svinfo(const uint8_t b)
 						(unsigned)_satellite_info->svid[sat_index]
 				);
 			}
+		}
+	}
+
+	if (++_rx_payload_index >= _rx_payload_length) {
+		ret = 1;	// payload received completely
+	}
+
+	return ret;
+}
+
+/**
+ * Add MON-VER payload rx byte
+ */
+int	// -1 = error, 0 = ok, 1 = payload completed
+UBX::payload_rx_add_mon_ver(const uint8_t b)
+{
+	int ret = 0;
+
+	if (_rx_payload_index < sizeof(ubx_payload_rx_mon_ver_part1_t)) {
+		// Fill Part 1 buffer
+		_buf.raw[_rx_payload_index] = b;
+	} else {
+		if (_rx_payload_index == sizeof(ubx_payload_rx_mon_ver_part1_t)) {
+			// Part 1 complete: decode Part 1 buffer
+			strncpy(_ubx_sw_version, (char*)_buf.payload_rx_mon_ver_part1.swVersion, sizeof(_ubx_sw_version));
+			strncpy(_ubx_hw_version, (char*)_buf.payload_rx_mon_ver_part1.hwVersion, sizeof(_ubx_hw_version));
+			UBX_WARN("VER sw  %30s", _ubx_sw_version);
+			UBX_WARN("VER hw  %10s", _ubx_hw_version);
+		}
+		// fill Part 2 buffer
+		unsigned buf_index = (_rx_payload_index - sizeof(ubx_payload_rx_mon_ver_part1_t)) % sizeof(ubx_payload_rx_mon_ver_part2_t);
+		_buf.raw[buf_index] = b;
+		if (buf_index == sizeof(ubx_payload_rx_mon_ver_part2_t) - 1) {
+			// Part 2 complete: decode Part 2 buffer
+			UBX_WARN("VER ext %30s", _buf.payload_rx_mon_ver_part2.extension);
 		}
 	}
 
@@ -712,6 +761,12 @@ UBX::payload_rx_done(void)
 		ret = 1;
 		break;
 
+	case UBX_MSG_MON_VER:
+		UBX_TRACE_RXMSG("Rx MON-VER\n");
+
+		ret = 1;
+		break;
+
 	case UBX_MSG_MON_HW:
 		UBX_TRACE_RXMSG("Rx MON-HW\n");
 
@@ -813,10 +868,12 @@ UBX::send_message(const uint16_t msg, const uint8_t *payload, const uint16_t len
 
 	// Calculate checksum
 	calc_checksum(((uint8_t*)&header) + 2, sizeof(header) - 2, &checksum);  // skip 2 sync bytes
-	calc_checksum(payload, length, &checksum);
+	if (payload != nullptr)
+		calc_checksum(payload, length, &checksum);
 
 	// Send message
 	write(_fd, (const void *)&header, sizeof(header));
-	write(_fd, (const void *)payload, length);
+	if (payload != nullptr)
+		write(_fd, (const void *)payload, length);
 	write(_fd, (const void *)&checksum, sizeof(checksum));
 }

@@ -72,6 +72,7 @@
 #define UBX_ID_CFG_MSG		0x01
 #define UBX_ID_CFG_RATE		0x08
 #define UBX_ID_CFG_NAV5		0x24
+#define UBX_ID_MON_VER		0x04
 #define UBX_ID_MON_HW		0x09
 
 /* Message Classes & IDs */
@@ -87,6 +88,7 @@
 #define UBX_MSG_CFG_RATE	((UBX_CLASS_CFG) | UBX_ID_CFG_RATE << 8)
 #define UBX_MSG_CFG_NAV5	((UBX_CLASS_CFG) | UBX_ID_CFG_NAV5 << 8)
 #define UBX_MSG_MON_HW		((UBX_CLASS_MON) | UBX_ID_MON_HW << 8)
+#define UBX_MSG_MON_VER		((UBX_CLASS_MON) | UBX_ID_MON_VER << 8)
 
 /* TX CFG-PRT message contents */
 #define UBX_TX_CFG_PRT_PORTID		0x01		/**< UART1 */
@@ -249,6 +251,17 @@ typedef struct {
 	uint32_t	pullL;
 } ubx_payload_rx_mon_hw_ubx7_t;
 
+/* Rx MON-VER Part 1 */
+typedef struct {
+	uint8_t		swVersion[30];
+	uint8_t		hwVersion[10];
+} ubx_payload_rx_mon_ver_part1_t;
+
+/* Rx MON-VER Part 2 (repeated) */
+typedef struct {
+	uint8_t		extension[30];
+} ubx_payload_rx_mon_ver_part2_t;
+
 /* Rx ACK-ACK */
 typedef	union {
 	uint16_t	msg;
@@ -333,6 +346,8 @@ typedef union {
 	ubx_payload_rx_nav_velned_t		payload_rx_nav_velned;
 	ubx_payload_rx_mon_hw_ubx6_t		payload_rx_mon_hw_ubx6;
 	ubx_payload_rx_mon_hw_ubx7_t		payload_rx_mon_hw_ubx7;
+	ubx_payload_rx_mon_ver_part1_t		payload_rx_mon_ver_part1;
+	ubx_payload_rx_mon_ver_part2_t		payload_rx_mon_ver_part2;
 	ubx_payload_rx_ack_ack_t		payload_rx_ack_ack;
 	ubx_payload_rx_ack_nak_t		payload_rx_ack_nak;
 	ubx_payload_tx_cfg_prt_t		payload_tx_cfg_prt;
@@ -365,7 +380,6 @@ typedef enum {
 	UBX_RXMSG_DISABLE,
 	UBX_RXMSG_ERROR_LENGTH
 } ubx_rxmsg_state_t;
-
 
 /* ACK state */
 typedef enum {
@@ -400,7 +414,8 @@ private:
 	 * Add payload rx byte
 	 */
 	int			payload_rx_add(const uint8_t b);
-	int			payload_rx_add_svinfo(const uint8_t b);
+	int			payload_rx_add_nav_svinfo(const uint8_t b);
+	int			payload_rx_add_mon_ver(const uint8_t b);
 
 	/**
 	 * Finish payload rx
@@ -455,6 +470,8 @@ private:
 	hrt_abstime		_disable_cmd_last;
 	uint16_t		_ack_waiting_msg;
 	ubx_buf_t		_buf;
+	char			_ubx_sw_version[30];
+	char			_ubx_hw_version[10];
 };
 
 #endif /* UBX_H_ */
