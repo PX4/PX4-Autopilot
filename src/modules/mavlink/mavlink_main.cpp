@@ -900,6 +900,7 @@ int Mavlink::map_mavlink_mission_item_to_mission_item(const mavlink_mission_item
 		break;
 	case MAV_CMD_DO_JUMP:
 		mission_item->do_jump_mission_index = mavlink_mission_item->param1;
+		mission_item->do_jump_current_count = 0;
 		mission_item->do_jump_repeat_count = mavlink_mission_item->param2;
 		break;
 	default:
