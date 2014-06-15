@@ -1004,6 +1004,20 @@ FixedwingEstimator::task_main()
 					mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
 					break;
 				}
+				case 5:
+				{
+					const char* str = "diverged too far from GPS";
+					warnx("%s", str);
+					mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
+					break;
+				}
+				case 6:
+				{
+					const char* str = "excessive covariances";
+					warnx("%s", str);
+					mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
+					break;
+				}
 
 				default:
 				{
