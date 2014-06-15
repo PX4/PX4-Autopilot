@@ -440,7 +440,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GS0B, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(GS1A, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(GS1B, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
-	LOG_FORMAT(TECS, "fffffffffffffB",	"AltSP,Alt,FpaSP,Fpa,AsSP,As,AsF,AsDSP,AsD,TERSP,TER,EDRSP,EDR,Mod"),
+	LOG_FORMAT(TECS, "fffffffffffffB",	"AltSP,Alt,FpaSP,Fpa,AsSP,As,AsF,AsDSP,AsD,TERSP,TER,EDRSP,EDR,M"),
 	LOG_FORMAT(WIND, "ffff",	"X,Y,CovX,CovY"),
 
 	/* system-level messages, ID >= 0x80 */
