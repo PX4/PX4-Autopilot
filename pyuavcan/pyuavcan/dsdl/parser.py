@@ -4,11 +4,22 @@
 # Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
 #
 
+from __future__ import division, absolute_import, print_function, unicode_literals
 import os, re, logging
 from io import StringIO
 from .signature import compute_signature
 from .common import DsdlException, pretty_filename
 from .type_limits import get_unsigned_integer_range, get_signed_integer_range, get_float_range
+
+# Python 2.7 compatibility
+try:
+    str = unicode
+except NameError:
+    pass
+try:
+    long(1)
+except NameError:
+    long = int
 
 MAX_FULL_TYPE_NAME_LEN = 80
 DATA_TYPE_ID_MAX = 1023
@@ -41,7 +52,7 @@ class PrimitiveType(Type):
         self.kind = kind
         self.bitlen = bitlen
         self.cast_mode = cast_mode
-        super().__init__(self.get_normalized_definition(), Type.CATEGORY_PRIMITIVE)
+        Type.__init__(self, self.get_normalized_definition(), Type.CATEGORY_PRIMITIVE)
         self.value_range = {
             PrimitiveType.KIND_BOOLEAN: get_unsigned_integer_range,
             PrimitiveType.KIND_UNSIGNED_INT: get_unsigned_integer_range,
@@ -75,7 +86,7 @@ class ArrayType(Type):
         self.value_type = value_type
         self.mode = mode
         self.max_size = max_size
-        super().__init__(self.get_normalized_definition(), Type.CATEGORY_ARRAY)
+        Type.__init__(self, self.get_normalized_definition(), Type.CATEGORY_ARRAY)
 
     def get_normalized_definition(self):
         typedef = self.value_type.get_normalized_definition()
@@ -93,7 +104,7 @@ class CompoundType(Type):
     KIND_MESSAGE = 1
 
     def __init__(self, full_name, kind, source_file, default_dtid, source_text):
-        super().__init__(full_name, Type.CATEGORY_COMPOUND)
+        Type.__init__(self, full_name, Type.CATEGORY_COMPOUND)
         self.source_file = source_file
         self.default_dtid = default_dtid
         self.kind = kind
@@ -154,10 +165,12 @@ class Field(Attribute):
 
 class Constant(Attribute):
     def __init__(self, type, name, init_expression, value):  # @ReservedAssignment
-        super().__init__(type, name)
+        Attribute.__init__(self, type, name)
         self.init_expression = init_expression
         self.value = value
         self.string_value = repr(value)
+        if isinstance(value, long):
+            self.string_value = self.string_value.replace('L', '')
 
     def get_normalized_definition(self):
         return '%s %s = %s' % (self.type.get_normalized_definition(), self.name, self.init_expression)
@@ -204,7 +217,8 @@ class Parser:
 
     def _locate_compound_type_definition(self, referencing_filename, typename):
         def locate_namespace_directory(namespace):
-            root_namespace, *sub_namespace_components = namespace.split('.')
+            namespace_components = namespace.split('.')
+            root_namespace, sub_namespace_components = namespace_components[0], namespace_components[1:]
             for directory in self.search_dirs:
                 if directory.split(os.path.sep)[-1] == root_namespace:
                     return os.path.join(directory, *sub_namespace_components)
@@ -311,10 +325,10 @@ class Parser:
 
         if isinstance(value, str) and len(value) == 1:  # ASCII character
             value = ord(value)
-        elif isinstance(value, (float, int, bool)):  # Numeric literal
+        elif isinstance(value, (float, int, bool, long)):  # Numeric literal
             value = {
-                attrtype.KIND_UNSIGNED_INT : int,
-                attrtype.KIND_SIGNED_INT : int,
+                attrtype.KIND_UNSIGNED_INT : long,
+                attrtype.KIND_SIGNED_INT : long,
                 attrtype.KIND_BOOLEAN : int,  # Not bool because we need to check range
                 attrtype.KIND_FLOAT : float
             }[attrtype.kind](value)
@@ -328,12 +342,12 @@ class Parser:
     def _parse_line(self, filename, tokens):
         cast_mode = None
         if tokens[0] == 'saturated' or tokens[0] == 'truncated':
-            cast_mode, *tokens = tokens
+            cast_mode, tokens = tokens[0], tokens[1:]
 
         if len(tokens) < 2:
             error('Invalid attribute definition')
 
-        typename, attrname, *tokens = tokens
+        typename, attrname, tokens = tokens[0], tokens[1], tokens[2:]
         validate_attribute_name(attrname)
         attrtype = self._parse_type(filename, typename, cast_mode)
 
@@ -384,7 +398,8 @@ class Parser:
                         ex.line = num
                     raise ex
                 except Exception as ex:
-                    raise DsdlException('Internal error: %s' % str(ex), line=num) from ex
+                    self.log.error('Internal error', exc_info=True)
+                    raise DsdlException('Internal error: %s' % str(ex), line=num)
 
             if response_part:
                 t = CompoundType(full_typename, CompoundType.KIND_SERVICE, filename, default_dtid, source_text)
@@ -412,9 +427,10 @@ class Parser:
                 ex.file = filename
             raise ex
         except IOError as ex:
-            raise DsdlException('IO error: %s' % str(ex), file=filename) from ex
+            raise DsdlException('IO error: %s' % str(ex), file=filename)
         except Exception as ex:
-            raise DsdlException('Internal error: %s' % str(ex), file=filename) from ex
+            self.log.error('Internal error', exc_info=True)
+            raise DsdlException('Internal error: %s' % str(ex), file=filename)
 
 
 def error(fmt, *args):
@@ -488,7 +504,7 @@ def parse_namespaces(source_dirs, search_dirs=None):
         import fnmatch
         from functools import partial
         def on_walk_error(directory, ex):
-            raise DsdlException('OS error in [%s]: %s' % (directory, str(ex))) from ex
+            raise DsdlException('OS error in [%s]: %s' % (directory, str(ex)))
         for source_dir in source_dirs:
             walker = os.walk(source_dir, onerror=partial(on_walk_error, source_dir), followlinks=True)
             for root, _dirnames, filenames in walker:

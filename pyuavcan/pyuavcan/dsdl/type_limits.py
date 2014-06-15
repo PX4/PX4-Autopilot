@@ -4,6 +4,7 @@
 # Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
 #
 
+from __future__ import division, absolute_import, print_function, unicode_literals
 from .common import DsdlException
 
 def get_unsigned_integer_range(bitlen):

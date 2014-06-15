@@ -4,6 +4,8 @@
 # Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
 #
 
+from __future__ import division, absolute_import, print_function, unicode_literals
+
 #
 # CRC-64-WE
 # Description: http://reveng.sourceforge.net/crc-catalogue/17plus.htm#crc.cat-bits.64
@@ -24,8 +26,13 @@ class Signature:
             self._crc = Signature.MASK64
 
     def add(self, data_bytes):
-        if isinstance(data_bytes, str):
-            data_bytes = map(ord, data_bytes)
+        try:
+            if isinstance(data_bytes, basestring):  # Python 2.7 compatibility
+                data_bytes = map(ord, data_bytes)
+        except NameError:
+            if isinstance(data_bytes, str):  # This branch will be taken on Python 3
+                data_bytes = map(ord, data_bytes)
+
         for b in data_bytes:
             self._crc ^= (b << 56) & Signature.MASK64
             for _ in range(8):

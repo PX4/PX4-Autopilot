@@ -4,9 +4,16 @@
 # Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
 #
 
+from __future__ import division, absolute_import, print_function, unicode_literals
 import sys, os, logging, errno
 from mako.template import Template
 from pyuavcan import dsdl
+
+# Python 2.7 compatibility
+try:
+    str = unicode
+except NameError:
+    pass
 
 OUTPUT_FILE_EXTENSION = 'hpp'
 OUTPUT_FILE_PERMISSIONS = 0o444  # Read only for all
@@ -22,7 +29,7 @@ logger = logging.getLogger(__name__)
 def run(source_dirs, include_dirs, output_dir):
     assert isinstance(source_dirs, list)
     assert isinstance(include_dirs, list)
-    assert isinstance(output_dir, str)
+    output_dir = str(output_dir)
 
     types = run_parser(source_dirs, include_dirs + source_dirs)
     if not types:
@@ -44,7 +51,10 @@ def type_output_filename(t):
 
 def makedirs(path):
     try:
-        os.makedirs(path, exist_ok=True)  # May throw "File exists" when executed as root, which is wrong
+        try:
+            os.makedirs(path, exist_ok=True)  # May throw "File exists" when executed as root, which is wrong
+        except TypeError:
+            os.makedirs(path)  # Python 2.7 compatibility
     except OSError as ex:
         if ex.errno != errno.EEXIST:  # http://stackoverflow.com/questions/12468022
             raise
