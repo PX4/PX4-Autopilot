@@ -14,6 +14,7 @@ AttPosEKF::AttPosEKF()
     summedDelAng.zero();
     summedDelVel.zero();
 
+    fusionModeGPS = 0;
     fuseVelData = false;
     fusePosData = false;
     fuseHgtData = false;
