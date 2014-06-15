@@ -643,8 +643,8 @@ UBX::payload_rx_done(void)
 		UBX_TRACE_RXMSG("Rx NAV-SOL\n");
 
 		_gps_position->fix_type		= _buf.payload_rx_nav_sol.gpsFix;
-		_gps_position->s_variance_m_s	= _buf.payload_rx_nav_sol.sAcc;
-		_gps_position->p_variance_m	= _buf.payload_rx_nav_sol.pAcc;
+		_gps_position->s_variance_m_s	= (float)_buf.payload_rx_nav_sol.sAcc * 1e-2f;	// from cm to m
+		_gps_position->p_variance_m	= (float)_buf.payload_rx_nav_sol.pAcc * 1e-2f;	// from cm to m
 		_gps_position->satellites_used	= _buf.payload_rx_nav_sol.numSV;
 
 		_gps_position->timestamp_variance = hrt_absolute_time();
