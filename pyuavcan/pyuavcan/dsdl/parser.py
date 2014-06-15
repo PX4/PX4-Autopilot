@@ -308,14 +308,19 @@ class Parser:
         enforce(attrtype.category == attrtype.CATEGORY_PRIMITIVE, 'Invalid type for constant')
         init_expression = ''.join(init_expression.split())  # Remove spaces
         value = evaluate_expression(init_expression)
-        if not isinstance(value, (float, int, bool)):
+
+        if isinstance(value, str) and len(value) == 1:  # ASCII character
+            value = ord(value)
+        elif isinstance(value, (float, int, bool)):  # Numeric literal
+            value = {
+                attrtype.KIND_UNSIGNED_INT : int,
+                attrtype.KIND_SIGNED_INT : int,
+                attrtype.KIND_BOOLEAN : int,  # Not bool because we need to check range
+                attrtype.KIND_FLOAT : float
+            }[attrtype.kind](value)
+        else:
             error('Invalid type of constant initialization expression [%s]', type(value).__name__)
-        value = {
-            attrtype.KIND_UNSIGNED_INT : int,
-            attrtype.KIND_SIGNED_INT : int,
-            attrtype.KIND_BOOLEAN : int,  # Not bool because we need to check range
-            attrtype.KIND_FLOAT : float
-        }[attrtype.kind](value)
+
         self.log.debug('Constant initialization expression evaluated as: [%s] --> %s', init_expression, repr(value))
         attrtype.validate_value_range(value)
         return Constant(attrtype, name, init_expression, value)
