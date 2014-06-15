@@ -1504,7 +1504,7 @@ void AttPosEKF::FuseAirspeed()
         SH_TAS[0] = 1/(sqrt(sq(ve - vwe) + sq(vn - vwn) + sq(vd)));
         SH_TAS[1] = (SH_TAS[0]*(2.0f*ve - 2*vwe))/2.0f;
         SH_TAS[2] = (SH_TAS[0]*(2.0f*vn - 2*vwn))/2.0f;
-        
+
         float H_TAS[n_states];
         for (uint8_t i = 0; i < n_states; i++) H_TAS[i] = 0.0f;
         H_TAS[4] = SH_TAS[2];
@@ -2327,7 +2327,7 @@ int AttPosEKF::CheckAndBound()
     if (StatesNaN(&last_ekf_error)) {
         ekf_debug("re-initializing dynamic");
 
-        InitializeDynamic(velNED, magDeclination);
+	    InitializeDynamic(velNED, magDeclination);
 
         ret = 1;
     }
@@ -2474,10 +2474,18 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
     magstate.R_MAG = sq(magMeasurementSigma);
     magstate.DCM = DCM;
 
+    // Calculate position from gps measurement
+    float posNEDInit[3] = {0.0f, 0.0f, 0.0f}; // North, East Down position (m)
+    calcposNED(posNEDInit, gpsLat, gpsLon, gpsHgt, latRef, lonRef, hgtRef);
+
     // write to state vector
     for (uint8_t j=0; j<=3; j++) states[j] = initQuat[j]; // quaternions
     for (uint8_t j=4; j<=6; j++) states[j] = initvelNED[j-4]; // velocities
-    for (uint8_t j=7; j<=15; j++) states[j] = 0.0f; // positions, dAngBias, dVelBias, windVel
+    // positions:
+    states[7] = posNEDInit[0];
+    states[8] = posNEDInit[1];
+    states[9] = posNEDInit[2];
+    for (uint8_t j=10; j<=15; j++) states[j] = 0.0f; // dAngBias, dVelBias, windVel
     states[16] = initMagNED.x; // Magnetic Field North
     states[17] = initMagNED.y; // Magnetic Field East
     states[18] = initMagNED.z; // Magnetic Field Down
