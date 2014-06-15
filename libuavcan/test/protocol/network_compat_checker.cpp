@@ -100,7 +100,8 @@ TEST(NetworkCompatibilityChecker, RequestTimeout)
     ASSERT_EQ(0, ni.execute());
 
     // The one (and only) node has failed
-    ASSERT_EQ(1, ni.getNumFailedNodes());
+    ASSERT_EQ(1, ni.getResult().num_failed_nodes);
+    ASSERT_TRUE(ni.getResult().isOk());
 }
 
 
