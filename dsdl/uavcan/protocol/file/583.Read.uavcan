@@ -1,0 +1,17 @@
+#
+# Read contents of the file from remote node.
+# Empty data in response means that the offset is out of file boundaries.
+# Non-empty data means the end of file is not reached yet, even if the length is less than maximum.
+# Thus, if the client needs to fetch the entire file, it should repeatedly call this service while increasing the
+# offset, until the empty data is returned.
+# If the object pointed by 'path' cannot be read (e.g. is a directory or does not exist), appropriate error code
+# will be returned.
+#
+
+uint32 offset
+Path path
+
+---
+
+Error error
+uint8[<=250] data

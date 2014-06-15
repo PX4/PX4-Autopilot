@@ -1,0 +1,17 @@
+#
+# Request info about a remote file system entry (file, directory, etc).
+#
+# CRC computation algorithm is the same as for DSDL signature (refer to the protocol specification). The CRC field
+# should be set to zero for directories.
+#
+# Size is the file size in bytes. It should be set to zero for directories.
+#
+
+Path path
+
+---
+
+uint64 crc64     # Ignored/Zero for directories
+uint32 size      # Ignored/Zero for directories
+Error error
+EntryType entry_type
