@@ -901,7 +901,6 @@ int Mavlink::map_mavlink_mission_item_to_mission_item(const mavlink_mission_item
 
 	case MAV_CMD_NAV_ROI:
 		mission_item->roi_mode = (enum ROI_MODE)(mavlink_mission_item->param1);
-		mission_item->acceptance_radius = mavlink_mission_item->param2;
 		mission_item->path_mode = (enum NAV_PATH_MODE)(mavlink_mission_item->param4);
 		break;
 
@@ -939,7 +938,6 @@ int Mavlink::map_mission_item_to_mavlink_mission_item(const struct mission_item_
 
 	case NAV_CMD_ROI:
 		mavlink_mission_item->param1 = mission_item->roi_mode;
-		mavlink_mission_item->param2 = mission_item->acceptance_radius;
 		mavlink_mission_item->param4 = mission_item->path_mode;
 		break;
 
