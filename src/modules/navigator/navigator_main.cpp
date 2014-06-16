@@ -336,7 +336,7 @@ Navigator::task_main()
 		}
 
 		/* Do stuff according to navigation state set by commander */
-		switch (_vstatus.set_nav_state) {
+		switch (_vstatus.nav_state) {
 			case NAVIGATION_STATE_MANUAL:
 			case NAVIGATION_STATE_ACRO:
 			case NAVIGATION_STATE_ALTCTL:
@@ -351,8 +351,6 @@ Navigator::task_main()
 				_navigation_mode = &_loiter;
 				break;
 			case NAVIGATION_STATE_AUTO_RTL:
-			case NAVIGATION_STATE_AUTO_FAILSAFE_RC_LOSS:
-			case NAVIGATION_STATE_AUTO_FAILSAFE_DL_LOSS:
 				_navigation_mode = &_rtl;
 				break;
 			case NAVIGATION_STATE_LAND:

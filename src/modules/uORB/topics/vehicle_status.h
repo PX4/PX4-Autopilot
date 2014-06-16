@@ -59,7 +59,9 @@
  * @addtogroup topics @{
  */
 
-/* main state machine */
+/**
+ * Main state, i.e. what user wants. Controlled by RC or from ground station via telemetry link.
+ */
 typedef enum {
 	MAIN_STATE_MANUAL = 0,
 	MAIN_STATE_ALTCTL,
@@ -89,15 +91,9 @@ typedef enum {
 	HIL_STATE_ON
 } hil_state_t;
 
-typedef enum {
-	FAILSAFE_STATE_NORMAL = 0,		/**< Normal operation */
-	FAILSAFE_STATE_RC_LOSS,			/**< Return To Launch on remote control loss */
-	FAILSAFE_STATE_DL_LOSS,			/**< Return To Launch on datalink loss */
-	FAILSAFE_STATE_LAND,			/**< Land as safe as possible */
-	FAILSAFE_STATE_TERMINATION,		/**< Disable motors and use parachute, can't be recovered */
-	FAILSAFE_STATE_MAX,
-} failsafe_state_t;
-
+/**
+ * Navigation state, i.e. "what should vehicle do".
+ */
 typedef enum {
 	NAVIGATION_STATE_MANUAL = 0,		/**< Manual mode */
 	NAVIGATION_STATE_ACRO,			/**< Acro mode */
@@ -106,9 +102,8 @@ typedef enum {
 	NAVIGATION_STATE_AUTO_MISSION,		/**< Auto mission mode */
 	NAVIGATION_STATE_AUTO_LOITER,		/**< Auto loiter mode */
 	NAVIGATION_STATE_AUTO_RTL,		/**< Auto RTL mode */
-	NAVIGATION_STATE_AUTO_FAILSAFE_RC_LOSS,	/**< Auto failsafe on RC loss mode */
-	NAVIGATION_STATE_AUTO_FAILSAFE_DL_LOSS,	/**< Auto failsafe on datalink loss mode */
 	NAVIGATION_STATE_LAND,			/**< Land mode */
+	NAVIGATION_STATE_DESCEND,			/**< Descend mode (no position control) */
 	NAVIGATION_STATE_TERMINATION,		/**< Termination mode */
 } navigation_state_t;
 
@@ -171,10 +166,10 @@ struct vehicle_status_s {
 	uint64_t timestamp; /**< in microseconds since system start, is set whenever the writing thread stores new data */
 
 	main_state_t main_state;		    	/**< main state machine */
-	navigation_state_t set_nav_state;		/**< set navigation state machine to specified value */
+	navigation_state_t nav_state;		/**< set navigation state machine to specified value */
 	arming_state_t arming_state;			/**< current arming state */
 	hil_state_t hil_state;				/**< current hil state */
-	failsafe_state_t failsafe_state;		/**< current failsafe state */
+	bool failsafe;					/**< true if system is in failsafe state */
 
 	int32_t system_type;				/**< system type, inspired by MAVLink's VEHICLE_TYPE enum */
 	int32_t	system_id;				/**< system id, inspired by MAVLink's system ID field */
@@ -198,6 +193,8 @@ struct vehicle_status_s {
 	bool rc_signal_found_once;
 	bool rc_signal_lost;				/**< true if RC reception lost */
 	bool rc_input_blocked;				/**< set if RC input should be ignored */
+
+	bool data_link_lost;						/**< datalink to GCS lost */
 
 	bool offboard_control_signal_found_once;
 	bool offboard_control_signal_lost;
