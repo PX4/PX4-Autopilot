@@ -36,7 +36,7 @@ public:
     enum { NumBytes = 2 };
 
     TransferCRC()
-        : value_(0xFFFF)
+        : value_(0xFFFFU)
     { }
 
 #if UAVCAN_TINY
@@ -45,9 +45,9 @@ public:
         value_ ^= static_cast<uint16_t>(byte) << 8;
         for (uint8_t bit = 8; bit > 0; --bit)
         {
-            if (value_ & 0x8000)
+            if (value_ & 0x8000U)
             {
-                value_ = (value_ << 1) ^ 0x1021;
+                value_ = (value_ << 1) ^ 0x1021U;
             }
             else
             {
@@ -58,7 +58,7 @@ public:
 #else
     void add(uint8_t byte)
     {
-        value_ = ((value_ << 8) ^ Table[((value_ >> 8) ^ byte) & 0xFF]) & 0xFFFF;
+        value_ = ((value_ << 8) ^ Table[((value_ >> 8) ^ byte) & 0xFFU]) & 0xFFFFU;
     }
 #endif
 
