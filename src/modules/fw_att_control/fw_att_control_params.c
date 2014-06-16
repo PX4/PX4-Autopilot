@@ -50,149 +50,322 @@ f *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  * Controller parameters, accessible via MAVLink
  *
  */
-// @DisplayName		Attitude Time Constant
-// @Description		This defines the latency between a step input and the achieved setpoint (inverse to a P gain). Half a second is a good start value and fits for most average systems. Smaller systems may require smaller values, but as this will wear out servos faster, the value should only be decreased as needed.
-// @Range		0.4 to 1.0 seconds, in tens of seconds
+
+/**
+ * Attitude Time Constant
+ *
+ * This defines the latency between a step input and the achieved setpoint
+ * (inverse to a P gain). Half a second is a good start value and fits for
+ * most average systems. Smaller systems may require smaller values, but as
+ * this will wear out servos faster, the value should only be decreased as
+ * needed.
+ *
+ * @unit seconds
+ * @min 0.4
+ * @max 1.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_ATT_TC, 0.5f);
 
-// @DisplayName		Pitch rate proportional gain.
-// @Description		This defines how much the elevator input will be commanded depending on the current body angular rate error.
-// @Range		10 to 200, 1 increments
+/**
+ * Pitch rate proportional gain.
+ *
+ * This defines how much the elevator input will be commanded depending on the
+ * current body angular rate error.
+ *
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_PR_P, 0.05f);
 
-// @DisplayName		Pitch rate integrator gain.
-// @Description		This gain defines how much control response will result out of a steady state error. It trims any constant error.
-// @Range		0 to 50.0
+/**
+ * Pitch rate integrator gain.
+ *
+ * This gain defines how much control response will result out of a steady
+ * state error. It trims any constant error.
+ *
+ * @min 0.0
+ * @max 50.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_PR_I, 0.0f);
 
-// @DisplayName		Maximum positive / up pitch rate.
-// @Description		This limits the maximum pitch up angular rate the controller will output (in degrees per second). Setting a value of zero disables the limit.
-// @Range		0 to 90.0 degrees per seconds, in 1 increments
+/**
+ * Maximum positive / up pitch rate.
+ *
+ * This limits the maximum pitch up angular rate the controller will output (in
+ * degrees per second). Setting a value of zero disables the limit.
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 90.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 0.0f);
 
-// @DisplayName		Maximum negative / down pitch rate.
-// @Description		This limits the maximum pitch down up angular rate the controller will output (in degrees per second). Setting a value of zero disables the limit.
-// @Range		0 to 90.0 degrees per seconds, in 1 increments
+/**
+ * Maximum negative / down pitch rate.
+ *
+ * This limits the maximum pitch down up angular rate the controller will
+ * output (in degrees per second). Setting a value of zero disables the limit.
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 90.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 0.0f);
 
-// @DisplayName		Pitch rate integrator limit
-// @Description		The portion of the integrator part in the control surface deflection is limited to this value
-// @Range		0.0 to 1
-// @Increment		0.1
+/**
+ * Pitch rate integrator limit
+ *
+ * The portion of the integrator part in the control surface deflection is
+ * limited to this value
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.2f);
 
-// @DisplayName		Roll to Pitch feedforward gain.
-// @Description		This compensates during turns and ensures the nose stays level.
-// @Range		0.5 2.0
-// @Increment		0.05
-// @User		User
+/**
+ * Roll to Pitch feedforward gain.
+ *
+ * This compensates during turns and ensures the nose stays level.
+ *
+ * @min 0.0
+ * @max 2.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_P_ROLLFF, 0.0f); //xxx: set to 0 as default, see comment in ECL_PitchController::control_attitude (float turn_offset = ...)
 
-// @DisplayName		Roll rate proportional Gain.
-// @Description		This defines how much the aileron input will be commanded depending on the current body angular rate error.
-// @Range		10.0 200.0
-// @Increment		10.0
-// @User		User
+/**
+ * Roll rate proportional Gain
+ *
+ * This defines how much the aileron input will be commanded depending on the
+ * current body angular rate error.
+ *
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
 
-// @DisplayName		Roll rate integrator Gain
-// @Description		This gain defines how much control response will result out of a steady state error. It trims any constant error.
-// @Range		0.0 100.0
-// @Increment		5.0
-// @User		User
+/**
+ * Roll rate integrator Gain
+ *
+ * This gain defines how much control response will result out of a steady
+ * state error. It trims any constant error.
+ *
+ * @min 0.0
+ * @max 100.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_RR_I, 0.0f);
 
-// @DisplayName		Roll Integrator Anti-Windup
-// @Description		The portion of the integrator part in the control surface deflection is limited to this value.
-// @Range		0.0 to 1.0
-// @Increment		0.1
+/**
+ * Roll Integrator Anti-Windup
+ *
+ * The portion of the integrator part in the control surface deflection is limited to this value.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_RR_IMAX, 0.2f);
 
-// @DisplayName		Maximum Roll Rate
-// @Description		This limits the maximum roll rate the controller will output (in degrees per second). Setting a value of zero disables the limit.
-// @Range		0 to 90.0 degrees per seconds
-// @Increment		1.0
-PARAM_DEFINE_FLOAT(FW_R_RMAX, 0);
+/**
+ * Maximum Roll Rate
+ *
+ * This limits the maximum roll rate the controller will output (in degrees per
+ * second). Setting a value of zero disables the limit.
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 90.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_R_RMAX, 0.0f);
 
-// @DisplayName		Yaw rate proportional gain.
-// @Description		This defines how much the rudder input will be commanded depending on the current body angular rate error.
-// @Range		10 to 200, 1 increments
-PARAM_DEFINE_FLOAT(FW_YR_P, 0.05);
+/**
+ * Yaw rate proportional gain
+ *
+ * This defines how much the rudder input will be commanded depending on the
+ * current body angular rate error.
+ *
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_YR_P, 0.05f);
 
-// @DisplayName		Yaw rate integrator gain.
-// @Description		This gain defines how much control response will result out of a steady state error. It trims any constant error.
-// @Range		0 to 50.0
+/**
+ * Yaw rate integrator gain
+ *
+ * This gain defines how much control response will result out of a steady
+ * state error. It trims any constant error.
+ *
+ * @min 0.0
+ * @max 50.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_YR_I, 0.0f);
 
-// @DisplayName		Yaw rate integrator limit
-// @Description		The portion of the integrator part in the control surface deflection is limited to this value
-// @Range		0.0 to 1
-// @Increment		0.1
+/**
+ * Yaw rate integrator limit
+ *
+ * The portion of the integrator part in the control surface deflection is
+ * limited to this value
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
 
-// @DisplayName		Maximum Yaw Rate
-// @Description		This limits the maximum yaw rate the controller will output (in degrees per second). Setting a value of zero disables the limit.
-// @Range		0 to 90.0 degrees per seconds
-// @Increment		1.0
-PARAM_DEFINE_FLOAT(FW_Y_RMAX, 0);
+/**
+ * Maximum Yaw Rate
+ *
+ * This limits the maximum yaw rate the controller will output (in degrees per
+ * second). Setting a value of zero disables the limit.
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 90.0
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_Y_RMAX, 0.0f);
 
-// @DisplayName		Roll rate feed forward
-// @Description		Direct feed forward from rate setpoint to control surface output
-// @Range		0 to 10
-// @Increment		0.1
+/**
+ * Roll rate feed forward
+ *
+ * Direct feed forward from rate setpoint to control surface output
+ *
+ * @min 0.0
+ * @max 10.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_RR_FF, 0.3f);
 
-// @DisplayName		Pitch rate feed forward
-// @Description		Direct feed forward from rate setpoint to control surface output
-// @Range		0 to 10
-// @Increment		0.1
+/**
+ * Pitch rate feed forward
+ *
+ * Direct feed forward from rate setpoint to control surface output
+ *
+ * @min 0.0
+ * @max 10.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_PR_FF, 0.4f);
 
-// @DisplayName		Yaw rate feed forward
-// @Description		Direct feed forward from rate setpoint to control surface output
-// @Range		0 to 10
-// @Increment		0.1
+/**
+ * Yaw rate feed forward
+ *
+ * Direct feed forward from rate setpoint to control surface output
+ *
+ * @min 0.0
+ * @max 10.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_YR_FF, 0.3f);
 
-// @DisplayName		Minimal speed for yaw coordination
-// @Description		For airspeeds above this value the yaw rate is calculated for a coordinated turn. Set to a very high value to disable.
-// @Range		0 to 90.0 degrees per seconds
-// @Increment		1.0
+/**
+ * Minimal speed for yaw coordination
+ *
+ * For airspeeds above this value, the yaw rate is calculated for a coordinated
+ * turn. Set to a very high value to disable.
+ *
+ * @unit m/s
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_YCO_VMIN, 1000.0f);
 
-/* Airspeed parameters: the following parameters about airspeed are used by the attitude and the positon controller */
+/* Airspeed parameters:
+ * The following parameters about airspeed are used by the attitude and the
+ * position controller.
+ * */
 
-// @DisplayName		Minimum Airspeed
-// @Description		If the airspeed falls below this value the TECS controller will try to increase airspeed more aggressively
-// @Range		0.0 to 30
+/**
+ * Minimum Airspeed
+ *
+ * If the airspeed falls below this value, the TECS controller will try to
+ * increase airspeed more aggressively.
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 30.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 13.0f);
 
-// @DisplayName		Trim Airspeed
-// @Description		The TECS controller tries to fly at this airspeed
-// @Range		0.0 to 30
+/**
+ * Trim Airspeed
+ *
+ * The TECS controller tries to fly at this airspeed.
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 30.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 20.0f);
 
-// @DisplayName		Maximum Airspeed
-// @Description		If the airspeed is above this value the TECS controller will try to decrease airspeed more aggressively
-// @Range		0.0 to 30
+/**
+ * Maximum Airspeed
+ *
+ * If the airspeed is above this value, the TECS controller will try to decrease
+ * airspeed more aggressively.
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 30.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 50.0f);
 
-// @DisplayName		Roll Setpoint Offset
-// @Description		An airframe specific offset of the roll setpoint in degrees, the value is added to the roll setpoint and should correspond to the typical cruise speed of the airframe
-// @Range		-90.0 to 90.0
+/**
+ * Roll Setpoint Offset
+ *
+ * An airframe specific offset of the roll setpoint in degrees, the value is
+ * added to the roll setpoint and should correspond to the typical cruise speed
+ * of the airframe.
+ *
+ * @unit deg
+ * @min -90.0
+ * @max 90.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_RSP_OFF, 0.0f);
 
-// @DisplayName		Pitch Setpoint Offset
-// @Description		An airframe specific offset of the pitch setpoint in degrees, the value is added to the pitch setpoint and should correspond to the typical cruise speed of the airframe
-// @Range		-90.0 to 90.0
+/**
+ * Pitch Setpoint Offset
+ *
+ * An airframe specific offset of the pitch setpoint in degrees, the value is
+ * added to the pitch setpoint and should correspond to the typical cruise
+ * speed of the airframe.
+ *
+ * @unit deg
+ * @min -90.0
+ * @max 90.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_PSP_OFF, 0.0f);
 
-// @DisplayName		Max Manual Roll
-// @Description		Max roll for manual control in attitude stabilized mode
-// @Range		0.0 to 90.0
+/**
+ * Max Manual Roll
+ *
+ * Max roll for manual control in attitude stabilized mode
+ *
+ * @unit deg
+ * @min 0.0
+ * @max 90.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
 
-// @DisplayName		Max Manual Pitch
-// @Description		Max pitch for manual control in attitude stabilized mode
-// @Range		0.0 to 90.0
+/**
+ * Max Manual Pitch
+ *
+ * Max pitch for manual control in attitude stabilized mode
+ *
+ * @unit deg
+ * @min 0.0
+ * @max 90.0
+ * @group FW Attitude Control
+ */
 PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 45.0f);
