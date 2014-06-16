@@ -72,6 +72,10 @@
 #define MIN(X,Y)	((X) < (Y) ? (X) : (Y))
 #define SWAP16(X)	((((X) >>  8) & 0x00ff) | (((X) << 8) & 0xff00))
 
+#define FNV1_32_INIT	((uint32_t)0x811c9dc5)	// init value for FNV1 hash algorithm
+#define FNV1_32_PRIME	((uint32_t)0x01000193)	// magic prime for FNV1 hash algorithm
+
+
 /**** Trace macros, disable for production builds */
 #define UBX_TRACE_PARSER(s, ...)	{/*printf(s, ## __VA_ARGS__);*/}	/* decoding progress in parse_char() */
 #define UBX_TRACE_RXMSG(s, ...)		{/*printf(s, ## __VA_ARGS__);*/}	/* Rx msgs in payload_rx_done() */
@@ -90,11 +94,10 @@ UBX::UBX(const int &fd, struct vehicle_gps_position_s *gps_position, struct sate
 	_got_posllh(false),
 	_got_velned(false),
 	_disable_cmd_last(0),
-	_ack_waiting_msg(0)
+	_ack_waiting_msg(0),
+	_ubx_version(0)
 {
 	decode_init();
-	memset(_ubx_sw_version, 0, sizeof(_ubx_sw_version));
-	memset(_ubx_hw_version, 0, sizeof(_ubx_hw_version));
 }
 
 UBX::~UBX()
@@ -633,18 +636,19 @@ UBX::payload_rx_add_mon_ver(const uint8_t b)
 		_buf.raw[_rx_payload_index] = b;
 	} else {
 		if (_rx_payload_index == sizeof(ubx_payload_rx_mon_ver_part1_t)) {
-			// Part 1 complete: decode Part 1 buffer
-			strncpy(_ubx_sw_version, (char*)_buf.payload_rx_mon_ver_part1.swVersion, sizeof(_ubx_sw_version));
-			strncpy(_ubx_hw_version, (char*)_buf.payload_rx_mon_ver_part1.hwVersion, sizeof(_ubx_hw_version));
-			UBX_WARN("VER sw  %30s", _ubx_sw_version);
-			UBX_WARN("VER hw  %10s", _ubx_hw_version);
+			// Part 1 complete: decode Part 1 buffer and calculate hash for SW&HW version strings
+			_ubx_version = fnv1_32_str(_buf.payload_rx_mon_ver_part1.swVersion, FNV1_32_INIT);
+			_ubx_version = fnv1_32_str(_buf.payload_rx_mon_ver_part1.hwVersion, _ubx_version);
+			UBX_WARN("VER hash 0x%08x", _ubx_version);
+			UBX_WARN("VER hw  \"%10s\"", _buf.payload_rx_mon_ver_part1.hwVersion);
+			UBX_WARN("VER sw  \"%30s\"", _buf.payload_rx_mon_ver_part1.swVersion);
 		}
 		// fill Part 2 buffer
 		unsigned buf_index = (_rx_payload_index - sizeof(ubx_payload_rx_mon_ver_part1_t)) % sizeof(ubx_payload_rx_mon_ver_part2_t);
 		_buf.raw[buf_index] = b;
 		if (buf_index == sizeof(ubx_payload_rx_mon_ver_part2_t) - 1) {
 			// Part 2 complete: decode Part 2 buffer
-			UBX_WARN("VER ext %30s", _buf.payload_rx_mon_ver_part2.extension);
+			UBX_WARN("VER ext \" %30s\"", _buf.payload_rx_mon_ver_part2.extension);
 		}
 	}
 
@@ -877,3 +881,29 @@ UBX::send_message(const uint16_t msg, const uint8_t *payload, const uint16_t len
 		write(_fd, (const void *)payload, length);
 	write(_fd, (const void *)&checksum, sizeof(checksum));
 }
+
+uint32_t
+UBX::fnv1_32_str(uint8_t *str, uint32_t hval)
+{
+    uint8_t *s = str;
+
+    /*
+     * FNV-1 hash each octet in the buffer
+     */
+    while (*s) {
+
+	/* multiply by the 32 bit FNV magic prime mod 2^32 */
+#if defined(NO_FNV_GCC_OPTIMIZATION)
+	hval *= FNV1_32_PRIME;
+#else
+	hval += (hval<<1) + (hval<<4) + (hval<<7) + (hval<<8) + (hval<<24);
+#endif
+
+	/* xor the bottom with the current octet */
+	hval ^= (uint32_t)*s++;
+    }
+
+    /* return our new hash value */
+    return hval;
+}
+

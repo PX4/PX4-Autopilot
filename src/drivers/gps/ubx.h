@@ -452,6 +452,11 @@ private:
 	 */
 	int			wait_for_ack(const uint16_t msg, const unsigned timeout, const bool report);
 
+	/**
+	 * Calculate FNV1 hash
+	 */
+	uint32_t		fnv1_32_str(uint8_t *str, uint32_t hval);
+
 	int			_fd;
 	struct vehicle_gps_position_s *_gps_position;
 	struct satellite_info_s *_satellite_info;
@@ -470,8 +475,7 @@ private:
 	hrt_abstime		_disable_cmd_last;
 	uint16_t		_ack_waiting_msg;
 	ubx_buf_t		_buf;
-	char			_ubx_sw_version[30];
-	char			_ubx_hw_version[10];
+	uint32_t		_ubx_version;
 };
 
 #endif /* UBX_H_ */
