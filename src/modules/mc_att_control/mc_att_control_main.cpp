@@ -584,14 +584,8 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		if (_att_sp_pub > 0) {
 			orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_v_att_sp);
 
-		} else if (!_v_control_mode.flag_control_offboard_enabled) {
+		} else {
 			_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_v_att_sp);
-		}
-
-		/* Close fd to let offboard att sp be advertised in mavlink receiver*/
-		if (_v_control_mode.flag_control_offboard_enabled && _att_sp_pub > 0) {
-			close(_att_sp_pub);
-			_att_sp_pub = -1;
 		}
 	}
 

@@ -733,15 +733,10 @@ MulticopterPositionControl::task_main()
 			if (_local_pos_sp_pub > 0) {
 				orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &_local_pos_sp);
 
-			} else if (!_control_mode.flag_control_offboard_enabled) {
+			} else {
 				_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
 			}
 
-			/* Close fd to let offboard pos sp be advertised in mavlink receiver*/
-			if (_control_mode.flag_control_offboard_enabled && _local_pos_sp_pub > 0) {
-				close(_local_pos_sp_pub);
-				_local_pos_sp_pub = -1;
-			}
 
 			if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_IDLE) {
 				/* idle state, don't run controller and set zero thrust */
@@ -822,14 +817,8 @@ MulticopterPositionControl::task_main()
 				if (_global_vel_sp_pub > 0) {
 					orb_publish(ORB_ID(vehicle_global_velocity_setpoint), _global_vel_sp_pub, &_global_vel_sp);
 
-				} else if (!_control_mode.flag_control_offboard_enabled) {
+				} else {
 					_global_vel_sp_pub = orb_advertise(ORB_ID(vehicle_global_velocity_setpoint), &_global_vel_sp);
-				}
-
-				/* Close fd to let offboard vel sp be advertised in mavlink receiver */
-				if (_control_mode.flag_control_offboard_enabled && _global_vel_sp_pub > 0) {
-					close(_global_vel_sp_pub);
-					_global_vel_sp_pub = -1;
 				}
 
 				if (_control_mode.flag_control_climb_rate_enabled || _control_mode.flag_control_velocity_enabled) {
@@ -1099,11 +1088,6 @@ MulticopterPositionControl::task_main()
 			reset_int_z = true;
 			reset_int_xy = true;
 
-			/* Close att_sp pub to allow offboard mode or att controller to advertise */
-			if (_att_sp_pub > 0) {
-				close(_att_sp_pub);
-				_att_sp_pub = -1;
-			}
 		}
 
 		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */
