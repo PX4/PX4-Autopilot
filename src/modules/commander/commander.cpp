@@ -624,22 +624,34 @@ int commander_thread_main(int argc, char *argv[])
 	warnx("starting");
 
 	char *main_states_str[MAIN_STATE_MAX];
-	main_states_str[0] = "MANUAL";
-	main_states_str[1] = "ALTCTL";
-	main_states_str[2] = "POSCTL";
-	main_states_str[3] = "AUTO_MISSION";
-	main_states_str[4] = "AUTO_LOITER";
-	main_states_str[5] = "AUTO_RTL";
-	main_states_str[6] = "ACRO";
+	main_states_str[MAIN_STATE_MANUAL]			= "MANUAL";
+	main_states_str[MAIN_STATE_ALTCTL]			= "ALTCTL";
+	main_states_str[MAIN_STATE_POSCTL]			= "POSCTL";
+	main_states_str[MAIN_STATE_AUTO_MISSION]	= "AUTO_MISSION";
+	main_states_str[MAIN_STATE_AUTO_LOITER]		= "AUTO_LOITER";
+	main_states_str[MAIN_STATE_AUTO_RTL]		= "AUTO_RTL";
+	main_states_str[MAIN_STATE_ACRO]			= "ACRO";
 
 	char *arming_states_str[ARMING_STATE_MAX];
-	arming_states_str[0] = "INIT";
-	arming_states_str[1] = "STANDBY";
-	arming_states_str[2] = "ARMED";
-	arming_states_str[3] = "ARMED_ERROR";
-	arming_states_str[4] = "STANDBY_ERROR";
-	arming_states_str[5] = "REBOOT";
-	arming_states_str[6] = "IN_AIR_RESTORE";
+	arming_states_str[ARMING_STATE_INIT]			= "INIT";
+	arming_states_str[ARMING_STATE_STANDBY]			= "STANDBY";
+	arming_states_str[ARMING_STATE_ARMED]			= "ARMED";
+	arming_states_str[ARMING_STATE_ARMED_ERROR]		= "ARMED_ERROR";
+	arming_states_str[ARMING_STATE_STANDBY_ERROR]	= "STANDBY_ERROR";
+	arming_states_str[ARMING_STATE_REBOOT]			= "REBOOT";
+	arming_states_str[ARMING_STATE_IN_AIR_RESTORE]	= "IN_AIR_RESTORE";
+
+	char *nav_states_str[NAVIGATION_STATE_MAX];
+	nav_states_str[NAVIGATION_STATE_MANUAL]		= "MANUAL";
+	nav_states_str[NAVIGATION_STATE_ALTCTL]		= "ALTCTL";
+	nav_states_str[NAVIGATION_STATE_POSCTL]		= "POSCTL";
+	nav_states_str[NAVIGATION_STATE_AUTO_MISSION]	= "AUTO_MISSION";
+	nav_states_str[NAVIGATION_STATE_AUTO_LOITER]	= "AUTO_LOITER";
+	nav_states_str[NAVIGATION_STATE_AUTO_RTL]		= "AUTO_RTL";
+	nav_states_str[NAVIGATION_STATE_ACRO]			= "ACRO";
+	nav_states_str[NAVIGATION_STATE_LAND]			= "LAND";
+	nav_states_str[NAVIGATION_STATE_DESCEND]		= "DESCEND";
+	nav_states_str[NAVIGATION_STATE_TERMINATION]	= "TERMINATION";
 
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
@@ -844,7 +856,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* check which state machines for changes, clear "changed" flag */
 	bool arming_state_changed = false;
 	bool main_state_changed = false;
-	bool failsafe_state_changed = false;
+	bool failsafe_old = false;
 
 	while (!thread_should_exit) {
 
@@ -1366,18 +1378,26 @@ int commander_thread_main(int argc, char *argv[])
 		was_armed = armed.armed;
 
 		/* now set navigation state according to failsafe and main state */
-		set_nav_state(&status);
+		bool nav_state_changed = set_nav_state(&status);
 
+		// TODO handle mode changes by commands
 		if (main_state_changed) {
 			status_changed = true;
+			warnx("main state: %s", main_states_str[status.main_state]);
 			mavlink_log_info(mavlink_fd, "[cmd] main state: %s", main_states_str[status.main_state]);
 			main_state_changed = false;
 		}
 
-		if (failsafe_state_changed) {
+		if (status.failsafe != failsafe_old) {
 			status_changed = true;
 			mavlink_log_info(mavlink_fd, "[cmd] failsafe state: %i", status.failsafe);
-			failsafe_state_changed = false;
+			failsafe_old = status.failsafe;
+		}
+
+		if (nav_state_changed) {
+			status_changed = true;
+			warnx("nav state: %s", nav_states_str[status.nav_state]);
+			mavlink_log_info(mavlink_fd, "[cmd] nav state: %s", nav_states_str[status.nav_state]);
 		}
 
 		/* publish states (armed, control mode, vehicle status) at least with 5 Hz */

@@ -96,15 +96,16 @@ typedef enum {
  */
 typedef enum {
 	NAVIGATION_STATE_MANUAL = 0,		/**< Manual mode */
-	NAVIGATION_STATE_ACRO,			/**< Acro mode */
 	NAVIGATION_STATE_ALTCTL,		/**< Altitude control mode */
 	NAVIGATION_STATE_POSCTL,		/**< Position control mode */
 	NAVIGATION_STATE_AUTO_MISSION,		/**< Auto mission mode */
 	NAVIGATION_STATE_AUTO_LOITER,		/**< Auto loiter mode */
 	NAVIGATION_STATE_AUTO_RTL,		/**< Auto RTL mode */
+	NAVIGATION_STATE_ACRO,			/**< Acro mode */
 	NAVIGATION_STATE_LAND,			/**< Land mode */
 	NAVIGATION_STATE_DESCEND,			/**< Descend mode (no position control) */
 	NAVIGATION_STATE_TERMINATION,		/**< Termination mode */
+	NAVIGATION_STATE_MAX,
 } navigation_state_t;
 
 enum VEHICLE_MODE_FLAG {

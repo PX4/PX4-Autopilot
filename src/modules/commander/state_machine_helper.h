@@ -65,6 +65,6 @@ transition_result_t main_state_transition(struct vehicle_status_s *current_state
 
 transition_result_t hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_status_s *current_state, const int mavlink_fd);
 
-void set_nav_state(struct vehicle_status_s *status);
+bool set_nav_state(struct vehicle_status_s *status);
 
 #endif /* STATE_MACHINE_HELPER_H_ */

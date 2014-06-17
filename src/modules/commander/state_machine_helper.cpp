@@ -366,8 +366,11 @@ transition_result_t hil_state_transition(hil_state_t new_state, int status_pub, 
 /**
  * Check failsafe and main status and set navigation status for navigator accordingly
  */
-void set_nav_state(struct vehicle_status_s *status)
+bool set_nav_state(struct vehicle_status_s *status)
 {
+	navigation_state_t nav_state_old = status->nav_state;
+
+	bool armed = (status->arming_state == ARMING_STATE_ARMED || status->arming_state == ARMING_STATE_ARMED_ERROR);
 	status->failsafe = false;
 
 	/* evaluate main state to decide in normal (non-failsafe) mode */
@@ -377,7 +380,7 @@ void set_nav_state(struct vehicle_status_s *status)
 	case MAIN_STATE_ALTCTL:
 	case MAIN_STATE_POSCTL:
 		/* require RC for all manual modes */
-		if (status->rc_signal_lost) {
+		if (status->rc_signal_lost && armed) {
 			status->failsafe = true;
 
 		} else {
@@ -407,31 +410,44 @@ void set_nav_state(struct vehicle_status_s *status)
 
 	case MAIN_STATE_AUTO_MISSION:
 		/* require data link and global position */
-		if (status->data_link_lost || !status->condition_global_position_valid) {
+		if ((status->data_link_lost || !status->condition_global_position_valid) && armed) {
 			status->failsafe = true;
 
 		} else {
-			status->nav_state = NAVIGATION_STATE_AUTO_MISSION;
+			if (armed) {
+				status->nav_state = NAVIGATION_STATE_AUTO_MISSION;
+
+			} else {
+				// TODO which mode should we set when disarmed?
+				status->nav_state = NAVIGATION_STATE_AUTO_LOITER;
+			}
 		}
 		break;
 
 	case MAIN_STATE_AUTO_LOITER:
 		/* require data link and local position */
-		if (status->data_link_lost || !status->condition_local_position_valid) {
+		if ((status->data_link_lost || !status->condition_local_position_valid) && armed) {
 			status->failsafe = true;
 
 		} else {
+			// TODO which mode should we set when disarmed?
 			status->nav_state = NAVIGATION_STATE_AUTO_LOITER;
 		}
 		break;
 
 	case MAIN_STATE_AUTO_RTL:
 		/* require global position and home */
-		if (!status->condition_global_position_valid || !status->condition_home_position_valid) {
+		if ((!status->condition_global_position_valid || !status->condition_home_position_valid) && armed) {
 			status->failsafe = true;
 
 		} else {
-			status->nav_state = NAVIGATION_STATE_AUTO_RTL;
+			if (armed) {
+				status->nav_state = NAVIGATION_STATE_AUTO_RTL;
+
+			} else {
+				// TODO which mode should we set when disarmed?
+				status->nav_state = NAVIGATION_STATE_AUTO_LOITER;
+			}
 		}
 		break;
 
@@ -453,5 +469,7 @@ void set_nav_state(struct vehicle_status_s *status)
 			status->nav_state = NAVIGATION_STATE_TERMINATION;
 		}
 	}
+
+	return status->nav_state != nav_state_old;
 }
 
