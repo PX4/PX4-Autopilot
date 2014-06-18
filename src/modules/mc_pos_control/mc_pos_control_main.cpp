@@ -838,12 +838,17 @@ MulticopterPositionControl::task_main()
 				tvel_current(2) = 0.0f;
 			}
 
-			/* Low pass filter for target velocity */
+			/* low pass filter for target velocity */
 			if (_params.follow_lpf > 0.0f) {
-				_tvel += (tvel_current - _tvel) * fminf(dt / _params.follow_lpf, 1.0f);
+				tvel_current += (tvel_current - _tvel) * fminf(dt / _params.follow_lpf, 1.0f);
+			}
 
-			} else {
+			/* NaN protection */
+			if (isfinite(tvel_current(0)) && isfinite(tvel_current(1)) && isfinite(tvel_current(2))) {
 				_tvel = tvel_current;
+
+			} else if (!(isfinite(_tvel(0)) && isfinite(_tvel(1)) && isfinite(_tvel(2)))) {
+				_tvel.zero();
 			}
 
 			/* calculate delay between position estimates for vehicle and target */
