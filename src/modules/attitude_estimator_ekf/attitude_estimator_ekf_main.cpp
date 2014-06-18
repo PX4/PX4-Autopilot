@@ -512,10 +512,11 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 					/* send out */
 					att.timestamp = raw.timestamp;
-
-					att.roll = euler[0];
-					att.pitch = euler[1];
-					att.yaw = euler[2] + ekf_params.mag_decl;
+					
+					/* Compensate for fmu placement offsets and magnetic declination */
+					att.roll = euler[0] - ekf_params.roll_off;
+					att.pitch = euler[1] - ekf_params.pitch_off;
+					att.yaw = euler[2] + ekf_params.mag_decl - ekf_params.yaw_off;
 
 					att.rollspeed = x_aposteriori[0];
 					att.pitchspeed = x_aposteriori[1];
