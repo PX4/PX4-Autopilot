@@ -905,7 +905,7 @@ MulticopterPositionControl::task_main()
 					control_sp_follow(dt);
 
 				} else {
-					/* normal node, move position setpoint */
+					/* normal mode, move position setpoint */
 					/* rotate moving vector around yaw (use yaw setpoint) */
 					math::Matrix<3, 3> R_yaw_sp;
 					R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
