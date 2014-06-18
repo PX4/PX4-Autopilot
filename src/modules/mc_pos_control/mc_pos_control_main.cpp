@@ -675,21 +675,30 @@ MulticopterPositionControl::task_main()
 				orb_check(_local_pos_sp_sub, &updated);
 
 				if (updated) {
-					orb_copy(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_sub,
-					         &_local_pos_sp);
+					orb_copy(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_sub, &_local_pos_sp);
 				}
 
-				/* Make sure position control is selected i.e. not only velocity control */
-				if (_control_mode.flag_control_position_enabled) {
-					_pos_sp(0) = _local_pos_sp.x;
-					_pos_sp(1) = _local_pos_sp.y;
-				}
+				if (isfinite(_local_pos_sp.x) && isfinite(_local_pos_sp.y) && isfinite(_local_pos_sp.z) && isfinite(_local_pos_sp.yaw)) {
+					/* If manual control overides offboard, cancel the offboard setpoint and stay at current position */
+					_reset_pos_sp = true;
+					_reset_alt_sp = true;
 
-				if (_control_mode.flag_control_altitude_enabled) {
-					_pos_sp(2) = _local_pos_sp.z;
-				}
+					/* Make sure position control is selected i.e. not only velocity control */
+					if (_control_mode.flag_control_position_enabled) {
+						_pos_sp(0) = _local_pos_sp.x;
+						_pos_sp(1) = _local_pos_sp.y;
+					}
 
-				_att_sp.yaw_body = _local_pos_sp.yaw;
+					if (_control_mode.flag_control_altitude_enabled) {
+						_pos_sp(2) = _local_pos_sp.z;
+					}
+
+					_att_sp.yaw_body = _local_pos_sp.yaw;
+
+				} else {
+					reset_pos_sp();
+					reset_alt_sp();
+				}
 			
 			} else {
 				/* AUTO */
