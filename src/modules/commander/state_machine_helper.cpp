@@ -366,7 +366,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, int status_pub, 
 /**
  * Check failsafe and main status and set navigation status for navigator accordingly
  */
-bool set_nav_state(struct vehicle_status_s *status)
+bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_enabled, const bool mission_finished)
 {
 	navigation_state_t nav_state_old = status->nav_state;
 
@@ -382,6 +382,16 @@ bool set_nav_state(struct vehicle_status_s *status)
 		/* require RC for all manual modes */
 		if (status->rc_signal_lost && armed) {
 			status->failsafe = true;
+
+			if (status->condition_global_position_valid && status->condition_home_position_valid) {
+				status->nav_state = NAVIGATION_STATE_AUTO_FS_RC_LOSS;
+			} else if (status->condition_local_position_valid) {
+				status->nav_state = NAVIGATION_STATE_LAND;
+			} else if (status->condition_local_altitude_valid) {
+				status->nav_state = NAVIGATION_STATE_DESCEND;
+			} else {
+				status->nav_state = NAVIGATION_STATE_TERMINATION;
+			}
 
 		} else {
 			switch (status->main_state) {
@@ -409,65 +419,121 @@ bool set_nav_state(struct vehicle_status_s *status)
 		break;
 
 	case MAIN_STATE_AUTO_MISSION:
-		/* require data link and global position */
-		if ((status->data_link_lost || !status->condition_global_position_valid) && armed) {
+		/* go into failsafe
+		 * - if either the datalink is enabled and lost as well as RC is lost
+		 * - if there is no datalink and the mission is finished */
+		if (((status->data_link_lost && data_link_loss_enabled) && status->rc_signal_lost) ||
+		    (!data_link_loss_enabled && status->rc_signal_lost && mission_finished)) {
 			status->failsafe = true;
 
-		} else {
-			if (armed) {
-				status->nav_state = NAVIGATION_STATE_AUTO_MISSION;
-
+			if (status->condition_global_position_valid && status->condition_home_position_valid) {
+				status->nav_state = NAVIGATION_STATE_AUTO_FS_RC_LOSS;
+			} else if (status->condition_local_position_valid) {
+				status->nav_state = NAVIGATION_STATE_LAND;
+			} else if (status->condition_local_altitude_valid) {
+				status->nav_state = NAVIGATION_STATE_DESCEND;
 			} else {
-				// TODO which mode should we set when disarmed?
-				status->nav_state = NAVIGATION_STATE_AUTO_LOITER;
+				status->nav_state = NAVIGATION_STATE_TERMINATION;
 			}
+
+		/* also go into failsafe if just datalink is lost */
+		} else if (status->data_link_lost && data_link_loss_enabled) {
+			status->failsafe = true;
+
+			if (status->condition_global_position_valid && status->condition_home_position_valid) {
+				status->nav_state = NAVIGATION_STATE_AUTO_FS_DL_LOSS;
+			} else if (status->condition_local_position_valid) {
+				status->nav_state = NAVIGATION_STATE_LAND;
+			} else if (status->condition_local_altitude_valid) {
+				status->nav_state = NAVIGATION_STATE_DESCEND;
+			} else {
+				status->nav_state = NAVIGATION_STATE_TERMINATION;
+			}
+
+		/* don't bother if RC is lost and mission is not yet finished */
+		} else if (status->rc_signal_lost) {
+
+			/* this mode is ok, we don't need RC for missions */
+			status->nav_state = NAVIGATION_STATE_AUTO_MISSION;
+		} else {
+			/* everything is perfect */
+			status->nav_state = NAVIGATION_STATE_AUTO_MISSION;
 		}
 		break;
 
 	case MAIN_STATE_AUTO_LOITER:
-		/* require data link and local position */
-		if ((status->data_link_lost || !status->condition_local_position_valid) && armed) {
+		/* go into failsafe if datalink and RC is lost */
+		if ((status->data_link_lost && data_link_loss_enabled) && status->rc_signal_lost) {
 			status->failsafe = true;
 
+			if (status->condition_global_position_valid && status->condition_home_position_valid) {
+				status->nav_state = NAVIGATION_STATE_AUTO_FS_RC_LOSS;
+			} else if (status->condition_local_position_valid) {
+				status->nav_state = NAVIGATION_STATE_LAND;
+			} else if (status->condition_local_altitude_valid) {
+				status->nav_state = NAVIGATION_STATE_DESCEND;
+			} else {
+				status->nav_state = NAVIGATION_STATE_TERMINATION;
+			}
+
+		/* also go into failsafe if just datalink is lost */
+		} else if (status->data_link_lost && data_link_loss_enabled) {
+			status->failsafe = true;
+
+			if (status->condition_global_position_valid && status->condition_home_position_valid) {
+				status->nav_state = NAVIGATION_STATE_AUTO_FS_DL_LOSS;
+			} else if (status->condition_local_position_valid) {
+				status->nav_state = NAVIGATION_STATE_LAND;
+			} else if (status->condition_local_altitude_valid) {
+				status->nav_state = NAVIGATION_STATE_DESCEND;
+			} else {
+				status->nav_state = NAVIGATION_STATE_TERMINATION;
+			}
+
+		/* go into failsafe if RC is lost and datalink loss is not set up */
+		} else if (status->rc_signal_lost && !data_link_loss_enabled) {
+			status->failsafe = true;
+
+			if (status->condition_global_position_valid && status->condition_home_position_valid) {
+				status->nav_state = NAVIGATION_STATE_AUTO_FS_DL_LOSS;
+			} else if (status->condition_local_position_valid) {
+				status->nav_state = NAVIGATION_STATE_LAND;
+			} else if (status->condition_local_altitude_valid) {
+				status->nav_state = NAVIGATION_STATE_DESCEND;
+			} else {
+				status->nav_state = NAVIGATION_STATE_TERMINATION;
+			}
+
+		/* don't bother if RC is lost if datalink is connected */
+		} else if (status->rc_signal_lost) {
+
+			/* this mode is ok, we don't need RC for loitering */
+			status->nav_state = NAVIGATION_STATE_AUTO_LOITER;
 		} else {
-			// TODO which mode should we set when disarmed?
+			/* everything is perfect */
 			status->nav_state = NAVIGATION_STATE_AUTO_LOITER;
 		}
 		break;
 
 	case MAIN_STATE_AUTO_RTL:
 		/* require global position and home */
-		if ((!status->condition_global_position_valid || !status->condition_home_position_valid) && armed) {
+		if ((!status->condition_global_position_valid || !status->condition_home_position_valid)) {
 			status->failsafe = true;
 
-		} else {
-			if (armed) {
-				status->nav_state = NAVIGATION_STATE_AUTO_RTL;
-
+			if (status->condition_local_position_valid) {
+				status->nav_state = NAVIGATION_STATE_LAND;
+			} else if (status->condition_local_altitude_valid) {
+				status->nav_state = NAVIGATION_STATE_DESCEND;
 			} else {
-				// TODO which mode should we set when disarmed?
-				status->nav_state = NAVIGATION_STATE_AUTO_LOITER;
+				status->nav_state = NAVIGATION_STATE_TERMINATION;
 			}
+		} else {
+			status->nav_state = NAVIGATION_STATE_AUTO_RTL;
 		}
 		break;
 
 	default:
 		break;
-	}
-
-	if (status->failsafe) {
-		if (status->condition_global_position_valid && status->condition_home_position_valid) {
-			status->nav_state = NAVIGATION_STATE_AUTO_RTL;
-
-		} else if (status->condition_local_position_valid) {
-			status->nav_state = NAVIGATION_STATE_LAND;
-
-		} else if (status->condition_local_altitude_valid) {
-			status->nav_state = NAVIGATION_STATE_DESCEND;
-
-		} else {
-			status->nav_state = NAVIGATION_STATE_TERMINATION;
-		}
 	}
 
 	return status->nav_state != nav_state_old;

@@ -619,6 +619,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_component_id = param_find("MAV_COMP_ID");
 	param_t _param_takeoff_alt = param_find("NAV_TAKEOFF_ALT");
 	param_t _param_enable_parachute = param_find("NAV_PARACHUTE_EN");
+	param_t _param_enable_datalink_loss = param_find("COM_DL_LOSS_EN");
 
 	/* welcome user */
 	warnx("starting");
@@ -627,9 +628,9 @@ int commander_thread_main(int argc, char *argv[])
 	main_states_str[MAIN_STATE_MANUAL]			= "MANUAL";
 	main_states_str[MAIN_STATE_ALTCTL]			= "ALTCTL";
 	main_states_str[MAIN_STATE_POSCTL]			= "POSCTL";
-	main_states_str[MAIN_STATE_AUTO_MISSION]	= "AUTO_MISSION";
-	main_states_str[MAIN_STATE_AUTO_LOITER]		= "AUTO_LOITER";
-	main_states_str[MAIN_STATE_AUTO_RTL]		= "AUTO_RTL";
+	main_states_str[MAIN_STATE_AUTO_MISSION]		= "AUTO_MISSION";
+	main_states_str[MAIN_STATE_AUTO_LOITER]			= "AUTO_LOITER";
+	main_states_str[MAIN_STATE_AUTO_RTL]			= "AUTO_RTL";
 	main_states_str[MAIN_STATE_ACRO]			= "ACRO";
 
 	char *arming_states_str[ARMING_STATE_MAX];
@@ -637,21 +638,23 @@ int commander_thread_main(int argc, char *argv[])
 	arming_states_str[ARMING_STATE_STANDBY]			= "STANDBY";
 	arming_states_str[ARMING_STATE_ARMED]			= "ARMED";
 	arming_states_str[ARMING_STATE_ARMED_ERROR]		= "ARMED_ERROR";
-	arming_states_str[ARMING_STATE_STANDBY_ERROR]	= "STANDBY_ERROR";
+	arming_states_str[ARMING_STATE_STANDBY_ERROR]		= "STANDBY_ERROR";
 	arming_states_str[ARMING_STATE_REBOOT]			= "REBOOT";
-	arming_states_str[ARMING_STATE_IN_AIR_RESTORE]	= "IN_AIR_RESTORE";
+	arming_states_str[ARMING_STATE_IN_AIR_RESTORE]		= "IN_AIR_RESTORE";
 
 	char *nav_states_str[NAVIGATION_STATE_MAX];
-	nav_states_str[NAVIGATION_STATE_MANUAL]		= "MANUAL";
-	nav_states_str[NAVIGATION_STATE_ALTCTL]		= "ALTCTL";
-	nav_states_str[NAVIGATION_STATE_POSCTL]		= "POSCTL";
-	nav_states_str[NAVIGATION_STATE_AUTO_MISSION]	= "AUTO_MISSION";
-	nav_states_str[NAVIGATION_STATE_AUTO_LOITER]	= "AUTO_LOITER";
+	nav_states_str[NAVIGATION_STATE_MANUAL]			= "MANUAL";
+	nav_states_str[NAVIGATION_STATE_ALTCTL]			= "ALTCTL";
+	nav_states_str[NAVIGATION_STATE_POSCTL]			= "POSCTL";
+	nav_states_str[NAVIGATION_STATE_AUTO_MISSION]		= "AUTO_MISSION";
+	nav_states_str[NAVIGATION_STATE_AUTO_LOITER]		= "AUTO_LOITER";
 	nav_states_str[NAVIGATION_STATE_AUTO_RTL]		= "AUTO_RTL";
+	nav_states_str[NAVIGATION_STATE_AUTO_FS_RC_LOSS]	= "AUTO_FS_RC_LOSS";
+	nav_states_str[NAVIGATION_STATE_AUTO_FS_DL_LOSS]	= "AUTO_FS_DL_LOSS";
 	nav_states_str[NAVIGATION_STATE_ACRO]			= "ACRO";
 	nav_states_str[NAVIGATION_STATE_LAND]			= "LAND";
 	nav_states_str[NAVIGATION_STATE_DESCEND]		= "DESCEND";
-	nav_states_str[NAVIGATION_STATE_TERMINATION]	= "TERMINATION";
+	nav_states_str[NAVIGATION_STATE_TERMINATION]		= "TERMINATION";
 
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
@@ -853,6 +856,8 @@ int commander_thread_main(int argc, char *argv[])
 
 	transition_result_t arming_ret;
 
+	int32_t datalink_loss_enabled = false;
+
 	/* check which state machines for changes, clear "changed" flag */
 	bool arming_state_changed = false;
 	bool main_state_changed = false;
@@ -907,6 +912,7 @@ int commander_thread_main(int argc, char *argv[])
 			/* navigation parameters */
 			param_get(_param_takeoff_alt, &takeoff_alt);
 			param_get(_param_enable_parachute, &parachute_enabled);
+			param_get(_param_enable_datalink_loss, &datalink_loss_enabled);
 		}
 
 		orb_check(sp_man_sub, &updated);
@@ -1309,8 +1315,8 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* data link check */
-		if (hrt_abstime() < telemetry.heartbeat_time + DL_TIMEOUT) {
-			/* handle the case where RC signal was regained */
+		if (hrt_absolute_time() < telemetry.heartbeat_time + DL_TIMEOUT) {
+			/* handle the case where data link was regained */
 			if (status.data_link_lost) {
 				mavlink_log_critical(mavlink_fd, "#audio: data link regained");
 				status.data_link_lost = false;
@@ -1320,7 +1326,7 @@ int commander_thread_main(int argc, char *argv[])
 		} else {
 			if (!status.data_link_lost) {
 				mavlink_log_critical(mavlink_fd, "#audio: CRITICAL: DATA LINK LOST");
-				status.data_link_lost = false;
+				status.data_link_lost = true;
 				status_changed = true;
 			}
 		}
@@ -1378,7 +1384,8 @@ int commander_thread_main(int argc, char *argv[])
 		was_armed = armed.armed;
 
 		/* now set navigation state according to failsafe and main state */
-		bool nav_state_changed = set_nav_state(&status);
+		bool nav_state_changed = set_nav_state(&status, (bool)datalink_loss_enabled,
+						       mission_result.mission_finished);
 
 		// TODO handle mode changes by commands
 		if (main_state_changed) {
@@ -1727,6 +1734,8 @@ set_control_mode()
 	case NAVIGATION_STATE_AUTO_MISSION:
 	case NAVIGATION_STATE_AUTO_LOITER:
 	case NAVIGATION_STATE_AUTO_RTL:
+	case NAVIGATION_STATE_AUTO_FS_RC_LOSS:
+	case NAVIGATION_STATE_AUTO_FS_DL_LOSS:
 		control_mode.flag_control_manual_enabled = false;
 		control_mode.flag_control_auto_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
