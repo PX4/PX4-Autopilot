@@ -595,9 +595,9 @@ Sensors::Sensors() :
 	_parameter_handles.external_mag_rotation = param_find("SENS_EXT_MAG_ROT");
 	
 	/* rotation offsets */
-	_parameter_handles.board_offset[0] = param_find("SENS_BOARD_ROLL_OFF");
-	_parameter_handles.board_offset[1] = param_find("SENS_BOARD_PITCH_OFF");
-	_parameter_handles.board_offset[2] = param_find("SENS_BOARD_YAW_OFF");
+	_parameter_handles.board_offset[0] = param_find("SENS_BOARD_X_OFF");
+	_parameter_handles.board_offset[1] = param_find("SENS_BOARD_Y_OFF");
+	_parameter_handles.board_offset[2] = param_find("SENS_BOARD_Z_OFF");
 
 	/* fetch initial parameter values */
 	parameters_update();

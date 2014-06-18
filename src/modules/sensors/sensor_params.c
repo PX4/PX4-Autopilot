@@ -248,23 +248,23 @@ PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
  * This parameter defines a pitch offset from the board rotation. It allows the user
  * to fine tune the board offset in the event of misalignment.
  */
- PARAM_DEFINE_FLOAT(SENS_BOARD_PITCH_OFF, 0);
+ PARAM_DEFINE_FLOAT(SENS_BOARD_Y_OFF, 0);
 
 /**
  * Board rotation roll offset
  *
- * This parameter defines a pitch offset from the board rotation. It allows the user
+ * This parameter defines a roll offset from the board rotation. It allows the user
  * to fine tune the board offset in the event of misalignment.
  */
-PARAM_DEFINE_FLOAT(SENS_BOARD_ROLL_OFF, 0);
+PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0);
 
 /**
  * Board rotation YAW offset
  *
- * This parameter defines a pitch offset from the board rotation. It allows the user
+ * This parameter defines a yaw offset from the board rotation. It allows the user
  * to fine tune the board offset in the event of misalignment.
  */
-PARAM_DEFINE_FLOAT(SENS_BOARD_YAW_OFF, 0);
+PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0);
 
 /**
  * External magnetometer rotation
