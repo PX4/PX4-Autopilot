@@ -107,6 +107,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_rc_pub(-1),
 	_manual_pub(-1),
 	_telemetry_heartbeat_time(0),
+	_radio_status_available(false),
 	_hil_frames(0),
 	_old_timestamp(0),
 	_hil_local_proj_inited(0),
@@ -432,6 +433,9 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 	} else {
 		orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
 	}
+
+	/* this means that heartbeats alone won't be published to the radio status no more */
+	_radio_status_available = true;
 }
 
 void
@@ -466,6 +470,24 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 	/* ignore own heartbeats, accept only heartbeats from GCS */
 	if (msg->sysid != mavlink_system.sysid && hb.type == MAV_TYPE_GCS) {
 		_telemetry_heartbeat_time = hrt_absolute_time();
+	}
+
+	/* if no radio status messages arrive, lets at least publish that heartbeats were received */
+	if (!_radio_status_available) {
+
+		struct telemetry_status_s tstatus;
+		memset(&tstatus, 0, sizeof(tstatus));
+
+		tstatus.timestamp = _telemetry_heartbeat_time;
+		tstatus.heartbeat_time = _telemetry_heartbeat_time;
+		tstatus.type = TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
+
+		if (_telemetry_status_pub < 0) {
+			_telemetry_status_pub = orb_advertise(ORB_ID(telemetry_status), &tstatus);
+
+		} else {
+			orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
+		}
 	}
 }
 
