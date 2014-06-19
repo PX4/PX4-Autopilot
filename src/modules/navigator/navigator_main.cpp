@@ -125,6 +125,11 @@ Navigator::Navigator() :
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_takeoff_acceptance_radius(this, "TF_ACC_RAD")
 {
+	/* Create a list of our possible navigation types */
+	_navigation_mode_array[0] = &_mission;
+	_navigation_mode_array[1] = &_loiter;
+	_navigation_mode_array[2] = &_rtl;
+
 	updateParams();
 }
 
@@ -364,23 +369,13 @@ Navigator::task_main()
 				break;
 		}
 
-		/* TODO: make list of modes and loop through it */
-		if (_navigation_mode == &_mission) {
-			_update_triplet = _mission.on_active(&_pos_sp_triplet);
-		} else {
-			_mission.on_inactive();
-		}
-
-		if (_navigation_mode == &_rtl) {
-			_update_triplet = _rtl.on_active(&_pos_sp_triplet);
-		} else {
-			_rtl.on_inactive();
-		}
-
-		if (_navigation_mode == &_loiter) {
-			_update_triplet = _loiter.on_active(&_pos_sp_triplet);
-		} else {
-			_loiter.on_inactive();
+		/* iterate through navigation modes and set active/inactive for each */
+		for(unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
+			if (_navigation_mode == _navigation_mode_array[i]) {
+				_update_triplet = _navigation_mode_array[i]->on_active(&_pos_sp_triplet);
+			} else {
+				_navigation_mode_array[i]->on_inactive();
+			}
 		}
 
 		/* if nothing is running, set position setpoint triplet invalid */
