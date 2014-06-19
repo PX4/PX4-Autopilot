@@ -100,9 +100,8 @@ typedef enum {
 	NAVIGATION_STATE_POSCTL,		/**< Position control mode */
 	NAVIGATION_STATE_AUTO_MISSION,		/**< Auto mission mode */
 	NAVIGATION_STATE_AUTO_LOITER,		/**< Auto loiter mode */
-	NAVIGATION_STATE_AUTO_RTL,		/**< Auto RTL mode */
-	NAVIGATION_STATE_AUTO_FS_RC_LOSS,	/**< Auto failsafe mode on RC loss */
-	NAVIGATION_STATE_AUTO_FS_DL_LOSS,	/**< Auto failsafe mode on DL loss */
+	NAVIGATION_STATE_AUTO_RTL,		/**< Auto return to launch mode */
+	NAVIGATION_STATE_AUTO_RTGS,		/**< Auto return to groundstation on data link loss */
 	NAVIGATION_STATE_ACRO,			/**< Acro mode */
 	NAVIGATION_STATE_LAND,			/**< Land mode */
 	NAVIGATION_STATE_DESCEND,			/**< Descend mode (no position control) */

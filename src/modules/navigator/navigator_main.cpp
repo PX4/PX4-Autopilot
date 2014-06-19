@@ -351,10 +351,9 @@ Navigator::task_main()
 				_navigation_mode = &_loiter;
 				break;
 			case NAVIGATION_STATE_AUTO_RTL:
-			case NAVIGATION_STATE_AUTO_FS_RC_LOSS:
 				_navigation_mode = &_rtl;
 				break;
-			case NAVIGATION_STATE_AUTO_FS_DL_LOSS:
+			case NAVIGATION_STATE_AUTO_RTGS:
 				_navigation_mode = &_rtl; /* TODO: change this to something else */
 				break;
 			case NAVIGATION_STATE_LAND:
