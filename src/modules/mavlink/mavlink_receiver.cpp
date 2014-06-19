@@ -102,6 +102,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_cmd_pub(-1),
 	_flow_pub(-1),
 	_offboard_control_sp_pub(-1),
+	_local_pos_sp_pub(-1),
+	_global_vel_sp_pub(-1),
 	_att_sp_pub(-1),
 	_rates_sp_pub(-1),
 	_vicon_position_pub(-1),
@@ -364,29 +366,47 @@ MavlinkReceiver::handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message
 		case 1:
 			ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_RATES;
 			ml_armed = true;
+
 			break;
 
 		case 2:
 			ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE;
 			ml_armed = true;
+
 			break;
 
 		case 3:
 			ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY;
 			ml_armed = true;
+
 			break;
 
 		case 4:
 			ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_POSITION;
+			ml_armed = true;
+
 			break;
 		default:
 			break;
 		}
 
-		offboard_control_sp.p1 = (float)quad_motors_setpoint.roll[mavlink_system.sysid - 1]   / (float)INT16_MAX;
-		offboard_control_sp.p2 = (float)quad_motors_setpoint.pitch[mavlink_system.sysid - 1]  / (float)INT16_MAX;
-		offboard_control_sp.p3 = (float)quad_motors_setpoint.yaw[mavlink_system.sysid - 1]    / (float)INT16_MAX;
-		offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid - 1] / (float)UINT16_MAX;
+		if (ml_mode == OFFBOARD_CONTROL_MODE_DIRECT_RATES || ml_mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE) {
+
+			offboard_control_sp.p1 = (float)quad_motors_setpoint.roll[mavlink_system.sysid - 1]   / (float)INT16_MAX;
+			offboard_control_sp.p2 = (float)quad_motors_setpoint.pitch[mavlink_system.sysid - 1]  / (float)INT16_MAX;
+			offboard_control_sp.p3 = (float)quad_motors_setpoint.yaw[mavlink_system.sysid - 1]    / (float)INT16_MAX;
+			offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid - 1] / (float)UINT16_MAX;
+
+		} else if (ml_mode == OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY || ml_mode == OFFBOARD_CONTROL_MODE_DIRECT_POSITION) {
+
+			/*Temporary hack to use set_quad_swarm_roll_pitch_yaw_thrust msg for position or velocity */ 
+			/* Converts INT16 centimeters to float meters */
+			offboard_control_sp.p1 = (float)quad_motors_setpoint.roll[mavlink_system.sysid - 1] / 100.0f;
+			offboard_control_sp.p2 = (float)quad_motors_setpoint.pitch[mavlink_system.sysid - 1] / 100.0f;
+			offboard_control_sp.p3 = (float)quad_motors_setpoint.yaw[mavlink_system.sysid - 1] / 100.0f;
+			offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid - 1] / 100.0f;
+
+		}
 
 		if (quad_motors_setpoint.thrust[mavlink_system.sysid - 1] == 0) {
 			ml_armed = false;
@@ -411,10 +431,37 @@ MavlinkReceiver::handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message
 
 			if (_control_mode.flag_control_offboard_enabled) {
 				if (_control_mode.flag_control_position_enabled) {
-					// TODO
+					// TODO Use something else then quad_swarm_roll_pitch_yaw_thrust
+					struct vehicle_local_position_setpoint_s loc_pos_sp;
+					memset(&loc_pos_sp, 0, sizeof(loc_pos_sp));
+
+					loc_pos_sp.x = offboard_control_sp.p1;
+					loc_pos_sp.y = offboard_control_sp.p2;
+					loc_pos_sp.yaw = offboard_control_sp.p3;
+					loc_pos_sp.z = -offboard_control_sp.p4;
+
+					if (_local_pos_sp_pub < 0) {
+						_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp_pub);
+
+					} else {
+						orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &loc_pos_sp);
+					}
 
 				} else if (_control_mode.flag_control_velocity_enabled) {
-					// TODO
+					/* velocity control */
+					struct vehicle_global_velocity_setpoint_s global_vel_sp;
+					memset(&global_vel_sp, 0, sizeof(&global_vel_sp));
+
+					global_vel_sp.vx = offboard_control_sp.p1;
+					global_vel_sp.vy = offboard_control_sp.p2;
+					global_vel_sp.vz = offboard_control_sp.p3;
+
+					if (_global_vel_sp_pub < 0) {
+						_global_vel_sp_pub = orb_advertise(ORB_ID(vehicle_global_velocity_setpoint), &_global_vel_sp_pub);
+
+					} else {
+						orb_publish(ORB_ID(vehicle_global_velocity_setpoint), _global_vel_sp_pub, &global_vel_sp);
+					}
 
 				} else if (_control_mode.flag_control_attitude_enabled) {
 					/* attitude control */
