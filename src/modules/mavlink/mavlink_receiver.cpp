@@ -470,23 +470,23 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 	/* ignore own heartbeats, accept only heartbeats from GCS */
 	if (msg->sysid != mavlink_system.sysid && hb.type == MAV_TYPE_GCS) {
 		_telemetry_heartbeat_time = hrt_absolute_time();
-	}
 
-	/* if no radio status messages arrive, lets at least publish that heartbeats were received */
-	if (!_radio_status_available) {
+		/* if no radio status messages arrive, lets at least publish that heartbeats were received */
+		if (!_radio_status_available) {
 
-		struct telemetry_status_s tstatus;
-		memset(&tstatus, 0, sizeof(tstatus));
+			struct telemetry_status_s tstatus;
+			memset(&tstatus, 0, sizeof(tstatus));
 
-		tstatus.timestamp = _telemetry_heartbeat_time;
-		tstatus.heartbeat_time = _telemetry_heartbeat_time;
-		tstatus.type = TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
+			tstatus.timestamp = _telemetry_heartbeat_time;
+			tstatus.heartbeat_time = _telemetry_heartbeat_time;
+			tstatus.type = TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
 
-		if (_telemetry_status_pub < 0) {
-			_telemetry_status_pub = orb_advertise(ORB_ID(telemetry_status), &tstatus);
+			if (_telemetry_status_pub < 0) {
+				_telemetry_status_pub = orb_advertise(ORB_ID(telemetry_status), &tstatus);
 
-		} else {
-			orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
+			} else {
+				orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
+			}
 		}
 	}
 }
