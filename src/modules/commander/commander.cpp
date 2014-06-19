@@ -649,8 +649,7 @@ int commander_thread_main(int argc, char *argv[])
 	nav_states_str[NAVIGATION_STATE_AUTO_MISSION]		= "AUTO_MISSION";
 	nav_states_str[NAVIGATION_STATE_AUTO_LOITER]		= "AUTO_LOITER";
 	nav_states_str[NAVIGATION_STATE_AUTO_RTL]		= "AUTO_RTL";
-	nav_states_str[NAVIGATION_STATE_AUTO_FS_RC_LOSS]	= "AUTO_FS_RC_LOSS";
-	nav_states_str[NAVIGATION_STATE_AUTO_FS_DL_LOSS]	= "AUTO_FS_DL_LOSS";
+	nav_states_str[NAVIGATION_STATE_AUTO_RTGS]		= "AUTO_RTGS";
 	nav_states_str[NAVIGATION_STATE_ACRO]			= "ACRO";
 	nav_states_str[NAVIGATION_STATE_LAND]			= "LAND";
 	nav_states_str[NAVIGATION_STATE_DESCEND]		= "DESCEND";
@@ -1734,8 +1733,7 @@ set_control_mode()
 	case NAVIGATION_STATE_AUTO_MISSION:
 	case NAVIGATION_STATE_AUTO_LOITER:
 	case NAVIGATION_STATE_AUTO_RTL:
-	case NAVIGATION_STATE_AUTO_FS_RC_LOSS:
-	case NAVIGATION_STATE_AUTO_FS_DL_LOSS:
+	case NAVIGATION_STATE_AUTO_RTGS:
 		control_mode.flag_control_manual_enabled = false;
 		control_mode.flag_control_auto_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
