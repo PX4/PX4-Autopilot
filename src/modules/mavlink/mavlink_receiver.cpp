@@ -102,18 +102,25 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_cmd_pub(-1),
 	_flow_pub(-1),
 	_offboard_control_sp_pub(-1),
+	_local_pos_sp_pub(-1),
+	_global_vel_sp_pub(-1),
+	_att_sp_pub(-1),
+	_rates_sp_pub(-1),
 	_vicon_position_pub(-1),
 	_telemetry_status_pub(-1),
 	_rc_pub(-1),
 	_manual_pub(-1),
 	_telemetry_heartbeat_time(0),
 	_radio_status_available(false),
+	_control_mode_sub(-1),
 	_hil_frames(0),
 	_old_timestamp(0),
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0)
 {
+	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	memset(&hil_local_pos, 0, sizeof(hil_local_pos));
+	memset(&_control_mode, 0, sizeof(_control_mode));
 }
 
 MavlinkReceiver::~MavlinkReceiver()
@@ -355,12 +362,11 @@ MavlinkReceiver::handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message
 		struct offboard_control_setpoint_s offboard_control_sp;
 		memset(&offboard_control_sp, 0, sizeof(offboard_control_sp));
 
-		uint8_t ml_mode = 0;
+		enum OFFBOARD_CONTROL_MODE ml_mode = OFFBOARD_CONTROL_MODE_DIRECT;
 		bool ml_armed = false;
 
 		switch (quad_motors_setpoint.mode) {
 		case 0:
-			ml_armed = false;
 			break;
 
 		case 1:
@@ -377,24 +383,43 @@ MavlinkReceiver::handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message
 
 		case 3:
 			ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY;
+			ml_armed = true;
+
 			break;
 
 		case 4:
 			ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_POSITION;
+			ml_armed = true;
+
+			break;
+		default:
 			break;
 		}
 
-		offboard_control_sp.p1 = (float)quad_motors_setpoint.roll[mavlink_system.sysid - 1]   / (float)INT16_MAX;
-		offboard_control_sp.p2 = (float)quad_motors_setpoint.pitch[mavlink_system.sysid - 1]  / (float)INT16_MAX;
-		offboard_control_sp.p3 = (float)quad_motors_setpoint.yaw[mavlink_system.sysid - 1]    / (float)INT16_MAX;
-		offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid - 1] / (float)UINT16_MAX;
+		if (ml_mode == OFFBOARD_CONTROL_MODE_DIRECT_RATES || ml_mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE) {
+
+			offboard_control_sp.p1 = (float)quad_motors_setpoint.roll[mavlink_system.sysid - 1]   / (float)INT16_MAX;
+			offboard_control_sp.p2 = (float)quad_motors_setpoint.pitch[mavlink_system.sysid - 1]  / (float)INT16_MAX;
+			offboard_control_sp.p3 = (float)quad_motors_setpoint.yaw[mavlink_system.sysid - 1]    / (float)INT16_MAX;
+			offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid - 1] / (float)UINT16_MAX;
+
+		} else if (ml_mode == OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY || ml_mode == OFFBOARD_CONTROL_MODE_DIRECT_POSITION) {
+
+			/*Temporary hack to use set_quad_swarm_roll_pitch_yaw_thrust msg for position or velocity */
+			/* Converts INT16 centimeters to float meters */
+			offboard_control_sp.p1 = (float)quad_motors_setpoint.roll[mavlink_system.sysid - 1] / 100.0f;
+			offboard_control_sp.p2 = (float)quad_motors_setpoint.pitch[mavlink_system.sysid - 1] / 100.0f;
+			offboard_control_sp.p3 = (float)quad_motors_setpoint.yaw[mavlink_system.sysid - 1] / 100.0f;
+			offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid - 1] / 100.0f;
+
+		}
 
 		if (quad_motors_setpoint.thrust[mavlink_system.sysid - 1] == 0) {
 			ml_armed = false;
 		}
 
 		offboard_control_sp.armed = ml_armed;
-		offboard_control_sp.mode = static_cast<enum OFFBOARD_CONTROL_MODE>(ml_mode);
+		offboard_control_sp.mode = ml_mode;
 
 		offboard_control_sp.timestamp = hrt_absolute_time();
 
@@ -403,6 +428,90 @@ MavlinkReceiver::handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message
 
 		} else {
 			orb_publish(ORB_ID(offboard_control_setpoint), _offboard_control_sp_pub, &offboard_control_sp);
+		}
+
+		bool updated;
+		orb_check(_control_mode_sub, &updated);
+		if (updated) {
+			orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
+
+			if (_control_mode.flag_control_offboard_enabled) {
+				if (_control_mode.flag_control_position_enabled) {
+					// TODO Use something else then quad_swarm_roll_pitch_yaw_thrust
+					struct vehicle_local_position_setpoint_s loc_pos_sp;
+					memset(&loc_pos_sp, 0, sizeof(loc_pos_sp));
+
+					loc_pos_sp.x = offboard_control_sp.p1;
+					loc_pos_sp.y = offboard_control_sp.p2;
+					loc_pos_sp.yaw = offboard_control_sp.p3;
+					loc_pos_sp.z = -offboard_control_sp.p4;
+
+					if (_local_pos_sp_pub < 0) {
+						_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp_pub);
+
+					} else {
+						orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &loc_pos_sp);
+					}
+
+				} else if (_control_mode.flag_control_velocity_enabled) {
+					/* velocity control */
+					struct vehicle_global_velocity_setpoint_s global_vel_sp;
+					memset(&global_vel_sp, 0, sizeof(&global_vel_sp));
+
+					global_vel_sp.vx = offboard_control_sp.p1;
+					global_vel_sp.vy = offboard_control_sp.p2;
+					global_vel_sp.vz = offboard_control_sp.p3;
+
+					if (_global_vel_sp_pub < 0) {
+						_global_vel_sp_pub = orb_advertise(ORB_ID(vehicle_global_velocity_setpoint), &_global_vel_sp_pub);
+
+					} else {
+						orb_publish(ORB_ID(vehicle_global_velocity_setpoint), _global_vel_sp_pub, &global_vel_sp);
+					}
+
+				} else if (_control_mode.flag_control_attitude_enabled) {
+					/* attitude control */
+					struct vehicle_attitude_setpoint_s att_sp;
+					memset(&att_sp, 0, sizeof(att_sp));
+
+					att_sp.roll_body = offboard_control_sp.p1;
+					att_sp.pitch_body = offboard_control_sp.p2;
+					att_sp.yaw_body = offboard_control_sp.p3;
+					att_sp.thrust = offboard_control_sp.p4;
+
+					att_sp.timestamp = hrt_absolute_time();
+
+					if (_att_sp_pub < 0) {
+						_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
+
+					} else {
+						orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &att_sp);
+					}
+
+				} else if (_control_mode.flag_control_rates_enabled) {
+					/* rates control */
+					struct vehicle_rates_setpoint_s rates_sp;
+					memset(&rates_sp, 0, sizeof(rates_sp));
+
+					rates_sp.roll = offboard_control_sp.p1;
+					rates_sp.pitch = offboard_control_sp.p2;
+					rates_sp.yaw = offboard_control_sp.p3;
+					rates_sp.thrust = offboard_control_sp.p4;
+
+					rates_sp.timestamp = hrt_absolute_time();
+
+					if (_rates_sp_pub < 0) {
+						_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &rates_sp);
+
+					} else {
+						orb_publish(ORB_ID(vehicle_rates_setpoint), _rates_sp_pub, &rates_sp);
+					}
+
+				} else {
+					/* direct control */
+					// TODO
+				}
+			}
 		}
 	}
 }
@@ -452,6 +561,8 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	manual.y = man.y / 1000.0f;
 	manual.r = man.r / 1000.0f;
 	manual.z = man.z / 1000.0f;
+
+	warnx("pitch: %.2f, roll: %.2f, yaw: %.2f, throttle: %.2f", manual.x, manual.y, manual.r, manual.z);
 
 	if (_manual_pub < 0) {
 		_manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);

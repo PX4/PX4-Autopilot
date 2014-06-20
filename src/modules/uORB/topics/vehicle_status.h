@@ -70,7 +70,8 @@ typedef enum {
 	MAIN_STATE_AUTO_LOITER,
 	MAIN_STATE_AUTO_RTL,
 	MAIN_STATE_ACRO,
-	MAIN_STATE_MAX,
+	MAIN_STATE_OFFBOARD,
+	MAIN_STATE_MAX
 } main_state_t;
 
 // If you change the order, add or remove arming_state_t states make sure to update the arrays
@@ -106,6 +107,7 @@ typedef enum {
 	NAVIGATION_STATE_LAND,			/**< Land mode */
 	NAVIGATION_STATE_DESCEND,			/**< Descend mode (no position control) */
 	NAVIGATION_STATE_TERMINATION,		/**< Termination mode */
+	NAVIGATION_STATE_OFFBOARD,
 	NAVIGATION_STATE_MAX,
 } navigation_state_t;
 

@@ -117,7 +117,9 @@ private:
 	int 	_manual_sub;			/**< notification of manual control updates */
 	int		_arming_sub;			/**< arming status of outputs */
 	int		_local_pos_sub;			/**< vehicle local position */
-	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
+	int		_pos_sp_triplet_sub;	/**< position setpoint triplet */
+	int 	_local_pos_sp_sub;		/**< offboard local position setpoint */
+	int 	_global_vel_sp_sub;		/**< offboard global velocity setpoint */
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
@@ -132,6 +134,7 @@ private:
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;	/**< vehicle global velocity setpoint */
+		
 
 	struct {
 		param_t thr_min;
@@ -255,6 +258,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_manual_sub(-1),
 	_arming_sub(-1),
 	_local_pos_sub(-1),
+	_global_vel_sp_sub(-1),
 	_pos_sp_triplet_sub(-1),
 
 /* publications */
@@ -528,6 +532,7 @@ MulticopterPositionControl::task_main()
 	_arming_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
+	_local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 
 	parameters_update(true);
 
@@ -664,6 +669,37 @@ MulticopterPositionControl::task_main()
 					_pos_sp = _pos + pos_sp_offs.emult(_params.sp_offs_max);
 				}
 
+			} else if (_control_mode.flag_control_offboard_enabled) {
+				/* Offboard control */
+				bool updated;
+				orb_check(_local_pos_sp_sub, &updated);
+
+				if (updated) {
+					orb_copy(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_sub, &_local_pos_sp);
+				}
+
+				if (isfinite(_local_pos_sp.x) && isfinite(_local_pos_sp.y) && isfinite(_local_pos_sp.z) && isfinite(_local_pos_sp.yaw)) {
+					/* If manual control overides offboard, cancel the offboard setpoint and stay at current position */
+					_reset_pos_sp = true;
+					_reset_alt_sp = true;
+
+					/* Make sure position control is selected i.e. not only velocity control */
+					if (_control_mode.flag_control_position_enabled) {
+						_pos_sp(0) = _local_pos_sp.x;
+						_pos_sp(1) = _local_pos_sp.y;
+					}
+
+					if (_control_mode.flag_control_altitude_enabled) {
+						_pos_sp(2) = _local_pos_sp.z;
+					}
+
+					_att_sp.yaw_body = _local_pos_sp.yaw;
+
+				} else {
+					reset_pos_sp();
+					reset_alt_sp();
+				}
+			
 			} else {
 				/* AUTO */
 				bool updated;
@@ -710,6 +746,7 @@ MulticopterPositionControl::task_main()
 				_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
 			}
 
+
 			if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_IDLE) {
 				/* idle state, don't run controller and set zero thrust */
 				R.identity();
@@ -751,6 +788,25 @@ MulticopterPositionControl::task_main()
 				/* use constant descend rate when landing, ignore altitude setpoint */
 				if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == SETPOINT_TYPE_LAND) {
 					_vel_sp(2) = _params.land_speed;
+				}
+
+				/* Offboard velocity control mode */
+				if (_control_mode.flag_control_offboard_enabled) {
+					bool updated;
+					orb_check(_global_vel_sp_sub, &updated);
+
+					if (updated) {
+						orb_copy(ORB_ID(vehicle_global_velocity_setpoint), _global_vel_sp_sub, &_global_vel_sp);
+					}
+
+					if (!_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_climb_rate_enabled) {
+						_vel_sp(2) = _global_vel_sp.vz;
+					}
+
+					if (!_control_mode.flag_control_position_enabled && _control_mode.flag_control_velocity_enabled) {
+						_vel_sp(0) = _global_vel_sp.vx;
+						_vel_sp(1) = _global_vel_sp.vy;
+					}
 				}
 
 				if (!_control_mode.flag_control_manual_enabled) {
@@ -1040,6 +1096,7 @@ MulticopterPositionControl::task_main()
 			_reset_pos_sp = true;
 			reset_int_z = true;
 			reset_int_xy = true;
+
 		}
 
 		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */

@@ -234,6 +234,15 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		}
 		break;
 
+	case MAIN_STATE_OFFBOARD:
+
+		/* need offboard signal */
+		if (!status->offboard_control_signal_lost) {
+			ret = TRANSITION_CHANGED;
+		}
+
+		break;
+
 	case MAIN_STATE_MAX:
 	default:
 		break;

@@ -66,7 +66,7 @@ enum RC_CHANNELS_FUNCTION {
 	RETURN = 5,
 	POSCTL = 6,
 	LOITER = 7,
-	OFFBOARD_MODE = 8,
+	OFFBOARD = 8,
 	ACRO    = 9,
 	FLAPS   = 10,
 	AUX_1   = 11,
