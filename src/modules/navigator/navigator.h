@@ -58,6 +58,12 @@
 #include "rtl.h"
 #include "geofence.h"
 
+/**
+ * Number of navigation modes that need on_active/on_inactive calls
+ * Currently: mission, loiter, and rtl
+ */
+#define NAVIGATOR_MODE_ARRAY_SIZE 3
+
 class Navigator : public control::SuperBlock
 {
 public:
@@ -152,6 +158,8 @@ private:
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	RTL 		_rtl;				/**< class that handles RTL */
+
+	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
 	bool		_is_in_loiter;			/**< flags if current position SP can be used to loiter */
 	bool		_update_triplet;		/**< flags if position SP triplet needs to be published */
