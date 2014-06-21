@@ -363,6 +363,7 @@ Navigator::task_main()
 				break;
 			case NAVIGATION_STATE_LAND:
 			case NAVIGATION_STATE_TERMINATION:
+			case NAVIGATION_STATE_OFFBOARD:
 			default:
 				_navigation_mode = nullptr;
 				_is_in_loiter = false;
