@@ -790,3 +790,20 @@ PARAM_DEFINE_FLOAT(RC_LOITER_TH, 0.5f);
  *
  */
 PARAM_DEFINE_FLOAT(RC_ACRO_TH, 0.5f);
+
+
+/**
+ * Threshold for selecting offboard mode
+ *
+ * min:-1
+ * max:+1
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_OFFB_TH, 0.5f);
