@@ -35,8 +35,11 @@ AttPosEKF::AttPosEKF()
     magDeclination = 0.0f;
     dAngIMU.zero();
     dVelIMU.zero();
-    ekfDiverged = false;
+    velNED[0] = 0.0f;
+    velNED[1] = 0.0f;
+    velNED[2] = 0.0f;
     delAngTotal.zero();
+    ekfDiverged = false;
 
     memset(&last_ekf_error, 0, sizeof(last_ekf_error));
     ZeroVariables();
