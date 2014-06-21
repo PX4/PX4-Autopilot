@@ -96,7 +96,6 @@ extern "C" __EXPORT int ekf_att_pos_estimator_main(int argc, char *argv[]);
 
 __EXPORT uint32_t millis();
 
-static uint64_t last_run = 0;
 static uint64_t IMUmsec = 0;
 static const uint64_t FILTER_INIT_DELAY = 1 * 1000 * 1000;
 
@@ -191,19 +190,21 @@ private:
 	float						_baro_ref;		/**< barometer reference altitude */
 	float						_baro_gps_offset;	/**< offset between GPS and baro */
 
-	perf_counter_t	_loop_perf;			/**< loop performance counter */
+	perf_counter_t	_loop_perf;			///< loop performance counter
 	perf_counter_t	_perf_gyro;			///<local performance counter for gyro updates
-	perf_counter_t	_perf_accel;			///<local performance counter for accel updates
 	perf_counter_t	_perf_mag;			///<local performance counter for mag updates
 	perf_counter_t	_perf_gps;			///<local performance counter for gps updates
 	perf_counter_t	_perf_baro;			///<local performance counter for baro updates
 	perf_counter_t	_perf_airspeed;			///<local performance counter for airspeed updates
+	perf_counter_t	_perf_reset;			///<local performance counter for filter resets
 
 	bool						_initialized;
 	bool						_baro_init;
 	bool						_gps_initialized;
-	uint64_t					_gps_start_time;
-	uint64_t					_filter_start_time;
+	hrt_abstime					_gps_start_time;
+	hrt_abstime					_filter_start_time;
+	hrt_abstime					_last_sensor_timestamp;
+	hrt_abstime					_last_run;
 	bool						_gyro_valid;
 	bool						_accel_valid;
 	bool						_mag_valid;
@@ -281,9 +282,16 @@ private:
 	static void	task_main_trampoline(int argc, char *argv[]);
 
 	/**
-	 * Main sensor collection task.
+	 * Main filter task.
 	 */
 	void		task_main();
+
+	/**
+	 * Check filter sanity state
+	 * 
+	 * @return zero if ok, non-zero for a filter error condition.
+	 */
+	int		check_filter_state();
 };
 
 namespace estimator
@@ -353,11 +361,11 @@ FixedwingEstimator::FixedwingEstimator() :
 /* performance counters */
 	_loop_perf(perf_alloc(PC_COUNT, "ekf_att_pos_estimator")),
 	_perf_gyro(perf_alloc(PC_COUNT, "ekf_att_pos_gyro_upd")),
-	_perf_accel(perf_alloc(PC_COUNT, "ekf_att_pos_accel_upd")),
 	_perf_mag(perf_alloc(PC_COUNT, "ekf_att_pos_mag_upd")),
 	_perf_gps(perf_alloc(PC_COUNT, "ekf_att_pos_gps_upd")),
 	_perf_baro(perf_alloc(PC_COUNT, "ekf_att_pos_baro_upd")),
 	_perf_airspeed(perf_alloc(PC_COUNT, "ekf_att_pos_aspd_upd")),
+	_perf_reset(perf_alloc(PC_COUNT, "ekf_att_pos_reset")),
 
 /* states */
 	_initialized(false),
@@ -374,7 +382,7 @@ FixedwingEstimator::FixedwingEstimator() :
 	_airspeed_filtered(0.0f)
 {
 
-	last_run = hrt_absolute_time();
+	_last_run = hrt_absolute_time();
 
 	_parameter_handles.vel_delay_ms = param_find("PE_VEL_DELAY_MS");
 	_parameter_handles.pos_delay_ms = param_find("PE_POS_DELAY_MS");
@@ -529,6 +537,141 @@ FixedwingEstimator::vehicle_status_poll()
 	}
 }
 
+int
+FixedwingEstimator::check_filter_state()
+{
+	/*
+	 *    CHECK IF THE INPUT DATA IS SANE
+	 */
+	int check = _ekf->CheckAndBound();
+
+	const char* ekfname = "[ekf] ";
+
+	switch (check) {
+		case 0:
+			/* all ok */
+			break;
+		case 1:
+		{
+			const char* str = "NaN in states, resetting";
+			warnx("%s", str);
+			mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
+			break;
+		}
+		case 2:
+		{
+			const char* str = "stale IMU data, resetting";
+			warnx("%s", str);
+			mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
+			break;
+		}
+		case 3:
+		{
+			const char* str = "switching to dynamic state";
+			warnx("%s", str);
+			mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
+			break;
+		}
+		case 4:
+		{
+			const char* str = "excessive gyro offsets";
+			warnx("%s", str);
+			mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
+			break;
+		}
+		case 5:
+		{
+			const char* str = "diverged too far from GPS";
+			warnx("%s", str);
+			mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
+			break;
+		}
+		case 6:
+		{
+			const char* str = "excessive covariances";
+			warnx("%s", str);
+			mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
+			break;
+		}
+
+		default:
+		{
+			const char* str = "unknown reset condition";
+			warnx("%s", str);
+			mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
+		}
+	}
+
+	struct estimator_status_report rep;
+	memset(&rep, 0, sizeof(rep));
+
+	struct ekf_status_report ekf_report;
+
+	// If non-zero, we got a filter reset
+	if (check > 0 && check != 3) {
+
+		// Count the reset condition
+		perf_count(_perf_reset);
+
+		_ekf->GetLastErrorState(&ekf_report);
+
+		// set sensors to de-initialized state
+		_gyro_valid = false;
+		_accel_valid = false;
+		_mag_valid = false;
+
+		_baro_init = false;
+		_gps_initialized = false;
+		_initialized = false;
+		_last_sensor_timestamp = hrt_absolute_time();
+		_last_run = _last_sensor_timestamp;
+
+		_ekf->dtIMU = 0.01f;
+
+	} else if (_ekf_logging) {
+		_ekf->GetFilterState(&ekf_report);
+	}
+
+	if (_ekf_logging || check) {
+		rep.timestamp = hrt_absolute_time();
+
+		rep.nan_flags |= (((uint8_t)ekf_report.angNaN)		<< 0);
+		rep.nan_flags |= (((uint8_t)ekf_report.summedDelVelNaN)	<< 1);
+		rep.nan_flags |= (((uint8_t)ekf_report.KHNaN)		<< 2);
+		rep.nan_flags |= (((uint8_t)ekf_report.KHPNaN)		<< 3);
+		rep.nan_flags |= (((uint8_t)ekf_report.PNaN)		<< 4);
+		rep.nan_flags |= (((uint8_t)ekf_report.covarianceNaN)	<< 5);
+		rep.nan_flags |= (((uint8_t)ekf_report.kalmanGainsNaN)	<< 6);
+		rep.nan_flags |= (((uint8_t)ekf_report.statesNaN)	<< 7);
+
+		rep.health_flags |= (((uint8_t)ekf_report.velHealth)	<< 0);
+		rep.health_flags |= (((uint8_t)ekf_report.posHealth)	<< 1);
+		rep.health_flags |= (((uint8_t)ekf_report.hgtHealth)	<< 2);
+		rep.health_flags |= ((!(check == 4))			<< 3);
+
+		rep.timeout_flags |= (((uint8_t)ekf_report.velTimeout)	<< 0);
+		rep.timeout_flags |= (((uint8_t)ekf_report.posTimeout)	<< 1);
+		rep.timeout_flags |= (((uint8_t)ekf_report.hgtTimeout)	<< 2);
+
+		// Copy all states or at least all that we can fit
+		unsigned ekf_n_states = (sizeof(ekf_report.states) / sizeof(ekf_report.states[0]));
+		unsigned max_states = (sizeof(rep.states) / sizeof(rep.states[0]));
+		rep.n_states = (ekf_n_states < max_states) ? ekf_n_states : max_states;
+
+		for (unsigned i = 0; i < rep.n_states; i++) {
+			rep.states[i] = ekf_report.states[i];
+		}
+
+		if (_estimator_status_pub > 0) {
+			orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &rep);
+		} else {
+			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &rep);
+		}
+	}
+
+	return check;
+}
+
 void
 FixedwingEstimator::task_main_trampoline(int argc, char *argv[])
 {
@@ -545,7 +688,7 @@ FixedwingEstimator::task_main()
 	_filter_start_time = hrt_absolute_time();
 
 	if (!_ekf) {
-		errx(1, "failed allocating EKF filter - out of RAM!");
+		errx(1, "OUT OF MEM!");
 	}
 
 	/*
@@ -617,7 +760,7 @@ FixedwingEstimator::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warn("poll error %d, %d", pret, errno);
+			warn("POLL ERR %d, %d", pret, errno);
 			continue;
 		}
 
@@ -643,8 +786,6 @@ FixedwingEstimator::task_main()
 			bool accel_updated;
 			bool mag_updated;
 
-			hrt_abstime last_sensor_timestamp;
-
 			perf_count(_perf_gyro);
 
 			/* Reset baro reference if switching to HIL, reset sensor states */
@@ -668,12 +809,12 @@ FixedwingEstimator::task_main()
 
 				_baro_init = false;
 				_gps_initialized = false;
-				last_sensor_timestamp = hrt_absolute_time();
-				last_run = last_sensor_timestamp;
+				_last_sensor_timestamp = hrt_absolute_time();
+				_last_run = _last_sensor_timestamp;
 
 				_ekf->ZeroVariables();
 				_ekf->dtIMU = 0.01f;
-				_filter_start_time = last_sensor_timestamp;
+				_filter_start_time = _last_sensor_timestamp;
 
 				/* now skip this loop and get data on the next one, which will also re-init the filter */
 				continue;
@@ -691,15 +832,14 @@ FixedwingEstimator::task_main()
 			orb_check(_accel_sub, &accel_updated);
 
 			if (accel_updated) {
-				perf_count(_perf_accel);
 				orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
 			}
 
-			last_sensor_timestamp = _gyro.timestamp;
+			_last_sensor_timestamp = _gyro.timestamp;
 			IMUmsec = _gyro.timestamp / 1e3f;
 
-			float deltaT = (_gyro.timestamp - last_run) / 1e6f;
-			last_run = _gyro.timestamp;
+			float deltaT = (_gyro.timestamp - _last_run) / 1e6f;
+			_last_run = _gyro.timestamp;
 
 			/* guard against too large deltaT's */
 			if (!isfinite(deltaT) || deltaT > 1.0f || deltaT < 0.000001f) {
@@ -759,17 +899,17 @@ FixedwingEstimator::task_main()
 
 
 			// Copy gyro and accel
-			last_sensor_timestamp = _sensor_combined.timestamp;
+			_last_sensor_timestamp = _sensor_combined.timestamp;
 			IMUmsec = _sensor_combined.timestamp / 1e3f;
 
-			float deltaT = (_sensor_combined.timestamp - last_run) / 1e6f;
+			float deltaT = (_sensor_combined.timestamp - _last_run) / 1e6f;
 
 			/* guard against too large deltaT's */
 			if (!isfinite(deltaT) || deltaT > 1.0f || deltaT < 0.000001f) {
 				deltaT = 0.01f;
 			}
 
-			last_run = _sensor_combined.timestamp;
+			_last_run = _sensor_combined.timestamp;
 
 			// Always store data, independent of init status
 			/* fill in last data set */
@@ -787,6 +927,7 @@ FixedwingEstimator::task_main()
 				}
 
 				_gyro_valid = true;
+				perf_count(_perf_gyro);
 			}
 
 			if (accel_updated) {
@@ -907,6 +1048,8 @@ FixedwingEstimator::task_main()
 					warnx("ALT REF INIT");
 				}
 
+				perf_count(_perf_baro);
+
 				newHgtData = true;
 			} else {
 				newHgtData = false;
@@ -963,144 +1106,6 @@ FixedwingEstimator::task_main()
 			if (hrt_elapsed_time(&_filter_start_time) < FILTER_INIT_DELAY) {
 				continue;
 			}
-
-
-			/*
-			 *    CHECK IF THE INPUT DATA IS SANE
-			 */
-			int check = _ekf->CheckAndBound();
-
-			const char* ekfname = "[ekf] ";
-
-			switch (check) {
-				case 0:
-					/* all ok */
-					break;
-				case 1:
-				{
-					const char* str = "NaN in states, resetting";
-					warnx("%s", str);
-					mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
-					break;
-				}
-				case 2:
-				{
-					const char* str = "stale IMU data, resetting";
-					warnx("%s", str);
-					mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
-					break;
-				}
-				case 3:
-				{
-					const char* str = "switching to dynamic state";
-					warnx("%s", str);
-					mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
-					break;
-				}
-				case 4:
-				{
-					const char* str = "excessive gyro offsets";
-					warnx("%s", str);
-					mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
-					break;
-				}
-				case 5:
-				{
-					const char* str = "diverged too far from GPS";
-					warnx("%s", str);
-					mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
-					break;
-				}
-				case 6:
-				{
-					const char* str = "excessive covariances";
-					warnx("%s", str);
-					mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
-					break;
-				}
-
-				default:
-				{
-					const char* str = "unknown reset condition";
-					warnx("%s", str);
-					mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
-				}
-			}
-
-			// warn on fatal resets
-			if (check == 1) {
-				warnx("NUMERIC ERROR IN FILTER");
-			}
-
-			struct estimator_status_report rep;
-			memset(&rep, 0, sizeof(rep));
-
-			struct ekf_status_report ekf_report;
-
-			// If non-zero, we got a filter reset
-			if (check > 0 && check != 3) {
-
-				_ekf->GetLastErrorState(&ekf_report);
-
-				/* set sensors to de-initialized state */
-				_gyro_valid = false;
-				_accel_valid = false;
-				_mag_valid = false;
-
-				_baro_init = false;
-				_gps_initialized = false;
-				_initialized = false;
-				last_sensor_timestamp = hrt_absolute_time();
-				last_run = last_sensor_timestamp;
-
-				_ekf->ZeroVariables();
-				_ekf->statesInitialised = false;
-				_ekf->dtIMU = 0.01f;
-
-				// Let the system re-initialize itself
-				continue;
-
-			} else if (_ekf_logging) {
-				_ekf->GetFilterState(&ekf_report);
-			}
-
-			if (_ekf_logging || check) {
-				rep.timestamp = hrt_absolute_time();
-
-				rep.nan_flags |= (((uint8_t)ekf_report.angNaN)		<< 0);
-				rep.nan_flags |= (((uint8_t)ekf_report.summedDelVelNaN)	<< 1);
-				rep.nan_flags |= (((uint8_t)ekf_report.KHNaN)		<< 2);
-				rep.nan_flags |= (((uint8_t)ekf_report.KHPNaN)		<< 3);
-				rep.nan_flags |= (((uint8_t)ekf_report.PNaN)		<< 4);
-				rep.nan_flags |= (((uint8_t)ekf_report.covarianceNaN)	<< 5);
-				rep.nan_flags |= (((uint8_t)ekf_report.kalmanGainsNaN)	<< 6);
-				rep.nan_flags |= (((uint8_t)ekf_report.statesNaN)	<< 7);
-
-				rep.health_flags |= (((uint8_t)ekf_report.velHealth)	<< 0);
-				rep.health_flags |= (((uint8_t)ekf_report.posHealth)	<< 1);
-				rep.health_flags |= (((uint8_t)ekf_report.hgtHealth)	<< 2);
-				rep.health_flags |= ((!(check == 4))			<< 3);
-
-				rep.timeout_flags |= (((uint8_t)ekf_report.velTimeout)	<< 0);
-				rep.timeout_flags |= (((uint8_t)ekf_report.posTimeout)	<< 1);
-				rep.timeout_flags |= (((uint8_t)ekf_report.hgtTimeout)	<< 2);
-
-				// Copy all states or at least all that we can fit
-				unsigned ekf_n_states = (sizeof(ekf_report.states) / sizeof(ekf_report.states[0]));
-				unsigned max_states = (sizeof(rep.states) / sizeof(rep.states[0]));
-				rep.n_states = (ekf_n_states < max_states) ? ekf_n_states : max_states;
-
-				for (unsigned i = 0; i < rep.n_states; i++) {
-					rep.states[i] = ekf_report.states[i];
-				}
-
-				if (_estimator_status_pub > 0) {
-					orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &rep);
-				} else {
-					_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &rep);
-				}
-			}
-
 
 			/**
 			 *    PART TWO: EXECUTE THE FILTER
@@ -1175,6 +1180,13 @@ FixedwingEstimator::task_main()
 				} else if (_ekf->statesInitialised) {
 
 					// We're apparently initialized in this case now
+
+					int check = check_filter_state();
+
+					if (check) {
+						// Let the system re-initialize itself
+						continue;
+					}
 
 
 					// Run the strapdown INS equations every IMU update
@@ -1301,7 +1313,7 @@ FixedwingEstimator::task_main()
 					for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
 							_att.R[i][j] = R(i, j);
 
-					_att.timestamp = last_sensor_timestamp;
+					_att.timestamp = _last_sensor_timestamp;
 					_att.q[0] = _ekf->states[0];
 					_att.q[1] = _ekf->states[1];
 					_att.q[2] = _ekf->states[2];
@@ -1309,7 +1321,7 @@ FixedwingEstimator::task_main()
 					_att.q_valid = true;
 					_att.R_valid = true;
 
-					_att.timestamp = last_sensor_timestamp;
+					_att.timestamp = _last_sensor_timestamp;
 					_att.roll = euler(0);
 					_att.pitch = euler(1);
 					_att.yaw = euler(2);
@@ -1333,7 +1345,7 @@ FixedwingEstimator::task_main()
 					}
 
 					if (_gps_initialized) {
-						_local_pos.timestamp = last_sensor_timestamp;
+						_local_pos.timestamp = _last_sensor_timestamp;
 						_local_pos.x = _ekf->states[7];
 						_local_pos.y = _ekf->states[8];
 						// XXX need to announce change of Z reference somehow elegantly
@@ -1500,44 +1512,28 @@ FixedwingEstimator::print_status()
 	// 16-18: Earth Magnetic Field Vector - gauss (North, East, Down)
 	// 19-21: Body Magnetic Field Vector - gauss (X,Y,Z)
 
+	printf("dtIMU: %8.6f IMUmsec: %d\n", (double)_ekf->dtIMU, (int)IMUmsec);
+	printf("ref alt: %8.6f\n", (double)_local_pos.ref_alt);
+	printf("dvel: %8.6f %8.6f %8.6f accel: %8.6f %8.6f %8.6f\n", (double)_ekf->dVelIMU.x, (double)_ekf->dVelIMU.y, (double)_ekf->dVelIMU.z, (double)_ekf->accel.x, (double)_ekf->accel.y, (double)_ekf->accel.z);
+	printf("dang: %8.4f %8.4f %8.4f dang corr: %8.4f %8.4f %8.4f\n" , (double)_ekf->dAngIMU.x, (double)_ekf->dAngIMU.y, (double)_ekf->dAngIMU.z, (double)_ekf->correctedDelAng.x, (double)_ekf->correctedDelAng.y, (double)_ekf->correctedDelAng.z);
+	printf("states (quat)        [0-3]: %8.4f, %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[0], (double)_ekf->states[1], (double)_ekf->states[2], (double)_ekf->states[3]);
+	printf("states (vel m/s)     [4-6]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[4], (double)_ekf->states[5], (double)_ekf->states[6]);
+	printf("states (pos m)      [7-9]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[7], (double)_ekf->states[8], (double)_ekf->states[9]);
+	printf("states (delta ang) [10-12]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[10], (double)_ekf->states[11], (double)_ekf->states[12]);
+
 	if (n_states == 23) {
-		printf("dtIMU: %8.6f IMUmsec: %d\n", (double)_ekf->dtIMU, (int)IMUmsec);
-		printf("ref alt: %8.6f\n", (double)_local_pos.ref_alt);
-		printf("dvel: %8.6f %8.6f %8.6f accel: %8.6f %8.6f %8.6f\n", (double)_ekf->dVelIMU.x, (double)_ekf->dVelIMU.y, (double)_ekf->dVelIMU.z, (double)_ekf->accel.x, (double)_ekf->accel.y, (double)_ekf->accel.z);
-		printf("dang: %8.4f %8.4f %8.4f dang corr: %8.4f %8.4f %8.4f\n" , (double)_ekf->dAngIMU.x, (double)_ekf->dAngIMU.y, (double)_ekf->dAngIMU.z, (double)_ekf->correctedDelAng.x, (double)_ekf->correctedDelAng.y, (double)_ekf->correctedDelAng.z);
-		printf("states (quat)        [0-3]: %8.4f, %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[0], (double)_ekf->states[1], (double)_ekf->states[2], (double)_ekf->states[3]);
-		printf("states (vel m/s)     [4-6]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[4], (double)_ekf->states[5], (double)_ekf->states[6]);
-		printf("states (pos m)      [7-9]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[7], (double)_ekf->states[8], (double)_ekf->states[9]);
-		printf("states (delta ang) [10-12]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[10], (double)_ekf->states[11], (double)_ekf->states[12]);
 		printf("states (accel offs)   [13]: %8.4f\n", (double)_ekf->states[13]);
 		printf("states (wind)      [14-15]: %8.4f, %8.4f\n", (double)_ekf->states[14], (double)_ekf->states[15]);
 		printf("states (earth mag) [16-18]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[16], (double)_ekf->states[17], (double)_ekf->states[18]);
 		printf("states (body mag)  [19-21]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[19], (double)_ekf->states[20], (double)_ekf->states[21]);
 		printf("states (terrain)      [22]: %8.4f\n", (double)_ekf->states[22]);
-		printf("states: %s %s %s %s %s %s %s %s %s %s\n",
-		       (_ekf->statesInitialised) ? "INITIALIZED" : "NON_INIT",
-		       (_ekf->onGround) ? "ON_GROUND" : "AIRBORNE",
-		       (_ekf->fuseVelData) ? "FUSE_VEL" : "INH_VEL",
-		       (_ekf->fusePosData) ? "FUSE_POS" : "INH_POS",
-		       (_ekf->fuseHgtData) ? "FUSE_HGT" : "INH_HGT",
-		       (_ekf->fuseMagData) ? "FUSE_MAG" : "INH_MAG",
-		       (_ekf->fuseVtasData) ? "FUSE_VTAS" : "INH_VTAS",
-		       (_ekf->useAirspeed) ? "USE_AIRSPD" : "IGN_AIRSPD",
-		       (_ekf->useCompass) ? "USE_COMPASS" : "IGN_COMPASS",
-		       (_ekf->staticMode) ? "STATIC_MODE" : "DYNAMIC_MODE");
+
 	} else {
-		printf("dtIMU: %8.6f IMUmsec: %d\n", (double)_ekf->dtIMU, (int)IMUmsec);
-		printf("ref alt: %8.6f\n", (double)_local_pos.ref_alt);
-		printf("dvel: %8.6f %8.6f %8.6f accel: %8.6f %8.6f %8.6f\n", (double)_ekf->dVelIMU.x, (double)_ekf->dVelIMU.y, (double)_ekf->dVelIMU.z, (double)_ekf->accel.x, (double)_ekf->accel.y, (double)_ekf->accel.z);
-		printf("dang: %8.4f %8.4f %8.4f dang corr: %8.4f %8.4f %8.4f\n" , (double)_ekf->dAngIMU.x, (double)_ekf->dAngIMU.y, (double)_ekf->dAngIMU.z, (double)_ekf->correctedDelAng.x, (double)_ekf->correctedDelAng.y, (double)_ekf->correctedDelAng.z);
-		printf("states (quat)        [0-3]: %8.4f, %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[0], (double)_ekf->states[1], (double)_ekf->states[2], (double)_ekf->states[3]);
-		printf("states (vel m/s)     [4-6]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[4], (double)_ekf->states[5], (double)_ekf->states[6]);
-		printf("states (pos m)      [7-9]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[7], (double)_ekf->states[8], (double)_ekf->states[9]);
-		printf("states (delta ang) [10-12]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[10], (double)_ekf->states[11], (double)_ekf->states[12]);
 		printf("states (wind)      [13-14]: %8.4f, %8.4f\n", (double)_ekf->states[13], (double)_ekf->states[14]);
 		printf("states (earth mag) [15-17]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[15], (double)_ekf->states[16], (double)_ekf->states[17]);
 		printf("states (body mag)  [18-20]: %8.4f, %8.4f, %8.4f\n", (double)_ekf->states[18], (double)_ekf->states[19], (double)_ekf->states[20]);
-		printf("states: %s %s %s %s %s %s %s %s %s %s\n",
+	}
+	printf("states: %s %s %s %s %s %s %s %s %s %s\n",
 		       (_ekf->statesInitialised) ? "INITIALIZED" : "NON_INIT",
 		       (_ekf->onGround) ? "ON_GROUND" : "AIRBORNE",
 		       (_ekf->fuseVelData) ? "FUSE_VEL" : "INH_VEL",
@@ -1548,7 +1544,6 @@ FixedwingEstimator::print_status()
 		       (_ekf->useAirspeed) ? "USE_AIRSPD" : "IGN_AIRSPD",
 		       (_ekf->useCompass) ? "USE_COMPASS" : "IGN_COMPASS",
 		       (_ekf->staticMode) ? "STATIC_MODE" : "DYNAMIC_MODE");
-	}
 }
 
 int FixedwingEstimator::trip_nan() {
