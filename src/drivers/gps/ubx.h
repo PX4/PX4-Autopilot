@@ -63,6 +63,7 @@
 /* Message IDs */
 #define UBX_ID_NAV_POSLLH	0x02
 #define UBX_ID_NAV_SOL		0x06
+#define UBX_ID_NAV_PVT		0x07
 #define UBX_ID_NAV_VELNED	0x12
 #define UBX_ID_NAV_TIMEUTC	0x21
 #define UBX_ID_NAV_SVINFO	0x30
@@ -78,6 +79,7 @@
 /* Message Classes & IDs */
 #define UBX_MSG_NAV_POSLLH	((UBX_CLASS_NAV) | UBX_ID_NAV_POSLLH << 8)
 #define UBX_MSG_NAV_SOL		((UBX_CLASS_NAV) | UBX_ID_NAV_SOL << 8)
+#define UBX_MSG_NAV_PVT		((UBX_CLASS_NAV) | UBX_ID_NAV_PVT << 8)
 #define UBX_MSG_NAV_VELNED	((UBX_CLASS_NAV) | UBX_ID_NAV_VELNED << 8)
 #define UBX_MSG_NAV_TIMEUTC	((UBX_CLASS_NAV) | UBX_ID_NAV_TIMEUTC << 8)
 #define UBX_MSG_NAV_SVINFO	((UBX_CLASS_NAV) | UBX_ID_NAV_SVINFO << 8)
@@ -89,6 +91,18 @@
 #define UBX_MSG_CFG_NAV5	((UBX_CLASS_CFG) | UBX_ID_CFG_NAV5 << 8)
 #define UBX_MSG_MON_HW		((UBX_CLASS_MON) | UBX_ID_MON_HW << 8)
 #define UBX_MSG_MON_VER		((UBX_CLASS_MON) | UBX_ID_MON_VER << 8)
+
+/* RX NAV-PVT message content details */
+/*   Bitfield "valid" masks */
+#define UBX_RX_NAV_PVT_VALID_VALIDDATE		0x01	/**< validDate (Valid UTC Date) */
+#define UBX_RX_NAV_PVT_VALID_VALIDTIME		0x02	/**< validTime (Valid UTC Time) */
+#define UBX_RX_NAV_PVT_VALID_FULLYRESOLVED	0x04	/**< fullyResolved (1 = UTC Time of Day has been fully resolved (no seconds uncertainty)) */
+
+/*   Bitfield "flags" masks */
+#define UBX_RX_NAV_PVT_FLAGS_GNSSFIXOK		0x01	/**< gnssFixOK (A valid fix (i.e within DOP & accuracy masks)) */
+#define UBX_RX_NAV_PVT_FLAGS_DIFFSOLN		0x02	/**< diffSoln (1 if differential corrections were applied) */
+#define UBX_RX_NAV_PVT_FLAGS_PSMSTATE		0x1C	/**< psmState (Power Save Mode state (see Power Management)) */
+#define UBX_RX_NAV_PVT_FLAGS_HEADVEHVALID	0x20	/**< headVehValid (Heading of vehicle is valid) */
 
 /* TX CFG-PRT message contents */
 #define UBX_TX_CFG_PRT_PORTID		0x01		/**< UART1 */
@@ -161,6 +175,42 @@ typedef struct {
 	uint8_t		numSV;		/**< Number of SVs used in Nav Solution */
 	uint32_t	reserved2;
 } ubx_payload_rx_nav_sol_t;
+
+/* Rx NAV-PVT */
+typedef struct {
+	uint32_t	iTOW;		/**< GPS Time of Week [ms] */
+	uint16_t	year; 		/**< Year (UTC)*/
+	uint8_t		month; 		/**< Month, range 1..12 (UTC) */
+	uint8_t		day; 		/**< Day of month, range 1..31 (UTC) */
+	uint8_t		hour; 		/**< Hour of day, range 0..23 (UTC) */
+	uint8_t		min; 		/**< Minute of hour, range 0..59 (UTC) */
+	uint8_t		sec;		/**< Seconds of minute, range 0..60 (UTC) */
+	uint8_t		valid; 		/**< Validity flags  (see UBX_RX_NAV_PVT_VALID_...) */
+	uint32_t	tAcc; 		/**< Time accuracy estimate (UTC) [ns] */
+	int32_t		nano;		/**< Fraction of second (UTC) [-1e9...1e9 ns] */
+	uint8_t		fixType;	/**< GNSSfix type: 0 = No fix, 1 = Dead Reckoning only, 2 = 2D fix, 3 = 3d-fix, 4 = GNSS + dead reckoning, 5 = time only fix */
+	uint8_t		flags;		/**< Fix Status Flags (see UBX_RX_NAV_PVT_FLAGS_...) */
+	uint8_t		reserved1;
+	uint8_t		numSV;		/**< Number of SVs used in Nav Solution */
+	int32_t		lon;		/**< Longitude [1e-7 deg] */
+	int32_t		lat;		/**< Latitude [1e-7 deg] */
+	int32_t		height;		/**< Height above ellipsoid [mm] */
+	int32_t		hMSL;		/**< Height above mean sea level [mm] */
+	uint32_t	hAcc;  		/**< Horizontal accuracy estimate [mm] */
+	uint32_t	vAcc;  		/**< Vertical accuracy estimate [mm] */
+	int32_t		velN;		/**< NED north velocity [mm/s]*/
+	int32_t		velE;		/**< NED east velocity [mm/s]*/
+	int32_t		velD;		/**< NED down velocity [mm/s]*/
+	int32_t		gSpeed;		/**< Ground Speed (2-D) [mm/s] */
+	int32_t		headMot;	/**< Heading of motion (2-D) [1e-5 deg] */
+	uint32_t	sAcc;		/**< Speed accuracy estimate [mm/s] */
+	uint32_t	headAcc;	/**< Heading accuracy estimate (motion and vehicle) [1e-5 deg] */
+	uint16_t	pDOP;		/**< Position DOP [0.01] */
+	uint16_t	reserved2;
+	uint32_t	reserved3;
+	int32_t		headVeh;	/**< Heading of vehicle (2-D) [1e-5 deg] */
+	uint32_t	reserved4;
+} ubx_payload_rx_nav_pvt_t;
 
 /* Rx NAV-TIMEUTC */
 typedef struct {
