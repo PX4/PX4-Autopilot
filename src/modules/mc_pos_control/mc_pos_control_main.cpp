@@ -134,7 +134,7 @@ private:
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;	/**< vehicle global velocity setpoint */
-		
+
 
 	struct {
 		param_t thr_min;
@@ -533,6 +533,8 @@ MulticopterPositionControl::task_main()
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
+	_global_vel_sp_sub = orb_subscribe(ORB_ID(vehicle_global_velocity_setpoint));
+
 
 	parameters_update(true);
 
@@ -699,7 +701,7 @@ MulticopterPositionControl::task_main()
 					reset_pos_sp();
 					reset_alt_sp();
 				}
-			
+
 			} else {
 				/* AUTO */
 				bool updated;
