@@ -541,6 +541,25 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		}
 		break;
 
+	case MAIN_STATE_OFFBOARD:
+		/* require offboard control, otherwise stay where you are */
+		if (status->offboard_control_signal_lost && !status->rc_signal_lost) {
+			status->failsafe = true;
+
+			status->nav_state = NAVIGATION_STATE_POSCTL;
+		} else if (status->offboard_control_signal_lost && status->rc_signal_lost) {
+			status->failsafe = true;
+
+			if (status->condition_local_position_valid) {
+				status->nav_state = NAVIGATION_STATE_LAND;
+			} else if (status->condition_local_altitude_valid) {
+				status->nav_state = NAVIGATION_STATE_DESCEND;
+			} else {
+				status->nav_state = NAVIGATION_STATE_TERMINATION;
+			}
+		} else {
+			status->nav_state = NAVIGATION_STATE_OFFBOARD;
+		}
 	default:
 		break;
 	}

@@ -661,6 +661,7 @@ int commander_thread_main(int argc, char *argv[])
 	nav_states_str[NAVIGATION_STATE_LAND]			= "LAND";
 	nav_states_str[NAVIGATION_STATE_DESCEND]		= "DESCEND";
 	nav_states_str[NAVIGATION_STATE_TERMINATION]		= "TERMINATION";
+	nav_states_str[NAVIGATION_STATE_OFFBOARD]		= "OFFBOARD";
 
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
@@ -930,6 +931,19 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(offboard_control_setpoint), sp_offboard_sub, &sp_offboard);
+		}
+
+		if (sp_offboard.timestamp != 0 &&
+		    sp_offboard.timestamp + OFFBOARD_TIMEOUT > hrt_absolute_time()) {
+			if (status.offboard_control_signal_lost) {
+				status.offboard_control_signal_lost = false;
+				status_changed = true;
+			}
+		} else {
+			if (!status.offboard_control_signal_lost) {
+				status.offboard_control_signal_lost = true;
+				status_changed = true;
+			}
 		}
 
 		orb_check(telemetry_sub, &updated);
