@@ -781,8 +781,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		epv += 0.005 * dt;	// add 1m to EPV each 200s (baro drift)
 
 		/* use GPS if it's valid and reference position initialized */
-		bool use_gps_xy = ref_inited && gps_valid && params.w_xy_gps_p > MIN_VALID_W;
-		bool use_gps_z = ref_inited && gps_valid && params.w_z_gps_p > MIN_VALID_W;
+		bool use_gps_xy = (ref_inited && gps_valid && params.w_xy_gps_p > MIN_VALID_W) || vision_valid;
+		bool use_gps_z = (ref_inited && gps_valid && params.w_z_gps_p > MIN_VALID_W) || vision_valid;
 		/* use flow if it's valid and (accurate or no GPS available) */
 		bool use_flow = flow_valid && (flow_accurate || !use_gps_xy);
 
