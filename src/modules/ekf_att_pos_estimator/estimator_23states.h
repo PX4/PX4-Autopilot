@@ -138,6 +138,7 @@ public:
     float varInnovVelPos[6]; // innovation variance output
 
     float velNED[3]; // North, East, Down velocity obs (m/s)
+    float accelGPSNED[3];   // Acceleration predicted by GPS in earth frame
     float posNE[2]; // North, East position obs (m)
     float hgtMea; //  measured height (m)
     float baroHgtOffset;        ///< the baro (weather) offset from normalized altitude
@@ -185,6 +186,7 @@ public:
     bool useRangeFinder;     ///< true when rangefinder is being used
 
     bool ekfDiverged;
+    uint64_t lastReset;
 
     struct ekf_status_report current_ekf_state;
     struct ekf_status_report last_ekf_error;
