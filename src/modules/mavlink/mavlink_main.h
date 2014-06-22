@@ -213,6 +213,11 @@ public:
 	bool get_wait_to_transmit() { return _wait_to_transmit; }
 	bool should_transmit() { return (!_wait_to_transmit || (_wait_to_transmit && _received_messages)); }
 
+	/**
+	 * Count a transmision error
+	 */
+	void count_txerr();
+
 protected:
 	Mavlink	*next;
 
@@ -282,6 +287,7 @@ private:
 	pthread_mutex_t _message_buffer_mutex;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
+	perf_counter_t	_txerr_perf;			/**< TX error counter */
 
 	/**
 	 * Send one parameter.
