@@ -342,7 +342,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 				if (gps_updated) {
 					orb_copy(ORB_ID(vehicle_gps_position), sub_gps, &gps);
 
-					if (gps.eph_m < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
+					if (gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
 						mag_decl = math::radians(get_mag_declination(gps.lat / 1e7f, gps.lon / 1e7f));
 
 						/* update mag declination rotation matrix */
@@ -477,7 +477,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						parameters_update(&ekf_param_handles, &ekf_params);
 
 						/* update mag declination rotation matrix */
-						if (gps.eph_m < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
+						if (gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
 							mag_decl = math::radians(get_mag_declination(gps.lat / 1e7f, gps.lon / 1e7f));
 
 						} else {
