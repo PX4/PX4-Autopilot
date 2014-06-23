@@ -58,9 +58,9 @@ ECL_YawController::ECL_YawController() :
 	_rate_error(0.0f),
 	_rate_setpoint(0.0f),
 	_bodyrate_setpoint(0.0f),
-	_coordinated_min_speed(1.0f)
+	_coordinated_min_speed(1.0f),
+	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control yaw nonfinite input"))
 {
-	perf_alloc(PC_COUNT, "fw att control yaw nonfinite input");
 }
 
 ECL_YawController::~ECL_YawController()
