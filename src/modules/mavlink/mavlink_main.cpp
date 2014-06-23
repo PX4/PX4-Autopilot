@@ -1576,31 +1576,35 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 				/* delete stream */
 				LL_DELETE(_streams, stream);
 				delete stream;
+				warnx("deleted stream %s", stream->get_name());
 			}
 
 			return OK;
 		}
 	}
 
-	if (interval > 0) {
-		/* search for stream with specified name in supported streams list */
-		for (unsigned int i = 0; streams_list[i] != nullptr; i++) {
-
-			if (strcmp(stream_name, streams_list[i]->get_name()) == 0) {
-				/* create new instance */
-				stream = streams_list[i]->new_instance();
-				stream->set_channel(get_channel());
-				stream->set_interval(interval);
-				stream->subscribe(this);
-				LL_APPEND(_streams, stream);
-				return OK;
-			}
-		}
-
-	} else {
-		/* stream not found, nothing to disable */
+	if (interval == 0) {
+		/* stream was not active and is requested to be disabled, do nothing */
 		return OK;
 	}
+
+	/* search for stream with specified name in supported streams list */
+	for (unsigned int i = 0; streams_list[i] != nullptr; i++) {
+
+		if (strcmp(stream_name, streams_list[i]->get_name()) == 0) {
+			/* create new instance */
+			stream = streams_list[i]->new_instance();
+			stream->set_channel(get_channel());
+			stream->set_interval(interval);
+			stream->subscribe(this);
+			LL_APPEND(_streams, stream);
+
+			return OK;
+		}
+	}
+
+	/* if we reach here, the stream list does not contain the stream */
+	warnx("stream %s not found", stream_name);
 
 	return ERROR;
 }

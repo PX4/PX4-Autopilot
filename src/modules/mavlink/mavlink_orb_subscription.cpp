@@ -44,6 +44,8 @@
 #include <uORB/uORB.h>
 #include <stdio.h>
 
+#include <systemlib/err.h>
+
 #include "mavlink_orb_subscription.h"
 
 MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic) :
@@ -77,21 +79,23 @@ MavlinkOrbSubscription::update(uint64_t *time, void* data)
 		time_topic = 0;
 	}
 
-	if (orb_copy(_topic, _fd, data)) {
-		/* error copying topic data */
-		memset(data, 0, _topic->o_size);
-		return false;
+	if (time_topic != *time) {
 
-	} else {
-		/* data copied successfully */
-		_published = true;
-		if (time_topic != *time) {
-			*time = time_topic;
-			return true;
+		if (orb_copy(_topic, _fd, data)) {
+			/* error copying topic data */
+			memset(data, 0, _topic->o_size);
+			//warnx("err copy, fd: %d, obj: %s, size: %d", _fd, _topic->o_name, _topic->o_size);
+			return false;
 
 		} else {
-			return false;
+			/* data copied successfully */
+			_published = true;
+			*time = time_topic;
+			return true;
 		}
+
+	} else {
+		return false;
 	}
 }
 
