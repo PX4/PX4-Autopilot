@@ -44,17 +44,17 @@ typedef struct __mavlink_distance_sensor_t
  * @param msg The MAVLink message to compress the data into
  *
  * @param time_boot_ms Time since system boot
- * @param type Type from MAV_DISTANCE_SENSOR enum.
- * @param id Onboard ID of the sensor
- * @param orientation Direction the sensor faces from FIXME enum.
  * @param min_distance Minimum distance the sensor can measure in centimeters
  * @param max_distance Maximum distance the sensor can measure in centimeters
  * @param current_distance Current distance reading
+ * @param type Type from MAV_DISTANCE_SENSOR enum.
+ * @param id Onboard ID of the sensor
+ * @param orientation Direction the sensor faces from FIXME enum.
  * @param covariance Measurement covariance in centimeters, 0 for unknown / invalid readings
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_distance_sensor_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
-						       uint32_t time_boot_ms, uint8_t type, uint8_t id, uint8_t orientation, uint16_t min_distance, uint16_t max_distance, uint16_t current_distance, uint8_t covariance)
+						       uint32_t time_boot_ms, uint16_t min_distance, uint16_t max_distance, uint16_t current_distance, uint8_t type, uint8_t id, uint8_t orientation, uint8_t covariance)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN];
@@ -97,18 +97,18 @@ static inline uint16_t mavlink_msg_distance_sensor_pack(uint8_t system_id, uint8
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param time_boot_ms Time since system boot
- * @param type Type from MAV_DISTANCE_SENSOR enum.
- * @param id Onboard ID of the sensor
- * @param orientation Direction the sensor faces from FIXME enum.
  * @param min_distance Minimum distance the sensor can measure in centimeters
  * @param max_distance Maximum distance the sensor can measure in centimeters
  * @param current_distance Current distance reading
+ * @param type Type from MAV_DISTANCE_SENSOR enum.
+ * @param id Onboard ID of the sensor
+ * @param orientation Direction the sensor faces from FIXME enum.
  * @param covariance Measurement covariance in centimeters, 0 for unknown / invalid readings
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_distance_sensor_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
 							   mavlink_message_t* msg,
-						           uint32_t time_boot_ms,uint8_t type,uint8_t id,uint8_t orientation,uint16_t min_distance,uint16_t max_distance,uint16_t current_distance,uint8_t covariance)
+						           uint32_t time_boot_ms,uint16_t min_distance,uint16_t max_distance,uint16_t current_distance,uint8_t type,uint8_t id,uint8_t orientation,uint8_t covariance)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN];
@@ -154,7 +154,7 @@ static inline uint16_t mavlink_msg_distance_sensor_pack_chan(uint8_t system_id, 
  */
 static inline uint16_t mavlink_msg_distance_sensor_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_distance_sensor_t* distance_sensor)
 {
-	return mavlink_msg_distance_sensor_pack(system_id, component_id, msg, distance_sensor->time_boot_ms, distance_sensor->type, distance_sensor->id, distance_sensor->orientation, distance_sensor->min_distance, distance_sensor->max_distance, distance_sensor->current_distance, distance_sensor->covariance);
+	return mavlink_msg_distance_sensor_pack(system_id, component_id, msg, distance_sensor->time_boot_ms, distance_sensor->min_distance, distance_sensor->max_distance, distance_sensor->current_distance, distance_sensor->type, distance_sensor->id, distance_sensor->orientation, distance_sensor->covariance);
 }
 
 /**
@@ -168,7 +168,7 @@ static inline uint16_t mavlink_msg_distance_sensor_encode(uint8_t system_id, uin
  */
 static inline uint16_t mavlink_msg_distance_sensor_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_distance_sensor_t* distance_sensor)
 {
-	return mavlink_msg_distance_sensor_pack_chan(system_id, component_id, chan, msg, distance_sensor->time_boot_ms, distance_sensor->type, distance_sensor->id, distance_sensor->orientation, distance_sensor->min_distance, distance_sensor->max_distance, distance_sensor->current_distance, distance_sensor->covariance);
+	return mavlink_msg_distance_sensor_pack_chan(system_id, component_id, chan, msg, distance_sensor->time_boot_ms, distance_sensor->min_distance, distance_sensor->max_distance, distance_sensor->current_distance, distance_sensor->type, distance_sensor->id, distance_sensor->orientation, distance_sensor->covariance);
 }
 
 /**
@@ -176,17 +176,17 @@ static inline uint16_t mavlink_msg_distance_sensor_encode_chan(uint8_t system_id
  * @param chan MAVLink channel to send the message
  *
  * @param time_boot_ms Time since system boot
- * @param type Type from MAV_DISTANCE_SENSOR enum.
- * @param id Onboard ID of the sensor
- * @param orientation Direction the sensor faces from FIXME enum.
  * @param min_distance Minimum distance the sensor can measure in centimeters
  * @param max_distance Maximum distance the sensor can measure in centimeters
  * @param current_distance Current distance reading
+ * @param type Type from MAV_DISTANCE_SENSOR enum.
+ * @param id Onboard ID of the sensor
+ * @param orientation Direction the sensor faces from FIXME enum.
  * @param covariance Measurement covariance in centimeters, 0 for unknown / invalid readings
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
-static inline void mavlink_msg_distance_sensor_send(mavlink_channel_t chan, uint32_t time_boot_ms, uint8_t type, uint8_t id, uint8_t orientation, uint16_t min_distance, uint16_t max_distance, uint16_t current_distance, uint8_t covariance)
+static inline void mavlink_msg_distance_sensor_send(mavlink_channel_t chan, uint32_t time_boot_ms, uint16_t min_distance, uint16_t max_distance, uint16_t current_distance, uint8_t type, uint8_t id, uint8_t orientation, uint8_t covariance)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN];
@@ -231,7 +231,7 @@ static inline void mavlink_msg_distance_sensor_send(mavlink_channel_t chan, uint
   is usually the receive buffer for the channel, and allows a reply to an
   incoming message with minimum stack space usage.
  */
-static inline void mavlink_msg_distance_sensor_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint32_t time_boot_ms, uint8_t type, uint8_t id, uint8_t orientation, uint16_t min_distance, uint16_t max_distance, uint16_t current_distance, uint8_t covariance)
+static inline void mavlink_msg_distance_sensor_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint32_t time_boot_ms, uint16_t min_distance, uint16_t max_distance, uint16_t current_distance, uint8_t type, uint8_t id, uint8_t orientation, uint8_t covariance)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char *buf = (char *)msgbuf;
@@ -285,36 +285,6 @@ static inline uint32_t mavlink_msg_distance_sensor_get_time_boot_ms(const mavlin
 }
 
 /**
- * @brief Get field type from distance_sensor message
- *
- * @return Type from MAV_DISTANCE_SENSOR enum.
- */
-static inline uint8_t mavlink_msg_distance_sensor_get_type(const mavlink_message_t* msg)
-{
-	return _MAV_RETURN_uint8_t(msg,  10);
-}
-
-/**
- * @brief Get field id from distance_sensor message
- *
- * @return Onboard ID of the sensor
- */
-static inline uint8_t mavlink_msg_distance_sensor_get_id(const mavlink_message_t* msg)
-{
-	return _MAV_RETURN_uint8_t(msg,  11);
-}
-
-/**
- * @brief Get field orientation from distance_sensor message
- *
- * @return Direction the sensor faces from FIXME enum.
- */
-static inline uint8_t mavlink_msg_distance_sensor_get_orientation(const mavlink_message_t* msg)
-{
-	return _MAV_RETURN_uint8_t(msg,  12);
-}
-
-/**
  * @brief Get field min_distance from distance_sensor message
  *
  * @return Minimum distance the sensor can measure in centimeters
@@ -342,6 +312,36 @@ static inline uint16_t mavlink_msg_distance_sensor_get_max_distance(const mavlin
 static inline uint16_t mavlink_msg_distance_sensor_get_current_distance(const mavlink_message_t* msg)
 {
 	return _MAV_RETURN_uint16_t(msg,  8);
+}
+
+/**
+ * @brief Get field type from distance_sensor message
+ *
+ * @return Type from MAV_DISTANCE_SENSOR enum.
+ */
+static inline uint8_t mavlink_msg_distance_sensor_get_type(const mavlink_message_t* msg)
+{
+	return _MAV_RETURN_uint8_t(msg,  10);
+}
+
+/**
+ * @brief Get field id from distance_sensor message
+ *
+ * @return Onboard ID of the sensor
+ */
+static inline uint8_t mavlink_msg_distance_sensor_get_id(const mavlink_message_t* msg)
+{
+	return _MAV_RETURN_uint8_t(msg,  11);
+}
+
+/**
+ * @brief Get field orientation from distance_sensor message
+ *
+ * @return Direction the sensor faces from FIXME enum.
+ */
+static inline uint8_t mavlink_msg_distance_sensor_get_orientation(const mavlink_message_t* msg)
+{
+	return _MAV_RETURN_uint8_t(msg,  12);
 }
 
 /**
