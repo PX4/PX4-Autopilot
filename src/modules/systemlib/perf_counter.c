@@ -301,7 +301,7 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 	case PC_ELAPSED: {
 		struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 
-		dprintf(fd, "%s: %llu events, %lluus elapsed, %llu avg, min %lluus max %lluus\n",
+		dprintf(fd, "%s: %llu events, %lluus elapsed, %lluus avg, min %lluus max %lluus\n",
 		       handle->name,
 		       pce->event_count,
 		       pce->time_total,
@@ -314,7 +314,7 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 	case PC_INTERVAL: {
 		struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
 
-		dprintf(fd, "%s: %llu events, %llu avg, min %lluus max %lluus\n",
+		dprintf(fd, "%s: %llu events, %lluus avg, min %lluus max %lluus\n",
 		       handle->name,
 		       pci->event_count,
 		       (pci->time_last - pci->time_first) / pci->event_count,
