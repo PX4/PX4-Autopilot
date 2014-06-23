@@ -65,6 +65,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <lib/mathlib/mathlib.h>
+#include <lib/geo/geo.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/perf_counter.h>
@@ -287,6 +288,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 	float gyro_offsets[3] = { 0.0f, 0.0f, 0.0f };
 
+	/* magnetic declination, in radians */
+	float mag_decl = 0.0f;
+
 	/* rotation matrix for magnetic declination */
 	math::Matrix<3, 3> R_decl;
 	R_decl.identity();
@@ -325,9 +329,6 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 				/* update parameters */
 				parameters_update(&ekf_param_handles, &ekf_params);
-
-				/* update mag declination rotation matrix */
-				R_decl.from_euler(0.0f, 0.0f, ekf_params.mag_decl);
 			}
 
 			/* only run filter if sensor values changed */
@@ -340,6 +341,13 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 				orb_check(sub_gps, &gps_updated);
 				if (gps_updated) {
 					orb_copy(ORB_ID(vehicle_gps_position), sub_gps, &gps);
+
+					if (gps.eph_m < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
+						mag_decl = math::radians(get_mag_declination(gps.lat / 1e7f, gps.lon / 1e7f));
+
+						/* update mag declination rotation matrix */
+						R_decl.from_euler(0.0f, 0.0f, mag_decl);
+					}
 				}
 
 				bool global_pos_updated;
@@ -469,7 +477,15 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						parameters_update(&ekf_param_handles, &ekf_params);
 
 						/* update mag declination rotation matrix */
-						R_decl.from_euler(0.0f, 0.0f, ekf_params.mag_decl);
+						if (gps.eph_m < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
+							mag_decl = math::radians(get_mag_declination(gps.lat / 1e7f, gps.lon / 1e7f));
+
+						} else {
+							mag_decl = ekf_params.mag_decl;
+						}
+
+						/* update mag declination rotation matrix */
+						R_decl.from_euler(0.0f, 0.0f, mag_decl);
 
 						x_aposteriori_k[0] = z_k[0];
 						x_aposteriori_k[1] = z_k[1];
@@ -515,7 +531,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 					att.roll = euler[0];
 					att.pitch = euler[1];
-					att.yaw = euler[2] + ekf_params.mag_decl;
+					att.yaw = euler[2] + mag_decl;
 
 					att.rollspeed = x_aposteriori[0];
 					att.pitchspeed = x_aposteriori[1];
