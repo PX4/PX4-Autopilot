@@ -1392,6 +1392,7 @@ protected:
 			// New message
 			mavlink_msg_rc_channels_send(_channel,
 					rc.timestamp_publication / 1000,
+					rc.channel_count,
 					((rc.channel_count > 0) ? rc.values[0] : UINT16_MAX),
 					((rc.channel_count > 1) ? rc.values[1] : UINT16_MAX),
 					((rc.channel_count > 2) ? rc.values[2] : UINT16_MAX),
@@ -1410,7 +1411,6 @@ protected:
 					((rc.channel_count > 15) ? rc.values[15] : UINT16_MAX),
 					((rc.channel_count > 16) ? rc.values[16] : UINT16_MAX),
 					((rc.channel_count > 17) ? rc.values[17] : UINT16_MAX),
-					rc.channel_count,
 					rc.rssi);
 		}
 	}
