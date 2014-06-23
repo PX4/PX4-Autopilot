@@ -201,9 +201,13 @@ public:
 
 	mavlink_channel_t get_channel();
 
+	void configure_stream_threadsafe(const char *stream_name, const float rate);
+
 	bool		_task_should_exit;		/**< if true, mavlink task should exit */
 
 	int get_mavlink_fd() { return _mavlink_fd; }
+
+	MavlinkStream * get_streams() { return _streams; } const
 
 
 	/* Functions for waiting to start transmission until message received. */
@@ -356,7 +360,6 @@ private:
 	int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
 
 	int configure_stream(const char *stream_name, const float rate);
-	void configure_stream_threadsafe(const char *stream_name, const float rate);
 
 	int message_buffer_init(int size);
 
