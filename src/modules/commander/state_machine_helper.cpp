@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,6 +34,9 @@
 /**
  * @file state_machine_helper.cpp
  * State machine helper functions implementations
+ *
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
  */
 
 #include <stdio.h>
@@ -133,15 +134,20 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 		if (valid_transition) {
 			// We have a good transition. Now perform any secondary validation.
 			if (new_arming_state == ARMING_STATE_ARMED) {
-				// Fail transition if we need safety switch press
 				//      Allow if coming from in air restore
 				//      Allow if HIL_STATE_ON
-				if (status->arming_state != ARMING_STATE_IN_AIR_RESTORE && status->hil_state == HIL_STATE_OFF && safety->safety_switch_available && !safety->safety_off) {
-					if (mavlink_fd) {
-						mavlink_log_critical(mavlink_fd, "#audio: NOT ARMING: Press safety switch first.");
-					}
+				if (status->arming_state != ARMING_STATE_IN_AIR_RESTORE &&
+					status->hil_state == HIL_STATE_OFF) {
 
-					valid_transition = false;
+					// Fail transition if we need safety switch press
+					if (safety->safety_switch_available && !safety->safety_off) {
+
+						if (mavlink_fd) {
+							mavlink_log_critical(mavlink_fd, "#audio: NOT ARMING: Press safety switch first.");
+						}
+
+						valid_transition = false;
+					}
 				}
 
 			} else if (new_arming_state == ARMING_STATE_STANDBY && status->arming_state == ARMING_STATE_ARMED_ERROR) {
