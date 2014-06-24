@@ -263,7 +263,7 @@ PARAM_DEFINE_FLOAT(FW_T_HGT_OMEGA, 3.0f);
  * This is the cross-over frequency (in radians/second) of the complementary 
  * filter used to fuse longitudinal acceleration and airspeed to obtain an 
  * improved airspeed estimate. Increasing this frequency weights the solution
- * more towards use of the arispeed sensor, whilst reducing it weights the 
+ * more towards use of the airspeed sensor, whilst reducing it weights the
  * solution more towards use of the accelerometer data.
  *
  * @group L1 Control
@@ -364,6 +364,32 @@ PARAM_DEFINE_FLOAT(FW_LND_TLALT, 5.0f);
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
+
+/**
+ * Takeoff altitude error threshold
+ *
+ * During takeoff, the current altitude is checked against the takeoff waypoint altitude. If the
+ * altitude error is greater than this parameter, the vehicle will maintain a minimum
+ * pitch and limit the allowed roll to ensure enough lift.
+ *
+ * @unit meters
+ * @min 1.0
+ * @max 50.0
+ * @group L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_TKOF_ALT_ERR, 15.0f);
+
+/**
+ * Maximum takeoff roll
+ *
+ * Maximum allowed roll during takeoff.
+ *
+ * @unit degrees
+ * @min 0
+ * @max 30
+ * @group L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_TKOF_ROLL_MAX, 15.0f);
 
 /**
  * Relative altitude threshold for range finder measurements for use during landing
