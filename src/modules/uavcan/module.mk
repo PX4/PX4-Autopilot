@@ -52,7 +52,7 @@ SRCS += $(LIBUAVCAN_SRC)
 INCLUDE_DIRS += $(LIBUAVCAN_INC)
 # Since actual compiler mode is C++11, the library will default to UAVCAN_CPP11, but it will fail to compile
 # because this platform lacks most of the standard library and STL. Hence we need to force C++03 mode.
-EXTRADEFINES += -DUAVCAN_CPP_VERSION=UAVCAN_CPP03
+override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_CPP_VERSION=UAVCAN_CPP03
 
 #
 # libuavcan drivers for STM32
@@ -60,8 +60,7 @@ EXTRADEFINES += -DUAVCAN_CPP_VERSION=UAVCAN_CPP03
 include $(UAVCAN_DIR)/libuavcan_drivers/stm32/driver/include.mk
 SRCS += $(LIBUAVCAN_STM32_SRC)
 INCLUDE_DIRS += $(LIBUAVCAN_STM32_INC)
-EXTRADEFINES += -DUAVCAN_STM32_NUTTX \
-                -DUAVCAN_STM32_NUM_IFACES=2
+override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_STM32_NUTTX -DUAVCAN_STM32_NUM_IFACES=2
 
 #
 # Invoke DSDL compiler
