@@ -841,6 +841,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		/* current waypoint (the one currently heading for) */
 		math::Vector<2> curr_wp((float)pos_sp_triplet.current.lat, (float)pos_sp_triplet.current.lon);
 
+		/* Initialize attitude controller integrator reset flags to 0 */
+		_att_sp.roll_reset_integral = false;
+		_att_sp.pitch_reset_integral = false;
+		_att_sp.yaw_reset_integral = false;
 
 		/* previous waypoint */
 		math::Vector<2> prev_wp;
@@ -1028,6 +1032,11 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 //						warnx("Launch detection running");
 						mavlink_log_info(_mavlink_fd, "#audio: Launchdetection running");
 						last_sent = hrt_absolute_time();
+						/* Tell the attitude controller to stop integrating while we are
+						 * waiting for the launch */
+						_att_sp.roll_reset_integral = true;
+						_att_sp.pitch_reset_integral = true;
+						_att_sp.yaw_reset_integral = true;
 					}
 					launchDetector.update(_sensor_combined.accelerometer_m_s2[0]);
 					if (launchDetector.getLaunchDetected()) {
