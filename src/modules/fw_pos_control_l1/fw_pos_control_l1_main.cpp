@@ -1024,12 +1024,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		} else if (pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF) {
 
 			/* Perform launch detection */
-//			warnx("Launch detection running");
 			if(!launch_detected) { //do not do further checks once a launch was detected
 				if (launchDetector.launchDetectionEnabled()) {
 					static hrt_abstime last_sent = 0;
 					if(hrt_absolute_time() - last_sent > 4e6) {
-//						warnx("Launch detection running");
 						mavlink_log_info(_mavlink_fd, "#audio: Launchdetection running");
 						last_sent = hrt_absolute_time();
 					}
