@@ -45,12 +45,12 @@
 /**
  * The number of RC channel inputs supported.
  * Current (Q4/2013) radios support up to 18 channels,
- * leaving at a sane value of 15.
+ * leaving at a sane value of 16.
  * This number can be greater then number of RC channels,
  * because single RC channel can be mapped to multiple
  * functions, e.g. for various mode switches.
  */
-#define RC_CHANNELS_MAPPED_MAX   15
+#define RC_CHANNELS_MAPPED_MAX   16
 
 /**
  * This defines the mapping of the RC functions.
@@ -67,12 +67,13 @@ enum RC_CHANNELS_FUNCTION {
 	POSCTL = 6,
 	LOITER = 7,
 	OFFBOARD_MODE = 8,
-	FLAPS   = 9,
-	AUX_1   = 10,
-	AUX_2   = 11,
-	AUX_3   = 12,
-	AUX_4   = 13,
-	AUX_5   = 14,
+	ACRO    = 9,
+	FLAPS   = 10,
+	AUX_1   = 11,
+	AUX_2   = 12,
+	AUX_3   = 13,
+	AUX_4   = 14,
+	AUX_5   = 15,
 	RC_CHANNELS_FUNCTION_MAX /**< indicates the number of functions. There can be more functions than RC channels. */
 };
 

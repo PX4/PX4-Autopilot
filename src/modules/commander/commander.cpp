@@ -453,6 +453,10 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
 					/* AUTO */
 					main_res = main_state_transition(status, MAIN_STATE_AUTO);
+
+				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ACRO) {
+					/* ACRO */
+					main_res = main_state_transition(status, MAIN_STATE_ACRO);
 				}
 
 			} else {
@@ -652,6 +656,7 @@ int commander_thread_main(int argc, char *argv[])
 	main_states_str[1] = "ALTCTL";
 	main_states_str[2] = "POSCTL";
 	main_states_str[3] = "AUTO";
+	main_states_str[4] = "ACRO";
 
 	char *arming_states_str[ARMING_STATE_MAX];
 	arming_states_str[0] = "INIT";
@@ -1012,7 +1017,26 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* update condition_local_position_valid and condition_local_altitude_valid */
-		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid && eph_epv_good, &(status.condition_local_position_valid), &status_changed);
+		/* hysteresis for EPH */
+		bool local_eph_good;
+
+		if (status.condition_global_position_valid) {
+			if (local_position.eph > eph_epv_threshold * 2.0f) {
+				local_eph_good = false;
+
+			} else {
+				local_eph_good = true;
+			}
+
+		} else {
+			if (local_position.eph < eph_epv_threshold) {
+				local_eph_good = true;
+
+			} else {
+				local_eph_good = false;
+			}
+		}
+		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid && local_eph_good, &(status.condition_local_position_valid), &status_changed);
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid, &(status.condition_local_altitude_valid), &status_changed);
 
 		static bool published_condition_landed_fw = false;
@@ -1187,7 +1211,7 @@ int commander_thread_main(int argc, char *argv[])
 			 * do it only for rotary wings */
 			if (status.is_rotary_wing &&
 			    (status.arming_state == ARMING_STATE_ARMED || status.arming_state == ARMING_STATE_ARMED_ERROR) &&
-			    (status.main_state == MAIN_STATE_MANUAL || status.condition_landed) &&
+			    (status.main_state == MAIN_STATE_MANUAL || status.main_state == MAIN_STATE_ACRO || status.condition_landed) &&
 			    sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) {
 
 				if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
@@ -1209,10 +1233,10 @@ int commander_thread_main(int argc, char *argv[])
 			    sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) {
 				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 					if (safety.safety_switch_available && !safety.safety_off && status.hil_state == HIL_STATE_OFF) {
-						print_reject_arm("NOT ARMING: Press safety switch first.");
+						print_reject_arm("#audio: NOT ARMING: Press safety switch first.");
 
 					} else if (status.main_state != MAIN_STATE_MANUAL) {
-						print_reject_arm("NOT ARMING: Switch to MANUAL mode first.");
+						print_reject_arm("#audio: NOT ARMING: Switch to MANUAL mode first.");
 
 					} else {
 						arming_res = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed);
@@ -1384,7 +1408,7 @@ int commander_thread_main(int argc, char *argv[])
 				home.alt = global_position.alt;
 
 				warnx("home: lat = %.7f, lon = %.7f, alt = %.2f ", home.lat, home.lon, (double)home.alt);
-				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
+				mavlink_log_info(mavlink_fd, "home: %.7f, %.7f, %.2f", home.lat, home.lon, (double)home.alt);
 
 				/* announce new home position */
 				if (home_pub > 0) {
@@ -1600,7 +1624,12 @@ set_main_state_rc(struct vehicle_status_s *status, struct manual_control_setpoin
 		break;
 
 	case SWITCH_POS_OFF:		// MANUAL
-		res = main_state_transition(status, MAIN_STATE_MANUAL);
+		if (sp_man->acro_switch == SWITCH_POS_ON) {
+			res = main_state_transition(status, MAIN_STATE_ACRO);
+
+		} else {
+			res = main_state_transition(status, MAIN_STATE_MANUAL);
+		}
 		// TRANSITION_DENIED is not possible here
 		break;
 
@@ -1712,6 +1741,17 @@ set_control_mode()
 			navigator_enabled = true;
 			break;
 
+		case MAIN_STATE_ACRO:
+			control_mode.flag_control_manual_enabled = true;
+			control_mode.flag_control_auto_enabled = false;
+			control_mode.flag_control_rates_enabled = true;
+			control_mode.flag_control_attitude_enabled = false;
+			control_mode.flag_control_altitude_enabled = false;
+			control_mode.flag_control_climb_rate_enabled = false;
+			control_mode.flag_control_position_enabled = false;
+			control_mode.flag_control_velocity_enabled = false;
+			break;
+
 		default:
 			break;
 		}
@@ -1808,7 +1848,8 @@ void answer_command(struct vehicle_command_s &cmd, enum VEHICLE_CMD_RESULT resul
 		break;
 
 	case VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:
-		mavlink_log_critical(mavlink_fd, "#audio: command temporarily rejected: %u", cmd.command);
+		/* this needs additional hints to the user - so let other messages pass and be spoken */
+		mavlink_log_critical(mavlink_fd, "command temporarily rejected: %u", cmd.command);
 		tune_negative(true);
 		break;
 

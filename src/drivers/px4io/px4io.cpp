@@ -197,8 +197,10 @@ public:
 	 * Print IO status.
 	 *
 	 * Print all relevant IO status information
+	 *
+	 * @param extended_status Shows more verbose information (in particular RC config)
 	 */
-	void			print_status();
+	void			print_status(bool extended_status);
 
 	/**
 	 * Fetch and print debug console output.
@@ -581,8 +583,10 @@ PX4IO::init()
 	ASSERT(_task == -1);
 
 	sys_restart_param = param_find("SYS_RESTART_TYPE");
-	/* Indicate restart type is unknown */
-	param_set(sys_restart_param, &sys_restart_val);
+	if (sys_restart_param != PARAM_INVALID) {
+		/* Indicate restart type is unknown */
+		param_set(sys_restart_param, &sys_restart_val);
+	}
 
 	/* do regular cdev init */
 	ret = CDev::init();
@@ -1848,7 +1852,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 }
 
 void
-PX4IO::print_status()
+PX4IO::print_status(bool extended_status)
 {
 	/* basic configuration */
 	printf("protocol %u hardware %u bootloader %u buffer %uB crc 0x%04x%04x\n",
@@ -2011,19 +2015,21 @@ PX4IO::print_status()
 		printf("\n");
 	}
 
-	for (unsigned i = 0; i < _max_rc_input; i++) {
-		unsigned base = PX4IO_P_RC_CONFIG_STRIDE * i;
-		uint16_t options = io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_OPTIONS);
-		printf("input %u min %u center %u max %u deadzone %u assigned %u options 0x%04x%s%s\n",
-		       i,
-		       io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_MIN),
-		       io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_CENTER),
-		       io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_MAX),
-		       io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_DEADZONE),
-		       io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_ASSIGNMENT),
-		       options,
-		       ((options & PX4IO_P_RC_CONFIG_OPTIONS_ENABLED) ? " ENABLED" : ""),
-		       ((options & PX4IO_P_RC_CONFIG_OPTIONS_REVERSE) ? " REVERSED" : ""));
+	if (extended_status) {
+		for (unsigned i = 0; i < _max_rc_input; i++) {
+			unsigned base = PX4IO_P_RC_CONFIG_STRIDE * i;
+			uint16_t options = io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_OPTIONS);
+			printf("input %u min %u center %u max %u deadzone %u assigned %u options 0x%04x%s%s\n",
+			       i,
+			       io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_MIN),
+			       io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_CENTER),
+			       io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_MAX),
+			       io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_DEADZONE),
+			       io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_ASSIGNMENT),
+			       options,
+			       ((options & PX4IO_P_RC_CONFIG_OPTIONS_ENABLED) ? " ENABLED" : ""),
+			       ((options & PX4IO_P_RC_CONFIG_OPTIONS_REVERSE) ? " REVERSED" : ""));
+		}
 	}
 
 	printf("failsafe");
@@ -2851,7 +2857,7 @@ monitor(void)
 		if (g_dev != nullptr) {
 
 			printf("\033[2J\033[H"); /* move cursor home and clear screen */
-			(void)g_dev->print_status();
+			(void)g_dev->print_status(false);
 			(void)g_dev->print_debug();
 			printf("\n\n\n[ Use 'px4io debug <N>' for more output. Hit <enter> three times to exit monitor mode ]\n");
 
@@ -3117,7 +3123,7 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 
 		printf("[px4io] loaded\n");
-		g_dev->print_status();
+		g_dev->print_status(true);
 
 		exit(0);
 	}

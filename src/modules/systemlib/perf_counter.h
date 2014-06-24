@@ -121,16 +121,26 @@ __EXPORT extern void		perf_cancel(perf_counter_t handle);
 __EXPORT extern void		perf_reset(perf_counter_t handle);
 
 /**
- * Print one performance counter.
+ * Print one performance counter to stdout
  *
  * @param handle		The counter to print.
  */
 __EXPORT extern void		perf_print_counter(perf_counter_t handle);
 
 /**
- * Print all of the performance counters.
+ * Print one performance counter to a fd.
+ *
+ * @param fd			File descriptor to print to - e.g. 0 for stdout
+ * @param handle		The counter to print.
  */
-__EXPORT extern void		perf_print_all(void);
+__EXPORT extern void		perf_print_counter_fd(int fd, perf_counter_t handle);
+
+/**
+ * Print all of the performance counters.
+ *
+ * @param fd			File descriptor to print to - e.g. 0 for stdout
+ */
+__EXPORT extern void		perf_print_all(int fd);
 
 /**
  * Reset all of the performance counters.

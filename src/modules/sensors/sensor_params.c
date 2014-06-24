@@ -626,6 +626,15 @@ PARAM_DEFINE_INT32(RC_MAP_POSCTL_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_LOITER_SW, 0);
 
 /**
+ * Acro switch channel mapping.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_MAP_ACRO_SW, 0);
+
+/**
  * Flaps channel mapping.
  *
  * @min 0
@@ -756,3 +765,19 @@ PARAM_DEFINE_FLOAT(RC_RETURN_TH, 0.5f);
  *
  */
 PARAM_DEFINE_FLOAT(RC_LOITER_TH, 0.5f);
+
+/**
+ * Threshold for selecting acro mode
+ *
+ * min:-1
+ * max:+1
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_ACRO_TH, 0.5f);

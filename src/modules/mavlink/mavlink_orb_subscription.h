@@ -48,12 +48,26 @@
 class MavlinkOrbSubscription
 {
 public:
-	MavlinkOrbSubscription *next;	/*< pointer to next subscription in list */
+	MavlinkOrbSubscription *next;	///< pointer to next subscription in list
 
 	MavlinkOrbSubscription(const orb_id_t topic);
 	~MavlinkOrbSubscription();
 
-	bool update(const hrt_abstime t);
+	/**
+	 * Check if subscription updated and get data.
+	 *
+	 * @return true only if topic was updated and data copied to buffer successfully.
+	 * If topic was not updated since last check it will return false but still copy the data.
+	 * If no data available data buffer will be filled with zeroes.
+	 */
+	bool update(uint64_t *time, void* data);
+
+	/**
+	 * Copy topic data to given buffer.
+	 *
+	 * @return true only if topic data copied successfully.
+	 */
+	bool update(void* data);
 
 	/**
 	 * Check if the topic has been published.
@@ -62,16 +76,12 @@ public:
 	 * @return true if the topic has been published at least once.
 	 */
 	bool is_published();
-	void *get_data();
-	const orb_id_t get_topic();
+	orb_id_t get_topic() const;
 
 private:
-	const orb_id_t _topic;		/*< topic metadata */
-	int _fd;					/*< subscription handle */
-	bool _published;			/*< topic was ever published */
-	void *_data;				/*< pointer to data buffer */
-	hrt_abstime _last_check;	/*< time of last check */
-	bool _updated;				/*< updated on last check */
+	const orb_id_t _topic;		///< topic metadata
+	int _fd;			///< subscription handle
+	bool _published;		///< topic was ever published
 };
 
 

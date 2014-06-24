@@ -639,7 +639,7 @@ PX4IO_serial::_do_interrupt()
 		if (_rx_dma_status == _dma_status_waiting) {
 
 			/* verify that the received packet is complete */
-			unsigned length = sizeof(_dma_buffer) - stm32_dmaresidual(_rx_dma);
+			int length = sizeof(_dma_buffer) - stm32_dmaresidual(_rx_dma);
 			if ((length < 1) || (length < PKT_SIZE(_dma_buffer))) {
 				perf_count(_pc_badidle);
 

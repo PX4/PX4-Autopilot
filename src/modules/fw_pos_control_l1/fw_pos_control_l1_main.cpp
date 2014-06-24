@@ -232,8 +232,6 @@ private:
 
 		float throttle_land_max;
 
-		float loiter_hold_radius;
-
 		float heightrate_p;
 		float speedrate_p;
 
@@ -276,8 +274,6 @@ private:
 		param_t throttle_cruise;
 
 		param_t throttle_land_max;
-
-		param_t loiter_hold_radius;
 
 		param_t heightrate_p;
 		param_t speedrate_p;
@@ -418,8 +414,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	land_motor_lim(false),
 	land_onslope(false),
 	launch_detected(false),
-	last_manual(false),
 	usePreTakeoffThrust(false),
+	last_manual(false),
 	flare_curve_alt_rel_last(0.0f),
 	launchDetector(),
 	_airspeed_error(0.0f),
@@ -441,7 +437,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 
 	_parameter_handles.l1_period = param_find("FW_L1_PERIOD");
 	_parameter_handles.l1_damping = param_find("FW_L1_DAMPING");
-	_parameter_handles.loiter_hold_radius = param_find("FW_LOITER_R");
 
 	_parameter_handles.airspeed_min = param_find("FW_AIRSPD_MIN");
 	_parameter_handles.airspeed_trim = param_find("FW_AIRSPD_TRIM");
@@ -513,7 +508,6 @@ FixedwingPositionControl::parameters_update()
 	/* L1 control parameters */
 	param_get(_parameter_handles.l1_damping, &(_parameters.l1_damping));
 	param_get(_parameter_handles.l1_period, &(_parameters.l1_period));
-	param_get(_parameter_handles.loiter_hold_radius, &(_parameters.loiter_hold_radius));
 
 	param_get(_parameter_handles.airspeed_min, &(_parameters.airspeed_min));
 	param_get(_parameter_handles.airspeed_trim, &(_parameters.airspeed_trim));

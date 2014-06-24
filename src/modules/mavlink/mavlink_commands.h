@@ -55,10 +55,10 @@ private:
 	MavlinkOrbSubscription *_cmd_sub;
 	struct vehicle_command_s *_cmd;
 	mavlink_channel_t _channel;
+	uint64_t _cmd_time;
 
 public:
 	MavlinkCommandsStream(Mavlink *mavlink, mavlink_channel_t channel);
-	~MavlinkCommandsStream();
 	void update(const hrt_abstime t);
 };
 

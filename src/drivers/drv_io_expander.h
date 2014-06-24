@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
- *   Author: Samuel Zihlmann <samuezih@ee.ethz.ch>
- *   		 Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,68 +31,41 @@
  *
  ****************************************************************************/
 
+/**
+ * @file drv_io_expander.h
+ *
+ * IO expander device API
+ */
+
+#pragma once
+
+#include <stdint.h>
+#include <sys/ioctl.h>
+
 /*
- * @file flow_position_control_params.h
- * 
- * Parameters for position controller
+ * ioctl() definitions
  */
 
-#include <systemlib/param/param.h>
+#define _IOXIOCBASE		(0x2800)
+#define _IOXIOC(_n)		(_IOC(_IOXIOCBASE, _n))
 
-struct flow_position_control_params {
-	float pos_p;
-	float pos_d;
-	float height_p;
-	float height_i;
-	float height_d;
-	float height_rate;
-	float height_min;
-	float height_max;
-	float thrust_feedforward;
-	float limit_speed_x;
-	float limit_speed_y;
-	float limit_height_error;
-	float limit_thrust_int;
-	float limit_thrust_upper;
-	float limit_thrust_lower;
-	float limit_yaw_step;
-	float manual_threshold;
-	float rc_scale_pitch;
-	float rc_scale_roll;
-	float rc_scale_yaw;
+/** set a bitmask (non-blocking) */
+#define IOX_SET_MASK		_IOXIOC(1)
+
+/** get a bitmask (blocking) */
+#define IOX_GET_MASK		_IOXIOC(2)
+
+/** set device mode (non-blocking) */
+#define IOX_SET_MODE		_IOXIOC(3)
+
+/** set constant values (non-blocking) */
+#define IOX_SET_VALUE		_IOXIOC(4)
+
+/* ... to IOX_SET_VALUE + 8 */
+
+/* enum passed to RGBLED_SET_MODE ioctl()*/
+enum IOX_MODE {
+	IOX_MODE_OFF,
+	IOX_MODE_ON,
+	IOX_MODE_TEST_OUT
 };
-
-struct flow_position_control_param_handles {
-	param_t pos_p;
-	param_t pos_d;
-	param_t height_p;
-	param_t height_i;
-	param_t height_d;
-	param_t height_rate;
-	param_t height_min;
-	param_t height_max;
-	param_t thrust_feedforward;
-	param_t limit_speed_x;
-	param_t limit_speed_y;
-	param_t limit_height_error;
-	param_t limit_thrust_int;
-	param_t limit_thrust_upper;
-	param_t limit_thrust_lower;
-	param_t limit_yaw_step;
-	param_t manual_threshold;
-	param_t rc_scale_pitch;
-	param_t rc_scale_roll;
-	param_t rc_scale_yaw;
-};
-
-/**
- * Initialize all parameter handles and values
- *
- */
-int parameters_init(struct flow_position_control_param_handles *h);
-
-/**
- * Update all parameters
- *
- */
-int parameters_update(const struct flow_position_control_param_handles *h, struct flow_position_control_params *p);
