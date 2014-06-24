@@ -925,9 +925,9 @@ void AttPosEKF::FuseVelposNED()
 {
 
 // declare variables used by fault isolation logic
-    uint32_t gpsRetryTime = 30000; // time in msec before GPS fusion will be retried following innovation consistency failure
-    uint32_t gpsRetryTimeNoTAS = 5000; // retry time if no TAS measurement available
-    uint32_t hgtRetryTime = 5000; // height measurement retry time
+    uint32_t gpsRetryTime = 3000; // time in msec before GPS fusion will be retried following innovation consistency failure
+    uint32_t gpsRetryTimeNoTAS = 500; // retry time if no TAS measurement available
+    uint32_t hgtRetryTime = 500; // height measurement retry time
     uint32_t horizRetryTime;
 
 // declare variables used to check measurement errors
@@ -2587,6 +2587,7 @@ void AttPosEKF::GetFilterState(struct ekf_status_report *state)
     for (unsigned i = 0; i < n_states; i++) {
         current_ekf_state.states[i] = states[i];
     }
+    current_ekf_state.n_states = n_states;
 
     memcpy(state, &current_ekf_state, sizeof(*state));
 }
