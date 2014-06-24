@@ -918,8 +918,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 		} else {
 			/* gradually reset xy velocity estimates */
-			inertial_filter_correct(-x_est[1], dt, x_est, 1, params.w_xy_reset_v);
-			inertial_filter_correct(-y_est[1], dt, y_est, 1, params.w_xy_reset_v);
+			inertial_filter_correct(-x_est[1], dt, x_est, 1, params.w_xy_res_v);
+			inertial_filter_correct(-y_est[1], dt, y_est, 1, params.w_xy_res_v);
 		}
 
 		/* detect land */
