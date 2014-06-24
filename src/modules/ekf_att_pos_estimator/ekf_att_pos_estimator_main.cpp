@@ -120,7 +120,7 @@ public:
 	/**
 	 * Start the sensors task.
 	 *
-	 * @return		OK on success.
+	 * @return	OK on success.
 	 */
 	int		start();
 
@@ -136,8 +136,17 @@ public:
 
 	/**
 	 * Enable logging.
+	 *
+	 * @param	enable Set to true to enable logging, false to disable
 	 */
 	int		enable_logging(bool enable);
+
+	/**
+	 * Set debug level.
+	 *
+	 * @param	debug Desired debug level - 0 to disable.
+	 */
+	int		set_debuglevel(unsigned debug) { _debug = debug; }
 
 private:
 
@@ -210,6 +219,7 @@ private:
 	bool						_accel_valid;
 	bool						_mag_valid;
 	bool						_ekf_logging;		///< log EKF state
+	unsigned					_debug;			///< debug level - default 0
 
 	int						_mavlink_fd;
 
@@ -377,6 +387,7 @@ FixedwingEstimator::FixedwingEstimator() :
 	_accel_valid(false),
 	_mag_valid(false),
 	_ekf_logging(true),
+	_debug(0),
 	_mavlink_fd(-1),
 	_ekf(nullptr),
 	_velocity_xy_filtered(0.0f),
@@ -655,10 +666,32 @@ FixedwingEstimator::check_filter_state()
 		rep.timeout_flags |= (((uint8_t)ekf_report.posTimeout)	<< 1);
 		rep.timeout_flags |= (((uint8_t)ekf_report.hgtTimeout)	<< 2);
 
+		if (_debug > 10) {
+
+			if (rep.health_flags < ((1 << 0) | (1 << 1) | (1 << 2) | (1 << 3))) {
+				warnx("health: VEL:%s POS:%s HGT:%s OFFS:%s",
+					((rep.timeout_flags & (1 << 0)) ? "OK" : "ERR"),
+					((rep.timeout_flags & (1 << 1)) ? "OK" : "ERR"),
+					((rep.timeout_flags & (1 << 2)) ? "OK" : "ERR"),
+					((rep.timeout_flags & (1 << 3)) ? "OK" : "ERR"));
+			}
+
+			if (rep.timeout_flags) {
+				warnx("timeout: %s%s%s",
+					((rep.timeout_flags & (1 << 0)) ? "VEL " : ""),
+					((rep.timeout_flags & (1 << 1)) ? "POS " : ""),
+					((rep.timeout_flags & (1 << 2)) ? "HGT " : ""));
+			}
+		}
+
 		// Copy all states or at least all that we can fit
-		unsigned ekf_n_states = (sizeof(ekf_report.states) / sizeof(ekf_report.states[0]));
+		unsigned ekf_n_states = ekf_report.n_states;
 		unsigned max_states = (sizeof(rep.states) / sizeof(rep.states[0]));
 		rep.n_states = (ekf_n_states < max_states) ? ekf_n_states : max_states;
+
+		for (unsigned i = 0; i < rep.n_states; i++) {
+			rep.states[i] = ekf_report.states[i];
+		}
 
 		for (unsigned i = 0; i < rep.n_states; i++) {
 			rep.states[i] = ekf_report.states[i];
@@ -1675,6 +1708,18 @@ int ekf_att_pos_estimator_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "logging")) {
 		if (estimator::g_estimator) {
 			int ret = estimator::g_estimator->enable_logging(true);
+
+			exit(ret);
+
+		} else {
+			errx(1, "not running");
+		}
+	}
+
+	if (!strcmp(argv[1], "debug")) {
+		if (estimator::g_estimator) {
+			int debug = strtoul(argv[2], NULL, 10);
+			int ret = estimator::g_estimator->set_debuglevel(debug);
 
 			exit(ret);
 
