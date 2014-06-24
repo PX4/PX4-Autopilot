@@ -37,3 +37,7 @@ then
 fi
 
 set MIXER FMU_Q
+
+# Provide ESC a constant 1000 us pulse
+set PWM_OUTPUTS 4
+set PWM_DISARMED 1000

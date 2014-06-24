@@ -1275,6 +1275,7 @@ protected:
 			// New message
 			mavlink_msg_rc_channels_send(_channel,
 					rc.timestamp_publication / 1000,
+					rc.channel_count,
 					((rc.channel_count > 0) ? rc.values[0] : UINT16_MAX),
 					((rc.channel_count > 1) ? rc.values[1] : UINT16_MAX),
 					((rc.channel_count > 2) ? rc.values[2] : UINT16_MAX),
@@ -1293,7 +1294,6 @@ protected:
 					((rc.channel_count > 15) ? rc.values[15] : UINT16_MAX),
 					((rc.channel_count > 16) ? rc.values[16] : UINT16_MAX),
 					((rc.channel_count > 17) ? rc.values[17] : UINT16_MAX),
-					rc.channel_count,
 					rc.rssi);
 		}
 	}
@@ -1625,7 +1625,7 @@ StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamLocalPositionSetpoint::new_instance, &MavlinkStreamLocalPositionSetpoint::get_name_static),
 	new StreamListItem(&MavlinkStreamRollPitchYawThrustSetpoint::new_instance, &MavlinkStreamRollPitchYawThrustSetpoint::get_name_static),
 	new StreamListItem(&MavlinkStreamRollPitchYawRatesThrustSetpoint::new_instance, &MavlinkStreamRollPitchYawRatesThrustSetpoint::get_name_static),
-	new StreamListItem(&MavlinkStreamRCChannelsRaw::new_instance, &MavlinkStreamGlobalPositionInt::get_name_static),
+	new StreamListItem(&MavlinkStreamRCChannelsRaw::new_instance, &MavlinkStreamRCChannelsRaw::get_name_static),
 	new StreamListItem(&MavlinkStreamManualControl::new_instance, &MavlinkStreamManualControl::get_name_static),
 	new StreamListItem(&MavlinkStreamOpticalFlow::new_instance, &MavlinkStreamOpticalFlow::get_name_static),
 	new StreamListItem(&MavlinkStreamAttitudeControls::new_instance, &MavlinkStreamAttitudeControls::get_name_static),
