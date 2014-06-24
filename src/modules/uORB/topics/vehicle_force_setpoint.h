@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,10 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_local_force_setpoint.h
+ * @file vehicle_force_setpoint.h
  * @author Thomas Gubler <thomasgubler@gmail.com>
  * Definition of force (NED) setpoint uORB topic. Typically this can be used
- * by a position control app togeth with an attitude control app.
+ * by a position control app together with an attitude control app.
  */
 
 #ifndef TOPIC_VEHICLE_FORCE_SETPOINT_H_
