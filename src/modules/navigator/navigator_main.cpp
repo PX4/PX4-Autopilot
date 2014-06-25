@@ -347,7 +347,7 @@ Navigator::task_main()
 			case NAVIGATION_STATE_ALTCTL:
 			case NAVIGATION_STATE_POSCTL:
 				_navigation_mode = nullptr;
-				_is_in_loiter = false;
+				_can_loiter_at_sp = false;
 				break;
 			case NAVIGATION_STATE_AUTO_MISSION:
 				_navigation_mode = &_mission;
@@ -365,7 +365,7 @@ Navigator::task_main()
 			case NAVIGATION_STATE_TERMINATION:
 			default:
 				_navigation_mode = nullptr;
-				_is_in_loiter = false;
+				_can_loiter_at_sp = false;
 				break;
 		}
 

@@ -136,6 +136,7 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
     }
 
     set_previous_pos_setpoint(pos_sp_triplet);
+    _navigator->set_can_loiter_at_sp(false);
 
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB: {
@@ -155,8 +156,6 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = true;
 		_mission_item.origin = ORIGIN_ONBOARD;
-
-		_navigator->set_is_in_loiter(false);
 
 		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: climb to %d meters above home",
 			(int)(climb_alt - _navigator->get_home_position()->alt));
@@ -189,8 +188,6 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 		_mission_item.autocontinue = true;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
-		_navigator->set_is_in_loiter(false);
-
 		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: return at %d meters above home",
 			(int)(_mission_item.altitude - _navigator->get_home_position()->alt));
 		break;
@@ -210,8 +207,6 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = _param_land_delay.get() > -0.001f;
 		_mission_item.origin = ORIGIN_ONBOARD;
-
-		_navigator->set_is_in_loiter(true);
 
 		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: descend to %d meters above home",
 			(int)(_mission_item.altitude - _navigator->get_home_position()->alt));
@@ -233,8 +228,6 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = true;
 		_mission_item.origin = ORIGIN_ONBOARD;
-
-		_navigator->set_is_in_loiter(false);
 
 		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: land at home");
 		break;

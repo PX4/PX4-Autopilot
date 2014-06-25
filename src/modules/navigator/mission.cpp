@@ -233,7 +233,7 @@ Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
 					"#audio: onboard mission running");
 		}
 		_mission_type = MISSION_TYPE_ONBOARD;
-		_navigator->set_is_in_loiter(false);
+		_navigator->set_can_loiter_at_sp(false);
 
 	/* try setting offboard mission item */
 	} else if (is_current_offboard_mission_item_set(&pos_sp_triplet->current)) {
@@ -243,7 +243,7 @@ Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
 					"#audio: offboard mission running");
 		}
 		_mission_type = MISSION_TYPE_OFFBOARD;
-		_navigator->set_is_in_loiter(false);
+		_navigator->set_can_loiter_at_sp(false);
 	} else {
 		if (_mission_type != MISSION_TYPE_NONE) {
 			mavlink_log_info(_navigator->get_mavlink_fd(),
@@ -253,9 +253,9 @@ Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
 					"#audio: no mission available");
 		}
 		_mission_type = MISSION_TYPE_NONE;
+        _navigator->set_can_loiter_at_sp(pos_sp_triplet->current.valid && _waypoint_position_reached);
 
-		bool use_current_pos_sp = pos_sp_triplet->current.valid && _waypoint_position_reached;
-		set_loiter_item(use_current_pos_sp, pos_sp_triplet);
+		set_loiter_item(pos_sp_triplet);
 		reset_mission_item_reached();
 		report_mission_finished();
 	}

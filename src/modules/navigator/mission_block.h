@@ -90,11 +90,10 @@ public:
 	/**
 	 * Set a loiter item, if possible reuse the position setpoint, otherwise take the current position
 	 *
-	 * @param true if the current position setpoint should be re-used
 	 * @param the position setpoint triplet to set
 	 * @return true if setpoint has changed
 	 */
-	bool set_loiter_item(const bool reuse_current_pos_sp, position_setpoint_triplet_s *pos_sp_triplet);
+	bool set_loiter_item(position_setpoint_triplet_s *pos_sp_triplet);
 
 	bool _waypoint_position_reached;
 	bool _waypoint_yaw_reached;

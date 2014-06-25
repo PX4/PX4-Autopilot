@@ -204,31 +204,35 @@ MissionBlock::set_previous_pos_setpoint(struct position_setpoint_triplet_s *pos_
 }
 
 bool
-MissionBlock::set_loiter_item(bool reuse_current_pos_sp, struct position_setpoint_triplet_s *pos_sp_triplet)
+MissionBlock::set_loiter_item(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
-	if (_navigator_priv->get_is_in_loiter()) {
-		/* already loitering, bail out */
-		return false;
-	}
-
-	if (reuse_current_pos_sp && pos_sp_triplet->current.valid) {
-		/* leave position setpoint as is */
-	} else {
+    /* don't change setpoint if 'can_loiter_at_sp' flag set */
+	if (!(_navigator_priv->get_can_loiter_at_sp() && pos_sp_triplet->current.valid)) {
 		/* use current position */
 		pos_sp_triplet->current.lat = _navigator_priv->get_global_position()->lat;
 		pos_sp_triplet->current.lon = _navigator_priv->get_global_position()->lon;
 		pos_sp_triplet->current.alt = _navigator_priv->get_global_position()->alt;
 		pos_sp_triplet->current.yaw = NAN;	/* NAN means to use current yaw */
+
+	    _navigator_priv->set_can_loiter_at_sp(true);
 	}
-	pos_sp_triplet->current.type = SETPOINT_TYPE_LOITER;
-	pos_sp_triplet->current.loiter_radius = _navigator_priv->get_loiter_radius();
-	pos_sp_triplet->current.loiter_direction = 1;
 
-	pos_sp_triplet->previous.valid = false;
-	pos_sp_triplet->current.valid = true;
-	pos_sp_triplet->next.valid = false;
+    if (pos_sp_triplet->current.type != SETPOINT_TYPE_LOITER
+            || pos_sp_triplet->current.loiter_radius != _navigator_priv->get_loiter_radius()
+            || pos_sp_triplet->current.loiter_direction != 1
+            || pos_sp_triplet->previous.valid
+            || !pos_sp_triplet->current.valid
+            || pos_sp_triplet->next.valid) {
+        /* position setpoint triplet should be updated */
+        pos_sp_triplet->current.type = SETPOINT_TYPE_LOITER;
+        pos_sp_triplet->current.loiter_radius = _navigator_priv->get_loiter_radius();
+        pos_sp_triplet->current.loiter_direction = 1;
 
-	_navigator_priv->set_is_in_loiter(true);
-	return true;
+        pos_sp_triplet->previous.valid = false;
+        pos_sp_triplet->current.valid = true;
+        pos_sp_triplet->next.valid = false;
+        return true;
+    }
+
+    return false;
 }
-
