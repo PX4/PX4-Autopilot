@@ -194,6 +194,15 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	}
 }
 
+void
+MissionBlock::set_previous_pos_setpoint(struct position_setpoint_triplet_s *pos_sp_triplet)
+{
+    /* reuse current setpoint as previous setpoint */
+    if (pos_sp_triplet->current.valid) {
+        memcpy(&pos_sp_triplet->previous, &pos_sp_triplet->current, sizeof(struct position_setpoint_s));
+    }
+}
+
 bool
 MissionBlock::set_loiter_item(bool reuse_current_pos_sp, struct position_setpoint_triplet_s *pos_sp_triplet)
 {

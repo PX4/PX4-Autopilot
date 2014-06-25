@@ -223,7 +223,7 @@ Mission::advance_mission()
 void
 Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
-	set_previous_pos_setpoint(&pos_sp_triplet->current, &pos_sp_triplet->previous);
+	set_previous_pos_setpoint(pos_sp_triplet);
 
 	/* try setting onboard mission item */
 	if (is_current_onboard_mission_item_set(&pos_sp_triplet->current)) {
@@ -258,16 +258,6 @@ Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
 		set_loiter_item(use_current_pos_sp, pos_sp_triplet);
 		reset_mission_item_reached();
 		report_mission_finished();
-	}
-}
-
-void
-Mission::set_previous_pos_setpoint(const struct position_setpoint_s *current_pos_sp,
-		                   struct position_setpoint_s *previous_pos_sp)
-{
-	/* reuse current setpoint as previous setpoint */
-	if (current_pos_sp->valid) {
-		memcpy(previous_pos_sp, current_pos_sp, sizeof(struct position_setpoint_s));
 	}
 }
 

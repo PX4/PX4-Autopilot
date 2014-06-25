@@ -107,12 +107,6 @@ private:
 	void set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet);
 
 	/**
-	 * Set previous position setpoint
-	 */
-	void set_previous_pos_setpoint(const struct position_setpoint_s *current_pos_sp,
-			               struct position_setpoint_s *previous_pos_sp);
-
-	/**
 	 * Try to set the current position setpoint from an onboard mission item
 	 * @return true if mission item successfully set
 	 */

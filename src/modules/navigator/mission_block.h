@@ -82,6 +82,11 @@ public:
 	 */
 	void mission_item_to_position_setpoint(const mission_item_s *item, position_setpoint_s *sp);
 
+    /**
+     * Set previous position setpoint to current setpoint
+     */
+	void set_previous_pos_setpoint(struct position_setpoint_triplet_s *pos_sp_triplet);
+
 	/**
 	 * Set a loiter item, if possible reuse the position setpoint, otherwise take the current position
 	 *
