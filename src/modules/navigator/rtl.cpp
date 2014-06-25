@@ -44,6 +44,7 @@
 
 #include <mavlink/mavlink_log.h>
 #include <systemlib/err.h>
+#include <geo/geo.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
@@ -112,21 +113,29 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 		if (_navigator->get_vstatus()->condition_landed) {
 			_rtl_state = RTL_STATE_FINISHED;
 			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: no RTL when landed");
+
 		/* if lower than return altitude, climb up first */
 		} else if (_navigator->get_global_position()->alt < _navigator->get_home_position()->alt
 			   + _param_return_alt.get()) {
 			_rtl_state = RTL_STATE_CLIMB;
+
 		/* otherwise go straight to return */
 		} else {
+		    /* set altitude setpoint to current altitude */
 			_rtl_state = RTL_STATE_RETURN;
+	        _mission_item.altitude_is_relative = false;
+	        _mission_item.altitude = _navigator->get_global_position()->alt;
 		}
 	}
 
-	/* if switching directly to return state, set altitude setpoint to current altitude */
-	if (_rtl_state == RTL_STATE_RETURN) {
-		_mission_item.altitude_is_relative = false;
-		_mission_item.altitude = _navigator->get_global_position()->alt;
-	}
+    if (_rtl_state == RTL_STATE_FINISHED) {
+        /* RTL finished, nothing to do */
+        pos_sp_triplet->current.valid = false;
+        pos_sp_triplet->next.valid = false;
+        return;
+    }
+
+    set_previous_pos_setpoint(pos_sp_triplet);
 
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB: {
@@ -157,17 +166,20 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 
 		_mission_item.lat = _navigator->get_home_position()->lat;
 		_mission_item.lon = _navigator->get_home_position()->lon;
+		 // don't change altitude
 
-		/* TODO: add this again */
-		// don't change altitude
-		// if (_pos_sp_triplet.previous.valid) {
-		// 	/* if previous setpoint is valid then use it to calculate heading to home */
-		// 	_mission_item.yaw = get_bearing_to_next_waypoint(_pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon, _mission_item.lat, _mission_item.lon);
+		 if (pos_sp_triplet->previous.valid) {
+		 	/* if previous setpoint is valid then use it to calculate heading to home */
+		 	_mission_item.yaw = get_bearing_to_next_waypoint(
+		 	        pos_sp_triplet->previous.lat, pos_sp_triplet->previous.lon,
+		 	        _mission_item.lat, _mission_item.lon);
 
-		// } else {
-		// 	/* else use current position */
-		// 	_mission_item.yaw = get_bearing_to_next_waypoint(_global_pos.lat, _global_pos.lon, _mission_item.lat, _mission_item.lon);
-		// }
+		 } else {
+		 	/* else use current position */
+		 	_mission_item.yaw = get_bearing_to_next_waypoint(
+		 	        _navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+		 	        _mission_item.lat, _mission_item.lon);
+		 }
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
@@ -228,24 +240,15 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 		break;
 	}
 
-	case RTL_STATE_FINISHED: {
-		/* nothing to do, report fail */
-	}
-
 	default:
 		break;
 	}
 
-	if (_rtl_state == RTL_STATE_FINISHED) {
-		pos_sp_triplet->current.valid = false;
-		pos_sp_triplet->next.valid = false;
-	} else {
-		/* if not finished, convert mission item to current position setpoint and make it valid */
-		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-		reset_mission_item_reached();
-		pos_sp_triplet->current.valid = true;
-		pos_sp_triplet->next.valid = false;
-	}
+    /* convert mission item to current position setpoint and make it valid */
+    mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+    reset_mission_item_reached();
+    pos_sp_triplet->current.valid = true;
+    pos_sp_triplet->next.valid = false;
 }
 
 void
