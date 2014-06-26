@@ -78,6 +78,8 @@
 
 #define MPU_DEVICE_PATH_ACCEL		"/dev/mpu6000_accel"
 #define MPU_DEVICE_PATH_GYRO		"/dev/mpu6000_gyro"
+#define MPU_DEVICE_PATH_ACCEL_EXT	"/dev/mpu6000_accel_ext"
+#define MPU_DEVICE_PATH_GYRO_EXT	"/dev/mpu6000_gyro_ext"
 
 // MPU 6000 registers
 #define MPUREG_WHOAMI			0x75
@@ -178,7 +180,7 @@ class MPU6000_gyro;
 class MPU6000 : public device::SPI
 {
 public:
-	MPU6000(int bus, spi_dev_e device);
+	MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev_e device);
 	virtual ~MPU6000();
 
 	virtual int		init();
@@ -346,7 +348,7 @@ private:
 class MPU6000_gyro : public device::CDev
 {
 public:
-	MPU6000_gyro(MPU6000 *parent);
+	MPU6000_gyro(MPU6000 *parent, const char *path);
 	~MPU6000_gyro();
 
 	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
@@ -369,9 +371,9 @@ private:
 /** driver 'main' command */
 extern "C" { __EXPORT int mpu6000_main(int argc, char *argv[]); }
 
-MPU6000::MPU6000(int bus, spi_dev_e device) :
-	SPI("MPU6000", MPU_DEVICE_PATH_ACCEL, bus, device, SPIDEV_MODE3, MPU6000_LOW_BUS_SPEED),
-	_gyro(new MPU6000_gyro(this)),
+MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev_e device) :
+	SPI("MPU6000", path_accel, bus, device, SPIDEV_MODE3, MPU6000_LOW_BUS_SPEED),
+	_gyro(new MPU6000_gyro(this, path_gyro)),
 	_product(0),
 	_call_interval(0),
 	_accel_reports(nullptr),
@@ -1357,8 +1359,8 @@ MPU6000::print_info()
 	_gyro_reports->print_info("gyro queue");
 }
 
-MPU6000_gyro::MPU6000_gyro(MPU6000 *parent) :
-	CDev("MPU6000_gyro", MPU_DEVICE_PATH_GYRO),
+MPU6000_gyro::MPU6000_gyro(MPU6000 *parent, const char *path) :
+	CDev("MPU6000_gyro", path),
 	_parent(parent),
 	_gyro_topic(-1),
 	_gyro_class_instance(-1)
@@ -1414,12 +1416,13 @@ MPU6000_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 namespace mpu6000
 {
 
-MPU6000	*g_dev;
+MPU6000	*g_dev_int; // on internal bus
+MPU6000	*g_dev_ext; // on external bus
 
-void	start();
-void	test();
-void	reset();
-void	info();
+void	start(bool);
+void	test(bool);
+void	reset(bool);
+void	info(bool);
 
 /**
  * Start the driver.
@@ -1428,30 +1431,33 @@ void
 start(bool external_bus)
 {
 	int fd;
+        MPU6000 **g_dev_ptr = external_bus?&g_dev_int:&g_dev_ext;
+	const char *path_accel = external_bus?MPU_DEVICE_PATH_ACCEL_EXT:MPU_DEVICE_PATH_ACCEL;
+	const char *path_gyro  = external_bus?MPU_DEVICE_PATH_GYRO_EXT:MPU_DEVICE_PATH_GYRO;
 
-	if (g_dev != nullptr)
+	if (*g_dev_ptr != nullptr)
 		/* if already started, the still command succeeded */
 		errx(0, "already started");
 
 	/* create the driver */
         if (external_bus) {
 #ifdef PX4_SPI_BUS_EXT
-		g_dev = new MPU6000(PX4_SPI_BUS_EXT, (spi_dev_e)PX4_SPIDEV_EXT_MPU);
+		*g_dev_ptr = new MPU6000(PX4_SPI_BUS_EXT, path_accel, path_gyro, (spi_dev_e)PX4_SPIDEV_EXT_MPU);
 #else
 		errx(0, "External SPI not available");
 #endif
 	} else {
-		g_dev = new MPU6000(PX4_SPI_BUS_SENSORS, (spi_dev_e)PX4_SPIDEV_MPU);
+		*g_dev_ptr = new MPU6000(PX4_SPI_BUS_SENSORS, path_accel, path_gyro, (spi_dev_e)PX4_SPIDEV_MPU);
 	}
 
-	if (g_dev == nullptr)
+	if (*g_dev_ptr == nullptr)
 		goto fail;
 
-	if (OK != g_dev->init())
+	if (OK != (*g_dev_ptr)->init())
 		goto fail;
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(MPU_DEVICE_PATH_ACCEL, O_RDONLY);
+	fd = open(path_accel, O_RDONLY);
 
 	if (fd < 0)
 		goto fail;
@@ -1464,9 +1470,9 @@ start(bool external_bus)
 	exit(0);
 fail:
 
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
+	if (*g_dev_ptr != nullptr) {
+            delete (*g_dev_ptr);
+            *g_dev_ptr = nullptr;
 	}
 
 	errx(1, "driver start failed");
@@ -1478,24 +1484,26 @@ fail:
  * and automatic modes.
  */
 void
-test()
+test(bool external_bus)
 {
+	const char *path_accel = external_bus?MPU_DEVICE_PATH_ACCEL_EXT:MPU_DEVICE_PATH_ACCEL;
+	const char *path_gyro  = external_bus?MPU_DEVICE_PATH_GYRO_EXT:MPU_DEVICE_PATH_GYRO;
 	accel_report a_report;
 	gyro_report g_report;
 	ssize_t sz;
 
 	/* get the driver */
-	int fd = open(MPU_DEVICE_PATH_ACCEL, O_RDONLY);
+	int fd = open(path_accel, O_RDONLY);
 
 	if (fd < 0)
 		err(1, "%s open failed (try 'mpu6000 start' if the driver is not running)",
-		    MPU_DEVICE_PATH_ACCEL);
+		    path_accel);
 
 	/* get the driver */
-	int fd_gyro = open(MPU_DEVICE_PATH_GYRO, O_RDONLY);
+	int fd_gyro = open(path_gyro, O_RDONLY);
 
 	if (fd_gyro < 0)
-		err(1, "%s open failed", MPU_DEVICE_PATH_GYRO);
+		err(1, "%s open failed", path_gyro);
 
 	/* reset to manual polling */
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0)
@@ -1543,7 +1551,7 @@ test()
 
 	/* XXX add poll-rate tests here too */
 
-	reset();
+	reset(external_bus);
 	errx(0, "PASS");
 }
 
@@ -1551,9 +1559,10 @@ test()
  * Reset the driver.
  */
 void
-reset()
+reset(bool external_bus)
 {
-	int fd = open(MPU_DEVICE_PATH_ACCEL, O_RDONLY);
+	const char *path_accel = external_bus?MPU_DEVICE_PATH_ACCEL_EXT:MPU_DEVICE_PATH_ACCEL;
+	int fd = open(path_accel, O_RDONLY);
 
 	if (fd < 0)
 		err(1, "failed ");
@@ -1573,13 +1582,14 @@ reset()
  * Print a little info about the driver.
  */
 void
-info()
+info(bool external_bus)
 {
-	if (g_dev == nullptr)
+        MPU6000 **g_dev_ptr = external_bus?&g_dev_int:&g_dev_ext;
+	if (*g_dev_ptr == nullptr)
 		errx(1, "driver not running");
 
-	printf("state @ %p\n", g_dev);
-	g_dev->print_info();
+	printf("state @ %p\n", *g_dev_ptr);
+	(*g_dev_ptr)->print_info();
 
 	exit(0);
 }
@@ -1626,19 +1636,19 @@ mpu6000_main(int argc, char *argv[])
 	 * Test the driver/device.
 	 */
 	if (!strcmp(verb, "test"))
-		mpu6000::test();
+		mpu6000::test(external_bus);
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(verb, "reset"))
-		mpu6000::reset();
+		mpu6000::reset(external_bus);
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(verb, "info"))
-		mpu6000::info();
+		mpu6000::info(external_bus);
 
 	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
 }
