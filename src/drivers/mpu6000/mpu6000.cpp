@@ -55,6 +55,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
@@ -1424,7 +1425,7 @@ void	info();
  * Start the driver.
  */
 void
-start()
+start(bool external_bus)
 {
 	int fd;
 
@@ -1433,7 +1434,15 @@ start()
 		errx(0, "already started");
 
 	/* create the driver */
-	g_dev = new MPU6000(1 /* XXX magic number */, (spi_dev_e)PX4_SPIDEV_MPU);
+        if (external_bus) {
+#ifdef PX4_SPI_BUS_EXT
+		g_dev = new MPU6000(PX4_SPI_BUS_EXT, (spi_dev_e)PX4_SPIDEV_EXT_MPU);
+#else
+		errx(0, "External SPI not available");
+#endif
+	} else {
+		g_dev = new MPU6000(PX4_SPI_BUS_SENSORS, (spi_dev_e)PX4_SPIDEV_MPU);
+	}
 
 	if (g_dev == nullptr)
 		goto fail;
@@ -1578,32 +1587,57 @@ info()
 
 } // namespace
 
+void
+mpu6000_usage()
+{
+	warnx("missing command: try 'start', 'info', 'test', 'reset'");
+	warnx("options:");
+	warnx("    -X    (external bus)");
+}
+
 int
 mpu6000_main(int argc, char *argv[])
 {
+	bool external_bus = false;
+	int ch;
+
+	/* jump over start/off/etc and look at options first */
+	while ((ch = getopt(argc, argv, "X")) != EOF) {
+		switch (ch) {
+		case 'X':
+			external_bus = true;
+			break;
+		default:
+			mpu6000_usage();
+			exit(0);
+		}
+	}
+
+	const char *verb = argv[optind];
+
 	/*
 	 * Start/load the driver.
 
 	 */
-	if (!strcmp(argv[1], "start"))
-		mpu6000::start();
+	if (!strcmp(verb, "start"))
+		mpu6000::start(external_bus);
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(argv[1], "test"))
+	if (!strcmp(verb, "test"))
 		mpu6000::test();
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(argv[1], "reset"))
+	if (!strcmp(verb, "reset"))
 		mpu6000::reset();
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[1], "info"))
+	if (!strcmp(verb, "info"))
 		mpu6000::info();
 
 	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
