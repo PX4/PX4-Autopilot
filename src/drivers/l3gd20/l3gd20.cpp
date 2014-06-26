@@ -54,6 +54,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
@@ -821,7 +822,7 @@ L3GD20::measure()
 	// if the gyro doesn't have any data ready then re-schedule
 	// for 100 microseconds later. This ensures we don't double
 	// read a value and then miss the next value
-	if (stm32_gpioread(GPIO_EXTI_GYRO_DRDY) == 0) {
+	if (_bus == PX4_SPI_BUS_SENSORS && stm32_gpioread(GPIO_EXTI_GYRO_DRDY) == 0) {
 		perf_count(_reschedules);
 		hrt_call_delay(&_call, 100);
 		return;
@@ -983,7 +984,7 @@ void	info();
  * Start the driver.
  */
 void
-start()
+start(bool external_bus)
 {
 	int fd;
 
@@ -991,7 +992,15 @@ start()
 		errx(0, "already started");
 
 	/* create the driver */
-	g_dev = new L3GD20(PX4_SPI_BUS_SENSORS, L3GD20_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_GYRO);
+        if (external_bus) {
+#ifdef PX4_SPI_BUS_EXT
+		g_dev = new L3GD20(PX4_SPI_BUS_EXT, L3GD20_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_EXT_GYRO);
+#else
+		errx(0, "External SPI not available");
+#endif
+	} else {
+		g_dev = new L3GD20(PX4_SPI_BUS_SENSORS, L3GD20_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_GYRO);
+	}
 
 	if (g_dev == nullptr)
 		goto fail;
@@ -1106,32 +1115,57 @@ info()
 
 } // namespace
 
+void
+l3gd20_usage()
+{
+	warnx("missing command: try 'start', 'info', 'test', 'reset'");
+	warnx("options:");
+	warnx("    -X    (external bus)");
+}
+
 int
 l3gd20_main(int argc, char *argv[])
 {
+	bool external_bus = false;
+	int ch;
+
+	/* jump over start/off/etc and look at options first */
+	while ((ch = getopt(argc, argv, "X")) != EOF) {
+		switch (ch) {
+		case 'X':
+			external_bus = true;
+			break;
+		default:
+			l3gd20_usage();
+			exit(0);
+		}
+	}
+
+	const char *verb = argv[optind];
+
 	/*
 	 * Start/load the driver.
 
 	 */
-	if (!strcmp(argv[1], "start"))
-		l3gd20::start();
+	if (!strcmp(verb, "start"))
+		l3gd20::start(external_bus);
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(argv[1], "test"))
+	if (!strcmp(verb, "test"))
 		l3gd20::test();
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(argv[1], "reset"))
+	if (!strcmp(verb, "reset"))
 		l3gd20::reset();
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[1], "info"))
+	if (!strcmp(verb, "info"))
 		l3gd20::info();
 
 	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
