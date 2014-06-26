@@ -53,6 +53,8 @@
 #include "navigator.h"
 #include "rtl.h"
 
+#define DELAY_SIGMA	0.01f
+
 RTL::RTL(Navigator *navigator, const char *name) :
 	NavigatorMode(navigator, name),
 	MissionBlock(navigator),
@@ -95,7 +97,7 @@ RTL::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
 		if (_rtl_state == RTL_STATE_NONE) {
 			/* for safety reasons don't go into RTL if landed */
 			if (_navigator->get_vstatus()->condition_landed) {
-				_rtl_state = RTL_STATE_FINISHED;
+				_rtl_state = RTL_STATE_LANDED;
 				mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: no RTL when landed");
 
 			/* if lower than return altitude, climb up first */
@@ -113,11 +115,9 @@ RTL::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
 		}
 
 		set_rtl_item(pos_sp_triplet);
-
 		updated = true;
-	}
 
-	if ((_rtl_state != RTL_STATE_FINISHED) && is_mission_item_reached()) {
+	} else if (_rtl_state != RTL_STATE_LANDED && is_mission_item_reached()) {
 		advance_rtl();
 		set_rtl_item(pos_sp_triplet);
 		updated = true;
@@ -132,19 +132,11 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 	/* make sure we have the latest params */
 	updateParams();
 
-	if (_rtl_state == RTL_STATE_FINISHED) {
-		/* RTL finished, nothing to do */
-		pos_sp_triplet->next.valid = false;
-		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: completed");
-		return;
-	}
-
 	set_previous_pos_setpoint(pos_sp_triplet);
 	_navigator->set_can_loiter_at_sp(false);
 
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB: {
-
 		float climb_alt = _navigator->get_home_position()->alt + _param_return_alt.get();
 
 		_mission_item.lat = _navigator->get_global_position()->lat;
@@ -165,8 +157,8 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 			(int)(climb_alt - _navigator->get_home_position()->alt));
 		break;
 	}
-	case RTL_STATE_RETURN: {
 
+	case RTL_STATE_RETURN: {
 		_mission_item.lat = _navigator->get_home_position()->lat;
 		_mission_item.lon = _navigator->get_home_position()->lon;
 		 // don't change altitude
@@ -196,8 +188,8 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 			(int)(_mission_item.altitude - _navigator->get_home_position()->alt));
 		break;
 	}
-	case RTL_STATE_DESCEND: {
 
+	case RTL_STATE_DESCEND: {
 		_mission_item.lat = _navigator->get_home_position()->lat;
 		_mission_item.lon = _navigator->get_home_position()->lon;
 		_mission_item.altitude_is_relative = false;
@@ -207,9 +199,9 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 		_mission_item.acceptance_radius = _param_acceptance_radius.get();
-		_mission_item.time_inside = _param_land_delay.get() < 0.0f ? 0.0f : _param_land_delay.get();
+		_mission_item.time_inside = 0.0f;
 		_mission_item.pitch_min = 0.0f;
-		_mission_item.autocontinue = _param_land_delay.get() > -0.001f;
+		_mission_item.autocontinue = false;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
 		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: descend to %d meters above home",
@@ -217,8 +209,35 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 		break;
 	}
 
-	case RTL_STATE_LAND: {
+	case RTL_STATE_LOITER: {
+		bool autoland = _param_land_delay.get() > -DELAY_SIGMA;
 
+		_mission_item.lat = _navigator->get_home_position()->lat;
+		_mission_item.lon = _navigator->get_home_position()->lon;
+		_mission_item.altitude_is_relative = false;
+		_mission_item.altitude = _navigator->get_home_position()->alt + _param_descend_alt.get();
+		_mission_item.yaw = NAN;
+		_mission_item.loiter_radius = _navigator->get_loiter_radius();
+		_mission_item.loiter_direction = 1;
+		_mission_item.nav_cmd = autoland ? NAV_CMD_LOITER_TIME_LIMIT : NAV_CMD_LOITER_UNLIMITED;
+		_mission_item.acceptance_radius = _param_acceptance_radius.get();
+		_mission_item.time_inside = _param_land_delay.get() < 0.0f ? 0.0f : _param_land_delay.get();
+		_mission_item.pitch_min = 0.0f;
+		_mission_item.autocontinue = autoland;
+		_mission_item.origin = ORIGIN_ONBOARD;
+
+		_navigator->set_can_loiter_at_sp(true);
+
+		if (autoland) {
+			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: loiter %.1fs", _mission_item.time_inside);
+
+		} else {
+			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: completed, loiter");
+		}
+		break;
+	}
+
+	case RTL_STATE_LAND: {
 		_mission_item.lat = _navigator->get_home_position()->lat;
 		_mission_item.lon = _navigator->get_home_position()->lon;
 		_mission_item.altitude_is_relative = false;
@@ -234,6 +253,25 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 		_mission_item.origin = ORIGIN_ONBOARD;
 
 		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: land at home");
+		break;
+	}
+
+	case RTL_STATE_LANDED: {
+		_mission_item.lat = _navigator->get_home_position()->lat;
+		_mission_item.lon = _navigator->get_home_position()->lon;
+		_mission_item.altitude_is_relative = false;
+		_mission_item.altitude = _navigator->get_home_position()->alt;
+		_mission_item.yaw = NAN;
+		_mission_item.loiter_radius = _navigator->get_loiter_radius();
+		_mission_item.loiter_direction = 1;
+		_mission_item.nav_cmd = NAV_CMD_IDLE;
+		_mission_item.acceptance_radius = _param_acceptance_radius.get();
+		_mission_item.time_inside = 0.0f;
+		_mission_item.pitch_min = 0.0f;
+		_mission_item.autocontinue = true;
+		_mission_item.origin = ORIGIN_ONBOARD;
+
+		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: completed, landed");
 		break;
 	}
 
@@ -262,18 +300,20 @@ RTL::advance_rtl()
 
 	case RTL_STATE_DESCEND:
 		/* only go to land if autoland is enabled */
-		if (_param_land_delay.get() < 0) {
-			_rtl_state = RTL_STATE_FINISHED;
+		if (_param_land_delay.get() < -DELAY_SIGMA || _param_land_delay.get() > DELAY_SIGMA) {
+			_rtl_state = RTL_STATE_LOITER;
+
 		} else {
 			_rtl_state = RTL_STATE_LAND;
 		}
 		break;
 
-	case RTL_STATE_LAND:
-		_rtl_state = RTL_STATE_FINISHED;
+	case RTL_STATE_LOITER:
+		_rtl_state = RTL_STATE_LAND;
 		break;
 
-	case RTL_STATE_FINISHED:
+	case RTL_STATE_LAND:
+		_rtl_state = RTL_STATE_LANDED;
 		break;
 
 	default:

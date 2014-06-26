@@ -69,10 +69,10 @@ MissionBlock::~MissionBlock()
 bool
 MissionBlock::is_mission_item_reached()
 {
-	/* don't check landed WPs */
 	if (_mission_item.nav_cmd == NAV_CMD_LAND) {
-		return false;
+		return _navigator_priv->get_vstatus()->condition_landed;
 	}
+
 	/* TODO: count turns */
 #if 0
 	if ((_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
@@ -178,19 +178,28 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->loiter_direction = item->loiter_direction;
 	sp->pitch_min = item->pitch_min;
 
-	if (item->nav_cmd == NAV_CMD_TAKEOFF) {
+	switch (item->nav_cmd) {
+	case NAV_CMD_IDLE:
+		sp->type = SETPOINT_TYPE_IDLE;
+		break;
+
+	case NAV_CMD_TAKEOFF:
 		sp->type = SETPOINT_TYPE_TAKEOFF;
+		break;
 
-	} else if (item->nav_cmd == NAV_CMD_LAND) {
+	case NAV_CMD_LAND:
 		sp->type = SETPOINT_TYPE_LAND;
+		break;
 
-	} else if (item->nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-		   item->nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-		   item->nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
+	case NAV_CMD_LOITER_TIME_LIMIT:
+	case NAV_CMD_LOITER_TURN_COUNT:
+	case NAV_CMD_LOITER_UNLIMITED:
 		sp->type = SETPOINT_TYPE_LOITER;
+		break;
 
-	} else {
+	default:
 		sp->type = SETPOINT_TYPE_POSITION;
+		break;
 	}
 }
 
