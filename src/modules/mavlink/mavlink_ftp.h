@@ -165,7 +165,7 @@ private:
 			// unsigned len = mavlink_msg_system_time_pack_chan(_mavlink->get_system_id(), _mavlink->get_component_id(),
 			// 	_mavlink->get_channel(), &msg, 255, 255);
 
-			if (!_mavlink->message_buffer_write(&msg, len+2)) {
+			if (!_mavlink->message_buffer_write(&msg, len)) {
 				warnx("FTP TX ERR");
 			} else {
 				warnx("wrote: sys: %d, comp: %d, chan: %d, len: %d, checksum: %d",
