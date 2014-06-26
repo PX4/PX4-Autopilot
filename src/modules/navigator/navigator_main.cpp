@@ -386,7 +386,7 @@ Navigator::task_main()
 			_update_triplet = true;
 		}
 
-		if (_update_triplet ) {
+		if (_update_triplet) {
 			publish_position_setpoint_triplet();
 			_update_triplet = false;
 		}
