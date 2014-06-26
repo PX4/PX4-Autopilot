@@ -227,8 +227,15 @@ protected:
 		struct position_setpoint_triplet_s pos_sp_triplet;
 
 		/* always send the heartbeat, independent of the update status of the topics */
-		(void)status_sub->update(&status);
-		(void)pos_sp_triplet_sub->update(&pos_sp_triplet);
+		if (!status_sub->update(&status)) {
+            /* if topic update failed fill it with defaults */
+            memset(&status, 0, sizeof(status));
+		}
+
+		if (!pos_sp_triplet_sub->update(&pos_sp_triplet)) {
+            /* if topic update failed fill it with defaults */
+            memset(&pos_sp_triplet, 0, sizeof(pos_sp_triplet));
+		}
 
 		uint8_t mavlink_state = 0;
 		uint8_t mavlink_base_mode = 0;
