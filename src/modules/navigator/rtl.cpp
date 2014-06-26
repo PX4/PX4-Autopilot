@@ -76,7 +76,11 @@ void
 RTL::on_inactive()
 {
 	_first_run = true;
-	_rtl_state = RTL_STATE_NONE;
+
+	/* reset RTL state only if setpoint moved */
+	if (!_navigator->get_can_loiter_at_sp()) {
+	    _rtl_state = RTL_STATE_NONE;
+	}
 }
 
 bool
@@ -85,14 +89,35 @@ RTL::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
 	bool updated = false;
 
 	if (_first_run) {
+        _first_run = false;
+
+	    /* decide where to enter the RTL procedure when we switch into it */
+	    if (_rtl_state == RTL_STATE_NONE) {
+	        /* for safety reasons don't go into RTL if landed */
+	        if (_navigator->get_vstatus()->condition_landed) {
+	            _rtl_state = RTL_STATE_FINISHED;
+	            mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: no RTL when landed");
+
+	        /* if lower than return altitude, climb up first */
+	        } else if (_navigator->get_global_position()->alt < _navigator->get_home_position()->alt
+	               + _param_return_alt.get()) {
+	            _rtl_state = RTL_STATE_CLIMB;
+
+	        /* otherwise go straight to return */
+	        } else {
+	            /* set altitude setpoint to current altitude */
+	            _rtl_state = RTL_STATE_RETURN;
+	            _mission_item.altitude_is_relative = false;
+	            _mission_item.altitude = _navigator->get_global_position()->alt;
+	        }
+	    }
+
 		set_rtl_item(pos_sp_triplet);
+
 		updated = true;
-		_first_run = false;
 	}
 
-	if ((_rtl_state == RTL_STATE_CLIMB
-	     || _rtl_state == RTL_STATE_RETURN)
-	    && is_mission_item_reached()) {
+	if ((_rtl_state != RTL_STATE_FINISHED) && is_mission_item_reached()) {
 		advance_rtl();
 		set_rtl_item(pos_sp_triplet);
 		updated = true;
@@ -107,31 +132,10 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 	/* make sure we have the latest params */
 	updateParams();
 
-	/* decide where to enter the RTL procedure when we switch into it */
-	if (_rtl_state == RTL_STATE_NONE) {
-		/* for safety reasons don't go into RTL if landed */
-		if (_navigator->get_vstatus()->condition_landed) {
-			_rtl_state = RTL_STATE_FINISHED;
-			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: no RTL when landed");
-
-		/* if lower than return altitude, climb up first */
-		} else if (_navigator->get_global_position()->alt < _navigator->get_home_position()->alt
-			   + _param_return_alt.get()) {
-			_rtl_state = RTL_STATE_CLIMB;
-
-		/* otherwise go straight to return */
-		} else {
-		    /* set altitude setpoint to current altitude */
-			_rtl_state = RTL_STATE_RETURN;
-	        _mission_item.altitude_is_relative = false;
-	        _mission_item.altitude = _navigator->get_global_position()->alt;
-		}
-	}
-
     if (_rtl_state == RTL_STATE_FINISHED) {
         /* RTL finished, nothing to do */
-        pos_sp_triplet->current.valid = false;
         pos_sp_triplet->next.valid = false;
+        mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: completed");
         return;
     }
 
