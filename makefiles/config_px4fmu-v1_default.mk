@@ -12,6 +12,7 @@ ROMFS_OPTIONAL_FILES = $(PX4_BASE)/Images/px4io-v1_default.bin
 # Board support modules
 #
 MODULES		+= drivers/device
+MODULES		+= drivers/zromdisk
 MODULES		+= drivers/stm32
 MODULES		+= drivers/stm32/adc
 MODULES		+= drivers/stm32/tone_alarm
