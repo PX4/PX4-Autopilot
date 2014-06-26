@@ -162,8 +162,6 @@ private:
 			msg.checksum = 0;
 			unsigned len = mavlink_msg_encapsulated_data_pack_chan(_mavlink->get_system_id(), _mavlink->get_component_id(),
 				_mavlink->get_channel(), &msg, sequence(), rawData());
-			// unsigned len = mavlink_msg_system_time_pack_chan(_mavlink->get_system_id(), _mavlink->get_component_id(),
-			// 	_mavlink->get_channel(), &msg, 255, 255);
 
 			if (!_mavlink->message_buffer_write(&msg, len)) {
 				warnx("FTP TX ERR");
