@@ -124,11 +124,13 @@ protected:
 	LockMode	locking_mode;	/**< selected locking mode */
 
 private:
-	int			_bus;
 	enum spi_dev_e		_device;
 	enum spi_mode_e		_mode;
 	uint32_t		_frequency;
 	struct spi_dev_s	*_dev;
+
+protected:
+	int			_bus;
 };
 
 } // namespace device
