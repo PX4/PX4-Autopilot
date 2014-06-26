@@ -93,6 +93,7 @@ struct mavlink_wpm_storage {
 	uint8_t current_partner_compid;
 	uint64_t timestamp_lastaction;
 	uint64_t timestamp_last_send_setpoint;
+	uint64_t timestamp_last_send_request;
 	uint32_t timeout;
 	int current_dataman_id;
 };
@@ -276,11 +277,16 @@ private:
 		int size;
 		char *data;
 	};
-	mavlink_message_buffer _message_buffer;
+	mavlink_message_buffer	_message_buffer;
 
-	pthread_mutex_t _message_buffer_mutex;
+	pthread_mutex_t		_message_buffer_mutex;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
+	bool			_param_initialized;
+	param_t			_param_system_id;
+	param_t			_param_component_id;
+	param_t			_param_system_type;
+	param_t			_param_use_hil_gps;
 
 	/**
 	 * Send one parameter.

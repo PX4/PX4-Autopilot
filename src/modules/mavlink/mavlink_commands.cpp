@@ -40,34 +40,31 @@
 
 #include "mavlink_commands.h"
 
-MavlinkCommandsStream::MavlinkCommandsStream(Mavlink *mavlink, mavlink_channel_t channel) : _channel(channel)
+MavlinkCommandsStream::MavlinkCommandsStream(Mavlink *mavlink, mavlink_channel_t channel) : _channel(channel), _cmd_time(0)
 {
 	_cmd_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_command));
-	_cmd = (struct vehicle_command_s *)_cmd_sub->get_data();
-}
-
-MavlinkCommandsStream::~MavlinkCommandsStream()
-{
 }
 
 void
 MavlinkCommandsStream::update(const hrt_abstime t)
 {
-	if (_cmd_sub->update(t)) {
+	struct vehicle_command_s cmd;
+
+	if (_cmd_sub->update(&_cmd_time, &cmd)) {
 		/* only send commands for other systems/components */
-		if (_cmd->target_system != mavlink_system.sysid || _cmd->target_component != mavlink_system.compid) {
+		if (cmd.target_system != mavlink_system.sysid || cmd.target_component != mavlink_system.compid) {
 			mavlink_msg_command_long_send(_channel,
-						      _cmd->target_system,
-						      _cmd->target_component,
-						      _cmd->command,
-						      _cmd->confirmation,
-						      _cmd->param1,
-						      _cmd->param2,
-						      _cmd->param3,
-						      _cmd->param4,
-						      _cmd->param5,
-						      _cmd->param6,
-						      _cmd->param7);
+						      cmd.target_system,
+						      cmd.target_component,
+						      cmd.command,
+						      cmd.confirmation,
+						      cmd.param1,
+						      cmd.param2,
+						      cmd.param3,
+						      cmd.param4,
+						      cmd.param5,
+						      cmd.param6,
+						      cmd.param7);
 		}
 	}
 }

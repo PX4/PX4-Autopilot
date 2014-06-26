@@ -32,57 +32,40 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_orb_subscription.h
- * uORB subscription definition.
+ * @file drv_io_expander.h
  *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * IO expander device API
  */
 
-#ifndef MAVLINK_ORB_SUBSCRIPTION_H_
-#define MAVLINK_ORB_SUBSCRIPTION_H_
+#pragma once
 
-#include <systemlib/uthash/utlist.h>
-#include <drivers/drv_hrt.h>
+#include <stdint.h>
+#include <sys/ioctl.h>
 
+/*
+ * ioctl() definitions
+ */
 
-class MavlinkOrbSubscription
-{
-public:
-	MavlinkOrbSubscription *next;	///< pointer to next subscription in list
+#define _IOXIOCBASE		(0x2800)
+#define _IOXIOC(_n)		(_IOC(_IOXIOCBASE, _n))
 
-	MavlinkOrbSubscription(const orb_id_t topic);
-	~MavlinkOrbSubscription();
+/** set a bitmask (non-blocking) */
+#define IOX_SET_MASK		_IOXIOC(1)
 
-	/**
-	 * Check if subscription updated and get data.
-	 *
-	 * @return true only if topic was updated and data copied to buffer successfully.
-	 * If topic was not updated since last check it will return false but still copy the data.
-	 * If no data available data buffer will be filled with zeroes.
-	 */
-	bool update(uint64_t *time, void* data);
+/** get a bitmask (blocking) */
+#define IOX_GET_MASK		_IOXIOC(2)
 
-	/**
-	 * Copy topic data to given buffer.
-	 *
-	 * @return true only if topic data copied successfully.
-	 */
-	bool update(void* data);
+/** set device mode (non-blocking) */
+#define IOX_SET_MODE		_IOXIOC(3)
 
-	/**
-	 * Check if the topic has been published.
-	 *
-	 * This call will return true if the topic was ever published.
-	 * @return true if the topic has been published at least once.
-	 */
-	bool is_published();
-	orb_id_t get_topic() const;
+/** set constant values (non-blocking) */
+#define IOX_SET_VALUE		_IOXIOC(4)
 
-private:
-	const orb_id_t _topic;		///< topic metadata
-	int _fd;			///< subscription handle
-	bool _published;		///< topic was ever published
+/* ... to IOX_SET_VALUE + 8 */
+
+/* enum passed to RGBLED_SET_MODE ioctl()*/
+enum IOX_MODE {
+	IOX_MODE_OFF,
+	IOX_MODE_ON,
+	IOX_MODE_TEST_OUT
 };
-
-
-#endif /* MAVLINK_ORB_SUBSCRIPTION_H_ */
