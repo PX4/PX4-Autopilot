@@ -1903,8 +1903,11 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
 	if (_passing_on || _ftp_on) {
-		/* initialize message buffer if multiplexing is on */
-		if (OK != message_buffer_init(2 * MAVLINK_MAX_PACKET_LEN)) {
+		/* initialize message buffer if multiplexing is on or its needed for FTP.
+		 * make space for two messages plus off-by-one space as we use the empty element
+		 * marker ring buffer approach.
+		 */
+		if (OK != message_buffer_init(2 * MAVLINK_MAX_PACKET_LEN + 2)) {
 			errx(1, "can't allocate message buffer, exiting");
 		}
 
