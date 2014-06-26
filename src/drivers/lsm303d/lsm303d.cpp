@@ -52,6 +52,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
@@ -85,6 +86,7 @@ static const int ERROR = -1;
 #define ADDR_INCREMENT			(1<<6)
 
 #define LSM303D_DEVICE_PATH_ACCEL	"/dev/lsm303d_accel"
+#define LSM303D_DEVICE_PATH_ACCEL_EXT	"/dev/lsm303d_accel_ext"
 #define LSM303D_DEVICE_PATH_MAG		"/dev/lsm303d_mag"
 
 /* register addresses: A: accel, M: mag, T: temp */
@@ -1791,16 +1793,18 @@ void	logging();
  * Start the driver.
  */
 void
-start()
+start(bool external_bus)
 {
 	int fd, fd_mag;
-
 	if (g_dev != nullptr)
 		errx(0, "already started");
 
 	/* create the driver */
-	g_dev = new LSM303D(PX4_SPI_BUS_SENSORS, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG);
-
+        if (external_bus) {
+		g_dev = new LSM303D(PX4_SPI_BUS_EXT, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_EXT_ACCEL_MAG);
+	} else {
+		g_dev = new LSM303D(PX4_SPI_BUS_SENSORS, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG);
+	}
 	if (g_dev == nullptr) {
 		warnx("failed instantiating LSM303D obj");
 		goto fail;
@@ -1998,44 +2002,69 @@ logging()
 
 } // namespace
 
+void
+lsm303d_usage()
+{
+	warnx("missing command: try 'start', 'info', 'test', 'reset', 'regdump', 'logging'");
+	warnx("options:");
+	warnx("    -X    (external bus)");
+}
+
 int
 lsm303d_main(int argc, char *argv[])
 {
+	bool external_bus = false;
+	int ch;
+
+	/* jump over start/off/etc and look at options first */
+	while ((ch = getopt(argc, argv, "X")) != EOF) {
+		switch (ch) {
+		case 'X':
+			external_bus = true;
+			break;
+		default:
+			lsm303d_usage();
+			exit(0);
+		}
+	}
+
+	const char *verb = argv[optind];
+
 	/*
 	 * Start/load the driver.
 
 	 */
-	if (!strcmp(argv[1], "start"))
-		lsm303d::start();
+	if (!strcmp(verb, "start"))
+		lsm303d::start(external_bus);
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(argv[1], "test"))
+	if (!strcmp(verb, "test"))
 		lsm303d::test();
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(argv[1], "reset"))
+	if (!strcmp(verb, "reset"))
 		lsm303d::reset();
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[1], "info"))
+	if (!strcmp(verb, "info"))
 		lsm303d::info();
 
 	/*
 	 * dump device registers
 	 */
-	if (!strcmp(argv[1], "regdump"))
+	if (!strcmp(verb, "regdump"))
 		lsm303d::regdump();
 
 	/*
 	 * dump device registers
 	 */
-	if (!strcmp(argv[1], "logging"))
+	if (!strcmp(verb, "logging"))
 		lsm303d::logging();
 
 	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'logging' or 'regdump'");
