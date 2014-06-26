@@ -74,15 +74,10 @@ MissionBlock::is_mission_item_reached()
 	}
 
 	/* TODO: count turns */
-#if 0
-	if ((_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-	     _mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-	     _mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED) &&
-	    _mission_item.loiter_radius > 0.01f) {
-
+	if ((/*_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||*/
+	     _mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED)) {
 		return false;
 	}
-#endif
 
 	hrt_abstime now = hrt_absolute_time();
 
