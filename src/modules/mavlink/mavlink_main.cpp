@@ -1547,6 +1547,12 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	MavlinkStream *stream;
 	LL_FOREACH(_streams, stream) {
 		if (strcmp(stream_name, stream->get_name()) == 0) {
+
+			/* special case for heartbeat: Protocol requires 1 Hz min rate, enforce min rate */
+			if ((interval > 1000000) && strcmp(stream->get_name(), "HEARTBEAT") == 0) {
+				interval = 1000000;
+			}
+
 			if (interval > 0) {
 				/* set new interval */
 				stream->set_interval(interval);
