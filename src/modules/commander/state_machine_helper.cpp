@@ -46,14 +46,18 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <string.h>
+#include <math.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/differential_pressure.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_accel.h>
+#include <drivers/drv_airspeed.h>
 #include <drivers/drv_device.h>
 #include <mavlink/mavlink_log.h>
 
@@ -65,6 +69,8 @@
 # undef ERROR
 #endif
 static const int ERROR = -1;
+
+static int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd);
 
 static bool arming_state_changed = true;
 static bool main_state_changed = true;
@@ -108,18 +114,31 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 	ASSERT(ARMING_STATE_INIT == 0);
 	ASSERT(ARMING_STATE_IN_AIR_RESTORE == ARMING_STATE_MAX - 1);
 
-	/*
-	 * Perform an atomic state update
-	 */
-	irqstate_t flags = irqsave();
-
 	transition_result_t ret = TRANSITION_DENIED;
 
+	arming_state_t current_arming_state = status->arming_state;
+
 	/* only check transition if the new state is actually different from the current one */
-	if (new_arming_state == status->arming_state) {
+	if (new_arming_state == current_arming_state) {
 		ret = TRANSITION_NOT_CHANGED;
 
 	} else {
+
+		/*
+		 * Get sensing state if necessary
+		 */
+		int prearm_ret = OK;
+
+		/* only perform the check if we have to */
+		if (new_arming_state == ARMING_STATE_ARMED) {
+			prearm_ret = prearm_check(status, mavlink_fd);
+		}
+
+		/*
+		 * Perform an atomic state update
+		 */
+		irqstate_t flags = irqsave();
+
 		/* enforce lockdown in HIL */
 		if (status->hil_state == HIL_STATE_ON) {
 			armed->lockdown = true;
@@ -139,12 +158,14 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 				if (status->arming_state != ARMING_STATE_IN_AIR_RESTORE &&
 					status->hil_state == HIL_STATE_OFF) {
 
-					// Fail transition if we need safety switch press
-					if (safety->safety_switch_available && !safety->safety_off) {
+					// Fail transition if pre-arm check fails
+					if (prearm_ret) {
+						valid_transition = false;
 
-						if (mavlink_fd) {
-							mavlink_log_critical(mavlink_fd, "#audio: NOT ARMING: Press safety switch first.");
-						}
+					// Fail transition if we need safety switch press
+					} else if (safety->safety_switch_available && !safety->safety_off) {
+
+						mavlink_log_critical(mavlink_fd, "#audio: NOT ARMING: Press safety switch!");
 
 						valid_transition = false;
 					}
@@ -173,17 +194,15 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 			status->arming_state = new_arming_state;
 			arming_state_changed = true;
 		}
+
+		/* end of atomic state update */
+		irqrestore(flags);
 	}
 
-	/* end of atomic state update */
-	irqrestore(flags);
-
 	if (ret == TRANSITION_DENIED) {
-		static const char *errMsg = "Invalid arming transition from %s to %s";
+		static const char *errMsg = "INVAL: %s - %s";
 
-		if (mavlink_fd) {
-			mavlink_log_critical(mavlink_fd, errMsg, state_names[status->arming_state], state_names[new_arming_state]);
-		}
+		mavlink_log_critical(mavlink_fd, errMsg, state_names[status->arming_state], state_names[new_arming_state]);
 
 		warnx(errMsg, state_names[status->arming_state], state_names[new_arming_state]);
 	}
@@ -493,6 +512,88 @@ transition_result_t failsafe_state_transition(struct vehicle_status_s *status, f
 		}
 	}
 
+	return ret;
+}
+
+int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
+{
+	warnx("PREARM");
+
+	int ret;
+
+	int fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+
+	if (fd < 0) {
+		mavlink_log_critical(mavlink_fd, "#audio: FAIL: ACCEL SENSOR MISSING");
+		ret = fd;
+		goto system_eval;
+	}
+
+	ret = ioctl(fd, ACCELIOCSELFTEST, 0);
+
+	if (ret != OK) {
+		mavlink_log_critical(mavlink_fd, "#audio: FAIL: ACCEL CALIBRATION");
+		goto system_eval;
+	}
+
+	/* check measurement result range */
+	struct accel_report acc;
+	ret = read(fd, &acc, sizeof(acc));
+
+	if (ret == sizeof(acc)) {
+		/* evaluate values */
+		float accel_scale = sqrtf(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
+
+		if (accel_scale < 9.78f || accel_scale > 9.83f) {
+			mavlink_log_info(mavlink_fd, "#audio: Accelerometer calibration recommended.");
+		}
+
+		if (accel_scale > 30.0f /* m/s^2 */) {
+			mavlink_log_critical(mavlink_fd, "#audio: FAIL: ACCEL RANGE");
+			/* this is frickin' fatal */
+			ret = ERROR;
+			goto system_eval;
+		} else {
+			ret = OK;
+		}
+	} else {
+		mavlink_log_critical(mavlink_fd, "#audio: FAIL: ACCEL READ");
+		/* this is frickin' fatal */
+		ret = ERROR;
+		goto system_eval;
+	}
+
+	if (!status->is_rotary_wing) {
+		int fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
+
+		if (fd < 0) {
+			mavlink_log_critical(mavlink_fd, "#audio: FAIL: AIRSPEED SENSOR MISSING");
+			ret = fd;
+			goto system_eval;
+		}
+
+		struct differential_pressure_s diff_pres;
+
+		ret = read(fd, &diff_pres, sizeof(diff_pres));
+
+		if (ret == sizeof(diff_pres)) {
+			if (fabsf(diff_pres.differential_pressure_filtered_pa > 5.0f)) {
+				mavlink_log_critical(mavlink_fd, "#audio: WARNING AIRSPEED CALIBRATION MISSING");
+				// XXX do not make this fatal yet
+				ret = OK;
+			}
+		} else {
+			mavlink_log_critical(mavlink_fd, "#audio: FAIL: AIRSPEED READ");
+			/* this is frickin' fatal */
+			ret = ERROR;
+			goto system_eval;
+		}
+	}
+
+	warnx("PRE RES: %d", ret);
+
+system_eval:
+	close(fd);
 	return ret;
 }
 
