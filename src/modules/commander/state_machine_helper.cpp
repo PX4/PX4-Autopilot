@@ -517,8 +517,6 @@ transition_result_t failsafe_state_transition(struct vehicle_status_s *status, f
 
 int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 {
-	warnx("PREARM");
-
 	int ret;
 
 	int fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
@@ -589,8 +587,6 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 			goto system_eval;
 		}
 	}
-
-	warnx("PRE RES: %d", ret);
 
 system_eval:
 	close(fd);
