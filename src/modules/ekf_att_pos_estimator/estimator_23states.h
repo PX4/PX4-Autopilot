@@ -266,7 +266,7 @@ void ConstrainStates();
 
 void ForceSymmetry();
 
-int CheckAndBound();
+int CheckAndBound(struct ekf_status_report *last_error);
 
 void ResetPosition();
 
@@ -278,8 +278,7 @@ void GetFilterState(struct ekf_status_report *state);
 
 void GetLastErrorState(struct ekf_status_report *last_error);
 
-bool StatesNaN(struct ekf_status_report *err_report);
-void FillErrorReport(struct ekf_status_report *err);
+bool StatesNaN();
 
 void InitializeDynamic(float (&initvelNED)[3], float declination);
 

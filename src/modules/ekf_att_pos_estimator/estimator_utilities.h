@@ -53,12 +53,14 @@ enum GPS_FIX {
 };
 
 struct ekf_status_report {
+    bool error;
     bool velHealth;
     bool posHealth;
     bool hgtHealth;
     bool velTimeout;
     bool posTimeout;
     bool hgtTimeout;
+    bool imuTimeout;
     uint32_t velFailTime;
     uint32_t posFailTime;
     uint32_t hgtFailTime;
@@ -74,6 +76,7 @@ struct ekf_status_report {
     bool statesNaN;
     bool gyroOffsetsExcessive;
     bool covariancesExcessive;
+    bool velOffsetExcessive;
 };
 
 void ekf_debug(const char *fmt, ...);
