@@ -69,20 +69,15 @@ MissionBlock::~MissionBlock()
 bool
 MissionBlock::is_mission_item_reached()
 {
-	/* don't check landed WPs */
 	if (_mission_item.nav_cmd == NAV_CMD_LAND) {
-		return false;
+		return _navigator_priv->get_vstatus()->condition_landed;
 	}
-	/* TODO: count turns */
-#if 0
-	if ((_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-	     _mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-	     _mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED) &&
-	    _mission_item.loiter_radius > 0.01f) {
 
+	/* TODO: count turns */
+	if ((/*_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||*/
+	     _mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED)) {
 		return false;
 	}
-#endif
 
 	hrt_abstime now = hrt_absolute_time();
 
@@ -178,48 +173,70 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->loiter_direction = item->loiter_direction;
 	sp->pitch_min = item->pitch_min;
 
-	if (item->nav_cmd == NAV_CMD_TAKEOFF) {
+	switch (item->nav_cmd) {
+	case NAV_CMD_IDLE:
+		sp->type = SETPOINT_TYPE_IDLE;
+		break;
+
+	case NAV_CMD_TAKEOFF:
 		sp->type = SETPOINT_TYPE_TAKEOFF;
+		break;
 
-	} else if (item->nav_cmd == NAV_CMD_LAND) {
+	case NAV_CMD_LAND:
 		sp->type = SETPOINT_TYPE_LAND;
+		break;
 
-	} else if (item->nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-		   item->nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-		   item->nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
+	case NAV_CMD_LOITER_TIME_LIMIT:
+	case NAV_CMD_LOITER_TURN_COUNT:
+	case NAV_CMD_LOITER_UNLIMITED:
 		sp->type = SETPOINT_TYPE_LOITER;
+		break;
 
-	} else {
+	default:
 		sp->type = SETPOINT_TYPE_POSITION;
+		break;
 	}
 }
 
-bool
-MissionBlock::set_loiter_item(bool reuse_current_pos_sp, struct position_setpoint_triplet_s *pos_sp_triplet)
+void
+MissionBlock::set_previous_pos_setpoint(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
-	if (_navigator_priv->get_is_in_loiter()) {
-		/* already loitering, bail out */
-		return false;
-	}
+    /* reuse current setpoint as previous setpoint */
+    if (pos_sp_triplet->current.valid) {
+        memcpy(&pos_sp_triplet->previous, &pos_sp_triplet->current, sizeof(struct position_setpoint_s));
+    }
+}
 
-	if (reuse_current_pos_sp && pos_sp_triplet->current.valid) {
-		/* leave position setpoint as is */
-	} else {
+bool
+MissionBlock::set_loiter_item(struct position_setpoint_triplet_s *pos_sp_triplet)
+{
+    /* don't change setpoint if 'can_loiter_at_sp' flag set */
+	if (!(_navigator_priv->get_can_loiter_at_sp() && pos_sp_triplet->current.valid)) {
 		/* use current position */
 		pos_sp_triplet->current.lat = _navigator_priv->get_global_position()->lat;
 		pos_sp_triplet->current.lon = _navigator_priv->get_global_position()->lon;
 		pos_sp_triplet->current.alt = _navigator_priv->get_global_position()->alt;
 		pos_sp_triplet->current.yaw = NAN;	/* NAN means to use current yaw */
+
+	    _navigator_priv->set_can_loiter_at_sp(true);
 	}
-	pos_sp_triplet->current.type = SETPOINT_TYPE_LOITER;
-	pos_sp_triplet->current.loiter_radius = _navigator_priv->get_loiter_radius();
-	pos_sp_triplet->current.loiter_direction = 1;
 
-	pos_sp_triplet->previous.valid = false;
-	pos_sp_triplet->current.valid = true;
-	pos_sp_triplet->next.valid = false;
+    if (pos_sp_triplet->current.type != SETPOINT_TYPE_LOITER
+            || pos_sp_triplet->current.loiter_radius != _navigator_priv->get_loiter_radius()
+            || pos_sp_triplet->current.loiter_direction != 1
+            || pos_sp_triplet->previous.valid
+            || !pos_sp_triplet->current.valid
+            || pos_sp_triplet->next.valid) {
+        /* position setpoint triplet should be updated */
+        pos_sp_triplet->current.type = SETPOINT_TYPE_LOITER;
+        pos_sp_triplet->current.loiter_radius = _navigator_priv->get_loiter_radius();
+        pos_sp_triplet->current.loiter_direction = 1;
 
-	_navigator_priv->set_is_in_loiter(true);
-	return true;
+        pos_sp_triplet->previous.valid = false;
+        pos_sp_triplet->current.valid = true;
+        pos_sp_triplet->next.valid = false;
+        return true;
+    }
+
+    return false;
 }
-
