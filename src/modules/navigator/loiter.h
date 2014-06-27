@@ -50,24 +50,14 @@
 class Loiter : public MissionBlock
 {
 public:
-	/**
-	 * Constructor
-	 */
 	Loiter(Navigator *navigator, const char *name);
 
-	/**
-	 * Destructor
-	 */
 	~Loiter();
 
-	/**
-	 * This function is called while the mode is inactive
-	 */
 	virtual void on_inactive();
 
-	/**
-	 * This function is called while the mode is active
-	 */
+	virtual void on_activation(struct position_setpoint_triplet_s *pos_sp_triplet);
+
 	virtual bool on_active(struct position_setpoint_triplet_s *pos_sp_triplet);
 };
 

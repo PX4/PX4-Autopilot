@@ -65,14 +65,22 @@ Loiter::~Loiter()
 {
 }
 
-bool
-Loiter::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
-{
-	/* set loiter item, don't reuse an existing position setpoint */
-	return set_loiter_item(pos_sp_triplet);
-}
-
 void
 Loiter::on_inactive()
 {
+}
+
+void
+Loiter::on_activation(struct position_setpoint_triplet_s *pos_sp_triplet)
+{
+	set_loiter_item(pos_sp_triplet);
+	pos_sp_triplet->previous.valid = false;
+	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+	pos_sp_triplet->next.valid = false;
+}
+
+bool
+Loiter::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
+{
+	return false;
 }

@@ -33,9 +33,10 @@
 /**
  * @file navigator_mode.h
  *
- * Helper class for different modes in navigator
+ * Base class for different modes in navigator
  *
  * @author Julian Oes <julian@oes.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #ifndef NAVIGATOR_MODE_H
@@ -65,10 +66,17 @@ public:
 	 */
 	virtual ~NavigatorMode();
 
+	bool run(bool active, struct position_setpoint_triplet_s *pos_sp_triplet);
+
 	/**
 	 * This function is called while the mode is inactive
 	 */
 	virtual void on_inactive();
+
+	/**
+	 * This function is called one time when mode become active, poos_sp_triplet must be initialized here
+	 */
+	virtual void on_activation(struct position_setpoint_triplet_s *pos_sp_triplet);
 
 	/**
 	 * This function is called while the mode is active
@@ -80,6 +88,8 @@ public:
 
 protected:
 	Navigator *_navigator;
+
+private:
 	bool _first_run;
 };
 

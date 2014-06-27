@@ -57,29 +57,15 @@ class Navigator;
 class RTL : public MissionBlock
 {
 public:
-	/**
-	 * Constructor
-	 */
 	RTL(Navigator *navigator, const char *name);
 
-	/**
-	 * Destructor
-	 */
 	~RTL();
 
-	/**
-	 * This function is called while the mode is inactive
-	 */
-	void on_inactive();
+	virtual void on_inactive();
 
-	/**
-	 * This function is called while the mode is active
-	 *
-	 * @param position setpoint triplet that needs to be set
-	 * @return true if updated
-	 */
-	bool on_active(position_setpoint_triplet_s *pos_sp_triplet);
+	virtual void on_activation(position_setpoint_triplet_s *pos_sp_triplet);
 
+	virtual bool on_active(position_setpoint_triplet_s *pos_sp_triplet);
 
 private:
 	/**

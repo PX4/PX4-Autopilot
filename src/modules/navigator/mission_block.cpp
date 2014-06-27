@@ -45,6 +45,7 @@
 
 #include <systemlib/err.h>
 #include <geo/geo.h>
+#include <mavlink/mavlink_log.h>
 
 #include <uORB/uORB.h>
 
@@ -207,36 +208,44 @@ MissionBlock::set_previous_pos_setpoint(struct position_setpoint_triplet_s *pos_
     }
 }
 
-bool
+void
 MissionBlock::set_loiter_item(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
-    /* don't change setpoint if 'can_loiter_at_sp' flag set */
-	if (!(_navigator->get_can_loiter_at_sp() && pos_sp_triplet->current.valid)) {
-		/* use current position */
-		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
-		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
-		pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
-		pos_sp_triplet->current.yaw = NAN;	/* NAN means to use current yaw */
+	if (_navigator->get_vstatus()->condition_landed) {
+		/* landed, don't takeoff, but switch to IDLE mode */
+		_mission_item.nav_cmd = NAV_CMD_IDLE;
 
-	    _navigator->set_can_loiter_at_sp(true);
+		_navigator->set_can_loiter_at_sp(false);
+
+		mavlink_log_info(_navigator->get_mavlink_fd(), "landed, switch to IDLE");
+
+	} else {
+		_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+
+		if (_navigator->get_can_loiter_at_sp() && pos_sp_triplet->current.valid) {
+			/* use current position setpoint */
+			_mission_item.lat = pos_sp_triplet->current.lat;
+			_mission_item.lon = pos_sp_triplet->current.lon;
+			_mission_item.altitude = pos_sp_triplet->current.alt;
+
+		} else {
+			/* use current position */
+			_mission_item.lat = _navigator->get_global_position()->lat;
+			_mission_item.lon = _navigator->get_global_position()->lon;
+			_mission_item.altitude = _navigator->get_global_position()->alt;
+		}
+
+		_mission_item.altitude_is_relative = false;
+		_mission_item.yaw = NAN;
+		_mission_item.loiter_radius = _navigator->get_loiter_radius();
+		_mission_item.loiter_direction = 1;
+		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+		_mission_item.time_inside = 0.0f;
+		_mission_item.pitch_min = 0.0f;
+		_mission_item.autocontinue = false;
+		_mission_item.origin = ORIGIN_ONBOARD;
+
+		_navigator->set_can_loiter_at_sp(true);
+		mavlink_log_info(_navigator->get_mavlink_fd(), "switch to LOITER");
 	}
-
-    if (pos_sp_triplet->current.type != SETPOINT_TYPE_LOITER
-            || pos_sp_triplet->current.loiter_radius != _navigator->get_loiter_radius()
-            || pos_sp_triplet->current.loiter_direction != 1
-            || pos_sp_triplet->previous.valid
-            || !pos_sp_triplet->current.valid
-            || pos_sp_triplet->next.valid) {
-        /* position setpoint triplet should be updated */
-        pos_sp_triplet->current.type = SETPOINT_TYPE_LOITER;
-        pos_sp_triplet->current.loiter_radius = _navigator->get_loiter_radius();
-        pos_sp_triplet->current.loiter_direction = 1;
-
-        pos_sp_triplet->previous.valid = false;
-        pos_sp_triplet->current.valid = true;
-        pos_sp_triplet->next.valid = false;
-        return true;
-    }
-
-    return false;
 }

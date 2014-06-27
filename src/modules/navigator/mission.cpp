@@ -82,8 +82,6 @@ Mission::~Mission()
 void
 Mission::on_inactive()
 {
-	_first_run = true;
-
 	/* check anyway if missions have changed so that feedback to groundstation is given */
 	bool onboard_updated;
 	orb_check(_navigator->get_onboard_mission_sub(), &onboard_updated);
@@ -96,6 +94,12 @@ Mission::on_inactive()
 	if (offboard_updated) {
 		update_offboard_mission();
 	}
+}
+
+void
+Mission::on_activation(struct position_setpoint_triplet_s *pos_sp_triplet)
+{
+	set_mission_items(pos_sp_triplet);
 }
 
 bool
@@ -117,10 +121,9 @@ Mission::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
 	}
 
 	/* reset mission items if needed */
-	if (onboard_updated || offboard_updated || _first_run) {
+	if (onboard_updated || offboard_updated) {
 		set_mission_items(pos_sp_triplet);
 		updated = true;
-		_first_run = false;
 	}
 
 	/* lets check if we reached the current mission item */
@@ -255,6 +258,9 @@ Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
         _navigator->set_can_loiter_at_sp(pos_sp_triplet->current.valid && _waypoint_position_reached);
 
 		set_loiter_item(pos_sp_triplet);
+		pos_sp_triplet->previous.valid = false;
+		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+		pos_sp_triplet->next.valid = false;
 		reset_mission_item_reached();
 		report_mission_finished();
 	}

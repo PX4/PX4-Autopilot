@@ -33,9 +33,10 @@
 /**
  * @file navigator_mode.cpp
  *
- * Helper class for different modes in navigator
+ * Base class for different modes in navigator
  *
  * @author Julian Oes <julian@oes.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include "navigator_mode.h"
@@ -55,16 +56,41 @@ NavigatorMode::~NavigatorMode()
 {
 }
 
+bool
+NavigatorMode::run(bool active, struct position_setpoint_triplet_s *pos_sp_triplet) {
+	if (active) {
+		if (_first_run) {
+			/* first run */
+			_first_run = false;
+			on_activation(pos_sp_triplet);
+			return true;
+
+		} else {
+			/* periodic updates when active */
+			on_active(pos_sp_triplet);
+		}
+
+	} else {
+		/* periodic updates when inactive */
+		_first_run = true;
+		on_inactive();
+	}
+}
+
 void
 NavigatorMode::on_inactive()
 {
-	_first_run = true;
+}
+
+void
+NavigatorMode::on_activation(struct position_setpoint_triplet_s *pos_sp_triplet)
+{
+	/* invalidate position setpoint by default */
+	pos_sp_triplet->current.valid = false;
 }
 
 bool
 NavigatorMode::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
-	pos_sp_triplet->current.valid = false;
-	_first_run = false;
 	return false;
 }

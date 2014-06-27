@@ -75,53 +75,49 @@ RTL::~RTL()
 void
 RTL::on_inactive()
 {
-	_first_run = true;
-
 	/* reset RTL state only if setpoint moved */
 	if (!_navigator->get_can_loiter_at_sp()) {
 		_rtl_state = RTL_STATE_NONE;
 	}
 }
 
+void
+RTL::on_activation(struct position_setpoint_triplet_s *pos_sp_triplet)
+{
+	/* decide where to enter the RTL procedure when we switch into it */
+	if (_rtl_state == RTL_STATE_NONE) {
+		/* for safety reasons don't go into RTL if landed */
+		if (_navigator->get_vstatus()->condition_landed) {
+			_rtl_state = RTL_STATE_LANDED;
+			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: no RTL when landed");
+
+		/* if lower than return altitude, climb up first */
+		} else if (_navigator->get_global_position()->alt < _navigator->get_home_position()->alt
+			   + _param_return_alt.get()) {
+			_rtl_state = RTL_STATE_CLIMB;
+
+		/* otherwise go straight to return */
+		} else {
+			/* set altitude setpoint to current altitude */
+			_rtl_state = RTL_STATE_RETURN;
+			_mission_item.altitude_is_relative = false;
+			_mission_item.altitude = _navigator->get_global_position()->alt;
+		}
+	}
+
+	set_rtl_item(pos_sp_triplet);
+}
+
 bool
 RTL::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
-	bool updated = false;
-
-	if (_first_run) {
-		_first_run = false;
-
-		/* decide where to enter the RTL procedure when we switch into it */
-		if (_rtl_state == RTL_STATE_NONE) {
-			/* for safety reasons don't go into RTL if landed */
-			if (_navigator->get_vstatus()->condition_landed) {
-				_rtl_state = RTL_STATE_LANDED;
-				mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: no RTL when landed");
-
-			/* if lower than return altitude, climb up first */
-			} else if (_navigator->get_global_position()->alt < _navigator->get_home_position()->alt
-				   + _param_return_alt.get()) {
-				_rtl_state = RTL_STATE_CLIMB;
-
-			/* otherwise go straight to return */
-			} else {
-				/* set altitude setpoint to current altitude */
-				_rtl_state = RTL_STATE_RETURN;
-				_mission_item.altitude_is_relative = false;
-				_mission_item.altitude = _navigator->get_global_position()->alt;
-			}
-		}
-
-		set_rtl_item(pos_sp_triplet);
-		updated = true;
-
-	} else if (_rtl_state != RTL_STATE_LANDED && is_mission_item_reached()) {
+	if (_rtl_state != RTL_STATE_LANDED && is_mission_item_reached()) {
 		advance_rtl();
 		set_rtl_item(pos_sp_triplet);
-		updated = true;
+		return true;
 	}
 
-	return updated;
+	return false;
 }
 
 void
