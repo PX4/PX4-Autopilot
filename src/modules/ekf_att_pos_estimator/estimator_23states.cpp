@@ -2390,6 +2390,8 @@ int AttPosEKF::CheckAndBound()
         ret = 5;
     }
 
+    // The excessive covariance detection already
+    // reset the filter. Just need to report here.
     if (current_ekf_state.covariancesExcessive) {
         FillErrorReport(&last_ekf_error);
         current_ekf_state.covariancesExcessive = false;
