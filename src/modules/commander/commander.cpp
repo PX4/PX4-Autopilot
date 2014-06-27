@@ -1776,9 +1776,9 @@ set_control_mode()
 		case OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY:
 			control_mode.flag_control_rates_enabled = true;
 			control_mode.flag_control_attitude_enabled = true;
-			control_mode.flag_control_altitude_enabled = false;
+			control_mode.flag_control_altitude_enabled = true; /* XXX: hack for now */
 			control_mode.flag_control_climb_rate_enabled = true;
-			control_mode.flag_control_position_enabled = false;
+			control_mode.flag_control_position_enabled = true; /* XXX: hack for now */
 			control_mode.flag_control_velocity_enabled = true;
 			break;
 		case OFFBOARD_CONTROL_MODE_DIRECT_POSITION:
