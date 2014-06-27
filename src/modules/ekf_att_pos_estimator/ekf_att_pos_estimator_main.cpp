@@ -370,12 +370,12 @@ FixedwingEstimator::FixedwingEstimator() :
 	_baro_gps_offset(0.0f),
 
 /* performance counters */
-	_loop_perf(perf_alloc(PC_COUNT, "ekf_att_pos_estimator")),
-	_perf_gyro(perf_alloc(PC_COUNT, "ekf_att_pos_gyro_upd")),
-	_perf_mag(perf_alloc(PC_COUNT, "ekf_att_pos_mag_upd")),
-	_perf_gps(perf_alloc(PC_COUNT, "ekf_att_pos_gps_upd")),
-	_perf_baro(perf_alloc(PC_COUNT, "ekf_att_pos_baro_upd")),
-	_perf_airspeed(perf_alloc(PC_COUNT, "ekf_att_pos_aspd_upd")),
+	_loop_perf(perf_alloc(PC_ELAPSED, "ekf_att_pos_estimator")),
+	_perf_gyro(perf_alloc(PC_INTERVAL, "ekf_att_pos_gyro_upd")),
+	_perf_mag(perf_alloc(PC_INTERVAL, "ekf_att_pos_mag_upd")),
+	_perf_gps(perf_alloc(PC_INTERVAL, "ekf_att_pos_gps_upd")),
+	_perf_baro(perf_alloc(PC_INTERVAL, "ekf_att_pos_baro_upd")),
+	_perf_airspeed(perf_alloc(PC_INTERVAL, "ekf_att_pos_aspd_upd")),
 	_perf_reset(perf_alloc(PC_COUNT, "ekf_att_pos_reset")),
 
 /* states */
