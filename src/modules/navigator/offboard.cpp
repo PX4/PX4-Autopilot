@@ -98,7 +98,7 @@ Offboard::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
 		/* velocity control */
 		pos_sp_triplet->current.vx = _offboard_control_sp.p2;
 		pos_sp_triplet->current.vy = _offboard_control_sp.p1;
-		pos_sp_triplet->current.yawspeed = _offboard_control_sp.p3*10.0f;
+		pos_sp_triplet->current.yawspeed = _offboard_control_sp.p3;
 		pos_sp_triplet->current.vz = _offboard_control_sp.p4;
 
 		pos_sp_triplet->current.type = SETPOINT_TYPE_OFFBOARD;
