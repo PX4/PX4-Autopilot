@@ -1345,8 +1345,8 @@ FixedwingEstimator::task_main()
 					_wind.timestamp = _global_pos.timestamp;
 					_wind.windspeed_north = _ekf->states[14];
 					_wind.windspeed_east = _ekf->states[15];
-					_wind.covariance_north = 0.0f; // XXX get form filter
-					_wind.covariance_east = 0.0f;
+					_wind.covariance_north = _ekf->P[14][14];
+					_wind.covariance_east = _ekf->P[15][15];
 
 					/* lazily publish the wind estimate only once available */
 					if (_wind_pub > 0) {
