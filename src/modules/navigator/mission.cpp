@@ -58,8 +58,7 @@
 #include "mission.h"
 
 Mission::Mission(Navigator *navigator, const char *name) :
-	NavigatorMode(navigator, name),
-	MissionBlock(navigator),
+	MissionBlock(navigator, name),
 	_param_onboard_enabled(this, "ONBOARD_EN"),
 	_onboard_mission({0}),
 	_offboard_mission({0}),

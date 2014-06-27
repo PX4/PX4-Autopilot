@@ -54,7 +54,7 @@
 
 class Navigator;
 
-class RTL : public NavigatorMode, MissionBlock
+class RTL : public MissionBlock
 {
 public:
 	/**

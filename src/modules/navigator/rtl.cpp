@@ -56,8 +56,7 @@
 #define DELAY_SIGMA	0.01f
 
 RTL::RTL(Navigator *navigator, const char *name) :
-	NavigatorMode(navigator, name),
-	MissionBlock(navigator),
+	MissionBlock(navigator, name),
 	_rtl_state(RTL_STATE_NONE),
 	_param_return_alt(this, "RETURN_ALT"),
 	_param_descend_alt(this, "DESCEND_ALT"),
