@@ -554,9 +554,12 @@ FixedwingEstimator::check_filter_state()
 	/*
 	 *    CHECK IF THE INPUT DATA IS SANE
 	 */
-	int check = _ekf->CheckAndBound();
 
-	const char* ekfname = "[ekf] ";
+	struct ekf_status_report ekf_report;
+
+	int check = _ekf->CheckAndBound(&ekf_report);
+
+	const char* ekfname = "#audio: ";
 
 	switch (check) {
 		case 0:
@@ -592,7 +595,7 @@ FixedwingEstimator::check_filter_state()
 		}
 		case 5:
 		{
-			const char* str = "diverged too far from GPS";
+			const char* str = "GPS velocity divergence";
 			warnx("%s", str);
 			mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
 			break;
@@ -616,15 +619,11 @@ FixedwingEstimator::check_filter_state()
 	struct estimator_status_report rep;
 	memset(&rep, 0, sizeof(rep));
 
-	struct ekf_status_report ekf_report;
-
-	// If non-zero, we got a filter reset
-	if (check > 0 && check != 3) {
+	// If error flag is set, we got a filter reset
+	if (check && ekf_report.error) {
 
 		// Count the reset condition
 		perf_count(_perf_reset);
-
-		_ekf->GetLastErrorState(&ekf_report);
 
 	} else if (_ekf_logging) {
 		_ekf->GetFilterState(&ekf_report);
@@ -645,12 +644,12 @@ FixedwingEstimator::check_filter_state()
 		rep.health_flags |= (((uint8_t)ekf_report.velHealth)	<< 0);
 		rep.health_flags |= (((uint8_t)ekf_report.posHealth)	<< 1);
 		rep.health_flags |= (((uint8_t)ekf_report.hgtHealth)	<< 2);
-		rep.health_flags |= ((!(check == 4))			<< 3);
+		rep.health_flags |= (((uint8_t)ekf_report.gyroOffsetsExcessive)	<< 3);
 
 		rep.timeout_flags |= (((uint8_t)ekf_report.velTimeout)	<< 0);
 		rep.timeout_flags |= (((uint8_t)ekf_report.posTimeout)	<< 1);
 		rep.timeout_flags |= (((uint8_t)ekf_report.hgtTimeout)	<< 2);
-		rep.timeout_flags |= (((uint8_t)(check == 2))		<< 3);	// IMU timeout
+		rep.timeout_flags |= (((uint8_t)ekf_report.imuTimeout)	<< 3);
 
 		if (_debug > 10) {
 
