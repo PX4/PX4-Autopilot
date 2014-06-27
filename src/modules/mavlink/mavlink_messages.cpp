@@ -258,19 +258,21 @@ protected:
 		struct vehicle_status_s status;
 		struct position_setpoint_triplet_s pos_sp_triplet;
 
-		if (status_sub->update(&status) && pos_sp_triplet_sub->update(&pos_sp_triplet)) {
-			uint8_t mavlink_state = 0;
-			uint8_t mavlink_base_mode = 0;
-			uint32_t mavlink_custom_mode = 0;
-			get_mavlink_mode_state(&status, &pos_sp_triplet, &mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
+		/* always send the heartbeat, independent of the update status of the topics */
+		(void)status_sub->update(&status);
+		(void)pos_sp_triplet_sub->update(&pos_sp_triplet);
 
-			mavlink_msg_heartbeat_send(_channel,
-						   mavlink_system.type,
-						   MAV_AUTOPILOT_PX4,
-						   mavlink_base_mode,
-						   mavlink_custom_mode,
-						   mavlink_state);
-		}
+		uint8_t mavlink_state = 0;
+		uint8_t mavlink_base_mode = 0;
+		uint32_t mavlink_custom_mode = 0;
+		get_mavlink_mode_state(&status, &pos_sp_triplet, &mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
+
+		mavlink_msg_heartbeat_send(_channel,
+					   mavlink_system.type,
+					   MAV_AUTOPILOT_PX4,
+					   mavlink_base_mode,
+					   mavlink_custom_mode,
+					   mavlink_state);
 	}
 };
 
