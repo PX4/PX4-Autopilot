@@ -556,6 +556,9 @@ MulticopterPositionControl::task_main()
 
 	math::Vector<3> sp_move_rate;
 	sp_move_rate.zero();
+
+	float yaw_sp_move_rate;
+
 	math::Vector<3> thrust_int;
 	thrust_int.zero();
 	math::Matrix<3, 3> R;
@@ -674,28 +677,73 @@ MulticopterPositionControl::task_main()
 			} else if (_control_mode.flag_control_offboard_enabled) {
 				/* Offboard control */
 				bool updated;
-				orb_check(_local_pos_sp_sub, &updated);
+				orb_check(_pos_sp_triplet_sub, &updated);
 
 				if (updated) {
-					orb_copy(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_sub, &_local_pos_sp);
+					orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
 				}
 
-				if (isfinite(_local_pos_sp.x) && isfinite(_local_pos_sp.y) && isfinite(_local_pos_sp.z) && isfinite(_local_pos_sp.yaw)) {
-					/* If manual control overides offboard, cancel the offboard setpoint and stay at current position */
-					_reset_pos_sp = true;
-					_reset_alt_sp = true;
+				if (_pos_sp_triplet.current.valid) {
 
-					/* Make sure position control is selected i.e. not only velocity control */
-					if (_control_mode.flag_control_position_enabled) {
-						_pos_sp(0) = _local_pos_sp.x;
-						_pos_sp(1) = _local_pos_sp.y;
+					if (_control_mode.flag_control_position_enabled && _pos_sp_triplet.current.position_valid) {
+
+						_pos_sp(0) = _pos_sp_triplet.current.x;
+						_pos_sp(1) = _pos_sp_triplet.current.y;
+						_pos_sp(2) = _pos_sp_triplet.current.z;
+						_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
+
+					} else if (_control_mode.flag_control_velocity_enabled && _pos_sp_triplet.current.velocity_valid) {
+						/* reset position setpoint to current position if needed */
+						reset_pos_sp();
+						/* move position setpoint with roll/pitch stick */
+						sp_move_rate(0) = _pos_sp_triplet.current.vx;
+						sp_move_rate(1) = _pos_sp_triplet.current.vy;
+						yaw_sp_move_rate = _pos_sp_triplet.current.yawspeed;
+						_att_sp.yaw_body = _att.yaw + yaw_sp_move_rate * dt;
 					}
 
 					if (_control_mode.flag_control_altitude_enabled) {
-						_pos_sp(2) = _local_pos_sp.z;
+						/* reset alt setpoint to current altitude if needed */
+						reset_alt_sp();
+
+						/* move altitude setpoint with throttle stick */
+						sp_move_rate(2) = -scale_control(_pos_sp_triplet.current.vz - 0.5f, 0.5f, alt_ctl_dz);;
 					}
 
-					_att_sp.yaw_body = _local_pos_sp.yaw;
+					/* limit setpoint move rate */
+					float sp_move_norm = sp_move_rate.length();
+
+					if (sp_move_norm > 1.0f) {
+						sp_move_rate /= sp_move_norm;
+					}
+
+					/* scale to max speed and rotate around yaw */
+					math::Matrix<3, 3> R_yaw_sp;
+					R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
+					sp_move_rate = R_yaw_sp * sp_move_rate.emult(_params.vel_max);
+
+					/* move position setpoint */
+					_pos_sp += sp_move_rate * dt;
+
+					/* check if position setpoint is too far from actual position */
+					math::Vector<3> pos_sp_offs;
+					pos_sp_offs.zero();
+
+					if (_control_mode.flag_control_position_enabled) {
+						pos_sp_offs(0) = (_pos_sp(0) - _pos(0)) / _params.sp_offs_max(0);
+						pos_sp_offs(1) = (_pos_sp(1) - _pos(1)) / _params.sp_offs_max(1);
+					}
+
+					if (_control_mode.flag_control_altitude_enabled) {
+						pos_sp_offs(2) = (_pos_sp(2) - _pos(2)) / _params.sp_offs_max(2);
+					}
+
+					float pos_sp_offs_norm = pos_sp_offs.length();
+
+					if (pos_sp_offs_norm > 1.0f) {
+						pos_sp_offs /= pos_sp_offs_norm;
+						_pos_sp = _pos + pos_sp_offs.emult(_params.sp_offs_max);
+					}
 
 				} else {
 					reset_pos_sp();
@@ -792,24 +840,6 @@ MulticopterPositionControl::task_main()
 					_vel_sp(2) = _params.land_speed;
 				}
 
-				/* Offboard velocity control mode */
-				if (_control_mode.flag_control_offboard_enabled) {
-					bool updated;
-					orb_check(_global_vel_sp_sub, &updated);
-
-					if (updated) {
-						orb_copy(ORB_ID(vehicle_global_velocity_setpoint), _global_vel_sp_sub, &_global_vel_sp);
-					}
-
-					if (!_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_climb_rate_enabled) {
-						_vel_sp(2) = _global_vel_sp.vz;
-					}
-
-					if (!_control_mode.flag_control_position_enabled && _control_mode.flag_control_velocity_enabled) {
-						_vel_sp(0) = _global_vel_sp.vx;
-						_vel_sp(1) = _global_vel_sp.vy;
-					}
-				}
 
 				if (!_control_mode.flag_control_manual_enabled) {
 					/* limit 3D speed only in non-manual modes */
