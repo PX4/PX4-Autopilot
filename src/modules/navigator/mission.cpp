@@ -58,8 +58,7 @@
 #include "mission.h"
 
 Mission::Mission(Navigator *navigator, const char *name) :
-	NavigatorMode(navigator, name),
-	MissionBlock(navigator),
+	MissionBlock(navigator, name),
 	_param_onboard_enabled(this, "ONBOARD_EN"),
 	_onboard_mission({0}),
 	_offboard_mission({0}),
@@ -223,7 +222,7 @@ Mission::advance_mission()
 void
 Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
-	set_previous_pos_setpoint(&pos_sp_triplet->current, &pos_sp_triplet->previous);
+	set_previous_pos_setpoint(pos_sp_triplet);
 
 	/* try setting onboard mission item */
 	if (is_current_onboard_mission_item_set(&pos_sp_triplet->current)) {
@@ -233,7 +232,7 @@ Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
 					"#audio: onboard mission running");
 		}
 		_mission_type = MISSION_TYPE_ONBOARD;
-		_navigator->set_is_in_loiter(false);
+		_navigator->set_can_loiter_at_sp(false);
 
 	/* try setting offboard mission item */
 	} else if (is_current_offboard_mission_item_set(&pos_sp_triplet->current)) {
@@ -243,7 +242,7 @@ Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
 					"#audio: offboard mission running");
 		}
 		_mission_type = MISSION_TYPE_OFFBOARD;
-		_navigator->set_is_in_loiter(false);
+		_navigator->set_can_loiter_at_sp(false);
 	} else {
 		if (_mission_type != MISSION_TYPE_NONE) {
 			mavlink_log_info(_navigator->get_mavlink_fd(),
@@ -253,21 +252,11 @@ Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
 					"#audio: no mission available");
 		}
 		_mission_type = MISSION_TYPE_NONE;
+        _navigator->set_can_loiter_at_sp(pos_sp_triplet->current.valid && _waypoint_position_reached);
 
-		bool use_current_pos_sp = pos_sp_triplet->current.valid && _waypoint_position_reached;
-		set_loiter_item(use_current_pos_sp, pos_sp_triplet);
+		set_loiter_item(pos_sp_triplet);
 		reset_mission_item_reached();
 		report_mission_finished();
-	}
-}
-
-void
-Mission::set_previous_pos_setpoint(const struct position_setpoint_s *current_pos_sp,
-		                   struct position_setpoint_s *previous_pos_sp)
-{
-	/* reuse current setpoint as previous setpoint */
-	if (current_pos_sp->valid) {
-		memcpy(previous_pos_sp, current_pos_sp, sizeof(struct position_setpoint_s));
 	}
 }
 

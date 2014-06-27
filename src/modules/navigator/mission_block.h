@@ -47,17 +47,17 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 
+#include "navigator_mode.h"
+
 class Navigator;
 
-class MissionBlock
+class MissionBlock : public NavigatorMode
 {
 public:
 	/**
 	 * Constructor
-	 *
-	 * @param pointer to parent class
 	 */
-	MissionBlock(Navigator *navigator);
+	MissionBlock(Navigator *navigator, const char *name);
 
 	/**
 	 * Destructor
@@ -82,14 +82,18 @@ public:
 	 */
 	void mission_item_to_position_setpoint(const mission_item_s *item, position_setpoint_s *sp);
 
+    /**
+     * Set previous position setpoint to current setpoint
+     */
+	void set_previous_pos_setpoint(struct position_setpoint_triplet_s *pos_sp_triplet);
+
 	/**
 	 * Set a loiter item, if possible reuse the position setpoint, otherwise take the current position
 	 *
-	 * @param true if the current position setpoint should be re-used
 	 * @param the position setpoint triplet to set
 	 * @return true if setpoint has changed
 	 */
-	bool set_loiter_item(const bool reuse_current_pos_sp, position_setpoint_triplet_s *pos_sp_triplet);
+	bool set_loiter_item(position_setpoint_triplet_s *pos_sp_triplet);
 
 	bool _waypoint_position_reached;
 	bool _waypoint_yaw_reached;
@@ -97,9 +101,6 @@ public:
 
 	mission_item_s _mission_item;
 	bool _mission_item_valid;
-
-private:
-	Navigator *_navigator_priv;
 };
 
 #endif

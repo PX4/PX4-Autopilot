@@ -103,7 +103,7 @@ public:
 	/**
 	 * Setters
 	 */
-	void		set_is_in_loiter(bool is_in_loiter) { _is_in_loiter = is_in_loiter; }
+	void		set_can_loiter_at_sp(bool can_loiter) { _can_loiter_at_sp = can_loiter; }
 
 	/**
 	 * Getters
@@ -117,9 +117,9 @@ public:
 	int		get_offboard_mission_sub() { return _offboard_mission_sub; }
 	int		get_offboard_control_sp_sub() { return _offboard_control_sp_sub; }
 	Geofence&	get_geofence() { return _geofence; }
-	bool		get_is_in_loiter() { return _is_in_loiter; }
+	bool		get_can_loiter_at_sp() { return _can_loiter_at_sp; }
 	float		get_loiter_radius() { return _param_loiter_radius.get(); }
-	float		get_takeoff_acceptance_radius() { return _param_takeoff_acceptance_radius.get(); }
+	float		get_acceptance_radius() { return _param_acceptance_radius.get(); }
 	int		get_mavlink_fd() { return _mavlink_fd; }
 
 private:
@@ -167,11 +167,11 @@ private:
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
-	bool		_is_in_loiter;			/**< flags if current position SP can be used to loiter */
+	bool		_can_loiter_at_sp;			/**< flags if current position SP can be used to loiter */
 	bool		_update_triplet;		/**< flags if position SP triplet needs to be published */
 
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
-	control::BlockParamFloat _param_takeoff_acceptance_radius;	/**< acceptance for takeoff */
+	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
 	/**
 	 * Retrieve global position
 	 */

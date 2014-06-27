@@ -53,8 +53,7 @@
 #include "loiter.h"
 
 Loiter::Loiter(Navigator *navigator, const char *name) :
-	NavigatorMode(navigator, name),
-	MissionBlock(navigator)
+	MissionBlock(navigator, name)
 {
 	/* load initial params */
 	updateParams();
@@ -70,11 +69,10 @@ bool
 Loiter::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
 	/* set loiter item, don't reuse an existing position setpoint */
-	return set_loiter_item(false, pos_sp_triplet);;
+	return set_loiter_item(pos_sp_triplet);
 }
 
 void
 Loiter::on_inactive()
 {
 }
-
