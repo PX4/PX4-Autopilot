@@ -358,8 +358,7 @@ MavlinkReceiver::handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message
 	mavlink_set_quad_swarm_roll_pitch_yaw_thrust_t swarm_offboard_control;
 	mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_decode(msg, &swarm_offboard_control);
 
-	/* Only accept system IDs from 1 to 4
-	 * TODO: check for own system ID */
+	/* Only accept system IDs from 1 to 4 */
 	if (mavlink_system.sysid >= 1 && mavlink_system.sysid <= 4) {
 		struct offboard_control_setpoint_s offboard_control_sp;
 		memset(&offboard_control_sp, 0, sizeof(offboard_control_sp));
