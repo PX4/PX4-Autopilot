@@ -208,7 +208,6 @@ private:
 	perf_counter_t	_perf_airspeed;			///<local performance counter for airspeed updates
 	perf_counter_t	_perf_reset;			///<local performance counter for filter resets
 
-	bool						_initialized;
 	bool						_baro_init;
 	bool						_gps_initialized;
 	hrt_abstime					_gps_start_time;
@@ -380,7 +379,6 @@ FixedwingEstimator::FixedwingEstimator() :
 	_perf_reset(perf_alloc(PC_COUNT, "ekf_att_pos_reset")),
 
 /* states */
-	_initialized(false),
 	_baro_init(false),
 	_gps_initialized(false),
 	_gyro_valid(false),
@@ -628,19 +626,6 @@ FixedwingEstimator::check_filter_state()
 
 		_ekf->GetLastErrorState(&ekf_report);
 
-		// set sensors to de-initialized state
-		_gyro_valid = false;
-		_accel_valid = false;
-		_mag_valid = false;
-
-		_baro_init = false;
-		_gps_initialized = false;
-		_initialized = false;
-		_last_sensor_timestamp = hrt_absolute_time();
-		_last_run = _last_sensor_timestamp;
-
-		_ekf->dtIMU = 0.01f;
-
 	} else if (_ekf_logging) {
 		_ekf->GetFilterState(&ekf_report);
 	}
@@ -665,6 +650,7 @@ FixedwingEstimator::check_filter_state()
 		rep.timeout_flags |= (((uint8_t)ekf_report.velTimeout)	<< 0);
 		rep.timeout_flags |= (((uint8_t)ekf_report.posTimeout)	<< 1);
 		rep.timeout_flags |= (((uint8_t)ekf_report.hgtTimeout)	<< 2);
+		rep.timeout_flags |= (((uint8_t)(check == 2))		<< 3);	// IMU timeout
 
 		if (_debug > 10) {
 
@@ -680,7 +666,8 @@ FixedwingEstimator::check_filter_state()
 				warnx("timeout: %s%s%s",
 					((rep.timeout_flags & (1 << 0)) ? "VEL " : ""),
 					((rep.timeout_flags & (1 << 1)) ? "POS " : ""),
-					((rep.timeout_flags & (1 << 2)) ? "HGT " : ""));
+					((rep.timeout_flags & (1 << 2)) ? "HGT " : ""),
+					((rep.timeout_flags & (1 << 3)) ? "IMU " : ""));
 			}
 		}
 
@@ -1262,8 +1249,6 @@ FixedwingEstimator::task_main()
 						_ekf->summedDelVel.zero();
 						dt = 0.0f;
 					}
-
-					_initialized = true;
 
 					// Fuse GPS Measurements
 					if (newDataGps && _gps_initialized) {
