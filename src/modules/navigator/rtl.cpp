@@ -61,8 +61,7 @@ RTL::RTL(Navigator *navigator, const char *name) :
 	_rtl_state(RTL_STATE_NONE),
 	_param_return_alt(this, "RETURN_ALT"),
 	_param_descend_alt(this, "DESCEND_ALT"),
-	_param_land_delay(this, "LAND_DELAY"),
-	_param_acceptance_radius(this, "ACCEPT_RAD")
+	_param_land_delay(this, "LAND_DELAY")
 {
 	/* load initial params */
 	updateParams();
@@ -147,7 +146,7 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-		_mission_item.acceptance_radius = _param_acceptance_radius.get();
+		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.time_inside = 0.0f;
 		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = true;
@@ -178,7 +177,7 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-		_mission_item.acceptance_radius = _param_acceptance_radius.get();
+		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.time_inside = 0.0f;
 		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = true;
@@ -198,7 +197,7 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
-		_mission_item.acceptance_radius = _param_acceptance_radius.get();
+		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.time_inside = 0.0f;
 		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = false;
@@ -220,7 +219,7 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = autoland ? NAV_CMD_LOITER_TIME_LIMIT : NAV_CMD_LOITER_UNLIMITED;
-		_mission_item.acceptance_radius = _param_acceptance_radius.get();
+		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.time_inside = _param_land_delay.get() < 0.0f ? 0.0f : _param_land_delay.get();
 		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = autoland;
@@ -246,7 +245,7 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = NAV_CMD_LAND;
-		_mission_item.acceptance_radius = _param_acceptance_radius.get();
+		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.time_inside = 0.0f;
 		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = true;
@@ -265,7 +264,7 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = NAV_CMD_IDLE;
-		_mission_item.acceptance_radius = _param_acceptance_radius.get();
+		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.time_inside = 0.0f;
 		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = true;
