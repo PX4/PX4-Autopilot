@@ -53,8 +53,7 @@
 #include "loiter.h"
 
 Loiter::Loiter(Navigator *navigator, const char *name) :
-	NavigatorMode(navigator, name),
-	MissionBlock(navigator)
+	MissionBlock(navigator, name)
 {
 	/* load initial params */
 	updateParams();

@@ -47,17 +47,17 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 
+#include "navigator_mode.h"
+
 class Navigator;
 
-class MissionBlock
+class MissionBlock : public NavigatorMode
 {
 public:
 	/**
 	 * Constructor
-	 *
-	 * @param pointer to parent class
 	 */
-	MissionBlock(Navigator *navigator);
+	MissionBlock(Navigator *navigator, const char *name);
 
 	/**
 	 * Destructor
@@ -101,9 +101,6 @@ public:
 
 	mission_item_s _mission_item;
 	bool _mission_item_valid;
-
-private:
-	Navigator *_navigator_priv;
 };
 
 #endif

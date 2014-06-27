@@ -52,13 +52,13 @@
 #include "mission_block.h"
 
 
-MissionBlock::MissionBlock(Navigator *navigator) :
+MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
+	NavigatorMode(navigator, name),
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
 	_time_first_inside_orbit(0),
 	_mission_item({0}),
-	_mission_item_valid(false),
-	_navigator_priv(navigator)
+	_mission_item_valid(false)
 {
 }
 
@@ -70,7 +70,7 @@ bool
 MissionBlock::is_mission_item_reached()
 {
 	if (_mission_item.nav_cmd == NAV_CMD_LAND) {
-		return _navigator_priv->get_vstatus()->condition_landed;
+		return _navigator->get_vstatus()->condition_landed;
 	}
 
 	/* TODO: count turns */
@@ -88,24 +88,24 @@ MissionBlock::is_mission_item_reached()
 		float dist_z = -1.0f;
 
 		float altitude_amsl = _mission_item.altitude_is_relative
-				      ? _mission_item.altitude + _navigator_priv->get_home_position()->alt
+				      ? _mission_item.altitude + _navigator->get_home_position()->alt
 			              : _mission_item.altitude;
 
 		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, altitude_amsl,
-				                          _navigator_priv->get_global_position()->lat,
-							  _navigator_priv->get_global_position()->lon,
-							  _navigator_priv->get_global_position()->alt,
+				                          _navigator->get_global_position()->lat,
+							  _navigator->get_global_position()->lon,
+							  _navigator->get_global_position()->alt,
 				&dist_xy, &dist_z);
 
-		if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF && _navigator_priv->get_vstatus()->is_rotary_wing) {
+		if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF && _navigator->get_vstatus()->is_rotary_wing) {
 			/* require only altitude for takeoff for multicopter */
-			if (_navigator_priv->get_global_position()->alt >
-				altitude_amsl - _navigator_priv->get_takeoff_acceptance_radius()) {
+			if (_navigator->get_global_position()->alt >
+				altitude_amsl - _navigator->get_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
 			/* for takeoff mission items use the parameter for the takeoff acceptance radius */
-			if (dist >= 0.0f && dist <= _navigator_priv->get_takeoff_acceptance_radius()) {
+			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
 		} else {
@@ -119,10 +119,10 @@ MissionBlock::is_mission_item_reached()
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 
 		/* TODO: removed takeoff, why? */
-		if (_navigator_priv->get_vstatus()->is_rotary_wing && isfinite(_mission_item.yaw)) {
+		if (_navigator->get_vstatus()->is_rotary_wing && isfinite(_mission_item.yaw)) {
 
 			/* check yaw if defined only for rotary wing except takeoff */
-			float yaw_err = _wrap_pi(_mission_item.yaw - _navigator_priv->get_global_position()->yaw);
+			float yaw_err = _wrap_pi(_mission_item.yaw - _navigator->get_global_position()->yaw);
 
 			if (fabsf(yaw_err) < 0.2f) { /* TODO: get rid of magic number */
 				_waypoint_yaw_reached = true;
@@ -167,7 +167,7 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->valid = true;
 	sp->lat = item->lat;
 	sp->lon = item->lon;
-	sp->alt = item->altitude_is_relative ? item->altitude + _navigator_priv->get_home_position()->alt : item->altitude;
+	sp->alt = item->altitude_is_relative ? item->altitude + _navigator->get_home_position()->alt : item->altitude;
 	sp->yaw = item->yaw;
 	sp->loiter_radius = item->loiter_radius;
 	sp->loiter_direction = item->loiter_direction;
@@ -211,25 +211,25 @@ bool
 MissionBlock::set_loiter_item(struct position_setpoint_triplet_s *pos_sp_triplet)
 {
     /* don't change setpoint if 'can_loiter_at_sp' flag set */
-	if (!(_navigator_priv->get_can_loiter_at_sp() && pos_sp_triplet->current.valid)) {
+	if (!(_navigator->get_can_loiter_at_sp() && pos_sp_triplet->current.valid)) {
 		/* use current position */
-		pos_sp_triplet->current.lat = _navigator_priv->get_global_position()->lat;
-		pos_sp_triplet->current.lon = _navigator_priv->get_global_position()->lon;
-		pos_sp_triplet->current.alt = _navigator_priv->get_global_position()->alt;
+		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
+		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
+		pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
 		pos_sp_triplet->current.yaw = NAN;	/* NAN means to use current yaw */
 
-	    _navigator_priv->set_can_loiter_at_sp(true);
+	    _navigator->set_can_loiter_at_sp(true);
 	}
 
     if (pos_sp_triplet->current.type != SETPOINT_TYPE_LOITER
-            || pos_sp_triplet->current.loiter_radius != _navigator_priv->get_loiter_radius()
+            || pos_sp_triplet->current.loiter_radius != _navigator->get_loiter_radius()
             || pos_sp_triplet->current.loiter_direction != 1
             || pos_sp_triplet->previous.valid
             || !pos_sp_triplet->current.valid
             || pos_sp_triplet->next.valid) {
         /* position setpoint triplet should be updated */
         pos_sp_triplet->current.type = SETPOINT_TYPE_LOITER;
-        pos_sp_triplet->current.loiter_radius = _navigator_priv->get_loiter_radius();
+        pos_sp_triplet->current.loiter_radius = _navigator->get_loiter_radius();
         pos_sp_triplet->current.loiter_direction = 1;
 
         pos_sp_triplet->previous.valid = false;

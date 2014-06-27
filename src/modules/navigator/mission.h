@@ -62,7 +62,7 @@
 
 class Navigator;
 
-class Mission : public NavigatorMode, MissionBlock
+class Mission : public MissionBlock
 {
 public:
 	/**

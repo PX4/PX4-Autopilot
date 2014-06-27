@@ -96,15 +96,3 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 20);
  * @group RTL
  */
 PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
-
-/**
- * RTL acceptance radius
- *
- * Acceptance radius for waypoints set for RTL
- *
- * @unit meters
- * @min 1
- * @max
- * @group RTL
- */
-PARAM_DEFINE_FLOAT(RTL_ACCEPT_RAD, 25.0f);
