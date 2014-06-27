@@ -992,7 +992,6 @@ MavlinkReceiver::receive_start(Mavlink *parent)
 	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
 	pthread_attr_setstacksize(&receiveloop_attr, 2900);
-
 	pthread_t thread;
 	pthread_create(&thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void *)parent);
 
