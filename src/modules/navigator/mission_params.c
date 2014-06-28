@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -32,35 +32,38 @@
  ****************************************************************************/
 
 /**
- * @file navigator_params.c
+ * @file mission_params.c
  *
- * Parameters for navigator in general
+ * Parameters for mission.
  *
- * @author Julian Oes <julian@oes.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
  */
 
 #include <nuttx/config.h>
 
 #include <systemlib/param/param.h>
 
-/**
- * Loiter radius (FW only)
- *
- * Default value of loiter radius for missions, loiter, RTL, etc. (fixedwing only).
- *
- * @unit meters
- * @min 0.0
- * @group Mission
+/*
+ * Mission parameters, accessible via MAVLink
  */
-PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
 
 /**
- * Acceptance Radius
+ * Take-off altitude
  *
- * Default acceptance radius, overridden by acceptance radius of waypoint if set.
+ * Even if first waypoint has altitude less then MIS_TAKEOFF_ALT above home position, system will climb to
+ * MIS_TAKEOFF_ALT on takeoff, then go to waypoint.
  *
  * @unit meters
- * @min 1.0
  * @group Mission
  */
-PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 25.0f);
+PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 10.0f);
+
+
+/**
+ * Enable onboard mission
+ *
+ * @min 0
+ * @max 1
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 0);

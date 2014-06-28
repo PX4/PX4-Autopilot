@@ -249,6 +249,10 @@ private:
 
 	AttPosEKF					*_ekf;
 
+	float						_velocity_xy_filtered;
+	float						_velocity_z_filtered;
+	float						_airspeed_filtered;
+
 	/**
 	 * Update our local parameter cache.
 	 */
@@ -357,7 +361,10 @@ FixedwingEstimator::FixedwingEstimator() :
 	_accel_valid(false),
 	_mag_valid(false),
 	_mavlink_fd(-1),
-	_ekf(nullptr)
+	_ekf(nullptr),
+	_velocity_xy_filtered(0.0f),
+	_velocity_z_filtered(0.0f),
+	_airspeed_filtered(0.0f)
 {
 
 	last_run = hrt_absolute_time();
@@ -1033,7 +1040,7 @@ FixedwingEstimator::task_main()
 
 				float initVelNED[3];
 
-				if (!_gps_initialized && _gps.fix_type > 2 && _gps.eph_m < _parameters.pos_stddev_threshold && _gps.epv_m < _parameters.pos_stddev_threshold) {
+				if (!_gps_initialized && _gps.fix_type > 2 && _gps.eph < _parameters.pos_stddev_threshold && _gps.epv < _parameters.pos_stddev_threshold) {
 
 					initVelNED[0] = _gps.vel_n_m_s;
 					initVelNED[1] = _gps.vel_e_m_s;
@@ -1073,7 +1080,7 @@ FixedwingEstimator::task_main()
 					warnx("HOME/REF: LA %8.4f,LO %8.4f,ALT %8.2f V: %8.4f %8.4f %8.4f", lat, lon, (double)gps_alt,
 						(double)_ekf->velNED[0], (double)_ekf->velNED[1], (double)_ekf->velNED[2]);
 					warnx("BARO: %8.4f m / ref: %8.4f m / gps offs: %8.4f m", (double)_ekf->baroHgt, (double)_baro_ref, (double)_baro_gps_offset);
-					warnx("GPS: eph: %8.4f, epv: %8.4f, declination: %8.4f", (double)_gps.eph_m, (double)_gps.epv_m, (double)math::degrees(declination));
+					warnx("GPS: eph: %8.4f, epv: %8.4f, declination: %8.4f", (double)_gps.eph, (double)_gps.epv, (double)math::degrees(declination));
 
 					_gps_initialized = true;
 
@@ -1287,6 +1294,22 @@ FixedwingEstimator::task_main()
 				_local_pos.z_global = false;
 				_local_pos.yaw = _att.yaw;
 
+				 _velocity_xy_filtered = 0.95f*_velocity_xy_filtered + 0.05f*sqrtf(_local_pos.vx*_local_pos.vx + _local_pos.vy*_local_pos.vy);
+				 _velocity_z_filtered = 0.95f*_velocity_z_filtered + 0.05f*fabsf(_local_pos.vz);
+				 _airspeed_filtered = 0.95*_airspeed_filtered + + 0.05*_airspeed.true_airspeed_m_s;
+
+
+				/* crude land detector for fixedwing only,
+				 * TODO: adapt so that it works for both, maybe move to another location
+				 */
+				if (_velocity_xy_filtered < 5
+					&& _velocity_z_filtered < 10
+					&& _airspeed_filtered < 10) {
+					_local_pos.landed = true;
+				} else {
+					_local_pos.landed = false;
+				}
+
 				/* lazily publish the local position only once available */
 				if (_local_pos_pub > 0) {
 					/* publish the attitude setpoint */
@@ -1305,8 +1328,8 @@ FixedwingEstimator::task_main()
 					_global_pos.lat = est_lat;
 					_global_pos.lon = est_lon;
 					_global_pos.time_gps_usec = _gps.time_gps_usec;
-					_global_pos.eph = _gps.eph_m;
-					_global_pos.epv = _gps.epv_m;
+					_global_pos.eph = _gps.eph;
+					_global_pos.epv = _gps.epv;
 				}
 
 				if (_local_pos.v_xy_valid) {
@@ -1326,8 +1349,8 @@ FixedwingEstimator::task_main()
 
 				_global_pos.yaw = _local_pos.yaw;
 
-				_global_pos.eph = _gps.eph_m;
-				_global_pos.epv = _gps.epv_m;
+				_global_pos.eph = _gps.eph;
+				_global_pos.epv = _gps.epv;
 
 				_global_pos.timestamp = _local_pos.timestamp;
 

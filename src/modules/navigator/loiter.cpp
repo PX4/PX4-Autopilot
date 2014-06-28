@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -30,37 +30,49 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file navigator_params.c
+ * @file loiter.cpp
  *
- * Parameters for navigator in general
+ * Helper class to loiter
  *
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <nuttx/config.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <math.h>
+#include <fcntl.h>
 
-#include <systemlib/param/param.h>
+#include <mavlink/mavlink_log.h>
+#include <systemlib/err.h>
 
-/**
- * Loiter radius (FW only)
- *
- * Default value of loiter radius for missions, loiter, RTL, etc. (fixedwing only).
- *
- * @unit meters
- * @min 0.0
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
+#include <uORB/uORB.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 
-/**
- * Acceptance Radius
- *
- * Default acceptance radius, overridden by acceptance radius of waypoint if set.
- *
- * @unit meters
- * @min 1.0
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 25.0f);
+#include "loiter.h"
+
+Loiter::Loiter(Navigator *navigator, const char *name) :
+	MissionBlock(navigator, name)
+{
+	/* load initial params */
+	updateParams();
+	/* initial reset */
+	on_inactive();
+}
+
+Loiter::~Loiter()
+{
+}
+
+bool
+Loiter::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
+{
+	/* set loiter item, don't reuse an existing position setpoint */
+	return set_loiter_item(pos_sp_triplet);
+}
+
+void
+Loiter::on_inactive()
+{
+}
