@@ -298,7 +298,7 @@ private:
 
 	/**
 	 * Check filter sanity state
-	 * 
+	 *
 	 * @return zero if ok, non-zero for a filter error condition.
 	 */
 	int		check_filter_state();
@@ -1256,8 +1256,8 @@ FixedwingEstimator::task_main()
 						float gps_dt = (_gps.timestamp_position - last_gps) / 1e6f;
 
 						// Calculate acceleration predicted by GPS velocity change
-						if ((_ekf->velNED[0] != _gps.vel_n_m_s || 
-							_ekf->velNED[1] != _gps.vel_e_m_s || 
+						if ((_ekf->velNED[0] != _gps.vel_n_m_s ||
+							_ekf->velNED[1] != _gps.vel_e_m_s ||
 							_ekf->velNED[2] != _gps.vel_d_m_s) && (gps_dt > 0.00001f)) {
 
 							_ekf->accelGPSNED[0] = (_ekf->velNED[0] - _gps.vel_n_m_s) / gps_dt;
@@ -1494,6 +1494,23 @@ FixedwingEstimator::task_main()
 
 				}
 
+				if (hrt_elapsed_time(&_wind.timestamp) > 99000) {
+					_wind.timestamp = _global_pos.timestamp;
+					_wind.windspeed_north = _ekf->states[14];
+					_wind.windspeed_east = _ekf->states[15];
+					_wind.covariance_north = _ekf->P[14][14];
+					_wind.covariance_east = _ekf->P[15][15];
+
+					/* lazily publish the wind estimate only once available */
+					if (_wind_pub > 0) {
+						/* publish the wind estimate */
+						orb_publish(ORB_ID(wind_estimate), _wind_pub, &_wind);
+
+					} else {
+						/* advertise and publish */
+						_wind_pub = orb_advertise(ORB_ID(wind_estimate), &_wind);
+					}
+				}
 			}
 
 		}
