@@ -559,7 +559,7 @@ FixedwingEstimator::check_filter_state()
 
 	int check = _ekf->CheckAndBound(&ekf_report);
 
-	const char* ekfname = "#audio: ";
+	const char* ekfname = "att pos estimator: ";
 
 	switch (check) {
 		case 0:
