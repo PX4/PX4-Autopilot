@@ -75,7 +75,7 @@ __EXPORT extern void		perf_free(perf_counter_t handle);
 /**
  * Count a performance event.
  *
- * This call only affects counters that take single events; PC_COUNT etc.
+ * This call only affects counters that take single events; PC_COUNT, PC_INTERVAL etc.
  *
  * @param handle		The handle returned from perf_alloc.
  */
