@@ -43,8 +43,8 @@
  *    Proceedings of the AIAA Guidance, Navigation and Control
  *    Conference, Aug 2004. AIAA-2004-4900.
  *
- * Original implementation for total energy control class:
- *    Paul Riseborough and Andrew Tridgell, 2013 (code in lib/external_lgpl)
+ * Implementation for total energy control class:
+ *    Thomas Gubler
  *
  * More details and acknowledgements in the referenced library headers.
  *
@@ -88,7 +88,6 @@
 #include <mavlink/mavlink_log.h>
 #include <launchdetection/LaunchDetector.h>
 #include <ecl/l1/ecl_l1_pos_controller.h>
-#include <external_lgpl/tecs/tecs.h>
 #include <drivers/drv_range_finder.h>
 #include "landingslope.h"
 #include "mtecs/mTecs.h"
@@ -201,7 +200,6 @@ private:
 	math::Matrix<3, 3> _R_nb;			///< current attitude
 
 	ECL_L1_Pos_Controller				_l1_control;
-	TECS						_tecs;
 	fwPosctrl::mTecs				_mTecs;
 	bool						_was_pos_control_mode;
 
@@ -568,23 +566,6 @@ FixedwingPositionControl::parameters_update()
 	_l1_control.set_l1_period(_parameters.l1_period);
 	_l1_control.set_l1_roll_limit(math::radians(_parameters.roll_limit));
 
-	_tecs.set_time_const(_parameters.time_const);
-	_tecs.set_min_sink_rate(_parameters.min_sink_rate);
-	_tecs.set_max_sink_rate(_parameters.max_sink_rate);
-	_tecs.set_throttle_damp(_parameters.throttle_damp);
-	_tecs.set_integrator_gain(_parameters.integrator_gain);
-	_tecs.set_vertical_accel_limit(_parameters.vertical_accel_limit);
-	_tecs.set_height_comp_filter_omega(_parameters.height_comp_filter_omega);
-	_tecs.set_speed_comp_filter_omega(_parameters.speed_comp_filter_omega);
-	_tecs.set_roll_throttle_compensation(_parameters.roll_throttle_compensation);
-	_tecs.set_speed_weight(_parameters.speed_weight);
-	_tecs.set_pitch_damping(_parameters.pitch_damping);
-	_tecs.set_indicated_airspeed_min(_parameters.airspeed_min);
-	_tecs.set_indicated_airspeed_max(_parameters.airspeed_max);
-	_tecs.set_max_climb_rate(_parameters.max_climb_rate);
-	_tecs.set_heightrate_p(_parameters.heightrate_p);
-	_tecs.set_speedrate_p(_parameters.speedrate_p);
-
 	/* sanity check parameters */
 	if (_parameters.airspeed_max < _parameters.airspeed_min ||
 	    _parameters.airspeed_max < 5.0f ||
@@ -655,9 +636,6 @@ FixedwingPositionControl::vehicle_airspeed_poll()
 			_airspeed_valid = false;
 		}
 	}
-
-	/* update TECS state */
-	_tecs.enable_airspeed(_airspeed_valid);
 
 	return airspeed_updated;
 }
@@ -839,10 +817,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
 	math::Vector<3> accel_earth = _R_nb * accel_body;
 
-	if (!_mTecs.getEnabled()) {
-		_tecs.update_50hz(baro_altitude, _airspeed.indicated_airspeed_m_s, _R_nb, accel_body, accel_earth);
-	}
-
 	float altitude_error = _pos_sp_triplet.current.alt - _global_pos.alt;
 
 	/* no throttle limit as default */
@@ -866,9 +840,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		/* get circle mode */
 		bool was_circle_mode = _l1_control.circle_mode();
-
-		/* restore speed weight, in case changed intermittently (e.g. in landing handling) */
-		_tecs.set_speed_weight(_parameters.speed_weight);
 
 		/* current waypoint (the one currently heading for) */
 		math::Vector<2> next_wp((float)pos_sp_triplet.current.lat, (float)pos_sp_triplet.current.lon);
@@ -1222,8 +1193,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		/* user switched off throttle */
 		if (_manual.z < 0.1f) {
 			throttle_max = 0.0f;
-			/* switch to pure pitch based altitude control, give up speed */
-			_tecs.set_speed_weight(0.0f);
 		}
 
 		/* climb out control */
@@ -1263,9 +1232,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		_att_sp.thrust = launchDetector.getThrottlePreTakeoff();
 	}
 	else {
-		_att_sp.thrust = math::min(_mTecs.getEnabled() ? _mTecs.getThrottleSetpoint() :_tecs.get_throttle_demand(), throttle_max);
+		_att_sp.thrust = math::min(_mTecs.getThrottleSetpoint(), throttle_max);
 	}
-	_att_sp.pitch_body = _mTecs.getEnabled() ? _mTecs.getPitchSetpoint() : _tecs.get_pitch_demand();
+	_att_sp.pitch_body = _mTecs.getPitchSetpoint();
 
 	if (_control_mode.flag_control_position_enabled) {
 		last_manual = false;
@@ -1449,29 +1418,20 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		const math::Vector<3> &ground_speed,
 		tecs_mode mode)
 {
-	if (_mTecs.getEnabled()) {
-		/* Using mtecs library: prepare arguments for mtecs call */
-		float flightPathAngle = 0.0f;
-		float ground_speed_length = ground_speed.length();
-		if (ground_speed_length > FLT_EPSILON) {
-			flightPathAngle = -asinf(ground_speed(2)/ground_speed_length);
-		}
-		fwPosctrl::LimitOverride limitOverride;
-		if (climbout_mode) {
-			limitOverride.enablePitchMinOverride(M_RAD_TO_DEG_F * climbout_pitch_min_rad);
-		} else {
-			limitOverride.disablePitchMinOverride();
-		}
-		_mTecs.updateAltitudeSpeed(flightPathAngle, altitude, alt_sp, _airspeed.true_airspeed_m_s, v_sp, mode,
-				limitOverride);
-	} else {
-		/* Using tecs library */
-		_tecs.update_pitch_throttle(_R_nb, _att.pitch, altitude, alt_sp, v_sp,
-					    _airspeed.indicated_airspeed_m_s, eas2tas,
-					    climbout_mode, climbout_pitch_min_rad,
-					    throttle_min, throttle_max, throttle_cruise,
-					    pitch_min_rad, pitch_max_rad);
+	/* Using mtecs library: prepare arguments for mtecs call */
+	float flightPathAngle = 0.0f;
+	float ground_speed_length = ground_speed.length();
+	if (ground_speed_length > FLT_EPSILON) {
+		flightPathAngle = -asinf(ground_speed(2)/ground_speed_length);
 	}
+	fwPosctrl::LimitOverride limitOverride;
+	if (climbout_mode) {
+		limitOverride.enablePitchMinOverride(M_RAD_TO_DEG_F * climbout_pitch_min_rad);
+	} else {
+		limitOverride.disablePitchMinOverride();
+	}
+	_mTecs.updateAltitudeSpeed(flightPathAngle, altitude, alt_sp, _airspeed.true_airspeed_m_s, v_sp, mode,
+			limitOverride);
 }
 
 int
