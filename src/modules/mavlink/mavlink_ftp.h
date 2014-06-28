@@ -115,27 +115,11 @@ private:
 		kErrPerm
 	};
 
-	class Session
-	{
-	public:
-		Session() : _fd(-1) {}
+    int _findUnusedSession(void);
+    bool _validSession(unsigned index);
 
-		static int	allocate();
-		static Session	*get(unsigned index);
-		static bool	terminate(unsigned index);
-		static void	reset();
-
-		void		terminate();
-		bool		open(const char *path, bool create);
-		int		read(off_t offset, uint8_t *buf, uint8_t count);
-		int		append(off_t offset, uint8_t *buf, uint8_t count);
-
-	private:
-		static const unsigned kMaxSession = 2;
-		static Session	_sessions[kMaxSession];
-
-		int		_fd;
-	};
+    static const unsigned kMaxSession = 2;
+    int	_session_fds[kMaxSession];
 
 	class Request
 	{
@@ -163,7 +147,11 @@ private:
 			unsigned len = mavlink_msg_encapsulated_data_pack_chan(_mavlink->get_system_id(), _mavlink->get_component_id(),
 				_mavlink->get_channel(), &msg, sequence(), rawData());
 
-			if (!_mavlink->message_buffer_write(&msg, len)) {
+            _mavlink->lockMessageBufferMutex();
+            bool fError = _mavlink->message_buffer_write(&msg, len);
+            _mavlink->unlockMessageBufferMutex();
+            
+            if (!fError) {
 				warnx("FTP TX ERR");
 			} else {
 				warnx("wrote: sys: %d, comp: %d, chan: %d, len: %d, checksum: %d",
@@ -211,6 +199,8 @@ private:
 	ErrorCode		_workRead(Request *req);
 	ErrorCode		_workWrite(Request *req);
 	ErrorCode		_workRemove(Request *req);
+    ErrorCode       _workTerminate(Request *req);
+    ErrorCode       _workReset();
 
 	// work freelist
 	Request			_workBufs[kRequestQueueSize];
@@ -232,4 +222,5 @@ private:
 		_qUnlock();
 		return req;
 	}
+    
 };

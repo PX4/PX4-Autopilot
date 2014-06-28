@@ -228,6 +228,9 @@ public:
 	bool			should_transmit() { return (!_wait_to_transmit || (_wait_to_transmit && _received_messages)); }
 
 	bool			message_buffer_write(void *ptr, int size);
+    
+    void lockMessageBufferMutex(void) { pthread_mutex_lock(&_message_buffer_mutex); }
+    void unlockMessageBufferMutex(void) { pthread_mutex_unlock(&_message_buffer_mutex); }
 
 protected:
 	Mavlink			*next;
