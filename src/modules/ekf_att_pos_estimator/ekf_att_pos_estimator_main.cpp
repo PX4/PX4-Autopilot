@@ -644,7 +644,7 @@ FixedwingEstimator::check_filter_state()
 		rep.health_flags |= (((uint8_t)ekf_report.velHealth)	<< 0);
 		rep.health_flags |= (((uint8_t)ekf_report.posHealth)	<< 1);
 		rep.health_flags |= (((uint8_t)ekf_report.hgtHealth)	<< 2);
-		rep.health_flags |= (((uint8_t)ekf_report.gyroOffsetsExcessive)	<< 3);
+		rep.health_flags |= (((uint8_t)!ekf_report.gyroOffsetsExcessive)	<< 3);
 
 		rep.timeout_flags |= (((uint8_t)ekf_report.velTimeout)	<< 0);
 		rep.timeout_flags |= (((uint8_t)ekf_report.posTimeout)	<< 1);
@@ -655,14 +655,14 @@ FixedwingEstimator::check_filter_state()
 
 			if (rep.health_flags < ((1 << 0) | (1 << 1) | (1 << 2) | (1 << 3))) {
 				warnx("health: VEL:%s POS:%s HGT:%s OFFS:%s",
-					((rep.timeout_flags & (1 << 0)) ? "OK" : "ERR"),
-					((rep.timeout_flags & (1 << 1)) ? "OK" : "ERR"),
-					((rep.timeout_flags & (1 << 2)) ? "OK" : "ERR"),
-					((rep.timeout_flags & (1 << 3)) ? "OK" : "ERR"));
+					((rep.health_flags & (1 << 0)) ? "OK" : "ERR"),
+					((rep.health_flags & (1 << 1)) ? "OK" : "ERR"),
+					((rep.health_flags & (1 << 2)) ? "OK" : "ERR"),
+					((rep.health_flags & (1 << 3)) ? "OK" : "ERR"));
 			}
 
 			if (rep.timeout_flags) {
-				warnx("timeout: %s%s%s",
+				warnx("timeout: %s%s%s%s",
 					((rep.timeout_flags & (1 << 0)) ? "VEL " : ""),
 					((rep.timeout_flags & (1 << 1)) ? "POS " : ""),
 					((rep.timeout_flags & (1 << 2)) ? "HGT " : ""),
