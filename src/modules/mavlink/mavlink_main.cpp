@@ -2074,38 +2074,46 @@ Mavlink::task_main(int argc, char *argv[])
 		if (_passing_on || _ftp_on) {
 
 			bool is_part;
-			void *read_ptr;
+			uint8_t *read_ptr;
+            uint8_t *write_ptr;
 
-			/* guard get ptr by mutex */
 			pthread_mutex_lock(&_message_buffer_mutex);
-			int available = message_buffer_get_ptr(&read_ptr, &is_part);
+			int available = message_buffer_get_ptr((void**)&read_ptr, &is_part);
 			pthread_mutex_unlock(&_message_buffer_mutex);
 
 			if (available > 0) {
+                // Reconstruct message from buffer
 
-				// int oldseq = mavlink_get_channel_status(get_channel())->current_tx_seq;
-				
-				const mavlink_message_t* msg = (const mavlink_message_t*)read_ptr;
-				/* write first part of buffer */
-				_mavlink_resend_uart(_channel, msg);
+				mavlink_message_t msg;
+                write_ptr = (uint8_t*)&msg;
 
-				// mavlink_get_channel_status(get_channel())->current_tx_seq = oldseq;
-				// mavlink_msg_system_time_send(get_channel(), 255, 255);
-
-				message_buffer_mark_read(available);
-
+                // Pull a single message from the buffer
+                int read_count = available;
+                if (read_count > sizeof(mavlink_message_t)) {
+                    read_count = sizeof(mavlink_message_t);
+                }
+                
+                memcpy(write_ptr, read_ptr, read_count);
+                
+                // We hold the mutex until after we complete the second part of the buffer. If we don't
+                // we may end up breaking the empty slot overflow detection semantics when we mark the
+                // possibly partial read below.
+                pthread_mutex_lock(&_message_buffer_mutex);
+                
+				message_buffer_mark_read(read_count);
 
 				/* write second part of buffer if there is some */
-				// XXX this doesn't quite work, as the resend UART call assumes a continous block
-				if (is_part) {
-					/* guard get ptr by mutex */
-					pthread_mutex_lock(&_message_buffer_mutex);
-					available = message_buffer_get_ptr(&read_ptr, &is_part);
-					pthread_mutex_unlock(&_message_buffer_mutex);
-
-					_mavlink_resend_uart(_channel, (const mavlink_message_t*)read_ptr);
+				if (is_part && read_count < sizeof(mavlink_message_t)) {
+                    write_ptr += read_count;
+					available = message_buffer_get_ptr((void**)&read_ptr, &is_part);
+                    read_count = sizeof(mavlink_message_t) - read_count;
+                    memcpy(write_ptr, read_ptr, read_count);
 					message_buffer_mark_read(available);
 				}
+                
+                pthread_mutex_unlock(&_message_buffer_mutex);
+
+                _mavlink_resend_uart(_channel, &msg);
 			}
 		}
 
