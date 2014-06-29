@@ -71,7 +71,7 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
     float rotationMag;
     float qUpdated[4];
     float quatMag;
-    double deltaQuat[4];
+    float deltaQuat[4];
     const Vector3f gravityNED = {0.0,0.0,GRAVITY_MSS};
 
 // Remove sensor bias errors
@@ -104,8 +104,12 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
     }
     else
     {
-        deltaQuat[0] = cos(0.5f*rotationMag);
-        double rotScaler = (sin(0.5f*rotationMag))/rotationMag;
+        // We are using double here as we are unsure how small
+        // the angle differences are and if we get into numeric
+        // issues with float. The runtime impact is not measurable
+        // for these quantities.
+        deltaQuat[0] = cos(0.5*(double)rotationMag);
+        float rotScaler = (sin(0.5*(double)rotationMag))/(double)rotationMag;
         deltaQuat[1] = correctedDelAng.x*rotScaler;
         deltaQuat[2] = correctedDelAng.y*rotScaler;
         deltaQuat[3] = correctedDelAng.z*rotScaler;
@@ -1659,7 +1663,7 @@ void AttPosEKF::FuseRangeFinder()
 
     // Need to check that our range finder tilt angle is less than 30 degrees and we are using range finder data
     SH_RNG[4] = sin(rngFinderPitch);
-    cosRngTilt = - Tbn.z.x * SH_RNG[4] + Tbn.z.z * cos(rngFinderPitch);
+    cosRngTilt = - Tbn.z.x * SH_RNG[4] + Tbn.z.z * cosf(rngFinderPitch);
     if (useRangeFinder && cosRngTilt > 0.87f)
     {
         // Calculate observation jacobian and Kalman gain ignoring all states other than the terrain offset
