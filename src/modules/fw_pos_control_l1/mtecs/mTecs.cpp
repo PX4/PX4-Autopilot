@@ -58,6 +58,7 @@ mTecs::mTecs() :
 	_controlEnergyDistribution(this, "PIT", true),
 	_controlAltitude(this, "FPA", true),
 	_controlAirSpeed(this, "ACC"),
+	_flightPathAngleLowpass(this, "FPA_LP"),
 	_airspeedLowpass(this, "A_LP"),
 	_airspeedDerivative(this, "AD"),
 	_throttleSp(0.0f),
@@ -123,7 +124,7 @@ int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAng
 	/* time measurement */
 	updateTimeMeasurement();
 
-	/* Filter arispeed */
+	/* Filter airspeed */
 	float airspeedFiltered = _airspeedLowpass.update(airspeed);
 
 	/* calculate longitudinal acceleration setpoint from airspeed setpoint*/
@@ -138,8 +139,6 @@ int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAng
 	}
 
 	/* Write part of the status message */
-	_status.flightPathAngleSp = flightPathAngleSp;
-	_status.flightPathAngle = flightPathAngle;
 	_status.airspeedSp = airspeedSp;
 	_status.airspeed = airspeed;
 	_status.airspeedFiltered = airspeedFiltered;
@@ -164,8 +163,11 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 	/* update parameters first */
 	updateParams();
 
+	/* Filter flightpathangle */
+	float flightPathAngleFiltered = _flightPathAngleLowpass.update(flightPathAngle);
+
 	/* calculate values (energies) */
-	float flightPathAngleError = flightPathAngleSp - flightPathAngle;
+	float flightPathAngleError = flightPathAngleSp - flightPathAngleFiltered;
 	float airspeedDerivative = 0.0f;
 	if(_airspeedDerivative.getDt() > 0.0f) {
 		airspeedDerivative = _airspeedDerivative.update(airspeedFiltered);
@@ -175,12 +177,12 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 	float airspeedDerivativeNormSp = airspeedDerivativeSp / CONSTANTS_ONE_G;
 	float airspeedDerivativeNormError = airspeedDerivativeNormSp - airspeedDerivativeNorm;
 
-	float totalEnergyRate = flightPathAngle + airspeedDerivativeNorm;
+	float totalEnergyRate = flightPathAngleFiltered + airspeedDerivativeNorm;
 	float totalEnergyRateError = flightPathAngleError + airspeedDerivativeNormError;
 	float totalEnergyRateSp = flightPathAngleSp + airspeedDerivativeNormSp;
 	float totalEnergyRateError2 = totalEnergyRateSp - totalEnergyRate;
 
-	float energyDistributionRate = flightPathAngle - airspeedDerivativeNorm;
+	float energyDistributionRate = flightPathAngleFiltered - airspeedDerivativeNorm;
 	float energyDistributionRateError = flightPathAngleError - airspeedDerivativeNormError;
 	float energyDistributionRateSp = flightPathAngleSp - airspeedDerivativeNormSp;
 	float energyDistributionRateError2 = energyDistributionRateSp - energyDistributionRate;
@@ -202,7 +204,7 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 	BlockOutputLimiter *outputLimiterThrottle = &_controlTotalEnergy.getOutputLimiter();
 	BlockOutputLimiter *outputLimiterPitch = &_controlEnergyDistribution.getOutputLimiter();
 	if (mode == TECS_MODE_TAKEOFF) {
-		outputLimiterThrottle = &_BlockOutputLimiterTakeoffThrottle; //XXX: accept prelaunch values from launchdetector
+		outputLimiterThrottle = &_BlockOutputLimiterTakeoffThrottle;
 		outputLimiterPitch = &_BlockOutputLimiterTakeoffPitch;
 	} else if (mode == TECS_MODE_LAND) {
 		// only limit pitch but do not limit throttle
@@ -221,6 +223,9 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 	bool limitApplied = limitOverride.applyOverride(*outputLimiterThrottle, *outputLimiterPitch);
 
 	/* Write part of the status message */
+	_status.flightPathAngleSp = flightPathAngleSp;
+	_status.flightPathAngle = flightPathAngle;
+	_status.flightPathAngleFiltered = flightPathAngleFiltered;
 	_status.airspeedDerivativeSp = airspeedDerivativeSp;
 	_status.airspeedDerivative = airspeedDerivative;
 	_status.totalEnergyRateSp = totalEnergyRateSp;

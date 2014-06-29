@@ -104,12 +104,17 @@ protected:
 	uORB::Publication<tecs_status_s> _status;	/**< publish internal values for logging */
 
 	/* control blocks */
-	BlockFFPILimitedCustom _controlTotalEnergy;		/**< FFPI controller for total energy control: output is throttle */
-	BlockFFPILimitedCustom _controlEnergyDistribution;	/**< FFPI controller for energy distribution control: output is pitch */
-	BlockPDLimited	_controlAltitude;		/**< PD controller for altitude: output is the flight path angle setpoint */
-	BlockPDLimited	_controlAirSpeed;			/**< PD controller for airspeed: output is acceleration setpoint */
+	BlockFFPILimitedCustom _controlTotalEnergy;		/**< FFPI controller for total energy control: output
+								  is throttle */
+	BlockFFPILimitedCustom _controlEnergyDistribution;	/**< FFPI controller for energy distribution control:
+								  output is pitch */
+	BlockPDLimited	_controlAltitude;			/**< PD controller for altitude: output is the flight
+								  path angle setpoint */
+	BlockPDLimited	_controlAirSpeed;			/**< PD controller for airspeed: output is acceleration
+								  setpoint */
 
 	/* Other calculation Blocks */
+	control::BlockLowPass _flightPathAngleLowpass;	/**< low pass filter for the flight path angle */
 	control::BlockLowPass _airspeedLowpass;		/**< low pass filter for airspeed */
 	control::BlockDerivative _airspeedDerivative;	/**< airspeed derivative calulation */
 
@@ -118,21 +123,22 @@ protected:
 	float _pitchSp;					/**< Pitch Setpoint from -pi to pi */
 
 	/* Output Limits in special modes */
-	BlockOutputLimiter _BlockOutputLimiterTakeoffThrottle;		/**< Throttle Limits during takeoff */
-	BlockOutputLimiter _BlockOutputLimiterTakeoffPitch;      	/**< Pitch Limit during takeoff */
-	BlockOutputLimiter _BlockOutputLimiterUnderspeedThrottle;	/**< Throttle Limits when underspeed is detected */
-	BlockOutputLimiter _BlockOutputLimiterUnderspeedPitch;   	/**< Pitch Limit when underspeed is detected */
-	BlockOutputLimiter _BlockOutputLimiterLandThrottle;		/**< Throttle Limits during landing (only in last phase)*/
-	BlockOutputLimiter _BlockOutputLimiterLandPitch;		/**< Pitch Limit during landing */
+	BlockOutputLimiter _BlockOutputLimiterTakeoffThrottle;	    /**< Throttle Limits during takeoff */
+	BlockOutputLimiter _BlockOutputLimiterTakeoffPitch;	    /**< Pitch Limit during takeoff */
+	BlockOutputLimiter _BlockOutputLimiterUnderspeedThrottle;   /**< Throttle Limits when underspeed is detected */
+	BlockOutputLimiter _BlockOutputLimiterUnderspeedPitch;	    /**< Pitch Limit when underspeed is detected */
+	BlockOutputLimiter _BlockOutputLimiterLandThrottle;	    /**< Throttle Limits during landing (only in
+								      last phase)*/
+	BlockOutputLimiter _BlockOutputLimiterLandPitch;	    /**< Pitch Limit during landing */
 
 	/* Time measurements */
-	hrt_abstime timestampLastIteration;		/**< Saves the result of hrt_absolute_time() of the last iteration */
+	hrt_abstime timestampLastIteration;	/**< Saves the result of hrt_absolute_time() of the last iteration */
 
-	bool _firstIterationAfterReset;			/**< True during the first iteration after a reset */
-	bool _dtCalculated;				/**< True if dt has been calculated in this iteration */
+	bool _firstIterationAfterReset;		/**< True during the first iteration after a reset */
+	bool _dtCalculated;			/**< True if dt has been calculated in this iteration */
 
 	int _counter;
-	bool _debug;					///< Set true to enable debug output
+	bool _debug;				///< Set true to enable debug output
 
 
 	static void	debug_print(const char *fmt, va_list args);
