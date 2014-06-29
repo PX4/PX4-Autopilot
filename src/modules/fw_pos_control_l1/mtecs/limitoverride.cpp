@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Author: 	@author Thomas Gubler <thomasgubler@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,52 +32,40 @@
  *
  ****************************************************************************/
 
+
 /**
- * @file Publication.cpp
+ * @file limitoverride.cpp
  *
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include "Publication.hpp"
-#include "topics/vehicle_attitude.h"
-#include "topics/vehicle_local_position.h"
-#include "topics/vehicle_global_position.h"
-#include "topics/debug_key_value.h"
-#include "topics/actuator_controls.h"
-#include "topics/vehicle_global_velocity_setpoint.h"
-#include "topics/vehicle_attitude_setpoint.h"
-#include "topics/vehicle_rates_setpoint.h"
-#include "topics/actuator_outputs.h"
-#include "topics/encoders.h"
-#include "topics/tecs_status.h"
+#include "limitoverride.h"
 
-namespace uORB {
+namespace fwPosctrl {
 
-template<class T>
-Publication<T>::Publication(
-	List<PublicationBase *> * list,
-	const struct orb_metadata *meta) :
-	T(), // initialize data structure to zero
-	PublicationBase(list, meta) {
+bool LimitOverride::applyOverride(BlockOutputLimiter &outputLimiterThrottle,
+		BlockOutputLimiter &outputLimiterPitch)
+{
+	bool ret = false;
+
+	if (overrideThrottleMinEnabled)	{
+		outputLimiterThrottle.setMin(overrideThrottleMin);
+		ret = true;
+	}
+	if (overrideThrottleMaxEnabled)	{
+		outputLimiterThrottle.setMax(overrideThrottleMax);
+		ret = true;
+	}
+	if (overridePitchMinEnabled)	{
+		outputLimiterPitch.setMin(overridePitchMin);
+		ret = true;
+	}
+	if (overridePitchMaxEnabled)	{
+		outputLimiterPitch.setMax(overridePitchMax);
+		ret = true;
+	}
+
+	return ret;
 }
 
-template<class T>
-Publication<T>::~Publication() {}
-
-template<class T>
-void * Publication<T>::getDataVoidPtr() {
-	return (void *)(T *)(this);
-}
-
-template class __EXPORT Publication<vehicle_attitude_s>;
-template class __EXPORT Publication<vehicle_local_position_s>;
-template class __EXPORT Publication<vehicle_global_position_s>;
-template class __EXPORT Publication<debug_key_value_s>;
-template class __EXPORT Publication<actuator_controls_s>;
-template class __EXPORT Publication<vehicle_global_velocity_setpoint_s>;
-template class __EXPORT Publication<vehicle_attitude_setpoint_s>;
-template class __EXPORT Publication<vehicle_rates_setpoint_s>;
-template class __EXPORT Publication<actuator_outputs_s>;
-template class __EXPORT Publication<encoders_s>;
-template class __EXPORT Publication<tecs_status_s>;
-
-}
+} /* namespace fwPosctrl */

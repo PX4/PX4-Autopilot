@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,51 +32,37 @@
  ****************************************************************************/
 
 /**
- * @file Publication.cpp
+ * @file wind_estimate.h
+ *
+ * Wind estimate topic topic
  *
  */
 
-#include "Publication.hpp"
-#include "topics/vehicle_attitude.h"
-#include "topics/vehicle_local_position.h"
-#include "topics/vehicle_global_position.h"
-#include "topics/debug_key_value.h"
-#include "topics/actuator_controls.h"
-#include "topics/vehicle_global_velocity_setpoint.h"
-#include "topics/vehicle_attitude_setpoint.h"
-#include "topics/vehicle_rates_setpoint.h"
-#include "topics/actuator_outputs.h"
-#include "topics/encoders.h"
-#include "topics/tecs_status.h"
+#ifndef TOPIC_WIND_ESTIMATE_H
+#define TOPIC_WIND_ESTIMATE_H
 
-namespace uORB {
+#include <stdint.h>
+#include "../uORB.h"
 
-template<class T>
-Publication<T>::Publication(
-	List<PublicationBase *> * list,
-	const struct orb_metadata *meta) :
-	T(), // initialize data structure to zero
-	PublicationBase(list, meta) {
-}
+/**
+ * @addtogroup topics
+ * @{
+ */
 
-template<class T>
-Publication<T>::~Publication() {}
+/** Wind estimate */
+struct wind_estimate_s {
 
-template<class T>
-void * Publication<T>::getDataVoidPtr() {
-	return (void *)(T *)(this);
-}
+	uint64_t	timestamp;		/**< Microseconds since system boot */
+	float		windspeed_north;	/**< Wind component in north / X direction */
+	float		windspeed_east;		/**< Wind component in east / Y direction */
+	float		covariance_north;	/**< Uncertainty - set to zero (no uncertainty) if not estimated */
+	float		covariance_east;	/**< Uncertainty - set to zero (no uncertainty) if not estimated */
+};
 
-template class __EXPORT Publication<vehicle_attitude_s>;
-template class __EXPORT Publication<vehicle_local_position_s>;
-template class __EXPORT Publication<vehicle_global_position_s>;
-template class __EXPORT Publication<debug_key_value_s>;
-template class __EXPORT Publication<actuator_controls_s>;
-template class __EXPORT Publication<vehicle_global_velocity_setpoint_s>;
-template class __EXPORT Publication<vehicle_attitude_setpoint_s>;
-template class __EXPORT Publication<vehicle_rates_setpoint_s>;
-template class __EXPORT Publication<actuator_outputs_s>;
-template class __EXPORT Publication<encoders_s>;
-template class __EXPORT Publication<tecs_status_s>;
+/**
+ * @}
+ */
 
-}
+ORB_DECLARE(wind_estimate);
+
+#endif
