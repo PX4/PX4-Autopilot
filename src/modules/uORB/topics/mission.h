@@ -95,8 +95,8 @@ struct mission_item_s {
 
 struct mission_s
 {
-	int dataman_id;			/**< default -1, there are two offboard storage places in the dataman: 0 or 1 */
-	unsigned count;			/**< count of the missions stored in the datamanager */
+	int dataman_id;			/**< default 0, there are two offboard storage places in the dataman: 0 or 1 */
+	unsigned count;			/**< count of the missions stored in the dataman */
 	int current_index;		/**< default -1, start at the one changed latest */
 };
 

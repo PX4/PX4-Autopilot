@@ -403,6 +403,11 @@ then
 	fi
 
 	#
+	# Start the datamanager
+	#
+	dataman start
+
+	#
 	# MAVLink
 	#
 	if [ $MAVLINK_FLAGS == default ]
@@ -543,11 +548,6 @@ then
 			sh /etc/init.d/rc.mc_apps
 		fi
 	fi
-
-	#
-	# Start the datamanager
-	#
-	dataman start
 
 	#
 	# Start the navigator

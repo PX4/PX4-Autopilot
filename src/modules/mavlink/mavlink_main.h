@@ -78,24 +78,27 @@ enum MAVLINK_WPM_CODES {
 
 
 #define MAVLINK_WPM_MAX_WP_COUNT 255
-#define MAVLINK_WPM_PROTOCOL_TIMEOUT_DEFAULT 5000000 ///< Protocol communication timeout in useconds
-#define MAVLINK_WPM_SETPOINT_DELAY_DEFAULT 1000000 ///< When to send a new setpoint
+#define MAVLINK_WPM_PROTOCOL_TIMEOUT_DEFAULT 5000000    ///< Protocol communication action timeout in useconds
+#define MAVLINK_WPM_RETRY_TIMEOUT_DEFAULT 500000        ///< Protocol communication retry timeout in useconds
+#define MAVLINK_WPM_SETPOINT_DELAY_DEFAULT 1000000      ///< When to send a new setpoint
 #define MAVLINK_WPM_PROTOCOL_DELAY_DEFAULT 40000
 
 
 struct mavlink_wpm_storage {
-	uint16_t size;
-	uint16_t max_size;
-	enum MAVLINK_WPM_STATES current_state;
-	int16_t current_wp_id;	///< Waypoint in current transmission
-	uint16_t current_count;
+	uint16_t size;							///< Count of waypoints in active mission
+	uint16_t max_size;						///< Maximal count of waypoints
+	int dataman_id;							///< Dataman storage ID for active mission
+	enum MAVLINK_WPM_STATES current_state;	///< Current waypoint manager state
+	int16_t current_wp_id;					///< Waypoint ID in current transmission
+	uint16_t current_count;					///< Waypoints count in current transmission
 	uint8_t current_partner_sysid;
 	uint8_t current_partner_compid;
+	int current_dataman_id;					///< Dataman storage ID for current transmission
 	uint64_t timestamp_lastaction;
 	uint64_t timestamp_last_send_setpoint;
 	uint64_t timestamp_last_send_request;
-	uint32_t timeout;
-	int current_dataman_id;
+	uint32_t action_timeout;
+	uint32_t retry_timeout;
 };
 
 

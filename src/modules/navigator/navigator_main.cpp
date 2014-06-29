@@ -603,6 +603,13 @@ Navigator::task_main()
 			warnx("Could not clear geofence");
 	}
 
+	/* Get the last offboard mission id */
+	persistent_system_state_t sys_state;
+	if (dm_read(DM_KEY_MISSION_STATE, 0, &sys_state, sizeof(sys_state)) == sizeof(sys_state)) {
+		if ((sys_state.offboard_waypoint_id >= 0) && (sys_state.offboard_waypoint_id <= 1))
+			_mission.set_offboard_dataman_id(sys_state.offboard_waypoint_id);
+	}
+
 	/*
 	 * do subscriptions
 	 */
