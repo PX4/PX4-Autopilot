@@ -127,7 +127,7 @@ MavlinkFTP::_worker(Request *req)
 		break;
 
 	case kCmdTerminate:
-        errorCode = _workTerminate(req);
+		errorCode = _workTerminate(req);
 		break;
 
 	case kCmdReset:
@@ -222,12 +222,12 @@ MavlinkFTP::_workList(Request *req)
 
 		// no more entries?
 		if (result == nullptr) {
-            if (hdr->offset != 0 && offset == 0) {
-                // User is requesting subsequent dir entries but there were none. This means the user asked
-                // to seek past EOF.
-                errorCode = kErrEOF;
-            }
-            // Otherwise we are just at the last directory entry, so we leave the errorCode at kErrorNone to signal that
+			if (hdr->offset != 0 && offset == 0) {
+				// User is requesting subsequent dir entries but there were none. This means the user asked
+				// to seek past EOF.
+				errorCode = kErrEOF;
+			}
+			// Otherwise we are just at the last directory entry, so we leave the errorCode at kErrorNone to signal that
 			break;
 		}
 
@@ -266,18 +266,18 @@ MavlinkFTP::_workOpen(Request *req, bool create)
 {
 	auto hdr = req->header();
     
-    int session_index = _findUnusedSession();
+	int session_index = _findUnusedSession();
 	if (session_index < 0) {
 		return kErrNoSession;
 	}
 
 	int oflag = create ? (O_CREAT | O_EXCL | O_APPEND) : O_RDONLY;
     
-    int fd = ::open(req->dataAsCString(), oflag);
+	int fd = ::open(req->dataAsCString(), oflag);
 	if (fd < 0) {
 		return create ? kErrPerm : kErrNotFile;
 	}
-    _session_fds[session_index] = fd;
+	_session_fds[session_index] = fd;
 
 	hdr->session = session_index;
 	hdr->size = 0;
@@ -290,28 +290,28 @@ MavlinkFTP::_workRead(Request *req)
 {
 	auto hdr = req->header();
 
-    int session_index = hdr->session;
-    
-    if (!_validSession(session_index)) {
+	int session_index = hdr->session;
+
+	if (!_validSession(session_index)) {
 		return kErrNoSession;
-    }
-    
-    // Seek to the specified position
-    printf("Seek %d\n", hdr->offset);
+	}
+
+	// Seek to the specified position
+	printf("Seek %d\n", hdr->offset);
 	if (lseek(_session_fds[session_index], hdr->offset, SEEK_SET) < 0) {
-        // Unable to see to the specified location
+		// Unable to see to the specified location
 		return kErrEOF;
 	}
-    
+
 	int bytes_read = ::read(_session_fds[session_index], &hdr->data[0], kMaxDataLength);
 	if (bytes_read < 0) {
-        // Negative return indicates error other than eof
+		// Negative return indicates error other than eof
 		return kErrIO;
 	}
-    
-    printf("Read success %d\n", bytes_read);
+
+	printf("Read success %d\n", bytes_read);
 	hdr->size = bytes_read;
-    
+
 	return kErrNone;
 }
 
@@ -357,26 +357,26 @@ MavlinkFTP::_workTerminate(Request *req)
 {
 	auto hdr = req->header();
     
-    if (!_validSession(hdr->session)) {
+	if (!_validSession(hdr->session)) {
 		return kErrNoSession;
-    }
+	}
     
-    ::close(_session_fds[hdr->session]);
+	::close(_session_fds[hdr->session]);
 
-    return kErrNone;
+	return kErrNone;
 }
 
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workReset(void)
 {
-    for (size_t i=0; i<kMaxSession; i++) {
-        if (_session_fds[i] != -1) {
-            ::close(_session_fds[i]);
-            _session_fds[i] = -1;
-        }
-    }
-    
-    return kErrNone;
+	for (size_t i=0; i<kMaxSession; i++) {
+		if (_session_fds[i] != -1) {
+			::close(_session_fds[i]);
+			_session_fds[i] = -1;
+		}
+	}
+
+	return kErrNone;
 }
 
 bool
@@ -391,13 +391,13 @@ MavlinkFTP::_validSession(unsigned index)
 int
 MavlinkFTP::_findUnusedSession(void)
 {
-    for (size_t i=0; i<kMaxSession; i++) {
-        if (_session_fds[i] == -1) {
-            return i;
-        }
-    }
-    
-    return -1;
+	for (size_t i=0; i<kMaxSession; i++) {
+		if (_session_fds[i] == -1) {
+			return i;
+		}
+	}
+
+	return -1;
 }
 
 char *
