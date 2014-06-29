@@ -189,7 +189,8 @@ int gpio_led_main(int argc, char *argv[])
 		} else if (!strcmp(argv[1], "stop")) {
 			if (gpio_led_started) {
 				gpio_led_started = false;
-				warnx("stop");
+                // FIXME: Is this correct? changed from warnx
+				errx(0, "stop");
 
 			} else {
 				errx(1, "not running");

@@ -631,6 +631,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		// XXX TODO
 	}
 
+    return ret;
 }
 
 int commander_thread_main(int argc, char *argv[])

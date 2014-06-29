@@ -1986,7 +1986,7 @@ void AttPosEKF::calcposNED(float (&posNED)[3], double lat, double lon, float hgt
     posNED[2] = -(hgt - hgtRef);
 }
 
-void AttPosEKF::calcLLH(float (&posNED)[3], float lat, float lon, float hgt, float latRef, float lonRef, float hgtRef)
+void AttPosEKF::calcLLH(float posNED[3], float &lat, float &lon, float &hgt, float latRef, float lonRef, float hgtRef)
 {
     lat = latRef + posNED[0] * earthRadiusInv;
     lon = lonRef + posNED[1] * earthRadiusInv / cos(latRef);

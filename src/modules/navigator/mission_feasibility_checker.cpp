@@ -213,8 +213,8 @@ bool MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size
 		}
 	}
 
-
-//	float slope_alt = wp_altitude + _H0 * expf(-math::max(0.0f, _flare_length - wp_distance)/_flare_constant) - _H1_virt;
+    // FIXME: Should there be some sort of mavlink message here?
+    return false;
 }
 
 void MissionFeasibilityChecker::updateNavigationCapabilities()
