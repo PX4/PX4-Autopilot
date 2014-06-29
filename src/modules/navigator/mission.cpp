@@ -255,7 +255,7 @@ Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
 					"#audio: no mission available");
 		}
 		_mission_type = MISSION_TYPE_NONE;
-        _navigator->set_can_loiter_at_sp(pos_sp_triplet->current.valid && _waypoint_position_reached);
+		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.valid && _waypoint_position_reached);
 
 		set_loiter_item(pos_sp_triplet);
 		pos_sp_triplet->previous.valid = false;
