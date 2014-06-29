@@ -1591,7 +1591,6 @@ set_main_state_rc(struct vehicle_status_s *status, struct manual_control_setpoin
 	switch (sp_man->mode_switch) {
 	case SWITCH_POS_NONE:
 		res = TRANSITION_NOT_CHANGED;
-		warnx("NONE");
 		break;
 
 	case SWITCH_POS_OFF:		// MANUAL

@@ -1,75 +1,9 @@
-#include <math.h>
-#include <stdint.h>
-
 #pragma once
 
-#define GRAVITY_MSS 9.80665f
-#define deg2rad 0.017453292f
-#define rad2deg 57.295780f
-#define pi 3.141592657f
-#define earthRate 0.000072921f
-#define earthRadius 6378145.0f
-#define earthRadiusInv  1.5678540e-7f
-
-class Vector3f
-{
-private:
-public:
-    float x;
-    float y;
-    float z;
-
-    float length(void) const;
-    void zero(void);
-};
-
-class Mat3f
-{
-private:
-public:
-    Vector3f x;
-    Vector3f y;
-    Vector3f z;
-
-    Mat3f();
-
-    void identity();
-    Mat3f transpose(void) const;
-};
-
-Vector3f operator*(float sclIn1, Vector3f vecIn1);
-Vector3f operator+( Vector3f vecIn1, Vector3f vecIn2);
-Vector3f operator-( Vector3f vecIn1, Vector3f vecIn2);
-Vector3f operator*( Mat3f matIn, Vector3f vecIn);
-Vector3f operator%( Vector3f vecIn1, Vector3f vecIn2);
-Vector3f operator*(Vector3f vecIn1, float sclIn1);
-
-void swap_var(float &d1, float &d2);
+#include "estimator_utilities.h"
 
 const unsigned int n_states = 23;
 const unsigned int data_buffer_size = 50;
-
-enum GPS_FIX {
-    GPS_FIX_NOFIX = 0,
-    GPS_FIX_2D = 2,
-    GPS_FIX_3D = 3
-};
-
-struct ekf_status_report {
-    bool velHealth;
-    bool posHealth;
-    bool hgtHealth;
-    bool velTimeout;
-    bool posTimeout;
-    bool hgtTimeout;
-    uint32_t velFailTime;
-    uint32_t posFailTime;
-    uint32_t hgtFailTime;
-    float states[n_states];
-    bool statesNaN;
-    bool covarianceNaN;
-    bool kalmanGainsNaN;
-};
 
 class AttPosEKF {
 
@@ -141,7 +75,7 @@ public:
         accelProcessNoise = 0.5f;
     }
 
-    struct {
+    struct mag_state_struct {
         unsigned obsIndex;
         float MagPred[3];
         float SH_MAG[9];
@@ -157,7 +91,12 @@ public:
         float magZbias;
         float R_MAG;
         Mat3f DCM;
-    } magstate;
+    };
+
+    struct mag_state_struct magstate;
+    struct mag_state_struct resetMagState;
+
+
 
 
     // Global variables
@@ -166,6 +105,7 @@ public:
     float P[n_states][n_states]; // covariance matrix
     float Kfusion[n_states]; // Kalman gains
     float states[n_states]; // state matrix
+    float resetStates[n_states];
     float storedStates[n_states][data_buffer_size]; // state vectors stored for the last 50 time steps
     uint32_t statetimeStamp[data_buffer_size]; // time stamp for each state vector stored
 
@@ -183,6 +123,8 @@ public:
     float accNavMag; // magnitude of navigation accel (- used to adjust GPS obs variance (m/s^2)
     Vector3f earthRateNED; // earths angular rate vector in NED (rad/s)
     Vector3f angRate; // angular rate vector in XYZ body axes measured by the IMU (rad/s)
+    Vector3f lastGyroOffset;    // Last gyro offset
+    Vector3f delAngTotal;
 
     Mat3f Tbn; // transformation matrix from body to NED coordinates
     Mat3f Tnb; // transformation amtrix from NED to body coordinates
@@ -196,11 +138,11 @@ public:
     float varInnovVelPos[6]; // innovation variance output
 
     float velNED[3]; // North, East, Down velocity obs (m/s)
+    float accelGPSNED[3];   // Acceleration predicted by GPS in earth frame
     float posNE[2]; // North, East position obs (m)
     float hgtMea; //  measured height (m)
     float baroHgtOffset;        ///< the baro (weather) offset from normalized altitude
     float rngMea; // Ground distance
-    float posNED[3]; // North, East Down position (m)
 
     float innovMag[3]; // innovation output
     float varInnovMag[3]; // innovation variance output
@@ -242,6 +184,9 @@ public:
     bool useAirspeed;    ///< boolean true if airspeed data is being used
     bool useCompass;    ///< boolean true if magnetometer data is being used
     bool useRangeFinder;     ///< true when rangefinder is being used
+
+    bool ekfDiverged;
+    uint64_t lastReset;
 
     struct ekf_status_report current_ekf_state;
     struct ekf_status_report last_ekf_error;
@@ -299,9 +244,9 @@ static void quat2eul(float (&eul)[3], const float (&quat)[4]);
 
 static void calcvelNED(float (&velNED)[3], float gpsCourse, float gpsGndSpd, float gpsVelD);
 
-static void calcposNED(float (&posNED)[3], double lat, double lon, float hgt, double latRef, double lonRef, float hgtRef);
+void calcposNED(float (&posNED)[3], double lat, double lon, float hgt, double latRef, double lonRef, float hgtRef);
 
-static void calcLLH(float posNED[3], float &lat, float &lon, float &hgt, float latRef, float lonRef, float hgtRef);
+static void calcLLH(float posNED[3], double &lat, double &lon, float &hgt, double latRef, double lonRef, float hgtRef);
 
 static void quat2Tnb(Mat3f &Tnb, const float (&quat)[4]);
 
@@ -321,7 +266,7 @@ void ConstrainStates();
 
 void ForceSymmetry();
 
-int CheckAndBound();
+int CheckAndBound(struct ekf_status_report *last_error);
 
 void ResetPosition();
 
@@ -333,14 +278,17 @@ void GetFilterState(struct ekf_status_report *state);
 
 void GetLastErrorState(struct ekf_status_report *last_error);
 
-bool StatesNaN(struct ekf_status_report *err_report);
-void FillErrorReport(struct ekf_status_report *err);
+bool StatesNaN();
 
 void InitializeDynamic(float (&initvelNED)[3], float declination);
 
 protected:
 
 bool FilterHealthy();
+
+bool GyroOffsetsDiverged();
+
+bool VelNEDDiverged();
 
 void ResetHeight(void);
 

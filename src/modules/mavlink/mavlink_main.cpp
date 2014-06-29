@@ -197,13 +197,14 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 
 			if (buf_free < desired) {
 				/* we don't want to send anything just in half, so return */
+				instance->count_txerr();
 				return;
 			}
 		}
 
 		ssize_t ret = write(uart, ch, desired);
 		if (ret != desired) {
-			// XXX overflow perf
+			instance->count_txerr();
 		} else {
 			last_write_success_times[(unsigned)channel] = last_write_try_times[(unsigned)channel];
 		}
@@ -249,7 +250,8 @@ Mavlink::Mavlink() :
 	_param_use_hil_gps(0),
 
 /* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink"))
+	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
+	_txerr_perf(perf_alloc(PC_COUNT, "mavlink_txe"))
 {
 	_wpm = &_wpm_s;
 	mission.count = 0;
@@ -302,6 +304,7 @@ Mavlink::Mavlink() :
 Mavlink::~Mavlink()
 {
 	perf_free(_loop_perf);
+	perf_free(_txerr_perf);
 
 	if (_task_running) {
 		/* task wakes up every 10ms or so at the longest */
@@ -324,6 +327,12 @@ Mavlink::~Mavlink()
 	}
 
 	LL_DELETE(_mavlink_instances, this);
+}
+
+void
+Mavlink::count_txerr()
+{
+	perf_count(_txerr_perf);
 }
 
 void
@@ -2193,11 +2202,20 @@ int Mavlink::start_helper(int argc, char *argv[])
 	/* create the instance in task context */
 	Mavlink *instance = new Mavlink();
 
-	/* this will actually only return once MAVLink exits */
-	int res = instance->task_main(argc, argv);
+	int res;
 
-	/* delete instance on main thread end */
-	delete instance;
+	if (!instance) {
+
+		/* out of memory */
+		res = -ENOMEM;
+		warnx("OUT OF MEM");
+	} else {
+		/* this will actually only return once MAVLink exits */
+		res = instance->task_main(argc, argv);
+
+		/* delete instance on main thread end */
+		delete instance;
+	}
 
 	return res;
 }

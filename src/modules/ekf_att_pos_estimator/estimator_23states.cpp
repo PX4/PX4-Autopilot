@@ -1,143 +1,9 @@
-#include "estimator.h"
+#include "estimator_23states.h"
 #include <string.h>
+#include <stdio.h>
 #include <stdarg.h>
 
-// Define EKF_DEBUG here to enable the debug print calls
-// if the macro is not set, these will be completely
-// optimized out by the compiler.
-//#define EKF_DEBUG
-
-#ifdef EKF_DEBUG
-#include <stdio.h>
-
-static void
-ekf_debug_print(const char *fmt, va_list args)
-{
-    fprintf(stderr, "%s: ", "[ekf]");
-    vfprintf(stderr, fmt, args);
-
-    fprintf(stderr, "\n");
-}
-
-static void
-ekf_debug(const char *fmt, ...)
-{
-    va_list args;
-
-    va_start(args, fmt);
-    ekf_debug_print(fmt, args);
-}
-
-#else
-
-static void ekf_debug(const char *fmt, ...) { while(0){} }
-#endif
-
-float Vector3f::length(void) const
-{
-    return sqrt(x*x + y*y + z*z);
-}
-
-void Vector3f::zero(void)
-{
-    x = 0.0f;
-    y = 0.0f;
-    z = 0.0f;
-}
-
-Mat3f::Mat3f() {
-    identity();
-}
-
-void Mat3f::identity() {
-    x.x = 1.0f;
-    x.y = 0.0f;
-    x.z = 0.0f;
-
-    y.x = 0.0f;
-    y.y = 1.0f;
-    y.z = 0.0f;
-
-    z.x = 0.0f;
-    z.y = 0.0f;
-    z.z = 1.0f;
-}
-
-Mat3f Mat3f::transpose(void) const
-{
-    Mat3f ret = *this;
-    swap_var(ret.x.y, ret.y.x);
-    swap_var(ret.x.z, ret.z.x);
-    swap_var(ret.y.z, ret.z.y);
-    return ret;
-}
-
-// overload + operator to provide a vector addition
-Vector3f operator+( Vector3f vecIn1, Vector3f vecIn2)
-{
-    Vector3f vecOut;
-    vecOut.x = vecIn1.x + vecIn2.x;
-    vecOut.y = vecIn1.y + vecIn2.y;
-    vecOut.z = vecIn1.z + vecIn2.z;
-    return vecOut;
-}
-
-// overload - operator to provide a vector subtraction
-Vector3f operator-( Vector3f vecIn1, Vector3f vecIn2)
-{
-    Vector3f vecOut;
-    vecOut.x = vecIn1.x - vecIn2.x;
-    vecOut.y = vecIn1.y - vecIn2.y;
-    vecOut.z = vecIn1.z - vecIn2.z;
-    return vecOut;
-}
-
-// overload * operator to provide a matrix vector product
-Vector3f operator*( Mat3f matIn, Vector3f vecIn)
-{
-    Vector3f vecOut;
-    vecOut.x = matIn.x.x*vecIn.x + matIn.x.y*vecIn.y + matIn.x.z*vecIn.z;
-    vecOut.y = matIn.y.x*vecIn.x + matIn.y.y*vecIn.y + matIn.y.z*vecIn.z;
-    vecOut.z = matIn.x.x*vecIn.x + matIn.z.y*vecIn.y + matIn.z.z*vecIn.z;
-    return vecOut;
-}
-
-// overload % operator to provide a vector cross product
-Vector3f operator%( Vector3f vecIn1, Vector3f vecIn2)
-{
-    Vector3f vecOut;
-    vecOut.x = vecIn1.y*vecIn2.z - vecIn1.z*vecIn2.y;
-    vecOut.y = vecIn1.z*vecIn2.x - vecIn1.x*vecIn2.z;
-    vecOut.z = vecIn1.x*vecIn2.y - vecIn1.y*vecIn2.x;
-    return vecOut;
-}
-
-// overload * operator to provide a vector scaler product
-Vector3f operator*(Vector3f vecIn1, float sclIn1)
-{
-    Vector3f vecOut;
-    vecOut.x = vecIn1.x * sclIn1;
-    vecOut.y = vecIn1.y * sclIn1;
-    vecOut.z = vecIn1.z * sclIn1;
-    return vecOut;
-}
-
-// overload * operator to provide a vector scaler product
-Vector3f operator*(float sclIn1, Vector3f vecIn1)
-{
-    Vector3f vecOut;
-    vecOut.x = vecIn1.x * sclIn1;
-    vecOut.y = vecIn1.y * sclIn1;
-    vecOut.z = vecIn1.z * sclIn1;
-    return vecOut;
-}
-
-void swap_var(float &d1, float &d2)
-{
-    float tmp = d1;
-    d1 = d2;
-    d2 = tmp;
-}
+#define EKF_COVARIANCE_DIVERGED 1.0e8f
 
 AttPosEKF::AttPosEKF()
 
@@ -145,7 +11,42 @@ AttPosEKF::AttPosEKF()
      * instead to allow clean in-air re-initialization.
      */
 {
+    summedDelAng.zero();
+    summedDelVel.zero();
 
+    fusionModeGPS = 0;
+    fuseVelData = false;
+    fusePosData = false;
+    fuseHgtData = false;
+    fuseMagData = false;
+    fuseVtasData = false;
+    onGround = true;
+    staticMode = true;
+    useAirspeed = true;
+    useCompass = true;
+    useRangeFinder = true;
+    numericalProtection = true;
+    refSet = false;
+    storeIndex = 0;
+    gpsHgt = 0.0f;
+    baroHgt = 0.0f;
+    GPSstatus = 0;
+    VtasMeas = 0.0f;
+    magDeclination = 0.0f;
+    dAngIMU.zero();
+    dVelIMU.zero();
+    velNED[0] = 0.0f;
+    velNED[1] = 0.0f;
+    velNED[2] = 0.0f;
+    accelGPSNED[0] = 0.0f;
+    accelGPSNED[1] = 0.0f;
+    accelGPSNED[2] = 0.0f;
+    delAngTotal.zero();
+    ekfDiverged = false;
+    lastReset = 0;
+
+    memset(&last_ekf_error, 0, sizeof(last_ekf_error));
+    memset(&current_ekf_state, 0, sizeof(current_ekf_state));
     ZeroVariables();
     InitialiseParameters();
 }
@@ -181,6 +82,10 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
     dVelIMU.y = dVelIMU.y;
     dVelIMU.z = dVelIMU.z - states[13];
 
+    delAngTotal.x += correctedDelAng.x;
+    delAngTotal.y += correctedDelAng.y;
+    delAngTotal.z += correctedDelAng.z;
+
 // Save current measurements
     Vector3f  prevDelAng = correctedDelAng;
 
@@ -199,8 +104,12 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
     }
     else
     {
-        deltaQuat[0] = cosf(0.5f*rotationMag);
-        float rotScaler = (sinf(0.5f*rotationMag))/rotationMag;
+        // We are using double here as we are unsure how small
+        // the angle differences are and if we get into numeric
+        // issues with float. The runtime impact is not measurable
+        // for these quantities.
+        deltaQuat[0] = cos(0.5*(double)rotationMag);
+        float rotScaler = (sin(0.5*(double)rotationMag))/(double)rotationMag;
         deltaQuat[1] = correctedDelAng.x*rotScaler;
         deltaQuat[2] = correctedDelAng.y*rotScaler;
         deltaQuat[3] = correctedDelAng.z*rotScaler;
@@ -312,7 +221,8 @@ void AttPosEKF::CovariancePrediction(float dt)
     float nextP[n_states][n_states];
 
     // calculate covariance prediction process noise
-    for (uint8_t i= 0; i<=9;  i++) processNoise[i] = 1.0e-9f;
+    for (uint8_t i= 0; i<4;  i++) processNoise[i] = 1.0e-9f;
+    for (uint8_t i= 4; i<10;  i++) processNoise[i] = 1.0e-9f;
     for (uint8_t i=10; i<=12; i++) processNoise[i] = dt * dAngBiasSigma;
     // scale gyro bias noise when on ground to allow for faster bias estimation
     for (uint8_t i=10; i<=12; i++) processNoise[i] = dt * dAngBiasSigma;
@@ -977,20 +887,20 @@ void AttPosEKF::CovariancePrediction(float dt)
         // propagate
         for (unsigned i = 0; i <= 13; i++) {
             P[i][i] = nextP[i][i];
+        }
 
-            // force symmetry for observable states
-            // force zero for non-observable states
-            for (unsigned i = 1; i < n_states; i++)
+        // force symmetry for observable states
+        // force zero for non-observable states
+        for (unsigned i = 1; i < n_states; i++)
+        {
+            for (uint8_t j = 0; j < i; j++)
             {
-                for (uint8_t j = 0; j < i; j++)
-                {
-                    if ((i > 13) || (j > 13)) {
-                        P[i][j] = 0.0f;
-                    } else {
-                        P[i][j] = 0.5f * (nextP[i][j] + nextP[j][i]);
-                    }
-                    P[j][i] = P[i][j];
+                if ((i > 13) || (j > 13)) {
+                    P[i][j] = 0.0f;
+                } else {
+                    P[i][j] = 0.5f * (nextP[i][j] + nextP[j][i]);
                 }
+                P[j][i] = P[i][j];
             }
         }
 
@@ -1020,9 +930,9 @@ void AttPosEKF::FuseVelposNED()
 {
 
 // declare variables used by fault isolation logic
-    uint32_t gpsRetryTime = 30000; // time in msec before GPS fusion will be retried following innovation consistency failure
-    uint32_t gpsRetryTimeNoTAS = 5000; // retry time if no TAS measurement available
-    uint32_t hgtRetryTime = 5000; // height measurement retry time
+    uint32_t gpsRetryTime = 3000; // time in msec before GPS fusion will be retried following innovation consistency failure
+    uint32_t gpsRetryTimeNoTAS = 500; // retry time if no TAS measurement available
+    uint32_t hgtRetryTime = 500; // height measurement retry time
     uint32_t horizRetryTime;
 
 // declare variables used to check measurement errors
@@ -1178,7 +1088,7 @@ void AttPosEKF::FuseVelposNED()
                 stateIndex = 4 + obsIndex;
                 // Calculate the measurement innovation, using states from a
                 // different time coordinate if fusing height data
-                if (obsIndex >= 0 && obsIndex <= 2)
+                if (obsIndex <= 2)
                 {
                     innovVelPos[obsIndex] = statesAtVelTime[stateIndex] - observation[obsIndex];
                 }
@@ -1193,7 +1103,7 @@ void AttPosEKF::FuseVelposNED()
                 // Calculate the Kalman Gain
                 // Calculate innovation variances - also used for data logging
                 varInnovVelPos[obsIndex] = P[stateIndex][stateIndex] + R_OBS[obsIndex];
-                SK = 1.0/varInnovVelPos[obsIndex];
+                SK = 1.0/(double)varInnovVelPos[obsIndex];
                 for (uint8_t i= 0; i<=indexLimit; i++)
                 {
                     Kfusion[i] = P[i][stateIndex]*SK;
@@ -1277,7 +1187,7 @@ void AttPosEKF::FuseMagnetometer()
 // data fit is the only assumption we can make
 // so we might as well take advantage of the computational efficiencies
 // associated with sequential fusion
-    if (useCompass && (fuseMagData || obsIndex == 1 || obsIndex == 2))
+    if (useCompass && fuseMagData && (obsIndex < 3))
     {
         // Limit range of states modified when on ground
         if(!onGround)
@@ -1293,7 +1203,7 @@ void AttPosEKF::FuseMagnetometer()
         // three prediction time steps.
 
         // Calculate observation jacobians and Kalman gains
-        if (fuseMagData)
+        if (obsIndex == 0)
         {
             // Copy required states to local variable names
             q0       = statesAtMagMeasTime[0];
@@ -1388,11 +1298,6 @@ void AttPosEKF::FuseMagnetometer()
             Kfusion[22] = SK_MX[0]*(P[22][19] + P[22][1]*SH_MAG[0] + P[22][3]*SH_MAG[2] + P[22][0]*SK_MX[3] - P[22][2]*SK_MX[2] - P[22][16]*SK_MX[1] + P[22][17]*SK_MX[5] - P[22][18]*SK_MX[4]);
             varInnovMag[0] = 1.0f/SK_MX[0];
             innovMag[0] = MagPred[0] - magData.x;
-
-            // reset the observation index to 0 (we start by fusing the X
-            // measurement)
-            obsIndex = 0;
-            fuseMagData = false;
         }
         else if (obsIndex == 1) // we are now fusing the Y measurement
         {
@@ -1508,7 +1413,7 @@ void AttPosEKF::FuseMagnetometer()
         }
 
         // Check the innovation for consistency and don't fuse if > 5Sigma
-        if ((innovMag[obsIndex]*innovMag[obsIndex]/varInnovMag[obsIndex]) < 25.0)
+        if ((innovMag[obsIndex]*innovMag[obsIndex]/varInnovMag[obsIndex]) < 25.0f)
         {
             // correct the state vector
             for (uint8_t j= 0; j < indexLimit; j++)
@@ -1517,7 +1422,7 @@ void AttPosEKF::FuseMagnetometer()
             }
             // normalise the quaternion states
             float quatMag = sqrt(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
-            if (quatMag > 1e-12)
+            if (quatMag > 1e-12f)
             {
                 for (uint8_t j= 0; j<=3; j++)
                 {
@@ -1612,7 +1517,7 @@ void AttPosEKF::FuseAirspeed()
         SH_TAS[0] = 1/(sqrt(sq(ve - vwe) + sq(vn - vwn) + sq(vd)));
         SH_TAS[1] = (SH_TAS[0]*(2.0f*ve - 2*vwe))/2.0f;
         SH_TAS[2] = (SH_TAS[0]*(2.0f*vn - 2*vwn))/2.0f;
-        
+
         float H_TAS[n_states];
         for (uint8_t i = 0; i < n_states; i++) H_TAS[i] = 0.0f;
         H_TAS[4] = SH_TAS[2];
@@ -1661,7 +1566,7 @@ void AttPosEKF::FuseAirspeed()
         // Calculate the measurement innovation
         innovVtas = VtasPred - VtasMeas;
         // Check the innovation for consistency and don't fuse if > 5Sigma
-        if ((innovVtas*innovVtas*SK_TAS) < 25.0)
+        if ((innovVtas*innovVtas*SK_TAS) < 25.0f)
         {
             // correct the state vector
             for (uint8_t j=0; j <= 22; j++)
@@ -1758,7 +1663,7 @@ void AttPosEKF::FuseRangeFinder()
 
     // Need to check that our range finder tilt angle is less than 30 degrees and we are using range finder data
     SH_RNG[4] = sin(rngFinderPitch);
-    cosRngTilt = - Tbn.z.x * SH_RNG[4] + Tbn.z.z * cos(rngFinderPitch);
+    cosRngTilt = - Tbn.z.x * SH_RNG[4] + Tbn.z.z * cosf(rngFinderPitch);
     if (useRangeFinder && cosRngTilt > 0.87f)
     {
         // Calculate observation jacobian and Kalman gain ignoring all states other than the terrain offset
@@ -1855,21 +1760,21 @@ int AttPosEKF::RecallStates(float* statesForFusion, uint64_t msec)
 
     int64_t bestTimeDelta = 200;
     unsigned bestStoreIndex = 0;
-    for (unsigned storeIndex = 0; storeIndex < data_buffer_size; storeIndex++)
+    for (unsigned storeIndexLocal = 0; storeIndexLocal < data_buffer_size; storeIndexLocal++)
     {
         // Work around a GCC compiler bug - we know 64bit support on ARM is
         // sketchy in GCC.
         uint64_t timeDelta;
 
-        if (msec > statetimeStamp[storeIndex]) {
-            timeDelta = msec - statetimeStamp[storeIndex];
+        if (msec > statetimeStamp[storeIndexLocal]) {
+            timeDelta = msec - statetimeStamp[storeIndexLocal];
         } else {
-            timeDelta = statetimeStamp[storeIndex] - msec;
+            timeDelta = statetimeStamp[storeIndexLocal] - msec;
         }
 
-        if (timeDelta < bestTimeDelta)
+        if (timeDelta < (uint64_t)bestTimeDelta)
         {
-            bestStoreIndex = storeIndex;
+            bestStoreIndex = storeIndexLocal;
             bestTimeDelta = timeDelta;
         }
     }
@@ -1926,7 +1831,7 @@ void AttPosEKF::quat2Tnb(Mat3f &Tnb, const float (&quat)[4])
     Tnb.y.z = 2*(q23 + q01);
 }
 
-void AttPosEKF::quat2Tbn(Mat3f &Tbn, const float (&quat)[4])
+void AttPosEKF::quat2Tbn(Mat3f &Tbn_ret, const float (&quat)[4])
 {
     // Calculate the body to nav cosine matrix
     float q00 = sq(quat[0]);
@@ -1940,15 +1845,15 @@ void AttPosEKF::quat2Tbn(Mat3f &Tbn, const float (&quat)[4])
     float q13 =  quat[1]*quat[3];
     float q23 =  quat[2]*quat[3];
 
-    Tbn.x.x = q00 + q11 - q22 - q33;
-    Tbn.y.y = q00 - q11 + q22 - q33;
-    Tbn.z.z = q00 - q11 - q22 + q33;
-    Tbn.x.y = 2*(q12 - q03);
-    Tbn.x.z = 2*(q13 + q02);
-    Tbn.y.x = 2*(q12 + q03);
-    Tbn.y.z = 2*(q23 - q01);
-    Tbn.z.x = 2*(q13 - q02);
-    Tbn.z.y = 2*(q23 + q01);
+    Tbn_ret.x.x = q00 + q11 - q22 - q33;
+    Tbn_ret.y.y = q00 - q11 + q22 - q33;
+    Tbn_ret.z.z = q00 - q11 - q22 + q33;
+    Tbn_ret.x.y = 2*(q12 - q03);
+    Tbn_ret.x.z = 2*(q13 + q02);
+    Tbn_ret.y.x = 2*(q12 + q03);
+    Tbn_ret.y.z = 2*(q23 - q01);
+    Tbn_ret.z.x = 2*(q13 - q02);
+    Tbn_ret.z.y = 2*(q23 + q01);
 }
 
 void AttPosEKF::eul2quat(float (&quat)[4], const float (&eul)[3])
@@ -1979,17 +1884,17 @@ void AttPosEKF::calcvelNED(float (&velNED)[3], float gpsCourse, float gpsGndSpd,
     velNED[2] = gpsVelD;
 }
 
-void AttPosEKF::calcposNED(float (&posNED)[3], double lat, double lon, float hgt, double latRef, double lonRef, float hgtRef)
+void AttPosEKF::calcposNED(float (&posNED)[3], double lat, double lon, float hgt, double latReference, double lonReference, float hgtReference)
 {
-    posNED[0] = earthRadius * (lat - latRef);
-    posNED[1] = earthRadius * cos(latRef) * (lon - lonRef);
-    posNED[2] = -(hgt - hgtRef);
+    posNED[0] = earthRadius * (lat - latReference);
+    posNED[1] = earthRadius * cos(latReference) * (lon - lonReference);
+    posNED[2] = -(hgt - hgtReference);
 }
 
-void AttPosEKF::calcLLH(float posNED[3], float &lat, float &lon, float &hgt, float latRef, float lonRef, float hgtRef)
+void AttPosEKF::calcLLH(float posNED[3], double &lat, double &lon, float &hgt, double latRef, double lonRef, float hgtRef)
 {
-    lat = latRef + posNED[0] * earthRadiusInv;
-    lon = lonRef + posNED[1] * earthRadiusInv / cos(latRef);
+    lat = latRef + (double)posNED[0] * earthRadiusInv;
+    lon = lonRef + (double)posNED[1] * earthRadiusInv / cos(latRef);
     hgt = hgtRef - posNED[2];
 }
 
@@ -2194,8 +2099,69 @@ void AttPosEKF::ForceSymmetry()
         {
             P[i][j] = 0.5f * (P[i][j] + P[j][i]);
             P[j][i] = P[i][j];
+
+            if ((fabsf(P[i][j]) > EKF_COVARIANCE_DIVERGED) ||
+                (fabsf(P[j][i]) > EKF_COVARIANCE_DIVERGED)) {
+                current_ekf_state.covariancesExcessive = true;
+                current_ekf_state.error |= true;
+                InitializeDynamic(velNED, magDeclination);
+                return;
+            }
+
+            float symmetric = 0.5f * (P[i][j] + P[j][i]);
+            P[i][j] = symmetric;
+            P[j][i] = symmetric;
         }
     }
+}
+
+bool AttPosEKF::GyroOffsetsDiverged()
+{
+    // Detect divergence by looking for rapid changes of the gyro offset
+    Vector3f current_bias;
+    current_bias.x = states[10];
+    current_bias.y = states[11];
+    current_bias.z = states[12];
+
+    Vector3f delta = current_bias - lastGyroOffset;
+    float delta_len = delta.length();
+    float delta_len_scaled = 0.0f;
+
+    // Protect against division by zero
+    if (delta_len > 0.0f) {
+        float cov_mag = ConstrainFloat((P[10][10] + P[11][11] + P[12][12]), 1e-12f, 1e-8f);
+        delta_len_scaled = (5e-7 / (double)cov_mag) * (double)delta_len / (double)dtIMU;
+    }
+
+    bool diverged = (delta_len_scaled > 1.0f);
+    lastGyroOffset = current_bias;
+    current_ekf_state.error |= diverged;
+    current_ekf_state.gyroOffsetsExcessive = diverged;
+
+    return diverged;
+}
+
+bool AttPosEKF::VelNEDDiverged()
+{
+    Vector3f current_vel;
+    current_vel.x = states[4];
+    current_vel.y = states[5];
+    current_vel.z = states[6];
+
+    Vector3f gps_vel;
+    gps_vel.x = velNED[0];
+    gps_vel.y = velNED[1];
+    gps_vel.z = velNED[2];
+
+    Vector3f delta = current_vel - gps_vel;
+    float delta_len = delta.length();
+
+    bool excessive = (delta_len > 20.0f);
+
+    current_ekf_state.error |= excessive;
+    current_ekf_state.velOffsetExcessive = excessive;
+
+    return excessive;
 }
 
 bool AttPosEKF::FilterHealthy()
@@ -2262,42 +2228,26 @@ void AttPosEKF::ResetVelocity(void)
     }
 }
 
-
-void AttPosEKF::FillErrorReport(struct ekf_status_report *err)
-{
-    for (unsigned i = 0; i < n_states; i++)
-    {
-        err->states[i] = states[i];
-    }
-
-    err->velHealth = current_ekf_state.velHealth;
-    err->posHealth = current_ekf_state.posHealth;
-    err->hgtHealth = current_ekf_state.hgtHealth;
-    err->velTimeout = current_ekf_state.velTimeout;
-    err->posTimeout = current_ekf_state.posTimeout;
-    err->hgtTimeout = current_ekf_state.hgtTimeout;
-}
-
-bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
+bool AttPosEKF::StatesNaN() {
     bool err = false;
 
     // check all integrators
     if (!isfinite(summedDelAng.x) || !isfinite(summedDelAng.y) || !isfinite(summedDelAng.z)) {
-        err_report->statesNaN = true;
+        current_ekf_state.angNaN = true;
         ekf_debug("summedDelAng NaN: x: %f y: %f z: %f", (double)summedDelAng.x, (double)summedDelAng.y, (double)summedDelAng.z);
         err = true;
         goto out;
     } // delta angles
 
     if (!isfinite(correctedDelAng.x) || !isfinite(correctedDelAng.y) || !isfinite(correctedDelAng.z)) {
-        err_report->statesNaN = true;
+        current_ekf_state.angNaN = true;
         ekf_debug("correctedDelAng NaN: x: %f y: %f z: %f", (double)correctedDelAng.x, (double)correctedDelAng.y, (double)correctedDelAng.z);
         err = true;
         goto out;
     } // delta angles
 
     if (!isfinite(summedDelVel.x) || !isfinite(summedDelVel.y) || !isfinite(summedDelVel.z)) {
-        err_report->statesNaN = true;
+        current_ekf_state.summedDelVelNaN = true;
         ekf_debug("summedDelVel NaN: x: %f y: %f z: %f", (double)summedDelVel.x, (double)summedDelVel.y, (double)summedDelVel.z);
         err = true;
         goto out;
@@ -2308,7 +2258,7 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
         for (unsigned j = 0; j < n_states; j++) {
             if (!isfinite(KH[i][j])) {
 
-                err_report->covarianceNaN = true;
+                current_ekf_state.KHNaN = true;
                 err = true;
                 ekf_debug("KH NaN");
                 goto out;
@@ -2316,7 +2266,7 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
 
             if (!isfinite(KHP[i][j])) {
 
-                err_report->covarianceNaN = true;
+                current_ekf_state.KHPNaN = true;
                 err = true;
                 ekf_debug("KHP NaN");
                 goto out;
@@ -2324,7 +2274,7 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
 
             if (!isfinite(P[i][j])) {
 
-                err_report->covarianceNaN = true;
+                current_ekf_state.covarianceNaN = true;
                 err = true;
                 ekf_debug("P NaN");
             } // covariance matrix
@@ -2332,7 +2282,7 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
 
         if (!isfinite(Kfusion[i])) {
 
-            err_report->kalmanGainsNaN = true;
+            current_ekf_state.kalmanGainsNaN = true;
             ekf_debug("Kfusion NaN");
             err = true;
             goto out;
@@ -2340,7 +2290,7 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
 
         if (!isfinite(states[i])) {
 
-            err_report->statesNaN = true;
+            current_ekf_state.statesNaN = true;
             ekf_debug("states NaN: i: %u val: %f", i, (double)states[i]);
             err = true;
             goto out;
@@ -2349,7 +2299,7 @@ bool AttPosEKF::StatesNaN(struct ekf_status_report *err_report) {
 
 out:
     if (err) {
-        FillErrorReport(err_report);
+        current_ekf_state.error |= true;
     }
 
     return err;
@@ -2365,47 +2315,105 @@ out:
  * updated, but before any of the fusion steps are
  * executed.
  */
-int AttPosEKF::CheckAndBound()
+int AttPosEKF::CheckAndBound(struct ekf_status_report *last_error)
 {
 
     // Store the old filter state
     bool currStaticMode = staticMode;
 
+    // Limit reset rate to 5 Hz to allow the filter
+    // to settle
+    if (millis() - lastReset < 200) {
+        return 0;
+    }
+
+    if (ekfDiverged) {
+        ekfDiverged = false;
+    }
+
+    int ret = 0;
+
+    // Check if we're on ground - this also sets static mode.
+    OnGroundCheck();
+
     // Reset the filter if the states went NaN
-    if (StatesNaN(&last_ekf_error)) {
+    if (StatesNaN()) {
         ekf_debug("re-initializing dynamic");
 
-        InitializeDynamic(velNED, magDeclination);
+        // Reset and fill error report
+	    InitializeDynamic(velNED, magDeclination);
 
-        return 1;
+        ret = 1;
     }
 
     // Reset the filter if the IMU data is too old
     if (dtIMU > 0.3f) {
 
+        current_ekf_state.imuTimeout = true;
+
+        // Fill error report
+        GetFilterState(&last_ekf_error);
+
         ResetVelocity();
         ResetPosition();
         ResetHeight();
         ResetStoredStates();
 
-        // that's all we can do here, return
-        return 2;
-    }
+        // Timeout cleared with this reset
+        current_ekf_state.imuTimeout = false;
 
-    // Check if we're on ground - this also sets static mode.
-    OnGroundCheck();
+        // that's all we can do here, return
+        ret = 2;
+    }
 
     // Check if we switched between states
     if (currStaticMode != staticMode) {
+        // Fill error report, but not setting error flag
+        GetFilterState(&last_ekf_error);
+
         ResetVelocity();
         ResetPosition();
         ResetHeight();
         ResetStoredStates();
 
-        return 3;
+        ret = 3;
     }
 
-    return 0;
+    // Reset the filter if gyro offsets are excessive
+    if (GyroOffsetsDiverged()) {
+
+        // Reset and fill error report
+        InitializeDynamic(velNED, magDeclination);
+
+        // that's all we can do here, return
+        ret = 4;
+    }
+
+    // Reset the filter if it diverges too far from GPS
+    if (VelNEDDiverged()) {
+
+        // Reset and fill error report
+        InitializeDynamic(velNED, magDeclination);
+
+        // that's all we can do here, return
+        ret = 5;
+    }
+
+    // The excessive covariance detection already
+    // reset the filter. Just need to report here.
+    if (last_ekf_error.covariancesExcessive) {
+        ret = 6;
+    }
+
+    if (ret) {
+        ekfDiverged = true;
+        lastReset = millis();
+
+        // This reads the last error and clears it
+        GetLastErrorState(last_error);
+    }
+
+    return ret;
 }
 
 void AttPosEKF::AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, float declination, float *initQuat)
@@ -2456,6 +2464,30 @@ void AttPosEKF::AttitudeInit(float ax, float ay, float az, float mx, float my, f
 
 void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
 {
+    if (current_ekf_state.error) {
+        GetFilterState(&last_ekf_error);
+    }
+
+    ZeroVariables();
+
+    // Reset error states
+    current_ekf_state.error = false;
+    current_ekf_state.angNaN = false;
+    current_ekf_state.summedDelVelNaN = false;
+    current_ekf_state.KHNaN = false;
+    current_ekf_state.KHPNaN = false;
+    current_ekf_state.PNaN = false;
+    current_ekf_state.covarianceNaN = false;
+    current_ekf_state.kalmanGainsNaN = false;
+    current_ekf_state.statesNaN = false;
+
+    current_ekf_state.velHealth = true;
+    //current_ekf_state.posHealth = ?;
+    //current_ekf_state.hgtHealth = ?;
+    
+    current_ekf_state.velTimeout = false;
+    //current_ekf_state.posTimeout = ?;
+    //current_ekf_state.hgtTimeout = ?;
 
     // Fill variables with valid data
     velNED[0] = initvelNED[0];
@@ -2494,7 +2526,11 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
     // write to state vector
     for (uint8_t j=0; j<=3; j++) states[j] = initQuat[j]; // quaternions
     for (uint8_t j=4; j<=6; j++) states[j] = initvelNED[j-4]; // velocities
-    for (uint8_t j=7; j<=15; j++) states[j] = 0.0f; // positions, dAngBias, dVelBias, windVel
+    // positions:
+    states[7] = posNE[0];
+    states[8] = posNE[1];
+    states[9] = -hgtMea;
+    for (uint8_t j=10; j<=15; j++) states[j] = 0.0f; // dAngBias, dVelBias, windVel
     states[16] = initMagNED.x; // Magnetic Field North
     states[17] = initMagNED.y; // Magnetic Field East
     states[18] = initMagNED.z; // Magnetic Field Down
@@ -2525,13 +2561,15 @@ void AttPosEKF::InitialiseFilter(float (&initvelNED)[3], double referenceLat, do
     hgtRef = referenceHgt;
     refSet = true;
 
-    // we are at reference altitude, so measurement must be zero
-    hgtMea = 0.0f;
+    // we are at reference position, so measurement must be zero
+    posNE[0] = 0.0f;
+    posNE[1] = 0.0f;
+
+    // we are at an unknown, possibly non-zero altitude - so altitude
+    // is not reset (hgtMea)
 
     // the baro offset must be this difference now
     baroHgtOffset = baroHgt - referenceHgt;
-
-    memset(&last_ekf_error, 0, sizeof(last_ekf_error));
 
     InitializeDynamic(initvelNED, declination);
 }
@@ -2540,27 +2578,8 @@ void AttPosEKF::ZeroVariables()
 {
 
     // Initialize on-init initialized variables
-    fusionModeGPS = 0;
-    covSkipCount = 0;
-    statesInitialised = false;
-    fuseVelData = false;
-    fusePosData = false;
-    fuseHgtData = false;
-    fuseMagData = false;
-    fuseVtasData = false;
-    onGround = true;
-    staticMode = true;
-    useAirspeed = true;
-    useCompass = true;
-    useRangeFinder = true;
-    numericalProtection = true;
-    refSet = false;
+
     storeIndex = 0;
-    gpsHgt = 0.0f;
-    baroHgt = 0.0f;
-    GPSstatus = 0;
-    VtasMeas = 0.0f;
-    magDeclination = 0.0f;
 
     // Do the data structure init
     for (unsigned i = 0; i < n_states; i++) {
@@ -2577,9 +2596,7 @@ void AttPosEKF::ZeroVariables()
     correctedDelAng.zero();
     summedDelAng.zero();
     summedDelVel.zero();
-
-    dAngIMU.zero();
-    dVelIMU.zero();
+    lastGyroOffset.zero();
 
     for (unsigned i = 0; i < data_buffer_size; i++) {
 
@@ -2598,12 +2615,27 @@ void AttPosEKF::ZeroVariables()
 
 }
 
-void AttPosEKF::GetFilterState(struct ekf_status_report *state)
+void AttPosEKF::GetFilterState(struct ekf_status_report *err)
 {
-    memcpy(state, &current_ekf_state, sizeof(*state));
+
+    // Copy states
+    for (unsigned i = 0; i < n_states; i++) {
+        current_ekf_state.states[i] = states[i];
+    }
+    current_ekf_state.n_states = n_states;
+
+    memcpy(err, &current_ekf_state, sizeof(*err));
+
+    // err->velHealth = current_ekf_state.velHealth;
+    // err->posHealth = current_ekf_state.posHealth;
+    // err->hgtHealth = current_ekf_state.hgtHealth;
+    // err->velTimeout = current_ekf_state.velTimeout;
+    // err->posTimeout = current_ekf_state.posTimeout;
+    // err->hgtTimeout = current_ekf_state.hgtTimeout;
 }
 
 void AttPosEKF::GetLastErrorState(struct ekf_status_report *last_error)
 {
     memcpy(last_error, &last_ekf_error, sizeof(*last_error));
+    memset(&last_ekf_error, 0, sizeof(last_ekf_error));
 }
