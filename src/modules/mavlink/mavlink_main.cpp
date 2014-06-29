@@ -83,6 +83,10 @@
 #include "mavlink_rate_limiter.h"
 #include "mavlink_commands.h"
 
+#ifndef MAVLINK_CRC_EXTRA
+ #error MAVLINK_CRC_EXTRA has to be defined on PX4 systems
+#endif
+
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
 # undef ERROR
@@ -114,6 +118,7 @@ static uint64_t last_write_try_times[6] = {0};
 void
 mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length)
 {
+
 	Mavlink *instance;
 
 	switch (channel) {
@@ -192,13 +197,14 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 
 			if (buf_free < desired) {
 				/* we don't want to send anything just in half, so return */
+				instance->count_txerr();
 				return;
 			}
 		}
 
 		ssize_t ret = write(uart, ch, desired);
 		if (ret != desired) {
-			warnx("TX FAIL");
+			instance->count_txerr();
 		} else {
 			last_write_success_times[(unsigned)channel] = last_write_try_times[(unsigned)channel];
 		}
@@ -230,6 +236,7 @@ Mavlink::Mavlink() :
 	_verbose(false),
 	_forwarding_on(false),
 	_passing_on(false),
+	_ftp_on(false),
 	_uart_fd(-1),
 	_mavlink_param_queue_index(0),
 	_subscribe_to_stream(nullptr),
@@ -243,7 +250,8 @@ Mavlink::Mavlink() :
 	_param_use_hil_gps(0),
 
 /* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink"))
+	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
+	_txerr_perf(perf_alloc(PC_COUNT, "mavlink_txe"))
 {
 	_wpm = &_wpm_s;
 	mission.count = 0;
@@ -296,6 +304,7 @@ Mavlink::Mavlink() :
 Mavlink::~Mavlink()
 {
 	perf_free(_loop_perf);
+	perf_free(_txerr_perf);
 
 	if (_task_running) {
 		/* task wakes up every 10ms or so at the longest */
@@ -318,6 +327,12 @@ Mavlink::~Mavlink()
 	}
 
 	LL_DELETE(_mavlink_instances, this);
+}
+
+void
+Mavlink::count_txerr()
+{
+	perf_count(_txerr_perf);
 }
 
 void
@@ -459,7 +474,7 @@ Mavlink::get_instance_id()
 	return _instance_id;
 }
 
-mavlink_channel_t
+const mavlink_channel_t
 Mavlink::get_channel()
 {
 	return _channel;
@@ -535,6 +550,16 @@ void Mavlink::mavlink_update_system(void)
 	param_get(_param_use_hil_gps, &use_hil_gps);
 
 	_use_hil_gps = (bool)use_hil_gps;
+}
+
+int Mavlink::get_system_id()
+{
+	return mavlink_system.sysid;
+}
+
+int Mavlink::get_component_id()
+{
+	return mavlink_system.compid;
 }
 
 int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_config_original, bool *is_usb)
@@ -899,7 +924,11 @@ int Mavlink::map_mavlink_mission_item_to_mission_item(const mavlink_mission_item
 	case MAV_CMD_NAV_TAKEOFF:
 		mission_item->pitch_min = mavlink_mission_item->param1;
 		break;
-
+	case MAV_CMD_DO_JUMP:
+		mission_item->do_jump_mission_index = mavlink_mission_item->param1;
+		mission_item->do_jump_current_count = 0;
+		mission_item->do_jump_repeat_count = mavlink_mission_item->param2;
+		break;
 	default:
 		mission_item->acceptance_radius = mavlink_mission_item->param2;
 		mission_item->time_inside = mavlink_mission_item->param1;
@@ -914,6 +943,9 @@ int Mavlink::map_mavlink_mission_item_to_mission_item(const mavlink_mission_item
 	mission_item->autocontinue = mavlink_mission_item->autocontinue;
 	// mission_item->index = mavlink_mission_item->seq;
 	mission_item->origin = ORIGIN_MAVLINK;
+
+	/* reset DO_JUMP count */
+	mission_item->do_jump_current_count = 0;
 
 	return OK;
 }
@@ -930,6 +962,11 @@ int Mavlink::map_mission_item_to_mavlink_mission_item(const struct mission_item_
 	switch (mission_item->nav_cmd) {
 	case NAV_CMD_TAKEOFF:
 		mavlink_mission_item->param1 = mission_item->pitch_min;
+		break;
+
+	case NAV_CMD_DO_JUMP:
+		mavlink_mission_item->param1 = mission_item->do_jump_mission_index;
+		mavlink_mission_item->param2 = mission_item->do_jump_repeat_count;
 		break;
 
 	default:
@@ -1619,11 +1656,21 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 int
 Mavlink::message_buffer_init(int size)
 {
+
 	_message_buffer.size = size;
 	_message_buffer.write_ptr = 0;
 	_message_buffer.read_ptr = 0;
 	_message_buffer.data = (char*)malloc(_message_buffer.size);
-	return (_message_buffer.data == 0) ? ERROR : OK;
+
+	int ret;
+	if (_message_buffer.data == 0) {
+		ret = ERROR;
+		_message_buffer.size = 0;
+	} else {
+		ret = OK;
+	}
+
+	return ret;
 }
 
 void
@@ -1751,7 +1798,7 @@ Mavlink::task_main(int argc, char *argv[])
 	 * set error flag instead */
 	bool err_flag = false;
 
-	while ((ch = getopt(argc, argv, "b:r:d:m:fpvw")) != EOF) {
+	while ((ch = getopt(argc, argv, "b:r:d:m:fpvwx")) != EOF) {
 		switch (ch) {
 		case 'b':
 			_baudrate = strtoul(optarg, NULL, 10);
@@ -1805,6 +1852,10 @@ Mavlink::task_main(int argc, char *argv[])
 
 		case 'w':
 			_wait_to_transmit = true;
+			break;
+
+		case 'x':
+			_ftp_on = true;
 			break;
 
 		default:
@@ -1872,9 +1923,12 @@ Mavlink::task_main(int argc, char *argv[])
 	mavlink_logbuffer_init(&_logbuffer, 5);
 
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
-	if (_passing_on) {
-		/* initialize message buffer if multiplexing is on */
-		if (OK != message_buffer_init(300)) {
+	if (_passing_on || _ftp_on) {
+		/* initialize message buffer if multiplexing is on or its needed for FTP.
+		 * make space for two messages plus off-by-one space as we use the empty element
+		 * marker ring buffer approach.
+		 */
+		if (OK != message_buffer_init(2 * MAVLINK_MAX_PACKET_LEN + 2)) {
 			errx(1, "can't allocate message buffer, exiting");
 		}
 
@@ -2037,32 +2091,50 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 		}
 
-		/* pass messages from other UARTs */
-		if (_passing_on) {
+		/* pass messages from other UARTs or FTP worker */
+		if (_passing_on || _ftp_on) {
 
 			bool is_part;
-			void *read_ptr;
+			uint8_t *read_ptr;
+            uint8_t *write_ptr;
 
-			/* guard get ptr by mutex */
 			pthread_mutex_lock(&_message_buffer_mutex);
-			int available = message_buffer_get_ptr(&read_ptr, &is_part);
+			int available = message_buffer_get_ptr((void**)&read_ptr, &is_part);
 			pthread_mutex_unlock(&_message_buffer_mutex);
 
 			if (available > 0) {
-				/* write first part of buffer */
-				_mavlink_resend_uart(_channel, (const mavlink_message_t*)read_ptr);
-				message_buffer_mark_read(available);
+                // Reconstruct message from buffer
+
+				mavlink_message_t msg;
+                write_ptr = (uint8_t*)&msg;
+
+                // Pull a single message from the buffer
+                int read_count = available;
+                if (read_count > sizeof(mavlink_message_t)) {
+                    read_count = sizeof(mavlink_message_t);
+                }
+                
+                memcpy(write_ptr, read_ptr, read_count);
+                
+                // We hold the mutex until after we complete the second part of the buffer. If we don't
+                // we may end up breaking the empty slot overflow detection semantics when we mark the
+                // possibly partial read below.
+                pthread_mutex_lock(&_message_buffer_mutex);
+                
+				message_buffer_mark_read(read_count);
 
 				/* write second part of buffer if there is some */
-				if (is_part) {
-					/* guard get ptr by mutex */
-					pthread_mutex_lock(&_message_buffer_mutex);
-					available = message_buffer_get_ptr(&read_ptr, &is_part);
-					pthread_mutex_unlock(&_message_buffer_mutex);
-
-					_mavlink_resend_uart(_channel, (const mavlink_message_t*)read_ptr);
+				if (is_part && read_count < sizeof(mavlink_message_t)) {
+                    write_ptr += read_count;
+					available = message_buffer_get_ptr((void**)&read_ptr, &is_part);
+                    read_count = sizeof(mavlink_message_t) - read_count;
+                    memcpy(write_ptr, read_ptr, read_count);
 					message_buffer_mark_read(available);
 				}
+                
+                pthread_mutex_unlock(&_message_buffer_mutex);
+
+                _mavlink_resend_uart(_channel, &msg);
 			}
 		}
 
@@ -2112,7 +2184,7 @@ Mavlink::task_main(int argc, char *argv[])
 	/* close mavlink logging device */
 	close(_mavlink_fd);
 
-	if (_passing_on) {
+	if (_passing_on || _ftp_on) {
 		message_buffer_destroy();
 		pthread_mutex_destroy(&_message_buffer_mutex);
 	}
@@ -2130,11 +2202,20 @@ int Mavlink::start_helper(int argc, char *argv[])
 	/* create the instance in task context */
 	Mavlink *instance = new Mavlink();
 
-	/* this will actually only return once MAVLink exits */
-	int res = instance->task_main(argc, argv);
+	int res;
 
-	/* delete instance on main thread end */
-	delete instance;
+	if (!instance) {
+
+		/* out of memory */
+		res = -ENOMEM;
+		warnx("OUT OF MEM");
+	} else {
+		/* this will actually only return once MAVLink exits */
+		res = instance->task_main(argc, argv);
+
+		/* delete instance on main thread end */
+		delete instance;
+	}
 
 	return res;
 }
@@ -2254,7 +2335,7 @@ Mavlink::stream(int argc, char *argv[])
 
 static void usage()
 {
-	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-b baudrate] [-r rate] [-m mode] [-s stream] [-f] [-p] [-v] [-w]");
+	warnx("usage: mavlink {start|stop-all|stream} [-d device] [-b baudrate]\n\t[-r rate][-m mode] [-s stream] [-f] [-p] [-v] [-w] [-x]");
 }
 
 int mavlink_main(int argc, char *argv[])

@@ -3,7 +3,7 @@
 # USB MAVLink start
 #
 
-mavlink start -r 10000 -d /dev/ttyACM0
+mavlink start -r 10000 -d /dev/ttyACM0 -x
 # Enable a number of interesting streams we want via USB
 mavlink stream -d /dev/ttyACM0 -s NAMED_VALUE_FLOAT -r 10
 usleep 100000

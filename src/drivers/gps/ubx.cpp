@@ -439,8 +439,8 @@ UBX::handle_message()
 					_gps_position->lat = packet->lat;
 					_gps_position->lon = packet->lon;
 					_gps_position->alt = packet->height_msl;
-					_gps_position->eph_m = (float)packet->hAcc * 1e-3f; // from mm to m
-					_gps_position->epv_m = (float)packet->vAcc * 1e-3f; // from mm to m
+					_gps_position->eph = (float)packet->hAcc * 1e-3f; // from mm to m
+					_gps_position->epv = (float)packet->vAcc * 1e-3f; // from mm to m
 					_gps_position->timestamp_position = hrt_absolute_time();
 
 					_rate_count_lat_lon++;

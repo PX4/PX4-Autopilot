@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,75 +31,76 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_mission.h
- * Helper class to access missions
+ * @file mission_block.h
  *
- * @author Julian Oes <joes@student.ethz.ch>
+ * Helper class to use mission items
+ *
+ * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef NAVIGATOR_MISSION_H
-#define NAVIGATOR_MISSION_H
+#ifndef NAVIGATOR_MISSION_BLOCK_H
+#define NAVIGATOR_MISSION_BLOCK_H
+
+#include <drivers/drv_hrt.h>
 
 #include <uORB/topics/mission.h>
-#include <uORB/topics/mission_result.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 
+#include "navigator_mode.h"
 
-class __EXPORT Mission
+class Navigator;
+
+class MissionBlock : public NavigatorMode
 {
 public:
 	/**
 	 * Constructor
 	 */
-	Mission();
+	MissionBlock(Navigator *navigator, const char *name);
 
 	/**
-	 * Destructor, also kills the sensors task.
+	 * Destructor
 	 */
-	~Mission();
+	virtual ~MissionBlock();
 
-	void		set_offboard_dataman_id(int new_id);
-	void		set_current_offboard_mission_index(int new_index);
-	void		set_current_onboard_mission_index(int new_index);
-	void		set_offboard_mission_count(unsigned new_count);
-	void		set_onboard_mission_count(unsigned new_count);
+	/**
+	 * Check if mission item has been reached
+	 * @return true if successfully reached
+	 */
+	bool is_mission_item_reached();
+	/**
+	 * Reset all reached flags
+	 */
+	void reset_mission_item_reached();
 
-	void		set_onboard_mission_allowed(bool allowed);
+	/**
+	 * Convert a mission item to a position setpoint
+	 *
+	 * @param the mission item to convert
+	 * @param the position setpoint that needs to be set
+	 */
+	void mission_item_to_position_setpoint(const mission_item_s *item, position_setpoint_s *sp);
 
-	bool		current_mission_available();
-	bool		next_mission_available();
+    /**
+     * Set previous position setpoint to current setpoint
+     */
+	void set_previous_pos_setpoint(struct position_setpoint_triplet_s *pos_sp_triplet);
 
-	int		get_current_mission_item(struct mission_item_s *mission_item, bool *onboard, unsigned *index);
-	int		get_next_mission_item(struct mission_item_s *mission_item);
+	/**
+	 * Set a loiter item, if possible reuse the position setpoint, otherwise take the current position
+	 *
+	 * @param the position setpoint triplet to set
+	 * @return true if setpoint has changed
+	 */
+	bool set_loiter_item(position_setpoint_triplet_s *pos_sp_triplet);
 
-	void		move_to_next();
+	bool _waypoint_position_reached;
+	bool _waypoint_yaw_reached;
+	hrt_abstime _time_first_inside_orbit;
 
-	void		report_mission_item_reached();
-	void		report_current_offboard_mission_item();
-	void		publish_mission_result();
-
-private:
-	bool		current_onboard_mission_available();
-	bool		current_offboard_mission_available();
-	bool		next_onboard_mission_available();
-	bool		next_offboard_mission_available();
-
-	int 		_offboard_dataman_id;
-	unsigned	_current_offboard_mission_index;
-	unsigned	_current_onboard_mission_index;
-	unsigned	_offboard_mission_item_count;		/** number of offboard mission items available */
-	unsigned	_onboard_mission_item_count;		/** number of onboard mission items available */
-
-	bool		_onboard_mission_allowed;
-
-	enum {
-		MISSION_TYPE_NONE,
-		MISSION_TYPE_ONBOARD,
-		MISSION_TYPE_OFFBOARD,
-	} 		_current_mission_type;
-
-	int		_mission_result_pub;
-
-	struct mission_result_s _mission_result;
+	mission_item_s _mission_item;
+	bool _mission_item_valid;
 };
 
 #endif

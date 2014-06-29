@@ -67,6 +67,7 @@ public:
 	static const char *get_name_static();
 	virtual void subscribe(Mavlink *mavlink) = 0;
 	virtual const char *get_name() const = 0;
+	virtual uint8_t get_id() = 0;
 
 protected:
 	mavlink_channel_t _channel;
