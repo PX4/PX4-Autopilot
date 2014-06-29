@@ -372,7 +372,7 @@ int test_mixer(int argc, char *argv[])
 	}
 
 	warnx("SUCCESS: No errors in mixer test");
-    return 0;
+	return 0;
 }
 
 static int
