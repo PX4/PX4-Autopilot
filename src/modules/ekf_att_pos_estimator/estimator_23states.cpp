@@ -1760,21 +1760,21 @@ int AttPosEKF::RecallStates(float* statesForFusion, uint64_t msec)
 
     int64_t bestTimeDelta = 200;
     unsigned bestStoreIndex = 0;
-    for (unsigned storeIndex = 0; storeIndex < data_buffer_size; storeIndex++)
+    for (unsigned storeIndexLocal = 0; storeIndexLocal < data_buffer_size; storeIndexLocal++)
     {
         // Work around a GCC compiler bug - we know 64bit support on ARM is
         // sketchy in GCC.
         uint64_t timeDelta;
 
-        if (msec > statetimeStamp[storeIndex]) {
-            timeDelta = msec - statetimeStamp[storeIndex];
+        if (msec > statetimeStamp[storeIndexLocal]) {
+            timeDelta = msec - statetimeStamp[storeIndexLocal];
         } else {
-            timeDelta = statetimeStamp[storeIndex] - msec;
+            timeDelta = statetimeStamp[storeIndexLocal] - msec;
         }
 
-        if (timeDelta < bestTimeDelta)
+        if (timeDelta < (uint64_t)bestTimeDelta)
         {
-            bestStoreIndex = storeIndex;
+            bestStoreIndex = storeIndexLocal;
             bestTimeDelta = timeDelta;
         }
     }
