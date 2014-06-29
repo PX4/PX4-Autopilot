@@ -181,17 +181,13 @@ int gpio_led_main(int argc, char *argv[])
 			} else {
 				gpio_led_started = true;
 				warnx("start, using pin: %s", pin_name);
+                exit(0);
 			}
-
-			exit(0);
-
-
 		} else if (!strcmp(argv[1], "stop")) {
 			if (gpio_led_started) {
 				gpio_led_started = false;
-                // FIXME: Is this correct? changed from warnx
-				errx(0, "stop");
-
+				warnx("stop");
+                exit(0);
 			} else {
 				errx(1, "not running");
 			}
