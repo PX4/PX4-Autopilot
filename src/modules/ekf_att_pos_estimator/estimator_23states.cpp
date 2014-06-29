@@ -1418,7 +1418,7 @@ void AttPosEKF::FuseMagnetometer()
             }
             // normalise the quaternion states
             float quatMag = sqrt(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
-            if (quatMag > 1e-12)
+            if (quatMag > 1e-12f)
             {
                 for (uint8_t j= 0; j<=3; j++)
                 {
@@ -1562,7 +1562,7 @@ void AttPosEKF::FuseAirspeed()
         // Calculate the measurement innovation
         innovVtas = VtasPred - VtasMeas;
         // Check the innovation for consistency and don't fuse if > 5Sigma
-        if ((innovVtas*innovVtas*SK_TAS) < 25.0)
+        if ((innovVtas*innovVtas*SK_TAS) < 25.0f)
         {
             // correct the state vector
             for (uint8_t j=0; j <= 22; j++)
@@ -1827,7 +1827,7 @@ void AttPosEKF::quat2Tnb(Mat3f &Tnb, const float (&quat)[4])
     Tnb.y.z = 2*(q23 + q01);
 }
 
-void AttPosEKF::quat2Tbn(Mat3f &Tbn, const float (&quat)[4])
+void AttPosEKF::quat2Tbn(Mat3f &Tbn_ret, const float (&quat)[4])
 {
     // Calculate the body to nav cosine matrix
     float q00 = sq(quat[0]);
@@ -1841,15 +1841,15 @@ void AttPosEKF::quat2Tbn(Mat3f &Tbn, const float (&quat)[4])
     float q13 =  quat[1]*quat[3];
     float q23 =  quat[2]*quat[3];
 
-    Tbn.x.x = q00 + q11 - q22 - q33;
-    Tbn.y.y = q00 - q11 + q22 - q33;
-    Tbn.z.z = q00 - q11 - q22 + q33;
-    Tbn.x.y = 2*(q12 - q03);
-    Tbn.x.z = 2*(q13 + q02);
-    Tbn.y.x = 2*(q12 + q03);
-    Tbn.y.z = 2*(q23 - q01);
-    Tbn.z.x = 2*(q13 - q02);
-    Tbn.z.y = 2*(q23 + q01);
+    Tbn_ret.x.x = q00 + q11 - q22 - q33;
+    Tbn_ret.y.y = q00 - q11 + q22 - q33;
+    Tbn_ret.z.z = q00 - q11 - q22 + q33;
+    Tbn_ret.x.y = 2*(q12 - q03);
+    Tbn_ret.x.z = 2*(q13 + q02);
+    Tbn_ret.y.x = 2*(q12 + q03);
+    Tbn_ret.y.z = 2*(q23 - q01);
+    Tbn_ret.z.x = 2*(q13 - q02);
+    Tbn_ret.z.y = 2*(q23 + q01);
 }
 
 void AttPosEKF::eul2quat(float (&quat)[4], const float (&eul)[3])
