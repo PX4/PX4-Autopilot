@@ -1,4 +1,4 @@
-/****************************************************************************
+/***************************************************************************
  *
  *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -30,37 +30,45 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file navigator_params.c
+ * @file loiter.h
  *
- * Parameters for navigator in general
+ * Helper class to loiter
  *
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <nuttx/config.h>
+#ifndef NAVIGATOR_LOITER_H
+#define NAVIGATOR_LOITER_H
 
-#include <systemlib/param/param.h>
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
 
-/**
- * Loiter radius (FW only)
- *
- * Default value of loiter radius for missions, loiter, RTL, etc. (fixedwing only).
- *
- * @unit meters
- * @min 0.0
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
+#include "navigator_mode.h"
+#include "mission_block.h"
 
-/**
- * Acceptance Radius
- *
- * Default acceptance radius, overridden by acceptance radius of waypoint if set.
- *
- * @unit meters
- * @min 1.0
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 25.0f);
+class Loiter : public MissionBlock
+{
+public:
+	/**
+	 * Constructor
+	 */
+	Loiter(Navigator *navigator, const char *name);
+
+	/**
+	 * Destructor
+	 */
+	~Loiter();
+
+	/**
+	 * This function is called while the mode is inactive
+	 */
+	virtual void on_inactive();
+
+	/**
+	 * This function is called while the mode is active
+	 */
+	virtual bool on_active(struct position_setpoint_triplet_s *pos_sp_triplet);
+};
+
+#endif

@@ -1117,7 +1117,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.msg_type = LOG_STAT_MSG;
 			log_msg.body.log_STAT.main_state = (uint8_t) buf_status.main_state;
 			log_msg.body.log_STAT.arming_state = (uint8_t) buf_status.arming_state;
-			log_msg.body.log_STAT.failsafe_state = (uint8_t) buf_status.failsafe_state;
+			log_msg.body.log_STAT.failsafe_state = (uint8_t) buf_status.failsafe;
 			log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
 			log_msg.body.log_STAT.battery_warning = (uint8_t) buf_status.battery_warning;
 			log_msg.body.log_STAT.landed = (uint8_t) buf_status.condition_landed;
@@ -1138,8 +1138,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.msg_type = LOG_GPS_MSG;
 			log_msg.body.log_GPS.gps_time = buf_gps_pos.time_gps_usec;
 			log_msg.body.log_GPS.fix_type = buf_gps_pos.fix_type;
-			log_msg.body.log_GPS.eph = buf_gps_pos.eph_m;
-			log_msg.body.log_GPS.epv = buf_gps_pos.epv_m;
+			log_msg.body.log_GPS.eph = buf_gps_pos.eph;
+			log_msg.body.log_GPS.epv = buf_gps_pos.epv;
 			log_msg.body.log_GPS.lat = buf_gps_pos.lat;
 			log_msg.body.log_GPS.lon = buf_gps_pos.lon;
 			log_msg.body.log_GPS.alt = buf_gps_pos.alt * 0.001f;
@@ -1352,7 +1352,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- GLOBAL POSITION SETPOINT --- */
 		if (copy_if_updated(ORB_ID(position_setpoint_triplet), subs.triplet_sub, &buf.triplet)) {
 			log_msg.msg_type = LOG_GPSP_MSG;
-			log_msg.body.log_GPSP.nav_state = buf.triplet.nav_state;
+			log_msg.body.log_GPSP.nav_state = 0;  /* TODO: Fix this */
 			log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * 1e7d);
 			log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * 1e7d);
 			log_msg.body.log_GPSP.alt = buf.triplet.current.alt;

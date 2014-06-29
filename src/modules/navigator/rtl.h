@@ -1,7 +1,6 @@
-/****************************************************************************
+/***************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,67 +30,81 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file commander_params.c
+ * @file navigator_rtl.h
+ * Helper class for RTL
  *
- * Parameters defined by the sensors task.
- *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
  * @author Julian Oes <julian@oes.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <nuttx/config.h>
-#include <systemlib/param/param.h>
+#ifndef NAVIGATOR_RTL_H
+#define NAVIGATOR_RTL_H
 
-PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
-PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
-PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
 
-/**
- * Empty cell voltage.
- *
- * Defines the voltage where a single cell of the battery is considered empty.
- *
- * @group Battery Calibration
- */
-PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
+#include <uORB/topics/mission.h>
+#include <uORB/topics/mission.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_global_position.h>
 
-/**
- * Full cell voltage.
- *
- * Defines the voltage where a single cell of the battery is considered full.
- *
- * @group Battery Calibration
- */
-PARAM_DEFINE_FLOAT(BAT_V_FULL, 3.9f);
+#include "navigator_mode.h"
+#include "mission_block.h"
 
-/**
- * Number of cells.
- *
- * Defines the number of cells the attached battery consists of.
- *
- * @group Battery Calibration
- */
-PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
+class Navigator;
 
-/**
- * Battery capacity.
- *
- * Defines the capacity of the attached battery.
- *
- * @group Battery Calibration
- */
-PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
+class RTL : public MissionBlock
+{
+public:
+	/**
+	 * Constructor
+	 */
+	RTL(Navigator *navigator, const char *name);
 
-/**
- * Datalink loss mode enabled.
- *
- * Set to 1 to enable actions triggered when the datalink is lost.
- *
- * @group commander
- * @min 0
- * @max 1
- */
-PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0);
+	/**
+	 * Destructor
+	 */
+	~RTL();
+
+	/**
+	 * This function is called while the mode is inactive
+	 */
+	void on_inactive();
+
+	/**
+	 * This function is called while the mode is active
+	 *
+	 * @param position setpoint triplet that needs to be set
+	 * @return true if updated
+	 */
+	bool on_active(position_setpoint_triplet_s *pos_sp_triplet);
+
+
+private:
+	/**
+	 * Set the RTL item
+	 */
+	void		set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet);
+
+	/**
+	 * Move to next RTL item
+	 */
+	void		advance_rtl();
+
+	enum RTLState {
+		RTL_STATE_NONE = 0,
+		RTL_STATE_CLIMB,
+		RTL_STATE_RETURN,
+		RTL_STATE_DESCEND,
+		RTL_STATE_LOITER,
+		RTL_STATE_LAND,
+		RTL_STATE_LANDED,
+	} _rtl_state;
+
+	control::BlockParamFloat _param_return_alt;
+	control::BlockParamFloat _param_descend_alt;
+	control::BlockParamFloat _param_land_delay;
+};
+
+#endif

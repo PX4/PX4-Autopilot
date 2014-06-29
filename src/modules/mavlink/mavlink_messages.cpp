@@ -120,50 +120,77 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 	union px4_custom_mode custom_mode;
 	custom_mode.data = 0;
 
-	if (pos_sp_triplet->nav_state == NAV_STATE_NONE) {
-		/* use main state when navigator is not active */
-		if (status->main_state == MAIN_STATE_MANUAL) {
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
+	switch (status->nav_state) {
+
+		case NAVIGATION_STATE_MANUAL:
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
+			                      | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+			break;
 
-		} else if (status->main_state == MAIN_STATE_ALTCTL) {
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ALTCTL;
-
-		} else if (status->main_state == MAIN_STATE_POSCTL) {
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
-
-		} else if (status->main_state == MAIN_STATE_AUTO) {
-			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
-
-		} else if (status->main_state == MAIN_STATE_ACRO) {
+		case NAVIGATION_STATE_ACRO:
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ACRO;
-		}
+			break;
 
-	} else {
-		/* use navigation state when navigator is active */
-		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		case NAVIGATION_STATE_ALTCTL:
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
+			                      | MAV_MODE_FLAG_STABILIZE_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ALTCTL;
+			break;
 
-		if (pos_sp_triplet->nav_state == NAV_STATE_READY) {
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
+		case NAVIGATION_STATE_POSCTL:
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
+			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
+					      | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
+			break;
 
-		} else if (pos_sp_triplet->nav_state == NAV_STATE_LOITER) {
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
-
-		} else if (pos_sp_triplet->nav_state == NAV_STATE_MISSION) {
+		case NAVIGATION_STATE_AUTO_MISSION:
+			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
+					      | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
+			break;
 
-		} else if (pos_sp_triplet->nav_state == NAV_STATE_RTL) {
+		case NAVIGATION_STATE_AUTO_LOITER:
+			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
+					      | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
+			break;
+
+		case NAVIGATION_STATE_AUTO_RTL:
+			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
+					      | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
+			break;
 
-		} else if (pos_sp_triplet->nav_state == NAV_STATE_LAND) {
+		case NAVIGATION_STATE_LAND:
+			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
+					      | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
-		}
+			break;
+
+		case NAVIGATION_STATE_AUTO_RTGS:
+			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
+					      | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTGS;
+			break;
+
+		case NAVIGATION_STATE_TERMINATION:
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+			break;
+
 	}
 
 	*mavlink_custom_mode = custom_mode.data;
@@ -612,8 +639,8 @@ protected:
 						     gps.lat,
 						     gps.lon,
 						     gps.alt,
-						     cm_uint16_from_m_float(gps.eph_m),
-						     cm_uint16_from_m_float(gps.epv_m),
+						     cm_uint16_from_m_float(gps.eph),
+						     cm_uint16_from_m_float(gps.epv),
 						     gps.vel_m_s * 100.0f,
 						     _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F * 1e2f,
 						     gps.satellites_visible);

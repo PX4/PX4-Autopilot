@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file navigator_params.c
+ * @file rtl_params.c
  *
- * Parameters for navigator in general
+ * Parameters for RTL
  *
  * @author Julian Oes <julian@oes.ch>
  */
@@ -43,24 +43,56 @@
 
 #include <systemlib/param/param.h>
 
+/*
+ * RTL parameters, accessible via MAVLink
+ */
+
 /**
- * Loiter radius (FW only)
+ * Loiter radius after RTL (FW only)
  *
- * Default value of loiter radius for missions, loiter, RTL, etc. (fixedwing only).
+ * Default value of loiter radius after RTL (fixedwing only).
  *
  * @unit meters
  * @min 0.0
- * @group Mission
+ * @group RTL
  */
-PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
+PARAM_DEFINE_FLOAT(RTL_LOITER_RAD, 50.0f);
 
 /**
- * Acceptance Radius
+ * RTL altitude
  *
- * Default acceptance radius, overridden by acceptance radius of waypoint if set.
+ * Altitude to fly back in RTL in meters
  *
  * @unit meters
- * @min 1.0
- * @group Mission
+ * @min 0
+ * @max 1
+ * @group RTL
  */
-PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 25.0f);
+PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 100);
+
+
+/**
+ * RTL loiter altitude
+ *
+ * Stay at this altitude above home position after RTL descending.
+ * Land (i.e. slowly descend) from this altitude if autolanding allowed.
+ *
+ * @unit meters
+ * @min 0
+ * @max 100
+ * @group RTL
+ */
+PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 20);
+
+/**
+ * RTL delay
+ *
+ * Delay after descend before landing in RTL mode.
+ * If set to -1 the system will not land but loiter at NAV_LAND_ALT.
+ *
+ * @unit seconds
+ * @min -1
+ * @max
+ * @group RTL
+ */
+PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);

@@ -264,7 +264,7 @@ void gpio_led_cycle(FAR void *arg)
 		pattern = 0x2A;	// *_*_*_ fast blink (armed, error)
 
 	} else if (priv->status.arming_state == ARMING_STATE_ARMED) {
-		if (priv->status.battery_warning == VEHICLE_BATTERY_WARNING_NONE && priv->status.failsafe_state == FAILSAFE_STATE_NORMAL) {
+		if (priv->status.battery_warning == VEHICLE_BATTERY_WARNING_NONE && !priv->status.failsafe) {
 			pattern = 0x3f;	// ****** solid (armed)
 
 		} else {
