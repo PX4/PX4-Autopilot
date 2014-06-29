@@ -603,6 +603,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		// XXX TODO
 	}
 
+	return true;
 }
 
 int commander_thread_main(int argc, char *argv[])
