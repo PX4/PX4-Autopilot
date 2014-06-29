@@ -49,11 +49,11 @@
 #include <math.h>
 #include <poll.h>
 #include <time.h>
-#include <drivers/drv_hrt.h>
+#include <float.h>
 
 #define SENSOR_COMBINED_SUB
 
-
+#include <drivers/drv_hrt.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
@@ -146,7 +146,7 @@ public:
 	 *
 	 * @param	debug Desired debug level - 0 to disable.
 	 */
-	int		set_debuglevel(unsigned debug) { _debug = debug; }
+	int		set_debuglevel(unsigned debug) { _debug = debug; return 0; }
 
 private:
 
@@ -1256,9 +1256,9 @@ FixedwingEstimator::task_main()
 						float gps_dt = (_gps.timestamp_position - last_gps) / 1e6f;
 
 						// Calculate acceleration predicted by GPS velocity change
-						if ((_ekf->velNED[0] != _gps.vel_n_m_s ||
-							_ekf->velNED[1] != _gps.vel_e_m_s ||
-							_ekf->velNED[2] != _gps.vel_d_m_s) && (gps_dt > 0.00001f)) {
+						if (((fabsf(_ekf->velNED[0] - _gps.vel_n_m_s) > FLT_EPSILON) ||
+							(fabsf(_ekf->velNED[1] - _gps.vel_e_m_s) > FLT_EPSILON) ||
+							(fabsf(_ekf->velNED[2] - _gps.vel_d_m_s) > FLT_EPSILON)) && (gps_dt > 0.00001f)) {
 
 							_ekf->accelGPSNED[0] = (_ekf->velNED[0] - _gps.vel_n_m_s) / gps_dt;
 							_ekf->accelGPSNED[1] = (_ekf->velNED[1] - _gps.vel_e_m_s) / gps_dt;
