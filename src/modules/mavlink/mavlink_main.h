@@ -138,14 +138,6 @@ public:
 
 	bool			get_forwarding_on() { return _forwarding_on; }
 
-<<<<<<< HEAD
-=======
-	/**
-	 * Handle waypoint related messages.
-	 */
-	void			mavlink_wpm_message_handler(const mavlink_message_t *msg);
->>>>>>> 94c69e11ae1ec44c80eec1c979201c7d7e51cdb0
-
 	static int		start_helper(int argc, char *argv[]);
 
 	/**
@@ -165,15 +157,11 @@ public:
 	 */
 	int			set_hil_enabled(bool hil_enabled);
 
-<<<<<<< HEAD
 	void	send_message(const mavlink_message_t *msg);
 
 	void	handle_message(const mavlink_message_t *msg);
 
 	MavlinkOrbSubscription *add_orb_subscription(const orb_id_t topic);
-=======
-	MavlinkOrbSubscription	*add_orb_subscription(const orb_id_t topic);
->>>>>>> 94c69e11ae1ec44c80eec1c979201c7d7e51cdb0
 
 	int			get_instance_id();
 
@@ -228,7 +216,6 @@ private:
 	MavlinkOrbSubscription	*_subscriptions;
 	MavlinkStream		*_streams;
 
-<<<<<<< HEAD
 	MavlinkMissionManager *_mission_manager;
 
 	orb_advert_t	_mission_pub;
@@ -236,31 +223,11 @@ private:
 	MAVLINK_MODE _mode;
 
 	mavlink_channel_t _channel;
-=======
-	orb_advert_t		_mission_pub;
-	struct mission_s	mission;
-	MAVLINK_MODE		_mode;
-
-	uint8_t			_mavlink_wpm_comp_id;
-	mavlink_channel_t	_channel;
->>>>>>> 94c69e11ae1ec44c80eec1c979201c7d7e51cdb0
 
 	struct mavlink_logbuffer _logbuffer;
 	unsigned int		_total_counter;
 
 	pthread_t		_receive_thread;
-
-<<<<<<< HEAD
-	bool _verbose;
-	bool _forwarding_on;
-	bool _passing_on;
-	int _uart_fd;
-	int _baudrate;
-	int _datarate;
-=======
-	/* Allocate storage space for waypoints */
-	mavlink_wpm_storage	_wpm_s;
-	mavlink_wpm_storage	*_wpm;
 
 	bool			_verbose;
 	bool			_forwarding_on;
@@ -269,7 +236,6 @@ private:
 	int			_uart_fd;
 	int			_baudrate;
 	int			_datarate;
->>>>>>> 94c69e11ae1ec44c80eec1c979201c7d7e51cdb0
 
 	/**
 	 * If the queue index is not at 0, the queue sending
@@ -347,26 +313,9 @@ private:
 
 	void			mavlink_update_system();
 
-<<<<<<< HEAD
 	uint8_t get_system_id();
 
 	uint8_t get_component_id();
-=======
-	void			mavlink_waypoint_eventloop(uint64_t now);
-	void 			mavlink_wpm_send_waypoint_reached(uint16_t seq);
-	void mavlink_wpm_send_waypoint_request(uint8_t sysid, uint8_t compid, uint16_t seq);
-	void mavlink_wpm_send_waypoint(uint8_t sysid, uint8_t compid, uint16_t seq);
-	void mavlink_wpm_send_waypoint_count(uint8_t sysid, uint8_t compid, uint16_t count);
-	void mavlink_wpm_send_waypoint_current(uint16_t seq);
-	void mavlink_wpm_send_waypoint_ack(uint8_t sysid, uint8_t compid, uint8_t type);
-	void mavlink_wpm_init(mavlink_wpm_storage *state);
-	int map_mission_item_to_mavlink_mission_item(const struct mission_item_s *mission_item, mavlink_mission_item_t *mavlink_mission_item);
-	int map_mavlink_mission_item_to_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item);
-	void publish_mission();
-
-	void mavlink_missionlib_send_message(mavlink_message_t *msg);
-	int mavlink_missionlib_send_gcs_string(const char *string);
->>>>>>> 94c69e11ae1ec44c80eec1c979201c7d7e51cdb0
 
 	int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
 
@@ -381,11 +330,8 @@ private:
 
 	int message_buffer_is_empty();
 
-<<<<<<< HEAD
 	bool message_buffer_write(const void *ptr, int size);
 
-=======
->>>>>>> 94c69e11ae1ec44c80eec1c979201c7d7e51cdb0
 	int message_buffer_get_ptr(void **ptr, bool *is_part);
 
 	void message_buffer_mark_read(int n);
