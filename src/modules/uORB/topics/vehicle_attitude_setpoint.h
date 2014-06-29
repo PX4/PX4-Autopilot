@@ -72,6 +72,8 @@ struct vehicle_attitude_setpoint_s {
 	float thrust;					/**< Thrust in Newton the power system should generate */
 
 	bool	roll_reset_integral;			/**< Reset roll integral part (navigation logic change) */
+	bool	pitch_reset_integral;			/**< Reset pitch integral part (navigation logic change) */
+	bool	yaw_reset_integral;			/**< Reset yaw integral part (navigation logic change) */
 
 };
 

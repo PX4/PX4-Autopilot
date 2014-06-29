@@ -649,13 +649,14 @@ BlinkM::led()
 							/* indicate main control state */
 							if (vehicle_status_raw.main_state == MAIN_STATE_POSCTL)
 								led_color_4 = LED_GREEN;
-							else if (vehicle_status_raw.main_state == MAIN_STATE_AUTO)
+							/* TODO: add other Auto modes */
+							else if (vehicle_status_raw.main_state == MAIN_STATE_AUTO_MISSION)
 								led_color_4 = LED_BLUE;
 							else if (vehicle_status_raw.main_state == MAIN_STATE_ALTCTL)
 								led_color_4 = LED_YELLOW;
 							else if (vehicle_status_raw.main_state == MAIN_STATE_MANUAL)
 								led_color_4 = LED_WHITE;
-							else 
+							else
 								led_color_4 = LED_OFF;
 							led_color_5 = led_color_4;
 						}

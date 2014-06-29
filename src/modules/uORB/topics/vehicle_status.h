@@ -1,10 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
- *           @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
+ *   Copyright (C) 2012 - 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,6 +41,11 @@
  * All apps should write to subsystem_info:
  *
  *  (any app) --> subsystem_info (published) --> (commander app state machine)  --> vehicle_status --> (mavlink app)
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  */
 
 #ifndef VEHICLE_STATUS_H_
@@ -54,20 +55,22 @@
 #include <stdbool.h>
 #include "../uORB.h"
 
-#include <navigator/navigator_state.h>
-
 /**
  * @addtogroup topics @{
  */
 
-/* main state machine */
+/**
+ * Main state, i.e. what user wants. Controlled by RC or from ground station via telemetry link.
+ */
 typedef enum {
 	MAIN_STATE_MANUAL = 0,
 	MAIN_STATE_ALTCTL,
 	MAIN_STATE_POSCTL,
-	MAIN_STATE_AUTO,
+	MAIN_STATE_AUTO_MISSION,
+	MAIN_STATE_AUTO_LOITER,
+	MAIN_STATE_AUTO_RTL,
 	MAIN_STATE_ACRO,
-	MAIN_STATE_MAX
+	MAIN_STATE_MAX,
 } main_state_t;
 
 // If you change the order, add or remove arming_state_t states make sure to update the arrays
@@ -80,7 +83,7 @@ typedef enum {
 	ARMING_STATE_STANDBY_ERROR,
 	ARMING_STATE_REBOOT,
 	ARMING_STATE_IN_AIR_RESTORE,
-	ARMING_STATE_MAX
+	ARMING_STATE_MAX,
 } arming_state_t;
 
 typedef enum {
@@ -88,13 +91,23 @@ typedef enum {
 	HIL_STATE_ON
 } hil_state_t;
 
+/**
+ * Navigation state, i.e. "what should vehicle do".
+ */
 typedef enum {
-	FAILSAFE_STATE_NORMAL = 0,		/**< Normal operation */
-	FAILSAFE_STATE_RTL,				/**< Return To Launch */
-	FAILSAFE_STATE_LAND,			/**< Land without position control */
-	FAILSAFE_STATE_TERMINATION,		/**< Disable motors and use parachute, can't be recovered */
-	FAILSAFE_STATE_MAX
-} failsafe_state_t;
+	NAVIGATION_STATE_MANUAL = 0,		/**< Manual mode */
+	NAVIGATION_STATE_ALTCTL,		/**< Altitude control mode */
+	NAVIGATION_STATE_POSCTL,		/**< Position control mode */
+	NAVIGATION_STATE_AUTO_MISSION,		/**< Auto mission mode */
+	NAVIGATION_STATE_AUTO_LOITER,		/**< Auto loiter mode */
+	NAVIGATION_STATE_AUTO_RTL,		/**< Auto return to launch mode */
+	NAVIGATION_STATE_AUTO_RTGS,		/**< Auto return to groundstation on data link loss */
+	NAVIGATION_STATE_ACRO,			/**< Acro mode */
+	NAVIGATION_STATE_LAND,			/**< Land mode */
+	NAVIGATION_STATE_DESCEND,			/**< Descend mode (no position control) */
+	NAVIGATION_STATE_TERMINATION,		/**< Termination mode */
+	NAVIGATION_STATE_MAX,
+} navigation_state_t;
 
 enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_SAFETY_ARMED = 128,
@@ -154,12 +167,11 @@ struct vehicle_status_s {
 	uint16_t counter;   /**< incremented by the writing thread everytime new data is stored */
 	uint64_t timestamp; /**< in microseconds since system start, is set whenever the writing thread stores new data */
 
-	main_state_t main_state;				/**< main state machine */
-	unsigned int set_nav_state;	/**< set navigation state machine to specified value */
-	uint64_t set_nav_state_timestamp;	/**< timestamp of latest change of set_nav_state */
+	main_state_t main_state;		    	/**< main state machine */
+	navigation_state_t nav_state;		/**< set navigation state machine to specified value */
 	arming_state_t arming_state;			/**< current arming state */
-	hil_state_t hil_state;					/**< current hil state */
-	failsafe_state_t failsafe_state;		/**< current failsafe state */
+	hil_state_t hil_state;				/**< current hil state */
+	bool failsafe;					/**< true if system is in failsafe state */
 
 	int32_t system_type;				/**< system type, inspired by MAVLink's VEHICLE_TYPE enum */
 	int32_t	system_id;				/**< system id, inspired by MAVLink's system ID field */
@@ -183,6 +195,8 @@ struct vehicle_status_s {
 	bool rc_signal_found_once;
 	bool rc_signal_lost;				/**< true if RC reception lost */
 	bool rc_input_blocked;				/**< set if RC input should be ignored */
+
+	bool data_link_lost;						/**< datalink to GCS lost */
 
 	bool offboard_control_signal_found_once;
 	bool offboard_control_signal_lost;

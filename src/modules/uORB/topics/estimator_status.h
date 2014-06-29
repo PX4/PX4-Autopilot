@@ -64,9 +64,9 @@ struct estimator_status_report {
 	uint64_t timestamp;			/**< Timestamp in microseconds since boot */
 	float states[32];			/**< Internal filter states */
 	float n_states;				/**< Number of states effectively used */
-	bool states_nan;			/**< If set to true, one of the states is NaN */
-	bool covariance_nan;			/**< If set to true, the covariance matrix went NaN */
-	bool kalman_gain_nan;			/**< If set to true, the Kalman gain matrix went NaN */
+	uint8_t nan_flags;			/**< Bitmask to indicate NaN states */
+	uint8_t health_flags;			/**< Bitmask to indicate sensor health states (vel, pos, hgt) */
+	uint8_t timeout_flags;			/**< Bitmask to indicate timeout flags (vel, pos, hgt) */
 
 };
 

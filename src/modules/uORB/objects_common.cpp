@@ -202,3 +202,9 @@ ORB_DEFINE(encoders, struct encoders_s);
 
 #include "topics/estimator_status.h"
 ORB_DEFINE(estimator_status, struct estimator_status_report);
+
+#include "topics/tecs_status.h"
+ORB_DEFINE(tecs_status, struct tecs_status_s);
+
+#include "topics/wind_estimate.h"
+ORB_DEFINE(wind_estimate, struct wind_estimate_s);
