@@ -1103,7 +1103,7 @@ void AttPosEKF::FuseVelposNED()
                 // Calculate the Kalman Gain
                 // Calculate innovation variances - also used for data logging
                 varInnovVelPos[obsIndex] = P[stateIndex][stateIndex] + R_OBS[obsIndex];
-                SK = 1.0/varInnovVelPos[obsIndex];
+                SK = 1.0/(double)varInnovVelPos[obsIndex];
                 for (uint8_t i= 0; i<=indexLimit; i++)
                 {
                     Kfusion[i] = P[i][stateIndex]*SK;
@@ -1413,7 +1413,7 @@ void AttPosEKF::FuseMagnetometer()
         }
 
         // Check the innovation for consistency and don't fuse if > 5Sigma
-        if ((innovMag[obsIndex]*innovMag[obsIndex]/varInnovMag[obsIndex]) < 25.0)
+        if ((innovMag[obsIndex]*innovMag[obsIndex]/varInnovMag[obsIndex]) < 25.0f)
         {
             // correct the state vector
             for (uint8_t j= 0; j < indexLimit; j++)
@@ -2130,7 +2130,7 @@ bool AttPosEKF::GyroOffsetsDiverged()
     // Protect against division by zero
     if (delta_len > 0.0f) {
         float cov_mag = ConstrainFloat((P[10][10] + P[11][11] + P[12][12]), 1e-12f, 1e-8f);
-        delta_len_scaled = (5e-7 / cov_mag) * delta_len / dtIMU;
+        delta_len_scaled = (5e-7 / (double)cov_mag) * (double)delta_len / (double)dtIMU;
     }
 
     bool diverged = (delta_len_scaled > 1.0f);
