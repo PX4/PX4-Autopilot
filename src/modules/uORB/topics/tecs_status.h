@@ -68,6 +68,7 @@ struct tecs_status_s {
 	float altitude;
 	float flightPathAngleSp;
 	float flightPathAngle;
+	float flightPathAngleFiltered;
 	float airspeedSp;
 	float airspeed;
 	float airspeedFiltered;
