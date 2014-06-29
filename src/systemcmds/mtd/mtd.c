@@ -193,8 +193,12 @@ ramtron_attach(void)
 		errx(1, "failed to initialize mtd driver");
 
 	int ret = mtd_dev->ioctl(mtd_dev, MTDIOC_SETSPEED, (unsigned long)10*1000*1000);
-        if (ret != OK)
-            warnx(1, "failed to set bus speed");
+    if (ret != OK) {
+        // FIXME: From the previous warnx call, it looked like this should have been an errx instead. Tried
+        // that but setting the bug speed does fail all the time. Which was then exiting and the board would
+        // not run correctly. So changed to warnx.
+        warnx("failed to set bus speed");
+    }
 
 	attached = true;
 }

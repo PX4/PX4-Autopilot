@@ -119,13 +119,19 @@ sbus_init(const char *device)
 bool
 sbus1_output(uint16_t *values, uint16_t num_values)
 {
-	write(sbus_fd, 'A', 1);
+    // FIXME: I assume this was previously NYI?
+    ssize_t cBytes = num_values * sizeof(values[0]);
+	ssize_t cBytesWritten = write(sbus_fd, values, cBytes);
+    return cBytesWritten == cBytes;
 }
 
 bool
 sbus2_output(uint16_t *values, uint16_t num_values)
 {
-	write(sbus_fd, 'B', 1);
+    // FIXME: I assume this was previously NYI?
+    ssize_t cBytes = num_values * sizeof(values[0]);
+	ssize_t cBytesWritten = write(sbus_fd, values, cBytes);
+    return cBytesWritten == cBytes;
 }
 
 bool
