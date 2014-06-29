@@ -97,16 +97,10 @@ private:
 	void set_mission_items();
 
 	/**
-	 * Try to set the current position setpoint from an onboard mission item
+	 * Try to set given mission item from an offboard/onboard mission item
 	 * @return true if mission item successfully set
 	 */
-	bool is_current_onboard_mission_item_set(struct position_setpoint_s *current_pos_sp);
-
-	/**
-	 * Try to set the current position setpoint from an offboard mission item
-	 * @return true if mission item successfully set
-	 */
-	bool is_current_offboard_mission_item_set(struct position_setpoint_s *current_pos_sp);
+	bool set_mission_item(bool onboard, bool next_item, struct mission_item_s *mission_item);
 
 	/**
 	 * Try to set the next position setpoint from an onboard mission item

@@ -225,29 +225,27 @@ Mission::set_mission_items()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	set_previous_pos_setpoint(pos_sp_triplet);
+	/* set previous position setpoint to current */
+	set_previous_pos_setpoint();
 
 	/* try setting onboard mission item */
-	if (is_current_onboard_mission_item_set(&pos_sp_triplet->current)) {
+	if (set_mission_item(true, false, &_mission_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_ONBOARD) {
-			mavlink_log_info(_navigator->get_mavlink_fd(),
-					"#audio: onboard mission running");
+			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: onboard mission running");
 		}
 		_mission_type = MISSION_TYPE_ONBOARD;
-		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.valid && _waypoint_position_reached);
 
 	/* try setting offboard mission item */
-	} else if (is_current_offboard_mission_item_set(&pos_sp_triplet->current)) {
+	} else if (set_mission_item(false, false, &_mission_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_OFFBOARD) {
-			mavlink_log_info(_navigator->get_mavlink_fd(),
-					"#audio: offboard mission running");
+			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: offboard mission running");
 		}
 		_mission_type = MISSION_TYPE_OFFBOARD;
-		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.valid && _waypoint_position_reached);
 
 	} else {
+		/* no mission available, switch to loiter */
 		if (_mission_type != MISSION_TYPE_NONE) {
 			mavlink_log_info(_navigator->get_mavlink_fd(),
 					"#audio: mission finished");
@@ -257,37 +255,92 @@ Mission::set_mission_items()
 		}
 		_mission_type = MISSION_TYPE_NONE;
 
-		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.valid && _waypoint_position_reached);
-
+		/* set loiter mission item */
 		set_loiter_item(&_mission_item);
 
+		/* update position setpoint triplet  */
 		pos_sp_triplet->previous.valid = false;
 		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 		pos_sp_triplet->next.valid = false;
 
+		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == SETPOINT_TYPE_LOITER);
+
 		reset_mission_item_reached();
 		report_mission_finished();
+
+		_navigator->set_position_setpoint_triplet_updated();
+		return;
 	}
+
+	/* new current mission item set */
+	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+	_navigator->set_can_loiter_at_sp(false);
+	reset_mission_item_reached();
+
+	if (_mission_type == MISSION_TYPE_OFFBOARD) {
+		report_current_offboard_mission_item();
+	}
+	// TODO: report onboard mission item somehow
+
+	/* try to read next mission item */
+	struct mission_item_s mission_item_next;
+	if (!set_mission_item(_mission_type == MISSION_TYPE_ONBOARD, true, &mission_item_next)) {
+		/* got next mission item, update setpoint triplet */
+		mission_item_to_position_setpoint(&mission_item_next, &pos_sp_triplet->next);
+
+	} else {
+		/* next mission item is not available */
+		pos_sp_triplet->next.valid = false;
+	}
+
+	_navigator->set_position_setpoint_triplet_updated();
 }
 
 bool
-Mission::is_current_onboard_mission_item_set(struct position_setpoint_s *current_pos_sp)
+Mission::set_mission_item(bool onboard, bool next_item, struct mission_item_s *mission_item)
 {
 	/* make sure param is up to date */
 	updateParams();
-	if (_param_onboard_enabled.get() > 0 &&
-	    _current_onboard_mission_index >= 0&&
-	    _current_onboard_mission_index < (int)_onboard_mission.count) {
+
+	/* select onboard/offboard mission */
+	int *mission_index_ptr;
+	struct mission_s *mission;
+	dm_item_t dm_item;
+	int mission_index_next;
+
+	if (onboard) {
+		/* onboard mission */
+		if (!_param_onboard_enabled.get()) {
+			return false;
+		}
+
+		mission_index_next = _current_onboard_mission_index + 1;
+		mission_index_ptr = next_item ? &mission_index_next : &_current_onboard_mission_index;
+
+		mission = &_onboard_mission;
+
+		dm_item = DM_KEY_WAYPOINTS_ONBOARD;
+
+	} else {
+		/* offboard mission */
+		mission_index_next = _current_offboard_mission_index + 1;
+		mission_index_ptr = next_item ? &mission_index_next : &_current_offboard_mission_index;
+
+		mission = &_offboard_mission;
+
+		if (_offboard_mission.dataman_id == 0) {
+			dm_item = DM_KEY_WAYPOINTS_OFFBOARD_0;
+
+		} else {
+			dm_item = DM_KEY_WAYPOINTS_OFFBOARD_1;
+		}
+	}
+
+	if (*mission_index_ptr >= 0 && *mission_index_ptr < (int)mission->count) {
 		struct mission_item_s new_mission_item;
-		if (read_mission_item(DM_KEY_WAYPOINTS_ONBOARD, true, &_current_onboard_mission_index,
-					&new_mission_item)) {
-			/* convert the current mission item and set it valid */
-			mission_item_to_position_setpoint(&new_mission_item, current_pos_sp);
 
-			reset_mission_item_reached();
-
-			/* TODO: report this somehow */
-			memcpy(&_mission_item, &new_mission_item, sizeof(struct mission_item_s));
+		if (read_mission_item(dm_item, true, mission_index_ptr, &new_mission_item)) {
+			memcpy(&mission_item, &new_mission_item, sizeof(struct mission_item_s));
 			return true;
 		}
 	}
@@ -295,88 +348,15 @@ Mission::is_current_onboard_mission_item_set(struct position_setpoint_s *current
 }
 
 bool
-Mission::is_current_offboard_mission_item_set(struct position_setpoint_s *current_pos_sp)
-{
-	if (_current_offboard_mission_index >= 0 &&
-	    _current_offboard_mission_index < (int)_offboard_mission.count) {
-		dm_item_t dm_current;
-		if (_offboard_mission.dataman_id == 0) {
-			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_0;
-		} else {
-			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_1;
-		}
-		struct mission_item_s new_mission_item;
-		if (read_mission_item(dm_current, true, &_current_offboard_mission_index, &new_mission_item)) {
-			/* convert the current mission item and set it valid */
-			mission_item_to_position_setpoint(&new_mission_item, current_pos_sp);
-
-			reset_mission_item_reached();
-
-			report_current_offboard_mission_item();
-			memcpy(&_mission_item, &new_mission_item, sizeof(struct mission_item_s));
-			return true;
-		}
-	}
-	return false;
-}
-
-void
-Mission::get_next_onboard_mission_item(struct position_setpoint_s *next_pos_sp)
-{
-	int next_temp_mission_index = _onboard_mission.current_index + 1;
-
-	/* try if there is a next onboard mission */
-	if (_onboard_mission.current_index >= 0 &&
-	    next_temp_mission_index < (int)_onboard_mission.count) {
-		struct mission_item_s new_mission_item;
-		if (read_mission_item(DM_KEY_WAYPOINTS_ONBOARD, false, &next_temp_mission_index, &new_mission_item)) {
-			/* convert next mission item to position setpoint */
-			mission_item_to_position_setpoint(&new_mission_item, next_pos_sp);
-			return;
-		}
-	}
-
-	/* give up */
-	next_pos_sp->valid = false;
-	return;
-}
-
-void
-Mission::get_next_offboard_mission_item(struct position_setpoint_s *next_pos_sp)
-{
-	/* try if there is a next offboard mission */
-	int next_temp_mission_index = _offboard_mission.current_index + 1;
-	warnx("next index: %d, count; %d", next_temp_mission_index, _offboard_mission.count);
-	if (_offboard_mission.current_index >= 0 &&
-	    next_temp_mission_index < (int)_offboard_mission.count) {
-		dm_item_t dm_current;
-		if (_offboard_mission.dataman_id == 0) {
-			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_0;
-		} else {
-			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_1;
-		}
-		struct mission_item_s new_mission_item;
-		if (read_mission_item(dm_current, false, &next_temp_mission_index, &new_mission_item)) {
-			/* convert next mission item to position setpoint */
-			mission_item_to_position_setpoint(&new_mission_item, next_pos_sp);
-			return;
-		}
-	}
-	/* give up */
-	next_pos_sp->valid = false;
-	return;
-}
-
-bool
-Mission::read_mission_item(const dm_item_t dm_item, bool is_current, int *mission_index,
+Mission::read_mission_item(const dm_item_t dm_item, bool is_current, int *mission_index_ptr,
 		           struct mission_item_s *new_mission_item)
 {
 	/* repeat several to get the mission item because we might have to follow multiple DO_JUMPS */
-	for (int i=0; i<10; i++) {
+	for (int i = 0; i < 10; i++) {
 		const ssize_t len = sizeof(struct mission_item_s);
 
 		/* read mission item from datamanager */
-		if (dm_read(dm_item, *mission_index, new_mission_item, len) != len) {
+		if (dm_read(dm_item, *mission_index_ptr, new_mission_item, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			mavlink_log_critical(_navigator->get_mavlink_fd(),
 			                     "#audio: ERROR waypoint could not be read");
@@ -394,7 +374,7 @@ Mission::read_mission_item(const dm_item_t dm_item, bool is_current, int *missio
 				if (is_current) {
 					(new_mission_item->do_jump_current_count)++;
 					/* save repeat count */
-					if (dm_write(dm_item, *mission_index, DM_PERSIST_IN_FLIGHT_RESET,
+					if (dm_write(dm_item, *mission_index_ptr, DM_PERSIST_IN_FLIGHT_RESET,
 						new_mission_item, len) != len) {
 						/* not supposed to happen unless the datamanager can't access the
 						 * dataman */
@@ -405,12 +385,12 @@ Mission::read_mission_item(const dm_item_t dm_item, bool is_current, int *missio
 				}
 				/* set new mission item index and repeat
 				* we don't have to validate here, if it's invalid, we should realize this later .*/
-				*mission_index = new_mission_item->do_jump_mission_index;
+				*mission_index_ptr = new_mission_item->do_jump_mission_index;
 			} else {
 				mavlink_log_info(_navigator->get_mavlink_fd(),
 						 "#audio: DO JUMP repetitions completed");
 				/* no more DO_JUMPS, therefore just try to continue with next mission item */
-				(*mission_index)++;
+				(*mission_index_ptr)++;
 			}
 
 		} else {

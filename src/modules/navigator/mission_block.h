@@ -86,7 +86,7 @@ protected:
     /**
      * Set previous position setpoint to current setpoint
      */
-	void set_previous_pos_setpoint(struct position_setpoint_triplet_s *pos_sp_triplet);
+	void set_previous_pos_setpoint();
 
 	/**
 	 * Set a loiter mission item, if possible reuse the position setpoint, otherwise take the current position

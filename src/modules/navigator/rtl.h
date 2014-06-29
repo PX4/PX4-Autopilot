@@ -63,15 +63,15 @@ public:
 
 	virtual void on_inactive();
 
-	virtual void on_activation(position_setpoint_triplet_s *pos_sp_triplet);
+	virtual void on_activation();
 
-	virtual bool on_active(position_setpoint_triplet_s *pos_sp_triplet);
+	virtual void on_active();
 
 private:
 	/**
 	 * Set the RTL item
 	 */
-	void		set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet);
+	void		set_rtl_item();
 
 	/**
 	 * Move to next RTL item

@@ -82,7 +82,7 @@ RTL::on_inactive()
 }
 
 void
-RTL::on_activation(struct position_setpoint_triplet_s *pos_sp_triplet)
+RTL::on_activation()
 {
 	/* decide where to enter the RTL procedure when we switch into it */
 	if (_rtl_state == RTL_STATE_NONE) {
@@ -105,28 +105,27 @@ RTL::on_activation(struct position_setpoint_triplet_s *pos_sp_triplet)
 		}
 	}
 
-	set_rtl_item(pos_sp_triplet);
-}
-
-bool
-RTL::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
-{
-	if (_rtl_state != RTL_STATE_LANDED && is_mission_item_reached()) {
-		advance_rtl();
-		set_rtl_item(pos_sp_triplet);
-		return true;
-	}
-
-	return false;
+	set_rtl_item();
 }
 
 void
-RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
+RTL::on_active()
 {
+	if (_rtl_state != RTL_STATE_LANDED && is_mission_item_reached()) {
+		advance_rtl();
+		set_rtl_item();
+	}
+}
+
+void
+RTL::set_rtl_item()
+{
+	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
 	/* make sure we have the latest params */
 	updateParams();
 
-	set_previous_pos_setpoint(pos_sp_triplet);
+	set_previous_pos_setpoint();
 	_navigator->set_can_loiter_at_sp(false);
 
 	switch (_rtl_state) {
@@ -273,11 +272,13 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 		break;
 	}
 
+	reset_mission_item_reached();
+
 	/* convert mission item to current position setpoint and make it valid */
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-	reset_mission_item_reached();
-	pos_sp_triplet->current.valid = true;
 	pos_sp_triplet->next.valid = false;
+
+	_navigator->set_position_setpoint_triplet_updated();
 }
 
 void
