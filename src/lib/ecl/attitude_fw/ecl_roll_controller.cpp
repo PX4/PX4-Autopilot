@@ -114,9 +114,6 @@ float ECL_RollController::control_bodyrate(float pitch,
 	if (dt_micros > 500000)
 		lock_integrator = true;
 
-//	float k_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
-	float k_ff = 0; //xxx: param
-
 	/* input conditioning */
 //	warnx("airspeed pre %.4f", (double)airspeed);
 	if (!isfinite(airspeed)) {

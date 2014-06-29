@@ -114,6 +114,9 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_hil_local_alt0(0.0)
 {
 	memset(&hil_local_pos, 0, sizeof(hil_local_pos));
+
+	// make sure the FTP server is started
+	(void)MavlinkFTP::getServer();
 }
 
 MavlinkReceiver::~MavlinkReceiver()
@@ -158,6 +161,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:
 		handle_message_request_data_stream(msg);
+		break;
+
+	case MAVLINK_MSG_ID_ENCAPSULATED_DATA:
+		MavlinkFTP::getServer()->handle_message(_mavlink, msg);
 		break;
 
 	default:
