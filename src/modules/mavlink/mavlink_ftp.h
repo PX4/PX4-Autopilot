@@ -199,8 +199,8 @@ private:
 	ErrorCode		_workRead(Request *req);
 	ErrorCode		_workWrite(Request *req);
 	ErrorCode		_workRemove(Request *req);
-    ErrorCode       _workTerminate(Request *req);
-    ErrorCode       _workReset();
+	ErrorCode		_workTerminate(Request *req);
+	ErrorCode		_workReset();
 
 	// work freelist
 	Request			_workBufs[kRequestQueueSize];
