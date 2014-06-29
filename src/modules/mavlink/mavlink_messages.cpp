@@ -669,16 +669,16 @@ protected:
 
 		if (gps_sub->update(&gps_time, &gps)) {
 			mavlink_msg_gps_raw_int_send(_channel,
-						     gps->timestamp_position,
-						     gps->fix_type,
-						     gps->lat,
-						     gps->lon,
-						     gps->alt,
-						     cm_uint16_from_m_float(gps->eph),
-						     cm_uint16_from_m_float(gps->epv),
-						     gps->vel_m_s * 100.0f,
-						     _wrap_2pi(gps->cog_rad) * M_RAD_TO_DEG_F * 1e2f,
-						     gps->satellites_used);
+						     gps.timestamp_position,
+						     gps.fix_type,
+						     gps.lat,
+						     gps.lon,
+						     gps.alt,
+						     cm_uint16_from_m_float(gps.eph),
+						     cm_uint16_from_m_float(gps.epv),
+						     gps.vel_m_s * 100.0f,
+						     _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F * 1e2f,
+						     gps.satellites_used);
 		}
 	}
 };
