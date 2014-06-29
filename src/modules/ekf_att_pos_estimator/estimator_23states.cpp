@@ -1088,7 +1088,7 @@ void AttPosEKF::FuseVelposNED()
                 stateIndex = 4 + obsIndex;
                 // Calculate the measurement innovation, using states from a
                 // different time coordinate if fusing height data
-                if (obsIndex >= 0 && obsIndex <= 2)
+                if (obsIndex <= 2)
                 {
                     innovVelPos[obsIndex] = statesAtVelTime[stateIndex] - observation[obsIndex];
                 }
