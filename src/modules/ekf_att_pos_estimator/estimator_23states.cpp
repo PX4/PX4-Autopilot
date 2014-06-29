@@ -1884,17 +1884,17 @@ void AttPosEKF::calcvelNED(float (&velNED)[3], float gpsCourse, float gpsGndSpd,
     velNED[2] = gpsVelD;
 }
 
-void AttPosEKF::calcposNED(float (&posNED)[3], double lat, double lon, float hgt, double latRef, double lonRef, float hgtRef)
+void AttPosEKF::calcposNED(float (&posNED)[3], double lat, double lon, float hgt, double latReference, double lonReference, float hgtReference)
 {
-    posNED[0] = earthRadius * (lat - latRef);
-    posNED[1] = earthRadius * cos(latRef) * (lon - lonRef);
-    posNED[2] = -(hgt - hgtRef);
+    posNED[0] = earthRadius * (lat - latReference);
+    posNED[1] = earthRadius * cos(latReference) * (lon - lonReference);
+    posNED[2] = -(hgt - hgtReference);
 }
 
-void AttPosEKF::calcLLH(float (&posNED)[3], float lat, float lon, float hgt, float latRef, float lonRef, float hgtRef)
+void AttPosEKF::calcLLH(float (&posNED)[3], double &lat, double &lon, float &hgt, double latRef, double lonRef, float hgtRef)
 {
-    lat = latRef + posNED[0] * earthRadiusInv;
-    lon = lonRef + posNED[1] * earthRadiusInv / cos(latRef);
+    lat = latRef + (double)posNED[0] * earthRadiusInv;
+    lon = lonRef + (double)posNED[1] * earthRadiusInv / cos(latRef);
     hgt = hgtRef - posNED[2];
 }
 
