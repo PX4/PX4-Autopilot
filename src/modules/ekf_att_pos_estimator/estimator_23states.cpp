@@ -887,20 +887,20 @@ void AttPosEKF::CovariancePrediction(float dt)
         // propagate
         for (unsigned i = 0; i <= 13; i++) {
             P[i][i] = nextP[i][i];
+        }
 
-            // force symmetry for observable states
-            // force zero for non-observable states
-            for (unsigned i = 1; i < n_states; i++)
+        // force symmetry for observable states
+        // force zero for non-observable states
+        for (unsigned i = 1; i < n_states; i++)
+        {
+            for (uint8_t j = 0; j < i; j++)
             {
-                for (uint8_t j = 0; j < i; j++)
-                {
-                    if ((i > 13) || (j > 13)) {
-                        P[i][j] = 0.0f;
-                    } else {
-                        P[i][j] = 0.5f * (nextP[i][j] + nextP[j][i]);
-                    }
-                    P[j][i] = P[i][j];
+                if ((i > 13) || (j > 13)) {
+                    P[i][j] = 0.0f;
+                } else {
+                    P[i][j] = 0.5f * (nextP[i][j] + nextP[j][i]);
                 }
+                P[j][i] = P[i][j];
             }
         }
 
