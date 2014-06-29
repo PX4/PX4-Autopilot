@@ -131,8 +131,8 @@ public:
 	int		set_motor_count(unsigned count);
 	int		set_motor_test(bool motortest);
 	int		set_overrideSecurityChecks(bool overrideSecurityChecks);
-	void	set_px4mode(int px4mode);
-	void	set_frametype(int frametype);
+	void		set_px4mode(int px4mode);
+	void		set_frametype(int frametype);
 	unsigned int		mk_check_for_blctrl(unsigned int count, bool showOutput, bool initI2C);
 
 private:
