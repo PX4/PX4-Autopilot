@@ -91,11 +91,9 @@ protected:
 	/**
 	 * Set a loiter mission item, if possible reuse the position setpoint, otherwise take the current position
 	 */
-	// TODO remove argument, get position setpoint from navigator, add to arguments pointer to mission item instead
-	void set_loiter_item(struct position_setpoint_triplet_s *pos_sp_triplet);
+	void set_loiter_item(struct mission_item_s *item);
 
 	mission_item_s _mission_item;
-	bool _mission_item_valid;
 	bool _waypoint_position_reached;
 	bool _waypoint_yaw_reached;
 	hrt_abstime _time_first_inside_orbit;

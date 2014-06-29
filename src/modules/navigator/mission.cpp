@@ -54,8 +54,8 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 
-#include "navigator.h"
 #include "mission.h"
+#include "navigator.h"
 
 Mission::Mission(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
@@ -97,16 +97,14 @@ Mission::on_inactive()
 }
 
 void
-Mission::on_activation(struct position_setpoint_triplet_s *pos_sp_triplet)
+Mission::on_activation()
 {
-	set_mission_items(pos_sp_triplet);
+	set_mission_items();
 }
 
-bool
-Mission::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
+void
+Mission::on_active()
 {
-	bool updated = false;
-
 	/* check if anything has changed */
 	bool onboard_updated;
 	orb_check(_navigator->get_onboard_mission_sub(), &onboard_updated);
@@ -122,18 +120,18 @@ Mission::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
 
 	/* reset mission items if needed */
 	if (onboard_updated || offboard_updated) {
-		set_mission_items(pos_sp_triplet);
-		updated = true;
+		set_mission_items();
+
+		_navigator->set_position_setpoint_triplet_updated();
 	}
 
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
 		advance_mission();
-		set_mission_items(pos_sp_triplet);
-		updated = true;
-	}
+		set_mission_items();
 
-	return updated;
+		_navigator->set_position_setpoint_triplet_updated();
+	}
 }
 
 void
@@ -223,8 +221,10 @@ Mission::advance_mission()
 }
 
 void
-Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
+Mission::set_mission_items()
 {
+	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
 	set_previous_pos_setpoint(pos_sp_triplet);
 
 	/* try setting onboard mission item */
@@ -235,7 +235,7 @@ Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
 					"#audio: onboard mission running");
 		}
 		_mission_type = MISSION_TYPE_ONBOARD;
-		_navigator->set_can_loiter_at_sp(false);
+		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.valid && _waypoint_position_reached);
 
 	/* try setting offboard mission item */
 	} else if (is_current_offboard_mission_item_set(&pos_sp_triplet->current)) {
@@ -245,7 +245,8 @@ Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
 					"#audio: offboard mission running");
 		}
 		_mission_type = MISSION_TYPE_OFFBOARD;
-		_navigator->set_can_loiter_at_sp(false);
+		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.valid && _waypoint_position_reached);
+
 	} else {
 		if (_mission_type != MISSION_TYPE_NONE) {
 			mavlink_log_info(_navigator->get_mavlink_fd(),
@@ -255,12 +256,15 @@ Mission::set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet)
 					"#audio: no mission available");
 		}
 		_mission_type = MISSION_TYPE_NONE;
+
 		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.valid && _waypoint_position_reached);
 
-		set_loiter_item(pos_sp_triplet);
+		set_loiter_item(&_mission_item);
+
 		pos_sp_triplet->previous.valid = false;
 		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 		pos_sp_triplet->next.valid = false;
+
 		reset_mission_item_reached();
 		report_mission_finished();
 	}
@@ -279,7 +283,6 @@ Mission::is_current_onboard_mission_item_set(struct position_setpoint_s *current
 					&new_mission_item)) {
 			/* convert the current mission item and set it valid */
 			mission_item_to_position_setpoint(&new_mission_item, current_pos_sp);
-			current_pos_sp->valid = true;
 
 			reset_mission_item_reached();
 
@@ -306,7 +309,6 @@ Mission::is_current_offboard_mission_item_set(struct position_setpoint_s *curren
 		if (read_mission_item(dm_current, true, &_current_offboard_mission_index, &new_mission_item)) {
 			/* convert the current mission item and set it valid */
 			mission_item_to_position_setpoint(&new_mission_item, current_pos_sp);
-			current_pos_sp->valid = true;
 
 			reset_mission_item_reached();
 
@@ -330,7 +332,6 @@ Mission::get_next_onboard_mission_item(struct position_setpoint_s *next_pos_sp)
 		if (read_mission_item(DM_KEY_WAYPOINTS_ONBOARD, false, &next_temp_mission_index, &new_mission_item)) {
 			/* convert next mission item to position setpoint */
 			mission_item_to_position_setpoint(&new_mission_item, next_pos_sp);
-			next_pos_sp->valid = true;
 			return;
 		}
 	}
@@ -358,7 +359,6 @@ Mission::get_next_offboard_mission_item(struct position_setpoint_s *next_pos_sp)
 		if (read_mission_item(dm_current, false, &next_temp_mission_index, &new_mission_item)) {
 			/* convert next mission item to position setpoint */
 			mission_item_to_position_setpoint(&new_mission_item, next_pos_sp);
-			next_pos_sp->valid = true;
 			return;
 		}
 	}

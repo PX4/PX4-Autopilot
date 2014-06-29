@@ -71,9 +71,9 @@ public:
 
 	virtual void on_inactive();
 
-	virtual void on_activation(struct position_setpoint_triplet_s *pos_sp_triplet);
+	virtual void on_activation();
 
-	virtual bool on_active(struct position_setpoint_triplet_s *pos_sp_triplet);
+	virtual void on_active();
 
 private:
 	/**
@@ -94,7 +94,7 @@ private:
 	/**
 	 * Set new mission items
 	 */
-	void set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet);
+	void set_mission_items();
 
 	/**
 	 * Try to set the current position setpoint from an onboard mission item

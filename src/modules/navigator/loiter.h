@@ -56,9 +56,9 @@ public:
 
 	virtual void on_inactive();
 
-	virtual void on_activation(struct position_setpoint_triplet_s *pos_sp_triplet);
+	virtual void on_activation();
 
-	virtual bool on_active(struct position_setpoint_triplet_s *pos_sp_triplet);
+	virtual void on_active();
 };
 
 #endif

@@ -40,6 +40,7 @@
  */
 
 #include "navigator_mode.h"
+#include "navigator.h"
 
 NavigatorMode::NavigatorMode(Navigator *navigator, const char *name) :
 	SuperBlock(NULL, name),
@@ -56,18 +57,17 @@ NavigatorMode::~NavigatorMode()
 {
 }
 
-bool
-NavigatorMode::run(bool active, struct position_setpoint_triplet_s *pos_sp_triplet) {
+void
+NavigatorMode::run(bool active) {
 	if (active) {
 		if (_first_run) {
 			/* first run */
 			_first_run = false;
-			on_activation(pos_sp_triplet);
-			return true;
+			on_activation();
 
 		} else {
 			/* periodic updates when active */
-			on_active(pos_sp_triplet);
+			on_active();
 		}
 
 	} else {
@@ -83,14 +83,13 @@ NavigatorMode::on_inactive()
 }
 
 void
-NavigatorMode::on_activation(struct position_setpoint_triplet_s *pos_sp_triplet)
+NavigatorMode::on_activation()
 {
 	/* invalidate position setpoint by default */
-	pos_sp_triplet->current.valid = false;
+	_navigator->get_position_setpoint_triplet()->current.valid = false;
 }
 
-bool
-NavigatorMode::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
+void
+NavigatorMode::on_active()
 {
-	return false;
 }

@@ -66,7 +66,7 @@ public:
 	 */
 	virtual ~NavigatorMode();
 
-	bool run(bool active, struct position_setpoint_triplet_s *pos_sp_triplet);
+	void run(bool active);
 
 	/**
 	 * This function is called while the mode is inactive
@@ -76,15 +76,12 @@ public:
 	/**
 	 * This function is called one time when mode become active, poos_sp_triplet must be initialized here
 	 */
-	virtual void on_activation(struct position_setpoint_triplet_s *pos_sp_triplet);
+	virtual void on_activation();
 
 	/**
 	 * This function is called while the mode is active
-	 *
-	 * @param position setpoint triplet to set
-	 * @return true if position setpoint triplet has been changed
 	 */
-	virtual bool on_active(struct position_setpoint_triplet_s *pos_sp_triplet);
+	virtual void on_active();
 
 protected:
 	Navigator *_navigator;

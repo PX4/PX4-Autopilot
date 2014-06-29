@@ -58,8 +58,7 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
 	_time_first_inside_orbit(0),
-	_mission_item({0}),
-	_mission_item_valid(false)
+	_mission_item({0})
 {
 }
 
@@ -70,6 +69,10 @@ MissionBlock::~MissionBlock()
 bool
 MissionBlock::is_mission_item_reached()
 {
+	if (_mission_item.nav_cmd == NAV_CMD_IDLE) {
+		return false;
+	}
+
 	if (_mission_item.nav_cmd == NAV_CMD_LAND) {
 		return _navigator->get_vstatus()->condition_landed;
 	}
@@ -83,7 +86,6 @@ MissionBlock::is_mission_item_reached()
 	hrt_abstime now = hrt_absolute_time();
 
 	if (!_waypoint_position_reached) {
-
 		float dist = -1.0f;
 		float dist_xy = -1.0f;
 		float dist_z = -1.0f;
@@ -209,43 +211,38 @@ MissionBlock::set_previous_pos_setpoint(struct position_setpoint_triplet_s *pos_
 }
 
 void
-MissionBlock::set_loiter_item(struct position_setpoint_triplet_s *pos_sp_triplet)
+MissionBlock::set_loiter_item(struct mission_item_s *item)
 {
 	if (_navigator->get_vstatus()->condition_landed) {
 		/* landed, don't takeoff, but switch to IDLE mode */
-		_mission_item.nav_cmd = NAV_CMD_IDLE;
-
-		_navigator->set_can_loiter_at_sp(false);
-
-		mavlink_log_info(_navigator->get_mavlink_fd(), "landed, switch to IDLE");
+		item->nav_cmd = NAV_CMD_IDLE;
 
 	} else {
-		_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+		item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+
+		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 		if (_navigator->get_can_loiter_at_sp() && pos_sp_triplet->current.valid) {
 			/* use current position setpoint */
-			_mission_item.lat = pos_sp_triplet->current.lat;
-			_mission_item.lon = pos_sp_triplet->current.lon;
-			_mission_item.altitude = pos_sp_triplet->current.alt;
+			item->lat = pos_sp_triplet->current.lat;
+			item->lon = pos_sp_triplet->current.lon;
+			item->altitude = pos_sp_triplet->current.alt;
 
 		} else {
 			/* use current position */
-			_mission_item.lat = _navigator->get_global_position()->lat;
-			_mission_item.lon = _navigator->get_global_position()->lon;
-			_mission_item.altitude = _navigator->get_global_position()->alt;
+			item->lat = _navigator->get_global_position()->lat;
+			item->lon = _navigator->get_global_position()->lon;
+			item->altitude = _navigator->get_global_position()->alt;
 		}
 
-		_mission_item.altitude_is_relative = false;
-		_mission_item.yaw = NAN;
-		_mission_item.loiter_radius = _navigator->get_loiter_radius();
-		_mission_item.loiter_direction = 1;
-		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-		_mission_item.time_inside = 0.0f;
-		_mission_item.pitch_min = 0.0f;
-		_mission_item.autocontinue = false;
-		_mission_item.origin = ORIGIN_ONBOARD;
-
-		_navigator->set_can_loiter_at_sp(true);
-		mavlink_log_info(_navigator->get_mavlink_fd(), "switch to LOITER");
+		item->altitude_is_relative = false;
+		item->yaw = NAN;
+		item->loiter_radius = _navigator->get_loiter_radius();
+		item->loiter_direction = 1;
+		item->acceptance_radius = _navigator->get_acceptance_radius();
+		item->time_inside = 0.0f;
+		item->pitch_min = 0.0f;
+		item->autocontinue = false;
+		item->origin = ORIGIN_ONBOARD;
 	}
 }

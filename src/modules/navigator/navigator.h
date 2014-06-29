@@ -103,6 +103,7 @@ public:
 	 * Setters
 	 */
 	void		set_can_loiter_at_sp(bool can_loiter) { _can_loiter_at_sp = can_loiter; }
+	void		set_position_setpoint_triplet_updated() { _pos_sp_triplet_updated = true; }
 
 	/**
 	 * Getters
@@ -110,6 +111,7 @@ public:
 	struct vehicle_status_s*	    get_vstatus() { return &_vstatus; }
 	struct vehicle_global_position_s*   get_global_position() { return &_global_pos; }
 	struct home_position_s*		    get_home_position() { return &_home_pos; }
+	struct position_setpoint_triplet_s*		    get_position_setpoint_triplet() { return &_pos_sp_triplet; }
 	int		get_onboard_mission_sub() { return _onboard_mission_sub; }
 	int		get_offboard_mission_sub() { return _offboard_mission_sub; }
 	Geofence&	get_geofence() { return _geofence; }
@@ -162,7 +164,7 @@ private:
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
 	bool		_can_loiter_at_sp;			/**< flags if current position SP can be used to loiter */
-	bool		_update_triplet;		/**< flags if position SP triplet needs to be published */
+	bool		_pos_sp_triplet_updated;		/**< flags if position SP triplet needs to be published */
 
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
