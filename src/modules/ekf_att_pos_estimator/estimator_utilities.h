@@ -8,8 +8,8 @@
 #define rad2deg 57.295780f
 #define pi 3.141592657f
 #define earthRate 0.000072921f
-#define earthRadius 6378145.0f
-#define earthRadiusInv  1.5678540e-7f
+#define earthRadius 6378145.0
+#define earthRadiusInv  1.5678540e-7
 
 class Vector3f
 {
