@@ -1,0 +1,3 @@
+[submodule "src/modules/ekf_att_pos_estimator/InertialNav"]
+	path = src/modules/ekf_att_pos_estimator/InertialNav
+	url = git@github.com:PX4/InertialNav.git
