@@ -357,7 +357,7 @@ GPS::task_main()
 					}
 
 					if (!_healthy) {
-						char *mode_str = "unknown";
+						const char *mode_str = "unknown";
 
 						switch (_mode) {
 						case GPS_DRIVER_MODE_UBX:
@@ -449,7 +449,7 @@ GPS::print_info()
 
 	if (_report.timestamp_position != 0) {
 		warnx("position lock: %dD, satellites: %d, last update: %8.4fms ago", (int)_report.fix_type,
-				_report.satellites_visible, (double)(hrt_absolute_time() - _report.timestamp_position) / 1000.0f);
+				_report.satellites_visible, (double)(hrt_absolute_time() - _report.timestamp_position) / 1000.0d);
 		warnx("lat: %d, lon: %d, alt: %d", _report.lat, _report.lon, _report.alt);
 		warnx("eph: %.2fm, epv: %.2fm", (double)_report.eph, (double)_report.epv);
 		warnx("rate position: \t%6.2f Hz", (double)_Helper->get_position_update_rate());
@@ -578,7 +578,7 @@ gps_main(int argc, char *argv[])
 {
 
 	/* set to default */
-	char *device_name = GPS_DEFAULT_UART_PORT;
+	const char *device_name = GPS_DEFAULT_UART_PORT;
 	bool fake_gps = false;
 
 	/*

@@ -196,13 +196,14 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 
 			if (buf_free < desired) {
 				/* we don't want to send anything just in half, so return */
+				instance->count_txerr();
 				return;
 			}
 		}
 
 		ssize_t ret = write(uart, ch, desired);
 		if (ret != desired) {
-			// XXX overflow perf
+			instance->count_txerr();
 		} else {
 			last_write_success_times[(unsigned)channel] = last_write_try_times[(unsigned)channel];
 		}
@@ -247,7 +248,8 @@ Mavlink::Mavlink() :
 	_mission_manager(nullptr),
 
 /* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink"))
+	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
+	_txerr_perf(perf_alloc(PC_COUNT, "mavlink_txe"))
 {
 	fops.ioctl = (int (*)(file *, int, long unsigned int))&mavlink_dev_ioctl;
 
@@ -298,6 +300,7 @@ Mavlink::Mavlink() :
 Mavlink::~Mavlink()
 {
 	perf_free(_loop_perf);
+	perf_free(_txerr_perf);
 
 	if (_task_running) {
 		/* task wakes up every 10ms or so at the longest */
@@ -320,6 +323,12 @@ Mavlink::~Mavlink()
 	}
 
 	LL_DELETE(_mavlink_instances, this);
+}
+
+void
+Mavlink::count_txerr()
+{
+	perf_count(_txerr_perf);
 }
 
 void
@@ -1556,11 +1565,20 @@ int Mavlink::start_helper(int argc, char *argv[])
 	/* create the instance in task context */
 	Mavlink *instance = new Mavlink();
 
-	/* this will actually only return once MAVLink exits */
-	int res = instance->task_main(argc, argv);
+	int res;
 
-	/* delete instance on main thread end */
-	delete instance;
+	if (!instance) {
+
+		/* out of memory */
+		res = -ENOMEM;
+		warnx("OUT OF MEM");
+	} else {
+		/* this will actually only return once MAVLink exits */
+		res = instance->task_main(argc, argv);
+
+		/* delete instance on main thread end */
+		delete instance;
+	}
 
 	return res;
 }
@@ -1611,13 +1629,13 @@ Mavlink::start(int argc, char *argv[])
 }
 
 void
-Mavlink::status()
+Mavlink::display_status()
 {
 	warnx("running");
 }
 
 int
-Mavlink::stream(int argc, char *argv[])
+Mavlink::stream_command(int argc, char *argv[])
 {
 	const char *device_name = DEFAULT_DEVICE_NAME;
 	float rate = -1.0f;
@@ -1705,7 +1723,7 @@ int mavlink_main(int argc, char *argv[])
 		// 	mavlink::g_mavlink->status();
 
 	} else if (!strcmp(argv[1], "stream")) {
-		return Mavlink::stream(argc, argv);
+		return Mavlink::stream_command(argc, argv);
 
 	} else {
 		usage();

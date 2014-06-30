@@ -50,6 +50,7 @@
 #include <string.h>
 
 #include "dataman.h"
+#include <systemlib/param/param.h>
 
 /**
  * data manager app start / stop handling function
@@ -194,7 +195,7 @@ create_work_item(void)
 		if (item) {
 			item->first = 1;
 			lock_queue(&g_free_q);
-			for (int i = 1; i < k_work_item_allocation_chunk_size; i++) {
+			for (size_t i = 1; i < k_work_item_allocation_chunk_size; i++) {
 				(item + i)->first = 0;
 				sq_addfirst(&(item + i)->link, &(g_free_q.q));
 			}

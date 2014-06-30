@@ -101,7 +101,7 @@ int parameters_update(const struct attitude_estimator_ekf_param_handles *h, stru
 	param_get(h->r3, &(p->r[3]));
 
 	param_get(h->mag_decl, &(p->mag_decl));
-	p->mag_decl *= M_PI / 180.0f;
+	p->mag_decl *= M_PI_F / 180.0f;
 
 	param_get(h->acc_comp, &(p->acc_comp));
 

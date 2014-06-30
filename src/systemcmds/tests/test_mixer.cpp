@@ -81,7 +81,7 @@ int test_mixer(int argc, char *argv[])
 
 	warnx("testing mixer");
 
-	char *filename = "/etc/mixers/IO_pass.mix";
+	const char *filename = "/etc/mixers/IO_pass.mix";
 
 	if (argc > 1)
 		filename = argv[1];
@@ -99,8 +99,6 @@ int test_mixer(int argc, char *argv[])
 	 * in the case of a remote load,
 	 * e.g. on PX4IO.
 	 */
-
-	unsigned nused = 0;
 
 	const unsigned chunk_size = 64;
 
@@ -124,7 +122,6 @@ int test_mixer(int argc, char *argv[])
 		return 1;
 
 	/* FIRST mark the mixer as invalid */
-	bool mixer_ok = false;
 	/* THEN actually delete it */
 	mixer_group.reset();
 	char mixer_text[256];		/* large enough for one mixer */
@@ -140,7 +137,6 @@ int test_mixer(int argc, char *argv[])
 
 		/* check for overflow - this would be really fatal */
 		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text)) {
-			bool mixer_ok = false;
 			return 1;
 		}
 
@@ -156,15 +152,6 @@ int test_mixer(int argc, char *argv[])
 
 		/* if anything was parsed */
 		if (resid != mixer_text_length) {
-
-			/* only set mixer ok if no residual is left over */
-			if (resid == 0) {
-				mixer_ok = true;
-			} else {
-				/* not yet reached the end of the mixer, set as not ok */
-				mixer_ok = false;
-			}
-
 			warnx("used %u", mixer_text_length - resid);
 
 			/* copy any leftover text to the base of the buffer for re-use */
@@ -192,7 +179,7 @@ int test_mixer(int argc, char *argv[])
 	should_arm = true;
 
 	/* run through arming phase */
-	for (int i = 0; i < output_max; i++) {
+	for (unsigned i = 0; i < output_max; i++) {
 		actuator_controls[i] = 0.1f;
 		r_page_servo_disarmed[i] = PWM_LOWEST_MIN;
 		r_page_servo_control_min[i] = PWM_DEFAULT_MIN;
@@ -213,7 +200,7 @@ int test_mixer(int argc, char *argv[])
 		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
 
 		//warnx("mixed %d outputs (max %d), values:", mixed, output_max);
-		for (int i = 0; i < mixed; i++)
+		for (unsigned i = 0; i < mixed; i++)
 		{
 			/* check mixed outputs to be zero during init phase */
 			if (hrt_elapsed_time(&starttime) < INIT_TIME_US &&
@@ -228,7 +215,7 @@ int test_mixer(int argc, char *argv[])
 				return 1;
 			}
 
-			//printf("\t %d: %8.4f limited: %8.4f, servo: %d\n", i, outputs_unlimited[i], outputs[i], (int)r_page_servos[i]);
+			//printf("\t %d: %8.4f limited: %8.4f, servo: %d\n", i, (double)outputs_unlimited[i], (double)outputs[i], (int)r_page_servos[i]);
 		}
 		usleep(sleep_quantum_us);
 		sleepcount++;
@@ -244,7 +231,7 @@ int test_mixer(int argc, char *argv[])
 
 	for (int j = -jmax; j <= jmax; j++) {
 
-		for (int i = 0; i < output_max; i++) {
+		for (unsigned i = 0; i < output_max; i++) {
 			actuator_controls[i] = j/10.0f + 0.1f * i;
 			r_page_servo_disarmed[i] = PWM_LOWEST_MIN;
 			r_page_servo_control_min[i] = PWM_DEFAULT_MIN;
@@ -257,11 +244,11 @@ int test_mixer(int argc, char *argv[])
 		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
 
 		warnx("mixed %d outputs (max %d)", mixed, output_max);
-		for (int i = 0; i < mixed; i++)
+		for (unsigned i = 0; i < mixed; i++)
 		{
 			servo_predicted[i] = 1500 + outputs[i] * (r_page_servo_control_max[i] - r_page_servo_control_min[i]) / 2.0f;
 			if (fabsf(servo_predicted[i] - r_page_servos[i]) > 2) {
-				printf("\t %d: %8.4f predicted: %d, servo: %d\n", i, outputs[i], servo_predicted[i], (int)r_page_servos[i]);
+				printf("\t %d: %8.4f predicted: %d, servo: %d\n", i, (double)outputs[i], servo_predicted[i], (int)r_page_servos[i]);
 				warnx("mixer violated predicted value");
 				return 1;
 			}
@@ -282,7 +269,7 @@ int test_mixer(int argc, char *argv[])
 		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
 
 		//warnx("mixed %d outputs (max %d), values:", mixed, output_max);
-		for (int i = 0; i < mixed; i++)
+		for (unsigned i = 0; i < mixed; i++)
 		{
 			/* check mixed outputs to be zero during init phase */
 			if (r_page_servos[i] != r_page_servo_disarmed[i]) {
@@ -316,7 +303,7 @@ int test_mixer(int argc, char *argv[])
 		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
 
 		//warnx("mixed %d outputs (max %d), values:", mixed, output_max);
-		for (int i = 0; i < mixed; i++)
+		for (unsigned i = 0; i < mixed; i++)
 		{
 			/* predict value */
 			servo_predicted[i] = 1500 + outputs[i] * (r_page_servo_control_max[i] - r_page_servo_control_min[i]) / 2.0f;
@@ -333,7 +320,7 @@ int test_mixer(int argc, char *argv[])
 			/* check post ramp phase */
 			if (hrt_elapsed_time(&starttime) > RAMP_TIME_US &&
 				fabsf(servo_predicted[i] - r_page_servos[i]) > 2) {
-				printf("\t %d: %8.4f predicted: %d, servo: %d\n", i, outputs[i], servo_predicted[i], (int)r_page_servos[i]);
+				printf("\t %d: %8.4f predicted: %d, servo: %d\n", i, (double)outputs[i], servo_predicted[i], (int)r_page_servos[i]);
 				warnx("mixer violated predicted value");
 				return 1;
 			}
@@ -372,6 +359,7 @@ int test_mixer(int argc, char *argv[])
 	}
 
 	warnx("SUCCESS: No errors in mixer test");
+	return 0;
 }
 
 static int
