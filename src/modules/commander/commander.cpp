@@ -373,16 +373,16 @@ void print_status()
 
 static orb_advert_t status_pub;
 
-transition_result_t arm_disarm(bool arm, const int mavlink_fd, const char *armedBy)
+transition_result_t arm_disarm(bool arm, const int mavlink_fd_local, const char *armedBy)
 {
 	transition_result_t arming_res = TRANSITION_NOT_CHANGED;
 
 	// Transition the armed state. By passing mavlink_fd to arming_state_transition it will
 	// output appropriate error messages if the state cannot transition.
-	arming_res = arming_state_transition(&status, &safety, arm ? ARMING_STATE_ARMED : ARMING_STATE_STANDBY, &armed, mavlink_fd);
+	arming_res = arming_state_transition(&status, &safety, arm ? ARMING_STATE_ARMED : ARMING_STATE_STANDBY, &armed, mavlink_fd_local);
 
 	if (arming_res == TRANSITION_CHANGED && mavlink_fd) {
-		mavlink_log_info(mavlink_fd, "[cmd] %s by %s", arm ? "ARMED" : "DISARMED", armedBy);
+		mavlink_log_info(mavlink_fd_local, "[cmd] %s by %s", arm ? "ARMED" : "DISARMED", armedBy);
 
 	} else if (arming_res == TRANSITION_DENIED) {
 		tune_negative(true);
@@ -509,7 +509,14 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 				cmd_result = VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				mavlink_log_info(mavlink_fd, "Unsupported OVERRIDE_GOTO: %f %f %f %f %f %f %f %f", cmd->param1, cmd->param2, cmd->param3, cmd->param4, cmd->param5, cmd->param6, cmd->param7);
+				mavlink_log_info(mavlink_fd, "Unsupported OVERRIDE_GOTO: %f %f %f %f %f %f %f %f",
+					(double)cmd->param1,
+					(double)cmd->param2,
+					(double)cmd->param3,
+					(double)cmd->param4,
+					(double)cmd->param5,
+					(double)cmd->param6,
+					(double)cmd->param7);
 			}
 		}
 		break;
@@ -760,7 +767,6 @@ int commander_thread_main(int argc, char *argv[])
 
 	hrt_abstime last_idle_time = 0;
 	hrt_abstime start_time = 0;
-	hrt_abstime last_auto_state_valid = 0;
 
 	bool status_changed = true;
 	bool param_init_forced = true;
@@ -875,6 +881,7 @@ int commander_thread_main(int argc, char *argv[])
 	bool arming_state_changed = false;
 	bool main_state_changed = false;
 	bool failsafe_old = false;
+	bool system_checked = false;
 
 	while (!thread_should_exit) {
 
@@ -929,6 +936,15 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_takeoff_alt, &takeoff_alt);
 			param_get(_param_enable_parachute, &parachute_enabled);
 			param_get(_param_enable_datalink_loss, &datalink_loss_enabled);
+		}
+
+		/* Perform system checks (again) once params are loaded and MAVLink is up. */
+		if (!system_checked && mavlink_fd && 
+			(telemetry.heartbeat_time > 0) &&
+			(hrt_elapsed_time(&telemetry.heartbeat_time) < 1 * 1000 * 1000)) {
+
+			(void)rc_calibration_check(mavlink_fd);
+			system_checked = true;
 		}
 
 		orb_check(sp_man_sub, &updated);
