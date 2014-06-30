@@ -149,6 +149,8 @@ test_file(int argc, char *argv[])
 			}
 			end = hrt_absolute_time();
 
+			warnx("write took %llu us", (end - start));
+
 			close(fd);
 			fd = open("/fs/microsd/testfile", O_RDONLY);
 
@@ -192,7 +194,6 @@ test_file(int argc, char *argv[])
 
 			warnx("testing aligned writes - please wait.. (CTRL^C to abort)");
 
-			start = hrt_absolute_time();
 			for (unsigned i = 0; i < iterations; i++) {
 				int wret = write(fd, write_buf, chunk_sizes[c]);
 

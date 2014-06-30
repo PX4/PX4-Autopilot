@@ -131,6 +131,7 @@
 #include <fcntl.h>
 #include <sys/prctl.h>
 #include <math.h>
+#include <float.h>
 #include <mathlib/mathlib.h>
 #include <string.h>
 #include <drivers/drv_hrt.h>
@@ -526,7 +527,7 @@ int mat_invert3(float src[3][3], float dst[3][3])
 		    src[0][1] * (src[1][0] * src[2][2] - src[1][2] * src[2][0]) +
 		    src[0][2] * (src[1][0] * src[2][1] - src[1][1] * src[2][0]);
 
-	if (det == 0.0f) {
+	if (fabsf(det) < FLT_EPSILON) {
 		return ERROR;        // Singular matrix
 	}
 
