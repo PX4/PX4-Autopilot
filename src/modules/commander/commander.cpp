@@ -1342,6 +1342,7 @@ int commander_thread_main(int argc, char *argv[])
 			} else if (arming_ret == TRANSITION_DENIED) {
 				/* DENIED here indicates bug in the commander */
 				mavlink_log_critical(mavlink_fd, "ERROR: arming state transition denied");
+				tune_negative(true);
 			}
 
 			/* evaluate the main state machine according to mode switches */
