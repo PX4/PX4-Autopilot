@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,26 +30,41 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file navigator_state.h
+ * @file navigator_mode.cpp
  *
- * Navigator state
+ * Helper class for different modes in navigator
  *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef NAVIGATOR_STATE_H_
-#define NAVIGATOR_STATE_H_
+#include "navigator_mode.h"
 
-typedef enum {
-	NAV_STATE_NONE = 0,
-	NAV_STATE_READY,
-	NAV_STATE_LOITER,
-	NAV_STATE_MISSION,
-	NAV_STATE_RTL,
-	NAV_STATE_LAND,
-	NAV_STATE_MAX
-} nav_state_t;
+NavigatorMode::NavigatorMode(Navigator *navigator, const char *name) :
+	SuperBlock(NULL, name),
+	_navigator(navigator),
+	_first_run(true)
+{
+	/* load initial params */
+	updateParams();
+	/* set initial mission items */
+	on_inactive();
+}
 
-#endif /* NAVIGATOR_STATE_H_ */
+NavigatorMode::~NavigatorMode()
+{
+}
+
+void
+NavigatorMode::on_inactive()
+{
+	_first_run = true;
+}
+
+bool
+NavigatorMode::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
+{
+	pos_sp_triplet->current.valid = false;
+	_first_run = false;
+	return false;
+}

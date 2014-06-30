@@ -60,7 +60,7 @@ nshterm_main(int argc, char *argv[])
         printf("Usage: nshterm <device>\n");
         exit(1);
     }
-    uint8_t retries = 0;
+    unsigned retries = 0;
     int fd = -1;
 
     /* try the first 30 seconds */

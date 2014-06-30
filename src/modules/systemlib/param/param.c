@@ -96,8 +96,6 @@ ORB_DEFINE(parameter_update, struct parameter_update_s);
 /** parameter update topic handle */
 static orb_advert_t param_topic = -1;
 
-static sem_t param_sem = { .semcount = 1 };
-
 /** lock the parameter store */
 static void
 param_lock(void)

@@ -342,7 +342,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 				if (gps_updated) {
 					orb_copy(ORB_ID(vehicle_gps_position), sub_gps, &gps);
 
-					if (gps.eph_m < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
+					if (gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
 						mag_decl = math::radians(get_mag_declination(gps.lat / 1e7f, gps.lon / 1e7f));
 
 						/* update mag declination rotation matrix */
@@ -401,7 +401,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 					hrt_abstime vel_t = 0;
 					bool vel_valid = false;
-					if (ekf_params.acc_comp == 1 && gps.fix_type >= 3 && gps.eph_m < 10.0f && gps.vel_ned_valid && hrt_absolute_time() < gps.timestamp_velocity + 500000) {
+					if (ekf_params.acc_comp == 1 && gps.fix_type >= 3 && gps.eph < 10.0f && gps.vel_ned_valid && hrt_absolute_time() < gps.timestamp_velocity + 500000) {
 						vel_valid = true;
 						if (gps_updated) {
 							vel_t = gps.timestamp_velocity;
@@ -410,7 +410,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 							vel(2) = gps.vel_d_m_s;
 						}
 
-					} else if (ekf_params.acc_comp == 2 && gps.eph_m < 5.0f && global_pos.timestamp != 0 && hrt_absolute_time() < global_pos.timestamp + 20000) {
+					} else if (ekf_params.acc_comp == 2 && gps.eph < 5.0f && global_pos.timestamp != 0 && hrt_absolute_time() < global_pos.timestamp + 20000) {
 						vel_valid = true;
 						if (global_pos_updated) {
 							vel_t = global_pos.timestamp;
@@ -477,7 +477,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						parameters_update(&ekf_param_handles, &ekf_params);
 
 						/* update mag declination rotation matrix */
-						if (gps.eph_m < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
+						if (gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
 							mag_decl = math::radians(get_mag_declination(gps.lat / 1e7f, gps.lon / 1e7f));
 
 						} else {
