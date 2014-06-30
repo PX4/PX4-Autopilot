@@ -49,6 +49,7 @@
 #include <sys/prctl.h>
 #include <termios.h>
 #include <math.h>
+#include <float.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/actuator_controls.h>
@@ -477,7 +478,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				float flow_dt = flow_prev > 0 ? (flow.flow_timestamp - flow_prev) * 1e-6f : 0.1f;
 				flow_prev = flow.flow_timestamp;
 
-				if (flow.ground_distance_m > 0.31f && flow.ground_distance_m < 4.0f && att.R[2][2] > 0.7f && flow.ground_distance_m != sonar_prev) {
+				if (flow.ground_distance_m > 0.31f && flow.ground_distance_m < 4.0f && att.R[2][2] > 0.7f && (fabsf(flow.ground_distance_m - sonar_prev) > FLT_EPSILON)) {
 					sonar_time = t;
 					sonar_prev = flow.ground_distance_m;
 					corr_sonar = flow.ground_distance_m + surface_offset + z_est[0];
@@ -952,11 +953,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				float updates_dt = (t - updates_counter_start) * 0.000001f;
 				warnx(
 					"updates rate: accelerometer = %.1f/s, baro = %.1f/s, gps = %.1f/s, attitude = %.1f/s, flow = %.1f/s",
-					accel_updates / updates_dt,
-					baro_updates / updates_dt,
-					gps_updates / updates_dt,
-					attitude_updates / updates_dt,
-					flow_updates / updates_dt);
+					(double)(accel_updates / updates_dt),
+					(double)(baro_updates / updates_dt),
+					(double)(gps_updates / updates_dt),
+					(double)(attitude_updates / updates_dt),
+					(double)(flow_updates / updates_dt));
 				updates_counter_start = t;
 				accel_updates = 0;
 				baro_updates = 0;
