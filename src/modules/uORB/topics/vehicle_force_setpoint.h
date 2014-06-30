@@ -52,6 +52,7 @@ struct vehicle_force_setpoint_s {
 	float x;		/**< in N NED			  		*/
 	float y;		/**< in N NED			  		*/
 	float z;		/**< in N NED			  		*/
+	float yaw;		/**< right-hand rotation around downward axis (rad, equivalent to Tait-Bryan yaw) */
 }; /**< Desired force in NED frame */
 
 /**
