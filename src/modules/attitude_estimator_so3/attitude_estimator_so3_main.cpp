@@ -77,6 +77,8 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
+#include "fp_helpers.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -267,7 +269,7 @@ void NonlinearSO3AHRSupdate(float gx, float gy, float gz, float ax, float ay, fl
 	}
         	
 	//! If magnetometer measurement is available, use it.
-	if(!((mx == 0.0f) && (my == 0.0f) && (mz == 0.0f))) {
+	if(!(is_exactly_zero_float(mx) && is_exactly_zero_float(my) && is_exactly_zero_float(mz))) {
 		float hx, hy, hz, bx, bz;
 		float halfwx, halfwy, halfwz;
 	
@@ -297,7 +299,7 @@ void NonlinearSO3AHRSupdate(float gx, float gy, float gz, float ax, float ay, fl
 	}
 
 	// Compute feedback only if accelerometer measurement valid (avoids NaN in accelerometer normalisation)
-	if(!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
+	if(!(is_exactly_zero_float(ax) && is_exactly_zero_float(ay) && is_exactly_zero_float(az))) {
 		float halfvx, halfvy, halfvz;
 	
 		// Normalise accelerometer measurement
@@ -318,7 +320,7 @@ void NonlinearSO3AHRSupdate(float gx, float gy, float gz, float ax, float ay, fl
 	}
 
 	// Apply feedback only when valid data has been gathered from the accelerometer or magnetometer
-	if(halfex != 0.0f && halfey != 0.0f && halfez != 0.0f) {
+	if(!is_exactly_zero_float(halfex) && !is_exactly_zero_float(halfey) && !is_exactly_zero_float(halfez)) {
 		// Compute and apply integral feedback if enabled
 		if(twoKi > 0.0f) {
 			gyro_bias[0] += twoKi * halfex * dt;	// integral error scaled by Ki
