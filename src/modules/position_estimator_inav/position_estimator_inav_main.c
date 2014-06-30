@@ -478,7 +478,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				float flow_dt = flow_prev > 0 ? (flow.flow_timestamp - flow_prev) * 1e-6f : 0.1f;
 				flow_prev = flow.flow_timestamp;
 
-				if (flow.ground_distance_m > 0.31f && flow.ground_distance_m < 4.0f && att.R[2][2] > 0.7f && (fabsf(flow.ground_distance_m - sonar_prev) > FLT_EPSILON)) {
+				if ((flow.ground_distance_m > 0.31f) &&
+					(flow.ground_distance_m < 4.0f) &&
+					(att.R[2][2] > 0.7f) &&
+					(fabsf(flow.ground_distance_m - sonar_prev) > FLT_EPSILON)) {
+
 					sonar_time = t;
 					sonar_prev = flow.ground_distance_m;
 					corr_sonar = flow.ground_distance_m + surface_offset + z_est[0];
