@@ -135,6 +135,26 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 					valid_transition = false;
 				}
 
+				// Perform power checks only if circuit breaker is not
+				// engaged for these checks
+				if (!status->circuit_breaker_engaged_power_check) {
+					// Fail transition if power is not good
+					if (!status->condition_power_input_valid) {
+
+						mavlink_log_critical(mavlink_fd, "#audio: NOT ARMING: Connect power module.");
+						valid_transition = false;
+					}
+
+					// Fail transition if power levels on the avionics rail
+					// are measured but are insufficient
+					if (status->condition_power_input_valid && (status->avionics_power_rail_voltage > 0.0f) &&
+						(status->avionics_power_rail_voltage < 4.9f)) {
+
+						mavlink_log_critical(mavlink_fd, "#audio: NOT ARMING: Avionics power low: %6.2f V.", status->avionics_power_rail_voltage);
+						valid_transition = false;
+					}
+				}
+
 			} else if (new_arming_state == ARMING_STATE_STANDBY && status->arming_state == ARMING_STATE_ARMED_ERROR) {
 				new_arming_state = ARMING_STATE_STANDBY_ERROR;
 			}

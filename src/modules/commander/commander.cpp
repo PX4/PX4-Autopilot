@@ -52,6 +52,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <systemlib/err.h>
+#include <systemlib/circuit_breaker.h>
 #include <debug.h>
 #include <sys/prctl.h>
 #include <sys/stat.h>
@@ -76,6 +77,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/safety.h>
+#include <uORB/topics/system_power.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/telemetry_status.h>
 
@@ -700,6 +702,12 @@ int commander_thread_main(int argc, char *argv[])
 	status.counter++;
 	status.timestamp = hrt_absolute_time();
 
+	status.condition_power_input_valid = true;
+	status.avionics_power_rail_voltage = -1.0f;
+
+	// CIRCUIT BREAKERS
+	status.circuit_breaker_engaged_power_check = false;
+
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
 
@@ -846,6 +854,11 @@ int commander_thread_main(int argc, char *argv[])
 	struct position_setpoint_triplet_s pos_sp_triplet;
 	memset(&pos_sp_triplet, 0, sizeof(pos_sp_triplet));
 
+	/* Subscribe to system power */
+	int system_power_sub = orb_subscribe(ORB_ID(system_power));
+	struct system_power_s system_power;
+	memset(&system_power, 0, sizeof(system_power));
+
 	control_status_leds(&status, &armed, true);
 
 	/* now initialized */
@@ -903,6 +916,9 @@ int commander_thread_main(int argc, char *argv[])
 				/* check and update system / component ID */
 				param_get(_param_system_id, &(status.system_id));
 				param_get(_param_component_id, &(status.component_id));
+
+				status.circuit_breaker_engaged_power_check = circuit_breaker_enabled("CBRK_SUPPLY_CHK", CBRK_SUPPLY_CHK_KEY);
+
 				status_changed = true;
 
 				/* re-check RC calibration */
@@ -943,6 +959,26 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
+		}
+
+		orb_check(system_power_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(system_power), system_power_sub, &system_power);
+
+			if (hrt_elapsed_time(&system_power.timestamp) < 200000) {
+				if (system_power.servo_valid &&
+					!system_power.brick_valid &&
+					!system_power.usb_connected) {
+					/* flying only on servo rail, this is unsafe */
+					status.condition_power_input_valid = false;
+				} else {
+					status.condition_power_input_valid = true;
+				}
+
+				/* copy avionics voltage */
+				status.avionics_power_rail_voltage = system_power.voltage5V_v;
+			}
 		}
 
 		check_valid(diff_pres.timestamp, DIFFPRESS_TIMEOUT, true, &(status.condition_airspeed_valid), &status_changed);
