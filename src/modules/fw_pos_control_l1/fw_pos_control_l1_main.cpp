@@ -152,18 +152,6 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	/** manual control states */
-	float		_altctrl_hold_heading;		/**< heading the system should hold in altctrl mode */
-	double		_loiter_hold_lat;
-	double		_loiter_hold_lon;
-	float		_loiter_hold_alt;
-	bool		_loiter_hold;
-
-	double		_launch_lat;
-	double		_launch_lon;
-	float		_launch_alt;
-	bool		_launch_valid;
-
 	/* land states */
 	/* not in non-abort mode for landing yet */
 	bool land_noreturn_horizontal;
@@ -429,8 +417,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
 
-	_loiter_hold(false),
-	_launch_valid(false),
 	land_noreturn_horizontal(false),
 	land_noreturn_vertical(false),
 	land_stayonground(false),
@@ -609,13 +595,6 @@ FixedwingPositionControl::vehicle_control_mode_poll()
 		bool was_armed = _control_mode.flag_armed;
 
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
-
-		if (!was_armed && _control_mode.flag_armed) {
-			_launch_lat = _global_pos.lat;
-			_launch_lon = _global_pos.lon;
-			_launch_alt = _global_pos.alt;
-			_launch_valid = true;
-		}
 	}
 }
 
@@ -1108,15 +1087,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				usePreTakeoffThrust = true;
 			}
 		}
-
-		// warnx("nav bearing: %8.4f bearing err: %8.4f target bearing: %8.4f", (double)_l1_control.nav_bearing(),
-		//       (double)_l1_control.bearing_error(), (double)_l1_control.target_bearing());
-		// warnx("prev wp: %8.4f/%8.4f, next wp: %8.4f/%8.4f prev:%s", (double)prev_wp(0), (double)prev_wp(1),
-		//       (double)next_wp(0), (double)next_wp(1), (pos_sp_triplet.previous_valid) ? "valid" : "invalid");
-
-		// XXX at this point we always want no loiter hold if a
-		// mission is active
-		_loiter_hold = false;
 
 		/* reset landing state */
 		if (pos_sp_triplet.current.type != SETPOINT_TYPE_LAND) {
