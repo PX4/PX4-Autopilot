@@ -129,7 +129,6 @@ private:
 	int		_global_pos_sub;
 	int		_pos_sp_triplet_sub;
 	int		_att_sub;			/**< vehicle attitude subscription */
-	int		_attitude_sub;			/**< raw rc channels data subscription */
 	int		_airspeed_sub;			/**< airspeed subscription */
 	int		_control_mode_sub;		/**< vehicle status subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
@@ -408,6 +407,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_control_mode_sub(-1),
 	_params_sub(-1),
 	_manual_control_sub(-1),
+	_sensor_combined_sub(-1),
 	_range_finder_sub(-1),
 
 /* publications */
