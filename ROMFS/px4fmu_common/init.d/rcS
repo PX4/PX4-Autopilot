@@ -276,6 +276,11 @@ then
 	nshterm /dev/ttyACM0 &
 
 	#
+	# Start the datamanager
+	#
+	dataman start
+
+	#
 	# Start the Commander (needs to be this early for in-air-restarts)
 	#
 	commander start
@@ -401,11 +406,6 @@ then
 			fi
 		fi
 	fi
-
-	#
-	# Start the datamanager
-	#
-	dataman start
 
 	#
 	# MAVLink
