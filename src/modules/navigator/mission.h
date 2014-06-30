@@ -97,27 +97,10 @@ private:
 	void set_mission_items();
 
 	/**
-	 * Try to set given mission item from an offboard/onboard mission item
-	 * @return true if mission item successfully set
-	 */
-	bool set_mission_item(bool onboard, bool next_item, struct mission_item_s *mission_item);
-
-	/**
-	 * Try to set the next position setpoint from an onboard mission item
-	 */
-	void get_next_onboard_mission_item(struct position_setpoint_s *next_pos_sp);
-
-	/**
-	 * Try to set the next position setpoint from an offboard mission item
-	 */
-	void get_next_offboard_mission_item(struct position_setpoint_s *next_pos_sp);
-
-	/**
-	 * Read a mission item from the dataman and watch out for DO_JUMPS
+	 * Read current or next mission item from the dataman and watch out for DO_JUMPS
 	 * @return true if successful
 	 */
-	bool read_mission_item(const dm_item_t dm_item, bool is_current, int *mission_index,
-			       struct mission_item_s *new_mission_item);
+	bool read_mission_item(bool onboard, bool is_current, struct mission_item_s *mission_item);
 
 	/**
 	 * Report that a mission item has been reached

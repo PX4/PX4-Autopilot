@@ -70,9 +70,9 @@ Mission::Mission(Navigator *navigator, const char *name) :
 {
 	/* load initial params */
 	updateParams();
+
 	/* set initial mission items */
 	on_inactive();
-
 }
 
 Mission::~Mission()
@@ -121,16 +121,12 @@ Mission::on_active()
 	/* reset mission items if needed */
 	if (onboard_updated || offboard_updated) {
 		set_mission_items();
-
-		_navigator->set_position_setpoint_triplet_updated();
 	}
 
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
 		advance_mission();
 		set_mission_items();
-
-		_navigator->set_position_setpoint_triplet_updated();
 	}
 }
 
@@ -223,13 +219,16 @@ Mission::advance_mission()
 void
 Mission::set_mission_items()
 {
+	/* make sure param is up to date */
+	updateParams();
+
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 	/* set previous position setpoint to current */
 	set_previous_pos_setpoint();
 
 	/* try setting onboard mission item */
-	if (set_mission_item(true, false, &_mission_item)) {
+	if (_param_onboard_enabled.get() && read_mission_item(true, true, &_mission_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_ONBOARD) {
 			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: onboard mission running");
@@ -237,7 +236,7 @@ Mission::set_mission_items()
 		_mission_type = MISSION_TYPE_ONBOARD;
 
 	/* try setting offboard mission item */
-	} else if (set_mission_item(false, false, &_mission_item)) {
+	} else if (read_mission_item(false, true, &_mission_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_OFFBOARD) {
 			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: offboard mission running");
@@ -284,7 +283,8 @@ Mission::set_mission_items()
 
 	/* try to read next mission item */
 	struct mission_item_s mission_item_next;
-	if (!set_mission_item(_mission_type == MISSION_TYPE_ONBOARD, true, &mission_item_next)) {
+
+	if (read_mission_item(_mission_type == MISSION_TYPE_ONBOARD, false, &mission_item_next)) {
 		/* got next mission item, update setpoint triplet */
 		mission_item_to_position_setpoint(&mission_item_next, &pos_sp_triplet->next);
 
@@ -297,11 +297,8 @@ Mission::set_mission_items()
 }
 
 bool
-Mission::set_mission_item(bool onboard, bool next_item, struct mission_item_s *mission_item)
+Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s *mission_item)
 {
-	/* make sure param is up to date */
-	updateParams();
-
 	/* select onboard/offboard mission */
 	int *mission_index_ptr;
 	struct mission_s *mission;
@@ -310,12 +307,8 @@ Mission::set_mission_item(bool onboard, bool next_item, struct mission_item_s *m
 
 	if (onboard) {
 		/* onboard mission */
-		if (!_param_onboard_enabled.get()) {
-			return false;
-		}
-
 		mission_index_next = _current_onboard_mission_index + 1;
-		mission_index_ptr = next_item ? &mission_index_next : &_current_onboard_mission_index;
+		mission_index_ptr = is_current ? &_current_onboard_mission_index : &mission_index_next;
 
 		mission = &_onboard_mission;
 
@@ -324,7 +317,7 @@ Mission::set_mission_item(bool onboard, bool next_item, struct mission_item_s *m
 	} else {
 		/* offboard mission */
 		mission_index_next = _current_offboard_mission_index + 1;
-		mission_index_ptr = next_item ? &mission_index_next : &_current_offboard_mission_index;
+		mission_index_ptr = is_current ? &_current_offboard_mission_index : &mission_index_next;
 
 		mission = &_offboard_mission;
 
@@ -336,27 +329,20 @@ Mission::set_mission_item(bool onboard, bool next_item, struct mission_item_s *m
 		}
 	}
 
-	if (*mission_index_ptr >= 0 && *mission_index_ptr < (int)mission->count) {
-		struct mission_item_s new_mission_item;
-
-		if (read_mission_item(dm_item, true, mission_index_ptr, &new_mission_item)) {
-			memcpy(&mission_item, &new_mission_item, sizeof(struct mission_item_s));
-			return true;
-		}
+	if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)mission->count) {
+		/* mission item index out of bounds */
+		return false;
 	}
-	return false;
-}
 
-bool
-Mission::read_mission_item(const dm_item_t dm_item, bool is_current, int *mission_index_ptr,
-		           struct mission_item_s *new_mission_item)
-{
 	/* repeat several to get the mission item because we might have to follow multiple DO_JUMPS */
 	for (int i = 0; i < 10; i++) {
 		const ssize_t len = sizeof(struct mission_item_s);
 
+		/* read mission item to temp storage first to not overwrite current mission item if data damaged */
+		struct mission_item_s mission_item_tmp;
+
 		/* read mission item from datamanager */
-		if (dm_read(dm_item, *mission_index_ptr, new_mission_item, len) != len) {
+		if (dm_read(dm_item, *mission_index_ptr, &mission_item_tmp, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			mavlink_log_critical(_navigator->get_mavlink_fd(),
 			                     "#audio: ERROR waypoint could not be read");
@@ -364,18 +350,17 @@ Mission::read_mission_item(const dm_item_t dm_item, bool is_current, int *missio
 		}
 
 		/* check for DO_JUMP item, and whether it hasn't not already been repeated enough times */
-		if (new_mission_item->nav_cmd == NAV_CMD_DO_JUMP) {
+		if (mission_item_tmp.nav_cmd == NAV_CMD_DO_JUMP) {
 
 			/* do DO_JUMP as many times as requested */
-			if (new_mission_item->do_jump_current_count < new_mission_item->do_jump_repeat_count) {
+			if (mission_item_tmp.do_jump_current_count < mission_item_tmp.do_jump_repeat_count) {
 
 				/* only raise the repeat count if this is for the current mission item
 				* but not for the next mission item */
 				if (is_current) {
-					(new_mission_item->do_jump_current_count)++;
+					(mission_item_tmp.do_jump_current_count)++;
 					/* save repeat count */
-					if (dm_write(dm_item, *mission_index_ptr, DM_PERSIST_IN_FLIGHT_RESET,
-						new_mission_item, len) != len) {
+					if (dm_write(dm_item, *mission_index_ptr, DM_PERSIST_IN_FLIGHT_RESET, &mission_item_tmp, len) != len) {
 						/* not supposed to happen unless the datamanager can't access the
 						 * dataman */
 						mavlink_log_critical(_navigator->get_mavlink_fd(),
@@ -385,7 +370,8 @@ Mission::read_mission_item(const dm_item_t dm_item, bool is_current, int *missio
 				}
 				/* set new mission item index and repeat
 				* we don't have to validate here, if it's invalid, we should realize this later .*/
-				*mission_index_ptr = new_mission_item->do_jump_mission_index;
+				*mission_index_ptr = mission_item_tmp.do_jump_mission_index;
+
 			} else {
 				mavlink_log_info(_navigator->get_mavlink_fd(),
 						 "#audio: DO JUMP repetitions completed");
@@ -395,6 +381,7 @@ Mission::read_mission_item(const dm_item_t dm_item, bool is_current, int *missio
 
 		} else {
 			/* if it's not a DO_JUMP, then we were successful */
+			memcpy(mission_item, &mission_item_tmp, sizeof(struct mission_item_s));
 			return true;
 		}
 	}
