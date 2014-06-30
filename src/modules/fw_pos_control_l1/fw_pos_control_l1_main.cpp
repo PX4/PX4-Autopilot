@@ -168,8 +168,8 @@ private:
 
 	/* Landingslope object */
 	Landingslope landingslope;
-
 	float flare_curve_alt_rel_last;
+
 	/* heading hold */
 	float target_bearing;
 
@@ -427,6 +427,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	last_manual(false),
 	landingslope(),
 	flare_curve_alt_rel_last(0.0f),
+	target_bearing(0.0f),
 	launchDetector(),
 	_airspeed_error(0.0f),
 	_airspeed_valid(false),
