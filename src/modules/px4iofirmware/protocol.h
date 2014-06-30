@@ -312,7 +312,7 @@ struct IOPacket {
 
 #define PKT_COUNT(_p)	((_p).count_code & PKT_COUNT_MASK)
 #define PKT_CODE(_p)	((_p).count_code & PKT_CODE_MASK)
-#define PKT_SIZE(_p)	((uint8_t *)&((_p).regs[PKT_COUNT(_p)]) - ((uint8_t *)&(_p)))
+#define PKT_SIZE(_p)	((size_t)((uint8_t *)&((_p).regs[PKT_COUNT(_p)]) - ((uint8_t *)&(_p))))
 
 static const uint8_t crc8_tab[256] __attribute__((unused)) =
 {
