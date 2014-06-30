@@ -5,6 +5,10 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#ifndef MAVLINK_H
+ #error Wrong include order: common.h MUST NOT BE DIRECTLY USED. Include mavlink.h from the same directory instead or set all defines from mavlink.h manually.
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
