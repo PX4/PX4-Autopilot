@@ -1306,12 +1306,13 @@ int commander_thread_main(int argc, char *argv[])
 			if (status.arming_state == ARMING_STATE_STANDBY &&
 			    sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) {
 				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-					if (safety.safety_switch_available && !safety.safety_off && status.hil_state == HIL_STATE_OFF) {
-						print_reject_arm("#audio: NOT ARMING: Press safety switch first.");
 
-					} else if (status.main_state != MAIN_STATE_MANUAL) {
+					/* we check outside of the transition function here because the requirement
+					 * for being in manual mode only applies to manual arming actions.
+					 * the system can be armed in auto if armed via the GCS.
+					 */
+					if (status.main_state != MAIN_STATE_MANUAL) {
 						print_reject_arm("#audio: NOT ARMING: Switch to MANUAL mode first.");
-
 					} else {
 						arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed, mavlink_fd);
 						if (arming_ret == TRANSITION_CHANGED) {
@@ -1341,6 +1342,7 @@ int commander_thread_main(int argc, char *argv[])
 			} else if (arming_ret == TRANSITION_DENIED) {
 				/* DENIED here indicates bug in the commander */
 				mavlink_log_critical(mavlink_fd, "ERROR: arming state transition denied");
+				tune_negative(true);
 			}
 
 			/* evaluate the main state machine according to mode switches */
