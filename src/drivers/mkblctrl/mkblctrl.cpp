@@ -131,8 +131,8 @@ public:
 	int		set_motor_count(unsigned count);
 	int		set_motor_test(bool motortest);
 	int		set_overrideSecurityChecks(bool overrideSecurityChecks);
-	int		set_px4mode(int px4mode);
-	int		set_frametype(int frametype);
+	void		set_px4mode(int px4mode);
+	void		set_frametype(int frametype);
 	unsigned int		mk_check_for_blctrl(unsigned int count, bool showOutput, bool initI2C);
 
 private:
@@ -330,13 +330,13 @@ MK::set_update_rate(unsigned rate)
 	return OK;
 }
 
-int
+void
 MK::set_px4mode(int px4mode)
 {
 	_px4mode = px4mode;
 }
 
-int
+void
 MK::set_frametype(int frametype)
 {
 	_frametype = frametype;

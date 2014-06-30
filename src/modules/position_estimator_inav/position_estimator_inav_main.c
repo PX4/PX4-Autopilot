@@ -619,13 +619,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				/* hysteresis for GPS quality */
 				if (gps_valid) {
-					if (gps.eph_m > max_eph_epv || gps.epv_m > max_eph_epv || gps.fix_type < 3) {
+					if (gps.eph > max_eph_epv || gps.epv > max_eph_epv || gps.fix_type < 3) {
 						gps_valid = false;
 						mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
 					}
 
 				} else {
-					if (gps.eph_m < max_eph_epv * 0.7f && gps.epv_m < max_eph_epv * 0.7f && gps.fix_type >= 3) {
+					if (gps.eph < max_eph_epv * 0.7f && gps.epv < max_eph_epv * 0.7f && gps.fix_type >= 3) {
 						gps_valid = true;
 						reset_est = true;
 						mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
@@ -705,8 +705,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						/* save rotation matrix at this moment */
 						memcpy(R_gps, R_buf[est_i], sizeof(R_gps));
 
-						w_gps_xy = min_eph_epv / fmaxf(min_eph_epv, gps.eph_m);
-						w_gps_z = min_eph_epv / fmaxf(min_eph_epv, gps.epv_m);
+						w_gps_xy = min_eph_epv / fmaxf(min_eph_epv, gps.eph);
+						w_gps_z = min_eph_epv / fmaxf(min_eph_epv, gps.epv);
 					}
 
 				} else {
@@ -859,7 +859,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		inertial_filter_correct(corr_baro, dt, z_est, 0, params.w_z_baro);
 
 		if (use_gps_z) {
-			epv = fminf(epv, gps.epv_m);
+			epv = fminf(epv, gps.epv);
 
 			inertial_filter_correct(corr_gps[2][0], dt, z_est, 0, w_z_gps_p);
 		}
@@ -894,7 +894,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 
 			if (use_gps_xy) {
-				eph = fminf(eph, gps.eph_m);
+				eph = fminf(eph, gps.eph);
 
 				inertial_filter_correct(corr_gps[0][0], dt, x_est, 0, w_xy_gps_p);
 				inertial_filter_correct(corr_gps[1][0], dt, y_est, 0, w_xy_gps_p);

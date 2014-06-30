@@ -243,6 +243,36 @@ PARAM_DEFINE_INT32(SENS_DPRES_ANA, 0);
 PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
 
 /**
+ * Board rotation Y (Pitch) offset
+ *
+ * This parameter defines a rotational offset in degrees around the Y (Pitch) axis. It allows the user
+ * to fine tune the board offset in the event of misalignment.
+ *
+ * @group Sensor Calibration
+ */
+ PARAM_DEFINE_FLOAT(SENS_BOARD_Y_OFF, 0.0f);
+
+/**
+ * Board rotation X (Roll) offset
+ *
+ * This parameter defines a rotational offset in degrees around the X (Roll) axis It allows the user
+ * to fine tune the board offset in the event of misalignment.
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
+
+/**
+ * Board rotation Z (YAW) offset
+ *
+ * This parameter defines a rotational offset in degrees around the Z (Yaw) axis. It allows the user
+ * to fine tune the board offset in the event of misalignment.
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
+
+/**
  * External magnetometer rotation
  *
  * This parameter defines the rotation of the external magnetometer relative

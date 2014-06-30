@@ -1,9 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +34,10 @@
 /**
  * @file mission_item_triplet.h
  * Definition of the global WGS84 position setpoint uORB topic.
+ *
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #ifndef TOPIC_MISSION_ITEM_TRIPLET_H_
@@ -45,7 +46,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "../uORB.h"
-#include <navigator/navigator_state.h>
 
 /**
  * @addtogroup topics
@@ -54,11 +54,12 @@
 
 enum SETPOINT_TYPE
 {
-	SETPOINT_TYPE_NORMAL = 0,		/**< normal setpoint */
-	SETPOINT_TYPE_LOITER,			/**< loiter setpoint */
-	SETPOINT_TYPE_TAKEOFF,			/**< takeoff setpoint */
-	SETPOINT_TYPE_LAND,			/**< land setpoint, altitude must be ignored, vehicle must descend until landing */
-	SETPOINT_TYPE_IDLE,			/**< do nothing, switch off motors or keep at idle speed (MC) */
+	SETPOINT_TYPE_POSITION = 0,	/**< position setpoint */
+	SETPOINT_TYPE_VELOCITY,		/**< velocity setpoint */
+	SETPOINT_TYPE_LOITER,		/**< loiter setpoint */
+	SETPOINT_TYPE_TAKEOFF,		/**< takeoff setpoint */
+	SETPOINT_TYPE_LAND,		/**< land setpoint, altitude must be ignored, descend until landing */
+	SETPOINT_TYPE_IDLE,		/**< do nothing, switch off motors or keep at idle speed (MC) */
 };
 
 struct position_setpoint_s
@@ -84,8 +85,6 @@ struct position_setpoint_triplet_s
 	struct position_setpoint_s previous;
 	struct position_setpoint_s current;
 	struct position_setpoint_s next;
-
-	nav_state_t nav_state;			/**< navigation state */
 };
 
 /**

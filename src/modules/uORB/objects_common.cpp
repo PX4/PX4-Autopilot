@@ -202,3 +202,9 @@ ORB_DEFINE(estimator_status, struct estimator_status_report);
 
 #include "topics/vehicle_force_setpoint.h"
 ORB_DEFINE(vehicle_force_setpoint, struct vehicle_force_setpoint_s);
+
+#include "topics/tecs_status.h"
+ORB_DEFINE(tecs_status, struct tecs_status_s);
+
+#include "topics/wind_estimate.h"
+ORB_DEFINE(wind_estimate, struct wind_estimate_s);

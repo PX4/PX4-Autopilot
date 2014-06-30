@@ -544,7 +544,7 @@ void MPU6000::reset()
 	write_reg(MPUREG_USER_CTRL, BIT_I2C_IF_DIS);
         irqrestore(state);
 
-	up_udelay(1000);
+	usleep(1000);
 
 	// SAMPLE RATE
 	_set_sample_rate(_sample_rate);
