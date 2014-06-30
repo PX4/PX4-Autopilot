@@ -158,6 +158,8 @@ int calculate_calibration_values(float accel_ref[6][3], float accel_T[3][3], flo
 
 int do_accel_calibration(int mavlink_fd)
 {
+	int fd;
+
 	mavlink_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
 
 	struct accel_scale accel_scale = {
@@ -172,7 +174,7 @@ int do_accel_calibration(int mavlink_fd)
 	int res = OK;
 
 	/* reset all offsets to zero and all scales to one */
-	int fd = open(ACCEL_DEVICE_PATH, 0);
+	fd = open(ACCEL_DEVICE_PATH, 0);
 	res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
 	close(fd);
 
@@ -223,7 +225,7 @@ int do_accel_calibration(int mavlink_fd)
 
 	if (res == OK) {
 		/* apply new scaling and offsets */
-		int fd = open(ACCEL_DEVICE_PATH, 0);
+		fd = open(ACCEL_DEVICE_PATH, 0);
 		res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
 		close(fd);
 

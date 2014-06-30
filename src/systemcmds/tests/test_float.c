@@ -94,7 +94,7 @@ int test_float(int argc, char *argv[])
 		printf("\t success: asinf(1.0f) == 1.57079f\n");
 
 	} else {
-		printf("\t FAIL: asinf(1.0f) != 1.57079f, result: %f\n", asinf_one);
+		printf("\t FAIL: asinf(1.0f) != 1.57079f, result: %f\n", (double)asinf_one);
 		ret = -1;
 	}
 
@@ -128,7 +128,7 @@ int test_float(int argc, char *argv[])
 
 	float sinf_zero_one = sinf(0.1f);
 
-	if (fabs(sinf_zero_one - 0.0998334166f) < FLT_EPSILON) {
+	if (fabsf(sinf_zero_one - 0.0998334166f) < FLT_EPSILON) {
 		printf("\t success: sinf(0.1f) == 0.09983f\n");
 
 	} else {
@@ -155,7 +155,7 @@ int test_float(int argc, char *argv[])
 	}
 
 	char sbuf[30];
-	sprintf(sbuf, "%8.4f", 0.553415f);
+	sprintf(sbuf, "%8.4f", (double)0.553415f);
 
 	if (sbuf[0] == ' ' && sbuf[1] == ' ' && sbuf[2] == '0' &&
 		sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
@@ -166,7 +166,7 @@ int test_float(int argc, char *argv[])
 		ret = -5;
 	}
 
-	sprintf(sbuf, "%8.4f", -0.553415f);
+	sprintf(sbuf, "%8.4f", (double)-0.553415f);
 
 	if (sbuf[0] == ' ' && sbuf[1] == '-' && sbuf[2] == '0' &&
 		sbuf[3] == '.' && sbuf[4] == '5' && sbuf[5] == '5'
@@ -205,7 +205,7 @@ int test_float(int argc, char *argv[])
 		printf("\t success: (float) 1.55f == 1.55 (double)\n");
 
 	} else {
-		printf("\t FAIL: (float) 1.55f != 1.55 (double), result: %8.4f\n", f1);
+		printf("\t FAIL: (float) 1.55f != 1.55 (double), result: %8.4f\n", (double)f1);
 		ret = -8;
 	}
 
