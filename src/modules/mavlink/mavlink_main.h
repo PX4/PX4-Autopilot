@@ -182,7 +182,7 @@ public:
 
 	int send_statustext(const char *string);
 	int send_statustext(enum MAV_SEVERITY severity, const char *string);
-	MavlinkStream * get_streams() { return _streams; } const
+	MavlinkStream * get_streams() const { return _streams; }
 
 	float get_rate_mult();
 
@@ -193,7 +193,7 @@ public:
 	bool			get_wait_to_transmit() { return _wait_to_transmit; }
 	bool			should_transmit() { return (!_wait_to_transmit || (_wait_to_transmit && _received_messages)); }
 
-	bool			message_buffer_write(void *ptr, int size);
+	bool			message_buffer_write(const void *ptr, int size);
     
     void lockMessageBufferMutex(void) { pthread_mutex_lock(&_message_buffer_mutex); }
     void unlockMessageBufferMutex(void) { pthread_mutex_unlock(&_message_buffer_mutex); }
@@ -322,10 +322,6 @@ private:
 
 	void			mavlink_update_system();
 
-	uint8_t get_system_id();
-
-	uint8_t get_component_id();
-
 	int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
 
 	int configure_stream(const char *stream_name, const float rate);
@@ -337,8 +333,6 @@ private:
 	int message_buffer_count();
 
 	int message_buffer_is_empty();
-
-	bool message_buffer_write(const void *ptr, int size);
 
 	int message_buffer_get_ptr(void **ptr, bool *is_part);
 

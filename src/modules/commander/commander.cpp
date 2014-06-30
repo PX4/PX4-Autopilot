@@ -1407,7 +1407,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* now set navigation state according to failsafe and main state */
 		bool nav_state_changed = set_nav_state(&status, (bool)datalink_loss_enabled,
-						       mission_result.mission_finished);
+						       mission_result.finished);
 
 		// TODO handle mode changes by commands
 		if (main_state_changed) {
