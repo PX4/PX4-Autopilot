@@ -60,13 +60,16 @@
 Mission::Mission(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_param_onboard_enabled(this, "ONBOARD_EN"),
+	_param_takeoff_alt(this, "TAKEOFF_ALT"),
 	_onboard_mission({0}),
 	_offboard_mission({0}),
 	_current_onboard_mission_index(-1),
 	_current_offboard_mission_index(-1),
 	_mission_result_pub(-1),
 	_mission_result({0}),
-	_mission_type(MISSION_TYPE_NONE)
+	_mission_type(MISSION_TYPE_NONE),
+	_need_takeoff(true),
+	_takeoff(false)
 {
 	/* load initial params */
 	updateParams();
@@ -93,6 +96,10 @@ Mission::on_inactive()
 	orb_check(_navigator->get_offboard_mission_sub(), &offboard_updated);
 	if (offboard_updated) {
 		update_offboard_mission();
+	}
+
+	if (!_navigator->get_can_loiter_at_sp() || _navigator->get_vstatus()->condition_landed) {
+		_need_takeoff = true;
 	}
 }
 
@@ -127,6 +134,12 @@ Mission::on_active()
 	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
 		advance_mission();
 		set_mission_items();
+
+	} else {
+		/* if waypoint position reached allow loiter on the setpoint */
+		if (_waypoint_position_reached && _mission_item.nav_cmd != NAV_CMD_IDLE) {
+			_navigator->set_can_loiter_at_sp(true);
+		}
 	}
 }
 
@@ -148,6 +161,7 @@ Mission::update_onboard_mission()
 			}
 			/* otherwise, just leave it */
 		}
+
 	} else {
 		_onboard_mission.count = 0;
 		_onboard_mission.current_index = 0;
@@ -164,10 +178,12 @@ Mission::update_offboard_mission()
 		if (_offboard_mission.current_index >= 0
 		    && _offboard_mission.current_index < (int)_offboard_mission.count) {
 			_current_offboard_mission_index = _offboard_mission.current_index;
+
 		} else {
 			/* if less WPs available, reset to first WP */
 			if (_current_offboard_mission_index >= (int)_offboard_mission.count) {
 				_current_offboard_mission_index = 0;
+
 			/* if not initialized, set it to 0 */
 			} else if (_current_offboard_mission_index < 0) {
 				_current_offboard_mission_index = 0;
@@ -181,6 +197,7 @@ Mission::update_offboard_mission()
 
 		if (_offboard_mission.dataman_id == 0) {
 			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_0;
+
 		} else {
 			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_1;
 		}
@@ -189,11 +206,13 @@ Mission::update_offboard_mission()
 			                                      (size_t)_offboard_mission.count,
 							      _navigator->get_geofence(),
 							      _navigator->get_home_position()->alt);
+
 	} else {
 		_offboard_mission.count = 0;
 		_offboard_mission.current_index = 0;
 		_current_offboard_mission_index = 0;
 	}
+
 	report_current_offboard_mission_item();
 }
 
@@ -201,18 +220,23 @@ Mission::update_offboard_mission()
 void
 Mission::advance_mission()
 {
-	switch (_mission_type) {
-	case MISSION_TYPE_ONBOARD:
-		_current_onboard_mission_index++;
-		break;
+	if (_takeoff) {
+		_takeoff = false;
 
-	case MISSION_TYPE_OFFBOARD:
-		_current_offboard_mission_index++;
-		break;
+	} else {
+		switch (_mission_type) {
+		case MISSION_TYPE_ONBOARD:
+			_current_onboard_mission_index++;
+			break;
 
-	case MISSION_TYPE_NONE:
-	default:
-		break;
+		case MISSION_TYPE_OFFBOARD:
+			_current_offboard_mission_index++;
+			break;
+
+		case MISSION_TYPE_NONE:
+		default:
+			break;
+		}
 	}
 }
 
@@ -271,26 +295,81 @@ Mission::set_mission_items()
 		return;
 	}
 
-	/* new current mission item set */
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-	_navigator->set_can_loiter_at_sp(false);
-	reset_mission_item_reached();
+	/* do takeoff on first waypoint for rotary wing vehicles */
+	if (_navigator->get_vstatus()->is_rotary_wing) {
+		/* force takeoff if landed (additional protection) */
+		if (!_takeoff && _navigator->get_vstatus()->condition_landed) {
+			_need_takeoff = true;
+		}
 
-	if (_mission_type == MISSION_TYPE_OFFBOARD) {
-		report_current_offboard_mission_item();
+		/* new current mission item set, check if we need takeoff */
+		if (_need_takeoff && (
+				_mission_item.nav_cmd == NAV_CMD_TAKEOFF ||
+				_mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
+				_mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+				_mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
+				_mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
+				_mission_item.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH)) {
+			_takeoff = true;
+			_need_takeoff = false;
+		}
 	}
-	// TODO: report onboard mission item somehow
 
-	/* try to read next mission item */
-	struct mission_item_s mission_item_next;
+	if (_takeoff) {
+		/* do takeoff before going to setpoint */
+		/* set mission item as next position setpoint */
+		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->next);
 
-	if (read_mission_item(_mission_type == MISSION_TYPE_ONBOARD, false, &mission_item_next)) {
-		/* got next mission item, update setpoint triplet */
-		mission_item_to_position_setpoint(&mission_item_next, &pos_sp_triplet->next);
+		/* calculate takeoff altitude */
+		float takeoff_alt = _mission_item.altitude;
+		if (_mission_item.altitude_is_relative) {
+			takeoff_alt += _navigator->get_home_position()->alt;
+		}
+
+		if (_navigator->get_vstatus()->condition_landed) {
+			takeoff_alt = fmaxf(takeoff_alt, _navigator->get_global_position()->alt + _param_takeoff_alt.get());
+
+		} else {
+			takeoff_alt = _navigator->get_home_position()->alt + _param_takeoff_alt.get();
+		}
+
+		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: takeoff to %.1fm above home", takeoff_alt - _navigator->get_home_position()->alt);
+
+		_mission_item.lat = _navigator->get_global_position()->lat;
+		_mission_item.lon = _navigator->get_global_position()->lon;
+		_mission_item.altitude = takeoff_alt;
+		_mission_item.altitude_is_relative = false;
+
+		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 
 	} else {
-		/* next mission item is not available */
-		pos_sp_triplet->next.valid = false;
+		/* set current position setpoint from mission item */
+		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+
+		/* require takeoff after landing or idle */
+		if (pos_sp_triplet->current.type == SETPOINT_TYPE_LAND || pos_sp_triplet->current.type == SETPOINT_TYPE_IDLE) {
+			_need_takeoff = true;
+		}
+
+		_navigator->set_can_loiter_at_sp(false);
+		reset_mission_item_reached();
+
+		if (_mission_type == MISSION_TYPE_OFFBOARD) {
+			report_current_offboard_mission_item();
+		}
+		// TODO: report onboard mission item somehow
+
+		/* try to read next mission item */
+		struct mission_item_s mission_item_next;
+
+		if (read_mission_item(_mission_type == MISSION_TYPE_ONBOARD, false, &mission_item_next)) {
+			/* got next mission item, update setpoint triplet */
+			mission_item_to_position_setpoint(&mission_item_next, &pos_sp_triplet->next);
+
+		} else {
+			/* next mission item is not available */
+			pos_sp_triplet->next.valid = false;
+		}
 	}
 
 	_navigator->set_position_setpoint_triplet_updated();

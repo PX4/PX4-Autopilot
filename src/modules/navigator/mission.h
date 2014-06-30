@@ -123,12 +123,15 @@ private:
 	void publish_mission_result();
 
 	control::BlockParamFloat _param_onboard_enabled;
+	control::BlockParamFloat _param_takeoff_alt;
 
 	struct mission_s _onboard_mission;
 	struct mission_s _offboard_mission;
 
 	int _current_onboard_mission_index;
 	int _current_offboard_mission_index;
+	bool _need_takeoff;
+	bool _takeoff;
 
 	orb_advert_t _mission_result_pub;
 	struct mission_result_s _mission_result;
