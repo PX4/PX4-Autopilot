@@ -123,9 +123,9 @@ public:
 	/**
 	 * Display the mavlink status.
 	 */
-	void			status();
+	void			display_status();
 
-	static int		stream(int argc, char *argv[]);
+	static int		stream_command(int argc, char *argv[]);
 
 	static int		instance_count();
 

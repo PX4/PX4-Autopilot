@@ -649,7 +649,7 @@ Sensors::parameters_update()
 		if (!isfinite(tmpScaleFactor) ||
 		    (tmpRevFactor < 0.000001f) ||
 		    (tmpRevFactor > 0.2f)) {
-			warnx("RC chan %u not sane, scaling: %8.6f, rev: %d", i, tmpScaleFactor, (int)(_parameters.rev[i]));
+			warnx("RC chan %u not sane, scaling: %8.6f, rev: %d", i, (double)tmpScaleFactor, (int)(_parameters.rev[i]));
 			/* scaling factors do not make sense, lock them down */
 			_parameters.scaling_factor[i] = 0.0f;
 			rc_valid = false;

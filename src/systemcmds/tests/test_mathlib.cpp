@@ -52,10 +52,6 @@
 
 using namespace math;
 
-const char* formatResult(bool res) {
-	return res ? "OK" : "ERROR";
-}
-
 int test_mathlib(int argc, char *argv[])
 {
 	warnx("testing mathlib");

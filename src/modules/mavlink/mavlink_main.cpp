@@ -2266,13 +2266,13 @@ Mavlink::start(int argc, char *argv[])
 }
 
 void
-Mavlink::status()
+Mavlink::display_status()
 {
 	warnx("running");
 }
 
 int
-Mavlink::stream(int argc, char *argv[])
+Mavlink::stream_command(int argc, char *argv[])
 {
 	const char *device_name = DEFAULT_DEVICE_NAME;
 	float rate = -1.0f;
@@ -2360,7 +2360,7 @@ int mavlink_main(int argc, char *argv[])
 		// 	mavlink::g_mavlink->status();
 
 	} else if (!strcmp(argv[1], "stream")) {
-		return Mavlink::stream(argc, argv);
+		return Mavlink::stream_command(argc, argv);
 
 	} else {
 		usage();

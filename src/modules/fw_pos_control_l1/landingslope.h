@@ -123,10 +123,10 @@ public:
 
 	float getFlareCurveAbsoluteAltitudeSave(float wp_distance, float bearing_lastwp_currwp, float bearing_airplane_currwp, float wp_altitude);
 
-	void update(float landing_slope_angle_rad,
-			float flare_relative_alt,
-			float motor_lim_relative_alt,
-			float H1_virt);
+	void update(float landing_slope_angle_rad_new,
+			float flare_relative_alt_new,
+			float motor_lim_relative_alt_new,
+			float H1_virt_new);
 
 
 	inline float landing_slope_angle_rad() {return _landing_slope_angle_rad;}
