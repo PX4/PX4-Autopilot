@@ -593,8 +593,6 @@ FixedwingPositionControl::vehicle_control_mode_poll()
 
 	if (vstatus_updated) {
 
-		bool was_armed = _control_mode.flag_armed;
-
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 	}
 }
