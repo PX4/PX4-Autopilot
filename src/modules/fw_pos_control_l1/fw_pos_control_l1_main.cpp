@@ -414,25 +414,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_attitude_sp_pub(-1),
 	_nav_capabilities_pub(-1),
 
-/* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
-
 /* states */
-	_loiter_hold(false),
-	land_noreturn_horizontal(false),
-	land_noreturn_vertical(false),
-	land_stayonground(false),
-	land_motor_lim(false),
-	land_onslope(false),
-	launch_detected(false),
-	usePreTakeoffThrust(false),
-	last_manual(false),
-	flare_curve_alt_rel_last(0.0f),
-	launchDetector(),
-	_airspeed_error(0.0f),
-	_airspeed_valid(false),
-	_groundspeed_undershoot(0.0f),
-	_global_pos_valid(false),
 	_att(),
 	_att_sp(),
 	_nav_capabilities(),
@@ -442,9 +424,32 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_global_pos(),
 	_pos_sp_triplet(),
 	_sensor_combined(),
+	_range_finder(),
+
+/* performance counters */
+	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
+
+	_loiter_hold(false),
+	_launch_valid(false),
+	land_noreturn_horizontal(false),
+	land_noreturn_vertical(false),
+	land_stayonground(false),
+	land_motor_lim(false),
+	land_onslope(false),
+	launch_detected(false),
+	usePreTakeoffThrust(false),
+	last_manual(false),
+	landingslope(),
+	flare_curve_alt_rel_last(0.0f),
+	launchDetector(),
+	_airspeed_error(0.0f),
+	_airspeed_valid(false),
+	_airspeed_last_valid(0),
+	_groundspeed_undershoot(0.0f),
+	_global_pos_valid(false),
+	_l1_control(),
 	_mTecs(),
-	_was_pos_control_mode(false),
-	_range_finder()
+	_was_pos_control_mode(false)
 {
 	_nav_capabilities.turn_distance = 0.0f;
 
@@ -806,13 +811,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
 
-	// XXX re-visit
-	float baro_altitude = _global_pos.alt;
-
-	/* filter speed and altitude for controller */
-	math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
-	math::Vector<3> accel_earth = _R_nb * accel_body;
-
+	/* define altitude error */
 	float altitude_error = _pos_sp_triplet.current.alt - _global_pos.alt;
 
 	/* no throttle limit as default */
@@ -945,7 +944,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			float airspeed_approach = 1.3f * _parameters.airspeed_min;
 
 			/* Calculate distance (to landing waypoint) and altitude of last ordinary waypoint L */
-			float L_wp_distance = get_distance_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1));
 			float L_altitude_rel = _pos_sp_triplet.previous.valid ? _pos_sp_triplet.previous.alt - _pos_sp_triplet.current.alt : 0.0f;
 
 			float bearing_airplane_currwp = get_bearing_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
