@@ -974,8 +974,10 @@ int commander_thread_main(int argc, char *argv[])
 					status.condition_power_input_valid = false;
 				} else {
 					status.condition_power_input_valid = true;
-					status.avionics_power_rail_voltage = system_power.voltage5V_v;
 				}
+
+				/* copy avionics voltage */
+				status.avionics_power_rail_voltage = system_power.voltage5V_v;
 			}
 		}
 
