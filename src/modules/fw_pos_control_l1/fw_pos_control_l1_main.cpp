@@ -592,7 +592,6 @@ FixedwingPositionControl::vehicle_control_mode_poll()
 	orb_check(_control_mode_sub, &vstatus_updated);
 
 	if (vstatus_updated) {
-
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 	}
 }
@@ -1216,14 +1215,6 @@ FixedwingPositionControl::task_main()
 				/* try to open the mavlink log device every once in a while */
 				_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 			}
-
-			static uint64_t last_run = 0;
-			float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
-			last_run = hrt_absolute_time();
-
-			/* guard against too large deltaT's */
-			if (deltaT > 1.0f)
-				deltaT = 0.01f;
 
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
