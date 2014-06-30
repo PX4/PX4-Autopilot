@@ -63,7 +63,7 @@ static void	do_show(const char* search_string);
 static void	do_show_print(void *arg, param_t param);
 static void	do_set(const char* name, const char* val, bool fail_on_not_found);
 static void	do_compare(const char* name, const char* vals[], unsigned comparisons);
-static void	do_reset();
+static void	do_reset(void);
 
 int
 param_main(int argc, char *argv[])
@@ -416,7 +416,7 @@ do_compare(const char* name, const char* vals[], unsigned comparisons)
 }
 
 static void
-do_reset()
+do_reset(void)
 {
 	param_reset_all();
 

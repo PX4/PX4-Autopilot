@@ -119,7 +119,6 @@ uint16_t		r_page_raw_rc_input[] =
 	[PX4IO_P_RAW_RC_DATA]			= 0,
 	[PX4IO_P_RAW_FRAME_COUNT]		= 0,
 	[PX4IO_P_RAW_LOST_FRAME_COUNT]		= 0,
-	[PX4IO_P_RAW_RC_DATA]			= 0,
 	[PX4IO_P_RAW_RC_BASE ... (PX4IO_P_RAW_RC_BASE + PX4IO_RC_INPUT_CHANNELS)] = 0
 };
 
@@ -670,7 +669,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 				if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] == UINT8_MAX) {
 					disabled = true;
-				} else if ((int)(conf[PX4IO_P_RC_CONFIG_ASSIGNMENT]) < 0 || conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= PX4IO_RC_MAPPED_CONTROL_CHANNELS) {
+				} else if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= PX4IO_RC_MAPPED_CONTROL_CHANNELS) {
 					count++;
 				}
 

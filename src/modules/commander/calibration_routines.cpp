@@ -170,7 +170,7 @@ int sphere_fit_least_squares(const float x[], const float y[], const float z[],
 	float aA, aB, aC, nA, nB, nC, dA, dB, dC;
 
 	//Iterate N times, ignore stop condition.
-	int n = 0;
+	unsigned int n = 0;
 
 	while (n < max_iterations) {
 		n++;

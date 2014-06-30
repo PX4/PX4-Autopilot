@@ -47,10 +47,10 @@
 #include "mavlink_orb_subscription.h"
 
 MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic) :
-	_fd(orb_subscribe(_topic)),
-	_published(false),
+	next(nullptr),
 	_topic(topic),
-	next(nullptr)
+	_fd(orb_subscribe(_topic)),
+	_published(false)
 {
 }
 

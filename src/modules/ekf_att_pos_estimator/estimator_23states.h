@@ -234,7 +234,7 @@ int RecallStates(float *statesForFusion, uint64_t msec);
 
 void ResetStoredStates();
 
-void quat2Tbn(Mat3f &Tbn, const float (&quat)[4]);
+void quat2Tbn(Mat3f &TBodyNed, const float (&quat)[4]);
 
 void calcEarthRateNED(Vector3f &omega, float latitude);
 
