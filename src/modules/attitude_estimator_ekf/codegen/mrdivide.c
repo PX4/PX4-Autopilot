@@ -11,6 +11,7 @@
 #include "rt_nonfinite.h"
 #include "attitudeKalmanfilter.h"
 #include "mrdivide.h"
+#include "fp_helpers.h"
 
 /* Type Definitions */
 
@@ -142,7 +143,7 @@ void c_mrdivide(const real32_T A[72], const real32_T B[36], real32_T y[72])
       }
     }
 
-    if (b_A[c + iy] != 0.0F) {
+    if (!is_equal_float(b_A[c + iy], 0.0f)) {
       if (iy != 0) {
         ipiv[j] = (int8_T)((j + iy) + 1);
         ix = j;
@@ -166,7 +167,7 @@ void c_mrdivide(const real32_T A[72], const real32_T B[36], real32_T y[72])
     jy = c + 6;
     for (k = 1; k <= 5 - j; k++) {
       temp = b_A[jy];
-      if (b_A[jy] != 0.0F) {
+      if (!is_equal_float(b_A[jy], 0.0f)) {
         ix = c + 1;
         i3 = (iy - j) + 12;
         for (ijA = 7 + iy; ijA + 1 <= i3; ijA++) {
@@ -200,7 +201,7 @@ void c_mrdivide(const real32_T A[72], const real32_T B[36], real32_T y[72])
     c = 6 * j;
     for (k = 0; k < 6; k++) {
       iy = 6 * k;
-      if (Y[k + c] != 0.0F) {
+      if (!is_equal_float(Y[k + c], 0.0f)) {
         for (jy = k + 2; jy < 7; jy++) {
           Y[(jy + c) - 1] -= Y[k + c] * b_A[(jy + iy) - 1];
         }
@@ -212,7 +213,7 @@ void c_mrdivide(const real32_T A[72], const real32_T B[36], real32_T y[72])
     c = 6 * j;
     for (k = 5; k > -1; k += -1) {
       iy = 6 * k;
-      if (Y[k + c] != 0.0F) {
+      if (is_equal_float(Y[k + c], 0.0f)) {
         Y[k + c] /= b_A[k + iy];
         for (jy = 0; jy + 1 <= k; jy++) {
           Y[jy + c] -= Y[k + c] * b_A[jy + iy];
@@ -268,7 +269,7 @@ void mrdivide(const real32_T A[108], const real32_T B[81], real32_T y[108])
       }
     }
 
-    if (b_A[c + iy] != 0.0F) {
+    if (!is_equal_float(b_A[c + iy], 0.0f)) {
       if (iy != 0) {
         ipiv[j] = (int8_T)((j + iy) + 1);
         ix = j;
@@ -292,7 +293,7 @@ void mrdivide(const real32_T A[108], const real32_T B[81], real32_T y[108])
     jy = c + 9;
     for (k = 1; k <= 8 - j; k++) {
       temp = b_A[jy];
-      if (b_A[jy] != 0.0F) {
+      if (!is_equal_float(b_A[jy], 0.0f)) {
         ix = c + 1;
         i2 = (iy - j) + 18;
         for (ijA = 10 + iy; ijA + 1 <= i2; ijA++) {
@@ -326,7 +327,7 @@ void mrdivide(const real32_T A[108], const real32_T B[81], real32_T y[108])
     c = 9 * j;
     for (k = 0; k < 9; k++) {
       iy = 9 * k;
-      if (Y[k + c] != 0.0F) {
+      if (!is_equal_float(Y[k + c], 0.0f)) {
         for (jy = k + 2; jy < 10; jy++) {
           Y[(jy + c) - 1] -= Y[k + c] * b_A[(jy + iy) - 1];
         }
@@ -338,7 +339,7 @@ void mrdivide(const real32_T A[108], const real32_T B[81], real32_T y[108])
     c = 9 * j;
     for (k = 8; k > -1; k += -1) {
       iy = 9 * k;
-      if (Y[k + c] != 0.0F) {
+      if (!is_equal_float(Y[k + c], 0.0f)) {
         Y[k + c] /= b_A[k + iy];
         for (jy = 0; jy + 1 <= k; jy++) {
           Y[jy + c] -= Y[k + c] * b_A[jy + iy];

@@ -42,6 +42,7 @@
 #include <math.h>
 
 #include "calibration_routines.h"
+#include "fp_helpers.h"
 
 
 int sphere_fit_least_squares(const float x[], const float y[], const float z[],
@@ -179,9 +180,10 @@ int sphere_fit_least_squares(const float x[], const float y[], const float z[],
 		aA = Q2 + 16.0f * (A2 - 2.0f * A * x_sum + x_sum2);
 		aB = Q2 + 16.0f * (B2 - 2.0f * B * y_sum + y_sum2);
 		aC = Q2 + 16.0f * (C2 - 2.0f * C * z_sum + z_sum2);
-		aA = (aA == 0.0f) ? 1.0f : aA;
-		aB = (aB == 0.0f) ? 1.0f : aB;
-		aC = (aC == 0.0f) ? 1.0f : aC;
+		// FIXME: Double check alogorithm
+		aA = is_exactly_zero_float(aA) ? 1.0f : aA;
+		aB = is_exactly_zero_float(aB) ? 1.0f : aB;
+		aC = is_exactly_zero_float(aC) ? 1.0f : aC;
 
 		//Compute next iteration
 		nA = A - ((F2 + 16.0f * (B * XY + C * XZ + x_sum * (-A2 - Q0) + A * (x_sum2 + Q1 - C * z_sum - B * y_sum))) / aA);

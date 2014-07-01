@@ -83,6 +83,8 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
 
+#include "fp_helpers.h"
+
 #define GYRO_HEALTH_COUNTER_LIMIT_ERROR 20   /* 40 ms downtime at 500 Hz update rate   */
 #define ACC_HEALTH_COUNTER_LIMIT_ERROR  20   /* 40 ms downtime at 500 Hz update rate   */
 #define MAGN_HEALTH_COUNTER_LIMIT_ERROR 100  /* 1000 ms downtime at 100 Hz update rate  */
@@ -1315,7 +1317,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					 * a valid voltage from a connected sensor. Also assume a non-
 					 * zero offset from the sensor if its connected.
 					 */
-					if (voltage > 0.4f && _parameters.diff_pres_analog_enabled) {
+					if (voltage > 0.4f && !is_exactly_zero_float(_parameters.diff_pres_analog_enabled)) {
 
 						float diff_pres_pa = voltage * 1000.0f - _parameters.diff_pres_offset_pa; //for MPXV7002DP sensor
 

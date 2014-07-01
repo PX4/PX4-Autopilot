@@ -49,6 +49,8 @@
 #include <math.h>
 #include <float.h>
 
+#include "fp_helpers.h"
+
 typedef union {
 	float f;
 	double d;
@@ -66,7 +68,6 @@ int test_float(int argc, char *argv[])
 
 	float sinf_zero = sinf(0.0f);
 	float sinf_one = sinf(1.0f);
-	float sqrt_two = sqrt(2.0f);
 
 	if (sinf_zero == 0.0f) {
 		printf("\t success: sinf(0.0f) == 0.0f\n");
@@ -78,7 +79,7 @@ int test_float(int argc, char *argv[])
 
 	fflush(stdout);
 
-	if (fabsf((sinf_one - 0.841470956802368164062500000000f)) < FLT_EPSILON) {
+	if (is_equal_float(sinf_one, 0.841470956802368164062500000000f)) {
 		printf("\t success: sinf(1.0f) == 0.84147f\n");
 
 	} else {
@@ -90,7 +91,7 @@ int test_float(int argc, char *argv[])
 
 	float asinf_one = asinf(1.0f);
 
-	if (fabsf((asinf_one - 1.570796251296997070312500000000f)) < FLT_EPSILON * 1.5f) {
+	if (is_equal_float(asinf_one, 1.570796251296997070312500000000f)) {
 		printf("\t success: asinf(1.0f) == 1.57079f\n");
 
 	} else {
@@ -102,7 +103,7 @@ int test_float(int argc, char *argv[])
 
 	float cosf_one = cosf(1.0f);
 
-	if (fabsf((cosf_one - 0.540302336215972900390625000000f)) < FLT_EPSILON) {
+	if (is_equal_float(cosf_one, 0.540302336215972900390625000000f)) {
 		printf("\t success: cosf(1.0f) == 0.54030f\n");
 
 	} else {
@@ -115,7 +116,7 @@ int test_float(int argc, char *argv[])
 
 	float acosf_one = acosf(1.0f);
 
-	if (fabsf((acosf_one - 0.000000000000000000000000000000f)) < FLT_EPSILON) {
+	if (is_equal_float(acosf_one, 0.000000000000000000000000000000f)) {
 		printf("\t success: acosf(1.0f) == 0.0f\n");
 
 	} else {
@@ -128,7 +129,7 @@ int test_float(int argc, char *argv[])
 
 	float sinf_zero_one = sinf(0.1f);
 
-	if (fabs(sinf_zero_one - 0.0998334166f) < FLT_EPSILON) {
+	if (is_equal_float(sinf_zero_one, 0.0998334166f)) {
 		printf("\t success: sinf(0.1f) == 0.09983f\n");
 
 	} else {
@@ -136,7 +137,9 @@ int test_float(int argc, char *argv[])
 		ret = -2;
 	}
 
-	if (sqrt_two == 1.41421356f) {
+	float sqrt_two = sqrt(2.0f);
+
+	if (is_equal_float(sqrt_two, 1.41421356f)) {
 		printf("\t success: sqrt(2.0f) == 1.41421f\n");
 
 	} else {
@@ -146,7 +149,7 @@ int test_float(int argc, char *argv[])
 
 	float atan2f_ones = atan2(1.0f, 1.0f);
 
-	if (fabsf(atan2f_ones - 0.785398163397448278999490867136f) < FLT_EPSILON) {
+	if (is_equal_float(atan2f_ones, 0.785398163397448278999490867136f)) {
 		printf("\t success: atan2f(1.0f, 1.0f) == 0.78539f\n");
 
 	} else {

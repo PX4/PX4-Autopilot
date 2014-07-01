@@ -15,6 +15,7 @@
 #include "cross.h"
 #include "eye.h"
 #include "mrdivide.h"
+#include "fp_helpers.h"
 
 /* Type Definitions */
 
@@ -49,7 +50,7 @@ static real32_T rt_atan2f_snf(real32_T u0, real32_T u1)
     }
 
     y = (real32_T)atan2((real32_T)b_u0, (real32_T)b_u1);
-  } else if (u1 == 0.0F) {
+  } else if (is_equal_float(u1, 0.0f)) {
     if (u0 > 0.0F) {
       y = RT_PIF / 2.0F;
     } else if (u0 < 0.0F) {

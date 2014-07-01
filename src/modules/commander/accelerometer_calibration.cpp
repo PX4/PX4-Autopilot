@@ -124,6 +124,7 @@
 #include "accelerometer_calibration.h"
 #include "calibration_messages.h"
 #include "commander_helper.h"
+#include "fp_helpers.h"
 
 #include <unistd.h>
 #include <stdio.h>
@@ -524,7 +525,8 @@ int mat_invert3(float src[3][3], float dst[3][3])
 		    src[0][1] * (src[1][0] * src[2][2] - src[1][2] * src[2][0]) +
 		    src[0][2] * (src[1][0] * src[2][1] - src[1][1] * src[2][0]);
 
-	if (det == 0.0f) {
+	// FIXME: Check this
+	if (is_exactly_zero_float(det)) {
 		return ERROR;        // Singular matrix
 	}
 

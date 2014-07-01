@@ -91,6 +91,7 @@
 #include <drivers/drv_range_finder.h>
 #include "landingslope.h"
 #include "mtecs/mTecs.h"
+#include "fp_helpers.h"
 
 
 /**
@@ -1378,7 +1379,7 @@ FixedwingPositionControl::task_main()
 				float turn_distance = _l1_control.switch_distance(100.0f);
 
 				/* lazily publish navigation capabilities */
-				if (fabsf(turn_distance - _nav_capabilities.turn_distance) > FLT_EPSILON && turn_distance > 0) {
+				if (is_equal_float(turn_distance, _nav_capabilities.turn_distance) && turn_distance > 0.0f) {
 
 					/* set new turn distance */
 					_nav_capabilities.turn_distance = turn_distance;

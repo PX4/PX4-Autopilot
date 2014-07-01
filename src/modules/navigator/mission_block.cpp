@@ -50,7 +50,7 @@
 
 #include "navigator.h"
 #include "mission_block.h"
-
+#include "fp_helpers.h"
 
 MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	NavigatorMode(navigator, name),
@@ -222,7 +222,7 @@ MissionBlock::set_loiter_item(struct position_setpoint_triplet_s *pos_sp_triplet
 	}
 
     if (pos_sp_triplet->current.type != SETPOINT_TYPE_LOITER
-            || pos_sp_triplet->current.loiter_radius != _navigator->get_loiter_radius()
+            || !is_equal_float(pos_sp_triplet->current.loiter_radius, _navigator->get_loiter_radius())
             || pos_sp_triplet->current.loiter_direction != 1
             || pos_sp_triplet->previous.valid
             || !pos_sp_triplet->current.valid

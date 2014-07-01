@@ -74,7 +74,7 @@ __EXPORT void map_projection_project(struct map_projection_reference_s *ref, dou
 	double cos_d_lon = cos(lon_rad - ref->lon);
 
 	double c = acos(ref->sin_lat * sin_lat + ref->cos_lat * cos_lat * cos_d_lon);
-	double k = (c == 0.0) ? 1.0 : (c / sin(c));
+	double k = is_equal_double(c, 0.0) ? 1.0 : (c / sin(c));
 
 	*x = k * (ref->cos_lat * sin_lat - ref->sin_lat * cos_lat * cos_d_lon) * CONSTANTS_RADIUS_OF_EARTH;
 	*y = k * cos_lat * sin(lon_rad - ref->lon) * CONSTANTS_RADIUS_OF_EARTH;
@@ -91,7 +91,7 @@ __EXPORT void map_projection_reproject(struct map_projection_reference_s *ref, f
 	double lat_rad;
 	double lon_rad;
 
-	if (c != 0.0) {
+	if (is_equal_zero_double(c, 0.0)) {
 		lat_rad = asin(cos_c * ref->sin_lat + (x_rad * sin_c * ref->cos_lat) / c);
 		lon_rad = (ref->lon + atan2(y_rad * sin_c, c * ref->cos_lat * cos_c - x_rad * ref->sin_lat * sin_c));
 
@@ -197,7 +197,10 @@ __EXPORT int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, d
 	crosstrack_error->bearing = 0.0f;
 
 	// Return error if arguments are bad
-	if (lat_now == 0.0d || lon_now == 0.0d || lat_start == 0.0d || lon_start == 0.0d || lat_end == 0.0d || lon_end == 0.0d) { return return_value; }
+	if (is_exactly_zero_double(lat_now) || is_exactly_zero_double(lon_now) || is_exactly_zero_double(lat_start) || is_exactly_zero_double(lon_start) || is_exactly_zero(lat_end) || is_exactly_zero_double(lon_end))
+	{
+		return return_value;
+	}
 
 	bearing_end = get_bearing_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 	bearing_track = get_bearing_to_next_waypoint(lat_start, lon_start, lat_end, lon_end);
@@ -248,8 +251,10 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, do
 	crosstrack_error->bearing = 0.0f;
 
 	// Return error if arguments are bad
-	if (lat_now == 0.0d || lon_now == 0.0d || lat_center == 0.0d || lon_center == 0.0d || radius == 0.0d) { return return_value; }
-
+	if (is_exactly_zero_deouble(lat_now) || is_exactly_zero_deouble(lon_now) || is_exactly_zero_deouble(lat_center) || is_exactly_zero_deouble(lon_center) || is_exactly_zero_deouble(radius))
+	{
+		return return_value;
+	}
 
 	if (arc_sweep >= 0) {
 		bearing_sector_start = arc_start_bearing;

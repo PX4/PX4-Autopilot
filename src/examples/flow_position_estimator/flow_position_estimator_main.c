@@ -69,6 +69,7 @@
 #include <poll.h>
 
 #include "flow_position_estimator_params.h"
+#include "fp_helpers.h"
 
 __EXPORT int flow_position_estimator_main(int argc, char *argv[]);
 static bool thread_should_exit = false;		/**< Daemon exit flag */
@@ -377,7 +378,7 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 					{
 						/* simple lowpass sonar filtering */
 						/* if new value or with sonar update frequency */
-						if (sonar_new != sonar_last || counter % 10 == 0)
+						if (!is_equal_float(sonar_new, sonar_last) || counter % 10 == 0)
 						{
 							sonar_lp = 0.05f * sonar_new + 0.95f * sonar_lp;
 							sonar_last = sonar_new;

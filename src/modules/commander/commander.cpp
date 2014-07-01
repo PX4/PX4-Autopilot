@@ -101,6 +101,7 @@
 #include "baro_calibration.h"
 #include "rc_calibration.h"
 #include "airspeed_calibration.h"
+#include "fp_helpers.h"
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -469,7 +470,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 	case VEHICLE_CMD_COMPONENT_ARM_DISARM: {
 			// Follow exactly what the mavlink spec says for values: 0.0f for disarm, 1.0f for arm.
 			// We use an float epsilon delta to test float equality.
-			if (cmd->param1 != 0.0f && (fabsf(cmd->param1 - 1.0f) > 2.0f * FLT_EPSILON)) {
+			if (!is_exactly_zero_float(cmd->param1) && is_equal_float(cmd->param1, 1.0f)) {
 				mavlink_log_info(mavlink_fd, "Unsupported ARM_DISARM parameter: %.6f", cmd->param1);
 
 			} else {
@@ -479,7 +480,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 					status->arming_state = ARMING_STATE_IN_AIR_RESTORE;
 				}
 
-				transition_result_t arming_res = arm_disarm(cmd->param1 != 0.0f, mavlink_fd, "arm/disarm component command");
+				transition_result_t arming_res = arm_disarm(!is_exactly_zero_float(cmd->param1), mavlink_fd, "arm/disarm component command");
 
 				if (arming_res == TRANSITION_DENIED) {
 					mavlink_log_critical(mavlink_fd, "#audio: REJECTING component arm cmd");

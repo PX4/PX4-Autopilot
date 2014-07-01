@@ -84,7 +84,7 @@
 #include <mavlink/mavlink_log.h>
 
 #include "estimator_23states.h"
-
+#include "fp_helpers.h"
 
 
 /**
@@ -1256,9 +1256,9 @@ FixedwingEstimator::task_main()
 						float gps_dt = (_gps.timestamp_position - last_gps) / 1e6f;
 
 						// Calculate acceleration predicted by GPS velocity change
-						if (((fabsf(_ekf->velNED[0] - _gps.vel_n_m_s) > FLT_EPSILON) ||
-							(fabsf(_ekf->velNED[1] - _gps.vel_e_m_s) > FLT_EPSILON) ||
-							(fabsf(_ekf->velNED[2] - _gps.vel_d_m_s) > FLT_EPSILON)) && (gps_dt > 0.00001f)) {
+						if (!is_equal_float(_ekf->velNED[0],_gps.vel_n_m_s) ||
+							!is_equal_float(_ekf->velNED[1], _gps.vel_e_m_s) ||
+							!is_equal_float(_ekf->velNED[2], _gps.vel_d_m_s) && (gps_dt > 0.00001f)) {
 
 							_ekf->accelGPSNED[0] = (_ekf->velNED[0] - _gps.vel_n_m_s) / gps_dt;
 							_ekf->accelGPSNED[1] = (_ekf->velNED[1] - _gps.vel_e_m_s) / gps_dt;

@@ -129,7 +129,7 @@ ARCHWARNINGS		 = -Wall \
 			   -Wextra \
 			   -Wdouble-promotion \
 			   -Wshadow \
-			   -Wfloat-equal \
+			   -Werror=float-equal \
 			   -Wframe-larger-than=1024 \
 			   -Wpointer-arith \
 			   -Wlogical-op \
@@ -143,6 +143,7 @@ ARCHWARNINGS		 = -Wall \
 #   -Wcast-qual  - generates spurious noreturn attribute warnings, try again later
 #   -Wconversion - would be nice, but too many "risky-but-safe" conversions in the code
 #   -Wcast-align - would help catch bad casts in some cases, but generates too many false positives
+ARCHWARNINGS = -Werror=float-equal
 
 # C-specific warnings
 #

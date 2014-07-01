@@ -38,20 +38,12 @@
 #ifndef __FP_HELPERS_H
 #define __FP_HELPERS_H
 
-inline bool is_exactly_zero_float(float f)
-{
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfloat-equal"
-	return f == 0.0f;
-#pragma GCC diagnostic pop
-}
+#include "float.h"
+#include "math.h"
 
-inline bool is_exactly_zero_double(double d)
-{
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfloat-equal"
-	return d == 0.0;
-#pragma GCC diagnostic pop
-}
+#define is_exactly_zero_float(f)	(!isfinite(1.0f/(f)))
+#define is_exactly_zero_double(d)	(!isfinite(1.0/(d)))
+#define is_equal_float(f1, f2)		(fabsf((f1)- (f2)) > FLT_EPSILON)
+#define is_equal_double(d1, d2)		(fabs((d1)- (d2)) > DBL_EPSILON)
 
 #endif
