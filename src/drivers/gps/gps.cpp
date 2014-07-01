@@ -488,9 +488,9 @@ GPS::print_info()
 				_report_gps_pos.satellites_used, (double)(hrt_absolute_time() - _report_gps_pos.timestamp_position) / 1000.0);
 		warnx("lat: %d, lon: %d, alt: %d", _report_gps_pos.lat, _report_gps_pos.lon, _report_gps_pos.alt);
 		warnx("eph: %.2fm, epv: %.2fm", (double)_report_gps_pos.eph, (double)_report_gps_pos.epv);
-		warnx("rate position: \t%6.2f Hz", (double)_Helper->get_position_update_rate());
-		warnx("rate velocity: \t%6.2f Hz", (double)_Helper->get_velocity_update_rate());
-		warnx("rate publication:\t%6.2f Hz", (double)_rate);
+		warnx("rate position:%9.2f Hz", (double)_Helper->get_position_update_rate());
+		warnx("rate velocity:%9.2f Hz", (double)_Helper->get_velocity_update_rate());
+		warnx("rate publication:%6.2f Hz", (double)_rate);
 
 	}
 
