@@ -134,8 +134,8 @@ then
 	then
 		# We can't be sure the defaults haven't changed, so
 		# if someone requests a re-configuration, we do it
-		# cleanly from scratch
-		param reset
+		# cleanly from scratch (except autostart / autoconfig)
+		param reset_nostart
 		set DO_AUTOCONFIG yes
 	else
 		set DO_AUTOCONFIG no

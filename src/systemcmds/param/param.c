@@ -64,6 +64,7 @@ static void	do_show_print(void *arg, param_t param);
 static void	do_set(const char* name, const char* val, bool fail_on_not_found);
 static void	do_compare(const char* name, const char* vals[], unsigned comparisons);
 static void	do_reset(void);
+static void	do_reset_nostart(void);
 
 int
 param_main(int argc, char *argv[])
@@ -141,6 +142,10 @@ param_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "reset")) {
 			do_reset();
+		}
+
+		if (!strcmp(argv[1], "reset_nostart")) {
+			do_reset_nostart();
 		}
 	}
 	
@@ -419,6 +424,29 @@ static void
 do_reset(void)
 {
 	param_reset_all();
+
+	if (param_save_default()) {
+		warnx("Param export failed.");
+		exit(1);
+	} else {
+		exit(0);
+	}
+}
+
+static void
+do_reset_nostart(void)
+{
+
+	int32_t autostart;
+	int32_t autoconfig;
+
+	(void)param_get(param_find("SYS_AUTOSTART"), &autostart);
+	(void)param_get(param_find("SYS_AUTOCONFIG"), &autoconfig);
+
+	param_reset_all();
+
+	(void)param_set(param_find("SYS_AUTOSTART"), &autostart);
+	(void)param_set(param_find("SYS_AUTOCONFIG"), &autoconfig);
 
 	if (param_save_default()) {
 		warnx("Param export failed.");
