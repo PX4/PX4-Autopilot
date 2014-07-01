@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,14 +49,18 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
+#include <string.h>
+
+#include <systemlib/err.h>
+#include <drivers/drv_hrt.h>
 
 /*
  * Azimuthal Equidistant Projection
  * formulas according to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html
  */
 
-static struct map_projection_reference_s mp_ref = {0};
-static struct globallocal_converter_reference_s gl_ref = {0};
+static struct map_projection_reference_s mp_ref = {0.0, 0.0, 0.0, 0.0, false, 0};
+static struct globallocal_converter_reference_s gl_ref = {0.0f, false};
 
 __EXPORT bool map_projection_global_initialized()
 {
@@ -80,7 +84,7 @@ __EXPORT uint64_t map_projection_timestamp(const struct map_projection_reference
 
 __EXPORT int map_projection_global_init(double lat_0, double lon_0, uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
-	if (strcmp("commander", getprogname() == 0)) {
+	if (strcmp("commander", getprogname()) == 0) {
 		return map_projection_init_timestamped(&mp_ref, lat_0, lon_0, timestamp);
 	} else {
 		return -1;
@@ -103,7 +107,7 @@ __EXPORT int map_projection_init_timestamped(struct map_projection_reference_s *
 
 __EXPORT int map_projection_init(struct map_projection_reference_s *ref, double lat_0, double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
-	map_projection_init_timestamped(ref, lat_0, lon_0, hrt_absolute_time());
+	return map_projection_init_timestamped(ref, lat_0, lon_0, hrt_absolute_time());
 }
 
 __EXPORT int map_projection_global_reference(double *ref_lat_rad, double *ref_lon_rad)
@@ -153,22 +157,17 @@ __EXPORT int map_projection_project(const struct map_projection_reference_s *ref
 
 __EXPORT int map_projection_global_reproject(float x, float y, double *lat, double *lon)
 {
-	map_projection_reproject(&mp_ref, x, y, lat, lon);
+	return map_projection_reproject(&mp_ref, x, y, lat, lon);
 }
 
 __EXPORT int map_projection_reproject(const struct map_projection_reference_s *ref, float x, float y, double *lat, double *lon)
 {
-<<<<<<< HEAD
 	if (!map_projection_initialized(ref)) {
 		return -1;
 	}
 
-	float x_rad = x / CONSTANTS_RADIUS_OF_EARTH;
-	float y_rad = y / CONSTANTS_RADIUS_OF_EARTH;
-=======
 	double x_rad = x / CONSTANTS_RADIUS_OF_EARTH;
 	double y_rad = y / CONSTANTS_RADIUS_OF_EARTH;
->>>>>>> 48f4a1e5cd6ef653b466eb68c1073fb47cbefbd7
 	double c = sqrtf(x_rad * x_rad + y_rad * y_rad);
 	double sin_c = sin(c);
 	double cos_c = cos(c);
@@ -210,7 +209,7 @@ __EXPORT int map_projection_global_getref(double *lat_0, double *lon_0)
 }
 __EXPORT int globallocalconverter_init(double lat_0, double lon_0, float alt_0, uint64_t timestamp)
 {
-	if (strcmp("commander", getprogname() == 0)) {
+	if (strcmp("commander", getprogname()) == 0) {
 		gl_ref.alt = alt_0;
 		if (!map_projection_global_init(lat_0, lon_0, timestamp))
 		{

@@ -86,7 +86,7 @@ struct globallocal_converter_reference_s {
  * Checks if global projection was initialized
  * @return true if map was initialized before, false else
  */
-__EXPORT bool map_projection_global_initialized();
+__EXPORT bool map_projection_global_initialized(void);
 
 /**
  * Checks if projection given as argument was initialized
@@ -98,7 +98,7 @@ __EXPORT bool map_projection_initialized(const struct map_projection_reference_s
  * Get the timestamp of the global map projection
  * @return the timestamp of the map_projection
  */
-__EXPORT uint64_t map_projection_global_timestamp();
+__EXPORT uint64_t map_projection_global_timestamp(void);
 
 /**
  * Get the timestamp of the map projection given by the argument
@@ -209,7 +209,7 @@ __EXPORT int globallocalconverter_init(double lat_0, double lon_0, float alt_0, 
  * Checks if globallocalconverter was initialized
  * @return true if map was initialized before, false else
  */
-__EXPORT bool globallocalconverter_initialized();
+__EXPORT bool globallocalconverter_initialized(void);
 
 /**
  * Convert from global position coordinates to local position coordinates using the global reference
