@@ -173,6 +173,10 @@ then
 	#
 	if [ $DO_AUTOCONFIG == yes ]
 	then
+		# We can't be sure the defaults haven't changed, so
+		# if someone requests a re-configuration, we do it
+		# cleanly from scratch
+		param reset
 		param set SYS_AUTOCONFIG 0
 		param save
 	fi
