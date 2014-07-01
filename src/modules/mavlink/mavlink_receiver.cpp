@@ -751,9 +751,8 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	hil_gps.vel_ned_valid = true;
 	hil_gps.cog_rad = _wrap_pi(gps.cog * M_DEG_TO_RAD_F * 1e-2f);
 
-	hil_gps.timestamp_satellites = timestamp;
 	hil_gps.fix_type = gps.fix_type;
-	hil_gps.satellites_visible = gps.satellites_visible;
+	hil_gps.satellites_used = gps.satellites_visible;  //TODO: rename mavlink_hil_gps_t sats visible to used?
 
 	if (_gps_pub < 0) {
 		_gps_pub = orb_advertise(ORB_ID(vehicle_gps_position), &hil_gps);
