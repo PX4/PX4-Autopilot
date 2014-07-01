@@ -491,7 +491,6 @@ GPS::print_info()
 		warnx("rate position:%9.2f Hz", (double)_Helper->get_position_update_rate());
 		warnx("rate velocity:%9.2f Hz", (double)_Helper->get_velocity_update_rate());
 		warnx("rate publication:%6.2f Hz", (double)_rate);
-
 	}
 
 	usleep(100000);

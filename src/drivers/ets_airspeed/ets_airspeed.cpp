@@ -364,7 +364,7 @@ test()
 		err(1, "immediate read failed");
 
 	warnx("single read");
-	warnx("diff pressure: %d pa", report.differential_pressure_pa);
+	warnx("diff pressure: %f pa", (double)report.differential_pressure_pa);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2))
@@ -389,7 +389,7 @@ test()
 			err(1, "periodic read failed");
 
 		warnx("periodic read %u", i);
-		warnx("diff pressure: %d pa", report.differential_pressure_pa);
+		warnx("diff pressure: %f pa", (double)report.differential_pressure_pa);
 	}
 
 	/* reset the sensor polling to its default rate */

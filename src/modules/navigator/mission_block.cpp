@@ -42,6 +42,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <math.h>
+#include <float.h>
 
 #include <systemlib/err.h>
 #include <geo/geo.h>
@@ -222,7 +224,7 @@ MissionBlock::set_loiter_item(struct position_setpoint_triplet_s *pos_sp_triplet
 	}
 
     if (pos_sp_triplet->current.type != SETPOINT_TYPE_LOITER
-            || pos_sp_triplet->current.loiter_radius != _navigator->get_loiter_radius()
+            || (fabsf(pos_sp_triplet->current.loiter_radius - _navigator->get_loiter_radius()) > FLT_EPSILON)
             || pos_sp_triplet->current.loiter_direction != 1
             || pos_sp_triplet->previous.valid
             || !pos_sp_triplet->current.valid
