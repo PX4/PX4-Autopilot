@@ -123,9 +123,9 @@ public:
 	/**
 	 * Display the mavlink status.
 	 */
-	void			status();
+	void			display_status();
 
-	static int		stream(int argc, char *argv[]);
+	static int		stream_command(int argc, char *argv[]);
 
 	static int		instance_count();
 
@@ -213,15 +213,15 @@ public:
 	 */
 	int			enable_flow_control(bool enabled);
 
-	const mavlink_channel_t	get_channel();
+	mavlink_channel_t	get_channel();
 
-	void configure_stream_threadsafe(const char *stream_name, const float rate);
+	void configure_stream_threadsafe(const char *stream_name, float rate);
 
 	bool			_task_should_exit;	/**< if true, mavlink task should exit */
 
 	int			get_mavlink_fd() { return _mavlink_fd; }
 
-	MavlinkStream * get_streams() { return _streams; } const
+	MavlinkStream * get_streams() const { return _streams; }
 
 
 	/* Functions for waiting to start transmission until message received. */
@@ -311,14 +311,14 @@ private:
 
 	pthread_mutex_t		_message_buffer_mutex;
 
-	perf_counter_t		_loop_perf;			/**< loop performance counter */
-	perf_counter_t		_txerr_perf;			/**< TX error counter */
-
 	bool			_param_initialized;
 	param_t			_param_system_id;
 	param_t			_param_component_id;
 	param_t			_param_system_type;
 	param_t			_param_use_hil_gps;
+
+	perf_counter_t		_loop_perf;			/**< loop performance counter */
+	perf_counter_t		_txerr_perf;			/**< TX error counter */
 
 	/**
 	 * Send one parameter.

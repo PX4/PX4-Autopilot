@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,67 +31,63 @@
  *
  ****************************************************************************/
 
-/**
- * @file px4fmu2_led.c
- *
- * PX4FMU LED backend.
- */
-
-#include <nuttx/config.h>
-
-#include <stdbool.h>
-
-#include "stm32.h"
-#include "board_config.h"
-
-#include <arch/board/board.h>
-
 /*
- * Ideally we'd be able to get these from up_internal.h,
- * but since we want to be able to disable the NuttX use
- * of leds for system indication at will and there is no
- * separate switch, we need to build independent of the
- * CONFIG_ARCH_LEDS configuration switch.
+ * @file circuit_breaker.c
+ *
+ * Circuit breaker parameters.
+ * Analog to real aviation circuit breakers these parameters
+ * allow to disable subsystems. They are not supported as standard
+ * operation procedure and are only provided for development purposes.
+ * To ensure they are not activated accidentally, the associated
+ * parameter needs to set to the key (magic).
  */
-__BEGIN_DECLS
-extern void led_init(void);
-extern void led_on(int led);
-extern void led_off(int led);
-extern void led_toggle(int led);
-__END_DECLS
 
-__EXPORT void led_init()
+#include <systemlib/param/param.h>
+#include <systemlib/circuit_breaker.h>
+
+/**
+ * Circuit breaker for power supply check
+ *
+ * Setting this parameter to 894281 will disable the power valid
+ * checks in the commander.
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+ *
+ * @min 0
+ * @max 894281
+ * @group Circuit Breaker
+ */
+PARAM_DEFINE_INT32(CBRK_SUPPLY_CHK, 0);
+
+/**
+ * Circuit breaker for rate controller output
+ *
+ * Setting this parameter to 140253 will disable the rate
+ * controller uORB publication.
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+ *
+ * @min 0
+ * @max 140253
+ * @group Circuit Breaker
+ */
+PARAM_DEFINE_INT32(CBRK_RATE_CTRL, 0);
+
+/**
+ * Circuit breaker for IO safety
+ *
+ * Setting this parameter to 894281 will disable IO safety.
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+ *
+ * @min 0
+ * @max 22027
+ * @group Circuit Breaker
+ */
+PARAM_DEFINE_INT32(CBRK_IO_SAFETY, 0);
+
+bool circuit_breaker_enabled(const char* breaker, int32_t magic)
 {
-	/* Configure LED1 GPIO for output */
+	int32_t val;
+	(void)param_get(param_find(breaker), &val);
 
-	stm32_configgpio(GPIO_LED1);
+	return (val == magic);
 }
 
-__EXPORT void led_on(int led)
-{
-	if (led == 1)
-	{
-		/* Pull down to switch on */
-		stm32_gpiowrite(GPIO_LED1, false);
-	}
-}
-
-__EXPORT void led_off(int led)
-{
-	if (led == 1)
-	{
-		/* Pull up to switch off */
-		stm32_gpiowrite(GPIO_LED1, true);
-	}
-}
-
-__EXPORT void led_toggle(int led)
-{
-	if (led == 1)
-	{
-		if (stm32_gpioread(GPIO_LED1))
-			stm32_gpiowrite(GPIO_LED1, false);
-		else
-			stm32_gpiowrite(GPIO_LED1, true);
-	}
-}
