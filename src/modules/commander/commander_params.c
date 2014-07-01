@@ -39,7 +39,7 @@
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  */
 
 #include <nuttx/config.h>
@@ -84,3 +84,14 @@ PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
  * @group Battery Calibration
  */
 PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
+
+/**
+ * Datalink loss mode enabled.
+ *
+ * Set to 1 to enable actions triggered when the datalink is lost.
+ *
+ * @group commander
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0);

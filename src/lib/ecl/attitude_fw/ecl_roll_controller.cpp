@@ -59,9 +59,9 @@ ECL_RollController::ECL_RollController() :
 	_integrator(0.0f),
 	_rate_error(0.0f),
 	_rate_setpoint(0.0f),
-	_bodyrate_setpoint(0.0f)
+	_bodyrate_setpoint(0.0f),
+	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control roll nonfinite input"))
 {
-	perf_alloc(PC_COUNT, "fw att control roll nonfinite input");
 }
 
 ECL_RollController::~ECL_RollController()
@@ -113,9 +113,6 @@ float ECL_RollController::control_bodyrate(float pitch,
 	/* lock integral for long intervals */
 	if (dt_micros > 500000)
 		lock_integrator = true;
-
-//	float k_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
-	float k_ff = 0; //xxx: param
 
 	/* input conditioning */
 //	warnx("airspeed pre %.4f", (double)airspeed);

@@ -72,17 +72,6 @@ PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 25.0f);
 PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
 
 /**
- * Default Loiter Radius
- *
- * This radius is used when no other loiter radius is set.
- *
- * @min 10.0
- * @max 100.0
- * @group L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_LOITER_R, 50.0f);
-
-/**
  * Cruise throttle
  *
  * This is the throttle setting required to achieve the desired cruise speed. Most airframes have a value of 0.5-0.7.

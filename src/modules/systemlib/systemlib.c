@@ -64,6 +64,9 @@ systemreset(bool to_bootloader)
 		*(uint32_t *)0x40002850 = 0xb007b007;
 	}
 	up_systemreset();
+
+	/* lock up here */
+	while(true);
 }
 
 static void kill_task(FAR struct tcb_s *tcb, FAR void *arg);

@@ -171,6 +171,8 @@ test_mtd(int argc, char *argv[])
 		}
 		end = hrt_absolute_time();
 
+		warnx("write took %llu us", (end - start));
+
 		close(fd);
 		fd = open(PARAM_FILE_NAME, O_RDONLY);
 

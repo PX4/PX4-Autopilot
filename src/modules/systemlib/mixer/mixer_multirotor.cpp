@@ -208,7 +208,6 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	char geomname[8];
 	int s[4];
 	int used;
-	const char *end = buf + buflen;
 
 	/* enforce that the mixer ends with space or a new line */
 	for (int i = buflen - 1; i >= 0; i--) {
@@ -302,7 +301,6 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	//lowsyslog("thrust: %d, get_control3: %d\n", (int)(thrust), (int)(get_control(0, 3)));
 	float		min_out = 0.0f;
 	float		max_out = 0.0f;
-	float		scale_yaw = 1.0f;
 
 	/* perform initial mix pass yielding unbounded outputs, ignore yaw */
 	for (unsigned i = 0; i < _rotor_count; i++) {
@@ -327,7 +325,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	}
 
 	/* scale down roll/pitch controls if some outputs are negative, don't add yaw, keep total thrust */
-	if (min_out < 0.0) {
+	if (min_out < 0.0f) {
 		float scale_in = thrust / (thrust - min_out);
 
 		/* mix again with adjusted controls */

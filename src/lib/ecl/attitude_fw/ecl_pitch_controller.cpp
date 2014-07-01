@@ -61,9 +61,9 @@ ECL_PitchController::ECL_PitchController() :
 	_integrator(0.0f),
 	_rate_error(0.0f),
 	_rate_setpoint(0.0f),
-	_bodyrate_setpoint(0.0f)
+	_bodyrate_setpoint(0.0f),
+	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control pitch nonfinite input"))
 {
-	perf_alloc(PC_COUNT, "fw att control pitch nonfinite input");
 }
 
 ECL_PitchController::~ECL_PitchController()
@@ -150,9 +150,6 @@ float ECL_PitchController::control_bodyrate(float roll, float pitch,
 	/* lock integral for long intervals */
 	if (dt_micros > 500000)
 		lock_integrator = true;
-
-//	float k_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
-	float k_ff = 0;
 
 	/* input conditioning */
 	if (!isfinite(airspeed)) {
