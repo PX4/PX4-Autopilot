@@ -310,7 +310,7 @@ void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotM
 		STEdot_dem = STEdot_dem + _rollComp * (1.0f / constrain(cosPhi , 0.1f, 1.0f) - 1.0f);
 
 		if (STEdot_dem >= 0) {
-			ff_throttle = nomThr + STEdot_dem / _STEdot_max * (1.0f - nomThr);
+			ff_throttle = nomThr + STEdot_dem / _STEdot_max * (_THRmaxf - nomThr);
 
 		} else {
 			ff_throttle = nomThr - STEdot_dem / _STEdot_min * nomThr;
