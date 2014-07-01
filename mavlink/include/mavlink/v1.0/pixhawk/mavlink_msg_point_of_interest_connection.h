@@ -250,6 +250,56 @@ static inline void mavlink_msg_point_of_interest_connection_send(mavlink_channel
 #endif
 }
 
+#if MAVLINK_MSG_ID_POINT_OF_INTEREST_CONNECTION_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_point_of_interest_connection_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint8_t type, uint8_t color, uint8_t coordinate_system, uint16_t timeout, float xp1, float yp1, float zp1, float xp2, float yp2, float zp2, const char *name)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+	_mav_put_float(buf, 0, xp1);
+	_mav_put_float(buf, 4, yp1);
+	_mav_put_float(buf, 8, zp1);
+	_mav_put_float(buf, 12, xp2);
+	_mav_put_float(buf, 16, yp2);
+	_mav_put_float(buf, 20, zp2);
+	_mav_put_uint16_t(buf, 24, timeout);
+	_mav_put_uint8_t(buf, 26, type);
+	_mav_put_uint8_t(buf, 27, color);
+	_mav_put_uint8_t(buf, 28, coordinate_system);
+	_mav_put_char_array(buf, 29, name, 26);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_POINT_OF_INTEREST_CONNECTION, buf, MAVLINK_MSG_ID_POINT_OF_INTEREST_CONNECTION_LEN, MAVLINK_MSG_ID_POINT_OF_INTEREST_CONNECTION_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_POINT_OF_INTEREST_CONNECTION, buf, MAVLINK_MSG_ID_POINT_OF_INTEREST_CONNECTION_LEN);
+#endif
+#else
+	mavlink_point_of_interest_connection_t *packet = (mavlink_point_of_interest_connection_t *)msgbuf;
+	packet->xp1 = xp1;
+	packet->yp1 = yp1;
+	packet->zp1 = zp1;
+	packet->xp2 = xp2;
+	packet->yp2 = yp2;
+	packet->zp2 = zp2;
+	packet->timeout = timeout;
+	packet->type = type;
+	packet->color = color;
+	packet->coordinate_system = coordinate_system;
+	mav_array_memcpy(packet->name, name, sizeof(char)*26);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_POINT_OF_INTEREST_CONNECTION, (const char *)packet, MAVLINK_MSG_ID_POINT_OF_INTEREST_CONNECTION_LEN, MAVLINK_MSG_ID_POINT_OF_INTEREST_CONNECTION_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_POINT_OF_INTEREST_CONNECTION, (const char *)packet, MAVLINK_MSG_ID_POINT_OF_INTEREST_CONNECTION_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE POINT_OF_INTEREST_CONNECTION UNPACKING

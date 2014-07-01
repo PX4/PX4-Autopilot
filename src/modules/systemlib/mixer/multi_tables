@@ -52,6 +52,15 @@ set hex_plus {
 	 120 CW
 }
 
+set hex_cox {
+	  60 CW
+	  60 CCW
+	 180 CW
+	 180 CCW
+	 -60 CW
+	 -60 CCW
+}
+
 set octa_x {
 	  22.5 CW
 	-157.5 CW
@@ -85,7 +94,7 @@ set octa_cox {
 	-135 CW
 }
 
-set tables {quad_x quad_plus quad_v quad_wide hex_x hex_plus octa_x octa_plus octa_cox}
+set tables {quad_x quad_plus quad_v quad_wide hex_x hex_plus hex_cox octa_x octa_plus octa_cox}
 
 proc factors {a d} { puts [format "\t{ %9.6f, %9.6f, %5.2f }," [rcos [expr $a + 90]] [rcos $a] [expr -$d]]}
 
@@ -104,13 +113,13 @@ foreach table $tables {
 	puts "};"
 }
 
-puts "const MultirotorMixer::Rotor *_config_index\[MultirotorMixer::Geometry::MAX_GEOMETRY\] = {"
+puts "const MultirotorMixer::Rotor *_config_index\[MultirotorMixer::MAX_GEOMETRY\] = {"
 foreach table $tables {
 	puts [format "\t&_config_%s\[0\]," $table]
 }
 puts "};"
 
-puts "const unsigned _config_rotor_count\[MultirotorMixer::Geometry::MAX_GEOMETRY\] = {"
+puts "const unsigned _config_rotor_count\[MultirotorMixer::MAX_GEOMETRY\] = {"
 foreach table $tables {
 	upvar #0 $table angles
 	puts [format "\t%u, /* %s */" [expr [llength $angles] / 2] $table]

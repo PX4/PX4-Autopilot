@@ -201,6 +201,48 @@ static inline void mavlink_msg_flexifunction_directory_ack_send(mavlink_channel_
 #endif
 }
 
+#if MAVLINK_MSG_ID_FLEXIFUNCTION_DIRECTORY_ACK_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_flexifunction_directory_ack_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint8_t target_system, uint8_t target_component, uint8_t directory_type, uint8_t start_index, uint8_t count, uint16_t result)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+	_mav_put_uint16_t(buf, 0, result);
+	_mav_put_uint8_t(buf, 2, target_system);
+	_mav_put_uint8_t(buf, 3, target_component);
+	_mav_put_uint8_t(buf, 4, directory_type);
+	_mav_put_uint8_t(buf, 5, start_index);
+	_mav_put_uint8_t(buf, 6, count);
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_FLEXIFUNCTION_DIRECTORY_ACK, buf, MAVLINK_MSG_ID_FLEXIFUNCTION_DIRECTORY_ACK_LEN, MAVLINK_MSG_ID_FLEXIFUNCTION_DIRECTORY_ACK_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_FLEXIFUNCTION_DIRECTORY_ACK, buf, MAVLINK_MSG_ID_FLEXIFUNCTION_DIRECTORY_ACK_LEN);
+#endif
+#else
+	mavlink_flexifunction_directory_ack_t *packet = (mavlink_flexifunction_directory_ack_t *)msgbuf;
+	packet->result = result;
+	packet->target_system = target_system;
+	packet->target_component = target_component;
+	packet->directory_type = directory_type;
+	packet->start_index = start_index;
+	packet->count = count;
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_FLEXIFUNCTION_DIRECTORY_ACK, (const char *)packet, MAVLINK_MSG_ID_FLEXIFUNCTION_DIRECTORY_ACK_LEN, MAVLINK_MSG_ID_FLEXIFUNCTION_DIRECTORY_ACK_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_FLEXIFUNCTION_DIRECTORY_ACK, (const char *)packet, MAVLINK_MSG_ID_FLEXIFUNCTION_DIRECTORY_ACK_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE FLEXIFUNCTION_DIRECTORY_ACK UNPACKING

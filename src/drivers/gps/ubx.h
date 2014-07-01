@@ -56,6 +56,7 @@
 //#define UBX_CLASS_RXM 0x02
 #define UBX_CLASS_ACK 0x05
 #define UBX_CLASS_CFG 0x06
+#define UBX_CLASS_MON 0x0A
 
 /* MessageIDs (the ones that are used) */
 #define UBX_MESSAGE_NAV_POSLLH 0x02
@@ -71,6 +72,8 @@
 #define UBX_MESSAGE_CFG_MSG 0x01
 #define UBX_MESSAGE_CFG_RATE 0x08
 #define UBX_MESSAGE_CFG_NAV5 0x24
+
+#define UBX_MESSAGE_MON_HW	0x09
 
 #define UBX_CFG_PRT_LENGTH 20
 #define UBX_CFG_PRT_PAYLOAD_PORTID 0x01			/**< UART1 */
@@ -210,6 +213,27 @@ typedef struct {
 	uint8_t ck_b;
 } gps_bin_nav_velned_packet_t;
 
+struct gps_bin_mon_hw_packet {
+	uint32_t pinSel;
+	uint32_t pinBank;
+	uint32_t pinDir;
+	uint32_t pinVal;
+	uint16_t noisePerMS;
+	uint16_t agcCnt;
+	uint8_t aStatus;
+	uint8_t aPower;
+	uint8_t flags;
+	uint8_t __reserved1;
+	uint32_t usedMask;
+	uint8_t VP[25];
+	uint8_t jamInd;
+	uint16_t __reserved3;
+	uint32_t pinIrq;
+	uint32_t pulLH;
+	uint32_t pullL;
+};
+
+
 //typedef struct {
 //	int32_t time_milliseconds; 		/**< Measurement integer millisecond GPS time of week */
 //	int16_t week; 					/**< Measurement GPS week number */
@@ -319,7 +343,7 @@ typedef enum {
 //typedef type_gps_bin_ubx_state gps_bin_ubx_state_t;
 #pragma pack(pop)
 
-#define RECV_BUFFER_SIZE 500 //The NAV-SOL messages really need such a big buffer
+#define RECV_BUFFER_SIZE 300 //The NAV-SOL messages really need such a big buffer
 
 class UBX : public GPS_Helper
 {
@@ -373,6 +397,9 @@ private:
 	struct vehicle_gps_position_s *_gps_position;
 	bool			_configured;
 	bool			_waiting_for_ack;
+	bool			_got_posllh;
+	bool			_got_velned;
+	bool			_got_timeutc;
 	uint8_t			_message_class_needed;
 	uint8_t			_message_id_needed;
 	ubx_decode_state_t	_decode_state;
@@ -383,7 +410,7 @@ private:
 	uint8_t			_message_class;
 	uint8_t			_message_id;
 	unsigned		_payload_size;
-	uint8_t			_disable_cmd_last;
+	hrt_abstime		_disable_cmd_last;
 };
 
 #endif /* UBX_H_ */

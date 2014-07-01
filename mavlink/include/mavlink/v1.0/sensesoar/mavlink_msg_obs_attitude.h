@@ -154,6 +154,38 @@ static inline void mavlink_msg_obs_attitude_send(mavlink_channel_t chan, const d
 #endif
 }
 
+#if MAVLINK_MSG_ID_OBS_ATTITUDE_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_obs_attitude_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  const double *quat)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+
+	_mav_put_double_array(buf, 0, quat, 4);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_OBS_ATTITUDE, buf, MAVLINK_MSG_ID_OBS_ATTITUDE_LEN, MAVLINK_MSG_ID_OBS_ATTITUDE_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_OBS_ATTITUDE, buf, MAVLINK_MSG_ID_OBS_ATTITUDE_LEN);
+#endif
+#else
+	mavlink_obs_attitude_t *packet = (mavlink_obs_attitude_t *)msgbuf;
+
+	mav_array_memcpy(packet->quat, quat, sizeof(double)*4);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_OBS_ATTITUDE, (const char *)packet, MAVLINK_MSG_ID_OBS_ATTITUDE_LEN, MAVLINK_MSG_ID_OBS_ATTITUDE_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_OBS_ATTITUDE, (const char *)packet, MAVLINK_MSG_ID_OBS_ATTITUDE_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE OBS_ATTITUDE UNPACKING

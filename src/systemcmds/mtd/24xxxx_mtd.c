@@ -142,12 +142,9 @@ struct at24c_dev_s {
 	uint16_t              pagesize; /* 32, 63 */
 	uint16_t              npages;   /* 128, 256, 512, 1024 */
 
-	perf_counter_t        perf_reads;
-	perf_counter_t        perf_writes;
-	perf_counter_t        perf_resets;
-	perf_counter_t        perf_read_retries;
-	perf_counter_t        perf_read_errors;
-	perf_counter_t        perf_write_errors;
+	perf_counter_t        perf_transfers;
+	perf_counter_t        perf_resets_retries;
+	perf_counter_t        perf_errors;
 };
 
 /************************************************************************************
@@ -240,8 +237,10 @@ void at24c_test(void)
 		} else if (result != 1) {
 			vdbg("unexpected %u\n", result);
 		}
-		if ((count % 100) == 0)
+
+		if ((count % 100) == 0) {
 			vdbg("test %u errors %u\n", count, errors);
+		}
 	}
 }
 
@@ -298,9 +297,9 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 
 		for (;;) {
 
-			perf_begin(priv->perf_reads);
+			perf_begin(priv->perf_transfers);
 			ret = I2C_TRANSFER(priv->dev, &msgv[0], 2);
-			perf_end(priv->perf_reads);
+			perf_end(priv->perf_transfers);
 
 			if (ret >= 0)
 				break;
@@ -314,10 +313,10 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 			 * XXX maybe do special first-read handling with optional
 			 * bus reset as well?
 			 */
-			perf_count(priv->perf_read_retries);
+			perf_count(priv->perf_resets_retries);
 
 			if (--tries == 0) {
-				perf_count(priv->perf_read_errors);
+				perf_count(priv->perf_errors);
 				return ERROR;
 			}
 		}
@@ -383,9 +382,9 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 
 		for (;;) {
 
-			perf_begin(priv->perf_writes);
+			perf_begin(priv->perf_transfers);
 			ret = I2C_TRANSFER(priv->dev, &msgv[0], 1);
-			perf_end(priv->perf_writes);
+			perf_end(priv->perf_transfers);
 
 			if (ret >= 0)
 				break;
@@ -397,7 +396,7 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 			 * poll for write completion.
 			 */
 			if (--tries == 0) {
-				perf_count(priv->perf_write_errors);
+				perf_count(priv->perf_errors);
 				return ERROR;
 			}
 		}
@@ -521,12 +520,9 @@ FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_dev_s *dev) {
 		priv->mtd.ioctl  = at24c_ioctl;
 		priv->dev        = dev;
 
-		priv->perf_reads = perf_alloc(PC_ELAPSED, "EEPROM read");
-		priv->perf_writes = perf_alloc(PC_ELAPSED, "EEPROM write");
-		priv->perf_resets = perf_alloc(PC_COUNT, "EEPROM reset");
-		priv->perf_read_retries = perf_alloc(PC_COUNT, "EEPROM read retries");
-		priv->perf_read_errors = perf_alloc(PC_COUNT, "EEPROM read errors");
-		priv->perf_write_errors = perf_alloc(PC_COUNT, "EEPROM write errors");
+		priv->perf_transfers = perf_alloc(PC_ELAPSED, "eeprom_trans");
+		priv->perf_resets_retries = perf_alloc(PC_COUNT, "eeprom_rst");
+		priv->perf_errors = perf_alloc(PC_COUNT, "eeprom_errs");
 	}
 
 	/* attempt to read to validate device is present */
@@ -548,9 +544,9 @@ FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_dev_s *dev) {
 		}
 	};
 
-	perf_begin(priv->perf_reads);
+	perf_begin(priv->perf_transfers);
 	int ret = I2C_TRANSFER(priv->dev, &msgv[0], 2);
-	perf_end(priv->perf_reads);
+	perf_end(priv->perf_transfers);
 
 	if (ret < 0) {
 		return NULL;

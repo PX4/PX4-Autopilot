@@ -48,11 +48,14 @@
  * The recognized number off cells, will be blinked 5 times in purple color.
  * 2 Cells = 2 blinks
  * ...
- * 5 Cells = 5 blinks
+ * 6 Cells = 6 blinks
  * Now the Application will show the actual selected Flightmode, GPS-Fix and Battery Warnings and Alerts.
  *
- * System disarmed:
- * The BlinkM should lit solid red.
+ * System disarmed and safe:
+ * The BlinkM should light solid cyan.
+ *
+ * System safety off but not armed:
+ * The BlinkM should light flashing orange
  *
  * System armed:
  * One message is made of 4 Blinks and a pause in the same length as the 4 blinks.
@@ -67,10 +70,10 @@
  * (X = on, _=off)
  *
  * The first 3 blinks indicates the status of the GPS-Signal (red):
- * 0-4 satellites = X-X-X-X-_-_-_-_-_-_-
- *   5 satellites = X-X-_-X-_-_-_-_-_-_-
- *   6 satellites = X-_-_-X-_-_-_-_-_-_-
- * >=7 satellites = _-_-_-X-_-_-_-_-_-_-
+ * 0-4 satellites = X-X-X-X-X-_-_-_-_-_-
+ *   5 satellites = X-X-_-X-X-_-_-_-_-_-
+ *   6 satellites = X-_-_-X-X-_-_-_-_-_-
+ * >=7 satellites = _-_-_-X-X-_-_-_-_-_-
  * If no GPS is found the first 3 blinks are white
  *
  * The fourth Blink indicates the Flightmode:
@@ -119,6 +122,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/safety.h>
 
 static const float MAX_CELL_VOLTAGE	= 4.3f;
 static const int LED_ONTIME = 120;
@@ -166,10 +170,12 @@ private:
 	enum ledColors {
 		LED_OFF,
 		LED_RED,
+		LED_ORANGE,
 		LED_YELLOW,
 		LED_PURPLE,
 		LED_GREEN,
 		LED_BLUE,
+		LED_CYAN,
 		LED_WHITE,
 		LED_AMBER
 	};
@@ -187,6 +193,26 @@ private:
 	int led_blink;
 
 	bool systemstate_run;
+
+	int vehicle_status_sub_fd;
+	int vehicle_control_mode_sub_fd;
+	int vehicle_gps_position_sub_fd;
+	int actuator_armed_sub_fd;
+	int safety_sub_fd;
+
+	int num_of_cells;
+	int detected_cells_runcount;
+
+	int t_led_color[8];
+	int t_led_blink;
+	int led_thread_runcount;
+	int led_interval;
+
+	bool topic_initialized;
+	bool detected_cells_blinked;
+	bool led_thread_ready;
+
+	int num_of_used_sats;
 
 	void 			setLEDColor(int ledcolor);
 	static void		led_trampoline(void *arg);
@@ -259,7 +285,22 @@ BlinkM::BlinkM(int bus, int blinkm) :
 	led_color_7(LED_OFF),
 	led_color_8(LED_OFF),
 	led_blink(LED_NOBLINK),
-	systemstate_run(false)
+	systemstate_run(false),
+	vehicle_status_sub_fd(-1),
+	vehicle_control_mode_sub_fd(-1),
+	vehicle_gps_position_sub_fd(-1),
+	actuator_armed_sub_fd(-1),
+	safety_sub_fd(-1),
+	num_of_cells(0),
+	detected_cells_runcount(0),
+	t_led_color({0}),
+	t_led_blink(0),
+	led_thread_runcount(0),
+	led_interval(1000),
+	topic_initialized(false),
+	detected_cells_blinked(false),
+	led_thread_ready(true),
+	num_of_used_sats(0)
 {
 	memset(&_work, 0, sizeof(_work));
 }
@@ -376,42 +417,22 @@ void
 BlinkM::led()
 {
 
-	static int vehicle_status_sub_fd;
-	static int vehicle_control_mode_sub_fd;
-	static int vehicle_gps_position_sub_fd;
-	static int actuator_armed_sub_fd;
-
-	static int num_of_cells = 0;
-	static int detected_cells_runcount = 0;
-
-	static int t_led_color[8] = { 0, 0, 0, 0, 0, 0, 0, 0};
-	static int t_led_blink = 0;
-	static int led_thread_runcount=0;
-	static int led_interval = 1000;
-
-	static int no_data_vehicle_status = 0;
-	static int no_data_vehicle_control_mode = 0;
-	static int no_data_actuator_armed = 0;
-	static int no_data_vehicle_gps_position = 0;
-
-	static bool topic_initialized = false;
-	static bool detected_cells_blinked = false;
-	static bool led_thread_ready = true;
-
-	int num_of_used_sats = 0;
-
 	if(!topic_initialized) {
 		vehicle_status_sub_fd = orb_subscribe(ORB_ID(vehicle_status));
-		orb_set_interval(vehicle_status_sub_fd, 1000);
+		orb_set_interval(vehicle_status_sub_fd, 250);
 
 		vehicle_control_mode_sub_fd = orb_subscribe(ORB_ID(vehicle_control_mode));
-		orb_set_interval(vehicle_control_mode_sub_fd, 1000);
+		orb_set_interval(vehicle_control_mode_sub_fd, 250);
 
 		actuator_armed_sub_fd = orb_subscribe(ORB_ID(actuator_armed));
-		orb_set_interval(actuator_armed_sub_fd, 1000);
+		orb_set_interval(actuator_armed_sub_fd, 250);
 
 		vehicle_gps_position_sub_fd = orb_subscribe(ORB_ID(vehicle_gps_position));
-		orb_set_interval(vehicle_gps_position_sub_fd, 1000);
+		orb_set_interval(vehicle_gps_position_sub_fd, 250);
+
+		/* Subscribe to safety topic */
+		safety_sub_fd = orb_subscribe(ORB_ID(safety));
+		orb_set_interval(safety_sub_fd, 250);
 
 		topic_initialized = true;
 	}
@@ -433,7 +454,9 @@ BlinkM::led()
 			if(num_of_cells > 4) {
 				t_led_color[4] = LED_PURPLE;
 			}
-			t_led_color[5] = LED_OFF;
+			if(num_of_cells > 5) {
+				t_led_color[5] = LED_PURPLE;
+			}
 			t_led_color[6] = LED_OFF;
 			t_led_color[7] = LED_OFF;
 			t_led_blink = LED_BLINK;
@@ -467,16 +490,24 @@ BlinkM::led()
 		struct vehicle_control_mode_s vehicle_control_mode;
 		struct actuator_armed_s actuator_armed;
 		struct vehicle_gps_position_s vehicle_gps_position_raw;
+		struct safety_s safety;
 
 		memset(&vehicle_status_raw, 0, sizeof(vehicle_status_raw));
 		memset(&vehicle_gps_position_raw, 0, sizeof(vehicle_gps_position_raw));
+		memset(&safety, 0, sizeof(safety));
 
 		bool new_data_vehicle_status;
 		bool new_data_vehicle_control_mode;
 		bool new_data_actuator_armed;
 		bool new_data_vehicle_gps_position;
+		bool new_data_safety;
 
 		orb_check(vehicle_status_sub_fd, &new_data_vehicle_status);
+
+		int no_data_vehicle_status = 0;
+		int no_data_vehicle_control_mode = 0;
+		int no_data_actuator_armed = 0;
+		int no_data_vehicle_gps_position = 0;
 
 		if (new_data_vehicle_status) {
 			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub_fd, &vehicle_status_raw);
@@ -520,7 +551,12 @@ BlinkM::led()
 				no_data_vehicle_gps_position = 3;
 		}
 
+		/* update safety topic */
+		orb_check(safety_sub_fd, &new_data_safety);
 
+		if (new_data_safety) {
+			orb_copy(ORB_ID(safety), safety_sub_fd, &safety);
+		}
 
 		/* get number of used satellites in navigation */
 		num_of_used_sats = 0;
@@ -541,19 +577,7 @@ BlinkM::led()
 				printf("<blinkm> cells found:%d\n", num_of_cells);
 
 			} else {
-				if(vehicle_status_raw.battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
-					/* LED Pattern for battery low warning */
-					led_color_1 = LED_YELLOW;
-					led_color_2 = LED_YELLOW;
-					led_color_3 = LED_YELLOW;
-					led_color_4 = LED_YELLOW;
-					led_color_5 = LED_YELLOW;
-					led_color_6 = LED_YELLOW;
-					led_color_7 = LED_YELLOW;
-					led_color_8 = LED_YELLOW;
-					led_blink = LED_BLINK;
-
-				} else if(vehicle_status_raw.battery_warning == VEHICLE_BATTERY_WARNING_CRITICAL) {
+				if(vehicle_status_raw.battery_warning == VEHICLE_BATTERY_WARNING_CRITICAL) {
 					/* LED Pattern for battery critical alerting */
 					led_color_1 = LED_RED;
 					led_color_2 = LED_RED;
@@ -565,21 +589,56 @@ BlinkM::led()
 					led_color_8 = LED_RED;
 					led_blink = LED_BLINK;
 
+				} else if(vehicle_status_raw.rc_signal_lost) {
+					/* LED Pattern for FAILSAFE */
+					led_color_1 = LED_BLUE;
+					led_color_2 = LED_BLUE;
+					led_color_3 = LED_BLUE;
+					led_color_4 = LED_BLUE;
+					led_color_5 = LED_BLUE;
+					led_color_6 = LED_BLUE;
+					led_color_7 = LED_BLUE;
+					led_color_8 = LED_BLUE;
+					led_blink = LED_BLINK;
+
+				} else if(vehicle_status_raw.battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
+					/* LED Pattern for battery low warning */
+					led_color_1 = LED_YELLOW;
+					led_color_2 = LED_YELLOW;
+					led_color_3 = LED_YELLOW;
+					led_color_4 = LED_YELLOW;
+					led_color_5 = LED_YELLOW;
+					led_color_6 = LED_YELLOW;
+					led_color_7 = LED_YELLOW;
+					led_color_8 = LED_YELLOW;
+					led_blink = LED_BLINK;
+
 				} else {
 					/* no battery warnings here */
 
 					if(actuator_armed.armed == false) {
 						/* system not armed */
-						led_color_1 = LED_RED;
-						led_color_2 = LED_RED;
-						led_color_3 = LED_RED;
-						led_color_4 = LED_RED;
-						led_color_5 = LED_RED;
-						led_color_6 = LED_RED;
-						led_color_7 = LED_RED;
-						led_color_8 = LED_RED;
-						led_blink = LED_NOBLINK;
-
+						if(safety.safety_off){
+							led_color_1 = LED_ORANGE;
+							led_color_2 = LED_ORANGE;
+							led_color_3 = LED_ORANGE;
+							led_color_4 = LED_ORANGE;
+							led_color_5 = LED_ORANGE;
+							led_color_6 = LED_ORANGE;
+							led_color_7 = LED_ORANGE;
+							led_color_8 = LED_ORANGE;
+							led_blink = LED_BLINK;
+						}else{
+							led_color_1 = LED_CYAN;
+							led_color_2 = LED_CYAN;
+							led_color_3 = LED_CYAN;
+							led_color_4 = LED_CYAN;
+							led_color_5 = LED_CYAN;
+							led_color_6 = LED_CYAN;
+							led_color_7 = LED_CYAN;
+							led_color_8 = LED_CYAN;
+							led_blink = LED_NOBLINK;
+						}
 					} else {
 						/* armed system - initial led pattern */
 						led_color_1 = LED_RED;
@@ -593,23 +652,23 @@ BlinkM::led()
 						led_blink = LED_BLINK;
 
 						if(new_data_vehicle_control_mode || no_data_vehicle_control_mode < 3) {
-
-							//XXX please check
-							if (vehicle_control_mode.flag_control_position_enabled)
+							/* indicate main control state */
+							if (vehicle_status_raw.main_state == MAIN_STATE_POSCTL)
 								led_color_4 = LED_GREEN;
-							else if (vehicle_control_mode.flag_control_velocity_enabled)
+							/* TODO: add other Auto modes */
+							else if (vehicle_status_raw.main_state == MAIN_STATE_AUTO_MISSION)
 								led_color_4 = LED_BLUE;
-							else if (vehicle_control_mode.flag_control_attitude_enabled)
+							else if (vehicle_status_raw.main_state == MAIN_STATE_ALTCTL)
 								led_color_4 = LED_YELLOW;
-							else if (vehicle_control_mode.flag_control_manual_enabled)
-								led_color_4 = LED_AMBER;
-							else 
+							else if (vehicle_status_raw.main_state == MAIN_STATE_MANUAL)
+								led_color_4 = LED_WHITE;
+							else
 								led_color_4 = LED_OFF;
-								
+							led_color_5 = led_color_4;
 						}
 
 						if(new_data_vehicle_gps_position || no_data_vehicle_gps_position < 3) {
-							/* handling used sat�s */
+							/* handling used satus */
 							if(num_of_used_sats >= 7) {
 								led_color_1 = LED_OFF;
 								led_color_2 = LED_OFF;
@@ -690,8 +749,11 @@ void BlinkM::setLEDColor(int ledcolor) {
 		case LED_RED:	// red
 			set_rgb(255,0,0);
 			break;
+		case LED_ORANGE:	// orange
+			set_rgb(255,150,0);
+			break;
 		case LED_YELLOW:	// yellow
-			set_rgb(255,70,0);
+			set_rgb(200,200,0);
 			break;
 		case LED_PURPLE:	// purple
 			set_rgb(255,0,255);
@@ -702,11 +764,14 @@ void BlinkM::setLEDColor(int ledcolor) {
 		case LED_BLUE:	// blue
 			set_rgb(0,0,255);
 			break;
+		case LED_CYAN:	// cyan
+			set_rgb(0,128,128);
+			break;
 		case LED_WHITE:	// white
 			set_rgb(255,255,255);
 			break;
 		case LED_AMBER:	// amber
-			set_rgb(255,20,0);
+			set_rgb(255,65,0);
 			break;
 	}
 }

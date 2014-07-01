@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,7 +46,7 @@
 extern "C" {
 #endif
 
-	/* Types of items that the data manager can store */
+	/** Types of items that the data manager can store */
 	typedef enum {
 		DM_KEY_SAFE_POINTS = 0,		/* Safe points coordinates, safe point 0 is home point */
 		DM_KEY_FENCE_POINTS,		/* Fence vertex coordinates */
@@ -56,7 +56,7 @@ extern "C" {
 		DM_KEY_NUM_KEYS			/* Total number of item types defined */
 	} dm_item_t;
 
-	/* The maximum number of instances for each item type */
+	/** The maximum number of instances for each item type */
 	enum {
 		DM_KEY_SAFE_POINTS_MAX = 8,
 		DM_KEY_FENCE_POINTS_MAX = GEOFENCE_MAX_VERTICES,
@@ -65,23 +65,24 @@ extern "C" {
 		DM_KEY_WAYPOINTS_ONBOARD_MAX = NUM_MISSIONS_SUPPORTED
 	};
 
-	/* Data persistence levels */
+	/** Data persistence levels */
 	typedef enum {
 		DM_PERSIST_POWER_ON_RESET = 0,	/* Data survives all resets */
 		DM_PERSIST_IN_FLIGHT_RESET,     /* Data survives in-flight resets only */
 		DM_PERSIST_VOLATILE             /* Data does not survive resets */
 	} dm_persitence_t;
 
-	/* The reason for the last reset */
+	/** The reason for the last reset */
 	typedef enum {
 		DM_INIT_REASON_POWER_ON = 0,	/* Data survives resets */
-		DM_INIT_REASON_IN_FLIGHT	/* Data survives in-flight resets only */
+		DM_INIT_REASON_IN_FLIGHT,		/* Data survives in-flight resets only */
+		DM_INIT_REASON_VOLATILE			/* Data does not survive reset */
 	} dm_reset_reason;
 
-	/* Maximum size in bytes of a single item instance */
-	#define DM_MAX_DATA_SIZE 126
+	/** Maximum size in bytes of a single item instance */
+	#define DM_MAX_DATA_SIZE 124
 
-	/* Retrieve from the data manager store */
+	/** Retrieve from the data manager store */
 	__EXPORT ssize_t
 	dm_read(
 		dm_item_t item,			/* The item type to retrieve */
@@ -90,7 +91,7 @@ extern "C" {
 		size_t buflen			/* Length in bytes of data to retrieve */
 	);
 
-	/* write to the data manager store */
+	/** write to the data manager store */
 	__EXPORT ssize_t
 	dm_write(
 		dm_item_t  item,		/* The item type to store */
@@ -100,13 +101,13 @@ extern "C" {
 		size_t buflen			/* Length in bytes of data to retrieve */
 	);
 
-	/* Retrieve from the data manager store */
+	/** Erase all items of this type */
 	__EXPORT int
 	dm_clear(
 		dm_item_t item			/* The item type to clear */
 		);
 
-	/* Tell the data manager about the type of the last reset */
+	/** Tell the data manager about the type of the last reset */
 	__EXPORT int
 	dm_restart(
 		dm_reset_reason restart_type	/* The last reset type */

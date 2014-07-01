@@ -186,6 +186,40 @@ static inline void mavlink_msg_pm_elec_send(mavlink_channel_t chan, float PwCons
 #endif
 }
 
+#if MAVLINK_MSG_ID_PM_ELEC_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_pm_elec_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  float PwCons, float BatStat, const float *PwGen)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+	_mav_put_float(buf, 0, PwCons);
+	_mav_put_float(buf, 4, BatStat);
+	_mav_put_float_array(buf, 8, PwGen, 3);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_PM_ELEC, buf, MAVLINK_MSG_ID_PM_ELEC_LEN, MAVLINK_MSG_ID_PM_ELEC_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_PM_ELEC, buf, MAVLINK_MSG_ID_PM_ELEC_LEN);
+#endif
+#else
+	mavlink_pm_elec_t *packet = (mavlink_pm_elec_t *)msgbuf;
+	packet->PwCons = PwCons;
+	packet->BatStat = BatStat;
+	mav_array_memcpy(packet->PwGen, PwGen, sizeof(float)*3);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_PM_ELEC, (const char *)packet, MAVLINK_MSG_ID_PM_ELEC_LEN, MAVLINK_MSG_ID_PM_ELEC_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_PM_ELEC, (const char *)packet, MAVLINK_MSG_ID_PM_ELEC_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE PM_ELEC UNPACKING

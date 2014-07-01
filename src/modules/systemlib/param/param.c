@@ -96,8 +96,6 @@ ORB_DEFINE(parameter_update, struct parameter_update_s);
 /** parameter update topic handle */
 static orb_advert_t param_topic = -1;
 
-static sem_t param_sem = { .semcount = 1 };
-
 /** lock the parameter store */
 static void
 param_lock(void)
@@ -521,73 +519,15 @@ param_save_default(void)
 		return ERROR;
 	}
 
-	if (res == OK) {
-		res = param_export(fd, false);
+	res = param_export(fd, false);
 
-	        if (res != OK) {
-	            warnx("failed to write parameters to file: %s", filename);
-	        }
+	if (res != OK) {
+		warnx("failed to write parameters to file: %s", filename);
 	}
 
 	close(fd);
 
 	return res;
-
-#if 0
-	const char *filename_tmp = malloc(strlen(filename) + 5);
-	sprintf(filename_tmp, "%s.tmp", filename);
-
-	/* delete temp file if exist */
-	res = unlink(filename_tmp);
-
-	if (res != OK && errno == ENOENT)
-		res = OK;
-
-	if (res != OK)
-		warn("failed to delete temp file: %s", filename_tmp);
-
-	if (res == OK) {
-		/* write parameters to temp file */
-		fd = open(filename_tmp, O_WRONLY | O_CREAT | O_EXCL);
-
-		if (fd < 0) {
-			warn("failed to open temp file: %s", filename_tmp);
-			res = ERROR;
-		}
-
-		if (res == OK) {
-			res = param_export(fd, false);
-
-			if (res != OK)
-				warnx("failed to write parameters to file: %s", filename_tmp);
-		}
-
-		close(fd);
-	}
-
-	if (res == OK) {
-		/* delete parameters file */
-		res = unlink(filename);
-
-		if (res != OK && errno == ENOENT)
-			res = OK;
-
-		if (res != OK)
-			warn("failed to delete parameters file: %s", filename);
-	}
-
-	if (res == OK) {
-		/* rename temp file to parameters */
-		res = rename(filename_tmp, filename);
-
-		if (res != OK)
-			warn("failed to rename %s to %s", filename_tmp, filename);
-	}
-
-	free(filename_tmp);
-
-	return res;
-#endif
 }
 
 /**

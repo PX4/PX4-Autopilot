@@ -212,6 +212,50 @@ static inline void mavlink_msg_raw_aux_send(mavlink_channel_t chan, uint16_t adc
 #endif
 }
 
+#if MAVLINK_MSG_ID_RAW_AUX_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_raw_aux_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint16_t adc1, uint16_t adc2, uint16_t adc3, uint16_t adc4, uint16_t vbat, int16_t temp, int32_t baro)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+	_mav_put_int32_t(buf, 0, baro);
+	_mav_put_uint16_t(buf, 4, adc1);
+	_mav_put_uint16_t(buf, 6, adc2);
+	_mav_put_uint16_t(buf, 8, adc3);
+	_mav_put_uint16_t(buf, 10, adc4);
+	_mav_put_uint16_t(buf, 12, vbat);
+	_mav_put_int16_t(buf, 14, temp);
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_RAW_AUX, buf, MAVLINK_MSG_ID_RAW_AUX_LEN, MAVLINK_MSG_ID_RAW_AUX_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_RAW_AUX, buf, MAVLINK_MSG_ID_RAW_AUX_LEN);
+#endif
+#else
+	mavlink_raw_aux_t *packet = (mavlink_raw_aux_t *)msgbuf;
+	packet->baro = baro;
+	packet->adc1 = adc1;
+	packet->adc2 = adc2;
+	packet->adc3 = adc3;
+	packet->adc4 = adc4;
+	packet->vbat = vbat;
+	packet->temp = temp;
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_RAW_AUX, (const char *)packet, MAVLINK_MSG_ID_RAW_AUX_LEN, MAVLINK_MSG_ID_RAW_AUX_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_RAW_AUX, (const char *)packet, MAVLINK_MSG_ID_RAW_AUX_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE RAW_AUX UNPACKING

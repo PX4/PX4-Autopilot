@@ -46,13 +46,17 @@
 class GPS_Helper
 {
 public:
+
+	GPS_Helper() {};
+	virtual ~GPS_Helper() {};
+
 	virtual int			configure(unsigned &baud) = 0;
 	virtual int 			receive(unsigned timeout) = 0;
 	int 				set_baudrate(const int &fd, unsigned baud);
 	float				get_position_update_rate();
 	float				get_velocity_update_rate();
-	float				reset_update_rates();
-	float				store_update_rates();
+	void				reset_update_rates();
+	void				store_update_rates();
 
 protected:
 	uint8_t _rate_count_lat_lon;

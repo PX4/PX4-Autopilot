@@ -201,9 +201,14 @@ PX4IO_Uploader::upload(const char *filenames[])
 			continue;
 		}
 
-		if (bl_rev <= 2)
+		if (bl_rev <= 2) {
 			ret = verify_rev2(fw_size);
-		else if(bl_rev == 3) {
+		} else if(bl_rev == 3) {
+			ret = verify_rev3(fw_size);
+		} else {
+			/* verify rev 4 and higher still uses the same approach and
+			 * every version *needs* to be verified.
+			 */
 			ret = verify_rev3(fw_size);
 		}
 
@@ -235,9 +240,9 @@ PX4IO_Uploader::upload(const char *filenames[])
 	close(_io_fd);
 	_io_fd = -1;
 
-        // sleep for enough time for the IO chip to boot. This makes
-        // forceupdate more reliably startup IO again after update
-        up_udelay(100*1000);
+	// sleep for enough time for the IO chip to boot. This makes
+	// forceupdate more reliably startup IO again after update
+	up_udelay(100*1000);
 
 	return ret;
 }

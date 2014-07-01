@@ -44,6 +44,16 @@
 #include "../uORB.h"
 
 /**
+ * Switch position
+ */
+typedef enum {
+	SWITCH_POS_NONE = 0,	/**< switch is not mapped */
+	SWITCH_POS_ON,			/**< switch activated (value = 1) */
+	SWITCH_POS_MIDDLE,		/**< middle position (value = 0) */
+	SWITCH_POS_OFF			/**< switch not activated (value = -1) */
+} switch_pos_t;
+
+/**
  * @addtogroup topics
  * @{
  */
@@ -51,32 +61,43 @@
 struct manual_control_setpoint_s {
 	uint64_t timestamp;
 
-	float roll;			 	/**< ailerons roll / roll rate input */
-	float pitch;				/**< elevator / pitch / pitch rate */
-	float yaw;				/**< rudder / yaw rate / yaw */
-	float throttle;				/**< throttle / collective thrust / altitude */
-
-	float mode_switch;			/**< mode 3 position switch (mandatory): manual, assisted, auto */
-	float return_switch;			/**< land 2 position switch (mandatory): land, no effect */
-	float assisted_switch;			/**< assisted 2 position switch (optional): seatbelt, simple */
-	float mission_switch;		/**< mission 2 position switch (optional): mission, loiter */
-
 	/**
-	 * Any of the channels below may not be available and be set to NaN
+	 * Any of the channels may not be available and be set to NaN
 	 * to indicate that it does not contain valid data.
+	 * The variable names follow the definition of the
+	 * MANUAL_CONTROL mavlink message.
+	 * The default range is from -1 to 1 (mavlink message -1000 to 1000)
+	 * The range for the z variable is defined from 0 to 1. (The z field of
+	 * the MANUAL_CONTROL mavlink message is defined from -1000 to 1000)
 	 */
+	float x;			/**< stick position in x direction -1..1
+					  in general corresponds to forward/back motion or pitch of vehicle,
+					  in general a positive value means forward or negative pitch and
+					  a negative value means backward or positive pitch */
+	float y;			/**< stick position in y direction -1..1
+					  in general corresponds to right/left motion or roll of vehicle,
+					  in general a positive value means right or positive roll and
+					  a negative value means left or negative roll */
+	float z;			/**< throttle stick position 0..1
+					  in general corresponds to up/down motion or thrust of vehicle,
+					  in general the value corresponds to the demanded throttle by the user,
+					  if the input is used for setting the setpoint of a vertical position
+					  controller any value > 0.5 means up and any value < 0.5 means down */
+	float r;			/**< yaw stick/twist positon, -1..1
+					  in general corresponds to the righthand rotation around the vertical
+					  (downwards) axis of the vehicle */
+	float flaps;			/**< flap position */
+	float aux1;			/**< default function: camera yaw / azimuth */
+	float aux2;			/**< default function: camera pitch / tilt */
+	float aux3;			/**< default function: camera trigger */
+	float aux4;			/**< default function: camera roll */
+	float aux5;			/**< default function: payload drop */
 
-	// XXX needed or parameter?
-	//float auto_offboard_input_switch;	/**< controller setpoint source (0 = onboard, 1 = offboard) */
-
-	float flaps;				/**< flap position */
-
-	float aux1;				/**< default function: camera yaw / azimuth */
-	float aux2;				/**< default function: camera pitch / tilt */
-	float aux3;				/**< default function: camera trigger */
-	float aux4;				/**< default function: camera roll */
-	float aux5;				/**< default function: payload drop */
-
+	switch_pos_t mode_switch;			/**< main mode 3 position switch (mandatory): _MANUAL_, ASSIST, AUTO */
+	switch_pos_t return_switch;			/**< return to launch 2 position switch (mandatory): _NORMAL_, RTL */
+	switch_pos_t posctl_switch;			/**< position control 2 position switch (optional): _ALTCTL_, POSCTL */
+	switch_pos_t loiter_switch;			/**< loiter 2 position switch (optional): _MISSION_, LOITER */
+	switch_pos_t acro_switch;			/**< acro 2 position switch (optional): _MANUAL_, ACRO */
 }; /**< manual control inputs */
 
 /**

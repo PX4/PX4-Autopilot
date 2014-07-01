@@ -24,12 +24,13 @@ MODULES		+= drivers/lsm303d
 MODULES		+= drivers/l3gd20
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
+MODULES		+= drivers/pca8574
 MODULES		+= systemcmds/perf
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/nshterm
 MODULES		+= systemcmds/mtd
-MODULES		+= systemcmds/hw_ver
+MODULES		+= systemcmds/ver
 
 #
 # Library modules

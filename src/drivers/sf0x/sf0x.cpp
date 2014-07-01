@@ -124,6 +124,8 @@ private:
 
 	orb_advert_t			_range_finder_topic;
 
+	unsigned			_consecutive_fail_count;
+
 	perf_counter_t			_sample_perf;
 	perf_counter_t			_comms_errors;
 	perf_counter_t			_buffer_overflows;
@@ -186,6 +188,7 @@ SF0X::SF0X(const char *port) :
 	_linebuf_index(0),
 	_last_read(0),
 	_range_finder_topic(-1),
+	_consecutive_fail_count(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "sf0x_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "sf0x_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "sf0x_buffer_overflows"))
@@ -251,9 +254,6 @@ SF0X::~SF0X()
 int
 SF0X::init()
 {
-	int ret = ERROR;
-	unsigned i = 0;
-
 	/* do regular cdev init */
 	if (CDev::init() != OK) {
 		goto out;
@@ -591,7 +591,7 @@ SF0X::collect()
 		valid = false;
 
 		/* wipe out partially read content from last cycle(s), check for dot */
-		for (int i = 0; i < (lend - 2); i++) {
+		for (unsigned i = 0; i < (lend - 2); i++) {
 			if (_linebuf[i] == '\n') {
 				char buf[sizeof(_linebuf)];
 				memcpy(buf, &_linebuf[i+1], (lend + 1) - (i + 1));
@@ -616,7 +616,7 @@ SF0X::collect()
 		}
 	}
 
-	debug("val (float): %8.4f, raw: %s, valid: %s\n", si_units, _linebuf, ((valid) ? "OK" : "NO"));
+	debug("val (float): %8.4f, raw: %s, valid: %s\n", (double)si_units, _linebuf, ((valid) ? "OK" : "NO"));
 
 	/* done with this chunk, resetting - even if invalid */
 	_linebuf_index = 0;
@@ -720,12 +720,17 @@ SF0X::cycle()
 		if (OK != collect_ret) {
 
 			/* we know the sensor needs about four seconds to initialize */
-			if (hrt_absolute_time() > 5 * 1000 * 1000LL) {
-				log("collection error");
+			if (hrt_absolute_time() > 5 * 1000 * 1000LL && _consecutive_fail_count < 5) {
+				log("collection error #%u", _consecutive_fail_count);
 			}
+			_consecutive_fail_count++;
+
 			/* restart the measurement state machine */
 			start();
 			return;
+		} else {
+			/* apparently success */
+			_consecutive_fail_count = 0;
 		}
 
 		/* next phase is measurement */
@@ -787,7 +792,7 @@ const int ERROR = -1;
 
 SF0X	*g_dev;
 
-void	start();
+void	start(const char *port);
 void	stop();
 void	test();
 void	reset();

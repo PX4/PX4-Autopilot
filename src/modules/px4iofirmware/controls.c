@@ -134,8 +134,6 @@ controls_tick() {
 
 	perf_begin(c_gather_sbus);
 
-	bool sbus_status = (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS);
-
 	bool sbus_failsafe, sbus_frame_drop;
 	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &sbus_failsafe, &sbus_frame_drop, PX4IO_RC_INPUT_CHANNELS);
 
@@ -201,94 +199,105 @@ controls_tick() {
 		/* update RC-received timestamp */
 		system_state.rc_channels_timestamp_received = hrt_absolute_time();
 
-		/* do not command anything in failsafe, kick in the RC loss counter */
-		if (!(r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE)) {
+		/* update RC-received timestamp */
+		system_state.rc_channels_timestamp_valid = system_state.rc_channels_timestamp_received;
 
-			/* update RC-received timestamp */
-			system_state.rc_channels_timestamp_valid = system_state.rc_channels_timestamp_received;
+		/* map raw inputs to mapped inputs */
+		/* XXX mapping should be atomic relative to protocol */
+		for (unsigned i = 0; i < r_raw_rc_count; i++) {
 
-			/* map raw inputs to mapped inputs */
-			/* XXX mapping should be atomic relative to protocol */
-			for (unsigned i = 0; i < r_raw_rc_count; i++) {
+			/* map the input channel */
+			uint16_t *conf = &r_page_rc_input_config[i * PX4IO_P_RC_CONFIG_STRIDE];
 
-				/* map the input channel */
-				uint16_t *conf = &r_page_rc_input_config[i * PX4IO_P_RC_CONFIG_STRIDE];
+			if (conf[PX4IO_P_RC_CONFIG_OPTIONS] & PX4IO_P_RC_CONFIG_OPTIONS_ENABLED) {
 
-				if (conf[PX4IO_P_RC_CONFIG_OPTIONS] & PX4IO_P_RC_CONFIG_OPTIONS_ENABLED) {
+				uint16_t raw = r_raw_rc_values[i];
 
-					uint16_t raw = r_raw_rc_values[i];
+				int16_t scaled;
 
-					int16_t scaled;
+				/*
+				 * 1) Constrain to min/max values, as later processing depends on bounds.
+				 */
+				if (raw < conf[PX4IO_P_RC_CONFIG_MIN])
+					raw = conf[PX4IO_P_RC_CONFIG_MIN];
+				if (raw > conf[PX4IO_P_RC_CONFIG_MAX])
+					raw = conf[PX4IO_P_RC_CONFIG_MAX];
 
-					/*
-					 * 1) Constrain to min/max values, as later processing depends on bounds.
-					 */
-					if (raw < conf[PX4IO_P_RC_CONFIG_MIN])
-						raw = conf[PX4IO_P_RC_CONFIG_MIN];
-					if (raw > conf[PX4IO_P_RC_CONFIG_MAX])
-						raw = conf[PX4IO_P_RC_CONFIG_MAX];
+				/*
+				 * 2) Scale around the mid point differently for lower and upper range.
+				 *
+				 * This is necessary as they don't share the same endpoints and slope.
+				 *
+				 * First normalize to 0..1 range with correct sign (below or above center),
+				 * then scale to 20000 range (if center is an actual center, -10000..10000,
+				 * if parameters only support half range, scale to 10000 range, e.g. if
+				 * center == min 0..10000, if center == max -10000..0).
+				 *
+				 * As the min and max bounds were enforced in step 1), division by zero
+				 * cannot occur, as for the case of center == min or center == max the if
+				 * statement is mutually exclusive with the arithmetic NaN case.
+				 *
+				 * DO NOT REMOVE OR ALTER STEP 1!
+				 */
+				if (raw > (conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
+					scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_MAX] - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]));
 
-					/*
-					 * 2) Scale around the mid point differently for lower and upper range.
-					 *
-					 * This is necessary as they don't share the same endpoints and slope.
-					 *
-					 * First normalize to 0..1 range with correct sign (below or above center),
-					 * then scale to 20000 range (if center is an actual center, -10000..10000,
-					 * if parameters only support half range, scale to 10000 range, e.g. if
-					 * center == min 0..10000, if center == max -10000..0).
-					 *
-					 * As the min and max bounds were enforced in step 1), division by zero
-					 * cannot occur, as for the case of center == min or center == max the if
-					 * statement is mutually exclusive with the arithmetic NaN case.
-					 *
-					 * DO NOT REMOVE OR ALTER STEP 1!
-					 */
-					if (raw > (conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
-						scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_MAX] - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]));
+				} else if (raw < (conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
+					scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE] - conf[PX4IO_P_RC_CONFIG_MIN]));
 
-					} else if (raw < (conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
-						scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE] - conf[PX4IO_P_RC_CONFIG_MIN]));
+				} else {
+					/* in the configured dead zone, output zero */
+					scaled = 0;
+				}
 
-					} else {
-						/* in the configured dead zone, output zero */
-						scaled = 0;
-					}
+				/* invert channel if requested */
+				if (conf[PX4IO_P_RC_CONFIG_OPTIONS] & PX4IO_P_RC_CONFIG_OPTIONS_REVERSE) {
+					scaled = -scaled;
+				}
 
-					/* invert channel if requested */
-					if (conf[PX4IO_P_RC_CONFIG_OPTIONS] & PX4IO_P_RC_CONFIG_OPTIONS_REVERSE)
+				/* and update the scaled/mapped version */
+				unsigned mapped = conf[PX4IO_P_RC_CONFIG_ASSIGNMENT];
+				if (mapped < PX4IO_CONTROL_CHANNELS) {
+
+					/* invert channel if pitch - pulling the lever down means pitching up by convention */
+					if (mapped == 1) {
+						/* roll, pitch, yaw, throttle, override is the standard order */
 						scaled = -scaled;
-
-					/* and update the scaled/mapped version */
-					unsigned mapped = conf[PX4IO_P_RC_CONFIG_ASSIGNMENT];
-					if (mapped < PX4IO_CONTROL_CHANNELS) {
-
-						/* invert channel if pitch - pulling the lever down means pitching up by convention */
-						if (mapped == 1) /* roll, pitch, yaw, throttle, override is the standard order */
-							scaled = -scaled;
-
-						r_rc_values[mapped] = SIGNED_TO_REG(scaled);
-						assigned_channels |= (1 << mapped);
-
 					}
+
+					if (mapped == 3 && r_setup_rc_thr_failsafe) {
+						/* throttle failsafe detection */
+						if (((raw < conf[PX4IO_P_RC_CONFIG_MIN]) && (raw < r_setup_rc_thr_failsafe)) ||
+						    ((raw > conf[PX4IO_P_RC_CONFIG_MAX]) && (raw > r_setup_rc_thr_failsafe))) {
+							r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FAILSAFE;
+						} else {
+							r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+						}
+					}
+
+					r_rc_values[mapped] = SIGNED_TO_REG(scaled);
+					assigned_channels |= (1 << mapped);
+
 				}
 			}
+		}
 
-			/* set un-assigned controls to zero */
-			for (unsigned i = 0; i < PX4IO_CONTROL_CHANNELS; i++) {
-				if (!(assigned_channels & (1 << i)))
-					r_rc_values[i] = 0;
+		/* set un-assigned controls to zero */
+		for (unsigned i = 0; i < PX4IO_CONTROL_CHANNELS; i++) {
+			if (!(assigned_channels & (1 << i))) {
+				r_rc_values[i] = 0;
 			}
+		}
 
-			/* set RC OK flag, as we got an update */
-			r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_OK;
+		/* set RC OK flag, as we got an update */
+		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_OK;
+		r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_OK;
 
-			/* if we have enough channels (5) to control the vehicle, the mapping is ok */
-			if (assigned_channels > 4) {
-				r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_MAPPING_OK;
-			} else {
-				r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_MAPPING_OK);
-			}
+		/* if we have enough channels (5) to control the vehicle, the mapping is ok */
+		if (assigned_channels > 4) {
+			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_MAPPING_OK;
+		} else {
+			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_MAPPING_OK);
 		}
 
 		/*
@@ -316,37 +325,42 @@ controls_tick() {
 	 * Handle losing RC input
 	 */
 
-	/* this kicks in if the receiver is gone or the system went to failsafe */
-	if (rc_input_lost || (r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE)) {
+	/* if we are in failsafe, clear the override flag */
+	if (r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE) {
+		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
+	}
+
+	/* this kicks in if the receiver is gone, but there is not on failsafe (indicated by separate flag) */
+	if (rc_input_lost) {
 		/* Clear the RC input status flag, clear manual override flag */
 		r_status_flags &= ~(
 			PX4IO_P_STATUS_FLAGS_OVERRIDE |
 			PX4IO_P_STATUS_FLAGS_RC_OK);
 
+		/* flag raw RC as lost */
+		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_RC_OK);
+
 		/* Mark all channels as invalid, as we just lost the RX */
 		r_rc_valid = 0;
 
+		/* Set raw channel count to zero */
+		r_raw_rc_count = 0;
+
 		/* Set the RC_LOST alarm */
 		r_status_alarms |= PX4IO_P_STATUS_ALARMS_RC_LOST;
-	}
-
-	/* this kicks in if the receiver is completely gone */
-	if (rc_input_lost) {
-
-		/* Set channel count to zero */
-		r_raw_rc_count = 0;
 	}
 
 	/*
 	 * Check for manual override.
 	 *
 	 * The PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK flag must be set, and we
-	 * must have R/C input.
+	 * must have R/C input (NO FAILSAFE!).
 	 * Override is enabled if either the hardcoded channel / value combination
 	 * is selected, or the AP has requested it.
 	 */
 	if ((r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) && 
-		(r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK)) {
+		(r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
+		!(r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE)) {
 
 		bool override = false;
 
@@ -369,10 +383,10 @@ controls_tick() {
 				mixer_tick();
 
 		} else {
-			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_OVERRIDE;
+			r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
 		}
 	} else {
-		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_OVERRIDE;
+		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
 	}
 }
 
@@ -395,8 +409,9 @@ ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len)
 		if (*num_values > PX4IO_RC_INPUT_CHANNELS)
 			*num_values = PX4IO_RC_INPUT_CHANNELS;
 
-		for (unsigned i = 0; i < *num_values; i++)
+		for (unsigned i = 0; i < *num_values; i++) {
 			values[i] = ppm_buffer[i];
+		}
 
 		/* clear validity */
 		ppm_last_valid_decode = 0;

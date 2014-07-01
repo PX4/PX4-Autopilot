@@ -44,3 +44,5 @@ SRCS			= px4io.cpp \
 
 # XXX prune to just get UART registers
 INCLUDE_DIRS    += $(NUTTX_SRC)/arch/arm/src/stm32 $(NUTTX_SRC)/arch/arm/src/common
+
+MODULE_STACKSIZE = 1200

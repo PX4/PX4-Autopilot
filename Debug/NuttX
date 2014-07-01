@@ -34,10 +34,10 @@ define _showheap
 	else
 		set $MM_ALLOC_BIT = 0x80000000
 	end
-	printf "HEAP %d  %p - %p\n", $index, g_heapstart[$index], g_heapend[$index]
+	printf "HEAP %d  %p - %p\n", $index, g_mmheap.mm_heapstart[$index], g_mmheap.mm_heapend[$index]
 	printf "ptr      size\n"
-	set $node = (char *)g_heapstart[$index] + sizeof(struct mm_allocnode_s)
-	while $node < g_heapend[$index]
+	set $node = (char *)g_mmheap.mm_heapstart[$index] + sizeof(struct mm_allocnode_s)
+	while $node < g_mmheap.mm_heapend[$index]
 		printf "  %p", $node
 		set $nodestruct = (struct mm_allocnode_s *)$node
 		printf "  %u", $nodestruct->size
@@ -47,7 +47,7 @@ define _showheap
 		else
 			set $used = $used + $nodestruct->size
 		end
-		if ($nodestruct->size > g_heapsize) || (($node + $nodestruct->size) > g_heapend[$index])
+		if ($nodestruct->size > g_mmheap.mm_heapsize) || (($node + $nodestruct->size) > g_mmheap.mm_heapend[$index])
 			printf "  (BAD SIZE)"
 		end
 		printf "\n"
@@ -59,7 +59,7 @@ define _showheap
 end
 
 define showheap
-	set $nheaps = sizeof(g_heapstart) / sizeof(g_heapstart[0])
+	set $nheaps = sizeof(g_mmheap.mm_heapstart) / sizeof(g_mmheap.mm_heapstart[0])
 	printf "Printing %d heaps\n", $nheaps
 	set $heapindex = (int)0
 	while $heapindex < $nheaps
