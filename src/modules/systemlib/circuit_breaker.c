@@ -86,7 +86,7 @@ PARAM_DEFINE_INT32(CBRK_IO_SAFETY, 0);
 bool circuit_breaker_enabled(const char* breaker, int32_t magic)
 {
 	int32_t val;
-	(void)param_get(param_find(breaker), val);
+	(void)param_get(param_find(breaker), &val);
 
 	return (val == magic);
 }
