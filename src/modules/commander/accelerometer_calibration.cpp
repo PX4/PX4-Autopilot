@@ -131,6 +131,7 @@
 #include <fcntl.h>
 #include <sys/prctl.h>
 #include <math.h>
+#include <float.h>
 #include <mathlib/mathlib.h>
 #include <string.h>
 #include <drivers/drv_hrt.h>
@@ -158,6 +159,8 @@ int calculate_calibration_values(float accel_ref[6][3], float accel_T[3][3], flo
 
 int do_accel_calibration(int mavlink_fd)
 {
+	int fd;
+
 	mavlink_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
 
 	struct accel_scale accel_scale = {
@@ -172,7 +175,7 @@ int do_accel_calibration(int mavlink_fd)
 	int res = OK;
 
 	/* reset all offsets to zero and all scales to one */
-	int fd = open(ACCEL_DEVICE_PATH, 0);
+	fd = open(ACCEL_DEVICE_PATH, 0);
 	res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
 	close(fd);
 
@@ -223,7 +226,7 @@ int do_accel_calibration(int mavlink_fd)
 
 	if (res == OK) {
 		/* apply new scaling and offsets */
-		int fd = open(ACCEL_DEVICE_PATH, 0);
+		fd = open(ACCEL_DEVICE_PATH, 0);
 		res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
 		close(fd);
 
@@ -524,7 +527,7 @@ int mat_invert3(float src[3][3], float dst[3][3])
 		    src[0][1] * (src[1][0] * src[2][2] - src[1][2] * src[2][0]) +
 		    src[0][2] * (src[1][0] * src[2][1] - src[1][1] * src[2][0]);
 
-	if (det == 0.0f) {
+	if (fabsf(det) < FLT_EPSILON) {
 		return ERROR;        // Singular matrix
 	}
 

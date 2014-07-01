@@ -41,6 +41,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <poll.h>
+#include <string.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>

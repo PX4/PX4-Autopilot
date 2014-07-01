@@ -240,8 +240,6 @@ PX4FMU::PX4FMU() :
 	_pwm_alt_rate_channels(0),
 	_current_update_rate(0),
 	_task(-1),
-	_control_subs({-1}),
-	_poll_fds_num(0),
 	_armed_sub(-1),
 	_outputs_pub(-1),
 	_num_outputs(0),
@@ -252,10 +250,12 @@ PX4FMU::PX4FMU() :
 	_mixers(nullptr),
 	_groups_required(0),
 	_groups_subscribed(0),
-	_failsafe_pwm({0}),
-	      _disarmed_pwm({0}),
-	      _num_failsafe_set(0),
-	      _num_disarmed_set(0)
+	_control_subs{-1},
+	_poll_fds_num(0),
+	_failsafe_pwm{0},
+	_disarmed_pwm{0},
+	_num_failsafe_set(0),
+	_num_disarmed_set(0)
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		_min_pwm[i] = PWM_DEFAULT_MIN;
@@ -741,7 +741,7 @@ PX4FMU::task_main()
 	}
 
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (_control_subs > 0) {
+		if (_control_subs[i] > 0) {
 			::close(_control_subs[i]);
 			_control_subs[i] = -1;
 		}

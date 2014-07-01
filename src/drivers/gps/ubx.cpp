@@ -69,6 +69,9 @@ UBX::UBX(const int &fd, struct vehicle_gps_position_s *gps_position) :
 	_gps_position(gps_position),
 	_configured(false),
 	_waiting_for_ack(false),
+	_got_posllh(false),
+	_got_velned(false),
+	_got_timeutc(false),
 	_disable_cmd_last(0)
 {
 	decode_init();
@@ -275,9 +278,10 @@ UBX::receive(unsigned timeout)
 	bool handled = false;
 
 	while (true) {
+		bool ready_to_return = _configured ? (_got_posllh && _got_velned && _got_timeutc) : handled;
 
 		/* poll for new data, wait for only UBX_PACKET_TIMEOUT (2ms) if something already received */
-		int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), handled ? UBX_PACKET_TIMEOUT : timeout);
+		int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), ready_to_return ? UBX_PACKET_TIMEOUT : timeout);
 
 		if (ret < 0) {
 			/* something went wrong when polling */
@@ -286,7 +290,10 @@ UBX::receive(unsigned timeout)
 
 		} else if (ret == 0) {
 			/* return success after short delay after receiving a packet or timeout after long delay */
-			if (handled) {
+			if (ready_to_return) {
+				_got_posllh = false;
+				_got_velned = false;
+				_got_timeutc = false;
 				return 1;
 
 			} else {
@@ -432,12 +439,13 @@ UBX::handle_message()
 					_gps_position->lat = packet->lat;
 					_gps_position->lon = packet->lon;
 					_gps_position->alt = packet->height_msl;
-					_gps_position->eph_m = (float)packet->hAcc * 1e-3f; // from mm to m
-					_gps_position->epv_m = (float)packet->vAcc * 1e-3f; // from mm to m
+					_gps_position->eph = (float)packet->hAcc * 1e-3f; // from mm to m
+					_gps_position->epv = (float)packet->vAcc * 1e-3f; // from mm to m
 					_gps_position->timestamp_position = hrt_absolute_time();
 
 					_rate_count_lat_lon++;
 
+					_got_posllh = true;
 					ret = 1;
 					break;
 				}
@@ -482,6 +490,7 @@ UBX::handle_message()
 					_gps_position->time_gps_usec += (uint64_t)(packet->time_nanoseconds * 1e-3f);
 					_gps_position->timestamp_time = hrt_absolute_time();
 
+					_got_timeutc = true;
 					ret = 1;
 					break;
 				}
@@ -557,6 +566,7 @@ UBX::handle_message()
 
 					_rate_count_vel++;
 
+					_got_velned = true;
 					ret = 1;
 					break;
 				}

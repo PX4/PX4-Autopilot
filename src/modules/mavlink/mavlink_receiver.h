@@ -69,6 +69,8 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 
+#include "mavlink_ftp.h"
+
 class Mavlink;
 
 class MavlinkReceiver
@@ -114,6 +116,8 @@ private:
 	void handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message_t *msg);
 	void handle_message_radio_status(mavlink_message_t *msg);
 	void handle_message_manual_control(mavlink_message_t *msg);
+	void handle_message_heartbeat(mavlink_message_t *msg);
+	void handle_message_request_data_stream(mavlink_message_t *msg);
 	void handle_message_hil_sensor(mavlink_message_t *msg);
 	void handle_message_hil_gps(mavlink_message_t *msg);
 	void handle_message_hil_state_quaternion(mavlink_message_t *msg);
@@ -141,6 +145,8 @@ private:
 	orb_advert_t _telemetry_status_pub;
 	orb_advert_t _rc_pub;
 	orb_advert_t _manual_pub;
+	hrt_abstime _telemetry_heartbeat_time;
+	bool _radio_status_available;
 	int _hil_frames;
 	uint64_t _old_timestamp;
 	bool _hil_local_proj_inited;

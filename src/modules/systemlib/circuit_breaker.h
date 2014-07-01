@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,25 +31,34 @@
  *
  ****************************************************************************/
 
-/**
- * @file navigator_state.h
+/*
+ * @file circuit_breaker.h
  *
- * Navigator state
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * Circuit breaker functionality.
  */
 
-#ifndef NAVIGATOR_STATE_H_
-#define NAVIGATOR_STATE_H_
+#ifndef CIRCUIT_BREAKER_H_
+#define CIRCUIT_BREAKER_H_
 
-typedef enum {
-	NAV_STATE_NONE = 0,
-	NAV_STATE_READY,
-	NAV_STATE_LOITER,
-	NAV_STATE_MISSION,
-	NAV_STATE_RTL,
-	NAV_STATE_LAND,
-	NAV_STATE_MAX
-} nav_state_t;
+/* SAFETY WARNING  --  SAFETY WARNING  --  SAFETY WARNING
+ *
+ * OBEY THE DOCUMENTATION FOR ALL CIRCUIT BREAKERS HERE,
+ * ENSURE TO READ CAREFULLY ALL SAFETY WARNINGS.
+ * http://pixhawk.org/dev/circuit_breakers
+ *
+ * CIRCUIT BREAKERS ARE NOT PART OF THE STANDARD OPERATION PROCEDURE
+ * AND MAY DISABLE CHECKS THAT ARE VITAL FOR SAFE FLIGHT.
+ */
+#define CBRK_SUPPLY_CHK_KEY	894281
+#define CBRK_RATE_CTRL_KEY	140253
+#define CBRK_IO_SAFETY_KEY	22027
 
-#endif /* NAVIGATOR_STATE_H_ */
+#include <stdbool.h>
+
+__BEGIN_DECLS
+
+__EXPORT bool circuit_breaker_enabled(const char* breaker, int32_t magic);
+
+__END_DECLS
+
+#endif /* CIRCUIT_BREAKER_H_ */

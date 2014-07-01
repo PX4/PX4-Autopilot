@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,9 @@
 
 /**
  * @file state_table.h
- * 
+ *
  * Finite-State-Machine helper class for state table
+ * @author: Julian Oes <julian@oes.ch>
  */
 
 #ifndef __SYSTEMLIB_STATE_TABLE_H
@@ -48,22 +49,28 @@ public:
 		Action action;
 		unsigned nextState;
 	};
-	
+
 	StateTable(Tran const *table, unsigned nStates, unsigned nSignals)
 	: myTable(table), myNsignals(nSignals), myNstates(nStates) {}
-	
+
 	#define NO_ACTION &StateTable::doNothing
-	#define ACTION(_target) static_cast<StateTable::Action>(_target)
+	#define ACTION(_target) StateTable::Action(_target)
 
 	virtual ~StateTable() {}
-	
-	void dispatch(unsigned const sig) {
-		register Tran const *t = myTable + myState*myNsignals + sig;
-		(this->*(t->action))();
 
+	void dispatch(unsigned const sig) {
+		/* get transition using state table */
+		Tran const *t = myTable + myState*myNsignals + sig;
+
+		/* accept new state */
 		myState = t->nextState;
+
+		/*  */
+		(this->*(t->action))();
 	}
-	void doNothing() {}
+	void doNothing() {
+		return;
+	}
 protected:
 	unsigned myState;
 private:

@@ -181,16 +181,13 @@ int gpio_led_main(int argc, char *argv[])
 			} else {
 				gpio_led_started = true;
 				warnx("start, using pin: %s", pin_name);
+				exit(0);
 			}
-
-			exit(0);
-
-
 		} else if (!strcmp(argv[1], "stop")) {
 			if (gpio_led_started) {
 				gpio_led_started = false;
 				warnx("stop");
-
+				exit(0);
 			} else {
 				errx(1, "not running");
 			}
@@ -264,7 +261,7 @@ void gpio_led_cycle(FAR void *arg)
 		pattern = 0x2A;	// *_*_*_ fast blink (armed, error)
 
 	} else if (priv->status.arming_state == ARMING_STATE_ARMED) {
-		if (priv->status.battery_warning == VEHICLE_BATTERY_WARNING_NONE && priv->status.failsafe_state == FAILSAFE_STATE_NORMAL) {
+		if (priv->status.battery_warning == VEHICLE_BATTERY_WARNING_NONE && !priv->status.failsafe) {
 			pattern = 0x3f;	// ****** solid (armed)
 
 		} else {

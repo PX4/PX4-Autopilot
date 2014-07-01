@@ -97,7 +97,6 @@ void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_
 	}
 
 	unsigned progress;
-	uint16_t temp_pwm;
 
 	/* then set effective_pwm based on state */
 	switch (limit->state) {

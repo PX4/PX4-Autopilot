@@ -209,11 +209,17 @@ int led_init()
 	/* the blue LED is only available on FMUv1 & AeroCore but not FMUv2 */
 	(void)ioctl(leds, LED_ON, LED_BLUE);
 
+	/* switch blue off */
+	led_off(LED_BLUE);
+
 	/* we consider the amber led mandatory */
 	if (ioctl(leds, LED_ON, LED_AMBER)) {
 		warnx("Amber LED: ioctl fail\n");
 		return ERROR;
 	}
+
+	/* switch amber off */
+	led_off(LED_AMBER);
 
 	/* then try RGB LEDs, this can fail on FMUv1*/
 	rgbleds = open(RGBLED_DEVICE_PATH, 0);

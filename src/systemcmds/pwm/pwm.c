@@ -515,7 +515,8 @@ pwm_main(int argc, char *argv[])
 				ret = poll(&fds, 1, 0);
 				if (ret > 0) {
 
-				int ret = read(0, &c, 1);
+					ret = read(0, &c, 1);
+
 					if (ret > 0) {
 						/* reset output to the last value */
 						for (unsigned i = 0; i < servo_count; i++) {

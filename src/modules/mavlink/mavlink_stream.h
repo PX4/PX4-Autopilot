@@ -50,14 +50,6 @@ class MavlinkStream;
 
 class MavlinkStream
 {
-private:
-	hrt_abstime _last_sent;
-
-protected:
-	mavlink_channel_t _channel;
-	unsigned int _interval;
-
-	virtual void send(const hrt_abstime t) = 0;
 
 public:
 	MavlinkStream *next;
@@ -71,9 +63,20 @@ public:
 	 * @return 0 if updated / sent, -1 if unchanged
 	 */
 	int update(const hrt_abstime t);
-	virtual MavlinkStream *new_instance() = 0;
+	static MavlinkStream *new_instance();
+	static const char *get_name_static();
 	virtual void subscribe(Mavlink *mavlink) = 0;
-	virtual const char *get_name() = 0;
+	virtual const char *get_name() const = 0;
+	virtual uint8_t get_id() = 0;
+
+protected:
+	mavlink_channel_t _channel;
+	unsigned int _interval;
+
+	virtual void send(const hrt_abstime t) = 0;
+
+private:
+	hrt_abstime _last_sent;
 };
 
 
