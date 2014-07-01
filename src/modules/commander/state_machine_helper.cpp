@@ -182,7 +182,7 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 						if (status->condition_power_input_valid && (status->avionics_power_rail_voltage > 0.0f) &&
 							(status->avionics_power_rail_voltage < 4.9f)) {
 
-							mavlink_log_critical(mavlink_fd, "#audio: NOT ARMING: Avionics power low: %6.2f V.", status->avionics_power_rail_voltage);
+							mavlink_log_critical(mavlink_fd, "#audio: NOT ARMING: Avionics power low: %6.2f V.", (double)status->avionics_power_rail_voltage);
 							valid_transition = false;
 						}
 					}
@@ -638,7 +638,7 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 	}
 
 	if (!status->is_rotary_wing) {
-		int fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
+		fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
 
 		if (fd < 0) {
 			mavlink_log_critical(mavlink_fd, "#audio: FAIL: AIRSPEED SENSOR MISSING");
