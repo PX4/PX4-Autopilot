@@ -45,6 +45,7 @@
 #include <systemlib/bson/tinybson.h>
 
 #include "tests.h"
+#include "fp_helpers.h"
 
 static const bool sample_bool = true;
 static const int32_t sample_small_int = 123;
@@ -123,7 +124,7 @@ decode_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 			warnx("FAIL: decoder: double1 type %d, expected %d", node->type, BSON_DOUBLE);
 			return 1;
 		}
-		if (node->d != sample_double) {
+		if (!is_equal_double(node->d, sample_double)) {
 			warnx("FAIL: decoder: double1 value %f, expected %f", node->d, sample_double);
 			return 1;
 		}

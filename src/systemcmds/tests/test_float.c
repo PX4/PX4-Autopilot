@@ -69,7 +69,7 @@ int test_float(int argc, char *argv[])
 	float sinf_zero = sinf(0.0f);
 	float sinf_one = sinf(1.0f);
 
-	if (sinf_zero == 0.0f) {
+	if (is_equal_float(sinf_zero, 0.0f)) {
 		printf("\t success: sinf(0.0f) == 0.0f\n");
 
 	} else {
@@ -191,7 +191,7 @@ int test_float(int argc, char *argv[])
 
 	double d1d2 = d1 * d2;
 
-	if (d1d2 == 2.022200000000000219557705349871) {
+	if (is_equal_double(d1d2, 2.022200000000000219557705349871)) {
 		printf("\t success: 1.0111 * 2.0 == 2.0222\n");
 
 	} else {
@@ -204,7 +204,10 @@ int test_float(int argc, char *argv[])
 	// Assign value of f1 to d1
 	d1 = f1;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
 	if (f1 == (float)d1) {
+#pragma GCC diagnostic pop
 		printf("\t success: (float) 1.55f == 1.55 (double)\n");
 
 	} else {
@@ -219,7 +222,7 @@ int test_float(int argc, char *argv[])
 	double sin_one = sin(1.0);
 	double atan2_ones = atan2(1.0, 1.0);
 
-	if (sin_zero == 0.0) {
+	if (is_equal_double(sin_zero, 0.0)) {
 		printf("\t success: sin(0.0) == 0.0\n");
 
 	} else {
@@ -227,7 +230,7 @@ int test_float(int argc, char *argv[])
 		ret = -9;
 	}
 
-	if (sin_one == 0.841470984807896504875657228695) {
+	if (is_equal_double(sin_one, 0.841470984807896504875657228695)) {
 		printf("\t success: sin(1.0) == 0.84147098480\n");
 
 	} else {
@@ -235,7 +238,7 @@ int test_float(int argc, char *argv[])
 		ret = -10;
 	}
 
-	if (atan2_ones != 0.785398) {
+	if (!is_equal_double(atan2_ones, 0.785398)) {
 		printf("\t success: atan2(1.0, 1.0) == 0.785398\n");
 
 	} else {

@@ -50,6 +50,8 @@
 #include <math.h>
 #include <stdbool.h>
 
+#include "fp_helpers.h"
+
 /*
  * Azimuthal Equidistant Projection
  * formulas according to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html
@@ -91,7 +93,7 @@ __EXPORT void map_projection_reproject(struct map_projection_reference_s *ref, f
 	double lat_rad;
 	double lon_rad;
 
-	if (is_equal_zero_double(c, 0.0)) {
+	if (is_equal_double(c, 0.0)) {
 		lat_rad = asin(cos_c * ref->sin_lat + (x_rad * sin_c * ref->cos_lat) / c);
 		lon_rad = (ref->lon + atan2(y_rad * sin_c, c * ref->cos_lat * cos_c - x_rad * ref->sin_lat * sin_c));
 
