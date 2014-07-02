@@ -36,7 +36,7 @@
  * Definition of the global fused WGS84 position uORB topic.
  *
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
@@ -61,15 +61,14 @@
  * e.g. control inputs of the vehicle in a Kalman-filter implementation.
  */
 struct vehicle_global_position_s {
-	uint64_t timestamp;		/**< Time of this estimate, in microseconds since system start */
-
-	uint64_t time_gps_usec; /**< GPS timestamp in microseconds					   */
+	uint64_t timestamp;		/**< Time of this estimate, in microseconds since system start		*/
+	uint64_t time_gps_usec;		/**< GPS timestamp in microseconds					   */
 	double lat;			/**< Latitude in degrees							 	   */
 	double lon;			/**< Longitude in degrees							 	   */
 	float alt;			/**< Altitude AMSL in meters						 	   */
-	float vel_n; 		/**< Ground north velocity, m/s				 			   */
-	float vel_e;		/**< Ground east velocity, m/s							   */
-	float vel_d;		/**< Ground downside velocity, m/s						   */
+	float vel_n; 			/**< Ground north velocity, m/s				 			   */
+	float vel_e;			/**< Ground east velocity, m/s							   */
+	float vel_d;			/**< Ground downside velocity, m/s						   */
 	float yaw; 			/**< Yaw in radians -PI..+PI.							   */
 	float eph;
 	float epv;
