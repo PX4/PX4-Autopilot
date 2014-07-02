@@ -80,17 +80,24 @@ void UavcanGnssReceiver::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uav
 	_report.s_variance_m_s = msg.velocity_covariance[0] + msg.velocity_covariance[4] + msg.velocity_covariance[8];
 	_report.p_variance_m = msg.position_covariance[0] + msg.position_covariance[4];
 
-	/* Use Jacobian to transform velocity covariance to heading covariance
+	/* There is a nonlinear relationship between the velocity vector and the heading.
+	 * Use Jacobian to transform velocity covariance to heading covariance
+	 *
+	 * Nonlinear equation:
 	 * heading = atan2(vel_e_m_s, vel_n_m_s)
 	 * For math, see http://en.wikipedia.org/wiki/Atan2#Derivative
 	 *
 	 * To calculate the variance of heading from the variance of velocity,
-	 * var(heading) = J(velocity)*var(velocity)*J(velocity)^T
+	 * cov(heading) = J(velocity)*cov(velocity)*J(velocity)^T
 	 */
+	float vel_n = msg.ned_velocity[0];
+	float vel_e = msg.ned_velocity[1];
+	float vel_n_sq = vel_n * vel_n;
+	float vel_e_sq = vel_e * vel_e;
 	_report.c_variance_rad =
-			msg.ned_velocity[1] * msg.ned_velocity[1] * msg.velocity_covariance[0] +
-			-2*msg.ned_velocity[1] * msg.ned_velocity[0] * msg.velocity_covariance[1] +
-			msg.ned_velocity[0] * msg.ned_velocity[0] * msg.velocity_covariance[4];
+			(vel_e_sq * msg.velocity_covariance[0] +
+					-2 * vel_n * vel_e * msg.velocity_covariance[1] +		// Covariance matrix is symmetric
+					vel_n_sq* msg.velocity_covariance[4]) / ((vel_n_sq + vel_e_sq) * (vel_n_sq + vel_e_sq));
 
 	_report.fix_type = msg.status;
 
