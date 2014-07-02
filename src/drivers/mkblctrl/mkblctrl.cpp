@@ -222,15 +222,15 @@ MK::MK(int bus, const char *_device_path) :
 	_task(-1),
 	_t_actuators(-1),
 	_t_actuator_armed(-1),
-	_t_outputs(0),
-	_t_esc_status(0),
-	_num_outputs(0),
-	_motortest(false),
-	_overrideSecurityChecks(false),
 	_motor(-1),
 	_px4mode(MAPPING_MK),
 	_frametype(FRAME_PLUS),
+	_t_outputs(0),
+	_t_esc_status(0),
+	_num_outputs(0),
 	_primary_pwm_device(false),
+	_motortest(false),
+	_overrideSecurityChecks(false),
 	_task_should_exit(false),
 	_armed(false),
 	_mixers(nullptr)
@@ -440,9 +440,6 @@ MK::scaling(float val, float inMin, float inMax, float outMin, float outMax)
 void
 MK::task_main()
 {
-	long update_rate_in_us = 0;
-	float tmpVal = 0;
-
 	/*
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
 	 * primary PWM output or not.
@@ -483,7 +480,6 @@ MK::task_main()
 		/* handle update rate changes */
 		if (_current_update_rate != _update_rate) {
 			int update_rate_in_ms = int(1000 / _update_rate);
-			update_rate_in_us = long(1000000 / _update_rate);
 
 			/* reject faster than 500 Hz updates */
 			if (update_rate_in_ms < 2) {
@@ -735,7 +731,6 @@ MK::mk_servo_set(unsigned int chan, short val)
 	_retries = 0;
 	uint8_t result[3] = { 0, 0, 0 };
 	uint8_t msg[2] = { 0, 0 };
-	uint8_t rod = 0;
 	uint8_t bytesToSendBL2 = 2;
 
 	tmpVal = val;
@@ -824,7 +819,7 @@ MK::mk_servo_set(unsigned int chan, short val)
 		if (debugCounter == 2000) {
 			debugCounter = 0;
 
-			for (int i = 0; i < _num_outputs; i++) {
+			for (unsigned int i = 0; i < _num_outputs; i++) {
 				if (Motor[i].State & MOTOR_STATE_PRESENT_MASK) {
 					fprintf(stderr, "[mkblctrl] #%i:\tVer: %i\tVal: %i\tCurr: %i\tMaxPWM: %i\tTemp: %i\tState: %i\n", i, Motor[i].Version, Motor[i].SetPoint, Motor[i].Current, Motor[i].MaxPWM, Motor[i].Temperature, Motor[i].State);
 				}
@@ -1169,7 +1164,7 @@ mk_new_mode(int update_rate, int motorcount, bool motortest, int px4mode, int fr
 }
 
 int
-mk_start(unsigned motors, char *device_path)
+mk_start(unsigned motors, const char *device_path)
 {
 	int ret;
 
@@ -1228,7 +1223,7 @@ mkblctrl_main(int argc, char *argv[])
 	bool overrideSecurityChecks = false;
 	bool showHelp = false;
 	bool newMode = false;
-	char *devicepath = "";
+	const char *devicepath = "";
 
 	/*
 	 * optional parameters

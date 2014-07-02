@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,41 +31,34 @@
  *
  ****************************************************************************/
 
-/**
- * @file gps_helper.h
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+/*
+ * @file circuit_breaker.h
+ *
+ * Circuit breaker functionality.
  */
 
-#ifndef GPS_HELPER_H
-#define GPS_HELPER_H
+#ifndef CIRCUIT_BREAKER_H_
+#define CIRCUIT_BREAKER_H_
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_gps_position.h>
+/* SAFETY WARNING  --  SAFETY WARNING  --  SAFETY WARNING
+ *
+ * OBEY THE DOCUMENTATION FOR ALL CIRCUIT BREAKERS HERE,
+ * ENSURE TO READ CAREFULLY ALL SAFETY WARNINGS.
+ * http://pixhawk.org/dev/circuit_breakers
+ *
+ * CIRCUIT BREAKERS ARE NOT PART OF THE STANDARD OPERATION PROCEDURE
+ * AND MAY DISABLE CHECKS THAT ARE VITAL FOR SAFE FLIGHT.
+ */
+#define CBRK_SUPPLY_CHK_KEY	894281
+#define CBRK_RATE_CTRL_KEY	140253
+#define CBRK_IO_SAFETY_KEY	22027
 
-class GPS_Helper
-{
-public:
+#include <stdbool.h>
 
-	GPS_Helper() {};
-	virtual ~GPS_Helper() {};
+__BEGIN_DECLS
 
-	virtual int			configure(unsigned &baud) = 0;
-	virtual int 			receive(unsigned timeout) = 0;
-	int 				set_baudrate(const int &fd, unsigned baud);
-	float				get_position_update_rate();
-	float				get_velocity_update_rate();
-	void				reset_update_rates();
-	void				store_update_rates();
+__EXPORT bool circuit_breaker_enabled(const char* breaker, int32_t magic);
 
-protected:
-	uint8_t _rate_count_lat_lon;
-	uint8_t _rate_count_vel;
+__END_DECLS
 
-	float _rate_lat_lon = 0.0f;
-	float _rate_vel = 0.0f;
-
-	uint64_t _interval_rate_start;
-};
-
-#endif /* GPS_HELPER_H */
+#endif /* CIRCUIT_BREAKER_H_ */

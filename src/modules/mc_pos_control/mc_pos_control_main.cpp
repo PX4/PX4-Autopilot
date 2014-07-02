@@ -470,7 +470,7 @@ MulticopterPositionControl::update_ref()
 {
 	if (_local_pos.ref_timestamp != _ref_timestamp) {
 		double lat_sp, lon_sp;
-		float alt_sp;
+		float alt_sp = 0.0f;
 
 		if (_ref_timestamp != 0) {
 			/* calculate current position setpoint in global frame */
@@ -552,7 +552,6 @@ MulticopterPositionControl::task_main()
 	hrt_abstime t_prev = 0;
 
 	const float alt_ctl_dz = 0.2f;
-	const float pos_ctl_dz = 0.05f;
 
 	math::Vector<3> sp_move_rate;
 	sp_move_rate.zero();
@@ -950,7 +949,7 @@ MulticopterPositionControl::task_main()
 
 					if (_control_mode.flag_control_velocity_enabled) {
 						/* limit max tilt */
-						if (thr_min >= 0.0f && tilt_max < M_PI / 2 - 0.05f) {
+						if (thr_min >= 0.0f && tilt_max < M_PI_F / 2 - 0.05f) {
 							/* absolute horizontal thrust */
 							float thrust_sp_xy_len = math::Vector<2>(thrust_sp(0), thrust_sp(1)).length();
 

@@ -99,7 +99,7 @@
  * CONFIG_ARCH_LEDS configuration switch.
  */
 __BEGIN_DECLS
-extern void led_init();
+extern void led_init(void);
 extern void led_on(int led);
 extern void led_off(int led);
 __END_DECLS
