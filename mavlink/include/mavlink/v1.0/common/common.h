@@ -6,7 +6,7 @@
 #define COMMON_H
 
 #ifndef MAVLINK_H
-    #error Wrong include order: COMMON.H MUST NOT BE DIRECTLY USED. Include mavlink.h from the same directory instead or set ALL AND EVERY defines from MAVLINK.H manually accordingly, including the #define MAVLINK_H call.
+ #error Wrong include order: common.h MUST NOT BE DIRECTLY USED. Include mavlink.h from the same directory instead or set all defines from mavlink.h manually.
 #endif
 
 #ifdef __cplusplus

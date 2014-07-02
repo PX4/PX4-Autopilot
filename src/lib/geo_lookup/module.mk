@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2014 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,22 +32,9 @@
 ############################################################################
 
 #
-# MAVLink protocol to uORB interface process
+# Geo lookup table / data library
 #
 
-MODULE_COMMAND	 = mavlink
-SRCS		 += mavlink_main.cpp \
-			mavlink.c \
-			mavlink_receiver.cpp \
-			mavlink_orb_subscription.cpp \
-			mavlink_messages.cpp \
-			mavlink_stream.cpp \
-			mavlink_rate_limiter.cpp \
-			mavlink_commands.cpp \
-			mavlink_ftp.cpp
-
-INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
+SRCS		 =	geo_mag_declination.c
 
 MAXOPTIMIZATION	 = -Os
-
-MODULE_STACKSIZE = 1024

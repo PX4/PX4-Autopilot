@@ -232,6 +232,11 @@ public:
 		return "HEARTBEAT";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_HEARTBEAT;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamHeartbeat();
@@ -254,8 +259,15 @@ protected:
 		struct position_setpoint_triplet_s pos_sp_triplet;
 
 		/* always send the heartbeat, independent of the update status of the topics */
-		(void)status_sub->update(&status);
-		(void)pos_sp_triplet_sub->update(&pos_sp_triplet);
+		if (!status_sub->update(&status)) {
+			/* if topic update failed fill it with defaults */
+			memset(&status, 0, sizeof(status));
+		}
+
+		if (!pos_sp_triplet_sub->update(&pos_sp_triplet)) {
+			/* if topic update failed fill it with defaults */
+			memset(&pos_sp_triplet, 0, sizeof(pos_sp_triplet));
+		}
 
 		uint8_t mavlink_state = 0;
 		uint8_t mavlink_base_mode = 0;
@@ -283,6 +295,11 @@ public:
 	static const char *get_name_static ()
 	{
 		return "SYS_STATUS";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_SYS_STATUS;
 	}
 
 	static MavlinkStream *new_instance()
@@ -334,6 +351,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "HIGHRES_IMU";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_HIGHRES_IMU;
 	}
 
 	static MavlinkStream *new_instance()
@@ -421,6 +443,11 @@ public:
 		return "ATTITUDE";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_ATTITUDE;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamAttitude();
@@ -465,6 +492,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "ATTITUDE_QUATERNION";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_ATTITUDE_QUATERNION;
 	}
 
 	static MavlinkStream *new_instance()
@@ -517,6 +549,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "VFR_HUD";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_VFR_HUD;
 	}
 
 	static MavlinkStream *new_instance()
@@ -602,6 +639,11 @@ public:
 		return "GPS_RAW_INT";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_GPS_RAW_INT;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamGPSRawInt();
@@ -653,6 +695,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "GLOBAL_POSITION_INT";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_GLOBAL_POSITION_INT;
 	}
 
 	static MavlinkStream *new_instance()
@@ -716,6 +763,11 @@ public:
 		return "LOCAL_POSITION_NED";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_LOCAL_POSITION_NED;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamLocalPositionNED();
@@ -765,6 +817,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "VICON_POSITION_ESTIMATE";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE;
 	}
 
 	static MavlinkStream *new_instance()
@@ -817,6 +874,11 @@ public:
 		return "GPS_GLOBAL_ORIGIN";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamGPSGlobalOrigin();
@@ -855,6 +917,11 @@ public:
 	const char *get_name() const
 	{
 		return MavlinkStreamServoOutputRaw<N>::get_name_static();
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_SERVO_OUTPUT_RAW;
 	}
 
 	static const char *get_name_static()
@@ -932,6 +999,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "HIL_CONTROLS";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_HIL_CONTROLS;
 	}
 
 	static MavlinkStream *new_instance()
@@ -1071,6 +1143,11 @@ public:
 		return "GLOBAL_POSITION_SETPOINT_INT";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_GLOBAL_POSITION_SETPOINT_INT;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamGlobalPositionSetpointInt();
@@ -1112,6 +1189,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "LOCAL_POSITION_SETPOINT";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_LOCAL_POSITION_SETPOINT;
 	}
 
 	static MavlinkStream *new_instance()
@@ -1162,6 +1244,11 @@ public:
 		return "ROLL_PITCH_YAW_THRUST_SETPOINT";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_ROLL_PITCH_YAW_THRUST_SETPOINT;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamRollPitchYawThrustSetpoint();
@@ -1210,6 +1297,11 @@ public:
 		return "ROLL_PITCH_YAW_RATES_THRUST_SETPOINT";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_ROLL_PITCH_YAW_RATES_THRUST_SETPOINT;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamRollPitchYawRatesThrustSetpoint();
@@ -1256,6 +1348,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "RC_CHANNELS_RAW";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_RC_CHANNELS_RAW;
 	}
 
 	static MavlinkStream *new_instance()
@@ -1342,6 +1439,11 @@ public:
 		return "MANUAL_CONTROL";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_MANUAL_CONTROL;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamManualControl();
@@ -1391,6 +1493,11 @@ public:
 		return "OPTICAL_FLOW";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_OPTICAL_FLOW;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamOpticalFlow();
@@ -1437,6 +1544,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "ATTITUDE_CONTROLS";
+	}
+
+	uint8_t get_id()
+	{
+		return 0;
 	}
 
 	static MavlinkStream *new_instance()
@@ -1497,6 +1609,11 @@ public:
 		return "NAMED_VALUE_FLOAT";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_NAMED_VALUE_FLOAT;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamNamedValueFloat();
@@ -1545,6 +1662,11 @@ public:
 		return "CAMERA_CAPTURE";
 	}
 
+	uint8_t get_id()
+	{
+		return 0;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamCameraCapture();
@@ -1588,6 +1710,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "DISTANCE_SENSOR";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_DISTANCE_SENSOR;
 	}
 
 	static MavlinkStream *new_instance()

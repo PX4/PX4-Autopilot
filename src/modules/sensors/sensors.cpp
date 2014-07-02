@@ -229,7 +229,7 @@ private:
 	math::Matrix<3, 3>	_board_rotation;		/**< rotation matrix for the orientation that the board is mounted */
 	math::Matrix<3, 3>	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
 	bool		_mag_is_external;		/**< true if the active mag is on an external board */
-
+	
 	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
 	hrt_abstime _battery_current_timestamp;	/**< timestamp of last battery current reading */
 
@@ -252,6 +252,8 @@ private:
 
 		int board_rotation;
 		int external_mag_rotation;
+		
+		float board_offset[3];
 
 		int rc_map_roll;
 		int rc_map_pitch;
@@ -346,6 +348,8 @@ private:
 
 		param_t board_rotation;
 		param_t external_mag_rotation;
+		
+		param_t board_offset[3];
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -594,6 +598,11 @@ Sensors::Sensors() :
 	/* rotations */
 	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
 	_parameter_handles.external_mag_rotation = param_find("SENS_EXT_MAG_ROT");
+	
+	/* rotation offsets */
+	_parameter_handles.board_offset[0] = param_find("SENS_BOARD_X_OFF");
+	_parameter_handles.board_offset[1] = param_find("SENS_BOARD_Y_OFF");
+	_parameter_handles.board_offset[2] = param_find("SENS_BOARD_Z_OFF");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -806,6 +815,18 @@ Sensors::parameters_update()
 
 	get_rot_matrix((enum Rotation)_parameters.board_rotation, &_board_rotation);
 	get_rot_matrix((enum Rotation)_parameters.external_mag_rotation, &_external_mag_rotation);
+	
+	param_get(_parameter_handles.board_offset[0], &(_parameters.board_offset[0]));
+	param_get(_parameter_handles.board_offset[1], &(_parameters.board_offset[1]));
+	param_get(_parameter_handles.board_offset[2], &(_parameters.board_offset[2]));
+	
+	/** fine tune board offset on parameter update **/
+	math::Matrix<3, 3> board_rotation_offset; 
+	board_rotation_offset.from_euler( M_DEG_TO_RAD_F * _parameters.board_offset[0],
+							 M_DEG_TO_RAD_F * _parameters.board_offset[1],
+							 M_DEG_TO_RAD_F * _parameters.board_offset[2]);
+	
+	_board_rotation = _board_rotation * board_rotation_offset;
 
 	return OK;
 }

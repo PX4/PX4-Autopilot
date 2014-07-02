@@ -121,6 +121,9 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	memset(&hil_local_pos, 0, sizeof(hil_local_pos));
 	memset(&_control_mode, 0, sizeof(_control_mode));
+
+	// make sure the FTP server is started
+	(void)MavlinkFTP::getServer();
 }
 
 MavlinkReceiver::~MavlinkReceiver()
@@ -161,6 +164,14 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_HEARTBEAT:
 		handle_message_heartbeat(msg);
+		break;
+
+	case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:
+		handle_message_request_data_stream(msg);
+		break;
+
+	case MAVLINK_MSG_ID_ENCAPSULATED_DATA:
+		MavlinkFTP::getServer()->handle_message(_mavlink, msg);
 		break;
 
 	default:
@@ -463,6 +474,24 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 			} else {
 				orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
+			}
+		}
+	}
+}
+
+void
+MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
+{
+	mavlink_request_data_stream_t req;
+	mavlink_msg_request_data_stream_decode(msg, &req);
+
+	if (req.target_system == mavlink_system.sysid && req.target_component == mavlink_system.compid) {
+		float rate = req.start_stop ? (1000.0f / req.req_message_rate) : 0.0f;
+
+		MavlinkStream *stream;
+		LL_FOREACH(_mavlink->get_streams(), stream) {
+			if (req.req_stream_id == stream->get_id()) {
+				_mavlink->configure_stream_threadsafe(stream->get_name(), rate);
 			}
 		}
 	}
