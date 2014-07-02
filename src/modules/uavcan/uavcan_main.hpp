@@ -109,7 +109,7 @@ private:
 	static UavcanNode	*_instance;			///< singleton pointer
 	Node			_node;				///< library instance
 	UavcanEscController	_esc_controller;
-	UavcanGnssReceiver _gnss_receiver;
+	UavcanGnssReceiver 	_gnss_receiver;
 
 	MixerGroup		*_mixers = nullptr;
 

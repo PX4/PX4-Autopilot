@@ -34,10 +34,8 @@
 /**
  * @file gnss_receiver.hpp
  *
- * UAVCAN <--> ORB bridge for ESC messages:
- *     uavcan.equipment.esc.RawCommand
- *     uavcan.equipment.esc.RPMCommand
- *     uavcan.equipment.esc.Status
+ * UAVCAN --> ORB bridge for GNSS messages:
+ *     uavcan.equipment.gnss.Fix
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  * @author Andrew Chambers <achamber@gmail.com>
