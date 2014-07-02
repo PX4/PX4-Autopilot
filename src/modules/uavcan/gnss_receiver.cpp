@@ -42,12 +42,13 @@
 #include "gnss_receiver.hpp"
 #include <systemlib/err.h>
 
-#define MM_PER_CM 10	// Millimeters per centimeter
+#define MM_PER_CM 			10	// Millimeters per centimeter
+#define EXPECTED_COV_SIZE 	9 	// Expect a 3x3 matrix for position and velocity covariance
 
 UavcanGnssReceiver::UavcanGnssReceiver(uavcan::INode &node) :
-	_node(node),
-	_uavcan_sub_status(node),
-	_report_pub(-1)
+_node(node),
+_uavcan_sub_status(node),
+_report_pub(-1)
 {
 }
 
@@ -77,32 +78,52 @@ void UavcanGnssReceiver::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uav
 	_report.alt = msg.alt_1e2 * MM_PER_CM;					// Convert from centimeter (1e2) to millimeters (1e3)
 
 	_report.timestamp_variance = _report.timestamp_position;
-	_report.s_variance_m_s = msg.velocity_covariance[0] + msg.velocity_covariance[4] + msg.velocity_covariance[8];
-	_report.p_variance_m = msg.position_covariance[0] + msg.position_covariance[4];
 
-	/* There is a nonlinear relationship between the velocity vector and the heading.
-	 * Use Jacobian to transform velocity covariance to heading covariance
-	 *
-	 * Nonlinear equation:
-	 * heading = atan2(vel_e_m_s, vel_n_m_s)
-	 * For math, see http://en.wikipedia.org/wiki/Atan2#Derivative
-	 *
-	 * To calculate the variance of heading from the variance of velocity,
-	 * cov(heading) = J(velocity)*cov(velocity)*J(velocity)^T
-	 */
-	float vel_n = msg.ned_velocity[0];
-	float vel_e = msg.ned_velocity[1];
-	float vel_n_sq = vel_n * vel_n;
-	float vel_e_sq = vel_e * vel_e;
-	_report.c_variance_rad =
-			(vel_e_sq * msg.velocity_covariance[0] +
-					-2 * vel_n * vel_e * msg.velocity_covariance[1] +		// Covariance matrix is symmetric
-					vel_n_sq* msg.velocity_covariance[4]) / ((vel_n_sq + vel_e_sq) * (vel_n_sq + vel_e_sq));
+	// Check that the covariance arrays are valid
+	bool valid_position_covariance = (msg.position_covariance.size() == EXPECTED_COV_SIZE &&
+			msg.position_covariance[0] > 0);
+	bool valid_velocity_covariance = (msg.velocity_covariance.size() == EXPECTED_COV_SIZE &&
+			msg.velocity_covariance[0] > 0);
+
+	if (valid_position_covariance) {
+		_report.p_variance_m = msg.position_covariance[0] + msg.position_covariance[4];
+		_report.eph_m = sqrtf(_report.p_variance_m);
+	} else {
+		_report.p_variance_m = -1.0;
+		_report.eph_m = -1.0;
+	}
+
+	if (valid_velocity_covariance) {
+		_report.s_variance_m_s = msg.velocity_covariance[0] + msg.velocity_covariance[4] + msg.velocity_covariance[8];
+
+		/* There is a nonlinear relationship between the velocity vector and the heading.
+		 * Use Jacobian to transform velocity covariance to heading covariance
+		 *
+		 * Nonlinear equation:
+		 * heading = atan2(vel_e_m_s, vel_n_m_s)
+		 * For math, see http://en.wikipedia.org/wiki/Atan2#Derivative
+		 *
+		 * To calculate the variance of heading from the variance of velocity,
+		 * cov(heading) = J(velocity)*cov(velocity)*J(velocity)^T
+		 */
+		float vel_n = msg.ned_velocity[0];
+		float vel_e = msg.ned_velocity[1];
+		float vel_n_sq = vel_n * vel_n;
+		float vel_e_sq = vel_e * vel_e;
+		_report.c_variance_rad =
+				(vel_e_sq * msg.velocity_covariance[0] +
+						-2 * vel_n * vel_e * msg.velocity_covariance[1] +		// Covariance matrix is symmetric
+						vel_n_sq* msg.velocity_covariance[4]) / ((vel_n_sq + vel_e_sq) * (vel_n_sq + vel_e_sq));
+
+		_report.epv_m = sqrtf(msg.position_covariance[8]);
+
+	} else {
+		_report.s_variance_m_s = -1.0;
+		_report.c_variance_rad = -1.0;
+		_report.epv_m = -1.0;
+	}
 
 	_report.fix_type = msg.status;
-
-	_report.eph_m = sqrtf(_report.p_variance_m);
-	_report.epv_m = sqrtf(msg.position_covariance[8]);
 
 	_report.timestamp_velocity = _report.timestamp_position;
 	_report.vel_n_m_s = msg.ned_velocity[0];

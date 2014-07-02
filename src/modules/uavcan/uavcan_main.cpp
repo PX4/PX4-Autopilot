@@ -243,21 +243,22 @@ int UavcanNode::run()
 
 	_node.setStatusOk();
 
+	/*
+	 * This event is needed to wake up the thread on CAN bus activity (RX/TX/Error).
+	 * Please note that with such multiplexing it is no longer possible to rely only on
+	 * the value returned from poll() to detect whether actuator control has timed out or not.
+	 * Instead, all ORB events need to be checked individually (see below).
+	 */
+	_poll_fds[_poll_fds_num] = ::pollfd();
+	_poll_fds[_poll_fds_num].fd = busevent_fd;
+	_poll_fds[_poll_fds_num].events = POLLIN;
+	_poll_fds_num += 1;
+
 	while (!_task_should_exit) {
 
 		if (_groups_subscribed != _groups_required) {
 			subscribe();
 			_groups_subscribed = _groups_required;
-			/*
-			 * This event is needed to wake up the thread on CAN bus activity (RX/TX/Error).
-			 * Please note that with such multiplexing it is no longer possible to rely only on
-			 * the value returned from poll() to detect whether actuator control has timed out or not.
-			 * Instead, all ORB events need to be checked individually (see below).
-			 */
-			_poll_fds[_poll_fds_num] = ::pollfd();
-			_poll_fds[_poll_fds_num].fd = busevent_fd;
-			_poll_fds[_poll_fds_num].events = POLLIN;
-			_poll_fds_num += 1;
 		}
 
 		const int poll_ret = ::poll(_poll_fds, _poll_fds_num, PollTimeoutMs);
@@ -271,7 +272,7 @@ int UavcanNode::run()
 		} else {
 			// get controls for required topics
 			bool controls_updated = false;
-			unsigned poll_id = 0;
+			unsigned poll_id = 1;
 			for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 				if (_control_subs[i] > 0) {
 					if (_poll_fds[poll_id].revents & POLLIN) {
