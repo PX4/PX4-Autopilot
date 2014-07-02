@@ -11,10 +11,10 @@ typedef struct __mavlink_global_position_setpoint_external_int_t
  float vx; ///< X velocity in NED frame in meter / s
  float vy; ///< Y velocity in NED frame in meter / s
  float vz; ///< Z velocity in NED frame in meter / s
- float ax; ///< X acceleration in NED frame in meter / s^2
- float ay; ///< Y acceleration in NED frame in meter / s^2
- float az; ///< Z acceleration in NED frame in meter / s^2
- uint16_t ignore_mask; ///< Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b00000000 indicates it should follow the commanded attitude and rate and none of the setpoint dimensions should be ignored. Mapping: bit 1: lat, bit 2: lon, bit 3: alt, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az
+ float afx; ///< X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ float afy; ///< Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ float afz; ///< Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ uint16_t type_mask; ///< Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b0000000000000000 or 0b0000001000000000 indicates that none of the setpoint dimensions should be ignored. If bit 10 is set the floats afx afy afz should be interpreted as force instead of acceleration. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az, bit 10: is force setpoint
  uint8_t target_system; ///< System ID
  uint8_t target_component; ///< Component ID
 } mavlink_global_position_setpoint_external_int_t;
@@ -22,8 +22,8 @@ typedef struct __mavlink_global_position_setpoint_external_int_t
 #define MAVLINK_MSG_ID_GLOBAL_POSITION_SETPOINT_EXTERNAL_INT_LEN 44
 #define MAVLINK_MSG_ID_84_LEN 44
 
-#define MAVLINK_MSG_ID_GLOBAL_POSITION_SETPOINT_EXTERNAL_INT_CRC 172
-#define MAVLINK_MSG_ID_84_CRC 172
+#define MAVLINK_MSG_ID_GLOBAL_POSITION_SETPOINT_EXTERNAL_INT_CRC 198
+#define MAVLINK_MSG_ID_84_CRC 198
 
 
 
@@ -37,10 +37,10 @@ typedef struct __mavlink_global_position_setpoint_external_int_t
          { "vx", NULL, MAVLINK_TYPE_FLOAT, 0, 16, offsetof(mavlink_global_position_setpoint_external_int_t, vx) }, \
          { "vy", NULL, MAVLINK_TYPE_FLOAT, 0, 20, offsetof(mavlink_global_position_setpoint_external_int_t, vy) }, \
          { "vz", NULL, MAVLINK_TYPE_FLOAT, 0, 24, offsetof(mavlink_global_position_setpoint_external_int_t, vz) }, \
-         { "ax", NULL, MAVLINK_TYPE_FLOAT, 0, 28, offsetof(mavlink_global_position_setpoint_external_int_t, ax) }, \
-         { "ay", NULL, MAVLINK_TYPE_FLOAT, 0, 32, offsetof(mavlink_global_position_setpoint_external_int_t, ay) }, \
-         { "az", NULL, MAVLINK_TYPE_FLOAT, 0, 36, offsetof(mavlink_global_position_setpoint_external_int_t, az) }, \
-         { "ignore_mask", NULL, MAVLINK_TYPE_UINT16_T, 0, 40, offsetof(mavlink_global_position_setpoint_external_int_t, ignore_mask) }, \
+         { "afx", NULL, MAVLINK_TYPE_FLOAT, 0, 28, offsetof(mavlink_global_position_setpoint_external_int_t, afx) }, \
+         { "afy", NULL, MAVLINK_TYPE_FLOAT, 0, 32, offsetof(mavlink_global_position_setpoint_external_int_t, afy) }, \
+         { "afz", NULL, MAVLINK_TYPE_FLOAT, 0, 36, offsetof(mavlink_global_position_setpoint_external_int_t, afz) }, \
+         { "type_mask", NULL, MAVLINK_TYPE_UINT16_T, 0, 40, offsetof(mavlink_global_position_setpoint_external_int_t, type_mask) }, \
          { "target_system", NULL, MAVLINK_TYPE_UINT8_T, 0, 42, offsetof(mavlink_global_position_setpoint_external_int_t, target_system) }, \
          { "target_component", NULL, MAVLINK_TYPE_UINT8_T, 0, 43, offsetof(mavlink_global_position_setpoint_external_int_t, target_component) }, \
          } \
@@ -56,20 +56,20 @@ typedef struct __mavlink_global_position_setpoint_external_int_t
  * @param time_boot_ms Timestamp in milliseconds since system boot. The rationale for the timestamp in the setpoint is to allow the system to compensate for the transport delay of the setpoint. This allows the system to compensate processing latency.
  * @param target_system System ID
  * @param target_component Component ID
- * @param ignore_mask Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b00000000 indicates it should follow the commanded attitude and rate and none of the setpoint dimensions should be ignored. Mapping: bit 1: lat, bit 2: lon, bit 3: alt, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az
+ * @param type_mask Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b0000000000000000 or 0b0000001000000000 indicates that none of the setpoint dimensions should be ignored. If bit 10 is set the floats afx afy afz should be interpreted as force instead of acceleration. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az, bit 10: is force setpoint
  * @param lat_int X Position in WGS84 frame in 1e7 * meters
  * @param lon_int Y Position in WGS84 frame in 1e7 * meters
  * @param alt Altitude in WGS84, not AMSL
  * @param vx X velocity in NED frame in meter / s
  * @param vy Y velocity in NED frame in meter / s
  * @param vz Z velocity in NED frame in meter / s
- * @param ax X acceleration in NED frame in meter / s^2
- * @param ay Y acceleration in NED frame in meter / s^2
- * @param az Z acceleration in NED frame in meter / s^2
+ * @param afx X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afy Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afz Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_global_position_setpoint_external_int_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
-						       uint32_t time_boot_ms, uint8_t target_system, uint8_t target_component, uint16_t ignore_mask, int32_t lat_int, int32_t lon_int, float alt, float vx, float vy, float vz, float ax, float ay, float az)
+						       uint32_t time_boot_ms, uint8_t target_system, uint8_t target_component, uint16_t type_mask, int32_t lat_int, int32_t lon_int, float alt, float vx, float vy, float vz, float afx, float afy, float afz)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[MAVLINK_MSG_ID_GLOBAL_POSITION_SETPOINT_EXTERNAL_INT_LEN];
@@ -80,10 +80,10 @@ static inline uint16_t mavlink_msg_global_position_setpoint_external_int_pack(ui
 	_mav_put_float(buf, 16, vx);
 	_mav_put_float(buf, 20, vy);
 	_mav_put_float(buf, 24, vz);
-	_mav_put_float(buf, 28, ax);
-	_mav_put_float(buf, 32, ay);
-	_mav_put_float(buf, 36, az);
-	_mav_put_uint16_t(buf, 40, ignore_mask);
+	_mav_put_float(buf, 28, afx);
+	_mav_put_float(buf, 32, afy);
+	_mav_put_float(buf, 36, afz);
+	_mav_put_uint16_t(buf, 40, type_mask);
 	_mav_put_uint8_t(buf, 42, target_system);
 	_mav_put_uint8_t(buf, 43, target_component);
 
@@ -97,10 +97,10 @@ static inline uint16_t mavlink_msg_global_position_setpoint_external_int_pack(ui
 	packet.vx = vx;
 	packet.vy = vy;
 	packet.vz = vz;
-	packet.ax = ax;
-	packet.ay = ay;
-	packet.az = az;
-	packet.ignore_mask = ignore_mask;
+	packet.afx = afx;
+	packet.afy = afy;
+	packet.afz = afz;
+	packet.type_mask = type_mask;
 	packet.target_system = target_system;
 	packet.target_component = target_component;
 
@@ -124,21 +124,21 @@ static inline uint16_t mavlink_msg_global_position_setpoint_external_int_pack(ui
  * @param time_boot_ms Timestamp in milliseconds since system boot. The rationale for the timestamp in the setpoint is to allow the system to compensate for the transport delay of the setpoint. This allows the system to compensate processing latency.
  * @param target_system System ID
  * @param target_component Component ID
- * @param ignore_mask Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b00000000 indicates it should follow the commanded attitude and rate and none of the setpoint dimensions should be ignored. Mapping: bit 1: lat, bit 2: lon, bit 3: alt, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az
+ * @param type_mask Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b0000000000000000 or 0b0000001000000000 indicates that none of the setpoint dimensions should be ignored. If bit 10 is set the floats afx afy afz should be interpreted as force instead of acceleration. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az, bit 10: is force setpoint
  * @param lat_int X Position in WGS84 frame in 1e7 * meters
  * @param lon_int Y Position in WGS84 frame in 1e7 * meters
  * @param alt Altitude in WGS84, not AMSL
  * @param vx X velocity in NED frame in meter / s
  * @param vy Y velocity in NED frame in meter / s
  * @param vz Z velocity in NED frame in meter / s
- * @param ax X acceleration in NED frame in meter / s^2
- * @param ay Y acceleration in NED frame in meter / s^2
- * @param az Z acceleration in NED frame in meter / s^2
+ * @param afx X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afy Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afz Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_global_position_setpoint_external_int_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
 							   mavlink_message_t* msg,
-						           uint32_t time_boot_ms,uint8_t target_system,uint8_t target_component,uint16_t ignore_mask,int32_t lat_int,int32_t lon_int,float alt,float vx,float vy,float vz,float ax,float ay,float az)
+						           uint32_t time_boot_ms,uint8_t target_system,uint8_t target_component,uint16_t type_mask,int32_t lat_int,int32_t lon_int,float alt,float vx,float vy,float vz,float afx,float afy,float afz)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[MAVLINK_MSG_ID_GLOBAL_POSITION_SETPOINT_EXTERNAL_INT_LEN];
@@ -149,10 +149,10 @@ static inline uint16_t mavlink_msg_global_position_setpoint_external_int_pack_ch
 	_mav_put_float(buf, 16, vx);
 	_mav_put_float(buf, 20, vy);
 	_mav_put_float(buf, 24, vz);
-	_mav_put_float(buf, 28, ax);
-	_mav_put_float(buf, 32, ay);
-	_mav_put_float(buf, 36, az);
-	_mav_put_uint16_t(buf, 40, ignore_mask);
+	_mav_put_float(buf, 28, afx);
+	_mav_put_float(buf, 32, afy);
+	_mav_put_float(buf, 36, afz);
+	_mav_put_uint16_t(buf, 40, type_mask);
 	_mav_put_uint8_t(buf, 42, target_system);
 	_mav_put_uint8_t(buf, 43, target_component);
 
@@ -166,10 +166,10 @@ static inline uint16_t mavlink_msg_global_position_setpoint_external_int_pack_ch
 	packet.vx = vx;
 	packet.vy = vy;
 	packet.vz = vz;
-	packet.ax = ax;
-	packet.ay = ay;
-	packet.az = az;
-	packet.ignore_mask = ignore_mask;
+	packet.afx = afx;
+	packet.afy = afy;
+	packet.afz = afz;
+	packet.type_mask = type_mask;
 	packet.target_system = target_system;
 	packet.target_component = target_component;
 
@@ -194,7 +194,7 @@ static inline uint16_t mavlink_msg_global_position_setpoint_external_int_pack_ch
  */
 static inline uint16_t mavlink_msg_global_position_setpoint_external_int_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_global_position_setpoint_external_int_t* global_position_setpoint_external_int)
 {
-	return mavlink_msg_global_position_setpoint_external_int_pack(system_id, component_id, msg, global_position_setpoint_external_int->time_boot_ms, global_position_setpoint_external_int->target_system, global_position_setpoint_external_int->target_component, global_position_setpoint_external_int->ignore_mask, global_position_setpoint_external_int->lat_int, global_position_setpoint_external_int->lon_int, global_position_setpoint_external_int->alt, global_position_setpoint_external_int->vx, global_position_setpoint_external_int->vy, global_position_setpoint_external_int->vz, global_position_setpoint_external_int->ax, global_position_setpoint_external_int->ay, global_position_setpoint_external_int->az);
+	return mavlink_msg_global_position_setpoint_external_int_pack(system_id, component_id, msg, global_position_setpoint_external_int->time_boot_ms, global_position_setpoint_external_int->target_system, global_position_setpoint_external_int->target_component, global_position_setpoint_external_int->type_mask, global_position_setpoint_external_int->lat_int, global_position_setpoint_external_int->lon_int, global_position_setpoint_external_int->alt, global_position_setpoint_external_int->vx, global_position_setpoint_external_int->vy, global_position_setpoint_external_int->vz, global_position_setpoint_external_int->afx, global_position_setpoint_external_int->afy, global_position_setpoint_external_int->afz);
 }
 
 /**
@@ -208,7 +208,7 @@ static inline uint16_t mavlink_msg_global_position_setpoint_external_int_encode(
  */
 static inline uint16_t mavlink_msg_global_position_setpoint_external_int_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_global_position_setpoint_external_int_t* global_position_setpoint_external_int)
 {
-	return mavlink_msg_global_position_setpoint_external_int_pack_chan(system_id, component_id, chan, msg, global_position_setpoint_external_int->time_boot_ms, global_position_setpoint_external_int->target_system, global_position_setpoint_external_int->target_component, global_position_setpoint_external_int->ignore_mask, global_position_setpoint_external_int->lat_int, global_position_setpoint_external_int->lon_int, global_position_setpoint_external_int->alt, global_position_setpoint_external_int->vx, global_position_setpoint_external_int->vy, global_position_setpoint_external_int->vz, global_position_setpoint_external_int->ax, global_position_setpoint_external_int->ay, global_position_setpoint_external_int->az);
+	return mavlink_msg_global_position_setpoint_external_int_pack_chan(system_id, component_id, chan, msg, global_position_setpoint_external_int->time_boot_ms, global_position_setpoint_external_int->target_system, global_position_setpoint_external_int->target_component, global_position_setpoint_external_int->type_mask, global_position_setpoint_external_int->lat_int, global_position_setpoint_external_int->lon_int, global_position_setpoint_external_int->alt, global_position_setpoint_external_int->vx, global_position_setpoint_external_int->vy, global_position_setpoint_external_int->vz, global_position_setpoint_external_int->afx, global_position_setpoint_external_int->afy, global_position_setpoint_external_int->afz);
 }
 
 /**
@@ -218,20 +218,20 @@ static inline uint16_t mavlink_msg_global_position_setpoint_external_int_encode_
  * @param time_boot_ms Timestamp in milliseconds since system boot. The rationale for the timestamp in the setpoint is to allow the system to compensate for the transport delay of the setpoint. This allows the system to compensate processing latency.
  * @param target_system System ID
  * @param target_component Component ID
- * @param ignore_mask Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b00000000 indicates it should follow the commanded attitude and rate and none of the setpoint dimensions should be ignored. Mapping: bit 1: lat, bit 2: lon, bit 3: alt, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az
+ * @param type_mask Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b0000000000000000 or 0b0000001000000000 indicates that none of the setpoint dimensions should be ignored. If bit 10 is set the floats afx afy afz should be interpreted as force instead of acceleration. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az, bit 10: is force setpoint
  * @param lat_int X Position in WGS84 frame in 1e7 * meters
  * @param lon_int Y Position in WGS84 frame in 1e7 * meters
  * @param alt Altitude in WGS84, not AMSL
  * @param vx X velocity in NED frame in meter / s
  * @param vy Y velocity in NED frame in meter / s
  * @param vz Z velocity in NED frame in meter / s
- * @param ax X acceleration in NED frame in meter / s^2
- * @param ay Y acceleration in NED frame in meter / s^2
- * @param az Z acceleration in NED frame in meter / s^2
+ * @param afx X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afy Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afz Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
-static inline void mavlink_msg_global_position_setpoint_external_int_send(mavlink_channel_t chan, uint32_t time_boot_ms, uint8_t target_system, uint8_t target_component, uint16_t ignore_mask, int32_t lat_int, int32_t lon_int, float alt, float vx, float vy, float vz, float ax, float ay, float az)
+static inline void mavlink_msg_global_position_setpoint_external_int_send(mavlink_channel_t chan, uint32_t time_boot_ms, uint8_t target_system, uint8_t target_component, uint16_t type_mask, int32_t lat_int, int32_t lon_int, float alt, float vx, float vy, float vz, float afx, float afy, float afz)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[MAVLINK_MSG_ID_GLOBAL_POSITION_SETPOINT_EXTERNAL_INT_LEN];
@@ -242,10 +242,10 @@ static inline void mavlink_msg_global_position_setpoint_external_int_send(mavlin
 	_mav_put_float(buf, 16, vx);
 	_mav_put_float(buf, 20, vy);
 	_mav_put_float(buf, 24, vz);
-	_mav_put_float(buf, 28, ax);
-	_mav_put_float(buf, 32, ay);
-	_mav_put_float(buf, 36, az);
-	_mav_put_uint16_t(buf, 40, ignore_mask);
+	_mav_put_float(buf, 28, afx);
+	_mav_put_float(buf, 32, afy);
+	_mav_put_float(buf, 36, afz);
+	_mav_put_uint16_t(buf, 40, type_mask);
 	_mav_put_uint8_t(buf, 42, target_system);
 	_mav_put_uint8_t(buf, 43, target_component);
 
@@ -263,10 +263,10 @@ static inline void mavlink_msg_global_position_setpoint_external_int_send(mavlin
 	packet.vx = vx;
 	packet.vy = vy;
 	packet.vz = vz;
-	packet.ax = ax;
-	packet.ay = ay;
-	packet.az = az;
-	packet.ignore_mask = ignore_mask;
+	packet.afx = afx;
+	packet.afy = afy;
+	packet.afz = afz;
+	packet.type_mask = type_mask;
 	packet.target_system = target_system;
 	packet.target_component = target_component;
 
@@ -286,7 +286,7 @@ static inline void mavlink_msg_global_position_setpoint_external_int_send(mavlin
   is usually the receive buffer for the channel, and allows a reply to an
   incoming message with minimum stack space usage.
  */
-static inline void mavlink_msg_global_position_setpoint_external_int_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint32_t time_boot_ms, uint8_t target_system, uint8_t target_component, uint16_t ignore_mask, int32_t lat_int, int32_t lon_int, float alt, float vx, float vy, float vz, float ax, float ay, float az)
+static inline void mavlink_msg_global_position_setpoint_external_int_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint32_t time_boot_ms, uint8_t target_system, uint8_t target_component, uint16_t type_mask, int32_t lat_int, int32_t lon_int, float alt, float vx, float vy, float vz, float afx, float afy, float afz)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char *buf = (char *)msgbuf;
@@ -297,10 +297,10 @@ static inline void mavlink_msg_global_position_setpoint_external_int_send_buf(ma
 	_mav_put_float(buf, 16, vx);
 	_mav_put_float(buf, 20, vy);
 	_mav_put_float(buf, 24, vz);
-	_mav_put_float(buf, 28, ax);
-	_mav_put_float(buf, 32, ay);
-	_mav_put_float(buf, 36, az);
-	_mav_put_uint16_t(buf, 40, ignore_mask);
+	_mav_put_float(buf, 28, afx);
+	_mav_put_float(buf, 32, afy);
+	_mav_put_float(buf, 36, afz);
+	_mav_put_uint16_t(buf, 40, type_mask);
 	_mav_put_uint8_t(buf, 42, target_system);
 	_mav_put_uint8_t(buf, 43, target_component);
 
@@ -318,10 +318,10 @@ static inline void mavlink_msg_global_position_setpoint_external_int_send_buf(ma
 	packet->vx = vx;
 	packet->vy = vy;
 	packet->vz = vz;
-	packet->ax = ax;
-	packet->ay = ay;
-	packet->az = az;
-	packet->ignore_mask = ignore_mask;
+	packet->afx = afx;
+	packet->afy = afy;
+	packet->afz = afz;
+	packet->type_mask = type_mask;
 	packet->target_system = target_system;
 	packet->target_component = target_component;
 
@@ -370,11 +370,11 @@ static inline uint8_t mavlink_msg_global_position_setpoint_external_int_get_targ
 }
 
 /**
- * @brief Get field ignore_mask from global_position_setpoint_external_int message
+ * @brief Get field type_mask from global_position_setpoint_external_int message
  *
- * @return Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b00000000 indicates it should follow the commanded attitude and rate and none of the setpoint dimensions should be ignored. Mapping: bit 1: lat, bit 2: lon, bit 3: alt, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az
+ * @return Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b0000000000000000 or 0b0000001000000000 indicates that none of the setpoint dimensions should be ignored. If bit 10 is set the floats afx afy afz should be interpreted as force instead of acceleration. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az, bit 10: is force setpoint
  */
-static inline uint16_t mavlink_msg_global_position_setpoint_external_int_get_ignore_mask(const mavlink_message_t* msg)
+static inline uint16_t mavlink_msg_global_position_setpoint_external_int_get_type_mask(const mavlink_message_t* msg)
 {
 	return _MAV_RETURN_uint16_t(msg,  40);
 }
@@ -440,31 +440,31 @@ static inline float mavlink_msg_global_position_setpoint_external_int_get_vz(con
 }
 
 /**
- * @brief Get field ax from global_position_setpoint_external_int message
+ * @brief Get field afx from global_position_setpoint_external_int message
  *
- * @return X acceleration in NED frame in meter / s^2
+ * @return X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
  */
-static inline float mavlink_msg_global_position_setpoint_external_int_get_ax(const mavlink_message_t* msg)
+static inline float mavlink_msg_global_position_setpoint_external_int_get_afx(const mavlink_message_t* msg)
 {
 	return _MAV_RETURN_float(msg,  28);
 }
 
 /**
- * @brief Get field ay from global_position_setpoint_external_int message
+ * @brief Get field afy from global_position_setpoint_external_int message
  *
- * @return Y acceleration in NED frame in meter / s^2
+ * @return Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
  */
-static inline float mavlink_msg_global_position_setpoint_external_int_get_ay(const mavlink_message_t* msg)
+static inline float mavlink_msg_global_position_setpoint_external_int_get_afy(const mavlink_message_t* msg)
 {
 	return _MAV_RETURN_float(msg,  32);
 }
 
 /**
- * @brief Get field az from global_position_setpoint_external_int message
+ * @brief Get field afz from global_position_setpoint_external_int message
  *
- * @return Z acceleration in NED frame in meter / s^2
+ * @return Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
  */
-static inline float mavlink_msg_global_position_setpoint_external_int_get_az(const mavlink_message_t* msg)
+static inline float mavlink_msg_global_position_setpoint_external_int_get_afz(const mavlink_message_t* msg)
 {
 	return _MAV_RETURN_float(msg,  36);
 }
@@ -485,10 +485,10 @@ static inline void mavlink_msg_global_position_setpoint_external_int_decode(cons
 	global_position_setpoint_external_int->vx = mavlink_msg_global_position_setpoint_external_int_get_vx(msg);
 	global_position_setpoint_external_int->vy = mavlink_msg_global_position_setpoint_external_int_get_vy(msg);
 	global_position_setpoint_external_int->vz = mavlink_msg_global_position_setpoint_external_int_get_vz(msg);
-	global_position_setpoint_external_int->ax = mavlink_msg_global_position_setpoint_external_int_get_ax(msg);
-	global_position_setpoint_external_int->ay = mavlink_msg_global_position_setpoint_external_int_get_ay(msg);
-	global_position_setpoint_external_int->az = mavlink_msg_global_position_setpoint_external_int_get_az(msg);
-	global_position_setpoint_external_int->ignore_mask = mavlink_msg_global_position_setpoint_external_int_get_ignore_mask(msg);
+	global_position_setpoint_external_int->afx = mavlink_msg_global_position_setpoint_external_int_get_afx(msg);
+	global_position_setpoint_external_int->afy = mavlink_msg_global_position_setpoint_external_int_get_afy(msg);
+	global_position_setpoint_external_int->afz = mavlink_msg_global_position_setpoint_external_int_get_afz(msg);
+	global_position_setpoint_external_int->type_mask = mavlink_msg_global_position_setpoint_external_int_get_type_mask(msg);
 	global_position_setpoint_external_int->target_system = mavlink_msg_global_position_setpoint_external_int_get_target_system(msg);
 	global_position_setpoint_external_int->target_component = mavlink_msg_global_position_setpoint_external_int_get_target_component(msg);
 #else

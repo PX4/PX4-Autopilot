@@ -11,10 +11,10 @@ typedef struct __mavlink_local_ned_position_setpoint_external_t
  float vx; ///< X velocity in NED frame in meter / s
  float vy; ///< Y velocity in NED frame in meter / s
  float vz; ///< Z velocity in NED frame in meter / s
- float ax; ///< X acceleration in NED frame in meter / s^2
- float ay; ///< Y acceleration in NED frame in meter / s^2
- float az; ///< Z acceleration in NED frame in meter / s^2
- uint16_t ignore_mask; ///< Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b00000000 indicates it should follow the commanded attitude and rate and none of the setpoint dimensions should be ignored. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az
+ float afx; ///< X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ float afy; ///< Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ float afz; ///< Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ uint16_t type_mask; ///< Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b0000000000000000 or 0b0000001000000000 indicates that none of the setpoint dimensions should be ignored. If bit 10 is set the floats afx afy afz should be interpreted as force instead of acceleration. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az, bit 10: is force setpoint
  uint8_t target_system; ///< System ID
  uint8_t target_component; ///< Component ID
  uint8_t coordinate_frame; ///< Valid options are: MAV_FRAME_LOCAL_NED, MAV_FRAME_LOCAL_OFFSET_NED = 5, MAV_FRAME_BODY_NED = 6, MAV_FRAME_BODY_OFFSET_NED = 7
@@ -23,8 +23,8 @@ typedef struct __mavlink_local_ned_position_setpoint_external_t
 #define MAVLINK_MSG_ID_LOCAL_NED_POSITION_SETPOINT_EXTERNAL_LEN 45
 #define MAVLINK_MSG_ID_83_LEN 45
 
-#define MAVLINK_MSG_ID_LOCAL_NED_POSITION_SETPOINT_EXTERNAL_CRC 121
-#define MAVLINK_MSG_ID_83_CRC 121
+#define MAVLINK_MSG_ID_LOCAL_NED_POSITION_SETPOINT_EXTERNAL_CRC 211
+#define MAVLINK_MSG_ID_83_CRC 211
 
 
 
@@ -38,10 +38,10 @@ typedef struct __mavlink_local_ned_position_setpoint_external_t
          { "vx", NULL, MAVLINK_TYPE_FLOAT, 0, 16, offsetof(mavlink_local_ned_position_setpoint_external_t, vx) }, \
          { "vy", NULL, MAVLINK_TYPE_FLOAT, 0, 20, offsetof(mavlink_local_ned_position_setpoint_external_t, vy) }, \
          { "vz", NULL, MAVLINK_TYPE_FLOAT, 0, 24, offsetof(mavlink_local_ned_position_setpoint_external_t, vz) }, \
-         { "ax", NULL, MAVLINK_TYPE_FLOAT, 0, 28, offsetof(mavlink_local_ned_position_setpoint_external_t, ax) }, \
-         { "ay", NULL, MAVLINK_TYPE_FLOAT, 0, 32, offsetof(mavlink_local_ned_position_setpoint_external_t, ay) }, \
-         { "az", NULL, MAVLINK_TYPE_FLOAT, 0, 36, offsetof(mavlink_local_ned_position_setpoint_external_t, az) }, \
-         { "ignore_mask", NULL, MAVLINK_TYPE_UINT16_T, 0, 40, offsetof(mavlink_local_ned_position_setpoint_external_t, ignore_mask) }, \
+         { "afx", NULL, MAVLINK_TYPE_FLOAT, 0, 28, offsetof(mavlink_local_ned_position_setpoint_external_t, afx) }, \
+         { "afy", NULL, MAVLINK_TYPE_FLOAT, 0, 32, offsetof(mavlink_local_ned_position_setpoint_external_t, afy) }, \
+         { "afz", NULL, MAVLINK_TYPE_FLOAT, 0, 36, offsetof(mavlink_local_ned_position_setpoint_external_t, afz) }, \
+         { "type_mask", NULL, MAVLINK_TYPE_UINT16_T, 0, 40, offsetof(mavlink_local_ned_position_setpoint_external_t, type_mask) }, \
          { "target_system", NULL, MAVLINK_TYPE_UINT8_T, 0, 42, offsetof(mavlink_local_ned_position_setpoint_external_t, target_system) }, \
          { "target_component", NULL, MAVLINK_TYPE_UINT8_T, 0, 43, offsetof(mavlink_local_ned_position_setpoint_external_t, target_component) }, \
          { "coordinate_frame", NULL, MAVLINK_TYPE_UINT8_T, 0, 44, offsetof(mavlink_local_ned_position_setpoint_external_t, coordinate_frame) }, \
@@ -59,20 +59,20 @@ typedef struct __mavlink_local_ned_position_setpoint_external_t
  * @param target_system System ID
  * @param target_component Component ID
  * @param coordinate_frame Valid options are: MAV_FRAME_LOCAL_NED, MAV_FRAME_LOCAL_OFFSET_NED = 5, MAV_FRAME_BODY_NED = 6, MAV_FRAME_BODY_OFFSET_NED = 7
- * @param ignore_mask Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b00000000 indicates it should follow the commanded attitude and rate and none of the setpoint dimensions should be ignored. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az
+ * @param type_mask Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b0000000000000000 or 0b0000001000000000 indicates that none of the setpoint dimensions should be ignored. If bit 10 is set the floats afx afy afz should be interpreted as force instead of acceleration. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az, bit 10: is force setpoint
  * @param x X Position in NED frame in meters
  * @param y Y Position in NED frame in meters
  * @param z Z Position in NED frame in meters (note, altitude is negative in NED)
  * @param vx X velocity in NED frame in meter / s
  * @param vy Y velocity in NED frame in meter / s
  * @param vz Z velocity in NED frame in meter / s
- * @param ax X acceleration in NED frame in meter / s^2
- * @param ay Y acceleration in NED frame in meter / s^2
- * @param az Z acceleration in NED frame in meter / s^2
+ * @param afx X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afy Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afz Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_local_ned_position_setpoint_external_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
-						       uint32_t time_boot_ms, uint8_t target_system, uint8_t target_component, uint8_t coordinate_frame, uint16_t ignore_mask, float x, float y, float z, float vx, float vy, float vz, float ax, float ay, float az)
+						       uint32_t time_boot_ms, uint8_t target_system, uint8_t target_component, uint8_t coordinate_frame, uint16_t type_mask, float x, float y, float z, float vx, float vy, float vz, float afx, float afy, float afz)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[MAVLINK_MSG_ID_LOCAL_NED_POSITION_SETPOINT_EXTERNAL_LEN];
@@ -83,10 +83,10 @@ static inline uint16_t mavlink_msg_local_ned_position_setpoint_external_pack(uin
 	_mav_put_float(buf, 16, vx);
 	_mav_put_float(buf, 20, vy);
 	_mav_put_float(buf, 24, vz);
-	_mav_put_float(buf, 28, ax);
-	_mav_put_float(buf, 32, ay);
-	_mav_put_float(buf, 36, az);
-	_mav_put_uint16_t(buf, 40, ignore_mask);
+	_mav_put_float(buf, 28, afx);
+	_mav_put_float(buf, 32, afy);
+	_mav_put_float(buf, 36, afz);
+	_mav_put_uint16_t(buf, 40, type_mask);
 	_mav_put_uint8_t(buf, 42, target_system);
 	_mav_put_uint8_t(buf, 43, target_component);
 	_mav_put_uint8_t(buf, 44, coordinate_frame);
@@ -101,10 +101,10 @@ static inline uint16_t mavlink_msg_local_ned_position_setpoint_external_pack(uin
 	packet.vx = vx;
 	packet.vy = vy;
 	packet.vz = vz;
-	packet.ax = ax;
-	packet.ay = ay;
-	packet.az = az;
-	packet.ignore_mask = ignore_mask;
+	packet.afx = afx;
+	packet.afy = afy;
+	packet.afz = afz;
+	packet.type_mask = type_mask;
 	packet.target_system = target_system;
 	packet.target_component = target_component;
 	packet.coordinate_frame = coordinate_frame;
@@ -130,21 +130,21 @@ static inline uint16_t mavlink_msg_local_ned_position_setpoint_external_pack(uin
  * @param target_system System ID
  * @param target_component Component ID
  * @param coordinate_frame Valid options are: MAV_FRAME_LOCAL_NED, MAV_FRAME_LOCAL_OFFSET_NED = 5, MAV_FRAME_BODY_NED = 6, MAV_FRAME_BODY_OFFSET_NED = 7
- * @param ignore_mask Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b00000000 indicates it should follow the commanded attitude and rate and none of the setpoint dimensions should be ignored. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az
+ * @param type_mask Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b0000000000000000 or 0b0000001000000000 indicates that none of the setpoint dimensions should be ignored. If bit 10 is set the floats afx afy afz should be interpreted as force instead of acceleration. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az, bit 10: is force setpoint
  * @param x X Position in NED frame in meters
  * @param y Y Position in NED frame in meters
  * @param z Z Position in NED frame in meters (note, altitude is negative in NED)
  * @param vx X velocity in NED frame in meter / s
  * @param vy Y velocity in NED frame in meter / s
  * @param vz Z velocity in NED frame in meter / s
- * @param ax X acceleration in NED frame in meter / s^2
- * @param ay Y acceleration in NED frame in meter / s^2
- * @param az Z acceleration in NED frame in meter / s^2
+ * @param afx X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afy Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afz Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_local_ned_position_setpoint_external_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
 							   mavlink_message_t* msg,
-						           uint32_t time_boot_ms,uint8_t target_system,uint8_t target_component,uint8_t coordinate_frame,uint16_t ignore_mask,float x,float y,float z,float vx,float vy,float vz,float ax,float ay,float az)
+						           uint32_t time_boot_ms,uint8_t target_system,uint8_t target_component,uint8_t coordinate_frame,uint16_t type_mask,float x,float y,float z,float vx,float vy,float vz,float afx,float afy,float afz)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[MAVLINK_MSG_ID_LOCAL_NED_POSITION_SETPOINT_EXTERNAL_LEN];
@@ -155,10 +155,10 @@ static inline uint16_t mavlink_msg_local_ned_position_setpoint_external_pack_cha
 	_mav_put_float(buf, 16, vx);
 	_mav_put_float(buf, 20, vy);
 	_mav_put_float(buf, 24, vz);
-	_mav_put_float(buf, 28, ax);
-	_mav_put_float(buf, 32, ay);
-	_mav_put_float(buf, 36, az);
-	_mav_put_uint16_t(buf, 40, ignore_mask);
+	_mav_put_float(buf, 28, afx);
+	_mav_put_float(buf, 32, afy);
+	_mav_put_float(buf, 36, afz);
+	_mav_put_uint16_t(buf, 40, type_mask);
 	_mav_put_uint8_t(buf, 42, target_system);
 	_mav_put_uint8_t(buf, 43, target_component);
 	_mav_put_uint8_t(buf, 44, coordinate_frame);
@@ -173,10 +173,10 @@ static inline uint16_t mavlink_msg_local_ned_position_setpoint_external_pack_cha
 	packet.vx = vx;
 	packet.vy = vy;
 	packet.vz = vz;
-	packet.ax = ax;
-	packet.ay = ay;
-	packet.az = az;
-	packet.ignore_mask = ignore_mask;
+	packet.afx = afx;
+	packet.afy = afy;
+	packet.afz = afz;
+	packet.type_mask = type_mask;
 	packet.target_system = target_system;
 	packet.target_component = target_component;
 	packet.coordinate_frame = coordinate_frame;
@@ -202,7 +202,7 @@ static inline uint16_t mavlink_msg_local_ned_position_setpoint_external_pack_cha
  */
 static inline uint16_t mavlink_msg_local_ned_position_setpoint_external_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_local_ned_position_setpoint_external_t* local_ned_position_setpoint_external)
 {
-	return mavlink_msg_local_ned_position_setpoint_external_pack(system_id, component_id, msg, local_ned_position_setpoint_external->time_boot_ms, local_ned_position_setpoint_external->target_system, local_ned_position_setpoint_external->target_component, local_ned_position_setpoint_external->coordinate_frame, local_ned_position_setpoint_external->ignore_mask, local_ned_position_setpoint_external->x, local_ned_position_setpoint_external->y, local_ned_position_setpoint_external->z, local_ned_position_setpoint_external->vx, local_ned_position_setpoint_external->vy, local_ned_position_setpoint_external->vz, local_ned_position_setpoint_external->ax, local_ned_position_setpoint_external->ay, local_ned_position_setpoint_external->az);
+	return mavlink_msg_local_ned_position_setpoint_external_pack(system_id, component_id, msg, local_ned_position_setpoint_external->time_boot_ms, local_ned_position_setpoint_external->target_system, local_ned_position_setpoint_external->target_component, local_ned_position_setpoint_external->coordinate_frame, local_ned_position_setpoint_external->type_mask, local_ned_position_setpoint_external->x, local_ned_position_setpoint_external->y, local_ned_position_setpoint_external->z, local_ned_position_setpoint_external->vx, local_ned_position_setpoint_external->vy, local_ned_position_setpoint_external->vz, local_ned_position_setpoint_external->afx, local_ned_position_setpoint_external->afy, local_ned_position_setpoint_external->afz);
 }
 
 /**
@@ -216,7 +216,7 @@ static inline uint16_t mavlink_msg_local_ned_position_setpoint_external_encode(u
  */
 static inline uint16_t mavlink_msg_local_ned_position_setpoint_external_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_local_ned_position_setpoint_external_t* local_ned_position_setpoint_external)
 {
-	return mavlink_msg_local_ned_position_setpoint_external_pack_chan(system_id, component_id, chan, msg, local_ned_position_setpoint_external->time_boot_ms, local_ned_position_setpoint_external->target_system, local_ned_position_setpoint_external->target_component, local_ned_position_setpoint_external->coordinate_frame, local_ned_position_setpoint_external->ignore_mask, local_ned_position_setpoint_external->x, local_ned_position_setpoint_external->y, local_ned_position_setpoint_external->z, local_ned_position_setpoint_external->vx, local_ned_position_setpoint_external->vy, local_ned_position_setpoint_external->vz, local_ned_position_setpoint_external->ax, local_ned_position_setpoint_external->ay, local_ned_position_setpoint_external->az);
+	return mavlink_msg_local_ned_position_setpoint_external_pack_chan(system_id, component_id, chan, msg, local_ned_position_setpoint_external->time_boot_ms, local_ned_position_setpoint_external->target_system, local_ned_position_setpoint_external->target_component, local_ned_position_setpoint_external->coordinate_frame, local_ned_position_setpoint_external->type_mask, local_ned_position_setpoint_external->x, local_ned_position_setpoint_external->y, local_ned_position_setpoint_external->z, local_ned_position_setpoint_external->vx, local_ned_position_setpoint_external->vy, local_ned_position_setpoint_external->vz, local_ned_position_setpoint_external->afx, local_ned_position_setpoint_external->afy, local_ned_position_setpoint_external->afz);
 }
 
 /**
@@ -227,20 +227,20 @@ static inline uint16_t mavlink_msg_local_ned_position_setpoint_external_encode_c
  * @param target_system System ID
  * @param target_component Component ID
  * @param coordinate_frame Valid options are: MAV_FRAME_LOCAL_NED, MAV_FRAME_LOCAL_OFFSET_NED = 5, MAV_FRAME_BODY_NED = 6, MAV_FRAME_BODY_OFFSET_NED = 7
- * @param ignore_mask Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b00000000 indicates it should follow the commanded attitude and rate and none of the setpoint dimensions should be ignored. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az
+ * @param type_mask Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b0000000000000000 or 0b0000001000000000 indicates that none of the setpoint dimensions should be ignored. If bit 10 is set the floats afx afy afz should be interpreted as force instead of acceleration. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az, bit 10: is force setpoint
  * @param x X Position in NED frame in meters
  * @param y Y Position in NED frame in meters
  * @param z Z Position in NED frame in meters (note, altitude is negative in NED)
  * @param vx X velocity in NED frame in meter / s
  * @param vy Y velocity in NED frame in meter / s
  * @param vz Z velocity in NED frame in meter / s
- * @param ax X acceleration in NED frame in meter / s^2
- * @param ay Y acceleration in NED frame in meter / s^2
- * @param az Z acceleration in NED frame in meter / s^2
+ * @param afx X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afy Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+ * @param afz Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
-static inline void mavlink_msg_local_ned_position_setpoint_external_send(mavlink_channel_t chan, uint32_t time_boot_ms, uint8_t target_system, uint8_t target_component, uint8_t coordinate_frame, uint16_t ignore_mask, float x, float y, float z, float vx, float vy, float vz, float ax, float ay, float az)
+static inline void mavlink_msg_local_ned_position_setpoint_external_send(mavlink_channel_t chan, uint32_t time_boot_ms, uint8_t target_system, uint8_t target_component, uint8_t coordinate_frame, uint16_t type_mask, float x, float y, float z, float vx, float vy, float vz, float afx, float afy, float afz)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[MAVLINK_MSG_ID_LOCAL_NED_POSITION_SETPOINT_EXTERNAL_LEN];
@@ -251,10 +251,10 @@ static inline void mavlink_msg_local_ned_position_setpoint_external_send(mavlink
 	_mav_put_float(buf, 16, vx);
 	_mav_put_float(buf, 20, vy);
 	_mav_put_float(buf, 24, vz);
-	_mav_put_float(buf, 28, ax);
-	_mav_put_float(buf, 32, ay);
-	_mav_put_float(buf, 36, az);
-	_mav_put_uint16_t(buf, 40, ignore_mask);
+	_mav_put_float(buf, 28, afx);
+	_mav_put_float(buf, 32, afy);
+	_mav_put_float(buf, 36, afz);
+	_mav_put_uint16_t(buf, 40, type_mask);
 	_mav_put_uint8_t(buf, 42, target_system);
 	_mav_put_uint8_t(buf, 43, target_component);
 	_mav_put_uint8_t(buf, 44, coordinate_frame);
@@ -273,10 +273,10 @@ static inline void mavlink_msg_local_ned_position_setpoint_external_send(mavlink
 	packet.vx = vx;
 	packet.vy = vy;
 	packet.vz = vz;
-	packet.ax = ax;
-	packet.ay = ay;
-	packet.az = az;
-	packet.ignore_mask = ignore_mask;
+	packet.afx = afx;
+	packet.afy = afy;
+	packet.afz = afz;
+	packet.type_mask = type_mask;
 	packet.target_system = target_system;
 	packet.target_component = target_component;
 	packet.coordinate_frame = coordinate_frame;
@@ -297,7 +297,7 @@ static inline void mavlink_msg_local_ned_position_setpoint_external_send(mavlink
   is usually the receive buffer for the channel, and allows a reply to an
   incoming message with minimum stack space usage.
  */
-static inline void mavlink_msg_local_ned_position_setpoint_external_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint32_t time_boot_ms, uint8_t target_system, uint8_t target_component, uint8_t coordinate_frame, uint16_t ignore_mask, float x, float y, float z, float vx, float vy, float vz, float ax, float ay, float az)
+static inline void mavlink_msg_local_ned_position_setpoint_external_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint32_t time_boot_ms, uint8_t target_system, uint8_t target_component, uint8_t coordinate_frame, uint16_t type_mask, float x, float y, float z, float vx, float vy, float vz, float afx, float afy, float afz)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char *buf = (char *)msgbuf;
@@ -308,10 +308,10 @@ static inline void mavlink_msg_local_ned_position_setpoint_external_send_buf(mav
 	_mav_put_float(buf, 16, vx);
 	_mav_put_float(buf, 20, vy);
 	_mav_put_float(buf, 24, vz);
-	_mav_put_float(buf, 28, ax);
-	_mav_put_float(buf, 32, ay);
-	_mav_put_float(buf, 36, az);
-	_mav_put_uint16_t(buf, 40, ignore_mask);
+	_mav_put_float(buf, 28, afx);
+	_mav_put_float(buf, 32, afy);
+	_mav_put_float(buf, 36, afz);
+	_mav_put_uint16_t(buf, 40, type_mask);
 	_mav_put_uint8_t(buf, 42, target_system);
 	_mav_put_uint8_t(buf, 43, target_component);
 	_mav_put_uint8_t(buf, 44, coordinate_frame);
@@ -330,10 +330,10 @@ static inline void mavlink_msg_local_ned_position_setpoint_external_send_buf(mav
 	packet->vx = vx;
 	packet->vy = vy;
 	packet->vz = vz;
-	packet->ax = ax;
-	packet->ay = ay;
-	packet->az = az;
-	packet->ignore_mask = ignore_mask;
+	packet->afx = afx;
+	packet->afy = afy;
+	packet->afz = afz;
+	packet->type_mask = type_mask;
 	packet->target_system = target_system;
 	packet->target_component = target_component;
 	packet->coordinate_frame = coordinate_frame;
@@ -393,11 +393,11 @@ static inline uint8_t mavlink_msg_local_ned_position_setpoint_external_get_coord
 }
 
 /**
- * @brief Get field ignore_mask from local_ned_position_setpoint_external message
+ * @brief Get field type_mask from local_ned_position_setpoint_external message
  *
- * @return Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b00000000 indicates it should follow the commanded attitude and rate and none of the setpoint dimensions should be ignored. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az
+ * @return Bitmask to indicate which dimensions should be ignored by the vehicle: a value of 0b0000000000000000 or 0b0000001000000000 indicates that none of the setpoint dimensions should be ignored. If bit 10 is set the floats afx afy afz should be interpreted as force instead of acceleration. Mapping: bit 1: x, bit 2: y, bit 3: z, bit 4: vx, bit 5: vy, bit 6: vz, bit 7: ax, bit 8: ay, bit 9: az, bit 10: is force setpoint
  */
-static inline uint16_t mavlink_msg_local_ned_position_setpoint_external_get_ignore_mask(const mavlink_message_t* msg)
+static inline uint16_t mavlink_msg_local_ned_position_setpoint_external_get_type_mask(const mavlink_message_t* msg)
 {
 	return _MAV_RETURN_uint16_t(msg,  40);
 }
@@ -463,31 +463,31 @@ static inline float mavlink_msg_local_ned_position_setpoint_external_get_vz(cons
 }
 
 /**
- * @brief Get field ax from local_ned_position_setpoint_external message
+ * @brief Get field afx from local_ned_position_setpoint_external message
  *
- * @return X acceleration in NED frame in meter / s^2
+ * @return X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
  */
-static inline float mavlink_msg_local_ned_position_setpoint_external_get_ax(const mavlink_message_t* msg)
+static inline float mavlink_msg_local_ned_position_setpoint_external_get_afx(const mavlink_message_t* msg)
 {
 	return _MAV_RETURN_float(msg,  28);
 }
 
 /**
- * @brief Get field ay from local_ned_position_setpoint_external message
+ * @brief Get field afy from local_ned_position_setpoint_external message
  *
- * @return Y acceleration in NED frame in meter / s^2
+ * @return Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
  */
-static inline float mavlink_msg_local_ned_position_setpoint_external_get_ay(const mavlink_message_t* msg)
+static inline float mavlink_msg_local_ned_position_setpoint_external_get_afy(const mavlink_message_t* msg)
 {
 	return _MAV_RETURN_float(msg,  32);
 }
 
 /**
- * @brief Get field az from local_ned_position_setpoint_external message
+ * @brief Get field afz from local_ned_position_setpoint_external message
  *
- * @return Z acceleration in NED frame in meter / s^2
+ * @return Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
  */
-static inline float mavlink_msg_local_ned_position_setpoint_external_get_az(const mavlink_message_t* msg)
+static inline float mavlink_msg_local_ned_position_setpoint_external_get_afz(const mavlink_message_t* msg)
 {
 	return _MAV_RETURN_float(msg,  36);
 }
@@ -508,10 +508,10 @@ static inline void mavlink_msg_local_ned_position_setpoint_external_decode(const
 	local_ned_position_setpoint_external->vx = mavlink_msg_local_ned_position_setpoint_external_get_vx(msg);
 	local_ned_position_setpoint_external->vy = mavlink_msg_local_ned_position_setpoint_external_get_vy(msg);
 	local_ned_position_setpoint_external->vz = mavlink_msg_local_ned_position_setpoint_external_get_vz(msg);
-	local_ned_position_setpoint_external->ax = mavlink_msg_local_ned_position_setpoint_external_get_ax(msg);
-	local_ned_position_setpoint_external->ay = mavlink_msg_local_ned_position_setpoint_external_get_ay(msg);
-	local_ned_position_setpoint_external->az = mavlink_msg_local_ned_position_setpoint_external_get_az(msg);
-	local_ned_position_setpoint_external->ignore_mask = mavlink_msg_local_ned_position_setpoint_external_get_ignore_mask(msg);
+	local_ned_position_setpoint_external->afx = mavlink_msg_local_ned_position_setpoint_external_get_afx(msg);
+	local_ned_position_setpoint_external->afy = mavlink_msg_local_ned_position_setpoint_external_get_afy(msg);
+	local_ned_position_setpoint_external->afz = mavlink_msg_local_ned_position_setpoint_external_get_afz(msg);
+	local_ned_position_setpoint_external->type_mask = mavlink_msg_local_ned_position_setpoint_external_get_type_mask(msg);
 	local_ned_position_setpoint_external->target_system = mavlink_msg_local_ned_position_setpoint_external_get_target_system(msg);
 	local_ned_position_setpoint_external->target_component = mavlink_msg_local_ned_position_setpoint_external_get_target_component(msg);
 	local_ned_position_setpoint_external->coordinate_frame = mavlink_msg_local_ned_position_setpoint_external_get_coordinate_frame(msg);
