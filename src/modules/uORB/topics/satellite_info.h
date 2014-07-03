@@ -1,6 +1,9 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
+ *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ *           @author Julian Oes <joes@student.ethz.ch>
+ *           @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,34 +34,56 @@
  *
  ****************************************************************************/
 
-/*
- * @file circuit_breaker.h
- *
- * Circuit breaker functionality.
+/**
+ * @file satellite_info.h
+ * Definition of the GNSS satellite info uORB topic.
  */
 
-#ifndef CIRCUIT_BREAKER_H_
-#define CIRCUIT_BREAKER_H_
+#ifndef TOPIC_SAT_INFO_H_
+#define TOPIC_SAT_INFO_H_
 
-/* SAFETY WARNING  --  SAFETY WARNING  --  SAFETY WARNING
- *
- * OBEY THE DOCUMENTATION FOR ALL CIRCUIT BREAKERS HERE,
- * ENSURE TO READ CAREFULLY ALL SAFETY WARNINGS.
- * http://pixhawk.org/dev/circuit_breakers
- *
- * CIRCUIT BREAKERS ARE NOT PART OF THE STANDARD OPERATION PROCEDURE
- * AND MAY DISABLE CHECKS THAT ARE VITAL FOR SAFE FLIGHT.
+#include <stdint.h>
+#include "../uORB.h"
+
+/**
+ * @addtogroup topics
+ * @{
  */
-#define CBRK_SUPPLY_CHK_KEY	894281
-#define CBRK_RATE_CTRL_KEY	140253
-#define CBRK_IO_SAFETY_KEY	22027
 
-#include <stdbool.h>
+/**
+ * GNSS Satellite Info.
+ */
 
-__BEGIN_DECLS
+#define SAT_INFO_MAX_SATELLITES  20
 
-__EXPORT bool circuit_breaker_enabled(const char* breaker, int32_t magic);
+struct satellite_info_s {
+	uint64_t timestamp;				/**< Timestamp of satellite info */
+	uint8_t count;					/**< Number of satellites in satellite info */
+	uint8_t svid[SAT_INFO_MAX_SATELLITES]; 		/**< Space vehicle ID [1..255], see scheme below  */
+	uint8_t used[SAT_INFO_MAX_SATELLITES];		/**< 0: Satellite not used, 1: used for navigation */
+	uint8_t elevation[SAT_INFO_MAX_SATELLITES];	/**< Elevation (0: right on top of receiver, 90: on the horizon) of satellite */
+	uint8_t azimuth[SAT_INFO_MAX_SATELLITES];	/**< Direction of satellite, 0: 0 deg, 255: 360 deg. */
+	uint8_t snr[SAT_INFO_MAX_SATELLITES];		/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99, zero when not tracking this satellite. */
+};
 
-__END_DECLS
+/**
+ * NAV_SVINFO space vehicle ID (svid) scheme according to u-blox protocol specs
+ * u-bloxM8-V15_ReceiverDescriptionProtocolSpec_Public_(UBX-13003221).pdf
+ *
+ * GPS		1-32
+ * SBAS		120-158
+ * Galileo	211-246
+ * BeiDou	159-163, 33-64
+ * QZSS		193-197
+ * GLONASS	65-96, 255
+ *
+ */
 
-#endif /* CIRCUIT_BREAKER_H_ */
+/**
+ * @}
+ */
+
+/* register this as object request broker structure */
+ORB_DECLARE(satellite_info);
+
+#endif
