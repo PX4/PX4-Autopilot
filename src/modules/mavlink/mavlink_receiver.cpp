@@ -406,18 +406,20 @@ MavlinkReceiver::handle_message_local_ned_position_setpoint_external(mavlink_mes
 	struct offboard_control_setpoint_s offboard_control_sp;
 	memset(&offboard_control_sp, 0, sizeof(offboard_control_sp));
 
-	//XXX check if target system/component is correct
+	if (mavlink_system.sysid == local_ned_position_setpoint_external.target_system &&
+			mavlink_system.compid == local_ned_position_setpoint_external.target_component) {
 
-	/* convert mavlink type (local, NED) to uORB offboard control struct */
-	//XXX do the conversion
-	//
-	offboard_control_sp.timestamp = hrt_absolute_time();
+		/* convert mavlink type (local, NED) to uORB offboard control struct */
+		//XXX do the conversion
+		//
+		offboard_control_sp.timestamp = hrt_absolute_time();
 
-	if (_offboard_control_sp_pub < 0) {
-		_offboard_control_sp_pub = orb_advertise(ORB_ID(offboard_control_setpoint), &offboard_control_sp);
+		if (_offboard_control_sp_pub < 0) {
+			_offboard_control_sp_pub = orb_advertise(ORB_ID(offboard_control_setpoint), &offboard_control_sp);
 
-	} else {
-		orb_publish(ORB_ID(offboard_control_setpoint), _offboard_control_sp_pub, &offboard_control_sp);
+		} else {
+			orb_publish(ORB_ID(offboard_control_setpoint), _offboard_control_sp_pub, &offboard_control_sp);
+		}
 	}
 }
 
