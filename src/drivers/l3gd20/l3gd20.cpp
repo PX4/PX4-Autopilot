@@ -69,6 +69,7 @@
 
 #include <board_config.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/conversion/rotation.h>
 
 #define L3GD20_DEVICE_PATH "/dev/l3gd20"
 
@@ -185,7 +186,7 @@ extern "C" { __EXPORT int l3gd20_main(int argc, char *argv[]); }
 class L3GD20 : public device::SPI
 {
 public:
-	L3GD20(int bus, const char* path, spi_dev_e device);
+	L3GD20(int bus, const char* path, spi_dev_e device, enum Rotation rotation);
 	virtual ~L3GD20();
 
 	virtual int		init();
@@ -229,6 +230,8 @@ private:
 
 	/* true if an L3G4200D is detected */
 	bool	_is_l3g4200d;
+
+	enum Rotation		_rotation;
 
 	/**
 	 * Start automatic measurement.
@@ -329,7 +332,7 @@ private:
 	 int 			self_test();
 };
 
-L3GD20::L3GD20(int bus, const char* path, spi_dev_e device) :
+L3GD20::L3GD20(int bus, const char* path, spi_dev_e device, enum Rotation rotation) :
 	SPI("L3GD20", path, bus, device, SPIDEV_MODE3, 11*1000*1000 /* will be rounded to 10.4 MHz, within margins for L3GD20 */),
 	_call_interval(0),
 	_reports(nullptr),
@@ -346,7 +349,8 @@ L3GD20::L3GD20(int bus, const char* path, spi_dev_e device) :
 	_gyro_filter_x(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
 	_gyro_filter_y(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
 	_gyro_filter_z(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
-	_is_l3g4200d(false)
+	_is_l3g4200d(false),
+        _rotation(rotation)                                            
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -915,6 +919,9 @@ L3GD20::measure()
 	report.y = _gyro_filter_y.apply(report.y);
 	report.z = _gyro_filter_z.apply(report.z);
 
+	// apply user specified rotation
+	rotate_3f(_rotation, report.x, report.y, report.z);
+
 	report.scaling = _gyro_range_scale;
 	report.range_rad_s = _gyro_range_rad_s;
 
@@ -975,7 +982,7 @@ namespace l3gd20
 
 L3GD20	*g_dev;
 
-void	start();
+void	start(bool external_bus, enum Rotation rotation);
 void	test();
 void	reset();
 void	info();
@@ -984,7 +991,7 @@ void	info();
  * Start the driver.
  */
 void
-start(bool external_bus)
+start(bool external_bus, enum Rotation rotation)
 {
 	int fd;
 
@@ -994,12 +1001,12 @@ start(bool external_bus)
 	/* create the driver */
         if (external_bus) {
 #ifdef PX4_SPI_BUS_EXT
-		g_dev = new L3GD20(PX4_SPI_BUS_EXT, L3GD20_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_EXT_GYRO);
+		g_dev = new L3GD20(PX4_SPI_BUS_EXT, L3GD20_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_EXT_GYRO, rotation);
 #else
 		errx(0, "External SPI not available");
 #endif
 	} else {
-		g_dev = new L3GD20(PX4_SPI_BUS_SENSORS, L3GD20_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_GYRO);
+		g_dev = new L3GD20(PX4_SPI_BUS_SENSORS, L3GD20_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_GYRO, rotation);
 	}
 
 	if (g_dev == nullptr)
@@ -1128,12 +1135,16 @@ l3gd20_main(int argc, char *argv[])
 {
 	bool external_bus = false;
 	int ch;
+	enum Rotation rotation = ROTATION_NONE;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "X")) != EOF) {
+	while ((ch = getopt(argc, argv, "XR:")) != EOF) {
 		switch (ch) {
 		case 'X':
 			external_bus = true;
+			break;
+		case 'R':
+			rotation = (enum Rotation)atoi(optarg);
 			break;
 		default:
 			l3gd20_usage();
@@ -1148,7 +1159,7 @@ l3gd20_main(int argc, char *argv[])
 
 	 */
 	if (!strcmp(verb, "start"))
-		l3gd20::start(external_bus);
+		l3gd20::start(external_bus, rotation);
 
 	/*
 	 * Test the driver/device.
