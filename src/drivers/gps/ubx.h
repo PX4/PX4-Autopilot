@@ -183,7 +183,7 @@ typedef struct {
 	uint32_t	reserved2;
 } ubx_payload_rx_nav_sol_t;
 
-/* Rx NAV-PVT */
+/* Rx NAV-PVT (ubx8) */
 typedef struct {
 	uint32_t	iTOW;		/**< GPS Time of Week [ms] */
 	uint16_t	year; 		/**< Year (UTC)*/
@@ -215,9 +215,11 @@ typedef struct {
 	uint16_t	pDOP;		/**< Position DOP [0.01] */
 	uint16_t	reserved2;
 	uint32_t	reserved3;
-	int32_t		headVeh;	/**< Heading of vehicle (2-D) [1e-5 deg] */
-	uint32_t	reserved4;
+	int32_t		headVeh;	/**< (ubx8+ only) Heading of vehicle (2-D) [1e-5 deg] */
+	uint32_t	reserved4;	/**< (ubx8+ only) */
 } ubx_payload_rx_nav_pvt_t;
+#define UBX_PAYLOAD_RX_NAV_PVT_SIZE_UBX7	(sizeof(ubx_payload_rx_nav_pvt_t) - 8)
+#define UBX_PAYLOAD_RX_NAV_PVT_SIZE_UBX8	(sizeof(ubx_payload_rx_nav_pvt_t))
 
 /* Rx NAV-TIMEUTC */
 typedef struct {
@@ -395,6 +397,7 @@ typedef struct {
 
 /* General message and payload buffer union */
 typedef union {
+	ubx_payload_rx_nav_pvt_t		payload_rx_nav_pvt;
 	ubx_payload_rx_nav_posllh_t		payload_rx_nav_posllh;
 	ubx_payload_rx_nav_sol_t		payload_rx_nav_sol;
 	ubx_payload_rx_nav_timeutc_t		payload_rx_nav_timeutc;
@@ -533,6 +536,7 @@ private:
 	uint16_t		_ack_waiting_msg;
 	ubx_buf_t		_buf;
 	uint32_t		_ubx_version;
+	bool			_use_nav_pvt;
 };
 
 #endif /* UBX_H_ */

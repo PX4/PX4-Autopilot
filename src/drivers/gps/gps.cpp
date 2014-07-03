@@ -299,7 +299,6 @@ GPS::task_main()
 			_report_gps_pos.alt = (int32_t)1200e3f;
 			_report_gps_pos.timestamp_variance = hrt_absolute_time();
 			_report_gps_pos.s_variance_m_s = 10.0f;
-			_report_gps_pos.p_variance_m = 10.0f;
 			_report_gps_pos.c_variance_rad = 0.1f;
 			_report_gps_pos.fix_type = 3;
 			_report_gps_pos.eph = 0.9f;
