@@ -91,7 +91,9 @@ struct offboard_control_setpoint_s {
 	float p8;	/**< y acc */
 	float p9;	/**< z acc */
 
+	//XXX: use a bitmask with wrapper functions instead
 	bool ignore[9]; /**< if field i is set to true, pi should be ignored */
+	bool isForceSetpoint; /**< if set to true: p7 to p9 should be interpreted as force instead of acceleration */
 
 	float override_mode_switch;
 
