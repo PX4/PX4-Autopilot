@@ -410,8 +410,38 @@ MavlinkReceiver::handle_message_local_ned_position_setpoint_external(mavlink_mes
 			mavlink_system.compid == local_ned_position_setpoint_external.target_component) {
 
 		/* convert mavlink type (local, NED) to uORB offboard control struct */
-		//XXX do the conversion
-		//
+		switch (local_ned_position_setpoint_external.coordinate_frame) {
+			case MAV_FRAME_LOCAL_NED:
+				offboard_control_sp.mode = OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED;
+				break;
+			case MAV_FRAME_LOCAL_OFFSET_NED:
+				offboard_control_sp.mode = OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_OFFSET_NED;
+				break;
+			case MAV_FRAME_BODY_NED:
+				offboard_control_sp.mode = OFFBOARD_CONTROL_MODE_DIRECT_BODY_NED;
+				break;
+			case MAV_FRAME_BODY_OFFSET_NED:
+				offboard_control_sp.mode = OFFBOARD_CONTROL_MODE_DIRECT_BODY_OFFSET_NED;
+				break;
+			default:
+				/* invalid setpoint, avoid publishing */
+				return;
+		}
+		offboard_control_sp.p1 = local_ned_position_setpoint_external.x;
+		offboard_control_sp.p2 = local_ned_position_setpoint_external.y;
+		offboard_control_sp.p3 = local_ned_position_setpoint_external.z;
+		offboard_control_sp.p4 = local_ned_position_setpoint_external.vx;
+		offboard_control_sp.p5 = local_ned_position_setpoint_external.vy;
+		offboard_control_sp.p6 = local_ned_position_setpoint_external.vz;
+		offboard_control_sp.p7 = local_ned_position_setpoint_external.afx;
+		offboard_control_sp.p8 = local_ned_position_setpoint_external.afy;
+		offboard_control_sp.p9 = local_ned_position_setpoint_external.afz;
+		offboard_control_sp.isForceSetpoint = (bool)(local_ned_position_setpoint_external.type_mask & (1 << 9));
+		for (int i = 0; i < 9; i++) {
+			offboard_control_sp.ignore[i] =  (bool)(local_ned_position_setpoint_external.type_mask & (1 << i));
+		}
+
+
 		offboard_control_sp.timestamp = hrt_absolute_time();
 
 		if (_offboard_control_sp_pub < 0) {
