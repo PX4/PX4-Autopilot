@@ -74,6 +74,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/satellite_info.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/optical_flow.h>
@@ -140,6 +141,8 @@ PARAM_DEFINE_INT32(SDLOG_EXT, -1);
 	fds[fdsc_count].fd = subs.##_var##_sub; \
 	fds[fdsc_count].events = POLLIN; \
 	fdsc_count++;
+
+#define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 
 static bool main_thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;			/**< Deamon status flag */
@@ -944,6 +947,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct tecs_status_s tecs_status;
 		struct system_power_s system_power;
 		struct servorail_status_s servorail_status;
+		struct satellite_info_s sat_info;
 		struct wind_estimate_s wind_estimate;
 	} buf;
 
@@ -1007,6 +1011,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int global_pos_sub;
 		int triplet_sub;
 		int gps_pos_sub;
+		int sat_info_sub;
 		int vicon_pos_sub;
 		int flow_sub;
 		int rc_sub;
@@ -1026,6 +1031,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 	subs.status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	subs.gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	subs.sat_info_sub = orb_subscribe(ORB_ID(satellite_info));
 	subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	subs.att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	subs.att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
@@ -1066,11 +1072,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 	hrt_abstime barometer_timestamp = 0;
 	hrt_abstime differential_pressure_timestamp = 0;
 
+	/* initialize calculated mean SNR */
+	float snr_mean = 0.0f;
+
 	/* enable logging on start if needed */
 	if (log_on_start) {
 		/* check GPS topic to get GPS time */
 		if (log_name_timestamp) {
-			if (copy_if_updated(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf_gps_pos)) {
+			if (!orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf_gps_pos)) {
 				gps_time = buf_gps_pos.time_gps_usec;
 			}
 		}
@@ -1128,14 +1137,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- GPS POSITION - UNIT #1 --- */
 		if (gps_pos_updated) {
 
-			float snr_mean = 0.0f;
-
-			for (unsigned i = 0; i < buf_gps_pos.satellites_visible; i++) {
-				snr_mean += buf_gps_pos.satellite_snr[i];
-			}
-
-			snr_mean /= buf_gps_pos.satellites_visible;
-
 			log_msg.msg_type = LOG_GPS_MSG;
 			log_msg.body.log_GPS.gps_time = buf_gps_pos.time_gps_usec;
 			log_msg.body.log_GPS.fix_type = buf_gps_pos.fix_type;
@@ -1148,44 +1149,55 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_GPS.vel_e = buf_gps_pos.vel_e_m_s;
 			log_msg.body.log_GPS.vel_d = buf_gps_pos.vel_d_m_s;
 			log_msg.body.log_GPS.cog = buf_gps_pos.cog_rad;
-			log_msg.body.log_GPS.sats = buf_gps_pos.satellites_visible;
+			log_msg.body.log_GPS.sats = buf_gps_pos.satellites_used;
 			log_msg.body.log_GPS.snr_mean = snr_mean;
 			log_msg.body.log_GPS.noise_per_ms = buf_gps_pos.noise_per_ms;
 			log_msg.body.log_GPS.jamming_indicator = buf_gps_pos.jamming_indicator;
 			LOGBUFFER_WRITE_AND_COUNT(GPS);
+		}
 
-			if (_extended_logging) {
+		/* --- SATELLITE INFO - UNIT #1 --- */
+		if (_extended_logging) {
+
+			if (copy_if_updated(ORB_ID(satellite_info), subs.sat_info_sub, &buf.sat_info)) {
+
 				/* log the SNR of each satellite for a detailed view of signal quality */
-				unsigned gps_msg_max_snr = sizeof(buf_gps_pos.satellite_snr) / sizeof(buf_gps_pos.satellite_snr[0]);
+				unsigned sat_info_count = MIN(buf.sat_info.count, sizeof(buf.sat_info.snr) / sizeof(buf.sat_info.snr[0]));
 				unsigned log_max_snr = sizeof(log_msg.body.log_GS0A.satellite_snr) / sizeof(log_msg.body.log_GS0A.satellite_snr[0]);
 
 				log_msg.msg_type = LOG_GS0A_MSG;
 				memset(&log_msg.body.log_GS0A, 0, sizeof(log_msg.body.log_GS0A));
-				/* fill set A */
-				for (unsigned i = 0; i < gps_msg_max_snr; i++) {
+				snr_mean = 0.0f;
 
-					int satindex = buf_gps_pos.satellite_prn[i] - 1;
+				/* fill set A and calculate mean SNR */
+				for (unsigned i = 0; i < sat_info_count; i++) {
+
+					snr_mean += buf.sat_info.snr[i];
+
+					int satindex = buf.sat_info.svid[i] - 1;
 
 					/* handles index exceeding and wraps to to arithmetic errors */
 					if ((satindex >= 0) && (satindex < (int)log_max_snr)) {
 						/* map satellites by their ID so that logs from two receivers can be compared */
-						log_msg.body.log_GS0A.satellite_snr[satindex] = buf_gps_pos.satellite_snr[i];
+						log_msg.body.log_GS0A.satellite_snr[satindex] = buf.sat_info.snr[i];
 					}
 				}
 				LOGBUFFER_WRITE_AND_COUNT(GS0A);
+				snr_mean /= sat_info_count;
 
 				log_msg.msg_type = LOG_GS0B_MSG;
 				memset(&log_msg.body.log_GS0B, 0, sizeof(log_msg.body.log_GS0B));
+
 				/* fill set B */
-				for (unsigned i = 0; i < gps_msg_max_snr; i++) {
+				for (unsigned i = 0; i < sat_info_count; i++) {
 
 					/* get second bank of satellites, thus deduct bank size from index */
-					int satindex = buf_gps_pos.satellite_prn[i] - 1 - log_max_snr;
+					int satindex = buf.sat_info.svid[i] - 1 - log_max_snr;
 
 					/* handles index exceeding and wraps to to arithmetic errors */
 					if ((satindex >= 0) && (satindex < (int)log_max_snr)) {
 						/* map satellites by their ID so that logs from two receivers can be compared */
-						log_msg.body.log_GS0B.satellite_snr[satindex] = buf_gps_pos.satellite_snr[i];
+						log_msg.body.log_GS0B.satellite_snr[satindex] = buf.sat_info.snr[i];
 					}
 				}
 				LOGBUFFER_WRITE_AND_COUNT(GS0B);
@@ -1394,8 +1406,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		if (copy_if_updated(ORB_ID(rc_channels), subs.rc_sub, &buf.rc)) {
 			log_msg.msg_type = LOG_RC_MSG;
 			/* Copy only the first 8 channels of 14 */
-			memcpy(log_msg.body.log_RC.channel, buf.rc.chan, sizeof(log_msg.body.log_RC.channel));
-			log_msg.body.log_RC.channel_count = buf.rc.chan_count;
+			memcpy(log_msg.body.log_RC.channel, buf.rc.channels, sizeof(log_msg.body.log_RC.channel));
+			log_msg.body.log_RC.channel_count = buf.rc.channel_count;
 			log_msg.body.log_RC.signal_lost = buf.rc.signal_lost;
 			LOGBUFFER_WRITE_AND_COUNT(RC);
 		}
@@ -1514,6 +1526,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_TECS.altitude = buf.tecs_status.altitude;
 			log_msg.body.log_TECS.flightPathAngleSp = buf.tecs_status.flightPathAngleSp;
 			log_msg.body.log_TECS.flightPathAngle = buf.tecs_status.flightPathAngle;
+			log_msg.body.log_TECS.flightPathAngleFiltered = buf.tecs_status.flightPathAngleFiltered;
 			log_msg.body.log_TECS.airspeedSp = buf.tecs_status.airspeedSp;
 			log_msg.body.log_TECS.airspeed = buf.tecs_status.airspeed;
 			log_msg.body.log_TECS.airspeedFiltered = buf.tecs_status.airspeedFiltered;

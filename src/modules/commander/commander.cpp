@@ -52,6 +52,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <systemlib/err.h>
+#include <systemlib/circuit_breaker.h>
 #include <debug.h>
 #include <sys/prctl.h>
 #include <sys/stat.h>
@@ -76,6 +77,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/safety.h>
+#include <uORB/topics/system_power.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/telemetry_status.h>
 
@@ -371,16 +373,16 @@ void print_status()
 
 static orb_advert_t status_pub;
 
-transition_result_t arm_disarm(bool arm, const int mavlink_fd, const char *armedBy)
+transition_result_t arm_disarm(bool arm, const int mavlink_fd_local, const char *armedBy)
 {
 	transition_result_t arming_res = TRANSITION_NOT_CHANGED;
 
 	// Transition the armed state. By passing mavlink_fd to arming_state_transition it will
 	// output appropriate error messages if the state cannot transition.
-	arming_res = arming_state_transition(&status, &safety, arm ? ARMING_STATE_ARMED : ARMING_STATE_STANDBY, &armed, mavlink_fd);
+	arming_res = arming_state_transition(&status, &safety, arm ? ARMING_STATE_ARMED : ARMING_STATE_STANDBY, &armed, mavlink_fd_local);
 
 	if (arming_res == TRANSITION_CHANGED && mavlink_fd) {
-		mavlink_log_info(mavlink_fd, "[cmd] %s by %s", arm ? "ARMED" : "DISARMED", armedBy);
+		mavlink_log_info(mavlink_fd_local, "[cmd] %s by %s", arm ? "ARMED" : "DISARMED", armedBy);
 
 	} else if (arming_res == TRANSITION_DENIED) {
 		tune_negative(true);
@@ -507,7 +509,14 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 				cmd_result = VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				mavlink_log_info(mavlink_fd, "Unsupported OVERRIDE_GOTO: %f %f %f %f %f %f %f %f", cmd->param1, cmd->param2, cmd->param3, cmd->param4, cmd->param5, cmd->param6, cmd->param7);
+				mavlink_log_info(mavlink_fd, "Unsupported OVERRIDE_GOTO: %f %f %f %f %f %f %f %f",
+					(double)cmd->param1,
+					(double)cmd->param2,
+					(double)cmd->param3,
+					(double)cmd->param4,
+					(double)cmd->param5,
+					(double)cmd->param6,
+					(double)cmd->param7);
 			}
 		}
 		break;
@@ -603,6 +612,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		// XXX TODO
 	}
 
+	return true;
 }
 
 int commander_thread_main(int argc, char *argv[])
@@ -699,6 +709,12 @@ int commander_thread_main(int argc, char *argv[])
 	status.counter++;
 	status.timestamp = hrt_absolute_time();
 
+	status.condition_power_input_valid = true;
+	status.avionics_power_rail_voltage = -1.0f;
+
+	// CIRCUIT BREAKERS
+	status.circuit_breaker_engaged_power_check = false;
+
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
 
@@ -751,7 +767,6 @@ int commander_thread_main(int argc, char *argv[])
 
 	hrt_abstime last_idle_time = 0;
 	hrt_abstime start_time = 0;
-	hrt_abstime last_auto_state_valid = 0;
 
 	bool status_changed = true;
 	bool param_init_forced = true;
@@ -845,6 +860,11 @@ int commander_thread_main(int argc, char *argv[])
 	struct position_setpoint_triplet_s pos_sp_triplet;
 	memset(&pos_sp_triplet, 0, sizeof(pos_sp_triplet));
 
+	/* Subscribe to system power */
+	int system_power_sub = orb_subscribe(ORB_ID(system_power));
+	struct system_power_s system_power;
+	memset(&system_power, 0, sizeof(system_power));
+
 	control_status_leds(&status, &armed, true);
 
 	/* now initialized */
@@ -861,6 +881,7 @@ int commander_thread_main(int argc, char *argv[])
 	bool arming_state_changed = false;
 	bool main_state_changed = false;
 	bool failsafe_old = false;
+	bool system_checked = false;
 
 	while (!thread_should_exit) {
 
@@ -902,6 +923,9 @@ int commander_thread_main(int argc, char *argv[])
 				/* check and update system / component ID */
 				param_get(_param_system_id, &(status.system_id));
 				param_get(_param_component_id, &(status.component_id));
+
+				status.circuit_breaker_engaged_power_check = circuit_breaker_enabled("CBRK_SUPPLY_CHK", CBRK_SUPPLY_CHK_KEY);
+
 				status_changed = true;
 
 				/* re-check RC calibration */
@@ -912,6 +936,15 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_takeoff_alt, &takeoff_alt);
 			param_get(_param_enable_parachute, &parachute_enabled);
 			param_get(_param_enable_datalink_loss, &datalink_loss_enabled);
+		}
+
+		/* Perform system checks (again) once params are loaded and MAVLink is up. */
+		if (!system_checked && mavlink_fd && 
+			(telemetry.heartbeat_time > 0) &&
+			(hrt_elapsed_time(&telemetry.heartbeat_time) < 1 * 1000 * 1000)) {
+
+			(void)rc_calibration_check(mavlink_fd);
+			system_checked = true;
 		}
 
 		orb_check(sp_man_sub, &updated);
@@ -942,6 +975,26 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
+		}
+
+		orb_check(system_power_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(system_power), system_power_sub, &system_power);
+
+			if (hrt_elapsed_time(&system_power.timestamp) < 200000) {
+				if (system_power.servo_valid &&
+					!system_power.brick_valid &&
+					!system_power.usb_connected) {
+					/* flying only on servo rail, this is unsafe */
+					status.condition_power_input_valid = false;
+				} else {
+					status.condition_power_input_valid = true;
+				}
+
+				/* copy avionics voltage */
+				status.avionics_power_rail_voltage = system_power.voltage5V_v;
+			}
 		}
 
 		check_valid(diff_pres.timestamp, DIFFPRESS_TIMEOUT, true, &(status.condition_airspeed_valid), &status_changed);
@@ -1253,12 +1306,13 @@ int commander_thread_main(int argc, char *argv[])
 			if (status.arming_state == ARMING_STATE_STANDBY &&
 			    sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f) {
 				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-					if (safety.safety_switch_available && !safety.safety_off && status.hil_state == HIL_STATE_OFF) {
-						print_reject_arm("#audio: NOT ARMING: Press safety switch first.");
 
-					} else if (status.main_state != MAIN_STATE_MANUAL) {
+					/* we check outside of the transition function here because the requirement
+					 * for being in manual mode only applies to manual arming actions.
+					 * the system can be armed in auto if armed via the GCS.
+					 */
+					if (status.main_state != MAIN_STATE_MANUAL) {
 						print_reject_arm("#audio: NOT ARMING: Switch to MANUAL mode first.");
-
 					} else {
 						arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed, mavlink_fd);
 						if (arming_ret == TRANSITION_CHANGED) {
@@ -1288,6 +1342,7 @@ int commander_thread_main(int argc, char *argv[])
 			} else if (arming_ret == TRANSITION_DENIED) {
 				/* DENIED here indicates bug in the commander */
 				mavlink_log_critical(mavlink_fd, "ERROR: arming state transition denied");
+				tune_negative(true);
 			}
 
 			/* evaluate the main state machine according to mode switches */

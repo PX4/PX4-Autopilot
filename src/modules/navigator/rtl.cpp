@@ -227,7 +227,7 @@ RTL::set_rtl_item(position_setpoint_triplet_s *pos_sp_triplet)
 		_navigator->set_can_loiter_at_sp(true);
 
 		if (autoland) {
-			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: loiter %.1fs", _mission_item.time_inside);
+			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: loiter %.1fs", (double)_mission_item.time_inside);
 
 		} else {
 			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: completed, loiter");
