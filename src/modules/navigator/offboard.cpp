@@ -79,33 +79,46 @@ Offboard::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
 	bool changed = false;
 
 	/* copy offboard setpoints to the corresponding topics */
-	if (_navigator->get_control_mode()->flag_control_position_enabled
-	    && _offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_POSITION) {
-		/* position control */
-		pos_sp_triplet->current.x = _offboard_control_sp.p1;
-		pos_sp_triplet->current.y = _offboard_control_sp.p2;
-		pos_sp_triplet->current.yaw = _offboard_control_sp.p3;
-		pos_sp_triplet->current.z = -_offboard_control_sp.p4;
+	if (_offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED) {
+		/* We accept position control only if none of the directions is ignored (as pos_sp_triplet does not
+		 * support deactivation of individual directions) */
+		if (_navigator->get_control_mode()->flag_control_position_enabled &&
+				(!_offboard_control_sp.ignore[0] &&
+				 !_offboard_control_sp.ignore[1] &&
+				 !_offboard_control_sp.ignore[2])) {
+			/* position control */
+			pos_sp_triplet->current.x = _offboard_control_sp.p1;
+			pos_sp_triplet->current.y = _offboard_control_sp.p2;
+			pos_sp_triplet->current.yaw = _offboard_control_sp.p3;
+			pos_sp_triplet->current.z = -_offboard_control_sp.p4;
 
-		pos_sp_triplet->current.type = SETPOINT_TYPE_OFFBOARD;
-		pos_sp_triplet->current.valid = true;
-		pos_sp_triplet->current.position_valid = true;
+			pos_sp_triplet->current.type = SETPOINT_TYPE_OFFBOARD;
+			pos_sp_triplet->current.valid = true;
+			pos_sp_triplet->current.position_valid = true;
 
-		changed = true;
+			changed = true;
 
-	} else if (_navigator->get_control_mode()->flag_control_velocity_enabled
-	           && _offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY) {
-		/* velocity control */
-		pos_sp_triplet->current.vx = _offboard_control_sp.p2;
-		pos_sp_triplet->current.vy = _offboard_control_sp.p1;
-		pos_sp_triplet->current.yawspeed = _offboard_control_sp.p3;
-		pos_sp_triplet->current.vz = _offboard_control_sp.p4;
+		}
+		/* We accept velocity control only if none of the directions is ignored (as pos_sp_triplet does not
+		 * support deactivation of individual directions) */
+		if (_navigator->get_control_mode()->flag_control_velocity_enabled &&
+				(!_offboard_control_sp.ignore[3] &&
+				 !_offboard_control_sp.ignore[4] &&
+				 !_offboard_control_sp.ignore[5])) {
+			/* velocity control */
+			pos_sp_triplet->current.vx = _offboard_control_sp.p2;
+			pos_sp_triplet->current.vy = _offboard_control_sp.p1;
+			pos_sp_triplet->current.yawspeed = _offboard_control_sp.p3;
+			pos_sp_triplet->current.vz = _offboard_control_sp.p4;
 
-		pos_sp_triplet->current.type = SETPOINT_TYPE_OFFBOARD;
-		pos_sp_triplet->current.valid = true;
-		pos_sp_triplet->current.velocity_valid = true;
+			pos_sp_triplet->current.type = SETPOINT_TYPE_OFFBOARD;
+			pos_sp_triplet->current.valid = true;
+			pos_sp_triplet->current.velocity_valid = true;
 
-		changed = true;
+			changed = true;
+		}
+
+		//XXX: map acceleration setpoint once supported in setpoint triplet
 	}
 
 	return changed;

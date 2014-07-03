@@ -53,11 +53,22 @@ enum OFFBOARD_CONTROL_MODE {
 	OFFBOARD_CONTROL_MODE_DIRECT = 0,
 	OFFBOARD_CONTROL_MODE_DIRECT_RATES = 1,
 	OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE = 2,
-	OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY = 3,
-	OFFBOARD_CONTROL_MODE_DIRECT_POSITION = 4,
-	OFFBOARD_CONTROL_MODE_ATT_YAW_RATE = 5,
-	OFFBOARD_CONTROL_MODE_ATT_YAW_POS = 6,
-	OFFBOARD_CONTROL_MODE_MULTIROTOR_SIMPLE = 7, /**< roll / pitch rotated aligned to the takeoff orientation, throttle stabilized, yaw pos */
+	OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED = 3,
+	OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_OFFSET_NED = 4,
+	OFFBOARD_CONTROL_MODE_DIRECT_BODY_NED = 5,
+	OFFBOARD_CONTROL_MODE_DIRECT_BODY_OFFSET_NED = 6,
+	OFFBOARD_CONTROL_MODE_DIRECT_GLOBAL = 7,
+	OFFBOARD_CONTROL_MODE_ATT_YAW_RATE = 8,
+	OFFBOARD_CONTROL_MODE_ATT_YAW_POS = 9,
+	OFFBOARD_CONTROL_MODE_MULTIROTOR_SIMPLE = 10, /**< roll / pitch rotated aligned to the takeoff orientation, throttle stabilized, yaw pos */
+};
+
+enum OFFBOARD_CONTROL_FRAME {
+	OFFBOARD_CONTROL_FRAME_LOCAL_NED = 0,
+	OFFBOARD_CONTROL_FRAME_LOCAL_OFFSET_NED = 1,
+	OFFBOARD_CONTROL_FRAME_BODY_NED = 2,
+	OFFBOARD_CONTROL_FRAME_BODY_OFFSET_NED = 3,
+	OFFBOARD_CONTROL_FRAME_GLOBAL = 4
 };
 
 /**
@@ -70,10 +81,17 @@ struct offboard_control_setpoint_s {
 
 	enum OFFBOARD_CONTROL_MODE mode;		 /**< The current control inputs mode */
 
-	float p1;	/**< ailerons roll / roll rate input */
-	float p2;	/**< elevator / pitch / pitch rate */
-	float p3;	/**< rudder / yaw rate / yaw */
-	float p4;	/**< throttle / collective thrust / altitude */
+	double p1;	/**< ailerons / roll / x pos / lat */
+	double p2;	/**< elevator / pitch / y pos / lon */
+	float p3;	/**< rudder / yaw / z pos / alt */
+	float p4;	/**< throttle / x vel */
+	float p5;       /**< roll rate / y vel */
+	float p6;       /**< pitch rate / z vel */
+	float p7;	/**< yaw rate / x acc */
+	float p8;	/**< y acc */
+	float p9;	/**< z acc */
+
+	bool ignore[9]; /**< if field i is set to true, pi should be ignored */
 
 	float override_mode_switch;
 

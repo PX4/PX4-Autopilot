@@ -154,6 +154,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_quad_swarm_roll_pitch_yaw_thrust(msg);
 		break;
 
+	case MAVLINK_MSG_ID_LOCAL_NED_POSITION_SETPOINT_EXTERNAL:
+		handle_message_local_ned_position_setpoint_external(msg);
+		break;
+
 	case MAVLINK_MSG_ID_RADIO_STATUS:
 		handle_message_radio_status(msg);
 		break;
@@ -390,6 +394,30 @@ MavlinkReceiver::handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message
 		} else {
 			orb_publish(ORB_ID(offboard_control_setpoint), _offboard_control_sp_pub, &offboard_control_sp);
 		}
+	}
+}
+
+void
+MavlinkReceiver::handle_message_local_ned_position_setpoint_external(mavlink_message_t *msg)
+{
+	mavlink_local_ned_position_setpoint_external_t local_ned_position_setpoint_external;
+	mavlink_msg_local_ned_position_setpoint_external_decode(msg, &local_ned_position_setpoint_external);
+
+	struct offboard_control_setpoint_s offboard_control_sp;
+	memset(&offboard_control_sp, 0, sizeof(offboard_control_sp));
+
+	//XXX check if target system/component is correct
+
+	/* convert mavlink type (local, NED) to uORB offboard control struct */
+	//XXX do the conversion
+	//
+	offboard_control_sp.timestamp = hrt_absolute_time();
+
+	if (_offboard_control_sp_pub < 0) {
+		_offboard_control_sp_pub = orb_advertise(ORB_ID(offboard_control_setpoint), &offboard_control_sp);
+
+	} else {
+		orb_publish(ORB_ID(offboard_control_setpoint), _offboard_control_sp_pub, &offboard_control_sp);
 	}
 }
 
