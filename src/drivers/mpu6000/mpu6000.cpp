@@ -72,6 +72,7 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/conversion/rotation.h>
 
 #define DIR_READ			0x80
 #define DIR_WRITE			0x00
@@ -180,7 +181,7 @@ class MPU6000_gyro;
 class MPU6000 : public device::SPI
 {
 public:
-	MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev_e device);
+	MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev_e device, enum Rotation rotation);
 	virtual ~MPU6000();
 
 	virtual int		init();
@@ -234,6 +235,8 @@ private:
 	math::LowPassFilter2p	_gyro_filter_x;
 	math::LowPassFilter2p	_gyro_filter_y;
 	math::LowPassFilter2p	_gyro_filter_z;
+
+	enum Rotation		_rotation;
 
 	/**
 	 * Start automatic measurement.
@@ -371,7 +374,7 @@ private:
 /** driver 'main' command */
 extern "C" { __EXPORT int mpu6000_main(int argc, char *argv[]); }
 
-MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev_e device) :
+MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev_e device, enum Rotation rotation) :
 	SPI("MPU6000", path_accel, bus, device, SPIDEV_MODE3, MPU6000_LOW_BUS_SPEED),
 	_gyro(new MPU6000_gyro(this, path_gyro)),
 	_product(0),
@@ -394,7 +397,8 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_accel_filter_z(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_x(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_y(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_z(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ)
+	_gyro_filter_z(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
+	_rotation(rotation)
 {
 	// disable debug() calls
 	_debug_enabled = false;
@@ -1304,6 +1308,9 @@ MPU6000::measure()
 	arb.y = _accel_filter_y.apply(y_in_new);
 	arb.z = _accel_filter_z.apply(z_in_new);
 
+	// apply user specified rotation
+	rotate_3f(_rotation, arb.x, arb.y, arb.z);
+
 	arb.scaling = _accel_range_scale;
 	arb.range_m_s2 = _accel_range_m_s2;
 
@@ -1321,6 +1328,9 @@ MPU6000::measure()
 	grb.x = _gyro_filter_x.apply(x_gyro_in_new);
 	grb.y = _gyro_filter_y.apply(y_gyro_in_new);
 	grb.z = _gyro_filter_z.apply(z_gyro_in_new);
+
+	// apply user specified rotation
+	rotate_3f(_rotation, grb.x, grb.y, grb.z);
 
 	grb.scaling = _gyro_range_scale;
 	grb.range_rad_s = _gyro_range_rad_s;
@@ -1419,7 +1429,7 @@ namespace mpu6000
 MPU6000	*g_dev_int; // on internal bus
 MPU6000	*g_dev_ext; // on external bus
 
-void	start(bool);
+void	start(bool, enum Rotation);
 void	test(bool);
 void	reset(bool);
 void	info(bool);
@@ -1428,7 +1438,7 @@ void	info(bool);
  * Start the driver.
  */
 void
-start(bool external_bus)
+start(bool external_bus, enum Rotation rotation)
 {
 	int fd;
         MPU6000 **g_dev_ptr = external_bus?&g_dev_int:&g_dev_ext;
@@ -1442,12 +1452,12 @@ start(bool external_bus)
 	/* create the driver */
         if (external_bus) {
 #ifdef PX4_SPI_BUS_EXT
-		*g_dev_ptr = new MPU6000(PX4_SPI_BUS_EXT, path_accel, path_gyro, (spi_dev_e)PX4_SPIDEV_EXT_MPU);
+		*g_dev_ptr = new MPU6000(PX4_SPI_BUS_EXT, path_accel, path_gyro, (spi_dev_e)PX4_SPIDEV_EXT_MPU, rotation);
 #else
 		errx(0, "External SPI not available");
 #endif
 	} else {
-		*g_dev_ptr = new MPU6000(PX4_SPI_BUS_SENSORS, path_accel, path_gyro, (spi_dev_e)PX4_SPIDEV_MPU);
+		*g_dev_ptr = new MPU6000(PX4_SPI_BUS_SENSORS, path_accel, path_gyro, (spi_dev_e)PX4_SPIDEV_MPU, rotation);
 	}
 
 	if (*g_dev_ptr == nullptr)
@@ -1610,12 +1620,16 @@ mpu6000_main(int argc, char *argv[])
 {
 	bool external_bus = false;
 	int ch;
+	enum Rotation rotation = ROTATION_NONE;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "X")) != EOF) {
+	while ((ch = getopt(argc, argv, "XR:")) != EOF) {
 		switch (ch) {
 		case 'X':
 			external_bus = true;
+			break;
+		case 'R':
+			rotation = (enum Rotation)atoi(optarg);
 			break;
 		default:
 			mpu6000_usage();
@@ -1630,7 +1644,7 @@ mpu6000_main(int argc, char *argv[])
 
 	 */
 	if (!strcmp(verb, "start"))
-		mpu6000::start(external_bus);
+		mpu6000::start(external_bus, rotation);
 
 	/*
 	 * Test the driver/device.
