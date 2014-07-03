@@ -43,6 +43,7 @@
 #include <uORB/topics/actuator_armed.h>
 
 #include "esc_controller.hpp"
+#include "gnss_receiver.hpp"
 
 /**
  * @file uavcan_main.hpp
@@ -108,6 +109,7 @@ private:
 	static UavcanNode	*_instance;			///< singleton pointer
 	Node			_node;				///< library instance
 	UavcanEscController	_esc_controller;
+	UavcanGnssReceiver 	_gnss_receiver;
 
 	MixerGroup		*_mixers = nullptr;
 
