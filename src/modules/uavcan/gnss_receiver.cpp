@@ -41,6 +41,7 @@
 
 #include "gnss_receiver.hpp"
 #include <systemlib/err.h>
+#include <mathlib/mathlib.h>
 
 #define MM_PER_CM 			10	// Millimeters per centimeter
 
@@ -86,7 +87,7 @@ void UavcanGnssReceiver::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uav
 	if (valid_position_covariance) {
 	    float pos_cov[9];
 	    msg.position_covariance.unpackSquareMatrix(pos_cov);
-		_report.p_variance_m = std::max(pos_cov[0], pos_cov[4]);
+		_report.p_variance_m = math::max(pos_cov[0], pos_cov[4]);
 		_report.eph_m = sqrtf(_report.p_variance_m);
 	} else {
 		_report.p_variance_m = -1.0;
@@ -96,7 +97,7 @@ void UavcanGnssReceiver::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uav
 	if (valid_velocity_covariance) {
 	    float vel_cov[9];
 	    msg.velocity_covariance.unpackSquareMatrix(vel_cov);
-		_report.s_variance_m_s = vel_cov[0] + vel_cov[4] + vel_cov[8];
+		_report.s_variance_m_s = math::max(math::max(vel_cov[0], vel_cov[4]), vel_cov[8]);
 
 		/* There is a nonlinear relationship between the velocity vector and the heading.
 		 * Use Jacobian to transform velocity covariance to heading covariance
