@@ -69,6 +69,7 @@
 
 #include <board_config.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/conversion/rotation.h>
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -222,7 +223,7 @@ class LSM303D_mag;
 class LSM303D : public device::SPI
 {
 public:
-	LSM303D(int bus, const char* path, spi_dev_e device);
+	LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rotation);
 	virtual ~LSM303D();
 
 	virtual int		init();
@@ -311,7 +312,8 @@ private:
 	uint64_t		_last_log_us;	
 	uint64_t		_last_log_sync_us;	
 	uint64_t		_last_log_reg_us;	
-	uint64_t		_last_log_alarm_us;	
+	uint64_t		_last_log_alarm_us;
+	enum Rotation		_rotation;
 
 	/**
 	 * Start automatic measurement.
@@ -491,7 +493,7 @@ private:
 };
 
 
-LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
+LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rotation) :
 	SPI("LSM303D", path, bus, device, SPIDEV_MODE3, 11*1000*1000 /* will be rounded to 10.4 MHz, within safety margins for LSM303D */),
 	_mag(new LSM303D_mag(this)),
 	_call_accel_interval(0),
@@ -525,7 +527,8 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_last_log_us(0),
 	_last_log_sync_us(0),
 	_last_log_reg_us(0),
-	_last_log_alarm_us(0)
+	_last_log_alarm_us(0),
+	_rotation(rotation)
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -1541,6 +1544,9 @@ LSM303D::measure()
 	accel_report.y = _accel_filter_y.apply(y_in_new);
 	accel_report.z = _accel_filter_z.apply(z_in_new);
 
+	// apply user specified rotation
+	rotate_3f(_rotation, accel_report.x, accel_report.y, accel_report.z);
+
 	accel_report.scaling = _accel_range_scale;
 	accel_report.range_m_s2 = _accel_range_m_s2;
 
@@ -1616,6 +1622,9 @@ LSM303D::mag_measure()
 	mag_report.z = ((mag_report.z_raw * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
 	mag_report.scaling = _mag_range_scale;
 	mag_report.range_ga = (float)_mag_range_ga;
+
+	// apply user specified rotation
+	rotate_3f(_rotation, mag_report.x, mag_report.y, mag_report.z);
 
 	_mag_reports->force(&mag_report);
 
@@ -1782,7 +1791,7 @@ namespace lsm303d
 
 LSM303D	*g_dev;
 
-void	start();
+void	start(bool external_bus, enum Rotation rotation);
 void	test();
 void	reset();
 void	info();
@@ -1793,7 +1802,7 @@ void	logging();
  * Start the driver.
  */
 void
-start(bool external_bus)
+start(bool external_bus, enum Rotation rotation)
 {
 	int fd, fd_mag;
 	if (g_dev != nullptr)
@@ -1801,9 +1810,9 @@ start(bool external_bus)
 
 	/* create the driver */
         if (external_bus) {
-		g_dev = new LSM303D(PX4_SPI_BUS_EXT, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_EXT_ACCEL_MAG);
+		g_dev = new LSM303D(PX4_SPI_BUS_EXT, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_EXT_ACCEL_MAG, rotation);
 	} else {
-		g_dev = new LSM303D(PX4_SPI_BUS_SENSORS, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG);
+		g_dev = new LSM303D(PX4_SPI_BUS_SENSORS, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG, rotation);
 	}
 	if (g_dev == nullptr) {
 		warnx("failed instantiating LSM303D obj");
@@ -2015,12 +2024,16 @@ lsm303d_main(int argc, char *argv[])
 {
 	bool external_bus = false;
 	int ch;
+	enum Rotation rotation = ROTATION_NONE;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "X")) != EOF) {
+	while ((ch = getopt(argc, argv, "XR:")) != EOF) {
 		switch (ch) {
 		case 'X':
 			external_bus = true;
+			break;
+		case 'R':
+			rotation = (enum Rotation)atoi(optarg);
 			break;
 		default:
 			lsm303d_usage();
@@ -2035,7 +2048,7 @@ lsm303d_main(int argc, char *argv[])
 
 	 */
 	if (!strcmp(verb, "start"))
-		lsm303d::start(external_bus);
+		lsm303d::start(external_bus, rotation);
 
 	/*
 	 * Test the driver/device.
