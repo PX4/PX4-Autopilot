@@ -134,7 +134,8 @@ __BEGIN_DECLS
 
 /* I2C busses */
 #define PX4_I2C_BUS_EXPANSION	1
-#define PX4_I2C_BUS_LED		2
+#define PX4_I2C_BUS_ONBOARD	2
+#define PX4_I2C_BUS_LED		PX4_I2C_BUS_ONBOARD
 
 /* Devices on the onboard bus.
  *
