@@ -147,6 +147,12 @@ template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<36> { enum { Result = 6 }; }
 template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<49> { enum { Result = 7 }; };
 template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<64> { enum { Result = 8 }; };
 template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<81> { enum { Result = 9 }; };
+template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<100> { enum { Result = 10 }; };
+template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<121> { enum { Result = 11 }; };
+template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<144> { enum { Result = 12 }; };
+template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<169> { enum { Result = 13 }; };
+template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<196> { enum { Result = 14 }; };
+template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<256> { enum { Result = 16 }; };
 
 /**
  * Replacement for std::copy(..)

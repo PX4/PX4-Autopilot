@@ -1069,3 +1069,75 @@ TEST(Array, SquareMatrixPackingErrors)
     ASSERT_THROW(m3x3s.unpackSquareMatrix(ill_formed_row_major), std::out_of_range);
 }
 #endif
+
+TEST(Array, SquareMatrixPackingInPlace)
+{
+    Array<FloatSpec<16, CastModeSaturate>, ArrayModeDynamic, 9> m3x3s;
+
+    // Will do nothing - matrix is empty
+    m3x3s.packSquareMatrix();
+    ASSERT_TRUE(m3x3s.empty());
+
+    // Will fill with zeros - matrix is empty
+    m3x3s.unpackSquareMatrix();
+    ASSERT_EQ(9, m3x3s.size());
+    for (unsigned i = 0; i < 9; i++)
+    {
+        ASSERT_EQ(0, m3x3s[i]);
+    }
+
+    // Fill an unpackaple matrix
+    m3x3s.clear();
+    m3x3s.push_back(11);
+    m3x3s.push_back(12);
+    m3x3s.push_back(13);
+
+#if UAVCAN_EXCEPTIONS
+    // Shall throw - matrix is ill-formed
+    ASSERT_THROW(m3x3s.packSquareMatrix(), std::out_of_range);
+#endif
+
+    m3x3s.push_back(21);
+    m3x3s.push_back(22);
+    m3x3s.push_back(23);
+    m3x3s.push_back(31);
+    m3x3s.push_back(32);
+    m3x3s.push_back(33);
+
+    // Will pack/unpack successfully
+    ASSERT_EQ(9, m3x3s.size());
+    m3x3s.packSquareMatrix();
+    ASSERT_EQ(9, m3x3s.size());
+    m3x3s.unpackSquareMatrix();
+
+    // Make sure it was unpacked properly
+    ASSERT_EQ(11, m3x3s[0]);
+    ASSERT_EQ(12, m3x3s[1]);
+    ASSERT_EQ(13, m3x3s[2]);
+    ASSERT_EQ(21, m3x3s[3]);
+    ASSERT_EQ(22, m3x3s[4]);
+    ASSERT_EQ(23, m3x3s[5]);
+    ASSERT_EQ(31, m3x3s[6]);
+    ASSERT_EQ(32, m3x3s[7]);
+    ASSERT_EQ(33, m3x3s[8]);
+
+    // Try again with a scalar matrix
+    m3x3s.clear();
+    for (unsigned i = 0; i < 9; i++)
+    {
+        const bool diagonal = (i == 0) || (i == 4) || (i == 8);
+        m3x3s.push_back(diagonal ? 123 : 0);
+    }
+
+    ASSERT_EQ(9, m3x3s.size());
+    m3x3s.packSquareMatrix();
+    ASSERT_EQ(1, m3x3s.size());
+    m3x3s.unpackSquareMatrix();
+    ASSERT_EQ(9, m3x3s.size());
+
+    for (unsigned i = 0; i < 9; i++)
+    {
+        const bool diagonal = (i == 0) || (i == 4) || (i == 8);
+        ASSERT_EQ((diagonal ? 123 : 0), m3x3s[i]);
+    }
+}

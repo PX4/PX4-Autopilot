@@ -649,6 +649,36 @@ public:
     }
 
     /**
+     * Fills this array as a packed square matrix in place.
+     */
+    void packSquareMatrix()
+    {
+        if (this->size() == MaxSize)
+        {
+            ValueType matrix[MaxSize];
+            for (unsigned i = 0; i < MaxSize; i++)
+            {
+                matrix[i] = this->at(i);
+            }
+            packSquareMatrix(matrix);
+        }
+        else if (this->size() == 0)
+        {
+            ; // Nothing to do - leave the matrix empty
+        }
+        else
+        {
+#if UAVCAN_EXCEPTIONS
+            throw std::out_of_range("uavcan::Array::packSquareMatrix()");
+#else
+            assert(0);
+            this->clear();
+#endif
+        }
+
+    }
+
+    /**
      * Fills this array as a packed square matrix from any container that implements the methods begin() and size().
      */
     template <typename R>
@@ -681,6 +711,21 @@ public:
     void unpackSquareMatrix(ScalarType (&dst_row_major)[MaxSize]) const
     {
         unpackSquareMatrixImpl<ScalarType*>(dst_row_major);
+    }
+
+    /**
+     * Reconstructs full matrix in place.
+     */
+    void unpackSquareMatrix()
+    {
+        ValueType matrix[MaxSize];
+        unpackSquareMatrix(matrix);
+
+        this->clear();
+        for (unsigned i = 0; i < MaxSize; i++)
+        {
+            this->push_back(matrix[i]);
+        }
     }
 
     /**
