@@ -9,6 +9,6 @@ float16 voltage             # Volt, NAN if unknown
 float16 current             # Ampere, NAN if unknown. Can be negative in case of a regenerative braking.
 float16 temperature         # Celsius, NAN if unknown
 
-uint7 power_rate_pct        # Percent of maximum power
+uint7 power_rating_pct      # Percent of maximum power
 
 uint33 error_count          # Since the motor started
