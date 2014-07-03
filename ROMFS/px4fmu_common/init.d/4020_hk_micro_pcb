@@ -2,8 +2,9 @@
 #
 # Hobbyking Micro Integrated PCB Quadcopter
 #
-# Anton Babushkin <anton.babushkin@me.com>
+# Thomas Gubler <thomasgubler@gmail.com>
 #
+echo "HK Micro PCB Quad"
 
 sh /etc/init.d/4001_quad_x
 
@@ -23,5 +24,5 @@ then
 	param set MC_YAWRATE_D 0.0
 fi
 
-set PWM_MIN 1100
+set PWM_MIN 1200
 set PWM_DISARMED 900
