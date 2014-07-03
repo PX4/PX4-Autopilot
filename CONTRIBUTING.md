@@ -11,7 +11,7 @@ First [fork and clone](https://help.github.com/articles/fork-a-repo) the project
 *Always* branch off master for new features.
 
 ```
-git checkout -b my_descriptive_branch_name
+git checkout -b mydescriptivebranchname
 ```
 
 ### Edit and build the code
