@@ -8,6 +8,7 @@
 
 #ifdef EKF_DEBUG
 #include <stdio.h>
+#include <stdarg.h>
 
 static void
 ekf_debug_print(const char *fmt, va_list args)

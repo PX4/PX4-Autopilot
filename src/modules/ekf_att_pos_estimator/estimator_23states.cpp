@@ -1747,7 +1747,7 @@ void AttPosEKF::FuseOptFlow()
     static float losPred[2];
 
     // Transformation matrix from nav to body axes
-    Mat3f Tnb;
+    Mat3f Tnb_local;
     // Transformation matrix from body to sensor axes
     // assume camera is aligned with Z body axis plus a misalignment
     // defined by 3 small angles about X, Y and Z body axis
@@ -1764,7 +1764,7 @@ void AttPosEKF::FuseOptFlow()
     for (uint8_t i = 0; i < n_states; i++) {
         H_LOS[i] = 0.0f;
     }
-    Vector3f velNED;
+    Vector3f velNED_local;
     Vector3f relVelSensor;
 
 // Perform sequential fusion of optical flow measurements only when in the air and tilt is less than 30 deg.
@@ -1786,9 +1786,9 @@ void AttPosEKF::FuseOptFlow()
             vd       = statesAtOptFlowTime[6];
             pd       = statesAtOptFlowTime[9];
             ptd      = statesAtOptFlowTime[22];
-            velNED.x = vn;
-            velNED.y = ve;
-            velNED.z = vd;
+            velNED_local.x = vn;
+            velNED_local.y = ve;
+            velNED_local.z = vd;
 
             // calculate rotation from NED to body axes
             float q00 = sq(q0);
@@ -1801,24 +1801,24 @@ void AttPosEKF::FuseOptFlow()
             float q12 = q1 * q2;
             float q13 = q1 * q3;
             float q23 = q2 * q3;
-            Tnb.x.x = q00 + q11 - q22 - q33;
-            Tnb.y.y = q00 - q11 + q22 - q33;
-            Tnb.z.z = q00 - q11 - q22 + q33;
-            Tnb.y.x = 2*(q12 - q03);
-            Tnb.z.x = 2*(q13 + q02);
-            Tnb.x.y = 2*(q12 + q03);
-            Tnb.z.y = 2*(q23 - q01);
-            Tnb.x.z = 2*(q13 - q02);
-            Tnb.y.z = 2*(q23 + q01);
+            Tnb_local.x.x = q00 + q11 - q22 - q33;
+            Tnb_local.y.y = q00 - q11 + q22 - q33;
+            Tnb_local.z.z = q00 - q11 - q22 + q33;
+            Tnb_local.y.x = 2*(q12 - q03);
+            Tnb_local.z.x = 2*(q13 + q02);
+            Tnb_local.x.y = 2*(q12 + q03);
+            Tnb_local.z.y = 2*(q23 - q01);
+            Tnb_local.x.z = 2*(q13 - q02);
+            Tnb_local.y.z = 2*(q23 + q01);
 
             // calculate transformation from NED to sensor axes
-            Tns = Tbs*Tnb;
+            Tns = Tbs*Tnb_local;
 
             // calculate range from ground plain to centre of sensor fov assuming flat earth
             float range = ConstrainFloat(((ptd - pd)/Tns.z.z),0.5f,100.0f);
 
             // calculate relative velocity in sensor frame
-            relVelSensor = Tns*velNED;
+            relVelSensor = Tns*velNED_local;
 
             // calculate delta angles in sensor axes
             Vector3f delAngRel = Tbs*delAng;
