@@ -26,4 +26,3 @@ then
 fi
 
 set PWM_MIN 1200
-set PWM_DISARMED 900
