@@ -326,11 +326,12 @@ Mission::set_mission_items()
 			takeoff_alt += _navigator->get_home_position()->alt;
 		}
 
+		/* perform takeoff at least to NAV_TAKEOFF_ALT above home/ground, even if first waypoint is lower */
 		if (_navigator->get_vstatus()->condition_landed) {
 			takeoff_alt = fmaxf(takeoff_alt, _navigator->get_global_position()->alt + _param_takeoff_alt.get());
 
 		} else {
-			takeoff_alt = _navigator->get_home_position()->alt + _param_takeoff_alt.get();
+			takeoff_alt = fmaxf(takeoff_alt, _navigator->get_home_position()->alt + _param_takeoff_alt.get());
 		}
 
 		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: takeoff to %.1fm above home", takeoff_alt - _navigator->get_home_position()->alt);
