@@ -71,6 +71,8 @@
 #include <uORB/topics/subsystem_info.h>
 
 #include <float.h>
+#include <getopt.h>
+#include <lib/conversion/rotation.h>
 
 /*
  * HMC5883 internal constants and data structures.
@@ -130,7 +132,7 @@ static const int ERROR = -1;
 class HMC5883 : public device::I2C
 {
 public:
-	HMC5883(int bus);
+	HMC5883(int bus, enum Rotation rotation);
 	virtual ~HMC5883();
 
 	virtual int		init();
@@ -169,6 +171,7 @@ private:
 	bool			_calibrated;		/**< the calibration is valid */
 
 	int			_bus;			/**< the bus the device is connected to */
+	enum Rotation		_rotation;
 
 	struct mag_report	_last_report;           /**< used for info() */
 
@@ -319,7 +322,7 @@ private:
 extern "C" __EXPORT int hmc5883_main(int argc, char *argv[]);
 
 
-HMC5883::HMC5883(int bus) :
+HMC5883::HMC5883(int bus, enum Rotation rotation) :
 	I2C("HMC5883", HMC5883L_DEVICE_PATH, bus, HMC5883L_ADDRESS, 400000),
 	_measure_ticks(0),
 	_reports(nullptr),
@@ -334,7 +337,8 @@ HMC5883::HMC5883(int bus) :
 	_buffer_overflows(perf_alloc(PC_COUNT, "hmc5883_buffer_overflows")),
 	_sensor_ok(false),
 	_calibrated(false),
-	_bus(bus)
+	_bus(bus),
+	_rotation(rotation)
 {
 	// enable debug() calls
 	_debug_enabled = false;
@@ -862,6 +866,9 @@ HMC5883::collect()
 	/* z remains z */
 	new_report.z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
 
+	// apply user specified rotation
+	rotate_3f(_rotation, new_report.x, new_report.y, new_report.z);
+
 	if (_class_instance == CLASS_DEVICE_PRIMARY && !(_pub_blocked)) {
 
 		if (_mag_topic != -1) {
@@ -1246,7 +1253,7 @@ const int ERROR = -1;
 
 HMC5883	*g_dev;
 
-void	start();
+void	start(enum Rotation rotation);
 void	test();
 void	reset();
 void	info();
@@ -1256,7 +1263,7 @@ int	calibrate();
  * Start the driver.
  */
 void
-start()
+start(enum Rotation rotation)
 {
 	int fd;
 
@@ -1265,7 +1272,7 @@ start()
 		errx(0, "already started");
 
 	/* create the driver, attempt expansion bus first */
-	g_dev = new HMC5883(PX4_I2C_BUS_EXPANSION);
+	g_dev = new HMC5883(PX4_I2C_BUS_EXPANSION, rotation);
 	if (g_dev != nullptr && OK != g_dev->init()) {
 		delete g_dev;
 		g_dev = nullptr;
@@ -1275,7 +1282,7 @@ start()
 #ifdef PX4_I2C_BUS_ONBOARD
 	/* if this failed, attempt onboard sensor */
 	if (g_dev == nullptr) {
-		g_dev = new HMC5883(PX4_I2C_BUS_ONBOARD);
+		g_dev = new HMC5883(PX4_I2C_BUS_ONBOARD, rotation);
 		if (g_dev != nullptr && OK != g_dev->init()) {
 			goto fail;
 		}
@@ -1474,14 +1481,36 @@ info()
 
 } // namespace
 
+void
+hmc5883_usage()
+{
+	warnx("missing command: try 'start', 'info', 'test', 'reset', 'info', 'calibrate'");
+	warnx("options:");
+	warnx("    -R rotation");
+}
+
 int
 hmc5883_main(int argc, char *argv[])
 {
+	int ch;
+	enum Rotation rotation = ROTATION_NONE;
+
+	while ((ch = getopt(argc, argv, "R:")) != EOF) {
+		switch (ch) {
+		case 'R':
+			rotation = (enum Rotation)atoi(optarg);
+			break;
+		default:
+			hmc5883_usage();
+			exit(0);
+		}
+	}
+
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start"))
-		hmc5883::start();
+		hmc5883::start(rotation);
 
 	/*
 	 * Test the driver/device.
