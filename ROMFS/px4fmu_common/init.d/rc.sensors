@@ -29,6 +29,13 @@ then
 		echo "[init] Using LSM303D"
 	fi
 fi
+if ver hwcmp AEROCORE
+then
+	if lsm303d start
+	then
+		echo "[init] Using LSM303D"
+	fi
+fi
 
 # Start airspeed sensors
 if meas_airspeed start

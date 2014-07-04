@@ -84,12 +84,13 @@ __EXPORT const struct pwm_servo_channel pwm_channels[PWM_SERVO_MAX_CHANNELS] = {
 		.timer_channel = 3,
 		.default_value = 1500,
 	},
+/* NOT FUNCTIONAL
 	{
 		.gpio = GPIO_TIM1_CH4OUT,
 		.timer_index = 0,
 		.timer_channel = 4,
 		.default_value = 1500,
-	},
+	},*/
 	{
 		.gpio = GPIO_TIM3_CH1OUT,
 		.timer_index = 1,
