@@ -151,9 +151,6 @@ float ECL_PitchController::control_bodyrate(float roll, float pitch,
 	if (dt_micros > 500000)
 		lock_integrator = true;
 
-//	float k_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
-	float k_ff = 0;
-
 	/* input conditioning */
 	if (!isfinite(airspeed)) {
 		/* airspeed is NaN, +- INF or not available, pick center of band */

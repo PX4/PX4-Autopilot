@@ -45,7 +45,6 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/rc_channels.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -120,50 +119,77 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 	union px4_custom_mode custom_mode;
 	custom_mode.data = 0;
 
-	if (pos_sp_triplet->nav_state == NAV_STATE_NONE) {
-		/* use main state when navigator is not active */
-		if (status->main_state == MAIN_STATE_MANUAL) {
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
+	switch (status->nav_state) {
+
+		case NAVIGATION_STATE_MANUAL:
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
+			                      | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+			break;
 
-		} else if (status->main_state == MAIN_STATE_ALTCTL) {
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ALTCTL;
-
-		} else if (status->main_state == MAIN_STATE_POSCTL) {
-			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
-
-		} else if (status->main_state == MAIN_STATE_AUTO) {
-			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
-
-		} else if (status->main_state == MAIN_STATE_ACRO) {
+		case NAVIGATION_STATE_ACRO:
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ACRO;
-		}
+			break;
 
-	} else {
-		/* use navigation state when navigator is active */
-		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		case NAVIGATION_STATE_ALTCTL:
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
+			                      | MAV_MODE_FLAG_STABILIZE_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ALTCTL;
+			break;
 
-		if (pos_sp_triplet->nav_state == NAV_STATE_READY) {
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
+		case NAVIGATION_STATE_POSCTL:
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
+			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
+					      | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
+			break;
 
-		} else if (pos_sp_triplet->nav_state == NAV_STATE_LOITER) {
-			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
-
-		} else if (pos_sp_triplet->nav_state == NAV_STATE_MISSION) {
+		case NAVIGATION_STATE_AUTO_MISSION:
+			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
+					      | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
+			break;
 
-		} else if (pos_sp_triplet->nav_state == NAV_STATE_RTL) {
+		case NAVIGATION_STATE_AUTO_LOITER:
+			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
+					      | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
+			break;
+
+		case NAVIGATION_STATE_AUTO_RTL:
+			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
+					      | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
+			break;
 
-		} else if (pos_sp_triplet->nav_state == NAV_STATE_LAND) {
+		case NAVIGATION_STATE_LAND:
+			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
+					      | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
-		}
+			break;
+
+		case NAVIGATION_STATE_AUTO_RTGS:
+			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
+					      | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTGS;
+			break;
+
+		case NAVIGATION_STATE_TERMINATION:
+			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+			break;
+
 	}
 
 	*mavlink_custom_mode = custom_mode.data;
@@ -205,6 +231,11 @@ public:
 		return "HEARTBEAT";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_HEARTBEAT;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamHeartbeat();
@@ -227,8 +258,15 @@ protected:
 		struct position_setpoint_triplet_s pos_sp_triplet;
 
 		/* always send the heartbeat, independent of the update status of the topics */
-		(void)status_sub->update(&status);
-		(void)pos_sp_triplet_sub->update(&pos_sp_triplet);
+		if (!status_sub->update(&status)) {
+			/* if topic update failed fill it with defaults */
+			memset(&status, 0, sizeof(status));
+		}
+
+		if (!pos_sp_triplet_sub->update(&pos_sp_triplet)) {
+			/* if topic update failed fill it with defaults */
+			memset(&pos_sp_triplet, 0, sizeof(pos_sp_triplet));
+		}
 
 		uint8_t mavlink_state = 0;
 		uint8_t mavlink_base_mode = 0;
@@ -256,6 +294,11 @@ public:
 	static const char *get_name_static ()
 	{
 		return "SYS_STATUS";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_SYS_STATUS;
 	}
 
 	static MavlinkStream *new_instance()
@@ -307,6 +350,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "HIGHRES_IMU";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_HIGHRES_IMU;
 	}
 
 	static MavlinkStream *new_instance()
@@ -394,6 +442,11 @@ public:
 		return "ATTITUDE";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_ATTITUDE;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamAttitude();
@@ -438,6 +491,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "ATTITUDE_QUATERNION";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_ATTITUDE_QUATERNION;
 	}
 
 	static MavlinkStream *new_instance()
@@ -490,6 +548,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "VFR_HUD";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_VFR_HUD;
 	}
 
 	static MavlinkStream *new_instance()
@@ -575,6 +638,11 @@ public:
 		return "GPS_RAW_INT";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_GPS_RAW_INT;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamGPSRawInt();
@@ -605,11 +673,11 @@ protected:
 						     gps.lat,
 						     gps.lon,
 						     gps.alt,
-						     cm_uint16_from_m_float(gps.eph_m),
-						     cm_uint16_from_m_float(gps.epv_m),
+						     cm_uint16_from_m_float(gps.eph),
+						     cm_uint16_from_m_float(gps.epv),
 						     gps.vel_m_s * 100.0f,
 						     _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F * 1e2f,
-						     gps.satellites_visible);
+						     gps.satellites_used);
 		}
 	}
 };
@@ -626,6 +694,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "GLOBAL_POSITION_INT";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_GLOBAL_POSITION_INT;
 	}
 
 	static MavlinkStream *new_instance()
@@ -689,6 +762,11 @@ public:
 		return "LOCAL_POSITION_NED";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_LOCAL_POSITION_NED;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamLocalPositionNED();
@@ -738,6 +816,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "VICON_POSITION_ESTIMATE";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE;
 	}
 
 	static MavlinkStream *new_instance()
@@ -790,6 +873,11 @@ public:
 		return "GPS_GLOBAL_ORIGIN";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamGPSGlobalOrigin();
@@ -828,6 +916,11 @@ public:
 	const char *get_name() const
 	{
 		return MavlinkStreamServoOutputRaw<N>::get_name_static();
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_SERVO_OUTPUT_RAW;
 	}
 
 	static const char *get_name_static()
@@ -905,6 +998,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "HIL_CONTROLS";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_HIL_CONTROLS;
 	}
 
 	static MavlinkStream *new_instance()
@@ -1044,6 +1142,11 @@ public:
 		return "GLOBAL_POSITION_SETPOINT_INT";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_GLOBAL_POSITION_SETPOINT_INT;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamGlobalPositionSetpointInt();
@@ -1085,6 +1188,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "LOCAL_POSITION_SETPOINT";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_LOCAL_POSITION_SETPOINT;
 	}
 
 	static MavlinkStream *new_instance()
@@ -1135,6 +1243,11 @@ public:
 		return "ROLL_PITCH_YAW_THRUST_SETPOINT";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_ROLL_PITCH_YAW_THRUST_SETPOINT;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamRollPitchYawThrustSetpoint();
@@ -1183,6 +1296,11 @@ public:
 		return "ROLL_PITCH_YAW_RATES_THRUST_SETPOINT";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_ROLL_PITCH_YAW_RATES_THRUST_SETPOINT;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamRollPitchYawRatesThrustSetpoint();
@@ -1229,6 +1347,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "RC_CHANNELS_RAW";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_RC_CHANNELS_RAW;
 	}
 
 	static MavlinkStream *new_instance()
@@ -1315,6 +1438,11 @@ public:
 		return "MANUAL_CONTROL";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_MANUAL_CONTROL;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamManualControl();
@@ -1364,6 +1492,11 @@ public:
 		return "OPTICAL_FLOW";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_OPTICAL_FLOW;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamOpticalFlow();
@@ -1410,6 +1543,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "ATTITUDE_CONTROLS";
+	}
+
+	uint8_t get_id()
+	{
+		return 0;
 	}
 
 	static MavlinkStream *new_instance()
@@ -1470,6 +1608,11 @@ public:
 		return "NAMED_VALUE_FLOAT";
 	}
 
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_NAMED_VALUE_FLOAT;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamNamedValueFloat();
@@ -1518,6 +1661,11 @@ public:
 		return "CAMERA_CAPTURE";
 	}
 
+	uint8_t get_id()
+	{
+		return 0;
+	}
+
 	static MavlinkStream *new_instance()
 	{
 		return new MavlinkStreamCameraCapture();
@@ -1561,6 +1709,11 @@ public:
 	static const char *get_name_static()
 	{
 		return "DISTANCE_SENSOR";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_DISTANCE_SENSOR;
 	}
 
 	static MavlinkStream *new_instance()

@@ -75,6 +75,9 @@ ORB_DEFINE(sensor_combined, struct sensor_combined_s);
 #include "topics/vehicle_gps_position.h"
 ORB_DEFINE(vehicle_gps_position, struct vehicle_gps_position_s);
 
+#include "topics/satellite_info.h"
+ORB_DEFINE(satellite_info, struct satellite_info_s);
+
 #include "topics/home_position.h"
 ORB_DEFINE(home_position, struct home_position_s);
 
@@ -199,3 +202,9 @@ ORB_DEFINE(encoders, struct encoders_s);
 
 #include "topics/estimator_status.h"
 ORB_DEFINE(estimator_status, struct estimator_status_report);
+
+#include "topics/tecs_status.h"
+ORB_DEFINE(tecs_status, struct tecs_status_s);
+
+#include "topics/wind_estimate.h"
+ORB_DEFINE(wind_estimate, struct wind_estimate_s);
