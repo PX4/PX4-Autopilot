@@ -103,6 +103,11 @@ private:
 	bool read_mission_item(bool onboard, bool is_current, struct mission_item_s *mission_item);
 
 	/**
+	 * Save current offboard mission state to dataman
+	 */
+	void save_offboard_mission_state();
+
+	/**
 	 * Report that a mission item has been reached
 	 */
 	void report_mission_item_reached();
@@ -141,6 +146,8 @@ private:
 		MISSION_TYPE_ONBOARD,
 		MISSION_TYPE_OFFBOARD
 	} _mission_type;
+
+	bool _inited;
 
 	MissionFeasibilityChecker missionFeasiblityChecker; /**< class that checks if a mission is feasible */
 };

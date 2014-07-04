@@ -53,6 +53,7 @@ extern "C" {
 		DM_KEY_WAYPOINTS_OFFBOARD_0,	/* Mission way point coordinates sent over mavlink */
 		DM_KEY_WAYPOINTS_OFFBOARD_1,	/* (alernate between 0 and 1) */
 		DM_KEY_WAYPOINTS_ONBOARD,	/* Mission way point coordinates generated onboard */
+		DM_KEY_MISSION_STATE,		/* Persistent mission state */
 		DM_KEY_NUM_KEYS			/* Total number of item types defined */
 	} dm_item_t;
 
@@ -62,7 +63,8 @@ extern "C" {
 		DM_KEY_FENCE_POINTS_MAX = GEOFENCE_MAX_VERTICES,
 		DM_KEY_WAYPOINTS_OFFBOARD_0_MAX = NUM_MISSIONS_SUPPORTED,
 		DM_KEY_WAYPOINTS_OFFBOARD_1_MAX = NUM_MISSIONS_SUPPORTED,
-		DM_KEY_WAYPOINTS_ONBOARD_MAX = NUM_MISSIONS_SUPPORTED
+		DM_KEY_WAYPOINTS_ONBOARD_MAX = NUM_MISSIONS_SUPPORTED,
+		DM_KEY_MISSION_STATE_MAX = 1
 	};
 
 	/** Data persistence levels */
@@ -100,6 +102,18 @@ extern "C" {
 		const void *buffer,		/* Pointer to caller data buffer */
 		size_t buflen			/* Length in bytes of data to retrieve */
 	);
+
+	/** Lock all items of this type */
+	__EXPORT void
+	dm_lock(
+		dm_item_t item			/* The item type to clear */
+		);
+
+	/** Unlock all items of this type */
+	__EXPORT void
+	dm_unlock(
+		dm_item_t item			/* The item type to clear */
+		);
 
 	/** Erase all items of this type */
 	__EXPORT int
