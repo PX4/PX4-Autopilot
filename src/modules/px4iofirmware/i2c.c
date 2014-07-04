@@ -331,6 +331,7 @@ i2c_tx_complete(void)
 	i2c_tx_setup();
 }
 
+#ifdef DEBUG
 static void
 i2c_dump(void)
 {
@@ -339,3 +340,4 @@ i2c_dump(void)
 	debug("CCR   0x%08x  TRISE 0x%08x", rCCR,  rTRISE);
 	debug("SR1   0x%08x  SR2   0x%08x", rSR1,  rSR2);
 }
+#endif

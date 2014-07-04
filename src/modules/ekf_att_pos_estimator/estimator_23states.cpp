@@ -2503,12 +2503,12 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
 
     // Calculate initial Tbn matrix and rotate Mag measurements into NED
     // to set initial NED magnetic field states
-    Mat3f DCM;
-    quat2Tbn(DCM, initQuat);
+    quat2Tbn(Tbn, initQuat);
+    Tnb = Tbn.transpose();
     Vector3f initMagNED;
-    initMagNED.x = DCM.x.x*initMagXYZ.x + DCM.x.y*initMagXYZ.y + DCM.x.z*initMagXYZ.z;
-    initMagNED.y = DCM.y.x*initMagXYZ.x + DCM.y.y*initMagXYZ.y + DCM.y.z*initMagXYZ.z;
-    initMagNED.z = DCM.z.x*initMagXYZ.x + DCM.z.y*initMagXYZ.y + DCM.z.z*initMagXYZ.z;
+    initMagNED.x = Tbn.x.x*initMagXYZ.x + Tbn.x.y*initMagXYZ.y + Tbn.x.z*initMagXYZ.z;
+    initMagNED.y = Tbn.y.x*initMagXYZ.x + Tbn.y.y*initMagXYZ.y + Tbn.y.z*initMagXYZ.z;
+    initMagNED.z = Tbn.z.x*initMagXYZ.x + Tbn.z.y*initMagXYZ.y + Tbn.z.z*initMagXYZ.z;
 
     magstate.q0 = initQuat[0];
     magstate.q1 = initQuat[1];
@@ -2521,7 +2521,7 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
     magstate.magYbias = magBias.y;
     magstate.magZbias = magBias.z;
     magstate.R_MAG = sq(magMeasurementSigma);
-    magstate.DCM = DCM;
+    magstate.DCM = Tbn;
 
     // write to state vector
     for (uint8_t j=0; j<=3; j++) states[j] = initQuat[j]; // quaternions

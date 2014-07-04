@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,12 +34,15 @@
 /**
  * @file ubx.h
  *
- * U-Blox protocol definition. Following u-blox 6/7 Receiver Description
+ * U-Blox protocol definition. Following u-blox 6/7/8 Receiver Description
  * including Prototol Specification.
  *
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
  * @author Julian Oes <joes@student.ethz.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
+ *
+ * @author Hannes Delago
+ *   (rework, add ubx7+ compatibility)
  *
  */
 
@@ -51,319 +54,433 @@
 #define UBX_SYNC1 0xB5
 #define UBX_SYNC2 0x62
 
-/* ClassIDs (the ones that are used) */
-#define UBX_CLASS_NAV 0x01
-//#define UBX_CLASS_RXM 0x02
-#define UBX_CLASS_ACK 0x05
-#define UBX_CLASS_CFG 0x06
-#define UBX_CLASS_MON 0x0A
+/* Message Classes */
+#define UBX_CLASS_NAV		0x01
+#define UBX_CLASS_ACK		0x05
+#define UBX_CLASS_CFG		0x06
+#define UBX_CLASS_MON		0x0A
 
-/* MessageIDs (the ones that are used) */
-#define UBX_MESSAGE_NAV_POSLLH 0x02
-//#define UBX_MESSAGE_NAV_DOP 0x04
-#define UBX_MESSAGE_NAV_SOL 0x06
-#define UBX_MESSAGE_NAV_VELNED 0x12
-//#define UBX_MESSAGE_RXM_SVSI 0x20
-#define UBX_MESSAGE_NAV_TIMEUTC 0x21
-#define UBX_MESSAGE_NAV_SVINFO 0x30
-#define UBX_MESSAGE_ACK_NAK 0x00
-#define UBX_MESSAGE_ACK_ACK 0x01
-#define UBX_MESSAGE_CFG_PRT 0x00
-#define UBX_MESSAGE_CFG_MSG 0x01
-#define UBX_MESSAGE_CFG_RATE 0x08
-#define UBX_MESSAGE_CFG_NAV5 0x24
+/* Message IDs */
+#define UBX_ID_NAV_POSLLH	0x02
+#define UBX_ID_NAV_SOL		0x06
+#define UBX_ID_NAV_PVT		0x07
+#define UBX_ID_NAV_VELNED	0x12
+#define UBX_ID_NAV_TIMEUTC	0x21
+#define UBX_ID_NAV_SVINFO	0x30
+#define UBX_ID_ACK_NAK		0x00
+#define UBX_ID_ACK_ACK		0x01
+#define UBX_ID_CFG_PRT		0x00
+#define UBX_ID_CFG_MSG		0x01
+#define UBX_ID_CFG_RATE		0x08
+#define UBX_ID_CFG_NAV5		0x24
+#define UBX_ID_MON_VER		0x04
+#define UBX_ID_MON_HW		0x09
 
-#define UBX_MESSAGE_MON_HW	0x09
+/* Message Classes & IDs */
+#define UBX_MSG_NAV_POSLLH	((UBX_CLASS_NAV) | UBX_ID_NAV_POSLLH << 8)
+#define UBX_MSG_NAV_SOL		((UBX_CLASS_NAV) | UBX_ID_NAV_SOL << 8)
+#define UBX_MSG_NAV_PVT		((UBX_CLASS_NAV) | UBX_ID_NAV_PVT << 8)
+#define UBX_MSG_NAV_VELNED	((UBX_CLASS_NAV) | UBX_ID_NAV_VELNED << 8)
+#define UBX_MSG_NAV_TIMEUTC	((UBX_CLASS_NAV) | UBX_ID_NAV_TIMEUTC << 8)
+#define UBX_MSG_NAV_SVINFO	((UBX_CLASS_NAV) | UBX_ID_NAV_SVINFO << 8)
+#define UBX_MSG_ACK_NAK		((UBX_CLASS_ACK) | UBX_ID_ACK_NAK << 8)
+#define UBX_MSG_ACK_ACK		((UBX_CLASS_ACK) | UBX_ID_ACK_ACK << 8)
+#define UBX_MSG_CFG_PRT		((UBX_CLASS_CFG) | UBX_ID_CFG_PRT << 8)
+#define UBX_MSG_CFG_MSG		((UBX_CLASS_CFG) | UBX_ID_CFG_MSG << 8)
+#define UBX_MSG_CFG_RATE	((UBX_CLASS_CFG) | UBX_ID_CFG_RATE << 8)
+#define UBX_MSG_CFG_NAV5	((UBX_CLASS_CFG) | UBX_ID_CFG_NAV5 << 8)
+#define UBX_MSG_MON_HW		((UBX_CLASS_MON) | UBX_ID_MON_HW << 8)
+#define UBX_MSG_MON_VER		((UBX_CLASS_MON) | UBX_ID_MON_VER << 8)
 
-#define UBX_CFG_PRT_LENGTH 20
-#define UBX_CFG_PRT_PAYLOAD_PORTID 0x01			/**< UART1 */
-#define UBX_CFG_PRT_PAYLOAD_MODE 0x000008D0		/**< 0b0000100011010000: 8N1 */
-#define UBX_CFG_PRT_PAYLOAD_BAUDRATE 38400		/**< choose 38400 as GPS baudrate */
-#define UBX_CFG_PRT_PAYLOAD_INPROTOMASK 0x01		/**< UBX in */
-#define UBX_CFG_PRT_PAYLOAD_OUTPROTOMASK 0x01		/**< UBX out */
+/* RX NAV-PVT message content details */
+/*   Bitfield "valid" masks */
+#define UBX_RX_NAV_PVT_VALID_VALIDDATE		0x01	/**< validDate (Valid UTC Date) */
+#define UBX_RX_NAV_PVT_VALID_VALIDTIME		0x02	/**< validTime (Valid UTC Time) */
+#define UBX_RX_NAV_PVT_VALID_FULLYRESOLVED	0x04	/**< fullyResolved (1 = UTC Time of Day has been fully resolved (no seconds uncertainty)) */
 
-#define UBX_CFG_RATE_LENGTH 6
-#define UBX_CFG_RATE_PAYLOAD_MEASINTERVAL 200		/**< 200ms for 5Hz */
-#define UBX_CFG_RATE_PAYLOAD_NAVRATE 1			/**< cannot be changed */
-#define UBX_CFG_RATE_PAYLOAD_TIMEREF 0			/**< 0: UTC, 1: GPS time */
+/*   Bitfield "flags" masks */
+#define UBX_RX_NAV_PVT_FLAGS_GNSSFIXOK		0x01	/**< gnssFixOK (A valid fix (i.e within DOP & accuracy masks)) */
+#define UBX_RX_NAV_PVT_FLAGS_DIFFSOLN		0x02	/**< diffSoln (1 if differential corrections were applied) */
+#define UBX_RX_NAV_PVT_FLAGS_PSMSTATE		0x1C	/**< psmState (Power Save Mode state (see Power Management)) */
+#define UBX_RX_NAV_PVT_FLAGS_HEADVEHVALID	0x20	/**< headVehValid (Heading of vehicle is valid) */
+
+/* RX NAV-TIMEUTC message content details */
+/*   Bitfield "valid" masks */
+#define UBX_RX_NAV_TIMEUTC_VALID_VALIDTOW	0x01	/**< validTOW (1 = Valid Time of Week) */
+#define UBX_RX_NAV_TIMEUTC_VALID_VALIDKWN	0x02	/**< validWKN (1 = Valid Week Number) */
+#define UBX_RX_NAV_TIMEUTC_VALID_VALIDUTC	0x04	/**< validUTC (1 = Valid UTC Time) */
+#define UBX_RX_NAV_TIMEUTC_VALID_UTCSTANDARD	0xF0	/**< utcStandard (0..15 = UTC standard identifier) */
+
+/* TX CFG-PRT message contents */
+#define UBX_TX_CFG_PRT_PORTID		0x01		/**< UART1 */
+#define UBX_TX_CFG_PRT_MODE		0x000008D0	/**< 0b0000100011010000: 8N1 */
+#define UBX_TX_CFG_PRT_BAUDRATE		38400		/**< choose 38400 as GPS baudrate */
+#define UBX_TX_CFG_PRT_INPROTOMASK	0x01		/**< UBX in */
+#define UBX_TX_CFG_PRT_OUTPROTOMASK	0x01		/**< UBX out */
+
+/* TX CFG-RATE message contents */
+#define UBX_TX_CFG_RATE_MEASINTERVAL	200		/**< 200ms for 5Hz */
+#define UBX_TX_CFG_RATE_NAVRATE		1		/**< cannot be changed */
+#define UBX_TX_CFG_RATE_TIMEREF		0		/**< 0: UTC, 1: GPS time */
+
+/* TX CFG-NAV5 message contents */
+#define UBX_TX_CFG_NAV5_MASK		0x0005		/**< Only update dynamic model and fix mode */
+#define UBX_TX_CFG_NAV5_DYNMODEL	7		/**< 0 Portable, 2 Stationary, 3 Pedestrian, 4 Automotive, 5 Sea, 6 Airborne <1g, 7 Airborne <2g, 8 Airborne <4g */
+#define UBX_TX_CFG_NAV5_FIXMODE		2		/**< 1 2D only, 2 3D only, 3 Auto 2D/3D */
+
+/* TX CFG-MSG message contents */
+#define UBX_TX_CFG_MSG_RATE1_5HZ	0x01 		/**< {0x00, 0x01, 0x00, 0x00, 0x00, 0x00} the second entry is for UART1 */
+#define UBX_TX_CFG_MSG_RATE1_1HZ	0x05		/**< {0x00, 0x05, 0x00, 0x00, 0x00, 0x00} the second entry is for UART1 */
+#define UBX_TX_CFG_MSG_RATE1_05HZ	10
 
 
-#define UBX_CFG_NAV5_LENGTH 36
-#define UBX_CFG_NAV5_PAYLOAD_MASK 0x0005		/**< XXX only update dynamic model and fix mode */
-#define UBX_CFG_NAV5_PAYLOAD_DYNMODEL 7			/**< 0: portable, 2: stationary, 3: pedestrian, 4: automotive, 5: sea, 6: airborne <1g, 7: airborne <2g, 8: airborne <4g */
-#define UBX_CFG_NAV5_PAYLOAD_FIXMODE 2			/**< 1: 2D only, 2: 3D only, 3: Auto 2D/3D */
-
-#define UBX_CFG_MSG_LENGTH 8
-#define UBX_CFG_MSG_PAYLOAD_RATE1_5HZ 0x01 		/**< {0x00, 0x01, 0x00, 0x00, 0x00, 0x00} the second entry is for UART1 */
-#define UBX_CFG_MSG_PAYLOAD_RATE1_1HZ 0x05		/**< {0x00, 0x05, 0x00, 0x00, 0x00, 0x00} the second entry is for UART1 */
-#define UBX_CFG_MSG_PAYLOAD_RATE1_05HZ 10
-
-#define UBX_MAX_PAYLOAD_LENGTH 500
-
-// ************
-/** the structures of the binary packets */
+/*** u-blox protocol binary message and payload definitions ***/
 #pragma pack(push, 1)
 
-struct ubx_header {
-	uint8_t sync1;
-	uint8_t sync2;
-	uint8_t msg_class;
-	uint8_t msg_id;
-	uint16_t length;
-};
-
+/* General: Header */
 typedef struct {
-	uint32_t time_milliseconds;		/**<  GPS Millisecond Time of Week */
-	int32_t lon;					/**<  Longitude * 1e-7, deg */
-	int32_t lat;					/**<  Latitude * 1e-7, deg */
-	int32_t height;					/**<  Height above Ellipsoid, mm */
-	int32_t height_msl;				/**<  Height above mean sea level, mm */
-	uint32_t hAcc;  				/**< Horizontal Accuracy Estimate, mm */
-	uint32_t vAcc;  				/**< Vertical Accuracy Estimate, mm */
-	uint8_t ck_a;
-	uint8_t ck_b;
-} gps_bin_nav_posllh_packet_t;
+	uint8_t		sync1;
+	uint8_t		sync2;
+	uint16_t	msg;
+	uint16_t	length;
+} ubx_header_t;
 
+/* General: Checksum */
 typedef struct {
-	uint32_t time_milliseconds; 	/**< GPS Millisecond Time of Week */
-	int32_t time_nanoseconds;		/**< Fractional Nanoseconds remainder of rounded ms above, range -500000 .. 500000 */
-	int16_t week;					/**< GPS week (GPS time) */
-	uint8_t gpsFix;					/**< GPS Fix: 0 = No fix, 1 = Dead Reckoning only, 2 = 2D fix, 3 = 3d-fix, 4 = GPS + dead reckoning, 5 = time only fix */
-	uint8_t flags;
-	int32_t ecefX;
-	int32_t ecefY;
-	int32_t ecefZ;
-	uint32_t pAcc;
-	int32_t ecefVX;
-	int32_t ecefVY;
-	int32_t ecefVZ;
-	uint32_t sAcc;
-	uint16_t pDOP;
-	uint8_t reserved1;
-	uint8_t numSV;
-	uint32_t reserved2;
-	uint8_t ck_a;
-	uint8_t ck_b;
-} gps_bin_nav_sol_packet_t;
+	uint8_t		ck_a;
+	uint8_t		ck_b;
+} ubx_checksum_t ;
 
+/* Rx NAV-POSLLH */
 typedef struct {
-	uint32_t time_milliseconds;		/**< GPS Millisecond Time of Week */
-	uint32_t time_accuracy; 		/**< Time Accuracy Estimate, ns */
-	int32_t time_nanoseconds; 		/**< Nanoseconds of second, range -1e9 .. 1e9 (UTC) */
-	uint16_t year; 					/**< Year, range 1999..2099 (UTC) */
-	uint8_t month; 					/**< Month, range 1..12 (UTC) */
-	uint8_t day; 					/**< Day of Month, range 1..31 (UTC) */
-	uint8_t hour; 					/**< Hour of Day, range 0..23 (UTC) */
-	uint8_t min; 					/**< Minute of Hour, range 0..59 (UTC) */
-	uint8_t sec; 					/**< Seconds of Minute, range 0..59 (UTC) */
-	uint8_t valid_flag; 			/**< Validity Flags (see ubx documentation) */
-	uint8_t ck_a;
-	uint8_t ck_b;
-} gps_bin_nav_timeutc_packet_t;
+	uint32_t	iTOW;		/**< GPS Time of Week [ms] */
+	int32_t		lon;		/**< Longitude [1e-7 deg] */
+	int32_t		lat;		/**< Latitude [1e-7 deg] */
+	int32_t		height;		/**< Height above ellipsoid [mm] */
+	int32_t		hMSL;		/**< Height above mean sea level [mm] */
+	uint32_t	hAcc;  		/**< Horizontal accuracy estimate [mm] */
+	uint32_t	vAcc;  		/**< Vertical accuracy estimate [mm] */
+} ubx_payload_rx_nav_posllh_t;
 
-//typedef struct {
-//	uint32_t time_milliseconds; 	/**<  GPS Millisecond Time of Week */
-//	uint16_t gDOP; 					/**< Geometric DOP (scaling 0.01) */
-//	uint16_t pDOP; 					/**< Position DOP (scaling 0.01) */
-//	uint16_t tDOP; 					/**< Time DOP (scaling 0.01) */
-//	uint16_t vDOP; 					/**< Vertical DOP (scaling 0.01) */
-//	uint16_t hDOP; 					/**< Horizontal DOP (scaling 0.01) */
-//	uint16_t nDOP; 					/**< Northing DOP (scaling 0.01) */
-//	uint16_t eDOP; 					/**< Easting DOP (scaling 0.01) */
-//	uint8_t ck_a;
-//	uint8_t ck_b;
-//} gps_bin_nav_dop_packet_t;
-
+/* Rx NAV-SOL */
 typedef struct {
-	uint32_t time_milliseconds; 	/**<  GPS Millisecond Time of Week */
-	uint8_t numCh; 					/**< Number of channels */
-	uint8_t globalFlags;
-	uint16_t reserved2;
+	uint32_t	iTOW;		/**< GPS Time of Week [ms] */
+	int32_t		fTOW;		/**< Fractional part of iTOW (range: +/-500000) [ns] */
+	int16_t		week;		/**< GPS week */
+	uint8_t		gpsFix;		/**< GPSfix type: 0 = No fix, 1 = Dead Reckoning only, 2 = 2D fix, 3 = 3d-fix, 4 = GPS + dead reckoning, 5 = time only fix */
+	uint8_t		flags;
+	int32_t		ecefX;
+	int32_t		ecefY;
+	int32_t		ecefZ;
+	uint32_t	pAcc;
+	int32_t		ecefVX;
+	int32_t		ecefVY;
+	int32_t		ecefVZ;
+	uint32_t	sAcc;
+	uint16_t	pDOP;
+	uint8_t		reserved1;
+	uint8_t		numSV;		/**< Number of SVs used in Nav Solution */
+	uint32_t	reserved2;
+} ubx_payload_rx_nav_sol_t;
 
-} gps_bin_nav_svinfo_part1_packet_t;
-
+/* Rx NAV-PVT (ubx8) */
 typedef struct {
-	uint8_t chn; 					/**< Channel number, 255 for SVs not assigned to a channel */
-	uint8_t svid; 					/**< Satellite ID */
-	uint8_t flags;
-	uint8_t quality;
-	uint8_t cno; 					/**< Carrier to Noise Ratio (Signal Strength), dbHz */
-	int8_t elev; 					/**< Elevation in integer degrees */
-	int16_t azim; 					/**< Azimuth in integer degrees */
-	int32_t prRes; 					/**< Pseudo range residual in centimetres */
+	uint32_t	iTOW;		/**< GPS Time of Week [ms] */
+	uint16_t	year; 		/**< Year (UTC)*/
+	uint8_t		month; 		/**< Month, range 1..12 (UTC) */
+	uint8_t		day; 		/**< Day of month, range 1..31 (UTC) */
+	uint8_t		hour; 		/**< Hour of day, range 0..23 (UTC) */
+	uint8_t		min; 		/**< Minute of hour, range 0..59 (UTC) */
+	uint8_t		sec;		/**< Seconds of minute, range 0..60 (UTC) */
+	uint8_t		valid; 		/**< Validity flags (see UBX_RX_NAV_PVT_VALID_...) */
+	uint32_t	tAcc; 		/**< Time accuracy estimate (UTC) [ns] */
+	int32_t		nano;		/**< Fraction of second (UTC) [-1e9...1e9 ns] */
+	uint8_t		fixType;	/**< GNSSfix type: 0 = No fix, 1 = Dead Reckoning only, 2 = 2D fix, 3 = 3d-fix, 4 = GNSS + dead reckoning, 5 = time only fix */
+	uint8_t		flags;		/**< Fix Status Flags (see UBX_RX_NAV_PVT_FLAGS_...) */
+	uint8_t		reserved1;
+	uint8_t		numSV;		/**< Number of SVs used in Nav Solution */
+	int32_t		lon;		/**< Longitude [1e-7 deg] */
+	int32_t		lat;		/**< Latitude [1e-7 deg] */
+	int32_t		height;		/**< Height above ellipsoid [mm] */
+	int32_t		hMSL;		/**< Height above mean sea level [mm] */
+	uint32_t	hAcc;  		/**< Horizontal accuracy estimate [mm] */
+	uint32_t	vAcc;  		/**< Vertical accuracy estimate [mm] */
+	int32_t		velN;		/**< NED north velocity [mm/s]*/
+	int32_t		velE;		/**< NED east velocity [mm/s]*/
+	int32_t		velD;		/**< NED down velocity [mm/s]*/
+	int32_t		gSpeed;		/**< Ground Speed (2-D) [mm/s] */
+	int32_t		headMot;	/**< Heading of motion (2-D) [1e-5 deg] */
+	uint32_t	sAcc;		/**< Speed accuracy estimate [mm/s] */
+	uint32_t	headAcc;	/**< Heading accuracy estimate (motion and vehicle) [1e-5 deg] */
+	uint16_t	pDOP;		/**< Position DOP [0.01] */
+	uint16_t	reserved2;
+	uint32_t	reserved3;
+	int32_t		headVeh;	/**< (ubx8+ only) Heading of vehicle (2-D) [1e-5 deg] */
+	uint32_t	reserved4;	/**< (ubx8+ only) */
+} ubx_payload_rx_nav_pvt_t;
+#define UBX_PAYLOAD_RX_NAV_PVT_SIZE_UBX7	(sizeof(ubx_payload_rx_nav_pvt_t) - 8)
+#define UBX_PAYLOAD_RX_NAV_PVT_SIZE_UBX8	(sizeof(ubx_payload_rx_nav_pvt_t))
 
-} gps_bin_nav_svinfo_part2_packet_t;
-
+/* Rx NAV-TIMEUTC */
 typedef struct {
-	uint8_t ck_a;
-	uint8_t ck_b;
-} gps_bin_nav_svinfo_part3_packet_t;
+	uint32_t	iTOW;		/**< GPS Time of Week [ms] */
+	uint32_t	tAcc; 		/**< Time accuracy estimate (UTC) [ns] */
+	int32_t		nano;		/**< Fraction of second, range -1e9 .. 1e9 (UTC) [ns] */
+	uint16_t	year; 		/**< Year, range 1999..2099 (UTC) */
+	uint8_t		month; 		/**< Month, range 1..12 (UTC) */
+	uint8_t		day; 		/**< Day of month, range 1..31 (UTC) */
+	uint8_t		hour; 		/**< Hour of day, range 0..23 (UTC) */
+	uint8_t		min; 		/**< Minute of hour, range 0..59 (UTC) */
+	uint8_t		sec;		/**< Seconds of minute, range 0..60 (UTC) */
+	uint8_t		valid; 		/**< Validity Flags (see UBX_RX_NAV_TIMEUTC_VALID_...) */
+} ubx_payload_rx_nav_timeutc_t;
 
+/* Rx NAV-SVINFO Part 1 */
 typedef struct {
-	uint32_t time_milliseconds; // GPS Millisecond Time of Week
-	int32_t velN; //NED north velocity, cm/s
-	int32_t velE; //NED east velocity, cm/s
-	int32_t velD; //NED down velocity, cm/s
-	uint32_t speed; //Speed (3-D), cm/s
-	uint32_t gSpeed; //Ground Speed (2-D), cm/s
-	int32_t heading; //Heading of motion 2-D, deg, scaling: 1e-5
-	uint32_t sAcc; //Speed Accuracy Estimate, cm/s
-	uint32_t cAcc; //Course / Heading Accuracy Estimate, scaling: 1e-5
-	uint8_t ck_a;
-	uint8_t ck_b;
-} gps_bin_nav_velned_packet_t;
+	uint32_t	iTOW;		/**< GPS Time of Week [ms] */
+	uint8_t		numCh; 		/**< Number of channels */
+	uint8_t		globalFlags;
+	uint16_t	reserved2;
+} ubx_payload_rx_nav_svinfo_part1_t;
 
-struct gps_bin_mon_hw_packet {
-	uint32_t pinSel;
-	uint32_t pinBank;
-	uint32_t pinDir;
-	uint32_t pinVal;
-	uint16_t noisePerMS;
-	uint16_t agcCnt;
-	uint8_t aStatus;
-	uint8_t aPower;
-	uint8_t flags;
-	uint8_t __reserved1;
-	uint32_t usedMask;
-	uint8_t VP[25];
-	uint8_t jamInd;
-	uint16_t __reserved3;
-	uint32_t pinIrq;
-	uint32_t pulLH;
-	uint32_t pullL;
-};
-
-
-//typedef struct {
-//	int32_t time_milliseconds; 		/**< Measurement integer millisecond GPS time of week */
-//	int16_t week; 					/**< Measurement GPS week number */
-//	uint8_t numVis;					/**< Number of visible satellites */
-//
-//	//... rest of package is not used in this implementation
-//
-//} gps_bin_rxm_svsi_packet_t;
-
+/* Rx NAV-SVINFO Part 2 (repeated) */
 typedef struct {
-	uint8_t clsID;
-	uint8_t msgID;
-	uint8_t ck_a;
-	uint8_t ck_b;
-} gps_bin_ack_ack_packet_t;
+	uint8_t		chn; 		/**< Channel number, 255 for SVs not assigned to a channel */
+	uint8_t		svid; 		/**< Satellite ID */
+	uint8_t		flags;
+	uint8_t		quality;
+	uint8_t		cno;		/**< Carrier to Noise Ratio (Signal Strength) [dbHz] */
+	int8_t		elev; 		/**< Elevation [deg] */
+	int16_t		azim; 		/**< Azimuth [deg] */
+	int32_t		prRes; 		/**< Pseudo range residual [cm] */
+} ubx_payload_rx_nav_svinfo_part2_t;
 
+/* Rx NAV-VELNED */
 typedef struct {
-	uint8_t clsID;
-	uint8_t msgID;
-	uint8_t ck_a;
-	uint8_t ck_b;
-} gps_bin_ack_nak_packet_t;
+	uint32_t	iTOW;		/**< GPS Time of Week [ms] */
+	int32_t		velN;		/**< North velocity component [cm/s]*/
+	int32_t		velE;		/**< East velocity component [cm/s]*/
+	int32_t		velD;		/**< Down velocity component [cm/s]*/
+	uint32_t	speed;		/**< Speed (3-D) [cm/s] */
+	uint32_t	gSpeed;		/**< Ground speed (2-D) [cm/s] */
+	int32_t		heading;	/**< Heading of motion 2-D [1e-5 deg] */
+	uint32_t	sAcc;		/**< Speed accuracy estimate [cm/s] */
+	uint32_t	cAcc;		/**< Course / Heading accuracy estimate [1e-5 deg] */
+} ubx_payload_rx_nav_velned_t;
 
+/* Rx MON-HW (ubx6) */
 typedef struct {
-	uint8_t clsID;
-	uint8_t msgID;
-	uint16_t length;
-	uint8_t portID;
-	uint8_t res0;
-	uint16_t res1;
-	uint32_t mode;
-	uint32_t baudRate;
-	uint16_t inProtoMask;
-	uint16_t outProtoMask;
-	uint16_t flags;
-	uint16_t pad;
-	uint8_t ck_a;
-	uint8_t ck_b;
-} type_gps_bin_cfg_prt_packet_t;
+	uint32_t	pinSel;
+	uint32_t	pinBank;
+	uint32_t	pinDir;
+	uint32_t	pinVal;
+	uint16_t	noisePerMS;
+	uint16_t	agcCnt;
+	uint8_t		aStatus;
+	uint8_t		aPower;
+	uint8_t		flags;
+	uint8_t		reserved1;
+	uint32_t	usedMask;
+	uint8_t		VP[25];
+	uint8_t		jamInd;
+	uint16_t	reserved3;
+	uint32_t	pinIrq;
+	uint32_t	pullH;
+	uint32_t	pullL;
+} ubx_payload_rx_mon_hw_ubx6_t;
 
+/* Rx MON-HW (ubx7+) */
 typedef struct {
-	uint8_t clsID;
-	uint8_t msgID;
-	uint16_t length;
-	uint16_t measRate;
-	uint16_t navRate;
-	uint16_t timeRef;
-	uint8_t ck_a;
-	uint8_t ck_b;
-} type_gps_bin_cfg_rate_packet_t;
+	uint32_t	pinSel;
+	uint32_t	pinBank;
+	uint32_t	pinDir;
+	uint32_t	pinVal;
+	uint16_t	noisePerMS;
+	uint16_t	agcCnt;
+	uint8_t		aStatus;
+	uint8_t		aPower;
+	uint8_t		flags;
+	uint8_t		reserved1;
+	uint32_t	usedMask;
+	uint8_t		VP[17];
+	uint8_t		jamInd;
+	uint16_t	reserved3;
+	uint32_t	pinIrq;
+	uint32_t	pullH;
+	uint32_t	pullL;
+} ubx_payload_rx_mon_hw_ubx7_t;
 
+/* Rx MON-VER Part 1 */
 typedef struct {
-	uint8_t clsID;
-	uint8_t msgID;
-	uint16_t length;
-	uint16_t mask;
-	uint8_t dynModel;
-	uint8_t fixMode;
-	int32_t fixedAlt;
-	uint32_t fixedAltVar;
-	int8_t minElev;
-	uint8_t drLimit;
-	uint16_t pDop;
-	uint16_t tDop;
-	uint16_t pAcc;
-	uint16_t tAcc;
-	uint8_t staticHoldThresh;
-	uint8_t dgpsTimeOut;
-	uint32_t reserved2;
-	uint32_t reserved3;
-	uint32_t reserved4;
-	uint8_t ck_a;
-	uint8_t ck_b;
-} type_gps_bin_cfg_nav5_packet_t;
+	uint8_t		swVersion[30];
+	uint8_t		hwVersion[10];
+} ubx_payload_rx_mon_ver_part1_t;
 
+/* Rx MON-VER Part 2 (repeated) */
 typedef struct {
-	uint8_t clsID;
-	uint8_t msgID;
-	uint16_t length;
-	uint8_t msgClass_payload;
-	uint8_t msgID_payload;
+	uint8_t		extension[30];
+} ubx_payload_rx_mon_ver_part2_t;
+
+/* Rx ACK-ACK */
+typedef	union {
+	uint16_t	msg;
+	struct {
+		uint8_t	clsID;
+		uint8_t	msgID;
+	};
+} ubx_payload_rx_ack_ack_t;
+
+/* Rx ACK-NAK */
+typedef	union {
+	uint16_t	msg;
+	struct {
+		uint8_t	clsID;
+		uint8_t	msgID;
+	};
+} ubx_payload_rx_ack_nak_t;
+
+/* Tx CFG-PRT */
+typedef struct {
+	uint8_t		portID;
+	uint8_t		reserved0;
+	uint16_t	txReady;
+	uint32_t	mode;
+	uint32_t	baudRate;
+	uint16_t	inProtoMask;
+	uint16_t	outProtoMask;
+	uint16_t	flags;
+	uint16_t	reserved5;
+} ubx_payload_tx_cfg_prt_t;
+
+/* Tx CFG-RATE */
+typedef struct {
+	uint16_t	measRate;	/**< Measurement Rate, GPS measurements are taken every measRate milliseconds */
+	uint16_t	navRate;	/**< Navigation Rate, in number of measurement cycles. This parameter cannot be changed, and must be set to 1 */
+	uint16_t	timeRef;	/**< Alignment to reference time: 0 = UTC time, 1 = GPS time */
+} ubx_payload_tx_cfg_rate_t;
+
+/* Tx CFG-NAV5 */
+typedef struct {
+	uint16_t	mask;
+	uint8_t		dynModel;	/**< Dynamic Platform model: 0 Portable, 2 Stationary, 3 Pedestrian, 4 Automotive, 5 Sea, 6 Airborne <1g, 7 Airborne <2g, 8 Airborne <4g */
+	uint8_t		fixMode;	/**< Position Fixing Mode: 1 2D only, 2 3D only, 3 Auto 2D/3D */
+	int32_t		fixedAlt;
+	uint32_t	fixedAltVar;
+	int8_t		minElev;
+	uint8_t		drLimit;
+	uint16_t	pDop;
+	uint16_t	tDop;
+	uint16_t	pAcc;
+	uint16_t	tAcc;
+	uint8_t		staticHoldThresh;
+	uint8_t		dgpsTimeOut;
+	uint8_t		cnoThreshNumSVs;	/**< (ubx7+ only, else 0) */
+	uint8_t		cnoThresh;		/**< (ubx7+ only, else 0) */
+	uint16_t	reserved;
+	uint16_t	staticHoldMaxDist;	/**< (ubx8+ only, else 0) */
+	uint8_t		utcStandard;		/**< (ubx8+ only, else 0) */
+	uint8_t		reserved3;
+	uint32_t	reserved4;
+} ubx_payload_tx_cfg_nav5_t;
+
+/* Tx CFG-MSG */
+typedef struct {
+	union {
+		uint16_t	msg;
+		struct {
+			uint8_t	msgClass;
+			uint8_t	msgID;
+		};
+	};
 	uint8_t rate;
-	uint8_t ck_a;
-	uint8_t ck_b;
-} type_gps_bin_cfg_msg_packet_t;
+} ubx_payload_tx_cfg_msg_t;
 
-struct ubx_cfg_msg_rate {
-	uint8_t msg_class;
-	uint8_t msg_id;
-	uint8_t rate;
-};
+/* General message and payload buffer union */
+typedef union {
+	ubx_payload_rx_nav_pvt_t		payload_rx_nav_pvt;
+	ubx_payload_rx_nav_posllh_t		payload_rx_nav_posllh;
+	ubx_payload_rx_nav_sol_t		payload_rx_nav_sol;
+	ubx_payload_rx_nav_timeutc_t		payload_rx_nav_timeutc;
+	ubx_payload_rx_nav_svinfo_part1_t	payload_rx_nav_svinfo_part1;
+	ubx_payload_rx_nav_svinfo_part2_t	payload_rx_nav_svinfo_part2;
+	ubx_payload_rx_nav_velned_t		payload_rx_nav_velned;
+	ubx_payload_rx_mon_hw_ubx6_t		payload_rx_mon_hw_ubx6;
+	ubx_payload_rx_mon_hw_ubx7_t		payload_rx_mon_hw_ubx7;
+	ubx_payload_rx_mon_ver_part1_t		payload_rx_mon_ver_part1;
+	ubx_payload_rx_mon_ver_part2_t		payload_rx_mon_ver_part2;
+	ubx_payload_rx_ack_ack_t		payload_rx_ack_ack;
+	ubx_payload_rx_ack_nak_t		payload_rx_ack_nak;
+	ubx_payload_tx_cfg_prt_t		payload_tx_cfg_prt;
+	ubx_payload_tx_cfg_rate_t		payload_tx_cfg_rate;
+	ubx_payload_tx_cfg_nav5_t		payload_tx_cfg_nav5;
+	ubx_payload_tx_cfg_msg_t		payload_tx_cfg_msg;
+	uint8_t					raw[];
+} ubx_buf_t;
 
+#pragma pack(pop)
+/*** END OF u-blox protocol binary message and payload definitions ***/
 
-// END the structures of the binary packets
-// ************
-
+/* Decoder state */
 typedef enum {
-	UBX_DECODE_UNINIT = 0,
-	UBX_DECODE_GOT_SYNC1,
-	UBX_DECODE_GOT_SYNC2,
-	UBX_DECODE_GOT_CLASS,
-	UBX_DECODE_GOT_MESSAGEID,
-	UBX_DECODE_GOT_LENGTH1,
-	UBX_DECODE_GOT_LENGTH2
+	UBX_DECODE_SYNC1 = 0,
+	UBX_DECODE_SYNC2,
+	UBX_DECODE_CLASS,
+	UBX_DECODE_ID,
+	UBX_DECODE_LENGTH1,
+	UBX_DECODE_LENGTH2,
+	UBX_DECODE_PAYLOAD,
+	UBX_DECODE_CHKSUM1,
+	UBX_DECODE_CHKSUM2
 } ubx_decode_state_t;
 
-//typedef type_gps_bin_ubx_state gps_bin_ubx_state_t;
-#pragma pack(pop)
+/* Rx message state */
+typedef enum {
+	UBX_RXMSG_IGNORE = 0,
+	UBX_RXMSG_HANDLE,
+	UBX_RXMSG_DISABLE,
+	UBX_RXMSG_ERROR_LENGTH
+} ubx_rxmsg_state_t;
 
-#define RECV_BUFFER_SIZE 300 //The NAV-SOL messages really need such a big buffer
+/* ACK state */
+typedef enum {
+	UBX_ACK_IDLE = 0,
+	UBX_ACK_WAITING,
+	UBX_ACK_GOT_ACK,
+	UBX_ACK_GOT_NAK
+} ubx_ack_state_t;
+
 
 class UBX : public GPS_Helper
 {
 public:
-	UBX(const int &fd, struct vehicle_gps_position_s *gps_position);
+	UBX(const int &fd, struct vehicle_gps_position_s *gps_position, struct satellite_info_s *satellite_info);
 	~UBX();
-	int			receive(unsigned timeout);
+	int			receive(const unsigned timeout);
 	int			configure(unsigned &baudrate);
 
 private:
 
 	/**
-	 * Parse the binary MTK packet
+	 * Parse the binary UBX packet
 	 */
-	int			parse_char(uint8_t b);
+	int			parse_char(const uint8_t b);
 
 	/**
-	 * Handle the package once it has arrived
+	 * Start payload rx
 	 */
-	int			handle_message(void);
+	int			payload_rx_init(void);
+
+	/**
+	 * Add payload rx byte
+	 */
+	int			payload_rx_add(const uint8_t b);
+	int			payload_rx_add_nav_svinfo(const uint8_t b);
+	int			payload_rx_add_mon_ver(const uint8_t b);
+
+	/**
+	 * Finish payload rx
+	 */
+	int			payload_rx_done(void);
 
 	/**
 	 * Reset the parse state machine for a fresh start
@@ -373,44 +490,53 @@ private:
 	/**
 	 * While parsing add every byte (except the sync bytes) to the checksum
 	 */
-	void			add_byte_to_checksum(uint8_t);
+	void			add_byte_to_checksum(const uint8_t);
 
 	/**
-	 * Add the two checksum bytes to an outgoing message
+	 * Send a message
 	 */
-	void			add_checksum_to_message(uint8_t *message, const unsigned length);
+	void			send_message(const uint16_t msg, const uint8_t *payload, const uint16_t length);
 
 	/**
-	 * Helper to send a config packet
+	 * Configure message rate
 	 */
-	void			send_config_packet(const int &fd, uint8_t *packet, const unsigned length);
+	void			configure_message_rate(const uint16_t msg, const uint8_t rate);
 
-	void			configure_message_rate(uint8_t msg_class, uint8_t msg_id, uint8_t rate);
+	/**
+	 * Calculate & add checksum for given buffer
+	 */
+	void			calc_checksum(const uint8_t *buffer, const uint16_t length, ubx_checksum_t *checksum);
 
-	void			send_message(uint8_t msg_class, uint8_t msg_id, void *msg, uint8_t size);
+	/**
+	 * Wait for message acknowledge
+	 */
+	int			wait_for_ack(const uint16_t msg, const unsigned timeout, const bool report);
 
-	void			add_checksum(uint8_t *message, const unsigned length, uint8_t &ck_a, uint8_t &ck_b);
-
-	int			wait_for_ack(unsigned timeout);
+	/**
+	 * Calculate FNV1 hash
+	 */
+	uint32_t		fnv1_32_str(uint8_t *str, uint32_t hval);
 
 	int			_fd;
 	struct vehicle_gps_position_s *_gps_position;
+	struct satellite_info_s *_satellite_info;
+	bool			_enable_sat_info;
 	bool			_configured;
-	bool			_waiting_for_ack;
+	ubx_ack_state_t		_ack_state;
 	bool			_got_posllh;
 	bool			_got_velned;
-	bool			_got_timeutc;
-	uint8_t			_message_class_needed;
-	uint8_t			_message_id_needed;
 	ubx_decode_state_t	_decode_state;
-	uint8_t			_rx_buffer[RECV_BUFFER_SIZE];
-	unsigned		_rx_count;
+	uint16_t		_rx_msg;
+	ubx_rxmsg_state_t	_rx_state;
+	uint16_t		_rx_payload_length;
+	uint16_t		_rx_payload_index;
 	uint8_t			_rx_ck_a;
 	uint8_t			_rx_ck_b;
-	uint8_t			_message_class;
-	uint8_t			_message_id;
-	unsigned		_payload_size;
 	hrt_abstime		_disable_cmd_last;
+	uint16_t		_ack_waiting_msg;
+	ubx_buf_t		_buf;
+	uint32_t		_ubx_version;
+	bool			_use_nav_pvt;
 };
 
 #endif /* UBX_H_ */

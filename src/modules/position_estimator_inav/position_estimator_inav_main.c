@@ -49,6 +49,7 @@
 #include <sys/prctl.h>
 #include <termios.h>
 #include <math.h>
+#include <float.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/actuator_controls.h>
@@ -477,7 +478,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				float flow_dt = flow_prev > 0 ? (flow.flow_timestamp - flow_prev) * 1e-6f : 0.1f;
 				flow_prev = flow.flow_timestamp;
 
-				if (flow.ground_distance_m > 0.31f && flow.ground_distance_m < 4.0f && att.R[2][2] > 0.7f && flow.ground_distance_m != sonar_prev) {
+				if ((flow.ground_distance_m > 0.31f) &&
+					(flow.ground_distance_m < 4.0f) &&
+					(att.R[2][2] > 0.7f) &&
+					(fabsf(flow.ground_distance_m - sonar_prev) > FLT_EPSILON)) {
+
 					sonar_time = t;
 					sonar_prev = flow.ground_distance_m;
 					corr_sonar = flow.ground_distance_m + surface_offset + z_est[0];
@@ -646,25 +651,22 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 						} else if (t > ref_init_start + ref_init_delay) {
 							ref_inited = true;
-							/* update baro offset */
-							baro_offset -= z_est[0];
 
 							/* set position estimate to (0, 0, 0), use GPS velocity for XY */
 							x_est[0] = 0.0f;
 							x_est[1] = gps.vel_n_m_s;
 							y_est[0] = 0.0f;
 							y_est[1] = gps.vel_e_m_s;
-							z_est[0] = 0.0f;
 
 							local_pos.ref_lat = lat;
 							local_pos.ref_lon = lon;
-							local_pos.ref_alt = alt;
+							local_pos.ref_alt = alt + z_est[0];
 							local_pos.ref_timestamp = t;
 
 							/* initialize projection */
 							map_projection_init(&ref, lat, lon);
 							warnx("init ref: lat=%.7f, lon=%.7f, alt=%.2f", (double)lat, (double)lon, (double)alt);
-							mavlink_log_info(mavlink_fd, "[inav] init ref: lat=%.7f, lon=%.7f, alt=%.2f", (double)lat, (double)lon, (double)alt);
+							mavlink_log_info(mavlink_fd, "[inav] init ref: %.7f, %.7f, %.2f", (double)lat, (double)lon, (double)alt);
 						}
 					}
 
@@ -913,6 +915,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				memcpy(x_est_prev, x_est, sizeof(x_est));
 				memcpy(y_est_prev, y_est, sizeof(y_est));
 			}
+		} else {
+			/* gradually reset xy velocity estimates */
+			inertial_filter_correct(-x_est[1], dt, x_est, 1, params.w_xy_res_v);
+			inertial_filter_correct(-y_est[1], dt, y_est, 1, params.w_xy_res_v);
 		}
 
 		/* detect land */
@@ -928,6 +934,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				landed = false;
 				landed_time = 0;
 			}
+			/* reset xy velocity estimates when landed */
+			x_est[1] = 0.0f;
+			y_est[1] = 0.0f;
 
 		} else {
 			if (alt_disp2 < land_disp2 && thrust < params.land_thr) {
@@ -952,11 +961,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				float updates_dt = (t - updates_counter_start) * 0.000001f;
 				warnx(
 					"updates rate: accelerometer = %.1f/s, baro = %.1f/s, gps = %.1f/s, attitude = %.1f/s, flow = %.1f/s",
-					accel_updates / updates_dt,
-					baro_updates / updates_dt,
-					gps_updates / updates_dt,
-					attitude_updates / updates_dt,
-					flow_updates / updates_dt);
+					(double)(accel_updates / updates_dt),
+					(double)(baro_updates / updates_dt),
+					(double)(gps_updates / updates_dt),
+					(double)(attitude_updates / updates_dt),
+					(double)(flow_updates / updates_dt));
 				updates_counter_start = t;
 				accel_updates = 0;
 				baro_updates = 0;

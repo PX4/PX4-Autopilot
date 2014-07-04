@@ -44,10 +44,10 @@
 #include "mavlink_main.h"
 
 MavlinkStream::MavlinkStream() :
-	_last_sent(0),
+	next(nullptr),
 	_channel(MAVLINK_COMM_0),
 	_interval(1000000),
-	next(nullptr)
+	_last_sent(0)
 {
 }
 

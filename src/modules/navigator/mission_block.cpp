@@ -42,6 +42,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <math.h>
+#include <float.h>
 
 #include <systemlib/err.h>
 #include <geo/geo.h>
