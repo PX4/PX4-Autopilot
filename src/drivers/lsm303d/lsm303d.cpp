@@ -1525,6 +1525,13 @@ LSM303D::measure()
 	accel_report.y_raw = raw_accel_report.y;
 	accel_report.z_raw = raw_accel_report.z;
 
+// the aerocore has the accel mounted on the top, rotate 180 about x axis
+#ifdef CONFIG_ARCH_BOARD_AEROCORE
+        accel_report.x_raw = raw_accel_report.x;
+        accel_report.y_raw = ((raw_accel_report.y==-32768) ? 32767 : -raw_accel_report.y);
+        accel_report.z_raw = ((raw_accel_report.z==-32768) ? 32767 : -raw_accel_report.z);
+#endif
+
 	float x_in_new = ((accel_report.x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
 	float y_in_new = ((accel_report.y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
 	float z_in_new = ((accel_report.z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
@@ -1603,6 +1610,13 @@ LSM303D::mag_measure()
 	mag_report.x_raw = raw_mag_report.x;
 	mag_report.y_raw = raw_mag_report.y;
 	mag_report.z_raw = raw_mag_report.z;
+
+// the aerocore has the mag mounted on the top, rotate 180 about x axis
+#ifdef CONFIG_ARCH_BOARD_AEROCORE
+        mag_report.x_raw = raw_mag_report.x;
+        mag_report.y_raw = ((raw_mag_report.y==-32768) ? 32767 : -raw_mag_report.y);
+        mag_report.z_raw = ((raw_mag_report.z==-32768) ? 32767 : -raw_mag_report.z);
+#endif
 	mag_report.x = ((mag_report.x_raw * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
 	mag_report.y = ((mag_report.y_raw * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
 	mag_report.z = ((mag_report.z_raw * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
