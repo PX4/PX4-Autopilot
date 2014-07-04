@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,41 +31,63 @@
  *
  ****************************************************************************/
 
-/**
- * @file gps_helper.h
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+/*
+ * @file circuit_breaker.c
+ *
+ * Circuit breaker parameters.
+ * Analog to real aviation circuit breakers these parameters
+ * allow to disable subsystems. They are not supported as standard
+ * operation procedure and are only provided for development purposes.
+ * To ensure they are not activated accidentally, the associated
+ * parameter needs to set to the key (magic).
  */
 
-#ifndef GPS_HELPER_H
-#define GPS_HELPER_H
+#include <systemlib/param/param.h>
+#include <systemlib/circuit_breaker.h>
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_gps_position.h>
+/**
+ * Circuit breaker for power supply check
+ *
+ * Setting this parameter to 894281 will disable the power valid
+ * checks in the commander.
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+ *
+ * @min 0
+ * @max 894281
+ * @group Circuit Breaker
+ */
+PARAM_DEFINE_INT32(CBRK_SUPPLY_CHK, 0);
 
-class GPS_Helper
+/**
+ * Circuit breaker for rate controller output
+ *
+ * Setting this parameter to 140253 will disable the rate
+ * controller uORB publication.
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+ *
+ * @min 0
+ * @max 140253
+ * @group Circuit Breaker
+ */
+PARAM_DEFINE_INT32(CBRK_RATE_CTRL, 0);
+
+/**
+ * Circuit breaker for IO safety
+ *
+ * Setting this parameter to 894281 will disable IO safety.
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+ *
+ * @min 0
+ * @max 22027
+ * @group Circuit Breaker
+ */
+PARAM_DEFINE_INT32(CBRK_IO_SAFETY, 0);
+
+bool circuit_breaker_enabled(const char* breaker, int32_t magic)
 {
-public:
+	int32_t val;
+	(void)param_get(param_find(breaker), &val);
 
-	GPS_Helper() {};
-	virtual ~GPS_Helper() {};
+	return (val == magic);
+}
 
-	virtual int			configure(unsigned &baud) = 0;
-	virtual int 			receive(unsigned timeout) = 0;
-	int 				set_baudrate(const int &fd, unsigned baud);
-	float				get_position_update_rate();
-	float				get_velocity_update_rate();
-	void				reset_update_rates();
-	void				store_update_rates();
-
-protected:
-	uint8_t _rate_count_lat_lon;
-	uint8_t _rate_count_vel;
-
-	float _rate_lat_lon = 0.0f;
-	float _rate_vel = 0.0f;
-
-	uint64_t _interval_rate_start;
-};
-
-#endif /* GPS_HELPER_H */

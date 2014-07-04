@@ -42,6 +42,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 
+#include <systemlib/err.h>
 #include <systemlib/rc_check.h>
 #include <systemlib/param/param.h>
 #include <mavlink/mavlink_log.h>
@@ -98,32 +99,32 @@ int rc_calibration_check(int mavlink_fd) {
 		/* assert min..center..max ordering */
 		if (param_min < 500) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_MIN < 500", i+1);
+			mavlink_log_critical(mavlink_fd, "#audio ERR: RC_%d_MIN < 500", i+1);
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
 		if (param_max > 2500) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_MAX > 2500", i+1);
+			mavlink_log_critical(mavlink_fd, "#audio ERR: RC_%d_MAX > 2500", i+1);
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
 		if (param_trim < param_min) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_TRIM < MIN (%d/%d)", i+1, (int)param_trim, (int)param_min);
+			mavlink_log_critical(mavlink_fd, "#audio ERR: RC_%d_TRIM < MIN (%d/%d)", i+1, (int)param_trim, (int)param_min);
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
 		if (param_trim > param_max) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_TRIM > MAX (%d/%d)", i+1, (int)param_trim, (int)param_max);
+			mavlink_log_critical(mavlink_fd, "#audio ERR: RC_%d_TRIM > MAX (%d/%d)", i+1, (int)param_trim, (int)param_max);
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
 
 		/* assert deadzone is sane */
 		if (param_dz > 500) {
-			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_DZ > 500", i+1);
+			mavlink_log_critical(mavlink_fd, "#audio ERR: RC_%d_DZ > 500", i+1);
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 			count++;
@@ -139,7 +140,7 @@ int rc_calibration_check(int mavlink_fd) {
 
 		/* sanity checks pass, enable channel */
 		if (count) {
-			mavlink_log_critical(mavlink_fd, "ERROR: %d config error(s) for RC channel %d.", count, (i + 1));
+			mavlink_log_critical(mavlink_fd, "#audio ERROR: %d config error(s) for RC channel %d.", count, (i + 1));
 			warnx("ERROR: %d config error(s) for RC channel %d.", count, (i + 1));
 			usleep(100000);
 		}

@@ -119,13 +119,15 @@ sbus_init(const char *device)
 bool
 sbus1_output(uint16_t *values, uint16_t num_values)
 {
-	write(sbus_fd, 'A', 1);
+	char a = 'A';
+	write(sbus_fd, &a, 1);
 }
 
 bool
 sbus2_output(uint16_t *values, uint16_t num_values)
 {
-	write(sbus_fd, 'B', 1);
+	char b = 'B';
+	write(sbus_fd, &b, 1);
 }
 
 bool

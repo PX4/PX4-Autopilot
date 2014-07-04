@@ -470,7 +470,7 @@ Mavlink::get_instance_id()
 	return _instance_id;
 }
 
-const mavlink_channel_t
+mavlink_channel_t
 Mavlink::get_channel()
 {
 	return _channel;
@@ -1472,7 +1472,7 @@ Mavlink::task_main(int argc, char *argv[])
                 write_ptr = (uint8_t*)&msg;
 
                 // Pull a single message from the buffer
-                int read_count = available;
+                size_t read_count = available;
                 if (read_count > sizeof(mavlink_message_t)) {
                     read_count = sizeof(mavlink_message_t);
                 }
