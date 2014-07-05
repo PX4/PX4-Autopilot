@@ -767,6 +767,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	hrt_abstime last_idle_time = 0;
 	hrt_abstime start_time = 0;
+	hrt_abstime latest_heartbeat = 0;
 
 	bool status_changed = true;
 	bool param_init_forced = true;
@@ -1367,19 +1368,24 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* data link check */
-		if (hrt_absolute_time() < telemetry.heartbeat_time + DL_TIMEOUT) {
-			/* handle the case where data link was regained */
-			if (status.data_link_lost) {
-				mavlink_log_critical(mavlink_fd, "#audio: data link regained");
-				status.data_link_lost = false;
-				status_changed = true;
-			}
+		if (telemetry.heartbeat_time >= latest_heartbeat) {
+			if (hrt_absolute_time() < telemetry.heartbeat_time + DL_TIMEOUT) {
+				/* handle the case where data link was regained */
+				if (status.data_link_lost) {
+					mavlink_log_critical(mavlink_fd, "#audio: data link regained");
+					status.data_link_lost = false;
+					status_changed = true;
+				}
 
-		} else {
-			if (!status.data_link_lost) {
-				mavlink_log_critical(mavlink_fd, "#audio: CRITICAL: DATA LINK LOST");
-				status.data_link_lost = true;
-				status_changed = true;
+				/* Only consider data link with most recent heartbeat */
+				latest_heartbeat = telemetry.heartbeat_time;
+
+			} else {
+				if (!status.data_link_lost) {
+					mavlink_log_critical(mavlink_fd, "#audio: CRITICAL: DATA LINK LOST");
+					status.data_link_lost = true;
+					status_changed = true;
+				}
 			}
 		}
 
