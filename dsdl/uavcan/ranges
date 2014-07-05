@@ -1,10 +1,12 @@
 
 256..399 - high priority equipment
 
-500..519 - nav
+540..549 - high priority nav
 
 550..599 - protocol
 
 600..749 - low priority eqipment
+
+760..766 - low priority nav
 
 767 - MAVLink
