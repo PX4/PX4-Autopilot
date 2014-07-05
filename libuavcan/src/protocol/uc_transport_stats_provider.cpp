@@ -22,7 +22,7 @@ void TransportStatsProvider::handleGetTransportStats(const protocol::GetTranspor
     for (int i = 0; i < canio.getNumIfaces(); i++)
     {
         const CanIfacePerfCounters can_perf = canio.getIfacePerfCounters(i);
-        protocol::CanIfaceStats stats;
+        protocol::CANIfaceStats stats;
         stats.errors = can_perf.errors;
         stats.frames_tx = can_perf.frames_tx;
         stats.frames_rx = can_perf.frames_rx;
