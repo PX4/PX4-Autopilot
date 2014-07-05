@@ -472,7 +472,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 			// Follow exactly what the mavlink spec says for values: 0.0f for disarm, 1.0f for arm.
 			// We use an float epsilon delta to test float equality.
 			if (cmd->param1 != 0.0f && (fabsf(cmd->param1 - 1.0f) > 2.0f * FLT_EPSILON)) {
-				mavlink_log_info(mavlink_fd, "Unsupported ARM_DISARM parameter: %.6f", cmd->param1);
+				mavlink_log_info(mavlink_fd, "Unsupported ARM_DISARM parameter: %.6f", (double)cmd->param1);
 
 			} else {
 
@@ -634,7 +634,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* welcome user */
 	warnx("starting");
 
-	char *main_states_str[MAIN_STATE_MAX];
+	const char *main_states_str[MAIN_STATE_MAX];
 	main_states_str[MAIN_STATE_MANUAL]			= "MANUAL";
 	main_states_str[MAIN_STATE_ALTCTL]			= "ALTCTL";
 	main_states_str[MAIN_STATE_POSCTL]			= "POSCTL";
@@ -643,7 +643,7 @@ int commander_thread_main(int argc, char *argv[])
 	main_states_str[MAIN_STATE_AUTO_RTL]			= "AUTO_RTL";
 	main_states_str[MAIN_STATE_ACRO]			= "ACRO";
 
-	char *arming_states_str[ARMING_STATE_MAX];
+	const char *arming_states_str[ARMING_STATE_MAX];
 	arming_states_str[ARMING_STATE_INIT]			= "INIT";
 	arming_states_str[ARMING_STATE_STANDBY]			= "STANDBY";
 	arming_states_str[ARMING_STATE_ARMED]			= "ARMED";
@@ -652,7 +652,7 @@ int commander_thread_main(int argc, char *argv[])
 	arming_states_str[ARMING_STATE_REBOOT]			= "REBOOT";
 	arming_states_str[ARMING_STATE_IN_AIR_RESTORE]		= "IN_AIR_RESTORE";
 
-	char *nav_states_str[NAVIGATION_STATE_MAX];
+	const char *nav_states_str[NAVIGATION_STATE_MAX];
 	nav_states_str[NAVIGATION_STATE_MANUAL]			= "MANUAL";
 	nav_states_str[NAVIGATION_STATE_ALTCTL]			= "ALTCTL";
 	nav_states_str[NAVIGATION_STATE_POSCTL]			= "POSCTL";

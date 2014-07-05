@@ -297,12 +297,12 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, do
 		// TO DO - this is messed up and won't compile
 		float start_disp_x = radius * sinf(arc_start_bearing);
 		float start_disp_y = radius * cosf(arc_start_bearing);
-		float end_disp_x = radius * sinf(_wrapPI(arc_start_bearing + arc_sweep));
-		float end_disp_y = radius * cosf(_wrapPI(arc_start_bearing + arc_sweep));
-		float lon_start = lon_now + start_disp_x / 111111.0f;
-		float lat_start = lat_now + start_disp_y * cosf(lat_now) / 111111.0f;
-		float lon_end = lon_now + end_disp_x / 111111.0f;
-		float lat_end = lat_now + end_disp_y * cosf(lat_now) / 111111.0f;
+		float end_disp_x = radius * sinf(_wrapPI((double)(arc_start_bearing + arc_sweep)));
+		float end_disp_y = radius * cosf(_wrapPI((double)(arc_start_bearing + arc_sweep)));
+		float lon_start = (float)lon_now + start_disp_x / 111111.0f;
+		float lat_start = (float)lat_now + start_disp_y * cosf(lat_now) / 111111.0f;
+		float lon_end = (float)lon_now + end_disp_x / 111111.0f;
+		float lat_end = (float)lat_now + end_disp_y * cosf(lat_now) / 111111.0f;
 		float dist_to_start = get_distance_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
 		float dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 
@@ -319,7 +319,7 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, do
 
 	}
 
-	crosstrack_error->bearing = _wrapPI(crosstrack_error->bearing);
+	crosstrack_error->bearing = _wrapPI((double)crosstrack_error->bearing);
 	return_value = OK;
 	return return_value;
 }

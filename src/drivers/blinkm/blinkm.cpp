@@ -293,7 +293,7 @@ BlinkM::BlinkM(int bus, int blinkm) :
 	safety_sub_fd(-1),
 	num_of_cells(0),
 	detected_cells_runcount(0),
-	t_led_color({0}),
+	t_led_color{0},
 	t_led_blink(0),
 	led_thread_runcount(0),
 	led_interval(1000),

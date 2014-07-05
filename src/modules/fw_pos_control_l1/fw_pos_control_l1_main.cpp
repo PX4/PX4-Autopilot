@@ -414,6 +414,17 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_attitude_sp_pub(-1),
 	_nav_capabilities_pub(-1),
 
+	_att(),
+	_att_sp(),
+	_nav_capabilities(),
+	_manual(),
+	_airspeed(),
+	_control_mode(),
+	_global_pos(),
+	_pos_sp_triplet(),
+	_sensor_combined(),
+	_range_finder(),
+
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
 
@@ -433,18 +444,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_airspeed_valid(false),
 	_groundspeed_undershoot(0.0f),
 	_global_pos_valid(false),
-	_att(),
-	_att_sp(),
-	_nav_capabilities(),
-	_manual(),
-	_airspeed(),
-	_control_mode(),
-	_global_pos(),
-	_pos_sp_triplet(),
-	_sensor_combined(),
 	_mTecs(),
-	_was_pos_control_mode(false),
-	_range_finder()
+	_was_pos_control_mode(false)
 {
 	_nav_capabilities.turn_distance = 0.0f;
 
