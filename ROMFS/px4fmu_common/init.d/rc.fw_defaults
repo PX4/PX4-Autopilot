@@ -11,6 +11,4 @@ then
 	param set NAV_RTL_ALT 100
 	param set NAV_RTL_LAND_T -1
 	param set NAV_ACCEPT_RAD 50
-	param set RC_SCALE_ROLL 1
-	param set RC_SCALE_PITCH 1
 fi

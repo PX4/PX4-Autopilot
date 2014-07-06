@@ -1,8 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Jean Cyr <jean.m.cyr@gmail.com>
- *           @author Thomas Gubler <thomasgubler@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +33,9 @@
 /**
  * @file geofence.cpp
  * Provides functions for handling the geofence
+ *
+ * @author Jean Cyr <jean.m.cyr@gmail.com>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 #include "geofence.h"
 
@@ -77,7 +78,7 @@ bool Geofence::inside(const struct vehicle_global_position_s *vehicle)
 {
 	double lat = vehicle->lat / 1e7d;
 	double lon = vehicle->lon / 1e7d;
-	float	alt = vehicle->alt;
+	//float	alt = vehicle->alt;
 
 	return inside(lat, lon, vehicle->alt);
 }
@@ -115,9 +116,9 @@ bool Geofence::inside(double lat, double lon, float altitude)
 				}
 
 				// skip vertex 0 (return point)
-				if (((temp_vertex_i.lon) >= lon != (temp_vertex_j.lon >= lon)) &&
-							(lat <= (temp_vertex_j.lat - temp_vertex_i.lat) * (lon - temp_vertex_i.lon) /
-							 (temp_vertex_j.lon - temp_vertex_i.lon) + temp_vertex_i.lat)) {
+				if (((double)temp_vertex_i.lon >= lon) != ((double)temp_vertex_j.lon >= lon) &&
+							(lat <= (double)(temp_vertex_j.lat - temp_vertex_i.lat) * (lon - (double)temp_vertex_i.lon) /
+							 (double)(temp_vertex_j.lon - temp_vertex_i.lon) + (double)temp_vertex_i.lat)) {
 							c = !c;
 				}
 
@@ -293,4 +294,5 @@ Geofence::loadFromFile(const char *filename)
 int Geofence::clearDm()
 {
 	dm_clear(DM_KEY_FENCE_POINTS);
+	return OK;
 }

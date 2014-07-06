@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -52,5 +52,6 @@ SRCS		 = err.c \
 		   rc_check.c \
 		   otp.c \
 		   board_serial.c \
-		   pwm_limit/pwm_limit.c
+		   pwm_limit/pwm_limit.c \
+		   circuit_breaker.c
 

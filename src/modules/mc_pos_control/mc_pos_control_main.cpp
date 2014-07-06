@@ -226,7 +226,7 @@ private:
 	/**
 	 * Main sensor collection task.
 	 */
-	void		task_main() __attribute__((noreturn));
+	void		task_main();
 };
 
 namespace pos_control
@@ -466,7 +466,7 @@ MulticopterPositionControl::update_ref()
 {
 	if (_local_pos.ref_timestamp != _ref_timestamp) {
 		double lat_sp, lon_sp;
-		float alt_sp;
+		float alt_sp = 0.0f;
 
 		if (_ref_timestamp != 0) {
 			/* calculate current position setpoint in global frame */
@@ -545,7 +545,6 @@ MulticopterPositionControl::task_main()
 	hrt_abstime t_prev = 0;
 
 	const float alt_ctl_dz = 0.2f;
-	const float pos_ctl_dz = 0.05f;
 
 	math::Vector<3> sp_move_rate;
 	sp_move_rate.zero();
@@ -617,7 +616,7 @@ MulticopterPositionControl::task_main()
 					reset_alt_sp();
 
 					/* move altitude setpoint with throttle stick */
-					sp_move_rate(2) = -scale_control(_manual.throttle - 0.5f, 0.5f, alt_ctl_dz);
+					sp_move_rate(2) = -scale_control(_manual.z - 0.5f, 0.5f, alt_ctl_dz);
 				}
 
 				if (_control_mode.flag_control_position_enabled) {
@@ -625,8 +624,8 @@ MulticopterPositionControl::task_main()
 					reset_pos_sp();
 
 					/* move position setpoint with roll/pitch stick */
-					sp_move_rate(0) = _manual.pitch;
-					sp_move_rate(1) = _manual.roll;
+					sp_move_rate(0) = _manual.x;
+					sp_move_rate(1) = _manual.y;
 				}
 
 				/* limit setpoint move rate */
@@ -782,7 +781,7 @@ MulticopterPositionControl::task_main()
 							float i = _params.thr_min;
 
 							if (reset_int_z_manual) {
-								i = _manual.throttle;
+								i = _manual.z;
 
 								if (i < _params.thr_min) {
 									i = _params.thr_min;
@@ -862,7 +861,7 @@ MulticopterPositionControl::task_main()
 
 					if (_control_mode.flag_control_velocity_enabled) {
 						/* limit max tilt */
-						if (thr_min >= 0.0f && tilt_max < M_PI / 2 - 0.05f) {
+						if (thr_min >= 0.0f && tilt_max < M_PI_F / 2 - 0.05f) {
 							/* absolute horizontal thrust */
 							float thrust_sp_xy_len = math::Vector<2>(thrust_sp(0), thrust_sp(1)).length();
 
@@ -1062,7 +1061,7 @@ MulticopterPositionControl::start()
 	_control_task = task_spawn_cmd("mc_pos_control",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       2048,
+				       2000,
 				       (main_t)&MulticopterPositionControl::task_main_trampoline,
 				       nullptr);
 

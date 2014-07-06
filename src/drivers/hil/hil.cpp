@@ -122,7 +122,7 @@ private:
 	actuator_controls_s _controls;
 
 	static void	task_main_trampoline(int argc, char *argv[]);
-	void		task_main() __attribute__((noreturn));
+	void		task_main();
 
 	static int	control_callback(uintptr_t handle,
 			uint8_t control_group,

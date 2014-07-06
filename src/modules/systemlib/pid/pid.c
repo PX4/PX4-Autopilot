@@ -53,7 +53,7 @@
 
 #define SIGMA 0.000001f
 
-__EXPORT void pid_init(PID_t *pid, uint8_t mode, float dt_min)
+__EXPORT void pid_init(PID_t *pid, pid_mode_t mode, float dt_min)
 {
 	pid->mode = mode;
 	pid->dt_min = dt_min;

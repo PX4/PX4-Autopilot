@@ -43,7 +43,11 @@
 #include "mavlink_stream.h"
 #include "mavlink_main.h"
 
-MavlinkStream::MavlinkStream() : _interval(1000000), _last_sent(0), _channel(MAVLINK_COMM_0), next(nullptr)
+MavlinkStream::MavlinkStream() :
+	next(nullptr),
+	_channel(MAVLINK_COMM_0),
+	_interval(1000000),
+	_last_sent(0)
 {
 }
 
@@ -81,5 +85,9 @@ MavlinkStream::update(const hrt_abstime t)
 		/* interval expired, send message */
 		send(t);
 		_last_sent = (t / _interval) * _interval;
+
+		return 0;
 	}
+
+	return -1;
 }

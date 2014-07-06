@@ -106,12 +106,17 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_telemetry_status_pub(-1),
 	_rc_pub(-1),
 	_manual_pub(-1),
+	_telemetry_heartbeat_time(0),
+	_radio_status_available(false),
 	_hil_frames(0),
 	_old_timestamp(0),
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0)
 {
 	memset(&hil_local_pos, 0, sizeof(hil_local_pos));
+
+	// make sure the FTP server is started
+	(void)MavlinkFTP::getServer();
 }
 
 MavlinkReceiver::~MavlinkReceiver()
@@ -148,6 +153,18 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_MANUAL_CONTROL:
 		handle_message_manual_control(msg);
+		break;
+
+	case MAVLINK_MSG_ID_HEARTBEAT:
+		handle_message_heartbeat(msg);
+		break;
+
+	case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:
+		handle_message_request_data_stream(msg);
+		break;
+
+	case MAVLINK_MSG_ID_ENCAPSULATED_DATA:
+		MavlinkFTP::getServer()->handle_message(_mavlink, msg);
 		break;
 
 	default:
@@ -191,7 +208,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		}
 
 	}
-	
+
     /* If we've received a valid message, mark the flag indicating so.
 	   This is used in the '-w' command-line flag. */
 	_mavlink->set_has_received_messages(true);
@@ -411,6 +428,7 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 	memset(&tstatus, 0, sizeof(tstatus));
 
 	tstatus.timestamp = hrt_absolute_time();
+	tstatus.heartbeat_time = _telemetry_heartbeat_time;
 	tstatus.type = TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO;
 	tstatus.rssi = rstatus.rssi;
 	tstatus.remote_rssi = rstatus.remrssi;
@@ -426,6 +444,9 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 	} else {
 		orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
 	}
+
+	/* this means that heartbeats alone won't be published to the radio status no more */
+	_radio_status_available = true;
 }
 
 void
@@ -438,16 +459,64 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	memset(&manual, 0, sizeof(manual));
 
 	manual.timestamp = hrt_absolute_time();
-	manual.pitch = man.x / 1000.0f;
-	manual.roll = man.y / 1000.0f;
-	manual.yaw = man.r / 1000.0f;
-	manual.throttle = man.z / 1000.0f;
+	manual.x = man.x / 1000.0f;
+	manual.y = man.y / 1000.0f;
+	manual.r = man.r / 1000.0f;
+	manual.z = man.z / 1000.0f;
 
 	if (_manual_pub < 0) {
 		_manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
 
 	} else {
 		orb_publish(ORB_ID(manual_control_setpoint), _manual_pub, &manual);
+	}
+}
+
+void
+MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
+{
+	mavlink_heartbeat_t hb;
+	mavlink_msg_heartbeat_decode(msg, &hb);
+
+	/* ignore own heartbeats, accept only heartbeats from GCS */
+	if (msg->sysid != mavlink_system.sysid && hb.type == MAV_TYPE_GCS) {
+		_telemetry_heartbeat_time = hrt_absolute_time();
+
+		/* if no radio status messages arrive, lets at least publish that heartbeats were received */
+		if (!_radio_status_available) {
+
+			struct telemetry_status_s tstatus;
+			memset(&tstatus, 0, sizeof(tstatus));
+
+			tstatus.timestamp = _telemetry_heartbeat_time;
+			tstatus.heartbeat_time = _telemetry_heartbeat_time;
+			tstatus.type = TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
+
+			if (_telemetry_status_pub < 0) {
+				_telemetry_status_pub = orb_advertise(ORB_ID(telemetry_status), &tstatus);
+
+			} else {
+				orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
+			}
+		}
+	}
+}
+
+void
+MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
+{
+	mavlink_request_data_stream_t req;
+	mavlink_msg_request_data_stream_decode(msg, &req);
+
+	if (req.target_system == mavlink_system.sysid && req.target_component == mavlink_system.compid) {
+		float rate = req.start_stop ? (1000.0f / req.req_message_rate) : 0.0f;
+
+		MavlinkStream *stream;
+		LL_FOREACH(_mavlink->get_streams(), stream) {
+			if (req.req_stream_id == stream->get_id()) {
+				_mavlink->configure_stream_threadsafe(stream->get_name(), rate);
+			}
+		}
 	}
 }
 
@@ -667,12 +736,11 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	hil_gps.lat = gps.lat;
 	hil_gps.lon = gps.lon;
 	hil_gps.alt = gps.alt;
-	hil_gps.eph_m = (float)gps.eph * 1e-2f; // from cm to m
-	hil_gps.epv_m = (float)gps.epv * 1e-2f; // from cm to m
+	hil_gps.eph = (float)gps.eph * 1e-2f; // from cm to m
+	hil_gps.epv = (float)gps.epv * 1e-2f; // from cm to m
 
 	hil_gps.timestamp_variance = timestamp;
 	hil_gps.s_variance_m_s = 5.0f;
-	hil_gps.p_variance_m = hil_gps.eph_m * hil_gps.eph_m;
 
 	hil_gps.timestamp_velocity = timestamp;
 	hil_gps.vel_m_s = (float)gps.vel * 1e-2f; // from cm/s to m/s
@@ -682,9 +750,8 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	hil_gps.vel_ned_valid = true;
 	hil_gps.cog_rad = _wrap_pi(gps.cog * M_DEG_TO_RAD_F * 1e-2f);
 
-	hil_gps.timestamp_satellites = timestamp;
 	hil_gps.fix_type = gps.fix_type;
-	hil_gps.satellites_visible = gps.satellites_visible;
+	hil_gps.satellites_used = gps.satellites_visible;  //TODO: rename mavlink_hil_gps_t sats visible to used?
 
 	if (_gps_pub < 0) {
 		_gps_pub = orb_advertise(ORB_ID(vehicle_gps_position), &hil_gps);
@@ -932,6 +999,8 @@ void *MavlinkReceiver::start_helper(void *context)
 	rcv->receive_thread(NULL);
 
 	delete rcv;
+
+	return nullptr;
 }
 
 pthread_t
@@ -949,8 +1018,7 @@ MavlinkReceiver::receive_start(Mavlink *parent)
 	param.sched_priority = SCHED_PRIORITY_MAX - 40;
 	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
-	pthread_attr_setstacksize(&receiveloop_attr, 3000);
-
+	pthread_attr_setstacksize(&receiveloop_attr, 2900);
 	pthread_t thread;
 	pthread_create(&thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void *)parent);
 

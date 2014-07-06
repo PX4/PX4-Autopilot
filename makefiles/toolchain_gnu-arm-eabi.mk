@@ -48,6 +48,16 @@ NM			 = $(CROSSDEV)nm
 OBJCOPY			 = $(CROSSDEV)objcopy
 OBJDUMP			 = $(CROSSDEV)objdump
 
+# Check if the right version of the toolchain is available
+#
+CROSSDEV_VER_SUPPORTED	 = 4.7
+CROSSDEV_VER_FOUND	 = $(shell $(CC) -dumpversion)
+
+ifeq (,$(findstring $(CROSSDEV_VER_SUPPORTED),$(CROSSDEV_VER_FOUND)))
+$(error Unsupported version of $(CC), found: $(CROSSDEV_VER_FOUND) instead of $(CROSSDEV_VER_SUPPORTED).x)
+endif
+
+
 # XXX this is pulled pretty directly from the fmu Make.defs - needs cleanup
 
 MAXOPTIMIZATION		 ?= -O3
@@ -76,7 +86,7 @@ ARCHINSTRUMENTATIONDEFINES_CORTEXM4F = -finstrument-functions \
 ARCHINSTRUMENTATIONDEFINES_CORTEXM4 = -finstrument-functions \
 			   -ffixed-r10
 
-ARCHINSTRUMENTATIONDEFINES_CORTEXM3 = 
+ARCHINSTRUMENTATIONDEFINES_CORTEXM3 =
 
 # Pick the right set of flags for the architecture.
 #
@@ -265,7 +275,7 @@ define SYM_TO_BIN
 	$(Q) $(OBJCOPY) -O binary $1 $2
 endef
 
-# Take the raw binary $1 and make it into an object file $2. 
+# Take the raw binary $1 and make it into an object file $2.
 # The symbol $3 points to the beginning of the file, and $3_len
 # gives its length.
 #

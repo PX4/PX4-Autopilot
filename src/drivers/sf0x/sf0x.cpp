@@ -254,9 +254,6 @@ SF0X::~SF0X()
 int
 SF0X::init()
 {
-	int ret = ERROR;
-	unsigned i = 0;
-
 	/* do regular cdev init */
 	if (CDev::init() != OK) {
 		goto out;
@@ -594,7 +591,7 @@ SF0X::collect()
 		valid = false;
 
 		/* wipe out partially read content from last cycle(s), check for dot */
-		for (int i = 0; i < (lend - 2); i++) {
+		for (unsigned i = 0; i < (lend - 2); i++) {
 			if (_linebuf[i] == '\n') {
 				char buf[sizeof(_linebuf)];
 				memcpy(buf, &_linebuf[i+1], (lend + 1) - (i + 1));
@@ -619,7 +616,7 @@ SF0X::collect()
 		}
 	}
 
-	debug("val (float): %8.4f, raw: %s, valid: %s\n", si_units, _linebuf, ((valid) ? "OK" : "NO"));
+	debug("val (float): %8.4f, raw: %s, valid: %s\n", (double)si_units, _linebuf, ((valid) ? "OK" : "NO"));
 
 	/* done with this chunk, resetting - even if invalid */
 	_linebuf_index = 0;
@@ -795,7 +792,7 @@ const int ERROR = -1;
 
 SF0X	*g_dev;
 
-void	start();
+void	start(const char *port);
 void	stop();
 void	test();
 void	reset();

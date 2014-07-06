@@ -282,12 +282,18 @@ perf_reset(perf_counter_t handle)
 void
 perf_print_counter(perf_counter_t handle)
 {
+	perf_print_counter_fd(0, handle);
+}
+
+void
+perf_print_counter_fd(int fd, perf_counter_t handle)
+{
 	if (handle == NULL)
 		return;
 
 	switch (handle->type) {
 	case PC_COUNT:
-		printf("%s: %llu events\n",
+		dprintf(fd, "%s: %llu events\n",
 		       handle->name,
 		       ((struct perf_ctr_count *)handle)->event_count);
 		break;
@@ -295,7 +301,7 @@ perf_print_counter(perf_counter_t handle)
 	case PC_ELAPSED: {
 		struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 
-		printf("%s: %llu events, %lluus elapsed, %llu avg, min %lluus max %lluus\n",
+		dprintf(fd, "%s: %llu events, %lluus elapsed, %lluus avg, min %lluus max %lluus\n",
 		       handle->name,
 		       pce->event_count,
 		       pce->time_total,
@@ -308,7 +314,7 @@ perf_print_counter(perf_counter_t handle)
 	case PC_INTERVAL: {
 		struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
 
-		printf("%s: %llu events, %llu avg, min %lluus max %lluus\n",
+		dprintf(fd, "%s: %llu events, %lluus avg, min %lluus max %lluus\n",
 		       handle->name,
 		       pci->event_count,
 		       (pci->time_last - pci->time_first) / pci->event_count,
@@ -349,12 +355,12 @@ perf_event_count(perf_counter_t handle)
 }
 
 void
-perf_print_all(void)
+perf_print_all(int fd)
 {
 	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
 
 	while (handle != NULL) {
-		perf_print_counter(handle);
+		perf_print_counter_fd(fd, handle);
 		handle = (perf_counter_t)sq_next(&handle->link);
 	}
 }

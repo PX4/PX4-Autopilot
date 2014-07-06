@@ -61,11 +61,6 @@ PARAM_DEFINE_FLOAT(EKF_ATT_V4_R2, 100.0f);
 /* offset estimation - UNUSED */
 PARAM_DEFINE_FLOAT(EKF_ATT_V4_R3, 0.0f);
 
-/* offsets in roll, pitch and yaw of sensor plane and body */
-PARAM_DEFINE_FLOAT(ATT_ROLL_OFF3, 0.0f);
-PARAM_DEFINE_FLOAT(ATT_PITCH_OFF3, 0.0f);
-PARAM_DEFINE_FLOAT(ATT_YAW_OFF3, 0.0f);
-
 /* magnetic declination, in degrees */
 PARAM_DEFINE_FLOAT(ATT_MAG_DECL, 0.0f);
 
@@ -84,10 +79,6 @@ int parameters_init(struct attitude_estimator_ekf_param_handles *h)
 	h->r1 	=	param_find("EKF_ATT_V4_R1");
 	h->r2 	=	param_find("EKF_ATT_V4_R2");
 	h->r3 	=	param_find("EKF_ATT_V4_R3");
-
-	h->roll_off  =	param_find("ATT_ROLL_OFF3");
-	h->pitch_off =	param_find("ATT_PITCH_OFF3");
-	h->yaw_off   =	param_find("ATT_YAW_OFF3");
 
 	h->mag_decl   =	param_find("ATT_MAG_DECL");
 
@@ -109,12 +100,8 @@ int parameters_update(const struct attitude_estimator_ekf_param_handles *h, stru
 	param_get(h->r2, &(p->r[2]));
 	param_get(h->r3, &(p->r[3]));
 
-	param_get(h->roll_off, &(p->roll_off));
-	param_get(h->pitch_off, &(p->pitch_off));
-	param_get(h->yaw_off, &(p->yaw_off));
-
 	param_get(h->mag_decl, &(p->mag_decl));
-	p->mag_decl *= M_PI / 180.0f;
+	p->mag_decl *= M_PI_F / 180.0f;
 
 	param_get(h->acc_comp, &(p->acc_comp));
 

@@ -72,17 +72,6 @@ PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 25.0f);
 PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
 
 /**
- * Default Loiter Radius
- *
- * This radius is used when no other loiter radius is set.
- *
- * @min 10.0
- * @max 100.0
- * @group L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_LOITER_R, 50.0f);
-
-/**
  * Cruise throttle
  *
  * This is the throttle setting required to achieve the desired cruise speed. Most airframes have a value of 0.5-0.7.
@@ -375,3 +364,14 @@ PARAM_DEFINE_FLOAT(FW_LND_TLALT, 5.0f);
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
+
+/**
+ * Relative altitude threshold for range finder measurements for use during landing
+ *
+ * range finder measurements will only be used if the estimated relative altitude (gobal_pos.alt - landing_waypoint.alt) is < FW_LND_RFRALT
+ * set to < 0 to disable
+ * the correct value of this parameter depends on your range measuring device as well as on the terrain at the landing location
+ *
+ * @group L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_RFRALT, -1.0f);
