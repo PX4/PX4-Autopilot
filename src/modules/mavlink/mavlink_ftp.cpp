@@ -210,7 +210,7 @@ MavlinkFTP::_workList(Request *req)
 		return kErrNotDir;
 	}
     
-    printf("FTP: list %s\n", dirPath);
+    printf("FTP: list %s offset %d\n", dirPath, hdr->offset);
 
 	ErrorCode errorCode = kErrNone;
 	struct dirent entry, *result = nullptr;
@@ -258,7 +258,7 @@ MavlinkFTP::_workList(Request *req)
 
 		// copy the name, which we know will fit
 		strcpy((char *)&hdr->data[offset], entry.d_name);
-		printf("FTP: list %s %s\n", dirPath, (char *)&hdr->data[offset]);
+		printf("FTP: list %s %s\n", dirPath, (char *)&hdr->data[offset-1]);
 		offset += strlen(entry.d_name) + 1;
 	}
 
