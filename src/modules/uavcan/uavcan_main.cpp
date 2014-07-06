@@ -301,15 +301,25 @@ int UavcanNode::run()
 				// iterate actuators
 				for (unsigned i = 0; i < outputs.noutputs; i++) {
 					// last resort: catch NaN, INF and out-of-band errors
-					if (!isfinite(outputs.output[i]) ||
-						outputs.output[i] < -1.0f ||
-						outputs.output[i] > 1.0f) {
+					if (!isfinite(outputs.output[i])) {
 						/*
 						 * Value is NaN, INF or out of band - set to the minimum value.
 						 * This will be clearly visible on the servo status and will limit the risk of accidentally
 						 * spinning motors. It would be deadly in flight.
 						 */
 						outputs.output[i] = -1.0f;
+					}
+
+					// limit outputs to valid range
+
+					// never go below min
+					if (outputs.output[i] < -1.0f) {
+						outputs.output[i] = -1.0f;
+					}
+
+					// never go below max
+					if (outputs.output[i] > 1.0f) {
+						outputs.output[i] = 1.0f;
 					}
 				}
 
