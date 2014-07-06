@@ -50,10 +50,8 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 
 int UavcanEscController::init()
 {
-	int res = -1;
-
 	// ESC status subscription
-	res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanEscController::esc_status_sub_cb));
+	int res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanEscController::esc_status_sub_cb));
 	if (res < 0)
 	{
 		warnx("ESC status sub failed %i", res);
