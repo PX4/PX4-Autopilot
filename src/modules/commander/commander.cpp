@@ -1718,6 +1718,13 @@ set_main_state_rc(struct vehicle_status_s *status, struct manual_control_setpoin
 			}
 
             print_reject_mode(status, "AUTO_MISSION");
+
+            // fallback to LOITER if home position not set
+            res = main_state_transition(status, MAIN_STATE_AUTO_LOITER);
+
+            if (res != TRANSITION_DENIED) {
+                break;  // changed successfully or already in this state
+            }
 		}
 
         // fallback to POSCTL
