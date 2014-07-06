@@ -35,13 +35,6 @@
 # Math library
 #
 SRCS		 = math/test/test.cpp \
-		   math/Vector.cpp \
-		   math/Vector2f.cpp \
-		   math/Vector3.cpp \
-		   math/EulerAngles.cpp \
-		   math/Quaternion.cpp \
-		   math/Dcm.cpp \
-		   math/Matrix.cpp \
 		   math/Limits.cpp
 
 #
@@ -49,13 +42,3 @@ SRCS		 = math/test/test.cpp \
 # current makefile name, since app.mk needs it.
 #
 APP_MAKEFILE	:= $(lastword $(MAKEFILE_LIST))
-
-ifeq ($(CONFIG_ARCH_CORTEXM4)$(CONFIG_ARCH_FPU),yy)
-INCLUDE_DIRS	+= math/arm
-SRCS		+= math/arm/Vector.cpp \
-		   math/arm/Matrix.cpp
-else
-#INCLUDE_DIRS	+= math/generic
-#SRCS		+= math/generic/Vector.cpp \
-#		   math/generic/Matrix.cpp
-endif

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -162,6 +162,7 @@ dsm_guess_format(bool reset)
 		0xff,	/* 8 channels (DX8) */
 		0x1ff,	/* 9 channels (DX9, etc.) */
 		0x3ff,	/* 10 channels (DX10) */
+		0x1fff,	/* 13 channels (DX10t) */
 		0x3fff	/* 18 channels (DX10) */
 	};
 	unsigned votes10 = 0;
@@ -368,11 +369,25 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 		if (channel >= *num_values)
 			*num_values = channel + 1;
 
-		/* convert 0-1024 / 0-2048 values to 1000-2000 ppm encoding in a very sloppy fashion */
-		if (dsm_channel_shift == 11)
-			value /= 2;
+		/* convert 0-1024 / 0-2048 values to 1000-2000 ppm encoding. */
+		if (dsm_channel_shift == 10)
+			value *= 2;
 
-		value += 998;
+		/*
+		 * Spektrum scaling is special. There are these basic considerations
+		 *
+		 *   * Midpoint is 1520 us
+		 *   * 100% travel channels are +- 400 us
+		 *
+		 * We obey the original Spektrum scaling (so a default setup will scale from
+		 * 1100 - 1900 us), but we do not obey the weird 1520 us center point
+		 * and instead (correctly) center the center around 1500 us. This is in order
+		 * to get something useful without requiring the user to calibrate on a digital
+		 * link for no reason.
+		 */
+
+		/* scaled integer for decent accuracy while staying efficient */
+		value = ((((int)value - 1024) * 1000) / 1700) + 1500;
 
 		/*
 		 * Store the decoded channel into the R/C input buffer, taking into
@@ -399,6 +414,15 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 
 		values[channel] = value;
 	}
+
+	/*
+	 * Spektrum likes to send junk in higher channel numbers to fill
+	 * their packets. We don't know about a 13 channel model in their TX
+	 * lines, so if we get a channel count of 13, we'll return 12 (the last
+	 * data index that is stable).
+	 */
+	if (*num_values == 13)
+		*num_values = 12;
 
 	if (dsm_channel_shift == 11) {
 		/* Set the 11-bit data indicator */

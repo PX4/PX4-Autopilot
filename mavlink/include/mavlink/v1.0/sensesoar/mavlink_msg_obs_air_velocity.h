@@ -192,6 +192,42 @@ static inline void mavlink_msg_obs_air_velocity_send(mavlink_channel_t chan, flo
 #endif
 }
 
+#if MAVLINK_MSG_ID_OBS_AIR_VELOCITY_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_obs_air_velocity_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  float magnitude, float aoa, float slip)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+	_mav_put_float(buf, 0, magnitude);
+	_mav_put_float(buf, 4, aoa);
+	_mav_put_float(buf, 8, slip);
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_OBS_AIR_VELOCITY, buf, MAVLINK_MSG_ID_OBS_AIR_VELOCITY_LEN, MAVLINK_MSG_ID_OBS_AIR_VELOCITY_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_OBS_AIR_VELOCITY, buf, MAVLINK_MSG_ID_OBS_AIR_VELOCITY_LEN);
+#endif
+#else
+	mavlink_obs_air_velocity_t *packet = (mavlink_obs_air_velocity_t *)msgbuf;
+	packet->magnitude = magnitude;
+	packet->aoa = aoa;
+	packet->slip = slip;
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_OBS_AIR_VELOCITY, (const char *)packet, MAVLINK_MSG_ID_OBS_AIR_VELOCITY_LEN, MAVLINK_MSG_ID_OBS_AIR_VELOCITY_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_OBS_AIR_VELOCITY, (const char *)packet, MAVLINK_MSG_ID_OBS_AIR_VELOCITY_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE OBS_AIR_VELOCITY UNPACKING

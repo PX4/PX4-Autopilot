@@ -389,18 +389,22 @@ class uploader(object):
                     self.otp_pid = self.otp[12:8:-1]
                     self.otp_coa = self.otp[32:160]
                     # show user:
-                    print("type: " + self.otp_id.decode('Latin-1'))
-                    print("idtype: " + binascii.b2a_qp(self.otp_idtype).decode('Latin-1'))
-                    print("vid: " + binascii.hexlify(self.otp_vid).decode('Latin-1'))
-                    print("pid: "+ binascii.hexlify(self.otp_pid).decode('Latin-1'))
-                    print("coa: "+ binascii.b2a_base64(self.otp_coa).decode('Latin-1'))
-                    print("sn: ", end='')
-                    for byte in range(0,12,4):
-                        x = self.__getSN(byte)
-                        x = x[::-1]  # reverse the bytes
-                        self.sn  = self.sn + x
-                        print(binascii.hexlify(x).decode('Latin-1'), end='') # show user
-                    print('')
+                    try:
+                            print("type: " + self.otp_id.decode('Latin-1'))
+                            print("idtype: " + binascii.b2a_qp(self.otp_idtype).decode('Latin-1'))
+                            print("vid: " + binascii.hexlify(self.otp_vid).decode('Latin-1'))
+                            print("pid: "+ binascii.hexlify(self.otp_pid).decode('Latin-1'))
+                            print("coa: "+ binascii.b2a_base64(self.otp_coa).decode('Latin-1'))
+                            print("sn: ", end='')
+                            for byte in range(0,12,4):
+                                    x = self.__getSN(byte)
+                                    x = x[::-1]  # reverse the bytes
+                                    self.sn  = self.sn + x
+                                    print(binascii.hexlify(x).decode('Latin-1'), end='') # show user
+                            print('')
+                    except Exception:
+                            # ignore bad character encodings
+                            pass
                 print("erase...")
                 self.__erase()
 

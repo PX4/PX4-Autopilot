@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -64,9 +64,9 @@ int do_airspeed_calibration(int mavlink_fd)
 {
 	/* give directions */
 	mavlink_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
-	mavlink_log_info(mavlink_fd, "don't move system");
+	mavlink_log_info(mavlink_fd, "ensure airspeed sensor is not registering wind");
 
-	const int calibration_count = 2500;
+	const int calibration_count = 2000;
 
 	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
 	struct differential_pressure_s diff_pres;
@@ -82,16 +82,21 @@ int do_airspeed_calibration(int mavlink_fd)
 
 	bool paramreset_successful = false;
 	int  fd = open(AIRSPEED_DEVICE_PATH, 0);
+
 	if (fd > 0) {
 		if (OK == ioctl(fd, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
 			paramreset_successful = true;
+
+		} else {
+			mavlink_log_critical(mavlink_fd, "airspeed offset zero failed");
 		}
+
 		close(fd);
 	}
 
 	if (!paramreset_successful) {
-		warn("WARNING: failed to set scale / offsets for airspeed sensor");
-		mavlink_log_critical(mavlink_fd, "could not reset dpress sensor");
+		warn("FAILED to set scale / offsets for airspeed");
+		mavlink_log_critical(mavlink_fd, "dpress reset failed");
 		mavlink_log_info(mavlink_fd, CAL_FAILED_MSG, sensor_name);
 		return ERROR;
 	}
@@ -107,11 +112,12 @@ int do_airspeed_calibration(int mavlink_fd)
 
 		if (poll_ret) {
 			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
-			diff_pres_offset += diff_pres.differential_pressure_pa;
+			diff_pres_offset += diff_pres.differential_pressure_raw_pa;
 			calibration_counter++;
 
-			if (calibration_counter % (calibration_count / 20) == 0)
+			if (calibration_counter % (calibration_count / 20) == 0) {
 				mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, (calibration_counter * 100) / calibration_count);
+			}
 
 		} else if (poll_ret == 0) {
 			/* any poll failure for 1s is a reason to abort */
@@ -142,7 +148,7 @@ int do_airspeed_calibration(int mavlink_fd)
 		}
 
 		mavlink_log_info(mavlink_fd, CAL_DONE_MSG, sensor_name);
-		tune_neutral();
+		tune_neutral(true);
 		close(diff_pres_sub);
 		return OK;
 

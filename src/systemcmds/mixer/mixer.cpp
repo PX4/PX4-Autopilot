@@ -102,7 +102,8 @@ load(const char *devname, const char *fname)
 	if (ioctl(dev, MIXERIOCRESET, 0))
 		err(1, "can't reset mixers on %s", devname);
 
-	load_mixer_file(fname, &buf[0], sizeof(buf));
+	if (load_mixer_file(fname, &buf[0], sizeof(buf)) < 0)
+		err(1, "can't load mixer: %s", fname);
 
 	/* XXX pass the buffer to the device */
 	int ret = ioctl(dev, MIXERIOCLOADBUF, (unsigned long)buf);

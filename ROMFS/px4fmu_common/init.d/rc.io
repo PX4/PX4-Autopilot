@@ -4,7 +4,6 @@
 
 #
 # Allow PX4IO to recover from midair restarts.
-# this is very unlikely, but quite safe and robust.
 #
 px4io recovery
 
@@ -12,7 +11,7 @@ px4io recovery
 # Adjust PX4IO update rate limit
 #
 set PX4IO_LIMIT 400
-if hw_ver compare PX4FMU_V1
+if ver hwcmp PX4FMU_V1
 then
 	set PX4IO_LIMIT 200
 fi

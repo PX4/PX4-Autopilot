@@ -3,10 +3,6 @@
 # Standard startup script for PX4FMU onboard sensor drivers.
 #
 
-#
-# Start sensor drivers here.
-#
-
 ms5611 start
 adc start
 
@@ -26,7 +22,7 @@ then
 	echo "[init] Using L3GD20(H)"
 fi
 
-if hw_ver compare PX4FMU_V2
+if ver hwcmp PX4FMU_V2
 then
 	if lsm303d start
 	then

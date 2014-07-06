@@ -104,7 +104,7 @@ int
 sbus_init(const char *device)
 {
 	if (sbus_fd < 0)
-		sbus_fd = open(device, O_RDONLY | O_NONBLOCK);
+		sbus_fd = open(device, O_RDWR | O_NONBLOCK);
 
 	if (sbus_fd >= 0) {
 		struct termios t;
@@ -133,21 +133,15 @@ sbus_init(const char *device)
 void
 sbus1_output(uint16_t *values, uint16_t num_values)
 {
-	/*
-	 * S.BUS2 outputs are defined as:
-	 *
-	 */
-	 #warning SBUS1 output is not yet implemented
+	char a = 'A';
+	write(sbus_fd, &a, 1);
 }
 
 void
 sbus2_output(uint16_t *values, uint16_t num_values)
 {
-	/*
-	 * S.BUS2 outputs are defined as:
-	 *
-	 */
-	#warning SBUS2 output is not yet implemented
+	char b = 'B';
+	write(sbus_fd, &b, 1);
 }
 
 bool

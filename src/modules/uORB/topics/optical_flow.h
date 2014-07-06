@@ -57,6 +57,7 @@ struct optical_flow_s {
 
 	uint64_t timestamp;		/**< in microseconds since system start          */
 
+	uint64_t flow_timestamp;		/**< timestamp from flow sensor */
 	int16_t flow_raw_x;		/**< flow in pixels in X direction, not rotation-compensated */
 	int16_t flow_raw_y;		/**< flow in pixels in Y direction, not rotation-compensated */
 	float flow_comp_x_m;		/**< speed over ground in meters, rotation-compensated */

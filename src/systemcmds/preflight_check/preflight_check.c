@@ -44,6 +44,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <math.h>
 
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
@@ -87,9 +88,7 @@ int preflight_check_main(int argc, char *argv[])
 	/* give the system some time to sample the sensors in the background */
 	usleep(150000);
 
-
 	/* ---- MAG ---- */
-	close(fd);
 	fd = open(MAG_DEVICE_PATH, 0);
 	if (fd < 0) {
 		warn("failed to open magnetometer - start with 'hmc5883 start' or 'lsm303d start'");

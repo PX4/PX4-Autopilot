@@ -234,6 +234,54 @@ static inline void mavlink_msg_attitude_control_send(mavlink_channel_t chan, uin
 #endif
 }
 
+#if MAVLINK_MSG_ID_ATTITUDE_CONTROL_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_attitude_control_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint8_t target, float roll, float pitch, float yaw, float thrust, uint8_t roll_manual, uint8_t pitch_manual, uint8_t yaw_manual, uint8_t thrust_manual)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+	_mav_put_float(buf, 0, roll);
+	_mav_put_float(buf, 4, pitch);
+	_mav_put_float(buf, 8, yaw);
+	_mav_put_float(buf, 12, thrust);
+	_mav_put_uint8_t(buf, 16, target);
+	_mav_put_uint8_t(buf, 17, roll_manual);
+	_mav_put_uint8_t(buf, 18, pitch_manual);
+	_mav_put_uint8_t(buf, 19, yaw_manual);
+	_mav_put_uint8_t(buf, 20, thrust_manual);
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_ATTITUDE_CONTROL, buf, MAVLINK_MSG_ID_ATTITUDE_CONTROL_LEN, MAVLINK_MSG_ID_ATTITUDE_CONTROL_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_ATTITUDE_CONTROL, buf, MAVLINK_MSG_ID_ATTITUDE_CONTROL_LEN);
+#endif
+#else
+	mavlink_attitude_control_t *packet = (mavlink_attitude_control_t *)msgbuf;
+	packet->roll = roll;
+	packet->pitch = pitch;
+	packet->yaw = yaw;
+	packet->thrust = thrust;
+	packet->target = target;
+	packet->roll_manual = roll_manual;
+	packet->pitch_manual = pitch_manual;
+	packet->yaw_manual = yaw_manual;
+	packet->thrust_manual = thrust_manual;
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_ATTITUDE_CONTROL, (const char *)packet, MAVLINK_MSG_ID_ATTITUDE_CONTROL_LEN, MAVLINK_MSG_ID_ATTITUDE_CONTROL_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_ATTITUDE_CONTROL, (const char *)packet, MAVLINK_MSG_ID_ATTITUDE_CONTROL_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE ATTITUDE_CONTROL UNPACKING

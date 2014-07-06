@@ -3,40 +3,22 @@
 # USB MAVLink start
 #
 
-echo "Starting MAVLink on this USB console"
-
-# Stop tone alarm
-tone_alarm stop
-
-#
-# Check for UORB
-#
-if uorb start
-then
-	echo "uORB started"
-fi
-
-# Tell MAVLink that this link is "fast"
-if mavlink stop
-then
-	echo "stopped other MAVLink instance"
-fi
-mavlink start -b 230400 -d /dev/ttyACM0
-
-# Stop commander
-if commander stop
-then
-	echo "Commander stopped"
-fi
-sleep 1
-
-# Start the commander
-if commander start
-then
-	echo "Commander started"
-fi
-
-echo "MAVLink started, exiting shell.."
+mavlink start -r 10000 -d /dev/ttyACM0 -x
+# Enable a number of interesting streams we want via USB
+mavlink stream -d /dev/ttyACM0 -s NAMED_VALUE_FLOAT -r 10
+usleep 100000
+mavlink stream -d /dev/ttyACM0 -s OPTICAL_FLOW -r 10
+usleep 100000
+mavlink stream -d /dev/ttyACM0 -s VFR_HUD -r 20
+usleep 100000
+mavlink stream -d /dev/ttyACM0 -s ATTITUDE -r 20
+usleep 100000
+mavlink stream -d /dev/ttyACM0 -s ATTITUDE_CONTROLS -r 30
+usleep 100000
+mavlink stream -d /dev/ttyACM0 -s SERVO_OUTPUT_RAW_0 -r 20
+usleep 100000
+mavlink stream -d /dev/ttyACM0 -s GLOBAL_POSITION_SETPOINT_INT -r 20
+usleep 100000
 
 # Exit shell to make it available to MAVLink
-exit 
+exit

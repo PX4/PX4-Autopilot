@@ -158,6 +158,7 @@ private:
 	int			_class_instance;
 
 	orb_advert_t		_mag_topic;
+	orb_advert_t		_subsystem_pub;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
@@ -168,6 +169,8 @@ private:
 	bool			_calibrated;		/**< the calibration is valid */
 
 	int			_bus;			/**< the bus the device is connected to */
+
+	struct mag_report	_last_report;           /**< used for info() */
 
 	/**
 	 * Test whether the device supported by the driver is present at a
@@ -322,8 +325,10 @@ HMC5883::HMC5883(int bus) :
 	_reports(nullptr),
 	_range_scale(0), /* default range scale from counts to gauss */
 	_range_ga(1.3f),
-	_mag_topic(-1),
+	_collect_phase(false),
 	_class_instance(-1),
+	_mag_topic(-1),
+	_subsystem_pub(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "hmc5883_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "hmc5883_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "hmc5883_buffer_overflows")),
@@ -713,7 +718,7 @@ HMC5883::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			log("collection error");
+			debug("collection error");
 			/* restart the measurement state machine */
 			start();
 			return;
@@ -740,7 +745,7 @@ HMC5883::cycle()
 
 	/* measurement phase */
 	if (OK != measure())
-		log("measure error");
+		debug("measure error");
 
 	/* next phase is collection */
 	_collect_phase = true;
@@ -869,6 +874,8 @@ HMC5883::collect()
 				debug("failed to create sensor_mag publication");
 		}
 	}
+
+	_last_report = new_report;
 
 	/* post a report to the ring */
 	if (_reports->force(&new_report)) {
@@ -1042,31 +1049,28 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 
 	warnx("axes scaling: %.6f  %.6f  %.6f", (double)scaling[0], (double)scaling[1], (double)scaling[2]);
 
-	/* set back to normal mode */
-	/* Set to 1.1 Gauss */
-	if (OK != ::ioctl(fd, MAGIOCSRANGE, 1)) {
-		warnx("failed to set 1.1 Ga range");
-		goto out;
-	}
-
-	if (OK != ::ioctl(fd, MAGIOCEXSTRAP, 0)) {
-		warnx("failed to disable sensor calibration mode");
-		goto out;
-	}
-
 	/* set scaling in device */
 	mscale_previous.x_scale = scaling[0];
 	mscale_previous.y_scale = scaling[1];
 	mscale_previous.z_scale = scaling[2];
 
-	if (OK != ioctl(filp, MAGIOCSSCALE, (long unsigned int)&mscale_previous)) {
-		warn("WARNING: failed to set new scale / offsets for mag");
-		goto out;
-	}
-
 	ret = OK;
 
 out:
+
+	if (OK != ioctl(filp, MAGIOCSSCALE, (long unsigned int)&mscale_previous)) {
+		warn("WARNING: failed to set new scale / offsets for mag");
+	}
+
+	/* set back to normal mode */
+	/* Set to 1.1 Gauss */
+	if (OK != ::ioctl(fd, MAGIOCSRANGE, 1)) {
+		warnx("failed to set 1.1 Ga range");
+	}
+
+	if (OK != ::ioctl(fd, MAGIOCEXSTRAP, 0)) {
+		warnx("failed to disable sensor calibration mode");
+	}
 
 	if (ret == OK) {
 		if (!check_scale()) {
@@ -1136,13 +1140,12 @@ int HMC5883::check_calibration()
 			true,
 			_calibrated,
 			SUBSYSTEM_TYPE_MAG};
-		static orb_advert_t pub = -1;
 
 		if (!(_pub_blocked)) {
-			if (pub > 0) {
-				orb_publish(ORB_ID(subsystem_info), pub, &info);
+			if (_subsystem_pub > 0) {
+				orb_publish(ORB_ID(subsystem_info), _subsystem_pub, &info);
 			} else {
-				pub = orb_advertise(ORB_ID(subsystem_info), &info);
+				_subsystem_pub = orb_advertise(ORB_ID(subsystem_info), &info);
 			}
 		}
 	}
@@ -1221,10 +1224,11 @@ HMC5883::print_info()
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
+	printf("output  (%.2f %.2f %.2f)\n", (double)_last_report.x, (double)_last_report.y, (double)_last_report.z);
 	printf("offsets (%.2f %.2f %.2f)\n", (double)_scale.x_offset, (double)_scale.y_offset, (double)_scale.z_offset);
 	printf("scaling (%.2f %.2f %.2f) 1/range_scale %.2f range_ga %.2f\n", 
 	       (double)_scale.x_scale, (double)_scale.y_scale, (double)_scale.z_scale,
-	       (double)1.0/_range_scale, (double)_range_ga);
+	       (double)(1.0f/_range_scale), (double)_range_ga);
 	_reports->print_info("report queue");
 }
 

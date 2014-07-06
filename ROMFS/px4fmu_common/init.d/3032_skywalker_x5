@@ -2,42 +2,38 @@
 #
 # Skywalker X5 Flying Wing
 #
-# Maintainers: Thomas Gubler <thomasgubler@gmail.com>, Julian Oes <joes@student.ethz.ch>
+# Thomas Gubler <thomasgubler@gmail.com>, Julian Oes <joes@student.ethz.ch>
 #
+
+sh /etc/init.d/rc.fw_defaults
 
 if [ $DO_AUTOCONFIG == yes ]
 then
-	#
-	# Default parameters for this platform
-	#
-	param set FW_AIRSPD_MIN 7
-	param set FW_AIRSPD_TRIM 9
-	param set FW_AIRSPD_MAX 14
-	param set FW_L1_PERIOD 10
-	param set FW_P_D 0
-	param set FW_P_I 0
-	param set FW_P_IMAX 20
-	param set FW_P_LIM_MAX 30
-	param set FW_P_LIM_MIN -20
-	param set FW_P_P 30
+	param set FW_AIRSPD_MIN 15
+	param set FW_AIRSPD_TRIM 20
+	param set FW_AIRSPD_MAX 40
+	param set FW_ATT_TC 0.3
+	param set FW_L1_DAMPING 0.74
+	param set FW_L1_PERIOD 15
+	param set FW_PR_FF 0.3
+	param set FW_PR_I 0
+	param set FW_PR_IMAX 0.2
+	param set FW_PR_P 0.03
+	param set FW_P_LIM_MAX 45
+	param set FW_P_LIM_MIN -45
 	param set FW_P_RMAX_NEG 0
 	param set FW_P_RMAX_POS 0
-	param set FW_P_ROLLFF 2
-	param set FW_R_D 0
-	param set FW_R_I 5
-	param set FW_R_IMAX 20
-	param set FW_R_P 60
-	param set FW_R_RMAX 60
-	param set FW_THR_CRUISE 0.65
-	param set FW_THR_MAX 0.7
-	param set FW_THR_MIN 0
-	param set FW_T_SINK_MAX 5
-	param set FW_T_SINK_MIN 2
-	param set FW_T_TIME_CONST 9
-	param set FW_Y_ROLLFF 2.0
-	param set RC_SCALE_ROLL 1.0
-	param set RC_SCALE_PITCH 1.0
+	param set FW_P_ROLLFF 1
+	param set FW_RR_FF 0.3
+	param set FW_RR_I 0
+	param set FW_RR_IMAX 0.2
+	param set FW_RR_P 0.03
+	param set FW_R_LIM 60
+	param set FW_R_RMAX 0
+	param set FW_T_HRATE_P 0.01
+	param set FW_T_RLL2THR 15
+	param set FW_T_SRATE_P 0.01
+	param set FW_T_TIME_CONST 5
 fi
 
-set VEHICLE_TYPE fw
 set MIXER FMU_X5

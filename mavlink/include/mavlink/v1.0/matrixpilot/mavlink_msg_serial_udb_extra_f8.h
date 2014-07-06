@@ -212,6 +212,50 @@ static inline void mavlink_msg_serial_udb_extra_f8_send(mavlink_channel_t chan, 
 #endif
 }
 
+#if MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F8_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_serial_udb_extra_f8_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  float sue_HEIGHT_TARGET_MAX, float sue_HEIGHT_TARGET_MIN, float sue_ALT_HOLD_THROTTLE_MIN, float sue_ALT_HOLD_THROTTLE_MAX, float sue_ALT_HOLD_PITCH_MIN, float sue_ALT_HOLD_PITCH_MAX, float sue_ALT_HOLD_PITCH_HIGH)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+	_mav_put_float(buf, 0, sue_HEIGHT_TARGET_MAX);
+	_mav_put_float(buf, 4, sue_HEIGHT_TARGET_MIN);
+	_mav_put_float(buf, 8, sue_ALT_HOLD_THROTTLE_MIN);
+	_mav_put_float(buf, 12, sue_ALT_HOLD_THROTTLE_MAX);
+	_mav_put_float(buf, 16, sue_ALT_HOLD_PITCH_MIN);
+	_mav_put_float(buf, 20, sue_ALT_HOLD_PITCH_MAX);
+	_mav_put_float(buf, 24, sue_ALT_HOLD_PITCH_HIGH);
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F8, buf, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F8_LEN, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F8_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F8, buf, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F8_LEN);
+#endif
+#else
+	mavlink_serial_udb_extra_f8_t *packet = (mavlink_serial_udb_extra_f8_t *)msgbuf;
+	packet->sue_HEIGHT_TARGET_MAX = sue_HEIGHT_TARGET_MAX;
+	packet->sue_HEIGHT_TARGET_MIN = sue_HEIGHT_TARGET_MIN;
+	packet->sue_ALT_HOLD_THROTTLE_MIN = sue_ALT_HOLD_THROTTLE_MIN;
+	packet->sue_ALT_HOLD_THROTTLE_MAX = sue_ALT_HOLD_THROTTLE_MAX;
+	packet->sue_ALT_HOLD_PITCH_MIN = sue_ALT_HOLD_PITCH_MIN;
+	packet->sue_ALT_HOLD_PITCH_MAX = sue_ALT_HOLD_PITCH_MAX;
+	packet->sue_ALT_HOLD_PITCH_HIGH = sue_ALT_HOLD_PITCH_HIGH;
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F8, (const char *)packet, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F8_LEN, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F8_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F8, (const char *)packet, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F8_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE SERIAL_UDB_EXTRA_F8 UNPACKING

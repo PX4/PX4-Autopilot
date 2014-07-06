@@ -192,7 +192,7 @@ mixer_tick(void)
 							    ((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)
 		/* and there is valid input via or mixer */         &&   (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) )
 		/* or direct PWM is set */               || (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)
-		/* or failsafe was set manually */	 || (r_setup_arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM)
+		/* or failsafe was set manually */	 || ((r_setup_arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM) && !(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK))
 						     )
 	);
 
@@ -247,6 +247,7 @@ mixer_tick(void)
 		actuator_count = mixed;
 		in_mixer = false;
 
+		/* the pwm limit call takes care of out of band errors */
 		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
 
 		for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++)
@@ -289,17 +290,17 @@ mixer_tick(void)
 			up_pwm_servo_set(i, r_page_servos[i]);
 
 		/* update S.BUS1 outputs */
-		if (r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
+		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
 			sbus1_output(r_page_servos, actuator_count);
 		}
 
 		/* update S.BUS2 outputs */
-		if (r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
+		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
 			sbus2_output(r_page_servos, actuator_count);
 		}
 
 		/* update safelink outputs */
-		if (source != MIX_FAILSAFE && r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SAFELINK_OUT) {
+		if (source != MIX_FAILSAFE && r_setup_features & PX4IO_P_SETUP_FEATURES_SAFELINK_OUT) {
 			safelink_output(r_page_servos, actuator_count);
 		}
 
@@ -309,17 +310,17 @@ mixer_tick(void)
 			up_pwm_servo_set(i, r_page_servo_disarmed[i]);
 
 		/* update S.BUS1 outputs */
-		if (r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
+		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
 			sbus1_output(r_page_servos, actuator_count);
 		}
 
 		/* update S.BUS2 outputs */
-		if (r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
+		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
 			sbus2_output(r_page_servos, actuator_count);
 		}
 
 		/* update safelink outputs */
-		if (source != MIX_FAILSAFE && r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SAFELINK_OUT) {
+		if (source != MIX_FAILSAFE && r_setup_features & PX4IO_P_SETUP_FEATURES_SAFELINK_OUT) {
 			safelink_output(r_page_servos, actuator_count);
 		}
 	}
@@ -331,7 +332,7 @@ mixer_callback(uintptr_t handle,
 	       uint8_t control_index,
 	       float &control)
 {
-	if (control_group > 3)
+	if (control_group >= PX4IO_CONTROL_GROUPS)
 		return -1;
 
 	switch (source) {

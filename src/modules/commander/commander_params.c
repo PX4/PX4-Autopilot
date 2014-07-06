@@ -39,18 +39,59 @@
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  */
 
 #include <nuttx/config.h>
 #include <systemlib/param/param.h>
 
-PARAM_DEFINE_FLOAT(NAV_TAKEOFF_ALT, 5.0f);
-PARAM_DEFINE_FLOAT(NAV_TAKEOFF_GAP, 3.0f);
 PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
 PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
 PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
+
+/**
+ * Empty cell voltage.
+ *
+ * Defines the voltage where a single cell of the battery is considered empty.
+ *
+ * @group Battery Calibration
+ */
 PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
+
+/**
+ * Full cell voltage.
+ *
+ * Defines the voltage where a single cell of the battery is considered full.
+ *
+ * @group Battery Calibration
+ */
 PARAM_DEFINE_FLOAT(BAT_V_FULL, 3.9f);
+
+/**
+ * Number of cells.
+ *
+ * Defines the number of cells the attached battery consists of.
+ *
+ * @group Battery Calibration
+ */
 PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
+
+/**
+ * Battery capacity.
+ *
+ * Defines the capacity of the attached battery.
+ *
+ * @group Battery Calibration
+ */
 PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
+
+/**
+ * Datalink loss mode enabled.
+ *
+ * Set to 1 to enable actions triggered when the datalink is lost.
+ *
+ * @group commander
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0);

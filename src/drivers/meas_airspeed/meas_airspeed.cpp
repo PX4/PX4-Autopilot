@@ -50,6 +50,7 @@
  *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
  */
 
+
 #include <nuttx/config.h>
 
 #include <drivers/device/i2c.h>
@@ -78,30 +79,37 @@
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/subsystem_info.h>
+#include <uORB/topics/system_power.h>
 
 #include <drivers/airspeed/airspeed.h>
 
 /* I2C bus address is 1010001x */
 #define I2C_ADDRESS_MS4525DO	0x28	//0x51 /* 7-bit address. */
+#define PATH_MS4525		"/dev/ms4525"
 /* The MS5525DSO address is 111011Cx, where C is the complementary value of the pin CSB */
 #define I2C_ADDRESS_MS5525DSO	0x77	//0x77/* 7-bit address, addr. pin pulled low */
+#define PATH_MS5525		"/dev/ms5525"
 
 /* Register address */
 #define ADDR_READ_MR			0x00	/* write to this address to start conversion */
 
 /* Measurement rate is 100Hz */
+#define MEAS_RATE 100.0f
+#define MEAS_DRIVER_FILTER_FREQ 3.0f
 #define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
 
 class MEASAirspeed : public Airspeed
 {
 public:
-	MEASAirspeed(int bus, int address = I2C_ADDRESS_MS4525DO);
+	MEASAirspeed(int bus, int address = I2C_ADDRESS_MS4525DO, const char *path = PATH_MS4525);
 
 protected:
 
@@ -113,6 +121,15 @@ protected:
 	virtual int	measure();
 	virtual int	collect();
 
+	math::LowPassFilter2p	_filter;
+
+	/**
+	 * Correct for 5V rail voltage variations
+	 */
+	void voltage_correction(float &diff_pres_pa, float &temperature);
+
+	int _t_system_power;
+	struct system_power_s system_power;
 };
 
 /*
@@ -120,10 +137,12 @@ protected:
  */
 extern "C" __EXPORT int meas_airspeed_main(int argc, char *argv[]);
 
-MEASAirspeed::MEASAirspeed(int bus, int address) : Airspeed(bus, address,
-			CONVERSION_INTERVAL)
+MEASAirspeed::MEASAirspeed(int bus, int address, const char *path) : Airspeed(bus, address,
+	CONVERSION_INTERVAL, path),
+	_filter(MEAS_RATE, MEAS_DRIVER_FILTER_FREQ),
+	_t_system_power(-1)
 {
-
+	memset(&system_power, 0, sizeof(system_power));
 }
 
 int
@@ -158,23 +177,25 @@ MEASAirspeed::collect()
 	ret = transfer(nullptr, 0, &val[0], 4);
 
 	if (ret < 0) {
-                perf_count(_comms_errors);
-                perf_end(_sample_perf);
+		perf_count(_comms_errors);
+		perf_end(_sample_perf);
 		return ret;
 	}
 
-	uint8_t status = val[0] & 0xC0;
+	uint8_t status = (val[0] & 0xC0) >> 6;
 
-	if (status == 2) {
-		log("err: stale data");
-                perf_count(_comms_errors);
-                perf_end(_sample_perf);
-		return ret;
-	} else if (status == 3) {
-		log("err: fault");
-                perf_count(_comms_errors);
-                perf_end(_sample_perf);
-		return ret;                
+	switch (status) {
+	case 0:
+		break;
+
+	case 1:
+		/* fallthrough */
+	case 2:
+		/* fallthrough */
+	case 3:
+		perf_count(_comms_errors);
+		perf_end(_sample_perf);
+		return -EAGAIN;
 	}
 
 	int16_t dp_raw = 0, dT_raw = 0;
@@ -183,28 +204,67 @@ MEASAirspeed::collect()
 	dp_raw = 0x3FFF & dp_raw;
 	dT_raw = (val[2] << 8) + val[3];
 	dT_raw = (0xFFE0 & dT_raw) >> 5;
-	float temperature = ((200 * dT_raw) / 2047) - 50;
+	float temperature = ((200.0f * dT_raw) / 2047) - 50;
 
-	/* calculate differential pressure. As its centered around 8000
-	 * and can go positive or negative, enforce absolute value
-	*/
+	// Calculate differential pressure. As its centered around 8000
+	// and can go positive or negative
 	const float P_min = -1.0f;
 	const float P_max = 1.0f;
-	float diff_press_pa = fabsf( ( ((float)dp_raw - 0.1f*16383.0f) * (P_max-P_min)/(0.8f*16383.0f) + P_min) * 6894.8f) - _diff_pres_offset;
-        if (diff_press_pa < 0.0f)
-            diff_press_pa = 0.0f;
+	const float PSI_to_Pa = 6894.757f;
+	/*
+	  this equation is an inversion of the equation in the
+	  pressure transfer function figure on page 4 of the datasheet
 
+	  We negate the result so that positive differential pressures
+	  are generated when the bottom port is used as the static
+	  port on the pitot and top port is used as the dynamic port
+	 */
+	float diff_press_PSI = -((dp_raw - 0.1f*16383) * (P_max-P_min)/(0.8f*16383) + P_min);
+	float diff_press_pa_raw = diff_press_PSI * PSI_to_Pa;
+
+        // correct for 5V rail voltage if possible
+        voltage_correction(diff_press_pa_raw, temperature);
+
+	float diff_press_pa = fabsf(diff_press_pa_raw - _diff_pres_offset);
+	
+	/*
+	  note that we return both the absolute value with offset
+	  applied and a raw value without the offset applied. This
+	  makes it possible for higher level code to detect if the
+	  user has the tubes connected backwards, and also makes it
+	  possible to correctly use offsets calculated by a higher
+	  level airspeed driver.
+
+	  With the above calculation the MS4525 sensor will produce a
+	  positive number when the top port is used as a dynamic port
+	  and bottom port is used as the static port
+
+	  Also note that the _diff_pres_offset is applied before the
+	  fabsf() not afterwards. It needs to be done this way to
+	  prevent a bias at low speeds, but this also means that when
+	  setting a offset you must set it based on the raw value, not
+	  the offset value
+	 */
+	
 	struct differential_pressure_s report;
 
 	/* track maximum differential pressure measured (so we can work out top speed). */
 	if (diff_press_pa > _max_differential_pressure_pa) {
-	    _max_differential_pressure_pa = diff_press_pa;
+		_max_differential_pressure_pa = diff_press_pa;
 	}
 
 	report.timestamp = hrt_absolute_time();
-        report.error_count = perf_event_count(_comms_errors);
+	report.error_count = perf_event_count(_comms_errors);
 	report.temperature = temperature;
 	report.differential_pressure_pa = diff_press_pa;
+	report.differential_pressure_filtered_pa =  _filter.apply(diff_press_pa);
+
+	/* the dynamics of the filter can make it overshoot into the negative range */
+	if (report.differential_pressure_filtered_pa < 0.0f) {
+		report.differential_pressure_filtered_pa = _filter.reset(diff_press_pa);
+	}
+
+	report.differential_pressure_raw_pa = diff_press_pa_raw;
 	report.voltage = 0;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
@@ -228,13 +288,17 @@ MEASAirspeed::collect()
 void
 MEASAirspeed::cycle()
 {
+	int ret;
+
 	/* collection phase? */
 	if (_collect_phase) {
 
 		/* perform collection */
-		if (OK != collect()) {
+		ret = collect();
+		if (OK != ret) {
 			/* restart the measurement state machine */
 			start();
+			_sensor_ok = false;
 			return;
 		}
 
@@ -258,8 +322,12 @@ MEASAirspeed::cycle()
 	}
 
 	/* measurement phase */
-	if (OK != measure())
-		log("measure error");
+	ret = measure();
+	if (OK != ret) {
+		debug("measure error");
+	}
+
+	_sensor_ok = (ret == OK);
 
 	/* next phase is collection */
 	_collect_phase = true;
@@ -270,6 +338,62 @@ MEASAirspeed::cycle()
 		   (worker_t)&Airspeed::cycle_trampoline,
 		   this,
 		   USEC2TICK(CONVERSION_INTERVAL));
+}
+
+/**
+   correct for 5V rail voltage if the system_power ORB topic is
+   available
+   
+   See http://uav.tridgell.net/MS4525/MS4525-offset.png for a graph of
+   offset versus voltage for 3 sensors
+ */
+void
+MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
+{
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+	if (_t_system_power == -1) {
+		_t_system_power = orb_subscribe(ORB_ID(system_power));
+	}
+	if (_t_system_power == -1) {
+		// not available
+		return;
+	}
+	bool updated = false;
+	orb_check(_t_system_power, &updated);
+	if (updated) {
+		orb_copy(ORB_ID(system_power), _t_system_power, &system_power);
+	}
+	if (system_power.voltage5V_v < 3.0f || system_power.voltage5V_v > 6.0f) {
+		// not valid, skip correction
+		return;
+	}
+
+	const float slope = 65.0f;
+	/*
+	  apply a piecewise linear correction, flattening at 0.5V from 5V
+	 */
+	float voltage_diff = system_power.voltage5V_v - 5.0f;
+	if (voltage_diff > 0.5f) {
+		voltage_diff = 0.5f;
+	}
+	if (voltage_diff < -0.5f) {
+		voltage_diff = -0.5f;
+	}
+	diff_press_pa -= voltage_diff * slope;
+
+	/*
+	  the temperature masurement varies as well
+	 */
+	const float temp_slope = 0.887f;
+	voltage_diff = system_power.voltage5V_v - 5.0f;
+	if (voltage_diff > 0.5f) {
+		voltage_diff = 0.5f;
+	}
+	if (voltage_diff < -1.0f) {
+		voltage_diff = -1.0f;
+	}
+	temperature -= voltage_diff * temp_slope;	
+#endif // CONFIG_ARCH_BOARD_PX4FMU_V2
 }
 
 /**
@@ -300,38 +424,44 @@ start(int i2c_bus)
 {
 	int fd;
 
-	if (g_dev != nullptr)
+	if (g_dev != nullptr) {
 		errx(1, "already started");
+	}
 
 	/* create the driver, try the MS4525DO first */
-	g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS4525DO);
+	g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS4525DO, PATH_MS4525);
 
 	/* check if the MS4525DO was instantiated */
-	if (g_dev == nullptr)
+	if (g_dev == nullptr) {
 		goto fail;
+	}
 
 	/* try the MS5525DSO next if init fails */
 	if (OK != g_dev->Airspeed::init()) {
 		delete g_dev;
-		g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS5525DSO);
+		g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS5525DSO, PATH_MS5525);
 
 		/* check if the MS5525DSO was instantiated */
-		if (g_dev == nullptr)
+		if (g_dev == nullptr) {
 			goto fail;
+		}
 
 		/* both versions failed if the init for the MS5525DSO fails, give up */
-		if (OK != g_dev->Airspeed::init())
+		if (OK != g_dev->Airspeed::init()) {
 			goto fail;
+		}
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		goto fail;
+	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		goto fail;
+	}
 
 	exit(0);
 
@@ -342,7 +472,7 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	errx(1, "no MS4525 airspeed sensor connected");
 }
 
 /**
@@ -376,21 +506,24 @@ test()
 
 	int fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		err(1, "%s open failed (try 'meas_airspeed start' if the driver is not running", AIRSPEED_DEVICE_PATH);
+	}
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
 
-	if (sz != sizeof(report))
+	if (sz != sizeof(report)) {
 		err(1, "immediate read failed");
+	}
 
 	warnx("single read");
-	warnx("diff pressure: %d pa", (double)report.differential_pressure_pa);
+	warnx("diff pressure: %d pa", (int)report.differential_pressure_pa);
 
 	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2))
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
 		errx(1, "failed to set 2Hz poll rate");
+	}
 
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {
@@ -401,23 +534,26 @@ test()
 		fds.events = POLLIN;
 		ret = poll(&fds, 1, 2000);
 
-		if (ret != 1)
+		if (ret != 1) {
 			errx(1, "timed out waiting for sensor data");
+		}
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
-		if (sz != sizeof(report))
+		if (sz != sizeof(report)) {
 			err(1, "periodic read failed");
+		}
 
 		warnx("periodic read %u", i);
-		warnx("diff pressure: %d pa", report.differential_pressure_pa);
+		warnx("diff pressure: %d pa", (int)report.differential_pressure_pa);
 		warnx("temperature: %d C (0x%02x)", (int)report.temperature, (unsigned) report.temperature);
 	}
 
 	/* reset the sensor polling to its default rate */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT))
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
 		errx(1, "failed to set default rate");
+	}
 
 	errx(0, "PASS");
 }
@@ -430,14 +566,17 @@ reset()
 {
 	int fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		err(1, "failed ");
+	}
 
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
+	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
 		err(1, "driver reset failed");
+	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		err(1, "driver poll restart failed");
+	}
 
 	exit(0);
 }
@@ -448,8 +587,9 @@ reset()
 void
 info()
 {
-	if (g_dev == nullptr)
+	if (g_dev == nullptr) {
 		errx(1, "driver not running");
+	}
 
 	printf("state @ %p\n", g_dev);
 	g_dev->print_info();
@@ -488,32 +628,37 @@ meas_airspeed_main(int argc, char *argv[])
 	/*
 	 * Start/load the driver.
 	 */
-	if (!strcmp(argv[1], "start"))
+	if (!strcmp(argv[1], "start")) {
 		meas_airspeed::start(i2c_bus);
+	}
 
 	/*
 	 * Stop the driver
 	 */
-	if (!strcmp(argv[1], "stop"))
+	if (!strcmp(argv[1], "stop")) {
 		meas_airspeed::stop();
+	}
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(argv[1], "test"))
+	if (!strcmp(argv[1], "test")) {
 		meas_airspeed::test();
+	}
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(argv[1], "reset"))
+	if (!strcmp(argv[1], "reset")) {
 		meas_airspeed::reset();
+	}
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status"))
+	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status")) {
 		meas_airspeed::info();
+	}
 
 	meas_airspeed_usage();
 	exit(0);

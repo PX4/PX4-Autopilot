@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -441,6 +441,111 @@ pwm_main(int argc, char *argv[])
 								}
 					warnx("User abort\n");
 					exit(0);
+				}
+			}
+			usleep(2000);
+		}
+		exit(0);
+
+
+	} else if (!strcmp(argv[1], "steps")) {
+
+		if (set_mask == 0) {
+			usage("no channels set");
+		}
+
+		/* get current servo values */
+		struct pwm_output_values last_spos;
+
+		for (unsigned i = 0; i < servo_count; i++) {
+
+			ret = ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&last_spos.values[i]);
+			if (ret != OK)
+				err(1, "PWM_SERVO_GET(%d)", i);
+		}
+
+		/* perform PWM output */
+
+		/* Open console directly to grab CTRL-C signal */
+		struct pollfd fds;
+		fds.fd = 0; /* stdin */
+		fds.events = POLLIN;
+
+		warnx("Running 5 steps. WARNING! Motors will be live in 5 seconds\nPress any key to abort now.");
+		sleep(5);
+
+		unsigned off = 900;
+		unsigned idle = 1300;
+		unsigned full = 2000;
+		unsigned steps_timings_us[] = {2000, 5000, 20000, 50000};
+
+		unsigned phase = 0;
+		unsigned phase_counter = 0;
+		unsigned const phase_maxcount = 20;
+
+		for (	unsigned steps_timing_index = 0;
+			steps_timing_index < sizeof(steps_timings_us) / sizeof(steps_timings_us[0]);
+			steps_timing_index++ ) {
+
+			warnx("Sending step input with 0 to 100%% over a %u microseconds ramp", steps_timings_us[steps_timing_index]);
+
+			while (1) {
+				for (unsigned i = 0; i < servo_count; i++) {
+					if (set_mask & 1<<i) {
+
+						unsigned val;
+
+						if (phase == 0) {
+							val = idle;
+						} else if (phase == 1) {
+							/* ramp - depending how steep it is this ramp will look instantaneous on the output */
+							val = idle + (full - idle) * (phase_maxcount / (float)phase_counter);
+						} else {
+							val = off;
+						}
+
+						ret = ioctl(fd, PWM_SERVO_SET(i), val);
+						if (ret != OK)
+							err(1, "PWM_SERVO_SET(%d)", i);
+					}
+				}
+
+				/* abort on user request */
+				char c;
+				ret = poll(&fds, 1, 0);
+				if (ret > 0) {
+
+					ret = read(0, &c, 1);
+
+					if (ret > 0) {
+						/* reset output to the last value */
+						for (unsigned i = 0; i < servo_count; i++) {
+										if (set_mask & 1<<i) {
+											ret = ioctl(fd, PWM_SERVO_SET(i), last_spos.values[i]);
+											if (ret != OK)
+												err(1, "PWM_SERVO_SET(%d)", i);
+										}
+									}
+						warnx("Key pressed, user abort\n");
+						exit(0);
+					}
+				}
+				if (phase == 1) {
+					usleep(steps_timings_us[steps_timing_index] / phase_maxcount);
+
+				} else if (phase == 0) {
+					usleep(50000);
+				} else if (phase == 2) {
+					usleep(50000);
+				} else {
+					break;
+				}
+
+				phase_counter++;
+
+				if (phase_counter > phase_maxcount) {
+					phase++;
+					phase_counter = 0;
 				}
 			}
 		}

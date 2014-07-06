@@ -1,9 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,8 +32,11 @@
  ****************************************************************************/
 
 /**
- * @file mission_item.h
- * Definition of one mission item.
+ * @file mission.h
+ * Definition of a mission consisting of mission items.
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #ifndef TOPIC_MISSION_H_
@@ -46,14 +46,26 @@
 #include <stdbool.h>
 #include "../uORB.h"
 
+#define NUM_MISSIONS_SUPPORTED 256
+
+/* compatible to mavlink MAV_CMD */
 enum NAV_CMD {
-	NAV_CMD_WAYPOINT = 0,
-	NAV_CMD_LOITER_TURN_COUNT,
-	NAV_CMD_LOITER_TIME_LIMIT,
-	NAV_CMD_LOITER_UNLIMITED,
-	NAV_CMD_RETURN_TO_LAUNCH,
-	NAV_CMD_LAND,
-	NAV_CMD_TAKEOFF
+	NAV_CMD_IDLE=0,
+	NAV_CMD_WAYPOINT=16,
+	NAV_CMD_LOITER_UNLIMITED=17,
+	NAV_CMD_LOITER_TURN_COUNT=18,
+	NAV_CMD_LOITER_TIME_LIMIT=19,
+	NAV_CMD_RETURN_TO_LAUNCH=20,
+	NAV_CMD_LAND=21,
+	NAV_CMD_TAKEOFF=22,
+	NAV_CMD_ROI=80,
+	NAV_CMD_PATHPLANNING=81,
+	NAV_CMD_DO_JUMP=177
+};
+
+enum ORIGIN {
+	ORIGIN_MAVLINK = 0,
+	ORIGIN_ONBOARD
 };
 
 /**
@@ -67,26 +79,30 @@ enum NAV_CMD {
  * This is the position the MAV is heading towards. If it of type loiter,
  * the MAV is circling around it with the given loiter radius in meters.
  */
-struct mission_item_s
-{
+struct mission_item_s {
 	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
-	double lat;			/**< latitude in degrees * 1E7				*/
-	double lon;			/**< longitude in degrees * 1E7				*/
+	double lat;			/**< latitude in degrees				*/
+	double lon;			/**< longitude in degrees				*/
 	float altitude;			/**< altitude in meters					*/
-	float yaw;			/**< in radians NED -PI..+PI 				*/
+	float yaw;			/**< in radians NED -PI..+PI, NAN means don't change yaw		*/
 	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
-	uint8_t loiter_direction;	/**< 1: positive / clockwise, -1, negative.		*/
-	enum NAV_CMD nav_cmd;		/**< true if loitering is enabled			*/
-	float param1;
-	float param2;
-	float param3;
-	float param4;
+	int8_t loiter_direction;	/**< 1: positive / clockwise, -1, negative.		*/
+	enum NAV_CMD nav_cmd;		/**< navigation command					*/
+	float acceptance_radius;	/**< default radius in which the mission is accepted as reached in meters */
+	float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
+	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
+	bool autocontinue;		/**< true if next waypoint should follow after this one */
+	enum ORIGIN origin;		/**< where the waypoint has been generated		*/
+	int do_jump_mission_index;	/**< index where the do jump will go to                 */
+	unsigned do_jump_repeat_count;	/**< how many times do jump needs to be done            */
+	unsigned do_jump_current_count;	/**< count how many times the jump has been done	*/
 };
 
 struct mission_s
 {
-	struct mission_item_s *items;
-	unsigned count;
+	int dataman_id;			/**< default -1, there are two offboard storage places in the dataman: 0 or 1 */
+	unsigned count;			/**< count of the missions stored in the datamanager */
+	int current_index;		/**< default -1, start at the one changed latest */
 };
 
 /**
@@ -94,6 +110,7 @@ struct mission_s
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(mission);
+ORB_DECLARE(offboard_mission);
+ORB_DECLARE(onboard_mission);
 
 #endif

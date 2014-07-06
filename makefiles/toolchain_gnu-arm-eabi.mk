@@ -1,5 +1,5 @@
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2012-2014 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -48,6 +48,16 @@ NM			 = $(CROSSDEV)nm
 OBJCOPY			 = $(CROSSDEV)objcopy
 OBJDUMP			 = $(CROSSDEV)objdump
 
+# Check if the right version of the toolchain is available
+#
+CROSSDEV_VER_SUPPORTED	 = 4.7
+CROSSDEV_VER_FOUND	 = $(shell $(CC) -dumpversion)
+
+ifeq (,$(findstring $(CROSSDEV_VER_SUPPORTED),$(CROSSDEV_VER_FOUND)))
+$(error Unsupported version of $(CC), found: $(CROSSDEV_VER_FOUND) instead of $(CROSSDEV_VER_SUPPORTED).x)
+endif
+
+
 # XXX this is pulled pretty directly from the fmu Make.defs - needs cleanup
 
 MAXOPTIMIZATION		 ?= -O3
@@ -76,7 +86,7 @@ ARCHINSTRUMENTATIONDEFINES_CORTEXM4F = -finstrument-functions \
 ARCHINSTRUMENTATIONDEFINES_CORTEXM4 = -finstrument-functions \
 			   -ffixed-r10
 
-ARCHINSTRUMENTATIONDEFINES_CORTEXM3 = 
+ARCHINSTRUMENTATIONDEFINES_CORTEXM3 =
 
 # Pick the right set of flags for the architecture.
 #
@@ -125,7 +135,11 @@ ARCHWARNINGS		 = -Wall \
 			   -Wlogical-op \
 			   -Wmissing-declarations \
 			   -Wpacked \
-			   -Wno-unused-parameter
+			   -Wno-unused-parameter \
+			   -Werror=format-security \
+			   -Werror=array-bounds \
+			   -Wfatal-errors \
+			   -Wformat=1
 #   -Wcast-qual  - generates spurious noreturn attribute warnings, try again later
 #   -Wconversion - would be nice, but too many "risky-but-safe" conversions in the code
 #   -Wcast-align - would help catch bad casts in some cases, but generates too many false positives
@@ -142,7 +156,8 @@ ARCHCWARNINGS		 = $(ARCHWARNINGS) \
 
 # C++-specific warnings
 #
-ARCHWARNINGSXX		 = $(ARCHWARNINGS)
+ARCHWARNINGSXX		 = $(ARCHWARNINGS) \
+			   -Wno-missing-field-initializers
 
 # pull in *just* libm from the toolchain ... this is grody
 LIBM			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a)
@@ -260,7 +275,7 @@ define SYM_TO_BIN
 	$(Q) $(OBJCOPY) -O binary $1 $2
 endef
 
-# Take the raw binary $1 and make it into an object file $2. 
+# Take the raw binary $1 and make it into an object file $2.
 # The symbol $3 points to the beginning of the file, and $3_len
 # gives its length.
 #

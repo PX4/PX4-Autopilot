@@ -40,8 +40,45 @@
 #include <nuttx/config.h>
 #include <systemlib/param/param.h>
 
-// Auto-start script with index #n
+/**
+ * Auto-start script index.
+ *
+ * Defines the auto-start script used to bootstrap the system.
+ *
+ * @group System
+ */
 PARAM_DEFINE_INT32(SYS_AUTOSTART, 0);
 
-// Automatically configure default values
+/**
+ * Automatically configure default values.
+ *
+ * Set to 1 to set platform-specific parameters to their default
+ * values on next system startup. 
+ *
+ * @min 0
+ * @max 1
+ * @group System
+ */
 PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
+
+/**
+* Set usage of IO board
+*
+* Can be used to use a standard startup script but with a FMU only set-up. Set to 0 to force the FMU only set-up.
+*
+* @min 0
+* @max 1
+* @group System
+*/
+PARAM_DEFINE_INT32(SYS_USE_IO, 1);
+
+/**
+* Set restart type
+*
+* Set by px4io to indicate type of restart
+*
+* @min 0
+* @max 2
+* @group System
+*/
+PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);

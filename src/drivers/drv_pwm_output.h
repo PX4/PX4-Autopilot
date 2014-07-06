@@ -160,7 +160,7 @@ ORB_DECLARE(output_pwm);
 
 #define DSM2_BIND_PULSES 3	/* DSM_BIND_START ioctl parameter, pulses required to start dsm2 pairing */
 #define DSMX_BIND_PULSES 7	/* DSM_BIND_START ioctl parameter, pulses required to start dsmx pairing */
-#define DSMX8_BIND_PULSES 10	/* DSM_BIND_START ioctl parameter, pulses required to start 8 or more channel dsmx pairing */
+#define DSMX8_BIND_PULSES 10 	/* DSM_BIND_START ioctl parameter, pulses required to start 8 or more channel dsmx pairing */
 
 /** power up DSM receiver */
 #define DSM_BIND_POWER_UP _IOC(_PWM_SERVO_BASE, 11)
@@ -199,9 +199,12 @@ ORB_DECLARE(output_pwm);
 /** get the lockdown override flag to enable outputs in HIL */
 #define PWM_SERVO_GET_DISABLE_LOCKDOWN		_IOC(_PWM_SERVO_BASE, 22)
 
-#define SAFELINK_CONTROL_INPUT	_IOC(_PWM_SERVO_BASE, 23)
+/** force safety switch off (to disable use of safety switch) */
+#define PWM_SERVO_SET_FORCE_SAFETY_OFF _IOC(_PWM_SERVO_BASE, 23)
 
-#define SAFELINK_CONTROL_OUTPUT	_IOC(_PWM_SERVO_BASE, 24)
+#define SAFELINK_CONTROL_INPUT	_IOC(_PWM_SERVO_BASE, 24)
+
+#define SAFELINK_CONTROL_OUTPUT	_IOC(_PWM_SERVO_BASE, 25)
 
 /*
  *

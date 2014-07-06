@@ -245,6 +245,56 @@ static inline void mavlink_msg_serial_udb_extra_f4_send(mavlink_channel_t chan, 
 #endif
 }
 
+#if MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F4_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_serial_udb_extra_f4_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint8_t sue_ROLL_STABILIZATION_AILERONS, uint8_t sue_ROLL_STABILIZATION_RUDDER, uint8_t sue_PITCH_STABILIZATION, uint8_t sue_YAW_STABILIZATION_RUDDER, uint8_t sue_YAW_STABILIZATION_AILERON, uint8_t sue_AILERON_NAVIGATION, uint8_t sue_RUDDER_NAVIGATION, uint8_t sue_ALTITUDEHOLD_STABILIZED, uint8_t sue_ALTITUDEHOLD_WAYPOINT, uint8_t sue_RACING_MODE)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+	_mav_put_uint8_t(buf, 0, sue_ROLL_STABILIZATION_AILERONS);
+	_mav_put_uint8_t(buf, 1, sue_ROLL_STABILIZATION_RUDDER);
+	_mav_put_uint8_t(buf, 2, sue_PITCH_STABILIZATION);
+	_mav_put_uint8_t(buf, 3, sue_YAW_STABILIZATION_RUDDER);
+	_mav_put_uint8_t(buf, 4, sue_YAW_STABILIZATION_AILERON);
+	_mav_put_uint8_t(buf, 5, sue_AILERON_NAVIGATION);
+	_mav_put_uint8_t(buf, 6, sue_RUDDER_NAVIGATION);
+	_mav_put_uint8_t(buf, 7, sue_ALTITUDEHOLD_STABILIZED);
+	_mav_put_uint8_t(buf, 8, sue_ALTITUDEHOLD_WAYPOINT);
+	_mav_put_uint8_t(buf, 9, sue_RACING_MODE);
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F4, buf, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F4_LEN, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F4_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F4, buf, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F4_LEN);
+#endif
+#else
+	mavlink_serial_udb_extra_f4_t *packet = (mavlink_serial_udb_extra_f4_t *)msgbuf;
+	packet->sue_ROLL_STABILIZATION_AILERONS = sue_ROLL_STABILIZATION_AILERONS;
+	packet->sue_ROLL_STABILIZATION_RUDDER = sue_ROLL_STABILIZATION_RUDDER;
+	packet->sue_PITCH_STABILIZATION = sue_PITCH_STABILIZATION;
+	packet->sue_YAW_STABILIZATION_RUDDER = sue_YAW_STABILIZATION_RUDDER;
+	packet->sue_YAW_STABILIZATION_AILERON = sue_YAW_STABILIZATION_AILERON;
+	packet->sue_AILERON_NAVIGATION = sue_AILERON_NAVIGATION;
+	packet->sue_RUDDER_NAVIGATION = sue_RUDDER_NAVIGATION;
+	packet->sue_ALTITUDEHOLD_STABILIZED = sue_ALTITUDEHOLD_STABILIZED;
+	packet->sue_ALTITUDEHOLD_WAYPOINT = sue_ALTITUDEHOLD_WAYPOINT;
+	packet->sue_RACING_MODE = sue_RACING_MODE;
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F4, (const char *)packet, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F4_LEN, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F4_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F4, (const char *)packet, MAVLINK_MSG_ID_SERIAL_UDB_EXTRA_F4_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE SERIAL_UDB_EXTRA_F4 UNPACKING

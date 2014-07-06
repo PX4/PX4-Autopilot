@@ -366,6 +366,78 @@ static inline void mavlink_msg_aq_telemetry_f_send(mavlink_channel_t chan, uint1
 #endif
 }
 
+#if MAVLINK_MSG_ID_AQ_TELEMETRY_F_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_aq_telemetry_f_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint16_t Index, float value1, float value2, float value3, float value4, float value5, float value6, float value7, float value8, float value9, float value10, float value11, float value12, float value13, float value14, float value15, float value16, float value17, float value18, float value19, float value20)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+	_mav_put_float(buf, 0, value1);
+	_mav_put_float(buf, 4, value2);
+	_mav_put_float(buf, 8, value3);
+	_mav_put_float(buf, 12, value4);
+	_mav_put_float(buf, 16, value5);
+	_mav_put_float(buf, 20, value6);
+	_mav_put_float(buf, 24, value7);
+	_mav_put_float(buf, 28, value8);
+	_mav_put_float(buf, 32, value9);
+	_mav_put_float(buf, 36, value10);
+	_mav_put_float(buf, 40, value11);
+	_mav_put_float(buf, 44, value12);
+	_mav_put_float(buf, 48, value13);
+	_mav_put_float(buf, 52, value14);
+	_mav_put_float(buf, 56, value15);
+	_mav_put_float(buf, 60, value16);
+	_mav_put_float(buf, 64, value17);
+	_mav_put_float(buf, 68, value18);
+	_mav_put_float(buf, 72, value19);
+	_mav_put_float(buf, 76, value20);
+	_mav_put_uint16_t(buf, 80, Index);
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_AQ_TELEMETRY_F, buf, MAVLINK_MSG_ID_AQ_TELEMETRY_F_LEN, MAVLINK_MSG_ID_AQ_TELEMETRY_F_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_AQ_TELEMETRY_F, buf, MAVLINK_MSG_ID_AQ_TELEMETRY_F_LEN);
+#endif
+#else
+	mavlink_aq_telemetry_f_t *packet = (mavlink_aq_telemetry_f_t *)msgbuf;
+	packet->value1 = value1;
+	packet->value2 = value2;
+	packet->value3 = value3;
+	packet->value4 = value4;
+	packet->value5 = value5;
+	packet->value6 = value6;
+	packet->value7 = value7;
+	packet->value8 = value8;
+	packet->value9 = value9;
+	packet->value10 = value10;
+	packet->value11 = value11;
+	packet->value12 = value12;
+	packet->value13 = value13;
+	packet->value14 = value14;
+	packet->value15 = value15;
+	packet->value16 = value16;
+	packet->value17 = value17;
+	packet->value18 = value18;
+	packet->value19 = value19;
+	packet->value20 = value20;
+	packet->Index = Index;
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_AQ_TELEMETRY_F, (const char *)packet, MAVLINK_MSG_ID_AQ_TELEMETRY_F_LEN, MAVLINK_MSG_ID_AQ_TELEMETRY_F_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_AQ_TELEMETRY_F, (const char *)packet, MAVLINK_MSG_ID_AQ_TELEMETRY_F_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE AQ_TELEMETRY_F UNPACKING

@@ -36,6 +36,7 @@
  * Definition of a simple orthogonal pitch PID controller.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  *
  * Acknowledgements:
  *
@@ -50,14 +51,22 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <systemlib/perf_counter.h>
 
-class __EXPORT ECL_PitchController
+class __EXPORT ECL_PitchController //XXX: create controller superclass
 {
 public:
 	ECL_PitchController();
 
-	float control(float pitch_setpoint, float pitch, float pitch_rate, float roll, float scaler = 1.0f,
-		      bool lock_integrator = false, float airspeed_min = 0.0f, float airspeed_max = 0.0f, float airspeed = (0.0f / 0.0f));
+	~ECL_PitchController();
+
+	float control_attitude(float pitch_setpoint, float roll, float pitch, float airspeed);
+
+
+	float control_bodyrate(float roll, float pitch,
+			float pitch_rate, float yaw_rate,
+			float yaw_rate_setpoint,
+			float airspeed_min = 0.0f, float airspeed_max = 0.0f, float airspeed = (0.0f / 0.0f), float scaler = 1.0f, bool lock_integrator = false);
 
 	void reset_integrator();
 
@@ -67,21 +76,27 @@ public:
 	void set_k_p(float k_p) {
 		_k_p = k_p;
 	}
+
 	void set_k_i(float k_i) {
 		_k_i = k_i;
 	}
-	void set_k_d(float k_d) {
-		_k_d = k_d;
+
+	void set_k_ff(float k_ff) {
+		_k_ff = k_ff;
 	}
+
 	void set_integrator_max(float max) {
 		_integrator_max = max;
 	}
+
 	void set_max_rate_pos(float max_rate_pos) {
 		_max_rate_pos = max_rate_pos;
 	}
+
 	void set_max_rate_neg(float max_rate_neg) {
 		_max_rate_neg = max_rate_neg;
 	}
+
 	void set_roll_ff(float roll_ff) {
 		_roll_ff = roll_ff;
 	}
@@ -94,13 +109,17 @@ public:
 		return _rate_setpoint;
 	}
 
+	float get_desired_bodyrate() {
+		return _bodyrate_setpoint;
+	}
+
 private:
 
 	uint64_t _last_run;
 	float _tc;
 	float _k_p;
 	float _k_i;
-	float _k_d;
+	float _k_ff;
 	float _integrator_max;
 	float _max_rate_pos;
 	float _max_rate_neg;
@@ -109,7 +128,8 @@ private:
 	float _integrator;
 	float _rate_error;
 	float _rate_setpoint;
-	float _max_deflection_rad;
+	float _bodyrate_setpoint;
+	perf_counter_t _nonfinite_input_perf;
 };
 
 #endif // ECL_PITCH_CONTROLLER_H

@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: 	Lorenz Meier
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,13 +31,19 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_main.c
- * Implementation of the main navigation state machine.
+ * @file navigator_main.cpp
  *
- * Handles missions, geo fencing and failsafe navigation behavior.
+ * Handles mission items, geo fencing and failsafe navigation behavior.
+ * Published the position setpoint triplet for the position controller.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Jean Cyr <jean.m.cyr@gmail.com>
+ * @author Julian Oes <julian@oes.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <nuttx/config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,26 +53,29 @@
 #include <math.h>
 #include <poll.h>
 #include <time.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
+
 #include <uORB/uORB.h>
-#include <uORB/topics/airspeed.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_global_position_set_triplet.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/mission.h>
-#include <systemlib/param/param.h>
+#include <uORB/topics/fence.h>
+#include <uORB/topics/navigation_capabilities.h>
+
 #include <systemlib/err.h>
-#include <geo/geo.h>
-#include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
+#include <geo/geo.h>
+#include <dataman/dataman.h>
 #include <mathlib/mathlib.h>
+#include <mavlink/mavlink_log.h>
+
+#include "navigator.h"
 
 /**
  * navigator app start / stop handling function
@@ -76,169 +84,53 @@
  */
 extern "C" __EXPORT int navigator_main(int argc, char *argv[]);
 
-class Navigator
-{
-public:
-	/**
-	 * Constructor
-	 */
-	Navigator();
-
-	/**
-	 * Destructor, also kills the sensors task.
-	 */
-	~Navigator();
-
-	/**
-	 * Start the sensors task.
-	 *
-	 * @return		OK on success.
-	 */
-	int		start();
-
-private:
-
-	bool		_task_should_exit;		/**< if true, sensor task should exit */
-	int		_navigator_task;			/**< task handle for sensor task */
-
-	int		_global_pos_sub;
-	int		_att_sub;			/**< vehicle attitude subscription */
-	int		_attitude_sub;			/**< raw rc channels data subscription */
-	int		_airspeed_sub;			/**< airspeed subscription */
-	int		_vstatus_sub;			/**< vehicle status subscription */
-	int 		_params_sub;			/**< notification of parameter updates */
-	int 		_manual_control_sub;		/**< notification of manual control updates */
-	int		_mission_sub;
-
-	orb_advert_t	_triplet_pub;			/**< position setpoint */
-
-	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
-	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
-	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
-	struct airspeed_s				_airspeed;		/**< airspeed */
-	struct vehicle_status_s				_vstatus;		/**< vehicle status */
-	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
-	struct vehicle_global_position_set_triplet_s	_global_triplet;	/**< triplet of global setpoints */
-
-	perf_counter_t	_loop_perf;			/**< loop performance counter */
-
-	unsigned	_mission_items_maxcount;				/**< maximum number of mission items supported */
-	struct	mission_item_s 				* _mission_items;	/**< storage for mission items */
-	bool		_mission_valid;						/**< flag if mission is valid */
-
-	/** manual control states */
-	float		_seatbelt_hold_heading;		/**< heading the system should hold in seatbelt mode */
-	float		_loiter_hold_lat;
-	float		_loiter_hold_lon;
-	float		_loiter_hold_alt;
-	bool		_loiter_hold;
-
-	struct {
-		float throttle_cruise;
-	}		_parameters;			/**< local copies of interesting parameters */
-
-	struct {
-		param_t throttle_cruise;
-
-	}		_parameter_handles;		/**< handles for interesting parameters */
-
-
-	/**
-	 * Update our local parameter cache.
-	 */
-	int		parameters_update();
-
-	/**
-	 * Update control outputs
-	 *
-	 */
-	void		control_update();
-
-	/**
-	 * Check for changes in vehicle status.
-	 */
-	void		vehicle_status_poll();
-
-	/**
-	 * Check for position updates.
-	 */
-	void		vehicle_attitude_poll();
-
-	/**
-	 * Check for set triplet updates.
-	 */
-	void		mission_poll();
-
-	/**
-	 * Control throttle.
-	 */
-	float		control_throttle(float energy_error);
-
-	/**
-	 * Control pitch.
-	 */
-	float		control_pitch(float altitude_error);
-
-	void calculate_airspeed_errors();
-	void calculate_gndspeed_undershoot();
-	void calculate_altitude_error();
-
-	/**
-	 * Shim for calling task_main from task_create.
-	 */
-	static void	task_main_trampoline(int argc, char *argv[]);
-
-	/**
-	 * Main sensor collection task.
-	 */
-	void		task_main() __attribute__((noreturn));
-};
 
 namespace navigator
 {
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 Navigator	*g_navigator;
 }
 
 Navigator::Navigator() :
-
+	SuperBlock(NULL, "NAV"),
 	_task_should_exit(false),
 	_navigator_task(-1),
-
-/* subscriptions */
+	_mavlink_fd(-1),
 	_global_pos_sub(-1),
-	_att_sub(-1),
-	_airspeed_sub(-1),
+	_home_pos_sub(-1),
 	_vstatus_sub(-1),
-	_params_sub(-1),
-	_manual_control_sub(-1),
-
-/* publications */
-	_triplet_pub(-1),
-
-/* performance counters */
+	_capabilities_sub(-1),
+	_control_mode_sub(-1),
+	_onboard_mission_sub(-1),
+	_offboard_mission_sub(-1),
+	_pos_sp_triplet_pub(-1),
+	_vstatus({}),
+	_control_mode({}),
+	_global_pos({}),
+	_home_pos({}),
+	_mission_item({}),
+	_nav_caps({}),
+	_pos_sp_triplet({}),
+	_mission_item_valid(false),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
-/* states */
-	_mission_items_maxcount(20),
-	_mission_valid(false),
-	_loiter_hold(false)
+	_geofence({}),
+	_geofence_violation_warning_sent(false),
+	_fence_valid(false),
+	_inside_fence(true),
+	_navigation_mode(nullptr),
+	_mission(this, "MIS"),
+	_loiter(this, "LOI"),
+	_rtl(this, "RTL"),
+	_update_triplet(false),
+	_param_loiter_radius(this, "LOITER_RAD"),
+	_param_acceptance_radius(this, "ACC_RAD")
 {
-	_mission_items = (mission_item_s*)malloc(sizeof(mission_item_s) * _mission_items_maxcount);
-	if (!_mission_items) {
-		_mission_items_maxcount = 0;
-		warnx("no free RAM to allocate mission, rejecting any waypoints");
-	}
+	/* Create a list of our possible navigation types */
+	_navigation_mode_array[0] = &_mission;
+	_navigation_mode_array[1] = &_loiter;
+	_navigation_mode_array[2] = &_rtl;
 
-	_parameter_handles.throttle_cruise = param_find("NAV_DUMMY");
-
-	/* fetch initial parameter values */
-	parameters_update();
+	updateParams();
 }
 
 Navigator::~Navigator()
@@ -266,70 +158,48 @@ Navigator::~Navigator()
 	navigator::g_navigator = nullptr;
 }
 
-int
-Navigator::parameters_update()
+void
+Navigator::global_position_update()
 {
-
-	//param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
-
-	return OK;
+	orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
 }
 
 void
-Navigator::vehicle_status_poll()
+Navigator::home_position_update()
 {
-	bool vstatus_updated;
+	orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
+}
 
-	/* Check HIL state if vehicle status has changed */
-	orb_check(_vstatus_sub, &vstatus_updated);
+void
+Navigator::navigation_capabilities_update()
+{
+	orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
+}
 
-	if (vstatus_updated) {
-
-		orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus);
+void
+Navigator::vehicle_status_update()
+{
+	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK) {
+		/* in case the commander is not be running */
+		_vstatus.arming_state = ARMING_STATE_STANDBY;
 	}
 }
 
 void
-Navigator::vehicle_attitude_poll()
+Navigator::vehicle_control_mode_update()
 {
-	/* check if there is a new position */
-	bool att_updated;
-	orb_check(_att_sub, &att_updated);
-
-	if (att_updated) {
-		orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
+	if (orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode) != OK) {
+		/* in case the commander is not be running */
+		_control_mode.flag_control_auto_enabled = false;
+		_control_mode.flag_armed = false;
 	}
 }
 
 void
-Navigator::mission_poll()
+Navigator::params_update()
 {
-	/* check if there is a new setpoint */
-	bool mission_updated;
-	orb_check(_mission_sub, &mission_updated);
-
-	if (mission_updated) {
-
-		struct mission_s mission;
-		orb_copy(ORB_ID(mission), _mission_sub, &mission);
-
-		// XXX this is not optimal yet, but a first prototype /
-		// test implementation
-
-		if (mission.count <= _mission_items_maxcount) {
-			/*
-			 * Perform an atomic copy & state update
-			 */
-			irqstate_t flags = irqsave();
-
-			memcpy(_mission_items, mission.items, mission.count * sizeof(struct mission_item_s));
-			_mission_valid = true;
-
-			irqrestore(flags);
-		} else {
-			warnx("mission larger than storage space");
-		}
-	}
+	parameter_update_s param_update;
+	orb_copy(ORB_ID(parameter_update), _param_update_sub, &param_update);
 }
 
 void
@@ -341,196 +211,189 @@ Navigator::task_main_trampoline(int argc, char *argv[])
 void
 Navigator::task_main()
 {
-
 	/* inform about start */
 	warnx("Initializing..");
-	fflush(stdout);
 
-	/*
-	 * do subscriptions
-	 */
+	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+
+	/* Try to load the geofence:
+	 * if /fs/microsd/etc/geofence.txt load from this file
+	 * else clear geofence data in datamanager */
+	struct stat buffer;
+
+	if (stat(GEOFENCE_FILENAME, &buffer) == 0) {
+		warnx("Try to load geofence.txt");
+		_geofence.loadFromFile(GEOFENCE_FILENAME);
+
+	} else {
+		if (_geofence.clearDm() > 0)
+			warnx("Geofence cleared");
+		else
+			warnx("Could not clear geofence");
+	}
+
+	/* do subscriptions */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	_mission_sub = orb_subscribe(ORB_ID(mission));
-	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
+	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
+	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
+	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
+	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 
-	/* rate limit vehicle status updates to 5Hz */
-	orb_set_interval(_vstatus_sub, 200);
+	/* copy all topics first time */
+	vehicle_status_update();
+	vehicle_control_mode_update();
+	global_position_update();
+	home_position_update();
+	navigation_capabilities_update();
+	params_update();
+
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
 
-	parameters_update();
+	hrt_abstime mavlink_open_time = 0;
+	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source(s) */
-	struct pollfd fds[2];
+	struct pollfd fds[6];
 
 	/* Setup of loop */
-	fds[0].fd = _params_sub;
+	fds[0].fd = _global_pos_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _global_pos_sub;
+	fds[1].fd = _home_pos_sub;
 	fds[1].events = POLLIN;
+	fds[2].fd = _capabilities_sub;
+	fds[2].events = POLLIN;
+	fds[3].fd = _vstatus_sub;
+	fds[3].events = POLLIN;
+	fds[4].fd = _control_mode_sub;
+	fds[4].events = POLLIN;
+	fds[5].fd = _param_update_sub;
+	fds[5].events = POLLIN;
 
 	while (!_task_should_exit) {
 
-		/* wait for up to 500ms for data */
+		/* wait for up to 100ms for data */
 		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
-		/* timed out - periodic check for _task_should_exit, etc. */
-		if (pret == 0)
+		if (pret == 0) {
+			/* timed out - periodic check for _task_should_exit, etc. */
 			continue;
 
-		/* this is undesirable but not much we can do - might want to flag unhappy status */
-		if (pret < 0) {
+		} else if (pret < 0) {
+			/* this is undesirable but not much we can do - might want to flag unhappy status */
 			warn("poll error %d, %d", pret, errno);
 			continue;
 		}
 
 		perf_begin(_loop_perf);
 
-		/* check vehicle status for changes to publication state */
-		vehicle_status_poll();
-
-		/* only update parameters if they changed */
-		if (fds[0].revents & POLLIN) {
-			/* read from param to clear updated flag */
-			struct parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
-
-			/* update parameters from storage */
-			parameters_update();
+		if (_mavlink_fd < 0 && hrt_absolute_time() > mavlink_open_time) {
+			/* try to reopen the mavlink log device with specified interval */
+			mavlink_open_time = hrt_abstime() + mavlink_open_interval;
+			_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 		}
 
-		/* only run controller if position changed */
+		/* parameters updated */
+		if (fds[5].revents & POLLIN) {
+			params_update();
+			updateParams();
+		}
+
+		/* vehicle control mode updated */
+		if (fds[4].revents & POLLIN) {
+			vehicle_control_mode_update();
+		}
+
+		/* vehicle status updated */
+		if (fds[3].revents & POLLIN) {
+			vehicle_status_update();
+		}
+
+		/* navigation capabilities updated */
+		if (fds[2].revents & POLLIN) {
+			navigation_capabilities_update();
+		}
+
+		/* home position updated */
 		if (fds[1].revents & POLLIN) {
+			home_position_update();
+		}
 
+		/* global position updated */
+		if (fds[0].revents & POLLIN) {
+			global_position_update();
 
-			static uint64_t last_run = 0;
-			float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
-			last_run = hrt_absolute_time();
+			/* Check geofence violation */
+			if (!_geofence.inside(&_global_pos)) {
 
-			/* guard against too large deltaT's */
-			if (deltaT > 1.0f)
-				deltaT = 0.01f;
-
-			/* load local copies */
-			orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
-
-			vehicle_attitude_poll();
-
-			mission_poll();
-
-			math::Vector2f ground_speed(_global_pos.vx, _global_pos.vy);
-			// Current waypoint
-			math::Vector2f next_wp(_global_triplet.current.lat / 1e7f, _global_triplet.current.lon / 1e7f);
-			// Global position
-			math::Vector2f current_position(_global_pos.lat / 1e7f, _global_pos.lon / 1e7f);
-
-			/* AUTONOMOUS FLIGHT */
-
-			if (1 /* autonomous flight */) {
-
-				/* execute navigation once we have a setpoint */
-				if (_mission_valid) {
-
-					// Next waypoint
-					math::Vector2f prev_wp;
-
-					if (_global_triplet.previous_valid) {
-						prev_wp.setX(_global_triplet.previous.lat / 1e7f);
-						prev_wp.setY(_global_triplet.previous.lon / 1e7f);
-
-					} else {
-						/*
-						 * No valid next waypoint, go for heading hold.
-						 * This is automatically handled by the L1 library.
-						 */
-						prev_wp.setX(_global_triplet.current.lat / 1e7f);
-						prev_wp.setY(_global_triplet.current.lon / 1e7f);
-
-					}
-
-
-
-					/********   MAIN NAVIGATION STATE MACHINE   ********/
-
-					// XXX to be put in its own class
-
-					if (_global_triplet.current.nav_cmd == NAV_CMD_WAYPOINT) {
-						/* waypoint is a plain navigation waypoint */
-						
-
-					} else if (_global_triplet.current.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-						_global_triplet.current.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-						_global_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
-
-						/* waypoint is a loiter waypoint */
-						
-					}
-
-					// XXX at this point we always want no loiter hold if a
-					// mission is active
-					_loiter_hold = false;
-
-				} else {
-
-					if (!_loiter_hold) {
-						_loiter_hold_lat = _global_pos.lat / 1e7f;
-						_loiter_hold_lon = _global_pos.lon / 1e7f;
-						_loiter_hold_alt = _global_pos.alt;
-						_loiter_hold = true;
-					}
-
-					//_parameters.loiter_hold_radius
+				/* Issue a warning about the geofence violation once */
+				if (!_geofence_violation_warning_sent) {
+					mavlink_log_critical(_mavlink_fd, "#audio: Geofence violation");
+					_geofence_violation_warning_sent = true;
 				}
-
-			} else if (0/* seatbelt mode enabled */) {
-
-				/** SEATBELT FLIGHT **/
-				continue;
-
 			} else {
-
-				/** MANUAL FLIGHT **/
-
-				/* no flight mode applies, do not publish an attitude setpoint */
-				continue;
+				/* Reset the _geofence_violation_warning_sent field */
+				_geofence_violation_warning_sent = false;
 			}
+		}
 
-			/********   MAIN NAVIGATION STATE MACHINE   ********/
+		/* Do stuff according to navigation state set by commander */
+		switch (_vstatus.nav_state) {
+			case NAVIGATION_STATE_MANUAL:
+			case NAVIGATION_STATE_ACRO:
+			case NAVIGATION_STATE_ALTCTL:
+			case NAVIGATION_STATE_POSCTL:
+				_navigation_mode = nullptr;
+				_can_loiter_at_sp = false;
+				break;
+			case NAVIGATION_STATE_AUTO_MISSION:
+				_navigation_mode = &_mission;
+				break;
+			case NAVIGATION_STATE_AUTO_LOITER:
+				_navigation_mode = &_loiter;
+				break;
+			case NAVIGATION_STATE_AUTO_RTL:
+				_navigation_mode = &_rtl;
+				break;
+			case NAVIGATION_STATE_AUTO_RTGS:
+				_navigation_mode = &_rtl; /* TODO: change this to something else */
+				break;
+			case NAVIGATION_STATE_LAND:
+			case NAVIGATION_STATE_TERMINATION:
+			default:
+				_navigation_mode = nullptr;
+				_can_loiter_at_sp = false;
+				break;
+		}
 
-			if (_global_triplet.current.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
-				// XXX define launch position and return
-
-			} else if (_global_triplet.current.nav_cmd == NAV_CMD_LAND) {
-				// XXX flared descent on final approach
-
-			} else if (_global_triplet.current.nav_cmd == NAV_CMD_TAKEOFF) {
-
-				/* apply minimum pitch if altitude has not yet been reached */
-				if (_global_pos.alt < _global_triplet.current.altitude) {
-					_att_sp.pitch_body = math::max(_att_sp.pitch_body, _global_triplet.current.param1);
-				}
-			}
-
-			/* lazily publish the setpoint only once available */
-			if (_triplet_pub > 0) {
-				/* publish the attitude setpoint */
-				orb_publish(ORB_ID(vehicle_global_position_set_triplet), _triplet_pub, &_global_triplet);
-
+		/* iterate through navigation modes and set active/inactive for each */
+		for(unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
+			if (_navigation_mode == _navigation_mode_array[i]) {
+				_update_triplet = _navigation_mode_array[i]->on_active(&_pos_sp_triplet);
 			} else {
-				/* advertise and publish */
-				_triplet_pub = orb_advertise(ORB_ID(vehicle_global_position_set_triplet), &_global_triplet);
+				_navigation_mode_array[i]->on_inactive();
 			}
+		}
 
+		/* if nothing is running, set position setpoint triplet invalid */
+		if (_navigation_mode == nullptr) {
+			_pos_sp_triplet.previous.valid = false;
+			_pos_sp_triplet.current.valid = false;
+			_pos_sp_triplet.next.valid = false;
+			_update_triplet = true;
+		}
+
+		if (_update_triplet) {
+			publish_position_setpoint_triplet();
+			_update_triplet = false;
 		}
 
 		perf_end(_loop_perf);
 	}
-
-	warnx("exiting.\n");
+	warnx("exiting.");
 
 	_navigator_task = -1;
 	_exit(0);
@@ -543,11 +406,11 @@ Navigator::start()
 
 	/* start the task */
 	_navigator_task = task_spawn_cmd("navigator",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       2048,
-				       (main_t)&Navigator::task_main_trampoline,
-				       nullptr);
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_MAX - 5,
+					 2000,
+					 (main_t)&Navigator::task_main_trampoline,
+					 nullptr);
 
 	if (_navigator_task < 0) {
 		warn("task start failed");
@@ -557,20 +420,81 @@ Navigator::start()
 	return OK;
 }
 
+void
+Navigator::status()
+{
+	/* TODO: add this again */
+	// warnx("Global position is %svalid", _global_pos_valid ? "" : "in");
+
+	// if (_global_pos.global_valid) {
+	// 	warnx("Longitude %5.5f degrees, latitude %5.5f degrees", _global_pos.lon, _global_pos.lat);
+	// 	warnx("Altitude %5.5f meters, altitude above home %5.5f meters",
+	// 	      (double)_global_pos.alt, (double)(_global_pos.alt - _home_pos.alt));
+	// 	warnx("Ground velocity in m/s, N %5.5f, E %5.5f, D %5.5f",
+	// 	      (double)_global_pos.vel_n, (double)_global_pos.vel_e, (double)_global_pos.vel_d);
+	// 	warnx("Compass heading in degrees %5.5f", (double)(_global_pos.yaw * M_RAD_TO_DEG_F));
+	// }
+
+	if (_fence_valid) {
+		warnx("Geofence is valid");
+		/* TODO: needed? */
+//		warnx("Vertex longitude latitude");
+//		for (unsigned i = 0; i < _fence.count; i++)
+//		warnx("%6u %9.5f %8.5f", i, (double)_fence.vertices[i].lon, (double)_fence.vertices[i].lat);
+
+	} else {
+		warnx("Geofence not set");
+	}
+}
+
+void
+Navigator::publish_position_setpoint_triplet()
+{
+	/* update navigation state */
+	/* TODO: set nav_state */
+
+	/* lazily publish the position setpoint triplet only once available */
+	if (_pos_sp_triplet_pub > 0) {
+		orb_publish(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_pub, &_pos_sp_triplet);
+
+	} else {
+		_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet), &_pos_sp_triplet);
+	}
+}
+
+void Navigator::add_fence_point(int argc, char *argv[])
+{
+	_geofence.addPoint(argc, argv);
+}
+
+void Navigator::load_fence_from_file(const char *filename)
+{
+	_geofence.loadFromFile(filename);
+}
+
+
+static void usage()
+{
+	errx(1, "usage: navigator {start|stop|status|fence|fencefile}");
+}
+
 int navigator_main(int argc, char *argv[])
 {
-	if (argc < 1)
-		errx(1, "usage: navigator {start|stop|status}");
+	if (argc < 2) {
+		usage();
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (navigator::g_navigator != nullptr)
+		if (navigator::g_navigator != nullptr) {
 			errx(1, "already running");
+		}
 
 		navigator::g_navigator = new Navigator;
 
-		if (navigator::g_navigator == nullptr)
+		if (navigator::g_navigator == nullptr) {
 			errx(1, "alloc failed");
+		}
 
 		if (OK != navigator::g_navigator->start()) {
 			delete navigator::g_navigator;
@@ -578,27 +502,28 @@ int navigator_main(int argc, char *argv[])
 			err(1, "start failed");
 		}
 
-		exit(0);
+		return 0;
 	}
+
+	if (navigator::g_navigator == nullptr)
+		errx(1, "not running");
 
 	if (!strcmp(argv[1], "stop")) {
-		if (navigator::g_navigator == nullptr)
-			errx(1, "not running");
-
 		delete navigator::g_navigator;
 		navigator::g_navigator = nullptr;
-		exit(0);
+
+	} else if (!strcmp(argv[1], "status")) {
+		navigator::g_navigator->status();
+
+	} else if (!strcmp(argv[1], "fence")) {
+		navigator::g_navigator->add_fence_point(argc - 2, argv + 2);
+
+	} else if (!strcmp(argv[1], "fencefile")) {
+		navigator::g_navigator->load_fence_from_file(GEOFENCE_FILENAME);
+
+	} else {
+		usage();
 	}
 
-	if (!strcmp(argv[1], "status")) {
-		if (navigator::g_navigator) {
-			errx(0, "running");
-
-		} else {
-			errx(1, "not running");
-		}
-	}
-
-	warnx("unrecognized command");
-	return 1;
+	return 0;
 }

@@ -38,7 +38,8 @@
 MODULE_COMMAND	 = param
 SRCS		 = param.c
 
-MODULE_STACKSIZE = 4096
+# Note: measurements yielded a max of 900 bytes used.
+MODULE_STACKSIZE = 1800
 
 MAXOPTIMIZATION	 = -Os
 

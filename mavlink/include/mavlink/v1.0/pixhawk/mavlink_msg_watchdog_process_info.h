@@ -185,6 +185,44 @@ static inline void mavlink_msg_watchdog_process_info_send(mavlink_channel_t chan
 #endif
 }
 
+#if MAVLINK_MSG_ID_WATCHDOG_PROCESS_INFO_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_watchdog_process_info_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint16_t watchdog_id, uint16_t process_id, const char *name, const char *arguments, int32_t timeout)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+	_mav_put_int32_t(buf, 0, timeout);
+	_mav_put_uint16_t(buf, 4, watchdog_id);
+	_mav_put_uint16_t(buf, 6, process_id);
+	_mav_put_char_array(buf, 8, name, 100);
+	_mav_put_char_array(buf, 108, arguments, 147);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_WATCHDOG_PROCESS_INFO, buf, MAVLINK_MSG_ID_WATCHDOG_PROCESS_INFO_LEN, MAVLINK_MSG_ID_WATCHDOG_PROCESS_INFO_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_WATCHDOG_PROCESS_INFO, buf, MAVLINK_MSG_ID_WATCHDOG_PROCESS_INFO_LEN);
+#endif
+#else
+	mavlink_watchdog_process_info_t *packet = (mavlink_watchdog_process_info_t *)msgbuf;
+	packet->timeout = timeout;
+	packet->watchdog_id = watchdog_id;
+	packet->process_id = process_id;
+	mav_array_memcpy(packet->name, name, sizeof(char)*100);
+	mav_array_memcpy(packet->arguments, arguments, sizeof(char)*147);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_WATCHDOG_PROCESS_INFO, (const char *)packet, MAVLINK_MSG_ID_WATCHDOG_PROCESS_INFO_LEN, MAVLINK_MSG_ID_WATCHDOG_PROCESS_INFO_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_WATCHDOG_PROCESS_INFO, (const char *)packet, MAVLINK_MSG_ID_WATCHDOG_PROCESS_INFO_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE WATCHDOG_PROCESS_INFO UNPACKING

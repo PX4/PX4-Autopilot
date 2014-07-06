@@ -388,6 +388,82 @@ static inline void mavlink_msg_image_available_send(mavlink_channel_t chan, uint
 #endif
 }
 
+#if MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_image_available_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint64_t cam_id, uint8_t cam_no, uint64_t timestamp, uint64_t valid_until, uint32_t img_seq, uint32_t img_buf_index, uint16_t width, uint16_t height, uint16_t depth, uint8_t channels, uint32_t key, uint32_t exposure, float gain, float roll, float pitch, float yaw, float local_z, float lat, float lon, float alt, float ground_x, float ground_y, float ground_z)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+	_mav_put_uint64_t(buf, 0, cam_id);
+	_mav_put_uint64_t(buf, 8, timestamp);
+	_mav_put_uint64_t(buf, 16, valid_until);
+	_mav_put_uint32_t(buf, 24, img_seq);
+	_mav_put_uint32_t(buf, 28, img_buf_index);
+	_mav_put_uint32_t(buf, 32, key);
+	_mav_put_uint32_t(buf, 36, exposure);
+	_mav_put_float(buf, 40, gain);
+	_mav_put_float(buf, 44, roll);
+	_mav_put_float(buf, 48, pitch);
+	_mav_put_float(buf, 52, yaw);
+	_mav_put_float(buf, 56, local_z);
+	_mav_put_float(buf, 60, lat);
+	_mav_put_float(buf, 64, lon);
+	_mav_put_float(buf, 68, alt);
+	_mav_put_float(buf, 72, ground_x);
+	_mav_put_float(buf, 76, ground_y);
+	_mav_put_float(buf, 80, ground_z);
+	_mav_put_uint16_t(buf, 84, width);
+	_mav_put_uint16_t(buf, 86, height);
+	_mav_put_uint16_t(buf, 88, depth);
+	_mav_put_uint8_t(buf, 90, cam_no);
+	_mav_put_uint8_t(buf, 91, channels);
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_AVAILABLE, buf, MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN, MAVLINK_MSG_ID_IMAGE_AVAILABLE_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_AVAILABLE, buf, MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN);
+#endif
+#else
+	mavlink_image_available_t *packet = (mavlink_image_available_t *)msgbuf;
+	packet->cam_id = cam_id;
+	packet->timestamp = timestamp;
+	packet->valid_until = valid_until;
+	packet->img_seq = img_seq;
+	packet->img_buf_index = img_buf_index;
+	packet->key = key;
+	packet->exposure = exposure;
+	packet->gain = gain;
+	packet->roll = roll;
+	packet->pitch = pitch;
+	packet->yaw = yaw;
+	packet->local_z = local_z;
+	packet->lat = lat;
+	packet->lon = lon;
+	packet->alt = alt;
+	packet->ground_x = ground_x;
+	packet->ground_y = ground_y;
+	packet->ground_z = ground_z;
+	packet->width = width;
+	packet->height = height;
+	packet->depth = depth;
+	packet->cam_no = cam_no;
+	packet->channels = channels;
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_AVAILABLE, (const char *)packet, MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN, MAVLINK_MSG_ID_IMAGE_AVAILABLE_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_AVAILABLE, (const char *)packet, MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE IMAGE_AVAILABLE UNPACKING

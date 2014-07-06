@@ -212,6 +212,50 @@ static inline void mavlink_msg_marker_send(mavlink_channel_t chan, uint16_t id, 
 #endif
 }
 
+#if MAVLINK_MSG_ID_MARKER_LEN <= MAVLINK_MAX_PAYLOAD_LEN
+/*
+  This varient of _send() can be used to save stack space by re-using
+  memory from the receive buffer.  The caller provides a
+  mavlink_message_t which is the size of a full mavlink message. This
+  is usually the receive buffer for the channel, and allows a reply to an
+  incoming message with minimum stack space usage.
+ */
+static inline void mavlink_msg_marker_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint16_t id, float x, float y, float z, float roll, float pitch, float yaw)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char *buf = (char *)msgbuf;
+	_mav_put_float(buf, 0, x);
+	_mav_put_float(buf, 4, y);
+	_mav_put_float(buf, 8, z);
+	_mav_put_float(buf, 12, roll);
+	_mav_put_float(buf, 16, pitch);
+	_mav_put_float(buf, 20, yaw);
+	_mav_put_uint16_t(buf, 24, id);
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_MARKER, buf, MAVLINK_MSG_ID_MARKER_LEN, MAVLINK_MSG_ID_MARKER_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_MARKER, buf, MAVLINK_MSG_ID_MARKER_LEN);
+#endif
+#else
+	mavlink_marker_t *packet = (mavlink_marker_t *)msgbuf;
+	packet->x = x;
+	packet->y = y;
+	packet->z = z;
+	packet->roll = roll;
+	packet->pitch = pitch;
+	packet->yaw = yaw;
+	packet->id = id;
+
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_MARKER, (const char *)packet, MAVLINK_MSG_ID_MARKER_LEN, MAVLINK_MSG_ID_MARKER_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_MARKER, (const char *)packet, MAVLINK_MSG_ID_MARKER_LEN);
+#endif
+#endif
+}
+#endif
+
 #endif
 
 // MESSAGE MARKER UNPACKING

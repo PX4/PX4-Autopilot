@@ -1,0 +1,12 @@
+#!nsh
+#
+# Generic 10" Octo X geometry
+#
+# Anton Babushkin <anton.babushkin@me.com>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+set MIXER FMU_octo_x
+
+set PWM_OUTPUTS 12345678
