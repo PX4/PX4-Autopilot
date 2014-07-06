@@ -199,12 +199,18 @@ MavlinkFTP::ErrorCode
 MavlinkFTP::_workList(Request *req)
 {
 	auto hdr = req->header();
-	DIR *dp = opendir(req->dataAsCString());
+    
+    char dirPath[kMaxDataLength];
+    strncpy(dirPath, req->dataAsCString(), kMaxDataLength);
+    
+	DIR *dp = opendir(dirPath);
 
 	if (dp == nullptr) {
-		printf("FTP: can't open path '%s'\n", req->dataAsCString());
+		printf("FTP: can't open path '%s'\n", dirPath);
 		return kErrNotDir;
 	}
+    
+    printf("FTP: list %s\n", dirPath);
 
 	ErrorCode errorCode = kErrNone;
 	struct dirent entry, *result = nullptr;
@@ -216,6 +222,7 @@ MavlinkFTP::_workList(Request *req)
 	for (;;) {
 		// read the directory entry
 		if (readdir_r(dp, &entry, &result)) {
+            printf("FTP: list %s readdir_r failure\n", dirPath);
 			errorCode = kErrIO;
 			break;
 		}
@@ -251,8 +258,8 @@ MavlinkFTP::_workList(Request *req)
 
 		// copy the name, which we know will fit
 		strcpy((char *)&hdr->data[offset], entry.d_name);
+		printf("FTP: list %s %s\n", dirPath, (char *)&hdr->data[offset]);
 		offset += strlen(entry.d_name) + 1;
-		printf("FTP: list %s\n", entry.d_name);
 	}
 
 	closedir(dp);
