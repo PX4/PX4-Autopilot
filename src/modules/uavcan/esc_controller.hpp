@@ -47,11 +47,13 @@
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/esc/RawCommand.hpp>
 #include <uavcan/equipment/esc/Status.hpp>
+#include <systemlib/perf_counter.h>
 
 class UavcanEscController
 {
 public:
 	UavcanEscController(uavcan::INode& node);
+	~UavcanEscController();
 
 	int init();
 
@@ -96,4 +98,10 @@ private:
 	 */
 	bool 				_armed = false;
 	uavcan::equipment::esc::Status	_states[MAX_ESCS];
+
+	/*
+	 * Perf counters
+	 */
+	perf_counter_t _perfcnt_invalid_input = perf_alloc(PC_COUNT, "uavcan_esc_invalid_input");
+	perf_counter_t _perfcnt_scaling_error = perf_alloc(PC_COUNT, "uavcan_esc_scaling_error");
 };

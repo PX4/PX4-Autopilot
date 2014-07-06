@@ -48,6 +48,12 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 {
 }
 
+UavcanEscController::~UavcanEscController()
+{
+	perf_free(_perfcnt_invalid_input);
+	perf_free(_perfcnt_scaling_error);
+}
+
 int UavcanEscController::init()
 {
 	// ESC status subscription
@@ -67,8 +73,10 @@ int UavcanEscController::init()
 
 void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 {
-	assert(outputs != nullptr);
-	assert(num_outputs <= MAX_ESCS);
+	if ((outputs == nullptr) || (num_outputs > MAX_ESCS)) {
+		perf_count(_perfcnt_invalid_input);
+		return;
+	}
 
 	/*
 	 * Rate limiting - we don't want to congest the bus
@@ -89,13 +97,21 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 		for (unsigned i = 0; i < num_outputs; i++) {
 
 			float scaled = (outputs[i] + 1.0F) * 0.5F * uavcan::equipment::esc::RawCommand::CMD_MAX;
-			if (scaled < 1.0F)
+			if (scaled < 1.0F) {
 				scaled = 1.0F;  // Since we're armed, we don't want to stop it completely
+			}
 
-			assert(scaled >= uavcan::equipment::esc::RawCommand::CMD_MIN);
-			assert(scaled <= uavcan::equipment::esc::RawCommand::CMD_MAX);
+			if (scaled < uavcan::equipment::esc::RawCommand::CMD_MIN) {
+				scaled = uavcan::equipment::esc::RawCommand::CMD_MIN;
+				perf_count(_perfcnt_scaling_error);
+			} else if (scaled > uavcan::equipment::esc::RawCommand::CMD_MAX) {
+				scaled = uavcan::equipment::esc::RawCommand::CMD_MAX;
+				perf_count(_perfcnt_scaling_error);
+			} else {
+				; // Correct value
+			}
 
-			msg.cmd.push_back(scaled);
+			msg.cmd.push_back(static_cast<unsigned>(scaled));
 		}
 	}
 
