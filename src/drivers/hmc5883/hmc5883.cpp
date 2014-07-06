@@ -1325,11 +1325,11 @@ start(enum Rotation rotation)
 	exit(0);
 
 fail:
-	if (g_dev_int != nullptr) {
+	if (g_dev_int != nullptr && (bus == -1 || bus == PX4_I2C_BUS_ONBOARD)) {
 		delete g_dev_int;
 		g_dev_int = nullptr;
 	}
-	if (g_dev_ext != nullptr) {
+	if (g_dev_ext != nullptr && (bus == -1 || bus == PX4_I2C_BUS_EXPANSION)) {
 		delete g_dev_ext;
 		g_dev_ext = nullptr;
 	}
