@@ -292,7 +292,7 @@ then
 	# If OUTPUT_MODE == none then something is wrong with setup and we shouldn't try to enable output
 	if [ $OUTPUT_MODE != none ]
 	then
-		if [ $OUTPUT_MODE == can ]
+		if [ $OUTPUT_MODE == uavcan_esc ]
 		then
 			if uavcan start 1
 			then
@@ -302,7 +302,7 @@ then
 			fi
 		fi
 
-		if [ $OUTPUT_MODE == io -o $OUTPUT_MODE == can ]
+		if [ $OUTPUT_MODE == io -o $OUTPUT_MODE == uavcan_esc ]
 		then
 			echo "[init] Use PX4IO PWM as primary output"
 			if px4io start

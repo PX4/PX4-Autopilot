@@ -24,4 +24,4 @@ then
 	param set MC_YAWRATE_D 0.0
 fi
 
-set OUTPUT_MODE can
+set OUTPUT_MODE uavcan_esc

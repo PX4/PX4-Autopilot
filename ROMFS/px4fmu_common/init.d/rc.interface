@@ -25,7 +25,7 @@ then
 		set OUTPUT_DEV /dev/pwm_output
 	fi
 
-	if [ $OUTPUT_MODE == can ]
+	if [ $OUTPUT_MODE == uavcan_esc ]
 	then
 		set OUTPUT_DEV /dev/uavcan/esc
 	fi
