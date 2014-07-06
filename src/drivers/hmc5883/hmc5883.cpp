@@ -1255,10 +1255,11 @@ const int ERROR = -1;
 HMC5883	*g_dev_int;
 HMC5883	*g_dev_ext;
 
+void	hmc5883_usage();
 void	start(int bus, enum Rotation rotation);
 void	test(int bus);
 void	reset(int bus);
-void	info();
+void	info(int bus);
 int	calibrate(int bus);
 
 /**
