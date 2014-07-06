@@ -129,6 +129,8 @@ private:
 	enum spi_mode_e		_mode;
 	uint32_t		_frequency;
 	struct spi_dev_s	*_dev;
+
+	int	_transfer(uint8_t *send, uint8_t *recv, unsigned len);
 };
 
 } // namespace device
