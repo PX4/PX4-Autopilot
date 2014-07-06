@@ -982,6 +982,7 @@ namespace l3gd20
 
 L3GD20	*g_dev;
 
+void	l3gd20_usage();
 void	start(bool external_bus, enum Rotation rotation);
 void	test();
 void	reset();
