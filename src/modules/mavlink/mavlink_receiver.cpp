@@ -154,6 +154,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_quad_swarm_roll_pitch_yaw_thrust(msg);
 		break;
 
+	case MAVLINK_MSG_ID_LOCAL_NED_POSITION_SETPOINT_EXTERNAL:
+		handle_message_local_ned_position_setpoint_external(msg);
+		break;
+
 	case MAVLINK_MSG_ID_RADIO_STATUS:
 		handle_message_radio_status(msg);
 		break;
@@ -375,10 +379,11 @@ MavlinkReceiver::handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message
 		memset(&offboard_control_sp, 0, sizeof(offboard_control_sp));
 
 		/* Convert values * 1000 back */
-		offboard_control_sp.p1 = (float)swarm_offboard_control.roll[mavlink_system.sysid - 1] / 1000.0f;
-		offboard_control_sp.p2 = (float)swarm_offboard_control.pitch[mavlink_system.sysid - 1] / 1000.0f;
-		offboard_control_sp.p3 = (float)swarm_offboard_control.yaw[mavlink_system.sysid - 1] / 1000.0f;
-		offboard_control_sp.p4 = (float)swarm_offboard_control.thrust[mavlink_system.sysid - 1] / 1000.0f;
+		//XXX: convert to quaternion
+		//offboard_control_sp.p1 = (float)swarm_offboard_control.roll[mavlink_system.sysid - 1] / 1000.0f;
+		//offboard_control_sp.p2 = (float)swarm_offboard_control.pitch[mavlink_system.sysid - 1] / 1000.0f;
+		//offboard_control_sp.p3 = (float)swarm_offboard_control.yaw[mavlink_system.sysid - 1] / 1000.0f;
+		//offboard_control_sp.p4 = (float)swarm_offboard_control.thrust[mavlink_system.sysid - 1] / 1000.0f;
 
 		offboard_control_sp.mode = (enum OFFBOARD_CONTROL_MODE)swarm_offboard_control.mode;
 
@@ -394,34 +399,94 @@ MavlinkReceiver::handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message
 }
 
 void
+MavlinkReceiver::handle_message_local_ned_position_setpoint_external(mavlink_message_t *msg)
+{
+	mavlink_local_ned_position_setpoint_external_t local_ned_position_setpoint_external;
+	mavlink_msg_local_ned_position_setpoint_external_decode(msg, &local_ned_position_setpoint_external);
+
+	struct offboard_control_setpoint_s offboard_control_sp;
+	memset(&offboard_control_sp, 0, sizeof(offboard_control_sp));
+
+	if (mavlink_system.sysid == local_ned_position_setpoint_external.target_system &&
+			mavlink_system.compid == local_ned_position_setpoint_external.target_component) {
+
+		/* convert mavlink type (local, NED) to uORB offboard control struct */
+		switch (local_ned_position_setpoint_external.coordinate_frame) {
+			case MAV_FRAME_LOCAL_NED:
+				offboard_control_sp.mode = OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED;
+				break;
+			case MAV_FRAME_LOCAL_OFFSET_NED:
+				offboard_control_sp.mode = OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_OFFSET_NED;
+				break;
+			case MAV_FRAME_BODY_NED:
+				offboard_control_sp.mode = OFFBOARD_CONTROL_MODE_DIRECT_BODY_NED;
+				break;
+			case MAV_FRAME_BODY_OFFSET_NED:
+				offboard_control_sp.mode = OFFBOARD_CONTROL_MODE_DIRECT_BODY_OFFSET_NED;
+				break;
+			default:
+				/* invalid setpoint, avoid publishing */
+				return;
+		}
+		offboard_control_sp.position[0] = local_ned_position_setpoint_external.x;
+		offboard_control_sp.position[1] = local_ned_position_setpoint_external.y;
+		offboard_control_sp.position[2] = local_ned_position_setpoint_external.z;
+		offboard_control_sp.velocity[0] = local_ned_position_setpoint_external.vx;
+		offboard_control_sp.velocity[1] = local_ned_position_setpoint_external.vy;
+		offboard_control_sp.velocity[2] = local_ned_position_setpoint_external.vz;
+		offboard_control_sp.acceleration[0] = local_ned_position_setpoint_external.afx;
+		offboard_control_sp.acceleration[1] = local_ned_position_setpoint_external.afy;
+		offboard_control_sp.acceleration[2] = local_ned_position_setpoint_external.afz;
+		offboard_control_sp.isForceSetpoint = (bool)(local_ned_position_setpoint_external.type_mask & (1 << 9));
+		for (int i = 0; i < 9; i++) {
+			offboard_control_sp.ignore &=  ~(local_ned_position_setpoint_external.type_mask & (1 << i));
+			offboard_control_sp.ignore |=  (local_ned_position_setpoint_external.type_mask & (1 << i));
+		}
+
+
+		offboard_control_sp.timestamp = hrt_absolute_time();
+
+		if (_offboard_control_sp_pub < 0) {
+			_offboard_control_sp_pub = orb_advertise(ORB_ID(offboard_control_setpoint), &offboard_control_sp);
+
+		} else {
+			orb_publish(ORB_ID(offboard_control_setpoint), _offboard_control_sp_pub, &offboard_control_sp);
+		}
+	}
+}
+
+void
 MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 {
-	mavlink_radio_status_t rstatus;
-	mavlink_msg_radio_status_decode(msg, &rstatus);
+	/* telemetry status supported only on first TELEMETRY_STATUS_ORB_ID_NUM mavlink channels */
+	if (_mavlink->get_channel() < TELEMETRY_STATUS_ORB_ID_NUM) {
+		mavlink_radio_status_t rstatus;
+		mavlink_msg_radio_status_decode(msg, &rstatus);
 
-	struct telemetry_status_s tstatus;
-	memset(&tstatus, 0, sizeof(tstatus));
+		struct telemetry_status_s tstatus;
+		memset(&tstatus, 0, sizeof(tstatus));
 
-	tstatus.timestamp = hrt_absolute_time();
-	tstatus.heartbeat_time = _telemetry_heartbeat_time;
-	tstatus.type = TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO;
-	tstatus.rssi = rstatus.rssi;
-	tstatus.remote_rssi = rstatus.remrssi;
-	tstatus.txbuf = rstatus.txbuf;
-	tstatus.noise = rstatus.noise;
-	tstatus.remote_noise = rstatus.remnoise;
-	tstatus.rxerrors = rstatus.rxerrors;
-	tstatus.fixed = rstatus.fixed;
+		tstatus.timestamp = hrt_absolute_time();
+		tstatus.heartbeat_time = _telemetry_heartbeat_time;
+		tstatus.type = TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO;
+		tstatus.rssi = rstatus.rssi;
+		tstatus.remote_rssi = rstatus.remrssi;
+		tstatus.txbuf = rstatus.txbuf;
+		tstatus.noise = rstatus.noise;
+		tstatus.remote_noise = rstatus.remnoise;
+		tstatus.rxerrors = rstatus.rxerrors;
+		tstatus.fixed = rstatus.fixed;
 
-	if (_telemetry_status_pub < 0) {
-		_telemetry_status_pub = orb_advertise(ORB_ID(telemetry_status), &tstatus);
+		if (_telemetry_status_pub < 0) {
+			_telemetry_status_pub = orb_advertise(telemetry_status_orb_id[_mavlink->get_channel()], &tstatus);
 
-	} else {
-		orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
+		} else {
+			orb_publish(telemetry_status_orb_id[_mavlink->get_channel()], _telemetry_status_pub, &tstatus);
+		}
+
+		/* this means that heartbeats alone won't be published to the radio status no more */
+		_radio_status_available = true;
 	}
-
-	/* this means that heartbeats alone won't be published to the radio status no more */
-	_radio_status_available = true;
 }
 
 void
@@ -452,28 +517,31 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 {
-	mavlink_heartbeat_t hb;
-	mavlink_msg_heartbeat_decode(msg, &hb);
+	/* telemetry status supported only on first TELEMETRY_STATUS_ORB_ID_NUM mavlink channels */
+	if (_mavlink->get_channel() < TELEMETRY_STATUS_ORB_ID_NUM) {
+		mavlink_heartbeat_t hb;
+		mavlink_msg_heartbeat_decode(msg, &hb);
 
-	/* ignore own heartbeats, accept only heartbeats from GCS */
-	if (msg->sysid != mavlink_system.sysid && hb.type == MAV_TYPE_GCS) {
-		_telemetry_heartbeat_time = hrt_absolute_time();
+		/* ignore own heartbeats, accept only heartbeats from GCS */
+		if (msg->sysid != mavlink_system.sysid && hb.type == MAV_TYPE_GCS) {
+			_telemetry_heartbeat_time = hrt_absolute_time();
 
-		/* if no radio status messages arrive, lets at least publish that heartbeats were received */
-		if (!_radio_status_available) {
+			/* if no radio status messages arrive, lets at least publish that heartbeats were received */
+			if (!_radio_status_available) {
 
-			struct telemetry_status_s tstatus;
-			memset(&tstatus, 0, sizeof(tstatus));
+				struct telemetry_status_s tstatus;
+				memset(&tstatus, 0, sizeof(tstatus));
 
-			tstatus.timestamp = _telemetry_heartbeat_time;
-			tstatus.heartbeat_time = _telemetry_heartbeat_time;
-			tstatus.type = TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
+				tstatus.timestamp = _telemetry_heartbeat_time;
+				tstatus.heartbeat_time = _telemetry_heartbeat_time;
+				tstatus.type = TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
 
-			if (_telemetry_status_pub < 0) {
-				_telemetry_status_pub = orb_advertise(ORB_ID(telemetry_status), &tstatus);
+				if (_telemetry_status_pub < 0) {
+					_telemetry_status_pub = orb_advertise(telemetry_status_orb_id[_mavlink->get_channel()], &tstatus);
 
-			} else {
-				orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
+				} else {
+					orb_publish(telemetry_status_orb_id[_mavlink->get_channel()], _telemetry_status_pub, &tstatus);
+				}
 			}
 		}
 	}
@@ -718,7 +786,6 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 
 	hil_gps.timestamp_variance = timestamp;
 	hil_gps.s_variance_m_s = 5.0f;
-	hil_gps.p_variance_m = hil_gps.eph * hil_gps.eph;
 
 	hil_gps.timestamp_velocity = timestamp;
 	hil_gps.vel_m_s = (float)gps.vel * 1e-2f; // from cm/s to m/s

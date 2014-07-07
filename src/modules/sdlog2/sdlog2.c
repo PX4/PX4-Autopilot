@@ -979,7 +979,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_GVSP_s log_GVSP;
 			struct log_BATT_s log_BATT;
 			struct log_DIST_s log_DIST;
-			struct log_TELE_s log_TELE;
+			struct log_TEL_s log_TEL;
 			struct log_EST0_s log_EST0;
 			struct log_EST1_s log_EST1;
 			struct log_PWR_s log_PWR;
@@ -1019,7 +1019,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int esc_sub;
 		int global_vel_sp_sub;
 		int battery_sub;
-		int telemetry_sub;
+		int telemetry_subs[TELEMETRY_STATUS_ORB_ID_NUM];
 		int range_finder_sub;
 		int estimator_status_sub;
 		int tecs_status_sub;
@@ -1049,7 +1049,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.esc_sub = orb_subscribe(ORB_ID(esc_status));
 	subs.global_vel_sp_sub = orb_subscribe(ORB_ID(vehicle_global_velocity_setpoint));
 	subs.battery_sub = orb_subscribe(ORB_ID(battery_status));
-	subs.telemetry_sub = orb_subscribe(ORB_ID(telemetry_status));
+	for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
+		subs.telemetry_subs[i] = orb_subscribe(telemetry_status_orb_id[i]);
+	}
 	subs.range_finder_sub = orb_subscribe(ORB_ID(sensor_range_finder));
 	subs.estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
 	subs.tecs_status_sub = orb_subscribe(ORB_ID(tecs_status));
@@ -1479,16 +1481,19 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
 		/* --- TELEMETRY --- */
-		if (copy_if_updated(ORB_ID(telemetry_status), subs.telemetry_sub, &buf.telemetry)) {
-			log_msg.msg_type = LOG_TELE_MSG;
-			log_msg.body.log_TELE.rssi = buf.telemetry.rssi;
-			log_msg.body.log_TELE.remote_rssi = buf.telemetry.remote_rssi;
-			log_msg.body.log_TELE.noise = buf.telemetry.noise;
-			log_msg.body.log_TELE.remote_noise = buf.telemetry.remote_noise;
-			log_msg.body.log_TELE.rxerrors = buf.telemetry.rxerrors;
-			log_msg.body.log_TELE.fixed = buf.telemetry.fixed;
-			log_msg.body.log_TELE.txbuf = buf.telemetry.txbuf;
-			LOGBUFFER_WRITE_AND_COUNT(TELE);
+		for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
+			if (copy_if_updated(telemetry_status_orb_id[i], subs.telemetry_subs[i], &buf.telemetry)) {
+				log_msg.msg_type = LOG_TEL0_MSG + i;
+				log_msg.body.log_TEL.rssi = buf.telemetry.rssi;
+				log_msg.body.log_TEL.remote_rssi = buf.telemetry.remote_rssi;
+				log_msg.body.log_TEL.noise = buf.telemetry.noise;
+				log_msg.body.log_TEL.remote_noise = buf.telemetry.remote_noise;
+				log_msg.body.log_TEL.rxerrors = buf.telemetry.rxerrors;
+				log_msg.body.log_TEL.fixed = buf.telemetry.fixed;
+				log_msg.body.log_TEL.txbuf = buf.telemetry.txbuf;
+				log_msg.body.log_TEL.heartbeat_time = buf.telemetry.heartbeat_time;
+				LOGBUFFER_WRITE_AND_COUNT(TEL);
+			}
 		}
 
 		/* --- BOTTOM DISTANCE --- */

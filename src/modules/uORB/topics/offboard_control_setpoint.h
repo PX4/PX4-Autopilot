@@ -53,11 +53,22 @@ enum OFFBOARD_CONTROL_MODE {
 	OFFBOARD_CONTROL_MODE_DIRECT = 0,
 	OFFBOARD_CONTROL_MODE_DIRECT_RATES = 1,
 	OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE = 2,
-	OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY = 3,
-	OFFBOARD_CONTROL_MODE_DIRECT_POSITION = 4,
-	OFFBOARD_CONTROL_MODE_ATT_YAW_RATE = 5,
-	OFFBOARD_CONTROL_MODE_ATT_YAW_POS = 6,
-	OFFBOARD_CONTROL_MODE_MULTIROTOR_SIMPLE = 7, /**< roll / pitch rotated aligned to the takeoff orientation, throttle stabilized, yaw pos */
+	OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED = 3,
+	OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_OFFSET_NED = 4,
+	OFFBOARD_CONTROL_MODE_DIRECT_BODY_NED = 5,
+	OFFBOARD_CONTROL_MODE_DIRECT_BODY_OFFSET_NED = 6,
+	OFFBOARD_CONTROL_MODE_DIRECT_GLOBAL = 7,
+	OFFBOARD_CONTROL_MODE_ATT_YAW_RATE = 8,
+	OFFBOARD_CONTROL_MODE_ATT_YAW_POS = 9,
+	OFFBOARD_CONTROL_MODE_MULTIROTOR_SIMPLE = 10, /**< roll / pitch rotated aligned to the takeoff orientation, throttle stabilized, yaw pos */
+};
+
+enum OFFBOARD_CONTROL_FRAME {
+	OFFBOARD_CONTROL_FRAME_LOCAL_NED = 0,
+	OFFBOARD_CONTROL_FRAME_LOCAL_OFFSET_NED = 1,
+	OFFBOARD_CONTROL_FRAME_BODY_NED = 2,
+	OFFBOARD_CONTROL_FRAME_BODY_OFFSET_NED = 3,
+	OFFBOARD_CONTROL_FRAME_GLOBAL = 4
 };
 
 /**
@@ -70,10 +81,15 @@ struct offboard_control_setpoint_s {
 
 	enum OFFBOARD_CONTROL_MODE mode;		 /**< The current control inputs mode */
 
-	float p1;	/**< ailerons roll / roll rate input */
-	float p2;	/**< elevator / pitch / pitch rate */
-	float p3;	/**< rudder / yaw rate / yaw */
-	float p4;	/**< throttle / collective thrust / altitude */
+	double position[3];	/**< lat, lon, alt / x, y, z */
+	float velocity[3];	/**< x vel, y vel, z vel */
+	float acceleration[3];	/**< x acc, y acc, z acc */
+	float attitude[4];	/**< attitude of vehicle (quaternion) */
+	float attitude_rate[3];	/**< body angular rates (x, y, z) */
+
+	//XXX: use a bitmask with wrapper functions instead
+	uint16_t ignore; /**< if field i is set to true, pi should be ignored */
+	bool isForceSetpoint; /**< the acceleration vector should be interpreted as force */
 
 	float override_mode_switch;
 
@@ -86,6 +102,22 @@ struct offboard_control_setpoint_s {
 /**
  * @}
  */
+
+inline bool offboard_control_sp_ignore_position(const struct offboard_control_setpoint_s &offboard_control_sp, int index) {
+	return (bool)(offboard_control_sp.ignore & (1 << index));
+}
+
+inline bool offboard_control_sp_ignore_velocity(const struct offboard_control_setpoint_s &offboard_control_sp, int index) {
+	return (bool)(offboard_control_sp.ignore & (1 << (3 + index)));
+}
+
+inline bool offboard_control_sp_ignore_acceleration(const struct offboard_control_setpoint_s &offboard_control_sp, int index) {
+	return (bool)(offboard_control_sp.ignore & (1 << (6 + index)));
+}
+
+inline bool offboard_control_sp_ignore_bodyrates(const struct offboard_control_setpoint_s &offboard_control_sp, int index) {
+	return (bool)(offboard_control_sp.ignore & (1 << (9 + index)));
+}
 
 /* register this as object request broker structure */
 ORB_DECLARE(offboard_control_setpoint);
