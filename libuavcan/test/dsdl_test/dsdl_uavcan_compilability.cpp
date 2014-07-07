@@ -18,7 +18,7 @@
 #include <uavcan/protocol/NodeStatus.hpp>
 #include <uavcan/protocol/GetNodeInfo.hpp>
 #include <uavcan/protocol/debug/LogMessage.hpp>
-#include <uavcan/protocol/debug/StartHilSimulation.hpp>
+#include <uavcan/protocol/debug/StartHILSimulation.hpp>
 #include <uavcan/protocol/debug/KeyValue.hpp>
 
 #include <root_ns_a/Deep.hpp>
