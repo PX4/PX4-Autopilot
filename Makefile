@@ -216,6 +216,10 @@ $(NUTTX_SRC):
 checksubmodules:
 	$(Q) (./Tools/check_submodules.sh)
 
+.PHONY: updatesubmodules
+updatesubmodules:
+	$(Q) (git submodule update)
+
 #
 # Testing targets
 #
