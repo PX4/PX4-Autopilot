@@ -139,7 +139,7 @@ void UavcanGnssReceiver::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uav
 	_report.vel_ned_valid = true;
 
 	_report.timestamp_time = _report.timestamp_position;
-	_report.time_gps_usec = msg.timestamp.husec * msg.timestamp.USEC_PER_LSB;	// Convert to microseconds
+	_report.time_gps_usec = uavcan::UtcTime(msg.gnss_timestamp).toUSec();	// Convert to microseconds
 
 	_report.satellites_used = msg.sats_used;
 
