@@ -346,7 +346,7 @@ MavlinkFTP::_workWrite(Request *req)
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workRemove(Request *req)
 {
-	auto hdr = req->header();
+	//auto hdr = req->header();
 
 	// for now, send error reply
 	return kErrPerm;

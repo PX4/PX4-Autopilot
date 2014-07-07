@@ -2238,7 +2238,7 @@ Mavlink::start(int argc, char *argv[])
 	task_spawn_cmd(buf,
 		       SCHED_DEFAULT,
 		       SCHED_PRIORITY_DEFAULT,
-		       1950,
+		       2700,
 		       (main_t)&Mavlink::start_helper,
 		       (const char **)argv);
 

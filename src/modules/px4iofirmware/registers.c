@@ -711,7 +711,7 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 {
 #define SELECT_PAGE(_page_name)							\
 	do {									\
-		*values = &_page_name[0];					\
+		*values = (uint16_t *)&_page_name[0];				\
 		*num_values = sizeof(_page_name) / sizeof(_page_name[0]);	\
 	} while(0)
 
