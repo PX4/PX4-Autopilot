@@ -54,6 +54,9 @@
 
 #include "systemlib.h"
 
+// Didn't seem right to include up_internal.h, so direct extern instead.
+extern void up_systemreset(void) noreturn_function;
+
 void
 systemreset(bool to_bootloader)
 {

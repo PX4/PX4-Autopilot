@@ -31,34 +31,42 @@
  *
  ****************************************************************************/
 /**
- * @file loiter.h
+ * @file offboard.h
  *
- * Helper class to loiter
+ * Helper class for offboard commands
  *
  * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef NAVIGATOR_LOITER_H
-#define NAVIGATOR_LOITER_H
+#ifndef NAVIGATOR_OFFBOARD_H
+#define NAVIGATOR_OFFBOARD_H
 
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
-#include "navigator_mode.h"
-#include "mission_block.h"
+#include <uORB/uORB.h>
+#include <uORB/topics/offboard_control_setpoint.h>
 
-class Loiter : public MissionBlock
+#include "navigator_mode.h"
+
+class Navigator;
+
+class Offboard : public NavigatorMode
 {
 public:
-	Loiter(Navigator *navigator, const char *name);
+	Offboard(Navigator *navigator, const char *name);
 
-	~Loiter();
+	~Offboard();
 
 	virtual void on_inactive();
 
 	virtual void on_activation();
 
 	virtual void on_active();
+private:
+	void update_offboard_control_setpoint();
+
+	struct offboard_control_setpoint_s _offboard_control_sp;
 };
 
 #endif

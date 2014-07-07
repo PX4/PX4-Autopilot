@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,12 +31,11 @@
  *
  ****************************************************************************/
 /**
- * @file loiter.cpp
+ * @file offboard.cpp
  *
- * Helper class to loiter
+ * Helper class for offboard commands
  *
  * @author Julian Oes <julian@oes.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <string.h>
@@ -51,43 +50,80 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 
-#include "loiter.h"
 #include "navigator.h"
+#include "offboard.h"
 
-Loiter::Loiter(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name)
+Offboard::Offboard(Navigator *navigator, const char *name) :
+	NavigatorMode(navigator, name),
+	_offboard_control_sp({0})
 {
 	/* load initial params */
 	updateParams();
+	/* initial reset */
+	on_inactive();
 }
 
-Loiter::~Loiter()
+Offboard::~Offboard()
 {
 }
 
 void
-Loiter::on_inactive()
+Offboard::on_inactive()
 {
 }
 
 void
-Loiter::on_activation()
+Offboard::on_activation()
 {
-	/* set current mission item to loiter */
-	set_loiter_item(&_mission_item);
+}
 
-	/* convert mission item to current setpoint */
+void
+Offboard::on_active()
+{
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	pos_sp_triplet->previous.valid = false;
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-	pos_sp_triplet->next.valid = false;
 
-	_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == SETPOINT_TYPE_LOITER);
+	bool updated;
+	orb_check(_navigator->get_offboard_control_sp_sub(), &updated);
+	if (updated) {
+		update_offboard_control_setpoint();
+	}
 
-	_navigator->set_position_setpoint_triplet_updated();
+	/* copy offboard setpoints to the corresponding topics */
+	if (_navigator->get_control_mode()->flag_control_position_enabled
+	    && _offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_POSITION) {
+		/* position control */
+		pos_sp_triplet->current.x = _offboard_control_sp.p1;
+		pos_sp_triplet->current.y = _offboard_control_sp.p2;
+		pos_sp_triplet->current.yaw = _offboard_control_sp.p3;
+		pos_sp_triplet->current.z = -_offboard_control_sp.p4;
+
+		pos_sp_triplet->current.type = SETPOINT_TYPE_OFFBOARD;
+		pos_sp_triplet->current.valid = true;
+		pos_sp_triplet->current.position_valid = true;
+
+		_navigator->set_position_setpoint_triplet_updated();
+
+	} else if (_navigator->get_control_mode()->flag_control_velocity_enabled
+	           && _offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY) {
+		/* velocity control */
+		pos_sp_triplet->current.vx = _offboard_control_sp.p2;
+		pos_sp_triplet->current.vy = _offboard_control_sp.p1;
+		pos_sp_triplet->current.yawspeed = _offboard_control_sp.p3;
+		pos_sp_triplet->current.vz = _offboard_control_sp.p4;
+
+		pos_sp_triplet->current.type = SETPOINT_TYPE_OFFBOARD;
+		pos_sp_triplet->current.valid = true;
+		pos_sp_triplet->current.velocity_valid = true;
+
+		_navigator->set_position_setpoint_triplet_updated();
+	}
+
 }
 
+
 void
-Loiter::on_active()
+Offboard::update_offboard_control_setpoint()
 {
+	orb_copy(ORB_ID(offboard_control_setpoint), _navigator->get_offboard_control_sp_sub(), &_offboard_control_sp);
+
 }
