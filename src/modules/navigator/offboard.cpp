@@ -67,16 +67,26 @@ Offboard::~Offboard()
 {
 }
 
-bool
-Offboard::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
+void
+Offboard::on_inactive()
 {
+}
+
+void
+Offboard::on_activation()
+{
+}
+
+void
+Offboard::on_active()
+{
+	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
 	bool updated;
 	orb_check(_navigator->get_offboard_control_sp_sub(), &updated);
 	if (updated) {
 		update_offboard_control_setpoint();
 	}
-
-	bool changed = false;
 
 	/* copy offboard setpoints to the corresponding topics */
 	if (_navigator->get_control_mode()->flag_control_position_enabled
@@ -91,7 +101,7 @@ Offboard::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
 		pos_sp_triplet->current.valid = true;
 		pos_sp_triplet->current.position_valid = true;
 
-		changed = true;
+		_navigator->set_position_setpoint_triplet_updated();
 
 	} else if (_navigator->get_control_mode()->flag_control_velocity_enabled
 	           && _offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY) {
@@ -105,16 +115,11 @@ Offboard::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
 		pos_sp_triplet->current.valid = true;
 		pos_sp_triplet->current.velocity_valid = true;
 
-		changed = true;
+		_navigator->set_position_setpoint_triplet_updated();
 	}
 
-	return changed;
 }
 
-void
-Offboard::on_inactive()
-{
-}
 
 void
 Offboard::update_offboard_control_setpoint()
