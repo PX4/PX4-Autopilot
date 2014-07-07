@@ -31,4 +31,19 @@ else
 	git submodule update;
 fi
 
+if [ -d src/modules/ekf_att_pos_estimator/InertialNav ];
+	then
+	STATUSRETVAL=$(git status --porcelain | grep -i "src/modules/ekf_att_pos_estimator/InertialNav")
+	if [ "$STATUSRETVAL" == "" ]; then
+		echo "Checked InertialNav submodule, correct version found"
+	else
+		echo "InertialNav sub repo not at correct version. Try 'make updatesubmodules'"
+		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
+		exit 1
+	fi
+else
+	git submodule init;
+	git submodule update;
+fi
+
 exit 0
