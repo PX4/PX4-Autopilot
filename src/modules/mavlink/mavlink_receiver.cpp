@@ -379,10 +379,11 @@ MavlinkReceiver::handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message
 		memset(&offboard_control_sp, 0, sizeof(offboard_control_sp));
 
 		/* Convert values * 1000 back */
-		offboard_control_sp.p1 = (float)swarm_offboard_control.roll[mavlink_system.sysid - 1] / 1000.0f;
-		offboard_control_sp.p2 = (float)swarm_offboard_control.pitch[mavlink_system.sysid - 1] / 1000.0f;
-		offboard_control_sp.p3 = (float)swarm_offboard_control.yaw[mavlink_system.sysid - 1] / 1000.0f;
-		offboard_control_sp.p4 = (float)swarm_offboard_control.thrust[mavlink_system.sysid - 1] / 1000.0f;
+		//XXX: convert to quaternion
+		//offboard_control_sp.p1 = (float)swarm_offboard_control.roll[mavlink_system.sysid - 1] / 1000.0f;
+		//offboard_control_sp.p2 = (float)swarm_offboard_control.pitch[mavlink_system.sysid - 1] / 1000.0f;
+		//offboard_control_sp.p3 = (float)swarm_offboard_control.yaw[mavlink_system.sysid - 1] / 1000.0f;
+		//offboard_control_sp.p4 = (float)swarm_offboard_control.thrust[mavlink_system.sysid - 1] / 1000.0f;
 
 		offboard_control_sp.mode = (enum OFFBOARD_CONTROL_MODE)swarm_offboard_control.mode;
 
@@ -427,18 +428,19 @@ MavlinkReceiver::handle_message_local_ned_position_setpoint_external(mavlink_mes
 				/* invalid setpoint, avoid publishing */
 				return;
 		}
-		offboard_control_sp.p1 = local_ned_position_setpoint_external.x;
-		offboard_control_sp.p2 = local_ned_position_setpoint_external.y;
-		offboard_control_sp.p3 = local_ned_position_setpoint_external.z;
-		offboard_control_sp.p4 = local_ned_position_setpoint_external.vx;
-		offboard_control_sp.p5 = local_ned_position_setpoint_external.vy;
-		offboard_control_sp.p6 = local_ned_position_setpoint_external.vz;
-		offboard_control_sp.p7 = local_ned_position_setpoint_external.afx;
-		offboard_control_sp.p8 = local_ned_position_setpoint_external.afy;
-		offboard_control_sp.p9 = local_ned_position_setpoint_external.afz;
+		offboard_control_sp.position[0] = local_ned_position_setpoint_external.x;
+		offboard_control_sp.position[1] = local_ned_position_setpoint_external.y;
+		offboard_control_sp.position[2] = local_ned_position_setpoint_external.z;
+		offboard_control_sp.velocity[0] = local_ned_position_setpoint_external.vx;
+		offboard_control_sp.velocity[1] = local_ned_position_setpoint_external.vy;
+		offboard_control_sp.velocity[2] = local_ned_position_setpoint_external.vz;
+		offboard_control_sp.acceleration[0] = local_ned_position_setpoint_external.afx;
+		offboard_control_sp.acceleration[1] = local_ned_position_setpoint_external.afy;
+		offboard_control_sp.acceleration[2] = local_ned_position_setpoint_external.afz;
 		offboard_control_sp.isForceSetpoint = (bool)(local_ned_position_setpoint_external.type_mask & (1 << 9));
 		for (int i = 0; i < 9; i++) {
-			offboard_control_sp.ignore[i] =  (bool)(local_ned_position_setpoint_external.type_mask & (1 << i));
+			offboard_control_sp.ignore &=  ~(local_ned_position_setpoint_external.type_mask & (1 << i));
+			offboard_control_sp.ignore |=  (local_ned_position_setpoint_external.type_mask & (1 << i));
 		}
 
 

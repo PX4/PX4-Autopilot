@@ -81,19 +81,15 @@ struct offboard_control_setpoint_s {
 
 	enum OFFBOARD_CONTROL_MODE mode;		 /**< The current control inputs mode */
 
-	double p1;	/**< ailerons / roll / x pos / lat */
-	double p2;	/**< elevator / pitch / y pos / lon */
-	float p3;	/**< rudder / yaw / z pos / alt */
-	float p4;	/**< throttle / x vel */
-	float p5;       /**< roll rate / y vel */
-	float p6;       /**< pitch rate / z vel */
-	float p7;	/**< yaw rate / x acc */
-	float p8;	/**< y acc */
-	float p9;	/**< z acc */
+	double position[3];	/**< lat, lon, alt / x, y, z */
+	float velocity[3];	/**< x vel, y vel, z vel */
+	float acceleration[3];	/**< x acc, y acc, z acc */
+	float attitude[4];	/**< attitude of vehicle (quaternion) */
+	float attitude_rate[3];	/**< body angular rates (x, y, z) */
 
 	//XXX: use a bitmask with wrapper functions instead
-	bool ignore[9]; /**< if field i is set to true, pi should be ignored */
-	bool isForceSetpoint; /**< if set to true: p7 to p9 should be interpreted as force instead of acceleration */
+	uint16_t ignore; /**< if field i is set to true, pi should be ignored */
+	bool isForceSetpoint; /**< the acceleration vector should be interpreted as force */
 
 	float override_mode_switch;
 
@@ -106,6 +102,22 @@ struct offboard_control_setpoint_s {
 /**
  * @}
  */
+
+inline bool offboard_control_sp_ignore_position(const struct offboard_control_setpoint_s &offboard_control_sp, int index) {
+	return (bool)(offboard_control_sp.ignore & (1 << index));
+}
+
+inline bool offboard_control_sp_ignore_velocity(const struct offboard_control_setpoint_s &offboard_control_sp, int index) {
+	return (bool)(offboard_control_sp.ignore & (1 << (3 + index)));
+}
+
+inline bool offboard_control_sp_ignore_acceleration(const struct offboard_control_setpoint_s &offboard_control_sp, int index) {
+	return (bool)(offboard_control_sp.ignore & (1 << (6 + index)));
+}
+
+inline bool offboard_control_sp_ignore_bodyrates(const struct offboard_control_setpoint_s &offboard_control_sp, int index) {
+	return (bool)(offboard_control_sp.ignore & (1 << (9 + index)));
+}
 
 /* register this as object request broker structure */
 ORB_DECLARE(offboard_control_setpoint);
