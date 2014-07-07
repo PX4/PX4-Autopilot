@@ -807,12 +807,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
 
-	// XXX re-visit
-	float baro_altitude = _global_pos.alt;
-
 	/* filter speed and altitude for controller */
 	math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
-	math::Vector<3> accel_earth = _R_nb * accel_body;
 
 	float altitude_error = _pos_sp_triplet.current.alt - _global_pos.alt;
 
@@ -945,8 +941,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			float airspeed_land = 1.3f * _parameters.airspeed_min;
 			float airspeed_approach = 1.3f * _parameters.airspeed_min;
 
-			/* Calculate distance (to landing waypoint) and altitude of last ordinary waypoint L */
-			float L_wp_distance = get_distance_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1));
+			/* Calculate altitude of last ordinary waypoint L */
 			float L_altitude_rel = _pos_sp_triplet.previous.valid ? _pos_sp_triplet.previous.alt - _pos_sp_triplet.current.alt : 0.0f;
 
 			float bearing_airplane_currwp = get_bearing_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
