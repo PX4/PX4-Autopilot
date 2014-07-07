@@ -104,6 +104,7 @@ public:
 	 * Setters
 	 */
 	void		set_can_loiter_at_sp(bool can_loiter) { _can_loiter_at_sp = can_loiter; }
+	void		set_position_setpoint_triplet_updated() { _pos_sp_triplet_updated = true; }
 
 	/**
 	 * Getters
@@ -168,7 +169,7 @@ private:
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
 	bool		_can_loiter_at_sp;			/**< flags if current position SP can be used to loiter */
-	bool		_update_triplet;		/**< flags if position SP triplet needs to be published */
+	bool		_pos_sp_triplet_updated;		/**< flags if position SP triplet needs to be published */
 
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
