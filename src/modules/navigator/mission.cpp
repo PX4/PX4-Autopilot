@@ -61,6 +61,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_param_onboard_enabled(this, "ONBOARD_EN"),
 	_param_takeoff_alt(this, "TAKEOFF_ALT"),
+	_param_dist_1wp(this, "DIST_1WP"),
 	_onboard_mission({0}),
 	_offboard_mission({0}),
 	_current_onboard_mission_index(-1),
@@ -69,8 +70,10 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_mission_result({0}),
 	_mission_type(MISSION_TYPE_NONE),
 	_inited(false),
+	_dist_1wp_ok(false),
 	_need_takeoff(true),
 	_takeoff(false)
+
 {
 	/* load initial params */
 	updateParams();
@@ -246,6 +249,70 @@ Mission::advance_mission()
 	}
 }
 
+bool
+Mission::check_dist_1wp()
+{
+	if (_dist_1wp_ok) {
+		/* always return true after at least one successful check */
+		return true;
+	}
+
+	/* check if first waypoint is not too far from home */
+	bool mission_valid = false;
+	if (_param_dist_1wp.get() > 0.0f) {
+		if (_navigator->get_vstatus()->condition_home_position_valid) {
+			struct mission_item_s mission_item;
+
+			/* find first waypoint (with lat/lon) item in datamanager */
+			for (int i = 0; i < _offboard_mission.count; i++) {
+				if (dm_read(DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id), i,
+						&mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s)) {
+
+					/* check only items with valid lat/lon */
+					if (	mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
+							mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+							mission_item.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
+							mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
+							mission_item.nav_cmd == NAV_CMD_TAKEOFF ||
+							mission_item.nav_cmd == NAV_CMD_PATHPLANNING) {
+
+						/* check distance from home to item */
+						float dist_to_1wp = get_distance_to_next_waypoint(
+								mission_item.lat, mission_item.lon,
+								_navigator->get_home_position()->lat, _navigator->get_home_position()->lon);
+
+						if (dist_to_1wp < _param_dist_1wp.get()) {
+							_dist_1wp_ok = true;
+							return true;
+
+						} else {
+							/* item is too far from home */
+							mavlink_log_info(_navigator->get_mavlink_fd(), "first wp is too far from home: %.1fm > %.1fm", dist_to_1wp, _param_dist_1wp.get());
+							return false;
+						}
+					}
+
+				} else {
+					/* error reading, mission is invalid */
+					mavlink_log_info(_navigator->get_mavlink_fd(), "error reading offboard mission");
+					return false;
+				}
+			}
+
+			/* no waypoints found in mission, then we will not fly far away */
+			_dist_1wp_ok = true;
+			return true;
+
+		} else {
+			mavlink_log_info(_navigator->get_mavlink_fd(), "no home position");
+			return false;
+		}
+
+	} else {
+		return true;
+	}
+}
+
 void
 Mission::set_mission_items()
 {
@@ -266,7 +333,7 @@ Mission::set_mission_items()
 		_mission_type = MISSION_TYPE_ONBOARD;
 
 	/* try setting offboard mission item */
-	} else if (read_mission_item(false, true, &_mission_item)) {
+	} else if (check_dist_1wp() && read_mission_item(false, true, &_mission_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_OFFBOARD) {
 			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: offboard mission running");

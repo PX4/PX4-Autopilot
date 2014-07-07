@@ -58,7 +58,6 @@
  */
 PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 10.0f);
 
-
 /**
  * Enable onboard mission
  *
@@ -67,3 +66,15 @@ PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 10.0f);
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 0);
+
+/**
+ * Maximal horizontal distance from home to first waypoint
+ *
+ * Failsafe check to prevent running mission stored from previous flight on new place.
+ * Value < 0 means that check disabled.
+ *
+ * @min -1
+ * @max 200
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 50);
