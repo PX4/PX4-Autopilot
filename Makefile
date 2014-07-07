@@ -210,11 +210,11 @@ menuconfig:
 endif
 
 $(NUTTX_SRC):
-	$(Q) if [ -d $(NUTTX_SRC) ]; then ./Tools/check_submodules.sh; else echo ""; echo ""; echo "NuttX submodule missing, doing auto checkout"; git submodule init; git submodule update; fi
+	$(Q) (./Tools/check_submodules.sh)
 
 .PHONY: checksubmodules
 checksubmodules:
-	$(Q) if [ -d $(MAVLINK_SRC) ]; then ./Tools/check_submodules.sh; else echo ""; echo ""; echo "MAVLink submodule missing, doing auto checkout"; git submodule init; git submodule update; fi
+	$(Q) (./Tools/check_submodules.sh)
 
 #
 # Testing targets
