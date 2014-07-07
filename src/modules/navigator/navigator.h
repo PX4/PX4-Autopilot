@@ -113,7 +113,7 @@ public:
 	struct vehicle_control_mode_s*	    get_control_mode() { return &_control_mode; }
 	struct vehicle_global_position_s*   get_global_position() { return &_global_pos; }
 	struct home_position_s*		    get_home_position() { return &_home_pos; }
-
+	struct position_setpoint_triplet_s*		    get_position_setpoint_triplet() { return &_pos_sp_triplet; }
 	int		get_onboard_mission_sub() { return _onboard_mission_sub; }
 	int		get_offboard_mission_sub() { return _offboard_mission_sub; }
 	int		get_offboard_control_sp_sub() { return _offboard_control_sp_sub; }
