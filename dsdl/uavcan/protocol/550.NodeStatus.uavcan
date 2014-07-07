@@ -1,6 +1,6 @@
 #
 # Abstract node status information.
-# Must be published periodically.
+# Any UAVCAN node is required to publish this message periodically.
 #
 
 uint16 PUBLICATION_PERIOD_MS = 1000
