@@ -72,6 +72,18 @@ struct telemetry_status_s {
  * @}
  */
 
-ORB_DECLARE(telemetry_status);
+ORB_DECLARE(telemetry_status_0);
+ORB_DECLARE(telemetry_status_1);
+ORB_DECLARE(telemetry_status_2);
+ORB_DECLARE(telemetry_status_3);
+
+#define TELEMETRY_STATUS_ORB_ID_NUM	4
+
+static const struct orb_metadata *telemetry_status_orb_id[TELEMETRY_STATUS_ORB_ID_NUM] = {
+	ORB_ID(telemetry_status_0),
+	ORB_ID(telemetry_status_1),
+	ORB_ID(telemetry_status_2),
+	ORB_ID(telemetry_status_3),
+};
 
 #endif /* TOPIC_TELEMETRY_STATUS_H */

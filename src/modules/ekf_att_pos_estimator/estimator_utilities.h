@@ -41,6 +41,7 @@ Vector3f operator*(float sclIn1, Vector3f vecIn1);
 Vector3f operator+( Vector3f vecIn1, Vector3f vecIn2);
 Vector3f operator-( Vector3f vecIn1, Vector3f vecIn2);
 Vector3f operator*( Mat3f matIn, Vector3f vecIn);
+Mat3f operator*( Mat3f matIn1, Mat3f matIn2);
 Vector3f operator%( Vector3f vecIn1, Vector3f vecIn2);
 Vector3f operator*(Vector3f vecIn1, float sclIn1);
 

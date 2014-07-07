@@ -104,6 +104,13 @@
 #define UBX_RX_NAV_PVT_FLAGS_PSMSTATE		0x1C	/**< psmState (Power Save Mode state (see Power Management)) */
 #define UBX_RX_NAV_PVT_FLAGS_HEADVEHVALID	0x20	/**< headVehValid (Heading of vehicle is valid) */
 
+/* RX NAV-TIMEUTC message content details */
+/*   Bitfield "valid" masks */
+#define UBX_RX_NAV_TIMEUTC_VALID_VALIDTOW	0x01	/**< validTOW (1 = Valid Time of Week) */
+#define UBX_RX_NAV_TIMEUTC_VALID_VALIDKWN	0x02	/**< validWKN (1 = Valid Week Number) */
+#define UBX_RX_NAV_TIMEUTC_VALID_VALIDUTC	0x04	/**< validUTC (1 = Valid UTC Time) */
+#define UBX_RX_NAV_TIMEUTC_VALID_UTCSTANDARD	0xF0	/**< utcStandard (0..15 = UTC standard identifier) */
+
 /* TX CFG-PRT message contents */
 #define UBX_TX_CFG_PRT_PORTID		0x01		/**< UART1 */
 #define UBX_TX_CFG_PRT_MODE		0x000008D0	/**< 0b0000100011010000: 8N1 */
@@ -176,7 +183,7 @@ typedef struct {
 	uint32_t	reserved2;
 } ubx_payload_rx_nav_sol_t;
 
-/* Rx NAV-PVT */
+/* Rx NAV-PVT (ubx8) */
 typedef struct {
 	uint32_t	iTOW;		/**< GPS Time of Week [ms] */
 	uint16_t	year; 		/**< Year (UTC)*/
@@ -185,7 +192,7 @@ typedef struct {
 	uint8_t		hour; 		/**< Hour of day, range 0..23 (UTC) */
 	uint8_t		min; 		/**< Minute of hour, range 0..59 (UTC) */
 	uint8_t		sec;		/**< Seconds of minute, range 0..60 (UTC) */
-	uint8_t		valid; 		/**< Validity flags  (see UBX_RX_NAV_PVT_VALID_...) */
+	uint8_t		valid; 		/**< Validity flags (see UBX_RX_NAV_PVT_VALID_...) */
 	uint32_t	tAcc; 		/**< Time accuracy estimate (UTC) [ns] */
 	int32_t		nano;		/**< Fraction of second (UTC) [-1e9...1e9 ns] */
 	uint8_t		fixType;	/**< GNSSfix type: 0 = No fix, 1 = Dead Reckoning only, 2 = 2D fix, 3 = 3d-fix, 4 = GNSS + dead reckoning, 5 = time only fix */
@@ -208,9 +215,11 @@ typedef struct {
 	uint16_t	pDOP;		/**< Position DOP [0.01] */
 	uint16_t	reserved2;
 	uint32_t	reserved3;
-	int32_t		headVeh;	/**< Heading of vehicle (2-D) [1e-5 deg] */
-	uint32_t	reserved4;
+	int32_t		headVeh;	/**< (ubx8+ only) Heading of vehicle (2-D) [1e-5 deg] */
+	uint32_t	reserved4;	/**< (ubx8+ only) */
 } ubx_payload_rx_nav_pvt_t;
+#define UBX_PAYLOAD_RX_NAV_PVT_SIZE_UBX7	(sizeof(ubx_payload_rx_nav_pvt_t) - 8)
+#define UBX_PAYLOAD_RX_NAV_PVT_SIZE_UBX8	(sizeof(ubx_payload_rx_nav_pvt_t))
 
 /* Rx NAV-TIMEUTC */
 typedef struct {
@@ -223,7 +232,7 @@ typedef struct {
 	uint8_t		hour; 		/**< Hour of day, range 0..23 (UTC) */
 	uint8_t		min; 		/**< Minute of hour, range 0..59 (UTC) */
 	uint8_t		sec;		/**< Seconds of minute, range 0..60 (UTC) */
-	uint8_t		valid; 		/**< Validity Flags (see ubx documentation) */
+	uint8_t		valid; 		/**< Validity Flags (see UBX_RX_NAV_TIMEUTC_VALID_...) */
 } ubx_payload_rx_nav_timeutc_t;
 
 /* Rx NAV-SVINFO Part 1 */
@@ -388,6 +397,7 @@ typedef struct {
 
 /* General message and payload buffer union */
 typedef union {
+	ubx_payload_rx_nav_pvt_t		payload_rx_nav_pvt;
 	ubx_payload_rx_nav_posllh_t		payload_rx_nav_posllh;
 	ubx_payload_rx_nav_sol_t		payload_rx_nav_sol;
 	ubx_payload_rx_nav_timeutc_t		payload_rx_nav_timeutc;
@@ -526,6 +536,7 @@ private:
 	uint16_t		_ack_waiting_msg;
 	ubx_buf_t		_buf;
 	uint32_t		_ubx_version;
+	bool			_use_nav_pvt;
 };
 
 #endif /* UBX_H_ */

@@ -472,7 +472,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 			// Follow exactly what the mavlink spec says for values: 0.0f for disarm, 1.0f for arm.
 			// We use an float epsilon delta to test float equality.
 			if (cmd->param1 != 0.0f && (fabsf(cmd->param1 - 1.0f) > 2.0f * FLT_EPSILON)) {
-				mavlink_log_info(mavlink_fd, "Unsupported ARM_DISARM parameter: %.6f", cmd->param1);
+				mavlink_log_info(mavlink_fd, "Unsupported ARM_DISARM parameter: %.6f", (double)cmd->param1);
 
 			} else {
 
@@ -634,7 +634,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* welcome user */
 	warnx("starting");
 
-	char *main_states_str[MAIN_STATE_MAX];
+	const char *main_states_str[MAIN_STATE_MAX];
 	main_states_str[MAIN_STATE_MANUAL]			= "MANUAL";
 	main_states_str[MAIN_STATE_ALTCTL]			= "ALTCTL";
 	main_states_str[MAIN_STATE_POSCTL]			= "POSCTL";
@@ -643,7 +643,7 @@ int commander_thread_main(int argc, char *argv[])
 	main_states_str[MAIN_STATE_AUTO_RTL]			= "AUTO_RTL";
 	main_states_str[MAIN_STATE_ACRO]			= "ACRO";
 
-	char *arming_states_str[ARMING_STATE_MAX];
+	const char *arming_states_str[ARMING_STATE_MAX];
 	arming_states_str[ARMING_STATE_INIT]			= "INIT";
 	arming_states_str[ARMING_STATE_STANDBY]			= "STANDBY";
 	arming_states_str[ARMING_STATE_ARMED]			= "ARMED";
@@ -652,7 +652,7 @@ int commander_thread_main(int argc, char *argv[])
 	arming_states_str[ARMING_STATE_REBOOT]			= "REBOOT";
 	arming_states_str[ARMING_STATE_IN_AIR_RESTORE]		= "IN_AIR_RESTORE";
 
-	char *nav_states_str[NAVIGATION_STATE_MAX];
+	const char *nav_states_str[NAVIGATION_STATE_MAX];
 	nav_states_str[NAVIGATION_STATE_MANUAL]			= "MANUAL";
 	nav_states_str[NAVIGATION_STATE_ALTCTL]			= "ALTCTL";
 	nav_states_str[NAVIGATION_STATE_POSCTL]			= "POSCTL";
@@ -773,7 +773,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	bool updated = false;
 
-	bool rc_calibration_ok = (OK == rc_calibration_check(mavlink_fd));
+	rc_calibration_check(mavlink_fd);
 
 	/* Subscribe to safety topic */
 	int safety_sub = orb_subscribe(ORB_ID(safety));
@@ -796,10 +796,16 @@ int commander_thread_main(int argc, char *argv[])
 	struct offboard_control_setpoint_s sp_offboard;
 	memset(&sp_offboard, 0, sizeof(sp_offboard));
 
-	/* Subscribe to telemetry status */
-	int telemetry_sub = orb_subscribe(ORB_ID(telemetry_status));
-	struct telemetry_status_s telemetry;
-	memset(&telemetry, 0, sizeof(telemetry));
+	/* Subscribe to telemetry status topics */
+	int telemetry_subs[TELEMETRY_STATUS_ORB_ID_NUM];
+	uint64_t telemetry_last_heartbeat[TELEMETRY_STATUS_ORB_ID_NUM];
+	bool telemetry_lost[TELEMETRY_STATUS_ORB_ID_NUM];
+
+	for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
+		telemetry_subs[i] = orb_subscribe(telemetry_status_orb_id[i]);
+		telemetry_last_heartbeat[i] = 0;
+		telemetry_lost[i] = true;
+	}
 
 	/* Subscribe to global position */
 	int global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
@@ -881,7 +887,6 @@ int commander_thread_main(int argc, char *argv[])
 	bool arming_state_changed = false;
 	bool main_state_changed = false;
 	bool failsafe_old = false;
-	bool system_checked = false;
 
 	while (!thread_should_exit) {
 
@@ -929,22 +934,13 @@ int commander_thread_main(int argc, char *argv[])
 				status_changed = true;
 
 				/* re-check RC calibration */
-				rc_calibration_ok = (OK == rc_calibration_check(mavlink_fd));
+				rc_calibration_check(mavlink_fd);
 			}
 
 			/* navigation parameters */
 			param_get(_param_takeoff_alt, &takeoff_alt);
 			param_get(_param_enable_parachute, &parachute_enabled);
 			param_get(_param_enable_datalink_loss, &datalink_loss_enabled);
-		}
-
-		/* Perform system checks (again) once params are loaded and MAVLink is up. */
-		if (!system_checked && mavlink_fd && 
-			(telemetry.heartbeat_time > 0) &&
-			(hrt_elapsed_time(&telemetry.heartbeat_time) < 1 * 1000 * 1000)) {
-
-			(void)rc_calibration_check(mavlink_fd);
-			system_checked = true;
 		}
 
 		orb_check(sp_man_sub, &updated);
@@ -959,10 +955,26 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(offboard_control_setpoint), sp_offboard_sub, &sp_offboard);
 		}
 
-		orb_check(telemetry_sub, &updated);
+		for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
+			orb_check(telemetry_subs[i], &updated);
 
-		if (updated) {
-			orb_copy(ORB_ID(telemetry_status), telemetry_sub, &telemetry);
+			if (updated) {
+				struct telemetry_status_s telemetry;
+				memset(&telemetry, 0, sizeof(telemetry));
+
+				orb_copy(telemetry_status_orb_id[i], telemetry_subs[i], &telemetry);
+
+				/* perform system checks when new telemetry link connected */
+				if (mavlink_fd &&
+					telemetry_last_heartbeat[i] == 0 &&
+					telemetry.heartbeat_time > 0 &&
+					hrt_elapsed_time(&telemetry.heartbeat_time) < DL_TIMEOUT) {
+
+					(void)rc_calibration_check(mavlink_fd);
+				}
+
+				telemetry_last_heartbeat[i] = telemetry.heartbeat_time;
+			}
 		}
 
 		orb_check(sensor_sub, &updated);
@@ -1366,18 +1378,35 @@ int commander_thread_main(int argc, char *argv[])
 			}
 		}
 
-		/* data link check */
-		if (hrt_absolute_time() < telemetry.heartbeat_time + DL_TIMEOUT) {
+		/* data links check */
+		bool have_link = false;
+		for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
+			if (hrt_elapsed_time(&telemetry_last_heartbeat[i]) < DL_TIMEOUT) {
+				/* handle the case where data link was regained */
+				if (telemetry_lost[i]) {
+					mavlink_log_critical(mavlink_fd, "#audio: data link %i regained", i);
+					telemetry_lost[i] = false;
+				}
+				have_link = true;
+
+			} else {
+				if (!telemetry_lost[i]) {
+					mavlink_log_critical(mavlink_fd, "#audio: data link %i lost", i);
+					telemetry_lost[i] = true;
+				}
+			}
+		}
+
+		if (have_link) {
 			/* handle the case where data link was regained */
 			if (status.data_link_lost) {
-				mavlink_log_critical(mavlink_fd, "#audio: data link regained");
 				status.data_link_lost = false;
 				status_changed = true;
 			}
 
 		} else {
 			if (!status.data_link_lost) {
-				mavlink_log_critical(mavlink_fd, "#audio: CRITICAL: DATA LINK LOST");
+				mavlink_log_critical(mavlink_fd, "#audio: CRITICAL: ALL DATA LINKS LOST");
 				status.data_link_lost = true;
 				status_changed = true;
 			}
@@ -1718,6 +1747,13 @@ set_main_state_rc(struct vehicle_status_s *status, struct manual_control_setpoin
 			}
 
             print_reject_mode(status, "AUTO_MISSION");
+
+            // fallback to LOITER if home position not set
+            res = main_state_transition(status, MAIN_STATE_AUTO_LOITER);
+
+            if (res != TRANSITION_DENIED) {
+                break;  // changed successfully or already in this state
+            }
 		}
 
         // fallback to POSCTL
