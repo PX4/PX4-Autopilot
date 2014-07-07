@@ -45,7 +45,6 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/rc_channels.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -259,8 +258,15 @@ protected:
 		struct position_setpoint_triplet_s pos_sp_triplet;
 
 		/* always send the heartbeat, independent of the update status of the topics */
-		(void)status_sub->update(&status);
-		(void)pos_sp_triplet_sub->update(&pos_sp_triplet);
+		if (!status_sub->update(&status)) {
+			/* if topic update failed fill it with defaults */
+			memset(&status, 0, sizeof(status));
+		}
+
+		if (!pos_sp_triplet_sub->update(&pos_sp_triplet)) {
+			/* if topic update failed fill it with defaults */
+			memset(&pos_sp_triplet, 0, sizeof(pos_sp_triplet));
+		}
 
 		uint8_t mavlink_state = 0;
 		uint8_t mavlink_base_mode = 0;
@@ -671,7 +677,7 @@ protected:
 						     cm_uint16_from_m_float(gps.epv),
 						     gps.vel_m_s * 100.0f,
 						     _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F * 1e2f,
-						     gps.satellites_visible);
+						     gps.satellites_used);
 		}
 	}
 };

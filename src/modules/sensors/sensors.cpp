@@ -229,7 +229,7 @@ private:
 	math::Matrix<3, 3>	_board_rotation;		/**< rotation matrix for the orientation that the board is mounted */
 	math::Matrix<3, 3>	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
 	bool		_mag_is_external;		/**< true if the active mag is on an external board */
-
+	
 	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
 	hrt_abstime _battery_current_timestamp;	/**< timestamp of last battery current reading */
 
@@ -252,6 +252,8 @@ private:
 
 		int board_rotation;
 		int external_mag_rotation;
+		
+		float board_offset[3];
 
 		int rc_map_roll;
 		int rc_map_pitch;
@@ -264,6 +266,7 @@ private:
 		int rc_map_posctl_sw;
 		int rc_map_loiter_sw;
 		int rc_map_acro_sw;
+		int rc_map_offboard_sw;
 
 		int rc_map_flaps;
 
@@ -280,12 +283,14 @@ private:
 		float rc_return_th;
 		float rc_loiter_th;
 		float rc_acro_th;
+		float rc_offboard_th;
 		bool rc_assist_inv;
 		bool rc_auto_inv;
 		bool rc_posctl_inv;
 		bool rc_return_inv;
 		bool rc_loiter_inv;
 		bool rc_acro_inv;
+		bool rc_offboard_inv;
 
 		float battery_voltage_scaling;
 		float battery_current_scaling;
@@ -319,6 +324,7 @@ private:
 		param_t rc_map_posctl_sw;
 		param_t rc_map_loiter_sw;
 		param_t rc_map_acro_sw;
+		param_t rc_map_offboard_sw;
 
 		param_t rc_map_flaps;
 
@@ -335,12 +341,15 @@ private:
 		param_t rc_return_th;
 		param_t rc_loiter_th;
 		param_t rc_acro_th;
+		param_t rc_offboard_th;
 
 		param_t battery_voltage_scaling;
 		param_t battery_current_scaling;
 
 		param_t board_rotation;
 		param_t external_mag_rotation;
+		
+		param_t board_offset[3];
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -536,6 +545,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_posctl_sw = param_find("RC_MAP_POSCTL_SW");
 	_parameter_handles.rc_map_loiter_sw = param_find("RC_MAP_LOITER_SW");
 	_parameter_handles.rc_map_acro_sw = param_find("RC_MAP_ACRO_SW");
+	_parameter_handles.rc_map_offboard_sw = param_find("RC_MAP_OFFB_SW");
 
 	_parameter_handles.rc_map_aux1 = param_find("RC_MAP_AUX1");
 	_parameter_handles.rc_map_aux2 = param_find("RC_MAP_AUX2");
@@ -551,6 +561,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_return_th = param_find("RC_RETURN_TH");
 	_parameter_handles.rc_loiter_th = param_find("RC_LOITER_TH");
 	_parameter_handles.rc_acro_th = param_find("RC_ACRO_TH");
+	_parameter_handles.rc_offboard_th = param_find("RC_OFFB_TH");
 
 	/* gyro offsets */
 	_parameter_handles.gyro_offset[0] = param_find("SENS_GYRO_XOFF");
@@ -587,6 +598,11 @@ Sensors::Sensors() :
 	/* rotations */
 	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
 	_parameter_handles.external_mag_rotation = param_find("SENS_EXT_MAG_ROT");
+	
+	/* rotation offsets */
+	_parameter_handles.board_offset[0] = param_find("SENS_BOARD_X_OFF");
+	_parameter_handles.board_offset[1] = param_find("SENS_BOARD_Y_OFF");
+	_parameter_handles.board_offset[2] = param_find("SENS_BOARD_Z_OFF");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -640,7 +656,7 @@ Sensors::parameters_update()
 		if (!isfinite(tmpScaleFactor) ||
 		    (tmpRevFactor < 0.000001f) ||
 		    (tmpRevFactor > 0.2f)) {
-			warnx("RC chan %u not sane, scaling: %8.6f, rev: %d", i, tmpScaleFactor, (int)(_parameters.rev[i]));
+			warnx("RC chan %u not sane, scaling: %8.6f, rev: %d", i, (double)tmpScaleFactor, (int)(_parameters.rev[i]));
 			/* scaling factors do not make sense, lock them down */
 			_parameters.scaling_factor[i] = 0.0f;
 			rc_valid = false;
@@ -698,6 +714,10 @@ Sensors::parameters_update()
 		warnx("%s", paramerr);
 	}
 
+	if (param_get(_parameter_handles.rc_map_offboard_sw, &(_parameters.rc_map_offboard_sw)) != OK) {
+		warnx("%s", paramerr);
+	}
+
 	if (param_get(_parameter_handles.rc_map_flaps, &(_parameters.rc_map_flaps)) != OK) {
 		warnx("%s", paramerr);
 	}
@@ -726,6 +746,9 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_acro_th, &(_parameters.rc_acro_th));
 	_parameters.rc_acro_inv = (_parameters.rc_acro_th < 0);
 	_parameters.rc_acro_th = fabs(_parameters.rc_acro_th);
+	param_get(_parameter_handles.rc_offboard_th, &(_parameters.rc_offboard_th));
+	_parameters.rc_offboard_inv = (_parameters.rc_offboard_th < 0);
+	_parameters.rc_offboard_th = fabs(_parameters.rc_offboard_th);
 
 	/* update RC function mappings */
 	_rc.function[THROTTLE] = _parameters.rc_map_throttle - 1;
@@ -738,6 +761,7 @@ Sensors::parameters_update()
 	_rc.function[POSCTL] = _parameters.rc_map_posctl_sw - 1;
 	_rc.function[LOITER] = _parameters.rc_map_loiter_sw - 1;
 	_rc.function[ACRO] = _parameters.rc_map_acro_sw - 1;
+	_rc.function[OFFBOARD] = _parameters.rc_map_offboard_sw - 1;
 
 	_rc.function[FLAPS] = _parameters.rc_map_flaps - 1;
 
@@ -791,6 +815,18 @@ Sensors::parameters_update()
 
 	get_rot_matrix((enum Rotation)_parameters.board_rotation, &_board_rotation);
 	get_rot_matrix((enum Rotation)_parameters.external_mag_rotation, &_external_mag_rotation);
+	
+	param_get(_parameter_handles.board_offset[0], &(_parameters.board_offset[0]));
+	param_get(_parameter_handles.board_offset[1], &(_parameters.board_offset[1]));
+	param_get(_parameter_handles.board_offset[2], &(_parameters.board_offset[2]));
+	
+	/** fine tune board offset on parameter update **/
+	math::Matrix<3, 3> board_rotation_offset; 
+	board_rotation_offset.from_euler( M_DEG_TO_RAD_F * _parameters.board_offset[0],
+							 M_DEG_TO_RAD_F * _parameters.board_offset[1],
+							 M_DEG_TO_RAD_F * _parameters.board_offset[2]);
+	
+	_board_rotation = _board_rotation * board_rotation_offset;
 
 	return OK;
 }
@@ -1202,9 +1238,9 @@ Sensors::parameter_update_poll(bool forced)
 		}
 
 #if 0
-		printf("CH0: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n", (int)_parameters.max[0], (int)_parameters.min[0], (int)(_rc.chan[0].scaling_factor * 10000), (int)(_rc.chan[0].mid), (int)_rc.function[0]);
-		printf("CH1: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n", (int)_parameters.max[1], (int)_parameters.min[1], (int)(_rc.chan[1].scaling_factor * 10000), (int)(_rc.chan[1].mid), (int)_rc.function[1]);
-		printf("MAN: %d %d\n", (int)(_rc.chan[0].scaled * 100), (int)(_rc.chan[1].scaled * 100));
+		printf("CH0: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n", (int)_parameters.max[0], (int)_parameters.min[0], (int)(_rc.channels[0].scaling_factor * 10000), (int)(_rc.channels[0].mid), (int)_rc.function[0]);
+		printf("CH1: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n", (int)_parameters.max[1], (int)_parameters.min[1], (int)(_rc.channels[1].scaling_factor * 10000), (int)(_rc.channels[1].mid), (int)_rc.function[1]);
+		printf("MAN: %d %d\n", (int)(_rc.channels[0] * 100), (int)(_rc.channels[1] * 100));
 		fflush(stdout);
 		usleep(5000);
 #endif
@@ -1294,7 +1330,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					 * a valid voltage from a connected sensor. Also assume a non-
 					 * zero offset from the sensor if its connected.
 					 */
-					if (voltage > 0.4f && _parameters.diff_pres_analog_enabled) {
+					if (voltage > 0.4f && (_parameters.diff_pres_analog_enabled > 0)) {
 
 						float diff_pres_pa = voltage * 1000.0f - _parameters.diff_pres_offset_pa; //for MPXV7002DP sensor
 
@@ -1334,7 +1370,7 @@ float
 Sensors::get_rc_value(enum RC_CHANNELS_FUNCTION func, float min_value, float max_value)
 {
 	if (_rc.function[func] >= 0) {
-		float value = _rc.chan[_rc.function[func]].scaled;
+		float value = _rc.channels[_rc.function[func]];
 
 		if (value < min_value) {
 			return min_value;
@@ -1355,7 +1391,7 @@ switch_pos_t
 Sensors::get_rc_sw3pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv, float mid_th, bool mid_inv)
 {
 	if (_rc.function[func] >= 0) {
-		float value = 0.5f * _rc.chan[_rc.function[func]].scaled + 0.5f;
+		float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
 
 		if (on_inv ? value < on_th : value > on_th) {
 			return SWITCH_POS_ON;
@@ -1376,7 +1412,7 @@ switch_pos_t
 Sensors::get_rc_sw2pos_position(enum RC_CHANNELS_FUNCTION func, float on_th, bool on_inv)
 {
 	if (_rc.function[func] >= 0) {
-		float value = 0.5f * _rc.chan[_rc.function[func]].scaled + 0.5f;
+		float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
 
 		if (on_inv ? value < on_th : value > on_th) {
 			return SWITCH_POS_ON;
@@ -1468,25 +1504,25 @@ Sensors::rc_poll()
 			 * DO NOT REMOVE OR ALTER STEP 1!
 			 */
 			if (rc_input.values[i] > (_parameters.trim[i] + _parameters.dz[i])) {
-				_rc.chan[i].scaled = (rc_input.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(_parameters.max[i] - _parameters.trim[i] - _parameters.dz[i]);
+				_rc.channels[i] = (rc_input.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(_parameters.max[i] - _parameters.trim[i] - _parameters.dz[i]);
 
 			} else if (rc_input.values[i] < (_parameters.trim[i] - _parameters.dz[i])) {
-				_rc.chan[i].scaled = (rc_input.values[i] - _parameters.trim[i] + _parameters.dz[i]) / (float)(_parameters.trim[i] - _parameters.min[i] - _parameters.dz[i]);
+				_rc.channels[i] = (rc_input.values[i] - _parameters.trim[i] + _parameters.dz[i]) / (float)(_parameters.trim[i] - _parameters.min[i] - _parameters.dz[i]);
 
 			} else {
 				/* in the configured dead zone, output zero */
-				_rc.chan[i].scaled = 0.0f;
+				_rc.channels[i] = 0.0f;
 			}
 
-			_rc.chan[i].scaled *= _parameters.rev[i];
+			_rc.channels[i] *= _parameters.rev[i];
 
 			/* handle any parameter-induced blowups */
-			if (!isfinite(_rc.chan[i].scaled)) {
-				_rc.chan[i].scaled = 0.0f;
+			if (!isfinite(_rc.channels[i])) {
+				_rc.channels[i] = 0.0f;
 			}
 		}
 
-		_rc.chan_count = rc_input.channel_count;
+		_rc.channel_count = rc_input.channel_count;
 		_rc.rssi = rc_input.rssi;
 		_rc.signal_lost = signal_lost;
 		_rc.timestamp = rc_input.timestamp_last_signal;
@@ -1524,6 +1560,7 @@ Sensors::rc_poll()
 			manual.return_switch = get_rc_sw2pos_position(RETURN, _parameters.rc_return_th, _parameters.rc_return_inv);
 			manual.loiter_switch = get_rc_sw2pos_position(LOITER, _parameters.rc_loiter_th, _parameters.rc_loiter_inv);
 			manual.acro_switch = get_rc_sw2pos_position(ACRO, _parameters.rc_acro_th, _parameters.rc_acro_inv);
+			manual.offboard_switch = get_rc_sw2pos_position(OFFBOARD, _parameters.rc_offboard_th, _parameters.rc_offboard_inv);
 
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub > 0) {

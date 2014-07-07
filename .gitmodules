@@ -1,3 +1,9 @@
+[submodule "mavlink/include/mavlink/v1.0"]
+	path = mavlink/include/mavlink/v1.0
+	url = git://github.com/mavlink/c_library.git
+[submodule "NuttX"]
+	path = NuttX
+	url = git://github.com/PX4/NuttX.git
 [submodule "src/modules/ekf_att_pos_estimator/InertialNav"]
 	path = src/modules/ekf_att_pos_estimator/InertialNav
-	url = git@github.com:PX4/InertialNav.git
+	url = git://github.com/PX4/InertialNav.git

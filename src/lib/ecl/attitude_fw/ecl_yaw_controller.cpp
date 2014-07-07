@@ -84,7 +84,7 @@ float ECL_YawController::control_attitude(float roll, float pitch,
 	_rate_setpoint = 0.0f;
 	if (sqrtf(speed_body_u * speed_body_u + speed_body_v * speed_body_v + speed_body_w * speed_body_w) > _coordinated_min_speed) {
 		float denumerator = (speed_body_u * cosf(roll) * cosf(pitch) + speed_body_w * sinf(pitch));
-		if(denumerator != 0.0f) { //XXX: floating point comparison
+		if(fabsf(denumerator) > FLT_EPSILON) {
 			_rate_setpoint = (speed_body_w * roll_rate_setpoint + 9.81f * sinf(roll) * cosf(pitch) + speed_body_u * pitch_rate_setpoint * sinf(roll)) / denumerator;
 //			warnx("yaw: speed_body_u %.f speed_body_w %1.f roll %.1f pitch %.1f denumerator %.1f _rate_setpoint %.1f", speed_body_u, speed_body_w, denumerator, _rate_setpoint);
 		}
@@ -131,11 +131,6 @@ float ECL_YawController::control_bodyrate(float roll, float pitch,
 	/* lock integral for long intervals */
 	if (dt_micros > 500000)
 		lock_integrator = true;
-
-
-//	float k_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
-	float k_ff = 0;
-
 
 	/* input conditioning */
 	if (!isfinite(airspeed)) {

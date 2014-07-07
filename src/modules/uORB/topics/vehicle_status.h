@@ -70,7 +70,8 @@ typedef enum {
 	MAIN_STATE_AUTO_LOITER,
 	MAIN_STATE_AUTO_RTL,
 	MAIN_STATE_ACRO,
-	MAIN_STATE_MAX,
+	MAIN_STATE_OFFBOARD,
+	MAIN_STATE_MAX
 } main_state_t;
 
 // If you change the order, add or remove arming_state_t states make sure to update the arrays
@@ -106,6 +107,7 @@ typedef enum {
 	NAVIGATION_STATE_LAND,			/**< Land mode */
 	NAVIGATION_STATE_DESCEND,			/**< Descend mode (no position control) */
 	NAVIGATION_STATE_TERMINATION,		/**< Termination mode */
+	NAVIGATION_STATE_OFFBOARD,
 	NAVIGATION_STATE_MAX,
 } navigation_state_t;
 
@@ -191,6 +193,8 @@ struct vehicle_status_s {
 	bool condition_local_altitude_valid;
 	bool condition_airspeed_valid;			/**< set to true by the commander app if there is a valid airspeed measurement available */
 	bool condition_landed;					/**< true if vehicle is landed, always true if disarmed */
+	bool condition_power_input_valid;		/**< set if input power is valid */
+	float avionics_power_rail_voltage;		/**< voltage of the avionics power rail */
 
 	bool rc_signal_found_once;
 	bool rc_signal_lost;				/**< true if RC reception lost */
@@ -220,6 +224,8 @@ struct vehicle_status_s {
 	uint16_t errors_count2;
 	uint16_t errors_count3;
 	uint16_t errors_count4;
+
+	bool circuit_breaker_engaged_power_check;
 };
 
 /**

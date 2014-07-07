@@ -293,7 +293,7 @@ BlinkM::BlinkM(int bus, int blinkm) :
 	safety_sub_fd(-1),
 	num_of_cells(0),
 	detected_cells_runcount(0),
-	t_led_color({0}),
+	t_led_color{0},
 	t_led_blink(0),
 	led_thread_runcount(0),
 	led_interval(1000),
@@ -559,13 +559,7 @@ BlinkM::led()
 		}
 
 		/* get number of used satellites in navigation */
-		num_of_used_sats = 0;
-
-		for(unsigned satloop=0; satloop<sizeof(vehicle_gps_position_raw.satellite_used); satloop++) {
-			if(vehicle_gps_position_raw.satellite_used[satloop] == 1) {
-				num_of_used_sats++;
-			}
-		}
+		num_of_used_sats = vehicle_gps_position_raw.satellites_used;
 
 		if (new_data_vehicle_status || no_data_vehicle_status < 3) {
 			if (num_of_cells == 0) {

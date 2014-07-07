@@ -392,8 +392,6 @@ void NonlinearSO3AHRSupdate(float gx, float gy, float gz, float ax, float ay, fl
  */
 int attitude_estimator_so3_thread_main(int argc, char *argv[])
 {
-	const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
-
 	//! Time constant
 	float dt = 0.005f;
 	
@@ -438,11 +436,9 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 	orb_advert_t att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
 
 	int loopcounter = 0;
-	int printcounter = 0;
 
 	thread_running = true;
 
-	float sensor_update_hz[3] = {0.0f, 0.0f, 0.0f};
 	// XXX write this out to perf regs
 
 	/* keep track of sensor updates */
@@ -513,7 +509,7 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 						gyro_offsets[0] /= offset_count;
 						gyro_offsets[1] /= offset_count;
 						gyro_offsets[2] /= offset_count;
-						warnx("gyro initialized, offsets: %.5f %.5f %.5f", gyro_offsets[0], gyro_offsets[1], gyro_offsets[2]);
+						warnx("gyro initialized, offsets: %.5f %.5f %.5f", (double)gyro_offsets[0], (double)gyro_offsets[1], (double)gyro_offsets[2]);
 					}
 
 				} else {
@@ -523,12 +519,9 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 					/* Calculate data time difference in seconds */
 					dt = (raw.timestamp - last_measurement) / 1000000.0f;
 					last_measurement = raw.timestamp;
-					uint8_t update_vect[3] = {0, 0, 0};
 
 					/* Fill in gyro measurements */
 					if (sensor_last_timestamp[0] != raw.timestamp) {
-						update_vect[0] = 1;
-						sensor_update_hz[0] = 1e6f / (raw.timestamp - sensor_last_timestamp[0]);
 						sensor_last_timestamp[0] = raw.timestamp;
 					}
 
@@ -538,8 +531,6 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 
 					/* update accelerometer measurements */
 					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp) {
-						update_vect[1] = 1;
-						sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
 						sensor_last_timestamp[1] = raw.accelerometer_timestamp;
 					}
 
@@ -549,8 +540,6 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 
 					/* update magnetometer measurements */
 					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp) {
-						update_vect[2] = 1;
-						sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
 						sensor_last_timestamp[2] = raw.magnetometer_timestamp;
 					}
 
@@ -568,8 +557,6 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 					if (!state_initialized) {
 						continue;
 					}
-
-					uint64_t timing_start = hrt_absolute_time();
 
 					// NOTE : Accelerometer is reversed.
 					// Because proper mount of PX4 will give you a reversed accelerometer readings.
@@ -609,9 +596,9 @@ int attitude_estimator_so3_thread_main(int argc, char *argv[])
 						/* due to inputs or numerical failure the output is invalid, skip it */
 						// Due to inputs or numerical failure the output is invalid
 						warnx("infinite euler angles, rotation matrix:");
-						warnx("%.3f %.3f %.3f", Rot_matrix[0], Rot_matrix[1], Rot_matrix[2]);
-						warnx("%.3f %.3f %.3f", Rot_matrix[3], Rot_matrix[4], Rot_matrix[5]);
-						warnx("%.3f %.3f %.3f", Rot_matrix[6], Rot_matrix[7], Rot_matrix[8]);
+						warnx("%.3f %.3f %.3f", (double)Rot_matrix[0], (double)Rot_matrix[1], (double)Rot_matrix[2]);
+						warnx("%.3f %.3f %.3f", (double)Rot_matrix[3], (double)Rot_matrix[4], (double)Rot_matrix[5]);
+						warnx("%.3f %.3f %.3f", (double)Rot_matrix[6], (double)Rot_matrix[7], (double)Rot_matrix[8]);
 						// Don't publish anything
 						continue;
 					}

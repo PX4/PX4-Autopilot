@@ -36,6 +36,7 @@
  * Helper class to loiter
  *
  * @author Julian Oes <julian@oes.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <string.h>
@@ -51,28 +52,42 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 
 #include "loiter.h"
+#include "navigator.h"
 
 Loiter::Loiter(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name)
 {
 	/* load initial params */
 	updateParams();
-	/* initial reset */
-	on_inactive();
 }
 
 Loiter::~Loiter()
 {
 }
 
-bool
-Loiter::on_active(struct position_setpoint_triplet_s *pos_sp_triplet)
+void
+Loiter::on_inactive()
 {
-	/* set loiter item, don't reuse an existing position setpoint */
-	return set_loiter_item(pos_sp_triplet);
 }
 
 void
-Loiter::on_inactive()
+Loiter::on_activation()
+{
+	/* set current mission item to loiter */
+	set_loiter_item(&_mission_item);
+
+	/* convert mission item to current setpoint */
+	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	pos_sp_triplet->previous.valid = false;
+	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+	pos_sp_triplet->next.valid = false;
+
+	_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == SETPOINT_TYPE_LOITER);
+
+	_navigator->set_position_setpoint_triplet_updated();
+}
+
+void
+Loiter::on_active()
 {
 }
