@@ -186,7 +186,10 @@ ORB_DEFINE(actuator_outputs_2, struct actuator_outputs_s);
 ORB_DEFINE(actuator_outputs_3, struct actuator_outputs_s);
 
 #include "topics/telemetry_status.h"
-ORB_DEFINE(telemetry_status, struct telemetry_status_s);
+ORB_DEFINE(telemetry_status_0, struct telemetry_status_s);
+ORB_DEFINE(telemetry_status_1, struct telemetry_status_s);
+ORB_DEFINE(telemetry_status_2, struct telemetry_status_s);
+ORB_DEFINE(telemetry_status_3, struct telemetry_status_s);
 
 #include "topics/debug_key_value.h"
 ORB_DEFINE(debug_key_value, struct debug_key_value_s);

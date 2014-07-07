@@ -61,7 +61,6 @@ struct vehicle_gps_position_s {
 
 	uint64_t timestamp_variance;
 	float s_variance_m_s;				/**< speed accuracy estimate m/s */
-	float p_variance_m;				/**< position accuracy estimate m */
 	float c_variance_rad;				/**< course accuracy estimate rad */
 	uint8_t fix_type; 				/**< 0-1: no fix, 2: 2D fix, 3: 3D fix. Some applications will not use the value of this field unless it is at least two, so always correctly fill in the fix.   */
 

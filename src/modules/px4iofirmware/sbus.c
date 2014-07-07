@@ -116,14 +116,14 @@ sbus_init(const char *device)
 	return sbus_fd;
 }
 
-bool
+void
 sbus1_output(uint16_t *values, uint16_t num_values)
 {
 	char a = 'A';
 	write(sbus_fd, &a, 1);
 }
 
-bool
+void
 sbus2_output(uint16_t *values, uint16_t num_values)
 {
 	char b = 'B';

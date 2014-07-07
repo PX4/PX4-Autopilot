@@ -95,7 +95,8 @@ UBX::UBX(const int &fd, struct vehicle_gps_position_s *gps_position, struct sate
 	_got_velned(false),
 	_disable_cmd_last(0),
 	_ack_waiting_msg(0),
-	_ubx_version(0)
+	_ubx_version(0),
+	_use_nav_pvt(false)
 {
 	decode_init();
 }
@@ -190,38 +191,45 @@ UBX::configure(unsigned &baudrate)
 
 	/* configure message rates */
 	/* the last argument is divisor for measurement rate (set by CFG RATE), i.e. 1 means 5Hz */
-	configure_message_rate(UBX_MSG_NAV_POSLLH, 1);
 
+	/* try to set rate for NAV-PVT */
+	/* (implemented for ubx7+ modules only, use NAV-SOL, NAV-POSLLH, NAV-VELNED and NAV-TIMEUTC for ubx6) */
+	configure_message_rate(UBX_MSG_NAV_PVT, 1);
 	if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
-		return 1;
+		_use_nav_pvt = false;
+	} else {
+		_use_nav_pvt = true;
 	}
+	UBX_WARN("%susing NAV-PVT", _use_nav_pvt ? "" : "not ");
 
-	configure_message_rate(UBX_MSG_NAV_TIMEUTC, 5);
+	if (!_use_nav_pvt) {
+		configure_message_rate(UBX_MSG_NAV_TIMEUTC, 5);
+		if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
+			return 1;
+		}
 
-	if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
-		return 1;
-	}
+		configure_message_rate(UBX_MSG_NAV_POSLLH, 1);
+		if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
+			return 1;
+		}
 
-	configure_message_rate(UBX_MSG_NAV_SOL, 1);
+		configure_message_rate(UBX_MSG_NAV_SOL, 1);
+		if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
+			return 1;
+		}
 
-	if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
-		return 1;
-	}
-
-	configure_message_rate(UBX_MSG_NAV_VELNED, 1);
-
-	if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
-		return 1;
+		configure_message_rate(UBX_MSG_NAV_VELNED, 1);
+		if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
+			return 1;
+		}
 	}
 
 	configure_message_rate(UBX_MSG_NAV_SVINFO, (_satellite_info != nullptr) ? 5 : 0);
-
 	if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 		return 1;
 	}
 
 	configure_message_rate(UBX_MSG_MON_HW, 1);
-
 	if (wait_for_ack(UBX_MSG_CFG_MSG, UBX_CONFIG_TIMEOUT, true) < 0) {
 		return 1;
 	}
@@ -454,11 +462,23 @@ UBX::payload_rx_init()
 	_rx_state = UBX_RXMSG_HANDLE;	// handle by default
 
 	switch (_rx_msg) {
+	case UBX_MSG_NAV_PVT:
+		if (   (_rx_payload_length != UBX_PAYLOAD_RX_NAV_PVT_SIZE_UBX7)		/* u-blox 7 msg format */
+		    && (_rx_payload_length != UBX_PAYLOAD_RX_NAV_PVT_SIZE_UBX8))	/* u-blox 8+ msg format */
+			_rx_state = UBX_RXMSG_ERROR_LENGTH;
+		else if (!_configured)
+			_rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
+		else if (!_use_nav_pvt)
+			_rx_state = UBX_RXMSG_DISABLE;	// disable if not using NAV-PVT
+		break;
+
 	case UBX_MSG_NAV_POSLLH:
 		if (_rx_payload_length != sizeof(ubx_payload_rx_nav_posllh_t))
 			_rx_state = UBX_RXMSG_ERROR_LENGTH;
 		else if (!_configured)
 			_rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
+		else if (_use_nav_pvt)
+			_rx_state = UBX_RXMSG_DISABLE;	// disable if using NAV-PVT instead
 		break;
 
 	case UBX_MSG_NAV_SOL:
@@ -466,6 +486,8 @@ UBX::payload_rx_init()
 			_rx_state = UBX_RXMSG_ERROR_LENGTH;
 		else if (!_configured)
 			_rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
+		else if (_use_nav_pvt)
+			_rx_state = UBX_RXMSG_DISABLE;	// disable if using NAV-PVT instead
 		break;
 
 	case UBX_MSG_NAV_TIMEUTC:
@@ -473,6 +495,8 @@ UBX::payload_rx_init()
 			_rx_state = UBX_RXMSG_ERROR_LENGTH;
 		else if (!_configured)
 			_rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
+		else if (_use_nav_pvt)
+			_rx_state = UBX_RXMSG_DISABLE;	// disable if using NAV-PVT instead
 		break;
 
 	case UBX_MSG_NAV_SVINFO:
@@ -489,6 +513,8 @@ UBX::payload_rx_init()
 			_rx_state = UBX_RXMSG_ERROR_LENGTH;
 		else if (!_configured)
 			_rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
+		else if (_use_nav_pvt)
+			_rx_state = UBX_RXMSG_DISABLE;	// disable if using NAV-PVT instead
 		break;
 
 	case UBX_MSG_MON_VER:
@@ -675,6 +701,68 @@ UBX::payload_rx_done(void)
 	// handle message
 	switch (_rx_msg) {
 
+	case UBX_MSG_NAV_PVT:
+		UBX_TRACE_RXMSG("Rx NAV-PVT\n");
+
+		_gps_position->fix_type		= _buf.payload_rx_nav_pvt.fixType;
+		_gps_position->satellites_used	= _buf.payload_rx_nav_pvt.numSV;
+
+		_gps_position->lat		= _buf.payload_rx_nav_pvt.lat;
+		_gps_position->lon		= _buf.payload_rx_nav_pvt.lon;
+		_gps_position->alt		= _buf.payload_rx_nav_pvt.hMSL;
+
+		_gps_position->eph		= (float)_buf.payload_rx_nav_pvt.hAcc * 1e-3f;
+		_gps_position->epv		= (float)_buf.payload_rx_nav_pvt.vAcc * 1e-3f;
+		_gps_position->s_variance_m_s	= (float)_buf.payload_rx_nav_pvt.sAcc * 1e-3f;
+
+		_gps_position->vel_m_s		= (float)_buf.payload_rx_nav_pvt.gSpeed * 1e-3f;
+
+		_gps_position->vel_n_m_s	= (float)_buf.payload_rx_nav_pvt.velN * 1e-3f;
+		_gps_position->vel_e_m_s	= (float)_buf.payload_rx_nav_pvt.velE * 1e-3f;
+		_gps_position->vel_d_m_s	= (float)_buf.payload_rx_nav_pvt.velD * 1e-3f;
+		_gps_position->vel_ned_valid	= true;
+
+		_gps_position->cog_rad		= (float)_buf.payload_rx_nav_pvt.headMot * M_DEG_TO_RAD_F * 1e-5f;
+		_gps_position->c_variance_rad	= (float)_buf.payload_rx_nav_pvt.headAcc * M_DEG_TO_RAD_F * 1e-5f;
+
+		{
+			/* convert to unix timestamp */
+			struct tm timeinfo;
+			timeinfo.tm_year	= _buf.payload_rx_nav_pvt.year - 1900;
+			timeinfo.tm_mon		= _buf.payload_rx_nav_pvt.month - 1;
+			timeinfo.tm_mday	= _buf.payload_rx_nav_pvt.day;
+			timeinfo.tm_hour	= _buf.payload_rx_nav_pvt.hour;
+			timeinfo.tm_min		= _buf.payload_rx_nav_pvt.min;
+			timeinfo.tm_sec		= _buf.payload_rx_nav_pvt.sec;
+			time_t epoch = mktime(&timeinfo);
+
+#ifndef CONFIG_RTC
+			//Since we lack a hardware RTC, set the system time clock based on GPS UTC
+			//TODO generalize this by moving into gps.cpp?
+			timespec ts;
+			ts.tv_sec = epoch;
+			ts.tv_nsec = _buf.payload_rx_nav_pvt.nano;
+			clock_settime(CLOCK_REALTIME, &ts);
+#endif
+
+			_gps_position->time_gps_usec = (uint64_t)epoch * 1000000; //TODO: test this
+			_gps_position->time_gps_usec += (uint64_t)(_buf.payload_rx_nav_pvt.nano * 1e-3f);
+		}
+
+		_gps_position->timestamp_time		= hrt_absolute_time();
+		_gps_position->timestamp_velocity 	= hrt_absolute_time();
+		_gps_position->timestamp_variance 	= hrt_absolute_time();
+		_gps_position->timestamp_position	= hrt_absolute_time();
+
+		_rate_count_vel++;
+		_rate_count_lat_lon++;
+
+		_got_posllh = true;
+		_got_velned = true;
+
+		ret = 1;
+		break;
+
 	case UBX_MSG_NAV_POSLLH:
 		UBX_TRACE_RXMSG("Rx NAV-POSLLH\n");
 
@@ -697,7 +785,6 @@ UBX::payload_rx_done(void)
 
 		_gps_position->fix_type		= _buf.payload_rx_nav_sol.gpsFix;
 		_gps_position->s_variance_m_s	= (float)_buf.payload_rx_nav_sol.sAcc * 1e-2f;	// from cm to m
-		_gps_position->p_variance_m	= (float)_buf.payload_rx_nav_sol.pAcc * 1e-2f;	// from cm to m
 		_gps_position->satellites_used	= _buf.payload_rx_nav_sol.numSV;
 
 		_gps_position->timestamp_variance = hrt_absolute_time();
