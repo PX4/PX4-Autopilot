@@ -218,6 +218,7 @@ checksubmodules:
 
 .PHONY: updatesubmodules
 updatesubmodules:
+	$(Q) (git submodule init)
 	$(Q) (git submodule update)
 
 #
