@@ -85,13 +85,18 @@ void UavcanGnssReceiver::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uav
 	const bool valid_velocity_covariance = !msg.velocity_covariance.empty();
 
 	if (valid_position_covariance) {
-	    float pos_cov[9];
-	    msg.position_covariance.unpackSquareMatrix(pos_cov);
-		_report.p_variance_m = math::max(pos_cov[0], pos_cov[4]);
-		_report.eph_m = sqrtf(_report.p_variance_m);
+		float pos_cov[9];
+		msg.position_covariance.unpackSquareMatrix(pos_cov);
+
+		// Horizontal position uncertainty
+		const float horizontal_pos_variance = math::max(pos_cov[0], pos_cov[4]);
+		_report.eph = (horizontal_pos_variance > 0) ? sqrtf(horizontal_pos_variance) : -1.0F;
+
+		// Vertical position uncertainty
+		_report.epv = (pos_cov[8] > 0) ? sqrtf(pos_cov[8]) : -1.0F;
 	} else {
-		_report.p_variance_m = -1.0;
-		_report.eph_m = -1.0;
+		_report.eph = -1.0F;
+		_report.epv = -1.0F;
 	}
 
 	if (valid_velocity_covariance) {
@@ -118,12 +123,9 @@ void UavcanGnssReceiver::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uav
 						-2 * vel_n * vel_e * vel_cov[1] +	// Covariance matrix is symmetric
 						vel_n_sq* vel_cov[4]) / ((vel_n_sq + vel_e_sq) * (vel_n_sq + vel_e_sq));
 
-		_report.epv_m = sqrtf(msg.position_covariance[8]);
-
 	} else {
-		_report.s_variance_m_s = -1.0;
-		_report.c_variance_rad = -1.0;
-		_report.epv_m = -1.0;
+		_report.s_variance_m_s = -1.0F;
+		_report.c_variance_rad = -1.0F;
 	}
 
 	_report.fix_type = msg.status;
@@ -139,9 +141,7 @@ void UavcanGnssReceiver::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uav
 	_report.timestamp_time = _report.timestamp_position;
 	_report.time_gps_usec = msg.timestamp.husec * msg.timestamp.USEC_PER_LSB;	// Convert to microseconds
 
-	_report.timestamp_satellites = _report.timestamp_position;
-	_report.satellites_visible = msg.sats_used;
-	_report.satellite_info_available = 0;	// Set to 0 for no info available
+	_report.satellites_used = msg.sats_used;
 
 	if (_report_pub > 0) {
 		orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
