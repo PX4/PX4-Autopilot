@@ -5,7 +5,9 @@
 # Velocity is in NED frame (north-east-down) in meters per second.
 #
 
-uavcan.Timestamp timestamp
+uavcan.Timestamp timestamp         # Global network-synchronized time, if available, otherwise zero
+
+uavcan.Timestamp gnss_timestamp    # GNSS timestamp (UTC is preferred), if available, otherwise zero
 
 int32 lon_1e7
 int32 lat_1e7
