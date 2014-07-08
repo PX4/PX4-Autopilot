@@ -1,12 +1,5 @@
 #!/bin/sh
 
-[ -n "$NUTTX_SRC" ] && {
-    # NUTTX_SRC is set, meaning user is overriding the NuttX tree to use. Don't 
-    # use submodules to pull an alternatiie tree
-    echo "Skipping submodules as NUTTX_SRC is set to $NUTTX_SRC"
-    exit 0
-}
-
 if [ -d NuttX/nuttx ];
 	then
 	STATUSRETVAL=$(git status --porcelain | grep -i "NuttX")
