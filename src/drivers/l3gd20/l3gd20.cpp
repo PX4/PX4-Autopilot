@@ -982,7 +982,7 @@ namespace l3gd20
 
 L3GD20	*g_dev;
 
-void	l3gd20_usage();
+void	usage();
 void	start(bool external_bus, enum Rotation rotation);
 void	test();
 void	reset();
@@ -1120,16 +1120,16 @@ info()
 	exit(0);
 }
 
-
-} // namespace
-
 void
-l3gd20_usage()
+usage()
 {
 	warnx("missing command: try 'start', 'info', 'test', 'reset'");
 	warnx("options:");
 	warnx("    -X    (external bus)");
+	warnx("    -R rotation");
 }
+
+} // namespace
 
 int
 l3gd20_main(int argc, char *argv[])
@@ -1148,7 +1148,7 @@ l3gd20_main(int argc, char *argv[])
 			rotation = (enum Rotation)atoi(optarg);
 			break;
 		default:
-			l3gd20_usage();
+			l3gd20::usage();
 			exit(0);
 		}
 	}
