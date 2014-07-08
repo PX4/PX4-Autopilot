@@ -147,20 +147,21 @@ private:
 			unsigned len = mavlink_msg_encapsulated_data_pack_chan(_mavlink->get_system_id(), _mavlink->get_component_id(),
 				_mavlink->get_channel(), &msg, sequence(), rawData());
 
-            _mavlink->lockMessageBufferMutex();
-            bool fError = _mavlink->message_buffer_write(&msg, len);
-            _mavlink->unlockMessageBufferMutex();
-            
-            if (!fError) {
+			_mavlink->lockMessageBufferMutex();
+			bool success = _mavlink->message_buffer_write(&msg, len);
+			_mavlink->unlockMessageBufferMutex();
+
+			if (!success) {
 				warnx("FTP TX ERR");
-			} else {
-				warnx("wrote: sys: %d, comp: %d, chan: %d, len: %d, checksum: %d",
-					_mavlink->get_system_id(),
-					_mavlink->get_component_id(),
-					_mavlink->get_channel(),
-					len,
-					msg.checksum);
-			}
+			} 
+			// else {
+				// warnx("wrote: sys: %d, comp: %d, chan: %d, len: %d, checksum: %d",
+				// 	_mavlink->get_system_id(),
+				// 	_mavlink->get_component_id(),
+				// 	_mavlink->get_channel(),
+				// 	len,
+				// 	msg.checksum);
+			// }
 		}
 
 		uint8_t		*rawData() { return &_message.data[0]; }

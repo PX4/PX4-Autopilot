@@ -271,7 +271,6 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		}
 		break;
 
-	case MAIN_STATE_AUTO_MISSION:
 	case MAIN_STATE_AUTO_LOITER:
 		/* need global position estimate */
 		if (status->condition_global_position_valid) {
@@ -279,6 +278,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		}
 		break;
 
+	case MAIN_STATE_AUTO_MISSION:
 	case MAIN_STATE_AUTO_RTL:
 		/* need global position and home position */
 		if (status->condition_global_position_valid && status->condition_home_position_valid) {

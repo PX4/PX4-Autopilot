@@ -382,8 +382,6 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 	float output_band = 0.0f;
 	const float startpoint_full_control = 0.25f;	/**< start full control at 25% thrust */
 
-	static bool initialized = false;
-
 	/* linearly scale the control inputs from 0 to startpoint_full_control */
 	if (motor_thrust < startpoint_full_control) {
 		output_band = motor_thrust/startpoint_full_control; // linear from 0 to 1

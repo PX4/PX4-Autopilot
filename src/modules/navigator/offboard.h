@@ -54,25 +54,15 @@ class Navigator;
 class Offboard : public NavigatorMode
 {
 public:
-	/**
-	 * Constructor
-	 */
 	Offboard(Navigator *navigator, const char *name);
 
-	/**
-	 * Destructor
-	 */
 	~Offboard();
 
-	/**
-	 * This function is called while the mode is inactive
-	 */
 	virtual void on_inactive();
 
-	/**
-	 * This function is called while the mode is active
-	 */
-	virtual bool on_active(struct position_setpoint_triplet_s *pos_sp_triplet);
+	virtual void on_activation();
+
+	virtual void on_active();
 private:
 	void update_offboard_control_setpoint();
 
