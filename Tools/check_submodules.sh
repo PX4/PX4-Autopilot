@@ -31,4 +31,20 @@ else
 	git submodule update;
 fi
 
+
+if [ -d uavcan/libuavcan_drivers ];
+then
+	STATUSRETVAL=$(git status --porcelain | grep -i uavcan)
+	if [ "$STATUSRETVAL" == "" ]; then
+		echo "Checked uavcan submodule, correct version found"
+	else
+		echo "uavcan sub repo not at correct version. Try 'make updatesubmodules'"
+		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
+		exit 1
+	fi
+else
+	git submodule init
+	git submodule update
+fi
+
 exit 0
