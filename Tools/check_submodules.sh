@@ -1,5 +1,11 @@
 #!/bin/sh
 
+[ -n "$GIT_SUBMODULES_ARE_EVIL" ] && {
+    # GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules
+    echo "Skipping submodules. NUTTX_SRC is set to $NUTTX_SRC"
+    exit 0
+}
+
 if [ -d NuttX/nuttx ];
 	then
 	STATUSRETVAL=$(git status --porcelain | grep -i "NuttX")
