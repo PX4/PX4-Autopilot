@@ -196,8 +196,8 @@ MB12XX::MB12XX(int bus, int address) :
 	_sensor_ok(false),
 	_measure_ticks(0),
 	_collect_phase(false),
-	_range_finder_topic(-1),
 	_class_instance(-1),
+	_range_finder_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mb12xx_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "mb12xx_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "mb12xx_buffer_overflows"))
