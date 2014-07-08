@@ -69,11 +69,11 @@ SPI::SPI(const char *name,
 	// protected
 	locking_mode(LOCK_PREEMPTION),
 	// private
-	_bus(bus),
 	_device(device),
 	_mode(mode),
 	_frequency(frequency),
-	_dev(nullptr)
+	_dev(nullptr),
+	_bus(bus)
 {
 }
 

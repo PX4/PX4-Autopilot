@@ -1266,7 +1266,7 @@ int	calibrate(int bus);
  * Start the driver.
  */
 void
-start(enum Rotation rotation)
+start(int bus, enum Rotation rotation)
 {
 	int fd;
 
@@ -1528,6 +1528,7 @@ int
 hmc5883_main(int argc, char *argv[])
 {
 	int ch;
+	int bus = -1;
 	enum Rotation rotation = ROTATION_NONE;
         bool calibrate = false;
 
