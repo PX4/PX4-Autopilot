@@ -42,6 +42,7 @@ MODULES		+= modules/uORB
 LIBRARIES	+= lib/mathlib/CMSIS
 MODULES		+= lib/mathlib
 MODULES		+= lib/mathlib/math/filter
+MODULES		+= lib/conversion
 
 #
 # Libraries
