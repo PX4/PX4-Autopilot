@@ -442,7 +442,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	manual.r = man.r / 1000.0f;
 	manual.z = man.z / 1000.0f;
 
-	warnx("pitch: %.2f, roll: %.2f, yaw: %.2f, throttle: %.2f", manual.x, manual.y, manual.r, manual.z);
+	warnx("pitch: %.2f, roll: %.2f, yaw: %.2f, throttle: %.2f", (double)manual.x, (double)manual.y, (double)manual.r, (double)manual.z);
 
 	if (_manual_pub < 0) {
 		_manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
