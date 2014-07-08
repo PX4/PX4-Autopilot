@@ -1433,6 +1433,7 @@ void	start(bool, enum Rotation);
 void	test(bool);
 void	reset(bool);
 void	info(bool);
+void	usage();
 
 /**
  * Start the driver.
@@ -1604,16 +1605,16 @@ info(bool external_bus)
 	exit(0);
 }
 
-
-} // namespace
-
 void
-mpu6000_usage()
+usage()
 {
 	warnx("missing command: try 'start', 'info', 'test', 'reset'");
 	warnx("options:");
 	warnx("    -X    (external bus)");
+	warnx("    -R rotation");
 }
+
+} // namespace
 
 int
 mpu6000_main(int argc, char *argv[])
@@ -1632,7 +1633,7 @@ mpu6000_main(int argc, char *argv[])
 			rotation = (enum Rotation)atoi(optarg);
 			break;
 		default:
-			mpu6000_usage();
+			mpu6000::usage();
 			exit(0);
 		}
 	}
