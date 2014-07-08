@@ -1810,10 +1810,15 @@ start(bool external_bus, enum Rotation rotation)
 
 	/* create the driver */
         if (external_bus) {
+        	#ifdef PX4_SPI_BUS_EXT
 		g_dev = new LSM303D(PX4_SPI_BUS_EXT, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_EXT_ACCEL_MAG, rotation);
+		#else
+		errx(0, "External SPI not available");
+		#endif
 	} else {
 		g_dev = new LSM303D(PX4_SPI_BUS_SENSORS, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG, rotation);
 	}
+
 	if (g_dev == nullptr) {
 		warnx("failed instantiating LSM303D obj");
 		goto fail;
