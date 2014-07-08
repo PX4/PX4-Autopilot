@@ -452,9 +452,9 @@ args = parser.parse_args()
 
 # warn people about ModemManager which interferes badly with Pixhawk
 if os.path.exists("/usr/sbin/ModemManager"):
-        print("=======================================================================")
-        print("WARNING: You should uninstall ModemManager as it conflicts with Pixhawk")
-        print("=======================================================================")
+        print("==========================================================================================================")
+        print("WARNING: You should uninstall ModemManager as it conflicts with any non-modem serial device (like Pixhawk)")
+        print("==========================================================================================================")
 
 # Load the firmware file
 fw = firmware(args.firmware)
