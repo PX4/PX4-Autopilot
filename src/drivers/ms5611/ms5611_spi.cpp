@@ -118,7 +118,11 @@ device::Device *
 MS5611_spi_interface(ms5611::prom_u &prom_buf, bool external_bus)
 {
 	if (external_bus) {
+		#ifdef PX4_SPI_BUS_EXT
 		return new MS5611_SPI(PX4_SPI_BUS_EXT, (spi_dev_e)PX4_SPIDEV_EXT_BARO, prom_buf);
+		#else
+		return nullptr;
+		#endif
 	} else {
 		return new MS5611_SPI(PX4_SPI_BUS_SENSORS, (spi_dev_e)PX4_SPIDEV_BARO, prom_buf);
 	}
