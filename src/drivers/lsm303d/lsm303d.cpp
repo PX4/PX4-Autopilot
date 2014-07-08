@@ -530,6 +530,8 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rota
 	_last_log_alarm_us(0),
 	_rotation(rotation)
 {
+	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LSM303D;
+
 	// enable debug() calls
 	_debug_enabled = true;
 
