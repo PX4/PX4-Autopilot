@@ -12,7 +12,7 @@ if [ -d NuttX/nuttx ];
 	if [ "$STATUSRETVAL" == "" ]; then
 		echo "Checked NuttX submodule, correct version found"
 	else
-		echo "NuttX sub repo not at correct version. Try 'make updatesubmodules'"
+		echo "NuttX sub repo not at correct version. Try 'git submodule update'"
 		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
 		exit 1
 	fi
@@ -28,7 +28,7 @@ if [ -d mavlink/include/mavlink/v1.0 ];
 	if [ "$STATUSRETVAL" == "" ]; then
 		echo "Checked mavlink submodule, correct version found"
 	else
-		echo "mavlink sub repo not at correct version. Try 'make updatesubmodules'"
+		echo "mavlink sub repo not at correct version. Try 'git submodule update'"
 		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
 		exit 1
 	fi
