@@ -117,10 +117,10 @@ MavlinkFTP::_worker(Request *req)
 	if (crc32(req->rawData(), req->dataSize()) != messageCRC) {
 		errorCode = kErrNoRequest;
 		goto out;
-		printf("ftp: bad crc\n");
+		warnx("ftp: bad crc");
 	}
 
-	printf("ftp: channel %u opc %u size %u offset %u\n", req->channel(), hdr->opcode, hdr->size, hdr->offset);
+	//printf("ftp: channel %u opc %u size %u offset %u\n", req->channel(), hdr->opcode, hdr->size, hdr->offset);
 
 	switch (hdr->opcode) {
 	case kCmdNone:
@@ -167,9 +167,9 @@ out:
 	// handle success vs. error
 	if (errorCode == kErrNone) {
 		hdr->opcode = kRspAck;
-		printf("FTP: ack\n");
+		//warnx("FTP: ack\n");
 	} else {
-		printf("FTP: nak %u\n", errorCode);
+		warnx("FTP: nak %u", errorCode);
 		hdr->opcode = kRspNak;
 		hdr->size = 1;
 		hdr->data[0] = errorCode;
@@ -206,11 +206,11 @@ MavlinkFTP::_workList(Request *req)
 	DIR *dp = opendir(dirPath);
 
 	if (dp == nullptr) {
-		printf("FTP: can't open path '%s'\n", dirPath);
+		warnx("FTP: can't open path '%s'", dirPath);
 		return kErrNotDir;
 	}
     
-	printf("FTP: list %s offset %d\n", dirPath, hdr->offset);
+	//warnx("FTP: list %s offset %d", dirPath, hdr->offset);
 
 	ErrorCode errorCode = kErrNone;
 	struct dirent entry, *result = nullptr;
@@ -222,7 +222,7 @@ MavlinkFTP::_workList(Request *req)
 	for (;;) {
 		// read the directory entry
 		if (readdir_r(dp, &entry, &result)) {
-			printf("FTP: list %s readdir_r failure\n", dirPath);
+			warnx("FTP: list %s readdir_r failure\n", dirPath);
 			errorCode = kErrIO;
 			break;
 		}
@@ -304,19 +304,20 @@ MavlinkFTP::_workRead(Request *req)
 	}
 
 	// Seek to the specified position
-	printf("Seek %d\n", hdr->offset);
+	//warnx("seek %d", hdr->offset);
 	if (lseek(_session_fds[session_index], hdr->offset, SEEK_SET) < 0) {
 		// Unable to see to the specified location
+		warnx("seek fail");
 		return kErrEOF;
 	}
 
 	int bytes_read = ::read(_session_fds[session_index], &hdr->data[0], kMaxDataLength);
 	if (bytes_read < 0) {
 		// Negative return indicates error other than eof
+		warnx("read fail %d", bytes_read);
 		return kErrIO;
 	}
 
-	printf("Read success %d\n", bytes_read);
 	hdr->size = bytes_read;
 
 	return kErrNone;
