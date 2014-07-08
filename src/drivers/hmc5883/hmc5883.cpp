@@ -341,6 +341,8 @@ HMC5883::HMC5883(int bus, const char *path, enum Rotation rotation) :
 	_bus(bus),
 	_rotation(rotation)
 {
+	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
+
 	// enable debug() calls
 	_debug_enabled = false;
 
