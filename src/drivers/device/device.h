@@ -124,9 +124,34 @@ public:
 	 */
 	virtual int	ioctl(unsigned operation, unsigned &arg);
 
+	/*
+	  device bus types for DEVID
+	 */
+	enum DeviceBusType {
+		DeviceBusType_UNKNOWN = 0,
+		DeviceBusType_I2C     = 1,
+		DeviceBusType_SPI     = 2
+	};
+
+	/*
+	  broken out 
+	 */
+	struct DeviceStructure {
+		enum DeviceBusType bus_type;
+		uint8_t bus;       // which instance of the bus type
+		uint8_t address;   // address on the bus (eg. I2C address)
+		uint8_t devtype;   // device class specific device type
+	};
+
+	union DeviceId {
+		struct DeviceStructure devid_s;
+		uint32_t devid;
+	};
+
 protected:
 	const char	*_name;			/**< driver name */
 	bool		_debug_enabled;		/**< if true, debug messages are printed */
+	union DeviceId	_device_id;             /**< device identifier information */
 
 	/**
 	 * Constructor
