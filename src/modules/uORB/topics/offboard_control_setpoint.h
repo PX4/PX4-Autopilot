@@ -87,7 +87,6 @@ struct offboard_control_setpoint_s {
 	float attitude[4];	/**< attitude of vehicle (quaternion) */
 	float attitude_rate[3];	/**< body angular rates (x, y, z) */
 
-	//XXX: use a bitmask with wrapper functions instead
 	uint16_t ignore; /**< if field i is set to true, pi should be ignored */
 	bool isForceSetpoint; /**< the acceleration vector should be interpreted as force */
 
