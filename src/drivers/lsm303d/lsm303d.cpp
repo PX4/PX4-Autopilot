@@ -1797,6 +1797,7 @@ void	reset();
 void	info();
 void	regdump();
 void	logging();
+void	usage();
 
 /**
  * Start the driver.
@@ -2013,16 +2014,16 @@ logging()
 	exit(0);
 }
 
-
-} // namespace
-
 void
-lsm303d_usage()
+usage()
 {
 	warnx("missing command: try 'start', 'info', 'test', 'reset', 'regdump', 'logging'");
 	warnx("options:");
 	warnx("    -X    (external bus)");
+	warnx("    -R rotation");
 }
+
+} // namespace
 
 int
 lsm303d_main(int argc, char *argv[])
@@ -2041,7 +2042,7 @@ lsm303d_main(int argc, char *argv[])
 			rotation = (enum Rotation)atoi(optarg);
 			break;
 		default:
-			lsm303d_usage();
+			lsm303d::usage();
 			exit(0);
 		}
 	}
