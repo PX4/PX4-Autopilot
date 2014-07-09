@@ -414,6 +414,17 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_attitude_sp_pub(-1),
 	_nav_capabilities_pub(-1),
 
+	_att(),
+	_att_sp(),
+	_nav_capabilities(),
+	_manual(),
+	_airspeed(),
+	_control_mode(),
+	_global_pos(),
+	_pos_sp_triplet(),
+	_sensor_combined(),
+	_range_finder(),
+
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
 
@@ -433,18 +444,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_airspeed_valid(false),
 	_groundspeed_undershoot(0.0f),
 	_global_pos_valid(false),
-	_att(),
-	_att_sp(),
-	_nav_capabilities(),
-	_manual(),
-	_airspeed(),
-	_control_mode(),
-	_global_pos(),
-	_pos_sp_triplet(),
-	_sensor_combined(),
 	_mTecs(),
-	_was_pos_control_mode(false),
-	_range_finder()
+	_was_pos_control_mode(false)
 {
 	_nav_capabilities.turn_distance = 0.0f;
 
@@ -806,12 +807,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
 
-	// XXX re-visit
-	float baro_altitude = _global_pos.alt;
-
 	/* filter speed and altitude for controller */
 	math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
-	math::Vector<3> accel_earth = _R_nb * accel_body;
 
 	float altitude_error = _pos_sp_triplet.current.alt - _global_pos.alt;
 
@@ -944,8 +941,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			float airspeed_land = 1.3f * _parameters.airspeed_min;
 			float airspeed_approach = 1.3f * _parameters.airspeed_min;
 
-			/* Calculate distance (to landing waypoint) and altitude of last ordinary waypoint L */
-			float L_wp_distance = get_distance_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1));
+			/* Calculate altitude of last ordinary waypoint L */
 			float L_altitude_rel = _pos_sp_triplet.previous.valid ? _pos_sp_triplet.previous.alt - _pos_sp_triplet.current.alt : 0.0f;
 
 			float bearing_airplane_currwp = get_bearing_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
@@ -1449,7 +1445,7 @@ FixedwingPositionControl::start()
 	_control_task = task_spawn_cmd("fw_pos_control_l1",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       4048,
+				       3500,
 				       (main_t)&FixedwingPositionControl::task_main_trampoline,
 				       nullptr);
 

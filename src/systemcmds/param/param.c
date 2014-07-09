@@ -46,6 +46,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <math.h>
 #include <sys/stat.h>
 
 #include <arch/board/board.h>
@@ -228,9 +229,8 @@ do_show_print(void *arg, param_t param)
 	if (!(arg == NULL)) {
 
 		/* start search */
-		char *ss = search_string;
-		char *pp = p_name;
-		bool mismatch = false;
+		const char *ss = search_string;
+		const char *pp = p_name;
 
 		/* XXX this comparison is only ok for trailing wildcards */
 		while (*ss != '\0' && *pp != '\0') {

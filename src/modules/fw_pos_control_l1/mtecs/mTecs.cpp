@@ -220,7 +220,7 @@ int mTecs::updateFlightPathAngleAcceleration(float flightPathAngle, float flight
 	/* Apply overrride given by the limitOverride argument (this is used for limits which are not given by
 	 * parameters such as pitch limits with takeoff waypoints or throttle limits when the launchdetector
 	 * is running) */
-	bool limitApplied = limitOverride.applyOverride(*outputLimiterThrottle, *outputLimiterPitch);
+	limitOverride.applyOverride(*outputLimiterThrottle, *outputLimiterPitch);
 
 	/* Write part of the status message */
 	_status.flightPathAngleSp = flightPathAngleSp;

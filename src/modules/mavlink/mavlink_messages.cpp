@@ -677,7 +677,7 @@ protected:
 						     cm_uint16_from_m_float(gps.epv),
 						     gps.vel_m_s * 100.0f,
 						     _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F * 1e2f,
-						     gps.satellites_visible);
+						     gps.satellites_used);
 		}
 	}
 };

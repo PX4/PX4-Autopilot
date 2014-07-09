@@ -64,6 +64,7 @@ public:
 	 */
 	virtual ~MissionBlock();
 
+protected:
 	/**
 	 * Check if mission item has been reached
 	 * @return true if successfully reached
@@ -85,22 +86,17 @@ public:
     /**
      * Set previous position setpoint to current setpoint
      */
-	void set_previous_pos_setpoint(struct position_setpoint_triplet_s *pos_sp_triplet);
+	void set_previous_pos_setpoint();
 
 	/**
-	 * Set a loiter item, if possible reuse the position setpoint, otherwise take the current position
-	 *
-	 * @param the position setpoint triplet to set
-	 * @return true if setpoint has changed
+	 * Set a loiter mission item, if possible reuse the position setpoint, otherwise take the current position
 	 */
-	bool set_loiter_item(position_setpoint_triplet_s *pos_sp_triplet);
+	void set_loiter_item(struct mission_item_s *item);
 
+	mission_item_s _mission_item;
 	bool _waypoint_position_reached;
 	bool _waypoint_yaw_reached;
 	hrt_abstime _time_first_inside_orbit;
-
-	mission_item_s _mission_item;
-	bool _mission_item_valid;
 };
 
 #endif
