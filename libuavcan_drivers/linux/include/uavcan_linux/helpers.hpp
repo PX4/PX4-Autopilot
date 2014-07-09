@@ -217,6 +217,9 @@ public:
         p->startPeriodic(period);
         return p;
     }
+
+    const DriverPackPtr& getDriverPack() const { return driver_pack_; }
+    DriverPackPtr& getDriverPack() { return driver_pack_; }
 };
 
 typedef std::shared_ptr<Node> NodePtr;
