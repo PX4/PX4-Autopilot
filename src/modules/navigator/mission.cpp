@@ -72,10 +72,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_mission_result({0}),
 	_mission_type(MISSION_TYPE_NONE),
 	_inited(false),
-	_dist_1wp_ok(false),
-	_need_takeoff(true),
-	_takeoff(false)
-
+	_dist_1wp_ok(false)
 {
 	/* load initial params */
 	updateParams();
@@ -203,7 +200,7 @@ Mission::update_offboard_mission()
 
 		/* Check mission feasibility, for now do not handle the return value,
 		 * however warnings are issued to the gcs via mavlink from inside the MissionFeasiblityChecker */
-		dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_transfer_dataman_id);
+		dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
 
 		missionFeasiblityChecker.checkMissionFeasible(_navigator->get_vstatus()->is_rotary_wing,
 				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
@@ -252,13 +249,12 @@ Mission::check_dist_1wp()
 	}
 
 	/* check if first waypoint is not too far from home */
-	bool mission_valid = false;
 	if (_param_dist_1wp.get() > 0.0f) {
 		if (_navigator->get_vstatus()->condition_home_position_valid) {
 			struct mission_item_s mission_item;
 
 			/* find first waypoint (with lat/lon) item in datamanager */
-			for (int i = 0; i < _offboard_mission.count; i++) {
+			for (unsigned i = 0; i < _offboard_mission.count; i++) {
 				if (dm_read(DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id), i,
 						&mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s)) {
 
@@ -281,7 +277,7 @@ Mission::check_dist_1wp()
 
 						} else {
 							/* item is too far from home */
-							mavlink_log_info(_navigator->get_mavlink_fd(), "first wp is too far from home: %.1fm > %.1fm", dist_to_1wp, _param_dist_1wp.get());
+							mavlink_log_info(_navigator->get_mavlink_fd(), "first wp is too far from home: %.1fm > %.1fm", (double)dist_to_1wp, (double)_param_dist_1wp.get());
 							return false;
 						}
 					}

@@ -226,8 +226,9 @@ Mavlink::Mavlink() :
 	_main_loop_delay(1000),
 	_subscriptions(nullptr),
 	_streams(nullptr),
-	_mission_result_sub(-1),
+	_mission_manager(nullptr),
 	_mission_pub(-1),
+	_mission_result_sub(-1),
 	_mode(MAVLINK_MODE_NORMAL),
 	_total_counter(0),
 	_verbose(false),
@@ -245,7 +246,6 @@ Mavlink::Mavlink() :
 	_param_component_id(0),
 	_param_system_type(0),
 	_param_use_hil_gps(0),
-	_mission_manager(nullptr),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
