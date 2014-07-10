@@ -216,7 +216,7 @@ MavlinkMissionManager::send_mission_count(uint8_t sysid, uint8_t compid, uint16_
 void
 MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t seq)
 {
-	dm_item_t dm_item = _dataman_id == 0 ? DM_KEY_WAYPOINTS_OFFBOARD_0 : DM_KEY_WAYPOINTS_OFFBOARD_1;
+	dm_item_t dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_dataman_id);
 	struct mission_item_s mission_item;
 
 	if (dm_read(dm_item, seq, &mission_item, sizeof(struct mission_item_s)) == sizeof(struct mission_item_s)) {
@@ -650,7 +650,7 @@ MavlinkMissionManager::handle_mission_item(const mavlink_message_t *msg)
 			return;
 		}
 
-		dm_item_t dm_item = _transfer_dataman_id == 0 ? DM_KEY_WAYPOINTS_OFFBOARD_0 : DM_KEY_WAYPOINTS_OFFBOARD_1;
+		dm_item_t dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_transfer_dataman_id);
 
 		if (dm_write(dm_item, wp.seq, DM_PERSIST_POWER_ON_RESET, &mission_item, sizeof(struct mission_item_s)) != sizeof(struct mission_item_s)) {
 			if (_verbose) { warnx("WPM: MISSION_ITEM ERROR: error writing seq %u to dataman ID %i", wp.seq, _transfer_dataman_id); }
