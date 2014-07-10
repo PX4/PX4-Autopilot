@@ -52,6 +52,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/airspeed.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
@@ -666,29 +667,21 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 	}
 
 	if (!status->is_rotary_wing) {
-		fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
 
-		if (fd < 0) {
+		fd = orb_subscribe(ORB_ID(airspeed));
+
+		struct airspeed_s airspeed;
+
+		if (ret = orb_copy(ORB_ID(airspeed), fd, &airspeed) ||
+			hrt_elapsed_time(&airspeed.timestamp) > 50 * 1000) {
 			mavlink_log_critical(mavlink_fd, "#audio: FAIL: AIRSPEED SENSOR MISSING");
-			ret = fd;
 			goto system_eval;
 		}
 
-		struct differential_pressure_s diff_pres;
-
-		ret = read(fd, &diff_pres, sizeof(diff_pres));
-
-		if (ret == sizeof(diff_pres)) {
-			if (fabsf(diff_pres.differential_pressure_filtered_pa > 5.0f)) {
-				mavlink_log_critical(mavlink_fd, "#audio: WARNING AIRSPEED CALIBRATION MISSING");
-				// XXX do not make this fatal yet
-				ret = OK;
-			}
-		} else {
-			mavlink_log_critical(mavlink_fd, "#audio: FAIL: AIRSPEED READ");
-			/* this is frickin' fatal */
-			ret = ERROR;
-			goto system_eval;
+		if (fabsf(airspeed.indicated_airspeed_m_s > 5.0f)) {
+			mavlink_log_critical(mavlink_fd, "#audio: WARNING AIRSPEED CALIBRATION MISSING");
+			// XXX do not make this fatal yet
+			ret = OK;
 		}
 	}
 
