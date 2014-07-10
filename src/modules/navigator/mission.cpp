@@ -66,6 +66,8 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_offboard_mission({0}),
 	_current_onboard_mission_index(-1),
 	_current_offboard_mission_index(-1),
+	_need_takeoff(true),
+	_takeoff(false),
 	_mission_result_pub(-1),
 	_mission_result({0}),
 	_mission_type(MISSION_TYPE_NONE),
@@ -399,7 +401,7 @@ Mission::set_mission_items()
 			takeoff_alt = fmaxf(takeoff_alt, _navigator->get_home_position()->alt + _param_takeoff_alt.get());
 		}
 
-		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: takeoff to %.1fm above home", takeoff_alt - _navigator->get_home_position()->alt);
+		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: takeoff to %.1fm above home", (double)(takeoff_alt - _navigator->get_home_position()->alt));
 
 		_mission_item.lat = _navigator->get_global_position()->lat;
 		_mission_item.lon = _navigator->get_global_position()->lon;

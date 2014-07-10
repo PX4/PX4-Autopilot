@@ -1,6 +1,6 @@
-/****************************************************************************
+/***************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,63 +30,43 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file rc_channels.h
- * Definition of the rc_channels uORB topic.
+ * @file offboard.h
+ *
+ * Helper class for offboard commands
+ *
+ * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef RC_CHANNELS_H_
-#define RC_CHANNELS_H_
+#ifndef NAVIGATOR_OFFBOARD_H
+#define NAVIGATOR_OFFBOARD_H
 
-#include <stdint.h>
-#include "../uORB.h"
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
 
-/**
- * This defines the mapping of the RC functions.
- * The value assigned to the specific function corresponds to the entry of
- * the channel array channels[].
- */
-enum RC_CHANNELS_FUNCTION {
-	THROTTLE = 0,
-	ROLL,
-	PITCH,
-	YAW,
-	MODE,
-	RETURN,
-	POSCTL,
-	LOITER,
-	OFFBOARD,
-	ACRO,
-	FLAPS,
-	AUX_1,
-	AUX_2,
-	AUX_3,
-	AUX_4,
-	AUX_5,
-	RC_CHANNELS_FUNCTION_MAX /**< Indicates the number of functions. There can be more functions than RC channels. */
+#include <uORB/uORB.h>
+#include <uORB/topics/offboard_control_setpoint.h>
+
+#include "navigator_mode.h"
+
+class Navigator;
+
+class Offboard : public NavigatorMode
+{
+public:
+	Offboard(Navigator *navigator, const char *name);
+
+	~Offboard();
+
+	virtual void on_inactive();
+
+	virtual void on_activation();
+
+	virtual void on_active();
+private:
+	void update_offboard_control_setpoint();
+
+	struct offboard_control_setpoint_s _offboard_control_sp;
 };
-
-/**
- * @addtogroup topics
- * @{
- */
-struct rc_channels_s {
-	uint64_t timestamp;									/**< Timestamp in microseconds since boot time */
-	uint64_t timestamp_last_valid;						/**< Timestamp of last valid RC signal */
-	float channels[RC_CHANNELS_FUNCTION_MAX];			/**< Scaled to -1..1 (throttle: 0..1) */
-	uint8_t channel_count;								/**< Number of valid channels */
-	char function_name[RC_CHANNELS_FUNCTION_MAX][20];	/**< String array to store the names of the functions */
-	int8_t function[RC_CHANNELS_FUNCTION_MAX];			/**< Functions mapping */
-	uint8_t rssi;										/**< Receive signal strength index */
-	bool signal_lost;									/**< Control signal lost, should be checked together with topic timeout */
-}; /**< radio control channels. */
-
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(rc_channels);
 
 #endif

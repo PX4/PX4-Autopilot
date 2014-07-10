@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,61 +32,34 @@
  ****************************************************************************/
 
 /**
- * @file rc_channels.h
- * Definition of the rc_channels uORB topic.
+ * @file vehicle_force_setpoint.h
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ * Definition of force (NED) setpoint uORB topic. Typically this can be used
+ * by a position control app together with an attitude control app.
  */
 
-#ifndef RC_CHANNELS_H_
-#define RC_CHANNELS_H_
+#ifndef TOPIC_VEHICLE_FORCE_SETPOINT_H_
+#define TOPIC_VEHICLE_FORCE_SETPOINT_H_
 
-#include <stdint.h>
 #include "../uORB.h"
-
-/**
- * This defines the mapping of the RC functions.
- * The value assigned to the specific function corresponds to the entry of
- * the channel array channels[].
- */
-enum RC_CHANNELS_FUNCTION {
-	THROTTLE = 0,
-	ROLL,
-	PITCH,
-	YAW,
-	MODE,
-	RETURN,
-	POSCTL,
-	LOITER,
-	OFFBOARD,
-	ACRO,
-	FLAPS,
-	AUX_1,
-	AUX_2,
-	AUX_3,
-	AUX_4,
-	AUX_5,
-	RC_CHANNELS_FUNCTION_MAX /**< Indicates the number of functions. There can be more functions than RC channels. */
-};
 
 /**
  * @addtogroup topics
  * @{
  */
-struct rc_channels_s {
-	uint64_t timestamp;									/**< Timestamp in microseconds since boot time */
-	uint64_t timestamp_last_valid;						/**< Timestamp of last valid RC signal */
-	float channels[RC_CHANNELS_FUNCTION_MAX];			/**< Scaled to -1..1 (throttle: 0..1) */
-	uint8_t channel_count;								/**< Number of valid channels */
-	char function_name[RC_CHANNELS_FUNCTION_MAX][20];	/**< String array to store the names of the functions */
-	int8_t function[RC_CHANNELS_FUNCTION_MAX];			/**< Functions mapping */
-	uint8_t rssi;										/**< Receive signal strength index */
-	bool signal_lost;									/**< Control signal lost, should be checked together with topic timeout */
-}; /**< radio control channels. */
+
+struct vehicle_force_setpoint_s {
+	float x;		/**< in N NED			  		*/
+	float y;		/**< in N NED			  		*/
+	float z;		/**< in N NED			  		*/
+	float yaw;		/**< right-hand rotation around downward axis (rad, equivalent to Tait-Bryan yaw) */
+}; /**< Desired force in NED frame */
 
 /**
  * @}
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(rc_channels);
+ORB_DECLARE(vehicle_force_setpoint);
 
 #endif

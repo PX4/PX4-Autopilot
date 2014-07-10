@@ -231,7 +231,6 @@ do_show_print(void *arg, param_t param)
 		/* start search */
 		const char *ss = search_string;
 		const char *pp = p_name;
-		bool mismatch = false;
 
 		/* XXX this comparison is only ok for trailing wildcards */
 		while (*ss != '\0' && *pp != '\0') {

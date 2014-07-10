@@ -57,10 +57,10 @@
 
 MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	NavigatorMode(navigator, name),
+	_mission_item({0}),
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
-	_time_first_inside_orbit(0),
-	_mission_item({0})
+	_time_first_inside_orbit(0)
 {
 }
 
