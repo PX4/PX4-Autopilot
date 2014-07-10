@@ -95,10 +95,8 @@ int do_airspeed_calibration(int mavlink_fd)
 	}
 
 	if (!paramreset_successful) {
-		warn("FAILED to set scale / offsets for airspeed");
-		mavlink_log_critical(mavlink_fd, "dpress reset failed");
-		mavlink_log_info(mavlink_fd, CAL_FAILED_MSG, sensor_name);
-		return ERROR;
+		warn("FAILED to reset - assuming analog");
+		mavlink_log_critical(mavlink_fd, "assuming analog sensor");
 	}
 
 	while (calibration_counter < calibration_count) {
