@@ -66,4 +66,6 @@ uint8_t st24_common_crc8(uint8_t *ptr, uint8_t len)
 }
 
 
-uint8_t st24_decode(uint8_t byte, uint8_t *rssi, uint8_t* rx_count, uint16_t *channels, uint16_t max_chan_count)
+uint8_t st24_decode(uint8_t byte, uint8_t *rssi, uint8_t* rx_count, uint16_t *channels, uint16_t max_chan_count) {
+
+}
