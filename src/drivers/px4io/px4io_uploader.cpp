@@ -432,8 +432,8 @@ PX4IO_Uploader::program(size_t fw_size)
 	while (sent < fw_size) {
 		/* get more bytes to program */
 		size_t n = fw_size - sent;
-		if (n > sizeof(file_buf)) {
-			n = sizeof(file_buf);
+		if (n > PROG_MULTI_MAX) {
+			n = PROG_MULTI_MAX;
 		}
 		count = read_with_retry(_fw_fd, file_buf, n);
 
