@@ -252,7 +252,7 @@ Mission::set_mission_items()
 	set_previous_pos_setpoint();
 
 	/* try setting onboard mission item */
-	if (_param_onboard_enabled.get() && read_mission_item(true, true, &_mission_item)) {
+	if (static_cast<int>(_param_onboard_enabled.get() + 0.5f) && read_mission_item(true, true, &_mission_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_ONBOARD) {
 			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: onboard mission running");
