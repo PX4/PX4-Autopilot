@@ -4,6 +4,7 @@
 
 '''
 Python UAVCAN package.
+Supported Python versions: 3.2+, 2.7.
 Currently it implements only a DSDL parser (refer to the submodule 'dsdl').
 '''
 
