@@ -1,6 +1,6 @@
-/****************************************************************************
+/***************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,69 +30,43 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file Rangefinder driver interface.
- */
-
-#ifndef _DRV_RANGEFINDER_H
-#define _DRV_RANGEFINDER_H
-
-#include <stdint.h>
-#include <sys/ioctl.h>
-
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
-
-#define RANGE_FINDER_DEVICE_PATH	"/dev/range_finder"
-
-enum RANGE_FINDER_TYPE {
-	RANGE_FINDER_TYPE_LASER = 0,
-};
-
-/**
- * @addtogroup topics
- * @{
- */
-
-/**
- * range finder report structure.  Reads from the device must be in multiples of this
- * structure.
- */
-struct range_finder_report {
-	uint64_t timestamp;
-	uint64_t error_count;
-	unsigned type;				/**< type, following RANGE_FINDER_TYPE enum */
-	float distance; 			/**< in meters */
-	float minimum_distance;			/**< minimum distance the sensor can measure */
-	float maximum_distance;			/**< maximum distance the sensor can measure */
-	uint8_t valid;				/**< 1 == within sensor range, 0 = outside sensor range */
-};
-
-/**
- * @}
- */
-
-/*
- * ObjDev tag for raw range finder data.
- */
-ORB_DECLARE(sensor_range_finder);
-
-/*
- * ioctl() definitions
+ * @file offboard.h
  *
- * Rangefinder drivers also implement the generic sensor driver
- * interfaces from drv_sensor.h
+ * Helper class for offboard commands
+ *
+ * @author Julian Oes <julian@oes.ch>
  */
 
-#define _RANGEFINDERIOCBASE			(0x7900)
-#define __RANGEFINDERIOC(_n)		(_IOC(_RANGEFINDERIOCBASE, _n))
+#ifndef NAVIGATOR_OFFBOARD_H
+#define NAVIGATOR_OFFBOARD_H
 
-/** set the minimum effective distance of the device */
-#define RANGEFINDERIOCSETMINIUMDISTANCE	__RANGEFINDERIOC(1)
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
 
-/** set the maximum effective distance of the device */
-#define RANGEFINDERIOCSETMAXIUMDISTANCE	__RANGEFINDERIOC(2)
+#include <uORB/uORB.h>
+#include <uORB/topics/offboard_control_setpoint.h>
 
+#include "navigator_mode.h"
 
-#endif /* _DRV_RANGEFINDER_H */
+class Navigator;
+
+class Offboard : public NavigatorMode
+{
+public:
+	Offboard(Navigator *navigator, const char *name);
+
+	~Offboard();
+
+	virtual void on_inactive();
+
+	virtual void on_activation();
+
+	virtual void on_active();
+private:
+	void update_offboard_control_setpoint();
+
+	struct offboard_control_setpoint_s _offboard_control_sp;
+};
+
+#endif

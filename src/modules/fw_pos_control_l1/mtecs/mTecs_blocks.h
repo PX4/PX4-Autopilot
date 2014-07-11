@@ -56,9 +56,9 @@ class BlockOutputLimiter: public SuperBlock
 {
 public:
 // methods
-	BlockOutputLimiter(SuperBlock *parent, const char *name, bool isAngularLimit = false) :
+	BlockOutputLimiter(SuperBlock *parent, const char *name, bool fAngularLimit = false) :
 		SuperBlock(parent, name),
-		_isAngularLimit(isAngularLimit),
+		_isAngularLimit(fAngularLimit),
 		_min(this, "MIN"),
 		_max(this, "MAX")
 	{};

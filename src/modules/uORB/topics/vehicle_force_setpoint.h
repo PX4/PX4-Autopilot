@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,67 +32,34 @@
  ****************************************************************************/
 
 /**
- * @file Rangefinder driver interface.
+ * @file vehicle_force_setpoint.h
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ * Definition of force (NED) setpoint uORB topic. Typically this can be used
+ * by a position control app together with an attitude control app.
  */
 
-#ifndef _DRV_RANGEFINDER_H
-#define _DRV_RANGEFINDER_H
+#ifndef TOPIC_VEHICLE_FORCE_SETPOINT_H_
+#define TOPIC_VEHICLE_FORCE_SETPOINT_H_
 
-#include <stdint.h>
-#include <sys/ioctl.h>
-
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
-
-#define RANGE_FINDER_DEVICE_PATH	"/dev/range_finder"
-
-enum RANGE_FINDER_TYPE {
-	RANGE_FINDER_TYPE_LASER = 0,
-};
+#include "../uORB.h"
 
 /**
  * @addtogroup topics
  * @{
  */
 
-/**
- * range finder report structure.  Reads from the device must be in multiples of this
- * structure.
- */
-struct range_finder_report {
-	uint64_t timestamp;
-	uint64_t error_count;
-	unsigned type;				/**< type, following RANGE_FINDER_TYPE enum */
-	float distance; 			/**< in meters */
-	float minimum_distance;			/**< minimum distance the sensor can measure */
-	float maximum_distance;			/**< maximum distance the sensor can measure */
-	uint8_t valid;				/**< 1 == within sensor range, 0 = outside sensor range */
-};
+struct vehicle_force_setpoint_s {
+	float x;		/**< in N NED			  		*/
+	float y;		/**< in N NED			  		*/
+	float z;		/**< in N NED			  		*/
+	float yaw;		/**< right-hand rotation around downward axis (rad, equivalent to Tait-Bryan yaw) */
+}; /**< Desired force in NED frame */
 
 /**
  * @}
  */
 
-/*
- * ObjDev tag for raw range finder data.
- */
-ORB_DECLARE(sensor_range_finder);
+/* register this as object request broker structure */
+ORB_DECLARE(vehicle_force_setpoint);
 
-/*
- * ioctl() definitions
- *
- * Rangefinder drivers also implement the generic sensor driver
- * interfaces from drv_sensor.h
- */
-
-#define _RANGEFINDERIOCBASE			(0x7900)
-#define __RANGEFINDERIOC(_n)		(_IOC(_RANGEFINDERIOCBASE, _n))
-
-/** set the minimum effective distance of the device */
-#define RANGEFINDERIOCSETMINIUMDISTANCE	__RANGEFINDERIOC(1)
-
-/** set the maximum effective distance of the device */
-#define RANGEFINDERIOCSETMAXIUMDISTANCE	__RANGEFINDERIOC(2)
-
-
-#endif /* _DRV_RANGEFINDER_H */
+#endif

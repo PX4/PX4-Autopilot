@@ -276,18 +276,7 @@ struct log_DIST_s {
 	uint8_t flags;
 };
 
-/* --- TELE - TELEMETRY STATUS --- */
-#define LOG_TELE_MSG 22
-struct log_TELE_s {
-	uint8_t rssi;
-	uint8_t remote_rssi;
-	uint8_t noise;
-	uint8_t remote_noise;
-	uint16_t rxerrors;
-	uint16_t fixed;
-	uint8_t txbuf;
-};
-
+// ID 22 available
 // ID 23 available
 
 /* --- PWR - ONBOARD POWER SYSTEM --- */
@@ -385,6 +374,23 @@ struct log_EST1_s {
 	float s[16];
 };
 
+/* --- TEL0..3 - TELEMETRY STATUS --- */
+#define LOG_TEL0_MSG 34
+#define LOG_TEL1_MSG 35
+#define LOG_TEL2_MSG 36
+#define LOG_TEL3_MSG 37
+struct log_TEL_s {
+	uint8_t rssi;
+	uint8_t remote_rssi;
+	uint8_t noise;
+	uint8_t remote_noise;
+	uint16_t rxerrors;
+	uint16_t fixed;
+	uint8_t txbuf;
+	uint64_t heartbeat_time;
+};
+
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -432,7 +438,10 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GVSP, "fff",			"VX,VY,VZ"),
 	LOG_FORMAT(BATT, "ffff",		"V,VFilt,C,Discharged"),
 	LOG_FORMAT(DIST, "ffB",			"Bottom,BottomRate,Flags"),
-	LOG_FORMAT(TELE, "BBBBHHB",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf"),
+	LOG_FORMAT_S(TEL0, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
+	LOG_FORMAT_S(TEL1, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
+	LOG_FORMAT_S(TEL2, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
+	LOG_FORMAT_S(TEL3, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
 	LOG_FORMAT(EST0, "ffffffffffffBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,nStat,fNaN,fHealth,fTOut"),
 	LOG_FORMAT(EST1, "ffffffffffffffff",	"s12,s13,s14,s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27"),
 	LOG_FORMAT(PWR, "fffBBBBB",		"Periph5V,Servo5V,RSSI,UsbOk,BrickOk,ServoOk,PeriphOC,HipwrOC"),

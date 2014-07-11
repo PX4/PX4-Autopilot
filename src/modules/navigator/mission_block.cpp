@@ -47,6 +47,7 @@
 
 #include <systemlib/err.h>
 #include <geo/geo.h>
+#include <mavlink/mavlink_log.h>
 
 #include <uORB/uORB.h>
 
@@ -56,11 +57,10 @@
 
 MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	NavigatorMode(navigator, name),
+	_mission_item({0}),
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
-	_time_first_inside_orbit(0),
-	_mission_item({0}),
-	_mission_item_valid(false)
+	_time_first_inside_orbit(0)
 {
 }
 
@@ -71,6 +71,10 @@ MissionBlock::~MissionBlock()
 bool
 MissionBlock::is_mission_item_reached()
 {
+	if (_mission_item.nav_cmd == NAV_CMD_IDLE) {
+		return false;
+	}
+
 	if (_mission_item.nav_cmd == NAV_CMD_LAND) {
 		return _navigator->get_vstatus()->condition_landed;
 	}
@@ -84,7 +88,6 @@ MissionBlock::is_mission_item_reached()
 	hrt_abstime now = hrt_absolute_time();
 
 	if (!_waypoint_position_reached) {
-
 		float dist = -1.0f;
 		float dist_xy = -1.0f;
 		float dist_z = -1.0f;
@@ -201,44 +204,48 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 }
 
 void
-MissionBlock::set_previous_pos_setpoint(struct position_setpoint_triplet_s *pos_sp_triplet)
+MissionBlock::set_previous_pos_setpoint()
 {
-    /* reuse current setpoint as previous setpoint */
+	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
     if (pos_sp_triplet->current.valid) {
         memcpy(&pos_sp_triplet->previous, &pos_sp_triplet->current, sizeof(struct position_setpoint_s));
     }
 }
 
-bool
-MissionBlock::set_loiter_item(struct position_setpoint_triplet_s *pos_sp_triplet)
+void
+MissionBlock::set_loiter_item(struct mission_item_s *item)
 {
-    /* don't change setpoint if 'can_loiter_at_sp' flag set */
-	if (!(_navigator->get_can_loiter_at_sp() && pos_sp_triplet->current.valid)) {
-		/* use current position */
-		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
-		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
-		pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
-		pos_sp_triplet->current.yaw = NAN;	/* NAN means to use current yaw */
+	if (_navigator->get_vstatus()->condition_landed) {
+		/* landed, don't takeoff, but switch to IDLE mode */
+		item->nav_cmd = NAV_CMD_IDLE;
 
-	    _navigator->set_can_loiter_at_sp(true);
+	} else {
+		item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+
+		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+		if (_navigator->get_can_loiter_at_sp() && pos_sp_triplet->current.valid) {
+			/* use current position setpoint */
+			item->lat = pos_sp_triplet->current.lat;
+			item->lon = pos_sp_triplet->current.lon;
+			item->altitude = pos_sp_triplet->current.alt;
+
+		} else {
+			/* use current position */
+			item->lat = _navigator->get_global_position()->lat;
+			item->lon = _navigator->get_global_position()->lon;
+			item->altitude = _navigator->get_global_position()->alt;
+		}
+
+		item->altitude_is_relative = false;
+		item->yaw = NAN;
+		item->loiter_radius = _navigator->get_loiter_radius();
+		item->loiter_direction = 1;
+		item->acceptance_radius = _navigator->get_acceptance_radius();
+		item->time_inside = 0.0f;
+		item->pitch_min = 0.0f;
+		item->autocontinue = false;
+		item->origin = ORIGIN_ONBOARD;
 	}
-
-    if (pos_sp_triplet->current.type != SETPOINT_TYPE_LOITER
-            || (fabsf(pos_sp_triplet->current.loiter_radius - _navigator->get_loiter_radius()) > FLT_EPSILON)
-            || pos_sp_triplet->current.loiter_direction != 1
-            || pos_sp_triplet->previous.valid
-            || !pos_sp_triplet->current.valid
-            || pos_sp_triplet->next.valid) {
-        /* position setpoint triplet should be updated */
-        pos_sp_triplet->current.type = SETPOINT_TYPE_LOITER;
-        pos_sp_triplet->current.loiter_radius = _navigator->get_loiter_radius();
-        pos_sp_triplet->current.loiter_direction = 1;
-
-        pos_sp_triplet->previous.valid = false;
-        pos_sp_triplet->current.valid = true;
-        pos_sp_triplet->next.valid = false;
-        return true;
-    }
-
-    return false;
 }
