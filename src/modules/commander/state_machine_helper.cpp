@@ -647,7 +647,7 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 		float accel_scale = sqrtf(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
 
 		if (accel_scale < 9.75f || accel_scale > 9.85f) {
-			mavlink_log_info(mavlink_fd, "#audio: Accelerometer calibration recommended.");
+			mavlink_log_info(mavlink_fd, "#audio: Accel calib. recommended (%8.4f).", (double)accel_scale);
 		}
 
 		if (accel_scale > 30.0f /* m/s^2 */) {
