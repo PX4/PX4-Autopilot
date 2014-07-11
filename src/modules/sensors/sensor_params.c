@@ -194,16 +194,22 @@ PARAM_DEFINE_FLOAT(SENS_ACC_ZSCALE, 1.0f);
 /**
  * Differential pressure sensor offset
  *
+ * The offset (zero-reading) in Pascal
+ *
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_DPRES_OFF, 0.0f);
 
 /**
- * Differential pressure sensor analog enabled
+ * Differential pressure sensor analog scaling
+ *
+ * Pick the appropriate scaling from the datasheet.
+ * this number defines the (linear) conversion from voltage
+ * to Pascal (pa).
  *
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(SENS_DPRES_ANA, 0);
+PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0);
 
 
 /**
