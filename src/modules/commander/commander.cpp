@@ -308,7 +308,7 @@ int commander_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	if (!strcmp(argv[1], "2")) {
+	if (!strcmp(argv[1], "disarm")) {
 		arm_disarm(false, mavlink_fd, "command line");
 		exit(0);
 	}
