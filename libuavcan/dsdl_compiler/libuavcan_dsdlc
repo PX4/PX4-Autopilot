@@ -34,7 +34,9 @@ argparser = argparse.ArgumentParser(description=DESCRIPTION)
 argparser.add_argument('source_dir', nargs='+', help='source directory with DSDL definitions')
 argparser.add_argument('--verbose', '-v', action='count', help='verbosity level (-v, -vv)')
 argparser.add_argument('--outdir', '-O', default=DEFAULT_OUTDIR, help='output directory, default %s' % DEFAULT_OUTDIR)
-argparser.add_argument('--incdir', '-I', default=[], action='append', help='nested type namespaces')
+argparser.add_argument('--incdir', '-I', default=[], action='append', help=
+'''nested type namespaces, one path per argument. Can be also specified through the environment variable
+UAVCAN_DSDL_INCLUDE_PATH, where the path entries are separated by colons ":"''')
 args = argparser.parse_args()
 
 configure_logging(args.verbose)
