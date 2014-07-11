@@ -76,7 +76,7 @@ int do_airspeed_calibration(int mavlink_fd)
 
 	/* Reset sensor parameters */
 	struct airspeed_scale airscale = {
-		0.0f,
+		diff_pres_offset,
 		1.0f,
 	};
 
@@ -97,6 +97,12 @@ int do_airspeed_calibration(int mavlink_fd)
 	if (!paramreset_successful) {
 		warn("FAILED to reset - assuming analog");
 		mavlink_log_critical(mavlink_fd, "assuming analog sensor");
+
+		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
+			mavlink_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);
+			close(diff_pres_sub);
+			return ERROR;
+		}
 	}
 
 	while (calibration_counter < calibration_count) {
