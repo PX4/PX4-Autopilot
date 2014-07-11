@@ -288,15 +288,22 @@ int commander_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	/* commands needing the app to run below */
+	if (!thread_running) {
+		warnx("\tcommander not started");
+		exit(1);
+	}
+
 	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			warnx("\tcommander is running");
-			print_status();
+		print_status();
+		exit(0);
+	}
 
-		} else {
-			warnx("\tcommander not started");
-		}
-
+	if (!strcmp(argv[1], "check")) {
+		int mavlink_fd_local = open(MAVLINK_LOG_DEVICE, 0);
+		int checkres = prearm_check(&status, mavlink_fd_local);
+		close(mavlink_fd_local);
+		warnx("FINAL RESULT: %s", (checkres == 0) ? "OK" : "FAILED");
 		exit(0);
 	}
 
@@ -305,7 +312,7 @@ int commander_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	if (!strcmp(argv[1], "2")) {
+	if (!strcmp(argv[1], "disarm")) {
 		arm_disarm(false, mavlink_fd, "command line");
 		exit(0);
 	}
@@ -326,6 +333,7 @@ void usage(const char *reason)
 
 void print_status()
 {
+	warnx("type: %s", (status.is_rotary_wing) ? "ROTARY" : "PLANE");
 	warnx("usb powered: %s", (on_usb_power) ? "yes" : "no");
 
 	/* read all relevant states */
