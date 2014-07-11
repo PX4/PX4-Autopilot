@@ -30,14 +30,13 @@ then
 	param set FW_RR_I 0.005
 	param set FW_RR_IMAX 0.2
 	param set FW_RR_P 0.04
-	param set FW_THR_CRUISE 0.65
 	param set MT_TKF_PIT_MAX 30.0
 	param set MT_ACC_D 0.2
 	param set MT_ACC_P 0.6
 	param set MT_A_LP 0.5
 	param set MT_PIT_OFF 0.1
 	param set MT_PIT_I 0.1
-	param set MT_THR_OFF 0.12
+	param set MT_THR_OFF 0.65
 	param set MT_THR_I 0.35
 	param set MT_THR_P  0.2
 	param set MT_THR_FF 1.5
