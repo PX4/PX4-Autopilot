@@ -265,7 +265,6 @@ MEASAirspeed::collect()
 	}
 
 	report.differential_pressure_raw_pa = diff_press_pa_raw;
-	report.voltage = 0;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
 	if (_airspeed_pub > 0 && !(_pub_blocked)) {
