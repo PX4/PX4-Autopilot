@@ -1442,7 +1442,7 @@ void
 start(bool external_bus, enum Rotation rotation)
 {
 	int fd;
-        MPU6000 **g_dev_ptr = external_bus?&g_dev_int:&g_dev_ext;
+        MPU6000 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
 	const char *path_accel = external_bus?MPU_DEVICE_PATH_ACCEL_EXT:MPU_DEVICE_PATH_ACCEL;
 	const char *path_gyro  = external_bus?MPU_DEVICE_PATH_GYRO_EXT:MPU_DEVICE_PATH_GYRO;
 
@@ -1595,7 +1595,7 @@ reset(bool external_bus)
 void
 info(bool external_bus)
 {
-        MPU6000 **g_dev_ptr = external_bus?&g_dev_int:&g_dev_ext;
+        MPU6000 **g_dev_ptr = external_bus?&g_dev_ext:&g_dev_int;
 	if (*g_dev_ptr == nullptr)
 		errx(1, "driver not running");
 
