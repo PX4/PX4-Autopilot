@@ -26,6 +26,12 @@ DATA_TYPE_ID_MAX = 1023
 MAX_DATA_STRUCT_LEN_BYTES = 439
 
 class Type:
+    '''
+    Common type description. The specialized type description classes inherit from this one.
+    Fields:
+        full_name    Full type name string, e.g. "uavcan.protocol.NodeStatus"
+        category     Any CATEGORY_*
+    '''
     CATEGORY_PRIMITIVE = 0
     CATEGORY_ARRAY = 1
     CATEGORY_COMPOUND = 2
@@ -40,6 +46,14 @@ class Type:
     __repr__ = __str__
 
 class PrimitiveType(Type):
+    '''
+    Primitive type description, e.g. bool or float16.
+    Fields:
+        kind         Any KIND_*
+        bitlen       Bit length, 1 to 64
+        cast_mode    Any CAST_MODE_*
+        value_range  Tuple containing min and max values: (min, max)
+    '''
     KIND_BOOLEAN = 0
     KIND_UNSIGNED_INT = 1
     KIND_SIGNED_INT = 2
@@ -61,6 +75,7 @@ class PrimitiveType(Type):
         }[self.kind](bitlen)
 
     def get_normalized_definition(self):
+        '''Please refer to the specification for details about normalized definitions.'''
         cast_mode = 'saturated' if self.cast_mode == PrimitiveType.CAST_MODE_SATURATED else 'truncated'
         primary_type = {
             PrimitiveType.KIND_BOOLEAN: 'bool',
@@ -71,14 +86,23 @@ class PrimitiveType(Type):
         return cast_mode + ' ' + primary_type
 
     def validate_value_range(self, value):
+        '''Checks value range, throws DsdlException if the value cannot be represented by this type.'''
         low, high = self.value_range
         if not low <= value <= high:
             error('Value [%s] is out of range %s', value, self.value_range)
 
     def get_max_bitlen(self):
+        '''Returns type bit length.'''
         return self.bitlen
 
 class ArrayType(Type):
+    '''
+    Array type description, e.g. float32[8], uint12[<34].
+    Fields:
+        value_type    Description of the array value type; the type of this field inherits Type, e.g. PrimitiveType
+        mode          Any MODE_*
+        max_size      Maximum number of elements in the array
+    '''
     MODE_STATIC = 0
     MODE_DYNAMIC = 1
 
@@ -89,10 +113,12 @@ class ArrayType(Type):
         Type.__init__(self, self.get_normalized_definition(), Type.CATEGORY_ARRAY)
 
     def get_normalized_definition(self):
+        '''Please refer to the specification for details about normalized definitions.'''
         typedef = self.value_type.get_normalized_definition()
         return ('%s[<=%d]' if self.mode == ArrayType.MODE_DYNAMIC else '%s[%d]') % (typedef, self.max_size)
 
     def get_max_bitlen(self):
+        '''Returns total maximum bit length of the array, including length field if applicable.'''
         payload_max_bitlen = self.max_size * self.value_type.get_max_bitlen()
         return {
             self.MODE_DYNAMIC: payload_max_bitlen + self.max_size.bit_length(),
@@ -100,6 +126,31 @@ class ArrayType(Type):
         }[self.mode]
 
 class CompoundType(Type):
+    '''
+    Compound type description, e.g. uavcan.protocol.NodeStatus.
+    Fields:
+        source_file         Path to the DSDL definition file for this type
+        default_dtid        Default Data Type ID, if specified, None otherwise
+        kind                Any KIND_*
+        source_text         Raw DSDL definition text (as is, with comments and the original formatting)
+    
+    Fields if kind == KIND_SERVICE:
+        request_fields      Request struct field list, the type of each element is Field
+        response_fields     Response struct field list
+        request_constants   Request struct constant list, the type of each element is Constant
+        response_constants  Response struct constant list
+    
+    Fields if kind == KIND_MESSAGE:
+        fields              Field list, the type of each element is Field
+        constants           Constant list, the type of each element is Constant
+    
+    Extra methods if kind == KIND_SERVICE:
+        get_max_bitlen_request()    Returns maximum total bit length for the serialized request struct
+        get_max_bitlen_response()   Same for the response struct
+    
+    Extra methods if kind == KIND_MESSAGE:
+        get_max_bitlen()            Returns maximum total bit length for the serialized struct
+    '''
     KIND_SERVICE = 0
     KIND_MESSAGE = 1
 
@@ -125,6 +176,10 @@ class CompoundType(Type):
             error('Compound type of unknown kind [%s]', kind)
 
     def get_dsdl_signature_source_definition(self):
+        '''
+        Returns normalized DSDL definition text.
+        Please refer to the specification for details about normalized DSDL definitions.
+        '''
         txt = StringIO()
         txt.write(self.full_name + '\n')
         adjoin = lambda attrs: txt.write('\n'.join(x.get_normalized_definition() for x in attrs) + '\n')
@@ -143,13 +198,24 @@ class CompoundType(Type):
         return txt.getvalue().strip().replace('\n\n\n', '\n').replace('\n\n', '\n')
 
     def get_dsdl_signature(self):
+        '''
+        Computes DSDL signature of this type.
+        Please refer to the specification for details about signatures.
+        '''
         return compute_signature(self.get_dsdl_signature_source_definition())
 
     def get_normalized_definition(self):
+        '''Returns full type name string, e.g. "uavcan.protocol.NodeStatus"'''
         return self.full_name
 
 
 class Attribute:
+    '''
+    Base class of an attribute description.
+    Fields:
+        type    Attribute type description, the type of this field inherits the class Type, e.g. PrimitiveType
+        name    Attribute name string
+    '''
     def __init__(self, type, name):  # @ReservedAssignment
         self.type = type
         self.name = name
@@ -160,10 +226,21 @@ class Attribute:
     __repr__ = __str__
 
 class Field(Attribute):
+    '''
+    Field description.
+    Does not add new fields to Attribute.
+    '''
     def get_normalized_definition(self):
         return '%s %s' % (self.type.get_normalized_definition(), self.name)
 
 class Constant(Attribute):
+    '''
+    Constant description.
+    Fields:
+        init_expression    Constant initialization expression string, e.g. "2+2" or "'\x66'"
+        value              Computed result of the initialization expression in the final type (e.g. int, float)
+        string_value       Computed result of the initialization expression as string
+    '''
     def __init__(self, type, name, init_expression, value):  # @ReservedAssignment
         Attribute.__init__(self, type, name)
         self.init_expression = init_expression
@@ -177,6 +254,9 @@ class Constant(Attribute):
 
 
 class Parser:
+    '''
+    DSDL parser logic. Do not use this class directly; use the helper function instead.
+    '''
     LOGGER_NAME = 'dsdl_parser'
 
     def __init__(self, search_dirs):
@@ -500,6 +580,28 @@ def validate_data_struct_len(t):
 
 
 def parse_namespaces(source_dirs, search_dirs=None):
+    '''
+    Use only this function to parse DSDL definitions.
+    This function takes a list of root namespace directories (containing DSDL definition files to parse) and an
+    optional list of search directories (containing DSDL definition files that can be referenced from the types
+    that are going to be parsed).
+    Returns the list of parsed type definitions, where type of each element is CompoundType.
+    Args:
+        source_dirs    List of root namespace directories to parse.
+        search_dirs    List of root namespace directories with referenced types (optional). This list is
+                       automaitcally extended with source_dirs.
+    Example:
+        >>> import pyuavcan
+        >>> a = pyuavcan.dsdl.parse_namespaces(['../dsdl/uavcan'])
+        >>> len(a)
+        77
+        >>> a[0]
+        uavcan.Timestamp
+        >>> a[0].fields
+        [truncated uint48 husec]
+        >>> a[0].constants
+        [saturated uint48 UNKNOWN = 0, saturated uint48 USEC_PER_LSB = 100]
+    '''
     def walk():
         import fnmatch
         from functools import partial

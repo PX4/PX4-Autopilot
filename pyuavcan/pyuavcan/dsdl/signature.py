@@ -16,16 +16,23 @@ from __future__ import division, absolute_import, print_function, unicode_litera
 # Check: 0x62EC59E3F1A4F00A
 #
 class Signature:
+    '''
+    This class implements the UAVCAN DSDL signature hash function. Please refer to the specification for details.
+    '''
     MASK64 = 0xFFFFFFFFFFFFFFFF
     POLY = 0x42F0E1EBA9EA3693
 
     def __init__(self, extend_from=None):
+        '''
+        extend_from    Initial value (optional)
+        '''
         if extend_from is not None:
             self._crc = (int(extend_from) & Signature.MASK64) ^ Signature.MASK64
         else:
             self._crc = Signature.MASK64
 
     def add(self, data_bytes):
+        '''Feed ASCII string or bytes to the signature function'''
         try:
             if isinstance(data_bytes, basestring):  # Python 2.7 compatibility
                 data_bytes = map(ord, data_bytes)
@@ -42,10 +49,15 @@ class Signature:
                     self._crc <<= 1
 
     def get_value(self):
+        '''Returns integer signature value'''
         return (self._crc & Signature.MASK64) ^ Signature.MASK64
 
 
 def compute_signature(data):
+    '''
+    One-shot signature computation for ASCII string or bytes.
+    Returns integer signture value.
+    '''
     s = Signature()
     s.add(data)
     return s.get_value()
