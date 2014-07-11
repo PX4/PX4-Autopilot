@@ -501,6 +501,7 @@ Sensors::Sensors() :
 	_battery_current_timestamp(0)
 {
 	memset(&_rc, 0, sizeof(_rc));
+	memset(&_diff_pres, 0, sizeof(_diff_pres));
 
 	/* basic r/c parameters */
 	for (unsigned i = 0; i < _rc_max_chan_count; i++) {
@@ -1332,12 +1333,13 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					 */
 					if (voltage > 0.4f && (_parameters.diff_pres_analog_scale > 0.0f)) {
 
-						float diff_pres_pa = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
+						float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
+						float diff_pres_pa = (diff_pres_pa_raw > 0.0f) ? diff_pres_pa_raw : 0.0f;
 
 						_diff_pres.timestamp = t;
 						_diff_pres.differential_pressure_pa = diff_pres_pa;
-						_diff_pres.differential_pressure_raw_pa = diff_pres_pa;
-						_diff_pres.differential_pressure_filtered_pa = diff_pres_pa;
+						_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
+						_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) + (diff_pres_pa * 0.1f);
 						_diff_pres.temperature = -1000.0f;
 
 						/* announce the airspeed if needed, just publish else */
