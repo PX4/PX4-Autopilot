@@ -205,7 +205,7 @@ PARAM_DEFINE_FLOAT(SENS_DPRES_OFF, 0.0f);
  *
  * Pick the appropriate scaling from the datasheet.
  * this number defines the (linear) conversion from voltage
- * to Pascal (pa).
+ * to Pascal (pa). For the MPXV7002DP this is 1000.
  *
  * @group Sensor Calibration
  */

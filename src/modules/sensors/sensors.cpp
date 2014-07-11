@@ -1330,12 +1330,12 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					 * a valid voltage from a connected sensor. Also assume a non-
 					 * zero offset from the sensor if its connected.
 					 */
-					if (voltage > 0.4f && (_parameters.diff_pres_analog_scale > 0)) {
+					if (voltage > 0.4f && (_parameters.diff_pres_analog_scale > 0.0f)) {
 
-						float diff_pres_pa = voltage * _parameters.diff_pres_analog_scale;
+						float diff_pres_pa = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
 
 						_diff_pres.timestamp = t;
-						_diff_pres.differential_pressure_pa = diff_pres_pa - _parameters.diff_pres_offset_pa;
+						_diff_pres.differential_pressure_pa = diff_pres_pa;
 						_diff_pres.differential_pressure_raw_pa = diff_pres_pa;
 						_diff_pres.differential_pressure_filtered_pa = diff_pres_pa;
 						_diff_pres.temperature = -1000.0f;
