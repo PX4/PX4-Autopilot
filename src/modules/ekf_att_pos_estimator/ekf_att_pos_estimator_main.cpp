@@ -1140,6 +1140,20 @@ FixedwingEstimator::task_main()
 
 				float initVelNED[3];
 
+				// Guard before running any parts of the filter
+				// of NaN / invalid values
+				if (_ekf->statesInitialised) {
+
+					// We're apparently initialized in this case now
+
+					int check = check_filter_state();
+
+					if (check) {
+						// Let the system re-initialize itself
+						continue;
+					}
+				}
+
 				/* Initialize the filter first */
 				if (!_gps_initialized && _gps.fix_type > 2 && _gps.eph < _parameters.pos_stddev_threshold && _gps.epv < _parameters.pos_stddev_threshold) {
 
@@ -1203,16 +1217,6 @@ FixedwingEstimator::task_main()
 
 					_ekf->InitialiseFilter(initVelNED, 0.0, 0.0, 0.0f, 0.0f);
 				} else if (_ekf->statesInitialised) {
-
-					// We're apparently initialized in this case now
-
-					int check = check_filter_state();
-
-					if (check) {
-						// Let the system re-initialize itself
-						continue;
-					}
-
 
 					// Run the strapdown INS equations every IMU update
 					_ekf->UpdateStrapdownEquationsNED();
@@ -1281,7 +1285,7 @@ FixedwingEstimator::task_main()
 						// run the fusion step
 						_ekf->FuseVelposNED();
 
-					} else if (_ekf->statesInitialised) {
+					} else if (!_gps_initialized && _ekf->statesInitialised) {
 						// Convert GPS measurements to Pos NE, hgt and Vel NED
 						_ekf->velNED[0] = 0.0f;
 						_ekf->velNED[1] = 0.0f;
