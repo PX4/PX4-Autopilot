@@ -664,11 +664,12 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 	}
 
 	if (!status->is_rotary_wing) {
+
 		/* accel done, close it */
 		close(fd);
 		fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
 
-		if (fd < 0) {
+		if (fd <= 0) {
 			mavlink_log_critical(mavlink_fd, "#audio: FAIL: AIRSPEED SENSOR MISSING");
 			failed = true;
 			goto system_eval;
@@ -693,5 +694,5 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 
 system_eval:
 	close(fd);
-	return (!failed);
+	return (failed);
 }

@@ -298,7 +298,9 @@ int commander_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "check")) {
-		int checkres = prearm_check(&status, mavlink_fd);
+		int mavlink_fd_local = open(MAVLINK_LOG_DEVICE, 0);
+		int checkres = prearm_check(&status, mavlink_fd_local);
+		close(mavlink_fd_local);
 		warnx("FINAL RESULT: %s", (checkres == 0) ? "OK" : "FAILED");
 		exit(0);
 	}
@@ -329,6 +331,7 @@ void usage(const char *reason)
 
 void print_status()
 {
+	warnx("type: %s", (status.is_rotary_wing) ? "ROTARY" : "PLANE");
 	warnx("usb powered: %s", (on_usb_power) ? "yes" : "no");
 
 	/* read all relevant states */
