@@ -186,7 +186,6 @@ ETSAirspeed::collect()
 	report.differential_pressure_filtered_pa = (float)diff_pres_pa;
 	report.differential_pressure_raw_pa = (float)diff_pres_pa_raw;
 	report.temperature = -1000.0f;
-	report.voltage = 0;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
 	if (_airspeed_pub > 0 && !(_pub_blocked)) {
