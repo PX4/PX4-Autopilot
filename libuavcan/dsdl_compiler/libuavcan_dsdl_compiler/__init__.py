@@ -4,9 +4,16 @@
 # Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
 #
 
+'''
+This module implements the core functionality of the UAVCAN DSDL compiler for libuavcan.
+Supported Python versions: 3.2+, 2.7.
+It accepts a list of root namespaces and produces the set of C++ header files for libuavcan.
+It is based on the DSDL parsing package from pyuavcan.
+'''
+
 from __future__ import division, absolute_import, print_function, unicode_literals
 import sys, os, logging, errno
-from mako.template import Template
+from mako.template import Template  # TODO: get rid of the mako dependency
 from pyuavcan import dsdl
 
 # Python 2.7 compatibility
@@ -27,6 +34,22 @@ class DsdlCompilerException(Exception):
 logger = logging.getLogger(__name__)
 
 def run(source_dirs, include_dirs, output_dir):
+    '''
+    This function takes a list of root namespace directories (containing DSDL definition files to parse), a
+    possibly empty list of search directories (containing DSDL definition files that can be referenced from the types
+    that are going to be parsed), and the output directory path (possibly nonexistent) where the generated C++
+    header files will be stored.
+    
+    Note that this module features lazy write, i.e. if an output file does already exist and its content is not going
+    to change, it will not be overwritten. This feature allows to avoid unnecessary recompilation of dependent object
+    files.
+    
+    Args:
+        source_dirs    List of root namespace directories to parse.
+        include_dirs   List of root namespace directories with referenced types (possibly empty). This list is
+                       automaitcally extended with source_dirs.
+        output_dir     Output directory path. Will be created if doesn't exist.
+    '''
     assert isinstance(source_dirs, list)
     assert isinstance(include_dirs, list)
     output_dir = str(output_dir)

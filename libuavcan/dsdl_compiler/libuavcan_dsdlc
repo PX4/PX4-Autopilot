@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 # UAVCAN DSDL compiler for libuavcan
-# Written in Python 3, compatible with Python 2.7
+# Supported Python versions: 3.2+, 2.7.
 #
 # Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
 #
@@ -27,8 +27,12 @@ def die(text):
 
 DEFAULT_OUTDIR = './dsdlc_generated'
 
-DESCRIPTION = '''UAVCAN DSDL compiler. Takes an input directory that contains an hierarchy of DSDL
-definitions and converts it into compatible hierarchy of C++ types for libuavcan.'''
+DESCRIPTION = '''UAVCAN DSDL compiler for libuavcan.
+Takes an input directory that contains an hierarchy of DSDL
+definitions and converts it into compatible hierarchy of C++ types for libuavcan.
+This script can be used directly from the source directory, no installation required!
+Supported Python versions: 3.2+, 2.7.
+'''
 
 argparser = argparse.ArgumentParser(description=DESCRIPTION)
 argparser.add_argument('source_dir', nargs='+', help='source directory with DSDL definitions')
