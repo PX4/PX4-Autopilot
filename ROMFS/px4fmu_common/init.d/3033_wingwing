@@ -32,7 +32,7 @@ then
 	param set FW_THR_CRUISE 0.65
 fi
 
-set MIXER FMU_wingwing
+set MIXER wingwing
 # Provide ESC a constant 1000 us pulse
 set PWM_OUTPUTS 4
 set PWM_DISARMED 1000
