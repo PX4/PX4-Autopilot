@@ -286,15 +286,20 @@ int commander_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	/* commands needing the app to run below */
+	if (!thread_running) {
+		warnx("\tcommander not started");
+		exit(1);
+	}
+
 	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			warnx("\tcommander is running");
-			print_status();
+		print_status();
+		exit(0);
+	}
 
-		} else {
-			warnx("\tcommander not started");
-		}
-
+	if (!strcmp(argv[1], "check")) {
+		int checkres = prearm_check(&status, mavlink_fd);
+		warnx("FINAL RESULT: %s", (checkres == 0) ? "OK" : "FAILED");
 		exit(0);
 	}
 

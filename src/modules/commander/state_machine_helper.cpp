@@ -70,8 +70,6 @@
 #endif
 static const int ERROR = -1;
 
-static int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd);
-
 // This array defines the arming state transitions. The rows are the new state, and the columns
 // are the current state. Using new state and current  state you can index into the array which
 // will be true for a valid transition or false for a invalid transition. In some cases even
@@ -622,12 +620,13 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 {
 	int ret;
+	bool failed = false;
 
 	int fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		mavlink_log_critical(mavlink_fd, "#audio: FAIL: ACCEL SENSOR MISSING");
-		ret = fd;
+		failed = true;
 		goto system_eval;
 	}
 
@@ -635,6 +634,7 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 
 	if (ret != OK) {
 		mavlink_log_critical(mavlink_fd, "#audio: FAIL: ACCEL CALIBRATION");
+		failed = true;
 		goto system_eval;
 	}
 
@@ -646,22 +646,20 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 		/* evaluate values */
 		float accel_scale = sqrtf(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
 
-		if (accel_scale < 9.78f || accel_scale > 9.83f) {
+		if (accel_scale < 9.75f || accel_scale > 9.85f) {
 			mavlink_log_info(mavlink_fd, "#audio: Accelerometer calibration recommended.");
 		}
 
 		if (accel_scale > 30.0f /* m/s^2 */) {
 			mavlink_log_critical(mavlink_fd, "#audio: FAIL: ACCEL RANGE");
 			/* this is frickin' fatal */
-			ret = ERROR;
+			failed = true;
 			goto system_eval;
-		} else {
-			ret = OK;
 		}
 	} else {
 		mavlink_log_critical(mavlink_fd, "#audio: FAIL: ACCEL READ");
 		/* this is frickin' fatal */
-		ret = ERROR;
+		failed = true;
 		goto system_eval;
 	}
 
@@ -672,7 +670,7 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 
 		if (fd < 0) {
 			mavlink_log_critical(mavlink_fd, "#audio: FAIL: AIRSPEED SENSOR MISSING");
-			ret = fd;
+			failed = true;
 			goto system_eval;
 		}
 
@@ -681,20 +679,19 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 		ret = read(fd, &diff_pres, sizeof(diff_pres));
 
 		if (ret == sizeof(diff_pres)) {
-			if (fabsf(diff_pres.differential_pressure_filtered_pa > 5.0f)) {
+			if (fabsf(diff_pres.differential_pressure_filtered_pa > 6.0f)) {
 				mavlink_log_critical(mavlink_fd, "#audio: WARNING AIRSPEED CALIBRATION MISSING");
 				// XXX do not make this fatal yet
-				ret = OK;
 			}
 		} else {
 			mavlink_log_critical(mavlink_fd, "#audio: FAIL: AIRSPEED READ");
 			/* this is frickin' fatal */
-			ret = ERROR;
+			failed = true;
 			goto system_eval;
 		}
 	}
 
 system_eval:
 	close(fd);
-	return ret;
+	return (!failed);
 }
