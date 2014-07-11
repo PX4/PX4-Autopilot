@@ -585,7 +585,9 @@ def parse_namespaces(source_dirs, search_dirs=None):
     This function takes a list of root namespace directories (containing DSDL definition files to parse) and an
     optional list of search directories (containing DSDL definition files that can be referenced from the types
     that are going to be parsed).
+    
     Returns the list of parsed type definitions, where type of each element is CompoundType.
+    
     Args:
         source_dirs    List of root namespace directories to parse.
         search_dirs    List of root namespace directories with referenced types (optional). This list is
