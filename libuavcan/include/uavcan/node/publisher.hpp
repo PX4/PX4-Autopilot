@@ -47,7 +47,7 @@ public:
         return BaseType::publish(message, TransferTypeMessageUnicast, dst_node_id);
     }
 
-    static MonotonicDuration getDefaultTxTimeout() { return MonotonicDuration::fromMSec(5); } // 5 ms --> 200 Hz max
+    static MonotonicDuration getDefaultTxTimeout() { return MonotonicDuration::fromMSec(10); }
 
     using BaseType::init;
     using BaseType::getTransferSender;
