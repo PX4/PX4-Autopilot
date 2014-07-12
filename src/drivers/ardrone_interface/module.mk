@@ -39,3 +39,5 @@ MODULE_COMMAND	 = ardrone_interface
 SRCS		 = ardrone_interface.c \
 			   ardrone_motor_control.c
 MODULE_STACKSIZE = 1200
+
+MAXOPTIMIZATION	 = -Os

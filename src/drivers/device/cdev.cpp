@@ -268,6 +268,13 @@ CDev::ioctl(struct file *filp, int cmd, unsigned long arg)
 		break;
 	}
 
+	/* try the superclass. The different ioctl() function form
+         * means we need to copy arg */
+        unsigned arg2 = arg;
+	int ret = Device::ioctl(cmd, arg2);
+	if (ret != -ENODEV)
+		return ret;
+
 	return -ENOTTY;
 }
 
