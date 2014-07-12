@@ -59,7 +59,7 @@ public:
     {
         level_ = protocol::debug::LogLevel::ERROR;
         setTxTimeout(MonotonicDuration::fromMSec(DefaultTxTimeoutMs));
-        assert(getTxTimeout() == MonotonicDuration::fromMSec(DefaultTxTimeoutMs));
+        UAVCAN_ASSERT(getTxTimeout() == MonotonicDuration::fromMSec(DefaultTxTimeoutMs));
     }
 
     int init();

@@ -22,7 +22,7 @@ public:
         : BaseType(node, tx_timeout, max_transfer_interval)
     {
 #if UAVCAN_DEBUG
-        assert(getTxTimeout() == tx_timeout);  // Making sure default values are OK
+        UAVCAN_ASSERT(getTxTimeout() == tx_timeout);  // Making sure default values are OK
 #endif
         StaticAssert<DataTypeKind(DataType::DataTypeKind) == DataTypeKindMessage>::check();
     }
@@ -41,7 +41,7 @@ public:
     {
         if (!dst_node_id.isUnicast())
         {
-            assert(0);
+            UAVCAN_ASSERT(0);
             return -ErrInvalidParam;
         }
         return BaseType::publish(message, TransferTypeMessageUnicast, dst_node_id);

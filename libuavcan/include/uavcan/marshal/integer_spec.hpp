@@ -92,9 +92,9 @@ private:
     {
         StaticAssert<(BitLen <= (sizeof(StorageType) * 8))>::check();
         // coverity[result_independent_of_operands : FALSE]
-        assert(max() <= NumericTraits<StorageType>::max());
+        UAVCAN_ASSERT(max() <= NumericTraits<StorageType>::max());
         // coverity[result_independent_of_operands : FALSE]
-        assert(min() >= NumericTraits<StorageType>::min());
+        UAVCAN_ASSERT(min() >= NumericTraits<StorageType>::min());
     }
 
 public:

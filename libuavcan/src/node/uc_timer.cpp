@@ -12,7 +12,7 @@ namespace uavcan
  */
 void TimerBase::handleDeadline(MonotonicTime current)
 {
-    assert(!isRunning());
+    UAVCAN_ASSERT(!isRunning());
 
     const MonotonicTime scheduled_time = getDeadline();
 
@@ -41,7 +41,7 @@ void TimerBase::startOneShotWithDelay(MonotonicDuration delay)
 
 void TimerBase::startPeriodic(MonotonicDuration period)
 {
-    assert(period < MonotonicDuration::getInfinite());
+    UAVCAN_ASSERT(period < MonotonicDuration::getInfinite());
     stop();
     period_ = period;
     DeadlineHandler::startWithDelay(period);

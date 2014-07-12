@@ -86,7 +86,7 @@ unsigned LinkedListRoot<T>::getLength() const
 template <typename T>
 void LinkedListRoot<T>::insert(T* node)
 {
-    assert(node);
+    UAVCAN_ASSERT(node);
     remove(node);  // Making sure there will be no loops
     node->setNextListNode(root_);
     root_ = node;
@@ -96,7 +96,7 @@ template <typename T>
 template <typename Predicate>
 void LinkedListRoot<T>::insertBefore(T* node, Predicate predicate)
 {
-    assert(node);
+    UAVCAN_ASSERT(node);
     remove(node);
 
     if (root_ == NULL || predicate(root_))

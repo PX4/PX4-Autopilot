@@ -33,13 +33,13 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
         const int res = frame.setPayload(payload, payload_len);
         if (res != payload_len)
         {
-            assert(0);
+            UAVCAN_ASSERT(0);
             UAVCAN_TRACE("TransferSender", "Frame payload write failure, %i", res);
             registerError();
             return (res < 0) ? res : -ErrLogic;
         }
         frame.makeLast();
-        assert(frame.isLast() && frame.isFirst());
+        UAVCAN_ASSERT(frame.isLast() && frame.isFirst());
         return dispatcher_.send(frame, tx_deadline, blocking_deadline, qos_, flags_, iface_mask_);
     }
     else                                                   // Multi Frame Transfer
@@ -64,7 +64,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
                 return write_res;
             }
             offset = write_res - 2;
-            assert(payload_len > offset);
+            UAVCAN_ASSERT(payload_len > offset);
         }
 
         int next_frame_index = 1;
@@ -93,7 +93,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
             }
 
             offset += write_res;
-            assert(offset <= payload_len);
+            UAVCAN_ASSERT(offset <= payload_len);
             if (offset >= payload_len)
             {
                 frame.makeLast();
@@ -101,7 +101,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
         }
     }
 
-    assert(0);
+    UAVCAN_ASSERT(0);
     return -ErrLogic; // Return path analysis is apparently broken. There should be no warning, this 'return' is unreachable.
 }
 
@@ -110,7 +110,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
 {
     const OutgoingTransferRegistryKey otr_key(data_type_.getID(), transfer_type, dst_node_id);
 
-    assert(!tx_deadline.isZero());
+    UAVCAN_ASSERT(!tx_deadline.isZero());
     const MonotonicTime otr_deadline = tx_deadline + max_transfer_interval_;
 
     TransferID* const tid = dispatcher_.getOutgoingTransferRegistry().accessOrCreate(otr_key, otr_deadline);

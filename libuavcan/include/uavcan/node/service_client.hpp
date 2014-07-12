@@ -44,8 +44,8 @@ struct UAVCAN_EXPORT ServiceCallResult
         , server_node_id(arg_server_node_id)
         , response(arg_response)
     {
-        assert(server_node_id.isUnicast());
-        assert((status == Success) || (status == ErrorTimeout));
+        UAVCAN_ASSERT(server_node_id.isUnicast());
+        UAVCAN_ASSERT((status == Success) || (status == ErrorTimeout));
     }
 
     bool isSuccessful() const { return status == Success; }
@@ -141,7 +141,7 @@ public:
     {
         setRequestTimeout(getDefaultRequestTimeout());
 #if UAVCAN_DEBUG
-        assert(getRequestTimeout() == getDefaultRequestTimeout());  // Making sure default values are OK
+        UAVCAN_ASSERT(getRequestTimeout() == getDefaultRequestTimeout());  // Making sure default values are OK
 #endif
     }
 
@@ -194,7 +194,7 @@ void ServiceClient<DataType_, Callback_>::invokeCallback(ServiceCallResultType& 
 template <typename DataType_, typename Callback_>
 void ServiceClient<DataType_, Callback_>::handleReceivedDataStruct(ReceivedDataStructure<ResponseType>& response)
 {
-    assert(response.getTransferType() == TransferTypeServiceResponse);
+    UAVCAN_ASSERT(response.getTransferType() == TransferTypeServiceResponse);
     const TransferListenerType* const listener = SubscriberType::getTransferListener();
     if (listener)
     {
@@ -205,7 +205,7 @@ void ServiceClient<DataType_, Callback_>::handleReceivedDataStruct(ReceivedDataS
     }
     else
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         cancel();
     }
 }
@@ -227,7 +227,7 @@ void ServiceClient<DataType_, Callback_>::handleDeadline(MonotonicTime)
     }
     else
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         cancel();
     }
 }
@@ -272,7 +272,7 @@ int ServiceClient<DataType_, Callback_>::call(NodeID server_node_id, const Reque
     TransferListenerType* const tl = SubscriberType::getTransferListener();
     if (!tl)
     {
-        assert(0);  // Must have been created
+        UAVCAN_ASSERT(0);  // Must have been created
         cancel();
         return -ErrLogic;
     }

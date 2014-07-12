@@ -78,7 +78,7 @@ void DataTypeInfoProvider::handleGetDataTypeInfoRequest(const protocol::GetDataT
     }
     else
     {
-        assert(0); // That means that GDTR somehow found a type of an unknown kind. The horror.
+        UAVCAN_ASSERT(0); // That means that GDTR somehow found a type of an unknown kind. The horror.
     }
 }
 
@@ -99,11 +99,11 @@ int DataTypeInfoProvider::start()
         goto fail;
     }
 
-    assert(res >= 0);
+    UAVCAN_ASSERT(res >= 0);
     return res;
 
 fail:
-    assert(res < 0);
+    UAVCAN_ASSERT(res < 0);
     cats_srv_.stop();
     gdti_srv_.stop();
     return res;

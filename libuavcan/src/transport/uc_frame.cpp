@@ -27,7 +27,7 @@ int Frame::getMaxPayloadLen() const
     }
     default:
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         return -ErrLogic;
     }
     }
@@ -61,7 +61,7 @@ bool Frame::parse(const CanFrame& can_frame)
 
     if (can_frame.dlc > sizeof(can_frame.data))
     {
-        assert(0);  // This is not a protocol error, so assert() is ok
+        UAVCAN_ASSERT(0);  // This is not a protocol error, so UAVCAN_ASSERT() is ok
         return false;
     }
 
@@ -124,7 +124,7 @@ bool Frame::compile(CanFrame& out_can_frame) const
 {
     if (!isValid())
     {
-        assert(0);        // This is an application error, so we need to maximize it.
+        UAVCAN_ASSERT(0);        // This is an application error, so we need to maximize it.
         return false;
     }
 
@@ -149,7 +149,7 @@ bool Frame::compile(CanFrame& out_can_frame) const
     case TransferTypeServiceRequest:
     case TransferTypeMessageUnicast:
     {
-        assert((payload_len_ + 1U) <= sizeof(out_can_frame.data));
+        UAVCAN_ASSERT((payload_len_ + 1U) <= sizeof(out_can_frame.data));
         out_can_frame.data[0] = dst_node_id_.get();
         out_can_frame.dlc = payload_len_ + 1;
         (void)copy(payload_, payload_ + payload_len_, out_can_frame.data + 1);
@@ -157,7 +157,7 @@ bool Frame::compile(CanFrame& out_can_frame) const
     }
     default:
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         return false;
     }
     }
@@ -238,7 +238,7 @@ bool RxFrame::parse(const CanRxFrame& can_frame)
     }
     if (can_frame.ts_mono.isZero())  // Monotonic timestamps are mandatory.
     {
-        assert(0);                   // If it is not set, it's a driver failure.
+        UAVCAN_ASSERT(0);                   // If it is not set, it's a driver failure.
         return false;
     }
     ts_mono_ = can_frame.ts_mono;

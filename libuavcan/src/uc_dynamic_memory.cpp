@@ -26,7 +26,7 @@ void LimitedPoolAllocator::deallocate(const void* ptr)
 {
     allocator_.deallocate(ptr);
 
-    assert(used_blocks_ > 0);
+    UAVCAN_ASSERT(used_blocks_ > 0);
     if (used_blocks_ > 0)
     {
         used_blocks_--;

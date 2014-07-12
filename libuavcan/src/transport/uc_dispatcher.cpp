@@ -31,19 +31,19 @@ bool LoopbackFrameListenerBase::isListening() const
  */
 void LoopbackFrameListenerRegistry::add(LoopbackFrameListenerBase* listener)
 {
-    assert(listener);
+    UAVCAN_ASSERT(listener);
     listeners_.insert(listener);
 }
 
 void LoopbackFrameListenerRegistry::remove(LoopbackFrameListenerBase* listener)
 {
-    assert(listener);
+    UAVCAN_ASSERT(listener);
     listeners_.remove(listener);
 }
 
 bool LoopbackFrameListenerRegistry::doesExist(const LoopbackFrameListenerBase* listener) const
 {
-    assert(listener);
+    UAVCAN_ASSERT(listener);
     const LoopbackFrameListenerBase* p = listeners_.get();
     while (p)
     {
@@ -180,7 +180,7 @@ void Dispatcher::handleFrame(const CanRxFrame& can_frame)
     }
     default:
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         break;
     }
     }
@@ -192,10 +192,10 @@ void Dispatcher::handleLoopbackFrame(const CanRxFrame& can_frame)
     if (!frame.parse(can_frame))
     {
         UAVCAN_TRACE("Dispatcher", "Invalid loopback CAN frame: %s", can_frame.toString().c_str());
-        assert(0);  // No way!
+        UAVCAN_ASSERT(0);  // No way!
         return;
     }
-    assert(frame.getSrcNodeID() == getNodeID());
+    UAVCAN_ASSERT(frame.getSrcNodeID() == getNodeID());
     loopback_listeners_.invokeListeners(frame);
 }
 
@@ -234,7 +234,7 @@ int Dispatcher::send(const Frame& frame, MonotonicTime tx_deadline, MonotonicTim
 {
     if (frame.getSrcNodeID() != getNodeID())
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         return -ErrLogic;
     }
 
@@ -242,7 +242,7 @@ int Dispatcher::send(const Frame& frame, MonotonicTime tx_deadline, MonotonicTim
     if (!frame.compile(can_frame))
     {
         UAVCAN_TRACE("Dispatcher", "Unable to send: frame is malformed: %s", frame.toString().c_str());
-        assert(0);
+        UAVCAN_ASSERT(0);
         return -ErrLogic;
     }
     return canio_.send(can_frame, tx_deadline, blocking_deadline, iface_mask, qos, flags);
@@ -260,7 +260,7 @@ bool Dispatcher::registerMessageListener(TransferListenerBase* listener)
 {
     if (listener->getDataTypeDescriptor().getKind() != DataTypeKindMessage)
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         return false;
     }
     return lmsg_.add(listener, ListenerRegistry::ManyListeners);       // Multiple subscribers are OK
@@ -270,7 +270,7 @@ bool Dispatcher::registerServiceRequestListener(TransferListenerBase* listener)
 {
     if (listener->getDataTypeDescriptor().getKind() != DataTypeKindService)
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         return false;
     }
     return lsrv_req_.add(listener, ListenerRegistry::UniqueListener);  // Only one server per data type
@@ -280,7 +280,7 @@ bool Dispatcher::registerServiceResponseListener(TransferListenerBase* listener)
 {
     if (listener->getDataTypeDescriptor().getKind() != DataTypeKindService)
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         return false;
     }
     return lsrv_resp_.add(listener, ListenerRegistry::ManyListeners);  // Multiple callers may call same srv

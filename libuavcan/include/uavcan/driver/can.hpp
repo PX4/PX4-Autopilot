@@ -41,8 +41,8 @@ struct UAVCAN_EXPORT CanFrame
         : id(arg_id)
         , dlc((data_len > MaxDataLen) ? MaxDataLen : data_len)
     {
-        assert(arg_data != NULL);
-        assert(data_len == dlc);
+        UAVCAN_ASSERT(arg_data != NULL);
+        UAVCAN_ASSERT(data_len == dlc);
         (void)copy(arg_data, arg_data + dlc, this->data);
     }
 

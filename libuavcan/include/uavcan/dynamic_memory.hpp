@@ -116,7 +116,7 @@ public:
         , max_blocks_(max_blocks)
         , used_blocks_(0)
     {
-        assert(max_blocks_ > 0);
+        UAVCAN_ASSERT(max_blocks_ > 0);
     }
 
     virtual void* allocate(std::size_t size);
@@ -136,11 +136,11 @@ public:
 template <unsigned MaxPools>
 bool PoolManager<MaxPools>::addPool(IPoolAllocator* pool)
 {
-    assert(pool);
+    UAVCAN_ASSERT(pool);
     bool retval = false;
     for (unsigned i = 0; i < MaxPools; i++)
     {
-        assert(pools_[i] != pool);
+        UAVCAN_ASSERT(pools_[i] != pool);
         if (pools_[i] == NULL || pools_[i] == pool)
         {
             pools_[i] = pool;
@@ -179,7 +179,7 @@ void PoolManager<MaxPools>::deallocate(const void* ptr)
     {
         if (pools_[i] == NULL)
         {
-            assert(0);
+            UAVCAN_ASSERT(0);
             break;
         }
         if (pools_[i]->isInPool(ptr))
@@ -283,7 +283,7 @@ unsigned PoolAllocator<PoolSize, BlockSize>::getNumFreeBlocks() const
     while (p)
     {
         num++;
-        assert(num <= NumBlocks);
+        UAVCAN_ASSERT(num <= NumBlocks);
         p = p->next;
     }
     return num;

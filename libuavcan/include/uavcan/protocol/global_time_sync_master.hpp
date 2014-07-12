@@ -30,7 +30,7 @@ class UAVCAN_EXPORT GlobalTimeSyncMaster : protected LoopbackFrameListenerBase
             : pub_(node)
             , iface_index_(iface_index)
         {
-            assert(iface_index < MaxCanIfaces);
+            UAVCAN_ASSERT(iface_index < MaxCanIfaces);
         }
 
         int init();

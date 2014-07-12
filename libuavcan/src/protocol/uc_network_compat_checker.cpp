@@ -88,8 +88,8 @@ int NetworkCompatibilityChecker::checkOneNodeOneDataTypeKind(NodeID nid, DataTyp
     StaticAssert<DataTypeKindMessage == int(protocol::DataTypeKind::MESSAGE)>::check();
     StaticAssert<DataTypeKindService == int(protocol::DataTypeKind::SERVICE)>::check();
 
-    assert(nid.isUnicast());
-    assert(!cats_cln_.isPending());
+    UAVCAN_ASSERT(nid.isUnicast());
+    UAVCAN_ASSERT(!cats_cln_.isPending());
 
     checking_dtkind_ = kind;
     protocol::ComputeAggregateTypeSignature::Request request;

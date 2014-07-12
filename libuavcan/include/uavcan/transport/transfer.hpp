@@ -41,7 +41,7 @@ public:
         : value_(value)
     {
         value_ &= Max;
-        assert(value == value_);
+        UAVCAN_ASSERT(value == value_);
     }
 
     bool operator!=(TransferID rhs) const { return !operator==(rhs); }
@@ -54,7 +54,7 @@ public:
 
     uint8_t get() const
     {
-        assert(value_ <= Max);
+        UAVCAN_ASSERT(value_ <= Max);
         return value_;
     }
 
@@ -81,7 +81,7 @@ public:
     NodeID(uint8_t value)   // Implicit
         : value_(value)
     {
-        assert(isValid());
+        UAVCAN_ASSERT(isValid());
     }
 
     uint8_t get() const { return value_; }

@@ -53,7 +53,7 @@ class UAVCAN_EXPORT PanicListener : Noncopyable
         }
         else
         {
-            assert(0);       // This is a logic error because normally we shouldn't start with an invalid callback
+            UAVCAN_ASSERT(0);       // This is a logic error because normally we shouldn't start with an invalid callback
             sub_.getNode().registerInternalFailure("PanicListener invalid callback");
         }
     }
@@ -70,7 +70,7 @@ class UAVCAN_EXPORT PanicListener : Noncopyable
         else
         {
             const MonotonicDuration diff = msg.getMonotonicTimestamp() - prev_msg_timestamp_;
-            assert(diff.isPositive() || diff.isZero());
+            UAVCAN_ASSERT(diff.isPositive() || diff.isZero());
             if (diff.toMSec() > protocol::Panic::MAX_INTERVAL_MS)
             {
                 num_subsequent_msgs_ = 1;

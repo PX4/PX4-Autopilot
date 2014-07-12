@@ -59,7 +59,7 @@ private:
 
     void handleReceivedDataStruct(ReceivedDataStructure<RequestType>& request)
     {
-        assert(request.getTransferType() == TransferTypeServiceRequest);
+        UAVCAN_ASSERT(request.getTransferType() == TransferTypeServiceRequest);
         if (try_implicit_cast<bool>(callback_, true))
         {
             response_ = ResponseType();  // The application needs newly initialized structure
@@ -87,7 +87,7 @@ public:
         , callback_()
         , response_failure_count_(0)
     {
-        assert(getTxTimeout() == getDefaultTxTimeout());  // Making sure it is valid
+        UAVCAN_ASSERT(getTxTimeout() == getDefaultTxTimeout());  // Making sure it is valid
 
         StaticAssert<DataTypeKind(DataType::DataTypeKind) == DataTypeKindService>::check();
     }

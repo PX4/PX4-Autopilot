@@ -32,7 +32,7 @@ const int16_t ErrPassiveMode             = 11;
 
 /**
  * Fatal error handler.
- * Throws std::runtime_error() if exceptions are available, otherwise calls assert(0) then std::abort().
+ * Throws std::runtime_error() if exceptions are available, otherwise calls UAVCAN_ASSERT(0) then std::abort().
  */
 #if __GNUC__
 __attribute__ ((noreturn))

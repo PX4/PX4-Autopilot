@@ -74,7 +74,7 @@ std::string CanTxQueue::Entry::toString() const
     }
     default:
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         str_qos = "<?WTF?> ";
         break;
     }
@@ -173,7 +173,7 @@ void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos,
         return;                                            // Seems that there is no memory at all.
     }
     Entry* entry = new (praw) Entry(frame, tx_deadline, qos, flags);
-    assert(entry);
+    UAVCAN_ASSERT(entry);
     queue_.insertBefore(entry, PriorityInsertionComparator(frame));
 }
 
@@ -203,7 +203,7 @@ void CanTxQueue::remove(Entry*& entry)
 {
     if (entry == NULL)
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         return;
     }
     queue_.remove(entry);
@@ -225,11 +225,11 @@ bool CanTxQueue::topPriorityHigherOrEqual(const CanFrame& rhs_frame) const
  */
 int CanIOManager::sendToIface(uint8_t iface_index, const CanFrame& frame, MonotonicTime tx_deadline, CanIOFlags flags)
 {
-    assert(iface_index < MaxCanIfaces);
+    UAVCAN_ASSERT(iface_index < MaxCanIfaces);
     ICanIface* const iface = driver_.getIface(iface_index);
     if (iface == NULL)
     {
-        assert(0);   // Nonexistent interface
+        UAVCAN_ASSERT(0);   // Nonexistent interface
         return -ErrLogic;
     }
     const int res = iface->send(frame, tx_deadline, flags);
@@ -247,7 +247,7 @@ int CanIOManager::sendToIface(uint8_t iface_index, const CanFrame& frame, Monoto
 
 int CanIOManager::sendFromTxQueue(uint8_t iface_index)
 {
-    assert(iface_index < MaxCanIfaces);
+    UAVCAN_ASSERT(iface_index < MaxCanIfaces);
     CanTxQueue::Entry* entry = tx_queues_[iface_index]->peek();
     if (entry == NULL)
     {
@@ -317,7 +317,7 @@ CanIfacePerfCounters CanIOManager::getIfacePerfCounters(uint8_t iface_index) con
     ICanIface* const iface = driver_.getIface(iface_index);
     if (iface == NULL || iface_index >= MaxCanIfaces)
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         return CanIfacePerfCounters();
     }
     CanIfacePerfCounters cnt;
@@ -355,7 +355,7 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
             {
                 return -ErrDriver;
             }
-            assert(masks.read == 0);
+            UAVCAN_ASSERT(masks.read == 0);
         }
 
         // Transmission
@@ -446,13 +446,13 @@ int CanIOManager::receive(CanRxFrame& out_frame, MonotonicTime blocking_deadline
                 ICanIface* const iface = driver_.getIface(i);
                 if (iface == NULL)
                 {
-                    assert(0);   // Nonexistent interface
+                    UAVCAN_ASSERT(0);   // Nonexistent interface
                     continue;
                 }
                 const int res = iface->receive(out_frame, out_frame.ts_mono, out_frame.ts_utc, out_flags);
                 if (res == 0)
                 {
-                    assert(0);   // select() reported that iface has pending RX frames, but receive() returned none
+                    UAVCAN_ASSERT(0);   // select() reported that iface has pending RX frames, but receive() returned none
                     continue;
                 }
                 out_frame.iface_index = i;

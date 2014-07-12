@@ -28,14 +28,14 @@ public:
     TransferBufferManagerKey()
         : transfer_type_(TransferType(0))
     {
-        assert(isEmpty());
+        UAVCAN_ASSERT(isEmpty());
     }
 
     TransferBufferManagerKey(NodeID node_id, TransferType ttype)
         : node_id_(node_id)
         , transfer_type_(ttype)
     {
-        assert(!isEmpty());
+        UAVCAN_ASSERT(!isEmpty());
     }
 
     bool operator==(const TransferBufferManagerKey& rhs) const
@@ -235,7 +235,7 @@ public:
         : bufmgr_(bufmgr)
         , key_(key)
     {
-        assert(!key.isEmpty());
+        UAVCAN_ASSERT(!key.isEmpty());
     }
     ITransferBuffer* access() { return bufmgr_.access(key_); }
     ITransferBuffer* create() { return bufmgr_.create(key_); }

@@ -108,7 +108,7 @@ protected:
     MapBase(IPoolAllocator& allocator)
         : allocator_(allocator)
     {
-        assert(Key() == Key());
+        UAVCAN_ASSERT(Key() == Key());
     }
 #else
     MapBase(KVPair* static_buf, unsigned num_static_entries, IPoolAllocator& allocator)
@@ -116,7 +116,7 @@ protected:
         , static_(static_buf)
         , num_static_entries_(num_static_entries)
     {
-        assert(Key() == Key());
+        UAVCAN_ASSERT(Key() == Key());
     }
 #endif
 
@@ -304,7 +304,7 @@ void MapBase<Key, Value>::compact()
 template <typename Key, typename Value>
 Value* MapBase<Key, Value>::access(const Key& key)
 {
-    assert(!(key == Key()));
+    UAVCAN_ASSERT(!(key == Key()));
     KVPair* const kv = find(key);
     return kv ? &kv->value : NULL;
 }
@@ -312,7 +312,7 @@ Value* MapBase<Key, Value>::access(const Key& key)
 template <typename Key, typename Value>
 Value* MapBase<Key, Value>::insert(const Key& key, const Value& value)
 {
-    assert(!(key == Key()));
+    UAVCAN_ASSERT(!(key == Key()));
     remove(key);
 
     KVPair* const kv = find(Key());
@@ -335,7 +335,7 @@ Value* MapBase<Key, Value>::insert(const Key& key, const Value& value)
 template <typename Key, typename Value>
 void MapBase<Key, Value>::remove(const Key& key)
 {
-    assert(!(key == Key()));
+    UAVCAN_ASSERT(!(key == Key()));
     KVPair* const kv = find(key);
     if (kv)
     {

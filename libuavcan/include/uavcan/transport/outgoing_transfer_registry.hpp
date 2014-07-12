@@ -32,12 +32,12 @@ public:
         , transfer_type_(transfer_type)
         , destination_node_id_(destination_node_id)
     {
-        assert((transfer_type == TransferTypeMessageBroadcast) == destination_node_id.isBroadcast());
+        UAVCAN_ASSERT((transfer_type == TransferTypeMessageBroadcast) == destination_node_id.isBroadcast());
         /*
          * Service response transfers must use the same Transfer ID as matching service request transfer,
          * so this registry is not applicable for service response transfers at all.
          */
-        assert(transfer_type != TransferTypeServiceResponse);
+        UAVCAN_ASSERT(transfer_type != TransferTypeServiceResponse);
     }
 
     DataTypeID getDataTypeID() const { return data_type_id_; }
@@ -91,7 +91,7 @@ class UAVCAN_EXPORT OutgoingTransferRegistry : public IOutgoingTransferRegistry,
         bool operator()(const OutgoingTransferRegistryKey& key, const Value& value) const
         {
             (void)key;
-            assert(!value.deadline.isZero());
+            UAVCAN_ASSERT(!value.deadline.isZero());
             const bool expired = value.deadline <= ts_;
             if (expired)
             {
@@ -142,7 +142,7 @@ template <int NumStaticEntries>
 TransferID* OutgoingTransferRegistry<NumStaticEntries>::accessOrCreate(const OutgoingTransferRegistryKey& key,
                                                                        MonotonicTime new_deadline)
 {
-    assert(!new_deadline.isZero());
+    UAVCAN_ASSERT(!new_deadline.isZero());
     Value* p = map_.access(key);
     if (p == NULL)
     {

@@ -24,7 +24,7 @@ void TransferReceiver::registerError() const
     }
     else
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
     }
 }
 
@@ -44,7 +44,7 @@ TransferReceiver::TidRelation TransferReceiver::getTidRelation(const RxFrame& fr
 
 void TransferReceiver::updateTransferTimings()
 {
-    assert(!this_transfer_ts_.isZero());
+    UAVCAN_ASSERT(!this_transfer_ts_.isZero());
 
     const MonotonicTime prev_prev_ts = prev_transfer_ts_;
     prev_transfer_ts_ = this_transfer_ts_;

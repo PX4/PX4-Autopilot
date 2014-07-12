@@ -34,7 +34,7 @@ int TransferID::computeForwardDistance(TransferID rhs) const
         d += 1 << BitLen;
     }
 
-    assert(((get() + d) & Max) == rhs.get());
+    UAVCAN_ASSERT(((get() + d) & Max) == rhs.get());
     return d;
 }
 

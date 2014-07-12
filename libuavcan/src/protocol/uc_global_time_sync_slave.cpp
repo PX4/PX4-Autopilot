@@ -11,7 +11,7 @@ namespace uavcan
 
 void GlobalTimeSyncSlave::adjustFromMsg(const ReceivedDataStructure<protocol::GlobalTimeSync>& msg)
 {
-    assert(msg.prev_utc_usec > 0);
+    UAVCAN_ASSERT(msg.prev_utc_usec > 0);
     const UtcDuration adjustment = UtcTime::fromUSec(msg.prev_utc_usec) - prev_ts_utc_;
 
     UAVCAN_TRACE("GlobalTimeSyncSlave", "Adjustment: usec=%lli snid=%i iface=%i suppress=%i",
@@ -42,7 +42,7 @@ void GlobalTimeSyncSlave::updateFromMsg(const ReceivedDataStructure<protocol::Gl
 void GlobalTimeSyncSlave::processMsg(const ReceivedDataStructure<protocol::GlobalTimeSync>& msg)
 {
     const MonotonicDuration since_prev_msg = msg.getMonotonicTimestamp() - prev_ts_mono_;
-    assert(!since_prev_msg.isNegative());
+    UAVCAN_ASSERT(!since_prev_msg.isNegative());
 
     const bool needs_init = !master_nid_.isValid() || prev_ts_mono_.isZero();
     const bool switch_master = msg.getSrcNodeID() < master_nid_;

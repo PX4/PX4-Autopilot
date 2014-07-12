@@ -61,7 +61,7 @@ void NodeStatusMonitor::handleTimerEvent(const TimerEvent&)
     for (int i = 1; i <= NodeID::Max; i++)
     {
         const NodeID nid(i);
-        assert(nid.isUnicast());
+        UAVCAN_ASSERT(nid.isUnicast());
         Entry& entry = getEntry(nid);
         if (entry.time_since_last_update_ms100 >= 0 &&
             entry.status_code != protocol::NodeStatus::STATUS_OFFLINE)
@@ -97,7 +97,7 @@ void NodeStatusMonitor::forgetNode(NodeID node_id)
     }
     else
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
     }
 }
 
@@ -105,7 +105,7 @@ NodeStatusMonitor::NodeStatus NodeStatusMonitor::getNodeStatus(NodeID node_id) c
 {
     if (!node_id.isValid())
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         return NodeStatus();
     }
     NodeStatus status;
@@ -126,7 +126,7 @@ NodeID NodeStatusMonitor::findNodeWithWorstStatus() const
     for (int i = 1; i <= NodeID::Max; i++)
     {
         const NodeID nid(i);
-        assert(nid.isUnicast());
+        UAVCAN_ASSERT(nid.isUnicast());
         const Entry& entry = getEntry(nid);
         if (entry.time_since_last_update_ms100 >= 0)
         {

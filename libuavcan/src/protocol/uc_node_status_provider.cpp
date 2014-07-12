@@ -18,10 +18,10 @@ bool NodeStatusProvider::isNodeInfoInitialized() const
 int NodeStatusProvider::publish()
 {
     const MonotonicDuration uptime = getNode().getMonotonicTime() - creation_timestamp_;
-    assert(uptime.isPositive());
+    UAVCAN_ASSERT(uptime.isPositive());
     node_info_.status.uptime_sec = uptime.toMSec() / 1000;
 
-    assert(node_info_.status.status_code <= protocol::NodeStatus::FieldTypes::status_code::max());
+    UAVCAN_ASSERT(node_info_.status.status_code <= protocol::NodeStatus::FieldTypes::status_code::max());
 
     return node_status_pub_.broadcast(node_info_.status);
 }
@@ -50,7 +50,7 @@ void NodeStatusProvider::handleGetNodeInfoRequest(const protocol::GetNodeInfo::R
                                                   protocol::GetNodeInfo::Response& rsp)
 {
     UAVCAN_TRACE("NodeStatusProvider", "Got GetNodeInfo request");
-    assert(isNodeInfoInitialized());
+    UAVCAN_ASSERT(isNodeInfoInitialized());
     rsp = node_info_;
 }
 
@@ -93,7 +93,7 @@ int NodeStatusProvider::startAndPublish()
     return res;
 
 fail:
-    assert(res < 0);
+    UAVCAN_ASSERT(res < 0);
     gdr_sub_.stop();
     gni_srv_.stop();
     TimerBase::stop();

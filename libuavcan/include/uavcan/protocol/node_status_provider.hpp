@@ -52,7 +52,7 @@ public:
         , gdr_sub_(node)
         , gni_srv_(node)
     {
-        assert(!creation_timestamp_.isZero());
+        UAVCAN_ASSERT(!creation_timestamp_.isZero());
 
         node_info_.uavcan_version.major = UAVCAN_VERSION_MAJOR;
         node_info_.uavcan_version.minor = UAVCAN_VERSION_MINOR;

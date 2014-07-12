@@ -13,7 +13,7 @@ namespace uavcan
  */
 void DeadlineHandler::startWithDeadline(MonotonicTime deadline)
 {
-    assert(!deadline.isZero());
+    UAVCAN_ASSERT(!deadline.isZero());
     stop();
     deadline_ = deadline;
     scheduler_.getDeadlineScheduler().add(this);
@@ -49,19 +49,19 @@ struct MonotonicDeadlineHandlerInsertionComparator
 
 void DeadlineScheduler::add(DeadlineHandler* mdh)
 {
-    assert(mdh);
+    UAVCAN_ASSERT(mdh);
     handlers_.insertBefore(mdh, MonotonicDeadlineHandlerInsertionComparator(mdh->getDeadline()));
 }
 
 void DeadlineScheduler::remove(DeadlineHandler* mdh)
 {
-    assert(mdh);
+    UAVCAN_ASSERT(mdh);
     handlers_.remove(mdh);
 }
 
 bool DeadlineScheduler::doesExist(const DeadlineHandler* mdh) const
 {
-    assert(mdh);
+    UAVCAN_ASSERT(mdh);
     const DeadlineHandler* p = handlers_.get();
 #if UAVCAN_DEBUG
     MonotonicTime prev_deadline;
@@ -96,7 +96,7 @@ MonotonicTime DeadlineScheduler::pollAndGetMonotonicTime(ISystemClock& sysclock)
 #if UAVCAN_DEBUG
         if (mdh->getNextListNode())      // Order check
         {
-            assert(mdh->getDeadline() <= mdh->getNextListNode()->getDeadline());
+            UAVCAN_ASSERT(mdh->getDeadline() <= mdh->getNextListNode()->getDeadline());
         }
 #endif
 
@@ -109,7 +109,7 @@ MonotonicTime DeadlineScheduler::pollAndGetMonotonicTime(ISystemClock& sysclock)
         handlers_.remove(mdh);
         mdh->handleDeadline(ts);   // This handler can be re-registered immediately
     }
-    assert(0);
+    UAVCAN_ASSERT(0);
     return MonotonicTime();
 }
 
@@ -156,7 +156,7 @@ int Scheduler::spin(MonotonicTime deadline)
 {
     if (inside_spin_)  // Preventing recursive calls
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         return -ErrRecursiveCall;
     }
     inside_spin_ = true;

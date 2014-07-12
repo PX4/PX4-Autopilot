@@ -54,7 +54,7 @@ public:
     uint8_t getIfaceMask() const { return iface_mask_; }
     void setIfaceMask(uint8_t iface_mask)
     {
-        assert(iface_mask);
+        UAVCAN_ASSERT(iface_mask);
         iface_mask_ = iface_mask;
     }
 

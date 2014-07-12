@@ -36,7 +36,7 @@ void DataTypeSignatureCRC::add(uint8_t byte)
 
 void DataTypeSignatureCRC::add(const uint8_t* bytes, unsigned len)
 {
-    assert(bytes);
+    UAVCAN_ASSERT(bytes);
     while (len--)
     {
         add(*bytes++);
@@ -106,7 +106,7 @@ std::string DataTypeDescriptor::toString() const
     }
     default:
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         break;
     }
     }

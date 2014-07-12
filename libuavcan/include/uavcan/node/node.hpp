@@ -234,7 +234,7 @@ int Node<MemPoolSize_, OutgoingTransferRegistryStaticEntries, OutgoingTransferMa
     started_ = res >= 0;
     return res;
 fail:
-    assert(res < 0);
+    UAVCAN_ASSERT(res < 0);
     return res;
 }
 

@@ -12,7 +12,7 @@ int GenericSubscriberBase::genericStart(TransferListenerBase* listener,
 {
     if (listener == NULL)
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         return -ErrLogic;
     }
     stop(listener);

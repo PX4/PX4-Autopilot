@@ -56,7 +56,7 @@ public:
             , qos(uint8_t(arg_qos))
             , flags(arg_flags)
         {
-            assert((qos == Volatile) || (qos == Persistent));
+            UAVCAN_ASSERT((qos == Volatile) || (qos == Persistent));
             IsDynamicallyAllocatable<Entry>::check();
         }
 
@@ -82,7 +82,7 @@ private:
         explicit PriorityInsertionComparator(const CanFrame& frm) : frm_(frm) { }
         bool operator()(const Entry* entry)
         {
-            assert(entry);
+            UAVCAN_ASSERT(entry);
             return frm_.priorityHigherThan(entry->frame);
         }
     };

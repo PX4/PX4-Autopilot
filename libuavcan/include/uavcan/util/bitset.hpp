@@ -27,7 +27,7 @@ class UAVCAN_EXPORT BitSet
     {
         if (inout_pos >= NumBits)
         {
-            assert(0);
+            UAVCAN_ASSERT(0);
             inout_pos = NumBits - 1;
         }
     }

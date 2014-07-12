@@ -21,7 +21,7 @@ int GlobalTimeSyncMaster::IfaceMaster::init()
     if (res >= 0)
     {
         TransferSender* const ts = pub_.getTransferSender();
-        assert(ts != NULL);
+        UAVCAN_ASSERT(ts != NULL);
         ts->setIfaceMask(1 << iface_index_);
         ts->setCanIOFlags(CanIOFlagLoopback);
     }
@@ -32,7 +32,7 @@ void GlobalTimeSyncMaster::IfaceMaster::setTxTimestamp(UtcTime ts)
 {
     if (ts.isZero())
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         pub_.getNode().registerInternalFailure("GlobalTimeSyncMaster zero TX ts");
         return;
     }
@@ -47,12 +47,12 @@ void GlobalTimeSyncMaster::IfaceMaster::setTxTimestamp(UtcTime ts)
 
 int GlobalTimeSyncMaster::IfaceMaster::publish(TransferID tid, MonotonicTime current_time)
 {
-    assert(pub_.getTransferSender()->getCanIOFlags() == CanIOFlagLoopback);
-    assert(pub_.getTransferSender()->getIfaceMask() == (1 << iface_index_));
+    UAVCAN_ASSERT(pub_.getTransferSender()->getCanIOFlags() == CanIOFlagLoopback);
+    UAVCAN_ASSERT(pub_.getTransferSender()->getIfaceMask() == (1 << iface_index_));
 
     const MonotonicDuration since_prev_pub = current_time - iface_prev_pub_mono_;
     iface_prev_pub_mono_ = current_time;
-    assert(since_prev_pub.isPositive());
+    UAVCAN_ASSERT(since_prev_pub.isPositive());
     const bool long_period = since_prev_pub.toMSec() >= protocol::GlobalTimeSync::MAX_PUBLICATION_PERIOD_MS;
 
     protocol::GlobalTimeSync msg;
@@ -82,7 +82,7 @@ void GlobalTimeSyncMaster::handleLoopbackFrame(const RxFrame& frame)
     }
     else
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
     }
 }
 
@@ -162,7 +162,7 @@ int GlobalTimeSyncMaster::publish()
     const MonotonicTime current_time = node_.getMonotonicTime();
     {
         const MonotonicDuration since_prev_pub = current_time - prev_pub_mono_;
-        assert(since_prev_pub.isPositive());
+        UAVCAN_ASSERT(since_prev_pub.isPositive());
         if (since_prev_pub.toMSec() < protocol::GlobalTimeSync::MIN_PUBLICATION_PERIOD_MS)
         {
             UAVCAN_TRACE("GlobalTimeSyncMaster", "Publication skipped");

@@ -19,7 +19,7 @@ int BitStream::write(const uint8_t* bytes, const int bitlen)
 
     // Tmp space must be large enough to accomodate new bits AND unaligned bits from the last write()
     const unsigned bytelen = bitlenToBytelen(bitlen + (bit_offset_ % 8));
-    assert(MaxBytesPerRW >= bytelen);
+    UAVCAN_ASSERT(MaxBytesPerRW >= bytelen);
     tmp[0] = tmp[bytelen - 1] = 0;
 
     fill(tmp, tmp + bytelen, 0);
@@ -57,7 +57,7 @@ int BitStream::read(uint8_t* bytes, const int bitlen)
     uint8_t tmp[MaxBytesPerRW + 1];
 
     const unsigned bytelen = bitlenToBytelen(bitlen + (bit_offset_ % 8));
-    assert(MaxBytesPerRW >= bytelen);
+    UAVCAN_ASSERT(MaxBytesPerRW >= bytelen);
 
     const int read_res = buf_.read(bit_offset_ / 8, tmp, bytelen);
     if (read_res < 0)

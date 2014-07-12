@@ -17,7 +17,7 @@ bool ParamServer::isValueNonEmpty(const protocol::param::Value& value)
 
 void ParamServer::handleGetSet(const protocol::param::GetSet::Request& in, protocol::param::GetSet::Response& out)
 {
-    assert(manager_ != NULL);
+    UAVCAN_ASSERT(manager_ != NULL);
 
     // Recover the name from index
     if (in.name.empty())
@@ -52,7 +52,7 @@ void ParamServer::handleGetSet(const protocol::param::GetSet::Request& in, proto
 void ParamServer::handleSaveErase(const protocol::param::SaveErase::Request& in,
                                   protocol::param::SaveErase::Response& out)
 {
-    assert(manager_ != NULL);
+    UAVCAN_ASSERT(manager_ != NULL);
 
     if (in.opcode == protocol::param::SaveErase::Request::OPCODE_SAVE)
     {

@@ -51,7 +51,7 @@ protected:
 #if UAVCAN_EXCEPTIONS
         throw std::out_of_range("uavcan::Array");
 #else
-        assert(0);
+        UAVCAN_ASSERT(0);
         return Size - 1;  // Ha ha
 #endif
     }
@@ -82,7 +82,7 @@ protected:
 #if UAVCAN_EXCEPTIONS
         throw std::out_of_range("uavcan::Array");
 #else
-        assert(0);
+        UAVCAN_ASSERT(0);
         return (size_ == 0) ? 0 : (size_ - 1);
 #endif
     }
@@ -91,7 +91,7 @@ protected:
     {
         if (size_ >= MaxSize)
         {
-            (void)validateRange(MaxSize);  // Will throw, assert() or do nothing
+            (void)validateRange(MaxSize);  // Will throw, UAVCAN_ASSERT() or do nothing
         }
         else
         {
@@ -112,7 +112,7 @@ public:
 
     SizeType size() const
     {
-        assert(size_ ? ((size_ - 1u) <= (MaxSize - 1u)) : 1); // -Werror=type-limits
+        UAVCAN_ASSERT(size_ ? ((size_ - 1u) <= (MaxSize - 1u)) : 1); // -Werror=type-limits
         return size_;
     }
 
@@ -168,7 +168,7 @@ public:
     const char* c_str() const
     {
         StaticAssert<IsStringLike>::check();
-        assert(size() < (MaxSize + 1));
+        UAVCAN_ASSERT(size() < (MaxSize + 1));
         const_cast<BufferType&>(data_)[size()] = 0;  // Ad-hoc string termination
         return reinterpret_cast<const char*>(data_);
     }
@@ -245,7 +245,7 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
 
     int encodeImpl(ScalarCodec& codec, const TailArrayOptimizationMode tao_mode, FalseType) const  /// Static
     {
-        assert(size() > 0);
+        UAVCAN_ASSERT(size() > 0);
         for (SizeType i = 0; i < size(); i++)
         {
             const bool last_item = i == (size() - 1);
@@ -279,7 +279,7 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
 
     int decodeImpl(ScalarCodec& codec, const TailArrayOptimizationMode tao_mode, FalseType)  /// Static
     {
-        assert(size() > 0);
+        UAVCAN_ASSERT(size() > 0);
         for (SizeType i = 0; i < size(); i++)
         {
             const bool last_item = i == (size() - 1);
@@ -338,7 +338,7 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
             }
             return decodeImpl(codec, tao_mode, FalseType());
         }
-        assert(0); // Unreachable
+        UAVCAN_ASSERT(0); // Unreachable
         return -ErrLogic;
     }
 
@@ -615,13 +615,13 @@ public:
 
         if (!format)
         {
-            assert(0);
+            UAVCAN_ASSERT(0);
             return;
         }
         // Add some hardcore runtime checks for the format string correctness?
 
         ValueType* const ptr = Base::end();
-        assert(capacity() >= size());
+        UAVCAN_ASSERT(capacity() >= size());
         const SizeType max_size = capacity() - size();
 
         // We have one extra byte for the null terminator, hence +1
@@ -634,7 +634,7 @@ public:
         }
         if (ret < 0)
         {
-            assert(0);           // Likely an invalid format string
+            UAVCAN_ASSERT(0);           // Likely an invalid format string
             (*this) += format;   // So we print it as is in release builds
         }
     }
@@ -671,7 +671,7 @@ public:
 #if UAVCAN_EXCEPTIONS
             throw std::out_of_range("uavcan::Array::packSquareMatrix()");
 #else
-            assert(0);
+            UAVCAN_ASSERT(0);
             this->clear();
 #endif
         }
@@ -698,7 +698,7 @@ public:
 #if UAVCAN_EXCEPTIONS
             throw std::out_of_range("uavcan::Array::packSquareMatrix()");
 #else
-            assert(0);
+            UAVCAN_ASSERT(0);
             this->clear();
 #endif
         }
@@ -744,7 +744,7 @@ public:
 #if UAVCAN_EXCEPTIONS
             throw std::out_of_range("uavcan::Array::unpackSquareMatrix()");
 #else
-            assert(0);
+            UAVCAN_ASSERT(0);
 #endif
         }
     }

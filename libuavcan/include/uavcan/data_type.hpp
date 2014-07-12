@@ -35,7 +35,7 @@ public:
     DataTypeID(uint16_t id)  // Implicit
         : value_(id)
     {
-        assert(isValid());
+        UAVCAN_ASSERT(isValid());
     }
 
     bool isValid() const { return value_ <= Max; }
@@ -120,9 +120,9 @@ public:
         , signature_(signature)
         , full_name_(name)
     {
-        assert(kind < NumDataTypeKinds);
-        assert(name);
-        assert(std::strlen(name) <= MaxFullNameLen);
+        UAVCAN_ASSERT(kind < NumDataTypeKinds);
+        UAVCAN_ASSERT(name);
+        UAVCAN_ASSERT(std::strlen(name) <= MaxFullNameLen);
     }
 
     DataTypeKind getKind() const { return kind_; }

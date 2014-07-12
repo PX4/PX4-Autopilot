@@ -64,7 +64,7 @@ public:
 
     void add(const uint8_t* bytes, unsigned len)
     {
-        assert(bytes);
+        UAVCAN_ASSERT(bytes);
         while (len--)
         {
             add(*bytes++);

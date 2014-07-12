@@ -182,19 +182,19 @@ public:
 
         ExpectedResponseParams()
         {
-            assert(!src_node_id.isValid());
+            UAVCAN_ASSERT(!src_node_id.isValid());
         }
 
         ExpectedResponseParams(NodeID arg_src_node_id, TransferID arg_transfer_id)
             : src_node_id(arg_src_node_id)
             , transfer_id(arg_transfer_id)
         {
-            assert(src_node_id.isUnicast());
+            UAVCAN_ASSERT(src_node_id.isUnicast());
         }
 
         bool match(const RxFrame& frame) const
         {
-            assert(frame.getTransferType() == TransferTypeServiceResponse);
+            UAVCAN_ASSERT(frame.getTransferType() == TransferTypeServiceResponse);
             return (frame.getSrcNodeID() == src_node_id) && (frame.getTransferID() == transfer_id);
         }
     };

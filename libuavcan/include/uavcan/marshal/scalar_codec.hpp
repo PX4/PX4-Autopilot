@@ -32,9 +32,9 @@ class UAVCAN_EXPORT ScalarCodec
 #endif
         /*
          * I didn't have any big endian machine nearby, so big endian support wasn't tested yet.
-         * It is likely to be OK anyway, so feel free to remove this assert() as needed.
+         * It is likely to be OK anyway, so feel free to remove this UAVCAN_ASSERT() as needed.
          */
-        assert(big_endian == false);
+        UAVCAN_ASSERT(big_endian == false);
         if (big_endian)
         {
             swapByteOrder(bytes, Size);

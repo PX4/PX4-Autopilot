@@ -14,7 +14,7 @@ namespace uavcan
  */
 int IncomingTransfer::write(unsigned, const uint8_t*, unsigned)
 {
-    assert(0);  // Incoming transfer container is read-only
+    UAVCAN_ASSERT(0);  // Incoming transfer container is read-only
     return -ErrLogic;
 }
 
@@ -27,14 +27,14 @@ SingleFrameIncomingTransfer::SingleFrameIncomingTransfer(const RxFrame& frm)
     , payload_(frm.getPayloadPtr())
     , payload_len_(frm.getPayloadLen())
 {
-    assert(frm.isValid());
+    UAVCAN_ASSERT(frm.isValid());
 }
 
 int SingleFrameIncomingTransfer::read(unsigned offset, uint8_t* data, unsigned len) const
 {
     if (data == NULL)
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         return -ErrInvalidParam;
     }
     if (offset >= payload_len_)
@@ -45,7 +45,7 @@ int SingleFrameIncomingTransfer::read(unsigned offset, uint8_t* data, unsigned l
     {
         len = payload_len_ - offset;
     }
-    assert((offset + len) <= payload_len_);
+    UAVCAN_ASSERT((offset + len) <= payload_len_);
     (void)copy(payload_ + offset, payload_ + offset + len, data);
     return len;
 }
@@ -59,8 +59,8 @@ MultiFrameIncomingTransfer::MultiFrameIncomingTransfer(MonotonicTime ts_mono, Ut
                        last_frame.getSrcNodeID(), last_frame.getIfaceIndex())
     , buf_acc_(tba)
 {
-    assert(last_frame.isValid());
-    assert(last_frame.isLast());
+    UAVCAN_ASSERT(last_frame.isValid());
+    UAVCAN_ASSERT(last_frame.isLast());
 }
 
 int MultiFrameIncomingTransfer::read(unsigned offset, uint8_t* data, unsigned len) const
@@ -166,7 +166,7 @@ void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxF
     }
     default:
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
         break;
     }
     }
@@ -175,7 +175,7 @@ void TransferListenerBase::handleReception(TransferReceiver& receiver, const RxF
 void TransferListenerBase::cleanup(MonotonicTime ts)
 {
     receivers_.removeWhere(TimedOutReceiverPredicate(ts, bufmgr_));
-    assert(receivers_.isEmpty() ? bufmgr_.isEmpty() : 1);
+    UAVCAN_ASSERT(receivers_.isEmpty() ? bufmgr_.isEmpty() : 1);
 }
 
 void TransferListenerBase::handleFrame(const RxFrame& frame)

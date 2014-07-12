@@ -28,7 +28,7 @@ class UAVCAN_EXPORT ReceivedDataStructure : public DataType_
     {
         if (!transfer_)
         {
-            assert(0);
+            UAVCAN_ASSERT(0);
             return Ret();
         }
         return (transfer_->*Fun)();
@@ -39,7 +39,7 @@ protected:
 
     void setTransfer(const IncomingTransfer* transfer)
     {
-        assert(transfer);
+        UAVCAN_ASSERT(transfer);
         transfer_ = transfer;
     }
 

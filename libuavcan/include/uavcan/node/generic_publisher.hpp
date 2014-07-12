@@ -33,7 +33,7 @@ protected:
     {
         setTxTimeout(tx_timeout);
 #if UAVCAN_DEBUG
-        assert(getTxTimeout() == tx_timeout);  // Making sure default values are OK
+        UAVCAN_ASSERT(getTxTimeout() == tx_timeout);  // Making sure default values are OK
 #endif
     }
 
@@ -135,7 +135,7 @@ int GenericPublisher<DataSpec, DataStruct>::doEncode(const DataStruct& message, 
     const int encode_res = DataStruct::encode(message, codec);
     if (encode_res <= 0)
     {
-        assert(0);   // Impossible, internal error
+        UAVCAN_ASSERT(0);   // Impossible, internal error
         return -ErrInvalidMarshalData;
     }
     return encode_res;

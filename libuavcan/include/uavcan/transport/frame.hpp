@@ -47,10 +47,10 @@ public:
         , transfer_id_(transfer_id)
         , last_frame_(last_frame)
     {
-        assert((transfer_type == TransferTypeMessageBroadcast) == dst_node_id.isBroadcast());
-        assert(data_type_id.isValid());
-        assert(src_node_id != dst_node_id);
-        assert(frame_index <= MaxIndex);
+        UAVCAN_ASSERT((transfer_type == TransferTypeMessageBroadcast) == dst_node_id.isBroadcast());
+        UAVCAN_ASSERT(data_type_id.isValid());
+        UAVCAN_ASSERT(src_node_id != dst_node_id);
+        UAVCAN_ASSERT(frame_index <= MaxIndex);
     }
 
     int getMaxPayloadLen() const;

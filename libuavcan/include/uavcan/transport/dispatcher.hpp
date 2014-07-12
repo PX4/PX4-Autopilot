@@ -73,7 +73,7 @@ class UAVCAN_EXPORT Dispatcher : Noncopyable
             explicit DataTypeIDInsertionComparator(DataTypeID id) : id_(id) { }
             bool operator()(const TransferListenerBase* listener) const
             {
-                assert(listener);
+                UAVCAN_ASSERT(listener);
                 return id_ > listener->getDataTypeDescriptor().getID();
             }
         };

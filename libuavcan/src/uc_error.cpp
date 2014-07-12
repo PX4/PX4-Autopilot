@@ -23,7 +23,7 @@ void handleFatalError(const char* msg)
     throw std::runtime_error(msg);
 #else
     (void)msg;
-    assert(0);
+    UAVCAN_ASSERT(0);
     std::abort();
 #endif
 }
