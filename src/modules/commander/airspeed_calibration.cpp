@@ -51,6 +51,7 @@
 #include <mavlink/mavlink_log.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
+#include <systemlib/airspeed.h>
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -103,58 +104,48 @@ int do_airspeed_calibration(int mavlink_fd)
 		}
 	}
 
-	for (unsigned i = 0; i < (sizeof(diff_pres_offset) / sizeof(diff_pres_offset[0])); i++) {
+	unsigned calibration_counter = 0;
 
-		unsigned calibration_counter = 0;
+	mavlink_log_critical(mavlink_fd, "Ensure sensor is not measuring wind");
+	usleep(500 * 1000);
 
-		if (i == 0) {
-			mavlink_log_critical(mavlink_fd, "Ensure sensor is not measuring wind");
-			usleep(500 * 1000);
-		}
+	while (calibration_counter < calibration_count) {
 
-		float diff_pres_offset = 0.0f;
+		/* wait blocking for new data */
+		struct pollfd fds[1];
+		fds[0].fd = diff_pres_sub;
+		fds[0].events = POLLIN;
 
-		while (calibration_counter < calibration_count) {
+		int poll_ret = poll(fds, 1, 1000);
 
-			/* wait blocking for new data */
-			struct pollfd fds[1];
-			fds[0].fd = diff_pres_sub;
-			fds[0].events = POLLIN;
+		if (poll_ret) {
+			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
 
-			int poll_ret = poll(fds, 1, 1000);
+			if (calc_indicated_airspeed(fabsf(diff_pres.differential_pressure_raw_pa)) < 10.0f) {
+				mavlink_log_critical(mavlink_fd, "Put a finger on front hole of pitot");
+				usleep(5000 * 1000);
+				continue;
+			}
 
-			if (poll_ret) {
-				orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
-
-				if (i > 0) {
-
-					if (calc_indicated_airspeed(fabsf(diff_pres.differential_pressure_raw_pa)) < 10.0f) {
-						mavlink_log_critical(mavlink_fd, "Put a finger on front hole of pitot");
-						usleep(5000 * 1000);
-						continue;
-					}
-
-					/* do not log negative values in the second go */
-					if ((diff_pres_offset / calibration_counter) < calc_indicated_airspeed(-5.0f)) {
-						mavlink_log_critical(mavlink_fd, "Negative val: swap static<->dynamic ports,restart");
-						close(diff_pres_sub);
-						return ERROR;
-					}
-				}
-
-				diff_pres_offset += diff_pres.differential_pressure_raw_pa;
-				calibration_counter++;
-
-				if (calibration_counter % (calibration_count / 20) == 0) {
-					mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, (calibration_counter * 100) / calibration_count / 2);
-				}
-
-			} else if (poll_ret == 0) {
-				/* any poll failure for 1s is a reason to abort */
-				mavlink_log_critical(mavlink_fd, CAL_FAILED_MSG, sensor_name);
+			/* do not log negative values in the second go */
+			if ((diff_pres_offset / calibration_counter) < calc_indicated_airspeed(-5.0f)) {
+				mavlink_log_critical(mavlink_fd, "Negative val: swap static<->dynamic ports,restart");
 				close(diff_pres_sub);
 				return ERROR;
 			}
+
+			diff_pres_offset += diff_pres.differential_pressure_raw_pa;
+			calibration_counter++;
+
+			if (calibration_counter % (calibration_count / 20) == 0) {
+				mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, (calibration_counter * 100) / calibration_count / 2);
+			}
+
+		} else if (poll_ret == 0) {
+			/* any poll failure for 1s is a reason to abort */
+			mavlink_log_critical(mavlink_fd, CAL_FAILED_MSG, sensor_name);
+			close(diff_pres_sub);
+			return ERROR;
 		}
 	}
 
