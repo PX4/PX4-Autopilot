@@ -38,3 +38,5 @@
 MODULE_COMMAND	= ll40ls
 
 SRCS		= ll40ls.cpp
+
+MAXOPTIMIZATION	 = -Os
