@@ -40,9 +40,9 @@ MODULE_COMMAND = uavcan
 
 MAXOPTIMIZATION = -Os
 
-SRCS += uavcan_main.cpp     \
-        uavcan_clock.cpp    \
-        esc_controller.cpp	\
+SRCS += uavcan_main.cpp         \
+        uavcan_clock.cpp        \
+        esc_controller.cpp      \
         gnss_receiver.cpp
 
 #
@@ -53,7 +53,7 @@ SRCS += $(LIBUAVCAN_SRC)
 INCLUDE_DIRS += $(LIBUAVCAN_INC)
 # Since actual compiler mode is C++11, the library will default to UAVCAN_CPP11, but it will fail to compile
 # because this platform lacks most of the standard library and STL. Hence we need to force C++03 mode.
-override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_CPP_VERSION=UAVCAN_CPP03
+override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_CPP_VERSION=UAVCAN_CPP03 -DUAVCAN_NO_ASSERTIONS
 
 #
 # libuavcan drivers for STM32
@@ -68,7 +68,7 @@ override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_STM32_NUTTX -DUAVCAN_STM32_NUM
 # TODO: Add make target for this, or invoke dsdlc manually.
 #       The second option assumes that the generated headers shall be saved
 #       under the version control, which may be undesirable.
-#       The first option requires python3 and python3-mako for the sources to be built.
+#       The first option requires any Python and the Python Mako library for the sources to be built.
 #
 $(info $(shell $(LIBUAVCAN_DSDLC) $(UAVCAN_DSDL_DIR)))
 INCLUDE_DIRS += dsdlc_generated
