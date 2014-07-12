@@ -125,7 +125,7 @@ int do_airspeed_calibration(int mavlink_fd)
 			calibration_counter++;
 
 			if (calibration_counter % (calibration_count / 20) == 0) {
-				mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, (calibration_counter * 100) / calibration_count / 2);
+				mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, (calibration_counter * 80) / calibration_count);
 			}
 
 		} else if (poll_ret == 0) {
@@ -165,6 +165,8 @@ int do_airspeed_calibration(int mavlink_fd)
 	/* wait 500 ms to ensure parameter propagated through the system */
 	usleep(500 * 1000);
 
+	calibration_counter = 0;
+
 	/* just take a few samples and make sure pitot tubes are not reversed */
 	while (calibration_counter < 10) {
 
@@ -178,16 +180,18 @@ int do_airspeed_calibration(int mavlink_fd)
 		if (poll_ret) {
 			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
 
-			if (fabsf(diff_pres.differential_pressure_raw_pa) < 10.0f) {
-				mavlink_log_critical(mavlink_fd, "Put a finger on front hole of pitot (%.1f Pa)",
-					(double)diff_pres.differential_pressure_raw_pa);
+			float calibrated_pa = diff_pres.differential_pressure_raw_pa - diff_pres_offset;
+
+			if (fabsf(calibrated_pa) < 9.0f) {
+				mavlink_log_critical(mavlink_fd, "Create airflow on pitot (%.1f Pa, #h101)",
+					(double)calibrated_pa);
 				usleep(3000 * 1000);
 				continue;
 			}
 
 			/* do not allow negative values */
-			if (diff_pres.differential_pressure_raw_pa < 0.0f) {
-				mavlink_log_critical(mavlink_fd, "Negative val: swap static<->dynamic ports,restart");
+			if (calibrated_pa < 0.0f) {
+				mavlink_log_critical(mavlink_fd, "Negative val: swap static vs dynamic ports,restart");
 				close(diff_pres_sub);
 
 				/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
@@ -205,8 +209,9 @@ int do_airspeed_calibration(int mavlink_fd)
 				close(diff_pres_sub);
 				return ERROR;
 			} else {
-				close(diff_pres_sub);
-				return OK;
+				mavlink_log_info(mavlink_fd, "positive pressure: (%.1f Pa)",
+					(double)diff_pres.differential_pressure_raw_pa);
+				break;
 			}
 
 		} else if (poll_ret == 0) {
@@ -216,6 +221,8 @@ int do_airspeed_calibration(int mavlink_fd)
 			return ERROR;
 		}
 	}
+
+	mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 100);
 
 	mavlink_log_info(mavlink_fd, CAL_DONE_MSG, sensor_name);
 	tune_neutral(true);
