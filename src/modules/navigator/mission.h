@@ -92,6 +92,12 @@ private:
 	void advance_mission();
 
 	/**
+	 * Check distance to first waypoint (with lat/lon)
+	 * @return true only if it's not too far from home (< MIS_DIST_1WP)
+	 */
+	bool check_dist_1wp();
+
+	/**
 	 * Set new mission items
 	 */
 	void set_mission_items();
@@ -101,6 +107,11 @@ private:
 	 * @return true if successful
 	 */
 	bool read_mission_item(bool onboard, bool is_current, struct mission_item_s *mission_item);
+
+	/**
+	 * Save current offboard mission state to dataman
+	 */
+	void save_offboard_mission_state();
 
 	/**
 	 * Report that a mission item has been reached
@@ -122,8 +133,9 @@ private:
 	 */
 	void publish_mission_result();
 
-	control::BlockParamFloat _param_onboard_enabled;
+	control::BlockParamInt _param_onboard_enabled;
 	control::BlockParamFloat _param_takeoff_alt;
+	control::BlockParamFloat _param_dist_1wp;
 
 	struct mission_s _onboard_mission;
 	struct mission_s _offboard_mission;
@@ -141,6 +153,9 @@ private:
 		MISSION_TYPE_ONBOARD,
 		MISSION_TYPE_OFFBOARD
 	} _mission_type;
+
+	bool _inited;
+	bool _dist_1wp_ok;
 
 	MissionFeasibilityChecker missionFeasiblityChecker; /**< class that checks if a mission is feasible */
 };

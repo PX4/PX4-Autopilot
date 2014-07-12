@@ -118,4 +118,12 @@ const rot_lookup_t rot_lookup[] = {
 __EXPORT void
 get_rot_matrix(enum Rotation rot, math::Matrix<3,3> *rot_matrix);
 
+
+/**
+ * rotate a 3 element float vector in-place
+ */
+__EXPORT void
+rotate_3f(enum Rotation rot, float &x, float &y, float &z);
+
+
 #endif /* ROTATION_H_ */
