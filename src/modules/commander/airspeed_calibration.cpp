@@ -165,11 +165,8 @@ int do_airspeed_calibration(int mavlink_fd)
 	/* wait 500 ms to ensure parameter propagated through the system */
 	usleep(500 * 1000);
 
-	calibration_counter = 0;
-	diff_pres_offset = 0.0f;
-
 	/* just take a few samples and make sure pitot tubes are not reversed */
-	while (calibration_counter < 50) {
+	while (calibration_counter < 10) {
 
 		/* wait blocking for new data */
 		struct pollfd fds[1];
@@ -181,19 +178,15 @@ int do_airspeed_calibration(int mavlink_fd)
 		if (poll_ret) {
 			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
 
-			diff_pres_offset += diff_pres.differential_pressure_raw_pa;
-			calibration_counter++;
-
-			float curr_avg_airspeed = calc_indicated_airspeed(diff_pres_offset / calibration_counter);
-
-			if (fabsf(curr_avg) < 10.0f) {
-				mavlink_log_critical(mavlink_fd, "Put a finger on front hole of pitot (%.1f m/s)", (double)curr_avg);
-				usleep(5000 * 1000);
+			if (fabsf(diff_pres.differential_pressure_raw_pa) < 10.0f) {
+				mavlink_log_critical(mavlink_fd, "Put a finger on front hole of pitot (%.1f Pa)",
+					(double)diff_pres.differential_pressure_raw_pa);
+				usleep(3000 * 1000);
 				continue;
 			}
 
-			/* do not log negative values in the second go */
-			if (curr_avg_airspeed < -calc_indicated_airspeed(5.0f)) {
+			/* do not allow negative values */
+			if (diff_pres.differential_pressure_raw_pa < 0.0f) {
 				mavlink_log_critical(mavlink_fd, "Negative val: swap static<->dynamic ports,restart");
 				close(diff_pres_sub);
 
@@ -209,7 +202,11 @@ int do_airspeed_calibration(int mavlink_fd)
 				/* save */
 				(void)param_save_default();
 
+				close(diff_pres_sub);
 				return ERROR;
+			} else {
+				close(diff_pres_sub);
+				return OK;
 			}
 
 		} else if (poll_ret == 0) {
