@@ -142,35 +142,35 @@ public:
 	void set_verbose(bool v) { _verbose = v; }
 
 private:
-	Mavlink*	_mavlink;
+	Mavlink*		_mavlink;
 	mavlink_channel_t	_channel;
-	uint8_t		_comp_id;
+	uint8_t			_comp_id;
 
-	enum MAVLINK_WPM_STATES _state;			///< Current state
+	enum MAVLINK_WPM_STATES _state;					///< Current state
 
-	uint64_t	_time_last_recv;
-	uint64_t	_time_last_sent;
+	uint64_t		_time_last_recv;
+	uint64_t		_time_last_sent;
 
-	uint32_t	_action_timeout;
-	uint32_t	_retry_timeout;
-	unsigned	_max_count;						///< Maximal count of mission items
+	uint32_t		_action_timeout;
+	uint32_t		_retry_timeout;
+	unsigned		_max_count;				///< Maximal count of mission items
 
-	int			_dataman_id;					///< Dataman storage ID for active mission
-	unsigned	_count;							///< Count of items in active mission
-	int			_current_seq;					///< Current item sequence in active mission
+	int			_dataman_id;				///< Dataman storage ID for active mission
+	unsigned		_count;					///< Count of items in active mission
+	int			_current_seq;				///< Current item sequence in active mission
 
 	int			_transfer_dataman_id;			///< Dataman storage ID for current transmission
-	unsigned	_transfer_count;				///< Items count in current transmission
-	int			_transfer_seq;					///< Item sequence in current transmission
-	int			_transfer_current_seq;				///< Current item ID for current transmission (-1 means not initialized)
-	uint8_t		_transfer_partner_sysid;		///< Partener SysID for current transmission
-	uint8_t		_transfer_partner_compid;		///< Partner ComponentID for current transmission
+	unsigned		_transfer_count;			///< Items count in current transmission
+	unsigned		_transfer_seq;				///< Item sequence in current transmission
+	unsigned		_transfer_current_seq;			///< Current item ID for current transmission (-1 means not initialized)
+	uint8_t			_transfer_partner_sysid;		///< Partener SysID for current transmission
+	uint8_t			_transfer_partner_compid;		///< Partner ComponentID for current transmission
 
 	int			_offboard_mission_sub;
 	int			_mission_result_sub;
-	orb_advert_t	_offboard_mission_pub;
+	orb_advert_t		_offboard_mission_pub;
 
-	MavlinkRateLimiter _slow_rate_limiter;
+	MavlinkRateLimiter	_slow_rate_limiter;
 
 	bool _verbose;
 };
