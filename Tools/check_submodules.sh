@@ -1,13 +1,17 @@
 #!/bin/sh
 
+[ -n "$GIT_SUBMODULES_ARE_EVIL" ] && {
+    # GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules
+    echo "Skipping submodules. NUTTX_SRC is set to $NUTTX_SRC"
+    exit 0
+}
+
 if [ -d NuttX/nuttx ];
 	then
 	STATUSRETVAL=$(git submodule summary | grep -A20 -i "NuttX" | grep "<")
 	if [ -z "$STATUSRETVAL" ]; then
 		echo "Checked NuttX submodule, correct version found"
 	else
-		echo ""
-		echo ""
 		echo "NuttX sub repo not at correct version. Try 'git submodule update'"
 		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
 		echo ""
@@ -29,8 +33,6 @@ if [ -d mavlink/include/mavlink/v1.0 ];
 	if [ -z "$STATUSRETVAL" ]; then
 		echo "Checked mavlink submodule, correct version found"
 	else
-		echo ""
-		echo ""
 		echo "mavlink sub repo not at correct version. Try 'git submodule update'"
 		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
 		echo ""
