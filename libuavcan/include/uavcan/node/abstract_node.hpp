@@ -34,6 +34,8 @@ public:
         return getScheduler().getDispatcher().setNodeID(nid);
     }
 
+    bool isPassiveMode() const { return getScheduler().getDispatcher().isPassiveMode(); }
+
     int spin(MonotonicTime deadline)
     {
         return getScheduler().spin(deadline);

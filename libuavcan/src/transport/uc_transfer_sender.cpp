@@ -19,6 +19,11 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
                          MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id,
                          TransferID tid)
 {
+    if (dispatcher_.isPassiveMode())
+    {
+        return -ErrPassiveMode;
+    }
+
     dispatcher_.getTransferPerfCounter().addTxTransfer();
 
     Frame frame(data_type_.getID(), transfer_type, dispatcher_.getNodeID(), dst_node_id, 0, tid);

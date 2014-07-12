@@ -26,6 +26,7 @@ const int16_t ErrInvalidTransferListener = 7;
 const int16_t ErrNotInited               = 8;
 const int16_t ErrRecursiveCall           = 9;
 const int16_t ErrLogic                   = 10;
+const int16_t ErrPassiveMode             = 11;
 
 }
 

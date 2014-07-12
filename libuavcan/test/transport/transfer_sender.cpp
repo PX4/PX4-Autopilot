@@ -218,3 +218,28 @@ TEST(TransferSender, Loopback)
     EXPECT_EQ(1, dispatcher.getTransferPerfCounter().getTxTransferCount());
     EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getRxTransferCount());
 }
+
+TEST(TransferSender, PassiveMode)
+{
+    uavcan::PoolManager<1> poolmgr;
+
+    SystemClockMock clockmock(100);
+    CanDriverMock driver(2, clockmock);
+
+    uavcan::OutgoingTransferRegistry<8> out_trans_reg(poolmgr);
+
+    uavcan::Dispatcher dispatcher(driver, poolmgr, clockmock, out_trans_reg);
+
+    uavcan::TransferSender sender(dispatcher, makeDataType(uavcan::DataTypeKindMessage, 123),
+                                  uavcan::CanTxQueue::Volatile);
+
+    static const uint8_t Payload[] = {1, 2, 3, 4, 5};
+
+    ASSERT_EQ(-uavcan::ErrPassiveMode,
+              sender.send(Payload, sizeof(Payload), tsMono(1000), uavcan::MonotonicTime(),
+                          uavcan::TransferTypeMessageBroadcast, uavcan::NodeID::Broadcast));
+
+    EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getErrorCount());
+    EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getTxTransferCount());
+    EXPECT_EQ(0, dispatcher.getTransferPerfCounter().getRxTransferCount());
+}

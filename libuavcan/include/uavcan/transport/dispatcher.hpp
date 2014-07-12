@@ -141,6 +141,8 @@ public:
     NodeID getNodeID() const { return self_node_id_; }
     bool setNodeID(NodeID nid);
 
+    bool isPassiveMode() const { return !getNodeID().isUnicast(); }
+
     const ISystemClock& getSystemClock() const { return sysclock_; }
     ISystemClock& getSystemClock() { return sysclock_; }
 

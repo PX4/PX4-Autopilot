@@ -62,10 +62,15 @@ int NodeStatusProvider::startAndPublish()
         return -ErrNotInited;
     }
 
-    int res = publish(); // Initial broadcast
-    if (res < 0)
+    int res = -1;
+
+    if (!getNode().isPassiveMode())
     {
-        goto fail;
+        res = publish(); // Initial broadcast
+        if (res < 0)
+        {
+            goto fail;
+        }
     }
 
     res = gdr_sub_.start(GlobalDiscoveryRequestCallback(this, &NodeStatusProvider::handleGlobalDiscoveryRequest));
@@ -80,7 +85,10 @@ int NodeStatusProvider::startAndPublish()
         goto fail;
     }
 
-    TimerBase::startPeriodic(MonotonicDuration::fromMSec(protocol::NodeStatus::PUBLICATION_PERIOD_MS));
+    if (!getNode().isPassiveMode())
+    {
+        TimerBase::startPeriodic(MonotonicDuration::fromMSec(protocol::NodeStatus::PUBLICATION_PERIOD_MS));
+    }
 
     return res;
 
