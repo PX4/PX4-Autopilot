@@ -24,6 +24,7 @@ fi
 
 if ver hwcmp PX4FMU_V2
 then
+	# IMPORTANT: EXTERNAL BUSES SHOULD BE SCANNED FIRST
 	if lsm303d start
 	then
 		echo "[init] Using LSM303D"
