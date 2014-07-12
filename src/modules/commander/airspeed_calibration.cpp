@@ -200,7 +200,7 @@ int do_airspeed_calibration(int mavlink_fd)
 			float curr_avg = (diff_pres_offset / calibration_counter);
 
 			if (calc_indicated_airspeed(fabsf(curr_avg)) < 10.0f) {
-				mavlink_log_critical(mavlink_fd, "Put a finger on front hole of pitot (%.1f m/s)", curr_avg);
+				mavlink_log_critical(mavlink_fd, "Put a finger on front hole of pitot (%.1f m/s)", (double)curr_avg);
 				usleep(5000 * 1000);
 				continue;
 			}
