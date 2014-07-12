@@ -105,8 +105,6 @@ public:
 	static void *start_helper(void *context);
 
 private:
-	perf_counter_t	_loop_perf;			/**< loop performance counter */
-
 	Mavlink	*_mavlink;
 
 	void handle_message(mavlink_message_t *msg);
