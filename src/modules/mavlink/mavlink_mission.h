@@ -143,8 +143,6 @@ public:
 
 private:
 	Mavlink*		_mavlink;
-	mavlink_channel_t	_channel;
-	uint8_t			_comp_id;
 
 	enum MAVLINK_WPM_STATES _state;					///< Current state
 
@@ -153,7 +151,7 @@ private:
 
 	uint32_t		_action_timeout;
 	uint32_t		_retry_timeout;
-	unsigned		_max_count;				///< Maximal count of mission items
+	unsigned		_max_count;				///< Maximum number of mission items
 
 	int			_dataman_id;				///< Dataman storage ID for active mission
 	unsigned		_count;					///< Count of items in active mission
@@ -163,8 +161,8 @@ private:
 	unsigned		_transfer_count;			///< Items count in current transmission
 	unsigned		_transfer_seq;				///< Item sequence in current transmission
 	unsigned		_transfer_current_seq;			///< Current item ID for current transmission (-1 means not initialized)
-	uint8_t			_transfer_partner_sysid;		///< Partener SysID for current transmission
-	uint8_t			_transfer_partner_compid;		///< Partner ComponentID for current transmission
+	unsigned		_transfer_partner_sysid;		///< Partner system ID for current transmission
+	unsigned		_transfer_partner_compid;		///< Partner component ID for current transmission
 
 	int			_offboard_mission_sub;
 	int			_mission_result_sub;
@@ -173,4 +171,7 @@ private:
 	MavlinkRateLimiter	_slow_rate_limiter;
 
 	bool _verbose;
+
+	mavlink_channel_t	_channel;
+	uint8_t			_comp_id;
 };

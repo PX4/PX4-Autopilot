@@ -61,8 +61,6 @@ static const int ERROR = -1;
 
 MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) :
 	_mavlink(mavlink),
-	_channel(mavlink->get_channel()),
-	_comp_id(MAV_COMP_ID_MISSIONPLANNER),
 	_state(MAVLINK_WPM_STATE_IDLE),
 	_time_last_recv(0),
 	_time_last_sent(0),
@@ -82,7 +80,9 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) :
 	_mission_result_sub(-1),
 	_offboard_mission_pub(-1),
 	_slow_rate_limiter(2000000.0f / mavlink->get_rate_mult()),
-	_verbose(false)
+	_verbose(false),
+	_channel(mavlink->get_channel()),
+	_comp_id(MAV_COMP_ID_MISSIONPLANNER)
 {
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_mission_result_sub = orb_subscribe(ORB_ID(mission_result));
