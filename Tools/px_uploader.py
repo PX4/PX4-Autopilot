@@ -63,6 +63,7 @@ import zlib
 import base64
 import time
 import array
+import os
 
 from sys import platform as _platform
 
@@ -448,6 +449,12 @@ parser.add_argument('--port', action="store", required=True, help="Serial port(s
 parser.add_argument('--baud', action="store", type=int, default=115200, help="Baud rate of the serial port (default is 115200), only required for true serial ports.")
 parser.add_argument('firmware', action="store", help="Firmware file to be uploaded")
 args = parser.parse_args()
+
+# warn people about ModemManager which interferes badly with Pixhawk
+if os.path.exists("/usr/sbin/ModemManager"):
+        print("==========================================================================================================")
+        print("WARNING: You should uninstall ModemManager as it conflicts with any non-modem serial device (like Pixhawk)")
+        print("==========================================================================================================")
 
 # Load the firmware file
 fw = firmware(args.firmware)

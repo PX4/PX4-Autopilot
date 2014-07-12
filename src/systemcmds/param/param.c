@@ -63,7 +63,7 @@ static void	do_import(const char* param_file_name);
 static void	do_show(const char* search_string);
 static void	do_show_print(void *arg, param_t param);
 static void	do_set(const char* name, const char* val, bool fail_on_not_found);
-static void	do_compare(const char* name, const char* vals[], unsigned comparisons);
+static void	do_compare(const char* name, char* vals[], unsigned comparisons);
 static void	do_reset(void);
 static void	do_reset_nostart(void);
 
@@ -351,7 +351,7 @@ do_set(const char* name, const char* val, bool fail_on_not_found)
 }
 
 static void
-do_compare(const char* name, const char* vals[], unsigned comparisons)
+do_compare(const char* name, char* vals[], unsigned comparisons)
 {
 	int32_t i;
 	float f;

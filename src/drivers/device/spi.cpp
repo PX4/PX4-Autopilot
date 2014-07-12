@@ -69,12 +69,18 @@ SPI::SPI(const char *name,
 	// protected
 	locking_mode(LOCK_PREEMPTION),
 	// private
-	_bus(bus),
 	_device(device),
 	_mode(mode),
 	_frequency(frequency),
-	_dev(nullptr)
+	_dev(nullptr),
+	_bus(bus)
 {
+	// fill in _device_id fields for a SPI device
+	_device_id.devid_s.bus_type = DeviceBusType_SPI;
+	_device_id.devid_s.bus = bus;
+	_device_id.devid_s.address = (uint8_t)device;
+	// devtype needs to be filled in by the driver
+	_device_id.devid_s.devtype = 0; 
 }
 
 SPI::~SPI()

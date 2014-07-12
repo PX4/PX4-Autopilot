@@ -78,6 +78,7 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/system_power.h>
+#include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/telemetry_status.h>
 
@@ -92,6 +93,7 @@
 #include <systemlib/cpuload.h>
 #include <systemlib/rc_check.h>
 #include <systemlib/state_table.h>
+#include <dataman/dataman.h>
 
 #include "px4_custom_mode.h"
 #include "commander_helper.h"
@@ -286,15 +288,22 @@ int commander_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	/* commands needing the app to run below */
+	if (!thread_running) {
+		warnx("\tcommander not started");
+		exit(1);
+	}
+
 	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			warnx("\tcommander is running");
-			print_status();
+		print_status();
+		exit(0);
+	}
 
-		} else {
-			warnx("\tcommander not started");
-		}
-
+	if (!strcmp(argv[1], "check")) {
+		int mavlink_fd_local = open(MAVLINK_LOG_DEVICE, 0);
+		int checkres = prearm_check(&status, mavlink_fd_local);
+		close(mavlink_fd_local);
+		warnx("FINAL RESULT: %s", (checkres == 0) ? "OK" : "FAILED");
 		exit(0);
 	}
 
@@ -303,7 +312,7 @@ int commander_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	if (!strcmp(argv[1], "2")) {
+	if (!strcmp(argv[1], "disarm")) {
 		arm_disarm(false, mavlink_fd, "command line");
 		exit(0);
 	}
@@ -324,6 +333,7 @@ void usage(const char *reason)
 
 void print_status()
 {
+	warnx("type: %s", (status.is_rotary_wing) ? "ROTARY" : "PLANE");
 	warnx("usb powered: %s", (on_usb_power) ? "yes" : "no");
 
 	/* read all relevant states */
@@ -725,6 +735,11 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
+	if (status_pub < 0) {
+		warnx("ERROR: orb_advertise for topic vehicle_status failed (uorb app running?).\n");
+		warnx("exiting.");
+		exit(ERROR);
+	}
 
 	/* armed topic */
 	orb_advert_t armed_pub;
@@ -742,10 +757,27 @@ int commander_thread_main(int argc, char *argv[])
 	struct home_position_s home;
 	memset(&home, 0, sizeof(home));
 
-	if (status_pub < 0) {
-		warnx("ERROR: orb_advertise for topic vehicle_status failed (uorb app running?).\n");
-		warnx("exiting.");
-		exit(ERROR);
+	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
+	orb_advert_t mission_pub = -1;
+	mission_s mission;
+	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
+		if (mission.dataman_id >= 0 && mission.dataman_id <= 1) {
+			warnx("loaded mission state: dataman_id=%d, count=%u, current=%d", mission.dataman_id, mission.count, mission.current_seq);
+			mavlink_log_info(mavlink_fd, "[cmd] dataman_id=%d, count=%u, current=%d",
+												mission.dataman_id, mission.count, mission.current_seq);
+		} else {
+			warnx("reading mission state failed");
+			mavlink_log_info(mavlink_fd, "[cmd] reading mission state failed");
+
+			/* initialize mission state in dataman */
+			mission.dataman_id = 0;
+			mission.count = 0;
+			mission.current_seq = 0;
+			dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission, sizeof(mission_s));
+		}
+
+		mission_pub = orb_advertise(ORB_ID(offboard_mission), &mission);
+		orb_publish(ORB_ID(offboard_mission), mission_pub, &mission);
 	}
 
 	mavlink_log_info(mavlink_fd, "[cmd] started");
@@ -1486,7 +1518,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* now set navigation state according to failsafe and main state */
 		bool nav_state_changed = set_nav_state(&status, (bool)datalink_loss_enabled,
-						       mission_result.mission_finished);
+						       mission_result.finished);
 
 		// TODO handle mode changes by commands
 		if (main_state_changed) {
@@ -1590,6 +1622,7 @@ int commander_thread_main(int argc, char *argv[])
 	close(diff_pres_sub);
 	close(param_changed_sub);
 	close(battery_sub);
+	close(mission_pub);
 
 	thread_running = false;
 

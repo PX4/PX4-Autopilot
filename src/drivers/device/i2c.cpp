@@ -62,6 +62,12 @@ I2C::I2C(const char *name,
 	_frequency(frequency),
 	_dev(nullptr)
 {
+	// fill in _device_id fields for a I2C device
+	_device_id.devid_s.bus_type = DeviceBusType_I2C;
+	_device_id.devid_s.bus = bus;
+	_device_id.devid_s.address = address;
+	// devtype needs to be filled in by the driver
+	_device_id.devid_s.devtype = 0;     
 }
 
 I2C::~I2C()
