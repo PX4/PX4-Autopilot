@@ -492,6 +492,7 @@ Mavlink::mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 //		printf("logmsg: %s\n", txt);
 			struct mavlink_logmessage msg;
 			strncpy(msg.text, txt, sizeof(msg.text));
+			msg.severity = (unsigned char)cmd;
 
 			Mavlink *inst;
 			LL_FOREACH(_mavlink_instances, inst) {
@@ -840,7 +841,7 @@ void Mavlink::mavlink_pm_message_handler(const mavlink_channel_t chan, const mav
 					(req.target_component == mavlink_system.compid || req.target_component == MAV_COMP_ID_ALL)) {
 				/* Start sending parameters */
 				mavlink_pm_start_queued_send();
-				send_statustext("[mavlink pm] sending list");
+				send_statustext_info("[pm] sending list");
 			}
 		} break;
 
@@ -864,7 +865,7 @@ void Mavlink::mavlink_pm_message_handler(const mavlink_channel_t chan, const mav
 					if (param == PARAM_INVALID) {
 						char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
 						sprintf(buf, "[pm] unknown: %s", name);
-						send_statustext(buf);
+						send_statustext_info(buf);
 
 					} else {
 						/* set and send parameter */
@@ -901,17 +902,28 @@ void Mavlink::mavlink_pm_message_handler(const mavlink_channel_t chan, const mav
 }
 
 int
-Mavlink::send_statustext(const char *string)
+Mavlink::send_statustext_info(const char *string)
 {
-	return send_statustext(MAV_SEVERITY_INFO, string);
+	return send_statustext(MAVLINK_IOC_SEND_TEXT_INFO, string);
 }
 
 int
-Mavlink::send_statustext(enum MAV_SEVERITY severity, const char *string)
+Mavlink::send_statustext_critical(const char *string)
+{
+	return send_statustext(MAVLINK_IOC_SEND_TEXT_CRITICAL, string);
+}
+
+int
+Mavlink::send_statustext_emergency(const char *string)
+{
+	return send_statustext(MAVLINK_IOC_SEND_TEXT_EMERGENCY, string);
+}
+
+int
+Mavlink::send_statustext(unsigned severity, const char *string)
 {
 	const int len = MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN;
 	mavlink_statustext_t statustext;
-	statustext.severity = severity;
 
 	int i = 0;
 
@@ -928,6 +940,19 @@ Mavlink::send_statustext(enum MAV_SEVERITY severity, const char *string)
 	if (i > 1) {
 		/* Enforce null termination */
 		statustext.text[i] = '\0';
+
+		/* Map severity */
+		switch (severity) {
+			case MAVLINK_IOC_SEND_TEXT_INFO:
+				statustext.severity = MAV_SEVERITY_INFO;
+				break;
+			case MAVLINK_IOC_SEND_TEXT_CRITICAL:
+				statustext.severity = MAV_SEVERITY_CRITICAL;
+				break;
+			case MAVLINK_IOC_SEND_TEXT_EMERGENCY:
+				statustext.severity = MAV_SEVERITY_EMERGENCY;
+				break;
+		}
 
 		mavlink_msg_statustext_send(_channel, statustext.severity, statustext.text);
 		return OK;
@@ -1449,7 +1474,7 @@ Mavlink::task_main(int argc, char *argv[])
 				int lb_ret = mavlink_logbuffer_read(&_logbuffer, &msg);
 
 				if (lb_ret == OK) {
-					send_statustext(msg.text);
+					send_statustext(msg.severity, msg.text);
 				}
 			}
 		}

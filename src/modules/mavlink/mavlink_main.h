@@ -157,9 +157,9 @@ public:
 	 */
 	int			set_hil_enabled(bool hil_enabled);
 
-	void	send_message(const mavlink_message_t *msg);
+	void			send_message(const mavlink_message_t *msg);
 
-	void	handle_message(const mavlink_message_t *msg);
+	void			handle_message(const mavlink_message_t *msg);
 
 	MavlinkOrbSubscription *add_orb_subscription(const orb_id_t topic);
 
@@ -174,17 +174,43 @@ public:
 
 	mavlink_channel_t	get_channel();
 
-	void configure_stream_threadsafe(const char *stream_name, float rate);
+	void			configure_stream_threadsafe(const char *stream_name, float rate);
 
 	bool			_task_should_exit;	/**< if true, mavlink task should exit */
 
 	int			get_mavlink_fd() { return _mavlink_fd; }
 
-	int send_statustext(const char *string);
-	int send_statustext(enum MAV_SEVERITY severity, const char *string);
-	MavlinkStream * get_streams() const { return _streams; }
+	/**
+	 * Send a status text with loglevel INFO
+	 *
+	 * @param string the message to send (will be capped by mavlink max string length)
+	 */
+	int			send_statustext_info(const char *string);
 
-	float get_rate_mult();
+	/**
+	 * Send a status text with loglevel CRITICAL
+	 *
+	 * @param string the message to send (will be capped by mavlink max string length)
+	 */
+	int			send_statustext_critical(const char *string);
+
+	/**
+	 * Send a status text with loglevel EMERGENCY
+	 *
+	 * @param string the message to send (will be capped by mavlink max string length)
+	 */
+	int			send_statustext_emergency(const char *string);
+
+	/**
+	 * Send a status text with loglevel
+	 *
+	 * @param string the message to send (will be capped by mavlink max string length)
+	 * @param severity the log level, one of 
+	 */
+	int			send_statustext(unsigned severity, const char *string);
+	MavlinkStream *		get_streams() const { return _streams; }
+
+	float			get_rate_mult();
 
 	/* Functions for waiting to start transmission until message received. */
 	void			set_has_received_messages(bool received_messages) { _received_messages = received_messages; }
@@ -195,13 +221,13 @@ public:
 
 	bool			message_buffer_write(const void *ptr, int size);
     
-    void lockMessageBufferMutex(void) { pthread_mutex_lock(&_message_buffer_mutex); }
-    void unlockMessageBufferMutex(void) { pthread_mutex_unlock(&_message_buffer_mutex); }
+	void			lockMessageBufferMutex(void) { pthread_mutex_lock(&_message_buffer_mutex); }
+	void			unlockMessageBufferMutex(void) { pthread_mutex_unlock(&_message_buffer_mutex); }
 
 	/**
 	 * Count a transmision error
 	 */
-	void count_txerr();
+	void			count_txerr();
 
 protected:
 	Mavlink			*next;
