@@ -60,7 +60,7 @@ CanIface* ifaces[UAVCAN_STM32_NUM_IFACES] =
 
 inline void handleTxInterrupt(uavcan::uint8_t iface_index)
 {
-    assert(iface_index < UAVCAN_STM32_NUM_IFACES);
+    UAVCAN_ASSERT(iface_index < UAVCAN_STM32_NUM_IFACES);
     uavcan::uint64_t utc_usec = clock::getUtcUSecFromCanInterrupt();
     if (utc_usec > 0)
     {
@@ -72,13 +72,13 @@ inline void handleTxInterrupt(uavcan::uint8_t iface_index)
     }
     else
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
     }
 }
 
 inline void handleRxInterrupt(uavcan::uint8_t iface_index, uavcan::uint8_t fifo_index)
 {
-    assert(iface_index < UAVCAN_STM32_NUM_IFACES);
+    UAVCAN_ASSERT(iface_index < UAVCAN_STM32_NUM_IFACES);
     uavcan::uint64_t utc_usec = clock::getUtcUSecFromCanInterrupt();
     if (utc_usec > 0)
     {
@@ -90,7 +90,7 @@ inline void handleRxInterrupt(uavcan::uint8_t iface_index, uavcan::uint8_t fifo_
     }
     else
     {
-        assert(0);
+        UAVCAN_ASSERT(0);
     }
 }
 
@@ -144,7 +144,7 @@ void CanIface::RxQueue::pop(uavcan::CanFrame& out_frame, uavcan::uint64_t& out_u
         }
         len_--;
     }
-    else { assert(0); }
+    else { UAVCAN_ASSERT(0); }
 }
 
 /*
@@ -430,7 +430,7 @@ void CanIface::pollErrorState()
 
 void CanIface::handleTxMailboxInterrupt(uavcan::uint8_t mailbox_index, bool txok, const uavcan::uint64_t utc_usec)
 {
-    assert(mailbox_index < NumTxMailboxes);
+    UAVCAN_ASSERT(mailbox_index < NumTxMailboxes);
 
     had_activity_ = had_activity_ || txok;
 
@@ -473,12 +473,12 @@ void CanIface::handleTxInterrupt(const uavcan::uint64_t utc_usec)
 
 void CanIface::handleRxInterrupt(uavcan::uint8_t fifo_index, uavcan::uint64_t utc_usec)
 {
-    assert(fifo_index < 2);
+    UAVCAN_ASSERT(fifo_index < 2);
 
     volatile uavcan::uint32_t* const rfr_reg = (fifo_index == 0) ? &can_->RF0R : &can_->RF1R;
     if ((*rfr_reg & bxcan::RFR_FMP_MASK) == 0)
     {
-        assert(0);  // Weird, IRQ is here but no data to read
+        UAVCAN_ASSERT(0);  // Weird, IRQ is here but no data to read
         return;
     }
 
@@ -729,12 +729,12 @@ int CanDriver::init(uavcan::uint32_t bitrate)
 #endif
 
     UAVCAN_STM32_LOG("CAN drv init OK");
-    assert(res >= 0);
+    UAVCAN_ASSERT(res >= 0);
     return res;
 
 fail:
     UAVCAN_STM32_LOG("CAN drv init failed %i", res);
-    assert(res < 0);
+    UAVCAN_ASSERT(res < 0);
 
     CriticalSectionLocker lock;
 

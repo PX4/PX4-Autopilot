@@ -131,7 +131,7 @@ public:
         , self_index_(self_index)
         , had_activity_(false)
     {
-        assert(self_index_ < UAVCAN_STM32_NUM_IFACES);
+        UAVCAN_ASSERT(self_index_ < UAVCAN_STM32_NUM_IFACES);
     }
 
     /**

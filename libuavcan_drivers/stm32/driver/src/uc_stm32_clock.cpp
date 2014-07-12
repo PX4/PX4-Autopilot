@@ -90,8 +90,8 @@ void init()
 
 static uavcan::uint64_t sampleUtcFromCriticalSection()
 {
-    assert(initialized);
-    assert(TIMX->DIER & TIM_DIER_UIE);
+    UAVCAN_ASSERT(initialized);
+    UAVCAN_ASSERT(TIMX->DIER & TIM_DIER_UIE);
 
     volatile uavcan::uint64_t time = time_utc;
     volatile uavcan::uint32_t cnt = TIMX->CNT;
@@ -126,7 +126,7 @@ uavcan::MonotonicTime getMonotonic()
 
 #if !NDEBUG
         static uavcan::uint64_t prev_usec = 0;  // Self-test
-        assert(prev_usec <= usec);
+        UAVCAN_ASSERT(prev_usec <= usec);
         prev_usec = usec;
 #endif
     }
@@ -205,7 +205,7 @@ static void updateRatePID(uavcan::UtcDuration adjustment)
 void adjustUtc(uavcan::UtcDuration adjustment)
 {
     MutexLocker mlocker(mutex);
-    assert(initialized);
+    UAVCAN_ASSERT(initialized);
 
     if (adjustment.getAbs() > utc_sync_params.min_jump || !utc_set)
     {
@@ -310,7 +310,7 @@ UAVCAN_STM32_IRQ_HANDLER(TIMX_IRQHandler)
     TIMX->SR = 0;
 
     using namespace uavcan_stm32::clock;
-    assert(initialized);
+    UAVCAN_ASSERT(initialized);
 
     time_mono += USecPerOverflow;
 
