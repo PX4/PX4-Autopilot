@@ -1383,7 +1383,7 @@ void
 PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 {
 	/* only publish if battery has a valid minimum voltage */
-	if (vbatt <= 3300) {
+	if (vbatt <= 4900) {
 		return;
 	}
 
