@@ -12,8 +12,12 @@ if [ -d NuttX/nuttx ];
 	if [ -z "$STATUSRETVAL" ]; then
 		echo "Checked NuttX submodule, correct version found"
 	else
-		echo "NuttX sub repo not at correct version. Try 'git submodule update'"
-		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
+		echo ""
+		echo ""
+		echo "   NuttX sub repo not at correct version. Try 'git submodule update'"
+		echo "   or follow instructions on http://pixhawk.org/dev/git/submodules"
+		echo ""
+		echo "   DO NOT FORGET TO RUN 'make distclean && make archives' AFTER EACH NUTTX UPDATE!"
 		echo ""
 		echo ""
 		echo "New commits required:"
@@ -33,6 +37,8 @@ if [ -d mavlink/include/mavlink/v1.0 ];
 	if [ -z "$STATUSRETVAL" ]; then
 		echo "Checked mavlink submodule, correct version found"
 	else
+		echo ""
+		echo ""
 		echo "mavlink sub repo not at correct version. Try 'git submodule update'"
 		echo "or follow instructions on http://pixhawk.org/dev/git/submodules"
 		echo ""
