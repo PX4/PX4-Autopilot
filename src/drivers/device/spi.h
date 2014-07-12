@@ -131,6 +131,8 @@ private:
 
 protected:
 	int			_bus;
+
+	int	_transfer(uint8_t *send, uint8_t *recv, unsigned len);
 };
 
 } // namespace device

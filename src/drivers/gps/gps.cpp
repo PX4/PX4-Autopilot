@@ -127,7 +127,7 @@ private:
 	/**
 	 * Try to configure the GPS, handle outgoing communication to the GPS
 	 */
-	void				config();
+	void			 	config();
 
 	/**
 	 * Trampoline to the worker task
@@ -486,6 +486,8 @@ GPS::print_info()
 		warnx("position lock: %dD, satellites: %d, last update: %8.4fms ago", (int)_report_gps_pos.fix_type,
 				_report_gps_pos.satellites_used, (double)(hrt_absolute_time() - _report_gps_pos.timestamp_position) / 1000.0);
 		warnx("lat: %d, lon: %d, alt: %d", _report_gps_pos.lat, _report_gps_pos.lon, _report_gps_pos.alt);
+		warnx("vel: %.2fm/s, %.2fm/s, %.2fm/s", (double)_report_gps_pos.vel_n_m_s,
+			(double)_report_gps_pos.vel_e_m_s, (double)_report_gps_pos.vel_d_m_s);
 		warnx("eph: %.2fm, epv: %.2fm", (double)_report_gps_pos.eph, (double)_report_gps_pos.epv);
 		warnx("rate position: \t%6.2f Hz", (double)_Helper->get_position_update_rate());
 		warnx("rate velocity: \t%6.2f Hz", (double)_Helper->get_velocity_update_rate());

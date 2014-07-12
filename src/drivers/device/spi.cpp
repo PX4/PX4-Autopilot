@@ -133,26 +133,44 @@ SPI::probe()
 int
 SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 {
-	irqstate_t	state;
+	int result;
 
 	if ((send == nullptr) && (recv == nullptr))
 		return -EINVAL;
 
-	/* lock the bus as required */
-	if (!up_interrupt_context()) {
-		switch (locking_mode) {
-		default:
-		case LOCK_PREEMPTION:
-			state = irqsave();
-			break;
-		case LOCK_THREADS:
-			SPI_LOCK(_dev, true);
-			break;
-		case LOCK_NONE:
-			break;
-		}
-	}
+	LockMode mode = up_interrupt_context() ? LOCK_NONE : locking_mode;
 
+	/* lock the bus as required */
+	switch (mode) {
+	default:
+	case LOCK_PREEMPTION:
+		{
+			irqstate_t state = irqsave();
+			result = _transfer(send, recv, len);
+			irqrestore(state);
+		}
+		break;
+	case LOCK_THREADS:
+		SPI_LOCK(_dev, true);
+		result = _transfer(send, recv, len);
+		SPI_LOCK(_dev, false);
+		break;
+	case LOCK_NONE:
+		result = _transfer(send, recv, len);
+		break;
+	}
+	return result;
+}
+
+void 
+SPI::set_frequency(uint32_t frequency)
+{
+	_frequency = frequency;
+}
+
+int
+SPI::_transfer(uint8_t *send, uint8_t *recv, unsigned len)
+{
 	SPI_SETFREQUENCY(_dev, _frequency);
 	SPI_SETMODE(_dev, _mode);
 	SPI_SETBITS(_dev, 8);
@@ -164,27 +182,7 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	/* and clean up */
 	SPI_SELECT(_dev, _device, false);
 
-	if (!up_interrupt_context()) {
-		switch (locking_mode) {
-		default:
-		case LOCK_PREEMPTION:
-			irqrestore(state);
-			break;
-		case LOCK_THREADS:
-			SPI_LOCK(_dev, false);
-			break;
-		case LOCK_NONE:
-			break;
-		}
-	}
-
 	return OK;
-}
-
-void 
-SPI::set_frequency(uint32_t frequency)
-{
-	_frequency = frequency;
 }
 
 } // namespace device
