@@ -277,7 +277,7 @@ Mission::check_dist_1wp()
 
 						} else {
 							/* item is too far from home */
-							mavlink_log_info(_navigator->get_mavlink_fd(), "first wp is too far from home: %.1fm > %.1fm", (double)dist_to_1wp, (double)_param_dist_1wp.get());
+							mavlink_log_critical(_navigator->get_mavlink_fd(), "Waypoint too far: %d m,[MIS_DIST_1WP=%d]", (int)dist_to_1wp, (int)_param_dist_1wp.get());
 							return false;
 						}
 					}
