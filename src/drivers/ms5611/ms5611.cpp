@@ -781,6 +781,7 @@ void	test();
 void	reset();
 void	info();
 void	calibrate(unsigned altitude);
+void	usage();
 
 /**
  * MS5611 crc4 cribbed from the datasheet
@@ -1057,15 +1058,15 @@ calibrate(unsigned altitude)
 	exit(0);
 }
 
-} // namespace
-
 void
-ms5611_usage()
+usage()
 {
 	warnx("missing command: try 'start', 'info', 'test', 'test2', 'reset', 'calibrate'");
 	warnx("options:");
 	warnx("    -X    (external bus)");
 }
+
+} // namespace
 
 int
 ms5611_main(int argc, char *argv[])
@@ -1080,7 +1081,7 @@ ms5611_main(int argc, char *argv[])
 			external_bus = true;
 			break;
 		default:
-			ms5611_usage();
+			ms5611::usage();
 			exit(0);
 		}
 	}
