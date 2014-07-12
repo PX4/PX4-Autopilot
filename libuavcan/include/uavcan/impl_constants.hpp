@@ -99,6 +99,19 @@
 # define UAVCAN_IMPLEMENT_PLACEMENT_NEW 0
 #endif
 
+/**
+ * Run time checks.
+ * Resolves to the standard assert() by default.
+ * Can be disabled completely.
+ */
+#ifndef UAVCAN_ASSERT
+# if UAVCAN_NO_ASSERTIONS
+#  define UAVCAN_ASSERT(x)
+# else
+#  define UAVCAN_ASSERT(x) assert(x)
+# endif
+#endif
+
 namespace uavcan
 {
 
