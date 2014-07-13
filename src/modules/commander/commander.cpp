@@ -1650,22 +1650,22 @@ check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *val
 }
 
 void
-control_status_leds(vehicle_status_s *status, const actuator_armed_s *actuator_armed, bool changed)
+control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed)
 {
 	/* driving rgbled */
 	if (changed) {
 		bool set_normal_color = false;
 
 		/* set mode */
-		if (status->arming_state == ARMING_STATE_ARMED) {
+		if (status_local->arming_state == ARMING_STATE_ARMED) {
 			rgbled_set_mode(RGBLED_MODE_ON);
 			set_normal_color = true;
 
-		} else if (status->arming_state == ARMING_STATE_ARMED_ERROR) {
+		} else if (status_local->arming_state == ARMING_STATE_ARMED_ERROR) {
 			rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
 			rgbled_set_color(RGBLED_COLOR_RED);
 
-		} else if (status->arming_state == ARMING_STATE_STANDBY) {
+		} else if (status_local->arming_state == ARMING_STATE_STANDBY) {
 			rgbled_set_mode(RGBLED_MODE_BREATHE);
 			set_normal_color = true;
 
@@ -1676,12 +1676,12 @@ control_status_leds(vehicle_status_s *status, const actuator_armed_s *actuator_a
 
 		if (set_normal_color) {
 			/* set color */
-			if (status->battery_warning == VEHICLE_BATTERY_WARNING_LOW || status->failsafe) {
+			if (status_local->battery_warning == VEHICLE_BATTERY_WARNING_LOW || status_local->failsafe) {
 				rgbled_set_color(RGBLED_COLOR_AMBER);
 				/* VEHICLE_BATTERY_WARNING_CRITICAL handled as ARMING_STATE_ARMED_ERROR / ARMING_STATE_STANDBY_ERROR */
 
 			} else {
-				if (status->condition_local_position_valid) {
+				if (status_local->condition_local_position_valid) {
 					rgbled_set_color(RGBLED_COLOR_GREEN);
 
 				} else {
@@ -1714,7 +1714,7 @@ control_status_leds(vehicle_status_s *status, const actuator_armed_s *actuator_a
 #endif
 
 	/* give system warnings on error LED, XXX maybe add memory usage warning too */
-	if (status->load > 0.95f) {
+	if (status_local->load > 0.95f) {
 		if (leds_counter % 2 == 0) {
 			led_toggle(LED_AMBER);
 		}
