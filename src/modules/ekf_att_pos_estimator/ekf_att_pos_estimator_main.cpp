@@ -559,61 +559,26 @@ FixedwingEstimator::check_filter_state()
 
 	int check = _ekf->CheckAndBound(&ekf_report);
 
-	const char* ekfname = "att pos estimator: ";
+	const char* const feedback[] = { 0,
+					"NaN in states, resetting",
+					"stale IMU data, resetting",
+					"got initial position lock",
+					"excessive gyro offsets",
+					"GPS velocity divergence",
+					"excessive covariances",
+					"unknown condition"};
 
-	switch (check) {
-		case 0:
-			/* all ok */
-			break;
-		case 1:
-		{
-			const char* str = "NaN in states, resetting";
-			warnx("%s", str);
-			mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
-			break;
-		}
-		case 2:
-		{
-			const char* str = "stale IMU data, resetting";
-			warnx("%s", str);
-			mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
-			break;
-		}
-		case 3:
-		{
-			const char* str = "switching to dynamic state";
-			warnx("%s", str);
-			mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
-			break;
-		}
-		case 4:
-		{
-			const char* str = "excessive gyro offsets";
-			warnx("%s", str);
-			mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
-			break;
-		}
-		case 5:
-		{
-			const char* str = "GPS velocity divergence";
-			warnx("%s", str);
-			mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
-			break;
-		}
-		case 6:
-		{
-			const char* str = "excessive covariances";
-			warnx("%s", str);
-			mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
-			break;
+	// Print out error condition
+	if (check) {
+		unsigned warn_index = static_cast<unsigned>(check);
+		unsigned max_warn_index = (sizeof(feedback) / sizeof(feedback[0]));
+
+		if (max_warn_index < warn_index) {
+			warn_index = max_warn_index;
 		}
 
-		default:
-		{
-			const char* str = "unknown reset condition";
-			warnx("%s", str);
-			mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
-		}
+		warnx("reset: %s", feedback[warn_index]);
+		mavlink_log_critical(_mavlink_fd, "[ekf] re-init: %s", feedback[warn_index]);
 	}
 
 	struct estimator_status_report rep;
@@ -1140,20 +1105,6 @@ FixedwingEstimator::task_main()
 
 				float initVelNED[3];
 
-				// Guard before running any parts of the filter
-				// of NaN / invalid values
-				if (_ekf->statesInitialised) {
-
-					// We're apparently initialized in this case now
-
-					int check = check_filter_state();
-
-					if (check) {
-						// Let the system re-initialize itself
-						continue;
-					}
-				}
-
 				/* Initialize the filter first */
 				if (!_gps_initialized && _gps.fix_type > 2 && _gps.eph < _parameters.pos_stddev_threshold && _gps.epv < _parameters.pos_stddev_threshold) {
 
@@ -1216,7 +1167,16 @@ FixedwingEstimator::task_main()
 					_baro_gps_offset = 0.0f;
 
 					_ekf->InitialiseFilter(initVelNED, 0.0, 0.0, 0.0f, 0.0f);
+
 				} else if (_ekf->statesInitialised) {
+
+					// We're apparently initialized in this case now
+					int check = check_filter_state();
+
+					if (check) {
+						// Let the system re-initialize itself
+						continue;
+					}
 
 					// Run the strapdown INS equations every IMU update
 					_ekf->UpdateStrapdownEquationsNED();
@@ -1285,7 +1245,7 @@ FixedwingEstimator::task_main()
 						// run the fusion step
 						_ekf->FuseVelposNED();
 
-					} else if (!_gps_initialized && _ekf->statesInitialised) {
+					} else if (!_gps_initialized) {
 						// Convert GPS measurements to Pos NE, hgt and Vel NED
 						_ekf->velNED[0] = 0.0f;
 						_ekf->velNED[1] = 0.0f;
@@ -1307,7 +1267,7 @@ FixedwingEstimator::task_main()
 						_ekf->fusePosData = false;
 					}
 
-					if (newHgtData && _ekf->statesInitialised) {
+					if (newHgtData) {
 						// Could use a blend of GPS and baro alt data if desired
 						_ekf->hgtMea = 1.0f * (_ekf->baroHgt - _baro_ref);
 						_ekf->fuseHgtData = true;
@@ -1321,7 +1281,7 @@ FixedwingEstimator::task_main()
 					}
 
 					// Fuse Magnetometer Measurements
-					if (newDataMag && _ekf->statesInitialised) {
+					if (newDataMag) {
 						_ekf->fuseMagData = true;
 						_ekf->RecallStates(_ekf->statesAtMagMeasTime, (IMUmsec - _parameters.mag_delay_ms)); // Assume 50 msec avg delay for magnetometer data
 
@@ -1335,7 +1295,7 @@ FixedwingEstimator::task_main()
 					}
 
 					// Fuse Airspeed Measurements
-					if (newAdsData && _ekf->statesInitialised && _ekf->VtasMeas > 8.0f) {
+					if (newAdsData && _ekf->VtasMeas > 7.0f) {
 						_ekf->fuseVtasData = true;
 						_ekf->RecallStates(_ekf->statesAtVtasMeasTime, (IMUmsec - _parameters.tas_delay_ms)); // assume 100 msec avg delay for airspeed data
 						_ekf->FuseAirspeed();
@@ -1403,7 +1363,7 @@ FixedwingEstimator::task_main()
 
 						_velocity_xy_filtered = 0.95f*_velocity_xy_filtered + 0.05f*sqrtf(_local_pos.vx*_local_pos.vx + _local_pos.vy*_local_pos.vy);
 						_velocity_z_filtered = 0.95f*_velocity_z_filtered + 0.05f*fabsf(_local_pos.vz);
-						_airspeed_filtered = 0.95f*_airspeed_filtered + + 0.05f*_airspeed.true_airspeed_m_s;
+						_airspeed_filtered = 0.95f*_airspeed_filtered + 0.05f*_airspeed.true_airspeed_m_s;
 
 
 						/* crude land detector for fixedwing only,
@@ -1494,27 +1454,28 @@ FixedwingEstimator::task_main()
 
 						}
 
+						if (hrt_elapsed_time(&_wind.timestamp) > 99000) {
+							_wind.timestamp = _global_pos.timestamp;
+							_wind.windspeed_north = _ekf->states[14];
+							_wind.windspeed_east = _ekf->states[15];
+							_wind.covariance_north = _ekf->P[14][14];
+							_wind.covariance_east = _ekf->P[15][15];
+
+							/* lazily publish the wind estimate only once available */
+							if (_wind_pub > 0) {
+								/* publish the wind estimate */
+								orb_publish(ORB_ID(wind_estimate), _wind_pub, &_wind);
+
+							} else {
+								/* advertise and publish */
+								_wind_pub = orb_advertise(ORB_ID(wind_estimate), &_wind);
+							}
+						}
+
 					}
 
 				}
 
-				if (hrt_elapsed_time(&_wind.timestamp) > 99000) {
-					_wind.timestamp = _global_pos.timestamp;
-					_wind.windspeed_north = _ekf->states[14];
-					_wind.windspeed_east = _ekf->states[15];
-					_wind.covariance_north = _ekf->P[14][14];
-					_wind.covariance_east = _ekf->P[15][15];
-
-					/* lazily publish the wind estimate only once available */
-					if (_wind_pub > 0) {
-						/* publish the wind estimate */
-						orb_publish(ORB_ID(wind_estimate), _wind_pub, &_wind);
-
-					} else {
-						/* advertise and publish */
-						_wind_pub = orb_advertise(ORB_ID(wind_estimate), &_wind);
-					}
-				}
 			}
 
 		}
