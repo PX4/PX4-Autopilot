@@ -1727,16 +1727,16 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 }
 
 transition_result_t
-set_main_state_rc(struct vehicle_status_s *status, struct manual_control_setpoint_s *sp_man)
+set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_setpoint_s *sp_man)
 {
 	/* set main state according to RC switches */
 	transition_result_t res = TRANSITION_DENIED;
 
 	/* offboard switch overrides main switch */
 	if (sp_man->offboard_switch == SWITCH_POS_ON) {
-		res = main_state_transition(status, MAIN_STATE_OFFBOARD);
+		res = main_state_transition(status_local, MAIN_STATE_OFFBOARD);
 		if (res == TRANSITION_DENIED) {
-			print_reject_mode(status, "OFFBOARD");
+			print_reject_mode(status_local, "OFFBOARD");
 
 		} else {
 			return res;
@@ -1751,78 +1751,78 @@ set_main_state_rc(struct vehicle_status_s *status, struct manual_control_setpoin
 
 	case SWITCH_POS_OFF:		// MANUAL
 		if (sp_man->acro_switch == SWITCH_POS_ON) {
-			res = main_state_transition(status, MAIN_STATE_ACRO);
+			res = main_state_transition(status_local, MAIN_STATE_ACRO);
 
 		} else {
-			res = main_state_transition(status, MAIN_STATE_MANUAL);
+			res = main_state_transition(status_local, MAIN_STATE_MANUAL);
 		}
 		// TRANSITION_DENIED is not possible here
 		break;
 
 	case SWITCH_POS_MIDDLE:		// ASSIST
 		if (sp_man->posctl_switch == SWITCH_POS_ON) {
-			res = main_state_transition(status, MAIN_STATE_POSCTL);
+			res = main_state_transition(status_local, MAIN_STATE_POSCTL);
 
 			if (res != TRANSITION_DENIED) {
 				break;	// changed successfully or already in this state
 			}
 
-			print_reject_mode(status, "POSCTL");
+			print_reject_mode(status_local, "POSCTL");
 		}
 
         // fallback to ALTCTL
-		res = main_state_transition(status, MAIN_STATE_ALTCTL);
+		res = main_state_transition(status_local, MAIN_STATE_ALTCTL);
 
 		if (res != TRANSITION_DENIED) {
 			break;	// changed successfully or already in this mode
 		}
 
 		if (sp_man->posctl_switch != SWITCH_POS_ON) {
-			print_reject_mode(status, "ALTCTL");
+			print_reject_mode(status_local, "ALTCTL");
 		}
 
 		// fallback to MANUAL
-		res = main_state_transition(status, MAIN_STATE_MANUAL);
+		res = main_state_transition(status_local, MAIN_STATE_MANUAL);
 		// TRANSITION_DENIED is not possible here
 		break;
 
 	case SWITCH_POS_ON:			// AUTO
 		if (sp_man->return_switch == SWITCH_POS_ON) {
-			res = main_state_transition(status, MAIN_STATE_AUTO_RTL);
+			res = main_state_transition(status_local, MAIN_STATE_AUTO_RTL);
 
 			if (res != TRANSITION_DENIED) {
 				break;	// changed successfully or already in this state
 			}
 
-            print_reject_mode(status, "AUTO_RTL");
+            print_reject_mode(status_local, "AUTO_RTL");
 
             // fallback to LOITER if home position not set
-            res = main_state_transition(status, MAIN_STATE_AUTO_LOITER);
+            res = main_state_transition(status_local, MAIN_STATE_AUTO_LOITER);
 
             if (res != TRANSITION_DENIED) {
                 break;  // changed successfully or already in this state
             }
 
 		} else if (sp_man->loiter_switch == SWITCH_POS_ON) {
-			res = main_state_transition(status, MAIN_STATE_AUTO_LOITER);
+			res = main_state_transition(status_local, MAIN_STATE_AUTO_LOITER);
 
 			if (res != TRANSITION_DENIED) {
 				break;	// changed successfully or already in this state
 			}
 
-            print_reject_mode(status, "AUTO_LOITER");
+            print_reject_mode(status_local, "AUTO_LOITER");
 
 		} else {
-			res = main_state_transition(status, MAIN_STATE_AUTO_MISSION);
+			res = main_state_transition(status_local, MAIN_STATE_AUTO_MISSION);
 
 			if (res != TRANSITION_DENIED) {
 				break;	// changed successfully or already in this state
 			}
 
-            print_reject_mode(status, "AUTO_MISSION");
+            print_reject_mode(status_local, "AUTO_MISSION");
 
             // fallback to LOITER if home position not set
-            res = main_state_transition(status, MAIN_STATE_AUTO_LOITER);
+            res = main_state_transition(status_local, MAIN_STATE_AUTO_LOITER);
 
             if (res != TRANSITION_DENIED) {
                 break;  // changed successfully or already in this state
@@ -1830,21 +1830,21 @@ set_main_state_rc(struct vehicle_status_s *status, struct manual_control_setpoin
 		}
 
         // fallback to POSCTL
-        res = main_state_transition(status, MAIN_STATE_POSCTL);
+        res = main_state_transition(status_local, MAIN_STATE_POSCTL);
 
         if (res != TRANSITION_DENIED) {
             break;  // changed successfully or already in this state
         }
 
 		// fallback to ALTCTL
-		res = main_state_transition(status, MAIN_STATE_ALTCTL);
+		res = main_state_transition(status_local, MAIN_STATE_ALTCTL);
 
 		if (res != TRANSITION_DENIED) {
 			break;	// changed successfully or already in this state
 		}
 
 		// fallback to MANUAL
-		res = main_state_transition(status, MAIN_STATE_MANUAL);
+		res = main_state_transition(status_local, MAIN_STATE_MANUAL);
 		// TRANSITION_DENIED is not possible here
 		break;
 
