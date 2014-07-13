@@ -171,16 +171,16 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 						// Fail transition if power is not good
 						if (!status->condition_power_input_valid) {
 
-							mavlink_log_critical(mavlink_fd, "#audio: NOT ARMING: Connect power module.");
+							mavlink_log_critical(mavlink_fd, "NOT ARMING: Connect power module.");
 							valid_transition = false;
 						}
 
 						// Fail transition if power levels on the avionics rail
 						// are measured but are insufficient
-						if (status->condition_power_input_valid && (status->avionics_power_rail_voltage > 0.0f) &&
-							(status->avionics_power_rail_voltage < 4.9f)) {
+						if (status->condition_power_input_valid && ((status->avionics_power_rail_voltage > 0.0f) &&
+							(status->avionics_power_rail_voltage < 4.9f))) {
 
-							mavlink_log_critical(mavlink_fd, "#audio: NOT ARMING: Avionics power low: %6.2f V.", (double)status->avionics_power_rail_voltage);
+							mavlink_log_critical(mavlink_fd, "NOT ARMING: Avionics power low: %6.2f V.", (double)status->avionics_power_rail_voltage);
 							valid_transition = false;
 						}
 					}
