@@ -60,7 +60,6 @@
 Mission::Mission(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_param_onboard_enabled(this, "ONBOARD_EN"),
-	_param_takeoff_alt(this, "TAKEOFF_ALT"),
 	_param_dist_1wp(this, "DIST_1WP"),
 	_onboard_mission({0}),
 	_offboard_mission({0}),
@@ -74,8 +73,6 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_inited(false),
 	_dist_1wp_ok(false)
 {
-	/* load initial params */
-	updateParams();
 }
 
 Mission::~Mission()

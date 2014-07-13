@@ -60,7 +60,8 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_mission_item({0}),
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
-	_time_first_inside_orbit(0)
+	_time_first_inside_orbit(0),
+	_param_takeoff_alt(this, "TAKEOFF_ALT")
 {
 }
 
@@ -235,7 +236,8 @@ MissionBlock::set_loiter_item(struct mission_item_s *item)
 			/* use current position */
 			item->lat = _navigator->get_global_position()->lat;
 			item->lon = _navigator->get_global_position()->lon;
-			item->altitude = _navigator->get_global_position()->alt;
+			item->altitude = fmaxf(_navigator->get_global_position()->alt,
+				_navigator->get_home_position()->alt + _param_takeoff_alt.get());
 		}
 
 		item->altitude_is_relative = false;

@@ -97,6 +97,8 @@ protected:
 	bool _waypoint_position_reached;
 	bool _waypoint_yaw_reached;
 	hrt_abstime _time_first_inside_orbit;
+
+	control::BlockParamFloat _param_takeoff_alt;
 };
 
 #endif

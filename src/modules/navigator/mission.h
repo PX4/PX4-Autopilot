@@ -134,7 +134,6 @@ private:
 	void publish_mission_result();
 
 	control::BlockParamInt _param_onboard_enabled;
-	control::BlockParamFloat _param_takeoff_alt;
 	control::BlockParamFloat _param_dist_1wp;
 
 	struct mission_s _onboard_mission;
