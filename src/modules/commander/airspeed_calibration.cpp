@@ -167,8 +167,8 @@ int do_airspeed_calibration(int mavlink_fd)
 
 	calibration_counter = 0;
 
-	/* just take a few samples and make sure pitot tubes are not reversed */
-	while (calibration_counter < 300) {
+	/* just take a few samples and make sure pitot tubes are not reversed, timeout after ~30 seconds */
+	while (calibration_counter < 1500) {
 
 		/* wait blocking for new data */
 		struct pollfd fds[1];
@@ -181,14 +181,13 @@ int do_airspeed_calibration(int mavlink_fd)
 			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
 
 			float calibrated_pa = diff_pres.differential_pressure_raw_pa - diff_pres_offset;
+			calibration_counter++;
 
 			if (fabsf(calibrated_pa) < 50.0f) {
-				if (calibration_counter % 20 == 0) {
+				if (calibration_counter % 100 == 0) {
 					mavlink_log_critical(mavlink_fd, "Create airflow on pitot (%d Pa, #h101)",
 					(int)calibrated_pa);
 				}
-				usleep(100 * 1000);
-				calibration_counter++;
 				continue;
 			}
 
