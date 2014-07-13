@@ -2279,7 +2279,7 @@ void AttPosEKF::calcLLH(float posNED[3], double &lat, double &lon, float &hgt, d
 
 void AttPosEKF::OnGroundCheck()
 {
-    onGround = (((sq(velNED[0]) + sq(velNED[1]) + sq(velNED[2])) < 4.0f) && (VtasMeas < 6.0f));
+    onGround = (((sq(velNED[0]) + sq(velNED[1]) + sq(velNED[2])) < 4.0f) && (VtasMeas < 8.0f));
     if (staticMode) {
         staticMode = (!refSet || (GPSstatus < GPS_FIX_3D));
     }
@@ -2879,12 +2879,18 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
     current_ekf_state.statesNaN = false;
 
     current_ekf_state.velHealth = true;
-    //current_ekf_state.posHealth = ?;
-    //current_ekf_state.hgtHealth = ?;
+    current_ekf_state.posHealth = true;
+    current_ekf_state.hgtHealth = true;
     
     current_ekf_state.velTimeout = false;
-    //current_ekf_state.posTimeout = ?;
-    //current_ekf_state.hgtTimeout = ?;
+    current_ekf_state.posTimeout = false;
+    current_ekf_state.hgtTimeout = false;
+
+    fuseVelData = false;
+    fusePosData = false;
+    fuseHgtData = false;
+    fuseMagData = false;
+    fuseVtasData = false;
 
     // Fill variables with valid data
     velNED[0] = initvelNED[0];
