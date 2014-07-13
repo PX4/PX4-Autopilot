@@ -5,47 +5,120 @@
 
 #define EKF_COVARIANCE_DIVERGED 1.0e8f
 
-AttPosEKF::AttPosEKF()
+AttPosEKF::AttPosEKF() :
+    covTimeStepMax(0.0f),
+    covDelAngMax(0.0f),
+    rngFinderPitch(0.0f),
+    a1(0.0f),
+    a2(0.0f),
+    a3(0.0f),
+    yawVarScale(0.0f),
+    windVelSigma(0.0f),
+    dAngBiasSigma(0.0f),
+    dVelBiasSigma(0.0f),
+    magEarthSigma(0.0f),
+    magBodySigma(0.0f),
+    gndHgtSigma(0.0f),
+    vneSigma(0.0f),
+    vdSigma(0.0f),
+    posNeSigma(0.0f),
+    posDSigma(0.0f),
+    magMeasurementSigma(0.0f),
+    airspeedMeasurementSigma(0.0f),
+    gyroProcessNoise(0.0f),
+    accelProcessNoise(0.0f),
+    EAS2TAS(1.0f),
+    magstate{},
+    resetMagState{},
+    KH{},
+    KHP{},
+    P{},
+    Kfusion{},
+    states{},
+    resetStates{},
+    storedStates{},
+    statetimeStamp{},
+    statesAtVelTime{},
+    statesAtPosTime{},
+    statesAtHgtTime{},
+    statesAtMagMeasTime{},
+    statesAtVtasMeasTime{},
+    statesAtRngTime{},
+    statesAtOptFlowTime{},
+    correctedDelAng(),
+    correctedDelVel(),
+    summedDelAng(),
+    summedDelVel(),
+    accNavMag(),
+    earthRateNED(),
+    angRate(),
+    lastGyroOffset(),
+    delAngTotal(),
+    Tbn(),
+    Tnb(),
+    accel(),
+    dVelIMU(),
+    dAngIMU(),
+    dtIMU(0),
+    fusionModeGPS(0),
+    innovVelPos{},
+    varInnovVelPos{},
+    velNED{},
+    accelGPSNED{},
+    posNE{},
+    hgtMea(0.0f),
+    baroHgtOffset(0.0f),
+    rngMea(0.0f),
+    innovMag{},
+    varInnovMag{},
+    magData{},
+    losData{},
+    innovVtas(0.0f),
+    innovRng(0.0f),
+    innovOptFlow{},
+    varInnovOptFlow{},
+    varInnovVtas(0.0f),
+    varInnovRng(0.0f),
+    VtasMeas(0.0f),
+    magDeclination(0.0f),
+    latRef(0.0f),
+    lonRef(-M_PI_F),
+    hgtRef(0.0f),
+    refSet(false),
+    magBias(),
+    covSkipCount(0),
+    gpsLat(0.0),
+    gpsLon(-M_PI),
+    gpsHgt(0.0f),
+    GPSstatus(0),
+    baroHgt(0.0f),
+    statesInitialised(false),
+    fuseVelData(false),
+    fusePosData(false),
+    fuseHgtData(false),
+    fuseMagData(false),
+    fuseVtasData(false),
+    fuseRngData(false),
+    fuseOptFlowData(false),
 
-    /* NOTE: DO NOT initialize class members here. Use ZeroVariables()
-     * instead to allow clean in-air re-initialization.
-     */
+    inhibitWindStates(true),
+    inhibitMagStates(true),
+    inhibitGndHgtState(true),
+
+    onGround(true),
+    staticMode(true),
+    useAirspeed(true),
+    useCompass(true),
+    useRangeFinder(false),
+    useOpticalFlow(false),
+
+    ekfDiverged(false),
+    lastReset(0),
+    current_ekf_state{},
+    last_ekf_error{},
+    numericalProtection(true),
+    storeIndex(0)
 {
-    summedDelAng.zero();
-    summedDelVel.zero();
-
-    fusionModeGPS = 0;
-    fuseVelData = false;
-    fusePosData = false;
-    fuseHgtData = false;
-    fuseMagData = false;
-    fuseVtasData = false;
-    onGround = true;
-    staticMode = true;
-    useAirspeed = true;
-    useCompass = true;
-    useRangeFinder = true;
-    useOpticalFlow = true;
-    numericalProtection = true;
-    refSet = false;
-    storeIndex = 0;
-    gpsHgt = 0.0f;
-    baroHgt = 0.0f;
-    GPSstatus = 0;
-    VtasMeas = 0.0f;
-    magDeclination = 0.0f;
-    dAngIMU.zero();
-    dVelIMU.zero();
-    velNED[0] = 0.0f;
-    velNED[1] = 0.0f;
-    velNED[2] = 0.0f;
-    accelGPSNED[0] = 0.0f;
-    accelGPSNED[1] = 0.0f;
-    accelGPSNED[2] = 0.0f;
-    delAngTotal.zero();
-    ekfDiverged = false;
-    lastReset = 0;
-
     memset(&last_ekf_error, 0, sizeof(last_ekf_error));
     memset(&current_ekf_state, 0, sizeof(current_ekf_state));
     ZeroVariables();
