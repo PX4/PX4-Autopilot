@@ -94,9 +94,17 @@ int do_airspeed_calibration(int mavlink_fd)
 	}
 
 	if (!paramreset_successful) {
-		warn("FAILED to reset - assuming analog");
-		mavlink_log_critical(mavlink_fd, "If analog sens, retry with [SENS_DPRES_ANSC=1000]");
 
+		/* only warn if analog scaling is zero */
+		float analog_scaling = 0.0f;
+		param_get(param_find("SENS_DPRES_ANSC"), &(analog_scaling))
+		if (fabsf(analog_scaling) < 0.1f) {
+			mavlink_log_critical(mavlink_fd, "If analog sens, retry with [SENS_DPRES_ANSC=1000]");
+			close(diff_pres_sub);
+			return ERROR;
+		}
+
+		/* set scaling offset parameter */
 		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
 			mavlink_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);
 			close(diff_pres_sub);
