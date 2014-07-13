@@ -193,7 +193,7 @@ int do_airspeed_calibration(int mavlink_fd)
 
 			/* do not allow negative values */
 			if (calibrated_pa < 0.0f) {
-				mavlink_log_critical(mavlink_fd, "%d Pa: swap static vs dynamic ports,restart", (int)calibrated_pa);
+				mavlink_log_critical(mavlink_fd, "%d Pa: swap static and dynamic ports!", (int)calibrated_pa);
 				close(diff_pres_sub);
 
 				/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
@@ -206,9 +206,12 @@ int do_airspeed_calibration(int mavlink_fd)
 				}
 
 				/* save */
+				mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 0);
 				(void)param_save_default();
 
 				close(diff_pres_sub);
+
+				mavlink_log_info(mavlink_fd, CAL_FAILED_MSG, sensor_name);
 				return ERROR;
 			} else {
 				mavlink_log_info(mavlink_fd, "positive pressure: OK (%d Pa)",
