@@ -162,6 +162,8 @@ int do_airspeed_calibration(int mavlink_fd)
 		return ERROR;
 	}
 
+	mavlink_log_critical(mavlink_fd, "Stored offset of %d Pa", (int)calibrated_pa);
+
 	/* wait 500 ms to ensure parameter propagated through the system */
 	usleep(500 * 1000);
 
