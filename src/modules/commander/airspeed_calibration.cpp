@@ -168,7 +168,7 @@ int do_airspeed_calibration(int mavlink_fd)
 	calibration_counter = 0;
 
 	/* just take a few samples and make sure pitot tubes are not reversed */
-	while (calibration_counter < 10) {
+	while (calibration_counter < 300) {
 
 		/* wait blocking for new data */
 		struct pollfd fds[1];
@@ -182,16 +182,19 @@ int do_airspeed_calibration(int mavlink_fd)
 
 			float calibrated_pa = diff_pres.differential_pressure_raw_pa - diff_pres_offset;
 
-			if (fabsf(calibrated_pa) < 9.0f) {
-				mavlink_log_critical(mavlink_fd, "Create airflow on pitot (%.1f Pa, #h101)",
-					(double)calibrated_pa);
-				usleep(3000 * 1000);
+			if (fabsf(calibrated_pa) < 50.0f) {
+				if (calibration_counter % 20 == 0) {
+					mavlink_log_critical(mavlink_fd, "Create airflow on pitot (%d Pa, #h101)",
+					(int)calibrated_pa);
+				}
+				usleep(100 * 1000);
+				calibration_counter++;
 				continue;
 			}
 
 			/* do not allow negative values */
 			if (calibrated_pa < 0.0f) {
-				mavlink_log_critical(mavlink_fd, "Negative val: swap static vs dynamic ports,restart");
+				mavlink_log_critical(mavlink_fd, "%d Pa: swap static vs dynamic ports,restart", (int)calibrated_pa);
 				close(diff_pres_sub);
 
 				/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
@@ -209,8 +212,8 @@ int do_airspeed_calibration(int mavlink_fd)
 				close(diff_pres_sub);
 				return ERROR;
 			} else {
-				mavlink_log_info(mavlink_fd, "positive pressure: (%.1f Pa)",
-					(double)diff_pres.differential_pressure_raw_pa);
+				mavlink_log_info(mavlink_fd, "positive pressure: OK (%d Pa)",
+					(int)calibrated_pa);
 				break;
 			}
 
