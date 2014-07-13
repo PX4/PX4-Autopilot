@@ -25,6 +25,7 @@ MODULES		+= drivers/l3gd20
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
 MODULES		+= drivers/pca8574
+MODULES		+= drivers/roboclaw
 MODULES		+= systemcmds/perf
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/tests
@@ -41,6 +42,7 @@ MODULES		+= modules/uORB
 LIBRARIES	+= lib/mathlib/CMSIS
 MODULES		+= lib/mathlib
 MODULES		+= lib/mathlib/math/filter
+MODULES		+= lib/conversion
 
 #
 # Libraries

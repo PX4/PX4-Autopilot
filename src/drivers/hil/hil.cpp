@@ -229,7 +229,7 @@ HIL::init()
 	_task = task_spawn_cmd("fmuhil",
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
-			   2048,
+			   1200,
 			   (main_t)&HIL::task_main_trampoline,
 			   nullptr);
 

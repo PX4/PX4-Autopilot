@@ -70,8 +70,6 @@
 #endif
 static const int ERROR = -1;
 
-static int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd);
-
 // This array defines the arming state transitions. The rows are the new state, and the columns
 // are the current state. Using new state and current  state you can index into the array which
 // will be true for a valid transition or false for a invalid transition. In some cases even
@@ -89,7 +87,7 @@ static const bool arming_transitions[ARMING_STATE_MAX][ARMING_STATE_MAX] = {
 };
 
 // You can index into the array with an arming_state_t in order to get it's textual representation
-static const char *state_names[ARMING_STATE_MAX] = {
+static const char * const state_names[ARMING_STATE_MAX] = {
 	"ARMING_STATE_INIT",
 	"ARMING_STATE_STANDBY",
 	"ARMING_STATE_ARMED",
@@ -162,7 +160,7 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 					// Fail transition if we need safety switch press
 					} else if (safety->safety_switch_available && !safety->safety_off) {
 
-						mavlink_log_critical(mavlink_fd, "#audio: NOT ARMING: Press safety switch!");
+						mavlink_log_critical(mavlink_fd, "NOT ARMING: Press safety switch!");
 
 						valid_transition = false;
 					}
@@ -173,16 +171,16 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 						// Fail transition if power is not good
 						if (!status->condition_power_input_valid) {
 
-							mavlink_log_critical(mavlink_fd, "#audio: NOT ARMING: Connect power module.");
+							mavlink_log_critical(mavlink_fd, "NOT ARMING: Connect power module.");
 							valid_transition = false;
 						}
 
 						// Fail transition if power levels on the avionics rail
 						// are measured but are insufficient
-						if (status->condition_power_input_valid && (status->avionics_power_rail_voltage > 0.0f) &&
-							(status->avionics_power_rail_voltage < 4.9f)) {
+						if (status->condition_power_input_valid && ((status->avionics_power_rail_voltage > 0.0f) &&
+							(status->avionics_power_rail_voltage < 4.9f))) {
 
-							mavlink_log_critical(mavlink_fd, "#audio: NOT ARMING: Avionics power low: %6.2f V.", status->avionics_power_rail_voltage);
+							mavlink_log_critical(mavlink_fd, "NOT ARMING: Avionics power low: %6.2f V.", (double)status->avionics_power_rail_voltage);
 							valid_transition = false;
 						}
 					}
@@ -271,7 +269,6 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		}
 		break;
 
-	case MAIN_STATE_AUTO_MISSION:
 	case MAIN_STATE_AUTO_LOITER:
 		/* need global position estimate */
 		if (status->condition_global_position_valid) {
@@ -279,11 +276,21 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 		}
 		break;
 
+	case MAIN_STATE_AUTO_MISSION:
 	case MAIN_STATE_AUTO_RTL:
 		/* need global position and home position */
 		if (status->condition_global_position_valid && status->condition_home_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
+		break;
+
+	case MAIN_STATE_OFFBOARD:
+
+		/* need offboard signal */
+		if (!status->offboard_control_signal_lost) {
+			ret = TRANSITION_CHANGED;
+		}
+
 		break;
 
 	case MAIN_STATE_MAX:
@@ -584,6 +591,25 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		}
 		break;
 
+	case MAIN_STATE_OFFBOARD:
+		/* require offboard control, otherwise stay where you are */
+		if (status->offboard_control_signal_lost && !status->rc_signal_lost) {
+			status->failsafe = true;
+
+			status->nav_state = NAVIGATION_STATE_POSCTL;
+		} else if (status->offboard_control_signal_lost && status->rc_signal_lost) {
+			status->failsafe = true;
+
+			if (status->condition_local_position_valid) {
+				status->nav_state = NAVIGATION_STATE_LAND;
+			} else if (status->condition_local_altitude_valid) {
+				status->nav_state = NAVIGATION_STATE_DESCEND;
+			} else {
+				status->nav_state = NAVIGATION_STATE_TERMINATION;
+			}
+		} else {
+			status->nav_state = NAVIGATION_STATE_OFFBOARD;
+		}
 	default:
 		break;
 	}
@@ -594,19 +620,21 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 {
 	int ret;
+	bool failed = false;
 
 	int fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		mavlink_log_critical(mavlink_fd, "#audio: FAIL: ACCEL SENSOR MISSING");
-		ret = fd;
+		mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL SENSOR MISSING");
+		failed = true;
 		goto system_eval;
 	}
 
 	ret = ioctl(fd, ACCELIOCSELFTEST, 0);
 
 	if (ret != OK) {
-		mavlink_log_critical(mavlink_fd, "#audio: FAIL: ACCEL CALIBRATION");
+		mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL CALIBRATION");
+		failed = true;
 		goto system_eval;
 	}
 
@@ -616,33 +644,31 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 
 	if (ret == sizeof(acc)) {
 		/* evaluate values */
-		float accel_scale = sqrtf(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
+		float accel_magnitude = sqrtf(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
 
-		if (accel_scale < 9.78f || accel_scale > 9.83f) {
-			mavlink_log_info(mavlink_fd, "#audio: Accelerometer calibration recommended.");
-		}
-
-		if (accel_scale > 30.0f /* m/s^2 */) {
-			mavlink_log_critical(mavlink_fd, "#audio: FAIL: ACCEL RANGE");
+		if (accel_magnitude < 4.0f || accel_magnitude > 15.0f /* m/s^2 */) {
+			mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL RANGE");
+			mavlink_log_critical(mavlink_fd, "hold still while arming");
 			/* this is frickin' fatal */
-			ret = ERROR;
+			failed = true;
 			goto system_eval;
-		} else {
-			ret = OK;
 		}
 	} else {
-		mavlink_log_critical(mavlink_fd, "#audio: FAIL: ACCEL READ");
+		mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL READ");
 		/* this is frickin' fatal */
-		ret = ERROR;
+		failed = true;
 		goto system_eval;
 	}
 
 	if (!status->is_rotary_wing) {
-		int fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
 
-		if (fd < 0) {
-			mavlink_log_critical(mavlink_fd, "#audio: FAIL: AIRSPEED SENSOR MISSING");
-			ret = fd;
+		/* accel done, close it */
+		close(fd);
+		fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
+
+		if (fd <= 0) {
+			mavlink_log_critical(mavlink_fd, "ARM FAIL: AIRSPEED SENSOR MISSING");
+			failed = true;
 			goto system_eval;
 		}
 
@@ -651,20 +677,19 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 		ret = read(fd, &diff_pres, sizeof(diff_pres));
 
 		if (ret == sizeof(diff_pres)) {
-			if (fabsf(diff_pres.differential_pressure_filtered_pa > 5.0f)) {
-				mavlink_log_critical(mavlink_fd, "#audio: WARNING AIRSPEED CALIBRATION MISSING");
+			if (fabsf(diff_pres.differential_pressure_filtered_pa > 6.0f)) {
+				mavlink_log_critical(mavlink_fd, "ARM WARNING: AIRSPEED CALIBRATION MISSING");
 				// XXX do not make this fatal yet
-				ret = OK;
 			}
 		} else {
-			mavlink_log_critical(mavlink_fd, "#audio: FAIL: AIRSPEED READ");
+			mavlink_log_critical(mavlink_fd, "ARM FAIL: AIRSPEED READ");
 			/* this is frickin' fatal */
-			ret = ERROR;
+			failed = true;
 			goto system_eval;
 		}
 	}
 
 system_eval:
 	close(fd);
-	return ret;
+	return (failed);
 }

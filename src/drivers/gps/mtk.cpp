@@ -263,7 +263,7 @@ MTK::handle_message(gps_mtk_packet_t &packet)
 	_gps_position->epv = _gps_position->eph; // unknown in mtk custom mode, so we cheat with eph
 	_gps_position->vel_m_s = ((float)packet.ground_speed) * 1e-2f; // from cm/s to m/s
 	_gps_position->cog_rad = ((float)packet.heading) * M_DEG_TO_RAD_F * 1e-2f; //from deg *100 to rad
-	_gps_position->satellites_visible = packet.satellites;
+	_gps_position->satellites_used = packet.satellites;
 
 	/* convert time and date information to unix timestamp */
 	struct tm timeinfo; //TODO: test this conversion

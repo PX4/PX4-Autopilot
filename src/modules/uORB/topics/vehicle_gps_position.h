@@ -61,7 +61,6 @@ struct vehicle_gps_position_s {
 
 	uint64_t timestamp_variance;
 	float s_variance_m_s;				/**< speed accuracy estimate m/s */
-	float p_variance_m;				/**< position accuracy estimate m */
 	float c_variance_rad;				/**< course accuracy estimate rad */
 	uint8_t fix_type; 				/**< 0-1: no fix, 2: 2D fix, 3: 3D fix. Some applications will not use the value of this field unless it is at least two, so always correctly fill in the fix.   */
 
@@ -82,14 +81,7 @@ struct vehicle_gps_position_s {
 	uint64_t timestamp_time;			/**< Timestamp for time information */
 	uint64_t time_gps_usec;				/**< Timestamp (microseconds in GPS format), this is the timestamp which comes from the gps module   */
 
-	uint64_t timestamp_satellites;			/**< Timestamp for sattelite information */
-	uint8_t satellites_visible;			/**< Number of satellites visible. If unknown, set to 255 */
-	uint8_t satellite_prn[20]; 			/**< Global satellite ID */
-	uint8_t satellite_used[20];			/**< 0: Satellite not used, 1: used for localization */
-	uint8_t satellite_elevation[20]; 		/**< Elevation (0: right on top of receiver, 90: on the horizon) of satellite */
-	uint8_t satellite_azimuth[20];			/**< Direction of satellite, 0: 0 deg, 255: 360 deg. */
-	uint8_t satellite_snr[20];			/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99, zero when not tracking this satellite. */
-	bool satellite_info_available;			/**< 0 for no info, 1 for info available */
+	uint8_t satellites_used;			/**< Number of satellites used */
 };
 
 /**

@@ -40,3 +40,5 @@ MODULE_COMMAND	= hott_telemetry
 SRCS		= hott_telemetry.cpp \
 		  ../messages.cpp \
 		  ../comms.cpp
+
+MAXOPTIMIZATION	 = -Os

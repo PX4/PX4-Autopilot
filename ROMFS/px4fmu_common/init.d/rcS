@@ -132,6 +132,10 @@ then
 	#
 	if param compare SYS_AUTOCONFIG 1
 	then
+		# We can't be sure the defaults haven't changed, so
+		# if someone requests a re-configuration, we do it
+		# cleanly from scratch (except autostart / autoconfig)
+		param reset_nostart
 		set DO_AUTOCONFIG yes
 	else
 		set DO_AUTOCONFIG no
@@ -274,6 +278,11 @@ then
 
 	# Try to get an USB console
 	nshterm /dev/ttyACM0 &
+
+	#
+	# Start the datamanager
+	#
+	dataman start
 
 	#
 	# Start the Commander (needs to be this early for in-air-restarts)
@@ -542,11 +551,6 @@ then
 			sh /etc/init.d/rc.mc_apps
 		fi
 	fi
-
-	#
-	# Start the datamanager
-	#
-	dataman start
 
 	#
 	# Start the navigator

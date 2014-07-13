@@ -50,53 +50,13 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
+#include <uORB/topics/mission_result.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_orb_subscription.h"
 #include "mavlink_stream.h"
 #include "mavlink_messages.h"
-
-// FIXME XXX - TO BE MOVED TO XML
-enum MAVLINK_WPM_STATES {
-	MAVLINK_WPM_STATE_IDLE = 0,
-	MAVLINK_WPM_STATE_SENDLIST,
-	MAVLINK_WPM_STATE_SENDLIST_SENDWPS,
-	MAVLINK_WPM_STATE_GETLIST,
-	MAVLINK_WPM_STATE_GETLIST_GETWPS,
-	MAVLINK_WPM_STATE_GETLIST_GOTALL,
-	MAVLINK_WPM_STATE_ENUM_END
-};
-
-enum MAVLINK_WPM_CODES {
-	MAVLINK_WPM_CODE_OK = 0,
-	MAVLINK_WPM_CODE_ERR_WAYPOINT_ACTION_NOT_SUPPORTED,
-	MAVLINK_WPM_CODE_ERR_WAYPOINT_FRAME_NOT_SUPPORTED,
-	MAVLINK_WPM_CODE_ERR_WAYPOINT_OUT_OF_BOUNDS,
-	MAVLINK_WPM_CODE_ERR_WAYPOINT_MAX_NUMBER_EXCEEDED,
-	MAVLINK_WPM_CODE_ENUM_END
-};
-
-
-#define MAVLINK_WPM_MAX_WP_COUNT 255
-#define MAVLINK_WPM_PROTOCOL_TIMEOUT_DEFAULT 5000000 ///< Protocol communication timeout in useconds
-#define MAVLINK_WPM_SETPOINT_DELAY_DEFAULT 1000000 ///< When to send a new setpoint
-#define MAVLINK_WPM_PROTOCOL_DELAY_DEFAULT 40000
-
-
-struct mavlink_wpm_storage {
-	uint16_t size;
-	uint16_t max_size;
-	enum MAVLINK_WPM_STATES current_state;
-	int16_t current_wp_id;	///< Waypoint in current transmission
-	uint16_t current_count;
-	uint8_t current_partner_sysid;
-	uint8_t current_partner_compid;
-	uint64_t timestamp_lastaction;
-	uint64_t timestamp_last_send_setpoint;
-	uint64_t timestamp_last_send_request;
-	uint32_t timeout;
-	int current_dataman_id;
-};
+#include "mavlink_mission.h"
 
 
 class Mavlink
@@ -139,7 +99,7 @@ public:
 
 	static bool		instance_exists(const char *device_name, Mavlink *self);
 
-	static void		forward_message(mavlink_message_t *msg, Mavlink *self);
+	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
 
 	static int		get_uart_fd(unsigned index);
 
@@ -178,11 +138,6 @@ public:
 
 	bool			get_forwarding_on() { return _forwarding_on; }
 
-	/**
-	 * Handle waypoint related messages.
-	 */
-	void			mavlink_wpm_message_handler(const mavlink_message_t *msg);
-
 	static int		start_helper(int argc, char *argv[]);
 
 	/**
@@ -202,7 +157,11 @@ public:
 	 */
 	int			set_hil_enabled(bool hil_enabled);
 
-	MavlinkOrbSubscription	*add_orb_subscription(const orb_id_t topic);
+	void			send_message(const mavlink_message_t *msg);
+
+	void			handle_message(const mavlink_message_t *msg);
+
+	MavlinkOrbSubscription *add_orb_subscription(const orb_id_t topic);
 
 	int			get_instance_id();
 
@@ -215,14 +174,43 @@ public:
 
 	mavlink_channel_t	get_channel();
 
-	void configure_stream_threadsafe(const char *stream_name, float rate);
+	void			configure_stream_threadsafe(const char *stream_name, float rate);
 
 	bool			_task_should_exit;	/**< if true, mavlink task should exit */
 
 	int			get_mavlink_fd() { return _mavlink_fd; }
 
-	MavlinkStream * get_streams() const { return _streams; }
+	/**
+	 * Send a status text with loglevel INFO
+	 *
+	 * @param string the message to send (will be capped by mavlink max string length)
+	 */
+	int			send_statustext_info(const char *string);
 
+	/**
+	 * Send a status text with loglevel CRITICAL
+	 *
+	 * @param string the message to send (will be capped by mavlink max string length)
+	 */
+	int			send_statustext_critical(const char *string);
+
+	/**
+	 * Send a status text with loglevel EMERGENCY
+	 *
+	 * @param string the message to send (will be capped by mavlink max string length)
+	 */
+	int			send_statustext_emergency(const char *string);
+
+	/**
+	 * Send a status text with loglevel
+	 *
+	 * @param string the message to send (will be capped by mavlink max string length)
+	 * @param severity the log level, one of 
+	 */
+	int			send_statustext(unsigned severity, const char *string);
+	MavlinkStream *		get_streams() const { return _streams; }
+
+	float			get_rate_mult();
 
 	/* Functions for waiting to start transmission until message received. */
 	void			set_has_received_messages(bool received_messages) { _received_messages = received_messages; }
@@ -231,15 +219,15 @@ public:
 	bool			get_wait_to_transmit() { return _wait_to_transmit; }
 	bool			should_transmit() { return (!_wait_to_transmit || (_wait_to_transmit && _received_messages)); }
 
-	bool			message_buffer_write(void *ptr, int size);
+	bool			message_buffer_write(const void *ptr, int size);
     
-    void lockMessageBufferMutex(void) { pthread_mutex_lock(&_message_buffer_mutex); }
-    void unlockMessageBufferMutex(void) { pthread_mutex_unlock(&_message_buffer_mutex); }
+	void			lockMessageBufferMutex(void) { pthread_mutex_lock(&_message_buffer_mutex); }
+	void			unlockMessageBufferMutex(void) { pthread_mutex_unlock(&_message_buffer_mutex); }
 
 	/**
 	 * Count a transmision error
 	 */
-	void count_txerr();
+	void			count_txerr();
 
 protected:
 	Mavlink			*next;
@@ -262,21 +250,18 @@ private:
 	MavlinkOrbSubscription	*_subscriptions;
 	MavlinkStream		*_streams;
 
-	orb_advert_t		_mission_pub;
-	struct mission_s	mission;
-	MAVLINK_MODE		_mode;
+	MavlinkMissionManager *_mission_manager;
 
-	uint8_t			_mavlink_wpm_comp_id;
-	mavlink_channel_t	_channel;
+	orb_advert_t	_mission_pub;
+	int			_mission_result_sub;
+	MAVLINK_MODE _mode;
+
+	mavlink_channel_t _channel;
 
 	struct mavlink_logbuffer _logbuffer;
 	unsigned int		_total_counter;
 
 	pthread_t		_receive_thread;
-
-	/* Allocate storage space for waypoints */
-	mavlink_wpm_storage	_wpm_s;
-	mavlink_wpm_storage	*_wpm;
 
 	bool			_verbose;
 	bool			_forwarding_on;
@@ -363,21 +348,6 @@ private:
 
 	void			mavlink_update_system();
 
-	void			mavlink_waypoint_eventloop(uint64_t now);
-	void 			mavlink_wpm_send_waypoint_reached(uint16_t seq);
-	void mavlink_wpm_send_waypoint_request(uint8_t sysid, uint8_t compid, uint16_t seq);
-	void mavlink_wpm_send_waypoint(uint8_t sysid, uint8_t compid, uint16_t seq);
-	void mavlink_wpm_send_waypoint_count(uint8_t sysid, uint8_t compid, uint16_t count);
-	void mavlink_wpm_send_waypoint_current(uint16_t seq);
-	void mavlink_wpm_send_waypoint_ack(uint8_t sysid, uint8_t compid, uint8_t type);
-	void mavlink_wpm_init(mavlink_wpm_storage *state);
-	int map_mission_item_to_mavlink_mission_item(const struct mission_item_s *mission_item, mavlink_mission_item_t *mavlink_mission_item);
-	int map_mavlink_mission_item_to_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item);
-	void publish_mission();
-
-	void mavlink_missionlib_send_message(mavlink_message_t *msg);
-	int mavlink_missionlib_send_gcs_string(const char *string);
-
 	int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
 
 	int configure_stream(const char *stream_name, const float rate);
@@ -394,7 +364,7 @@ private:
 
 	void message_buffer_mark_read(int n);
 
-	void pass_message(mavlink_message_t *msg);
+	void pass_message(const mavlink_message_t *msg);
 
 	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
 
@@ -402,5 +372,4 @@ private:
 	 * Main mavlink task.
 	 */
 	int		task_main(int argc, char *argv[]);
-
 };

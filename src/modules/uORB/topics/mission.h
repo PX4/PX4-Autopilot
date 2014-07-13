@@ -98,11 +98,15 @@ struct mission_item_s {
 	unsigned do_jump_current_count;	/**< count how many times the jump has been done	*/
 };
 
+/**
+ * This topic used to notify navigator about mission changes, mission itself and new mission state
+ * must be stored in dataman before publication.
+ */
 struct mission_s
 {
-	int dataman_id;			/**< default -1, there are two offboard storage places in the dataman: 0 or 1 */
-	unsigned count;			/**< count of the missions stored in the datamanager */
-	int current_index;		/**< default -1, start at the one changed latest */
+	int dataman_id;			/**< default 0, there are two offboard storage places in the dataman: 0 or 1 */
+	unsigned count;			/**< count of the missions stored in the dataman */
+	int current_seq;				/**< default -1, start at the one changed latest */
 };
 
 /**

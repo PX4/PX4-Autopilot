@@ -67,7 +67,7 @@ __EXPORT void sched_note_switch(FAR struct tcb_s *pFromTcb, FAR struct tcb_s *pT
 
 __EXPORT struct system_load_s system_load;
 
-extern FAR struct _TCB *sched_gettcb(pid_t pid);
+extern FAR struct tcb_s *sched_gettcb(pid_t pid);
 
 void cpuload_initialize_once()
 {

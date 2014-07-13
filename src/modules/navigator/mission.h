@@ -65,25 +65,15 @@ class Navigator;
 class Mission : public MissionBlock
 {
 public:
-	/**
-	 * Constructor
-	 */
 	Mission(Navigator *navigator, const char *name);
 
-	/**
-	 * Destructor
-	 */
 	virtual ~Mission();
 
-	/**
-	 * This function is called while the mode is inactive
-	 */
 	virtual void on_inactive();
 
-	/**
-	 * This function is called while the mode is active
-	 */
-	virtual bool on_active(struct position_setpoint_triplet_s *pos_sp_triplet);
+	virtual void on_activation();
+
+	virtual void on_active();
 
 private:
 	/**
@@ -102,38 +92,26 @@ private:
 	void advance_mission();
 
 	/**
+	 * Check distance to first waypoint (with lat/lon)
+	 * @return true only if it's not too far from home (< MIS_DIST_1WP)
+	 */
+	bool check_dist_1wp();
+
+	/**
 	 * Set new mission items
 	 */
-	void set_mission_items(struct position_setpoint_triplet_s *pos_sp_triplet);
+	void set_mission_items();
 
 	/**
-	 * Try to set the current position setpoint from an onboard mission item
-	 * @return true if mission item successfully set
-	 */
-	bool is_current_onboard_mission_item_set(struct position_setpoint_s *current_pos_sp);
-
-	/**
-	 * Try to set the current position setpoint from an offboard mission item
-	 * @return true if mission item successfully set
-	 */
-	bool is_current_offboard_mission_item_set(struct position_setpoint_s *current_pos_sp);
-
-	/**
-	 * Try to set the next position setpoint from an onboard mission item
-	 */
-	void get_next_onboard_mission_item(struct position_setpoint_s *next_pos_sp);
-
-	/**
-	 * Try to set the next position setpoint from an offboard mission item
-	 */
-	void get_next_offboard_mission_item(struct position_setpoint_s *next_pos_sp);
-
-	/**
-	 * Read a mission item from the dataman and watch out for DO_JUMPS
+	 * Read current or next mission item from the dataman and watch out for DO_JUMPS
 	 * @return true if successful
 	 */
-	bool read_mission_item(const dm_item_t dm_item, bool is_current, int *mission_index,
-			       struct mission_item_s *new_mission_item);
+	bool read_mission_item(bool onboard, bool is_current, struct mission_item_s *mission_item);
+
+	/**
+	 * Save current offboard mission state to dataman
+	 */
+	void save_offboard_mission_state();
 
 	/**
 	 * Report that a mission item has been reached
@@ -155,13 +133,17 @@ private:
 	 */
 	void publish_mission_result();
 
-	control::BlockParamFloat _param_onboard_enabled;
+	control::BlockParamInt _param_onboard_enabled;
+	control::BlockParamFloat _param_takeoff_alt;
+	control::BlockParamFloat _param_dist_1wp;
 
 	struct mission_s _onboard_mission;
 	struct mission_s _offboard_mission;
 
 	int _current_onboard_mission_index;
 	int _current_offboard_mission_index;
+	bool _need_takeoff;
+	bool _takeoff;
 
 	orb_advert_t _mission_result_pub;
 	struct mission_result_s _mission_result;
@@ -171,6 +153,9 @@ private:
 		MISSION_TYPE_ONBOARD,
 		MISSION_TYPE_OFFBOARD
 	} _mission_type;
+
+	bool _inited;
+	bool _dist_1wp_ok;
 
 	MissionFeasibilityChecker missionFeasiblityChecker; /**< class that checks if a mission is feasible */
 };
