@@ -697,11 +697,11 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* initialize */
 	if (led_init() != 0) {
-		warnx("ERROR: Failed to initialize leds");
+		warnx("ERROR: LED INIT FAIL");
 	}
 
 	if (buzzer_init() != OK) {
-		warnx("ERROR: Failed to initialize buzzer");
+		warnx("ERROR: BUZZER INIT FAIL");
 	}
 
 	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
