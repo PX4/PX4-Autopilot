@@ -73,6 +73,8 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_inited(false),
 	_dist_1wp_ok(false)
 {
+	/* load initial params */
+	updateParams();
 }
 
 Mission::~Mission()

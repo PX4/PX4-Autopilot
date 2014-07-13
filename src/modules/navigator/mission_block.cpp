@@ -63,6 +63,8 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_time_first_inside_orbit(0),
 	_param_takeoff_alt(this, "TAKEOFF_ALT")
 {
+	/* load initial params */
+	updateParams();
 }
 
 MissionBlock::~MissionBlock()
