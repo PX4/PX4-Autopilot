@@ -19,9 +19,7 @@ public:
     float y;
     float z;
 
-    Vector3f() { zero(); }
-
-    Vector3f(float a, float b, float c) :
+    Vector3f(float a=0.0f, float b=0.0f, float c=0.0f) :
     x(a),
     y(b),
     z(c)
