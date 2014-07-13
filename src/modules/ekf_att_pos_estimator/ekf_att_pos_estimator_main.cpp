@@ -610,6 +610,10 @@ FixedwingEstimator::check_filter_state()
 		rep.health_flags |= (((uint8_t)ekf_report.posHealth)	<< 1);
 		rep.health_flags |= (((uint8_t)ekf_report.hgtHealth)	<< 2);
 		rep.health_flags |= (((uint8_t)!ekf_report.gyroOffsetsExcessive)	<< 3);
+		// rep.health_flags |= (((uint8_t)ekf_report.onGround)	<< 4);
+		// rep.health_flags |= (((uint8_t)ekf_report.staticMode)	<< 5);
+		// rep.health_flags |= (((uint8_t)ekf_report.useCompass)	<< 6);
+		// rep.health_flags |= (((uint8_t)ekf_report.useAirspeed)	<< 7);
 
 		rep.timeout_flags |= (((uint8_t)ekf_report.velTimeout)	<< 0);
 		rep.timeout_flags |= (((uint8_t)ekf_report.posTimeout)	<< 1);
@@ -1246,6 +1250,10 @@ FixedwingEstimator::task_main()
 						_ekf->FuseVelposNED();
 
 					} else if (!_gps_initialized) {
+
+						// force static mode
+						_ekf->staticMode = true;
+
 						// Convert GPS measurements to Pos NE, hgt and Vel NED
 						_ekf->velNED[0] = 0.0f;
 						_ekf->velNED[1] = 0.0f;
