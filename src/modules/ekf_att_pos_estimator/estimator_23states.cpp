@@ -73,7 +73,7 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
     float qUpdated[4];
     float quatMag;
     float deltaQuat[4];
-    const Vector3f gravityNED = {0.0,0.0,GRAVITY_MSS};
+    const Vector3f gravityNED(0.0f, 0.0f, GRAVITY_MSS);
 
 // Remove sensor bias errors
     correctedDelAng.x = dAngIMU.x - states[10];
