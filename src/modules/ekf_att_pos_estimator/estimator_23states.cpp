@@ -2280,7 +2280,7 @@ float AttPosEKF::ConstrainFloat(float val, float min, float max)
     }
 
     if (!isfinite(val)) {
-        ekf_debug("constrain: non-finite!");
+        //ekf_debug("constrain: non-finite!");
     }
 
     return ret;
@@ -2920,6 +2920,8 @@ void AttPosEKF::ZeroVariables()
     correctedDelAng.zero();
     summedDelAng.zero();
     summedDelVel.zero();
+    dAngIMU.zero();
+    dVelIMU.zero();
     lastGyroOffset.zero();
 
     for (unsigned i = 0; i < data_buffer_size; i++) {
