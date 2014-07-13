@@ -69,10 +69,13 @@ public:
 
 	/**
 	 * trivial ctor
-	 * note that this ctor will not initialize elements
+	 * initializes elements to zero
 	 */
-	VectorBase() {
-		arm_col = {N, 1, &data[0]};
+	VectorBase() :
+		data{},
+		arm_col{N, 1, &data[0]}
+	{
+
 	}
 
 	/**
