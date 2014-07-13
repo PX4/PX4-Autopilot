@@ -140,6 +140,16 @@ int do_airspeed_calibration(int mavlink_fd)
 
 	if (isfinite(diff_pres_offset)) {
 
+		int  fd_scale = open(AIRSPEED_DEVICE_PATH, 0);
+		airscale.offset_pa = diff_pres_offset;
+		if (fd_scale > 0) {
+			if (OK != ioctl(fd_scale, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
+				mavlink_log_critical(mavlink_fd, "airspeed offset update failed");
+			}
+
+			close(fd_scale);
+		}
+
 		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
 			mavlink_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);
 			close(diff_pres_sub);
@@ -182,20 +192,19 @@ int do_airspeed_calibration(int mavlink_fd)
 		if (poll_ret) {
 			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
 
-			float calibrated_pa = diff_pres.differential_pressure_raw_pa - diff_pres_offset;
 			calibration_counter++;
 
-			if (fabsf(calibrated_pa) < 50.0f) {
+			if (fabsf(diff_pres.differential_pressure_raw_pa) < 50.0f) {
 				if (calibration_counter % 100 == 0) {
 					mavlink_log_critical(mavlink_fd, "Create airflow on pitot (%d Pa, #h101)",
-					(int)calibrated_pa);
+					(int)diff_pres.differential_pressure_raw_pa);
 				}
 				continue;
 			}
 
 			/* do not allow negative values */
-			if (calibrated_pa < 0.0f) {
-				mavlink_log_critical(mavlink_fd, "%d Pa: swap static and dynamic ports!", (int)calibrated_pa);
+			if (diff_pres.differential_pressure_raw_pa < 0.0f) {
+				mavlink_log_critical(mavlink_fd, "%d Pa: swap static and dynamic ports!", (int)diff_pres.differential_pressure_raw_pa);
 				close(diff_pres_sub);
 
 				/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
@@ -217,7 +226,7 @@ int do_airspeed_calibration(int mavlink_fd)
 				return ERROR;
 			} else {
 				mavlink_log_info(mavlink_fd, "positive pressure: OK (%d Pa)",
-					(int)calibrated_pa);
+					(int)diff_pres.differential_pressure_raw_pa);
 				break;
 			}
 
