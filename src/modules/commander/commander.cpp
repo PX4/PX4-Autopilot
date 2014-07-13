@@ -403,10 +403,12 @@ transition_result_t arm_disarm(bool arm, const int mavlink_fd_local, const char 
 	return arming_res;
 }
 
-bool handle_command(struct vehicle_status_s *status, const struct safety_s *safety, struct vehicle_command_s *cmd, struct actuator_armed_s *armed, struct home_position_s *home, struct vehicle_global_position_s *global_pos, orb_advert_t *home_pub)
+bool handle_command(struct vehicle_status_s *status_local, const struct safety_s *safety_local,
+	struct vehicle_command_s *cmd, struct actuator_armed_s *armed_local,
+	struct home_position_s *home, struct vehicle_global_position_s *global_pos, orb_advert_t *home_pub)
 {
 	/* only handle commands that are meant to be handled by this system and component */
-	if (cmd->target_system != status->system_id || ((cmd->target_component != status->component_id) && (cmd->target_component != 0))) { // component_id 0: valid for all components
+	if (cmd->target_system != status_local->system_id || ((cmd->target_component != status_local->component_id) && (cmd->target_component != 0))) { // component_id 0: valid for all components
 		return false;
 	}
 
@@ -425,7 +427,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 
 			/* set HIL state */
 			hil_state_t new_hil_state = (base_mode & MAV_MODE_FLAG_HIL_ENABLED) ? HIL_STATE_ON : HIL_STATE_OFF;
-			transition_result_t hil_ret = hil_state_transition(new_hil_state, status_pub, status, mavlink_fd);
+			transition_result_t hil_ret = hil_state_transition(new_hil_state, status_pub, status_local, mavlink_fd);
 
 			// Transition the arming state
 			arming_ret = arm_disarm(base_mode & MAV_MODE_FLAG_SAFETY_ARMED, mavlink_fd, "set mode command");
@@ -434,43 +436,43 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 				/* use autopilot-specific mode */
 				if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_MANUAL) {
 					/* MANUAL */
-					main_ret = main_state_transition(status, MAIN_STATE_MANUAL);
+					main_ret = main_state_transition(status_local, MAIN_STATE_MANUAL);
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ALTCTL) {
 					/* ALTCTL */
-					main_ret = main_state_transition(status, MAIN_STATE_ALTCTL);
+					main_ret = main_state_transition(status_local, MAIN_STATE_ALTCTL);
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_POSCTL) {
 					/* POSCTL */
-					main_ret = main_state_transition(status, MAIN_STATE_POSCTL);
+					main_ret = main_state_transition(status_local, MAIN_STATE_POSCTL);
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
 					/* AUTO */
-					main_ret = main_state_transition(status, MAIN_STATE_AUTO_MISSION);
+					main_ret = main_state_transition(status_local, MAIN_STATE_AUTO_MISSION);
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ACRO) {
 					/* ACRO */
-					main_ret = main_state_transition(status, MAIN_STATE_ACRO);
+					main_ret = main_state_transition(status_local, MAIN_STATE_ACRO);
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_OFFBOARD) {
 					/* OFFBOARD */
-					main_ret = main_state_transition(status, MAIN_STATE_OFFBOARD);
+					main_ret = main_state_transition(status_local, MAIN_STATE_OFFBOARD);
 				}
 
 			} else {
 				/* use base mode */
 				if (base_mode & MAV_MODE_FLAG_AUTO_ENABLED) {
 					/* AUTO */
-					main_ret = main_state_transition(status, MAIN_STATE_AUTO_MISSION);
+					main_ret = main_state_transition(status_local, MAIN_STATE_AUTO_MISSION);
 
 				} else if (base_mode & MAV_MODE_FLAG_MANUAL_INPUT_ENABLED) {
 					if (base_mode & MAV_MODE_FLAG_GUIDED_ENABLED) {
 						/* POSCTL */
-						main_ret = main_state_transition(status, MAIN_STATE_POSCTL);
+						main_ret = main_state_transition(status_local, MAIN_STATE_POSCTL);
 
 					} else if (base_mode & MAV_MODE_FLAG_STABILIZE_ENABLED) {
 						/* MANUAL */
-						main_ret = main_state_transition(status, MAIN_STATE_MANUAL);
+						main_ret = main_state_transition(status_local, MAIN_STATE_MANUAL);
 					}
 				}
 			}
@@ -485,22 +487,25 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		break;
 
 	case VEHICLE_CMD_COMPONENT_ARM_DISARM: {
-			// Follow exactly what the mavlink spec says for values: 0.0f for disarm, 1.0f for arm.
-			// We use an float epsilon delta to test float equality.
-			if (cmd->param1 != 0.0f && (fabsf(cmd->param1 - 1.0f) > 2.0f * FLT_EPSILON)) {
-				mavlink_log_info(mavlink_fd, "Unsupported ARM_DISARM parameter: %.6f", (double)cmd->param1);
+			// Adhere to MAVLink specs, but base on knowledge that these fundamentally encode ints
+			// for logic state parameters
+
+			if (static_cast<int>(cmd->param1 + 0.5f) != 0 && static_cast<int>(cmd->param1 + 0.5f) != 1) {
+				mavlink_log_critical(mavlink_fd, "Unsupported ARM_DISARM param: %.3f", (double)cmd->param1);
 
 			} else {
 
+				bool cmd_arms = (static_cast<int>(cmd->param1 + 0.5f) == 1);
+
 				// Flick to inair restore first if this comes from an onboard system
-				if (cmd->source_system == status->system_id && cmd->source_component == status->component_id) {
-					status->arming_state = ARMING_STATE_IN_AIR_RESTORE;
+				if (cmd->source_system == status_local->system_id && cmd->source_component == status_local->component_id) {
+					status_local->arming_state = ARMING_STATE_IN_AIR_RESTORE;
 				}
 
-				transition_result_t arming_res = arm_disarm(cmd->param1 != 0.0f, mavlink_fd, "arm/disarm component command");
+				transition_result_t arming_res = arm_disarm(cmd_arms, mavlink_fd, "arm/disarm component command");
 
 				if (arming_res == TRANSITION_DENIED) {
-					mavlink_log_critical(mavlink_fd, "#audio: REJECTING component arm cmd");
+					mavlink_log_critical(mavlink_fd, "REJECTING component arm cmd");
 					cmd_result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 
 				} else {
@@ -512,20 +517,24 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 
 	case VEHICLE_CMD_OVERRIDE_GOTO: {
 			// TODO listen vehicle_command topic directly from navigator (?)
-			unsigned int mav_goto = cmd->param1;
+
+			// Increase by 0.5f and rely on the integer cast
+			// implicit floor(). This is the *safest* way to
+			// convert from floats representing small ints to actual ints.
+			unsigned int mav_goto = (cmd->param1 + 0.5f);
 
 			if (mav_goto == 0) {	// MAV_GOTO_DO_HOLD
-				status->nav_state = NAVIGATION_STATE_AUTO_LOITER;
-				mavlink_log_critical(mavlink_fd, "#audio: pause mission cmd");
+				status_local->nav_state = NAVIGATION_STATE_AUTO_LOITER;
+				mavlink_log_critical(mavlink_fd, "Pause mission cmd");
 				cmd_result = VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else if (mav_goto == 1) {	// MAV_GOTO_DO_CONTINUE
-				status->nav_state = NAVIGATION_STATE_AUTO_MISSION;
-				mavlink_log_critical(mavlink_fd, "#audio: continue mission cmd");
+				status_local->nav_state = NAVIGATION_STATE_AUTO_MISSION;
+				mavlink_log_critical(mavlink_fd, "Continue mission cmd");
 				cmd_result = VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				mavlink_log_info(mavlink_fd, "Unsupported OVERRIDE_GOTO: %f %f %f %f %f %f %f %f",
+				mavlink_log_critical(mavlink_fd, "REJ CMD: %.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f",
 					(double)cmd->param1,
 					(double)cmd->param2,
 					(double)cmd->param3,
@@ -543,7 +552,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 
 			//XXX: to enable the parachute, a param needs to be set
 			//xxx: for safety only for now, param3 is unused by VEHICLE_CMD_DO_SET_SERVO
-			if (armed->armed && cmd->param3 > 0.5 && parachute_enabled) {
+			if (armed_local->armed && cmd->param3 > 0.5 && parachute_enabled) {
 				transition_result_t failsafe_res = failsafe_state_transition(status, FAILSAFE_STATE_TERMINATION);
 				cmd_result = VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -561,7 +570,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 
 			if (use_current) {
 				/* use current position */
-				if (status->condition_global_position_valid) {
+				if (status_local->condition_global_position_valid) {
 					home->lat = global_pos->lat;
 					home->lon = global_pos->lon;
 					home->alt = global_pos->alt;
@@ -598,7 +607,7 @@ bool handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 				}
 
 				/* mark home position as set */
-				status->condition_home_position_valid = true;
+				status_local->condition_home_position_valid = true;
 			}
 		}
 		break;
