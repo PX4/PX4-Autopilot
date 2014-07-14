@@ -48,17 +48,6 @@
  */
 
 /**
- * Take-off altitude
- *
- * Even if first waypoint has altitude less then MIS_TAKEOFF_ALT above home position, system will climb to
- * MIS_TAKEOFF_ALT on takeoff, then go to waypoint.
- *
- * @unit meters
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 10.0f);
-
-/**
  * Enable persistent onboard mission storage
  *
  * When enabled, missions that have been uploaded by the GCS are stored

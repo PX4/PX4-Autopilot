@@ -60,11 +60,8 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_mission_item({0}),
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
-	_time_first_inside_orbit(0),
-	_param_takeoff_alt(this, "TAKEOFF_ALT")
+	_time_first_inside_orbit(0)
 {
-	/* load initial params */
-	updateParams();
 }
 
 MissionBlock::~MissionBlock()
@@ -91,7 +88,7 @@ MissionBlock::is_mission_item_reached()
 	hrt_abstime now = hrt_absolute_time();
 
 	if (!_waypoint_position_reached) {
-		float dist = -1.0f;
+		float dist;
 		float dist_xy = -1.0f;
 		float dist_z = -1.0f;
 
@@ -235,11 +232,20 @@ MissionBlock::set_loiter_item(struct mission_item_s *item)
 			item->altitude = pos_sp_triplet->current.alt;
 
 		} else {
-			/* use current position */
+			/* use current position as fallback as no setpoint is present - loiter there */
 			item->lat = _navigator->get_global_position()->lat;
 			item->lon = _navigator->get_global_position()->lon;
-			item->altitude = fmaxf(_navigator->get_global_position()->alt,
-				_navigator->get_home_position()->alt + _param_takeoff_alt.get());
+
+			float global_alt = _navigator->get_global_position()->alt;
+
+			item->altitude = fmaxf(global_alt,
+				_navigator->get_home_position()->alt + _navigator->get_takeoff_alt());
+
+			if (item->altitude > global_alt) {
+				mavlink_log_critical(_navigator->get_mavlink_fd(), "NO MISSION - LOITER RAISING TO MIN ALT %d M", (int)item->altitude);
+			} else {
+				mavlink_log_critical(_navigator->get_mavlink_fd(), "NO MISSION - LOITER AT CURRENT ALT %d M", (int)item->altitude);
+			}
 		}
 
 		item->altitude_is_relative = false;

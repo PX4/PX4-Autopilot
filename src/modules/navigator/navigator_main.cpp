@@ -125,7 +125,8 @@ Navigator::Navigator() :
 	_rtl(this, "RTL"),
 	_offboard(this, "OFF"),
 	_param_loiter_radius(this, "LOITER_RAD"),
-	_param_acceptance_radius(this, "ACC_RAD")
+	_param_acceptance_radius(this, "ACC_RAD"),
+	_param_takeoff_alt(this, "TAKEOFF_ALT")
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;

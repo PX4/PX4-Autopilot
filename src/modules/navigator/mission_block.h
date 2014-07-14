@@ -83,9 +83,9 @@ protected:
 	 */
 	void mission_item_to_position_setpoint(const mission_item_s *item, position_setpoint_s *sp);
 
-    /**
-     * Set previous position setpoint to current setpoint
-     */
+	/**
+	 * Set previous position setpoint to current setpoint
+	 */
 	void set_previous_pos_setpoint();
 
 	/**
@@ -98,7 +98,6 @@ protected:
 	bool _waypoint_yaw_reached;
 	hrt_abstime _time_first_inside_orbit;
 
-	control::BlockParamFloat _param_takeoff_alt;
 };
 
 #endif

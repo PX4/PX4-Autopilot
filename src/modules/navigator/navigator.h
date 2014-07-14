@@ -121,6 +121,7 @@ public:
 	bool		get_can_loiter_at_sp() { return _can_loiter_at_sp; }
 	float		get_loiter_radius() { return _param_loiter_radius.get(); }
 	float		get_acceptance_radius() { return _param_acceptance_radius.get(); }
+	float		get_takeoff_alt() { return _param_takeoff_alt.get(); }
 	int		get_mavlink_fd() { return _mavlink_fd; }
 
 private:
@@ -171,8 +172,10 @@ private:
 	bool		_can_loiter_at_sp;			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated;		/**< flags if position SP triplet needs to be published */
 
-	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
-	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
+	control::BlockParamFloat _param_loiter_radius;		/**< loiter radius for fixedwing */
+	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for waypoints missing a radius like takeoff */
+	control::BlockParamFloat _param_takeoff_alt;		/**< minimum takeoff altitude */
+
 	/**
 	 * Retrieve global position
 	 */
