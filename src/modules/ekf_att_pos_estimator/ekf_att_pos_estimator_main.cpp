@@ -125,6 +125,13 @@ public:
 	int		start();
 
 	/**
+	 * Task status
+	 *
+	 * @return	true if the mainloop is running
+	 */
+	bool		task_running() { return _task_running; }
+
+	/**
 	 * Print the current status.
 	 */
 	void		print_status();
@@ -151,7 +158,8 @@ public:
 private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
-	int		_estimator_task;			/**< task handle for sensor task */
+	bool		_task_running;			/**< if true, task is running in its mainloop */
+	int		_estimator_task;		/**< task handle for sensor task */
 #ifndef SENSOR_COMBINED_SUB
 	int		_gyro_sub;			/**< gyro sensor subscription */
 	int		_accel_sub;			/**< accel sensor subscription */
@@ -313,12 +321,13 @@ namespace estimator
 #endif
 static const int ERROR = -1;
 
-FixedwingEstimator	*g_estimator;
+FixedwingEstimator	*g_estimator = nullptr;
 }
 
 FixedwingEstimator::FixedwingEstimator() :
 
 	_task_should_exit(false),
+	_task_running(false),
 	_estimator_task(-1),
 
 /* subscriptions */
@@ -559,61 +568,26 @@ FixedwingEstimator::check_filter_state()
 
 	int check = _ekf->CheckAndBound(&ekf_report);
 
-	const char* ekfname = "att pos estimator: ";
+	const char* const feedback[] = { 0,
+					"NaN in states, resetting",
+					"stale IMU data, resetting",
+					"got initial position lock",
+					"excessive gyro offsets",
+					"GPS velocity divergence",
+					"excessive covariances",
+					"unknown condition"};
 
-	switch (check) {
-		case 0:
-			/* all ok */
-			break;
-		case 1:
-		{
-			const char* str = "NaN in states, resetting";
-			warnx("%s", str);
-			mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
-			break;
-		}
-		case 2:
-		{
-			const char* str = "stale IMU data, resetting";
-			warnx("%s", str);
-			mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
-			break;
-		}
-		case 3:
-		{
-			const char* str = "switching to dynamic state";
-			warnx("%s", str);
-			mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
-			break;
-		}
-		case 4:
-		{
-			const char* str = "excessive gyro offsets";
-			warnx("%s", str);
-			mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
-			break;
-		}
-		case 5:
-		{
-			const char* str = "GPS velocity divergence";
-			warnx("%s", str);
-			mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
-			break;
-		}
-		case 6:
-		{
-			const char* str = "excessive covariances";
-			warnx("%s", str);
-			mavlink_log_info(_mavlink_fd, "%s%s", ekfname, str);
-			break;
+	// Print out error condition
+	if (check) {
+		unsigned warn_index = static_cast<unsigned>(check);
+		unsigned max_warn_index = (sizeof(feedback) / sizeof(feedback[0]));
+
+		if (max_warn_index < warn_index) {
+			warn_index = max_warn_index;
 		}
 
-		default:
-		{
-			const char* str = "unknown reset condition";
-			warnx("%s", str);
-			mavlink_log_critical(_mavlink_fd, "%s%s", ekfname, str);
-		}
+		warnx("reset: %s", feedback[warn_index]);
+		mavlink_log_critical(_mavlink_fd, "[ekf] re-init: %s", feedback[warn_index]);
 	}
 
 	struct estimator_status_report rep;
@@ -645,6 +619,10 @@ FixedwingEstimator::check_filter_state()
 		rep.health_flags |= (((uint8_t)ekf_report.posHealth)	<< 1);
 		rep.health_flags |= (((uint8_t)ekf_report.hgtHealth)	<< 2);
 		rep.health_flags |= (((uint8_t)!ekf_report.gyroOffsetsExcessive)	<< 3);
+		// rep.health_flags |= (((uint8_t)ekf_report.onGround)	<< 4);
+		// rep.health_flags |= (((uint8_t)ekf_report.staticMode)	<< 5);
+		// rep.health_flags |= (((uint8_t)ekf_report.useCompass)	<< 6);
+		// rep.health_flags |= (((uint8_t)ekf_report.useAirspeed)	<< 7);
 
 		rep.timeout_flags |= (((uint8_t)ekf_report.velTimeout)	<< 0);
 		rep.timeout_flags |= (((uint8_t)ekf_report.posTimeout)	<< 1);
@@ -743,8 +721,8 @@ FixedwingEstimator::task_main()
 	/* sets also parameters in the EKF object */
 	parameters_update();
 
-	Vector3f lastAngRate = {0.0f, 0.0f, 0.0f};
-	Vector3f lastAccel = {0.0f, 0.0f, 0.0f};
+	Vector3f lastAngRate;
+	Vector3f lastAccel;
 
 	/* wakeup source(s) */
 	struct pollfd fds[2];
@@ -771,6 +749,8 @@ FixedwingEstimator::task_main()
 	_gps.vel_n_m_s = 0.0f;
 	_gps.vel_e_m_s = 0.0f;
 	_gps.vel_d_m_s = 0.0f;
+
+	_task_running = true;
 
 	while (!_task_should_exit) {
 
@@ -1202,17 +1182,16 @@ FixedwingEstimator::task_main()
 					_baro_gps_offset = 0.0f;
 
 					_ekf->InitialiseFilter(initVelNED, 0.0, 0.0, 0.0f, 0.0f);
+
 				} else if (_ekf->statesInitialised) {
 
 					// We're apparently initialized in this case now
-
 					int check = check_filter_state();
 
 					if (check) {
 						// Let the system re-initialize itself
 						continue;
 					}
-
 
 					// Run the strapdown INS equations every IMU update
 					_ekf->UpdateStrapdownEquationsNED();
@@ -1281,7 +1260,11 @@ FixedwingEstimator::task_main()
 						// run the fusion step
 						_ekf->FuseVelposNED();
 
-					} else if (_ekf->statesInitialised) {
+					} else if (!_gps_initialized) {
+
+						// force static mode
+						_ekf->staticMode = true;
+
 						// Convert GPS measurements to Pos NE, hgt and Vel NED
 						_ekf->velNED[0] = 0.0f;
 						_ekf->velNED[1] = 0.0f;
@@ -1303,7 +1286,7 @@ FixedwingEstimator::task_main()
 						_ekf->fusePosData = false;
 					}
 
-					if (newHgtData && _ekf->statesInitialised) {
+					if (newHgtData) {
 						// Could use a blend of GPS and baro alt data if desired
 						_ekf->hgtMea = 1.0f * (_ekf->baroHgt - _baro_ref);
 						_ekf->fuseHgtData = true;
@@ -1317,7 +1300,7 @@ FixedwingEstimator::task_main()
 					}
 
 					// Fuse Magnetometer Measurements
-					if (newDataMag && _ekf->statesInitialised) {
+					if (newDataMag) {
 						_ekf->fuseMagData = true;
 						_ekf->RecallStates(_ekf->statesAtMagMeasTime, (IMUmsec - _parameters.mag_delay_ms)); // Assume 50 msec avg delay for magnetometer data
 
@@ -1331,7 +1314,7 @@ FixedwingEstimator::task_main()
 					}
 
 					// Fuse Airspeed Measurements
-					if (newAdsData && _ekf->statesInitialised && _ekf->VtasMeas > 8.0f) {
+					if (newAdsData && _ekf->VtasMeas > 7.0f) {
 						_ekf->fuseVtasData = true;
 						_ekf->RecallStates(_ekf->statesAtVtasMeasTime, (IMUmsec - _parameters.tas_delay_ms)); // assume 100 msec avg delay for airspeed data
 						_ekf->FuseAirspeed();
@@ -1399,7 +1382,7 @@ FixedwingEstimator::task_main()
 
 						_velocity_xy_filtered = 0.95f*_velocity_xy_filtered + 0.05f*sqrtf(_local_pos.vx*_local_pos.vx + _local_pos.vy*_local_pos.vy);
 						_velocity_z_filtered = 0.95f*_velocity_z_filtered + 0.05f*fabsf(_local_pos.vz);
-						_airspeed_filtered = 0.95f*_airspeed_filtered + + 0.05f*_airspeed.true_airspeed_m_s;
+						_airspeed_filtered = 0.95f*_airspeed_filtered + 0.05f*_airspeed.true_airspeed_m_s;
 
 
 						/* crude land detector for fixedwing only,
@@ -1490,33 +1473,36 @@ FixedwingEstimator::task_main()
 
 						}
 
+						if (hrt_elapsed_time(&_wind.timestamp) > 99000) {
+							_wind.timestamp = _global_pos.timestamp;
+							_wind.windspeed_north = _ekf->states[14];
+							_wind.windspeed_east = _ekf->states[15];
+							_wind.covariance_north = _ekf->P[14][14];
+							_wind.covariance_east = _ekf->P[15][15];
+
+							/* lazily publish the wind estimate only once available */
+							if (_wind_pub > 0) {
+								/* publish the wind estimate */
+								orb_publish(ORB_ID(wind_estimate), _wind_pub, &_wind);
+
+							} else {
+								/* advertise and publish */
+								_wind_pub = orb_advertise(ORB_ID(wind_estimate), &_wind);
+							}
+						}
+
 					}
 
 				}
 
-				if (hrt_elapsed_time(&_wind.timestamp) > 99000) {
-					_wind.timestamp = _global_pos.timestamp;
-					_wind.windspeed_north = _ekf->states[14];
-					_wind.windspeed_east = _ekf->states[15];
-					_wind.covariance_north = _ekf->P[14][14];
-					_wind.covariance_east = _ekf->P[15][15];
-
-					/* lazily publish the wind estimate only once available */
-					if (_wind_pub > 0) {
-						/* publish the wind estimate */
-						orb_publish(ORB_ID(wind_estimate), _wind_pub, &_wind);
-
-					} else {
-						/* advertise and publish */
-						_wind_pub = orb_advertise(ORB_ID(wind_estimate), &_wind);
-					}
-				}
 			}
 
 		}
 
 		perf_end(_loop_perf);
 	}
+
+	_task_running = false;
 
 	warnx("exiting.\n");
 
@@ -1669,6 +1655,14 @@ int ekf_att_pos_estimator_main(int argc, char *argv[])
 			estimator::g_estimator = nullptr;
 			err(1, "start failed");
 		}
+
+		/* avoid memory fragmentation by not exiting start handler until the task has fully started */
+		while (estimator::g_estimator == nullptr || !estimator::g_estimator->task_running()) {
+			usleep(50000);
+			printf(".");
+			fflush(stdout);
+		}
+		printf("\n");
 
 		exit(0);
 	}

@@ -80,6 +80,6 @@ extern bool crc4(uint16_t *n_prom);
 } /* namespace */
 
 /* interface factories */
-extern device::Device *MS5611_spi_interface(ms5611::prom_u &prom_buf) weak_function;
+extern device::Device *MS5611_spi_interface(ms5611::prom_u &prom_buf, bool external_bus) weak_function;
 extern device::Device *MS5611_i2c_interface(ms5611::prom_u &prom_buf) weak_function;
 

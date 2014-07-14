@@ -39,3 +39,5 @@ MODULE_COMMAND	= fw_att_control
 
 SRCS		= fw_att_control_main.cpp \
 		  fw_att_control_params.c
+
+MODULE_STACKSIZE = 1200

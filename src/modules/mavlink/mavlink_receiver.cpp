@@ -79,7 +79,6 @@ __BEGIN_DECLS
 #include "mavlink_bridge_header.h"
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
-#include "util.h"
 
 __END_DECLS
 
@@ -1014,16 +1013,8 @@ MavlinkReceiver::receive_thread(void *arg)
 					/* handle generic messages and commands */
 					handle_message(&msg);
 
-					/* handle packet with waypoint component */
-					_mavlink->mavlink_wpm_message_handler(&msg);
-
-					/* handle packet with parameter component */
-					_mavlink->mavlink_pm_message_handler(_mavlink->get_channel(), &msg);
-
-					if (_mavlink->get_forwarding_on()) {
-						/* forward any messages to other mavlink instances */
-						Mavlink::forward_message(&msg, _mavlink);
-					}
+					/* handle packet with parent object */
+					_mavlink->handle_message(&msg);
 				}
 			}
 		}

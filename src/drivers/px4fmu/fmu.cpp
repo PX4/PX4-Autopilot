@@ -329,7 +329,7 @@ PX4FMU::init()
 	_task = task_spawn_cmd("fmuservo",
 			       SCHED_DEFAULT,
 			       SCHED_PRIORITY_DEFAULT,
-			       2048,
+			       1600,
 			       (main_t)&PX4FMU::task_main_trampoline,
 			       nullptr);
 
@@ -1784,7 +1784,7 @@ fmu_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "id")) {
-		char id[12];
+		uint8_t id[12];
 		(void)get_board_serial(id);
 
 		errx(0, "Board serial:\n %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X",
