@@ -28,10 +28,17 @@ int NodeStatusProvider::publish()
 
 void NodeStatusProvider::publishWithErrorHandling()
 {
-    const int res = publish();
-    if (res < 0)
+    if (getNode().isPassiveMode())
     {
-        getNode().registerInternalFailure("NodeStatus pub failed");
+        UAVCAN_TRACE("NodeStatusProvider", "NodeStatus pub skipped - passive mode");
+    }
+    else
+    {
+        const int res = publish();
+        if (res < 0)
+        {
+            getNode().registerInternalFailure("NodeStatus pub failed");
+        }
     }
 }
 
@@ -62,15 +69,10 @@ int NodeStatusProvider::startAndPublish()
         return -ErrNotInited;
     }
 
-    int res = -1;
-
-    if (!getNode().isPassiveMode())
+    int res = publish(); // Initial broadcast
+    if (res < 0)
     {
-        res = publish(); // Initial broadcast
-        if (res < 0)
-        {
-            goto fail;
-        }
+        goto fail;
     }
 
     res = gdr_sub_.start(GlobalDiscoveryRequestCallback(this, &NodeStatusProvider::handleGlobalDiscoveryRequest));
@@ -85,10 +87,7 @@ int NodeStatusProvider::startAndPublish()
         goto fail;
     }
 
-    if (!getNode().isPassiveMode())
-    {
-        TimerBase::startPeriodic(MonotonicDuration::fromMSec(protocol::NodeStatus::PUBLICATION_PERIOD_MS));
-    }
+    TimerBase::startPeriodic(MonotonicDuration::fromMSec(protocol::NodeStatus::PUBLICATION_PERIOD_MS));
 
     return res;
 
