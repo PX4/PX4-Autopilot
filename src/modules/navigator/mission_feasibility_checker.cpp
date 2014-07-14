@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -110,7 +110,7 @@ bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMiss
 			}
 
 			if (!geofence.inside(missionitem.lat, missionitem.lon, missionitem.altitude)) {
-				mavlink_log_info(_mavlink_fd, "#audio: Geofence violation waypoint %d", i);
+				mavlink_log_critical(_mavlink_fd, "Geofence violation: Waypoint %d", i);
 				return false;
 			}
 		}
@@ -137,10 +137,10 @@ bool MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, 
 
 		if (home_alt > missionitem.altitude) {
 			if (throw_error) {
-				mavlink_log_info(_mavlink_fd, "Waypoint %d below home", i);
+				mavlink_log_critical(_mavlink_fd, "Error: Waypoint %d below home", i);
 				return false;
 			} else	{
-				mavlink_log_info(_mavlink_fd, "#audio: warning waypoint %d below home", i);
+				mavlink_log_critical(_mavlink_fd, "Warning: Waypoint %d below home", i);
 				return true;
 			}
 		}
@@ -189,25 +189,25 @@ bool MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size
 							return true;
 						} else {
 							/* Landing waypoint is above altitude of slope at the given waypoint distance */
-							mavlink_log_info(_mavlink_fd, "#audio: Landing: last waypoint too high/too close");
-							mavlink_log_info(_mavlink_fd, "Move down to %.1fm or move further away by %.1fm",
+							mavlink_log_critical(_mavlink_fd, "Landing: last waypoint too high/too close");
+							mavlink_log_critical(_mavlink_fd, "Move down to %.1fm or move further away by %.1fm",
 									(double)(slope_alt_req),
 									(double)(wp_distance_req - wp_distance));
 							return false;
 						}
 					} else {
 						/* Landing waypoint is above last waypoint */
-						mavlink_log_info(_mavlink_fd, "#audio: Landing waypoint above last nav waypoint");
+						mavlink_log_critical(_mavlink_fd, "Landing waypoint above last nav waypoint");
 						return false;
 					}
 				} else {
 					/* Last wp is in flare region */
 					//xxx give recommendations
-					mavlink_log_info(_mavlink_fd, "#audio: Warning: Landing: last waypoint in flare region");
+					mavlink_log_critical(_mavlink_fd, "Warning: Landing: last waypoint in flare region");
 					return false;
 				}
 			} else {
-				mavlink_log_info(_mavlink_fd, "#audio: Warning: starting with land waypoint");
+				mavlink_log_critical(_mavlink_fd, "Warning: starting with land waypoint");
 				return false;
 			}
 		}
