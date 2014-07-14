@@ -185,8 +185,9 @@ public:
      * Range-checking subscript.
      * If the index is out of range:
      * - if exceptions are enabled, std::out_of_range will be thrown.
-     * - if exceptions are disabled and assert() is enabled, execution will be aborted.
-     * - if exceptions are disabled and assert() is disabled, index will be constrained to the closest valid value.
+     * - if exceptions are disabled and UAVCAN_ASSERT() is enabled, execution will be aborted.
+     * - if exceptions are disabled and UAVCAN_ASSERT() is disabled, index will be constrained to
+     *   the closest valid value.
      */
     ValueType& at(SizeType pos)             { return data_[Base::validateRange(pos)]; }
     const ValueType& at(SizeType pos) const { return data_[Base::validateRange(pos)]; }
@@ -247,7 +248,7 @@ public:
     using ArrayBase::capacity;
 
     /**
-     * Range-checking subscript. Throws if enabled; assert() if enabled; else constraints the position.
+     * Range-checking subscript. Throws if enabled; UAVCAN_ASSERT() if enabled; else constraints the position.
      */
     Reference at(SizeType pos)  { return BitSet<MaxSize>::operator[](ArrayBase::validateRange(pos)); }
     bool at(SizeType pos) const { return BitSet<MaxSize>::operator[](ArrayBase::validateRange(pos)); }
@@ -271,7 +272,7 @@ template <typename T, ArrayMode ArrayMode> class ArrayImpl<T, ArrayMode, 0>;
  * No dynamic memory is used.
  * All functions that can modify the array or access elements are range checking. If the range error occurs:
  * - if exceptions are enabled, std::out_of_range will be thrown;
- * - if assert() is enabled, program will be terminated on assert(0);
+ * - if UAVCAN_ASSERT() is enabled, program will be terminated on UAVCAN_ASSERT(0);
  * - otherwise the index value will be constrained to the closest valid value.
  */
 template <typename T, ArrayMode ArrayMode, unsigned MaxSize_>
