@@ -220,6 +220,7 @@ Mavlink::Mavlink() :
 	_task_running(false),
 	_hil_enabled(false),
 	_use_hil_gps(false),
+	_forward_externalsp(false),
 	_is_usb_uart(false),
 	_wait_to_transmit(false),
 	_received_messages(false),
@@ -246,6 +247,7 @@ Mavlink::Mavlink() :
 	_param_component_id(0),
 	_param_system_type(0),
 	_param_use_hil_gps(0),
+	_param_forward_externalsp(0),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
@@ -517,6 +519,7 @@ void Mavlink::mavlink_update_system(void)
 		_param_component_id = param_find("MAV_COMP_ID");
 		_param_system_type = param_find("MAV_TYPE");
 		_param_use_hil_gps = param_find("MAV_USEHILGPS");
+		_param_forward_externalsp = param_find("MAV_FWDEXTSP");
 		_param_initialized = true;
 	}
 
@@ -546,6 +549,11 @@ void Mavlink::mavlink_update_system(void)
 	param_get(_param_use_hil_gps, &use_hil_gps);
 
 	_use_hil_gps = (bool)use_hil_gps;
+
+	int32_t forward_externalsp;
+	param_get(_param_forward_externalsp, &forward_externalsp);
+
+	_forward_externalsp = (bool)forward_externalsp;
 }
 
 int Mavlink::get_system_id()
@@ -1501,14 +1509,14 @@ Mavlink::task_main(int argc, char *argv[])
                 if (read_count > sizeof(mavlink_message_t)) {
                     read_count = sizeof(mavlink_message_t);
                 }
-                
+
                 memcpy(write_ptr, read_ptr, read_count);
-                
+
                 // We hold the mutex until after we complete the second part of the buffer. If we don't
                 // we may end up breaking the empty slot overflow detection semantics when we mark the
                 // possibly partial read below.
                 pthread_mutex_lock(&_message_buffer_mutex);
-                
+
 				message_buffer_mark_read(read_count);
 
 				/* write second part of buffer if there is some */
@@ -1519,7 +1527,7 @@ Mavlink::task_main(int argc, char *argv[])
                     memcpy(write_ptr, read_ptr, read_count);
 					message_buffer_mark_read(available);
 				}
-                
+
                 pthread_mutex_unlock(&_message_buffer_mutex);
 
                 _mavlink_resend_uart(_channel, &msg);

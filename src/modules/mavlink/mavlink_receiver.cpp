@@ -451,6 +451,21 @@ MavlinkReceiver::handle_message_local_ned_position_setpoint_external(mavlink_mes
 		} else {
 			orb_publish(ORB_ID(offboard_control_setpoint), _offboard_control_sp_pub, &offboard_control_sp);
 		}
+
+		/* If we are in offboard control mode and offboard control loop through is enabled
+		 * also publish the setpoint topic which is read by the controller */
+		if (_mavlink->get_forward_externalsp()) {
+			bool updated;
+			orb_check(_control_mode_sub, &updated);
+			if (updated) {
+				orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
+			}
+
+			if (_control_mode.flag_control_offboard_enabled) {
+				//XXX: copy to and publish setpoint triplet here
+			}
+
+		}
 	}
 }
 

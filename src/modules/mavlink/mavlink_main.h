@@ -134,6 +134,8 @@ public:
 
 	bool			get_use_hil_gps() { return _use_hil_gps; }
 
+	bool			get_forward_externalsp() { return _forward_externalsp; }
+
 	bool			get_flow_control_enabled() { return _flow_control_enabled; }
 
 	bool			get_forwarding_on() { return _forwarding_on; }
@@ -205,7 +207,7 @@ public:
 	 * Send a status text with loglevel
 	 *
 	 * @param string the message to send (will be capped by mavlink max string length)
-	 * @param severity the log level, one of 
+	 * @param severity the log level, one of
 	 */
 	int			send_statustext(unsigned severity, const char *string);
 	MavlinkStream *		get_streams() const { return _streams; }
@@ -220,7 +222,7 @@ public:
 	bool			should_transmit() { return (!_wait_to_transmit || (_wait_to_transmit && _received_messages)); }
 
 	bool			message_buffer_write(const void *ptr, int size);
-    
+
 	void			lockMessageBufferMutex(void) { pthread_mutex_lock(&_message_buffer_mutex); }
 	void			unlockMessageBufferMutex(void) { pthread_mutex_unlock(&_message_buffer_mutex); }
 
@@ -241,6 +243,7 @@ private:
 	/* states */
 	bool			_hil_enabled;		/**< Hardware In the Loop mode */
 	bool			_use_hil_gps;		/**< Accept GPS HIL messages (for example from an external motion capturing system to fake indoor gps) */
+	bool			_forward_externalsp;	/**< Forward external setpoint messages to controllers directly if in offboard mode */
 	bool			_is_usb_uart;		/**< Port is USB */
 	bool        		_wait_to_transmit;  	/**< Wait to transmit until received messages. */
 	bool        		_received_messages;	/**< Whether we've received valid mavlink messages. */
@@ -301,6 +304,7 @@ private:
 	param_t			_param_component_id;
 	param_t			_param_system_type;
 	param_t			_param_use_hil_gps;
+	param_t			_param_forward_externalsp;
 
 	perf_counter_t		_loop_perf;			/**< loop performance counter */
 	perf_counter_t		_txerr_perf;			/**< TX error counter */
