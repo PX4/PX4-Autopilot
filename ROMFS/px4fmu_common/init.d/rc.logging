@@ -5,10 +5,12 @@
 
 if [ -d /fs/microsd ]
 then
-	if hw_ver compare PX4FMU_V1
+	if ver hwcmp PX4FMU_V1
 	then
-		sdlog2 start -r 50 -a -b 16 -t
+		echo "Start sdlog2 at 50Hz"
+		sdlog2 start -r 50 -a -b 4 -t
 	else
-		sdlog2 start -r 200 -a -b 16 -t
+		echo "Start sdlog2 at 200Hz"
+		sdlog2 start -r 200 -a -b 22 -t
 	fi
 fi

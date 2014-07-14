@@ -94,7 +94,7 @@
 #elif HRT_TIMER == 3
 # define HRT_TIMER_BASE		STM32_TIM3_BASE
 # define HRT_TIMER_POWER_REG	STM32_RCC_APB1ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB2ENR_TIM3EN
+# define HRT_TIMER_POWER_BIT	RCC_APB1ENR_TIM3EN
 # define HRT_TIMER_VECTOR	STM32_IRQ_TIM3
 # define HRT_TIMER_CLOCK	STM32_APB1_TIM3_CLKIN
 # if CONFIG_STM32_TIM3
@@ -141,7 +141,7 @@
 # define HRT_TIMER_POWER_REG	STM32_RCC_APB1ENR
 # define HRT_TIMER_POWER_BIT	RCC_APB2ENR_TIM10EN
 # define HRT_TIMER_VECTOR	STM32_IRQ_TIM1UP
-# define HRT_TIMER_CLOCK	STM32_APB1_TIM10_CLKIN
+# define HRT_TIMER_CLOCK	STM32_APB2_TIM10_CLKIN
 # if CONFIG_STM32_TIM10
 #  error must not set CONFIG_STM32_TIM11=y and HRT_TIMER=10
 # endif
@@ -150,7 +150,7 @@
 # define HRT_TIMER_POWER_REG	STM32_RCC_APB1ENR
 # define HRT_TIMER_POWER_BIT	RCC_APB2ENR_TIM11EN
 # define HRT_TIMER_VECTOR	STM32_IRQ_TIM1TRGCOM
-# define HRT_TIMER_CLOCK	STM32_APB1_TIM11_CLKIN
+# define HRT_TIMER_CLOCK	STM32_APB2_TIM11_CLKIN
 # if CONFIG_STM32_TIM11
 #  error must not set CONFIG_STM32_TIM11=y and HRT_TIMER=11
 # endif
@@ -354,6 +354,9 @@ __EXPORT uint16_t ppm_frame_length = 0;
 __EXPORT unsigned ppm_decoded_channels = 0;
 __EXPORT uint64_t ppm_last_valid_decode = 0;
 
+#define PPM_DEBUG 0
+
+#if PPM_DEBUG
 /* PPM edge history */
 __EXPORT uint16_t ppm_edge_history[32];
 unsigned ppm_edge_next;
@@ -361,6 +364,7 @@ unsigned ppm_edge_next;
 /* PPM pulse history */
 __EXPORT uint16_t ppm_pulse_history[32];
 unsigned ppm_pulse_next;
+#endif
 
 static uint16_t ppm_temp_buffer[PPM_MAX_CHANNELS];
 
@@ -455,10 +459,12 @@ hrt_ppm_decode(uint32_t status)
 	/* how long since the last edge? - this handles counter wrapping implicitely. */
 	width = count - ppm.last_edge;
 
+#if PPM_DEBUG
 	ppm_edge_history[ppm_edge_next++] = width;
 
 	if (ppm_edge_next >= 32)
 		ppm_edge_next = 0;
+#endif
 
 	/*
 	 * if this looks like a start pulse, then push the last set of values
@@ -546,10 +552,12 @@ hrt_ppm_decode(uint32_t status)
 		interval = count - ppm.last_mark;
 		ppm.last_mark = count;
 
+#if PPM_DEBUG
 		ppm_pulse_history[ppm_pulse_next++] = interval;
 
 		if (ppm_pulse_next >= 32)
 			ppm_pulse_next = 0;
+#endif
 
 		/* if the mark-mark timing is out of bounds, abandon the frame */
 		if ((interval < PPM_MIN_CHANNEL_VALUE) || (interval > PPM_MAX_CHANNEL_VALUE))

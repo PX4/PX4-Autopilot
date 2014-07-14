@@ -46,6 +46,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <math.h>
 #include <sys/stat.h>
 
 #include <arch/board/board.h>
@@ -61,8 +62,10 @@ static void	do_load(const char* param_file_name);
 static void	do_import(const char* param_file_name);
 static void	do_show(const char* search_string);
 static void	do_show_print(void *arg, param_t param);
-static void	do_set(const char* name, const char* val);
-static void	do_compare(const char* name, const char* vals[], unsigned comparisons);
+static void	do_set(const char* name, const char* val, bool fail_on_not_found);
+static void	do_compare(const char* name, char* vals[], unsigned comparisons);
+static void	do_reset(void);
+static void	do_reset_nostart(void);
 
 int
 param_main(int argc, char *argv[])
@@ -116,10 +119,17 @@ param_main(int argc, char *argv[])
 		}
 
 		if (!strcmp(argv[1], "set")) {
-			if (argc >= 4) {
-				do_set(argv[2], argv[3]);
+			if (argc >= 5) {
+
+				/* if the fail switch is provided, fails the command if not found */
+				bool fail = !strcmp(argv[4], "fail");
+
+				do_set(argv[2], argv[3], fail);
+
+			} else if (argc >= 4) {
+				do_set(argv[2], argv[3], false);
 			} else {
-				errx(1, "not enough arguments.\nTry 'param set PARAM_NAME 3'");
+				errx(1, "not enough arguments.\nTry 'param set PARAM_NAME 3 [fail]'");
 			}
 		}
 
@@ -129,6 +139,14 @@ param_main(int argc, char *argv[])
 			} else {
 				errx(1, "not enough arguments.\nTry 'param compare PARAM_NAME 3'");
 			}
+		}
+
+		if (!strcmp(argv[1], "reset")) {
+			do_reset();
+		}
+
+		if (!strcmp(argv[1], "reset_nostart")) {
+			do_reset_nostart();
 		}
 	}
 	
@@ -211,9 +229,8 @@ do_show_print(void *arg, param_t param)
 	if (!(arg == NULL)) {
 
 		/* start search */
-		char *ss = search_string;
-		char *pp = p_name;
-		bool mismatch = false;
+		const char *ss = search_string;
+		const char *pp = p_name;
 
 		/* XXX this comparison is only ok for trailing wildcards */
 		while (*ss != '\0' && *pp != '\0') {
@@ -277,7 +294,7 @@ do_show_print(void *arg, param_t param)
 }
 
 static void
-do_set(const char* name, const char* val)
+do_set(const char* name, const char* val, bool fail_on_not_found)
 {
 	int32_t i;
 	float f;
@@ -285,8 +302,8 @@ do_set(const char* name, const char* val)
 
 	/* set nothing if parameter cannot be found */
 	if (param == PARAM_INVALID) {
-		/* param not found */
-		errx(1, "Error: Parameter %s not found.", name);
+		/* param not found - fail silenty in scripts as it prevents booting */
+		errx(((fail_on_not_found) ? 1 : 0), "Error: Parameter %s not found.", name);
 	}
 
 	printf("%c %s: ",
@@ -334,7 +351,7 @@ do_set(const char* name, const char* val)
 }
 
 static void
-do_compare(const char* name, const char* vals[], unsigned comparisons)
+do_compare(const char* name, char* vals[], unsigned comparisons)
 {
 	int32_t i;
 	float f;
@@ -401,4 +418,40 @@ do_compare(const char* name, const char* vals[], unsigned comparisons)
 	}
 
 	exit(ret);
+}
+
+static void
+do_reset(void)
+{
+	param_reset_all();
+
+	if (param_save_default()) {
+		warnx("Param export failed.");
+		exit(1);
+	} else {
+		exit(0);
+	}
+}
+
+static void
+do_reset_nostart(void)
+{
+
+	int32_t autostart;
+	int32_t autoconfig;
+
+	(void)param_get(param_find("SYS_AUTOSTART"), &autostart);
+	(void)param_get(param_find("SYS_AUTOCONFIG"), &autoconfig);
+
+	param_reset_all();
+
+	(void)param_set(param_find("SYS_AUTOSTART"), &autostart);
+	(void)param_set(param_find("SYS_AUTOCONFIG"), &autoconfig);
+
+	if (param_save_default()) {
+		warnx("Param export failed.");
+		exit(1);
+	} else {
+		exit(0);
+	}
 }

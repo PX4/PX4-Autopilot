@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +34,10 @@
 /**
  * @file vehicle_global_position.h
  * Definition of the global fused WGS84 position uORB topic.
+ *
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #ifndef VEHICLE_GLOBAL_POSITION_T_H_
@@ -54,25 +55,23 @@
  /**
  * Fused global position in WGS84.
  *
- * This struct contains the system's believ about its position. It is not the raw GPS
+ * This struct contains global position estimation. It is not the raw GPS
  * measurement (@see vehicle_gps_position). This topic is usually published by the position
  * estimator, which will take more sources of information into account than just GPS,
  * e.g. control inputs of the vehicle in a Kalman-filter implementation.
  */
-struct vehicle_global_position_s
-{
-	uint64_t timestamp;		/**< time of this estimate, in microseconds since system start */
-	uint64_t time_gps_usec; 	/**< GPS timestamp in microseconds							   */
-	bool valid;			/**< true if position satisfies validity criteria of estimator */
-
-	int32_t lat;			/**< Latitude in 1E7 degrees							 	   */
-	int32_t lon;			/**< Longitude in 1E7 degrees							 	   */
-	float alt;			/**< Altitude in meters									 	   */
-	float relative_alt;		/**< Altitude above home position in meters, 				   */
-	float vx; 			/**< Ground X velocity, m/s in NED				 			   */
-	float vy;			/**< Ground Y velocity, m/s in NED							   */
-	float vz;			/**< Ground Z velocity, m/s	in NED 							   */
-	float yaw; 			/**< Compass heading in radians -PI..+PI.					   */
+struct vehicle_global_position_s {
+	uint64_t timestamp;		/**< Time of this estimate, in microseconds since system start		*/
+	uint64_t time_gps_usec;		/**< GPS timestamp in microseconds					   */
+	double lat;			/**< Latitude in degrees							 	   */
+	double lon;			/**< Longitude in degrees							 	   */
+	float alt;			/**< Altitude AMSL in meters						 	   */
+	float vel_n; 			/**< Ground north velocity, m/s				 			   */
+	float vel_e;			/**< Ground east velocity, m/s							   */
+	float vel_d;			/**< Ground downside velocity, m/s						   */
+	float yaw; 			/**< Yaw in radians -PI..+PI.							   */
+	float eph;
+	float epv;
 };
 
 /**

@@ -102,7 +102,7 @@ test_file(int argc, char *argv[])
 	}
 
 	/* perform tests for a range of chunk sizes */
-	unsigned chunk_sizes[] = {1, 5, 8, 13, 16, 32, 33, 64, 70, 128, 133, 256, 300, 512, 555, 1024, 1500};
+	int chunk_sizes[] = {1, 5, 8, 13, 16, 32, 33, 64, 70, 128, 133, 256, 300, 512, 555, 1024, 1500};
 
 	for (unsigned c = 0; c < (sizeof(chunk_sizes) / sizeof(chunk_sizes[0])); c++) {
 
@@ -116,7 +116,7 @@ test_file(int argc, char *argv[])
 			uint8_t write_buf[chunk_sizes[c] + alignments] __attribute__((aligned(64)));
 
 			/* fill write buffer with known values */
-			for (int i = 0; i < sizeof(write_buf); i++) {
+			for (size_t i = 0; i < sizeof(write_buf); i++) {
 				/* this will wrap, but we just need a known value with spacing */
 				write_buf[i] = i+11;
 			}
@@ -148,6 +148,8 @@ test_file(int argc, char *argv[])
 
 			}
 			end = hrt_absolute_time();
+
+			warnx("write took %llu us", (end - start));
 
 			close(fd);
 			fd = open("/fs/microsd/testfile", O_RDONLY);
@@ -192,7 +194,6 @@ test_file(int argc, char *argv[])
 
 			warnx("testing aligned writes - please wait.. (CTRL^C to abort)");
 
-			start = hrt_absolute_time();
 			for (unsigned i = 0; i < iterations; i++) {
 				int wret = write(fd, write_buf, chunk_sizes[c]);
 
@@ -224,9 +225,6 @@ test_file(int argc, char *argv[])
 					return 1;
 				}
 				
-				/* compare value */
-				bool compare_ok = true;
-
 				for (int j = 0; j < chunk_sizes[c]; j++) {
 					if (read_buf[j] != write_buf[j]) {
 						warnx("COMPARISON ERROR: byte %d: %u != %u", j, (unsigned int)read_buf[j], (unsigned int)write_buf[j]);

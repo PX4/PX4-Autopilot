@@ -104,11 +104,13 @@ const struct {
 	{"param",		test_param,	0},
 	{"bson",		test_bson,	0},
 	{"file",		test_file,	0},
+	{"file2",		test_file2,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"mixer",		test_mixer,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"rc",			test_rc,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"conv",		test_conv,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"mount",		test_mount,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"mtd",			test_mtd,	0},
+	{"mathlib",		test_mathlib,	0},
 	{"help",		test_help,	OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST},
 	{NULL,			NULL, 		0}
 };
@@ -233,7 +235,7 @@ test_perf(int argc, char *argv[])
 	printf("perf: expect count of 1\n");
 	perf_print_counter(ec);
 	printf("perf: expect at least two counters\n");
-	perf_print_all();
+	perf_print_all(0);
 
 	perf_free(cc);
 	perf_free(ec);

@@ -224,6 +224,7 @@ mixer_tick(void)
 		actuator_count = mixed;
 		in_mixer = false;
 
+		/* the pwm limit call takes care of out of band errors */
 		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
 
 		for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++)
@@ -265,14 +266,12 @@ mixer_tick(void)
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++)
 			up_pwm_servo_set(i, r_page_servos[i]);
 
-		/* update S.BUS1 outputs */
-		if (r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
-			sbus1_output(r_page_servos, actuator_count);
-		}
+		/* set S.BUS1 or S.BUS2 outputs */
 
-		/* update S.BUS2 outputs */
-		if (r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
-			sbus2_output(r_page_servos, actuator_count);
+		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
+			sbus2_output(r_page_servos, PX4IO_SERVO_COUNT);
+		} else if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
+			sbus1_output(r_page_servos, PX4IO_SERVO_COUNT);
 		}
 
 	} else if (mixer_servos_armed && should_always_enable_pwm) {
@@ -280,15 +279,12 @@ mixer_tick(void)
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++)
 			up_pwm_servo_set(i, r_page_servo_disarmed[i]);
 
-		/* update S.BUS1 outputs */
-		if (r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
-			sbus1_output(r_page_servos, actuator_count);
-		}
+		/* set S.BUS1 or S.BUS2 outputs */
+		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT)
+			sbus1_output(r_page_servos, PX4IO_SERVO_COUNT);
 
-		/* update S.BUS2 outputs */
-		if (r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
-			sbus2_output(r_page_servos, actuator_count);
-		}
+		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT)
+			sbus2_output(r_page_servos, PX4IO_SERVO_COUNT);
 	}
 }
 
@@ -298,7 +294,7 @@ mixer_callback(uintptr_t handle,
 	       uint8_t control_index,
 	       float &control)
 {
-	if (control_group > 3)
+	if (control_group >= PX4IO_CONTROL_GROUPS)
 		return -1;
 
 	switch (source) {

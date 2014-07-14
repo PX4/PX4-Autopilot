@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -18,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -35,19 +34,33 @@
 /**
  * @file navigator_params.c
  *
- * Parameters defined by the navigator task.
+ * Parameters for navigator in general
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  */
 
 #include <nuttx/config.h>
 
 #include <systemlib/param/param.h>
 
-/*
- * Navigator parameters, accessible via MAVLink
+/**
+ * Loiter radius (FW only)
  *
+ * Default value of loiter radius for missions, loiter, RTL, etc. (fixedwing only).
+ *
+ * @unit meters
+ * @min 0.0
+ * @group Mission
  */
+PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
 
-PARAM_DEFINE_FLOAT(NAV_DUMMY, 0.0f);
-
+/**
+ * Acceptance Radius
+ *
+ * Default acceptance radius, overridden by acceptance radius of waypoint if set.
+ *
+ * @unit meters
+ * @min 1.0
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 25.0f);

@@ -181,11 +181,7 @@ void control_heading(const struct vehicle_global_position_s *pos, const struct v
 	 * Calculate heading error of current position to desired position
 	 */
 
-	/* 
-	 * PX4 uses 1e7 scaled integers to represent global coordinates for max resolution,
-	 * so they need to be scaled by 1e7 and converted to IEEE double precision floating point.
-	 */
-	float bearing = get_bearing_to_next_waypoint(pos->lat/1e7d, pos->lon/1e7d, sp->lat/1e7d, sp->lon/1e7d);
+	float bearing = get_bearing_to_next_waypoint(pos->lat, pos->lon, sp->lat, sp->lon);
 
 	/* calculate heading error */
 	float yaw_err = att->yaw - bearing;

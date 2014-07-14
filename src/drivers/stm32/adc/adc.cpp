@@ -41,6 +41,7 @@
  */
 
 #include <nuttx/config.h>
+#include <board_config.h>
 #include <drivers/device/device.h>
 
 #include <sys/types.h>
@@ -63,6 +64,8 @@
 
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
+
+#include <uORB/topics/system_power.h>
 
 /*
  * Register accessors.
@@ -119,6 +122,8 @@ private:
 	unsigned		_channel_count;
 	adc_msg_s		*_samples;		/**< sample buffer */
 
+	orb_advert_t		_to_system_power;
+
 	/** work trampoline */
 	static void		_tick_trampoline(void *arg);
 
@@ -134,13 +139,16 @@ private:
 	 */
 	uint16_t		_sample(unsigned channel);
 
+	// update system_power ORB topic, only on FMUv2
+	void update_system_power(void);
 };
 
 ADC::ADC(uint32_t channels) :
 	CDev("adc", ADC_DEVICE_PATH),
-	_sample_perf(perf_alloc(PC_ELAPSED, "ADC samples")),
+	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_channel_count(0),
-	_samples(nullptr)
+	_samples(nullptr),
+	_to_system_power(0)
 {
 	_debug_enabled = true;
 
@@ -290,6 +298,43 @@ ADC::_tick()
 	/* scan the channel set and sample each */
 	for (unsigned i = 0; i < _channel_count; i++)
 		_samples[i].am_data = _sample(_samples[i].am_channel);
+	update_system_power();
+}
+
+void
+ADC::update_system_power(void)
+{
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+	system_power_s system_power;
+	system_power.timestamp = hrt_absolute_time();
+
+	system_power.voltage5V_v = 0;
+	for (unsigned i = 0; i < _channel_count; i++) {
+		if (_samples[i].am_channel == 4) {
+			// it is 2:1 scaled
+			system_power.voltage5V_v = _samples[i].am_data * (6.6f / 4096);
+		}
+	}
+
+	// these are not ADC related, but it is convenient to
+	// publish these to the same topic
+	system_power.usb_connected = stm32_gpioread(GPIO_OTGFS_VBUS);
+
+	// note that the valid pins are active low
+	system_power.brick_valid   = !stm32_gpioread(GPIO_VDD_BRICK_VALID);
+	system_power.servo_valid   = !stm32_gpioread(GPIO_VDD_SERVO_VALID);
+
+	// OC pins are active low
+	system_power.periph_5V_OC  = !stm32_gpioread(GPIO_VDD_5V_PERIPH_OC);
+	system_power.hipower_5V_OC = !stm32_gpioread(GPIO_VDD_5V_HIPOWER_OC);
+
+	/* lazily publish */
+	if (_to_system_power > 0) {
+		orb_publish(ORB_ID(system_power), _to_system_power, &system_power);
+	} else {
+		_to_system_power = orb_advertise(ORB_ID(system_power), &system_power);
+	}
+#endif // CONFIG_ARCH_BOARD_PX4FMU_V2
 }
 
 uint16_t
@@ -341,7 +386,7 @@ test(void)
 		err(1, "can't open ADC device");
 
 	for (unsigned i = 0; i < 50; i++) {
-		adc_msg_s data[10];
+		adc_msg_s data[12];
 		ssize_t count = read(fd, data, sizeof(data));
 
 		if (count < 0)
@@ -373,6 +418,10 @@ adc_main(int argc, char *argv[])
 		/* XXX this hardcodes the default channel set for PX4FMUv2 - should be configurable */
 		g_adc = new ADC((1 << 2) | (1 << 3) | (1 << 4) | 
 			(1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14) | (1 << 15));
+#endif
+#ifdef CONFIG_ARCH_BOARD_AEROCORE
+		/* XXX this hardcodes the default channel set for AeroCore - should be configurable */
+		g_adc = new ADC((1 << 10) | (1 << 11) | (1 << 12) | (1 << 13));
 #endif
 
 		if (g_adc == nullptr)

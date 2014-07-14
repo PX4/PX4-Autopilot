@@ -1,57 +1,38 @@
 #!nsh
+#
+# ARDrone
+#
 
-echo "[init] 08_ardrone: PX4FMU on PX4IOAR carrier board"
- 
+echo "[init] 4008_ardrone: PX4FMU on PX4IOAR carrier board"
+
+# Just use the default multicopter settings.
+sh /etc/init.d/rc.mc_defaults
+
 #
 # Load default params for this platform
 #
-if param compare SYS_AUTOCONFIG 1
+if [ $DO_AUTOCONFIG == yes ]
 then
-	# Set all params here, then disable autoconfig
-	param set MC_ATTRATE_D 0
-	param set MC_ATTRATE_I 0
-	param set MC_ATTRATE_P 0.13
-	param set MC_ATT_D 0
-	param set MC_ATT_I 0.3
-	param set MC_ATT_P 5
-	param set MC_YAWPOS_D 0.1
-	param set MC_YAWPOS_I 0.15
-	param set MC_YAWPOS_P 1
-	param set MC_YAWRATE_D 0
-	param set MC_YAWRATE_I 0
-	param set MC_YAWRATE_P 0.15
-
-	param set SYS_AUTOCONFIG 0
-	param save
+    # Set all params here, then disable autoconfig
+    param set MC_ROLL_P 6.0
+    param set MC_ROLLRATE_P 0.14
+    param set MC_ROLLRATE_I 0.1
+    param set MC_ROLLRATE_D 0.002
+    param set MC_PITCH_P 6.0
+    param set MC_PITCHRATE_P 0.14
+    param set MC_PITCHRATE_I 0.1
+    param set MC_PITCHRATE_D 0.002
+    param set MC_YAW_P 2.0
+    param set MC_YAWRATE_P 0.2
+    param set MC_YAWRATE_I 0.2
+    param set MC_YAWRATE_D 0.0
+    param set MC_YAW_FF 0.8
+    
+    param set BAT_V_SCALING 0.00838095238
 fi
 
-#
-# Force some key parameters to sane values
-# MAV_TYPE     2 = quadrotor
-#
-param set MAV_TYPE 2
-param set BAT_V_SCALING 0.008381
-
-#
-# Start MAVLink
-#
-mavlink start -d /dev/ttyS0 -b 57600
-usleep 5000
-
-#
-# Configure PX4FMU for operation with PX4IOAR
-#
-fmu mode_gpio_serial
- 
-#
-# Fire up the AR.Drone interface.
-#
-ardrone_interface start -d /dev/ttyS1
- 
-#
-# Start common for all multirotors apps
-#
-sh /etc/init.d/rc.multirotor
- 
-# Exit, because /dev/ttyS0 is needed for MAVLink
-exit
+set OUTPUT_MODE ardrone
+set USE_IO no
+set MIXER skip
+# set MAV_TYPE because no specific mixer is set
+set MAV_TYPE 2

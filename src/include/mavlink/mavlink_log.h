@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -100,6 +99,7 @@ __EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...);
  */
 #define mavlink_log_info(_fd, _text, ...)		mavlink_vasprintf(_fd, MAVLINK_IOC_SEND_TEXT_INFO, _text, ##__VA_ARGS__);
 
+
 struct mavlink_logmessage {
 	char text[MAVLINK_LOG_MAXLEN + 1];
 	unsigned char severity;
@@ -112,6 +112,7 @@ struct mavlink_logbuffer {
 	struct mavlink_logmessage *elems;
 };
 
+__BEGIN_DECLS
 void mavlink_logbuffer_init(struct mavlink_logbuffer *lb, int size);
 
 void mavlink_logbuffer_destroy(struct mavlink_logbuffer *lb);
@@ -125,6 +126,7 @@ void mavlink_logbuffer_write(struct mavlink_logbuffer *lb, const struct mavlink_
 int mavlink_logbuffer_read(struct mavlink_logbuffer *lb, struct mavlink_logmessage *elem);
 
 void mavlink_logbuffer_vasprintf(struct mavlink_logbuffer *lb, int severity, const char *fmt, ...);
+__END_DECLS
 
 #endif
 

@@ -2,44 +2,13 @@
 #
 # HILStar / X-Plane
 #
-# Maintainers: Thomas Gubler <thomasgubler@gmail.com>
+# Lorenz Meier <lm@inf.ethz.ch>
 #
 
-echo "HIL Rascal 110 starting.."
+sh /etc/init.d/rc.fw_defaults
 
-if [ $DO_AUTOCONFIG == yes ]
-then
-	# Set all params here, then disable autoconfig
-	
-	param set FW_P_D 0
-	param set FW_P_I 0
-	param set FW_P_IMAX 15
-	param set FW_P_LIM_MAX 50
-	param set FW_P_LIM_MIN -50
-	param set FW_P_P 60
-	param set FW_P_RMAX_NEG 0
-	param set FW_P_RMAX_POS 0
-	param set FW_P_ROLLFF 1.1
-	param set FW_R_D 0
-	param set FW_R_I 5
-	param set FW_R_IMAX 20
-	param set FW_R_P 100
-	param set FW_R_RMAX 100
-	param set FW_THR_CRUISE 0.65
-	param set FW_THR_MAX 1
-	param set FW_THR_MIN 0
-	param set FW_T_SINK_MAX 5.0
-	param set FW_T_SINK_MIN 4.0
-	param set FW_Y_ROLLFF 1.1
-	param set FW_L1_PERIOD 16
-	param set RC_SCALE_ROLL 1.0
-	param set RC_SCALE_PITCH 1.0
-
-	param set SYS_AUTOCONFIG 0
-	param save
-fi
+echo "X Plane HIL starting.."
 
 set HIL yes
 
-set VEHICLE_TYPE fw
 set MIXER FMU_AERT

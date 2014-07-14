@@ -1,8 +1,8 @@
-import output
 from xml.dom.minidom import getDOMImplementation
+import codecs
 
-class XMLOutput(output.Output):
-    def Generate(self, groups):
+class XMLOutput():
+    def __init__(self, groups):
         impl = getDOMImplementation()
         xml_document = impl.createDocument(None, "parameters", None)
         xml_parameters = xml_document.documentElement
@@ -19,4 +19,8 @@ class XMLOutput(output.Output):
                     xml_param.appendChild(xml_field)
                     xml_value = xml_document.createTextNode(value)
                     xml_field.appendChild(xml_value)
-        return xml_document.toprettyxml(indent="    ", newl="\n", encoding="utf-8")
+        self.xml_document = xml_document
+
+    def Save(self, filename):
+        with codecs.open(filename, 'w', 'utf-8') as f:
+            self.xml_document.writexml(f, indent="    ", addindent="    ", newl="\n")

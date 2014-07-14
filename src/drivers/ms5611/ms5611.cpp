@@ -50,6 +50,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
@@ -526,6 +527,7 @@ void
 MS5611::cycle()
 {
 	int ret;
+	unsigned dummy;
 
 	/* collection phase? */
 	if (_collect_phase) {
@@ -542,6 +544,8 @@ MS5611::cycle()
 			} else {
 				//log("collection error %d", ret);
 			}
+			/* issue a reset command to the sensor */
+			_interface->ioctl(IOCTL_RESET, dummy);
 			/* reset the collection state machine and try again */
 			start_cycle();
 			return;
@@ -573,6 +577,8 @@ MS5611::cycle()
 	ret = measure();
 	if (ret != OK) {
 		//log("measure error %d", ret);
+		/* issue a reset command to the sensor */
+		_interface->ioctl(IOCTL_RESET, dummy);
 		/* reset the collection state machine and try again */
 		start_cycle();
 		return;
@@ -748,8 +754,8 @@ MS5611::print_info()
 	printf("TEMP:           %d\n", _TEMP);
 	printf("SENS:           %lld\n", _SENS);
 	printf("OFF:            %lld\n", _OFF);
-	printf("P:              %.3f\n", _P);
-	printf("T:              %.3f\n", _T);
+	printf("P:              %.3f\n", (double)_P);
+	printf("T:              %.3f\n", (double)_T);
 	printf("MSL pressure:   %10.4f\n", (double)(_msl_pressure / 100.f));
 
 	printf("factory_setup             %u\n", _prom.factory_setup);
@@ -770,11 +776,12 @@ namespace ms5611
 
 MS5611	*g_dev;
 
-void	start();
+void	start(bool external_bus);
 void	test();
 void	reset();
 void	info();
 void	calibrate(unsigned altitude);
+void	usage();
 
 /**
  * MS5611 crc4 cribbed from the datasheet
@@ -827,7 +834,7 @@ crc4(uint16_t *n_prom)
  * Start the driver.
  */
 void
-start()
+start(bool external_bus)
 {
 	int fd;
 	prom_u prom_buf;
@@ -840,7 +847,7 @@ start()
 
 	/* create the driver, try SPI first, fall back to I2C if unsuccessful */
 	if (MS5611_spi_interface != nullptr)
-		interface = MS5611_spi_interface(prom_buf);
+            interface = MS5611_spi_interface(prom_buf, external_bus);
 	if (interface == nullptr && (MS5611_i2c_interface != nullptr))
 		interface = MS5611_i2c_interface(prom_buf);
 
@@ -1051,43 +1058,68 @@ calibrate(unsigned altitude)
 	exit(0);
 }
 
+void
+usage()
+{
+	warnx("missing command: try 'start', 'info', 'test', 'test2', 'reset', 'calibrate'");
+	warnx("options:");
+	warnx("    -X    (external bus)");
+}
+
 } // namespace
 
 int
 ms5611_main(int argc, char *argv[])
 {
+	bool external_bus = false;
+	int ch;
+
+	/* jump over start/off/etc and look at options first */
+	while ((ch = getopt(argc, argv, "X")) != EOF) {
+		switch (ch) {
+		case 'X':
+			external_bus = true;
+			break;
+		default:
+			ms5611::usage();
+			exit(0);
+		}
+	}
+
+	const char *verb = argv[optind];
+
 	/*
 	 * Start/load the driver.
 	 */
-	if (!strcmp(argv[1], "start"))
-		ms5611::start();
+	if (!strcmp(verb, "start"))
+		ms5611::start(external_bus);
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(argv[1], "test"))
+	if (!strcmp(verb, "test"))
 		ms5611::test();
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(argv[1], "reset"))
+	if (!strcmp(verb, "reset"))
 		ms5611::reset();
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[1], "info"))
+	if (!strcmp(verb, "info"))
 		ms5611::info();
 
 	/*
 	 * Perform MSL pressure calibration given an altitude in metres
 	 */
-	if (!strcmp(argv[1], "calibrate")) {
+	if (!strcmp(verb, "calibrate")) {
 		if (argc < 2)
 			errx(1, "missing altitude");
 
-		long altitude = strtol(argv[2], nullptr, 10);
+		long altitude = strtol(argv[optind+1], nullptr, 10);
 
 		ms5611::calibrate(altitude);
 	}

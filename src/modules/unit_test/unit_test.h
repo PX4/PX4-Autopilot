@@ -32,62 +32,55 @@
  *
  ****************************************************************************/
 
-/**
- * @file unit_test.h
- * A unit test library based on MinUnit (http://www.jera.com/techinfo/jtns/jtn002.html).
- *
- */
-
 #ifndef UNIT_TEST_H_
-#define UNIT_TEST_
+#define UNIT_TEST_H_
 
 #include <systemlib/err.h>
-
 
 class __EXPORT UnitTest
 {
 
 public:
-#define xstr(s) str(s)
-#define str(s) #s
 #define INLINE_GLOBAL(type,func) inline type& func() { static type x; return x; }
 
 INLINE_GLOBAL(int, mu_tests_run)
+INLINE_GLOBAL(int, mu_tests_failed)
+INLINE_GLOBAL(int, mu_tests_passed)
 INLINE_GLOBAL(int, mu_assertion)
 INLINE_GLOBAL(int, mu_line)
 INLINE_GLOBAL(const char*, mu_last_test)
 
-#define mu_assert(message, test)                                           \
-    do                                                                     \
-    {                                                                      \
-        if (!(test))                                                       \
-            return __FILE__ ":" xstr(__LINE__) " " message " (" #test ")"; \
-        else                                                               \
-            mu_assertion()++;                                              \
-    } while (0)
-
-
-#define mu_run_test(test)                                                  \
-do                                                                         \
-{                                                                          \
-    const char *message;                                                   \
-    mu_last_test() = #test;                                                \
-    mu_line() = __LINE__;                                                  \
-    message = test();                                                      \
-    mu_tests_run()++;                                                      \
-    if (message)                                                           \
-        return message;                                                    \
-} while (0)
-
-
-public:
 	UnitTest();
     virtual ~UnitTest();
 
-    virtual const char*     run_tests() = 0;
-    virtual void            print_results(const char* result);
+    virtual void runTests(void) = 0;
+    void printResults(void);
+    
+    void printAssert(const char* msg, const char* test, const char* file, int line);
+    
+#define ut_assert(message, test)                                \
+    do {                                                        \
+        if (!(test)) {                                          \
+            printAssert(message, #test, __FILE__, __LINE__);    \
+            return false;                                       \
+        } else {                                                \
+            mu_assertion()++;                                   \
+        }                                                       \
+    } while (0)
+    
+#define ut_run_test(test)                       \
+    do {                                        \
+        warnx("RUNNING TEST: %s", #test);       \
+        mu_tests_run()++;                       \
+        if (!test()) {                          \
+            warnx("TEST FAILED: %s", #test);    \
+            mu_tests_failed()++;                \
+        } else {                                \
+            warnx("TEST PASSED: %s", #test);    \
+            mu_tests_passed()++;                \
+        }                                       \
+    } while (0)
+
 };
-
-
 
 #endif /* UNIT_TEST_H_ */

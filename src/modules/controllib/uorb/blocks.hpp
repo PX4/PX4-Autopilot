@@ -43,7 +43,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_global_position_set_triplet.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
@@ -62,8 +62,8 @@ extern "C" {
 }
 
 #include "../blocks.hpp"
-#include "UOrbSubscription.hpp"
-#include "UOrbPublication.hpp"
+#include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
 
 namespace control
 {
@@ -82,8 +82,8 @@ public:
 	virtual ~BlockWaypointGuidance();
 	void update(vehicle_global_position_s &pos,
 		    vehicle_attitude_s &att,
-		    vehicle_global_position_setpoint_s &posCmd,
-		    vehicle_global_position_setpoint_s &lastPosCmd);
+		    position_setpoint_s &missionCmd,
+		    position_setpoint_s &lastMissionCmd);
 	float getPsiCmd() { return _psiCmd; }
 };
 
@@ -94,16 +94,16 @@ class __EXPORT BlockUorbEnabledAutopilot : public SuperBlock
 {
 protected:
 	// subscriptions
-	UOrbSubscription<vehicle_attitude_s> _att;
-	UOrbSubscription<vehicle_attitude_setpoint_s> _attCmd;
-	UOrbSubscription<vehicle_rates_setpoint_s> _ratesCmd;
-	UOrbSubscription<vehicle_global_position_s> _pos;
-	UOrbSubscription<vehicle_global_position_set_triplet_s> _posCmd;
-	UOrbSubscription<manual_control_setpoint_s> _manual;
-	UOrbSubscription<vehicle_status_s> _status;
-	UOrbSubscription<parameter_update_s> _param_update;
+	uORB::Subscription<vehicle_attitude_s> _att;
+	uORB::Subscription<vehicle_attitude_setpoint_s> _attCmd;
+	uORB::Subscription<vehicle_rates_setpoint_s> _ratesCmd;
+	uORB::Subscription<vehicle_global_position_s> _pos;
+	uORB::Subscription<position_setpoint_triplet_s> _missionCmd;
+	uORB::Subscription<manual_control_setpoint_s> _manual;
+	uORB::Subscription<vehicle_status_s> _status;
+	uORB::Subscription<parameter_update_s> _param_update;
 	// publications
-	UOrbPublication<actuator_controls_s> _actuators;
+	uORB::Publication<actuator_controls_s> _actuators;
 public:
 	BlockUorbEnabledAutopilot(SuperBlock *parent, const char *name);
 	virtual ~BlockUorbEnabledAutopilot();

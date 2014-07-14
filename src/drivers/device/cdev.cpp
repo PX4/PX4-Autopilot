@@ -124,7 +124,7 @@ CDev::register_class_devname(const char *class_devname)
 			if (ret == OK) break;
 		} else {
 			char name[32];
-			snprintf(name, sizeof(name), "%s%u", class_devname, class_instance);
+			snprintf(name, sizeof(name), "%s%d", class_devname, class_instance);
 			ret = register_driver(name, &fops, 0666, (void *)this);
 			if (ret == OK) break;
 		}
@@ -267,6 +267,13 @@ CDev::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return _pub_blocked;
 		break;
 	}
+
+	/* try the superclass. The different ioctl() function form
+         * means we need to copy arg */
+        unsigned arg2 = arg;
+	int ret = Device::ioctl(cmd, arg2);
+	if (ret != -ENODEV)
+		return ret;
 
 	return -ENOTTY;
 }

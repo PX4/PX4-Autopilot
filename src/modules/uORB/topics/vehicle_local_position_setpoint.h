@@ -49,8 +49,7 @@
  * @{
  */
 
-struct vehicle_local_position_setpoint_s
-{
+struct vehicle_local_position_setpoint_s {
 	float x;		/**< in meters NED			  		*/
 	float y;		/**< in meters NED			  		*/
 	float z;		/**< in meters NED			  		*/

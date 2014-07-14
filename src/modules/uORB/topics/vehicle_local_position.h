@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +34,9 @@
 /**
  * @file vehicle_local_position.h
  * Definition of the local fused NED position uORB topic.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #ifndef TOPIC_VEHICLE_LOCAL_POSITION_H_
@@ -52,8 +54,7 @@
 /**
  * Fused local position in NED.
  */
-struct vehicle_local_position_s
-{
+struct vehicle_local_position_s {
 	uint64_t timestamp;		/**< Time of this estimate, in microseconds since system start */
 	bool xy_valid;			/**< true if x and y are valid */
 	bool z_valid;			/**< true if z is valid */
@@ -73,10 +74,17 @@ struct vehicle_local_position_s
 	bool xy_global;			/**< true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon) */
 	bool z_global;			/**< true if z is valid and has valid global reference (ref_alt) */
 	uint64_t ref_timestamp;	/**< Time when reference position was set */
-	int32_t ref_lat;		/**< Reference point latitude in 1E7 degrees */
-	int32_t ref_lon;		/**< Reference point longitude in 1E7 degrees */
+	double ref_lat;		/**< Reference point latitude in degrees */
+	double ref_lon;		/**< Reference point longitude in degrees */
 	float ref_alt;			/**< Reference altitude AMSL in meters, MUST be set to current (not at reference point!) ground level */
 	bool landed;			/**< true if vehicle is landed */
+	/* Distance to surface */
+	float dist_bottom;		/**< Distance to bottom surface (ground) */
+	float dist_bottom_rate;		/**< Distance to bottom surface (ground) change rate */
+	uint64_t surface_bottom_timestamp;		/**< Time when new bottom surface found */
+	bool dist_bottom_valid;	/**< true if distance to bottom surface is valid */
+	float eph;
+	float epv;
 };
 
 /**

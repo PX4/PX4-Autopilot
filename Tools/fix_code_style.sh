@@ -16,4 +16,6 @@ astyle \
     --ignore-exclude-errors-x	\
     --lineend=linux		\
     --exclude=EASTL		\
+    --add-brackets		\
+    --max-code-length=120	\
     $*

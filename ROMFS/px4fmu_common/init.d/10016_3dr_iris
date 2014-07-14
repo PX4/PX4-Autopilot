@@ -2,52 +2,31 @@
 #
 # 3DR Iris Quadcopter
 #
-# Maintainers: Anton Babushkin <anton.babushkin@me.com>
+# Anton Babushkin <anton.babushkin@me.com>
 #
+
+sh /etc/init.d/rc.mc_defaults
 
 if [ $DO_AUTOCONFIG == yes ]
 then
-	#
-	# Default parameters for this platform
-	#
-	param set MC_ATT_P 9.0
-	param set MC_ATT_I 0.0
-	param set MC_ATT_D 0.0
-	param set MC_ATTRATE_P 0.13
-	param set MC_ATTRATE_I 0.0
-	param set MC_ATTRATE_D 0.004
-	param set MC_YAWPOS_P 0.5
-	param set MC_YAWPOS_I 0.15
-	param set MC_YAWPOS_D 0.0
-	param set MC_YAWRATE_P 0.2
-	param set MC_YAWRATE_I 0.0
+	# TODO tune roll/pitch separately
+	param set MC_ROLL_P 7.0
+	param set MC_ROLLRATE_P 0.13
+	param set MC_ROLLRATE_I 0.0
+	param set MC_ROLLRATE_D 0.004
+	param set MC_PITCH_P 7.0
+	param set MC_PITCHRATE_P 0.13
+	param set MC_PITCHRATE_I 0.0
+	param set MC_PITCHRATE_D 0.004
+	param set MC_YAW_P 2.5
+	param set MC_YAWRATE_P 0.25
+	param set MC_YAWRATE_I 0.25
 	param set MC_YAWRATE_D 0.0
-	
-	param set MPC_TILT_MAX 0.5
-	param set MPC_THR_MAX 0.8
-	param set MPC_THR_MIN 0.2
-	param set MPC_XY_D 0
-	param set MPC_XY_P 0.5
-	param set MPC_XY_VEL_D 0
-	param set MPC_XY_VEL_I 0
-	param set MPC_XY_VEL_MAX 3
-	param set MPC_XY_VEL_P 0.2
-	param set MPC_Z_D 0
-	param set MPC_Z_P 1
-	param set MPC_Z_VEL_D 0
-	param set MPC_Z_VEL_I 0.1
-	param set MPC_Z_VEL_MAX 2
-	param set MPC_Z_VEL_P 0.20
 
 	param set BAT_V_SCALING 0.00989
 	param set BAT_C_SCALING 0.0124
 fi
 
-set VEHICLE_TYPE mc
 set MIXER FMU_quad_w
 
 set PWM_OUTPUTS 1234
-set PWM_RATE 400
-set PWM_DISARMED 900
-set PWM_MIN 1000
-set PWM_MAX 2000

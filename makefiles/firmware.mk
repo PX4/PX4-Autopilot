@@ -113,7 +113,7 @@ endif
 $(info %  GIT_DESC            = $(GIT_DESC))
 
 #
-# Set a default target so that included makefiles or errors here don't 
+# Set a default target so that included makefiles or errors here don't
 # cause confusion.
 #
 # XXX We could do something cute here with $(DEFAULT_GOAL) if it's not one
@@ -177,7 +177,7 @@ GLOBAL_DEPS		+= $(MAKEFILE_LIST)
 #
 # Extra things we should clean
 #
-EXTRA_CLEANS		 = 
+EXTRA_CLEANS		 =
 
 
 #
@@ -355,6 +355,9 @@ ROMFS_OBJ		 = $(ROMFS_CSRC:.c=.o)
 LIBS			+= $(ROMFS_OBJ)
 LINK_DEPS		+= $(ROMFS_OBJ)
 
+# Remove all comments from startup and mixer files
+ROMFS_PRUNER	 = $(PX4_BASE)/Tools/px_romfs_pruner.py
+
 # Turn the ROMFS image into an object file
 $(ROMFS_OBJ): $(ROMFS_IMG) $(GLOBAL_DEPS)
 	$(call BIN_TO_OBJ,$<,$@,romfs_img)
@@ -368,10 +371,13 @@ $(ROMFS_IMG): $(ROMFS_SCRATCH) $(ROMFS_DEPS) $(GLOBAL_DEPS)
 $(ROMFS_SCRATCH): $(ROMFS_DEPS) $(GLOBAL_DEPS)
 	$(Q) $(MKDIR) -p $(ROMFS_SCRATCH)
 	$(Q) $(COPYDIR) $(ROMFS_ROOT)/* $(ROMFS_SCRATCH)
+# delete all files in ROMFS_SCRATCH which start with a . or end with a ~
+	$(Q) $(RM) $(ROMFS_SCRATCH)/*/.[!.]* $(ROMFS_SCRATCH)/*/*~
 ifneq ($(ROMFS_EXTRA_FILES),)
 	$(Q) $(MKDIR) -p $(ROMFS_SCRATCH)/extras
 	$(Q) $(COPY) $(ROMFS_EXTRA_FILES) $(ROMFS_SCRATCH)/extras
 endif
+	$(Q) $(PYTHON) -u $(ROMFS_PRUNER) --folder $(ROMFS_SCRATCH)
 
 EXTRA_CLEANS		+= $(ROMGS_OBJ) $(ROMFS_IMG)
 

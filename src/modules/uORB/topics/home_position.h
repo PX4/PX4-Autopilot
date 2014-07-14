@@ -2,6 +2,7 @@
  *
  *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
  *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *           Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,9 +35,10 @@
 
 /**
  * @file home_position.h
- * Definition of the GPS home position uORB topic.
+ * Definition of the home position uORB topic.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
  */
 
 #ifndef TOPIC_HOME_POSITION_H_
@@ -55,16 +57,15 @@
  */
 struct home_position_s
 {
-	uint64_t timestamp;             /**< Timestamp (microseconds since system boot)   */
-	uint64_t time_gps_usec;         /**< Timestamp (microseconds in GPS format), this is the timestamp from the gps module   */
-	
-	int32_t lat;                    /**< Latitude in 1E7 degrees */
-	int32_t lon;                    /**< Longitude in 1E7 degrees */
-	int32_t alt;                    /**< Altitude in 1E3 meters (millimeters) above MSL */
-	float eph_m;                   /**< GPS HDOP horizontal dilution of position in m */
-	float epv_m;                   /**< GPS VDOP horizontal dilution of position in m */
-	float s_variance_m_s;               /**< speed accuracy estimate m/s */
-	float p_variance_m;               /**< position accuracy estimate m */
+	uint64_t timestamp;			/**< Timestamp (microseconds since system boot)	*/
+
+	double lat;				/**< Latitude in degrees 			*/
+	double lon;				/**< Longitude in degrees			*/
+	float alt;				/**< Altitude in meters				*/
+
+	float x;				/**< X coordinate in meters			*/
+	float y;				/**< Y coordinate in meters			*/
+	float z;				/**< Z coordinate in meters			*/
 };
 
 /**
