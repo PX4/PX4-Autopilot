@@ -125,6 +125,13 @@ public:
 	int		start();
 
 	/**
+	 * Task status
+	 *
+	 * @return	true if the mainloop is running
+	 */
+	bool		task_running() { return _task_running; }
+
+	/**
 	 * Print the current status.
 	 */
 	void		print_status();
@@ -151,7 +158,8 @@ public:
 private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
-	int		_estimator_task;			/**< task handle for sensor task */
+	bool		_task_running;			/**< if true, task is running in its mainloop */
+	int		_estimator_task;		/**< task handle for sensor task */
 #ifndef SENSOR_COMBINED_SUB
 	int		_gyro_sub;			/**< gyro sensor subscription */
 	int		_accel_sub;			/**< accel sensor subscription */
@@ -313,12 +321,13 @@ namespace estimator
 #endif
 static const int ERROR = -1;
 
-FixedwingEstimator	*g_estimator;
+FixedwingEstimator	*g_estimator = nullptr;
 }
 
 FixedwingEstimator::FixedwingEstimator() :
 
 	_task_should_exit(false),
+	_task_running(false),
 	_estimator_task(-1),
 
 /* subscriptions */
@@ -771,6 +780,8 @@ FixedwingEstimator::task_main()
 	_gps.vel_n_m_s = 0.0f;
 	_gps.vel_e_m_s = 0.0f;
 	_gps.vel_d_m_s = 0.0f;
+
+	_task_running = true;
 
 	while (!_task_should_exit) {
 
@@ -1518,6 +1529,8 @@ FixedwingEstimator::task_main()
 		perf_end(_loop_perf);
 	}
 
+	_task_running = false;
+
 	warnx("exiting.\n");
 
 	_estimator_task = -1;
@@ -1669,6 +1682,14 @@ int ekf_att_pos_estimator_main(int argc, char *argv[])
 			estimator::g_estimator = nullptr;
 			err(1, "start failed");
 		}
+
+		/* avoid memory fragmentation by not exiting start handler until the task has fully started */
+		while (estimator::g_estimator == nullptr || !estimator::g_estimator->task_running()) {
+			usleep(50000);
+			printf(".");
+			fflush(stdout);
+		}
+		printf("\n");
 
 		exit(0);
 	}
