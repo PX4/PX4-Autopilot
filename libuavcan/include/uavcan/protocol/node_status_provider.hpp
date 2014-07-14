@@ -16,7 +16,10 @@
 
 namespace uavcan
 {
-
+/**
+ * Provides the status and basic information about this node to other network participants.
+ * Usually the application does not need to deal with this class directly - it's instantiated by the node class.
+ */
 class UAVCAN_EXPORT NodeStatusProvider : private TimerBase
 {
     typedef MethodBinder<NodeStatusProvider*, void (NodeStatusProvider::*)(const protocol::GlobalDiscoveryRequest&)>
@@ -64,10 +67,21 @@ public:
         node_status_pub_.setTxTimeout(MonotonicDuration::fromMSec(protocol::NodeStatus::PUBLICATION_PERIOD_MS - 10));
     }
 
+    /**
+     * Starts the provider and immediately broadcasts uavcan.protocol.NodeStatus.
+     * Returns negative error code.
+     */
     int startAndPublish();
 
+    /**
+     * Publish the message uavcan.protocol.NodeStatus right now, out of schedule.
+     * Returns negative error code.
+     */
     int forcePublish() { return publish(); }
 
+    /**
+     * Local node status code control.
+     */
     uint8_t getStatusCode() const { return node_info_.status.status_code; }
     void setStatusCode(uint8_t code);
     void setStatusOk()           { setStatusCode(protocol::NodeStatus::STATUS_OK); }
@@ -76,9 +90,18 @@ public:
     void setStatusCritical()     { setStatusCode(protocol::NodeStatus::STATUS_CRITICAL); }
     void setStatusOffline()      { setStatusCode(protocol::NodeStatus::STATUS_OFFLINE); }
 
+    /**
+     * Local node name control.
+     * Can be set only once before the provider is started.
+     * The provider will refuse to start if the node name is not set.
+     */
     const typename protocol::GetNodeInfo::Response::FieldTypes::name& getName() const { return node_info_.name; }
     void setName(const char* name);
 
+    /**
+     * Node version information.
+     * Can be set only once before the provider is started.
+     */
     const protocol::SoftwareVersion& getSoftwareVersion() const { return node_info_.software_version; }
     const protocol::HardwareVersion& getHardwareVersion() const { return node_info_.hardware_version; }
     void setSoftwareVersion(const protocol::SoftwareVersion& version);

@@ -122,7 +122,10 @@ public:
 };
 
 /**
- * Statically allocated array with optional dynamic-like behavior
+ * Common functionality for both static and dynamic arrays.
+ * Static arrays are of fixed size; methods that can alter the size (e.g. push_back() and such) will fail to compile.
+ * Dynamic arrays contain a fixed-size buffer (it's size is enough to fit maximum number of elements) plus the
+ * currently allocated number of elements.
  */
 template <typename T, ArrayMode ArrayMode, unsigned MaxSize>
 class UAVCAN_EXPORT ArrayImpl : public Select<ArrayMode == ArrayModeDynamic,
@@ -135,6 +138,7 @@ class UAVCAN_EXPORT ArrayImpl : public Select<ArrayMode == ArrayModeDynamic,
 public:
     enum
     {
+        /// True if the array contents can be interpreted as a 8-bit string (ASCII or UTF8).
         IsStringLike = IsIntegerSpec<T>::Result && (T::MaxBitLen == 8 || T::MaxBitLen == 7) &&
                        (ArrayMode == ArrayModeDynamic)
     };
@@ -165,6 +169,10 @@ public:
 
     ArrayImpl() { initialize<ValueType>(0); }
 
+    /**
+     * Returns zero-terminated string, same as std::string::c_str().
+     * This method will compile only if the array can be interpreted as 8-bit string (ASCII of UTF8).
+     */
     const char* c_str() const
     {
         StaticAssert<IsStringLike>::check();
@@ -173,34 +181,53 @@ public:
         return reinterpret_cast<const char*>(data_);
     }
 
+    /**
+     * Range-checking subscript.
+     * If the index is out of range:
+     * - if exceptions are enabled, std::out_of_range will be thrown.
+     * - if exceptions are disabled and assert() is enabled, execution will be aborted.
+     * - if exceptions are disabled and assert() is disabled, index will be constrained to the closest valid value.
+     */
     ValueType& at(SizeType pos)             { return data_[Base::validateRange(pos)]; }
     const ValueType& at(SizeType pos) const { return data_[Base::validateRange(pos)]; }
 
+    /**
+     * Range-checking subscript. @ref at()
+     */
     ValueType& operator[](SizeType pos)             { return at(pos); }
     const ValueType& operator[](SizeType pos) const { return at(pos); }
 
+    /**
+     * Standard container methods. Applicable to both dynamic and static arrays.
+     */
     ValueType* begin()             { return data_; }
     const ValueType* begin() const { return data_; }
     ValueType* end()               { return data_ + Base::size(); }
     const ValueType* end()   const { return data_ + Base::size(); }
-
     ValueType& front()             { return at(0); }
     const ValueType& front() const { return at(0); }
     ValueType& back()              { return at(Base::size() - 1); }
     const ValueType& back()  const { return at(Base::size() - 1); }
 
+    /**
+     * Performs standard lexicographical compare of the elements.
+     */
     template <typename R>
     bool operator<(const R& rhs) const
     {
         return ::uavcan::lexicographical_compare(begin(), end(), rhs.begin(), rhs.end());
     }
 
+    /**
+     * Aliases for compatibility with standard containers.
+     */
     typedef ValueType* iterator;
     typedef const ValueType* const_iterator;
 };
 
 /**
- * Bit array specialization
+ * Memory-efficient specialization for bit arrays (each element maps to a single bit rather than single byte).
+ * This should be compatible with std::bitset.
  */
 template <unsigned MaxSize, ArrayMode ArrayMode, CastMode CastMode>
 class UAVCAN_EXPORT ArrayImpl<IntegerSpec<1, SignednessUnsigned, CastMode>, ArrayMode, MaxSize>
@@ -219,9 +246,15 @@ public:
     using ArrayBase::size;
     using ArrayBase::capacity;
 
+    /**
+     * Range-checking subscript. Throws if enabled; assert() if enabled; else constraints the position.
+     */
     Reference at(SizeType pos)  { return BitSet<MaxSize>::operator[](ArrayBase::validateRange(pos)); }
     bool at(SizeType pos) const { return BitSet<MaxSize>::operator[](ArrayBase::validateRange(pos)); }
 
+    /**
+     * @ref at()
+     */
     Reference operator[](SizeType pos)  { return at(pos); }
     bool operator[](SizeType pos) const { return at(pos); }
 };
@@ -231,7 +264,16 @@ public:
  */
 template <typename T, ArrayMode ArrayMode> class ArrayImpl<T, ArrayMode, 0>;
 
-
+/**
+ * Generic array implementation.
+ * This class is compatible with most standard library functions operating on containers (e.g. std::sort(),
+ * std::lexicographical_compare(), etc.).
+ * No dynamic memory is used.
+ * All functions that can modify the array or access elements are range checking. If the range error occurs:
+ * - if exceptions are enabled, std::out_of_range will be thrown;
+ * - if assert() is enabled, program will be terminated on assert(0);
+ * - otherwise the index value will be constrained to the closest valid value.
+ */
 template <typename T, ArrayMode ArrayMode, unsigned MaxSize_>
 class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
 {
@@ -446,9 +488,9 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
     }
 
 public:
-    typedef T RawValueType;
-    typedef typename StorageType<T>::Type ValueType;
-    typedef typename Base::SizeType SizeType;
+    typedef T RawValueType;                           ///< This may be not the same as the element type.
+    typedef typename StorageType<T>::Type ValueType;  ///< This is the actual stored element type.
+    typedef typename Base::SizeType SizeType;         ///< Minimal width size type.
 
     using Base::size;
     using Base::capacity;
@@ -484,6 +526,9 @@ public:
 
     bool empty() const { return size() == 0; }
 
+    /**
+     * Only for dynamic arrays. Range checking.
+     */
     void pop_back() { Base::shrink(); }
     void push_back(const ValueType& value)
     {
@@ -491,6 +536,9 @@ public:
         Base::at(size() - 1) = value;
     }
 
+    /**
+     * Only for dynamic arrays. Range checking.
+     */
     void resize(SizeType new_size, const ValueType& filler)
     {
         if (new_size > size())
@@ -515,13 +563,16 @@ public:
         }
     }
 
+    /**
+     * Only for dynamic arrays. Range checking.
+     */
     void resize(SizeType new_size)
     {
         resize(new_size, ValueType());
     }
 
-    /*
-     * Comparison operators
+    /**
+     * This operator accepts any container with size() and [].
      */
     template <typename R>
     typename EnableIf<sizeof(((const R*)(0U))->size()) && sizeof((*((const R*)(0U)))[0]), bool>::Type
@@ -541,6 +592,10 @@ public:
         return true;
     }
 
+    /**
+     * This operator can only be used with string-like arrays; otherwise it will fail to compile.
+     * @ref c_str()
+     */
     bool operator==(const char* ch) const
     {
         if (ch == NULL)
@@ -552,8 +607,9 @@ public:
 
     template <typename R> bool operator!=(const R& rhs) const { return !operator==(rhs); }
 
-    /*
-     * Assign/append operators
+    /**
+     * This operator can only be used with string-like arrays; otherwise it will fail to compile.
+     * @ref c_str()
      */
     SelfType& operator=(const char* ch)
     {
@@ -571,6 +627,10 @@ public:
         return *this;
     }
 
+    /**
+     * This operator can only be used with string-like arrays; otherwise it will fail to compile.
+     * @ref c_str()
+     */
     SelfType& operator+=(const char* ch)
     {
         StaticAssert<Base::IsStringLike>::check();
@@ -586,6 +646,9 @@ public:
         return *this;
     }
 
+    /**
+     * Appends another Array<> with the same element type. Mode and max size can be different.
+     */
     template <uavcan::ArrayMode RhsArrayMode, unsigned RhsMaxSize>
     SelfType& operator+=(const Array<T, RhsArrayMode, RhsMaxSize>& rhs)
     {
@@ -600,9 +663,12 @@ public:
         return *this;
     }
 
-    /*
+    /**
      * Formatting appender.
      * This method doesn't raise an overflow error; instead it silently truncates the data to fit the array capacity.
+     * Works only with string-like arrays, otherwise fails to compile.
+     * @param format    Format string for std::snprintf(), e.g. "%08x", "%f"
+     * @param value     Arbitrary value of a primitive type (should fail to compile if there's a non-primitive type)
      */
     template <typename A>
     void appendFormatted(const char* const format, const A value)
@@ -610,8 +676,8 @@ public:
         StaticAssert<Base::IsStringLike>::check();
         StaticAssert<IsDynamic>::check();
 
-        StaticAssert<sizeof(A() == A(0))>::check();             // This check allows to weed out most non-trivial types
-        StaticAssert<sizeof(A) <= sizeof(long double)>::check(); // Another stupid check to catch non-trivial types
+        StaticAssert<sizeof(A() == A(0))>::check();             // This check allows to weed out most compound types
+        StaticAssert<sizeof(A) <= sizeof(long double)>::check(); // Another stupid check to catch non-primitive types
 
         if (!format)
         {
@@ -634,13 +700,14 @@ public:
         }
         if (ret < 0)
         {
-            UAVCAN_ASSERT(0);           // Likely an invalid format string
+            UAVCAN_ASSERT(0);    // Likely an invalid format string
             (*this) += format;   // So we print it as is in release builds
         }
     }
 
     /**
      * Fills this array as a packed square matrix from a static array.
+     * Please refer to the specification to learn more about matrix packing.
      */
     template <typename ScalarType>
     void packSquareMatrix(const ScalarType (&src_row_major)[MaxSize])
@@ -650,6 +717,7 @@ public:
 
     /**
      * Fills this array as a packed square matrix in place.
+     * Please refer to the specification to learn more about matrix packing.
      */
     void packSquareMatrix()
     {
@@ -680,6 +748,7 @@ public:
 
     /**
      * Fills this array as a packed square matrix from any container that implements the methods begin() and size().
+     * Please refer to the specification to learn more about matrix packing.
      */
     template <typename R>
     typename EnableIf<sizeof(((const R*)(0U))->begin()) && sizeof(((const R*)(0U))->size())>::Type
@@ -706,6 +775,7 @@ public:
 
     /**
      * Reconstructs full matrix, result will be saved into a static array.
+     * Please refer to the specification to learn more about matrix packing.
      */
     template <typename ScalarType>
     void unpackSquareMatrix(ScalarType (&dst_row_major)[MaxSize]) const
@@ -715,6 +785,7 @@ public:
 
     /**
      * Reconstructs full matrix in place.
+     * Please refer to the specification to learn more about matrix packing.
      */
     void unpackSquareMatrix()
     {
@@ -730,6 +801,7 @@ public:
 
     /**
      * Reconstructs full matrix, result will be saved into container that implements begin() and size().
+     * Please refer to the specification to learn more about matrix packing.
      */
     template <typename R>
     typename EnableIf<sizeof(((const R*)(0U))->begin()) && sizeof(((const R*)(0U))->size())>::Type
@@ -749,7 +821,9 @@ public:
         }
     }
 
-
+    /**
+     * Aliases for compatibility with standard containers.
+     */
     typedef ValueType value_type;
     typedef SizeType size_type;
 };
@@ -768,7 +842,9 @@ inline bool operator!=(const R& rhs, const Array<T, ArrayMode, MaxSize>& lhs)
     return lhs.operator!=(rhs);
 }
 
-
+/**
+ * YAML streamer specification for any Array<>
+ */
 template <typename T, ArrayMode ArrayMode, unsigned MaxSize>
 class UAVCAN_EXPORT YamlStreamer<Array<T, ArrayMode, MaxSize> >
 {
@@ -893,6 +969,9 @@ class UAVCAN_EXPORT YamlStreamer<Array<T, ArrayMode, MaxSize> >
     }
 
 public:
+    /**
+     * Prints Array<> into the stream in YAML format.
+     */
     template <typename Stream>
     static void stream(Stream& s, const ArrayType& array, int level)
     {

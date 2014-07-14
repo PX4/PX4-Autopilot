@@ -18,8 +18,8 @@ namespace uavcan
 UAVCAN_PACKED_BEGIN
 struct UAVCAN_EXPORT CanFrame
 {
-    static const uint32_t MaskStdID = 0x000007FF;
-    static const uint32_t MaskExtID = 0x1FFFFFFF;
+    static const uint32_t MaskStdID = 0x000007FFU;
+    static const uint32_t MaskExtID = 0x1FFFFFFFU;
     static const uint32_t FlagEFF = 1U << 31;                  ///< Extended frame format
     static const uint32_t FlagRTR = 1U << 30;                  ///< Remote transmission request
     static const uint32_t FlagERR = 1U << 29;                  ///< Error frame
@@ -37,13 +37,13 @@ struct UAVCAN_EXPORT CanFrame
         fill(data, data + MaxDataLen, 0);
     }
 
-    CanFrame(uint32_t arg_id, const uint8_t* arg_data, uint8_t data_len)
-        : id(arg_id)
+    CanFrame(uint32_t can_id, const uint8_t* can_data, uint8_t data_len)
+        : id(can_id)
         , dlc((data_len > MaxDataLen) ? MaxDataLen : data_len)
     {
-        UAVCAN_ASSERT(arg_data != NULL);
+        UAVCAN_ASSERT(can_data != NULL);
         UAVCAN_ASSERT(data_len == dlc);
-        (void)copy(arg_data, arg_data + dlc, this->data);
+        (void)copy(can_data, can_data + dlc, this->data);
     }
 
     bool operator!=(const CanFrame& rhs) const { return !operator==(rhs); }
@@ -57,12 +57,16 @@ struct UAVCAN_EXPORT CanFrame
     bool isErrorFrame()                const { return id & FlagERR; }
 
 #if UAVCAN_TOSTRING
-    enum StringRepresentation { StrTight, StrAligned };
+    enum StringRepresentation
+    {
+        StrTight,   ///< Minimum string length (default)
+        StrAligned  ///< Fixed formatting for any frame
+    };
     std::string toString(StringRepresentation mode = StrTight) const;
 #endif
 
     /**
-     * CAN frames arbitration rules, particularly STD vs EXT:
+     * CAN frame arbitration rules, particularly STD vs EXT:
      *     Marco Di Natale - "Understanding and using the Controller Area Network"
      *     http://www6.in.tum.de/pub/Main/TeachingWs2013MSE/CANbus.pdf
      */
@@ -72,7 +76,9 @@ struct UAVCAN_EXPORT CanFrame
 UAVCAN_PACKED_END
 
 /**
- * CAN hardware filter config struct. @ref ICanIface::configureFilters().
+ * CAN hardware filter config struct.
+ * Masks from @ref CanFrame can be applied to define frame type (EFF, EXT, etc.).
+ * @ref ICanIface::configureFilters().
  */
 struct UAVCAN_EXPORT CanFilterConfig
 {
@@ -81,7 +87,8 @@ struct UAVCAN_EXPORT CanFilterConfig
 };
 
 /**
- * Events to look for during @ref ICanDriver::select() call
+ * Events to look for during @ref ICanDriver::select() call.
+ * Bit position defines iface index, e.g. read = 1 << 2 to read from the third iface.
  */
 struct UAVCAN_EXPORT CanSelectMasks
 {
@@ -94,6 +101,9 @@ struct UAVCAN_EXPORT CanSelectMasks
     { }
 };
 
+/**
+ * Special IO flags.
+ */
 typedef uint16_t CanIOFlags;
 static const CanIOFlags CanIOFlagLoopback = 1; ///< Send the frame back to RX with true TX timestamps
 
@@ -153,12 +163,13 @@ public:
     virtual ~ICanDriver() { }
 
     /**
-     * Returns the interface by index, or null pointer if the index is out of range.
+     * Returns an interface by index, or null pointer if the index is out of range.
      */
     virtual ICanIface* getIface(uint8_t iface_index) = 0;
 
     /**
      * Total number of available CAN interfaces.
+     * This value shall not change after initialization.
      */
     virtual uint8_t getNumIfaces() const = 0;
 
@@ -166,6 +177,8 @@ public:
      * Block until the deadline, or one of the specified interfaces becomes available for read or write.
      * Iface masks will be modified by the driver to indicate which exactly interfaces are available for IO.
      * Bit position in the masks defines interface index.
+     * Note that it is allowed to return from this method even if no requested events actually happened, or if
+     * there are events that were not requested by the lirary.
      * @param [in,out] inout_masks        Masks indicating which interfaces are needed/available for IO.
      * @param [in]     blocking_deadline  Zero means non-blocking operation.
      * @return Positive number of ready interfaces or negative error code.

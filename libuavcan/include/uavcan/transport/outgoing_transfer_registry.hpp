@@ -57,7 +57,11 @@ public:
 };
 UAVCAN_PACKED_END
 
-
+/**
+ * Outgoing transfer registry keeps track of Transfer ID values for all currently existing local transfer senders.
+ * If a local transfer sender was inactive for a sufficiently long time, the outgoing transfer registry will
+ * remove the respective Transfer ID tracking object.
+ */
 class UAVCAN_EXPORT IOutgoingTransferRegistry
 {
 public:

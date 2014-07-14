@@ -15,7 +15,13 @@
 
 namespace uavcan
 {
-
+/**
+ * This class allows to postpone the object contruction.
+ * It statically allocates a pool of memory of just enough size to fit the object being constructed.
+ * Later call to construct<>() calls the constructor of the object.
+ * The object will be destroyed automatically when the container class destructor is called.
+ * The memory pool is aligned at the size of the largest primitive type (long double or long long int).
+ */
 template <typename T>
 class UAVCAN_EXPORT LazyConstructor
 {

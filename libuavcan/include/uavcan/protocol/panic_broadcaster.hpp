@@ -10,7 +10,9 @@
 
 namespace uavcan
 {
-
+/**
+ * Helper for broadcasting the message uavcan.protocol.Panic.
+ */
 class UAVCAN_EXPORT PanicBroadcaster : private TimerBase
 {
     Publisher<protocol::Panic> pub_;
@@ -28,8 +30,15 @@ public:
         pub_.setTxTimeout(MonotonicDuration::fromMSec(protocol::Panic::BROADCASTING_INTERVAL_MS - 10));
     }
 
+    /**
+     * Begin broadcasting at the standard interval.
+     * This method does not block and can't fail.
+     */
     void panic(const char* short_reason);
 
+    /**
+     * Stop broadcasting immediately.
+     */
     void dontPanic();    // Where's my towel
 
     bool isPanicking() const;

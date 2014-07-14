@@ -22,11 +22,13 @@
 namespace uavcan
 {
 /**
- * Callback prototype:
- *   void (const ReceivedDataStructure<protocol::Panic>&)
- * Or:
- *   void (const protocol::Panic&)
+ * This class implements proper panic detector.
+ * Refer to uavcan.protocol.Panic for details.
  * The listener can be stopped from the callback.
+ *
+ * @tparam Callback     Possible callback prototypes:
+ *                      void (const ReceivedDataStructure<protocol::Panic>&)
+ *                      void (const protocol::Panic&)
  */
 template <
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
@@ -95,6 +97,11 @@ public:
         , num_subsequent_msgs_(0)
     { }
 
+    /**
+     * Start the listener.
+     * Once started it does not require further attention.
+     * Returns negative error code.
+     */
     int start(const Callback& callback)
     {
         stop();

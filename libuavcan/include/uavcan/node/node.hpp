@@ -28,7 +28,31 @@
 
 namespace uavcan
 {
-
+/**
+ * This is the top-level node API.
+ * A custom node class can be implemented if needed, in which case it shall inherit INode.
+ *
+ * @tparam MemPoolSize_     Size of memory pool for this node, in bytes.
+ *                          Minimum recommended size is 4K * (number of CAN ifaces + 1).
+ *                          For simple nodes this number can be reduced.
+ *                          For high-traffic nodes the recommended minimum is
+ *                          like 16K * (number of CAN ifaces + 1).
+ *
+ * @tparam OutgoingTransferRegistryStaticEntries    Number of statically allocated objects
+ *                                                  to track Transfer ID for outgoing transfers.
+ *                                                  Normally it should be equal to expected number of
+ *                                                  publishers and service callers, but it's not necessary.
+ *                                                  Additional objects for Transfer ID tracking will
+ *                                                  be allocated in the memory pool if needed.
+ *                                                  Default value is acceptable for any use case.
+ *
+ * @tparam OutgoingTransferMaxPayloadLen    Maximum outgoing transfer payload length.
+ *                                          It's pointless to make this value larger than
+ *                                          @ref MaxTransferPayloadLen, which is default.
+ *                                          Note that in tiny mode the default value is actually
+ *                                          smaller than @ref MaxTransferPayloadLen (may cause
+ *                                          run-time failures).
+ */
 template <std::size_t MemPoolSize_,
 #if UAVCAN_TINY
           unsigned OutgoingTransferRegistryStaticEntries = 0,
@@ -114,42 +138,68 @@ public:
 
     bool isStarted() const { return started_; }
 
+    /**
+     * Starts the node and publishes uavcan.protocol.NodeStatus immediately.
+     * Does not so anything if the node is already started.
+     * Once started, the node can't stop.
+     * If the node failed to start up, it's recommended to destroy the current node instance and start over.
+     * Returns negative error code.
+     */
     int start();
 
 #if !UAVCAN_TINY
+    /**
+     * Please read the specs to learn about Network Compatibility Check.
+     * Returns negative error code.
+     * @param[out]  result  Check result (output).
+     */
     int checkNetworkCompatibility(NetworkCompatibilityCheckResult& result);
 #endif
 
-    /*
-     * Initialization methods
+    /**
+     * Sets the node name, e.g. "com.example.product_name". The node name can be set only once.
+     * Must be executed before the node is started, otherwise the node will refuse to start up.
      */
     void setName(const char* name) { proto_nsp_.setName(name); }
 
+    /**
+     * Status code helpers.
+     */
     void setStatusOk()           { proto_nsp_.setStatusOk(); }
     void setStatusInitializing() { proto_nsp_.setStatusInitializing(); }
     void setStatusWarning()      { proto_nsp_.setStatusWarning(); }
     void setStatusCritical()     { proto_nsp_.setStatusCritical(); }
+
+    /**
+     * Sets the status OFFLINE and publishes it immediately.
+     */
     void setStatusOffline()
     {
         proto_nsp_.setStatusOffline();
         (void)proto_nsp_.forcePublish();
     }
 
+    /**
+     * Sets the node version information.
+     */
     void setSoftwareVersion(const protocol::SoftwareVersion& version) { proto_nsp_.setSoftwareVersion(version); }
     void setHardwareVersion(const protocol::HardwareVersion& version) { proto_nsp_.setHardwareVersion(version); }
 
     NodeStatusProvider& getNodeStatusProvider() { return proto_nsp_; }
 
 #if !UAVCAN_TINY
-    /*
-     * Restart handler
+    /**
+     * Restart handler can be installed to handle external node restart requests (highly recommended).
      */
     void setRestartRequestHandler(IRestartRequestHandler* handler) { proto_rrs_.setHandler(handler); }
 
     RestartRequestServer& getRestartRequestServer() { return proto_rrs_; }
 
-    /*
-     * Logging
+    /**
+     * Node logging.
+     * Logging calls are passed directly into the @ref Logger instance.
+     * Type safe log formatting is supported only in C++11 mode.
+     * @{
      */
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
 
@@ -185,7 +235,13 @@ public:
     void logError(const char* source, const char* text)   { (void)proto_logger_.logError(source, text); }
 
 #endif
+    /**
+     * @}
+     */
 
+    /**
+     * Use this method to configure logging.
+     */
     Logger& getLogger() { return proto_logger_; }
 
 #endif  // UAVCAN_TINY

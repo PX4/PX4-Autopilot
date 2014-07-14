@@ -17,7 +17,18 @@
 
 namespace uavcan
 {
-
+/**
+ * This class extends the data structure with extra information obtained from the transport layer,
+ * such as Source Node ID, timestamps, Transfer ID, index of the interface this transfer was picked up from, etc.
+ *
+ * PLEASE NOTE that since this class inherits the data structure type, subscription callbacks can accept either
+ * object of this class or the data structure type directly if the extra information is not needed.
+ *
+ * For example, both of these callbacks can be used with the same data structure 'Foo':
+ *  void first(const ReceivedDataStructure<Foo>& msg);
+ *  void second(const Foo& msg);
+ * In the latter case, an implicit cast will happen before the callback is invoked.
+ */
 template <typename DataType_>
 class UAVCAN_EXPORT ReceivedDataStructure : public DataType_
 {
@@ -57,6 +68,10 @@ public:
     uint8_t getIfaceIndex()          const { return safeget<uint8_t, &IncomingTransfer::getIfaceIndex>(); }
 };
 
+/**
+ * This operator neatly prints the data structure prepended with extra data from the transport layer.
+ * The extra data will be represented as YAML comment.
+ */
 template <typename Stream, typename DataType>
 static Stream& operator<<(Stream& s, const ReceivedDataStructure<DataType>& rds)
 {
@@ -86,12 +101,19 @@ protected:
     void stop(TransferListenerBase* listener);
 
 public:
+    /**
+     * Returns the number of failed attempts to decode received message. Generally, a failed attempt means either:
+     * - Transient failure in the transport layer.
+     * - Incompatible data types.
+     */
     uint32_t getFailureCount() const { return failure_count_; }
 
     INode& getNode() const { return node_; }
 };
 
-
+/**
+ * This helper class does some compile-time magic on the transport layer machinery. For authorized personnel only.
+ */
 template <typename DataStruct_, unsigned NumStaticReceivers_, unsigned NumStaticBufs_>
 class UAVCAN_EXPORT TransferListenerInstantiationHelper
 {
@@ -173,6 +195,10 @@ protected:
         return genericStart(&Dispatcher::registerServiceResponseListener);
     }
 
+    /**
+     * Terminate the subscription.
+     * Dispatcher core will remove this instance from the subscribers list.
+     */
     void stop()
     {
         GenericSubscriberBase::stop(forwarder_);
@@ -180,6 +206,10 @@ protected:
 
     TransferListenerType* getTransferListener() { return forwarder_; }
 
+    /**
+     * Returns the mutable reference to the temporary storage for decoded received messages.
+     * Reference to this storage is used as a parameter for subscription callbacks.
+     */
     ReceivedDataStructure<DataStruct>& getReceivedStructStorage() { return message_; }
 };
 

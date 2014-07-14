@@ -63,14 +63,18 @@ struct UAVCAN_EXPORT EnableIf<true, T>
     typedef T Type;
 };
 
-
+/**
+ * Lightweight type categorization.
+ */
 template <typename T, typename R = void>
 struct UAVCAN_EXPORT EnableIfType
 {
     typedef R Type;
 };
 
-
+/**
+ * Compile-time type selection (Alexandrescu)
+ */
 template <bool Condition, typename TrueType, typename FalseType>
 struct UAVCAN_EXPORT Select;
 
@@ -111,7 +115,11 @@ public:
     enum { Result = sizeof(True_) == sizeof(IsImplicitlyConvertibleFromTo<T1, T2>::test(returner<T1>())) };
 };
 
-
+/**
+ * try_implicit_cast<>(From)
+ * try_implicit_cast<>(From, To)
+ * @{
+ */
 template <typename From, typename To>
 struct UAVCAN_EXPORT TryImplicitCastImpl
 {
@@ -119,6 +127,10 @@ struct UAVCAN_EXPORT TryImplicitCastImpl
     static To impl(const From&, const To& default_, FalseType) { return default_; }
 };
 
+/**
+ * If possible, performs an implicit cast from the type From to the type To.
+ * If the cast is not possible, returns default_ of type To.
+ */
 template <typename To, typename From>
 UAVCAN_EXPORT
 To try_implicit_cast(const From& from, const To& default_)
@@ -127,6 +139,10 @@ To try_implicit_cast(const From& from, const To& default_)
                                                BooleanType<IsImplicitlyConvertibleFromTo<From, To>::Result>());
 }
 
+/**
+ * If possible, performs an implicit cast from the type From to the type To.
+ * If the cast is not possible, returns a default constructed object of the type To.
+ */
 template <typename To, typename From>
 UAVCAN_EXPORT
 To try_implicit_cast(const From& from)
@@ -134,9 +150,13 @@ To try_implicit_cast(const From& from)
     return TryImplicitCastImpl<From, To>::impl(from, To(),
                                                BooleanType<IsImplicitlyConvertibleFromTo<From, To>::Result>());
 }
+/**
+ * @}
+ */
 
 /**
- * Some arithmetics
+ * Compile time square root for integers.
+ * Useful for operations on square matrices.
  */
 template <unsigned Value> struct UAVCAN_EXPORT CompileTimeIntSqrt;
 template <> struct UAVCAN_EXPORT CompileTimeIntSqrt<4>  { enum { Result = 2 }; };

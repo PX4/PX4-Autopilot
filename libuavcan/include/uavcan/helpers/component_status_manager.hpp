@@ -10,7 +10,12 @@
 
 namespace uavcan
 {
-
+/**
+ * This helper class stores status codes of multiple components, and provides a method to quickly retrieve the
+ * worst status code.
+ * It allows to easily assign the node status code with the worst component status code.
+ * Refer to the standard message type uavcan.protocol.NodeStatus for available status codes.
+ */
 template <unsigned NumComponents_>
 class ComponentStatusManager
 {
@@ -30,6 +35,11 @@ public:
         }
     }
 
+    /**
+     * Assign the component status by index. Normally, an index would be defined by some enum constant.
+     * @param component_index   Normally an enum constant
+     * @param status_code       Status code from uavcan.protocol.NodeStatus
+     */
     template <typename ComponentIndexType>
     void setComponentStatus(ComponentIndexType component_index, StatusCode status_code)
     {
@@ -40,6 +50,9 @@ public:
         }
     }
 
+    /**
+     * Returns worst status code, i.e. highest value.
+     */
     StatusCode getWorstStatusCode() const
     {
         StatusCode result = 0;

@@ -18,7 +18,26 @@
 
 namespace uavcan
 {
-
+/**
+ * Use this class to implement UAVCAN service servers.
+ *
+ * @tparam DataType_        Service data type.
+ *
+ * @tparam Callback_        Service calls will be delivered through the callback of this type, and service
+ *                          response will be returned via the output parameter of the callback. Note that
+ *                          the reference to service response data struct passed to the callback always points
+ *                          to a default initialized response object.
+ *                          Please also refer to @ref ReceivedDataStructure<>.
+ *                          In C++11 mode this type defaults to std::function<>.
+ *                          In C++03 mode this type defaults to a plain function pointer; use binder to
+ *                          call member functions as callbacks.
+ *
+ * @tparam NumStaticReceivers   Number of statically allocated receiver objects. If there's more service
+ *                              clients for this service, extra receivers will be allocated in the memory pool.
+ *
+ * @tparam NumStaticBufs        Number of statically allocated receiver buffers. If there's more concurrent
+ *                              incoming transfers, extra buffers will be allocated in the memory pool.
+ */
 template <typename DataType_,
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
           typename Callback_ = std::function<void (const ReceivedDataStructure<typename DataType_::Request>&,
@@ -92,6 +111,10 @@ public:
         StaticAssert<DataTypeKind(DataType::DataTypeKind) == DataTypeKindService>::check();
     }
 
+    /**
+     * Starts the server.
+     * Incoming service requests will be passed to the application via the callback.
+     */
     int start(const Callback& callback)
     {
         stop();
@@ -112,6 +135,9 @@ public:
         return SubscriberType::startAsServiceRequestListener();
     }
 
+    /**
+     * Stops the server.
+     */
     using SubscriberType::stop;
 
     static MonotonicDuration getDefaultTxTimeout() { return MonotonicDuration::fromMSec(1000); }
@@ -121,6 +147,11 @@ public:
     MonotonicDuration getTxTimeout() const { return publisher_.getTxTimeout(); }
     void setTxTimeout(MonotonicDuration tx_timeout) { publisher_.setTxTimeout(tx_timeout); }
 
+    /**
+     * Returns the number of failed attempts to decode data structs. Generally, a failed attempt means either:
+     * - Transient failure in the transport layer.
+     * - Incompatible data types.
+     */
     uint32_t getRequestFailureCount() const { return SubscriberType::getFailureCount(); }
     uint32_t getResponseFailureCount() const { return response_failure_count_; }
 };

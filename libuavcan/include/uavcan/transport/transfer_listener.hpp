@@ -83,7 +83,7 @@ public:
 };
 
 /**
- * Internal, refer to transport dispatcher.
+ * Internal, refer to the transport dispatcher class.
  */
 class UAVCAN_EXPORT TransferListenerBase : public LinkedListNode<TransferListenerBase>, Noncopyable
 {

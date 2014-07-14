@@ -11,7 +11,10 @@
 
 namespace uavcan
 {
-
+/**
+ * Implement this interface in the application to support the standard remote reconfiguration services.
+ * Refer to @ref ParamServer.
+ */
 class UAVCAN_EXPORT IParamManager
 {
 public:
@@ -62,7 +65,10 @@ public:
     virtual int eraseAllParams() = 0;
 };
 
-
+/**
+ * Convenience class for supporting the standard configuration services.
+ * Highly recommended to use.
+ */
 class UAVCAN_EXPORT ParamServer
 {
     typedef MethodBinder<ParamServer*, void (ParamServer::*)(const protocol::param::GetSet::Request&,
@@ -89,6 +95,10 @@ public:
         , manager_(NULL)
     { }
 
+    /**
+     * Starts the parameter server with given param manager instance.
+     * Returns negative error code.
+     */
     int start(IParamManager* manager);
 
     IParamManager* getParamManager() const { return manager_; }

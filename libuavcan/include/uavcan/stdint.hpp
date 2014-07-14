@@ -31,6 +31,9 @@ typedef std::int64_t int64_t;
 
 #else
 
+/*
+ * C++03 doesn't define standard integer types, so we pull it from the C library as a workaround.
+ */
 # include <stdint.h>
 
 namespace uavcan

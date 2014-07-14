@@ -10,7 +10,9 @@
 
 namespace uavcan
 {
-
+/**
+ * Abstract temporary buffer for data marshalling.
+ */
 class UAVCAN_EXPORT IMarshalBuffer : public ITransferBuffer
 {
 public:
@@ -18,15 +20,31 @@ public:
     virtual unsigned getDataLength() const = 0;
 };
 
-
+/**
+ * Abstract provider of abstract buffer for data marshalling.
+ */
 class UAVCAN_EXPORT IMarshalBufferProvider
 {
 public:
     virtual ~IMarshalBufferProvider() { }
+
+    /**
+     * Returns pointer to abstract buffer for data marshalling,
+     * but does not transfer ownership.
+     * If the requested buffer size is larger than available,
+     * null pointer will be returned.
+     * @param size  Maximum buffer size needed for marshaling.
+     * @return      Pointer to the buffer, or null pointer if
+     *              the requested size is too large.
+     */
     virtual IMarshalBuffer* getBuffer(unsigned size) = 0;
 };
 
-
+/**
+ * Default implementation of marshal buffer provider.
+ * This implementation provides the buffer large enough to
+ * serialize any UAVCAN data structure.
+ */
 template <unsigned MaxSize_ = MaxTransferPayloadLen>
 class UAVCAN_EXPORT MarshalBufferProvider : public IMarshalBufferProvider
 {

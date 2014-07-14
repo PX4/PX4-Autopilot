@@ -11,7 +11,7 @@
 namespace uavcan
 {
 
-static const unsigned MaxTransferPayloadLen = 439; ///< According to the RFC
+static const unsigned MaxTransferPayloadLen = 439; ///< According to the specification.
 
 static const unsigned MaxSingleFrameTransferPayloadLen = 7;
 

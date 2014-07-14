@@ -51,17 +51,27 @@ public:
     T* get() const { return root_; }
     bool isEmpty() const { return get() == NULL; }
 
+    /**
+     * Complexity: O(N)
+     */
     unsigned getLength() const;
 
+    /**
+     * Complexity: O(N) (calls remove())
+     */
     void insert(T* node);
 
     /**
-     * Inserts node A immediately before the node B where
+     * Inserts the node immediately before the node B where
      *  predicate(B) -> true.
+     * Complexity: O(2N) (calls remove())
      */
     template <typename Predicate>
     void insertBefore(T* node, Predicate predicate);
 
+    /**
+     * Complexity: O(N)
+     */
     void remove(const T* node);
 };
 

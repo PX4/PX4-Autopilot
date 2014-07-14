@@ -31,7 +31,10 @@ public:
     virtual std::size_t getNumBlocks() const = 0;
 };
 
-
+/**
+ * Pool manager contains multiple pool allocators of different block sizes and
+ * finds the most suitable allocator for every allocation request.
+ */
 template <unsigned MaxPools>
 class UAVCAN_EXPORT PoolManager : public IPoolAllocator, Noncopyable
 {
@@ -67,7 +70,9 @@ public:
     virtual std::size_t getNumBlocks() const;
 };
 
-
+/**
+ * Classic implementation of a pool allocator (Meyers).
+ */
 template <std::size_t PoolSize, std::size_t BlockSize>
 class UAVCAN_EXPORT PoolAllocator : public IPoolAllocator, Noncopyable
 {
@@ -103,7 +108,9 @@ public:
     unsigned getNumUsedBlocks() const { return NumBlocks - getNumFreeBlocks(); }
 };
 
-
+/**
+ * Limits the maximum number of blocks that can be allocated in a given allocator.
+ */
 class LimitedPoolAllocator : public IPoolAllocator
 {
     IPoolAllocator& allocator_;

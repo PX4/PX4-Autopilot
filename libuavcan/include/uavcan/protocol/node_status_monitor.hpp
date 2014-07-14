@@ -11,7 +11,10 @@
 
 namespace uavcan
 {
-
+/**
+ * This class implements the core functionality of a network monitor.
+ * It can be extended by inheritance to add more complex logic, or used directly as is.
+ */
 class UAVCAN_EXPORT NodeStatusMonitor : protected TimerBase
 {
 public:
@@ -67,6 +70,8 @@ private:
 protected:
     /**
      * Called when a node becomes online, changes status or goes offline.
+     * Refer to uavcan.protocol.NodeStatus for the offline timeout value.
+     * Overriding is not required.
      */
     virtual void handleNodeStatusChange(const NodeStatusChangeEvent& event)
     {
@@ -74,7 +79,9 @@ protected:
     }
 
     /**
-     * Called for every received message uavcan.protocol.NodeStatus after handleNodeStatusChange().
+     * Called for every received message uavcan.protocol.NodeStatus after handleNodeStatusChange(), even
+     * if the status code did not change.
+     * Overriding is not required.
      */
     virtual void handleNodeStatusMessage(const ReceivedDataStructure<protocol::NodeStatus>& msg)
     {
@@ -89,12 +96,28 @@ public:
 
     virtual ~NodeStatusMonitor() { }
 
+    /**
+     * Starts the monitor.
+     * Destroy the object to stop it.
+     * Returns negative error code.
+     */
     int start();
 
+    /**
+     * Make the node unknown.
+     */
     void forgetNode(NodeID node_id);
 
+    /**
+     * Returns status of a given node.
+     * Unknown nodes are considered offline.
+     */
     NodeStatus getNodeStatus(NodeID node_id) const;
 
+    /**
+     * This helper method allows to quickly estimate the overall network health.
+     * Status of the local node is not considered.
+     */
     NodeID findNodeWithWorstStatus() const;
 };
 

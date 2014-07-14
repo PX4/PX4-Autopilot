@@ -98,7 +98,9 @@ public:
     bool operator!=(DataTypeSignature rhs) const { return !operator==(rhs); }
 };
 
-
+/**
+ * This class contains complete description of a data type.
+ */
 class UAVCAN_EXPORT DataTypeDescriptor
 {
     DataTypeKind kind_;

@@ -7,6 +7,11 @@
 #include <cstddef>
 #include <uavcan/impl_constants.hpp>
 
+/*
+ * Some embedded C++ implementations don't implement the placement new operator.
+ * Define UAVCAN_IMPLEMENT_PLACEMENT_NEW to apply this workaround.
+ */
+
 #ifndef UAVCAN_IMPLEMENT_PLACEMENT_NEW
 # error UAVCAN_IMPLEMENT_PLACEMENT_NEW
 #endif

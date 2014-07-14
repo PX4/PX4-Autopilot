@@ -10,7 +10,10 @@
 
 namespace uavcan
 {
-
+/**
+ * This class provides statistics about the transport layer performance on the local node.
+ * The user's application does not deal with this class directly because it's instantiated by the node class.
+ */
 class UAVCAN_EXPORT TransportStatsProvider : Noncopyable
 {
     typedef MethodBinder<const TransportStatsProvider*,
@@ -28,6 +31,10 @@ public:
         : srv_(node)
     { }
 
+    /**
+     * Once started, this class requires no further attention.
+     * Returns negative error code.
+     */
     int start();
 };
 

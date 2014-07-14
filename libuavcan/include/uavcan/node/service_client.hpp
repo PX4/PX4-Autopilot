@@ -27,7 +27,10 @@ public:
     typedef ServiceResponseTransferListener<DataTypeMaxByteLen> Type;
 };
 
-
+/**
+ * Object of this type will be returned to the application as a result of service call.
+ * Note that application ALWAYS gets this result, even when it times out or fails because of some other reason.
+ */
 template <typename DataType>
 struct UAVCAN_EXPORT ServiceCallResult
 {
@@ -35,9 +38,9 @@ struct UAVCAN_EXPORT ServiceCallResult
 
     enum Status { Success, ErrorTimeout };
 
-    const Status status;
-    NodeID server_node_id;
-    ResponseFieldType& response;      ///< Either response contents or unspecified response structure
+    const Status status;              ///< Whether successful or not. Failure to decode the response causes timeout.
+    NodeID server_node_id;            ///< Node ID of the server this call was addressed to.
+    ResponseFieldType& response;      ///< Returned data structure. Undefined if the service call has failed.
 
     ServiceCallResult(Status arg_status, NodeID arg_server_node_id, ResponseFieldType& arg_response)
         : status(arg_status)
@@ -48,9 +51,16 @@ struct UAVCAN_EXPORT ServiceCallResult
         UAVCAN_ASSERT((status == Success) || (status == ErrorTimeout));
     }
 
+    /**
+     * Shortcut to quickly check whether the call was successful.
+     */
     bool isSuccessful() const { return status == Success; }
 };
 
+/**
+ * This operator neatly prints the service call result prepended with extra data like Server Node ID.
+ * The extra data will be represented as YAML comment.
+ */
 template <typename Stream, typename DataType>
 static Stream& operator<<(Stream& s, const ServiceCallResult<DataType>& scr)
 {
@@ -68,7 +78,9 @@ static Stream& operator<<(Stream& s, const ServiceCallResult<DataType>& scr)
     return s;
 }
 
-
+/**
+ * Do not use directly.
+ */
 class ServiceClientBase : protected DeadlineHandler
 {
 protected:
@@ -86,16 +98,34 @@ protected:
     int prepareToCall(INode& node, const char* dtname, NodeID server_node_id, TransferID& out_transfer_id);
 
 public:
+    /**
+     * Returns true if the service call is currently in progress.
+     */
     bool isPending() const { return pending_; }
 
+    /**
+     * It's not recommended to override default timeouts.
+     */
     static MonotonicDuration getDefaultRequestTimeout() { return MonotonicDuration::fromMSec(1000); }
     static MonotonicDuration getMinRequestTimeout() { return MonotonicDuration::fromMSec(10); }
     static MonotonicDuration getMaxRequestTimeout() { return MonotonicDuration::fromMSec(60000); }
 
+    /**
+     * Returns the service response waiting deadline, if pending.
+     */
     using DeadlineHandler::getDeadline;
 };
 
-
+/**
+ * Use this class to invoke services on remote nodes.
+ *
+ * @tparam DataType_        Service data type.
+ *
+ * @tparam Callback_        Service response will be delivered through the callback of this type.
+ *                          In C++11 mode this type defaults to std::function<>.
+ *                          In C++03 mode this type defaults to a plain function pointer; use binder to
+ *                          call member functions as callbacks.
+ */
 template <typename DataType_,
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
           typename Callback_ = std::function<void (const ServiceCallResult<DataType_>&)>
@@ -133,6 +163,10 @@ private:
     virtual void handleDeadline(MonotonicTime);
 
 public:
+    /**
+     * @param node      Node instance this client will be registered with.
+     * @param callback  Callback instance. Optional, can be assigned later.
+     */
     explicit ServiceClient(INode& node, const Callback& callback = Callback())
         : SubscriberType(node)
         , ServiceClientBase(node)
@@ -147,23 +181,53 @@ public:
 
     virtual ~ServiceClient() { cancel(); }
 
+    /**
+     * Shall be called before first use.
+     * Returns negative error code.
+     */
     int init()
     {
         return publisher_.init();
     }
 
+    /**
+     * Performs non-blocking service call.
+     * This method transmits the service request and returns immediately.
+     *
+     * Service response will be delivered into the application via the callback.
+     * Note that the callback will ALWAYS be called even if the service call has timed out; the
+     * actual result of the call (success/failure) will be passed to the callback as well.
+     *
+     * If this client instance is already pending service response, it will be cancelled and the new
+     * call will be performed.
+     *
+     * Returns negative error code.
+     */
     int call(NodeID server_node_id, const RequestType& request);
 
+    /**
+     * Cancel the pending service call.
+     * Does nothing if it is not pending.
+     */
     void cancel();
 
+    /**
+     * Service response callback must be set prior service call.
+     */
     const Callback& getCallback() const { return callback_; }
     void setCallback(const Callback& cb) { callback_ = cb; }
 
+    /**
+     * Returns the number of failed attempts to decode received response. Generally, a failed attempt means either:
+     * - Transient failure in the transport layer.
+     * - Incompatible data types.
+     */
     uint32_t getResponseFailureCount() const { return SubscriberType::getFailureCount(); }
 
-    /*
-     * Request timeouts
-     * There is no such config as TX timeout - TX timeouts are configured automagically according to request timeouts
+    /**
+     * Request timeouts.
+     * There is no such config as TX timeout - TX timeouts are configured automagically according to request timeouts.
+     * Not recommended to change.
      */
     MonotonicDuration getRequestTimeout() const { return request_timeout_; }
     void setRequestTimeout(MonotonicDuration timeout)

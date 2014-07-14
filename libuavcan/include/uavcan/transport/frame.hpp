@@ -53,6 +53,9 @@ public:
         UAVCAN_ASSERT(frame_index <= MaxIndex);
     }
 
+    /**
+     * Max payload length depends on the transfer type and frame index.
+     */
     int getMaxPayloadLen() const;
     int setPayload(const uint8_t* data, unsigned len);
 
@@ -107,7 +110,14 @@ public:
 
     bool parse(const CanRxFrame& can_frame);
 
+    /**
+     * Can't be zero.
+     */
     MonotonicTime getMonotonicTimestamp() const { return ts_mono_; }
+
+    /**
+     * Can be zero if not supported by the platform driver.
+     */
     UtcTime getUtcTimestamp() const { return ts_utc_; }
 
     uint8_t getIfaceIndex() const { return iface_index_; }

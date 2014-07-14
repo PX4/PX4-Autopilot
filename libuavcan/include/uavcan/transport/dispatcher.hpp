@@ -19,6 +19,9 @@ namespace uavcan
 
 class UAVCAN_EXPORT Dispatcher;
 
+/**
+ * Inherit this class to receive notifications about all TX CAN frames that were transmitted with the loopback flag.
+ */
 class UAVCAN_EXPORT LoopbackFrameListenerBase : public LinkedListNode<LoopbackFrameListenerBase>, Noncopyable
 {
     Dispatcher& dispatcher_;
@@ -54,7 +57,9 @@ public:
     void invokeListeners(RxFrame& frame);
 };
 
-
+/**
+ * This class performs low-level CAN frame routing.
+ */
 class UAVCAN_EXPORT Dispatcher : Noncopyable
 {
     CanIOManager canio_;

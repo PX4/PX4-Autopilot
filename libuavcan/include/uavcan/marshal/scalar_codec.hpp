@@ -12,7 +12,10 @@
 
 namespace uavcan
 {
-
+/**
+ * This class implements fast encoding/decoding of primitive type scalars into/from bit arrays.
+ * It uses the compile-time type information to eliminate run-time operations where possible.
+ */
 class UAVCAN_EXPORT ScalarCodec
 {
     BitStream& stream_;

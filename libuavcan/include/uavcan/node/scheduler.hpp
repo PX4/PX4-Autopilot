@@ -55,7 +55,9 @@ public:
     MonotonicTime getEarliestDeadline() const;
 };
 
-
+/**
+ * This class distributes processing time between library components (IO handling, deadline callbacks, ...).
+ */
 class UAVCAN_EXPORT Scheduler : Noncopyable
 {
     enum { DefaultDeadlineResolutionMs = 5 };
@@ -85,6 +87,10 @@ public:
         , inside_spin_(false)
     { }
 
+    /**
+     * Spin until the deadline, or until some error occurs.
+     * Returns negative error code.
+     */
     int spin(MonotonicTime deadline);
 
     DeadlineScheduler& getDeadlineScheduler() { return deadline_scheduler_; }
@@ -96,6 +102,10 @@ public:
     MonotonicTime getMonotonicTime() const { return dispatcher_.getSystemClock().getMonotonic(); }
     UtcTime getUtcTime()             const { return dispatcher_.getSystemClock().getUtc(); }
 
+    /**
+     * Worst case deadline callback resolution.
+     * Higher resolution increases CPU usage.
+     */
     MonotonicDuration getDeadlineResolution() const { return deadline_resolution_; }
     void setDeadlineResolution(MonotonicDuration res)
     {
@@ -104,6 +114,12 @@ public:
         deadline_resolution_ = res;
     }
 
+    /**
+     * How often the scheduler will run cleanup (listeners, outgoing transfer registry, ...).
+     * Cleanup execution time grows linearly with number of listeners and number of items
+     * in the Outgoing Transfer ID registry.
+     * Lower period increases CPU usage.
+     */
     MonotonicDuration getCleanupPeriod() const { return cleanup_period_; }
     void setCleanupPeriod(MonotonicDuration period)
     {

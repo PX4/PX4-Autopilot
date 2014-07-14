@@ -18,7 +18,28 @@
 
 namespace uavcan
 {
-
+/**
+ * Use this class to subscribe to a message.
+ *
+ * @tparam DataType_        Message data type.
+ *
+ * @tparam Callback_        Type of the callback that will be used to deliver received messages
+ *                          into the application. Type of the argument of the callback can be either:
+ *                          - DataType_&
+ *                          - const DataType_&
+ *                          - ReceivedDataStructure<DataType_>&
+ *                          - const ReceivedDataStructure<DataType_>&
+ *                          For the first two options, @ref ReceivedDataStructure<> will be casted implicitly.
+ *                          In C++11 mode this type defaults to std::function<>.
+ *                          In C++03 mode this type defaults to a plain function pointer; use binder to
+ *                          call member functions as callbacks.
+ *
+ * @tparam NumStaticReceivers   Number of statically allocated receiver objects. If there's more publishers
+ *                              of this message, extra receivers will be allocated in the memory pool.
+ *
+ * @tparam NumStaticBufs        Number of statically allocated receiver buffers. If there's more concurrent
+ *                              incoming transfers, extra buffers will be allocated in the memory pool.
+ */
 template <typename DataType_,
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
           typename Callback_ = std::function<void (const ReceivedDataStructure<DataType_>&)>,
@@ -70,6 +91,11 @@ public:
         StaticAssert<DataTypeKind(DataType::DataTypeKind) == DataTypeKindMessage>::check();
     }
 
+    /**
+     * Begin receiving messages.
+     * Each message will be passed to the application via the callback.
+     * Returns negative error code.
+     */
     int start(const Callback& callback)
     {
         stop();

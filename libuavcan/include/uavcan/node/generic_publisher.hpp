@@ -84,6 +84,9 @@ class UAVCAN_EXPORT GenericPublisher : public GenericPublisherBase
                        TransferID* tid, MonotonicTime blocking_deadline);
 
 public:
+    /**
+     * @param max_transfer_interval     Maximum expected time interval between subsequent publications. Leave default.
+     */
     GenericPublisher(INode& node, MonotonicDuration tx_timeout,
                      MonotonicDuration max_transfer_interval = TransferSender::getDefaultMaxTransferInterval())
         : GenericPublisherBase(node, tx_timeout, max_transfer_interval)
@@ -91,6 +94,10 @@ public:
 
     ~GenericPublisher() { }
 
+    /**
+     * Init method can be called prior first publication, but it's not necessary
+     * because the publisher can be automatically initialized ad-hoc.
+     */
     int init()
     {
         return checkInit();

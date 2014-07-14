@@ -15,6 +15,14 @@ namespace uavcan
 {
 /**
  * Slow but memory efficient KV container.
+ *
+ * KV pairs can be allocated in a static buffer or in the node's memory pool if the static buffer is exhausted.
+ * When a KV pair is deleted from the static buffer, one pair from the memory pool will be moved in the free
+ * slot of the static buffer, so the use of the memory pool is minimized.
+ *
+ * Please be aware that this container does not perform any speed optimizations to minimize memory footprint,
+ * so the complexity of most operations is O(N).
+ *
  * Type requirements:
  *  Both key and value must be copyable, assignable and default constructible.
  *  Key must implement a comparison operator.
@@ -124,21 +132,34 @@ protected:
     ~MapBase() { }
 
 public:
+    /**
+     * Returns null pointer if there's no such entry.
+     */
     Value* access(const Key& key);
 
-    /// If entry with the same key already exists, it will be replaced
+    /**
+     * If entry with the same key already exists, it will be replaced
+     */
     Value* insert(const Key& key, const Value& value);
 
+    /**
+     * Does nothing if there's no such entry.
+     */
     void remove(const Key& key);
 
     /**
-     * Remove entries where predicate returns true.
+     * Removes entries where the predicate returns true.
      * Predicate prototype:
      *  bool (const Key& key, const Value& value)
      */
     template <typename Predicate>
     void removeWhere(Predicate predicate);
 
+    /**
+     * Returns first entry where the predicate returns true.
+     * Predicate prototype:
+     *  bool (const Key& key, const Value& value)
+     */
     template <typename Predicate>
     const Key* findFirstKey(Predicate predicate) const;
 

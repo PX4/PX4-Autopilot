@@ -12,7 +12,11 @@
 
 namespace uavcan
 {
-
+/**
+ * This class implements the standard services for data type introspection.
+ * Once started it does not require any attention from the application.
+ * The user does not need to deal with it directly - it's started by the node class.
+ */
 class UAVCAN_EXPORT DataTypeInfoProvider : Noncopyable
 {
     typedef MethodBinder<DataTypeInfoProvider*,

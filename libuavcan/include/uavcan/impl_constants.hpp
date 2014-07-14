@@ -15,6 +15,12 @@
 /**
  * UAVCAN can be compiled in C++11 mode.
  * This macro allows to detect which version of the C++ standard is being used.
+ *
+ * UAVCAN_CPP_VERSION can be defined explicitly to override auto detection to force compilation in C++03 mode.
+ * Valid values are listed below.
+ *
+ * Note that C++11 and newer requires C++ standard library, while C++03 does not. So, on platforms that
+ * don't implement the standard C++ (e.g. NuttX) use of C++03 may be preferred.
  */
 #define UAVCAN_CPP11    2011
 #define UAVCAN_CPP03    2003
@@ -31,6 +37,8 @@
 
 /**
  * UAVCAN can be explicitly told to ignore exceptions, or it can be detected automatically.
+ * Autodetection is not expected to work with all compilers, so it's safer to define it explicitly.
+ * If the autodetection fails, exceptions will be disabled by default.
  */
 #ifndef UAVCAN_EXCEPTIONS
 # if __EXCEPTIONS || _HAS_EXCEPTIONS
@@ -42,7 +50,8 @@
 
 /**
  * Struct layout control.
- * Define UAVCAN_PACK_STRUCTS = 1 to reduce memory usage.
+ * Set UAVCAN_PACK_STRUCTS=1 and define UAVCAN_PACKED_BEGIN and UAVCAN_PACKED_END to reduce memory usage.
+ * THIS MAY BREAK THE CODE.
  */
 #ifndef UAVCAN_PACK_STRUCTS
 # define UAVCAN_PACK_STRUCTS    0
@@ -73,7 +82,8 @@
 #endif
 
 /**
- * It might make sense to remove toString() methods for an embedded system
+ * It might make sense to remove toString() methods for an embedded system.
+ * If the autodetect fails, toString() will be disabled, so it's pretty safe by default.
  */
 #ifndef UAVCAN_TOSTRING
 // Objective is to make sure that we're NOT on a resource constrained platform
@@ -90,10 +100,9 @@
 #endif
 
 /**
- * Some C++ implementations are half-broken and do not implement the placement new operator.
- * Setting this preprocessor symbol to 1 makes libuavcan implement its own operator new (std::size_t, void*),
- * and its delete counterpart.
- * This option may be removed in future.
+ * Some C++ implementations are half-broken because they don't implement the placement new operator.
+ * If UAVCAN_IMPLEMENT_PLACEMENT_NEW is defined, libuavcan will implement its own operator new (std::size_t, void*)
+ * and its delete() counterpart, instead of relying on the standard header <new>.
  */
 #ifndef UAVCAN_IMPLEMENT_PLACEMENT_NEW
 # define UAVCAN_IMPLEMENT_PLACEMENT_NEW 0
@@ -102,7 +111,7 @@
 /**
  * Run time checks.
  * Resolves to the standard assert() by default.
- * Can be disabled completely.
+ * Disabled completely if UAVCAN_NO_ASSERTIONS is defined.
  */
 #ifndef UAVCAN_ASSERT
 # if UAVCAN_NO_ASSERTIONS
@@ -116,9 +125,18 @@ namespace uavcan
 {
 
 /**
- * Should be OK for any target arch up to AMD64 and any compiler.
+ * Memory pool block size.
+ *
+ * The default of 64 bytes should be OK for any target arch up to AMD64 and any compiler.
+ *
  * The library leverages compile-time checks to ensure that all types that are subject to dynamic allocation
- * fit this size; otherwise compilation fails.
+ * fit this size, otherwise compilation fails.
+ *
+ * For platforms featuring small pointer width (16..32 bits), UAVCAN_MEM_POOL_BLOCK_SIZE can often be safely
+ * reduced to 56 or even 48 bytes, which leads to lower memory footprint.
+ *
+ * Note that the pool block size shall be aligned at biggest alignment of the target platform (detected and
+ * checked automatically at compile time).
  */
 #if UAVCAN_MEM_POOL_BLOCK_SIZE
 /// Explicitly specified by the user.
@@ -139,6 +157,10 @@ static const unsigned MemPoolAlignment = 16;
 
 typedef char _alignment_check_for_MEM_POOL_BLOCK_SIZE[((MemPoolBlockSize & (MemPoolAlignment - 1)) == 0) ? 1 : -1];
 
+/**
+ * This class that allows to check at compile time whether type T can be allocated using the memory pool.
+ * If the check fails, compilation fails.
+ */
 template <typename T>
 struct UAVCAN_EXPORT IsDynamicallyAllocatable
 {

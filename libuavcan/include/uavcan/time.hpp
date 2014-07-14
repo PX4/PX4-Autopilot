@@ -83,9 +83,9 @@ public:
     }
 
     static const unsigned StringBufSize = 32;
-    void toString(char buf[StringBufSize]) const;
+    void toString(char buf[StringBufSize]) const; ///< Prints time in seconds with microsecond resolution
 #if UAVCAN_TOSTRING
-    std::string toString() const;
+    std::string toString() const;                 ///< Prints time in seconds with microsecond resolution
 #endif
 };
 
@@ -169,9 +169,9 @@ public:
     }
 
     static const unsigned StringBufSize = 32;
-    void toString(char buf[StringBufSize]) const;
+    void toString(char buf[StringBufSize]) const; ///< Prints time in seconds with microsecond resolution
 #if UAVCAN_TOSTRING
-    std::string toString() const;
+    std::string toString() const;                 ///< Prints time in seconds with microsecond resolution
 #endif
 };
 
@@ -187,7 +187,7 @@ class UAVCAN_EXPORT MonotonicTime : public TimeBase<MonotonicTime, MonotonicDura
  */
 class UAVCAN_EXPORT UtcDuration : public DurationBase<UtcDuration> { };
 
-class UAVCAN_EXPORT UtcTime : public TimeBase<UtcTime, UtcDuration>
+class UAVCAN_EXPORT UtcTime : public TimeBase<UtcTime, UtcDuration> /// Implicitly convertible to/from uavcan.Timestamp
 {
 public:
     UtcTime() { }

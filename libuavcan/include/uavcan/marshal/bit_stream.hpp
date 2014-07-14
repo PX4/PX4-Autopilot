@@ -15,6 +15,10 @@ namespace uavcan
 
 void bitarrayCopy(const unsigned char* src_org, int src_offset, int src_len, unsigned char* dst_org, int dst_offset);
 
+/**
+ * This class treats a chunk of memory as an array of bits.
+ * It is used by the bit codec for serialization/deserialization.
+ */
 class UAVCAN_EXPORT BitStream
 {
     static const unsigned MaxBytesPerRW = 16;
