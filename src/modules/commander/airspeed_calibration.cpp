@@ -180,15 +180,16 @@ int do_airspeed_calibration(int mavlink_fd)
 		return ERROR;
 	}
 
-	mavlink_log_critical(mavlink_fd, "Stored offset of %d Pa", (int)diff_pres_offset);
+	mavlink_log_critical(mavlink_fd, "Offset of %d Pa, create airflow now!", (int)diff_pres_offset);
 
 	/* wait 500 ms to ensure parameter propagated through the system */
 	usleep(500 * 1000);
 
 	calibration_counter = 0;
+	const int maxcount = 3000;
 
 	/* just take a few samples and make sure pitot tubes are not reversed, timeout after ~30 seconds */
-	while (calibration_counter < 1500) {
+	while (calibration_counter < maxcount) {
 
 		/* wait blocking for new data */
 		struct pollfd fds[1];
@@ -204,7 +205,7 @@ int do_airspeed_calibration(int mavlink_fd)
 
 			if (fabsf(diff_pres.differential_pressure_raw_pa) < 50.0f) {
 				if (calibration_counter % 100 == 0) {
-					mavlink_log_critical(mavlink_fd, "Create airflow on pitot (%d Pa, #h101)",
+					mavlink_log_critical(mavlink_fd, "Missing airflow! (%d, wanted: 50 Pa, #h101)",
 					(int)diff_pres.differential_pressure_raw_pa);
 				}
 				continue;
@@ -212,6 +213,8 @@ int do_airspeed_calibration(int mavlink_fd)
 
 			/* do not allow negative values */
 			if (diff_pres.differential_pressure_raw_pa < 0.0f) {
+				mavlink_log_info(mavlink_fd, "negative pressure: ERROR (%d Pa)",
+					(int)diff_pres.differential_pressure_raw_pa);
 				mavlink_log_critical(mavlink_fd, "%d Pa: swap static and dynamic ports!", (int)diff_pres.differential_pressure_raw_pa);
 				close(diff_pres_sub);
 
@@ -244,6 +247,12 @@ int do_airspeed_calibration(int mavlink_fd)
 			close(diff_pres_sub);
 			return ERROR;
 		}
+	}
+
+	if (calibration_counter == maxcount) {
+		mavlink_log_critical(mavlink_fd, CAL_FAILED_MSG, sensor_name);
+		close(diff_pres_sub);
+		return ERROR;
 	}
 
 	mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 100);
