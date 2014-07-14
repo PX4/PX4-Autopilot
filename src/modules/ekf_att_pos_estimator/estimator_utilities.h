@@ -19,6 +19,12 @@ public:
     float y;
     float z;
 
+    Vector3f(float a=0.0f, float b=0.0f, float c=0.0f) :
+    x(a),
+    y(b),
+    z(c)
+    {}
+
     float length(void) const;
     void zero(void);
 };

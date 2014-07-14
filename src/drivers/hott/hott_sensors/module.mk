@@ -40,3 +40,5 @@ MODULE_COMMAND	= hott_sensors
 SRCS		= hott_sensors.cpp \
 		  ../messages.cpp \
 		  ../comms.cpp
+
+MAXOPTIMIZATION	 = -Os

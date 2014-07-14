@@ -170,6 +170,8 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 			break;
 
 		case NAVIGATION_STATE_LAND:
+			/* fallthrough */
+		case NAVIGATION_STATE_DESCEND:
 			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
 			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
 					      | MAV_MODE_FLAG_GUIDED_ENABLED;
@@ -188,6 +190,17 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 		case NAVIGATION_STATE_TERMINATION:
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+			break;
+
+		case NAVIGATION_STATE_OFFBOARD:
+			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
+					      | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_OFFBOARD;
+			break;
+
+		case NAVIGATION_STATE_MAX:
+			/* this is an unused case, ignore */
 			break;
 
 	}
@@ -1051,10 +1064,16 @@ protected:
 			uint32_t mavlink_custom_mode;
 			get_mavlink_mode_state(&status, &pos_sp_triplet, &mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
 
+			float out[8];
+
+			const float pwm_center = (PWM_HIGHEST_MAX + PWM_LOWEST_MIN) / 2;
+
+			/* scale outputs depending on system type */
 			if (mavlink_system.type == MAV_TYPE_QUADROTOR ||
 				mavlink_system.type == MAV_TYPE_HEXAROTOR ||
 				mavlink_system.type == MAV_TYPE_OCTOROTOR) {
-				/* set number of valid outputs depending on vehicle type */
+				/* multirotors: set number of rotor outputs depending on type */
+
 				unsigned n;
 
 				switch (mavlink_system.type) {
@@ -1071,59 +1090,44 @@ protected:
 					break;
 				}
 
-				/* scale / assign outputs depending on system type */
-				float out[8];
-
 				for (unsigned i = 0; i < 8; i++) {
-					if (i < n) {
-						if (mavlink_base_mode & MAV_MODE_FLAG_SAFETY_ARMED) {
-							/* scale fake PWM out 900..2100 us to 0..1 for normal multirotors */
+					if (mavlink_base_mode & MAV_MODE_FLAG_SAFETY_ARMED) {
+						if (i < n) {
+							/* scale PWM out 900..2100 us to 0..1 for rotors */
 							out[i] = (act.output[i] - PWM_LOWEST_MIN) / (PWM_HIGHEST_MAX - PWM_LOWEST_MIN);
 
 						} else {
-							/* send 0 when disarmed */
-							out[i] = 0.0f;
+							/* scale PWM out 900..2100 us to -1..1 for other channels */
+							out[i] = (act.output[i] - pwm_center) / ((PWM_HIGHEST_MAX - PWM_LOWEST_MIN) / 2);
 						}
 
 					} else {
-						out[i] = -1.0f;
+						/* send 0 when disarmed */
+						out[i] = 0.0f;
 					}
 				}
 
-				mavlink_msg_hil_controls_send(_channel,
-							      hrt_absolute_time(),
-							      out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7],
-							      mavlink_base_mode,
-							      0);
 			} else {
-
-				/* fixed wing: scale all channels except throttle -1 .. 1
-				 * because we know that we set the mixers up this way
-				 */
-
-				float out[8];
-
-				const float pwm_center = (PWM_HIGHEST_MAX + PWM_LOWEST_MIN) / 2;
+				/* fixed wing: scale throttle to 0..1 and other channels to -1..1 */
 
 				for (unsigned i = 0; i < 8; i++) {
 					if (i != 3) {
-						/* scale fake PWM out 900..2100 us to -1..+1 for normal channels */
+						/* scale PWM out 900..2100 us to -1..1 for normal channels */
 						out[i] = (act.output[i] - pwm_center) / ((PWM_HIGHEST_MAX - PWM_LOWEST_MIN) / 2);
 
 					} else {
-
-						/* scale fake PWM out 900..2100 us to 0..1 for throttle */
+						/* scale PWM out 900..2100 us to 0..1 for throttle */
 						out[i] = (act.output[i] - PWM_LOWEST_MIN) / (PWM_HIGHEST_MAX - PWM_LOWEST_MIN);
 					}
 
 				}
-
-				mavlink_msg_hil_controls_send(_channel,
-							      hrt_absolute_time(),
-							      out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7],
-							      mavlink_base_mode,
-							      0);
 			}
+
+			mavlink_msg_hil_controls_send(_channel,
+						      hrt_absolute_time(),
+						      out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7],
+						      mavlink_base_mode,
+						      0);
 		}
 	}
 };

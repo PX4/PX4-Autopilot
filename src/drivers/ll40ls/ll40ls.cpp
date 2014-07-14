@@ -32,10 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file mb12xx.cpp
- * @author Greg Hulands
+ * @file ll40ls.cpp
+ * @author Allyson Kreft
  *
- * Driver for the Maxbotix sonar range finders connected via I2C.
+ * Driver for the PulsedLight Lidar-Lite range finders connected via I2C.
  */
 
 #include <nuttx/config.h>
@@ -72,21 +72,21 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#define MB12XX_BUS 			PX4_I2C_BUS_EXPANSION
-#define MB12XX_BASEADDR 	0x70 /* 7-bit address. 8-bit address is 0xE0 */
-#define MB12XX_DEVICE_PATH	"/dev/mb12xx"
+#define LL40LS_BUS 			PX4_I2C_BUS_EXPANSION
+#define LL40LS_BASEADDR 	0x42 /* 7-bit address */
+#define LL40LS_DEVICE_PATH 	"/dev/ll40ls"
 
-/* MB12xx Registers addresses */
+/* LL40LS Registers addresses */
 
-#define MB12XX_TAKE_RANGE_REG	0x51		/* Measure range Register */
-#define MB12XX_SET_ADDRESS_1	0xAA		/* Change address 1 Register */
-#define MB12XX_SET_ADDRESS_2	0xA5		/* Change address 2 Register */
+#define LL40LS_MEASURE_REG		0x00		/* Measure range register */
+#define LL40LS_MSRREG_ACQUIRE	0x04		/* Value to initiate a measurement, varies based on sensor revision */
+#define LL40LS_DISTHIGH_REG		0x8F		/* High byte of distance register, auto increment */
 
 /* Device limits */
-#define MB12XX_MIN_DISTANCE (0.20f)
-#define MB12XX_MAX_DISTANCE (7.65f)
+#define LL40LS_MIN_DISTANCE (0.00f)
+#define LL40LS_MAX_DISTANCE (14.00f)
 
-#define MB12XX_CONVERSION_INTERVAL 60000 /* 60ms */
+#define LL40LS_CONVERSION_INTERVAL 100000 /* 100ms */
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -98,11 +98,11 @@ static const int ERROR = -1;
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class MB12XX : public device::I2C
+class LL40LS : public device::I2C
 {
 public:
-	MB12XX(int bus = MB12XX_BUS, int address = MB12XX_BASEADDR);
-	virtual ~MB12XX();
+	LL40LS(int bus = LL40LS_BUS, int address = LL40LS_BASEADDR);
+	virtual ~LL40LS();
 
 	virtual int 		init();
 
@@ -121,7 +121,7 @@ private:
 	float				_min_distance;
 	float				_max_distance;
 	work_s				_work;
-	RingBuffer		*_reports;
+	RingBuffer			*_reports;
 	bool				_sensor_ok;
 	int					_measure_ticks;
 	bool				_collect_phase;
@@ -157,8 +157,8 @@ private:
 
 	/**
 	* Set the min and max distance thresholds if you want the end points of the sensors
-	* range to be brought in at all, otherwise it will use the defaults MB12XX_MIN_DISTANCE
-	* and MB12XX_MAX_DISTANCE
+	* range to be brought in at all, otherwise it will use the defaults LL40LS_MIN_DISTANCE
+	* and LL40LS_MAX_DISTANCE
 	*/
 	void				set_minimum_distance(float min);
 	void				set_maximum_distance(float max);
@@ -186,22 +186,25 @@ private:
 /*
  * Driver 'main' command.
  */
-extern "C" __EXPORT int mb12xx_main(int argc, char *argv[]);
+extern "C" __EXPORT int ll40ls_main(int argc, char *argv[]);
 
-MB12XX::MB12XX(int bus, int address) :
-	I2C("MB12xx", MB12XX_DEVICE_PATH, bus, address, 100000),
-	_min_distance(MB12XX_MIN_DISTANCE),
-	_max_distance(MB12XX_MAX_DISTANCE),
+LL40LS::LL40LS(int bus, int address) :
+	I2C("LL40LS", LL40LS_DEVICE_PATH, bus, address, 100000),
+	_min_distance(LL40LS_MIN_DISTANCE),
+	_max_distance(LL40LS_MAX_DISTANCE),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),
 	_collect_phase(false),
 	_class_instance(-1),
 	_range_finder_topic(-1),
-	_sample_perf(perf_alloc(PC_ELAPSED, "mb12xx_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "mb12xx_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "mb12xx_buffer_overflows"))
+	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "ll40ls_comms_errors")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "ll40ls_buffer_overflows"))
 {
+	// up the retries since the device misses the first measure attempts
+	I2C::_retries = 3;
+
 	// enable debug() calls
 	_debug_enabled = false;
 
@@ -209,7 +212,7 @@ MB12XX::MB12XX(int bus, int address) :
 	memset(&_work, 0, sizeof(_work));
 }
 
-MB12XX::~MB12XX()
+LL40LS::~LL40LS()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -218,11 +221,11 @@ MB12XX::~MB12XX()
 	if (_reports != nullptr) {
 		delete _reports;
 	}
-
+	
 	if (_class_instance != -1) {
 		unregister_class_devname(RANGE_FINDER_DEVICE_PATH, _class_instance);
 	}
-
+	
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
@@ -230,7 +233,7 @@ MB12XX::~MB12XX()
 }
 
 int
-MB12XX::init()
+LL40LS::init()
 {
 	int ret = ERROR;
 
@@ -248,7 +251,7 @@ MB12XX::init()
 
 	_class_instance = register_class_devname(RANGE_FINDER_DEVICE_PATH);
 
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {	
 		/* get a publish handle on the range finder topic */
 		struct range_finder_report rf_report;
 		measure();
@@ -268,37 +271,37 @@ out:
 }
 
 int
-MB12XX::probe()
+LL40LS::probe()
 {
 	return measure();
 }
 
 void
-MB12XX::set_minimum_distance(float min)
+LL40LS::set_minimum_distance(float min)
 {
 	_min_distance = min;
 }
 
 void
-MB12XX::set_maximum_distance(float max)
+LL40LS::set_maximum_distance(float max)
 {
 	_max_distance = max;
 }
 
 float
-MB12XX::get_minimum_distance()
+LL40LS::get_minimum_distance()
 {
 	return _min_distance;
 }
 
 float
-MB12XX::get_maximum_distance()
+LL40LS::get_maximum_distance()
 {
 	return _max_distance;
 }
 
 int
-MB12XX::ioctl(struct file *filp, int cmd, unsigned long arg)
+LL40LS::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -325,7 +328,7 @@ MB12XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(MB12XX_CONVERSION_INTERVAL);
+					_measure_ticks = USEC2TICK(LL40LS_CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -344,7 +347,7 @@ MB12XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(MB12XX_CONVERSION_INTERVAL)) {
+					if (ticks < USEC2TICK(LL40LS_CONVERSION_INTERVAL)) {
 						return -EINVAL;
 					}
 
@@ -412,7 +415,7 @@ MB12XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 ssize_t
-MB12XX::read(struct file *filp, char *buffer, size_t buflen)
+LL40LS::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct range_finder_report);
 	struct range_finder_report *rbuf = reinterpret_cast<struct range_finder_report *>(buffer);
@@ -453,7 +456,7 @@ MB12XX::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(MB12XX_CONVERSION_INTERVAL);
+		usleep(LL40LS_CONVERSION_INTERVAL);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -472,15 +475,15 @@ MB12XX::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-MB12XX::measure()
+LL40LS::measure()
 {
 	int ret;
 
 	/*
 	 * Send the command to begin a measurement.
 	 */
-	uint8_t cmd = MB12XX_TAKE_RANGE_REG;
-	ret = transfer(&cmd, 1, nullptr, 0);
+	const uint8_t cmd[2] = { LL40LS_MEASURE_REG, LL40LS_MSRREG_ACQUIRE };
+	ret = transfer(cmd, sizeof(cmd), nullptr, 0);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -494,7 +497,7 @@ MB12XX::measure()
 }
 
 int
-MB12XX::collect()
+LL40LS::collect()
 {
 	int	ret = -EIO;
 
@@ -503,7 +506,9 @@ MB12XX::collect()
 
 	perf_begin(_sample_perf);
 
-	ret = transfer(nullptr, 0, &val[0], 2);
+	// read the high and low byte distance registers
+	uint8_t distance_reg = LL40LS_DISTHIGH_REG;
+	ret = transfer(&distance_reg, 1, &val[0], sizeof(val));
 
 	if (ret < 0) {
 		log("error reading from sensor: %d", ret);
@@ -512,15 +517,20 @@ MB12XX::collect()
 		return ret;
 	}
 
-	uint16_t distance = val[0] << 8 | val[1];
-	float si_units = (distance * 1.0f) / 100.0f; /* cm to m */
+	uint16_t distance = (val[0] << 8) | val[1];
+	float si_units = distance * 0.01f; /* cm to m */
 	struct range_finder_report report;
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
 	report.distance = si_units;
-	report.valid = si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
+	if (si_units > get_minimum_distance() && si_units < get_maximum_distance()) {
+		report.valid = 1;
+	}
+	else {
+		report.valid = 0;
+	}
 
 	/* publish it, if we are the primary */
 	if (_range_finder_topic >= 0) {
@@ -541,14 +551,14 @@ MB12XX::collect()
 }
 
 void
-MB12XX::start()
+LL40LS::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&MB12XX::cycle_trampoline, this, 1);
+	work_queue(HPWORK, &_work, (worker_t)&LL40LS::cycle_trampoline, this, 1);
 
 	/* notify about state change */
 	struct subsystem_info_s info = {
@@ -568,21 +578,21 @@ MB12XX::start()
 }
 
 void
-MB12XX::stop()
+LL40LS::stop()
 {
 	work_cancel(HPWORK, &_work);
 }
 
 void
-MB12XX::cycle_trampoline(void *arg)
+LL40LS::cycle_trampoline(void *arg)
 {
-	MB12XX *dev = (MB12XX *)arg;
+	LL40LS *dev = (LL40LS *)arg;
 
 	dev->cycle();
 }
 
 void
-MB12XX::cycle()
+LL40LS::cycle()
 {
 	/* collection phase? */
 	if (_collect_phase) {
@@ -601,14 +611,14 @@ MB12XX::cycle()
 		/*
 		 * Is there a collect->measure gap?
 		 */
-		if (_measure_ticks > USEC2TICK(MB12XX_CONVERSION_INTERVAL)) {
+		if (_measure_ticks > USEC2TICK(LL40LS_CONVERSION_INTERVAL)) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
 			work_queue(HPWORK,
 				   &_work,
-				   (worker_t)&MB12XX::cycle_trampoline,
+				   (worker_t)&LL40LS::cycle_trampoline,
 				   this,
-				   _measure_ticks - USEC2TICK(MB12XX_CONVERSION_INTERVAL));
+				   _measure_ticks - USEC2TICK(LL40LS_CONVERSION_INTERVAL));
 
 			return;
 		}
@@ -625,13 +635,13 @@ MB12XX::cycle()
 	/* schedule a fresh cycle call when the measurement is done */
 	work_queue(HPWORK,
 		   &_work,
-		   (worker_t)&MB12XX::cycle_trampoline,
+		   (worker_t)&LL40LS::cycle_trampoline,
 		   this,
-		   USEC2TICK(MB12XX_CONVERSION_INTERVAL));
+		   USEC2TICK(LL40LS_CONVERSION_INTERVAL));
 }
 
 void
-MB12XX::print_info()
+LL40LS::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
@@ -643,7 +653,7 @@ MB12XX::print_info()
 /**
  * Local functions in support of the shell command.
  */
-namespace mb12xx
+namespace ll40ls
 {
 
 /* oddly, ERROR is not defined for c++ */
@@ -652,7 +662,7 @@ namespace mb12xx
 #endif
 const int ERROR = -1;
 
-MB12XX	*g_dev;
+LL40LS	*g_dev;
 
 void	start();
 void	stop();
@@ -673,7 +683,7 @@ start()
 	}
 
 	/* create the driver */
-	g_dev = new MB12XX(MB12XX_BUS);
+	g_dev = new LL40LS(LL40LS_BUS);
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -684,7 +694,7 @@ start()
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(MB12XX_DEVICE_PATH, O_RDONLY);
+	fd = open(LL40LS_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
@@ -734,10 +744,10 @@ test()
 	ssize_t sz;
 	int ret;
 
-	int fd = open(MB12XX_DEVICE_PATH, O_RDONLY);
+	int fd = open(LL40LS_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'mb12xx start' if the driver is not running", MB12XX_DEVICE_PATH);
+		err(1, "%s open failed (try 'll40ls start' if the driver is not running", LL40LS_DEVICE_PATH);
 	}
 
 	/* do a simple demand read */
@@ -795,7 +805,7 @@ test()
 void
 reset()
 {
-	int fd = open(MB12XX_DEVICE_PATH, O_RDONLY);
+	int fd = open(LL40LS_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");
@@ -831,41 +841,41 @@ info()
 } // namespace
 
 int
-mb12xx_main(int argc, char *argv[])
+ll40ls_main(int argc, char *argv[])
 {
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start")) {
-		mb12xx::start();
+		ll40ls::start();
 	}
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[1], "stop")) {
-		mb12xx::stop();
+		ll40ls::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[1], "test")) {
-		mb12xx::test();
+		ll40ls::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[1], "reset")) {
-		mb12xx::reset();
+		ll40ls::reset();
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status")) {
-		mb12xx::info();
+		ll40ls::info();
 	}
 
 	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
