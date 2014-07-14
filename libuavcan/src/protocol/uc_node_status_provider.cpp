@@ -107,17 +107,26 @@ void NodeStatusProvider::setStatusCode(uint8_t code)
 
 void NodeStatusProvider::setName(const char* name)
 {
-    node_info_.name = name;
+    if ((name != NULL) && (*name != '\0') && (node_info_.name.empty()))
+    {
+        node_info_.name = name;  // The string contents will be copied, not just pointer.
+    }
 }
 
 void NodeStatusProvider::setSoftwareVersion(const protocol::SoftwareVersion& version)
 {
-    node_info_.software_version = version;
+    if (node_info_.software_version == protocol::SoftwareVersion())
+    {
+        node_info_.software_version = version;
+    }
 }
 
 void NodeStatusProvider::setHardwareVersion(const protocol::HardwareVersion& version)
 {
-    node_info_.hardware_version = version;
+    if (node_info_.hardware_version == protocol::HardwareVersion())
+    {
+        node_info_.hardware_version = version;
+    }
 }
 
 }
