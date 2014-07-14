@@ -611,7 +611,24 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			}
 		}
 		break;
-
+	case VEHICLE_CMD_NAV_GUIDED_ENABLE: {
+			transition_result_t res = TRANSITION_DENIED;
+			static main_state_t main_state_pre_offboard = MAIN_STATE_MANUAL;
+			if (status_local->main_state != MAIN_STATE_OFFBOARD) {
+				main_state_pre_offboard = status_local->main_state;
+			}
+			if (cmd->param1 > 0.5f) {
+				res = main_state_transition(status_local, MAIN_STATE_OFFBOARD);
+				if (res == TRANSITION_DENIED) {
+					print_reject_mode(status_local, "OFFBOARD");
+				}
+			} else {
+				/* If the mavlink command is used to enable or disable offboard control:
+				 * switch back to previous mode when disabling */
+				res = main_state_transition(status_local, main_state_pre_offboard);
+			}
+		}
+		break;
 	case VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
 	case VEHICLE_CMD_PREFLIGHT_CALIBRATION:
 	case VEHICLE_CMD_PREFLIGHT_SET_SENSOR_OFFSETS:
