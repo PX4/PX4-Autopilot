@@ -4,15 +4,15 @@
 
 ---
 
+# Version information shall not be changed while the node is running.
 HardwareVersion hardware_version
 SoftwareVersion software_version
 SoftwareVersion uavcan_version
 
 NodeStatus status
 
-# Human readable node name.
-# The naming convention is like of Java packages (reversed internet domain names).
-# Examples:
-#     org.pixhawk.pixhawk
-#     org.autoquad.esc32
+# Human readable non-empty ASCII node name.
+# Empty string is not a valid node name.
+# Node name shall not be changed while the node is running.
+# The naming convention is like of Java packages (reversed internet domain names), e.g. "com.example.project.product".
 uint8[<64] name
