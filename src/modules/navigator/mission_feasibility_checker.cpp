@@ -135,7 +135,8 @@ bool MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, 
 			}
 		}
 
-		if (home_alt > missionitem.altitude) {
+		float waypoint_altitude_diff = (missionitem.altitude_is_relative) ? missionitem.altitude : (missionitem.altitude - home_alt);
+		if (waypoint_altitude_diff < 0.0f) {
 			if (throw_error) {
 				mavlink_log_critical(_mavlink_fd, "Error: Waypoint %d below home", i);
 				return false;
