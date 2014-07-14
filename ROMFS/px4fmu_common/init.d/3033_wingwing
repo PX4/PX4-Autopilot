@@ -40,7 +40,6 @@ then
 	param set MT_THR_I 0.35
 	param set MT_THR_P  0.2
 	param set MT_THR_FF 1.5
-	param set MIS_TAKEOFF_ALT 30.0
 fi
 
 set MIXER wingwing
