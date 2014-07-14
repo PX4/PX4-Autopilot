@@ -117,6 +117,7 @@ public:
     /**
      * This helper method allows to quickly estimate the overall network health.
      * Status of the local node is not considered.
+     * Returns an invalid Node ID value if there's no known nodes in the network.
      */
     NodeID findNodeWithWorstStatus() const;
 };
