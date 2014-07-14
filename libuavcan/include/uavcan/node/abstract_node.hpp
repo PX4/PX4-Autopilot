@@ -41,8 +41,9 @@ public:
     /**
      * Sets the Node ID of this node.
      * Node ID can be assigned only once. This method returns true if the Node ID was successfully assigned, otherwise
-     * it returns false (e.g. the argument does not represent a valid Node ID, or it was already assigned earlier).
+     * it returns false.
      * As long as a valid Node ID is not set, the node will remain in passive mode.
+     * Using a non-unicast Node ID puts the node into passive mode (as default).
      */
     bool setNodeID(NodeID nid)
     {

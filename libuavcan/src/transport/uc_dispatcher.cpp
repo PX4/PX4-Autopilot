@@ -319,9 +319,10 @@ bool Dispatcher::hasServer(DataTypeID dtid) const
 
 bool Dispatcher::setNodeID(NodeID nid)
 {
-    if (nid.isUnicast() && !self_node_id_.isValid())
+    if (!self_node_id_is_set_)
     {
         self_node_id_ = nid;
+        self_node_id_is_set_ = true;
         return true;
     }
     return false;

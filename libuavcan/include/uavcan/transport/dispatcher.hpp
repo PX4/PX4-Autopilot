@@ -102,6 +102,7 @@ class UAVCAN_EXPORT Dispatcher : Noncopyable
     LoopbackFrameListenerRegistry loopback_listeners_;
 
     NodeID self_node_id_;
+    bool self_node_id_is_set_;
 
     void handleFrame(const CanRxFrame& can_frame);
     void handleLoopbackFrame(const CanRxFrame& can_frame);
@@ -111,6 +112,7 @@ public:
         : canio_(driver, allocator, sysclock)
         , sysclock_(sysclock)
         , outgoing_transfer_reg_(otr)
+        , self_node_id_is_set_(false)
     { }
 
     int spin(MonotonicTime deadline);
@@ -143,6 +145,10 @@ public:
 
     LoopbackFrameListenerRegistry& getLoopbackFrameListenerRegistry() { return loopback_listeners_; }
 
+    /**
+     * Node ID can be set only once.
+     * Non-unicast Node ID puts the node into passive mode.
+     */
     NodeID getNodeID() const { return self_node_id_; }
     bool setNodeID(NodeID nid);
 
