@@ -1,7 +1,5 @@
-Delta-wing mixer for PX4FMU
-===========================
-
-Designed for the Phantom FX-61
+Phantom FX-61 mixer
+===================
 
 This file defines mixers suitable for controlling a delta wing aircraft using
 PX4/Pixhawk. The configuration assumes the elevon servos are connected to
