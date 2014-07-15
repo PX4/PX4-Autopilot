@@ -186,7 +186,7 @@ int do_airspeed_calibration(int mavlink_fd)
 	usleep(500 * 1000);
 
 	calibration_counter = 0;
-	const int maxcount = 3000;
+	const unsigned maxcount = 3000;
 
 	/* just take a few samples and make sure pitot tubes are not reversed, timeout after ~30 seconds */
 	while (calibration_counter < maxcount) {
