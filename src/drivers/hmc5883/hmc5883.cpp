@@ -867,7 +867,8 @@ HMC5883::collect()
 	struct {
 		int16_t		x, y, z;
 	} report;
-	int	ret = -EIO;
+
+	int	ret;
 	uint8_t	cmd;
 	uint8_t check_counter;
 
