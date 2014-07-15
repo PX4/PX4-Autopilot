@@ -17,14 +17,19 @@
 
 namespace uavcan_linux
 {
-
+/**
+ * Different adjustment modes can be used for time synchronization
+ */
 enum class ClockAdjustmentMode
 {
-    SystemWide,
-    PerDriverPrivate
+    SystemWide,      ///< Adjust the clock globally for the whole system; requires root privileges
+    PerDriverPrivate ///< Adjust the clock only for the current driver instance
 };
 
-
+/**
+ * Linux system clock driver.
+ * Requires librt.
+ */
 class SystemClock : public uavcan::ISystemClock
 {
     uavcan::UtcDuration private_adj_;
@@ -61,6 +66,9 @@ class SystemClock : public uavcan::ISystemClock
     }
 
 public:
+    /**
+     * By default, the clock adjustment mode will be selected automatically - global if root, private otherwise.
+     */
     explicit SystemClock(ClockAdjustmentMode adj_mode = detectPreferredClockAdjustmentMode())
         : gradual_adj_limit_(uavcan::UtcDuration::fromMSec(4000))
         , adj_mode_(adj_mode)
@@ -68,6 +76,10 @@ public:
         , gradual_adj_cnt_(0)
     { }
 
+    /**
+     * Returns monotonic timestamp from librt.
+     * @throws uavcan_linux::Exception.
+     */
     virtual uavcan::MonotonicTime getMonotonic() const
     {
         timespec ts;
@@ -78,6 +90,10 @@ public:
         return uavcan::MonotonicTime::fromUSec(std::uint64_t(ts.tv_sec) * UInt1e6 + ts.tv_nsec / 1000);
     }
 
+    /**
+     * Returns wall time from gettimeofday().
+     * @throws uavcan_linux::Exception.
+     */
     virtual uavcan::UtcTime getUtc() const
     {
         timeval tv;
@@ -93,6 +109,18 @@ public:
         return utc;
     }
 
+    /**
+     * Adjusts the wall clock.
+     * Behavior depends on the selected clock adjustment mode - @ref ClockAdjustmentMode.
+     * Clock adjustment mode can be set only once via constructor.
+     *
+     * If the system wide adjustment mode is selected, two ways for performing adjustment exist:
+     *  - Gradual adjustment using adjtime(), if the phase error is less than gradual adjustment limit.
+     *  - Step adjustment using settimeofday(), if the phase error is above gradual adjustment limit.
+     * The gradual adjustment limit can be configured at any time via the setter method.
+     *
+     * @throws uavcan_linux::Exception.
+     */
     virtual void adjustUtc(const uavcan::UtcDuration adjustment)
     {
         if (adj_mode_ == ClockAdjustmentMode::PerDriverPrivate)
@@ -120,6 +148,10 @@ public:
         }
     }
 
+    /**
+     * Sets the maximum phase error to use adjtime().
+     * If the phase error exceeds this value, settimeofday() will be used instead.
+     */
     void setGradualAdjustmentLimit(uavcan::UtcDuration limit)
     {
         if (limit.isNegative())
@@ -133,8 +165,15 @@ public:
 
     ClockAdjustmentMode getAdjustmentMode() const { return adj_mode_; }
 
+    /**
+     * This is only applicable if the selected clock adjustment mode is private.
+     * In system wide mode this method will always return zero duration.
+     */
     uavcan::UtcDuration getPrivateAdjustment() const { return private_adj_; }
 
+    /**
+     * Statistics that allows to evaluate clock sync preformance.
+     */
     std::uint64_t getStepAdjustmentCount() const { return step_adj_cnt_; }
     std::uint64_t getGradualAdjustmentCount() const { return gradual_adj_cnt_; }
     std::uint64_t getAdjustmentCount() const
@@ -142,6 +181,11 @@ public:
         return getStepAdjustmentCount() + getGradualAdjustmentCount();
     }
 
+    /**
+     * This static method decides what is the optimal clock sync adjustment mode for the current configuration.
+     * It selects system wide mode if the application is running as root; otherwise it prefers
+     * the private adjustment mode because the system wide mode requires root privileges.
+     */
     static ClockAdjustmentMode detectPreferredClockAdjustmentMode()
     {
         const bool godmode = geteuid() == 0;

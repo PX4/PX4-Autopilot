@@ -26,7 +26,9 @@
 
 namespace uavcan_linux
 {
-
+/**
+ * SocketCan driver class keeps number of each kind of errors occurred since the object was created.
+ */
 enum class SocketCanError
 {
     SocketReadFailure,
@@ -35,6 +37,8 @@ enum class SocketCanError
 };
 
 /**
+ * Single SocketCAN socket interface.
+ *
  * SocketCAN socket adapter maintains TX and RX queues in user space. At any moment socket's buffer contains
  * no more than 'max_frames_in_socket_tx_queue_' TX frames, rest is waiting in the user space TX queue; when the
  * socket produces loopback for the previously sent TX frame the next frame from the user space TX queue will
@@ -308,6 +312,9 @@ public:
         assert(fd_ >= 0);
     }
 
+    /**
+     * Socket file descriptor will be closed.
+     */
     virtual ~SocketCanIface()
     {
         (void)::close(fd_);
@@ -406,8 +413,15 @@ public:
         return (ret < 0) ? -1 : 0;
     }
 
+    /**
+     * SocketCAN emulates the CAN filters in software, so the number of filters is virtually unlimited.
+     * This method returns a constant value.
+     */
     virtual std::uint16_t getNumFilters() const { return 255; }
 
+    /**
+     * Returns total number of errors of each kind detected since the object was created.
+     */
     virtual std::uint64_t getErrorCount() const
     {
         std::uint64_t ec = 0;
@@ -415,6 +429,9 @@ public:
         return ec;
     }
 
+    /**
+     * Returns number of errors of each kind in a map.
+     */
     const decltype(errors_)& getErrors() const { return errors_; }
 
     int getFileDescriptor() const { return fd_; }
@@ -479,9 +496,9 @@ public:
     }
 };
 
-
 /**
- * Multiplexing container for multiple SocketCAN sockets
+ * Multiplexing container for multiple SocketCAN sockets.
+ * Uses ppoll() for multiplexing.
  */
 class SocketCanDriver : public uavcan::ICanDriver
 {
@@ -495,6 +512,9 @@ private:
     std::uint8_t num_ifaces_;
 
 public:
+    /**
+     * Reference to the clock object shall remain valid.
+     */
     explicit SocketCanDriver(const SystemClock& clock)
         : clock_(clock)
         , num_ifaces_(0)
@@ -588,6 +608,7 @@ public:
      * Adds one iface by name. Will fail if there are @ref MaxIfaces ifaces registered already.
      * @param iface_name E.g. "can0", "vcan1"
      * @return Negative on error, zero on success.
+     * @throws uavcan_linux::Exception.
      */
     int addIface(const std::string& iface_name)
     {

@@ -9,7 +9,9 @@
 
 namespace uavcan_linux
 {
-
+/**
+ * This is the root exception class for all exceptions that can be thrown from the libuavcan Linux driver.
+ */
 class Exception : public std::runtime_error
 {
     const int errno_;
@@ -20,6 +22,10 @@ public:
         , errno_(errno)
     { }
 
+    /**
+     * Returns standard UNIX errno value captured at the moment
+     * when this exception object was constructed.
+     */
     int getErrno() const { return errno_; }
 };
 
