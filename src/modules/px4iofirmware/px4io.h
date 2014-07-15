@@ -219,8 +219,8 @@ extern bool	dsm_input(uint16_t *values, uint16_t *num_values);
 extern void	dsm_bind(uint16_t cmd, int pulses);
 extern int	sbus_init(const char *device);
 extern bool	sbus_input(uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_channels);
-extern bool	sbus1_output(uint16_t *values, uint16_t num_values);
-extern bool	sbus2_output(uint16_t *values, uint16_t num_values);
+extern void	sbus1_output(uint16_t *values, uint16_t num_values);
+extern void	sbus2_output(uint16_t *values, uint16_t num_values);
 
 /** global debug level for isr_debug() */
 extern volatile uint8_t debug_level;

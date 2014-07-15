@@ -276,27 +276,8 @@ struct log_DIST_s {
 	uint8_t flags;
 };
 
-/* --- TELE - TELEMETRY STATUS --- */
-#define LOG_TELE_MSG 22
-struct log_TELE_s {
-	uint8_t rssi;
-	uint8_t remote_rssi;
-	uint8_t noise;
-	uint8_t remote_noise;
-	uint16_t rxerrors;
-	uint16_t fixed;
-	uint8_t txbuf;
-};
-
-/* --- ESTM - ESTIMATOR STATUS --- */
-#define LOG_ESTM_MSG 23
-struct log_ESTM_s {
-	float s[10];
-	uint8_t n_states;
-	uint8_t states_nan;
-	uint8_t covariance_nan;
-	uint8_t kalman_gain_nan;
-};
+// ID 22 available
+// ID 23 available
 
 /* --- PWR - ONBOARD POWER SYSTEM --- */
 #define LOG_PWR_MSG 24
@@ -346,6 +327,70 @@ struct log_GS1B_s {
 	uint8_t satellite_snr[16];			/**< dBHz, Signal to noise ratio of satellite C/N0, range 0..99 */
 };
 
+/* --- TECS - TECS STATUS --- */
+#define LOG_TECS_MSG 30
+struct log_TECS_s {
+	float altitudeSp;
+	float altitude;
+	float flightPathAngleSp;
+	float flightPathAngle;
+	float flightPathAngleFiltered;
+	float airspeedSp;
+	float airspeed;
+	float airspeedFiltered;
+	float airspeedDerivativeSp;
+	float airspeedDerivative;
+
+	float totalEnergyRateSp;
+	float totalEnergyRate;
+	float energyDistributionRateSp;
+	float energyDistributionRate;
+
+	uint8_t mode;
+};
+
+/* --- WIND - WIND ESTIMATE --- */
+#define LOG_WIND_MSG 31
+struct log_WIND_s {
+	float x;
+	float y;
+	float cov_x;
+	float cov_y;
+};
+
+/* --- EST0 - ESTIMATOR STATUS --- */
+#define LOG_EST0_MSG 32
+struct log_EST0_s {
+	float s[12];
+	uint8_t n_states;
+	uint8_t nan_flags;
+	uint8_t health_flags;
+	uint8_t timeout_flags;
+};
+
+/* --- EST1 - ESTIMATOR STATUS --- */
+#define LOG_EST1_MSG 33
+struct log_EST1_s {
+	float s[16];
+};
+
+/* --- TEL0..3 - TELEMETRY STATUS --- */
+#define LOG_TEL0_MSG 34
+#define LOG_TEL1_MSG 35
+#define LOG_TEL2_MSG 36
+#define LOG_TEL3_MSG 37
+struct log_TEL_s {
+	uint8_t rssi;
+	uint8_t remote_rssi;
+	uint8_t noise;
+	uint8_t remote_noise;
+	uint16_t rxerrors;
+	uint16_t fixed;
+	uint8_t txbuf;
+	uint64_t heartbeat_time;
+};
+
+
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
 /* --- TIME - TIME STAMP --- */
@@ -393,14 +438,20 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GVSP, "fff",			"VX,VY,VZ"),
 	LOG_FORMAT(BATT, "ffff",		"V,VFilt,C,Discharged"),
 	LOG_FORMAT(DIST, "ffB",			"Bottom,BottomRate,Flags"),
-	LOG_FORMAT(TELE, "BBBBHHB",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf"),
-	LOG_FORMAT(ESTM, "ffffffffffBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,nStat,statNaN,covNaN,kGainNaN"),
+	LOG_FORMAT_S(TEL0, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
+	LOG_FORMAT_S(TEL1, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
+	LOG_FORMAT_S(TEL2, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
+	LOG_FORMAT_S(TEL3, TEL, "BBBBHHBQ",		"RSSI,RemRSSI,Noise,RemNoise,RXErr,Fixed,TXBuf,HbTime"),
+	LOG_FORMAT(EST0, "ffffffffffffBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,nStat,fNaN,fHealth,fTOut"),
+	LOG_FORMAT(EST1, "ffffffffffffffff",	"s12,s13,s14,s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27"),
 	LOG_FORMAT(PWR, "fffBBBBB",		"Periph5V,Servo5V,RSSI,UsbOk,BrickOk,ServoOk,PeriphOC,HipwrOC"),
 	LOG_FORMAT(VICN, "ffffff",		"X,Y,Z,Roll,Pitch,Yaw"),
 	LOG_FORMAT(GS0A, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(GS0B, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(GS1A, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(GS1B, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
+	LOG_FORMAT(TECS, "ffffffffffffffB",	"AltSP,Alt,FSP,F,FF,AsSP,As,AsF,AsDSP,AsD,TERSP,TER,EDRSP,EDR,M"),
+	LOG_FORMAT(WIND, "ffff",	"X,Y,CovX,CovY"),
 
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */

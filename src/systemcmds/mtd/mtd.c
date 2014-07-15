@@ -91,7 +91,7 @@ static void	mtd_test(void);
 static void	mtd_erase(char *partition_names[], unsigned n_partitions);
 static void	mtd_readtest(char *partition_names[], unsigned n_partitions);
 static void	mtd_rwtest(char *partition_names[], unsigned n_partitions);
-static void	mtd_print_info();
+static void	mtd_print_info(void);
 static int	mtd_get_geometry(unsigned long *blocksize, unsigned long *erasesize, unsigned long *neraseblocks, 
 	unsigned *blkpererase, unsigned *nblocks, unsigned *partsize, unsigned n_partitions);
 
@@ -103,6 +103,16 @@ static unsigned n_partitions_current = 0;
 /* note, these will be equally sized */
 static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints"};
 static const int n_partitions_default = sizeof(partition_names_default) / sizeof(partition_names_default[0]);
+
+static void
+mtd_status(void)
+{
+	if (!attached)
+		errx(1, "MTD driver not started");
+    
+	mtd_print_info();
+	exit(0);
+}
 
 int mtd_main(int argc, char *argv[])
 {
@@ -193,8 +203,12 @@ ramtron_attach(void)
 		errx(1, "failed to initialize mtd driver");
 
 	int ret = mtd_dev->ioctl(mtd_dev, MTDIOC_SETSPEED, (unsigned long)10*1000*1000);
-        if (ret != OK)
-            warnx(1, "failed to set bus speed");
+	if (ret != OK) {
+		// FIXME: From the previous warnx call, it looked like this should have been an errx instead. Tried
+		// that but setting the bug speed does fail all the time. Which was then exiting and the board would
+		// not run correctly. So changed to warnx.
+		warnx("failed to set bus speed");
+	}
 
 	attached = true;
 }
@@ -351,7 +365,7 @@ static ssize_t mtd_get_partition_size(void)
 	return partsize;
 }
 
-void mtd_print_info()
+void mtd_print_info(void)
 {
 	if (!attached)
 		exit(1);
@@ -379,16 +393,6 @@ mtd_test(void)
 {
 	warnx("This test routine does not test anything yet!");
 	exit(1);
-}
-
-void
-mtd_status(void)
-{
-	if (!attached)
-		errx(1, "MTD driver not started");
-
-	mtd_print_info();
-	exit(0);
 }
 
 void
@@ -424,7 +428,7 @@ mtd_readtest(char *partition_names[], unsigned n_partitions)
 
 	uint8_t v[128];
 	for (uint8_t i = 0; i < n_partitions; i++) {
-		uint32_t count = 0;
+		ssize_t count = 0;
 		printf("reading %s expecting %u bytes\n", partition_names[i], expected_size);
 		int fd = open(partition_names[i], O_RDONLY);
 		if (fd == -1) {
@@ -455,8 +459,8 @@ mtd_rwtest(char *partition_names[], unsigned n_partitions)
 
 	uint8_t v[128], v2[128];
 	for (uint8_t i = 0; i < n_partitions; i++) {
-		uint32_t count = 0;
-                off_t offset = 0;
+		ssize_t count = 0;
+        off_t offset = 0;
 		printf("rwtest %s testing %u bytes\n", partition_names[i], expected_size);
 		int fd = open(partition_names[i], O_RDWR);
 		if (fd == -1) {

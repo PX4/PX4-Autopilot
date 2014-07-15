@@ -225,7 +225,10 @@ MEASAirspeed::collect()
         // correct for 5V rail voltage if possible
         voltage_correction(diff_press_pa_raw, temperature);
 
-	float diff_press_pa = fabsf(diff_press_pa_raw - _diff_pres_offset);
+	// the raw value still should be compensated for the known offset
+	diff_press_pa_raw -= _diff_pres_offset;
+
+	float diff_press_pa = fabsf(diff_press_pa_raw);
 	
 	/*
 	  note that we return both the absolute value with offset
@@ -265,7 +268,6 @@ MEASAirspeed::collect()
 	}
 
 	report.differential_pressure_raw_pa = diff_press_pa_raw;
-	report.voltage = 0;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
 	if (_airspeed_pub > 0 && !(_pub_blocked)) {

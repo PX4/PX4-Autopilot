@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
- *           Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +34,11 @@
 /**
  * @file commander_helper.cpp
  * Commander helper functions implementations
+ *
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
+ *
  */
 
 #include <stdio.h>
@@ -209,11 +211,17 @@ int led_init()
 	/* the blue LED is only available on FMUv1 & AeroCore but not FMUv2 */
 	(void)ioctl(leds, LED_ON, LED_BLUE);
 
+	/* switch blue off */
+	led_off(LED_BLUE);
+
 	/* we consider the amber led mandatory */
 	if (ioctl(leds, LED_ON, LED_AMBER)) {
 		warnx("Amber LED: ioctl fail\n");
 		return ERROR;
 	}
+
+	/* switch amber off */
+	led_off(LED_AMBER);
 
 	/* then try RGB LEDs, this can fail on FMUv1*/
 	rgbleds = open(RGBLED_DEVICE_PATH, 0);

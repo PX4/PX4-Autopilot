@@ -52,10 +52,6 @@
 
 using namespace math;
 
-const char* formatResult(bool res) {
-	return res ? "OK" : "ERROR";
-}
-
 int test_mathlib(int argc, char *argv[])
 {
 	warnx("testing mathlib");
@@ -100,8 +96,13 @@ int test_mathlib(int argc, char *argv[])
 		TEST_OP("Vector<3> %% Vector<3>", v1 % v2);
 		TEST_OP("Vector<3> length", v1.length());
 		TEST_OP("Vector<3> length squared", v1.length_squared());
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+		// Need pragma here intead of moving variable out of TEST_OP and just reference because
+		// TEST_OP measures performance of vector operations.
 		TEST_OP("Vector<3> element read", volatile float a = v1(0));
 		TEST_OP("Vector<3> element read direct", volatile float a = v1.data[0]);
+#pragma GCC diagnostic pop
 		TEST_OP("Vector<3> element write", v1(0) = 1.0f);
 		TEST_OP("Vector<3> element write direct", v1.data[0] = 1.0f);
 	}

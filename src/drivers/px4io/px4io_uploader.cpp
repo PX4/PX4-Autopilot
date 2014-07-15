@@ -39,6 +39,7 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
@@ -240,9 +241,9 @@ PX4IO_Uploader::upload(const char *filenames[])
 	close(_io_fd);
 	_io_fd = -1;
 
-        // sleep for enough time for the IO chip to boot. This makes
-        // forceupdate more reliably startup IO again after update
-        up_udelay(100*1000);
+	// sleep for enough time for the IO chip to boot. This makes
+	// forceupdate more reliably startup IO again after update
+	up_udelay(100*1000);
 
 	return ret;
 }
@@ -413,10 +414,16 @@ static int read_with_retry(int fd, void *buf, size_t n)
 int
 PX4IO_Uploader::program(size_t fw_size)
 {
-	uint8_t	file_buf[PROG_MULTI_MAX];
+	uint8_t	*file_buf;
 	ssize_t count;
 	int ret;
 	size_t sent = 0;
+
+	file_buf = (uint8_t *)malloc(PROG_MULTI_MAX);
+	if (!file_buf) {
+		log("Can't allocate program buffer");
+		return -ENOMEM;
+	}
 
 	log("programming %u bytes...", (unsigned)fw_size);
 
@@ -425,8 +432,8 @@ PX4IO_Uploader::program(size_t fw_size)
 	while (sent < fw_size) {
 		/* get more bytes to program */
 		size_t n = fw_size - sent;
-		if (n > sizeof(file_buf)) {
-			n = sizeof(file_buf);
+		if (n > PROG_MULTI_MAX) {
+			n = PROG_MULTI_MAX;
 		}
 		count = read_with_retry(_fw_fd, file_buf, n);
 
@@ -438,8 +445,10 @@ PX4IO_Uploader::program(size_t fw_size)
 			    (int)errno);
 		}
 
-		if (count == 0)
+		if (count == 0) {
+			free(file_buf);
 			return OK;
+		}
 
 		sent += count;
 
@@ -455,9 +464,12 @@ PX4IO_Uploader::program(size_t fw_size)
 
 		ret = get_sync(1000);
 
-		if (ret != OK)
+		if (ret != OK) {
+			free(file_buf);
 			return ret;
+		}
 	}
+	free(file_buf);
 	return OK;
 }
 

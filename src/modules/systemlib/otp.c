@@ -133,7 +133,7 @@ int lock_otp(void)
 
 
 // COMPLETE, BUSY, or other flash error?
-int F_GetStatus(void)
+static int F_GetStatus(void)
 {
 	int fs = F_COMPLETE;
 

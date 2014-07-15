@@ -616,7 +616,7 @@ SF0X::collect()
 		}
 	}
 
-	debug("val (float): %8.4f, raw: %s, valid: %s\n", si_units, _linebuf, ((valid) ? "OK" : "NO"));
+	debug("val (float): %8.4f, raw: %s, valid: %s\n", (double)si_units, _linebuf, ((valid) ? "OK" : "NO"));
 
 	/* done with this chunk, resetting - even if invalid */
 	_linebuf_index = 0;

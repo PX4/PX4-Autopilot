@@ -41,3 +41,5 @@ SRCS		= frsky_data.c \
               frsky_telemetry.c
 
 MODULE_STACKSIZE = 1200
+
+MAXOPTIMIZATION	 = -Os

@@ -52,6 +52,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
@@ -68,6 +69,7 @@
 
 #include <board_config.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/conversion/rotation.h>
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -75,12 +77,17 @@
 #endif
 static const int ERROR = -1;
 
+// enable this to debug the buggy lsm303d sensor in very early
+// prototype pixhawk boards
+#define CHECK_EXTREMES 0
+
 /* SPI protocol address bits */
 #define DIR_READ				(1<<7)
 #define DIR_WRITE				(0<<7)
 #define ADDR_INCREMENT			(1<<6)
 
 #define LSM303D_DEVICE_PATH_ACCEL	"/dev/lsm303d_accel"
+#define LSM303D_DEVICE_PATH_ACCEL_EXT	"/dev/lsm303d_accel_ext"
 #define LSM303D_DEVICE_PATH_MAG		"/dev/lsm303d_mag"
 
 /* register addresses: A: accel, M: mag, T: temp */
@@ -216,7 +223,7 @@ class LSM303D_mag;
 class LSM303D : public device::SPI
 {
 public:
-	LSM303D(int bus, const char* path, spi_dev_e device);
+	LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rotation);
 	virtual ~LSM303D();
 
 	virtual int		init();
@@ -305,7 +312,8 @@ private:
 	uint64_t		_last_log_us;	
 	uint64_t		_last_log_sync_us;	
 	uint64_t		_last_log_reg_us;	
-	uint64_t		_last_log_alarm_us;	
+	uint64_t		_last_log_alarm_us;
+	enum Rotation		_rotation;
 
 	/**
 	 * Start automatic measurement.
@@ -485,7 +493,7 @@ private:
 };
 
 
-LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
+LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rotation) :
 	SPI("LSM303D", path, bus, device, SPIDEV_MODE3, 11*1000*1000 /* will be rounded to 10.4 MHz, within safety margins for LSM303D */),
 	_mag(new LSM303D_mag(this)),
 	_call_accel_interval(0),
@@ -519,8 +527,11 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_last_log_us(0),
 	_last_log_sync_us(0),
 	_last_log_reg_us(0),
-	_last_log_alarm_us(0)
+	_last_log_alarm_us(0),
+	_rotation(rotation)
 {
+	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LSM303D;
+
 	// enable debug() calls
 	_debug_enabled = true;
 
@@ -841,7 +852,9 @@ LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 		 */
 		while (count--) {
 			if (_accel_reports->get(arb)) {
+#if CHECK_EXTREMES
 				check_extremes(arb);
+#endif
 				ret += sizeof(*arb);
 				arb++;
 			}
@@ -1544,6 +1557,9 @@ LSM303D::measure()
 	accel_report.y = _accel_filter_y.apply(y_in_new);
 	accel_report.z = _accel_filter_z.apply(z_in_new);
 
+	// apply user specified rotation
+	rotate_3f(_rotation, accel_report.x, accel_report.y, accel_report.z);
+
 	accel_report.scaling = _accel_range_scale;
 	accel_report.range_m_s2 = _accel_range_m_s2;
 
@@ -1627,6 +1643,9 @@ LSM303D::mag_measure()
 	mag_report.z = ((mag_report.z_raw * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
 	mag_report.scaling = _mag_range_scale;
 	mag_report.range_ga = (float)_mag_range_ga;
+
+	// apply user specified rotation
+	rotate_3f(_rotation, mag_report.x, mag_report.y, mag_report.z);
 
 	_mag_reports->force(&mag_report);
 
@@ -1801,26 +1820,34 @@ namespace lsm303d
 
 LSM303D	*g_dev;
 
-void	start();
+void	start(bool external_bus, enum Rotation rotation);
 void	test();
 void	reset();
 void	info();
 void	regdump();
 void	logging();
+void	usage();
 
 /**
  * Start the driver.
  */
 void
-start()
+start(bool external_bus, enum Rotation rotation)
 {
 	int fd, fd_mag;
-
 	if (g_dev != nullptr)
 		errx(0, "already started");
 
 	/* create the driver */
-	g_dev = new LSM303D(PX4_SPI_BUS_SENSORS, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG);
+        if (external_bus) {
+        	#ifdef PX4_SPI_BUS_EXT
+		g_dev = new LSM303D(PX4_SPI_BUS_EXT, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_EXT_ACCEL_MAG, rotation);
+		#else
+		errx(0, "External SPI not available");
+		#endif
+	} else {
+		g_dev = new LSM303D(PX4_SPI_BUS_SENSORS, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG, rotation);
+	}
 
 	if (g_dev == nullptr) {
 		warnx("failed instantiating LSM303D obj");
@@ -2016,47 +2043,76 @@ logging()
 	exit(0);
 }
 
+void
+usage()
+{
+	warnx("missing command: try 'start', 'info', 'test', 'reset', 'regdump', 'logging'");
+	warnx("options:");
+	warnx("    -X    (external bus)");
+	warnx("    -R rotation");
+}
 
 } // namespace
 
 int
 lsm303d_main(int argc, char *argv[])
 {
+	bool external_bus = false;
+	int ch;
+	enum Rotation rotation = ROTATION_NONE;
+
+	/* jump over start/off/etc and look at options first */
+	while ((ch = getopt(argc, argv, "XR:")) != EOF) {
+		switch (ch) {
+		case 'X':
+			external_bus = true;
+			break;
+		case 'R':
+			rotation = (enum Rotation)atoi(optarg);
+			break;
+		default:
+			lsm303d::usage();
+			exit(0);
+		}
+	}
+
+	const char *verb = argv[optind];
+
 	/*
 	 * Start/load the driver.
 
 	 */
-	if (!strcmp(argv[1], "start"))
-		lsm303d::start();
+	if (!strcmp(verb, "start"))
+		lsm303d::start(external_bus, rotation);
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(argv[1], "test"))
+	if (!strcmp(verb, "test"))
 		lsm303d::test();
 
 	/*
 	 * Reset the driver.
 	 */
-	if (!strcmp(argv[1], "reset"))
+	if (!strcmp(verb, "reset"))
 		lsm303d::reset();
 
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[1], "info"))
+	if (!strcmp(verb, "info"))
 		lsm303d::info();
 
 	/*
 	 * dump device registers
 	 */
-	if (!strcmp(argv[1], "regdump"))
+	if (!strcmp(verb, "regdump"))
 		lsm303d::regdump();
 
 	/*
 	 * dump device registers
 	 */
-	if (!strcmp(argv[1], "logging"))
+	if (!strcmp(verb, "logging"))
 		lsm303d::logging();
 
 	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'logging' or 'regdump'");
