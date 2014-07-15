@@ -18,7 +18,7 @@ namespace clock
 void init();
 
 /**
- * Returns current monotonic time passed since the moment when clock::init() was called.
+ * Returns current monotonic time since the moment when clock::init() was called.
  * This function is thread safe.
  */
 uavcan::MonotonicTime getMonotonic();
@@ -30,7 +30,7 @@ uavcan::MonotonicTime getMonotonic();
 uavcan::UtcTime getUtc();
 
 /**
- * Performs UTC time adjustment.
+ * Performs UTC phase and frequency adjustment.
  * The UTC time will be zero until first adjustment has been performed.
  * This function is thread safe.
  */

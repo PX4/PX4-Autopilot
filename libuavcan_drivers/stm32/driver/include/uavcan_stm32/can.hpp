@@ -164,7 +164,8 @@ public:
     unsigned getRxQueueLength() const;
 
     /**
-     * Returns last hardware error code (LEC field in the register ESR)
+     * Returns last hardware error code (LEC field in the register ESR).
+     * The error code will be reset.
      */
     uavcan::uint8_t yieldLastHardwareErrorCode();
 
@@ -177,7 +178,7 @@ public:
 
 /**
  * CAN driver, incorporates all available CAN ifaces.
- * Please avoid direct usage, prefer @ref CanInitHelper instead.
+ * Please avoid direct use, prefer @ref CanInitHelper instead.
  */
 class CanDriver : public uavcan::ICanDriver, uavcan::Noncopyable
 {
