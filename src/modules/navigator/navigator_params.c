@@ -66,7 +66,7 @@ PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
 PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 25.0f);
 
 /**
- * Take-off and minimum altitude
+ * Take-off and minimum altitude above home position
  *
  * Even if the first waypoint has an altitude less than NAV_TAKEOFF_ALT above the home position,
  * a rotary wing system will climb to NAV_TAKEOFF_ALT on takeoff, and only then continue to the
