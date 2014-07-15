@@ -484,6 +484,7 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
         }
         else
         {
+            // coverity[suspicious_sizeof : FALSE]
             ::uavcan::fill_n(it, MaxSize, 0);
         }
     }
