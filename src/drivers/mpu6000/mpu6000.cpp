@@ -215,6 +215,7 @@ private:
 	float			_accel_range_scale;
 	float			_accel_range_m_s2;
 	orb_advert_t		_accel_topic;
+	orb_id_t		_accel_orb_id;
 	int			_accel_class_instance;
 
 	RingBuffer		*_gyro_reports;
@@ -367,6 +368,7 @@ protected:
 private:
 	MPU6000			*_parent;
 	orb_advert_t		_gyro_topic;
+	orb_id_t		_gyro_orb_id;
 	int			_gyro_class_instance;
 
 };
@@ -383,6 +385,7 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	_accel_range_scale(0.0f),
 	_accel_range_m_s2(0.0f),
 	_accel_topic(-1),
+	_accel_orb_id(nullptr),
 	_accel_class_instance(-1),
 	_gyro_reports(nullptr),
 	_gyro_range_scale(0.0f),
@@ -505,17 +508,23 @@ MPU6000::init()
 	/* measurement will have generated a report, publish */
 	switch (_accel_class_instance) {
 		case CLASS_DEVICE_PRIMARY:
-			_accel_topic = orb_advertise(ORB_ID(sensor_accel0), &arp);
+			_accel_orb_id = ORB_ID(sensor_accel0);
 			break;
 		
 		case CLASS_DEVICE_SECONDARY:
-			_accel_topic = orb_advertise(ORB_ID(sensor_accel1), &arp);
+			_accel_orb_id = ORB_ID(sensor_accel1);
+			break;
+
+		case CLASS_DEVICE_TERTIARY:
+			_accel_orb_id = ORB_ID(sensor_accel2);
 			break;
 
 	}
 
+	_accel_topic = orb_advertise(_accel_orb_id, &arp);
+
 	if (_accel_topic < 0) {
-		warnx("failed to create sensor_accel publication");
+		warnx("ADVERT FAIL");
 	}
 
 
@@ -525,17 +534,23 @@ MPU6000::init()
 
 	switch (_gyro->_gyro_class_instance) {
 		case CLASS_DEVICE_PRIMARY:
-			_gyro->_gyro_topic = orb_advertise(ORB_ID(sensor_gyro0), &grp);
+			_gyro->_gyro_orb_id = ORB_ID(sensor_gyro0);
 			break;
 
 		case CLASS_DEVICE_SECONDARY:
-			_gyro->_gyro_topic = orb_advertise(ORB_ID(sensor_gyro1), &grp);
+			_gyro->_gyro_orb_id = ORB_ID(sensor_gyro1);
+			break;
+
+		case CLASS_DEVICE_TERTIARY:
+			_gyro->_gyro_orb_id = ORB_ID(sensor_gyro2);
 			break;
 
 	}
 
+	_gyro->_gyro_topic = orb_advertise(_gyro->_gyro_orb_id, &grp);
+
 	if (_gyro->_gyro_topic < 0) {
-		warnx("failed to create sensor_gyro publication");
+		warnx("ADVERT FAIL");
 	}
 
 out:
@@ -1360,28 +1375,12 @@ MPU6000::measure()
 
 	if (!(_pub_blocked)) {
 		/* publish it */
-		switch (_accel_class_instance) {
-			case CLASS_DEVICE_PRIMARY:
-				orb_publish(ORB_ID(sensor_accel0), _accel_topic, &arb);
-				break;
-
-			case CLASS_DEVICE_SECONDARY:
-				orb_publish(ORB_ID(sensor_accel1), _accel_topic, &arb);
-				break;
-		}
+		orb_publish(_accel_orb_id, _accel_topic, &arb);
 	}
 
 	if (!(_pub_blocked)) {
 		/* publish it */
-		switch (_gyro->_gyro_class_instance) {
-			case CLASS_DEVICE_PRIMARY:
-				orb_publish(ORB_ID(sensor_gyro0), _gyro->_gyro_topic, &grb);
-				break;
-
-			case CLASS_DEVICE_SECONDARY:
-				orb_publish(ORB_ID(sensor_gyro1), _gyro->_gyro_topic, &grb);
-				break;
-		}
+		orb_publish(_gyro->_gyro_orb_id, _gyro->_gyro_topic, &grb);
 	}
 
 	/* stop measuring */
@@ -1402,6 +1401,7 @@ MPU6000_gyro::MPU6000_gyro(MPU6000 *parent, const char *path) :
 	CDev("MPU6000_gyro", path),
 	_parent(parent),
 	_gyro_topic(-1),
+	_gyro_orb_id(nullptr),
 	_gyro_class_instance(-1)
 {
 }
