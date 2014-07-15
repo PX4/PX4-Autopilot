@@ -68,10 +68,12 @@ PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 25.0f);
 /**
  * Take-off and minimum altitude
  *
- * Even if first waypoint has altitude less then NAV_TAKEOFF_ALT above home position, system will climb to
- * NAV_TAKEOFF_ALT on takeoff, then go to waypoint. The system will also climb to this altitude if it is
- * switched to loiter without a mission. If its current altitude is already higher than the current altitude,
- * it will not climb further.
+ * Even if the first waypoint has an altitude less than NAV_TAKEOFF_ALT above the home position,
+ * a rotary wing system will climb to NAV_TAKEOFF_ALT on takeoff, and only then continue to the
+ * waypoint. A fixed wing aircraft will climb with maximum climb speed to this altitude on takeoff.
+ * The system will also climb to this altitude if it is switched to loiter without a mission.
+ * If its current altitude is already higher than the takeoff/minium altitude, it will remain
+ * at its current altitude.
  *
  * @unit meters
  * @group Mission
