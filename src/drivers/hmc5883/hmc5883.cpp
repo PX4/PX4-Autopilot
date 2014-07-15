@@ -162,6 +162,7 @@ private:
 
 	orb_advert_t		_mag_topic;
 	orb_advert_t		_subsystem_pub;
+	orb_id_t		_mag_orb_id;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
@@ -355,6 +356,7 @@ HMC5883::HMC5883(int bus, const char *path, enum Rotation rotation) :
 	_class_instance(-1),
 	_mag_topic(-1),
 	_subsystem_pub(-1),
+	_mag_orb_id(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "hmc5883_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "hmc5883_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "hmc5883_buffer_overflows")),
@@ -422,6 +424,20 @@ HMC5883::init()
 	reset();
 
 	_class_instance = register_class_devname(MAG_DEVICE_PATH);
+
+	switch (_class_instance) {
+		case CLASS_DEVICE_PRIMARY:
+			_mag_orb_id = ORB_ID(sensor_mag0);
+			break;
+
+		case CLASS_DEVICE_SECONDARY:
+			_mag_orb_id = ORB_ID(sensor_mag1);
+			break;
+
+		case CLASS_DEVICE_TERTIARY:
+			_mag_orb_id = ORB_ID(sensor_mag2);
+			break;
+	}
 
 	ret = OK;
 	/* sensor is ok, but not calibrated */
@@ -946,16 +962,16 @@ HMC5883::collect()
 	// apply user specified rotation
 	rotate_3f(_rotation, new_report.x, new_report.y, new_report.z);
 
-	if (_class_instance == CLASS_DEVICE_PRIMARY && !(_pub_blocked)) {
+	if (!(_pub_blocked)) {
 
 		if (_mag_topic != -1) {
 			/* publish it */
-			orb_publish(ORB_ID(sensor_mag0), _mag_topic, &new_report);
+			orb_publish(_mag_orb_id, _mag_topic, &new_report);
 		} else {
-			_mag_topic = orb_advertise(ORB_ID(sensor_mag0), &new_report);
+			_mag_topic = orb_advertise(_mag_orb_id, &new_report);
 
 			if (_mag_topic < 0)
-				debug("failed to create sensor_mag publication");
+				debug("ADVERT FAIL");
 		}
 	}
 
