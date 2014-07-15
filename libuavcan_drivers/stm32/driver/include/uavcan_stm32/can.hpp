@@ -202,8 +202,15 @@ public:
         uavcan::StaticAssert<(RxQueueCapacity <= CanIface::MaxRxQueueCapacity)>::check();
     }
 
+    /**
+     * This function returns select masks indicating which interfaces are available for read/write.
+     */
     uavcan::CanSelectMasks makeSelectMasks() const;
 
+    /**
+     * Returns zero if OK.
+     * Returns negative value if failed (e.g. invalid bitrate).
+     */
     int init(uavcan::uint32_t bitrate);
 
     virtual CanIface* getIface(uavcan::uint8_t iface_index);
