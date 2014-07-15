@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.		 
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.		 
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,6 +60,7 @@
 #include <drivers/drv_gyro.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/err.h>
 #include <poll.h>
 
 __EXPORT int matlab_csv_serial_main(int argc, char *argv[]);
@@ -153,7 +154,6 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 	/* Try to set baud rate */
 	struct termios uart_config;
 	int termios_state;
-	bool is_usb = false;
 
 	/* Back up the original uart configuration to restore it after exit */
 	if ((termios_state = tcgetattr(serial_fd, &uart_config)) < 0) {
@@ -225,7 +225,7 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 			if (fds[0].revents & POLLIN)
 			{
 				orb_copy(ORB_ID(sensor_accel0), accel0_sub, &accel0);
-				orb_copy(ORB_ID(sensor_accel1), accel0_sub, &accel1);
+				orb_copy(ORB_ID(sensor_accel1), accel1_sub, &accel1);
 				orb_copy(ORB_ID(sensor_gyro0), gyro0_sub, &gyro0);
 				orb_copy(ORB_ID(sensor_gyro1), gyro1_sub, &gyro1);
 
