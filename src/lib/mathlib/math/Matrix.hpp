@@ -77,6 +77,8 @@ public:
 	{
 	}
 
+	virtual ~MatrixBase() {};
+
 	/**
 	 * copyt ctor
 	 */

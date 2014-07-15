@@ -78,19 +78,23 @@ public:
 
 	}
 
+	virtual ~VectorBase() {};
+
 	/**
 	 * copy ctor
 	 */
-	VectorBase(const VectorBase<N> &v) {
-		arm_col = {N, 1, &data[0]};
+	VectorBase(const VectorBase<N> &v) :
+		arm_col{N, 1, &data[0]}
+	{
 		memcpy(data, v.data, sizeof(data));
 	}
 
 	/**
 	 * setting ctor
 	 */
-	VectorBase(const float d[N]) {
-		arm_col = {N, 1, &data[0]};
+	VectorBase(const float d[N]) :
+		arm_col{N, 1, &data[0]}
+	{
 		memcpy(data, d, sizeof(data));
 	}
 
