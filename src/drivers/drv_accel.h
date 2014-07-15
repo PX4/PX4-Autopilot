@@ -83,6 +83,7 @@ struct accel_scale {
  */
 ORB_DECLARE(sensor_accel0);
 ORB_DECLARE(sensor_accel1);
+ORB_DECLARE(sensor_accel2);
 
 /*
  * ioctl() definitions

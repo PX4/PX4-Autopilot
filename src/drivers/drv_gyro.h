@@ -83,6 +83,7 @@ struct gyro_scale {
  */
 ORB_DECLARE(sensor_gyro0);
 ORB_DECLARE(sensor_gyro1);
+ORB_DECLARE(sensor_gyro2);
 
 /*
  * ioctl() definitions

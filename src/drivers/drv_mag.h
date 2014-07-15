@@ -81,7 +81,7 @@ struct mag_scale {
  */
 ORB_DECLARE(sensor_mag0);
 ORB_DECLARE(sensor_mag1);
-
+ORB_DECLARE(sensor_mag2);
 
 /*
  * mag device types, for _device_id
