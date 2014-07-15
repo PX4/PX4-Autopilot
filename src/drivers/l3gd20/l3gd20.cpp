@@ -213,6 +213,7 @@ private:
 	float			_gyro_range_scale;
 	float			_gyro_range_rad_s;
 	orb_advert_t		_gyro_topic;
+	orb_id_t		_orb_id;
 	int			_class_instance;
 
 	unsigned		_current_rate;
@@ -339,6 +340,7 @@ L3GD20::L3GD20(int bus, const char* path, spi_dev_e device, enum Rotation rotati
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
 	_gyro_topic(-1),
+	_orb_id(nullptr),
 	_class_instance(-1),
 	_current_rate(0),
 	_orientation(SENSOR_BOARD_ROTATION_DEFAULT),
@@ -399,6 +401,20 @@ L3GD20::init()
 
 	_class_instance = register_class_devname(GYRO_DEVICE_PATH);
 
+	switch (_class_instance) {
+		case CLASS_DEVICE_PRIMARY:
+			_orb_id = ORB_ID(sensor_gyro0);
+			break;
+
+		case CLASS_DEVICE_SECONDARY:
+			_orb_id = ORB_ID(sensor_gyro1);
+			break;
+
+		case CLASS_DEVICE_TERTIARY:
+			_orb_id = ORB_ID(sensor_gyro2);
+			break;
+	}
+
 	reset();
 
 	measure();
@@ -407,12 +423,7 @@ L3GD20::init()
 	struct gyro_report grp;
 	_reports->get(&grp);
 
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		_gyro_topic = orb_advertise(ORB_ID(sensor_gyro0), &grp);
-
-	} else if (_class_instance == CLASS_DEVICE_SECONDARY) {
-		_gyro_topic = orb_advertise(ORB_ID(sensor_gyro1), &grp);
-	}
+	_gyro_topic = orb_advertise(_orb_id, &grp);
 
 	if (_gyro_topic < 0) {
 		debug("failed to create sensor_gyro publication");
@@ -935,15 +946,7 @@ L3GD20::measure()
 	/* publish for subscribers */
 	if (!(_pub_blocked)) {
 		/* publish it */
-		switch (_class_instance) {
-			case CLASS_DEVICE_PRIMARY:
-				orb_publish(ORB_ID(sensor_gyro0), _gyro_topic, &report);
-				break;
-
-			case CLASS_DEVICE_SECONDARY:
-				orb_publish(ORB_ID(sensor_gyro1), _gyro_topic, &report);
-				break;
-		}
+		orb_publish(_orb_id, _gyro_topic, &report);
 	}
 
 	_read++;
