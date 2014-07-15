@@ -69,27 +69,34 @@ public:
 
 	/**
 	 * trivial ctor
-	 * note that this ctor will not initialize elements
+	 * Initializes the elements to zero.
 	 */
-	MatrixBase() {
-		arm_mat = {M, N, &data[0][0]};
+	MatrixBase() : 
+		data{},
+		arm_mat{M, N, &data[0][0]}
+	{
 	}
+
+	virtual ~MatrixBase() {};
 
 	/**
 	 * copyt ctor
 	 */
-	MatrixBase(const MatrixBase<M, N> &m) {
-		arm_mat = {M, N, &data[0][0]};
+	MatrixBase(const MatrixBase<M, N> &m) :
+		arm_mat{M, N, &data[0][0]}
+	{
 		memcpy(data, m.data, sizeof(data));
 	}
 
-	MatrixBase(const float *d) {
-		arm_mat = {M, N, &data[0][0]};
+	MatrixBase(const float *d) :
+		arm_mat{M, N, &data[0][0]}
+	{
 		memcpy(data, d, sizeof(data));
 	}
 
-	MatrixBase(const float d[M][N]) {
-		arm_mat = {M, N, &data[0][0]};
+	MatrixBase(const float d[M][N]) : 
+		arm_mat{M, N, &data[0][0]}
+	{
 		memcpy(data, d, sizeof(data));
 	}
 
