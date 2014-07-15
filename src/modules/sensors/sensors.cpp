@@ -199,9 +199,15 @@ private:
 	bool		_hil_enabled;			/**< if true, HIL is active */
 	bool		_publishing;			/**< if true, we are publishing sensor data */
 
-	int		_gyro_sub;			/**< raw gyro data subscription */
-	int		_accel_sub;			/**< raw accel data subscription */
-	int		_mag_sub;			/**< raw mag data subscription */
+	int		_gyro_sub;			/**< raw gyro0 data subscription */
+	int		_accel_sub;			/**< raw accel0 data subscription */
+	int		_mag_sub;			/**< raw mag0 data subscription */
+	int		_gyro1_sub;			/**< raw gyro1 data subscription */
+	int		_accel1_sub;			/**< raw accel1 data subscription */
+	int		_mag1_sub;			/**< raw mag1 data subscription */
+	int		_gyro2_sub;			/**< raw gyro2 data subscription */
+	int		_accel2_sub;			/**< raw accel2 data subscription */
+	int		_mag2_sub;			/**< raw mag2 data subscription */
 	int 		_rc_sub;			/**< raw rc channels data subscription */
 	int		_baro_sub;			/**< raw baro data subscription */
 	int		_airspeed_sub;			/**< airspeed subscription */
@@ -478,6 +484,12 @@ Sensors::Sensors() :
 	_gyro_sub(-1),
 	_accel_sub(-1),
 	_mag_sub(-1),
+	_gyro1_sub(-1),
+	_accel1_sub(-1),
+	_mag1_sub(-1),
+	_gyro2_sub(-1),
+	_accel2_sub(-1),
+	_mag2_sub(-1),
 	_rc_sub(-1),
 	_baro_sub(-1),
 	_vcontrol_mode_sub(-1),
@@ -1019,6 +1031,48 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 		raw.accelerometer_timestamp = accel_report.timestamp;
 	}
+
+	orb_check(_accel1_sub, &accel_updated);
+
+	if (accel_updated) {
+		struct accel_report	accel_report;
+
+		orb_copy(ORB_ID(sensor_accel1), _accel_sub, &accel_report);
+
+		math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
+		vect = _board_rotation * vect;
+
+		raw.accelerometer1_m_s2[0] = vect(0);
+		raw.accelerometer1_m_s2[1] = vect(1);
+		raw.accelerometer1_m_s2[2] = vect(2);
+
+		raw.accelerometer1_raw[0] = accel_report.x_raw;
+		raw.accelerometer1_raw[1] = accel_report.y_raw;
+		raw.accelerometer1_raw[2] = accel_report.z_raw;
+
+		raw.accelerometer1_timestamp = accel_report.timestamp;
+	}
+
+	orb_check(_accel2_sub, &accel_updated);
+
+	if (accel_updated) {
+		struct accel_report	accel_report;
+
+		orb_copy(ORB_ID(sensor_accel2), _accel_sub, &accel_report);
+
+		math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
+		vect = _board_rotation * vect;
+
+		raw.accelerometer2_m_s2[0] = vect(0);
+		raw.accelerometer2_m_s2[1] = vect(1);
+		raw.accelerometer2_m_s2[2] = vect(2);
+
+		raw.accelerometer2_raw[0] = accel_report.x_raw;
+		raw.accelerometer2_raw[1] = accel_report.y_raw;
+		raw.accelerometer2_raw[2] = accel_report.z_raw;
+
+		raw.accelerometer2_timestamp = accel_report.timestamp;
+	}
 }
 
 void
@@ -1045,6 +1099,48 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 
 		raw.timestamp = gyro_report.timestamp;
 	}
+
+	orb_check(_gyro1_sub, &gyro_updated);
+
+	if (gyro_updated) {
+		struct gyro_report	gyro_report;
+
+		orb_copy(ORB_ID(sensor_gyro1), _gyro1_sub, &gyro_report);
+
+		math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
+		vect = _board_rotation * vect;
+
+		raw.gyro1_rad_s[0] = vect(0);
+		raw.gyro1_rad_s[1] = vect(1);
+		raw.gyro1_rad_s[2] = vect(2);
+
+		raw.gyro1_raw[0] = gyro_report.x_raw;
+		raw.gyro1_raw[1] = gyro_report.y_raw;
+		raw.gyro1_raw[2] = gyro_report.z_raw;
+
+		raw.gyro1_timestamp = gyro_report.timestamp;
+	}
+
+	orb_check(_gyro2_sub, &gyro_updated);
+
+	if (gyro_updated) {
+		struct gyro_report	gyro_report;
+
+		orb_copy(ORB_ID(sensor_gyro2), _gyro_sub, &gyro_report);
+
+		math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
+		vect = _board_rotation * vect;
+
+		raw.gyro2_rad_s[0] = vect(0);
+		raw.gyro2_rad_s[1] = vect(1);
+		raw.gyro2_rad_s[2] = vect(2);
+
+		raw.gyro2_raw[0] = gyro_report.x_raw;
+		raw.gyro2_raw[1] = gyro_report.y_raw;
+		raw.gyro2_raw[2] = gyro_report.z_raw;
+
+		raw.gyro2_timestamp = gyro_report.timestamp;
+	}
 }
 
 void
@@ -1059,6 +1155,8 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 		orb_copy(ORB_ID(sensor_mag0), _mag_sub, &mag_report);
 
 		math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
+
+		// XXX we need device-id based handling here
 
 		if (_mag_is_external) {
 			vect = _external_mag_rotation * vect;
@@ -1621,6 +1719,12 @@ Sensors::task_main()
 	_gyro_sub = orb_subscribe(ORB_ID(sensor_gyro0));
 	_accel_sub = orb_subscribe(ORB_ID(sensor_accel0));
 	_mag_sub = orb_subscribe(ORB_ID(sensor_mag0));
+	_gyro1_sub = orb_subscribe(ORB_ID(sensor_gyro1));
+	_accel1_sub = orb_subscribe(ORB_ID(sensor_accel1));
+	_mag1_sub = orb_subscribe(ORB_ID(sensor_mag1));
+	_gyro2_sub = orb_subscribe(ORB_ID(sensor_gyro2));
+	_accel2_sub = orb_subscribe(ORB_ID(sensor_accel2));
+	_mag2_sub = orb_subscribe(ORB_ID(sensor_mag2));
 	_rc_sub = orb_subscribe(ORB_ID(input_rc));
 	_baro_sub = orb_subscribe(ORB_ID(sensor_baro0));
 	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
