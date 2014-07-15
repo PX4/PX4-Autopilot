@@ -48,14 +48,17 @@
 #include <drivers/drv_mag.h>
 ORB_DEFINE(sensor_mag0, struct mag_report);
 ORB_DEFINE(sensor_mag1, struct mag_report);
+ORB_DEFINE(sensor_mag2, struct mag_report);
 
 #include <drivers/drv_accel.h>
 ORB_DEFINE(sensor_accel0, struct accel_report);
 ORB_DEFINE(sensor_accel1, struct accel_report);
+ORB_DEFINE(sensor_accel2, struct accel_report);
 
 #include <drivers/drv_gyro.h>
 ORB_DEFINE(sensor_gyro0, struct gyro_report);
 ORB_DEFINE(sensor_gyro1, struct gyro_report);
+ORB_DEFINE(sensor_gyro2, struct gyro_report);
 
 #include <drivers/drv_baro.h>
 ORB_DEFINE(sensor_baro0, struct baro_report);
