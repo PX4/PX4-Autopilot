@@ -58,7 +58,6 @@ class SystemClock : public uavcan::ISystemClock, uavcan::Noncopyable
 public:
     /**
      * Calls clock::init() as needed.
-     * This function is thread safe.
      */
     static SystemClock& instance();
 };

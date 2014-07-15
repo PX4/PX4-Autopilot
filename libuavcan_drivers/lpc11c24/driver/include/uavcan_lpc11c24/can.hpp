@@ -8,7 +8,11 @@
 
 namespace uavcan_lpc11c24
 {
-
+/**
+ * This class implements CAN driver interface for libuavcan.
+ * No configuration needed other than CAN baudrate.
+ * This class is a singleton.
+ */
 class CanDriver
     : public uavcan::ICanDriver
     , public uavcan::ICanIface
@@ -19,13 +23,25 @@ class CanDriver
     CanDriver() { }
 
 public:
+    /**
+     * Returns the singleton reference.
+     * No other copies can be created.
+     */
     static CanDriver& instance() { return self; }
 
+    /**
+     * Returns negative value if the requested baudrate can't be used.
+     * Returns zero if OK.
+     */
     int init(uavcan::uint32_t baudrate);
 
     bool hasReadyRx() const;
     bool hasEmptyTx() const;
 
+    /**
+     * This method will return true only if there was any CAN bus activity since previous call of this method.
+     * This is intended to be used for LED iface activity indicators.
+     */
     bool hadActivity();
 
     virtual uavcan::int16_t send(const uavcan::CanFrame& frame, uavcan::MonotonicTime tx_deadline,
