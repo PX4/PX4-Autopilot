@@ -114,6 +114,7 @@ private:
 	void handle_message_vicon_position_estimate(mavlink_message_t *msg);
 	void handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message_t *msg);
 	void handle_message_local_ned_position_setpoint_external(mavlink_message_t *msg);
+	void handle_message_attitude_setpoint_external(mavlink_message_t *msg);
 	void handle_message_radio_status(mavlink_message_t *msg);
 	void handle_message_manual_control(mavlink_message_t *msg);
 	void handle_message_heartbeat(mavlink_message_t *msg);

@@ -157,6 +157,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_local_ned_position_setpoint_external(msg);
 		break;
 
+	case MAVLINK_MSG_ID_ATTITUDE_SETPOINT_EXTERNAL:
+		handle_message_attitude_setpoint_external(msg);
+		break;
+
 	case MAVLINK_MSG_ID_RADIO_STATUS:
 		handle_message_radio_status(msg);
 		break;
@@ -404,7 +408,7 @@ MavlinkReceiver::handle_message_local_ned_position_setpoint_external(mavlink_mes
 	mavlink_msg_local_ned_position_setpoint_external_decode(msg, &local_ned_position_setpoint_external);
 
 	struct offboard_control_setpoint_s offboard_control_sp;
-	memset(&offboard_control_sp, 0, sizeof(offboard_control_sp));
+	memset(&offboard_control_sp, 0, sizeof(offboard_control_sp));//XXX breaks compatibility with multiple setpoints
 
 	if (mavlink_system.sysid == local_ned_position_setpoint_external.target_system &&
 			mavlink_system.compid == local_ned_position_setpoint_external.target_component) {
@@ -438,7 +442,7 @@ MavlinkReceiver::handle_message_local_ned_position_setpoint_external(mavlink_mes
 		offboard_control_sp.acceleration[2] = local_ned_position_setpoint_external.afz;
 		offboard_control_sp.isForceSetpoint = (bool)(local_ned_position_setpoint_external.type_mask & (1 << 9));
 		for (int i = 0; i < 9; i++) {
-			offboard_control_sp.ignore &=  ~(local_ned_position_setpoint_external.type_mask & (1 << i));
+			offboard_control_sp.ignore &=  ~(1 << i);
 			offboard_control_sp.ignore |=  (local_ned_position_setpoint_external.type_mask & (1 << i));
 		}
 
@@ -463,6 +467,86 @@ MavlinkReceiver::handle_message_local_ned_position_setpoint_external(mavlink_mes
 
 			if (_control_mode.flag_control_offboard_enabled) {
 				//XXX: copy to and publish setpoint triplet here
+			}
+
+		}
+	}
+}
+
+void
+MavlinkReceiver::handle_message_attitude_setpoint_external(mavlink_message_t *msg)
+{
+	mavlink_attitude_setpoint_external_t attitude_setpoint_external;
+	mavlink_msg_attitude_setpoint_external_decode(msg, &attitude_setpoint_external);
+
+	struct offboard_control_setpoint_s offboard_control_sp;
+	memset(&offboard_control_sp, 0, sizeof(offboard_control_sp)); //XXX breaks compatibility with multiple setpoints
+
+	if (mavlink_system.sysid == attitude_setpoint_external.target_system &&
+			mavlink_system.compid == attitude_setpoint_external.target_component) {
+		for (int i = 0; i < 4; i++) {
+			offboard_control_sp.attitude[i] = attitude_setpoint_external.q[i];
+		}
+		offboard_control_sp.attitude_rate[0] = attitude_setpoint_external.body_roll_rate;
+		offboard_control_sp.attitude_rate[1] = attitude_setpoint_external.body_pitch_rate;
+		offboard_control_sp.attitude_rate[2] = attitude_setpoint_external.body_yaw_rate;
+
+		for (int i = 0; i < 3; i++) {
+			offboard_control_sp.ignore &=  ~(1 << (i + 9));
+			offboard_control_sp.ignore |=  (attitude_setpoint_external.type_mask & (1 << i)) << 9;
+		}
+		offboard_control_sp.ignore &= ~(1 << 10);
+		offboard_control_sp.ignore |= ((attitude_setpoint_external.type_mask & (1 << 7)) << 3);
+
+
+		offboard_control_sp.timestamp = hrt_absolute_time();
+
+		if (_offboard_control_sp_pub < 0) {
+			_offboard_control_sp_pub = orb_advertise(ORB_ID(offboard_control_setpoint), &offboard_control_sp);
+
+		} else {
+			orb_publish(ORB_ID(offboard_control_setpoint), _offboard_control_sp_pub, &offboard_control_sp);
+		}
+
+		/* If we are in offboard control mode and offboard control loop through is enabled
+		 * also publish the setpoint topic which is read by the controller */
+		if (_mavlink->get_forward_externalsp()) {
+			bool updated;
+			orb_check(_control_mode_sub, &updated);
+			if (updated) {
+				orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
+			}
+
+			if (_control_mode.flag_control_offboard_enabled) {
+
+				/* Publish attitude setpoint if ignore bit is not set */
+				if (!(attitude_setpoint_external.type_mask & (1 << 7))) {
+					struct vehicle_attitude_setpoint_s att_sp;
+					mavlink_quaternion_to_euler(attitude_setpoint_external.q,
+							&att_sp.roll_body, &att_sp.pitch_body, &att_sp.yaw_body);
+					att_sp.thrust = attitude_setpoint_external.thrust;
+					if (_att_sp_pub < 0) {
+						_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
+					} else {
+						orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &att_sp);
+					}
+				}
+
+				/* Publish attitude rate setpoint if ignore bit are not set */
+				///XXX add support for ignoring individual axes
+				if (!(attitude_setpoint_external.type_mask & (0b111))) {
+					struct vehicle_rates_setpoint_s rates_sp;
+					rates_sp.roll = attitude_setpoint_external.body_roll_rate;
+					rates_sp.pitch = attitude_setpoint_external.body_pitch_rate;
+					rates_sp.yaw = attitude_setpoint_external.body_yaw_rate;
+					rates_sp.thrust = attitude_setpoint_external.thrust;
+
+					if (_att_sp_pub < 0) {
+						_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &rates_sp);
+					} else {
+						orb_publish(ORB_ID(vehicle_rates_setpoint), _rates_sp_pub, &rates_sp);
+					}
+				}
 			}
 
 		}

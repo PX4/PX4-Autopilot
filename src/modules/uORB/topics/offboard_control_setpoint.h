@@ -88,6 +88,7 @@ struct offboard_control_setpoint_s {
 	float attitude_rate[3];	/**< body angular rates (x, y, z) */
 
 	uint16_t ignore; /**< if field i is set to true, pi should be ignored */
+	//XXX define constants for bit offsets
 	bool isForceSetpoint; /**< the acceleration vector should be interpreted as force */
 
 	float override_mode_switch;
@@ -117,6 +118,11 @@ inline bool offboard_control_sp_ignore_acceleration(const struct offboard_contro
 inline bool offboard_control_sp_ignore_bodyrates(const struct offboard_control_setpoint_s &offboard_control_sp, int index) {
 	return (bool)(offboard_control_sp.ignore & (1 << (9 + index)));
 }
+
+inline bool offboard_control_sp_ignore_attitude(const struct offboard_control_setpoint_s &offboard_control_sp) {
+	return (bool)(offboard_control_sp.ignore & (1 << 10));
+}
+
 
 /* register this as object request broker structure */
 ORB_DECLARE(offboard_control_setpoint);
