@@ -68,8 +68,20 @@ public:
      */
     int blockingCall(uavcan::NodeID server_node_id, const typename DataType::Request& request)
     {
+        return blockingCall(server_node_id, request, Super::getDefaultRequestTimeout());
+    }
+
+    /**
+     * Performs a blocking service call using the specified timeout. Please consider using default timeout instead.
+     * Use @ref getResponse() to get the actual response.
+     * Returns negative error code.
+     */
+    int blockingCall(uavcan::NodeID server_node_id, const typename DataType::Request& request,
+                     uavcan::MonotonicDuration timeout)
+    {
         const auto SpinDuration = uavcan::MonotonicDuration::fromMSec(2);
         setup();
+        Super::setRequestTimeout(timeout);
         const int call_res = Super::call(server_node_id, request);
         if (call_res >= 0)
         {
@@ -83,18 +95,6 @@ public:
             }
         }
         return call_res;
-    }
-
-    /**
-     * Performs a blocking service call using the specified timeout. Please consider using default timeout instead.
-     * Use @ref getResponse() to get the actual response.
-     * Returns negative error code.
-     */
-    int blockingCall(uavcan::NodeID server_node_id, const typename DataType::Request& request,
-                     uavcan::MonotonicDuration timeout)
-    {
-        Super::setRequestTimeout(timeout);
-        return blockingCall(server_node_id, request);
     }
 
     /**
