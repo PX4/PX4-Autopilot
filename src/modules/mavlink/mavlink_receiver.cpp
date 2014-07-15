@@ -487,9 +487,9 @@ MavlinkReceiver::handle_message_attitude_setpoint_external(mavlink_message_t *ms
 
 	/* Only accept messages which are intended for this system */
 	if ((mavlink_system.sysid == attitude_setpoint_external.target_system ||
-				local_ned_position_setpoint_external.target_system == 0) &&
-			(mavlink_system.compid == local_ned_position_setpoint_external.target_component ||
-			 local_ned_position_setpoint_external.target_component == 0)) {
+				attitude_setpoint_external.target_system == 0) &&
+			(mavlink_system.compid == attitude_setpoint_external.target_component ||
+			 attitude_setpoint_external.target_component == 0)) {
 		for (int i = 0; i < 4; i++) {
 			offboard_control_sp.attitude[i] = attitude_setpoint_external.q[i];
 		}
