@@ -5,7 +5,7 @@
 #pragma once
 
 #include <uavcan/stdint.hpp>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 
 namespace uavcan
 {

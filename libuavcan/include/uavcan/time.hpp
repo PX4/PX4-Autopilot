@@ -6,7 +6,7 @@
 
 #include <cstdio>
 #include <uavcan/stdint.hpp>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #include <uavcan/util/templates.hpp>
 #include <uavcan/Timestamp.hpp>
 

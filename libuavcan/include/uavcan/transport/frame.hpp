@@ -7,7 +7,7 @@
 #include <cassert>
 #include <uavcan/transport/transfer.hpp>
 #include <uavcan/transport/can_io.hpp>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #include <uavcan/data_type.hpp>
 
 namespace uavcan

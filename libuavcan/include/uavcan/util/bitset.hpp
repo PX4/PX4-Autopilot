@@ -7,7 +7,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstring>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 
 namespace uavcan
 {

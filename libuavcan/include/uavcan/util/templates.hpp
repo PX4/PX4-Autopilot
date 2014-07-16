@@ -7,7 +7,7 @@
 #include <climits>
 #include <cstddef>
 #include <cmath>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 
 #ifndef UAVCAN_CPP_VERSION
 # error UAVCAN_CPP_VERSION

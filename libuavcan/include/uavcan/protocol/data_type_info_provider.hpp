@@ -6,7 +6,7 @@
 
 #include <uavcan/node/service_server.hpp>
 #include <uavcan/util/method_binder.hpp>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #include <uavcan/protocol/ComputeAggregateTypeSignature.hpp>
 #include <uavcan/protocol/GetDataTypeInfo.hpp>
 

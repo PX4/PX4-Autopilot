@@ -11,7 +11,7 @@
 #include <uavcan/error.hpp>
 #include <uavcan/util/bitset.hpp>
 #include <uavcan/util/templates.hpp>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #include <uavcan/marshal/type_util.hpp>
 #include <uavcan/marshal/integer_spec.hpp>
 

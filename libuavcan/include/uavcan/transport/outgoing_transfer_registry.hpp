@@ -6,7 +6,7 @@
 
 #include <cassert>
 #include <uavcan/stdint.hpp>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #include <uavcan/util/map.hpp>
 #include <uavcan/debug.hpp>
 #include <uavcan/transport/transfer.hpp>

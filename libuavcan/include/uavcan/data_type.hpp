@@ -7,7 +7,7 @@
 #include <cassert>
 #include <cstring>
 #include <uavcan/stdint.hpp>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #include <uavcan/transport/transfer.hpp>
 
 namespace uavcan

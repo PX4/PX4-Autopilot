@@ -10,7 +10,7 @@
 #include <uavcan/stdint.hpp>
 #include <uavcan/util/linked_list.hpp>
 #include <uavcan/dynamic_memory.hpp>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #include <uavcan/util/templates.hpp>
 #include <uavcan/util/lazy_constructor.hpp>
 #include <uavcan/driver/can.hpp>

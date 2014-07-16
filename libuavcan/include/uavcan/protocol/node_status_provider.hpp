@@ -9,7 +9,7 @@
 #include <uavcan/node/service_server.hpp>
 #include <uavcan/node/timer.hpp>
 #include <uavcan/util/method_binder.hpp>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #include <uavcan/protocol/NodeStatus.hpp>
 #include <uavcan/protocol/GetNodeInfo.hpp>
 #include <uavcan/protocol/GlobalDiscoveryRequest.hpp>

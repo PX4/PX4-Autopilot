@@ -5,7 +5,7 @@
 #pragma once
 
 #include <cstddef>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 
 /*
  * Some embedded C++ implementations don't implement the placement new operator.

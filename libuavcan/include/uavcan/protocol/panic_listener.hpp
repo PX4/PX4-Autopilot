@@ -6,7 +6,7 @@
 
 #include <cassert>
 #include <uavcan/debug.hpp>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #include <uavcan/node/subscriber.hpp>
 #include <uavcan/util/method_binder.hpp>
 #include <uavcan/protocol/Panic.hpp>

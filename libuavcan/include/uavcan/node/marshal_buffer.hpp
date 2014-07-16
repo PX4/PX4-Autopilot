@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #include <uavcan/transport/transfer.hpp>
 #include <uavcan/transport/transfer_buffer.hpp>
 

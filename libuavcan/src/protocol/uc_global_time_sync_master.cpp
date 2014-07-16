@@ -2,7 +2,7 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #if !UAVCAN_TINY
 
 #include <uavcan/protocol/global_time_sync_master.hpp>

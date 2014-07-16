@@ -7,7 +7,7 @@
 
 #include <cassert>
 #include <uavcan/stdint.hpp>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #include <uavcan/driver/system_clock.hpp>
 
 namespace uavcan

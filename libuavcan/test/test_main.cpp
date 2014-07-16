@@ -3,7 +3,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 
 int main(int argc, char **argv)
 {

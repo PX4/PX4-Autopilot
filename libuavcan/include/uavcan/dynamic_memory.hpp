@@ -10,7 +10,7 @@
 #include <uavcan/stdint.hpp>
 #include <uavcan/util/templates.hpp>
 #include <uavcan/util/placement_new.hpp>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 
 namespace uavcan
 {

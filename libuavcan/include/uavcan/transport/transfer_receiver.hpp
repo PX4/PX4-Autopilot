@@ -5,7 +5,7 @@
 #pragma once
 
 #include <cstdlib>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #include <uavcan/transport/frame.hpp>
 #include <uavcan/transport/transfer_buffer.hpp>
 

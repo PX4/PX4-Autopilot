@@ -6,7 +6,7 @@
 
 #include <uavcan/stdint.hpp>
 #include <uavcan/error.hpp>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #include <uavcan/util/linked_list.hpp>
 #include <uavcan/node/scheduler.hpp>
 #include <uavcan/node/abstract_node.hpp>

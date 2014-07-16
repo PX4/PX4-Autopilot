@@ -5,7 +5,7 @@
 #pragma once
 
 #include <cassert>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #include <uavcan/node/generic_subscriber.hpp>
 
 #if !defined(UAVCAN_CPP_VERSION) || !defined(UAVCAN_CPP11)

@@ -7,7 +7,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <uavcan/util/linked_list.hpp>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #include <uavcan/dynamic_memory.hpp>
 #include <uavcan/util/templates.hpp>
 

@@ -6,7 +6,7 @@
 
 #include <cassert>
 #include <uavcan/error.hpp>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #include <uavcan/dynamic_memory.hpp>
 #include <uavcan/node/abstract_node.hpp>
 #include <uavcan/node/marshal_buffer.hpp>

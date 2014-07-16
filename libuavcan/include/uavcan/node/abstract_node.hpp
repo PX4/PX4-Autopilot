@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #include <uavcan/node/scheduler.hpp>
 #include <uavcan/node/marshal_buffer.hpp>
 

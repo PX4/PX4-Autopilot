@@ -7,7 +7,7 @@
 #include <cassert>
 #include <uavcan/error.hpp>
 #include <uavcan/stdint.hpp>
-#include <uavcan/impl_constants.hpp>
+#include <uavcan/build_config.hpp>
 #include <uavcan/transport/perf_counter.hpp>
 #include <uavcan/transport/transfer_listener.hpp>
 #include <uavcan/transport/outgoing_transfer_registry.hpp>
