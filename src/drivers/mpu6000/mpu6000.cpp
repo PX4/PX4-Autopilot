@@ -1437,6 +1437,9 @@ void	usage();
 
 /**
  * Start the driver.
+ *
+ * This function only returns if the driver is up and running
+ * or failed to detect the sensor.
  */
 void
 start(bool external_bus, enum Rotation rotation)
@@ -1507,7 +1510,7 @@ test(bool external_bus)
 	int fd = open(path_accel, O_RDONLY);
 
 	if (fd < 0)
-		err(1, "%s open failed (try 'mpu6000 start' if the driver is not running)",
+		err(1, "%s open failed (try 'mpu6000 start')",
 		    path_accel);
 
 	/* get the driver */
