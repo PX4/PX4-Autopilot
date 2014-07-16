@@ -46,3 +46,5 @@ SRCS			= px4io.cpp \
 INCLUDE_DIRS    += $(NUTTX_SRC)/arch/arm/src/stm32 $(NUTTX_SRC)/arch/arm/src/common
 
 MODULE_STACKSIZE = 1200
+
+EXTRACXXFLAGS	= -Weffc++
