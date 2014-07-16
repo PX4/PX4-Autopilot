@@ -6,9 +6,19 @@
 ms5611 start
 adc start
 
+if mpu6000 -X start
+then
+	echo "External MPU6000"
+fi
+
 if mpu6000 start
 then
 	echo "Internal MPU6000"
+fi
+
+if l3gd20 -X start
+then
+	echo "External L3GD20(H)"
 fi
 
 if l3gd20 start
@@ -42,6 +52,11 @@ fi
 
 if ver hwcmp PX4FMU_V2
 then
+	if lsm303d -X start
+	then
+		echo "External LSM303D"
+	fi
+
 	if lsm303d start
 	then
 		echo "Internal LSM303D"
