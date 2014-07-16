@@ -6,12 +6,6 @@
 ms5611 start
 adc start
 
-# Mag might be external
-if hmc5883 start
-then
-	echo "[init] Using HMC5883"
-fi
-
 if mpu6000 start
 then
 	echo "[init] Using MPU6000"
@@ -22,12 +16,25 @@ then
 	echo "[init] Using L3GD20(H)"
 fi
 
-if ver hwcmp PX4FMU_V2
+# Use selected (internal/external) magnetometer
+if param compare SYS_EXT_MAG 0
 then
-	# IMPORTANT: EXTERNAL BUSES SHOULD BE SCANNED FIRST
-	if lsm303d start
+	if hmc5883 -I start
 	then
-		echo "[init] Using LSM303D"
+		echo "[init] Using internal HMC5883"
+	fi
+
+	if ver hwcmp PX4FMU_V2
+	then
+		if lsm303d start
+		then
+			echo "[init] Using internal LSM303D"
+		fi
+	fi
+else
+	if hmc5883 -X start
+	then
+		echo "[init] Using external HMC5883"
 	fi
 fi
 

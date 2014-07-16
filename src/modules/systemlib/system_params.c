@@ -82,3 +82,14 @@ PARAM_DEFINE_INT32(SYS_USE_IO, 1);
 * @group System
 */
 PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
+
+/**
+* Set usage of external magnetometer
+*
+* Set to 1 to use external magnetometer instead of internal one.
+*
+* @min 0
+* @max 1
+* @group System
+*/
+PARAM_DEFINE_INT32(SYS_EXT_MAG, 0);
