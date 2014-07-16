@@ -621,11 +621,16 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				res = main_state_transition(status_local, MAIN_STATE_OFFBOARD);
 				if (res == TRANSITION_DENIED) {
 					print_reject_mode(status_local, "OFFBOARD");
+					status_local->offboard_control_set_by_command = false;
+				} else {
+					/* Set flag that offboard was set via command, main state is not overridden by rc */
+					status_local->offboard_control_set_by_command = true;
 				}
 			} else {
 				/* If the mavlink command is used to enable or disable offboard control:
 				 * switch back to previous mode when disabling */
 				res = main_state_transition(status_local, main_state_pre_offboard);
+				status_local->offboard_control_set_by_command = false;
 			}
 		}
 		break;
@@ -1748,6 +1753,11 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 {
 	/* set main state according to RC switches */
 	transition_result_t res = TRANSITION_DENIED;
+
+	/* if offboard is set allready by a mavlink command, abort */
+	if (status.offboard_control_set_by_command) {
+		return main_state_transition(status_local, MAIN_STATE_OFFBOARD);
+	}
 
 	/* offboard switch overrides main switch */
 	if (sp_man->offboard_switch == SWITCH_POS_ON) {
