@@ -528,6 +528,7 @@ MavlinkReceiver::handle_message_attitude_setpoint_external(mavlink_message_t *ms
 				/* Publish attitude setpoint if ignore bit is not set */
 				if (!(attitude_setpoint_external.type_mask & (1 << 7))) {
 					struct vehicle_attitude_setpoint_s att_sp;
+					att_sp.timestamp = hrt_absolute_time();
 					mavlink_quaternion_to_euler(attitude_setpoint_external.q,
 							&att_sp.roll_body, &att_sp.pitch_body, &att_sp.yaw_body);
 					att_sp.thrust = attitude_setpoint_external.thrust;
@@ -542,6 +543,7 @@ MavlinkReceiver::handle_message_attitude_setpoint_external(mavlink_message_t *ms
 				///XXX add support for ignoring individual axes
 				if (!(attitude_setpoint_external.type_mask & (0b111))) {
 					struct vehicle_rates_setpoint_s rates_sp;
+					rates_sp.timestamp = hrt_absolute_time();
 					rates_sp.roll = attitude_setpoint_external.body_roll_rate;
 					rates_sp.pitch = attitude_setpoint_external.body_pitch_rate;
 					rates_sp.yaw = attitude_setpoint_external.body_yaw_rate;
