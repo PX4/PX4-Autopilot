@@ -990,6 +990,9 @@ void	info();
 
 /**
  * Start the driver.
+ *
+ * This function call only returns once the driver
+ * started or failed to detect the sensor.
  */
 void
 start(bool external_bus, enum Rotation rotation)
