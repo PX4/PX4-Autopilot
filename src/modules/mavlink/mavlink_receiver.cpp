@@ -506,6 +506,7 @@ MavlinkReceiver::handle_message_attitude_setpoint_external(mavlink_message_t *ms
 
 
 		offboard_control_sp.timestamp = hrt_absolute_time();
+		offboard_control_sp.mode =OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE; //XXX handle rate control mode
 
 		if (_offboard_control_sp_pub < 0) {
 			_offboard_control_sp_pub = orb_advertise(ORB_ID(offboard_control_setpoint), &offboard_control_sp);
@@ -532,6 +533,8 @@ MavlinkReceiver::handle_message_attitude_setpoint_external(mavlink_message_t *ms
 					mavlink_quaternion_to_euler(attitude_setpoint_external.q,
 							&att_sp.roll_body, &att_sp.pitch_body, &att_sp.yaw_body);
 					att_sp.thrust = attitude_setpoint_external.thrust;
+					att_sp.q_d_valid = true;
+					memcpy(att_sp.q_d, attitude_setpoint_external.q, sizeof(att_sp.q_d));
 					if (_att_sp_pub < 0) {
 						_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 					} else {
