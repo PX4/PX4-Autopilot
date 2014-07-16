@@ -4,3 +4,5 @@
 
 MODULE_COMMAND	 = pca8574
 SRCS		 = pca8574.cpp
+
+MAXOPTIMIZATION	 = -Os
