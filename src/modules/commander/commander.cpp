@@ -1441,7 +1441,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* data links check */
 		bool have_link = false;
 		for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
-			if (hrt_elapsed_time(&telemetry_last_heartbeat[i]) < DL_TIMEOUT) {
+			if (telemetry_last_heartbeat[i] != 0 && hrt_elapsed_time(&telemetry_last_heartbeat[i]) < DL_TIMEOUT) {
 				/* handle the case where data link was regained */
 				if (telemetry_lost[i]) {
 					mavlink_log_critical(mavlink_fd, "data link %i regained", i);
