@@ -1803,6 +1803,9 @@ void	usage();
 
 /**
  * Start the driver.
+ *
+ * This function call only returns once the driver is
+ * up and running or failed to detect the sensor.
  */
 void
 start(bool external_bus, enum Rotation rotation)

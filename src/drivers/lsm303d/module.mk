@@ -5,4 +5,4 @@
 MODULE_COMMAND	 = lsm303d
 SRCS		 = lsm303d.cpp
 
-
+MODULE_STACKSIZE	= 1200
