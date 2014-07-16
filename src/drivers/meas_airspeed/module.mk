@@ -40,3 +40,5 @@ MODULE_COMMAND		= meas_airspeed
 SRCS			= meas_airspeed.cpp
 
 MODULE_STACKSIZE	= 1200
+
+EXTRACXXFLAGS	= -Weffc++
