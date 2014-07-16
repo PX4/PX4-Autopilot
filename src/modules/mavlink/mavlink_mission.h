@@ -174,4 +174,8 @@ private:
 
 	mavlink_channel_t	_channel;
 	uint8_t			_comp_id;
+
+	/* do not allow copying this class */
+	MavlinkMissionManager(const MavlinkMissionManager&);
+	MavlinkMissionManager operator=(const MavlinkMissionManager&);
 };
