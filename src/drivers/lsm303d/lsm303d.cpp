@@ -461,6 +461,10 @@ private:
 	 * @return		OK if the value can be supported.
 	 */
 	int			mag_set_samplerate(unsigned frequency);
+
+	/* this class cannot be copied */
+	LSM303D(const LSM303D&);
+	LSM303D operator=(const LSM303D&);
 };
 
 /**
@@ -490,20 +494,28 @@ private:
 	void				measure();
 
 	void				measure_trampoline(void *arg);
+
+	/* this class does not allow copying due to ptr data members */
+	LSM303D_mag(const LSM303D_mag&);
+	LSM303D_mag operator=(const LSM303D_mag&);
 };
 
 
 LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rotation) :
 	SPI("LSM303D", path, bus, device, SPIDEV_MODE3, 11*1000*1000 /* will be rounded to 10.4 MHz, within safety margins for LSM303D */),
 	_mag(new LSM303D_mag(this)),
+	_accel_call{},
+	_mag_call{},
 	_call_accel_interval(0),
 	_call_mag_interval(0),
 	_accel_reports(nullptr),
 	_mag_reports(nullptr),
+	_accel_scale{},
 	_accel_range_m_s2(0.0f),
 	_accel_range_scale(0.0f),
 	_accel_samplerate(0),
 	_accel_onchip_filter_bandwith(0),
+	_mag_scale{},
 	_mag_range_ga(0.0f),
 	_mag_range_scale(0.0f),
 	_mag_samplerate(0),
@@ -524,6 +536,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rota
 	_reg7_expected(0),
 	_accel_log_fd(-1),
 	_accel_logging_enabled(false),
+	_last_extreme_us(0),
 	_last_log_us(0),
 	_last_log_sync_us(0),
 	_last_log_reg_us(0),
