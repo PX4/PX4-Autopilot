@@ -8,33 +8,43 @@ adc start
 
 if mpu6000 start
 then
-	echo "[init] Using MPU6000"
+	echo "Internal MPU6000"
 fi
 
 if l3gd20 start
 then
-	echo "[init] Using L3GD20(H)"
+	echo "Internal L3GD20(H)"
 fi
 
-# Use selected (internal/external) magnetometer
-if param compare SYS_EXT_MAG 0
+# MAG selection
+if param compare SENS_EXT_MAG 2
 then
 	if hmc5883 -I start
 	then
-		echo "[init] Using internal HMC5883"
-	fi
-
-	if ver hwcmp PX4FMU_V2
-	then
-		if lsm303d start
-		then
-			echo "[init] Using internal LSM303D"
-		fi
+		echo "Internal HMC5883"
 	fi
 else
-	if hmc5883 -X start
+	# Use only external as primary
+	if param compare SENS_EXT_MAG 1
 	then
-		echo "[init] Using external HMC5883"
+		if hmc5883 -X start
+		then
+			echo "External HMC5883"
+		fi
+	else
+	# auto-detect the primary, prefer external
+		if hmc5883 start
+		then
+			echo "Default HMC5883"
+		fi
+	fi
+fi
+
+if ver hwcmp PX4FMU_V2
+then
+	if lsm303d start
+	then
+		echo "Internal LSM303D"
 	fi
 fi
 
