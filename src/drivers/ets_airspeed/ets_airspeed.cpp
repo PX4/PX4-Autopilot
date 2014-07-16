@@ -286,6 +286,9 @@ void	info();
 
 /**
  * Start the driver.
+ *
+ * This function only returns if the sensor is up and running
+ * or could not be detected successfully.
  */
 void
 start(int i2c_bus)

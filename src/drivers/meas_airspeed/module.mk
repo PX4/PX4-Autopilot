@@ -36,6 +36,7 @@
 #
 
 MODULE_COMMAND		= meas_airspeed
-MODULE_STACKSIZE	= 2048
 
 SRCS			= meas_airspeed.cpp
+
+MODULE_STACKSIZE	= 1200
