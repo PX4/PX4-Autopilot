@@ -240,6 +240,7 @@ private:
 	 * @param context	Pointer to the interrupted context.
 	 */
 	static void	dev_interrupt(int irq, void *context);
+
 };
 
 /**
@@ -469,6 +470,10 @@ private:
 	 * @return		OK, or -errno on error.
 	 */
 	int		remove_poll_waiter(struct pollfd *fds);
+
+	/* do not allow copying this class */
+	CDev(const CDev&);
+	CDev operator=(const CDev&);
 };
 
 /**

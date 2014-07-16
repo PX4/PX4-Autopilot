@@ -77,6 +77,10 @@ protected:
 
 private:
 	hrt_abstime _last_sent;
+
+	/* do not allow top copying this class */
+	MavlinkStream(const MavlinkStream&);
+	MavlinkStream& operator=(const MavlinkStream&);
 };
 
 
