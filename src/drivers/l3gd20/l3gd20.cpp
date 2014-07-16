@@ -330,12 +330,18 @@ private:
 	 * @return 0 on success, 1 on failure
 	 */
 	 int 			self_test();
+
+	/* this class does not allow copying */
+	L3GD20(const L3GD20&);
+	L3GD20 operator=(const L3GD20&);
 };
 
 L3GD20::L3GD20(int bus, const char* path, spi_dev_e device, enum Rotation rotation) :
 	SPI("L3GD20", path, bus, device, SPIDEV_MODE3, 11*1000*1000 /* will be rounded to 10.4 MHz, within margins for L3GD20 */),
+	_call{},
 	_call_interval(0),
 	_reports(nullptr),
+	_gyro_scale{},
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
 	_gyro_topic(-1),
@@ -990,6 +996,9 @@ void	info();
 
 /**
  * Start the driver.
+ *
+ * This function call only returns once the driver
+ * started or failed to detect the sensor.
  */
 void
 start(bool external_bus, enum Rotation rotation)

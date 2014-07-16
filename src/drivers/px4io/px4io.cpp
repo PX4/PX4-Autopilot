@@ -453,6 +453,9 @@ private:
 	 */
 	void			io_handle_vservo(uint16_t vservo, uint16_t vrssi);
 
+	/* do not allow to copy this class due to ptr data members */
+	PX4IO(const PX4IO&);
+	PX4IO operator=(const PX4IO&);
 };
 
 namespace
@@ -496,6 +499,8 @@ PX4IO::PX4IO(device::Device *interface) :
 	_to_battery(0),
 	_to_servorail(0),
 	_to_safety(0),
+	_outputs{},
+	_servorail_status{},
 	_primary_pwm_device(false),
 	_lockdown_override(false),
 	_battery_amp_per_volt(90.0f / 5.0f), // this matches the 3DR current sensor

@@ -337,6 +337,9 @@ private:
 	 */
 	 int 			check_offset();
 
+	/* this class has pointer data members, do not allow copying it */
+	HMC5883(const HMC5883&);
+	HMC5883 operator=(const HMC5883&);
 };
 
 /*
@@ -347,8 +350,10 @@ extern "C" __EXPORT int hmc5883_main(int argc, char *argv[]);
 
 HMC5883::HMC5883(int bus, const char *path, enum Rotation rotation) :
 	I2C("HMC5883", path, bus, HMC5883L_ADDRESS, 400000),
+	_work{},
 	_measure_ticks(0),
 	_reports(nullptr),
+	_scale{},
 	_range_scale(0), /* default range scale from counts to gauss */
 	_range_ga(1.3f),
 	_collect_phase(false),
@@ -867,7 +872,7 @@ HMC5883::collect()
 	struct {
 		int16_t		x, y, z;
 	} report;
-	int	ret = -EIO;
+	int	ret;
 	uint8_t	cmd;
 	uint8_t check_counter;
 
@@ -1157,7 +1162,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 out:
 
 	if (OK != ioctl(filp, MAGIOCSSCALE, (long unsigned int)&mscale_previous)) {
-		warn("WARNING: failed to set new scale / offsets for mag");
+		warn("failed to set new scale / offsets for mag");
 	}
 
 	/* set back to normal mode */
@@ -1353,6 +1358,9 @@ void	usage();
 
 /**
  * Start the driver.
+ *
+ * This function call only returns once the driver
+ * is either successfully up and running or failed to start.
  */
 void
 start(int bus, enum Rotation rotation)
@@ -1448,7 +1456,7 @@ test(int bus)
 	int fd = open(path, O_RDONLY);
 
 	if (fd < 0)
-		err(1, "%s open failed (try 'hmc5883 start' if the driver is not running", path);
+		err(1, "%s open failed (try 'hmc5883 start')", path);
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));

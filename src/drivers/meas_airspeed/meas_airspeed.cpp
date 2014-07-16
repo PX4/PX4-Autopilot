@@ -140,9 +140,9 @@ extern "C" __EXPORT int meas_airspeed_main(int argc, char *argv[]);
 MEASAirspeed::MEASAirspeed(int bus, int address, const char *path) : Airspeed(bus, address,
 	CONVERSION_INTERVAL, path),
 	_filter(MEAS_RATE, MEAS_DRIVER_FILTER_FREQ),
-	_t_system_power(-1)
+	_t_system_power(-1),
+	system_power{}
 {
-	memset(&system_power, 0, sizeof(system_power));
 }
 
 int
@@ -420,6 +420,9 @@ void	info();
 
 /**
  * Start the driver.
+ *
+ * This function call only returns once the driver is up and running
+ * or failed to detect the sensor.
  */
 void
 start(int i2c_bus)

@@ -343,6 +343,9 @@ private:
 	*/
 	void _set_sample_rate(uint16_t desired_sample_rate_hz);
 
+	/* do not allow to copy this class due to pointer data members */
+	MPU6000(const MPU6000&);
+	MPU6000 operator=(const MPU6000&);
 };
 
 /**
@@ -369,6 +372,9 @@ private:
 	orb_advert_t		_gyro_topic;
 	int			_gyro_class_instance;
 
+	/* do not allow to copy this class due to pointer data members */
+	MPU6000_gyro(const MPU6000_gyro&);
+	MPU6000_gyro operator=(const MPU6000_gyro&);
 };
 
 /** driver 'main' command */
@@ -378,13 +384,16 @@ MPU6000::MPU6000(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	SPI("MPU6000", path_accel, bus, device, SPIDEV_MODE3, MPU6000_LOW_BUS_SPEED),
 	_gyro(new MPU6000_gyro(this, path_gyro)),
 	_product(0),
+	_call{},
 	_call_interval(0),
 	_accel_reports(nullptr),
+	_accel_scale{},
 	_accel_range_scale(0.0f),
 	_accel_range_m_s2(0.0f),
 	_accel_topic(-1),
 	_accel_class_instance(-1),
 	_gyro_reports(nullptr),
+	_gyro_scale{},
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
 	_sample_rate(1000),
@@ -1437,6 +1446,9 @@ void	usage();
 
 /**
  * Start the driver.
+ *
+ * This function only returns if the driver is up and running
+ * or failed to detect the sensor.
  */
 void
 start(bool external_bus, enum Rotation rotation)
@@ -1507,7 +1519,7 @@ test(bool external_bus)
 	int fd = open(path_accel, O_RDONLY);
 
 	if (fd < 0)
-		err(1, "%s open failed (try 'mpu6000 start' if the driver is not running)",
+		err(1, "%s open failed (try 'mpu6000 start')",
 		    path_accel);
 
 	/* get the driver */
