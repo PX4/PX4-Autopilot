@@ -8,22 +8,18 @@ adc start
 
 if mpu6000 -X start
 then
-	echo "External MPU6000"
 fi
 
 if mpu6000 start
 then
-	echo "Internal MPU6000"
 fi
 
 if l3gd20 -X start
 then
-	echo "External L3GD20(H)"
 fi
 
 if l3gd20 start
 then
-	echo "Internal L3GD20(H)"
 fi
 
 # MAG selection
@@ -31,7 +27,6 @@ if param compare SENS_EXT_MAG 2
 then
 	if hmc5883 -I start
 	then
-		echo "Internal HMC5883"
 	fi
 else
 	# Use only external as primary
@@ -39,13 +34,11 @@ else
 	then
 		if hmc5883 -X start
 		then
-			echo "External HMC5883"
 		fi
 	else
 	# auto-detect the primary, prefer external
 		if hmc5883 start
 		then
-			echo "Default HMC5883"
 		fi
 	fi
 fi
@@ -54,12 +47,10 @@ if ver hwcmp PX4FMU_V2
 then
 	if lsm303d -X start
 	then
-		echo "External LSM303D"
 	fi
 
 	if lsm303d start
 	then
-		echo "Internal LSM303D"
 	fi
 fi
 
@@ -70,11 +61,9 @@ then
 else
 	if ets_airspeed start
 	then
-		echo "[init] Using ETS airspeed sensor (bus 3)"
 	else
 		if ets_airspeed start -b 1
 		then
-			echo "[init] Using ETS airspeed sensor (bus 1)"
 		fi
 	fi
 fi
