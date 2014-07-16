@@ -86,7 +86,9 @@ static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
 
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
-
+	status{},
+	hil_local_pos{},
+	_control_mode{},
 	_global_pos_pub(-1),
 	_local_pos_pub(-1),
 	_attitude_pub(-1),
@@ -111,15 +113,13 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_manual_pub(-1),
 	_telemetry_heartbeat_time(0),
 	_radio_status_available(false),
-	_control_mode_sub(-1),
+	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
 	_old_timestamp(0),
 	_hil_local_proj_inited(0),
-	_hil_local_alt0(0.0)
+	_hil_local_alt0(0.0f),
+	_hil_local_proj_ref{}
 {
-	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	memset(&hil_local_pos, 0, sizeof(hil_local_pos));
-	memset(&_control_mode, 0, sizeof(_control_mode));
 
 	// make sure the FTP server is started
 	(void)MavlinkFTP::getServer();

@@ -1358,8 +1358,8 @@ namespace hmc5883
 #endif
 const int ERROR = -1;
 
-HMC5883	*g_dev_int;
-HMC5883	*g_dev_ext;
+HMC5883	*g_dev_int = nullptr;
+HMC5883	*g_dev_ext = nullptr;
 
 void	start(int bus, enum Rotation rotation);
 void	test(int bus);
@@ -1395,6 +1395,11 @@ start(int bus, enum Rotation rotation)
 			errx(0, "already started internal");
 		g_dev_int = new HMC5883(PX4_I2C_BUS_ONBOARD, HMC5883L_DEVICE_PATH_INT, rotation);
 		if (g_dev_int != nullptr && OK != g_dev_int->init()) {
+
+			/* tear down the failing onboard instance */
+			delete g_dev_int;
+			g_dev_int = nullptr;
+
 			if (bus == PX4_I2C_BUS_ONBOARD) {
 				goto fail;
 			}

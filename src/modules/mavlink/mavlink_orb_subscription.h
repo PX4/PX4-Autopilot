@@ -82,6 +82,10 @@ private:
 	const orb_id_t _topic;		///< topic metadata
 	int _fd;			///< subscription handle
 	bool _published;		///< topic was ever published
+
+	/* do not allow copying this class */
+	MavlinkOrbSubscription(const MavlinkOrbSubscription&);
+	MavlinkOrbSubscription operator=(const MavlinkOrbSubscription&);
 };
 
 
