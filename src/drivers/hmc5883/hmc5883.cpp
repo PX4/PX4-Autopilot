@@ -337,6 +337,9 @@ private:
 	 */
 	 int 			check_offset();
 
+	/* this class has pointer data members, do not allow copying it */
+	HMC5883(const HMC5883&);
+	HMC5883 operator=(const HMC5883&);
 };
 
 /*
@@ -347,8 +350,10 @@ extern "C" __EXPORT int hmc5883_main(int argc, char *argv[]);
 
 HMC5883::HMC5883(int bus, const char *path, enum Rotation rotation) :
 	I2C("HMC5883", path, bus, HMC5883L_ADDRESS, 400000),
+	_work{},
 	_measure_ticks(0),
 	_reports(nullptr),
+	_scale{},
 	_range_scale(0), /* default range scale from counts to gauss */
 	_range_ga(1.3f),
 	_collect_phase(false),
