@@ -175,6 +175,13 @@ PARAM_DEFINE_FLOAT(MT_PIT_MIN, -45.0f);
 PARAM_DEFINE_FLOAT(MT_PIT_MAX, 20.0f);
 
 /**
+ * Lowpass (cutoff freq.) for altitude
+ *
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_ALT_LP, 1.0f);
+
+/**
  * Lowpass (cutoff freq.) for the flight path angle
  *
  * @group mTECS
