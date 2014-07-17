@@ -37,7 +37,8 @@
 
 MODULE_COMMAND	= hmc5883
 
-# XXX seems excessive, check if 2048 is sufficient
-MODULE_STACKSIZE	= 4096
-
 SRCS		= hmc5883.cpp
+
+MODULE_STACKSIZE	= 1200
+
+EXTRACXXFLAGS	= -Weffc++

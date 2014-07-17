@@ -51,6 +51,7 @@
 #include <mavlink/mavlink_log.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
+#include <systemlib/airspeed.h>
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -64,19 +65,17 @@ int do_airspeed_calibration(int mavlink_fd)
 {
 	/* give directions */
 	mavlink_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
-	mavlink_log_info(mavlink_fd, "ensure airspeed sensor is not registering wind");
 
-	const int calibration_count = 2000;
+	const unsigned calibration_count = 2000;
 
 	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
 	struct differential_pressure_s diff_pres;
 
-	int calibration_counter = 0;
 	float diff_pres_offset = 0.0f;
 
 	/* Reset sensor parameters */
 	struct airspeed_scale airscale = {
-		0.0f,
+		diff_pres_offset,
 		1.0f,
 	};
 
@@ -95,11 +94,28 @@ int do_airspeed_calibration(int mavlink_fd)
 	}
 
 	if (!paramreset_successful) {
-		warn("FAILED to set scale / offsets for airspeed");
-		mavlink_log_critical(mavlink_fd, "dpress reset failed");
-		mavlink_log_info(mavlink_fd, CAL_FAILED_MSG, sensor_name);
-		return ERROR;
+
+		/* only warn if analog scaling is zero */
+		float analog_scaling = 0.0f;
+		param_get(param_find("SENS_DPRES_ANSC"), &(analog_scaling));
+		if (fabsf(analog_scaling) < 0.1f) {
+			mavlink_log_critical(mavlink_fd, "If analog sens, retry with [SENS_DPRES_ANSC=1000]");
+			close(diff_pres_sub);
+			return ERROR;
+		}
+
+		/* set scaling offset parameter */
+		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
+			mavlink_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);
+			close(diff_pres_sub);
+			return ERROR;
+		}
 	}
+
+	unsigned calibration_counter = 0;
+
+	mavlink_log_critical(mavlink_fd, "Ensure sensor is not measuring wind");
+	usleep(500 * 1000);
 
 	while (calibration_counter < calibration_count) {
 
@@ -112,11 +128,12 @@ int do_airspeed_calibration(int mavlink_fd)
 
 		if (poll_ret) {
 			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
+
 			diff_pres_offset += diff_pres.differential_pressure_raw_pa;
 			calibration_counter++;
 
 			if (calibration_counter % (calibration_count / 20) == 0) {
-				mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, (calibration_counter * 100) / calibration_count);
+				mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, (calibration_counter * 80) / calibration_count);
 			}
 
 		} else if (poll_ret == 0) {
@@ -130,6 +147,16 @@ int do_airspeed_calibration(int mavlink_fd)
 	diff_pres_offset = diff_pres_offset / calibration_count;
 
 	if (isfinite(diff_pres_offset)) {
+
+		int  fd_scale = open(AIRSPEED_DEVICE_PATH, 0);
+		airscale.offset_pa = diff_pres_offset;
+		if (fd_scale > 0) {
+			if (OK != ioctl(fd_scale, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
+				mavlink_log_critical(mavlink_fd, "airspeed offset update failed");
+			}
+
+			close(fd_scale);
+		}
 
 		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
 			mavlink_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);
@@ -147,14 +174,91 @@ int do_airspeed_calibration(int mavlink_fd)
 			return ERROR;
 		}
 
-		mavlink_log_info(mavlink_fd, CAL_DONE_MSG, sensor_name);
-		tune_neutral(true);
-		close(diff_pres_sub);
-		return OK;
-
 	} else {
 		mavlink_log_info(mavlink_fd, CAL_FAILED_MSG, sensor_name);
 		close(diff_pres_sub);
 		return ERROR;
 	}
+
+	mavlink_log_critical(mavlink_fd, "Offset of %d Pa, create airflow now!", (int)diff_pres_offset);
+
+	/* wait 500 ms to ensure parameter propagated through the system */
+	usleep(500 * 1000);
+
+	calibration_counter = 0;
+	const unsigned maxcount = 3000;
+
+	/* just take a few samples and make sure pitot tubes are not reversed, timeout after ~30 seconds */
+	while (calibration_counter < maxcount) {
+
+		/* wait blocking for new data */
+		struct pollfd fds[1];
+		fds[0].fd = diff_pres_sub;
+		fds[0].events = POLLIN;
+
+		int poll_ret = poll(fds, 1, 1000);
+
+		if (poll_ret) {
+			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
+
+			calibration_counter++;
+
+			if (fabsf(diff_pres.differential_pressure_raw_pa) < 50.0f) {
+				if (calibration_counter % 100 == 0) {
+					mavlink_log_critical(mavlink_fd, "Missing airflow! (%d, wanted: 50 Pa, #h101)",
+					(int)diff_pres.differential_pressure_raw_pa);
+				}
+				continue;
+			}
+
+			/* do not allow negative values */
+			if (diff_pres.differential_pressure_raw_pa < 0.0f) {
+				mavlink_log_info(mavlink_fd, "negative pressure: ERROR (%d Pa)",
+					(int)diff_pres.differential_pressure_raw_pa);
+				mavlink_log_critical(mavlink_fd, "%d Pa: swap static and dynamic ports!", (int)diff_pres.differential_pressure_raw_pa);
+				close(diff_pres_sub);
+
+				/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
+
+				diff_pres_offset = 0.0f;
+				if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
+					mavlink_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);
+					close(diff_pres_sub);
+					return ERROR;
+				}
+
+				/* save */
+				mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 0);
+				(void)param_save_default();
+
+				close(diff_pres_sub);
+
+				mavlink_log_info(mavlink_fd, CAL_FAILED_MSG, sensor_name);
+				return ERROR;
+			} else {
+				mavlink_log_info(mavlink_fd, "positive pressure: OK (%d Pa)",
+					(int)diff_pres.differential_pressure_raw_pa);
+				break;
+			}
+
+		} else if (poll_ret == 0) {
+			/* any poll failure for 1s is a reason to abort */
+			mavlink_log_critical(mavlink_fd, CAL_FAILED_MSG, sensor_name);
+			close(diff_pres_sub);
+			return ERROR;
+		}
+	}
+
+	if (calibration_counter == maxcount) {
+		mavlink_log_critical(mavlink_fd, CAL_FAILED_MSG, sensor_name);
+		close(diff_pres_sub);
+		return ERROR;
+	}
+
+	mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 100);
+
+	mavlink_log_info(mavlink_fd, CAL_DONE_MSG, sensor_name);
+	tune_neutral(true);
+	close(diff_pres_sub);
+	return OK;
 }

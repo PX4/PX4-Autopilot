@@ -125,7 +125,7 @@ struct otp_lock {
 #pragma pack(push, 1)
 union udid {
 	uint32_t	serial[3];
-	char  data[12];
+	uint8_t  data[12];
 };
 #pragma pack(pop)
 

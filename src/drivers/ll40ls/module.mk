@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,16 +32,11 @@
 ############################################################################
 
 #
-# Fixedwing L1 position control application
+# Makefile to build the PulsedLight Lidar-Lite driver.
 #
 
-MODULE_COMMAND	= fw_pos_control_l1
+MODULE_COMMAND	= ll40ls
 
-SRCS		= fw_pos_control_l1_main.cpp \
-		  fw_pos_control_l1_params.c \
-		  landingslope.cpp \
-		  mtecs/mTecs.cpp \
-		  mtecs/limitoverride.cpp \
-		  mtecs/mTecs_params.c
+SRCS		= ll40ls.cpp
 
-MODULE_STACKSIZE = 1200
+MAXOPTIMIZATION	 = -Os

@@ -172,6 +172,9 @@ ETSAirspeed::collect()
 		diff_pres_pa = diff_pres_pa_raw - _diff_pres_offset;
 	}
 
+	// The raw value still should be compensated for the known offset
+	diff_pres_pa_raw -= _diff_pres_offset;
+
 	// Track maximum differential pressure measured (so we can work out top speed).
 	if (diff_pres_pa > _max_differential_pressure_pa) {
 		_max_differential_pressure_pa = diff_pres_pa;
@@ -186,7 +189,6 @@ ETSAirspeed::collect()
 	report.differential_pressure_filtered_pa = (float)diff_pres_pa;
 	report.differential_pressure_raw_pa = (float)diff_pres_pa_raw;
 	report.temperature = -1000.0f;
-	report.voltage = 0;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
 	if (_airspeed_pub > 0 && !(_pub_blocked)) {
@@ -284,6 +286,9 @@ void	info();
 
 /**
  * Start the driver.
+ *
+ * This function only returns if the sensor is up and running
+ * or could not be detected successfully.
  */
 void
 start(int i2c_bus)

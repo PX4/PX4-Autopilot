@@ -105,8 +105,6 @@ public:
 	static void *start_helper(void *context);
 
 private:
-	perf_counter_t	_loop_perf;			/**< loop performance counter */
-
 	Mavlink	*_mavlink;
 
 	void handle_message(mavlink_message_t *msg);
@@ -158,4 +156,8 @@ private:
 	bool _hil_local_proj_inited;
 	float _hil_local_alt0;
 	struct map_projection_reference_s _hil_local_proj_ref;
+
+	/* do not allow copying this class */
+	MavlinkReceiver(const MavlinkReceiver&);
+	MavlinkReceiver operator=(const MavlinkReceiver&);
 };

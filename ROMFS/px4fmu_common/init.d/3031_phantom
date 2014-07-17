@@ -36,7 +36,7 @@ then
 	param set FW_T_TIME_CONST 5
 fi
 
-set MIXER FMU_Q
+set MIXER phantom
 
 # Provide ESC a constant 1000 us pulse
 set PWM_OUTPUTS 4

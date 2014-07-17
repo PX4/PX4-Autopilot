@@ -38,3 +38,5 @@
 MODULE_COMMAND	= mb12xx
 
 SRCS		= mb12xx.cpp
+
+MAXOPTIMIZATION	 = -Os

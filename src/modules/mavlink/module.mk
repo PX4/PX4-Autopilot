@@ -39,6 +39,7 @@ MODULE_COMMAND	 = mavlink
 SRCS		 += mavlink_main.cpp \
 			mavlink.c \
 			mavlink_receiver.cpp \
+			mavlink_mission.cpp \
 			mavlink_orb_subscription.cpp \
 			mavlink_messages.cpp \
 			mavlink_stream.cpp \
@@ -51,3 +52,5 @@ INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
 MAXOPTIMIZATION	 = -Os
 
 MODULE_STACKSIZE = 1024
+
+EXTRACXXFLAGS	= -Weffc++

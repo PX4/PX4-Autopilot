@@ -79,7 +79,6 @@ __BEGIN_DECLS
 #include "mavlink_bridge_header.h"
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
-#include "util.h"
 
 __END_DECLS
 
@@ -87,7 +86,9 @@ static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
 
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
-
+	status{},
+	hil_local_pos{},
+	_control_mode{},
 	_global_pos_pub(-1),
 	_local_pos_pub(-1),
 	_attitude_pub(-1),
@@ -112,15 +113,13 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_manual_pub(-1),
 	_telemetry_heartbeat_time(0),
 	_radio_status_available(false),
-	_control_mode_sub(-1),
+	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
 	_old_timestamp(0),
 	_hil_local_proj_inited(0),
-	_hil_local_alt0(0.0)
+	_hil_local_alt0(0.0f),
+	_hil_local_proj_ref{}
 {
-	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	memset(&hil_local_pos, 0, sizeof(hil_local_pos));
-	memset(&_control_mode, 0, sizeof(_control_mode));
 
 	// make sure the FTP server is started
 	(void)MavlinkFTP::getServer();
@@ -952,16 +951,8 @@ MavlinkReceiver::receive_thread(void *arg)
 					/* handle generic messages and commands */
 					handle_message(&msg);
 
-					/* handle packet with waypoint component */
-					_mavlink->mavlink_wpm_message_handler(&msg);
-
-					/* handle packet with parameter component */
-					_mavlink->mavlink_pm_message_handler(_mavlink->get_channel(), &msg);
-
-					if (_mavlink->get_forwarding_on()) {
-						/* forward any messages to other mavlink instances */
-						Mavlink::forward_message(&msg, _mavlink);
-					}
+					/* handle packet with parent object */
+					_mavlink->handle_message(&msg);
 				}
 			}
 		}

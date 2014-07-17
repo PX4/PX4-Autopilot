@@ -45,8 +45,11 @@ void Vector3f::zero(void)
     z = 0.0f;
 }
 
-Mat3f::Mat3f() {
-    identity();
+Mat3f::Mat3f() :
+    x{1.0f, 0.0f, 0.0f},
+    y{0.0f, 1.0f, 0.0f},
+    z{0.0f, 0.0f, 1.0f}
+{
 }
 
 void Mat3f::identity() {

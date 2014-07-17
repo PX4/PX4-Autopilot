@@ -170,6 +170,8 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 			break;
 
 		case NAVIGATION_STATE_LAND:
+			/* fallthrough */
+		case NAVIGATION_STATE_DESCEND:
 			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
 			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
 					      | MAV_MODE_FLAG_GUIDED_ENABLED;
@@ -188,6 +190,17 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, struct position_set
 		case NAVIGATION_STATE_TERMINATION:
 			*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
 			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+			break;
+
+		case NAVIGATION_STATE_OFFBOARD:
+			*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED
+			                      | MAV_MODE_FLAG_STABILIZE_ENABLED
+					      | MAV_MODE_FLAG_GUIDED_ENABLED;
+			custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_OFFBOARD;
+			break;
+
+		case NAVIGATION_STATE_MAX:
+			/* this is an unused case, ignore */
 			break;
 
 	}

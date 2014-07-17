@@ -140,9 +140,9 @@ extern "C" __EXPORT int meas_airspeed_main(int argc, char *argv[]);
 MEASAirspeed::MEASAirspeed(int bus, int address, const char *path) : Airspeed(bus, address,
 	CONVERSION_INTERVAL, path),
 	_filter(MEAS_RATE, MEAS_DRIVER_FILTER_FREQ),
-	_t_system_power(-1)
+	_t_system_power(-1),
+	system_power{}
 {
-	memset(&system_power, 0, sizeof(system_power));
 }
 
 int
@@ -225,7 +225,10 @@ MEASAirspeed::collect()
         // correct for 5V rail voltage if possible
         voltage_correction(diff_press_pa_raw, temperature);
 
-	float diff_press_pa = fabsf(diff_press_pa_raw - _diff_pres_offset);
+	// the raw value still should be compensated for the known offset
+	diff_press_pa_raw -= _diff_pres_offset;
+
+	float diff_press_pa = fabsf(diff_press_pa_raw);
 	
 	/*
 	  note that we return both the absolute value with offset
@@ -265,7 +268,6 @@ MEASAirspeed::collect()
 	}
 
 	report.differential_pressure_raw_pa = diff_press_pa_raw;
-	report.voltage = 0;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
 	if (_airspeed_pub > 0 && !(_pub_blocked)) {
@@ -418,6 +420,9 @@ void	info();
 
 /**
  * Start the driver.
+ *
+ * This function call only returns once the driver is up and running
+ * or failed to detect the sensor.
  */
 void
 start(int i2c_bus)

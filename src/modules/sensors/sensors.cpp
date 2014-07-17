@@ -133,7 +133,7 @@
 #endif
 
 #define BATT_V_LOWPASS 0.001f
-#define BATT_V_IGNORE_THRESHOLD 3.5f
+#define BATT_V_IGNORE_THRESHOLD 4.8f
 
 /**
  * HACK - true temperature is much less than indicated temperature in baro,
@@ -248,7 +248,7 @@ private:
 		float accel_offset[3];
 		float accel_scale[3];
 		float diff_pres_offset_pa;
-		float diff_pres_analog_enabled;
+		float diff_pres_analog_scale;
 
 		int board_rotation;
 		int external_mag_rotation;
@@ -311,7 +311,7 @@ private:
 		param_t mag_offset[3];
 		param_t mag_scale[3];
 		param_t diff_pres_offset_pa;
-		param_t diff_pres_analog_enabled;
+		param_t diff_pres_analog_scale;
 
 		param_t rc_map_roll;
 		param_t rc_map_pitch;
@@ -501,6 +501,7 @@ Sensors::Sensors() :
 	_battery_current_timestamp(0)
 {
 	memset(&_rc, 0, sizeof(_rc));
+	memset(&_diff_pres, 0, sizeof(_diff_pres));
 
 	/* basic r/c parameters */
 	for (unsigned i = 0; i < _rc_max_chan_count; i++) {
@@ -590,7 +591,7 @@ Sensors::Sensors() :
 
 	/* Differential pressure offset */
 	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
-	_parameter_handles.diff_pres_analog_enabled = param_find("SENS_DPRES_ANA");
+	_parameter_handles.diff_pres_analog_scale = param_find("SENS_DPRES_ANSC");
 
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
 	_parameter_handles.battery_current_scaling = param_find("BAT_C_SCALING");
@@ -798,7 +799,7 @@ Sensors::parameters_update()
 
 	/* Airspeed offset */
 	param_get(_parameter_handles.diff_pres_offset_pa, &(_parameters.diff_pres_offset_pa));
-	param_get(_parameter_handles.diff_pres_analog_enabled, &(_parameters.diff_pres_analog_enabled));
+	param_get(_parameter_handles.diff_pres_analog_scale, &(_parameters.diff_pres_analog_scale));
 
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
@@ -1323,22 +1324,23 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				} else if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 
 					/* calculate airspeed, raw is the difference from */
-					float voltage = (float)(buf_adc[i].am_data) * 3.3f / 4096.0f * 2.0f;  //V_ref/4096 * (voltage divider factor)
+					float voltage = (float)(buf_adc[i].am_data) * 3.3f / 4096.0f * 2.0f;  // V_ref/4096 * (voltage divider factor)
 
 					/**
 					 * The voltage divider pulls the signal down, only act on
 					 * a valid voltage from a connected sensor. Also assume a non-
 					 * zero offset from the sensor if its connected.
 					 */
-					if (voltage > 0.4f && (_parameters.diff_pres_analog_enabled > 0)) {
+					if (voltage > 0.4f && (_parameters.diff_pres_analog_scale > 0.0f)) {
 
-						float diff_pres_pa = voltage * 1000.0f - _parameters.diff_pres_offset_pa; //for MPXV7002DP sensor
+						float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
+						float diff_pres_pa = (diff_pres_pa_raw > 0.0f) ? diff_pres_pa_raw : 0.0f;
 
 						_diff_pres.timestamp = t;
 						_diff_pres.differential_pressure_pa = diff_pres_pa;
-						_diff_pres.differential_pressure_filtered_pa = diff_pres_pa;
+						_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
+						_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) + (diff_pres_pa * 0.1f);
 						_diff_pres.temperature = -1000.0f;
-						_diff_pres.voltage = voltage;
 
 						/* announce the airspeed if needed, just publish else */
 						if (_diff_pres_pub > 0) {
