@@ -238,6 +238,7 @@ public:
 	BlockDerivative(SuperBlock *parent, const char *name) :
 		SuperBlock(parent, name),
 		_u(0),
+		_initialized(false),
 		_lowPass(this, "LP")
 	{};
 	virtual ~BlockDerivative() {};
@@ -249,6 +250,7 @@ public:
 protected:
 // attributes
 	float _u; /**< previous input */
+	bool _initialized;
 	BlockLowPass _lowPass; /**< low pass filter */
 };
 

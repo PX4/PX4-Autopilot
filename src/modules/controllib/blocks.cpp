@@ -293,7 +293,12 @@ int blockIntegralTrapTest()
 
 float BlockDerivative::update(float input)
 {
-	float output = _lowPass.update((input - getU()) / getDt());
+	float output = 0.0f;
+	if (_initialized) {
+		output = _lowPass.update((input - getU()) / getDt());
+	} else {
+		_initialized = true;
+	}
 	setU(input);
 	return output;
 }
