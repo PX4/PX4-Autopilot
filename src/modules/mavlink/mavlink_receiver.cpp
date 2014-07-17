@@ -546,10 +546,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		gyro.temperature = imu.temperature;
 
 		if (_gyro_pub < 0) {
-			_gyro_pub = orb_advertise(ORB_ID(sensor_gyro), &gyro);
+			_gyro_pub = orb_advertise(ORB_ID(sensor_gyro0), &gyro);
 
 		} else {
-			orb_publish(ORB_ID(sensor_gyro), _gyro_pub, &gyro);
+			orb_publish(ORB_ID(sensor_gyro0), _gyro_pub, &gyro);
 		}
 	}
 
@@ -568,10 +568,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		accel.temperature = imu.temperature;
 
 		if (_accel_pub < 0) {
-			_accel_pub = orb_advertise(ORB_ID(sensor_accel), &accel);
+			_accel_pub = orb_advertise(ORB_ID(sensor_accel0), &accel);
 
 		} else {
-			orb_publish(ORB_ID(sensor_accel), _accel_pub, &accel);
+			orb_publish(ORB_ID(sensor_accel0), _accel_pub, &accel);
 		}
 	}
 
@@ -589,10 +589,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		mag.z = imu.zmag;
 
 		if (_mag_pub < 0) {
-			_mag_pub = orb_advertise(ORB_ID(sensor_mag), &mag);
+			_mag_pub = orb_advertise(ORB_ID(sensor_mag0), &mag);
 
 		} else {
-			orb_publish(ORB_ID(sensor_mag), _mag_pub, &mag);
+			orb_publish(ORB_ID(sensor_mag0), _mag_pub, &mag);
 		}
 	}
 
@@ -607,10 +607,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		baro.temperature = imu.temperature;
 
 		if (_baro_pub < 0) {
-			_baro_pub = orb_advertise(ORB_ID(sensor_baro), &baro);
+			_baro_pub = orb_advertise(ORB_ID(sensor_baro0), &baro);
 
 		} else {
-			orb_publish(ORB_ID(sensor_baro), _baro_pub, &baro);
+			orb_publish(ORB_ID(sensor_baro0), _baro_pub, &baro);
 		}
 	}
 
@@ -884,10 +884,10 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		accel.temperature = 25.0f;
 
 		if (_accel_pub < 0) {
-			_accel_pub = orb_advertise(ORB_ID(sensor_accel), &accel);
+			_accel_pub = orb_advertise(ORB_ID(sensor_accel0), &accel);
 
 		} else {
-			orb_publish(ORB_ID(sensor_accel), _accel_pub, &accel);
+			orb_publish(ORB_ID(sensor_accel0), _accel_pub, &accel);
 		}
 	}
 
