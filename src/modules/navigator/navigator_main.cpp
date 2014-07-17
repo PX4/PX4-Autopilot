@@ -105,6 +105,7 @@ Navigator::Navigator() :
 	_control_mode_sub(-1),
 	_onboard_mission_sub(-1),
 	_offboard_mission_sub(-1),
+	_param_update_sub(-1),
 	_pos_sp_triplet_pub(-1),
 	_vstatus{},
 	_control_mode{},
@@ -124,6 +125,8 @@ Navigator::Navigator() :
 	_loiter(this, "LOI"),
 	_rtl(this, "RTL"),
 	_offboard(this, "OFF"),
+	_can_loiter_at_sp(false),
+	_pos_sp_triplet_updated(false),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD")
 {
