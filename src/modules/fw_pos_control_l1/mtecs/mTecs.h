@@ -116,6 +116,7 @@ protected:
 	/* Other calculation Blocks */
 	control::BlockLowPass _flightPathAngleLowpass;	/**< low pass filter for the flight path angle */
 	control::BlockLowPass _airspeedLowpass;		/**< low pass filter for airspeed */
+	control::BlockLowPass _altitudeLowpass;		/**< low pass filter for airspeed */
 	control::BlockDerivative _airspeedDerivative;	/**< airspeed derivative calulation */
 
 	/* Output setpoints */

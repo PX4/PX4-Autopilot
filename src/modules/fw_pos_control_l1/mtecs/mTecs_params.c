@@ -237,6 +237,13 @@ PARAM_DEFINE_FLOAT(MT_FPA_MAX, 30.0f);
 PARAM_DEFINE_FLOAT(MT_A_LP, 1.0f);
 
 /**
+ * Lowpass (cutoff freq.) for altitude
+ *
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_ALT_LP, 1.0f);
+
+/**
  * P gain for the airspeed control
  * Maps the airspeed error to the acceleration setpoint
  *
