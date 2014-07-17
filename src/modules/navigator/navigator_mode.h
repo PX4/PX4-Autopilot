@@ -88,6 +88,12 @@ protected:
 
 private:
 	bool _first_run;
+
+	/* this class has ptr data members, so it should not be copied,
+	 * consequently the copy constructors are private.
+	 */
+	NavigatorMode(const NavigatorMode&);
+	NavigatorMode operator=(const NavigatorMode&);
 };
 
 #endif
