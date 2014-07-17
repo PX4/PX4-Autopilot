@@ -136,7 +136,6 @@ private:
 	int		_global_pos_sub;
 	int		_pos_sp_triplet_sub;
 	int		_att_sub;			/**< vehicle attitude subscription */
-	int		_attitude_sub;			/**< raw rc channels data subscription */
 	int		_airspeed_sub;			/**< airspeed subscription */
 	int		_control_mode_sub;		/**< vehicle status subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
@@ -160,18 +159,6 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	/** manual control states */
-	float		_altctrl_hold_heading;		/**< heading the system should hold in altctrl mode */
-	double		_loiter_hold_lat;
-	double		_loiter_hold_lon;
-	float		_loiter_hold_alt;
-	bool		_loiter_hold;
-
-	double		_launch_lat;
-	double		_launch_lon;
-	float		_launch_alt;
-	bool		_launch_valid;
-
 	/* land states */
 	/* not in non-abort mode for landing yet */
 	bool land_noreturn_horizontal;
@@ -188,8 +175,8 @@ private:
 
 	/* Landingslope object */
 	Landingslope landingslope;
-
 	float flare_curve_alt_rel_last;
+
 	/* heading hold */
 	float target_bearing;
 
@@ -416,12 +403,14 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_control_mode_sub(-1),
 	_params_sub(-1),
 	_manual_control_sub(-1),
+	_sensor_combined_sub(-1),
 	_range_finder_sub(-1),
 
 /* publications */
 	_attitude_sp_pub(-1),
 	_nav_capabilities_pub(-1),
 
+/* states */
 	_att(),
 	_att_sp(),
 	_nav_capabilities(),
@@ -436,8 +425,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
 
-/* states */
-	_loiter_hold(false),
 	land_noreturn_horizontal(false),
 	land_noreturn_vertical(false),
 	land_stayonground(false),
@@ -446,12 +433,16 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	launch_detected(false),
 	usePreTakeoffThrust(false),
 	last_manual(false),
+	landingslope(),
 	flare_curve_alt_rel_last(0.0f),
+	target_bearing(0.0f),
 	launchDetector(),
 	_airspeed_error(0.0f),
 	_airspeed_valid(false),
+	_airspeed_last_valid(0),
 	_groundspeed_undershoot(0.0f),
 	_global_pos_valid(false),
+	_l1_control(),
 	_mTecs(),
 	_was_pos_control_mode(false)
 {
@@ -609,17 +600,7 @@ FixedwingPositionControl::vehicle_control_mode_poll()
 	orb_check(_control_mode_sub, &vstatus_updated);
 
 	if (vstatus_updated) {
-
-		bool was_armed = _control_mode.flag_armed;
-
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
-
-		if (!was_armed && _control_mode.flag_armed) {
-			_launch_lat = _global_pos.lat;
-			_launch_lon = _global_pos.lon;
-			_launch_alt = _global_pos.alt;
-			_launch_valid = true;
-		}
 	}
 }
 
@@ -815,9 +796,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
 
-	/* filter speed and altitude for controller */
-	math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
-
+	/* define altitude error */
 	float altitude_error = _pos_sp_triplet.current.alt - _global_pos.alt;
 
 	/* no throttle limit as default */
@@ -949,7 +928,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			float airspeed_land = 1.3f * _parameters.airspeed_min;
 			float airspeed_approach = 1.3f * _parameters.airspeed_min;
 
-			/* Calculate altitude of last ordinary waypoint L */
+			/* Calculate distance (to landing waypoint) and altitude of last ordinary waypoint L */
 			float L_altitude_rel = _pos_sp_triplet.previous.valid ? _pos_sp_triplet.previous.alt - _pos_sp_triplet.current.alt : 0.0f;
 
 			float bearing_airplane_currwp = get_bearing_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
@@ -1115,15 +1094,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			}
 		}
 
-		// warnx("nav bearing: %8.4f bearing err: %8.4f target bearing: %8.4f", (double)_l1_control.nav_bearing(),
-		//       (double)_l1_control.bearing_error(), (double)_l1_control.target_bearing());
-		// warnx("prev wp: %8.4f/%8.4f, next wp: %8.4f/%8.4f prev:%s", (double)prev_wp(0), (double)prev_wp(1),
-		//       (double)next_wp(0), (double)next_wp(1), (pos_sp_triplet.previous_valid) ? "valid" : "invalid");
-
-		// XXX at this point we always want no loiter hold if a
-		// mission is active
-		_loiter_hold = false;
-
 		/* reset landing state */
 		if (pos_sp_triplet.current.type != SETPOINT_TYPE_LAND) {
 			reset_landing_state();
@@ -1138,89 +1108,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			/* just kicked out of loiter, reset roll integrals */
 			_att_sp.roll_reset_integral = true;
 		}
-
-	} else if (0/* posctrl mode enabled */) {
-
-		_was_pos_control_mode = false;
-
-		/** POSCTRL FLIGHT **/
-
-	if (0/* switched from another mode to posctrl */) {
-		_altctrl_hold_heading = _att.yaw;
-	}
-
-	if (0/* posctrl on and manual control yaw non-zero */) {
-		_altctrl_hold_heading = _att.yaw + _manual.r;
-	}
-
-	//XXX not used
-
-	/* climb out control */
-//		bool climb_out = false;
-//
-//		/* user wants to climb out */
-//		if (_manual.pitch > 0.3f && _manual.throttle > 0.8f) {
-//			climb_out = true;
-//		}
-
-	/* if in altctrl mode, set airspeed based on manual control */
-
-	// XXX check if ground speed undershoot should be applied here
-	float altctrl_airspeed = _parameters.airspeed_min +
-					(_parameters.airspeed_max - _parameters.airspeed_min) *
-					_manual.z;
-
-		_l1_control.navigate_heading(_altctrl_hold_heading, _att.yaw, ground_speed_2d);
-		_att_sp.roll_body = _l1_control.nav_roll();
-		_att_sp.yaw_body = _l1_control.nav_bearing();
-
-		tecs_update_pitch_throttle(_global_pos.alt + _manual.x * 2.0f, altctrl_airspeed, eas2tas,
-					math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
-					_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
-					false, math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
-
-	} else if (0/* altctrl mode enabled */) {
-
-		_was_pos_control_mode = false;
-
-		/** ALTCTRL FLIGHT **/
-
-		if (0/* switched from another mode to altctrl */) {
-			_altctrl_hold_heading = _att.yaw;
-		}
-
-		if (0/* altctrl on and manual control yaw non-zero */) {
-			_altctrl_hold_heading = _att.yaw + _manual.r;
-		}
-
-		/* if in altctrl mode, set airspeed based on manual control */
-
-		// XXX check if ground speed undershoot should be applied here
-		float altctrl_airspeed = _parameters.airspeed_min +
-					  (_parameters.airspeed_max - _parameters.airspeed_min) *
-					  _manual.z;
-
-		/* user switched off throttle */
-		if (_manual.z < 0.1f) {
-			throttle_max = 0.0f;
-		}
-
-		/* climb out control */
-		bool climb_out = false;
-
-		/* user wants to climb out */
-		if (_manual.x > 0.3f && _manual.z > 0.8f) {
-			climb_out = true;
-		}
-
-		_l1_control.navigate_heading(_altctrl_hold_heading, _att.yaw, ground_speed_2d);
-		_att_sp.roll_body =	_manual.y;
-		_att_sp.yaw_body =	_manual.r;
-		tecs_update_pitch_throttle(_global_pos.alt + _manual.x * 2.0f, altctrl_airspeed, eas2tas,
-					math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max),
-					_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
-					climb_out, math::radians(_parameters.pitch_limit_min),
-					_global_pos.alt, ground_speed);
 
 	} else {
 
@@ -1338,14 +1225,6 @@ FixedwingPositionControl::task_main()
 				/* try to open the mavlink log device every once in a while */
 				_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 			}
-
-			static uint64_t last_run = 0;
-			float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
-			last_run = hrt_absolute_time();
-
-			/* guard against too large deltaT's */
-			if (deltaT > 1.0f)
-				deltaT = 0.01f;
 
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
