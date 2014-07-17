@@ -70,6 +70,7 @@
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/vehicle_force_setpoint.h>
 
 #include "mavlink_ftp.h"
 
@@ -146,6 +147,7 @@ private:
 	orb_advert_t _global_vel_sp_pub;
 	orb_advert_t _att_sp_pub;
 	orb_advert_t _rates_sp_pub;
+	orb_advert_t _force_sp_pub;
 	orb_advert_t _vicon_position_pub;
 	orb_advert_t _telemetry_status_pub;
 	orb_advert_t _rc_pub;

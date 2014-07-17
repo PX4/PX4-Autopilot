@@ -1951,6 +1951,15 @@ set_control_mode()
 			control_mode.flag_control_position_enabled = false;
 			control_mode.flag_control_velocity_enabled = false;
 			break;
+		case OFFBOARD_CONTROL_MODE_DIRECT_FORCE:
+			control_mode.flag_control_rates_enabled = true;
+			control_mode.flag_control_attitude_enabled = false;
+			control_mode.flag_control_force_enabled = true;
+			control_mode.flag_control_altitude_enabled = false;
+			control_mode.flag_control_climb_rate_enabled = false;
+			control_mode.flag_control_position_enabled = false;
+			control_mode.flag_control_velocity_enabled = false;
+			break;
 		case OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED:
 		case OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_OFFSET_NED:
 		case OFFBOARD_CONTROL_MODE_DIRECT_BODY_NED:

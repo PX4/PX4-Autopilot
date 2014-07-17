@@ -105,6 +105,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_global_vel_sp_pub(-1),
 	_att_sp_pub(-1),
 	_rates_sp_pub(-1),
+	_force_sp_pub(-1),
 	_vicon_position_pub(-1),
 	_telemetry_status_pub(-1),
 	_rc_pub(-1),
@@ -444,6 +445,13 @@ MavlinkReceiver::handle_message_local_ned_position_setpoint_external(mavlink_mes
 		offboard_control_sp.acceleration[1] = local_ned_position_setpoint_external.afy;
 		offboard_control_sp.acceleration[2] = local_ned_position_setpoint_external.afz;
 		offboard_control_sp.isForceSetpoint = (bool)(local_ned_position_setpoint_external.type_mask & (1 << 9));
+
+		/* If we are in force control mode, for now set offboard mode to force control */
+		if (offboard_control_sp.isForceSetpoint) {
+			offboard_control_sp.mode = OFFBOARD_CONTROL_MODE_DIRECT_FORCE;
+		}
+
+		/* set ignore flags */
 		for (int i = 0; i < 9; i++) {
 			offboard_control_sp.ignore &=  ~(1 << i);
 			offboard_control_sp.ignore |=  (local_ned_position_setpoint_external.type_mask & (1 << i));
@@ -467,9 +475,23 @@ MavlinkReceiver::handle_message_local_ned_position_setpoint_external(mavlink_mes
 			if (updated) {
 				orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 			}
-
 			if (_control_mode.flag_control_offboard_enabled) {
+				if (offboard_control_sp.isForceSetpoint) {
+					struct vehicle_force_setpoint_s	force_sp;
+					force_sp.x = offboard_control_sp.acceleration[0];
+					force_sp.y = offboard_control_sp.acceleration[1];
+					force_sp.z = offboard_control_sp.acceleration[2];
+					//XXX: yaw
+					if (_force_sp_pub < 0) {
+						_force_sp_pub = orb_advertise(ORB_ID(vehicle_force_setpoint), &force_sp);
+					} else {
+						orb_publish(ORB_ID(vehicle_force_setpoint), _force_sp_pub, &force_sp);
+					}
+				} else {
+
 				//XXX: copy to and publish setpoint triplet here
+				}
+
 			}
 
 		}
