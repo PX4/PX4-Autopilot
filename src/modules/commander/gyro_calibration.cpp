@@ -92,7 +92,7 @@ int do_gyro_calibration(int mavlink_fd)
 		unsigned poll_errcount = 0;
 
 		/* subscribe to gyro sensor topic */
-		int sub_sensor_gyro = orb_subscribe(ORB_ID(sensor_gyro));
+		int sub_sensor_gyro = orb_subscribe(ORB_ID(sensor_gyro0));
 		struct gyro_report gyro_report;
 
 		while (calibration_counter < calibration_count) {
@@ -104,7 +104,7 @@ int do_gyro_calibration(int mavlink_fd)
 			int poll_ret = poll(fds, 1, 1000);
 
 			if (poll_ret > 0) {
-				orb_copy(ORB_ID(sensor_gyro), sub_sensor_gyro, &gyro_report);
+				orb_copy(ORB_ID(sensor_gyro0), sub_sensor_gyro, &gyro_report);
 				gyro_scale.x_offset += gyro_report.x;
 				gyro_scale.y_offset += gyro_report.y;
 				gyro_scale.z_offset += gyro_report.z;

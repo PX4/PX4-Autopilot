@@ -40,9 +40,12 @@
 
 #include "mavlink_commands.h"
 
-MavlinkCommandsStream::MavlinkCommandsStream(Mavlink *mavlink, mavlink_channel_t channel) : _channel(channel), _cmd_time(0)
+MavlinkCommandsStream::MavlinkCommandsStream(Mavlink *mavlink, mavlink_channel_t channel) :
+	_cmd_sub(mavlink->add_orb_subscription(ORB_ID(vehicle_command))),
+	_cmd{},
+	_channel(channel),
+	_cmd_time(0)
 {
-	_cmd_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_command));
 }
 
 void

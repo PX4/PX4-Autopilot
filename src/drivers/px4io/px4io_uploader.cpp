@@ -204,12 +204,8 @@ PX4IO_Uploader::upload(const char *filenames[])
 
 		if (bl_rev <= 2) {
 			ret = verify_rev2(fw_size);
-		} else if(bl_rev == 3) {
-			ret = verify_rev3(fw_size);
 		} else {
-			/* verify rev 4 and higher still uses the same approach and
-			 * every version *needs* to be verified.
-			 */
+			/* verify rev 3 and higher. Every version *needs* to be verified. */
 			ret = verify_rev3(fw_size);
 		}
 
@@ -276,14 +272,14 @@ PX4IO_Uploader::recv(uint8_t &c, unsigned timeout)
 int
 PX4IO_Uploader::recv(uint8_t *p, unsigned count)
 {
+	int ret;
 	while (count--) {
-		int ret = recv(*p++, 5000);
+		ret = recv(*p++, 5000);
 
 		if (ret != OK)
-			return ret;
+			break;
 	}
-
-	return OK;
+	return ret;
 }
 
 void
@@ -314,21 +310,19 @@ PX4IO_Uploader::send(uint8_t c)
 #endif
 	if (write(_io_fd, &c, 1) != 1)
 		return -errno;
-
 	return OK;
 }
 
 int
 PX4IO_Uploader::send(uint8_t *p, unsigned count)
 {
+	int ret;
 	while (count--) {
-		int ret = send(*p++);
-
+		ret = send(*p++);
 		if (ret != OK)
-			return ret;
+			break;
 	}
-
-	return OK;
+	return ret;
 }
 
 int
@@ -419,11 +413,14 @@ PX4IO_Uploader::program(size_t fw_size)
 	int ret;
 	size_t sent = 0;
 
-	file_buf = (uint8_t *)malloc(PROG_MULTI_MAX);
+	file_buf = new uint8_t[PROG_MULTI_MAX];
 	if (!file_buf) {
 		log("Can't allocate program buffer");
 		return -ENOMEM;
 	}
+
+	ASSERT((fw_size & 3) == 0);
+	ASSERT((PROG_MULTI_MAX & 3) == 0);
 
 	log("programming %u bytes...", (unsigned)fw_size);
 
@@ -443,34 +440,26 @@ PX4IO_Uploader::program(size_t fw_size)
 			    (unsigned)sent,
 			    (int)count,
 			    (int)errno);
-		}
-
-		if (count == 0) {
-			free(file_buf);
-			return OK;
+			ret = -errno;
+			break;
 		}
 
 		sent += count;
 
-		if (count < 0)
-			return -errno;
-
-		ASSERT((count % 4) == 0);
-
 		send(PROTO_PROG_MULTI);
 		send(count);
-		send(&file_buf[0], count);
+		send(file_buf, count);
 		send(PROTO_EOC);
 
 		ret = get_sync(1000);
 
 		if (ret != OK) {
-			free(file_buf);
-			return ret;
+			break;
 		}
 	}
-	free(file_buf);
-	return OK;
+
+	delete [] file_buf;
+	return ret;
 }
 
 int

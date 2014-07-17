@@ -376,4 +376,8 @@ private:
 	 * Main mavlink task.
 	 */
 	int		task_main(int argc, char *argv[]);
+
+	/* do not allow copying this class */
+	Mavlink(const Mavlink&);
+	Mavlink operator=(const Mavlink&);
 };

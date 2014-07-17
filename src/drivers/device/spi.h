@@ -129,10 +129,15 @@ private:
 	uint32_t		_frequency;
 	struct spi_dev_s	*_dev;
 
+	/* this class does not allow copying */
+	SPI(const SPI&);
+	SPI operator=(const SPI&);
+
 protected:
 	int			_bus;
 
 	int	_transfer(uint8_t *send, uint8_t *recv, unsigned len);
+
 };
 
 } // namespace device

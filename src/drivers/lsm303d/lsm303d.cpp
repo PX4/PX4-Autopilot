@@ -284,6 +284,7 @@ private:
 	unsigned		_mag_samplerate;
 
 	orb_advert_t		_accel_topic;
+	orb_id_t		_accel_orb_id;
 	int			_accel_class_instance;
 
 	unsigned		_accel_read;
@@ -461,6 +462,10 @@ private:
 	 * @return		OK if the value can be supported.
 	 */
 	int			mag_set_samplerate(unsigned frequency);
+
+	/* this class cannot be copied */
+	LSM303D(const LSM303D&);
+	LSM303D operator=(const LSM303D&);
 };
 
 /**
@@ -485,29 +490,39 @@ private:
 	LSM303D				*_parent;
 
 	orb_advert_t			_mag_topic;
+	orb_id_t			_mag_orb_id;
 	int				_mag_class_instance;
 
 	void				measure();
 
 	void				measure_trampoline(void *arg);
+
+	/* this class does not allow copying due to ptr data members */
+	LSM303D_mag(const LSM303D_mag&);
+	LSM303D_mag operator=(const LSM303D_mag&);
 };
 
 
 LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rotation) :
 	SPI("LSM303D", path, bus, device, SPIDEV_MODE3, 11*1000*1000 /* will be rounded to 10.4 MHz, within safety margins for LSM303D */),
 	_mag(new LSM303D_mag(this)),
+	_accel_call{},
+	_mag_call{},
 	_call_accel_interval(0),
 	_call_mag_interval(0),
 	_accel_reports(nullptr),
 	_mag_reports(nullptr),
+	_accel_scale{},
 	_accel_range_m_s2(0.0f),
 	_accel_range_scale(0.0f),
 	_accel_samplerate(0),
 	_accel_onchip_filter_bandwith(0),
+	_mag_scale{},
 	_mag_range_ga(0.0f),
 	_mag_range_scale(0.0f),
 	_mag_samplerate(0),
 	_accel_topic(-1),
+	_accel_orb_id(nullptr),
 	_accel_class_instance(-1),
 	_accel_read(0),
 	_mag_read(0),
@@ -524,6 +539,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device, enum Rotation rota
 	_reg7_expected(0),
 	_accel_log_fd(-1),
 	_accel_logging_enabled(false),
+	_last_extreme_us(0),
 	_last_log_us(0),
 	_last_log_sync_us(0),
 	_last_log_reg_us(0),
@@ -611,34 +627,56 @@ LSM303D::init()
 	/* fill report structures */
 	measure();
 
-	if (_mag->_mag_class_instance == CLASS_DEVICE_PRIMARY) {
+	/* advertise sensor topic, measure manually to initialize valid report */
+	struct mag_report mrp;
+	_mag_reports->get(&mrp);
 
-		/* advertise sensor topic, measure manually to initialize valid report */
-		struct mag_report mrp;
-		_mag_reports->get(&mrp);
+	/* measurement will have generated a report, publish */
+	switch (_mag->_mag_class_instance) {
+		case CLASS_DEVICE_PRIMARY:
+			_mag->_mag_orb_id = ORB_ID(sensor_mag0);
+			break;
 
-		/* measurement will have generated a report, publish */
-		_mag->_mag_topic = orb_advertise(ORB_ID(sensor_mag), &mrp);
+		case CLASS_DEVICE_SECONDARY:
+			_mag->_mag_orb_id = ORB_ID(sensor_mag1);
+			break;
 
-		if (_mag->_mag_topic < 0)
-			debug("failed to create sensor_mag publication");
+		case CLASS_DEVICE_TERTIARY:
+			_mag->_mag_orb_id = ORB_ID(sensor_mag2);
+			break;
+	}
 
+	_mag->_mag_topic = orb_advertise(_mag->_mag_orb_id, &mrp);
+
+	if (_mag->_mag_topic < 0) {
+		warnx("ADVERT ERR");
 	}
 
 	_accel_class_instance = register_class_devname(ACCEL_DEVICE_PATH);
 
-	if (_accel_class_instance == CLASS_DEVICE_PRIMARY) {
+	/* advertise sensor topic, measure manually to initialize valid report */
+	struct accel_report arp;
+	_accel_reports->get(&arp);
 
-		/* advertise sensor topic, measure manually to initialize valid report */
-		struct accel_report arp;
-		_accel_reports->get(&arp);
+	/* measurement will have generated a report, publish */
+	switch (_accel_class_instance) {
+		case CLASS_DEVICE_PRIMARY:
+			_accel_orb_id = ORB_ID(sensor_accel0);
+			break;
 
-		/* measurement will have generated a report, publish */
-		_accel_topic = orb_advertise(ORB_ID(sensor_accel), &arp);
+		case CLASS_DEVICE_SECONDARY:
+			_accel_orb_id = ORB_ID(sensor_accel1);
+			break;
 
-		if (_accel_topic < 0)
-			debug("failed to create sensor_accel publication");
+		case CLASS_DEVICE_TERTIARY:
+			_accel_orb_id = ORB_ID(sensor_accel2);
+			break;
+	}
 
+	_accel_topic = orb_advertise(_accel_orb_id, &arp);
+
+	if (_accel_topic < 0) {
+		warnx("ADVERT ERR");
 	}
 
 out:
@@ -1557,9 +1595,9 @@ LSM303D::measure()
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
-	if (_accel_topic > 0 && !(_pub_blocked)) {
+	if (!(_pub_blocked)) {
 		/* publish it */
-		orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
+		orb_publish(_accel_orb_id, _accel_topic, &accel_report);
 	}
 
 	_accel_read++;
@@ -1634,9 +1672,9 @@ LSM303D::mag_measure()
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
-	if (_mag->_mag_topic > 0 && !(_pub_blocked)) {
+	if (!(_pub_blocked)) {
 		/* publish it */
-		orb_publish(ORB_ID(sensor_mag), _mag->_mag_topic, &mag_report);
+		orb_publish(_mag->_mag_orb_id, _mag->_mag_topic, &mag_report);
 	}
 
 	_mag_read++;
@@ -1730,6 +1768,7 @@ LSM303D_mag::LSM303D_mag(LSM303D *parent) :
 	CDev("LSM303D_mag", LSM303D_DEVICE_PATH_MAG),
 	_parent(parent),
 	_mag_topic(-1),
+	_mag_orb_id(nullptr),
 	_mag_class_instance(-1)
 {
 }
@@ -1803,6 +1842,9 @@ void	usage();
 
 /**
  * Start the driver.
+ *
+ * This function call only returns once the driver is
+ * up and running or failed to detect the sensor.
  */
 void
 start(bool external_bus, enum Rotation rotation)

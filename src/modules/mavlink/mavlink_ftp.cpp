@@ -50,16 +50,20 @@ MavlinkFTP::getServer()
 	return _server;
 }
 
-MavlinkFTP::MavlinkFTP()
+MavlinkFTP::MavlinkFTP() :
+	_session_fds{},
+	_workBufs{},
+	_workFree{},
+	_lock{}
 {
 	// initialise the request freelist
 	dq_init(&_workFree);
 	sem_init(&_lock, 0, 1);
-    
-    // initialize session list
-    for (size_t i=0; i<kMaxSession; i++) {
-        _session_fds[i] = -1;
-    }
+
+	// initialize session list
+	for (size_t i=0; i<kMaxSession; i++) {
+		_session_fds[i] = -1;
+	}
 
 	// drop work entries onto the free list
 	for (unsigned i = 0; i < kRequestQueueSize; i++) {

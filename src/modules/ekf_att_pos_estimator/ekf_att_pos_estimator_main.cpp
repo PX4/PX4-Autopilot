@@ -112,6 +112,10 @@ public:
 	 */
 	FixedwingEstimator();
 
+	/* we do not want people ever copying this class */
+	FixedwingEstimator(const FixedwingEstimator& that) = delete;
+	FixedwingEstimator operator=(const FixedwingEstimator&) = delete;
+
 	/**
 	 * Destructor, also kills the sensors task.
 	 */
@@ -371,9 +375,10 @@ FixedwingEstimator::FixedwingEstimator() :
 	_mag_offsets({}),
 
 	#ifdef SENSOR_COMBINED_SUB
-	_sensor_combined({}),
+	_sensor_combined{},
 	#endif
 
+	_pos_ref{},
 	_baro_ref(0.0f),
 	_baro_ref_offset(0.0f),
 	_baro_gps_offset(0.0f),
@@ -390,12 +395,18 @@ FixedwingEstimator::FixedwingEstimator() :
 /* states */
 	_baro_init(false),
 	_gps_initialized(false),
+	_gps_start_time(0),
+	_filter_start_time(0),
+	_last_sensor_timestamp(0),
+	_last_run(0),
 	_gyro_valid(false),
 	_accel_valid(false),
 	_mag_valid(false),
 	_ekf_logging(true),
 	_debug(0),
 	_mavlink_fd(-1),
+	_parameters{},
+	_parameter_handles{},
 	_ekf(nullptr),
 	_velocity_xy_filtered(0.0f),
 	_velocity_z_filtered(0.0f),
@@ -693,7 +704,7 @@ FixedwingEstimator::task_main()
 	/*
 	 * do subscriptions
 	 */
-	_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
+	_baro_sub = orb_subscribe(ORB_ID(sensor_baro0));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -1041,7 +1052,7 @@ FixedwingEstimator::task_main()
 			orb_check(_baro_sub, &baro_updated);
 
 			if (baro_updated) {
-				orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
+				orb_copy(ORB_ID(sensor_baro0), _baro_sub, &_baro);
 
 				_ekf->baroHgt = _baro.altitude;
 
@@ -1133,7 +1144,7 @@ FixedwingEstimator::task_main()
 					initVelNED[2] = _gps.vel_d_m_s;
 
 					// Set up height correctly
-					orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
+					orb_copy(ORB_ID(sensor_baro0), _baro_sub, &_baro);
 					_baro_ref_offset = _ekf->states[9]; // this should become zero in the local frame
 					_baro_gps_offset = _baro.altitude - gps_alt;
 					_ekf->baroHgt = _baro.altitude;

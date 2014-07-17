@@ -1073,6 +1073,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	hrt_abstime magnetometer_timestamp = 0;
 	hrt_abstime barometer_timestamp = 0;
 	hrt_abstime differential_pressure_timestamp = 0;
+	hrt_abstime gyro1_timestamp = 0;
+	hrt_abstime accelerometer1_timestamp = 0;
+	hrt_abstime magnetometer1_timestamp = 0;
+	hrt_abstime gyro2_timestamp = 0;
+	hrt_abstime accelerometer2_timestamp = 0;
+	hrt_abstime magnetometer2_timestamp = 0;
 
 	/* initialize calculated mean SNR */
 	float snr_mean = 0.0f;
@@ -1209,6 +1215,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- SENSOR COMBINED --- */
 		if (copy_if_updated(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor)) {
 			bool write_IMU = false;
+			bool write_IMU1 = false;
+			bool write_IMU2 = false;
 			bool write_SENS = false;
 
 			if (buf.sensor.timestamp != gyro_timestamp) {
@@ -1258,6 +1266,64 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_SENS.diff_pres = buf.sensor.differential_pressure_pa;
 				log_msg.body.log_SENS.diff_pres_filtered = buf.sensor.differential_pressure_filtered_pa;
 				LOGBUFFER_WRITE_AND_COUNT(SENS);
+			}
+
+			if (buf.sensor.accelerometer1_timestamp != accelerometer1_timestamp) {
+				accelerometer1_timestamp = buf.sensor.accelerometer1_timestamp;
+				write_IMU1 = true;
+			}
+
+			if (buf.sensor.gyro1_timestamp != gyro1_timestamp) {
+				gyro1_timestamp = buf.sensor.gyro1_timestamp;
+				write_IMU1 = true;
+			}
+
+			if (buf.sensor.magnetometer1_timestamp != magnetometer1_timestamp) {
+				magnetometer1_timestamp = buf.sensor.magnetometer1_timestamp;
+				write_IMU1 = true;
+			}
+
+			if (write_IMU1) {
+				log_msg.msg_type = LOG_IMU1_MSG;
+				log_msg.body.log_IMU.gyro_x = buf.sensor.gyro1_rad_s[0];
+				log_msg.body.log_IMU.gyro_y = buf.sensor.gyro1_rad_s[1];
+				log_msg.body.log_IMU.gyro_z = buf.sensor.gyro1_rad_s[2];
+				log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer1_m_s2[0];
+				log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer1_m_s2[1];
+				log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer1_m_s2[2];
+				log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer1_ga[0];
+				log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer1_ga[1];
+				log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer1_ga[2];
+				LOGBUFFER_WRITE_AND_COUNT(IMU);
+			}
+
+			if (buf.sensor.accelerometer2_timestamp != accelerometer2_timestamp) {
+				accelerometer2_timestamp = buf.sensor.accelerometer2_timestamp;
+				write_IMU2 = true;
+			}
+
+			if (buf.sensor.gyro2_timestamp != gyro2_timestamp) {
+				gyro2_timestamp = buf.sensor.gyro2_timestamp;
+				write_IMU2 = true;
+			}
+
+			if (buf.sensor.magnetometer2_timestamp != magnetometer2_timestamp) {
+				magnetometer2_timestamp = buf.sensor.magnetometer2_timestamp;
+				write_IMU2 = true;
+			}
+
+			if (write_IMU2) {
+				log_msg.msg_type = LOG_IMU2_MSG;
+				log_msg.body.log_IMU.gyro_x = buf.sensor.gyro2_rad_s[0];
+				log_msg.body.log_IMU.gyro_y = buf.sensor.gyro2_rad_s[1];
+				log_msg.body.log_IMU.gyro_z = buf.sensor.gyro2_rad_s[2];
+				log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer2_m_s2[0];
+				log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer2_m_s2[1];
+				log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer2_m_s2[2];
+				log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer2_ga[0];
+				log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer2_ga[1];
+				log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer2_ga[2];
+				LOGBUFFER_WRITE_AND_COUNT(IMU);
 			}
 
 		}

@@ -160,4 +160,8 @@ private:
 	bool _hil_local_proj_inited;
 	float _hil_local_alt0;
 	struct map_projection_reference_s _hil_local_proj_ref;
+
+	/* do not allow copying this class */
+	MavlinkReceiver(const MavlinkReceiver&);
+	MavlinkReceiver operator=(const MavlinkReceiver&);
 };
