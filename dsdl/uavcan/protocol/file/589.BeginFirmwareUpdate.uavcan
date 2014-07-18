@@ -1,7 +1,9 @@
 #
 # This service initiates the firmware update procedure on a remote node.
 # The node that is being updated will retrieve the firmware image file 'image_file_remote_path' from the node
-# 'source_node_id' using the file read service, update the firmware, and reboot.
+# 'source_node_id' using the file read service, update the firmware, and reboot. Alternatively, this service
+# can be used to invoke the default CAN bootloader on a MCU, in which case the field 'image_file_remote_path'
+# must be empty.
 #
 # Nodes are allowed to explicitly reject this request under some circumstances (e.g. BLDC drive should reject if
 # the motor is running).
@@ -11,7 +13,7 @@
 #
 
 uint8 source_node_id         # If there is an invalid value (e.g. zero), the caller Node ID will be used instead
-Path image_file_remote_path
+Path image_file_remote_path  # Empty to invoke the built-in bootloader
 
 ---
 
