@@ -2222,6 +2222,17 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, PX4IO_FORCE_SAFETY_MAGIC);
 		break;
 
+	case PWM_SERVO_SET_FORCE_FAILSAFE:
+		/* force failsafe mode instantly */
+		if (arg == 0) {
+			/* clear force failsafe flag */
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE, 0);
+		} else {
+			/* set force failsafe flag */
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE);
+		}
+		break;
+
 	case DSM_BIND_START:
 
 		/* only allow DSM2, DSM-X and DSM-X with more than 7 channels */
