@@ -635,7 +635,23 @@ pwm_main(int argc, char *argv[])
 		}
 		exit(0);
 
+	} else if (!strcmp(argv[1], "forcefail")) {
+
+		if (argc < 3) {
+			errx(1, "arg missing [on|off]");
+		} else {
+
+			if (!strcmp(argv[2], "on")) {
+				/* force failsafe */
+				ret = ioctl(fd, PWM_SERVO_SET_FORCE_FAILSAFE, 1);
+			} else {
+				/* force failsafe */
+				ret = ioctl(fd, PWM_SERVO_SET_FORCE_FAILSAFE, 0);
+			}
+		}
+
 	}
+
 	usage("specify arm|disarm|rate|failsafe|disarmed|min|max|test|info");
 	return 0;
 }
