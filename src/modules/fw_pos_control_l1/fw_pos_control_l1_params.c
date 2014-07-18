@@ -155,13 +155,6 @@ PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
 PARAM_DEFINE_FLOAT(FW_THR_LND_MAX, 1.0f);
 
 /**
- * Speed rate P factor
- *
- * @group L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.05f);
-
-/**
  * Landing slope angle
  *
  * @group L1 Control
