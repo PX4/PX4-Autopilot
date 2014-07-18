@@ -199,19 +199,6 @@ private:
 		float l1_period;
 		float l1_damping;
 
-		float time_const;
-		float min_sink_rate;
-		float max_sink_rate;
-		float max_climb_rate;
-		float throttle_damp;
-		float integrator_gain;
-		float vertical_accel_limit;
-		float height_comp_filter_omega;
-		float speed_comp_filter_omega;
-		float roll_throttle_compensation;
-		float speed_weight;
-		float pitch_damping;
-
 		float airspeed_min;
 		float airspeed_trim;
 		float airspeed_max;
@@ -241,19 +228,6 @@ private:
 
 		param_t l1_period;
 		param_t l1_damping;
-
-		param_t time_const;
-		param_t min_sink_rate;
-		param_t max_sink_rate;
-		param_t max_climb_rate;
-		param_t throttle_damp;
-		param_t integrator_gain;
-		param_t vertical_accel_limit;
-		param_t height_comp_filter_omega;
-		param_t speed_comp_filter_omega;
-		param_t roll_throttle_compensation;
-		param_t speed_weight;
-		param_t pitch_damping;
 
 		param_t airspeed_min;
 		param_t airspeed_trim;
@@ -470,21 +444,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_heading_hold_horizontal_distance = param_find("FW_LND_HHDIST");
 	_parameter_handles.range_finder_rel_alt = param_find("FW_LND_RFRALT");
 
-	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
-	_parameter_handles.min_sink_rate = 			param_find("FW_T_SINK_MIN");
-	_parameter_handles.max_sink_rate =			param_find("FW_T_SINK_MAX");
-	_parameter_handles.max_climb_rate =			param_find("FW_T_CLMB_MAX");
-	_parameter_handles.throttle_damp = 			param_find("FW_T_THR_DAMP");
-	_parameter_handles.integrator_gain =			param_find("FW_T_INTEG_GAIN");
-	_parameter_handles.vertical_accel_limit =		param_find("FW_T_VERT_ACC");
-	_parameter_handles.height_comp_filter_omega =		param_find("FW_T_HGT_OMEGA");
-	_parameter_handles.speed_comp_filter_omega =		param_find("FW_T_SPD_OMEGA");
-	_parameter_handles.roll_throttle_compensation = 	param_find("FW_T_RLL2THR");
-	_parameter_handles.speed_weight = 			param_find("FW_T_SPDWEIGHT");
-	_parameter_handles.pitch_damping = 			param_find("FW_T_PTCH_DAMP");
-	_parameter_handles.heightrate_p =			param_find("FW_T_HRATE_P");
-	_parameter_handles.speedrate_p =			param_find("FW_T_SRATE_P");
-
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -534,19 +493,6 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
 
 	param_get(_parameter_handles.throttle_land_max, &(_parameters.throttle_land_max));
-
-	param_get(_parameter_handles.time_const, &(_parameters.time_const));
-	param_get(_parameter_handles.min_sink_rate, &(_parameters.min_sink_rate));
-	param_get(_parameter_handles.max_sink_rate, &(_parameters.max_sink_rate));
-	param_get(_parameter_handles.throttle_damp, &(_parameters.throttle_damp));
-	param_get(_parameter_handles.integrator_gain, &(_parameters.integrator_gain));
-	param_get(_parameter_handles.vertical_accel_limit, &(_parameters.vertical_accel_limit));
-	param_get(_parameter_handles.height_comp_filter_omega, &(_parameters.height_comp_filter_omega));
-	param_get(_parameter_handles.speed_comp_filter_omega, &(_parameters.speed_comp_filter_omega));
-	param_get(_parameter_handles.roll_throttle_compensation, &(_parameters.roll_throttle_compensation));
-	param_get(_parameter_handles.speed_weight, &(_parameters.speed_weight));
-	param_get(_parameter_handles.pitch_damping, &(_parameters.pitch_damping));
-	param_get(_parameter_handles.max_climb_rate, &(_parameters.max_climb_rate));
 
 	param_get(_parameter_handles.heightrate_p, &(_parameters.heightrate_p));
 	param_get(_parameter_handles.speedrate_p, &(_parameters.speedrate_p));
@@ -810,10 +756,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		if (!_was_pos_control_mode) {
 			/* reset integrators */
-			if (_mTecs.getEnabled()) {
-				_mTecs.resetIntegrators();
-				_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
-			}
+			_mTecs.resetIntegrators();
+			_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
 		}
 
 		_was_pos_control_mode = true;

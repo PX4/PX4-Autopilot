@@ -47,17 +47,6 @@
  */
 
 /**
- * mTECS enabled
- *
- * Set to 1 to enable mTECS
- *
- * @min 0
- * @max 1
- * @group mTECS
- */
-PARAM_DEFINE_INT32(MT_ENABLED, 1);
-
-/**
  * Total Energy Rate Control Feedforward
  * Maps the total energy rate setpoint to the throttle setpoint
  *
