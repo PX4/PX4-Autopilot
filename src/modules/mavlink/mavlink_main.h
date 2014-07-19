@@ -233,6 +233,21 @@ public:
 	void			count_txerr();
 
 	/**
+	 * Count transmitted bytes
+	 */
+	void			count_txbytes(unsigned n) { _bytes_tx += n; };
+
+	/**
+	 * Count bytes not transmitted because of errors
+	 */
+	void			count_txerrbytes(unsigned n) { _bytes_txerr += n; };
+
+	/**
+	 * Count received bytes
+	 */
+	void			count_rxbytes(unsigned n) { _bytes_rx += n; };
+
+	/**
 	 * Get the receive status of this MAVLink link
 	 */
 	struct telemetry_status_s&	get_rx_status() { return _rstatus; }
@@ -292,6 +307,14 @@ private:
 	float			_subscribe_to_stream_rate;
 
 	bool			_flow_control_enabled;
+
+	unsigned		_bytes_tx;
+	unsigned		_bytes_txerr;
+	unsigned		_bytes_rx;
+	uint64_t		_bytes_timestamp;
+	float		_rate_tx;
+	float		_rate_txerr;
+	float		_rate_rx;
 
 	struct telemetry_status_s	_rstatus;			///< receive status
 

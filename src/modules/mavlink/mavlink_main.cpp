@@ -197,6 +197,7 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 			if (buf_free < desired) {
 				/* we don't want to send anything just in half, so return */
 				instance->count_txerr();
+				instance->count_txerrbytes(desired);
 				return;
 			}
 		}
@@ -205,9 +206,11 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 
 		if (ret != desired) {
 			instance->count_txerr();
+			instance->count_txerrbytes(desired);
 
 		} else {
 			last_write_success_times[(unsigned)channel] = last_write_try_times[(unsigned)channel];
+			instance->count_txbytes(desired);
 		}
 	}
 }
@@ -249,6 +252,13 @@ Mavlink::Mavlink() :
 	   _subscribe_to_stream(nullptr),
 	   _subscribe_to_stream_rate(0.0f),
 	   _flow_control_enabled(true),
+	   _bytes_tx(0),
+	   _bytes_txerr(0),
+	   _bytes_rx(0),
+	   _bytes_timestamp(0),
+	   _rate_tx(0.0f),
+	   _rate_txerr(0.0f),
+	   _rate_rx(0.0f),
 	   _rstatus {},
 	   _message_buffer {},
 	   _message_buffer_mutex {},
@@ -1570,6 +1580,20 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 		}
 
+		/* update TX/RX rates*/
+		if (t > _bytes_timestamp + 1000000) {
+			if (_bytes_timestamp != 0) {
+				float dt = (t - _bytes_timestamp) / 1000.0f;
+				_rate_tx = _bytes_tx / dt;
+				_rate_txerr = _bytes_txerr / dt;
+				_rate_rx = _bytes_rx / dt;
+				_bytes_tx = 0;
+				_bytes_txerr = 0;
+				_bytes_rx = 0;
+			}
+			_bytes_timestamp = t;
+		}
+
 		perf_end(_loop_perf);
 	}
 
@@ -1732,6 +1756,10 @@ Mavlink::display_status()
 	} else {
 		printf("\tno telem status.\n");
 	}
+	printf("\trates:\n");
+	printf("\ttx: %.3f kB/s\n", (double)_rate_tx);
+	printf("\ttxerr: %.3f kB/s\n", (double)_rate_txerr);
+	printf("\trx: %.3f kB/s\n", (double)_rate_rx);
 }
 
 int
