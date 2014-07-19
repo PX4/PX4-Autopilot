@@ -49,7 +49,9 @@ SRCS		= navigator_main.cpp \
 		  offboard.cpp \
 		  mission_feasibility_checker.cpp \
 		  geofence.cpp \
-		  geofence_params.c
+		  geofence_params.c \
+		  datalinkloss.cpp \
+		  datalinkloss_params.c
 
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
 

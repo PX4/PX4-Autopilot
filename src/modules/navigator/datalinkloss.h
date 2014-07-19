@@ -1,6 +1,6 @@
-/****************************************************************************
+/***************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -30,48 +30,66 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file navigator_params.c
+ * @file datalinkloss.cpp
+ * Helper class for Data Link Loss Mode acording to the OBC rules
  *
- * Parameters for navigator in general
- *
- * @author Julian Oes <julian@oes.ch>
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include <nuttx/config.h>
+#ifndef NAVIGATOR_DATALINKLOSS_H
+#define NAVIGATOR_DATALINKLOSS_H
 
-#include <systemlib/param/param.h>
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
 
-/**
- * Loiter radius (FW only)
- *
- * Default value of loiter radius for missions, loiter, RTL, etc. (fixedwing only).
- *
- * @unit meters
- * @min 0.0
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
+#include <uORB/topics/mission.h>
+#include <uORB/topics/mission.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_global_position.h>
 
-/**
- * Acceptance Radius
- *
- * Default acceptance radius, overridden by acceptance radius of waypoint if set.
- *
- * @unit meters
- * @min 1.0
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 25.0f);
+#include "navigator_mode.h"
+#include "mission_block.h"
 
-/**
- * Set OBC mode for data link loss
- *
- * If set to 1 the behaviour on data link loss is set to a mode according to the OBC rules
- *
- * @min 0
- * @group Mission
- */
-PARAM_DEFINE_INT32(NAV_DLL_OBC, 0);
+class Navigator;
+
+class DataLinkLoss : public MissionBlock
+{
+public:
+	DataLinkLoss(Navigator *navigator, const char *name);
+
+	~DataLinkLoss();
+
+	virtual void on_inactive();
+
+	virtual void on_activation();
+
+	virtual void on_active();
+
+private:
+	/**
+	 * Set the RTL item
+	 */
+	void		set_rtl_item();
+
+	/**
+	 * Move to next RTL item
+	 */
+	void		advance_rtl();
+
+	enum RTLState {
+		RTL_STATE_NONE = 0,
+		RTL_STATE_CLIMB,
+		RTL_STATE_RETURN,
+		RTL_STATE_DESCEND,
+		RTL_STATE_LOITER,
+		RTL_STATE_LAND,
+		RTL_STATE_LANDED,
+	} _rtl_state;
+
+	control::BlockParamFloat _param_return_alt;
+	control::BlockParamFloat _param_descend_alt;
+	control::BlockParamFloat _param_land_delay;
+};
+
+#endif

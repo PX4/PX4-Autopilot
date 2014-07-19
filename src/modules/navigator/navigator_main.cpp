@@ -40,6 +40,7 @@
  * @author Jean Cyr <jean.m.cyr@gmail.com>
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
 #include <nuttx/config.h>
@@ -125,10 +126,12 @@ Navigator::Navigator() :
 	_loiter(this, "LOI"),
 	_rtl(this, "RTL"),
 	_offboard(this, "OFF"),
+	_dataLinkLoss(this, "DLL"),
 	_can_loiter_at_sp(false),
 	_pos_sp_triplet_updated(false),
 	_param_loiter_radius(this, "LOITER_RAD"),
-	_param_acceptance_radius(this, "ACC_RAD")
+	_param_acceptance_radius(this, "ACC_RAD"),
+	_param_datalinkloss_obc(this, "DLL_OBC")
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -376,7 +379,13 @@ Navigator::task_main()
 				_navigation_mode = &_rtl;
 				break;
 			case NAVIGATION_STATE_AUTO_RTGS:
-				_navigation_mode = &_rtl; /* TODO: change this to something else */
+				/* Use complex data link loss mode only when enabled via param
+				* otherwise use rtl */
+				if (_param_datalinkloss_obc.get() != 0) {
+					_navigation_mode = &_dataLinkLoss;
+				} else {
+					_navigation_mode = &_rtl; /* TODO: change this to something else */
+				}
 				break;
 			case NAVIGATION_STATE_LAND:
 			case NAVIGATION_STATE_TERMINATION:

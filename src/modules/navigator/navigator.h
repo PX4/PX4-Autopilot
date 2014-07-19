@@ -35,6 +35,7 @@
  * Helper class to access missions
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
 #ifndef NAVIGATOR_H
@@ -57,6 +58,7 @@
 #include "loiter.h"
 #include "rtl.h"
 #include "offboard.h"
+#include "datalinkloss.h"
 #include "geofence.h"
 
 /**
@@ -165,6 +167,7 @@ private:
 	Loiter		_loiter;			/**< class that handles loiter */
 	RTL 		_rtl;				/**< class that handles RTL */
 	Offboard	_offboard;			/**< class that handles offboard */
+	DataLinkLoss	_dataLinkLoss;			/**< class that handles offboard */
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
@@ -173,6 +176,7 @@ private:
 
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
+	control::BlockParamInt _param_datalinkloss_obc;	/**< if true: obc mode on data link loss enabled */
 	/**
 	 * Retrieve global position
 	 */
