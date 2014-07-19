@@ -111,7 +111,7 @@ mixer_tick(void)
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
 	}
 
-	/* default to failsafe mixing */
+	/* default to failsafe mixing - it will be forced below if flag is set */
 	source = MIX_FAILSAFE;
 
 	/*
@@ -152,6 +152,13 @@ mixer_tick(void)
 			/* if allowed, mix from RC inputs directly up to available rc channels */
 			source = MIX_OVERRIDE_FMU_OK;
 		}
+	}
+
+	/*
+	 * Check if we should force failsafe - and do it if we have to
+	 */
+	if (r_setup_arming & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE) {
+		source = MIX_FAILSAFE;
 	}
 
 	/*
