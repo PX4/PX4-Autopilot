@@ -918,6 +918,11 @@ int commander_thread_main(int argc, char *argv[])
 	struct system_power_s system_power;
 	memset(&system_power, 0, sizeof(system_power));
 
+	/* Subscribe to actuator controls (outputs) */
+	int actuator_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	struct actuator_controls_s actuator_controls;
+	memset(&actuator_controls, 0, sizeof(actuator_controls));
+
 	control_status_leds(&status, &armed, true);
 
 	/* now initialized */
@@ -1199,13 +1204,17 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
+			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_controls_sub, &actuator_controls);
 
 			/* only consider battery voltage if system has been running 2s and battery voltage is valid */
 			if (hrt_absolute_time() > start_time + 2000000 && battery.voltage_filtered_v > 0.0f) {
 				status.battery_voltage = battery.voltage_filtered_v;
 				status.battery_current = battery.current_a;
 				status.condition_battery_voltage_valid = true;
-				status.battery_remaining = battery_remaining_estimate_voltage(battery.voltage_filtered_v, battery.discharged_mah);
+
+				/* get throttle (if armed), as we only care about energy negative throttle also counts */
+				float throttle = (armed.armed) ? fabsf(actuator_controls.control[3]) : 0.0f;
+				status.battery_remaining = battery_remaining_estimate_voltage(battery.voltage_filtered_v, battery.discharged_mah, throttle);
 			}
 		}
 
