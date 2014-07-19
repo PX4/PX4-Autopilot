@@ -756,8 +756,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		if (!_was_pos_control_mode) {
 			/* reset integrators */
-			_mTecs.resetIntegrators();
-			_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
+			if (_mTecs.getEnabled()) {
+				_mTecs.resetIntegrators();
+				_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
+			}
 		}
 
 		_was_pos_control_mode = true;
