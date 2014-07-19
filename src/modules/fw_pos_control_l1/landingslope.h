@@ -60,7 +60,17 @@ private:
 	void calculateSlopeValues();
 
 public:
-	Landingslope() {}
+	Landingslope() :
+	_landing_slope_angle_rad(0.0f),
+	_flare_relative_alt(0.0f),
+	_motor_lim_relative_alt(0.0f),
+	_H1_virt(0.0f),
+	_H0(0.0f),
+	_d1(0.0f),
+	_flare_constant(0.0f),
+	_flare_length(0.0f),
+	_horizontal_slope_displacement(0.0f)
+	{}
 	~Landingslope() {}
 
 
