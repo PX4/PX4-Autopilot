@@ -1688,7 +1688,7 @@ Mavlink::display_status()
 {
 
 	if (_rstatus.heartbeat_time > 0) {
-		printf("\theartbeat:\t%llu us ago\n", hrt_elapsed_time(&_rstatus.heartbeat_time));
+		printf("\tGCS heartbeat:\t%llu us ago\n", hrt_elapsed_time(&_rstatus.heartbeat_time));
 	}
 
 	if (_rstatus.timestamp > 0) {
