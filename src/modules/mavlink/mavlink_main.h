@@ -250,13 +250,13 @@ private:
 	MavlinkOrbSubscription	*_subscriptions;
 	MavlinkStream		*_streams;
 
-	MavlinkMissionManager *_mission_manager;
+	MavlinkMissionManager	*_mission_manager;
 
-	orb_advert_t	_mission_pub;
+	orb_advert_t		_mission_pub;
 	int			_mission_result_sub;
-	MAVLINK_MODE _mode;
+	MAVLINK_MODE 		_mode;
 
-	mavlink_channel_t _channel;
+	mavlink_channel_t	_channel;
 
 	struct mavlink_logbuffer _logbuffer;
 	unsigned int		_total_counter;
