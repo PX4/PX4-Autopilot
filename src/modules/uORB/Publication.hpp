@@ -77,6 +77,10 @@ protected:
 	void setHandle(orb_advert_t handle) { _handle = handle; }
 	const struct orb_metadata *_meta;
 	orb_advert_t _handle;
+
+private:
+	PublicationBase(const uORB::PublicationBase&);
+	PublicationBase& operator=(const uORB::PublicationBase&);
 };
 
 /**
