@@ -51,6 +51,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/telemetry_status.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_orb_subscription.h"
@@ -96,6 +97,8 @@ public:
 	static Mavlink		*get_instance_for_device(const char *device_name);
 
 	static int		destroy_all_instances();
+
+	static int		get_status_all_instances();
 
 	static bool		instance_exists(const char *device_name, Mavlink *self);
 
@@ -229,6 +232,11 @@ public:
 	 */
 	void			count_txerr();
 
+	/**
+	 * Get the receive status of this MAVLink link
+	 */
+	struct telemetry_status_s&	get_rx_status() { return _rstatus; }
+
 protected:
 	Mavlink			*next;
 
@@ -284,6 +292,8 @@ private:
 	float			_subscribe_to_stream_rate;
 
 	bool			_flow_control_enabled;
+
+	struct telemetry_status_s	_rstatus;			///< receive status
 
 	struct mavlink_message_buffer {
 		int write_ptr;
