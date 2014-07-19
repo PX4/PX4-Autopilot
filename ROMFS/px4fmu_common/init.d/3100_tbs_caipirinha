@@ -33,10 +33,6 @@ then
 	param set FW_RR_P 0.03
 	param set FW_R_LIM 60
 	param set FW_R_RMAX 0
-	param set FW_T_HRATE_P 0.01
-	param set FW_T_RLL2THR 15
-	param set FW_T_SRATE_P 0.01
-	param set FW_T_TIME_CONST 5
 fi
 
 set MIXER FMU_Q

@@ -458,7 +458,7 @@ void
 Navigator::publish_position_setpoint_triplet()
 {
 	/* update navigation state */
-	/* TODO: set nav_state */
+	_pos_sp_triplet.nav_state = _vstatus.nav_state;
 
 	/* lazily publish the position setpoint triplet only once available */
 	if (_pos_sp_triplet_pub > 0) {
