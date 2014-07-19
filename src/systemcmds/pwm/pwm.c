@@ -648,6 +648,10 @@ pwm_main(int argc, char *argv[])
 				/* force failsafe */
 				ret = ioctl(fd, PWM_SERVO_SET_FORCE_FAILSAFE, 0);
 			}
+
+			if (ret != OK) {
+				warnx("FAILED setting forcefail %s", argv[2]);
+			}
 		}
 		exit(0);
 	}
