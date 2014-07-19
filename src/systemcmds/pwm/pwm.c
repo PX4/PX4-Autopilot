@@ -70,7 +70,7 @@ usage(const char *reason)
 {
 	if (reason != NULL)
 		warnx("%s", reason);
-	errx(1, 
+	errx(1,
 		"usage:\n"
 		"pwm arm|disarm|rate|failsafe|disarmed|min|max|test|info  ...\n"
 		"\n"
@@ -649,7 +649,7 @@ pwm_main(int argc, char *argv[])
 				ret = ioctl(fd, PWM_SERVO_SET_FORCE_FAILSAFE, 0);
 			}
 		}
-
+		exit(0);
 	}
 
 	usage("specify arm|disarm|rate|failsafe|disarmed|min|max|test|info");
