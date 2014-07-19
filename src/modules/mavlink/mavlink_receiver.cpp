@@ -958,6 +958,9 @@ MavlinkReceiver::receive_thread(void *arg)
 					_mavlink->handle_message(&msg);
 				}
 			}
+
+			/* count received bytes */
+			_mavlink->count_rxbytes(nread);
 		}
 	}
 
