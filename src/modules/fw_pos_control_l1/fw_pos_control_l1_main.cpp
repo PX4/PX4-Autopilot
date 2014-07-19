@@ -212,9 +212,6 @@ private:
 
 		float throttle_land_max;
 
-		float heightrate_p;
-		float speedrate_p;
-
 		float land_slope_angle;
 		float land_H1_virt;
 		float land_flare_alt_relative;
@@ -241,9 +238,6 @@ private:
 		param_t throttle_cruise;
 
 		param_t throttle_land_max;
-
-		param_t heightrate_p;
-		param_t speedrate_p;
 
 		param_t land_slope_angle;
 		param_t land_H1_virt;
@@ -493,9 +487,6 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
 
 	param_get(_parameter_handles.throttle_land_max, &(_parameters.throttle_land_max));
-
-	param_get(_parameter_handles.heightrate_p, &(_parameters.heightrate_p));
-	param_get(_parameter_handles.speedrate_p, &(_parameters.speedrate_p));
 
 	param_get(_parameter_handles.land_slope_angle, &(_parameters.land_slope_angle));
 	param_get(_parameter_handles.land_H1_virt, &(_parameters.land_H1_virt));
