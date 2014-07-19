@@ -2002,7 +2002,7 @@ PX4IO::print_status(bool extended_status)
 		((features & PX4IO_P_SETUP_FEATURES_ADC_RSSI) ? " RSSI_ADC" : "")
 		);
 	uint16_t arming = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
-	printf("arming 0x%04x%s%s%s%s%s%s%s\n",
+	printf("arming 0x%04x%s%s%s%s%s%s%s%s\n",
 	       arming,
 	       ((arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)		? " FMU_ARMED" : " FMU_DISARMED"),
 	       ((arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)		? " IO_ARM_OK" : " IO_ARM_DENIED"),
@@ -2010,7 +2010,9 @@ PX4IO::print_status(bool extended_status)
 	       ((arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM)		? " FAILSAFE_CUSTOM" : ""),
 	       ((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)	? " INAIR_RESTART_OK" : ""),
 	       ((arming & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE)	? " ALWAYS_PWM_ENABLE" : ""),
-	       ((arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)		? " LOCKDOWN" : ""));
+	       ((arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)		? " LOCKDOWN" : ""),
+	       ((arming & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE)		? " FORCE_FAILSAFE" : "")
+	       );
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	printf("rates 0x%04x default %u alt %u relays 0x%04x\n",
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES),
