@@ -246,7 +246,8 @@ Mavlink::Mavlink() :
 	   _ftp_on(false),
 	   _uart_fd(-1),
 	   _baudrate(57600),
-	   _datarate(10000),
+	   _datarate(1000),
+	   _datarate_events(500),
 	   _mavlink_param_queue_index(0),
 	   mavlink_link_termination_allowed(false),
 	   _subscribe_to_stream(nullptr),
@@ -350,6 +351,18 @@ void
 Mavlink::count_txerr()
 {
 	perf_count(_txerr_perf);
+}
+
+unsigned
+Mavlink::get_free_tx_buf()
+{
+	unsigned buf_free;
+
+	if (!ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free)) {
+		return buf_free;
+	} else {
+		return 0;
+	}
 }
 
 void
@@ -1084,6 +1097,31 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 }
 
 void
+Mavlink::adjust_stream_rates(const float multiplier)
+{
+	/* do not allow to push us to zero */
+	if (multiplier < 0.01f) {
+		return;
+	}
+
+	/* search if stream exists */
+	MavlinkStream *stream;
+	LL_FOREACH(_streams, stream) {
+		/* set new interval */
+		unsigned interval = stream->get_interval();
+		interval /= multiplier;
+
+		/* allow max ~600 Hz */
+		if (interval < 1600) {
+			interval = 1600;
+		} 
+
+		/* set new interval */
+		stream->set_interval(interval * multiplier);
+	}
+}
+
+void
 Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 {
 	/* orb subscription must be done from the main thread,
@@ -1464,7 +1502,7 @@ Mavlink::task_main(int argc, char *argv[])
 	/* don't send parameters on startup without request */
 	_mavlink_param_queue_index = param_count();
 
-	MavlinkRateLimiter fast_rate_limiter(35000.0f / rate_mult);
+	MavlinkRateLimiter fast_rate_limiter(30000.0f / rate_mult);
 
 	/* set main loop delay depending on data rate to minimize CPU overhead */
 	_main_loop_delay = MAIN_LOOP_DELAY / rate_mult;
@@ -1519,10 +1557,22 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		if (fast_rate_limiter.check(t)) {
-			mavlink_pm_queued_send();
-			_mission_manager->eventloop();
 
-			if (!mavlink_logbuffer_is_empty(&_logbuffer)) {
+			unsigned buf_free = get_free_tx_buf();
+
+			/* only send messages if they fit the buffer */
+			if (buf_free >= (MAVLINK_MSG_ID_PARAM_VALUE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)) {
+				mavlink_pm_queued_send();
+			}
+
+			buf_free = get_free_tx_buf();
+			if (buf_free >= (MAVLINK_MSG_ID_MISSION_ITEM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)) {
+				_mission_manager->eventloop();
+			}
+
+			buf_free = get_free_tx_buf();
+			if (buf_free >= (MAVLINK_MSG_ID_STATUSTEXT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) &&
+				(!mavlink_logbuffer_is_empty(&_logbuffer))) {
 				struct mavlink_logmessage msg;
 				int lb_ret = mavlink_logbuffer_read(&_logbuffer, &msg);
 

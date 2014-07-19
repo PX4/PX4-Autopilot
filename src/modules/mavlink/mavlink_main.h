@@ -248,6 +248,13 @@ public:
 	void			count_rxbytes(unsigned n) { _bytes_rx += n; };
 
 	/**
+	 * Get the free space in the transmit buffer
+	 *
+	 * @return free space in the UART TX buffer
+	 */
+	unsigned		get_free_tx_buf();
+
+	/**
 	 * Get the receive status of this MAVLink link
 	 */
 	struct telemetry_status_s&	get_rx_status() { return _rstatus; }
@@ -292,7 +299,8 @@ private:
 	bool			_ftp_on;
 	int			_uart_fd;
 	int			_baudrate;
-	int			_datarate;
+	int			_datarate;		///< data rate for normal streams (attitude, position, etc.)
+	int			_datarate_events;	///< data rate for params, waypoints, text messages
 
 	/**
 	 * If the queue index is not at 0, the queue sending
@@ -384,6 +392,13 @@ private:
 	int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
 
 	int configure_stream(const char *stream_name, const float rate);
+
+	/**
+	 * Adjust the stream rates based on the current rate
+	 *
+	 * @param multiplier if greater than 1, the transmission rate will increase, if smaller than one decrease
+	 */
+	void adjust_stream_rates(const float multiplier);
 
 	int message_buffer_init(int size);
 
