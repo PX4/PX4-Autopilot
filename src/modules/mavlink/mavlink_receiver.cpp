@@ -111,7 +111,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_telemetry_status_pub(-1),
 	_rc_pub(-1),
 	_manual_pub(-1),
-	_telemetry_heartbeat_time(0),
 	_radio_status_available(false),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
@@ -403,7 +402,8 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 		struct telemetry_status_s &tstatus = _mavlink->get_rx_status();
 
 		tstatus.timestamp = hrt_absolute_time();
-		tstatus.heartbeat_time = _telemetry_heartbeat_time;
+		tstatus.telem_time = tstatus.timestamp;
+		/* tstatus.heartbeat_time is set by system heartbeats */
 		tstatus.type = TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO;
 		tstatus.rssi = rstatus.rssi;
 		tstatus.remote_rssi = rstatus.remrssi;
@@ -460,16 +460,20 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 		/* ignore own heartbeats, accept only heartbeats from GCS */
 		if (msg->sysid != mavlink_system.sysid && hb.type == MAV_TYPE_GCS) {
-			_telemetry_heartbeat_time = hrt_absolute_time();
+
+			struct telemetry_status_s &tstatus = _mavlink->get_rx_status();
+
+			hrt_abstime tnow = hrt_absolute_time();
+
+			/* always set heartbeat, publish only if telemetry link not up */
+			tstatus.heartbeat_time = tnow;
 
 			/* if no radio status messages arrive, lets at least publish that heartbeats were received */
 			if (!_radio_status_available) {
 
-				struct telemetry_status_s tstatus;
-				memset(&tstatus, 0, sizeof(tstatus));
-
-				tstatus.timestamp = _telemetry_heartbeat_time;
-				tstatus.heartbeat_time = _telemetry_heartbeat_time;
+				tstatus.timestamp = tnow;
+				/* telem_time indicates the timestamp of a telemetry status packet and we got none */
+				tstatus.telem_time = 0;
 				tstatus.type = TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
 
 				if (_telemetry_status_pub < 0) {

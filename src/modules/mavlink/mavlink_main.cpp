@@ -432,11 +432,9 @@ Mavlink::get_status_all_instances()
 
 	unsigned iterations = 0;
 
-	warnx("waiting for instances to stop");
-
 	while (inst != nullptr) {
 
-		printf("instance #%u:\n", iterations);
+		printf("\ninstance #%u:\n", iterations);
 		inst->display_status();
 
 		/* move on */
@@ -1688,27 +1686,33 @@ Mavlink::start(int argc, char *argv[])
 void
 Mavlink::display_status()
 {
-	warnx("running");
+
+	if (_rstatus.heartbeat_time > 0) {
+		printf("\theartbeat:\t%llu us ago\n", hrt_elapsed_time(&_rstatus.heartbeat_time));
+	}
 
 	if (_rstatus.timestamp > 0) {
-		printf("\ttime:\t%llu\tus\n", _rstatus.heartbeat_time);
+
+		printf("\ttype:\t\t");
 
 		switch (_rstatus.type) {
 			case TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO:
-			printf("\t3DR RADIO\n");
+			printf("3DR RADIO\n");
 			break;
 			default:
-			printf("\tUNKNOWN RADIO\n");
+			printf("UNKNOWN RADIO\n");
 			break;
 		}
 
-		printf("\trssi:\t%d\t\n", _rstatus.rssi);
-		printf("\tremote rssi:\t%u\tus\n", _rstatus.remote_rssi);
-		printf("\ttxbuf:\t%u\tus\n", _rstatus.txbuf);
-		printf("\tnoise:\t%d\tus\n", _rstatus.noise);
-		printf("\tremote noise:\t%u\tus\n", _rstatus.remote_noise);
-		printf("\trx errors:\t%u\tus\n", _rstatus.rxerrors);
-		printf("\tfixed:\t%u\tus\n", _rstatus.fixed);
+		printf("\trssi:\t\t%d\n", _rstatus.rssi);
+		printf("\tremote rssi:\t%u\n", _rstatus.remote_rssi);
+		printf("\ttxbuf:\t\t%u\n", _rstatus.txbuf);
+		printf("\tnoise:\t\t%d\n", _rstatus.noise);
+		printf("\tremote noise:\t%u\n", _rstatus.remote_noise);
+		printf("\trx errors:\t%u\n", _rstatus.rxerrors);
+		printf("\tfixed:\t\t%u\n", _rstatus.fixed);
+	} else {
+		printf("\tno telem status.\n");
 	}
 }
 
