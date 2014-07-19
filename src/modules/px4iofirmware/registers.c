@@ -141,6 +141,16 @@ uint16_t		r_page_rc_input[] = {
 uint16_t		r_page_scratch[32];
 
 /**
+ * PAGE 8
+ *
+ * Inputs from redundant autopilot
+ */
+uint16_t		r_page_safelink[] = {
+	[PX4IO_P_SAFELINK_COUNT]		= 0,
+	[PX4IO_P_SAFELINK_BASE ... (PX4IO_P_SAFELINK_BASE + PX4IO_SERVO_COUNT)] = 0
+};
+
+/**
  * PAGE 100
  *
  * Setup registers
@@ -178,7 +188,9 @@ volatile uint16_t	r_page_setup[] =
 #define PX4IO_P_SETUP_FEATURES_VALID	(PX4IO_P_SETUP_FEATURES_SBUS1_OUT | \
 					 PX4IO_P_SETUP_FEATURES_SBUS2_OUT | \
 					 PX4IO_P_SETUP_FEATURES_ADC_RSSI | \
-					 PX4IO_P_SETUP_FEATURES_PWM_RSSI)
+					 PX4IO_P_SETUP_FEATURES_PWM_RSSI | \
+					 PX4IO_P_SETUP_FEATURES_SAFELINK_IN | \
+					 PX4IO_P_SETUP_FEATURES_SAFELINK_OUT)
 #else
 #define PX4IO_P_SETUP_FEATURES_VALID	0
 #endif
@@ -493,6 +505,8 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 					PX4IO_P_SETUP_FEATURES_SBUS1_OUT |
 					PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
 			}
+
+			// XXX handle safelink enabling / disabling here.
 
 			/* apply changes */
 			r_setup_features = value;

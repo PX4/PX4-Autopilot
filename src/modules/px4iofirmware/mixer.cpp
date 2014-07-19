@@ -79,7 +79,8 @@ enum mixer_source {
 	MIX_FMU,
 	MIX_OVERRIDE,
 	MIX_FAILSAFE,
-	MIX_OVERRIDE_FMU_OK
+	MIX_OVERRIDE_FMU_OK,
+	MIX_SAFELINK
 };
 static mixer_source source;
 
@@ -159,6 +160,18 @@ mixer_tick(void)
 	 */
 	if (source == MIX_FAILSAFE) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FAILSAFE;
+
+		/*
+		 * Check if we can fall back in safelink failsave
+		 */
+
+		if ((r_page_setup[PX4IO_P_SETUP_FEATURES] & PX4IO_P_SETUP_FEATURES_SAFELINK_OUT) && (r_safelink_count > 0)) {
+			source = MIX_SAFELINK;
+			r_status_flags |= PX4IO_P_STATUS_FLAGS_SAFELINK_FS;
+		} else {
+			r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_SAFELINK_FS);
+		}
+
 	} else {
 		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_FAILSAFE);
 	}
@@ -187,14 +200,34 @@ mixer_tick(void)
 						&& (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
 						&& (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK);
 
+	unsigned actuator_count = 0;
+
 	/*
 	 * Run the mixers.
 	 */
-	if (source == MIX_FAILSAFE) {
+	if (source == MIX_SAFELINK) {
+
+		actuator_count = r_safelink_count;
+
+		/* copy failsafe values to the servo outputs */
+		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
+			r_page_servos[i] = r_safelink_values[i];
+
+			/* safe actuators for FMU feedback */
+			r_page_actuators[i] = FLOAT_TO_REG((r_page_servos[i] - 1500) / 600.0f);
+		}
+
+	} else if (source == MIX_FAILSAFE) {
+
+		actuator_count = 0;
 
 		/* copy failsafe values to the servo outputs */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			r_page_servos[i] = r_page_servo_failsafe[i];
+
+			/* get the count of the last valid actuator */
+			if ((r_page_servos[i] != 0) && ((i + 1) > actuator_count))
+				actuator_count = i + 1;
 
 			/* safe actuators for FMU feedback */
 			r_page_actuators[i] = FLOAT_TO_REG((r_page_servos[i] - 1500) / 600.0f);
@@ -211,6 +244,7 @@ mixer_tick(void)
 		/* poor mans mutex */
 		in_mixer = true;
 		mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT);
+		actuator_count = mixed;
 		in_mixer = false;
 
 		/* the pwm limit call takes care of out of band errors */
@@ -255,12 +289,19 @@ mixer_tick(void)
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++)
 			up_pwm_servo_set(i, r_page_servos[i]);
 
-		/* set S.BUS1 or S.BUS2 outputs */
+		/* update S.BUS1 outputs */
+		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
+			sbus1_output(r_page_servos, actuator_count);
+		}
 
+		/* update S.BUS2 outputs */
 		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
-			sbus2_output(r_page_servos, PX4IO_SERVO_COUNT);
-		} else if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
-			sbus1_output(r_page_servos, PX4IO_SERVO_COUNT);
+			sbus2_output(r_page_servos, actuator_count);
+		}
+
+		/* update safelink outputs */
+		if (source != MIX_FAILSAFE && r_setup_features & PX4IO_P_SETUP_FEATURES_SAFELINK_OUT) {
+			safelink_output(r_page_servos, actuator_count);
 		}
 
 	} else if (mixer_servos_armed && should_always_enable_pwm) {
@@ -268,12 +309,20 @@ mixer_tick(void)
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++)
 			up_pwm_servo_set(i, r_page_servo_disarmed[i]);
 
-		/* set S.BUS1 or S.BUS2 outputs */
-		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT)
-			sbus1_output(r_page_servos, PX4IO_SERVO_COUNT);
+		/* update S.BUS1 outputs */
+		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
+			sbus1_output(r_page_servos, actuator_count);
+		}
 
-		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT)
-			sbus2_output(r_page_servos, PX4IO_SERVO_COUNT);
+		/* update S.BUS2 outputs */
+		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
+			sbus2_output(r_page_servos, actuator_count);
+		}
+
+		/* update safelink outputs */
+		if (source != MIX_FAILSAFE && r_setup_features & PX4IO_P_SETUP_FEATURES_SAFELINK_OUT) {
+			safelink_output(r_page_servos, actuator_count);
+		}
 	}
 }
 
