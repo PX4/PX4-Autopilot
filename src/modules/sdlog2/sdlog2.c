@@ -1432,17 +1432,20 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		/* --- GLOBAL POSITION SETPOINT --- */
 		if (copy_if_updated(ORB_ID(position_setpoint_triplet), subs.triplet_sub, &buf.triplet)) {
-			log_msg.msg_type = LOG_GPSP_MSG;
-			log_msg.body.log_GPSP.nav_state = 0;  /* TODO: Fix this */
-			log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * 1e7d);
-			log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * 1e7d);
-			log_msg.body.log_GPSP.alt = buf.triplet.current.alt;
-			log_msg.body.log_GPSP.yaw = buf.triplet.current.yaw;
-			log_msg.body.log_GPSP.type = buf.triplet.current.type;
-			log_msg.body.log_GPSP.loiter_radius = buf.triplet.current.loiter_radius;
-			log_msg.body.log_GPSP.loiter_direction = buf.triplet.current.loiter_direction;
-			log_msg.body.log_GPSP.pitch_min = buf.triplet.current.pitch_min;
-			LOGBUFFER_WRITE_AND_COUNT(GPSP);
+
+			if (buf.triplet.current.valid) {
+				log_msg.msg_type = LOG_GPSP_MSG;
+				log_msg.body.log_GPSP.nav_state = buf.triplet.nav_state;
+				log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * 1e7d);
+				log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * 1e7d);
+				log_msg.body.log_GPSP.alt = buf.triplet.current.alt;
+				log_msg.body.log_GPSP.yaw = buf.triplet.current.yaw;
+				log_msg.body.log_GPSP.type = buf.triplet.current.type;
+				log_msg.body.log_GPSP.loiter_radius = buf.triplet.current.loiter_radius;
+				log_msg.body.log_GPSP.loiter_direction = buf.triplet.current.loiter_direction;
+				log_msg.body.log_GPSP.pitch_min = buf.triplet.current.pitch_min;
+				LOGBUFFER_WRITE_AND_COUNT(GPSP);
+			}
 		}
 
 		/* --- VICON POSITION --- */
@@ -1595,6 +1598,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.msg_type = LOG_TECS_MSG;
 			log_msg.body.log_TECS.altitudeSp = buf.tecs_status.altitudeSp;
 			log_msg.body.log_TECS.altitude = buf.tecs_status.altitude;
+			log_msg.body.log_TECS.altitudeFiltered = buf.tecs_status.altitudeFiltered;
 			log_msg.body.log_TECS.flightPathAngleSp = buf.tecs_status.flightPathAngleSp;
 			log_msg.body.log_TECS.flightPathAngle = buf.tecs_status.flightPathAngle;
 			log_msg.body.log_TECS.flightPathAngleFiltered = buf.tecs_status.flightPathAngleFiltered;
