@@ -1149,6 +1149,12 @@ PX4IO::io_set_arming_state()
 		clear |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
 	}
 
+	if (armed.force_failsafe) {
+		set |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+	} else {
+		clear |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+	}
+
 	if (armed.ready_to_arm) {
 		set |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
 
@@ -2435,7 +2441,7 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 		break;
 
 	case PX4IO_CHECK_CRC: {
-		/* check IO firmware CRC against passed value */		
+		/* check IO firmware CRC against passed value */
 		uint32_t io_crc = 0;
 		ret = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_CRC, (uint16_t *)&io_crc, 2);
 		if (ret != OK)
@@ -2695,7 +2701,7 @@ checkcrc(int argc, char *argv[])
 	int fd = open(argv[1], O_RDONLY);
 	if (fd == -1) {
 		printf("open of %s failed - %d\n", argv[1], errno);
-		exit(1);			
+		exit(1);
 	}
 	const uint32_t app_size_max = 0xf000;
 	uint32_t fw_crc = 0;
@@ -2710,7 +2716,7 @@ checkcrc(int argc, char *argv[])
 	close(fd);
 	while (nbytes < app_size_max) {
 		uint8_t b = 0xff;
-		fw_crc = crc32part(&b, 1, fw_crc);			
+		fw_crc = crc32part(&b, 1, fw_crc);
 		nbytes++;
 	}
 
@@ -2723,7 +2729,7 @@ checkcrc(int argc, char *argv[])
 
 	if (ret != OK) {
 		printf("check CRC failed - %d\n", ret);
-		exit(1);			
+		exit(1);
 	}
 	printf("CRCs match\n");
 	exit(0);
@@ -2753,12 +2759,12 @@ bind(int argc, char *argv[])
 		pulses = DSMX_BIND_PULSES;
 	else if (!strcmp(argv[2], "dsmx8"))
 		pulses = DSMX8_BIND_PULSES;
-	else 
+	else
 		errx(1, "unknown parameter %s, use dsm2, dsmx or dsmx8", argv[2]);
 	// Test for custom pulse parameter
 	if (argc > 3)
 		pulses = atoi(argv[3]);
-	if (g_dev->system_status() & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) 
+	if (g_dev->system_status() & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
 		errx(1, "system must not be armed");
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
@@ -2960,7 +2966,7 @@ lockdown(int argc, char *argv[])
 				(void)g_dev->ioctl(0, PWM_SERVO_SET_DISABLE_LOCKDOWN, 0);
 				warnx("ACTUATORS ARE NOW SAFE IN HIL.");
 			}
-			
+
 		} else {
 			errx(1, "driver not loaded, exiting");
 		}
