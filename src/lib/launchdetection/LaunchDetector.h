@@ -71,7 +71,9 @@ private:
 	control::BlockParamInt launchdetection_on;
 	control::BlockParamFloat throttlePreTakeoff;
 
-
+	/* we do not want to have this class copied due to ptr data members */
+	LaunchDetector(const launchdetection::LaunchDetector&);
+	LaunchDetector operator=(const launchdetection::LaunchDetector&);
 };
 
 }
