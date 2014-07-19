@@ -57,9 +57,12 @@
 #endif
 static const int ERROR = -1;
 
-MissionFeasibilityChecker::MissionFeasibilityChecker() : _mavlink_fd(-1), _capabilities_sub(-1), _initDone(false)
+MissionFeasibilityChecker::MissionFeasibilityChecker() :
+	_mavlink_fd(-1),
+	_capabilities_sub(-1),
+	_nav_caps{},
+	_initDone(false)
 {
-	_nav_caps = {0};
 }
 
 
