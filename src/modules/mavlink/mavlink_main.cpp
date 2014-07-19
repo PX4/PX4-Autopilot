@@ -247,6 +247,7 @@ Mavlink::Mavlink() :
 	_subscribe_to_stream(nullptr),
 	_subscribe_to_stream_rate(0.0f),
 	_flow_control_enabled(true),
+	_rstatus{},
 	_message_buffer{},
 	_message_buffer_mutex{},
 	_param_initialized(false),
@@ -422,6 +423,29 @@ Mavlink::destroy_all_instances()
 	printf("\n");
 	warnx("all instances stopped");
 	return OK;
+}
+
+int
+Mavlink::get_status_all_instances()
+{
+	Mavlink *inst = ::_mavlink_instances;
+
+	unsigned iterations = 0;
+
+	warnx("waiting for instances to stop");
+
+	while (inst != nullptr) {
+
+		printf("instance #%u:\n", iterations);
+		inst->display_status();
+
+		/* move on */
+		inst = inst->next;
+		iterations++;
+	}
+
+	/* return an error if there are no instances */
+	return (iterations == 0);
 }
 
 bool
@@ -1395,7 +1419,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f);
 		configure_stream("HIGHRES_IMU", 1.0f * rate_mult);
 		configure_stream("ATTITUDE", 10.0f * rate_mult);
-		configure_stream("VFR_HUD", 10.0f * rate_mult);
+		configure_stream("VFR_HUD", 8.0f * rate_mult);
 		configure_stream("GPS_RAW_INT", 1.0f * rate_mult);
 		configure_stream("GLOBAL_POSITION_INT", 3.0f * rate_mult);
 		configure_stream("LOCAL_POSITION_NED", 3.0f * rate_mult);
@@ -1665,6 +1689,27 @@ void
 Mavlink::display_status()
 {
 	warnx("running");
+
+	if (_rstatus.timestamp > 0) {
+		printf("\ttime:\t%llu\tus\n", _rstatus.heartbeat_time);
+
+		switch (_rstatus.type) {
+			case TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO:
+			printf("\t3DR RADIO\n");
+			break;
+			default:
+			printf("\tUNKNOWN RADIO\n");
+			break;
+		}
+
+		printf("\trssi:\t%d\t\n", _rstatus.rssi);
+		printf("\tremote rssi:\t%u\tus\n", _rstatus.remote_rssi);
+		printf("\ttxbuf:\t%u\tus\n", _rstatus.txbuf);
+		printf("\tnoise:\t%d\tus\n", _rstatus.noise);
+		printf("\tremote noise:\t%u\tus\n", _rstatus.remote_noise);
+		printf("\trx errors:\t%u\tus\n", _rstatus.rxerrors);
+		printf("\tfixed:\t%u\tus\n", _rstatus.fixed);
+	}
 }
 
 int
@@ -1752,8 +1797,8 @@ int mavlink_main(int argc, char *argv[])
 	} else if (!strcmp(argv[1], "stop-all")) {
 		return Mavlink::destroy_all_instances();
 
-		// } else if (!strcmp(argv[1], "status")) {
-		// 	mavlink::g_mavlink->status();
+	} else if (!strcmp(argv[1], "status")) {
+		return Mavlink::get_status_all_instances();
 
 	} else if (!strcmp(argv[1], "stream")) {
 		return Mavlink::stream_command(argc, argv);

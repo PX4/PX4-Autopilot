@@ -400,8 +400,7 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 		mavlink_radio_status_t rstatus;
 		mavlink_msg_radio_status_decode(msg, &rstatus);
 
-		struct telemetry_status_s tstatus;
-		memset(&tstatus, 0, sizeof(tstatus));
+		struct telemetry_status_s &tstatus = _mavlink->get_rx_status();
 
 		tstatus.timestamp = hrt_absolute_time();
 		tstatus.heartbeat_time = _telemetry_heartbeat_time;
