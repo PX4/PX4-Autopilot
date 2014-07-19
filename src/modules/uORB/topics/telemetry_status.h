@@ -57,7 +57,8 @@ enum TELEMETRY_STATUS_RADIO_TYPE {
 
 struct telemetry_status_s {
 	uint64_t timestamp;
-	uint64_t heartbeat_time;	/**< Time of last received heartbeat from remote system */
+	uint64_t heartbeat_time;		/**< Time of last received heartbeat from remote system */
+	uint64_t telem_time;			/**< Time of last received telemetry status packet, 0 for none */
 	enum TELEMETRY_STATUS_RADIO_TYPE type;	/**< type of the radio hardware     */
 	uint8_t rssi;				/**< local signal strength                      */
 	uint8_t remote_rssi;			/**< remote signal strength                     */
