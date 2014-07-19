@@ -652,7 +652,7 @@ pwm_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	usage("specify arm|disarm|rate|failsafe|disarmed|min|max|test|info");
+	usage("specify arm|disarm|rate|failsafe|disarmed|min|max|test|info|forcefail");
 	return 0;
 }
 
