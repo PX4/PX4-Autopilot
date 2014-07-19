@@ -546,24 +546,19 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		}
 		break;
 
-#if 0
 	/* Flight termination */
-	case VEHICLE_CMD_DO_SET_SERVO: { //xxx: needs its own mavlink command
-
-			//XXX: to enable the parachute, a param needs to be set
-			//xxx: for safety only for now, param3 is unused by VEHICLE_CMD_DO_SET_SERVO
-			if (armed_local->armed && cmd->param3 > 0.5 && parachute_enabled) {
-				transition_result_t failsafe_res = failsafe_state_transition(status, FAILSAFE_STATE_TERMINATION);
-				cmd_result = VEHICLE_CMD_RESULT_ACCEPTED;
-
+	case VEHICLE_CMD_DO_FLIGHTTERMINATION: {
+			if (cmd->param1 > 0.5f) {
+				//XXX update state machine?
+				armed_local->force_failsafe = true;
+				warnx("forcing failsafe");
 			} else {
-				/* reject parachute depoyment not armed */
-				cmd_result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+				armed_local->force_failsafe = false;
+				warnx("disabling failsafe");
 			}
-
+			cmd_result = VEHICLE_CMD_RESULT_ACCEPTED;
 		}
 		break;
-#endif
 
 	case VEHICLE_CMD_DO_SET_HOME: {
 			bool use_current = cmd->param1 > 0.5f;
