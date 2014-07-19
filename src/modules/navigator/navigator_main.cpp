@@ -335,6 +335,11 @@ Navigator::task_main()
 
 			/* Check geofence violation */
 			if (!_geofence.inside(&_global_pos)) {
+				/* inform other apps via the sp triplet */
+				_pos_sp_triplet.geofence_violated = true;
+				if (_pos_sp_triplet.geofence_violated != true) {
+					_pos_sp_triplet_updated = true;
+				}
 
 				/* Issue a warning about the geofence violation once */
 				if (!_geofence_violation_warning_sent) {
@@ -342,6 +347,11 @@ Navigator::task_main()
 					_geofence_violation_warning_sent = true;
 				}
 			} else {
+				/* inform other apps via the sp triplet */
+				_pos_sp_triplet.geofence_violated = false;
+				if (_pos_sp_triplet.geofence_violated != false) {
+					_pos_sp_triplet_updated = true;
+				}
 				/* Reset the _geofence_violation_warning_sent field */
 				_geofence_violation_warning_sent = false;
 			}

@@ -97,6 +97,7 @@ struct position_setpoint_triplet_s
 	struct position_setpoint_s next;
 
 	unsigned nav_state;				/**< report the navigation state */
+	bool geofence_violated;				/**< true if the geofence is violated */
 };
 
 /**

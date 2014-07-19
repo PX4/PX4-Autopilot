@@ -1244,6 +1244,14 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(position_setpoint_triplet), pos_sp_triplet_sub, &pos_sp_triplet);
+
+			/* Check for geofence violation */
+			if (pos_sp_triplet.geofence_violated) {
+				//XXX: make this configurable to select different actions (e.g. navigation modes)
+				/* this will only trigger if geofence is activated via param and a geofence file is present */
+				armed.force_failsafe = true;
+				status_changed = true;
+			} // no reset is done here on purpose, on geofence violation we want to stay in flighttermination
 		}
 
 		if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
