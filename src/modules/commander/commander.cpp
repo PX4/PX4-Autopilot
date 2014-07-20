@@ -1477,6 +1477,7 @@ int commander_thread_main(int argc, char *argv[])
 			if (!status.data_link_lost) {
 				mavlink_log_critical(mavlink_fd, "ALL DATA LINKS LOST");
 				status.data_link_lost = true;
+				status.data_link_lost_counter++;
 				status_changed = true;
 			}
 		}

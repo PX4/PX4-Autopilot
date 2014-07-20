@@ -201,6 +201,7 @@ struct vehicle_status_s {
 	bool rc_input_blocked;				/**< set if RC input should be ignored */
 
 	bool data_link_lost;						/**< datalink to GCS lost */
+	uint8_t data_link_lost_counter;					/**< counts unique data link lost events */
 
 	bool offboard_control_signal_found_once;
 	bool offboard_control_signal_lost;
