@@ -317,7 +317,8 @@ float battery_remaining_estimate_voltage(float voltage, float discharged, float 
 	counter++;
 
 	/* remaining charge estimate based on voltage and internal resistance (drop under load) */
-	float remaining_voltage = (voltage - bat_n_cells * (bat_v_empty - (bat_v_load_drop * throttle_normalized)) / (bat_n_cells * (bat_v_full - bat_v_empty));
+	float bat_v_full_dynamic = bat_v_full - (bat_v_load_drop * throttle_normalized);
+	float remaining_voltage = (voltage - (bat_n_cells * bat_v_empty)) / (bat_n_cells * (bat_v_full_dynamic - bat_v_empty));
 
 	if (bat_capacity > 0.0f) {
 		/* if battery capacity is known, use discharged current for estimate, but don't show more than voltage estimate */
