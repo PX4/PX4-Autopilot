@@ -1415,8 +1415,12 @@ int commander_thread_main(int argc, char *argv[])
 				arming_state_changed = true;
 
 			} else if (arming_ret == TRANSITION_DENIED) {
-				/* DENIED here indicates bug in the commander */
-				mavlink_log_critical(mavlink_fd, "arming state transition denied");
+				/*
+				 * the arming transition can be denied to a number of reasons:
+				 *  - pre-flight check failed (sensors not ok or not calibrated)
+				 *  - safety not disabled
+				 *  - system not in manual mode
+				 */
 				tune_negative(true);
 			}
 
