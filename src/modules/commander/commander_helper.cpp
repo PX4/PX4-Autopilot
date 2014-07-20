@@ -291,7 +291,7 @@ float battery_remaining_estimate_voltage(float voltage, float discharged, float 
 	static param_t bat_v_load_drop_h;
 	static float bat_v_empty = 3.4f;
 	static float bat_v_full = 4.2f;
-	static float bat_v_load_drop = 0.1f;
+	static float bat_v_load_drop = 0.06f;
 	static int bat_n_cells = 3;
 	static float bat_capacity = -1.0f;
 	static bool initialized = false;
