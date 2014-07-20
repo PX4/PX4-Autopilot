@@ -32,11 +32,11 @@
  ****************************************************************************/
 
 /**
- * @file rtl_params.c
+ * @file datalinkloss_params.c
  *
- * Parameters for RTL
+ * Parameters for DLL
  *
- * @author Julian Oes <julian@oes.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
 #include <nuttx/config.h>
@@ -44,55 +44,82 @@
 #include <systemlib/param/param.h>
 
 /*
- * RTL parameters, accessible via MAVLink
+ * Data Link Loss parameters, accessible via MAVLink
  */
 
 /**
- * Loiter radius after RTL (FW only)
+ * Comms hold wait time
  *
- * Default value of loiter radius after RTL (fixedwing only).
- *
- * @unit meters
- * @min 0.0
- * @group RTL
- */
-PARAM_DEFINE_FLOAT(RTL_LOITER_RAD, 50.0f);
-
-/**
- * RTL altitude
- *
- * Altitude to fly back in RTL in meters
- *
- * @unit meters
- * @min 0
- * @max 1
- * @group RTL
- */
-PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 100);
-
-
-/**
- * RTL loiter altitude
- *
- * Stay at this altitude above home position after RTL descending.
- * Land (i.e. slowly descend) from this altitude if autolanding allowed.
- *
- * @unit meters
- * @min 0
- * @max 100
- * @group RTL
- */
-PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 20);
-
-/**
- * RTL delay
- *
- * Delay after descend before landing in RTL mode.
- * If set to -1 the system will not land but loiter at NAV_LAND_ALT.
+ * The amount of time in seconds the system should wait at the comms hold waypoint
  *
  * @unit seconds
- * @min -1
- * @max
- * @group RTL
+ * @min 0.0
+ * @group DLL
  */
-PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
+PARAM_DEFINE_FLOAT(NAV_DLL_CH_T, 120.0f);
+
+/**
+ * Comms hold Lat
+ *
+ * Latitude of comms hold waypoint
+ *
+ * @unit degrees * 1e7
+ * @min 0.0
+ * @group DLL
+ */
+PARAM_DEFINE_INT32(NAV_DLL_CH_LAT, 266072120);
+
+/**
+ * Comms hold Lon
+ *
+ * Longitude of comms hold waypoint
+ *
+ * @unit degrees * 1e7
+ * @min 0.0
+ * @group DLL
+ */
+PARAM_DEFINE_INT32(NAV_DLL_CH_LON, 1518453890);
+
+/**
+ * Comms hold alt
+ *
+ * Altitude of comms hold waypoint
+ *
+ * @unit m
+ * @min 0.0
+ * @group DLL
+ */
+PARAM_DEFINE_FLOAT(NAV_DLL_CH_ALT, 600.0f);
+
+/**
+ * Airfield home Lat
+ *
+ * Latitude of airfield home waypoint
+ *
+ * @unit degrees * 1e7
+ * @min 0.0
+ * @group DLL
+ */
+PARAM_DEFINE_INT32(NAV_DLL_AH_LAT, 265847810);
+
+/**
+ * Airfield home Lon
+ *
+ * Longitude of airfield home waypoint
+ *
+ * @unit degrees * 1e7
+ * @min 0.0
+ * @group DLL
+ */
+PARAM_DEFINE_INT32(NAV_DLL_AH_LON, 1518423250);
+
+/**
+ * Airfield home alt
+ *
+ * Altitude of airfield home waypoint
+ *
+ * @unit m
+ * @min 0.0
+ * @group DLL
+ */
+PARAM_DEFINE_FLOAT(NAV_DLL_AH_ALT, 600.0f);

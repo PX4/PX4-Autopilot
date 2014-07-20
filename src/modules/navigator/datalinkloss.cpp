@@ -57,10 +57,14 @@
 
 DataLinkLoss::DataLinkLoss(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
-	_rtl_state(RTL_STATE_NONE),
-	_param_return_alt(this, "RETURN_ALT"),
-	_param_descend_alt(this, "DESCEND_ALT"),
-	_param_land_delay(this, "LAND_DELAY")
+	_dll_state(DLL_STATE_NONE),
+	_param_commsholdwaittime(this, "CH_T"),
+	_param_commsholdlat(this, "CH_LAT"),
+	_param_commsholdlon(this, "CH_LON"),
+	_param_commsholdalt(this, "CH_ALT"),
+	_param_airfieldhomelat(this, "AH_LAT"),
+	_param_airfieldhomelon(this, "AH_LON"),
+	_param_airfieldhomealt(this, "AH_ALT")
 {
 	/* load initial params */
 	updateParams();
@@ -77,7 +81,7 @@ DataLinkLoss::on_inactive()
 {
 	/* reset RTL state only if setpoint moved */
 	if (!_navigator->get_can_loiter_at_sp()) {
-		_rtl_state = RTL_STATE_NONE;
+		_dll_state = DLL_STATE_NONE;
 	}
 }
 
@@ -85,40 +89,40 @@ void
 DataLinkLoss::on_activation()
 {
 	/* decide where to enter the RTL procedure when we switch into it */
-	if (_rtl_state == RTL_STATE_NONE) {
-		/* for safety reasons don't go into RTL if landed */
-		if (_navigator->get_vstatus()->condition_landed) {
-			_rtl_state = RTL_STATE_LANDED;
-			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: no RTL when landed");
+	//if (_rtl_state == RTL_STATE_NONE) {
+		//[> for safety reasons don't go into RTL if landed <]
+		//if (_navigator->get_vstatus()->condition_landed) {
+			//_rtl_state = RTL_STATE_LANDED;
+			//mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: no RTL when landed");
 
-		/* if lower than return altitude, climb up first */
-		} else if (_navigator->get_global_position()->alt < _navigator->get_home_position()->alt
-			   + _param_return_alt.get()) {
-			_rtl_state = RTL_STATE_CLIMB;
+		//[> if lower than return altitude, climb up first <]
+		//} else if (_navigator->get_global_position()->alt < _navigator->get_home_position()->alt
+			   //+ _param_return_alt.get()) {
+			//_rtl_state = RTL_STATE_CLIMB;
 
-		/* otherwise go straight to return */
-		} else {
-			/* set altitude setpoint to current altitude */
-			_rtl_state = RTL_STATE_RETURN;
-			_mission_item.altitude_is_relative = false;
-			_mission_item.altitude = _navigator->get_global_position()->alt;
-		}
-	}
-
-	set_rtl_item();
+		//[> otherwise go straight to return <]
+		//} else {
+			//[> set altitude setpoint to current altitude <]
+			//_rtl_state = RTL_STATE_RETURN;
+			//_mission_item.altitude_is_relative = false;
+			//_mission_item.altitude = _navigator->get_global_position()->alt;
+		//}
+	//}
+	_dll_state = DLL_STATE_FLYTOCOMMSHOLDWP;
+	set_dll_item();
 }
 
 void
 DataLinkLoss::on_active()
 {
-	if (_rtl_state != RTL_STATE_LANDED && is_mission_item_reached()) {
-		advance_rtl();
-		set_rtl_item();
+	if (is_mission_item_reached()) {
+		advance_dll();
+		set_dll_item();
 	}
 }
 
 void
-DataLinkLoss::set_rtl_item()
+DataLinkLoss::set_dll_item()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
@@ -128,146 +132,43 @@ DataLinkLoss::set_rtl_item()
 	set_previous_pos_setpoint();
 	_navigator->set_can_loiter_at_sp(false);
 
-	switch (_rtl_state) {
-	case RTL_STATE_CLIMB: {
-		float climb_alt = _navigator->get_home_position()->alt + _param_return_alt.get();
-
-		_mission_item.lat = _navigator->get_global_position()->lat;
-		_mission_item.lon = _navigator->get_global_position()->lon;
+	switch (_dll_state) {
+	case DLL_STATE_FLYTOCOMMSHOLDWP: {
+		_mission_item.lat = (double)(_param_commsholdlat.get()) * 1.0e-7;
+		_mission_item.lon = (double)(_param_commsholdlon.get()) * 1.0e-7;
 		_mission_item.altitude_is_relative = false;
-		_mission_item.altitude = climb_alt;
-		_mission_item.yaw = NAN;
-		_mission_item.loiter_radius = _navigator->get_loiter_radius();
-		_mission_item.loiter_direction = 1;
-		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-		_mission_item.time_inside = 0.0f;
-		_mission_item.pitch_min = 0.0f;
-		_mission_item.autocontinue = true;
-		_mission_item.origin = ORIGIN_ONBOARD;
-
-		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: climb to %d meters above home",
-			(int)(climb_alt - _navigator->get_home_position()->alt));
-		break;
-	}
-
-	case RTL_STATE_RETURN: {
-		_mission_item.lat = _navigator->get_home_position()->lat;
-		_mission_item.lon = _navigator->get_home_position()->lon;
-		 // don't change altitude
-
-		 if (pos_sp_triplet->previous.valid) {
-		 	/* if previous setpoint is valid then use it to calculate heading to home */
-		 	_mission_item.yaw = get_bearing_to_next_waypoint(
-		 	        pos_sp_triplet->previous.lat, pos_sp_triplet->previous.lon,
-		 	        _mission_item.lat, _mission_item.lon);
-
-		 } else {
-		 	/* else use current position */
-		 	_mission_item.yaw = get_bearing_to_next_waypoint(
-		 	        _navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-		 	        _mission_item.lat, _mission_item.lon);
-		 }
-		_mission_item.loiter_radius = _navigator->get_loiter_radius();
-		_mission_item.loiter_direction = 1;
-		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-		_mission_item.time_inside = 0.0f;
-		_mission_item.pitch_min = 0.0f;
-		_mission_item.autocontinue = true;
-		_mission_item.origin = ORIGIN_ONBOARD;
-
-		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: return at %d meters above home",
-			(int)(_mission_item.altitude - _navigator->get_home_position()->alt));
-		break;
-	}
-
-	case RTL_STATE_DESCEND: {
-		_mission_item.lat = _navigator->get_home_position()->lat;
-		_mission_item.lon = _navigator->get_home_position()->lon;
-		_mission_item.altitude_is_relative = false;
-		_mission_item.altitude = _navigator->get_home_position()->alt + _param_descend_alt.get();
+		_mission_item.altitude = (double)(_param_commsholdalt.get());
 		_mission_item.yaw = NAN;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
 		_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-		_mission_item.time_inside = 0.0f;
+		_mission_item.time_inside = _param_commsholdwaittime.get() < 0.0f ? 0.0f : _param_commsholdwaittime.get();
 		_mission_item.pitch_min = 0.0f;
-		_mission_item.autocontinue = false;
-		_mission_item.origin = ORIGIN_ONBOARD;
-
-		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: descend to %d meters above home",
-			(int)(_mission_item.altitude - _navigator->get_home_position()->alt));
-		break;
-	}
-
-	case RTL_STATE_LOITER: {
-		bool autoland = _param_land_delay.get() > -DELAY_SIGMA;
-
-		_mission_item.lat = _navigator->get_home_position()->lat;
-		_mission_item.lon = _navigator->get_home_position()->lon;
-		_mission_item.altitude_is_relative = false;
-		_mission_item.altitude = _navigator->get_home_position()->alt + _param_descend_alt.get();
-		_mission_item.yaw = NAN;
-		_mission_item.loiter_radius = _navigator->get_loiter_radius();
-		_mission_item.loiter_direction = 1;
-		_mission_item.nav_cmd = autoland ? NAV_CMD_LOITER_TIME_LIMIT : NAV_CMD_LOITER_UNLIMITED;
-		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-		_mission_item.time_inside = _param_land_delay.get() < 0.0f ? 0.0f : _param_land_delay.get();
-		_mission_item.pitch_min = 0.0f;
-		_mission_item.autocontinue = autoland;
+		_mission_item.autocontinue = true;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
 		_navigator->set_can_loiter_at_sp(true);
-
-		if (autoland) {
-			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: loiter %.1fs", (double)_mission_item.time_inside);
-
-		} else {
-			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: completed, loiter");
-		}
 		break;
 	}
-
-	case RTL_STATE_LAND: {
-		_mission_item.lat = _navigator->get_home_position()->lat;
-		_mission_item.lon = _navigator->get_home_position()->lon;
+	case DLL_STATE_FLYTOAIRFIELDHOMEWP: {
+		_mission_item.lat = (double)(_param_airfieldhomelat.get()) * 1.0e-7;
+		_mission_item.lon = (double)(_param_airfieldhomelon.get()) * 1.0e-7;
 		_mission_item.altitude_is_relative = false;
-		_mission_item.altitude = _navigator->get_home_position()->alt;
+		_mission_item.altitude = (double)(_param_airfieldhomealt.get());
 		_mission_item.yaw = NAN;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
-		_mission_item.nav_cmd = NAV_CMD_LAND;
+		_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-		_mission_item.time_inside = 0.0f;
+		_mission_item.time_inside = _param_commsholdwaittime.get() < 0.0f ? 0.0f : _param_commsholdwaittime.get();
 		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = true;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
-		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: land at home");
+		_navigator->set_can_loiter_at_sp(true);
 		break;
 	}
-
-	case RTL_STATE_LANDED: {
-		_mission_item.lat = _navigator->get_home_position()->lat;
-		_mission_item.lon = _navigator->get_home_position()->lon;
-		_mission_item.altitude_is_relative = false;
-		_mission_item.altitude = _navigator->get_home_position()->alt;
-		_mission_item.yaw = NAN;
-		_mission_item.loiter_radius = _navigator->get_loiter_radius();
-		_mission_item.loiter_direction = 1;
-		_mission_item.nav_cmd = NAV_CMD_IDLE;
-		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-		_mission_item.time_inside = 0.0f;
-		_mission_item.pitch_min = 0.0f;
-		_mission_item.autocontinue = true;
-		_mission_item.origin = ORIGIN_ONBOARD;
-
-		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RTL: completed, landed");
-		break;
-	}
-
 	default:
 		break;
 	}
@@ -282,35 +183,16 @@ DataLinkLoss::set_rtl_item()
 }
 
 void
-DataLinkLoss::advance_rtl()
+DataLinkLoss::advance_dll()
 {
-	switch (_rtl_state) {
-	case RTL_STATE_CLIMB:
-		_rtl_state = RTL_STATE_RETURN;
+	switch (_dll_state) {
+	case DLL_STATE_NONE:
+		_dll_state = DLL_STATE_FLYTOCOMMSHOLDWP;
 		break;
-
-	case RTL_STATE_RETURN:
-		_rtl_state = RTL_STATE_DESCEND;
+	case DLL_STATE_FLYTOCOMMSHOLDWP:
+		//XXX check here if time is over are over
+		_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 		break;
-
-	case RTL_STATE_DESCEND:
-		/* only go to land if autoland is enabled */
-		if (_param_land_delay.get() < -DELAY_SIGMA || _param_land_delay.get() > DELAY_SIGMA) {
-			_rtl_state = RTL_STATE_LOITER;
-
-		} else {
-			_rtl_state = RTL_STATE_LAND;
-		}
-		break;
-
-	case RTL_STATE_LOITER:
-		_rtl_state = RTL_STATE_LAND;
-		break;
-
-	case RTL_STATE_LAND:
-		_rtl_state = RTL_STATE_LANDED;
-		break;
-
 	default:
 		break;
 	}

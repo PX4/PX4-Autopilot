@@ -68,28 +68,27 @@ public:
 
 private:
 	/**
-	 * Set the RTL item
+	 * Set the DLL item
 	 */
-	void		set_rtl_item();
+	void		set_dll_item();
 
 	/**
-	 * Move to next RTL item
+	 * Move to next DLL item
 	 */
-	void		advance_rtl();
+	void		advance_dll();
 
-	enum RTLState {
-		RTL_STATE_NONE = 0,
-		RTL_STATE_CLIMB,
-		RTL_STATE_RETURN,
-		RTL_STATE_DESCEND,
-		RTL_STATE_LOITER,
-		RTL_STATE_LAND,
-		RTL_STATE_LANDED,
-	} _rtl_state;
+	enum DLLState {
+		DLL_STATE_NONE = 0,
+		DLL_STATE_FLYTOCOMMSHOLDWP = 1,
+		DLL_STATE_FLYTOAIRFIELDHOMEWP = 2,
+	} _dll_state;
 
-	control::BlockParamFloat _param_return_alt;
-	control::BlockParamFloat _param_descend_alt;
-	control::BlockParamFloat _param_land_delay;
+	control::BlockParamFloat _param_commsholdwaittime;
+	control::BlockParamInt _param_commsholdlat; // * 1e7
+	control::BlockParamInt _param_commsholdlon; // * 1e7
+	control::BlockParamFloat _param_commsholdalt;
+	control::BlockParamInt _param_airfieldhomelat; // * 1e7
+	control::BlockParamInt _param_airfieldhomelon; // * 1e7
+	control::BlockParamFloat _param_airfieldhomealt;
 };
-
 #endif
