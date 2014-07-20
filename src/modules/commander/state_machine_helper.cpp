@@ -110,8 +110,8 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 	ASSERT(ARMING_STATE_IN_AIR_RESTORE == ARMING_STATE_MAX - 1);
 
 	transition_result_t ret = TRANSITION_DENIED;
-
 	arming_state_t current_arming_state = status->arming_state;
+	bool feedback_provided = false;
 
 	/* only check transition if the new state is actually different from the current one */
 	if (new_arming_state == current_arming_state) {
@@ -156,13 +156,15 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 
 					// Fail transition if pre-arm check fails
 					if (prearm_ret) {
+						/* the prearm check already prints the reject reason */
+						feedback_provided = true;
 						valid_transition = false;
 
 					// Fail transition if we need safety switch press
 					} else if (safety->safety_switch_available && !safety->safety_off) {
 
-						mavlink_log_critical(mavlink_fd, "NOT ARMING: Press safety switch!");
-
+						mavlink_log_critical(mavlink_fd, "NOT ARMING: Press safety switch first!");
+						feedback_provided = true;
 						valid_transition = false;
 					}
 
@@ -173,6 +175,7 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 						if (!status->condition_power_input_valid) {
 
 							mavlink_log_critical(mavlink_fd, "NOT ARMING: Connect power module.");
+							feedback_provided = true;
 							valid_transition = false;
 						}
 
@@ -182,6 +185,7 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 							(status->avionics_power_rail_voltage < 4.9f))) {
 
 							mavlink_log_critical(mavlink_fd, "NOT ARMING: Avionics power low: %6.2f V.", (double)status->avionics_power_rail_voltage);
+							feedback_provided = true;
 							valid_transition = false;
 						}
 					}
@@ -201,6 +205,7 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 		/* Sensors need to be initialized for STANDBY state */
 		if (new_arming_state == ARMING_STATE_STANDBY && !status->condition_system_sensors_initialized) {
 			mavlink_log_critical(mavlink_fd, "NOT ARMING: Sensors not operational.");
+			feedback_provided = true;
 			valid_transition = false;
 		}
 
@@ -217,8 +222,14 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 	}
 
 	if (ret == TRANSITION_DENIED) {
-		/* only print to console here as this is too technical to be useful during operation */
-		warnx("INVAL: %s - %s", state_names[status->arming_state], state_names[new_arming_state]);
+		const char * str = "INVAL: %s - %s";
+		/* only print to console here by default as this is too technical to be useful during operation */
+		warnx(str, state_names[status->arming_state], state_names[new_arming_state]);
+
+		/* print to MAVLink if we didn't provide any feedback yet */
+		if (!feedback_provided) {
+			mavlink_log_critical(mavlink_fd, str, state_names[status->arming_state], state_names[new_arming_state]);
+		}
 	}
 
 	return ret;
@@ -646,8 +657,7 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 		float accel_magnitude = sqrtf(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
 
 		if (accel_magnitude < 4.0f || accel_magnitude > 15.0f /* m/s^2 */) {
-			mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL RANGE");
-			mavlink_log_critical(mavlink_fd, "hold still while arming");
+			mavlink_log_critical(mavlink_fd, "ARM FAIL: ACCEL RANGE, hold still");
 			/* this is frickin' fatal */
 			failed = true;
 			goto system_eval;
