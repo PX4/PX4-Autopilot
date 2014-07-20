@@ -380,14 +380,19 @@ Mavlink::get_free_tx_buf()
 				 */
 				return 0;
 			} else {
-				/* there is no SW flow control option, just use what our buffer tells us */
+				/* 
+				 * no software overflow indication, use the hardware flow
+				 * control based buf_free measure
+				 */
 				return buf_free;
 			}
 
 		} else {
+			/* there is no SW flow control option, just use what our buffer tells us */
 			return buf_free;
 		}
 	} else {
+		/* failed to read free space, return 0 */
 		return 0;
 	}
 }
