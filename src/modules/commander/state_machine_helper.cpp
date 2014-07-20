@@ -200,6 +200,7 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 
 		/* Sensors need to be initialized for STANDBY state */
 		if (new_arming_state == ARMING_STATE_STANDBY && !status->condition_system_sensors_initialized) {
+			mavlink_log_critical(mavlink_fd, "NOT ARMING: Sensors not operational.");
 			valid_transition = false;
 		}
 
