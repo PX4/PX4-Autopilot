@@ -65,7 +65,7 @@ PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
  *
  * @group Battery Calibration
  */
-PARAM_DEFINE_FLOAT(BAT_V_FULL, 4.15f);
+PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f);
 
 /**
  * Number of cells.
