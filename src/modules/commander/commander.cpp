@@ -127,7 +127,6 @@ extern struct system_load_s system_load;
 #define POSITION_TIMEOUT		(600 * 1000)		/**< consider the local or global position estimate invalid after 600ms */
 #define FAILSAFE_DEFAULT_TIMEOUT	(3 * 1000 * 1000)	/**< hysteresis time - the failsafe will trigger after 3 seconds in this state */
 #define RC_TIMEOUT			500000
-#define DL_TIMEOUT			5 * 1000* 1000
 #define OFFBOARD_TIMEOUT		500000
 #define DIFFPRESS_TIMEOUT		2000000
 
@@ -650,6 +649,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_takeoff_alt = param_find("NAV_TAKEOFF_ALT");
 	param_t _param_enable_parachute = param_find("NAV_PARACHUTE_EN");
 	param_t _param_enable_datalink_loss = param_find("COM_DL_LOSS_EN");
+	param_t _param_datalink_loss_timeout = param_find("COM_DL_LOSS_T");
 
 	/* welcome user */
 	warnx("starting");
@@ -924,6 +924,7 @@ int commander_thread_main(int argc, char *argv[])
 	transition_result_t arming_ret;
 
 	int32_t datalink_loss_enabled = false;
+	int32_t datalink_loss_timeout = 10;
 
 	/* check which state machines for changes, clear "changed" flag */
 	bool arming_state_changed = false;
@@ -983,6 +984,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_takeoff_alt, &takeoff_alt);
 			param_get(_param_enable_parachute, &parachute_enabled);
 			param_get(_param_enable_datalink_loss, &datalink_loss_enabled);
+			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
 		}
 
 		orb_check(sp_man_sub, &updated);
@@ -1023,7 +1025,7 @@ int commander_thread_main(int argc, char *argv[])
 				if (mavlink_fd &&
 					telemetry_last_heartbeat[i] == 0 &&
 					telemetry.heartbeat_time > 0 &&
-					hrt_elapsed_time(&telemetry.heartbeat_time) < DL_TIMEOUT) {
+					hrt_elapsed_time(&telemetry.heartbeat_time) < datalink_loss_timeout) {
 
 					(void)rc_calibration_check(mavlink_fd);
 				}
@@ -1448,7 +1450,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* data links check */
 		bool have_link = false;
 		for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
-			if (telemetry_last_heartbeat[i] != 0 && hrt_elapsed_time(&telemetry_last_heartbeat[i]) < DL_TIMEOUT) {
+			if (telemetry_last_heartbeat[i] != 0 && hrt_elapsed_time(&telemetry_last_heartbeat[i]) < datalink_loss_timeout) {
 				/* handle the case where data link was regained */
 				if (telemetry_lost[i]) {
 					mavlink_log_critical(mavlink_fd, "data link %i regained", i);
