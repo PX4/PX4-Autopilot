@@ -43,9 +43,9 @@
 #include "mavlink_stream.h"
 #include "mavlink_main.h"
 
-MavlinkStream::MavlinkStream() :
+MavlinkStream::MavlinkStream(Mavlink *mavlink) :
 	next(nullptr),
-	_channel(MAVLINK_COMM_0),
+	_mavlink(mavlink),
 	_interval(1000000),
 	_last_sent(0)
 {
@@ -62,15 +62,6 @@ void
 MavlinkStream::set_interval(const unsigned int interval)
 {
 	_interval = interval;
-}
-
-/**
- * Set mavlink channel
- */
-void
-MavlinkStream::set_channel(mavlink_channel_t channel)
-{
-	_channel = channel;
 }
 
 /**

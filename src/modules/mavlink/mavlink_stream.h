@@ -54,7 +54,7 @@ class MavlinkStream
 public:
 	MavlinkStream *next;
 
-	MavlinkStream();
+	MavlinkStream(Mavlink *mavlink);
 	virtual ~MavlinkStream();
 
 	/**
@@ -76,14 +76,14 @@ public:
 	 * @return 0 if updated / sent, -1 if unchanged
 	 */
 	int update(const hrt_abstime t);
-	static MavlinkStream *new_instance();
+	static MavlinkStream *new_instance(const Mavlink *mavlink);
 	static const char *get_name_static();
-	virtual void subscribe(Mavlink *mavlink) = 0;
+	virtual void subscribe() = 0;
 	virtual const char *get_name() const = 0;
 	virtual uint8_t get_id() = 0;
 
 protected:
-	mavlink_channel_t _channel;
+	Mavlink *    _mavlink;
 	unsigned int _interval;
 
 	virtual void send(const hrt_abstime t) = 0;

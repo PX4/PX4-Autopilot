@@ -249,9 +249,9 @@ public:
 		return MAVLINK_MSG_ID_HEARTBEAT;
 	}
 
-	static MavlinkStream *new_instance()
+	static MavlinkStream *new_instance(Mavlink *mavlink)
 	{
-		return new MavlinkStreamHeartbeat();
+		return new MavlinkStreamHeartbeat(mavlink);
 	}
 
 private:
@@ -263,15 +263,15 @@ private:
 	MavlinkStreamHeartbeat& operator = (const MavlinkStreamHeartbeat &);
 
 protected:
-	explicit MavlinkStreamHeartbeat() : MavlinkStream(),
+	explicit MavlinkStreamHeartbeat(Mavlink *mavlink) : MavlinkStream(mavlink),
 		status_sub(nullptr),
 		pos_sp_triplet_sub(nullptr)
 	{}
 
-	void subscribe(Mavlink *mavlink)
+	void subscribe()
 	{
-		status_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_status));
-		pos_sp_triplet_sub = mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet));
+		status_sub = _mavlink->add_orb_subscription(ORB_ID(vehicle_status));
+		pos_sp_triplet_sub = _mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet));
 	}
 
 	void send(const hrt_abstime t)
@@ -290,17 +290,15 @@ protected:
 			memset(&pos_sp_triplet, 0, sizeof(pos_sp_triplet));
 		}
 
-		uint8_t mavlink_state = 0;
-		uint8_t mavlink_base_mode = 0;
-		uint32_t mavlink_custom_mode = 0;
-		get_mavlink_mode_state(&status, &pos_sp_triplet, &mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
+		mavlink_heartbeat_t msg;
+		msg.base_mode = 0;
+		msg.custom_mode = 0;
+		get_mavlink_mode_state(&status, &pos_sp_triplet, &msg.system_status, &msg.base_mode, &msg.custom_mode);
+		msg.type = mavlink_system.type;
+		msg.autopilot = mavlink_system.type;
+		msg.mavlink_version = 3;
 
-		mavlink_msg_heartbeat_send(_channel,
-					   mavlink_system.type,
-					   MAV_AUTOPILOT_PX4,
-					   mavlink_base_mode,
-					   mavlink_custom_mode,
-					   mavlink_state);
+		_mavlink->send_message(MAVLINK_MSG_ID_HEARTBEAT, &msg, 1);
 	}
 };
 

@@ -94,10 +94,14 @@ static const int ERROR = -1;
 #define MAX_DATA_RATE	10000	// max data rate in bytes/s
 #define MAIN_LOOP_DELAY 10000	// 100 Hz @ 1000 bytes/s data rate
 
+#define TX_BUFFER_GAP 256
+
 static Mavlink *_mavlink_instances = nullptr;
 
 /* TODO: if this is a class member it crashes */
 static struct file_operations fops;
+
+static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
 
 /**
  * mavlink app start / stop handling function
@@ -107,113 +111,6 @@ static struct file_operations fops;
 extern "C" __EXPORT int mavlink_main(int argc, char *argv[]);
 
 extern mavlink_system_t mavlink_system;
-
-static uint64_t last_write_success_times[6] = {0};
-static uint64_t last_write_try_times[6] = {0};
-
-/*
- * Internal function to send the bytes through the right serial port
- */
-void
-mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length)
-{
-
-	Mavlink *instance;
-
-	switch (channel) {
-	case MAVLINK_COMM_0:
-		instance = Mavlink::get_instance(0);
-		break;
-
-	case MAVLINK_COMM_1:
-		instance = Mavlink::get_instance(1);
-		break;
-
-	case MAVLINK_COMM_2:
-		instance = Mavlink::get_instance(2);
-		break;
-
-	case MAVLINK_COMM_3:
-		instance = Mavlink::get_instance(3);
-		break;
-#ifdef MAVLINK_COMM_4
-
-	case MAVLINK_COMM_4:
-		instance = Mavlink::get_instance(4);
-		break;
-#endif
-#ifdef MAVLINK_COMM_5
-
-	case MAVLINK_COMM_5:
-		instance = Mavlink::get_instance(5);
-		break;
-#endif
-#ifdef MAVLINK_COMM_6
-
-	case MAVLINK_COMM_6:
-		instance = Mavlink::get_instance(6);
-		break;
-#endif
-
-	default:
-		return;
-	}
-
-	int uart = instance->get_uart_fd();
-
-	ssize_t desired = (sizeof(uint8_t) * length);
-
-	/*
-	 * Check if the OS buffer is full and disable HW
-	 * flow control if it continues to be full
-	 */
-	int buf_free = 0;
-
-	if (instance->get_flow_control_enabled()
-	    && ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
-
-		/* Disable hardware flow control:
-		 * if no successful write since a defined time
-		 * and if the last try was not the last successful write
-		 */
-		if (last_write_try_times[(unsigned)channel] != 0 &&
-		    hrt_elapsed_time(&last_write_success_times[(unsigned)channel]) > 500 * 1000UL &&
-		    last_write_success_times[(unsigned)channel] !=
-		    last_write_try_times[(unsigned)channel]) {
-			warnx("DISABLING HARDWARE FLOW CONTROL");
-			instance->enable_flow_control(false);
-		}
-
-	}
-
-	/* If the wait until transmit flag is on, only transmit after we've received messages.
-	   Otherwise, transmit all the time. */
-	if (instance->should_transmit()) {
-		last_write_try_times[(unsigned)channel] = hrt_absolute_time();
-
-		/* check if there is space in the buffer, let it overflow else */
-		if (!ioctl(uart, FIONWRITE, (unsigned long)&buf_free)) {
-
-			if (buf_free < desired) {
-				/* we don't want to send anything just in half, so return */
-				instance->count_txerr();
-				instance->count_txerrbytes(desired);
-				return;
-			}
-		}
-
-		ssize_t ret = write(uart, ch, desired);
-
-		if (ret != desired) {
-			instance->count_txerr();
-			instance->count_txerrbytes(desired);
-
-		} else {
-			last_write_success_times[(unsigned)channel] = last_write_try_times[(unsigned)channel];
-			instance->count_txbytes(desired);
-		}
-	}
-}
 
 static void usage(void);
 
@@ -253,6 +150,8 @@ Mavlink::Mavlink() :
 	   _subscribe_to_stream(nullptr),
 	   _subscribe_to_stream_rate(0.0f),
 	   _flow_control_enabled(true),
+	   _last_write_success_time(0),
+	   _last_write_try_time(0),
 	   _bytes_tx(0),
 	   _bytes_txerr(0),
 	   _bytes_rx(0),
@@ -359,30 +258,10 @@ Mavlink::get_free_tx_buf()
 	unsigned buf_free;
 
 	if (!ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free)) {
-		if (_rstatus.timestamp > 0 &&
-			(hrt_elapsed_time(&_rstatus.timestamp) < (2 * 1000 * 1000))) {
+		if (_rstatus.telem_time > 0 &&
+			(hrt_elapsed_time(&_rstatus.telem_time) < (2 * 1000 * 1000))) {
 
-			unsigned low_buf;
-
-			switch (_rstatus.type) {
-				case TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO:
-					low_buf = 50;
-					break;
-				default:
-					low_buf = 50;
-					break;
-			}
-
-			if (_rstatus.txbuf < low_buf) {
-				/*
-				 * If the TX buf measure is initialized and up to date and low
-				 * return 0 to slow event based transmission
-				 */
-				return 0;
-			} else {
-				/* there is no SW flow control option, just use what our buffer tells us */
-				return buf_free;
-			}
+			return (unsigned)(buf_free * 0.01f * _rstatus.txbuf);
 
 		} else {
 			return buf_free;
@@ -808,13 +687,93 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 	return ret;
 }
 
+bool
+Mavlink::check_can_send(const int prio, const unsigned packet_len)
+{
+	/*
+	 * Check if the OS buffer is full and disable HW
+	 * flow control if it continues to be full
+	 */
+	int buf_free = 0;
+
+	if (get_flow_control_enabled()
+	    && ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free) == 0) {
+
+		/* Disable hardware flow control:
+		 * if no successful write since a defined time
+		 * and if the last try was not the last successful write
+		 */
+		if (_last_write_try_time != 0 &&
+		    hrt_elapsed_time(&_last_write_success_time) > 500 * 1000UL &&
+		    _last_write_success_time != _last_write_try_time) {
+			warnx("DISABLING HARDWARE FLOW CONTROL");
+			enable_flow_control(false);
+		}
+	}
+
+	/* If the wait until transmit flag is on, only transmit after we've received messages.
+	   Otherwise, transmit all the time. */
+	if (should_transmit()) {
+		_last_write_try_time = hrt_absolute_time();
+
+		/* check if there is space in the buffer, let it overflow else */
+		ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free);
+
+		if (buf_free >= (prio <= 0 ? packet_len : TX_BUFFER_GAP)) {
+			warnx("\t\t\tSKIP %i bytes prio %i", packet_len, (int)prio);
+			/* we don't want to send anything just in half, so return */
+			count_txerr();
+			count_txerrbytes(packet_len);
+			return true;
+		}
+	}
+	return false;
+}
+
 void
-Mavlink::send_message(const mavlink_message_t *msg)
+Mavlink::send_message(const uint8_t msgid, const void *msg, const int prio)
 {
 	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
 
-	uint16_t len = mavlink_msg_to_send_buffer(buf, msg);
-	mavlink_send_uart_bytes(_channel, buf, len);
+	uint8_t payload_len = mavlink_message_lengths[msgid];
+	unsigned packet_len = payload_len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	if (!check_can_send(prio, packet_len)) {
+		return;
+	}
+
+	/* header */
+	buf[0] = MAVLINK_STX;
+	buf[1] = payload_len;
+	buf[2] = mavlink_get_channel_status(_channel)->current_tx_seq++;	// TODO use internal seq counter?
+	buf[3] = mavlink_system.sysid;
+	buf[4] = mavlink_system.compid;
+	buf[5] = msgid;
+
+	/* payload */
+	memcpy(&buf[MAVLINK_NUM_HEADER_BYTES], msg, payload_len);
+
+	/* checksum */
+	uint16_t checksum;
+	crc_init(&checksum);
+	crc_accumulate_buffer(&checksum, &buf[1], MAVLINK_CORE_HEADER_LEN + payload_len);
+#if MAVLINK_CRC_EXTRA
+	crc_accumulate(crc_extra, &checksum);
+#endif
+
+	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
+	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);
+
+	/* send message to UART */
+	ssize_t ret = write(_uart_fd, buf, packet_len);
+
+	if (ret != packet_len) {
+		count_txerr();
+		count_txerrbytes(packet_len);
+
+	} else {
+		_last_write_success_time = _last_write_try_time;
+		count_txbytes(packet_len);
+	}
 }
 
 void
@@ -1585,21 +1544,17 @@ Mavlink::task_main(int argc, char *argv[])
 
 		if (fast_rate_limiter.check(t)) {
 
-			unsigned buf_free = get_free_tx_buf();
-
 			/* only send messages if they fit the buffer */
-			if (buf_free >= (MAVLINK_MSG_ID_PARAM_VALUE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)) {
+			if (check_can_send(0, MAVLINK_MSG_ID_PARAM_VALUE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)) {
 				mavlink_pm_queued_send();
 			}
 
-			buf_free = get_free_tx_buf();
-			if (buf_free >= (MAVLINK_MSG_ID_MISSION_ITEM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)) {
+			if (check_can_send(0, MAVLINK_MSG_ID_MISSION_ITEM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)) {
 				_mission_manager->eventloop();
 			}
 
-			buf_free = get_free_tx_buf();
-			if (buf_free >= (MAVLINK_MSG_ID_STATUSTEXT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) &&
-				(!mavlink_logbuffer_is_empty(&_logbuffer))) {
+			if (!mavlink_logbuffer_is_empty(&_logbuffer) &&
+					check_can_send(0, MAVLINK_MSG_ID_STATUSTEXT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)) {
 				struct mavlink_logmessage msg;
 				int lb_ret = mavlink_logbuffer_read(&_logbuffer, &msg);
 

@@ -160,6 +160,10 @@ public:
 	 */
 	int			set_hil_enabled(bool hil_enabled);
 
+	bool		check_can_send(const int prio, const unsigned packet_len);
+
+	void		send_message(const uint8_t msgid, const void *msg, const int prio);
+
 	void			send_message(const mavlink_message_t *msg);
 
 	void			handle_message(const mavlink_message_t *msg);
@@ -315,6 +319,8 @@ private:
 	float			_subscribe_to_stream_rate;
 
 	bool			_flow_control_enabled;
+	uint64_t		_last_write_success_time;
+	uint64_t		_last_write_try_time;
 
 	unsigned		_bytes_tx;
 	unsigned		_bytes_txerr;
