@@ -49,6 +49,7 @@ namespace fwPosctrl {
 mTecs::mTecs() :
 	SuperBlock(NULL, "MT"),
 	/* Parameters */
+	_mTecsEnabled(this, "ENABLED"),
 	_airspeedMin(this, "FW_AIRSPD_MIN", false),
 	/* Publications */
 	_status(&getPublications(), ORB_ID(tecs_status)),

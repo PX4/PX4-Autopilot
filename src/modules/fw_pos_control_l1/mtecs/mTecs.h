@@ -90,12 +90,14 @@ public:
 	void resetDerivatives(float airspeed);
 
 	/* Accessors */
+	bool getEnabled() { return _mTecsEnabled.get() > 0; }
 	float getThrottleSetpoint() { return _throttleSp; }
 	float getPitchSetpoint() { return _pitchSp; }
 	float airspeedLowpassUpdate(float input) { return _airspeedLowpass.update(input); }
 
 protected:
 	/* parameters */
+	control::BlockParamInt _mTecsEnabled;		/**< 1 if mTecs is enabled */
 	control::BlockParamFloat _airspeedMin;		/**< minimal airspeed */
 
 	/* Publications */
