@@ -739,30 +739,17 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 		{
 			/*
 			 * Coefficients here derived by measurement of the 5-16V
-			 * range on one unit:
+			 * range on one unit, validated on sample points of another unit
 			 *
-			 * V   counts
-			 *  5  1001
-			 *  6  1219
-			 *  7  1436
-			 *  8  1653
-			 *  9  1870
-			 * 10  2086
-			 * 11  2303
-			 * 12  2522
-			 * 13  2738
-			 * 14  2956
-			 * 15  3172
-			 * 16  3389
+			 * Data in Tools/tests-host/data folder.
 			 *
-			 * slope = 0.0046067
-			 * intercept = 0.3863
+			 * slope = 0.004585267878277 (int: 4585)
+			 * intercept = 0.016646394188076 (int: 16646
 			 *
-			 * Intercept corrected for best results @ 12V.
 			 */
 			unsigned counts = adc_measure(ADC_VBATT);
 			if (counts != 0xffff) {
-				unsigned mV = (4150 + (counts * 46)) / 10 - 200;
+				unsigned mV = (16646 + (counts * 4585)) / 1000;
 				unsigned corrected = (mV * r_page_setup[PX4IO_P_SETUP_VBATT_SCALE]) / 10000;
 
 				r_page_status[PX4IO_P_STATUS_VBATT] = corrected;
