@@ -12,8 +12,8 @@ It is based on the DSDL parsing package from pyuavcan.
 '''
 
 from __future__ import division, absolute_import, print_function, unicode_literals
-import sys, os, logging, errno
-from mako.template import Template  # TODO: get rid of the mako dependency
+import sys, os, logging, errno, re
+from .pyratemp import Template
 from pyuavcan import dsdl
 
 # Python 2.7 compatibility
@@ -220,9 +220,60 @@ def generate_one_type(t):
     }[t.kind]
 
     # Generation
-    template = Template(filename=TEMPLATE_FILENAME)
-    text = template.render(t=t)
+    text = expand_template(t=t)  # t for Type
     text = '\n'.join(x.rstrip() for x in text.splitlines())
     text = text.replace('\n\n\n\n\n', '\n\n').replace('\n\n\n\n', '\n\n').replace('\n\n\n', '\n\n')
     text = text.replace('{\n\n ', '{\n ')
     return text
+
+def expand_template(**args):
+    '''
+    Templating is based on pyratemp (http://www.simple-is-better.org/template/pyratemp.html).
+    The pyratemp's syntax is rather verbose and not so human friendly, so we define some
+    custom extensions to make it easier to read and write.
+    The resulting syntax somewhat resembles Mako (which was used earlier instead of pyratemp):
+        Substitution:
+            ${expression}
+        Line joining through backslash (replaced with a single space):
+            ${foo(bar(very_long_arument=42, \
+                      second_line=72))}
+        Blocks:
+            % for a in range(10):
+                % if a == 5:
+                    ${foo()}
+                % endif
+            % endfor
+    The extended syntax is converted into pyratemp's through regexp substitution.
+    '''
+    with open(TEMPLATE_FILENAME) as f:
+        template_text = f.read()
+
+    # Backslash-newline elimination
+    template_text = re.sub(r'\\\r{0,1}\n\ *', r' ', template_text)
+
+    # Substitution syntax transformation: ${foo} ==> $!foo!$
+    template_text = re.sub(r'([^\$]{0,1})\$\{([^\}]+)\}', r'\1$!\2!$', template_text)
+
+    # Flow control expression transformation: % foo: ==> <!--(foo)-->
+    template_text = re.sub(r'(?m)^(\ *)\%\ *([^\:]+?):{0,1}$', r'\1<!--(\2)-->', template_text)
+
+    # Block termination transformation: <!--(endfoo)--> ==> <!--(end)-->
+    template_text = re.sub(r'\<\!--\(end[a-z]+\)--\>', r'<!--(end)-->', template_text)
+
+    # Pyratemp workaround.
+    # The problem is that if there's no empty line after a macro declaration, first line will be doubly indented.
+    # Workaround:
+    #  1. Remove trailing comments
+    #  2. Add a newline after each macro declaration
+    template_text = re.sub(r'\ *\#\!.*', '', template_text)
+    template_text = re.sub(r'(\<\!--\(macro\ [a-zA-Z0-9_]+\)--\>.*?)', r'\1\n', template_text)
+
+    # Preprocessed text output for debugging
+#     with open(TEMPLATE_FILENAME + '.d', 'w') as f:
+#         f.write(template_text)
+
+    # This function adds one indentation level (4 spaces); it will be used from the template
+    args['indent'] = lambda text, idnt = '    ': idnt + text.replace('\n', '\n' + idnt)
+
+    t = Template(template_text)
+    return t(**args)

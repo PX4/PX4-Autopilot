@@ -16,10 +16,6 @@
 #include <${inc}>
 % endfor
 
-<%!
-indent = lambda text, idnt='    ': idnt + text.replace('\n', '\n' + idnt)
-%>
-
 /******************************* Source text **********************************
 % for line in t.source_text.strip().splitlines():
 ${line}
@@ -54,47 +50,47 @@ template <int _tmpl>
 % endif
 struct UAVCAN_EXPORT ${t.cpp_type_name}
 {
-<%def name="generate_primary_body(type_name, max_bitlen, fields, constants)" buffered="True">
+<!--(macro generate_primary_body)--> #! type_name, max_bitlen, fields, constants
     typedef const ${type_name}<_tmpl>& ParameterType;
     typedef ${type_name}<_tmpl>& ReferenceType;
 
-<%def name="expand_attr_types(group_name, attrs)">
+    <!--(macro expand_attr_types)--> #! group_name, attrs
     struct ${group_name}
     {
-% for a in attrs:
+        % for a in attrs:
         typedef ${a.cpp_type} ${a.name};
-% endfor
+        % endfor
     };
-</%def>
-    ${expand_attr_types('ConstantTypes', constants)}
-    ${expand_attr_types('FieldTypes', fields)}
+    <!--(end)-->
+    ${expand_attr_types(group_name='ConstantTypes', attrs=constants)}
+    ${expand_attr_types(group_name='FieldTypes', attrs=fields)}
 
-<%def name="expand_enum_per_field(enum_name)">
+    <!--(macro expand_enum_per_field)--> #! enum_name
     enum
     {
         ${enum_name}
-% for idx,a in enumerate(fields):
+        % for idx,a in enumerate(fields):
             ${'=' if idx == 0 else '+'} FieldTypes::${a.name}::${enum_name}
-% endfor
+        % endfor
     };
-</%def>
-    ${expand_enum_per_field('MinBitLen')}
-    ${expand_enum_per_field('MaxBitLen')}
+    <!--(end)-->
+    ${expand_enum_per_field(enum_name='MinBitLen')}
+    ${expand_enum_per_field(enum_name='MaxBitLen')}
 
     // Constants
-% for a in constants:
+    % for a in constants:
     static const typename ::uavcan::StorageType< typename ConstantTypes::${a.name} >::Type ${a.name}; // ${a.init_expression}
-% endfor
+    % endfor
 
     // Fields
-% for a in fields:
+    % for a in fields:
     typename ::uavcan::StorageType< typename FieldTypes::${a.name} >::Type ${a.name};
-% endfor
+    % endfor
 
     ${type_name}()
-% for idx,a in enumerate(fields):
+    % for idx,a in enumerate(fields):
         ${':' if idx == 0 else ','} ${a.name}()
-% endfor
+    % endfor
     {
         enum { MaxByteLen = ::uavcan::BitLenToByteLen<MaxBitLen>::Result };
         ::uavcan::StaticAssert<int(MaxByteLen) <= int(::uavcan::MaxTransferPayloadLen)>::check();
@@ -119,25 +115,28 @@ struct UAVCAN_EXPORT ${t.cpp_type_name}
 
     static int decode(ReferenceType self, ::uavcan::ScalarCodec& codec,
                       ::uavcan::TailArrayOptimizationMode tao_mode = ::uavcan::TailArrayOptEnabled);
-</%def>
+<!--(end)-->
 
 % if t.kind == t.KIND_SERVICE:
     template <int _tmpl>
     struct Request_
     {
-        ${generate_primary_body('Request_', t.get_max_bitlen_request(), t.request_fields, t.request_constants) | indent}
+        ${indent(generate_primary_body(type_name='Request_', max_bitlen=t.get_max_bitlen_request(), \
+                                       fields=t.request_fields, constants=t.request_constants))}
     };
 
     template <int _tmpl>
     struct Response_
     {
-        ${generate_primary_body('Response_', t.get_max_bitlen_response(), t.response_fields, t.response_constants) | indent}
+        ${indent(generate_primary_body(type_name='Response_', max_bitlen=t.get_max_bitlen_response(), \
+                                       fields=t.response_fields, constants=t.response_constants))}
     };
 
     typedef Request_<0> Request;
     typedef Response_<0> Response;
 % else:
-    ${generate_primary_body(t.cpp_type_name, t.get_max_bitlen(), t.fields, t.constants)}
+    ${generate_primary_body(type_name=t.cpp_type_name, max_bitlen=t.get_max_bitlen(), \
+                            fields=t.fields, constants=t.constants)}
 % endif
 
     /*
@@ -175,24 +174,24 @@ UAVCAN_PACKED_END
 /*
  * Out of line struct method definitions
  */
-<%def name="define_out_of_line_struct_methods(scope_prefix, fields)">
+<!--(macro define_out_of_line_struct_methods)--> #! scope_prefix, fields
 
 template <int _tmpl>
 bool ${scope_prefix}<_tmpl>::operator==(ParameterType rhs) const
 {
     // TODO: Proper float comparison.
-% if fields:
+    % if fields:
     return
-% for idx,a in enumerate(fields):
+        % for idx,a in enumerate(fields):
         ${a.name} == rhs.${a.name} ${'&&' if (idx + 1) < len(fields) else ';'}
-% endfor
-% else:
+        % endfor
+    % else:
     (void)rhs;
     return true;
-% endif
+    % endif
 }
 
-<%def name="generate_codec_calls_per_field(call_name, self_parameter_type)">
+    <!--(macro generate_codec_calls_per_field)--> #! call_name, self_parameter_type
 template <int _tmpl>
 int ${scope_prefix}<_tmpl>::${call_name}(${self_parameter_type} self, ::uavcan::ScalarCodec& codec,
     ::uavcan::TailArrayOptimizationMode tao_mode)
@@ -201,26 +200,26 @@ int ${scope_prefix}<_tmpl>::${call_name}(${self_parameter_type} self, ::uavcan::
     (void)codec;
     (void)tao_mode;
     int res = 1;
-% for idx,a in enumerate(fields):
+        % for idx,a in enumerate(fields):
     res = FieldTypes::${a.name}::${call_name}(self.${a.name}, codec, \
 ${'::uavcan::TailArrayOptDisabled' if (idx + 1) < len(fields) else 'tao_mode'});
     if (res <= 0)
     {
         return res;
     }
-% endfor
+        % endfor
     return res;
 }
-</%def>
-${generate_codec_calls_per_field('encode', 'ParameterType')}
-${generate_codec_calls_per_field('decode', 'ReferenceType')}
-</%def>
+    <!--(end)-->
+${generate_codec_calls_per_field(call_name='encode', self_parameter_type='ParameterType')}
+${generate_codec_calls_per_field(call_name='decode', self_parameter_type='ReferenceType')}
+<!--(end)-->
 
 % if t.kind == t.KIND_SERVICE:
-${define_out_of_line_struct_methods(t.cpp_type_name + '::Request_', t.request_fields)}
-${define_out_of_line_struct_methods(t.cpp_type_name + '::Response_', t.response_fields)}
+${define_out_of_line_struct_methods(scope_prefix=t.cpp_type_name + '::Request_', fields=t.request_fields)}
+${define_out_of_line_struct_methods(scope_prefix=t.cpp_type_name + '::Response_', fields=t.response_fields)}
 % else:
-${define_out_of_line_struct_methods(t.cpp_type_name, t.fields)}
+${define_out_of_line_struct_methods(scope_prefix=t.cpp_type_name, fields=t.fields)}
 % endif
 
 /*
@@ -234,16 +233,16 @@ template <int _tmpl>
 % endif
 {
     ::uavcan::DataTypeSignature signature(${'0x%08X' % t.get_dsdl_signature()}UL);
-<%def name="extend_signature_per_field(scope_prefix, fields)">
-% for a in fields:
+<!--(macro extend_signature_per_field)--> #! scope_prefix, fields
+    % for a in fields:
     ${scope_prefix}FieldTypes::${a.name}::extendDataTypeSignature(signature);
-% endfor
-</%def>
+    % endfor
+<!--(end)-->
 % if t.kind == t.KIND_SERVICE:
-${extend_signature_per_field('Request::', t.request_fields)}
-${extend_signature_per_field('Response::', t.response_fields)}
+${extend_signature_per_field(scope_prefix='Request::', fields=t.request_fields)}
+${extend_signature_per_field(scope_prefix='Response::', fields=t.response_fields)}
 % else:
-${extend_signature_per_field('', t.fields)}
+${extend_signature_per_field(scope_prefix='', fields=t.fields)}
 % endif
     return signature;
 }
@@ -251,19 +250,19 @@ ${extend_signature_per_field('', t.fields)}
 /*
  * Out of line constant definitions
  */
-<%def name="define_out_of_line_constants(scope_prefix, constants)">
-% for a in constants:
+<!--(macro define_out_of_line_constants)--> #! scope_prefix, constants
+    % for a in constants:
 template <int _tmpl>
 const typename ::uavcan::StorageType< typename ${scope_prefix}<_tmpl>::ConstantTypes::${a.name} >::Type
     ${scope_prefix}<_tmpl>::${a.name} = ${a.cpp_value}; // ${a.init_expression}
 
-% endfor
-</%def>
+    % endfor
+<!--(end)-->
 % if t.kind == t.KIND_SERVICE:
-${define_out_of_line_constants(t.cpp_type_name + '::Request_', t.request_constants)}
-${define_out_of_line_constants(t.cpp_type_name + '::Response_', t.response_constants)}
+${define_out_of_line_constants(scope_prefix=t.cpp_type_name + '::Request_', constants=t.request_constants)}
+${define_out_of_line_constants(scope_prefix=t.cpp_type_name + '::Response_', constants=t.response_constants)}
 % else:
-${define_out_of_line_constants(t.cpp_type_name, t.constants)}
+${define_out_of_line_constants(scope_prefix=t.cpp_type_name, constants=t.constants)}
 % endif
 
 /*
@@ -296,7 +295,7 @@ const ::uavcan::DefaultDataTypeRegistrator< ${t.cpp_full_type_name} > _uavcan_gd
 namespace uavcan
 {
 
-<%def name="define_yaml_streamer(type_name, fields)">
+<!--(macro define_yaml_streamer)--> #! type_name, fields
 template <>
 class UAVCAN_EXPORT YamlStreamer< ${type_name} >
 {
@@ -311,8 +310,8 @@ void YamlStreamer< ${type_name} >::stream(Stream& s, ${type_name}::ParameterType
     (void)s;
     (void)obj;
     (void)level;
-% for idx,a in enumerate(fields):
-% if idx == 0:
+    % for idx,a in enumerate(fields):
+        % if idx == 0:
     if (level > 0)
     {
         s << '\n';
@@ -321,23 +320,23 @@ void YamlStreamer< ${type_name} >::stream(Stream& s, ${type_name}::ParameterType
             s << "  ";
         }
     }
-% else:
+        % else:
     s << '\n';
     for (int pos = 0; pos < level; pos++)
     {
         s << "  ";
     }
-% endif
+        % endif
     s << "${a.name}: ";
     YamlStreamer< ${type_name}::FieldTypes::${a.name} >::stream(s, obj.${a.name}, level + 1);
-% endfor
+    % endfor
 }
-</%def>
+<!--(end)-->
 % if t.kind == t.KIND_SERVICE:
-${define_yaml_streamer(t.cpp_full_type_name + '::Request', t.request_fields)}
-${define_yaml_streamer(t.cpp_full_type_name + '::Response', t.response_fields)}
+${define_yaml_streamer(type_name=t.cpp_full_type_name + '::Request', fields=t.request_fields)}
+${define_yaml_streamer(type_name=t.cpp_full_type_name + '::Response', fields=t.response_fields)}
 % else:
-${define_yaml_streamer(t.cpp_full_type_name, t.fields)}
+${define_yaml_streamer(type_name=t.cpp_full_type_name, fields=t.fields)}
 % endif
 
 }
@@ -347,22 +346,21 @@ namespace ${nsc}
 {
 % endfor
 
-<%def name="define_streaming_operator(type_name)">
+<!--(macro define_streaming_operator)--> #! type_name
 template <typename Stream>
 inline Stream& operator<<(Stream& s, ${type_name}::ParameterType obj)
 {
     ::uavcan::YamlStreamer< ${type_name} >::stream(s, obj, 0);
     return s;
 }
-</%def>
+<!--(end)-->
 % if t.kind == t.KIND_SERVICE:
-${define_streaming_operator(t.cpp_full_type_name + '::Request')}
-${define_streaming_operator(t.cpp_full_type_name + '::Response')}
+${define_streaming_operator(type_name=t.cpp_full_type_name + '::Request')}
+${define_streaming_operator(type_name=t.cpp_full_type_name + '::Response')}
 % else:
-${define_streaming_operator(t.cpp_full_type_name)}
+${define_streaming_operator(type_name=t.cpp_full_type_name)}
 % endif
 
 % for nsc in t.cpp_namespace_components:
 }
 % endfor
-
