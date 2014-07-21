@@ -744,7 +744,7 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 			 * Data in Tools/tests-host/data folder.
 			 *
 			 * slope = 0.004585267878277 (int: 4585)
-			 * intercept = 0.016646394188076 (int: 16646
+			 * intercept = 0.016646394188076 (int: 16646)
 			 *
 			 */
 			unsigned counts = adc_measure(ADC_VBATT);
