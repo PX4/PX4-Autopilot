@@ -23,7 +23,7 @@ TEST(NodeStatusProvider, Basic)
     uavcan::protocol::SoftwareVersion swver;
     swver.major = 2;
     swver.minor = 18;
-    swver.build = 0x600DF00D;
+    swver.vcs_commit = 0x600DF00D;
 
     nsp.setHardwareVersion(hwver);
     nsp.setSoftwareVersion(swver);

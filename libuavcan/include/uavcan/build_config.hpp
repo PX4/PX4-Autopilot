@@ -6,7 +6,6 @@
 
 /**
  * UAVCAN version definition
- * // TODO: Use git short hash as build id
  */
 #define UAVCAN_VERSION_MAJOR    0
 #define UAVCAN_VERSION_MINOR    1

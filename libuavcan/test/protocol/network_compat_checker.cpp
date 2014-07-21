@@ -33,7 +33,7 @@ struct NetworkCompatibilityCheckerRemoteContext
     {
         node_status_provider.setName("com.example");
         uavcan::protocol::SoftwareVersion swver;
-        swver.build = 1;
+        swver.vcs_commit = 1;
         node_status_provider.setSoftwareVersion(swver);
     }
 

@@ -30,7 +30,7 @@ TEST(Node, Basic)
     uavcan::protocol::SoftwareVersion swver;
     swver.major = 0;
     swver.minor = 1;
-    swver.build = 0xDEADBEEF;
+    swver.vcs_commit = 0xDEADBEEF;
 
     /*
      * uavcan::Node
