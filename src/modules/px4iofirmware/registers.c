@@ -743,13 +743,15 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 			 *
 			 * Data in Tools/tests-host/data folder.
 			 *
-			 * slope = 0.004585267878277 (int: 4585)
+			 * measured slope = 0.004585267878277 (int: 4585)
+			 * nominal theoretic slope: 0.00459340659 (int: 4593)
 			 * intercept = 0.016646394188076 (int: 16646)
+			 * nominal theoretic intercept: 0.00 (int: 0)
 			 *
 			 */
 			unsigned counts = adc_measure(ADC_VBATT);
 			if (counts != 0xffff) {
-				unsigned mV = (16646 + (counts * 4585)) / 1000;
+				unsigned mV = (0 + (counts * 4593)) / 1000;
 				unsigned corrected = (mV * r_page_setup[PX4IO_P_SETUP_VBATT_SCALE]) / 10000;
 
 				r_page_status[PX4IO_P_STATUS_VBATT] = corrected;
