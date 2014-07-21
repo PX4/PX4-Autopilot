@@ -57,10 +57,6 @@ public:
     {
         UAVCAN_ASSERT(!creation_timestamp_.isZero());
 
-        node_info_.uavcan_version.major = UAVCAN_VERSION_MAJOR;
-        node_info_.uavcan_version.minor = UAVCAN_VERSION_MINOR;
-        node_info_.uavcan_version.build = UAVCAN_VERSION_BUILD;
-
         node_info_.status.status_code = protocol::NodeStatus::STATUS_INITIALIZING;
 
         // NodeStatus TX timeout equals its publication period minus some arbitrary time gap:

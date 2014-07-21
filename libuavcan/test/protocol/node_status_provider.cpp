@@ -81,10 +81,6 @@ TEST(NodeStatusProvider, Basic)
     ASSERT_TRUE(hwver == gni_cln.collector.result->response.hardware_version);
     ASSERT_TRUE(swver == gni_cln.collector.result->response.software_version);
 
-    ASSERT_EQ(UAVCAN_VERSION_MAJOR, gni_cln.collector.result->response.uavcan_version.major);
-    ASSERT_EQ(UAVCAN_VERSION_MINOR, gni_cln.collector.result->response.uavcan_version.minor);
-    ASSERT_EQ(UAVCAN_VERSION_BUILD, gni_cln.collector.result->response.uavcan_version.build);
-
     ASSERT_EQ("superluminal_communication_unit", gni_cln.collector.result->response.name);
 
     /*

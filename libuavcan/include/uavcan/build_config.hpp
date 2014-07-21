@@ -10,7 +10,6 @@
  */
 #define UAVCAN_VERSION_MAJOR    0
 #define UAVCAN_VERSION_MINOR    1
-#define UAVCAN_VERSION_BUILD    0
 
 /**
  * UAVCAN can be compiled in C++11 mode.

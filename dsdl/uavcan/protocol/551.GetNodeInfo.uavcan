@@ -7,8 +7,8 @@
 # Version information shall not be changed while the node is running.
 HardwareVersion hardware_version
 SoftwareVersion software_version
-SoftwareVersion uavcan_version
 
+# Current node status
 NodeStatus status
 
 # Human readable non-empty ASCII node name.

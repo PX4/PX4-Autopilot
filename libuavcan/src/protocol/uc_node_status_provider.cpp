@@ -12,7 +12,7 @@ namespace uavcan
 bool NodeStatusProvider::isNodeInfoInitialized() const
 {
     // Hardware/Software versions are not required
-    return (node_info_.uavcan_version != protocol::SoftwareVersion()) && (!node_info_.name.empty());
+    return !node_info_.name.empty();
 }
 
 int NodeStatusProvider::publish()
