@@ -95,12 +95,13 @@ def run_parser(source_dirs, search_dirs):
 
 def run_generator(types, dest_dir):
     try:
+        template_expander = make_template_expander(TEMPLATE_FILENAME)
         dest_dir = os.path.abspath(dest_dir)  # Removing '..'
         makedirs(dest_dir)
         for t in types:
             logger.info('Generating type %s', t.full_name)
             filename = os.path.join(dest_dir, type_output_filename(t))
-            text = generate_one_type(t)
+            text = generate_one_type(template_expander, t)
             write_generated_data(filename, text)
     except Exception as ex:
         logger.info('Generator failure', exc_info=True)
@@ -157,7 +158,7 @@ def type_to_cpp_type(t):
     else:
         raise DsdlCompilerException('Unknown type category: %s' % t.category)
 
-def generate_one_type(t):
+def generate_one_type(template_expander, t):
     t.short_name = t.full_name.split('.')[-1]
     t.cpp_type_name = t.short_name + '_'
     t.cpp_full_type_name = '::' + t.full_name.replace('.', '::')
@@ -220,13 +221,13 @@ def generate_one_type(t):
     }[t.kind]
 
     # Generation
-    text = expand_template(t=t)  # t for Type
+    text = template_expander(t=t)  # t for Type
     text = '\n'.join(x.rstrip() for x in text.splitlines())
     text = text.replace('\n\n\n\n\n', '\n\n').replace('\n\n\n\n', '\n\n').replace('\n\n\n', '\n\n')
     text = text.replace('{\n\n ', '{\n ')
     return text
 
-def expand_template(**args):
+def make_template_expander(filename):
     '''
     Templating is based on pyratemp (http://www.simple-is-better.org/template/pyratemp.html).
     The pyratemp's syntax is rather verbose and not so human friendly, so we define some
@@ -245,7 +246,7 @@ def expand_template(**args):
             % endfor
     The extended syntax is converted into pyratemp's through regexp substitution.
     '''
-    with open(TEMPLATE_FILENAME) as f:
+    with open(filename) as f:
         template_text = f.read()
 
     # Backslash-newline elimination
@@ -269,11 +270,14 @@ def expand_template(**args):
     template_text = re.sub(r'(\<\!--\(macro\ [a-zA-Z0-9_]+\)--\>.*?)', r'\1\n', template_text)
 
     # Preprocessed text output for debugging
-#     with open(TEMPLATE_FILENAME + '.d', 'w') as f:
-#         f.write(template_text)
+#   with open(filename + '.d', 'w') as f:
+#       f.write(template_text)
 
-    # This function adds one indentation level (4 spaces); it will be used from the template
-    args['indent'] = lambda text, idnt = '    ': idnt + text.replace('\n', '\n' + idnt)
+    template = Template(template_text)
 
-    t = Template(template_text)
-    return t(**args)
+    def expand(**args):
+        # This function adds one indentation level (4 spaces); it will be used from the template
+        args['indent'] = lambda text, idnt = '    ': idnt + text.replace('\n', '\n' + idnt)
+        return template(**args)
+
+    return expand
