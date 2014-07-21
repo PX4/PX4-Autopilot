@@ -43,10 +43,7 @@
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
-#include <uORB/topics/mission.h>
-#include <uORB/topics/mission.h>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/Subscription.hpp>
 
 #include "navigator_mode.h"
 #include "mission_block.h"
@@ -67,6 +64,25 @@ public:
 	virtual void on_active();
 
 private:
+	/* Subscriptions */
+	uORB::Subscription<vehicle_status_s> _vehicleStatus;
+
+	/* Params */
+	control::BlockParamFloat _param_commsholdwaittime;
+	control::BlockParamInt _param_commsholdlat; // * 1e7
+	control::BlockParamInt _param_commsholdlon; // * 1e7
+	control::BlockParamFloat _param_commsholdalt;
+	control::BlockParamInt _param_airfieldhomelat; // * 1e7
+	control::BlockParamInt _param_airfieldhomelon; // * 1e7
+	control::BlockParamFloat _param_airfieldhomealt;
+	control::BlockParamInt _param_numberdatalinklosses;
+
+	enum DLLState {
+		DLL_STATE_NONE = 0,
+		DLL_STATE_FLYTOCOMMSHOLDWP = 1,
+		DLL_STATE_FLYTOAIRFIELDHOMEWP = 2,
+	} _dll_state;
+
 	/**
 	 * Set the DLL item
 	 */
@@ -77,18 +93,5 @@ private:
 	 */
 	void		advance_dll();
 
-	enum DLLState {
-		DLL_STATE_NONE = 0,
-		DLL_STATE_FLYTOCOMMSHOLDWP = 1,
-		DLL_STATE_FLYTOAIRFIELDHOMEWP = 2,
-	} _dll_state;
-
-	control::BlockParamFloat _param_commsholdwaittime;
-	control::BlockParamInt _param_commsholdlat; // * 1e7
-	control::BlockParamInt _param_commsholdlon; // * 1e7
-	control::BlockParamFloat _param_commsholdalt;
-	control::BlockParamInt _param_airfieldhomelat; // * 1e7
-	control::BlockParamInt _param_airfieldhomelon; // * 1e7
-	control::BlockParamFloat _param_airfieldhomealt;
 };
 #endif

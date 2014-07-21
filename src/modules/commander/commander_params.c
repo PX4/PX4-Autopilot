@@ -94,10 +94,9 @@ PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
  * @min 0
  * @max 1
  */
-PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0);
+PARAM_DEFINE_INT32(DL_LOSS_EN, 0);
 
-/**
- * Datalink timeout threshold
+ /** Datalink timeout threshold
  *
  * After this amount of seconds the data link lost mode triggers
  *

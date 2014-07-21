@@ -123,3 +123,14 @@ PARAM_DEFINE_INT32(NAV_DLL_AH_LON, 1518423250);
  * @group DLL
  */
 PARAM_DEFINE_FLOAT(NAV_DLL_AH_ALT, 600.0f);
+
+/**
+ * Number of allowed Datalink timeouts
+ *
+ * After more than this number of data link timeouts the aircraft returns home directly
+ *
+ * @group commander
+ * @min 0
+ * @max 1000
+ */
+PARAM_DEFINE_INT32(NAV_DLL_N, 2);

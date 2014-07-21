@@ -57,14 +57,16 @@
 
 DataLinkLoss::DataLinkLoss(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
-	_dll_state(DLL_STATE_NONE),
+	_vehicleStatus(&getSubscriptions(), ORB_ID(vehicle_status), 100),
 	_param_commsholdwaittime(this, "CH_T"),
 	_param_commsholdlat(this, "CH_LAT"),
 	_param_commsholdlon(this, "CH_LON"),
 	_param_commsholdalt(this, "CH_ALT"),
 	_param_airfieldhomelat(this, "AH_LAT"),
 	_param_airfieldhomelon(this, "AH_LON"),
-	_param_airfieldhomealt(this, "AH_ALT")
+	_param_airfieldhomealt(this, "AH_ALT"),
+	_param_numberdatalinklosses(this, "DLL_N"),
+	_dll_state(DLL_STATE_NONE)
 {
 	/* load initial params */
 	updateParams();
@@ -187,7 +189,13 @@ DataLinkLoss::advance_dll()
 {
 	switch (_dll_state) {
 	case DLL_STATE_NONE:
-		_dll_state = DLL_STATE_FLYTOCOMMSHOLDWP;
+		/* Check the number of data link losses. If above home fly home directly */
+		updateSubscriptions();
+		if (_vehicleStatus.data_link_lost_counter > _param_numberdatalinklosses.get()) {
+			_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
+		} else {
+			_dll_state = DLL_STATE_FLYTOCOMMSHOLDWP;
+		}
 		break;
 	case DLL_STATE_FLYTOCOMMSHOLDWP:
 		//XXX check here if time is over are over
