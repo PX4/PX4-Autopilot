@@ -94,6 +94,8 @@ static const int ERROR = -1;
 #define MAX_DATA_RATE	10000	// max data rate in bytes/s
 #define MAIN_LOOP_DELAY 10000	// 100 Hz @ 1000 bytes/s data rate
 
+#define TX_BUF_MIN_FREE 300
+
 static Mavlink *_mavlink_instances = nullptr;
 
 /* TODO: if this is a class member it crashes */
@@ -192,14 +194,11 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 		last_write_try_times[(unsigned)channel] = hrt_absolute_time();
 
 		/* check if there is space in the buffer, let it overflow else */
-		if (!ioctl(uart, FIONWRITE, (unsigned long)&buf_free)) {
-
-			if (buf_free < desired) {
-				/* we don't want to send anything just in half, so return */
-				instance->count_txerr();
-				instance->count_txerrbytes(desired);
-				return;
-			}
+		if (instance->get_free_tx_buf() < TX_BUF_MIN_FREE) {
+			/* we don't want to send anything just in half, so return */
+			instance->count_txerr();
+			instance->count_txerrbytes(desired);
+			return;
 		}
 
 		ssize_t ret = write(uart, ch, desired);
@@ -359,38 +358,8 @@ Mavlink::get_free_tx_buf()
 	unsigned buf_free;
 
 	if (!ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free)) {
-		if (_rstatus.timestamp > 0 &&
-			(hrt_elapsed_time(&_rstatus.timestamp) < (2 * 1000 * 1000))) {
+		return buf_free;
 
-			unsigned low_buf;
-
-			switch (_rstatus.type) {
-				case TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO:
-					low_buf = 50;
-					break;
-				default:
-					low_buf = 50;
-					break;
-			}
-
-			if (_rstatus.txbuf < low_buf) {
-				/*
-				 * If the TX buf measure is initialized and up to date and low
-				 * return 0 to slow event based transmission
-				 */
-				return 0;
-			} else {
-				/* 
-				 * no software overflow indication, use the hardware flow
-				 * control based buf_free measure
-				 */
-				return buf_free;
-			}
-
-		} else {
-			/* there is no SW flow control option, just use what our buffer tells us */
-			return buf_free;
-		}
 	} else {
 		/* failed to read free space, return 0 */
 		return 0;
@@ -1593,17 +1562,17 @@ Mavlink::task_main(int argc, char *argv[])
 			unsigned buf_free = get_free_tx_buf();
 
 			/* only send messages if they fit the buffer */
-			if (buf_free >= (MAVLINK_MSG_ID_PARAM_VALUE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)) {
+			if (buf_free >= TX_BUF_MIN_FREE) {
 				mavlink_pm_queued_send();
 			}
 
 			buf_free = get_free_tx_buf();
-			if (buf_free >= (MAVLINK_MSG_ID_MISSION_ITEM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)) {
+			if (buf_free >= TX_BUF_MIN_FREE) {
 				_mission_manager->eventloop();
 			}
 
 			buf_free = get_free_tx_buf();
-			if (buf_free >= (MAVLINK_MSG_ID_STATUSTEXT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) &&
+			if (buf_free >= TX_BUF_MIN_FREE &&
 				(!mavlink_logbuffer_is_empty(&_logbuffer))) {
 				struct mavlink_logmessage msg;
 				int lb_ret = mavlink_logbuffer_read(&_logbuffer, &msg);
