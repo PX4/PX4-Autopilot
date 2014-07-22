@@ -56,7 +56,20 @@ public:
 
 	MavlinkStream();
 	virtual ~MavlinkStream();
+
+	/**
+	 * Get the interval
+	 *
+	 * @param interval the inveral in microseconds (us) between messages
+	 */
 	void set_interval(const unsigned int interval);
+
+	/**
+	 * Get the interval
+	 *
+	 * @return the inveral in microseconds (us) between messages
+	 */
+	unsigned get_interval() { return _interval; }
 	void set_channel(mavlink_channel_t channel);
 
 	/**

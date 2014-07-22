@@ -51,6 +51,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/telemetry_status.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_orb_subscription.h"
@@ -96,6 +97,8 @@ public:
 	static Mavlink		*get_instance_for_device(const char *device_name);
 
 	static int		destroy_all_instances();
+
+	static int		get_status_all_instances();
 
 	static bool		instance_exists(const char *device_name, Mavlink *self);
 
@@ -229,6 +232,33 @@ public:
 	 */
 	void			count_txerr();
 
+	/**
+	 * Count transmitted bytes
+	 */
+	void			count_txbytes(unsigned n) { _bytes_tx += n; };
+
+	/**
+	 * Count bytes not transmitted because of errors
+	 */
+	void			count_txerrbytes(unsigned n) { _bytes_txerr += n; };
+
+	/**
+	 * Count received bytes
+	 */
+	void			count_rxbytes(unsigned n) { _bytes_rx += n; };
+
+	/**
+	 * Get the free space in the transmit buffer
+	 *
+	 * @return free space in the UART TX buffer
+	 */
+	unsigned		get_free_tx_buf();
+
+	/**
+	 * Get the receive status of this MAVLink link
+	 */
+	struct telemetry_status_s&	get_rx_status() { return _rstatus; }
+
 protected:
 	Mavlink			*next;
 
@@ -250,13 +280,13 @@ private:
 	MavlinkOrbSubscription	*_subscriptions;
 	MavlinkStream		*_streams;
 
-	MavlinkMissionManager *_mission_manager;
+	MavlinkMissionManager	*_mission_manager;
 
-	orb_advert_t	_mission_pub;
+	orb_advert_t		_mission_pub;
 	int			_mission_result_sub;
-	MAVLINK_MODE _mode;
+	MAVLINK_MODE 		_mode;
 
-	mavlink_channel_t _channel;
+	mavlink_channel_t	_channel;
 
 	struct mavlink_logbuffer _logbuffer;
 	unsigned int		_total_counter;
@@ -269,7 +299,8 @@ private:
 	bool			_ftp_on;
 	int			_uart_fd;
 	int			_baudrate;
-	int			_datarate;
+	int			_datarate;		///< data rate for normal streams (attitude, position, etc.)
+	int			_datarate_events;	///< data rate for params, waypoints, text messages
 
 	/**
 	 * If the queue index is not at 0, the queue sending
@@ -284,6 +315,16 @@ private:
 	float			_subscribe_to_stream_rate;
 
 	bool			_flow_control_enabled;
+
+	unsigned		_bytes_tx;
+	unsigned		_bytes_txerr;
+	unsigned		_bytes_rx;
+	uint64_t		_bytes_timestamp;
+	float		_rate_tx;
+	float		_rate_txerr;
+	float		_rate_rx;
+
+	struct telemetry_status_s	_rstatus;			///< receive status
 
 	struct mavlink_message_buffer {
 		int write_ptr;
@@ -351,6 +392,13 @@ private:
 	int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
 
 	int configure_stream(const char *stream_name, const float rate);
+
+	/**
+	 * Adjust the stream rates based on the current rate
+	 *
+	 * @param multiplier if greater than 1, the transmission rate will increase, if smaller than one decrease
+	 */
+	void adjust_stream_rates(const float multiplier);
 
 	int message_buffer_init(int size);
 
