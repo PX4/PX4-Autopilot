@@ -13,7 +13,7 @@ uint8 STATUS_MASK_TEMP_COLD  = 16  # Temperature below normal
 uint8 STATUS_MASK_OVERLOAD   = 32
 uint8 status_mask
 
-float16 temperature             # Celsius, required
+float16 temperature             # Celsius, optional
 float16 voltage                 # Required
 float16 current                 # Required
 float16 average_power_10sec     # Average power consumption over the last 10 seconds, required
