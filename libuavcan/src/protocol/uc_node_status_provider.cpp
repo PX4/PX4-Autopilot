@@ -69,10 +69,15 @@ int NodeStatusProvider::startAndPublish()
         return -ErrNotInited;
     }
 
-    int res = publish(); // Initial broadcast
-    if (res < 0)
+    int res = -1;
+
+    if (!getNode().isPassiveMode())
     {
-        goto fail;
+        res = publish();
+        if (res < 0)  // Initial broadcast
+        {
+            goto fail;
+        }
     }
 
     res = gdr_sub_.start(GlobalDiscoveryRequestCallback(this, &NodeStatusProvider::handleGlobalDiscoveryRequest));
