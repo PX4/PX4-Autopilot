@@ -212,6 +212,9 @@ endif
 $(NUTTX_SRC):
 	$(Q) ($(PX4_BASE)/Tools/check_submodules.sh)
 
+$(UAVCAN_DIR):
+	$(Q) (./Tools/check_submodules.sh)
+
 .PHONY: checksubmodules
 checksubmodules:
 	$(Q) ($(PX4_BASE)/Tools/check_submodules.sh)
