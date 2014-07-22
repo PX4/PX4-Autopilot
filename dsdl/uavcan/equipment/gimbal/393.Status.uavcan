@@ -8,5 +8,8 @@ uint4 MODE_ORIENTATION_BODY_FRAME  = 2
 uint4 MODE_GEO_POI                 = 3
 uint4 mode
 
-float16[4] orientation_xyzw
-float16[<=9] orientation_covariance   # +inf for non-existent axes
+# Camera axis orientation in body frame (not in fixed frame).
+# In case if the gimbal can only measure orientation relative to the fixed frame (e.g. using a dedicated IMU),
+# it shall transform the orientation into the body frame automatically.
+float16[4] body_frame_orientation_xyzw
+float16[<=9] body_frame_orientation_covariance   # +inf for non-existent axes
