@@ -4,5 +4,11 @@
 
 uint8 circuit_id
 
+uint8 ERROR_MASK_OVERVOLTAGE  = 1
+uint8 ERROR_MASK_UNDERVOLTAGE = 2
+uint8 ERROR_MASK_OVERCURRENT  = 4
+uint8 ERROR_MASK_UNDERCURRENT = 8
+uint8 error_mask
+
 float16 voltage
 float16 current
