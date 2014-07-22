@@ -48,6 +48,7 @@ PARAM_DEFINE_FLOAT(INAV_W_Z_SONAR, 3.0f);
 PARAM_DEFINE_FLOAT(INAV_W_XY_GPS_P, 1.0f);
 PARAM_DEFINE_FLOAT(INAV_W_XY_GPS_V, 2.0f);
 PARAM_DEFINE_FLOAT(INAV_W_XY_VISION_P, 5.0f);
+PARAM_DEFINE_FLOAT(INAV_W_XY_VISION_V, 0.0f);
 PARAM_DEFINE_FLOAT(INAV_W_XY_FLOW, 5.0f);
 PARAM_DEFINE_FLOAT(INAV_W_XY_RES_V, 0.5f);
 PARAM_DEFINE_FLOAT(INAV_W_GPS_FLOW, 0.1f);
@@ -71,6 +72,7 @@ int parameters_init(struct position_estimator_inav_param_handles *h)
 	h->w_xy_gps_p = param_find("INAV_W_XY_GPS_P");
 	h->w_xy_gps_v = param_find("INAV_W_XY_GPS_V");
 	h->w_xy_vision_p = param_find("INAV_W_XY_VISION_P");
+	h->w_xy_vision_v = param_find("INAV_W_XY_VISION_V");
 	h->w_xy_flow = param_find("INAV_W_XY_FLOW");
 	h->w_xy_res_v = param_find("INAV_W_XY_RES_V");
 	h->w_gps_flow = param_find("INAV_W_GPS_FLOW");
@@ -97,6 +99,7 @@ int parameters_update(const struct position_estimator_inav_param_handles *h, str
 	param_get(h->w_xy_gps_p, &(p->w_xy_gps_p));
 	param_get(h->w_xy_gps_v, &(p->w_xy_gps_v));
 	param_get(h->w_xy_vision_p, &(p->w_xy_vision_p));
+	param_get(h->w_xy_vision_v, &(p->w_xy_vision_v));
 	param_get(h->w_xy_flow, &(p->w_xy_flow));
 	param_get(h->w_xy_res_v, &(p->w_xy_res_v));
 	param_get(h->w_gps_flow, &(p->w_gps_flow));
