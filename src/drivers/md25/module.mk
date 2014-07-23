@@ -40,3 +40,5 @@ MODULE_COMMAND		= md25
 
 SRCS			= md25.cpp \
 			  md25_main.cpp
+
+MAXOPTIMIZATION	 = -Os
