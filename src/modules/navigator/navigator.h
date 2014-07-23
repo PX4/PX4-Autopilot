@@ -222,5 +222,11 @@ private:
 	 * Publish a new position setpoint triplet for position controllers
 	 */
 	void		publish_position_setpoint_triplet();
+
+	/* this class has ptr data members, so it should not be copied,
+	 * consequently the copy constructors are private.
+	 */
+	Navigator(const Navigator&);
+	Navigator operator=(const Navigator&);
 };
 #endif

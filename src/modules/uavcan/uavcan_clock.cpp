@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,39 +31,49 @@
  *
  ****************************************************************************/
 
+#include <uavcan_stm32/uavcan_stm32.hpp>
+#include <drivers/drv_hrt.h>
+
 /**
- * @file actuator_armed.h
+ * @file uavcan_clock.cpp
  *
- * Actuator armed topic
+ * Implements a clock for the CAN node.
  *
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#ifndef TOPIC_ACTUATOR_ARMED_H
-#define TOPIC_ACTUATOR_ARMED_H
+namespace uavcan_stm32
+{
+namespace clock
+{
 
-#include <stdint.h>
-#include "../uORB.h"
+uavcan::MonotonicTime getMonotonic()
+{
+	return uavcan::MonotonicTime::fromUSec(hrt_absolute_time());
+}
 
-/**
- * @addtogroup topics
- * @{
- */
+uavcan::UtcTime getUtc()
+{
+	return uavcan::UtcTime();
+}
 
-/** global 'actuator output is live' control. */
-struct actuator_armed_s {
+void adjustUtc(uavcan::UtcDuration adjustment)
+{
+	(void)adjustment;
+}
 
-	uint64_t	timestamp;	/**< Microseconds since system boot */
-	bool		armed;		/**< Set to true if system is armed */
-	bool		ready_to_arm;	/**< Set to true if system is ready to be armed */
-	bool		lockdown;	/**< Set to true if actuators are forced to being disabled (due to emergency or HIL) */
-	bool		force_failsafe; /**< Set to true if the actuators are forced to the failsafe position */
-};
+uavcan::uint64_t getUtcUSecFromCanInterrupt()
+{
+	return 0;
+}
 
-/**
- * @}
- */
+} // namespace clock
 
-/* register this as object request broker structure */
-ORB_DECLARE(actuator_armed);
+SystemClock &SystemClock::instance()
+{
+	static SystemClock inst;
+	return inst;
+}
 
-#endif
+}
+

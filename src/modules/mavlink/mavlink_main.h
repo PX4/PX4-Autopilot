@@ -51,6 +51,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/telemetry_status.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_orb_subscription.h"
@@ -96,6 +97,8 @@ public:
 	static Mavlink		*get_instance_for_device(const char *device_name);
 
 	static int		destroy_all_instances();
+
+	static int		get_status_all_instances();
 
 	static bool		instance_exists(const char *device_name, Mavlink *self);
 
@@ -231,6 +234,26 @@ public:
 	 */
 	void			count_txerr();
 
+	/**
+	 * Count transmitted bytes
+	 */
+	void			count_txbytes(unsigned n) { _bytes_tx += n; };
+
+	/**
+	 * Count bytes not transmitted because of errors
+	 */
+	void			count_txerrbytes(unsigned n) { _bytes_txerr += n; };
+
+	/**
+	 * Count received bytes
+	 */
+	void			count_rxbytes(unsigned n) { _bytes_rx += n; };
+
+	/**
+	 * Get the receive status of this MAVLink link
+	 */
+	struct telemetry_status_s&	get_rx_status() { return _rstatus; }
+
 protected:
 	Mavlink			*next;
 
@@ -253,13 +276,13 @@ private:
 	MavlinkOrbSubscription	*_subscriptions;
 	MavlinkStream		*_streams;
 
-	MavlinkMissionManager *_mission_manager;
+	MavlinkMissionManager	*_mission_manager;
 
-	orb_advert_t	_mission_pub;
+	orb_advert_t		_mission_pub;
 	int			_mission_result_sub;
-	MAVLINK_MODE _mode;
+	MAVLINK_MODE 		_mode;
 
-	mavlink_channel_t _channel;
+	mavlink_channel_t	_channel;
 
 	struct mavlink_logbuffer _logbuffer;
 	unsigned int		_total_counter;
@@ -287,6 +310,16 @@ private:
 	float			_subscribe_to_stream_rate;
 
 	bool			_flow_control_enabled;
+
+	unsigned		_bytes_tx;
+	unsigned		_bytes_txerr;
+	unsigned		_bytes_rx;
+	uint64_t		_bytes_timestamp;
+	float		_rate_tx;
+	float		_rate_txerr;
+	float		_rate_rx;
+
+	struct telemetry_status_s	_rstatus;			///< receive status
 
 	struct mavlink_message_buffer {
 		int write_ptr;

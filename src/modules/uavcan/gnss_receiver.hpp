@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,38 +32,53 @@
  ****************************************************************************/
 
 /**
- * @file actuator_armed.h
+ * @file gnss_receiver.hpp
  *
- * Actuator armed topic
+ * UAVCAN --> ORB bridge for GNSS messages:
+ *     uavcan.equipment.gnss.Fix
  *
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ * @author Andrew Chambers <achamber@gmail.com>
  */
 
-#ifndef TOPIC_ACTUATOR_ARMED_H
-#define TOPIC_ACTUATOR_ARMED_H
+#pragma once
 
-#include <stdint.h>
-#include "../uORB.h"
+#include <drivers/drv_hrt.h>
 
-/**
- * @addtogroup topics
- * @{
- */
+#include <uORB/uORB.h>
+#include <uORB/topics/vehicle_gps_position.h>
 
-/** global 'actuator output is live' control. */
-struct actuator_armed_s {
+#include <uavcan/uavcan.hpp>
+#include <uavcan/equipment/gnss/Fix.hpp>
 
-	uint64_t	timestamp;	/**< Microseconds since system boot */
-	bool		armed;		/**< Set to true if system is armed */
-	bool		ready_to_arm;	/**< Set to true if system is ready to be armed */
-	bool		lockdown;	/**< Set to true if actuators are forced to being disabled (due to emergency or HIL) */
-	bool		force_failsafe; /**< Set to true if the actuators are forced to the failsafe position */
+class UavcanGnssReceiver
+{
+public:
+	UavcanGnssReceiver(uavcan::INode& node);
+
+	int init();
+
+private:
+	/**
+	 * GNSS fix message will be reported via this callback.
+	 */
+	void gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
+
+
+	typedef uavcan::MethodBinder<UavcanGnssReceiver*,
+		void (UavcanGnssReceiver::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix>&)>
+		FixCbBinder;
+
+	/*
+	 * libuavcan related things
+	 */
+	uavcan::INode													&_node;
+	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder>	_uavcan_sub_status;
+
+	/*
+	 * uORB
+	 */
+	struct vehicle_gps_position_s 	_report;					///< uORB topic for gnss position
+	orb_advert_t			_report_pub;					///< uORB pub for gnss position
+
 };
-
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(actuator_armed);
-
-#endif

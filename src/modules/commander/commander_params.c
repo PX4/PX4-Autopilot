@@ -65,7 +65,17 @@ PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
  *
  * @group Battery Calibration
  */
-PARAM_DEFINE_FLOAT(BAT_V_FULL, 3.9f);
+PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f);
+
+/**
+ * Voltage drop per cell on 100% load
+ *
+ * This implicitely defines the internal resistance
+ * to maximum current ratio and assumes linearity.
+ *
+ * @group Battery Calibration
+ */
+PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
 
 /**
  * Number of cells.

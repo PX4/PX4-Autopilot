@@ -24,6 +24,11 @@ then
 	else
 		set OUTPUT_DEV /dev/pwm_output
 	fi
+
+	if [ $OUTPUT_MODE == uavcan_esc ]
+	then
+		set OUTPUT_DEV /dev/uavcan/esc
+	fi
 	
 	if mixer load $OUTPUT_DEV $MIXER_FILE
 	then

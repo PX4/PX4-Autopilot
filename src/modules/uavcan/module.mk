@@ -1,6 +1,7 @@
 ############################################################################
 #
-#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+#   Author: Pavel Kirienko <pavel.kirienko@gmail.com>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,11 +33,42 @@
 ############################################################################
 
 #
-# Makefile to build the BMA180 driver.
+# UAVCAN <--> uORB bridge
 #
 
-MODULE_COMMAND	= bma180
+MODULE_COMMAND = uavcan
 
-SRCS		= bma180.cpp
+MAXOPTIMIZATION = -Os
 
-MAXOPTIMIZATION	 = -Os
+SRCS += uavcan_main.cpp         \
+        uavcan_clock.cpp        \
+        esc_controller.cpp      \
+        gnss_receiver.cpp
+
+#
+# libuavcan
+#
+include $(UAVCAN_DIR)/libuavcan/include.mk
+SRCS += $(LIBUAVCAN_SRC)
+INCLUDE_DIRS += $(LIBUAVCAN_INC)
+# Since actual compiler mode is C++11, the library will default to UAVCAN_CPP11, but it will fail to compile
+# because this platform lacks most of the standard library and STL. Hence we need to force C++03 mode.
+override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_CPP_VERSION=UAVCAN_CPP03 -DUAVCAN_NO_ASSERTIONS
+
+#
+# libuavcan drivers for STM32
+#
+include $(UAVCAN_DIR)/libuavcan_drivers/stm32/driver/include.mk
+SRCS += $(LIBUAVCAN_STM32_SRC)
+INCLUDE_DIRS += $(LIBUAVCAN_STM32_INC)
+override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_STM32_NUTTX -DUAVCAN_STM32_NUM_IFACES=2
+
+#
+# Invoke DSDL compiler
+# TODO: Add make target for this, or invoke dsdlc manually.
+#       The second option assumes that the generated headers shall be saved
+#       under the version control, which may be undesirable.
+#       The first option requires any Python and the Python Mako library for the sources to be built.
+#
+$(info $(shell $(LIBUAVCAN_DSDLC) $(UAVCAN_DSDL_DIR)))
+INCLUDE_DIRS += dsdlc_generated
