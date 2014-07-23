@@ -90,26 +90,6 @@ DataLinkLoss::on_inactive()
 void
 DataLinkLoss::on_activation()
 {
-	/* decide where to enter the RTL procedure when we switch into it */
-	//if (_rtl_state == RTL_STATE_NONE) {
-		//[> for safety reasons don't go into RTL if landed <]
-		//if (_navigator->get_vstatus()->condition_landed) {
-			//_rtl_state = RTL_STATE_LANDED;
-			//mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: no RTL when landed");
-
-		//[> if lower than return altitude, climb up first <]
-		//} else if (_navigator->get_global_position()->alt < _navigator->get_home_position()->alt
-			   //+ _param_return_alt.get()) {
-			//_rtl_state = RTL_STATE_CLIMB;
-
-		//[> otherwise go straight to return <]
-		//} else {
-			//[> set altitude setpoint to current altitude <]
-			//_rtl_state = RTL_STATE_RETURN;
-			//_mission_item.altitude_is_relative = false;
-			//_mission_item.altitude = _navigator->get_global_position()->alt;
-		//}
-	//}
 	_dll_state = DLL_STATE_FLYTOCOMMSHOLDWP;
 	set_dll_item();
 }
@@ -139,7 +119,7 @@ DataLinkLoss::set_dll_item()
 		_mission_item.lat = (double)(_param_commsholdlat.get()) * 1.0e-7;
 		_mission_item.lon = (double)(_param_commsholdlon.get()) * 1.0e-7;
 		_mission_item.altitude_is_relative = false;
-		_mission_item.altitude = (double)(_param_commsholdalt.get());
+		_mission_item.altitude = _param_commsholdalt.get();
 		_mission_item.yaw = NAN;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
@@ -157,7 +137,7 @@ DataLinkLoss::set_dll_item()
 		_mission_item.lat = (double)(_param_airfieldhomelat.get()) * 1.0e-7;
 		_mission_item.lon = (double)(_param_airfieldhomelon.get()) * 1.0e-7;
 		_mission_item.altitude_is_relative = false;
-		_mission_item.altitude = (double)(_param_airfieldhomealt.get());
+		_mission_item.altitude = _param_airfieldhomealt.get();
 		_mission_item.yaw = NAN;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
