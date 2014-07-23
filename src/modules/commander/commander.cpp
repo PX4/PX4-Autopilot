@@ -1461,7 +1461,7 @@ int commander_thread_main(int argc, char *argv[])
 		for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
 			if (telemetry_last_heartbeat[i] != 0 && hrt_elapsed_time(&telemetry_last_heartbeat[i]) < datalink_loss_timeout) {
 				/* handle the case where data link was regained */
-				if (telemetry_lost[i]) {
+				if (telemetry_lost[i]) {//XXX also add hysteresis here
 					mavlink_log_critical(mavlink_fd, "data link %i regained", i);
 					telemetry_lost[i] = false;
 				}
@@ -1545,7 +1545,8 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* now set navigation state according to failsafe and main state */
 		bool nav_state_changed = set_nav_state(&status, (bool)datalink_loss_enabled,
-						       mission_result.finished);
+						       mission_result.finished,
+						       mission_result.stay_in_failsafe);
 
 		// TODO handle mode changes by commands
 		if (main_state_changed) {

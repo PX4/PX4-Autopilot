@@ -108,6 +108,7 @@ Navigator::Navigator() :
 	_offboard_mission_sub(-1),
 	_param_update_sub(-1),
 	_pos_sp_triplet_pub(-1),
+	_mission_result_pub(-1),
 	_vstatus{},
 	_control_mode{},
 	_global_pos{},
@@ -115,6 +116,7 @@ Navigator::Navigator() :
 	_mission_item{},
 	_nav_caps{},
 	_pos_sp_triplet{},
+	_mission_result{},
 	_mission_item_valid(false),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 	_geofence{},
@@ -370,6 +372,9 @@ Navigator::task_main()
 				_can_loiter_at_sp = false;
 				break;
 			case NAVIGATION_STATE_AUTO_MISSION:
+				/* Some failsafe modes prohibit the fallback to mission
+				 * usually this is done after some time to make sure
+				 * that the full failsafe operation is performed */
 				_navigation_mode = &_mission;
 				break;
 			case NAVIGATION_STATE_AUTO_LOITER:
@@ -552,4 +557,21 @@ int navigator_main(int argc, char *argv[])
 	}
 
 	return 0;
+}
+
+void
+Navigator::publish_mission_result()
+{
+	/* lazily publish the mission result only once available */
+	if (_mission_result_pub > 0) {
+		/* publish mission result */
+		orb_publish(ORB_ID(mission_result), _mission_result_pub, &_mission_result);
+
+	} else {
+		/* advertise and publish */
+		_mission_result_pub = orb_advertise(ORB_ID(mission_result), &_mission_result);
+	}
+	/* reset reached bool */
+	_mission_result.reached = false;
+	_mission_result.finished = false;
 }

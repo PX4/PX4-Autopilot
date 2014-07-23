@@ -52,6 +52,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/mission_result.h>
 
 #include "navigator_mode.h"
 #include "mission.h"
@@ -103,6 +104,11 @@ public:
 	void		load_fence_from_file(const char *filename);
 
 	/**
+	 * Publish the mission result so commander and mavlink know what is going on
+	 */
+	void publish_mission_result();
+
+	/**
 	 * Setters
 	 */
 	void		set_can_loiter_at_sp(bool can_loiter) { _can_loiter_at_sp = can_loiter; }
@@ -115,7 +121,9 @@ public:
 	struct vehicle_control_mode_s*	    get_control_mode() { return &_control_mode; }
 	struct vehicle_global_position_s*   get_global_position() { return &_global_pos; }
 	struct home_position_s*		    get_home_position() { return &_home_pos; }
-	struct position_setpoint_triplet_s*		    get_position_setpoint_triplet() { return &_pos_sp_triplet; }
+	struct position_setpoint_triplet_s* get_position_setpoint_triplet() { return &_pos_sp_triplet; }
+	struct mission_result_s*	    get_mission_result() { return &_mission_result; }
+
 	int		get_onboard_mission_sub() { return _onboard_mission_sub; }
 	int		get_offboard_mission_sub() { return _offboard_mission_sub; }
 	int		get_offboard_control_sp_sub() { return _offboard_control_sp_sub; }
@@ -143,6 +151,7 @@ private:
 	int		_param_update_sub;		/**< param update subscription */
 
 	orb_advert_t	_pos_sp_triplet_pub;		/**< publish position setpoint triplet */
+	orb_advert_t	_mission_result_pub;
 
 	vehicle_status_s				_vstatus;		/**< vehicle status */
 	vehicle_control_mode_s				_control_mode;		/**< vehicle control mode */
@@ -151,6 +160,8 @@ private:
 	mission_item_s 					_mission_item;		/**< current mission item */
 	navigation_capabilities_s			_nav_caps;		/**< navigation capabilities */
 	position_setpoint_triplet_s			_pos_sp_triplet;	/**< triplet of position setpoints */
+
+	mission_result_s				_mission_result;
 
 	bool 		_mission_item_valid;		/**< flags if the current mission item is valid */
 

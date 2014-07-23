@@ -435,7 +435,8 @@ transition_result_t hil_state_transition(hil_state_t new_state, int status_pub, 
 /**
  * Check failsafe and main status and set navigation status for navigator accordingly
  */
-bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_enabled, const bool mission_finished)
+bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_enabled, const bool mission_finished,
+		const bool stay_in_failsafe)
 {
 	navigation_state_t nav_state_old = status->nav_state;
 

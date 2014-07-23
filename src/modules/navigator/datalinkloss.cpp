@@ -200,6 +200,8 @@ DataLinkLoss::advance_dll()
 	case DLL_STATE_FLYTOCOMMSHOLDWP:
 		//XXX check here if time is over are over
 		_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
+		_navigator->get_mission_result()->stay_in_failsafe = true;
+		_navigator->publish_mission_result();
 		break;
 	default:
 		break;
