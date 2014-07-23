@@ -46,8 +46,6 @@
 class Mavlink;
 class MavlinkStream;
 
-#include "mavlink_main.h"
-
 class MavlinkStream
 {
 
@@ -70,7 +68,6 @@ public:
 	 * @return the inveral in microseconds (us) between messages
 	 */
 	unsigned get_interval() { return _interval; }
-	void set_channel(mavlink_channel_t channel);
 
 	/**
 	 * @return 0 if updated / sent, -1 if unchanged
@@ -81,6 +78,16 @@ public:
 	virtual void subscribe() = 0;
 	virtual const char *get_name() const = 0;
 	virtual uint8_t get_id() = 0;
+
+	/**
+	 * @return true if steam rate shouldn't be adjusted
+	 */
+	virtual bool const_rate() { return false; }
+
+	/**
+	 * Get maximal total messages size on update
+	 */
+	virtual unsigned get_size() = 0;
 
 protected:
 	Mavlink *    _mavlink;
