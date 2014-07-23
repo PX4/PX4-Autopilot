@@ -178,7 +178,7 @@ private:
 	Loiter		_loiter;			/**< class that handles loiter */
 	RTL 		_rtl;				/**< class that handles RTL */
 	Offboard	_offboard;			/**< class that handles offboard */
-	DataLinkLoss	_dataLinkLoss;			/**< class that handles offboard */
+	DataLinkLoss	_dataLinkLoss;			/**< class that handles the OBC datalink loss mode */
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
