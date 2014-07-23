@@ -669,12 +669,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					corr_vision[1][1] = vision.vy - y_est[1];
 					corr_vision[2][1] = vision.vz - z_est[1];
 
-					// eph_flow = 0.05f;
-					// epv_vision = 0.05f;
-
-					// w_gps_xy = min_eph_epv / fmaxf(min_eph_epv, eph);
-					// w_gps_z = min_eph_epv / fmaxf(min_eph_epv, epv);
-
 				}
 			}
 
