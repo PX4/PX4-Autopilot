@@ -454,99 +454,115 @@ protected:
 };
 
 
-//class MavlinkStreamHighresIMU : public MavlinkStream
-//{
-//public:
-//	const char *get_name() const
-//	{
-//		return MavlinkStreamHighresIMU::get_name_static();
-//	}
-//
-//	static const char *get_name_static()
-//	{
-//		return "HIGHRES_IMU";
-//	}
-//
-//	uint8_t get_id()
-//	{
-//		return MAVLINK_MSG_ID_HIGHRES_IMU;
-//	}
-//
-//	static MavlinkStream *new_instance()
-//	{
-//		return new MavlinkStreamHighresIMU();
-//	}
-//
-//private:
-//	MavlinkOrbSubscription *sensor_sub;
-//	uint64_t sensor_time;
-//
-//	uint64_t accel_timestamp;
-//	uint64_t gyro_timestamp;
-//	uint64_t mag_timestamp;
-//	uint64_t baro_timestamp;
-//
-//	/* do not allow top copying this class */
-//	MavlinkStreamHighresIMU(MavlinkStreamHighresIMU &);
-//	MavlinkStreamHighresIMU& operator = (const MavlinkStreamHighresIMU &);
-//
-//protected:
-//	explicit MavlinkStreamHighresIMU() : MavlinkStream(),
-//		sensor_sub(nullptr),
-//		sensor_time(0),
-//		accel_timestamp(0),
-//		gyro_timestamp(0),
-//		mag_timestamp(0),
-//		baro_timestamp(0)
-//	{}
-//
-//	void subscribe(Mavlink *mavlink)
-//	{
-//		sensor_sub = mavlink->add_orb_subscription(ORB_ID(sensor_combined));
-//	}
-//
-//	void send(const hrt_abstime t)
-//	{
-//		struct sensor_combined_s sensor;
-//
-//		if (sensor_sub->update(&sensor_time, &sensor)) {
-//			uint16_t fields_updated = 0;
-//
-//			if (accel_timestamp != sensor.accelerometer_timestamp) {
-//				/* mark first three dimensions as changed */
-//				fields_updated |= (1 << 0) | (1 << 1) | (1 << 2);
-//				accel_timestamp = sensor.accelerometer_timestamp;
-//			}
-//
-//			if (gyro_timestamp != sensor.timestamp) {
-//				/* mark second group dimensions as changed */
-//				fields_updated |= (1 << 3) | (1 << 4) | (1 << 5);
-//				gyro_timestamp = sensor.timestamp;
-//			}
-//
-//			if (mag_timestamp != sensor.magnetometer_timestamp) {
-//				/* mark third group dimensions as changed */
-//				fields_updated |= (1 << 6) | (1 << 7) | (1 << 8);
-//				mag_timestamp = sensor.magnetometer_timestamp;
-//			}
-//
-//			if (baro_timestamp != sensor.baro_timestamp) {
-//				/* mark last group dimensions as changed */
-//				fields_updated |= (1 << 9) | (1 << 11) | (1 << 12);
-//				baro_timestamp = sensor.baro_timestamp;
-//			}
-//
-//			mavlink_msg_highres_imu_send(_channel,
-//						     sensor.timestamp,
-//						     sensor.accelerometer_m_s2[0], sensor.accelerometer_m_s2[1], sensor.accelerometer_m_s2[2],
-//						     sensor.gyro_rad_s[0], sensor.gyro_rad_s[1], sensor.gyro_rad_s[2],
-//						     sensor.magnetometer_ga[0], sensor.magnetometer_ga[1], sensor.magnetometer_ga[2],
-//						     sensor.baro_pres_mbar, sensor.differential_pressure_pa,
-//						     sensor.baro_alt_meter, sensor.baro_temp_celcius,
-//						     fields_updated);
-//		}
-//	}
-//};
+class MavlinkStreamHighresIMU : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamHighresIMU::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "HIGHRES_IMU";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_HIGHRES_IMU;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamHighresIMU(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_HIGHRES_IMU_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *sensor_sub;
+	uint64_t sensor_time;
+
+	uint64_t accel_timestamp;
+	uint64_t gyro_timestamp;
+	uint64_t mag_timestamp;
+	uint64_t baro_timestamp;
+
+	/* do not allow top copying this class */
+	MavlinkStreamHighresIMU(MavlinkStreamHighresIMU &);
+	MavlinkStreamHighresIMU& operator = (const MavlinkStreamHighresIMU &);
+
+protected:
+	explicit MavlinkStreamHighresIMU(Mavlink *mavlink) : MavlinkStream(mavlink),
+		sensor_sub(nullptr),
+		sensor_time(0),
+		accel_timestamp(0),
+		gyro_timestamp(0),
+		mag_timestamp(0),
+		baro_timestamp(0)
+	{}
+
+	void subscribe()
+	{
+		sensor_sub = _mavlink->add_orb_subscription(ORB_ID(sensor_combined));
+	}
+
+	void send(const hrt_abstime t)
+	{
+		struct sensor_combined_s sensor;
+
+		if (sensor_sub->update(&sensor_time, &sensor)) {
+			uint16_t fields_updated = 0;
+
+			if (accel_timestamp != sensor.accelerometer_timestamp) {
+				/* mark first three dimensions as changed */
+				fields_updated |= (1 << 0) | (1 << 1) | (1 << 2);
+				accel_timestamp = sensor.accelerometer_timestamp;
+			}
+
+			if (gyro_timestamp != sensor.timestamp) {
+				/* mark second group dimensions as changed */
+				fields_updated |= (1 << 3) | (1 << 4) | (1 << 5);
+				gyro_timestamp = sensor.timestamp;
+			}
+
+			if (mag_timestamp != sensor.magnetometer_timestamp) {
+				/* mark third group dimensions as changed */
+				fields_updated |= (1 << 6) | (1 << 7) | (1 << 8);
+				mag_timestamp = sensor.magnetometer_timestamp;
+			}
+
+			if (baro_timestamp != sensor.baro_timestamp) {
+				/* mark last group dimensions as changed */
+				fields_updated |= (1 << 9) | (1 << 11) | (1 << 12);
+				baro_timestamp = sensor.baro_timestamp;
+			}
+
+			mavlink_highres_imu_t msg;
+
+			msg.time_usec = sensor.timestamp;
+			msg.xacc = sensor.accelerometer_m_s2[0];
+			msg.yacc = sensor.accelerometer_m_s2[1];
+			msg.zacc = sensor.accelerometer_m_s2[2];
+			msg.xgyro = sensor.gyro_rad_s[0];
+			msg.ygyro = sensor.gyro_rad_s[1];
+			msg.zgyro = sensor.gyro_rad_s[2];
+			msg.xmag = sensor.magnetometer_ga[0];
+			msg.ymag = sensor.magnetometer_ga[1];
+			msg.zmag = sensor.magnetometer_ga[2];
+			msg.abs_pressure = sensor.baro_pres_mbar;
+			msg.diff_pressure = sensor.differential_pressure_pa;
+			msg.pressure_alt = sensor.baro_alt_meter;
+			msg.temperature = sensor.baro_temp_celcius;
+			msg.fields_updated = fields_updated;
+
+			_mavlink->send_message(MAVLINK_MSG_ID_HIGHRES_IMU, &msg);
+		}
+	}
+};
 //
 //
 //class MavlinkStreamAttitude : public MavlinkStream
@@ -567,7 +583,7 @@ protected:
 //		return MAVLINK_MSG_ID_ATTITUDE;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamAttitude();
 //	}
@@ -624,7 +640,7 @@ protected:
 //		return MAVLINK_MSG_ID_ATTITUDE_QUATERNION;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamAttitudeQuaternion();
 //	}
@@ -686,7 +702,7 @@ protected:
 //		return MAVLINK_MSG_ID_VFR_HUD;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamVFRHUD();
 //	}
@@ -783,7 +799,7 @@ protected:
 //		return MAVLINK_MSG_ID_GPS_RAW_INT;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamGPSRawInt();
 //	}
@@ -846,7 +862,7 @@ protected:
 //		return MAVLINK_MSG_ID_GLOBAL_POSITION_INT;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamGlobalPositionInt();
 //	}
@@ -918,7 +934,7 @@ protected:
 //		return MAVLINK_MSG_ID_LOCAL_POSITION_NED;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamLocalPositionNED();
 //	}
@@ -979,7 +995,7 @@ protected:
 //		return MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamViconPositionEstimate();
 //	}
@@ -1039,7 +1055,7 @@ protected:
 //		return MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamGPSGlobalOrigin();
 //	}
@@ -1109,7 +1125,7 @@ protected:
 //		}
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamServoOutputRaw<N>();
 //	}
@@ -1179,7 +1195,7 @@ protected:
 //		return MAVLINK_MSG_ID_HIL_CONTROLS;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamHILControls();
 //	}
@@ -1319,7 +1335,7 @@ protected:
 //		return MAVLINK_MSG_ID_GLOBAL_POSITION_SETPOINT_INT;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamGlobalPositionSetpointInt();
 //	}
@@ -1375,7 +1391,7 @@ protected:
 //		return MAVLINK_MSG_ID_LOCAL_POSITION_SETPOINT;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamLocalPositionSetpoint();
 //	}
@@ -1433,7 +1449,7 @@ protected:
 //		return MAVLINK_MSG_ID_ROLL_PITCH_YAW_THRUST_SETPOINT;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamRollPitchYawThrustSetpoint();
 //	}
@@ -1491,7 +1507,7 @@ protected:
 //		return MAVLINK_MSG_ID_ROLL_PITCH_YAW_RATES_THRUST_SETPOINT;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamRollPitchYawRatesThrustSetpoint();
 //	}
@@ -1549,7 +1565,7 @@ protected:
 //		return MAVLINK_MSG_ID_RC_CHANNELS_RAW;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamRCChannelsRaw();
 //	}
@@ -1643,7 +1659,7 @@ protected:
 //		return MAVLINK_MSG_ID_MANUAL_CONTROL;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamManualControl();
 //	}
@@ -1702,7 +1718,7 @@ protected:
 //		return MAVLINK_MSG_ID_OPTICAL_FLOW;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamOpticalFlow();
 //	}
@@ -1760,7 +1776,7 @@ protected:
 //		return 0;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamAttitudeControls();
 //	}
@@ -1828,7 +1844,7 @@ protected:
 //		return MAVLINK_MSG_ID_NAMED_VALUE_FLOAT;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamNamedValueFloat();
 //	}
@@ -1886,7 +1902,7 @@ protected:
 //		return 0;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamCameraCapture();
 //	}
@@ -1944,7 +1960,7 @@ protected:
 //		return MAVLINK_MSG_ID_DISTANCE_SENSOR;
 //	}
 //
-//	static MavlinkStream *new_instance()
+//	static MavlinkStream *new_instance(Mavlink *mavlink)
 //	{
 //		return new MavlinkStreamDistanceSensor();
 //	}
@@ -1997,7 +2013,7 @@ StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static),
 	new StreamListItem(&MavlinkStreamCommandLong::new_instance, &MavlinkStreamCommandLong::get_name_static),
 	new StreamListItem(&MavlinkStreamSysStatus::new_instance, &MavlinkStreamSysStatus::get_name_static),
-//	new StreamListItem(&MavlinkStreamHighresIMU::new_instance, &MavlinkStreamHighresIMU::get_name_static),
+	new StreamListItem(&MavlinkStreamHighresIMU::new_instance, &MavlinkStreamHighresIMU::get_name_static),
 //	new StreamListItem(&MavlinkStreamAttitude::new_instance, &MavlinkStreamAttitude::get_name_static),
 //	new StreamListItem(&MavlinkStreamAttitudeQuaternion::new_instance, &MavlinkStreamAttitudeQuaternion::get_name_static),
 //	new StreamListItem(&MavlinkStreamVFRHUD::new_instance, &MavlinkStreamVFRHUD::get_name_static),

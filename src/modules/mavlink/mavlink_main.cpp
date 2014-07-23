@@ -1324,7 +1324,7 @@ Mavlink::task_main(int argc, char *argv[])
 	switch (_mode) {
 	case MAVLINK_MODE_NORMAL:
 		configure_stream("SYS_STATUS", 1.0f);
-		/*configure_stream("GPS_GLOBAL_ORIGIN", 0.5f);
+		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f);
 		configure_stream("HIGHRES_IMU", 1.0f);
 		configure_stream("ATTITUDE", 10.0f);
 		configure_stream("VFR_HUD", 8.0f);
@@ -1336,7 +1336,6 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GLOBAL_POSITION_SETPOINT_INT", 3.0f);
 		configure_stream("ROLL_PITCH_YAW_THRUST_SETPOINT", 3.0f);
 		configure_stream("DISTANCE_SENSOR", 0.5f);
-		*/
 		break;
 
 	case MAVLINK_MODE_CAMERA:
@@ -1369,7 +1368,7 @@ Mavlink::task_main(int argc, char *argv[])
 		hrt_abstime t = hrt_absolute_time();
 
 		update_rate_mult();
-		warnx("rate mult %f", (double)_rate_mult);
+		warnx("rate mult %.2f", (double)_rate_mult);
 
 		if (param_sub->update(&param_time, nullptr)) {
 			/* parameters updated */
