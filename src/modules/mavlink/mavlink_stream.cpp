@@ -71,12 +71,21 @@ int
 MavlinkStream::update(const hrt_abstime t)
 {
 	uint64_t dt = t - _last_sent;
-	unsigned int interval = _interval * _mavlink->get_rate_mult();
+	unsigned int interval = _interval;
+
+	if (!const_rate()) {
+		interval /= _mavlink->get_rate_mult();
+	}
 
 	if (dt > 0 && dt >= interval) {
 		/* interval expired, send message */
 		send(t);
-		_last_sent = t;
+		if (const_rate()) {
+			_last_sent = (t / _interval) * _interval;
+
+		} else {
+			_last_sent = t;
+		}
 
 		return 0;
 	}

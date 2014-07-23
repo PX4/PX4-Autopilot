@@ -146,7 +146,7 @@ Mavlink::Mavlink() :
 	   _baudrate(57600),
 	   _datarate(1000),
 	   _datarate_events(500),
-	   _rate_mult(0.0f),
+	   _rate_mult(1.0f),
 	   _mavlink_param_queue_index(0),
 	   mavlink_link_termination_allowed(false),
 	   _subscribe_to_stream(nullptr),
@@ -724,7 +724,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 	_last_write_try_time = hrt_absolute_time();
 
 	/* check if there is space in the buffer, let it overflow else */
-	if (buf_free >= TX_BUFFER_GAP) {
+	if (buf_free < TX_BUFFER_GAP) {
 		warnx("SKIP msgid %i, %i bytes", msgid, packet_len);
 		/* no enough space in buffer to send */
 		count_txerr();
@@ -749,9 +749,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 	uint16_t checksum;
 	crc_init(&checksum);
 	crc_accumulate_buffer(&checksum, (const char*) &buf[1], MAVLINK_CORE_HEADER_LEN + payload_len);
-#if MAVLINK_CRC_EXTRA
 	crc_accumulate(mavlink_message_crcs[msgid], &checksum);
-#endif
 
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);
@@ -1127,7 +1125,7 @@ Mavlink::update_rate_mult()
 		}
 	}
 
-	_rate_mult = ((float)_datarate - const_rate) / (rate - const_rate);
+	_rate_mult = ((float)_datarate - const_rate) / rate;
 }
 
 int
@@ -1250,8 +1248,6 @@ Mavlink::task_main(int argc, char *argv[])
 		break;
 	}
 
-	update_rate_mult();
-
 	warnx("data rate: %d Bytes/s, port: %s, baud: %d", _datarate, _device_name, _baudrate);
 
 	/* flush stdout in case MAVLink is about to take it over */
@@ -1328,7 +1324,7 @@ Mavlink::task_main(int argc, char *argv[])
 	switch (_mode) {
 	case MAVLINK_MODE_NORMAL:
 		configure_stream("SYS_STATUS", 1.0f);
-		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f);
+		/*configure_stream("GPS_GLOBAL_ORIGIN", 0.5f);
 		configure_stream("HIGHRES_IMU", 1.0f);
 		configure_stream("ATTITUDE", 10.0f);
 		configure_stream("VFR_HUD", 8.0f);
@@ -1340,6 +1336,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GLOBAL_POSITION_SETPOINT_INT", 3.0f);
 		configure_stream("ROLL_PITCH_YAW_THRUST_SETPOINT", 3.0f);
 		configure_stream("DISTANCE_SENSOR", 0.5f);
+		*/
 		break;
 
 	case MAVLINK_MODE_CAMERA:
@@ -1352,9 +1349,6 @@ Mavlink::task_main(int argc, char *argv[])
 	default:
 		break;
 	}
-
-	/* don't send parameters on startup without request */
-	_mavlink_param_queue_index = param_count();
 
 	float base_rate_mult = _datarate / 1000.0f;
 
@@ -1373,6 +1367,9 @@ Mavlink::task_main(int argc, char *argv[])
 		perf_begin(_loop_perf);
 
 		hrt_abstime t = hrt_absolute_time();
+
+		update_rate_mult();
+		warnx("rate mult %f", (double)_rate_mult);
 
 		if (param_sub->update(&param_time, nullptr)) {
 			/* parameters updated */
@@ -1410,7 +1407,8 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		if (fast_rate_limiter.check(t)) {
-			_mission_manager->eventloop();
+			// TODO missions
+			//_mission_manager->eventloop();
 
 			if (!mavlink_logbuffer_is_empty(&_logbuffer)) {
 				struct mavlink_logmessage msg;

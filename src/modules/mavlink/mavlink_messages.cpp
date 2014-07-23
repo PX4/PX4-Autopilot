@@ -305,7 +305,7 @@ protected:
 		msg.custom_mode = 0;
 		get_mavlink_mode_state(&status, &pos_sp_triplet, &msg.system_status, &msg.base_mode, &msg.custom_mode);
 		msg.type = mavlink_system.type;
-		msg.autopilot = mavlink_system.type;
+		msg.autopilot = MAV_AUTOPILOT_PX4;
 		msg.mavlink_version = 3;
 
 		_mavlink->send_message(MAVLINK_MSG_ID_HEARTBEAT, &msg);
@@ -352,7 +352,7 @@ protected:
 	{}
 
 	void subscribe() {
-		_cmd_sub = _mavlink->add_orb_subscription(ORB_ID(vehicle_status));
+		_cmd_sub = _mavlink->add_orb_subscription(ORB_ID(vehicle_command));
 	}
 
 	void send(const hrt_abstime t)
