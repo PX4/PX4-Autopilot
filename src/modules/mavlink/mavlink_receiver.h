@@ -143,11 +143,11 @@ private:
 	orb_advert_t _cmd_pub;
 	orb_advert_t _flow_pub;
 	orb_advert_t _offboard_control_sp_pub;
-	orb_advert_t _local_pos_sp_pub;
 	orb_advert_t _global_vel_sp_pub;
 	orb_advert_t _att_sp_pub;
 	orb_advert_t _rates_sp_pub;
 	orb_advert_t _force_sp_pub;
+	orb_advert_t _pos_sp_triplet_pub;
 	orb_advert_t _vicon_position_pub;
 	orb_advert_t _telemetry_status_pub;
 	orb_advert_t _rc_pub;

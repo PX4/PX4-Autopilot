@@ -37,6 +37,7 @@
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
 /* XXX trim includes */
@@ -103,11 +104,11 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_cmd_pub(-1),
 	_flow_pub(-1),
 	_offboard_control_sp_pub(-1),
-	_local_pos_sp_pub(-1),
 	_global_vel_sp_pub(-1),
 	_att_sp_pub(-1),
 	_rates_sp_pub(-1),
 	_force_sp_pub(-1),
+	_pos_sp_triplet_pub(-1),
 	_vicon_position_pub(-1),
 	_telemetry_status_pub(-1),
 	_rc_pub(-1),
@@ -487,8 +488,49 @@ MavlinkReceiver::handle_message_local_ned_position_setpoint_external(mavlink_mes
 						orb_publish(ORB_ID(vehicle_force_setpoint), _force_sp_pub, &force_sp);
 					}
 				} else {
+					/* It's not a force setpoint: publish to setpoint triplet  topic */
+					struct position_setpoint_triplet_s pos_sp_triplet;
+					pos_sp_triplet.previous.valid = false;
+					pos_sp_triplet.next.valid = false;
+					pos_sp_triplet.current.valid = true;
 
-				//XXX: copy to and publish setpoint triplet here
+					/* set the local pos values if the setpoint type is 'local pos' and none
+					 * of the local pos fields is set to 'ignore' */
+					if (offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED &&
+							!offboard_control_sp_ignore_position(offboard_control_sp, 0) &&
+							!offboard_control_sp_ignore_position(offboard_control_sp, 1) &&
+							!offboard_control_sp_ignore_position(offboard_control_sp, 2)) {
+					pos_sp_triplet.current.type = SETPOINT_TYPE_POSITION; //XXX support others
+					pos_sp_triplet.current.position_valid = true;
+					pos_sp_triplet.current.x = offboard_control_sp.position[0];
+					pos_sp_triplet.current.y = offboard_control_sp.position[1];
+					pos_sp_triplet.current.z = offboard_control_sp.position[2];
+					}
+
+					/* set the local vel values if the setpoint type is 'local pos' and none
+					 * of the local vel fields is set to 'ignore' */
+					if (offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED &&
+							!offboard_control_sp_ignore_velocity(offboard_control_sp, 0) &&
+							!offboard_control_sp_ignore_velocity(offboard_control_sp, 1) &&
+							!offboard_control_sp_ignore_velocity(offboard_control_sp, 2)) {
+					pos_sp_triplet.current.type = SETPOINT_TYPE_POSITION; //XXX support others
+					pos_sp_triplet.current.velocity_valid = true;
+					pos_sp_triplet.current.vx = offboard_control_sp.velocity[0];
+					pos_sp_triplet.current.vy = offboard_control_sp.velocity[1];
+					pos_sp_triplet.current.vz = offboard_control_sp.velocity[2];
+					}
+
+					//XXX handle global pos setpoints (different MAV frames)
+
+
+					if (_pos_sp_triplet_pub < 0) {
+						_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet),
+								&pos_sp_triplet);
+					} else {
+						orb_publish(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_pub,
+								&pos_sp_triplet);
+					}
+
 				}
 
 			}
