@@ -58,7 +58,7 @@
 #include "mavlink_stream.h"
 #include "mavlink_messages.h"
 #include "mavlink_mission.h"
-
+#include "mavlink_parameters.h"
 
 class Mavlink
 {
@@ -160,11 +160,7 @@ public:
 	 */
 	int			set_hil_enabled(bool hil_enabled);
 
-	bool		check_can_send(const int prio, const unsigned packet_len);
-
-	void		send_message(const uint8_t msgid, const void *msg, const int prio);
-
-	void			send_message(const mavlink_message_t *msg);
+	void		send_message(const uint8_t msgid, const void *msg);
 
 	void			handle_message(const mavlink_message_t *msg);
 
@@ -285,6 +281,7 @@ private:
 	MavlinkStream		*_streams;
 
 	MavlinkMissionManager	*_mission_manager;
+	MavlinkParametersManager *_parameters_manager;
 
 	orb_advert_t		_mission_pub;
 	int			_mission_result_sub;
@@ -305,6 +302,7 @@ private:
 	int			_baudrate;
 	int			_datarate;		///< data rate for normal streams (attitude, position, etc.)
 	int			_datarate_events;	///< data rate for params, waypoints, text messages
+	float		_rate_mult;
 
 	/**
 	 * If the queue index is not at 0, the queue sending
@@ -352,50 +350,11 @@ private:
 	perf_counter_t		_loop_perf;			/**< loop performance counter */
 	perf_counter_t		_txerr_perf;			/**< TX error counter */
 
-	/**
-	 * Send one parameter.
-	 *
-	 * @param param		The parameter id to send.
-	 * @return		zero on success, nonzero on failure.
-	 */
-	int			mavlink_pm_send_param(param_t param);
-
-	/**
-	 * Send one parameter identified by index.
-	 *
-	 * @param index		The index of the parameter to send.
-	 * @return		zero on success, nonzero else.
-	 */
-	int			mavlink_pm_send_param_for_index(uint16_t index);
-
-	/**
-	 * Send one parameter identified by name.
-	 *
-	 * @param name		The index of the parameter to send.
-	 * @return		zero on success, nonzero else.
-	 */
-	int			mavlink_pm_send_param_for_name(const char *name);
-
-	/**
-	 * Send a queue of parameters, one parameter per function call.
-	 *
-	 * @return		zero on success, nonzero on failure
-	 */
-	int			mavlink_pm_queued_send(void);
-
-	/**
-	 * Start sending the parameter queue.
-	 *
-	 * This function will not directly send parameters, but instead
-	 * activate the sending of one parameter on each call of
-	 * mavlink_pm_queued_send().
-	 * @see 		mavlink_pm_queued_send()
-	 */
-	void			mavlink_pm_start_queued_send();
-
 	void			mavlink_update_system();
 
 	int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
+
+	static unsigned int interval_from_rate(float rate);
 
 	int configure_stream(const char *stream_name, const float rate);
 
@@ -419,6 +378,11 @@ private:
 	void message_buffer_mark_read(int n);
 
 	void pass_message(const mavlink_message_t *msg);
+
+	/**
+	 * Update rate mult so total bitrate will be equal to _datarate.
+	 */
+	void update_rate_mult();
 
 	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
 

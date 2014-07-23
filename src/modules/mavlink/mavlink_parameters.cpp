@@ -38,11 +38,11 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-//#include <stdlib.h>
+#include <stdio.h>
 
 #include "mavlink_parameters.h"
+#include "mavlink_main.h"
 
-explicit
 MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) : MavlinkStream(mavlink),
 	_send_all_index(-1)
 {
@@ -51,7 +51,7 @@ MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) : MavlinkSt
 unsigned
 MavlinkParametersManager::get_size()
 {
-	if (_send_all_index() >= 0) {
+	if (_send_all_index >= 0) {
 		return MAVLINK_MSG_ID_PARAM_VALUE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 
 	} else {

@@ -157,15 +157,13 @@ MavlinkMissionManager::update_active_mission(int dataman_id, unsigned count, int
 void
 MavlinkMissionManager::send_mission_ack(uint8_t sysid, uint8_t compid, uint8_t type)
 {
-	mavlink_message_t msg;
 	mavlink_mission_ack_t wpa;
 
 	wpa.target_system = sysid;
 	wpa.target_component = compid;
 	wpa.type = type;
 
-	mavlink_msg_mission_ack_encode_chan(mavlink_system.sysid, _comp_id, _channel, &msg, &wpa);
-	_mavlink->send_message(&msg);
+	_mavlink->send_message(MAVLINK_MSG_ID_MISSION_ACK, &wpa);
 
 	if (_verbose) { warnx("WPM: Send MISSION_ACK type %u to ID %u", wpa.type, wpa.target_system); }
 }
@@ -175,13 +173,11 @@ void
 MavlinkMissionManager::send_mission_current(uint16_t seq)
 {
 	if (seq < _count) {
-		mavlink_message_t msg;
 		mavlink_mission_current_t wpc;
 
 		wpc.seq = seq;
 
-		mavlink_msg_mission_current_encode_chan(mavlink_system.sysid, _comp_id, _channel, &msg, &wpc);
-		_mavlink->send_message(&msg);
+		_mavlink->send_message(MAVLINK_MSG_ID_MISSION_CURRENT, &wpc);
 
 	} else if (seq == 0 && _count == 0) {
 		/* don't broadcast if no WPs */
@@ -199,15 +195,13 @@ MavlinkMissionManager::send_mission_count(uint8_t sysid, uint8_t compid, uint16_
 {
 	_time_last_sent = hrt_absolute_time();
 
-	mavlink_message_t msg;
 	mavlink_mission_count_t wpc;
 
 	wpc.target_system = sysid;
 	wpc.target_component = compid;
 	wpc.count = _count;
 
-	mavlink_msg_mission_count_encode_chan(mavlink_system.sysid, _comp_id, _channel, &msg, &wpc);
-	_mavlink->send_message(&msg);
+	_mavlink->send_message(MAVLINK_MSG_ID_MISSION_COUNT, &wpc);
 
 	if (_verbose) { warnx("WPM: Send MISSION_COUNT %u to ID %u", wpc.count, wpc.target_system); }
 }
@@ -226,13 +220,12 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 		mavlink_mission_item_t wp;
 		format_mavlink_mission_item(&mission_item, &wp);
 
-		mavlink_message_t msg;
 		wp.target_system = sysid;
 		wp.target_component = compid;
 		wp.seq = seq;
 		wp.current = (_current_seq == seq) ? 1 : 0;
-		mavlink_msg_mission_item_encode_chan(mavlink_system.sysid, _comp_id, _channel, &msg, &wp);
-		_mavlink->send_message(&msg);
+
+		_mavlink->send_message(MAVLINK_MSG_ID_MISSION_ITEM, &wp);
 
 		if (_verbose) { warnx("WPM: Send MISSION_ITEM seq %u to ID %u", wp.seq, wp.target_system); }
 
@@ -251,13 +244,12 @@ MavlinkMissionManager::send_mission_request(uint8_t sysid, uint8_t compid, uint1
 	if (seq < _max_count) {
 		_time_last_sent = hrt_absolute_time();
 
-		mavlink_message_t msg;
 		mavlink_mission_request_t wpr;
 		wpr.target_system = sysid;
 		wpr.target_component = compid;
 		wpr.seq = seq;
-		mavlink_msg_mission_request_encode_chan(mavlink_system.sysid, _comp_id, _channel, &msg, &wpr);
-		_mavlink->send_message(&msg);
+
+		_mavlink->send_message(MAVLINK_MSG_ID_MISSION_REQUEST, &wpr);
 
 		if (_verbose) { warnx("WPM: Send MISSION_REQUEST seq %u to ID %u", wpr.seq, wpr.target_system); }
 
@@ -272,13 +264,11 @@ MavlinkMissionManager::send_mission_request(uint8_t sysid, uint8_t compid, uint1
 void
 MavlinkMissionManager::send_mission_item_reached(uint16_t seq)
 {
-	mavlink_message_t msg;
 	mavlink_mission_item_reached_t wp_reached;
 
 	wp_reached.seq = seq;
 
-	mavlink_msg_mission_item_reached_encode_chan(mavlink_system.sysid, _comp_id, _channel, &msg, &wp_reached);
-	_mavlink->send_message(&msg);
+	_mavlink->send_message(MAVLINK_MSG_ID_MISSION_ITEM_REACHED, &wp_reached);
 
 	if (_verbose) { warnx("WPM: Send MISSION_ITEM_REACHED reached_seq %u", wp_reached.seq); }
 }

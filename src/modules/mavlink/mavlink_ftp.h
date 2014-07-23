@@ -55,6 +55,7 @@
 #include <systemlib/err.h>
 
 #include "mavlink_messages.h"
+#include "mavlink_main.h"
 
 class MavlinkFTP
 {
