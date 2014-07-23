@@ -908,7 +908,6 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 			/* create new instance */
 			stream = streams_list[i]->new_instance(this);
 			stream->set_interval(interval);
-			stream->subscribe();
 			LL_APPEND(_streams, stream);
 
 			return OK;

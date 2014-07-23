@@ -75,7 +75,6 @@ public:
 	int update(const hrt_abstime t);
 	static MavlinkStream *new_instance(const Mavlink *mavlink);
 	static const char *get_name_static();
-	virtual void subscribe() = 0;
 	virtual const char *get_name() const = 0;
 	virtual uint8_t get_id() = 0;
 

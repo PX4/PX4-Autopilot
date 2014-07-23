@@ -264,8 +264,8 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *status_sub;
-	MavlinkOrbSubscription *pos_sp_triplet_sub;
+	MavlinkOrbSubscription *_status_sub;
+	MavlinkOrbSubscription *_pos_sp_triplet_sub;
 
 	/* do not allow top copying this class */
 	MavlinkStreamHeartbeat(MavlinkStreamHeartbeat &);
@@ -273,15 +273,9 @@ private:
 
 protected:
 	explicit MavlinkStreamHeartbeat(Mavlink *mavlink) : MavlinkStream(mavlink),
-		status_sub(nullptr),
-		pos_sp_triplet_sub(nullptr)
+		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
+		_pos_sp_triplet_sub(_mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet)))
 	{}
-
-	void subscribe()
-	{
-		status_sub = _mavlink->add_orb_subscription(ORB_ID(vehicle_status));
-		pos_sp_triplet_sub = _mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet));
-	}
 
 	void send(const hrt_abstime t)
 	{
@@ -289,12 +283,12 @@ protected:
 		struct position_setpoint_triplet_s pos_sp_triplet;
 
 		/* always send the heartbeat, independent of the update status of the topics */
-		if (!status_sub->update(&status)) {
+		if (!_status_sub->update(&status)) {
 			/* if topic update failed fill it with defaults */
 			memset(&status, 0, sizeof(status));
 		}
 
-		if (!pos_sp_triplet_sub->update(&pos_sp_triplet)) {
+		if (!_pos_sp_triplet_sub->update(&pos_sp_triplet)) {
 			/* if topic update failed fill it with defaults */
 			memset(&pos_sp_triplet, 0, sizeof(pos_sp_triplet));
 		}
@@ -347,13 +341,9 @@ private:
 
 protected:
 	explicit MavlinkStreamCommandLong(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_cmd_sub(nullptr),
+		_cmd_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_command))),
 		_cmd_time(0)
 	{}
-
-	void subscribe() {
-		_cmd_sub = _mavlink->add_orb_subscription(ORB_ID(vehicle_command));
-	}
 
 	void send(const hrt_abstime t)
 	{
@@ -411,7 +401,7 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *status_sub;
+	MavlinkOrbSubscription *_status_sub;
 
 	/* do not allow top copying this class */
 	MavlinkStreamSysStatus(MavlinkStreamSysStatus &);
@@ -419,19 +409,14 @@ private:
 
 protected:
 	explicit MavlinkStreamSysStatus(Mavlink *mavlink) : MavlinkStream(mavlink),
-		status_sub(nullptr)
+		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status)))
 	{}
-
-	void subscribe()
-	{
-		status_sub = _mavlink->add_orb_subscription(ORB_ID(vehicle_status));
-	}
 
 	void send(const hrt_abstime t)
 	{
 		struct vehicle_status_s status;
 
-		if (status_sub->update(&status)) {
+		if (_status_sub->update(&status)) {
 			mavlink_sys_status_t msg;
 
 			msg.onboard_control_sensors_present = status.onboard_control_sensors_present;
@@ -483,13 +468,13 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *sensor_sub;
-	uint64_t sensor_time;
+	MavlinkOrbSubscription *_sensor_sub;
+	uint64_t _sensor_time;
 
-	uint64_t accel_timestamp;
-	uint64_t gyro_timestamp;
-	uint64_t mag_timestamp;
-	uint64_t baro_timestamp;
+	uint64_t _accel_timestamp;
+	uint64_t _gyro_timestamp;
+	uint64_t _mag_timestamp;
+	uint64_t _baro_timestamp;
 
 	/* do not allow top copying this class */
 	MavlinkStreamHighresIMU(MavlinkStreamHighresIMU &);
@@ -497,48 +482,43 @@ private:
 
 protected:
 	explicit MavlinkStreamHighresIMU(Mavlink *mavlink) : MavlinkStream(mavlink),
-		sensor_sub(nullptr),
-		sensor_time(0),
-		accel_timestamp(0),
-		gyro_timestamp(0),
-		mag_timestamp(0),
-		baro_timestamp(0)
+		_sensor_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_combined))),
+		_sensor_time(0),
+		_accel_timestamp(0),
+		_gyro_timestamp(0),
+		_mag_timestamp(0),
+		_baro_timestamp(0)
 	{}
-
-	void subscribe()
-	{
-		sensor_sub = _mavlink->add_orb_subscription(ORB_ID(sensor_combined));
-	}
 
 	void send(const hrt_abstime t)
 	{
 		struct sensor_combined_s sensor;
 
-		if (sensor_sub->update(&sensor_time, &sensor)) {
+		if (_sensor_sub->update(&_sensor_time, &sensor)) {
 			uint16_t fields_updated = 0;
 
-			if (accel_timestamp != sensor.accelerometer_timestamp) {
+			if (_accel_timestamp != sensor.accelerometer_timestamp) {
 				/* mark first three dimensions as changed */
 				fields_updated |= (1 << 0) | (1 << 1) | (1 << 2);
-				accel_timestamp = sensor.accelerometer_timestamp;
+				_accel_timestamp = sensor.accelerometer_timestamp;
 			}
 
-			if (gyro_timestamp != sensor.timestamp) {
+			if (_gyro_timestamp != sensor.timestamp) {
 				/* mark second group dimensions as changed */
 				fields_updated |= (1 << 3) | (1 << 4) | (1 << 5);
-				gyro_timestamp = sensor.timestamp;
+				_gyro_timestamp = sensor.timestamp;
 			}
 
-			if (mag_timestamp != sensor.magnetometer_timestamp) {
+			if (_mag_timestamp != sensor.magnetometer_timestamp) {
 				/* mark third group dimensions as changed */
 				fields_updated |= (1 << 6) | (1 << 7) | (1 << 8);
-				mag_timestamp = sensor.magnetometer_timestamp;
+				_mag_timestamp = sensor.magnetometer_timestamp;
 			}
 
-			if (baro_timestamp != sensor.baro_timestamp) {
+			if (_baro_timestamp != sensor.baro_timestamp) {
 				/* mark last group dimensions as changed */
 				fields_updated |= (1 << 9) | (1 << 11) | (1 << 12);
-				baro_timestamp = sensor.baro_timestamp;
+				_baro_timestamp = sensor.baro_timestamp;
 			}
 
 			mavlink_highres_imu_t msg;
@@ -594,8 +574,8 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *att_sub;
-	uint64_t att_time;
+	MavlinkOrbSubscription *_att_sub;
+	uint64_t _att_time;
 
 	/* do not allow top copying this class */
 	MavlinkStreamAttitude(MavlinkStreamAttitude &);
@@ -604,20 +584,15 @@ private:
 
 protected:
 	explicit MavlinkStreamAttitude(Mavlink *mavlink) : MavlinkStream(mavlink),
-		att_sub(nullptr),
-		att_time(0)
+		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
+		_att_time(0)
 	{}
-
-	void subscribe()
-	{
-		att_sub = _mavlink->add_orb_subscription(ORB_ID(vehicle_attitude));
-	}
 
 	void send(const hrt_abstime t)
 	{
 		struct vehicle_attitude_s att;
 
-		if (att_sub->update(&att_time, &att)) {
+		if (_att_sub->update(&_att_time, &att)) {
 			mavlink_attitude_t msg;
 
 			msg.time_boot_ms = att.timestamp / 1000;
@@ -663,8 +638,8 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *att_sub;
-	uint64_t att_time;
+	MavlinkOrbSubscription *_att_sub;
+	uint64_t _att_time;
 
 	/* do not allow top copying this class */
 	MavlinkStreamAttitudeQuaternion(MavlinkStreamAttitudeQuaternion &);
@@ -672,20 +647,15 @@ private:
 
 protected:
 	explicit MavlinkStreamAttitudeQuaternion(Mavlink *mavlink) : MavlinkStream(mavlink),
-		att_sub(nullptr),
-		att_time(0)
+		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
+		_att_time(0)
 	{}
-
-	void subscribe()
-	{
-		att_sub = _mavlink->add_orb_subscription(ORB_ID(vehicle_attitude));
-	}
 
 	void send(const hrt_abstime t)
 	{
 		struct vehicle_attitude_s att;
 
-		if (att_sub->update(&att_time, &att)) {
+		if (_att_sub->update(&_att_time, &att)) {
 			mavlink_attitude_quaternion_t msg;
 
 			msg.time_boot_ms = att.timestamp / 1000;
@@ -733,20 +703,20 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *att_sub;
-	uint64_t att_time;
+	MavlinkOrbSubscription *_att_sub;
+	uint64_t _att_time;
 
-	MavlinkOrbSubscription *pos_sub;
-	uint64_t pos_time;
+	MavlinkOrbSubscription *_pos_sub;
+	uint64_t _pos_time;
 
-	MavlinkOrbSubscription *armed_sub;
-	uint64_t armed_time;
+	MavlinkOrbSubscription *_armed_sub;
+	uint64_t _armed_time;
 
-	MavlinkOrbSubscription *act_sub;
-	uint64_t act_time;
+	MavlinkOrbSubscription *_act_sub;
+	uint64_t _act_time;
 
-	MavlinkOrbSubscription *airspeed_sub;
-	uint64_t airspeed_time;
+	MavlinkOrbSubscription *_airspeed_sub;
+	uint64_t _airspeed_time;
 
 	/* do not allow top copying this class */
 	MavlinkStreamVFRHUD(MavlinkStreamVFRHUD &);
@@ -754,26 +724,17 @@ private:
 
 protected:
 	explicit MavlinkStreamVFRHUD(Mavlink *mavlink) : MavlinkStream(mavlink),
-		att_sub(nullptr),
-		att_time(0),
-		pos_sub(nullptr),
-		pos_time(0),
-		armed_sub(nullptr),
-		armed_time(0),
-		act_sub(nullptr),
-		act_time(0),
-		airspeed_sub(nullptr),
-		airspeed_time(0)
+		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
+		_att_time(0),
+		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position))),
+		_pos_time(0),
+		_armed_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_armed))),
+		_armed_time(0),
+		_act_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_0))),
+		_act_time(0),
+		_airspeed_sub(_mavlink->add_orb_subscription(ORB_ID(airspeed))),
+		_airspeed_time(0)
 	{}
-
-	void subscribe()
-	{
-		att_sub = _mavlink->add_orb_subscription(ORB_ID(vehicle_attitude));
-		pos_sub = _mavlink->add_orb_subscription(ORB_ID(vehicle_global_position));
-		armed_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_armed));
-		act_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_0));
-		airspeed_sub = _mavlink->add_orb_subscription(ORB_ID(airspeed));
-	}
 
 	void send(const hrt_abstime t)
 	{
@@ -783,11 +744,11 @@ protected:
 		struct actuator_controls_s act;
 		struct airspeed_s airspeed;
 
-		bool updated = att_sub->update(&att_time, &att);
-		updated |= pos_sub->update(&pos_time, &pos);
-		updated |= armed_sub->update(&armed_time, &armed);
-		updated |= act_sub->update(&act_time, &act);
-		updated |= airspeed_sub->update(&airspeed_time, &airspeed);
+		bool updated = _att_sub->update(&_att_time, &att);
+		updated |= _pos_sub->update(&_pos_time, &pos);
+		updated |= _armed_sub->update(&_armed_time, &armed);
+		updated |= _act_sub->update(&_act_time, &act);
+		updated |= _airspeed_sub->update(&_airspeed_time, &airspeed);
 
 		if (updated) {
 			mavlink_vfr_hud_t msg;
