@@ -78,7 +78,6 @@
 #include "mavlink_messages.h"
 #include "mavlink_receiver.h"
 #include "mavlink_rate_limiter.h"
-#include "mavlink_commands.h"
 
 #ifndef MAVLINK_CRC_EXTRA
 #error MAVLINK_CRC_EXTRA has to be defined on PX4 systems
@@ -840,7 +839,7 @@ Mavlink::send_statustext(unsigned severity, const char *string)
 			break;
 		}
 
-		mavlink_msg_statustext_send(_channel, statustext.severity, statustext.text);
+		send_message(MAVLINK_MSG_ID_STATUSTEXT, &statustext);
 		return OK;
 
 	} else {
@@ -1313,12 +1312,13 @@ Mavlink::task_main(int argc, char *argv[])
 	struct vehicle_status_s status;
 	status_sub->update(&status_time, &status);
 
-	MavlinkCommandsStream commands_stream(this, _channel);
-
 	/* add default streams depending on mode */
 
 	/* HEARTBEAT is constant rate stream, rate never adjusted */
 	configure_stream("HEARTBEAT", 1.0f);
+
+	/* COMMAND_LONG stream: use high rate to avoid commands skipping */
+	configure_stream("COMMAND_LONG", 100.0f);
 
 	/* PARAM_VALUE stream */
 	_parameters_manager = (MavlinkParametersManager *) MavlinkParametersManager::new_instance(this);
@@ -1383,9 +1383,6 @@ Mavlink::task_main(int argc, char *argv[])
 			/* switch HIL mode if required */
 			set_hil_enabled(status.hil_state == HIL_STATE_ON);
 		}
-
-		/* update commands stream */
-		commands_stream.update(t);
 
 		/* check for requested subscriptions */
 		if (_subscribe_to_stream != nullptr) {
@@ -1469,7 +1466,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 				pthread_mutex_unlock(&_message_buffer_mutex);
 
-				_mavlink_resend_uart(_channel, &msg);
+				// TODO implement message resending
+				//_mavlink_resend_uart(_channel, &msg);
 			}
 		}
 

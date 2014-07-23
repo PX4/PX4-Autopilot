@@ -147,7 +147,7 @@ MavlinkParametersManager::send(const hrt_abstime t)
 	if (_send_all_index >= 0) {
 		send_param(param_for_index(_send_all_index));
 		_send_all_index++;
-		if (_send_all_index >= param_count()) {
+		if (_send_all_index >= (int) param_count()) {
 			_send_all_index = -1;
 		}
 	}

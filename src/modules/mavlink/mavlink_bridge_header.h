@@ -44,7 +44,7 @@
 
 __BEGIN_DECLS
 
-#define MAVLINK_USE_CONVENIENCE_FUNCTIONS
+//#define MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
 /* use efficient approach, see mavlink_helpers.h */
 #define MAVLINK_SEND_UART_BYTES mavlink_send_uart_bytes

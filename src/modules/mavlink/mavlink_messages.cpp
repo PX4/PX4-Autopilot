@@ -312,6 +312,75 @@ protected:
 	}
 };
 
+class MavlinkStreamCommandLong : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamCommandLong::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "COMMAND_LONG";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_COMMAND_LONG;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamCommandLong(mavlink);
+	}
+
+	unsigned get_size() { return 0; }	// commands stream is not regular and not predictable
+
+private:
+	MavlinkOrbSubscription *_cmd_sub;
+	uint64_t _cmd_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamCommandLong(MavlinkStreamCommandLong &);
+	MavlinkStreamCommandLong& operator = (const MavlinkStreamCommandLong &);
+
+protected:
+	explicit MavlinkStreamCommandLong(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_cmd_sub(nullptr),
+		_cmd_time(0)
+	{}
+
+	void subscribe() {
+		_cmd_sub = _mavlink->add_orb_subscription(ORB_ID(vehicle_status));
+	}
+
+	void send(const hrt_abstime t)
+	{
+		struct vehicle_command_s cmd;
+
+		if (_cmd_sub->update(&_cmd_time, &cmd)) {
+			/* only send commands for other systems/components */
+			if (cmd.target_system != mavlink_system.sysid || cmd.target_component != mavlink_system.compid) {
+				mavlink_command_long_t mavcmd;
+
+				mavcmd.target_system = cmd.target_system;
+				mavcmd.target_component = cmd.target_component;
+				mavcmd.command = cmd.command;
+				mavcmd.confirmation = cmd.confirmation;
+				mavcmd.param1 = cmd.param1;
+				mavcmd.param2 = cmd.param2;
+				mavcmd.param3 = cmd.param3;
+				mavcmd.param4 = cmd.param4;
+				mavcmd.param5 = cmd.param5;
+				mavcmd.param6 = cmd.param6;
+				mavcmd.param7 = cmd.param7;
+
+				_mavlink->send_message(MAVLINK_MSG_ID_COMMAND_LONG, &mavcmd);
+			}
+		}
+	}
+};
 
 class MavlinkStreamSysStatus : public MavlinkStream
 {
@@ -1926,6 +1995,7 @@ protected:
 
 StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static),
+	new StreamListItem(&MavlinkStreamCommandLong::new_instance, &MavlinkStreamCommandLong::get_name_static),
 	new StreamListItem(&MavlinkStreamSysStatus::new_instance, &MavlinkStreamSysStatus::get_name_static),
 //	new StreamListItem(&MavlinkStreamHighresIMU::new_instance, &MavlinkStreamHighresIMU::get_name_static),
 //	new StreamListItem(&MavlinkStreamAttitude::new_instance, &MavlinkStreamAttitude::get_name_static),
