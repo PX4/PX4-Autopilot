@@ -1016,8 +1016,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				inertial_filter_correct(corr_vision[1][0], dt, y_est, 0, w_xy_vision_p);
 
 				if (w_xy_vision_v > MIN_VALID_W) {
-					inertial_filter_correct(corr_gps[0][1], dt, x_est, 1, w_xy_vision_v);
-					inertial_filter_correct(corr_gps[1][1], dt, y_est, 1, w_xy_vision_v);
+					inertial_filter_correct(corr_vision[0][1], dt, x_est, 1, w_xy_vision_v);
+					inertial_filter_correct(corr_vision[1][1], dt, y_est, 1, w_xy_vision_v);
 				}
 			}
 
