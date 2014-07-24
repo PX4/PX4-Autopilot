@@ -912,7 +912,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			float c = 0.0f;
 
 			for (int j = 0; j < 3; j++) {
-				c += R_gps[j][i] * accel_bias_corr[j];
+				c += att.R[j][i] * accel_bias_corr[j];
 			}
 
 			if (isfinite(c)) {
