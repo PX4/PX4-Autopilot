@@ -452,7 +452,6 @@ Mavlink::mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 	case (int)MAVLINK_IOC_SEND_TEXT_EMERGENCY: {
 
 			const char *txt = (const char *)arg;
-//		printf("logmsg: %s\n", txt);
 			struct mavlink_logmessage msg;
 			strncpy(msg.text, txt, sizeof(msg.text));
 			msg.severity = (unsigned char)cmd;
@@ -782,67 +781,32 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	}
 }
 
-int
+void
 Mavlink::send_statustext_info(const char *string)
 {
-	return send_statustext(MAVLINK_IOC_SEND_TEXT_INFO, string);
+	send_statustext(MAVLINK_IOC_SEND_TEXT_INFO, string);
 }
 
-int
+void
 Mavlink::send_statustext_critical(const char *string)
 {
-	return send_statustext(MAVLINK_IOC_SEND_TEXT_CRITICAL, string);
+	send_statustext(MAVLINK_IOC_SEND_TEXT_CRITICAL, string);
 }
 
-int
+void
 Mavlink::send_statustext_emergency(const char *string)
 {
-	return send_statustext(MAVLINK_IOC_SEND_TEXT_EMERGENCY, string);
+	send_statustext(MAVLINK_IOC_SEND_TEXT_EMERGENCY, string);
 }
 
-int
+void
 Mavlink::send_statustext(unsigned severity, const char *string)
 {
-	const int len = MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN;
-	mavlink_statustext_t statustext;
+	struct mavlink_logmessage logmsg;
+	strncpy(logmsg.text, string, sizeof(logmsg.text));
+	logmsg.severity = severity;
 
-	int i = 0;
-
-	while (i < len - 1) {
-		statustext.text[i] = string[i];
-
-		if (string[i] == '\0') {
-			break;
-		}
-
-		i++;
-	}
-
-	if (i > 1) {
-		/* Enforce null termination */
-		statustext.text[i] = '\0';
-
-		/* Map severity */
-		switch (severity) {
-		case MAVLINK_IOC_SEND_TEXT_INFO:
-			statustext.severity = MAV_SEVERITY_INFO;
-			break;
-
-		case MAVLINK_IOC_SEND_TEXT_CRITICAL:
-			statustext.severity = MAV_SEVERITY_CRITICAL;
-			break;
-
-		case MAVLINK_IOC_SEND_TEXT_EMERGENCY:
-			statustext.severity = MAV_SEVERITY_EMERGENCY;
-			break;
-		}
-
-		send_message(MAVLINK_MSG_ID_STATUSTEXT, &statustext);
-		return OK;
-
-	} else {
-		return ERROR;
-	}
+	mavlink_logbuffer_write(&_logbuffer, &logmsg);
 }
 
 MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic)
@@ -1312,6 +1276,9 @@ Mavlink::task_main(int argc, char *argv[])
 	/* HEARTBEAT is constant rate stream, rate never adjusted */
 	configure_stream("HEARTBEAT", 1.0f);
 
+	/* STATUSTEXT stream is like normal stream but gets messages from logbuffer instead of uORB */
+	configure_stream("STATUSTEXT", 20.0f);
+
 	/* COMMAND_LONG stream: use high rate to avoid commands skipping */
 	configure_stream("COMMAND_LONG", 100.0f);
 
@@ -1367,7 +1334,7 @@ Mavlink::task_main(int argc, char *argv[])
 		hrt_abstime t = hrt_absolute_time();
 
 		update_rate_mult();
-		warnx("rate mult %.2f", (double)_rate_mult);
+		warnx("rate mult %.2f rate %.3f err %.3f", (double)_rate_mult, (double)_rate_tx, (double)_rate_txerr);
 
 		if (param_sub->update(&param_time, nullptr)) {
 			/* parameters updated */
@@ -1407,15 +1374,6 @@ Mavlink::task_main(int argc, char *argv[])
 		if (fast_rate_limiter.check(t)) {
 			// TODO missions
 			//_mission_manager->eventloop();
-
-			if (!mavlink_logbuffer_is_empty(&_logbuffer)) {
-				struct mavlink_logmessage msg;
-				int lb_ret = mavlink_logbuffer_read(&_logbuffer, &msg);
-
-				if (lb_ret == OK) {
-					send_statustext(msg.severity, msg.text);
-				}
-			}
 		}
 
 		/* pass messages from other UARTs or FTP worker */

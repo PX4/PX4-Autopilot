@@ -188,29 +188,33 @@ public:
 	 *
 	 * @param string the message to send (will be capped by mavlink max string length)
 	 */
-	int			send_statustext_info(const char *string);
+	void			send_statustext_info(const char *string);
 
 	/**
 	 * Send a status text with loglevel CRITICAL
 	 *
 	 * @param string the message to send (will be capped by mavlink max string length)
 	 */
-	int			send_statustext_critical(const char *string);
+	void			send_statustext_critical(const char *string);
 
 	/**
 	 * Send a status text with loglevel EMERGENCY
 	 *
 	 * @param string the message to send (will be capped by mavlink max string length)
 	 */
-	int			send_statustext_emergency(const char *string);
+	void			send_statustext_emergency(const char *string);
 
 	/**
-	 * Send a status text with loglevel
+	 * Send a status text with loglevel, the difference from mavlink_log_xxx() is that message sent
+	 * only on this mavlink connection. Useful for reporting communication specific, not system-wide info
+	 * only to client interested in it. Message will be not sent immediately but queued in buffer as
+	 * for mavlink_log_xxx().
 	 *
 	 * @param string the message to send (will be capped by mavlink max string length)
-	 * @param severity the log level, one of 
+	 * @param severity the log level
 	 */
-	int			send_statustext(unsigned severity, const char *string);
+	void			send_statustext(unsigned severity, const char *string);
+
 	MavlinkStream *		get_streams() const { return _streams; }
 
 	float			get_rate_mult();
@@ -258,6 +262,8 @@ public:
 	 * Get the receive status of this MAVLink link
 	 */
 	struct telemetry_status_s&	get_rx_status() { return _rstatus; }
+
+	struct mavlink_logbuffer	*get_logbuffer() { return &_logbuffer; }
 
 protected:
 	Mavlink			*next;

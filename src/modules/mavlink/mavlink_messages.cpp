@@ -40,9 +40,9 @@
  */
 
 #include <stdio.h>
+
 #include <commander/px4_custom_mode.h>
 #include <lib/geo/geo.h>
-
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -72,8 +72,8 @@
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_range_finder.h>
-
 #include <systemlib/err.h>
+#include <mavlink/mavlink_log.h>
 
 #include "mavlink_messages.h"
 #include "mavlink_main.h"
@@ -306,6 +306,77 @@ protected:
 	}
 };
 
+class MavlinkStreamStatustext : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamStatustext::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "STATUSTEXT";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_STATUSTEXT;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamStatustext(mavlink);
+	}
+
+	unsigned get_size() {
+		return mavlink_logbuffer_is_empty(_mavlink->get_logbuffer()) ? 0 : (MAVLINK_MSG_ID_STATUSTEXT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
+	}
+
+private:
+	/* do not allow top copying this class */
+	MavlinkStreamStatustext(MavlinkStreamStatustext &);
+	MavlinkStreamStatustext& operator = (const MavlinkStreamStatustext &);
+
+protected:
+	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		if (!mavlink_logbuffer_is_empty(_mavlink->get_logbuffer())) {
+			struct mavlink_logmessage logmsg;
+			int lb_ret = mavlink_logbuffer_read(_mavlink->get_logbuffer(), &logmsg);
+
+			if (lb_ret == OK) {
+				mavlink_statustext_t msg;
+
+				/* map severity */
+				switch (logmsg.severity) {
+				case MAVLINK_IOC_SEND_TEXT_INFO:
+					msg.severity = MAV_SEVERITY_INFO;
+					break;
+
+				case MAVLINK_IOC_SEND_TEXT_CRITICAL:
+					msg.severity = MAV_SEVERITY_CRITICAL;
+					break;
+
+				case MAVLINK_IOC_SEND_TEXT_EMERGENCY:
+					msg.severity = MAV_SEVERITY_EMERGENCY;
+					break;
+
+				default:
+					msg.severity = MAV_SEVERITY_INFO;
+					break;
+				}
+				strncpy(msg.text, logmsg.text, sizeof(msg.text));
+
+				_mavlink->send_message(MAVLINK_MSG_ID_STATUSTEXT, &msg);
+			}
+		}
+	}
+};
+
 class MavlinkStreamCommandLong : public MavlinkStream
 {
 public:
@@ -329,7 +400,9 @@ public:
 		return new MavlinkStreamCommandLong(mavlink);
 	}
 
-	unsigned get_size() { return 0; }	// commands stream is not regular and not predictable
+	unsigned get_size() {
+		return 0;	// commands stream is not regular and not predictable
+	}
 
 private:
 	MavlinkOrbSubscription *_cmd_sub;
@@ -352,21 +425,21 @@ protected:
 		if (_cmd_sub->update(&_cmd_time, &cmd)) {
 			/* only send commands for other systems/components */
 			if (cmd.target_system != mavlink_system.sysid || cmd.target_component != mavlink_system.compid) {
-				mavlink_command_long_t mavcmd;
+				mavlink_command_long_t msg;
 
-				mavcmd.target_system = cmd.target_system;
-				mavcmd.target_component = cmd.target_component;
-				mavcmd.command = cmd.command;
-				mavcmd.confirmation = cmd.confirmation;
-				mavcmd.param1 = cmd.param1;
-				mavcmd.param2 = cmd.param2;
-				mavcmd.param3 = cmd.param3;
-				mavcmd.param4 = cmd.param4;
-				mavcmd.param5 = cmd.param5;
-				mavcmd.param6 = cmd.param6;
-				mavcmd.param7 = cmd.param7;
+				msg.target_system = cmd.target_system;
+				msg.target_component = cmd.target_component;
+				msg.command = cmd.command;
+				msg.confirmation = cmd.confirmation;
+				msg.param1 = cmd.param1;
+				msg.param2 = cmd.param2;
+				msg.param3 = cmd.param3;
+				msg.param4 = cmd.param4;
+				msg.param5 = cmd.param5;
+				msg.param6 = cmd.param6;
+				msg.param7 = cmd.param7;
 
-				_mavlink->send_message(MAVLINK_MSG_ID_COMMAND_LONG, &mavcmd);
+				_mavlink->send_message(MAVLINK_MSG_ID_COMMAND_LONG, &msg);
 			}
 		}
 	}
@@ -1996,6 +2069,7 @@ protected:
 
 StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static),
+	new StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static),
 	new StreamListItem(&MavlinkStreamCommandLong::new_instance, &MavlinkStreamCommandLong::get_name_static),
 	new StreamListItem(&MavlinkStreamSysStatus::new_instance, &MavlinkStreamSysStatus::get_name_static),
 	new StreamListItem(&MavlinkStreamHighresIMU::new_instance, &MavlinkStreamHighresIMU::get_name_static),
