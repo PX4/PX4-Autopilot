@@ -1433,8 +1433,6 @@ Mavlink::task_main(int argc, char *argv[])
 		perf_end(_loop_perf);
 	}
 
-	delete _mission_manager;
-
 	delete _subscribe_to_stream;
 	_subscribe_to_stream = nullptr;
 
