@@ -241,7 +241,8 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		} else {
 
 			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-				warnx("ignoring CMD spoofed with same SYS/COMP ID");
+				warnx("ignoring CMD spoofed with same SYS/COMP (%d/%d) ID",
+				      mavlink_system.sysid, mavlink_system.compid);
 				return;
 			}
 
