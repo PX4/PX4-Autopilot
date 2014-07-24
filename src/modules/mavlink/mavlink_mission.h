@@ -46,7 +46,6 @@
 #include "mavlink_rate_limiter.h"
 #include <uORB/uORB.h>
 
-// FIXME XXX - TO BE MOVED TO XML
 enum MAVLINK_WPM_STATES {
 	MAVLINK_WPM_STATE_IDLE = 0,
 	MAVLINK_WPM_STATE_SENDLIST,
