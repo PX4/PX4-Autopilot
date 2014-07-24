@@ -650,6 +650,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_enable_parachute = param_find("NAV_PARACHUTE_EN");
 	param_t _param_enable_datalink_loss = param_find("COM_DL_LOSS_EN");
 	param_t _param_datalink_loss_timeout = param_find("COM_DL_LOSS_T");
+	param_t _param_datalink_regain_timeout = param_find("COM_DL_REG_T");
 
 	/* welcome user */
 	warnx("starting");
@@ -841,11 +842,13 @@ int commander_thread_main(int argc, char *argv[])
 	/* Subscribe to telemetry status topics */
 	int telemetry_subs[TELEMETRY_STATUS_ORB_ID_NUM];
 	uint64_t telemetry_last_heartbeat[TELEMETRY_STATUS_ORB_ID_NUM];
+	uint64_t telemetry_last_dl_loss[TELEMETRY_STATUS_ORB_ID_NUM];
 	bool telemetry_lost[TELEMETRY_STATUS_ORB_ID_NUM];
 
 	for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
 		telemetry_subs[i] = orb_subscribe(telemetry_status_orb_id[i]);
 		telemetry_last_heartbeat[i] = 0;
+		telemetry_last_dl_loss[i] = 0;
 		telemetry_lost[i] = true;
 	}
 
@@ -930,6 +933,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	int32_t datalink_loss_enabled = false;
 	int32_t datalink_loss_timeout = 10;
+	int32_t datalink_regain_timeout = 0;
 
 	/* check which state machines for changes, clear "changed" flag */
 	bool arming_state_changed = false;
@@ -990,6 +994,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_enable_parachute, &parachute_enabled);
 			param_get(_param_enable_datalink_loss, &datalink_loss_enabled);
 			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
+			param_get(_param_datalink_regain_timeout, &datalink_regain_timeout);
 		}
 
 		orb_check(sp_man_sub, &updated);
@@ -1030,7 +1035,7 @@ int commander_thread_main(int argc, char *argv[])
 				if (mavlink_fd &&
 					telemetry_last_heartbeat[i] == 0 &&
 					telemetry.heartbeat_time > 0 &&
-					hrt_elapsed_time(&telemetry.heartbeat_time) < datalink_loss_timeout) {
+					hrt_elapsed_time(&telemetry.heartbeat_time) < datalink_loss_timeout * 1e6) {
 
 					(void)rc_calibration_check(mavlink_fd);
 				}
@@ -1459,15 +1464,21 @@ int commander_thread_main(int argc, char *argv[])
 		/* data links check */
 		bool have_link = false;
 		for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
-			if (telemetry_last_heartbeat[i] != 0 && hrt_elapsed_time(&telemetry_last_heartbeat[i]) < datalink_loss_timeout) {
-				/* handle the case where data link was regained */
-				if (telemetry_lost[i]) {//XXX also add hysteresis here
+			if (telemetry_last_heartbeat[i] != 0 &&
+					hrt_elapsed_time(&telemetry_last_heartbeat[i]) < datalink_loss_timeout * 1e6) {
+				/* handle the case where data link was regained,
+				 * accept datalink as healthy only after datalink_regain_timeout seconds
+				 * */
+				if (telemetry_lost[i] &&
+					hrt_elapsed_time(&telemetry_last_dl_loss[i]) > datalink_regain_timeout * 1e6) {
+
 					mavlink_log_critical(mavlink_fd, "data link %i regained", i);
 					telemetry_lost[i] = false;
+					have_link = true;
 				}
-				have_link = true;
 
 			} else {
+				telemetry_last_dl_loss[i]  = hrt_absolute_time();
 				if (!telemetry_lost[i]) {
 					mavlink_log_critical(mavlink_fd, "data link %i lost", i);
 					telemetry_lost[i] = true;

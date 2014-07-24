@@ -106,13 +106,25 @@ PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
  */
 PARAM_DEFINE_INT32(DL_LOSS_EN, 0);
 
- /** Datalink timeout threshold
+ /** Datalink loss time threshold
  *
- * After this amount of seconds the data link lost mode triggers
+ * After this amount of seconds without datalink the data link lost mode triggers
  *
  * @group commander
  * @unit second
  * @min 0
- * @max 1000
+ * @max 30
  */
 PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
+
+/** Datalink regain time threshold
+ *
+ * After a data link loss: after this this amount of seconds with a healthy datalink the 'datalink loss'
+ * flag is set back to false
+ *
+ * @group commander
+ * @unit second
+ * @min 0
+ * @max 30
+ */
+PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
