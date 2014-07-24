@@ -42,7 +42,7 @@ include_directories(${DSDLC_OUTPUT})
 # Compiler flags
 #
 if (COMPILER_IS_GCC_COMPATIBLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -pedantic")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
     if (USE_CPP03)
         message(STATUS "Using C++03")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++03 -Wno-variadic-macros -Wno-long-long")
@@ -101,6 +101,7 @@ if (DEBUG_BUILD)
     message(STATUS "Debug build (note: requires gtest, cppcheck)")
 
     if (COMPILER_IS_GCC_COMPATIBLE)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -pedantic")
         set(cpp03_flags "-std=c++03 -Wno-variadic-macros -Wno-long-long")
         set(optim_flags "-O3 -DNDEBUG -g0")
     else ()
