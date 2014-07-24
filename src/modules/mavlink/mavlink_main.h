@@ -289,8 +289,6 @@ private:
 	MavlinkMissionManager	*_mission_manager;
 	MavlinkParametersManager *_parameters_manager;
 
-	orb_advert_t		_mission_pub;
-	int			_mission_result_sub;
 	MAVLINK_MODE 		_mode;
 
 	mavlink_channel_t	_channel;

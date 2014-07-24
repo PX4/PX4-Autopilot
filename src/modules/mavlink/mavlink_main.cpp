@@ -131,8 +131,6 @@ Mavlink::Mavlink() :
 	_streams(nullptr),
 	_mission_manager(nullptr),
 	_parameters_manager(nullptr),
-	_mission_pub(-1),
-	_mission_result_sub(-1),
 	_mode(MAVLINK_MODE_NORMAL),
 	_channel(MAVLINK_COMM_0),
 	_logbuffer {},
@@ -1255,12 +1253,6 @@ Mavlink::task_main(int argc, char *argv[])
 	/* start the MAVLink receiver */
 	_receive_thread = MavlinkReceiver::receive_start(this);
 
-	_mission_result_sub = orb_subscribe(ORB_ID(mission_result));
-
-	/* create mission manager */
-	_mission_manager = new MavlinkMissionManager(this);
-	_mission_manager->set_verbose(_verbose);
-
 	_task_running = true;
 
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
@@ -1286,6 +1278,14 @@ Mavlink::task_main(int argc, char *argv[])
 	_parameters_manager = (MavlinkParametersManager *) MavlinkParametersManager::new_instance(this);
 	_parameters_manager->set_interval(interval_from_rate(30.0f));
 	LL_APPEND(_streams, _parameters_manager);
+
+	/* MISSION_STREAM stream, actually sends all MISSION_XXX messages at some rate depending on
+	 * remote requests rate. Rate specified here controls how much bandwidth we will reserve for
+	 * mission messages. */
+	_mission_manager = (MavlinkMissionManager *) MavlinkMissionManager::new_instance(this);
+	_mission_manager->set_interval(interval_from_rate(10.0f));
+	_mission_manager->set_verbose(_verbose);
+	LL_APPEND(_streams, _mission_manager);
 
 	switch (_mode) {
 	case MAVLINK_MODE_NORMAL:
@@ -1315,12 +1315,8 @@ Mavlink::task_main(int argc, char *argv[])
 		break;
 	}
 
-	float base_rate_mult = _datarate / 1000.0f;
-
-	MavlinkRateLimiter fast_rate_limiter(30000.0f / base_rate_mult);
-
 	/* set main loop delay depending on data rate to minimize CPU overhead */
-	_main_loop_delay = MAIN_LOOP_DELAY / base_rate_mult;
+	_main_loop_delay = MAIN_LOOP_DELAY * 1000 / _datarate;
 
 	/* now the instance is fully initialized and we can bump the instance count */
 	LL_APPEND(_mavlink_instances, this);
@@ -1369,11 +1365,6 @@ Mavlink::task_main(int argc, char *argv[])
 		MavlinkStream *stream;
 		LL_FOREACH(_streams, stream) {
 			stream->update(t);
-		}
-
-		if (fast_rate_limiter.check(t)) {
-			// TODO missions
-			//_mission_manager->eventloop();
 		}
 
 		/* pass messages from other UARTs or FTP worker */
