@@ -27,7 +27,6 @@ include ../driver/include.mk
 CPPSRC += $(LIBUAVCAN_LPC11C24_SRC)
 INC += -I$(LIBUAVCAN_LPC11C24_INC)
 
-# TODO: add target for this
 $(info $(shell $(LIBUAVCAN_DSDLC) $(UAVCAN_DSDL_DIR)))
 INC += -Idsdlc_generated
 
