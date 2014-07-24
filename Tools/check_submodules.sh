@@ -73,8 +73,8 @@ then
 		exit 1
 	fi
 else
-	git submodule init
-	git submodule update
+	git submodule init;
+	git submodule update;
 fi
 
 exit 0
