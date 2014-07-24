@@ -104,6 +104,7 @@ typedef enum {
 	NAVIGATION_STATE_AUTO_RTL,		/**< Auto return to launch mode */
 	NAVIGATION_STATE_AUTO_RTGS,		/**< Auto return to groundstation on data link loss */
 	NAVIGATION_STATE_AUTO_LANDENGFAIL,	/**< Auto land on engine failure */
+	NAVIGATION_STATE_AUTO_LANDGPSFAIL,	/**< Auto land on gps failure (e.g. open loop loiter down) */
 	NAVIGATION_STATE_ACRO,			/**< Acro mode */
 	NAVIGATION_STATE_LAND,			/**< Land mode */
 	NAVIGATION_STATE_DESCEND,			/**< Descend mode (no position control) */
