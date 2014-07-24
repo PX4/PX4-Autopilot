@@ -25,7 +25,7 @@ def die(text):
     print(text, file=sys.stderr)
     exit(1)
 
-DEFAULT_OUTDIR = './dsdlc_generated'
+DEFAULT_OUTDIR = 'dsdlc_generated'
 
 DESCRIPTION = '''UAVCAN DSDL compiler for libuavcan.
 Takes an input directory that contains an hierarchy of DSDL
