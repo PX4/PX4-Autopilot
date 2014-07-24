@@ -129,6 +129,7 @@ Navigator::Navigator() :
 	_rtl(this, "RTL"),
 	_offboard(this, "OFF"),
 	_dataLinkLoss(this, "DLL"),
+	_engineFailure(this, "EF"),
 	_can_loiter_at_sp(false),
 	_pos_sp_triplet_updated(false),
 	_param_loiter_radius(this, "LOITER_RAD"),

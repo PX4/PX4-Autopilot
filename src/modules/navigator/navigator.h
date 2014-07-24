@@ -60,6 +60,7 @@
 #include "rtl.h"
 #include "offboard.h"
 #include "datalinkloss.h"
+#include "enginefailure.h"
 #include "geofence.h"
 
 /**
@@ -179,6 +180,8 @@ private:
 	RTL 		_rtl;				/**< class that handles RTL */
 	Offboard	_offboard;			/**< class that handles offboard */
 	DataLinkLoss	_dataLinkLoss;			/**< class that handles the OBC datalink loss mode */
+	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode
+							  (FW only!) */
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 

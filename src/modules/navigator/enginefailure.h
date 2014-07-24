@@ -31,14 +31,14 @@
  *
  ****************************************************************************/
 /**
- * @file datalinkloss.h
- * Helper class for Data Link Loss Mode acording to the OBC rules
+ * @file enginefailure.h
+ * Helper class for a fixedwing engine failure mode
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef NAVIGATOR_DATALINKLOSS_H
-#define NAVIGATOR_DATALINKLOSS_H
+#ifndef NAVIGATOR_ENGINEFAILURE_H
+#define NAVIGATOR_ENGINEFAILURE_H
 
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
@@ -50,12 +50,12 @@
 
 class Navigator;
 
-class DataLinkLoss : public MissionBlock
+class EngineFailure : public MissionBlock
 {
 public:
-	DataLinkLoss(Navigator *navigator, const char *name);
+	EngineFailure(Navigator *navigator, const char *name);
 
-	~DataLinkLoss();
+	~EngineFailure();
 
 	virtual void on_inactive();
 
@@ -64,34 +64,20 @@ public:
 	virtual void on_active();
 
 private:
-	/* Subscriptions */
-	uORB::Subscription<vehicle_status_s> _vehicleStatus;
-
-	/* Params */
-	control::BlockParamFloat _param_commsholdwaittime;
-	control::BlockParamInt _param_commsholdlat; // * 1e7
-	control::BlockParamInt _param_commsholdlon; // * 1e7
-	control::BlockParamFloat _param_commsholdalt;
-	control::BlockParamInt _param_airfieldhomelat; // * 1e7
-	control::BlockParamInt _param_airfieldhomelon; // * 1e7
-	control::BlockParamFloat _param_airfieldhomealt;
-	control::BlockParamInt _param_numberdatalinklosses;
-
-	enum DLLState {
-		DLL_STATE_NONE = 0,
-		DLL_STATE_FLYTOCOMMSHOLDWP = 1,
-		DLL_STATE_FLYTOAIRFIELDHOMEWP = 2,
-	} _dll_state;
+	enum EFState {
+		EF_STATE_NONE = 0,
+		EF_STATE_LOITERDOWN = 1,
+	} _ef_state;
 
 	/**
 	 * Set the DLL item
 	 */
-	void		set_dll_item();
+	void		set_ef_item();
 
 	/**
-	 * Move to next DLL item
+	 * Move to next EF item
 	 */
-	void		advance_dll();
+	void		advance_ef();
 
 };
 #endif
