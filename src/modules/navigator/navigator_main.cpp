@@ -393,6 +393,9 @@ Navigator::task_main()
 					_navigation_mode = &_rtl; /* TODO: change this to something else */
 				}
 				break;
+			case NAVIGATION_STATE_AUTO_LANDENGFAIL:
+				_navigation_mode = &_engineFailure;
+				break;
 			case NAVIGATION_STATE_LAND:
 			case NAVIGATION_STATE_TERMINATION:
 			case NAVIGATION_STATE_OFFBOARD:
