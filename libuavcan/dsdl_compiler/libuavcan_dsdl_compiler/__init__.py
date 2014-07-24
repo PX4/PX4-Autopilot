@@ -64,9 +64,12 @@ def run(source_dirs, include_dirs, output_dir):
 # -----------------
 
 def pretty_filename(filename):
-    a = os.path.abspath(filename)
-    r = os.path.relpath(filename)
-    return a if len(a) < len(r) else r
+    try:
+        a = os.path.abspath(filename)
+        r = os.path.relpath(filename)
+        return a if len(a) < len(r) else r
+    except ValueError:
+        return filename  # Fails on Windows "Cannot mix UNC and non-UNC paths", investigate someday later
 
 def type_output_filename(t):
     assert t.category == t.CATEGORY_COMPOUND
