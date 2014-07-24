@@ -490,9 +490,12 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 
 	case MAIN_STATE_AUTO_MISSION:
 		/* go into failsafe
+		 * - if we have an engine failure
 		 * - if either the datalink is enabled and lost as well as RC is lost
 		 * - if there is no datalink and the mission is finished */
-		if (((status->data_link_lost && data_link_loss_enabled) && status->rc_signal_lost) ||
+		if (status->engine_failure) {
+			status->nav_state = NAVIGATION_STATE_AUTO_LANDENGFAIL;
+		} else if (((status->data_link_lost && data_link_loss_enabled) && status->rc_signal_lost) ||
 		    (!data_link_loss_enabled && status->rc_signal_lost && mission_finished)) {
 			status->failsafe = true;
 
@@ -532,8 +535,10 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		break;
 
 	case MAIN_STATE_AUTO_LOITER:
-		/* go into failsafe if datalink and RC is lost */
-		if ((status->data_link_lost && data_link_loss_enabled) && status->rc_signal_lost) {
+		/* go into failsafe on a engine failure or if datalink and RC is lost */
+		if (status->engine_failure) {
+			status->nav_state = NAVIGATION_STATE_AUTO_LANDENGFAIL;
+		} else if ((status->data_link_lost && data_link_loss_enabled) && status->rc_signal_lost) {
 			status->failsafe = true;
 
 			if (status->condition_global_position_valid && status->condition_home_position_valid) {
@@ -586,8 +591,12 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 		break;
 
 	case MAIN_STATE_AUTO_RTL:
-		/* require global position and home */
-		if ((!status->condition_global_position_valid || !status->condition_home_position_valid)) {
+		/* require global position and home, also go into failsafe on an engine failure */
+
+		if (status->engine_failure) {
+			status->nav_state = NAVIGATION_STATE_AUTO_LANDENGFAIL;
+		} else if ((!status->condition_global_position_valid ||
+					!status->condition_home_position_valid)) {
 			status->failsafe = true;
 
 			if (status->condition_local_position_valid) {
