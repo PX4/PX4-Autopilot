@@ -162,6 +162,11 @@ public:
 
 	void		send_message(const uint8_t msgid, const void *msg);
 
+	/**
+	 * Resend message as is, don't change sequence number and CRC.
+	 */
+	void		resend_message(mavlink_message_t *msg);
+
 	void			handle_message(const mavlink_message_t *msg);
 
 	MavlinkOrbSubscription *add_orb_subscription(const orb_id_t topic);
@@ -250,13 +255,6 @@ public:
 	 * Count received bytes
 	 */
 	void			count_rxbytes(unsigned n) { _bytes_rx += n; };
-
-	/**
-	 * Get the free space in the transmit buffer
-	 *
-	 * @return free space in the UART TX buffer
-	 */
-	unsigned		get_free_tx_buf();
 
 	/**
 	 * Get the receive status of this MAVLink link
@@ -357,6 +355,13 @@ private:
 	void			mavlink_update_system();
 
 	int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
+
+	/**
+	 * Get the free space in the transmit buffer
+	 *
+	 * @return free space in the UART TX buffer
+	 */
+	unsigned			get_free_tx_buf();
 
 	static unsigned int interval_from_rate(float rate);
 

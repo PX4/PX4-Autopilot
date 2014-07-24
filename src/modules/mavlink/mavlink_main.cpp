@@ -93,7 +93,7 @@ static const int ERROR = -1;
 #define MAX_DATA_RATE	10000	// max data rate in bytes/s
 #define MAIN_LOOP_DELAY 10000	// 100 Hz @ 1000 bytes/s data rate
 
-#define TX_BUFFER_GAP 256
+#define TX_BUFFER_GAP MAVLINK_MAX_PACKET_LEN
 
 static Mavlink *_mavlink_instances = nullptr;
 
@@ -250,25 +250,6 @@ void
 Mavlink::count_txerr()
 {
 	perf_count(_txerr_perf);
-}
-
-unsigned
-Mavlink::get_free_tx_buf()
-{
-	unsigned buf_free;
-
-	if (!ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free)) {
-		if (_rstatus.telem_time > 0 &&
-			(hrt_elapsed_time(&_rstatus.telem_time) < (2 * 1000 * 1000))) {
-
-			return (unsigned)(buf_free * 0.01f * _rstatus.txbuf);
-
-		} else {
-			return buf_free;
-		}
-	} else {
-		return 0;
-	}
 }
 
 void
@@ -686,15 +667,9 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 	return ret;
 }
 
-void
-Mavlink::send_message(const uint8_t msgid, const void *msg)
+unsigned
+Mavlink::get_free_tx_buf()
 {
-	/* If the wait until transmit flag is on, only transmit after we've received messages.
-	   Otherwise, transmit all the time. */
-	if (!should_transmit()) {
-		return;
-	}
-
 	/*
 	 * Check if the OS buffer is full and disable HW
 	 * flow control if it continues to be full
@@ -702,7 +677,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 	int buf_free = 0;
     (void) ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free);
 
-	if (get_flow_control_enabled() && buf_free == 0) {
+	if (get_flow_control_enabled() && buf_free < TX_BUFFER_GAP) {
 		/* Disable hardware flow control:
 		 * if no successful write since a defined time
 		 * and if the last try was not the last successful write
@@ -714,6 +689,19 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 			enable_flow_control(false);
 		}
 	}
+	return buf_free;
+}
+
+void
+Mavlink::send_message(const uint8_t msgid, const void *msg)
+{
+	/* If the wait until transmit flag is on, only transmit after we've received messages.
+	   Otherwise, transmit all the time. */
+	if (!should_transmit()) {
+		return;
+	}
+
+	int buf_free = get_free_tx_buf();
 
 	uint8_t payload_len = mavlink_message_lengths[msgid];
 	unsigned packet_len = payload_len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
@@ -722,7 +710,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 
 	/* check if there is space in the buffer, let it overflow else */
 	if (buf_free < TX_BUFFER_GAP) {
-		warnx("SKIP msgid %i, %i bytes", msgid, packet_len);
+		warnx("SKIP msgid %i, %i bytes, free %i", msgid, packet_len, buf_free);
 		/* no enough space in buffer to send */
 		count_txerr();
 		count_txerrbytes(packet_len);
@@ -750,6 +738,52 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);
+
+	/* send message to UART */
+	ssize_t ret = write(_uart_fd, buf, packet_len);
+
+	if (ret != (int) packet_len) {
+		count_txerr();
+		count_txerrbytes(packet_len);
+
+	} else {
+		_last_write_success_time = _last_write_try_time;
+		count_txbytes(packet_len);
+	}
+}
+
+void
+Mavlink::resend_message(mavlink_message_t *msg)
+{
+	/* If the wait until transmit flag is on, only transmit after we've received messages.
+	   Otherwise, transmit all the time. */
+	if (!should_transmit()) {
+		return;
+	}
+
+	int buf_free = get_free_tx_buf();
+
+	_last_write_try_time = hrt_absolute_time();
+
+	unsigned packet_len = msg->len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+
+	/* check if there is space in the buffer, let it overflow else */
+	if (buf_free < TX_BUFFER_GAP) {
+		warnx("SKIP resent msgid %i, %i bytes, free %i", msg->msgid, packet_len, buf_free);
+		/* no enough space in buffer to send */
+		count_txerr();
+		count_txerrbytes(packet_len);
+		return;
+	}
+
+	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+
+	/* header and payload */
+	memcpy(&buf[0], &msg->magic, MAVLINK_NUM_HEADER_BYTES + msg->len);
+
+	/* checksum */
+	buf[MAVLINK_NUM_HEADER_BYTES + msg->len] = (uint8_t)(msg->checksum & 0xFF);
+	buf[MAVLINK_NUM_HEADER_BYTES + msg->len + 1] = (uint8_t)(msg->checksum >> 8);
 
 	/* send message to UART */
 	ssize_t ret = write(_uart_fd, buf, packet_len);
@@ -1411,8 +1445,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 				pthread_mutex_unlock(&_message_buffer_mutex);
 
-				// TODO implement message resending
-				//_mavlink_resend_uart(_channel, &msg);
+				resend_message(&msg);
 			}
 		}
 
