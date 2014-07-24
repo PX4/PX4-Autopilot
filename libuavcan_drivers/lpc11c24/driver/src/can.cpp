@@ -298,6 +298,7 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks, uavcan::M
 
     if (!noblock && (clock::getMonotonic() > blocking_deadline))
     {
+#if UAVCAN_LPC11C24_USE_WFE
         /*
          * It's not cool (literally) to burn cycles in a busyloop, and we have no OS to pass control to other
          * tasks, thus solution is to halt the core until a hardware event occurs - e.g. clock timer overflow.
@@ -314,7 +315,6 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks& inout_masks, uavcan::M
          * If the user's application requires higher timing precision, an extra dummy IRQ can be added just to
          * break WFE every once in a while.
          */
-#if !UAVCAN_LPC11C24_NO_WFE
         __WFE();
 #endif
     }
