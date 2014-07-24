@@ -2773,7 +2773,7 @@ int AttPosEKF::CheckAndBound(struct ekf_status_report *last_error)
         ResetHeight();
         ResetStoredStates();
 
-        ret = 3;
+        ret = 0;
     }
 
     // Reset the filter if gyro offsets are excessive
