@@ -62,6 +62,8 @@ public:
     /**
      * Various ways to start the timer - periodically or once.
      * If it is running already, it will be restarted.
+     * If the deadline is in the past, the event will fire immediately.
+     * In periodic mode the timer does not accumulate error over time.
      */
     void startOneShotWithDeadline(MonotonicTime deadline);
     void startOneShotWithDelay(MonotonicDuration delay);
