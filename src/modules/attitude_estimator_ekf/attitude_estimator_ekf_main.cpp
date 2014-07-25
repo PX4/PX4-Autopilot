@@ -38,6 +38,7 @@
  *
  * @author Tobias Naegeli <naegelit@student.ethz.ch>
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
 #include <nuttx/config.h>
@@ -74,8 +75,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "codegen/attitudeKalmanfilter_initialize.h"
-#include "codegen/attitudeKalmanfilter.h"
+#include "codegen/AttitudeEKF.h"
 #include "attitude_estimator_ekf_params.h"
 #ifdef __cplusplus
 }
@@ -206,6 +206,8 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 			      0,  0,  1.f
 			     };		/**< init: identity matrix */
 
+	float debugOutput[4] = { 0.0f };
+
 	// print text
 	printf("Extended Kalman Filter Attitude Estimator initialized..\n\n");
 	fflush(stdout);
@@ -213,7 +215,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	int overloadcounter = 19;
 
 	/* Initialize filter */
-	attitudeKalmanfilter_initialize();
+	AttitudeEKF_initialize();
 
 	/* store start time to guard against too slow update rates */
 	uint64_t last_run = hrt_absolute_time();
@@ -277,9 +279,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	/* keep track of sensor updates */
 	uint64_t sensor_last_timestamp[3] = {0, 0, 0};
 
-	struct attitude_estimator_ekf_params ekf_params;
+	struct attitude_estimator_ekf_params ekf_params = { 0 };
 
-	struct attitude_estimator_ekf_param_handles ekf_param_handles;
+	struct attitude_estimator_ekf_param_handles ekf_param_handles = { 0 };
 
 	/* initialize parameter handles */
 	parameters_init(&ekf_param_handles);
@@ -508,8 +510,25 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						continue;
 					}
 
-					attitudeKalmanfilter(update_vect, dt, z_k, x_aposteriori_k, P_aposteriori_k, ekf_params.q, ekf_params.r,
-							     euler, Rot_matrix, x_aposteriori, P_aposteriori);
+					/* Call the estimator */
+					AttitudeEKF(false, // approx_prediction
+							false, // use_inertia_matrix
+							update_vect,
+							dt,
+							z_k,
+							ekf_params.q[0], // q_rotSpeed,
+							ekf_params.q[1], // q_rotAcc
+							ekf_params.q[2], // q_acc
+							ekf_params.q[3], // q_mag
+							ekf_params.r[0], // r_gyro
+							ekf_params.r[1], // r_accel
+							ekf_params.r[2], // r_mag
+							ekf_params.moment_inertia_J,
+							x_aposteriori,
+							P_aposteriori,
+							Rot_matrix,
+							euler,
+							debugOutput);
 
 					/* swap values for next iteration, check for fatal inputs */
 					if (isfinite(euler[0]) && isfinite(euler[1]) && isfinite(euler[2])) {
