@@ -44,18 +44,54 @@
 
 /* Extended Kalman Filter covariances */
 
-/* gyro process noise */
+
+/**
+ * Body angular rate process noise
+ *
+ * @group attitude_ekf
+ */
 PARAM_DEFINE_FLOAT(EKF_ATT_V3_Q0, 1e-4f);
+
+/**
+ * Body angular acceleration process noise
+ *
+ * @group attitude_ekf
+ */
 PARAM_DEFINE_FLOAT(EKF_ATT_V3_Q1, 0.08f);
+
+/**
+ * Acceleration process noise
+ *
+ * @group attitude_ekf
+ */
 PARAM_DEFINE_FLOAT(EKF_ATT_V3_Q2, 0.009f);
-/* gyro offsets process noise */
+
+/**
+ * Magnet field vector process noise
+ *
+ * @group attitude_ekf
+ */
 PARAM_DEFINE_FLOAT(EKF_ATT_V3_Q3, 0.005f);
 
-/* gyro measurement noise */
+/**
+ * Gyro measurement noise
+ *
+ * @group attitude_ekf
+ */
 PARAM_DEFINE_FLOAT(EKF_ATT_V4_R0, 0.0008f);
-/* accel measurement noise */
+
+/**
+ * Accel measurement noise
+ *
+ * @group attitude_ekf
+ */
 PARAM_DEFINE_FLOAT(EKF_ATT_V4_R1, 10000.0f);
-/* mag measurement noise */
+
+/**
+ * Mag measurement noise
+ *
+ * @group attitude_ekf
+ */
 PARAM_DEFINE_FLOAT(EKF_ATT_V4_R2, 100.0f);
 
 /* magnetic declination, in degrees */
@@ -63,7 +99,7 @@ PARAM_DEFINE_FLOAT(ATT_MAG_DECL, 0.0f);
 
 PARAM_DEFINE_INT32(ATT_ACC_COMP, 2);
 
-/*
+/**
  * Moment of inertia matrix diagonal entry (1, 1)
  *
  * @group attitude_ekf
@@ -71,7 +107,7 @@ PARAM_DEFINE_INT32(ATT_ACC_COMP, 2);
  */
 PARAM_DEFINE_FLOAT(ATT_J11, 0.0018);
 
-/*
+/**
  * Moment of inertia matrix diagonal entry (2, 2)
  *
  * @group attitude_ekf
@@ -79,7 +115,7 @@ PARAM_DEFINE_FLOAT(ATT_J11, 0.0018);
  */
 PARAM_DEFINE_FLOAT(ATT_J22, 0.0018);
 
-/*
+/**
  * Moment of inertia matrix diagonal entry (3, 3)
  *
  * @group attitude_ekf
@@ -87,7 +123,7 @@ PARAM_DEFINE_FLOAT(ATT_J22, 0.0018);
  */
 PARAM_DEFINE_FLOAT(ATT_J33, 0.0037);
 
-/*
+/**
  * Moment of inertia enabled in estimator
  *
  * If set to != 0 the moment of inertia will be used in the estimator
