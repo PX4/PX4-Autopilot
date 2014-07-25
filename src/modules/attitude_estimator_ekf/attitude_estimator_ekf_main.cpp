@@ -512,7 +512,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 					/* Call the estimator */
 					AttitudeEKF(false, // approx_prediction
-							false, // use_inertia_matrix
+							(unsigned char)ekf_params.use_moment_inertia,
 							update_vect,
 							dt,
 							z_k,

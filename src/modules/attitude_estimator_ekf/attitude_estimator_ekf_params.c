@@ -79,7 +79,6 @@ PARAM_DEFINE_FLOAT(ATT_J11, 0.0018);
  */
 PARAM_DEFINE_FLOAT(ATT_J22, 0.0018);
 
-
 /*
  * Moment of inertia matrix diagonal entry (3, 3)
  *
@@ -88,6 +87,16 @@ PARAM_DEFINE_FLOAT(ATT_J22, 0.0018);
  */
 PARAM_DEFINE_FLOAT(ATT_J33, 0.0037);
 
+/*
+ * Moment of inertia enabled in estimator
+ *
+ * If set to != 0 the moment of inertia will be used in the estimator
+ *
+ * @group attitude_ekf
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(ATT_J_EN, 0);
 
 int parameters_init(struct attitude_estimator_ekf_param_handles *h)
 {
@@ -105,9 +114,10 @@ int parameters_init(struct attitude_estimator_ekf_param_handles *h)
 
 	h->acc_comp   =	param_find("ATT_ACC_COMP");
 
-	h->moment_inertia_J[0]   =   param_find("ATT_J11");
-	h->moment_inertia_J[1]   =   param_find("ATT_J22");
-	h->moment_inertia_J[2]   =   param_find("ATT_J33");
+	h->moment_inertia_J[0]  =   param_find("ATT_J11");
+	h->moment_inertia_J[1]  =   param_find("ATT_J22");
+	h->moment_inertia_J[2]  =   param_find("ATT_J33");
+	h->use_moment_inertia	=   param_find("ATT_J_EN");
 
 	return OK;
 }
@@ -131,6 +141,7 @@ int parameters_update(const struct attitude_estimator_ekf_param_handles *h, stru
 	for (int i = 0; i < 3; i++) {
 		param_get(h->moment_inertia_J[i], &(p->moment_inertia_J[3 * i + i]));
 	}
+	param_get(h->use_moment_inertia, &(p->use_moment_inertia));
 
 	return OK;
 }
