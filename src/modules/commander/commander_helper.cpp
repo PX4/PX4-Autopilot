@@ -281,15 +281,17 @@ void rgbled_set_pattern(rgbled_pattern_t *pattern)
 	}
 }
 
-float battery_remaining_estimate_voltage(float voltage, float discharged)
+float battery_remaining_estimate_voltage(float voltage, float discharged, float throttle_normalized)
 {
 	float ret = 0;
 	static param_t bat_v_empty_h;
 	static param_t bat_v_full_h;
 	static param_t bat_n_cells_h;
 	static param_t bat_capacity_h;
-	static float bat_v_empty = 3.2f;
-	static float bat_v_full = 4.0f;
+	static param_t bat_v_load_drop_h;
+	static float bat_v_empty = 3.4f;
+	static float bat_v_full = 4.2f;
+	static float bat_v_load_drop = 0.06f;
 	static int bat_n_cells = 3;
 	static float bat_capacity = -1.0f;
 	static bool initialized = false;
@@ -297,23 +299,26 @@ float battery_remaining_estimate_voltage(float voltage, float discharged)
 
 	if (!initialized) {
 		bat_v_empty_h = param_find("BAT_V_EMPTY");
-		bat_v_full_h = param_find("BAT_V_FULL");
+		bat_v_full_h = param_find("BAT_V_CHARGED");
 		bat_n_cells_h = param_find("BAT_N_CELLS");
 		bat_capacity_h = param_find("BAT_CAPACITY");
+		bat_v_load_drop_h = param_find("BAT_V_LOAD_DROP");
 		initialized = true;
 	}
 
 	if (counter % 100 == 0) {
 		param_get(bat_v_empty_h, &bat_v_empty);
 		param_get(bat_v_full_h, &bat_v_full);
+		param_get(bat_v_load_drop_h, &bat_v_load_drop);
 		param_get(bat_n_cells_h, &bat_n_cells);
 		param_get(bat_capacity_h, &bat_capacity);
 	}
 
 	counter++;
 
-	/* remaining charge estimate based on voltage */
-	float remaining_voltage = (voltage - bat_n_cells * bat_v_empty) / (bat_n_cells * (bat_v_full - bat_v_empty));
+	/* remaining charge estimate based on voltage and internal resistance (drop under load) */
+	float bat_v_full_dynamic = bat_v_full - (bat_v_load_drop * throttle_normalized);
+	float remaining_voltage = (voltage - (bat_n_cells * bat_v_empty)) / (bat_n_cells * (bat_v_full_dynamic - bat_v_empty));
 
 	if (bat_capacity > 0.0f) {
 		/* if battery capacity is known, use discharged current for estimate, but don't show more than voltage estimate */

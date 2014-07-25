@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,76 +31,49 @@
  *
  ****************************************************************************/
 
-/**
- * @file commander_params.c
- *
- * Parameters defined by the sensors task.
- *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <julian@oes.ch>
- */
-
-#include <nuttx/config.h>
-#include <systemlib/param/param.h>
-
-PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
-PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
-PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
+#include <uavcan_stm32/uavcan_stm32.hpp>
+#include <drivers/drv_hrt.h>
 
 /**
- * Empty cell voltage.
+ * @file uavcan_clock.cpp
  *
- * Defines the voltage where a single cell of the battery is considered empty.
+ * Implements a clock for the CAN node.
  *
- * @group Battery Calibration
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
-PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.4f);
 
-/**
- * Full cell voltage.
- *
- * Defines the voltage where a single cell of the battery is considered full.
- *
- * @group Battery Calibration
- */
-PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.2f);
+namespace uavcan_stm32
+{
+namespace clock
+{
 
-/**
- * Voltage drop per cell on 100% load
- *
- * This implicitely defines the internal resistance
- * to maximum current ratio and assumes linearity.
- *
- * @group Battery Calibration
- */
-PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.07f);
+uavcan::MonotonicTime getMonotonic()
+{
+	return uavcan::MonotonicTime::fromUSec(hrt_absolute_time());
+}
 
-/**
- * Number of cells.
- *
- * Defines the number of cells the attached battery consists of.
- *
- * @group Battery Calibration
- */
-PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
+uavcan::UtcTime getUtc()
+{
+	return uavcan::UtcTime();
+}
 
-/**
- * Battery capacity.
- *
- * Defines the capacity of the attached battery.
- *
- * @group Battery Calibration
- */
-PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
+void adjustUtc(uavcan::UtcDuration adjustment)
+{
+	(void)adjustment;
+}
 
-/**
- * Datalink loss mode enabled.
- *
- * Set to 1 to enable actions triggered when the datalink is lost.
- *
- * @group commander
- * @min 0
- * @max 1
- */
-PARAM_DEFINE_INT32(COM_DL_LOSS_EN, 0);
+uavcan::uint64_t getUtcUSecFromCanInterrupt()
+{
+	return 0;
+}
+
+} // namespace clock
+
+SystemClock &SystemClock::instance()
+{
+	static SystemClock inst;
+	return inst;
+}
+
+}
+

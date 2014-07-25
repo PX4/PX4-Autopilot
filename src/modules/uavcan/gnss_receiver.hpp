@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,57 +32,53 @@
  ****************************************************************************/
 
 /**
- * @file commander_helper.h
- * Commander helper functions definitions
+ * @file gnss_receiver.hpp
  *
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <julian@oes.ch>
+ * UAVCAN --> ORB bridge for GNSS messages:
+ *     uavcan.equipment.gnss.Fix
+ *
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ * @author Andrew Chambers <achamber@gmail.com>
  */
 
-#ifndef COMMANDER_HELPER_H_
-#define COMMANDER_HELPER_H_
+#pragma once
+
+#include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <drivers/drv_rgbled.h>
+#include <uORB/topics/vehicle_gps_position.h>
+
+#include <uavcan/uavcan.hpp>
+#include <uavcan/equipment/gnss/Fix.hpp>
+
+class UavcanGnssReceiver
+{
+public:
+	UavcanGnssReceiver(uavcan::INode& node);
+
+	int init();
+
+private:
+	/**
+	 * GNSS fix message will be reported via this callback.
+	 */
+	void gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
 
 
-bool is_multirotor(const struct vehicle_status_s *current_status);
-bool is_rotary_wing(const struct vehicle_status_s *current_status);
+	typedef uavcan::MethodBinder<UavcanGnssReceiver*,
+		void (UavcanGnssReceiver::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix>&)>
+		FixCbBinder;
 
-int buzzer_init(void);
-void buzzer_deinit(void);
+	/*
+	 * libuavcan related things
+	 */
+	uavcan::INode													&_node;
+	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder>	_uavcan_sub_status;
 
-void set_tune(int tune);
-void tune_positive(bool use_buzzer);
-void tune_neutral(bool use_buzzer);
-void tune_negative(bool use_buzzer);
+	/*
+	 * uORB
+	 */
+	struct vehicle_gps_position_s 	_report;					///< uORB topic for gnss position
+	orb_advert_t			_report_pub;					///< uORB pub for gnss position
 
-int blink_msg_state();
-
-int led_init(void);
-void led_deinit(void);
-int led_toggle(int led);
-int led_on(int led);
-int led_off(int led);
-
-void rgbled_set_color(rgbled_color_t color);
-void rgbled_set_mode(rgbled_mode_t mode);
-void rgbled_set_pattern(rgbled_pattern_t *pattern);
-
-/**
- * Estimate remaining battery charge.
- *
- * Use integral of current if battery capacity known (BAT_CAPACITY parameter set),
- * else use simple estimate based on voltage.
- *
- * @param voltage the current battery voltage
- * @param discharged the discharged capacity
- * @param throttle_normalized the normalized throttle magnitude from 0 to 1. Negative throttle should be converted to this range as well, as it consumes energy.
- * @return the estimated remaining capacity in 0..1
- */
-float battery_remaining_estimate_voltage(float voltage, float discharged, float throttle_normalized);
-
-#endif /* COMMANDER_HELPER_H_ */
+};
