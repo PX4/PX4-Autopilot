@@ -610,6 +610,9 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 		if (enable_flow_control(true)) {
 			warnx("hardware flow control not supported");
 		}
+
+	} else {
+		_flow_control_enabled = false;
 	}
 
 	return _uart_fd;
@@ -651,8 +654,7 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 	/* enable HIL */
 	if (hil_enabled && !_hil_enabled) {
 		_hil_enabled = true;
-		float rate_mult = _datarate / 1000.0f;
-		configure_stream("HIL_CONTROLS", 15.0f * rate_mult);
+		configure_stream("HIL_CONTROLS", 150.0f);
 	}
 
 	/* disable HIL */
@@ -710,7 +712,6 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 
 	/* check if there is space in the buffer, let it overflow else */
 	if (buf_free < TX_BUFFER_GAP) {
-		warnx("SKIP msgid %i, %i bytes, free %i", msgid, packet_len, buf_free);
 		/* no enough space in buffer to send */
 		count_txerr();
 		count_txerrbytes(packet_len);
@@ -769,7 +770,6 @@ Mavlink::resend_message(mavlink_message_t *msg)
 
 	/* check if there is space in the buffer, let it overflow else */
 	if (buf_free < TX_BUFFER_GAP) {
-		warnx("SKIP resent msgid %i, %i bytes, free %i", msg->msgid, packet_len, buf_free);
 		/* no enough space in buffer to send */
 		count_txerr();
 		count_txerrbytes(packet_len);
@@ -1120,7 +1120,8 @@ Mavlink::update_rate_mult()
 		}
 	}
 
-	_rate_mult = ((float)_datarate - const_rate) / rate;
+	/* don't scale up rates, only scale down if needed */
+	_rate_mult = fminf(1.0f, ((float)_datarate - const_rate) / rate);
 }
 
 int
@@ -1364,7 +1365,6 @@ Mavlink::task_main(int argc, char *argv[])
 		hrt_abstime t = hrt_absolute_time();
 
 		update_rate_mult();
-		warnx("rate mult %.2f rate %.3f err %.3f", (double)_rate_mult, (double)_rate_tx, (double)_rate_txerr);
 
 		if (param_sub->update(&param_time, nullptr)) {
 			/* parameters updated */
