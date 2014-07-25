@@ -61,6 +61,7 @@ public:
 
     /**
      * Various ways to start the timer - periodically or once.
+     * If it is running already, it will be restarted.
      */
     void startOneShotWithDeadline(MonotonicTime deadline);
     void startOneShotWithDelay(MonotonicDuration delay);
