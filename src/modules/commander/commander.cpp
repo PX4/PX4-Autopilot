@@ -1135,6 +1135,22 @@ int commander_thread_main(int argc, char *argv[])
 		check_valid(global_position.timestamp, POSITION_TIMEOUT, eph_epv_good, &(status.condition_global_position_valid), &status_changed);
 
 		/* check if GPS fix is ok */
+		if (gps_position.fix_type >= 3 && //XXX check eph and epv ?
+			hrt_elapsed_time(&gps_position.timestamp_position) < FAILSAFE_DEFAULT_TIMEOUT) {
+			/* handle the case where gps was regained */
+			if (status.gps_failure) {
+				status.gps_failure = false;
+				status_changed = true;
+				mavlink_log_critical(mavlink_fd, "gps regained");
+			}
+		} else {
+			if (!status.gps_failure) {
+				status.gps_failure = true;
+				status_changed = true;
+				mavlink_log_critical(mavlink_fd, "gps fix lost");
+			}
+		}
+
 
 		/* update home position */
 		if (!status.condition_home_position_valid && status.condition_global_position_valid && !armed.armed &&

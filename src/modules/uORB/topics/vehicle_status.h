@@ -206,6 +206,7 @@ struct vehicle_status_s {
 	uint8_t data_link_lost_counter;			/**< counts unique data link lost events */
 
 	bool engine_failure;				/** Set to true if an engine failure is detected */
+	bool gps_failure;				/** Set to true if a gps failure is detected */
 
 	bool offboard_control_signal_found_once;
 	bool offboard_control_signal_lost;
