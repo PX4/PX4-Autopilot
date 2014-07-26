@@ -274,12 +274,11 @@ int
 PX4IO_Uploader::recv_bytes(uint8_t *p, unsigned count)
 {
 	int ret = OK;
-	while (count) {
+	while (count--) {
 		ret = recv_byte_with_timeout(p++, 5000);
 
 		if (ret != OK)
 			break;
-		count--;
 	}
 	return ret;
 }
