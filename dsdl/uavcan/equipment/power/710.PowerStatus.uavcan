@@ -4,4 +4,4 @@
 
 bool external_power_connected
 
-BatteryStatus[<16] batteries
+BatteryStatus[<=16] batteries

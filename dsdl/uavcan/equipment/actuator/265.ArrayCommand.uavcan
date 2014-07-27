@@ -5,6 +5,6 @@
 
 uavcan.FigureOfMerit figure_of_merit
 
-uint8[<=32] actuator_id      # Can be empty, in which case the ID is defined by the command index
+uint8[<=32] actuator_id      # Can be empty, in which case ID is defined by the command index
 
 float16[<=32] command        # For a servo use [-1; 1]

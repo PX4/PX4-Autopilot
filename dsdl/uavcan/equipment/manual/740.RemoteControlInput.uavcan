@@ -1,8 +1,7 @@
 #
-# Scaled RC input for manual control/override.
+# Scaled remote control input for manual control/override.
 #
 
 uavcan.FigureOfMerit figure_of_merit  # E.g. receiver RSSI
 
-uint10 CHANNEL_MAX_VALUE = 1023
-uint10[<=16] channels                 # Normalized in range [0; CHANNEL_MAX_VALUE]
+float16[<=32] channels                # Normalized in range [-1, 1], NAN means no such channel

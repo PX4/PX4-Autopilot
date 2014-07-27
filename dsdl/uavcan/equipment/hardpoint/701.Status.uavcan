@@ -3,7 +3,7 @@
 #
 
 float16 cargo_weight           # Newton
-float16 cargo_weight_variance  # Negative if not equipped for weight measurement
+float16 cargo_weight_variance
 
 # Meaning is the same as for command field in the Command message
 uint16 status

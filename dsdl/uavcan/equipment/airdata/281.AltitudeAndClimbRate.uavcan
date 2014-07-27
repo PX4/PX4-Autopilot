@@ -8,5 +8,6 @@ uavcan.Timestamp timestamp
 float32 pressure_altitude
 float16 pressure_altitude_variance
 
+# Positive if climbing up
 float16 climb_rate
 float16 climb_rate_variance
