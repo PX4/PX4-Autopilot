@@ -42,7 +42,7 @@ const int16_t ErrPassiveMode             = 11;  ///< Operation not permitted in 
  * Fatal error handler.
  * Behavior:
  *  - If exceptions are enabled, throws std::runtime_error() with the supplied message text;
- *  - If assertions are enabled (no NDEBUG), aborts execution using zero assertion.
+ *  - If assertions are enabled (see UAVCAN_ASSERT()), aborts execution using zero assertion.
  *  - Otherwise aborts execution via std::abort().
  */
 #if __GNUC__
