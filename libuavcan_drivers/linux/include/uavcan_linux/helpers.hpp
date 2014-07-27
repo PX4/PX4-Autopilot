@@ -103,7 +103,7 @@ public:
     bool wasSuccessful() const { return call_was_successful_; }
 
     /**
-     * Use this to retrieve the response on the last blocking service call.
+     * Use this to retrieve the response of the last blocking service call.
      * This method returns default constructed response object if the last service call was unsuccessful.
      */
     const typename DataType::Response& getResponse() const { return response_; }

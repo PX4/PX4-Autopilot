@@ -125,7 +125,7 @@ public:
 
     /**
      * Get/set the callback object.
-     * Callback must be set before the first event; otherwise the event will generate a fatal error.
+     * Callback must be set before the first event happens; otherwise the event will generate a fatal error.
      */
     const Callback& getCallback() const { return callback_; }
     void setCallback(const Callback& callback) { callback_ = callback; }
