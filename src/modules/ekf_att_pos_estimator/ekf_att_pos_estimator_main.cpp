@@ -630,10 +630,10 @@ FixedwingEstimator::check_filter_state()
 		rep.health_flags |= (((uint8_t)ekf_report.posHealth)	<< 1);
 		rep.health_flags |= (((uint8_t)ekf_report.hgtHealth)	<< 2);
 		rep.health_flags |= (((uint8_t)!ekf_report.gyroOffsetsExcessive)	<< 3);
-		// rep.health_flags |= (((uint8_t)ekf_report.onGround)	<< 4);
-		// rep.health_flags |= (((uint8_t)ekf_report.staticMode)	<< 5);
-		// rep.health_flags |= (((uint8_t)ekf_report.useCompass)	<< 6);
-		// rep.health_flags |= (((uint8_t)ekf_report.useAirspeed)	<< 7);
+		rep.health_flags |= (((uint8_t)ekf_report.onGround)	<< 4);
+		rep.health_flags |= (((uint8_t)ekf_report.staticMode)	<< 5);
+		rep.health_flags |= (((uint8_t)ekf_report.useCompass)	<< 6);
+		rep.health_flags |= (((uint8_t)ekf_report.useAirspeed)	<< 7);
 
 		rep.timeout_flags |= (((uint8_t)ekf_report.velTimeout)	<< 0);
 		rep.timeout_flags |= (((uint8_t)ekf_report.posTimeout)	<< 1);
@@ -1463,25 +1463,6 @@ FixedwingEstimator::task_main()
 						} else {
 							/* advertise and publish */
 							_global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &_global_pos);
-						}
-
-						if (hrt_elapsed_time(&_wind.timestamp) > 99000) {
-							_wind.timestamp = _global_pos.timestamp;
-							_wind.windspeed_north = _ekf->states[14];
-							_wind.windspeed_east = _ekf->states[15];
-							_wind.covariance_north = 0.0f; // XXX get form filter
-							_wind.covariance_east = 0.0f;
-
-							/* lazily publish the wind estimate only once available */
-							if (_wind_pub > 0) {
-								/* publish the wind estimate */
-								orb_publish(ORB_ID(wind_estimate), _wind_pub, &_wind);
-
-							} else {
-								/* advertise and publish */
-								_wind_pub = orb_advertise(ORB_ID(wind_estimate), &_wind);
-							}
-
 						}
 
 						if (hrt_elapsed_time(&_wind.timestamp) > 99000) {
