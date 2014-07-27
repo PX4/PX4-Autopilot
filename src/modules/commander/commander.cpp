@@ -124,7 +124,7 @@ extern struct system_load_s system_load;
 #define STICK_ON_OFF_HYSTERESIS_TIME_MS 1000
 #define STICK_ON_OFF_COUNTER_LIMIT (STICK_ON_OFF_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
-#define POSITION_TIMEOUT		(600 * 1000)		/**< consider the local or global position estimate invalid after 600ms */
+#define POSITION_TIMEOUT		(2 * 1000 * 1000)	/**< consider the local or global position estimate invalid after 600ms */
 #define FAILSAFE_DEFAULT_TIMEOUT	(3 * 1000 * 1000)	/**< hysteresis time - the failsafe will trigger after 3 seconds in this state */
 #define RC_TIMEOUT			500000
 #define DL_TIMEOUT			5 * 1000* 1000
@@ -1111,7 +1111,7 @@ int commander_thread_main(int argc, char *argv[])
 		bool eph_epv_good;
 
 		if (status.condition_global_position_valid) {
-			if (global_position.eph > eph_epv_threshold * 2.0f || global_position.epv > eph_epv_threshold * 2.0f) {
+			if (global_position.eph > eph_epv_threshold * 2.5f || global_position.epv > eph_epv_threshold * 2.5f) {
 				eph_epv_good = false;
 
 			} else {
