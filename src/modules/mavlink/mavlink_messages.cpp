@@ -839,69 +839,77 @@ protected:
 };
 
 
-//class MavlinkStreamGPSRawInt : public MavlinkStream
-//{
-//public:
-//	const char *get_name() const
-//	{
-//		return MavlinkStreamGPSRawInt::get_name_static();
-//	}
-//
-//	static const char *get_name_static()
-//	{
-//		return "GPS_RAW_INT";
-//	}
-//
-//	uint8_t get_id()
-//	{
-//		return MAVLINK_MSG_ID_GPS_RAW_INT;
-//	}
-//
-//	static MavlinkStream *new_instance(Mavlink *mavlink)
-//	{
-//		return new MavlinkStreamGPSRawInt();
-//	}
-//
-//private:
-//	MavlinkOrbSubscription *gps_sub;
-//	uint64_t gps_time;
-//
-//	/* do not allow top copying this class */
-//	MavlinkStreamGPSRawInt(MavlinkStreamGPSRawInt &);
-//	MavlinkStreamGPSRawInt& operator = (const MavlinkStreamGPSRawInt &);
-//
-//protected:
-//	explicit MavlinkStreamGPSRawInt() : MavlinkStream(),
-//		gps_sub(nullptr),
-//		gps_time(0)
-//	{}
-//
-//	void subscribe()
-//	{
-//		gps_sub = _mavlink->add_orb_subscription(ORB_ID(vehicle_gps_position));
-//	}
-//
-//	void send(const hrt_abstime t)
-//	{
-//		struct vehicle_gps_position_s gps;
-//
-//		if (gps_sub->update(&gps_time, &gps)) {
-//			mavlink_msg_gps_raw_int_send(_channel,
-//						     gps.timestamp_position,
-//						     gps.fix_type,
-//						     gps.lat,
-//						     gps.lon,
-//						     gps.alt,
-//						     cm_uint16_from_m_float(gps.eph),
-//						     cm_uint16_from_m_float(gps.epv),
-//						     gps.vel_m_s * 100.0f,
-//						     _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F * 1e2f,
-//						     gps.satellites_used);
-//		}
-//	}
-//};
-//
-//
+class MavlinkStreamGPSRawInt : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamGPSRawInt::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "GPS_RAW_INT";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_GPS_RAW_INT;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamGPSRawInt(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_GPS_RAW_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_gps_sub;
+	uint64_t _gps_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamGPSRawInt(MavlinkStreamGPSRawInt &);
+	MavlinkStreamGPSRawInt& operator = (const MavlinkStreamGPSRawInt &);
+
+protected:
+	explicit MavlinkStreamGPSRawInt(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_gps_sub(nullptr),
+		_gps_time(0)
+	{}
+
+	void subscribe()
+	{
+		_gps_sub = _mavlink->add_orb_subscription(ORB_ID(vehicle_gps_position));
+	}
+
+	void send(const hrt_abstime t)
+	{
+		struct vehicle_gps_position_s gps;
+
+		if (_gps_sub->update(&_gps_time, &gps)) {
+			mavlink_gps_raw_int_t msg;
+
+			msg.time_usec = gps.timestamp_position;
+			msg.fix_type = gps.fix_type;
+			msg.lat = gps.lat;
+			msg.lon = gps.lon;
+			msg.alt = gps.alt;
+			msg.eph = cm_uint16_from_m_float(gps.eph);
+			msg.epv = cm_uint16_from_m_float(gps.epv);
+			msg.vel = cm_uint16_from_m_float(gps.vel_m_s),
+		    msg.cog = _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F * 1e2f,
+		    msg.satellites_visible = gps.satellites_used;
+
+			_mavlink->send_message(MAVLINK_MSG_ID_GPS_RAW_INT, &msg);
+		}
+	}
+};
+
+
 //class MavlinkStreamGlobalPositionInt : public MavlinkStream
 //{
 //public:
