@@ -11,14 +11,18 @@
 #define UAVCAN_VERSION_MINOR    1
 
 /**
- * UAVCAN can be compiled in C++11 mode.
- * This macro allows to detect which version of the C++ standard is being used.
- *
- * UAVCAN_CPP_VERSION can be defined explicitly to override auto detection to force compilation in C++03 mode.
- * Valid values are listed below.
- *
- * Note that C++11 and newer requires C++ standard library, while C++03 does not. So, on platforms that
- * don't implement the standard C++ (e.g. NuttX) use of C++03 may be preferred.
+ * UAVCAN_CPP_VERSION - version of the C++ standard used during compilation.
+ * This definition contains the integer year number after which the standard was named:
+ *  - 2003 for C++03
+ *  - 2011 for C++11
+ * 
+ * This config automatically sets according to the actual C++ standard used by the compiler.
+ * 
+ * In C++03 mode the library has almost zero dependency on the C++ standard library, which allows
+ * to use it on platforms with a very limited C++ support. On the other hand, C++11 mode requires
+ * many parts of the standard library (e.g. <functional>), thus the user might want to force older
+ * standard than used by the compiler, in which case this symbol can be overridden manually via
+ * compiler flags.
  */
 #define UAVCAN_CPP11    2011
 #define UAVCAN_CPP03    2003
