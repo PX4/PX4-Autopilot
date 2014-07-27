@@ -736,6 +736,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	// CIRCUIT BREAKERS
 	status.circuit_breaker_engaged_power_check = false;
+	status.circuit_breaker_engaged_airspd_check = false;
 
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
@@ -977,6 +978,7 @@ int commander_thread_main(int argc, char *argv[])
 				param_get(_param_component_id, &(status.component_id));
 
 				status.circuit_breaker_engaged_power_check = circuit_breaker_enabled("CBRK_SUPPLY_CHK", CBRK_SUPPLY_CHK_KEY);
+				status.circuit_breaker_engaged_airspd_check = circuit_breaker_enabled("CBRK_AIRSPD_CHK", CBRK_AIRSPD_CHK_KEY);
 
 				status_changed = true;
 
