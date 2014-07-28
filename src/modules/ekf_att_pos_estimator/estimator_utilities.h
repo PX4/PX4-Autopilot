@@ -68,6 +68,10 @@ struct ekf_status_report {
     bool posTimeout;
     bool hgtTimeout;
     bool imuTimeout;
+    bool onGround;
+    bool staticMode;
+    bool useCompass;
+    bool useAirspeed;
     uint32_t velFailTime;
     uint32_t posFailTime;
     uint32_t hgtFailTime;

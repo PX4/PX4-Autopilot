@@ -2773,7 +2773,7 @@ int AttPosEKF::CheckAndBound(struct ekf_status_report *last_error)
         ResetHeight();
         ResetStoredStates();
 
-        ret = 3;
+        ret = 0;
     }
 
     // Reset the filter if gyro offsets are excessive
@@ -3028,6 +3028,10 @@ void AttPosEKF::GetFilterState(struct ekf_status_report *err)
         current_ekf_state.states[i] = states[i];
     }
     current_ekf_state.n_states = n_states;
+    current_ekf_state.onGround = onGround;
+    current_ekf_state.staticMode = staticMode;
+    current_ekf_state.useCompass = useCompass;
+    current_ekf_state.useAirspeed = useAirspeed;
 
     memcpy(err, &current_ekf_state, sizeof(*err));
 
