@@ -433,7 +433,24 @@ Mavlink::mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 			const char *txt = (const char *)arg;
 			struct mavlink_logmessage msg;
 			strncpy(msg.text, txt, sizeof(msg.text));
-			msg.severity = (unsigned char)cmd;
+
+			switch (cmd) {
+			case MAVLINK_IOC_SEND_TEXT_INFO:
+				msg.severity = MAV_SEVERITY_INFO;
+				break;
+
+			case MAVLINK_IOC_SEND_TEXT_CRITICAL:
+				msg.severity = MAV_SEVERITY_CRITICAL;
+				break;
+
+			case MAVLINK_IOC_SEND_TEXT_EMERGENCY:
+				msg.severity = MAV_SEVERITY_EMERGENCY;
+				break;
+
+			default:
+				msg.severity = MAV_SEVERITY_INFO;
+				break;
+			}
 
 			Mavlink *inst;
 			LL_FOREACH(_mavlink_instances, inst) {
@@ -816,23 +833,23 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 void
 Mavlink::send_statustext_info(const char *string)
 {
-	send_statustext(MAVLINK_IOC_SEND_TEXT_INFO, string);
+	send_statustext(MAV_SEVERITY_INFO, string);
 }
 
 void
 Mavlink::send_statustext_critical(const char *string)
 {
-	send_statustext(MAVLINK_IOC_SEND_TEXT_CRITICAL, string);
+	send_statustext(MAV_SEVERITY_CRITICAL, string);
 }
 
 void
 Mavlink::send_statustext_emergency(const char *string)
 {
-	send_statustext(MAVLINK_IOC_SEND_TEXT_EMERGENCY, string);
+	send_statustext(MAV_SEVERITY_EMERGENCY, string);
 }
 
 void
-Mavlink::send_statustext(unsigned severity, const char *string)
+Mavlink::send_statustext(unsigned char severity, const char *string)
 {
 	struct mavlink_logmessage logmsg;
 	strncpy(logmsg.text, string, sizeof(logmsg.text));

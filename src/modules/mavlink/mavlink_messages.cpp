@@ -351,24 +351,7 @@ protected:
 			if (lb_ret == OK) {
 				mavlink_statustext_t msg;
 
-				/* map severity */
-				switch (logmsg.severity) {
-				case MAVLINK_IOC_SEND_TEXT_INFO:
-					msg.severity = MAV_SEVERITY_INFO;
-					break;
-
-				case MAVLINK_IOC_SEND_TEXT_CRITICAL:
-					msg.severity = MAV_SEVERITY_CRITICAL;
-					break;
-
-				case MAVLINK_IOC_SEND_TEXT_EMERGENCY:
-					msg.severity = MAV_SEVERITY_EMERGENCY;
-					break;
-
-				default:
-					msg.severity = MAV_SEVERITY_INFO;
-					break;
-				}
+				msg.severity = logmsg.severity;
 				strncpy(msg.text, logmsg.text, sizeof(msg.text));
 
 				_mavlink->send_message(MAVLINK_MSG_ID_STATUSTEXT, &msg);

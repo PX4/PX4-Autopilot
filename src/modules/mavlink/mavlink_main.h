@@ -218,7 +218,7 @@ public:
 	 * @param string the message to send (will be capped by mavlink max string length)
 	 * @param severity the log level
 	 */
-	void			send_statustext(unsigned severity, const char *string);
+	void			send_statustext(unsigned char severity, const char *string);
 
 	MavlinkStream *		get_streams() const { return _streams; }
 
