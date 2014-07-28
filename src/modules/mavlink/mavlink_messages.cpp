@@ -1652,8 +1652,8 @@ public:
 
 	unsigned get_size()
 	{
-		return (RC_INPUT_MAX_CHANNELS / 8) * (MAVLINK_MSG_ID_RC_CHANNELS_RAW_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) +
-				MAVLINK_MSG_ID_RC_CHANNELS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _rc_sub->is_published() ? ((RC_INPUT_MAX_CHANNELS / 8) * (MAVLINK_MSG_ID_RC_CHANNELS_RAW_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) +
+				MAVLINK_MSG_ID_RC_CHANNELS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
@@ -1753,7 +1753,7 @@ public:
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_MANUAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _manual_sub->is_published() ? (MAVLINK_MSG_ID_MANUAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
@@ -1790,313 +1790,344 @@ protected:
 };
 
 
-//class MavlinkStreamOpticalFlow : public MavlinkStream
-//{
-//public:
-//	const char *get_name() const
-//	{
-//		return MavlinkStreamOpticalFlow::get_name_static();
-//	}
-//
-//	static const char *get_name_static()
-//	{
-//		return "OPTICAL_FLOW";
-//	}
-//
-//	uint8_t get_id()
-//	{
-//		return MAVLINK_MSG_ID_OPTICAL_FLOW;
-//	}
-//
-//	static MavlinkStream *new_instance(Mavlink *mavlink)
-//	{
-//		return new MavlinkStreamOpticalFlow();
-//	}
-//
-//private:
-//	MavlinkOrbSubscription *flow_sub;
-//	uint64_t flow_time;
-//
-//	/* do not allow top copying this class */
-//	MavlinkStreamOpticalFlow(MavlinkStreamOpticalFlow &);
-//	MavlinkStreamOpticalFlow& operator = (const MavlinkStreamOpticalFlow &);
-//
-//protected:
-//	explicit MavlinkStreamOpticalFlow() : MavlinkStream(mavlink),
-//		flow_sub(nullptr),
-//		flow_time(0)
-//	{}
-//
-//	void subscribe()
-//	{
-//		flow_sub = _mavlink->add_orb_subscription(ORB_ID(optical_flow));
-//	}
-//
-//	void send(const hrt_abstime t)
-//	{
-//		struct optical_flow_s flow;
-//
-//		if (flow_sub->update(&flow_time, &flow)) {
-//			mavlink_msg_optical_flow_send(_channel,
-//						      flow.timestamp,
-//						      flow.sensor_id,
-//						      flow.flow_raw_x, flow.flow_raw_y,
-//						      flow.flow_comp_x_m, flow.flow_comp_y_m,
-//						      flow.quality,
-//						      flow.ground_distance_m);
-//		}
-//	}
-//};
-//
-//class MavlinkStreamAttitudeControls : public MavlinkStream
-//{
-//public:
-//	const char *get_name() const
-//	{
-//		return MavlinkStreamAttitudeControls::get_name_static();
-//	}
-//
-//	static const char *get_name_static()
-//	{
-//		return "ATTITUDE_CONTROLS";
-//	}
-//
-//	uint8_t get_id()
-//	{
-//		return 0;
-//	}
-//
-//	static MavlinkStream *new_instance(Mavlink *mavlink)
-//	{
-//		return new MavlinkStreamAttitudeControls();
-//	}
-//
-//private:
-//	MavlinkOrbSubscription *att_ctrl_sub;
-//	uint64_t att_ctrl_time;
-//
-//	/* do not allow top copying this class */
-//	MavlinkStreamAttitudeControls(MavlinkStreamAttitudeControls &);
-//	MavlinkStreamAttitudeControls& operator = (const MavlinkStreamAttitudeControls &);
-//
-//protected:
-//	explicit MavlinkStreamAttitudeControls() : MavlinkStream(mavlink),
-//		att_ctrl_sub(nullptr),
-//		att_ctrl_time(0)
-//	{}
-//
-//	void subscribe()
-//	{
-//		att_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
-//	}
-//
-//	void send(const hrt_abstime t)
-//	{
-//		struct actuator_controls_s att_ctrl;
-//
-//		if (att_ctrl_sub->update(&att_ctrl_time, &att_ctrl)) {
-//			/* send, add spaces so that string buffer is at least 10 chars long */
-//			mavlink_msg_named_value_float_send(_channel,
-//							   att_ctrl.timestamp / 1000,
-//							   "rll ctrl    ",
-//							   att_ctrl.control[0]);
-//			mavlink_msg_named_value_float_send(_channel,
-//							   att_ctrl.timestamp / 1000,
-//							   "ptch ctrl    ",
-//							   att_ctrl.control[1]);
-//			mavlink_msg_named_value_float_send(_channel,
-//							   att_ctrl.timestamp / 1000,
-//							   "yaw ctrl     ",
-//							   att_ctrl.control[2]);
-//			mavlink_msg_named_value_float_send(_channel,
-//							   att_ctrl.timestamp / 1000,
-//							   "thr ctrl     ",
-//							   att_ctrl.control[3]);
-//		}
-//	}
-//};
-//
-//class MavlinkStreamNamedValueFloat : public MavlinkStream
-//{
-//public:
-//	const char *get_name() const
-//	{
-//		return MavlinkStreamNamedValueFloat::get_name_static();
-//	}
-//
-//	static const char *get_name_static()
-//	{
-//		return "NAMED_VALUE_FLOAT";
-//	}
-//
-//	uint8_t get_id()
-//	{
-//		return MAVLINK_MSG_ID_NAMED_VALUE_FLOAT;
-//	}
-//
-//	static MavlinkStream *new_instance(Mavlink *mavlink)
-//	{
-//		return new MavlinkStreamNamedValueFloat();
-//	}
-//
-//private:
-//	MavlinkOrbSubscription *debug_sub;
-//	uint64_t debug_time;
-//
-//	/* do not allow top copying this class */
-//	MavlinkStreamNamedValueFloat(MavlinkStreamNamedValueFloat &);
-//	MavlinkStreamNamedValueFloat& operator = (const MavlinkStreamNamedValueFloat &);
-//
-//protected:
-//	explicit MavlinkStreamNamedValueFloat() : MavlinkStream(mavlink),
-//		debug_sub(nullptr),
-//		debug_time(0)
-//	{}
-//
-//	void subscribe()
-//	{
-//		debug_sub = _mavlink->add_orb_subscription(ORB_ID(debug_key_value));
-//	}
-//
-//	void send(const hrt_abstime t)
-//	{
-//		struct debug_key_value_s debug;
-//
-//		if (debug_sub->update(&debug_time, &debug)) {
-//			/* enforce null termination */
-//			debug.key[sizeof(debug.key) - 1] = '\0';
-//
-//			mavlink_msg_named_value_float_send(_channel,
-//							   debug.timestamp_ms,
-//							   debug.key,
-//							   debug.value);
-//		}
-//	}
-//};
-//
-//class MavlinkStreamCameraCapture : public MavlinkStream
-//{
-//public:
-//	const char *get_name() const
-//	{
-//		return MavlinkStreamCameraCapture::get_name_static();
-//	}
-//
-//	static const char *get_name_static()
-//	{
-//		return "CAMERA_CAPTURE";
-//	}
-//
-//	uint8_t get_id()
-//	{
-//		return 0;
-//	}
-//
-//	static MavlinkStream *new_instance(Mavlink *mavlink)
-//	{
-//		return new MavlinkStreamCameraCapture();
-//	}
-//
-//private:
-//	MavlinkOrbSubscription *status_sub;
-//
-//	/* do not allow top copying this class */
-//	MavlinkStreamCameraCapture(MavlinkStreamCameraCapture &);
-//	MavlinkStreamCameraCapture& operator = (const MavlinkStreamCameraCapture &);
-//
-//protected:
-//	explicit MavlinkStreamCameraCapture() : MavlinkStream(mavlink),
-//		status_sub(nullptr)
-//	{}
-//
-//	void subscribe()
-//	{
-//		status_sub = _mavlink->add_orb_subscription(ORB_ID(vehicle_status));
-//	}
-//
-//	void send(const hrt_abstime t)
-//	{
-//		struct vehicle_status_s status;
-//		(void)status_sub->update(&status);
-//
-//		if (status.arming_state == ARMING_STATE_ARMED
-//		    || status.arming_state == ARMING_STATE_ARMED_ERROR) {
-//
-//			/* send camera capture on */
-//			mavlink_msg_command_long_send(_channel, mavlink_system.sysid, 0, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 1, 0, 0, 0);
-//
-//		} else {
-//			/* send camera capture off */
-//			mavlink_msg_command_long_send(_channel, mavlink_system.sysid, 0, MAV_CMD_DO_CONTROL_VIDEO, 0, 0, 0, 0, 0, 0, 0, 0);
-//		}
-//	}
-//};
-//
-//class MavlinkStreamDistanceSensor : public MavlinkStream
-//{
-//public:
-//	const char *get_name() const
-//	{
-//		return MavlinkStreamDistanceSensor::get_name_static();
-//	}
-//
-//	static const char *get_name_static()
-//	{
-//		return "DISTANCE_SENSOR";
-//	}
-//
-//	uint8_t get_id()
-//	{
-//		return MAVLINK_MSG_ID_DISTANCE_SENSOR;
-//	}
-//
-//	static MavlinkStream *new_instance(Mavlink *mavlink)
-//	{
-//		return new MavlinkStreamDistanceSensor();
-//	}
-//
-//private:
-//	MavlinkOrbSubscription *range_sub;
-//	uint64_t range_time;
-//
-//	/* do not allow top copying this class */
-//	MavlinkStreamDistanceSensor(MavlinkStreamDistanceSensor &);
-//	MavlinkStreamDistanceSensor& operator = (const MavlinkStreamDistanceSensor &);
-//
-//protected:
-//	explicit MavlinkStreamDistanceSensor() : MavlinkStream(mavlink),
-//		range_sub(nullptr),
-//		range_time(0)
-//	{}
-//
-//	void subscribe()
-//	{
-//		range_sub = _mavlink->add_orb_subscription(ORB_ID(sensor_range_finder));
-//	}
-//
-//	void send(const hrt_abstime t)
-//	{
-//		struct range_finder_report range;
-//
-//		if (range_sub->update(&range_time, &range)) {
-//
-//			uint8_t type;
-//
-//			switch (range.type) {
-//				case RANGE_FINDER_TYPE_LASER:
-//				type = MAV_DISTANCE_SENSOR_LASER;
-//				break;
-//			}
-//
-//			uint8_t id = 0;
-//			uint8_t orientation = 0;
-//			uint8_t covariance = 20;
-//
-//			mavlink_msg_distance_sensor_send(_channel, range.timestamp / 1000, type, id, orientation,
-//				range.minimum_distance*100, range.maximum_distance*100, range.distance*100, covariance);
-//		}
-//	}
-//};
+class MavlinkStreamOpticalFlow : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamOpticalFlow::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "OPTICAL_FLOW";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_OPTICAL_FLOW;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamOpticalFlow(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return _flow_sub->is_published() ? (MAVLINK_MSG_ID_OPTICAL_FLOW_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_flow_sub;
+	uint64_t _flow_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamOpticalFlow(MavlinkStreamOpticalFlow &);
+	MavlinkStreamOpticalFlow& operator = (const MavlinkStreamOpticalFlow &);
+
+protected:
+	explicit MavlinkStreamOpticalFlow(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_flow_sub(_mavlink->add_orb_subscription(ORB_ID(optical_flow))),
+		_flow_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct optical_flow_s flow;
+
+		if (_flow_sub->update(&_flow_time, &flow)) {
+			mavlink_optical_flow_t msg;
+
+			msg.time_usec = flow.timestamp;
+			msg.sensor_id = flow.sensor_id;
+			msg.flow_x = flow.flow_raw_x;
+			msg.flow_y = flow.flow_raw_y;
+			msg.flow_comp_m_x = flow.flow_comp_x_m;
+			msg.flow_comp_m_y = flow.flow_comp_y_m;
+			msg.quality = flow.quality;
+			msg.ground_distance = flow.ground_distance_m;
+
+			_mavlink->send_message(MAVLINK_MSG_ID_OPTICAL_FLOW, &msg);
+		}
+	}
+};
+
+class MavlinkStreamAttitudeControls : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamAttitudeControls::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "ATTITUDE_CONTROLS";
+	}
+
+	uint8_t get_id()
+	{
+		return 0;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamAttitudeControls(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return 4 * (MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
+	}
+
+private:
+	MavlinkOrbSubscription *_att_ctrl_sub;
+	uint64_t _att_ctrl_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamAttitudeControls(MavlinkStreamAttitudeControls &);
+	MavlinkStreamAttitudeControls& operator = (const MavlinkStreamAttitudeControls &);
+
+protected:
+	explicit MavlinkStreamAttitudeControls(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_att_ctrl_sub(_mavlink->add_orb_subscription(ORB_ID_VEHICLE_ATTITUDE_CONTROLS)),
+		_att_ctrl_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct actuator_controls_s att_ctrl;
+
+		if (_att_ctrl_sub->update(&_att_ctrl_time, &att_ctrl)) {
+			/* send, add spaces so that string buffer is at least 10 chars long */
+			mavlink_named_value_float_t msg;
+
+			msg.time_boot_ms = att_ctrl.timestamp / 1000;
+
+			snprintf(msg.name, sizeof(msg.name), "rll ctrl");
+			msg.value = att_ctrl.control[0];
+
+			_mavlink->send_message(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, &msg);
+
+			snprintf(msg.name, sizeof(msg.name), "ptch ctrl");
+			msg.value = att_ctrl.control[1];
+
+			_mavlink->send_message(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, &msg);
+
+			snprintf(msg.name, sizeof(msg.name), "yaw ctrl");
+			msg.value = att_ctrl.control[2];
+
+			_mavlink->send_message(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, &msg);
+
+			snprintf(msg.name, sizeof(msg.name), "thr ctrl");
+			msg.value = att_ctrl.control[3];
+
+			_mavlink->send_message(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, &msg);
+		}
+	}
+};
+
+
+class MavlinkStreamNamedValueFloat : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamNamedValueFloat::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "NAMED_VALUE_FLOAT";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_NAMED_VALUE_FLOAT;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamNamedValueFloat(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_debug_sub;
+	uint64_t _debug_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamNamedValueFloat(MavlinkStreamNamedValueFloat &);
+	MavlinkStreamNamedValueFloat& operator = (const MavlinkStreamNamedValueFloat &);
+
+protected:
+	explicit MavlinkStreamNamedValueFloat(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_debug_sub(_mavlink->add_orb_subscription(ORB_ID(debug_key_value))),
+		_debug_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct debug_key_value_s debug;
+
+		if (_debug_sub->update(&_debug_time, &debug)) {
+			mavlink_named_value_float_t msg;
+
+			msg.time_boot_ms = debug.timestamp_ms;
+			memcpy(msg.name, debug.key, sizeof(msg.name));
+			/* enforce null termination */
+			msg.name[sizeof(msg.name) - 1] = '\0';
+			msg.value = debug.value;
+
+			_mavlink->send_message(MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, &msg);
+		}
+	}
+};
+
+
+class MavlinkStreamCameraCapture : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamCameraCapture::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "CAMERA_CAPTURE";
+	}
+
+	uint8_t get_id()
+	{
+		return 0;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamCameraCapture(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_COMMAND_LONG_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_status_sub;
+
+	/* do not allow top copying this class */
+	MavlinkStreamCameraCapture(MavlinkStreamCameraCapture &);
+	MavlinkStreamCameraCapture& operator = (const MavlinkStreamCameraCapture &);
+
+protected:
+	explicit MavlinkStreamCameraCapture(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status)))
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct vehicle_status_s status;
+		(void)_status_sub->update(&status);
+
+		mavlink_command_long_t msg;
+
+		msg.target_system = mavlink_system.sysid;
+		msg.target_component = MAV_COMP_ID_ALL;
+		msg.command = MAV_CMD_DO_CONTROL_VIDEO;
+		msg.confirmation = 0;
+		msg.param1 = 0;
+		msg.param2 = 0;
+		msg.param3 = 0;
+		/* set camera capture ON/OFF depending on arming state */
+		msg.param4 = (status.arming_state == ARMING_STATE_ARMED || status.arming_state == ARMING_STATE_ARMED_ERROR) ? 1 : 0;
+		msg.param5 = 0;
+		msg.param6 = 0;
+		msg.param7 = 0;
+
+		_mavlink->send_message(MAVLINK_MSG_ID_COMMAND_LONG, &msg);
+	}
+};
+
+
+class MavlinkStreamDistanceSensor : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamDistanceSensor::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "DISTANCE_SENSOR";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_DISTANCE_SENSOR;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamDistanceSensor(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return _range_sub->is_published() ? (MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_range_sub;
+	uint64_t _range_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamDistanceSensor(MavlinkStreamDistanceSensor &);
+	MavlinkStreamDistanceSensor& operator = (const MavlinkStreamDistanceSensor &);
+
+protected:
+	explicit MavlinkStreamDistanceSensor(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_range_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_range_finder))),
+		_range_time(0)
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct range_finder_report range;
+
+		if (_range_sub->update(&_range_time, &range)) {
+
+			mavlink_distance_sensor_t msg;
+
+			msg.time_boot_ms = range.timestamp / 1000;
+
+			switch (range.type) {
+			case RANGE_FINDER_TYPE_LASER:
+				msg.type = MAV_DISTANCE_SENSOR_LASER;
+				break;
+
+			default:
+				msg.type = MAV_DISTANCE_SENSOR_LASER;
+				break;
+			}
+
+			msg.id = 0;
+			msg.orientation = 0;
+			msg.min_distance = range.minimum_distance * 100;
+			msg.max_distance = range.minimum_distance * 100;
+			msg.current_distance = range.distance * 100;
+			msg.covariance = 20;
+
+			_mavlink->send_message(MAVLINK_MSG_ID_DISTANCE_SENSOR, &msg);
+		}
+	}
+};
 
 
 StreamListItem *streams_list[] = {
@@ -2111,6 +2142,7 @@ StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamGPSRawInt::new_instance, &MavlinkStreamGPSRawInt::get_name_static),
 	new StreamListItem(&MavlinkStreamGlobalPositionInt::new_instance, &MavlinkStreamGlobalPositionInt::get_name_static),
 	new StreamListItem(&MavlinkStreamLocalPositionNED::new_instance, &MavlinkStreamLocalPositionNED::get_name_static),
+	new StreamListItem(&MavlinkStreamViconPositionEstimate::new_instance, &MavlinkStreamViconPositionEstimate::get_name_static),
 	new StreamListItem(&MavlinkStreamGPSGlobalOrigin::new_instance, &MavlinkStreamGPSGlobalOrigin::get_name_static),
 	new StreamListItem(&MavlinkStreamServoOutputRaw<0>::new_instance, &MavlinkStreamServoOutputRaw<0>::get_name_static),
 	new StreamListItem(&MavlinkStreamServoOutputRaw<1>::new_instance, &MavlinkStreamServoOutputRaw<1>::get_name_static),
@@ -2123,11 +2155,10 @@ StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamRollPitchYawRatesThrustSetpoint::new_instance, &MavlinkStreamRollPitchYawRatesThrustSetpoint::get_name_static),
 	new StreamListItem(&MavlinkStreamRCChannelsRaw::new_instance, &MavlinkStreamRCChannelsRaw::get_name_static),
 	new StreamListItem(&MavlinkStreamManualControl::new_instance, &MavlinkStreamManualControl::get_name_static),
-//	new StreamListItem(&MavlinkStreamOpticalFlow::new_instance, &MavlinkStreamOpticalFlow::get_name_static),
-//	new StreamListItem(&MavlinkStreamAttitudeControls::new_instance, &MavlinkStreamAttitudeControls::get_name_static),
-//	new StreamListItem(&MavlinkStreamNamedValueFloat::new_instance, &MavlinkStreamNamedValueFloat::get_name_static),
-//	new StreamListItem(&MavlinkStreamCameraCapture::new_instance, &MavlinkStreamCameraCapture::get_name_static),
-//	new StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static),
-//	new StreamListItem(&MavlinkStreamViconPositionEstimate::new_instance, &MavlinkStreamViconPositionEstimate::get_name_static),
+	new StreamListItem(&MavlinkStreamOpticalFlow::new_instance, &MavlinkStreamOpticalFlow::get_name_static),
+	new StreamListItem(&MavlinkStreamAttitudeControls::new_instance, &MavlinkStreamAttitudeControls::get_name_static),
+	new StreamListItem(&MavlinkStreamNamedValueFloat::new_instance, &MavlinkStreamNamedValueFloat::get_name_static),
+	new StreamListItem(&MavlinkStreamCameraCapture::new_instance, &MavlinkStreamCameraCapture::get_name_static),
+	new StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static),
 	nullptr
 };
