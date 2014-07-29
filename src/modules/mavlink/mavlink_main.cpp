@@ -383,7 +383,12 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 	Mavlink *inst;
 	LL_FOREACH(_mavlink_instances, inst) {
 		if (inst != self) {
-			inst->pass_message(msg);
+
+			/* if not in normal mode, we are an onboard link
+			 * onboard links should only pass on messages from the same system ID */
+			if(!(self->_mode != MAVLINK_MODE_NORMAL && msg->sysid != mavlink_system.sysid)) {
+				inst->pass_message(msg);
+			}
 		}
 	}
 }
