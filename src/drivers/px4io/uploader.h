@@ -74,19 +74,19 @@ private:
 		INFO_BOARD_REV		= 3,		/**< board revision */
 		INFO_FLASH_SIZE		= 4,		/**< max firmware size in bytes */
 
-		PROG_MULTI_MAX		= 60,		/**< protocol max is 255, must be multiple of 4 */
+		PROG_MULTI_MAX		= 248,		/**< protocol max is 255, must be multiple of 4 */
 
 	};
 
 	int			_io_fd;
 	int			_fw_fd;
 
-	uint32_t	bl_rev; /**< bootloader revision */
+	uint32_t		bl_rev; /**< bootloader revision */
 
 	void			log(const char *fmt, ...);
 
-	int			recv(uint8_t &c, unsigned timeout);
-	int			recv(uint8_t *p, unsigned count);
+	int			recv_byte_with_timeout(uint8_t *c, unsigned timeout);
+	int			recv_bytes(uint8_t *p, unsigned count);
 	void			drain();
 	int			send(uint8_t c);
 	int			send(uint8_t *p, unsigned count);
