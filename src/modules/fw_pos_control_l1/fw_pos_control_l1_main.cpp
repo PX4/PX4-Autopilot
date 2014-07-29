@@ -205,6 +205,8 @@ private:
 		float min_sink_rate;
 		float max_sink_rate;
 		float max_climb_rate;
+		float heightrate_p;
+		float speedrate_p;
 		float throttle_damp;
 		float integrator_gain;
 		float vertical_accel_limit;
@@ -245,6 +247,8 @@ private:
 		param_t min_sink_rate;
 		param_t max_sink_rate;
 		param_t max_climb_rate;
+		param_t heightrate_p;
+		param_t speedrate_p;
 		param_t throttle_damp;
 		param_t integrator_gain;
 		param_t vertical_accel_limit;
