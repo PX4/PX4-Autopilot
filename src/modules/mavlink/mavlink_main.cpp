@@ -1660,6 +1660,7 @@ Mavlink::display_status()
 	printf("\ttx: %.3f kB/s\n", (double)_rate_tx);
 	printf("\ttxerr: %.3f kB/s\n", (double)_rate_txerr);
 	printf("\trx: %.3f kB/s\n", (double)_rate_rx);
+	printf("\trate mult: %.3f\n", (double)_rate_mult);
 }
 
 int
