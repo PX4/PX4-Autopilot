@@ -559,22 +559,39 @@ void Mavlink::mavlink_update_system(void)
 		_param_component_id = param_find("MAV_COMP_ID");
 		_param_system_type = param_find("MAV_TYPE");
 		_param_use_hil_gps = param_find("MAV_USEHILGPS");
-		_param_initialized = true;
 	}
 
 	/* update system and component id */
 	int32_t system_id;
 	param_get(_param_system_id, &system_id);
 
-	if (system_id > 0 && system_id < 255) {
-		mavlink_system.sysid = system_id;
-	}
-
 	int32_t component_id;
 	param_get(_param_component_id, &component_id);
 
-	if (component_id > 0 && component_id < 255) {
-		mavlink_system.compid = component_id;
+
+	/* only allow system ID and component ID updates
+	 * after reboot - not during operation */
+	if (!_param_initialized) {
+		if (system_id > 0 && system_id < 255) {
+			mavlink_system.sysid = system_id;
+		}
+
+		if (component_id > 0 && component_id < 255) {
+			mavlink_system.compid = component_id;
+		}
+
+		_param_initialized = true;
+	}
+
+	/* warn users that they need to reboot to take this
+	 * into effect
+	 */
+	if (system_id != mavlink_system.sysid) {
+		send_statustext_critical("Save params and reboot to change SYSID");
+	}
+
+	if (component_id != mavlink_system.compid) {
+		send_statustext_critical("Save params and reboot to change COMPID");
 	}
 
 	int32_t system_type;

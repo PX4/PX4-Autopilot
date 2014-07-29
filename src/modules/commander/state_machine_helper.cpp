@@ -669,7 +669,9 @@ int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd)
 		goto system_eval;
 	}
 
-	if (!status->is_rotary_wing) {
+	/* Perform airspeed check only if circuit breaker is not
+	 * engaged and it's not a rotary wing */
+	if (!status->circuit_breaker_engaged_airspd_check && !status->is_rotary_wing) {
 		/* accel done, close it */
 		close(fd);
 		fd = orb_subscribe(ORB_ID(airspeed));

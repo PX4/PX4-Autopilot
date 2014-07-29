@@ -226,6 +226,7 @@ struct vehicle_status_s {
 	uint16_t errors_count4;
 
 	bool circuit_breaker_engaged_power_check;
+	bool circuit_breaker_engaged_airspd_check;
 };
 
 /**
