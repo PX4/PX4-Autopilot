@@ -54,3 +54,5 @@ SRCS		= navigator_main.cpp \
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
 
 MODULE_STACKSIZE = 1200
+
+EXTRACXXFLAGS	= -Weffc++

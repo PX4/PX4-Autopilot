@@ -38,3 +38,5 @@
 MODULE_COMMAND	= ms5611
 
 SRCS		= ms5611.cpp ms5611_spi.cpp ms5611_i2c.cpp
+
+MAXOPTIMIZATION	 = -Os

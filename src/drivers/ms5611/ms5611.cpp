@@ -300,12 +300,17 @@ MS5611::init()
 
 		ret = OK;
 
-		if (_class_instance == CLASS_DEVICE_PRIMARY) {
+		switch (_class_instance) {
+			case CLASS_DEVICE_PRIMARY:
+				_baro_topic = orb_advertise(ORB_ID(sensor_baro0), &brp);
+				break;
+			case CLASS_DEVICE_SECONDARY:
+				_baro_topic = orb_advertise(ORB_ID(sensor_baro1), &brp);
+				break;
+		}
 
-			_baro_topic = orb_advertise(ORB_ID(sensor_baro), &brp);
-
-			if (_baro_topic < 0)
-				debug("failed to create sensor_baro publication");
+		if (_baro_topic < 0) {
+			warnx("failed to create sensor_baro publication");
 		}
 
 	} while (0);
@@ -722,9 +727,17 @@ MS5611::collect()
 		report.altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
 
 		/* publish it */
-		if (_baro_topic > 0 && !(_pub_blocked)) {
+		if (!(_pub_blocked)) {
 			/* publish it */
-			orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
+			switch (_class_instance) {
+				case CLASS_DEVICE_PRIMARY:
+					orb_publish(ORB_ID(sensor_baro0), _baro_topic, &report);
+					break;
+
+				case CLASS_DEVICE_SECONDARY:
+					orb_publish(ORB_ID(sensor_baro1), _baro_topic, &report);
+					break;
+			}
 		}
 
 		if (_reports->force(&report)) {

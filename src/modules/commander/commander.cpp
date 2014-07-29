@@ -546,24 +546,19 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		}
 		break;
 
-#if 0
 	/* Flight termination */
-	case VEHICLE_CMD_DO_SET_SERVO: { //xxx: needs its own mavlink command
-
-			//XXX: to enable the parachute, a param needs to be set
-			//xxx: for safety only for now, param3 is unused by VEHICLE_CMD_DO_SET_SERVO
-			if (armed_local->armed && cmd->param3 > 0.5 && parachute_enabled) {
-				transition_result_t failsafe_res = failsafe_state_transition(status, FAILSAFE_STATE_TERMINATION);
-				cmd_result = VEHICLE_CMD_RESULT_ACCEPTED;
-
+	case VEHICLE_CMD_DO_FLIGHTTERMINATION: {
+			if (cmd->param1 > 0.5f) {
+				//XXX update state machine?
+				armed_local->force_failsafe = true;
+				warnx("forcing failsafe");
 			} else {
-				/* reject parachute depoyment not armed */
-				cmd_result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+				armed_local->force_failsafe = false;
+				warnx("disabling failsafe");
 			}
-
+			cmd_result = VEHICLE_CMD_RESULT_ACCEPTED;
 		}
 		break;
-#endif
 
 	case VEHICLE_CMD_DO_SET_HOME: {
 			bool use_current = cmd->param1 > 0.5f;
@@ -741,6 +736,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	// CIRCUIT BREAKERS
 	status.circuit_breaker_engaged_power_check = false;
+	status.circuit_breaker_engaged_airspd_check = false;
 
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
@@ -918,6 +914,11 @@ int commander_thread_main(int argc, char *argv[])
 	struct system_power_s system_power;
 	memset(&system_power, 0, sizeof(system_power));
 
+	/* Subscribe to actuator controls (outputs) */
+	int actuator_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	struct actuator_controls_s actuator_controls;
+	memset(&actuator_controls, 0, sizeof(actuator_controls));
+
 	control_status_leds(&status, &armed, true);
 
 	/* now initialized */
@@ -977,6 +978,7 @@ int commander_thread_main(int argc, char *argv[])
 				param_get(_param_component_id, &(status.component_id));
 
 				status.circuit_breaker_engaged_power_check = circuit_breaker_enabled("CBRK_SUPPLY_CHK", CBRK_SUPPLY_CHK_KEY);
+				status.circuit_breaker_engaged_airspd_check = circuit_breaker_enabled("CBRK_AIRSPD_CHK", CBRK_AIRSPD_CHK_KEY);
 
 				status_changed = true;
 
@@ -1199,13 +1201,17 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
+			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_controls_sub, &actuator_controls);
 
 			/* only consider battery voltage if system has been running 2s and battery voltage is valid */
 			if (hrt_absolute_time() > start_time + 2000000 && battery.voltage_filtered_v > 0.0f) {
 				status.battery_voltage = battery.voltage_filtered_v;
 				status.battery_current = battery.current_a;
 				status.condition_battery_voltage_valid = true;
-				status.battery_remaining = battery_remaining_estimate_voltage(battery.voltage_filtered_v, battery.discharged_mah);
+
+				/* get throttle (if armed), as we only care about energy negative throttle also counts */
+				float throttle = (armed.armed) ? fabsf(actuator_controls.control[3]) : 0.0f;
+				status.battery_remaining = battery_remaining_estimate_voltage(battery.voltage_filtered_v, battery.discharged_mah, throttle);
 			}
 		}
 
@@ -1267,13 +1273,13 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* if battery voltage is getting lower, warn using buzzer, etc. */
-		if (status.condition_battery_voltage_valid && status.battery_remaining < 0.25f && !low_battery_voltage_actions_done) {
+		if (status.condition_battery_voltage_valid && status.battery_remaining < 0.18f && !low_battery_voltage_actions_done) {
 			low_battery_voltage_actions_done = true;
 			mavlink_log_critical(mavlink_fd, "LOW BATTERY, RETURN TO LAND ADVISED");
 			status.battery_warning = VEHICLE_BATTERY_WARNING_LOW;
 			status_changed = true;
 
-		} else if (status.condition_battery_voltage_valid && status.battery_remaining < 0.1f && !critical_battery_voltage_actions_done && low_battery_voltage_actions_done) {
+		} else if (status.condition_battery_voltage_valid && status.battery_remaining < 0.09f && !critical_battery_voltage_actions_done && low_battery_voltage_actions_done) {
 			/* critical battery voltage, this is rather an emergency, change state machine */
 			critical_battery_voltage_actions_done = true;
 			mavlink_log_emergency(mavlink_fd, "CRITICAL BATTERY, LAND IMMEDIATELY");
@@ -1412,8 +1418,12 @@ int commander_thread_main(int argc, char *argv[])
 				arming_state_changed = true;
 
 			} else if (arming_ret == TRANSITION_DENIED) {
-				/* DENIED here indicates bug in the commander */
-				mavlink_log_critical(mavlink_fd, "arming state transition denied");
+				/*
+				 * the arming transition can be denied to a number of reasons:
+				 *  - pre-flight check failed (sensors not ok or not calibrated)
+				 *  - safety not disabled
+				 *  - system not in manual mode
+				 */
 				tune_negative(true);
 			}
 

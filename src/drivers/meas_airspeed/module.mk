@@ -42,3 +42,5 @@ SRCS			= meas_airspeed.cpp
 MODULE_STACKSIZE	= 1200
 
 EXTRACXXFLAGS	= -Weffc++
+
+MAXOPTIMIZATION	 = -Os
