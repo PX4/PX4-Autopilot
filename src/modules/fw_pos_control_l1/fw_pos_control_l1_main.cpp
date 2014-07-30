@@ -92,6 +92,8 @@
 #include "landingslope.h"
 #include "mtecs/mTecs.h"
 
+static int	_control_task = -1;			/**< task handle for sensor task */
+
 
 /**
  * L1 control app start / stop handling function
@@ -116,9 +118,9 @@ public:
 	/**
 	 * Start the sensors task.
 	 *
-	 * @return		OK on success.
+	 * @return	OK on success.
 	 */
-	int		start();
+	static int	start();
 
 	/**
 	 * Task status
@@ -132,7 +134,6 @@ private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	bool		_task_running;			/**< if true, task is running in its mainloop */
-	int		_control_task;			/**< task handle for sensor task */
 
 	int		_global_pos_sub;
 	int		_pos_sp_triplet_sub;
@@ -194,7 +195,7 @@ private:
 
 	ECL_L1_Pos_Controller				_l1_control;
 	TECS						_tecs;
-	// fwPosctrl::mTecs				_mTecs;
+	fwPosctrl::mTecs				_mTecs;
 	bool						_was_pos_control_mode;
 
 	struct {
@@ -393,7 +394,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_mavlink_fd(-1),
 	_task_should_exit(false),
 	_task_running(false),
-	_control_task(-1),
 
 /* subscriptions */
 	_global_pos_sub(-1),
@@ -443,7 +443,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_groundspeed_undershoot(0.0f),
 	_global_pos_valid(false),
 	_l1_control(),
-	// _mTecs(),
+	_mTecs(),
 	_was_pos_control_mode(false)
 {
 	_nav_capabilities.turn_distance = 0.0f;
@@ -603,7 +603,7 @@ FixedwingPositionControl::parameters_update()
 	launchDetector.updateParams();
 
 	/* Update the mTecs */
-	// _mTecs.updateParams();
+	_mTecs.updateParams();
 
 	return OK;
 }
@@ -704,7 +704,17 @@ FixedwingPositionControl::vehicle_setpoint_poll()
 void
 FixedwingPositionControl::task_main_trampoline(int argc, char *argv[])
 {
+	l1_control::g_control = new FixedwingPositionControl();
+
+	if (l1_control::g_control == nullptr) {
+		warnx("OUT OF MEM");
+		return;
+	}
+
+	/* only returns on exit */
 	l1_control::g_control->task_main();
+	delete l1_control::g_control;
+	l1_control::g_control = nullptr;
 }
 
 float
@@ -820,9 +830,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
 	math::Vector<3> accel_earth = _R_nb * accel_body;
 
-	// if (!_mTecs.getEnabled()) {
+	if (!_mTecs.getEnabled()) {
 		_tecs.update_50hz(_global_pos.alt /* XXX might switch to alt err here */, _airspeed.indicated_airspeed_m_s, _R_nb, accel_body, accel_earth);
-	// }
+	}
 
 	/* define altitude error */
 	float altitude_error = _pos_sp_triplet.current.alt - _global_pos.alt;
@@ -838,10 +848,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		if (!_was_pos_control_mode) {
 			/* reset integrators */
-			// if (_mTecs.getEnabled()) {
-				// _mTecs.resetIntegrators();
-				// _mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
-			// }
+			if (_mTecs.getEnabled()) {
+				_mTecs.resetIntegrators();
+				_mTecs.resetDerivatives(_airspeed.true_airspeed_m_s);
+			}
 		}
 
 		_was_pos_control_mode = true;
@@ -1160,9 +1170,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		_att_sp.thrust = launchDetector.getThrottlePreTakeoff();
 	}
 	else {
-		_att_sp.thrust = math::min(/*_mTecs.getEnabled() ? _mTecs.getThrottleSetpoint() : */_tecs.get_throttle_demand(), throttle_max);
+		_att_sp.thrust = math::min(_mTecs.getEnabled() ? _mTecs.getThrottleSetpoint() : _tecs.get_throttle_demand(), throttle_max);
 	}
-	_att_sp.pitch_body = /*_mTecs.getEnabled() ? _mTecs.getPitchSetpoint() : */_tecs.get_pitch_demand();
+	_att_sp.pitch_body = _mTecs.getEnabled() ? _mTecs.getPitchSetpoint() : _tecs.get_pitch_demand();
 
 	if (_control_mode.flag_control_position_enabled) {
 		last_manual = false;
@@ -1177,10 +1187,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 void
 FixedwingPositionControl::task_main()
 {
-
-	/* inform about start */
-	warnx("Initializing..");
-	fflush(stdout);
 
 	/*
 	 * do subscriptions
@@ -1342,29 +1348,29 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		const math::Vector<3> &ground_speed,
 		tecs_mode mode)
 {
-	// if (_mTecs.getEnabled()) {
-	// 	/* Using mtecs library: prepare arguments for mtecs call */
-	// 	float flightPathAngle = 0.0f;
-	// 	float ground_speed_length = ground_speed.length();
-	// 	if (ground_speed_length > FLT_EPSILON) {
-	// 		flightPathAngle = -asinf(ground_speed(2)/ground_speed_length);
-	// 	}
-	// 	fwPosctrl::LimitOverride limitOverride;
-	// 	if (climbout_mode) {
-	// 		limitOverride.enablePitchMinOverride(M_RAD_TO_DEG_F * climbout_pitch_min_rad);
-	// 	} else {
-	// 		limitOverride.disablePitchMinOverride();
-	// 	}
-	// 	_mTecs.updateAltitudeSpeed(flightPathAngle, altitude, alt_sp, _airspeed.true_airspeed_m_s, v_sp, mode,
-	// 			limitOverride);
-	// } else {
+	if (_mTecs.getEnabled()) {
+		/* Using mtecs library: prepare arguments for mtecs call */
+		float flightPathAngle = 0.0f;
+		float ground_speed_length = ground_speed.length();
+		if (ground_speed_length > FLT_EPSILON) {
+			flightPathAngle = -asinf(ground_speed(2)/ground_speed_length);
+		}
+		fwPosctrl::LimitOverride limitOverride;
+		if (climbout_mode) {
+			limitOverride.enablePitchMinOverride(M_RAD_TO_DEG_F * climbout_pitch_min_rad);
+		} else {
+			limitOverride.disablePitchMinOverride();
+		}
+		_mTecs.updateAltitudeSpeed(flightPathAngle, altitude, alt_sp, _airspeed.true_airspeed_m_s, v_sp, mode,
+				limitOverride);
+	} else {
 		/* Using tecs library */
 		_tecs.update_pitch_throttle(_R_nb, _att.pitch, altitude, alt_sp, v_sp,
 					    _airspeed.indicated_airspeed_m_s, eas2tas,
 					    climbout_mode, climbout_pitch_min_rad,
 					    throttle_min, throttle_max, throttle_cruise,
 					    pitch_min_rad, pitch_max_rad);
-	// }
+	}
 }
 
 int
@@ -1398,14 +1404,7 @@ int fw_pos_control_l1_main(int argc, char *argv[])
 		if (l1_control::g_control != nullptr)
 			errx(1, "already running");
 
-		l1_control::g_control = new FixedwingPositionControl;
-
-		if (l1_control::g_control == nullptr)
-			errx(1, "alloc failed");
-
-		if (OK != l1_control::g_control->start()) {
-			delete l1_control::g_control;
-			l1_control::g_control = nullptr;
+		if (OK != FixedwingPositionControl::start()) {
 			err(1, "start failed");
 		}
 
