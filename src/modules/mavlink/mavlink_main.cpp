@@ -743,7 +743,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 		return;
 	}
 
-	pthread_mutex_lock(_send_mutex);
+	pthread_mutex_lock(&_send_mutex);
 
 	int buf_free = get_free_tx_buf();
 
@@ -757,7 +757,8 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 		/* no enough space in buffer to send */
 		count_txerr();
 		count_txerrbytes(packet_len);
-		goto out;
+		pthread_mutex_unlock(&_send_mutex);
+		return;
 	}
 
 	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
@@ -795,8 +796,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 		count_txbytes(packet_len);
 	}
 
-out:
-	pthread_mutex_unlock(_send_mutex);
+	pthread_mutex_unlock(&_send_mutex);
 }
 
 void
