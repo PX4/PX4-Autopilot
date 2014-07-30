@@ -1,7 +1,12 @@
 #
 # Nested type.
 # Generic hardware version information.
+# These values should remain unchanged for the device's lifetime.
 #
 
 uint8 major
 uint8 minor
+
+# All zeros is not a valid UID.
+# If filled with zeros, assume that the value is undefined.
+uint8[16] unique_id

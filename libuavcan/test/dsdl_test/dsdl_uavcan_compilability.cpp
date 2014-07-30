@@ -59,6 +59,7 @@ TEST(Dsdl, Streaming)
         "hardware_version: \n"
         "  major: 0\n"
         "  minor: 0\n"
+        "  unique_id: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]\n"
         "software_version: \n"
         "  major: 0\n"
         "  minor: 0\n"
