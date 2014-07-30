@@ -159,9 +159,10 @@ Mavlink::Mavlink() :
 	   _rate_tx(0.0f),
 	   _rate_txerr(0.0f),
 	   _rate_rx(0.0f),
-	   _rstatus {},
-	   _message_buffer {},
-	   _message_buffer_mutex {},
+	   _rstatus{},
+	   _message_buffer{},
+	   _message_buffer_mutex{},
+	   _send_mutex{},
 	   _param_initialized(false),
 	   _param_system_id(0),
 	   _param_component_id(0),
@@ -716,7 +717,7 @@ Mavlink::get_free_tx_buf()
 	 * flow control if it continues to be full
 	 */
 	int buf_free = 0;
-    (void) ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free);
+	(void) ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free);
 
 	if (get_flow_control_enabled() && buf_free < TX_BUFFER_GAP) {
 		/* Disable hardware flow control:
@@ -742,6 +743,8 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 		return;
 	}
 
+	pthread_mutex_lock(_send_mutex);
+
 	int buf_free = get_free_tx_buf();
 
 	uint8_t payload_len = mavlink_message_lengths[msgid];
@@ -754,7 +757,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 		/* no enough space in buffer to send */
 		count_txerr();
 		count_txerrbytes(packet_len);
-		return;
+		goto out;
 	}
 
 	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
@@ -762,7 +765,8 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 	/* header */
 	buf[0] = MAVLINK_STX;
 	buf[1] = payload_len;
-	buf[2] = mavlink_get_channel_status(_channel)->current_tx_seq++;	// TODO use internal seq counter?
+	/* use mavlink's internal counter for the TX seq */
+	buf[2] = mavlink_get_channel_status(_channel)->current_tx_seq++;
 	buf[3] = mavlink_system.sysid;
 	buf[4] = mavlink_system.compid;
 	buf[5] = msgid;
@@ -790,6 +794,9 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 		_last_write_success_time = _last_write_try_time;
 		count_txbytes(packet_len);
 	}
+
+out:
+	pthread_mutex_unlock(_send_mutex);
 }
 
 void
@@ -1297,6 +1304,9 @@ Mavlink::task_main(int argc, char *argv[])
 		warn("could not open %s", _device_name);
 		return ERROR;
 	}
+
+	/* initialize send mutex */
+	pthread_mutex_init(&_send_mutex, NULL);
 
 	/* initialize mavlink text message buffering */
 	mavlink_logbuffer_init(&_logbuffer, 5);

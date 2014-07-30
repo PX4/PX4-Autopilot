@@ -342,6 +342,7 @@ private:
 	mavlink_message_buffer	_message_buffer;
 
 	pthread_mutex_t		_message_buffer_mutex;
+	pthread_mutex_t		_send_mutex;
 
 	bool			_param_initialized;
 	param_t			_param_system_id;
