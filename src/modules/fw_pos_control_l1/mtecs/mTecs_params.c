@@ -55,7 +55,7 @@
  * @max 1
  * @group mTECS
  */
-PARAM_DEFINE_INT32(MT_ENABLED, 1);
+PARAM_DEFINE_INT32(MT_ENABLED, 0);
 
 /**
  * Total Energy Rate Control Feedforward
