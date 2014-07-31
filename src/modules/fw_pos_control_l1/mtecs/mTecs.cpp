@@ -76,6 +76,7 @@ mTecs::mTecs() :
 	_counter(0),
 	_debug(false)
 {
+	warnx("starting");
 }
 
 mTecs::~mTecs()
