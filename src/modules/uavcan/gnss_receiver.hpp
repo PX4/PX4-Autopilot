@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,34 +32,53 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_commands.h
- * Mavlink commands stream definition.
+ * @file gnss_receiver.hpp
  *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * UAVCAN --> ORB bridge for GNSS messages:
+ *     uavcan.equipment.gnss.Fix
+ *
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ * @author Andrew Chambers <achamber@gmail.com>
  */
 
-#ifndef MAVLINK_COMMANDS_H_
-#define MAVLINK_COMMANDS_H_
+#pragma once
+
+#include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_gps_position.h>
 
-class Mavlink;
-class MavlinkCommansStream;
+#include <uavcan/uavcan.hpp>
+#include <uavcan/equipment/gnss/Fix.hpp>
 
-#include "mavlink_main.h"
-
-class MavlinkCommandsStream
+class UavcanGnssReceiver
 {
-private:
-	MavlinkOrbSubscription *_cmd_sub;
-	struct vehicle_command_s *_cmd;
-	mavlink_channel_t _channel;
-	uint64_t _cmd_time;
-
 public:
-	MavlinkCommandsStream(Mavlink *mavlink, mavlink_channel_t channel);
-	void update(const hrt_abstime t);
-};
+	UavcanGnssReceiver(uavcan::INode& node);
 
-#endif /* MAVLINK_COMMANDS_H_ */
+	int init();
+
+private:
+	/**
+	 * GNSS fix message will be reported via this callback.
+	 */
+	void gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
+
+
+	typedef uavcan::MethodBinder<UavcanGnssReceiver*,
+		void (UavcanGnssReceiver::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix>&)>
+		FixCbBinder;
+
+	/*
+	 * libuavcan related things
+	 */
+	uavcan::INode													&_node;
+	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder>	_uavcan_sub_status;
+
+	/*
+	 * uORB
+	 */
+	struct vehicle_gps_position_s 	_report;					///< uORB topic for gnss position
+	orb_advert_t			_report_pub;					///< uORB pub for gnss position
+
+};

@@ -92,7 +92,7 @@
 #include <drivers/airspeed/airspeed.h>
 
 /* I2C bus address is 1010001x */
-#define I2C_ADDRESS_MS4525DO	0x28	//0x51 /* 7-bit address. */
+#define I2C_ADDRESS_MS4525DO	0x28	/**< 7-bit address. Depends on the order code (this is for code "I") */
 #define PATH_MS4525		"/dev/ms4525"
 /* The MS5525DSO address is 111011Cx, where C is the complementary value of the pin CSB */
 #define I2C_ADDRESS_MS5525DSO	0x77	//0x77/* 7-bit address, addr. pin pulled low */
@@ -102,9 +102,9 @@
 #define ADDR_READ_MR			0x00	/* write to this address to start conversion */
 
 /* Measurement rate is 100Hz */
-#define MEAS_RATE 100.0f
-#define MEAS_DRIVER_FILTER_FREQ 3.0f
-#define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
+#define MEAS_RATE 100
+#define MEAS_DRIVER_FILTER_FREQ 1.5f
+#define CONVERSION_INTERVAL	(1000000 / MEAS_RATE)	/* microseconds */
 
 class MEASAirspeed : public Airspeed
 {
@@ -140,9 +140,9 @@ extern "C" __EXPORT int meas_airspeed_main(int argc, char *argv[]);
 MEASAirspeed::MEASAirspeed(int bus, int address, const char *path) : Airspeed(bus, address,
 	CONVERSION_INTERVAL, path),
 	_filter(MEAS_RATE, MEAS_DRIVER_FILTER_FREQ),
-	_t_system_power(-1)
+	_t_system_power(-1),
+	system_power{}
 {
-	memset(&system_power, 0, sizeof(system_power));
 }
 
 int
@@ -420,6 +420,9 @@ void	info();
 
 /**
  * Start the driver.
+ *
+ * This function call only returns once the driver is up and running
+ * or failed to detect the sensor.
  */
 void
 start(int i2c_bus)

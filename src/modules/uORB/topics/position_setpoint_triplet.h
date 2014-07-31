@@ -95,6 +95,8 @@ struct position_setpoint_triplet_s
 	struct position_setpoint_s previous;
 	struct position_setpoint_s current;
 	struct position_setpoint_s next;
+
+	unsigned nav_state;				/**< report the navigation state */
 };
 
 /**

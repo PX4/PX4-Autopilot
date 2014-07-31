@@ -86,7 +86,9 @@ static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
 
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
-
+	status{},
+	hil_local_pos{},
+	_control_mode{},
 	_global_pos_pub(-1),
 	_local_pos_pub(-1),
 	_attitude_pub(-1),
@@ -110,17 +112,14 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_telemetry_status_pub(-1),
 	_rc_pub(-1),
 	_manual_pub(-1),
-	_telemetry_heartbeat_time(0),
 	_radio_status_available(false),
-	_control_mode_sub(-1),
+	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
 	_old_timestamp(0),
 	_hil_local_proj_inited(0),
-	_hil_local_alt0(0.0)
+	_hil_local_alt0(0.0f),
+	_hil_local_proj_ref{}
 {
-	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	memset(&hil_local_pos, 0, sizeof(hil_local_pos));
-	memset(&_control_mode, 0, sizeof(_control_mode));
 
 	// make sure the FTP server is started
 	(void)MavlinkFTP::getServer();
@@ -247,7 +246,8 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		} else {
 
 			if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-				warnx("ignoring CMD spoofed with same SYS/COMP ID");
+				warnx("ignoring CMD spoofed with same SYS/COMP (%d/%d) ID",
+				      mavlink_system.sysid, mavlink_system.compid);
 				return;
 			}
 
@@ -444,11 +444,11 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 		mavlink_radio_status_t rstatus;
 		mavlink_msg_radio_status_decode(msg, &rstatus);
 
-		struct telemetry_status_s tstatus;
-		memset(&tstatus, 0, sizeof(tstatus));
+		struct telemetry_status_s &tstatus = _mavlink->get_rx_status();
 
 		tstatus.timestamp = hrt_absolute_time();
-		tstatus.heartbeat_time = _telemetry_heartbeat_time;
+		tstatus.telem_time = tstatus.timestamp;
+		/* tstatus.heartbeat_time is set by system heartbeats */
 		tstatus.type = TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO;
 		tstatus.rssi = rstatus.rssi;
 		tstatus.remote_rssi = rstatus.remrssi;
@@ -505,16 +505,20 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 		/* ignore own heartbeats, accept only heartbeats from GCS */
 		if (msg->sysid != mavlink_system.sysid && hb.type == MAV_TYPE_GCS) {
-			_telemetry_heartbeat_time = hrt_absolute_time();
+
+			struct telemetry_status_s &tstatus = _mavlink->get_rx_status();
+
+			hrt_abstime tnow = hrt_absolute_time();
+
+			/* always set heartbeat, publish only if telemetry link not up */
+			tstatus.heartbeat_time = tnow;
 
 			/* if no radio status messages arrive, lets at least publish that heartbeats were received */
 			if (!_radio_status_available) {
 
-				struct telemetry_status_s tstatus;
-				memset(&tstatus, 0, sizeof(tstatus));
-
-				tstatus.timestamp = _telemetry_heartbeat_time;
-				tstatus.heartbeat_time = _telemetry_heartbeat_time;
+				tstatus.timestamp = tnow;
+				/* telem_time indicates the timestamp of a telemetry status packet and we got none */
+				tstatus.telem_time = 0;
 				tstatus.type = TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
 
 				if (_telemetry_status_pub < 0) {
@@ -590,10 +594,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		gyro.temperature = imu.temperature;
 
 		if (_gyro_pub < 0) {
-			_gyro_pub = orb_advertise(ORB_ID(sensor_gyro), &gyro);
+			_gyro_pub = orb_advertise(ORB_ID(sensor_gyro0), &gyro);
 
 		} else {
-			orb_publish(ORB_ID(sensor_gyro), _gyro_pub, &gyro);
+			orb_publish(ORB_ID(sensor_gyro0), _gyro_pub, &gyro);
 		}
 	}
 
@@ -612,10 +616,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		accel.temperature = imu.temperature;
 
 		if (_accel_pub < 0) {
-			_accel_pub = orb_advertise(ORB_ID(sensor_accel), &accel);
+			_accel_pub = orb_advertise(ORB_ID(sensor_accel0), &accel);
 
 		} else {
-			orb_publish(ORB_ID(sensor_accel), _accel_pub, &accel);
+			orb_publish(ORB_ID(sensor_accel0), _accel_pub, &accel);
 		}
 	}
 
@@ -633,10 +637,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		mag.z = imu.zmag;
 
 		if (_mag_pub < 0) {
-			_mag_pub = orb_advertise(ORB_ID(sensor_mag), &mag);
+			_mag_pub = orb_advertise(ORB_ID(sensor_mag0), &mag);
 
 		} else {
-			orb_publish(ORB_ID(sensor_mag), _mag_pub, &mag);
+			orb_publish(ORB_ID(sensor_mag0), _mag_pub, &mag);
 		}
 	}
 
@@ -651,10 +655,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		baro.temperature = imu.temperature;
 
 		if (_baro_pub < 0) {
-			_baro_pub = orb_advertise(ORB_ID(sensor_baro), &baro);
+			_baro_pub = orb_advertise(ORB_ID(sensor_baro0), &baro);
 
 		} else {
-			orb_publish(ORB_ID(sensor_baro), _baro_pub, &baro);
+			orb_publish(ORB_ID(sensor_baro0), _baro_pub, &baro);
 		}
 	}
 
@@ -928,10 +932,10 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		accel.temperature = 25.0f;
 
 		if (_accel_pub < 0) {
-			_accel_pub = orb_advertise(ORB_ID(sensor_accel), &accel);
+			_accel_pub = orb_advertise(ORB_ID(sensor_accel0), &accel);
 
 		} else {
-			orb_publish(ORB_ID(sensor_accel), _accel_pub, &accel);
+			orb_publish(ORB_ID(sensor_accel0), _accel_pub, &accel);
 		}
 	}
 
@@ -999,6 +1003,9 @@ MavlinkReceiver::receive_thread(void *arg)
 					_mavlink->handle_message(&msg);
 				}
 			}
+
+			/* count received bytes */
+			_mavlink->count_rxbytes(nread);
 		}
 	}
 

@@ -4,3 +4,6 @@
 [submodule "NuttX"]
 	path = NuttX
 	url = git://github.com/PX4/NuttX.git
+[submodule "uavcan"]
+	path = uavcan
+	url = git://github.com/pavel-kirienko/uavcan.git

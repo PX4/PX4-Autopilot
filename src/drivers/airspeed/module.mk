@@ -36,3 +36,5 @@
 #
 
 SRCS			= airspeed.cpp
+
+MAXOPTIMIZATION	 = -Os

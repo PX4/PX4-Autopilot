@@ -70,8 +70,8 @@ struct vehicle_global_position_s {
 	float vel_e;			/**< Ground east velocity, m/s							   */
 	float vel_d;			/**< Ground downside velocity, m/s						   */
 	float yaw; 			/**< Yaw in radians -PI..+PI.							   */
-	float eph;
-	float epv;
+	float eph;			/**< Standard deviation of position estimate horizontally */
+	float epv;			/**< Standard deviation of position vertically */
 };
 
 /**

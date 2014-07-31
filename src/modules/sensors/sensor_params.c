@@ -292,6 +292,19 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
  */
 PARAM_DEFINE_INT32(SENS_EXT_MAG_ROT, 0);
 
+/**
+* Set usage of external magnetometer
+*
+*  * Set to 0 (default) to auto-detect (will try to get the external as primary)
+*  * Set to 1 to force the external magnetometer as primary
+*  * Set to 2 to force the internal magnetometer as primary
+*
+* @min 0
+* @max 2
+* @group Sensor Calibration
+*/
+PARAM_DEFINE_INT32(SENS_EXT_MAG, 0);
+
 
 /**
  * RC Channel 1 Minimum

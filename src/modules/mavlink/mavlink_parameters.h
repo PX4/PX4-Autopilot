@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,39 +32,84 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_commands.cpp
- * Mavlink commands stream implementation.
+ * @file mavlink_parameters.h
+ * Mavlink parameters manager definition.
  *
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include "mavlink_commands.h"
+#pragma once
 
-MavlinkCommandsStream::MavlinkCommandsStream(Mavlink *mavlink, mavlink_channel_t channel) : _channel(channel), _cmd_time(0)
+#include <systemlib/param/param.h>
+
+#include "mavlink_bridge_header.h"
+#include "mavlink_stream.h"
+
+class MavlinkParametersManager : public MavlinkStream
 {
-	_cmd_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_command));
-}
-
-void
-MavlinkCommandsStream::update(const hrt_abstime t)
-{
-	struct vehicle_command_s cmd;
-
-	if (_cmd_sub->update(&_cmd_time, &cmd)) {
-		/* only send commands for other systems/components */
-		if (cmd.target_system != mavlink_system.sysid || cmd.target_component != mavlink_system.compid) {
-			mavlink_msg_command_long_send(_channel,
-						      cmd.target_system,
-						      cmd.target_component,
-						      cmd.command,
-						      cmd.confirmation,
-						      cmd.param1,
-						      cmd.param2,
-						      cmd.param3,
-						      cmd.param4,
-						      cmd.param5,
-						      cmd.param6,
-						      cmd.param7);
-		}
+public:
+	const char *get_name() const
+	{
+		return MavlinkParametersManager::get_name_static();
 	}
-}
+
+	static const char *get_name_static()
+	{
+		return "PARAM_VALUE";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_PARAM_VALUE;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkParametersManager(mavlink);
+	}
+
+	unsigned get_size();
+
+	void handle_message(const mavlink_message_t *msg);
+
+	/**
+	 * Send one parameter identified by index.
+	 *
+	 * @param index		The index of the parameter to send.
+	 * @return		zero on success, nonzero else.
+	 */
+	void		start_send_one(int index);
+
+
+	/**
+	 * Send one parameter identified by name.
+	 *
+	 * @param name		The index of the parameter to send.
+	 * @return		zero on success, nonzero else.
+	 */
+	int			start_send_for_name(const char *name);
+
+	/**
+	 * Start sending the parameter queue.
+	 *
+	 * This function will not directly send parameters, but instead
+	 * activate the sending of one parameter on each call of
+	 * mavlink_pm_queued_send().
+	 * @see 		mavlink_pm_queued_send()
+	 */
+	void		start_send_all();
+
+private:
+	int		_send_all_index;
+
+	/* do not allow top copying this class */
+	MavlinkParametersManager(MavlinkParametersManager &);
+	MavlinkParametersManager& operator = (const MavlinkParametersManager &);
+
+protected:
+	explicit MavlinkParametersManager(Mavlink *mavlink);
+
+	void send(const hrt_abstime t);
+
+	void send_param(param_t param);
+};

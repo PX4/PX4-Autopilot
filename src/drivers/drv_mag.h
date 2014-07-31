@@ -79,8 +79,9 @@ struct mag_scale {
 /*
  * ObjDev tag for raw magnetometer data.
  */
-ORB_DECLARE(sensor_mag);
-
+ORB_DECLARE(sensor_mag0);
+ORB_DECLARE(sensor_mag1);
+ORB_DECLARE(sensor_mag2);
 
 /*
  * mag device types, for _device_id

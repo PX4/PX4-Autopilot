@@ -112,6 +112,10 @@ public:
 	 */
 	FixedwingEstimator();
 
+	/* we do not want people ever copying this class */
+	FixedwingEstimator(const FixedwingEstimator& that) = delete;
+	FixedwingEstimator operator=(const FixedwingEstimator&) = delete;
+
 	/**
 	 * Destructor, also kills the sensors task.
 	 */
@@ -371,9 +375,10 @@ FixedwingEstimator::FixedwingEstimator() :
 	_mag_offsets({}),
 
 	#ifdef SENSOR_COMBINED_SUB
-	_sensor_combined({}),
+	_sensor_combined{},
 	#endif
 
+	_pos_ref{},
 	_baro_ref(0.0f),
 	_baro_ref_offset(0.0f),
 	_baro_gps_offset(0.0f),
@@ -390,12 +395,18 @@ FixedwingEstimator::FixedwingEstimator() :
 /* states */
 	_baro_init(false),
 	_gps_initialized(false),
+	_gps_start_time(0),
+	_filter_start_time(0),
+	_last_sensor_timestamp(0),
+	_last_run(0),
 	_gyro_valid(false),
 	_accel_valid(false),
 	_mag_valid(false),
 	_ekf_logging(true),
 	_debug(0),
 	_mavlink_fd(-1),
+	_parameters{},
+	_parameter_handles{},
 	_ekf(nullptr),
 	_velocity_xy_filtered(0.0f),
 	_velocity_z_filtered(0.0f),
@@ -619,10 +630,10 @@ FixedwingEstimator::check_filter_state()
 		rep.health_flags |= (((uint8_t)ekf_report.posHealth)	<< 1);
 		rep.health_flags |= (((uint8_t)ekf_report.hgtHealth)	<< 2);
 		rep.health_flags |= (((uint8_t)!ekf_report.gyroOffsetsExcessive)	<< 3);
-		// rep.health_flags |= (((uint8_t)ekf_report.onGround)	<< 4);
-		// rep.health_flags |= (((uint8_t)ekf_report.staticMode)	<< 5);
-		// rep.health_flags |= (((uint8_t)ekf_report.useCompass)	<< 6);
-		// rep.health_flags |= (((uint8_t)ekf_report.useAirspeed)	<< 7);
+		rep.health_flags |= (((uint8_t)ekf_report.onGround)	<< 4);
+		rep.health_flags |= (((uint8_t)ekf_report.staticMode)	<< 5);
+		rep.health_flags |= (((uint8_t)ekf_report.useCompass)	<< 6);
+		rep.health_flags |= (((uint8_t)ekf_report.useAirspeed)	<< 7);
 
 		rep.timeout_flags |= (((uint8_t)ekf_report.velTimeout)	<< 0);
 		rep.timeout_flags |= (((uint8_t)ekf_report.posTimeout)	<< 1);
@@ -693,7 +704,7 @@ FixedwingEstimator::task_main()
 	/*
 	 * do subscriptions
 	 */
-	_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
+	_baro_sub = orb_subscribe(ORB_ID(sensor_baro0));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -1041,7 +1052,7 @@ FixedwingEstimator::task_main()
 			orb_check(_baro_sub, &baro_updated);
 
 			if (baro_updated) {
-				orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
+				orb_copy(ORB_ID(sensor_baro0), _baro_sub, &_baro);
 
 				_ekf->baroHgt = _baro.altitude;
 
@@ -1133,7 +1144,7 @@ FixedwingEstimator::task_main()
 					initVelNED[2] = _gps.vel_d_m_s;
 
 					// Set up height correctly
-					orb_copy(ORB_ID(sensor_baro), _baro_sub, &_baro);
+					orb_copy(ORB_ID(sensor_baro0), _baro_sub, &_baro);
 					_baro_ref_offset = _ekf->states[9]; // this should become zero in the local frame
 					_baro_gps_offset = _baro.altitude - gps_alt;
 					_ekf->baroHgt = _baro.altitude;
@@ -1452,25 +1463,6 @@ FixedwingEstimator::task_main()
 						} else {
 							/* advertise and publish */
 							_global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &_global_pos);
-						}
-
-						if (hrt_elapsed_time(&_wind.timestamp) > 99000) {
-							_wind.timestamp = _global_pos.timestamp;
-							_wind.windspeed_north = _ekf->states[14];
-							_wind.windspeed_east = _ekf->states[15];
-							_wind.covariance_north = 0.0f; // XXX get form filter
-							_wind.covariance_east = 0.0f;
-
-							/* lazily publish the wind estimate only once available */
-							if (_wind_pub > 0) {
-								/* publish the wind estimate */
-								orb_publish(ORB_ID(wind_estimate), _wind_pub, &_wind);
-
-							} else {
-								/* advertise and publish */
-								_wind_pub = orb_advertise(ORB_ID(wind_estimate), &_wind);
-							}
-
 						}
 
 						if (hrt_elapsed_time(&_wind.timestamp) > 99000) {

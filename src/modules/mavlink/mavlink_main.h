@@ -51,13 +51,14 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/telemetry_status.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_orb_subscription.h"
 #include "mavlink_stream.h"
 #include "mavlink_messages.h"
 #include "mavlink_mission.h"
-
+#include "mavlink_parameters.h"
 
 class Mavlink
 {
@@ -96,6 +97,8 @@ public:
 	static Mavlink		*get_instance_for_device(const char *device_name);
 
 	static int		destroy_all_instances();
+
+	static int		get_status_all_instances();
 
 	static bool		instance_exists(const char *device_name, Mavlink *self);
 
@@ -157,7 +160,12 @@ public:
 	 */
 	int			set_hil_enabled(bool hil_enabled);
 
-	void			send_message(const mavlink_message_t *msg);
+	void		send_message(const uint8_t msgid, const void *msg);
+
+	/**
+	 * Resend message as is, don't change sequence number and CRC.
+	 */
+	void		resend_message(mavlink_message_t *msg);
 
 	void			handle_message(const mavlink_message_t *msg);
 
@@ -185,29 +193,33 @@ public:
 	 *
 	 * @param string the message to send (will be capped by mavlink max string length)
 	 */
-	int			send_statustext_info(const char *string);
+	void			send_statustext_info(const char *string);
 
 	/**
 	 * Send a status text with loglevel CRITICAL
 	 *
 	 * @param string the message to send (will be capped by mavlink max string length)
 	 */
-	int			send_statustext_critical(const char *string);
+	void			send_statustext_critical(const char *string);
 
 	/**
 	 * Send a status text with loglevel EMERGENCY
 	 *
 	 * @param string the message to send (will be capped by mavlink max string length)
 	 */
-	int			send_statustext_emergency(const char *string);
+	void			send_statustext_emergency(const char *string);
 
 	/**
-	 * Send a status text with loglevel
+	 * Send a status text with loglevel, the difference from mavlink_log_xxx() is that message sent
+	 * only on this mavlink connection. Useful for reporting communication specific, not system-wide info
+	 * only to client interested in it. Message will be not sent immediately but queued in buffer as
+	 * for mavlink_log_xxx().
 	 *
 	 * @param string the message to send (will be capped by mavlink max string length)
-	 * @param severity the log level, one of 
+	 * @param severity the log level
 	 */
-	int			send_statustext(unsigned severity, const char *string);
+	void			send_statustext(unsigned char severity, const char *string);
+
 	MavlinkStream *		get_streams() const { return _streams; }
 
 	float			get_rate_mult();
@@ -228,6 +240,28 @@ public:
 	 * Count a transmision error
 	 */
 	void			count_txerr();
+
+	/**
+	 * Count transmitted bytes
+	 */
+	void			count_txbytes(unsigned n) { _bytes_tx += n; };
+
+	/**
+	 * Count bytes not transmitted because of errors
+	 */
+	void			count_txerrbytes(unsigned n) { _bytes_txerr += n; };
+
+	/**
+	 * Count received bytes
+	 */
+	void			count_rxbytes(unsigned n) { _bytes_rx += n; };
+
+	/**
+	 * Get the receive status of this MAVLink link
+	 */
+	struct telemetry_status_s&	get_rx_status() { return _rstatus; }
+
+	struct mavlink_logbuffer	*get_logbuffer() { return &_logbuffer; }
 
 protected:
 	Mavlink			*next;
@@ -250,13 +284,12 @@ private:
 	MavlinkOrbSubscription	*_subscriptions;
 	MavlinkStream		*_streams;
 
-	MavlinkMissionManager *_mission_manager;
+	MavlinkMissionManager	*_mission_manager;
+	MavlinkParametersManager *_parameters_manager;
 
-	orb_advert_t	_mission_pub;
-	int			_mission_result_sub;
-	MAVLINK_MODE _mode;
+	MAVLINK_MODE 		_mode;
 
-	mavlink_channel_t _channel;
+	mavlink_channel_t	_channel;
 
 	struct mavlink_logbuffer _logbuffer;
 	unsigned int		_total_counter;
@@ -269,7 +302,9 @@ private:
 	bool			_ftp_on;
 	int			_uart_fd;
 	int			_baudrate;
-	int			_datarate;
+	int			_datarate;		///< data rate for normal streams (attitude, position, etc.)
+	int			_datarate_events;	///< data rate for params, waypoints, text messages
+	float		_rate_mult;
 
 	/**
 	 * If the queue index is not at 0, the queue sending
@@ -284,6 +319,18 @@ private:
 	float			_subscribe_to_stream_rate;
 
 	bool			_flow_control_enabled;
+	uint64_t		_last_write_success_time;
+	uint64_t		_last_write_try_time;
+
+	unsigned		_bytes_tx;
+	unsigned		_bytes_txerr;
+	unsigned		_bytes_rx;
+	uint64_t		_bytes_timestamp;
+	float		_rate_tx;
+	float		_rate_txerr;
+	float		_rate_rx;
+
+	struct telemetry_status_s	_rstatus;			///< receive status
 
 	struct mavlink_message_buffer {
 		int write_ptr;
@@ -295,6 +342,7 @@ private:
 	mavlink_message_buffer	_message_buffer;
 
 	pthread_mutex_t		_message_buffer_mutex;
+	pthread_mutex_t		_send_mutex;
 
 	bool			_param_initialized;
 	param_t			_param_system_id;
@@ -305,52 +353,27 @@ private:
 	perf_counter_t		_loop_perf;			/**< loop performance counter */
 	perf_counter_t		_txerr_perf;			/**< TX error counter */
 
-	/**
-	 * Send one parameter.
-	 *
-	 * @param param		The parameter id to send.
-	 * @return		zero on success, nonzero on failure.
-	 */
-	int			mavlink_pm_send_param(param_t param);
-
-	/**
-	 * Send one parameter identified by index.
-	 *
-	 * @param index		The index of the parameter to send.
-	 * @return		zero on success, nonzero else.
-	 */
-	int			mavlink_pm_send_param_for_index(uint16_t index);
-
-	/**
-	 * Send one parameter identified by name.
-	 *
-	 * @param name		The index of the parameter to send.
-	 * @return		zero on success, nonzero else.
-	 */
-	int			mavlink_pm_send_param_for_name(const char *name);
-
-	/**
-	 * Send a queue of parameters, one parameter per function call.
-	 *
-	 * @return		zero on success, nonzero on failure
-	 */
-	int			mavlink_pm_queued_send(void);
-
-	/**
-	 * Start sending the parameter queue.
-	 *
-	 * This function will not directly send parameters, but instead
-	 * activate the sending of one parameter on each call of
-	 * mavlink_pm_queued_send().
-	 * @see 		mavlink_pm_queued_send()
-	 */
-	void			mavlink_pm_start_queued_send();
-
 	void			mavlink_update_system();
 
 	int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
 
+	/**
+	 * Get the free space in the transmit buffer
+	 *
+	 * @return free space in the UART TX buffer
+	 */
+	unsigned			get_free_tx_buf();
+
+	static unsigned int interval_from_rate(float rate);
+
 	int configure_stream(const char *stream_name, const float rate);
+
+	/**
+	 * Adjust the stream rates based on the current rate
+	 *
+	 * @param multiplier if greater than 1, the transmission rate will increase, if smaller than one decrease
+	 */
+	void adjust_stream_rates(const float multiplier);
 
 	int message_buffer_init(int size);
 
@@ -366,10 +389,19 @@ private:
 
 	void pass_message(const mavlink_message_t *msg);
 
+	/**
+	 * Update rate mult so total bitrate will be equal to _datarate.
+	 */
+	void update_rate_mult();
+
 	static int	mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
 
 	/**
 	 * Main mavlink task.
 	 */
 	int		task_main(int argc, char *argv[]);
+
+	/* do not allow copying this class */
+	Mavlink(const Mavlink&);
+	Mavlink operator=(const Mavlink&);
 };
