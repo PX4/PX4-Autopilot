@@ -159,10 +159,10 @@ Mavlink::Mavlink() :
 	   _rate_tx(0.0f),
 	   _rate_txerr(0.0f),
 	   _rate_rx(0.0f),
-	   _rstatus{},
-	   _message_buffer{},
-	   _message_buffer_mutex{},
-	   _send_mutex{},
+	   _rstatus {},
+	   _message_buffer {},
+	   _message_buffer_mutex {},
+	   _send_mutex {},
 	   _param_initialized(false),
 	   _param_system_id(0),
 	   _param_component_id(0),
@@ -387,7 +387,7 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 
 			/* if not in normal mode, we are an onboard link
 			 * onboard links should only pass on messages from the same system ID */
-			if(!(self->_mode != MAVLINK_MODE_NORMAL && msg->sysid != mavlink_system.sysid)) {
+			if (!(self->_mode != MAVLINK_MODE_NORMAL && msg->sysid != mavlink_system.sysid)) {
 				inst->pass_message(msg);
 			}
 		}
@@ -731,6 +731,7 @@ Mavlink::get_free_tx_buf()
 			enable_flow_control(false);
 		}
 	}
+
 	return buf_free;
 }
 
@@ -778,7 +779,7 @@ Mavlink::send_message(const uint8_t msgid, const void *msg)
 	/* checksum */
 	uint16_t checksum;
 	crc_init(&checksum);
-	crc_accumulate_buffer(&checksum, (const char*) &buf[1], MAVLINK_CORE_HEADER_LEN + payload_len);
+	crc_accumulate_buffer(&checksum, (const char *) &buf[1], MAVLINK_CORE_HEADER_LEN + payload_len);
 	crc_accumulate(mavlink_message_crcs[msgid], &checksum);
 
 	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
@@ -985,7 +986,7 @@ Mavlink::adjust_stream_rates(const float multiplier)
 		/* allow max ~600 Hz */
 		if (interval < 1600) {
 			interval = 1600;
-		} 
+		}
 
 		/* set new interval */
 		stream->set_interval(interval * multiplier);
@@ -1513,6 +1514,7 @@ Mavlink::task_main(int argc, char *argv[])
 				_bytes_txerr = 0;
 				_bytes_rx = 0;
 			}
+
 			_bytes_timestamp = t;
 		}
 
@@ -1676,6 +1678,7 @@ Mavlink::display_status()
 	} else {
 		printf("\tno telem status.\n");
 	}
+
 	printf("\trates:\n");
 	printf("\ttx: %.3f kB/s\n", (double)_rate_tx);
 	printf("\ttxerr: %.3f kB/s\n", (double)_rate_txerr);
