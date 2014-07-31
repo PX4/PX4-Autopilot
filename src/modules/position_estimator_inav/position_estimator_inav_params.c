@@ -269,7 +269,7 @@ PARAM_DEFINE_FLOAT(INAV_DELAY_GPS, 0.2f);
 /**
  * Disable vision input
  *
- * Set to the appropriate key to disable input
+ * Set to the appropriate key (328754) to disable vision input.
  *
  * @min 0.0
  * @max 1.0
