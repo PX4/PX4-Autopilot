@@ -90,7 +90,7 @@
 static const int ERROR = -1;
 
 #define DEFAULT_DEVICE_NAME	"/dev/ttyS1"
-#define MAX_DATA_RATE	10000	// max data rate in bytes/s
+#define MAX_DATA_RATE	20000	// max data rate in bytes/s
 #define MAIN_LOOP_DELAY 10000	// 100 Hz @ 1000 bytes/s data rate
 
 #define TX_BUFFER_GAP MAVLINK_MAX_PACKET_LEN
@@ -694,7 +694,7 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 	/* enable HIL */
 	if (hil_enabled && !_hil_enabled) {
 		_hil_enabled = true;
-		configure_stream("HIL_CONTROLS", 150.0f);
+		configure_stream("HIL_CONTROLS", 200.0f);
 	}
 
 	/* disable HIL */
