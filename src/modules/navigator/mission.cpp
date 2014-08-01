@@ -273,6 +273,10 @@ Mission::check_dist_1wp()
 
 						if (dist_to_1wp < _param_dist_1wp.get()) {
 							_dist_1wp_ok = true;
+							if (dist_to_1wp > ((_param_dist_1wp.get() * 3) / 2)) {
+								/* allow at 2/3 distance, but warn */
+								mavlink_log_critical(_navigator->get_mavlink_fd(), "Warning: First waypoint very far: %d m", (int)dist_to_1wp);
+							}
 							return true;
 
 						} else {
