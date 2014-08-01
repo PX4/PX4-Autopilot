@@ -65,7 +65,8 @@
 
 PX4IO_Uploader::PX4IO_Uploader() :
 	_io_fd(-1),
-	_fw_fd(-1)
+	_fw_fd(-1),
+	bl_rev(0)
 {
 }
 
@@ -245,7 +246,7 @@ PX4IO_Uploader::upload(const char *filenames[])
 }
 
 int
-PX4IO_Uploader::recv(uint8_t &c, unsigned timeout)
+PX4IO_Uploader::recv_byte_with_timeout(uint8_t *c, unsigned timeout)
 {
 	struct pollfd fds[1];
 
@@ -262,19 +263,19 @@ PX4IO_Uploader::recv(uint8_t &c, unsigned timeout)
 		return -ETIMEDOUT;
 	}
 
-	read(_io_fd, &c, 1);
+	read(_io_fd, c, 1);
 #ifdef UDEBUG
-	log("recv 0x%02x", c);
+	log("recv_bytes 0x%02x", c);
 #endif
 	return OK;
 }
 
 int
-PX4IO_Uploader::recv(uint8_t *p, unsigned count)
+PX4IO_Uploader::recv_bytes(uint8_t *p, unsigned count)
 {
-	int ret;
+	int ret = OK;
 	while (count--) {
-		ret = recv(*p++, 5000);
+		ret = recv_byte_with_timeout(p++, 5000);
 
 		if (ret != OK)
 			break;
@@ -289,10 +290,10 @@ PX4IO_Uploader::drain()
 	int ret;
 
 	do {
-		// the small recv timeout here is to allow for fast
+		// the small recv_bytes timeout here is to allow for fast
 		// drain when rebooting the io board for a forced
 		// update of the fw without using the safety switch
-		ret = recv(c, 40);
+		ret = recv_byte_with_timeout(&c, 40);
 
 #ifdef UDEBUG
 		if (ret == OK) {
@@ -331,12 +332,12 @@ PX4IO_Uploader::get_sync(unsigned timeout)
 	uint8_t c[2];
 	int ret;
 
-	ret = recv(c[0], timeout);
+	ret = recv_byte_with_timeout(c, timeout);
 
 	if (ret != OK)
 		return ret;
 
-	ret = recv(c[1], timeout);
+	ret = recv_byte_with_timeout(c + 1, timeout);
 
 	if (ret != OK)
 		return ret;
@@ -372,7 +373,7 @@ PX4IO_Uploader::get_info(int param, uint32_t &val)
 	send(param);
 	send(PROTO_EOC);
 
-	ret = recv((uint8_t *)&val, sizeof(val));
+	ret = recv_bytes((uint8_t *)&val, sizeof(val));
 
 	if (ret != OK)
 		return ret;
@@ -513,7 +514,7 @@ PX4IO_Uploader::verify_rev2(size_t fw_size)
 		for (ssize_t i = 0; i < count; i++) {
 			uint8_t c;
 
-			ret = recv(c, 5000);
+			ret = recv_byte_with_timeout(&c, 5000);
 
 			if (ret != OK) {
 				log("%d: got %d waiting for bytes", sent + i, ret);
@@ -600,7 +601,7 @@ PX4IO_Uploader::verify_rev3(size_t fw_size_local)
 	send(PROTO_GET_CRC);
 	send(PROTO_EOC);
 
-	ret = recv((uint8_t*)(&crc), sizeof(crc));
+	ret = recv_bytes((uint8_t*)(&crc), sizeof(crc));
 
 	if (ret != OK) {
 		log("did not receive CRC checksum");

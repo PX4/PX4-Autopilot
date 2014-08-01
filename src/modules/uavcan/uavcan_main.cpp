@@ -39,6 +39,8 @@
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/mixer/mixer.h>
+#include <systemlib/board_serial.h>
+#include <version/version.h>
 #include <arch/board/board.h>
 #include <arch/chip/chip.h>
 
@@ -173,6 +175,44 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	return OK;
 }
 
+void UavcanNode::fill_node_info()
+{
+	/* software version */
+	uavcan::protocol::SoftwareVersion swver;
+
+	// Extracting the last 8 hex digits of FW_GIT and converting them to int
+	const unsigned fw_git_len = std::strlen(FW_GIT);
+	if (fw_git_len >= 8) {
+		char fw_git_short[9] = {};
+		std::memmove(fw_git_short, FW_GIT + fw_git_len - 8, 8);
+		assert(fw_git_short[8] == '\0');
+		char *end = nullptr;
+		swver.vcs_commit = std::strtol(fw_git_short, &end, 16);
+		swver.optional_field_mask |= swver.OPTIONAL_FIELD_MASK_VCS_COMMIT;
+	}
+
+	warnx("SW version vcs_commit: 0x%08x", unsigned(swver.vcs_commit));
+
+	_node.setSoftwareVersion(swver);
+
+	/* hardware version */
+	uavcan::protocol::HardwareVersion hwver;
+
+	if (!std::strncmp(HW_ARCH, "PX4FMU_V1", 9)) {
+		hwver.major = 1;
+	} else if (!std::strncmp(HW_ARCH, "PX4FMU_V2", 9)) {
+		hwver.major = 2;
+	} else {
+		; // All other values of HW_ARCH resolve to zero
+	}
+
+	uint8_t udid[12] = {};  // Someone seems to love magic numbers
+	get_board_serial(udid);
+	uavcan::copy(udid, udid + sizeof(udid), hwver.unique_id.begin());
+
+	_node.setHardwareVersion(hwver);
+}
+
 int UavcanNode::init(uavcan::NodeID node_id)
 {
 	int ret = -1;
@@ -183,6 +223,13 @@ int UavcanNode::init(uavcan::NodeID node_id)
 	if (ret != OK)
 		return ret;
 
+	_node.setName("org.pixhawk.pixhawk");
+
+	_node.setNodeID(node_id);
+
+	fill_node_info();
+
+	/* initializing the bridges UAVCAN <--> uORB */
 	ret = _esc_controller.init();
 	if (ret < 0)
 		return ret;
@@ -190,20 +237,6 @@ int UavcanNode::init(uavcan::NodeID node_id)
 	ret = _gnss_receiver.init();
 	if (ret < 0)
 		return ret;
-
-	uavcan::protocol::SoftwareVersion swver;
-	swver.major = 12;                        // TODO fill version info
-	swver.minor = 34;
-	_node.setSoftwareVersion(swver);
-
-	uavcan::protocol::HardwareVersion hwver;
-	hwver.major = 42;                        // TODO fill version info
-	hwver.minor = 42;
-	_node.setHardwareVersion(hwver);
-
-	_node.setName("org.pixhawk"); // Huh?
-
-	_node.setNodeID(node_id);
 
 	return _node.start();
 }

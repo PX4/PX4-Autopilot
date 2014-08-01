@@ -157,6 +157,10 @@ private:
 	perf_counter_t		_pc_idle;
 	perf_counter_t		_pc_badidle;
 
+	/* do not allow top copying this class */
+	PX4IO_serial(PX4IO_serial &);
+	PX4IO_serial& operator = (const PX4IO_serial &);
+
 };
 
 IOPacket PX4IO_serial::_dma_buffer;
@@ -173,7 +177,9 @@ PX4IO_serial::PX4IO_serial() :
 	_tx_dma(nullptr),
 	_rx_dma(nullptr),
 	_rx_dma_status(_dma_status_inactive),
-	_pc_txns(perf_alloc(PC_ELAPSED,		"io_txns     ")),
+	_bus_semaphore(SEM_INITIALIZER(0)),
+	_completion_semaphore(SEM_INITIALIZER(0)),
+	_pc_txns(perf_alloc(PC_ELAPSED, "io_txns     ")),
 	_pc_dmasetup(perf_alloc(PC_ELAPSED,	"io_dmasetup ")),
 	_pc_retries(perf_alloc(PC_COUNT,	"io_retries  ")),
 	_pc_timeouts(perf_alloc(PC_COUNT,	"io_timeouts ")),

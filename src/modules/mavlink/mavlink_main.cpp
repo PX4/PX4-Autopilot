@@ -78,7 +78,6 @@
 #include "mavlink_messages.h"
 #include "mavlink_receiver.h"
 #include "mavlink_rate_limiter.h"
-#include "mavlink_commands.h"
 
 #ifndef MAVLINK_CRC_EXTRA
 #error MAVLINK_CRC_EXTRA has to be defined on PX4 systems
@@ -91,13 +90,18 @@
 static const int ERROR = -1;
 
 #define DEFAULT_DEVICE_NAME	"/dev/ttyS1"
-#define MAX_DATA_RATE	10000	// max data rate in bytes/s
+#define MAX_DATA_RATE	20000	// max data rate in bytes/s
 #define MAIN_LOOP_DELAY 10000	// 100 Hz @ 1000 bytes/s data rate
+
+#define TX_BUFFER_GAP MAVLINK_MAX_PACKET_LEN
 
 static Mavlink *_mavlink_instances = nullptr;
 
 /* TODO: if this is a class member it crashes */
 static struct file_operations fops;
+
+static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
+static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
 
 /**
  * mavlink app start / stop handling function
@@ -107,113 +111,6 @@ static struct file_operations fops;
 extern "C" __EXPORT int mavlink_main(int argc, char *argv[]);
 
 extern mavlink_system_t mavlink_system;
-
-static uint64_t last_write_success_times[6] = {0};
-static uint64_t last_write_try_times[6] = {0};
-
-/*
- * Internal function to send the bytes through the right serial port
- */
-void
-mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length)
-{
-
-	Mavlink *instance;
-
-	switch (channel) {
-	case MAVLINK_COMM_0:
-		instance = Mavlink::get_instance(0);
-		break;
-
-	case MAVLINK_COMM_1:
-		instance = Mavlink::get_instance(1);
-		break;
-
-	case MAVLINK_COMM_2:
-		instance = Mavlink::get_instance(2);
-		break;
-
-	case MAVLINK_COMM_3:
-		instance = Mavlink::get_instance(3);
-		break;
-#ifdef MAVLINK_COMM_4
-
-	case MAVLINK_COMM_4:
-		instance = Mavlink::get_instance(4);
-		break;
-#endif
-#ifdef MAVLINK_COMM_5
-
-	case MAVLINK_COMM_5:
-		instance = Mavlink::get_instance(5);
-		break;
-#endif
-#ifdef MAVLINK_COMM_6
-
-	case MAVLINK_COMM_6:
-		instance = Mavlink::get_instance(6);
-		break;
-#endif
-
-	default:
-		return;
-	}
-
-	int uart = instance->get_uart_fd();
-
-	ssize_t desired = (sizeof(uint8_t) * length);
-
-	/*
-	 * Check if the OS buffer is full and disable HW
-	 * flow control if it continues to be full
-	 */
-	int buf_free = 0;
-
-	if (instance->get_flow_control_enabled()
-	    && ioctl(uart, FIONWRITE, (unsigned long)&buf_free) == 0) {
-
-		/* Disable hardware flow control:
-		 * if no successful write since a defined time
-		 * and if the last try was not the last successful write
-		 */
-		if (last_write_try_times[(unsigned)channel] != 0 &&
-		    hrt_elapsed_time(&last_write_success_times[(unsigned)channel]) > 500 * 1000UL &&
-		    last_write_success_times[(unsigned)channel] !=
-		    last_write_try_times[(unsigned)channel]) {
-			warnx("DISABLING HARDWARE FLOW CONTROL");
-			instance->enable_flow_control(false);
-		}
-
-	}
-
-	/* If the wait until transmit flag is on, only transmit after we've received messages.
-	   Otherwise, transmit all the time. */
-	if (instance->should_transmit()) {
-		last_write_try_times[(unsigned)channel] = hrt_absolute_time();
-
-		/* check if there is space in the buffer, let it overflow else */
-		if (!ioctl(uart, FIONWRITE, (unsigned long)&buf_free)) {
-
-			if (buf_free < desired) {
-				/* we don't want to send anything just in half, so return */
-				instance->count_txerr();
-				instance->count_txerrbytes(desired);
-				return;
-			}
-		}
-
-		ssize_t ret = write(uart, ch, desired);
-
-		if (ret != desired) {
-			instance->count_txerr();
-			instance->count_txerrbytes(desired);
-
-		} else {
-			last_write_success_times[(unsigned)channel] = last_write_try_times[(unsigned)channel];
-			instance->count_txbytes(desired);
-		}
-	}
-}
 
 static void usage(void);
 
@@ -233,8 +130,7 @@ Mavlink::Mavlink() :
 	_subscriptions(nullptr),
 	_streams(nullptr),
 	_mission_manager(nullptr),
-	_mission_pub(-1),
-	_mission_result_sub(-1),
+	_parameters_manager(nullptr),
 	_mode(MAVLINK_MODE_NORMAL),
 	_channel(MAVLINK_COMM_0),
 	_logbuffer {},
@@ -246,12 +142,16 @@ Mavlink::Mavlink() :
 	   _ftp_on(false),
 	   _uart_fd(-1),
 	   _baudrate(57600),
-	   _datarate(10000),
+	   _datarate(1000),
+	   _datarate_events(500),
+	   _rate_mult(1.0f),
 	   _mavlink_param_queue_index(0),
 	   mavlink_link_termination_allowed(false),
 	   _subscribe_to_stream(nullptr),
 	   _subscribe_to_stream_rate(0.0f),
 	   _flow_control_enabled(true),
+	   _last_write_success_time(0),
+	   _last_write_try_time(0),
 	   _bytes_tx(0),
 	   _bytes_txerr(0),
 	   _bytes_rx(0),
@@ -262,6 +162,7 @@ Mavlink::Mavlink() :
 	   _rstatus {},
 	   _message_buffer {},
 	   _message_buffer_mutex {},
+	   _send_mutex {},
 	   _param_initialized(false),
 	   _param_system_id(0),
 	   _param_component_id(0),
@@ -483,7 +384,12 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 	Mavlink *inst;
 	LL_FOREACH(_mavlink_instances, inst) {
 		if (inst != self) {
-			inst->pass_message(msg);
+
+			/* if not in normal mode, we are an onboard link
+			 * onboard links should only pass on messages from the same system ID */
+			if (!(self->_mode != MAVLINK_MODE_NORMAL && msg->sysid != mavlink_system.sysid)) {
+				inst->pass_message(msg);
+			}
 		}
 	}
 }
@@ -531,10 +437,26 @@ Mavlink::mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 	case (int)MAVLINK_IOC_SEND_TEXT_EMERGENCY: {
 
 			const char *txt = (const char *)arg;
-//		printf("logmsg: %s\n", txt);
 			struct mavlink_logmessage msg;
 			strncpy(msg.text, txt, sizeof(msg.text));
-			msg.severity = (unsigned char)cmd;
+
+			switch (cmd) {
+			case MAVLINK_IOC_SEND_TEXT_INFO:
+				msg.severity = MAV_SEVERITY_INFO;
+				break;
+
+			case MAVLINK_IOC_SEND_TEXT_CRITICAL:
+				msg.severity = MAV_SEVERITY_CRITICAL;
+				break;
+
+			case MAVLINK_IOC_SEND_TEXT_EMERGENCY:
+				msg.severity = MAV_SEVERITY_EMERGENCY;
+				break;
+
+			default:
+				msg.severity = MAV_SEVERITY_INFO;
+				break;
+			}
 
 			Mavlink *inst;
 			LL_FOREACH(_mavlink_instances, inst) {
@@ -728,6 +650,9 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 		if (enable_flow_control(true)) {
 			warnx("hardware flow control not supported");
 		}
+
+	} else {
+		_flow_control_enabled = false;
 	}
 
 	return _uart_fd;
@@ -769,8 +694,7 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 	/* enable HIL */
 	if (hil_enabled && !_hil_enabled) {
 		_hil_enabled = true;
-		float rate_mult = _datarate / 1000.0f;
-		configure_stream("HIL_CONTROLS", 15.0f * rate_mult);
+		configure_stream("HIL_CONTROLS", 200.0f);
 	}
 
 	/* disable HIL */
@@ -785,13 +709,145 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 	return ret;
 }
 
-void
-Mavlink::send_message(const mavlink_message_t *msg)
+unsigned
+Mavlink::get_free_tx_buf()
 {
+	/*
+	 * Check if the OS buffer is full and disable HW
+	 * flow control if it continues to be full
+	 */
+	int buf_free = 0;
+	(void) ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free);
+
+	if (get_flow_control_enabled() && buf_free < TX_BUFFER_GAP) {
+		/* Disable hardware flow control:
+		 * if no successful write since a defined time
+		 * and if the last try was not the last successful write
+		 */
+		if (_last_write_try_time != 0 &&
+		    hrt_elapsed_time(&_last_write_success_time) > 500 * 1000UL &&
+		    _last_write_success_time != _last_write_try_time) {
+			warnx("DISABLING HARDWARE FLOW CONTROL");
+			enable_flow_control(false);
+		}
+	}
+
+	return buf_free;
+}
+
+void
+Mavlink::send_message(const uint8_t msgid, const void *msg)
+{
+	/* If the wait until transmit flag is on, only transmit after we've received messages.
+	   Otherwise, transmit all the time. */
+	if (!should_transmit()) {
+		return;
+	}
+
+	pthread_mutex_lock(&_send_mutex);
+
+	int buf_free = get_free_tx_buf();
+
+	uint8_t payload_len = mavlink_message_lengths[msgid];
+	unsigned packet_len = payload_len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+
+	_last_write_try_time = hrt_absolute_time();
+
+	/* check if there is space in the buffer, let it overflow else */
+	if (buf_free < TX_BUFFER_GAP) {
+		/* no enough space in buffer to send */
+		count_txerr();
+		count_txerrbytes(packet_len);
+		pthread_mutex_unlock(&_send_mutex);
+		return;
+	}
+
 	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
 
-	uint16_t len = mavlink_msg_to_send_buffer(buf, msg);
-	mavlink_send_uart_bytes(_channel, buf, len);
+	/* header */
+	buf[0] = MAVLINK_STX;
+	buf[1] = payload_len;
+	/* use mavlink's internal counter for the TX seq */
+	buf[2] = mavlink_get_channel_status(_channel)->current_tx_seq++;
+	buf[3] = mavlink_system.sysid;
+	buf[4] = mavlink_system.compid;
+	buf[5] = msgid;
+
+	/* payload */
+	memcpy(&buf[MAVLINK_NUM_HEADER_BYTES], msg, payload_len);
+
+	/* checksum */
+	uint16_t checksum;
+	crc_init(&checksum);
+	crc_accumulate_buffer(&checksum, (const char *) &buf[1], MAVLINK_CORE_HEADER_LEN + payload_len);
+	crc_accumulate(mavlink_message_crcs[msgid], &checksum);
+
+	buf[MAVLINK_NUM_HEADER_BYTES + payload_len] = (uint8_t)(checksum & 0xFF);
+	buf[MAVLINK_NUM_HEADER_BYTES + payload_len + 1] = (uint8_t)(checksum >> 8);
+
+	/* send message to UART */
+	ssize_t ret = write(_uart_fd, buf, packet_len);
+
+	if (ret != (int) packet_len) {
+		count_txerr();
+		count_txerrbytes(packet_len);
+
+	} else {
+		_last_write_success_time = _last_write_try_time;
+		count_txbytes(packet_len);
+	}
+
+	pthread_mutex_unlock(&_send_mutex);
+}
+
+void
+Mavlink::resend_message(mavlink_message_t *msg)
+{
+	/* If the wait until transmit flag is on, only transmit after we've received messages.
+	   Otherwise, transmit all the time. */
+	if (!should_transmit()) {
+		return;
+	}
+
+	pthread_mutex_lock(&_send_mutex);
+
+	int buf_free = get_free_tx_buf();
+
+	_last_write_try_time = hrt_absolute_time();
+
+	unsigned packet_len = msg->len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+
+	/* check if there is space in the buffer, let it overflow else */
+	if (buf_free < TX_BUFFER_GAP) {
+		/* no enough space in buffer to send */
+		count_txerr();
+		count_txerrbytes(packet_len);
+		pthread_mutex_unlock(&_send_mutex);
+		return;
+	}
+
+	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+
+	/* header and payload */
+	memcpy(&buf[0], &msg->magic, MAVLINK_NUM_HEADER_BYTES + msg->len);
+
+	/* checksum */
+	buf[MAVLINK_NUM_HEADER_BYTES + msg->len] = (uint8_t)(msg->checksum & 0xFF);
+	buf[MAVLINK_NUM_HEADER_BYTES + msg->len + 1] = (uint8_t)(msg->checksum >> 8);
+
+	/* send message to UART */
+	ssize_t ret = write(_uart_fd, buf, packet_len);
+
+	if (ret != (int) packet_len) {
+		count_txerr();
+		count_txerrbytes(packet_len);
+
+	} else {
+		_last_write_success_time = _last_write_try_time;
+		count_txbytes(packet_len);
+	}
+
+	pthread_mutex_unlock(&_send_mutex);
 }
 
 void
@@ -801,7 +857,7 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	_mission_manager->handle_message(msg);
 
 	/* handle packet with parameter component */
-	mavlink_pm_message_handler(_channel, msg);
+	_parameters_manager->handle_message(msg);
 
 	if (get_forwarding_on()) {
 		/* forward any messages to other mavlink instances */
@@ -809,224 +865,32 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	}
 }
 
-int
-Mavlink::mavlink_pm_queued_send()
-{
-	if (_mavlink_param_queue_index < param_count()) {
-		mavlink_pm_send_param(param_for_index(_mavlink_param_queue_index));
-		_mavlink_param_queue_index++;
-		return 0;
-
-	} else {
-		return 1;
-	}
-}
-
-void Mavlink::mavlink_pm_start_queued_send()
-{
-	_mavlink_param_queue_index = 0;
-}
-
-int Mavlink::mavlink_pm_send_param_for_index(uint16_t index)
-{
-	return mavlink_pm_send_param(param_for_index(index));
-}
-
-int Mavlink::mavlink_pm_send_param_for_name(const char *name)
-{
-	return mavlink_pm_send_param(param_find(name));
-}
-
-int Mavlink::mavlink_pm_send_param(param_t param)
-{
-	if (param == PARAM_INVALID) { return 1; }
-
-	/* buffers for param transmission */
-	char name_buf[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN];
-	float val_buf;
-	mavlink_message_t tx_msg;
-
-	/* query parameter type */
-	param_type_t type = param_type(param);
-	/* copy parameter name */
-	strncpy((char *)name_buf, param_name(param), MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
-
-	/*
-	 * Map onboard parameter type to MAVLink type,
-	 * endianess matches (both little endian)
-	 */
-	uint8_t mavlink_type;
-
-	if (type == PARAM_TYPE_INT32) {
-		mavlink_type = MAVLINK_TYPE_INT32_T;
-
-	} else if (type == PARAM_TYPE_FLOAT) {
-		mavlink_type = MAVLINK_TYPE_FLOAT;
-
-	} else {
-		mavlink_type = MAVLINK_TYPE_FLOAT;
-	}
-
-	/*
-	 * get param value, since MAVLink encodes float and int params in the same
-	 * space during transmission, copy param onto float val_buf
-	 */
-
-	int ret;
-
-	if ((ret = param_get(param, &val_buf)) != OK) {
-		return ret;
-	}
-
-	mavlink_msg_param_value_pack_chan(mavlink_system.sysid,
-					  mavlink_system.compid,
-					  _channel,
-					  &tx_msg,
-					  name_buf,
-					  val_buf,
-					  mavlink_type,
-					  param_count(),
-					  param_get_index(param));
-	send_message(&tx_msg);
-	return OK;
-}
-
-void Mavlink::mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_message_t *msg)
-{
-	switch (msg->msgid) {
-	case MAVLINK_MSG_ID_PARAM_REQUEST_LIST: {
-			mavlink_param_request_list_t req;
-			mavlink_msg_param_request_list_decode(msg, &req);
-
-			if (req.target_system == mavlink_system.sysid &&
-			    (req.target_component == mavlink_system.compid || req.target_component == MAV_COMP_ID_ALL)) {
-				/* Start sending parameters */
-				mavlink_pm_start_queued_send();
-				send_statustext_info("[pm] sending list");
-			}
-		} break;
-
-	case MAVLINK_MSG_ID_PARAM_SET: {
-
-			/* Handle parameter setting */
-
-			if (msg->msgid == MAVLINK_MSG_ID_PARAM_SET) {
-				mavlink_param_set_t mavlink_param_set;
-				mavlink_msg_param_set_decode(msg, &mavlink_param_set);
-
-				if (mavlink_param_set.target_system == mavlink_system.sysid
-				    && ((mavlink_param_set.target_component == mavlink_system.compid)
-					|| (mavlink_param_set.target_component == MAV_COMP_ID_ALL))) {
-					/* local name buffer to enforce null-terminated string */
-					char name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN + 1];
-					strncpy(name, mavlink_param_set.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
-					/* enforce null termination */
-					name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
-					/* attempt to find parameter, set and send it */
-					param_t param = param_find(name);
-
-					if (param == PARAM_INVALID) {
-						char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
-						sprintf(buf, "[pm] unknown: %s", name);
-						send_statustext_info(buf);
-
-					} else {
-						/* set and send parameter */
-						param_set(param, &(mavlink_param_set.param_value));
-						mavlink_pm_send_param(param);
-					}
-				}
-			}
-		} break;
-
-	case MAVLINK_MSG_ID_PARAM_REQUEST_READ: {
-			mavlink_param_request_read_t mavlink_param_request_read;
-			mavlink_msg_param_request_read_decode(msg, &mavlink_param_request_read);
-
-			if (mavlink_param_request_read.target_system == mavlink_system.sysid
-			    && ((mavlink_param_request_read.target_component == mavlink_system.compid)
-				|| (mavlink_param_request_read.target_component == MAV_COMP_ID_ALL))) {
-				/* when no index is given, loop through string ids and compare them */
-				if (mavlink_param_request_read.param_index == -1) {
-					/* local name buffer to enforce null-terminated string */
-					char name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN + 1];
-					strncpy(name, mavlink_param_request_read.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
-					/* enforce null termination */
-					name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
-					/* attempt to find parameter and send it */
-					mavlink_pm_send_param_for_name(name);
-
-				} else {
-					/* when index is >= 0, send this parameter again */
-					mavlink_pm_send_param_for_index(mavlink_param_request_read.param_index);
-				}
-			}
-
-		} break;
-	}
-}
-
-int
+void
 Mavlink::send_statustext_info(const char *string)
 {
-	return send_statustext(MAVLINK_IOC_SEND_TEXT_INFO, string);
+	send_statustext(MAV_SEVERITY_INFO, string);
 }
 
-int
+void
 Mavlink::send_statustext_critical(const char *string)
 {
-	return send_statustext(MAVLINK_IOC_SEND_TEXT_CRITICAL, string);
+	send_statustext(MAV_SEVERITY_CRITICAL, string);
 }
 
-int
+void
 Mavlink::send_statustext_emergency(const char *string)
 {
-	return send_statustext(MAVLINK_IOC_SEND_TEXT_EMERGENCY, string);
+	send_statustext(MAV_SEVERITY_EMERGENCY, string);
 }
 
-int
-Mavlink::send_statustext(unsigned severity, const char *string)
+void
+Mavlink::send_statustext(unsigned char severity, const char *string)
 {
-	const int len = MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN;
-	mavlink_statustext_t statustext;
+	struct mavlink_logmessage logmsg;
+	strncpy(logmsg.text, string, sizeof(logmsg.text));
+	logmsg.severity = severity;
 
-	int i = 0;
-
-	while (i < len - 1) {
-		statustext.text[i] = string[i];
-
-		if (string[i] == '\0') {
-			break;
-		}
-
-		i++;
-	}
-
-	if (i > 1) {
-		/* Enforce null termination */
-		statustext.text[i] = '\0';
-
-		/* Map severity */
-		switch (severity) {
-		case MAVLINK_IOC_SEND_TEXT_INFO:
-			statustext.severity = MAV_SEVERITY_INFO;
-			break;
-
-		case MAVLINK_IOC_SEND_TEXT_CRITICAL:
-			statustext.severity = MAV_SEVERITY_CRITICAL;
-			break;
-
-		case MAVLINK_IOC_SEND_TEXT_EMERGENCY:
-			statustext.severity = MAV_SEVERITY_EMERGENCY;
-			break;
-		}
-
-		mavlink_msg_statustext_send(_channel, statustext.severity, statustext.text);
-		return OK;
-
-	} else {
-		return ERROR;
-	}
+	mavlink_logbuffer_write(&_logbuffer, &logmsg);
 }
 
 MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic)
@@ -1049,11 +913,17 @@ MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic)
 	return sub_new;
 }
 
+unsigned int
+Mavlink::interval_from_rate(float rate)
+{
+	return (rate > 0.0f) ? (1000000.0f / rate) : 0;
+}
+
 int
 Mavlink::configure_stream(const char *stream_name, const float rate)
 {
 	/* calculate interval in us, 0 means disabled stream */
-	unsigned int interval = (rate > 0.0f) ? (1000000.0f / rate) : 0;
+	unsigned int interval = interval_from_rate(rate);
 
 	/* search if stream exists */
 	MavlinkStream *stream;
@@ -1084,10 +954,8 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 
 		if (strcmp(stream_name, streams_list[i]->get_name()) == 0) {
 			/* create new instance */
-			stream = streams_list[i]->new_instance();
-			stream->set_channel(get_channel());
+			stream = streams_list[i]->new_instance(this);
 			stream->set_interval(interval);
-			stream->subscribe(this);
 			LL_APPEND(_streams, stream);
 
 			return OK;
@@ -1098,6 +966,31 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	warnx("stream %s not found", stream_name);
 
 	return ERROR;
+}
+
+void
+Mavlink::adjust_stream_rates(const float multiplier)
+{
+	/* do not allow to push us to zero */
+	if (multiplier < 0.01f) {
+		return;
+	}
+
+	/* search if stream exists */
+	MavlinkStream *stream;
+	LL_FOREACH(_streams, stream) {
+		/* set new interval */
+		unsigned interval = stream->get_interval();
+		interval /= multiplier;
+
+		/* allow max ~600 Hz */
+		if (interval < 1600) {
+			interval = 1600;
+		}
+
+		/* set new interval */
+		stream->set_interval(interval * multiplier);
+	}
 }
 
 void
@@ -1260,7 +1153,27 @@ Mavlink::pass_message(const mavlink_message_t *msg)
 float
 Mavlink::get_rate_mult()
 {
-	return _datarate / 1000.0f;
+	return _rate_mult;
+}
+
+void
+Mavlink::update_rate_mult()
+{
+	float const_rate = 0.0f;
+	float rate = 0.0f;
+
+	MavlinkStream *stream;
+	LL_FOREACH(_streams, stream) {
+		if (stream->const_rate()) {
+			const_rate += stream->get_size() * 1000000.0f / stream->get_interval();
+
+		} else {
+			rate += stream->get_size() * 1000000.0f / stream->get_interval();
+		}
+	}
+
+	/* don't scale up rates, only scale down if needed */
+	_rate_mult = fminf(1.0f, ((float)_datarate - const_rate) / rate);
 }
 
 int
@@ -1398,6 +1311,9 @@ Mavlink::task_main(int argc, char *argv[])
 		return ERROR;
 	}
 
+	/* initialize send mutex */
+	pthread_mutex_init(&_send_mutex, NULL);
+
 	/* initialize mavlink text message buffering */
 	mavlink_logbuffer_init(&_logbuffer, 5);
 
@@ -1407,7 +1323,7 @@ Mavlink::task_main(int argc, char *argv[])
 		 * make space for two messages plus off-by-one space as we use the empty element
 		 * marker ring buffer approach.
 		 */
-		if (OK != message_buffer_init(2 * MAVLINK_MAX_PACKET_LEN + 2)) {
+		if (OK != message_buffer_init(2 * sizeof(mavlink_message_t) + 1)) {
 			errx(1, "can't allocate message buffer, exiting");
 		}
 
@@ -1427,12 +1343,6 @@ Mavlink::task_main(int argc, char *argv[])
 	/* start the MAVLink receiver */
 	_receive_thread = MavlinkReceiver::receive_start(this);
 
-	_mission_result_sub = orb_subscribe(ORB_ID(mission_result));
-
-	/* create mission manager */
-	_mission_manager = new MavlinkMissionManager(this);
-	_mission_manager->set_verbose(_verbose);
-
 	_task_running = true;
 
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
@@ -1443,34 +1353,50 @@ Mavlink::task_main(int argc, char *argv[])
 	struct vehicle_status_s status;
 	status_sub->update(&status_time, &status);
 
-	MavlinkCommandsStream commands_stream(this, _channel);
+	/* add default streams depending on mode */
 
-	/* add default streams depending on mode and intervals depending on datarate */
-	float rate_mult = get_rate_mult();
-
+	/* HEARTBEAT is constant rate stream, rate never adjusted */
 	configure_stream("HEARTBEAT", 1.0f);
+
+	/* STATUSTEXT stream is like normal stream but gets messages from logbuffer instead of uORB */
+	configure_stream("STATUSTEXT", 20.0f);
+
+	/* COMMAND_LONG stream: use high rate to avoid commands skipping */
+	configure_stream("COMMAND_LONG", 100.0f);
+
+	/* PARAM_VALUE stream */
+	_parameters_manager = (MavlinkParametersManager *) MavlinkParametersManager::new_instance(this);
+	_parameters_manager->set_interval(interval_from_rate(30.0f));
+	LL_APPEND(_streams, _parameters_manager);
+
+	/* MISSION_STREAM stream, actually sends all MISSION_XXX messages at some rate depending on
+	 * remote requests rate. Rate specified here controls how much bandwidth we will reserve for
+	 * mission messages. */
+	_mission_manager = (MavlinkMissionManager *) MavlinkMissionManager::new_instance(this);
+	_mission_manager->set_interval(interval_from_rate(10.0f));
+	_mission_manager->set_verbose(_verbose);
+	LL_APPEND(_streams, _mission_manager);
 
 	switch (_mode) {
 	case MAVLINK_MODE_NORMAL:
 		configure_stream("SYS_STATUS", 1.0f);
 		configure_stream("GPS_GLOBAL_ORIGIN", 0.5f);
-		configure_stream("HIGHRES_IMU", 1.0f * rate_mult);
-		configure_stream("ATTITUDE", 10.0f * rate_mult);
-		configure_stream("VFR_HUD", 8.0f * rate_mult);
-		configure_stream("GPS_RAW_INT", 1.0f * rate_mult);
-		configure_stream("GLOBAL_POSITION_INT", 3.0f * rate_mult);
-		configure_stream("LOCAL_POSITION_NED", 3.0f * rate_mult);
-		configure_stream("RC_CHANNELS_RAW", 1.0f * rate_mult);
-		configure_stream("NAMED_VALUE_FLOAT", 1.0f * rate_mult);
-		configure_stream("GLOBAL_POSITION_SETPOINT_INT", 3.0f * rate_mult);
-		configure_stream("ROLL_PITCH_YAW_THRUST_SETPOINT", 3.0f * rate_mult);
+		configure_stream("HIGHRES_IMU", 1.0f);
+		configure_stream("ATTITUDE", 10.0f);
+		configure_stream("VFR_HUD", 8.0f);
+		configure_stream("GPS_RAW_INT", 1.0f);
+		configure_stream("GLOBAL_POSITION_INT", 3.0f);
+		configure_stream("LOCAL_POSITION_NED", 3.0f);
+		configure_stream("RC_CHANNELS_RAW", 1.0f);
+		configure_stream("GLOBAL_POSITION_SETPOINT_INT", 3.0f);
+		configure_stream("ROLL_PITCH_YAW_THRUST_SETPOINT", 3.0f);
 		configure_stream("DISTANCE_SENSOR", 0.5f);
 		break;
 
 	case MAVLINK_MODE_CAMERA:
 		configure_stream("SYS_STATUS", 1.0f);
-		configure_stream("ATTITUDE", 15.0f * rate_mult);
-		configure_stream("GLOBAL_POSITION_INT", 15.0f * rate_mult);
+		configure_stream("ATTITUDE", 15.0f);
+		configure_stream("GLOBAL_POSITION_INT", 15.0f);
 		configure_stream("CAMERA_CAPTURE", 1.0f);
 		break;
 
@@ -1478,13 +1404,8 @@ Mavlink::task_main(int argc, char *argv[])
 		break;
 	}
 
-	/* don't send parameters on startup without request */
-	_mavlink_param_queue_index = param_count();
-
-	MavlinkRateLimiter fast_rate_limiter(30000.0f / rate_mult);
-
 	/* set main loop delay depending on data rate to minimize CPU overhead */
-	_main_loop_delay = MAIN_LOOP_DELAY / rate_mult;
+	_main_loop_delay = MAIN_LOOP_DELAY * 1000 / _datarate;
 
 	/* now the instance is fully initialized and we can bump the instance count */
 	LL_APPEND(_mavlink_instances, this);
@@ -1497,6 +1418,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 		hrt_abstime t = hrt_absolute_time();
 
+		update_rate_mult();
+
 		if (param_sub->update(&param_time, nullptr)) {
 			/* parameters updated */
 			mavlink_update_system();
@@ -1506,9 +1429,6 @@ Mavlink::task_main(int argc, char *argv[])
 			/* switch HIL mode if required */
 			set_hil_enabled(status.hil_state == HIL_STATE_ON);
 		}
-
-		/* update commands stream */
-		commands_stream.update(t);
 
 		/* check for requested subscriptions */
 		if (_subscribe_to_stream != nullptr) {
@@ -1533,20 +1453,6 @@ Mavlink::task_main(int argc, char *argv[])
 		MavlinkStream *stream;
 		LL_FOREACH(_streams, stream) {
 			stream->update(t);
-		}
-
-		if (fast_rate_limiter.check(t)) {
-			mavlink_pm_queued_send();
-			_mission_manager->eventloop();
-
-			if (!mavlink_logbuffer_is_empty(&_logbuffer)) {
-				struct mavlink_logmessage msg;
-				int lb_ret = mavlink_logbuffer_read(&_logbuffer, &msg);
-
-				if (lb_ret == OK) {
-					send_statustext(msg.severity, msg.text);
-				}
-			}
 		}
 
 		/* pass messages from other UARTs or FTP worker */
@@ -1593,7 +1499,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 				pthread_mutex_unlock(&_message_buffer_mutex);
 
-				_mavlink_resend_uart(_channel, &msg);
+				resend_message(&msg);
 			}
 		}
 
@@ -1608,13 +1514,12 @@ Mavlink::task_main(int argc, char *argv[])
 				_bytes_txerr = 0;
 				_bytes_rx = 0;
 			}
+
 			_bytes_timestamp = t;
 		}
 
 		perf_end(_loop_perf);
 	}
-
-	delete _mission_manager;
 
 	delete _subscribe_to_stream;
 	_subscribe_to_stream = nullptr;
@@ -1773,10 +1678,12 @@ Mavlink::display_status()
 	} else {
 		printf("\tno telem status.\n");
 	}
+
 	printf("\trates:\n");
 	printf("\ttx: %.3f kB/s\n", (double)_rate_tx);
 	printf("\ttxerr: %.3f kB/s\n", (double)_rate_txerr);
 	printf("\trx: %.3f kB/s\n", (double)_rate_rx);
+	printf("\trate mult: %.3f\n", (double)_rate_mult);
 }
 
 int

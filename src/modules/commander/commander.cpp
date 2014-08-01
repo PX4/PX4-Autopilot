@@ -124,7 +124,7 @@ extern struct system_load_s system_load;
 #define STICK_ON_OFF_HYSTERESIS_TIME_MS 1000
 #define STICK_ON_OFF_COUNTER_LIMIT (STICK_ON_OFF_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
-#define POSITION_TIMEOUT		(600 * 1000)		/**< consider the local or global position estimate invalid after 600ms */
+#define POSITION_TIMEOUT		(2 * 1000 * 1000)	/**< consider the local or global position estimate invalid after 600ms */
 #define FAILSAFE_DEFAULT_TIMEOUT	(3 * 1000 * 1000)	/**< hysteresis time - the failsafe will trigger after 3 seconds in this state */
 #define RC_TIMEOUT			500000
 #define OFFBOARD_TIMEOUT		500000
@@ -162,7 +162,8 @@ static bool on_usb_power = false;
 
 static float takeoff_alt = 5.0f;
 static int parachute_enabled = 0;
-static float eph_epv_threshold = 5.0f;
+static float eph_threshold = 5.0f;
+static float epv_threshold = 10.0f;
 
 static struct vehicle_status_s status;
 static struct actuator_armed_s armed;
@@ -334,6 +335,7 @@ void print_status()
 {
 	warnx("type: %s", (status.is_rotary_wing) ? "ROTARY" : "PLANE");
 	warnx("usb powered: %s", (on_usb_power) ? "yes" : "no");
+	warnx("avionics rail: %6.2f V", (double)status.avionics_power_rail_voltage);
 
 	/* read all relevant states */
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -737,6 +739,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	// CIRCUIT BREAKERS
 	status.circuit_breaker_engaged_power_check = false;
+	status.circuit_breaker_engaged_airspd_check = false;
 
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
@@ -982,6 +985,7 @@ int commander_thread_main(int argc, char *argv[])
 				param_get(_param_component_id, &(status.component_id));
 
 				status.circuit_breaker_engaged_power_check = circuit_breaker_enabled("CBRK_SUPPLY_CHK", CBRK_SUPPLY_CHK_KEY);
+				status.circuit_breaker_engaged_airspd_check = circuit_breaker_enabled("CBRK_AIRSPD_CHK", CBRK_AIRSPD_CHK_KEY);
 
 				status_changed = true;
 
@@ -1113,26 +1117,26 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* update condition_global_position_valid */
 		/* hysteresis for EPH/EPV */
-		bool eph_epv_good;
+		bool eph_good;
 
 		if (status.condition_global_position_valid) {
-			if (global_position.eph > eph_epv_threshold * 2.0f || global_position.epv > eph_epv_threshold * 2.0f) {
-				eph_epv_good = false;
+			if (global_position.eph > eph_threshold * 2.5f) {
+				eph_good = false;
 
 			} else {
-				eph_epv_good = true;
+				eph_good = true;
 			}
 
 		} else {
-			if (global_position.eph < eph_epv_threshold && global_position.epv < eph_epv_threshold) {
-				eph_epv_good = true;
+			if (global_position.eph < eph_threshold) {
+				eph_good = true;
 
 			} else {
-				eph_epv_good = false;
+				eph_good = false;
 			}
 		}
 
-		check_valid(global_position.timestamp, POSITION_TIMEOUT, eph_epv_good, &(status.condition_global_position_valid), &status_changed);
+		check_valid(global_position.timestamp, POSITION_TIMEOUT, eph_good, &(status.condition_global_position_valid), &status_changed);
 
 		/* check if GPS fix is ok */
 		if (gps_position.fix_type >= 3 && //XXX check eph and epv ?
@@ -1154,7 +1158,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* update home position */
 		if (!status.condition_home_position_valid && status.condition_global_position_valid && !armed.armed &&
-		    (global_position.eph < eph_epv_threshold) && (global_position.epv < eph_epv_threshold)) {
+		    (global_position.eph < eph_threshold) && (global_position.epv < epv_threshold)) {
 
 			home.lat = global_position.lat;
 			home.lon = global_position.lon;
@@ -1184,8 +1188,8 @@ int commander_thread_main(int argc, char *argv[])
 		/* hysteresis for EPH */
 		bool local_eph_good;
 
-		if (status.condition_global_position_valid) {
-			if (local_position.eph > eph_epv_threshold * 2.0f) {
+		if (status.condition_local_position_valid) {
+			if (local_position.eph > eph_threshold * 2.5f) {
 				local_eph_good = false;
 
 			} else {
@@ -1193,7 +1197,7 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 		} else {
-			if (local_position.eph < eph_epv_threshold) {
+			if (local_position.eph < eph_threshold) {
 				local_eph_good = true;
 
 			} else {
@@ -1540,7 +1544,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* update home position on arming if at least 2s from commander start spent to avoid setting home on in-air restart */
 			if (armed.armed && !was_armed && hrt_absolute_time() > start_time + 2000000 && status.condition_global_position_valid &&
-			    (global_position.eph < eph_epv_threshold) && (global_position.epv < eph_epv_threshold)) {
+			    (global_position.eph < eph_threshold) && (global_position.epv < epv_threshold)) {
 
 				// TODO remove code duplication
 				home.lat = global_position.lat;
