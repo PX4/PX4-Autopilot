@@ -180,16 +180,13 @@ void UavcanNode::fill_node_info()
 	/* software version */
 	uavcan::protocol::SoftwareVersion swver;
 
-	// Extracting the last 8 hex digits of FW_GIT and converting them to int
-	const unsigned fw_git_len = std::strlen(FW_GIT);
-	if (fw_git_len >= 8) {
-		char fw_git_short[9] = {};
-		std::memmove(fw_git_short, FW_GIT + fw_git_len - 8, 8);
-		assert(fw_git_short[8] == '\0');
-		char *end = nullptr;
-		swver.vcs_commit = std::strtol(fw_git_short, &end, 16);
-		swver.optional_field_mask |= swver.OPTIONAL_FIELD_MASK_VCS_COMMIT;
-	}
+	// Extracting the first 8 hex digits of FW_GIT and converting them to int
+	char fw_git_short[9] = {};
+	std::memmove(fw_git_short, FW_GIT, 8);
+	assert(fw_git_short[8] == '\0');
+	char *end = nullptr;
+	swver.vcs_commit = std::strtol(fw_git_short, &end, 16);
+	swver.optional_field_mask |= swver.OPTIONAL_FIELD_MASK_VCS_COMMIT;
 
 	warnx("SW version vcs_commit: 0x%08x", unsigned(swver.vcs_commit));
 
