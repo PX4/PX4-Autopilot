@@ -229,6 +229,7 @@ private:
 		float throttle_min;
 		float throttle_max;
 		float throttle_cruise;
+		float throttle_slew_max;
 
 		float throttle_land_max;
 
@@ -273,6 +274,7 @@ private:
 		param_t throttle_min;
 		param_t throttle_max;
 		param_t throttle_cruise;
+		param_t throttle_slew_max;
 
 		param_t throttle_land_max;
 
@@ -464,6 +466,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.roll_limit = param_find("FW_R_LIM");
 	_parameter_handles.throttle_min = param_find("FW_THR_MIN");
 	_parameter_handles.throttle_max = param_find("FW_THR_MAX");
+	_parameter_handles.throttle_slew_max = param_find("FW_THR_SLEW_MAX");
 	_parameter_handles.throttle_cruise = param_find("FW_THR_CRUISE");
 	_parameter_handles.throttle_land_max = param_find("FW_THR_LND_MAX");
 
@@ -538,6 +541,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.throttle_min, &(_parameters.throttle_min));
 	param_get(_parameter_handles.throttle_max, &(_parameters.throttle_max));
 	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
+	param_get(_parameter_handles.throttle_slew_max, &(_parameters.throttle_slew_max));
 
 	param_get(_parameter_handles.throttle_land_max, &(_parameters.throttle_land_max));
 
@@ -576,6 +580,7 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_min_sink_rate(_parameters.min_sink_rate);
 	_tecs.set_max_sink_rate(_parameters.max_sink_rate);
 	_tecs.set_throttle_damp(_parameters.throttle_damp);
+	_tecs.set_throttle_slewrate(_parameters.throttle_slew_max);
 	_tecs.set_integrator_gain(_parameters.integrator_gain);
 	_tecs.set_vertical_accel_limit(_parameters.vertical_accel_limit);
 	_tecs.set_height_comp_filter_omega(_parameters.height_comp_filter_omega);

@@ -83,6 +83,17 @@ PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
 PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.7f);
 
 /**
+ * Throttle max slew rate
+ *
+ * Maximum slew rate for the commanded throttle
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_THR_SLEW_MAX, 0.0f);
+
+/**
  * Negative pitch limit
  *
  * The minimum negative pitch the controller will output.
