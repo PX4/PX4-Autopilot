@@ -298,7 +298,7 @@ void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotM
 
 	} else {
 		// Calculate gain scaler from specific energy error to throttle
-		float K_STE2Thr = 1 / (_timeConst * (_STEdot_max - _STEdot_min));
+		float K_STE2Thr = 1 / (_timeConstThrot * (_STEdot_max - _STEdot_min));
 
 		// Calculate feed-forward throttle
 		float ff_throttle = 0;

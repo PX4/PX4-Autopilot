@@ -123,6 +123,10 @@ public:
 		_timeConst = time_const;
 	}
 
+	void set_time_const_throt(float time_const_throt) {
+		_timeConstThrot = time_const_throt;
+	}
+
 	void set_min_sink_rate(float rate) {
 		_minSinkRate = rate;
 	}
@@ -204,6 +208,7 @@ private:
 	float _minSinkRate;
 	float _maxSinkRate;
 	float _timeConst;
+	float _timeConstThrot;
 	float _ptchDamp;
 	float _thrDamp;
 	float _integGain;
