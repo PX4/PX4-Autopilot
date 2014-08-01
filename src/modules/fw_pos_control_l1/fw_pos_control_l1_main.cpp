@@ -203,9 +203,11 @@ private:
 		float l1_damping;
 
 		float time_const;
+		float time_const_throt;
 		float min_sink_rate;
 		float max_sink_rate;
 		float max_climb_rate;
+		float climbout_diff;
 		float heightrate_p;
 		float speedrate_p;
 		float throttle_damp;
@@ -245,9 +247,11 @@ private:
 		param_t l1_damping;
 
 		param_t time_const;
+		param_t time_const_throt;
 		param_t min_sink_rate;
 		param_t max_sink_rate;
 		param_t max_climb_rate;
+		param_t climbout_diff;
 		param_t heightrate_p;
 		param_t speedrate_p;
 		param_t throttle_damp;
@@ -471,9 +475,11 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.range_finder_rel_alt = param_find("FW_LND_RFRALT");
 
 	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
+	_parameter_handles.time_const_throt = 			param_find("FW_T_THRO_CONST");
 	_parameter_handles.min_sink_rate = 			param_find("FW_T_SINK_MIN");
 	_parameter_handles.max_sink_rate =			param_find("FW_T_SINK_MAX");
 	_parameter_handles.max_climb_rate =			param_find("FW_T_CLMB_MAX");
+	_parameter_handles.climbout_diff =			param_find("FW_CLMBOUT_DIFF");
 	_parameter_handles.throttle_damp = 			param_find("FW_T_THR_DAMP");
 	_parameter_handles.integrator_gain =			param_find("FW_T_INTEG_GAIN");
 	_parameter_handles.vertical_accel_limit =		param_find("FW_T_VERT_ACC");
@@ -536,6 +542,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.throttle_land_max, &(_parameters.throttle_land_max));
 
 	param_get(_parameter_handles.time_const, &(_parameters.time_const));
+	param_get(_parameter_handles.time_const_throt, &(_parameters.time_const_throt));
 	param_get(_parameter_handles.min_sink_rate, &(_parameters.min_sink_rate));
 	param_get(_parameter_handles.max_sink_rate, &(_parameters.max_sink_rate));
 	param_get(_parameter_handles.throttle_damp, &(_parameters.throttle_damp));
@@ -547,6 +554,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.speed_weight, &(_parameters.speed_weight));
 	param_get(_parameter_handles.pitch_damping, &(_parameters.pitch_damping));
 	param_get(_parameter_handles.max_climb_rate, &(_parameters.max_climb_rate));
+	param_get(_parameter_handles.climbout_diff, &(_parameters.climbout_diff));
 
 	param_get(_parameter_handles.heightrate_p, &(_parameters.heightrate_p));
 	param_get(_parameter_handles.speedrate_p, &(_parameters.speedrate_p));
@@ -564,6 +572,7 @@ FixedwingPositionControl::parameters_update()
 	_l1_control.set_l1_roll_limit(math::radians(_parameters.roll_limit));
 
 	_tecs.set_time_const(_parameters.time_const);
+	_tecs.set_time_const_throt(_parameters.time_const_throt);
 	_tecs.set_min_sink_rate(_parameters.min_sink_rate);
 	_tecs.set_max_sink_rate(_parameters.max_sink_rate);
 	_tecs.set_throttle_damp(_parameters.throttle_damp);
@@ -1095,7 +1104,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				usePreTakeoffThrust = false;
 
 				/* apply minimum pitch and limit roll if target altitude is not within 10 meters */
-				if (altitude_error > 15.0f) {
+				if (_parameters.climbout_diff > 0.001f && altitude_error > _parameters.climbout_diff) {
 
 					/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
 					tecs_update_pitch_throttle(_pos_sp_triplet.current.alt,
