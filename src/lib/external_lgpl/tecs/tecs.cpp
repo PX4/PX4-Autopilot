@@ -298,7 +298,7 @@ void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotM
 
 	} else {
 		// Calculate gain scaler from specific energy error to throttle
-		float K_STE2Thr = 1 / (_timeConst * (_STEdot_max - _STEdot_min));
+		float K_STE2Thr = 1 / (_timeConstThrot * (_STEdot_max - _STEdot_min));
 
 		// Calculate feed-forward throttle
 		float ff_throttle = 0;
@@ -327,8 +327,11 @@ void TECS::_update_throttle(float throttle_cruise, const math::Matrix<3,3> &rotM
 			_throttle_dem = constrain(_throttle_dem,
 						  _last_throttle_dem - thrRateIncr,
 						  _last_throttle_dem + thrRateIncr);
-			_last_throttle_dem = _throttle_dem;
 		}
+
+		// Ensure _last_throttle_dem is always initialized properly
+		// Also: The throttle_slewrate limit is only applied to throttle_dem, but does not limit the integrator!!
+		_last_throttle_dem = _throttle_dem;
 
 
 		// Calculate integrator state upper and lower limits
