@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Rangefinder driver interface.
+ * @file drv_range_finder.h
+ *
+ * Rangefinder driver interface.
  */
 
 #ifndef _DRV_RANGEFINDER_H

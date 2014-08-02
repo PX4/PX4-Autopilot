@@ -86,4 +86,14 @@
  */
 #define SENSORIOCRESET		_SENSORIOC(4)
 
+/**
+ * Set the sensor orientaiton
+ */
+#define SENSORIOCSROTATION	_SENSORIOC(5)
+
+/**
+ * Get the sensor orientaiton
+ */
+#define SENSORIOCGROTATION	_SENSORIOC(6)
+
 #endif /* _DRV_SENSOR_H */

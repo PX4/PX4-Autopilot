@@ -57,6 +57,12 @@
  * via the ioctl.
  */
 
+/**
+ * @file drv_tone_alarm.h
+ *
+ * Tone alarm / audio driver
+ */
+
 #ifndef DRV_TONE_ALARM_H_
 #define DRV_TONE_ALARM_H_
 

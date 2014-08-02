@@ -68,8 +68,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
-//#include <uORB/topics/optical_flow.h>
-
+#include <lib/conversion/rotation.h>
 #include <board_config.h>
 
 /* Configuration Constants */
@@ -107,13 +106,11 @@ static const int ERROR = -1;
 //    uint8_t sonar_timestamp;
 //    int16_t ground_distance;
 //};
-//
-//struct i2c_frame f;
 
 class PX4FLOW : public device::I2C
 {
 public:
-	PX4FLOW(int bus = PX4FLOW_BUS, int address = I2C_FLOW_ADDRESS);
+	PX4FLOW(int bus = PX4FLOW_BUS, int address = I2C_FLOW_ADDRESS, enum Rotation rotation=);
 	virtual ~PX4FLOW();
 	
 	virtual int 		init();
@@ -188,7 +185,7 @@ private:
  */
 extern "C" __EXPORT int px4flow_main(int argc, char *argv[]);
 
-PX4FLOW::PX4FLOW(int bus, int address) :
+PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation) :
 	I2C("PX4FLOW", PX4FLOW_DEVICE_PATH, bus, address, 400000),//400khz
 	_reports(nullptr),
 	_sensor_ok(false),
@@ -197,7 +194,8 @@ PX4FLOW::PX4FLOW(int bus, int address) :
 	_px4flow_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "px4flow_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "px4flow_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "px4flow_buffer_overflows"))
+	_buffer_overflows(perf_alloc(PC_COUNT, "px4flow_buffer_overflows")),
+	_rotation(rotation)
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -336,6 +334,13 @@ PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case SENSORIOCGQUEUEDEPTH:
 		return _reports->size();
+
+	case SENSORIOCSROTATION:
+		_rotation = (enum Rotation)arg;
+		return OK;
+
+	case SENSORIOCGROTATION:
+		return _rotation;
 		
 	case SENSORIOCRESET:
 		/* XXX implement this */
@@ -476,6 +481,8 @@ PX4FLOW::collect()
 	report.sensor_id = 0;
 	report.timestamp = hrt_absolute_time();
 
+	/* rotate according to sensor orientation */
+	rotate_3f(_rotation, report.flow_comp_x_m, report.flow_comp_y_m, report.ground_distance_m);
 
 	/* publish it */
 	orb_publish(ORB_ID(optical_flow), _px4flow_topic, &report);
