@@ -78,6 +78,9 @@ public:
         node.setNodeID(64);
         node.setName("org.uavcan.stm32_test_stm32f107");
 
+        // TODO: fill software version info (version number, VCS commit hash, ...)
+        // TODO: fill hardware version info (version number, unique ID)
+
         /*
          * Initializing the UAVCAN node - this may take a while
          */
