@@ -8,7 +8,7 @@ CPPSRC := $(wildcard src/*.cpp)                  \
 CSRC   := $(wildcard lpc_chip_11cxx_lib/src/*.c) \
           $(wildcard src/sys/*.c)
 
-DEF =
+DEF = -DFW_VERSION_MAJOR=1 -DFW_VERSION_MINOR=0
 
 INC = -Isrc/sys                         \
       -Ilpc_chip_11cxx_lib/inc
@@ -29,6 +29,15 @@ INC += -I$(LIBUAVCAN_LPC11C24_INC)
 
 $(info $(shell $(LIBUAVCAN_DSDLC) $(UAVCAN_DSDL_DIR)))
 INC += -Idsdlc_generated
+
+#
+# Git commit hash
+#
+
+GIT_HASH := $(shell git rev-parse --short HEAD)
+ifeq ($(words $(GIT_HASH)),1)
+    DEF += -DGIT_HASH=0x$(GIT_HASH)
+endif
 
 #
 # Build configuration

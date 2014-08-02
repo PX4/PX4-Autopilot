@@ -3,6 +3,7 @@
  */
 
 #include <cstdio>
+#include <algorithm>
 #include <board.hpp>
 #include <chip.h>
 #include <uavcan_lpc11c24/uavcan_lpc11c24.hpp>
@@ -40,6 +41,9 @@ void die()
     while (true) { }
 }
 
+#if __GNUC__
+__attribute__((noinline))
+#endif
 void init()
 {
     if (uavcan_lpc11c24::CanDriver::instance().init(1000000) < 0)
@@ -49,6 +53,19 @@ void init()
 
     getNode().setNodeID(72);
     getNode().setName("org.uavcan.lpc11c24_test");
+
+    uavcan::protocol::SoftwareVersion swver;
+    swver.major = FW_VERSION_MAJOR;
+    swver.minor = FW_VERSION_MINOR;
+    swver.vcs_commit = GIT_HASH;
+    swver.optional_field_mask = swver.OPTIONAL_FIELD_MASK_VCS_COMMIT;
+    getNode().setSoftwareVersion(swver);
+
+    uavcan::protocol::HardwareVersion hwver;
+    std::uint8_t uid[board::UniqueIDSize] = {};
+    board::readUniqueID(uid);
+    std::copy(std::begin(uid), std::end(uid), std::begin(hwver.unique_id));
+    getNode().setHardwareVersion(hwver);
 
     while (getNode().start() < 0)
     {

@@ -6,6 +6,8 @@
 #include "board.hpp"
 #include <chip.h>
 #include <cstdlib>
+#include <cstring>
+#include <numeric>
 
 #define PDRUNCFGUSEMASK 0x0000ED00
 #define PDRUNCFGMASKTMP 0x000000FF
@@ -113,6 +115,17 @@ void init()
 }
 
 } // namespace
+
+#if __GNUC__
+__attribute__((optimize(0)))     // Optimization must be disabled lest it hardfaults in the IAP call
+#endif
+void readUniqueID(uint8_t out_uid[UniqueIDSize])
+{
+    unsigned aligned_array[4] = {};  // out_uid may be unaligned, so we need to use temp array
+    unsigned iap_command = 58;
+    reinterpret_cast<void(*)(void*, void*)>(0x1FFF1FF1)(&iap_command, aligned_array);
+    std::memcpy(out_uid, aligned_array, 16);
+}
 
 void setStatusLed(bool state)
 {
