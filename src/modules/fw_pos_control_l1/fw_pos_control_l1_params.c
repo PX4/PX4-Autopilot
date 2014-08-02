@@ -72,17 +72,6 @@ PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 25.0f);
 PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
 
 /**
- * Default Loiter Radius
- *
- * This radius is used when no other loiter radius is set.
- *
- * @min 10.0
- * @max 100.0
- * @group L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_LOITER_R, 50.0f);
-
-/**
  * Cruise throttle
  *
  * This is the throttle setting required to achieve the desired cruise speed. Most airframes have a value of 0.5-0.7.
@@ -92,6 +81,17 @@ PARAM_DEFINE_FLOAT(FW_LOITER_R, 50.0f);
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.7f);
+
+/**
+ * Throttle max slew rate
+ *
+ * Maximum slew rate for the commanded throttle
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_THR_SLEW_MAX, 0.0f);
 
 /**
  * Negative pitch limit
@@ -166,6 +166,18 @@ PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
 PARAM_DEFINE_FLOAT(FW_THR_LND_MAX, 1.0f);
 
 /**
+ * Climbout Altitude difference
+ *
+ * If the altitude error exceeds this parameter, the system will climb out
+ * with maximum throttle and minimum airspeed until it is closer than this
+ * distance to the desired altitude. Mostly used for takeoff waypoints / modes.
+ * Set to zero to disable climbout mode (not recommended).
+ *
+ * @group L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 25.0f);
+
+/**
  * Maximum climb rate
  *
  * This is the best climb rate that the aircraft can achieve with 
@@ -192,7 +204,7 @@ PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
  * set to THR_MIN and flown at the same airspeed as used 
  * to measure FW_T_CLMB_MAX.
  *
- * @group L1 Control
+ * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
 
@@ -205,7 +217,7 @@ PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
  * exceeding the lower pitch angle limit and without over-speeding 
  * the aircraft.
  *
- * @group L1 Control
+ * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f);
 
@@ -216,9 +228,20 @@ PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f);
  * Smaller values make it faster to respond, larger values make it slower
  * to respond.
  *
- * @group L1 Control
+ * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_TIME_CONST, 5.0f);
+
+/**
+ * TECS Throttle time constant
+ *
+ * This is the time constant of the TECS throttle control algorithm (in seconds). 
+ * Smaller values make it faster to respond, larger values make it slower
+ * to respond.
+ *
+ * @group Fixed Wing TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_THRO_CONST, 8.0f);
 
 /**
  * Throttle damping factor
@@ -226,7 +249,7 @@ PARAM_DEFINE_FLOAT(FW_T_TIME_CONST, 5.0f);
  * This is the damping gain for the throttle demand loop. 
  * Increase to add damping to correct for oscillations in speed and height.
  *
- * @group L1 Control
+ * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.5f);
 
@@ -238,7 +261,7 @@ PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.5f);
  * and height offsets are trimmed out, but reduces damping and 
  * increases overshoot.
  *
- * @group L1 Control
+ * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
 
@@ -251,7 +274,7 @@ PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
  * allows for reasonably aggressive pitch changes if required to recover 
  * from under-speed conditions.
  *
- * @group L1 Control
+ * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f);
 
@@ -264,7 +287,7 @@ PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f);
  * the solution more towards use of the barometer, whilst reducing it weights 
  * the solution more towards use of the accelerometer data.
  *
- * @group L1 Control
+ * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_HGT_OMEGA, 3.0f);
 
@@ -277,7 +300,7 @@ PARAM_DEFINE_FLOAT(FW_T_HGT_OMEGA, 3.0f);
  * more towards use of the arispeed sensor, whilst reducing it weights the 
  * solution more towards use of the accelerometer data.
  *
- * @group L1 Control
+ * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_SPD_OMEGA, 2.0f);
 
@@ -293,7 +316,7 @@ PARAM_DEFINE_FLOAT(FW_T_SPD_OMEGA, 2.0f);
  * aircraft (eg powered sailplanes) can use a lower value, whereas 
  * inefficient low aspect-ratio models (eg delta wings) can use a higher value.
  *
- * @group L1 Control
+ * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 10.0f);
 
@@ -311,7 +334,7 @@ PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 10.0f);
  * Note to Glider Pilots - set this parameter to 2.0 (The glider will 
  * adjust its pitch angle to maintain airspeed, ignoring changes in height).
  *
- * @group L1 Control
+ * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
 
@@ -323,21 +346,21 @@ PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
  * will work well provided the pitch to servo controller has been tuned 
  * properly.
  *
- * @group L1 Control
+ * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
 
 /**
  * Height rate P factor
  *
- * @group L1 Control
+ * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
 
 /**
  * Speed rate P factor
  *
- * @group L1 Control
+ * @group Fixed Wing TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.05f);
 
@@ -375,3 +398,14 @@ PARAM_DEFINE_FLOAT(FW_LND_TLALT, 5.0f);
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
+
+/**
+ * Relative altitude threshold for range finder measurements for use during landing
+ *
+ * range finder measurements will only be used if the estimated relative altitude (gobal_pos.alt - landing_waypoint.alt) is < FW_LND_RFRALT
+ * set to < 0 to disable
+ * the correct value of this parameter depends on your range measuring device as well as on the terrain at the landing location
+ *
+ * @group L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_RFRALT, -1.0f);

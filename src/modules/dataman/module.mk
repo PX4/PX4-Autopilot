@@ -38,3 +38,5 @@
 MODULE_COMMAND	= dataman
 
 SRCS		= dataman.c
+
+MODULE_STACKSIZE = 1200

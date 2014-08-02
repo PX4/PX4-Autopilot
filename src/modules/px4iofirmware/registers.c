@@ -119,7 +119,6 @@ uint16_t		r_page_raw_rc_input[] =
 	[PX4IO_P_RAW_RC_DATA]			= 0,
 	[PX4IO_P_RAW_FRAME_COUNT]		= 0,
 	[PX4IO_P_RAW_LOST_FRAME_COUNT]		= 0,
-	[PX4IO_P_RAW_RC_DATA]			= 0,
 	[PX4IO_P_RAW_RC_BASE ... (PX4IO_P_RAW_RC_BASE + PX4IO_RC_INPUT_CHANNELS)] = 0
 };
 
@@ -160,6 +159,9 @@ volatile uint16_t	r_page_setup[] =
 	[PX4IO_P_SETUP_PWM_ALTRATE]		= 200,
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V1
 	[PX4IO_P_SETUP_RELAYS]			= 0,
+#else
+	/* this is unused, but we will pad it for readability (the compiler pads it automatically) */
+	[PX4IO_P_SETUP_RELAYS_PAD]		= 0,
 #endif
 #ifdef ADC_VSERVO
 	[PX4IO_P_SETUP_VSERVO_SCALE]		= 10000,
@@ -187,7 +189,8 @@ volatile uint16_t	r_page_setup[] =
 					 PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM | \
 					 PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE | \
 					 PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED | \
-					 PX4IO_P_SETUP_ARMING_LOCKDOWN)
+					 PX4IO_P_SETUP_ARMING_LOCKDOWN | \
+					 PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE)
 #define PX4IO_P_SETUP_RATES_VALID	((1 << PX4IO_SERVO_COUNT) - 1)
 #define PX4IO_P_SETUP_RELAYS_VALID	((1 << PX4IO_RELAY_CHANNELS) - 1)
 
@@ -463,9 +466,18 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			#ifdef ENABLE_SBUS_OUT
 			ENABLE_SBUS_OUT(value & (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT));
 
-			/* disable the conflicting options */
-			if (value & (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT)) {
-				value &= ~(PX4IO_P_SETUP_FEATURES_PWM_RSSI | PX4IO_P_SETUP_FEATURES_ADC_RSSI);
+			/* disable the conflicting options with SBUS 1 */
+			if (value & (PX4IO_P_SETUP_FEATURES_SBUS1_OUT)) {
+				value &= ~(PX4IO_P_SETUP_FEATURES_PWM_RSSI |
+					PX4IO_P_SETUP_FEATURES_ADC_RSSI |
+					PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
+			}
+
+			/* disable the conflicting options with SBUS 2 */
+			if (value & (PX4IO_P_SETUP_FEATURES_SBUS2_OUT)) {
+				value &= ~(PX4IO_P_SETUP_FEATURES_PWM_RSSI |
+					PX4IO_P_SETUP_FEATURES_ADC_RSSI |
+					PX4IO_P_SETUP_FEATURES_SBUS1_OUT);
 			}
 			#endif
 
@@ -514,18 +526,22 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			break;
 
 		case PX4IO_P_SETUP_PWM_DEFAULTRATE:
-			if (value < 50)
+			if (value < 50) {
 				value = 50;
-			if (value > 400)
+			}
+			if (value > 400) {
 				value = 400;
+			}
 			pwm_configure_rates(r_setup_pwm_rates, value, r_setup_pwm_altrate);
 			break;
 
 		case PX4IO_P_SETUP_PWM_ALTRATE:
-			if (value < 50)
+			if (value < 50) {
 				value = 50;
-			if (value > 400)
+			}
+			if (value > 400) {
 				value = 400;
+			}
 			pwm_configure_rates(r_setup_pwm_rates, r_setup_pwm_defaultrate, value);
 			break;
 
@@ -557,8 +573,9 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			}
 
 			// check the magic value
-			if (value != PX4IO_REBOOT_BL_MAGIC)
+			if (value != PX4IO_REBOOT_BL_MAGIC) {
 				break;
+			}
 
                         // we schedule a reboot rather than rebooting
                         // immediately to allow the IO board to ACK
@@ -573,6 +590,12 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_FORCE_SAFETY_OFF:
 			if (value == PX4IO_FORCE_SAFETY_MAGIC) {
 				r_status_flags |= PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
+			}
+			break;
+
+		case PX4IO_P_SETUP_RC_THR_FAILSAFE_US:
+			if (value > 650 && value < 2350) {
+				r_page_setup[PX4IO_P_SETUP_RC_THR_FAILSAFE_US] = value;
 			}
 			break;
 
@@ -647,7 +670,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 				if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] == UINT8_MAX) {
 					disabled = true;
-				} else if ((int)(conf[PX4IO_P_RC_CONFIG_ASSIGNMENT]) < 0 || conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= PX4IO_RC_MAPPED_CONTROL_CHANNELS) {
+				} else if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= PX4IO_RC_MAPPED_CONTROL_CHANNELS) {
 					count++;
 				}
 
@@ -689,7 +712,7 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 {
 #define SELECT_PAGE(_page_name)							\
 	do {									\
-		*values = &_page_name[0];					\
+		*values = (uint16_t *)&_page_name[0];				\
 		*num_values = sizeof(_page_name) / sizeof(_page_name[0]);	\
 	} while(0)
 
@@ -716,30 +739,19 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 		{
 			/*
 			 * Coefficients here derived by measurement of the 5-16V
-			 * range on one unit:
+			 * range on one unit, validated on sample points of another unit
 			 *
-			 * V   counts
-			 *  5  1001
-			 *  6  1219
-			 *  7  1436
-			 *  8  1653
-			 *  9  1870
-			 * 10  2086
-			 * 11  2303
-			 * 12  2522
-			 * 13  2738
-			 * 14  2956
-			 * 15  3172
-			 * 16  3389
+			 * Data in Tools/tests-host/data folder.
 			 *
-			 * slope = 0.0046067
-			 * intercept = 0.3863
+			 * measured slope = 0.004585267878277 (int: 4585)
+			 * nominal theoretic slope: 0.00459340659 (int: 4593)
+			 * intercept = 0.016646394188076 (int: 16646)
+			 * nominal theoretic intercept: 0.00 (int: 0)
 			 *
-			 * Intercept corrected for best results @ 12V.
 			 */
 			unsigned counts = adc_measure(ADC_VBATT);
 			if (counts != 0xffff) {
-				unsigned mV = (4150 + (counts * 46)) / 10 - 200;
+				unsigned mV = (166460 + (counts * 45934)) / 10000;
 				unsigned corrected = (mV * r_page_setup[PX4IO_P_SETUP_VBATT_SCALE]) / 10000;
 
 				r_page_status[PX4IO_P_STATUS_VBATT] = corrected;

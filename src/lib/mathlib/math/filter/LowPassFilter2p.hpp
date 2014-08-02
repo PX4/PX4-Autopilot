@@ -46,10 +46,18 @@ class __EXPORT LowPassFilter2p
 {
 public:
     // constructor
-    LowPassFilter2p(float sample_freq, float cutoff_freq) {
+    LowPassFilter2p(float sample_freq, float cutoff_freq) : 
+        _cutoff_freq(cutoff_freq),
+        _a1(0.0f),
+        _a2(0.0f),
+        _b0(0.0f),
+        _b1(0.0f),
+        _b2(0.0f),
+        _delay_element_1(0.0f),
+        _delay_element_2(0.0f)
+    {
         // set initial parameters
         set_cutoff_frequency(sample_freq, cutoff_freq);
-        _delay_element_1 = _delay_element_2 = 0;
     }
 
     /**

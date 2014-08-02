@@ -1,9 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
- *   Author: @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,8 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file mc_att_control_main.c
+ * @file mc_att_control_main.cpp
  * Multicopter attitude controller.
+ *
+ * @author Tobias Naegeli <naegelit@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  *
  * The controller has two loops: P loop for angular error and PD loop for angular rate error.
  * Desired rotation calculated keeping in mind that yaw response is normally slower than roll/pitch.
@@ -71,7 +72,8 @@
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
-#include <mathlib/mathlib.h>
+#include <systemlib/circuit_breaker.h>
+#include <lib/mathlib/mathlib.h>
 #include <lib/geo/geo.h>
 
 /**
@@ -122,6 +124,8 @@ private:
 	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
 	orb_advert_t	_actuators_0_pub;		/**< attitude actuator controls publication */
 
+	bool		_actuators_0_circuit_breaker_enabled;	/**< circuit breaker to suppress output */
+
 	struct vehicle_attitude_s			_v_att;				/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s	_v_att_sp;			/**< vehicle attitude setpoint */
 	struct vehicle_rates_setpoint_s		_v_rates_sp;		/**< vehicle rates setpoint */
@@ -156,10 +160,14 @@ private:
 		param_t yaw_rate_i;
 		param_t yaw_rate_d;
 		param_t yaw_ff;
+		param_t yaw_rate_max;
 
 		param_t man_roll_max;
 		param_t man_pitch_max;
 		param_t man_yaw_max;
+		param_t acro_roll_max;
+		param_t acro_pitch_max;
+		param_t acro_yaw_max;
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
@@ -168,10 +176,12 @@ private:
 		math::Vector<3> rate_i;				/**< I gain for angular rate error */
 		math::Vector<3> rate_d;				/**< D gain for angular rate error */
 		float yaw_ff;						/**< yaw control feed-forward */
+		float yaw_rate_max;					/**< max yaw rate */
 
 		float man_roll_max;
 		float man_pitch_max;
 		float man_yaw_max;
+		math::Vector<3> acro_rate_max;		/**< max attitude rates in acro mode */
 	}		_params;
 
 	/**
@@ -225,9 +235,9 @@ private:
 	static void	task_main_trampoline(int argc, char *argv[]);
 
 	/**
-	 * Main sensor collection task.
+	 * Main attitude control task.
 	 */
-	void		task_main() __attribute__((noreturn));
+	void		task_main();
 };
 
 namespace mc_att_control
@@ -260,6 +270,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_v_rates_sp_pub(-1),
 	_actuators_0_pub(-1),
 
+	_actuators_0_circuit_breaker_enabled(false),
+
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
 
@@ -276,6 +288,12 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params.rate_p.zero();
 	_params.rate_i.zero();
 	_params.rate_d.zero();
+	_params.yaw_ff = 0.0f;
+	_params.yaw_rate_max = 0.0f;
+	_params.man_roll_max = 0.0f;
+	_params.man_pitch_max = 0.0f;
+	_params.man_yaw_max = 0.0f;
+	_params.acro_rate_max.zero();
 
 	_rates_prev.zero();
 	_rates_sp.zero();
@@ -298,10 +316,13 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.yaw_rate_i		= 	param_find("MC_YAWRATE_I");
 	_params_handles.yaw_rate_d		= 	param_find("MC_YAWRATE_D");
 	_params_handles.yaw_ff			= 	param_find("MC_YAW_FF");
-
+	_params_handles.yaw_rate_max	= 	param_find("MC_YAWRATE_MAX");
 	_params_handles.man_roll_max	= 	param_find("MC_MAN_R_MAX");
 	_params_handles.man_pitch_max	= 	param_find("MC_MAN_P_MAX");
 	_params_handles.man_yaw_max		= 	param_find("MC_MAN_Y_MAX");
+	_params_handles.acro_roll_max	= 	param_find("MC_ACRO_R_MAX");
+	_params_handles.acro_pitch_max	= 	param_find("MC_ACRO_P_MAX");
+	_params_handles.acro_yaw_max		= 	param_find("MC_ACRO_Y_MAX");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -367,15 +388,26 @@ MulticopterAttitudeControl::parameters_update()
 	_params.rate_d(2) = v;
 
 	param_get(_params_handles.yaw_ff, &_params.yaw_ff);
+	param_get(_params_handles.yaw_rate_max, &_params.yaw_rate_max);
+	_params.yaw_rate_max = math::radians(_params.yaw_rate_max);
 
 	/* manual control scale */
 	param_get(_params_handles.man_roll_max, &_params.man_roll_max);
 	param_get(_params_handles.man_pitch_max, &_params.man_pitch_max);
 	param_get(_params_handles.man_yaw_max, &_params.man_yaw_max);
+	_params.man_roll_max = math::radians(_params.man_roll_max);
+	_params.man_pitch_max = math::radians(_params.man_pitch_max);
+	_params.man_yaw_max = math::radians(_params.man_yaw_max);
 
-	_params.man_roll_max *= M_PI / 180.0;
-	_params.man_pitch_max *= M_PI / 180.0;
-	_params.man_yaw_max *= M_PI / 180.0;
+	/* acro control scale */
+	param_get(_params_handles.acro_roll_max, &v);
+	_params.acro_rate_max(0) = math::radians(v);
+	param_get(_params_handles.acro_pitch_max, &v);
+	_params.acro_rate_max(1) = math::radians(v);
+	param_get(_params_handles.acro_yaw_max, &v);
+	_params.acro_rate_max(2) = math::radians(v);
+
+	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
 
 	return OK;
 }
@@ -478,7 +510,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 		if (!_v_control_mode.flag_control_climb_rate_enabled) {
 			/* pass throttle directly if not in altitude stabilized mode */
-			_v_att_sp.thrust = _manual_control_sp.throttle;
+			_v_att_sp.thrust = _manual_control_sp.z;
 			publish_att_sp = true;
 		}
 
@@ -496,8 +528,16 @@ MulticopterAttitudeControl::control_attitude(float dt)
 			//}
 		} else {
 			/* move yaw setpoint */
-			yaw_sp_move_rate = _manual_control_sp.yaw * _params.man_yaw_max;
+			yaw_sp_move_rate = _manual_control_sp.r * _params.man_yaw_max;
 			_v_att_sp.yaw_body = _wrap_pi(_v_att_sp.yaw_body + yaw_sp_move_rate * dt);
+			float yaw_offs_max = _params.man_yaw_max / _params.att_p(2);
+			float yaw_offs = _wrap_pi(_v_att_sp.yaw_body - _v_att.yaw);
+			if (yaw_offs < - yaw_offs_max) {
+				_v_att_sp.yaw_body = _wrap_pi(_v_att.yaw - yaw_offs_max);
+
+			} else if (yaw_offs > yaw_offs_max) {
+				_v_att_sp.yaw_body = _wrap_pi(_v_att.yaw + yaw_offs_max);
+			}
 			_v_att_sp.R_valid = false;
 			publish_att_sp = true;
 		}
@@ -512,8 +552,8 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 		if (!_v_control_mode.flag_control_velocity_enabled) {
 			/* update attitude setpoint if not in position control mode */
-			_v_att_sp.roll_body = _manual_control_sp.roll * _params.man_roll_max;
-			_v_att_sp.pitch_body = -_manual_control_sp.pitch * _params.man_pitch_max;
+			_v_att_sp.roll_body = _manual_control_sp.y * _params.man_roll_max;
+			_v_att_sp.pitch_body = -_manual_control_sp.x * _params.man_pitch_max;
 			_v_att_sp.R_valid = false;
 			publish_att_sp = true;
 		}
@@ -625,6 +665,9 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 	/* calculate angular rates setpoint */
 	_rates_sp = _params.att_p.emult(e_R);
+
+	/* limit yaw rate */
+	_rates_sp(2) = math::constrain(_rates_sp(2), -_params.yaw_rate_max, _params.yaw_rate_max);
 
 	/* feed forward yaw setpoint rate */
 	_rates_sp(2) += yaw_sp_move_rate * yaw_w * _params.yaw_ff;
@@ -762,11 +805,36 @@ MulticopterAttitudeControl::task_main()
 
 			} else {
 				/* attitude controller disabled, poll rates setpoint topic */
-				vehicle_rates_setpoint_poll();
-				_rates_sp(0) = _v_rates_sp.roll;
-				_rates_sp(1) = _v_rates_sp.pitch;
-				_rates_sp(2) = _v_rates_sp.yaw;
-				_thrust_sp = _v_rates_sp.thrust;
+				if (_v_control_mode.flag_control_manual_enabled) {
+					/* manual rates control - ACRO mode */
+					_rates_sp = math::Vector<3>(_manual_control_sp.y, -_manual_control_sp.x, _manual_control_sp.r).emult(_params.acro_rate_max);
+					_thrust_sp = _manual_control_sp.z;
+
+					/* reset yaw setpoint after ACRO */
+					_reset_yaw_sp = true;
+
+					/* publish attitude rates setpoint */
+					_v_rates_sp.roll = _rates_sp(0);
+					_v_rates_sp.pitch = _rates_sp(1);
+					_v_rates_sp.yaw = _rates_sp(2);
+					_v_rates_sp.thrust = _thrust_sp;
+					_v_rates_sp.timestamp = hrt_absolute_time();
+
+					if (_v_rates_sp_pub > 0) {
+						orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
+
+					} else {
+						_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_v_rates_sp);
+					}
+
+				} else {
+					/* attitude controller disabled, poll rates setpoint topic */
+					vehicle_rates_setpoint_poll();
+					_rates_sp(0) = _v_rates_sp.roll;
+					_rates_sp(1) = _v_rates_sp.pitch;
+					_rates_sp(2) = _v_rates_sp.yaw;
+					_thrust_sp = _v_rates_sp.thrust;
+				}
 			}
 
 			if (_v_control_mode.flag_control_rates_enabled) {
@@ -779,11 +847,13 @@ MulticopterAttitudeControl::task_main()
 				_actuators.control[3] = (isfinite(_thrust_sp)) ? _thrust_sp : 0.0f;
 				_actuators.timestamp = hrt_absolute_time();
 
-				if (_actuators_0_pub > 0) {
-					orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
+				if (!_actuators_0_circuit_breaker_enabled) {
+					if (_actuators_0_pub > 0) {
+						orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
 
-				} else {
-					_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
+					} else {
+						_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
+					}
 				}
 			}
 		}
@@ -806,7 +876,7 @@ MulticopterAttitudeControl::start()
 	_control_task = task_spawn_cmd("mc_att_control",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       2048,
+				       2000,
 				       (main_t)&MulticopterAttitudeControl::task_main_trampoline,
 				       nullptr);
 

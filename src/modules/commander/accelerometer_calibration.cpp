@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -131,6 +130,7 @@
 #include <fcntl.h>
 #include <sys/prctl.h>
 #include <math.h>
+#include <float.h>
 #include <mathlib/mathlib.h>
 #include <string.h>
 #include <drivers/drv_hrt.h>
@@ -158,6 +158,8 @@ int calculate_calibration_values(float accel_ref[6][3], float accel_T[3][3], flo
 
 int do_accel_calibration(int mavlink_fd)
 {
+	int fd;
+
 	mavlink_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
 
 	struct accel_scale accel_scale = {
@@ -172,7 +174,7 @@ int do_accel_calibration(int mavlink_fd)
 	int res = OK;
 
 	/* reset all offsets to zero and all scales to one */
-	int fd = open(ACCEL_DEVICE_PATH, 0);
+	fd = open(ACCEL_DEVICE_PATH, 0);
 	res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
 	close(fd);
 
@@ -194,13 +196,13 @@ int do_accel_calibration(int mavlink_fd)
 		int32_t board_rotation_int;
 		param_get(board_rotation_h, &(board_rotation_int));
 		enum Rotation board_rotation_id = (enum Rotation)board_rotation_int;
-		math::Matrix<3,3> board_rotation;
+		math::Matrix<3, 3> board_rotation;
 		get_rot_matrix(board_rotation_id, &board_rotation);
-		math::Matrix<3,3> board_rotation_t = board_rotation.transposed();
+		math::Matrix<3, 3> board_rotation_t = board_rotation.transposed();
 		math::Vector<3> accel_offs_vec(&accel_offs[0]);
-		math::Vector<3> accel_offs_rotated = board_rotation_t * accel_offs_vec;
-		math::Matrix<3,3> accel_T_mat(&accel_T[0][0]);
-		math::Matrix<3,3> accel_T_rotated = board_rotation_t * accel_T_mat * board_rotation;
+		math::Vector<3> accel_offs_rotated = board_rotation_t *accel_offs_vec;
+		math::Matrix<3, 3> accel_T_mat(&accel_T[0][0]);
+		math::Matrix<3, 3> accel_T_rotated = board_rotation_t *accel_T_mat * board_rotation;
 
 		accel_scale.x_offset = accel_offs_rotated(0);
 		accel_scale.x_scale = accel_T_rotated(0, 0);
@@ -223,7 +225,7 @@ int do_accel_calibration(int mavlink_fd)
 
 	if (res == OK) {
 		/* apply new scaling and offsets */
-		int fd = open(ACCEL_DEVICE_PATH, 0);
+		fd = open(ACCEL_DEVICE_PATH, 0);
 		res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
 		close(fd);
 
@@ -277,11 +279,13 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 			}
 		}
 
-		if (old_done_count != done_count)
+		if (old_done_count != done_count) {
 			mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 17 * done_count);
+		}
 
-		if (done)
+		if (done) {
 			break;
+		}
 
 		mavlink_log_info(mavlink_fd, "directions left: %s%s%s%s%s%s",
 				 (!data_collected[0]) ? "x+ " : "",
@@ -380,11 +384,13 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined)
 				d = d * d;
 				accel_disp[i] = accel_disp[i] * (1.0f - w);
 
-				if (d > still_thr2 * 8.0f)
+				if (d > still_thr2 * 8.0f) {
 					d = still_thr2 * 8.0f;
+				}
 
-				if (d > accel_disp[i])
+				if (d > accel_disp[i]) {
 					accel_disp[i] = d;
+				}
 			}
 
 			/* still detector with hysteresis */
@@ -432,33 +438,39 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined)
 
 	if (fabsf(accel_ema[0] - CONSTANTS_ONE_G) < accel_err_thr &&
 	    fabsf(accel_ema[1]) < accel_err_thr &&
-	    fabsf(accel_ema[2]) < accel_err_thr)
-		return 0;	// [ g, 0, 0 ]
+	    fabsf(accel_ema[2]) < accel_err_thr) {
+		return 0;        // [ g, 0, 0 ]
+	}
 
 	if (fabsf(accel_ema[0] + CONSTANTS_ONE_G) < accel_err_thr &&
 	    fabsf(accel_ema[1]) < accel_err_thr &&
-	    fabsf(accel_ema[2]) < accel_err_thr)
-		return 1;	// [ -g, 0, 0 ]
+	    fabsf(accel_ema[2]) < accel_err_thr) {
+		return 1;        // [ -g, 0, 0 ]
+	}
 
 	if (fabsf(accel_ema[0]) < accel_err_thr &&
 	    fabsf(accel_ema[1] - CONSTANTS_ONE_G) < accel_err_thr &&
-	    fabsf(accel_ema[2]) < accel_err_thr)
-		return 2;	// [ 0, g, 0 ]
+	    fabsf(accel_ema[2]) < accel_err_thr) {
+		return 2;        // [ 0, g, 0 ]
+	}
 
 	if (fabsf(accel_ema[0]) < accel_err_thr &&
 	    fabsf(accel_ema[1] + CONSTANTS_ONE_G) < accel_err_thr &&
-	    fabsf(accel_ema[2]) < accel_err_thr)
-		return 3;	// [ 0, -g, 0 ]
+	    fabsf(accel_ema[2]) < accel_err_thr) {
+		return 3;        // [ 0, -g, 0 ]
+	}
 
 	if (fabsf(accel_ema[0]) < accel_err_thr &&
 	    fabsf(accel_ema[1]) < accel_err_thr &&
-	    fabsf(accel_ema[2] - CONSTANTS_ONE_G) < accel_err_thr)
-		return 4;	// [ 0, 0, g ]
+	    fabsf(accel_ema[2] - CONSTANTS_ONE_G) < accel_err_thr) {
+		return 4;        // [ 0, 0, g ]
+	}
 
 	if (fabsf(accel_ema[0]) < accel_err_thr &&
 	    fabsf(accel_ema[1]) < accel_err_thr &&
-	    fabsf(accel_ema[2] + CONSTANTS_ONE_G) < accel_err_thr)
-		return 5;	// [ 0, 0, -g ]
+	    fabsf(accel_ema[2] + CONSTANTS_ONE_G) < accel_err_thr) {
+		return 5;        // [ 0, 0, -g ]
+	}
 
 	mavlink_log_critical(mavlink_fd, "ERROR: invalid orientation");
 
@@ -485,8 +497,9 @@ int read_accelerometer_avg(int sensor_combined_sub, float accel_avg[3], int samp
 			struct sensor_combined_s sensor;
 			orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-			for (int i = 0; i < 3; i++)
+			for (int i = 0; i < 3; i++) {
 				accel_sum[i] += sensor.accelerometer_m_s2[i];
+			}
 
 			count++;
 
@@ -495,8 +508,9 @@ int read_accelerometer_avg(int sensor_combined_sub, float accel_avg[3], int samp
 			continue;
 		}
 
-		if (errcount > samples_num / 10)
+		if (errcount > samples_num / 10) {
 			return ERROR;
+		}
 	}
 
 	for (int i = 0; i < 3; i++) {
@@ -512,8 +526,9 @@ int mat_invert3(float src[3][3], float dst[3][3])
 		    src[0][1] * (src[1][0] * src[2][2] - src[1][2] * src[2][0]) +
 		    src[0][2] * (src[1][0] * src[2][1] - src[1][1] * src[2][0]);
 
-	if (det == 0.0f)
-		return ERROR;	// Singular matrix
+	if (fabsf(det) < FLT_EPSILON) {
+		return ERROR;        // Singular matrix
+	}
 
 	dst[0][0] = (src[1][1] * src[2][2] - src[1][2] * src[2][1]) / det;
 	dst[1][0] = (src[1][2] * src[2][0] - src[1][0] * src[2][2]) / det;
@@ -549,8 +564,9 @@ int calculate_calibration_values(float accel_ref[6][3], float accel_T[3][3], flo
 	/* calculate inverse matrix for A */
 	float mat_A_inv[3][3];
 
-	if (mat_invert3(mat_A, mat_A_inv) != OK)
+	if (mat_invert3(mat_A, mat_A_inv) != OK) {
 		return ERROR;
+	}
 
 	/* copy results to accel_T */
 	for (int i = 0; i < 3; i++) {

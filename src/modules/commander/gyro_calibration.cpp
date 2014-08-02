@@ -92,7 +92,7 @@ int do_gyro_calibration(int mavlink_fd)
 		unsigned poll_errcount = 0;
 
 		/* subscribe to gyro sensor topic */
-		int sub_sensor_gyro = orb_subscribe(ORB_ID(sensor_gyro));
+		int sub_sensor_gyro = orb_subscribe(ORB_ID(sensor_gyro0));
 		struct gyro_report gyro_report;
 
 		while (calibration_counter < calibration_count) {
@@ -104,14 +104,15 @@ int do_gyro_calibration(int mavlink_fd)
 			int poll_ret = poll(fds, 1, 1000);
 
 			if (poll_ret > 0) {
-				orb_copy(ORB_ID(sensor_gyro), sub_sensor_gyro, &gyro_report);
+				orb_copy(ORB_ID(sensor_gyro0), sub_sensor_gyro, &gyro_report);
 				gyro_scale.x_offset += gyro_report.x;
 				gyro_scale.y_offset += gyro_report.y;
 				gyro_scale.z_offset += gyro_report.z;
 				calibration_counter++;
 
-				if (calibration_counter % (calibration_count / 20) == 0)
+				if (calibration_counter % (calibration_count / 20) == 0) {
 					mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, (calibration_counter * 100) / calibration_count);
+				}
 
 			} else {
 				poll_errcount++;
@@ -163,8 +164,9 @@ int do_gyro_calibration(int mavlink_fd)
 	/* apply new offsets */
 	fd = open(GYRO_DEVICE_PATH, 0);
 
-	if (OK != ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gyro_scale))
+	if (OK != ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gyro_scale)) {
 		warn("WARNING: failed to apply new offsets for gyro");
+	}
 
 	close(fd);
 
@@ -178,9 +180,9 @@ int do_gyro_calibration(int mavlink_fd)
 
 	float mag_last = -atan2f(raw.magnetometer_ga[1], raw.magnetometer_ga[0]);
 
-	if (mag_last > M_PI_F) mag_last -= 2 * M_PI_F;
+	if (mag_last > M_PI_F) { mag_last -= 2 * M_PI_F; }
 
-	if (mag_last < -M_PI_F) mag_last += 2 * M_PI_F;
+	if (mag_last < -M_PI_F) { mag_last += 2 * M_PI_F; }
 
 
 	uint64_t last_time = hrt_absolute_time();
@@ -220,15 +222,15 @@ int do_gyro_calibration(int mavlink_fd)
 			//float mag = -atan2f(magNav(1),magNav(0));
 			float mag = -atan2f(raw.magnetometer_ga[1], raw.magnetometer_ga[0]);
 
-			if (mag > M_PI_F) mag -= 2 * M_PI_F;
+			if (mag > M_PI_F) { mag -= 2 * M_PI_F; }
 
-			if (mag < -M_PI_F) mag += 2 * M_PI_F;
+			if (mag < -M_PI_F) { mag += 2 * M_PI_F; }
 
 			float diff = mag - mag_last;
 
-			if (diff > M_PI_F) diff -= 2 * M_PI_F;
+			if (diff > M_PI_F) { diff -= 2 * M_PI_F; }
 
-			if (diff < -M_PI_F) diff += 2 * M_PI_F;
+			if (diff < -M_PI_F) { diff += 2 * M_PI_F; }
 
 			baseline_integral += diff;
 			mag_last = mag;

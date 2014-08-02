@@ -28,6 +28,26 @@ class __EXPORT TECS
 {
 public:
 	TECS() :
+		_update_50hz_last_usec(0),
+		_update_speed_last_usec(0),
+		_update_pitch_throttle_last_usec(0),
+		// TECS tuning parameters
+		_hgtCompFiltOmega(0.0f),
+		_spdCompFiltOmega(0.0f),
+		_maxClimbRate(2.0f),
+		_minSinkRate(1.0f),
+		_maxSinkRate(2.0f),
+		_timeConst(5.0f),
+		_timeConstThrot(8.0f),
+		_ptchDamp(0.0f),
+		_thrDamp(0.0f),
+		_integGain(0.0f),
+		_vertAccLim(0.0f),
+		_rollComp(0.0f),
+		_spdWeight(0.5f),
+		_heightrate_p(0.0f),
+		_speedrate_p(0.0f),
+		_throttle_dem(0.0f),
 		_pitch_dem(0.0f),
 		_integ1_state(0.0f),
 		_integ2_state(0.0f),
@@ -123,6 +143,10 @@ public:
 		_timeConst = time_const;
 	}
 
+	void set_time_const_throt(float time_const_throt) {
+		_timeConstThrot = time_const_throt;
+	}
+
 	void set_min_sink_rate(float rate) {
 		_minSinkRate = rate;
 	}
@@ -204,6 +228,7 @@ private:
 	float _minSinkRate;
 	float _maxSinkRate;
 	float _timeConst;
+	float _timeConstThrot;
 	float _ptchDamp;
 	float _thrDamp;
 	float _integGain;

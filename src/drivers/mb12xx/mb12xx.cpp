@@ -74,6 +74,7 @@
 /* Configuration Constants */
 #define MB12XX_BUS 			PX4_I2C_BUS_EXPANSION
 #define MB12XX_BASEADDR 	0x70 /* 7-bit address. 8-bit address is 0xE0 */
+#define MB12XX_DEVICE_PATH	"/dev/mb12xx"
 
 /* MB12xx Registers addresses */
 
@@ -124,6 +125,7 @@ private:
 	bool				_sensor_ok;
 	int					_measure_ticks;
 	bool				_collect_phase;
+	int					_class_instance;
 
 	orb_advert_t		_range_finder_topic;
 
@@ -187,13 +189,14 @@ private:
 extern "C" __EXPORT int mb12xx_main(int argc, char *argv[]);
 
 MB12XX::MB12XX(int bus, int address) :
-	I2C("MB12xx", RANGE_FINDER_DEVICE_PATH, bus, address, 100000),
+	I2C("MB12xx", MB12XX_DEVICE_PATH, bus, address, 100000),
 	_min_distance(MB12XX_MIN_DISTANCE),
 	_max_distance(MB12XX_MAX_DISTANCE),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),
 	_collect_phase(false),
+	_class_instance(-1),
 	_range_finder_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mb12xx_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "mb12xx_comms_errors")),
@@ -215,6 +218,15 @@ MB12XX::~MB12XX()
 	if (_reports != nullptr) {
 		delete _reports;
 	}
+
+	if (_class_instance != -1) {
+		unregister_class_devname(RANGE_FINDER_DEVICE_PATH, _class_instance);
+	}
+
+	// free perf counters
+	perf_free(_sample_perf);
+	perf_free(_comms_errors);
+	perf_free(_buffer_overflows);
 }
 
 int
@@ -234,13 +246,18 @@ MB12XX::init()
 		goto out;
 	}
 
-	/* get a publish handle on the range finder topic */
-	struct range_finder_report zero_report;
-	memset(&zero_report, 0, sizeof(zero_report));
-	_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &zero_report);
+	_class_instance = register_class_devname(RANGE_FINDER_DEVICE_PATH);
 
-	if (_range_finder_topic < 0) {
-		debug("failed to create sensor_range_finder object. Did you start uOrb?");
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+		/* get a publish handle on the range finder topic */
+		struct range_finder_report rf_report;
+		measure();
+		_reports->get(&rf_report);
+		_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &rf_report);
+
+		if (_range_finder_topic < 0) {
+			debug("failed to create sensor_range_finder object. Did you start uOrb?");
+		}
 	}
 
 	ret = OK;
@@ -505,8 +522,10 @@ MB12XX::collect()
 	report.distance = si_units;
 	report.valid = si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
 
-	/* publish it */
-	orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
+	/* publish it, if we are the primary */
+	if (_range_finder_topic >= 0) {
+		orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
+	}
 
 	if (_reports->force(&report)) {
 		perf_count(_buffer_overflows);
@@ -665,7 +684,7 @@ start()
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(RANGE_FINDER_DEVICE_PATH, O_RDONLY);
+	fd = open(MB12XX_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
@@ -715,10 +734,10 @@ test()
 	ssize_t sz;
 	int ret;
 
-	int fd = open(RANGE_FINDER_DEVICE_PATH, O_RDONLY);
+	int fd = open(MB12XX_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'mb12xx start' if the driver is not running", RANGE_FINDER_DEVICE_PATH);
+		err(1, "%s open failed (try 'mb12xx start' if the driver is not running", MB12XX_DEVICE_PATH);
 	}
 
 	/* do a simple demand read */
@@ -776,7 +795,7 @@ test()
 void
 reset()
 {
-	int fd = open(RANGE_FINDER_DEVICE_PATH, O_RDONLY);
+	int fd = open(MB12XX_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		err(1, "failed ");

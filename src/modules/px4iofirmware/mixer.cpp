@@ -111,7 +111,7 @@ mixer_tick(void)
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
 	}
 
-	/* default to failsafe mixing */
+	/* default to failsafe mixing - it will be forced below if flag is set */
 	source = MIX_FAILSAFE;
 
 	/*
@@ -152,6 +152,13 @@ mixer_tick(void)
 			/* if allowed, mix from RC inputs directly up to available rc channels */
 			source = MIX_OVERRIDE_FMU_OK;
 		}
+	}
+
+	/*
+	 * Check if we should force failsafe - and do it if we have to
+	 */
+	if (r_setup_arming & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE) {
+		source = MIX_FAILSAFE;
 	}
 
 	/*
@@ -213,6 +220,7 @@ mixer_tick(void)
 		mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT);
 		in_mixer = false;
 
+		/* the pwm limit call takes care of out of band errors */
 		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
 
 		for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++)
@@ -254,10 +262,25 @@ mixer_tick(void)
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++)
 			up_pwm_servo_set(i, r_page_servos[i]);
 
+		/* set S.BUS1 or S.BUS2 outputs */
+
+		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
+			sbus2_output(r_page_servos, PX4IO_SERVO_COUNT);
+		} else if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
+			sbus1_output(r_page_servos, PX4IO_SERVO_COUNT);
+		}
+
 	} else if (mixer_servos_armed && should_always_enable_pwm) {
 		/* set the disarmed servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++)
 			up_pwm_servo_set(i, r_page_servo_disarmed[i]);
+
+		/* set S.BUS1 or S.BUS2 outputs */
+		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT)
+			sbus1_output(r_page_servos, PX4IO_SERVO_COUNT);
+
+		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT)
+			sbus2_output(r_page_servos, PX4IO_SERVO_COUNT);
 	}
 }
 

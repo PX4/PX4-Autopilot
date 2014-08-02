@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: 	Lorenz Meier
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -99,13 +98,21 @@ public:
 	/**
 	 * Start the sensors task.
 	 *
-	 * @return		OK on success.
+	 * @return	OK on success.
 	 */
 	int		start();
+
+	/**
+	 * Task status
+	 *
+	 * @return	true if the mainloop is running
+	 */
+	bool		task_running() { return _task_running; }
 
 private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
+	bool		_task_running;			/**< if true, task is running in its mainloop */
 	int		_control_task;			/**< task handle for sensor task */
 
 	int		_att_sub;			/**< vehicle attitude subscription */
@@ -134,6 +141,8 @@ private:
 	struct vehicle_global_position_s		_global_pos;		/**< global position */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
+	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
+	perf_counter_t	_nonfinite_output_perf;		/**< performance counter for non finite output */
 
 	bool		_setpoint_valid;		/**< flag if the position control setpoint is valid */
 
@@ -273,7 +282,8 @@ private:
 	/**
 	 * Main sensor collection task.
 	 */
-	void		task_main() __attribute__((noreturn));
+	void		task_main();
+
 };
 
 namespace att_control
@@ -285,12 +295,13 @@ namespace att_control
 #endif
 static const int ERROR = -1;
 
-FixedwingAttitudeControl	*g_control;
+FixedwingAttitudeControl	*g_control = nullptr;
 }
 
 FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	_task_should_exit(false),
+	_task_running(false),
 	_control_task(-1),
 
 /* subscriptions */
@@ -304,12 +315,14 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 /* publications */
 	_rate_sp_pub(-1),
-	_actuators_0_pub(-1),
 	_attitude_sp_pub(-1),
+	_actuators_0_pub(-1),
 	_actuators_1_pub(-1),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw att control")),
+	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control nonfinite input")),
+	_nonfinite_output_perf(perf_alloc(PC_COUNT, "fw att control nonfinite output")),
 /* states */
 	_setpoint_valid(false)
 {
@@ -386,6 +399,10 @@ FixedwingAttitudeControl::~FixedwingAttitudeControl()
 			}
 		} while (_control_task != -1);
 	}
+
+	perf_free(_loop_perf);
+	perf_free(_nonfinite_input_perf);
+	perf_free(_nonfinite_output_perf);
 
 	att_control::g_control = nullptr;
 }
@@ -512,7 +529,7 @@ FixedwingAttitudeControl::vehicle_accel_poll()
 	orb_check(_accel_sub, &accel_updated);
 
 	if (accel_updated) {
-		orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
+		orb_copy(ORB_ID(sensor_accel0), _accel_sub, &_accel);
 	}
 }
 
@@ -560,7 +577,7 @@ FixedwingAttitudeControl::task_main()
 	 */
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_accel_sub = orb_subscribe(ORB_ID(sensor_accel));
+	_accel_sub = orb_subscribe(ORB_ID(sensor_accel0));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -590,7 +607,11 @@ FixedwingAttitudeControl::task_main()
 	fds[1].fd = _att_sub;
 	fds[1].events = POLLIN;
 
+	_task_running = true;
+
 	while (!_task_should_exit) {
+
+		static int loop_counter = 0;
 
 		/* wait for up to 500ms for data */
 		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
@@ -672,10 +693,12 @@ FixedwingAttitudeControl::task_main()
 				float airspeed;
 
 				/* if airspeed is not updating, we assume the normal average speed */
-				if (!isfinite(_airspeed.true_airspeed_m_s) ||
+				if (bool nonfinite = !isfinite(_airspeed.true_airspeed_m_s) ||
 				    hrt_elapsed_time(&_airspeed.timestamp) > 1e6) {
 					airspeed = _parameters.airspeed_trim;
-
+					if (nonfinite) {
+						perf_count(_nonfinite_input_perf);
+					}
 				} else {
 					airspeed = _airspeed.true_airspeed_m_s;
 				}
@@ -695,31 +718,39 @@ FixedwingAttitudeControl::task_main()
 				float throttle_sp = 0.0f;
 
 				if (_vcontrol_mode.flag_control_velocity_enabled || _vcontrol_mode.flag_control_position_enabled) {
+					/* read in attitude setpoint from attitude setpoint uorb topic */
 					roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
 					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
 					throttle_sp = _att_sp.thrust;
 
 					/* reset integrals where needed */
-					if (_att_sp.roll_reset_integral)
+					if (_att_sp.roll_reset_integral) {
 						_roll_ctrl.reset_integrator();
-
+					}
+					if (_att_sp.pitch_reset_integral) {
+						_pitch_ctrl.reset_integrator();
+					}
+					if (_att_sp.yaw_reset_integral) {
+						_yaw_ctrl.reset_integrator();
+					}
 				} else {
 					/*
 					 * Scale down roll and pitch as the setpoints are radians
-					 * and a typical remote can only do 45 degrees, the mapping is
-					 * -1..+1 to -45..+45 degrees or -0.75..+0.75 radians.
+					 * and a typical remote can only do around 45 degrees, the mapping is
+					 * -1..+1 to -man_roll_max rad..+man_roll_max rad (equivalent for pitch)
 					 *
 					 * With this mapping the stick angle is a 1:1 representation of
-					 * the commanded attitude. If more than 45 degrees are desired,
-					 * a scaling parameter can be applied to the remote.
+					 * the commanded attitude.
 					 *
 					 * The trim gets subtracted here from the manual setpoint to get
 					 * the intended attitude setpoint. Later, after the rate control step the
 					 * trim is added again to the control signal.
 					 */
-					roll_sp = (_manual.roll * _parameters.man_roll_max - _parameters.trim_roll) + _parameters.rollsp_offset_rad;
-					pitch_sp = (-_manual.pitch * _parameters.man_pitch_max - _parameters.trim_pitch) + _parameters.pitchsp_offset_rad;
-					throttle_sp = _manual.throttle;
+					roll_sp = (_manual.y * _parameters.man_roll_max - _parameters.trim_roll)
+						+ _parameters.rollsp_offset_rad;
+					pitch_sp = -(_manual.x * _parameters.man_pitch_max - _parameters.trim_pitch)
+						+ _parameters.pitchsp_offset_rad;
+					throttle_sp = _manual.z;
 					_actuators.control[4] = _manual.flaps;
 
 					/*
@@ -754,7 +785,9 @@ FixedwingAttitudeControl::task_main()
 					speed_body_v = _att.R[0][1] * _global_pos.vel_n + _att.R[1][1] * _global_pos.vel_e + _att.R[2][1] * _global_pos.vel_d;
 					speed_body_w = _att.R[0][2] * _global_pos.vel_n + _att.R[1][2] * _global_pos.vel_e + _att.R[2][2] * _global_pos.vel_d;
 				} else	{
-					warnx("Did not get a valid R\n");
+					if (loop_counter % 10 == 0) {
+						warnx("Did not get a valid R\n");
+					}
 				}
 
 				/* Run attitude controllers */
@@ -772,7 +805,12 @@ FixedwingAttitudeControl::task_main()
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
 					_actuators.control[0] = (isfinite(roll_u)) ? roll_u + _parameters.trim_roll : _parameters.trim_roll;
 					if (!isfinite(roll_u)) {
-						warnx("roll_u %.4f", roll_u);
+						_roll_ctrl.reset_integrator();
+						perf_count(_nonfinite_output_perf);
+
+						if (loop_counter % 10 == 0) {
+							warnx("roll_u %.4f", (double)roll_u);
+						}
 					}
 
 					float pitch_u = _pitch_ctrl.control_bodyrate(_att.roll, _att.pitch,
@@ -781,8 +819,22 @@ FixedwingAttitudeControl::task_main()
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
 					_actuators.control[1] = (isfinite(pitch_u)) ? pitch_u + _parameters.trim_pitch : _parameters.trim_pitch;
 					if (!isfinite(pitch_u)) {
-						warnx("pitch_u %.4f, _yaw_ctrl.get_desired_rate() %.4f, airspeed %.4f, airspeed_scaling %.4f, roll_sp %.4f, pitch_sp %.4f, _roll_ctrl.get_desired_rate() %.4f, _pitch_ctrl.get_desired_rate() %.4f att_sp.roll_body %.4f",
-								pitch_u, _yaw_ctrl.get_desired_rate(), airspeed, airspeed_scaling, roll_sp, pitch_sp, _roll_ctrl.get_desired_rate(), _pitch_ctrl.get_desired_rate(), _att_sp.roll_body);
+						_pitch_ctrl.reset_integrator();
+						perf_count(_nonfinite_output_perf);
+						if (loop_counter % 10 == 0) {
+							warnx("pitch_u %.4f, _yaw_ctrl.get_desired_rate() %.4f,"
+								" airspeed %.4f, airspeed_scaling %.4f,"
+								" roll_sp %.4f, pitch_sp %.4f,"
+								" _roll_ctrl.get_desired_rate() %.4f,"
+								" _pitch_ctrl.get_desired_rate() %.4f"
+								" att_sp.roll_body %.4f",
+								(double)pitch_u, (double)_yaw_ctrl.get_desired_rate(),
+								(double)airspeed, (double)airspeed_scaling,
+								(double)roll_sp, (double)pitch_sp,
+								(double)_roll_ctrl.get_desired_rate(),
+								(double)_pitch_ctrl.get_desired_rate(),
+								(double)_att_sp.roll_body);
+						}
 					}
 
 					float yaw_u = _yaw_ctrl.control_bodyrate(_att.roll, _att.pitch,
@@ -791,16 +843,25 @@ FixedwingAttitudeControl::task_main()
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
 					_actuators.control[2] = (isfinite(yaw_u)) ? yaw_u + _parameters.trim_yaw : _parameters.trim_yaw;
 					if (!isfinite(yaw_u)) {
-						warnx("yaw_u %.4f", yaw_u);
+						_yaw_ctrl.reset_integrator();
+						perf_count(_nonfinite_output_perf);
+						if (loop_counter % 10 == 0) {
+							warnx("yaw_u %.4f", (double)yaw_u);
+						}
 					}
 
 					/* throttle passed through */
 					_actuators.control[3] = (isfinite(throttle_sp)) ? throttle_sp : 0.0f;
 					if (!isfinite(throttle_sp)) {
-						warnx("throttle_sp %.4f", throttle_sp);
+						if (loop_counter % 10 == 0) {
+							warnx("throttle_sp %.4f", (double)throttle_sp);
+						}
 					}
 				} else {
-					warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", roll_sp, pitch_sp);
+					perf_count(_nonfinite_input_perf);
+					if (loop_counter % 10 == 0) {
+						warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", (double)roll_sp, (double)pitch_sp);
+					}
 				}
 
 				/*
@@ -825,10 +886,10 @@ FixedwingAttitudeControl::task_main()
 
 			} else {
 				/* manual/direct control */
-				_actuators.control[0] = _manual.roll;
-				_actuators.control[1] = -_manual.pitch;
-				_actuators.control[2] = _manual.yaw;
-				_actuators.control[3] = _manual.throttle;
+				_actuators.control[0] = _manual.y;
+				_actuators.control[1] = -_manual.x;
+				_actuators.control[2] = _manual.r;
+				_actuators.control[3] = _manual.z;
 				_actuators.control[4] = _manual.flaps;
 			}
 
@@ -864,12 +925,14 @@ FixedwingAttitudeControl::task_main()
 
 		}
 
+		loop_counter++;
 		perf_end(_loop_perf);
 	}
 
 	warnx("exiting.\n");
 
 	_control_task = -1;
+	_task_running = false;
 	_exit(0);
 }
 
@@ -914,6 +977,14 @@ int fw_att_control_main(int argc, char *argv[])
 			att_control::g_control = nullptr;
 			err(1, "start failed");
 		}
+
+		/* avoid memory fragmentation by not exiting start handler until the task has fully started */
+		while (att_control::g_control == nullptr || !att_control::g_control->task_running()) {
+			usleep(50000);
+			printf(".");
+			fflush(stdout);
+		}
+		printf("\n");
 
 		exit(0);
 	}
