@@ -14,4 +14,6 @@ void readUniqueID(uint8_t out_uid[UniqueIDSize]);
 void setStatusLed(bool state);
 void setErrorLed(bool state);
 
+void resetWatchdog();
+
 }

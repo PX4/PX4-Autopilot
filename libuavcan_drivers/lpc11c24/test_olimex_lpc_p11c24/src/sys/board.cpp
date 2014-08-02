@@ -57,8 +57,13 @@ void sysctlPowerUp(unsigned long powerupmask)
 
 void initWatchdog()
 {
-    sysctlPowerUp(SYSCTL_POWERDOWN_WDTOSC_PD);   // Enable watchdog oscillator
-    // TODO: init watchdog
+    Chip_WWDT_Init(LPC_WWDT);                                   // Initialize watchdog
+    sysctlPowerUp(SYSCTL_POWERDOWN_WDTOSC_PD);                  // Enable watchdog oscillator
+    Chip_Clock_SetWDTOSC(WDTLFO_OSC_0_60, 4);                   // WDT osc rate 0.6 MHz / 4 = 150 kHz
+    Chip_Clock_SetWDTClockSource(SYSCTL_WDTCLKSRC_WDTOSC, 1);   // Clocking watchdog from its osc, div rate 1
+    Chip_WWDT_SetTimeOut(LPC_WWDT, 37500);                      // 1 sec (hardcoded to reduce code size)
+    Chip_WWDT_SetOption(LPC_WWDT, WWDT_WDMOD_WDRESET);          // Mode: reset on timeout
+    Chip_WWDT_Start(LPC_WWDT);                                  // Go
 }
 
 void initClock()
@@ -112,6 +117,8 @@ void init()
     initWatchdog();
     initClock();
     initGpio();
+
+    resetWatchdog();
 }
 
 } // namespace
@@ -135,6 +142,11 @@ void setStatusLed(bool state)
 void setErrorLed(bool state)
 {
     LPC_GPIO[ErrorLedPort].DATA[1 << ErrorLedPin] = static_cast<unsigned long>(!state) << ErrorLedPin;
+}
+
+void resetWatchdog()
+{
+    Chip_WWDT_Feed(LPC_WWDT);
 }
 
 } // namespace board

@@ -46,10 +46,14 @@ __attribute__((noinline))
 #endif
 void init()
 {
+    board::resetWatchdog();
+
     if (uavcan_lpc11c24::CanDriver::instance().init(1000000) < 0)
     {
         die();
     }
+
+    board::resetWatchdog();
 
     getNode().setNodeID(72);
     getNode().setName("org.uavcan.lpc11c24_test");
@@ -67,9 +71,13 @@ void init()
     std::copy(std::begin(uid), std::end(uid), std::begin(hwver.unique_id));
     getNode().setHardwareVersion(hwver);
 
+    board::resetWatchdog();
+
     while (getNode().start() < 0)
     {
     }
+
+    board::resetWatchdog();
 
     while (getTimeSyncSlave().start() < 0)
     {
@@ -79,6 +87,8 @@ void init()
     {
     }
     getLogger().setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
+
+    board::resetWatchdog();
 }
 
 void reverse(char* s)
@@ -145,5 +155,7 @@ int main()
             logmsg.text = buf;
             (void)getLogger().log(logmsg);
         }
+
+        board::resetWatchdog();
     }
 }
