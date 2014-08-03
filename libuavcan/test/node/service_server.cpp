@@ -96,6 +96,7 @@ TEST(ServiceServer, Basic)
             // Second frame
             ASSERT_TRUE(fr.parse(can_driver.ifaces[0].popTxFrame()));
             std::cout << fr.toString() << std::endl;
+            // cppcheck-suppress arrayIndexOutOfBounds
             ASSERT_STREQ(payloads[1], reinterpret_cast<const char*>(fr.getPayloadPtr()));
 
             ASSERT_EQ(i, fr.getTransferID().get());
