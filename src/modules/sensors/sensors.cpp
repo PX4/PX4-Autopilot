@@ -836,6 +836,7 @@ Sensors::parameters_update()
 	int flowfd = open(PX4FLOW_DEVICE_PATH, 0);
 	if (flowfd >= 0) {
 		int flowret = ioctl(flowfd, SENSORIOCSROTATION, _parameters.flow_rotation);
+		close(flowfd);
 		if (flowret) {
 			warnx("FAILED SETTING FLOW ROTATION");
 		}
