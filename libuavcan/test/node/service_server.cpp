@@ -87,7 +87,7 @@ TEST(ServiceServer, Basic)
             uavcan::Frame fr;
             ASSERT_TRUE(fr.parse(can_driver.ifaces[0].popTxFrame()));
             std::cout << fr.toString() << std::endl;
-            ASSERT_STREQ(payloads[0], reinterpret_cast<const char*>(fr.getPayloadPtr() + 2)); // Skipping CRC
+            ASSERT_FALSE(std::strncmp(payloads[0], reinterpret_cast<const char*>(fr.getPayloadPtr() + 2), 5)); // No CRC
 
             ASSERT_EQ(i, fr.getTransferID().get());
             ASSERT_EQ(uavcan::TransferTypeServiceResponse, fr.getTransferType());
@@ -97,7 +97,7 @@ TEST(ServiceServer, Basic)
             ASSERT_TRUE(fr.parse(can_driver.ifaces[0].popTxFrame()));
             std::cout << fr.toString() << std::endl;
             // cppcheck-suppress arrayIndexOutOfBounds
-            ASSERT_STREQ(payloads[1], reinterpret_cast<const char*>(fr.getPayloadPtr()));
+            ASSERT_FALSE(std::strncmp(payloads[1], reinterpret_cast<const char*>(fr.getPayloadPtr()), 7));
 
             ASSERT_EQ(i, fr.getTransferID().get());
             ASSERT_EQ(uavcan::TransferTypeServiceResponse, fr.getTransferType());
