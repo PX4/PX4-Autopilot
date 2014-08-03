@@ -41,6 +41,7 @@ static inline bool isnan(T arg)
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
     return std::isnan(arg);
 #else
+    // cppcheck-suppress duplicateExpression
     return arg != arg;
 #endif
 }
