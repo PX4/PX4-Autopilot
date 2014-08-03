@@ -146,6 +146,7 @@ private:
 	int		_range_finder_sub;		/**< range finder subscription */
 
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint */
+	orb_advert_t	_tecs_status_pub;		/**< TECS status publication */
 	orb_advert_t	_nav_capabilities_pub;		/**< navigation capabilities publication */
 
 	struct vehicle_attitude_s			_att;				/**< vehicle attitude */
@@ -414,6 +415,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 
 /* publications */
 	_attitude_sp_pub(-1),
+	_tecs_status_pub(-1),
 	_nav_capabilities_pub(-1),
 
 /* states */
@@ -1384,6 +1386,51 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 					    climbout_mode, climbout_pitch_min_rad,
 					    throttle_min, throttle_max, throttle_cruise,
 					    pitch_min_rad, pitch_max_rad);
+
+		struct TECS::tecs_state s;
+		_tecs.get_tecs_state(s);
+
+		struct tecs_status_s t;
+
+		t.timestamp = s.timestamp;
+
+		switch (s.mode) {
+			case TECS::ECL_TECS_MODE_NORMAL:
+				t.mode = TECS_MODE_NORMAL;
+				break;
+			case TECS::ECL_TECS_MODE_UNDERSPEED:
+				t.mode = TECS_MODE_UNDERSPEED;
+				break;
+			case TECS::ECL_TECS_MODE_BAD_DESCENT:
+				t.mode = TECS_MODE_BAD_DESCENT;
+				break;
+			case TECS::ECL_TECS_MODE_CLIMBOUT:
+				t.mode = TECS_MODE_CLIMBOUT;
+				break;
+		}
+
+		t.altitudeSp			= s.hgt_dem;
+		t.altitude_filtered		= s.hgt;
+		t.airspeedSp			= s.spd_dem;
+		t.airspeed_filtered		= s.spd;
+
+		t.flightPathAngleSp		= s.dhgt_dem;
+		t.flightPathAngle		= s.dhgt;
+		t.flightPathAngleFiltered	= s.dhgt;
+
+		t.airspeedDerivativeSp		= s.dspd_dem;
+		t.airspeedDerivative		= s.dspd;
+
+		t.totalEnergyRateSp		= s.thr;
+		t.totalEnergyRate		= s.ithr;
+		t.energyDistributionRateSp	= s.ptch;
+		t.energyDistributionRate	= s.iptch;
+
+		if (_tecs_status_pub > 0) {
+			orb_publish(ORB_ID(tecs_status), _tecs_status_pub, &t);
+		} else {
+			_tecs_status_pub = orb_advertise(ORB_ID(tecs_status), &t);
+		}
 	}
 }
 
