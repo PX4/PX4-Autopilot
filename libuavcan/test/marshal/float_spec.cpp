@@ -15,11 +15,8 @@ TEST(FloatSpec, Limits)
     using uavcan::CastModeTruncate;
 
     typedef FloatSpec<16, CastModeSaturate> F16S;
-    typedef FloatSpec<16, CastModeTruncate> F16T;
-    typedef FloatSpec<32, CastModeSaturate> F32S;
     typedef FloatSpec<32, CastModeTruncate> F32T;
     typedef FloatSpec<64, CastModeSaturate> F64S;
-    typedef FloatSpec<64, CastModeTruncate> F64T;
 
     ASSERT_FALSE(F16S::IsExactRepresentation);
     ASSERT_FLOAT_EQ(65504.0, F16S::max());
