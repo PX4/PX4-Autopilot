@@ -393,7 +393,7 @@ transition_result_t arm_disarm(bool arm, const int mavlink_fd_local, const char 
 
 	// Transition the armed state. By passing mavlink_fd to arming_state_transition it will
 	// output appropriate error messages if the state cannot transition.
-	arming_res = arming_state_transition(&status, &safety, arm ? ARMING_STATE_ARMED : ARMING_STATE_STANDBY, &armed, mavlink_fd_local);
+	arming_res = arming_state_transition(&status, &safety, arm ? ARMING_STATE_ARMED : ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd_local);
 
 	if (arming_res == TRANSITION_CHANGED && mavlink_fd) {
 		mavlink_log_info(mavlink_fd_local, "[cmd] %s by %s", arm ? "ARMED" : "DISARMED", armedBy);
@@ -1085,7 +1085,7 @@ int commander_thread_main(int argc, char *argv[])
 			if (status.hil_state == HIL_STATE_OFF && safety.safety_switch_available && !safety.safety_off && armed.armed) {
 				arming_state_t new_arming_state = (status.arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
 
-				if (TRANSITION_CHANGED == arming_state_transition(&status, &safety, new_arming_state, &armed, mavlink_fd)) {
+				if (TRANSITION_CHANGED == arming_state_transition(&status, &safety, new_arming_state, &armed, true /* fRunPreArmChecks */, mavlink_fd)) {
 					mavlink_log_info(mavlink_fd, "DISARMED by safety switch");
 					arming_state_changed = true;
 				}
@@ -1288,14 +1288,14 @@ int commander_thread_main(int argc, char *argv[])
 			status.battery_warning = VEHICLE_BATTERY_WARNING_CRITICAL;
 
 			if (armed.armed) {
-				arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_ARMED_ERROR, &armed, mavlink_fd);
+				arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_ARMED_ERROR, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 
 				if (arming_ret == TRANSITION_CHANGED) {
 					arming_state_changed = true;
 				}
 
 			} else {
-				arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_STANDBY_ERROR, &armed, mavlink_fd);
+				arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_STANDBY_ERROR, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 
 				if (arming_ret == TRANSITION_CHANGED) {
 					arming_state_changed = true;
@@ -1309,7 +1309,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (status.arming_state == ARMING_STATE_INIT && low_prio_task == LOW_PRIO_TASK_NONE) {
 			/* TODO: check for sensors */
-			arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_STANDBY, &armed, mavlink_fd);
+			arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 
 			if (arming_ret == TRANSITION_CHANGED) {
 				arming_state_changed = true;
@@ -1368,7 +1368,7 @@ int commander_thread_main(int argc, char *argv[])
 				if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
 					arming_state_t new_arming_state = (status.arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
-					arming_ret = arming_state_transition(&status, &safety, new_arming_state, &armed, mavlink_fd);
+					arming_ret = arming_state_transition(&status, &safety, new_arming_state, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 					if (arming_ret == TRANSITION_CHANGED) {
 						arming_state_changed = true;
 					}
@@ -1394,7 +1394,7 @@ int commander_thread_main(int argc, char *argv[])
 					if (status.main_state != MAIN_STATE_MANUAL) {
 						print_reject_arm("NOT ARMING: Switch to MANUAL mode first.");
 					} else {
-						arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed, mavlink_fd);
+						arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 						if (arming_ret == TRANSITION_CHANGED) {
 							arming_state_changed = true;
 						}
@@ -2156,7 +2156,7 @@ void *commander_low_prio_loop(void *arg)
 				int calib_ret = ERROR;
 
 				/* try to go to INIT/PREFLIGHT arming state */
-				if (TRANSITION_DENIED == arming_state_transition(&status, &safety, ARMING_STATE_INIT, &armed, mavlink_fd)) {
+				if (TRANSITION_DENIED == arming_state_transition(&status, &safety, ARMING_STATE_INIT, &armed, true /* fRunPreArmChecks */, mavlink_fd)) {
 					answer_command(cmd, VEHICLE_CMD_RESULT_DENIED);
 					break;
 				}
@@ -2219,7 +2219,7 @@ void *commander_low_prio_loop(void *arg)
 					tune_negative(true);
 				}
 
-				arming_state_transition(&status, &safety, ARMING_STATE_STANDBY, &armed, mavlink_fd);
+				arming_state_transition(&status, &safety, ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 
 				break;
 			}
