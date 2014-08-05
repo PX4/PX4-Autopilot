@@ -57,7 +57,7 @@ typedef enum {
 bool is_safe(const struct vehicle_status_s *current_state, const struct safety_s *safety, const struct actuator_armed_s *armed);
 
 transition_result_t arming_state_transition(struct vehicle_status_s *current_state, const struct safety_s *safety,
-		arming_state_t new_arming_state, struct actuator_armed_s *armed, const int mavlink_fd);
+		arming_state_t new_arming_state, struct actuator_armed_s *armed, bool fRunPreArmChecks, const int mavlink_fd);
 
 transition_result_t main_state_transition(struct vehicle_status_s *current_state, main_state_t new_main_state);
 
