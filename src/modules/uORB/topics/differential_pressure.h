@@ -67,6 +67,8 @@ struct differential_pressure_s {
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(differential_pressure);
+ORB_DECLARE(differential_pressure0);
+ORB_DECLARE(differential_pressure1);
+ORB_DECLARE(differential_pressure2);
 
 #endif

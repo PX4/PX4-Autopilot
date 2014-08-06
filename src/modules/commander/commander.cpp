@@ -882,7 +882,7 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&sensors, 0, sizeof(sensors));
 
 	/* Subscribe to differential pressure topic */
-	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
+	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure0));
 	struct differential_pressure_s diff_pres;
 	memset(&diff_pres, 0, sizeof(diff_pres));
 
@@ -1050,7 +1050,7 @@ int commander_thread_main(int argc, char *argv[])
 		orb_check(diff_pres_sub, &updated);
 
 		if (updated) {
-			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
+			orb_copy(ORB_ID(differential_pressure0), diff_pres_sub, &diff_pres);
 		}
 
 		orb_check(system_power_sub, &updated);

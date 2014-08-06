@@ -83,7 +83,7 @@
 #define MEAS_DRIVER_FILTER_FREQ 1.2f
 #define CONVERSION_INTERVAL	(1000000 / MEAS_RATE)	/* microseconds */
 
-class MEASAirspeed : public Airspeed
+class __EXPORT MEASAirspeed : public Airspeed
 {
 public:
 	MEASAirspeed(int bus, int address = I2C_ADDRESS_MS4525DO, const char *path = PATH_MS4525);
