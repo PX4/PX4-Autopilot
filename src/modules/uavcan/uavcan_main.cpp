@@ -313,11 +313,6 @@ int UavcanNode::run()
 				}
 			}
 
-			if (!controls_updated) {
-				// timeout: no control data, switch to failsafe values
-				// XXX trigger failsafe
-			}
-
 			// can we mix?
 			if (controls_updated && (_mixers != nullptr)) {
 
