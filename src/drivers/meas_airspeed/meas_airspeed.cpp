@@ -91,46 +91,7 @@
 
 #include <drivers/airspeed/airspeed.h>
 
-/* I2C bus address is 1010001x */
-#define I2C_ADDRESS_MS4525DO	0x28	/**< 7-bit address. Depends on the order code (this is for code "I") */
-#define PATH_MS4525		"/dev/ms4525"
-/* The MS5525DSO address is 111011Cx, where C is the complementary value of the pin CSB */
-#define I2C_ADDRESS_MS5525DSO	0x77	//0x77/* 7-bit address, addr. pin pulled low */
-#define PATH_MS5525		"/dev/ms5525"
-
-/* Register address */
-#define ADDR_READ_MR			0x00	/* write to this address to start conversion */
-
-/* Measurement rate is 100Hz */
-#define MEAS_RATE 100
-#define MEAS_DRIVER_FILTER_FREQ 1.2f
-#define CONVERSION_INTERVAL	(1000000 / MEAS_RATE)	/* microseconds */
-
-class MEASAirspeed : public Airspeed
-{
-public:
-	MEASAirspeed(int bus, int address = I2C_ADDRESS_MS4525DO, const char *path = PATH_MS4525);
-
-protected:
-
-	/**
-	* Perform a poll cycle; collect from the previous measurement
-	* and start a new one.
-	*/
-	virtual void	cycle();
-	virtual int	measure();
-	virtual int	collect();
-
-	math::LowPassFilter2p	_filter;
-
-	/**
-	 * Correct for 5V rail voltage variations
-	 */
-	void voltage_correction(float &diff_pres_pa, float &temperature);
-
-	int _t_system_power;
-	struct system_power_s system_power;
-};
+#include "meas_airspeed.h"
 
 /*
  * Driver 'main' command.
@@ -270,9 +231,9 @@ MEASAirspeed::collect()
 	report.differential_pressure_raw_pa = diff_press_pa_raw;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
-	if (_airspeed_pub > 0 && !(_pub_blocked)) {
+	if (_pub > 0 && !(_pub_blocked)) {
 		/* publish it */
-		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
+		orb_publish(_orb_id, _pub, &report);
 	}
 
 	new_report(report);

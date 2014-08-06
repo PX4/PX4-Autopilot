@@ -38,6 +38,8 @@
  * Generic driver for airspeed sensors connected via I2C.
  */
 
+#pragma once
+
 #include <nuttx/config.h>
 
 #include <drivers/device/i2c.h>
@@ -77,16 +79,6 @@
 /* Default I2C bus */
 #define PX4_I2C_BUS_DEFAULT		PX4_I2C_BUS_EXPANSION
 
-/* Oddly, ERROR is not defined for C++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
-
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
-
 class __EXPORT Airspeed : public device::I2C
 {
 public:
@@ -104,8 +96,6 @@ public:
 	virtual void	print_info();
 
 private:
-	RingBuffer		*_reports;
-	perf_counter_t		_buffer_overflows;
 
 	/* this class has pointer data members and should not be copied */
 	Airspeed(const Airspeed&);
@@ -127,6 +117,8 @@ protected:
 	 */
 	void update_status();
 
+	perf_counter_t		_buffer_overflows;
+	RingBuffer		*_reports;
 	work_s			_work;
 	float			_max_differential_pressure_pa;
 	bool			_sensor_ok;
@@ -135,8 +127,9 @@ protected:
 	bool			_collect_phase;
 	float			_diff_pres_offset;
 
-	orb_advert_t		_airspeed_pub;
+	orb_advert_t		_pub;
 	orb_advert_t		_subsys_pub;
+	orb_id_t		_orb_id;
 
 	int			_class_instance;
 
