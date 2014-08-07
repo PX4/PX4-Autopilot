@@ -554,18 +554,30 @@ void TECS::update_pitch_throttle(const math::Matrix<3,3> &rotMat, float pitch, f
 	// Calculate pitch demand
 	_update_pitch();
 
-//    // Write internal variables to the log_tuning structure. This
-//    // structure will be logged in dataflash at 10Hz
-	// log_tuning.hgt_dem  = _hgt_dem_adj;
-	// log_tuning.hgt      = _integ3_state;
-	// log_tuning.dhgt_dem = _hgt_rate_dem;
-	// log_tuning.dhgt     = _integ2_state;
-	// log_tuning.spd_dem  = _TAS_dem_adj;
-	// log_tuning.spd      = _integ5_state;
-	// log_tuning.dspd     = _vel_dot;
-	// log_tuning.ithr     = _integ6_state;
-	// log_tuning.iptch    = _integ7_state;
-	// log_tuning.thr      = _throttle_dem;
-	// log_tuning.ptch     = _pitch_dem;
-	// log_tuning.dspd_dem = _TAS_rate_dem;
+	_tecs_state.timestamp = now;
+
+	if (_underspeed) {
+		_tecs_state.mode = ECL_TECS_MODE_UNDERSPEED;
+	} else if (_badDescent) {
+		_tecs_state.mode = ECL_TECS_MODE_BAD_DESCENT;
+	} else if (_climbOutDem) {
+		_tecs_state.mode = ECL_TECS_MODE_CLIMBOUT;
+	} else {
+		// If no error flag applies, conclude normal
+		_tecs_state.mode = ECL_TECS_MODE_NORMAL;
+	}
+
+	_tecs_state.hgt_dem  = _hgt_dem_adj;
+	_tecs_state.hgt      = _integ3_state;
+	_tecs_state.dhgt_dem = _hgt_rate_dem;
+	_tecs_state.dhgt     = _integ2_state;
+	_tecs_state.spd_dem  = _TAS_dem_adj;
+	_tecs_state.spd      = _integ5_state;
+	_tecs_state.dspd     = _vel_dot;
+	_tecs_state.ithr     = _integ6_state;
+	_tecs_state.iptch    = _integ7_state;
+	_tecs_state.thr      = _throttle_dem;
+	_tecs_state.ptch     = _pitch_dem;
+	_tecs_state.dspd_dem = _TAS_rate_dem;
+
 }

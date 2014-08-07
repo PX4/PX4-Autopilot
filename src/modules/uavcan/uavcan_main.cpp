@@ -253,7 +253,6 @@ int UavcanNode::run()
 	// XXX figure out the output count
 	_output_count = 2;
 
-
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
 	actuator_outputs_s outputs;
@@ -273,21 +272,23 @@ int UavcanNode::run()
 
 	_node.setStatusOk();
 
-	while (!_task_should_exit) {
+	/*
+	 * This event is needed to wake up the thread on CAN bus activity (RX/TX/Error).
+	 * Please note that with such multiplexing it is no longer possible to rely only on
+	 * the value returned from poll() to detect whether actuator control has timed out or not.
+	 * Instead, all ORB events need to be checked individually (see below).
+	 */
+	_poll_fds_num = 0;
+	_poll_fds[_poll_fds_num] = ::pollfd();
+	_poll_fds[_poll_fds_num].fd = busevent_fd;
+	_poll_fds[_poll_fds_num].events = POLLIN;
+	_poll_fds_num += 1;
 
+	while (!_task_should_exit) {
+		// update actuator controls subscriptions if needed
 		if (_groups_subscribed != _groups_required) {
 			subscribe();
 			_groups_subscribed = _groups_required;
-			/*
-			 * This event is needed to wake up the thread on CAN bus activity (RX/TX/Error).
-			 * Please note that with such multiplexing it is no longer possible to rely only on
-			 * the value returned from poll() to detect whether actuator control has timed out or not.
-			 * Instead, all ORB events need to be checked individually (see below).
-			 */
-			_poll_fds[_poll_fds_num] = ::pollfd();
-			_poll_fds[_poll_fds_num].fd = busevent_fd;
-			_poll_fds[_poll_fds_num].events = POLLIN;
-			_poll_fds_num += 1;
 		}
 
 		const int poll_ret = ::poll(_poll_fds, _poll_fds_num, PollTimeoutMs);
@@ -301,7 +302,7 @@ int UavcanNode::run()
 		} else {
 			// get controls for required topics
 			bool controls_updated = false;
-			unsigned poll_id = 0;
+			unsigned poll_id = 1;
 			for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 				if (_control_subs[i] > 0) {
 					if (_poll_fds[poll_id].revents & POLLIN) {
@@ -312,12 +313,7 @@ int UavcanNode::run()
 				}
 			}
 
-			if (!controls_updated) {
-				// timeout: no control data, switch to failsafe values
-				// XXX trigger failsafe
-			}
-
-			//can we mix?
+			// can we mix?
 			if (controls_updated && (_mixers != nullptr)) {
 
 				// XXX one output group has 8 outputs max,
@@ -417,7 +413,8 @@ UavcanNode::subscribe()
 	// Subscribe/unsubscribe to required actuator control groups
 	uint32_t sub_groups = _groups_required & ~_groups_subscribed;
 	uint32_t unsub_groups = _groups_subscribed & ~_groups_required;
-	_poll_fds_num = 0;
+	// the first fd used by CAN
+	_poll_fds_num = 1;
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
 			warnx("subscribe to actuator_controls_%d", i);
@@ -523,8 +520,8 @@ UavcanNode::print_info()
 		warnx("not running, start first");
 	}
 
-	warnx("groups: sub: %u / req: %u / fds: %u", (unsigned)_groups_subscribed, (unsigned)_groups_required, _poll_fds_num);
-	warnx("mixer: %s", (_mixers == nullptr) ? "FAIL" : "OK");
+	warnx("actuators control groups: sub: %u / req: %u / fds: %u", (unsigned)_groups_subscribed, (unsigned)_groups_required, _poll_fds_num);
+	warnx("mixer: %s", (_mixers == nullptr) ? "NONE" : "OK");
 }
 
 /*

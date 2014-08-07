@@ -28,6 +28,7 @@ class __EXPORT TECS
 {
 public:
 	TECS() :
+		_tecs_state {},
 		_update_50hz_last_usec(0),
 		_update_speed_last_usec(0),
 		_update_pitch_throttle_last_usec(0),
@@ -120,24 +121,33 @@ public:
 		return _spdWeight;
 	}
 
-	// log data on internal state of the controller. Called at 10Hz
-	// void log_data(DataFlash_Class &dataflash, uint8_t msgid);
+	enum ECL_TECS_MODE {
+		ECL_TECS_MODE_NORMAL = 0,
+		ECL_TECS_MODE_UNDERSPEED,
+		ECL_TECS_MODE_BAD_DESCENT,
+		ECL_TECS_MODE_CLIMBOUT
+	};
 
-	// struct PACKED log_TECS_Tuning {
-	// 	LOG_PACKET_HEADER;
-	// 	float hgt;
-	// 	float dhgt;
-	// 	float hgt_dem;
-	// 	float dhgt_dem;
-	// 	float spd_dem;
-	// 	float spd;
-	// 	float dspd;
-	// 	float ithr;
-	// 	float iptch;
-	// 	float thr;
-	// 	float ptch;
-	// 	float dspd_dem;
-	// } log_tuning;
+	struct tecs_state {
+		uint64_t timestamp;
+		float hgt;
+		float dhgt;
+		float hgt_dem;
+		float dhgt_dem;
+		float spd_dem;
+		float spd;
+		float dspd;
+		float ithr;
+		float iptch;
+		float thr;
+		float ptch;
+		float dspd_dem;
+		enum ECL_TECS_MODE mode;
+	};
+
+	void get_tecs_state(struct tecs_state& state) {
+		state = _tecs_state;
+	}
 
 	void set_time_const(float time_const) {
 		_timeConst = time_const;
@@ -212,6 +222,9 @@ public:
 	}
 
 private:
+
+	struct tecs_state _tecs_state;
+
 	// Last time update_50Hz was called
 	uint64_t _update_50hz_last_usec;
 
