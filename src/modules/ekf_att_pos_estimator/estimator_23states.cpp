@@ -1070,10 +1070,18 @@ void AttPosEKF::FuseVelposNED()
             // apply a 10-sigma threshold
             current_ekf_state.hgtHealth = sq(hgtInnov) < 100.0f*varInnovVelPos[5];
             current_ekf_state.hgtTimeout = (millis() - current_ekf_state.hgtFailTime) > hgtRetryTime;
-            if (current_ekf_state.hgtHealth || current_ekf_state.hgtTimeout)
+            if (current_ekf_state.hgtHealth || current_ekf_state.hgtTimeout || staticMode)
             {
                 current_ekf_state.hgtHealth = true;
                 current_ekf_state.hgtFailTime = millis();
+
+                // if we just reset from a timeout, do not fuse
+                // the height data, but reset height and stored states
+                if (current_ekf_state.hgtTimeout) {
+                    ResetHeight();
+                    ResetStoredStates();
+                    fuseHgtData = false;
+                }
             }
             else
             {
