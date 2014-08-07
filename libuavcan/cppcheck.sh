@@ -14,4 +14,5 @@ echo "Number of threads for cppcheck: $num_cores"
 # TODO: with future versions of cppcheck, add --library=glibc
 cppcheck . --error-exitcode=1 --quiet --enable=all --platform=unix64 --std=c99 --std=c++11 \
            --inline-suppr --force --template=gcc -j$num_cores \
+           -U__BIGGEST_ALIGNMENT__ -UUAVCAN_MEM_POOL_BLOCK_SIZE -UBIG_ENDIAN -UBYTE_ORDER \
            -Iinclude $@

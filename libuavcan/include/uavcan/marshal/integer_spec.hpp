@@ -153,7 +153,7 @@ class UAVCAN_EXPORT YamlStreamer<IntegerSpec<BitLen, Signedness, CastMode> >
     typedef typename RawType::StorageType StorageType;
 
 public:
-    template <typename Stream>
+    template <typename Stream>  // cppcheck-suppress passedByValue
     static void stream(Stream& s, const StorageType value, int)
     {
         // Get rid of character types - we want its integer representation, not ASCII code

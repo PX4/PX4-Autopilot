@@ -69,7 +69,7 @@ private:
 
     Callback callback_;
 
-    void handleReceivedDataStruct(ReceivedDataStructure<DataType_>& msg)
+    virtual void handleReceivedDataStruct(ReceivedDataStructure<DataType_>& msg)
     {
         if (try_implicit_cast<bool>(callback_, true))
         {

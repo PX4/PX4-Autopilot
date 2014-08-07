@@ -168,7 +168,7 @@ struct UAVCAN_EXPORT IsDynamicallyAllocatable
 {
     static void check()
     {
-        char dummy[(sizeof(T) <= MemPoolBlockSize) ? 1 : -1];
+        char dummy[(sizeof(T) <= MemPoolBlockSize) ? 1 : -1] = { '0' };
         (void)dummy;
     }
 };

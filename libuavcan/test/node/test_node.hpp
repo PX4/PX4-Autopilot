@@ -73,7 +73,7 @@ struct PairableCanDriver : public uavcan::ICanDriver, public uavcan::ICanIface
         assert(other);
         if (inout_masks.read == 1)
         {
-            inout_masks.read = (read_queue.size() || loopback_queue.size()) ? 1 : 0;
+            inout_masks.read = (!read_queue.empty() || !loopback_queue.empty()) ? 1 : 0;
         }
         if (inout_masks.read || inout_masks.write)
         {
@@ -160,8 +160,7 @@ struct InterlinkedTestNodes
         nspins2 = nspins2 ? nspins2 : 1;
         while (nspins2 --> 0)
         {
-            int ret = -1;
-            ret = a.spin(uavcan::MonotonicDuration::fromMSec(1));
+            int ret = a.spin(uavcan::MonotonicDuration::fromMSec(1));
             if (ret < 0)
             {
                 return ret;

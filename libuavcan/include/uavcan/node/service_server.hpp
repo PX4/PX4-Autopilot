@@ -76,7 +76,7 @@ private:
     uint32_t response_failure_count_;
     ResponseType response_;
 
-    void handleReceivedDataStruct(ReceivedDataStructure<RequestType>& request)
+    virtual void handleReceivedDataStruct(ReceivedDataStructure<RequestType>& request)
     {
         UAVCAN_ASSERT(request.getTransferType() == TransferTypeServiceRequest);
         if (try_implicit_cast<bool>(callback_, true))
