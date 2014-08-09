@@ -60,7 +60,7 @@ enum SETPOINT_TYPE
 	SETPOINT_TYPE_TAKEOFF,		/**< takeoff setpoint */
 	SETPOINT_TYPE_LAND,		/**< land setpoint, altitude must be ignored, descend until landing */
 	SETPOINT_TYPE_IDLE,		/**< do nothing, switch off motors or keep at idle speed (MC) */
-	SETPOINT_TYPE_OFFBOARD, 	/**< setpoint set by offboard */
+	SETPOINT_TYPE_OFFBOARD, 	/**< setpoint in NED frame (x, y, z, vx, vy, vz) set by offboard */
 };
 
 struct position_setpoint_s
@@ -71,9 +71,9 @@ struct position_setpoint_s
 	float y;			/**< local position setpoint in m in NED */
 	float z;			/**< local position setpoint in m in NED */
 	bool position_valid;	/**< true if local position setpoint valid */
-	float vx;			/**< local velocity setpoint in m in NED */
-	float vy;			/**< local velocity setpoint in m in NED */
-	float vz;			/**< local velocity setpoint in m in NED */
+	float vx;			/**< local velocity setpoint in m/s in NED */
+	float vy;			/**< local velocity setpoint in m/s in NED */
+	float vz;			/**< local velocity setpoint in m/s in NED */
 	bool velocity_valid;		/**< true if local velocity setpoint valid */
 	double lat;			/**< latitude, in deg */
 	double lon;			/**< longitude, in deg */
