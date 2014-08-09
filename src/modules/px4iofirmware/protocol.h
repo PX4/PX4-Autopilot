@@ -142,6 +142,7 @@
 #define PX4IO_P_RAW_RC_FLAGS_FAILSAFE		(1 << 1) /* receiver is in failsafe mode */
 #define PX4IO_P_RAW_RC_FLAGS_RC_DSM11		(1 << 2) /* DSM decoding is 11 bit mode */
 #define PX4IO_P_RAW_RC_FLAGS_MAPPING_OK		(1 << 3) /* Channel mapping is ok */
+#define PX4IO_P_RAW_RC_FLAGS_RC_OK		(1 << 4) /* RC reception ok */
 
 #define PX4IO_P_RAW_RC_NRSSI			2	/* [2] Normalized RSSI value, 0: no reception, 255: perfect reception */
 #define PX4IO_P_RAW_RC_DATA			3	/* [1] + [2] Details about the RC source (PPM frame length, Spektrum protocol type) */
@@ -164,10 +165,10 @@
 /* setup page */
 #define PX4IO_PAGE_SETUP		50
 #define PX4IO_P_SETUP_FEATURES			0
-#define PX4IO_P_SETUP_FEATURES_SBUS1_OUT	(1 << 0) /* enable S.Bus v1 output */
-#define PX4IO_P_SETUP_FEATURES_SBUS2_OUT	(1 << 1) /* enable S.Bus v2 output */
-#define PX4IO_P_SETUP_FEATURES_PWM_RSSI		(1 << 2) /* enable PWM RSSI parsing */
-#define PX4IO_P_SETUP_FEATURES_ADC_RSSI		(1 << 3) /* enable ADC RSSI parsing */
+#define PX4IO_P_SETUP_FEATURES_SBUS1_OUT	(1 << 0) /**< enable S.Bus v1 output */
+#define PX4IO_P_SETUP_FEATURES_SBUS2_OUT	(1 << 1) /**< enable S.Bus v2 output */
+#define PX4IO_P_SETUP_FEATURES_PWM_RSSI		(1 << 2) /**< enable PWM RSSI parsing */
+#define PX4IO_P_SETUP_FEATURES_ADC_RSSI		(1 << 3) /**< enable ADC RSSI parsing */
 
 #define PX4IO_P_SETUP_ARMING			1	 /* arming controls */
 #define PX4IO_P_SETUP_ARMING_IO_ARM_OK		(1 << 0) /* OK to arm the IO side */
@@ -178,6 +179,7 @@
 #define PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE	(1 << 5) /* Output of PWM right after startup enabled to help ESCs initialize and prevent them from beeping */
 #define PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED	(1 << 6) /* Disable the IO-internal evaluation of the RC */
 #define PX4IO_P_SETUP_ARMING_LOCKDOWN		(1 << 7) /* If set, the system operates normally, but won't actuate any servos */
+#define PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE	(1 << 8) /* If set, the system will always output the failsafe values */
 
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
 #define PX4IO_P_SETUP_PWM_DEFAULTRATE		3	/* 'low' PWM frame output rate in Hz */
@@ -189,6 +191,8 @@
 #define PX4IO_P_SETUP_RELAYS_POWER2		(1<<1)	/* hardware rev [1] power relay 2 */
 #define PX4IO_P_SETUP_RELAYS_ACC1		(1<<2)	/* hardware rev [1] accessory power 1 */
 #define PX4IO_P_SETUP_RELAYS_ACC2		(1<<3)	/* hardware rev [1] accessory power 2 */
+#else
+#define PX4IO_P_SETUP_RELAYS_PAD		5
 #endif
 
 #define PX4IO_P_SETUP_VBATT_SCALE		6	/* hardware rev [1] battery voltage correction factor (float) */
@@ -201,26 +205,33 @@ enum {							/* DSM bind states */
 	dsm_bind_send_pulses,
 	dsm_bind_reinit_uart
 };
- 					     /*	8 */
-#define PX4IO_P_SETUP_SET_DEBUG			9		/* debug level for IO board */
+						/* 8 */
+#define PX4IO_P_SETUP_SET_DEBUG			9	/* debug level for IO board */
 
-#define PX4IO_P_SETUP_REBOOT_BL		       10	/* reboot IO into bootloader */
-#define PX4IO_REBOOT_BL_MAGIC               14662       /* required argument for reboot (random) */
+#define PX4IO_P_SETUP_REBOOT_BL			10	/* reboot IO into bootloader */
+#define PX4IO_REBOOT_BL_MAGIC			14662	/* required argument for reboot (random) */
 
-#define PX4IO_P_SETUP_CRC		       11	/* get CRC of IO firmware */
+#define PX4IO_P_SETUP_CRC			11	/* get CRC of IO firmware */
+						/* storage space of 12 occupied by CRC */
+#define PX4IO_P_SETUP_FORCE_SAFETY_OFF		12	/* force safety switch into
+                                                           'armed' (PWM enabled) state - this is a non-data write and
+                                                           hence index 12 can safely be used. */
+#define PX4IO_P_SETUP_RC_THR_FAILSAFE_US	13	/**< the throttle failsafe pulse length in microseconds */
+
+#define PX4IO_FORCE_SAFETY_MAGIC		22027	/* required argument for force safety (random) */
 
 /* autopilot control values, -10000..10000 */
-#define PX4IO_PAGE_CONTROLS			51		/**< actuator control groups, one after the other, 8 wide */
+#define PX4IO_PAGE_CONTROLS			51	/**< actuator control groups, one after the other, 8 wide */
 #define PX4IO_P_CONTROLS_GROUP_0		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 0)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */
 #define PX4IO_P_CONTROLS_GROUP_1		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 1)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */
 #define PX4IO_P_CONTROLS_GROUP_2		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 2)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */
 #define PX4IO_P_CONTROLS_GROUP_3		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 3)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */
 
 #define PX4IO_P_CONTROLS_GROUP_VALID		64
-#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP0	(1 << 0) /* group 0 is valid / received */
-#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP1	(1 << 1) /* group 1 is valid / received */
-#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP2	(1 << 2) /* group 2 is valid / received */
-#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP3	(1 << 3) /* group 3 is valid / received */
+#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP0	(1 << 0) /**< group 0 is valid / received */
+#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP1	(1 << 1) /**< group 1 is valid / received */
+#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP2	(1 << 2) /**< group 2 is valid / received */
+#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP3	(1 << 3) /**< group 3 is valid / received */
 
 /* raw text load to the mixer parser - ignores offset */
 #define PX4IO_PAGE_MIXERLOAD			52
@@ -242,6 +253,10 @@ enum {							/* DSM bind states */
 
 /* PWM failsafe values - zero disables the output */
 #define PX4IO_PAGE_FAILSAFE_PWM			55		/**< 0..CONFIG_ACTUATOR_COUNT-1 */
+
+/* PWM failsafe values - zero disables the output */
+#define PX4IO_PAGE_SENSORS			56		/**< Sensors connected to PX4IO */
+#define PX4IO_P_SENSORS_ALTITUDE		0		/**< Altitude of an external sensor (HoTT or S.BUS2) */
 
 /* Debug and test page - not used in normal operation */
 #define PX4IO_PAGE_TEST				127
@@ -302,7 +317,7 @@ struct IOPacket {
 
 #define PKT_COUNT(_p)	((_p).count_code & PKT_COUNT_MASK)
 #define PKT_CODE(_p)	((_p).count_code & PKT_CODE_MASK)
-#define PKT_SIZE(_p)	((uint8_t *)&((_p).regs[PKT_COUNT(_p)]) - ((uint8_t *)&(_p)))
+#define PKT_SIZE(_p)	((size_t)((uint8_t *)&((_p).regs[PKT_COUNT(_p)]) - ((uint8_t *)&(_p))))
 
 static const uint8_t crc8_tab[256] __attribute__((unused)) =
 {

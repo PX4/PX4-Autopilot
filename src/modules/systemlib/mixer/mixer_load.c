@@ -41,6 +41,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <systemlib/err.h>
 
 #include "mixer_load.h"
 

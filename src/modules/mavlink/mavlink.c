@@ -62,6 +62,12 @@ PARAM_DEFINE_INT32(MAV_COMP_ID, 50);
  * @group MAVLink
  */
 PARAM_DEFINE_INT32(MAV_TYPE, MAV_TYPE_FIXED_WING);
+/**
+ * Use/Accept HIL GPS message (even if not in HIL mode)
+ * If set to 1 incomming HIL GPS messages are parsed.
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_USEHILGPS, 0);
 
 mavlink_system_t mavlink_system = {
 	100,

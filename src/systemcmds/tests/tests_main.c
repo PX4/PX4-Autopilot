@@ -235,7 +235,7 @@ test_perf(int argc, char *argv[])
 	printf("perf: expect count of 1\n");
 	perf_print_counter(ec);
 	printf("perf: expect at least two counters\n");
-	perf_print_all();
+	perf_print_all(0);
 
 	perf_free(cc);
 	perf_free(ec);

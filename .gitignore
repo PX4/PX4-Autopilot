@@ -29,10 +29,12 @@ mavlink/include/mavlink/v0.9/
 /nuttx-configs/px4io-v1/src/.depend
 /nuttx-configs/px4io-v1/src/Make.dep
 /nuttx-configs/px4io-v1/src/libboard.a
-/NuttX
 /Documentation/doxy.log
 /Documentation/html/
 /Documentation/doxygen*objdb*tmp
 .tags
+tags
 .tags_sorted_by_file
 .pydevproject
+.ropeproject
+*.orig

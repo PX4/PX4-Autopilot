@@ -49,6 +49,8 @@
 #include <stdlib.h>
 #include <getopt.h>
 
+#include "tests.h"
+
 #define FLAG_FSYNC 1
 #define FLAG_LSEEK 2
 
@@ -85,9 +87,9 @@ static void test_corruption(const char *filename, uint32_t write_chunk, uint32_t
 		buffer[j] = get_value(ofs);
 		ofs++;
         }
-        if (write(fd, buffer, sizeof(buffer)) != sizeof(buffer)) {
-		printf("write failed at offset %u\n", ofs);
-		exit(1);
+        if (write(fd, buffer, sizeof(buffer)) != (int)sizeof(buffer)) {
+            printf("write failed at offset %u\n", ofs);
+            exit(1);
         }
 	if (flags & FLAG_FSYNC) {
 		fsync(fd);
@@ -116,7 +118,7 @@ static void test_corruption(const char *filename, uint32_t write_chunk, uint32_t
 			printf("read ofs=%u\r", ofs);
 		}
 		counter++;
-		if (read(fd, buffer, sizeof(buffer)) != sizeof(buffer)) {
+		if (read(fd, buffer, sizeof(buffer)) != (int)sizeof(buffer)) {
 			printf("read failed at offset %u\n", ofs);
 			exit(1);
 		}

@@ -37,6 +37,7 @@
  */
 
 #include <nuttx/config.h>
+#include <nuttx/arch.h>
 
 #include <stdio.h>	// required for task_create
 #include <stdbool.h>
@@ -303,14 +304,12 @@ user_start(int argc, char *argv[])
 		 */
 		if (hrt_absolute_time() - last_debug_time > (1000 * 1000)) {
 
-			struct mallinfo minfo = mallinfo();
-
 			isr_debug(1, "d:%u s=0x%x a=0x%x f=0x%x m=%u", 
 				  (unsigned)r_page_setup[PX4IO_P_SETUP_SET_DEBUG],
 				  (unsigned)r_status_flags,
 				  (unsigned)r_setup_arming,
 				  (unsigned)r_setup_features,
-				  (unsigned)minfo.mxordblk);
+				  (unsigned)mallinfo().mxordblk);
 			last_debug_time = hrt_absolute_time();
 		}
 	}

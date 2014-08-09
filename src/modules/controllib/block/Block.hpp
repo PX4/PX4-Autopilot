@@ -93,6 +93,11 @@ protected:
 	List<uORB::SubscriptionBase *> _subscriptions;
 	List<uORB::PublicationBase *> _publications;
 	List<BlockParamBase *> _params;
+
+private:
+	/* this class has pointer data members and should not be copied (private constructor) */
+	Block(const control::Block&);
+	Block operator=(const control::Block&);
 };
 
 class __EXPORT SuperBlock :

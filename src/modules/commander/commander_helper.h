@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,6 +34,9 @@
 /**
  * @file commander_helper.h
  * Commander helper functions definitions
+ *
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  */
 
 #ifndef COMMANDER_HELPER_H_
@@ -77,8 +78,11 @@ void rgbled_set_pattern(rgbled_pattern_t *pattern);
  * Use integral of current if battery capacity known (BAT_CAPACITY parameter set),
  * else use simple estimate based on voltage.
  *
+ * @param voltage the current battery voltage
+ * @param discharged the discharged capacity
+ * @param throttle_normalized the normalized throttle magnitude from 0 to 1. Negative throttle should be converted to this range as well, as it consumes energy.
  * @return the estimated remaining capacity in 0..1
  */
-float battery_remaining_estimate_voltage(float voltage, float discharged);
+float battery_remaining_estimate_voltage(float voltage, float discharged, float throttle_normalized);
 
 #endif /* COMMANDER_HELPER_H_ */

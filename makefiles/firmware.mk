@@ -113,7 +113,7 @@ endif
 $(info %  GIT_DESC            = $(GIT_DESC))
 
 #
-# Set a default target so that included makefiles or errors here don't 
+# Set a default target so that included makefiles or errors here don't
 # cause confusion.
 #
 # XXX We could do something cute here with $(DEFAULT_GOAL) if it's not one
@@ -177,7 +177,7 @@ GLOBAL_DEPS		+= $(MAKEFILE_LIST)
 #
 # Extra things we should clean
 #
-EXTRA_CLEANS		 = 
+EXTRA_CLEANS		 =
 
 
 #
@@ -371,6 +371,8 @@ $(ROMFS_IMG): $(ROMFS_SCRATCH) $(ROMFS_DEPS) $(GLOBAL_DEPS)
 $(ROMFS_SCRATCH): $(ROMFS_DEPS) $(GLOBAL_DEPS)
 	$(Q) $(MKDIR) -p $(ROMFS_SCRATCH)
 	$(Q) $(COPYDIR) $(ROMFS_ROOT)/* $(ROMFS_SCRATCH)
+# delete all files in ROMFS_SCRATCH which start with a . or end with a ~
+	$(Q) $(RM) $(ROMFS_SCRATCH)/*/.[!.]* $(ROMFS_SCRATCH)/*/*~
 ifneq ($(ROMFS_EXTRA_FILES),)
 	$(Q) $(MKDIR) -p $(ROMFS_SCRATCH)/extras
 	$(Q) $(COPY) $(ROMFS_EXTRA_FILES) $(ROMFS_SCRATCH)/extras

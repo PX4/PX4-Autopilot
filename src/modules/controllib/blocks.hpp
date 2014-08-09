@@ -114,7 +114,7 @@ public:
 // methods
 	BlockLowPass(SuperBlock *parent, const char *name) :
 		Block(parent, name),
-		_state(0),
+		_state(0.0f/0.0f /* initialize to invalid val, force into is_finite() check on first call */),
 		_fCut(this, "") // only one parameter, no need to name
 	{};
 	virtual ~BlockLowPass() {};
@@ -238,9 +238,25 @@ public:
 	BlockDerivative(SuperBlock *parent, const char *name) :
 		SuperBlock(parent, name),
 		_u(0),
+		_initialized(false),
 		_lowPass(this, "LP")
 	{};
 	virtual ~BlockDerivative() {};
+
+	/**
+	 * Update the state and get current derivative
+	 *
+	 * This call updates the state and gets the current
+	 * derivative. As the derivative is only valid
+	 * on the second call to update, it will return
+	 * no change (0) on the first. To get a closer
+	 * estimate of the derivative on the first call,
+	 * call setU() one time step before using the
+	 * return value of update().
+	 *
+	 * @param input the variable to calculate the derivative of
+	 * @return the current derivative
+	 */
 	float update(float input);
 // accessors
 	void setU(float u) {_u = u;}
@@ -249,6 +265,7 @@ public:
 protected:
 // attributes
 	float _u; /**< previous input */
+	bool _initialized;
 	BlockLowPass _lowPass; /**< low pass filter */
 };
 

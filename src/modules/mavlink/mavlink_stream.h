@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_stream.cpp
+ * @file mavlink_stream.h
  * Mavlink messages stream definition.
  *
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -46,30 +46,60 @@
 class Mavlink;
 class MavlinkStream;
 
-#include "mavlink_main.h"
-
 class MavlinkStream
 {
-private:
-	hrt_abstime _last_sent;
-
-protected:
-	mavlink_channel_t _channel;
-	unsigned int _interval;
-
-	virtual void send(const hrt_abstime t) = 0;
 
 public:
 	MavlinkStream *next;
 
-	MavlinkStream();
-	~MavlinkStream();
+	MavlinkStream(Mavlink *mavlink);
+	virtual ~MavlinkStream();
+
+	/**
+	 * Get the interval
+	 *
+	 * @param interval the inveral in microseconds (us) between messages
+	 */
 	void set_interval(const unsigned int interval);
-	void set_channel(mavlink_channel_t channel);
+
+	/**
+	 * Get the interval
+	 *
+	 * @return the inveral in microseconds (us) between messages
+	 */
+	unsigned get_interval() { return _interval; }
+
+	/**
+	 * @return 0 if updated / sent, -1 if unchanged
+	 */
 	int update(const hrt_abstime t);
-	virtual MavlinkStream *new_instance() = 0;
-	virtual void subscribe(Mavlink *mavlink) = 0;
-	virtual const char *get_name() = 0;
+	static MavlinkStream *new_instance(const Mavlink *mavlink);
+	static const char *get_name_static();
+	virtual const char *get_name() const = 0;
+	virtual uint8_t get_id() = 0;
+
+	/**
+	 * @return true if steam rate shouldn't be adjusted
+	 */
+	virtual bool const_rate() { return false; }
+
+	/**
+	 * Get maximal total messages size on update
+	 */
+	virtual unsigned get_size() = 0;
+
+protected:
+	Mavlink *    _mavlink;
+	unsigned int _interval;
+
+	virtual void send(const hrt_abstime t) = 0;
+
+private:
+	hrt_abstime _last_sent;
+
+	/* do not allow top copying this class */
+	MavlinkStream(const MavlinkStream&);
+	MavlinkStream& operator=(const MavlinkStream&);
 };
 
 

@@ -87,11 +87,12 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/subsystem_info.h>
+#include <uORB/topics/system_power.h>
 
 #include <drivers/airspeed/airspeed.h>
 
 /* I2C bus address is 1010001x */
-#define I2C_ADDRESS_MS4525DO	0x28	//0x51 /* 7-bit address. */
+#define I2C_ADDRESS_MS4525DO	0x28	/**< 7-bit address. Depends on the order code (this is for code "I") */
 #define PATH_MS4525		"/dev/ms4525"
 /* The MS5525DSO address is 111011Cx, where C is the complementary value of the pin CSB */
 #define I2C_ADDRESS_MS5525DSO	0x77	//0x77/* 7-bit address, addr. pin pulled low */
@@ -101,9 +102,9 @@
 #define ADDR_READ_MR			0x00	/* write to this address to start conversion */
 
 /* Measurement rate is 100Hz */
-#define MEAS_RATE 100.0f
-#define MEAS_DRIVER_FILTER_FREQ 3.0f
-#define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
+#define MEAS_RATE 100
+#define MEAS_DRIVER_FILTER_FREQ 1.2f
+#define CONVERSION_INTERVAL	(1000000 / MEAS_RATE)	/* microseconds */
 
 class MEASAirspeed : public Airspeed
 {
@@ -121,6 +122,14 @@ protected:
 	virtual int	collect();
 
 	math::LowPassFilter2p	_filter;
+
+	/**
+	 * Correct for 5V rail voltage variations
+	 */
+	void voltage_correction(float &diff_pres_pa, float &temperature);
+
+	int _t_system_power;
+	struct system_power_s system_power;
 };
 
 /*
@@ -129,10 +138,11 @@ protected:
 extern "C" __EXPORT int meas_airspeed_main(int argc, char *argv[]);
 
 MEASAirspeed::MEASAirspeed(int bus, int address, const char *path) : Airspeed(bus, address,
-			CONVERSION_INTERVAL, path),
-			_filter(MEAS_RATE, MEAS_DRIVER_FILTER_FREQ)
+	CONVERSION_INTERVAL, path),
+	_filter(MEAS_RATE, MEAS_DRIVER_FILTER_FREQ),
+	_t_system_power(-1),
+	system_power{}
 {
-
 }
 
 int
@@ -194,19 +204,51 @@ MEASAirspeed::collect()
 	dp_raw = 0x3FFF & dp_raw;
 	dT_raw = (val[2] << 8) + val[3];
 	dT_raw = (0xFFE0 & dT_raw) >> 5;
-	float temperature = ((200 * dT_raw) / 2047) - 50;
+	float temperature = ((200.0f * dT_raw) / 2047) - 50;
 
-	/* calculate differential pressure. As its centered around 8000
-	 * and can go positive or negative, enforce absolute value
-	*/
+	// Calculate differential pressure. As its centered around 8000
+	// and can go positive or negative
 	const float P_min = -1.0f;
 	const float P_max = 1.0f;
-	float diff_press_pa = fabsf((((float)dp_raw - 0.1f * 16383.0f) * (P_max - P_min) / (0.8f * 16383.0f) + P_min) * 6894.8f) - _diff_pres_offset;
+	const float PSI_to_Pa = 6894.757f;
+	/*
+	  this equation is an inversion of the equation in the
+	  pressure transfer function figure on page 4 of the datasheet
 
-	if (diff_press_pa < 0.0f) {
-		diff_press_pa = 0.0f;
-	}
+	  We negate the result so that positive differential pressures
+	  are generated when the bottom port is used as the static
+	  port on the pitot and top port is used as the dynamic port
+	 */
+	float diff_press_PSI = -((dp_raw - 0.1f*16383) * (P_max-P_min)/(0.8f*16383) + P_min);
+	float diff_press_pa_raw = diff_press_PSI * PSI_to_Pa;
 
+        // correct for 5V rail voltage if possible
+        voltage_correction(diff_press_pa_raw, temperature);
+
+	// the raw value still should be compensated for the known offset
+	diff_press_pa_raw -= _diff_pres_offset;
+
+	float diff_press_pa = fabsf(diff_press_pa_raw);
+	
+	/*
+	  note that we return both the absolute value with offset
+	  applied and a raw value without the offset applied. This
+	  makes it possible for higher level code to detect if the
+	  user has the tubes connected backwards, and also makes it
+	  possible to correctly use offsets calculated by a higher
+	  level airspeed driver.
+
+	  With the above calculation the MS4525 sensor will produce a
+	  positive number when the top port is used as a dynamic port
+	  and bottom port is used as the static port
+
+	  Also note that the _diff_pres_offset is applied before the
+	  fabsf() not afterwards. It needs to be done this way to
+	  prevent a bias at low speeds, but this also means that when
+	  setting a offset you must set it based on the raw value, not
+	  the offset value
+	 */
+	
 	struct differential_pressure_s report;
 
 	/* track maximum differential pressure measured (so we can work out top speed). */
@@ -219,7 +261,13 @@ MEASAirspeed::collect()
 	report.temperature = temperature;
 	report.differential_pressure_pa = diff_press_pa;
 	report.differential_pressure_filtered_pa =  _filter.apply(diff_press_pa);
-	report.voltage = 0;
+
+	/* the dynamics of the filter can make it overshoot into the negative range */
+	if (report.differential_pressure_filtered_pa < 0.0f) {
+		report.differential_pressure_filtered_pa = _filter.reset(diff_press_pa);
+	}
+
+	report.differential_pressure_raw_pa = diff_press_pa_raw;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
 	if (_airspeed_pub > 0 && !(_pub_blocked)) {
@@ -242,13 +290,17 @@ MEASAirspeed::collect()
 void
 MEASAirspeed::cycle()
 {
+	int ret;
+
 	/* collection phase? */
 	if (_collect_phase) {
 
 		/* perform collection */
-		if (OK != collect()) {
+		ret = collect();
+		if (OK != ret) {
 			/* restart the measurement state machine */
 			start();
+			_sensor_ok = false;
 			return;
 		}
 
@@ -272,9 +324,12 @@ MEASAirspeed::cycle()
 	}
 
 	/* measurement phase */
-	if (OK != measure()) {
-		log("measure error");
+	ret = measure();
+	if (OK != ret) {
+		debug("measure error");
 	}
+
+	_sensor_ok = (ret == OK);
 
 	/* next phase is collection */
 	_collect_phase = true;
@@ -285,6 +340,62 @@ MEASAirspeed::cycle()
 		   (worker_t)&Airspeed::cycle_trampoline,
 		   this,
 		   USEC2TICK(CONVERSION_INTERVAL));
+}
+
+/**
+   correct for 5V rail voltage if the system_power ORB topic is
+   available
+   
+   See http://uav.tridgell.net/MS4525/MS4525-offset.png for a graph of
+   offset versus voltage for 3 sensors
+ */
+void
+MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
+{
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+	if (_t_system_power == -1) {
+		_t_system_power = orb_subscribe(ORB_ID(system_power));
+	}
+	if (_t_system_power == -1) {
+		// not available
+		return;
+	}
+	bool updated = false;
+	orb_check(_t_system_power, &updated);
+	if (updated) {
+		orb_copy(ORB_ID(system_power), _t_system_power, &system_power);
+	}
+	if (system_power.voltage5V_v < 3.0f || system_power.voltage5V_v > 6.0f) {
+		// not valid, skip correction
+		return;
+	}
+
+	const float slope = 65.0f;
+	/*
+	  apply a piecewise linear correction, flattening at 0.5V from 5V
+	 */
+	float voltage_diff = system_power.voltage5V_v - 5.0f;
+	if (voltage_diff > 0.5f) {
+		voltage_diff = 0.5f;
+	}
+	if (voltage_diff < -0.5f) {
+		voltage_diff = -0.5f;
+	}
+	diff_press_pa -= voltage_diff * slope;
+
+	/*
+	  the temperature masurement varies as well
+	 */
+	const float temp_slope = 0.887f;
+	voltage_diff = system_power.voltage5V_v - 5.0f;
+	if (voltage_diff > 0.5f) {
+		voltage_diff = 0.5f;
+	}
+	if (voltage_diff < -1.0f) {
+		voltage_diff = -1.0f;
+	}
+	temperature -= voltage_diff * temp_slope;	
+#endif // CONFIG_ARCH_BOARD_PX4FMU_V2
 }
 
 /**
@@ -309,6 +420,9 @@ void	info();
 
 /**
  * Start the driver.
+ *
+ * This function call only returns once the driver is up and running
+ * or failed to detect the sensor.
  */
 void
 start(int i2c_bus)
@@ -409,7 +523,7 @@ test()
 	}
 
 	warnx("single read");
-	warnx("diff pressure: %8.4f pa", (double)report.differential_pressure_pa);
+	warnx("diff pressure: %d pa", (int)report.differential_pressure_pa);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
@@ -437,7 +551,7 @@ test()
 		}
 
 		warnx("periodic read %u", i);
-		warnx("diff pressure: %8.4f pa", (double)report.differential_pressure_pa);
+		warnx("diff pressure: %d pa", (int)report.differential_pressure_pa);
 		warnx("temperature: %d C (0x%02x)", (int)report.temperature, (unsigned) report.temperature);
 	}
 

@@ -25,6 +25,7 @@ MODULES		+= drivers/mpu6000
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
 MODULES		+= drivers/mb12xx
+MODULES		+= drivers/ll40ls
 MODULES		+= drivers/gps
 MODULES		+= drivers/hil
 MODULES		+= drivers/hott/hott_telemetry
@@ -52,11 +53,10 @@ MODULES		+= systemcmds/pwm
 MODULES		+= systemcmds/esc_calib
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/top
-MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/config
 MODULES		+= systemcmds/nshterm
-MODULES		+= systemcmds/hw_ver
 MODULES		+= systemcmds/dumpfile
+MODULES		+= systemcmds/ver
 
 #
 # General system control
@@ -67,12 +67,11 @@ MODULES		+= modules/mavlink
 MODULES		+= modules/gpio_led
 
 #
-# Estimation modules (EKF/ SO3 / other filters)
+# Estimation modules (EKF / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
-MODULES		+= modules/fw_att_pos_estimator
+MODULES		+= modules/ekf_att_pos_estimator
 MODULES		+= modules/position_estimator_inav
-#MODULES		+= examples/flow_position_estimator
 
 #
 # Vehicle Control
@@ -81,8 +80,6 @@ MODULES		+= modules/fw_pos_control_l1
 MODULES		+= modules/fw_att_control
 MODULES		+= modules/mc_att_control
 MODULES		+= modules/mc_pos_control
-#MODULES		+= examples/flow_position_control
-#MODULES		+= examples/flow_speed_control
 
 #
 # Logging
@@ -113,6 +110,7 @@ MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/ecl
 MODULES		+= lib/external_lgpl
 MODULES		+= lib/geo
+MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
 MODULES		+= lib/launchdetection
 

@@ -199,6 +199,12 @@ ORB_DECLARE(output_pwm);
 /** get the lockdown override flag to enable outputs in HIL */
 #define PWM_SERVO_GET_DISABLE_LOCKDOWN		_IOC(_PWM_SERVO_BASE, 22)
 
+/** force safety switch off (to disable use of safety switch) */
+#define PWM_SERVO_SET_FORCE_SAFETY_OFF _IOC(_PWM_SERVO_BASE, 23)
+
+/** force failsafe mode (failsafe values are set immediately even if failsafe condition not met) */
+#define PWM_SERVO_SET_FORCE_FAILSAFE _IOC(_PWM_SERVO_BASE, 24)
+
 /*
  *
  *

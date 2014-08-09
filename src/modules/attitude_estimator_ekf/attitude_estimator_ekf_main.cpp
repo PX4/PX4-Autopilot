@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Tobias Naegeli <naegelit@student.ethz.ch>
- *           Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,9 +32,12 @@
  ****************************************************************************/
 
 /*
- * @file attitude_estimator_ekf_main.c
+ * @file attitude_estimator_ekf_main.cpp
  *
  * Extended Kalman Filter for Attitude Estimation.
+ *
+ * @author Tobias Naegeli <naegelit@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #include <nuttx/config.h>
@@ -64,6 +65,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <lib/mathlib/mathlib.h>
+#include <lib/geo/geo.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/perf_counter.h>
@@ -111,7 +113,7 @@ usage(const char *reason)
  * Makefile does only apply to this management task.
  *
  * The actual stack size should be set in the call
- * to task_create().
+ * to task_spawn_cmd().
  */
 int attitude_estimator_ekf_main(int argc, char *argv[])
 {
@@ -265,16 +267,12 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	orb_advert_t pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
 
 	int loopcounter = 0;
-	int printcounter = 0;
 
 	thread_running = true;
 
 	/* advertise debug value */
 	// struct debug_key_value_s dbg = { .key = "", .value = 0.0f };
 	// orb_advert_t pub_dbg = -1;
-
-	float sensor_update_hz[3] = {0.0f, 0.0f, 0.0f};
-	// XXX write this out to perf regs
 
 	/* keep track of sensor updates */
 	uint64_t sensor_last_timestamp[3] = {0, 0, 0};
@@ -286,11 +284,12 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	/* initialize parameter handles */
 	parameters_init(&ekf_param_handles);
 
-	uint64_t start_time = hrt_absolute_time();
 	bool initialized = false;
 
 	float gyro_offsets[3] = { 0.0f, 0.0f, 0.0f };
-	unsigned offset_count = 0;
+
+	/* magnetic declination, in radians */
+	float mag_decl = 0.0f;
 
 	/* rotation matrix for magnetic declination */
 	math::Matrix<3, 3> R_decl;
@@ -330,9 +329,6 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 				/* update parameters */
 				parameters_update(&ekf_param_handles, &ekf_params);
-
-				/* update mag declination rotation matrix */
-				R_decl.from_euler(0.0f, 0.0f, ekf_params.mag_decl);
 			}
 
 			/* only run filter if sensor values changed */
@@ -345,6 +341,13 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 				orb_check(sub_gps, &gps_updated);
 				if (gps_updated) {
 					orb_copy(ORB_ID(vehicle_gps_position), sub_gps, &gps);
+
+					if (gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
+						mag_decl = math::radians(get_mag_declination(gps.lat / 1e7f, gps.lon / 1e7f));
+
+						/* update mag declination rotation matrix */
+						R_decl.from_euler(0.0f, 0.0f, mag_decl);
+					}
 				}
 
 				bool global_pos_updated;
@@ -381,7 +384,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					/* Fill in gyro measurements */
 					if (sensor_last_timestamp[0] != raw.timestamp) {
 						update_vect[0] = 1;
-						sensor_update_hz[0] = 1e6f / (raw.timestamp - sensor_last_timestamp[0]);
+						// sensor_update_hz[0] = 1e6f / (raw.timestamp - sensor_last_timestamp[0]);
 						sensor_last_timestamp[0] = raw.timestamp;
 					}
 
@@ -392,13 +395,13 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					/* update accelerometer measurements */
 					if (sensor_last_timestamp[1] != raw.accelerometer_timestamp) {
 						update_vect[1] = 1;
-						sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
+						// sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
 						sensor_last_timestamp[1] = raw.accelerometer_timestamp;
 					}
 
 					hrt_abstime vel_t = 0;
 					bool vel_valid = false;
-					if (ekf_params.acc_comp == 1 && gps.fix_type >= 3 && gps.eph_m < 10.0f && gps.vel_ned_valid && hrt_absolute_time() < gps.timestamp_velocity + 500000) {
+					if (ekf_params.acc_comp == 1 && gps.fix_type >= 3 && gps.eph < 10.0f && gps.vel_ned_valid && hrt_absolute_time() < gps.timestamp_velocity + 500000) {
 						vel_valid = true;
 						if (gps_updated) {
 							vel_t = gps.timestamp_velocity;
@@ -407,7 +410,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 							vel(2) = gps.vel_d_m_s;
 						}
 
-					} else if (ekf_params.acc_comp == 2 && global_pos.global_valid && hrt_absolute_time() < global_pos.timestamp + 500000) {
+					} else if (ekf_params.acc_comp == 2 && gps.eph < 5.0f && global_pos.timestamp != 0 && hrt_absolute_time() < global_pos.timestamp + 20000) {
 						vel_valid = true;
 						if (global_pos_updated) {
 							vel_t = global_pos.timestamp;
@@ -444,7 +447,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					/* update magnetometer measurements */
 					if (sensor_last_timestamp[2] != raw.magnetometer_timestamp) {
 						update_vect[2] = 1;
-						sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
+						// sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
 						sensor_last_timestamp[2] = raw.magnetometer_timestamp;
 					}
 
@@ -474,7 +477,15 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						parameters_update(&ekf_param_handles, &ekf_params);
 
 						/* update mag declination rotation matrix */
-						R_decl.from_euler(0.0f, 0.0f, ekf_params.mag_decl);
+						if (gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp_position) < 1000000) {
+							mag_decl = math::radians(get_mag_declination(gps.lat / 1e7f, gps.lon / 1e7f));
+
+						} else {
+							mag_decl = ekf_params.mag_decl;
+						}
+
+						/* update mag declination rotation matrix */
+						R_decl.from_euler(0.0f, 0.0f, mag_decl);
 
 						x_aposteriori_k[0] = z_k[0];
 						x_aposteriori_k[1] = z_k[1];
@@ -496,8 +507,6 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					if (!const_initialized) {
 						continue;
 					}
-
-					uint64_t timing_start = hrt_absolute_time();
 
 					attitudeKalmanfilter(update_vect, dt, z_k, x_aposteriori_k, P_aposteriori_k, ekf_params.q, ekf_params.r,
 							     euler, Rot_matrix, x_aposteriori, P_aposteriori);
@@ -522,7 +531,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 					att.roll = euler[0];
 					att.pitch = euler[1];
-					att.yaw = euler[2] + ekf_params.mag_decl;
+					att.yaw = euler[2] + mag_decl;
 
 					att.rollspeed = x_aposteriori[0];
 					att.pitchspeed = x_aposteriori[1];
