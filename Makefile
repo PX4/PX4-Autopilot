@@ -104,7 +104,7 @@ DESIRED_FIRMWARES 	 = $(foreach config,$(CONFIGS),$(IMAGE_DIR)$(config).px4)
 STAGED_FIRMWARES	 = $(foreach config,$(KNOWN_CONFIGS),$(IMAGE_DIR)$(config).px4)
 FIRMWARES		 = $(foreach config,$(KNOWN_CONFIGS),$(BUILD_DIR)$(config).build/firmware.px4)
 
-all:			$(DESIRED_FIRMWARES)
+all:			checksubmodules $(DESIRED_FIRMWARES)
 
 #
 # Copy FIRMWARES into the image directory.
@@ -210,9 +210,19 @@ menuconfig:
 endif
 
 $(NUTTX_SRC):
-	@$(ECHO) ""
-	@$(ECHO) "NuttX sources missing - clone https://github.com/PX4/NuttX.git and try again."
-	@$(ECHO) ""
+	$(Q) ($(PX4_BASE)/Tools/check_submodules.sh)
+
+$(UAVCAN_DIR):
+	$(Q) (./Tools/check_submodules.sh)
+
+.PHONY: checksubmodules
+checksubmodules:
+	$(Q) ($(PX4_BASE)/Tools/check_submodules.sh)
+
+.PHONY: updatesubmodules
+updatesubmodules:
+	$(Q) (git submodule init)
+	$(Q) (git submodule update)
 
 #
 # Testing targets

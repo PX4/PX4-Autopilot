@@ -136,6 +136,16 @@ then
 	sh /etc/init.d/4011_dji_f450
 fi
 
+if param compare SYS_AUTOSTART 4012
+then
+	sh /etc/init.d/4012_quad_x_can
+fi
+
+if param compare SYS_AUTOSTART 4020
+then
+	sh /etc/init.d/4020_hk_micro_pcb
+fi
+
 #
 # Quad +
 #

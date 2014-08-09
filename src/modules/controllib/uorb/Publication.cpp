@@ -37,18 +37,19 @@
  */
 
 #include "Publication.hpp"
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/debug_key_value.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/vehicle_global_velocity_setpoint.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/encoders.h>
+#include "topics/vehicle_attitude.h"
+#include "topics/vehicle_local_position.h"
+#include "topics/vehicle_global_position.h"
+#include "topics/debug_key_value.h"
+#include "topics/actuator_controls.h"
+#include "topics/vehicle_global_velocity_setpoint.h"
+#include "topics/vehicle_attitude_setpoint.h"
+#include "topics/vehicle_rates_setpoint.h"
+#include "topics/actuator_outputs.h"
+#include "topics/encoders.h"
+#include "topics/tecs_status.h"
 
-namespace control {
+namespace uORB {
 
 template<class T>
 Publication<T>::Publication(
@@ -76,5 +77,6 @@ template class __EXPORT Publication<vehicle_attitude_setpoint_s>;
 template class __EXPORT Publication<vehicle_rates_setpoint_s>;
 template class __EXPORT Publication<actuator_outputs_s>;
 template class __EXPORT Publication<encoders_s>;
+template class __EXPORT Publication<tecs_status_s>;
 
 }

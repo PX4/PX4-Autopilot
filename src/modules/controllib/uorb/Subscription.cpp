@@ -37,22 +37,23 @@
  */
 
 #include "Subscription.hpp"
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/encoders.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
+#include "topics/parameter_update.h"
+#include "topics/actuator_controls.h"
+#include "topics/vehicle_gps_position.h"
+#include "topics/satellite_info.h"
+#include "topics/sensor_combined.h"
+#include "topics/vehicle_attitude.h"
+#include "topics/vehicle_global_position.h"
+#include "topics/encoders.h"
+#include "topics/position_setpoint_triplet.h"
+#include "topics/vehicle_status.h"
+#include "topics/manual_control_setpoint.h"
+#include "topics/vehicle_local_position_setpoint.h"
+#include "topics/vehicle_local_position.h"
+#include "topics/vehicle_attitude_setpoint.h"
+#include "topics/vehicle_rates_setpoint.h"
 
-namespace control
+namespace uORB
 {
 
 bool __EXPORT SubscriptionBase::updated()
@@ -88,6 +89,7 @@ T Subscription<T>::getData() {
 template class __EXPORT Subscription<parameter_update_s>;
 template class __EXPORT Subscription<actuator_controls_s>;
 template class __EXPORT Subscription<vehicle_gps_position_s>;
+template class __EXPORT Subscription<satellite_info_s>;
 template class __EXPORT Subscription<sensor_combined_s>;
 template class __EXPORT Subscription<vehicle_attitude_s>;
 template class __EXPORT Subscription<vehicle_global_position_s>;

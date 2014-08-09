@@ -51,6 +51,11 @@ enum RANGE_FINDER_TYPE {
 };
 
 /**
+ * @addtogroup topics
+ * @{
+ */
+
+/**
  * range finder report structure.  Reads from the device must be in multiples of this
  * structure.
  */
@@ -63,6 +68,10 @@ struct range_finder_report {
 	float maximum_distance;			/**< maximum distance the sensor can measure */
 	uint8_t valid;				/**< 1 == within sensor range, 0 = outside sensor range */
 };
+
+/**
+ * @}
+ */
 
 /*
  * ObjDev tag for raw range finder data.

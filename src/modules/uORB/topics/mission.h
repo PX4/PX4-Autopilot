@@ -1,9 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +34,9 @@
 /**
  * @file mission.h
  * Definition of a mission consisting of mission items.
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #ifndef TOPIC_MISSION_H_
@@ -50,6 +50,7 @@
 
 /* compatible to mavlink MAV_CMD */
 enum NAV_CMD {
+	NAV_CMD_IDLE=0,
 	NAV_CMD_WAYPOINT=16,
 	NAV_CMD_LOITER_UNLIMITED=17,
 	NAV_CMD_LOITER_TURN_COUNT=18,
@@ -58,7 +59,8 @@ enum NAV_CMD {
 	NAV_CMD_LAND=21,
 	NAV_CMD_TAKEOFF=22,
 	NAV_CMD_ROI=80,
-	NAV_CMD_PATHPLANNING=81
+	NAV_CMD_PATHPLANNING=81,
+	NAV_CMD_DO_JUMP=177
 };
 
 enum ORIGIN {
@@ -91,13 +93,20 @@ struct mission_item_s {
 	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
 	bool autocontinue;		/**< true if next waypoint should follow after this one */
 	enum ORIGIN origin;		/**< where the waypoint has been generated		*/
+	int do_jump_mission_index;	/**< index where the do jump will go to                 */
+	unsigned do_jump_repeat_count;	/**< how many times do jump needs to be done            */
+	unsigned do_jump_current_count;	/**< count how many times the jump has been done	*/
 };
 
+/**
+ * This topic used to notify navigator about mission changes, mission itself and new mission state
+ * must be stored in dataman before publication.
+ */
 struct mission_s
 {
-	int dataman_id;			/**< default -1, there are two offboard storage places in the dataman: 0 or 1 */
-	unsigned count;			/**< count of the missions stored in the datamanager */
-	int current_index;		/**< default -1, start at the one changed latest */
+	int dataman_id;			/**< default 0, there are two offboard storage places in the dataman: 0 or 1 */
+	unsigned count;			/**< count of the missions stored in the dataman */
+	int current_seq;				/**< default -1, start at the one changed latest */
 };
 
 /**

@@ -40,6 +40,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include <systemlib/err.h>
 #include <systemlib/bson/tinybson.h>
@@ -123,7 +124,7 @@ decode_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 			warnx("FAIL: decoder: double1 type %d, expected %d", node->type, BSON_DOUBLE);
 			return 1;
 		}
-		if (node->d != sample_double) {
+		if (fabs(node->d - sample_double) > 1e-12) {
 			warnx("FAIL: decoder: double1 value %f, expected %f", node->d, sample_double);
 			return 1;
 		}

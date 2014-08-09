@@ -182,7 +182,10 @@ float RoboClaw::getMotorPosition(e_motor motor)
 		return _motor1Position;
 	} else if (motor == MOTOR_2) {
 		return _motor2Position;
-	}
+	} else {
+		warnx("Unknown motor value passed to RoboClaw::getMotorPosition");
+		return NAN;
+    }
 }
 
 float RoboClaw::getMotorSpeed(e_motor motor)
@@ -191,7 +194,10 @@ float RoboClaw::getMotorSpeed(e_motor motor)
 		return _motor1Speed;
 	} else if (motor == MOTOR_2) {
 		return _motor2Speed;
-	}
+	} else {
+		warnx("Unknown motor value passed to RoboClaw::getMotorPosition");
+		return NAN;
+    }
 }
 
 int RoboClaw::setMotorSpeed(e_motor motor, float value)

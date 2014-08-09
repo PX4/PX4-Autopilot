@@ -231,6 +231,10 @@ protected:
 	static const char *		skipline(const char *buf, unsigned &buflen);
 
 private:
+
+	/* do not allow to copy due to prt data members */
+	Mixer(const Mixer&);
+	Mixer& operator=(const Mixer&);
 };
 
 /**
@@ -307,6 +311,10 @@ public:
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */
+
+	/* do not allow to copy due to pointer data members */
+	MixerGroup(const MixerGroup&);
+	MixerGroup operator=(const MixerGroup&);
 };
 
 /**
@@ -424,6 +432,10 @@ private:
 			mixer_scaler_s &scaler,
 			uint8_t &control_group,
 			uint8_t &control_index);
+
+	/* do not allow to copy due to ptr data members */
+	SimpleMixer(const SimpleMixer&);
+	SimpleMixer operator=(const SimpleMixer&);
 };
 
 /**
@@ -522,6 +534,9 @@ private:
 	unsigned			_rotor_count;
 	const Rotor			*_rotors;
 
+	/* do not allow to copy due to ptr data members */
+	MultirotorMixer(const MultirotorMixer&);
+	MultirotorMixer operator=(const MultirotorMixer&);
 };
 
 #endif

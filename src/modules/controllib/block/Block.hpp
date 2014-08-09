@@ -91,6 +91,11 @@ protected:
 	List<control::SubscriptionBase *> _subscriptions;
 	List<control::PublicationBase *> _publications;
 	List<BlockParamBase *> _params;
+
+private:
+	/* this class has pointer data members and should not be copied (private constructor) */
+	Block(const control::Block&);
+	Block operator=(const control::Block&);
 };
 
 class __EXPORT SuperBlock :

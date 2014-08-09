@@ -179,6 +179,7 @@
 #define PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE	(1 << 5) /* Output of PWM right after startup enabled to help ESCs initialize and prevent them from beeping */
 #define PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED	(1 << 6) /* Disable the IO-internal evaluation of the RC */
 #define PX4IO_P_SETUP_ARMING_LOCKDOWN		(1 << 7) /* If set, the system operates normally, but won't actuate any servos */
+#define PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE	(1 << 8) /* If set, the system will always output the failsafe values */
 
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
 #define PX4IO_P_SETUP_PWM_DEFAULTRATE		3	/* 'low' PWM frame output rate in Hz */
@@ -253,6 +254,10 @@ enum {							/* DSM bind states */
 /* PWM failsafe values - zero disables the output */
 #define PX4IO_PAGE_FAILSAFE_PWM			55		/**< 0..CONFIG_ACTUATOR_COUNT-1 */
 
+/* PWM failsafe values - zero disables the output */
+#define PX4IO_PAGE_SENSORS			56		/**< Sensors connected to PX4IO */
+#define PX4IO_P_SENSORS_ALTITUDE		0		/**< Altitude of an external sensor (HoTT or S.BUS2) */
+
 /* Debug and test page - not used in normal operation */
 #define PX4IO_PAGE_TEST				127
 #define PX4IO_P_TEST_LED			0		/**< set the amber LED on/off */
@@ -312,7 +317,7 @@ struct IOPacket {
 
 #define PKT_COUNT(_p)	((_p).count_code & PKT_COUNT_MASK)
 #define PKT_CODE(_p)	((_p).count_code & PKT_CODE_MASK)
-#define PKT_SIZE(_p)	((uint8_t *)&((_p).regs[PKT_COUNT(_p)]) - ((uint8_t *)&(_p)))
+#define PKT_SIZE(_p)	((size_t)((uint8_t *)&((_p).regs[PKT_COUNT(_p)]) - ((uint8_t *)&(_p))))
 
 static const uint8_t crc8_tab[256] __attribute__((unused)) =
 {
