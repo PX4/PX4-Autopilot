@@ -126,7 +126,6 @@ public:
      * This version does not support more than one formatted argument, though it can be improved.
      * And it is unsafe.
      * There is typesafe version for C++11 above.
-     * TODO: make this version typesafe and add support for multiple args.
      */
     template <typename A>
     void write(const char* const format, const A value)

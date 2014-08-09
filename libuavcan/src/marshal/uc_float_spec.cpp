@@ -23,7 +23,6 @@ namespace uavcan
 /*
  * IEEE754Converter
  * Float16 conversion algorithm: http://half.sourceforge.net/ (MIT License)
- * TODO: Use conversion tables (conditional compilation - it would require something like 10Kb+ ROM).
  */
 template <typename T>
 static inline bool signbit(T arg)

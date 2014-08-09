@@ -86,7 +86,6 @@ std::string CanFrame::toString(StringRepresentation mode) const
     }
     else if (id & FlagERR)
     {
-        // TODO: print error flags
         wpos += snprintf(wpos, epos - wpos, " ERR");
     }
     else
