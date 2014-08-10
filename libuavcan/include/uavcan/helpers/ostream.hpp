@@ -1,0 +1,60 @@
+/*
+ * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
+ */
+
+#pragma once
+
+#include <uavcan/util/templates.hpp>
+#include <cstdio>
+
+namespace uavcan
+{
+/**
+ * Compact replacement for std::ostream for use on embedded systems.
+ * Can be used for printing UAVCAN messages to stdout.
+ *
+ * Relevant discussion: https://groups.google.com/forum/#!topic/px4users/6c1CLNutN90
+ *
+ * Usage:
+ *      OStream::instance() << "Hello world!" << OStream::endl;
+ */
+class OStream : uavcan::Noncopyable
+{
+    OStream() { }
+
+public:
+    static OStream& instance()
+    {
+        static OStream s;
+        return s;
+    }
+
+    static OStream& endl(OStream& stream)
+    {
+        std::printf("\n");
+        return stream;
+    }
+};
+
+OStream& operator<<(OStream& s, long long x)          { std::printf("%lld", x);  return s; }
+OStream& operator<<(OStream& s, unsigned long long x) { std::printf("%llud", x); return s; }
+
+OStream& operator<<(OStream& s, long x)           { std::printf("%ld", x); return s; }
+OStream& operator<<(OStream& s, unsigned long x)  { std::printf("%lu", x); return s; }
+
+OStream& operator<<(OStream& s, int x)            { std::printf("%d", x);  return s; }
+OStream& operator<<(OStream& s, unsigned int x)   { std::printf("%u", x);  return s; }
+
+OStream& operator<<(OStream& s, short x)          { return operator<<(s, static_cast<int>(x)); }
+OStream& operator<<(OStream& s, unsigned short x) { return operator<<(s, static_cast<unsigned>(x)); }
+
+OStream& operator<<(OStream& s, long double x) { std::printf("%Lg", x); return s; }
+OStream& operator<<(OStream& s, double x)      { std::printf("%g", x);  return s; }
+OStream& operator<<(OStream& s, float x)       { return operator<<(s, static_cast<double>(x)); }
+
+OStream& operator<<(OStream& s, char x)        { std::printf("%c", x); return s; }
+OStream& operator<<(OStream& s, const char* x) { std::printf("%s", x); return s; }
+
+OStream& operator<<(OStream& s, OStream&(*manip)(OStream&)) { return manip(s); }
+
+}

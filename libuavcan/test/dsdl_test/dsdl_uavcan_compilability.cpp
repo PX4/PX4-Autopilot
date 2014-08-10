@@ -4,6 +4,8 @@
 
 #include <gtest/gtest.h>
 
+#include <uavcan/helpers/ostream.hpp>
+
 #include <uavcan/Timestamp.hpp>
 #include <uavcan/FigureOfMerit.hpp>
 #include <uavcan/mavlink/Message.hpp>
@@ -111,4 +113,12 @@ TEST(Dsdl, Streaming)
         "==========\n";
     std::cout << os.str();
     ASSERT_EQ(Reference, os.str());
+}
+
+
+TEST(Dsdl, OStream)
+{
+    root_ns_a::Deep ps;
+    ps.a.resize(2);
+    uavcan::OStream::instance() << ps << uavcan::OStream::endl;
 }
