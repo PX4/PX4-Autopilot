@@ -18,7 +18,7 @@ namespace uavcan
  * Usage:
  *      OStream::instance() << "Hello world!" << OStream::endl;
  */
-class OStream : uavcan::Noncopyable
+class UAVCAN_EXPORT OStream : uavcan::Noncopyable
 {
     OStream() { }
 
