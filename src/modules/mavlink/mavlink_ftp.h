@@ -146,7 +146,7 @@ private:
 			mavlink_message_t msg;
 			msg.checksum = 0;
 			unsigned len = mavlink_msg_encapsulated_data_pack_chan(_mavlink->get_system_id(), _mavlink->get_component_id(),
-				_mavlink->get_channel(), &msg, sequence(), rawData());
+				_mavlink->get_channel(), &msg, sequence()+1, rawData());
 
 			_mavlink->lockMessageBufferMutex();
 			bool success = _mavlink->message_buffer_write(&msg, len);
