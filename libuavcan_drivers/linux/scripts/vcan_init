@@ -31,7 +31,6 @@ modprobe vcan
 
 ip link add dev $IFACE type vcan
 ip link set up $IFACE
-ip link show $IFACE
 
 ifconfig $IFACE up || exit 1
 
