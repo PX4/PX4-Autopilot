@@ -788,6 +788,7 @@ MulticopterPositionControl::task_main()
 			}
 
 			/* fill local position setpoint */
+			_local_pos_sp.timestamp = hrt_absolute_time();
 			_local_pos_sp.x = _pos_sp(0);
 			_local_pos_sp.y = _pos_sp(1);
 			_local_pos_sp.z = _pos_sp(2);
