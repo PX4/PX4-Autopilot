@@ -17,7 +17,7 @@ namespace uavcan
  * Refer to the standard message type uavcan.protocol.NodeStatus for available status codes.
  */
 template <unsigned NumComponents_>
-class ComponentStatusManager
+class UAVCAN_EXPORT ComponentStatusManager
 {
 public:
     typedef typename StorageType<protocol::NodeStatus::FieldTypes::status_code>::Type StatusCode;
