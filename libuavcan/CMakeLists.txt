@@ -98,7 +98,7 @@ function(add_libuavcan_test name library flags) # Adds GTest executable and crea
 endfunction()
 
 if (DEBUG_BUILD)
-    message(STATUS "Debug build (note: requires gtest, cppcheck)")
+    message(STATUS "Debug build (note: requires gtest)")
 
     if (COMPILER_IS_GCC_COMPATIBLE)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -pedantic")
@@ -123,9 +123,6 @@ if (DEBUG_BUILD)
     add_libuavcan_test(libuavcan_test       uavcan       "")              # Default
     add_libuavcan_test(libuavcan_test_cpp03 uavcan_cpp03 ${cpp03_flags})  # C++03
     add_libuavcan_test(libuavcan_test_optim uavcan_optim ${optim_flags})  # Max optimization
-
-    # Static analysis with cppcheck, both library and unit test sources
-    add_custom_command(TARGET uavcan POST_BUILD COMMAND ./cppcheck.sh WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 else ()
     message(STATUS "Release build type: " ${CMAKE_BUILD_TYPE})
 endif ()

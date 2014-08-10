@@ -19,9 +19,9 @@ Despite the fact that the library itself can be used on virtually any platform t
 Prerequisites:
 
 * Google test library for C++ - gtest
-* Static analysis tool for C++ - cppcheck
 * C++03 *and* C++11 capable compiler with GCC-like interface (e.g. GCC, Clang)
 * CMake 2.8+
+* Optional: static analysis tool for C++ - cppcheck
 
 Building the debug version, running the unit tests and the static analyzer:
 ```bash
