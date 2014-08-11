@@ -50,6 +50,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
+#include <float.h>
 
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
@@ -147,7 +148,7 @@ __EXPORT int map_projection_project(const struct map_projection_reference_s *ref
 	double cos_d_lon = cos(lon_rad - ref->lon_rad);
 
 	double c = acos(ref->sin_lat * sin_lat + ref->cos_lat * cos_lat * cos_d_lon);
-	double k = (c == 0.0) ? 1.0 : (c / sin(c));
+	double k = (fabs(c) < DBL_EPSILON) ? 1.0 : (c / sin(c));
 
 	*x = k * (ref->cos_lat * sin_lat - ref->sin_lat * cos_lat * cos_d_lon) * CONSTANTS_RADIUS_OF_EARTH;
 	*y = k * cos_lat * sin(lon_rad - ref->lon_rad) * CONSTANTS_RADIUS_OF_EARTH;
@@ -175,7 +176,7 @@ __EXPORT int map_projection_reproject(const struct map_projection_reference_s *r
 	double lat_rad;
 	double lon_rad;
 
-	if (c != 0.0) {
+	if (fabs(c) > DBL_EPSILON) {
 		lat_rad = asin(cos_c * ref->sin_lat + (x_rad * sin_c * ref->cos_lat) / c);
 		lon_rad = (ref->lon_rad + atan2(y_rad * sin_c, c * ref->cos_lat * cos_c - x_rad * ref->sin_lat * sin_c));
 
