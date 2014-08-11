@@ -1484,11 +1484,12 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	uint16_t regs[RC_INPUT_MAX_CHANNELS + prolog];
 
 	/*
-	 * Read the channel count and the first 9 channels.
+	 * Read the channel count and the all channels.
 	 *
-	 * This should be the common case (9 channel R/C control being a reasonable upper bound).
+	 * So as the prolog is now 6 registers, we still could fetch everything in a single transfer.
+	 * Up to 32 registers.
 	 */
-	ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT, &regs[0], prolog);
+	ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT, &regs[0], prolog + RC_INPUT_MAX_CHANNELS);
 
 	if (ret != OK)
 		return ret;
@@ -1508,32 +1509,22 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	}
 
 	input_rc.timestamp_last_signal = _rc_last_valid;
-	
+
 	/*
 	 * Get the channel count.
 	 */
 	channel_count = regs[PX4IO_P_RAW_RC_COUNT];
-
+	
 	/* limit the channel count */
 	if (channel_count > RC_INPUT_MAX_CHANNELS) {
-		// use last seen channel count if it's to create
+		/* use last seen channel count if it's to create */
 		channel_count = _rc_chan_count;
 	}
-
+	
 	/* count channel count changes to identify signal integrity issues */
 	if (channel_count != _rc_chan_count) {
 		perf_count(_perf_chan_count);
 		_rc_chan_count = channel_count;
-	}
-	
-	/*
-	 * No fetch all channels at once.
-	 */
-	if (channel_count > 0) {
-		ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE, &regs[prolog], channel_count);
-
-		if (ret != OK)
-			return ret;
 	}
 
 	input_rc.channel_count = channel_count;
