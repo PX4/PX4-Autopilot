@@ -1341,8 +1341,8 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* Initialize map projection if gps is valid */
 		if (!map_projection_global_initialized()
-				&& (gps_position.eph < eph_epv_threshold)
-				&& (gps_position.epv < eph_epv_threshold)
+				&& (gps_position.eph < eph_threshold)
+				&& (gps_position.epv < epv_threshold)
 				&& hrt_elapsed_time((hrt_abstime*)&gps_position.timestamp_position) < 1e6) {
 			/* set reference for global coordinates <--> local coordiantes conversion and map_projection */
 			globallocalconverter_init((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7, (float)gps_position.alt * 1.0e-3f, hrt_absolute_time());
