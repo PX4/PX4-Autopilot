@@ -280,9 +280,11 @@ then
 	nshterm /dev/ttyACM0 &
 
 	#
-	# Start the datamanager
+	# Start the datamanager (and do not abort boot if it fails)
 	#
-	dataman start
+	if dataman start
+	then
+	fi
 
 	#
 	# Start the Commander (needs to be this early for in-air-restarts)
