@@ -45,7 +45,7 @@ namespace uORB
 {
 
 /**
- * uORB subscription wrapper class.
+ * Base uORB subscription wrapper class, to use with external data buffer.
  */
 class __EXPORT Subscription
 {
@@ -59,13 +59,20 @@ public:
 	}
 
 	/**
+	 * Check for updates on the subscription.
+	 */
+	bool updated() {
+		bool updated_flag;
+		return !orb_check(_handle, &updated_flag) && updated_flag;
+	}
+
+	/**
 	 * Update subscription. If update available put it to 'data' and return 'true'.
 	 * If update is not available or error return 'false'.
 	 */
 	bool update(void *data) {
-		bool updated;
-
-		if (!orb_check(_handle, &updated) && updated) {
+		bool updated_flag;
+		if (!orb_check(_handle, &updated_flag) && updated_flag) {
 			return !orb_copy(_meta, _handle, data);
 		}
 
@@ -90,6 +97,51 @@ public:
 
 	int get_handle() const {
 		return _handle;
+	}
+};
+
+/**
+ * uORB subscription wrapper class with data buffer.
+ */
+template <class T>
+class __EXPORT BufferedSubscription
+{
+private:
+	const struct orb_metadata *_meta;
+	int _handle;
+	T _data;
+
+public:
+	BufferedSubscription(const struct orb_metadata *meta) : _meta(meta), _data({0}) {
+		_handle = orb_subscribe(_meta);
+	}
+
+	~BufferedSubscription() {
+		orb_unsubscribe(_handle);
+	}
+
+	/**
+	 * Update subscription. Return 'true' only if subscription was updated successfully.
+	 */
+	bool update() {
+		bool updated_flag;
+		if (!orb_check(_handle, &updated_flag) && updated_flag) {
+			return !orb_copy(_meta, _handle, &_data);
+		}
+
+		return false;
+	}
+
+	const struct orb_metadata *get_meta() const {
+		return _meta;
+	}
+
+	int get_handle() const {
+		return _handle;
+	}
+
+	T& get_data() {
+		return _data;
 	}
 };
 
