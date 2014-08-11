@@ -32,26 +32,26 @@ namespace uavcan
 template <typename DataType_>
 class UAVCAN_EXPORT ReceivedDataStructure : public DataType_
 {
-    const IncomingTransfer* transfer_;
+    const IncomingTransfer* _transfer_;   ///< Such weird name is necessary to avoid clashing with DataType fields
 
     template <typename Ret, Ret(IncomingTransfer::*Fun) () const>
     Ret safeget() const
     {
-        if (!transfer_)
+        if (_transfer_ == NULL)
         {
             UAVCAN_ASSERT(0);
             return Ret();
         }
-        return (transfer_->*Fun)();
+        return (_transfer_->*Fun)();
     }
 
 protected:
-    ReceivedDataStructure() : transfer_(NULL) { }
+    ReceivedDataStructure() : _transfer_(NULL) { }
 
-    void setTransfer(const IncomingTransfer* transfer)
+    void setTransfer(const IncomingTransfer* arg_transfer)
     {
-        UAVCAN_ASSERT(transfer);
-        transfer_ = transfer;
+        UAVCAN_ASSERT(arg_transfer != NULL);
+        _transfer_ = arg_transfer;
     }
 
 public:
