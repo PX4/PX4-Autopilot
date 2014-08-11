@@ -37,4 +37,5 @@
 
 MODULE_COMMAND		= bottle_drop
 
-SRCS			= bottle_drop.cpp
+SRCS			= bottle_drop.cpp \
+			  bottle_drop.c
