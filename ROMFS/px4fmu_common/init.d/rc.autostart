@@ -103,6 +103,11 @@ then
 	sh /etc/init.d/3034_fx79
 fi
 
+if param compare SYS_AUTOSTART 3035 35
+then
+	sh /etc/init.d/3035_viper
+fi
+
 if param compare SYS_AUTOSTART 3100
 then
 	sh /etc/init.d/3100_tbs_caipirinha

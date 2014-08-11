@@ -186,7 +186,7 @@ struct vehicle_status_s {
 	bool condition_system_sensors_initialized;
 	bool condition_system_returned_to_home;
 	bool condition_auto_mission_available;
-	bool condition_global_position_valid;		/**< set to true by the commander app if the quality of the gps signal is good enough to use it in the position estimator */
+	bool condition_global_position_valid;		/**< set to true by the commander app if the quality of the position estimate is good enough to use it for navigation */
 	bool condition_launch_position_valid;		/**< indicates a valid launch position */
 	bool condition_home_position_valid;		/**< indicates a valid home position (a valid home position is not always a valid launch) */
 	bool condition_local_position_valid;
@@ -228,6 +228,7 @@ struct vehicle_status_s {
 	uint16_t errors_count4;
 
 	bool circuit_breaker_engaged_power_check;
+	bool circuit_breaker_engaged_airspd_check;
 };
 
 /**

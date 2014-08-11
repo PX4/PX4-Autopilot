@@ -109,8 +109,7 @@ int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float alti
 
 	/* Write part of the status message */
 	_status.altitudeSp = altitudeSp;
-	_status.altitude = altitude;
-	_status.altitudeFiltered = altitudeFiltered;
+	_status.altitude_filtered = altitudeFiltered;
 
 
 	/* use flightpath angle setpoint for total energy control */
@@ -146,8 +145,7 @@ int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAng
 
 	/* Write part of the status message */
 	_status.airspeedSp = airspeedSp;
-	_status.airspeed = airspeed;
-	_status.airspeedFiltered = airspeedFiltered;
+	_status.airspeed_filtered = airspeedFiltered;
 
 
 	/* use longitudinal acceleration setpoint for total energy control */

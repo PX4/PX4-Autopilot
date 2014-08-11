@@ -52,6 +52,7 @@
 #define CBRK_SUPPLY_CHK_KEY	894281
 #define CBRK_RATE_CTRL_KEY	140253
 #define CBRK_IO_SAFETY_KEY	22027
+#define CBRK_AIRSPD_CHK_KEY	162128
 
 #include <stdbool.h>
 

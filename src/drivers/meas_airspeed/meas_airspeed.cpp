@@ -92,7 +92,7 @@
 #include <drivers/airspeed/airspeed.h>
 
 /* I2C bus address is 1010001x */
-#define I2C_ADDRESS_MS4525DO	0x28	//0x51 /* 7-bit address. */
+#define I2C_ADDRESS_MS4525DO	0x28	/**< 7-bit address. Depends on the order code (this is for code "I") */
 #define PATH_MS4525		"/dev/ms4525"
 /* The MS5525DSO address is 111011Cx, where C is the complementary value of the pin CSB */
 #define I2C_ADDRESS_MS5525DSO	0x77	//0x77/* 7-bit address, addr. pin pulled low */
@@ -102,9 +102,9 @@
 #define ADDR_READ_MR			0x00	/* write to this address to start conversion */
 
 /* Measurement rate is 100Hz */
-#define MEAS_RATE 100.0f
-#define MEAS_DRIVER_FILTER_FREQ 3.0f
-#define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
+#define MEAS_RATE 100
+#define MEAS_DRIVER_FILTER_FREQ 1.2f
+#define CONVERSION_INTERVAL	(1000000 / MEAS_RATE)	/* microseconds */
 
 class MEASAirspeed : public Airspeed
 {

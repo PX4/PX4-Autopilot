@@ -121,6 +121,9 @@ int blockLimitSymTest()
 
 float BlockLowPass::update(float input)
 {
+	if (!isfinite(getState())) {
+		setState(input);
+	}
 	float b = 2 * float(M_PI) * getFCut() * getDt();
 	float a = b / (1 + b);
 	setState(a * input + (1 - a)*getState());

@@ -42,11 +42,12 @@
 
 #pragma once
 
-#include "mavlink_bridge_header.h"
-#include "mavlink_rate_limiter.h"
 #include <uORB/uORB.h>
 
-// FIXME XXX - TO BE MOVED TO XML
+#include "mavlink_bridge_header.h"
+#include "mavlink_rate_limiter.h"
+#include "mavlink_stream.h"
+
 enum MAVLINK_WPM_STATES {
 	MAVLINK_WPM_STATE_IDLE = 0,
 	MAVLINK_WPM_STATE_SENDLIST,
@@ -66,19 +67,74 @@ enum MAVLINK_WPM_CODES {
 #define MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT 5000000    ///< Protocol communication action timeout in useconds
 #define MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT 500000        ///< Protocol communication retry timeout in useconds
 
-class Mavlink;
-
-class MavlinkMissionManager {
+class MavlinkMissionManager : public MavlinkStream {
 public:
-	MavlinkMissionManager(Mavlink *parent);
-
 	~MavlinkMissionManager();
+
+	const char *get_name() const
+	{
+		return MavlinkMissionManager::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "MISSION_ITEM";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_MISSION_ITEM;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkMissionManager(mavlink);
+	}
+
+	unsigned get_size();
+
+	void handle_message(const mavlink_message_t *msg);
+
+	void set_verbose(bool v) { _verbose = v; }
+
+private:
+	enum MAVLINK_WPM_STATES _state;					///< Current state
+
+	uint64_t		_time_last_recv;
+	uint64_t		_time_last_sent;
+
+	uint32_t		_action_timeout;
+	uint32_t		_retry_timeout;
+	unsigned		_max_count;				///< Maximum number of mission items
+
+	int			_dataman_id;				///< Dataman storage ID for active mission
+	unsigned		_count;					///< Count of items in active mission
+	int			_current_seq;				///< Current item sequence in active mission
+
+	int			_transfer_dataman_id;			///< Dataman storage ID for current transmission
+	unsigned		_transfer_count;			///< Items count in current transmission
+	unsigned		_transfer_seq;				///< Item sequence in current transmission
+	unsigned		_transfer_current_seq;			///< Current item ID for current transmission (-1 means not initialized)
+	unsigned		_transfer_partner_sysid;		///< Partner system ID for current transmission
+	unsigned		_transfer_partner_compid;		///< Partner component ID for current transmission
+
+	int			_offboard_mission_sub;
+	int			_mission_result_sub;
+	orb_advert_t		_offboard_mission_pub;
+
+	MavlinkRateLimiter	_slow_rate_limiter;
+
+	bool _verbose;
+
+	uint8_t			_comp_id;
+
+	/* do not allow top copying this class */
+	MavlinkMissionManager(MavlinkMissionManager &);
+	MavlinkMissionManager& operator = (const MavlinkMissionManager &);
 
 	void init_offboard_mission();
 
 	int update_active_mission(int dataman_id, unsigned count, int seq);
-
-	void send_message(mavlink_message_t *msg);
 
 	/**
 	 *  @brief Sends an waypoint ack message
@@ -111,10 +167,6 @@ public:
 	 */
 	void send_mission_item_reached(uint16_t seq);
 
-	void eventloop();
-
-	void handle_message(const mavlink_message_t *msg);
-
 	void handle_mission_ack(const mavlink_message_t *msg);
 
 	void handle_mission_set_current(const mavlink_message_t *msg);
@@ -139,43 +191,8 @@ public:
 	 */
 	int format_mavlink_mission_item(const struct mission_item_s *mission_item, mavlink_mission_item_t *mavlink_mission_item);
 
-	void set_verbose(bool v) { _verbose = v; }
+protected:
+	explicit MavlinkMissionManager(Mavlink *mavlink);
 
-private:
-	Mavlink*		_mavlink;
-
-	enum MAVLINK_WPM_STATES _state;					///< Current state
-
-	uint64_t		_time_last_recv;
-	uint64_t		_time_last_sent;
-
-	uint32_t		_action_timeout;
-	uint32_t		_retry_timeout;
-	unsigned		_max_count;				///< Maximum number of mission items
-
-	int			_dataman_id;				///< Dataman storage ID for active mission
-	unsigned		_count;					///< Count of items in active mission
-	int			_current_seq;				///< Current item sequence in active mission
-
-	int			_transfer_dataman_id;			///< Dataman storage ID for current transmission
-	unsigned		_transfer_count;			///< Items count in current transmission
-	unsigned		_transfer_seq;				///< Item sequence in current transmission
-	unsigned		_transfer_current_seq;			///< Current item ID for current transmission (-1 means not initialized)
-	unsigned		_transfer_partner_sysid;		///< Partner system ID for current transmission
-	unsigned		_transfer_partner_compid;		///< Partner component ID for current transmission
-
-	int			_offboard_mission_sub;
-	int			_mission_result_sub;
-	orb_advert_t		_offboard_mission_pub;
-
-	MavlinkRateLimiter	_slow_rate_limiter;
-
-	bool _verbose;
-
-	mavlink_channel_t	_channel;
-	uint8_t			_comp_id;
-
-	/* do not allow copying this class */
-	MavlinkMissionManager(const MavlinkMissionManager&);
-	MavlinkMissionManager operator=(const MavlinkMissionManager&);
+	void send(const hrt_abstime t);
 };

@@ -42,8 +42,8 @@
  *    Proceedings of the AIAA Guidance, Navigation and Control
  *    Conference, Aug 2004. AIAA-2004-4900.
  *
- * Implementation for total energy control class:
- *    Thomas Gubler
+ * Original implementation for total energy control class:
+ *    Paul Riseborough and Andrew Tridgell, 2013 (code in lib/external_lgpl)
  *
  * More details and acknowledgements in the referenced library headers.
  *
@@ -87,9 +87,12 @@
 #include <mavlink/mavlink_log.h>
 #include <launchdetection/LaunchDetector.h>
 #include <ecl/l1/ecl_l1_pos_controller.h>
+#include <external_lgpl/tecs/tecs.h>
 #include <drivers/drv_range_finder.h>
 #include "landingslope.h"
 #include "mtecs/mTecs.h"
+
+static int	_control_task = -1;			/**< task handle for sensor task */
 
 
 /**
@@ -115,9 +118,9 @@ public:
 	/**
 	 * Start the sensors task.
 	 *
-	 * @return		OK on success.
+	 * @return	OK on success.
 	 */
-	int		start();
+	static int	start();
 
 	/**
 	 * Task status
@@ -131,7 +134,6 @@ private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	bool		_task_running;			/**< if true, task is running in its mainloop */
-	int		_control_task;			/**< task handle for sensor task */
 
 	int		_global_pos_sub;
 	int		_pos_sp_triplet_sub;
@@ -144,6 +146,7 @@ private:
 	int		_range_finder_sub;		/**< range finder subscription */
 
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint */
+	orb_advert_t	_tecs_status_pub;		/**< TECS status publication */
 	orb_advert_t	_nav_capabilities_pub;		/**< navigation capabilities publication */
 
 	struct vehicle_attitude_s			_att;				/**< vehicle attitude */
@@ -192,12 +195,30 @@ private:
 	math::Matrix<3, 3> _R_nb;			///< current attitude
 
 	ECL_L1_Pos_Controller				_l1_control;
+	TECS						_tecs;
 	fwPosctrl::mTecs				_mTecs;
 	bool						_was_pos_control_mode;
 
 	struct {
 		float l1_period;
 		float l1_damping;
+
+		float time_const;
+		float time_const_throt;
+		float min_sink_rate;
+		float max_sink_rate;
+		float max_climb_rate;
+		float climbout_diff;
+		float heightrate_p;
+		float speedrate_p;
+		float throttle_damp;
+		float integrator_gain;
+		float vertical_accel_limit;
+		float height_comp_filter_omega;
+		float speed_comp_filter_omega;
+		float roll_throttle_compensation;
+		float speed_weight;
+		float pitch_damping;
 
 		float airspeed_min;
 		float airspeed_trim;
@@ -209,6 +230,7 @@ private:
 		float throttle_min;
 		float throttle_max;
 		float throttle_cruise;
+		float throttle_slew_max;
 
 		float throttle_land_max;
 
@@ -226,6 +248,23 @@ private:
 		param_t l1_period;
 		param_t l1_damping;
 
+		param_t time_const;
+		param_t time_const_throt;
+		param_t min_sink_rate;
+		param_t max_sink_rate;
+		param_t max_climb_rate;
+		param_t climbout_diff;
+		param_t heightrate_p;
+		param_t speedrate_p;
+		param_t throttle_damp;
+		param_t integrator_gain;
+		param_t vertical_accel_limit;
+		param_t height_comp_filter_omega;
+		param_t speed_comp_filter_omega;
+		param_t roll_throttle_compensation;
+		param_t speed_weight;
+		param_t pitch_damping;
+
 		param_t airspeed_min;
 		param_t airspeed_trim;
 		param_t airspeed_max;
@@ -236,6 +275,7 @@ private:
 		param_t throttle_min;
 		param_t throttle_max;
 		param_t throttle_cruise;
+		param_t throttle_slew_max;
 
 		param_t throttle_land_max;
 
@@ -361,7 +401,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_mavlink_fd(-1),
 	_task_should_exit(false),
 	_task_running(false),
-	_control_task(-1),
 
 /* subscriptions */
 	_global_pos_sub(-1),
@@ -376,6 +415,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 
 /* publications */
 	_attitude_sp_pub(-1),
+	_tecs_status_pub(-1),
 	_nav_capabilities_pub(-1),
 
 /* states */
@@ -428,6 +468,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.roll_limit = param_find("FW_R_LIM");
 	_parameter_handles.throttle_min = param_find("FW_THR_MIN");
 	_parameter_handles.throttle_max = param_find("FW_THR_MAX");
+	_parameter_handles.throttle_slew_max = param_find("FW_THR_SLEW_MAX");
 	_parameter_handles.throttle_cruise = param_find("FW_THR_CRUISE");
 	_parameter_handles.throttle_land_max = param_find("FW_THR_LND_MAX");
 
@@ -437,6 +478,23 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_thrust_lim_alt_relative = param_find("FW_LND_TLALT");
 	_parameter_handles.land_heading_hold_horizontal_distance = param_find("FW_LND_HHDIST");
 	_parameter_handles.range_finder_rel_alt = param_find("FW_LND_RFRALT");
+
+	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
+	_parameter_handles.time_const_throt = 			param_find("FW_T_THRO_CONST");
+	_parameter_handles.min_sink_rate = 			param_find("FW_T_SINK_MIN");
+	_parameter_handles.max_sink_rate =			param_find("FW_T_SINK_MAX");
+	_parameter_handles.max_climb_rate =			param_find("FW_T_CLMB_MAX");
+	_parameter_handles.climbout_diff =			param_find("FW_CLMBOUT_DIFF");
+	_parameter_handles.throttle_damp = 			param_find("FW_T_THR_DAMP");
+	_parameter_handles.integrator_gain =			param_find("FW_T_INTEG_GAIN");
+	_parameter_handles.vertical_accel_limit =		param_find("FW_T_VERT_ACC");
+	_parameter_handles.height_comp_filter_omega =		param_find("FW_T_HGT_OMEGA");
+	_parameter_handles.speed_comp_filter_omega =		param_find("FW_T_SPD_OMEGA");
+	_parameter_handles.roll_throttle_compensation = 	param_find("FW_T_RLL2THR");
+	_parameter_handles.speed_weight = 			param_find("FW_T_SPDWEIGHT");
+	_parameter_handles.pitch_damping = 			param_find("FW_T_PTCH_DAMP");
+	_parameter_handles.heightrate_p =			param_find("FW_T_HRATE_P");
+	_parameter_handles.speedrate_p =			param_find("FW_T_SRATE_P");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -485,8 +543,27 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.throttle_min, &(_parameters.throttle_min));
 	param_get(_parameter_handles.throttle_max, &(_parameters.throttle_max));
 	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
+	param_get(_parameter_handles.throttle_slew_max, &(_parameters.throttle_slew_max));
 
 	param_get(_parameter_handles.throttle_land_max, &(_parameters.throttle_land_max));
+
+	param_get(_parameter_handles.time_const, &(_parameters.time_const));
+	param_get(_parameter_handles.time_const_throt, &(_parameters.time_const_throt));
+	param_get(_parameter_handles.min_sink_rate, &(_parameters.min_sink_rate));
+	param_get(_parameter_handles.max_sink_rate, &(_parameters.max_sink_rate));
+	param_get(_parameter_handles.throttle_damp, &(_parameters.throttle_damp));
+	param_get(_parameter_handles.integrator_gain, &(_parameters.integrator_gain));
+	param_get(_parameter_handles.vertical_accel_limit, &(_parameters.vertical_accel_limit));
+	param_get(_parameter_handles.height_comp_filter_omega, &(_parameters.height_comp_filter_omega));
+	param_get(_parameter_handles.speed_comp_filter_omega, &(_parameters.speed_comp_filter_omega));
+	param_get(_parameter_handles.roll_throttle_compensation, &(_parameters.roll_throttle_compensation));
+	param_get(_parameter_handles.speed_weight, &(_parameters.speed_weight));
+	param_get(_parameter_handles.pitch_damping, &(_parameters.pitch_damping));
+	param_get(_parameter_handles.max_climb_rate, &(_parameters.max_climb_rate));
+	param_get(_parameter_handles.climbout_diff, &(_parameters.climbout_diff));
+
+	param_get(_parameter_handles.heightrate_p, &(_parameters.heightrate_p));
+	param_get(_parameter_handles.speedrate_p, &(_parameters.speedrate_p));
 
 	param_get(_parameter_handles.land_slope_angle, &(_parameters.land_slope_angle));
 	param_get(_parameter_handles.land_H1_virt, &(_parameters.land_H1_virt));
@@ -499,6 +576,25 @@ FixedwingPositionControl::parameters_update()
 	_l1_control.set_l1_damping(_parameters.l1_damping);
 	_l1_control.set_l1_period(_parameters.l1_period);
 	_l1_control.set_l1_roll_limit(math::radians(_parameters.roll_limit));
+
+	_tecs.set_time_const(_parameters.time_const);
+	_tecs.set_time_const_throt(_parameters.time_const_throt);
+	_tecs.set_min_sink_rate(_parameters.min_sink_rate);
+	_tecs.set_max_sink_rate(_parameters.max_sink_rate);
+	_tecs.set_throttle_damp(_parameters.throttle_damp);
+	_tecs.set_throttle_slewrate(_parameters.throttle_slew_max);
+	_tecs.set_integrator_gain(_parameters.integrator_gain);
+	_tecs.set_vertical_accel_limit(_parameters.vertical_accel_limit);
+	_tecs.set_height_comp_filter_omega(_parameters.height_comp_filter_omega);
+	_tecs.set_speed_comp_filter_omega(_parameters.speed_comp_filter_omega);
+	_tecs.set_roll_throttle_compensation(_parameters.roll_throttle_compensation);
+	_tecs.set_speed_weight(_parameters.speed_weight);
+	_tecs.set_pitch_damping(_parameters.pitch_damping);
+	_tecs.set_indicated_airspeed_min(_parameters.airspeed_min);
+	_tecs.set_indicated_airspeed_max(_parameters.airspeed_max);
+	_tecs.set_max_climb_rate(_parameters.max_climb_rate);
+	_tecs.set_heightrate_p(_parameters.heightrate_p);
+	_tecs.set_speedrate_p(_parameters.speedrate_p);
 
 	/* sanity check parameters */
 	if (_parameters.airspeed_max < _parameters.airspeed_min ||
@@ -561,6 +657,9 @@ FixedwingPositionControl::vehicle_airspeed_poll()
 		}
 	}
 
+	/* update TECS state */
+	_tecs.enable_airspeed(_airspeed_valid);
+
 	return airspeed_updated;
 }
 
@@ -621,7 +720,17 @@ FixedwingPositionControl::vehicle_setpoint_poll()
 void
 FixedwingPositionControl::task_main_trampoline(int argc, char *argv[])
 {
+	l1_control::g_control = new FixedwingPositionControl();
+
+	if (l1_control::g_control == nullptr) {
+		warnx("OUT OF MEM");
+		return;
+	}
+
+	/* only returns on exit */
 	l1_control::g_control->task_main();
+	delete l1_control::g_control;
+	l1_control::g_control = nullptr;
 }
 
 float
@@ -733,6 +842,14 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
 
+	/* filter speed and altitude for controller */
+	math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
+	math::Vector<3> accel_earth = _R_nb * accel_body;
+
+	if (!_mTecs.getEnabled()) {
+		_tecs.update_50hz(_global_pos.alt /* XXX might switch to alt err here */, _airspeed.indicated_airspeed_m_s, _R_nb, accel_body, accel_earth);
+	}
+
 	/* define altitude error */
 	float altitude_error = _pos_sp_triplet.current.alt - _global_pos.alt;
 
@@ -757,6 +874,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		/* get circle mode */
 		bool was_circle_mode = _l1_control.circle_mode();
+
+		/* restore speed weight, in case changed intermittently (e.g. in landing handling) */
+		_tecs.set_speed_weight(_parameters.speed_weight);
 
 		/* current waypoint (the one currently heading for) */
 		math::Vector<2> next_wp((float)pos_sp_triplet.current.lat, (float)pos_sp_triplet.current.lon);
@@ -991,7 +1111,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				usePreTakeoffThrust = false;
 
 				/* apply minimum pitch and limit roll if target altitude is not within 10 meters */
-				if (altitude_error > 15.0f) {
+				if (_parameters.climbout_diff > 0.001f && altitude_error > _parameters.climbout_diff) {
 
 					/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
 					tecs_update_pitch_throttle(_pos_sp_triplet.current.alt,
@@ -1066,9 +1186,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		_att_sp.thrust = launchDetector.getThrottlePreTakeoff();
 	}
 	else {
-		_att_sp.thrust = math::min(_mTecs.getThrottleSetpoint(), throttle_max);
+		_att_sp.thrust = math::min(_mTecs.getEnabled() ? _mTecs.getThrottleSetpoint() : _tecs.get_throttle_demand(), throttle_max);
 	}
-	_att_sp.pitch_body = _mTecs.getPitchSetpoint();
+	_att_sp.pitch_body = _mTecs.getEnabled() ? _mTecs.getPitchSetpoint() : _tecs.get_pitch_demand();
 
 	if (_control_mode.flag_control_position_enabled) {
 		last_manual = false;
@@ -1083,10 +1203,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 void
 FixedwingPositionControl::task_main()
 {
-
-	/* inform about start */
-	warnx("Initializing..");
-	fflush(stdout);
 
 	/*
 	 * do subscriptions
@@ -1248,20 +1364,74 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		const math::Vector<3> &ground_speed,
 		tecs_mode mode)
 {
-	/* Using mtecs library: prepare arguments for mtecs call */
-	float flightPathAngle = 0.0f;
-	float ground_speed_length = ground_speed.length();
-	if (ground_speed_length > FLT_EPSILON) {
-		flightPathAngle = -asinf(ground_speed(2)/ground_speed_length);
-	}
-	fwPosctrl::LimitOverride limitOverride;
-	if (climbout_mode) {
-		limitOverride.enablePitchMinOverride(M_RAD_TO_DEG_F * climbout_pitch_min_rad);
+	if (_mTecs.getEnabled()) {
+		/* Using mtecs library: prepare arguments for mtecs call */
+		float flightPathAngle = 0.0f;
+		float ground_speed_length = ground_speed.length();
+		if (ground_speed_length > FLT_EPSILON) {
+			flightPathAngle = -asinf(ground_speed(2)/ground_speed_length);
+		}
+		fwPosctrl::LimitOverride limitOverride;
+		if (climbout_mode) {
+			limitOverride.enablePitchMinOverride(M_RAD_TO_DEG_F * climbout_pitch_min_rad);
+		} else {
+			limitOverride.disablePitchMinOverride();
+		}
+		_mTecs.updateAltitudeSpeed(flightPathAngle, altitude, alt_sp, _airspeed.true_airspeed_m_s, v_sp, mode,
+				limitOverride);
 	} else {
-		limitOverride.disablePitchMinOverride();
+		/* Using tecs library */
+		_tecs.update_pitch_throttle(_R_nb, _att.pitch, altitude, alt_sp, v_sp,
+					    _airspeed.indicated_airspeed_m_s, eas2tas,
+					    climbout_mode, climbout_pitch_min_rad,
+					    throttle_min, throttle_max, throttle_cruise,
+					    pitch_min_rad, pitch_max_rad);
+
+		struct TECS::tecs_state s;
+		_tecs.get_tecs_state(s);
+
+		struct tecs_status_s t;
+
+		t.timestamp = s.timestamp;
+
+		switch (s.mode) {
+			case TECS::ECL_TECS_MODE_NORMAL:
+				t.mode = TECS_MODE_NORMAL;
+				break;
+			case TECS::ECL_TECS_MODE_UNDERSPEED:
+				t.mode = TECS_MODE_UNDERSPEED;
+				break;
+			case TECS::ECL_TECS_MODE_BAD_DESCENT:
+				t.mode = TECS_MODE_BAD_DESCENT;
+				break;
+			case TECS::ECL_TECS_MODE_CLIMBOUT:
+				t.mode = TECS_MODE_CLIMBOUT;
+				break;
+		}
+
+		t.altitudeSp			= s.hgt_dem;
+		t.altitude_filtered		= s.hgt;
+		t.airspeedSp			= s.spd_dem;
+		t.airspeed_filtered		= s.spd;
+
+		t.flightPathAngleSp		= s.dhgt_dem;
+		t.flightPathAngle		= s.dhgt;
+		t.flightPathAngleFiltered	= s.dhgt;
+
+		t.airspeedDerivativeSp		= s.dspd_dem;
+		t.airspeedDerivative		= s.dspd;
+
+		t.totalEnergyRateSp		= s.thr;
+		t.totalEnergyRate		= s.ithr;
+		t.energyDistributionRateSp	= s.ptch;
+		t.energyDistributionRate	= s.iptch;
+
+		if (_tecs_status_pub > 0) {
+			orb_publish(ORB_ID(tecs_status), _tecs_status_pub, &t);
+		} else {
+			_tecs_status_pub = orb_advertise(ORB_ID(tecs_status), &t);
+		}
 	}
-	_mTecs.updateAltitudeSpeed(flightPathAngle, altitude, alt_sp, _airspeed.true_airspeed_m_s, v_sp, mode,
-			limitOverride);
 }
 
 int
@@ -1295,14 +1465,7 @@ int fw_pos_control_l1_main(int argc, char *argv[])
 		if (l1_control::g_control != nullptr)
 			errx(1, "already running");
 
-		l1_control::g_control = new FixedwingPositionControl;
-
-		if (l1_control::g_control == nullptr)
-			errx(1, "alloc failed");
-
-		if (OK != l1_control::g_control->start()) {
-			delete l1_control::g_control;
-			l1_control::g_control = nullptr;
+		if (OK != FixedwingPositionControl::start()) {
 			err(1, "start failed");
 		}
 
