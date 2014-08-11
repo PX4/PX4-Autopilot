@@ -132,6 +132,10 @@ then
 	#
 	if param compare SYS_AUTOCONFIG 1
 	then
+		# We can't be sure the defaults haven't changed, so
+		# if someone requests a re-configuration, we do it
+		# cleanly from scratch (except autostart / autoconfig)
+		param reset_nostart
 		set DO_AUTOCONFIG yes
 	else
 		set DO_AUTOCONFIG no
@@ -276,6 +280,11 @@ then
 	nshterm /dev/ttyACM0 &
 
 	#
+	# Start the datamanager
+	#
+	dataman start
+
+	#
 	# Start the Commander (needs to be this early for in-air-restarts)
 	#
 	commander start
@@ -288,7 +297,17 @@ then
 	# If OUTPUT_MODE == none then something is wrong with setup and we shouldn't try to enable output
 	if [ $OUTPUT_MODE != none ]
 	then
-		if [ $OUTPUT_MODE == io ]
+		if [ $OUTPUT_MODE == uavcan_esc ]
+		then
+			if uavcan start 1
+			then
+				echo "CAN UP"
+			else
+				echo "CAN ERR"
+			fi
+		fi
+
+		if [ $OUTPUT_MODE == io -o $OUTPUT_MODE == uavcan_esc ]
 		then
 			echo "[init] Use PX4IO PWM as primary output"
 			if px4io start
@@ -542,11 +561,6 @@ then
 			sh /etc/init.d/rc.mc_apps
 		fi
 	fi
-
-	#
-	# Start the datamanager
-	#
-	dataman start
 
 	#
 	# Start the navigator

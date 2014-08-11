@@ -56,9 +56,9 @@ class BlockOutputLimiter: public SuperBlock
 {
 public:
 // methods
-	BlockOutputLimiter(SuperBlock *parent, const char *name, bool isAngularLimit = false) :
+	BlockOutputLimiter(SuperBlock *parent, const char *name, bool fAngularLimit = false) :
 		SuperBlock(parent, name),
-		_isAngularLimit(isAngularLimit),
+		_isAngularLimit(fAngularLimit),
 		_min(this, "MIN"),
 		_max(this, "MAX")
 	{};
@@ -72,8 +72,8 @@ public:
 	 * @return: true if the limit is applied, false otherwise
 	 */
 	bool limit(float& value, float& difference) {
-		float minimum = isAngularLimit() ? getMin() * M_DEG_TO_RAD_F : getMin();
-		float maximum = isAngularLimit() ? getMax() * M_DEG_TO_RAD_F : getMax();
+		float minimum = getIsAngularLimit() ? getMin() * M_DEG_TO_RAD_F : getMin();
+		float maximum = getIsAngularLimit() ? getMax() * M_DEG_TO_RAD_F : getMax();
 		if (value < minimum) {
 			difference = value - minimum;
 			value = minimum;
@@ -86,7 +86,7 @@ public:
 		return false;
 	}
 //accessor:
-	bool isAngularLimit() {return _isAngularLimit ;}
+	bool getIsAngularLimit() {return _isAngularLimit ;}
 	float getMin() { return _min.get(); }
 	float getMax() { return _max.get(); }
 	void setMin(float value) { _min.set(value); }

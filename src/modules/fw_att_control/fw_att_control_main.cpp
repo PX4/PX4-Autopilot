@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: 	Lorenz Meier
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -99,13 +98,21 @@ public:
 	/**
 	 * Start the sensors task.
 	 *
-	 * @return		OK on success.
+	 * @return	OK on success.
 	 */
 	int		start();
+
+	/**
+	 * Task status
+	 *
+	 * @return	true if the mainloop is running
+	 */
+	bool		task_running() { return _task_running; }
 
 private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
+	bool		_task_running;			/**< if true, task is running in its mainloop */
 	int		_control_task;			/**< task handle for sensor task */
 
 	int		_att_sub;			/**< vehicle attitude subscription */
@@ -276,6 +283,7 @@ private:
 	 * Main sensor collection task.
 	 */
 	void		task_main();
+
 };
 
 namespace att_control
@@ -287,12 +295,13 @@ namespace att_control
 #endif
 static const int ERROR = -1;
 
-FixedwingAttitudeControl	*g_control;
+FixedwingAttitudeControl	*g_control = nullptr;
 }
 
 FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	_task_should_exit(false),
+	_task_running(false),
 	_control_task(-1),
 
 /* subscriptions */
@@ -520,7 +529,7 @@ FixedwingAttitudeControl::vehicle_accel_poll()
 	orb_check(_accel_sub, &accel_updated);
 
 	if (accel_updated) {
-		orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
+		orb_copy(ORB_ID(sensor_accel0), _accel_sub, &_accel);
 	}
 }
 
@@ -568,7 +577,7 @@ FixedwingAttitudeControl::task_main()
 	 */
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_accel_sub = orb_subscribe(ORB_ID(sensor_accel));
+	_accel_sub = orb_subscribe(ORB_ID(sensor_accel0));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -597,6 +606,8 @@ FixedwingAttitudeControl::task_main()
 	fds[0].events = POLLIN;
 	fds[1].fd = _att_sub;
 	fds[1].events = POLLIN;
+
+	_task_running = true;
 
 	while (!_task_should_exit) {
 
@@ -921,6 +932,7 @@ FixedwingAttitudeControl::task_main()
 	warnx("exiting.\n");
 
 	_control_task = -1;
+	_task_running = false;
 	_exit(0);
 }
 
@@ -965,6 +977,14 @@ int fw_att_control_main(int argc, char *argv[])
 			att_control::g_control = nullptr;
 			err(1, "start failed");
 		}
+
+		/* avoid memory fragmentation by not exiting start handler until the task has fully started */
+		while (att_control::g_control == nullptr || !att_control::g_control->task_running()) {
+			usleep(50000);
+			printf(".");
+			fflush(stdout);
+		}
+		printf("\n");
 
 		exit(0);
 	}

@@ -37,7 +37,8 @@
 
 MODULE_COMMAND	= mpu6000
 
-# XXX seems excessive, check if 2048 is not sufficient
-MODULE_STACKSIZE	 = 4096
-
 SRCS		= mpu6000.cpp
+
+MODULE_STACKSIZE	= 1200
+
+EXTRACXXFLAGS	= -Weffc++

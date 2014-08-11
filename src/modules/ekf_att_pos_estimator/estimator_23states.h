@@ -29,6 +29,10 @@ public:
     float covDelAngMax; // maximum delta angle between covariance predictions
     float rngFinderPitch; // pitch angle of laser range finder in radians. Zero is aligned with the Z body axis. Positive is RH rotation about Y body axis.
 
+    float a1; // optical flow sensor misalgnment angle about X axis (rad)
+    float a2; // optical flow sensor misalgnment angle about Y axis (rad)
+    float a3; // optical flow sensor misalgnment angle about Z axis (rad)
+
     float yawVarScale;
     float windVelSigma;
     float dAngBiasSigma;
@@ -55,6 +59,9 @@ public:
         covDelAngMax = 0.02f; // maximum delta angle between covariance predictions
         rngFinderPitch = 0.0f; // pitch angle of laser range finder in radians. Zero is aligned with the Z body axis. Positive is RH rotation about Y body axis.
         EAS2TAS = 1.0f;
+        a1 = 0.0f; // optical flow sensor misalgnment angle about X axis (rad)
+        a2 = 0.0f; // optical flow sensor misalgnment angle about Y axis (rad)
+        a3 = 0.0f; // optical flow sensor misalgnment angle about Z axis (rad)
 
         yawVarScale = 1.0f;
         windVelSigma = 0.1f;
@@ -115,6 +122,7 @@ public:
     float statesAtMagMeasTime[n_states]; // filter satates at the effective measurement time
     float statesAtVtasMeasTime[n_states]; // filter states at the effective measurement time
     float statesAtRngTime[n_states]; // filter states at the effective measurement time
+    float statesAtOptFlowTime[n_states]; // States at the effective optical flow measurement time
 
     Vector3f correctedDelAng; // delta angles about the xyz body axes corrected for errors (rad)
     Vector3f correctedDelVel; // delta velocities along the XYZ body axes corrected for errors (m/s)
@@ -147,9 +155,13 @@ public:
     float innovMag[3]; // innovation output
     float varInnovMag[3]; // innovation variance output
     Vector3f magData; // magnetometer flux radings in X,Y,Z body axes
+    float losData[2]; // optical flow LOS rate measurements (rad/sec)
     float innovVtas; // innovation output
     float innovRng; ///< Range finder innovation
+    float innovOptFlow[2]; // optical flow LOS innovations (rad/sec)
+    float varInnovOptFlow[2]; // optical flow innovations variances (rad/sec)^2
     float varInnovVtas; // innovation variance output
+    float varInnovRng; // range finder innovation variance
     float VtasMeas; // true airspeed measurement (m/s)
     float magDeclination;       ///< magnetic declination
     double latRef; // WGS-84 latitude of reference point (rad)
@@ -160,8 +172,6 @@ public:
     unsigned covSkipCount; // Number of state prediction frames (IMU daya updates to skip before doing the covariance prediction
 
     // GPS input data variables
-    float gpsCourse;
-    float gpsVelD;
     double gpsLat;
     double gpsLon;
     float gpsHgt;
@@ -178,12 +188,18 @@ public:
     bool fuseMagData; // boolean true when magnetometer data is to be fused
     bool fuseVtasData; // boolean true when airspeed data is to be fused
     bool fuseRngData;   ///< true when range data is fused
+    bool fuseOptFlowData; // true when optical flow data is fused
+
+    bool inhibitWindStates; // true when wind states and covariances are to remain constant
+    bool inhibitMagStates;  // true when magnetic field states and covariances are to remain constant
+    bool inhibitGndHgtState; // true when the terrain ground height offset state and covariances are to remain constant
 
     bool onGround;    ///< boolean true when the flight vehicle is on the ground (not flying)
     bool staticMode;    ///< boolean true if no position feedback is fused
     bool useAirspeed;    ///< boolean true if airspeed data is being used
     bool useCompass;    ///< boolean true if magnetometer data is being used
     bool useRangeFinder;     ///< true when rangefinder is being used
+    bool useOpticalFlow; // true when optical flow data is being used
 
     bool ekfDiverged;
     uint64_t lastReset;
@@ -208,7 +224,7 @@ void FuseAirspeed();
 
 void FuseRangeFinder();
 
-void FuseOpticalFlow();
+void FuseOptFlow();
 
 void zeroRows(float (&covMat)[n_states][n_states], uint8_t first, uint8_t last);
 

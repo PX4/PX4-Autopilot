@@ -46,6 +46,7 @@ SRCS		= navigator_main.cpp \
 		  loiter.cpp \
 		  rtl.cpp \
 		  rtl_params.c \
+		  offboard.cpp \
 		  mission_feasibility_checker.cpp \
 		  geofence.cpp \
 		  geofence_params.c
@@ -53,3 +54,5 @@ SRCS		= navigator_main.cpp \
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
 
 MODULE_STACKSIZE = 1200
+
+EXTRACXXFLAGS	= -Weffc++

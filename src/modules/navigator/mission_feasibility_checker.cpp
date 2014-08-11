@@ -135,12 +135,15 @@ bool MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, 
 			}
 		}
 
-		if (home_alt > missionitem.altitude) {
+		/* calculate the global waypoint altitude */
+		float wp_alt = (missionitem.altitude_is_relative) ? missionitem.altitude + home_alt : missionitem.altitude;
+
+		if (home_alt > wp_alt) {
 			if (throw_error) {
-				mavlink_log_info(_mavlink_fd, "Waypoint %d below home", i);
+				mavlink_log_critical(_mavlink_fd, "Rejecting Mission: Waypoint %d below home", i);
 				return false;
 			} else	{
-				mavlink_log_info(_mavlink_fd, "#audio: warning waypoint %d below home", i);
+				mavlink_log_critical(_mavlink_fd, "Warning: Waypoint %d below home", i);
 				return true;
 			}
 		}

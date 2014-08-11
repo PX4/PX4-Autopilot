@@ -107,6 +107,10 @@ private:
 	RingBuffer		*_reports;
 	perf_counter_t		_buffer_overflows;
 
+	/* this class has pointer data members and should not be copied */
+	Airspeed(const Airspeed&);
+	Airspeed& operator=(const Airspeed&);
+
 protected:
 	virtual int	probe();
 

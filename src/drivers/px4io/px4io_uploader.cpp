@@ -39,6 +39,7 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
@@ -64,7 +65,8 @@
 
 PX4IO_Uploader::PX4IO_Uploader() :
 	_io_fd(-1),
-	_fw_fd(-1)
+	_fw_fd(-1),
+	bl_rev(0)
 {
 }
 
@@ -203,12 +205,8 @@ PX4IO_Uploader::upload(const char *filenames[])
 
 		if (bl_rev <= 2) {
 			ret = verify_rev2(fw_size);
-		} else if(bl_rev == 3) {
-			ret = verify_rev3(fw_size);
 		} else {
-			/* verify rev 4 and higher still uses the same approach and
-			 * every version *needs* to be verified.
-			 */
+			/* verify rev 3 and higher. Every version *needs* to be verified. */
 			ret = verify_rev3(fw_size);
 		}
 
@@ -248,7 +246,7 @@ PX4IO_Uploader::upload(const char *filenames[])
 }
 
 int
-PX4IO_Uploader::recv(uint8_t &c, unsigned timeout)
+PX4IO_Uploader::recv_byte_with_timeout(uint8_t *c, unsigned timeout)
 {
 	struct pollfd fds[1];
 
@@ -265,24 +263,24 @@ PX4IO_Uploader::recv(uint8_t &c, unsigned timeout)
 		return -ETIMEDOUT;
 	}
 
-	read(_io_fd, &c, 1);
+	read(_io_fd, c, 1);
 #ifdef UDEBUG
-	log("recv 0x%02x", c);
+	log("recv_bytes 0x%02x", c);
 #endif
 	return OK;
 }
 
 int
-PX4IO_Uploader::recv(uint8_t *p, unsigned count)
+PX4IO_Uploader::recv_bytes(uint8_t *p, unsigned count)
 {
+	int ret = OK;
 	while (count--) {
-		int ret = recv(*p++, 5000);
+		ret = recv_byte_with_timeout(p++, 5000);
 
 		if (ret != OK)
-			return ret;
+			break;
 	}
-
-	return OK;
+	return ret;
 }
 
 void
@@ -292,10 +290,10 @@ PX4IO_Uploader::drain()
 	int ret;
 
 	do {
-		// the small recv timeout here is to allow for fast
+		// the small recv_bytes timeout here is to allow for fast
 		// drain when rebooting the io board for a forced
 		// update of the fw without using the safety switch
-		ret = recv(c, 40);
+		ret = recv_byte_with_timeout(&c, 40);
 
 #ifdef UDEBUG
 		if (ret == OK) {
@@ -313,21 +311,19 @@ PX4IO_Uploader::send(uint8_t c)
 #endif
 	if (write(_io_fd, &c, 1) != 1)
 		return -errno;
-
 	return OK;
 }
 
 int
 PX4IO_Uploader::send(uint8_t *p, unsigned count)
 {
+	int ret;
 	while (count--) {
-		int ret = send(*p++);
-
+		ret = send(*p++);
 		if (ret != OK)
-			return ret;
+			break;
 	}
-
-	return OK;
+	return ret;
 }
 
 int
@@ -336,12 +332,12 @@ PX4IO_Uploader::get_sync(unsigned timeout)
 	uint8_t c[2];
 	int ret;
 
-	ret = recv(c[0], timeout);
+	ret = recv_byte_with_timeout(c, timeout);
 
 	if (ret != OK)
 		return ret;
 
-	ret = recv(c[1], timeout);
+	ret = recv_byte_with_timeout(c + 1, timeout);
 
 	if (ret != OK)
 		return ret;
@@ -377,7 +373,7 @@ PX4IO_Uploader::get_info(int param, uint32_t &val)
 	send(param);
 	send(PROTO_EOC);
 
-	ret = recv((uint8_t *)&val, sizeof(val));
+	ret = recv_bytes((uint8_t *)&val, sizeof(val));
 
 	if (ret != OK)
 		return ret;
@@ -413,10 +409,19 @@ static int read_with_retry(int fd, void *buf, size_t n)
 int
 PX4IO_Uploader::program(size_t fw_size)
 {
-	uint8_t	file_buf[PROG_MULTI_MAX];
+	uint8_t	*file_buf;
 	ssize_t count;
 	int ret;
 	size_t sent = 0;
+
+	file_buf = new uint8_t[PROG_MULTI_MAX];
+	if (!file_buf) {
+		log("Can't allocate program buffer");
+		return -ENOMEM;
+	}
+
+	ASSERT((fw_size & 3) == 0);
+	ASSERT((PROG_MULTI_MAX & 3) == 0);
 
 	log("programming %u bytes...", (unsigned)fw_size);
 
@@ -425,8 +430,8 @@ PX4IO_Uploader::program(size_t fw_size)
 	while (sent < fw_size) {
 		/* get more bytes to program */
 		size_t n = fw_size - sent;
-		if (n > sizeof(file_buf)) {
-			n = sizeof(file_buf);
+		if (n > PROG_MULTI_MAX) {
+			n = PROG_MULTI_MAX;
 		}
 		count = read_with_retry(_fw_fd, file_buf, n);
 
@@ -436,29 +441,26 @@ PX4IO_Uploader::program(size_t fw_size)
 			    (unsigned)sent,
 			    (int)count,
 			    (int)errno);
+			ret = -errno;
+			break;
 		}
-
-		if (count == 0)
-			return OK;
 
 		sent += count;
 
-		if (count < 0)
-			return -errno;
-
-		ASSERT((count % 4) == 0);
-
 		send(PROTO_PROG_MULTI);
 		send(count);
-		send(&file_buf[0], count);
+		send(file_buf, count);
 		send(PROTO_EOC);
 
 		ret = get_sync(1000);
 
-		if (ret != OK)
-			return ret;
+		if (ret != OK) {
+			break;
+		}
 	}
-	return OK;
+
+	delete [] file_buf;
+	return ret;
 }
 
 int
@@ -512,7 +514,7 @@ PX4IO_Uploader::verify_rev2(size_t fw_size)
 		for (ssize_t i = 0; i < count; i++) {
 			uint8_t c;
 
-			ret = recv(c, 5000);
+			ret = recv_byte_with_timeout(&c, 5000);
 
 			if (ret != OK) {
 				log("%d: got %d waiting for bytes", sent + i, ret);
@@ -599,7 +601,7 @@ PX4IO_Uploader::verify_rev3(size_t fw_size_local)
 	send(PROTO_GET_CRC);
 	send(PROTO_EOC);
 
-	ret = recv((uint8_t*)(&crc), sizeof(crc));
+	ret = recv_bytes((uint8_t*)(&crc), sizeof(crc));
 
 	if (ret != OK) {
 		log("did not receive CRC checksum");

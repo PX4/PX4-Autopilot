@@ -46,3 +46,5 @@
 #
 
 SRCS		 = 	tecs/tecs.cpp
+
+MAXOPTIMIZATION	 = -Os

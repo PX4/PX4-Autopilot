@@ -98,6 +98,7 @@ struct manual_control_setpoint_s {
 	switch_pos_t posctl_switch;			/**< position control 2 position switch (optional): _ALTCTL_, POSCTL */
 	switch_pos_t loiter_switch;			/**< loiter 2 position switch (optional): _MISSION_, LOITER */
 	switch_pos_t acro_switch;			/**< acro 2 position switch (optional): _MANUAL_, ACRO */
+	switch_pos_t offboard_switch;		/**< offboard 2 position switch (optional): _NORMAL_, OFFBOARD */
 }; /**< manual control inputs */
 
 /**

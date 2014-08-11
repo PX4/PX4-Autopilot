@@ -3,8 +3,12 @@
 # USB MAVLink start
 #
 
-mavlink start -r 10000 -d /dev/ttyACM0 -x
+mavlink start -r 20000 -d /dev/ttyACM0 -x
 # Enable a number of interesting streams we want via USB
+mavlink stream -d /dev/ttyACM0 -s PARAM_VALUE -r 200
+usleep 100000
+mavlink stream -d /dev/ttyACM0 -s MISSION_ITEM -r 50
+usleep 100000
 mavlink stream -d /dev/ttyACM0 -s NAMED_VALUE_FLOAT -r 10
 usleep 100000
 mavlink stream -d /dev/ttyACM0 -s OPTICAL_FLOW -r 10
@@ -14,6 +18,8 @@ usleep 100000
 mavlink stream -d /dev/ttyACM0 -s ATTITUDE -r 20
 usleep 100000
 mavlink stream -d /dev/ttyACM0 -s ATTITUDE_CONTROLS -r 30
+usleep 100000
+mavlink stream -d /dev/ttyACM0 -s RC_CHANNELS_RAW -r 5
 usleep 100000
 mavlink stream -d /dev/ttyACM0 -s SERVO_OUTPUT_RAW_0 -r 20
 usleep 100000

@@ -8,6 +8,7 @@
 
 #ifdef EKF_DEBUG
 #include <stdio.h>
+#include <stdarg.h>
 
 static void
 ekf_debug_print(const char *fmt, va_list args)
@@ -44,8 +45,11 @@ void Vector3f::zero(void)
     z = 0.0f;
 }
 
-Mat3f::Mat3f() {
-    identity();
+Mat3f::Mat3f() :
+    x{1.0f, 0.0f, 0.0f},
+    y{0.0f, 1.0f, 0.0f},
+    z{0.0f, 0.0f, 1.0f}
+{
 }
 
 void Mat3f::identity() {
@@ -99,6 +103,25 @@ Vector3f operator*( Mat3f matIn, Vector3f vecIn)
     vecOut.y = matIn.y.x*vecIn.x + matIn.y.y*vecIn.y + matIn.y.z*vecIn.z;
     vecOut.z = matIn.x.x*vecIn.x + matIn.z.y*vecIn.y + matIn.z.z*vecIn.z;
     return vecOut;
+}
+
+// overload * operator to provide a matrix product
+Mat3f operator*( Mat3f matIn1, Mat3f matIn2)
+{
+    Mat3f matOut;
+    matOut.x.x = matIn1.x.x*matIn2.x.x + matIn1.x.y*matIn2.y.x + matIn1.x.z*matIn2.z.x;
+    matOut.x.y = matIn1.x.x*matIn2.x.y + matIn1.x.y*matIn2.y.y + matIn1.x.z*matIn2.z.y;
+    matOut.x.z = matIn1.x.x*matIn2.x.z + matIn1.x.y*matIn2.y.z + matIn1.x.z*matIn2.z.z;
+
+    matOut.y.x = matIn1.y.x*matIn2.x.x + matIn1.y.y*matIn2.y.x + matIn1.y.z*matIn2.z.x;
+    matOut.y.y = matIn1.y.x*matIn2.x.y + matIn1.y.y*matIn2.y.y + matIn1.y.z*matIn2.z.y;
+    matOut.y.z = matIn1.y.x*matIn2.x.z + matIn1.y.y*matIn2.y.z + matIn1.y.z*matIn2.z.z;
+
+    matOut.z.x = matIn1.z.x*matIn2.x.x + matIn1.z.y*matIn2.y.x + matIn1.z.z*matIn2.z.x;
+    matOut.z.y = matIn1.z.x*matIn2.x.y + matIn1.z.y*matIn2.y.y + matIn1.z.z*matIn2.z.y;
+    matOut.z.z = matIn1.z.x*matIn2.x.z + matIn1.z.y*matIn2.y.z + matIn1.z.z*matIn2.z.z;
+
+    return matOut;
 }
 
 // overload % operator to provide a vector cross product

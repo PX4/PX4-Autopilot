@@ -38,3 +38,5 @@
 MODULE_COMMAND	= hil
 
 SRCS		= hil.cpp
+
+MAXOPTIMIZATION	 = -Os

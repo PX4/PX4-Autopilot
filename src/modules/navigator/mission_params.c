@@ -58,12 +58,27 @@
  */
 PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 10.0f);
 
-
 /**
- * Enable onboard mission
+ * Enable persistent onboard mission storage
+ *
+ * When enabled, missions that have been uploaded by the GCS are stored
+ * and reloaded after reboot persistently.
  *
  * @min 0
  * @max 1
  * @group Mission
  */
-PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 0);
+PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
+
+/**
+ * Maximal horizontal distance from home to first waypoint
+ *
+ * Failsafe check to prevent running mission stored from previous flight at a new takeoff location.
+ * Set a value of zero or less to disable. The mission will not be started if the current
+ * waypoint is more distant than MIS_DIS_1WP from the current position.
+ *
+ * @min 0
+ * @max 1000
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 500);

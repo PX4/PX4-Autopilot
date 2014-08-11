@@ -55,7 +55,7 @@
  * @max 1
  * @group mTECS
  */
-PARAM_DEFINE_INT32(MT_ENABLED, 1);
+PARAM_DEFINE_INT32(MT_ENABLED, 0);
 
 /**
  * Total Energy Rate Control Feedforward
@@ -175,6 +175,13 @@ PARAM_DEFINE_FLOAT(MT_PIT_MIN, -45.0f);
 PARAM_DEFINE_FLOAT(MT_PIT_MAX, 20.0f);
 
 /**
+ * Lowpass (cutoff freq.) for altitude
+ *
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_ALT_LP, 1.0f);
+
+/**
  * Lowpass (cutoff freq.) for the flight path angle
  *
  * @group mTECS
@@ -234,7 +241,14 @@ PARAM_DEFINE_FLOAT(MT_FPA_MAX, 30.0f);
  *
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_A_LP, 1.0f);
+PARAM_DEFINE_FLOAT(MT_A_LP, 0.5f);
+
+/**
+ * Airspeed derivative calculation lowpass
+ *
+ * @group mTECS
+ */
+PARAM_DEFINE_FLOAT(MT_AD_LP, 0.5f);
 
 /**
  * P gain for the airspeed control
@@ -261,7 +275,7 @@ PARAM_DEFINE_FLOAT(MT_ACC_D, 0.0f);
  *
  * @group mTECS
  */
-PARAM_DEFINE_FLOAT(MT_ACC_D_LP, 1.0f);
+PARAM_DEFINE_FLOAT(MT_ACC_D_LP, 0.5f);
 
 /**
  * Minimal acceleration (air)
@@ -278,13 +292,6 @@ PARAM_DEFINE_FLOAT(MT_ACC_MIN, -40.0f);
  * @group mTECS
  */
 PARAM_DEFINE_FLOAT(MT_ACC_MAX, 40.0f);
-
-/**
- * Airspeed derivative calculation lowpass
- *
- * @group mTECS
- */
-PARAM_DEFINE_FLOAT(MT_AD_LP, 1.0f);
 
 /**
  * Minimal throttle during takeoff

@@ -5,46 +5,120 @@
 
 #define EKF_COVARIANCE_DIVERGED 1.0e8f
 
-AttPosEKF::AttPosEKF()
+AttPosEKF::AttPosEKF() :
+    covTimeStepMax(0.0f),
+    covDelAngMax(0.0f),
+    rngFinderPitch(0.0f),
+    a1(0.0f),
+    a2(0.0f),
+    a3(0.0f),
+    yawVarScale(0.0f),
+    windVelSigma(0.0f),
+    dAngBiasSigma(0.0f),
+    dVelBiasSigma(0.0f),
+    magEarthSigma(0.0f),
+    magBodySigma(0.0f),
+    gndHgtSigma(0.0f),
+    vneSigma(0.0f),
+    vdSigma(0.0f),
+    posNeSigma(0.0f),
+    posDSigma(0.0f),
+    magMeasurementSigma(0.0f),
+    airspeedMeasurementSigma(0.0f),
+    gyroProcessNoise(0.0f),
+    accelProcessNoise(0.0f),
+    EAS2TAS(1.0f),
+    magstate{},
+    resetMagState{},
+    KH{},
+    KHP{},
+    P{},
+    Kfusion{},
+    states{},
+    resetStates{},
+    storedStates{},
+    statetimeStamp{},
+    statesAtVelTime{},
+    statesAtPosTime{},
+    statesAtHgtTime{},
+    statesAtMagMeasTime{},
+    statesAtVtasMeasTime{},
+    statesAtRngTime{},
+    statesAtOptFlowTime{},
+    correctedDelAng(),
+    correctedDelVel(),
+    summedDelAng(),
+    summedDelVel(),
+    accNavMag(),
+    earthRateNED(),
+    angRate(),
+    lastGyroOffset(),
+    delAngTotal(),
+    Tbn(),
+    Tnb(),
+    accel(),
+    dVelIMU(),
+    dAngIMU(),
+    dtIMU(0),
+    fusionModeGPS(0),
+    innovVelPos{},
+    varInnovVelPos{},
+    velNED{},
+    accelGPSNED{},
+    posNE{},
+    hgtMea(0.0f),
+    baroHgtOffset(0.0f),
+    rngMea(0.0f),
+    innovMag{},
+    varInnovMag{},
+    magData{},
+    losData{},
+    innovVtas(0.0f),
+    innovRng(0.0f),
+    innovOptFlow{},
+    varInnovOptFlow{},
+    varInnovVtas(0.0f),
+    varInnovRng(0.0f),
+    VtasMeas(0.0f),
+    magDeclination(0.0f),
+    latRef(0.0f),
+    lonRef(-M_PI_F),
+    hgtRef(0.0f),
+    refSet(false),
+    magBias(),
+    covSkipCount(0),
+    gpsLat(0.0),
+    gpsLon(-M_PI),
+    gpsHgt(0.0f),
+    GPSstatus(0),
+    baroHgt(0.0f),
+    statesInitialised(false),
+    fuseVelData(false),
+    fusePosData(false),
+    fuseHgtData(false),
+    fuseMagData(false),
+    fuseVtasData(false),
+    fuseRngData(false),
+    fuseOptFlowData(false),
 
-    /* NOTE: DO NOT initialize class members here. Use ZeroVariables()
-     * instead to allow clean in-air re-initialization.
-     */
+    inhibitWindStates(true),
+    inhibitMagStates(true),
+    inhibitGndHgtState(true),
+
+    onGround(true),
+    staticMode(true),
+    useAirspeed(true),
+    useCompass(true),
+    useRangeFinder(false),
+    useOpticalFlow(false),
+
+    ekfDiverged(false),
+    lastReset(0),
+    current_ekf_state{},
+    last_ekf_error{},
+    numericalProtection(true),
+    storeIndex(0)
 {
-    summedDelAng.zero();
-    summedDelVel.zero();
-
-    fusionModeGPS = 0;
-    fuseVelData = false;
-    fusePosData = false;
-    fuseHgtData = false;
-    fuseMagData = false;
-    fuseVtasData = false;
-    onGround = true;
-    staticMode = true;
-    useAirspeed = true;
-    useCompass = true;
-    useRangeFinder = true;
-    numericalProtection = true;
-    refSet = false;
-    storeIndex = 0;
-    gpsHgt = 0.0f;
-    baroHgt = 0.0f;
-    GPSstatus = 0;
-    VtasMeas = 0.0f;
-    magDeclination = 0.0f;
-    dAngIMU.zero();
-    dVelIMU.zero();
-    velNED[0] = 0.0f;
-    velNED[1] = 0.0f;
-    velNED[2] = 0.0f;
-    accelGPSNED[0] = 0.0f;
-    accelGPSNED[1] = 0.0f;
-    accelGPSNED[2] = 0.0f;
-    delAngTotal.zero();
-    ekfDiverged = false;
-    lastReset = 0;
-
     memset(&last_ekf_error, 0, sizeof(last_ekf_error));
     memset(&current_ekf_state, 0, sizeof(current_ekf_state));
     ZeroVariables();
@@ -72,7 +146,7 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
     float qUpdated[4];
     float quatMag;
     float deltaQuat[4];
-    const Vector3f gravityNED = {0.0,0.0,GRAVITY_MSS};
+    const Vector3f gravityNED(0.0f, 0.0f, GRAVITY_MSS);
 
 // Remove sensor bias errors
     correctedDelAng.x = dAngIMU.x - states[10];
@@ -227,10 +301,22 @@ void AttPosEKF::CovariancePrediction(float dt)
     // scale gyro bias noise when on ground to allow for faster bias estimation
     for (uint8_t i=10; i<=12; i++) processNoise[i] = dt * dAngBiasSigma;
     processNoise[13] = dVelBiasSigma;
-    for (uint8_t i=14; i<=15; i++) processNoise[i] = dt * windVelSigma;
-    for (uint8_t i=16; i<=18; i++) processNoise[i] = dt * magEarthSigma;
-    for (uint8_t i=19; i<=21; i++) processNoise[i] = dt * magBodySigma;
-    processNoise[22] = dt * sqrtf(sq(states[4]) + sq(states[5])) * gndHgtSigma;
+    if (!inhibitWindStates) {
+        for (uint8_t i=14; i<=15; i++) processNoise[i] = dt * windVelSigma;
+    } else {
+        for (uint8_t i=14; i<=15; i++) processNoise[i] = 0;
+    }
+    if (!inhibitMagStates) {
+        for (uint8_t i=16; i<=18; i++) processNoise[i] = dt * magEarthSigma;
+        for (uint8_t i=19; i<=21; i++) processNoise[i] = dt * magBodySigma;
+    } else {
+        for (uint8_t i=16; i<=21; i++) processNoise[i] = 0;
+    }
+    if (!inhibitGndHgtState) {
+        processNoise[22] = dt * sqrtf(sq(states[4]) + sq(states[5])) * gndHgtSigma;
+    } else {
+        processNoise[22] = 0;
+    }
 
     // square all sigmas
     for (unsigned i = 0; i < n_states; i++) processNoise[i] = sq(processNoise[i]);
@@ -842,30 +928,6 @@ void AttPosEKF::CovariancePrediction(float dt)
         nextP[i][i] = nextP[i][i] + processNoise[i];
     }
 
-    // If on ground or no magnetometer fitted, inhibit magnetometer bias updates by
-    // setting the coresponding covariance terms to zero.
-    if (onGround || !useCompass)
-    {
-        zeroRows(nextP,16,21);
-        zeroCols(nextP,16,21);
-    }
-
-    // If on ground or not using airspeed sensing, inhibit wind velocity
-    // covariance growth.
-    if (onGround || !useAirspeed)
-    {
-        zeroRows(nextP,14,15);
-        zeroCols(nextP,14,15);
-    }
-
-    // If on ground, inhibit terrain offset updates by
-    // setting the coresponding covariance terms to zero.
-    if (onGround)
-    {
-        zeroRows(nextP,22,22);
-        zeroCols(nextP,22,22);
-    }
-
     // If the total position variance exceds 1E6 (1000m), then stop covariance
     // growth by setting the predicted to the previous values
     // This prevent an ill conditioned matrix from occurring for long periods
@@ -882,48 +944,22 @@ void AttPosEKF::CovariancePrediction(float dt)
         }
     }
 
-    if (onGround || staticMode) {
-        // copy the portion of the variances we want to
-        // propagate
-        for (unsigned i = 0; i <= 13; i++) {
-            P[i][i] = nextP[i][i];
-        }
-
-        // force symmetry for observable states
-        // force zero for non-observable states
-        for (unsigned i = 1; i < n_states; i++)
-        {
-            for (uint8_t j = 0; j < i; j++)
-            {
-                if ((i > 13) || (j > 13)) {
-                    P[i][j] = 0.0f;
-                } else {
-                    P[i][j] = 0.5f * (nextP[i][j] + nextP[j][i]);
-                }
-                P[j][i] = P[i][j];
-            }
-        }
-
-    } else {
-
-        // Copy covariance
-        for (unsigned i = 0; i < n_states; i++) {
-            P[i][i] = nextP[i][i];
-        }
-
-        // force symmetry for observable states
-        for (unsigned i = 1; i < n_states; i++)
-        {
-            for (uint8_t j = 0; j < i; j++)
-            {
-                P[i][j] = 0.5f * (nextP[i][j] + nextP[j][i]);
-                P[j][i] = P[i][j];
-            }
-        }
-
+    // Copy covariance
+    for (unsigned i = 0; i < n_states; i++) {
+        P[i][i] = nextP[i][i];
     }
 
-    ConstrainVariances();
+    // force symmetry for observable states
+    for (unsigned i = 1; i < n_states; i++)
+    {
+        for (uint8_t j = 0; j < i; j++)
+        {
+            P[i][j] = 0.5f * (nextP[i][j] + nextP[j][i]);
+            P[j][i] = P[i][j];
+        }
+    }
+
+        ConstrainVariances();
 }
 
 void AttPosEKF::FuseVelposNED()
@@ -944,7 +980,7 @@ void AttPosEKF::FuseVelposNED()
     bool fuseData[6] = {false,false,false,false,false,false};
     uint8_t stateIndex;
     uint8_t obsIndex;
-    uint8_t indexLimit;
+    uint8_t indexLimit = 22;
 
 // declare variables used by state and covariance update calculations
     float velErr;
@@ -981,11 +1017,6 @@ void AttPosEKF::FuseVelposNED()
         R_OBS[4] = R_OBS[3];
         R_OBS[5] = sq(posDSigma) + sq(posErr);
 
-        // Set innovation variances to zero default
-        for (uint8_t i = 0; i<=5; i++)
-        {
-            varInnovVelPos[i] = 0.0f;
-        }
         // calculate innovations and check GPS data validity using an innovation consistency check
         if (fuseVelData)
         {
@@ -1001,10 +1032,16 @@ void AttPosEKF::FuseVelposNED()
             // apply a 5-sigma threshold
             current_ekf_state.velHealth = (sq(velInnov[0]) + sq(velInnov[1]) + sq(velInnov[2])) < 25.0f * (varInnovVelPos[0] + varInnovVelPos[1] + varInnovVelPos[2]);
             current_ekf_state.velTimeout = (millis() - current_ekf_state.velFailTime) > horizRetryTime;
-            if (current_ekf_state.velHealth || current_ekf_state.velTimeout)
-            {
+            if (current_ekf_state.velHealth || staticMode) {
                 current_ekf_state.velHealth = true;
                 current_ekf_state.velFailTime = millis();
+            } else if (current_ekf_state.velTimeout || !current_ekf_state.posHealth) {
+                // XXX check
+                current_ekf_state.velHealth = true;
+                ResetVelocity();
+                ResetStoredStates();
+                // do not fuse bad data
+                fuseVelData = false;
             }
             else
             {
@@ -1025,6 +1062,17 @@ void AttPosEKF::FuseVelposNED()
             {
                 current_ekf_state.posHealth = true;
                 current_ekf_state.posFailTime = millis();
+
+                if (current_ekf_state.posTimeout) {
+                    ResetPosition();
+                    
+                    // XXX cross-check the state reset
+                    ResetStoredStates();
+
+                    // do not fuse position data on this time
+                    // step
+                    fusePosData = false;
+                }
             }
             else
             {
@@ -1039,10 +1087,18 @@ void AttPosEKF::FuseVelposNED()
             // apply a 10-sigma threshold
             current_ekf_state.hgtHealth = sq(hgtInnov) < 100.0f*varInnovVelPos[5];
             current_ekf_state.hgtTimeout = (millis() - current_ekf_state.hgtFailTime) > hgtRetryTime;
-            if (current_ekf_state.hgtHealth || current_ekf_state.hgtTimeout)
+            if (current_ekf_state.hgtHealth || current_ekf_state.hgtTimeout || staticMode)
             {
                 current_ekf_state.hgtHealth = true;
                 current_ekf_state.hgtFailTime = millis();
+
+                // if we just reset from a timeout, do not fuse
+                // the height data, but reset height and stored states
+                if (current_ekf_state.hgtTimeout) {
+                    ResetHeight();
+                    ResetStoredStates();
+                    fuseHgtData = false;
+                }
             }
             else
             {
@@ -1070,15 +1126,6 @@ void AttPosEKF::FuseVelposNED()
         if (fuseHgtData && current_ekf_state.hgtHealth)
         {
             fuseData[5] = true;
-        }
-        // Limit range of states modified when on ground
-        if(!onGround)
-        {
-            indexLimit = 22;
-        }
-        else
-        {
-            indexLimit = 13;
         }
         // Fuse measurements sequentially
         for (obsIndex=0; obsIndex<=5; obsIndex++)
@@ -1113,6 +1160,22 @@ void AttPosEKF::FuseVelposNED()
                 if (obsIndex != 5) {
                     Kfusion[13] = 0;
                 }
+                // Don't update wind states if inhibited
+                if (inhibitWindStates) {
+                    Kfusion[14] = 0;
+                    Kfusion[15] = 0;
+                }
+                // Don't update magnetic field states if inhibited
+                if (inhibitMagStates) {
+                    for (uint8_t i = 16; i<=21; i++)
+                    {
+                        Kfusion[i] = 0;
+                    }
+                }
+                // Don't update terrain state if inhibited
+                if (inhibitGndHgtState) {
+                    Kfusion[22] = 0;
+               }
 
                 // Calculate state corrections and re-normalise the quaternions
                 for (uint8_t i = 0; i<=indexLimit; i++)
@@ -1179,7 +1242,6 @@ void AttPosEKF::FuseMagnetometer()
     for (uint8_t i = 0; i < n_states; i++) {
         H_MAG[i] = 0.0f;
     }
-    unsigned indexLimit;
 
 // Perform sequential fusion of Magnetometer measurements.
 // This assumes that the errors in the different components are
@@ -1189,19 +1251,6 @@ void AttPosEKF::FuseMagnetometer()
 // associated with sequential fusion
     if (useCompass && fuseMagData && (obsIndex < 3))
     {
-        // Limit range of states modified when on ground
-        if(!onGround)
-        {
-            indexLimit = n_states;
-        }
-        else
-        {
-            indexLimit = 13 + 1;
-        }
-
-        // Sequential fusion of XYZ components to spread processing load across
-        // three prediction time steps.
-
         // Calculate observation jacobians and Kalman gains
         if (obsIndex == 0)
         {
@@ -1287,15 +1336,31 @@ void AttPosEKF::FuseMagnetometer()
             Kfusion[12] = SK_MX[0]*(P[12][19] + P[12][1]*SH_MAG[0] + P[12][3]*SH_MAG[2] + P[12][0]*SK_MX[3] - P[12][2]*SK_MX[2] - P[12][16]*SK_MX[1] + P[12][17]*SK_MX[5] - P[12][18]*SK_MX[4]);
             // Only height measurements are allowed to modify the Z delta velocity bias state. This improves the stability of the estimate
             Kfusion[13] = 0.0f;//SK_MX[0]*(P[13][19] + P[13][1]*SH_MAG[0] + P[13][3]*SH_MAG[2] + P[13][0]*SK_MX[3] - P[13][2]*SK_MX[2] - P[13][16]*SK_MX[1] + P[13][17]*SK_MX[5] - P[13][18]*SK_MX[4]);
-            Kfusion[14] = SK_MX[0]*(P[14][19] + P[14][1]*SH_MAG[0] + P[14][3]*SH_MAG[2] + P[14][0]*SK_MX[3] - P[14][2]*SK_MX[2] - P[14][16]*SK_MX[1] + P[14][17]*SK_MX[5] - P[14][18]*SK_MX[4]);
-            Kfusion[15] = SK_MX[0]*(P[15][19] + P[15][1]*SH_MAG[0] + P[15][3]*SH_MAG[2] + P[15][0]*SK_MX[3] - P[15][2]*SK_MX[2] - P[15][16]*SK_MX[1] + P[15][17]*SK_MX[5] - P[15][18]*SK_MX[4]);
-            Kfusion[16] = SK_MX[0]*(P[16][19] + P[16][1]*SH_MAG[0] + P[16][3]*SH_MAG[2] + P[16][0]*SK_MX[3] - P[16][2]*SK_MX[2] - P[16][16]*SK_MX[1] + P[16][17]*SK_MX[5] - P[16][18]*SK_MX[4]);
-            Kfusion[17] = SK_MX[0]*(P[17][19] + P[17][1]*SH_MAG[0] + P[17][3]*SH_MAG[2] + P[17][0]*SK_MX[3] - P[17][2]*SK_MX[2] - P[17][16]*SK_MX[1] + P[17][17]*SK_MX[5] - P[17][18]*SK_MX[4]);
-            Kfusion[18] = SK_MX[0]*(P[18][19] + P[18][1]*SH_MAG[0] + P[18][3]*SH_MAG[2] + P[18][0]*SK_MX[3] - P[18][2]*SK_MX[2] - P[18][16]*SK_MX[1] + P[18][17]*SK_MX[5] - P[18][18]*SK_MX[4]);
-            Kfusion[19] = SK_MX[0]*(P[19][19] + P[19][1]*SH_MAG[0] + P[19][3]*SH_MAG[2] + P[19][0]*SK_MX[3] - P[19][2]*SK_MX[2] - P[19][16]*SK_MX[1] + P[19][17]*SK_MX[5] - P[19][18]*SK_MX[4]);
-            Kfusion[20] = SK_MX[0]*(P[20][19] + P[20][1]*SH_MAG[0] + P[20][3]*SH_MAG[2] + P[20][0]*SK_MX[3] - P[20][2]*SK_MX[2] - P[20][16]*SK_MX[1] + P[20][17]*SK_MX[5] - P[20][18]*SK_MX[4]);
-            Kfusion[21] = SK_MX[0]*(P[21][19] + P[21][1]*SH_MAG[0] + P[21][3]*SH_MAG[2] + P[21][0]*SK_MX[3] - P[21][2]*SK_MX[2] - P[21][16]*SK_MX[1] + P[21][17]*SK_MX[5] - P[21][18]*SK_MX[4]);
-            Kfusion[22] = SK_MX[0]*(P[22][19] + P[22][1]*SH_MAG[0] + P[22][3]*SH_MAG[2] + P[22][0]*SK_MX[3] - P[22][2]*SK_MX[2] - P[22][16]*SK_MX[1] + P[22][17]*SK_MX[5] - P[22][18]*SK_MX[4]);
+            // Estimation of selected states is inhibited by setting their Kalman gains to zero
+            if (!inhibitWindStates) {
+                Kfusion[14] = SK_MX[0]*(P[14][19] + P[14][1]*SH_MAG[0] + P[14][3]*SH_MAG[2] + P[14][0]*SK_MX[3] - P[14][2]*SK_MX[2] - P[14][16]*SK_MX[1] + P[14][17]*SK_MX[5] - P[14][18]*SK_MX[4]);
+                Kfusion[15] = SK_MX[0]*(P[15][19] + P[15][1]*SH_MAG[0] + P[15][3]*SH_MAG[2] + P[15][0]*SK_MX[3] - P[15][2]*SK_MX[2] - P[15][16]*SK_MX[1] + P[15][17]*SK_MX[5] - P[15][18]*SK_MX[4]);
+            } else {
+                Kfusion[14] = 0;
+                Kfusion[15] = 0;
+            }
+            if (!inhibitMagStates) {
+                Kfusion[16] = SK_MX[0]*(P[16][19] + P[16][1]*SH_MAG[0] + P[16][3]*SH_MAG[2] + P[16][0]*SK_MX[3] - P[16][2]*SK_MX[2] - P[16][16]*SK_MX[1] + P[16][17]*SK_MX[5] - P[16][18]*SK_MX[4]);
+                Kfusion[17] = SK_MX[0]*(P[17][19] + P[17][1]*SH_MAG[0] + P[17][3]*SH_MAG[2] + P[17][0]*SK_MX[3] - P[17][2]*SK_MX[2] - P[17][16]*SK_MX[1] + P[17][17]*SK_MX[5] - P[17][18]*SK_MX[4]);
+                Kfusion[18] = SK_MX[0]*(P[18][19] + P[18][1]*SH_MAG[0] + P[18][3]*SH_MAG[2] + P[18][0]*SK_MX[3] - P[18][2]*SK_MX[2] - P[18][16]*SK_MX[1] + P[18][17]*SK_MX[5] - P[18][18]*SK_MX[4]);
+                Kfusion[19] = SK_MX[0]*(P[19][19] + P[19][1]*SH_MAG[0] + P[19][3]*SH_MAG[2] + P[19][0]*SK_MX[3] - P[19][2]*SK_MX[2] - P[19][16]*SK_MX[1] + P[19][17]*SK_MX[5] - P[19][18]*SK_MX[4]);
+                Kfusion[20] = SK_MX[0]*(P[20][19] + P[20][1]*SH_MAG[0] + P[20][3]*SH_MAG[2] + P[20][0]*SK_MX[3] - P[20][2]*SK_MX[2] - P[20][16]*SK_MX[1] + P[20][17]*SK_MX[5] - P[20][18]*SK_MX[4]);
+                Kfusion[21] = SK_MX[0]*(P[21][19] + P[21][1]*SH_MAG[0] + P[21][3]*SH_MAG[2] + P[21][0]*SK_MX[3] - P[21][2]*SK_MX[2] - P[21][16]*SK_MX[1] + P[21][17]*SK_MX[5] - P[21][18]*SK_MX[4]);
+            } else {
+                for (uint8_t i=16; i <= 21; i++) {
+                    Kfusion[i] = 0;
+                }
+            }
+            if (!inhibitGndHgtState) {
+                Kfusion[22] = SK_MX[0]*(P[22][19] + P[22][1]*SH_MAG[0] + P[22][3]*SH_MAG[2] + P[22][0]*SK_MX[3] - P[22][2]*SK_MX[2] - P[22][16]*SK_MX[1] + P[22][17]*SK_MX[5] - P[22][18]*SK_MX[4]);
+            } else {
+                Kfusion[22] = 0;
+            }
             varInnovMag[0] = 1.0f/SK_MX[0];
             innovMag[0] = MagPred[0] - magData.x;
         }
@@ -1342,15 +1407,34 @@ void AttPosEKF::FuseMagnetometer()
             Kfusion[12] = SK_MY[0]*(P[12][20] + P[12][0]*SH_MAG[2] + P[12][1]*SH_MAG[1] + P[12][2]*SH_MAG[0] - P[12][3]*SK_MY[2] - P[12][17]*SK_MY[1] - P[12][16]*SK_MY[3] + P[12][18]*SK_MY[4]);
             // Only height measurements are allowed to modify the Z delta velocity bias state. This improves the stability of the estimate
             Kfusion[13] = 0.0f;//SK_MY[0]*(P[13][20] + P[13][0]*SH_MAG[2] + P[13][1]*SH_MAG[1] + P[13][2]*SH_MAG[0] - P[13][3]*SK_MY[2] - P[13][17]*SK_MY[1] - P[13][16]*SK_MY[3] + P[13][18]*SK_MY[4]);
-            Kfusion[14] = SK_MY[0]*(P[14][20] + P[14][0]*SH_MAG[2] + P[14][1]*SH_MAG[1] + P[14][2]*SH_MAG[0] - P[14][3]*SK_MY[2] - P[14][17]*SK_MY[1] - P[14][16]*SK_MY[3] + P[14][18]*SK_MY[4]);
-            Kfusion[15] = SK_MY[0]*(P[15][20] + P[15][0]*SH_MAG[2] + P[15][1]*SH_MAG[1] + P[15][2]*SH_MAG[0] - P[15][3]*SK_MY[2] - P[15][17]*SK_MY[1] - P[15][16]*SK_MY[3] + P[15][18]*SK_MY[4]);
-            Kfusion[16] = SK_MY[0]*(P[16][20] + P[16][0]*SH_MAG[2] + P[16][1]*SH_MAG[1] + P[16][2]*SH_MAG[0] - P[16][3]*SK_MY[2] - P[16][17]*SK_MY[1] - P[16][16]*SK_MY[3] + P[16][18]*SK_MY[4]);
-            Kfusion[17] = SK_MY[0]*(P[17][20] + P[17][0]*SH_MAG[2] + P[17][1]*SH_MAG[1] + P[17][2]*SH_MAG[0] - P[17][3]*SK_MY[2] - P[17][17]*SK_MY[1] - P[17][16]*SK_MY[3] + P[17][18]*SK_MY[4]);
-            Kfusion[18] = SK_MY[0]*(P[18][20] + P[18][0]*SH_MAG[2] + P[18][1]*SH_MAG[1] + P[18][2]*SH_MAG[0] - P[18][3]*SK_MY[2] - P[18][17]*SK_MY[1] - P[18][16]*SK_MY[3] + P[18][18]*SK_MY[4]);
-            Kfusion[19] = SK_MY[0]*(P[19][20] + P[19][0]*SH_MAG[2] + P[19][1]*SH_MAG[1] + P[19][2]*SH_MAG[0] - P[19][3]*SK_MY[2] - P[19][17]*SK_MY[1] - P[19][16]*SK_MY[3] + P[19][18]*SK_MY[4]);
-            Kfusion[20] = SK_MY[0]*(P[20][20] + P[20][0]*SH_MAG[2] + P[20][1]*SH_MAG[1] + P[20][2]*SH_MAG[0] - P[20][3]*SK_MY[2] - P[20][17]*SK_MY[1] - P[20][16]*SK_MY[3] + P[20][18]*SK_MY[4]);
-            Kfusion[21] = SK_MY[0]*(P[21][20] + P[21][0]*SH_MAG[2] + P[21][1]*SH_MAG[1] + P[21][2]*SH_MAG[0] - P[21][3]*SK_MY[2] - P[21][17]*SK_MY[1] - P[21][16]*SK_MY[3] + P[21][18]*SK_MY[4]);
-            Kfusion[22] = SK_MY[0]*(P[22][20] + P[22][0]*SH_MAG[2] + P[22][1]*SH_MAG[1] + P[22][2]*SH_MAG[0] - P[22][3]*SK_MY[2] - P[22][17]*SK_MY[1] - P[22][16]*SK_MY[3] + P[22][18]*SK_MY[4]);
+            // Estimation of selected states is inhibited by setting their Kalman gains to zero
+            if (!inhibitWindStates) {
+                Kfusion[14] = SK_MY[0]*(P[14][20] + P[14][0]*SH_MAG[2] + P[14][1]*SH_MAG[1] + P[14][2]*SH_MAG[0] - P[14][3]*SK_MY[2] - P[14][17]*SK_MY[1] - P[14][16]*SK_MY[3] + P[14][18]*SK_MY[4]);
+                Kfusion[15] = SK_MY[0]*(P[15][20] + P[15][0]*SH_MAG[2] + P[15][1]*SH_MAG[1] + P[15][2]*SH_MAG[0] - P[15][3]*SK_MY[2] - P[15][17]*SK_MY[1] - P[15][16]*SK_MY[3] + P[15][18]*SK_MY[4]);
+            } else {
+                Kfusion[14] = 0;
+                Kfusion[15] = 0;
+            }
+            if (!inhibitMagStates) {
+                Kfusion[16] = SK_MY[0]*(P[16][20] + P[16][0]*SH_MAG[2] + P[16][1]*SH_MAG[1] + P[16][2]*SH_MAG[0] - P[16][3]*SK_MY[2] - P[16][17]*SK_MY[1] - P[16][16]*SK_MY[3] + P[16][18]*SK_MY[4]);
+                Kfusion[17] = SK_MY[0]*(P[17][20] + P[17][0]*SH_MAG[2] + P[17][1]*SH_MAG[1] + P[17][2]*SH_MAG[0] - P[17][3]*SK_MY[2] - P[17][17]*SK_MY[1] - P[17][16]*SK_MY[3] + P[17][18]*SK_MY[4]);
+                Kfusion[18] = SK_MY[0]*(P[18][20] + P[18][0]*SH_MAG[2] + P[18][1]*SH_MAG[1] + P[18][2]*SH_MAG[0] - P[18][3]*SK_MY[2] - P[18][17]*SK_MY[1] - P[18][16]*SK_MY[3] + P[18][18]*SK_MY[4]);
+                Kfusion[19] = SK_MY[0]*(P[19][20] + P[19][0]*SH_MAG[2] + P[19][1]*SH_MAG[1] + P[19][2]*SH_MAG[0] - P[19][3]*SK_MY[2] - P[19][17]*SK_MY[1] - P[19][16]*SK_MY[3] + P[19][18]*SK_MY[4]);
+                Kfusion[20] = SK_MY[0]*(P[20][20] + P[20][0]*SH_MAG[2] + P[20][1]*SH_MAG[1] + P[20][2]*SH_MAG[0] - P[20][3]*SK_MY[2] - P[20][17]*SK_MY[1] - P[20][16]*SK_MY[3] + P[20][18]*SK_MY[4]);
+                Kfusion[21] = SK_MY[0]*(P[21][20] + P[21][0]*SH_MAG[2] + P[21][1]*SH_MAG[1] + P[21][2]*SH_MAG[0] - P[21][3]*SK_MY[2] - P[21][17]*SK_MY[1] - P[21][16]*SK_MY[3] + P[21][18]*SK_MY[4]);
+            } else {
+                Kfusion[16] = 0;
+                Kfusion[17] = 0;
+                Kfusion[18] = 0;
+                Kfusion[19] = 0;
+                Kfusion[20] = 0;
+                Kfusion[21] = 0;
+            }
+            if (!inhibitGndHgtState) {
+                Kfusion[22] = SK_MY[0]*(P[22][20] + P[22][0]*SH_MAG[2] + P[22][1]*SH_MAG[1] + P[22][2]*SH_MAG[0] - P[22][3]*SK_MY[2] - P[22][17]*SK_MY[1] - P[22][16]*SK_MY[3] + P[22][18]*SK_MY[4]);
+            } else {
+                Kfusion[22] = 0;
+            }
             varInnovMag[1] = 1.0f/SK_MY[0];
             innovMag[1] = MagPred[1] - magData.y;
         }
@@ -1398,15 +1482,34 @@ void AttPosEKF::FuseMagnetometer()
             Kfusion[12] = SK_MZ[0]*(P[12][21] + P[12][0]*SH_MAG[1] + P[12][3]*SH_MAG[0] - P[12][1]*SK_MZ[2] + P[12][2]*SK_MZ[3] + P[12][18]*SK_MZ[1] + P[12][16]*SK_MZ[5] - P[12][17]*SK_MZ[4]);
             // Only height measurements are allowed to modify the Z delta velocity bias state. This improves the stability of the estimate
             Kfusion[13] = 0.0f;//SK_MZ[0]*(P[13][21] + P[13][0]*SH_MAG[1] + P[13][3]*SH_MAG[0] - P[13][1]*SK_MZ[2] + P[13][2]*SK_MZ[3] + P[13][18]*SK_MZ[1] + P[13][16]*SK_MZ[5] - P[13][17]*SK_MZ[4]);
-            Kfusion[14] = SK_MZ[0]*(P[14][21] + P[14][0]*SH_MAG[1] + P[14][3]*SH_MAG[0] - P[14][1]*SK_MZ[2] + P[14][2]*SK_MZ[3] + P[14][18]*SK_MZ[1] + P[14][16]*SK_MZ[5] - P[14][17]*SK_MZ[4]);
-            Kfusion[15] = SK_MZ[0]*(P[15][21] + P[15][0]*SH_MAG[1] + P[15][3]*SH_MAG[0] - P[15][1]*SK_MZ[2] + P[15][2]*SK_MZ[3] + P[15][18]*SK_MZ[1] + P[15][16]*SK_MZ[5] - P[15][17]*SK_MZ[4]);
-            Kfusion[16] = SK_MZ[0]*(P[16][21] + P[16][0]*SH_MAG[1] + P[16][3]*SH_MAG[0] - P[16][1]*SK_MZ[2] + P[16][2]*SK_MZ[3] + P[16][18]*SK_MZ[1] + P[16][16]*SK_MZ[5] - P[16][17]*SK_MZ[4]);
-            Kfusion[17] = SK_MZ[0]*(P[17][21] + P[17][0]*SH_MAG[1] + P[17][3]*SH_MAG[0] - P[17][1]*SK_MZ[2] + P[17][2]*SK_MZ[3] + P[17][18]*SK_MZ[1] + P[17][16]*SK_MZ[5] - P[17][17]*SK_MZ[4]);
-            Kfusion[18] = SK_MZ[0]*(P[18][21] + P[18][0]*SH_MAG[1] + P[18][3]*SH_MAG[0] - P[18][1]*SK_MZ[2] + P[18][2]*SK_MZ[3] + P[18][18]*SK_MZ[1] + P[18][16]*SK_MZ[5] - P[18][17]*SK_MZ[4]);
-            Kfusion[19] = SK_MZ[0]*(P[19][21] + P[19][0]*SH_MAG[1] + P[19][3]*SH_MAG[0] - P[19][1]*SK_MZ[2] + P[19][2]*SK_MZ[3] + P[19][18]*SK_MZ[1] + P[19][16]*SK_MZ[5] - P[19][17]*SK_MZ[4]);
-            Kfusion[20] = SK_MZ[0]*(P[20][21] + P[20][0]*SH_MAG[1] + P[20][3]*SH_MAG[0] - P[20][1]*SK_MZ[2] + P[20][2]*SK_MZ[3] + P[20][18]*SK_MZ[1] + P[20][16]*SK_MZ[5] - P[20][17]*SK_MZ[4]);
-            Kfusion[21] = SK_MZ[0]*(P[21][21] + P[21][0]*SH_MAG[1] + P[21][3]*SH_MAG[0] - P[21][1]*SK_MZ[2] + P[21][2]*SK_MZ[3] + P[21][18]*SK_MZ[1] + P[21][16]*SK_MZ[5] - P[21][17]*SK_MZ[4]);
-            Kfusion[22] = SK_MZ[0]*(P[22][21] + P[22][0]*SH_MAG[1] + P[22][3]*SH_MAG[0] - P[22][1]*SK_MZ[2] + P[22][2]*SK_MZ[3] + P[22][18]*SK_MZ[1] + P[22][16]*SK_MZ[5] - P[22][17]*SK_MZ[4]);
+            // Estimation of selected states is inhibited by setting their Kalman gains to zero
+            if (!inhibitWindStates) {
+                Kfusion[14] = SK_MZ[0]*(P[14][21] + P[14][0]*SH_MAG[1] + P[14][3]*SH_MAG[0] - P[14][1]*SK_MZ[2] + P[14][2]*SK_MZ[3] + P[14][18]*SK_MZ[1] + P[14][16]*SK_MZ[5] - P[14][17]*SK_MZ[4]);
+                Kfusion[15] = SK_MZ[0]*(P[15][21] + P[15][0]*SH_MAG[1] + P[15][3]*SH_MAG[0] - P[15][1]*SK_MZ[2] + P[15][2]*SK_MZ[3] + P[15][18]*SK_MZ[1] + P[15][16]*SK_MZ[5] - P[15][17]*SK_MZ[4]);
+            } else {
+                Kfusion[14] = 0;
+                Kfusion[15] = 0;
+            }
+            if (!inhibitMagStates) {
+                Kfusion[16] = SK_MZ[0]*(P[16][21] + P[16][0]*SH_MAG[1] + P[16][3]*SH_MAG[0] - P[16][1]*SK_MZ[2] + P[16][2]*SK_MZ[3] + P[16][18]*SK_MZ[1] + P[16][16]*SK_MZ[5] - P[16][17]*SK_MZ[4]);
+                Kfusion[17] = SK_MZ[0]*(P[17][21] + P[17][0]*SH_MAG[1] + P[17][3]*SH_MAG[0] - P[17][1]*SK_MZ[2] + P[17][2]*SK_MZ[3] + P[17][18]*SK_MZ[1] + P[17][16]*SK_MZ[5] - P[17][17]*SK_MZ[4]);
+                Kfusion[18] = SK_MZ[0]*(P[18][21] + P[18][0]*SH_MAG[1] + P[18][3]*SH_MAG[0] - P[18][1]*SK_MZ[2] + P[18][2]*SK_MZ[3] + P[18][18]*SK_MZ[1] + P[18][16]*SK_MZ[5] - P[18][17]*SK_MZ[4]);
+                Kfusion[19] = SK_MZ[0]*(P[19][21] + P[19][0]*SH_MAG[1] + P[19][3]*SH_MAG[0] - P[19][1]*SK_MZ[2] + P[19][2]*SK_MZ[3] + P[19][18]*SK_MZ[1] + P[19][16]*SK_MZ[5] - P[19][17]*SK_MZ[4]);
+                Kfusion[20] = SK_MZ[0]*(P[20][21] + P[20][0]*SH_MAG[1] + P[20][3]*SH_MAG[0] - P[20][1]*SK_MZ[2] + P[20][2]*SK_MZ[3] + P[20][18]*SK_MZ[1] + P[20][16]*SK_MZ[5] - P[20][17]*SK_MZ[4]);
+                Kfusion[21] = SK_MZ[0]*(P[21][21] + P[21][0]*SH_MAG[1] + P[21][3]*SH_MAG[0] - P[21][1]*SK_MZ[2] + P[21][2]*SK_MZ[3] + P[21][18]*SK_MZ[1] + P[21][16]*SK_MZ[5] - P[21][17]*SK_MZ[4]);
+            } else {
+                Kfusion[16] = 0;
+                Kfusion[17] = 0;
+                Kfusion[18] = 0;
+                Kfusion[19] = 0;
+                Kfusion[20] = 0;
+                Kfusion[21] = 0;
+            }
+            if (!inhibitGndHgtState) {
+                Kfusion[22] = SK_MZ[0]*(P[22][21] + P[22][0]*SH_MAG[1] + P[22][3]*SH_MAG[0] - P[22][1]*SK_MZ[2] + P[22][2]*SK_MZ[3] + P[22][18]*SK_MZ[1] + P[22][16]*SK_MZ[5] - P[22][17]*SK_MZ[4]);
+            } else {
+                Kfusion[22] = 0;
+            }
             varInnovMag[2] = 1.0f/SK_MZ[0];
             innovMag[2] = MagPred[2] - magData.z;
 
@@ -1416,7 +1519,7 @@ void AttPosEKF::FuseMagnetometer()
         if ((innovMag[obsIndex]*innovMag[obsIndex]/varInnovMag[obsIndex]) < 25.0f)
         {
             // correct the state vector
-            for (uint8_t j= 0; j < indexLimit; j++)
+            for (uint8_t j= 0; j < n_states; j++)
             {
                 states[j] = states[j] - Kfusion[j] * innovMag[obsIndex];
             }
@@ -1433,7 +1536,7 @@ void AttPosEKF::FuseMagnetometer()
             // correct the covariance P = (I - K*H)*P
             // take advantage of the empty columns in KH to reduce the
             // number of operations
-            for (uint8_t i = 0; i < indexLimit; i++)
+            for (uint8_t i = 0; i < n_states; i++)
             {
                 for (uint8_t j = 0; j <= 3; j++)
                 {
@@ -1455,9 +1558,9 @@ void AttPosEKF::FuseMagnetometer()
                     }
                 }
             }
-            for (uint8_t i = 0; i < indexLimit; i++)
+            for (uint8_t i = 0; i < n_states; i++)
             {
-                for (uint8_t j = 0; j < indexLimit; j++)
+                for (uint8_t j = 0; j < n_states; j++)
                 {
                     KHP[i][j] = 0.0f;
                     for (uint8_t k = 0; k <= 3; k++)
@@ -1474,9 +1577,9 @@ void AttPosEKF::FuseMagnetometer()
                 }
             }
         }
-        for (uint8_t i = 0; i < indexLimit; i++)
+        for (uint8_t i = 0; i < n_states; i++)
         {
-            for (uint8_t j = 0; j < indexLimit; j++)
+            for (uint8_t j = 0; j < n_states; j++)
             {
                 P[i][j] = P[i][j] - KHP[i][j];
             }
@@ -1552,15 +1655,31 @@ void AttPosEKF::FuseAirspeed()
         Kfusion[12] = SK_TAS*(P[12][4]*SH_TAS[2] - P[12][14]*SH_TAS[2] + P[12][5]*SH_TAS[1] - P[12][15]*SH_TAS[1] + P[12][6]*vd*SH_TAS[0]);
         // Only height measurements are allowed to modify the Z delta velocity bias state. This improves the stability of the estimate
         Kfusion[13] = 0.0f;//SK_TAS*(P[13][4]*SH_TAS[2] - P[13][14]*SH_TAS[2] + P[13][5]*SH_TAS[1] - P[13][15]*SH_TAS[1] + P[13][6]*vd*SH_TAS[0]);
-        Kfusion[14] = SK_TAS*(P[14][4]*SH_TAS[2] - P[14][14]*SH_TAS[2] + P[14][5]*SH_TAS[1] - P[14][15]*SH_TAS[1] + P[14][6]*vd*SH_TAS[0]);
-        Kfusion[15] = SK_TAS*(P[15][4]*SH_TAS[2] - P[15][14]*SH_TAS[2] + P[15][5]*SH_TAS[1] - P[15][15]*SH_TAS[1] + P[15][6]*vd*SH_TAS[0]);
-        Kfusion[16] = SK_TAS*(P[16][4]*SH_TAS[2] - P[16][14]*SH_TAS[2] + P[16][5]*SH_TAS[1] - P[16][15]*SH_TAS[1] + P[16][6]*vd*SH_TAS[0]);
-        Kfusion[17] = SK_TAS*(P[17][4]*SH_TAS[2] - P[17][14]*SH_TAS[2] + P[17][5]*SH_TAS[1] - P[17][15]*SH_TAS[1] + P[17][6]*vd*SH_TAS[0]);
-        Kfusion[18] = SK_TAS*(P[18][4]*SH_TAS[2] - P[18][14]*SH_TAS[2] + P[18][5]*SH_TAS[1] - P[18][15]*SH_TAS[1] + P[18][6]*vd*SH_TAS[0]);
-        Kfusion[19] = SK_TAS*(P[19][4]*SH_TAS[2] - P[19][14]*SH_TAS[2] + P[19][5]*SH_TAS[1] - P[19][15]*SH_TAS[1] + P[19][6]*vd*SH_TAS[0]);
-        Kfusion[20] = SK_TAS*(P[20][4]*SH_TAS[2] - P[20][14]*SH_TAS[2] + P[20][5]*SH_TAS[1] - P[20][15]*SH_TAS[1] + P[20][6]*vd*SH_TAS[0]);
-        Kfusion[21] = SK_TAS*(P[21][4]*SH_TAS[2] - P[21][14]*SH_TAS[2] + P[21][5]*SH_TAS[1] - P[21][15]*SH_TAS[1] + P[21][6]*vd*SH_TAS[0]);
-        Kfusion[22] = SK_TAS*(P[22][4]*SH_TAS[2] - P[22][14]*SH_TAS[2] + P[22][5]*SH_TAS[1] - P[22][15]*SH_TAS[1] + P[22][6]*vd*SH_TAS[0]);
+        // Estimation of selected states is inhibited by setting their Kalman gains to zero
+        if (!inhibitWindStates) {
+            Kfusion[14] = SK_TAS*(P[14][4]*SH_TAS[2] - P[14][14]*SH_TAS[2] + P[14][5]*SH_TAS[1] - P[14][15]*SH_TAS[1] + P[14][6]*vd*SH_TAS[0]);
+            Kfusion[15] = SK_TAS*(P[15][4]*SH_TAS[2] - P[15][14]*SH_TAS[2] + P[15][5]*SH_TAS[1] - P[15][15]*SH_TAS[1] + P[15][6]*vd*SH_TAS[0]);
+        } else {
+            Kfusion[14] = 0;
+            Kfusion[15] = 0;
+        }
+        if (!inhibitMagStates) {
+            Kfusion[16] = SK_TAS*(P[16][4]*SH_TAS[2] - P[16][14]*SH_TAS[2] + P[16][5]*SH_TAS[1] - P[16][15]*SH_TAS[1] + P[16][6]*vd*SH_TAS[0]);
+            Kfusion[17] = SK_TAS*(P[17][4]*SH_TAS[2] - P[17][14]*SH_TAS[2] + P[17][5]*SH_TAS[1] - P[17][15]*SH_TAS[1] + P[17][6]*vd*SH_TAS[0]);
+            Kfusion[18] = SK_TAS*(P[18][4]*SH_TAS[2] - P[18][14]*SH_TAS[2] + P[18][5]*SH_TAS[1] - P[18][15]*SH_TAS[1] + P[18][6]*vd*SH_TAS[0]);
+            Kfusion[19] = SK_TAS*(P[19][4]*SH_TAS[2] - P[19][14]*SH_TAS[2] + P[19][5]*SH_TAS[1] - P[19][15]*SH_TAS[1] + P[19][6]*vd*SH_TAS[0]);
+            Kfusion[20] = SK_TAS*(P[20][4]*SH_TAS[2] - P[20][14]*SH_TAS[2] + P[20][5]*SH_TAS[1] - P[20][15]*SH_TAS[1] + P[20][6]*vd*SH_TAS[0]);
+            Kfusion[21] = SK_TAS*(P[21][4]*SH_TAS[2] - P[21][14]*SH_TAS[2] + P[21][5]*SH_TAS[1] - P[21][15]*SH_TAS[1] + P[21][6]*vd*SH_TAS[0]);
+        } else {
+            for (uint8_t i=16; i <= 21; i++) {
+                Kfusion[i] = 0;
+            }
+        }
+        if (!inhibitGndHgtState) {
+            Kfusion[22] = SK_TAS*(P[22][4]*SH_TAS[2] - P[22][14]*SH_TAS[2] + P[22][5]*SH_TAS[1] - P[22][15]*SH_TAS[1] + P[22][6]*vd*SH_TAS[0]);
+        } else {
+            Kfusion[22] = 0;
+        }
         varInnovVtas = 1.0f/SK_TAS;
 
         // Calculate the measurement innovation
@@ -1662,9 +1781,9 @@ void AttPosEKF::FuseRangeFinder()
     float ptd = statesAtRngTime[22];
 
     // Need to check that our range finder tilt angle is less than 30 degrees and we are using range finder data
-    SH_RNG[4] = sin(rngFinderPitch);
+    SH_RNG[4] = sinf(rngFinderPitch);
     cosRngTilt = - Tbn.z.x * SH_RNG[4] + Tbn.z.z * cosf(rngFinderPitch);
-    if (useRangeFinder && cosRngTilt > 0.87f)
+    if (useRangeFinder && fuseRngData && cosRngTilt > 0.87f)
     {
         // Calculate observation jacobian and Kalman gain ignoring all states other than the terrain offset
         // This prevents the range finder measurement modifying any of the other filter states and significantly reduces computations
@@ -1685,10 +1804,12 @@ void AttPosEKF::FuseRangeFinder()
         SK_RNG[5] = SH_RNG[2];
         Kfusion[22] = SK_RNG[0]*(P[22][9]*SH_RNG[3] - P[22][22]*SH_RNG[3] + P[22][0]*SH_RNG[1]*SK_RNG[2]*SK_RNG[5] - P[22][1]*SH_RNG[1]*SK_RNG[1]*SK_RNG[5] - P[22][2]*SH_RNG[1]*SK_RNG[4]*SK_RNG[5] + P[22][3]*SH_RNG[1]*SK_RNG[3]*SK_RNG[5]);
 
+        // Calculate the innovation variance for data logging
+        varInnovRng = 1.0f/SK_RNG[0];
+
         // Calculate the measurement innovation
         rngPred = (ptd - pd)/cosRngTilt;
         innovRng = rngPred - rngMea;
-        //printf("mea=%5.1f, pred=%5.1f, pd=%5.1f, ptd=%5.2f\n", rngMea, rngPred, pd, ptd);
 
         // Check the innovation for consistency and don't fuse if > 5Sigma
         if ((innovRng*innovRng*SK_RNG[0]) < 25)
@@ -1702,6 +1823,289 @@ void AttPosEKF::FuseRangeFinder()
         }
     }
 
+}
+
+void AttPosEKF::FuseOptFlow()
+{
+    static uint8_t obsIndex;
+    static float SH_LOS[13];
+    static float SKK_LOS[15];
+    static float SK_LOS[2];
+    static float q0 = 0.0f;
+    static float q1 = 0.0f;
+    static float q2 = 0.0f;
+    static float q3 = 1.0f;
+    static float vn = 0.0f;
+    static float ve = 0.0f;
+    static float vd = 0.0f;
+    static float pd = 0.0f;
+    static float ptd = 0.0f;
+    static float R_LOS = 0.01f;
+    static float losPred[2];
+
+    // Transformation matrix from nav to body axes
+    Mat3f Tnb_local;
+    // Transformation matrix from body to sensor axes
+    // assume camera is aligned with Z body axis plus a misalignment
+    // defined by 3 small angles about X, Y and Z body axis
+    Mat3f Tbs;
+    Tbs.x.y =  a3;
+    Tbs.y.x = -a3;
+    Tbs.x.z = -a2;
+    Tbs.z.x =  a2;
+    Tbs.y.z =  a1;
+    Tbs.z.y = -a1;
+    // Transformation matrix from navigation to sensor axes
+    Mat3f Tns;
+    float H_LOS[n_states];
+    for (uint8_t i = 0; i < n_states; i++) {
+        H_LOS[i] = 0.0f;
+    }
+    Vector3f velNED_local;
+    Vector3f relVelSensor;
+
+// Perform sequential fusion of optical flow measurements only when in the air and tilt is less than 30 deg.
+    if (useOpticalFlow && (fuseOptFlowData || obsIndex == 1) && !onGround && Tbs.z.z > 0.866f && rngMea > 5.0f && rngMea < 39.0f)
+    {
+        // Sequential fusion of XY components to spread processing load across
+        // two prediction time steps.
+
+        // Calculate observation jacobians and Kalman gains
+        if (fuseOptFlowData)
+        {
+            // Copy required states to local variable names
+            q0       = statesAtOptFlowTime[0];
+            q1       = statesAtOptFlowTime[1];
+            q2       = statesAtOptFlowTime[2];
+            q3       = statesAtOptFlowTime[3];
+            vn       = statesAtOptFlowTime[4];
+            ve       = statesAtOptFlowTime[5];
+            vd       = statesAtOptFlowTime[6];
+            pd       = statesAtOptFlowTime[9];
+            ptd      = statesAtOptFlowTime[22];
+            velNED_local.x = vn;
+            velNED_local.y = ve;
+            velNED_local.z = vd;
+
+            // calculate rotation from NED to body axes
+            float q00 = sq(q0);
+            float q11 = sq(q1);
+            float q22 = sq(q2);
+            float q33 = sq(q3);
+            float q01 = q0 * q1;
+            float q02 = q0 * q2;
+            float q03 = q0 * q3;
+            float q12 = q1 * q2;
+            float q13 = q1 * q3;
+            float q23 = q2 * q3;
+            Tnb_local.x.x = q00 + q11 - q22 - q33;
+            Tnb_local.y.y = q00 - q11 + q22 - q33;
+            Tnb_local.z.z = q00 - q11 - q22 + q33;
+            Tnb_local.y.x = 2*(q12 - q03);
+            Tnb_local.z.x = 2*(q13 + q02);
+            Tnb_local.x.y = 2*(q12 + q03);
+            Tnb_local.z.y = 2*(q23 - q01);
+            Tnb_local.x.z = 2*(q13 - q02);
+            Tnb_local.y.z = 2*(q23 + q01);
+
+            // calculate transformation from NED to sensor axes
+            Tns = Tbs*Tnb_local;
+
+            // calculate range from ground plain to centre of sensor fov assuming flat earth
+            float range = ConstrainFloat(((ptd - pd)/Tns.z.z),0.5f,100.0f);
+
+            // calculate relative velocity in sensor frame
+            relVelSensor = Tns*velNED_local;
+
+            // divide velocity by range  and include angular rate effects to get predicted angular LOS rates relative to X and Y axes
+            losPred[0] =  relVelSensor.y/range;
+            losPred[1] = -relVelSensor.x/range;
+
+            //printf("relVelSensor.x=%5.1f, relVelSensor.y=%5.1f\n", relVelSensor.x, relVelSensor.y);
+            //printf("Xpred=%5.2f, Xmea=%5.2f, Ypred=%5.2f, Ymea=%5.2f, delAng.x=%4.4f, delAng.y=%4.4f\n", losPred[0], losData[0], losPred[1], losData[1], delAng.x, delAng.y);
+            //printf("omegaX=%5.2f, omegaY=%5.2f, velY=%5.1f velX=%5.1f\n, range=%5.1f\n", delAngRel.x/dt, delAngRel.y/dt, relVelSensor.y, relVelSensor.x, range);
+
+            // Calculate observation jacobians
+            SH_LOS[0] = a1*(2*q0*q1 + 2*q2*q3) + a2*(2*q0*q2 - 2*q1*q3) - sq(q0) + sq(q1) + sq(q2) - sq(q3);
+            SH_LOS[1] = vd*(a2*(sq(q0) - sq(q1) - sq(q2) + sq(q3)) + 2*q0*q2 - 2*q1*q3 - a3*(2*q0*q1 + 2*q2*q3)) - ve*(a3*(sq(q0) - sq(q1) + sq(q2) - sq(q3)) + 2*q0*q3 + 2*q1*q2 + a2*(2*q0*q1 - 2*q2*q3)) + vn*(a2*(2*q0*q2 + 2*q1*q3) + a3*(2*q0*q3 - 2*q1*q2) - sq(q0) - sq(q1) + sq(q2) + sq(q3));
+            SH_LOS[2] = ve*(a1*(2*q0*q1 - 2*q2*q3) + a3*(2*q0*q3 + 2*q1*q2) - sq(q0) + sq(q1) - sq(q2) + sq(q3)) - vd*(a1*(sq(q0) - sq(q1) - sq(q2) + sq(q3)) + 2*q0*q1 + 2*q2*q3 + a3*(2*q0*q2 - 2*q1*q3)) + vn*(a3*(sq(q0) + sq(q1) - sq(q2) - sq(q3)) + 2*q0*q3 - 2*q1*q2 - a1*(2*q0*q2 + 2*q1*q3));
+            SH_LOS[3] = 1/(pd - ptd);
+            SH_LOS[4] = 2*q1 - 2*a2*q3 + 2*a3*q2;
+            SH_LOS[5] = 2*a2*q2 - 2*q0 + 2*a3*q3;
+            SH_LOS[6] = 2*q2 + 2*a2*q0 - 2*a3*q1;
+            SH_LOS[7] = 1/sq(pd - ptd);
+            SH_LOS[8] = 2*q2 + 2*a1*q3 - 2*a3*q1;
+            SH_LOS[9] = 2*q3 - 2*a1*q2 + 2*a3*q0;
+            SH_LOS[10] = 2*a1*q1 - 2*q0 + 2*a3*q3;
+            SH_LOS[11] = 2*q3 + 2*a2*q1 + 2*a3*q0;
+            SH_LOS[12] = 2*q1 + 2*a1*q0 + 2*a3*q2;
+
+            for (uint8_t i = 0; i < n_states; i++) H_LOS[i] = 0;
+            H_LOS[0] = - SH_LOS[2]*SH_LOS[3]*(2*a1*q1 - 2*q0 + 2*a2*q2) - SH_LOS[0]*SH_LOS[3]*(ve*SH_LOS[10] - vd*SH_LOS[12] + vn*SH_LOS[9]);
+            H_LOS[1] = - SH_LOS[2]*SH_LOS[3]*(2*q1 + 2*a1*q0 - 2*a2*q3) - SH_LOS[0]*SH_LOS[3]*(vd*SH_LOS[10] + ve*SH_LOS[12] - vn*SH_LOS[8]);
+            H_LOS[2] = SH_LOS[0]*SH_LOS[3]*(vd*SH_LOS[9] + ve*SH_LOS[8] + vn*SH_LOS[12]) - SH_LOS[2]*SH_LOS[3]*(2*q2 + 2*a2*q0 + 2*a1*q3);
+            H_LOS[3] = SH_LOS[2]*SH_LOS[3]*(2*q3 - 2*a1*q2 + 2*a2*q1) + SH_LOS[0]*SH_LOS[3]*(vd*SH_LOS[8] - ve*SH_LOS[9] + vn*SH_LOS[10]);
+            H_LOS[4] = -SH_LOS[0]*SH_LOS[3]*(a3*(sq(q0) + sq(q1) - sq(q2) - sq(q3)) + 2*q0*q3 - 2*q1*q2 - a1*(2*q0*q2 + 2*q1*q3));
+            H_LOS[5] = -SH_LOS[0]*SH_LOS[3]*(a1*(2*q0*q1 - 2*q2*q3) + a3*(2*q0*q3 + 2*q1*q2) - sq(q0) + sq(q1) - sq(q2) + sq(q3));
+            H_LOS[6] = SH_LOS[0]*SH_LOS[3]*(a1*(sq(q0) - sq(q1) - sq(q2) + sq(q3)) + 2*q0*q1 + 2*q2*q3 + a3*(2*q0*q2 - 2*q1*q3));
+            H_LOS[9] = SH_LOS[0]*SH_LOS[2]*SH_LOS[7];
+            H_LOS[22] = -SH_LOS[0]*SH_LOS[2]*SH_LOS[7];
+
+            // Calculate Kalman gain
+            SKK_LOS[0] = a2*(sq(q0) - sq(q1) - sq(q2) + sq(q3)) + 2*q0*q2 - 2*q1*q3 - a3*(2*q0*q1 + 2*q2*q3);
+            SKK_LOS[1] = a3*(sq(q0) - sq(q1) + sq(q2) - sq(q3)) + 2*q0*q3 + 2*q1*q2 + a2*(2*q0*q1 - 2*q2*q3);
+            SKK_LOS[2] = a2*(2*q0*q2 + 2*q1*q3) + a3*(2*q0*q3 - 2*q1*q2) - sq(q0) - sq(q1) + sq(q2) + sq(q3);
+            SKK_LOS[3] = a1*(sq(q0) - sq(q1) - sq(q2) + sq(q3)) + 2*q0*q1 + 2*q2*q3 + a3*(2*q0*q2 - 2*q1*q3);
+            SKK_LOS[4] = a1*(2*q0*q1 - 2*q2*q3) + a3*(2*q0*q3 + 2*q1*q2) - sq(q0) + sq(q1) - sq(q2) + sq(q3);
+            SKK_LOS[5] = a3*(sq(q0) + sq(q1) - sq(q2) - sq(q3)) + 2*q0*q3 - 2*q1*q2 - a1*(2*q0*q2 + 2*q1*q3);
+            SKK_LOS[6] = SH_LOS[2]*SH_LOS[3]*(2*q3 - 2*a1*q2 + 2*a2*q1) + SH_LOS[0]*SH_LOS[3]*(vd*SH_LOS[8] - ve*SH_LOS[9] + vn*SH_LOS[10]);
+            SKK_LOS[7] = SH_LOS[2]*SH_LOS[3]*(2*q1 + 2*a1*q0 - 2*a2*q3) + SH_LOS[0]*SH_LOS[3]*(vd*SH_LOS[10] + ve*SH_LOS[12] - vn*SH_LOS[8]);
+            SKK_LOS[8] = SH_LOS[2]*SH_LOS[3]*(2*a1*q1 - 2*q0 + 2*a2*q2) + SH_LOS[0]*SH_LOS[3]*(ve*SH_LOS[10] - vd*SH_LOS[12] + vn*SH_LOS[9]);
+            SKK_LOS[9] = SH_LOS[2]*SH_LOS[3]*(2*q2 + 2*a2*q0 + 2*a1*q3) - SH_LOS[0]*SH_LOS[3]*(vd*SH_LOS[9] + ve*SH_LOS[8] + vn*SH_LOS[12]);
+            SKK_LOS[10] = SH_LOS[1]*SH_LOS[3]*(2*a1*q1 - 2*q0 + 2*a2*q2) + SH_LOS[0]*SH_LOS[3]*(vd*SH_LOS[6] - ve*SH_LOS[11] + vn*SH_LOS[5]);
+            SKK_LOS[11] = SH_LOS[1]*SH_LOS[3]*(2*q1 + 2*a1*q0 - 2*a2*q3) - SH_LOS[0]*SH_LOS[3]*(vd*SH_LOS[11] + ve*SH_LOS[6] + vn*SH_LOS[4]);
+            SKK_LOS[12] = SH_LOS[1]*SH_LOS[3]*(2*q2 + 2*a2*q0 + 2*a1*q3) - SH_LOS[0]*SH_LOS[3]*(vd*SH_LOS[5] + ve*SH_LOS[4] - vn*SH_LOS[6]);
+            SKK_LOS[13] = SH_LOS[1]*SH_LOS[3]*(2*q3 - 2*a1*q2 + 2*a2*q1) - SH_LOS[0]*SH_LOS[3]*(ve*SH_LOS[5] - vd*SH_LOS[4] + vn*SH_LOS[11]);
+            SKK_LOS[14] = SH_LOS[0];
+
+            SK_LOS[0] = 1/(R_LOS + SKK_LOS[8]*(P[0][0]*SKK_LOS[8] + P[1][0]*SKK_LOS[7] + P[2][0]*SKK_LOS[9] - P[3][0]*SKK_LOS[6] - P[9][0]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[22][0]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[4][0]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[5][0]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[6][0]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]) + SKK_LOS[7]*(P[0][1]*SKK_LOS[8] + P[1][1]*SKK_LOS[7] + P[2][1]*SKK_LOS[9] - P[3][1]*SKK_LOS[6] - P[9][1]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[22][1]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[4][1]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[5][1]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[6][1]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]) + SKK_LOS[9]*(P[0][2]*SKK_LOS[8] + P[1][2]*SKK_LOS[7] + P[2][2]*SKK_LOS[9] - P[3][2]*SKK_LOS[6] - P[9][2]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[22][2]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[4][2]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[5][2]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[6][2]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]) - SKK_LOS[6]*(P[0][3]*SKK_LOS[8] + P[1][3]*SKK_LOS[7] + P[2][3]*SKK_LOS[9] - P[3][3]*SKK_LOS[6] - P[9][3]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[22][3]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[4][3]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[5][3]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[6][3]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]) - SH_LOS[2]*SH_LOS[7]*SKK_LOS[14]*(P[0][9]*SKK_LOS[8] + P[1][9]*SKK_LOS[7] + P[2][9]*SKK_LOS[9] - P[3][9]*SKK_LOS[6] - P[9][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[22][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[4][9]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[5][9]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[6][9]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]) + SH_LOS[2]*SH_LOS[7]*SKK_LOS[14]*(P[0][22]*SKK_LOS[8] + P[1][22]*SKK_LOS[7] + P[2][22]*SKK_LOS[9] - P[3][22]*SKK_LOS[6] - P[9][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[22][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[4][22]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[5][22]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[6][22]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]) + SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14]*(P[0][4]*SKK_LOS[8] + P[1][4]*SKK_LOS[7] + P[2][4]*SKK_LOS[9] - P[3][4]*SKK_LOS[6] - P[9][4]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[22][4]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[4][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[5][4]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[6][4]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]) + SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14]*(P[0][5]*SKK_LOS[8] + P[1][5]*SKK_LOS[7] + P[2][5]*SKK_LOS[9] - P[3][5]*SKK_LOS[6] - P[9][5]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[22][5]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[4][5]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[5][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[6][5]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]) - SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]*(P[0][6]*SKK_LOS[8] + P[1][6]*SKK_LOS[7] + P[2][6]*SKK_LOS[9] - P[3][6]*SKK_LOS[6] - P[9][6]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[22][6]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[4][6]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[5][6]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[6][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]));
+            Kfusion[0] = -SK_LOS[0]*(P[0][0]*SKK_LOS[8] + P[0][1]*SKK_LOS[7] - P[0][3]*SKK_LOS[6] + P[0][2]*SKK_LOS[9] - P[0][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[0][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[0][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[0][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[0][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[1] = -SK_LOS[0]*(P[1][0]*SKK_LOS[8] + P[1][1]*SKK_LOS[7] - P[1][3]*SKK_LOS[6] + P[1][2]*SKK_LOS[9] - P[1][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[1][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[1][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[1][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[1][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[2] = -SK_LOS[0]*(P[2][0]*SKK_LOS[8] + P[2][1]*SKK_LOS[7] - P[2][3]*SKK_LOS[6] + P[2][2]*SKK_LOS[9] - P[2][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[2][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[2][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[2][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[2][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[3] = -SK_LOS[0]*(P[3][0]*SKK_LOS[8] + P[3][1]*SKK_LOS[7] - P[3][3]*SKK_LOS[6] + P[3][2]*SKK_LOS[9] - P[3][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[3][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[3][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[3][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[3][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[4] = -SK_LOS[0]*(P[4][0]*SKK_LOS[8] + P[4][1]*SKK_LOS[7] - P[4][3]*SKK_LOS[6] + P[4][2]*SKK_LOS[9] - P[4][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[4][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[4][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[4][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[4][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[5] = -SK_LOS[0]*(P[5][0]*SKK_LOS[8] + P[5][1]*SKK_LOS[7] - P[5][3]*SKK_LOS[6] + P[5][2]*SKK_LOS[9] - P[5][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[5][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[5][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[5][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[5][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[6] = -SK_LOS[0]*(P[6][0]*SKK_LOS[8] + P[6][1]*SKK_LOS[7] - P[6][3]*SKK_LOS[6] + P[6][2]*SKK_LOS[9] - P[6][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[6][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[6][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[6][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[6][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[7] = -SK_LOS[0]*(P[7][0]*SKK_LOS[8] + P[7][1]*SKK_LOS[7] - P[7][3]*SKK_LOS[6] + P[7][2]*SKK_LOS[9] - P[7][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[7][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[7][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[7][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[7][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[8] = -SK_LOS[0]*(P[8][0]*SKK_LOS[8] + P[8][1]*SKK_LOS[7] - P[8][3]*SKK_LOS[6] + P[8][2]*SKK_LOS[9] - P[8][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[8][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[8][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[8][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[8][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[9] = -SK_LOS[0]*(P[9][0]*SKK_LOS[8] + P[9][1]*SKK_LOS[7] - P[9][3]*SKK_LOS[6] + P[9][2]*SKK_LOS[9] - P[9][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[9][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[9][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[9][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[9][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[10] = -SK_LOS[0]*(P[10][0]*SKK_LOS[8] + P[10][1]*SKK_LOS[7] - P[10][3]*SKK_LOS[6] + P[10][2]*SKK_LOS[9] - P[10][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[10][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[10][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[10][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[10][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[11] = -SK_LOS[0]*(P[11][0]*SKK_LOS[8] + P[11][1]*SKK_LOS[7] - P[11][3]*SKK_LOS[6] + P[11][2]*SKK_LOS[9] - P[11][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[11][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[11][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[11][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[11][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[12] = -SK_LOS[0]*(P[12][0]*SKK_LOS[8] + P[12][1]*SKK_LOS[7] - P[12][3]*SKK_LOS[6] + P[12][2]*SKK_LOS[9] - P[12][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[12][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[12][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[12][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[12][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[13] = 0.0f;//-SK_LOS[0]*(P[13][0]*SKK_LOS[8] + P[13][1]*SKK_LOS[7] - P[13][3]*SKK_LOS[6] + P[13][2]*SKK_LOS[9] - P[13][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[13][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[13][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[13][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[13][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[14] = -SK_LOS[0]*(P[14][0]*SKK_LOS[8] + P[14][1]*SKK_LOS[7] - P[14][3]*SKK_LOS[6] + P[14][2]*SKK_LOS[9] - P[14][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[14][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[14][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[14][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[14][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[15] = -SK_LOS[0]*(P[15][0]*SKK_LOS[8] + P[15][1]*SKK_LOS[7] - P[15][3]*SKK_LOS[6] + P[15][2]*SKK_LOS[9] - P[15][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[15][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[15][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[15][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[15][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[16] = -SK_LOS[0]*(P[16][0]*SKK_LOS[8] + P[16][1]*SKK_LOS[7] - P[16][3]*SKK_LOS[6] + P[16][2]*SKK_LOS[9] - P[16][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[16][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[16][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[16][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[16][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[17] = -SK_LOS[0]*(P[17][0]*SKK_LOS[8] + P[17][1]*SKK_LOS[7] - P[17][3]*SKK_LOS[6] + P[17][2]*SKK_LOS[9] - P[17][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[17][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[17][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[17][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[17][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[18] = -SK_LOS[0]*(P[18][0]*SKK_LOS[8] + P[18][1]*SKK_LOS[7] - P[18][3]*SKK_LOS[6] + P[18][2]*SKK_LOS[9] - P[18][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[18][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[18][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[18][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[18][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[19] = -SK_LOS[0]*(P[19][0]*SKK_LOS[8] + P[19][1]*SKK_LOS[7] - P[19][3]*SKK_LOS[6] + P[19][2]*SKK_LOS[9] - P[19][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[19][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[19][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[19][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[19][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[20] = -SK_LOS[0]*(P[20][0]*SKK_LOS[8] + P[20][1]*SKK_LOS[7] - P[20][3]*SKK_LOS[6] + P[20][2]*SKK_LOS[9] - P[20][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[20][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[20][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[20][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[20][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[21] = -SK_LOS[0]*(P[21][0]*SKK_LOS[8] + P[21][1]*SKK_LOS[7] - P[21][3]*SKK_LOS[6] + P[21][2]*SKK_LOS[9] - P[21][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[21][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[21][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[21][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[21][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            Kfusion[22] = -SK_LOS[0]*(P[22][0]*SKK_LOS[8] + P[22][1]*SKK_LOS[7] - P[22][3]*SKK_LOS[6] + P[22][2]*SKK_LOS[9] - P[22][9]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[22][22]*SH_LOS[2]*SH_LOS[7]*SKK_LOS[14] + P[22][4]*SH_LOS[3]*SKK_LOS[5]*SKK_LOS[14] + P[22][5]*SH_LOS[3]*SKK_LOS[4]*SKK_LOS[14] - P[22][6]*SH_LOS[3]*SKK_LOS[3]*SKK_LOS[14]);
+            varInnovOptFlow[0] = 1.0f/SK_LOS[0];
+            innovOptFlow[0] = losPred[0] - losData[0];
+
+            // reset the observation index to 0 (we start by fusing the X
+            // measurement)
+            obsIndex = 0;
+            fuseOptFlowData = false;
+        }
+        else if (obsIndex == 1) // we are now fusing the Y measurement
+        {
+            // Calculate observation jacobians
+            for (uint8_t i = 0; i < n_states; i++) H_LOS[i] = 0;
+            H_LOS[0] = SH_LOS[1]*SH_LOS[3]*(2*a1*q1 - 2*q0 + 2*a2*q2) + SH_LOS[0]*SH_LOS[3]*(vd*SH_LOS[6] - ve*SH_LOS[11] + vn*SH_LOS[5]);
+            H_LOS[1] = SH_LOS[1]*SH_LOS[3]*(2*q1 + 2*a1*q0 - 2*a2*q3) - SH_LOS[0]*SH_LOS[3]*(vd*SH_LOS[11] + ve*SH_LOS[6] + vn*SH_LOS[4]);
+            H_LOS[2] = SH_LOS[1]*SH_LOS[3]*(2*q2 + 2*a2*q0 + 2*a1*q3) - SH_LOS[0]*SH_LOS[3]*(vd*SH_LOS[5] + ve*SH_LOS[4] - vn*SH_LOS[6]);
+            H_LOS[3] = SH_LOS[0]*SH_LOS[3]*(ve*SH_LOS[5] - vd*SH_LOS[4] + vn*SH_LOS[11]) - SH_LOS[1]*SH_LOS[3]*(2*q3 - 2*a1*q2 + 2*a2*q1);
+            H_LOS[4] = SH_LOS[0]*SH_LOS[3]*(a2*(2*q0*q2 + 2*q1*q3) + a3*(2*q0*q3 - 2*q1*q2) - sq(q0) - sq(q1) + sq(q2) + sq(q3));
+            H_LOS[5] = -SH_LOS[0]*SH_LOS[3]*(a3*(sq(q0) - sq(q1) + sq(q2) - sq(q3)) + 2*q0*q3 + 2*q1*q2 + a2*(2*q0*q1 - 2*q2*q3));
+            H_LOS[6] = SH_LOS[0]*SH_LOS[3]*(a2*(sq(q0) - sq(q1) - sq(q2) + sq(q3)) + 2*q0*q2 - 2*q1*q3 - a3*(2*q0*q1 + 2*q2*q3));
+            H_LOS[9] = -SH_LOS[0]*SH_LOS[1]*SH_LOS[7];
+            H_LOS[22] = SH_LOS[0]*SH_LOS[1]*SH_LOS[7];
+
+            // Calculate Kalman gains
+            SK_LOS[1] = 1/(R_LOS + SKK_LOS[12]*(P[0][2]*SKK_LOS[10] + P[1][2]*SKK_LOS[11] + P[2][2]*SKK_LOS[12] - P[3][2]*SKK_LOS[13] - P[9][2]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[22][2]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[4][2]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[5][2]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14] + P[6][2]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14]) - SKK_LOS[13]*(P[0][3]*SKK_LOS[10] + P[1][3]*SKK_LOS[11] + P[2][3]*SKK_LOS[12] - P[3][3]*SKK_LOS[13] - P[9][3]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[22][3]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[4][3]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[5][3]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14] + P[6][3]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14]) + SKK_LOS[10]*(P[0][0]*SKK_LOS[10] + P[1][0]*SKK_LOS[11] + P[2][0]*(SH_LOS[1]*SH_LOS[3]*(2*q2 + 2*a2*q0 + 2*a1*q3) - SH_LOS[3]*SKK_LOS[14]*(vd*SH_LOS[5] + ve*SH_LOS[4] - vn*SH_LOS[6])) - P[3][0]*(SH_LOS[1]*SH_LOS[3]*(2*q3 - 2*a1*q2 + 2*a2*q1) - SH_LOS[3]*SKK_LOS[14]*(ve*SH_LOS[5] - vd*SH_LOS[4] + vn*SH_LOS[11])) - P[9][0]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[22][0]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[4][0]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[5][0]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14] + P[6][0]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14]) + SKK_LOS[11]*(P[0][1]*SKK_LOS[10] + P[1][1]*SKK_LOS[11] + P[2][1]*(SH_LOS[1]*SH_LOS[3]*(2*q2 + 2*a2*q0 + 2*a1*q3) - SH_LOS[3]*SKK_LOS[14]*(vd*SH_LOS[5] + ve*SH_LOS[4] - vn*SH_LOS[6])) - P[3][1]*(SH_LOS[1]*SH_LOS[3]*(2*q3 - 2*a1*q2 + 2*a2*q1) - SH_LOS[3]*SKK_LOS[14]*(ve*SH_LOS[5] - vd*SH_LOS[4] + vn*SH_LOS[11])) - P[9][1]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[22][1]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[4][1]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[5][1]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14] + P[6][1]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14]) - SH_LOS[1]*SH_LOS[7]*SKK_LOS[14]*(P[0][9]*SKK_LOS[10] + P[1][9]*SKK_LOS[11] + P[2][9]*SKK_LOS[12] - P[3][9]*SKK_LOS[13] - P[9][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[22][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[4][9]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[5][9]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14] + P[6][9]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14]) + SH_LOS[1]*SH_LOS[7]*SKK_LOS[14]*(P[0][22]*SKK_LOS[10] + P[1][22]*SKK_LOS[11] + P[2][22]*SKK_LOS[12] - P[3][22]*SKK_LOS[13] - P[9][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[22][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[4][22]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[5][22]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14] + P[6][22]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14]) + SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14]*(P[0][4]*SKK_LOS[10] + P[1][4]*SKK_LOS[11] + P[2][4]*SKK_LOS[12] - P[3][4]*SKK_LOS[13] - P[9][4]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[22][4]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[4][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[5][4]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14] + P[6][4]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14]) - SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]*(P[0][5]*SKK_LOS[10] + P[1][5]*SKK_LOS[11] + P[2][5]*SKK_LOS[12] - P[3][5]*SKK_LOS[13] - P[9][5]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[22][5]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[4][5]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[5][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14] + P[6][5]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14]) + SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14]*(P[0][6]*SKK_LOS[10] + P[1][6]*SKK_LOS[11] + P[2][6]*SKK_LOS[12] - P[3][6]*SKK_LOS[13] - P[9][6]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[22][6]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[4][6]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[5][6]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14] + P[6][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14]));
+            Kfusion[0] = SK_LOS[1]*(P[0][0]*SKK_LOS[10] - P[0][3]*SKK_LOS[13] + P[0][1]*SKK_LOS[11] + P[0][2]*SKK_LOS[12] - P[0][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[0][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[0][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[0][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[0][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[1] = SK_LOS[1]*(P[1][0]*SKK_LOS[10] - P[1][3]*SKK_LOS[13] + P[1][1]*SKK_LOS[11] + P[1][2]*SKK_LOS[12] - P[1][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[1][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[1][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[1][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[1][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[2] = SK_LOS[1]*(P[2][0]*SKK_LOS[10] - P[2][3]*SKK_LOS[13] + P[2][1]*SKK_LOS[11] + P[2][2]*SKK_LOS[12] - P[2][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[2][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[2][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[2][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[2][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[3] = SK_LOS[1]*(P[3][0]*SKK_LOS[10] - P[3][3]*SKK_LOS[13] + P[3][1]*SKK_LOS[11] + P[3][2]*SKK_LOS[12] - P[3][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[3][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[3][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[3][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[3][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[4] = SK_LOS[1]*(P[4][0]*SKK_LOS[10] - P[4][3]*SKK_LOS[13] + P[4][1]*SKK_LOS[11] + P[4][2]*SKK_LOS[12] - P[4][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[4][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[4][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[4][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[4][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[5] = SK_LOS[1]*(P[5][0]*SKK_LOS[10] - P[5][3]*SKK_LOS[13] + P[5][1]*SKK_LOS[11] + P[5][2]*SKK_LOS[12] - P[5][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[5][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[5][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[5][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[5][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[6] = SK_LOS[1]*(P[6][0]*SKK_LOS[10] - P[6][3]*SKK_LOS[13] + P[6][1]*SKK_LOS[11] + P[6][2]*SKK_LOS[12] - P[6][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[6][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[6][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[6][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[6][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[7] = SK_LOS[1]*(P[7][0]*SKK_LOS[10] - P[7][3]*SKK_LOS[13] + P[7][1]*SKK_LOS[11] + P[7][2]*SKK_LOS[12] - P[7][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[7][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[7][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[7][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[7][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[8] = SK_LOS[1]*(P[8][0]*SKK_LOS[10] - P[8][3]*SKK_LOS[13] + P[8][1]*SKK_LOS[11] + P[8][2]*SKK_LOS[12] - P[8][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[8][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[8][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[8][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[8][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[9] = SK_LOS[1]*(P[9][0]*SKK_LOS[10] - P[9][3]*SKK_LOS[13] + P[9][1]*SKK_LOS[11] + P[9][2]*SKK_LOS[12] - P[9][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[9][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[9][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[9][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[9][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[10] = SK_LOS[1]*(P[10][0]*SKK_LOS[10] - P[10][3]*SKK_LOS[13] + P[10][1]*SKK_LOS[11] + P[10][2]*SKK_LOS[12] - P[10][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[10][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[10][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[10][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[10][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[11] = SK_LOS[1]*(P[11][0]*SKK_LOS[10] - P[11][3]*SKK_LOS[13] + P[11][1]*SKK_LOS[11] + P[11][2]*SKK_LOS[12] - P[11][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[11][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[11][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[11][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[11][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[12] = SK_LOS[1]*(P[12][0]*SKK_LOS[10] - P[12][3]*SKK_LOS[13] + P[12][1]*SKK_LOS[11] + P[12][2]*SKK_LOS[12] - P[12][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[12][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[12][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[12][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[12][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[13] = 0.0f;//SK_LOS[1]*(P[13][0]*SKK_LOS[10] - P[13][3]*SKK_LOS[13] + P[13][1]*SKK_LOS[11] + P[13][2]*SKK_LOS[12] - P[13][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[13][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[13][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[13][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[13][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[14] = SK_LOS[1]*(P[14][0]*SKK_LOS[10] - P[14][3]*SKK_LOS[13] + P[14][1]*SKK_LOS[11] + P[14][2]*SKK_LOS[12] - P[14][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[14][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[14][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[14][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[14][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[15] = SK_LOS[1]*(P[15][0]*SKK_LOS[10] - P[15][3]*SKK_LOS[13] + P[15][1]*SKK_LOS[11] + P[15][2]*SKK_LOS[12] - P[15][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[15][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[15][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[15][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[15][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[16] = SK_LOS[1]*(P[16][0]*SKK_LOS[10] - P[16][3]*SKK_LOS[13] + P[16][1]*SKK_LOS[11] + P[16][2]*SKK_LOS[12] - P[16][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[16][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[16][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[16][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[16][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[17] = SK_LOS[1]*(P[17][0]*SKK_LOS[10] - P[17][3]*SKK_LOS[13] + P[17][1]*SKK_LOS[11] + P[17][2]*SKK_LOS[12] - P[17][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[17][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[17][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[17][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[17][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[18] = SK_LOS[1]*(P[18][0]*SKK_LOS[10] - P[18][3]*SKK_LOS[13] + P[18][1]*SKK_LOS[11] + P[18][2]*SKK_LOS[12] - P[18][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[18][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[18][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[18][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[18][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[19] = SK_LOS[1]*(P[19][0]*SKK_LOS[10] - P[19][3]*SKK_LOS[13] + P[19][1]*SKK_LOS[11] + P[19][2]*SKK_LOS[12] - P[19][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[19][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[19][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[19][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[19][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[20] = SK_LOS[1]*(P[20][0]*SKK_LOS[10] - P[20][3]*SKK_LOS[13] + P[20][1]*SKK_LOS[11] + P[20][2]*SKK_LOS[12] - P[20][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[20][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[20][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[20][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[20][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[21] = SK_LOS[1]*(P[21][0]*SKK_LOS[10] - P[21][3]*SKK_LOS[13] + P[21][1]*SKK_LOS[11] + P[21][2]*SKK_LOS[12] - P[21][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[21][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[21][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[21][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[21][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            Kfusion[22] = SK_LOS[1]*(P[22][0]*SKK_LOS[10] - P[22][3]*SKK_LOS[13] + P[22][1]*SKK_LOS[11] + P[22][2]*SKK_LOS[12] - P[22][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[22][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[22][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[22][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[22][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
+            varInnovOptFlow[1] = 1.0f/SK_LOS[1];
+            innovOptFlow[1] = losPred[1] - losData[1];
+        }
+
+        // Check the innovation for consistency and don't fuse if > 3Sigma
+        if ((innovOptFlow[obsIndex]*innovOptFlow[obsIndex]/varInnovOptFlow[obsIndex]) < 9.0f)
+        {
+            // correct the state vector
+            for (uint8_t j = 0; j < n_states; j++)
+            {
+                states[j] = states[j] - Kfusion[j] * innovOptFlow[obsIndex];
+            }
+            // normalise the quaternion states
+            float quatMag = sqrt(states[0]*states[0] + states[1]*states[1] + states[2]*states[2] + states[3]*states[3]);
+            if (quatMag > 1e-12f)
+            {
+                for (uint8_t j= 0; j<=3; j++)
+                {
+                    float quatMagInv = 1.0f/quatMag;
+                    states[j] = states[j] * quatMagInv;
+                }
+            }
+            // correct the covariance P = (I - K*H)*P
+            // take advantage of the empty columns in KH to reduce the
+            // number of operations
+            for (uint8_t i = 0; i < n_states; i++)
+            {
+                for (uint8_t j = 0; j <= 6; j++)
+                {
+                    KH[i][j] = Kfusion[i] * H_LOS[j];
+                }
+                for (uint8_t j = 7; j <= 8; j++)
+                {
+                    KH[i][j] = 0.0f;
+                }
+                KH[i][9] = Kfusion[i] * H_LOS[9];
+                for (uint8_t j = 10; j <= 21; j++)
+                {
+                    KH[i][j] = 0.0f;
+                }
+                KH[i][22] = Kfusion[i] * H_LOS[22];
+            }
+            for (uint8_t i = 0; i < n_states; i++)
+            {
+                for (uint8_t j = 0; j < n_states; j++)
+                {
+                    KHP[i][j] = 0.0f;
+                    for (uint8_t k = 0; k <= 6; k++)
+                    {
+                        KHP[i][j] = KHP[i][j] + KH[i][k] * P[k][j];
+                    }
+                    KHP[i][j] = KHP[i][j] + KH[i][9] * P[9][j];
+                    KHP[i][j] = KHP[i][j] + KH[i][22] * P[2][j];
+                }
+            }
+        }
+        for (uint8_t i = 0; i <  n_states; i++)
+        {
+            for (uint8_t j = 0; j <  n_states; j++)
+            {
+                P[i][j] = P[i][j] - KHP[i][j];
+            }
+        }
+    }
+    obsIndex = obsIndex + 1;
+    ForceSymmetry();
+    ConstrainVariances();
 }
 
 void AttPosEKF::zeroCols(float (&covMat)[n_states][n_states], uint8_t first, uint8_t last)
@@ -1900,9 +2304,27 @@ void AttPosEKF::calcLLH(float posNED[3], double &lat, double &lon, float &hgt, d
 
 void AttPosEKF::OnGroundCheck()
 {
-    onGround = (((sq(velNED[0]) + sq(velNED[1]) + sq(velNED[2])) < 4.0f) && (VtasMeas < 6.0f));
+    onGround = (((sq(velNED[0]) + sq(velNED[1]) + sq(velNED[2])) < 4.0f) && (VtasMeas < 8.0f));
     if (staticMode) {
         staticMode = (!refSet || (GPSstatus < GPS_FIX_3D));
+    }
+    // don't update wind states if there is no airspeed measurement
+    if (onGround || !useAirspeed) {
+        inhibitWindStates = true;
+    } else {
+        inhibitWindStates =false;
+    }
+    // don't update magnetic field states if on ground or not using compass
+    if (onGround || !useCompass) {
+        inhibitMagStates = true;
+    } else {
+        inhibitMagStates = false;
+    }
+    // don't update terrain offset state if on ground
+    if (onGround) {
+        inhibitGndHgtState = true;
+    } else {
+        inhibitGndHgtState = false;
     }
 }
 
@@ -1931,8 +2353,8 @@ void AttPosEKF::CovarianceInit()
     P[11][11] = P[10][10];
     P[12][12] = P[10][10];
     P[13][13] = sq(0.2f*dtIMU);
-    P[14][14] = sq(8.0f);
-    P[15][14]  = P[14][14];
+    P[14][14] = sq(0.0f);
+    P[15][15]  = P[14][14];
     P[16][16] = sq(0.02f);
     P[17][17] = P[16][16];
     P[18][18] = P[16][16];
@@ -1956,7 +2378,7 @@ float AttPosEKF::ConstrainFloat(float val, float min, float max)
     }
 
     if (!isfinite(val)) {
-        ekf_debug("constrain: non-finite!");
+        //ekf_debug("constrain: non-finite!");
     }
 
     return ret;
@@ -2376,7 +2798,7 @@ int AttPosEKF::CheckAndBound(struct ekf_status_report *last_error)
         ResetHeight();
         ResetStoredStates();
 
-        ret = 3;
+        ret = 0;
     }
 
     // Reset the filter if gyro offsets are excessive
@@ -2482,12 +2904,18 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
     current_ekf_state.statesNaN = false;
 
     current_ekf_state.velHealth = true;
-    //current_ekf_state.posHealth = ?;
-    //current_ekf_state.hgtHealth = ?;
+    current_ekf_state.posHealth = true;
+    current_ekf_state.hgtHealth = true;
     
     current_ekf_state.velTimeout = false;
-    //current_ekf_state.posTimeout = ?;
-    //current_ekf_state.hgtTimeout = ?;
+    current_ekf_state.posTimeout = false;
+    current_ekf_state.hgtTimeout = false;
+
+    fuseVelData = false;
+    fusePosData = false;
+    fuseHgtData = false;
+    fuseMagData = false;
+    fuseVtasData = false;
 
     // Fill variables with valid data
     velNED[0] = initvelNED[0];
@@ -2503,12 +2931,12 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
 
     // Calculate initial Tbn matrix and rotate Mag measurements into NED
     // to set initial NED magnetic field states
-    Mat3f DCM;
-    quat2Tbn(DCM, initQuat);
+    quat2Tbn(Tbn, initQuat);
+    Tnb = Tbn.transpose();
     Vector3f initMagNED;
-    initMagNED.x = DCM.x.x*initMagXYZ.x + DCM.x.y*initMagXYZ.y + DCM.x.z*initMagXYZ.z;
-    initMagNED.y = DCM.y.x*initMagXYZ.x + DCM.y.y*initMagXYZ.y + DCM.y.z*initMagXYZ.z;
-    initMagNED.z = DCM.z.x*initMagXYZ.x + DCM.z.y*initMagXYZ.y + DCM.z.z*initMagXYZ.z;
+    initMagNED.x = Tbn.x.x*initMagXYZ.x + Tbn.x.y*initMagXYZ.y + Tbn.x.z*initMagXYZ.z;
+    initMagNED.y = Tbn.y.x*initMagXYZ.x + Tbn.y.y*initMagXYZ.y + Tbn.y.z*initMagXYZ.z;
+    initMagNED.z = Tbn.z.x*initMagXYZ.x + Tbn.z.y*initMagXYZ.y + Tbn.z.z*initMagXYZ.z;
 
     magstate.q0 = initQuat[0];
     magstate.q1 = initQuat[1];
@@ -2521,7 +2949,7 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
     magstate.magYbias = magBias.y;
     magstate.magZbias = magBias.z;
     magstate.R_MAG = sq(magMeasurementSigma);
-    magstate.DCM = DCM;
+    magstate.DCM = Tbn;
 
     // write to state vector
     for (uint8_t j=0; j<=3; j++) states[j] = initQuat[j]; // quaternions
@@ -2596,6 +3024,8 @@ void AttPosEKF::ZeroVariables()
     correctedDelAng.zero();
     summedDelAng.zero();
     summedDelVel.zero();
+    dAngIMU.zero();
+    dVelIMU.zero();
     lastGyroOffset.zero();
 
     for (unsigned i = 0; i < data_buffer_size; i++) {
@@ -2623,6 +3053,10 @@ void AttPosEKF::GetFilterState(struct ekf_status_report *err)
         current_ekf_state.states[i] = states[i];
     }
     current_ekf_state.n_states = n_states;
+    current_ekf_state.onGround = onGround;
+    current_ekf_state.staticMode = staticMode;
+    current_ekf_state.useCompass = useCompass;
+    current_ekf_state.useAirspeed = useAirspeed;
 
     memcpy(err, &current_ekf_state, sizeof(*err));
 

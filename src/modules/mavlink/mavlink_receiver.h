@@ -36,6 +36,7 @@
  * MAVLink 1.0 uORB listener definition
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #pragma once
@@ -44,6 +45,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/rc_channels.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -53,6 +55,7 @@
 #include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -102,8 +105,6 @@ public:
 	static void *start_helper(void *context);
 
 private:
-	perf_counter_t	_loop_perf;			/**< loop performance counter */
-
 	Mavlink	*_mavlink;
 
 	void handle_message(mavlink_message_t *msg);
@@ -124,6 +125,7 @@ private:
 
 	mavlink_status_t status;
 	struct vehicle_local_position_s hil_local_pos;
+	struct vehicle_control_mode_s _control_mode;
 	orb_advert_t _global_pos_pub;
 	orb_advert_t _local_pos_pub;
 	orb_advert_t _attitude_pub;
@@ -138,15 +140,23 @@ private:
 	orb_advert_t _cmd_pub;
 	orb_advert_t _flow_pub;
 	orb_advert_t _offboard_control_sp_pub;
+	orb_advert_t _local_pos_sp_pub;
+	orb_advert_t _global_vel_sp_pub;
+	orb_advert_t _att_sp_pub;
+	orb_advert_t _rates_sp_pub;
 	orb_advert_t _vicon_position_pub;
 	orb_advert_t _telemetry_status_pub;
 	orb_advert_t _rc_pub;
 	orb_advert_t _manual_pub;
-	hrt_abstime _telemetry_heartbeat_time;
 	bool _radio_status_available;
+	int _control_mode_sub;
 	int _hil_frames;
 	uint64_t _old_timestamp;
 	bool _hil_local_proj_inited;
 	float _hil_local_alt0;
 	struct map_projection_reference_s _hil_local_proj_ref;
+
+	/* do not allow copying this class */
+	MavlinkReceiver(const MavlinkReceiver&);
+	MavlinkReceiver operator=(const MavlinkReceiver&);
 };

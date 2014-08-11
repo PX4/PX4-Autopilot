@@ -46,16 +46,23 @@
 #include <drivers/drv_orb_dev.h>
 
 #include <drivers/drv_mag.h>
-ORB_DEFINE(sensor_mag, struct mag_report);
+ORB_DEFINE(sensor_mag0, struct mag_report);
+ORB_DEFINE(sensor_mag1, struct mag_report);
+ORB_DEFINE(sensor_mag2, struct mag_report);
 
 #include <drivers/drv_accel.h>
-ORB_DEFINE(sensor_accel, struct accel_report);
+ORB_DEFINE(sensor_accel0, struct accel_report);
+ORB_DEFINE(sensor_accel1, struct accel_report);
+ORB_DEFINE(sensor_accel2, struct accel_report);
 
 #include <drivers/drv_gyro.h>
-ORB_DEFINE(sensor_gyro, struct gyro_report);
+ORB_DEFINE(sensor_gyro0, struct gyro_report);
+ORB_DEFINE(sensor_gyro1, struct gyro_report);
+ORB_DEFINE(sensor_gyro2, struct gyro_report);
 
 #include <drivers/drv_baro.h>
-ORB_DEFINE(sensor_baro, struct baro_report);
+ORB_DEFINE(sensor_baro0, struct baro_report);
+ORB_DEFINE(sensor_baro1, struct baro_report);
 
 #include <drivers/drv_range_finder.h>
 ORB_DEFINE(sensor_range_finder, struct range_finder_report);
@@ -74,6 +81,9 @@ ORB_DEFINE(sensor_combined, struct sensor_combined_s);
 
 #include "topics/vehicle_gps_position.h"
 ORB_DEFINE(vehicle_gps_position, struct vehicle_gps_position_s);
+
+#include "topics/satellite_info.h"
+ORB_DEFINE(satellite_info, struct satellite_info_s);
 
 #include "topics/home_position.h"
 ORB_DEFINE(home_position, struct home_position_s);
@@ -183,7 +193,10 @@ ORB_DEFINE(actuator_outputs_2, struct actuator_outputs_s);
 ORB_DEFINE(actuator_outputs_3, struct actuator_outputs_s);
 
 #include "topics/telemetry_status.h"
-ORB_DEFINE(telemetry_status, struct telemetry_status_s);
+ORB_DEFINE(telemetry_status_0, struct telemetry_status_s);
+ORB_DEFINE(telemetry_status_1, struct telemetry_status_s);
+ORB_DEFINE(telemetry_status_2, struct telemetry_status_s);
+ORB_DEFINE(telemetry_status_3, struct telemetry_status_s);
 
 #include "topics/debug_key_value.h"
 ORB_DEFINE(debug_key_value, struct debug_key_value_s);
@@ -199,6 +212,9 @@ ORB_DEFINE(encoders, struct encoders_s);
 
 #include "topics/estimator_status.h"
 ORB_DEFINE(estimator_status, struct estimator_status_report);
+
+#include "topics/vehicle_force_setpoint.h"
+ORB_DEFINE(vehicle_force_setpoint, struct vehicle_force_setpoint_s);
 
 #include "topics/tecs_status.h"
 ORB_DEFINE(tecs_status, struct tecs_status_s);

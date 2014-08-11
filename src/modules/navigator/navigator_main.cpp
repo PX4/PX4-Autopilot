@@ -67,6 +67,7 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
 #include <uORB/topics/navigation_capabilities.h>
+#include <uORB/topics/offboard_control_setpoint.h>
 
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
@@ -100,20 +101,22 @@ Navigator::Navigator() :
 	_home_pos_sub(-1),
 	_vstatus_sub(-1),
 	_capabilities_sub(-1),
+	_offboard_control_sp_sub(-1),
 	_control_mode_sub(-1),
 	_onboard_mission_sub(-1),
 	_offboard_mission_sub(-1),
+	_param_update_sub(-1),
 	_pos_sp_triplet_pub(-1),
-	_vstatus({}),
-	_control_mode({}),
-	_global_pos({}),
-	_home_pos({}),
-	_mission_item({}),
-	_nav_caps({}),
-	_pos_sp_triplet({}),
+	_vstatus{},
+	_control_mode{},
+	_global_pos{},
+	_home_pos{},
+	_mission_item{},
+	_nav_caps{},
+	_pos_sp_triplet{},
 	_mission_item_valid(false),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
-	_geofence({}),
+	_geofence{},
 	_geofence_violation_warning_sent(false),
 	_fence_valid(false),
 	_inside_fence(true),
@@ -121,7 +124,9 @@ Navigator::Navigator() :
 	_mission(this, "MIS"),
 	_loiter(this, "LOI"),
 	_rtl(this, "RTL"),
-	_update_triplet(false),
+	_offboard(this, "OFF"),
+	_can_loiter_at_sp(false),
+	_pos_sp_triplet_updated(false),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD")
 {
@@ -129,6 +134,7 @@ Navigator::Navigator() :
 	_navigation_mode_array[0] = &_mission;
 	_navigation_mode_array[1] = &_loiter;
 	_navigation_mode_array[2] = &_rtl;
+	_navigation_mode_array[3] = &_offboard;
 
 	updateParams();
 }
@@ -241,6 +247,7 @@ Navigator::task_main()
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
+	_offboard_control_sp_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -363,6 +370,9 @@ Navigator::task_main()
 				break;
 			case NAVIGATION_STATE_LAND:
 			case NAVIGATION_STATE_TERMINATION:
+			case NAVIGATION_STATE_OFFBOARD:
+				_navigation_mode = &_offboard;
+				break;
 			default:
 				_navigation_mode = nullptr;
 				_can_loiter_at_sp = false;
@@ -371,24 +381,21 @@ Navigator::task_main()
 
 		/* iterate through navigation modes and set active/inactive for each */
 		for(unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
-			if (_navigation_mode == _navigation_mode_array[i]) {
-				_update_triplet = _navigation_mode_array[i]->on_active(&_pos_sp_triplet);
-			} else {
-				_navigation_mode_array[i]->on_inactive();
-			}
+			_navigation_mode_array[i]->run(_navigation_mode == _navigation_mode_array[i]);
 		}
 
 		/* if nothing is running, set position setpoint triplet invalid */
 		if (_navigation_mode == nullptr) {
+			// TODO publish empty sp only once
 			_pos_sp_triplet.previous.valid = false;
 			_pos_sp_triplet.current.valid = false;
 			_pos_sp_triplet.next.valid = false;
-			_update_triplet = true;
+			_pos_sp_triplet_updated = true;
 		}
 
-		if (_update_triplet) {
+		if (_pos_sp_triplet_updated) {
 			publish_position_setpoint_triplet();
-			_update_triplet = false;
+			_pos_sp_triplet_updated = false;
 		}
 
 		perf_end(_loop_perf);
@@ -451,7 +458,7 @@ void
 Navigator::publish_position_setpoint_triplet()
 {
 	/* update navigation state */
-	/* TODO: set nav_state */
+	_pos_sp_triplet.nav_state = _vstatus.nav_state;
 
 	/* lazily publish the position setpoint triplet only once available */
 	if (_pos_sp_triplet_pub > 0) {

@@ -189,7 +189,8 @@ volatile uint16_t	r_page_setup[] =
 					 PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM | \
 					 PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE | \
 					 PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED | \
-					 PX4IO_P_SETUP_ARMING_LOCKDOWN)
+					 PX4IO_P_SETUP_ARMING_LOCKDOWN | \
+					 PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE)
 #define PX4IO_P_SETUP_RATES_VALID	((1 << PX4IO_SERVO_COUNT) - 1)
 #define PX4IO_P_SETUP_RELAYS_VALID	((1 << PX4IO_RELAY_CHANNELS) - 1)
 
@@ -711,7 +712,7 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 {
 #define SELECT_PAGE(_page_name)							\
 	do {									\
-		*values = &_page_name[0];					\
+		*values = (uint16_t *)&_page_name[0];				\
 		*num_values = sizeof(_page_name) / sizeof(_page_name[0]);	\
 	} while(0)
 
@@ -738,30 +739,19 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 		{
 			/*
 			 * Coefficients here derived by measurement of the 5-16V
-			 * range on one unit:
+			 * range on one unit, validated on sample points of another unit
 			 *
-			 * V   counts
-			 *  5  1001
-			 *  6  1219
-			 *  7  1436
-			 *  8  1653
-			 *  9  1870
-			 * 10  2086
-			 * 11  2303
-			 * 12  2522
-			 * 13  2738
-			 * 14  2956
-			 * 15  3172
-			 * 16  3389
+			 * Data in Tools/tests-host/data folder.
 			 *
-			 * slope = 0.0046067
-			 * intercept = 0.3863
+			 * measured slope = 0.004585267878277 (int: 4585)
+			 * nominal theoretic slope: 0.00459340659 (int: 4593)
+			 * intercept = 0.016646394188076 (int: 16646)
+			 * nominal theoretic intercept: 0.00 (int: 0)
 			 *
-			 * Intercept corrected for best results @ 12V.
 			 */
 			unsigned counts = adc_measure(ADC_VBATT);
 			if (counts != 0xffff) {
-				unsigned mV = (4150 + (counts * 46)) / 10 - 200;
+				unsigned mV = (166460 + (counts * 45934)) / 10000;
 				unsigned corrected = (mV * r_page_setup[PX4IO_P_SETUP_VBATT_SCALE]) / 10000;
 
 				r_page_status[PX4IO_P_STATUS_VBATT] = corrected;

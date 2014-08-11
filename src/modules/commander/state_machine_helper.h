@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,13 +34,13 @@
 /**
  * @file state_machine_helper.h
  * State machine helper functions definitions
+ *
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <julian@oes.ch>
  */
 
 #ifndef STATE_MACHINE_HELPER_H_
 #define STATE_MACHINE_HELPER_H_
-
-#define GPS_NOFIX_COUNTER_LIMIT 4 //need GPS_NOFIX_COUNTER_LIMIT gps packets with a bad fix to call an error (if outdoor)
-#define GPS_GOTFIX_COUNTER_REQUIRED 4 //need GPS_GOTFIX_COUNTER_REQUIRED gps packets with a good fix to obtain position lock
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
@@ -59,12 +57,14 @@ typedef enum {
 bool is_safe(const struct vehicle_status_s *current_state, const struct safety_s *safety, const struct actuator_armed_s *armed);
 
 transition_result_t arming_state_transition(struct vehicle_status_s *current_state, const struct safety_s *safety,
-		arming_state_t new_arming_state, struct actuator_armed_s *armed, const int mavlink_fd);
+		arming_state_t new_arming_state, struct actuator_armed_s *armed, bool fRunPreArmChecks, const int mavlink_fd);
 
 transition_result_t main_state_transition(struct vehicle_status_s *current_state, main_state_t new_main_state);
 
 transition_result_t hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_status_s *current_state, const int mavlink_fd);
 
 bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_enabled, const bool mission_finished);
+
+int prearm_check(const struct vehicle_status_s *status, const int mavlink_fd);
 
 #endif /* STATE_MACHINE_HELPER_H_ */
