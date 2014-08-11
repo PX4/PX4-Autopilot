@@ -124,7 +124,7 @@ extern struct system_load_s system_load;
 #define STICK_ON_OFF_HYSTERESIS_TIME_MS 1000
 #define STICK_ON_OFF_COUNTER_LIMIT (STICK_ON_OFF_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
-#define POSITION_TIMEOUT		(600 * 1000)		/**< consider the local or global position estimate invalid after 600ms */
+#define POSITION_TIMEOUT		(2 * 1000 * 1000)	/**< consider the local or global position estimate invalid after 600ms */
 #define FAILSAFE_DEFAULT_TIMEOUT	(3 * 1000 * 1000)	/**< hysteresis time - the failsafe will trigger after 3 seconds in this state */
 #define RC_TIMEOUT			500000
 #define DL_TIMEOUT			5 * 1000* 1000
@@ -163,7 +163,8 @@ static bool on_usb_power = false;
 
 static float takeoff_alt = 5.0f;
 static int parachute_enabled = 0;
-static float eph_epv_threshold = 5.0f;
+static float eph_threshold = 5.0f;
+static float epv_threshold = 10.0f;
 
 static struct vehicle_status_s status;
 static struct actuator_armed_s armed;
@@ -335,6 +336,7 @@ void print_status()
 {
 	warnx("type: %s", (status.is_rotary_wing) ? "ROTARY" : "PLANE");
 	warnx("usb powered: %s", (on_usb_power) ? "yes" : "no");
+	warnx("avionics rail: %6.2f V", (double)status.avionics_power_rail_voltage);
 
 	/* read all relevant states */
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -391,7 +393,7 @@ transition_result_t arm_disarm(bool arm, const int mavlink_fd_local, const char 
 
 	// Transition the armed state. By passing mavlink_fd to arming_state_transition it will
 	// output appropriate error messages if the state cannot transition.
-	arming_res = arming_state_transition(&status, &safety, arm ? ARMING_STATE_ARMED : ARMING_STATE_STANDBY, &armed, mavlink_fd_local);
+	arming_res = arming_state_transition(&status, &safety, arm ? ARMING_STATE_ARMED : ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd_local);
 
 	if (arming_res == TRANSITION_CHANGED && mavlink_fd) {
 		mavlink_log_info(mavlink_fd_local, "[cmd] %s by %s", arm ? "ARMED" : "DISARMED", armedBy);
@@ -736,6 +738,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	// CIRCUIT BREAKERS
 	status.circuit_breaker_engaged_power_check = false;
+	status.circuit_breaker_engaged_airspd_check = false;
 
 	/* publish initial state */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
@@ -977,6 +980,7 @@ int commander_thread_main(int argc, char *argv[])
 				param_get(_param_component_id, &(status.component_id));
 
 				status.circuit_breaker_engaged_power_check = circuit_breaker_enabled("CBRK_SUPPLY_CHK", CBRK_SUPPLY_CHK_KEY);
+				status.circuit_breaker_engaged_airspd_check = circuit_breaker_enabled("CBRK_AIRSPD_CHK", CBRK_AIRSPD_CHK_KEY);
 
 				status_changed = true;
 
@@ -1081,7 +1085,7 @@ int commander_thread_main(int argc, char *argv[])
 			if (status.hil_state == HIL_STATE_OFF && safety.safety_switch_available && !safety.safety_off && armed.armed) {
 				arming_state_t new_arming_state = (status.arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
 
-				if (TRANSITION_CHANGED == arming_state_transition(&status, &safety, new_arming_state, &armed, mavlink_fd)) {
+				if (TRANSITION_CHANGED == arming_state_transition(&status, &safety, new_arming_state, &armed, true /* fRunPreArmChecks */, mavlink_fd)) {
 					mavlink_log_info(mavlink_fd, "DISARMED by safety switch");
 					arming_state_changed = true;
 				}
@@ -1106,32 +1110,32 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* update condition_global_position_valid */
 		/* hysteresis for EPH/EPV */
-		bool eph_epv_good;
+		bool eph_good;
 
 		if (status.condition_global_position_valid) {
-			if (global_position.eph > eph_epv_threshold * 2.0f || global_position.epv > eph_epv_threshold * 2.0f) {
-				eph_epv_good = false;
+			if (global_position.eph > eph_threshold * 2.5f) {
+				eph_good = false;
 
 			} else {
-				eph_epv_good = true;
+				eph_good = true;
 			}
 
 		} else {
-			if (global_position.eph < eph_epv_threshold && global_position.epv < eph_epv_threshold) {
-				eph_epv_good = true;
+			if (global_position.eph < eph_threshold) {
+				eph_good = true;
 
 			} else {
-				eph_epv_good = false;
+				eph_good = false;
 			}
 		}
 
-		check_valid(global_position.timestamp, POSITION_TIMEOUT, eph_epv_good, &(status.condition_global_position_valid), &status_changed);
+		check_valid(global_position.timestamp, POSITION_TIMEOUT, eph_good, &(status.condition_global_position_valid), &status_changed);
 
 		/* check if GPS fix is ok */
 
 		/* update home position */
 		if (!status.condition_home_position_valid && status.condition_global_position_valid && !armed.armed &&
-		    (global_position.eph < eph_epv_threshold) && (global_position.epv < eph_epv_threshold)) {
+		    (global_position.eph < eph_threshold) && (global_position.epv < epv_threshold)) {
 
 			home.lat = global_position.lat;
 			home.lon = global_position.lon;
@@ -1161,8 +1165,8 @@ int commander_thread_main(int argc, char *argv[])
 		/* hysteresis for EPH */
 		bool local_eph_good;
 
-		if (status.condition_global_position_valid) {
-			if (local_position.eph > eph_epv_threshold * 2.0f) {
+		if (status.condition_local_position_valid) {
+			if (local_position.eph > eph_threshold * 2.5f) {
 				local_eph_good = false;
 
 			} else {
@@ -1170,7 +1174,7 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 		} else {
-			if (local_position.eph < eph_epv_threshold) {
+			if (local_position.eph < eph_threshold) {
 				local_eph_good = true;
 
 			} else {
@@ -1284,14 +1288,14 @@ int commander_thread_main(int argc, char *argv[])
 			status.battery_warning = VEHICLE_BATTERY_WARNING_CRITICAL;
 
 			if (armed.armed) {
-				arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_ARMED_ERROR, &armed, mavlink_fd);
+				arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_ARMED_ERROR, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 
 				if (arming_ret == TRANSITION_CHANGED) {
 					arming_state_changed = true;
 				}
 
 			} else {
-				arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_STANDBY_ERROR, &armed, mavlink_fd);
+				arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_STANDBY_ERROR, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 
 				if (arming_ret == TRANSITION_CHANGED) {
 					arming_state_changed = true;
@@ -1305,7 +1309,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (status.arming_state == ARMING_STATE_INIT && low_prio_task == LOW_PRIO_TASK_NONE) {
 			/* TODO: check for sensors */
-			arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_STANDBY, &armed, mavlink_fd);
+			arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 
 			if (arming_ret == TRANSITION_CHANGED) {
 				arming_state_changed = true;
@@ -1364,7 +1368,7 @@ int commander_thread_main(int argc, char *argv[])
 				if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
 					arming_state_t new_arming_state = (status.arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
-					arming_ret = arming_state_transition(&status, &safety, new_arming_state, &armed, mavlink_fd);
+					arming_ret = arming_state_transition(&status, &safety, new_arming_state, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 					if (arming_ret == TRANSITION_CHANGED) {
 						arming_state_changed = true;
 					}
@@ -1390,7 +1394,7 @@ int commander_thread_main(int argc, char *argv[])
 					if (status.main_state != MAIN_STATE_MANUAL) {
 						print_reject_arm("NOT ARMING: Switch to MANUAL mode first.");
 					} else {
-						arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed, mavlink_fd);
+						arming_ret = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 						if (arming_ret == TRANSITION_CHANGED) {
 							arming_state_changed = true;
 						}
@@ -1502,7 +1506,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* update home position on arming if at least 2s from commander start spent to avoid setting home on in-air restart */
 			if (armed.armed && !was_armed && hrt_absolute_time() > start_time + 2000000 && status.condition_global_position_valid &&
-			    (global_position.eph < eph_epv_threshold) && (global_position.epv < eph_epv_threshold)) {
+			    (global_position.eph < eph_threshold) && (global_position.epv < epv_threshold)) {
 
 				// TODO remove code duplication
 				home.lat = global_position.lat;
@@ -2152,7 +2156,7 @@ void *commander_low_prio_loop(void *arg)
 				int calib_ret = ERROR;
 
 				/* try to go to INIT/PREFLIGHT arming state */
-				if (TRANSITION_DENIED == arming_state_transition(&status, &safety, ARMING_STATE_INIT, &armed, mavlink_fd)) {
+				if (TRANSITION_DENIED == arming_state_transition(&status, &safety, ARMING_STATE_INIT, &armed, true /* fRunPreArmChecks */, mavlink_fd)) {
 					answer_command(cmd, VEHICLE_CMD_RESULT_DENIED);
 					break;
 				}
@@ -2215,7 +2219,7 @@ void *commander_low_prio_loop(void *arg)
 					tune_negative(true);
 				}
 
-				arming_state_transition(&status, &safety, ARMING_STATE_STANDBY, &armed, mavlink_fd);
+				arming_state_transition(&status, &safety, ARMING_STATE_STANDBY, &armed, true /* fRunPreArmChecks */, mavlink_fd);
 
 				break;
 			}

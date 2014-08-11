@@ -94,6 +94,7 @@ public:
 	static UavcanNode* instance() { return _instance; }
 
 private:
+	void		fill_node_info();
 	int		init(uavcan::NodeID node_id);
 	void		node_spin_once();
 	int		run();

@@ -273,6 +273,10 @@ Mission::check_dist_1wp()
 
 						if (dist_to_1wp < _param_dist_1wp.get()) {
 							_dist_1wp_ok = true;
+							if (dist_to_1wp > ((_param_dist_1wp.get() * 3) / 2)) {
+								/* allow at 2/3 distance, but warn */
+								mavlink_log_critical(_navigator->get_mavlink_fd(), "Warning: First waypoint very far: %d m", (int)dist_to_1wp);
+							}
 							return true;
 
 						} else {
@@ -314,30 +318,36 @@ Mission::set_mission_items()
 	/* set previous position setpoint to current */
 	set_previous_pos_setpoint();
 
+	/* get home distance state */
+	bool home_dist_ok = check_dist_1wp();
+	/* the home dist check provides user feedback, so we initialize it to this */
+	bool user_feedback_done = !home_dist_ok;
+
 	/* try setting onboard mission item */
 	if (_param_onboard_enabled.get() && read_mission_item(true, true, &_mission_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_ONBOARD) {
-			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: onboard mission running");
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "onboard mission now running");
 		}
 		_mission_type = MISSION_TYPE_ONBOARD;
 
 	/* try setting offboard mission item */
-	} else if (check_dist_1wp() && read_mission_item(false, true, &_mission_item)) {
+	} else if (home_dist_ok && read_mission_item(false, true, &_mission_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_OFFBOARD) {
-			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: offboard mission running");
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "offboard mission now running");
 		}
 		_mission_type = MISSION_TYPE_OFFBOARD;
 
 	} else {
-		/* no mission available, switch to loiter */
+		/* no mission available or mission finished, switch to loiter */
 		if (_mission_type != MISSION_TYPE_NONE) {
-			mavlink_log_info(_navigator->get_mavlink_fd(),
-					"#audio: mission finished");
-		} else {
-			mavlink_log_info(_navigator->get_mavlink_fd(),
-					"#audio: no mission available");
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "mission finished, loitering");
+		} else if (!user_feedback_done) {
+			/* only tell users that we got no mission if there has not been any
+			 * better, more specific feedback yet
+			 */
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "no valid mission available");
 		}
 		_mission_type = MISSION_TYPE_NONE;
 
@@ -397,7 +407,7 @@ Mission::set_mission_items()
 			takeoff_alt = fmaxf(takeoff_alt, _navigator->get_home_position()->alt + _param_takeoff_alt.get());
 		}
 
-		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: takeoff to %.1fm above home", (double)(takeoff_alt - _navigator->get_home_position()->alt));
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "takeoff to %.1f meters above home", (double)(takeoff_alt - _navigator->get_home_position()->alt));
 
 		_mission_item.lat = _navigator->get_global_position()->lat;
 		_mission_item.lon = _navigator->get_global_position()->lon;
@@ -483,7 +493,7 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 		if (dm_read(dm_item, *mission_index_ptr, &mission_item_tmp, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			mavlink_log_critical(_navigator->get_mavlink_fd(),
-			                     "#audio: ERROR waypoint could not be read");
+			                     "ERROR waypoint could not be read");
 			return false;
 		}
 
@@ -502,7 +512,7 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 						/* not supposed to happen unless the datamanager can't access the
 						 * dataman */
 						mavlink_log_critical(_navigator->get_mavlink_fd(),
-								"#audio: ERROR DO JUMP waypoint could not be written");
+								"ERROR DO JUMP waypoint could not be written");
 						return false;
 					}
 				}
@@ -511,8 +521,8 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 				*mission_index_ptr = mission_item_tmp.do_jump_mission_index;
 
 			} else {
-				mavlink_log_info(_navigator->get_mavlink_fd(),
-						 "#audio: DO JUMP repetitions completed");
+				mavlink_log_critical(_navigator->get_mavlink_fd(),
+						 "DO JUMP repetitions completed");
 				/* no more DO_JUMPS, therefore just try to continue with next mission item */
 				(*mission_index_ptr)++;
 			}
@@ -526,7 +536,7 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 
 	/* we have given up, we don't want to cycle forever */
 	mavlink_log_critical(_navigator->get_mavlink_fd(),
-			     "#audio: ERROR DO JUMP is cycling, giving up");
+			     "ERROR DO JUMP is cycling, giving up");
 	return false;
 }
 

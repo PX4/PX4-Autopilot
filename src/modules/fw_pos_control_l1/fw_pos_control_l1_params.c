@@ -83,6 +83,17 @@ PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
 PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.7f);
 
 /**
+ * Throttle max slew rate
+ *
+ * Maximum slew rate for the commanded throttle
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_THR_SLEW_MAX, 0.0f);
+
+/**
  * Negative pitch limit
  *
  * The minimum negative pitch the controller will output.
@@ -153,6 +164,205 @@ PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
  * @group L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_THR_LND_MAX, 1.0f);
+
+/**
+ * Climbout Altitude difference
+ *
+ * If the altitude error exceeds this parameter, the system will climb out
+ * with maximum throttle and minimum airspeed until it is closer than this
+ * distance to the desired altitude. Mostly used for takeoff waypoints / modes.
+ * Set to zero to disable climbout mode (not recommended).
+ *
+ * @group L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 25.0f);
+
+/**
+ * Maximum climb rate
+ *
+ * This is the best climb rate that the aircraft can achieve with 
+ * the throttle set to THR_MAX and the airspeed set to the 
+ * default value. For electric aircraft make sure this number can be 
+ * achieved towards the end of flight when the battery voltage has reduced. 
+ * The setting of this parameter can be checked by commanding a positive 
+ * altitude change of 100m in loiter, RTL or guided mode. If the throttle 
+ * required to climb is close to THR_MAX and the aircraft is maintaining 
+ * airspeed, then this parameter is set correctly. If the airspeed starts 
+ * to reduce, then the parameter is set to high, and if the throttle 
+ * demand required to climb and maintain speed is noticeably less than 
+ * FW_THR_MAX, then either FW_T_CLMB_MAX should be increased or 
+ * FW_THR_MAX reduced.
+ *
+ * @group L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
+
+/**
+ * Minimum descent rate
+ *
+ * This is the sink rate of the aircraft with the throttle 
+ * set to THR_MIN and flown at the same airspeed as used 
+ * to measure FW_T_CLMB_MAX.
+ *
+ * @group Fixed Wing TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
+
+/**
+ * Maximum descent rate
+ *
+ * This sets the maximum descent rate that the controller will use. 
+ * If this value is too large, the aircraft can over-speed on descent. 
+ * This should be set to a value that can be achieved without 
+ * exceeding the lower pitch angle limit and without over-speeding 
+ * the aircraft.
+ *
+ * @group Fixed Wing TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f);
+
+/**
+ * TECS time constant
+ *
+ * This is the time constant of the TECS control algorithm (in seconds). 
+ * Smaller values make it faster to respond, larger values make it slower
+ * to respond.
+ *
+ * @group Fixed Wing TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_TIME_CONST, 5.0f);
+
+/**
+ * TECS Throttle time constant
+ *
+ * This is the time constant of the TECS throttle control algorithm (in seconds). 
+ * Smaller values make it faster to respond, larger values make it slower
+ * to respond.
+ *
+ * @group Fixed Wing TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_THRO_CONST, 8.0f);
+
+/**
+ * Throttle damping factor
+ *
+ * This is the damping gain for the throttle demand loop. 
+ * Increase to add damping to correct for oscillations in speed and height.
+ *
+ * @group Fixed Wing TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.5f);
+
+/**
+ * Integrator gain
+ *
+ * This is the integrator gain on the control loop. 
+ * Increasing this gain increases the speed at which speed 
+ * and height offsets are trimmed out, but reduces damping and 
+ * increases overshoot.
+ *
+ * @group Fixed Wing TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
+
+/**
+ * Maximum vertical acceleration
+ *
+ * This is the maximum vertical acceleration (in metres/second square)
+ * either up or down that the controller will use to correct speed 
+ * or height errors. The default value of 7 m/s/s (equivalent to +- 0.7 g) 
+ * allows for reasonably aggressive pitch changes if required to recover 
+ * from under-speed conditions.
+ *
+ * @group Fixed Wing TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f);
+
+/**
+ * Complementary filter "omega" parameter for height
+ *
+ * This is the cross-over frequency (in radians/second) of the complementary 
+ * filter used to fuse vertical acceleration and barometric height to obtain 
+ * an estimate of height rate and height. Increasing this frequency weights 
+ * the solution more towards use of the barometer, whilst reducing it weights 
+ * the solution more towards use of the accelerometer data.
+ *
+ * @group Fixed Wing TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_HGT_OMEGA, 3.0f);
+
+/**
+ * Complementary filter "omega" parameter for speed
+ *
+ * This is the cross-over frequency (in radians/second) of the complementary 
+ * filter used to fuse longitudinal acceleration and airspeed to obtain an 
+ * improved airspeed estimate. Increasing this frequency weights the solution
+ * more towards use of the arispeed sensor, whilst reducing it weights the 
+ * solution more towards use of the accelerometer data.
+ *
+ * @group Fixed Wing TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_SPD_OMEGA, 2.0f);
+
+/**
+ * Roll -> Throttle feedforward
+ *
+ * Increasing this gain turn increases the amount of throttle that will 
+ * be used to compensate for the additional drag created by turning. 
+ * Ideally this should be set to  approximately 10 x the extra sink rate 
+ * in m/s created by a 45 degree bank turn. Increase this gain if 
+ * the aircraft initially loses energy in turns and reduce if the 
+ * aircraft initially gains energy in turns. Efficient high aspect-ratio 
+ * aircraft (eg powered sailplanes) can use a lower value, whereas 
+ * inefficient low aspect-ratio models (eg delta wings) can use a higher value.
+ *
+ * @group Fixed Wing TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 10.0f);
+
+/**
+ * Speed <--> Altitude priority
+ *
+ * This parameter adjusts the amount of weighting that the pitch control 
+ * applies to speed vs height errors. Setting it to 0.0 will cause the 
+ * pitch control to control height and ignore speed errors. This will 
+ * normally improve height accuracy but give larger airspeed errors. 
+ * Setting it to 2.0 will cause the pitch control loop to control speed 
+ * and ignore height errors. This will normally reduce airspeed errors, 
+ * but give larger height errors. The default value of 1.0 allows the pitch 
+ * control to simultaneously control height and speed. 
+ * Note to Glider Pilots - set this parameter to 2.0 (The glider will 
+ * adjust its pitch angle to maintain airspeed, ignoring changes in height).
+ *
+ * @group Fixed Wing TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
+
+/**
+ * Pitch damping factor
+ *
+ * This is the damping gain for the pitch demand loop. Increase to add 
+ * damping to correct for oscillations in height. The default value of 0.0 
+ * will work well provided the pitch to servo controller has been tuned 
+ * properly.
+ *
+ * @group Fixed Wing TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
+
+/**
+ * Height rate P factor
+ *
+ * @group Fixed Wing TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
+
+/**
+ * Speed rate P factor
+ *
+ * @group Fixed Wing TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.05f);
 
 /**
  * Landing slope angle

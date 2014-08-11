@@ -64,7 +64,7 @@ MavlinkRateLimiter::check(hrt_abstime t)
 	uint64_t dt = t - _last_sent;
 
 	if (dt > 0 && dt >= _interval) {
-		_last_sent = (t / _interval) * _interval;
+		_last_sent = t;
 		return true;
 	}
 
