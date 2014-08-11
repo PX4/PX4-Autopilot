@@ -53,6 +53,9 @@
  * but can contain additional ones.
  */
 enum VEHICLE_CMD {
+	VEHICLE_CMD_CUSTOM_0 = 0, /* test command */
+	VEHICLE_CMD_CUSTOM_1 = 1, /* test command */
+	VEHICLE_CMD_CUSTOM_2 = 2, /* test command */
 	VEHICLE_CMD_NAV_WAYPOINT = 16, /* Navigate to MISSION. |Hold time in decimal seconds. (ignored by fixed wing, time to stay at MISSION for rotary wing)| Acceptance radius in meters (if the sphere with this radius is hit, the MISSION counts as reached)| 0 to pass through the WP, if > 0 radius in meters to pass by WP. Positive value for clockwise orbit, negative value for counter-clockwise orbit. Allows trajectory control.| Desired yaw angle at MISSION (rotary wing)| Latitude| Longitude| Altitude|  */
 	VEHICLE_CMD_NAV_LOITER_UNLIM = 17, /* Loiter around this MISSION an unlimited amount of time |Empty| Empty| Radius around MISSION, in meters. If positive loiter clockwise, else counter-clockwise| Desired yaw angle.| Latitude| Longitude| Altitude|  */
 	VEHICLE_CMD_NAV_LOITER_TURNS = 18, /* Loiter around this MISSION for X turns |Turns| Empty| Radius around MISSION, in meters. If positive loiter clockwise, else counter-clockwise| Desired yaw angle.| Latitude| Longitude| Altitude|  */
@@ -117,8 +120,8 @@ struct vehicle_command_s {
 	float param2;			/**< Parameter 2, as defined by MAVLink VEHICLE_CMD enum.   */
 	float param3;			/**< Parameter 3, as defined by MAVLink VEHICLE_CMD enum.   */
 	float param4;			/**< Parameter 4, as defined by MAVLink VEHICLE_CMD enum.   */
-	float param5;			/**< Parameter 5, as defined by MAVLink VEHICLE_CMD enum.   */
-	float param6;			/**< Parameter 6, as defined by MAVLink VEHICLE_CMD enum.   */
+	double param5;			/**< Parameter 5, as defined by MAVLink VEHICLE_CMD enum.   */
+	double param6;			/**< Parameter 6, as defined by MAVLink VEHICLE_CMD enum.   */
 	float param7;			/**< Parameter 7, as defined by MAVLink VEHICLE_CMD enum.   */
 	enum VEHICLE_CMD command;		/**< Command ID, as defined MAVLink by VEHICLE_CMD enum.   */
 	uint8_t target_system;		/**< System which should execute the command  */
