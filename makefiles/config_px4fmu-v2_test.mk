@@ -44,6 +44,7 @@ MODULES		+= examples/matlab_csv_serial
 MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
+MODULES		+= modules/controllib
 LIBRARIES	+= lib/mathlib/CMSIS
 MODULES		+= lib/mathlib
 MODULES		+= lib/mathlib/math/filter

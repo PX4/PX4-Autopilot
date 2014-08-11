@@ -68,7 +68,11 @@ public:
 		_handle() {
 		if (list != NULL) list->add(this);
 	}
-	bool updated();
+	bool updated() {
+		bool isUpdated = false;
+		orb_check(_handle, &isUpdated);
+		return isUpdated;
+	}
 	void update() {
 		if (updated()) {
 			orb_copy(_meta, _handle, getDataVoidPtr());
