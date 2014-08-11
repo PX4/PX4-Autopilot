@@ -8,3 +8,8 @@
 sh /etc/init.d/rc.fw_defaults
 
 set MIXER Viper
+
+pwm failsafe -c 5 -p 1000
+pwm failsafe -c 6 -p 1000
+pwm failsafe -c 7 -p 1000
+pwm failsafe -c 8 -p 1000
