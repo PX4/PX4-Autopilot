@@ -83,9 +83,12 @@ then
 	param select $PARAM_FILE
 	if param load
 	then
-		echo "[init] Params loaded: $PARAM_FILE"
+		echo "[param] Loaded: $PARAM_FILE"
 	else
-		echo "[init] ERROR: Params loading failed: $PARAM_FILE"
+		echo "[param] FAILED loading $PARAM_FILE"
+		if param reset
+		then
+		fi
 	fi
 
 	#
