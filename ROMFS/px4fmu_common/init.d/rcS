@@ -83,9 +83,12 @@ then
 	param select $PARAM_FILE
 	if param load
 	then
-		echo "[init] Params loaded: $PARAM_FILE"
+		echo "[param] Loaded: $PARAM_FILE"
 	else
-		echo "[init] ERROR: Params loading failed: $PARAM_FILE"
+		echo "[param] FAILED loading $PARAM_FILE"
+		if param reset
+		then
+		fi
 	fi
 
 	#
@@ -280,9 +283,11 @@ then
 	nshterm /dev/ttyACM0 &
 
 	#
-	# Start the datamanager
+	# Start the datamanager (and do not abort boot if it fails)
 	#
-	dataman start
+	if dataman start
+	then
+	fi
 
 	#
 	# Start the Commander (needs to be this early for in-air-restarts)
