@@ -77,4 +77,9 @@ then
 			pwm max -c $PWM_OUTPUTS -p $PWM_MAX
 		fi
 	fi
+
+	if [ $FAILSAFE != none ]
+	then
+		pwm failsafe -d $OUTPUT_DEV $FAILSAFE
+	fi
 fi
