@@ -457,7 +457,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 						orb_publish(ORB_ID(vehicle_force_setpoint), _force_sp_pub, &force_sp);
 					}
 				} else {
-					/* It's not a force setpoint: publish to setpoint triplet  topic */
+					/* It's not a pure force setpoint: publish to setpoint triplet  topic */
 					struct position_setpoint_triplet_s pos_sp_triplet;
 					pos_sp_triplet.previous.valid = false;
 					pos_sp_triplet.next.valid = false;
@@ -466,29 +466,44 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					/* set the local pos values if the setpoint type is 'local pos' and none
 					 * of the local pos fields is set to 'ignore' */
 					if (offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED &&
-							!offboard_control_sp_ignore_position(offboard_control_sp, 0) &&
-							!offboard_control_sp_ignore_position(offboard_control_sp, 1) &&
-							!offboard_control_sp_ignore_position(offboard_control_sp, 2)) {
+							!offboard_control_sp_ignore_position_all(offboard_control_sp)) {
 					pos_sp_triplet.current.type = SETPOINT_TYPE_POSITION; //XXX support others
 					pos_sp_triplet.current.position_valid = true;
 					pos_sp_triplet.current.x = offboard_control_sp.position[0];
 					pos_sp_triplet.current.y = offboard_control_sp.position[1];
 					pos_sp_triplet.current.z = offboard_control_sp.position[2];
+					} else {
+						pos_sp_triplet.current.position_valid = false;
 					}
 
 					/* set the local vel values if the setpoint type is 'local pos' and none
 					 * of the local vel fields is set to 'ignore' */
 					if (offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED &&
-							!offboard_control_sp_ignore_velocity(offboard_control_sp, 0) &&
-							!offboard_control_sp_ignore_velocity(offboard_control_sp, 1) &&
-							!offboard_control_sp_ignore_velocity(offboard_control_sp, 2)) {
-					pos_sp_triplet.current.type = SETPOINT_TYPE_POSITION; //XXX support others
-					pos_sp_triplet.current.velocity_valid = true;
-					pos_sp_triplet.current.vx = offboard_control_sp.velocity[0];
-					pos_sp_triplet.current.vy = offboard_control_sp.velocity[1];
-					pos_sp_triplet.current.vz = offboard_control_sp.velocity[2];
+							!offboard_control_sp_ignore_velocity_all(offboard_control_sp)) {
+						pos_sp_triplet.current.type = SETPOINT_TYPE_POSITION; //XXX support others
+						pos_sp_triplet.current.velocity_valid = true;
+						pos_sp_triplet.current.vx = offboard_control_sp.velocity[0];
+						pos_sp_triplet.current.vy = offboard_control_sp.velocity[1];
+						pos_sp_triplet.current.vz = offboard_control_sp.velocity[2];
+					} else {
+						pos_sp_triplet.current.velocity_valid = false;
 					}
 
+					/* set the local acceleration values if the setpoint type is 'local pos' and none
+					 * of the accelerations fields is set to 'ignore' */
+					if (offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED &&
+							!offboard_control_sp_ignore_acceleration_all(offboard_control_sp)) {
+						pos_sp_triplet.current.type = SETPOINT_TYPE_POSITION; //XXX support others
+						pos_sp_triplet.current.acceleration_valid = true;
+						pos_sp_triplet.current.a_x = offboard_control_sp.acceleration[0];
+						pos_sp_triplet.current.a_y = offboard_control_sp.acceleration[1];
+						pos_sp_triplet.current.a_z = offboard_control_sp.acceleration[2];
+						pos_sp_triplet.current.acceleration_is_force =
+						offboard_control_sp.isForceSetpoint;
+
+					} else {
+						pos_sp_triplet.current.acceleration_valid = false;
+					}
 					//XXX handle global pos setpoints (different MAV frames)
 
 

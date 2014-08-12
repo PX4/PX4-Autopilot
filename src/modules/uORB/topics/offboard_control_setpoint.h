@@ -142,14 +142,35 @@ inline bool offboard_control_sp_ignore_velocity_all(const struct offboard_contro
 	return false;
 }
 
+/**
+ * Returns true if the acceleration setpoint at index should be ignored
+ */
 inline bool offboard_control_sp_ignore_acceleration(const struct offboard_control_setpoint_s &offboard_control_sp, int index) {
 	return (bool)(offboard_control_sp.ignore & (1 << (6 + index)));
 }
 
+/**
+ * Returns true if all acceleration setpoints should be ignored
+ */
+inline bool offboard_control_sp_ignore_acceleration_all(const struct offboard_control_setpoint_s &offboard_control_sp) {
+	for (int i = 0; i < 3; i++) {
+		if (offboard_control_sp_ignore_acceleration(offboard_control_sp, i))	{
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Returns true if the bodyrate setpoint at index should be ignored
+ */
 inline bool offboard_control_sp_ignore_bodyrates(const struct offboard_control_setpoint_s &offboard_control_sp, int index) {
 	return (bool)(offboard_control_sp.ignore & (1 << (9 + index)));
 }
 
+/**
+ * Returns true if the attitude setpoint should be ignored
+ */
 inline bool offboard_control_sp_ignore_attitude(const struct offboard_control_setpoint_s &offboard_control_sp) {
 	return (bool)(offboard_control_sp.ignore & (1 << 10));
 }

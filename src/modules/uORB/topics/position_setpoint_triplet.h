@@ -83,6 +83,11 @@ struct position_setpoint_s
 	float loiter_radius;		/**< loiter radius (only for fixed wing), in m */
 	int8_t loiter_direction;	/**< loiter direction: 1 = CW, -1 = CCW */
 	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
+	float a_x;			//**< acceleration x setpoint */
+	float a_y;			//**< acceleration y setpoint */
+	float a_z;			//**< acceleration z setpoint */
+	bool acceleration_valid;	//*< true if acceleration setpoint is valid/should be used */
+	bool acceleration_is_force;	//*< interprete acceleration as force */
 };
 
 /**
