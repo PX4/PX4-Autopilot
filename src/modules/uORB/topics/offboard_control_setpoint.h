@@ -104,12 +104,42 @@ struct offboard_control_setpoint_s {
  * @}
  */
 
+/**
+ * Returns true if the position setpoint at index should be ignored
+ */
 inline bool offboard_control_sp_ignore_position(const struct offboard_control_setpoint_s &offboard_control_sp, int index) {
 	return (bool)(offboard_control_sp.ignore & (1 << index));
 }
 
+/**
+ * Returns true if all position setpoints should be ignored
+ */
+inline bool offboard_control_sp_ignore_position_all(const struct offboard_control_setpoint_s &offboard_control_sp) {
+	for (int i = 0; i < 3; i++) {
+		if (offboard_control_sp_ignore_position(offboard_control_sp, i))	{
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Returns true if the velocity setpoint at index should be ignored
+ */
 inline bool offboard_control_sp_ignore_velocity(const struct offboard_control_setpoint_s &offboard_control_sp, int index) {
 	return (bool)(offboard_control_sp.ignore & (1 << (3 + index)));
+}
+
+/**
+ * Returns true if all velocity setpoints should be ignored
+ */
+inline bool offboard_control_sp_ignore_velocity_all(const struct offboard_control_setpoint_s &offboard_control_sp) {
+	for (int i = 0; i < 3; i++) {
+		if (offboard_control_sp_ignore_velocity(offboard_control_sp, i))	{
+			return true;
+		}
+	}
+	return false;
 }
 
 inline bool offboard_control_sp_ignore_acceleration(const struct offboard_control_setpoint_s &offboard_control_sp, int index) {

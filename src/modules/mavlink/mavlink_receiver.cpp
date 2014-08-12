@@ -441,7 +441,11 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 				orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 			}
 			if (_control_mode.flag_control_offboard_enabled) {
-				if (offboard_control_sp.isForceSetpoint) {
+				if (offboard_control_sp.isForceSetpoint &&
+						offboard_control_sp_ignore_position_all(offboard_control_sp) &&
+						offboard_control_sp_ignore_velocity_all(offboard_control_sp)) {
+					/* The offboard setpoint is a force setpoint only, directly writing to the force
+					 * setpoint topic and not publishing the setpoint triplet topic */
 					struct vehicle_force_setpoint_s	force_sp;
 					force_sp.x = offboard_control_sp.acceleration[0];
 					force_sp.y = offboard_control_sp.acceleration[1];
