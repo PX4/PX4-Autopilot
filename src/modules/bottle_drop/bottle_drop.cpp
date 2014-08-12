@@ -100,6 +100,10 @@ public:
 	 */
 	void		status();
 
+	void		open_bay();
+	void		close_bay();
+	void		drop();
+
 private:
 	bool		_task_should_exit;		/**< if true, task should exit */
 	int		_main_task;			/**< handle for task */
@@ -116,6 +120,7 @@ private:
 	bool		_open_door;
 	bool		_drop;
 	hrt_abstime	_doors_opened;
+	hrt_abstime	_drop_time;
 
 	struct position_s {
 		double lat; //degrees
@@ -129,6 +134,11 @@ private:
 	void		handle_command(struct vehicle_command_s *cmd);
 
 	void		answer_command(struct vehicle_command_s *cmd, enum VEHICLE_CMD_RESULT result);
+
+	/**
+	 * Set the actuators
+	 */
+	int		actuators_publish();
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -153,7 +163,8 @@ BottleDrop::BottleDrop() :
 	 _actuators {},
 	 _open_door(false),
 	 _drop(false),
-	 _doors_opened(0)
+	 _doors_opened(0),
+	 _drop_time(0)
 {
 }
 
@@ -209,6 +220,82 @@ BottleDrop::status()
 {
 	warnx("Doors: %s", _open_door ? "OPEN" : "CLOSED");
 	warnx("Dropping: %s", _drop ? "YES" : "NO");
+}
+
+void
+BottleDrop::open_bay()
+{
+	_actuators.control[0] = -1.0f;
+	_actuators.control[1] = 1.0f;
+
+	if (_doors_opened == 0) {
+		_doors_opened = hrt_absolute_time();
+	}
+	warnx("open doors");
+
+	actuators_publish();
+}
+
+void
+BottleDrop::close_bay()
+{
+	// closed door and locked survival kit
+	_actuators.control[0] = 1.0f;
+	_actuators.control[1] = -1.0f;
+
+	_doors_opened = 0;
+
+	actuators_publish();
+}
+
+void
+BottleDrop::drop()
+{
+
+	// update drop actuator, wait 0.5s until the doors are open before dropping
+	hrt_abstime starttime = hrt_absolute_time();
+
+	// force the door open if we have to
+	if (_doors_opened == 0) {
+		open_bay();
+		warnx("bay not ready, forced open");
+	}
+
+	while (hrt_elapsed_time(&_doors_opened) < 400000 && hrt_elapsed_time(&starttime) < 2000000) {
+		usleep(50000);
+		warnx("delayed by door!");
+	}
+
+	if (_drop && _doors_opened != 0 && hrt_elapsed_time(&_doors_opened) < 500000) {
+		_actuators.control[2] = -0.5f;
+	} else {
+		_actuators.control[2] = 0.5f;
+	}
+
+	_drop_time = hrt_absolute_time();
+
+	warnx("dropping now");
+
+	actuators_publish();
+}
+
+int
+BottleDrop::actuators_publish()
+{
+	_actuators.timestamp = hrt_absolute_time();
+
+	// lazily publish _actuators only once available
+	if (_actuator_pub > 0) {
+		return orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &_actuators);
+
+	} else {
+		_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators);
+		if (_actuator_pub > 0) {
+			return OK;
+		} else {
+			return -1;
+		}
+	}
 }
 
 void
@@ -272,7 +359,6 @@ BottleDrop::task_main()
 	float future_distance = 0;				// The distance between the UAVs to-be position and the drop point [m]
 
 	// states
-	bool state_door = false;				// Doors are closed = false, open = true
 	bool state_drop = false;				// Drop occurred = true, Drop din't occur = false
 	bool state_run = false;					// A drop was attempted = true, the drop is still in progress = false
 
@@ -297,9 +383,6 @@ BottleDrop::task_main()
 	memset(&update, 0, sizeof(update));
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 
-	struct actuator_controls_s actuators;
-	memset(&actuators, 0, sizeof(actuators));
-
 	struct mission_item_s flight_vector_s;
 	struct mission_item_s flight_vector_e;
 
@@ -314,6 +397,7 @@ BottleDrop::task_main()
 	memset(&onboard_mission, 0, sizeof(onboard_mission));
 	orb_advert_t onboard_mission_pub = -1;
 
+	bool position_initialized = false;
 	double latitude;
 	double longitude;
 
@@ -327,6 +411,9 @@ BottleDrop::task_main()
 	/* Setup of loop */
 	fds[0].fd = _command_sub;
 	fds[0].events = POLLIN;
+
+	// Whatever state the bay is in, we want it closed on startup
+	close_bay();
 
 	while (!_task_should_exit) {
 
@@ -343,6 +430,19 @@ BottleDrop::task_main()
 		if (fds[0].revents & POLLIN) {
 			orb_copy(ORB_ID(vehicle_command), _command_sub, &_command);
 			handle_command(&_command);
+		}
+
+		orb_check(vehicle_global_position_sub, &updated);
+		if (updated) {
+			/* copy global position */
+			orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, &globalpos);
+
+			latitude = (double)globalpos.lat / 1e7;
+			longitude = (double)globalpos.lon / 1e7;
+		}
+
+		if (!position_initialized) {
+			continue;
 		}
 
 		/* switch to faster updates during the drop */
@@ -505,7 +605,7 @@ BottleDrop::task_main()
 				// }
 
 				/* Save WPs in datamanager */
-				const size_t len = sizeof(struct mission_item_s);
+				const ssize_t len = sizeof(struct mission_item_s);
 
 				if (dm_write(DM_KEY_WAYPOINTS_ONBOARD, 0, DM_PERSIST_IN_FLIGHT_RESET, &flight_vector_s, len) != len) {
 					warnx("ERROR: could not save onboard WP");
@@ -539,44 +639,22 @@ BottleDrop::task_main()
 			}
 
 			if (isfinite(distance_real) && distance_real < distance_open_door && drop_approval) {
-				actuators.control[0] = -1.0f;	// open door
-				actuators.control[1] = 1.0f;
-				state_door = true;
-				warnx("open doors");
-
+				open_bay();
 			} else {
-				// closed door and locked survival kit
-				actuators.control[0] = 0.5f;
-				actuators.control[1] = -0.5f;
-				actuators.control[2] = -0.5f;
-				state_door = false;
+				close_bay();
 			}
 
-			if (isfinite(distance_real) && distance_real < precision && distance_real < future_distance
-			    && state_door) { // Drop only if the distance between drop point and actual position is getting larger again
+			if (isfinite(distance_real) && distance_real < precision && distance_real < future_distance) { // Drop only if the distance between drop point and actual position is getting larger again
 				// XXX this check needs to be carefully validated - right now we prefer to drop if we're close to the goal
 
 				// if(fabsf(_wrap_pi(globalpos.yaw-atan2f(wind.windspeed_north,wind_speed.windspeed_east)+M_PI_F)) < 80.0f/180.0f*M_PI_F) // if flight trajectory deviates more than 80 degrees from calculated path, it will no drop
 				// {
-				actuators.control[2] = 0.5f;
-				state_drop = true;
-				state_run = true;
-				warnx("dropping now");
+					drop();
 				// }
 				// else
 				// {
 				// 	state_run = true;
 				// }
-			}
-
-			actuators.timestamp = hrt_absolute_time();
-
-			// lazily publish _actuators only once available
-			if (_actuator_pub > 0) {
-				orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &actuators);
-
-			} else {
-				_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuators);
 			}
 
 			counter++;
@@ -593,43 +671,6 @@ BottleDrop::task_main()
 	_main_task = -1;
 	_exit(0);
 }
-
-// XXX this is out of sync with the C port
-// void
-// BottleDrop::update_actuators()
-// {
-// 	_actuators.timestamp = hrt_absolute_time();
-
-// 	// update door actuators
-// 	if (_open_door) {
-// 		_actuators.control[0] = -1.0f;
-// 		_actuators.control[1] = 1.0f;
-
-// 		if (_doors_opened == 0) {
-// 			_doors_opened = hrt_absolute_time();
-// 		}
-// 	} else {
-// 		_actuators.control[0] = 1.0f;
-// 		_actuators.control[1] = -1.0f;
-
-// 		_doors_opened = 0;
-// 	}
-
-// 	// update drop actuator, wait 0.5s until the doors are open before dropping
-// 	if (_drop && _doors_opened != 0 && hrt_elapsed_time(&_doors_opened) > 500000) {
-// 		_actuators.control[2] = -0.5f;
-// 	} else {
-// 		_actuators.control[2] = 0.5f;
-// 	}
-
-// 	// lazily publish _actuators only once available
-// 	if (_actuator_pub > 0) {
-// 		orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &_actuators);
-
-// 	} else {
-// 		_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators);
-// 	}
-// }
 
 void
 BottleDrop::handle_command(struct vehicle_command_s *cmd)
@@ -784,6 +825,15 @@ int bottle_drop_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[1], "status")) {
 		bottle_drop::g_bottle_drop->status();
+
+	} else if (!strcmp(argv[1], "drop")) {
+		bottle_drop::g_bottle_drop->drop();
+
+	} else if (!strcmp(argv[1], "open")) {
+		bottle_drop::g_bottle_drop->open_bay();
+
+	} else if (!strcmp(argv[1], "close")) {
+		bottle_drop::g_bottle_drop->close_bay();
 
 	} else {
 		usage();

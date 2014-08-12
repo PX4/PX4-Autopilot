@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file bottle_drop.c
+ * @file bottle_drop_params.c
  * Bottle drop parameters
  *
  * @author Dominik Juchli <juchlid@ethz.ch>
