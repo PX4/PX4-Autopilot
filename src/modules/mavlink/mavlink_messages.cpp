@@ -1385,43 +1385,43 @@ protected:
 };
 
 
-class MavlinkStreamGlobalPositionSetpointInt : public MavlinkStream
+class MavlinkStreamPositionTargetGlobalInt : public MavlinkStream
 {
 public:
 	const char *get_name() const
 	{
-		return MavlinkStreamGlobalPositionSetpointInt::get_name_static();
+		return MavlinkStreamPositionTargetGlobalInt::get_name_static();
 	}
 
 	static const char *get_name_static()
 	{
-		return "GLOBAL_POSITION_SETPOINT_INT";
+		return "POSITION_TARGET_GLOBAL_INT";
 	}
 
 	uint8_t get_id()
 	{
-		return MAVLINK_MSG_ID_GLOBAL_POSITION_SETPOINT_INT;
+		return MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT;
 	}
 
 	static MavlinkStream *new_instance(Mavlink *mavlink)
 	{
-		return new MavlinkStreamGlobalPositionSetpointInt(mavlink);
+		return new MavlinkStreamPositionTargetGlobalInt(mavlink);
 	}
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_GLOBAL_POSITION_SETPOINT_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
 private:
 	MavlinkOrbSubscription *_pos_sp_triplet_sub;
 
 	/* do not allow top copying this class */
-	MavlinkStreamGlobalPositionSetpointInt(MavlinkStreamGlobalPositionSetpointInt &);
-	MavlinkStreamGlobalPositionSetpointInt& operator = (const MavlinkStreamGlobalPositionSetpointInt &);
+	MavlinkStreamPositionTargetGlobalInt(MavlinkStreamPositionTargetGlobalInt &);
+	MavlinkStreamPositionTargetGlobalInt& operator = (const MavlinkStreamPositionTargetGlobalInt &);
 
 protected:
-	explicit MavlinkStreamGlobalPositionSetpointInt(Mavlink *mavlink) : MavlinkStream(mavlink),
+	explicit MavlinkStreamPositionTargetGlobalInt(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_pos_sp_triplet_sub(_mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet)))
 	{}
 
@@ -1430,15 +1430,14 @@ protected:
 		struct position_setpoint_triplet_s pos_sp_triplet;
 
 		if (_pos_sp_triplet_sub->update(&pos_sp_triplet)) {
-			mavlink_global_position_setpoint_int_t msg;
+			mavlink_position_target_global_int_t msg{};
 
 			msg.coordinate_frame = MAV_FRAME_GLOBAL;
-			msg.latitude = pos_sp_triplet.current.lat * 1e7;
-			msg.longitude = pos_sp_triplet.current.lon * 1e7;
-			msg.altitude = pos_sp_triplet.current.alt * 1000;
-			msg.yaw = pos_sp_triplet.current.yaw * M_RAD_TO_DEG_F * 100.0f;
+			msg.lat_int = pos_sp_triplet.current.lat * 1e7;
+			msg.lon_int = pos_sp_triplet.current.lon * 1e7;
+			msg.alt = pos_sp_triplet.current.alt;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_GLOBAL_POSITION_SETPOINT_INT, &msg);
+			_mavlink->send_message(MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT, &msg);
 		}
 	}
 };
@@ -1454,12 +1453,12 @@ public:
 
 	static const char *get_name_static()
 	{
-		return "LOCAL_POSITION_SETPOINT";
+		return "POSITION_TARGET_LOCAL_NED";
 	}
 
 	uint8_t get_id()
 	{
-		return MAVLINK_MSG_ID_LOCAL_POSITION_SETPOINT;
+		return MAVLINK_MSG_ID_POSITION_TARGET_LOCAL_NED;
 	}
 
 	static MavlinkStream *new_instance(Mavlink *mavlink)
@@ -1469,7 +1468,7 @@ public:
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_LOCAL_POSITION_SETPOINT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return MAVLINK_MSG_ID_POSITION_TARGET_LOCAL_NED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
 private:
@@ -1491,137 +1490,87 @@ protected:
 		struct vehicle_local_position_setpoint_s pos_sp;
 
 		if (_pos_sp_sub->update(&_pos_sp_time, &pos_sp)) {
-			mavlink_local_position_setpoint_t msg;
+			mavlink_position_target_local_ned_t msg{};
 
+			msg.time_boot_ms = pos_sp.timestamp / 1000;
 			msg.coordinate_frame = MAV_FRAME_LOCAL_NED;
 			msg.x = pos_sp.x;
 			msg.y = pos_sp.y;
 			msg.z = pos_sp.z;
-			msg.yaw = pos_sp.yaw;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_LOCAL_POSITION_SETPOINT, &msg);
+			_mavlink->send_message(MAVLINK_MSG_ID_POSITION_TARGET_LOCAL_NED, &msg);
 		}
 	}
 };
 
 
-class MavlinkStreamRollPitchYawThrustSetpoint : public MavlinkStream
+class MavlinkStreamAttitudeTarget : public MavlinkStream
 {
 public:
 	const char *get_name() const
 	{
-		return MavlinkStreamRollPitchYawThrustSetpoint::get_name_static();
+		return MavlinkStreamAttitudeTarget::get_name_static();
 	}
 
 	static const char *get_name_static()
 	{
-		return "ROLL_PITCH_YAW_THRUST_SETPOINT";
+		return "ATTITUDE_TARGET";
 	}
 
 	uint8_t get_id()
 	{
-		return MAVLINK_MSG_ID_ROLL_PITCH_YAW_THRUST_SETPOINT;
+		return MAVLINK_MSG_ID_ATTITUDE_TARGET;
 	}
 
 	static MavlinkStream *new_instance(Mavlink *mavlink)
 	{
-		return new MavlinkStreamRollPitchYawThrustSetpoint(mavlink);
+		return new MavlinkStreamAttitudeTarget(mavlink);
 	}
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_ROLL_PITCH_YAW_THRUST_SETPOINT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return MAVLINK_MSG_ID_ATTITUDE_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
 private:
-	MavlinkOrbSubscription *att_sp_sub;
-	uint64_t att_sp_time;
+	MavlinkOrbSubscription *_att_sp_sub;
+	MavlinkOrbSubscription *_att_rates_sp_sub;
+	uint64_t _att_sp_time;
+	uint64_t _att_rates_sp_time;
 
 	/* do not allow top copying this class */
-	MavlinkStreamRollPitchYawThrustSetpoint(MavlinkStreamRollPitchYawThrustSetpoint &);
-	MavlinkStreamRollPitchYawThrustSetpoint& operator = (const MavlinkStreamRollPitchYawThrustSetpoint &);
+	MavlinkStreamAttitudeTarget(MavlinkStreamAttitudeTarget &);
+	MavlinkStreamAttitudeTarget& operator = (const MavlinkStreamAttitudeTarget &);
 
 protected:
-	explicit MavlinkStreamRollPitchYawThrustSetpoint(Mavlink *mavlink) : MavlinkStream(mavlink),
-		att_sp_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude_setpoint))),
-		att_sp_time(0)
+	explicit MavlinkStreamAttitudeTarget(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_att_sp_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude_setpoint))),
+		_att_rates_sp_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_rates_setpoint))),
+		_att_sp_time(0),
+		_att_rates_sp_time(0)
 	{}
 
 	void send(const hrt_abstime t)
 	{
 		struct vehicle_attitude_setpoint_s att_sp;
 
-		if (att_sp_sub->update(&att_sp_time, &att_sp)) {
-			mavlink_roll_pitch_yaw_thrust_setpoint_t msg;
+		if (_att_sp_sub->update(&_att_sp_time, &att_sp)) {
+
+			struct vehicle_rates_setpoint_s att_rates_sp;
+			(void)_att_rates_sp_sub->update(&_att_rates_sp_time, &att_rates_sp);
+
+			mavlink_attitude_target_t msg{};
 
 			msg.time_boot_ms = att_sp.timestamp / 1000;
-			msg.roll = att_sp.roll_body;
-			msg.pitch = att_sp.pitch_body;
-			msg.yaw = att_sp.yaw_body;
+			mavlink_euler_to_quaternion(att_sp.roll_body, att_sp.pitch_body, att_sp.yaw_body, msg.q);
+
+			msg.body_roll_rate = att_rates_sp.roll;
+			msg.body_pitch_rate = att_rates_sp.pitch;
+			msg.body_yaw_rate = att_rates_sp.yaw;
+
 			msg.thrust = att_sp.thrust;
 
-			_mavlink->send_message(MAVLINK_MSG_ID_ROLL_PITCH_YAW_THRUST_SETPOINT, &msg);
-		}
-	}
-};
-
-
-class MavlinkStreamRollPitchYawRatesThrustSetpoint : public MavlinkStream
-{
-public:
-	const char *get_name() const
-	{
-		return MavlinkStreamRollPitchYawRatesThrustSetpoint::get_name_static();
-	}
-
-	static const char *get_name_static()
-	{
-		return "ROLL_PITCH_YAW_RATES_THRUST_SETPOINT";
-	}
-
-	uint8_t get_id()
-	{
-		return MAVLINK_MSG_ID_ROLL_PITCH_YAW_RATES_THRUST_SETPOINT;
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamRollPitchYawRatesThrustSetpoint(mavlink);
-	}
-
-	unsigned get_size()
-	{
-		return MAVLINK_MSG_ID_ROLL_PITCH_YAW_RATES_THRUST_SETPOINT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-	}
-
-private:
-	MavlinkOrbSubscription *_att_rates_sp_sub;
-	uint64_t _att_rates_sp_time;
-
-	/* do not allow top copying this class */
-	MavlinkStreamRollPitchYawRatesThrustSetpoint(MavlinkStreamRollPitchYawRatesThrustSetpoint &);
-	MavlinkStreamRollPitchYawRatesThrustSetpoint& operator = (const MavlinkStreamRollPitchYawRatesThrustSetpoint &);
-
-protected:
-	explicit MavlinkStreamRollPitchYawRatesThrustSetpoint(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_att_rates_sp_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_rates_setpoint))),
-		_att_rates_sp_time(0)
-	{}
-
-	void send(const hrt_abstime t)
-	{
-		struct vehicle_rates_setpoint_s att_rates_sp;
-
-		if (_att_rates_sp_sub->update(&_att_rates_sp_time, &att_rates_sp)) {
-			mavlink_roll_pitch_yaw_rates_thrust_setpoint_t msg;
-
-			msg.time_boot_ms = att_rates_sp.timestamp / 1000;
-			msg.roll_rate = att_rates_sp.roll;
-			msg.pitch_rate = att_rates_sp.pitch;
-			msg.yaw_rate = att_rates_sp.yaw;
-			msg.thrust = att_rates_sp.thrust;
-
-			_mavlink->send_message(MAVLINK_MSG_ID_ROLL_PITCH_YAW_RATES_THRUST_SETPOINT, &msg);
+			_mavlink->send_message(MAVLINK_MSG_ID_ATTITUDE_TARGET, &msg);
 		}
 	}
 };
@@ -2149,10 +2098,9 @@ StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamServoOutputRaw<2>::new_instance, &MavlinkStreamServoOutputRaw<2>::get_name_static),
 	new StreamListItem(&MavlinkStreamServoOutputRaw<3>::new_instance, &MavlinkStreamServoOutputRaw<3>::get_name_static),
 	new StreamListItem(&MavlinkStreamHILControls::new_instance, &MavlinkStreamHILControls::get_name_static),
-	new StreamListItem(&MavlinkStreamGlobalPositionSetpointInt::new_instance, &MavlinkStreamGlobalPositionSetpointInt::get_name_static),
+	new StreamListItem(&MavlinkStreamPositionTargetGlobalInt::new_instance, &MavlinkStreamPositionTargetGlobalInt::get_name_static),
 	new StreamListItem(&MavlinkStreamLocalPositionSetpoint::new_instance, &MavlinkStreamLocalPositionSetpoint::get_name_static),
-	new StreamListItem(&MavlinkStreamRollPitchYawThrustSetpoint::new_instance, &MavlinkStreamRollPitchYawThrustSetpoint::get_name_static),
-	new StreamListItem(&MavlinkStreamRollPitchYawRatesThrustSetpoint::new_instance, &MavlinkStreamRollPitchYawRatesThrustSetpoint::get_name_static),
+	new StreamListItem(&MavlinkStreamAttitudeTarget::new_instance, &MavlinkStreamAttitudeTarget::get_name_static),
 	new StreamListItem(&MavlinkStreamRCChannelsRaw::new_instance, &MavlinkStreamRCChannelsRaw::get_name_static),
 	new StreamListItem(&MavlinkStreamManualControl::new_instance, &MavlinkStreamManualControl::get_name_static),
 	new StreamListItem(&MavlinkStreamOpticalFlow::new_instance, &MavlinkStreamOpticalFlow::get_name_static),

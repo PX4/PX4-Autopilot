@@ -99,11 +99,12 @@ static const char * const state_names[ARMING_STATE_MAX] = {
 };
 
 transition_result_t
-arming_state_transition(struct vehicle_status_s *status,            /// current vehicle status
-			const struct safety_s   *safety,            /// current safety settings
-			arming_state_t          new_arming_state,   /// arming state requested
-			struct actuator_armed_s *armed,             /// current armed status
-			const int               mavlink_fd)         /// mavlink fd for error reporting, 0 for none
+arming_state_transition(struct vehicle_status_s *status,		///< current vehicle status
+			const struct safety_s   *safety,		///< current safety settings
+			arming_state_t          new_arming_state,	///< arming state requested
+			struct actuator_armed_s *armed,			///< current armed status
+			bool			fRunPreArmChecks,	///< true: run the pre-arm checks, false: no pre-arm checks, for unit testing
+			const int               mavlink_fd)		///< mavlink fd for error reporting, 0 for none
 {
 	// Double check that our static arrays are still valid
 	ASSERT(ARMING_STATE_INIT == 0);
@@ -125,7 +126,7 @@ arming_state_transition(struct vehicle_status_s *status,            /// current 
 		int prearm_ret = OK;
 
 		/* only perform the check if we have to */
-		if (new_arming_state == ARMING_STATE_ARMED) {
+		if (fRunPreArmChecks && new_arming_state == ARMING_STATE_ARMED) {
 			prearm_ret = prearm_check(status, mavlink_fd);
 		}
 
