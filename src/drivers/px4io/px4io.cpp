@@ -142,7 +142,7 @@ public:
 	 *
 	 * @param disable_rc_handling set to true to forbid override / RC handling on IO
 	 */
-	virtual int		init(bool disable_rc_handling);
+	int			init(bool disable_rc_handling);
 
 	/**
 	 * Detect if a PX4IO is connected.
@@ -591,7 +591,7 @@ PX4IO::detect()
 int
 PX4IO::init(bool rc_handling_disabled) {
 	_rc_handling_disabled = rc_handling_disabled;
-	init();
+	return init();
 }
 
 int
