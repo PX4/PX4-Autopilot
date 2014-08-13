@@ -39,3 +39,5 @@ MODULE_COMMAND	 = nshterm
 SRCS		 = nshterm.c
 
 MODULE_STACKSIZE = 1400
+
+MAXOPTIMIZATION	 = -Os

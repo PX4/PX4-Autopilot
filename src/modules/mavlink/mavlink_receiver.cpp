@@ -110,6 +110,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_force_sp_pub(-1),
 	_pos_sp_triplet_pub(-1),
 	_vicon_position_pub(-1),
+	_vision_position_pub(-1),
 	_telemetry_status_pub(-1),
 	_rc_pub(-1),
 	_manual_pub(-1),
@@ -157,6 +158,11 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_SET_ATTITUDE_TARGET:
 		handle_message_set_attitude_target(msg);
 		break;
+
+	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
+		handle_message_vision_position_estimate(msg);
+		break;
+
 	case MAVLINK_MSG_ID_RADIO_STATUS:
 		handle_message_radio_status(msg);
 		break;
@@ -524,6 +530,45 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 }
 
 void
+MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
+{
+	mavlink_vision_position_estimate_t pos;
+	mavlink_msg_vision_position_estimate_decode(msg, &pos);
+
+	struct vision_position_estimate vision_position;
+	memset(&vision_position, 0, sizeof(vision_position));
+
+	// Use the component ID to identify the vision sensor
+	vision_position.id = msg->compid;
+
+	vision_position.timestamp_boot = hrt_absolute_time();
+	vision_position.timestamp_computer = pos.usec;
+	vision_position.x = pos.x;
+	vision_position.y = pos.y;
+	vision_position.z = pos.z;
+
+	// XXX fix this
+	vision_position.vx = 0.0f;
+	vision_position.vy = 0.0f;
+	vision_position.vz = 0.0f;
+
+	math::Quaternion q;
+	q.from_euler(pos.roll, pos.pitch, pos.yaw);
+
+	vision_position.q[0] = q(0);
+	vision_position.q[1] = q(1);
+	vision_position.q[2] = q(2);
+	vision_position.q[3] = q(3);
+
+	if (_vision_position_pub < 0) {
+		_vision_position_pub = orb_advertise(ORB_ID(vision_position_estimate), &vision_position);
+
+	} else {
+		orb_publish(ORB_ID(vision_position_estimate), _vision_position_pub, &vision_position);
+	}
+}
+
+void
 MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 {
 	mavlink_set_attitude_target_t set_attitude_target;
@@ -610,6 +655,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		}
 	}
 }
+
 void
 MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 {

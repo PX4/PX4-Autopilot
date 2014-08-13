@@ -213,6 +213,9 @@ ORB_DEFINE(encoders, struct encoders_s);
 #include "topics/estimator_status.h"
 ORB_DEFINE(estimator_status, struct estimator_status_report);
 
+#include "topics/vision_position_estimate.h"
+ORB_DEFINE(vision_position_estimate, struct vision_position_estimate);
+
 #include "topics/vehicle_force_setpoint.h"
 ORB_DEFINE(vehicle_force_setpoint, struct vehicle_force_setpoint_s);
 
