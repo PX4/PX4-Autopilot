@@ -146,6 +146,7 @@ private:
 	int		_range_finder_sub;		/**< range finder subscription */
 
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint */
+	orb_advert_t	_tecs_status_pub;		/**< TECS status publication */
 	orb_advert_t	_nav_capabilities_pub;		/**< navigation capabilities publication */
 
 	struct vehicle_attitude_s			_att;				/**< vehicle attitude */
@@ -203,9 +204,11 @@ private:
 		float l1_damping;
 
 		float time_const;
+		float time_const_throt;
 		float min_sink_rate;
 		float max_sink_rate;
 		float max_climb_rate;
+		float climbout_diff;
 		float heightrate_p;
 		float speedrate_p;
 		float throttle_damp;
@@ -227,6 +230,7 @@ private:
 		float throttle_min;
 		float throttle_max;
 		float throttle_cruise;
+		float throttle_slew_max;
 
 		float throttle_land_max;
 
@@ -245,9 +249,11 @@ private:
 		param_t l1_damping;
 
 		param_t time_const;
+		param_t time_const_throt;
 		param_t min_sink_rate;
 		param_t max_sink_rate;
 		param_t max_climb_rate;
+		param_t climbout_diff;
 		param_t heightrate_p;
 		param_t speedrate_p;
 		param_t throttle_damp;
@@ -269,6 +275,7 @@ private:
 		param_t throttle_min;
 		param_t throttle_max;
 		param_t throttle_cruise;
+		param_t throttle_slew_max;
 
 		param_t throttle_land_max;
 
@@ -408,6 +415,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 
 /* publications */
 	_attitude_sp_pub(-1),
+	_tecs_status_pub(-1),
 	_nav_capabilities_pub(-1),
 
 /* states */
@@ -460,6 +468,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.roll_limit = param_find("FW_R_LIM");
 	_parameter_handles.throttle_min = param_find("FW_THR_MIN");
 	_parameter_handles.throttle_max = param_find("FW_THR_MAX");
+	_parameter_handles.throttle_slew_max = param_find("FW_THR_SLEW_MAX");
 	_parameter_handles.throttle_cruise = param_find("FW_THR_CRUISE");
 	_parameter_handles.throttle_land_max = param_find("FW_THR_LND_MAX");
 
@@ -471,9 +480,11 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.range_finder_rel_alt = param_find("FW_LND_RFRALT");
 
 	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
+	_parameter_handles.time_const_throt = 			param_find("FW_T_THRO_CONST");
 	_parameter_handles.min_sink_rate = 			param_find("FW_T_SINK_MIN");
 	_parameter_handles.max_sink_rate =			param_find("FW_T_SINK_MAX");
 	_parameter_handles.max_climb_rate =			param_find("FW_T_CLMB_MAX");
+	_parameter_handles.climbout_diff =			param_find("FW_CLMBOUT_DIFF");
 	_parameter_handles.throttle_damp = 			param_find("FW_T_THR_DAMP");
 	_parameter_handles.integrator_gain =			param_find("FW_T_INTEG_GAIN");
 	_parameter_handles.vertical_accel_limit =		param_find("FW_T_VERT_ACC");
@@ -532,10 +543,12 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.throttle_min, &(_parameters.throttle_min));
 	param_get(_parameter_handles.throttle_max, &(_parameters.throttle_max));
 	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
+	param_get(_parameter_handles.throttle_slew_max, &(_parameters.throttle_slew_max));
 
 	param_get(_parameter_handles.throttle_land_max, &(_parameters.throttle_land_max));
 
 	param_get(_parameter_handles.time_const, &(_parameters.time_const));
+	param_get(_parameter_handles.time_const_throt, &(_parameters.time_const_throt));
 	param_get(_parameter_handles.min_sink_rate, &(_parameters.min_sink_rate));
 	param_get(_parameter_handles.max_sink_rate, &(_parameters.max_sink_rate));
 	param_get(_parameter_handles.throttle_damp, &(_parameters.throttle_damp));
@@ -547,6 +560,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.speed_weight, &(_parameters.speed_weight));
 	param_get(_parameter_handles.pitch_damping, &(_parameters.pitch_damping));
 	param_get(_parameter_handles.max_climb_rate, &(_parameters.max_climb_rate));
+	param_get(_parameter_handles.climbout_diff, &(_parameters.climbout_diff));
 
 	param_get(_parameter_handles.heightrate_p, &(_parameters.heightrate_p));
 	param_get(_parameter_handles.speedrate_p, &(_parameters.speedrate_p));
@@ -564,9 +578,11 @@ FixedwingPositionControl::parameters_update()
 	_l1_control.set_l1_roll_limit(math::radians(_parameters.roll_limit));
 
 	_tecs.set_time_const(_parameters.time_const);
+	_tecs.set_time_const_throt(_parameters.time_const_throt);
 	_tecs.set_min_sink_rate(_parameters.min_sink_rate);
 	_tecs.set_max_sink_rate(_parameters.max_sink_rate);
 	_tecs.set_throttle_damp(_parameters.throttle_damp);
+	_tecs.set_throttle_slewrate(_parameters.throttle_slew_max);
 	_tecs.set_integrator_gain(_parameters.integrator_gain);
 	_tecs.set_vertical_accel_limit(_parameters.vertical_accel_limit);
 	_tecs.set_height_comp_filter_omega(_parameters.height_comp_filter_omega);
@@ -1095,7 +1111,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				usePreTakeoffThrust = false;
 
 				/* apply minimum pitch and limit roll if target altitude is not within 10 meters */
-				if (altitude_error > 15.0f) {
+				if (_parameters.climbout_diff > 0.001f && altitude_error > _parameters.climbout_diff) {
 
 					/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
 					tecs_update_pitch_throttle(_pos_sp_triplet.current.alt,
@@ -1370,6 +1386,51 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 					    climbout_mode, climbout_pitch_min_rad,
 					    throttle_min, throttle_max, throttle_cruise,
 					    pitch_min_rad, pitch_max_rad);
+
+		struct TECS::tecs_state s;
+		_tecs.get_tecs_state(s);
+
+		struct tecs_status_s t;
+
+		t.timestamp = s.timestamp;
+
+		switch (s.mode) {
+			case TECS::ECL_TECS_MODE_NORMAL:
+				t.mode = TECS_MODE_NORMAL;
+				break;
+			case TECS::ECL_TECS_MODE_UNDERSPEED:
+				t.mode = TECS_MODE_UNDERSPEED;
+				break;
+			case TECS::ECL_TECS_MODE_BAD_DESCENT:
+				t.mode = TECS_MODE_BAD_DESCENT;
+				break;
+			case TECS::ECL_TECS_MODE_CLIMBOUT:
+				t.mode = TECS_MODE_CLIMBOUT;
+				break;
+		}
+
+		t.altitudeSp			= s.hgt_dem;
+		t.altitude_filtered		= s.hgt;
+		t.airspeedSp			= s.spd_dem;
+		t.airspeed_filtered		= s.spd;
+
+		t.flightPathAngleSp		= s.dhgt_dem;
+		t.flightPathAngle		= s.dhgt;
+		t.flightPathAngleFiltered	= s.dhgt;
+
+		t.airspeedDerivativeSp		= s.dspd_dem;
+		t.airspeedDerivative		= s.dspd;
+
+		t.totalEnergyRateSp		= s.thr;
+		t.totalEnergyRate		= s.ithr;
+		t.energyDistributionRateSp	= s.ptch;
+		t.energyDistributionRate	= s.iptch;
+
+		if (_tecs_status_pub > 0) {
+			orb_publish(ORB_ID(tecs_status), _tecs_status_pub, &t);
+		} else {
+			_tecs_status_pub = orb_advertise(ORB_ID(tecs_status), &t);
+		}
 	}
 }
 

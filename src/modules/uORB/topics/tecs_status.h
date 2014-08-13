@@ -51,11 +51,13 @@
  */
 
 typedef enum {
-	TECS_MODE_NORMAL,
+	TECS_MODE_NORMAL = 0,
 	TECS_MODE_UNDERSPEED,
 	TECS_MODE_TAKEOFF,
 	TECS_MODE_LAND,
-	TECS_MODE_LAND_THROTTLELIM
+	TECS_MODE_LAND_THROTTLELIM,
+	TECS_MODE_BAD_DESCENT,
+	TECS_MODE_CLIMBOUT
 } tecs_mode;
 
  /**
@@ -65,14 +67,12 @@ struct tecs_status_s {
 	uint64_t timestamp;		/**< timestamp, in microseconds since system start */
 
 	float altitudeSp;
-	float altitude;
-	float altitudeFiltered;
+	float altitude_filtered;
 	float flightPathAngleSp;
 	float flightPathAngle;
 	float flightPathAngleFiltered;
 	float airspeedSp;
-	float airspeed;
-	float airspeedFiltered;
+	float airspeed_filtered;
 	float airspeedDerivativeSp;
 	float airspeedDerivative;
 
