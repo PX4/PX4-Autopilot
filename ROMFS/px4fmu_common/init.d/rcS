@@ -448,6 +448,11 @@ then
 	mavlink start $MAVLINK_FLAGS
 
 	#
+	# MAVLink onboard / TELEM2
+	#
+	mavlink start -d /dev/ttyS2 -b 230400
+
+	#
 	# Sensors, Logging, GPS
 	#
 	sh /etc/init.d/rc.sensors
