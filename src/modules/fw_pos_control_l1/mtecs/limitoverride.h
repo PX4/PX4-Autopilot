@@ -56,9 +56,13 @@ class LimitOverride
 public:
 	LimitOverride() :
 		overrideThrottleMinEnabled(false),
+		overrideThrottleMin(0.0f),
 		overrideThrottleMaxEnabled(false),
+		overrideThrottleMax(0.0f),
 		overridePitchMinEnabled(false),
-		overridePitchMaxEnabled(false)
+		overridePitchMin(0.0f),
+		overridePitchMaxEnabled(false),
+		overridePitchMax(0.0f)
 	{};
 
 	~LimitOverride() {};

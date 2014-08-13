@@ -51,6 +51,8 @@ public:
 	virtual bool getLaunchDetected() = 0;
 	virtual void reset() = 0;
 
+	virtual ~LaunchMethod() {};
+
 protected:
 private:
 };

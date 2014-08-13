@@ -370,9 +370,8 @@ private:
 	 */
 	void reset_landing_state();
 
-	/*
-	 * Call TECS : a wrapper function to call one of the TECS implementations (mTECS is called only if enabled via parameter)
-	 * XXX need to clean up/remove this function once mtecs fully replaces TECS
+	/**
+	 * Call mTECS
 	 */
 	void tecs_update_pitch_throttle(float alt_sp, float v_sp, float eas2tas,
 			float pitch_min_rad, float pitch_max_rad,
@@ -382,6 +381,9 @@ private:
 			const math::Vector<3> &ground_speed,
 			tecs_mode mode = TECS_MODE_NORMAL);
 
+	/* do not allow to copy this class due to copy data members */
+	FixedwingPositionControl(const FixedwingPositionControl&);
+	FixedwingPositionControl operator=(const FixedwingPositionControl&);
 };
 
 namespace l1_control
@@ -450,9 +452,12 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_airspeed_last_valid(0),
 	_groundspeed_undershoot(0.0f),
 	_global_pos_valid(false),
+	_R_nb(),
 	_l1_control(),
 	_mTecs(),
-	_was_pos_control_mode(false)
+	_was_pos_control_mode(false),
+	_parameters{},
+	_parameter_handles{}
 {
 	_nav_capabilities.turn_distance = 0.0f;
 
@@ -470,6 +475,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.throttle_max = param_find("FW_THR_MAX");
 	_parameter_handles.throttle_slew_max = param_find("FW_THR_SLEW_MAX");
 	_parameter_handles.throttle_cruise = param_find("FW_THR_CRUISE");
+
 	_parameter_handles.throttle_land_max = param_find("FW_THR_LND_MAX");
 
 	_parameter_handles.land_slope_angle = param_find("FW_LND_ANG");

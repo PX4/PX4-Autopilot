@@ -45,6 +45,7 @@ class __EXPORT ListNode
 public:
 	ListNode() : _sibling(nullptr) {
 	}
+    virtual ~ListNode() {};
 	void setSibling(T sibling) { _sibling = sibling; }
 	T getSibling() { return _sibling; }
 	T get() {
@@ -52,6 +53,11 @@ public:
 	}
 protected:
 	T _sibling;
+
+private:
+	/* we do not want this type to be copied due to ptr data members */
+	ListNode<T>(const ListNode<T>&);
+	ListNode<T> operator=(const ListNode<T>&);
 };
 
 template<class T>

@@ -70,9 +70,21 @@
 class __EXPORT ECL_L1_Pos_Controller
 {
 public:
-	ECL_L1_Pos_Controller() {
-		_L1_period = 25;
-		_L1_damping = 0.75f;
+	ECL_L1_Pos_Controller() :
+	_lateral_accel(0.0f),
+	_L1_distance(50.0f),
+	_circle_mode(false),
+	_nav_bearing(0.0f),
+	_bearing_error(0.0f),
+	_crosstrack_error(0.0f),
+	_target_bearing(0.0f),
+	_L1_period(25.0f),
+	_L1_damping(0.75f),
+	_L1_ratio(0.0f),
+	_K_L1(0.0f),
+	_heading_omega(0.0f),
+	_roll_lim_rad(0.6f)
+	{
 	}
 
 	/**
@@ -247,7 +259,7 @@ private:
 	float _K_L1;			///< L1 control gain for _L1_damping
 	float _heading_omega;		///< Normalized frequency
 
-	float _roll_lim_rad;  ///<maximum roll angle
+	float _roll_lim_rad;		///<maximum roll angle
 
 	/**
 	 * Convert a 2D vector from WGS84 to planar coordinates.
