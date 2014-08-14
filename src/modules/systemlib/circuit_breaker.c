@@ -95,6 +95,19 @@ PARAM_DEFINE_INT32(CBRK_IO_SAFETY, 0);
  */
 PARAM_DEFINE_INT32(CBRK_AIRSPD_CHK, 0);
 
+/**
+ * Circuit breaker for flight termination
+ *
+ * Setting this parameter to 121212 will disable the flight termination action.
+ * --> The IO driver will not do flight termination if requested by the FMU
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+ *
+ * @min 0
+ * @max 121212
+ * @group Circuit Breaker
+ */
+PARAM_DEFINE_INT32(CBRK_FLIGHTTERMINATION, 0);
+
 bool circuit_breaker_enabled(const char* breaker, int32_t magic)
 {
 	int32_t val;
