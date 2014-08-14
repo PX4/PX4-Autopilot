@@ -1512,36 +1512,19 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	/* we don't have the status bits, so input_source has to be set elsewhere */
 	input_rc.input_source = RC_INPUT_SOURCE_UNKNOWN;
 
-	const unsigned prolog = (PX4IO_P_RAW_RC_BASE - PX4IO_P_RAW_RC_COUNT);
+	static const unsigned prolog = (PX4IO_P_RAW_RC_BASE - PX4IO_P_RAW_RC_COUNT);
 	uint16_t regs[RC_INPUT_MAX_CHANNELS + prolog];
 
 	/*
-	 * Read the channel count and the first 9 channels.
+	 * Read the channel count and the all channels.
 	 *
-	 * This should be the common case (9 channel R/C control being a reasonable upper bound).
+	 * So as the prolog is now 6 registers, we still could fetch everything in a single transfer.
+	 * Up to 32 registers.
 	 */
-	ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT, &regs[0], prolog + 9);
+	ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT, &regs[0], prolog + RC_INPUT_MAX_CHANNELS);
 
 	if (ret != OK)
 		return ret;
-
-	/*
-	 * Get the channel count any any extra channels. This is no more expensive than reading the
-	 * channel count once.
-	 */
-	channel_count = regs[PX4IO_P_RAW_RC_COUNT];
-
-	/* limit the channel count */
-	if (channel_count > RC_INPUT_MAX_CHANNELS) {
-		channel_count = RC_INPUT_MAX_CHANNELS;
-	}
-
-	/* count channel count changes to identify signal integrity issues */
-	if (channel_count != _rc_chan_count) {
-		perf_count(_perf_chan_count);
-	}
-
-	_rc_chan_count = channel_count;
 
 	input_rc.timestamp_publication = hrt_absolute_time();
 
@@ -1551,7 +1534,6 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	input_rc.rc_lost = !(regs[PX4IO_P_RAW_RC_FLAGS] & PX4IO_P_RAW_RC_FLAGS_RC_OK);
 	input_rc.rc_lost_frame_count = regs[PX4IO_P_RAW_LOST_FRAME_COUNT];
 	input_rc.rc_total_frame_count = regs[PX4IO_P_RAW_FRAME_COUNT];
-	input_rc.channel_count = channel_count;
 
 	/* rc_lost has to be set before the call to this function */
 	if (!input_rc.rc_lost && !input_rc.rc_failsafe) {
@@ -1560,15 +1542,24 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 
 	input_rc.timestamp_last_signal = _rc_last_valid;
 
-	/* FIELDS NOT SET HERE */
-	/* input_rc.input_source is set after this call XXX we might want to mirror the flags in the RC struct */
-
-	if (channel_count > 9) {
-		ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE + 9, &regs[prolog + 9], channel_count - 9);
-
-		if (ret != OK)
-			return ret;
+	/*
+	 * Get the channel count.
+	 */
+	channel_count = regs[PX4IO_P_RAW_RC_COUNT];
+	
+	/* limit the channel count */
+	if (channel_count > RC_INPUT_MAX_CHANNELS) {
+		/* use last seen channel count if it's to create */
+		channel_count = _rc_chan_count;
 	}
+	
+	/* count channel count changes to identify signal integrity issues */
+	if (channel_count != _rc_chan_count) {
+		perf_count(_perf_chan_count);
+		_rc_chan_count = channel_count;
+	}
+
+	input_rc.channel_count = channel_count;
 
 	/* last thing set are the actual channel values as 16 bit values */
 	for (unsigned i = 0; i < channel_count; i++) {
