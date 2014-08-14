@@ -429,7 +429,7 @@ int
 UavcanNode::arm_actuators(bool arm)
 {
 	_is_armed = arm;
-	_esc_controller.arm_esc(arm);
+	_esc_controller.arm_all_escs(arm);
 	return OK;
 }
 
