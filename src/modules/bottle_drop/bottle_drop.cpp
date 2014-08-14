@@ -267,9 +267,9 @@ BottleDrop::drop()
 	}
 
 	if (_drop && _doors_opened != 0 && hrt_elapsed_time(&_doors_opened) < 500000) {
-		_actuators.control[2] = -0.5f;
+		_actuators.control[2] = -1.0f;
 	} else {
-		_actuators.control[2] = 0.5f;
+		_actuators.control[2] = 1.0f;
 	}
 
 	_drop_time = hrt_absolute_time();
