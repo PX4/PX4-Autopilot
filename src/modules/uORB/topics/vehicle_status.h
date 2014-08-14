@@ -200,13 +200,16 @@ struct vehicle_status_s {
 
 	bool rc_signal_found_once;
 	bool rc_signal_lost;				/**< true if RC reception lost */
+	bool rc_signal_lost_cmd;				/**< true if RC lost mode is commanded */
 	bool rc_input_blocked;				/**< set if RC input should be ignored */
 
 	bool data_link_lost;				/**< datalink to GCS lost */
+	bool data_link_lost_cmd;			/**< datalink to GCS lost mode commanded */
 	uint8_t data_link_lost_counter;			/**< counts unique data link lost events */
-
 	bool engine_failure;				/** Set to true if an engine failure is detected */
+	bool engine_failure_cmd;			/** Set to true if an engine failure mode is commanded */
 	bool gps_failure;				/** Set to true if a gps failure is detected */
+	bool gps_failure_cmd;				/** Set to true if a gps failure mode is commanded */
 
 	bool offboard_control_signal_found_once;
 	bool offboard_control_signal_lost;

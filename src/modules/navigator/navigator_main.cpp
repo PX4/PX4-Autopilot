@@ -384,7 +384,7 @@ Navigator::task_main()
 			case NAVIGATION_STATE_AUTO_RTL:
 				_navigation_mode = &_rtl;
 				break;
-			case NAVIGATION_STATE_AUTO_RTGS:
+			case NAVIGATION_STATE_AUTO_RTGS: //XXX OBC: differentiate between rc loss and dl loss here
 				/* Use complex data link loss mode only when enabled via param
 				* otherwise use rtl */
 				if (_param_datalinkloss_obc.get() != 0) {
