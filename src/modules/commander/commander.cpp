@@ -59,6 +59,7 @@
 #include <string.h>
 #include <math.h>
 #include <poll.h>
+#include <float.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
@@ -92,6 +93,7 @@
 #include <systemlib/err.h>
 #include <systemlib/cpuload.h>
 #include <systemlib/rc_check.h>
+#include <geo/geo.h>
 #include <systemlib/state_table.h>
 #include <dataman/dataman.h>
 
@@ -875,6 +877,8 @@ int commander_thread_main(int argc, char *argv[])
 	int gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	struct vehicle_gps_position_s gps_position;
 	memset(&gps_position, 0, sizeof(gps_position));
+	gps_position.eph = FLT_MAX;
+	gps_position.epv = FLT_MAX;
 
 	/* Subscribe to sensor topic */
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
@@ -1335,6 +1339,16 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps_position);
 		}
 
+		/* Initialize map projection if gps is valid */
+		if (!map_projection_global_initialized()
+				&& (gps_position.eph < eph_threshold)
+				&& (gps_position.epv < epv_threshold)
+				&& hrt_elapsed_time((hrt_abstime*)&gps_position.timestamp_position) < 1e6) {
+			/* set reference for global coordinates <--> local coordiantes conversion and map_projection */
+			globallocalconverter_init((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7, (float)gps_position.alt * 1.0e-3f, hrt_absolute_time());
+		}
+
+		/* start mission result check */
 		orb_check(mission_result_sub, &updated);
 
 		if (updated) {

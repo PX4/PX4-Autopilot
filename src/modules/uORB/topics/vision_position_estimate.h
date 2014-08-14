@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,74 +31,52 @@
  *
  ****************************************************************************/
 
-/*
- * @file position_estimator_inav_params.c
- *
- * @author Anton Babushkin <rk3dov@gmail.com>
- *
- * Parameters definition for position_estimator_inav
+/**
+ * @file vision_position_estimate.h
+ * Vision based position estimate
  */
 
-#include <systemlib/param/param.h>
+#ifndef TOPIC_VISION_POSITION_ESTIMATE_H_
+#define TOPIC_VISION_POSITION_ESTIMATE_H_
 
-struct position_estimator_inav_params {
-	float w_z_baro;
-	float w_z_gps_p;
-	float w_z_vision_p;
-	float w_z_sonar;
-	float w_xy_gps_p;
-	float w_xy_gps_v;
-	float w_xy_vision_p;
-	float w_xy_vision_v;
-	float w_xy_flow;
-	float w_xy_res_v;
-	float w_gps_flow;
-	float w_acc_bias;
-	float flow_k;
-	float flow_q_min;
-	float sonar_filt;
-	float sonar_err;
-	float land_t;
-	float land_disp;
-	float land_thr;
-	int32_t no_vision;
-	float delay_gps;
-};
-
-struct position_estimator_inav_param_handles {
-	param_t w_z_baro;
-	param_t w_z_gps_p;
-	param_t w_z_vision_p;
-	param_t w_z_sonar;
-	param_t w_xy_gps_p;
-	param_t w_xy_gps_v;
-	param_t w_xy_vision_p;
-	param_t w_xy_vision_v;
-	param_t w_xy_flow;
-	param_t w_xy_res_v;
-	param_t w_gps_flow;
-	param_t w_acc_bias;
-	param_t flow_k;
-	param_t flow_q_min;
-	param_t sonar_filt;
-	param_t sonar_err;
-	param_t land_t;
-	param_t land_disp;
-	param_t land_thr;
-	param_t no_vision;
-	param_t delay_gps;
-};
-
-#define CBRK_NO_VISION_KEY	328754
+#include <stdint.h>
+#include <stdbool.h>
+#include "../uORB.h"
 
 /**
- * Initialize all parameter handles and values
- *
+ * @addtogroup topics
+ * @{
  */
-int parameters_init(struct position_estimator_inav_param_handles *h);
 
 /**
- * Update all parameters
- *
+ * Vision based position estimate in NED frame
  */
-int parameters_update(const struct position_estimator_inav_param_handles *h, struct position_estimator_inav_params *p);
+struct vision_position_estimate {
+
+	unsigned id;				/**< ID of the estimator, commonly the component ID of the incoming message */
+
+	uint64_t timestamp_boot;		/**< time of this estimate, in microseconds since system start */
+	uint64_t timestamp_computer;		/**< timestamp provided by the companion computer, in us */
+
+	float x;				/**< X position in meters in NED earth-fixed frame */
+	float y;				/**< Y position in meters in NED earth-fixed frame */
+	float z;				/**< Z position in meters in NED earth-fixed frame (negative altitude) */
+
+	float vx;				/**< X velocity in meters per second in NED earth-fixed frame */
+	float vy;				/**< Y velocity in meters per second in NED earth-fixed frame */
+	float vz;				/**< Z velocity in meters per second in NED earth-fixed frame */
+
+	float q[4];				/**< Estimated attitude as quaternion */
+
+	// XXX Add covariances here
+
+};
+
+/**
+ * @}
+ */
+
+/* register this as object request broker structure */
+ORB_DECLARE(vision_position_estimate);
+
+#endif /* TOPIC_VISION_POSITION_ESTIMATE_H_ */

@@ -136,6 +136,15 @@ public:
 	virtual int		init();
 
 	/**
+	 * Initialize the PX4IO class.
+	 *
+	 * Retrieve relevant initial system parameters. Initialize PX4IO registers.
+	 *
+	 * @param disable_rc_handling set to true to forbid override / RC handling on IO
+	 */
+	int			init(bool disable_rc_handling);
+
+	/**
 	 * Detect if a PX4IO is connected.
 	 *
 	 * Only validate if there is a PX4IO to talk to.
@@ -580,6 +589,12 @@ PX4IO::detect()
 }
 
 int
+PX4IO::init(bool rc_handling_disabled) {
+	_rc_handling_disabled = rc_handling_disabled;
+	return init();
+}
+
+int
 PX4IO::init()
 {
 	int ret;
@@ -777,6 +792,11 @@ PX4IO::init()
 
 		if (_rc_handling_disabled) {
 			ret = io_disable_rc_handling();
+
+			if (ret != OK) {
+				log("failed disabling RC handling");
+				return ret;
+			}
 
 		} else {
 			/* publish RC config to IO */
@@ -1175,6 +1195,7 @@ PX4IO::io_set_arming_state()
 int
 PX4IO::disable_rc_handling()
 {
+	_rc_handling_disabled = true;
 	return io_disable_rc_handling();
 }
 
@@ -2613,22 +2634,23 @@ start(int argc, char *argv[])
 		errx(1, "driver alloc failed");
 	}
 
-	if (OK != g_dev->init()) {
-		delete g_dev;
-		g_dev = nullptr;
-		errx(1, "driver init failed");
-	}
+	bool rc_handling_disabled = false;
 
 	/* disable RC handling on request */
 	if (argc > 1) {
 		if (!strcmp(argv[1], "norc")) {
 
-			if (g_dev->disable_rc_handling())
-				warnx("Failed disabling RC handling");
+			rc_handling_disabled = true;
 
 		} else {
 			warnx("unknown argument: %s", argv[1]);
 		}
+	}
+
+	if (OK != g_dev->init(rc_handling_disabled)) {
+		delete g_dev;
+		g_dev = nullptr;
+		errx(1, "driver init failed");
 	}
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
