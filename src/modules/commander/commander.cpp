@@ -552,10 +552,10 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			if (cmd->param1 > 0.5f) {
 				//XXX update state machine?
 				armed_local->force_failsafe = true;
-				warnx("forcing failsafe");
+				warnx("forcing failsafe (termination)");
 			} else {
 				armed_local->force_failsafe = false;
-				warnx("disabling failsafe");
+				warnx("disabling failsafe (termination)");
 			}
 			/* param2 is currently used for other failsafe modes */
 			status_local->engine_failure_cmd = false;
