@@ -252,7 +252,7 @@ int UavcanNode::run()
 	const unsigned PollTimeoutMs = 50;
 
 	float test_outputs[NUM_MOTOR_OUTPUTS];
-	float test_power;
+	float test_power = 0;
 
 	// XXX figure out the output count
 	_output_count = 2;
@@ -320,6 +320,7 @@ int UavcanNode::run()
 
 			// can we mix?
 			if (controls_updated && (_mixers != nullptr)  && _is_armed) {
+				test_power = 0;
 
 				// XXX one output group has 8 outputs max,
 				// but this driver could well serve multiple groups.
