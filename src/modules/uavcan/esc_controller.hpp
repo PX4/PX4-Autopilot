@@ -59,7 +59,8 @@ public:
 
 	void update_outputs(float *outputs, unsigned num_outputs);
 
-	void arm_esc(bool arm);
+	void arm_all_escs(bool arm);
+	void arm_single_esc(int num, bool arm);
 
 private:
 	/**
@@ -96,7 +97,7 @@ private:
 	/*
 	 * ESC states
 	 */
-	bool 				_armed = false;
+	uint32_t 			_armed_mask = 0;
 	uavcan::equipment::esc::Status	_states[MAX_ESCS];
 
 	/*
