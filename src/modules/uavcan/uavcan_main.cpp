@@ -102,6 +102,7 @@ UavcanNode::~UavcanNode()
 		// unregister_driver(PWM_OUTPUT_DEVICE_PATH);
 
 	::close(_armed_sub);
+	::close(_test_motor_sub);
 
 	_instance = nullptr;
 }
@@ -250,10 +251,14 @@ int UavcanNode::run()
 {
 	const unsigned PollTimeoutMs = 50;
 
+	float test_outputs[NUM_MOTOR_OUTPUTS];
+	float test_power;
+
 	// XXX figure out the output count
 	_output_count = 2;
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+	_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
 
 	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
@@ -314,7 +319,7 @@ int UavcanNode::run()
 			}
 
 			// can we mix?
-			if (controls_updated && (_mixers != nullptr)) {
+			if (controls_updated && (_mixers != nullptr)  && _is_armed) {
 
 				// XXX one output group has 8 outputs max,
 				// but this driver could well serve multiple groups.
@@ -366,6 +371,35 @@ int UavcanNode::run()
 			bool set_armed = _armed.armed && !_armed.lockdown;
 
 			arm_actuators(set_armed);
+		}
+
+		// motor test commanded?
+		if (!_is_armed) {
+			// only valid if disarmed
+			orb_check(_test_motor_sub, &updated);
+			if (updated && OK == orb_copy(ORB_ID(test_motor), _test_motor_sub, &_test_motor)) {
+				test_power = _test_motor.value;
+			}
+
+			// tests are started by submitting a power > 0 and stopped by power = 0;
+			if (test_power > 0.f) {
+				memset(&test_outputs, 0 , sizeof(test_outputs));
+				if (_test_motor.motor_number < NUM_MOTOR_OUTPUTS) {
+					// constrain power
+					if (test_power < 0.f)
+						test_power = 0.f;
+					if (test_power > MAX_TEST_POWER)
+						test_power = MAX_TEST_POWER;
+
+					// go
+					test_outputs[_test_motor.motor_number] = test_power*2-1;
+					_esc_controller.arm_single_esc(_test_motor.motor_number, true);
+					_esc_controller.update_outputs(test_outputs, NUM_MOTOR_OUTPUTS);
+				}
+			}
+			else {
+				_esc_controller.arm_all_escs(false);
+			}
 		}
 	}
 
