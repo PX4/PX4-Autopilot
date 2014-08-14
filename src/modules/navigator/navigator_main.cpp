@@ -141,6 +141,8 @@ Navigator::Navigator() :
 	_navigation_mode_array[1] = &_loiter;
 	_navigation_mode_array[2] = &_rtl;
 	_navigation_mode_array[3] = &_offboard;
+	_navigation_mode_array[4] = &_dataLinkLoss;
+	_navigation_mode_array[5] = &_engineFailure;
 
 	updateParams();
 }
