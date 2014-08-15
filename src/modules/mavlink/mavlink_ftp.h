@@ -154,15 +154,17 @@ private:
 
 			if (!success) {
 				warnx("FTP TX ERR");
-			} 
-			// else {
-				// warnx("wrote: sys: %d, comp: %d, chan: %d, len: %d, checksum: %d",
-				// 	_mavlink->get_system_id(),
-				// 	_mavlink->get_component_id(),
-				// 	_mavlink->get_channel(),
-				// 	len,
-				// 	msg.checksum);
-			// }
+			}
+#ifdef MAVLINK_FTP_DEBUG
+			else {
+				warnx("wrote: sys: %d, comp: %d, chan: %d, len: %d, checksum: %d",
+				      _mavlink->get_system_id(),
+				      _mavlink->get_component_id(),
+				      _mavlink->get_channel(),
+				      len,
+				      msg.checksum);
+			}
+#endif
 		}
 
 		uint8_t		*rawData() { return &_message.data[0]; }
