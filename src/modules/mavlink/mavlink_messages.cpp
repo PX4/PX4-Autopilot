@@ -1333,7 +1333,7 @@ protected:
 				}
 
 				for (unsigned i = 0; i < 8; i++) {
-					if (mavlink_base_mode & MAV_MODE_FLAG_SAFETY_ARMED) {
+					if (act.output[i] > PWM_LOWEST_MIN / 2) {
 						if (i < n) {
 							/* scale PWM out 900..2100 us to 0..1 for rotors */
 							out[i] = (act.output[i] - PWM_LOWEST_MIN) / (PWM_HIGHEST_MAX - PWM_LOWEST_MIN);
@@ -1344,7 +1344,7 @@ protected:
 						}
 
 					} else {
-						/* send 0 when disarmed */
+						/* send 0 when disarmed and for disabled channels */
 						out[i] = 0.0f;
 					}
 				}
@@ -1353,15 +1353,20 @@ protected:
 				/* fixed wing: scale throttle to 0..1 and other channels to -1..1 */
 
 				for (unsigned i = 0; i < 8; i++) {
-					if (i != 3) {
-						/* scale PWM out 900..2100 us to -1..1 for normal channels */
-						out[i] = (act.output[i] - pwm_center) / ((PWM_HIGHEST_MAX - PWM_LOWEST_MIN) / 2);
+					if (act.output[i] > PWM_LOWEST_MIN / 2) {
+						if (i != 3) {
+							/* scale PWM out 900..2100 us to -1..1 for normal channels */
+							out[i] = (act.output[i] - pwm_center) / ((PWM_HIGHEST_MAX - PWM_LOWEST_MIN) / 2);
+
+						} else {
+							/* scale PWM out 900..2100 us to 0..1 for throttle */
+							out[i] = (act.output[i] - PWM_LOWEST_MIN) / (PWM_HIGHEST_MAX - PWM_LOWEST_MIN);
+						}
 
 					} else {
-						/* scale PWM out 900..2100 us to 0..1 for throttle */
-						out[i] = (act.output[i] - PWM_LOWEST_MIN) / (PWM_HIGHEST_MAX - PWM_LOWEST_MIN);
+						/* set 0 for disabled channels */
+						out[i] = 0.0f;
 					}
-
 				}
 			}
 
@@ -1637,10 +1642,10 @@ protected:
 				msg.chan2_raw = (rc.channel_count > (i * port_width) + 1) ? rc.values[(i * port_width) + 1] : UINT16_MAX;
 				msg.chan3_raw = (rc.channel_count > (i * port_width) + 2) ? rc.values[(i * port_width) + 2] : UINT16_MAX;
 				msg.chan4_raw = (rc.channel_count > (i * port_width) + 3) ? rc.values[(i * port_width) + 3] : UINT16_MAX;
-				msg.chan4_raw = (rc.channel_count > (i * port_width) + 4) ? rc.values[(i * port_width) + 4] : UINT16_MAX;
-				msg.chan4_raw = (rc.channel_count > (i * port_width) + 5) ? rc.values[(i * port_width) + 5] : UINT16_MAX;
-				msg.chan4_raw = (rc.channel_count > (i * port_width) + 6) ? rc.values[(i * port_width) + 6] : UINT16_MAX;
-				msg.chan4_raw = (rc.channel_count > (i * port_width) + 7) ? rc.values[(i * port_width) + 7] : UINT16_MAX;
+				msg.chan5_raw = (rc.channel_count > (i * port_width) + 4) ? rc.values[(i * port_width) + 4] : UINT16_MAX;
+				msg.chan6_raw = (rc.channel_count > (i * port_width) + 5) ? rc.values[(i * port_width) + 5] : UINT16_MAX;
+				msg.chan7_raw = (rc.channel_count > (i * port_width) + 6) ? rc.values[(i * port_width) + 6] : UINT16_MAX;
+				msg.chan8_raw = (rc.channel_count > (i * port_width) + 7) ? rc.values[(i * port_width) + 7] : UINT16_MAX;
 				msg.rssi = rc.rssi;
 
 				_mavlink->send_message(MAVLINK_MSG_ID_RC_CHANNELS_RAW, &msg);
