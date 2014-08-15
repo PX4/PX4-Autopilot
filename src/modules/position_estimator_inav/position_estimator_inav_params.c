@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 Anton Babushkin. All rights reserved.
- *   Author: 	Anton Babushkin	<rk3dov@gmail.com>
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +34,8 @@
 /*
  * @file position_estimator_inav_params.c
  *
+ * @author Anton Babushkin <rk3dov@gmail.com>
+ *
  * Parameters for position_estimator_inav
  */
 
@@ -61,6 +62,17 @@ PARAM_DEFINE_FLOAT(INAV_W_Z_BARO, 0.5f);
  * @group Position Estimator INAV
  */
 PARAM_DEFINE_FLOAT(INAV_W_Z_GPS_P, 0.005f);
+
+/**
+ * Z axis weight for vision
+ *
+ * Weight (cutoff frequency) for vision altitude measurements. vision altitude data is very noisy and should be used only as slow correction for baro offset.
+ *
+ * @min 0.0
+ * @max 10.0
+ * @group Position Estimator INAV
+ */
+PARAM_DEFINE_FLOAT(INAV_W_Z_VIS_P, 0.5f);
 
 /**
  * Z axis weight for sonar
@@ -94,6 +106,28 @@ PARAM_DEFINE_FLOAT(INAV_W_XY_GPS_P, 1.0f);
  * @group Position Estimator INAV
  */
 PARAM_DEFINE_FLOAT(INAV_W_XY_GPS_V, 2.0f);
+
+/**
+ * XY axis weight for vision position
+ *
+ * Weight (cutoff frequency) for vision position measurements.
+ *
+ * @min 0.0
+ * @max 10.0
+ * @group Position Estimator INAV
+ */
+PARAM_DEFINE_FLOAT(INAV_W_XY_VIS_P, 5.0f);
+
+/**
+ * XY axis weight for vision velocity
+ *
+ * Weight (cutoff frequency) for vision velocity measurements.
+ *
+ * @min 0.0
+ * @max 10.0
+ * @group Position Estimator INAV
+ */
+PARAM_DEFINE_FLOAT(INAV_W_XY_VIS_V, 0.0f);
 
 /**
  * XY axis weight for optical flow
@@ -232,13 +266,27 @@ PARAM_DEFINE_FLOAT(INAV_LAND_THR, 0.2f);
  */
 PARAM_DEFINE_FLOAT(INAV_DELAY_GPS, 0.2f);
 
+/**
+ * Disable vision input
+ *
+ * Set to the appropriate key (328754) to disable vision input.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group Position Estimator INAV
+ */
+PARAM_DEFINE_INT32(CBRK_NO_VISION, 0);
+
 int parameters_init(struct position_estimator_inav_param_handles *h)
 {
 	h->w_z_baro = param_find("INAV_W_Z_BARO");
 	h->w_z_gps_p = param_find("INAV_W_Z_GPS_P");
+	h->w_z_vision_p = param_find("INAV_W_Z_VIS_P");
 	h->w_z_sonar = param_find("INAV_W_Z_SONAR");
 	h->w_xy_gps_p = param_find("INAV_W_XY_GPS_P");
 	h->w_xy_gps_v = param_find("INAV_W_XY_GPS_V");
+	h->w_xy_vision_p = param_find("INAV_W_XY_VIS_P");
+	h->w_xy_vision_v = param_find("INAV_W_XY_VIS_V");
 	h->w_xy_flow = param_find("INAV_W_XY_FLOW");
 	h->w_xy_res_v = param_find("INAV_W_XY_RES_V");
 	h->w_gps_flow = param_find("INAV_W_GPS_FLOW");
@@ -250,6 +298,7 @@ int parameters_init(struct position_estimator_inav_param_handles *h)
 	h->land_t = param_find("INAV_LAND_T");
 	h->land_disp = param_find("INAV_LAND_DISP");
 	h->land_thr = param_find("INAV_LAND_THR");
+	h->no_vision = param_find("CBRK_NO_VISION");
 	h->delay_gps = param_find("INAV_DELAY_GPS");
 
 	return OK;
@@ -259,9 +308,12 @@ int parameters_update(const struct position_estimator_inav_param_handles *h, str
 {
 	param_get(h->w_z_baro, &(p->w_z_baro));
 	param_get(h->w_z_gps_p, &(p->w_z_gps_p));
+	param_get(h->w_z_vision_p, &(p->w_z_vision_p));
 	param_get(h->w_z_sonar, &(p->w_z_sonar));
 	param_get(h->w_xy_gps_p, &(p->w_xy_gps_p));
 	param_get(h->w_xy_gps_v, &(p->w_xy_gps_v));
+	param_get(h->w_xy_vision_p, &(p->w_xy_vision_p));
+	param_get(h->w_xy_vision_v, &(p->w_xy_vision_v));
 	param_get(h->w_xy_flow, &(p->w_xy_flow));
 	param_get(h->w_xy_res_v, &(p->w_xy_res_v));
 	param_get(h->w_gps_flow, &(p->w_gps_flow));
@@ -273,6 +325,7 @@ int parameters_update(const struct position_estimator_inav_param_handles *h, str
 	param_get(h->land_t, &(p->land_t));
 	param_get(h->land_disp, &(p->land_disp));
 	param_get(h->land_thr, &(p->land_thr));
+	param_get(h->no_vision, &(p->no_vision));
 	param_get(h->delay_gps, &(p->delay_gps));
 
 	return OK;
