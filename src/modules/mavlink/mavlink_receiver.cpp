@@ -472,7 +472,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					/* set the local pos values if the setpoint type is 'local pos' and none
 					 * of the local pos fields is set to 'ignore' */
 					if (offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED &&
-							!offboard_control_sp_ignore_position_all(offboard_control_sp)) {
+							!offboard_control_sp_ignore_position_some(offboard_control_sp)) {
 					pos_sp_triplet.current.type = SETPOINT_TYPE_POSITION; //XXX support others
 					pos_sp_triplet.current.position_valid = true;
 					pos_sp_triplet.current.x = offboard_control_sp.position[0];
@@ -485,7 +485,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					/* set the local vel values if the setpoint type is 'local pos' and none
 					 * of the local vel fields is set to 'ignore' */
 					if (offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED &&
-							!offboard_control_sp_ignore_velocity_all(offboard_control_sp)) {
+							!offboard_control_sp_ignore_velocity_some(offboard_control_sp)) {
 						pos_sp_triplet.current.type = SETPOINT_TYPE_POSITION; //XXX support others
 						pos_sp_triplet.current.velocity_valid = true;
 						pos_sp_triplet.current.vx = offboard_control_sp.velocity[0];
@@ -498,7 +498,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					/* set the local acceleration values if the setpoint type is 'local pos' and none
 					 * of the accelerations fields is set to 'ignore' */
 					if (offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED &&
-							!offboard_control_sp_ignore_acceleration_all(offboard_control_sp)) {
+							!offboard_control_sp_ignore_acceleration_some(offboard_control_sp)) {
 						pos_sp_triplet.current.type = SETPOINT_TYPE_POSITION; //XXX support others
 						pos_sp_triplet.current.acceleration_valid = true;
 						pos_sp_triplet.current.a_x = offboard_control_sp.acceleration[0];
@@ -589,12 +589,17 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		offboard_control_sp.attitude_rate[1] = set_attitude_target.body_pitch_rate;
 		offboard_control_sp.attitude_rate[2] = set_attitude_target.body_yaw_rate;
 
+		/* set correct ignore flags for body rate fields: copy from mavlink message */
 		for (int i = 0; i < 3; i++) {
-			offboard_control_sp.ignore &=  ~(1 << (i + 9));
-			offboard_control_sp.ignore |=  (set_attitude_target.type_mask & (1 << i)) << 9;
+			offboard_control_sp.ignore &=  ~(1 << (i + OFB_IGN_BIT_BODYRATE_X));
+			offboard_control_sp.ignore |=  (set_attitude_target.type_mask & (1 << i)) << OFB_IGN_BIT_BODYRATE_X;
 		}
-		offboard_control_sp.ignore &= ~(1 << 10);
-		offboard_control_sp.ignore |= ((set_attitude_target.type_mask & (1 << 7)) << 3);
+		/* set correct ignore flags for thrust field: copy from mavlink message */
+		offboard_control_sp.ignore &= ~(1 << OFB_IGN_BIT_THRUST);
+		offboard_control_sp.ignore |= ((set_attitude_target.type_mask & (1 << 6)) << OFB_IGN_BIT_THRUST);
+		/* set correct ignore flags for attitude field: copy from mavlink message */
+		offboard_control_sp.ignore &= ~(1 << OFB_IGN_BIT_ATT);
+		offboard_control_sp.ignore |= ((set_attitude_target.type_mask & (1 << 7)) << OFB_IGN_BIT_ATT);
 
 
 		offboard_control_sp.timestamp = hrt_absolute_time();
@@ -618,8 +623,9 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 
 			if (_control_mode.flag_control_offboard_enabled) {
 
-				/* Publish attitude setpoint if ignore bit is not set */
-				if (!(set_attitude_target.type_mask & (1 << 7))) {
+				/* Publish attitude setpoint if attitude and thrust ignore bits are not set */
+				if (!(offboard_control_sp_ignore_attitude(offboard_control_sp) ||
+							offboard_control_sp_ignore_thrust(offboard_control_sp))) {
 					struct vehicle_attitude_setpoint_s att_sp;
 					att_sp.timestamp = hrt_absolute_time();
 					mavlink_quaternion_to_euler(set_attitude_target.q,
@@ -634,9 +640,10 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					}
 				}
 
-				/* Publish attitude rate setpoint if ignore bit are not set */
+				/* Publish attitude rate setpoint if bodyrate and thrust ignore bits are not set */
 				///XXX add support for ignoring individual axes
-				if (!(set_attitude_target.type_mask & (0b111))) {
+				if (!(offboard_control_sp_ignore_bodyrates_some(offboard_control_sp) ||
+							offboard_control_sp_ignore_thrust(offboard_control_sp))) {
 					struct vehicle_rates_setpoint_s rates_sp;
 					rates_sp.timestamp = hrt_absolute_time();
 					rates_sp.roll = set_attitude_target.body_roll_rate;

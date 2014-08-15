@@ -61,7 +61,7 @@ enum OFFBOARD_CONTROL_MODE {
 	OFFBOARD_CONTROL_MODE_DIRECT_FORCE = 8,
 	OFFBOARD_CONTROL_MODE_ATT_YAW_RATE = 9,
 	OFFBOARD_CONTROL_MODE_ATT_YAW_POS = 10,
-	OFFBOARD_CONTROL_MODE_MULTIROTOR_SIMPLE = 11, /**< roll / pitch rotated aligned to the takeoff orientation, throttle stabilized, yaw pos */
+	OFFBOARD_CONTROL_MODE_MULTIROTOR_SIMPLE = 11 /**< roll / pitch rotated aligned to the takeoff orientation, throttle stabilized, yaw pos */
 };
 
 enum OFFBOARD_CONTROL_FRAME {
@@ -70,6 +70,23 @@ enum OFFBOARD_CONTROL_FRAME {
 	OFFBOARD_CONTROL_FRAME_BODY_NED = 2,
 	OFFBOARD_CONTROL_FRAME_BODY_OFFSET_NED = 3,
 	OFFBOARD_CONTROL_FRAME_GLOBAL = 4
+};
+
+/* mappings for the ignore bitmask */
+enum {OFB_IGN_BIT_POS_X,
+	OFB_IGN_BIT_POS_Y,
+	OFB_IGN_BIT_POS_Z,
+	OFB_IGN_BIT_VEL_X,
+	OFB_IGN_BIT_VEL_Y,
+	OFB_IGN_BIT_VEL_Z,
+	OFB_IGN_BIT_ACC_X,
+	OFB_IGN_BIT_ACC_Y,
+	OFB_IGN_BIT_ACC_Z,
+	OFB_IGN_BIT_BODYRATE_X,
+	OFB_IGN_BIT_BODYRATE_Y,
+	OFB_IGN_BIT_BODYRATE_Z,
+	OFB_IGN_BIT_ATT,
+	OFB_IGN_BIT_THRUST
 };
 
 /**
@@ -87,9 +104,11 @@ struct offboard_control_setpoint_s {
 	float acceleration[3];	/**< x acc, y acc, z acc */
 	float attitude[4];	/**< attitude of vehicle (quaternion) */
 	float attitude_rate[3];	/**< body angular rates (x, y, z) */
+	float thrust;	/**< thrust */
 
-	uint16_t ignore; /**< if field i is set to true, pi should be ignored */
-	//XXX define constants for bit offsets
+	uint16_t ignore; /**< if field i is set to true, the value should be ignored, see definition at top of file
+			   for mapping */
+
 	bool isForceSetpoint; /**< the acceleration vector should be interpreted as force */
 
 	float override_mode_switch;
@@ -108,13 +127,25 @@ struct offboard_control_setpoint_s {
  * Returns true if the position setpoint at index should be ignored
  */
 inline bool offboard_control_sp_ignore_position(const struct offboard_control_setpoint_s &offboard_control_sp, int index) {
-	return (bool)(offboard_control_sp.ignore & (1 << index));
+	return (bool)(offboard_control_sp.ignore & (1 << (OFB_IGN_BIT_POS_X +  index)));
 }
 
 /**
  * Returns true if all position setpoints should be ignored
  */
 inline bool offboard_control_sp_ignore_position_all(const struct offboard_control_setpoint_s &offboard_control_sp) {
+	for (int i = 0; i < 3; i++) {
+		if (!offboard_control_sp_ignore_position(offboard_control_sp, i))	{
+			return false;
+		}
+	}
+	return true;
+}
+
+/**
+ * Returns true if some position setpoints should be ignored
+ */
+inline bool offboard_control_sp_ignore_position_some(const struct offboard_control_setpoint_s &offboard_control_sp) {
 	for (int i = 0; i < 3; i++) {
 		if (offboard_control_sp_ignore_position(offboard_control_sp, i))	{
 			return true;
@@ -127,13 +158,25 @@ inline bool offboard_control_sp_ignore_position_all(const struct offboard_contro
  * Returns true if the velocity setpoint at index should be ignored
  */
 inline bool offboard_control_sp_ignore_velocity(const struct offboard_control_setpoint_s &offboard_control_sp, int index) {
-	return (bool)(offboard_control_sp.ignore & (1 << (3 + index)));
+	return (bool)(offboard_control_sp.ignore & (1 << (OFB_IGN_BIT_VEL_X + index)));
 }
 
 /**
  * Returns true if all velocity setpoints should be ignored
  */
 inline bool offboard_control_sp_ignore_velocity_all(const struct offboard_control_setpoint_s &offboard_control_sp) {
+	for (int i = 0; i < 3; i++) {
+		if (!offboard_control_sp_ignore_velocity(offboard_control_sp, i))	{
+			return false;
+		}
+	}
+	return true;
+}
+
+/**
+ * Returns true if some velocity setpoints should be ignored
+ */
+inline bool offboard_control_sp_ignore_velocity_some(const struct offboard_control_setpoint_s &offboard_control_sp) {
 	for (int i = 0; i < 3; i++) {
 		if (offboard_control_sp_ignore_velocity(offboard_control_sp, i))	{
 			return true;
@@ -146,13 +189,25 @@ inline bool offboard_control_sp_ignore_velocity_all(const struct offboard_contro
  * Returns true if the acceleration setpoint at index should be ignored
  */
 inline bool offboard_control_sp_ignore_acceleration(const struct offboard_control_setpoint_s &offboard_control_sp, int index) {
-	return (bool)(offboard_control_sp.ignore & (1 << (6 + index)));
+	return (bool)(offboard_control_sp.ignore & (1 << (OFB_IGN_BIT_ACC_X + index)));
 }
 
 /**
  * Returns true if all acceleration setpoints should be ignored
  */
 inline bool offboard_control_sp_ignore_acceleration_all(const struct offboard_control_setpoint_s &offboard_control_sp) {
+	for (int i = 0; i < 3; i++) {
+		if (!offboard_control_sp_ignore_acceleration(offboard_control_sp, i))	{
+			return false;
+		}
+	}
+	return true;
+}
+
+/**
+ * Returns true if some acceleration setpoints should be ignored
+ */
+inline bool offboard_control_sp_ignore_acceleration_some(const struct offboard_control_setpoint_s &offboard_control_sp) {
 	for (int i = 0; i < 3; i++) {
 		if (offboard_control_sp_ignore_acceleration(offboard_control_sp, i))	{
 			return true;
@@ -165,14 +220,33 @@ inline bool offboard_control_sp_ignore_acceleration_all(const struct offboard_co
  * Returns true if the bodyrate setpoint at index should be ignored
  */
 inline bool offboard_control_sp_ignore_bodyrates(const struct offboard_control_setpoint_s &offboard_control_sp, int index) {
-	return (bool)(offboard_control_sp.ignore & (1 << (9 + index)));
+	return (bool)(offboard_control_sp.ignore & (1 << (OFB_IGN_BIT_BODYRATE_X + index)));
+}
+
+/**
+ * Returns true if some of the bodyrate setpoints should be ignored
+ */
+inline bool offboard_control_sp_ignore_bodyrates_some(const struct offboard_control_setpoint_s &offboard_control_sp) {
+	for (int i = 0; i < 3; i++) {
+		if (offboard_control_sp_ignore_bodyrates(offboard_control_sp, i))	{
+			return true;
+		}
+	}
+	return false;
 }
 
 /**
  * Returns true if the attitude setpoint should be ignored
  */
 inline bool offboard_control_sp_ignore_attitude(const struct offboard_control_setpoint_s &offboard_control_sp) {
-	return (bool)(offboard_control_sp.ignore & (1 << 10));
+	return (bool)(offboard_control_sp.ignore & (1 << OFB_IGN_BIT_ATT));
+}
+
+/**
+ * Returns true if the thrust setpoint should be ignored
+ */
+inline bool offboard_control_sp_ignore_thrust(const struct offboard_control_setpoint_s &offboard_control_sp) {
+	return (bool)(offboard_control_sp.ignore & (1 << OFB_IGN_BIT_THRUST));
 }
 
 
