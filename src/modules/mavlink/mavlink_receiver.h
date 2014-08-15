@@ -119,6 +119,7 @@ private:
 	void handle_message_manual_control(mavlink_message_t *msg);
 	void handle_message_heartbeat(mavlink_message_t *msg);
 	void handle_message_request_data_stream(mavlink_message_t *msg);
+	void handle_message_system_time(mavlink_message_t *msg);
 	void handle_message_hil_sensor(mavlink_message_t *msg);
 	void handle_message_hil_gps(mavlink_message_t *msg);
 	void handle_message_hil_state_quaternion(mavlink_message_t *msg);

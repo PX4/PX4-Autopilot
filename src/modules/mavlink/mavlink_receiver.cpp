@@ -169,6 +169,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_request_data_stream(msg);
 		break;
 
+	case MAVLINK_MSG_ID_SYSTEM_TIME:
+		handle_message_system_time(msg);
+		break;
+
 	case MAVLINK_MSG_ID_ENCAPSULATED_DATA:
 		MavlinkFTP::getServer()->handle_message(_mavlink, msg);
 		break;
@@ -514,6 +518,23 @@ MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
 			}
 		}
 	}
+}
+
+void
+MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
+{
+	mavlink_system_time_t t;
+	mavlink_msg_system_time_decode(msg, &t);
+
+#ifndef CONFIG_RTC
+//Since we lack a hardware RTC, set the system time clock based on companion computer UTC time
+
+timespec ts;
+ts.tv_sec = t.time_unix_usec;
+ts.tv_nsec = t.time_boot_ms;
+clock_settime(CLOCK_REALTIME, &ts);
+
+#endif
 }
 
 void
