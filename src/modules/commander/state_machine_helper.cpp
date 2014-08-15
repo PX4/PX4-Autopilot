@@ -491,10 +491,19 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 
 	case MAIN_STATE_AUTO_MISSION:
 		/* go into failsafe
+		 * - if commanded to do so
 		 * - if we have an engine failure
 		 * - if either the datalink is enabled and lost as well as RC is lost
 		 * - if there is no datalink and the mission is finished */
-		if (status->engine_failure) {
+		if (status->engine_failure_cmd) {
+			status->nav_state = NAVIGATION_STATE_AUTO_LANDENGFAIL;
+		} else if (status->data_link_lost_cmd) {
+			status->nav_state = NAVIGATION_STATE_AUTO_RTGS;
+		//} else if (status->gps_failure_cmd) {
+			//status->nav_state = NAVIGATION_STATE_AUTO_***;
+		} else if (status->rc_signal_lost_cmd) {
+			status->nav_state = NAVIGATION_STATE_AUTO_RTGS; //XXX
+		} else if (status->engine_failure) {
 			status->nav_state = NAVIGATION_STATE_AUTO_LANDENGFAIL;
 		} else if (((status->data_link_lost && data_link_loss_enabled) && status->rc_signal_lost) ||
 		    (!data_link_loss_enabled && status->rc_signal_lost && mission_finished)) {

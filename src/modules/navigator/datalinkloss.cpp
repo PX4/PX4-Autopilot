@@ -58,14 +58,14 @@
 DataLinkLoss::DataLinkLoss(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_vehicleStatus(&getSubscriptions(), ORB_ID(vehicle_status), 100),
-	_param_commsholdwaittime(this, "CH_T"),
-	_param_commsholdlat(this, "CH_LAT"),
-	_param_commsholdlon(this, "CH_LON"),
-	_param_commsholdalt(this, "CH_ALT"),
-	_param_airfieldhomelat(this, "AH_LAT"),
-	_param_airfieldhomelon(this, "AH_LON"),
-	_param_airfieldhomealt(this, "AH_ALT"),
-	_param_numberdatalinklosses(this, "DLL_N"),
+	_param_commsholdwaittime(this, "NAV_DLL_CH_T", false),
+	_param_commsholdlat(this, "NAV_DLL_CH_LAT", false),
+	_param_commsholdlon(this, "NAV_DLL_CH_LON", false),
+	_param_commsholdalt(this, "NAV_DLL_CH_ALT", false),
+	_param_airfieldhomelat(this, "NAV_DLL_AH_LAT", false),
+	_param_airfieldhomelon(this, "NAV_DLL_AH_LON", false),
+	_param_airfieldhomealt(this, "NAV_DLL_AH_ALT", false),
+	_param_numberdatalinklosses(this, "NAV_DLL_N", false),
 	_dll_state(DLL_STATE_NONE)
 {
 	/* load initial params */
@@ -81,7 +81,7 @@ DataLinkLoss::~DataLinkLoss()
 void
 DataLinkLoss::on_inactive()
 {
-	/* reset RTL state only if setpoint moved */
+	/* reset DLL state only if setpoint moved */
 	if (!_navigator->get_can_loiter_at_sp()) {
 		_dll_state = DLL_STATE_NONE;
 	}
@@ -90,7 +90,8 @@ DataLinkLoss::on_inactive()
 void
 DataLinkLoss::on_activation()
 {
-	_dll_state = DLL_STATE_FLYTOCOMMSHOLDWP;
+	_dll_state = DLL_STATE_NONE;
+	advance_dll();
 	set_dll_item();
 }
 
@@ -131,6 +132,10 @@ DataLinkLoss::set_dll_item()
 		_mission_item.origin = ORIGIN_ONBOARD;
 
 		_navigator->set_can_loiter_at_sp(true);
+		warnx("mission item: lat %.7f lon %.7f alt %.3f",
+			_mission_item.lat,
+			_mission_item.lon,
+			(double)_mission_item.altitude);
 		break;
 	}
 	case DLL_STATE_FLYTOAIRFIELDHOMEWP: {
@@ -159,6 +164,10 @@ DataLinkLoss::set_dll_item()
 	/* convert mission item to current position setpoint and make it valid */
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
+	warnx("triplet current: lat %.7f lon %.7f alt %.3f",
+			pos_sp_triplet->current.lat,
+			pos_sp_triplet->current.lon,
+			(double)pos_sp_triplet->current.alt);
 
 	_navigator->set_position_setpoint_triplet_updated();
 }
@@ -166,18 +175,21 @@ DataLinkLoss::set_dll_item()
 void
 DataLinkLoss::advance_dll()
 {
+	warnx("dll_state %u", _dll_state);
 	switch (_dll_state) {
 	case DLL_STATE_NONE:
 		/* Check the number of data link losses. If above home fly home directly */
 		updateSubscriptions();
 		if (_vehicleStatus.data_link_lost_counter > _param_numberdatalinklosses.get()) {
+			warnx("too many data link losses, fly to airfield home");
 			_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 		} else {
+			warnx("fly to comms hold");
 			_dll_state = DLL_STATE_FLYTOCOMMSHOLDWP;
 		}
 		break;
 	case DLL_STATE_FLYTOCOMMSHOLDWP:
-		//XXX check here if time is over are over
+		warnx("fly to airfield home");
 		_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 		_navigator->get_mission_result()->stay_in_failsafe = true;
 		_navigator->publish_mission_result();

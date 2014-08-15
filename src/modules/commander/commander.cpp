@@ -554,10 +554,35 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			if (cmd->param1 > 0.5f) {
 				//XXX update state machine?
 				armed_local->force_failsafe = true;
-				warnx("forcing failsafe");
+				warnx("forcing failsafe (termination)");
 			} else {
 				armed_local->force_failsafe = false;
-				warnx("disabling failsafe");
+				warnx("disabling failsafe (termination)");
+			}
+			/* param2 is currently used for other failsafe modes */
+			status_local->engine_failure_cmd = false;
+			status_local->data_link_lost_cmd = false;
+			status_local->gps_failure_cmd = false;
+			status_local->rc_signal_lost_cmd = false;
+			if ((int)cmd->param2 <= 0) {
+				/* reset all commanded failure modes */
+				warnx("revert to normal mode");
+			} else if ((int)cmd->param2 == 1) {
+				/* trigger engine failure mode */
+				status_local->engine_failure_cmd = true;
+				warnx("engine failure mode commanded");
+			} else if ((int)cmd->param2 == 2) {
+				/* trigger data link loss mode */
+				status_local->data_link_lost_cmd = true;
+				warnx("data link loss mode commanded");
+			} else if ((int)cmd->param2 == 3) {
+				/* trigger gps loss mode */
+				status_local->gps_failure_cmd = true;
+				warnx("gps loss mode commanded");
+			} else if ((int)cmd->param2 == 4) {
+				/* trigger rc loss mode */
+				status_local->rc_signal_lost_cmd = true;
+				warnx("rc loss mode commanded");
 			}
 			cmd_result = VEHICLE_CMD_RESULT_ACCEPTED;
 		}
