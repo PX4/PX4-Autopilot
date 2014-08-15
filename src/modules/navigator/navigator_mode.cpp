@@ -43,7 +43,7 @@
 #include "navigator.h"
 
 NavigatorMode::NavigatorMode(Navigator *navigator, const char *name) :
-	SuperBlock(NULL, name),
+	SuperBlock(navigator, name),
 	_navigator(navigator),
 	_first_run(true)
 {

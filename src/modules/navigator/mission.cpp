@@ -59,9 +59,9 @@
 
 Mission::Mission(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
-	_param_onboard_enabled(this, "ONBOARD_EN"),
-	_param_takeoff_alt(this, "TAKEOFF_ALT"),
-	_param_dist_1wp(this, "DIST_1WP"),
+	_param_onboard_enabled(this, "MIS_ONBOARD_EN", false),
+	_param_takeoff_alt(this, "MIS_TAKEOFF_ALT", false),
+	_param_dist_1wp(this, "MIS_DIST_1WP", false),
 	_onboard_mission({0}),
 	_offboard_mission({0}),
 	_current_onboard_mission_index(-1),

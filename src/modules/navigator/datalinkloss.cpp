@@ -58,14 +58,14 @@
 DataLinkLoss::DataLinkLoss(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_vehicleStatus(&getSubscriptions(), ORB_ID(vehicle_status), 100),
-	_param_commsholdwaittime(this, "NAV_DLL_CH_T", false),
-	_param_commsholdlat(this, "NAV_DLL_CH_LAT", false),
-	_param_commsholdlon(this, "NAV_DLL_CH_LON", false),
-	_param_commsholdalt(this, "NAV_DLL_CH_ALT", false),
-	_param_airfieldhomelat(this, "NAV_DLL_AH_LAT", false),
-	_param_airfieldhomelon(this, "NAV_DLL_AH_LON", false),
-	_param_airfieldhomealt(this, "NAV_DLL_AH_ALT", false),
-	_param_numberdatalinklosses(this, "NAV_DLL_N", false),
+	_param_commsholdwaittime(this, "CH_T"),
+	_param_commsholdlat(this, "CH_LAT"),
+	_param_commsholdlon(this, "CH_LON"),
+	_param_commsholdalt(this, "CH_ALT"),
+	_param_airfieldhomelat(this, "AH_LAT"),
+	_param_airfieldhomelon(this, "AH_LON"),
+	_param_airfieldhomealt(this, "AH_ALT"),
+	_param_numberdatalinklosses(this, "N"),
 	_dll_state(DLL_STATE_NONE)
 {
 	/* load initial params */
@@ -182,14 +182,17 @@ DataLinkLoss::advance_dll()
 		updateSubscriptions();
 		if (_vehicleStatus.data_link_lost_counter > _param_numberdatalinklosses.get()) {
 			warnx("too many data link losses, fly to airfield home");
+			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: too many DL losses, fly to home");
 			_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 		} else {
 			warnx("fly to comms hold");
+			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: fly to comms hold");
 			_dll_state = DLL_STATE_FLYTOCOMMSHOLDWP;
 		}
 		break;
 	case DLL_STATE_FLYTOCOMMSHOLDWP:
 		warnx("fly to airfield home");
+			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: fly to home");
 		_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 		_navigator->get_mission_result()->stay_in_failsafe = true;
 		_navigator->publish_mission_result();
