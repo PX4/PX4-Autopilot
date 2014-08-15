@@ -132,10 +132,6 @@ DataLinkLoss::set_dll_item()
 		_mission_item.origin = ORIGIN_ONBOARD;
 
 		_navigator->set_can_loiter_at_sp(true);
-		warnx("mission item: lat %.7f lon %.7f alt %.3f",
-			_mission_item.lat,
-			_mission_item.lon,
-			(double)_mission_item.altitude);
 		break;
 	}
 	case DLL_STATE_FLYTOAIRFIELDHOMEWP: {
@@ -164,10 +160,6 @@ DataLinkLoss::set_dll_item()
 	/* convert mission item to current position setpoint and make it valid */
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
-	warnx("triplet current: lat %.7f lon %.7f alt %.3f",
-			pos_sp_triplet->current.lat,
-			pos_sp_triplet->current.lon,
-			(double)pos_sp_triplet->current.alt);
 
 	_navigator->set_position_setpoint_triplet_updated();
 }
