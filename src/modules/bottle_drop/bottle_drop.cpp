@@ -112,15 +112,19 @@ private:
 	int		_command_sub;
 	int		_wind_estimate_sub;
 	struct vehicle_command_s	_command;
+	struct vehicle_global_position_s _global_pos;
+	map_projection_reference_s ref;
 
 	orb_advert_t	_actuator_pub;
 	struct actuator_controls_s _actuators;
 
-	bool		drop_approval;
+	bool		_drop_approval;
 	bool		_open_door;
 	bool		_drop;
 	hrt_abstime	_doors_opened;
 	hrt_abstime	_drop_time;
+
+	float		_alt_clearance;
 
 	struct position_s {
 		double lat; //degrees
@@ -159,12 +163,16 @@ BottleDrop::BottleDrop() :
 	_command_sub(-1),
 	_wind_estimate_sub(-1),
 	_command {},
-	 _actuator_pub(-1),
-	 _actuators {},
-	 _open_door(false),
-	 _drop(false),
-	 _doors_opened(0),
-	 _drop_time(0)
+	_global_pos {},
+	ref {},
+	_actuator_pub(-1),
+	_actuators {},
+	_drop_approval(false),
+	_open_door(false),
+	_drop(false),
+	_doors_opened(0),
+	_drop_time(0),
+	_alt_clearance(0)
 {
 }
 
@@ -310,7 +318,6 @@ BottleDrop::task_main()
 
 	bool updated = false;
 
-	float height;		// height at which the normal should be dropped NED
 	float z_0;		// ground properties
 	float turn_radius;	// turn radius of the UAV
 	float precision;	// Expected precision of the UAV
@@ -319,12 +326,12 @@ BottleDrop::task_main()
 	float ground_distance = 70.0f;
 
 	// constant
-	float g = 9.81f;               		// constant of gravity [m/s^2]
+	float g = CONSTANTS_ONE_G;               		// constant of gravity [m/s^2]
 	float m = 0.5f;                		// mass of bottle [kg]
 	float rho = 1.2f;              		// air density [kg/m^3]
-	float A = (powf(0.063f, 2.0f) / 4.0f * M_PI_F); // Bottle cross section [m^2]
-	float dt = 0.01f;             		// step size [s]
-	float dt2 = 0.05f;			// step size 2 [s]
+	float A = ((0.063f * 0.063f) / 4.0f * M_PI_F); // Bottle cross section [m^2]
+	float dt_freefall_prediction = 0.01f;   // step size of the free fall prediction [s]
+	float dt_runs = 0.05f;			// step size 2 [s]
 
 	// Has to be estimated by experiment
 	float cd = 0.86f;              	// Drag coefficient for a cylinder with a d/l ratio of 1/3 []
@@ -352,8 +359,8 @@ BottleDrop::task_main()
 	float x_drop, y_drop;					// coordinates of the drop point in reference to the target (projection of NED)
 	float x_t, y_t;						// coordinates of the target in reference to the target x_t = 0, y_t = 0 (projection of NED)
 	float x_l, y_l;						// local position in projected coordinates
-	float x_f, y_f;						// to-be position of the UAV after dt2 seconds in projected coordinates
-	double x_f_NED, y_f_NED;				// to-be position of the UAV after dt2 seconds in NED
+	float x_f, y_f;						// to-be position of the UAV after dt_runs seconds in projected coordinates
+	double x_f_NED, y_f_NED;				// to-be position of the UAV after dt_runs seconds in NED
 	float distance_open_door;				// The distance the UAV travels during its doors open [m]
 	float distance_real = 0;				// The distance between the UAVs position and the drop point [m]
 	float future_distance = 0;				// The distance between the UAVs to-be position and the drop point [m]
@@ -364,7 +371,6 @@ BottleDrop::task_main()
 
 	unsigned counter = 0;
 
-	param_t param_height = param_find("BD_HEIGHT");
 	param_t param_gproperties = param_find("BD_GPROPERTIES");
 	param_t param_turn_radius = param_find("BD_TURNRADIUS");
 	param_t param_precision = param_find("BD_PRECISION");
@@ -372,11 +378,8 @@ BottleDrop::task_main()
 
 	param_get(param_precision, &precision);
 	param_get(param_turn_radius, &turn_radius);
-	param_get(param_height, &height);
 	param_get(param_gproperties, &z_0);
 
-	struct vehicle_global_position_s globalpos;
-	memset(&globalpos, 0, sizeof(globalpos));
 	int vehicle_global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 
 	struct parameter_update_s update;
@@ -389,6 +392,7 @@ BottleDrop::task_main()
 	flight_vector_s.nav_cmd = NAV_CMD_WAYPOINT;
 	flight_vector_s.acceptance_radius = 50; // TODO: make parameter
 	flight_vector_s.autocontinue = true;
+
 	flight_vector_e.nav_cmd = NAV_CMD_WAYPOINT;
 	flight_vector_e.acceptance_radius = 50; // TODO: make parameter
 	flight_vector_e.autocontinue = true;
@@ -397,13 +401,10 @@ BottleDrop::task_main()
 	memset(&onboard_mission, 0, sizeof(onboard_mission));
 	orb_advert_t onboard_mission_pub = -1;
 
-	bool position_initialized = false;
 	double latitude;
 	double longitude;
 
 	struct wind_estimate_s wind;
-
-	map_projection_reference_s ref;
 
 	/* wakeup source(s) */
 	struct pollfd fds[1];
@@ -435,15 +436,20 @@ BottleDrop::task_main()
 		orb_check(vehicle_global_position_sub, &updated);
 		if (updated) {
 			/* copy global position */
-			orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, &globalpos);
+			orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, &_global_pos);
 
-			latitude = (double)globalpos.lat / 1e7;
-			longitude = (double)globalpos.lon / 1e7;
+			latitude = (double)_global_pos.lat / 1e7;
+			longitude = (double)_global_pos.lon / 1e7;
 		}
 
-		if (!position_initialized) {
+		if (_global_pos.timestamp == 0) {
 			continue;
 		}
+
+		const unsigned sleeptime_us = 10000;
+
+		hrt_abstime last_run = hrt_absolute_time();
+		dt_runs = 1e6f / sleeptime_us;
 
 		/* switch to faster updates during the drop */
 		while (_drop) {
@@ -464,10 +470,10 @@ BottleDrop::task_main()
 
 			if (updated) {
 				/* copy global position */
-				orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, &globalpos);
+				orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, &_global_pos);
 
-				latitude = (double)globalpos.lat / 1e7;
-				longitude = (double)globalpos.lon / 1e7;
+				latitude = (double)_global_pos.lat / 1e7;
+				longitude = (double)_global_pos.lon / 1e7;
 			}
 
 			orb_check(parameter_update_sub, &updated);
@@ -477,7 +483,6 @@ BottleDrop::task_main()
 				orb_copy(ORB_ID(parameter_update), parameter_update_sub, &update);
 
 				/* update all parameters */
-				param_get(param_height, &height);
 				param_get(param_gproperties, &z_0);
 				param_get(param_turn_radius, &turn_radius);
 				param_get(param_precision, &precision);
@@ -486,7 +491,7 @@ BottleDrop::task_main()
 			// Initialization
 
 			float windspeed_norm = sqrtf(wind.windspeed_north * wind.windspeed_north + wind.windspeed_east * wind.windspeed_east);
-			float groundspeed_body = sqrtf(globalpos.vel_n * globalpos.vel_n + globalpos.vel_e * globalpos.vel_e);
+			float groundspeed_body = sqrtf(_global_pos.vel_n * _global_pos.vel_n + _global_pos.vel_e * _global_pos.vel_e);
 
 			distance_open_door = fabsf(t_door * groundspeed_body);
 
@@ -497,7 +502,7 @@ BottleDrop::task_main()
 			//warnx("Initialization complete\n"); //////////////////////////////////////////////////////////////////// DEBUGGING
 
 
-			if (drop_approval && !state_drop) {
+			if (_drop_approval && !state_drop) {
 				//warnx("approval given\n"); //////////////////////////////////////////////////////////////////// DEBUGGING
 				// drop here
 				//open_now = true;
@@ -510,7 +515,7 @@ BottleDrop::task_main()
 					az = g;                 				// acceleration in z direction[m/s^2]
 					vz = 0; 						// velocity in z direction [m/s]
 					z = 0; 							// fallen distance [m]
-					h_0 = globalpos.alt - _target_position.alt; 		// height over target at start[m]
+					h_0 = _global_pos.alt - _target_position.alt; 		// height over target at start[m]
 					h = h_0;						// height over target [m]
 					ax = 0;							// acceleration in x direction [m/s^2]
 					vx = groundspeed_body;// XXX project					// ground speed in x direction [m/s]
@@ -526,14 +531,14 @@ BottleDrop::task_main()
 					// Compute the distance the bottle will travel after it is dropped in body frame coordinates --> x
 					while (h > 0.05f) {
 						// z-direction
-						vz = vz + az * dt;
-						z = z + vz * dt;
+						vz = vz + az * dt_freefall_prediction;
+						z = z + vz * dt_freefall_prediction;
 						h = h_0 - z;
 
 						// x-direction
 						vw = windspeed_norm * logf(h / z_0) / logf(ground_distance / z_0);
-						vx = vx + ax * dt;
-						x = x + vx * dt;
+						vx = vx + ax * dt_freefall_prediction;
+						x = x + vx * dt_freefall_prediction;
 						vrx = vx + vw;
 
 						//Drag force
@@ -547,12 +552,12 @@ BottleDrop::task_main()
 						ax = -Fdx / m;
 					}
 
-					// Compute Drop point
+					// Compute drop vector
 					x = groundspeed_body * t_signal + x;
-					map_projection_init(&ref, _target_position.lat, _target_position.lon);
 				}
 
-				map_projection_project(&ref, _target_position.lat, _target_position.lon, &x_t, &y_t);
+				x_t = 0.0f;
+				y_t = 0.0f;
 
 				float wind_direction_n, wind_direction_e;
 
@@ -568,7 +573,6 @@ BottleDrop::task_main()
 				x_drop = x_t + x * wind_direction_n;
 				y_drop = y_t + x * wind_direction_e;
 				map_projection_reproject(&ref, x_drop, y_drop, &_drop_position.lat, &_drop_position.lon);
-				_drop_position.alt = height;
 				//warnx("drop point: lat = %.7f , lon = %.7f", drop_position.lat, drop_position.lon); //////////////////////////////////////////////////////////////////// DEBUGGING
 
 
@@ -576,10 +580,10 @@ BottleDrop::task_main()
 				// Compute flight vector
 				map_projection_reproject(&ref, x_drop + 2 * turn_radius * wind_direction_n, y_drop + 2 * turn_radius * wind_direction_n,
 							 &(flight_vector_s.lat), &(flight_vector_s.lon));
-				flight_vector_s.altitude = height;
+				flight_vector_s.altitude = _drop_position.alt + _alt_clearance;
 				map_projection_reproject(&ref, x_drop - turn_radius * wind_direction_e, y_drop - turn_radius * wind_direction_e,
 							 &flight_vector_e.lat, &flight_vector_e.lon);
-				flight_vector_e.altitude = height;
+				flight_vector_e.altitude = _drop_position.alt + _alt_clearance;
 				//warnx("Flight vector: starting point = %.7f  %.7f , end point = %.7f  %.7f", flight_vector_s.lat,flight_vector_s.lon,flight_vector_e.lat,flight_vector_e.lon); //////////////////////////////////////////////////////////////////// DEBUGGING
 
 				// Drop Cancellation if terms are not met
@@ -591,8 +595,8 @@ BottleDrop::task_main()
 
 				distance_real = fabsf(get_distance_to_next_waypoint(latitude, longitude, _drop_position.lat, _drop_position.lon));
 				map_projection_project(&ref, latitude, longitude, &x_l, &y_l);
-				x_f = x_l + globalpos.vel_n * dt2;
-				y_f = y_l + globalpos.vel_e * dt2;
+				x_f = x_l + _global_pos.vel_n * dt_runs;
+				y_f = y_l + _global_pos.vel_e * dt_runs;
 				map_projection_reproject(&ref, x_f, y_f, &x_f_NED, &y_f_NED);
 				future_distance = fabsf(get_distance_to_next_waypoint(x_f_NED, y_f_NED, _drop_position.lat, _drop_position.lon));
 				//warnx("position to-be: = %.7f  %.7f" ,x_f_NED, y_f_NED ); //////////////////////////////////////////////////////////////////// DEBUGGING
@@ -627,7 +631,7 @@ BottleDrop::task_main()
 				if (counter % 10 == 0)
 					warnx("Distance real: %.2f, distance_open_door: %.2f, angle to wind: %.2f", (double)distance_real,
 					      (double)distance_open_door,
-					      (double)(_wrap_pi(globalpos.yaw - atan2f(wind.windspeed_north, wind.windspeed_east))));
+					      (double)(_wrap_pi(_global_pos.yaw - atan2f(wind.windspeed_north, wind.windspeed_east))));
 
 				if (onboard_mission_pub > 0) {
 					orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
@@ -638,7 +642,7 @@ BottleDrop::task_main()
 
 			}
 
-			if (isfinite(distance_real) && distance_real < distance_open_door && drop_approval) {
+			if (isfinite(distance_real) && distance_real < distance_open_door && _drop_approval) {
 				open_bay();
 			} else {
 				close_bay();
@@ -647,7 +651,7 @@ BottleDrop::task_main()
 			if (isfinite(distance_real) && distance_real < precision && distance_real < future_distance) { // Drop only if the distance between drop point and actual position is getting larger again
 				// XXX this check needs to be carefully validated - right now we prefer to drop if we're close to the goal
 
-				// if(fabsf(_wrap_pi(globalpos.yaw-atan2f(wind.windspeed_north,wind_speed.windspeed_east)+M_PI_F)) < 80.0f/180.0f*M_PI_F) // if flight trajectory deviates more than 80 degrees from calculated path, it will no drop
+				// if(fabsf(_wrap_pi(_global_pos.yaw-atan2f(wind.windspeed_north,wind_speed.windspeed_east)+M_PI_F)) < 80.0f/180.0f*M_PI_F) // if flight trajectory deviates more than 80 degrees from calculated path, it will no drop
 				// {
 					drop();
 				// }
@@ -662,7 +666,10 @@ BottleDrop::task_main()
 			// update_actuators();
 
 			// run at roughly 100 Hz
-			usleep(1000);
+			usleep(sleeptime_us);
+
+			dt_runs = 1e6f / hrt_elapsed_time(&last_run);
+			last_run = hrt_absolute_time();
 		}
 	}
 
@@ -706,37 +713,41 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 
 		switch ((int)(cmd->param1 + 0.5f)) {
 		case 0:
-			drop_approval = false;
+			_drop_approval = false;
 			break;
 
 		case 1:
-			drop_approval = true;
+			_drop_approval = true;
 			break;
 
 		default:
-			drop_approval = false;
+			_drop_approval = false;
+			warnx("param1 val unknown");
 			break;
 		}
 
-		// XXX check all fields
+		// XXX check all fields (2-3)
+		_alt_clearance = cmd->param4;
 		_target_position.lat = cmd->param5;
 		_target_position.lon = cmd->param6;
 		_target_position.alt = cmd->param7;
+		_target_position.initialized;
+		map_projection_init(&ref, _target_position.lat, _target_position.lon);
 		answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 		break;
 
 	case VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY:
 		switch ((int)(cmd->param1 + 0.5f)) {
 		case 0:
-			drop_approval = false;
+			_drop_approval = false;
 			break;
 
 		case 1:
-			drop_approval = true;
+			_drop_approval = true;
 			break;
 
 		default:
-			drop_approval = false;
+			_drop_approval = false;
 			break;
 			// XXX handle other values
 		}
