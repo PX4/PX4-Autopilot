@@ -1534,6 +1534,10 @@ int commander_thread_main(int argc, char *argv[])
 					mavlink_log_critical(mavlink_fd, "data link %i regained", i);
 					telemetry_lost[i] = false;
 					have_link = true;
+				} else if (!telemetry_lost[i]) {
+					/* telemetry was healthy also in last iteration
+					 * we don't have to check a timeout */
+					have_link = true;
 				}
 
 			} else {
