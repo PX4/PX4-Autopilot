@@ -57,7 +57,6 @@
 
 DataLinkLoss::DataLinkLoss(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
-	_vehicleStatus(&getSubscriptions(), ORB_ID(vehicle_status), 100),
 	_param_commsholdwaittime(this, "CH_T"),
 	_param_commsholdlat(this, "CH_LAT"),
 	_param_commsholdlon(this, "CH_LON"),
@@ -91,6 +90,7 @@ void
 DataLinkLoss::on_activation()
 {
 	_dll_state = DLL_STATE_NONE;
+	updateParams();
 	advance_dll();
 	set_dll_item();
 }
@@ -99,6 +99,7 @@ void
 DataLinkLoss::on_active()
 {
 	if (is_mission_item_reached()) {
+		updateParams();
 		advance_dll();
 		set_dll_item();
 	}
@@ -108,9 +109,6 @@ void
 DataLinkLoss::set_dll_item()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
-	/* make sure we have the latest params */
-	updateParams();
 
 	set_previous_pos_setpoint();
 	_navigator->set_can_loiter_at_sp(false);
@@ -167,17 +165,15 @@ DataLinkLoss::set_dll_item()
 void
 DataLinkLoss::advance_dll()
 {
-	warnx("dll_state %u", _dll_state);
 	switch (_dll_state) {
 	case DLL_STATE_NONE:
 		/* Check the number of data link losses. If above home fly home directly */
-		updateSubscriptions();
-		if (_vehicleStatus.data_link_lost_counter > _param_numberdatalinklosses.get()) {
-			warnx("too many data link losses, fly to airfield home");
+		if (_navigator->get_vstatus()->data_link_lost_counter > _param_numberdatalinklosses.get()) {
+			warnx("%d data link losses, limit is %d, fly to airfield home", _navigator->get_vstatus()->data_link_lost_counter, _param_numberdatalinklosses.get());
 			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: too many DL losses, fly to home");
 			_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 		} else {
-			warnx("fly to comms hold");
+			warnx("fly to comms hold, datalink loss counter: %d", _navigator->get_vstatus()->data_link_lost_counter);
 			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: fly to comms hold");
 			_dll_state = DLL_STATE_FLYTOCOMMSHOLDWP;
 		}

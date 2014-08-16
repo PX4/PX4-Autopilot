@@ -64,9 +64,6 @@ public:
 	virtual void on_active();
 
 private:
-	/* Subscriptions */
-	uORB::Subscription<vehicle_status_s> _vehicleStatus;
-
 	/* Params */
 	control::BlockParamFloat _param_commsholdwaittime;
 	control::BlockParamInt _param_commsholdlat; // * 1e7
