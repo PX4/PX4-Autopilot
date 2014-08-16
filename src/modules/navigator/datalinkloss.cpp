@@ -180,7 +180,7 @@ DataLinkLoss::advance_dll()
 		break;
 	case DLL_STATE_FLYTOCOMMSHOLDWP:
 		warnx("fly to airfield home");
-			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: fly to home");
+			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: fly to airfield home");
 		_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 		_navigator->get_mission_result()->stay_in_failsafe = true;
 		_navigator->publish_mission_result();
