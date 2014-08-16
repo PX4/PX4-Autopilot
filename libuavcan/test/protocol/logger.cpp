@@ -136,7 +136,7 @@ TEST(Logger, Cpp11Formatting)
     nodes.spinBoth(uavcan::MonotonicDuration::fromMSec(10));
     ASSERT_EQ(log_sub.collector.msg->level.value, uavcan::protocol::debug::LogLevel::WARNING);
     ASSERT_EQ(log_sub.collector.msg->source, "foo");
-    ASSERT_EQ(log_sub.collector.msg->text, "char='$', double is 12.340000");
+    ASSERT_EQ(log_sub.collector.msg->text, "char='$', double is 12.34");
 }
 
 #endif

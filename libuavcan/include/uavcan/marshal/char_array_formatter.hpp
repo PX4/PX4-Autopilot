@@ -29,7 +29,7 @@ class UAVCAN_EXPORT CharArrayFormatter
     typename std::enable_if<std::is_floating_point<T>::value>::type
     writeValue(T value)
     {
-        array_.template appendFormatted<double>("%f", double(value));
+        array_.template appendFormatted<double>("%g", double(value));
     }
 
     template <typename T>

@@ -29,8 +29,8 @@ TEST(CharArrayFormatter, Basic)
     f.write(" abc%idef ", 123);
     ASSERT_STREQ("Don't Panic. abc123def ", f.getArray().c_str());
 
-    f.write("%f", 0.0);
-    ASSERT_STREQ("Don't Panic. abc123def 0.000000", f.getArray().c_str());
+    f.write("%g", 0.0);
+    ASSERT_STREQ("Don't Panic. abc123def 0", f.getArray().c_str());
 
     a.clear();
     ASSERT_STREQ("", f.getArray().c_str());
@@ -54,11 +54,11 @@ TEST(CharArrayFormatter, Hardcore)
 
     f.write(
         "%% char='%*' double='%*' long='%*' unsigned long='%*' int='%s' long double='%*' bool='%*' const char='%*' %%",
-        '%', -12.3456, -123456789123456789L, 987654321, -123456789, 0.000001L, true, "Don't Panic.");
+        '%', -12.3456, -123456789123456789L, 987654321, -123456789, 0.000000001L, true, "Don't Panic.");
 
     static const std::string Reference =
-        "% char='%' double='-12.345600' long='-123456789123456789' unsigned long='987654321' int='-123456789' "
-        "long double='0.000001' bool='1' const char='Don't"; // 8 chars truncated!
+        "% char='%' double='-12.3456' long='-123456789123456789' unsigned long='987654321' int='-123456789' "
+        "long double='1e-09' bool='1' const char='Don't Pani"; // few chars truncated!
 
     ASSERT_STREQ(Reference.c_str(), f.getArray().c_str());
 
