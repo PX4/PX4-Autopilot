@@ -107,6 +107,7 @@ Mission::on_inactive()
 		update_offboard_mission();
 	}
 
+	/* require takeoff after non-loiter or landing */
 	if (!_navigator->get_can_loiter_at_sp() || _navigator->get_vstatus()->condition_landed) {
 		_need_takeoff = true;
 	}
@@ -399,7 +400,7 @@ Mission::set_mission_items()
 			takeoff_alt += _navigator->get_home_position()->alt;
 		}
 
-		/* perform takeoff at least to NAV_TAKEOFF_ALT above home/ground, even if first waypoint is lower */
+		/* takeoff to at least NAV_TAKEOFF_ALT above home/ground, even if first waypoint is lower */
 		if (_navigator->get_vstatus()->condition_landed) {
 			takeoff_alt = fmaxf(takeoff_alt, _navigator->get_global_position()->alt + _param_takeoff_alt.get());
 
@@ -407,43 +408,53 @@ Mission::set_mission_items()
 			takeoff_alt = fmaxf(takeoff_alt, _navigator->get_home_position()->alt + _param_takeoff_alt.get());
 		}
 
-		mavlink_log_critical(_navigator->get_mavlink_fd(), "takeoff to %.1f meters above home", (double)(takeoff_alt - _navigator->get_home_position()->alt));
+		/* check if we already above takeoff altitude */
+		if (_navigator->get_global_position()->alt < takeoff_alt - _navigator->get_acceptance_radius()) {
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "takeoff to %.1f meters above home", (double)(takeoff_alt - _navigator->get_home_position()->alt));
 
-		_mission_item.lat = _navigator->get_global_position()->lat;
-		_mission_item.lon = _navigator->get_global_position()->lon;
-		_mission_item.altitude = takeoff_alt;
-		_mission_item.altitude_is_relative = false;
+			_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
+			_mission_item.lat = _navigator->get_global_position()->lat;
+			_mission_item.lon = _navigator->get_global_position()->lon;
+			_mission_item.altitude = takeoff_alt;
+			_mission_item.altitude_is_relative = false;
 
-		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+			mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 
-	} else {
-		/* set current position setpoint from mission item */
-		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-
-		/* require takeoff after landing or idle */
-		if (pos_sp_triplet->current.type == SETPOINT_TYPE_LAND || pos_sp_triplet->current.type == SETPOINT_TYPE_IDLE) {
-			_need_takeoff = true;
-		}
-
-		_navigator->set_can_loiter_at_sp(false);
-		reset_mission_item_reached();
-
-		if (_mission_type == MISSION_TYPE_OFFBOARD) {
-			report_current_offboard_mission_item();
-		}
-		// TODO: report onboard mission item somehow
-
-		/* try to read next mission item */
-		struct mission_item_s mission_item_next;
-
-		if (read_mission_item(_mission_type == MISSION_TYPE_ONBOARD, false, &mission_item_next)) {
-			/* got next mission item, update setpoint triplet */
-			mission_item_to_position_setpoint(&mission_item_next, &pos_sp_triplet->next);
+			_navigator->set_position_setpoint_triplet_updated();
+			return;
 
 		} else {
-			/* next mission item is not available */
-			pos_sp_triplet->next.valid = false;
+			/* skip takeoff */
+			_takeoff = false;
 		}
+	}
+
+	/* set current position setpoint from mission item */
+	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+
+	/* require takeoff after landing or idle */
+	if (pos_sp_triplet->current.type == SETPOINT_TYPE_LAND || pos_sp_triplet->current.type == SETPOINT_TYPE_IDLE) {
+		_need_takeoff = true;
+	}
+
+	_navigator->set_can_loiter_at_sp(false);
+	reset_mission_item_reached();
+
+	if (_mission_type == MISSION_TYPE_OFFBOARD) {
+		report_current_offboard_mission_item();
+	}
+	// TODO: report onboard mission item somehow
+
+	/* try to read next mission item */
+	struct mission_item_s mission_item_next;
+
+	if (read_mission_item(_mission_type == MISSION_TYPE_ONBOARD, false, &mission_item_next)) {
+		/* got next mission item, update setpoint triplet */
+		mission_item_to_position_setpoint(&mission_item_next, &pos_sp_triplet->next);
+
+	} else {
+		/* next mission item is not available */
+		pos_sp_triplet->next.valid = false;
 	}
 
 	_navigator->set_position_setpoint_triplet_updated();

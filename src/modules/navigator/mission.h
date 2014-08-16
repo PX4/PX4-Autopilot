@@ -142,8 +142,8 @@ private:
 
 	int _current_onboard_mission_index;
 	int _current_offboard_mission_index;
-	bool _need_takeoff;
-	bool _takeoff;
+	bool _need_takeoff;					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
+	bool _takeoff;						/**< takeoff state flag */
 
 	orb_advert_t _mission_result_pub;
 	struct mission_result_s _mission_result;
