@@ -684,7 +684,6 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 {
 	switch (cmd->command) {
 	case VEHICLE_CMD_CUSTOM_0:
-
 		/*
 		 * param1 and param2 set to 1: open and drop
 		 * param1 set to 1: open
@@ -693,16 +692,19 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 		if (cmd->param1 > 0.5f && cmd->param2 > 0.5f) {
 			_open_door = true;
 			_drop = true;
+			drop();
 			mavlink_log_info(_mavlink_fd, "#audio: drop bottle");
 
 		} else if (cmd->param1 > 0.5f) {
 			_open_door = true;
 			_drop = false;
+			open_bay();
 			mavlink_log_info(_mavlink_fd, "#audio: open doors");
 
 		} else {
 			_open_door = false;
 			_drop = false;
+			close_bay();
 			mavlink_log_info(_mavlink_fd, "#audio: close doors");
 		}
 
