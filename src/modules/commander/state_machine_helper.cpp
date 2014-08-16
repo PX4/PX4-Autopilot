@@ -534,11 +534,11 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 			}
 
 		/* don't bother if RC is lost and mission is not yet finished */
-		} else if (status->rc_signal_lost) {
+		} else if (status->rc_signal_lost && !stay_in_failsafe) {
 
 			/* this mode is ok, we don't need RC for missions */
 			status->nav_state = NAVIGATION_STATE_AUTO_MISSION;
-		} else {
+		} else if (!stay_in_failsafe){
 			/* everything is perfect */
 			status->nav_state = NAVIGATION_STATE_AUTO_MISSION;
 		}
