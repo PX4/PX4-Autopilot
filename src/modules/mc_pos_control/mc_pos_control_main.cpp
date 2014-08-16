@@ -76,6 +76,7 @@
 
 #define TILT_COS_MAX	0.7f
 #define SIGMA			0.000001f
+#define MIN_DIST		0.01f
 
 /**
  * Multicopter position control app start / stop handling function
@@ -228,6 +229,14 @@ private:
 	 * Set position setpoint using offboard control
 	 */
 	void		control_offboard(float dt);
+
+	bool		cross_sphere_line(const math::Vector<3>& sphere_c, float sphere_r,
+					const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3>& res);
+
+	/**
+	 * Set position setpoint for AUTO
+	 */
+	void		control_auto();
 
 	/**
 	 * Select between barometric and global (AMSL) altitudes
@@ -647,6 +656,152 @@ MulticopterPositionControl::control_offboard(float dt)
 	}
 }
 
+bool
+MulticopterPositionControl::cross_sphere_line(const math::Vector<3>& sphere_c, float sphere_r,
+		const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3>& res)
+{
+	/* project center of sphere on line */
+	/* normalized AB */
+	math::Vector<3> ab_norm = line_b - line_a;
+	ab_norm.normalize();
+	math::Vector<3> d = line_a + ab_norm * ((sphere_c - line_a) * ab_norm);
+	float cd_len = (sphere_c - d).length();
+
+	/* we have triangle CDX with known CD and CX = R, find DX */
+	if (sphere_r > cd_len) {
+		/* have two roots, select one in A->B direction from D */
+		float dx_len = sqrtf(sphere_r * sphere_r - cd_len * cd_len);
+		res = d + ab_norm * dx_len;
+		return true;
+
+	} else {
+		/* have no roots, return D */
+		res = d;
+		return false;
+	}
+}
+
+void
+MulticopterPositionControl::control_auto()
+{
+	bool updated;
+	orb_check(_pos_sp_triplet_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
+	}
+
+	if (_pos_sp_triplet.current.valid) {
+		/* in case of interrupted mission don't go to waypoint but stay at current position */
+		_reset_pos_sp = true;
+		_reset_alt_sp = true;
+
+		/* project setpoint to local frame */
+		math::Vector<3> curr_sp;
+		map_projection_project(&_ref_pos,
+				       _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
+				       &curr_sp.data[0], &curr_sp.data[1]);
+		curr_sp(2) = -(_pos_sp_triplet.current.alt - _ref_alt);
+
+		/* by default use current setpoint as is */
+		_pos_sp = curr_sp;
+
+		if (_pos_sp_triplet.current.type == SETPOINT_TYPE_POSITION && _pos_sp_triplet.previous.valid) {
+			/* follow "previous - current" line */
+			math::Vector<3> prev_sp;
+			map_projection_project(&_ref_pos,
+						   _pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon,
+						   &prev_sp.data[0], &prev_sp.data[1]);
+			prev_sp(2) = -(_pos_sp_triplet.previous.alt - _ref_alt);
+
+			if ((curr_sp - prev_sp).length() > MIN_DIST) {
+				/* scaled space: 1 == position error resulting max allowed speed, L1 = 1 in this space */
+				math::Vector<3> scale = _params.pos_p.edivide(_params.vel_max);
+
+				/* find X - cross point of L1 sphere and trajectory */
+				math::Vector<3> pos_s = _pos.emult(scale);
+				math::Vector<3> prev_sp_s = prev_sp.emult(scale);
+				math::Vector<3> curr_sp_s = curr_sp.emult(scale);
+				math::Vector<3> curr_pos_s = pos_s - curr_sp_s;
+				float curr_pos_s_len = curr_pos_s.length();
+				math::Vector<3> x;
+				if (curr_pos_s_len < 1.0f) {
+					/* copter is closer to waypoint than L1 radius */
+					/* check next waypoint and use it to avoid slowing down when passing via waypoint */
+					if (_pos_sp_triplet.next.valid) {
+						math::Vector<3> next_sp;
+						map_projection_project(&_ref_pos,
+									   _pos_sp_triplet.next.lat, _pos_sp_triplet.next.lon,
+									   &next_sp.data[0], &next_sp.data[1]);
+						next_sp(2) = -(_pos_sp_triplet.next.alt - _ref_alt);
+
+						if ((next_sp - curr_sp).length() > MIN_DIST) {
+							math::Vector<3> next_sp_s = next_sp.emult(scale);
+
+							/* calculate angle prev - curr - next */
+							math::Vector<3> curr_next_s = next_sp_s - curr_sp_s;
+							math::Vector<3> prev_curr_s_norm = (curr_sp_s - prev_sp_s).normalized();
+
+							/* cos(a) = angle between current and next trajectory segments */
+							float cos_a = prev_curr_s_norm * curr_next_s;
+
+							/* cos(b) = angle pos - curr_sp - prev_sp */
+							float cos_b = -curr_pos_s * prev_curr_s_norm / curr_pos_s_len;
+
+							if (cos_a > 0.0f && cos_b > 0.0f) {
+								float curr_next_s_len = curr_next_s.length();
+								/* if curr - next distance is larger than L1 radius, limit it */
+								if (curr_next_s_len > 1.0f) {
+									cos_a /= curr_next_s_len;
+								}
+
+								/* feed forward position setpoint offset */
+								math::Vector<3> pos_ff = prev_curr_s_norm *
+										cos_a * cos_b * cos_b * (1.0f - curr_pos_s_len) *
+										(1.0f - expf(-curr_pos_s_len * curr_pos_s_len * 20.0f));
+								_pos_sp += pos_ff.edivide(scale);
+							}
+						}
+					}
+
+				} else {
+					bool near = cross_sphere_line(pos_s, 1.0f, prev_sp_s, curr_sp_s, x);
+					if (near) {
+						/* L1 sphere crosses trajectory */
+
+					} else {
+						/* copter is too far from trajectory */
+						/* if copter is behind prev waypoint, go directly to prev waypoint */
+						if ((x - prev_sp_s) * (curr_sp_s - prev_sp) < 0.0f) {
+							x = prev_sp_s;
+						}
+
+						/* if copter is in front of curr waypoint, go directly to curr waypoint */
+						if ((x - curr_sp_s) * (curr_sp_s - prev_sp) > 0.0f) {
+							x = curr_sp_s;
+						}
+
+						x = pos_s + (x - pos_s).normalized();
+					}
+
+					/* scale result back to normal space */
+					_pos_sp = x.edivide(scale);
+				}
+			}
+		}
+
+		/* update yaw setpoint if needed */
+		if (isfinite(_pos_sp_triplet.current.yaw)) {
+			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
+		}
+
+	} else {
+		/* no waypoint, loiter, reset position setpoint if needed */
+		reset_pos_sp();
+		reset_alt_sp();
+	}
+}
+
 void
 MulticopterPositionControl::task_main()
 {
@@ -757,34 +912,7 @@ MulticopterPositionControl::task_main()
 
 			} else {
 				/* AUTO */
-				bool updated;
-				orb_check(_pos_sp_triplet_sub, &updated);
-
-				if (updated) {
-					orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
-				}
-
-				if (_pos_sp_triplet.current.valid) {
-					/* in case of interrupted mission don't go to waypoint but stay at current position */
-					_reset_pos_sp = true;
-					_reset_alt_sp = true;
-
-					/* project setpoint to local frame */
-					map_projection_project(&_ref_pos,
-							       _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
-							       &_pos_sp.data[0], &_pos_sp.data[1]);
-					_pos_sp(2) = -(_pos_sp_triplet.current.alt - _ref_alt);
-
-					/* update yaw setpoint if needed */
-					if (isfinite(_pos_sp_triplet.current.yaw)) {
-						_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
-					}
-
-				} else {
-					/* no waypoint, loiter, reset position setpoint if needed */
-					reset_pos_sp();
-					reset_alt_sp();
-				}
+				control_auto();
 			}
 
 			/* fill local position setpoint */
