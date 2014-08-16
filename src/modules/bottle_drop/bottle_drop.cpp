@@ -103,6 +103,7 @@ public:
 	void		open_bay();
 	void		close_bay();
 	void		drop();
+	void		lock_release();
 
 private:
 	bool		_task_should_exit;		/**< if true, task should exit */
@@ -119,8 +120,6 @@ private:
 	struct actuator_controls_s _actuators;
 
 	bool		_drop_approval;
-	bool		_open_door;
-	bool		_drop;
 	hrt_abstime	_doors_opened;
 	hrt_abstime	_drop_time;
 
@@ -132,6 +131,14 @@ private:
 		float alt; //m
 		bool initialized;
 	} _target_position, _drop_position;
+
+	enum DROP_STATE {
+		DROP_STATE_INIT = 0,
+		DROP_STATE_TARGET_VALID,
+		DROP_STATE_BAY_OPEN,
+		DROP_STATE_DROPPED,
+		DROP_STATE_BAY_CLOSED
+	} _drop_state;
 
 	void		task_main();
 
@@ -168,11 +175,12 @@ BottleDrop::BottleDrop() :
 	_actuator_pub(-1),
 	_actuators {},
 	_drop_approval(false),
-	_open_door(false),
-	_drop(false),
 	_doors_opened(0),
 	_drop_time(0),
-	_alt_clearance(0)
+	_alt_clearance(0),
+	_target_position {},
+	_drop_position {},
+	_drop_state(DROP_STATE_INIT)
 {
 }
 
@@ -226,8 +234,7 @@ BottleDrop::start()
 void
 BottleDrop::status()
 {
-	warnx("Doors: %s", _open_door ? "OPEN" : "CLOSED");
-	warnx("Dropping: %s", _drop ? "YES" : "NO");
+	warnx("drop state: %d", _drop_state);
 }
 
 void
@@ -242,6 +249,8 @@ BottleDrop::open_bay()
 	warnx("open doors");
 
 	actuators_publish();
+
+	usleep(500 * 1000);
 }
 
 void
@@ -254,6 +263,9 @@ BottleDrop::close_bay()
 	_doors_opened = 0;
 
 	actuators_publish();
+
+	// delay until the bay is closed
+	usleep(500 * 1000);
 }
 
 void
@@ -269,22 +281,29 @@ BottleDrop::drop()
 		warnx("bay not ready, forced open");
 	}
 
-	while (hrt_elapsed_time(&_doors_opened) < 400000 && hrt_elapsed_time(&starttime) < 2000000) {
+	while (hrt_elapsed_time(&_doors_opened) < 500 * 1000 && hrt_elapsed_time(&starttime) < 2000000) {
 		usleep(50000);
 		warnx("delayed by door!");
 	}
 
-	if (_drop && _doors_opened != 0 && hrt_elapsed_time(&_doors_opened) < 500000) {
-		_actuators.control[2] = -1.0f;
-	} else {
-		_actuators.control[2] = 1.0f;
-	}
+	_actuators.control[2] = 1.0f;
 
 	_drop_time = hrt_absolute_time();
+	actuators_publish();
 
 	warnx("dropping now");
 
+	// Give it time to drop
+	usleep(1000 * 1000);
+}
+
+void
+BottleDrop::lock_release()
+{
+	_actuators.control[2] = -1.0f;
 	actuators_publish();
+
+	warnx("closing release");
 }
 
 int
@@ -401,9 +420,6 @@ BottleDrop::task_main()
 	memset(&onboard_mission, 0, sizeof(onboard_mission));
 	orb_advert_t onboard_mission_pub = -1;
 
-	double latitude;
-	double longitude;
-
 	struct wind_estimate_s wind;
 
 	/* wakeup source(s) */
@@ -414,6 +430,7 @@ BottleDrop::task_main()
 	fds[0].events = POLLIN;
 
 	// Whatever state the bay is in, we want it closed on startup
+	lock_release();
 	close_bay();
 
 	while (!_task_should_exit) {
@@ -437,9 +454,6 @@ BottleDrop::task_main()
 		if (updated) {
 			/* copy global position */
 			orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, &_global_pos);
-
-			latitude = (double)_global_pos.lat / 1e7;
-			longitude = (double)_global_pos.lon / 1e7;
 		}
 
 		if (_global_pos.timestamp == 0) {
@@ -452,32 +466,23 @@ BottleDrop::task_main()
 		dt_runs = 1e6f / sleeptime_us;
 
 		/* switch to faster updates during the drop */
-		while (_drop) {
+		while (_drop_state > DROP_STATE_INIT) {
 
-			/* 20s after drop, reset and close everything again */
-			if (_drop && _doors_opened != 0 && hrt_elapsed_time(&_doors_opened) > 20000000) {
-				_open_door = false;
-				_drop = false;
-			}
-
+			// Get wind estimate
 			orb_check(_wind_estimate_sub, &updated);
-
 			if (updated) {
 				orb_copy(ORB_ID(wind_estimate), _wind_estimate_sub, &wind);
 			}
 
+			// Get vehicle position
 			orb_check(vehicle_global_position_sub, &updated);
-
 			if (updated) {
 				/* copy global position */
 				orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, &_global_pos);
-
-				latitude = (double)_global_pos.lat / 1e7;
-				longitude = (double)_global_pos.lon / 1e7;
 			}
 
+			// Get parameter updates
 			orb_check(parameter_update_sub, &updated);
-
 			if (updated) {
 				/* copy global position */
 				orb_copy(ORB_ID(parameter_update), parameter_update_sub, &update);
@@ -488,177 +493,201 @@ BottleDrop::task_main()
 				param_get(param_precision, &precision);
 			}
 
-			// Initialization
 
 			float windspeed_norm = sqrtf(wind.windspeed_north * wind.windspeed_north + wind.windspeed_east * wind.windspeed_east);
 			float groundspeed_body = sqrtf(_global_pos.vel_n * _global_pos.vel_n + _global_pos.vel_e * _global_pos.vel_e);
-
-			distance_open_door = fabsf(t_door * groundspeed_body);
-
+			distance_real = fabsf(get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon, _drop_position.lat, _drop_position.lon));
 
 			//warnx("absolut wind speed = %.4f", vr); //////////////////////////////////////////////////////////////////// DEBUGGING
 
 
 			//warnx("Initialization complete\n"); //////////////////////////////////////////////////////////////////// DEBUGGING
 
+			switch (_drop_state) {
 
-			if (_drop_approval && !state_drop) {
-				//warnx("approval given\n"); //////////////////////////////////////////////////////////////////// DEBUGGING
-				// drop here
-				//open_now = true;
-				//drop = false;
-				//drop_start = hrt_absolute_time();
+				case DROP_STATE_INIT:
+					// exit inner loop, wait for new drop mission
+					break;
 
-				// Update drop point at 10 Hz
-				if (counter % 10 == 0) {
+				case DROP_STATE_TARGET_VALID:
+				{
+					//warnx("approval given\n"); //////////////////////////////////////////////////////////////////// DEBUGGING
+					// drop here
+					//open_now = true;
+					//drop = false;
+					//drop_start = hrt_absolute_time();
 
-					az = g;                 				// acceleration in z direction[m/s^2]
-					vz = 0; 						// velocity in z direction [m/s]
-					z = 0; 							// fallen distance [m]
-					h_0 = _global_pos.alt - _target_position.alt; 		// height over target at start[m]
-					h = h_0;						// height over target [m]
-					ax = 0;							// acceleration in x direction [m/s^2]
-					vx = groundspeed_body;// XXX project					// ground speed in x direction [m/s]
-					x = 0;							// traveled distance in x direction [m]
-					vw = 0;                 				// wind speed [m/s]
-					vrx = 0;						// relative velocity in x direction [m/s]
-					v = groundspeed_body;					// relative speed vector [m/s]
-					Fd = 0;							// Drag force [N]
-					Fdx = 0;						// Drag force in x direction [N]
-					Fdz = 0;						// Drag force in z direction [N]
+					// Update drop point at 10 Hz
+					if (counter % 10 == 0) {
+
+						az = g;                 				// acceleration in z direction[m/s^2]
+						vz = 0; 						// velocity in z direction [m/s]
+						z = 0; 							// fallen distance [m]
+						h_0 = _global_pos.alt - _target_position.alt; 		// height over target at start[m]
+						h = h_0;						// height over target [m]
+						ax = 0;							// acceleration in x direction [m/s^2]
+						vx = groundspeed_body;// XXX project					// ground speed in x direction [m/s]
+						x = 0;							// traveled distance in x direction [m]
+						vw = 0;                 				// wind speed [m/s]
+						vrx = 0;						// relative velocity in x direction [m/s]
+						v = groundspeed_body;					// relative speed vector [m/s]
+						Fd = 0;							// Drag force [N]
+						Fdx = 0;						// Drag force in x direction [N]
+						Fdz = 0;						// Drag force in z direction [N]
 
 
-					// Compute the distance the bottle will travel after it is dropped in body frame coordinates --> x
-					while (h > 0.05f) {
-						// z-direction
-						vz = vz + az * dt_freefall_prediction;
-						z = z + vz * dt_freefall_prediction;
-						h = h_0 - z;
+						// Compute the distance the bottle will travel after it is dropped in body frame coordinates --> x
+						while (h > 0.05f) {
+							// z-direction
+							vz = vz + az * dt_freefall_prediction;
+							z = z + vz * dt_freefall_prediction;
+							h = h_0 - z;
 
-						// x-direction
-						vw = windspeed_norm * logf(h / z_0) / logf(ground_distance / z_0);
-						vx = vx + ax * dt_freefall_prediction;
-						x = x + vx * dt_freefall_prediction;
-						vrx = vx + vw;
+							// x-direction
+							vw = windspeed_norm * logf(h / z_0) / logf(ground_distance / z_0);
+							vx = vx + ax * dt_freefall_prediction;
+							x = x + vx * dt_freefall_prediction;
+							vrx = vx + vw;
 
-						//Drag force
-						v = sqrtf(vz * vz + vrx * vrx);
-						Fd = 0.5f * rho * A * cd * powf(v, 2.0f);
-						Fdx = Fd * vrx / v;
-						Fdz = Fd * vz / v;
+							//Drag force
+							v = sqrtf(vz * vz + vrx * vrx);
+							Fd = 0.5f * rho * A * cd * powf(v, 2.0f);
+							Fdx = Fd * vrx / v;
+							Fdz = Fd * vz / v;
 
-						//acceleration
-						az = g - Fdz / m;
-						ax = -Fdx / m;
+							//acceleration
+							az = g - Fdz / m;
+							ax = -Fdx / m;
+						}
+
+						// Compute drop vector
+						x = groundspeed_body * t_signal + x;
 					}
 
-					// Compute drop vector
-					x = groundspeed_body * t_signal + x;
+					x_t = 0.0f;
+					y_t = 0.0f;
+
+					float wind_direction_n, wind_direction_e;
+
+					if (windspeed_norm < 0.5f) {	// If there is no wind, an arbitrarily direction is chosen
+						wind_direction_n = 1.0f;
+						wind_direction_e = 0.0f;
+
+					} else {
+						wind_direction_n = wind.windspeed_north / windspeed_norm;
+						wind_direction_e = wind.windspeed_east / windspeed_norm;
+					}
+
+					x_drop = x_t + x * wind_direction_n;
+					y_drop = y_t + x * wind_direction_e;
+					map_projection_reproject(&ref, x_drop, y_drop, &_drop_position.lat, &_drop_position.lon);
+					//warnx("drop point: lat = %.7f , lon = %.7f", drop_position.lat, drop_position.lon); //////////////////////////////////////////////////////////////////// DEBUGGING
+
+
+
+					// Compute flight vector
+					map_projection_reproject(&ref, x_drop + 2 * turn_radius * wind_direction_n, y_drop + 2 * turn_radius * wind_direction_n,
+								 &(flight_vector_s.lat), &(flight_vector_s.lon));
+					flight_vector_s.altitude = _drop_position.alt + _alt_clearance;
+					map_projection_reproject(&ref, x_drop - turn_radius * wind_direction_e, y_drop - turn_radius * wind_direction_e,
+								 &flight_vector_e.lat, &flight_vector_e.lon);
+					flight_vector_e.altitude = _drop_position.alt + _alt_clearance;
+					//warnx("Flight vector: starting point = %.7f  %.7f , end point = %.7f  %.7f", flight_vector_s.lat,flight_vector_s.lon,flight_vector_e.lat,flight_vector_e.lon); //////////////////////////////////////////////////////////////////// DEBUGGING
+
+					// Drop Cancellation if terms are not met
+
+					// warnx("latitude:%.2f", _global_pos.lat);
+					// warnx("longitude:%.2f", _global_pos.lon);
+					// warnx("drop_position.lat:%.2f", drop_position.lat);
+					// warnx("drop_position.lon:%.2f", drop_position.lon);
+
+					//warnx("position to-be: = %.7f  %.7f" ,x_f_NED, y_f_NED ); //////////////////////////////////////////////////////////////////// DEBUGGING
+
+					// if (counter % 10 ==0) {
+					// 	warnx("x: %.4f", x);
+					// 	warnx("drop_position.lat: %.4f, drop_position.lon: %.4f", drop_position.lat, drop_position.lon);
+					// 	warnx("latitude %.4f, longitude: %.4f", _global_pos.lat, _global_pos.lon);
+					// 	warnx("future_distance: %.2f, precision: %.2f", future_distance, precision);
+					// }
+
+					/* Save WPs in datamanager */
+					const ssize_t len = sizeof(struct mission_item_s);
+
+					if (dm_write(DM_KEY_WAYPOINTS_ONBOARD, 0, DM_PERSIST_IN_FLIGHT_RESET, &flight_vector_s, len) != len) {
+						warnx("ERROR: could not save onboard WP");
+					}
+
+					if (dm_write(DM_KEY_WAYPOINTS_ONBOARD, 1, DM_PERSIST_IN_FLIGHT_RESET, &flight_vector_e, len) != len) {
+						warnx("ERROR: could not save onboard WP");
+					}
+
+					onboard_mission.count = 2;
+
+					if (state_run && !state_drop) {
+						onboard_mission.current_seq = 0;
+
+					} else {
+						onboard_mission.current_seq = -1;
+					}
+
+					if (onboard_mission_pub > 0) {
+						orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
+
+					} else {
+						onboard_mission_pub = orb_advertise(ORB_ID(onboard_mission), &onboard_mission);
+					}
+
+					// We're close enough - open the bay
+					distance_open_door = math::max(3.0f, fabsf(t_door * groundspeed_body));
+
+					if (counter % 10 == 0)
+						warnx("dist real: %.2f, distance_open_door: %.2f, angle to wind: %.2f",
+							(double)distance_real,
+							(double)distance_open_door,
+							(double)(_wrap_pi(_global_pos.yaw - atan2f(wind.windspeed_north, wind.windspeed_east))));
+
+					if (isfinite(distance_real) && distance_real < distance_open_door && _drop_approval) {
+						open_bay();
+						_drop_state = DROP_STATE_BAY_OPEN;
+					}
 				}
+				break;
 
-				x_t = 0.0f;
-				y_t = 0.0f;
+				case DROP_STATE_BAY_OPEN:
+					{
+						map_projection_project(&ref, _global_pos.lat, _global_pos.lon, &x_l, &y_l);
+						x_f = x_l + _global_pos.vel_n * dt_runs;
+						y_f = y_l + _global_pos.vel_e * dt_runs;
+						map_projection_reproject(&ref, x_f, y_f, &x_f_NED, &y_f_NED);
+						future_distance = fabsf(get_distance_to_next_waypoint(x_f_NED, y_f_NED, _drop_position.lat, _drop_position.lon));
 
-				float wind_direction_n, wind_direction_e;
+						warnx("Distance real: %.2f", (double)distance_real);
 
-				if (windspeed_norm < 0.5f) {	// If there is no wind, an arbitrarily direction is chosen
-					wind_direction_n = 1.0f;
-					wind_direction_e = 0.0f;
+						if (isfinite(distance_real) && (((distance_real < precision) && (distance_real < future_distance)) ||
+						/* we drop as well if we're really close */ (distance_real < precision / 10.0f))) { // Drop only if the distance between drop point and actual position is getting larger again
+							// XXX this check needs to be carefully validated - right now we prefer to drop if we're close to the goal
 
-				} else {
-					wind_direction_n = wind.windspeed_north / windspeed_norm;
-					wind_direction_e = wind.windspeed_east / windspeed_norm;
-				}
+							// if(fabsf(_wrap_pi(_global_pos.yaw-atan2f(wind.windspeed_north,wind_speed.windspeed_east)+M_PI_F)) < 80.0f/180.0f*M_PI_F) // if flight trajectory deviates more than 80 degrees from calculated path, it will no drop
+							// {
+								drop();
+								_drop_state = DROP_STATE_DROPPED;
+							// }
+							// else
+							// {
+							// 	state_run = true;
+							// }
+						}
+					}
+					break;
 
-				x_drop = x_t + x * wind_direction_n;
-				y_drop = y_t + x * wind_direction_e;
-				map_projection_reproject(&ref, x_drop, y_drop, &_drop_position.lat, &_drop_position.lon);
-				//warnx("drop point: lat = %.7f , lon = %.7f", drop_position.lat, drop_position.lon); //////////////////////////////////////////////////////////////////// DEBUGGING
-
-
-
-				// Compute flight vector
-				map_projection_reproject(&ref, x_drop + 2 * turn_radius * wind_direction_n, y_drop + 2 * turn_radius * wind_direction_n,
-							 &(flight_vector_s.lat), &(flight_vector_s.lon));
-				flight_vector_s.altitude = _drop_position.alt + _alt_clearance;
-				map_projection_reproject(&ref, x_drop - turn_radius * wind_direction_e, y_drop - turn_radius * wind_direction_e,
-							 &flight_vector_e.lat, &flight_vector_e.lon);
-				flight_vector_e.altitude = _drop_position.alt + _alt_clearance;
-				//warnx("Flight vector: starting point = %.7f  %.7f , end point = %.7f  %.7f", flight_vector_s.lat,flight_vector_s.lon,flight_vector_e.lat,flight_vector_e.lon); //////////////////////////////////////////////////////////////////// DEBUGGING
-
-				// Drop Cancellation if terms are not met
-
-				// warnx("latitude:%.2f", latitude);
-				// warnx("longitude:%.2f", longitude);
-				// warnx("drop_position.lat:%.2f", drop_position.lat);
-				// warnx("drop_position.lon:%.2f", drop_position.lon);
-
-				distance_real = fabsf(get_distance_to_next_waypoint(latitude, longitude, _drop_position.lat, _drop_position.lon));
-				map_projection_project(&ref, latitude, longitude, &x_l, &y_l);
-				x_f = x_l + _global_pos.vel_n * dt_runs;
-				y_f = y_l + _global_pos.vel_e * dt_runs;
-				map_projection_reproject(&ref, x_f, y_f, &x_f_NED, &y_f_NED);
-				future_distance = fabsf(get_distance_to_next_waypoint(x_f_NED, y_f_NED, _drop_position.lat, _drop_position.lon));
-				//warnx("position to-be: = %.7f  %.7f" ,x_f_NED, y_f_NED ); //////////////////////////////////////////////////////////////////// DEBUGGING
-
-				// if (counter % 10 ==0) {
-				// 	warnx("x: %.4f", x);
-				// 	warnx("drop_position.lat: %.4f, drop_position.lon: %.4f", drop_position.lat, drop_position.lon);
-				// 	warnx("latitude %.4f, longitude: %.4f", latitude, longitude);
-				// 	warnx("future_distance: %.2f, precision: %.2f", future_distance, precision);
-				// }
-
-				/* Save WPs in datamanager */
-				const ssize_t len = sizeof(struct mission_item_s);
-
-				if (dm_write(DM_KEY_WAYPOINTS_ONBOARD, 0, DM_PERSIST_IN_FLIGHT_RESET, &flight_vector_s, len) != len) {
-					warnx("ERROR: could not save onboard WP");
-				}
-
-				if (dm_write(DM_KEY_WAYPOINTS_ONBOARD, 1, DM_PERSIST_IN_FLIGHT_RESET, &flight_vector_e, len) != len) {
-					warnx("ERROR: could not save onboard WP");
-				}
-
-				onboard_mission.count = 2;
-
-				if (state_run && !state_drop) {
-					onboard_mission.current_seq = 0;
-
-				} else {
-					onboard_mission.current_seq = -1;
-				}
-
-				if (counter % 10 == 0)
-					warnx("Distance real: %.2f, distance_open_door: %.2f, angle to wind: %.2f", (double)distance_real,
-					      (double)distance_open_door,
-					      (double)(_wrap_pi(_global_pos.yaw - atan2f(wind.windspeed_north, wind.windspeed_east))));
-
-				if (onboard_mission_pub > 0) {
-					orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
-
-				} else {
-					onboard_mission_pub = orb_advertise(ORB_ID(onboard_mission), &onboard_mission);
-				}
-
-			}
-
-			if (isfinite(distance_real) && distance_real < distance_open_door && _drop_approval) {
-				open_bay();
-			} else {
-				close_bay();
-			}
-
-			if (isfinite(distance_real) && distance_real < precision && distance_real < future_distance) { // Drop only if the distance between drop point and actual position is getting larger again
-				// XXX this check needs to be carefully validated - right now we prefer to drop if we're close to the goal
-
-				// if(fabsf(_wrap_pi(_global_pos.yaw-atan2f(wind.windspeed_north,wind_speed.windspeed_east)+M_PI_F)) < 80.0f/180.0f*M_PI_F) // if flight trajectory deviates more than 80 degrees from calculated path, it will no drop
-				// {
-					drop();
-				// }
-				// else
-				// {
-				// 	state_run = true;
-				// }
+				case DROP_STATE_DROPPED:
+					/* 2s after drop, reset and close everything again */
+					if ((hrt_elapsed_time(&_doors_opened) > 2 * 1000 * 1000)) {
+						_drop_state = DROP_STATE_INIT;
+						lock_release();
+						close_bay();
+					}
+					break;
 			}
 
 			counter++;
@@ -690,20 +719,15 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 		 * else: close (and don't drop)
 		 */
 		if (cmd->param1 > 0.5f && cmd->param2 > 0.5f) {
-			_open_door = true;
-			_drop = true;
+			open_bay();
 			drop();
 			mavlink_log_info(_mavlink_fd, "#audio: drop bottle");
 
 		} else if (cmd->param1 > 0.5f) {
-			_open_door = true;
-			_drop = false;
 			open_bay();
 			mavlink_log_info(_mavlink_fd, "#audio: open doors");
 
 		} else {
-			_open_door = false;
-			_drop = false;
 			close_bay();
 			mavlink_log_info(_mavlink_fd, "#audio: close doors");
 		}
@@ -720,6 +744,7 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 
 		case 1:
 			_drop_approval = true;
+			mavlink_log_info(_mavlink_fd, "#audio: prepare deploy approval");
 			break;
 
 		default:
@@ -734,6 +759,9 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 		_target_position.lon = cmd->param6;
 		_target_position.alt = cmd->param7;
 		_target_position.initialized;
+		_drop_state = DROP_STATE_TARGET_VALID;
+		warnx("got target: %8.4f, %8.4f, %8.4f", (double)_target_position.lat,
+			(double)_target_position.lon, (double)_target_position.alt);
 		map_projection_init(&ref, _target_position.lat, _target_position.lon);
 		answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 		break;
@@ -746,6 +774,7 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 
 		case 1:
 			_drop_approval = true;
+			mavlink_log_info(_mavlink_fd, "#audio: control deploy approval");
 			break;
 
 		default:
@@ -847,6 +876,9 @@ int bottle_drop_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[1], "close")) {
 		bottle_drop::g_bottle_drop->close_bay();
+
+	} else if (!strcmp(argv[1], "lock")) {
+		bottle_drop::g_bottle_drop->lock_release();
 
 	} else {
 		usage();
