@@ -344,6 +344,10 @@ Mission::set_mission_items()
 		/* no mission available or mission finished, switch to loiter */
 		if (_mission_type != MISSION_TYPE_NONE) {
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "mission finished, loitering");
+
+			/* use last setpoint for loiter */
+			_navigator->set_can_loiter_at_sp(true);
+
 		} else if (!user_feedback_done) {
 			/* only tell users that we got no mission if there has not been any
 			 * better, more specific feedback yet
@@ -360,6 +364,7 @@ Mission::set_mission_items()
 		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 		pos_sp_triplet->next.valid = false;
 
+		/* reuse setpoint for LOITER only if it's not IDLE */
 		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == SETPOINT_TYPE_LOITER);
 
 		reset_mission_item_reached();
@@ -412,11 +417,13 @@ Mission::set_mission_items()
 		if (_navigator->get_global_position()->alt < takeoff_alt - _navigator->get_acceptance_radius()) {
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "takeoff to %.1f meters above home", (double)(takeoff_alt - _navigator->get_home_position()->alt));
 
-			_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
-			_mission_item.lat = _navigator->get_global_position()->lat;
-			_mission_item.lon = _navigator->get_global_position()->lon;
-			_mission_item.altitude = takeoff_alt;
-			_mission_item.altitude_is_relative = false;
+		_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
+		_mission_item.lat = _navigator->get_global_position()->lat;
+		_mission_item.lon = _navigator->get_global_position()->lon;
+		_mission_item.altitude = takeoff_alt;
+		_mission_item.altitude_is_relative = false;
+		_mission_item.autocontinue = true;
+		_mission_item.time_inside = 0;
 
 			mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 
@@ -445,15 +452,21 @@ Mission::set_mission_items()
 	}
 	// TODO: report onboard mission item somehow
 
-	/* try to read next mission item */
-	struct mission_item_s mission_item_next;
+	if (_mission_item.autocontinue && _mission_item.time_inside <= 0.001f) {
+		/* try to read next mission item */
+		struct mission_item_s mission_item_next;
 
-	if (read_mission_item(_mission_type == MISSION_TYPE_ONBOARD, false, &mission_item_next)) {
-		/* got next mission item, update setpoint triplet */
-		mission_item_to_position_setpoint(&mission_item_next, &pos_sp_triplet->next);
+		if (read_mission_item(_mission_type == MISSION_TYPE_ONBOARD, false, &mission_item_next)) {
+			/* got next mission item, update setpoint triplet */
+			mission_item_to_position_setpoint(&mission_item_next, &pos_sp_triplet->next);
+
+		} else {
+			/* next mission item is not available */
+			pos_sp_triplet->next.valid = false;
+		}
 
 	} else {
-		/* next mission item is not available */
+		/* vehicle will be paused on current waypoint, don't set next item */
 		pos_sp_triplet->next.valid = false;
 	}
 
