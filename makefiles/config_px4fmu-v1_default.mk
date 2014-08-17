@@ -25,7 +25,6 @@ MODULES		+= drivers/mpu6000
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
 MODULES		+= drivers/mb12xx
-MODULES		+= drivers/ll40ls
 MODULES		+= drivers/gps
 MODULES		+= drivers/hil
 MODULES		+= drivers/hott/hott_telemetry
@@ -44,7 +43,6 @@ MODULES		+= modules/sensors
 #
 MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/bl_update
-MODULES		+= systemcmds/i2c
 MODULES		+= systemcmds/mixer
 MODULES		+= systemcmds/param
 MODULES		+= systemcmds/perf
@@ -152,5 +150,4 @@ endef
 #                  command                 priority                   stack  entrypoint
 BUILTIN_COMMANDS := \
 	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
-	$(call _B, serdis,                 ,                          2048,  serdis_main                ) \
-	$(call _B, sysinfo,                ,                          2048,  sysinfo_main               )
+	$(call _B, serdis,                 ,                          2048,  serdis_main                )
