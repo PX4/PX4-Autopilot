@@ -96,12 +96,20 @@ extern "C" __EXPORT int ekf_att_pos_estimator_main(int argc, char *argv[]);
 
 __EXPORT uint32_t millis();
 
+__EXPORT uint64_t getMicros();
+
 static uint64_t IMUmsec = 0;
+static uint64_t IMUusec = 0;
 static const uint64_t FILTER_INIT_DELAY = 1 * 1000 * 1000;
 
 uint32_t millis()
 {
 	return IMUmsec;
+}
+
+uint64_t getMicros()
+{
+	return IMUusec;
 }
 
 class FixedwingEstimator
@@ -850,7 +858,8 @@ FixedwingEstimator::task_main()
 			}
 
 			_last_sensor_timestamp = _gyro.timestamp;
-			IMUmsec = _gyro.timestamp / 1e3f;
+			IMUmsec = _gyro.timestamp / 1e3;
+			IMUusec = _gyro.timestamp;
 
 			float deltaT = (_gyro.timestamp - _last_run) / 1e6f;
 			_last_run = _gyro.timestamp;
@@ -914,7 +923,8 @@ FixedwingEstimator::task_main()
 
 			// Copy gyro and accel
 			_last_sensor_timestamp = _sensor_combined.timestamp;
-			IMUmsec = _sensor_combined.timestamp / 1e3f;
+			IMUmsec = _sensor_combined.timestamp / 1e3;
+			IMUusec = _sensor_combined.timestamp;
 
 			float deltaT = (_sensor_combined.timestamp - _last_run) / 1e6f;
 
@@ -994,8 +1004,6 @@ FixedwingEstimator::task_main()
 
 			if (gps_updated) {
 
-				last_gps = _gps.timestamp_position;
-
 				orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &_gps);
 				perf_count(_perf_gps);
 
@@ -1008,11 +1016,17 @@ FixedwingEstimator::task_main()
 					_gps_start_time = hrt_absolute_time();
 
 					/* check if we had a GPS outage for a long time */
-					if (hrt_elapsed_time(&last_gps) > 5 * 1000 * 1000) {
+					float gps_elapsed = hrt_elapsed_time(&last_gps) / 1e6f;
+
+					const float pos_reset_threshold = 5.0f; // seconds
+
+					/* timeout of 5 seconds */
+					if (gps_elapsed > pos_reset_threshold) {
 						_ekf->ResetPosition();
 						_ekf->ResetVelocity();
 						_ekf->ResetStoredStates();
 					}
+					_ekf->updateDtGpsFilt(math::constrain((_gps.timestamp_position - last_gps) / 1e6f, 0.01f, pos_reset_threshold));
 
 					/* fuse GPS updates */
 
@@ -1044,6 +1058,8 @@ FixedwingEstimator::task_main()
 
 					newDataGps = true;
 
+					last_gps = _gps.timestamp_position;
+
 				}
 
 			}
@@ -1052,7 +1068,14 @@ FixedwingEstimator::task_main()
 			orb_check(_baro_sub, &baro_updated);
 
 			if (baro_updated) {
+
+				hrt_abstime baro_last = _baro.timestamp;
+
 				orb_copy(ORB_ID(sensor_baro0), _baro_sub, &_baro);
+
+				float baro_elapsed = (_baro.timestamp - baro_last) / 1e6f;
+
+				_ekf->updateDtHgtFilt(math::constrain(baro_elapsed, 0.001f, 0.1));
 
 				_ekf->baroHgt = _baro.altitude;
 

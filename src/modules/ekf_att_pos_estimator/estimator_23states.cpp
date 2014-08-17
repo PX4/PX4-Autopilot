@@ -2,6 +2,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <math.h>
+
+#ifndef M_PI_F
+#define M_PI_F ((float)M_PI)
+#endif
 
 #define EKF_COVARIANCE_DIVERGED 1.0e8f
 
@@ -38,6 +43,7 @@ AttPosEKF::AttPosEKF() :
     resetStates{},
     storedStates{},
     statetimeStamp{},
+    lastVelPosFusion(millis()),
     statesAtVelTime{},
     statesAtPosTime{},
     statesAtHgtTime{},
@@ -59,7 +65,12 @@ AttPosEKF::AttPosEKF() :
     accel(),
     dVelIMU(),
     dAngIMU(),
-    dtIMU(0),
+    dtIMU(0.005f),
+    dtIMUfilt(0.005f),
+    dtVelPos(0.01f),
+    dtVelPosFilt(0.01f),
+    dtHgtFilt(0.01f),
+    dtGpsFilt(0.1f),
     fusionModeGPS(0),
     innovVelPos{},
     varInnovVelPos{},
@@ -260,6 +271,9 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
 
     // Constrain states (to protect against filter divergence)
     ConstrainStates();
+
+    // update filtered IMU time step length
+    dtIMUfilt = 0.99f * dtIMUfilt + 0.01f * dtIMU;
 }
 
 void AttPosEKF::CovariancePrediction(float dt)
@@ -962,6 +976,21 @@ void AttPosEKF::CovariancePrediction(float dt)
         ConstrainVariances();
 }
 
+void AttPosEKF::updateDtGpsFilt(float dt)
+{
+    dtGpsFilt = ConstrainFloat(dt, 0.001f, 2.0f) * 0.05f + dtGpsFilt * 0.95f;
+}
+
+void AttPosEKF::updateDtHgtFilt(float dt)
+{
+    dtHgtFilt = ConstrainFloat(dt, 0.001f, 2.0f) * 0.05f + dtHgtFilt * 0.95f;
+}
+
+void AttPosEKF::updateDtVelPosFilt(float dt)
+{
+    dtVelPosFilt = ConstrainFloat(dt, 0.0005f, 2.0f) * 0.05f + dtVelPosFilt * 0.95f;
+}
+
 void AttPosEKF::FuseVelposNED()
 {
 
@@ -998,6 +1027,18 @@ void AttPosEKF::FuseVelposNED()
 // associated with sequential fusion
     if (fuseVelData || fusePosData || fuseHgtData)
     {
+        uint64_t tNow = getMicros();
+        updateDtVelPosFilt((tNow - lastVelPosFusion) / 1e6f);
+        lastVelPosFusion = tNow;
+
+        // scaler according to the number of repetitions of the
+        // same measurement in one fusion step
+        float gpsVarianceScaler = dtGpsFilt / dtVelPosFilt;
+
+        // scaler according to the number of repetitions of the
+        // same measurement in one fusion step
+        float hgtVarianceScaler = dtHgtFilt / dtVelPosFilt;
+
         // set the GPS data timeout depending on whether airspeed data is present
         if (useAirspeed) horizRetryTime = gpsRetryTime;
         else horizRetryTime = gpsRetryTimeNoTAS;
@@ -1010,12 +1051,12 @@ void AttPosEKF::FuseVelposNED()
         // Estimate the GPS Velocity, GPS horiz position and height measurement variances.
         velErr = 0.2f*accNavMag; // additional error in GPS velocities caused by manoeuvring
         posErr = 0.2f*accNavMag; // additional error in GPS position caused by manoeuvring
-        R_OBS[0] = sq(vneSigma) + sq(velErr);
+        R_OBS[0] = gpsVarianceScaler * sq(vneSigma) + sq(velErr);
         R_OBS[1] = R_OBS[0];
-        R_OBS[2] = sq(vdSigma) + sq(velErr);
-        R_OBS[3] = sq(posNeSigma) + sq(posErr);
+        R_OBS[2] = gpsVarianceScaler * sq(vdSigma) + sq(velErr);
+        R_OBS[3] = gpsVarianceScaler * sq(posNeSigma) + sq(posErr);
         R_OBS[4] = R_OBS[3];
-        R_OBS[5] = sq(posDSigma) + sq(posErr);
+        R_OBS[5] = hgtVarianceScaler * sq(posDSigma) + sq(posErr);
 
         // calculate innovations and check GPS data validity using an innovation consistency check
         if (fuseVelData)
@@ -1995,9 +2036,8 @@ void AttPosEKF::FuseOptFlow()
             varInnovOptFlow[0] = 1.0f/SK_LOS[0];
             innovOptFlow[0] = losPred[0] - losData[0];
 
-            // reset the observation index to 0 (we start by fusing the X
-            // measurement)
-            obsIndex = 0;
+            // set the observation index to 1 to fuse the y component next time round and reset the commence fusion flag
+            obsIndex = 1;
             fuseOptFlowData = false;
         }
         else if (obsIndex == 1) // we are now fusing the Y measurement
@@ -2041,6 +2081,10 @@ void AttPosEKF::FuseOptFlow()
             Kfusion[22] = SK_LOS[1]*(P[22][0]*SKK_LOS[10] - P[22][3]*SKK_LOS[13] + P[22][1]*SKK_LOS[11] + P[22][2]*SKK_LOS[12] - P[22][9]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[22][22]*SH_LOS[1]*SH_LOS[7]*SKK_LOS[14] + P[22][6]*SH_LOS[3]*SKK_LOS[0]*SKK_LOS[14] + P[22][4]*SH_LOS[3]*SKK_LOS[2]*SKK_LOS[14] - P[22][5]*SH_LOS[3]*SKK_LOS[1]*SKK_LOS[14]);
             varInnovOptFlow[1] = 1.0f/SK_LOS[1];
             innovOptFlow[1] = losPred[1] - losData[1];
+
+            // reset the observation index
+            obsIndex = 0;
+            fuseOptFlowData = false;
         }
 
         // Check the innovation for consistency and don't fuse if > 3Sigma
@@ -2102,10 +2146,9 @@ void AttPosEKF::FuseOptFlow()
                 P[i][j] = P[i][j] - KHP[i][j];
             }
         }
+        ForceSymmetry();
+        ConstrainVariances();
     }
-    obsIndex = obsIndex + 1;
-    ForceSymmetry();
-    ConstrainVariances();
 }
 
 void AttPosEKF::zeroCols(float (&covMat)[n_states][n_states], uint8_t first, uint8_t last)
@@ -3006,8 +3049,13 @@ void AttPosEKF::ZeroVariables()
 {
 
     // Initialize on-init initialized variables
-
+    dtIMUfilt = ConstrainFloat(dtIMU, 0.001f, 0.02f);
+    dtVelPosFilt = ConstrainFloat(dtVelPos, 0.04f, 0.5f);
+    dtGpsFilt = 1.0f / 5.0f;
+    dtHgtFilt = 1.0f / 100.0f;
     storeIndex = 0;
+
+    lastVelPosFusion = millis();
 
     // Do the data structure init
     for (unsigned i = 0; i < n_states; i++) {
