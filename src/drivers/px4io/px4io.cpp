@@ -1969,7 +1969,7 @@ PX4IO::print_status(bool extended_status)
 	printf("actuators");
 
 	for (unsigned i = 0; i < _max_actuators; i++)
-		printf(" %u", io_reg_get(PX4IO_PAGE_ACTUATORS, i));
+		printf(" %hi", int16_t(io_reg_get(PX4IO_PAGE_ACTUATORS, i)));
 
 	printf("\n");
 	printf("servos");
