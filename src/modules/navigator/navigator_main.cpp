@@ -69,6 +69,7 @@
 #include <uORB/topics/fence.h>
 #include <uORB/topics/navigation_capabilities.h>
 #include <uORB/topics/offboard_control_setpoint.h>
+#include <drivers/drv_baro.h>
 
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
@@ -112,6 +113,7 @@ Navigator::Navigator() :
 	_vstatus{},
 	_control_mode{},
 	_global_pos{},
+	_sensor_combined{},
 	_home_pos{},
 	_mission_item{},
 	_nav_caps{},
@@ -176,6 +178,12 @@ void
 Navigator::global_position_update()
 {
 	orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
+}
+
+void
+Navigator::sensor_combined_update()
+{
+	orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
 }
 
 void
@@ -248,6 +256,7 @@ Navigator::task_main()
 
 	/* do subscriptions */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -261,6 +270,7 @@ Navigator::task_main()
 	vehicle_status_update();
 	vehicle_control_mode_update();
 	global_position_update();
+	sensor_combined_update();
 	home_position_update();
 	navigation_capabilities_update();
 	params_update();
@@ -272,7 +282,7 @@ Navigator::task_main()
 	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source(s) */
-	struct pollfd fds[6];
+	struct pollfd fds[7];
 
 	/* Setup of loop */
 	fds[0].fd = _global_pos_sub;
@@ -287,6 +297,8 @@ Navigator::task_main()
 	fds[4].events = POLLIN;
 	fds[5].fd = _param_update_sub;
 	fds[5].events = POLLIN;
+	fds[6].fd = _sensor_combined_sub;
+	fds[6].events = POLLIN;
 
 	while (!_task_should_exit) {
 
@@ -309,6 +321,11 @@ Navigator::task_main()
 			/* try to reopen the mavlink log device with specified interval */
 			mavlink_open_time = hrt_abstime() + mavlink_open_interval;
 			_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+		}
+
+		/* sensors combined updated */
+		if (fds[6].revents & POLLIN) {
+			sensor_combined_update();
 		}
 
 		/* parameters updated */
@@ -342,7 +359,13 @@ Navigator::task_main()
 			global_position_update();
 
 			/* Check geofence violation */
-			if (!_geofence.inside(&_global_pos)) {
+			bool inside = false;
+			if (_geofence.getAltitudeMode() == Geofence::GF_ALT_MODE_GPS) {
+				inside = _geofence.inside(_global_pos);
+			} else {
+				inside = _geofence.inside(_global_pos, _sensor_combined.baro_alt_meter);
+			}
+			if (!inside) {
 				/* inform other apps via the sp triplet */
 				_pos_sp_triplet.geofence_violated = true;
 				if (_pos_sp_triplet.geofence_violated != true) {

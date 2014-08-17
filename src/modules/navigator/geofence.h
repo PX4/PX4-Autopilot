@@ -42,6 +42,8 @@
 #define GEOFENCE_H_
 
 #include <uORB/topics/fence.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/sensor_combined.h>
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
@@ -49,29 +51,25 @@
 
 class Geofence : public control::SuperBlock
 {
-private:
-	orb_advert_t	_fence_pub;			/**< publish fence topic */
-
-	float			_altitude_min;
-	float			_altitude_max;
-
-	unsigned 			_verticesCount;
-
-	/* Params */
-	control::BlockParamInt param_geofence_on;
 public:
 	Geofence();
 	~Geofence();
 
+	/* Altitude mode, corresponding to the param GF_ALTMODE */
+	enum {
+		GF_ALT_MODE_GPS = 0,
+		GF_ALT_MODE_AMSL = 1
+	};
+
 	/**
-	 * Return whether craft is inside geofence.
+	 * Return whether system is inside geofence.
 	 *
 	 * Calculate whether point is inside arbitrary polygon
 	 * @param craft pointer craft coordinates
-	 * @param fence pointer to array of coordinates, one per vertex. First and last vertex are assumed connected
-	 * @return true: craft is inside fence, false:craft is outside fence
+	 * @return true: system is inside fence, false: system is outside fence
 	 */
-	bool inside(const struct vehicle_global_position_s *craft);
+	bool inside(const struct vehicle_global_position_s &global_position);
+	bool inside(const struct vehicle_global_position_s &global_position, float baro_altitude_amsl);
 	bool inside(double lat, double lon, float altitude);
 
 	int clearDm();
@@ -88,6 +86,20 @@ public:
 	int loadFromFile(const char *filename);
 
 	bool isEmpty() {return _verticesCount == 0;}
+
+	int getAltitudeMode() { return _param_altitude_mode.get(); }
+
+private:
+	orb_advert_t	_fence_pub;			/**< publish fence topic */
+
+	float			_altitude_min;
+	float			_altitude_max;
+
+	unsigned 			_verticesCount;
+
+	/* Params */
+	control::BlockParamInt _param_geofence_on;
+	control::BlockParamInt _param_altitude_mode;
 };
 
 

@@ -62,7 +62,8 @@ Geofence::Geofence() :
 		_altitude_min(0),
 		_altitude_max(0),
 		_verticesCount(0),
-		param_geofence_on(this, "ON")
+		_param_geofence_on(this, "ON"),
+		_param_altitude_mode(this, "ALTMODE")
 {
 	/* Load initial params */
 	updateParams();
@@ -74,19 +75,26 @@ Geofence::~Geofence()
 }
 
 
-bool Geofence::inside(const struct vehicle_global_position_s *vehicle)
+bool Geofence::inside(const struct vehicle_global_position_s &global_position)
 {
-	double lat = vehicle->lat / 1e7d;
-	double lon = vehicle->lon / 1e7d;
-	//float	alt = vehicle->alt;
+	double lat = global_position.lat / 1e7d;
+	double lon = global_position.lon / 1e7d;
 
-	return inside(lat, lon, vehicle->alt);
+	return inside(lat, lon, global_position.alt);
+}
+
+bool Geofence::inside(const struct vehicle_global_position_s &global_position, float baro_altitude_amsl) {
+
+	double lat = global_position.lat / 1e7d;
+	double lon = global_position.lon / 1e7d;
+
+	return inside(lat, lon, baro_altitude_amsl);
 }
 
 bool Geofence::inside(double lat, double lon, float altitude)
 {
 	/* Return true if geofence is disabled */
-	if (param_geofence_on.get() != 1)
+	if (_param_geofence_on.get() != 1)
 		return true;
 
 	if (valid()) {

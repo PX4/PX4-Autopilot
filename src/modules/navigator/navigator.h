@@ -120,6 +120,7 @@ public:
 	struct vehicle_status_s*	    get_vstatus() { return &_vstatus; }
 	struct vehicle_control_mode_s*	    get_control_mode() { return &_control_mode; }
 	struct vehicle_global_position_s*   get_global_position() { return &_global_pos; }
+	struct sensor_combined_s*	    get_sensor_combined() { return &_sensor_combined; }
 	struct home_position_s*		    get_home_position() { return &_home_pos; }
 	struct position_setpoint_triplet_s* get_position_setpoint_triplet() { return &_pos_sp_triplet; }
 	struct mission_result_s*	    get_mission_result() { return &_mission_result; }
@@ -141,6 +142,7 @@ private:
 	int		_mavlink_fd;			/**< the file descriptor to send messages over mavlink */
 
 	int		_global_pos_sub;		/**< global position subscription */
+	int		_sensor_combined_sub;		/**< sensor combined subscription */
 	int		_home_pos_sub;			/**< home position subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
@@ -156,6 +158,7 @@ private:
 	vehicle_status_s				_vstatus;		/**< vehicle status */
 	vehicle_control_mode_s				_control_mode;		/**< vehicle control mode */
 	vehicle_global_position_s			_global_pos;		/**< global vehicle position */
+	sensor_combined_s				_sensor_combined;	/**< sensor values */
 	home_position_s					_home_pos;		/**< home position for RTL */
 	mission_item_s 					_mission_item;		/**< current mission item */
 	navigation_capabilities_s			_nav_caps;		/**< navigation capabilities */
@@ -194,6 +197,11 @@ private:
 	 * Retrieve global position
 	 */
 	void		global_position_update();
+
+	/**
+	 * Retrieve sensor values
+	 */
+	void		sensor_combined_update();
 
 	/**
 	 * Retrieve home position

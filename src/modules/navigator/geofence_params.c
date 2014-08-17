@@ -58,3 +58,15 @@
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_ON, 1);
+
+/**
+ * Geofence altitude mode
+ *
+ * Select which altitude reference should be used
+ * 0 = GPS, 1 = AMSL
+ *
+ * @min 0
+ * @max 1
+ * @group Geofence
+ */
+PARAM_DEFINE_INT32(GF_ALTMODE, 1);
