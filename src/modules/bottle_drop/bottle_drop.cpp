@@ -728,6 +728,7 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 			mavlink_log_info(_mavlink_fd, "#audio: open doors");
 
 		} else {
+			lock_release();
 			close_bay();
 			mavlink_log_info(_mavlink_fd, "#audio: close doors");
 		}
@@ -760,7 +761,7 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 		_target_position.alt = cmd->param7;
 		_target_position.initialized;
 		_drop_state = DROP_STATE_TARGET_VALID;
-		warnx("got target: %8.4f, %8.4f, %8.4f", (double)_target_position.lat,
+		mavlink_log_info(_mavlink_fd, "got target: %8.4f, %8.4f, %8.4f", (double)_target_position.lat,
 			(double)_target_position.lon, (double)_target_position.alt);
 		map_projection_init(&ref, _target_position.lat, _target_position.lon);
 		answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
