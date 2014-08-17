@@ -236,7 +236,7 @@ private:
 	/**
 	 * Set position setpoint for AUTO
 	 */
-	void		control_auto();
+	void		control_auto(float dt);
 
 	/**
 	 * Select between barometric and global (AMSL) altitudes
@@ -682,7 +682,7 @@ MulticopterPositionControl::cross_sphere_line(const math::Vector<3>& sphere_c, f
 }
 
 void
-MulticopterPositionControl::control_auto()
+MulticopterPositionControl::control_auto(float dt)
 {
 	bool updated;
 	orb_check(_pos_sp_triplet_sub, &updated);
@@ -703,8 +703,14 @@ MulticopterPositionControl::control_auto()
 				       &curr_sp.data[0], &curr_sp.data[1]);
 		curr_sp(2) = -(_pos_sp_triplet.current.alt - _ref_alt);
 
+		/* scaled space: 1 == position error resulting max allowed speed, L1 = 1 in this space */
+		math::Vector<3> scale = _params.pos_p.edivide(_params.vel_max);	// TODO add mult param here
+
+		/* convert current setpoint to scaled space */
+		math::Vector<3> curr_sp_s = curr_sp.emult(scale);
+
 		/* by default use current setpoint as is */
-		_pos_sp = curr_sp;
+		math::Vector<3> pos_sp_s = curr_sp_s;
 
 		if (_pos_sp_triplet.current.type == SETPOINT_TYPE_POSITION && _pos_sp_triplet.previous.valid) {
 			/* follow "previous - current" line */
@@ -715,16 +721,13 @@ MulticopterPositionControl::control_auto()
 			prev_sp(2) = -(_pos_sp_triplet.previous.alt - _ref_alt);
 
 			if ((curr_sp - prev_sp).length() > MIN_DIST) {
-				/* scaled space: 1 == position error resulting max allowed speed, L1 = 1 in this space */
-				math::Vector<3> scale = _params.pos_p.edivide(_params.vel_max);
 
 				/* find X - cross point of L1 sphere and trajectory */
 				math::Vector<3> pos_s = _pos.emult(scale);
 				math::Vector<3> prev_sp_s = prev_sp.emult(scale);
-				math::Vector<3> curr_sp_s = curr_sp.emult(scale);
+				math::Vector<3> prev_curr_s = curr_sp_s - prev_sp_s;
 				math::Vector<3> curr_pos_s = pos_s - curr_sp_s;
 				float curr_pos_s_len = curr_pos_s.length();
-				math::Vector<3> x;
 				if (curr_pos_s_len < 1.0f) {
 					/* copter is closer to waypoint than L1 radius */
 					/* check next waypoint and use it to avoid slowing down when passing via waypoint */
@@ -740,55 +743,63 @@ MulticopterPositionControl::control_auto()
 
 							/* calculate angle prev - curr - next */
 							math::Vector<3> curr_next_s = next_sp_s - curr_sp_s;
-							math::Vector<3> prev_curr_s_norm = (curr_sp_s - prev_sp_s).normalized();
+							math::Vector<3> prev_curr_s_norm = prev_curr_s.normalized();
 
-							/* cos(a) = angle between current and next trajectory segments */
-							float cos_a = prev_curr_s_norm * curr_next_s;
+							/* cos(a) * curr_next, a = angle between current and next trajectory segments */
+							float cos_a_curr_next = prev_curr_s_norm * curr_next_s;
 
-							/* cos(b) = angle pos - curr_sp - prev_sp */
+							/* cos(b), b = angle pos - curr_sp - prev_sp */
 							float cos_b = -curr_pos_s * prev_curr_s_norm / curr_pos_s_len;
 
-							if (cos_a > 0.0f && cos_b > 0.0f) {
+							if (cos_a_curr_next > 0.0f && cos_b > 0.0f) {
 								float curr_next_s_len = curr_next_s.length();
 								/* if curr - next distance is larger than L1 radius, limit it */
 								if (curr_next_s_len > 1.0f) {
-									cos_a /= curr_next_s_len;
+									cos_a_curr_next /= curr_next_s_len;
 								}
 
 								/* feed forward position setpoint offset */
 								math::Vector<3> pos_ff = prev_curr_s_norm *
-										cos_a * cos_b * cos_b * (1.0f - curr_pos_s_len) *
+										cos_a_curr_next * cos_b * cos_b * (1.0f - curr_pos_s_len) *
 										(1.0f - expf(-curr_pos_s_len * curr_pos_s_len * 20.0f));
-								_pos_sp += pos_ff.edivide(scale);
+								pos_sp_s += pos_ff;
 							}
 						}
 					}
 
 				} else {
-					bool near = cross_sphere_line(pos_s, 1.0f, prev_sp_s, curr_sp_s, x);
+					bool near = cross_sphere_line(pos_s, 1.0f, prev_sp_s, curr_sp_s, pos_sp_s);
 					if (near) {
 						/* L1 sphere crosses trajectory */
 
 					} else {
 						/* copter is too far from trajectory */
 						/* if copter is behind prev waypoint, go directly to prev waypoint */
-						if ((x - prev_sp_s) * (curr_sp_s - prev_sp) < 0.0f) {
-							x = prev_sp_s;
+						if ((pos_sp_s - prev_sp_s) * prev_curr_s < 0.0f) {
+							pos_sp_s = prev_sp_s;
 						}
 
 						/* if copter is in front of curr waypoint, go directly to curr waypoint */
-						if ((x - curr_sp_s) * (curr_sp_s - prev_sp) > 0.0f) {
-							x = curr_sp_s;
+						if ((pos_sp_s - curr_sp_s) * prev_curr_s > 0.0f) {
+							pos_sp_s = curr_sp_s;
 						}
 
-						x = pos_s + (x - pos_s).normalized();
+						pos_sp_s = pos_s + (pos_sp_s - pos_s).normalized();
 					}
-
-					/* scale result back to normal space */
-					_pos_sp = x.edivide(scale);
 				}
 			}
 		}
+
+		/* move setpoint not faster than max allowed speed */
+		math::Vector<3> pos_sp_old_s = _pos_sp.emult(scale);
+		math::Vector<3> d_pos_s = pos_sp_s - pos_sp_old_s;
+		float d_pos_s_len = d_pos_s.length();
+		if (d_pos_s_len > dt) {
+			pos_sp_s = pos_sp_old_s + d_pos_s / d_pos_s_len * dt;
+		}
+
+		/* scale result back to normal space */
+		_pos_sp = pos_sp_s.edivide(scale);
 
 		/* update yaw setpoint if needed */
 		if (isfinite(_pos_sp_triplet.current.yaw)) {
@@ -912,7 +923,7 @@ MulticopterPositionControl::task_main()
 
 			} else {
 				/* AUTO */
-				control_auto();
+				control_auto(dt);
 			}
 
 			/* fill local position setpoint */
@@ -975,14 +986,14 @@ MulticopterPositionControl::task_main()
 				}
 
 
-				if (!_control_mode.flag_control_manual_enabled) {
-					/* limit 3D speed only in non-manual modes */
-					float vel_sp_norm = _vel_sp.edivide(_params.vel_max).length();
-
-					if (vel_sp_norm > 1.0f) {
-						_vel_sp /= vel_sp_norm;
-					}
-				}
+//				if (!_control_mode.flag_control_manual_enabled) {
+//					/* limit 3D speed only in non-manual modes */
+//					float vel_sp_norm = _vel_sp.edivide(_params.vel_max).length();
+//
+//					if (vel_sp_norm > 1.0f) {
+//						_vel_sp /= vel_sp_norm;
+//					}
+//				}
 
 				_global_vel_sp.vx = _vel_sp(0);
 				_global_vel_sp.vy = _vel_sp(1);
