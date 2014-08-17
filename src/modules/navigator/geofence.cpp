@@ -77,18 +77,12 @@ Geofence::~Geofence()
 
 bool Geofence::inside(const struct vehicle_global_position_s &global_position)
 {
-	double lat = global_position.lat / 1e7d;
-	double lon = global_position.lon / 1e7d;
-
-	return inside(lat, lon, global_position.alt);
+	return inside(global_position.lat, global_position.lon, global_position.alt);
 }
 
-bool Geofence::inside(const struct vehicle_global_position_s &global_position, float baro_altitude_amsl) {
-
-	double lat = global_position.lat / 1e7d;
-	double lon = global_position.lon / 1e7d;
-
-	return inside(lat, lon, baro_altitude_amsl);
+bool Geofence::inside(const struct vehicle_global_position_s &global_position, float baro_altitude_amsl)
+{
+	return inside(global_position.lat, global_position.lon, baro_altitude_amsl);
 }
 
 bool Geofence::inside(double lat, double lon, float altitude)
@@ -101,8 +95,9 @@ bool Geofence::inside(double lat, double lon, float altitude)
 
 		if (!isEmpty()) {
 			/* Vertical check */
-			if (altitude > _altitude_max || altitude < _altitude_min)
+			if (altitude > _altitude_max || altitude < _altitude_min) {
 				return false;
+			}
 
 			/*Horizontal check */
 			/* Adaptation of algorithm originally presented as
