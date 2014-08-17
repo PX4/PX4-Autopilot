@@ -143,6 +143,12 @@
 
 #define STICK_ON_OFF_LIMIT 0.75f
 
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
+
 /**
  * Sensor app start / stop handling function
  *
@@ -465,12 +471,6 @@ private:
 
 namespace sensors
 {
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 Sensors	*g_sensors = nullptr;
 }
@@ -860,7 +860,9 @@ Sensors::parameters_update()
 		warnx("qnh ioctl, %lu", (unsigned long)(_parameters.baro_qnh * 100));
 		int ret = ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
 		if (ret) {
-			errx(ret, "qnh could not be set");
+			warnx("qnh could not be set");
+			close(fd);
+			return ERROR;
 		}
 		close(fd);
 	}
