@@ -530,8 +530,7 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 	#ifndef CONFIG_RTC
 	//Since we lack a hardware RTC, set the system time clock based on companion computer UNIX time (from GPS time or NTP servers)
 	timespec ts;
-	ts.tv_sec = t.time_unix_usec;
-	ts.tv_nsec = t.time_boot_ms;
+	ts.tv_usec = t.time_unix_usec;
 	clock_settime(CLOCK_REALTIME, &ts);
 	#endif
 }
