@@ -83,6 +83,7 @@ __BEGIN_DECLS
 __END_DECLS
 
 static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
+static uint64_t time_offset_companion;
 
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
@@ -526,15 +527,13 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 	mavlink_system_time_t t;
 	mavlink_msg_system_time_decode(msg, &t);
 
-#ifndef CONFIG_RTC
-//Since we lack a hardware RTC, set the system time clock based on companion computer UTC time
-
-timespec ts;
-ts.tv_sec = t.time_unix_usec;
-ts.tv_nsec = t.time_boot_ms;
-clock_settime(CLOCK_REALTIME, &ts);
-
-#endif
+	#ifndef CONFIG_RTC
+	//Since we lack a hardware RTC, set the system time clock based on companion computer UNIX time (from GPS time or NTP servers)
+	timespec ts;
+	ts.tv_sec = t.time_unix_usec;
+	ts.tv_nsec = t.time_boot_ms;
+	clock_settime(CLOCK_REALTIME, &ts);
+	#endif
 }
 
 void
