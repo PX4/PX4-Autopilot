@@ -862,8 +862,8 @@ Sensors::parameters_update()
 		if (ret) {
 			errx(ret, "qnh could not be set");
 		}
+		close(fd);
 	}
-	close(fd);
 
 	return OK;
 }
