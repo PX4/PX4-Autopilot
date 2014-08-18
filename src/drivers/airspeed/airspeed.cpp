@@ -165,7 +165,7 @@ Airspeed::probe()
 	*/
 	_retries = 4;
 	int ret = measure();
-	_retries = 2;
+	_retries = 0;
 	return ret;
 }
 
@@ -364,7 +364,6 @@ Airspeed::update_status()
 			_sensor_ok,
 			SUBSYSTEM_TYPE_DIFFPRESSURE
 		};
-		warnx("airspeed ok state changed");
 
 		if (_subsys_pub > 0) {
 			orb_publish(ORB_ID(subsystem_info), _subsys_pub, &info);
