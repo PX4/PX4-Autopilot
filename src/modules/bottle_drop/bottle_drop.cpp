@@ -126,10 +126,9 @@ private:
 	float		_alt_clearance;
 
 	struct position_s {
-		double lat; //degrees
-		double lon; //degrees
-		float alt; //m
-		bool initialized;
+		double lat;	///< degrees
+		double lon;	///< degrees
+		float alt;	///< m
 	} _target_position, _drop_position;
 
 	enum DROP_STATE {
@@ -646,7 +645,7 @@ BottleDrop::task_main()
 							(double)distance_open_door,
 							(double)(_wrap_pi(_global_pos.yaw - atan2f(wind.windspeed_north, wind.windspeed_east))));
 
-					if (isfinite(distance_real) && distance_real < distance_open_door && _drop_approval) {
+					if (isfinite(distance_real) && distance_real < distance_open_door) {
 						open_bay();
 						_drop_state = DROP_STATE_BAY_OPEN;
 					}
@@ -655,27 +654,21 @@ BottleDrop::task_main()
 
 				case DROP_STATE_BAY_OPEN:
 					{
-						map_projection_project(&ref, _global_pos.lat, _global_pos.lon, &x_l, &y_l);
-						x_f = x_l + _global_pos.vel_n * dt_runs;
-						y_f = y_l + _global_pos.vel_e * dt_runs;
-						map_projection_reproject(&ref, x_f, y_f, &x_f_NED, &y_f_NED);
-						future_distance = fabsf(get_distance_to_next_waypoint(x_f_NED, y_f_NED, _drop_position.lat, _drop_position.lon));
+						if (_drop_approval) {
+							map_projection_project(&ref, _global_pos.lat, _global_pos.lon, &x_l, &y_l);
+							x_f = x_l + _global_pos.vel_n * dt_runs;
+							y_f = y_l + _global_pos.vel_e * dt_runs;
+							map_projection_reproject(&ref, x_f, y_f, &x_f_NED, &y_f_NED);
+							future_distance = fabsf(get_distance_to_next_waypoint(x_f_NED, y_f_NED, _drop_position.lat, _drop_position.lon));
 
-						warnx("Distance real: %.2f", (double)distance_real);
+							warnx("Distance real: %.2f", (double)distance_real);
 
-						if (isfinite(distance_real) && (((distance_real < precision) && (distance_real < future_distance)) ||
-						/* we drop as well if we're really close */ (distance_real < precision / 10.0f))) { // Drop only if the distance between drop point and actual position is getting larger again
-							// XXX this check needs to be carefully validated - right now we prefer to drop if we're close to the goal
-
-							// if(fabsf(_wrap_pi(_global_pos.yaw-atan2f(wind.windspeed_north,wind_speed.windspeed_east)+M_PI_F)) < 80.0f/180.0f*M_PI_F) // if flight trajectory deviates more than 80 degrees from calculated path, it will no drop
-							// {
-								drop();
-								_drop_state = DROP_STATE_DROPPED;
-							// }
-							// else
-							// {
-							// 	state_run = true;
-							// }
+							if (isfinite(distance_real) &&
+								(((distance_real < precision) && (distance_real < future_distance)) ||
+								(distance_real < precision / 10.0f))) {
+									drop();
+									_drop_state = DROP_STATE_DROPPED;
+							}
 						}
 					}
 					break;
@@ -684,6 +677,7 @@ BottleDrop::task_main()
 					/* 2s after drop, reset and close everything again */
 					if ((hrt_elapsed_time(&_doors_opened) > 2 * 1000 * 1000)) {
 						_drop_state = DROP_STATE_INIT;
+						_drop_approval = false;
 						lock_release();
 						close_bay();
 					}
@@ -759,7 +753,6 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 		_target_position.lat = cmd->param5;
 		_target_position.lon = cmd->param6;
 		_target_position.alt = cmd->param7;
-		_target_position.initialized;
 		_drop_state = DROP_STATE_TARGET_VALID;
 		mavlink_log_info(_mavlink_fd, "got target: %8.4f, %8.4f, %8.4f", (double)_target_position.lat,
 			(double)_target_position.lon, (double)_target_position.alt);
