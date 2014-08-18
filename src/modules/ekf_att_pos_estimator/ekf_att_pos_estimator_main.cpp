@@ -1490,8 +1490,10 @@ FixedwingEstimator::task_main()
 
 						if (hrt_elapsed_time(&_wind.timestamp) > 99000) {
 							_wind.timestamp = _global_pos.timestamp;
-							_wind.windspeed_north = _ekf->states[14];
-							_wind.windspeed_east = _ekf->states[15];
+							_wind.windspeed_north = _ekf->windSpdFiltNorth;
+							_wind.windspeed_east = _ekf->windSpdFiltEast;
+							// XXX we need to do something smart about the covariance here
+							// but we default to the estimate covariance for now
 							_wind.covariance_north = _ekf->P[14][14];
 							_wind.covariance_east = _ekf->P[15][15];
 
