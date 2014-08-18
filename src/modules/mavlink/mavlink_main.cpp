@@ -169,7 +169,6 @@ Mavlink::Mavlink() :
 	_param_component_id(0),
 	_param_system_type(0),
 	_param_use_hil_gps(0),
-	_param_forward_externalsp(0),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
