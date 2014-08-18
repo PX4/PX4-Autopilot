@@ -149,6 +149,9 @@ public:
     float dtVelPosFilt; // average time between position / velocity fusion steps
     float dtHgtFilt; // average time between height measurement updates
     float dtGpsFilt; // average time between gps measurement updates
+    float windSpdFiltNorth; // average wind speed north component
+    float windSpdFiltEast; // average wind speed east component
+    float windSpdFiltAltitude; // the last altitude used to filter wind speed
     uint8_t fusionModeGPS; // 0 = GPS outputs 3D velocity, 1 = GPS outputs 2D velocity, 2 = GPS outputs no velocity
     float innovVelPos[6]; // innovation output
     float varInnovVelPos[6]; // innovation variance output
