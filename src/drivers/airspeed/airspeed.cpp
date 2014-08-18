@@ -364,6 +364,7 @@ Airspeed::update_status()
 			_sensor_ok,
 			SUBSYSTEM_TYPE_DIFFPRESSURE
 		};
+		warnx("airspeed ok state changed");
 
 		if (_subsys_pub > 0) {
 			orb_publish(ORB_ID(subsystem_info), _subsys_pub, &info);
@@ -381,7 +382,10 @@ Airspeed::cycle_trampoline(void *arg)
 	Airspeed *dev = (Airspeed *)arg;
 
 	dev->cycle();
-	dev->update_status();
+	// XXX we do not know if this is
+	// really helping - do not update the
+	// subsys state right now
+	//dev->update_status();
 }
 
 void
