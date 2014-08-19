@@ -67,7 +67,6 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
 #include <uORB/topics/navigation_capabilities.h>
-#include <uORB/topics/offboard_control_setpoint.h>
 
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
@@ -101,7 +100,6 @@ Navigator::Navigator() :
 	_home_pos_sub(-1),
 	_vstatus_sub(-1),
 	_capabilities_sub(-1),
-	_offboard_control_sp_sub(-1),
 	_control_mode_sub(-1),
 	_onboard_mission_sub(-1),
 	_offboard_mission_sub(-1),
@@ -124,7 +122,6 @@ Navigator::Navigator() :
 	_mission(this, "MIS"),
 	_loiter(this, "LOI"),
 	_rtl(this, "RTL"),
-	_offboard(this, "OFF"),
 	_can_loiter_at_sp(false),
 	_pos_sp_triplet_updated(false),
 	_param_loiter_radius(this, "LOITER_RAD"),
@@ -134,7 +131,6 @@ Navigator::Navigator() :
 	_navigation_mode_array[0] = &_mission;
 	_navigation_mode_array[1] = &_loiter;
 	_navigation_mode_array[2] = &_rtl;
-	_navigation_mode_array[3] = &_offboard;
 
 	updateParams();
 }
@@ -247,7 +243,6 @@ Navigator::task_main()
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
-	_offboard_control_sp_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -353,6 +348,9 @@ Navigator::task_main()
 			case NAVIGATION_STATE_ACRO:
 			case NAVIGATION_STATE_ALTCTL:
 			case NAVIGATION_STATE_POSCTL:
+			case NAVIGATION_STATE_LAND:
+			case NAVIGATION_STATE_TERMINATION:
+			case NAVIGATION_STATE_OFFBOARD:
 				_navigation_mode = nullptr;
 				_can_loiter_at_sp = false;
 				break;
@@ -367,11 +365,6 @@ Navigator::task_main()
 				break;
 			case NAVIGATION_STATE_AUTO_RTGS:
 				_navigation_mode = &_rtl; /* TODO: change this to something else */
-				break;
-			case NAVIGATION_STATE_LAND:
-			case NAVIGATION_STATE_TERMINATION:
-			case NAVIGATION_STATE_OFFBOARD:
-				_navigation_mode = &_offboard;
 				break;
 			default:
 				_navigation_mode = nullptr;
