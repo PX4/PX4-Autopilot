@@ -76,7 +76,8 @@ EngineFailure::on_inactive()
 void
 EngineFailure::on_activation()
 {
-	_ef_state = EF_STATE_LOITERDOWN;
+	_ef_state = EF_STATE_NONE;
+	advance_ef();
 	set_ef_item();
 }
 
@@ -139,6 +140,7 @@ EngineFailure::advance_ef()
 {
 	switch (_ef_state) {
 	case EF_STATE_NONE:
+		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: Engine failure. Loitering down");
 		_ef_state = EF_STATE_LOITERDOWN;
 		break;
 	default:
