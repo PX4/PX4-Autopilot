@@ -114,7 +114,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_telemetry_status_pub(-1),
 	_rc_pub(-1),
 	_manual_pub(-1),
-	_radio_status_available(false),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
 	_old_timestamp(0),
@@ -691,9 +690,6 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 		} else {
 			orb_publish(telemetry_status_orb_id[_mavlink->get_channel()], _telemetry_status_pub, &tstatus);
 		}
-
-		/* this means that heartbeats alone won't be published to the radio status no more */
-		_radio_status_available = true;
 	}
 }
 
@@ -735,25 +731,17 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 			struct telemetry_status_s &tstatus = _mavlink->get_rx_status();
 
-			hrt_abstime tnow = hrt_absolute_time();
+			/* set heartbeat time and topic time and publish -
+			 * the telem status also gets updated on telemetry events
+			 */
+			tstatus.timestamp = hrt_absolute_time();
+			tstatus.heartbeat_time = tstatus.timestamp;
 
-			/* always set heartbeat, publish only if telemetry link not up */
-			tstatus.heartbeat_time = tnow;
+			if (_telemetry_status_pub < 0) {
+				_telemetry_status_pub = orb_advertise(telemetry_status_orb_id[_mavlink->get_channel()], &tstatus);
 
-			/* if no radio status messages arrive, lets at least publish that heartbeats were received */
-			if (!_radio_status_available) {
-
-				tstatus.timestamp = tnow;
-				/* telem_time indicates the timestamp of a telemetry status packet and we got none */
-				tstatus.telem_time = 0;
-				tstatus.type = TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
-
-				if (_telemetry_status_pub < 0) {
-					_telemetry_status_pub = orb_advertise(telemetry_status_orb_id[_mavlink->get_channel()], &tstatus);
-
-				} else {
-					orb_publish(telemetry_status_orb_id[_mavlink->get_channel()], _telemetry_status_pub, &tstatus);
-				}
+			} else {
+				orb_publish(telemetry_status_orb_id[_mavlink->get_channel()], _telemetry_status_pub, &tstatus);
 			}
 		}
 	}

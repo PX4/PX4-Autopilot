@@ -218,6 +218,8 @@ Mavlink::Mavlink() :
 		errx(1, "instance ID is out of range");
 		break;
 	}
+
+	_rstatus.type = TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
 }
 
 Mavlink::~Mavlink()
