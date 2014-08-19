@@ -41,6 +41,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/test_motor.h>
 
 #include "esc_controller.hpp"
 #include "gnss_receiver.hpp"
@@ -55,6 +56,8 @@
 
 #define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	4
 #define UAVCAN_DEVICE_PATH	"/dev/uavcan/esc"
+
+#define MAX_TEST_POWER 1.0f
 
 /**
  * A UAVCAN node.
@@ -102,7 +105,9 @@ private:
 	int			_task = -1;			///< handle to the OS task
 	bool			_task_should_exit = false;	///< flag to indicate to tear down the CAN driver
 	int			_armed_sub = -1;		///< uORB subscription of the arming status
+	int			_test_motor_sub = -1;		///< uORB subscription of motor test commands
 	actuator_armed_s	_armed;				///< the arming request of the system
+	test_motor_s		_test_motor;				///< the arming request of the system
 	bool			_is_armed = false;		///< the arming status of the actuators on the bus
 
 	unsigned		_output_count = 0;		///< number of actuators currently available
