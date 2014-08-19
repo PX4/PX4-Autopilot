@@ -35,8 +35,12 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 #include "mavlink_ftp.h"
+
+// Uncomment the line below to get better debug output. Never commit with this left on.
+//#define MAVLINK_FTP_DEBUG
 
 MavlinkFTP *MavlinkFTP::_server;
 
@@ -124,7 +128,9 @@ MavlinkFTP::_worker(Request *req)
 		warnx("ftp: bad crc");
 	}
 
-	//printf("ftp: channel %u opc %u size %u offset %u\n", req->channel(), hdr->opcode, hdr->size, hdr->offset);
+#ifdef MAVLINK_FTP_DEBUG
+	printf("ftp: channel %u opc %u size %u offset %u\n", req->channel(), hdr->opcode, hdr->size, hdr->offset);
+#endif
 
 	switch (hdr->opcode) {
 	case kCmdNone:
@@ -171,7 +177,9 @@ out:
 	// handle success vs. error
 	if (errorCode == kErrNone) {
 		hdr->opcode = kRspAck;
-		//warnx("FTP: ack\n");
+#ifdef MAVLINK_FTP_DEBUG
+		warnx("FTP: ack\n");
+#endif
 	} else {
 		warnx("FTP: nak %u", errorCode);
 		hdr->opcode = kRspNak;
@@ -190,6 +198,8 @@ void
 MavlinkFTP::_reply(Request *req)
 {
 	auto hdr = req->header();
+	
+	hdr->magic = kProtocolMagic;
 
 	// message is assumed to be already constructed in the request buffer, so generate the CRC
 	hdr->crc32 = 0;
@@ -214,7 +224,9 @@ MavlinkFTP::_workList(Request *req)
 		return kErrNotDir;
 	}
     
-	//warnx("FTP: list %s offset %d", dirPath, hdr->offset);
+#ifdef MAVLINK_FTP_DEBUG
+	warnx("FTP: list %s offset %d", dirPath, hdr->offset);
+#endif
 
 	ErrorCode errorCode = kErrNone;
 	struct dirent entry, *result = nullptr;
@@ -242,28 +254,51 @@ MavlinkFTP::_workList(Request *req)
 			break;
 		}
 
-		// name too big to fit?
-		if ((strlen(entry.d_name) + offset + 2) > kMaxDataLength) {
-			break;
-		}
+		uint32_t fileSize = 0;
+		char buf[256];
+		char direntType;
 
-		// store the type marker
+		// Determine the directory entry type
 		switch (entry.d_type) {
 		case DTYPE_FILE:
-			hdr->data[offset++] = kDirentFile;
+			// For files we get the file size as well
+			direntType = kDirentFile;
+			snprintf(buf, sizeof(buf), "%s/%s", dirPath, entry.d_name);
+			struct stat st;
+			if (stat(buf, &st) == 0) {
+				fileSize = st.st_size;
+			}
 			break;
 		case DTYPE_DIRECTORY:
-			hdr->data[offset++] = kDirentDir;
+			direntType = kDirentDir;
 			break;
 		default:
-			hdr->data[offset++] = kDirentUnknown;
+			direntType = kDirentUnknown;
 			break;
 		}
+		
+		if (entry.d_type == DTYPE_FILE) {
+			// Files send filename and file length
+			snprintf(buf, sizeof(buf), "%s\t%d", entry.d_name, fileSize);
+		} else {
+			// Everything else just sends name
+			strncpy(buf, entry.d_name, sizeof(buf));
+			buf[sizeof(buf)-1] = 0;
+		}
+		size_t nameLen = strlen(buf);
 
-		// copy the name, which we know will fit
-		strcpy((char *)&hdr->data[offset], entry.d_name);
-		//printf("FTP: list %s %s\n", dirPath, (char *)&hdr->data[offset-1]);
-		offset += strlen(entry.d_name) + 1;
+		// Do we have room for the name, the one char directory identifier and the null terminator?
+		if ((offset + nameLen + 2) > kMaxDataLength) {
+			break;
+		}
+		
+		// Move the data into the buffer
+		hdr->data[offset++] = direntType;
+		strcpy((char *)&hdr->data[offset], buf);
+#ifdef MAVLINK_FTP_DEBUG
+		printf("FTP: list %s %s\n", dirPath, (char *)&hdr->data[offset-1]);
+#endif
+		offset += nameLen + 1;
 	}
 
 	closedir(dp);
@@ -282,6 +317,16 @@ MavlinkFTP::_workOpen(Request *req, bool create)
 		return kErrNoSession;
 	}
 
+	
+	uint32_t fileSize = 0;
+	if (!create) {
+		struct stat st;
+		if (stat(req->dataAsCString(), &st) != 0) {
+			return kErrNotFile;
+		}
+		fileSize = st.st_size;
+	}
+
 	int oflag = create ? (O_CREAT | O_EXCL | O_APPEND) : O_RDONLY;
     
 	int fd = ::open(req->dataAsCString(), oflag);
@@ -291,7 +336,12 @@ MavlinkFTP::_workOpen(Request *req, bool create)
 	_session_fds[session_index] = fd;
 
 	hdr->session = session_index;
-	hdr->size = 0;
+	if (create) {
+		hdr->size = 0;
+	} else {
+		hdr->size = sizeof(uint32_t);
+		*((uint32_t*)hdr->data) = fileSize;
+	}
 
 	return kErrNone;
 }
@@ -308,7 +358,9 @@ MavlinkFTP::_workRead(Request *req)
 	}
 
 	// Seek to the specified position
-	//warnx("seek %d", hdr->offset);
+#ifdef MAVLINK_FTP_DEBUG
+	warnx("seek %d", hdr->offset);
+#endif
 	if (lseek(_session_fds[session_index], hdr->offset, SEEK_SET) < 0) {
 		// Unable to see to the specified location
 		warnx("seek fail");

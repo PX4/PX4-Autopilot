@@ -108,10 +108,10 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_att_sp_pub(-1),
 	_rates_sp_pub(-1),
 	_vicon_position_pub(-1),
+	_vision_position_pub(-1),
 	_telemetry_status_pub(-1),
 	_rc_pub(-1),
 	_manual_pub(-1),
-	_radio_status_available(false),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_hil_frames(0),
 	_old_timestamp(0),
@@ -148,8 +148,8 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_vicon_position_estimate(msg);
 		break;
 
-	case MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST:
-		handle_message_quad_swarm_roll_pitch_yaw_thrust(msg);
+	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
+		handle_message_vision_position_estimate(msg);
 		break;
 
 	case MAVLINK_MSG_ID_RADIO_STATUS:
@@ -363,32 +363,41 @@ MavlinkReceiver::handle_message_vicon_position_estimate(mavlink_message_t *msg)
 }
 
 void
-MavlinkReceiver::handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message_t *msg)
+MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 {
-	mavlink_set_quad_swarm_roll_pitch_yaw_thrust_t swarm_offboard_control;
-	mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_decode(msg, &swarm_offboard_control);
+	mavlink_vision_position_estimate_t pos;
+	mavlink_msg_vision_position_estimate_decode(msg, &pos);
 
-	/* Only accept system IDs from 1 to 4 */
-	if (mavlink_system.sysid >= 1 && mavlink_system.sysid <= 4) {
-		struct offboard_control_setpoint_s offboard_control_sp;
-		memset(&offboard_control_sp, 0, sizeof(offboard_control_sp));
+	struct vision_position_estimate vision_position;
+	memset(&vision_position, 0, sizeof(vision_position));
 
-		/* Convert values * 1000 back */
-		offboard_control_sp.p1 = (float)swarm_offboard_control.roll[mavlink_system.sysid - 1] / 1000.0f;
-		offboard_control_sp.p2 = (float)swarm_offboard_control.pitch[mavlink_system.sysid - 1] / 1000.0f;
-		offboard_control_sp.p3 = (float)swarm_offboard_control.yaw[mavlink_system.sysid - 1] / 1000.0f;
-		offboard_control_sp.p4 = (float)swarm_offboard_control.thrust[mavlink_system.sysid - 1] / 1000.0f;
+	// Use the component ID to identify the vision sensor
+	vision_position.id = msg->compid;
 
-		offboard_control_sp.mode = (enum OFFBOARD_CONTROL_MODE)swarm_offboard_control.mode;
+	vision_position.timestamp_boot = hrt_absolute_time();
+	vision_position.timestamp_computer = pos.usec;
+	vision_position.x = pos.x;
+	vision_position.y = pos.y;
+	vision_position.z = pos.z;
 
-		offboard_control_sp.timestamp = hrt_absolute_time();
+	// XXX fix this
+	vision_position.vx = 0.0f;
+	vision_position.vy = 0.0f;
+	vision_position.vz = 0.0f;
+	
+	math::Quaternion q;
+	q.from_euler(pos.roll, pos.pitch, pos.yaw);
 
-		if (_offboard_control_sp_pub < 0) {
-			_offboard_control_sp_pub = orb_advertise(ORB_ID(offboard_control_setpoint), &offboard_control_sp);
+	vision_position.q[0] = q(0);
+	vision_position.q[1] = q(1);
+	vision_position.q[2] = q(2);
+	vision_position.q[3] = q(3);
 
-		} else {
-			orb_publish(ORB_ID(offboard_control_setpoint), _offboard_control_sp_pub, &offboard_control_sp);
-		}
+	if (_vision_position_pub < 0) {
+		_vision_position_pub = orb_advertise(ORB_ID(vision_position_estimate), &vision_position);
+
+	} else {
+		orb_publish(ORB_ID(vision_position_estimate), _vision_position_pub, &vision_position);
 	}
 }
 
@@ -420,9 +429,6 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 		} else {
 			orb_publish(telemetry_status_orb_id[_mavlink->get_channel()], _telemetry_status_pub, &tstatus);
 		}
-
-		/* this means that heartbeats alone won't be published to the radio status no more */
-		_radio_status_available = true;
 	}
 }
 
@@ -464,25 +470,17 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 			struct telemetry_status_s &tstatus = _mavlink->get_rx_status();
 
-			hrt_abstime tnow = hrt_absolute_time();
+			/* set heartbeat time and topic time and publish -
+			 * the telem status also gets updated on telemetry events
+			 */
+			tstatus.timestamp = hrt_absolute_time();
+			tstatus.heartbeat_time = tstatus.timestamp;
 
-			/* always set heartbeat, publish only if telemetry link not up */
-			tstatus.heartbeat_time = tnow;
+			if (_telemetry_status_pub < 0) {
+				_telemetry_status_pub = orb_advertise(telemetry_status_orb_id[_mavlink->get_channel()], &tstatus);
 
-			/* if no radio status messages arrive, lets at least publish that heartbeats were received */
-			if (!_radio_status_available) {
-
-				tstatus.timestamp = tnow;
-				/* telem_time indicates the timestamp of a telemetry status packet and we got none */
-				tstatus.telem_time = 0;
-				tstatus.type = TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
-
-				if (_telemetry_status_pub < 0) {
-					_telemetry_status_pub = orb_advertise(telemetry_status_orb_id[_mavlink->get_channel()], &tstatus);
-
-				} else {
-					orb_publish(telemetry_status_orb_id[_mavlink->get_channel()], _telemetry_status_pub, &tstatus);
-				}
+			} else {
+				orb_publish(telemetry_status_orb_id[_mavlink->get_channel()], _telemetry_status_pub, &tstatus);
 			}
 		}
 	}

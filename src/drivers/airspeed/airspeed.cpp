@@ -165,7 +165,7 @@ Airspeed::probe()
 	*/
 	_retries = 4;
 	int ret = measure();
-	_retries = 2;
+	_retries = 0;
 	return ret;
 }
 
@@ -381,7 +381,10 @@ Airspeed::cycle_trampoline(void *arg)
 	Airspeed *dev = (Airspeed *)arg;
 
 	dev->cycle();
-	dev->update_status();
+	// XXX we do not know if this is
+	// really helping - do not update the
+	// subsys state right now
+	//dev->update_status();
 }
 
 void

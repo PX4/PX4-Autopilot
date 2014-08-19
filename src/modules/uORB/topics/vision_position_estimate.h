@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,13 +32,15 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_local_position_setpoint.h
- * Definition of the local NED position setpoint uORB topic.
+ * @file vision_position_estimate.h
+ * Vision based position estimate
  */
 
-#ifndef TOPIC_VEHICLE_LOCAL_POSITION_SETPOINT_H_
-#define TOPIC_VEHICLE_LOCAL_POSITION_SETPOINT_H_
+#ifndef TOPIC_VISION_POSITION_ESTIMATE_H_
+#define TOPIC_VISION_POSITION_ESTIMATE_H_
 
+#include <stdint.h>
+#include <stdbool.h>
 #include "../uORB.h"
 
 /**
@@ -49,19 +48,35 @@
  * @{
  */
 
-struct vehicle_local_position_setpoint_s {
-	uint64_t timestamp;	/**< timestamp of the setpoint */
-	float x;		/**< in meters NED			  		*/
-	float y;		/**< in meters NED			  		*/
-	float z;		/**< in meters NED			  		*/
-	float yaw;		/**< in radians NED -PI..+PI  		*/
-}; /**< Local position in NED frame */
+/**
+ * Vision based position estimate in NED frame
+ */
+struct vision_position_estimate {
+
+	unsigned id;				/**< ID of the estimator, commonly the component ID of the incoming message */
+
+	uint64_t timestamp_boot;		/**< time of this estimate, in microseconds since system start */
+	uint64_t timestamp_computer;		/**< timestamp provided by the companion computer, in us */
+
+	float x;				/**< X position in meters in NED earth-fixed frame */
+	float y;				/**< Y position in meters in NED earth-fixed frame */
+	float z;				/**< Z position in meters in NED earth-fixed frame (negative altitude) */
+
+	float vx;				/**< X velocity in meters per second in NED earth-fixed frame */
+	float vy;				/**< Y velocity in meters per second in NED earth-fixed frame */
+	float vz;				/**< Z velocity in meters per second in NED earth-fixed frame */
+
+	float q[4];				/**< Estimated attitude as quaternion */
+
+	// XXX Add covariances here
+
+};
 
 /**
  * @}
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(vehicle_local_position_setpoint);
+ORB_DECLARE(vision_position_estimate);
 
-#endif
+#endif /* TOPIC_VISION_POSITION_ESTIMATE_H_ */

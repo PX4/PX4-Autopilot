@@ -1032,10 +1032,16 @@ void AttPosEKF::FuseVelposNED()
             // apply a 5-sigma threshold
             current_ekf_state.velHealth = (sq(velInnov[0]) + sq(velInnov[1]) + sq(velInnov[2])) < 25.0f * (varInnovVelPos[0] + varInnovVelPos[1] + varInnovVelPos[2]);
             current_ekf_state.velTimeout = (millis() - current_ekf_state.velFailTime) > horizRetryTime;
-            if (current_ekf_state.velHealth || current_ekf_state.velTimeout)
-            {
+            if (current_ekf_state.velHealth || staticMode) {
                 current_ekf_state.velHealth = true;
                 current_ekf_state.velFailTime = millis();
+            } else if (current_ekf_state.velTimeout || !current_ekf_state.posHealth) {
+                // XXX check
+                current_ekf_state.velHealth = true;
+                ResetVelocity();
+                ResetStoredStates();
+                // do not fuse bad data
+                fuseVelData = false;
             }
             else
             {
@@ -1056,6 +1062,17 @@ void AttPosEKF::FuseVelposNED()
             {
                 current_ekf_state.posHealth = true;
                 current_ekf_state.posFailTime = millis();
+
+                if (current_ekf_state.posTimeout) {
+                    ResetPosition();
+                    
+                    // XXX cross-check the state reset
+                    ResetStoredStates();
+
+                    // do not fuse position data on this time
+                    // step
+                    fusePosData = false;
+                }
             }
             else
             {
@@ -1070,10 +1087,18 @@ void AttPosEKF::FuseVelposNED()
             // apply a 10-sigma threshold
             current_ekf_state.hgtHealth = sq(hgtInnov) < 100.0f*varInnovVelPos[5];
             current_ekf_state.hgtTimeout = (millis() - current_ekf_state.hgtFailTime) > hgtRetryTime;
-            if (current_ekf_state.hgtHealth || current_ekf_state.hgtTimeout)
+            if (current_ekf_state.hgtHealth || current_ekf_state.hgtTimeout || staticMode)
             {
                 current_ekf_state.hgtHealth = true;
                 current_ekf_state.hgtFailTime = millis();
+
+                // if we just reset from a timeout, do not fuse
+                // the height data, but reset height and stored states
+                if (current_ekf_state.hgtTimeout) {
+                    ResetHeight();
+                    ResetStoredStates();
+                    fuseHgtData = false;
+                }
             }
             else
             {
