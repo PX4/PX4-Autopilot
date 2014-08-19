@@ -1,0 +1,7 @@
+#
+# Nested type.
+# Single actuator command.
+#
+
+uint8 actuator_id
+float16 command     # Any units. For a generic servo use [-1; 1].
