@@ -1,5 +1,6 @@
 #
-# GNSS low priority auxiliary info; should be published at low frequency or not published at all.
+# GNSS low priority auxiliary info.
+# Unknown DOP parameters should be set to NAN.
 #
 
 float16 gdop

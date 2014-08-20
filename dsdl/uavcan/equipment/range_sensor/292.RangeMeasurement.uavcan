@@ -2,7 +2,7 @@
 # Generic narrow-beam range sensor data.
 #
 
-uavcan.Timestamp timestamp                  # Time when the probe signal was reflected from the target
+uavcan.Timestamp timestamp
 
 uint8 sensor_id
 

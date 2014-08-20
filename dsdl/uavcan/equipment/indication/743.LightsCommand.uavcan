@@ -2,4 +2,4 @@
 # Lights control command.
 #
 
-SingleLightCommand[<16] commands
+SingleLightCommand[<32] commands
