@@ -126,8 +126,6 @@ private:
 
 	bool _verbose;
 
-	uint8_t			_comp_id;
-
 	/* do not allow top copying this class */
 	MavlinkMissionManager(MavlinkMissionManager &);
 	MavlinkMissionManager& operator = (const MavlinkMissionManager &);

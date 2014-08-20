@@ -58,6 +58,7 @@
 #endif
 static const int ERROR = -1;
 
+#define CHECK_SYSID_COMPID(_msg)		(_msg.target_system == mavlink_system.sysid && _msg.target_component == mavlink_system.compid)
 
 MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(mavlink),
 	_state(MAVLINK_WPM_STATE_IDLE),
@@ -79,8 +80,7 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(m
 	_mission_result_sub(-1),
 	_offboard_mission_pub(-1),
 	_slow_rate_limiter(_interval / 10.0f),
-	_verbose(false),
-	_comp_id(MAV_COMP_ID_MISSIONPLANNER)
+	_verbose(false)
 {
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
 	_mission_result_sub = orb_subscribe(ORB_ID(mission_result));
@@ -384,7 +384,7 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 	mavlink_mission_ack_t wpa;
 	mavlink_msg_mission_ack_decode(msg, &wpa);
 
-	if (wpa.target_system == mavlink_system.sysid /*&& wpa.target_component == mavlink_wpm_comp_id*/) {
+	if (CHECK_SYSID_COMPID(wpa)) {
 		if ((msg->sysid == _transfer_partner_sysid && msg->compid == _transfer_partner_compid)) {
 			if (_state == MAVLINK_WPM_STATE_SENDLIST) {
 				_time_last_recv = hrt_absolute_time();
@@ -416,7 +416,7 @@ MavlinkMissionManager::handle_mission_set_current(const mavlink_message_t *msg)
 	mavlink_mission_set_current_t wpc;
 	mavlink_msg_mission_set_current_decode(msg, &wpc);
 
-	if (wpc.target_system == mavlink_system.sysid /*&& wpc.target_component == mavlink_wpm_comp_id*/) {
+	if (CHECK_SYSID_COMPID(wpc)) {
 		if (_state == MAVLINK_WPM_STATE_IDLE) {
 			_time_last_recv = hrt_absolute_time();
 
@@ -451,7 +451,7 @@ MavlinkMissionManager::handle_mission_request_list(const mavlink_message_t *msg)
 	mavlink_mission_request_list_t wprl;
 	mavlink_msg_mission_request_list_decode(msg, &wprl);
 
-	if (wprl.target_system == mavlink_system.sysid /*&& wprl.target_component == mavlink_wpm_comp_id*/) {
+	if (CHECK_SYSID_COMPID(wprl)) {
 		if (_state == MAVLINK_WPM_STATE_IDLE || _state == MAVLINK_WPM_STATE_SENDLIST) {
 			_time_last_recv = hrt_absolute_time();
 
@@ -487,7 +487,7 @@ MavlinkMissionManager::handle_mission_request(const mavlink_message_t *msg)
 	mavlink_mission_request_t wpr;
 	mavlink_msg_mission_request_decode(msg, &wpr);
 
-	if (wpr.target_system == mavlink_system.sysid /*&& wpr.target_component == mavlink_wpm_comp_id*/) {
+	if (CHECK_SYSID_COMPID(wpr)) {
 		if (msg->sysid == _transfer_partner_sysid && msg->compid == _transfer_partner_compid) {
 			if (_state == MAVLINK_WPM_STATE_SENDLIST) {
 				_time_last_recv = hrt_absolute_time();
@@ -558,7 +558,7 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 	mavlink_mission_count_t wpc;
 	mavlink_msg_mission_count_decode(msg, &wpc);
 
-	if (wpc.target_system == mavlink_system.sysid/* && wpc.target_component == mavlink_wpm_comp_id*/) {
+	if (CHECK_SYSID_COMPID(wpc)) {
 		if (_state == MAVLINK_WPM_STATE_IDLE) {
 			_time_last_recv = hrt_absolute_time();
 
@@ -624,7 +624,7 @@ MavlinkMissionManager::handle_mission_item(const mavlink_message_t *msg)
 	mavlink_mission_item_t wp;
 	mavlink_msg_mission_item_decode(msg, &wp);
 
-	if (wp.target_system == mavlink_system.sysid && wp.target_component == _comp_id) {
+	if (CHECK_SYSID_COMPID(wp)) {
 		if (_state == MAVLINK_WPM_STATE_GETLIST) {
 			_time_last_recv = hrt_absolute_time();
 
@@ -710,7 +710,7 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 	mavlink_mission_clear_all_t wpca;
 	mavlink_msg_mission_clear_all_decode(msg, &wpca);
 
-	if (wpca.target_system == mavlink_system.sysid /*&& wpca.target_component == mavlink_wpm_comp_id */) {
+	if (CHECK_SYSID_COMPID(wpca)) {
 
 		if (_state == MAVLINK_WPM_STATE_IDLE) {
 			/* don't touch mission items storage itself, but only items count in mission state */
