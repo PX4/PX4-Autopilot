@@ -214,6 +214,16 @@ PARAM_DEFINE_FLOAT(SENS_DPRES_OFF, 0.0f);
  */
 PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0);
 
+/**
+ * QNH for barometer
+ *
+ * @min 500
+ * @max 1500
+ * @group Sensor Calibration
+ * @unit hPa
+ */
+PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
+
 
 /**
  * Board rotation
