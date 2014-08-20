@@ -132,6 +132,7 @@ Navigator::Navigator() :
 	_offboard(this, "OFF"),
 	_dataLinkLoss(this, "DLL"),
 	_engineFailure(this, "EF"),
+	_gpsFailure(this, "GPSF"),
 	_can_loiter_at_sp(false),
 	_pos_sp_triplet_updated(false),
 	_param_loiter_radius(this, "LOITER_RAD"),
@@ -145,6 +146,7 @@ Navigator::Navigator() :
 	_navigation_mode_array[3] = &_offboard;
 	_navigation_mode_array[4] = &_dataLinkLoss;
 	_navigation_mode_array[5] = &_engineFailure;
+	_navigation_mode_array[6] = &_gpsFailure;
 
 	updateParams();
 }
@@ -420,6 +422,9 @@ Navigator::task_main()
 				break;
 			case NAVIGATION_STATE_AUTO_LANDENGFAIL:
 				_navigation_mode = &_engineFailure;
+				break;
+			case NAVIGATION_STATE_AUTO_LANDGPSFAIL:
+				_navigation_mode = &_gpsFailure;
 				break;
 			case NAVIGATION_STATE_LAND:
 			case NAVIGATION_STATE_TERMINATION:

@@ -61,12 +61,13 @@
 #include "offboard.h"
 #include "datalinkloss.h"
 #include "enginefailure.h"
+#include "gpsfailure.h"
 #include "geofence.h"
 
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 6
+#define NAVIGATOR_MODE_ARRAY_SIZE 7
 
 class Navigator : public control::SuperBlock
 {
@@ -184,6 +185,7 @@ private:
 	DataLinkLoss	_dataLinkLoss;			/**< class that handles the OBC datalink loss mode */
 	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode
 							  (FW only!) */
+	GpsFailure	_gpsFailure;			/**< class that handles the OBC gpsfailure loss mode */
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 

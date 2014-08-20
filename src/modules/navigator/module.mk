@@ -52,7 +52,8 @@ SRCS		= navigator_main.cpp \
 		  geofence_params.c \
 		  datalinkloss.cpp \
 		  enginefailure.cpp \
-		  datalinkloss_params.c
+		  datalinkloss_params.c \
+		  gpsfailure.cpp
 
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
 

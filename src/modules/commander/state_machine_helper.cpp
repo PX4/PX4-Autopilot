@@ -499,12 +499,15 @@ bool set_nav_state(struct vehicle_status_s *status, const bool data_link_loss_en
 			status->nav_state = NAVIGATION_STATE_AUTO_LANDENGFAIL;
 		} else if (status->data_link_lost_cmd) {
 			status->nav_state = NAVIGATION_STATE_AUTO_RTGS;
-		//} else if (status->gps_failure_cmd) {
-			//status->nav_state = NAVIGATION_STATE_AUTO_***;
+		} else if (status->gps_failure_cmd) {
+			status->nav_state = NAVIGATION_STATE_AUTO_LANDGPSFAIL;
 		} else if (status->rc_signal_lost_cmd) {
 			status->nav_state = NAVIGATION_STATE_AUTO_RTGS; //XXX
+		/* Finished handling commands which have priority , now handle failures */
 		} else if (status->engine_failure) {
 			status->nav_state = NAVIGATION_STATE_AUTO_LANDENGFAIL;
+		} else if (status->gps_failure) {
+			status->nav_state = NAVIGATION_STATE_AUTO_LANDGPSFAIL;
 		} else if (((status->data_link_lost && data_link_loss_enabled) && status->rc_signal_lost) ||
 		    (!data_link_loss_enabled && status->rc_signal_lost && mission_finished)) {
 			status->failsafe = true;
