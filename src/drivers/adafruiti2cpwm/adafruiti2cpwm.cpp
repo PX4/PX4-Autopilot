@@ -37,9 +37,10 @@
  * Driver for the adafruit I2C PWM converter based on the PCA9685
  * https://www.adafruit.com/product/815
  *
- * some code is adapted from the arduino library for the board
+ * Parts of the code are adapted from the arduino library for the board
  * https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library
- * see the arduino_Adafruit_PWM_Servo_Driver_Library_license.txt file
+ * for the license of these parts see the
+ * arduino_Adafruit_PWM_Servo_Driver_Library_license.txt file
  * see https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library for contributors
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
@@ -84,12 +85,25 @@
 #define ALLLED_ON_L 0xFA
 #define ALLLED_ON_H 0xFB
 #define ALLLED_OFF_L 0xFC
-#define ALLLED_OFF_H 0xFD
+#define ALLLED_OF
 
-#define ADDR PCA9685_SUBADR1	///< I2C adress
+#define ADDR 0x40	// I2C adress
 
 #define ADAFRUITI2CPWM_DEVICE_PATH "/dev/adafruiti2cpwm"
 #define ADAFRUITI2CPWM_BUS PX4_I2C_BUS_EXPANSION
+#define ADAFRUITI2CPWM_PWMFREQ 60.0f
+
+#define ADAFRUITI2CPWM_SERVOMIN 150 // this is the 'minimum' pulse length count (out of 4096)
+#define ADAFRUITI2CPWM_SERVOMAX 600 // this is the 'maximum' pulse length count (out of 4096)_PWMFREQ 60.0f
+
+#define ADAFRUITI2CPWM_CENTER (ADAFRUITI2CPWM_SERVOMAX - ADAFRUITI2CPWM_SERVOMIN)/2
+#define ADAFRUITI2CPWM_SCALE ADAFRUITI2CPWM_CENTER
+
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
 
 class ADAFRUITI2CPWM : public device::I2C
 {
@@ -100,6 +114,8 @@ public:
 
 	virtual int		init();
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual int		info();
+	virtual int		reset();
 	bool			is_running() { return _running; }
 
 private:
@@ -110,9 +126,39 @@ private:
 	bool			_running;
 	int			_i2cpwm_interval;
 	bool			_should_run;
+	perf_counter_t		_comms_errors;
+
+	uint8_t			_msg[6];
 
 	static void		i2cpwm_trampoline(void *arg);
 	void			i2cpwm();
+
+	/**
+	 * Helper function to set the pwm frequency
+	 */
+	int setPWMFreq(float freq);
+
+	/**
+	 * Helper function to set the demanded pwm value
+	 * @param num pwm output number
+	 */
+	int setPWM(uint8_t num, uint16_t on, uint16_t off);
+
+	/**
+	 * Sets pin without having to deal with on/off tick placement and properly handles
+	 * a zero value as completely off.  Optional invert parameter supports inverting
+	 * the pulse for sinking to ground.
+	 * @param num pwm output number
+	 * @param val should be a value from 0 to 4095 inclusive.
+	 */
+	int setPin(uint8_t num, uint16_t val, bool invert = false);
+
+
+	/* Wrapper to read a byte from addr */
+	int read8(uint8_t addr, uint8_t &value);
+
+	/* Wrapper to wite a byte to addr */
+	int write8(uint8_t addr, uint8_t value);
 
 };
 
@@ -131,9 +177,11 @@ ADAFRUITI2CPWM::ADAFRUITI2CPWM(int bus, uint8_t address) :
 	_mode(IOX_MODE_OFF),
 	_running(false),
 	_i2cpwm_interval(SEC2TICK(1.0f/60.0f)),
-	_should_run(false)
+	_should_run(false),
+	_comms_errors(perf_alloc(PC_COUNT, "actuator_controls_2_comms_errors"))
 {
 	memset(&_work, 0, sizeof(_work));
+	memset(_msg, 0, sizeof(_msg));
 }
 
 ADAFRUITI2CPWM::~ADAFRUITI2CPWM()
@@ -145,12 +193,18 @@ ADAFRUITI2CPWM::init()
 {
 	int ret;
 	ret = I2C::init();
-
 	if (ret != OK) {
 		return ret;
 	}
 
-	return OK;
+	ret = reset();
+	if (ret != OK) {
+		return ret;
+	}
+
+	ret = setPWMFreq(ADAFRUITI2CPWM_PWMFREQ);
+
+	return ret;
 }
 
 int
@@ -165,8 +219,13 @@ ADAFRUITI2CPWM::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			switch ((IOX_MODE)arg) {
 			case IOX_MODE_OFF:
+				warnx("shutting down");
+				break;
 			case IOX_MODE_ON:
+				warnx("starting");
+				break;
 			case IOX_MODE_TEST_OUT:
+				warnx("test starting");
 				break;
 
 			default:
@@ -176,12 +235,33 @@ ADAFRUITI2CPWM::ioctl(struct file *filp, int cmd, unsigned long arg)
 			_mode = (IOX_MODE)arg;
 		}
 
+		// if not active, kick it
+		if (!_running) {
+			_running = true;
+			work_queue(LPWORK, &_work, (worker_t)&ADAFRUITI2CPWM::i2cpwm_trampoline, this, 1);
+		}
+
+
 		return OK;
 
 	default:
 		// see if the parent class can make any use of it
 		ret = CDev::ioctl(filp, cmd, arg);
 		break;
+	}
+
+	return ret;
+}
+
+int
+ADAFRUITI2CPWM::info()
+{
+	int ret = OK;
+
+	if (is_running()) {
+		warnx("Driver is running, mode: %u", _mode);
+	} else {
+		warnx("Driver started but not running");
 	}
 
 	return ret;
@@ -201,16 +281,15 @@ ADAFRUITI2CPWM::i2cpwm_trampoline(void *arg)
 void
 ADAFRUITI2CPWM::i2cpwm()
 {
-
 	if (_mode == IOX_MODE_TEST_OUT) {
-
+		setPin(0, ADAFRUITI2CPWM_CENTER);
 		_should_run = true;
 	} else if (_mode == IOX_MODE_OFF) {
 		_should_run = false;
 	} else {
 
+		_should_run = true;
 	}
-
 
 	// check if any activity remains, else stop
 	if (!_should_run) {
@@ -223,10 +302,152 @@ ADAFRUITI2CPWM::i2cpwm()
 	work_queue(LPWORK, &_work, (worker_t)&ADAFRUITI2CPWM::i2cpwm_trampoline, this, _i2cpwm_interval);
 }
 
-void
-print_usage()
+int
+ADAFRUITI2CPWM::setPWM(uint8_t num, uint16_t on, uint16_t off)
 {
-	warnx("missing command: try 'start', 'test', 'stop'");
+	int ret;
+	/* convert to correct message */
+	_msg[0] = LED0_ON_L + 4 * num;
+	_msg[1] = on;
+	_msg[2] = on >> 8;
+	_msg[3] = off;
+	_msg[4] = off >> 8;
+
+	/* try i2c transfer */
+	ret = transfer(_msg, 5, nullptr, 0);
+
+	if (OK != ret) {
+		perf_count(_comms_errors);
+		log("i2c::transfer returned %d", ret);
+	}
+
+	return ret;
+}
+
+int
+ADAFRUITI2CPWM::setPin(uint8_t num, uint16_t val, bool invert)
+{
+	// Clamp value between 0 and 4095 inclusive.
+	if (val > 4095) {
+		val = 4095;
+	}
+	if (invert) {
+		if (val == 0) {
+			// Special value for signal fully on.
+			return setPWM(num, 4096, 0);
+		} else if (val == 4095) {
+			// Special value for signal fully off.
+			return setPWM(num, 0, 4096);
+		} else {
+			return setPWM(num, 0, 4095-val);
+		}
+	} else {
+		if (val == 4095) {
+			// Special value for signal fully on.
+			return setPWM(num, 4096, 0);
+		} else if (val == 0) {
+			// Special value for signal fully off.
+			return setPWM(num, 0, 4096);
+		} else {
+			return setPWM(num, 0, val);
+		}
+	}
+
+	return ERROR;
+}
+
+int
+ADAFRUITI2CPWM::setPWMFreq(float freq)
+{
+	int ret  = OK;
+	freq *= 0.9f;  /* Correct for overshoot in the frequency setting (see issue
+		https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library/issues/11). */
+	float prescaleval = 25000000;
+	prescaleval /= 4096;
+	prescaleval /= freq;
+	prescaleval -= 1;
+	uint8_t prescale = uint8_t(prescaleval + 0.5f); //implicit floor()
+	uint8_t oldmode;
+	ret = read8(PCA9685_MODE1, oldmode);
+	if (ret != OK) {
+		return ret;
+	}
+	uint8_t newmode = (oldmode&0x7F) | 0x10; // sleep
+
+	ret = write8(PCA9685_MODE1, newmode); // go to sleep
+	if (ret != OK) {
+		return ret;
+	}
+	ret = write8(PCA9685_PRESCALE, prescale); // set the prescaler
+	if (ret != OK) {
+		return ret;
+	}
+	ret = write8(PCA9685_MODE1, oldmode);
+	if (ret != OK) {
+		return ret;
+	}
+
+	usleep(5000); //5ms delay (from arduino driver)
+
+	ret = write8(PCA9685_MODE1, oldmode | 0xa1);  //  This sets the MODE1 register to turn on auto increment.
+	if (ret != OK) {
+		return ret;
+	}
+
+	return ret;
+}
+
+/* Wrapper to read a byte from addr */
+int
+ADAFRUITI2CPWM::read8(uint8_t addr, uint8_t &value)
+{
+	int ret = OK;
+
+	/* send addr */
+	ret = transfer(&addr, sizeof(addr), nullptr, 0);
+	if (ret != OK) {
+		goto fail_read;
+	}
+
+	/* get value */
+	ret = transfer(nullptr, 0, &value, 1);
+	if (ret != OK) {
+		goto fail_read;
+	}
+
+	return ret;
+
+fail_read:
+	perf_count(_comms_errors);
+	log("i2c::transfer returned %d", ret);
+
+	return ret;
+}
+
+int ADAFRUITI2CPWM::reset(void) {
+	warnx("resetting");
+	return write8(PCA9685_MODE1, 0x0);
+}
+
+/* Wrapper to wite a byte to addr */
+int
+ADAFRUITI2CPWM::write8(uint8_t addr, uint8_t value) {
+	int ret = OK;
+	_msg[0] = addr;
+	_msg[1] = value;
+	/* send addr and value */
+	ret = transfer(_msg, 2, nullptr, 0);
+	if (ret != OK) {
+		perf_count(_comms_errors);
+		log("i2c::transfer returned %d", ret);
+	}
+	return ret;
+}
+
+void
+adafruiti2cpwm_usage()
+{
+	warnx("missing command: try 'start', 'test', 'stop', 'info'");
 	warnx("options:");
 	warnx("    -b i2cbus (%d)", PX4_I2C_BUS_EXPANSION);
 	warnx("    -a addr (0x%x)", ADDR);
@@ -252,13 +473,13 @@ adafruiti2cpwm_main(int argc, char *argv[])
 			break;
 
 		default:
-			print_usage();
+			adafruiti2cpwm_usage();
 			exit(0);
 		}
 	}
 
 	if (optind >= argc) {
-		print_usage();
+		adafruiti2cpwm_usage();
 		exit(1);
 	}
 
@@ -300,6 +521,13 @@ adafruiti2cpwm_main(int argc, char *argv[])
 				errx(1, "init failed");
 			}
 		}
+		fd = open(ADAFRUITI2CPWM_DEVICE_PATH, 0);
+		if (fd == -1) {
+			errx(1, "Unable to open " ADAFRUITI2CPWM_DEVICE_PATH);
+		}
+		ret = ioctl(fd, IOX_SET_MODE, (unsigned long)IOX_MODE_ON);
+		close(fd);
+
 
 		exit(0);
 	}
@@ -309,6 +537,17 @@ adafruiti2cpwm_main(int argc, char *argv[])
 		warnx("not started, run adafruiti2cpwm start");
 		exit(1);
 	}
+
+	if (!strcmp(verb, "info")) {
+		g_adafruiti2cpwm->info();
+		exit(0);
+	}
+
+	if (!strcmp(verb, "reset")) {
+		g_adafruiti2cpwm->reset();
+		exit(0);
+	}
+
 
 	if (!strcmp(verb, "test")) {
 		fd = open(ADAFRUITI2CPWM_DEVICE_PATH, 0);
@@ -357,6 +596,6 @@ adafruiti2cpwm_main(int argc, char *argv[])
 		}
 	}
 
-	print_usage();
+	adafruiti2cpwm_usage();
 	exit(0);
 }
