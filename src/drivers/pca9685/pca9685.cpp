@@ -32,10 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file adafruiti2cpwm.cpp
+ * @file pca9685.cpp
  *
- * Driver for the adafruit I2C PWM converter based on the PCA9685
- * https://www.adafruit.com/product/815
+ * Driver for the PCA9685 I2C PWM module
+ * The chip is used on the Adafruit I2C/PWM converter https://www.adafruit.com/product/815
  *
  * Parts of the code are adapted from the arduino library for the board
  * https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library
@@ -93,18 +93,18 @@
 
 #define ADDR 0x40	// I2C adress
 
-#define ADAFRUITI2CPWM_DEVICE_PATH "/dev/adafruiti2cpwm"
-#define ADAFRUITI2CPWM_BUS PX4_I2C_BUS_EXPANSION
-#define ADAFRUITI2CPWM_PWMFREQ 60.0f
-#define ADAFRUITI2CPWM_NCHANS 16 // total amount of pwm outputs
+#define PCA9685_DEVICE_PATH "/dev/pca9685"
+#define PCA9685_BUS PX4_I2C_BUS_EXPANSION
+#define PCA9685_PWMFREQ 60.0f
+#define PCA9685_NCHANS 16 // total amount of pwm outputs
 
-#define ADAFRUITI2CPWM_SERVOMIN 150 // this is the 'minimum' pulse length count (out of 4096)
-#define ADAFRUITI2CPWM_SERVOMAX 600 // this is the 'maximum' pulse length count (out of 4096)_PWMFREQ 60.0f
+#define PCA9685_SERVOMIN 150 // this is the 'minimum' pulse length count (out of 4096)
+#define PCA9685_SERVOMAX 600 // this is the 'maximum' pulse length count (out of 4096)_PWMFREQ 60.0f
 
-#define ADAFRUITI2CPWM_HALFRANGE ((ADAFRUITI2CPWM_SERVOMAX - ADAFRUITI2CPWM_SERVOMIN)/2)
-#define ADAFRUITI2CPWM_CENTER (ADAFRUITI2CPWM_SERVOMIN + ADAFRUITI2CPWM_HALFRANGE)
-#define ADAFRUITI2CPWM_MAXSERVODEG 45 //maximal defelction in degrees
-#define ADAFRUITI2CPWM_SCALE (ADAFRUITI2CPWM_HALFRANGE / (M_DEG_TO_RAD_F * ADAFRUITI2CPWM_MAXSERVODEG))
+#define PCA9685_HALFRANGE ((PCA9685_SERVOMAX - PCA9685_SERVOMIN)/2)
+#define PCA9685_CENTER (PCA9685_SERVOMIN + PCA9685_HALFRANGE)
+#define PCA9685_MAXSERVODEG 45 //maximal defelction in degrees
+#define PCA9685_SCALE (PCA9685_HALFRANGE / (M_DEG_TO_RAD_F * PCA9685_MAXSERVODEG))
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -112,11 +112,11 @@
 #endif
 static const int ERROR = -1;
 
-class ADAFRUITI2CPWM : public device::I2C
+class PCA9685 : public device::I2C
 {
 public:
-	ADAFRUITI2CPWM(int bus=ADAFRUITI2CPWM_BUS, uint8_t address=ADDR);
-	virtual ~ADAFRUITI2CPWM();
+	PCA9685(int bus=PCA9685_BUS, uint8_t address=ADDR);
+	virtual ~PCA9685();
 
 
 	virtual int		init();
@@ -179,15 +179,15 @@ private:
 /* for now, we only support one board */
 namespace
 {
-ADAFRUITI2CPWM *g_adafruiti2cpwm;
+PCA9685 *g_pca9685;
 }
 
-void adafruiti2cpwm_usage();
+void pca9685_usage();
 
-extern "C" __EXPORT int adafruiti2cpwm_main(int argc, char *argv[]);
+extern "C" __EXPORT int pca9685_main(int argc, char *argv[]);
 
-ADAFRUITI2CPWM::ADAFRUITI2CPWM(int bus, uint8_t address) :
-	I2C("adafruiti2cpwm", ADAFRUITI2CPWM_DEVICE_PATH, bus, address, 100000),
+PCA9685::PCA9685(int bus, uint8_t address) :
+	I2C("pca9685", PCA9685_DEVICE_PATH, bus, address, 100000),
 	_mode(IOX_MODE_OFF),
 	_running(false),
 	_i2cpwm_interval(SEC2TICK(1.0f/60.0f)),
@@ -202,12 +202,12 @@ ADAFRUITI2CPWM::ADAFRUITI2CPWM(int bus, uint8_t address) :
 	memset(_current_values, 0, sizeof(_current_values));
 }
 
-ADAFRUITI2CPWM::~ADAFRUITI2CPWM()
+PCA9685::~PCA9685()
 {
 }
 
 int
-ADAFRUITI2CPWM::init()
+PCA9685::init()
 {
 	int ret;
 	ret = I2C::init();
@@ -220,13 +220,13 @@ ADAFRUITI2CPWM::init()
 		return ret;
 	}
 
-	ret = setPWMFreq(ADAFRUITI2CPWM_PWMFREQ);
+	ret = setPWMFreq(PCA9685_PWMFREQ);
 
 	return ret;
 }
 
 int
-ADAFRUITI2CPWM::ioctl(struct file *filp, int cmd, unsigned long arg)
+PCA9685::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	int ret = -EINVAL;
 	switch (cmd) {
@@ -256,7 +256,7 @@ ADAFRUITI2CPWM::ioctl(struct file *filp, int cmd, unsigned long arg)
 		// if not active, kick it
 		if (!_running) {
 			_running = true;
-			work_queue(LPWORK, &_work, (worker_t)&ADAFRUITI2CPWM::i2cpwm_trampoline, this, 1);
+			work_queue(LPWORK, &_work, (worker_t)&PCA9685::i2cpwm_trampoline, this, 1);
 		}
 
 
@@ -272,7 +272,7 @@ ADAFRUITI2CPWM::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 int
-ADAFRUITI2CPWM::info()
+PCA9685::info()
 {
 	int ret = OK;
 
@@ -286,9 +286,9 @@ ADAFRUITI2CPWM::info()
 }
 
 void
-ADAFRUITI2CPWM::i2cpwm_trampoline(void *arg)
+PCA9685::i2cpwm_trampoline(void *arg)
 {
-	ADAFRUITI2CPWM *i2cpwm = reinterpret_cast<ADAFRUITI2CPWM *>(arg);
+	PCA9685 *i2cpwm = reinterpret_cast<PCA9685 *>(arg);
 
 	i2cpwm->i2cpwm();
 }
@@ -297,10 +297,10 @@ ADAFRUITI2CPWM::i2cpwm_trampoline(void *arg)
  * Main loop function
  */
 void
-ADAFRUITI2CPWM::i2cpwm()
+PCA9685::i2cpwm()
 {
 	if (_mode == IOX_MODE_TEST_OUT) {
-		setPin(0, ADAFRUITI2CPWM_CENTER);
+		setPin(0, PCA9685_CENTER);
 		_should_run = true;
 	} else if (_mode == IOX_MODE_OFF) {
 		_should_run = false;
@@ -309,7 +309,7 @@ ADAFRUITI2CPWM::i2cpwm()
 			/* Subscribe to actuator control 2 (payload group for gimbal) */
 			_actuator_controls_sub = orb_subscribe(ORB_ID(actuator_controls_2));
 			/* set the uorb update interval lower than the driver pwm interval */
-			orb_set_interval(_actuator_controls_sub, 1000.0f / ADAFRUITI2CPWM_PWMFREQ - 5);
+			orb_set_interval(_actuator_controls_sub, 1000.0f / PCA9685_PWMFREQ - 5);
 
 			_mode_on_initialized = true;
 		}
@@ -320,14 +320,14 @@ ADAFRUITI2CPWM::i2cpwm()
 		if (updated) {
 			orb_copy(ORB_ID(actuator_controls_2), _actuator_controls_sub, &_actuator_controls);
 			for (int i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
-				uint16_t new_value = ADAFRUITI2CPWM_CENTER +
-					(_actuator_controls.control[i] * ADAFRUITI2CPWM_SCALE);
+				uint16_t new_value = PCA9685_CENTER +
+					(_actuator_controls.control[i] * PCA9685_SCALE);
 				debug("%d: current: %u, new %u, control %.2f", i, _current_values[i], new_value,
 						(double)_actuator_controls.control[i]);
 				if (new_value != _current_values[i] &&
 						isfinite(new_value) &&
 						new_value >= 0 &&
-						new_value <= ADAFRUITI2CPWM_SERVOMAX) {
+						new_value <= PCA9685_SERVOMAX) {
 					/* This value was updated, send the command to adjust the PWM value */
 					setPin(i, new_value);
 					_current_values[i] = new_value;
@@ -345,11 +345,11 @@ ADAFRUITI2CPWM::i2cpwm()
 
 	// re-queue ourselves to run again later
 	_running = true;
-	work_queue(LPWORK, &_work, (worker_t)&ADAFRUITI2CPWM::i2cpwm_trampoline, this, _i2cpwm_interval);
+	work_queue(LPWORK, &_work, (worker_t)&PCA9685::i2cpwm_trampoline, this, _i2cpwm_interval);
 }
 
 int
-ADAFRUITI2CPWM::setPWM(uint8_t num, uint16_t on, uint16_t off)
+PCA9685::setPWM(uint8_t num, uint16_t on, uint16_t off)
 {
 	int ret;
 	/* convert to correct message */
@@ -371,7 +371,7 @@ ADAFRUITI2CPWM::setPWM(uint8_t num, uint16_t on, uint16_t off)
 }
 
 int
-ADAFRUITI2CPWM::setPin(uint8_t num, uint16_t val, bool invert)
+PCA9685::setPin(uint8_t num, uint16_t val, bool invert)
 {
 	// Clamp value between 0 and 4095 inclusive.
 	if (val > 4095) {
@@ -403,7 +403,7 @@ ADAFRUITI2CPWM::setPin(uint8_t num, uint16_t val, bool invert)
 }
 
 int
-ADAFRUITI2CPWM::setPWMFreq(float freq)
+PCA9685::setPWMFreq(float freq)
 {
 	int ret  = OK;
 	freq *= 0.9f;  /* Correct for overshoot in the frequency setting (see issue
@@ -445,7 +445,7 @@ ADAFRUITI2CPWM::setPWMFreq(float freq)
 
 /* Wrapper to read a byte from addr */
 int
-ADAFRUITI2CPWM::read8(uint8_t addr, uint8_t &value)
+PCA9685::read8(uint8_t addr, uint8_t &value)
 {
 	int ret = OK;
 
@@ -470,14 +470,14 @@ fail_read:
 	return ret;
 }
 
-int ADAFRUITI2CPWM::reset(void) {
+int PCA9685::reset(void) {
 	warnx("resetting");
 	return write8(PCA9685_MODE1, 0x0);
 }
 
 /* Wrapper to wite a byte to addr */
 int
-ADAFRUITI2CPWM::write8(uint8_t addr, uint8_t value) {
+PCA9685::write8(uint8_t addr, uint8_t value) {
 	int ret = OK;
 	_msg[0] = addr;
 	_msg[1] = value;
@@ -491,7 +491,7 @@ ADAFRUITI2CPWM::write8(uint8_t addr, uint8_t value) {
 }
 
 void
-adafruiti2cpwm_usage()
+pca9685_usage()
 {
 	warnx("missing command: try 'start', 'test', 'stop', 'info'");
 	warnx("options:");
@@ -500,7 +500,7 @@ adafruiti2cpwm_usage()
 }
 
 int
-adafruiti2cpwm_main(int argc, char *argv[])
+pca9685_main(int argc, char *argv[])
 {
 	int i2cdevice = -1;
 	int i2caddr = ADDR; // 7bit
@@ -519,13 +519,13 @@ adafruiti2cpwm_main(int argc, char *argv[])
 			break;
 
 		default:
-			adafruiti2cpwm_usage();
+			pca9685_usage();
 			exit(0);
 		}
 	}
 
 	if (optind >= argc) {
-		adafruiti2cpwm_usage();
+		pca9685_usage();
 		exit(1);
 	}
 
@@ -535,41 +535,41 @@ adafruiti2cpwm_main(int argc, char *argv[])
 	int ret;
 
 	if (!strcmp(verb, "start")) {
-		if (g_adafruiti2cpwm != nullptr) {
+		if (g_pca9685 != nullptr) {
 			errx(1, "already started");
 		}
 
 		if (i2cdevice == -1) {
 			// try the external bus first
 			i2cdevice = PX4_I2C_BUS_EXPANSION;
-			g_adafruiti2cpwm = new ADAFRUITI2CPWM(PX4_I2C_BUS_EXPANSION, i2caddr);
+			g_pca9685 = new PCA9685(PX4_I2C_BUS_EXPANSION, i2caddr);
 
-			if (g_adafruiti2cpwm != nullptr && OK != g_adafruiti2cpwm->init()) {
-				delete g_adafruiti2cpwm;
-				g_adafruiti2cpwm = nullptr;
+			if (g_pca9685 != nullptr && OK != g_pca9685->init()) {
+				delete g_pca9685;
+				g_pca9685 = nullptr;
 			}
 
-			if (g_adafruiti2cpwm == nullptr) {
+			if (g_pca9685 == nullptr) {
 				errx(1, "init failed");
 			}
 		}
 
-		if (g_adafruiti2cpwm == nullptr) {
-			g_adafruiti2cpwm = new ADAFRUITI2CPWM(i2cdevice, i2caddr);
+		if (g_pca9685 == nullptr) {
+			g_pca9685 = new PCA9685(i2cdevice, i2caddr);
 
-			if (g_adafruiti2cpwm == nullptr) {
+			if (g_pca9685 == nullptr) {
 				errx(1, "new failed");
 			}
 
-			if (OK != g_adafruiti2cpwm->init()) {
-				delete g_adafruiti2cpwm;
-				g_adafruiti2cpwm = nullptr;
+			if (OK != g_pca9685->init()) {
+				delete g_pca9685;
+				g_pca9685 = nullptr;
 				errx(1, "init failed");
 			}
 		}
-		fd = open(ADAFRUITI2CPWM_DEVICE_PATH, 0);
+		fd = open(PCA9685_DEVICE_PATH, 0);
 		if (fd == -1) {
-			errx(1, "Unable to open " ADAFRUITI2CPWM_DEVICE_PATH);
+			errx(1, "Unable to open " PCA9685_DEVICE_PATH);
 		}
 		ret = ioctl(fd, IOX_SET_MODE, (unsigned long)IOX_MODE_ON);
 		close(fd);
@@ -579,27 +579,27 @@ adafruiti2cpwm_main(int argc, char *argv[])
 	}
 
 	// need the driver past this point
-	if (g_adafruiti2cpwm == nullptr) {
-		warnx("not started, run adafruiti2cpwm start");
+	if (g_pca9685 == nullptr) {
+		warnx("not started, run pca9685 start");
 		exit(1);
 	}
 
 	if (!strcmp(verb, "info")) {
-		g_adafruiti2cpwm->info();
+		g_pca9685->info();
 		exit(0);
 	}
 
 	if (!strcmp(verb, "reset")) {
-		g_adafruiti2cpwm->reset();
+		g_pca9685->reset();
 		exit(0);
 	}
 
 
 	if (!strcmp(verb, "test")) {
-		fd = open(ADAFRUITI2CPWM_DEVICE_PATH, 0);
+		fd = open(PCA9685_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " ADAFRUITI2CPWM_DEVICE_PATH);
+			errx(1, "Unable to open " PCA9685_DEVICE_PATH);
 		}
 
 		ret = ioctl(fd, IOX_SET_MODE, (unsigned long)IOX_MODE_TEST_OUT);
@@ -609,10 +609,10 @@ adafruiti2cpwm_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "stop")) {
-		fd = open(ADAFRUITI2CPWM_DEVICE_PATH, 0);
+		fd = open(PCA9685_DEVICE_PATH, 0);
 
 		if (fd == -1) {
-			errx(1, "Unable to open " ADAFRUITI2CPWM_DEVICE_PATH);
+			errx(1, "Unable to open " PCA9685_DEVICE_PATH);
 		}
 
 		ret = ioctl(fd, IOX_SET_MODE, (unsigned long)IOX_MODE_OFF);
@@ -620,7 +620,7 @@ adafruiti2cpwm_main(int argc, char *argv[])
 
 		// wait until we're not running any more
 		for (unsigned i = 0; i < 15; i++) {
-			if (!g_adafruiti2cpwm->is_running()) {
+			if (!g_pca9685->is_running()) {
 				break;
 			}
 
@@ -631,9 +631,9 @@ adafruiti2cpwm_main(int argc, char *argv[])
 		printf("\n");
 		fflush(stdout);
 
-		if (!g_adafruiti2cpwm->is_running()) {
-			delete g_adafruiti2cpwm;
-			g_adafruiti2cpwm= nullptr;
+		if (!g_pca9685->is_running()) {
+			delete g_pca9685;
+			g_pca9685= nullptr;
 			warnx("stopped, exiting");
 			exit(0);
 		} else {
@@ -642,6 +642,6 @@ adafruiti2cpwm_main(int argc, char *argv[])
 		}
 	}
 
-	adafruiti2cpwm_usage();
+	pca9685_usage();
 	exit(0);
 }
