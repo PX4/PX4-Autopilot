@@ -135,7 +135,7 @@ float ECL_RollController::control_bodyrate(float pitch,
 
 	if (!lock_integrator && _k_i > 0.0f && airspeed > 0.5f * airspeed_min) {
 
-		float id = _rate_error * dt;
+		float id = _rate_error * dt * scaler;
 
 		/*
 		* anti-windup: do not allow integrator to increase if actuator is at limit
@@ -157,7 +157,9 @@ float ECL_RollController::control_bodyrate(float pitch,
 	//warnx("roll: _integrator: %.4f, _integrator_max: %.4f", (double)_integrator, (double)_integrator_max);
 
 	/* Apply PI rate controller and store non-limited output */
-	_last_output = (_bodyrate_setpoint * _k_ff + _rate_error * _k_p + integrator_constrained) * scaler * scaler;  //scaler is proportional to 1/airspeed
+	_last_output = _bodyrate_setpoint * _k_ff * scaler +
+		_rate_error * _k_p * scaler * scaler
+		+ integrator_constrained;  //scaler is proportional to 1/airspeed
 
 	return math::constrain(_last_output, -1.0f, 1.0f);
 }
