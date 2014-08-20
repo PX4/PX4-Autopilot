@@ -59,6 +59,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <math.h>
 
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
@@ -66,6 +67,9 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
+
+#include <uORB/uORB.h>
+#include <uORB/topics/actuator_controls.h>
 
 #include <board_config.h>
 #include <drivers/drv_io_expander.h>
@@ -92,12 +96,15 @@
 #define ADAFRUITI2CPWM_DEVICE_PATH "/dev/adafruiti2cpwm"
 #define ADAFRUITI2CPWM_BUS PX4_I2C_BUS_EXPANSION
 #define ADAFRUITI2CPWM_PWMFREQ 60.0f
+#define ADAFRUITI2CPWM_NCHANS 16 // total amount of pwm outputs
 
 #define ADAFRUITI2CPWM_SERVOMIN 150 // this is the 'minimum' pulse length count (out of 4096)
 #define ADAFRUITI2CPWM_SERVOMAX 600 // this is the 'maximum' pulse length count (out of 4096)_PWMFREQ 60.0f
 
-#define ADAFRUITI2CPWM_CENTER (ADAFRUITI2CPWM_SERVOMAX - ADAFRUITI2CPWM_SERVOMIN)/2
-#define ADAFRUITI2CPWM_SCALE ADAFRUITI2CPWM_CENTER
+#define ADAFRUITI2CPWM_HALFRANGE ((ADAFRUITI2CPWM_SERVOMAX - ADAFRUITI2CPWM_SERVOMIN)/2)
+#define ADAFRUITI2CPWM_CENTER (ADAFRUITI2CPWM_SERVOMIN + ADAFRUITI2CPWM_HALFRANGE)
+#define ADAFRUITI2CPWM_MAXSERVODEG 45 //maximal defelction in degrees
+#define ADAFRUITI2CPWM_SCALE (ADAFRUITI2CPWM_HALFRANGE / (M_DEG_TO_RAD_F * ADAFRUITI2CPWM_MAXSERVODEG))
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -129,6 +136,13 @@ private:
 	perf_counter_t		_comms_errors;
 
 	uint8_t			_msg[6];
+
+	int			_actuator_controls_sub;
+	struct actuator_controls_s  _actuator_controls;
+	uint16_t	    	_current_values[NUM_ACTUATOR_CONTROLS]; /**< stores the current pwm output
+										  values as sent to the setPin() */
+
+	bool _mode_on_initialized;  /** Set to true after the first call of i2cpwm in mode IOX_MODE_ON */
 
 	static void		i2cpwm_trampoline(void *arg);
 	void			i2cpwm();
@@ -178,10 +192,14 @@ ADAFRUITI2CPWM::ADAFRUITI2CPWM(int bus, uint8_t address) :
 	_running(false),
 	_i2cpwm_interval(SEC2TICK(1.0f/60.0f)),
 	_should_run(false),
-	_comms_errors(perf_alloc(PC_COUNT, "actuator_controls_2_comms_errors"))
+	_comms_errors(perf_alloc(PC_COUNT, "actuator_controls_2_comms_errors")),
+	_actuator_controls_sub(-1),
+	_actuator_controls(),
+	_mode_on_initialized(false)
 {
 	memset(&_work, 0, sizeof(_work));
 	memset(_msg, 0, sizeof(_msg));
+	memset(_current_values, 0, sizeof(_current_values));
 }
 
 ADAFRUITI2CPWM::~ADAFRUITI2CPWM()
@@ -287,7 +305,35 @@ ADAFRUITI2CPWM::i2cpwm()
 	} else if (_mode == IOX_MODE_OFF) {
 		_should_run = false;
 	} else {
+		if (!_mode_on_initialized) {
+			/* Subscribe to actuator control 2 (payload group for gimbal) */
+			_actuator_controls_sub = orb_subscribe(ORB_ID(actuator_controls_2));
+			/* set the uorb update interval lower than the driver pwm interval */
+			orb_set_interval(_actuator_controls_sub, 1000.0f / ADAFRUITI2CPWM_PWMFREQ - 5);
 
+			_mode_on_initialized = true;
+		}
+
+		/* Read the servo setpoints from the actuator control topics (gimbal) */
+		bool updated;
+		orb_check(_actuator_controls_sub, &updated);
+		if (updated) {
+			orb_copy(ORB_ID(actuator_controls_2), _actuator_controls_sub, &_actuator_controls);
+			for (int i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
+				uint16_t new_value = ADAFRUITI2CPWM_CENTER +
+					(_actuator_controls.control[i] * ADAFRUITI2CPWM_SCALE);
+				debug("%d: current: %u, new %u, control %.2f", i, _current_values[i], new_value,
+						(double)_actuator_controls.control[i]);
+				if (new_value != _current_values[i] &&
+						isfinite(new_value) &&
+						new_value >= 0 &&
+						new_value <= ADAFRUITI2CPWM_SERVOMAX) {
+					/* This value was updated, send the command to adjust the PWM value */
+					setPin(i, new_value);
+					_current_values[i] = new_value;
+				}
+			}
+		}
 		_should_run = true;
 	}
 
