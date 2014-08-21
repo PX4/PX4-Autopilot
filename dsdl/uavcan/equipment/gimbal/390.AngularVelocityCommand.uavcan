@@ -2,6 +2,4 @@
 # Generic gimbal control.
 #
 
-uavcan.FigureOfMerit figure_of_merit
-
 float16[3] angular_velocity  # rad/s, camera frame

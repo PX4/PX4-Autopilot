@@ -1,9 +1,10 @@
 #
-# Target pose of the vehicle in fixed frame.
+# Target pose of the vehicle in world fixed frame.
 # Some components may be ignored on underactuated systems (i.e. pitch and roll on a quadrotor).
 #
 
-uavcan.FigureOfMerit figure_of_merit
-
 float16[4] orientation_xyzw
-float32[3] position
+
+float64 position_x
+float64 position_y
+float32 position_z

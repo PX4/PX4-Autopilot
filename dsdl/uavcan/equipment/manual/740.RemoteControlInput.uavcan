@@ -2,6 +2,4 @@
 # Scaled remote control input for manual control/override.
 #
 
-uavcan.FigureOfMerit figure_of_merit  # E.g. receiver RSSI
-
-float16[<=32] channels                # Normalized in range [-1, 1], NAN means no such channel
+float16[<=32] channels   # Normalized in range [-1, 1], NAN means no such channel

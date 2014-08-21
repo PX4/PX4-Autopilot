@@ -3,6 +3,4 @@
 # The system supports up to 256 actuators; up to 31 of them can be commanded with one message.
 #
 
-uavcan.FigureOfMerit figure_of_merit
-
 Command[<32] commands

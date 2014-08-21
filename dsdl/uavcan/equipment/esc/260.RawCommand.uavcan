@@ -5,8 +5,6 @@
 # Non-zero setpoint value below minimum should be interpreted as min valid setpoint.
 #
 
-uavcan.FigureOfMerit figure_of_merit
-
 uint12 CMD_DISARM = 0
 uint12 CMD_MIN    = 1
 uint12 CMD_MAX    = 4095
