@@ -176,7 +176,7 @@ BottleDrop::BottleDrop() :
 	_drop_approval(false),
 	_doors_opened(0),
 	_drop_time(0),
-	_alt_clearance(0),
+	_alt_clearance(70.0f),
 	_target_position {},
 	_drop_position {},
 	_drop_state(DROP_STATE_INIT)
@@ -340,8 +340,7 @@ BottleDrop::task_main()
 	float turn_radius;	// turn radius of the UAV
 	float precision;	// Expected precision of the UAV
 
-	// XXX we do not measure the exact ground altitude yet, but eventually we have to
-	float ground_distance = 70.0f;
+	float ground_distance = _alt_clearance;		// Replace by closer estimate in loop
 
 	// constant
 	float g = CONSTANTS_ONE_G;               		// constant of gravity [m/s^2]
@@ -349,7 +348,6 @@ BottleDrop::task_main()
 	float rho = 1.2f;              		// air density [kg/m^3]
 	float A = ((0.063f * 0.063f) / 4.0f * M_PI_F); // Bottle cross section [m^2]
 	float dt_freefall_prediction = 0.01f;   // step size of the free fall prediction [s]
-	float dt_runs = 0.05f;			// step size 2 [s]
 
 	// Has to be estimated by experiment
 	float cd = 0.86f;              	// Drag coefficient for a cylinder with a d/l ratio of 1/3 []
@@ -462,7 +460,7 @@ BottleDrop::task_main()
 		const unsigned sleeptime_us = 50000;
 
 		hrt_abstime last_run = hrt_absolute_time();
-		dt_runs = 1e6f / sleeptime_us;
+		float dt_runs = 1e6f / sleeptime_us;
 
 		/* switch to faster updates during the drop */
 		while (_drop_state > DROP_STATE_INIT) {
@@ -496,6 +494,7 @@ BottleDrop::task_main()
 			float windspeed_norm = sqrtf(wind.windspeed_north * wind.windspeed_north + wind.windspeed_east * wind.windspeed_east);
 			float groundspeed_body = sqrtf(_global_pos.vel_n * _global_pos.vel_n + _global_pos.vel_e * _global_pos.vel_e);
 			distance_real = fabsf(get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon, _drop_position.lat, _drop_position.lon));
+			ground_distance = _global_pos.alt - _target_position.alt;
 
 			if (counter % 90 == 0) {
 				mavlink_log_info(_mavlink_fd, "#audio: drop distance %.2f", (double)distance_real);
@@ -550,7 +549,7 @@ BottleDrop::task_main()
 
 							//Drag force
 							v = sqrtf(vz * vz + vrx * vrx);
-							Fd = 0.5f * rho * A * cd * powf(v, 2.0f);
+							Fd = 0.5f * rho * A * cd * (v * v);
 							Fdx = Fd * vrx / v;
 							Fdz = Fd * vz / v;
 
@@ -580,6 +579,7 @@ BottleDrop::task_main()
 					x_drop = x_t + x * wind_direction_n;
 					y_drop = y_t + x * wind_direction_e;
 					map_projection_reproject(&ref, x_drop, y_drop, &_drop_position.lat, &_drop_position.lon);
+					_drop_position.alt = _target_position.alt + _alt_clearance;
 					//warnx("drop point: lat = %.7f , lon = %.7f", drop_position.lat, drop_position.lon); //////////////////////////////////////////////////////////////////// DEBUGGING
 
 
@@ -587,10 +587,10 @@ BottleDrop::task_main()
 					// Compute flight vector
 					map_projection_reproject(&ref, x_drop + 2 * turn_radius * wind_direction_n, y_drop + 2 * turn_radius * wind_direction_n,
 								 &(flight_vector_s.lat), &(flight_vector_s.lon));
-					flight_vector_s.altitude = _drop_position.alt + _alt_clearance;
+					flight_vector_s.altitude = _drop_position.alt;
 					map_projection_reproject(&ref, x_drop - turn_radius * wind_direction_e, y_drop - turn_radius * wind_direction_e,
 								 &flight_vector_e.lat, &flight_vector_e.lon);
-					flight_vector_e.altitude = _drop_position.alt + _alt_clearance;
+					flight_vector_e.altitude = _drop_position.alt;
 					//warnx("Flight vector: starting point = %.7f  %.7f , end point = %.7f  %.7f", flight_vector_s.lat,flight_vector_s.lon,flight_vector_e.lat,flight_vector_e.lon); //////////////////////////////////////////////////////////////////// DEBUGGING
 
 					// Drop Cancellation if terms are not met
