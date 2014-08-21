@@ -450,7 +450,10 @@ then
 	#
 	# MAVLink onboard / TELEM2
 	#
-	mavlink start -d /dev/ttyS2 -b 230400
+	if ver hwcmp PX4FMU_V2
+	then
+		mavlink start -d /dev/ttyS2 -b 230400
+	fi
 
 	#
 	# Sensors, Logging, GPS
