@@ -1662,6 +1662,8 @@ Mavlink::display_status()
 		printf("\tGCS heartbeat:\t%llu us ago\n", hrt_elapsed_time(&_rstatus.heartbeat_time));
 	}
 
+	printf("\tmavlink chan: #%u\n", _channel);
+
 	if (_rstatus.timestamp > 0) {
 
 		printf("\ttype:\t\t");
