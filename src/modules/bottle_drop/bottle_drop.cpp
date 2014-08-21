@@ -508,10 +508,6 @@ BottleDrop::task_main()
 
 			switch (_drop_state) {
 
-				case DROP_STATE_INIT:
-					// exit inner loop, wait for new drop mission
-					break;
-
 				case DROP_STATE_TARGET_VALID:
 				{
 					//warnx("approval given\n"); //////////////////////////////////////////////////////////////////// DEBUGGING
