@@ -130,7 +130,7 @@ protected:
 	float			_T;
 
 	/* altitude conversion calibration */
-	unsigned		_msl_pressure;	/* in kPa */
+	unsigned		_msl_pressure;	/* in Pa */
 
 	orb_advert_t		_baro_topic;
 
@@ -466,7 +466,7 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 			irqrestore(flags);
 			return -ENOMEM;
 		}
-		irqrestore(flags);		
+		irqrestore(flags);
 		return OK;
 	}
 

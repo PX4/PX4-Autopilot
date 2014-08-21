@@ -598,7 +598,8 @@ SF0X::collect()
 				memcpy(_linebuf, buf, (lend + 1) - (i + 1));
 			}
 
-			if (_linebuf[i] == '.') {
+			/* we need a digit before the dot and a dot for a valid number */
+			if (i > 0 && _linebuf[i] == '.') {
 				valid = true;
 			}
 		}
