@@ -1,5 +1,0 @@
-#
-# Scaled remote control input for manual control/override.
-#
-
-float16[<=32] channels   # Normalized in range [-1, 1], NAN means no such channel
