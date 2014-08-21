@@ -1311,11 +1311,12 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(position_setpoint_triplet), pos_sp_triplet_sub, &pos_sp_triplet);
 
 			/* Check for geofence violation */
-			if (pos_sp_triplet.geofence_violated) {
+			if (pos_sp_triplet.geofence_violated || pos_sp_triplet.flight_termination) {
 				//XXX: make this configurable to select different actions (e.g. navigation modes)
 				/* this will only trigger if geofence is activated via param and a geofence file is present, also there is a circuit breaker to disable the actual flight termination in the px4io driver */
-				armed.force_failsafe = true;
+				armed.fosrce_failsafe = true;
 				status_changed = true;
+				warnx("Flight termination");
 			} // no reset is done here on purpose, on geofence violation we want to stay in flighttermination
 		}
 
@@ -2060,6 +2061,7 @@ set_control_mode()
 	case NAVIGATION_STATE_AUTO_LOITER:
 	case NAVIGATION_STATE_AUTO_RTL:
 	case NAVIGATION_STATE_AUTO_RTGS:
+	case NAVIGATION_STATE_AUTO_LANDENGFAIL:
 		control_mode.flag_control_manual_enabled = false;
 		control_mode.flag_control_auto_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
@@ -2068,6 +2070,18 @@ set_control_mode()
 		control_mode.flag_control_climb_rate_enabled = true;
 		control_mode.flag_control_position_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
+		control_mode.flag_control_termination_enabled = false;
+		break;
+
+	case NAVIGATION_STATE_AUTO_LANDGPSFAIL:
+		control_mode.flag_control_manual_enabled = false;
+		control_mode.flag_control_auto_enabled = false;
+		control_mode.flag_control_rates_enabled = true;
+		control_mode.flag_control_attitude_enabled = true;
+		control_mode.flag_control_altitude_enabled = false;
+		control_mode.flag_control_climb_rate_enabled = true;
+		control_mode.flag_control_position_enabled = false;
+		control_mode.flag_control_velocity_enabled = false;
 		control_mode.flag_control_termination_enabled = false;
 		break;
 

@@ -53,6 +53,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 
 #include "navigator_mode.h"
 #include "mission.h"
@@ -108,6 +109,12 @@ public:
 	 * Publish the mission result so commander and mavlink know what is going on
 	 */
 	void publish_mission_result();
+	
+	/**
+	 * Publish the attitude sp, only to be used in very special modes when position control is deactivated
+	 * Example: mode that is triggered on gps failure
+	 */
+	void publish_att_sp();
 
 	/**
 	 * Setters
@@ -125,6 +132,7 @@ public:
 	struct home_position_s*		    get_home_position() { return &_home_pos; }
 	struct position_setpoint_triplet_s* get_position_setpoint_triplet() { return &_pos_sp_triplet; }
 	struct mission_result_s*	    get_mission_result() { return &_mission_result; }
+	struct vehicle_attitude_setpoint_s* get_att_sp() { return &_att_sp; }
 
 	int		get_onboard_mission_sub() { return _onboard_mission_sub; }
 	int		get_offboard_mission_sub() { return _offboard_mission_sub; }
@@ -155,6 +163,9 @@ private:
 
 	orb_advert_t	_pos_sp_triplet_pub;		/**< publish position setpoint triplet */
 	orb_advert_t	_mission_result_pub;
+	orb_advert_t	_att_sp_pub;			/**< publish att sp
+							  used only in very special failsafe modes
+							  when pos control is deactivated */
 
 	vehicle_status_s				_vstatus;		/**< vehicle status */
 	vehicle_control_mode_s				_control_mode;		/**< vehicle control mode */
@@ -166,6 +177,7 @@ private:
 	position_setpoint_triplet_s			_pos_sp_triplet;	/**< triplet of position setpoints */
 
 	mission_result_s				_mission_result;
+	vehicle_attitude_setpoint_s					_att_sp;
 
 	bool 		_mission_item_valid;		/**< flags if the current mission item is valid */
 

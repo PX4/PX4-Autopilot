@@ -110,6 +110,7 @@ Navigator::Navigator() :
 	_param_update_sub(-1),
 	_pos_sp_triplet_pub(-1),
 	_mission_result_pub(-1),
+	_att_sp_pub(-1),
 	_vstatus{},
 	_control_mode{},
 	_global_pos{},
@@ -119,6 +120,7 @@ Navigator::Navigator() :
 	_nav_caps{},
 	_pos_sp_triplet{},
 	_mission_result{},
+	_att_sp{},
 	_mission_item_valid(false),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 	_geofence{},
@@ -608,4 +610,18 @@ Navigator::publish_mission_result()
 	/* reset reached bool */
 	_mission_result.reached = false;
 	_mission_result.finished = false;
+}
+
+void
+Navigator::publish_att_sp()
+{
+	/* lazily publish the attitude sp only once available */
+	if (_att_sp_pub > 0) {
+		/* publish att sp*/
+		orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
+
+	} else {
+		/* advertise and publish */
+		_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
+	}
 }

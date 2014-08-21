@@ -1,6 +1,6 @@
-/***************************************************************************
+/****************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -30,68 +30,68 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file gpsfailure.h
- * Helper class for Data Link Loss Mode according to the OBC rules
+ * @file gpsfailure_params.c
+ *
+ * Parameters for GPSF navigation mode
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef NAVIGATOR_GPSFAILURE_H
-#define NAVIGATOR_GPSFAILURE_H
+#include <nuttx/config.h>
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
+#include <systemlib/param/param.h>
 
-#include <uORB/uORB.h>
-#include <uORB/Publication.hpp>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
+/*
+ * GPS Failure Navigation Mode parameters, accessible via MAVLink
+ */
 
-#include <drivers/drv_hrt.h>
+/**
+ * Loiter time
+ *
+ * The amount of time in seconds the system should do open loop loiter and wait for gps recovery
+ * before it goes into flight termination.
+ *
+ * @unit seconds
+ * @min 0.0
+ * @group GPSF
+ */
+PARAM_DEFINE_FLOAT(NAV_GPSF_LT, 30.0f);
 
-#include "navigator_mode.h"
-#include "mission_block.h"
+/**
+ * Open loop loiter roll
+ *
+ * Roll in degrees during the open loop loiter
+ *
+ * @unit deg
+ * @min 0.0
+ * @max 30.0
+ * @group GPSF
+ */
+PARAM_DEFINE_FLOAT(NAV_GPSF_R, 15.0f);
 
-class Navigator;
+/**
+ * Open loop loiter pitch
+ *
+ * Pitch in degrees during the open loop loiter
+ *
+ * @unit deg
+ * @min -30.0
+ * @max 30.0
+ * @group GPSF
+ */
+PARAM_DEFINE_FLOAT(NAV_GPSF_P, 0.0f);
 
-class GpsFailure : public MissionBlock
-{
-public:
-	GpsFailure(Navigator *navigator, const char *name);
+/**
+ * Open loop loiter thrust
+ *
+ * Thrust value which is set during the open loop loiter
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group GPSF
+ */
+PARAM_DEFINE_FLOAT(NAV_GPSF_TR, 0.7f);
 
-	~GpsFailure();
 
-	virtual void on_inactive();
-
-	virtual void on_activation();
-
-	virtual void on_active();
-
-private:
-	/* Params */
-	control::BlockParamFloat _param_loitertime;
-	control::BlockParamFloat _param_openlooploiter_roll;
-	control::BlockParamFloat _param_openlooploiter_pitch;
-	control::BlockParamFloat _param_openlooploiter_thrust;
-
-	enum GPSFState {
-		GPSF_STATE_NONE = 0,
-		GPSF_STATE_LOITER = 1,
-		GPSF_STATE_TERMINATE = 2,
-		GPSF_STATE_END = 3,
-	} _gpsf_state;
-
-	hrt_abstime _timestamp_activation; //*< timestamp when this mode was activated */
-
-	/**
-	 * Set the GPSF item
-	 */
-	void		set_gpsf_item();
-
-	/**
-	 * Move to next GPSF item
-	 */
-	void		advance_gpsf();
-
-};
-#endif
