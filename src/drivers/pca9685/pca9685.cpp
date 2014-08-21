@@ -98,13 +98,15 @@
 #define PCA9685_PWMFREQ 60.0f
 #define PCA9685_NCHANS 16 // total amount of pwm outputs
 
-#define PCA9685_SERVOMIN 150 // this is the 'minimum' pulse length count (out of 4096)
-#define PCA9685_SERVOMAX 600 // this is the 'maximum' pulse length count (out of 4096)_PWMFREQ 60.0f
+#define PCA9685_PWMMIN 150 // this is the 'minimum' pulse length count (out of 4096)
+#define PCA9685_PWMMAX 600 // this is the 'maximum' pulse length count (out of 4096)_PWMFREQ 60.0f
 
-#define PCA9685_HALFRANGE ((PCA9685_SERVOMAX - PCA9685_SERVOMIN)/2)
-#define PCA9685_CENTER (PCA9685_SERVOMIN + PCA9685_HALFRANGE)
-#define PCA9685_MAXSERVODEG 45 //maximal defelction in degrees
-#define PCA9685_SCALE (PCA9685_HALFRANGE / (M_DEG_TO_RAD_F * PCA9685_MAXSERVODEG))
+#define PCA9685_PWMCENTER ((PCA9685_PWMMAX + PCA9685_PWMMIN)/2)
+#define PCA9685_MAXSERVODEG 90.0f /* maximal servo deflection in degrees
+				     PCA9685_PWMMIN <--> -PCA9685_MAXSERVODEG
+				     PCA9685_PWMMAX <--> PCA9685_MAXSERVODEG
+				     */
+#define PCA9685_SCALE ((PCA9685_PWMMAX - PCA9685_PWMCENTER)/(M_DEG_TO_RAD_F * PCA9685_MAXSERVODEG)) // scales from rad to PWM
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -300,7 +302,7 @@ void
 PCA9685::i2cpwm()
 {
 	if (_mode == IOX_MODE_TEST_OUT) {
-		setPin(0, PCA9685_CENTER);
+		setPin(0, PCA9685_PWMCENTER);
 		_should_run = true;
 	} else if (_mode == IOX_MODE_OFF) {
 		_should_run = false;
@@ -320,14 +322,16 @@ PCA9685::i2cpwm()
 		if (updated) {
 			orb_copy(ORB_ID(actuator_controls_2), _actuator_controls_sub, &_actuator_controls);
 			for (int i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
-				uint16_t new_value = PCA9685_CENTER +
-					(_actuator_controls.control[i] * PCA9685_SCALE);
+				/* Scale the controls to PWM, first multiply by pi to get rad,
+				 * the control[i] values are on the range -1 ... 1 */
+				uint16_t new_value = PCA9685_PWMCENTER +
+					(_actuator_controls.control[i] * M_PI_F * PCA9685_SCALE);
 				debug("%d: current: %u, new %u, control %.2f", i, _current_values[i], new_value,
 						(double)_actuator_controls.control[i]);
 				if (new_value != _current_values[i] &&
 						isfinite(new_value) &&
-						new_value >= 0 &&
-						new_value <= PCA9685_SERVOMAX) {
+						new_value >= PCA9685_PWMMIN &&
+						new_value <= PCA9685_PWMMAX) {
 					/* This value was updated, send the command to adjust the PWM value */
 					setPin(i, new_value);
 					_current_values[i] = new_value;
