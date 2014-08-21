@@ -217,6 +217,8 @@ Mavlink::Mavlink() :
 		errx(1, "instance ID is out of range");
 		break;
 	}
+
+	_rstatus.type = TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
 }
 
 Mavlink::~Mavlink()
@@ -1652,6 +1654,8 @@ Mavlink::display_status()
 	if (_rstatus.heartbeat_time > 0) {
 		printf("\tGCS heartbeat:\t%llu us ago\n", hrt_elapsed_time(&_rstatus.heartbeat_time));
 	}
+
+	printf("\tmavlink chan: #%u\n", _channel);
 
 	if (_rstatus.timestamp > 0) {
 
