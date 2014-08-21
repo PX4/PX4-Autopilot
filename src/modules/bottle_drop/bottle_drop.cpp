@@ -459,7 +459,7 @@ BottleDrop::task_main()
 			continue;
 		}
 
-		const unsigned sleeptime_us = 10000;
+		const unsigned sleeptime_us = 50000;
 
 		hrt_abstime last_run = hrt_absolute_time();
 		dt_runs = 1e6f / sleeptime_us;
@@ -648,6 +648,7 @@ BottleDrop::task_main()
 					if (isfinite(distance_real) && distance_real < distance_open_door) {
 						open_bay();
 						_drop_state = DROP_STATE_BAY_OPEN;
+						mavlink_log_info(_mavlink_fd, "#audio: opening bay");
 					}
 				}
 				break;
@@ -664,10 +665,11 @@ BottleDrop::task_main()
 							warnx("Distance real: %.2f", (double)distance_real);
 
 							if (isfinite(distance_real) &&
-								(((distance_real < precision) && (distance_real < future_distance)) ||
+								(distance_real < precision) && ((distance_real < future_distance) ||
 								(distance_real < precision / 10.0f))) {
 									drop();
 									_drop_state = DROP_STATE_DROPPED;
+									mavlink_log_info(_mavlink_fd, "#audio: payload dropped");
 							}
 						}
 					}
@@ -680,6 +682,7 @@ BottleDrop::task_main()
 						_drop_approval = false;
 						lock_release();
 						close_bay();
+						mavlink_log_info(_mavlink_fd, "#audio: closing bay");
 					}
 					break;
 			}
@@ -688,7 +691,7 @@ BottleDrop::task_main()
 
 			// update_actuators();
 
-			// run at roughly 100 Hz
+			// run at roughly 20 Hz
 			usleep(sleeptime_us);
 
 			dt_runs = 1e6f / hrt_elapsed_time(&last_run);
@@ -719,12 +722,12 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 
 		} else if (cmd->param1 > 0.5f) {
 			open_bay();
-			mavlink_log_info(_mavlink_fd, "#audio: open doors");
+			mavlink_log_info(_mavlink_fd, "#audio: opening bay");
 
 		} else {
 			lock_release();
 			close_bay();
-			mavlink_log_info(_mavlink_fd, "#audio: close doors");
+			mavlink_log_info(_mavlink_fd, "#audio: closing bay");
 		}
 
 		answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
@@ -735,11 +738,12 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 		switch ((int)(cmd->param1 + 0.5f)) {
 		case 0:
 			_drop_approval = false;
+			mavlink_log_info(_mavlink_fd, "#audio: got drop position, no approval");
 			break;
 
 		case 1:
 			_drop_approval = true;
-			mavlink_log_info(_mavlink_fd, "#audio: prepare deploy approval");
+			mavlink_log_info(_mavlink_fd, "#audio: got drop position and approval");
 			break;
 
 		default:
@@ -768,7 +772,7 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 
 		case 1:
 			_drop_approval = true;
-			mavlink_log_info(_mavlink_fd, "#audio: control deploy approval");
+			mavlink_log_info(_mavlink_fd, "#audio: got drop approval");
 			break;
 
 		default:
