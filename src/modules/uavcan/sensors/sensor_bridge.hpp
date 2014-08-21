@@ -32,53 +32,39 @@
  ****************************************************************************/
 
 /**
- * @file gnss_receiver.hpp
- *
- * UAVCAN --> ORB bridge for GNSS messages:
- *     uavcan.equipment.gnss.Fix
- *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
- * @author Andrew Chambers <achamber@gmail.com>
  */
 
 #pragma once
 
-#include <drivers/drv_hrt.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_gps_position.h>
-
+#include <containers/List.hpp>
 #include <uavcan/uavcan.hpp>
-#include <uavcan/equipment/gnss/Fix.hpp>
 
-class UavcanGnssReceiver
+/**
+ * A sensor bridge class must implement this interface.
+ */
+class IUavcanSensorBridge : uavcan::Noncopyable, public ListNode<IUavcanSensorBridge*>
 {
 public:
-	UavcanGnssReceiver(uavcan::INode& node);
+	static constexpr unsigned MaxNameLen = 20;
 
-	int init();
+	virtual ~IUavcanSensorBridge() { }
 
-private:
 	/**
-	 * GNSS fix message will be reported via this callback.
+	 * Returns ASCII name of the bridge.
 	 */
-	void gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
+	virtual const char *get_name() const = 0;
 
-
-	typedef uavcan::MethodBinder<UavcanGnssReceiver*,
-		void (UavcanGnssReceiver::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix>&)>
-		FixCbBinder;
-
-	/*
-	 * libuavcan related things
+	/**
+	 * Starts the bridge.
+	 * @return Non-negative value on success, negative on error.
 	 */
-	uavcan::INode													&_node;
-	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder>	_uavcan_sub_status;
+	virtual int init() = 0;
 
-	/*
-	 * uORB
+	/**
+	 * Sensor bridge factory.
+	 * Creates a bridge object by its ASCII name, e.g. "gnss", "mag".
+	 * @return nullptr if such bridge can't be created.
 	 */
-	struct vehicle_gps_position_s 	_report;					///< uORB topic for gnss position
-	orb_advert_t			_report_pub;					///< uORB pub for gnss position
-
+	static IUavcanSensorBridge* make(uavcan::INode &node, const char *bridge_name);
 };

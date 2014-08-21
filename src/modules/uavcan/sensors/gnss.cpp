@@ -32,32 +32,34 @@
  ****************************************************************************/
 
 /**
- * @file gnss_receiver.cpp
+ * @file gnss.cpp
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  * @author Andrew Chambers <achamber@gmail.com>
  *
  */
 
-#include "gnss_receiver.hpp"
+#include "gnss.hpp"
 #include <systemlib/err.h>
 #include <mathlib/mathlib.h>
 
 #define MM_PER_CM 			10	// Millimeters per centimeter
 
-UavcanGnssReceiver::UavcanGnssReceiver(uavcan::INode &node) :
+UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
 _node(node),
 _uavcan_sub_status(node),
 _report_pub(-1)
 {
 }
 
-int UavcanGnssReceiver::init()
+const char *UavcanGnssBridge::get_name() const { return "gnss"; }
+
+int UavcanGnssBridge::init()
 {
 	int res = -1;
 
 	// GNSS fix subscription
-	res = _uavcan_sub_status.start(FixCbBinder(this, &UavcanGnssReceiver::gnss_fix_sub_cb));
+	res = _uavcan_sub_status.start(FixCbBinder(this, &UavcanGnssBridge::gnss_fix_sub_cb));
 	if (res < 0)
 	{
 		warnx("GNSS fix sub failed %i", res);
@@ -67,10 +69,11 @@ int UavcanGnssReceiver::init()
 	// Clear the uORB GPS report
 	memset(&_report, 0, sizeof(_report));
 
+	warnx("gnss sensor bridge init ok");
 	return res;
 }
 
-void UavcanGnssReceiver::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg)
+void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg)
 {
 	_report.timestamp_position = hrt_absolute_time();
 	_report.lat = msg.lat_1e7;

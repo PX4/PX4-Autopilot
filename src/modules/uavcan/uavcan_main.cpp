@@ -65,16 +65,18 @@ UavcanNode *UavcanNode::_instance;
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
 	CDev("uavcan", UAVCAN_DEVICE_PATH),
 	_node(can_driver, system_clock),
-	_esc_controller(_node),
-	_gnss_receiver(_node)
+	_node_mutex(),
+	_esc_controller(_node)
 {
 	_control_topics[0] = ORB_ID(actuator_controls_0);
 	_control_topics[1] = ORB_ID(actuator_controls_1);
 	_control_topics[2] = ORB_ID(actuator_controls_2);
 	_control_topics[3] = ORB_ID(actuator_controls_3);
 
-	// memset(_controls, 0, sizeof(_controls));
-	// memset(_poll_fds, 0, sizeof(_poll_fds));
+	const int res = pthread_mutex_init(&_node_mutex, nullptr);
+	if (res < 0) {
+		std::abort();
+	}
 }
 
 UavcanNode::~UavcanNode()
@@ -99,7 +101,7 @@ UavcanNode::~UavcanNode()
 	}
 
 	/* clean up the alternate device node */
-		// unregister_driver(PWM_OUTPUT_DEVICE_PATH);
+	// unregister_driver(PWM_OUTPUT_DEVICE_PATH);
 
 	::close(_armed_sub);
 
@@ -231,10 +233,6 @@ int UavcanNode::init(uavcan::NodeID node_id)
 	if (ret < 0)
 		return ret;
 
-	ret = _gnss_receiver.init();
-	if (ret < 0)
-		return ret;
-
 	return _node.start();
 }
 
@@ -248,6 +246,8 @@ void UavcanNode::node_spin_once()
 
 int UavcanNode::run()
 {
+	(void)pthread_mutex_lock(&_node_mutex);
+
 	const unsigned PollTimeoutMs = 50;
 
 	// XXX figure out the output count
@@ -291,7 +291,12 @@ int UavcanNode::run()
 			_groups_subscribed = _groups_required;
 		}
 
+		// Mutex is unlocked while the thread is blocked on IO multiplexing
+		(void)pthread_mutex_unlock(&_node_mutex);
+
 		const int poll_ret = ::poll(_poll_fds, _poll_fds_num, PollTimeoutMs);
+
+		(void)pthread_mutex_lock(&_node_mutex);
 
 		node_spin_once();  // Non-blocking
 
@@ -352,7 +357,6 @@ int UavcanNode::run()
 				// Output to the bus
 				_esc_controller.update_outputs(outputs.output, outputs.noutputs);
 			}
-
 		}
 
 		// Check arming state
@@ -376,10 +380,7 @@ int UavcanNode::run()
 }
 
 int
-UavcanNode::control_callback(uintptr_t handle,
-			 uint8_t control_group,
-			 uint8_t control_index,
-			 float &input)
+UavcanNode::control_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input)
 {
 	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
@@ -524,12 +525,69 @@ UavcanNode::print_info()
 	warnx("mixer: %s", (_mixers == nullptr) ? "NONE" : "OK");
 }
 
+int UavcanNode::sensor_enable(const char *bridge_name)
+{
+	int retval = -1;
+
+	(void)pthread_mutex_lock(&_node_mutex);
+
+	// Checking if such bridge already exists
+	{
+		auto pos = _sensor_bridges.getHead();
+		while (pos != nullptr) {
+			if (!std::strncmp(pos->get_name(), bridge_name, IUavcanSensorBridge::MaxNameLen)) {
+				warnx("sensor bridge '%s' already exists", bridge_name);
+				retval = -1;
+				goto leave;
+			}
+			pos = pos->getSibling();
+		}
+	}
+
+	// Creating and initing
+	{
+		auto bridge = IUavcanSensorBridge::make(get_node(), bridge_name);
+		if (bridge == nullptr) {
+			warnx("cannot create sensor bridge '%s'", bridge_name);
+			retval = -1;
+			goto leave;
+		}
+
+		assert(!std::strncmp(bridge->get_name(), bridge_name, IUavcanSensorBridge::MaxNameLen));
+
+		retval = bridge->init();
+		if (retval >= 0) {
+			_sensor_bridges.add(bridge);
+		}
+	}
+
+leave:
+	(void)pthread_mutex_unlock(&_node_mutex);
+	return retval;
+}
+
+void UavcanNode::sensor_print_enabled()
+{
+	(void)pthread_mutex_lock(&_node_mutex);
+
+	auto pos = _sensor_bridges.getHead();
+	while (pos != nullptr) {
+		warnx("%s", pos->get_name());
+		pos = pos->getSibling();
+	}
+
+	(void)pthread_mutex_unlock(&_node_mutex);
+}
+
 /*
  * App entry point
  */
 static void print_usage()
 {
-	warnx("usage: uavcan start <node_id> [can_bitrate]");
+	warnx("usage: \n"
+	      "\tuavcan start <node_id> [can_bitrate]\n"
+	      "\tuavcan sensor enable <sensor name>\n"
+	      "\tuavcan sensor list");
 }
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
@@ -585,7 +643,7 @@ int uavcan_main(int argc, char *argv[])
 	}
 
 	/* commands below require the app to be started */
-	UavcanNode *inst = UavcanNode::instance();
+	UavcanNode *const inst = UavcanNode::instance();
 
 	if (!inst) {
 		errx(1, "application not running");
@@ -594,14 +652,37 @@ int uavcan_main(int argc, char *argv[])
 	if (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info")) {
 		
 			inst->print_info();
-			return OK;
+			::exit(0);
 	}
 
 	if (!std::strcmp(argv[1], "stop")) {
-		
 			delete inst;
-			inst = nullptr;
-			return OK;
+			::exit(0);
+	}
+
+	if (!std::strcmp(argv[1], "sensor")) {
+		if (argc < 3) {
+			print_usage();
+			::exit(1);
+		}
+
+		if (!std::strcmp(argv[2], "list")) {
+			inst->sensor_print_enabled();
+			::exit(0);
+		}
+
+		if (argc < 4) {
+			print_usage();
+			::exit(1);
+		}
+
+		if (!std::strcmp(argv[2], "enable")) {
+			const int res = inst->sensor_enable(argv[3]);
+			if (res < 0) {
+				warnx("failed to enable sensor '%s': error %d", argv[3], res);
+			}
+			::exit(0);
+		}
 	}
 
 	print_usage();
