@@ -636,6 +636,10 @@ BottleDrop::task_main()
 						onboard_mission_pub = orb_advertise(ORB_ID(onboard_mission), &onboard_mission);
 					}
 
+					if (counter % 90 == 0) {
+						mavlink_log_info(_mavlink_fd, "#audio: drop distance %.2f", (double)distance_real);
+					}
+
 					// We're close enough - open the bay
 					distance_open_door = math::max(3.0f, fabsf(t_door * groundspeed_body));
 
