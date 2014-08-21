@@ -497,6 +497,10 @@ BottleDrop::task_main()
 			float groundspeed_body = sqrtf(_global_pos.vel_n * _global_pos.vel_n + _global_pos.vel_e * _global_pos.vel_e);
 			distance_real = fabsf(get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon, _drop_position.lat, _drop_position.lon));
 
+			if (counter % 90 == 0) {
+				mavlink_log_info(_mavlink_fd, "#audio: drop distance %.2f", (double)distance_real);
+			}
+
 			//warnx("absolut wind speed = %.4f", vr); //////////////////////////////////////////////////////////////////// DEBUGGING
 
 
@@ -634,10 +638,6 @@ BottleDrop::task_main()
 
 					} else {
 						onboard_mission_pub = orb_advertise(ORB_ID(onboard_mission), &onboard_mission);
-					}
-
-					if (counter % 90 == 0) {
-						mavlink_log_info(_mavlink_fd, "#audio: drop distance %.2f", (double)distance_real);
 					}
 
 					// We're close enough - open the bay
