@@ -637,7 +637,7 @@ BottleDrop::task_main()
 					}
 
 					// We're close enough - open the bay
-					distance_open_door = math::max(3.0f, 3.0f * fabsf(t_door * groundspeed_body));
+					distance_open_door = math::max(5.0f, 3.0f * fabsf(t_door * groundspeed_body));
 
 					if (counter % 10 == 0)
 						warnx("dist real: %.2f, distance_open_door: %.2f, angle to wind: %.2f",
