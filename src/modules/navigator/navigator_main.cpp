@@ -396,6 +396,8 @@ Navigator::task_main()
 			case NAVIGATION_STATE_ACRO:
 			case NAVIGATION_STATE_ALTCTL:
 			case NAVIGATION_STATE_POSCTL:
+			case NAVIGATION_STATE_LAND:
+			case NAVIGATION_STATE_TERMINATION:
 				_navigation_mode = nullptr;
 				_can_loiter_at_sp = false;
 				break;
@@ -426,8 +428,6 @@ Navigator::task_main()
 			case NAVIGATION_STATE_AUTO_LANDGPSFAIL:
 				_navigation_mode = &_gpsFailure;
 				break;
-			case NAVIGATION_STATE_LAND:
-			case NAVIGATION_STATE_TERMINATION:
 			case NAVIGATION_STATE_OFFBOARD:
 				_navigation_mode = &_offboard;
 				break;

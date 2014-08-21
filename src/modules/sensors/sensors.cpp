@@ -857,7 +857,6 @@ Sensors::parameters_update()
 		errx(1, "FATAL: no barometer found");
 
 	} else {
-		warnx("qnh ioctl, %lu", (unsigned long)(_parameters.baro_qnh * 100));
 		int ret = ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
 		if (ret) {
 			warnx("qnh could not be set");
