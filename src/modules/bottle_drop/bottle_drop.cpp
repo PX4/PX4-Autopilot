@@ -134,6 +134,7 @@ private:
 	enum DROP_STATE {
 		DROP_STATE_INIT = 0,
 		DROP_STATE_TARGET_VALID,
+		DROP_STATE_TARGET_SET,
 		DROP_STATE_BAY_OPEN,
 		DROP_STATE_DROPPED,
 		DROP_STATE_BAY_CLOSED
@@ -381,10 +382,6 @@ BottleDrop::task_main()
 	float distance_real = 0;				// The distance between the UAVs position and the drop point [m]
 	float future_distance = 0;				// The distance between the UAVs to-be position and the drop point [m]
 
-	// states
-	bool state_drop = false;				// Drop occurred = true, Drop din't occur = false
-	bool state_run = false;					// A drop was attempted = true, the drop is still in progress = false
-
 	unsigned counter = 0;
 
 	param_t param_gproperties = param_find("BD_GPROPERTIES");
@@ -621,13 +618,7 @@ BottleDrop::task_main()
 					}
 
 					onboard_mission.count = 2;
-
-					if (state_run && !state_drop) {
-						onboard_mission.current_seq = 0;
-
-					} else {
-						onboard_mission.current_seq = -1;
-					}
+					onboard_mission.current_seq = 0;
 
 					if (onboard_mission_pub > 0) {
 						orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
@@ -636,19 +627,27 @@ BottleDrop::task_main()
 						onboard_mission_pub = orb_advertise(ORB_ID(onboard_mission), &onboard_mission);
 					}
 
-					// We're close enough - open the bay
-					distance_open_door = math::max(5.0f, 3.0f * fabsf(t_door * groundspeed_body));
+					_drop_state = DROP_STATE_TARGET_SET;
+				}
+				break;
 
-					if (counter % 10 == 0)
-						warnx("dist real: %.2f, distance_open_door: %.2f, angle to wind: %.2f",
-							(double)distance_real,
-							(double)distance_open_door,
-							(double)(_wrap_pi(_global_pos.yaw - atan2f(wind.windspeed_north, wind.windspeed_east))));
+				case DROP_STATE_TARGET_SET
 
-					if (isfinite(distance_real) && distance_real < distance_open_door) {
-						open_bay();
-						_drop_state = DROP_STATE_BAY_OPEN;
-						mavlink_log_info(_mavlink_fd, "#audio: opening bay");
+					float distance_wp2 = get_distance_to_next_waypoint(flight_vector_e.lat, flight_vector_e.lon, _drop_position.lat, _drop_position.lon);
+
+					if (distance_wp2 < distance_real) {
+						onboard_mission.current_seq = 0;
+						orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
+					} else {
+
+						// We're close enough - open the bay
+						distance_open_door = math::max(5.0f, 3.0f * fabsf(t_door * groundspeed_body));
+
+						if (isfinite(distance_real) && distance_real < distance_open_door) {
+							open_bay();
+							_drop_state = DROP_STATE_BAY_OPEN;
+							mavlink_log_info(_mavlink_fd, "#audio: opening bay");
+						}
 					}
 				}
 				break;
@@ -670,6 +669,14 @@ BottleDrop::task_main()
 									drop();
 									_drop_state = DROP_STATE_DROPPED;
 									mavlink_log_info(_mavlink_fd, "#audio: payload dropped");
+							} else {
+								
+								float distance_wp2 = get_distance_to_next_waypoint(flight_vector_e.lat, flight_vector_e.lon, _drop_position.lat, _drop_position.lon);
+
+								if (distance_wp2 < distance_real) {
+									onboard_mission.current_seq = 0;
+									orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
+								}
 							}
 						}
 					}
@@ -683,6 +690,10 @@ BottleDrop::task_main()
 						lock_release();
 						close_bay();
 						mavlink_log_info(_mavlink_fd, "#audio: closing bay");
+
+						// remove onboard mission
+						onboard_mission.current_seq = -1;
+						orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
 					}
 					break;
 			}
@@ -765,20 +776,36 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 		break;
 
 	case VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY:
-		switch ((int)(cmd->param1 + 0.5f)) {
-		case 0:
-			_drop_approval = false;
-			break;
 
-		case 1:
-			_drop_approval = true;
-			mavlink_log_info(_mavlink_fd, "#audio: got drop approval");
-			break;
+		if (cmd->param1 < 0) {
 
-		default:
+			// Clear internal states
 			_drop_approval = false;
-			break;
-			// XXX handle other values
+			_drop_state = DROP_STATE_INIT;
+
+			// Abort if mission is present
+			onboard_mission.current_seq = -1;
+
+			if (onboard_mission_pub > 0) {
+				orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
+			}
+
+		} else {
+			switch ((int)(cmd->param1 + 0.5f)) {
+			case 0:
+				_drop_approval = false;
+				break;
+
+			case 1:
+				_drop_approval = true;
+				mavlink_log_info(_mavlink_fd, "#audio: got drop approval");
+				break;
+
+			default:
+				_drop_approval = false;
+				break;
+				// XXX handle other values
+			}
 		}
 
 		answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
