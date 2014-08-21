@@ -3,14 +3,13 @@
  */
 
 #include <gtest/gtest.h>
-#include <uavcan/FigureOfMerit.hpp>
+#include <uavcan/Timestamp.hpp>
 
 
-TEST(DsdlConst2, FigureOfMerit)
+TEST(DsdlConst2, Timestamp)
 {
-    using uavcan::FigureOfMerit;
+    using uavcan::Timestamp;
 
-    std::cout << &FigureOfMerit::MAX << std::endl;
-    std::cout << &FigureOfMerit::MIN << std::endl;
-    std::cout << &FigureOfMerit::UNKNOWN << std::endl;
+    std::cout << &Timestamp::USEC_PER_LSB << std::endl;
+    std::cout << &Timestamp::UNKNOWN << std::endl;
 }

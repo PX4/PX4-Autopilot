@@ -7,7 +7,6 @@
 #include <uavcan/helpers/ostream.hpp>
 
 #include <uavcan/Timestamp.hpp>
-#include <uavcan/FigureOfMerit.hpp>
 #include <uavcan/mavlink/Message.hpp>
 #include <uavcan/protocol/ComputeAggregateTypeSignature.hpp>
 #include <uavcan/protocol/GetTransportStats.hpp>
