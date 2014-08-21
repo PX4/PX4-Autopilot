@@ -3,7 +3,7 @@
  *
  * Code generation for function 'AttitudeEKF'
  *
- * C source code generated on: Fri Jul 25 14:06:41 2014
+ * C source code generated on: Thu Aug 21 11:17:28 2014
  *
  */
 
@@ -438,67 +438,66 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
   float fv4[3];
   float x_apr[12];
   signed char I[144];
-  float A_lin[144];
+  static float A_lin[144];
   static const signed char iv1[36] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1,
     0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-  float b_A_lin[144];
+  static float b_A_lin[144];
   float v[12];
-  float P_apr[144];
-  float b_P_apr[108];
-  static const signed char b[108] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 };
-
-  float K_k[108];
-  float a[81];
+  static float P_apr[144];
+  float a[108];
   static const signed char b_a[108] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 };
 
-  float b_r_gyro[81];
-  float c_a[81];
-  float d_a[36];
-  static const signed char e_a[36] = { 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+  float S_k[81];
+  static const signed char b[108] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 };
+
+  float b_r_gyro[9];
+  float K_k[108];
+  float b_S_k[36];
+  static const signed char c_a[36] = { 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
   static const signed char b_b[36] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-  float c_r_gyro[9];
-  float b_K_k[36];
+  float c_r_gyro[3];
+  float B[36];
   int r3;
   float a21;
-  float f_a[36];
-  float c_P_apr[72];
+  float Y[36];
+  float d_a[72];
+  static const signed char e_a[72] = { 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0 };
+
   static const signed char c_b[72] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 1, 0, 0, 0 };
 
-  float c_K_k[72];
-  static const signed char g_a[72] = { 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0 };
+  float d_r_gyro[6];
+  float c_S_k[6];
+  float b_K_k[72];
+  static const signed char f_a[72] = { 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0,
+    0, 0, 0, 0, 0, 1 };
 
-  float b_z[6];
   static const signed char d_b[72] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 1 };
 
-  static const signed char h_a[72] = { 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0,
-    0, 0, 0, 0, 0, 1 };
-
-  float i_a[6];
-  float c_z[6];
+  float b_z[6];
 
   /* LQG Postion Estimator and Controller */
   /*  Observer: */
@@ -898,138 +897,71 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
   /* % update */
   /* 'AttitudeEKF:167' if zFlag(1)==1&&zFlag(2)==1&&zFlag(3)==1 */
   if ((zFlag[0] == 1) && (zFlag[1] == 1) && (zFlag[2] == 1)) {
-    /* 'AttitudeEKF:169' R=[r_gyro,0,0,0,0,0,0,0,0; */
-    /* 'AttitudeEKF:170'         0,r_gyro,0,0,0,0,0,0,0; */
-    /* 'AttitudeEKF:171'         0,0,r_gyro,0,0,0,0,0,0; */
-    /* 'AttitudeEKF:172'         0,0,0,r_accel,0,0,0,0,0; */
-    /* 'AttitudeEKF:173'         0,0,0,0,r_accel,0,0,0,0; */
-    /* 'AttitudeEKF:174'         0,0,0,0,0,r_accel,0,0,0; */
-    /* 'AttitudeEKF:175'         0,0,0,0,0,0,r_mag,0,0; */
-    /* 'AttitudeEKF:176'         0,0,0,0,0,0,0,r_mag,0; */
-    /* 'AttitudeEKF:177'         0,0,0,0,0,0,0,0,r_mag]; */
+    /*      R=[r_gyro,0,0,0,0,0,0,0,0; */
+    /*          0,r_gyro,0,0,0,0,0,0,0; */
+    /*          0,0,r_gyro,0,0,0,0,0,0; */
+    /*          0,0,0,r_accel,0,0,0,0,0; */
+    /*          0,0,0,0,r_accel,0,0,0,0; */
+    /*          0,0,0,0,0,r_accel,0,0,0; */
+    /*          0,0,0,0,0,0,r_mag,0,0; */
+    /*          0,0,0,0,0,0,0,r_mag,0; */
+    /*          0,0,0,0,0,0,0,0,r_mag]; */
+    /* 'AttitudeEKF:178' R_v=[r_gyro,r_gyro,r_gyro,r_accel,r_accel,r_accel,r_mag,r_mag,r_mag]; */
     /* observation matrix */
     /* [zw;ze;zmk]; */
-    /* 'AttitudeEKF:180' H_k=[  E,     Z,      Z,    Z; */
-    /* 'AttitudeEKF:181'         Z,     Z,      E,    Z; */
-    /* 'AttitudeEKF:182'         Z,     Z,      Z,    E]; */
-    /* 'AttitudeEKF:184' y_k=z(1:9)-H_k*x_apr; */
-    /* 'AttitudeEKF:187' S_k=H_k*P_apr*H_k'+R; */
-    /* 'AttitudeEKF:188' K_k=(P_apr*H_k'/(S_k)); */
-    for (r2 = 0; r2 < 12; r2++) {
-      for (i = 0; i < 9; i++) {
-        b_P_apr[r2 + 12 * i] = 0.0F;
-        for (r1 = 0; r1 < 12; r1++) {
-          b_P_apr[r2 + 12 * i] += P_apr[r2 + 12 * r1] * (float)b[r1 + 12 * i];
-        }
-      }
-    }
-
+    /* 'AttitudeEKF:181' H_k=[  E,     Z,      Z,    Z; */
+    /* 'AttitudeEKF:182'         Z,     Z,      E,    Z; */
+    /* 'AttitudeEKF:183'         Z,     Z,      Z,    E]; */
+    /* 'AttitudeEKF:185' y_k=z(1:9)-H_k*x_apr; */
+    /* S_k=H_k*P_apr*H_k'+R; */
+    /* 'AttitudeEKF:189' S_k=H_k*P_apr*H_k'; */
     for (r2 = 0; r2 < 9; r2++) {
       for (i = 0; i < 12; i++) {
-        K_k[r2 + 9 * i] = 0.0F;
-        for (r1 = 0; r1 < 12; r1++) {
-          K_k[r2 + 9 * i] += (float)b_a[r2 + 9 * r1] * P_apr[r1 + 12 * i];
-        }
-      }
-
-      for (i = 0; i < 9; i++) {
         a[r2 + 9 * i] = 0.0F;
         for (r1 = 0; r1 < 12; r1++) {
-          a[r2 + 9 * i] += K_k[r2 + 9 * r1] * (float)b[r1 + 12 * i];
+          a[r2 + 9 * i] += (float)b_a[r2 + 9 * r1] * P_apr[r1 + 12 * i];
+        }
+      }
+
+      for (i = 0; i < 9; i++) {
+        S_k[r2 + 9 * i] = 0.0F;
+        for (r1 = 0; r1 < 12; r1++) {
+          S_k[r2 + 9 * i] += a[r2 + 9 * r1] * (float)b[r1 + 12 * i];
         }
       }
     }
 
+    /* 'AttitudeEKF:190' S_k(1:9+1:end) = S_k(1:9+1:end) + R_v; */
     b_r_gyro[0] = r_gyro;
-    b_r_gyro[9] = 0.0F;
-    b_r_gyro[18] = 0.0F;
-    b_r_gyro[27] = 0.0F;
-    b_r_gyro[36] = 0.0F;
-    b_r_gyro[45] = 0.0F;
-    b_r_gyro[54] = 0.0F;
-    b_r_gyro[63] = 0.0F;
-    b_r_gyro[72] = 0.0F;
-    b_r_gyro[1] = 0.0F;
-    b_r_gyro[10] = r_gyro;
-    b_r_gyro[19] = 0.0F;
-    b_r_gyro[28] = 0.0F;
-    b_r_gyro[37] = 0.0F;
-    b_r_gyro[46] = 0.0F;
-    b_r_gyro[55] = 0.0F;
-    b_r_gyro[64] = 0.0F;
-    b_r_gyro[73] = 0.0F;
-    b_r_gyro[2] = 0.0F;
-    b_r_gyro[11] = 0.0F;
-    b_r_gyro[20] = r_gyro;
-    b_r_gyro[29] = 0.0F;
-    b_r_gyro[38] = 0.0F;
-    b_r_gyro[47] = 0.0F;
-    b_r_gyro[56] = 0.0F;
-    b_r_gyro[65] = 0.0F;
-    b_r_gyro[74] = 0.0F;
-    b_r_gyro[3] = 0.0F;
-    b_r_gyro[12] = 0.0F;
-    b_r_gyro[21] = 0.0F;
-    b_r_gyro[30] = r_accel;
-    b_r_gyro[39] = 0.0F;
-    b_r_gyro[48] = 0.0F;
-    b_r_gyro[57] = 0.0F;
-    b_r_gyro[66] = 0.0F;
-    b_r_gyro[75] = 0.0F;
-    b_r_gyro[4] = 0.0F;
-    b_r_gyro[13] = 0.0F;
-    b_r_gyro[22] = 0.0F;
-    b_r_gyro[31] = 0.0F;
-    b_r_gyro[40] = r_accel;
-    b_r_gyro[49] = 0.0F;
-    b_r_gyro[58] = 0.0F;
-    b_r_gyro[67] = 0.0F;
-    b_r_gyro[76] = 0.0F;
-    b_r_gyro[5] = 0.0F;
-    b_r_gyro[14] = 0.0F;
-    b_r_gyro[23] = 0.0F;
-    b_r_gyro[32] = 0.0F;
-    b_r_gyro[41] = 0.0F;
-    b_r_gyro[50] = r_accel;
-    b_r_gyro[59] = 0.0F;
-    b_r_gyro[68] = 0.0F;
-    b_r_gyro[77] = 0.0F;
-    b_r_gyro[6] = 0.0F;
-    b_r_gyro[15] = 0.0F;
-    b_r_gyro[24] = 0.0F;
-    b_r_gyro[33] = 0.0F;
-    b_r_gyro[42] = 0.0F;
-    b_r_gyro[51] = 0.0F;
-    b_r_gyro[60] = r_mag;
-    b_r_gyro[69] = 0.0F;
-    b_r_gyro[78] = 0.0F;
-    b_r_gyro[7] = 0.0F;
-    b_r_gyro[16] = 0.0F;
-    b_r_gyro[25] = 0.0F;
-    b_r_gyro[34] = 0.0F;
-    b_r_gyro[43] = 0.0F;
-    b_r_gyro[52] = 0.0F;
-    b_r_gyro[61] = 0.0F;
-    b_r_gyro[70] = r_mag;
-    b_r_gyro[79] = 0.0F;
-    b_r_gyro[8] = 0.0F;
-    b_r_gyro[17] = 0.0F;
-    b_r_gyro[26] = 0.0F;
-    b_r_gyro[35] = 0.0F;
-    b_r_gyro[44] = 0.0F;
-    b_r_gyro[53] = 0.0F;
-    b_r_gyro[62] = 0.0F;
-    b_r_gyro[71] = 0.0F;
-    b_r_gyro[80] = r_mag;
+    b_r_gyro[1] = r_gyro;
+    b_r_gyro[2] = r_gyro;
+    b_r_gyro[3] = r_accel;
+    b_r_gyro[4] = r_accel;
+    b_r_gyro[5] = r_accel;
+    b_r_gyro[6] = r_mag;
+    b_r_gyro[7] = r_mag;
+    b_r_gyro[8] = r_mag;
     for (r2 = 0; r2 < 9; r2++) {
+      b_O[r2] = S_k[10 * r2] + b_r_gyro[r2];
+    }
+
+    for (r2 = 0; r2 < 9; r2++) {
+      S_k[10 * r2] = b_O[r2];
+    }
+
+    /* 'AttitudeEKF:191' K_k=(P_apr*H_k'/(S_k)); */
+    for (r2 = 0; r2 < 12; r2++) {
       for (i = 0; i < 9; i++) {
-        c_a[i + 9 * r2] = a[i + 9 * r2] + b_r_gyro[i + 9 * r2];
+        a[r2 + 12 * i] = 0.0F;
+        for (r1 = 0; r1 < 12; r1++) {
+          a[r2 + 12 * i] += P_apr[r2 + 12 * r1] * (float)b[r1 + 12 * i];
+        }
       }
     }
 
-    mrdivide(b_P_apr, c_a, K_k);
+    mrdivide(a, S_k, K_k);
 
-    /* 'AttitudeEKF:191' x_apo=x_apr+K_k*y_k; */
+    /* 'AttitudeEKF:194' x_apo=x_apr+K_k*y_k; */
     for (r2 = 0; r2 < 9; r2++) {
       maxval = 0.0F;
       for (i = 0; i < 12; i++) {
@@ -1048,7 +980,7 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
       x_apo[r2] = x_apr[r2] + maxval;
     }
 
-    /* 'AttitudeEKF:192' P_apo=(eye(12)-K_k*H_k)*P_apr; */
+    /* 'AttitudeEKF:195' P_apo=(eye(12)-K_k*H_k)*P_apr; */
     memset(&I[0], 0, 144U * sizeof(signed char));
     for (i = 0; i < 12; i++) {
       I[i + 12 * i] = 1;
@@ -1074,53 +1006,56 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
       }
     }
   } else {
-    /* 'AttitudeEKF:193' else */
-    /* 'AttitudeEKF:194' if zFlag(1)==1&&zFlag(2)==0&&zFlag(3)==0 */
+    /* 'AttitudeEKF:196' else */
+    /* 'AttitudeEKF:197' if zFlag(1)==1&&zFlag(2)==0&&zFlag(3)==0 */
     if ((zFlag[0] == 1) && (zFlag[1] == 0) && (zFlag[2] == 0)) {
-      /* 'AttitudeEKF:196' R=[r_gyro,0,0; */
-      /* 'AttitudeEKF:197'             0,r_gyro,0; */
-      /* 'AttitudeEKF:198'             0,0,r_gyro]; */
+      /* 'AttitudeEKF:199' R=[r_gyro,0,0; */
+      /* 'AttitudeEKF:200'             0,r_gyro,0; */
+      /* 'AttitudeEKF:201'             0,0,r_gyro]; */
+      /* 'AttitudeEKF:202' R_v=[r_gyro,r_gyro,r_gyro]; */
       /* observation matrix */
-      /* 'AttitudeEKF:201' H_k=[  E,     Z,      Z,    Z]; */
-      /* 'AttitudeEKF:203' y_k=z(1:3)-H_k(1:3,1:12)*x_apr; */
-      /* 'AttitudeEKF:205' S_k=H_k(1:3,1:12)*P_apr*H_k(1:3,1:12)'+R(1:3,1:3); */
-      /* 'AttitudeEKF:206' K_k=(P_apr*H_k(1:3,1:12)'/(S_k)); */
+      /* 'AttitudeEKF:205' H_k=[  E,     Z,      Z,    Z]; */
+      /* 'AttitudeEKF:207' y_k=z(1:3)-H_k(1:3,1:12)*x_apr; */
+      /*  S_k=H_k(1:3,1:12)*P_apr*H_k(1:3,1:12)'+R(1:3,1:3); */
+      /* 'AttitudeEKF:210' S_k=H_k(1:3,1:12)*P_apr*H_k(1:3,1:12)'; */
       for (r2 = 0; r2 < 3; r2++) {
         for (i = 0; i < 12; i++) {
-          d_a[r2 + 3 * i] = 0.0F;
+          b_S_k[r2 + 3 * i] = 0.0F;
           for (r1 = 0; r1 < 12; r1++) {
-            d_a[r2 + 3 * i] += (float)e_a[r2 + 3 * r1] * P_apr[r1 + 12 * i];
+            b_S_k[r2 + 3 * i] += (float)c_a[r2 + 3 * r1] * P_apr[r1 + 12 * i];
           }
         }
-      }
 
-      for (r2 = 0; r2 < 3; r2++) {
         for (i = 0; i < 3; i++) {
-          b_O[r2 + 3 * i] = 0.0F;
+          O[r2 + 3 * i] = 0.0F;
           for (r1 = 0; r1 < 12; r1++) {
-            b_O[r2 + 3 * i] += d_a[i + 3 * r1] * (float)b_b[r1 + 12 * r2];
+            O[r2 + 3 * i] += b_S_k[r2 + 3 * r1] * (float)b_b[r1 + 12 * i];
           }
         }
       }
 
+      /* 'AttitudeEKF:211' S_k(1:3+1:end) = S_k(1:3+1:end) + R_v; */
       c_r_gyro[0] = r_gyro;
-      c_r_gyro[1] = 0.0F;
-      c_r_gyro[2] = 0.0F;
-      c_r_gyro[3] = 0.0F;
-      c_r_gyro[4] = r_gyro;
-      c_r_gyro[5] = 0.0F;
-      c_r_gyro[6] = 0.0F;
-      c_r_gyro[7] = 0.0F;
-      c_r_gyro[8] = r_gyro;
+      c_r_gyro[1] = r_gyro;
+      c_r_gyro[2] = r_gyro;
+      for (r2 = 0; r2 < 3; r2++) {
+        b_muk[r2] = O[r2 << 2] + c_r_gyro[r2];
+      }
+
+      for (r2 = 0; r2 < 3; r2++) {
+        O[r2 << 2] = b_muk[r2];
+      }
+
+      /* 'AttitudeEKF:212' K_k=(P_apr*H_k(1:3,1:12)'/(S_k)); */
       for (r2 = 0; r2 < 3; r2++) {
         for (i = 0; i < 3; i++) {
-          O[i + 3 * r2] = b_O[i + 3 * r2] + c_r_gyro[i + 3 * r2];
+          b_O[i + 3 * r2] = O[r2 + 3 * i];
         }
 
         for (i = 0; i < 12; i++) {
-          b_K_k[r2 + 3 * i] = 0.0F;
+          B[r2 + 3 * i] = 0.0F;
           for (r1 = 0; r1 < 12; r1++) {
-            b_K_k[r2 + 3 * i] += P_apr[i + 12 * r1] * (float)b_b[r1 + 12 * r2];
+            B[r2 + 3 * i] += P_apr[i + 12 * r1] * (float)b_b[r1 + 12 * r2];
           }
         }
       }
@@ -1128,58 +1063,58 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
       r1 = 0;
       r2 = 1;
       r3 = 2;
-      maxval = (real32_T)fabs(O[0]);
-      a21 = (real32_T)fabs(O[1]);
+      maxval = (real32_T)fabs(b_O[0]);
+      a21 = (real32_T)fabs(b_O[1]);
       if (a21 > maxval) {
         maxval = a21;
         r1 = 1;
         r2 = 0;
       }
 
-      if ((real32_T)fabs(O[2]) > maxval) {
+      if ((real32_T)fabs(b_O[2]) > maxval) {
         r1 = 2;
         r2 = 1;
         r3 = 0;
       }
 
-      O[r2] /= O[r1];
-      O[r3] /= O[r1];
-      O[3 + r2] -= O[r2] * O[3 + r1];
-      O[3 + r3] -= O[r3] * O[3 + r1];
-      O[6 + r2] -= O[r2] * O[6 + r1];
-      O[6 + r3] -= O[r3] * O[6 + r1];
-      if ((real32_T)fabs(O[3 + r3]) > (real32_T)fabs(O[3 + r2])) {
+      b_O[r2] /= b_O[r1];
+      b_O[r3] /= b_O[r1];
+      b_O[3 + r2] -= b_O[r2] * b_O[3 + r1];
+      b_O[3 + r3] -= b_O[r3] * b_O[3 + r1];
+      b_O[6 + r2] -= b_O[r2] * b_O[6 + r1];
+      b_O[6 + r3] -= b_O[r3] * b_O[6 + r1];
+      if ((real32_T)fabs(b_O[3 + r3]) > (real32_T)fabs(b_O[3 + r2])) {
         i = r2;
         r2 = r3;
         r3 = i;
       }
 
-      O[3 + r3] /= O[3 + r2];
-      O[6 + r3] -= O[3 + r3] * O[6 + r2];
+      b_O[3 + r3] /= b_O[3 + r2];
+      b_O[6 + r3] -= b_O[3 + r3] * b_O[6 + r2];
       for (i = 0; i < 12; i++) {
-        f_a[3 * i] = b_K_k[r1 + 3 * i];
-        f_a[1 + 3 * i] = b_K_k[r2 + 3 * i] - f_a[3 * i] * O[r2];
-        f_a[2 + 3 * i] = (b_K_k[r3 + 3 * i] - f_a[3 * i] * O[r3]) - f_a[1 + 3 *
-          i] * O[3 + r3];
-        f_a[2 + 3 * i] /= O[6 + r3];
-        f_a[3 * i] -= f_a[2 + 3 * i] * O[6 + r1];
-        f_a[1 + 3 * i] -= f_a[2 + 3 * i] * O[6 + r2];
-        f_a[1 + 3 * i] /= O[3 + r2];
-        f_a[3 * i] -= f_a[1 + 3 * i] * O[3 + r1];
-        f_a[3 * i] /= O[r1];
+        Y[3 * i] = B[r1 + 3 * i];
+        Y[1 + 3 * i] = B[r2 + 3 * i] - Y[3 * i] * b_O[r2];
+        Y[2 + 3 * i] = (B[r3 + 3 * i] - Y[3 * i] * b_O[r3]) - Y[1 + 3 * i] *
+          b_O[3 + r3];
+        Y[2 + 3 * i] /= b_O[6 + r3];
+        Y[3 * i] -= Y[2 + 3 * i] * b_O[6 + r1];
+        Y[1 + 3 * i] -= Y[2 + 3 * i] * b_O[6 + r2];
+        Y[1 + 3 * i] /= b_O[3 + r2];
+        Y[3 * i] -= Y[1 + 3 * i] * b_O[3 + r1];
+        Y[3 * i] /= b_O[r1];
       }
 
       for (r2 = 0; r2 < 3; r2++) {
         for (i = 0; i < 12; i++) {
-          b_K_k[i + 12 * r2] = f_a[r2 + 3 * i];
+          b_S_k[i + 12 * r2] = Y[r2 + 3 * i];
         }
       }
 
-      /* 'AttitudeEKF:209' x_apo=x_apr+K_k*y_k; */
+      /* 'AttitudeEKF:215' x_apo=x_apr+K_k*y_k; */
       for (r2 = 0; r2 < 3; r2++) {
         maxval = 0.0F;
         for (i = 0; i < 12; i++) {
-          maxval += (float)e_a[r2 + 3 * i] * x_apr[i];
+          maxval += (float)c_a[r2 + 3 * i] * x_apr[i];
         }
 
         b_muk[r2] = z[r2] - maxval;
@@ -1188,13 +1123,13 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
       for (r2 = 0; r2 < 12; r2++) {
         maxval = 0.0F;
         for (i = 0; i < 3; i++) {
-          maxval += b_K_k[r2 + 12 * i] * b_muk[i];
+          maxval += b_S_k[r2 + 12 * i] * b_muk[i];
         }
 
         x_apo[r2] = x_apr[r2] + maxval;
       }
 
-      /* 'AttitudeEKF:210' P_apo=(eye(12)-K_k*H_k(1:3,1:12))*P_apr; */
+      /* 'AttitudeEKF:216' P_apo=(eye(12)-K_k*H_k(1:3,1:12))*P_apr; */
       memset(&I[0], 0, 144U * sizeof(signed char));
       for (i = 0; i < 12; i++) {
         I[i + 12 * i] = 1;
@@ -1204,7 +1139,7 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
         for (i = 0; i < 12; i++) {
           maxval = 0.0F;
           for (r1 = 0; r1 < 3; r1++) {
-            maxval += b_K_k[r2 + 12 * r1] * (float)e_a[r1 + 3 * i];
+            maxval += b_S_k[r2 + 12 * r1] * (float)c_a[r1 + 3 * i];
           }
 
           A_lin[r2 + 12 * i] = (float)I[r2 + 12 * i] - maxval;
@@ -1220,111 +1155,85 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
         }
       }
     } else {
-      /* 'AttitudeEKF:211' else */
-      /* 'AttitudeEKF:212' if  zFlag(1)==1&&zFlag(2)==1&&zFlag(3)==0 */
+      /* 'AttitudeEKF:217' else */
+      /* 'AttitudeEKF:218' if  zFlag(1)==1&&zFlag(2)==1&&zFlag(3)==0 */
       if ((zFlag[0] == 1) && (zFlag[1] == 1) && (zFlag[2] == 0)) {
-        /* 'AttitudeEKF:214' R=[r_gyro,0,0,0,0,0; */
-        /* 'AttitudeEKF:215'                 0,r_gyro,0,0,0,0; */
-        /* 'AttitudeEKF:216'                 0,0,r_gyro,0,0,0; */
-        /* 'AttitudeEKF:217'                 0,0,0,r_accel,0,0; */
-        /* 'AttitudeEKF:218'                 0,0,0,0,r_accel,0; */
-        /* 'AttitudeEKF:219'                 0,0,0,0,0,r_accel]; */
+        /*              R=[r_gyro,0,0,0,0,0; */
+        /*                  0,r_gyro,0,0,0,0; */
+        /*                  0,0,r_gyro,0,0,0; */
+        /*                  0,0,0,r_accel,0,0; */
+        /*                  0,0,0,0,r_accel,0; */
+        /*                  0,0,0,0,0,r_accel]; */
+        /* 'AttitudeEKF:227' R_v=[r_gyro,r_gyro,r_gyro,r_accel,r_accel,r_accel]; */
         /* observation matrix */
-        /* 'AttitudeEKF:223' H_k=[  E,     Z,      Z,    Z; */
-        /* 'AttitudeEKF:224'                 Z,     Z,      E,    Z]; */
-        /* 'AttitudeEKF:226' y_k=z(1:6)-H_k(1:6,1:12)*x_apr; */
-        /* 'AttitudeEKF:228' S_k=H_k(1:6,1:12)*P_apr*H_k(1:6,1:12)'+R(1:6,1:6); */
-        /* 'AttitudeEKF:229' K_k=(P_apr*H_k(1:6,1:12)'/(S_k)); */
-        for (r2 = 0; r2 < 12; r2++) {
-          for (i = 0; i < 6; i++) {
-            c_P_apr[r2 + 12 * i] = 0.0F;
-            for (r1 = 0; r1 < 12; r1++) {
-              c_P_apr[r2 + 12 * i] += P_apr[r2 + 12 * r1] * (float)c_b[r1 + 12 *
-                i];
-            }
-          }
-        }
-
+        /* 'AttitudeEKF:230' H_k=[  E,     Z,      Z,    Z; */
+        /* 'AttitudeEKF:231'                 Z,     Z,      E,    Z]; */
+        /* 'AttitudeEKF:233' y_k=z(1:6)-H_k(1:6,1:12)*x_apr; */
+        /*  S_k=H_k(1:6,1:12)*P_apr*H_k(1:6,1:12)'+R(1:6,1:6); */
+        /* 'AttitudeEKF:236' S_k=H_k(1:6,1:12)*P_apr*H_k(1:6,1:12)'; */
         for (r2 = 0; r2 < 6; r2++) {
           for (i = 0; i < 12; i++) {
-            c_K_k[r2 + 6 * i] = 0.0F;
-            for (r1 = 0; r1 < 12; r1++) {
-              c_K_k[r2 + 6 * i] += (float)g_a[r2 + 6 * r1] * P_apr[r1 + 12 * i];
-            }
-          }
-
-          for (i = 0; i < 6; i++) {
             d_a[r2 + 6 * i] = 0.0F;
             for (r1 = 0; r1 < 12; r1++) {
-              d_a[r2 + 6 * i] += c_K_k[r2 + 6 * r1] * (float)c_b[r1 + 12 * i];
+              d_a[r2 + 6 * i] += (float)e_a[r2 + 6 * r1] * P_apr[r1 + 12 * i];
+            }
+          }
+
+          for (i = 0; i < 6; i++) {
+            b_S_k[r2 + 6 * i] = 0.0F;
+            for (r1 = 0; r1 < 12; r1++) {
+              b_S_k[r2 + 6 * i] += d_a[r2 + 6 * r1] * (float)c_b[r1 + 12 * i];
             }
           }
         }
 
-        b_K_k[0] = r_gyro;
-        b_K_k[6] = 0.0F;
-        b_K_k[12] = 0.0F;
-        b_K_k[18] = 0.0F;
-        b_K_k[24] = 0.0F;
-        b_K_k[30] = 0.0F;
-        b_K_k[1] = 0.0F;
-        b_K_k[7] = r_gyro;
-        b_K_k[13] = 0.0F;
-        b_K_k[19] = 0.0F;
-        b_K_k[25] = 0.0F;
-        b_K_k[31] = 0.0F;
-        b_K_k[2] = 0.0F;
-        b_K_k[8] = 0.0F;
-        b_K_k[14] = r_gyro;
-        b_K_k[20] = 0.0F;
-        b_K_k[26] = 0.0F;
-        b_K_k[32] = 0.0F;
-        b_K_k[3] = 0.0F;
-        b_K_k[9] = 0.0F;
-        b_K_k[15] = 0.0F;
-        b_K_k[21] = r_accel;
-        b_K_k[27] = 0.0F;
-        b_K_k[33] = 0.0F;
-        b_K_k[4] = 0.0F;
-        b_K_k[10] = 0.0F;
-        b_K_k[16] = 0.0F;
-        b_K_k[22] = 0.0F;
-        b_K_k[28] = r_accel;
-        b_K_k[34] = 0.0F;
-        b_K_k[5] = 0.0F;
-        b_K_k[11] = 0.0F;
-        b_K_k[17] = 0.0F;
-        b_K_k[23] = 0.0F;
-        b_K_k[29] = 0.0F;
-        b_K_k[35] = r_accel;
+        /* 'AttitudeEKF:237' S_k(1:6+1:end) = S_k(1:6+1:end) + R_v; */
+        d_r_gyro[0] = r_gyro;
+        d_r_gyro[1] = r_gyro;
+        d_r_gyro[2] = r_gyro;
+        d_r_gyro[3] = r_accel;
+        d_r_gyro[4] = r_accel;
+        d_r_gyro[5] = r_accel;
         for (r2 = 0; r2 < 6; r2++) {
+          c_S_k[r2] = b_S_k[7 * r2] + d_r_gyro[r2];
+        }
+
+        for (r2 = 0; r2 < 6; r2++) {
+          b_S_k[7 * r2] = c_S_k[r2];
+        }
+
+        /* 'AttitudeEKF:238' K_k=(P_apr*H_k(1:6,1:12)'/(S_k)); */
+        for (r2 = 0; r2 < 12; r2++) {
           for (i = 0; i < 6; i++) {
-            f_a[i + 6 * r2] = d_a[i + 6 * r2] + b_K_k[i + 6 * r2];
+            d_a[r2 + 12 * i] = 0.0F;
+            for (r1 = 0; r1 < 12; r1++) {
+              d_a[r2 + 12 * i] += P_apr[r2 + 12 * r1] * (float)c_b[r1 + 12 * i];
+            }
           }
         }
 
-        b_mrdivide(c_P_apr, f_a, c_K_k);
+        b_mrdivide(d_a, b_S_k, b_K_k);
 
-        /* 'AttitudeEKF:232' x_apo=x_apr+K_k*y_k; */
+        /* 'AttitudeEKF:241' x_apo=x_apr+K_k*y_k; */
         for (r2 = 0; r2 < 6; r2++) {
           maxval = 0.0F;
           for (i = 0; i < 12; i++) {
-            maxval += (float)g_a[r2 + 6 * i] * x_apr[i];
+            maxval += (float)e_a[r2 + 6 * i] * x_apr[i];
           }
 
-          b_z[r2] = z[r2] - maxval;
+          d_r_gyro[r2] = z[r2] - maxval;
         }
 
         for (r2 = 0; r2 < 12; r2++) {
           maxval = 0.0F;
           for (i = 0; i < 6; i++) {
-            maxval += c_K_k[r2 + 12 * i] * b_z[i];
+            maxval += b_K_k[r2 + 12 * i] * d_r_gyro[i];
           }
 
           x_apo[r2] = x_apr[r2] + maxval;
         }
 
-        /* 'AttitudeEKF:233' P_apo=(eye(12)-K_k*H_k(1:6,1:12))*P_apr; */
+        /* 'AttitudeEKF:242' P_apo=(eye(12)-K_k*H_k(1:6,1:12))*P_apr; */
         memset(&I[0], 0, 144U * sizeof(signed char));
         for (i = 0; i < 12; i++) {
           I[i + 12 * i] = 1;
@@ -1334,7 +1243,7 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
           for (i = 0; i < 12; i++) {
             maxval = 0.0F;
             for (r1 = 0; r1 < 6; r1++) {
-              maxval += c_K_k[r2 + 12 * r1] * (float)g_a[r1 + 6 * i];
+              maxval += b_K_k[r2 + 12 * r1] * (float)e_a[r1 + 6 * i];
             }
 
             A_lin[r2 + 12 * i] = (float)I[r2 + 12 * i] - maxval;
@@ -1350,119 +1259,93 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
           }
         }
       } else {
-        /* 'AttitudeEKF:234' else */
-        /* 'AttitudeEKF:235' if  zFlag(1)==1&&zFlag(2)==0&&zFlag(3)==1 */
+        /* 'AttitudeEKF:243' else */
+        /* 'AttitudeEKF:244' if  zFlag(1)==1&&zFlag(2)==0&&zFlag(3)==1 */
         if ((zFlag[0] == 1) && (zFlag[1] == 0) && (zFlag[2] == 1)) {
-          /* 'AttitudeEKF:236' R=[r_gyro,0,0,0,0,0; */
-          /* 'AttitudeEKF:237'                     0,r_gyro,0,0,0,0; */
-          /* 'AttitudeEKF:238'                     0,0,r_gyro,0,0,0; */
-          /* 'AttitudeEKF:239'                     0,0,0,r_mag,0,0; */
-          /* 'AttitudeEKF:240'                     0,0,0,0,r_mag,0; */
-          /* 'AttitudeEKF:241'                     0,0,0,0,0,r_mag]; */
+          /*                  R=[r_gyro,0,0,0,0,0; */
+          /*                      0,r_gyro,0,0,0,0; */
+          /*                      0,0,r_gyro,0,0,0; */
+          /*                      0,0,0,r_mag,0,0; */
+          /*                      0,0,0,0,r_mag,0; */
+          /*                      0,0,0,0,0,r_mag]; */
+          /* 'AttitudeEKF:251' R_v=[r_gyro,r_gyro,r_gyro,r_mag,r_mag,r_mag]; */
           /* observation matrix */
-          /* 'AttitudeEKF:244' H_k=[  E,     Z,      Z,    Z; */
-          /* 'AttitudeEKF:245'                     Z,     Z,      Z,    E]; */
-          /* 'AttitudeEKF:247' y_k=[z(1:3);z(7:9)]-H_k(1:6,1:12)*x_apr; */
-          /* 'AttitudeEKF:249' S_k=H_k(1:6,1:12)*P_apr*H_k(1:6,1:12)'+R(1:6,1:6); */
-          /* 'AttitudeEKF:250' K_k=(P_apr*H_k(1:6,1:12)'/(S_k)); */
-          for (r2 = 0; r2 < 12; r2++) {
-            for (i = 0; i < 6; i++) {
-              c_P_apr[r2 + 12 * i] = 0.0F;
-              for (r1 = 0; r1 < 12; r1++) {
-                c_P_apr[r2 + 12 * i] += P_apr[r2 + 12 * r1] * (float)d_b[r1 + 12
-                  * i];
-              }
-            }
-          }
-
+          /* 'AttitudeEKF:254' H_k=[  E,     Z,      Z,    Z; */
+          /* 'AttitudeEKF:255'                     Z,     Z,      Z,    E]; */
+          /* 'AttitudeEKF:257' y_k=[z(1:3);z(7:9)]-H_k(1:6,1:12)*x_apr; */
+          /* S_k=H_k(1:6,1:12)*P_apr*H_k(1:6,1:12)'+R(1:6,1:6); */
+          /* 'AttitudeEKF:260' S_k=H_k(1:6,1:12)*P_apr*H_k(1:6,1:12)'; */
           for (r2 = 0; r2 < 6; r2++) {
             for (i = 0; i < 12; i++) {
-              c_K_k[r2 + 6 * i] = 0.0F;
-              for (r1 = 0; r1 < 12; r1++) {
-                c_K_k[r2 + 6 * i] += (float)h_a[r2 + 6 * r1] * P_apr[r1 + 12 * i];
-              }
-            }
-
-            for (i = 0; i < 6; i++) {
               d_a[r2 + 6 * i] = 0.0F;
               for (r1 = 0; r1 < 12; r1++) {
-                d_a[r2 + 6 * i] += c_K_k[r2 + 6 * r1] * (float)d_b[r1 + 12 * i];
+                d_a[r2 + 6 * i] += (float)f_a[r2 + 6 * r1] * P_apr[r1 + 12 * i];
+              }
+            }
+
+            for (i = 0; i < 6; i++) {
+              b_S_k[r2 + 6 * i] = 0.0F;
+              for (r1 = 0; r1 < 12; r1++) {
+                b_S_k[r2 + 6 * i] += d_a[r2 + 6 * r1] * (float)d_b[r1 + 12 * i];
               }
             }
           }
 
-          b_K_k[0] = r_gyro;
-          b_K_k[6] = 0.0F;
-          b_K_k[12] = 0.0F;
-          b_K_k[18] = 0.0F;
-          b_K_k[24] = 0.0F;
-          b_K_k[30] = 0.0F;
-          b_K_k[1] = 0.0F;
-          b_K_k[7] = r_gyro;
-          b_K_k[13] = 0.0F;
-          b_K_k[19] = 0.0F;
-          b_K_k[25] = 0.0F;
-          b_K_k[31] = 0.0F;
-          b_K_k[2] = 0.0F;
-          b_K_k[8] = 0.0F;
-          b_K_k[14] = r_gyro;
-          b_K_k[20] = 0.0F;
-          b_K_k[26] = 0.0F;
-          b_K_k[32] = 0.0F;
-          b_K_k[3] = 0.0F;
-          b_K_k[9] = 0.0F;
-          b_K_k[15] = 0.0F;
-          b_K_k[21] = r_mag;
-          b_K_k[27] = 0.0F;
-          b_K_k[33] = 0.0F;
-          b_K_k[4] = 0.0F;
-          b_K_k[10] = 0.0F;
-          b_K_k[16] = 0.0F;
-          b_K_k[22] = 0.0F;
-          b_K_k[28] = r_mag;
-          b_K_k[34] = 0.0F;
-          b_K_k[5] = 0.0F;
-          b_K_k[11] = 0.0F;
-          b_K_k[17] = 0.0F;
-          b_K_k[23] = 0.0F;
-          b_K_k[29] = 0.0F;
-          b_K_k[35] = r_mag;
+          /* 'AttitudeEKF:261' S_k(1:6+1:end) = S_k(1:6+1:end) + R_v; */
+          d_r_gyro[0] = r_gyro;
+          d_r_gyro[1] = r_gyro;
+          d_r_gyro[2] = r_gyro;
+          d_r_gyro[3] = r_mag;
+          d_r_gyro[4] = r_mag;
+          d_r_gyro[5] = r_mag;
           for (r2 = 0; r2 < 6; r2++) {
+            c_S_k[r2] = b_S_k[7 * r2] + d_r_gyro[r2];
+          }
+
+          for (r2 = 0; r2 < 6; r2++) {
+            b_S_k[7 * r2] = c_S_k[r2];
+          }
+
+          /* 'AttitudeEKF:262' K_k=(P_apr*H_k(1:6,1:12)'/(S_k)); */
+          for (r2 = 0; r2 < 12; r2++) {
             for (i = 0; i < 6; i++) {
-              f_a[i + 6 * r2] = d_a[i + 6 * r2] + b_K_k[i + 6 * r2];
+              d_a[r2 + 12 * i] = 0.0F;
+              for (r1 = 0; r1 < 12; r1++) {
+                d_a[r2 + 12 * i] += P_apr[r2 + 12 * r1] * (float)d_b[r1 + 12 * i];
+              }
             }
           }
 
-          b_mrdivide(c_P_apr, f_a, c_K_k);
+          b_mrdivide(d_a, b_S_k, b_K_k);
 
-          /* 'AttitudeEKF:253' x_apo=x_apr+K_k*y_k; */
+          /* 'AttitudeEKF:265' x_apo=x_apr+K_k*y_k; */
           for (r2 = 0; r2 < 3; r2++) {
-            b_z[r2] = z[r2];
+            d_r_gyro[r2] = z[r2];
           }
 
           for (r2 = 0; r2 < 3; r2++) {
-            b_z[r2 + 3] = z[6 + r2];
+            d_r_gyro[r2 + 3] = z[6 + r2];
           }
 
           for (r2 = 0; r2 < 6; r2++) {
-            i_a[r2] = 0.0F;
+            c_S_k[r2] = 0.0F;
             for (i = 0; i < 12; i++) {
-              i_a[r2] += (float)h_a[r2 + 6 * i] * x_apr[i];
+              c_S_k[r2] += (float)f_a[r2 + 6 * i] * x_apr[i];
             }
 
-            c_z[r2] = b_z[r2] - i_a[r2];
+            b_z[r2] = d_r_gyro[r2] - c_S_k[r2];
           }
 
           for (r2 = 0; r2 < 12; r2++) {
             maxval = 0.0F;
             for (i = 0; i < 6; i++) {
-              maxval += c_K_k[r2 + 12 * i] * c_z[i];
+              maxval += b_K_k[r2 + 12 * i] * b_z[i];
             }
 
             x_apo[r2] = x_apr[r2] + maxval;
           }
 
-          /* 'AttitudeEKF:254' P_apo=(eye(12)-K_k*H_k(1:6,1:12))*P_apr; */
+          /* 'AttitudeEKF:266' P_apo=(eye(12)-K_k*H_k(1:6,1:12))*P_apr; */
           memset(&I[0], 0, 144U * sizeof(signed char));
           for (i = 0; i < 12; i++) {
             I[i + 12 * i] = 1;
@@ -1472,7 +1355,7 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
             for (i = 0; i < 12; i++) {
               maxval = 0.0F;
               for (r1 = 0; r1 < 6; r1++) {
-                maxval += c_K_k[r2 + 12 * r1] * (float)h_a[r1 + 6 * i];
+                maxval += b_K_k[r2 + 12 * r1] * (float)f_a[r1 + 6 * i];
               }
 
               A_lin[r2 + 12 * i] = (float)I[r2 + 12 * i] - maxval;
@@ -1488,13 +1371,13 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
             }
           }
         } else {
-          /* 'AttitudeEKF:255' else */
-          /* 'AttitudeEKF:256' x_apo=x_apr; */
+          /* 'AttitudeEKF:267' else */
+          /* 'AttitudeEKF:268' x_apo=x_apr; */
           for (i = 0; i < 12; i++) {
             x_apo[i] = x_apr[i];
           }
 
-          /* 'AttitudeEKF:257' P_apo=P_apr; */
+          /* 'AttitudeEKF:269' P_apo=P_apr; */
           memcpy(&P_apo[0], &P_apr[0], 144U * sizeof(float));
         }
       }
@@ -1502,57 +1385,57 @@ void AttitudeEKF(unsigned char approx_prediction, unsigned char
   }
 
   /* % euler anglels extraction */
-  /* 'AttitudeEKF:266' z_n_b = -x_apo(7:9)./norm(x_apo(7:9)); */
+  /* 'AttitudeEKF:278' z_n_b = -x_apo(7:9)./norm(x_apo(7:9)); */
   maxval = norm(*(float (*)[3])&x_apo[6]);
   a21 = norm(*(float (*)[3])&x_apo[9]);
   for (i = 0; i < 3; i++) {
-    /* 'AttitudeEKF:267' m_n_b = x_apo(10:12)./norm(x_apo(10:12)); */
+    /* 'AttitudeEKF:279' m_n_b = x_apo(10:12)./norm(x_apo(10:12)); */
     muk[i] = -x_apo[i + 6] / maxval;
     zek[i] = x_apo[i + 9] / a21;
   }
 
-  /* 'AttitudeEKF:269' y_n_b=cross(z_n_b,m_n_b); */
+  /* 'AttitudeEKF:281' y_n_b=cross(z_n_b,m_n_b); */
   wak[0] = muk[1] * zek[2] - muk[2] * zek[1];
   wak[1] = muk[2] * zek[0] - muk[0] * zek[2];
   wak[2] = muk[0] * zek[1] - muk[1] * zek[0];
 
-  /* 'AttitudeEKF:270' y_n_b=y_n_b./norm(y_n_b); */
+  /* 'AttitudeEKF:282' y_n_b=y_n_b./norm(y_n_b); */
   maxval = norm(wak);
   for (r2 = 0; r2 < 3; r2++) {
     wak[r2] /= maxval;
   }
 
-  /* 'AttitudeEKF:272' x_n_b=(cross(y_n_b,z_n_b)); */
+  /* 'AttitudeEKF:284' x_n_b=(cross(y_n_b,z_n_b)); */
   zek[0] = wak[1] * muk[2] - wak[2] * muk[1];
   zek[1] = wak[2] * muk[0] - wak[0] * muk[2];
   zek[2] = wak[0] * muk[1] - wak[1] * muk[0];
 
-  /* 'AttitudeEKF:273' x_n_b=x_n_b./norm(x_n_b); */
+  /* 'AttitudeEKF:285' x_n_b=x_n_b./norm(x_n_b); */
   maxval = norm(zek);
   for (r2 = 0; r2 < 3; r2++) {
     zek[r2] /= maxval;
   }
 
-  /* 'AttitudeEKF:276' xa_apo=x_apo; */
+  /* 'AttitudeEKF:288' xa_apo=x_apo; */
   for (i = 0; i < 12; i++) {
     xa_apo[i] = x_apo[i];
   }
 
-  /* 'AttitudeEKF:277' Pa_apo=P_apo; */
+  /* 'AttitudeEKF:289' Pa_apo=P_apo; */
   memcpy(&Pa_apo[0], &P_apo[0], 144U * sizeof(float));
 
   /*  rotation matrix from earth to body system */
-  /* 'AttitudeEKF:279' Rot_matrix=[x_n_b,y_n_b,z_n_b]; */
+  /* 'AttitudeEKF:291' Rot_matrix=[x_n_b,y_n_b,z_n_b]; */
   for (r2 = 0; r2 < 3; r2++) {
     Rot_matrix[r2] = zek[r2];
     Rot_matrix[3 + r2] = wak[r2];
     Rot_matrix[6 + r2] = muk[r2];
   }
 
-  /* 'AttitudeEKF:282' phi=atan2(Rot_matrix(2,3),Rot_matrix(3,3)); */
-  /* 'AttitudeEKF:283' theta=-asin(Rot_matrix(1,3)); */
-  /* 'AttitudeEKF:284' psi=atan2(Rot_matrix(1,2),Rot_matrix(1,1)); */
-  /* 'AttitudeEKF:285' eulerAngles=[phi;theta;psi]; */
+  /* 'AttitudeEKF:294' phi=atan2(Rot_matrix(2,3),Rot_matrix(3,3)); */
+  /* 'AttitudeEKF:295' theta=-asin(Rot_matrix(1,3)); */
+  /* 'AttitudeEKF:296' psi=atan2(Rot_matrix(1,2),Rot_matrix(1,1)); */
+  /* 'AttitudeEKF:297' eulerAngles=[phi;theta;psi]; */
   eulerAngles[0] = (real32_T)atan2(Rot_matrix[7], Rot_matrix[8]);
   eulerAngles[1] = -(real32_T)asin(Rot_matrix[6]);
   eulerAngles[2] = (real32_T)atan2(Rot_matrix[3], Rot_matrix[0]);

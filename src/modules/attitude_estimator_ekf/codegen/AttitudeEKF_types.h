@@ -3,7 +3,7 @@
  *
  * Code generation for function 'AttitudeEKF'
  *
- * C source code generated on: Fri Jul 25 14:06:41 2014
+ * C source code generated on: Thu Aug 21 11:17:28 2014
  *
  */
 

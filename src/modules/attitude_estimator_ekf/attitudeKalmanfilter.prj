@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project plugin="plugin.matlabcoder" plugin-version="R2013a">
-  <configuration target="target.matlab.coder" target-name="MEX, C, and C++ Code Generation" name="attitudeKalmanfilter" location="/home/thomasgubler/src/Firmware/src/modules/attitude_estimator_ekf" file="/home/thomasgubler/src/Firmware/src/modules/attitude_estimator_ekf/attitudeKalmanfilter.prj" build-checksum="2197173368">
+  <configuration target="target.matlab.coder" target-name="MEX, C, and C++ Code Generation" name="attitudeKalmanfilter" location="/home/thomasgubler/src/Firmware/src/modules/attitude_estimator_ekf" file="/home/thomasgubler/src/Firmware/src/modules/attitude_estimator_ekf/attitudeKalmanfilter.prj" build-checksum="1213478164">
     <profile key="profile.mex">
       <param.MergeInstrumentationResults>false</param.MergeInstrumentationResults>
       <param.BuiltInstrumentedMex>false</param.BuiltInstrumentedMex>
@@ -112,7 +112,7 @@
       <param.EnableVariableSizing>false</param.EnableVariableSizing>
       <param.DynamicMemoryAllocation>option.DynamicMemoryAllocation.Threshold</param.DynamicMemoryAllocation>
       <param.DynamicMemoryAllocationThreshold>65536</param.DynamicMemoryAllocationThreshold>
-      <param.StackUsageMax>200000</param.StackUsageMax>
+      <param.StackUsageMax>4000</param.StackUsageMax>
       <param.MultiInstanceCode>false</param.MultiInstanceCode>
       <param.FilePartitionMethod>option.FilePartitionMethod.SingleFile</param.FilePartitionMethod>
       <param.GenerateComments>true</param.GenerateComments>
@@ -215,7 +215,6 @@
         <param.PurelyIntegerCode />
         <param.DynamicMemoryAllocation />
         <param.DynamicMemoryAllocationThreshold />
-        <param.StackUsageMax />
         <param.MultiInstanceCode />
         <param.GenerateComments />
         <param.MATLABFcnDesc />
@@ -492,7 +491,7 @@
       <vista>false</vista>
       <linux>true</linux>
       <solaris>false</solaris>
-      <osver>3.15.5-1-ARCH</osver>
+      <osver>3.16.1-1-ARCH</osver>
       <os32>false</os32>
       <os64>true</os64>
       <arch>glnxa64</arch>

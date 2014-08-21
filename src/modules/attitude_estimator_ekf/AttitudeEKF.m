@@ -166,15 +166,16 @@ P_apr=A_lin*P_apo*A_lin'+Q;
 %% update
 if zFlag(1)==1&&zFlag(2)==1&&zFlag(3)==1
     
-    R=[r_gyro,0,0,0,0,0,0,0,0;
-        0,r_gyro,0,0,0,0,0,0,0;
-        0,0,r_gyro,0,0,0,0,0,0;
-        0,0,0,r_accel,0,0,0,0,0;
-        0,0,0,0,r_accel,0,0,0,0;
-        0,0,0,0,0,r_accel,0,0,0;
-        0,0,0,0,0,0,r_mag,0,0;
-        0,0,0,0,0,0,0,r_mag,0;
-        0,0,0,0,0,0,0,0,r_mag];
+%     R=[r_gyro,0,0,0,0,0,0,0,0;
+%         0,r_gyro,0,0,0,0,0,0,0;
+%         0,0,r_gyro,0,0,0,0,0,0;
+%         0,0,0,r_accel,0,0,0,0,0;
+%         0,0,0,0,r_accel,0,0,0,0;
+%         0,0,0,0,0,r_accel,0,0,0;
+%         0,0,0,0,0,0,r_mag,0,0;
+%         0,0,0,0,0,0,0,r_mag,0;
+%         0,0,0,0,0,0,0,0,r_mag];
+     R_v=[r_gyro,r_gyro,r_gyro,r_accel,r_accel,r_accel,r_mag,r_mag,r_mag];
     %observation matrix
     %[zw;ze;zmk];
     H_k=[  E,     Z,      Z,    Z;
@@ -184,7 +185,9 @@ if zFlag(1)==1&&zFlag(2)==1&&zFlag(3)==1
     y_k=z(1:9)-H_k*x_apr;
     
     
-    S_k=H_k*P_apr*H_k'+R;
+    %S_k=H_k*P_apr*H_k'+R;
+     S_k=H_k*P_apr*H_k';
+     S_k(1:9+1:end) = S_k(1:9+1:end) + R_v;
     K_k=(P_apr*H_k'/(S_k));
     
     
@@ -196,13 +199,16 @@ else
         R=[r_gyro,0,0;
             0,r_gyro,0;
             0,0,r_gyro];
+        R_v=[r_gyro,r_gyro,r_gyro];
         %observation matrix
         
         H_k=[  E,     Z,      Z,    Z];
         
         y_k=z(1:3)-H_k(1:3,1:12)*x_apr;
         
-        S_k=H_k(1:3,1:12)*P_apr*H_k(1:3,1:12)'+R(1:3,1:3);
+       % S_k=H_k(1:3,1:12)*P_apr*H_k(1:3,1:12)'+R(1:3,1:3);
+        S_k=H_k(1:3,1:12)*P_apr*H_k(1:3,1:12)';
+        S_k(1:3+1:end) = S_k(1:3+1:end) + R_v;
         K_k=(P_apr*H_k(1:3,1:12)'/(S_k));
         
         
@@ -211,13 +217,14 @@ else
     else
         if  zFlag(1)==1&&zFlag(2)==1&&zFlag(3)==0
             
-            R=[r_gyro,0,0,0,0,0;
-                0,r_gyro,0,0,0,0;
-                0,0,r_gyro,0,0,0;
-                0,0,0,r_accel,0,0;
-                0,0,0,0,r_accel,0;
-                0,0,0,0,0,r_accel];
+%             R=[r_gyro,0,0,0,0,0;
+%                 0,r_gyro,0,0,0,0;
+%                 0,0,r_gyro,0,0,0;
+%                 0,0,0,r_accel,0,0;
+%                 0,0,0,0,r_accel,0;
+%                 0,0,0,0,0,r_accel];
             
+            R_v=[r_gyro,r_gyro,r_gyro,r_accel,r_accel,r_accel];
             %observation matrix
             
             H_k=[  E,     Z,      Z,    Z;
@@ -225,7 +232,9 @@ else
             
             y_k=z(1:6)-H_k(1:6,1:12)*x_apr;
             
-            S_k=H_k(1:6,1:12)*P_apr*H_k(1:6,1:12)'+R(1:6,1:6);
+           % S_k=H_k(1:6,1:12)*P_apr*H_k(1:6,1:12)'+R(1:6,1:6);
+            S_k=H_k(1:6,1:12)*P_apr*H_k(1:6,1:12)';
+            S_k(1:6+1:end) = S_k(1:6+1:end) + R_v;
             K_k=(P_apr*H_k(1:6,1:12)'/(S_k));
             
             
@@ -233,12 +242,13 @@ else
             P_apo=(eye(12)-K_k*H_k(1:6,1:12))*P_apr;
         else
             if  zFlag(1)==1&&zFlag(2)==0&&zFlag(3)==1
-                R=[r_gyro,0,0,0,0,0;
-                    0,r_gyro,0,0,0,0;
-                    0,0,r_gyro,0,0,0;
-                    0,0,0,r_mag,0,0;
-                    0,0,0,0,r_mag,0;
-                    0,0,0,0,0,r_mag];
+%                 R=[r_gyro,0,0,0,0,0;
+%                     0,r_gyro,0,0,0,0;
+%                     0,0,r_gyro,0,0,0;
+%                     0,0,0,r_mag,0,0;
+%                     0,0,0,0,r_mag,0;
+%                     0,0,0,0,0,r_mag];
+                  R_v=[r_gyro,r_gyro,r_gyro,r_mag,r_mag,r_mag];
                 %observation matrix
                 
                 H_k=[  E,     Z,      Z,    Z;
@@ -246,7 +256,9 @@ else
                 
                 y_k=[z(1:3);z(7:9)]-H_k(1:6,1:12)*x_apr;
                 
-                S_k=H_k(1:6,1:12)*P_apr*H_k(1:6,1:12)'+R(1:6,1:6);
+                %S_k=H_k(1:6,1:12)*P_apr*H_k(1:6,1:12)'+R(1:6,1:6);
+                S_k=H_k(1:6,1:12)*P_apr*H_k(1:6,1:12)';
+                S_k(1:6+1:end) = S_k(1:6+1:end) + R_v;
                 K_k=(P_apr*H_k(1:6,1:12)'/(S_k));
                 
                 
