@@ -636,7 +636,7 @@ BottleDrop::task_main()
 
 				case DROP_STATE_TARGET_SET:
 				{
-					float distance_wp2 = get_distance_to_next_waypoint(flight_vector_e.lat, flight_vector_e.lon, _drop_position.lat, _drop_position.lon);
+					float distance_wp2 = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon, flight_vector_e.lat, flight_vector_e.lon);
 
 					if (distance_wp2 < distance_real) {
 						_onboard_mission.current_seq = 0;
@@ -674,7 +674,7 @@ BottleDrop::task_main()
 									mavlink_log_info(_mavlink_fd, "#audio: payload dropped");
 							} else {
 								
-								float distance_wp2 = get_distance_to_next_waypoint(flight_vector_e.lat, flight_vector_e.lon, _drop_position.lat, _drop_position.lon);
+								float distance_wp2 = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon, flight_vector_e.lat, flight_vector_e.lon);
 
 								if (distance_wp2 < distance_real) {
 									_onboard_mission.current_seq = 0;
@@ -696,6 +696,7 @@ BottleDrop::task_main()
 
 						// remove onboard mission
 						_onboard_mission.current_seq = -1;
+						_onboard_mission.count = 0;
 						orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
 					}
 					break;
