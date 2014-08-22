@@ -586,6 +586,7 @@ then
 	then
 		echo "[init] Starting addons script: $EXTRAS_FILE"
 		sh $EXTRAS_FILE
+		sh /etc/init.d/Roman_mavlink_stream_conf
 	else
 		echo "[init] No addons script: $EXTRAS_FILE"
 	fi

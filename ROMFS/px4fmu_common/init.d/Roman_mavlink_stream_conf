@@ -1,0 +1,12 @@
+#!nsh
+# Configure stream for Mavlink instance on TELEM2 because it is annoying always removing the SDcard
+#
+#usleep 100000
+#mavlink stream -d /dev/ttyS2 -s ATTITUDE_CONTROLS -r 50
+#usleep 100000
+#mavlink stream -d /dev/ttyS2 -s RC_CHANNELS_RAW -r 50
+#usleep 100000
+#mavlink stream -d /dev/ttyS2 -s VFR_HUD -r 50
+usleep 100000
+mavlink stream -d /dev/ttyS2 -s MANUAL_CONTROL -r 50
+echo "Added additional streams on TELEM2"
