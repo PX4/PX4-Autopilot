@@ -2,8 +2,6 @@
 # Static air data for barometric altitude and altitude rate measurements.
 #
 
-uavcan.Timestamp timestamp
-
 float32 static_pressure
 float16 static_pressure_variance
 
