@@ -1737,7 +1737,7 @@ protected:
 			msg.z = manual.z * 1000;
 			msg.r = manual.r * 1000;
 			msg.buttons = 0;
-
+			warnx("sending manual control message");
 			_mavlink->send_message(MAVLINK_MSG_ID_MANUAL_CONTROL, &msg);
 		}
 	}
