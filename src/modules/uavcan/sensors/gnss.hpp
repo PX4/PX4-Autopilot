@@ -77,7 +77,7 @@ private:
 	 * libuavcan related things
 	 */
 	uavcan::INode							&_node;
-	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder>	_uavcan_sub_status;
+	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder>	_sub_fix;
 
 	/*
 	 * uORB

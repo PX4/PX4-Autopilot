@@ -47,7 +47,7 @@
 
 UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
 _node(node),
-_uavcan_sub_status(node),
+_sub_fix(node),
 _report_pub(-1)
 {
 }
@@ -59,7 +59,7 @@ int UavcanGnssBridge::init()
 	int res = -1;
 
 	// GNSS fix subscription
-	res = _uavcan_sub_status.start(FixCbBinder(this, &UavcanGnssBridge::gnss_fix_sub_cb));
+	res = _sub_fix.start(FixCbBinder(this, &UavcanGnssBridge::gnss_fix_sub_cb));
 	if (res < 0)
 	{
 		warnx("GNSS fix sub failed %i", res);
