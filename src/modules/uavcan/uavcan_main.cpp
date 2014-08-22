@@ -558,6 +558,8 @@ int UavcanNode::sensor_enable(const char *bridge_name)
 		retval = bridge->init();
 		if (retval >= 0) {
 			_sensor_bridges.add(bridge);
+		} else {
+			delete bridge;
 		}
 	}
 
