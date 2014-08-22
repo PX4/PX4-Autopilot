@@ -83,7 +83,7 @@ __BEGIN_DECLS
 __END_DECLS
 
 static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
-static uint64_t time_offset_companion;
+
 
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
@@ -526,13 +526,33 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 {
 	mavlink_system_time_t t;
 	mavlink_msg_system_time_decode(msg, &t);
+    
+	dt = (hrt_absolute_time() - t.time_boot_ms) - time_offset ;
+			
+	if(dt > 1000) 
+	{
+	warnx("Companion computer reboot");
+	companion_reboot = true;
+	}
+	else
+	{
+	time_offset = (time_offset + (hrt_absolute_time() - t.time_boot_ms)/2; 
+	}
+	
+	if(companion_reboot){
+		timespec onb;
+		clock_gettime(CLOCK_REALTIME, &onb);
+		if(onb.tv_sec < 1293840000) //1/1/2011
+		{
+		timespec ofb;
+		ofb.tv_usec = t.time_unix_usec;
+		clock_settime(CLOCK_REALTIME, &ts);
+		}
+		time_offset = hrt_absolute_time() - t.time_boot_ms;
+		companion_reboot = false;
+	}
 
-	#ifndef CONFIG_RTC
-	//Since we lack a hardware RTC, set the system time clock based on companion computer UNIX time (from GPS time or NTP servers)
-	timespec ts;
-	ts.tv_usec = t.time_unix_usec;
-	clock_settime(CLOCK_REALTIME, &ts);
-	#endif
+	//TODO add sending of return sync packet here.
 }
 
 void

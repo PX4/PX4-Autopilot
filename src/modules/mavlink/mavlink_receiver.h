@@ -159,6 +159,9 @@ private:
 	bool _hil_local_proj_inited;
 	float _hil_local_alt0;
 	struct map_projection_reference_s _hil_local_proj_ref;
+	static uint64_t time_offset;
+	static int64_t dt;
+	static bool companion_reboot = false;
 
 	/* do not allow copying this class */
 	MavlinkReceiver(const MavlinkReceiver&);
