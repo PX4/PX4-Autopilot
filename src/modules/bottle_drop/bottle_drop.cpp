@@ -404,16 +404,18 @@ BottleDrop::task_main()
 	memset(&update, 0, sizeof(update));
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 
-	struct mission_item_s flight_vector_s;
-	struct mission_item_s flight_vector_e;
+	struct mission_item_s flight_vector_s {};
+	struct mission_item_s flight_vector_e {};
 
 	flight_vector_s.nav_cmd = NAV_CMD_WAYPOINT;
 	flight_vector_s.acceptance_radius = 50; // TODO: make parameter
 	flight_vector_s.autocontinue = true;
+	flight_vector_s.altitude_is_relative = false;
 
 	flight_vector_e.nav_cmd = NAV_CMD_WAYPOINT;
 	flight_vector_e.acceptance_radius = 50; // TODO: make parameter
 	flight_vector_e.autocontinue = true;
+	flight_vector_s.altitude_is_relative = false;
 
 	struct mission_s onboard_mission;
 	memset(&onboard_mission, 0, sizeof(onboard_mission));
