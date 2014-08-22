@@ -35,17 +35,38 @@
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include "sensor_bridge.hpp"
-#include "gnss.hpp"
-#include "mag.hpp"
+#pragma once
 
-IUavcanSensorBridge* IUavcanSensorBridge::make(uavcan::INode &node, const char *bridge_name)
+#include "sensor_bridge.hpp"
+#include <drivers/device/device.h>
+#include <drivers/drv_mag.h>
+
+#include <uavcan/equipment/ahrs/Magnetometer.hpp>
+
+class UavcanMagnetometerBridge : public IUavcanSensorBridge, public device::CDev
 {
-	if (!std::strncmp("gnss", bridge_name, MaxNameLen)) {
-		return new UavcanGnssBridge(node);
-	} else if (!std::strncmp("mag", bridge_name, MaxNameLen)) {
-		return new UavcanMagnetometerBridge(node);
-	} else {
-		return nullptr;
-	}
-}
+public:
+	UavcanMagnetometerBridge(uavcan::INode& node);
+	~UavcanMagnetometerBridge() override;
+
+	const char *get_name() const override;
+
+	int init() override;
+
+private:
+	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
+
+	void mag_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::Magnetometer> &msg);
+
+	typedef uavcan::MethodBinder<UavcanMagnetometerBridge*,
+		void (UavcanMagnetometerBridge::*)
+			(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::Magnetometer>&)>
+		MagCbBinder;
+
+
+	uavcan::Subscriber<uavcan::equipment::ahrs::Magnetometer, MagCbBinder>	_sub_mag;
+	mag_scale _scale = {};
+	orb_id_t _orb_id = nullptr;
+	orb_advert_t _orb_advert = -1;
+	int _class_instance = -1;
+};
