@@ -56,9 +56,11 @@
 class UavcanGnssBridge : public IUavcanSensorBridge
 {
 public:
+	static const char *const NAME;
+
 	UavcanGnssBridge(uavcan::INode& node);
 
-	const char *get_name() const override;
+	const char *get_name() const override { return NAME; }
 
 	int init() override;
 

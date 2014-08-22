@@ -45,14 +45,14 @@
 
 #define MM_PER_CM 			10	// Millimeters per centimeter
 
+const char *const UavcanGnssBridge::NAME = "gnss";
+
 UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
 _node(node),
 _sub_fix(node),
 _report_pub(-1)
 {
 }
-
-const char *UavcanGnssBridge::get_name() const { return "gnss"; }
 
 int UavcanGnssBridge::init()
 {

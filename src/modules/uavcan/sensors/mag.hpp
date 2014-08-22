@@ -46,10 +46,12 @@
 class UavcanMagnetometerBridge : public IUavcanSensorBridge, public device::CDev
 {
 public:
+	static const char *const NAME;
+
 	UavcanMagnetometerBridge(uavcan::INode& node);
 	~UavcanMagnetometerBridge() override;
 
-	const char *get_name() const override;
+	const char *get_name() const override { return NAME; }
 
 	int init() override;
 
@@ -63,8 +65,7 @@ private:
 			(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::Magnetometer>&)>
 		MagCbBinder;
 
-
-	uavcan::Subscriber<uavcan::equipment::ahrs::Magnetometer, MagCbBinder>	_sub_mag;
+	uavcan::Subscriber<uavcan::equipment::ahrs::Magnetometer, MagCbBinder> _sub_mag;
 	mag_scale _scale = {};
 	orb_id_t _orb_id = nullptr;
 	orb_advert_t _orb_advert = -1;

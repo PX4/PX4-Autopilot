@@ -37,6 +37,8 @@
 
 #include "mag.hpp"
 
+const char *const UavcanMagnetometerBridge::NAME = "mag";
+
 UavcanMagnetometerBridge::UavcanMagnetometerBridge(uavcan::INode& node) :
 device::CDev("uavcan_mag", "/dev/uavcan/mag"),
 _sub_mag(node)
@@ -52,8 +54,6 @@ UavcanMagnetometerBridge::~UavcanMagnetometerBridge()
 		(void)unregister_class_devname(MAG_DEVICE_PATH, _class_instance);
 	}
 }
-
-const char *UavcanMagnetometerBridge::get_name() const { return "mag"; }
 
 int UavcanMagnetometerBridge::init()
 {

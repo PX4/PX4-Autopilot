@@ -535,7 +535,7 @@ int UavcanNode::sensor_enable(const char *bridge_name)
 	{
 		auto pos = _sensor_bridges.getHead();
 		while (pos != nullptr) {
-			if (!std::strncmp(pos->get_name(), bridge_name, IUavcanSensorBridge::MaxNameLen)) {
+			if (!std::strncmp(pos->get_name(), bridge_name, IUavcanSensorBridge::MAX_NAME_LEN)) {
 				warnx("sensor bridge '%s' already exists", bridge_name);
 				retval = -1;
 				goto leave;
@@ -553,7 +553,7 @@ int UavcanNode::sensor_enable(const char *bridge_name)
 			goto leave;
 		}
 
-		assert(!std::strncmp(bridge->get_name(), bridge_name, IUavcanSensorBridge::MaxNameLen));
+		assert(!std::strncmp(bridge->get_name(), bridge_name, IUavcanSensorBridge::MAX_NAME_LEN));
 
 		retval = bridge->init();
 		if (retval >= 0) {

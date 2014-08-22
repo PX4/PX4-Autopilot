@@ -46,7 +46,7 @@
 class IUavcanSensorBridge : uavcan::Noncopyable, public ListNode<IUavcanSensorBridge*>
 {
 public:
-	static constexpr unsigned MaxNameLen = 20;
+	static constexpr unsigned MAX_NAME_LEN = 20;
 
 	virtual ~IUavcanSensorBridge() { }
 
