@@ -36,12 +36,17 @@
  */
 
 #include "sensor_bridge.hpp"
+#include <systemlib/err.h>
+
 #include "gnss.hpp"
 #include "mag.hpp"
 #include "baro.hpp"
 
 IUavcanSensorBridge* IUavcanSensorBridge::make(uavcan::INode &node, const char *bridge_name)
 {
+	/*
+	 * TODO: make a linked list of known implementations at startup?
+	 */
 	if (!std::strncmp(UavcanGnssBridge::NAME, bridge_name, MAX_NAME_LEN)) {
 		return new UavcanGnssBridge(node);
 	} else if (!std::strncmp(UavcanMagnetometerBridge::NAME, bridge_name, MAX_NAME_LEN)) {
@@ -51,4 +56,11 @@ IUavcanSensorBridge* IUavcanSensorBridge::make(uavcan::INode &node, const char *
 	} else {
 		return nullptr;
 	}
+}
+
+void IUavcanSensorBridge::print_known_names(const char *prefix)
+{
+	printf("%s%s\n", prefix, UavcanGnssBridge::NAME);
+	printf("%s%s\n", prefix, UavcanMagnetometerBridge::NAME);
+	printf("%s%s\n", prefix, UavcanBarometerBridge::NAME);
 }

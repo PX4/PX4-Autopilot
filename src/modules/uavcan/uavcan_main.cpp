@@ -590,6 +590,9 @@ static void print_usage()
 	      "\tuavcan start <node_id> [can_bitrate]\n"
 	      "\tuavcan sensor enable <sensor name>\n"
 	      "\tuavcan sensor list");
+
+	warnx("known sensor bridges:");
+	IUavcanSensorBridge::print_known_names("\t");
 }
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);

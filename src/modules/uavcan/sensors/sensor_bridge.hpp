@@ -67,4 +67,9 @@ public:
 	 * @return nullptr if such bridge can't be created.
 	 */
 	static IUavcanSensorBridge* make(uavcan::INode &node, const char *bridge_name);
+
+	/**
+	 * Prints all valid bridge names into stdout via printf(), one name per line with prefix.
+	 */
+	static void print_known_names(const char *prefix);
 };
