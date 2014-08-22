@@ -1316,7 +1316,7 @@ int commander_thread_main(int argc, char *argv[])
 				/* this will only trigger if geofence is activated via param and a geofence file is present, also there is a circuit breaker to disable the actual flight termination in the px4io driver */
 				armed.force_failsafe = true;
 				status_changed = true;
-				warnx("Flight termination");
+				warnx("Flight termination because of navigator request or geofence");
 			} // no reset is done here on purpose, on geofence violation we want to stay in flighttermination
 		}
 
@@ -1578,6 +1578,17 @@ int commander_thread_main(int argc, char *argv[])
 				status_changed = true;
 			}
 		}
+
+		/* At this point the data link and the gps system have been checked
+		 * If both failed we want to terminate the flight */
+		if ((status.data_link_lost && status.gps_failure) ||
+				(status.data_link_lost_cmd && status.gps_failure_cmd)) {
+			armed.force_failsafe = true;
+			status_changed = true;
+			warnx("Flight termination because of data link loss && gps failure");
+			mavlink_log_critical(mavlink_fd, "DL and GPS lost: flight termination");
+		}
+
 
 		hrt_abstime t1 = hrt_absolute_time();
 
