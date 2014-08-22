@@ -92,39 +92,6 @@ PARAM_DEFINE_INT32(NAV_DLL_CH_LON, 1518453890);
 PARAM_DEFINE_FLOAT(NAV_DLL_CH_ALT, 600.0f);
 
 /**
- * Airfield home Lat
- *
- * Latitude of airfield home waypoint
- *
- * @unit degrees * 1e7
- * @min 0.0
- * @group DLL
- */
-PARAM_DEFINE_INT32(NAV_DLL_AH_LAT, -265847810);
-
-/**
- * Airfield home Lon
- *
- * Longitude of airfield home waypoint
- *
- * @unit degrees * 1e7
- * @min 0.0
- * @group DLL
- */
-PARAM_DEFINE_INT32(NAV_DLL_AH_LON, 1518423250);
-
-/**
- * Airfield home alt
- *
- * Altitude of airfield home waypoint
- *
- * @unit m
- * @min 0.0
- * @group DLL
- */
-PARAM_DEFINE_FLOAT(NAV_DLL_AH_ALT, 600.0f);
-
-/**
  * Number of allowed Datalink timeouts
  *
  * After more than this number of data link timeouts the aircraft returns home directly

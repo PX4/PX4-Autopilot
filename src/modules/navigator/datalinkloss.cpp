@@ -61,9 +61,9 @@ DataLinkLoss::DataLinkLoss(Navigator *navigator, const char *name) :
 	_param_commsholdlat(this, "CH_LAT"),
 	_param_commsholdlon(this, "CH_LON"),
 	_param_commsholdalt(this, "CH_ALT"),
-	_param_airfieldhomelat(this, "AH_LAT"),
-	_param_airfieldhomelon(this, "AH_LON"),
-	_param_airfieldhomealt(this, "AH_ALT"),
+	_param_airfieldhomelat(this, "NAV_AH_LAT", false),
+	_param_airfieldhomelon(this, "NAV_AH_LON", false),
+	_param_airfieldhomealt(this, "NAV_AH_ALT", false),
 	_param_numberdatalinklosses(this, "N"),
 	_dll_state(DLL_STATE_NONE)
 {
