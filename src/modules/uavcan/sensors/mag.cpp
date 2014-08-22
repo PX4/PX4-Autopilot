@@ -93,33 +93,31 @@ int UavcanMagnetometerBridge::init()
 int UavcanMagnetometerBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
-	case MAGIOCSSAMPLERATE:
-	case MAGIOCGSAMPLERATE:
-	case MAGIOCSRANGE:
-	case MAGIOCGRANGE:
-	case MAGIOCSLOWPASS:
-	case MAGIOCGLOWPASS: {
-		return -EINVAL;
-	}
 	case MAGIOCSSCALE: {
 		std::memcpy(&_scale, reinterpret_cast<const void*>(arg), sizeof(_scale));
-		log("new scale/offset: x: %f/%f   y: %f/%f   z: %f/%f",
-		    double(_scale.x_scale), double(_scale.x_offset),
-		    double(_scale.y_scale), double(_scale.y_offset),
-		    double(_scale.z_scale), double(_scale.z_offset));
 		return 0;
 	}
 	case MAGIOCGSCALE: {
 		std::memcpy(reinterpret_cast<void*>(arg), &_scale, sizeof(_scale));
 		return 0;
 	}
-	case MAGIOCCALIBRATE:
-	case MAGIOCEXSTRAP:
 	case MAGIOCSELFTEST: {
-		return -EINVAL;
+		return 0;           // Nothing to do
 	}
 	case MAGIOCGEXTERNAL: {
-		return 1;
+		return 0;           // We don't want anyone to transform the coordinate frame, so we declare it onboard
+	}
+	case MAGIOCSSAMPLERATE: {
+		return 0;           // Pretend that this stuff is supported to keep the sensor app happy
+	}
+	case MAGIOCCALIBRATE:
+	case MAGIOCGSAMPLERATE:
+	case MAGIOCSRANGE:
+	case MAGIOCGRANGE:
+	case MAGIOCSLOWPASS:
+	case MAGIOCEXSTRAP:
+	case MAGIOCGLOWPASS: {
+		return -EINVAL;
 	}
 	default: {
 		return CDev::ioctl(filp, cmd, arg);
