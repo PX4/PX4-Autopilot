@@ -462,7 +462,7 @@ BottleDrop::task_main()
 		hrt_abstime last_run = hrt_absolute_time();
 		float dt_runs = 1e6f / sleeptime_us;
 
-		/* switch to faster updates during the drop */
+		// switch to faster updates during the drop
 		while (_drop_state > DROP_STATE_INIT) {
 
 			// Get wind estimate
@@ -474,17 +474,17 @@ BottleDrop::task_main()
 			// Get vehicle position
 			orb_check(vehicle_global_position_sub, &updated);
 			if (updated) {
-				/* copy global position */
+				// copy global position
 				orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, &_global_pos);
 			}
 
 			// Get parameter updates
 			orb_check(parameter_update_sub, &updated);
 			if (updated) {
-				/* copy global position */
+				// copy global position
 				orb_copy(ORB_ID(parameter_update), parameter_update_sub, &update);
 
-				/* update all parameters */
+				// update all parameters
 				param_get(param_gproperties, &z_0);
 				param_get(param_turn_radius, &turn_radius);
 				param_get(param_precision, &precision);
@@ -500,20 +500,10 @@ BottleDrop::task_main()
 				mavlink_log_info(_mavlink_fd, "#audio: drop distance %.2f", (double)distance_real);
 			}
 
-			//warnx("absolut wind speed = %.4f", vr); //////////////////////////////////////////////////////////////////// DEBUGGING
-
-
-			//warnx("Initialization complete\n"); //////////////////////////////////////////////////////////////////// DEBUGGING
-
 			switch (_drop_state) {
 
 				case DROP_STATE_TARGET_VALID:
 				{
-					//warnx("approval given\n"); //////////////////////////////////////////////////////////////////// DEBUGGING
-					// drop here
-					//open_now = true;
-					//drop = false;
-					//drop_start = hrt_absolute_time();
 
 					// Update drop point at 10 Hz
 					if (counter % 10 == 0) {
@@ -547,18 +537,18 @@ BottleDrop::task_main()
 							x = x + vx * dt_freefall_prediction;
 							vrx = vx + vw;
 
-							//Drag force
+							// drag force
 							v = sqrtf(vz * vz + vrx * vrx);
 							Fd = 0.5f * rho * A * cd * (v * v);
 							Fdx = Fd * vrx / v;
 							Fdz = Fd * vz / v;
 
-							//acceleration
+							// acceleration
 							az = g - Fdz / m;
 							ax = -Fdx / m;
 						}
 
-						// Compute drop vector
+						// compute drop vector
 						x = groundspeed_body * t_signal + x;
 					}
 
@@ -580,9 +570,6 @@ BottleDrop::task_main()
 					y_drop = y_t + x * wind_direction_e;
 					map_projection_reproject(&ref, x_drop, y_drop, &_drop_position.lat, &_drop_position.lon);
 					_drop_position.alt = _target_position.alt + _alt_clearance;
-					//warnx("drop point: lat = %.7f , lon = %.7f", drop_position.lat, drop_position.lon); //////////////////////////////////////////////////////////////////// DEBUGGING
-
-
 
 					// Compute flight vector
 					map_projection_reproject(&ref, x_drop + 2 * turn_radius * wind_direction_n, y_drop + 2 * turn_radius * wind_direction_e,
@@ -591,25 +578,8 @@ BottleDrop::task_main()
 					map_projection_reproject(&ref, x_drop - turn_radius * wind_direction_n, y_drop - turn_radius * wind_direction_e,
 								 &flight_vector_e.lat, &flight_vector_e.lon);
 					flight_vector_e.altitude = _drop_position.alt;
-					//warnx("Flight vector: starting point = %.7f  %.7f , end point = %.7f  %.7f", flight_vector_s.lat,flight_vector_s.lon,flight_vector_e.lat,flight_vector_e.lon); //////////////////////////////////////////////////////////////////// DEBUGGING
 
-					// Drop Cancellation if terms are not met
-
-					// warnx("latitude:%.2f", _global_pos.lat);
-					// warnx("longitude:%.2f", _global_pos.lon);
-					// warnx("drop_position.lat:%.2f", drop_position.lat);
-					// warnx("drop_position.lon:%.2f", drop_position.lon);
-
-					//warnx("position to-be: = %.7f  %.7f" ,x_f_NED, y_f_NED ); //////////////////////////////////////////////////////////////////// DEBUGGING
-
-					// if (counter % 10 ==0) {
-					// 	warnx("x: %.4f", x);
-					// 	warnx("drop_position.lat: %.4f, drop_position.lon: %.4f", drop_position.lat, drop_position.lon);
-					// 	warnx("latitude %.4f, longitude: %.4f", _global_pos.lat, _global_pos.lon);
-					// 	warnx("future_distance: %.2f, precision: %.2f", future_distance, precision);
-					// }
-
-					/* Save WPs in datamanager */
+					// Save WPs in datamanager
 					const ssize_t len = sizeof(struct mission_item_s);
 
 					if (dm_write(DM_KEY_WAYPOINTS_ONBOARD, 0, DM_PERSIST_IN_FLIGHT_RESET, &flight_vector_s, len) != len) {
@@ -662,7 +632,7 @@ BottleDrop::task_main()
 							x_f = x_l + _global_pos.vel_n * dt_runs;
 							y_f = y_l + _global_pos.vel_e * dt_runs;
 							map_projection_reproject(&ref, x_f, y_f, &x_f_NED, &y_f_NED);
-							future_distance = fabsf(get_distance_to_next_waypoint(x_f_NED, y_f_NED, _drop_position.lat, _drop_position.lon));
+							future_distance = get_distance_to_next_waypoint(x_f_NED, y_f_NED, _drop_position.lat, _drop_position.lon);
 
 							warnx("Distance real: %.2f", (double)distance_real);
 
