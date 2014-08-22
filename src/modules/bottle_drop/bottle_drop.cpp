@@ -140,6 +140,9 @@ private:
 		DROP_STATE_BAY_CLOSED
 	} _drop_state;
 
+	struct mission_s	_onboard_mission;
+	orb_advert_t		_onboard_mission_pub;
+
 	void		task_main();
 
 	void		handle_command(struct vehicle_command_s *cmd);
@@ -180,7 +183,9 @@ BottleDrop::BottleDrop() :
 	_alt_clearance(70.0f),
 	_target_position {},
 	_drop_position {},
-	_drop_state(DROP_STATE_INIT)
+	_drop_state(DROP_STATE_INIT),
+	_onboard_mission {},
+	_onboard_mission_pub(-1)
 {
 }
 
@@ -410,10 +415,6 @@ BottleDrop::task_main()
 	flight_vector_e.acceptance_radius = 50; // TODO: make parameter
 	flight_vector_e.autocontinue = true;
 
-	struct mission_s onboard_mission;
-	memset(&onboard_mission, 0, sizeof(onboard_mission));
-	orb_advert_t onboard_mission_pub = -1;
-
 	struct wind_estimate_s wind;
 
 	/* wakeup source(s) */
@@ -617,27 +618,27 @@ BottleDrop::task_main()
 						warnx("ERROR: could not save onboard WP");
 					}
 
-					onboard_mission.count = 2;
-					onboard_mission.current_seq = 0;
+					_onboard_mission.count = 2;
+					_onboard_mission.current_seq = 0;
 
-					if (onboard_mission_pub > 0) {
-						orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
+					if (_onboard_mission_pub > 0) {
+						orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
 
 					} else {
-						onboard_mission_pub = orb_advertise(ORB_ID(onboard_mission), &onboard_mission);
+						_onboard_mission_pub = orb_advertise(ORB_ID(onboard_mission), &_onboard_mission);
 					}
 
 					_drop_state = DROP_STATE_TARGET_SET;
 				}
 				break;
 
-				case DROP_STATE_TARGET_SET
-
+				case DROP_STATE_TARGET_SET:
+				{
 					float distance_wp2 = get_distance_to_next_waypoint(flight_vector_e.lat, flight_vector_e.lon, _drop_position.lat, _drop_position.lon);
 
 					if (distance_wp2 < distance_real) {
-						onboard_mission.current_seq = 0;
-						orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
+						_onboard_mission.current_seq = 0;
+						orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
 					} else {
 
 						// We're close enough - open the bay
@@ -674,8 +675,8 @@ BottleDrop::task_main()
 								float distance_wp2 = get_distance_to_next_waypoint(flight_vector_e.lat, flight_vector_e.lon, _drop_position.lat, _drop_position.lon);
 
 								if (distance_wp2 < distance_real) {
-									onboard_mission.current_seq = 0;
-									orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
+									_onboard_mission.current_seq = 0;
+									orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
 								}
 							}
 						}
@@ -692,8 +693,8 @@ BottleDrop::task_main()
 						mavlink_log_info(_mavlink_fd, "#audio: closing bay");
 
 						// remove onboard mission
-						onboard_mission.current_seq = -1;
-						orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
+						_onboard_mission.current_seq = -1;
+						orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
 					}
 					break;
 			}
@@ -784,10 +785,10 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 			_drop_state = DROP_STATE_INIT;
 
 			// Abort if mission is present
-			onboard_mission.current_seq = -1;
+			_onboard_mission.current_seq = -1;
 
-			if (onboard_mission_pub > 0) {
-				orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
+			if (_onboard_mission_pub > 0) {
+				orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
 			}
 
 		} else {
