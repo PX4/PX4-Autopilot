@@ -1579,6 +1579,7 @@ int commander_thread_main(int argc, char *argv[])
 			}
 		}
 
+		/* Check for failure combinations which lead to flight termination */
 		/* At this point the data link and the gps system have been checked
 		 * If both failed we want to terminate the flight */
 		if ((status.data_link_lost && status.gps_failure) ||
@@ -1587,6 +1588,21 @@ int commander_thread_main(int argc, char *argv[])
 			status_changed = true;
 			warnx("Flight termination because of data link loss && gps failure");
 			mavlink_log_critical(mavlink_fd, "DL and GPS lost: flight termination");
+		}
+
+		/* At this point the rc signal and the gps system have been checked
+		 * If we are in manual (controlled with RC):
+		 * if both failed we want to terminate the flight */
+		if ((status.main_state == MAIN_STATE_ACRO ||
+				status.main_state == MAIN_STATE_MANUAL ||
+				status.main_state == MAIN_STATE_ALTCTL ||
+				status.main_state == MAIN_STATE_POSCTL) &&
+				((status.rc_signal_lost && status.rc_signal_lost) ||
+				(status.rc_signal_lost && status.gps_failure_cmd))) {
+			armed.force_failsafe = true;
+			status_changed = true;
+			warnx("Flight termination because of RC signal loss && gps failure");
+			mavlink_log_critical(mavlink_fd, "RC and GPS lost: flight termination");
 		}
 
 
