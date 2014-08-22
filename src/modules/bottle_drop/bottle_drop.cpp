@@ -587,10 +587,10 @@ BottleDrop::task_main()
 
 
 					// Compute flight vector
-					map_projection_reproject(&ref, x_drop + 2 * turn_radius * wind_direction_n, y_drop + 2 * turn_radius * wind_direction_n,
+					map_projection_reproject(&ref, x_drop + 2 * turn_radius * wind_direction_n, y_drop + 2 * turn_radius * wind_direction_e,
 								 &(flight_vector_s.lat), &(flight_vector_s.lon));
 					flight_vector_s.altitude = _drop_position.alt;
-					map_projection_reproject(&ref, x_drop - turn_radius * wind_direction_e, y_drop - turn_radius * wind_direction_e,
+					map_projection_reproject(&ref, x_drop - turn_radius * wind_direction_n, y_drop - turn_radius * wind_direction_e,
 								 &flight_vector_e.lat, &flight_vector_e.lon);
 					flight_vector_e.altitude = _drop_position.alt;
 					//warnx("Flight vector: starting point = %.7f  %.7f , end point = %.7f  %.7f", flight_vector_s.lat,flight_vector_s.lon,flight_vector_e.lat,flight_vector_e.lon); //////////////////////////////////////////////////////////////////// DEBUGGING
