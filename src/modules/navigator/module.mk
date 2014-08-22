@@ -51,8 +51,10 @@ SRCS		= navigator_main.cpp \
 		  geofence.cpp \
 		  geofence_params.c \
 		  datalinkloss.cpp \
-		  enginefailure.cpp \
 		  datalinkloss_params.c \
+		  rcloss.cpp \
+		  rcloss_params.c \
+		  enginefailure.cpp \
 		  gpsfailure.cpp \
 		  gpsfailure_params.c
 

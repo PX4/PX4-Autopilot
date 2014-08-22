@@ -63,12 +63,13 @@
 #include "datalinkloss.h"
 #include "enginefailure.h"
 #include "gpsfailure.h"
+#include "rcloss.h"
 #include "geofence.h"
 
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 7
+#define NAVIGATOR_MODE_ARRAY_SIZE 8
 
 class Navigator : public control::SuperBlock
 {
@@ -109,7 +110,7 @@ public:
 	 * Publish the mission result so commander and mavlink know what is going on
 	 */
 	void publish_mission_result();
-	
+
 	/**
 	 * Publish the attitude sp, only to be used in very special modes when position control is deactivated
 	 * Example: mode that is triggered on gps failure
@@ -193,6 +194,8 @@ private:
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	RTL 		_rtl;				/**< class that handles RTL */
+	RCLoss 		_rcLoss;				/**< class that handles RTL according to
+							  OBC rules (rc loss mode) */
 	Offboard	_offboard;			/**< class that handles offboard */
 	DataLinkLoss	_dataLinkLoss;			/**< class that handles the OBC datalink loss mode */
 	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode
@@ -207,6 +210,7 @@ private:
 	control::BlockParamFloat _param_loiter_radius;	/**< loiter radius for fixedwing */
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
 	control::BlockParamInt _param_datalinkloss_obc;	/**< if true: obc mode on data link loss enabled */
+	control::BlockParamInt _param_rcloss_obc;	/**< if true: obc mode on rc loss enabled */
 	/**
 	 * Retrieve global position
 	 */

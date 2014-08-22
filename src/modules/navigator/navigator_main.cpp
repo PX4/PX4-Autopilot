@@ -131,6 +131,7 @@ Navigator::Navigator() :
 	_mission(this, "MIS"),
 	_loiter(this, "LOI"),
 	_rtl(this, "RTL"),
+	_rcLoss(this, "RCL"),
 	_offboard(this, "OFF"),
 	_dataLinkLoss(this, "DLL"),
 	_engineFailure(this, "EF"),
@@ -139,7 +140,8 @@ Navigator::Navigator() :
 	_pos_sp_triplet_updated(false),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
-	_param_datalinkloss_obc(this, "DLL_OBC")
+	_param_datalinkloss_obc(this, "DLL_OBC"),
+	_param_rcloss_obc(this, "RCL_OBC")
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -149,6 +151,7 @@ Navigator::Navigator() :
 	_navigation_mode_array[4] = &_dataLinkLoss;
 	_navigation_mode_array[5] = &_engineFailure;
 	_navigation_mode_array[6] = &_gpsFailure;
+	_navigation_mode_array[7] = &_rcLoss;
 
 	updateParams();
 }
@@ -413,7 +416,11 @@ Navigator::task_main()
 				_navigation_mode = &_loiter;
 				break;
 			case NAVIGATION_STATE_AUTO_RTL:
-				_navigation_mode = &_rtl;
+				if (_param_rcloss_obc.get() != 0) {
+					_navigation_mode = &_rcLoss;
+				} else {
+					_navigation_mode = &_rtl;
+				}
 				break;
 			case NAVIGATION_STATE_AUTO_RTGS: //XXX OBC: differentiate between rc loss and dl loss here
 				/* Use complex data link loss mode only when enabled via param
@@ -421,7 +428,7 @@ Navigator::task_main()
 				if (_param_datalinkloss_obc.get() != 0) {
 					_navigation_mode = &_dataLinkLoss;
 				} else {
-					_navigation_mode = &_rtl; /* TODO: change this to something else */
+					_navigation_mode = &_rtl;
 				}
 				break;
 			case NAVIGATION_STATE_AUTO_LANDENGFAIL:

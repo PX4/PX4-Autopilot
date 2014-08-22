@@ -31,8 +31,8 @@
  *
  ****************************************************************************/
 /**
- * @file gpsfailure.cpp
- * Helper class for gpsfailure mode according to the OBC rules
+ * @file rcloss.cpp
+ * Helper class for RC Loss Mode according to the OBC rules
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
@@ -51,18 +51,14 @@
 #include <uORB/topics/home_position.h>
 
 #include "navigator.h"
-#include "gpsfailure.h"
+#include "datalinkloss.h"
 
 #define DELAY_SIGMA	0.01f
 
-GpsFailure::GpsFailure(Navigator *navigator, const char *name) :
+RCLoss::RCLoss(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_param_loitertime(this, "LT"),
-	_param_openlooploiter_roll(this, "R"),
-	_param_openlooploiter_pitch(this, "P"),
-	_param_openlooploiter_thrust(this, "TR"),
-	_gpsf_state(GPSF_STATE_NONE),
-	_timestamp_activation(0)
+	_rcl_state(RCL_STATE_NONE)
 {
 	/* load initial params */
 	updateParams();
@@ -70,107 +66,106 @@ GpsFailure::GpsFailure(Navigator *navigator, const char *name) :
 	on_inactive();
 }
 
-GpsFailure::~GpsFailure()
+RCLoss::~RCLoss()
 {
 }
 
 void
-GpsFailure::on_inactive()
+RCLoss::on_inactive()
 {
-	/* reset GPSF state only if setpoint moved */
+	/* reset RCL state only if setpoint moved */
 	if (!_navigator->get_can_loiter_at_sp()) {
-		_gpsf_state = GPSF_STATE_NONE;
+		_rcl_state = RCL_STATE_NONE;
 	}
 }
 
 void
-GpsFailure::on_activation()
+RCLoss::on_activation()
 {
-	_gpsf_state = GPSF_STATE_NONE;
-	_timestamp_activation = hrt_absolute_time();
+	_rcl_state = RCL_STATE_NONE;
 	updateParams();
-	advance_gpsf();
-	set_gpsf_item();
+	advance_rcl();
+	set_rcl_item();
 }
 
 void
-GpsFailure::on_active()
+RCLoss::on_active()
 {
-
-	switch (_gpsf_state) {
-	case GPSF_STATE_LOITER: {
-		/* Position controller does not run in this mode:
-		 * navigator has to publish an attitude setpoint */
-		_navigator->get_att_sp()->roll_body = M_DEG_TO_RAD_F * _param_openlooploiter_roll.get();
-		_navigator->get_att_sp()->pitch_body = M_DEG_TO_RAD_F * _param_openlooploiter_pitch.get();
-		_navigator->get_att_sp()->thrust = _param_openlooploiter_thrust.get();
-		_navigator->publish_att_sp();
-
-		/* Measure time */
-		hrt_abstime elapsed = hrt_elapsed_time(&_timestamp_activation);
-
-		//warnx("open loop loiter, posctl enabled %u, elapsed %.1fs, thrust %.2f",
-				//_navigator->get_control_mode()->flag_control_position_enabled, elapsed * 1e-6, (double)_param_openlooploiter_thrust.get());
-		if (elapsed > _param_loitertime.get() * 1e6f) {
-			/* no recovery, adavance the state machine */
-			warnx("gps not recovered, switch to next state");
-			advance_gpsf();
-		}
-		break;
-	}
-	case GPSF_STATE_TERMINATE:
-		set_gpsf_item();
-		advance_gpsf();
-		break;
-	default:
-		break;
+	if (is_mission_item_reached()) {
+		updateParams();
+		advance_rcl();
+		set_rcl_item();
 	}
 }
 
 void
-GpsFailure::set_gpsf_item()
+RCLoss::set_rcl_item()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	/* Set pos sp triplet to invalid to stop pos controller */
-	pos_sp_triplet->previous.valid = false;
-	pos_sp_triplet->current.valid = false;
-	pos_sp_triplet->next.valid = false;
+	set_previous_pos_setpoint();
+	_navigator->set_can_loiter_at_sp(false);
 
-	switch (_gpsf_state) {
-	case GPSF_STATE_TERMINATE: {
+	switch (_rcl_state) {
+	case RCL_STATE_LOITER: {
+		_mission_item.lat = _navigator->get_global_position()->lat;
+		_mission_item.lon = _navigator->get_global_position()->lon;
+		_mission_item.altitude_is_relative = false;
+		_mission_item.yaw = NAN;
+		_mission_item.loiter_radius = _navigator->get_loiter_radius();
+		_mission_item.loiter_direction = 1;
+		_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
+		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+		_mission_item.time_inside = _param_loitertime.get() < 0.0f ? 0.0f : _param_loitertime.get();
+		_mission_item.pitch_min = 0.0f;
+		_mission_item.autocontinue = true;
+		_mission_item.origin = ORIGIN_ONBOARD;
+
+		_navigator->set_can_loiter_at_sp(true);
+		break;
+	}
+	case RCL_STATE_TERMINATE: {
 		/* Request flight termination from the commander */
 		pos_sp_triplet->flight_termination = true;
 		warnx("gps fail: request flight termination");
+		pos_sp_triplet->previous.valid = false;
+		pos_sp_triplet->current.valid = false;
+		pos_sp_triplet->next.valid = false;
 	}
 	default:
 		break;
 	}
 
 	reset_mission_item_reached();
+
+	/* convert mission item to current position setpoint and make it valid */
+	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+	pos_sp_triplet->next.valid = false;
+
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
 void
-GpsFailure::advance_gpsf()
+RCLoss::advance_rcl()
 {
-	updateParams();
-
-	switch (_gpsf_state) {
-	case GPSF_STATE_NONE:
-		_gpsf_state = GPSF_STATE_LOITER;
-		warnx("gpsf loiter");
-		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: open loop loiter");
+	switch (_rcl_state) {
+	case RCL_STATE_NONE:
+		/* Check the number of data link losses. If above home fly home directly */
+		warnx("RC loss, OBC mode, loiter");
+		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: rc los, loitering");
+		_rcl_state = RCL_STATE_LOITER;
 		break;
-	case GPSF_STATE_LOITER:
-		_gpsf_state = GPSF_STATE_TERMINATE;
-		warnx("gpsf terminate");
-		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: no gps recovery, termination");
-		warnx("mavlink sent");
+	case RCL_STATE_LOITER:
+		_rcl_state = RCL_STATE_TERMINATE;
+		warnx("time is up, no RC regain, terminating");
+		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: RC not regained, terminating");
+		_navigator->get_mission_result()->stay_in_failsafe = true;
+		_navigator->publish_mission_result();
 		break;
-	case GPSF_STATE_TERMINATE:
-		warnx("gpsf end");
-		_gpsf_state = GPSF_STATE_END;
+	case RCL_STATE_TERMINATE:
+		warnx("rcl end");
+		_rcl_state = RCL_STATE_END;
+		break;
 	default:
 		break;
 	}
