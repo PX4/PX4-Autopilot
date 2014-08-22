@@ -50,7 +50,8 @@ SRCS += actuators/esc.cpp
 # Sensors
 SRCS += sensors/sensor_bridge.cpp    \
         sensors/gnss.cpp             \
-        sensors/mag.cpp
+        sensors/mag.cpp              \
+        sensors/baro.cpp
 
 #
 # libuavcan

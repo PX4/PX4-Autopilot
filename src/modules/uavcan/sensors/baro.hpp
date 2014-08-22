@@ -35,20 +35,39 @@
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include "sensor_bridge.hpp"
-#include "gnss.hpp"
-#include "mag.hpp"
-#include "baro.hpp"
+#pragma once
 
-IUavcanSensorBridge* IUavcanSensorBridge::make(uavcan::INode &node, const char *bridge_name)
+#include "sensor_bridge.hpp"
+#include <drivers/drv_baro.h>
+#include <drivers/device/device.h>
+
+#include <uavcan/equipment/air_data/StaticAirData.hpp>
+
+class UavcanBarometerBridge : public IUavcanSensorBridge, public device::CDev
 {
-	if (!std::strncmp(UavcanGnssBridge::NAME, bridge_name, MAX_NAME_LEN)) {
-		return new UavcanGnssBridge(node);
-	} else if (!std::strncmp(UavcanMagnetometerBridge::NAME, bridge_name, MAX_NAME_LEN)) {
-		return new UavcanMagnetometerBridge(node);
-	} else if (!std::strncmp(UavcanBarometerBridge::NAME, bridge_name, MAX_NAME_LEN)) {
-		return new UavcanBarometerBridge(node);
-	} else {
-		return nullptr;
-	}
-}
+public:
+	static const char *const NAME;
+
+	UavcanBarometerBridge(uavcan::INode& node);
+	~UavcanBarometerBridge() override;
+
+	const char *get_name() const override { return NAME; }
+
+	int init() override;
+
+private:
+	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
+
+	void air_data_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticAirData> &msg);
+
+	typedef uavcan::MethodBinder<UavcanBarometerBridge*,
+		void (UavcanBarometerBridge::*)
+			(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticAirData>&)>
+		AirDataCbBinder;
+
+	uavcan::Subscriber<uavcan::equipment::air_data::StaticAirData, AirDataCbBinder> _sub_air_data;
+	unsigned _msl_pressure = 101325;
+	orb_id_t _orb_id = nullptr;
+	orb_advert_t _orb_advert = -1;
+	int _class_instance = -1;
+};
