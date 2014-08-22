@@ -137,8 +137,8 @@ void UavcanMagnetometerBridge::mag_sub_cb(const uavcan::ReceivedDataStructure<ua
 	}
 
 	report.x = (msg.magnetic_field[0] - _scale.x_offset) * _scale.x_scale;
-	report.y = (msg.magnetic_field[1] - _scale.x_offset) * _scale.x_scale;
-	report.z = (msg.magnetic_field[2] - _scale.x_offset) * _scale.x_scale;
+	report.y = (msg.magnetic_field[1] - _scale.y_offset) * _scale.y_scale;
+	report.z = (msg.magnetic_field[2] - _scale.z_offset) * _scale.z_scale;
 
 	if (_orb_advert >= 0) {
 		orb_publish(_orb_id, _orb_advert, &report);
