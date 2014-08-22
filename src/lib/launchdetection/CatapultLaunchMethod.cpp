@@ -51,7 +51,8 @@ CatapultLaunchMethod::CatapultLaunchMethod(SuperBlock *parent) :
 	integrator(0.0f),
 	launchDetected(false),
 	threshold_accel(this, "A"),
-	threshold_time(this, "T")
+	threshold_time(this, "T"),
+	delay(this, "DELAY")
 {
 
 }
@@ -78,21 +79,33 @@ void CatapultLaunchMethod::update(float accel_x)
 //				(double)integrator, (double)threshold_accel.get(),  (double)threshold_time.get(), (double)accel_x, (double)dt);
 		/* reset integrator */
 		integrator = 0.0f;
-		launchDetected = false;
+	}
+
+	if (launchDetected) {
+		delayCounter += dt;
+		if (delayCounter > delay.get()) {
+			delayPassed = true;
+		}
 	}
 
 }
 
 bool CatapultLaunchMethod::getLaunchDetected()
 {
-	return launchDetected;
+	if (delay.get() > 0.0f) {
+		return delayPassed;
+	} else {
+		return launchDetected;
+	}
 }
 
 
 void CatapultLaunchMethod::reset()
 {
 	integrator = 0.0f;
+	delayCounter = 0.0f;
 	launchDetected = false;
+	delayPassed = false;
 }
 
 }
