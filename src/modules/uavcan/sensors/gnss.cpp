@@ -56,17 +56,12 @@ _report_pub(-1)
 
 int UavcanGnssBridge::init()
 {
-	int res = -1;
-
-	// GNSS fix subscription
-	res = _sub_fix.start(FixCbBinder(this, &UavcanGnssBridge::gnss_fix_sub_cb));
+	int res = _sub_fix.start(FixCbBinder(this, &UavcanGnssBridge::gnss_fix_sub_cb));
 	if (res < 0)
 	{
 		warnx("GNSS fix sub failed %i", res);
 		return res;
 	}
-
-	warnx("gnss sensor bridge init ok");
 	return res;
 }
 

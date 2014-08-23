@@ -217,11 +217,12 @@ int UavcanNode::init(uavcan::NodeID node_id)
 {
 	int ret = -1;
 
-	/* do regular cdev init */
+	// Do regular cdev init
 	ret = CDev::init();
 
-	if (ret != OK)
+	if (ret != OK) {
 		return ret;
+	}
 
 	_node.setName("org.pixhawk.pixhawk");
 
@@ -229,10 +230,24 @@ int UavcanNode::init(uavcan::NodeID node_id)
 
 	fill_node_info();
 
-	/* initializing the bridges UAVCAN <--> uORB */
+	// Actuators
 	ret = _esc_controller.init();
-	if (ret < 0)
+	if (ret < 0) {
 		return ret;
+	}
+
+	// Sensor bridges
+	IUavcanSensorBridge::make_all(_node, _sensor_bridges);
+	auto br = _sensor_bridges.getHead();
+	while (br != nullptr) {
+		ret = br->init();
+		if (ret < 0) {
+			warnx("cannot init sensor bridge '%s' (%d)", br->get_name(), ret);
+			return ret;
+		}
+		warnx("sensor bridge '%s' init ok", br->get_name());
+		br = br->getSibling();
+	}
 
 	return _node.start();
 }
@@ -522,62 +537,10 @@ UavcanNode::print_info()
 		warnx("not running, start first");
 	}
 
+	(void)pthread_mutex_lock(&_node_mutex);
+
 	warnx("actuators control groups: sub: %u / req: %u / fds: %u", (unsigned)_groups_subscribed, (unsigned)_groups_required, _poll_fds_num);
 	warnx("mixer: %s", (_mixers == nullptr) ? "NONE" : "OK");
-}
-
-int UavcanNode::sensor_enable(const char *bridge_name)
-{
-	int retval = -1;
-
-	(void)pthread_mutex_lock(&_node_mutex);
-
-	// Checking if such bridge already exists
-	{
-		auto pos = _sensor_bridges.getHead();
-		while (pos != nullptr) {
-			if (!std::strncmp(pos->get_name(), bridge_name, IUavcanSensorBridge::MAX_NAME_LEN)) {
-				warnx("sensor bridge '%s' already exists", bridge_name);
-				retval = -1;
-				goto leave;
-			}
-			pos = pos->getSibling();
-		}
-	}
-
-	// Creating and initing
-	{
-		auto bridge = IUavcanSensorBridge::make(get_node(), bridge_name);
-		if (bridge == nullptr) {
-			warnx("cannot create sensor bridge '%s'", bridge_name);
-			retval = -1;
-			goto leave;
-		}
-
-		assert(!std::strncmp(bridge->get_name(), bridge_name, IUavcanSensorBridge::MAX_NAME_LEN));
-
-		retval = bridge->init();
-		if (retval >= 0) {
-			_sensor_bridges.add(bridge);
-		} else {
-			delete bridge;
-		}
-	}
-
-leave:
-	(void)pthread_mutex_unlock(&_node_mutex);
-	return retval;
-}
-
-void UavcanNode::sensor_print_enabled()
-{
-	(void)pthread_mutex_lock(&_node_mutex);
-
-	auto pos = _sensor_bridges.getHead();
-	while (pos != nullptr) {
-		warnx("%s", pos->get_name());
-		pos = pos->getSibling();
-	}
 
 	(void)pthread_mutex_unlock(&_node_mutex);
 }
@@ -588,12 +551,7 @@ void UavcanNode::sensor_print_enabled()
 static void print_usage()
 {
 	warnx("usage: \n"
-	      "\tuavcan start\n"
-	      "\tuavcan sensor enable <sensor name>\n"
-	      "\tuavcan sensor list");
-
-	warnx("known sensor bridges:");
-	IUavcanSensorBridge::print_known_names("\t");
+	      "\tuavcan {start|status|stop}");
 }
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
@@ -643,31 +601,6 @@ int uavcan_main(int argc, char *argv[])
 	if (!std::strcmp(argv[1], "stop")) {
 		delete inst;
 		::exit(0);
-	}
-
-	if (!std::strcmp(argv[1], "sensor")) {
-		if (argc < 3) {
-			print_usage();
-			::exit(1);
-		}
-
-		if (!std::strcmp(argv[2], "list")) {
-			inst->sensor_print_enabled();
-			::exit(0);
-		}
-
-		if (argc < 4) {
-			print_usage();
-			::exit(1);
-		}
-
-		if (!std::strcmp(argv[2], "enable")) {
-			const int res = inst->sensor_enable(argv[3]);
-			if (res < 0) {
-				warnx("failed to enable sensor '%s': error %d", argv[3], res);
-			}
-			::exit(0);
-		}
 	}
 
 	print_usage();

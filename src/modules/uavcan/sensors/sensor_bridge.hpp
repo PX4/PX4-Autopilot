@@ -73,12 +73,7 @@ public:
 	 * Creates a bridge object by its ASCII name, e.g. "gnss", "mag".
 	 * @return nullptr if such bridge can't be created.
 	 */
-	static IUavcanSensorBridge* make(uavcan::INode &node, const char *bridge_name);
-
-	/**
-	 * Prints all valid bridge names into stdout via printf(), one name per line with prefix.
-	 */
-	static void print_known_names(const char *prefix);
+	static void make_all(uavcan::INode &node, List<IUavcanSensorBridge*> &list);
 };
 
 /**

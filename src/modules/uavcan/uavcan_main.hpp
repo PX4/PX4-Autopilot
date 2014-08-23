@@ -89,10 +89,6 @@ public:
 
 	void		print_info();
 
-	int		sensor_enable(const char *bridge_name);
-
-	void		sensor_print_enabled();
-
 	static UavcanNode* instance() { return _instance; }
 
 private:
@@ -115,7 +111,7 @@ private:
 
 	UavcanEscController	_esc_controller;
 
-	List<IUavcanSensorBridge*> _sensor_bridges;		///< Append-only list of active sensor bridges
+	List<IUavcanSensorBridge*> _sensor_bridges;		///< List of active sensor bridges
 
 	MixerGroup		*_mixers = nullptr;
 

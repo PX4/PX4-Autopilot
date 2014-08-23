@@ -45,27 +45,11 @@
 /*
  * IUavcanSensorBridge
  */
-IUavcanSensorBridge* IUavcanSensorBridge::make(uavcan::INode &node, const char *bridge_name)
+void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge*> &list)
 {
-	/*
-	 * TODO: make a linked list of known implementations at startup?
-	 */
-	if (!std::strncmp(UavcanGnssBridge::NAME, bridge_name, MAX_NAME_LEN)) {
-		return new UavcanGnssBridge(node);
-	} else if (!std::strncmp(UavcanMagnetometerBridge::NAME, bridge_name, MAX_NAME_LEN)) {
-		return new UavcanMagnetometerBridge(node);
-	} else if (!std::strncmp(UavcanBarometerBridge::NAME, bridge_name, MAX_NAME_LEN)) {
-		return new UavcanBarometerBridge(node);
-	} else {
-		return nullptr;
-	}
-}
-
-void IUavcanSensorBridge::print_known_names(const char *prefix)
-{
-	printf("%s%s\n", prefix, UavcanGnssBridge::NAME);
-	printf("%s%s\n", prefix, UavcanMagnetometerBridge::NAME);
-	printf("%s%s\n", prefix, UavcanBarometerBridge::NAME);
+	list.add(new UavcanBarometerBridge(node));
+	list.add(new UavcanMagnetometerBridge(node));
+	list.add(new UavcanGnssBridge(node));
 }
 
 /*
