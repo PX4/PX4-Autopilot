@@ -258,11 +258,6 @@ MEASAirspeed::collect()
 	report.differential_pressure_pa = diff_press_pa;
 	report.differential_pressure_filtered_pa =  _filter.apply(diff_press_pa);
 
-	/* the dynamics of the filter can make it overshoot into the negative range */
-	if (report.differential_pressure_filtered_pa < 0.0f) {
-		report.differential_pressure_filtered_pa = _filter.reset(diff_press_pa);
-	}
-
 	report.differential_pressure_raw_pa = diff_press_pa_raw;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
