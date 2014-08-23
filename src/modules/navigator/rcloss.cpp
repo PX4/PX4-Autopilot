@@ -110,6 +110,7 @@ RCLoss::set_rcl_item()
 	case RCL_STATE_LOITER: {
 		_mission_item.lat = _navigator->get_global_position()->lat;
 		_mission_item.lon = _navigator->get_global_position()->lon;
+		_mission_item.altitude = _navigator->get_global_position()->alt;
 		_mission_item.altitude_is_relative = false;
 		_mission_item.yaw = NAN;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
@@ -127,7 +128,7 @@ RCLoss::set_rcl_item()
 	case RCL_STATE_TERMINATE: {
 		/* Request flight termination from the commander */
 		pos_sp_triplet->flight_termination = true;
-		warnx("gps fail: request flight termination");
+		warnx("rc not recovered: request flight termination");
 		pos_sp_triplet->previous.valid = false;
 		pos_sp_triplet->current.valid = false;
 		pos_sp_triplet->next.valid = false;
@@ -152,7 +153,7 @@ RCLoss::advance_rcl()
 	case RCL_STATE_NONE:
 		/* Check the number of data link losses. If above home fly home directly */
 		warnx("RC loss, OBC mode, loiter");
-		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: rc los, loitering");
+		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: rc loss, loitering");
 		_rcl_state = RCL_STATE_LOITER;
 		break;
 	case RCL_STATE_LOITER:
