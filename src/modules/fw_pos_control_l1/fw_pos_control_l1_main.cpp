@@ -1143,7 +1143,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							TECS_MODE_TAKEOFF);
 
 					/* limit roll motion to ensure enough lift */
-					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f), math::radians(15.0f));
+					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f),
+							math::radians(15.0f));
 
 				} else {
 					tecs_update_pitch_throttle(_pos_sp_triplet.current.alt,
@@ -1159,6 +1160,11 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 								_global_pos.alt,
 								ground_speed);
 				}
+			} else {
+				/* Set default roll and pitch setpoints during detection phase */
+				_att_sp.roll_body = 0.0f;
+				_att_sp.pitch_body = math::max(math::radians(pos_sp_triplet.current.pitch_min),
+						math::radians(10.0f));
 			}
 
 		}
