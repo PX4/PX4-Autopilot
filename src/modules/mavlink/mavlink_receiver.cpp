@@ -120,10 +120,12 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0f),
 	_hil_local_proj_ref{}
+
 {
 
 	// make sure the FTP server is started
 	(void)MavlinkFTP::getServer();
+	_companion_reboot = true;
 }
 
 MavlinkReceiver::~MavlinkReceiver()
@@ -527,29 +529,29 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 	mavlink_system_time_t t;
 	mavlink_msg_system_time_decode(msg, &t);
     
-	dt = (hrt_absolute_time() - t.time_boot_ms) - time_offset ;
+	_dt = (hrt_absolute_time() - t.time_boot_ms) - _time_offset ;
 			
-	if(dt > 1000) 
+	if(_dt > 3000) 
 	{
 	warnx("Companion computer reboot");
-	companion_reboot = true;
+	_companion_reboot = true;
 	}
 	else
 	{
-	time_offset = (time_offset + (hrt_absolute_time() - t.time_boot_ms)/2; 
+	_time_offset = _time_offset + (hrt_absolute_time() - t.time_boot_ms)/2; 
 	}
 	
-	if(companion_reboot){
+	if(_companion_reboot){
 		timespec onb;
 		clock_gettime(CLOCK_REALTIME, &onb);
 		if(onb.tv_sec < 1293840000) //1/1/2011
 		{
 		timespec ofb;
-		ofb.tv_usec = t.time_unix_usec;
-		clock_settime(CLOCK_REALTIME, &ts);
+		ofb.tv_sec = t.time_unix_usec / 1000;
+		clock_settime(CLOCK_REALTIME, &ofb);
 		}
-		time_offset = hrt_absolute_time() - t.time_boot_ms;
-		companion_reboot = false;
+		_time_offset = hrt_absolute_time() - t.time_boot_ms;
+		_companion_reboot = false;
 	}
 
 	//TODO add sending of return sync packet here.
