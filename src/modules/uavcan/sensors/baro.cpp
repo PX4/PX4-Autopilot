@@ -53,7 +53,12 @@ _sub_air_data(node)
 
 int UavcanBarometerBridge::init()
 {
-	int res = _sub_air_data.start(AirDataCbBinder(this, &UavcanBarometerBridge::air_data_sub_cb));
+	int res = device::CDev::init();
+	if (res < 0) {
+		return res;
+	}
+
+	res = _sub_air_data.start(AirDataCbBinder(this, &UavcanBarometerBridge::air_data_sub_cb));
 	if (res < 0) {
 		log("failed to start uavcan sub: %d", res);
 		return res;

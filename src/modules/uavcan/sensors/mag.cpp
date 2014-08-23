@@ -56,7 +56,12 @@ _sub_mag(node)
 
 int UavcanMagnetometerBridge::init()
 {
-	int res = _sub_mag.start(MagCbBinder(this, &UavcanMagnetometerBridge::mag_sub_cb));
+	int res = device::CDev::init();
+	if (res < 0) {
+		return res;
+	}
+
+	res = _sub_mag.start(MagCbBinder(this, &UavcanMagnetometerBridge::mag_sub_cb));
 	if (res < 0) {
 		log("failed to start uavcan sub: %d", res);
 		return res;
