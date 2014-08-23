@@ -57,20 +57,19 @@ public:
 	~CatapultLaunchMethod();
 
 	void update(float accel_x);
-	bool getLaunchDetected();
+	LaunchDetectionResult getLaunchDetected() const;
 	void reset();
 
 private:
 	hrt_abstime last_timestamp;
 	float integrator;
-	float delayCounter;
+	float motorDelayCounter;
 
-	bool launchDetected;
-	bool delayPassed;
+	LaunchDetectionResult state;
 
-	control::BlockParamFloat threshold_accel;
-	control::BlockParamFloat threshold_time;
-	control::BlockParamFloat delay;
+	control::BlockParamFloat thresholdAccel;
+	control::BlockParamFloat thresholdTime;
+	control::BlockParamFloat motorDelay;
 
 };
 
