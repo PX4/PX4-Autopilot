@@ -37,10 +37,16 @@
 
 #include "mag.hpp"
 
+static const orb_id_t MAG_TOPICS[3] = {
+	ORB_ID(sensor_mag0),
+	ORB_ID(sensor_mag1),
+	ORB_ID(sensor_mag2)
+};
+
 const char *const UavcanMagnetometerBridge::NAME = "mag";
 
 UavcanMagnetometerBridge::UavcanMagnetometerBridge(uavcan::INode& node) :
-device::CDev("uavcan_mag", "/dev/uavcan/mag"),
+UavcanCDevSensorBridgeBase("uavcan_mag", "/dev/uavcan/mag", MAG_DEVICE_PATH, MAG_TOPICS),
 _sub_mag(node)
 {
 	_scale.x_scale = 1.0F;
@@ -48,45 +54,13 @@ _sub_mag(node)
 	_scale.z_scale = 1.0F;
 }
 
-UavcanMagnetometerBridge::~UavcanMagnetometerBridge()
-{
-	if (_class_instance > 0) {
-		(void)unregister_class_devname(MAG_DEVICE_PATH, _class_instance);
-	}
-}
-
 int UavcanMagnetometerBridge::init()
 {
-	// Init the libuavcan subscription
 	int res = _sub_mag.start(MagCbBinder(this, &UavcanMagnetometerBridge::mag_sub_cb));
 	if (res < 0) {
 		log("failed to start uavcan sub: %d", res);
 		return res;
 	}
-
-	// Detect our device class
-	_class_instance = register_class_devname(MAG_DEVICE_PATH);
-	switch (_class_instance) {
-	case CLASS_DEVICE_PRIMARY: {
-		_orb_id = ORB_ID(sensor_mag0);
-		break;
-	}
-	case CLASS_DEVICE_SECONDARY: {
-		_orb_id = ORB_ID(sensor_mag1);
-		break;
-	}
-	case CLASS_DEVICE_TERTIARY: {
-		_orb_id = ORB_ID(sensor_mag2);
-		break;
-	}
-	default: {
-		log("invalid class instance: %d", _class_instance);
-		(void)unregister_class_devname(MAG_DEVICE_PATH, _class_instance);
-		return -1;
-	}
-	}
-
-	log("inited with class instance %d", _class_instance);
 	return 0;
 }
 
@@ -140,14 +114,5 @@ void UavcanMagnetometerBridge::mag_sub_cb(const uavcan::ReceivedDataStructure<ua
 	report.y = (msg.magnetic_field[1] - _scale.y_offset) * _scale.y_scale;
 	report.z = (msg.magnetic_field[2] - _scale.z_offset) * _scale.z_scale;
 
-	if (_orb_advert >= 0) {
-		orb_publish(_orb_id, _orb_advert, &report);
-	} else {
-		_orb_advert = orb_advertise(_orb_id, &report);
-		if (_orb_advert < 0) {
-			log("ADVERT FAIL");
-		} else {
-			log("advertised");
-		}
-	}
+	publish(msg.getSrcNodeID().get(), &report);
 }

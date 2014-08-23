@@ -39,6 +39,8 @@
 
 #include <containers/List.hpp>
 #include <uavcan/uavcan.hpp>
+#include <drivers/device/device.h>
+#include <drivers/drv_orb_dev.h>
 
 /**
  * A sensor bridge class must implement this interface.
@@ -62,6 +64,11 @@ public:
 	virtual int init() = 0;
 
 	/**
+	 * Returns number of active redundancy channels.
+	 */
+	virtual unsigned get_num_redundant_channels() const = 0;
+
+	/**
 	 * Sensor bridge factory.
 	 * Creates a bridge object by its ASCII name, e.g. "gnss", "mag".
 	 * @return nullptr if such bridge can't be created.
@@ -72,4 +79,51 @@ public:
 	 * Prints all valid bridge names into stdout via printf(), one name per line with prefix.
 	 */
 	static void print_known_names(const char *prefix);
+};
+
+/**
+ * This is the base class for redundant sensors with an independent ORB topic per each redundancy channel.
+ * For example, sensor_mag0, sensor_mag1, etc.
+ */
+class UavcanCDevSensorBridgeBase : public IUavcanSensorBridge, public device::CDev
+{
+	struct Channel
+	{
+		int redunancy_channel_id = -1;
+		orb_id_t orb_id          = nullptr;
+		orb_advert_t orb_advert  = -1;
+		int class_instance       = -1;
+	};
+
+	const unsigned _max_channels;
+	const char *const _class_devname;
+	orb_id_t *const _orb_topics;
+	Channel *const _channels;
+	bool _out_of_channels = false;
+
+protected:
+	template <unsigned MaxChannels>
+	UavcanCDevSensorBridgeBase(const char *name, const char *devname, const char *class_devname,
+	                           const orb_id_t (&orb_topics)[MaxChannels]) :
+	device::CDev(name, devname),
+	_max_channels(MaxChannels),
+	_class_devname(class_devname),
+	_orb_topics(new orb_id_t[MaxChannels]),
+	_channels(new Channel[MaxChannels])
+	{
+		memcpy(_orb_topics, orb_topics, sizeof(orb_id_t) * MaxChannels);
+	}
+
+	/**
+	 * Sends one measurement into appropriate ORB topic.
+	 * New redundancy channels will be registered automatically.
+	 * @param redundancy_channel_id Redundant sensor identifier (e.g. UAVCAN Node ID)
+	 * @param report                ORB message object
+	 */
+	void publish(const int redundancy_channel_id, const void *report);
+
+public:
+	virtual ~UavcanCDevSensorBridgeBase();
+
+	unsigned get_num_redundant_channels() const override;
 };

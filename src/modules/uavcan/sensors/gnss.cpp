@@ -73,8 +73,23 @@ int UavcanGnssBridge::init()
 	return res;
 }
 
+unsigned UavcanGnssBridge::get_num_redundant_channels() const
+{
+	return (_receiver_node_id < 0) ? 0 : 1;
+}
+
 void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg)
 {
+	// This bridge does not support redundant GNSS receivers yet.
+	if (_receiver_node_id < 0) {
+		_receiver_node_id = msg.getSrcNodeID().get();
+		warnx("GNSS receiver node ID: %d", _receiver_node_id);
+	} else {
+		if (_receiver_node_id != msg.getSrcNodeID().get()) {
+			return;  // This GNSS receiver is the redundant one, ignore it.
+		}
+	}
+
 	_report.timestamp_position = hrt_absolute_time();
 	_report.lat = msg.lat_1e7;
 	_report.lon = msg.lon_1e7;

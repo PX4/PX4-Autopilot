@@ -38,18 +38,16 @@
 #pragma once
 
 #include "sensor_bridge.hpp"
-#include <drivers/device/device.h>
 #include <drivers/drv_mag.h>
 
 #include <uavcan/equipment/ahrs/Magnetometer.hpp>
 
-class UavcanMagnetometerBridge : public IUavcanSensorBridge, public device::CDev
+class UavcanMagnetometerBridge : public UavcanCDevSensorBridgeBase
 {
 public:
 	static const char *const NAME;
 
 	UavcanMagnetometerBridge(uavcan::INode& node);
-	~UavcanMagnetometerBridge() override;
 
 	const char *get_name() const override { return NAME; }
 
@@ -67,7 +65,4 @@ private:
 
 	uavcan::Subscriber<uavcan::equipment::ahrs::Magnetometer, MagCbBinder> _sub_mag;
 	mag_scale _scale = {};
-	orb_id_t _orb_id = nullptr;
-	orb_advert_t _orb_advert = -1;
-	int _class_instance = -1;
 };

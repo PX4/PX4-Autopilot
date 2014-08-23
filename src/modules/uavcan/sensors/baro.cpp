@@ -38,49 +38,26 @@
 #include "baro.hpp"
 #include <cmath>
 
+static const orb_id_t BARO_TOPICS[2] = {
+	ORB_ID(sensor_baro0),
+	ORB_ID(sensor_baro1)
+};
+
 const char *const UavcanBarometerBridge::NAME = "baro";
 
 UavcanBarometerBridge::UavcanBarometerBridge(uavcan::INode& node) :
-device::CDev("uavcan_baro", "/dev/uavcan/baro"),
+UavcanCDevSensorBridgeBase("uavcan_baro", "/dev/uavcan/baro", BARO_DEVICE_PATH, BARO_TOPICS),
 _sub_air_data(node)
 {
 }
 
-UavcanBarometerBridge::~UavcanBarometerBridge()
-{
-	if (_class_instance > 0) {
-		(void)unregister_class_devname(BARO_DEVICE_PATH, _class_instance);
-	}
-}
-
 int UavcanBarometerBridge::init()
 {
-	// Init the libuavcan subscription
 	int res = _sub_air_data.start(AirDataCbBinder(this, &UavcanBarometerBridge::air_data_sub_cb));
 	if (res < 0) {
 		log("failed to start uavcan sub: %d", res);
 		return res;
 	}
-
-	// Detect our device class
-	_class_instance = register_class_devname(BARO_DEVICE_PATH);
-	switch (_class_instance) {
-	case CLASS_DEVICE_PRIMARY: {
-		_orb_id = ORB_ID(sensor_baro0);
-		break;
-	}
-	case CLASS_DEVICE_SECONDARY: {
-		_orb_id = ORB_ID(sensor_baro1);
-		break;
-	}
-	default: {
-		log("invalid class instance: %d", _class_instance);
-		(void)unregister_class_devname(BARO_DEVICE_PATH, _class_instance);
-		return -1;
-	}
-	}
-
-	log("inited with class instance %d", _class_instance);
 	return 0;
 }
 
@@ -131,17 +108,5 @@ void UavcanBarometerBridge::air_data_sub_cb(const uavcan::ReceivedDataStructure<
 
 	report.altitude = (((std::pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
 
-	/*
-	 * Publish
-	 */
-	if (_orb_advert >= 0) {
-		orb_publish(_orb_id, _orb_advert, &report);
-	} else {
-		_orb_advert = orb_advertise(_orb_id, &report);
-		if (_orb_advert < 0) {
-			log("ADVERT FAIL");
-		} else {
-			log("advertised");
-		}
-	}
+	publish(msg.getSrcNodeID().get(), &report);
 }

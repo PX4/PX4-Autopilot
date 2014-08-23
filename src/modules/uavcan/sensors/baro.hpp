@@ -39,17 +39,15 @@
 
 #include "sensor_bridge.hpp"
 #include <drivers/drv_baro.h>
-#include <drivers/device/device.h>
 
 #include <uavcan/equipment/air_data/StaticAirData.hpp>
 
-class UavcanBarometerBridge : public IUavcanSensorBridge, public device::CDev
+class UavcanBarometerBridge : public UavcanCDevSensorBridgeBase
 {
 public:
 	static const char *const NAME;
 
 	UavcanBarometerBridge(uavcan::INode& node);
-	~UavcanBarometerBridge() override;
 
 	const char *get_name() const override { return NAME; }
 
@@ -67,7 +65,4 @@ private:
 
 	uavcan::Subscriber<uavcan::equipment::air_data::StaticAirData, AirDataCbBinder> _sub_air_data;
 	unsigned _msl_pressure = 101325;
-	orb_id_t _orb_id = nullptr;
-	orb_advert_t _orb_advert = -1;
-	int _class_instance = -1;
 };

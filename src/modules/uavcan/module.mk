@@ -49,9 +49,9 @@ SRCS += uavcan_main.cpp              \
 SRCS += actuators/esc.cpp
 
 # Sensors
-SRCS += sensors/sensor_bridge.cpp    \
-        sensors/gnss.cpp             \
-        sensors/mag.cpp              \
+SRCS += sensors/sensor_bridge.cpp   \
+        sensors/gnss.cpp            \
+        sensors/mag.cpp             \
         sensors/baro.cpp
 
 #

@@ -64,27 +64,23 @@ public:
 
 	int init() override;
 
+	unsigned get_num_redundant_channels() const override;
+
 private:
 	/**
 	 * GNSS fix message will be reported via this callback.
 	 */
 	void gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
 
-
 	typedef uavcan::MethodBinder<UavcanGnssBridge*,
 		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix>&)>
 		FixCbBinder;
 
-	/*
-	 * libuavcan related things
-	 */
-	uavcan::INode							&_node;
-	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder>	_sub_fix;
+	uavcan::INode &_node;
+	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder> _sub_fix;
+	int _receiver_node_id = -1;
 
-	/*
-	 * uORB
-	 */
-	struct vehicle_gps_position_s 	_report;					///< uORB topic for gnss position
-	orb_advert_t			_report_pub;					///< uORB pub for gnss position
+	struct vehicle_gps_position_s _report;   ///< uORB topic for gnss position
+	orb_advert_t _report_pub;                ///< uORB pub for gnss position
 
 };
