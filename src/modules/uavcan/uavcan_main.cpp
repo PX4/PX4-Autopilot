@@ -106,6 +106,14 @@ UavcanNode::~UavcanNode()
 
 	::close(_armed_sub);
 
+	// Removing the sensor bridges
+	auto br = _sensor_bridges.getHead();
+	while (br != nullptr) {
+		auto next = br->getSibling();
+		delete br;
+		br = next;
+	}
+
 	_instance = nullptr;
 }
 
@@ -539,8 +547,17 @@ UavcanNode::print_info()
 
 	(void)pthread_mutex_lock(&_node_mutex);
 
-	warnx("actuators control groups: sub: %u / req: %u / fds: %u", (unsigned)_groups_subscribed, (unsigned)_groups_required, _poll_fds_num);
-	warnx("mixer: %s", (_mixers == nullptr) ? "NONE" : "OK");
+	// ESC mixer status
+	warnx("ESC actuators control groups: sub: %u / req: %u / fds: %u",
+	      (unsigned)_groups_subscribed, (unsigned)_groups_required, _poll_fds_num);
+	warnx("ESC mixer: %s", (_mixers == nullptr) ? "NONE" : "OK");
+
+	// Sensor bridges
+	auto br = _sensor_bridges.getHead();
+	while (br != nullptr) {
+		warnx("Sensor '%s': channels: %u", br->get_name(), br->get_num_redundant_channels());
+		br = br->getSibling();
+	}
 
 	(void)pthread_mutex_unlock(&_node_mutex);
 }
