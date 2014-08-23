@@ -78,6 +78,15 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_A, 30.0f);
 PARAM_DEFINE_FLOAT(LAUN_CAT_T, 0.05f);
 
 /**
+ * Catapult delay
+ *
+ *
+ *
+ * @min 0
+ * @group Launch detection
+ */
+PARAM_DEFINE_FLOAT(LAUN_CAT_DELAY, 0.0f);
+/**
  * Throttle setting while detecting launch.
  *
  * The throttle is set to this value while the system is waiting for the take-off.

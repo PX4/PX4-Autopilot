@@ -63,10 +63,14 @@ public:
 private:
 	hrt_abstime last_timestamp;
 	float integrator;
+	float delayCounter;
+
 	bool launchDetected;
+	bool delayPassed;
 
 	control::BlockParamFloat threshold_accel;
 	control::BlockParamFloat threshold_time;
+	control::BlockParamFloat delay;
 
 };
 
