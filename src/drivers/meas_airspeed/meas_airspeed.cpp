@@ -232,6 +232,8 @@ MEASAirspeed::collect()
 	 * tubes are connected backwards */
 	float diff_press_pa = diff_press_pa_raw;
 
+	warnx("diff preasure: %.4f", (double)diff_press_pa);
+
 	/*
 	  note that we return both the absolute value with offset
 	  applied and a raw value without the offset applied. This
@@ -259,9 +261,9 @@ MEASAirspeed::collect()
 	report.differential_pressure_filtered_pa =  _filter.apply(diff_press_pa);
 
 	/* the dynamics of the filter can make it overshoot into the negative range */
-	if (report.differential_pressure_filtered_pa < 0.0f) {
-		report.differential_pressure_filtered_pa = _filter.reset(diff_press_pa);
-	}
+	//if (report.differential_pressure_filtered_pa < 0.0f) {
+	//	report.differential_pressure_filtered_pa = _filter.reset(diff_press_pa);
+	//}
 
 	report.differential_pressure_raw_pa = diff_press_pa_raw;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
