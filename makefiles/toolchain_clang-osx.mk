@@ -78,8 +78,10 @@ INSTRUMENTATIONDEFINES	 = $(ARCHINSTRUMENTATIONDEFINES)
 
 # Language-specific flags
 #
-ARCHCFLAGS		 = -std=gnu99
-ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x -fno-threadsafe-statics
+ARCHFLAGS		 = -arch x86_64
+ARCHCFLAGS		 = $(ARCHFLAGS) -std=gnu99
+ARCHCXXFLAGS		 = $(ARCHFLAGS) -fno-exceptions -fno-rtti -std=gnu++0x -fno-threadsafe-statics
+ARCHLDFLAGS		 = $(ARCHFLAGS)
 
 # Generic warnings
 #
@@ -114,10 +116,6 @@ ARCHCWARNINGS		 = $(ARCHWARNINGS) \
 #
 ARCHWARNINGSXX		 = $(ARCHWARNINGS) \
 			   -Wno-missing-field-initializers
-
-# pull in *just* libm from the toolchain ... this is grody
-LIBM			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a)
-EXTRA_LIBS		+= $(LIBM)
 
 # Flags we pass to the C compiler
 #
@@ -155,8 +153,9 @@ AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__ \
 
 # Flags we pass to the linker
 #
-LDFLAGS			+= --warn-common \
-			   -dead-strip \
+LDFLAGS			+= $(ARCHLDFLAGS) \
+			   -macosx_version_min 10.8 \
+			   -dead_strip \
 			   $(EXTRALDFLAGS) \
 			   $(addprefix -L,$(LIB_DIRS))
 
@@ -203,7 +202,7 @@ endef
 define PRELINK
 	@$(ECHO) "PRELINK: $1"
 	@$(MKDIR) -p $(dir $1)
-	$(Q) $(LD) -o $1 $2 && $(OBJCOPY) --localize-hidden $1
+	$(Q) $(LD) -r -o $1 $2
 endef
 
 # Update the archive $1 with the files in $2
@@ -219,7 +218,7 @@ endef
 define LINK
 	@$(ECHO) "LINK:    $1"
 	@$(MKDIR) -p $(dir $1)
-	$(Q) $(LD) $(LDFLAGS) -o $1 --start-group $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
+	$(Q) $(LD) $(LDFLAGS) -o $1 $2 $(LIBS) $(EXTRA_LIBS)
 endef
 
 # Convert $1 from a linked object to a raw binary in $2
