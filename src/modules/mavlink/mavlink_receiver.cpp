@@ -83,7 +83,9 @@ __BEGIN_DECLS
 __END_DECLS
 
 static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
-
+uint64_t MavlinkReceiver::time_offset;
+int64_t MavlinkReceiver::dt;
+bool MavlinkReceiver::companion_reboot = false;
 
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
@@ -120,12 +122,9 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0f),
 	_hil_local_proj_ref{}
-
 {
-
 	// make sure the FTP server is started
 	(void)MavlinkFTP::getServer();
-	_companion_reboot = true;
 }
 
 MavlinkReceiver::~MavlinkReceiver()
@@ -529,32 +528,38 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 	mavlink_system_time_t t;
 	mavlink_msg_system_time_decode(msg, &t);
     
-	_dt = (hrt_absolute_time() - t.time_boot_ms) - _time_offset ;
+	dt = (hrt_absolute_time() - t.time_boot_ms) - time_offset ;
 			
-	if(_dt > 3000) 
+	if(dt > 2000) 
 	{
 	warnx("Companion computer reboot");
-	_companion_reboot = true;
+	companion_reboot = true;
 	}
 	else
 	{
-	_time_offset = _time_offset + (hrt_absolute_time() - t.time_boot_ms)/2; 
+	time_offset = time_offset + (hrt_absolute_time() - t.time_boot_ms)/2; 
 	}
 	
-	if(_companion_reboot){
+	if(companion_reboot){
 		timespec onb;
 		clock_gettime(CLOCK_REALTIME, &onb);
-		if(onb.tv_sec < 1293840000) //1/1/2011
+		if(onb.tv_sec < 1293840000) //1/1/2011 = Onboard epoch time is valid(from GPS or companion)
 		{
 		timespec ofb;
 		ofb.tv_sec = t.time_unix_usec / 1000;
 		clock_settime(CLOCK_REALTIME, &ofb);
 		}
-		_time_offset = hrt_absolute_time() - t.time_boot_ms;
-		_companion_reboot = false;
-	}
 
-	//TODO add sending of return sync packet here.
+		time_offset = hrt_absolute_time() - t.time_boot_ms;
+		t.time_unix_usec = onb.tv_nsec / 1000; // For sending back to companion as it might have invalid epoch time after reboot
+		companion_reboot = false;
+	}
+	
+	//Send return timesync packet for companion computer
+	t.time_boot_ms = hrt_absolute_time();
+	
+	_mavlink->send_message(MAVLINK_MSG_ID_SYSTEM_TIME, &t);
+	
 }
 
 void
