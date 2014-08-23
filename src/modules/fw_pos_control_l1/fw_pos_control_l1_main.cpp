@@ -102,6 +102,8 @@ static int	_control_task = -1;			/**< task handle for sensor task */
  */
 extern "C" __EXPORT int fw_pos_control_l1_main(int argc, char *argv[]);
 
+using namespace launchdetection;
+
 class FixedwingPositionControl
 {
 public:
@@ -171,7 +173,7 @@ private:
 	bool land_onslope;
 
 	/* takeoff/launch states */
-	bool launch_detected;
+	LaunchDetectionResult launch_detection_state;
 	bool usePreTakeoffThrust;
 
 	bool last_manual;				///< true if the last iteration was in manual mode (used to determine when a reset is needed)
@@ -438,7 +440,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	land_stayonground(false),
 	land_motor_lim(false),
 	land_onslope(false),
-	launch_detected(false),
+	launch_detection_state(LAUNCHDETECTION_RES_NONE),
 	usePreTakeoffThrust(false),
 	last_manual(false),
 	landingslope(),
@@ -1076,39 +1078,51 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		} else if (pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF) {
 
 			/* Perform launch detection */
-			if(!launch_detected) { //do not do further checks once a launch was detected
-				if (launchDetector.launchDetectionEnabled()) {
-					static hrt_abstime last_sent = 0;
-					if(hrt_absolute_time() - last_sent > 4e6) {
-						mavlink_log_info(_mavlink_fd, "#audio: Launchdetection running");
-						last_sent = hrt_absolute_time();
-					}
+			if (launchDetector.launchDetectionEnabled() &&
+					launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
+				/* Inform user that launchdetection is running */
+				static hrt_abstime last_sent = 0;
+				if(hrt_absolute_time() - last_sent > 4e6) {
+					mavlink_log_info(_mavlink_fd, "#audio: Launchdetection running");
+					last_sent = hrt_absolute_time();
+				}
 
+				/* Detect launch */
+				launchDetector.update(_sensor_combined.accelerometer_m_s2[0]);
+
+				/* update our copy of the laucn detection state */
+				launch_detection_state = launchDetector.getLaunchDetected();
+
+				/* Depending on launch detection state set control flags */
+				if(launch_detection_state == LAUNCHDETECTION_RES_NONE) {
 					/* Tell the attitude controller to stop integrating while we are waiting
 					 * for the launch */
 					_att_sp.roll_reset_integral = true;
 					_att_sp.pitch_reset_integral = true;
 					_att_sp.yaw_reset_integral = true;
 
-					/* Detect launch */
-					launchDetector.update(_sensor_combined.accelerometer_m_s2[0]);
-					if (launchDetector.getLaunchDetected()) {
-						launch_detected = true;
-						mavlink_log_info(_mavlink_fd, "#audio: Takeoff");
-					}
-				} else	{
-					/* no takeoff detection --> fly */
-					launch_detected = true;
-					warnx("launchdetection off");
+					usePreTakeoffThrust = true;
+				} else if (launch_detection_state == LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL) {
+					usePreTakeoffThrust = true;
+				} else {
+					usePreTakeoffThrust = false;
 				}
+			} else	{
+				/* no takeoff detection --> fly */
+				usePreTakeoffThrust = false;
+				launch_detection_state = LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL;
 			}
 
-			_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
-			_att_sp.roll_body = _l1_control.nav_roll();
-			_att_sp.yaw_body = _l1_control.nav_bearing();
+			if (launch_detection_state != LAUNCHDETECTION_RES_NONE) {
+				/* Launch has been detected, hence we have to control the plane. The usePreTakeoffThrust
+				 * flag determines how much thrust we apply */
 
-			if (launch_detected) {
-				usePreTakeoffThrust = false;
+				_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+				_att_sp.roll_body = _l1_control.nav_roll();
+				_att_sp.yaw_body = _l1_control.nav_bearing();
+
+				float takeoff_throttle = usePreTakeoffThrust ? launchDetector.getThrottlePreTakeoff() :
+					_parameters.throttle_max;
 
 				/* apply minimum pitch and limit roll if target altitude is not within 10 meters */
 				if (_parameters.climbout_diff > 0.001f && altitude_error > _parameters.climbout_diff) {
@@ -1119,7 +1133,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							eas2tas,
 							math::radians(_parameters.pitch_limit_min),
 							math::radians(_parameters.pitch_limit_max),
-							_parameters.throttle_min, _parameters.throttle_max,
+							_parameters.throttle_min, takeoff_throttle,
 							_parameters.throttle_cruise,
 							true,
 							math::max(math::radians(pos_sp_triplet.current.pitch_min),
@@ -1138,17 +1152,15 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 								math::radians(_parameters.pitch_limit_min),
 								math::radians(_parameters.pitch_limit_max),
 								_parameters.throttle_min,
-								_parameters.throttle_max,
+								takeoff_throttle,
 								_parameters.throttle_cruise,
 								false,
 								math::radians(_parameters.pitch_limit_min),
 								_global_pos.alt,
 								ground_speed);
 				}
-
-			} else {
-				usePreTakeoffThrust = true;
 			}
+
 		}
 
 		/* reset landing state */
@@ -1182,6 +1194,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 	}
 
+	/* making sure again that the correct thrust is used, without depending on library calls */
 	if (usePreTakeoffThrust) {
 		_att_sp.thrust = launchDetector.getThrottlePreTakeoff();
 	}
@@ -1342,7 +1355,7 @@ FixedwingPositionControl::task_main()
 
 void FixedwingPositionControl::reset_takeoff_state()
 {
-	launch_detected = false;
+	launch_detection_state = LAUNCHDETECTION_RES_NONE;
 	usePreTakeoffThrust = false;
 	launchDetector.reset();
 }
