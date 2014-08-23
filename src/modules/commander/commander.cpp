@@ -1311,7 +1311,7 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(position_setpoint_triplet), pos_sp_triplet_sub, &pos_sp_triplet);
 
 			/* Check for geofence violation */
-			if (pos_sp_triplet.geofence_violated || pos_sp_triplet.flight_termination) {
+			if (armed.armed && (pos_sp_triplet.geofence_violated || pos_sp_triplet.flight_termination)) {
 				//XXX: make this configurable to select different actions (e.g. navigation modes)
 				/* this will only trigger if geofence is activated via param and a geofence file is present, also there is a circuit breaker to disable the actual flight termination in the px4io driver */
 				armed.force_failsafe = true;
@@ -1580,29 +1580,31 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* Check for failure combinations which lead to flight termination */
-		/* At this point the data link and the gps system have been checked
-		 * If both failed we want to terminate the flight */
-		if ((status.data_link_lost && status.gps_failure) ||
-				(status.data_link_lost_cmd && status.gps_failure_cmd)) {
-			armed.force_failsafe = true;
-			status_changed = true;
-			warnx("Flight termination because of data link loss && gps failure");
-			mavlink_log_critical(mavlink_fd, "DL and GPS lost: flight termination");
-		}
+		if (armed.armed) {
+			/* At this point the data link and the gps system have been checked
+			 * If both failed we want to terminate the flight */
+			if ((status.data_link_lost && status.gps_failure) ||
+					(status.data_link_lost_cmd && status.gps_failure_cmd)) {
+				armed.force_failsafe = true;
+				status_changed = true;
+				warnx("Flight termination because of data link loss && gps failure");
+				mavlink_log_critical(mavlink_fd, "DL and GPS lost: flight termination");
+			}
 
-		/* At this point the rc signal and the gps system have been checked
-		 * If we are in manual (controlled with RC):
-		 * if both failed we want to terminate the flight */
-		if ((status.main_state == MAIN_STATE_ACRO ||
-				status.main_state == MAIN_STATE_MANUAL ||
-				status.main_state == MAIN_STATE_ALTCTL ||
-				status.main_state == MAIN_STATE_POSCTL) &&
-				((status.rc_signal_lost && status.rc_signal_lost) ||
-				(status.rc_signal_lost && status.gps_failure_cmd))) {
-			armed.force_failsafe = true;
-			status_changed = true;
-			warnx("Flight termination because of RC signal loss && gps failure");
-			mavlink_log_critical(mavlink_fd, "RC and GPS lost: flight termination");
+			/* At this point the rc signal and the gps system have been checked
+			 * If we are in manual (controlled with RC):
+			 * if both failed we want to terminate the flight */
+			if ((status.main_state == MAIN_STATE_ACRO ||
+					status.main_state == MAIN_STATE_MANUAL ||
+					status.main_state == MAIN_STATE_ALTCTL ||
+					status.main_state == MAIN_STATE_POSCTL) &&
+					((status.rc_signal_lost && status.rc_signal_lost) ||
+					(status.rc_signal_lost && status.gps_failure_cmd))) {
+				armed.force_failsafe = true;
+				status_changed = true;
+				warnx("Flight termination because of RC signal loss && gps failure");
+				mavlink_log_critical(mavlink_fd, "RC and GPS lost: flight termination");
+			}
 		}
 
 
