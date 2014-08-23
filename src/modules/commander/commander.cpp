@@ -566,7 +566,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			status_local->rc_signal_lost_cmd = false;
 			if ((int)cmd->param2 <= 0) {
 				/* reset all commanded failure modes */
-				warnx("revert to normal mode");
+				warnx("reset all non-flighttermination failsafe commands");
 			} else if ((int)cmd->param2 == 1) {
 				/* trigger engine failure mode */
 				status_local->engine_failure_cmd = true;
