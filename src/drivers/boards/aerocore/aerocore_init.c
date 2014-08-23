@@ -70,6 +70,20 @@
 
 #include <systemlib/cpuload.h>
 #include <systemlib/perf_counter.h>
+#include <systemlib/param/param.h>
+
+/**
+* Configure the RC input for the AeroCore
+*
+* 1 = pwm (starts input_pwm app)
+* 2 = spektrum (starts input_spektrum app)
+* 0 = no app started (no RC input or PPM use through fmu app)
+*
+* @min = 0
+* @max = 1
+* @group = AeroCore
+*/
+PARAM_DEFINE_INT32(AEROCORE_RC, 0);
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -280,3 +294,4 @@ __EXPORT int nsh_archinitialize(void)
 
 	return OK;
 }
+

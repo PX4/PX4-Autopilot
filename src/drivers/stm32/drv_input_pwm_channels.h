@@ -31,88 +31,39 @@
  *
  ****************************************************************************/
 
-/*
- * @file aerocore_pwm_servo.c
+/**
+ * @file drv_input_pwm.h
  *
- * Configuration data for the stm32 pwm_servo driver.
- *
- * Note that these arrays must always be fully-sized.
+ * stm32-specific input pwm capture.
  */
 
-#include <stdint.h>
+#pragma once
 
-#include <stm32.h>
-#include <stm32_gpio.h>
-#include <stm32_tim.h>
+#include <drivers/drv_input_pwm.h>
 
-#include <drivers/stm32/drv_pwm_servo.h>
-#include <drivers/drv_pwm_output.h>
+/* configuration limits */
+#define INPUT_PWM_MAX_TIMERS	3
+#define INPUT_PWM_MAX_CHANNELS_PER_TIMER 4
+#define INPUT_PWM_MAX_CHANNELS   (INPUT_PWM_MAX_TIMERS * INPUT_PWM_MAX_CHANNELS_PER_TIMER)
 
-#include "board_config.h"
-
-__EXPORT const struct pwm_servo_timer pwm_timers[PWM_SERVO_MAX_TIMERS] = {
-	{
-		.base = STM32_TIM1_BASE,
-		.clock_register = STM32_RCC_APB2ENR,
-		.clock_bit = RCC_APB2ENR_TIM1EN,
-		.clock_freq = STM32_APB2_TIM1_CLKIN
-	},
-	{
-		.base = STM32_TIM3_BASE,
-		.clock_register = STM32_RCC_APB1ENR,
-		.clock_bit = RCC_APB1ENR_TIM3EN,
-		.clock_freq = STM32_APB1_TIM3_CLKIN
-	}
+/* array of timers dedicated to PWM input use */
+struct input_pwm_timer {
+	uint32_t	base;
+	uint32_t	clock_register;
+	uint32_t	clock_bit;
+	uint32_t	clock_freq;
+	int		irq_vector;
 };
 
-__EXPORT const struct pwm_servo_channel pwm_channels[PWM_SERVO_MAX_CHANNELS] = {
-	{
-		.gpio = GPIO_TIM1_CH1OUT,
-		.timer_index = 0,
-		.timer_channel = 1,
-		.default_value = 1500,
-	},
-	{
-		.gpio = GPIO_TIM1_CH2OUT,
-		.timer_index = 0,
-		.timer_channel = 2,
-		.default_value = 1500,
-	},
-	{
-		.gpio = GPIO_TIM1_CH3OUT,
-		.timer_index = 0,
-		.timer_channel = 3,
-		.default_value = 1500,
-	},
-/* NOT FUNCTIONAL
-	{
-		.gpio = GPIO_TIM1_CH4OUT,
-		.timer_index = 0,
-		.timer_channel = 4,
-		.default_value = 1500,
-	},*/
-	{
-		.gpio = GPIO_TIM3_CH1OUT,
-		.timer_index = 1,
-		.timer_channel = 1,
-		.default_value = 1500,
-	},
-	{
-		.gpio = GPIO_TIM3_CH2OUT,
-		.timer_index = 1,
-		.timer_channel = 2,
-		.default_value = 1500,
-	},
-	{
-		.gpio = GPIO_TIM3_CH3OUT,
-		.timer_index = 1,
-		.timer_channel = 3,
-		.default_value = 1500,
-	},
-	{
-		.gpio = GPIO_TIM3_CH4OUT,
-		.timer_index = 1,
-		.timer_channel = 4,
-		.default_value = 1500,
-	}
+/* array of channels in logical order */
+struct input_pwm_channel {
+	uint32_t	gpio;
+	uint8_t		timer_index;
+	uint8_t		timer_channel;
 };
+
+/* supplied by board-specific code */
+__EXPORT extern const struct input_pwm_timer input_pwm_timers[INPUT_PWM_MAX_TIMERS];
+__EXPORT extern const struct input_pwm_channel input_pwm_channels[INPUT_PWM_MAX_CHANNELS];
+
+int up_input_pwm_timer_isr(uint8_t timer, uint8_t *channel, uint16_t *value);

@@ -39,5 +39,8 @@
 
 SRCS		= drv_hrt.c \
 		  drv_pwm_servo.c
+ifeq ($(CONFIG), aerocore_default)
+	SRCS +=	 drv_input_pwm_channels.c
+endif
 
 INCLUDE_DIRS	+= $(NUTTX_SRC)/arch/arm/src/stm32 $(NUTTX_SRC)/arch/arm/src/common

@@ -101,7 +101,11 @@ static struct mtd_dev_s *mtd_dev;
 static unsigned n_partitions_current = 0;
 
 /* note, these will be equally sized */
-static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints"};
+#ifdef CONFIG_ARCH_BOARD_AEROCORE
+	static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints", "/fs/mtd_dataman"};
+#else
+	static char *partition_names_default[] = {"/fs/mtd_params", "/fs/mtd_waypoints"};
+#endif
 static const int n_partitions_default = sizeof(partition_names_default) / sizeof(partition_names_default[0]);
 
 static void

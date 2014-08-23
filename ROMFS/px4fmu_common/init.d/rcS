@@ -64,7 +64,12 @@ then
 	#
 	# Start CDC/ACM serial driver
 	#
-	sercon
+	if ver hwcmp AEROCORE
+	then
+		echo "[init] CDC/ACM serial driver not loaded"
+	else
+		sercon
+	fi
 
 	#
 	# Start the ORB (first app to start)
@@ -279,8 +284,13 @@ then
 		fi
 	fi
 
-	# Try to get an USB console
-	nshterm /dev/ttyACM0 &
+	if ver hwcmp AEROCORE
+	then
+		# do nothing, console on UART8
+	else
+		# Try to get an USB console
+		nshterm /dev/ttyACM0 &
+	fi
 
 	#
 	# Start the datamanager (and do not abort boot if it fails)
@@ -334,6 +344,20 @@ then
 			else
 				echo "[init] ERROR: FMU mode_$FMU_MODE start failed"
 				tone_alarm $TUNE_OUT_ERROR
+			fi
+
+			if ver hwcmp AEROCORE
+			then
+				if param compare AEROCORE_RC 1
+				then
+					echo "[init] Starting PWM RC input"
+					input_pwm start
+				fi
+				if param compare AEROCORE_RC 2
+				then
+					echo "[init] Starting Spektrum RC input"
+					# not implemented yet
+				fi
 			fi
 
 			if ver hwcmp PX4FMU_V1
