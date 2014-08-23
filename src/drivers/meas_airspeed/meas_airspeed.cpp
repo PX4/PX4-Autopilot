@@ -228,8 +228,10 @@ MEASAirspeed::collect()
 	// the raw value still should be compensated for the known offset
 	diff_press_pa_raw -= _diff_pres_offset;
 
-	float diff_press_pa = fabsf(diff_press_pa_raw);
-	
+	/* don't take the absolute value because the calibration takes this into account and warns the user if the
+	 * tubes are connected backwards */
+	float diff_press_pa = diff_press_pa_raw;
+
 	/*
 	  note that we return both the absolute value with offset
 	  applied and a raw value without the offset applied. This
@@ -241,14 +243,8 @@ MEASAirspeed::collect()
 	  With the above calculation the MS4525 sensor will produce a
 	  positive number when the top port is used as a dynamic port
 	  and bottom port is used as the static port
-
-	  Also note that the _diff_pres_offset is applied before the
-	  fabsf() not afterwards. It needs to be done this way to
-	  prevent a bias at low speeds, but this also means that when
-	  setting a offset you must set it based on the raw value, not
-	  the offset value
 	 */
-	
+
 	struct differential_pressure_s report;
 
 	/* track maximum differential pressure measured (so we can work out top speed). */
@@ -345,7 +341,7 @@ MEASAirspeed::cycle()
 /**
    correct for 5V rail voltage if the system_power ORB topic is
    available
-   
+
    See http://uav.tridgell.net/MS4525/MS4525-offset.png for a graph of
    offset versus voltage for 3 sensors
  */
@@ -394,7 +390,7 @@ MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
 	if (voltage_diff < -1.0f) {
 		voltage_diff = -1.0f;
 	}
-	temperature -= voltage_diff * temp_slope;	
+	temperature -= voltage_diff * temp_slope;
 #endif // CONFIG_ARCH_BOARD_PX4FMU_V2
 }
 
