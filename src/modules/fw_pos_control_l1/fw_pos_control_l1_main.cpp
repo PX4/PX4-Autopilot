@@ -174,7 +174,6 @@ private:
 
 	/* takeoff/launch states */
 	LaunchDetectionResult launch_detection_state;
-	bool usePreTakeoffThrust;
 
 	bool last_manual;				///< true if the last iteration was in manual mode (used to determine when a reset is needed)
 
@@ -441,7 +440,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	land_motor_lim(false),
 	land_onslope(false),
 	launch_detection_state(LAUNCHDETECTION_RES_NONE),
-	usePreTakeoffThrust(false),
 	last_manual(false),
 	landingslope(),
 	flare_curve_alt_rel_last(0.0f),
@@ -1092,37 +1090,24 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 				/* update our copy of the laucn detection state */
 				launch_detection_state = launchDetector.getLaunchDetected();
-
-				/* Depending on launch detection state set control flags */
-				if(launch_detection_state == LAUNCHDETECTION_RES_NONE) {
-					/* Tell the attitude controller to stop integrating while we are waiting
-					 * for the launch */
-					_att_sp.roll_reset_integral = true;
-					_att_sp.pitch_reset_integral = true;
-					_att_sp.yaw_reset_integral = true;
-
-					usePreTakeoffThrust = true;
-				} else if (launch_detection_state == LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL) {
-					usePreTakeoffThrust = true;
-				} else {
-					usePreTakeoffThrust = false;
-				}
 			} else	{
 				/* no takeoff detection --> fly */
-				usePreTakeoffThrust = false;
-				launch_detection_state = LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL;
+				launch_detection_state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
 			}
 
+			/* Set control values depending on the detection state */
 			if (launch_detection_state != LAUNCHDETECTION_RES_NONE) {
-				/* Launch has been detected, hence we have to control the plane. The usePreTakeoffThrust
-				 * flag determines how much thrust we apply */
+				/* Launch has been detected, hence we have to control the plane. */
 
 				_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
 				_att_sp.roll_body = _l1_control.nav_roll();
 				_att_sp.yaw_body = _l1_control.nav_bearing();
 
-				float takeoff_throttle = usePreTakeoffThrust ? launchDetector.getThrottlePreTakeoff() :
-					_parameters.throttle_max;
+				/* Select throttle: only in LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS we want to use
+				 * full throttle, otherwise we use the preTakeOff Throttle */
+				float takeoff_throttle = launch_detection_state !=
+					LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS ?
+					launchDetector.getThrottlePreTakeoff() : _parameters.throttle_max;
 
 				/* apply minimum pitch and limit roll if target altitude is not within 10 meters */
 				if (_parameters.climbout_diff > 0.001f && altitude_error > _parameters.climbout_diff) {
@@ -1161,6 +1146,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 								ground_speed);
 				}
 			} else {
+				/* Tell the attitude controller to stop integrating while we are waiting
+				 * for the launch */
+				_att_sp.roll_reset_integral = true;
+				_att_sp.pitch_reset_integral = true;
+				_att_sp.yaw_reset_integral = true;
+
 				/* Set default roll and pitch setpoints during detection phase */
 				_att_sp.roll_body = 0.0f;
 				_att_sp.pitch_body = math::max(math::radians(pos_sp_triplet.current.pitch_min),
@@ -1200,8 +1191,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 	}
 
-	/* making sure again that the correct thrust is used, without depending on library calls */
-	if (usePreTakeoffThrust) {
+	/* Copy thrust and pitch values from tecs
+	 * making sure again that the correct thrust is used, without depending on library calls */
+	if (pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF &&
+			launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
 		_att_sp.thrust = launchDetector.getThrottlePreTakeoff();
 	}
 	else {
@@ -1362,7 +1355,6 @@ FixedwingPositionControl::task_main()
 void FixedwingPositionControl::reset_takeoff_state()
 {
 	launch_detection_state = LAUNCHDETECTION_RES_NONE;
-	usePreTakeoffThrust = false;
 	launchDetector.reset();
 }
 
