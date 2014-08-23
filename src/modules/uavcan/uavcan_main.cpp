@@ -38,6 +38,7 @@
 #include <fcntl.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/param/param.h>
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/board_serial.h>
 #include <version/version.h>
@@ -587,7 +588,7 @@ void UavcanNode::sensor_print_enabled()
 static void print_usage()
 {
 	warnx("usage: \n"
-	      "\tuavcan start <node_id> [can_bitrate]\n"
+	      "\tuavcan start\n"
 	      "\tuavcan sensor enable <sensor name>\n"
 	      "\tuavcan sensor list");
 
@@ -599,52 +600,32 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
 
 int uavcan_main(int argc, char *argv[])
 {
-	constexpr unsigned DEFAULT_CAN_BITRATE = 1000000;
-
 	if (argc < 2) {
 		print_usage();
 		::exit(1);
 	}
 
 	if (!std::strcmp(argv[1], "start")) {
-		if (argc < 3) {
-			print_usage();
-			::exit(1);
+		if (UavcanNode::instance()) {
+			errx(1, "already started");
 		}
 
-		/*
-		 * Node ID
-		 */
-		const int node_id = atoi(argv[2]);
+		// Node ID
+		int32_t node_id = 0;
+		(void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
 
 		if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
 			warnx("Invalid Node ID %i", node_id);
 			::exit(1);
 		}
 
-		/*
-		 * CAN bitrate
-		 */
-		unsigned bitrate = 0;
+		// CAN bitrate
+		int32_t bitrate = 0;
+		(void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
 
-		if (argc > 3) {
-			bitrate = atol(argv[3]);
-		}
-
-		if (bitrate <= 0) {
-			bitrate = DEFAULT_CAN_BITRATE;
-		}
-
-		if (UavcanNode::instance()) {
-			errx(1, "already started");
-		}
-
-		/*
-		 * Start
-		 */
+		// Start
 		warnx("Node ID %u, bitrate %u", node_id, bitrate);
 		return UavcanNode::start(node_id, bitrate);
-
 	}
 
 	/* commands below require the app to be started */
@@ -655,14 +636,13 @@ int uavcan_main(int argc, char *argv[])
 	}
 
 	if (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info")) {
-		
-			inst->print_info();
-			::exit(0);
+		inst->print_info();
+		::exit(0);
 	}
 
 	if (!std::strcmp(argv[1], "stop")) {
-			delete inst;
-			::exit(0);
+		delete inst;
+		::exit(0);
 	}
 
 	if (!std::strcmp(argv[1], "sensor")) {

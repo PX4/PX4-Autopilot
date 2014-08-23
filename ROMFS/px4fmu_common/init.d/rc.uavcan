@@ -1,0 +1,16 @@
+#!nsh
+#
+# UAVCAN initialization script.
+#
+
+if param compare UAVCAN_ENABLE 1
+then
+	if uavcan start
+	then
+		sleep 1                      # Sensor autodetection delay
+		echo "[init] UAVCAN started"
+	else
+		echo "[init] ERROR: Could not start UAVCAN"
+		tone_alarm $TUNE_OUT_ERROR
+	fi
+fi
