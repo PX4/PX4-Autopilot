@@ -548,10 +548,14 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 		timespec ofb;
 		ofb.tv_sec = t.time_unix_usec / 1000;
 		clock_settime(CLOCK_REALTIME, &ofb);
+		t.time_unix_usec = onb.tv_nsec / 1000; // For sending back to companion as it might have invalid epoch time after reboot
+		}
+		else
+		{
+		t.time_unix_usec = 0; //invalid epoch time so companion ignore it
 		}
 
 		time_offset = hrt_absolute_time() - t.time_boot_ms;
-		t.time_unix_usec = onb.tv_nsec / 1000; // For sending back to companion as it might have invalid epoch time after reboot
 		companion_reboot = false;
 	}
 	
