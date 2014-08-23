@@ -1283,14 +1283,13 @@ int HMC5883::set_excitement(unsigned enable)
 	if (OK != ret)
 		perf_count(_comms_errors);
 
+	_conf_reg &= ~0x03; // reset previous excitement mode
 	if (((int)enable) < 0) {
 		_conf_reg |= 0x01;
 
 	} else if (enable > 0) {
 		_conf_reg |= 0x02;
 
-	} else {
-		_conf_reg &= ~0x03;
 	}
 
         // ::printf("set_excitement enable=%d regA=0x%x\n", (int)enable, (unsigned)_conf_reg);

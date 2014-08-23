@@ -217,6 +217,8 @@ Mavlink::Mavlink() :
 		errx(1, "instance ID is out of range");
 		break;
 	}
+
+	_rstatus.type = TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
 }
 
 Mavlink::~Mavlink()
@@ -1227,7 +1229,10 @@ Mavlink::task_main(int argc, char *argv[])
 				_mode = MAVLINK_MODE_CUSTOM;
 
 			} else if (strcmp(optarg, "camera") == 0) {
-				_mode = MAVLINK_MODE_CAMERA;
+				// left in here for compatibility
+				_mode = MAVLINK_MODE_ONBOARD;
+			} else if (strcmp(optarg, "onboard") == 0) {
+				_mode = MAVLINK_MODE_ONBOARD;
 			}
 
 			break;
@@ -1287,8 +1292,8 @@ Mavlink::task_main(int argc, char *argv[])
 		warnx("mode: CUSTOM");
 		break;
 
-	case MAVLINK_MODE_CAMERA:
-		warnx("mode: CAMERA");
+	case MAVLINK_MODE_ONBOARD:
+		warnx("mode: ONBOARD");
 		break;
 
 	default:
@@ -1391,9 +1396,10 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("POSITION_TARGET_GLOBAL_INT", 3.0f);
 		configure_stream("ATTITUDE_TARGET", 3.0f);
 		configure_stream("DISTANCE_SENSOR", 0.5f);
+		configure_stream("OPTICAL_FLOW", 0.5f);
 		break;
 
-	case MAVLINK_MODE_CAMERA:
+	case MAVLINK_MODE_ONBOARD:
 		configure_stream("SYS_STATUS", 1.0f);
 		configure_stream("ATTITUDE", 15.0f);
 		configure_stream("GLOBAL_POSITION_INT", 15.0f);
@@ -1652,6 +1658,8 @@ Mavlink::display_status()
 	if (_rstatus.heartbeat_time > 0) {
 		printf("\tGCS heartbeat:\t%llu us ago\n", hrt_elapsed_time(&_rstatus.heartbeat_time));
 	}
+
+	printf("\tmavlink chan: #%u\n", _channel);
 
 	if (_rstatus.timestamp > 0) {
 
