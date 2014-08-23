@@ -180,12 +180,10 @@ int do_airspeed_calibration(int mavlink_fd)
 		return ERROR;
 	}
 
-	mavlink_log_critical(mavlink_fd, "Offset of %d Pascal", (int)diff_pres_offset);
+	mavlink_log_critical(mavlink_fd, "Offset of %d Pa, create airflow now!", (int)diff_pres_offset);
 
 	/* wait 500 ms to ensure parameter propagated through the system */
 	usleep(500 * 1000);
-
-	mavlink_log_critical(mavlink_fd, "Create airflow now");
 
 	calibration_counter = 0;
 	const unsigned maxcount = 3000;
@@ -206,18 +204,18 @@ int do_airspeed_calibration(int mavlink_fd)
 			calibration_counter++;
 
 			if (fabsf(diff_pres.differential_pressure_raw_pa) < 50.0f) {
-				if (calibration_counter % 500 == 0) {
-					mavlink_log_info(mavlink_fd, "Create airflow! (%d, wanted: 50 Pa)",
-						(int)diff_pres.differential_pressure_raw_pa);
+				if (calibration_counter % 100 == 0) {
+					mavlink_log_critical(mavlink_fd, "Missing airflow! (%d, wanted: 50 Pa, #h101)",
+					(int)diff_pres.differential_pressure_raw_pa);
 				}
 				continue;
 			}
 
 			/* do not allow negative values */
 			if (diff_pres.differential_pressure_raw_pa < 0.0f) {
-				mavlink_log_critical(mavlink_fd, "Swap static and dynamic ports!");
-				mavlink_log_info(mavlink_fd, "ERROR: Negative pressure difference detected! (%d Pa)",
-						(int)diff_pres.differential_pressure_raw_pa);
+				mavlink_log_info(mavlink_fd, "negative pressure: ERROR (%d Pa)",
+					(int)diff_pres.differential_pressure_raw_pa);
+				mavlink_log_critical(mavlink_fd, "%d Pa: swap static and dynamic ports!", (int)diff_pres.differential_pressure_raw_pa);
 				close(diff_pres_sub);
 
 				/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
@@ -238,7 +236,7 @@ int do_airspeed_calibration(int mavlink_fd)
 				mavlink_log_info(mavlink_fd, CAL_FAILED_MSG, sensor_name);
 				return ERROR;
 			} else {
-				mavlink_log_info(mavlink_fd, "Positive pressure: OK (%d Pa)",
+				mavlink_log_info(mavlink_fd, "positive pressure: OK (%d Pa)",
 					(int)diff_pres.differential_pressure_raw_pa);
 				break;
 			}
