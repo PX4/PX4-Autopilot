@@ -83,9 +83,6 @@ __BEGIN_DECLS
 __END_DECLS
 
 static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
-uint64_t MavlinkReceiver::time_offset;
-int64_t MavlinkReceiver::dt;
-bool MavlinkReceiver::companion_reboot = false;
 
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
@@ -125,6 +122,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 {
 	// make sure the FTP server is started
 	(void)MavlinkFTP::getServer();
+	companion_reboot = true;
 }
 
 MavlinkReceiver::~MavlinkReceiver()

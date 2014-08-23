@@ -160,9 +160,9 @@ private:
 	float _hil_local_alt0;
 	struct map_projection_reference_s _hil_local_proj_ref;
 
-	static uint64_t time_offset;
-	static int64_t dt;
-	static bool companion_reboot;
+	uint64_t time_offset;
+	int64_t dt;
+	bool companion_reboot;
 
 	/* do not allow copying this class */
 	MavlinkReceiver(const MavlinkReceiver&);
