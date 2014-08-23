@@ -80,7 +80,6 @@ private:
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder> _sub_fix;
 	int _receiver_node_id = -1;
 
-	struct vehicle_gps_position_s _report;   ///< uORB topic for gnss position
 	orb_advert_t _report_pub;                ///< uORB pub for gnss position
 
 };

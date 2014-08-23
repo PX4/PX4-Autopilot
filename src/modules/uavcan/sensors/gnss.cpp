@@ -66,9 +66,6 @@ int UavcanGnssBridge::init()
 		return res;
 	}
 
-	// Clear the uORB GPS report
-	memset(&_report, 0, sizeof(_report));
-
 	warnx("gnss sensor bridge init ok");
 	return res;
 }
@@ -90,12 +87,14 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		}
 	}
 
-	_report.timestamp_position = hrt_absolute_time();
-	_report.lat = msg.lat_1e7;
-	_report.lon = msg.lon_1e7;
-	_report.alt = msg.alt_1e2 * MM_PER_CM;	// Convert from centimeter (1e2) to millimeters (1e3)
+	auto report = ::vehicle_gps_position_s();
 
-	_report.timestamp_variance = _report.timestamp_position;
+	report.timestamp_position = hrt_absolute_time();
+	report.lat = msg.lat_1e7;
+	report.lon = msg.lon_1e7;
+	report.alt = msg.alt_1e2 * MM_PER_CM;	// Convert from centimeter (1e2) to millimeters (1e3)
+
+	report.timestamp_variance = report.timestamp_position;
 
 
 	// Check if the msg contains valid covariance information
@@ -108,19 +107,19 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 
 		// Horizontal position uncertainty
 		const float horizontal_pos_variance = math::max(pos_cov[0], pos_cov[4]);
-		_report.eph = (horizontal_pos_variance > 0) ? sqrtf(horizontal_pos_variance) : -1.0F;
+		report.eph = (horizontal_pos_variance > 0) ? sqrtf(horizontal_pos_variance) : -1.0F;
 
 		// Vertical position uncertainty
-		_report.epv = (pos_cov[8] > 0) ? sqrtf(pos_cov[8]) : -1.0F;
+		report.epv = (pos_cov[8] > 0) ? sqrtf(pos_cov[8]) : -1.0F;
 	} else {
-		_report.eph = -1.0F;
-		_report.epv = -1.0F;
+		report.eph = -1.0F;
+		report.epv = -1.0F;
 	}
 
 	if (valid_velocity_covariance) {
 	    float vel_cov[9];
 	    msg.velocity_covariance.unpackSquareMatrix(vel_cov);
-		_report.s_variance_m_s = math::max(math::max(vel_cov[0], vel_cov[4]), vel_cov[8]);
+		report.s_variance_m_s = math::max(math::max(vel_cov[0], vel_cov[4]), vel_cov[8]);
 
 		/* There is a nonlinear relationship between the velocity vector and the heading.
 		 * Use Jacobian to transform velocity covariance to heading covariance
@@ -136,36 +135,36 @@ void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		float vel_e = msg.ned_velocity[1];
 		float vel_n_sq = vel_n * vel_n;
 		float vel_e_sq = vel_e * vel_e;
-		_report.c_variance_rad =
+		report.c_variance_rad =
 				(vel_e_sq * vel_cov[0] +
 						-2 * vel_n * vel_e * vel_cov[1] +	// Covariance matrix is symmetric
 						vel_n_sq* vel_cov[4]) / ((vel_n_sq + vel_e_sq) * (vel_n_sq + vel_e_sq));
 
 	} else {
-		_report.s_variance_m_s = -1.0F;
-		_report.c_variance_rad = -1.0F;
+		report.s_variance_m_s = -1.0F;
+		report.c_variance_rad = -1.0F;
 	}
 
-	_report.fix_type = msg.status;
+	report.fix_type = msg.status;
 
-	_report.timestamp_velocity = _report.timestamp_position;
-	_report.vel_n_m_s = msg.ned_velocity[0];
-	_report.vel_e_m_s = msg.ned_velocity[1];
-	_report.vel_d_m_s = msg.ned_velocity[2];
-	_report.vel_m_s = sqrtf(_report.vel_n_m_s * _report.vel_n_m_s + _report.vel_e_m_s * _report.vel_e_m_s + _report.vel_d_m_s * _report.vel_d_m_s);
-	_report.cog_rad = atan2f(_report.vel_e_m_s, _report.vel_n_m_s);
-	_report.vel_ned_valid = true;
+	report.timestamp_velocity = report.timestamp_position;
+	report.vel_n_m_s = msg.ned_velocity[0];
+	report.vel_e_m_s = msg.ned_velocity[1];
+	report.vel_d_m_s = msg.ned_velocity[2];
+	report.vel_m_s = sqrtf(report.vel_n_m_s * report.vel_n_m_s + report.vel_e_m_s * report.vel_e_m_s + report.vel_d_m_s * report.vel_d_m_s);
+	report.cog_rad = atan2f(report.vel_e_m_s, report.vel_n_m_s);
+	report.vel_ned_valid = true;
 
-	_report.timestamp_time = _report.timestamp_position;
-	_report.time_gps_usec = uavcan::UtcTime(msg.gnss_timestamp).toUSec();	// Convert to microseconds
+	report.timestamp_time = report.timestamp_position;
+	report.time_gps_usec = uavcan::UtcTime(msg.gnss_timestamp).toUSec();	// Convert to microseconds
 
-	_report.satellites_used = msg.sats_used;
+	report.satellites_used = msg.sats_used;
 
 	if (_report_pub > 0) {
-		orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
+		orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &report);
 
 	} else {
-		_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report);
+		_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &report);
 	}
 
 }
