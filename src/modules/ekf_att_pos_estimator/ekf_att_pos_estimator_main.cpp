@@ -1220,30 +1220,12 @@ FixedwingEstimator::task_main()
 				} else if (_ekf->statesInitialised) {
 
 					// We're apparently initialized in this case now
-					int check = check_filter_state();
-
-					if (check) {
-						// Let the system re-initialize itself
-						continue;
-					}
+					// check (and reset the filter as needed)
+					(void)check_filter_state();
 
 					// Run the strapdown INS equations every IMU update
 					_ekf->UpdateStrapdownEquationsNED();
-	#if 0
-					// debug code - could be tunred into a filter mnitoring/watchdog function
-					float tempQuat[4];
 
-					for (uint8_t j = 0; j <= 3; j++) tempQuat[j] = states[j];
-
-					quat2eul(eulerEst, tempQuat);
-
-					for (uint8_t j = 0; j <= 2; j++) eulerDif[j] = eulerEst[j] - ahrsEul[j];
-
-					if (eulerDif[2] > pi) eulerDif[2] -= 2 * pi;
-
-					if (eulerDif[2] < -pi) eulerDif[2] += 2 * pi;
-
-	#endif
 					// store the predicted states for subsequent use by measurement fusion
 					_ekf->StoreStates(IMUmsec);
 					// Check if on ground - status is used by covariance prediction

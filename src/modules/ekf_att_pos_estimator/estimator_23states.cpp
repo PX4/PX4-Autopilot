@@ -74,6 +74,7 @@ AttPosEKF::AttPosEKF() :
     windSpdFiltNorth(0.0f),
     windSpdFiltEast(0.0f),
     windSpdFiltAltitude(0.0f),
+    windSpdFiltClimb(0.0f),
     fusionModeGPS(0),
     innovVelPos{},
     varInnovVelPos{},
@@ -1660,22 +1661,30 @@ void AttPosEKF::FuseAirspeed()
     // Perform fusion of True Airspeed measurement
     if (useAirspeed && fuseVtasData && (VtasPred > 1.0f) && (VtasMeas > 8.0f))
     {
-        // Lowpass the output of the wind estimate - we want a long-term
-        // stable estimate, but not start to load into the overall dynamics
-        // of the system (which adjusting covariances would do)
-
-        // Nominally damp to 0.02% of the noise, but reduce the damping for strong altitude variations
-        // assuming equal wind speeds on the same altitude and varying wind speeds on
-        // different altitudes
-        float windFiltCoeff = 0.0002f;
 
         float altDiff = fabsf(windSpdFiltAltitude - hgtMea);
 
-        // Change filter coefficient based on altitude
-        windFiltCoeff += ConstrainFloat(0.00001f * altDiff, windFiltCoeff, 0.1f);
+        if (isfinite(windSpdFiltClimb)) {
+            windSpdFiltClimb = ((1.0f - 0.0002f) * windSpdFiltClimb) + (0.0002f * states[6]);
+        } else {
+            windSpdFiltClimb = states[6];
+        }
 
-        windSpdFiltNorth = ((1.0f - windFiltCoeff) * windSpdFiltNorth) + (windFiltCoeff * vwn);
-        windSpdFiltEast = ((1.0f - windFiltCoeff) * windSpdFiltEast) + (windFiltCoeff * vwe);
+        if (altDiff < 20.0f) {
+            // Lowpass the output of the wind estimate - we want a long-term
+            // stable estimate, but not start to load into the overall dynamics
+            // of the system (which adjusting covariances would do)
+
+            // Change filter coefficient based on altitude change rate
+            float windFiltCoeff = ConstrainFloat(fabsf(windSpdFiltClimb) / 1000.0f, 0.00005f, 0.2f);
+
+            windSpdFiltNorth = ((1.0f - windFiltCoeff) * windSpdFiltNorth) + (windFiltCoeff * vwn);
+            windSpdFiltEast = ((1.0f - windFiltCoeff) * windSpdFiltEast) + (windFiltCoeff * vwe);
+        } else {
+            windSpdFiltNorth = vwn;
+            windSpdFiltEast = vwe;
+        }
+
         windSpdFiltAltitude = hgtMea;
 
         // Calculate observation jacobians
@@ -3096,6 +3105,13 @@ void AttPosEKF::ZeroVariables()
     dAngIMU.zero();
     dVelIMU.zero();
     lastGyroOffset.zero();
+
+    windSpdFiltNorth = 0.0f;
+    windSpdFiltEast = 0.0f;
+    // setting the altitude to zero will give us a higher
+    // gain to adjust faster in the first step
+    windSpdFiltAltitude = 0.0f;
+    windSpdFiltClimb = 0.0f;
 
     for (unsigned i = 0; i < data_buffer_size; i++) {
 
