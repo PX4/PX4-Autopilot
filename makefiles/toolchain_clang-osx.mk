@@ -48,7 +48,7 @@ MAXOPTIMIZATION		 ?= -O3
 
 # Base CPU flags for each of the supported architectures.
 #
-ARCHINSTRUMENTATIONDEFINES = -finstrument-functions
+ARCHINSTRUMENTATIONDEFINES =
 
 # Pick the right set of flags for the architecture.
 #
@@ -203,7 +203,7 @@ endef
 define PRELINK
 	@$(ECHO) "PRELINK: $1"
 	@$(MKDIR) -p $(dir $1)
-	$(Q) $(LD) -Ur -Map $1.map -o $1 $2 && $(OBJCOPY) --localize-hidden $1
+	$(Q) $(LD) -o $1 $2 && $(OBJCOPY) --localize-hidden $1
 endef
 
 # Update the archive $1 with the files in $2
@@ -219,7 +219,7 @@ endef
 define LINK
 	@$(ECHO) "LINK:    $1"
 	@$(MKDIR) -p $(dir $1)
-	$(Q) $(LD) $(LDFLAGS) -Map $1.map -o $1 --start-group $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
+	$(Q) $(LD) $(LDFLAGS) -o $1 --start-group $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
 endef
 
 # Convert $1 from a linked object to a raw binary in $2
