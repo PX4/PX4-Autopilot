@@ -30,4 +30,4 @@ def pretty_filename(filename):
     '''Returns a nice human readable path to 'filename'.'''
     a = os.path.abspath(filename)
     r = os.path.relpath(filename)
-    return a if len(a) < len(r) else r
+    return a if '..' in r else r

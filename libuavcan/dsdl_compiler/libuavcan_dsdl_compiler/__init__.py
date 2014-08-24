@@ -67,7 +67,7 @@ def pretty_filename(filename):
     try:
         a = os.path.abspath(filename)
         r = os.path.relpath(filename)
-        return a if len(a) < len(r) else r
+        return a if '..' in r else r
     except ValueError:
         return filename
 
