@@ -3,10 +3,11 @@
 # Any UAVCAN node is required to publish this message periodically.
 #
 
-uint16 PUBLICATION_PERIOD_MS = 1000
+uint16 MAX_PUBLICATION_PERIOD_MS = 1000
+uint16 MIN_PUBLICATION_PERIOD_MS = 20
 
 # If a node fails to publish this message in this amount of time, it should be considered offline.
-uint16 OFFLINE_TIMEOUT_MS = 5000
+uint16 OFFLINE_TIMEOUT_MS = 3000
 
 # Uptime counter should never overflow.
 uint28 uptime_sec

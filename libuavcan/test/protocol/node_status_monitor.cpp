@@ -106,19 +106,19 @@ TEST(NodeStatusMonitor, Basic)
      */
     std::cout << "Starting timeout test, current monotime is " << clock_mock.monotonic << std::endl;
 
-    clock_mock.advance(1000000);
+    clock_mock.advance(500000);
     shortSpin(node);
     st = nsm.getNodeStatus(uavcan::NodeID(10));
     ASSERT_TRUE(st.known);
     ASSERT_EQ(NodeStatus::STATUS_OK, st.status_code);
 
-    clock_mock.advance(1000000);
+    clock_mock.advance(500000);
     shortSpin(node);
     st = nsm.getNodeStatus(uavcan::NodeID(9));
     ASSERT_TRUE(st.known);
     ASSERT_EQ(NodeStatus::STATUS_INITIALIZING, st.status_code);
 
-    clock_mock.advance(1000000);
+    clock_mock.advance(500000);
     shortSpin(node);
     st = nsm.getNodeStatus(uavcan::NodeID(11));
     ASSERT_TRUE(st.known);
@@ -127,7 +127,7 @@ TEST(NodeStatusMonitor, Basic)
     /*
      * Will timeout now
      */
-    clock_mock.advance(2000000);
+    clock_mock.advance(4000000);
     shortSpin(node);
 
     st = nsm.getNodeStatus(uavcan::NodeID(10));

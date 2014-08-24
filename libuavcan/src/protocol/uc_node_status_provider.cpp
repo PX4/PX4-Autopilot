@@ -92,7 +92,7 @@ int NodeStatusProvider::startAndPublish()
         goto fail;
     }
 
-    setStatusPublishingPeriod(MonotonicDuration::fromMSec(protocol::NodeStatus::PUBLICATION_PERIOD_MS));
+    setStatusPublishingPeriod(MonotonicDuration::fromMSec(protocol::NodeStatus::MAX_PUBLICATION_PERIOD_MS));
 
     return res;
 
@@ -106,8 +106,8 @@ fail:
 
 void NodeStatusProvider::setStatusPublishingPeriod(uavcan::MonotonicDuration period)
 {
-    const MonotonicDuration maximum = MonotonicDuration::fromMSec(protocol::NodeStatus::PUBLICATION_PERIOD_MS);
-    const MonotonicDuration minimum = MonotonicDuration::fromMSec(50);
+    const MonotonicDuration maximum = MonotonicDuration::fromMSec(protocol::NodeStatus::MAX_PUBLICATION_PERIOD_MS);
+    const MonotonicDuration minimum = MonotonicDuration::fromMSec(protocol::NodeStatus::MIN_PUBLICATION_PERIOD_MS);
 
     period = min(period, maximum);
     period = max(period, minimum);

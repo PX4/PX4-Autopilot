@@ -16,8 +16,8 @@ namespace uavcan
 
 MonotonicDuration NetworkCompatibilityChecker::getNetworkDiscoveryDelay() const
 {
-    // Base duration is constant - NodeStatus publication period
-    MonotonicDuration dur = MonotonicDuration::fromMSec(protocol::NodeStatus::PUBLICATION_PERIOD_MS);
+    // Base duration is constant - NodeStatus max publication period
+    MonotonicDuration dur = MonotonicDuration::fromMSec(protocol::NodeStatus::MAX_PUBLICATION_PERIOD_MS);
     // Additional duration depends on the node priority - gets larger with higher Node ID
     dur += MonotonicDuration::fromMSec(getNode().getNodeID().get() * 10);
     return dur;
