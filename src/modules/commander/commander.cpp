@@ -1081,6 +1081,25 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensors);
+			/* Check if the barometer is healthy and issue a warning in the GCS if not so.
+			 * Because the barometer is used for calculating AMSL altitude which is used to ensure
+			 * vertical separation from other airtraffic the operator has to know when the
+			 * barometer is inoperational.
+			 * */
+			if (hrt_elapsed_time(&sensors.baro_timestamp) < FAILSAFE_DEFAULT_TIMEOUT) {
+				/* handle the case where baro was regained */
+				if (status.barometer_failure) {
+					status.barometer_failure = false;
+					status_changed = true;
+					mavlink_log_critical(mavlink_fd, "baro healthy");
+				}
+			} else {
+				if (!status.barometer_failure) {
+					status.barometer_failure = true;
+					status_changed = true;
+					mavlink_log_critical(mavlink_fd, "baro failed");
+				}
+			}
 		}
 
 		orb_check(diff_pres_sub, &updated);
