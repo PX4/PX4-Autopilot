@@ -77,9 +77,10 @@ public:
 	 */
 	bool inside(const struct vehicle_global_position_s &global_position);
 	bool inside(const struct vehicle_global_position_s &global_position, float baro_altitude_amsl);
-	bool inside(double lat, double lon, float altitude);
 	bool inside(const struct vehicle_global_position_s &global_position,
 			const struct vehicle_gps_position_s &gps_position,float baro_altitude_amsl);
+	bool inside(double lat, double lon, float altitude);
+	bool inside_polygon(double lat, double lon, float altitude);
 
 	int clearDm();
 
@@ -97,7 +98,7 @@ public:
 	bool isEmpty() {return _verticesCount == 0;}
 
 	int getAltitudeMode() { return _param_altitude_mode.get(); }
-	
+
 	int getSource() { return _param_source.get(); }
 
 private:
@@ -112,6 +113,9 @@ private:
 	control::BlockParamInt _param_geofence_on;
 	control::BlockParamInt _param_altitude_mode;
 	control::BlockParamInt _param_source;
+	control::BlockParamInt _param_counter_threshold;
+
+	uint8_t			_outside_counter;
 };
 
 

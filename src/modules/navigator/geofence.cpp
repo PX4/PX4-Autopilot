@@ -64,7 +64,9 @@ Geofence::Geofence() :
 		_verticesCount(0),
 		_param_geofence_on(this, "ON"),
 		_param_altitude_mode(this, "ALTMODE"),
-		_param_source(this, "SOURCE")
+		_param_source(this, "SOURCE"),
+		_param_counter_threshold(this, "COUNT"),
+		_outside_counter(0)
 {
 	/* Load initial params */
 	updateParams();
@@ -107,6 +109,24 @@ bool Geofence::inside(const struct vehicle_global_position_s &global_position,
 }
 
 bool Geofence::inside(double lat, double lon, float altitude)
+{
+	bool inside_fence = inside_polygon(lat, lon, altitude);
+
+	if (inside_fence) {
+		_outside_counter = 0;
+		return inside_fence;
+	} {
+		_outside_counter++;
+		if(_outside_counter > _param_counter_threshold.get()) {
+			return inside_fence;
+		} else {
+			return true;
+		}
+	}
+}
+
+
+bool Geofence::inside_polygon(double lat, double lon, float altitude)
 {
 	/* Return true if geofence is disabled */
 	if (_param_geofence_on.get() != 1)
