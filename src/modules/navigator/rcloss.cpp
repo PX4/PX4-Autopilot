@@ -132,6 +132,7 @@ RCLoss::set_rcl_item()
 		pos_sp_triplet->previous.valid = false;
 		pos_sp_triplet->current.valid = false;
 		pos_sp_triplet->next.valid = false;
+		break;
 	}
 	default:
 		break;

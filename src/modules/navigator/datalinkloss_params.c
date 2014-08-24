@@ -92,6 +92,17 @@ PARAM_DEFINE_INT32(NAV_DLL_CH_LON, 1518453890);
 PARAM_DEFINE_FLOAT(NAV_DLL_CH_ALT, 600.0f);
 
 /**
+ * Aifield hole wait time
+ *
+ * The amount of time in seconds the system should wait at the airfield home waypoint
+ *
+ * @unit seconds
+ * @min 0.0
+ * @group DLL
+ */
+PARAM_DEFINE_FLOAT(NAV_DLL_AH_T, 120.0f);
+
+/**
  * Number of allowed Datalink timeouts
  *
  * After more than this number of data link timeouts the aircraft returns home directly

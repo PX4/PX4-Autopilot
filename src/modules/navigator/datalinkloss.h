@@ -72,12 +72,15 @@ private:
 	control::BlockParamInt _param_airfieldhomelat; // * 1e7
 	control::BlockParamInt _param_airfieldhomelon; // * 1e7
 	control::BlockParamFloat _param_airfieldhomealt;
+	control::BlockParamFloat _param_airfieldhomewaittime;
 	control::BlockParamInt _param_numberdatalinklosses;
 
 	enum DLLState {
 		DLL_STATE_NONE = 0,
 		DLL_STATE_FLYTOCOMMSHOLDWP = 1,
 		DLL_STATE_FLYTOAIRFIELDHOMEWP = 2,
+		DLL_STATE_TERMINATE = 3,
+		DLL_STATE_END = 4
 	} _dll_state;
 
 	/**

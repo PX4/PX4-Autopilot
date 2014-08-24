@@ -64,6 +64,7 @@ DataLinkLoss::DataLinkLoss(Navigator *navigator, const char *name) :
 	_param_airfieldhomelat(this, "NAV_AH_LAT", false),
 	_param_airfieldhomelon(this, "NAV_AH_LON", false),
 	_param_airfieldhomealt(this, "NAV_AH_ALT", false),
+	_param_airfieldhomewaittime(this, "AH_T"),
 	_param_numberdatalinklosses(this, "N"),
 	_dll_state(DLL_STATE_NONE)
 {
@@ -140,13 +141,23 @@ DataLinkLoss::set_dll_item()
 		_mission_item.yaw = NAN;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
-		_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+		_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
+		_mission_item.time_inside = _param_airfieldhomewaittime.get() < 0.0f ? 0.0f : _param_airfieldhomewaittime.get();
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.pitch_min = 0.0f;
 		_mission_item.autocontinue = true;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
 		_navigator->set_can_loiter_at_sp(true);
+		break;
+	}
+	case DLL_STATE_TERMINATE: {
+		/* Request flight termination from the commander */
+		pos_sp_triplet->flight_termination = true;
+		warnx("not switched to manual: request flight termination");
+		pos_sp_triplet->previous.valid = false;
+		pos_sp_triplet->current.valid = false;
+		pos_sp_triplet->next.valid = false;
 		break;
 	}
 	default:
@@ -185,6 +196,18 @@ DataLinkLoss::advance_dll()
 		_navigator->get_mission_result()->stay_in_failsafe = true;
 		_navigator->publish_mission_result();
 		break;
+	case DLL_STATE_FLYTOAIRFIELDHOMEWP:
+		_dll_state = DLL_STATE_TERMINATE;
+		warnx("time is up, state should have been changed manually by now");
+		mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: no manual control, terminating");
+		_navigator->get_mission_result()->stay_in_failsafe = true;
+		_navigator->publish_mission_result();
+		break;
+	case DLL_STATE_TERMINATE:
+		warnx("dll end");
+		_dll_state = DLL_STATE_END;
+		break;
+
 	default:
 		break;
 	}
