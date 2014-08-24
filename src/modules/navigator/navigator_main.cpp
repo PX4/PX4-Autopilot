@@ -395,11 +395,9 @@ Navigator::task_main()
 		if (have_geofence_position_data) {
 			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter);
 			if (!inside) {
-				/* inform other apps via the sp triplet */
-				_pos_sp_triplet.geofence_violated = true;
-				if (_pos_sp_triplet.geofence_violated != true) {
-					_pos_sp_triplet_updated = true;
-				}
+				/* inform other apps via the mission result */
+				_mission_result.geofence_violated = true;
+				publish_mission_result();
 
 				/* Issue a warning about the geofence violation once */
 				if (!_geofence_violation_warning_sent) {
@@ -407,11 +405,9 @@ Navigator::task_main()
 					_geofence_violation_warning_sent = true;
 				}
 			} else {
-				/* inform other apps via the sp triplet */
-				_pos_sp_triplet.geofence_violated = false;
-				if (_pos_sp_triplet.geofence_violated != false) {
-					_pos_sp_triplet_updated = true;
-				}
+				/* inform other apps via the mission result */
+				_mission_result.geofence_violated = false;
+				publish_mission_result();
 				/* Reset the _geofence_violation_warning_sent field */
 				_geofence_violation_warning_sent = false;
 			}

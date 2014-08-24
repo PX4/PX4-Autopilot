@@ -154,7 +154,8 @@ DataLinkLoss::set_dll_item()
 	}
 	case DLL_STATE_TERMINATE: {
 		/* Request flight termination from the commander */
-		pos_sp_triplet->flight_termination = true;
+		_navigator->get_mission_result()->flight_termination = true;
+		_navigator->publish_mission_result();
 		warnx("not switched to manual: request flight termination");
 		pos_sp_triplet->previous.valid = false;
 		pos_sp_triplet->current.valid = false;
@@ -180,23 +181,25 @@ DataLinkLoss::advance_dll()
 	switch (_dll_state) {
 	case DLL_STATE_NONE:
 		/* Check the number of data link losses. If above home fly home directly */
-		if (!_param_skipcommshold.get()) {
-			/* if number of data link losses limit is not reached fly to comms hold wp */
-			if (_navigator->get_vstatus()->data_link_lost_counter > _param_numberdatalinklosses.get()) {
-				warnx("%d data link losses, limit is %d, fly to airfield home",
-						_navigator->get_vstatus()->data_link_lost_counter, _param_numberdatalinklosses.get());
-				mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: too many DL losses, fly to home");
-				_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
-			} else {
+		/* if number of data link losses limit is not reached fly to comms hold wp */
+		if (_navigator->get_vstatus()->data_link_lost_counter > _param_numberdatalinklosses.get()) {
+			warnx("%d data link losses, limit is %d, fly to airfield home",
+					_navigator->get_vstatus()->data_link_lost_counter, _param_numberdatalinklosses.get());
+			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: too many DL losses, fly to airfield home");
+			_navigator->get_mission_result()->stay_in_failsafe = true;
+			_navigator->publish_mission_result();
+			_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
+		} else {
+			if (!_param_skipcommshold.get()) {
 				warnx("fly to comms hold, datalink loss counter: %d", _navigator->get_vstatus()->data_link_lost_counter);
 				mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: fly to comms hold");
 				_dll_state = DLL_STATE_FLYTOCOMMSHOLDWP;
+			} else {
+				/* comms hold wp not active, fly to airfield home directly */
+				warnx("Skipping comms hold wp. Flying directly to airfield home");
+				mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: fly to airfield home, comms hold skipped");
+				_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 			}
-		} else {
-			/* comms hold wp not active, fly to airfield home directly */
-			warnx("Skipping comms hold wp. Flying directly to airfield home");
-			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: fly to airfield home, comms hold skipped");
-			_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 		}
 		break;
 	case DLL_STATE_FLYTOCOMMSHOLDWP:

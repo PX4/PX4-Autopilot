@@ -1328,15 +1328,6 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(position_setpoint_triplet), pos_sp_triplet_sub, &pos_sp_triplet);
-
-			/* Check for geofence violation */
-			if (armed.armed && (pos_sp_triplet.geofence_violated || pos_sp_triplet.flight_termination)) {
-				//XXX: make this configurable to select different actions (e.g. navigation modes)
-				/* this will only trigger if geofence is activated via param and a geofence file is present, also there is a circuit breaker to disable the actual flight termination in the px4io driver */
-				armed.force_failsafe = true;
-				status_changed = true;
-				warnx("Flight termination because of navigator request or geofence");
-			} // no reset is done here on purpose, on geofence violation we want to stay in flighttermination
 		}
 
 		if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
@@ -1429,6 +1420,15 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(mission_result), mission_result_sub, &mission_result);
+
+			/* Check for geofence violation */
+			if (armed.armed && (mission_result.geofence_violated || mission_result.flight_termination)) {
+				//XXX: make this configurable to select different actions (e.g. navigation modes)
+				/* this will only trigger if geofence is activated via param and a geofence file is present, also there is a circuit breaker to disable the actual flight termination in the px4io driver */
+				armed.force_failsafe = true;
+				status_changed = true;
+				warnx("Flight termination because of navigator request or geofence");
+			} // no reset is done here on purpose, on geofence violation we want to stay in flighttermination
 		}
 
 		/* RC input check */
