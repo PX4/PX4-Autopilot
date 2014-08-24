@@ -121,7 +121,7 @@ INSTRUMENTATIONDEFINES	 = $(ARCHINSTRUMENTATIONDEFINES_$(CONFIG_ARCH))
 # Language-specific flags
 #
 ARCHCFLAGS		 = -std=gnu99
-ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x
+ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x -fno-threadsafe-statics
 
 # Generic warnings
 #
@@ -139,7 +139,11 @@ ARCHWARNINGS		 = -Wall \
 			   -Werror=format-security \
 			   -Werror=array-bounds \
 			   -Wfatal-errors \
-			   -Wformat=1
+			   -Wformat=1 \
+			   -Werror=unused-but-set-variable \
+			   -Werror=unused-variable \
+			   -Werror=double-promotion \
+			   -Werror=reorder
 #   -Wcast-qual  - generates spurious noreturn attribute warnings, try again later
 #   -Wconversion - would be nice, but too many "risky-but-safe" conversions in the code
 #   -Wcast-align - would help catch bad casts in some cases, but generates too many false positives

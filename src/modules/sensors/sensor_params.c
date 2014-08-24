@@ -194,16 +194,35 @@ PARAM_DEFINE_FLOAT(SENS_ACC_ZSCALE, 1.0f);
 /**
  * Differential pressure sensor offset
  *
+ * The offset (zero-reading) in Pascal
+ *
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_DPRES_OFF, 0.0f);
 
 /**
- * Differential pressure sensor analog enabled
+ * Differential pressure sensor analog scaling
+ *
+ * Pick the appropriate scaling from the datasheet.
+ * this number defines the (linear) conversion from voltage
+ * to Pascal (pa). For the MPXV7002DP this is 1000.
+ *
+ * NOTE: If the sensor always registers zero, try switching
+ * the static and dynamic tubes.
  *
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(SENS_DPRES_ANA, 0);
+PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0);
+
+/**
+ * QNH for barometer
+ *
+ * @min 500
+ * @max 1500
+ * @group Sensor Calibration
+ * @unit hPa
+ */
+PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
 
 
 /**
@@ -243,6 +262,36 @@ PARAM_DEFINE_INT32(SENS_DPRES_ANA, 0);
 PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
 
 /**
+ * Board rotation Y (Pitch) offset
+ *
+ * This parameter defines a rotational offset in degrees around the Y (Pitch) axis. It allows the user
+ * to fine tune the board offset in the event of misalignment.
+ *
+ * @group Sensor Calibration
+ */
+ PARAM_DEFINE_FLOAT(SENS_BOARD_Y_OFF, 0.0f);
+
+/**
+ * Board rotation X (Roll) offset
+ *
+ * This parameter defines a rotational offset in degrees around the X (Roll) axis It allows the user
+ * to fine tune the board offset in the event of misalignment.
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
+
+/**
+ * Board rotation Z (YAW) offset
+ *
+ * This parameter defines a rotational offset in degrees around the Z (Yaw) axis. It allows the user
+ * to fine tune the board offset in the event of misalignment.
+ *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
+
+/**
  * External magnetometer rotation
  *
  * This parameter defines the rotation of the external magnetometer relative
@@ -252,6 +301,19 @@ PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(SENS_EXT_MAG_ROT, 0);
+
+/**
+* Set usage of external magnetometer
+*
+*  * Set to 0 (default) to auto-detect (will try to get the external as primary)
+*  * Set to 1 to force the external magnetometer as primary
+*  * Set to 2 to force the internal magnetometer as primary
+*
+* @min 0
+* @max 2
+* @group Sensor Calibration
+*/
+PARAM_DEFINE_INT32(SENS_EXT_MAG, 0);
 
 
 /**
@@ -635,6 +697,15 @@ PARAM_DEFINE_INT32(RC_MAP_LOITER_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_ACRO_SW, 0);
 
 /**
+ * Offboard switch channel mapping.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
+
+/**
  * Flaps channel mapping.
  *
  * @min 0
@@ -781,3 +852,20 @@ PARAM_DEFINE_FLOAT(RC_LOITER_TH, 0.5f);
  *
  */
 PARAM_DEFINE_FLOAT(RC_ACRO_TH, 0.5f);
+
+
+/**
+ * Threshold for selecting offboard mode
+ *
+ * min:-1
+ * max:+1
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_OFFB_TH, 0.5f);

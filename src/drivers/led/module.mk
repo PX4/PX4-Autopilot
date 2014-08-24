@@ -36,3 +36,5 @@
 #
 
 SRCS		= led.cpp
+
+MAXOPTIMIZATION	 = -Os

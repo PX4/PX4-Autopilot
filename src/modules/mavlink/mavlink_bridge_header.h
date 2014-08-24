@@ -44,7 +44,12 @@
 
 __BEGIN_DECLS
 
-#define MAVLINK_USE_CONVENIENCE_FUNCTIONS
+/*
+ * We are NOT using convenience functions,
+ * but instead send messages with a custom function.
+ * So we do NOT do this:
+ * #define MAVLINK_USE_CONVENIENCE_FUNCTIONS
+ */
 
 /* use efficient approach, see mavlink_helpers.h */
 #define MAVLINK_SEND_UART_BYTES mavlink_send_uart_bytes

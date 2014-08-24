@@ -98,7 +98,7 @@ __BEGIN_DECLS
 /*
  * Optional devices on IO's external port
  */
-#define PX4_SPIDEV_ACCEL_MAG 2
+#define PX4_SPIDEV_ACCEL_MAG	2
 
 /*
  * I2C busses

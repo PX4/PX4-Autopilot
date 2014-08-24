@@ -44,11 +44,11 @@
 #include "board_config.h"
 #include "board_serial.h"
 
-int get_board_serial(char *serialid)
+int get_board_serial(uint8_t *serialid)
 {
-	const volatile unsigned *udid_ptr = (const unsigned *)UDID_START;
+	const volatile uint32_t *udid_ptr = (const uint32_t *)UDID_START;
 	union udid id;
-	val_read((unsigned *)&id, udid_ptr, sizeof(id));
+	val_read((uint32_t *)&id, udid_ptr, sizeof(id));
 
 
 	/* Copy the serial from the chips non-write memory and swap endianess */

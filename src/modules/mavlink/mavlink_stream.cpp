@@ -43,7 +43,11 @@
 #include "mavlink_stream.h"
 #include "mavlink_main.h"
 
-MavlinkStream::MavlinkStream() : _interval(1000000), _last_sent(0), _channel(MAVLINK_COMM_0), next(nullptr)
+MavlinkStream::MavlinkStream(Mavlink *mavlink) :
+	next(nullptr),
+	_mavlink(mavlink),
+	_interval(1000000),
+	_last_sent(0)
 {
 }
 
@@ -61,26 +65,27 @@ MavlinkStream::set_interval(const unsigned int interval)
 }
 
 /**
- * Set mavlink channel
- */
-void
-MavlinkStream::set_channel(mavlink_channel_t channel)
-{
-	_channel = channel;
-}
-
-/**
  * Update subscriptions and send message if necessary
  */
 int
 MavlinkStream::update(const hrt_abstime t)
 {
 	uint64_t dt = t - _last_sent;
+	unsigned int interval = _interval;
 
-	if (dt > 0 && dt >= _interval) {
+	if (!const_rate()) {
+		interval /= _mavlink->get_rate_mult();
+	}
+
+	if (dt > 0 && dt >= interval) {
 		/* interval expired, send message */
 		send(t);
-		_last_sent = (t / _interval) * _interval;
+		if (const_rate()) {
+			_last_sent = (t / _interval) * _interval;
+
+		} else {
+			_last_sent = t;
+		}
 
 		return 0;
 	}

@@ -226,7 +226,7 @@ build_gps_response(uint8_t *buffer, size_t *size)
 	msg.sensor_id = GPS_SENSOR_ID;
 	msg.sensor_text_id = GPS_SENSOR_TEXT_ID;
 
-	msg.gps_num_sat = gps.satellites_visible;
+	msg.gps_num_sat = gps.satellites_used;
 
 	/* The GPS fix type: 0 = none, 2 = 2D, 3 = 3D */
 	msg.gps_fix_char = (uint8_t)(gps.fix_type + 48);

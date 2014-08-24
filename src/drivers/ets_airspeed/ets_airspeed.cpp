@@ -155,7 +155,6 @@ ETSAirspeed::collect()
 	}
 
 	uint16_t diff_pres_pa_raw = val[1] << 8 | val[0];
-	uint16_t diff_pres_pa;
         if (diff_pres_pa_raw == 0) {
 		// a zero value means the pressure sensor cannot give us a
 		// value. We need to return, and not report a value or the
@@ -166,27 +165,22 @@ ETSAirspeed::collect()
 		return -1;
         }
 
-	if (diff_pres_pa_raw < _diff_pres_offset + MIN_ACCURATE_DIFF_PRES_PA) {
-		diff_pres_pa = 0;
-	} else {
-		diff_pres_pa = diff_pres_pa_raw - _diff_pres_offset;
-	}
+	// The raw value still should be compensated for the known offset
+	diff_pres_pa_raw -= _diff_pres_offset;
 
 	// Track maximum differential pressure measured (so we can work out top speed).
-	if (diff_pres_pa > _max_differential_pressure_pa) {
-		_max_differential_pressure_pa = diff_pres_pa;
+	if (diff_pres_pa_raw > _max_differential_pressure_pa) {
+		_max_differential_pressure_pa = diff_pres_pa_raw;
 	}
 
 	differential_pressure_s report;
 	report.timestamp = hrt_absolute_time();
         report.error_count = perf_event_count(_comms_errors);
-	report.differential_pressure_pa = (float)diff_pres_pa;
 
 	// XXX we may want to smooth out the readings to remove noise.
-	report.differential_pressure_filtered_pa = (float)diff_pres_pa;
-	report.differential_pressure_raw_pa = (float)diff_pres_pa_raw;
+	report.differential_pressure_filtered_pa = diff_pres_pa_raw;
+	report.differential_pressure_raw_pa = diff_pres_pa_raw;
 	report.temperature = -1000.0f;
-	report.voltage = 0;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
 	if (_airspeed_pub > 0 && !(_pub_blocked)) {
@@ -284,6 +278,9 @@ void	info();
 
 /**
  * Start the driver.
+ *
+ * This function only returns if the sensor is up and running
+ * or could not be detected successfully.
  */
 void
 start(int i2c_bus)
@@ -364,7 +361,7 @@ test()
 		err(1, "immediate read failed");
 
 	warnx("single read");
-	warnx("diff pressure: %d pa", report.differential_pressure_pa);
+	warnx("diff pressure: %f pa", (double)report.differential_pressure_filtered_pa);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2))
@@ -389,7 +386,7 @@ test()
 			err(1, "periodic read failed");
 
 		warnx("periodic read %u", i);
-		warnx("diff pressure: %d pa", report.differential_pressure_pa);
+		warnx("diff pressure: %f pa", (double)report.differential_pressure_filtered_pa);
 	}
 
 	/* reset the sensor polling to its default rate */

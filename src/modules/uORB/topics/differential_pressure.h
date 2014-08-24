@@ -54,11 +54,9 @@
 struct differential_pressure_s {
 	uint64_t	timestamp;			/**< Microseconds since system boot, needed to integrate */
 	uint64_t	error_count;			/**< Number of errors detected by driver */
-	float	differential_pressure_pa;		/**< Differential pressure reading */
 	float	differential_pressure_raw_pa;		/**< Raw differential pressure reading (may be negative) */
 	float	differential_pressure_filtered_pa;	/**< Low pass filtered differential pressure reading */
 	float	max_differential_pressure_pa;		/**< Maximum differential pressure reading */
-	float	voltage;				/**< Voltage from analog airspeed sensors (voltage divider already compensated) */
 	float	temperature;				/**< Temperature provided by sensor, -1000.0f if unknown */
 
 };

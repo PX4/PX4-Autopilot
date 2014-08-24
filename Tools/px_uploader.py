@@ -63,6 +63,7 @@ import zlib
 import base64
 import time
 import array
+import os
 
 from sys import platform as _platform
 
@@ -179,7 +180,7 @@ class uploader(object):
 
         def __init__(self, portname, baudrate):
                 # open the port, keep the default timeout short so we can poll quickly
-                self.port = serial.Serial(portname, baudrate, timeout=0.5)
+                self.port = serial.Serial(portname, baudrate, timeout=2.0)
                 self.otp = b''
                 self.sn = b''
 
@@ -448,6 +449,12 @@ parser.add_argument('--port', action="store", required=True, help="Serial port(s
 parser.add_argument('--baud', action="store", type=int, default=115200, help="Baud rate of the serial port (default is 115200), only required for true serial ports.")
 parser.add_argument('firmware', action="store", help="Firmware file to be uploaded")
 args = parser.parse_args()
+
+# warn people about ModemManager which interferes badly with Pixhawk
+if os.path.exists("/usr/sbin/ModemManager"):
+        print("==========================================================================================================")
+        print("WARNING: You should uninstall ModemManager as it conflicts with any non-modem serial device (like Pixhawk)")
+        print("==========================================================================================================")
 
 # Load the firmware file
 fw = firmware(args.firmware)

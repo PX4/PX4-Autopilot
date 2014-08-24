@@ -37,3 +37,5 @@
 
 MODULE_COMMAND	= gpio_led
 SRCS			= gpio_led.c
+
+MAXOPTIMIZATION	 = -Os

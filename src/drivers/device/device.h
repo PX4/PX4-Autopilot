@@ -124,9 +124,37 @@ public:
 	 */
 	virtual int	ioctl(unsigned operation, unsigned &arg);
 
+	/*
+	  device bus types for DEVID
+	 */
+	enum DeviceBusType {
+		DeviceBusType_UNKNOWN = 0,
+		DeviceBusType_I2C     = 1,
+		DeviceBusType_SPI     = 2
+	};
+
+	/*
+	  broken out device elements. The bitfields are used to keep
+	  the overall value small enough to fit in a float accurately,
+	  which makes it possible to transport over the MAVLink
+	  parameter protocol without loss of information.
+	 */
+	struct DeviceStructure {
+		enum DeviceBusType bus_type:3;
+		uint8_t bus:5;     // which instance of the bus type
+		uint8_t address;   // address on the bus (eg. I2C address)
+		uint8_t devtype;   // device class specific device type
+	};
+
+	union DeviceId {
+		struct DeviceStructure devid_s;
+		uint32_t devid;
+	};
+
 protected:
 	const char	*_name;			/**< driver name */
 	bool		_debug_enabled;		/**< if true, debug messages are printed */
+	union DeviceId	_device_id;             /**< device identifier information */
 
 	/**
 	 * Constructor
@@ -212,6 +240,7 @@ private:
 	 * @param context	Pointer to the interrupted context.
 	 */
 	static void	dev_interrupt(int irq, void *context);
+
 };
 
 /**
@@ -441,6 +470,10 @@ private:
 	 * @return		OK, or -errno on error.
 	 */
 	int		remove_poll_waiter(struct pollfd *fds);
+
+	/* do not allow copying this class */
+	CDev(const CDev&);
+	CDev operator=(const CDev&);
 };
 
 /**
@@ -510,6 +543,10 @@ private:
 } // namespace device
 
 // class instance for primary driver of each class
-#define CLASS_DEVICE_PRIMARY 0
+enum CLASS_DEVICE {
+	CLASS_DEVICE_PRIMARY=0,
+	CLASS_DEVICE_SECONDARY=1,
+	CLASS_DEVICE_TERTIARY=2
+};
 
 #endif /* _DEVICE_DEVICE_H */

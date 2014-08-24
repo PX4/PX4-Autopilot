@@ -59,9 +59,9 @@ ECL_RollController::ECL_RollController() :
 	_integrator(0.0f),
 	_rate_error(0.0f),
 	_rate_setpoint(0.0f),
-	_bodyrate_setpoint(0.0f)
+	_bodyrate_setpoint(0.0f),
+	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control roll nonfinite input"))
 {
-	perf_alloc(PC_COUNT, "fw att control roll nonfinite input");
 }
 
 ECL_RollController::~ECL_RollController()
@@ -114,9 +114,6 @@ float ECL_RollController::control_bodyrate(float pitch,
 	if (dt_micros > 500000)
 		lock_integrator = true;
 
-//	float k_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
-	float k_ff = 0; //xxx: param
-
 	/* input conditioning */
 //	warnx("airspeed pre %.4f", (double)airspeed);
 	if (!isfinite(airspeed)) {
@@ -138,7 +135,7 @@ float ECL_RollController::control_bodyrate(float pitch,
 
 	if (!lock_integrator && _k_i > 0.0f && airspeed > 0.5f * airspeed_min) {
 
-		float id = _rate_error * dt;
+		float id = _rate_error * dt * scaler;
 
 		/*
 		* anti-windup: do not allow integrator to increase if actuator is at limit
@@ -160,7 +157,9 @@ float ECL_RollController::control_bodyrate(float pitch,
 	//warnx("roll: _integrator: %.4f, _integrator_max: %.4f", (double)_integrator, (double)_integrator_max);
 
 	/* Apply PI rate controller and store non-limited output */
-	_last_output = (_bodyrate_setpoint * _k_ff + _rate_error * _k_p + integrator_constrained) * scaler * scaler;  //scaler is proportional to 1/airspeed
+	_last_output = _bodyrate_setpoint * _k_ff * scaler +
+		_rate_error * _k_p * scaler * scaler
+		+ integrator_constrained;  //scaler is proportional to 1/airspeed
 
 	return math::constrain(_last_output, -1.0f, 1.0f);
 }
