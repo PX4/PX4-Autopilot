@@ -228,18 +228,7 @@ MEASAirspeed::collect()
 	// the raw value still should be compensated for the known offset
 	diff_press_pa_raw -= _diff_pres_offset;
 
-	/* don't take the absolute value because the calibration takes this into account and warns the user if the
-	 * tubes are connected backwards */
-	float diff_press_pa = diff_press_pa_raw;
-
 	/*
-	  note that we return both the absolute value with offset
-	  applied and a raw value without the offset applied. This
-	  makes it possible for higher level code to detect if the
-	  user has the tubes connected backwards, and also makes it
-	  possible to correctly use offsets calculated by a higher
-	  level airspeed driver.
-
 	  With the above calculation the MS4525 sensor will produce a
 	  positive number when the top port is used as a dynamic port
 	  and bottom port is used as the static port
@@ -248,15 +237,14 @@ MEASAirspeed::collect()
 	struct differential_pressure_s report;
 
 	/* track maximum differential pressure measured (so we can work out top speed). */
-	if (diff_press_pa > _max_differential_pressure_pa) {
-		_max_differential_pressure_pa = diff_press_pa;
+	if (diff_press_pa_raw > _max_differential_pressure_pa) {
+		_max_differential_pressure_pa = diff_press_pa_raw;
 	}
 
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
 	report.temperature = temperature;
-	report.differential_pressure_pa = diff_press_pa;
-	report.differential_pressure_filtered_pa =  _filter.apply(diff_press_pa);
+	report.differential_pressure_filtered_pa =  _filter.apply(diff_press_pa_raw);
 
 	report.differential_pressure_raw_pa = diff_press_pa_raw;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
@@ -514,7 +502,7 @@ test()
 	}
 
 	warnx("single read");
-	warnx("diff pressure: %d pa", (int)report.differential_pressure_pa);
+	warnx("diff pressure: %d pa", (int)report.differential_pressure_filtered_pa);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
@@ -542,7 +530,7 @@ test()
 		}
 
 		warnx("periodic read %u", i);
-		warnx("diff pressure: %d pa", (int)report.differential_pressure_pa);
+		warnx("diff pressure: %d pa", (int)report.differential_pressure_filtered_pa);
 		warnx("temperature: %d C (0x%02x)", (int)report.temperature, (unsigned) report.temperature);
 	}
 
