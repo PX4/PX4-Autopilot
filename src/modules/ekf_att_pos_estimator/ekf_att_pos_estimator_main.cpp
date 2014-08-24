@@ -1221,7 +1221,12 @@ FixedwingEstimator::task_main()
 
 					// We're apparently initialized in this case now
 					// check (and reset the filter as needed)
-					(void)check_filter_state();
+					int check = check_filter_state();
+
+					if (check) {
+						// Let the system re-initialize itself
+						continue;
+					}
 
 					// Run the strapdown INS equations every IMU update
 					_ekf->UpdateStrapdownEquationsNED();
