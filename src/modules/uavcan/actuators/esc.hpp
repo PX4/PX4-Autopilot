@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file esc_controller.hpp
+ * @file esc.hpp
  *
  * UAVCAN <--> ORB bridge for ESC messages:
  *     uavcan.equipment.esc.RawCommand
