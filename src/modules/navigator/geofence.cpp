@@ -91,6 +91,8 @@ bool Geofence::inside(const struct vehicle_global_position_s &global_position, f
 
 bool Geofence::inside(const struct vehicle_global_position_s &global_position,
 			const struct vehicle_gps_position_s &gps_position,float baro_altitude_amsl) {
+	updateParams();
+
 	if (getAltitudeMode() == Geofence::GF_ALT_MODE_WGS84) {
 		if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
 			return inside(global_position);

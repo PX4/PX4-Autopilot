@@ -75,11 +75,8 @@ public:
 	 * @param craft pointer craft coordinates
 	 * @return true: system is inside fence, false: system is outside fence
 	 */
-	bool inside(const struct vehicle_global_position_s &global_position);
-	bool inside(const struct vehicle_global_position_s &global_position, float baro_altitude_amsl);
 	bool inside(const struct vehicle_global_position_s &global_position,
 			const struct vehicle_gps_position_s &gps_position,float baro_altitude_amsl);
-	bool inside(double lat, double lon, float altitude);
 	bool inside_polygon(double lat, double lon, float altitude);
 
 	int clearDm();
@@ -116,6 +113,10 @@ private:
 	control::BlockParamInt _param_counter_threshold;
 
 	uint8_t			_outside_counter;
+
+	bool inside(double lat, double lon, float altitude);
+	bool inside(const struct vehicle_global_position_s &global_position);
+	bool inside(const struct vehicle_global_position_s &global_position, float baro_altitude_amsl);
 };
 
 
