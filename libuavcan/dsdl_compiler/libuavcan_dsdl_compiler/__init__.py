@@ -173,7 +173,7 @@ def generate_one_type(template_expander, t):
                 return type_output_filename(t)
             if t.category == t.CATEGORY_ARRAY:
                 return detect_include(t.value_type)
-        return set(filter(None, [detect_include(x.type) for x in fields]))
+        return list(sorted(set(filter(None, [detect_include(x.type) for x in fields]))))
 
     if t.kind == t.KIND_MESSAGE:
         t.cpp_includes = fields_includes(t.fields)
