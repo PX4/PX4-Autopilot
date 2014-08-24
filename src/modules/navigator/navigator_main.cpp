@@ -100,6 +100,7 @@ Navigator::Navigator() :
 	_navigator_task(-1),
 	_mavlink_fd(-1),
 	_global_pos_sub(-1),
+	_gps_pos_sub(-1),
 	_home_pos_sub(-1),
 	_vstatus_sub(-1),
 	_capabilities_sub(-1),
@@ -114,6 +115,7 @@ Navigator::Navigator() :
 	_vstatus{},
 	_control_mode{},
 	_global_pos{},
+	_gps_pos{},
 	_sensor_combined{},
 	_home_pos{},
 	_mission_item{},
@@ -185,6 +187,12 @@ void
 Navigator::global_position_update()
 {
 	orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
+}
+
+void
+Navigator::gps_position_update()
+{
+	orb_copy(ORB_ID(vehicle_gps_position), _gps_pos_sub, &_gps_pos);
 }
 
 void
@@ -263,6 +271,7 @@ Navigator::task_main()
 
 	/* do subscriptions */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -277,6 +286,7 @@ Navigator::task_main()
 	vehicle_status_update();
 	vehicle_control_mode_update();
 	global_position_update();
+	gps_position_update();
 	sensor_combined_update();
 	home_position_update();
 	navigation_capabilities_update();
@@ -289,7 +299,7 @@ Navigator::task_main()
 	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source(s) */
-	struct pollfd fds[7];
+	struct pollfd fds[8];
 
 	/* Setup of loop */
 	fds[0].fd = _global_pos_sub;
@@ -306,6 +316,8 @@ Navigator::task_main()
 	fds[5].events = POLLIN;
 	fds[6].fd = _sensor_combined_sub;
 	fds[6].events = POLLIN;
+	fds[7].fd = _gps_pos_sub;
+	fds[7].events = POLLIN;
 
 	while (!_task_should_exit) {
 
@@ -328,6 +340,16 @@ Navigator::task_main()
 			/* try to reopen the mavlink log device with specified interval */
 			mavlink_open_time = hrt_abstime() + mavlink_open_interval;
 			_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+		}
+
+		bool have_geofence_position_data = false;
+
+		/* gps updated */
+		if (fds[7].revents & POLLIN) {
+			gps_position_update();
+			if (_geofence.getSource() == Geofence::GF_SOURCE_GPS) {
+				have_geofence_position_data = true;
+			}
 		}
 
 		/* sensors combined updated */
@@ -364,14 +386,14 @@ Navigator::task_main()
 		/* global position updated */
 		if (fds[0].revents & POLLIN) {
 			global_position_update();
-
-			/* Check geofence violation */
-			bool inside = false;
-			if (_geofence.getAltitudeMode() == Geofence::GF_ALT_MODE_GPS) {
-				inside = _geofence.inside(_global_pos);
-			} else {
-				inside = _geofence.inside(_global_pos, _sensor_combined.baro_alt_meter);
+			if (_geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
+				have_geofence_position_data = true;
 			}
+		}
+
+		/* Check geofence violation */
+		if (have_geofence_position_data) {
+			bool inside = _geofence.inside(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter);
 			if (!inside) {
 				/* inform other apps via the sp triplet */
 				_pos_sp_triplet.geofence_violated = true;
