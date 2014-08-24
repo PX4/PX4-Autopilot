@@ -66,6 +66,7 @@ DataLinkLoss::DataLinkLoss(Navigator *navigator, const char *name) :
 	_param_airfieldhomealt(this, "NAV_AH_ALT", false),
 	_param_airfieldhomewaittime(this, "AH_T"),
 	_param_numberdatalinklosses(this, "N"),
+	_param_skipcommshold(this, "CHSK"),
 	_dll_state(DLL_STATE_NONE)
 {
 	/* load initial params */
@@ -179,14 +180,23 @@ DataLinkLoss::advance_dll()
 	switch (_dll_state) {
 	case DLL_STATE_NONE:
 		/* Check the number of data link losses. If above home fly home directly */
-		if (_navigator->get_vstatus()->data_link_lost_counter > _param_numberdatalinklosses.get()) {
-			warnx("%d data link losses, limit is %d, fly to airfield home", _navigator->get_vstatus()->data_link_lost_counter, _param_numberdatalinklosses.get());
-			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: too many DL losses, fly to home");
-			_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
+		if (!_param_skipcommshold.get()) {
+			/* if number of data link losses limit is not reached fly to comms hold wp */
+			if (_navigator->get_vstatus()->data_link_lost_counter > _param_numberdatalinklosses.get()) {
+				warnx("%d data link losses, limit is %d, fly to airfield home",
+						_navigator->get_vstatus()->data_link_lost_counter, _param_numberdatalinklosses.get());
+				mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: too many DL losses, fly to home");
+				_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
+			} else {
+				warnx("fly to comms hold, datalink loss counter: %d", _navigator->get_vstatus()->data_link_lost_counter);
+				mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: fly to comms hold");
+				_dll_state = DLL_STATE_FLYTOCOMMSHOLDWP;
+			}
 		} else {
-			warnx("fly to comms hold, datalink loss counter: %d", _navigator->get_vstatus()->data_link_lost_counter);
-			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: fly to comms hold");
-			_dll_state = DLL_STATE_FLYTOCOMMSHOLDWP;
+			/* comms hold wp not active, fly to airfield home directly */
+			warnx("Skipping comms hold wp. Flying directly to airfield home");
+			mavlink_log_info(_navigator->get_mavlink_fd(), "#audio: fly to airfield home, comms hold skipped");
+			_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 		}
 		break;
 	case DLL_STATE_FLYTOCOMMSHOLDWP:

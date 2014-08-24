@@ -107,8 +107,20 @@ PARAM_DEFINE_FLOAT(NAV_DLL_AH_T, 120.0f);
  *
  * After more than this number of data link timeouts the aircraft returns home directly
  *
- * @group commander
+ * @group DLL
  * @min 0
  * @max 1000
  */
 PARAM_DEFINE_INT32(NAV_DLL_N, 2);
+
+/**
+ * Skip comms hold wp
+ *
+ * If set to 1 the system will skip the comms hold wp on data link loss and will directly fly to
+ * airfield home
+ *
+ * @group DLL
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(NAV_DLL_CHSK, 0);

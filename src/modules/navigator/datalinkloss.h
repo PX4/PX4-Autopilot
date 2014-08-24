@@ -74,6 +74,7 @@ private:
 	control::BlockParamFloat _param_airfieldhomealt;
 	control::BlockParamFloat _param_airfieldhomewaittime;
 	control::BlockParamInt _param_numberdatalinklosses;
+	control::BlockParamInt _param_skipcommshold;
 
 	enum DLLState {
 		DLL_STATE_NONE = 0,
