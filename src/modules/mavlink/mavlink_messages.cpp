@@ -774,6 +774,9 @@ private:
 	MavlinkOrbSubscription *_airspeed_sub;
 	uint64_t _airspeed_time;
 
+	MavlinkOrbSubscription *_sensor_combined_sub;
+	uint64_t _sensor_combined_time;
+
 	/* do not allow top copying this class */
 	MavlinkStreamVFRHUD(MavlinkStreamVFRHUD &);
 	MavlinkStreamVFRHUD& operator = (const MavlinkStreamVFRHUD &);
@@ -789,7 +792,9 @@ protected:
 		_act_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_0))),
 		_act_time(0),
 		_airspeed_sub(_mavlink->add_orb_subscription(ORB_ID(airspeed))),
-		_airspeed_time(0)
+		_airspeed_time(0),
+		_sensor_combined_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_combined))),
+		_sensor_combined_time(0)
 	{}
 
 	void send(const hrt_abstime t)
@@ -799,12 +804,14 @@ protected:
 		struct actuator_armed_s armed;
 		struct actuator_controls_s act;
 		struct airspeed_s airspeed;
+		struct sensor_combined_s sensor_combined;
 
 		bool updated = _att_sub->update(&_att_time, &att);
 		updated |= _pos_sub->update(&_pos_time, &pos);
 		updated |= _armed_sub->update(&_armed_time, &armed);
 		updated |= _act_sub->update(&_act_time, &act);
 		updated |= _airspeed_sub->update(&_airspeed_time, &airspeed);
+		updated |= _sensor_combined_sub->update(&_sensor_combined_time, &sensor_combined);
 
 		if (updated) {
 			mavlink_vfr_hud_t msg;
@@ -813,7 +820,7 @@ protected:
 			msg.groundspeed = sqrtf(pos.vel_n * pos.vel_n + pos.vel_e * pos.vel_e);
 			msg.heading = _wrap_2pi(att.yaw) * M_RAD_TO_DEG_F;
 			msg.throttle = armed.armed ? act.control[3] * 100.0f : 0.0f;
-			msg.alt = pos.alt;
+			msg.alt = sensor_combined.baro_alt_meter;
 			msg.climb = -pos.vel_d;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_VFR_HUD, &msg);
