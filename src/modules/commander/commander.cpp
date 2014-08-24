@@ -1427,7 +1427,11 @@ int commander_thread_main(int argc, char *argv[])
 				/* this will only trigger if geofence is activated via param and a geofence file is present, also there is a circuit breaker to disable the actual flight termination in the px4io driver */
 				armed.force_failsafe = true;
 				status_changed = true;
-				warnx("Flight termination because of navigator request or geofence");
+				static bool flight_termination_printed = false;
+				if (!flight_termination_printed) {
+					warnx("Flight termination because of navigator request or geofence");
+					flight_termination_printed = true;
+				}
 			} // no reset is done here on purpose, on geofence violation we want to stay in flighttermination
 		}
 
