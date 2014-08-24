@@ -1092,7 +1092,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* check GPS topic to get GPS time */
 		if (log_name_timestamp) {
 			if (!orb_copy(ORB_ID(vehicle_gps_position_0), subs.gps_pos_sub_0, &buf_gps_pos_0)) {
-				gps_time = buf_gps_pos.time_gps_usec;
+				gps_time = buf_gps_pos_0.time_gps_usec;
 			}
 		}
 
