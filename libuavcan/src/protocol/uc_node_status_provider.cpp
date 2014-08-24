@@ -92,7 +92,7 @@ int NodeStatusProvider::startAndPublish()
         goto fail;
     }
 
-    TimerBase::startPeriodic(MonotonicDuration::fromMSec(protocol::NodeStatus::PUBLICATION_PERIOD_MS));
+    setStatusPublishingPeriod(MonotonicDuration::fromMSec(protocol::NodeStatus::PUBLICATION_PERIOD_MS));
 
     return res;
 
@@ -102,6 +102,27 @@ fail:
     gni_srv_.stop();
     TimerBase::stop();
     return res;
+}
+
+void NodeStatusProvider::setStatusPublishingPeriod(uavcan::MonotonicDuration period)
+{
+    const MonotonicDuration maximum = MonotonicDuration::fromMSec(protocol::NodeStatus::PUBLICATION_PERIOD_MS);
+    const MonotonicDuration minimum = MonotonicDuration::fromMSec(50);
+
+    period = min(period, maximum);
+    period = max(period, minimum);
+    TimerBase::startPeriodic(period);
+
+    const MonotonicDuration tx_timeout = period - MonotonicDuration::fromUSec(period.toUSec() / 20);
+    node_status_pub_.setTxTimeout(tx_timeout);
+
+    UAVCAN_TRACE("NodeStatusProvider", "Status pub period: %s, TX timeout: %s",
+                 period.toString().c_str(), node_status_pub_.getTxTimeout().toString().c_str());
+}
+
+uavcan::MonotonicDuration NodeStatusProvider::getStatusPublishingPeriod() const
+{
+    return TimerBase::getPeriod();
 }
 
 void NodeStatusProvider::setStatusCode(uint8_t code)

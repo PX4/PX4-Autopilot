@@ -46,6 +46,17 @@ TEST(NodeStatusProvider, Basic)
     uavcan::DefaultDataTypeRegistrator<uavcan::protocol::GlobalDiscoveryRequest> _reg3;
     ASSERT_LE(0, nsp.startAndPublish());
 
+    // Checking the publishing rate settings
+    ASSERT_EQ(uavcan::MonotonicDuration::fromMSec(uavcan::protocol::NodeStatus::PUBLICATION_PERIOD_MS),
+              nsp.getStatusPublishingPeriod());
+
+    nsp.setStatusPublishingPeriod(uavcan::MonotonicDuration());
+    ASSERT_FALSE(nsp.getStatusPublishingPeriod().isZero());
+
+    nsp.setStatusPublishingPeriod(uavcan::MonotonicDuration::fromMSec(3600 * 1000 * 24));
+    ASSERT_EQ(uavcan::MonotonicDuration::fromMSec(uavcan::protocol::NodeStatus::PUBLICATION_PERIOD_MS),
+              nsp.getStatusPublishingPeriod());
+
     /*
      * Initial status publication
      */

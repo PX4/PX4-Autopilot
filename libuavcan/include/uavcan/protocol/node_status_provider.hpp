@@ -58,9 +58,6 @@ public:
         UAVCAN_ASSERT(!creation_timestamp_.isZero());
 
         node_info_.status.status_code = protocol::NodeStatus::STATUS_INITIALIZING;
-
-        // NodeStatus TX timeout equals its publication period minus some arbitrary time gap:
-        node_status_pub_.setTxTimeout(MonotonicDuration::fromMSec(protocol::NodeStatus::PUBLICATION_PERIOD_MS - 10));
     }
 
     /**
@@ -74,6 +71,14 @@ public:
      * Returns negative error code.
      */
     int forcePublish() { return publish(); }
+
+    /**
+     * Allows to override default publishing rate for uavcan.protocol.NodeStatus.
+     * Refer to the DSDL definition of uavcan.protocol.NodeStatus to see what is the default rate.
+     * Doesn't fail; if the value is outside of acceptable range, a closest valid value will be used instead.
+     */
+    void setStatusPublishingPeriod(uavcan::MonotonicDuration period);
+    uavcan::MonotonicDuration getStatusPublishingPeriod() const;
 
     /**
      * Local node status code control.
