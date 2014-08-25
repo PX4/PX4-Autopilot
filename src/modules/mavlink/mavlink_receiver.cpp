@@ -118,11 +118,13 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_old_timestamp(0),
 	_hil_local_proj_inited(0),
 	_hil_local_alt0(0.0f),
-	_hil_local_proj_ref{}
+	_hil_local_proj_ref{},
+	_time_offset(0),
+	_dt(0),
+	_companion_reboot(true)
 {
 	// make sure the FTP server is started
 	(void)MavlinkFTP::getServer();
-	companion_reboot = true;
 }
 
 MavlinkReceiver::~MavlinkReceiver()
@@ -526,19 +528,19 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 	mavlink_system_time_t t;
 	mavlink_msg_system_time_decode(msg, &t);
     
-	dt = (hrt_absolute_time() - t.time_boot_ms) - time_offset ;
+	_dt = (hrt_absolute_time() - t.time_boot_ms) - _time_offset ;
 			
-	if(dt > 2000) 
+	if(_dt > 2000) 
 	{
 	warnx("Companion computer reboot");
-	companion_reboot = true;
+	_companion_reboot = true;
 	}
 	else
 	{
-	time_offset = time_offset + (hrt_absolute_time() - t.time_boot_ms)/2; 
+	_time_offset = _time_offset + (hrt_absolute_time() - t.time_boot_ms)/2; 
 	}
 	
-	if(companion_reboot){
+	if(_companion_reboot){
 		timespec onb;
 		clock_gettime(CLOCK_REALTIME, &onb);
 		if(onb.tv_sec < 1293840000) //1/1/2011 = Onboard epoch time is valid(from GPS or companion)
@@ -553,8 +555,8 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 		t.time_unix_usec = 0; //invalid epoch time so companion ignore it
 		}
 
-		time_offset = hrt_absolute_time() - t.time_boot_ms;
-		companion_reboot = false;
+		_time_offset = hrt_absolute_time() - t.time_boot_ms;
+		_companion_reboot = false;
 	}
 	
 	//Send return timesync packet for companion computer
