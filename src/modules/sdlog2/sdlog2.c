@@ -76,6 +76,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/battery_status.h>
@@ -934,7 +935,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_global_position_s global_pos;
 		struct position_setpoint_triplet_s triplet;
 		struct vehicle_vicon_position_s vicon_pos;
-		struct vehicle_vision_position_s vision_pos;
+		struct vision_position_estimate_s vision_pos;
 		struct optical_flow_s flow;
 		struct rc_channels_s rc;
 		struct differential_pressure_s diff_pres;
@@ -1046,7 +1047,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	subs.triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	subs.vicon_pos_sub = orb_subscribe(ORB_ID(vehicle_vicon_position));
-	subs.vision_pos_sub = orb_subscribe(ORB_ID(vehicle_vision_position));
+	subs.vision_pos_sub = orb_subscribe(ORB_ID(vision_position_estimate));
 	subs.flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	subs.rc_sub = orb_subscribe(ORB_ID(rc_channels));
 	subs.airspeed_sub = orb_subscribe(ORB_ID(airspeed));
@@ -1465,14 +1466,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 		
 		/* --- VISION POSITION --- */
-		if (copy_if_updated(ORB_ID(vehicle_vision_position), subs.vision_pos_sub, &buf.vision_pos)) {
+		if (copy_if_updated(ORB_ID(vision_position_estimate), subs.vision_pos_sub, &buf.vision_pos)) {
 			log_msg.msg_type = LOG_VISN_MSG;
 			log_msg.body.log_VISN.x = buf.vision_pos.x;
 			log_msg.body.log_VISN.y = buf.vision_pos.y;
 			log_msg.body.log_VISN.z = buf.vision_pos.z;
-			log_msg.body.log_VISN.pitch = buf.vision_pos.pitch;
-			log_msg.body.log_VISN.roll = buf.vision_pos.roll;
-			log_msg.body.log_VISN.yaw = buf.vision_pos.yaw;
+			log_msg.body.log_VISN.vx = buf.vision_pos.vx;
+			log_msg.body.log_VISN.vy = buf.vision_pos.vy;
+			log_msg.body.log_VISN.vz = buf.vision_pos.vz;
+			log_msg.body.log_VISN.qx = buf.vision_pos.q[0];
+			log_msg.body.log_VISN.qy = buf.vision_pos.q[1];
+			log_msg.body.log_VISN.qz = buf.vision_pos.q[2];
+			log_msg.body.log_VISN.qw = buf.vision_pos.q[3];
 			LOGBUFFER_WRITE_AND_COUNT(VISN);
 		}
 
