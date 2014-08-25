@@ -1586,7 +1586,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 			}
 		}
 
-		
+		/* --- BOTTOM DISTANCE --- */
+- 		if (copy_if_updated(ORB_ID(sensor_range_finder), subs.range_finder_sub, &buf.range_finder)) {
+- 			log_msg.msg_type = LOG_DIST_MSG;
+- 			log_msg.body.log_DIST.bottom = buf.range_finder.distance;
+- 			log_msg.body.log_DIST.bottom_rate = 0.0f;
+- 			log_msg.body.log_DIST.flags = (buf.range_finder.valid ? 1 : 0);
+- 			LOGBUFFER_WRITE_AND_COUNT(DIST);
+- 		}
 
 		/* --- ESTIMATOR STATUS --- */
 		if (copy_if_updated(ORB_ID(estimator_status), subs.estimator_status_sub, &buf.estimator_status)) {
