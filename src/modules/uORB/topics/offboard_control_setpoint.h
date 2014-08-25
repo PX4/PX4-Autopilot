@@ -86,7 +86,9 @@ enum {OFB_IGN_BIT_POS_X,
 	OFB_IGN_BIT_BODYRATE_Y,
 	OFB_IGN_BIT_BODYRATE_Z,
 	OFB_IGN_BIT_ATT,
-	OFB_IGN_BIT_THRUST
+	OFB_IGN_BIT_THRUST,
+	OFB_IGN_BIT_YAW,
+	OFB_IGN_BIT_YAWRATE,
 };
 
 /**
@@ -105,6 +107,10 @@ struct offboard_control_setpoint_s {
 	float attitude[4];	/**< attitude of vehicle (quaternion) */
 	float attitude_rate[3];	/**< body angular rates (x, y, z) */
 	float thrust;	/**< thrust */
+	float yaw;	/**< yaw: this is the yaw from the position_target message
+			  (not from the full attitude_target message) */
+	float yaw_rate;	/**< yaw rate: this is the yaw from the position_target message
+			  (not from the full attitude_target message) */
 
 	uint16_t ignore; /**< if field i is set to true, the value should be ignored, see definition at top of file
 			   for mapping */
@@ -247,6 +253,20 @@ inline bool offboard_control_sp_ignore_attitude(const struct offboard_control_se
  */
 inline bool offboard_control_sp_ignore_thrust(const struct offboard_control_setpoint_s &offboard_control_sp) {
 	return (bool)(offboard_control_sp.ignore & (1 << OFB_IGN_BIT_THRUST));
+}
+
+/**
+ * Returns true if the yaw setpoint should be ignored
+ */
+inline bool offboard_control_sp_ignore_yaw(const struct offboard_control_setpoint_s &offboard_control_sp) {
+	return (bool)(offboard_control_sp.ignore & (1 << OFB_IGN_BIT_YAW));
+}
+
+/**
+ * Returns true if the yaw rate setpoint should be ignored
+ */
+inline bool offboard_control_sp_ignore_yawrate(const struct offboard_control_setpoint_s &offboard_control_sp) {
+	return (bool)(offboard_control_sp.ignore & (1 << OFB_IGN_BIT_YAWRATE));
 }
 
 

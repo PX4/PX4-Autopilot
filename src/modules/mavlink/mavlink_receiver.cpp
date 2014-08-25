@@ -474,6 +474,8 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		offboard_control_sp.acceleration[0] = set_position_target_local_ned.afx;
 		offboard_control_sp.acceleration[1] = set_position_target_local_ned.afy;
 		offboard_control_sp.acceleration[2] = set_position_target_local_ned.afz;
+		offboard_control_sp.yaw = set_position_target_local_ned.yaw;
+		offboard_control_sp.yaw_rate = set_position_target_local_ned.yaw_rate;
 		offboard_control_sp.isForceSetpoint = (bool)(set_position_target_local_ned.type_mask & (1 << 9));
 
 		/* If we are in force control mode, for now set offboard mode to force control */
@@ -486,7 +488,12 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			offboard_control_sp.ignore &=  ~(1 << i);
 			offboard_control_sp.ignore |=  (set_position_target_local_ned.type_mask & (1 << i));
 		}
-
+		offboard_control_sp.ignore &=  ~(1 << OFB_IGN_BIT_YAW);
+			offboard_control_sp.ignore |=  (set_position_target_local_ned.type_mask & (1 << 10)) <<
+					OFB_IGN_BIT_YAW;
+		offboard_control_sp.ignore &=  ~(1 << OFB_IGN_BIT_YAWRATE);
+			offboard_control_sp.ignore |=  (set_position_target_local_ned.type_mask & (1 << 11)) <<
+					OFB_IGN_BIT_YAWRATE;
 
 		offboard_control_sp.timestamp = hrt_absolute_time();
 
@@ -527,12 +534,12 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					pos_sp_triplet.previous.valid = false;
 					pos_sp_triplet.next.valid = false;
 					pos_sp_triplet.current.valid = true;
+					pos_sp_triplet.current.type = SETPOINT_TYPE_POSITION; //XXX support others
 
 					/* set the local pos values if the setpoint type is 'local pos' and none
 					 * of the local pos fields is set to 'ignore' */
 					if (offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED &&
 							!offboard_control_sp_ignore_position_some(offboard_control_sp)) {
-					pos_sp_triplet.current.type = SETPOINT_TYPE_POSITION; //XXX support others
 					pos_sp_triplet.current.position_valid = true;
 					pos_sp_triplet.current.x = offboard_control_sp.position[0];
 					pos_sp_triplet.current.y = offboard_control_sp.position[1];
@@ -545,7 +552,6 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					 * of the local vel fields is set to 'ignore' */
 					if (offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED &&
 							!offboard_control_sp_ignore_velocity_some(offboard_control_sp)) {
-						pos_sp_triplet.current.type = SETPOINT_TYPE_POSITION; //XXX support others
 						pos_sp_triplet.current.velocity_valid = true;
 						pos_sp_triplet.current.vx = offboard_control_sp.velocity[0];
 						pos_sp_triplet.current.vy = offboard_control_sp.velocity[1];
@@ -558,7 +564,6 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					 * of the accelerations fields is set to 'ignore' */
 					if (offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED &&
 							!offboard_control_sp_ignore_acceleration_some(offboard_control_sp)) {
-						pos_sp_triplet.current.type = SETPOINT_TYPE_POSITION; //XXX support others
 						pos_sp_triplet.current.acceleration_valid = true;
 						pos_sp_triplet.current.a_x = offboard_control_sp.acceleration[0];
 						pos_sp_triplet.current.a_y = offboard_control_sp.acceleration[1];
@@ -568,6 +573,28 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 
 					} else {
 						pos_sp_triplet.current.acceleration_valid = false;
+					}
+
+					/* set the yaw sp value if the setpoint type is 'local pos' and the yaw
+					 * field is not set to 'ignore' */
+					if (offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED &&
+							!offboard_control_sp_ignore_yaw(offboard_control_sp)) {
+						pos_sp_triplet.current.yaw_valid = true;
+						pos_sp_triplet.current.yaw = offboard_control_sp.yaw;
+
+					} else {
+						pos_sp_triplet.current.yaw_valid = false;
+					}
+
+					/* set the yawrate sp value if the setpoint type is 'local pos' and the yawrate
+					 * field is not set to 'ignore' */
+					if (offboard_control_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_LOCAL_NED &&
+							!offboard_control_sp_ignore_yawrate(offboard_control_sp)) {
+						pos_sp_triplet.current.yawspeed_valid = true;
+						pos_sp_triplet.current.yawspeed = offboard_control_sp.yaw_rate;
+
+					} else {
+						pos_sp_triplet.current.yawspeed_valid = false;
 					}
 					//XXX handle global pos setpoints (different MAV frames)
 
