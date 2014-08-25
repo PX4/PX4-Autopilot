@@ -70,6 +70,16 @@ unsigned UavcanGnssBridge::get_num_redundant_channels() const
 	return (_receiver_node_id < 0) ? 0 : 1;
 }
 
+void UavcanGnssBridge::print_status() const
+{
+	printf("RX errors: %d, receiver node id: ", _sub_fix.getFailureCount());
+	if (_receiver_node_id < 0) {
+		printf("N/A\n");
+	} else {
+		printf("%d\n", _receiver_node_id);
+	}
+}
+
 void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg)
 {
 	// This bridge does not support redundant GNSS receivers yet.
