@@ -614,7 +614,6 @@ MulticopterPositionControl::control_offboard(float dt)
 			_pos_sp(0) = _pos_sp_triplet.current.x;
 			_pos_sp(1) = _pos_sp_triplet.current.y;
 			_pos_sp(2) = _pos_sp_triplet.current.z;
-			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
 
 		} else if (_control_mode.flag_control_velocity_enabled && _pos_sp_triplet.current.velocity_valid) {
 			/* control velocity */
@@ -624,6 +623,11 @@ MulticopterPositionControl::control_offboard(float dt)
 			/* set position setpoint move rate */
 			_sp_move_rate(0) = _pos_sp_triplet.current.vx;
 			_sp_move_rate(1) = _pos_sp_triplet.current.vy;
+		}
+
+		if (_pos_sp_triplet.current.yaw_valid) {
+			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
+		} else if (_pos_sp_triplet.current.yawspeed_valid) {
 			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt;
 		}
 
