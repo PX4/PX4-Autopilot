@@ -1192,7 +1192,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	}
 
 	/* Copy thrust and pitch values from tecs
-	 * making sure again that the correct thrust is used, without depending on library calls */
+	 * making sure again that the correct thrust is used,
+	 * without depending on library calls */
 	if (pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF &&
 			launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
 		_att_sp.thrust = launchDetector.getThrottlePreTakeoff();
@@ -1200,7 +1201,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	else {
 		_att_sp.thrust = math::min(_mTecs.getEnabled() ? _mTecs.getThrottleSetpoint() : _tecs.get_throttle_demand(), throttle_max);
 	}
-	_att_sp.pitch_body = _mTecs.getEnabled() ? _mTecs.getPitchSetpoint() : _tecs.get_pitch_demand();
+	/* During a takeoff waypoint while waiting for launch the pitch sp is set
+	 * already (not by tecs) */
+	if (!(pos_sp_triplet.current.type == SETPOINT_TYPE_TAKEOFF &&
+			launch_detection_state == LAUNCHDETECTION_RES_NONE)) {
+		_att_sp.pitch_body = _mTecs.getEnabled() ? _mTecs.getPitchSetpoint() : _tecs.get_pitch_demand();
+	}
 
 	if (_control_mode.flag_control_position_enabled) {
 		last_manual = false;
