@@ -381,8 +381,8 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	// Use the component ID to identify the vision sensor
 	vision_position.id = msg->compid;
 
-	vision_position.timestamp_boot = hrt_absolute_time();
-	vision_position.timestamp_computer = pos.usec;
+	vision_position.timestamp_boot = hrt_absolute_time(); //useful for latency testing
+	vision_position.timestamp_computer = pos.usec + time_offset; //message from offboard so synchronize stamps XXX: add to all messages from offboard
 	vision_position.x = pos.x;
 	vision_position.y = pos.y;
 	vision_position.z = pos.z;
@@ -561,7 +561,6 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 	
 	//Send return timesync packet for companion computer
 	t.time_boot_ms = hrt_absolute_time();
-	
 	_mavlink->send_message(MAVLINK_MSG_ID_SYSTEM_TIME, &t);
 	
 }
