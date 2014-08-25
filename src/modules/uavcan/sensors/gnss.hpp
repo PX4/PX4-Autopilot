@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,40 +32,54 @@
  ****************************************************************************/
 
 /**
- * @file differential_pressure.h
+ * @file gnss.hpp
  *
- * Definition of differential pressure topic
+ * UAVCAN --> ORB bridge for GNSS messages:
+ *     uavcan.equipment.gnss.Fix
+ *
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ * @author Andrew Chambers <achamber@gmail.com>
  */
 
-#ifndef TOPIC_DIFFERENTIAL_PRESSURE_H_
-#define TOPIC_DIFFERENTIAL_PRESSURE_H_
+#pragma once
 
-#include "../uORB.h"
-#include <stdint.h>
+#include <drivers/drv_hrt.h>
 
-/**
- * @addtogroup topics
- * @{
- */
+#include <uORB/uORB.h>
+#include <uORB/topics/vehicle_gps_position.h>
 
-/**
- * Differential pressure.
- */
-struct differential_pressure_s {
-	uint64_t	timestamp;			/**< Microseconds since system boot, needed to integrate */
-	uint64_t	error_count;			/**< Number of errors detected by driver */
-	float	differential_pressure_raw_pa;		/**< Raw differential pressure reading (may be negative) */
-	float	differential_pressure_filtered_pa;	/**< Low pass filtered differential pressure reading */
-	float	max_differential_pressure_pa;		/**< Maximum differential pressure reading */
-	float	temperature;				/**< Temperature provided by sensor, -1000.0f if unknown */
+#include <uavcan/uavcan.hpp>
+#include <uavcan/equipment/gnss/Fix.hpp>
+
+#include "sensor_bridge.hpp"
+
+class UavcanGnssBridge : public IUavcanSensorBridge
+{
+public:
+	static const char *const NAME;
+
+	UavcanGnssBridge(uavcan::INode& node);
+
+	const char *get_name() const override { return NAME; }
+
+	int init() override;
+
+	unsigned get_num_redundant_channels() const override;
+
+private:
+	/**
+	 * GNSS fix message will be reported via this callback.
+	 */
+	void gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
+
+	typedef uavcan::MethodBinder<UavcanGnssBridge*,
+		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix>&)>
+		FixCbBinder;
+
+	uavcan::INode &_node;
+	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder> _sub_fix;
+	int _receiver_node_id = -1;
+
+	orb_advert_t _report_pub;                ///< uORB pub for gnss position
 
 };
-
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(differential_pressure);
-
-#endif

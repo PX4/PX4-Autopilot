@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,40 +32,37 @@
  ****************************************************************************/
 
 /**
- * @file differential_pressure.h
- *
- * Definition of differential pressure topic
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#ifndef TOPIC_DIFFERENTIAL_PRESSURE_H_
-#define TOPIC_DIFFERENTIAL_PRESSURE_H_
+#pragma once
 
-#include "../uORB.h"
-#include <stdint.h>
+#include "sensor_bridge.hpp"
+#include <drivers/drv_baro.h>
 
-/**
- * @addtogroup topics
- * @{
- */
+#include <uavcan/equipment/air_data/StaticAirData.hpp>
 
-/**
- * Differential pressure.
- */
-struct differential_pressure_s {
-	uint64_t	timestamp;			/**< Microseconds since system boot, needed to integrate */
-	uint64_t	error_count;			/**< Number of errors detected by driver */
-	float	differential_pressure_raw_pa;		/**< Raw differential pressure reading (may be negative) */
-	float	differential_pressure_filtered_pa;	/**< Low pass filtered differential pressure reading */
-	float	max_differential_pressure_pa;		/**< Maximum differential pressure reading */
-	float	temperature;				/**< Temperature provided by sensor, -1000.0f if unknown */
+class UavcanBarometerBridge : public UavcanCDevSensorBridgeBase
+{
+public:
+	static const char *const NAME;
 
+	UavcanBarometerBridge(uavcan::INode& node);
+
+	const char *get_name() const override { return NAME; }
+
+	int init() override;
+
+private:
+	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
+
+	void air_data_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticAirData> &msg);
+
+	typedef uavcan::MethodBinder<UavcanBarometerBridge*,
+		void (UavcanBarometerBridge::*)
+			(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticAirData>&)>
+		AirDataCbBinder;
+
+	uavcan::Subscriber<uavcan::equipment::air_data::StaticAirData, AirDataCbBinder> _sub_air_data;
+	unsigned _msl_pressure = 101325;
 };
-
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(differential_pressure);
-
-#endif

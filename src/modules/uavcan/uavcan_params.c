@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,40 +32,42 @@
  ****************************************************************************/
 
 /**
- * @file differential_pressure.h
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ */
+
+#include <nuttx/config.h>
+#include <systemlib/param/param.h>
+
+/**
+ * Enable UAVCAN.
  *
- * Definition of differential pressure topic
+ * Enables support for UAVCAN-interfaced actuators and sensors.
+ *
+ * @min 0
+ * @max 1
+ * @group UAVCAN
  */
-
-#ifndef TOPIC_DIFFERENTIAL_PRESSURE_H_
-#define TOPIC_DIFFERENTIAL_PRESSURE_H_
-
-#include "../uORB.h"
-#include <stdint.h>
+PARAM_DEFINE_INT32(UAVCAN_ENABLE, 0);
 
 /**
- * @addtogroup topics
- * @{
+ * UAVCAN Node ID.
+ *
+ * Read the specs at http://uavcan.org to learn more about Node ID.
+ *
+ * @min 1
+ * @max 125
+ * @group UAVCAN
  */
+PARAM_DEFINE_INT32(UAVCAN_NODE_ID, 1);
 
 /**
- * Differential pressure.
+ * UAVCAN CAN bus bitrate.
+ *
+ * @min 20000
+ * @max 1000000
+ * @group UAVCAN
  */
-struct differential_pressure_s {
-	uint64_t	timestamp;			/**< Microseconds since system boot, needed to integrate */
-	uint64_t	error_count;			/**< Number of errors detected by driver */
-	float	differential_pressure_raw_pa;		/**< Raw differential pressure reading (may be negative) */
-	float	differential_pressure_filtered_pa;	/**< Low pass filtered differential pressure reading */
-	float	max_differential_pressure_pa;		/**< Maximum differential pressure reading */
-	float	temperature;				/**< Temperature provided by sensor, -1000.0f if unknown */
+PARAM_DEFINE_INT32(UAVCAN_BITRATE, 1000000);
 
-};
 
-/**
- * @}
- */
 
-/* register this as object request broker structure */
-ORB_DECLARE(differential_pressure);
-
-#endif
