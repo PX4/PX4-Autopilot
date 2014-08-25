@@ -58,7 +58,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 UavcanCDevSensorBridgeBase::~UavcanCDevSensorBridgeBase()
 {
 	for (unsigned i = 0; i < _max_channels; i++) {
-		if (_channels[i].redunancy_channel_id >= 0) {
+		if (_channels[i].node_id >= 0) {
 			(void)unregister_class_devname(_class_devname, _channels[i].class_instance);
 		}
 	}
@@ -66,13 +66,15 @@ UavcanCDevSensorBridgeBase::~UavcanCDevSensorBridgeBase()
 	delete [] _channels;
 }
 
-void UavcanCDevSensorBridgeBase::publish(const int redundancy_channel_id, const void *report)
+void UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 {
+	assert(report != nullptr);
+
 	Channel *channel = nullptr;
 
 	// Checking if such channel already exists
 	for (unsigned i = 0; i < _max_channels; i++) {
-		if (_channels[i].redunancy_channel_id == redundancy_channel_id) {
+		if (_channels[i].node_id == node_id) {
 			channel = _channels + i;
 			break;
 		}
@@ -84,11 +86,11 @@ void UavcanCDevSensorBridgeBase::publish(const int redundancy_channel_id, const 
 			return;           // Give up immediately - saves some CPU time
 		}
 
-		log("adding channel %d...", redundancy_channel_id);
+		log("adding channel %d...", node_id);
 
 		// Search for the first free channel
 		for (unsigned i = 0; i < _max_channels; i++) {
-			if (_channels[i].redunancy_channel_id < 0) {
+			if (_channels[i].node_id < 0) {
 				channel = _channels + i;
 				break;
 			}
@@ -111,9 +113,9 @@ void UavcanCDevSensorBridgeBase::publish(const int redundancy_channel_id, const 
 		}
 
 		// Publish to the appropriate topic, abort on failure
-		channel->orb_id               = _orb_topics[class_instance];
-		channel->redunancy_channel_id = redundancy_channel_id;
-		channel->class_instance       = class_instance;
+		channel->orb_id         = _orb_topics[class_instance];
+		channel->node_id        = node_id;
+		channel->class_instance = class_instance;
 
 		channel->orb_advert = orb_advertise(channel->orb_id, report);
 		if (channel->orb_advert < 0) {
@@ -123,7 +125,7 @@ void UavcanCDevSensorBridgeBase::publish(const int redundancy_channel_id, const 
 			return;
 		}
 
-		log("channel %d class instance %d ok", channel->redunancy_channel_id, channel->class_instance);
+		log("channel %d class instance %d ok", channel->node_id, channel->class_instance);
 	}
 	assert(channel != nullptr);
 
@@ -134,9 +136,23 @@ unsigned UavcanCDevSensorBridgeBase::get_num_redundant_channels() const
 {
 	unsigned out = 0;
 	for (unsigned i = 0; i < _max_channels; i++) {
-		if (_channels[i].redunancy_channel_id >= 0) {
+		if (_channels[i].node_id >= 0) {
 			out += 1;
 		}
 	}
 	return out;
+}
+
+void UavcanCDevSensorBridgeBase::print_status() const
+{
+	printf("devname: %s\n", _class_devname);
+
+	for (unsigned i = 0; i < _max_channels; i++) {
+		if (_channels[i].node_id >= 0) {
+			printf("channel %d: node id %d --> class instance %d\n",
+			       i, _channels[i].node_id, _channels[i].class_instance);
+		} else {
+			printf("channel %d: empty\n", i);
+		}
+	}
 }

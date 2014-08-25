@@ -548,14 +548,16 @@ UavcanNode::print_info()
 	(void)pthread_mutex_lock(&_node_mutex);
 
 	// ESC mixer status
-	warnx("ESC actuators control groups: sub: %u / req: %u / fds: %u",
-	      (unsigned)_groups_subscribed, (unsigned)_groups_required, _poll_fds_num);
-	warnx("ESC mixer: %s", (_mixers == nullptr) ? "NONE" : "OK");
+	printf("ESC actuators control groups: sub: %u / req: %u / fds: %u\n",
+	       (unsigned)_groups_subscribed, (unsigned)_groups_required, _poll_fds_num);
+	printf("ESC mixer: %s\n", (_mixers == nullptr) ? "NONE" : "OK");
 
 	// Sensor bridges
 	auto br = _sensor_bridges.getHead();
 	while (br != nullptr) {
-		warnx("Sensor '%s': channels: %u", br->get_name(), br->get_num_redundant_channels());
+		printf("Sensor '%s':\n", br->get_name());
+		br->print_status();
+		printf("\n");
 		br = br->getSibling();
 	}
 
