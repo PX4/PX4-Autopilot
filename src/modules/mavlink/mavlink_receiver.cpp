@@ -540,19 +540,21 @@ MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
 	_time_offset = _time_offset + (hrt_absolute_time() - t.time_boot_ms)/2; 
 	}
 	
-	if(_companion_reboot){
+	if(_companion_reboot)
+	{
 		timespec onb;
 		clock_gettime(CLOCK_REALTIME, &onb);
-		if(onb.tv_sec < 1293840000) //1/1/2011 = Onboard epoch time is valid(from GPS or companion)
+
+		if(onb.tv_sec < 1293840000) // before 1/1/2011 -> Onboard epoch time is invalid
 		{
 		timespec ofb;
 		ofb.tv_sec = t.time_unix_usec / 1000;
 		clock_settime(CLOCK_REALTIME, &ofb);
-		t.time_unix_usec = onb.tv_nsec / 1000; // For sending back to companion as it might have invalid epoch time after reboot
+		t.time_unix_usec = 0; //invalid epoch time so companion should ignore it
 		}
 		else
 		{
-		t.time_unix_usec = 0; //invalid epoch time so companion ignore it
+		t.time_unix_usec = onb.tv_nsec / 1000; // For sending back to companion as it might have invalid epoch time after reboot
 		}
 
 		_time_offset = hrt_absolute_time() - t.time_boot_ms;
