@@ -1605,9 +1605,14 @@ int commander_thread_main(int argc, char *argv[])
 		/* Check for failure combinations which lead to flight termination */
 		if (armed.armed) {
 			/* At this point the data link and the gps system have been checked
-			 * If both failed we want to terminate the flight */
-			if ((status.data_link_lost && status.gps_failure) ||
-					(status.data_link_lost_cmd && status.gps_failure_cmd)) {
+			 * If  we are not in a manual (RC stick controlled mode)
+			 * and both failed we want to terminate the flight */
+			if (status.main_state != MAIN_STATE_MANUAL &&
+					status.main_state != MAIN_STATE_ACRO &&
+					status.main_state != MAIN_STATE_ALTCTL &&
+					status.main_state != MAIN_STATE_POSCTL &&
+					((status.data_link_lost && status.gps_failure) ||
+					(status.data_link_lost_cmd && status.gps_failure_cmd))) {
 				armed.force_failsafe = true;
 				status_changed = true;
 				static bool flight_termination_printed = false;
