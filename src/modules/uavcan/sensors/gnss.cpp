@@ -32,52 +32,74 @@
  ****************************************************************************/
 
 /**
- * @file gnss_receiver.cpp
+ * @file gnss.cpp
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  * @author Andrew Chambers <achamber@gmail.com>
  *
  */
 
-#include "gnss_receiver.hpp"
+#include "gnss.hpp"
 #include <systemlib/err.h>
 #include <mathlib/mathlib.h>
 
 #define MM_PER_CM 			10	// Millimeters per centimeter
 
-UavcanGnssReceiver::UavcanGnssReceiver(uavcan::INode &node) :
+const char *const UavcanGnssBridge::NAME = "gnss";
+
+UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
 _node(node),
-_uavcan_sub_status(node),
+_sub_fix(node),
 _report_pub(-1)
 {
 }
 
-int UavcanGnssReceiver::init()
+int UavcanGnssBridge::init()
 {
-	int res = -1;
-
-	// GNSS fix subscription
-	res = _uavcan_sub_status.start(FixCbBinder(this, &UavcanGnssReceiver::gnss_fix_sub_cb));
+	int res = _sub_fix.start(FixCbBinder(this, &UavcanGnssBridge::gnss_fix_sub_cb));
 	if (res < 0)
 	{
 		warnx("GNSS fix sub failed %i", res);
 		return res;
 	}
-
-	// Clear the uORB GPS report
-	memset(&_report, 0, sizeof(_report));
-
 	return res;
 }
 
-void UavcanGnssReceiver::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg)
+unsigned UavcanGnssBridge::get_num_redundant_channels() const
 {
-	_report.timestamp_position = hrt_absolute_time();
-	_report.lat = msg.lat_1e7;
-	_report.lon = msg.lon_1e7;
-	_report.alt = msg.alt_1e2 * MM_PER_CM;	// Convert from centimeter (1e2) to millimeters (1e3)
+	return (_receiver_node_id < 0) ? 0 : 1;
+}
 
-	_report.timestamp_variance = _report.timestamp_position;
+void UavcanGnssBridge::print_status() const
+{
+	printf("RX errors: %d, receiver node id: ", _sub_fix.getFailureCount());
+	if (_receiver_node_id < 0) {
+		printf("N/A\n");
+	} else {
+		printf("%d\n", _receiver_node_id);
+	}
+}
+
+void UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg)
+{
+	// This bridge does not support redundant GNSS receivers yet.
+	if (_receiver_node_id < 0) {
+		_receiver_node_id = msg.getSrcNodeID().get();
+		warnx("GNSS receiver node ID: %d", _receiver_node_id);
+	} else {
+		if (_receiver_node_id != msg.getSrcNodeID().get()) {
+			return;  // This GNSS receiver is the redundant one, ignore it.
+		}
+	}
+
+	auto report = ::vehicle_gps_position_s();
+
+	report.timestamp_position = hrt_absolute_time();
+	report.lat = msg.lat_1e7;
+	report.lon = msg.lon_1e7;
+	report.alt = msg.alt_1e2 * MM_PER_CM;	// Convert from centimeter (1e2) to millimeters (1e3)
+
+	report.timestamp_variance = report.timestamp_position;
 
 
 	// Check if the msg contains valid covariance information
@@ -90,19 +112,19 @@ void UavcanGnssReceiver::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uav
 
 		// Horizontal position uncertainty
 		const float horizontal_pos_variance = math::max(pos_cov[0], pos_cov[4]);
-		_report.eph = (horizontal_pos_variance > 0) ? sqrtf(horizontal_pos_variance) : -1.0F;
+		report.eph = (horizontal_pos_variance > 0) ? sqrtf(horizontal_pos_variance) : -1.0F;
 
 		// Vertical position uncertainty
-		_report.epv = (pos_cov[8] > 0) ? sqrtf(pos_cov[8]) : -1.0F;
+		report.epv = (pos_cov[8] > 0) ? sqrtf(pos_cov[8]) : -1.0F;
 	} else {
-		_report.eph = -1.0F;
-		_report.epv = -1.0F;
+		report.eph = -1.0F;
+		report.epv = -1.0F;
 	}
 
 	if (valid_velocity_covariance) {
 	    float vel_cov[9];
 	    msg.velocity_covariance.unpackSquareMatrix(vel_cov);
-		_report.s_variance_m_s = math::max(math::max(vel_cov[0], vel_cov[4]), vel_cov[8]);
+		report.s_variance_m_s = math::max(math::max(vel_cov[0], vel_cov[4]), vel_cov[8]);
 
 		/* There is a nonlinear relationship between the velocity vector and the heading.
 		 * Use Jacobian to transform velocity covariance to heading covariance
@@ -118,36 +140,36 @@ void UavcanGnssReceiver::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uav
 		float vel_e = msg.ned_velocity[1];
 		float vel_n_sq = vel_n * vel_n;
 		float vel_e_sq = vel_e * vel_e;
-		_report.c_variance_rad =
+		report.c_variance_rad =
 				(vel_e_sq * vel_cov[0] +
 						-2 * vel_n * vel_e * vel_cov[1] +	// Covariance matrix is symmetric
 						vel_n_sq* vel_cov[4]) / ((vel_n_sq + vel_e_sq) * (vel_n_sq + vel_e_sq));
 
 	} else {
-		_report.s_variance_m_s = -1.0F;
-		_report.c_variance_rad = -1.0F;
+		report.s_variance_m_s = -1.0F;
+		report.c_variance_rad = -1.0F;
 	}
 
-	_report.fix_type = msg.status;
+	report.fix_type = msg.status;
 
-	_report.timestamp_velocity = _report.timestamp_position;
-	_report.vel_n_m_s = msg.ned_velocity[0];
-	_report.vel_e_m_s = msg.ned_velocity[1];
-	_report.vel_d_m_s = msg.ned_velocity[2];
-	_report.vel_m_s = sqrtf(_report.vel_n_m_s * _report.vel_n_m_s + _report.vel_e_m_s * _report.vel_e_m_s + _report.vel_d_m_s * _report.vel_d_m_s);
-	_report.cog_rad = atan2f(_report.vel_e_m_s, _report.vel_n_m_s);
-	_report.vel_ned_valid = true;
+	report.timestamp_velocity = report.timestamp_position;
+	report.vel_n_m_s = msg.ned_velocity[0];
+	report.vel_e_m_s = msg.ned_velocity[1];
+	report.vel_d_m_s = msg.ned_velocity[2];
+	report.vel_m_s = sqrtf(report.vel_n_m_s * report.vel_n_m_s + report.vel_e_m_s * report.vel_e_m_s + report.vel_d_m_s * report.vel_d_m_s);
+	report.cog_rad = atan2f(report.vel_e_m_s, report.vel_n_m_s);
+	report.vel_ned_valid = true;
 
-	_report.timestamp_time = _report.timestamp_position;
-	_report.time_gps_usec = uavcan::UtcTime(msg.gnss_timestamp).toUSec();	// Convert to microseconds
+	report.timestamp_time = report.timestamp_position;
+	report.time_gps_usec = uavcan::UtcTime(msg.gnss_timestamp).toUSec();	// Convert to microseconds
 
-	_report.satellites_used = msg.sats_used;
+	report.satellites_used = msg.sats_used;
 
 	if (_report_pub > 0) {
-		orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
+		orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &report);
 
 	} else {
-		_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report);
+		_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &report);
 	}
 
 }
