@@ -66,10 +66,10 @@ void CatapultLaunchMethod::update(float accel_x)
 	last_timestamp = hrt_absolute_time();
 
 	if (accel_x > threshold_accel.get()) {
-		integrator += accel_x * dt;
+		integrator += dt;
 //		warnx("*** integrator %.3f, threshold_accel %.3f, threshold_time %.3f, accel_x %.3f, dt %.3f",
 //				(double)integrator, (double)threshold_accel.get(),  (double)threshold_time.get(), (double)accel_x, (double)dt);
-		if (integrator > threshold_accel.get() * threshold_time.get()) {
+		if (integrator > threshold_time.get()) {
 			launchDetected = true;
 		}
 
