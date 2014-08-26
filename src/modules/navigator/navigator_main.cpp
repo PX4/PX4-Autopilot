@@ -433,12 +433,15 @@ Navigator::task_main()
 			case NAVIGATION_STATE_AUTO_LOITER:
 				_navigation_mode = &_loiter;
 				break;
-			case NAVIGATION_STATE_AUTO_RTL:
+			case NAVIGATION_STATE_AUTO_RCRECOVER:
 				if (_param_rcloss_obc.get() != 0) {
 					_navigation_mode = &_rcLoss;
 				} else {
 					_navigation_mode = &_rtl;
 				}
+				break;
+			case NAVIGATION_STATE_AUTO_RTL:
+					_navigation_mode = &_rtl;
 				break;
 			case NAVIGATION_STATE_AUTO_RTGS: //XXX OBC: differentiate between rc loss and dl loss here
 				/* Use complex data link loss mode only when enabled via param
