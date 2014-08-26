@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,34 +32,42 @@
  ****************************************************************************/
 
 /**
- * @file Rangefinder driver interface.
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#ifndef _DRV_PX4FLOW_H
-#define _DRV_PX4FLOW_H
+#include <nuttx/config.h>
+#include <systemlib/param/param.h>
 
-#include <stdint.h>
-#include <sys/ioctl.h>
-
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
-
-#define PX4FLOW_DEVICE_PATH	"/dev/px4flow"
-
-/*
- * ObjDev tag for px4flow data.
- */
-ORB_DECLARE(optical_flow);
-
-/*
- * ioctl() definitions
+/**
+ * Enable UAVCAN.
  *
- * px4flow drivers also implement the generic sensor driver
- * interfaces from drv_sensor.h
+ * Enables support for UAVCAN-interfaced actuators and sensors.
+ *
+ * @min 0
+ * @max 1
+ * @group UAVCAN
  */
+PARAM_DEFINE_INT32(UAVCAN_ENABLE, 0);
 
-#define _PX4FLOWIOCBASE			(0x7700)
-#define __PX4FLOWIOC(_n)		(_IOC(_PX4FLOWIOCBASE, _n))
+/**
+ * UAVCAN Node ID.
+ *
+ * Read the specs at http://uavcan.org to learn more about Node ID.
+ *
+ * @min 1
+ * @max 125
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_NODE_ID, 1);
+
+/**
+ * UAVCAN CAN bus bitrate.
+ *
+ * @min 20000
+ * @max 1000000
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_BITRATE, 1000000);
 
 
-#endif /* _DRV_PX4FLOW_H */
+

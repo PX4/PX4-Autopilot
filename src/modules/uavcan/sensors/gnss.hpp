@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,34 +32,56 @@
  ****************************************************************************/
 
 /**
- * @file Rangefinder driver interface.
- */
-
-#ifndef _DRV_PX4FLOW_H
-#define _DRV_PX4FLOW_H
-
-#include <stdint.h>
-#include <sys/ioctl.h>
-
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
-
-#define PX4FLOW_DEVICE_PATH	"/dev/px4flow"
-
-/*
- * ObjDev tag for px4flow data.
- */
-ORB_DECLARE(optical_flow);
-
-/*
- * ioctl() definitions
+ * @file gnss.hpp
  *
- * px4flow drivers also implement the generic sensor driver
- * interfaces from drv_sensor.h
+ * UAVCAN --> ORB bridge for GNSS messages:
+ *     uavcan.equipment.gnss.Fix
+ *
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ * @author Andrew Chambers <achamber@gmail.com>
  */
 
-#define _PX4FLOWIOCBASE			(0x7700)
-#define __PX4FLOWIOC(_n)		(_IOC(_PX4FLOWIOCBASE, _n))
+#pragma once
 
+#include <drivers/drv_hrt.h>
 
-#endif /* _DRV_PX4FLOW_H */
+#include <uORB/uORB.h>
+#include <uORB/topics/vehicle_gps_position.h>
+
+#include <uavcan/uavcan.hpp>
+#include <uavcan/equipment/gnss/Fix.hpp>
+
+#include "sensor_bridge.hpp"
+
+class UavcanGnssBridge : public IUavcanSensorBridge
+{
+public:
+	static const char *const NAME;
+
+	UavcanGnssBridge(uavcan::INode& node);
+
+	const char *get_name() const override { return NAME; }
+
+	int init() override;
+
+	unsigned get_num_redundant_channels() const override;
+
+	void print_status() const override;
+
+private:
+	/**
+	 * GNSS fix message will be reported via this callback.
+	 */
+	void gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
+
+	typedef uavcan::MethodBinder<UavcanGnssBridge*,
+		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix>&)>
+		FixCbBinder;
+
+	uavcan::INode &_node;
+	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder> _sub_fix;
+	int _receiver_node_id = -1;
+
+	orb_advert_t _report_pub;                ///< uORB pub for gnss position
+
+};

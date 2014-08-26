@@ -304,11 +304,10 @@ then
 	then
 		if [ $OUTPUT_MODE == uavcan_esc ]
 		then
-			if uavcan start 1
+			if param compare UAVCAN_ENABLE 0
 			then
-				echo "CAN UP"
-			else
-				echo "CAN ERR"
+				echo "[init] OVERRIDING UAVCAN_ENABLE = 1"
+				param set UAVCAN_ENABLE 1
 			fi
 		fi
 
@@ -446,6 +445,11 @@ then
 	fi
 
 	mavlink start $MAVLINK_FLAGS
+
+	#
+	# UAVCAN
+	#
+	sh /etc/init.d/rc.uavcan
 
 	#
 	# Sensors, Logging, GPS

@@ -40,10 +40,19 @@ MODULE_COMMAND = uavcan
 
 MAXOPTIMIZATION = -Os
 
-SRCS += uavcan_main.cpp         \
-        uavcan_clock.cpp        \
-        esc_controller.cpp      \
-        gnss_receiver.cpp
+# Main
+SRCS += uavcan_main.cpp              \
+        uavcan_clock.cpp             \
+        uavcan_params.c
+
+# Actuators
+SRCS += actuators/esc.cpp
+
+# Sensors
+SRCS += sensors/sensor_bridge.cpp   \
+        sensors/gnss.cpp            \
+        sensors/mag.cpp             \
+        sensors/baro.cpp
 
 #
 # libuavcan

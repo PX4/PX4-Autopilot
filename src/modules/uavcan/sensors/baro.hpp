@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,34 +32,37 @@
  ****************************************************************************/
 
 /**
- * @file Rangefinder driver interface.
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#ifndef _DRV_PX4FLOW_H
-#define _DRV_PX4FLOW_H
+#pragma once
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+#include "sensor_bridge.hpp"
+#include <drivers/drv_baro.h>
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
+#include <uavcan/equipment/air_data/StaticAirData.hpp>
 
-#define PX4FLOW_DEVICE_PATH	"/dev/px4flow"
+class UavcanBarometerBridge : public UavcanCDevSensorBridgeBase
+{
+public:
+	static const char *const NAME;
 
-/*
- * ObjDev tag for px4flow data.
- */
-ORB_DECLARE(optical_flow);
+	UavcanBarometerBridge(uavcan::INode& node);
 
-/*
- * ioctl() definitions
- *
- * px4flow drivers also implement the generic sensor driver
- * interfaces from drv_sensor.h
- */
+	const char *get_name() const override { return NAME; }
 
-#define _PX4FLOWIOCBASE			(0x7700)
-#define __PX4FLOWIOC(_n)		(_IOC(_PX4FLOWIOCBASE, _n))
+	int init() override;
 
+private:
+	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
 
-#endif /* _DRV_PX4FLOW_H */
+	void air_data_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticAirData> &msg);
+
+	typedef uavcan::MethodBinder<UavcanBarometerBridge*,
+		void (UavcanBarometerBridge::*)
+			(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticAirData>&)>
+		AirDataCbBinder;
+
+	uavcan::Subscriber<uavcan::equipment::air_data::StaticAirData, AirDataCbBinder> _sub_air_data;
+	unsigned _msl_pressure = 101325;
+};
