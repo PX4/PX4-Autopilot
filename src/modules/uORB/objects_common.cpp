@@ -192,6 +192,9 @@ ORB_DEFINE(actuator_outputs_1, struct actuator_outputs_s);
 ORB_DEFINE(actuator_outputs_2, struct actuator_outputs_s);
 ORB_DEFINE(actuator_outputs_3, struct actuator_outputs_s);
 
+#include "topics/multirotor_motor_limits.h"
+ORB_DEFINE(multirotor_motor_limits, struct multirotor_motor_limits_s);
+
 #include "topics/telemetry_status.h"
 ORB_DEFINE(telemetry_status_0, struct telemetry_status_s);
 ORB_DEFINE(telemetry_status_1, struct telemetry_status_s);
