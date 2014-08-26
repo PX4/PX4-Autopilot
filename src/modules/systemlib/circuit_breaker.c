@@ -106,7 +106,7 @@ PARAM_DEFINE_INT32(CBRK_AIRSPD_CHK, 0);
  * @max 121212
  * @group Circuit Breaker
  */
-PARAM_DEFINE_INT32(CBRK_FLIGHTTERMINATION, 0);
+PARAM_DEFINE_INT32(CBRK_FLIGHTTERM, 0);
 
 bool circuit_breaker_enabled(const char* breaker, int32_t magic)
 {

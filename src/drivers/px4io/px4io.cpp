@@ -1170,7 +1170,7 @@ PX4IO::io_set_arming_state()
 	}
 
 	/* Do not set failsafe if circuit breaker is enabled */
-	if (armed.force_failsafe && !circuit_breaker_enabled("CBRK_FLIGHTTERMINATION", CBRK_FLIGHTTERMINATION_KEY)) {
+	if (armed.force_failsafe && !circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY)) {
 		set |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
 	} else {
 		clear |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
