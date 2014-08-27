@@ -393,6 +393,7 @@ struct UAVCAN_EXPORT NumericTraits<float>
     static float max() { return FLT_MAX; }
     static float min() { return FLT_MIN; }
     static float infinity() { return INFINITY; }
+    static float epsilon() { return FLT_EPSILON; }
 };
 
 /// double
@@ -404,8 +405,10 @@ struct UAVCAN_EXPORT NumericTraits<double>
     static double max() { return DBL_MAX; }
     static double min() { return DBL_MIN; }
     static double infinity() { return static_cast<double>(INFINITY) * static_cast<double>(INFINITY); }
+    static double epsilon() { return DBL_EPSILON; }
 };
 
+#if defined(LDBL_MAX) && defined(LDBL_MIN) && defined(LDBL_EPSILON)
 /// long double
 template <>
 struct UAVCAN_EXPORT NumericTraits<long double>
@@ -415,6 +418,8 @@ struct UAVCAN_EXPORT NumericTraits<long double>
     static long double max() { return LDBL_MAX; }
     static long double min() { return LDBL_MIN; }
     static long double infinity() { return static_cast<long double>(INFINITY) * static_cast<long double>(INFINITY); }
+    static long double epsilon() { return LDBL_EPSILON; }
 };
+#endif
 
 }
