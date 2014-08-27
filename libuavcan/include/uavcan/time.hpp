@@ -140,12 +140,12 @@ public:
         }
         else
         {
-            if (uint64_t(usec_ + r.toUSec()) < usec_)
+            if (uint64_t(int64_t(usec_) + r.toUSec()) < usec_)
             {
                 return fromUSec(NumericTraits<uint64_t>::max());
             }
         }
-        return fromUSec(usec_ + r.toUSec());
+        return fromUSec(uint64_t(int64_t(usec_) + r.toUSec()));
     }
 
     T operator-(const D& r) const
@@ -154,7 +154,7 @@ public:
     }
     D operator-(const T& r) const
     {
-        return D::fromUSec((usec_ > r.usec_) ? (usec_ - r.usec_) : -(r.usec_ - usec_));
+        return D::fromUSec((usec_ > r.usec_) ? int64_t(usec_ - r.usec_) : -int64_t(r.usec_ - usec_));
     }
 
     T& operator+=(const D& r)

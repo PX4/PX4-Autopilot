@@ -92,7 +92,7 @@ class UAVCAN_EXPORT Dispatcher : Noncopyable
         void cleanup(MonotonicTime ts);
         void handleFrame(const RxFrame& frame);
 
-        int getNumEntries() const { return list_.getLength(); }
+        unsigned getNumEntries() const { return list_.getLength(); }
     };
 
     ListenerRegistry lmsg_;
@@ -137,9 +137,9 @@ public:
     bool hasPublisher(DataTypeID dtid) const;
     bool hasServer(DataTypeID dtid) const;
 
-    int getNumMessageListeners()         const { return lmsg_.getNumEntries(); }
-    int getNumServiceRequestListeners()  const { return lsrv_req_.getNumEntries(); }
-    int getNumServiceResponseListeners() const { return lsrv_resp_.getNumEntries(); }
+    unsigned getNumMessageListeners()         const { return lmsg_.getNumEntries(); }
+    unsigned getNumServiceRequestListeners()  const { return lsrv_req_.getNumEntries(); }
+    unsigned getNumServiceResponseListeners() const { return lsrv_resp_.getNumEntries(); }
 
     IOutgoingTransferRegistry& getOutgoingTransferRegistry() { return outgoing_transfer_reg_; }
 

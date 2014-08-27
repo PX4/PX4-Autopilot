@@ -12,7 +12,7 @@ namespace uavcan
 const unsigned BitStream::MaxBytesPerRW;
 const unsigned BitStream::MaxBitsPerRW;
 
-int BitStream::write(const uint8_t* bytes, const int bitlen)
+int BitStream::write(const uint8_t* bytes, const unsigned bitlen)
 {
     // Temporary buffer is needed to merge new bits with cached unaligned bits from the last write() (see byte_cache_)
     uint8_t tmp[MaxBytesPerRW + 1];
@@ -25,7 +25,7 @@ int BitStream::write(const uint8_t* bytes, const int bitlen)
     fill(tmp, tmp + bytelen, uint8_t(0));
     copyBitArray(bytes, 0, bitlen, tmp, bit_offset_ % 8);
 
-    const int new_bit_offset = bit_offset_ + bitlen;
+    const unsigned new_bit_offset = bit_offset_ + bitlen;
 
     // Bitcopy algorithm resets skipped bits in the first byte. Restore them back.
     tmp[0] |= byte_cache_;
@@ -52,7 +52,7 @@ int BitStream::write(const uint8_t* bytes, const int bitlen)
     return ResultOk;
 }
 
-int BitStream::read(uint8_t* bytes, const int bitlen)
+int BitStream::read(uint8_t* bytes, const unsigned bitlen)
 {
     uint8_t tmp[MaxBytesPerRW + 1];
 
@@ -81,10 +81,10 @@ std::string BitStream::toString() const
     std::string out;
     out.reserve(128);
 
-    for (int offset = 0; true; offset++)
+    for (unsigned offset = 0; true; offset++)
     {
         uint8_t byte = 0;
-        if (1 != buf_.read(offset, &byte, 1))
+        if (1U != buf_.read(offset, &byte, 1U))
         {
             break;
         }

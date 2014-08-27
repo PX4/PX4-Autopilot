@@ -10,7 +10,7 @@ namespace uavcan
 void ScalarCodec::swapByteOrder(uint8_t* const bytes, const unsigned len)
 {
     UAVCAN_ASSERT(bytes);
-    for (int i = 0, j = len - 1; i < j; i++, j--)
+    for (unsigned i = 0, j = len - 1; i < j; i++, j--)
     {
         const uint8_t c = bytes[i];
         bytes[i] = bytes[j];

@@ -68,39 +68,39 @@ std::string CanFrame::toString(StringRepresentation mode) const
     char buf[50];
     char* wpos = buf;
     char* const epos = buf + sizeof(buf);
-    fill(buf, buf + sizeof(buf), uint8_t(0));
+    fill(buf, buf + sizeof(buf), '\0');
 
     if (id & FlagEFF)
     {
-        wpos += snprintf(wpos, epos - wpos, "0x%08x  ", unsigned(id & MaskExtID));
+        wpos += snprintf(wpos, unsigned(epos - wpos), "0x%08x  ", unsigned(id & MaskExtID));
     }
     else
     {
         const char* const fmt = (mode == StrAligned) ? "     0x%03x  " : "0x%03x  ";
-        wpos += snprintf(wpos, epos - wpos, fmt, unsigned(id & MaskStdID));
+        wpos += snprintf(wpos, unsigned(epos - wpos), fmt, unsigned(id & MaskStdID));
     }
 
     if (id & FlagRTR)
     {
-        wpos += snprintf(wpos, epos - wpos, " RTR");
+        wpos += snprintf(wpos, unsigned(epos - wpos), " RTR");
     }
     else if (id & FlagERR)
     {
-        wpos += snprintf(wpos, epos - wpos, " ERR");
+        wpos += snprintf(wpos, unsigned(epos - wpos), " ERR");
     }
     else
     {
         for (int dlen = 0; dlen < dlc; dlen++)                                 // hex bytes
         {
-            wpos += snprintf(wpos, epos - wpos, " %02x", unsigned(data[dlen]));
+            wpos += snprintf(wpos, unsigned(epos - wpos), " %02x", unsigned(data[dlen]));
         }
 
-        while ((mode == StrAligned) && (wpos < buf + AsciiColumnOffset))        // alignment
+        while ((mode == StrAligned) && (wpos < buf + AsciiColumnOffset))       // alignment
         {
             *wpos++ = ' ';
         }
 
-        wpos += snprintf(wpos, epos - wpos, "  \'");                           // ascii
+        wpos += snprintf(wpos, unsigned(epos - wpos), "  \'");                 // ascii
         for (int dlen = 0; dlen < dlc; dlen++)
         {
             uint8_t ch = data[dlen];
@@ -108,9 +108,9 @@ std::string CanFrame::toString(StringRepresentation mode) const
             {
                 ch = '.';
             }
-            wpos += snprintf(wpos, epos - wpos, "%c", ch);
+            wpos += snprintf(wpos, unsigned(epos - wpos), "%c", ch);
         }
-        wpos += snprintf(wpos, epos - wpos, "\'");
+        wpos += snprintf(wpos, unsigned(epos - wpos), "\'");
     }
     (void)wpos;
     return std::string(buf);

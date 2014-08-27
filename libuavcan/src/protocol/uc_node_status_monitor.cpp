@@ -66,7 +66,7 @@ void NodeStatusMonitor::handleTimerEvent(const TimerEvent&)
         if (entry.time_since_last_update_ms100 >= 0 &&
             entry.status_code != protocol::NodeStatus::STATUS_OFFLINE)
         {
-            entry.time_since_last_update_ms100 = int8_t(entry.time_since_last_update_ms100 + TimerPeriodMs100);
+            entry.time_since_last_update_ms100 = int8_t(entry.time_since_last_update_ms100 + int8_t(TimerPeriodMs100));
             if (entry.time_since_last_update_ms100 >= OfflineTimeoutMs100)
             {
                 Entry new_entry_value;

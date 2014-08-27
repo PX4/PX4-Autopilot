@@ -32,7 +32,7 @@ void PanicBroadcaster::panic(const char* short_reason)
         {
             break;
         }
-        msg_.reason_text.push_back(*p);
+        msg_.reason_text.push_back(protocol::Panic::FieldTypes::reason_text::ValueType(*p));
         p++;
     }
 

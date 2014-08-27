@@ -86,7 +86,7 @@ private:
         }
     }
 
-    static void truncate(StorageType& value) { value &= mask(); }
+    static void truncate(StorageType& value) { value = value & StorageType(mask()); }
 
     static void validate()
     {

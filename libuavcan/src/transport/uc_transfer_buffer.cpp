@@ -147,7 +147,7 @@ int DynamicTransferBufferManagerEntry::read(unsigned offset, uint8_t* data, unsi
     }
 
     UAVCAN_ASSERT(left_to_read == 0);
-    return len;
+    return int(len);
 }
 
 int DynamicTransferBufferManagerEntry::write(unsigned offset, const uint8_t* data, unsigned len)
@@ -215,9 +215,10 @@ int DynamicTransferBufferManagerEntry::write(unsigned offset, const uint8_t* dat
         new_block->write(inptr, offset, total_offset, left_to_write);
     }
 
-    const int actually_written = len - left_to_write;
+    UAVCAN_ASSERT(len >= left_to_write);
+    const unsigned actually_written = len - left_to_write;
     max_write_pos_ = max(uint16_t(offset + actually_written), uint16_t(max_write_pos_));
-    return actually_written;
+    return int(actually_written);
 }
 
 /*
@@ -240,7 +241,7 @@ int StaticTransferBufferImpl::read(unsigned offset, uint8_t* data, unsigned len)
     }
     UAVCAN_ASSERT((offset + len) <= max_write_pos_);
     (void)copy(data_ + offset, data_ + offset + len, data);
-    return len;
+    return int(len);
 }
 
 int StaticTransferBufferImpl::write(unsigned offset, const uint8_t* data, unsigned len)
@@ -261,7 +262,7 @@ int StaticTransferBufferImpl::write(unsigned offset, const uint8_t* data, unsign
     UAVCAN_ASSERT((offset + len) <= size_);
     (void)copy(data, data + len, data_ + offset);
     max_write_pos_ = max(uint16_t(offset + len), uint16_t(max_write_pos_));
-    return len;
+    return int(len);
 }
 
 void StaticTransferBufferImpl::reset()

@@ -207,7 +207,7 @@ DataTypeSignature GlobalDataTypeRegistry::computeAggregateSignature(DataTypeKind
         const DataTypeDescriptor& desc = p->descriptor;
         const int dtid = desc.getID().get();
 
-        if (inout_id_mask[dtid])
+        if (inout_id_mask[unsigned(dtid)])
         {
             if (signature_initialized)
             {
@@ -224,7 +224,7 @@ DataTypeSignature GlobalDataTypeRegistry::computeAggregateSignature(DataTypeKind
         prev_dtid++;
         while (prev_dtid < dtid)
         {
-            inout_id_mask[prev_dtid++] = false; // Erasing bits for missing types
+            inout_id_mask[unsigned(prev_dtid++)] = false; // Erasing bits for missing types
         }
         UAVCAN_ASSERT(prev_dtid == dtid);
 
@@ -233,7 +233,7 @@ DataTypeSignature GlobalDataTypeRegistry::computeAggregateSignature(DataTypeKind
     prev_dtid++;
     while (prev_dtid <= DataTypeID::Max)
     {
-        inout_id_mask[prev_dtid++] = false;
+        inout_id_mask[unsigned(prev_dtid++)] = false;
     }
 
     return signature;

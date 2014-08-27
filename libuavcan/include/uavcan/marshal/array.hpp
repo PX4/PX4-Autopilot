@@ -540,16 +540,16 @@ public:
     {
         if (new_size > size())
         {
-            unsigned cnt = new_size - size();
-            while (cnt--)
+            SizeType cnt = SizeType(new_size - size());
+            while (cnt-- > 0)
             {
                 push_back(filler);
             }
         }
         else if (new_size < size())
         {
-            unsigned cnt = size() - new_size;
-            while (cnt--)
+            SizeType cnt = SizeType(size() - new_size);
+            while (cnt-- > 0)
             {
                 pop_back();
             }
@@ -623,7 +623,7 @@ public:
         }
         while (*ch)
         {
-            push_back(*ch++);
+            push_back(ValueType(*ch++));  // Value type is likely to be unsigned char, so conversion may be required.
         }
         return *this;
     }
@@ -642,7 +642,7 @@ public:
         }
         while (*ch)
         {
-            push_back(*ch++);
+            push_back(ValueType(*ch++));
         }
         return *this;
     }

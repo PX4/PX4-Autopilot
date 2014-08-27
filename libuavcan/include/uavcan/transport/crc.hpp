@@ -58,7 +58,7 @@ public:
 #else
     void add(uint8_t byte)
     {
-        value_ = ((value_ << 8) ^ Table[((value_ >> 8) ^ byte) & 0xFFU]) & 0xFFFFU;
+        value_ = uint16_t(uint16_t((value_ << 8) ^ Table[uint16_t((value_ >> 8) ^ byte) & 0xFFU]) & 0xFFFFU);
     }
 #endif
 

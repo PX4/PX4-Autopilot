@@ -172,7 +172,7 @@ int Scheduler::spin(MonotonicTime deadline)
         }
 
         const MonotonicTime ts = deadline_scheduler_.pollAndGetMonotonicTime(getSystemClock());
-        pollCleanup(ts, retval);
+        pollCleanup(ts, unsigned(retval));
         if (ts >= deadline)
         {
             break;

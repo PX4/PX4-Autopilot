@@ -47,7 +47,7 @@ int SingleFrameIncomingTransfer::read(unsigned offset, uint8_t* data, unsigned l
     }
     UAVCAN_ASSERT((offset + len) <= payload_len_);
     (void)copy(payload_ + offset, payload_ + offset + len, data);
-    return len;
+    return int(len);
 }
 
 /*
@@ -115,8 +115,8 @@ bool TransferListenerBase::checkPayloadCrc(const uint16_t compare_with, const IT
         {
             break;
         }
-        offset += res;
-        crc.add(buf, res);
+        offset += unsigned(res);
+        crc.add(buf, unsigned(res));
     }
     if (crc.get() != compare_with)
     {

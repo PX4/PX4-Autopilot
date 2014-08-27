@@ -15,7 +15,7 @@ void TransferSender::registerError()
     dispatcher_.getTransferPerfCounter().addError();
 }
 
-int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime tx_deadline,
+int TransferSender::send(const uint8_t* payload, unsigned payload_len, MonotonicTime tx_deadline,
                          MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id,
                          TransferID tid)
 {
@@ -28,10 +28,10 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
 
     Frame frame(data_type_.getID(), transfer_type, dispatcher_.getNodeID(), dst_node_id, 0, tid);
 
-    if (frame.getMaxPayloadLen() >= payload_len)           // Single Frame Transfer
+    if (frame.getMaxPayloadLen() >= int(payload_len))           // Single Frame Transfer
     {
         const int res = frame.setPayload(payload, payload_len);
-        if (res != payload_len)
+        if (res != int(payload_len))
         {
             UAVCAN_ASSERT(0);
             UAVCAN_TRACE("TransferSender", "Frame payload write failure, %i", res);
@@ -64,7 +64,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
                 return write_res;
             }
             offset = write_res - 2;
-            UAVCAN_ASSERT(payload_len > offset);
+            UAVCAN_ASSERT(int(payload_len) > offset);
         }
 
         int next_frame_index = 1;
@@ -84,7 +84,8 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
             }
             frame.setIndex(next_frame_index++);
 
-            const int write_res = frame.setPayload(payload + offset, payload_len - offset);
+            UAVCAN_ASSERT(offset >= 0);
+            const int write_res = frame.setPayload(payload + offset, payload_len - unsigned(offset));
             if (write_res < 0)
             {
                 UAVCAN_TRACE("TransferSender", "Frame payload write failure, %i", write_res);
@@ -93,8 +94,8 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
             }
 
             offset += write_res;
-            UAVCAN_ASSERT(offset <= payload_len);
-            if (offset >= payload_len)
+            UAVCAN_ASSERT(offset <= int(payload_len));
+            if (offset >= int(payload_len))
             {
                 frame.makeLast();
             }
@@ -105,7 +106,7 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
     return -ErrLogic; // Return path analysis is apparently broken. There should be no warning, this 'return' is unreachable.
 }
 
-int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime tx_deadline,
+int TransferSender::send(const uint8_t* payload, unsigned payload_len, MonotonicTime tx_deadline,
                          MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id)
 {
     const OutgoingTransferRegistryKey otr_key(data_type_.getID(), transfer_type, dst_node_id);

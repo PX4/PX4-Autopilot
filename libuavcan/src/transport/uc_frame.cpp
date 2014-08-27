@@ -43,7 +43,7 @@ int Frame::setPayload(const uint8_t* data, unsigned len)
     len = min(unsigned(maxlen), len);
     (void)copy(data, data + len, payload_);
     payload_len_ = uint_fast8_t(len);
-    return len;
+    return int(len);
 }
 
 template <int OFFSET, int WIDTH>
@@ -216,13 +216,13 @@ std::string Frame::toString() const
 
     for (unsigned i = 0; i < payload_len_; i++)
     {
-        ofs += snprintf(buf + ofs, BUFLEN - ofs, "%02x", payload_[i]);
+        ofs += snprintf(buf + ofs, unsigned(BUFLEN - ofs), "%02x", payload_[i]);
         if ((i + 1) < payload_len_)
         {
-            ofs += snprintf(buf + ofs, BUFLEN - ofs, " ");
+            ofs += snprintf(buf + ofs, unsigned(BUFLEN - ofs), " ");
         }
     }
-    (void)snprintf(buf + ofs, BUFLEN - ofs, "]");
+    (void)snprintf(buf + ofs, unsigned(BUFLEN - ofs), "]");
     return std::string(buf);
 }
 #endif

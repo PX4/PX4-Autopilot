@@ -240,7 +240,7 @@ int CanIOManager::sendToIface(uint8_t iface_index, const CanFrame& frame, Monoto
     }
     if (res > 0)
     {
-        counters_[iface_index].frames_tx += res;
+        counters_[iface_index].frames_tx += unsigned(res);
     }
     return res;
 }
@@ -300,7 +300,7 @@ CanIOManager::CanIOManager(ICanDriver& driver, IPoolAllocator& allocator, ISyste
 
     if (mem_blocks_per_iface == 0)
     {
-        mem_blocks_per_iface = allocator.getNumBlocks() / (num_ifaces_ + 1) + 1;
+        mem_blocks_per_iface = allocator.getNumBlocks() / (num_ifaces_ + 1U) + 1U;
     }
     UAVCAN_TRACE("CanIOManager", "Memory blocks per iface: %u, total: %u",
                  unsigned(mem_blocks_per_iface), unsigned(allocator.getNumBlocks()));
