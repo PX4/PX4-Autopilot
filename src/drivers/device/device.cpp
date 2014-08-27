@@ -97,6 +97,7 @@ Device::Device(const char *name,
         
 	/* setup a default device ID. When bus_type is UNKNOWN the
 	   other fields are invalid */
+	_device_id.devid = 0;
 	_device_id.devid_s.bus_type = DeviceBusType_UNKNOWN;
 	_device_id.devid_s.bus = 0;
 	_device_id.devid_s.address = 0;
