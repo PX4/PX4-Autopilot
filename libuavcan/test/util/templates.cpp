@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <uavcan/util/templates.hpp>
+#include <limits>
 
 struct NonConvertible { };
 
@@ -39,4 +40,25 @@ TEST(Util, TryImplicitCast)
 
     //try_implicit_cast<NonDefaultConstructible>(ConvertibleToBool(true));   // Will fail to compile
     try_implicit_cast<NonDefaultConstructible>(NonConvertible(), NonDefaultConstructible(64));
+}
+
+TEST(Util, FloatClassification)
+{
+    // NAN
+    ASSERT_TRUE(uavcan::isNaN(std::numeric_limits<float>::quiet_NaN()));
+    ASSERT_FALSE(uavcan::isNaN(std::numeric_limits<double>::infinity()));
+    ASSERT_FALSE(uavcan::isNaN(std::numeric_limits<long double>::infinity()));
+    ASSERT_FALSE(uavcan::isNaN(123.456));
+
+    // INF
+    ASSERT_TRUE(uavcan::isInfinity(std::numeric_limits<float>::infinity()));
+    ASSERT_TRUE(uavcan::isInfinity(-std::numeric_limits<long double>::infinity()));
+    ASSERT_FALSE(uavcan::isInfinity(std::numeric_limits<float>::quiet_NaN()));
+    ASSERT_FALSE(uavcan::isInfinity(-0.1L));
+
+    // Signbit
+    ASSERT_FALSE(uavcan::getSignBit(12));
+    ASSERT_TRUE(uavcan::getSignBit(-std::numeric_limits<long double>::infinity()));
+    ASSERT_FALSE(uavcan::getSignBit(std::numeric_limits<float>::infinity()));
+    ASSERT_TRUE(uavcan::getSignBit(-0.0));                                           // Negative zero
 }
