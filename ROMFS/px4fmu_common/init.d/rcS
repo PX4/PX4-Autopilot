@@ -450,7 +450,7 @@ then
 	#
 	if ver hwcmp PX4FMU_V2
 	then
-		mavlink start -d /dev/ttyS2 -b 230400
+		mavlink start -d /dev/ttyS2 -b 230400 -m onboard
 	fi
 
 	# UAVCAN
