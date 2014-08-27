@@ -886,8 +886,8 @@ protected:
 			msg.eph = cm_uint16_from_m_float(gps.eph);
 			msg.epv = cm_uint16_from_m_float(gps.epv);
 			msg.vel = cm_uint16_from_m_float(gps.vel_m_s),
-		    msg.cog = _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F * 1e2f,
-		    msg.satellites_visible = gps.satellites_used;
+			msg.cog = _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F * 1e2f,
+			msg.satellites_visible = gps.satellites_used;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_GPS_RAW_INT, &msg);
 		}
@@ -957,11 +957,11 @@ protected:
 			msg.lat = pos.lat * 1e7;
 			msg.lon = pos.lon * 1e7;
 			msg.alt = pos.alt * 1000.0f;
-		    msg.relative_alt = (pos.alt - home.alt) * 1000.0f;
-		    msg.vx = pos.vel_n * 100.0f;
-		    msg.vy = pos.vel_e * 100.0f;
-		    msg.vz = pos.vel_d * 100.0f;
-		    msg.hdg = _wrap_2pi(pos.yaw) * M_RAD_TO_DEG_F * 100.0f;
+			msg.relative_alt = (pos.alt - home.alt) * 1000.0f;
+			msg.vx = pos.vel_n * 100.0f;
+			msg.vy = pos.vel_e * 100.0f;
+			msg.vz = pos.vel_d * 100.0f;
+			msg.hdg = _wrap_2pi(pos.yaw) * M_RAD_TO_DEG_F * 100.0f;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_GLOBAL_POSITION_INT, &msg);
 		}
@@ -1022,9 +1022,9 @@ protected:
 			msg.x = pos.x;
 			msg.y = pos.y;
 			msg.z = pos.z;
-		    msg.vx = pos.vx;
-		    msg.vy = pos.vy;
-		    msg.vz = pos.vz;
+			msg.vx = pos.vx;
+			msg.vy = pos.vy;
+			msg.vz = pos.vz;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_LOCAL_POSITION_NED, &msg);
 		}
@@ -1085,9 +1085,9 @@ protected:
 			msg.x = pos.x;
 			msg.y = pos.y;
 			msg.z = pos.z;
-		    msg.roll = pos.roll;
-		    msg.pitch = pos.pitch;
-		    msg.yaw = pos.yaw;
+			msg.roll = pos.roll;
+			msg.pitch = pos.pitch;
+			msg.yaw = pos.yaw;
 
 			_mavlink->send_message(MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE, &msg);
 		}

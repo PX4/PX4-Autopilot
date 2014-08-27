@@ -639,6 +639,11 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case VEHICLE_CMD_PREFLIGHT_CALIBRATION:
 	case VEHICLE_CMD_PREFLIGHT_SET_SENSOR_OFFSETS:
 	case VEHICLE_CMD_PREFLIGHT_STORAGE:
+	case VEHICLE_CMD_CUSTOM_0:
+	case VEHICLE_CMD_CUSTOM_1:
+	case VEHICLE_CMD_CUSTOM_2:
+	case VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY:
+	case VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY:
 		/* ignore commands that handled in low prio loop */
 		break;
 

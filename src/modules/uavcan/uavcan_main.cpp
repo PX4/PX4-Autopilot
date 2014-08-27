@@ -41,6 +41,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/board_serial.h>
+#include <systemlib/scheduling_priorities.h>
 #include <version/version.h>
 #include <arch/board/board.h>
 #include <arch/chip/chip.h>
@@ -175,7 +176,7 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	 * Start the task. Normally it should never exit.
 	 */
 	static auto run_trampoline = [](int, char *[]) {return UavcanNode::_instance->run();};
-	_instance->_task = task_spawn_cmd("uavcan", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, StackSize,
+	_instance->_task = task_spawn_cmd("uavcan", SCHED_DEFAULT, SCHED_PRIORITY_ACTUATOR_OUTPUTS, StackSize,
 			      static_cast<main_t>(run_trampoline), nullptr);
 
 	if (_instance->_task < 0) {
@@ -548,14 +549,16 @@ UavcanNode::print_info()
 	(void)pthread_mutex_lock(&_node_mutex);
 
 	// ESC mixer status
-	warnx("ESC actuators control groups: sub: %u / req: %u / fds: %u",
-	      (unsigned)_groups_subscribed, (unsigned)_groups_required, _poll_fds_num);
-	warnx("ESC mixer: %s", (_mixers == nullptr) ? "NONE" : "OK");
+	printf("ESC actuators control groups: sub: %u / req: %u / fds: %u\n",
+	       (unsigned)_groups_subscribed, (unsigned)_groups_required, _poll_fds_num);
+	printf("ESC mixer: %s\n", (_mixers == nullptr) ? "NONE" : "OK");
 
 	// Sensor bridges
 	auto br = _sensor_bridges.getHead();
 	while (br != nullptr) {
-		warnx("Sensor '%s': channels: %u", br->get_name(), br->get_num_redundant_channels());
+		printf("Sensor '%s':\n", br->get_name());
+		br->print_status();
+		printf("\n");
 		br = br->getSibling();
 	}
 
