@@ -155,6 +155,16 @@ mixer_tick(void)
 	}
 
 	/*
+	 * Check if failsafe termination is set - if yes,
+	 * set the force failsafe flag once entering the first
+	 * failsafe condition.
+	 */
+	if ((r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE) &&
+		(source == MIX_FAILSAFE)) {
+		r_setup_arming |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+	}
+
+	/*
 	 * Check if we should force failsafe - and do it if we have to
 	 */
 	if (r_setup_arming & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE) {
