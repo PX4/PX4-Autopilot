@@ -1176,6 +1176,14 @@ PX4IO::io_set_arming_state()
 		clear |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
 	}
 
+	// XXX this is for future support in the commander
+	// but can be removed if unneeded
+	// if (armed.termination_failsafe) {
+	// 	set |= PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE;
+	// } else {
+	// 	clear |= PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE;
+	// }
+
 	if (armed.ready_to_arm) {
 		set |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
 
@@ -2039,7 +2047,8 @@ PX4IO::print_status(bool extended_status)
 	       ((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)	? " INAIR_RESTART_OK" : ""),
 	       ((arming & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE)	? " ALWAYS_PWM_ENABLE" : ""),
 	       ((arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)		? " LOCKDOWN" : ""),
-	       ((arming & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE)		? " FORCE_FAILSAFE" : "")
+	       ((arming & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE)		? " FORCE_FAILSAFE" : ""),
+	       ((arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE) ? " TERM_FAILSAFE" : "")
 	       );
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	printf("rates 0x%04x default %u alt %u relays 0x%04x\n",
@@ -2260,6 +2269,17 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 		} else {
 			/* set force failsafe flag */
 			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE);
+		}
+		break;
+
+	case PWM_SERVO_SET_TERMINATION_FAILSAFE:
+		/* if failsafe occurs, do not allow the system to recover */
+		if (arg == 0) {
+			/* clear termination failsafe flag */
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE, 0);
+		} else {
+			/* set termination failsafe flag */
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE);
 		}
 		break;
 
