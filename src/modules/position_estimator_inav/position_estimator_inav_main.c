@@ -326,10 +326,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&local_pos, 0, sizeof(local_pos));
 	struct optical_flow_s flow;
 	memset(&flow, 0, sizeof(flow));
-	struct vision_position_estimate vision;
-	memset(&vision, 0, sizeof(vision));
-	//struct vision_speed_estimate_s vision;
-	//memset(&vision, 0, sizeof(vision));
+	struct vision_position_estimate vision_p;
+	memset(&vision_p, 0, sizeof(vision_p));
+	struct vision_speed_estimate_s vision_s;
+	memset(&vision_s, 0, sizeof(vision_s));
 	struct vehicle_global_position_s global_pos;
 	memset(&global_pos, 0, sizeof(global_pos));
 
@@ -342,7 +342,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	int vision_position_estimate_sub = orb_subscribe(ORB_ID(vision_position_estimate));
-	//int vision_speed_estimate_sub = orb_subscribe(ORB_ID(vision_speed_estimate));
+	int vision_speed_estimate_sub = orb_subscribe(ORB_ID(vision_speed_estimate));
 	int home_position_sub = orb_subscribe(ORB_ID(home_position));
 
 	/* advertise */
@@ -643,19 +643,20 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				orb_check(vision_position_estimate_sub, &updated);
 
 				if (updated) {
-					orb_copy(ORB_ID(vision_position_estimate), vision_position_estimate_sub, &vision);
+					orb_copy(ORB_ID(vision_position_estimate), vision_position_estimate_sub, &vision_p);
+					orb_copy(ORB_ID(vision_speed_estimate), vision_speed_estimate_sub, &vision_s);
 
 					/* reset position estimate on first vision update */
 					if (!vision_valid) {
-						x_est[0] = vision.x;
-						x_est[1] = vision.vx;
-						y_est[0] = vision.y;
-						y_est[1] = vision.vy;
+						x_est[0] = vision_p.x;
+						x_est[1] = vision_s.vx;
+						y_est[0] = vision_p.y;
+						y_est[1] = vision_s.vy;
 						/* only reset the z estimate if the z weight parameter is not zero */ 
 						if (params.w_z_vision_p > MIN_VALID_W)
 						{
-							z_est[0] = vision.z;
-							z_est[1] = vision.vz;
+							z_est[0] = vision_p.z;
+							z_est[1] = vision_s.vz;
 						}
 						
 						vision_valid = true;
@@ -664,14 +665,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					}
 
 					/* calculate correction for position */
-					corr_vision[0][0] = vision.x - x_est[0];
-					corr_vision[1][0] = vision.y - y_est[0];
-					corr_vision[2][0] = vision.z - z_est[0];
+					corr_vision[0][0] = vision_p.x - x_est[0];
+					corr_vision[1][0] = vision_p.y - y_est[0];
+					corr_vision[2][0] = vision_p.z - z_est[0];
 
 					/* calculate correction for velocity */
-					corr_vision[0][1] = vision.vx - x_est[1];
-					corr_vision[1][1] = vision.vy - y_est[1];
-					corr_vision[2][1] = vision.vz - z_est[1];
+					corr_vision[0][1] = vision_s.vx - x_est[1];
+					corr_vision[1][1] = vision_s.vy - y_est[1];
+					corr_vision[2][1] = vision_s.vz - z_est[1];
 
 				}
 			}
@@ -799,7 +800,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* check for timeout on vision topic */
-		if (vision_valid && (t > (vision.timestamp_boot + vision_topic_timeout))) {
+		if (vision_valid && (t > (vision_p.timestamp_boot + vision_topic_timeout))) {
 			vision_valid = false;
 			warnx("VISION timeout");
 			mavlink_log_info(mavlink_fd, "[inav] VISION timeout");

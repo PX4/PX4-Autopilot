@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file vision_position_estimate.h
- * Vision based position estimate
+ * @file vision_speed_estimate.h
+ * Vision based speed estimate
  */
 
-#ifndef TOPIC_VISION_POSITION_ESTIMATE_H_
-#define TOPIC_VISION_POSITION_ESTIMATE_H_
+#ifndef TOPIC_VISION_SPEED_ESTIMATE_H_
+#define TOPIC_VISION_SPEED_ESTIMATE_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -49,20 +49,18 @@
  */
 
 /**
- * Vision based position estimate in NED frame
+ * Vision based speed estimate in NED frame
  */
-struct vision_position_estimate {
+struct vision_speed_estimate_s {
 
 	unsigned id;				/**< ID of the estimator, commonly the component ID of the incoming message */
 
 	uint64_t timestamp_boot;		/**< time of this estimate, in microseconds since system start */
 	uint64_t timestamp_computer;		/**< timestamp provided by the companion computer, in us */
 
-	float x;				/**< X position in meters in NED earth-fixed frame */
-	float y;				/**< Y position in meters in NED earth-fixed frame */
-	float z;				/**< Z position in meters in NED earth-fixed frame (negative altitude) */
-
-	float q[4];				/**< Estimated attitude as quaternion */
+	float vx;				/**< X velocity in meters per second in NED earth-fixed frame */
+	float vy;				/**< Y velocity in meters per second in NED earth-fixed frame */
+	float vz;				/**< Z velocity in meters per second in NED earth-fixed frame */
 
 	// XXX Add covariances here
 };
@@ -72,6 +70,6 @@ struct vision_position_estimate {
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(vision_position_estimate);
+ORB_DECLARE(vision_speed_estimate);
 
-#endif /* TOPIC_VISION_POSITION_ESTIMATE_H_ */
+#endif /* TOPIC_VISION_SPEED_ESTIMATE_H_ */
