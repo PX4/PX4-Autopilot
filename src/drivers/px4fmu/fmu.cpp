@@ -1272,7 +1272,9 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 	memcpy(values, buffer, count * 2);
 
 	for (uint8_t i = 0; i < count; i++) {
-		up_pwm_servo_set(i, values[i]);
+		if (values[i] != PWM_IGNORE_THIS_CHANNEL) {
+			up_pwm_servo_set(i, values[i]);
+		}
 	}
 
 	return count * 2;

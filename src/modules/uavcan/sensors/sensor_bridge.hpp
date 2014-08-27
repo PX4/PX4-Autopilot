@@ -69,6 +69,11 @@ public:
 	virtual unsigned get_num_redundant_channels() const = 0;
 
 	/**
+	 * Prints current status in a human readable format to stdout.
+	 */
+	virtual void print_status() const = 0;
+
+	/**
 	 * Sensor bridge factory.
 	 * Creates a bridge object by its ASCII name, e.g. "gnss", "mag".
 	 * @return nullptr if such bridge can't be created.
@@ -84,7 +89,7 @@ class UavcanCDevSensorBridgeBase : public IUavcanSensorBridge, public device::CD
 {
 	struct Channel
 	{
-		int redunancy_channel_id = -1;
+		int node_id              = -1;
 		orb_id_t orb_id          = nullptr;
 		orb_advert_t orb_advert  = -1;
 		int class_instance       = -1;
@@ -112,13 +117,15 @@ protected:
 	/**
 	 * Sends one measurement into appropriate ORB topic.
 	 * New redundancy channels will be registered automatically.
-	 * @param redundancy_channel_id Redundant sensor identifier (e.g. UAVCAN Node ID)
-	 * @param report                ORB message object
+	 * @param node_id Sensor's Node ID
+	 * @param report  Pointer to ORB message object
 	 */
-	void publish(const int redundancy_channel_id, const void *report);
+	void publish(const int node_id, const void *report);
 
 public:
 	virtual ~UavcanCDevSensorBridgeBase();
 
 	unsigned get_num_redundant_channels() const override;
+
+	void print_status() const override;
 };
