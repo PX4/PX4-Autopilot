@@ -60,6 +60,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vision_position_estimate.h>
+#include <uORB/topics/vision_speed_estimate.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/optical_flow.h>
 #include <mavlink/mavlink_log.h>
@@ -327,6 +328,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&flow, 0, sizeof(flow));
 	struct vision_position_estimate vision;
 	memset(&vision, 0, sizeof(vision));
+	//struct vision_speed_estimate_s vision;
+	//memset(&vision, 0, sizeof(vision));
 	struct vehicle_global_position_s global_pos;
 	memset(&global_pos, 0, sizeof(global_pos));
 
@@ -339,6 +342,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	int vision_position_estimate_sub = orb_subscribe(ORB_ID(vision_position_estimate));
+	//int vision_speed_estimate_sub = orb_subscribe(ORB_ID(vision_speed_estimate));
 	int home_position_sub = orb_subscribe(ORB_ID(home_position));
 
 	/* advertise */
