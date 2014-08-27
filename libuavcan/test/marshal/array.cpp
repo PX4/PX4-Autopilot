@@ -1014,6 +1014,48 @@ TEST(Array, SquareMatrixPacking)
 }
 
 
+TEST(Array, FuzzySquareMatrixPacking)
+{
+    Array<FloatSpec<64, CastModeSaturate>, ArrayModeDynamic, 36> m6x6d;
+
+    // Diagonal matrix will be reduced to an array of length Width
+    {
+        float diagonal6x6[] =
+        {
+            1,  0,  0,  0,  0,  0,
+            0, -2,  0,  0,  0,  0,
+            0,  0,  3,  0,  0,  0,
+            0,  0,  0, -4,  0,  0,
+            0,  0,  0,  0,  5,  0,
+            0,  0,  0,  0,  0, -6
+        };
+
+        // Some almost-zeroes
+        diagonal6x6[1]  =  std::numeric_limits<float>::epsilon();
+        diagonal6x6[4]  = -std::numeric_limits<float>::epsilon();
+        diagonal6x6[34] = -std::numeric_limits<float>::epsilon();
+
+        m6x6d.packSquareMatrix(diagonal6x6);
+        ASSERT_EQ(6, m6x6d.size());
+        ASSERT_FLOAT_EQ(1,  m6x6d[0]);
+        ASSERT_FLOAT_EQ(-2, m6x6d[1]);
+        ASSERT_FLOAT_EQ(3,  m6x6d[2]);
+        ASSERT_FLOAT_EQ(-4, m6x6d[3]);
+        ASSERT_FLOAT_EQ(5,  m6x6d[4]);
+        ASSERT_FLOAT_EQ(-6, m6x6d[5]);
+
+        std::vector<long double> output(36);
+        m6x6d.unpackSquareMatrix(output);
+
+        // This comparison will fail because epsilons
+        ASSERT_FALSE(std::equal(output.begin(), output.end(), diagonal6x6));
+
+        // This comparison will be ok
+        ASSERT_TRUE(std::equal(output.begin(), output.end(), diagonal6x6, &uavcan::areClose<float, float>));
+    }
+}
+
+
 TEST(Array, SquareMatrixPackingIntegers)
 {
     Array<IntegerSpec<30, SignednessSigned, CastModeSaturate>, ArrayModeDynamic, 9> m3x3int;

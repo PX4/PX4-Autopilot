@@ -437,6 +437,7 @@ inline bool isNaN(T arg)
 #if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
     return std::isnan(arg);
 #else
+    // coverity[same_on_both_sides : FALSE]
     // cppcheck-suppress duplicateExpression
     return arg != arg;
 #endif

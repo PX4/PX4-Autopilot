@@ -148,7 +148,7 @@ private:
     BufferType data_;
 
     template <typename U>
-    typename EnableIf<sizeof(U(0) == U())>::Type initialize(int)
+    typename EnableIf<sizeof(U(0) >= U())>::Type initialize(int)
     {
         if (ArrayMode != ArrayModeDynamic)
         {
@@ -405,23 +405,18 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
             for (InputIter it = src_row_major; index < MaxSize; ++it, ++index)
             {
                 const bool on_diagonal = (index / Width) == (index % Width);
-#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-                const bool nan = std::isnan(*it);
-#else
-                // coverity[same_on_both_sides : FALSE]
-                const bool nan = (*it) != (*it);
-#endif
+                const bool nan = isNaN(*it);
                 if (!nan)
                 {
                     all_nans = false;
                 }
-                if (!on_diagonal && (*it) != 0)                     // TODO: Proper float comparison
+                if (!on_diagonal && !isCloseToZero(*it))
                 {
                     scalar_matrix = false;  // This matrix cannot be compressed.
                     diagonal_matrix = false;
                     break;
                 }
-                if (on_diagonal && (*it) != (*src_row_major)) // TODO: Proper float comparison
+                if (on_diagonal && !areClose(*it, *src_row_major))
                 {
                     scalar_matrix = false;
                 }
@@ -575,6 +570,7 @@ public:
 
     /**
      * This operator accepts any container with size() and [].
+     * Members are compared via @ref areClose().
      */
     template <typename R>
     typename EnableIf<sizeof(((const R*)(0U))->size()) && sizeof((*((const R*)(0U)))[0]), bool>::Type
@@ -586,7 +582,7 @@ public:
         }
         for (SizeType i = 0; i < size(); i++)  // Bitset does not have iterators
         {
-            if (!(Base::at(i) == rhs[i]))
+            if (!areClose(Base::at(i), rhs[i]))
             {
                 return false;
             }
@@ -607,6 +603,9 @@ public:
         return std::strncmp(Base::c_str(), ch, MaxSize) == 0;
     }
 
+    /**
+     * @ref operator==()
+     */
     template <typename R> bool operator!=(const R& rhs) const { return !operator==(rhs); }
 
     /**
@@ -678,7 +677,7 @@ public:
         StaticAssert<Base::IsStringLike>::check();
         StaticAssert<IsDynamic>::check();
 
-        StaticAssert<sizeof(A() == A(0))>::check();             // This check allows to weed out most compound types
+        StaticAssert<sizeof(A() >= A(0))>::check();              // This check allows to weed out most compound types
         StaticAssert<sizeof(A) <= sizeof(long double)>::check(); // Another stupid check to catch non-primitive types
 
         if (!format)
@@ -710,6 +709,7 @@ public:
     /**
      * Fills this array as a packed square matrix from a static array.
      * Please refer to the specification to learn more about matrix packing.
+     * Note that matrix packing code uses @ref areClose() for comparison.
      */
     template <typename ScalarType>
     void packSquareMatrix(const ScalarType (&src_row_major)[MaxSize])
@@ -720,6 +720,7 @@ public:
     /**
      * Fills this array as a packed square matrix in place.
      * Please refer to the specification to learn more about matrix packing.
+     * Note that matrix packing code uses @ref areClose() for comparison.
      */
     void packSquareMatrix()
     {
@@ -751,6 +752,7 @@ public:
     /**
      * Fills this array as a packed square matrix from any container that implements the methods begin() and size().
      * Please refer to the specification to learn more about matrix packing.
+     * Note that matrix packing code uses @ref areClose() for comparison.
      */
     template <typename R>
     typename EnableIf<sizeof(((const R*)(0U))->begin()) && sizeof(((const R*)(0U))->size())>::Type

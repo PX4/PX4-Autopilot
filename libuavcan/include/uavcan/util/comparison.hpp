@@ -128,4 +128,37 @@ inline bool areClose<long double, double>(const long double& left, const double&
     return areClose(static_cast<double>(left), right);
 }
 
+/**
+ * Comparison against zero.
+ * Helps to compare a floating point number against zero if the exact type is unknown.
+ * For non-floating point types performs exact comparison against integer zero.
+ */
+template <typename T>
+UAVCAN_EXPORT
+inline bool isCloseToZero(const T& x)
+{
+    return x == 0;
+}
+
+template <>
+UAVCAN_EXPORT
+inline bool isCloseToZero<float>(const float& x)
+{
+    return areClose(x, static_cast<float>(0.0F));
+}
+
+template <>
+UAVCAN_EXPORT
+inline bool isCloseToZero<double>(const double& x)
+{
+    return areClose(x, static_cast<double>(0.0));
+}
+
+template <>
+UAVCAN_EXPORT
+inline bool isCloseToZero<long double>(const long double& x)
+{
+    return areClose(x, static_cast<long double>(0.0L));
+}
+
 }

@@ -107,8 +107,12 @@ struct UAVCAN_EXPORT ${t.cpp_type_name}
 #endif
     }
 
-    bool operator!=(ParameterType rhs) const { return !operator==(rhs); }
+    /**
+     * Comparison operators are based on @ref uavcan::areClose(),
+     * which allows to safely compare floating point values.
+     */
     bool operator==(ParameterType rhs) const;
+    bool operator!=(ParameterType rhs) const { return !operator==(rhs); }
 
     static int encode(ParameterType self, ::uavcan::ScalarCodec& codec,
                       ::uavcan::TailArrayOptimizationMode tao_mode = ::uavcan::TailArrayOptEnabled);
@@ -179,11 +183,10 @@ UAVCAN_PACKED_END
 template <int _tmpl>
 bool ${scope_prefix}<_tmpl>::operator==(ParameterType rhs) const
 {
-    // TODO: Proper float comparison.
     % if fields:
     return
         % for idx,a in enumerate(fields):
-        ${a.name} == rhs.${a.name} ${'&&' if (idx + 1) < len(fields) else ';'}
+        ::uavcan::areClose(${a.name}, rhs.${a.name})${' &&' if (idx + 1) < len(fields) else ';'}
         % endfor
     % else:
     (void)rhs;
