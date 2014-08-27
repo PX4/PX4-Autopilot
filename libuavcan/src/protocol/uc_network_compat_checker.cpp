@@ -25,7 +25,7 @@ MonotonicDuration NetworkCompatibilityChecker::getNetworkDiscoveryDelay() const
 
 NodeID NetworkCompatibilityChecker::findNextUncheckedNode()
 {
-    for (int i = 1; i <= NodeID::Max; i++)
+    for (uint8_t i = 1; i <= NodeID::Max; i++)
     {
         if (nid_mask_present_.test(i) && !nid_mask_checked_.test(i))
         {
@@ -141,7 +141,10 @@ int NetworkCompatibilityChecker::checkNodes()
         {
             UAVCAN_TRACE("NodeInitializer", "Checking nid=%i", int(nid.get()));
             const int res = checkOneNode(nid);
-            result_.num_failed_nodes += (res < 0) ? 1U : 0U;
+            if (res < 0)
+            {
+                result_.num_failed_nodes++;
+            }
             UAVCAN_TRACE("NodeInitializer", "Checked nid=%i result=%i", int(nid.get()), res);
         }
         else { break; }

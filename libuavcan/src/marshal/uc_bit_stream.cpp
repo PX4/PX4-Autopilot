@@ -22,7 +22,7 @@ int BitStream::write(const uint8_t* bytes, const int bitlen)
     UAVCAN_ASSERT(MaxBytesPerRW >= bytelen);
     tmp[0] = tmp[bytelen - 1] = 0;
 
-    fill(tmp, tmp + bytelen, 0);
+    fill(tmp, tmp + bytelen, uint8_t(0));
     copyBitArray(bytes, 0, bitlen, tmp, bit_offset_ % 8);
 
     const int new_bit_offset = bit_offset_ + bitlen;
@@ -31,7 +31,7 @@ int BitStream::write(const uint8_t* bytes, const int bitlen)
     tmp[0] |= byte_cache_;
 
     // (new_bit_offset % 8 == 0) means that this write was perfectly aligned.
-    byte_cache_ = (new_bit_offset % 8) ? tmp[bytelen - 1] : 0;
+    byte_cache_ = uint8_t((new_bit_offset % 8) ? tmp[bytelen - 1] : 0);
 
     /*
      * Dump the data into the destination buffer.
@@ -69,7 +69,7 @@ int BitStream::read(uint8_t* bytes, const int bitlen)
         return ResultOutOfBuffer;
     }
 
-    fill(bytes, bytes + bitlenToBytelen(bitlen), 0);
+    fill(bytes, bytes + bitlenToBytelen(bitlen), uint8_t(0));
     copyBitArray(tmp, bit_offset_ % 8, bitlen, bytes, 0);
     bit_offset_ += bitlen;
     return ResultOk;

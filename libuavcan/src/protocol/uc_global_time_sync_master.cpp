@@ -22,7 +22,7 @@ int GlobalTimeSyncMaster::IfaceMaster::init()
     {
         TransferSender* const ts = pub_.getTransferSender();
         UAVCAN_ASSERT(ts != NULL);
-        ts->setIfaceMask(1 << iface_index_);
+        ts->setIfaceMask(uint8_t(1 << iface_index_));
         ts->setCanIOFlags(CanIOFlagLoopback);
     }
     return res;

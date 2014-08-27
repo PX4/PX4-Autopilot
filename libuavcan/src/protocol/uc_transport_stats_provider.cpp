@@ -19,7 +19,7 @@ void TransportStatsProvider::handleGetTransportStats(const protocol::GetTranspor
     resp.transfers_rx = perf.getRxTransferCount();
 
     const CanIOManager& canio = srv_.getNode().getDispatcher().getCanIOManager();
-    for (int i = 0; i < canio.getNumIfaces(); i++)
+    for (uint8_t i = 0; i < canio.getNumIfaces(); i++)
     {
         const CanIfacePerfCounters can_perf = canio.getIfacePerfCounters(i);
         protocol::CANIfaceStats stats;

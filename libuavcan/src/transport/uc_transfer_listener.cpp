@@ -25,7 +25,7 @@ SingleFrameIncomingTransfer::SingleFrameIncomingTransfer(const RxFrame& frm)
     : IncomingTransfer(frm.getMonotonicTimestamp(), frm.getUtcTimestamp(), frm.getTransferType(),
                        frm.getTransferID(), frm.getSrcNodeID(), frm.getIfaceIndex())
     , payload_(frm.getPayloadPtr())
-    , payload_len_(frm.getPayloadLen())
+    , payload_len_(uint8_t(frm.getPayloadLen()))
 {
     UAVCAN_ASSERT(frm.isValid());
 }

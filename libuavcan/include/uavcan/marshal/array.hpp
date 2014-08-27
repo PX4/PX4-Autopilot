@@ -530,7 +530,7 @@ public:
     void push_back(const ValueType& value)
     {
         Base::grow();
-        Base::at(size() - 1) = value;
+        Base::at(SizeType(size() - 1)) = value;
     }
 
     /**

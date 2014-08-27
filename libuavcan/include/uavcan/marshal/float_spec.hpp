@@ -90,21 +90,25 @@ IEEE754Converter::toNative<16>(typename IntegerSpec<16, SignednessUnsigned, Cast
     return halfToNativeNonIeee(value);
 }
 
+
 template <unsigned BitLen> struct IEEE754Limits;
 template <> struct IEEE754Limits<16>
 {
-    static typename NativeFloatSelector<16>::Type max() { return 65504.0; }
-    static typename NativeFloatSelector<16>::Type epsilon() { return 9.77e-04; }
+    typedef typename NativeFloatSelector<16>::Type NativeType;
+    static NativeType max() { return static_cast<NativeType>(65504.0); }
+    static NativeType epsilon() { return static_cast<NativeType>(9.77e-04); }
 };
 template <> struct IEEE754Limits<32>
 {
-    static typename NativeFloatSelector<32>::Type max() { return 3.40282346638528859812e+38; }
-    static typename NativeFloatSelector<32>::Type epsilon() { return 1.19209289550781250000e-7; }
+    typedef typename NativeFloatSelector<32>::Type NativeType;
+    static NativeType max() { return static_cast<NativeType>(3.40282346638528859812e+38); }
+    static NativeType epsilon() { return static_cast<NativeType>(1.19209289550781250000e-7); }
 };
 template <> struct IEEE754Limits<64>
 {
-    static typename NativeFloatSelector<64>::Type max() { return 1.79769313486231570815e+308L; }
-    static typename NativeFloatSelector<64>::Type epsilon() { return 2.22044604925031308085e-16L; }
+    typedef typename NativeFloatSelector<64>::Type NativeType;
+    static NativeType max() { return static_cast<NativeType>(1.79769313486231570815e+308L); }
+    static NativeType epsilon() { return static_cast<NativeType>(2.22044604925031308085e-16L); }
 };
 
 

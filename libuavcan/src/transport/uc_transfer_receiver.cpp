@@ -20,7 +20,7 @@ void TransferReceiver::registerError() const
 {
     if (error_cnt_ < 0xFF)
     {
-        error_cnt_ += 1;
+        error_cnt_ = static_cast<uint8_t>(error_cnt_ + 1);
     }
     else
     {
@@ -102,33 +102,33 @@ bool TransferReceiver::validate(const RxFrame& frame) const
 bool TransferReceiver::writePayload(const RxFrame& frame, ITransferBuffer& buf)
 {
     const uint8_t* const payload = frame.getPayloadPtr();
-    const int payload_len = frame.getPayloadLen();
+    const unsigned payload_len = frame.getPayloadLen();
 
     if (frame.isFirst())     // First frame contains CRC, we need to extract it now
     {
         if (frame.getPayloadLen() < TransferCRC::NumBytes)
         {
             return false;    // Must have been validated earlier though. I think I'm paranoid.
-
         }
-        this_transfer_crc_ = (payload[0] & 0xFF) | (uint16_t(payload[1] & 0xFF) << 8); // Little endian.
+        this_transfer_crc_ = static_cast<uint16_t>(payload[0] & 0xFF);
+        this_transfer_crc_ |= static_cast<uint16_t>(static_cast<uint16_t>(payload[1] & 0xFF) << 8);  // Little endian.
 
-        const int effective_payload_len = payload_len - TransferCRC::NumBytes;
+        const unsigned effective_payload_len = payload_len - TransferCRC::NumBytes;
         const int res = buf.write(buffer_write_pos_, payload + TransferCRC::NumBytes, effective_payload_len);
-        const bool success = res == effective_payload_len;
+        const bool success = res == static_cast<int>(effective_payload_len);
         if (success)
         {
-            buffer_write_pos_ += effective_payload_len;
+            buffer_write_pos_ = static_cast<uint16_t>(buffer_write_pos_ + effective_payload_len);
         }
         return success;
     }
     else
     {
         const int res = buf.write(buffer_write_pos_, payload, payload_len);
-        const bool success = res == payload_len;
+        const bool success = res == static_cast<int>(payload_len);
         if (success)
         {
-            buffer_write_pos_ += payload_len;
+            buffer_write_pos_ = static_cast<uint16_t>(buffer_write_pos_ + payload_len);
         }
         return success;
     }

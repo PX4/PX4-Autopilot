@@ -71,7 +71,7 @@ public:
     bool isLast()                  const { return last_frame_; }
 
     void makeLast() { last_frame_ = true; }
-    void setIndex(uint_fast8_t index) { frame_index_ = index; }
+    void setIndex(int index) { frame_index_ = uint_fast8_t(index); }
 
     bool isFirst() const { return frame_index_ == 0; }
 

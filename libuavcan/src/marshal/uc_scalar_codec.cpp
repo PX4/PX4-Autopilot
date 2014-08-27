@@ -24,7 +24,7 @@ int ScalarCodec::encodeBytesImpl(uint8_t* const bytes, const unsigned bitlen)
     // Underlying stream class assumes that more significant bits have lower index, so we need to shift some.
     if (bitlen % 8)
     {
-        bytes[bitlen / 8] <<= (8 - (bitlen % 8)) & 7;
+        bytes[bitlen / 8] = uint8_t(bytes[bitlen / 8] << ((8 - (bitlen % 8)) & 7));
     }
     return stream_.write(bytes, bitlen);
 }
@@ -37,7 +37,7 @@ int ScalarCodec::decodeBytesImpl(uint8_t* const bytes, const unsigned bitlen)
     {
         if (bitlen % 8)
         {
-            bytes[bitlen / 8] >>= (8 - (bitlen % 8)) & 7;  // As in encode(), vice versa
+            bytes[bitlen / 8] = uint8_t(bytes[bitlen / 8] >> ((8 - (bitlen % 8)) & 7));  // As in encode(), vice versa
         }
     }
     return read_res;

@@ -34,7 +34,7 @@ struct UAVCAN_EXPORT CanFrame
         : id(0)
         , dlc(0)
     {
-        fill(data, data + MaxDataLen, 0);
+        fill(data, data + MaxDataLen, uint8_t(0));
     }
 
     CanFrame(uint32_t can_id, const uint8_t* can_data, uint8_t data_len)

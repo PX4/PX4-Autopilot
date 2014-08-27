@@ -52,8 +52,8 @@ int TransferSender::send(const uint8_t* payload, int payload_len, MonotonicTime 
             static const int BUFLEN = sizeof(static_cast<CanFrame*>(0)->data);
             uint8_t buf[BUFLEN];
 
-            buf[0] = crc.get() & 0xFF;       // Transfer CRC, little endian
-            buf[1] = (crc.get() >> 8) & 0xFF;
+            buf[0] = uint8_t(crc.get() & 0xFFU);       // Transfer CRC, little endian
+            buf[1] = uint8_t((crc.get() >> 8) & 0xFF);
             (void)copy(payload, payload + BUFLEN - 2, buf + 2);
 
             const int write_res = frame.setPayload(buf, BUFLEN);

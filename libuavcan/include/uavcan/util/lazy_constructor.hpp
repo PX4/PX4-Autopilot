@@ -60,7 +60,7 @@ public:
     LazyConstructor()
         : ptr_(NULL)
     {
-        fill(data_.pool, data_.pool + sizeof(T), 0);
+        fill(data_.pool, data_.pool + sizeof(T), uint8_t(0));
     }
 
     LazyConstructor(const LazyConstructor<T>& rhs)   // Implicit
@@ -102,7 +102,7 @@ public:
             ptr_->~T();
         }
         ptr_ = NULL;
-        fill(data_.pool, data_.pool + sizeof(T), 0);
+        fill(data_.pool, data_.pool + sizeof(T), uint8_t(0));
     }
 
     void construct()

@@ -19,7 +19,7 @@ int NodeStatusProvider::publish()
 {
     const MonotonicDuration uptime = getNode().getMonotonicTime() - creation_timestamp_;
     UAVCAN_ASSERT(uptime.isPositive());
-    node_info_.status.uptime_sec = uptime.toMSec() / 1000;
+    node_info_.status.uptime_sec = uint32_t(uptime.toMSec() / 1000);
 
     UAVCAN_ASSERT(node_info_.status.status_code <= protocol::NodeStatus::FieldTypes::status_code::max());
 

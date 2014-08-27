@@ -10,6 +10,16 @@
 namespace uavcan
 {
 /**
+ * Exact comparison of two floats that suppresses the compiler warnings.
+ */
+template <typename T>
+UAVCAN_EXPORT
+inline bool areFloatsExactlyEqual(const T& left, const T& right)
+{
+    return (left <= right) && (left >= right);
+}
+
+/**
  * This function performs fuzzy comparison of two floating point numbers.
  * Type of T can be either float, double or long double.
  * For details refer to http://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
@@ -27,7 +37,7 @@ inline bool areFloatsClose(T a, T b, const T absolute_epsilon, const T relative_
     // Infinity
     if (isInfinity(a) || isInfinity(b))
     {
-        return a == b;
+        return areFloatsExactlyEqual(a, b);
     }
 
     // Close numbers near zero

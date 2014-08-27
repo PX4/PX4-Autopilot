@@ -8,6 +8,14 @@
 #include <uavcan/transport/transfer_buffer.hpp>
 
 
+TEST(FloatSpec, Sizes)
+{
+    uavcan::StaticAssert<sizeof(uavcan::NativeFloatSelector<16>::Type) == 4>::check();
+    uavcan::StaticAssert<sizeof(uavcan::NativeFloatSelector<32>::Type) == 4>::check();
+    uavcan::StaticAssert<sizeof(uavcan::NativeFloatSelector<64>::Type) == 8>::check();
+    uavcan::StaticAssert<sizeof(uavcan::NativeFloatSelector<80>::Type) >= 10>::check();
+}
+
 TEST(FloatSpec, Limits)
 {
     using uavcan::FloatSpec;

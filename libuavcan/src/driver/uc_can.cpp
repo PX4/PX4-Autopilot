@@ -68,7 +68,7 @@ std::string CanFrame::toString(StringRepresentation mode) const
     char buf[50];
     char* wpos = buf;
     char* const epos = buf + sizeof(buf);
-    fill(buf, buf + sizeof(buf), 0);
+    fill(buf, buf + sizeof(buf), uint8_t(0));
 
     if (id & FlagEFF)
     {

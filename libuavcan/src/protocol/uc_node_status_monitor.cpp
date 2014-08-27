@@ -58,7 +58,7 @@ void NodeStatusMonitor::handleTimerEvent(const TimerEvent&)
 {
     const int OfflineTimeoutMs100 = protocol::NodeStatus::OFFLINE_TIMEOUT_MS / 100;
 
-    for (int i = 1; i <= NodeID::Max; i++)
+    for (uint8_t i = 1; i <= NodeID::Max; i++)
     {
         const NodeID nid(i);
         UAVCAN_ASSERT(nid.isUnicast());
@@ -66,7 +66,7 @@ void NodeStatusMonitor::handleTimerEvent(const TimerEvent&)
         if (entry.time_since_last_update_ms100 >= 0 &&
             entry.status_code != protocol::NodeStatus::STATUS_OFFLINE)
         {
-            entry.time_since_last_update_ms100 += TimerPeriodMs100;
+            entry.time_since_last_update_ms100 = int8_t(entry.time_since_last_update_ms100 + TimerPeriodMs100);
             if (entry.time_since_last_update_ms100 >= OfflineTimeoutMs100)
             {
                 Entry new_entry_value;
@@ -123,7 +123,7 @@ NodeID NodeStatusMonitor::findNodeWithWorstStatus() const
     NodeID nid_with_worst_status;
     NodeStatusCode worst_status_code = protocol::NodeStatus::STATUS_OK;
 
-    for (int i = 1; i <= NodeID::Max; i++)
+    for (uint8_t i = 1; i <= NodeID::Max; i++)
     {
         const NodeID nid(i);
         UAVCAN_ASSERT(nid.isUnicast());

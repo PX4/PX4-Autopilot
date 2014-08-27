@@ -42,7 +42,7 @@ int Frame::setPayload(const uint8_t* data, unsigned len)
     }
     len = min(unsigned(maxlen), len);
     (void)copy(data, data + len, payload_);
-    payload_len_ = len;
+    payload_len_ = uint_fast8_t(len);
     return len;
 }
 
@@ -69,12 +69,12 @@ bool Frame::parse(const CanFrame& can_frame)
      * CAN ID parsing
      */
     const uint32_t id = can_frame.id & CanFrame::MaskExtID;
-    transfer_id_   = bitunpack<0, 3>(id);
-    last_frame_    = bitunpack<3, 1>(id);
-    frame_index_   = bitunpack<4, 6>(id);
-    src_node_id_   = bitunpack<10, 7>(id);
+    transfer_id_   = uint8_t(bitunpack<0, 3>(id));
+    last_frame_    = bitunpack<3, 1>(id) != 0;
+    frame_index_   = uint8_t(bitunpack<4, 6>(id));
+    src_node_id_   = uint8_t(bitunpack<10, 7>(id));
     transfer_type_ = TransferType(bitunpack<17, 2>(id));
-    data_type_id_  = bitunpack<19, 10>(id);
+    data_type_id_  = uint16_t(bitunpack<19, 10>(id));
 
     /*
      * CAN payload parsing
@@ -101,7 +101,7 @@ bool Frame::parse(const CanFrame& can_frame)
             return false;
         }
         dst_node_id_ = can_frame.data[0] & 0x7F;
-        payload_len_ = can_frame.dlc - 1;
+        payload_len_ = uint8_t(can_frame.dlc - 1);
         (void)copy(can_frame.data + 1, can_frame.data + can_frame.dlc, payload_);
         break;
     }
@@ -117,7 +117,7 @@ bool Frame::parse(const CanFrame& can_frame)
 template <int OFFSET, int WIDTH>
 inline static uint32_t bitpack(uint32_t field)
 {
-    return (field & ((1UL << WIDTH) - 1)) << OFFSET;
+    return uint32_t((field & ((1UL << WIDTH) - 1)) << OFFSET);
 }
 
 bool Frame::compile(CanFrame& out_can_frame) const
@@ -151,7 +151,7 @@ bool Frame::compile(CanFrame& out_can_frame) const
     {
         UAVCAN_ASSERT((payload_len_ + 1U) <= sizeof(out_can_frame.data));
         out_can_frame.data[0] = dst_node_id_.get();
-        out_can_frame.dlc = payload_len_ + 1;
+        out_can_frame.dlc = uint8_t(payload_len_ + 1);
         (void)copy(payload_, payload_ + payload_len_, out_can_frame.data + 1);
         break;
     }
@@ -255,7 +255,7 @@ std::string RxFrame::toString() const
     out += " ts_m="   + ts_mono_.toString();
     out += " ts_utc=" + ts_utc_.toString();
     out += " iface=";
-    out += '0' + iface_index_;
+    out += char('0' + iface_index_);
     return out;
 }
 #endif

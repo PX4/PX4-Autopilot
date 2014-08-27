@@ -81,8 +81,8 @@ void bitarrayCopy(const unsigned char* src_org, int src_offset, int src_len, uns
                 bit_diff_ls = src_offset_modulo - dst_offset_modulo;
                 bit_diff_rs = CHAR_BIT - bit_diff_ls;
 
-                c = *src++ << bit_diff_ls;
-                c |= *src >> bit_diff_rs;
+                c = static_cast<unsigned char>(*src++ << bit_diff_ls);
+                c = static_cast<unsigned char>(c | (*src >> bit_diff_rs));
                 c &= reverse_mask_xor[dst_offset_modulo];
             }
             else
@@ -90,7 +90,7 @@ void bitarrayCopy(const unsigned char* src_org, int src_offset, int src_len, uns
                 bit_diff_rs = dst_offset_modulo - src_offset_modulo;
                 bit_diff_ls = CHAR_BIT - bit_diff_rs;
 
-                c = *src >> bit_diff_rs & reverse_mask_xor[dst_offset_modulo];
+                c = static_cast<unsigned char>(*src >> bit_diff_rs & reverse_mask_xor[dst_offset_modulo]);
             }
             PREPARE_FIRST_COPY();
             *dst++ |= c;
@@ -102,8 +102,8 @@ void bitarrayCopy(const unsigned char* src_org, int src_offset, int src_len, uns
 
             while (--byte_len >= 0)
             {
-                c = *src++ << bit_diff_ls;
-                c |= *src >> bit_diff_rs;
+                c = static_cast<unsigned char>(*src++ << bit_diff_ls);
+                c = static_cast<unsigned char>(c | (*src >> bit_diff_rs));
                 *dst++ = c;
             }
 
@@ -113,8 +113,8 @@ void bitarrayCopy(const unsigned char* src_org, int src_offset, int src_len, uns
             src_len_modulo = src_len % CHAR_BIT;
             if (src_len_modulo)
             {
-                c = *src++ << bit_diff_ls;
-                c |= *src >> bit_diff_rs;
+                c = static_cast<unsigned char>(*src++ << bit_diff_ls);
+                c = static_cast<unsigned char>(c | (*src >> bit_diff_rs));
                 c &= reverse_mask[src_len_modulo];
 
                 *dst &= reverse_mask_xor[src_len_modulo];

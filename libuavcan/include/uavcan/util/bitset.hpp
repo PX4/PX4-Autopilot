@@ -94,11 +94,11 @@ public:
         validatePos(pos);
         if (val)
         {
-            data_[getByteNum(pos)] |= (1 << getBitNum(pos));
+            data_[getByteNum(pos)] = char(data_[getByteNum(pos)] | (1 << getBitNum(pos)));
         }
         else
         {
-            data_[getByteNum(pos)] &= ~(1 << getBitNum(pos));
+            data_[getByteNum(pos)] = char(data_[getByteNum(pos)] & ~(1 << getBitNum(pos)));
         }
         return *this;
     }
