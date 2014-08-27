@@ -422,4 +422,50 @@ struct UAVCAN_EXPORT NumericTraits<long double>
 };
 #endif
 
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+# undef isnan
+# undef isinf
+# undef signbit
+#endif
+
+/**
+ * Replacement for std::isnan()
+ */
+template <typename T>
+inline bool isNaN(T arg)
+{
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+    return std::isnan(arg);
+#else
+    // cppcheck-suppress duplicateExpression
+    return arg != arg;
+#endif
+}
+
+/**
+ * Replacement for std::isinf()
+ */
+template <typename T>
+inline bool isInfinity(T arg)
+{
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+    return std::isinf(arg);
+#else
+    return arg == NumericTraits<T>::infinity() || arg == -NumericTraits<T>::infinity();
+#endif
+}
+
+/**
+ * Replacement for std::signbit()
+ */
+template <typename T>
+inline bool getSignBit(T arg)
+{
+#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
+    return std::signbit(arg);
+#else
+    return arg < T(0) || (arg == T(0) && T(1) / arg < T(0));
+#endif
+}
+
 }

@@ -15,9 +15,9 @@
  * This definition contains the integer year number after which the standard was named:
  *  - 2003 for C++03
  *  - 2011 for C++11
- * 
+ *
  * This config automatically sets according to the actual C++ standard used by the compiler.
- * 
+ *
  * In C++03 mode the library has almost zero dependency on the C++ standard library, which allows
  * to use it on platforms with a very limited C++ support. On the other hand, C++11 mode requires
  * many parts of the standard library (e.g. <functional>), thus the user might want to force older
@@ -125,7 +125,6 @@
 
 namespace uavcan
 {
-
 /**
  * Memory pool block size.
  *
@@ -172,5 +171,17 @@ struct UAVCAN_EXPORT IsDynamicallyAllocatable
         (void)dummy;
     }
 };
+
+/**
+ * Float comparison precision.
+ * For details refer to:
+ *  http://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
+ *  https://code.google.com/p/googletest/source/browse/trunk/include/gtest/internal/gtest-internal.h
+ */
+#ifdef UAVCAN_FLOAT_COMPARISON_EPSILON_MULT
+static const unsigned FloatComparisonEpsilonMult = UAVCAN_FLOAT_COMPARISON_EPSILON_MULT;
+#else
+static const unsigned FloatComparisonEpsilonMult = 10;
+#endif
 
 }

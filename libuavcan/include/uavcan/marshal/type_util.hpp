@@ -4,8 +4,9 @@
 
 #pragma once
 
-#include <uavcan/util/templates.hpp>
 #include <uavcan/build_config.hpp>
+#include <uavcan/util/templates.hpp>
+#include <uavcan/util/comparison.hpp>
 
 namespace uavcan
 {

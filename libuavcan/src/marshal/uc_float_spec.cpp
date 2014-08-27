@@ -14,59 +14,24 @@
 # include <limits>
 #endif
 
-#undef signbit
-#undef isnan
-#undef isinf
-
 namespace uavcan
 {
 /*
  * IEEE754Converter
  * Float16 conversion algorithm: http://half.sourceforge.net/ (MIT License)
  */
-template <typename T>
-static inline bool signbit(T arg)
-{
-#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-    return std::signbit(arg);
-#else
-    return arg < T(0) || (arg == T(0) && T(1) / arg < T(0));
-#endif
-}
-
-template <typename T>
-static inline bool isnan(T arg)
-{
-#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-    return std::isnan(arg);
-#else
-    // cppcheck-suppress duplicateExpression
-    return arg != arg;
-#endif
-}
-
-template <typename T>
-static inline bool isinf(T arg)
-{
-#if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
-    return std::isinf(arg);
-#else
-    return arg == NumericTraits<T>::infinity() || arg == -NumericTraits<T>::infinity();
-#endif
-}
-
 uint16_t IEEE754Converter::nativeNonIeeeToHalf(float value)
 {
-    uint16_t hbits = signbit(value) << 15;
+    uint16_t hbits = static_cast<uint16_t>(getSignBit(value)) << 15;
     if (value == 0.0f)
     {
         return hbits;
     }
-    if (isnan(value))
+    if (isNaN(value))
     {
         return hbits | 0x7FFFU;
     }
-    if (isinf(value))
+    if (isInfinity(value))
     {
         return hbits | 0x7C00U;
     }
