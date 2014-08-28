@@ -106,6 +106,8 @@ template <bool> struct UAVCAN_EXPORT BooleanType { };
 typedef BooleanType<true> TrueType;
 typedef BooleanType<false> FalseType;
 
+template <int N> struct IntToType { };
+
 /**
  * Relations
  */
