@@ -23,6 +23,7 @@ inline bool areFloatsExactlyEqual(const T& left, const T& right)
  * This function performs fuzzy comparison of two floating point numbers.
  * Type of T can be either float, double or long double.
  * For details refer to http://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
+ * See also: @ref UAVCAN_FLOAT_COMPARISON_EPSILON_MULT.
  */
 template <typename T>
 UAVCAN_EXPORT
@@ -55,15 +56,102 @@ inline bool areFloatsClose(T a, T b, const T absolute_epsilon, const T relative_
 }
 
 /**
- * Generic comparison function.
+ * This namespace contains implementation details for areClose().
+ * Don't try this at home.
+ */
+namespace are_close_impl_
+{
+
+struct Applicable { char foo[1]; };
+struct NotApplicable { long long foo[16]; };
+
+template <typename This, typename Rhs>
+struct HasIsCloseMethod
+{
+    template <typename U, typename R, bool (U::*)(const R&) const> struct ConstRef { };
+    template <typename U, typename R, bool (U::*)(R) const> struct ByValue { };
+
+    template <typename U, typename R> static Applicable test(ConstRef<U, R, &U::isClose>*);
+    template <typename U, typename R> static Applicable test(ByValue<U, R, &U::isClose>*);
+
+    template <typename U, typename R> static NotApplicable test(...);
+
+    enum { Result = sizeof(test<This, Rhs>(NULL)) };
+};
+
+/// First stage: bool L::isClose(R)
+template <typename L, typename R>
+UAVCAN_EXPORT
+inline bool areCloseImplFirst(const L& left, const R& right, IntToType<sizeof(Applicable)>)
+{
+    return left.isClose(right);
+}
+
+/// Second stage: bool R::isClose(L)
+template <typename L, typename R>
+UAVCAN_EXPORT
+inline bool areCloseImplSecond(const L& left, const R& right, IntToType<sizeof(Applicable)>)
+{
+    return right.isClose(left);
+}
+
+/// Second stage: L == R
+template <typename L, typename R>
+UAVCAN_EXPORT
+inline bool areCloseImplSecond(const L& left, const R& right, IntToType<sizeof(NotApplicable)>)
+{
+    return left == right;
+}
+
+/// First stage: select either L == R or bool R::isClose(L)
+template <typename L, typename R>
+UAVCAN_EXPORT
+inline bool areCloseImplFirst(const L& left, const R& right, IntToType<sizeof(NotApplicable)>)
+{
+    return are_close_impl_::areCloseImplSecond(left, right,
+                                               IntToType<are_close_impl_::HasIsCloseMethod<R, L>::Result>());
+}
+
+} // namespace are_close_impl_
+
+/**
+ * Generic fuzzy comparison function.
+ *
  * This function properly handles floating point comparison, including mixed floating point type comparison,
  * e.g. float with long double.
+ *
+ * Two objects of types A and B will be fuzzy comparable if either method is defined:
+ *  - bool A::isClose(const B&)
+ *  - bool A::isClose(B)
+ *  - bool B::isClose(const A&)
+ *  - bool B::isClose(A)
+ * Alternatively, a custom specialization of this function can be defined.
+ *
+ * Note that all floating types and their combinations are fuzzy comparable by default:
+ *  - float
+ *  - double
+ *  - long double
+ *
+ * If the arguments aren't fuzzy comparable, this function will resort to the plain comparison operator ==.
+ *
+ * See also: @ref UAVCAN_FLOAT_COMPARISON_EPSILON_MULT.
+ *
+ * Examples:
+ *  areClose(1.0, 1.0F)                                         --> true
+ *  areClose(1.0, 1.0F + std::numeric_limits<float>::epsilon()) --> true
+ *  areClose(1.0, 1.1)                                          --> false
+ *  areClose("123", std::string("123"))                         --> true (using std::string's operator ==)
+ *  areClose(inf, inf)                                          --> true
+ *  areClose(inf, -inf)                                         --> false
+ *  areClose(nan, nan)                                          --> false
+ *  areClose(123, "123")                                        --> compilation error: operator == is not defined
  */
 template <typename L, typename R>
 UAVCAN_EXPORT
 inline bool areClose(const L& left, const R& right)
 {
-    return left == right;
+    return are_close_impl_::areCloseImplFirst(left, right,
+                                              IntToType<are_close_impl_::HasIsCloseMethod<L, R>::Result>());
 }
 
 /*

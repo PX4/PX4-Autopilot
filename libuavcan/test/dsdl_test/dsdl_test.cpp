@@ -2,6 +2,10 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#if __GNUC__
+# pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
+
 #include <gtest/gtest.h>
 #include <uavcan/transport/transfer_buffer.hpp>
 #include <limits>
@@ -85,10 +89,12 @@ TEST(Dsdl, CloseComparison)
     ASSERT_TRUE(first == second);
 
     first.vector[1].vector[1] = std::numeric_limits<double>::epsilon();
-    ASSERT_TRUE(first == second);       // Still equals
+    ASSERT_TRUE(first.isClose(second));       // Still close
+    ASSERT_FALSE(first == second);            // But not exactly
 
     first.vector[1].vector[1] = std::numeric_limits<float>::epsilon();
-    ASSERT_FALSE(first == second);      // Nope
+    ASSERT_FALSE(first.isClose(second));      // Nope
+    ASSERT_FALSE(first == second);            // Ditto
 }
 
 /*

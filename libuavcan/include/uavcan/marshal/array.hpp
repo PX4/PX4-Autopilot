@@ -577,11 +577,36 @@ public:
 
     /**
      * This operator accepts any container with size() and [].
-     * Members are compared via @ref areClose().
+     * Members must be comparable via operator ==.
      */
     template <typename R>
     typename EnableIf<sizeof(((const R*)(0U))->size()) && sizeof((*((const R*)(0U)))[0]), bool>::Type
     operator==(const R& rhs) const
+    {
+        if (size() != rhs.size())
+        {
+            return false;
+        }
+        for (SizeType i = 0; i < size(); i++)  // Bitset does not have iterators
+        {
+            if (!(Base::at(i) == rhs[i]))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * This method compares two arrays using @ref areClose(), which ensures proper comparison of
+     * floating point values, or DSDL data structures which contain floating point fields at any depth.
+     * Please refer to the documentation of @ref areClose() to learn more about how it works and how to
+     * define custom fuzzy comparison behavior.
+     * Any container with size() and [] is acceptable.
+     */
+    template <typename R>
+    typename EnableIf<sizeof(((const R*)(0U))->size()) && sizeof((*((const R*)(0U)))[0]), bool>::Type
+    isClose(const R& rhs) const
     {
         if (size() != rhs.size())
         {
