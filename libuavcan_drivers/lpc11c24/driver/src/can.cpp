@@ -410,6 +410,8 @@ void canErrorCallback(uint32_t error_info)
     }
 }
 
+void CAN_IRQHandler();
+
 void CAN_IRQHandler()
 {
     uavcan_lpc11c24::last_irq_utc_timestamp = uavcan_lpc11c24::clock::getUtcUSecFromCanInterrupt();

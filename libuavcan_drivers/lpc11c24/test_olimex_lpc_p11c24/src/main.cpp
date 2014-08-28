@@ -93,7 +93,7 @@ void init()
 
 void reverse(char* s)
 {
-    for (int i = 0, j = std::strlen(s) - 1; i < j; i++, j--)
+    for (int i = 0, j = int(std::strlen(s)) - 1; i < j; i++, j--)
     {
         const char c = s[i];
         s[i] = s[j];

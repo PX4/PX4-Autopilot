@@ -7,6 +7,10 @@
 #include <unistd.h>
 #include <sys/types.h>
 
+#if __GNUC__
+# pragma GCC diagnostic ignored "-Wmissing-declarations"
+#endif
+
 void* __dso_handle;
 
 void* operator new(size_t)

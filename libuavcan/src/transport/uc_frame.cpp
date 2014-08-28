@@ -17,13 +17,13 @@ int Frame::getMaxPayloadLen() const
     {
     case TransferTypeMessageBroadcast:
     {
-        return sizeof(payload_);
+        return int(sizeof(payload_));
     }
     case TransferTypeServiceResponse:
     case TransferTypeServiceRequest:
     case TransferTypeMessageUnicast:
     {
-        return sizeof(payload_) - 1;
+        return int(sizeof(payload_)) - 1;
     }
     default:
     {

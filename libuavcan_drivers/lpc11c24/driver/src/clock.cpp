@@ -159,6 +159,8 @@ SystemClock& SystemClock::instance()
 extern "C"
 {
 
+void SysTick_Handler();
+
 void SysTick_Handler()
 {
     using namespace uavcan_lpc11c24::clock;
