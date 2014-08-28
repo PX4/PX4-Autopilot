@@ -36,11 +36,16 @@ enum ArrayMode { ArrayModeStatic, ArrayModeDynamic };
 template <unsigned Size>
 class UAVCAN_EXPORT StaticArrayBase
 {
+protected:
+    typedef IntegerSpec<IntegerBitLen<Size>::Result, SignednessUnsigned, CastModeSaturate> RawSizeType;
+
 public:
     enum { SizeBitLen = 0 };
-    typedef unsigned SizeType;
-    SizeType size()     const { return Size; }
-    SizeType capacity() const { return Size; }
+
+    typedef typename StorageType<RawSizeType>::Type SizeType;
+
+    SizeType size()     const { return SizeType(Size); }
+    SizeType capacity() const { return SizeType(Size); }
 
 protected:
     StaticArrayBase() { }
@@ -48,7 +53,7 @@ protected:
 
     SizeType validateRange(SizeType pos) const
     {
-        if (pos < Size)
+        if (pos < SizeType(Size))
         {
             return pos;
         }
@@ -209,10 +214,10 @@ public:
     const ValueType* begin() const { return data_; }
     ValueType* end()               { return data_ + Base::size(); }
     const ValueType* end()   const { return data_ + Base::size(); }
-    ValueType& front()             { return at(0); }
-    const ValueType& front() const { return at(0); }
-    ValueType& back()              { return at(Base::size() - 1); }
-    const ValueType& back()  const { return at(Base::size() - 1); }
+    ValueType& front()             { return at(0U); }
+    const ValueType& front() const { return at(0U); }
+    ValueType& back()              { return at(SizeType(Base::size() - 1U)); }
+    const ValueType& back()  const { return at(SizeType(Base::size() - 1U)); }
 
     /**
      * Performs standard lexicographical compare of the elements.
