@@ -114,7 +114,7 @@ MavlinkFTP::_worker(Request *req)
 	uint32_t messageCRC;
 
 	// basic sanity checks; must validate length before use
-	if ((hdr->magic != kProtocolMagic) || (hdr->size > kMaxDataLength)) {
+	if (hdr->size > kMaxDataLength) {
 		errorCode = kErrNoRequest;
 		goto out;
 	}
@@ -122,6 +122,9 @@ MavlinkFTP::_worker(Request *req)
 	// check request CRC to make sure this is one of ours
 	messageCRC = hdr->crc32;
 	hdr->crc32 = 0;
+	hdr->padding[0] = 0;
+	hdr->padding[1] = 0;
+	hdr->padding[2] = 0;
 	if (crc32(req->rawData(), req->dataSize()) != messageCRC) {
 		errorCode = kErrNoRequest;
 		goto out;
@@ -199,10 +202,13 @@ MavlinkFTP::_reply(Request *req)
 {
 	auto hdr = req->header();
 	
-	hdr->magic = kProtocolMagic;
+	hdr->seqNumber = req->header()->seqNumber + 1;
 
 	// message is assumed to be already constructed in the request buffer, so generate the CRC
 	hdr->crc32 = 0;
+	hdr->padding[0] = 0;
+	hdr->padding[1] = 0;
+	hdr->padding[2] = 0;
 	hdr->crc32 = crc32(req->rawData(), req->dataSize());
 
 	// then pack and send the reply back to the request source
