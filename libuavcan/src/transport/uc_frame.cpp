@@ -141,7 +141,7 @@ bool Frame::compile(CanFrame& out_can_frame) const
     {
     case TransferTypeMessageBroadcast:
     {
-        out_can_frame.dlc = payload_len_;
+        out_can_frame.dlc = uint8_t(payload_len_);
         (void)copy(payload_, payload_ + payload_len_, out_can_frame.data);
         break;
     }

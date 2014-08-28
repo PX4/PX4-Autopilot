@@ -99,7 +99,9 @@ static uavcan::uint64_t sampleUtcFromCriticalSection()
     if (TIMX->SR & TIM_SR_UIF)
     {
         cnt = TIMX->CNT;
-        time += USecPerOverflow + (utc_accumulated_correction_nsec + utc_correction_nsec_per_overflow) / 1000;
+        const uavcan::int32_t add = uavcan::int32_t(USecPerOverflow) +
+                                    (utc_accumulated_correction_nsec + utc_correction_nsec_per_overflow) / 1000;
+        time = uavcan::uint64_t(uavcan::int64_t(time) + add);
     }
     return time + cnt;
 }
@@ -156,9 +158,9 @@ static float lowpass(float xold, float xnew, float corner, float dt)
 static void updateRatePID(uavcan::UtcDuration adjustment)
 {
     const uavcan::MonotonicTime ts = getMonotonic();
-    const float dt = (ts - prev_utc_adj_at).toUSec() / 1e6F;
+    const float dt = float((ts - prev_utc_adj_at).toUSec()) / 1e6F;
     prev_utc_adj_at = ts;
-    const float adj_usec = adjustment.toUSec();
+    const float adj_usec = float(adjustment.toUSec());
 
     /*
      * Target relative rate in PPM
@@ -196,7 +198,7 @@ static void updateRatePID(uavcan::UtcDuration adjustment)
     total_rate_correction_ppm = uavcan::max(total_rate_correction_ppm, -utc_sync_params.max_rate_correction_ppm);
     total_rate_correction_ppm = uavcan::min(total_rate_correction_ppm, utc_sync_params.max_rate_correction_ppm);
 
-    utc_correction_nsec_per_overflow = (USecPerOverflow * 1000) * (total_rate_correction_ppm / 1e6F);
+    utc_correction_nsec_per_overflow = uavcan::int32_t((USecPerOverflow * 1000) * (total_rate_correction_ppm / 1e6F));
 
 //    lowsyslog("$ adj=%f   rel_rate=%f   rel_rate_eint=%f   tgt_rel_rate=%f   ppm=%f\n",
 //              adj_usec, utc_rel_rate_ppm, utc_rel_rate_error_integral, target_rel_rate_ppm, total_rate_correction_ppm);
@@ -219,7 +221,7 @@ void adjustUtc(uavcan::UtcDuration adjustment)
             }
             else
             {
-                time_utc += adj_usec;
+                time_utc = uavcan::uint64_t(uavcan::int64_t(time_utc) + adj_usec);
             }
         }
 
@@ -245,7 +247,7 @@ void adjustUtc(uavcan::UtcDuration adjustment)
 float getUtcRateCorrectionPPM()
 {
     MutexLocker mlocker(mutex);
-    const float rate_correction_mult = utc_correction_nsec_per_overflow / float(USecPerOverflow * 1000);
+    const float rate_correction_mult = float(utc_correction_nsec_per_overflow) / float(USecPerOverflow * 1000);
     return 1e6F * rate_correction_mult;
 }
 
@@ -320,7 +322,7 @@ UAVCAN_STM32_IRQ_HANDLER(TIMX_IRQHandler)
         utc_accumulated_correction_nsec += utc_correction_nsec_per_overflow;
         if (std::abs(utc_accumulated_correction_nsec) >= 1000)
         {
-            time_utc += utc_accumulated_correction_nsec / 1000;
+            time_utc = uavcan::uint64_t(uavcan::int64_t(time_utc) + utc_accumulated_correction_nsec / 1000);
             utc_accumulated_correction_nsec %= 1000;
         }
 

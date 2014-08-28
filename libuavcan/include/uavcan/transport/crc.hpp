@@ -42,16 +42,16 @@ public:
 #if UAVCAN_TINY
     void add(uint8_t byte)
     {
-        value_ ^= static_cast<uint16_t>(byte) << 8;
+        value_ ^= uint16_t(uint16_t(byte) << 8);
         for (uint8_t bit = 8; bit > 0; --bit)
         {
             if (value_ & 0x8000U)
             {
-                value_ = (value_ << 1) ^ 0x1021U;
+                value_ = uint16_t(uint16_t(value_ << 1) ^ 0x1021U);
             }
             else
             {
-                value_ = (value_ << 1);
+                value_ = uint16_t(value_ << 1);
             }
         }
     }

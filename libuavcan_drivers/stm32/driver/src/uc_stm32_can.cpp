@@ -182,11 +182,11 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out
 
     while (1)
     {
-        prescaler = prescaler_bs / (1 + bs1 + bs2);
+        prescaler = uavcan::uint16_t(prescaler_bs / unsigned(1 + bs1 + bs2));
         // Check result:
         if ((prescaler >= 1) && (prescaler <= 1024))
         {
-            const uavcan::uint32_t current_bitrate = pclk / (prescaler * (1 + bs1 + bs2));
+            const uavcan::uint32_t current_bitrate = pclk / (prescaler * unsigned(1 + bs1 + bs2));
             if (current_bitrate == target_bitrate)
             {
                 break;
@@ -209,10 +209,10 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings& out
     {
         return -1;
     }
-    out_timings.prescaler = prescaler - 1;
+    out_timings.prescaler = uavcan::uint16_t(prescaler - 1U);
     out_timings.sjw = 1;
-    out_timings.bs1 = bs1 - 1;
-    out_timings.bs2 = bs2 - 1;
+    out_timings.bs1 = uavcan::uint8_t(bs1 - 1);
+    out_timings.bs2 = uavcan::uint8_t(bs2 - 1);
     return 0;
 }
 
@@ -365,10 +365,10 @@ int CanIface::init(uavcan::uint32_t bitrate)
 
     can_->MCR = bxcan::MCR_ABOM | bxcan::MCR_AWUM | bxcan::MCR_INRQ;  // RM page 648
 
-    can_->BTR = ((timings.sjw & 3)  << 24) |
-                ((timings.bs1 & 15) << 16) |
-                ((timings.bs2 & 7)  << 20) |
-                (timings.prescaler & 1023);
+    can_->BTR = ((timings.sjw & 3U)  << 24) |
+                ((timings.bs1 & 15U) << 16) |
+                ((timings.bs2 & 7U)  << 20) |
+                (timings.prescaler & 1023U);
 
     can_->IER = bxcan::IER_TMEIE |   // TX mailbox empty
                 bxcan::IER_FMPIE0 |  // RX FIFO 0 is not empty
@@ -419,7 +419,7 @@ leave:
 
 void CanIface::pollErrorState()
 {
-    const uavcan::uint8_t lec = (can_->ESR & bxcan::ESR_LEC_MASK) >> bxcan::ESR_LEC_SHIFT;
+    const uavcan::uint8_t lec = uavcan::uint8_t((can_->ESR & bxcan::ESR_LEC_MASK) >> bxcan::ESR_LEC_SHIFT);
     if (lec != 0)
     {
         last_hw_error_code_ = lec;
@@ -513,14 +513,14 @@ void CanIface::handleRxInterrupt(uavcan::uint8_t fifo_index, uavcan::uint64_t ut
 
     frame.dlc = rf.RDTR & 15;
 
-    frame.data[0] = 0xFF & (rf.RDLR >> 0);
-    frame.data[1] = 0xFF & (rf.RDLR >> 8);
-    frame.data[2] = 0xFF & (rf.RDLR >> 16);
-    frame.data[3] = 0xFF & (rf.RDLR >> 24);
-    frame.data[4] = 0xFF & (rf.RDHR >> 0);
-    frame.data[5] = 0xFF & (rf.RDHR >> 8);
-    frame.data[6] = 0xFF & (rf.RDHR >> 16);
-    frame.data[7] = 0xFF & (rf.RDHR >> 24);
+    frame.data[0] = uavcan::uint8_t(0xFF & (rf.RDLR >> 0));
+    frame.data[1] = uavcan::uint8_t(0xFF & (rf.RDLR >> 8));
+    frame.data[2] = uavcan::uint8_t(0xFF & (rf.RDLR >> 16));
+    frame.data[3] = uavcan::uint8_t(0xFF & (rf.RDLR >> 24));
+    frame.data[4] = uavcan::uint8_t(0xFF & (rf.RDHR >> 0));
+    frame.data[5] = uavcan::uint8_t(0xFF & (rf.RDHR >> 8));
+    frame.data[6] = uavcan::uint8_t(0xFF & (rf.RDHR >> 16));
+    frame.data[7] = uavcan::uint8_t(0xFF & (rf.RDHR >> 24));
 
     *rfr_reg = bxcan::RFR_RFOM | bxcan::RFR_FOVR | bxcan::RFR_FULL;  // Release FIFO entry we just read
 

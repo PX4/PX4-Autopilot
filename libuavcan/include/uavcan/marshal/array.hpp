@@ -56,7 +56,7 @@ protected:
         throw std::out_of_range("uavcan::Array");
 #else
         UAVCAN_ASSERT(0);
-        return Size - 1;  // Ha ha
+        return SizeType(Size - 1U);  // Ha ha
 #endif
     }
 };
@@ -87,7 +87,7 @@ protected:
         throw std::out_of_range("uavcan::Array");
 #else
         UAVCAN_ASSERT(0);
-        return (size_ == 0) ? 0 : (size_ - 1);
+        return SizeType((size_ == 0U) ? 0U : (size_ - 1U));
 #endif
     }
 
