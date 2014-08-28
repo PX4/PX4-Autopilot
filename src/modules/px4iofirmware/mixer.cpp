@@ -71,6 +71,7 @@ extern "C" {
 static bool mixer_servos_armed = false;
 static bool should_arm = false;
 static bool should_always_enable_pwm = false;
+static bool input_valid_initialized = false;		/* the input was valid at least once */
 static volatile bool in_mixer = false;
 
 /* selected control values and count for mixing */
@@ -162,7 +163,8 @@ mixer_tick(void)
 	 * failsafe condition.
 	 */
 	if ((r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE) &&
-		(source == MIX_FAILSAFE)) {
+		(source == MIX_FAILSAFE) &&
+		input_valid_initialized) {
 		r_setup_arming |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
 	}
 
@@ -180,6 +182,9 @@ mixer_tick(void)
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FAILSAFE;
 	} else {
 		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_FAILSAFE);
+
+		/* we got valid input, kick off the full failsafe checks */
+		input_valid_initialized = true;
 	}
 
 	/*
