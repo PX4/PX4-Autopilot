@@ -76,6 +76,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/battery_status.h>
@@ -934,6 +935,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_global_position_s global_pos;
 		struct position_setpoint_triplet_s triplet;
 		struct vehicle_vicon_position_s vicon_pos;
+		struct vision_position_estimate vision_pos;
 		struct optical_flow_s flow;
 		struct rc_channels_s rc;
 		struct differential_pressure_s diff_pres;
@@ -984,6 +986,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_EST1_s log_EST1;
 			struct log_PWR_s log_PWR;
 			struct log_VICN_s log_VICN;
+			struct log_VISN_s log_VISN;
 			struct log_GS0A_s log_GS0A;
 			struct log_GS0B_s log_GS0B;
 			struct log_GS1A_s log_GS1A;
@@ -1013,6 +1016,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int gps_pos_sub;
 		int sat_info_sub;
 		int vicon_pos_sub;
+		int vision_pos_sub;
 		int flow_sub;
 		int rc_sub;
 		int airspeed_sub;
@@ -1043,6 +1047,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	subs.triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	subs.vicon_pos_sub = orb_subscribe(ORB_ID(vehicle_vicon_position));
+	subs.vision_pos_sub = orb_subscribe(ORB_ID(vision_position_estimate));
 	subs.flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	subs.rc_sub = orb_subscribe(ORB_ID(rc_channels));
 	subs.airspeed_sub = orb_subscribe(ORB_ID(airspeed));
@@ -1458,6 +1463,22 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_VICN.roll = buf.vicon_pos.roll;
 			log_msg.body.log_VICN.yaw = buf.vicon_pos.yaw;
 			LOGBUFFER_WRITE_AND_COUNT(VICN);
+		}
+		
+		/* --- VISION POSITION --- */
+		if (copy_if_updated(ORB_ID(vision_position_estimate), subs.vision_pos_sub, &buf.vision_pos)) {
+			log_msg.msg_type = LOG_VISN_MSG;
+			log_msg.body.log_VISN.x = buf.vision_pos.x;
+			log_msg.body.log_VISN.y = buf.vision_pos.y;
+			log_msg.body.log_VISN.z = buf.vision_pos.z;
+			log_msg.body.log_VISN.vx = buf.vision_pos.vx;
+			log_msg.body.log_VISN.vy = buf.vision_pos.vy;
+			log_msg.body.log_VISN.vz = buf.vision_pos.vz;
+			log_msg.body.log_VISN.qx = buf.vision_pos.q[0];
+			log_msg.body.log_VISN.qy = buf.vision_pos.q[1];
+			log_msg.body.log_VISN.qz = buf.vision_pos.q[2];
+			log_msg.body.log_VISN.qw = buf.vision_pos.q[3];
+			LOGBUFFER_WRITE_AND_COUNT(VISN);
 		}
 
 		/* --- FLOW --- */

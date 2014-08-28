@@ -285,7 +285,9 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		while ((offset < PX4IO_CONTROL_CHANNELS) && (num_values > 0)) {
 
 			/* XXX range-check value? */
-			r_page_servos[offset] = *values;
+			if (*values != PWM_IGNORE_THIS_CHANNEL) {
+				r_page_servos[offset] = *values;
+			}
 
 			offset++;
 			num_values--;
