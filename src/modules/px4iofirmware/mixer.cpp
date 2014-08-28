@@ -58,7 +58,7 @@ extern "C" {
 /*
  * Maximum interval in us before FMU signal is considered lost
  */
-#define FMU_INPUT_DROP_LIMIT_US		200000
+#define FMU_INPUT_DROP_LIMIT_US		500000
 
 /* XXX need to move the RC_CHANNEL_FUNCTION out of rc_channels.h and into systemlib */
 #define ROLL     0
@@ -71,7 +71,6 @@ extern "C" {
 static bool mixer_servos_armed = false;
 static bool should_arm = false;
 static bool should_always_enable_pwm = false;
-static bool input_valid_initialized = false;		/* the input was valid at least once */
 static volatile bool in_mixer = false;
 
 /* selected control values and count for mixing */
@@ -99,7 +98,8 @@ mixer_tick(void)
 {
 
 	/* check that we are receiving fresh data from the FMU */
-	if (hrt_elapsed_time(&system_state.fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
+	if ((system_state.fmu_data_received_time == 0) ||
+		hrt_elapsed_time(&system_state.fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
 
 		/* too long without FMU input, time to go to failsafe */
 		if (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) {
@@ -110,6 +110,9 @@ mixer_tick(void)
 
 	} else {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
+
+		/* this flag is never cleared once OK */
+		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED;
 	}
 
 	/* default to failsafe mixing - it will be forced below if flag is set */
@@ -158,13 +161,40 @@ mixer_tick(void)
 	}
 
 	/*
+	 * Decide whether the servos should be armed right now.
+	 *
+	 * We must be armed, and we must have a PWM source; either raw from
+	 * FMU or from the mixer.
+	 *
+	 */
+	should_arm = (
+		/* IO initialised without error */   (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
+		/* and IO is armed */ 		  && (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
+		/* and FMU is armed */ 		  && (
+							    ((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)
+		/* and there is valid input via or mixer */         &&   (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) )
+		/* or direct PWM is set */               || (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)
+		/* or failsafe was set manually */	 || ((r_setup_arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM) && !(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK))
+						     )
+	);
+
+	should_always_enable_pwm = (r_setup_arming & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE)
+						&& (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
+						&& (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK);
+
+	/*
 	 * Check if failsafe termination is set - if yes,
 	 * set the force failsafe flag once entering the first
 	 * failsafe condition.
 	 */
-	if ((r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE) &&
+	if (	/* if we have requested flight termination style failsafe (noreturn) */
+		(r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE) &&
+		/* and we ended up in a failsafe condition */
 		(source == MIX_FAILSAFE) &&
-		input_valid_initialized) {
+		/* and we should be armed, so we intended to provide outputs */
+		should_arm &&
+		/* and FMU is initialized */
+		(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED)) {
 		r_setup_arming |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
 	}
 
@@ -182,34 +212,7 @@ mixer_tick(void)
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FAILSAFE;
 	} else {
 		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_FAILSAFE);
-
-		/* we got valid input, kick off the full failsafe checks */
-		input_valid_initialized = true;
 	}
-
-	/*
-	 * Decide whether the servos should be armed right now.
-	 *
-	 * We must be armed, and we must have a PWM source; either raw from
-	 * FMU or from the mixer.
-	 *
-	 * XXX correct behaviour for failsafe may require an additional case
-	 * here.
-	 */
-	should_arm = (
-		/* IO initialised without error */   (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
-		/* and IO is armed */ 		  && (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
-		/* and FMU is armed */ 		  && (
-							    ((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)
-		/* and there is valid input via or mixer */         &&   (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) )
-		/* or direct PWM is set */               || (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)
-		/* or failsafe was set manually */	 || ((r_setup_arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM) && !(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK))
-						     )
-	);
-
-	should_always_enable_pwm = (r_setup_arming & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE)
-						&& (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
-						&& (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK);
 
 	/*
 	 * Run the mixers.
