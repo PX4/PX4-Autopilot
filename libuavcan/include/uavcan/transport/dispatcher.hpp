@@ -93,6 +93,8 @@ class UAVCAN_EXPORT Dispatcher : Noncopyable
         void handleFrame(const RxFrame& frame);
 
         unsigned getNumEntries() const { return list_.getLength(); }
+
+        const LinkedListRoot<TransferListenerBase>& getList() const { return list_; }
     };
 
     ListenerRegistry lmsg_;
@@ -141,6 +143,29 @@ public:
     unsigned getNumServiceRequestListeners()  const { return lsrv_req_.getNumEntries(); }
     unsigned getNumServiceResponseListeners() const { return lsrv_resp_.getNumEntries(); }
 
+    /**
+     * These methods can be used to retreive lists of messages, service requests and service responses the
+     * dispatcher is currently listening to.
+     * Note that the list of service response listeners is very volatile, because a response listener will be
+     * removed from this list as soon as the corresponding service call is complete.
+     * @{
+     */
+    const LinkedListRoot<TransferListenerBase>& getListOfMessageListeners() const
+    {
+        return lmsg_.getList();
+    }
+    const LinkedListRoot<TransferListenerBase>& getListOfServiceRequestListeners() const
+    {
+        return lsrv_req_.getList();
+    }
+    const LinkedListRoot<TransferListenerBase>& getListOfServiceResponseListeners() const
+    {
+        return lsrv_resp_.getList();
+    }
+    /**
+     * @}
+     */
+
     IOutgoingTransferRegistry& getOutgoingTransferRegistry() { return outgoing_transfer_reg_; }
 
     LoopbackFrameListenerRegistry& getLoopbackFrameListenerRegistry() { return loopback_listeners_; }
@@ -152,6 +177,9 @@ public:
     NodeID getNodeID() const { return self_node_id_; }
     bool setNodeID(NodeID nid);
 
+    /**
+     * Refer to the specs to learn more about passive mode.
+     */
     bool isPassiveMode() const { return !getNodeID().isUnicast(); }
 
     const ISystemClock& getSystemClock() const { return sysclock_; }
