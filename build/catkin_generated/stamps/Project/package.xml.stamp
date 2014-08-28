@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>catkin</name>
+  <version>0.6.9</version>
+  <description>Low-level build system macros and infrastructure for ROS.</description>
+  <maintainer email="dthomas@osrfoundation.org">Dirk Thomas</maintainer>
+  <license>BSD</license>
+
+  <url type="website">http://www.ros.org/wiki/catkin</url>
+  <url type="bugtracker">https://github.com/ros/catkin/issues</url>
+  <url type="repository">https://github.com/ros/catkin</url>
+
+  <author>Troy Straszheim</author>
+  <author>Morten Kjaergaard</author>
+  <author>Brian Gerkey</author>
+  <author>Dirk Thomas</author>
+
+  <buildtool_depend>cmake</buildtool_depend>
+  <buildtool_export_depend>cmake</buildtool_export_depend>
+
+  <depend>python-argparse</depend>
+  <depend version_gte="0.2.2">python-catkin-pkg</depend>
+
+  <build_depend>python-empy</build_depend>
+
+  <build_export_depend>gtest</build_export_depend>
+  <build_export_depend>python-empy</build_export_depend>
+  <build_export_depend>python-nose</build_export_depend>
+
+  <test_depend>python-mock</test_depend>
+  <test_depend>python-nose</test_depend>
+
+  <export>
+    <rosdoc config="rosdoc.yaml"/>
+    <architecture_independent/>
+  </export>
+</package>
