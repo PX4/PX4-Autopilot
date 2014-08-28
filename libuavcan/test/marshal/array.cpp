@@ -1196,3 +1196,85 @@ TEST(Array, SquareMatrixPackingInPlace)
         ASSERT_EQ((diagonal ? 123 : 0), m3x3s[i]);
     }
 }
+
+TEST(Array, FuzzyComparison)
+{
+    typedef Array<Array<Array<FloatSpec<32, CastModeSaturate>, ArrayModeStatic, 2>,
+                ArrayModeStatic, 2>,
+          ArrayModeStatic, 2> ArrayStatic32;
+
+    typedef Array<Array<Array<FloatSpec<64, CastModeSaturate>, ArrayModeDynamic, 2>,
+                ArrayModeDynamic, 2>,
+          ArrayModeDynamic, 2> ArrayDynamic64;
+
+    ArrayStatic32 array_s32;
+
+    ArrayDynamic64 array_d64;
+
+    array_d64.resize(2);
+    array_d64[0].resize(2);
+    array_d64[1].resize(2);
+    array_d64[0][0].resize(2);
+    array_d64[0][1].resize(2);
+    array_d64[1][0].resize(2);
+    array_d64[1][1].resize(2);
+
+    std::cout << "One:";
+    uavcan::YamlStreamer<ArrayStatic32>::stream(std::cout, array_s32, 0);
+    std::cout << std::endl << "------";
+    uavcan::YamlStreamer<ArrayDynamic64>::stream(std::cout, array_d64, 0);
+    std::cout << std::endl;
+
+    // Both are equal right now
+    ASSERT_TRUE(array_d64 == array_s32);
+    ASSERT_TRUE(array_d64.isClose(array_s32));
+    ASSERT_TRUE(array_s32.isClose(array_d64));
+
+    // Slightly modifying - still close enough
+    array_s32[0][0][0] = 123.456F + uavcan::NumericTraits<float>::epsilon() * 123.0F;
+    array_s32[0][0][1] = uavcan::NumericTraits<float>::infinity();
+    array_s32[0][1][0] = uavcan::NumericTraits<float>::epsilon();
+    array_s32[0][1][1] = -uavcan::NumericTraits<float>::epsilon();
+
+    array_d64[0][0][0] = 123.456;
+    array_d64[0][0][1] = uavcan::NumericTraits<double>::infinity();
+    array_d64[0][1][0] = -uavcan::NumericTraits<double>::epsilon();  // Note that the sign is inverted
+    array_d64[0][1][1] = uavcan::NumericTraits<double>::epsilon();
+
+    std::cout << "Two:";
+    uavcan::YamlStreamer<ArrayStatic32>::stream(std::cout, array_s32, 0);
+    std::cout << std::endl << "------";
+    uavcan::YamlStreamer<ArrayDynamic64>::stream(std::cout, array_d64, 0);
+    std::cout << std::endl;
+
+    // They are close bot not exactly equal
+    ASSERT_FALSE(array_d64 == array_s32);
+    ASSERT_TRUE(array_d64.isClose(array_s32));
+    ASSERT_TRUE(array_s32.isClose(array_d64));
+
+    // Not close
+    array_d64[0][0][0] = 123.457;
+
+    ASSERT_FALSE(array_d64 == array_s32);
+    ASSERT_FALSE(array_d64.isClose(array_s32));
+    ASSERT_FALSE(array_s32.isClose(array_d64));
+
+    // Values are close, but lengths differ
+    array_d64[0][0][0] = 123.456;
+
+    ASSERT_FALSE(array_d64 == array_s32);
+    ASSERT_TRUE(array_d64.isClose(array_s32));
+    ASSERT_TRUE(array_s32.isClose(array_d64));
+
+    array_d64[0][0].resize(1);
+
+    ASSERT_FALSE(array_d64 == array_s32);
+    ASSERT_FALSE(array_d64.isClose(array_s32));
+    ASSERT_FALSE(array_s32.isClose(array_d64));
+
+    std::cout << "Three:";
+    uavcan::YamlStreamer<ArrayStatic32>::stream(std::cout, array_s32, 0);
+    std::cout << std::endl << "------";
+    uavcan::YamlStreamer<ArrayDynamic64>::stream(std::cout, array_d64, 0);
+    std::cout << std::endl;
+}
