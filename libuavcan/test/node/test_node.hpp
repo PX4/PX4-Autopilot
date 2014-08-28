@@ -156,7 +156,7 @@ struct InterlinkedTestNodes
     int spinBoth(uavcan::MonotonicDuration duration)
     {
         assert(!duration.isNegative());
-        unsigned nspins2 = duration.toMSec() / 2;
+        unsigned nspins2 = unsigned(duration.toMSec() / 2);
         nspins2 = nspins2 ? nspins2 : 1;
         while (nspins2 --> 0)
         {

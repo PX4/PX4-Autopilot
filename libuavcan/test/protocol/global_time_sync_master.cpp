@@ -38,7 +38,7 @@ struct GlobalTimeSyncTestNetwork
     void spinAll(uavcan::MonotonicDuration duration = uavcan::MonotonicDuration::fromMSec(9))
     {
         assert(!duration.isNegative());
-        unsigned nspins3 = duration.toMSec() / 3;
+        unsigned nspins3 = unsigned(duration.toMSec() / 3);
         nspins3 = nspins3 ? nspins3 : 2;
         while (nspins3 --> 0)
         {

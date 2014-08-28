@@ -23,8 +23,8 @@ TEST(TransferTestHelpers, Transfer)
     // Filling the buffer with data
     static const std::string TEST_DATA = "Kaneda! What do you see? Kaneda! What do you see? Kaneda! Kaneda!!!";
     ASSERT_TRUE(tba.create());
-    ASSERT_EQ(TEST_DATA.length(),
-              tba.access()->write(0, reinterpret_cast<const uint8_t*>(TEST_DATA.c_str()), TEST_DATA.length()));
+    ASSERT_EQ(TEST_DATA.length(), tba.access()->write(0, reinterpret_cast<const uint8_t*>(TEST_DATA.c_str()),
+                                                      unsigned(TEST_DATA.length())));
 
     // Reading back
     const Transfer transfer(mfit, uavcan::DataTypeDescriptor());

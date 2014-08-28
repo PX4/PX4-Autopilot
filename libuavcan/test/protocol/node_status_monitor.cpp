@@ -32,7 +32,7 @@ static void publishNodeStatus(CanDriverMock& can, uavcan::NodeID node_id, uavcan
     uavcan::CanFrame can_frame;
     ASSERT_TRUE(frame.compile(can_frame));
 
-    for (int i = 0; i < can.getNumIfaces(); i++)
+    for (uint8_t i = 0; i < can.getNumIfaces(); i++)
     {
         can.ifaces.at(i).pushRx(can_frame);
     }

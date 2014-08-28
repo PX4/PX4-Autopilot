@@ -14,7 +14,7 @@ static uavcan::RxFrame makeFrame()
         uavcan::Frame(123, uavcan::TransferTypeMessageBroadcast, 1, uavcan::NodeID::Broadcast, 0, 1, true),
         tsMono(123), tsUtc(456), 0);
     uint8_t data[8];
-    for (unsigned i = 0; i < sizeof(data); i++)
+    for (uint8_t i = 0; i < sizeof(data); i++)
     {
         data[i] = i;
     }
@@ -93,12 +93,12 @@ TEST(MultiFrameIncomingTransfer, Basic)
     const uint8_t* const data_ptr = reinterpret_cast<const uint8_t*>(data.c_str());
     ASSERT_FALSE(bufmgr.access(bufmgr_key));
     ASSERT_TRUE(bufmgr.create(bufmgr_key));
-    ASSERT_EQ(data.length(), bufmgr.access(bufmgr_key)->write(0, data_ptr, data.length()));
+    ASSERT_EQ(data.length(), bufmgr.access(bufmgr_key)->write(0, data_ptr, unsigned(data.length())));
 
     /*
      * Check
      */
-    ASSERT_TRUE(match(it, frame, data_ptr, data.length()));
+    ASSERT_TRUE(match(it, frame, data_ptr, unsigned(data.length())));
 
     /*
      * Buffer release

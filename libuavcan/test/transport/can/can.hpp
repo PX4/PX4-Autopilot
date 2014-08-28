@@ -163,7 +163,7 @@ public:
     uavcan::ISystemClock& iclock;
     bool select_failure;
 
-    CanDriverMock(int num_ifaces, uavcan::ISystemClock& iclock)
+    CanDriverMock(unsigned num_ifaces, uavcan::ISystemClock& iclock)
         : ifaces(num_ifaces, CanIfaceMock(iclock))
         , iclock(iclock)
         , select_failure(false)
@@ -179,15 +179,15 @@ public:
             return -1;
         }
 
-        const uavcan::uint8_t valid_iface_mask = (1 << getNumIfaces()) - 1;
+        const uavcan::uint8_t valid_iface_mask = uavcan::uint8_t((1 << getNumIfaces()) - 1);
         EXPECT_FALSE(inout_masks.write & ~valid_iface_mask);
         EXPECT_FALSE(inout_masks.read & ~valid_iface_mask);
 
         uavcan::uint8_t out_write_mask = 0;
         uavcan::uint8_t out_read_mask = 0;
-        for (int i = 0; i < getNumIfaces(); i++)
+        for (unsigned i = 0; i < getNumIfaces(); i++)
         {
-            const uavcan::uint8_t mask = 1 << i;
+            const uavcan::uint8_t mask = uavcan::uint8_t(1 << i);
             if ((inout_masks.write & mask) && ifaces.at(i).writeable)
             {
                 out_write_mask |= mask;
@@ -208,14 +208,14 @@ public:
             {
                 if (diff.isPositive())
                 {
-                    mock->advance(diff.toUSec());   // Emulating timeout
+                    mock->advance(uint64_t(diff.toUSec()));   // Emulating timeout
                 }
             }
             else
             {
                 if (diff.isPositive())
                 {
-                    usleep(diff.toUSec());
+                    usleep(unsigned(diff.toUSec()));
                 }
             }
             return 0;
@@ -224,12 +224,12 @@ public:
     }
 
     virtual uavcan::ICanIface* getIface(uavcan::uint8_t iface_index) { return &ifaces.at(iface_index); }
-    virtual uavcan::uint8_t getNumIfaces() const { return ifaces.size(); }
+    virtual uavcan::uint8_t getNumIfaces() const { return uavcan::uint8_t(ifaces.size()); }
 };
 
 enum FrameType { STD, EXT };
 inline uavcan::CanFrame makeCanFrame(uint32_t id, const std::string& str_data, FrameType type)
 {
     id |= (type == EXT) ? uavcan::CanFrame::FlagEFF : 0;
-    return uavcan::CanFrame(id, reinterpret_cast<const uint8_t*>(str_data.c_str()), str_data.length());
+    return uavcan::CanFrame(id, reinterpret_cast<const uint8_t*>(str_data.c_str()), uavcan::uint8_t(str_data.length()));
 }

@@ -47,8 +47,8 @@ struct Transfer
             {
                 break;
             }
-            payload += std::string(reinterpret_cast<const char*>(buf), res);
-            offset += res;
+            payload += std::string(reinterpret_cast<const char*>(buf), unsigned(res));
+            offset += unsigned(res);
         }
     }
 
@@ -186,27 +186,27 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
     if (need_crc)
     {
         uavcan::TransferCRC payload_crc = transfer.data_type.getSignature().toTransferCRC();
-        payload_crc.add(reinterpret_cast<const uint8_t*>(transfer.payload.c_str()), transfer.payload.length());
+        payload_crc.add(reinterpret_cast<const uint8_t*>(transfer.payload.c_str()), uint16_t(transfer.payload.length()));
         // Little endian
-        raw_payload.push_back(payload_crc.get() & 0xFF);
-        raw_payload.push_back((payload_crc.get() >> 8) & 0xFF);
+        raw_payload.push_back(uint8_t(payload_crc.get() & 0xFF));
+        raw_payload.push_back(uint8_t((payload_crc.get() >> 8) & 0xFF));
     }
     raw_payload.insert(raw_payload.end(), transfer.payload.begin(), transfer.payload.end());
 
     std::vector<uavcan::RxFrame> output;
-    unsigned frame_index = 0;
+    uint8_t frame_index = 0;
     unsigned offset = 0;
     uavcan::MonotonicTime ts_monotonic = transfer.ts_monotonic;
     uavcan::UtcTime ts_utc = transfer.ts_utc;
 
     while (true)
     {
-        const int bytes_left = raw_payload.size() - offset;
+        const int bytes_left = int(raw_payload.size()) - int(offset);
         EXPECT_TRUE(bytes_left >= 0);
 
         uavcan::Frame frm(transfer.data_type.getID(), transfer.transfer_type, transfer.src_node_id,
                           transfer.dst_node_id, frame_index, transfer.transfer_id);
-        const int spres = frm.setPayload(&*(raw_payload.begin() + offset), bytes_left);
+        const int spres = frm.setPayload(&*(raw_payload.begin() + offset), unsigned(bytes_left));
         if (spres < 0)
         {
             std::cerr << ">_<" << std::endl;
@@ -217,7 +217,7 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
             frm.makeLast();
         }
 
-        offset += spres;
+        offset += unsigned(spres);
         EXPECT_GE(uavcan::Frame::MaxIndex, frame_index);
         frame_index++;
 
@@ -236,7 +236,7 @@ std::vector<uavcan::RxFrame> serializeTransfer(const Transfer& transfer)
 
 inline uavcan::DataTypeDescriptor makeDataType(uavcan::DataTypeKind kind, uint16_t id, const char* name = "")
 {
-    const uavcan::DataTypeSignature signature((uint64_t(kind) << 16) | (id << 8) | (id & 0xFF));
+    const uavcan::DataTypeSignature signature((uint64_t(kind) << 16) | uint16_t(id << 8) | uint16_t(id & 0xFF));
     return uavcan::DataTypeDescriptor(kind, id, signature, name);
 }
 

@@ -142,7 +142,7 @@ TEST(Map, Basic)
         {
             ASSERT_EQ(value, *res);
         }
-        max_key_integer = i;
+        max_key_integer = unsigned(i);
     }
     std::cout << "Max key/value: " << max_key_integer << std::endl;
     ASSERT_LT(4, max_key_integer);

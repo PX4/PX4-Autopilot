@@ -57,12 +57,12 @@ TEST(ServiceServer, Basic)
         /*
          * Request frames
          */
-        for (int i = 0; i < 2; i++)
+        for (uint8_t i = 0; i < 2; i++)
         {
             // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
             // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame
             uavcan::Frame frame(root_ns_a::StringService::DefaultDataTypeID, uavcan::TransferTypeServiceRequest,
-                                uavcan::NodeID(i + 0x10), 1, 0, i, true);
+                                uavcan::NodeID(uint8_t(i + 0x10)), 1, 0, i, true);
 
             const uint8_t req[] = {'r', 'e', 'q', uint8_t(i + '0')};
             frame.setPayload(req, sizeof(req));

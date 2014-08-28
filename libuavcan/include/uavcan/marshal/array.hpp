@@ -385,7 +385,7 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
         return -ErrLogic;
     }
 
-    template <typename InputIter>
+    template <typename ScalarType, typename InputIter>
     void packSquareMatrixImpl(const InputIter src_row_major)
     {
         StaticAssert<IsDynamic>::check();
@@ -445,7 +445,7 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
         }
     }
 
-    template <typename OutputIter>
+    template <typename ScalarType, typename OutputIter>
     void unpackSquareMatrixImpl(OutputIter it) const
     {
         StaticAssert<IsDynamic>::check();
@@ -464,23 +464,26 @@ class UAVCAN_EXPORT Array : public ArrayImpl<T, ArrayMode, MaxSize_>
                 const bool on_diagonal = (index / Width) == (index % Width);
                 if (on_diagonal)
                 {
-                    const SizeType source_index = (this->size() == 1) ? 0 : (index / Width);
-                    *it++ = this->at(source_index);
+                    const SizeType source_index = SizeType((this->size() == 1) ? 0 : (index / Width));
+                    *it++ = ScalarType(this->at(source_index));
                 }
                 else
                 {
-                    *it++ = 0;
+                    *it++ = ScalarType(0);
                 }
             }
         }
         else if (this->size() == MaxSize)
         {
-            (void)::uavcan::copy(this->begin(), this->end(), it);
+            for (SizeType index = 0; index < MaxSize; index++)
+            {
+                *it++ = ScalarType(this->at(index));
+            }
         }
         else
         {
             // coverity[suspicious_sizeof : FALSE]
-            ::uavcan::fill_n(it, MaxSize, 0);
+            ::uavcan::fill_n(it, MaxSize, ScalarType(0));
         }
     }
 
@@ -654,10 +657,8 @@ public:
     SelfType& operator+=(const Array<T, RhsArrayMode, RhsMaxSize>& rhs)
     {
         typedef Array<T, RhsArrayMode, RhsMaxSize> Rhs;
-        typedef typename Select<(sizeof(SizeType) > sizeof(typename Rhs::SizeType)),
-                                SizeType, typename Rhs::SizeType>::Result CommonSizeType;
         StaticAssert<IsDynamic>::check();
-        for (CommonSizeType i = 0; i < rhs.size(); i++)
+        for (typename Rhs::SizeType i = 0; i < rhs.size(); i++)
         {
             push_back(rhs[i]);
         }
@@ -689,11 +690,11 @@ public:
 
         ValueType* const ptr = Base::end();
         UAVCAN_ASSERT(capacity() >= size());
-        const SizeType max_size = capacity() - size();
+        const SizeType max_size = SizeType(capacity() - size());
 
         // We have one extra byte for the null terminator, hence +1
         using namespace std; // For snprintf()
-        const int ret = snprintf(reinterpret_cast<char*>(ptr), max_size + 1, format, value);
+        const int ret = snprintf(reinterpret_cast<char*>(ptr), SizeType(max_size + 1U), format, value);
 
         for (int i = 0; i < min(ret, int(max_size)); i++)
         {
@@ -714,7 +715,7 @@ public:
     template <typename ScalarType>
     void packSquareMatrix(const ScalarType (&src_row_major)[MaxSize])
     {
-        packSquareMatrixImpl<const ScalarType*>(src_row_major);
+        packSquareMatrixImpl<ScalarType, const ScalarType*>(src_row_major);
     }
 
     /**
@@ -727,7 +728,7 @@ public:
         if (this->size() == MaxSize)
         {
             ValueType matrix[MaxSize];
-            for (unsigned i = 0; i < MaxSize; i++)
+            for (SizeType i = 0; i < MaxSize; i++)
             {
                 matrix[i] = this->at(i);
             }
@@ -750,7 +751,10 @@ public:
     }
 
     /**
-     * Fills this array as a packed square matrix from any container that implements the methods begin() and size().
+     * Fills this array as a packed square matrix from any container that has the following public entities:
+     *  - method begin()
+     *  - method size()
+     *  - only for C++03: type value_type
      * Please refer to the specification to learn more about matrix packing.
      * Note that matrix packing code uses @ref areClose() for comparison.
      */
@@ -760,7 +764,12 @@ public:
     {
         if (src_row_major.size() == MaxSize)
         {
-            packSquareMatrixImpl(src_row_major.begin());
+#if UAVCAN_CPP_VERSION > UAVCAN_CPP03
+            typedef typename std::remove_reference<decltype(*src_row_major.begin())>::type RhsValueType;
+            packSquareMatrixImpl<RhsValueType>(src_row_major.begin());
+#else
+            packSquareMatrixImpl<typename R::value_type>(src_row_major.begin());
+#endif
         }
         else if (src_row_major.size() == 0)
         {
@@ -784,7 +793,7 @@ public:
     template <typename ScalarType>
     void unpackSquareMatrix(ScalarType (&dst_row_major)[MaxSize]) const
     {
-        unpackSquareMatrixImpl<ScalarType*>(dst_row_major);
+        unpackSquareMatrixImpl<ScalarType, ScalarType*>(dst_row_major);
     }
 
     /**
@@ -804,7 +813,10 @@ public:
     }
 
     /**
-     * Reconstructs full matrix, result will be saved into container that implements begin() and size().
+     * Reconstructs full matrix, result will be saved into container that has the following public entities:
+     *  - method begin()
+     *  - method size()
+     *  - only for C++03: type value_type
      * Please refer to the specification to learn more about matrix packing.
      */
     template <typename R>
@@ -813,7 +825,12 @@ public:
     {
         if (dst_row_major.size() == MaxSize)
         {
-            unpackSquareMatrixImpl(dst_row_major.begin());
+#if UAVCAN_CPP_VERSION > UAVCAN_CPP03
+            typedef typename std::remove_reference<decltype(*dst_row_major.begin())>::type RhsValueType;
+            unpackSquareMatrixImpl<RhsValueType>(dst_row_major.begin());
+#else
+            unpackSquareMatrixImpl<typename R::value_type>(dst_row_major.begin());
+#endif
         }
         else
         {
@@ -875,9 +892,9 @@ class UAVCAN_EXPORT YamlStreamer<Array<T, ArrayMode, MaxSize> >
     static void streamPrimitives(Stream& s, const ArrayType& array)
     {
         s << '[';
-        for (std::size_t i = 0; i < array.size(); i++)
+        for (typename ArrayType::SizeType i = 0; i < array.size(); i++)
         {
-            YamlStreamer<T>::stream(s, array.at(i), 0);
+            YamlStreamer<T>::stream(s, array.at(typename ArrayType::SizeType(i)), 0);
             if ((i + 1) < array.size())
             {
                 s << ", ";
@@ -890,7 +907,7 @@ class UAVCAN_EXPORT YamlStreamer<Array<T, ArrayMode, MaxSize> >
     static void streamCharacters(Stream& s, const ArrayType& array)
     {
         s << '"';
-        for (std::size_t i = 0; i < array.size(); i++)
+        for (typename ArrayType::SizeType i = 0; i < array.size(); i++)
         {
             const int c = array.at(i);
             if (c < 32 || c > 126)
@@ -898,10 +915,10 @@ class UAVCAN_EXPORT YamlStreamer<Array<T, ArrayMode, MaxSize> >
                 char nibbles[2] = {char((c >> 4) & 0xF), char(c & 0xF)};
                 for (int k = 0; k < 2; k++)
                 {
-                    nibbles[k] += '0';
+                    nibbles[k] = char(nibbles[k] + '0');
                     if (nibbles[k] > '9')
                     {
-                        nibbles[k] += 'A' - '9' - 1;
+                        nibbles[k] = char(nibbles[k] + 'A' - '9' - 1);
                     }
                 }
                 s << "\\x" << nibbles[0] << nibbles[1];
@@ -926,7 +943,7 @@ class UAVCAN_EXPORT YamlStreamer<Array<T, ArrayMode, MaxSize> >
     static void genericStreamImpl(Stream& s, const ArrayType& array, int, SelectorStringLike)
     {
         bool printable_only = true;
-        for (int i = 0; i < array.size(); i++)
+        for (typename ArrayType::SizeType i = 0; i < array.size(); i++)
         {
             if (!isNiceCharacter(array[i]))
             {
@@ -960,7 +977,7 @@ class UAVCAN_EXPORT YamlStreamer<Array<T, ArrayMode, MaxSize> >
             s << "[]";
             return;
         }
-        for (std::size_t i = 0; i < array.size(); i++)
+        for (typename ArrayType::SizeType i = 0; i < array.size(); i++)
         {
             s << '\n';
             for (int pos = 0; pos < level; pos++)

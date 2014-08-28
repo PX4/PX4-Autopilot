@@ -42,7 +42,7 @@ TEST(Publisher, Basic)
     msg.payload = "Msg";
 
     const uint8_t expected_transfer_payload[] = {0x42, 0x72, 0x08, 0xa5, 'M', 's', 'g'};
-    const uint64_t tx_timeout_usec = publisher.getDefaultTxTimeout().toUSec();
+    const uint64_t tx_timeout_usec = uint64_t(publisher.getDefaultTxTimeout().toUSec());
 
     /*
      * Broadcast

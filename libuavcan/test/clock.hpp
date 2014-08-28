@@ -15,7 +15,7 @@ public:
     mutable uint64_t monotonic;
     mutable uint64_t utc;
     uavcan::UtcDuration last_adjustment;
-    int64_t monotonic_auto_advance;
+    uint64_t monotonic_auto_advance;
     bool preserve_utc;
 
     SystemClockMock(uint64_t initial = 0)
@@ -52,7 +52,7 @@ public:
     {
         assert(this);
         const uint64_t prev_utc = utc;
-        utc += adjustment.toUSec();
+        utc = uint64_t(int64_t(utc) + adjustment.toUSec());
         last_adjustment = adjustment;
         std::cout << "Clock adjustment " << prev_utc << " --> " << utc << std::endl;
     }
@@ -73,7 +73,7 @@ public:
             assert(0);
             return uavcan::MonotonicTime();
         }
-        return uavcan::MonotonicTime::fromUSec(uint64_t(ts.tv_sec) * 1000000UL + ts.tv_nsec / 1000UL);
+        return uavcan::MonotonicTime::fromUSec(uint64_t(int64_t(ts.tv_sec) * 1000000L + int64_t(ts.tv_nsec / 1000L)));
     }
 
     virtual uavcan::UtcTime getUtc() const
@@ -85,7 +85,7 @@ public:
             assert(0);
             return uavcan::UtcTime();
         }
-        return uavcan::UtcTime::fromUSec(uint64_t(tv.tv_sec) * 1000000UL + tv.tv_usec) + utc_adjustment;
+        return uavcan::UtcTime::fromUSec(uint64_t(int64_t(tv.tv_sec) * 1000000L + tv.tv_usec)) + utc_adjustment;
     }
 
     virtual void adjustUtc(uavcan::UtcDuration adjustment)

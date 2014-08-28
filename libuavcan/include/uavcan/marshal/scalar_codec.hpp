@@ -55,7 +55,7 @@ class UAVCAN_EXPORT ScalarCodec
         StaticAssert<NumericTraits<T>::IsInteger>::check(); // Not applicable to floating point types
         if (value & (T(1) << (BitLen - 1)))                        // The most significant bit is set --> negative
         {
-            value |= 0xFFFFFFFFFFFFFFFF & ~((T(1) << BitLen) - 1);
+            value |= T(T(0xFFFFFFFFFFFFFFFFULL) & ~((T(1) << BitLen) - 1));
         }
     }
 

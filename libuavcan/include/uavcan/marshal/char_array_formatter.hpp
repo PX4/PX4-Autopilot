@@ -40,7 +40,7 @@ class UAVCAN_EXPORT CharArrayFormatter
         {
             if (array_.size() != array_.capacity())
             {
-                array_.push_back(value);
+                array_.push_back(typename ArrayType_::ValueType(value));
             }
         }
         else if (std::is_signed<T>())

@@ -27,16 +27,16 @@ TEST(FloatSpec, Limits)
     typedef FloatSpec<64, CastModeSaturate> F64S;
 
     ASSERT_FALSE(F16S::IsExactRepresentation);
-    ASSERT_FLOAT_EQ(65504.0, F16S::max());
-    ASSERT_FLOAT_EQ(9.77e-04, F16S::epsilon());
+    ASSERT_FLOAT_EQ(65504.0F, F16S::max());
+    ASSERT_FLOAT_EQ(9.77e-04F, F16S::epsilon());
 
     ASSERT_TRUE(F32T::IsExactRepresentation);
     ASSERT_FLOAT_EQ(std::numeric_limits<float>::max(), F32T::max());
     ASSERT_FLOAT_EQ(std::numeric_limits<float>::epsilon(), F32T::epsilon());
 
     ASSERT_TRUE(F64S::IsExactRepresentation);
-    ASSERT_FLOAT_EQ(std::numeric_limits<double>::max(), F64S::max());
-    ASSERT_FLOAT_EQ(std::numeric_limits<double>::epsilon(), F64S::epsilon());
+    ASSERT_DOUBLE_EQ(std::numeric_limits<double>::max(), F64S::max());
+    ASSERT_DOUBLE_EQ(std::numeric_limits<double>::epsilon(), F64S::epsilon());
 }
 
 TEST(FloatSpec, Basic)
@@ -110,12 +110,12 @@ TEST(FloatSpec, Basic)
 
     for (int i = 0; i < NumValues; i++)
     {
-        ASSERT_EQ(1, F16S::encode(Values[i], sc_wr, uavcan::TailArrayOptDisabled));
-        ASSERT_EQ(1, F16T::encode(Values[i], sc_wr, uavcan::TailArrayOptDisabled));
-        ASSERT_EQ(1, F32S::encode(Values[i], sc_wr, uavcan::TailArrayOptDisabled));
-        ASSERT_EQ(1, F32T::encode(Values[i], sc_wr, uavcan::TailArrayOptDisabled));
-        ASSERT_EQ(1, F64S::encode(Values[i], sc_wr, uavcan::TailArrayOptDisabled));
-        ASSERT_EQ(1, F64T::encode(Values[i], sc_wr, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, F16S::encode(float(Values[i]), sc_wr, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, F16T::encode(float(Values[i]), sc_wr, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, F32S::encode(float(Values[i]), sc_wr, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, F32T::encode(float(Values[i]), sc_wr, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, F64S::encode(double(Values[i]), sc_wr, uavcan::TailArrayOptDisabled));
+        ASSERT_EQ(1, F64T::encode(double(Values[i]), sc_wr, uavcan::TailArrayOptDisabled));
     }
 
     ASSERT_EQ(0, F16S::encode(0, sc_wr, uavcan::TailArrayOptDisabled));  // Out of buffer space now
@@ -130,20 +130,20 @@ TEST(FloatSpec, Basic)
     do { \
         StorageType<FloatType>::Type var = StorageType<FloatType>::Type(); \
         ASSERT_EQ(1, FloatType::decode(var, sc_rd, uavcan::TailArrayOptDisabled)); \
-        if (!isnan(expected_value)) { \
-            ASSERT_FLOAT_EQ(expected_value, var); } \
+        if (!std::isnan(expected_value)) { \
+            ASSERT_DOUBLE_EQ(expected_value, var); } \
         else { \
-            ASSERT_EQ(!!isnan(expected_value), !!isnan(var)); } \
+            ASSERT_EQ(!!std::isnan(expected_value), !!std::isnan(var)); } \
     } while (0)
 
     for (int i = 0; i < NumValues; i++)
     {
-        CHECK(F16S, ValuesF16S[i]);
-        CHECK(F16T, ValuesF16T[i]);
-        CHECK(F32S, Values[i]);
-        CHECK(F32T, Values[i]);
-        CHECK(F64S, Values[i]);
-        CHECK(F64T, Values[i]);
+        CHECK(F16S, float(ValuesF16S[i]));
+        CHECK(F16T, float(ValuesF16T[i]));
+        CHECK(F32S, float(Values[i]));
+        CHECK(F32T, float(Values[i]));
+        CHECK(F64S, double(Values[i]));
+        CHECK(F64T, double(Values[i]));
     }
 
 #undef CHECK
@@ -165,9 +165,9 @@ TEST(FloatSpec, Float16Representation)
     ASSERT_EQ(1, F16S::encode(0.0, sc_wr, uavcan::TailArrayOptDisabled));
     ASSERT_EQ(1, F16S::encode(1.0, sc_wr, uavcan::TailArrayOptDisabled));
     ASSERT_EQ(1, F16S::encode(-2.0, sc_wr, uavcan::TailArrayOptDisabled));
-    ASSERT_EQ(1, F16T::encode(999999, sc_wr, uavcan::TailArrayOptDisabled));  // +inf
-    ASSERT_EQ(1, F16S::encode(-999999, sc_wr, uavcan::TailArrayOptDisabled)); // -max
-    ASSERT_EQ(1, F16S::encode(nan(""), sc_wr, uavcan::TailArrayOptDisabled)); // nan
+    ASSERT_EQ(1, F16T::encode(999999, sc_wr, uavcan::TailArrayOptDisabled));         // +inf
+    ASSERT_EQ(1, F16S::encode(-999999, sc_wr, uavcan::TailArrayOptDisabled));        // -max
+    ASSERT_EQ(1, F16S::encode(float(nan("")), sc_wr, uavcan::TailArrayOptDisabled)); // nan
 
     ASSERT_EQ(0, F16S::encode(0, sc_wr, uavcan::TailArrayOptDisabled));  // Out of buffer space now
 

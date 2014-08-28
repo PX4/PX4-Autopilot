@@ -55,7 +55,7 @@ struct ParamServerTestManager : public uavcan::IParamManager
         KeyValue::const_iterator it = kv.find(name.c_str());
         if (it != kv.end())
         {
-            out_value.value_float.push_back(it->second);
+            out_value.value_float.push_back(float(it->second));
         }
         std::cout << "READ [" << name.c_str() << "]\n" << out_value << "\n---" << std::endl;
     }
@@ -146,7 +146,7 @@ TEST(ParamServer, Basic)
     ASSERT_STREQ("foobar", get_set_cln.collector.result->response.name.c_str());
     ASSERT_TRUE(get_set_cln.collector.result->response.value.value_bool.empty());
     ASSERT_TRUE(get_set_cln.collector.result->response.value.value_int.empty());
-    ASSERT_FLOAT_EQ(123.456, get_set_cln.collector.result->response.value.value_float[0]);
+    ASSERT_FLOAT_EQ(123.456F, get_set_cln.collector.result->response.value.value_float[0]);
 
     // Set by index
     get_set_rq = uavcan::protocol::param::GetSet::Request();

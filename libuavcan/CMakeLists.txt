@@ -102,7 +102,7 @@ if (DEBUG_BUILD)
 
     if (COMPILER_IS_GCC_COMPATIBLE)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -pedantic -Wfloat-equal -Wconversion -Wsign-conversion")
-        set(exec_common_flags "-Wno-conversion -Wno-float-equal -Wno-sign-conversion")
+        set(exec_common_flags "")
         set(cpp03_flags "-std=c++03 -Wno-variadic-macros -Wno-long-long")
         set(optim_flags "-O3 -DNDEBUG -g0")
     else ()

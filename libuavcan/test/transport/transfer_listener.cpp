@@ -106,9 +106,8 @@ TEST(TransferListener, CrcFailure)
     ASSERT_TRUE(ser_mft.size() > 1);
     ASSERT_TRUE(ser_sft.size() == 1);
 
-    // Fuck my brain.
-    const_cast<uint8_t*>(ser_mft[1].getPayloadPtr())[1] = ~ser_mft[1].getPayloadPtr()[1]; // CRC is no longer valid
-    const_cast<uint8_t*>(ser_sft[0].getPayloadPtr())[2] = ~ser_sft[0].getPayloadPtr()[2]; // no CRC - will be undetected
+    const_cast<uint8_t*>(ser_mft[1].getPayloadPtr())[1] = uint8_t(~ser_mft[1].getPayloadPtr()[1]); // CRC invalid now
+    const_cast<uint8_t*>(ser_sft[0].getPayloadPtr())[2] = uint8_t(~ser_sft[0].getPayloadPtr()[2]);  // no CRC here
 
     /*
      * Sending and making sure that MFT was not received, but SFT was.
@@ -122,7 +121,7 @@ TEST(TransferListener, CrcFailure)
     emulator.send(sers);
 
     Transfer tr_sft_damaged = tr_sft;
-    tr_sft_damaged.payload[2] = ~tr_sft.payload[2];     // Damaging the data similarly, so that it can be matched
+    tr_sft_damaged.payload[2] = char(~tr_sft.payload[2]);    // Damaging the data similarly, so that it can be matched
 
     ASSERT_TRUE(subscriber.matchAndPop(tr_sft_damaged));
     ASSERT_TRUE(subscriber.isEmpty());

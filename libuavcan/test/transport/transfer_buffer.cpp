@@ -22,12 +22,12 @@ static bool allEqual(const T (&a)[Size])
     return n == 0;
 }
 
-template <typename T, unsigned Size>
-static void fill(T (&a)[Size], int value)
+template <typename T, unsigned Size, typename R>
+static void fill(T (&a)[Size], R value)
 {
     for (unsigned i = 0; i < Size; i++)
     {
-        a[i] = value;
+        a[i] = T(value);
     }
 }
 
@@ -50,7 +50,7 @@ static bool matchAgainst(const std::string& data, const uavcan::ITransferBuffer&
     }
     else
     {
-        const int res = tbb.read(offset, local_buffer, len);
+        const int res = tbb.read(offset, local_buffer, unsigned(len));
         if (res != len)
         {
             std::cout << "matchAgainst(): res " << res << " expected " << len << std::endl;
@@ -97,7 +97,7 @@ TEST(StaticTransferBuffer, Basic)
     ASSERT_TRUE(allEqual(local_buffer));
 
     // Bulk write
-    ASSERT_EQ(TEST_BUFFER_SIZE, buf.write(0, test_data_ptr, TEST_DATA.length()));
+    ASSERT_EQ(TEST_BUFFER_SIZE, buf.write(0, test_data_ptr, unsigned(TEST_DATA.length())));
     ASSERT_TRUE(matchAgainstTestData(buf, 0));
     ASSERT_TRUE(matchAgainstTestData(buf, TEST_BUFFER_SIZE));
     ASSERT_TRUE(matchAgainstTestData(buf, TEST_BUFFER_SIZE / 2));
@@ -149,7 +149,7 @@ TEST(DynamicTransferBufferManagerEntry, Basic)
     ASSERT_TRUE(allEqual(local_buffer));
 
     // Bulk write
-    ASSERT_EQ(MAX_SIZE, buf.write(0, test_data_ptr, TEST_DATA.length()));
+    ASSERT_EQ(MAX_SIZE, buf.write(0, test_data_ptr, unsigned(TEST_DATA.length())));
 
     ASSERT_LT(0, pool.getNumUsedBlocks());      // Making sure some memory was used
 
@@ -222,7 +222,7 @@ TEST(TransferBufferManager, TestDataValidation)
 
 static int fillTestData(const std::string& data, uavcan::ITransferBuffer* tbb)
 {
-    return tbb->write(0, reinterpret_cast<const uint8_t*>(data.c_str()), data.length());
+    return tbb->write(0, reinterpret_cast<const uint8_t*>(data.c_str()), unsigned(data.length()));
 }
 
 TEST(TransferBufferManager, Basic)

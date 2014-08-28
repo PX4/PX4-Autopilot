@@ -25,7 +25,7 @@ struct RxFrameGenerator
         , bufmgr_key(bufmgr_key)
     { }
 
-    uavcan::RxFrame operator()(int iface_index, const std::string& data, uint8_t frame_index, bool last,
+    uavcan::RxFrame operator()(uint8_t iface_index, const std::string& data, uint8_t frame_index, bool last,
                                uint8_t transfer_id, uint64_t ts_monotonic, uint64_t ts_utc = 0)
     {
         const uavcan::NodeID dst_nid =
@@ -35,7 +35,8 @@ struct RxFrameGenerator
         uavcan::Frame frame(data_type_id, bufmgr_key.getTransferType(), bufmgr_key.getNodeID(),
                             dst_nid, frame_index, transfer_id, last);
 
-        EXPECT_EQ(data.length(), frame.setPayload(reinterpret_cast<const uint8_t*>(data.c_str()), data.length()));
+        EXPECT_EQ(data.length(),
+                  frame.setPayload(reinterpret_cast<const uint8_t*>(data.c_str()), unsigned(data.length())));
 
         return uavcan::RxFrame(frame, uavcan::MonotonicTime::fromUSec(ts_monotonic),
                                uavcan::UtcTime::fromUSec(ts_utc), iface_index);
@@ -75,7 +76,7 @@ static bool matchBufferContent(const uavcan::ITransferBuffer* tbb, const std::st
         std::cerr << "matchBufferContent(): Content is too long" << std::endl;
         std::exit(1);
     }
-    tbb->read(0, data, content.length());
+    tbb->read(0, data, unsigned(content.length()));
     if (std::equal(content.begin(), content.end(), data))
     {
         return true;
@@ -260,9 +261,9 @@ TEST(TransferReceiver, UnterminatedTransfer)
     uavcan::TransferBufferAccessor bk(context.bufmgr, RxFrameGenerator::DEFAULT_KEY);
 
     std::string content;
-    for (int i = 0; i <= uavcan::Frame::MaxIndex; i++)
+    for (uint8_t i = 0; i <= uavcan::Frame::MaxIndex; i++)
     {
-        CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "12345678", i, false, 0, 1000 + i), bk)); // Last one will be dropped
+        CHECK_NOT_COMPLETE(rcv.addFrame(gen(1, "12345678", i, false, 0, 1000U + i), bk)); // Last one will be dropped
         content += "12345678";
     }
     CHECK_COMPLETE(rcv.addFrame(gen(1, "12345678", uavcan::Frame::MaxIndex, true, 0, 1100), bk));
@@ -461,7 +462,7 @@ TEST(TransferReceiver, HeaderParsing)
     /*
      * MFT, message unicast, service request/response
      */
-    for (int i = 0; i < int(sizeof(ADDRESSED_TRANSFER_TYPES) / sizeof(ADDRESSED_TRANSFER_TYPES[0])); i++)
+    for (unsigned i = 0; i < (sizeof(ADDRESSED_TRANSFER_TYPES) / sizeof(ADDRESSED_TRANSFER_TYPES[0])); i++)
     {
         gen.bufmgr_key =
             uavcan::TransferBufferManagerKey(gen.bufmgr_key.getNodeID(), ADDRESSED_TRANSFER_TYPES[i]);
@@ -504,13 +505,13 @@ TEST(TransferReceiver, HeaderParsing)
     /*
      * SFT, message unicast, service request/response
      */
-    for (int i = 0; i < int(sizeof(ADDRESSED_TRANSFER_TYPES) / sizeof(ADDRESSED_TRANSFER_TYPES[0])); i++)
+    for (unsigned i = 0; i < int(sizeof(ADDRESSED_TRANSFER_TYPES) / sizeof(ADDRESSED_TRANSFER_TYPES[0])); i++)
     {
         gen.bufmgr_key =
             uavcan::TransferBufferManagerKey(gen.bufmgr_key.getNodeID(), ADDRESSED_TRANSFER_TYPES[i]);
         uavcan::TransferBufferAccessor bk(context.bufmgr, gen.bufmgr_key);
 
-        const uavcan::RxFrame frame = gen(0, SFT_PAYLOAD_UNICAST, 0, true, tid.get(), i + 10000);
+        const uavcan::RxFrame frame = gen(0, SFT_PAYLOAD_UNICAST, 0, true, tid.get(), i + 10000U);
 
         CHECK_SINGLE_FRAME(rcv.addFrame(frame, bk));
         ASSERT_EQ(0x0000, rcv.getLastTransferCrc());                                     // Default value - zero

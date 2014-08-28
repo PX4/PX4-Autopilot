@@ -193,7 +193,7 @@ TEST(GlobalTimeSyncSlave, Validation)
     slave_clock.preserve_utc = true;
 
     CanDriverMock slave_can(3, slave_clock);
-    for (int i = 0; i < slave_can.getNumIfaces(); i++)
+    for (uint8_t i = 0; i < slave_can.getNumIfaces(); i++)
     {
         slave_can.ifaces.at(i).enable_utc_timestamping = true;
     }
@@ -283,7 +283,7 @@ TEST(GlobalTimeSyncSlave, Suppression)
     slave_clock.preserve_utc = true;
 
     CanDriverMock slave_can(3, slave_clock);
-    for (int i = 0; i < slave_can.getNumIfaces(); i++)
+    for (uint8_t i = 0; i < slave_can.getNumIfaces(); i++)
     {
         slave_can.ifaces.at(i).enable_utc_timestamping = true;
     }

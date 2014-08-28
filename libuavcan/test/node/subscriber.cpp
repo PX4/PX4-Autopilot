@@ -107,14 +107,15 @@ TEST(Subscriber, Basic)
      * RxFrame generation
      */
     std::vector<uavcan::RxFrame> rx_frames;
-    for (int i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < 4; i++)
     {
         uavcan::TransferType tt = (i & 1) ? uavcan::TransferTypeMessageUnicast : uavcan::TransferTypeMessageBroadcast;
         uavcan::NodeID dni = (tt == uavcan::TransferTypeMessageBroadcast) ?
                              uavcan::NodeID::Broadcast : node.getDispatcher().getNodeID();
         // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
         // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame
-        uavcan::Frame frame(uavcan::mavlink::Message::DefaultDataTypeID, tt, uavcan::NodeID(i + 100), dni, 0, i, true);
+        uavcan::Frame frame(uavcan::mavlink::Message::DefaultDataTypeID, tt, uavcan::NodeID(uint8_t(i + 100)),
+                            dni, 0, i, true);
         frame.setPayload(transfer_payload, 7);
         uavcan::RxFrame rx_frame(frame, clock_driver.getMonotonic(), clock_driver.getUtc(), 0);
         rx_frames.push_back(rx_frame);
@@ -207,12 +208,12 @@ TEST(Subscriber, FailureCount)
 
         ASSERT_EQ(0, sub.getFailureCount());
 
-        for (int i = 0; i < 4; i++)
+        for (uint8_t i = 0; i < 4; i++)
         {
             // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
             // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame
             uavcan::Frame frame(uavcan::mavlink::Message::DefaultDataTypeID, uavcan::TransferTypeMessageBroadcast,
-                                uavcan::NodeID(i + 100), uavcan::NodeID::Broadcast, 0, i, true);
+                                uavcan::NodeID(uint8_t(i + 100)), uavcan::NodeID::Broadcast, 0, i, true);
             // No payload - broken transfer
             uavcan::RxFrame rx_frame(frame, clock_driver.getMonotonic(), clock_driver.getUtc(), 0);
             can_driver.ifaces[0].pushRx(rx_frame);
@@ -251,12 +252,12 @@ TEST(Subscriber, SingleFrameTransfer)
 
     sub.start(listener.bindSimple());
 
-    for (int i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < 4; i++)
     {
         // uint_fast16_t data_type_id, TransferType transfer_type, NodeID src_node_id, NodeID dst_node_id,
         // uint_fast8_t frame_index, TransferID transfer_id, bool last_frame
         uavcan::Frame frame(root_ns_a::EmptyMessage::DefaultDataTypeID, uavcan::TransferTypeMessageBroadcast,
-                            uavcan::NodeID(i + 100), uavcan::NodeID::Broadcast, 0, i, true);
+                            uavcan::NodeID(uint8_t(i + 100)), uavcan::NodeID::Broadcast, 0, i, true);
         // No payload - message is empty
         uavcan::RxFrame rx_frame(frame, clock_driver.getMonotonic(), clock_driver.getUtc(), 0);
         can_driver.ifaces[0].pushRx(rx_frame);

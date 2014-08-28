@@ -85,7 +85,7 @@ TEST(Frame, FrameParsing)
 
     for (unsigned i = 0; i < sizeof(CanFrame::data); i++)
     {
-        can.data[i] = i | (i << 4);
+        can.data[i] = uint8_t(i | (i << 4));
     }
 
     // CAN ID field order: Transfer ID, Last Frame, Frame Index, Source Node ID, Transfer Type, Data Type ID
@@ -227,7 +227,7 @@ TEST(Frame, FrameToString)
     uint8_t data[8];
     for (unsigned i = 0; i < sizeof(data); i++)
     {
-        data[i] = i;
+        data[i] = uint8_t(i);
     }
     rx_frame.setPayload(data, sizeof(data));
 
