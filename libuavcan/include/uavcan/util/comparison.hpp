@@ -27,7 +27,7 @@ inline bool areFloatsExactlyEqual(const T& left, const T& right)
  */
 template <typename T>
 UAVCAN_EXPORT
-inline bool areFloatsClose(T a, T b, const T absolute_epsilon, const T relative_epsilon)
+inline bool areFloatsClose(T a, T b, const T& absolute_epsilon, const T& relative_epsilon)
 {
     // NAN
     if (isNaN(a) || isNaN(b))
