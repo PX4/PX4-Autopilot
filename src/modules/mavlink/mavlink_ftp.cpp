@@ -122,6 +122,9 @@ MavlinkFTP::_worker(Request *req)
 	// check request CRC to make sure this is one of ours
 	messageCRC = hdr->crc32;
 	hdr->crc32 = 0;
+	hdr->padding[0] = 0;
+	hdr->padding[1] = 0;
+	hdr->padding[2] = 0;
 	if (crc32(req->rawData(), req->dataSize()) != messageCRC) {
 		errorCode = kErrNoRequest;
 		goto out;
@@ -203,6 +206,9 @@ MavlinkFTP::_reply(Request *req)
 
 	// message is assumed to be already constructed in the request buffer, so generate the CRC
 	hdr->crc32 = 0;
+	hdr->padding[0] = 0;
+	hdr->padding[1] = 0;
+	hdr->padding[2] = 0;
 	hdr->crc32 = crc32(req->rawData(), req->dataSize());
 
 	// then pack and send the reply back to the request source

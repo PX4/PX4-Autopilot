@@ -71,16 +71,17 @@ private:
 
 	static MavlinkFTP	*_server;
 
-	/// @brief This structure is sent in the payload portion of the file transfer protocol mavlink message.
-	/// This structure is layed out such that it should not require any special compiler packing to not consume extra space.
+	/// @brief Trying to pack structures across differing compilers is questionable for Clients, so we pad the
+	/// structure ourselves to 32 bit alignment which should get us what we want.
 	struct RequestHeader
         {
-		uint16_t        seqNumber;  ///< sequence number for message
-		unsigned int    session:4;  ///< Session id for read and write commands
-		unsigned int    opcode:4;   ///< Command opcode
-		uint8_t         size;       ///< Size of data
-		uint32_t        crc32;      ///< CRC for entire Request structure, with crc32 set to 0
-		uint32_t        offset;     ///< Offsets for List and Read commands
+		uint16_t	seqNumber;  ///< sequence number for message
+		uint8_t		session;    ///< Session id for read and write commands
+		uint8_t		opcode;     ///< Command opcode
+		uint8_t		size;       ///< Size of data
+		uint8_t		padding[3];
+		uint32_t	crc32;      ///< CRC for entire Request structure, with crc32 and padding set to 0
+		uint32_t	offset;     ///< Offsets for List and Read commands
 		uint8_t		data[];
         };
 
