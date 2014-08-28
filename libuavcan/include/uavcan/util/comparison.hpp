@@ -121,18 +121,24 @@ inline bool areCloseImplFirst(const L& left, const R& right, IntToType<sizeof(No
  * e.g. float with long double.
  *
  * Two objects of types A and B will be fuzzy comparable if either method is defined:
- *  - bool A::isClose(const B&)
- *  - bool A::isClose(B)
- *  - bool B::isClose(const A&)
- *  - bool B::isClose(A)
- * Alternatively, a custom specialization of this function can be defined.
+ *  - bool A::isClose(const B&) const
+ *  - bool A::isClose(B) const
+ *  - bool B::isClose(const A&) const
+ *  - bool B::isClose(A) const
  *
- * Note that all floating types and their combinations are fuzzy comparable by default:
- *  - float
- *  - double
- *  - long double
+ * Call areClose(A, B) will be dispatched as follows:
  *
- * If the arguments aren't fuzzy comparable, this function will resort to the plain comparison operator ==.
+ *  - If A and B are both floating point types (float, double, long double) - possibly different - the call will be
+ *    dispatched to @ref areFloatsClose(). If A and B are different types, value of the larger type will be coerced
+ *    to the smaller type, e.g. areClose(long double, float) --> areClose(float, float).
+ *
+ *  - If A defines isClose() that accepts B, the call will be dispatched there.
+ *
+ *  - If B defines isClose() that accepts A, the call will be dispatched there (A/B swapped).
+ *
+ *  - Last resort is A == B.
+ *
+ * Alternatively, a custom behavior can be implemented via template specialization.
  *
  * See also: @ref UAVCAN_FLOAT_COMPARISON_EPSILON_MULT.
  *
@@ -143,7 +149,7 @@ inline bool areCloseImplFirst(const L& left, const R& right, IntToType<sizeof(No
  *  areClose("123", std::string("123"))                         --> true (using std::string's operator ==)
  *  areClose(inf, inf)                                          --> true
  *  areClose(inf, -inf)                                         --> false
- *  areClose(nan, nan)                                          --> false
+ *  areClose(nan, nan)                                          --> false (any comparison with nan returns false)
  *  areClose(123, "123")                                        --> compilation error: operator == is not defined
  */
 template <typename L, typename R>

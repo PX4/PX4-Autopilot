@@ -84,3 +84,80 @@ TEST(Comparison, BruteforceValidation)
 
     std::cout.precision(default_precision);
 }
+
+
+struct B
+{
+    long double b;
+    B(long double val = 0.0L) : b(val) { }
+};
+
+struct A
+{
+    float a;
+    explicit A(float val = 0.0F) : a(val) { }
+
+    bool isClose(A rhs) const
+    {
+        std::cout << "bool A::isClose(A) --> " << rhs.a << std::endl;
+        return uavcan::areClose(a, rhs.a);
+    }
+
+    bool isClose(const B& rhs) const
+    {
+        std::cout << "bool A::isClose(const B&) --> " << rhs.b << std::endl;
+        return uavcan::areClose(a, rhs.b);
+    }
+};
+
+struct C
+{
+    long long c;
+    explicit C(long long val = 0.0L) : c(val) { }
+
+    bool operator==(B rhs) const
+    {
+        std::cout << "bool C::operator==(B) --> " << rhs.b << std::endl;
+        return c == static_cast<long long>(rhs.b);
+    }
+};
+
+TEST(Comparison, IsCloseMethod)
+{
+    B b;
+    A a;
+    C c;
+
+    std::cout << 1 << std::endl;
+    ASSERT_TRUE(uavcan::areClose(a, b));   // Fuzzy
+    ASSERT_TRUE(uavcan::areClose(a, A())); // Fuzzy
+    ASSERT_TRUE(uavcan::areClose(b, a));   // Fuzzy, reverse application
+    ASSERT_TRUE(uavcan::areClose(c, b));   // Exact
+
+    std::cout << 2 << std::endl;
+
+    a.a = uavcan::NumericTraits<float>::epsilon();
+
+    ASSERT_TRUE(uavcan::areClose(a, b));
+    ASSERT_TRUE(uavcan::areClose(b, a));
+    ASSERT_TRUE(a.isClose(b));
+    ASSERT_TRUE(a.isClose(A()));
+    ASSERT_TRUE(uavcan::areClose(A(), a));
+
+    std::cout << 3 << std::endl;
+
+    a.a = 1e-5F;
+
+    ASSERT_FALSE(uavcan::areClose(a, b));
+    ASSERT_FALSE(uavcan::areClose(b, a));
+    ASSERT_FALSE(uavcan::areClose(A(), a));
+
+    std::cout << 4 << std::endl;
+
+    b.b = 1.1L;
+    c.c = 1;
+
+    ASSERT_TRUE(uavcan::areClose(c, b));      // Round to integer
+    ASSERT_TRUE(uavcan::areClose(c, 1.0L));   // Implicit cast to B
+    ASSERT_FALSE(uavcan::areClose(c, 0.0L));
+}
