@@ -769,7 +769,7 @@ public:
         if (src_row_major.size() == MaxSize)
         {
 #if UAVCAN_CPP_VERSION > UAVCAN_CPP03
-            typedef typename std::remove_reference<decltype(*src_row_major.begin())>::type RhsValueType;
+            typedef typename RemoveReference<decltype(*src_row_major.begin())>::Type RhsValueType;
             packSquareMatrixImpl<RhsValueType>(src_row_major.begin());
 #else
             packSquareMatrixImpl<typename R::value_type>(src_row_major.begin());
@@ -830,7 +830,7 @@ public:
         if (dst_row_major.size() == MaxSize)
         {
 #if UAVCAN_CPP_VERSION > UAVCAN_CPP03
-            typedef typename std::remove_reference<decltype(*dst_row_major.begin())>::type RhsValueType;
+            typedef typename RemoveReference<decltype(*dst_row_major.begin())>::Type RhsValueType;
             unpackSquareMatrixImpl<RhsValueType>(dst_row_major.begin());
 #else
             unpackSquareMatrixImpl<typename R::value_type>(dst_row_major.begin());
