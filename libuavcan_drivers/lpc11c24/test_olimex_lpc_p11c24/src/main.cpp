@@ -111,7 +111,7 @@ void lltoa(long long n, char buf[24])
     unsigned i = 0;
     do
     {
-        buf[i++] = n % 10 + '0';
+        buf[i++] = char(n % 10 + '0');
     }
     while ((n /= 10) > 0);
     if (sign < 0)

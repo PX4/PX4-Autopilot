@@ -154,6 +154,8 @@ void resetWatchdog()
 extern "C"
 {
 
+void SystemInit();
+
 void SystemInit()
 {
     board::init();

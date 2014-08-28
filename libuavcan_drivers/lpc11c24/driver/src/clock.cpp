@@ -35,7 +35,7 @@ const int32_t MaxUtcSpeedCorrectionX16 = 100 * 16;
 #if __GNUC__
 __attribute__((noreturn))
 #endif
-void fail()
+static void fail()
 {
     while (true) { }
 }
@@ -130,7 +130,7 @@ void adjustUtc(uavcan::UtcDuration adjustment)
             }
             else
             {
-                time_utc += adj_usec;
+                time_utc = uint64_t(int64_t(time_utc) + adj_usec);
             }
         }
         if (!utc_set)
@@ -168,7 +168,7 @@ void SysTick_Handler()
         if (utc_set)
         {
             // Values below 16 are ignored
-            time_utc += USecPerOverflow + (utc_correction_usec_per_overflow_x16 / 16);
+            time_utc += uint64_t(int32_t(USecPerOverflow) + (utc_correction_usec_per_overflow_x16 / 16));
         }
     }
     else
