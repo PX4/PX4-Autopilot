@@ -1,8 +1,10 @@
 /*
  * Fast bit array copy algorithm.
  * Source: http://stackoverflow.com/questions/3534535/whats-a-time-efficient-algorithm-to-copy-unaligned-bit-arrays
+ * Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#include <uavcan/marshal/bit_stream.hpp>
 #include <climits>
 #include <cstring>
 #include <cstddef>
