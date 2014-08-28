@@ -102,7 +102,6 @@ if (DEBUG_BUILD)
 
     if (COMPILER_IS_GCC_COMPATIBLE)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -pedantic -Wfloat-equal -Wconversion -Wsign-conversion")
-        set(exec_common_flags "")
         set(cpp03_flags "-std=c++03 -Wno-variadic-macros -Wno-long-long")
         set(optim_flags "-O3 -DNDEBUG -g0")
     else ()
@@ -121,9 +120,9 @@ if (DEBUG_BUILD)
 
     # GTest executables
     find_package(GTest REQUIRED)
-    add_libuavcan_test(libuavcan_test       uavcan       "${exec_common_flags}")                 # Default
-    add_libuavcan_test(libuavcan_test_cpp03 uavcan_cpp03 "${exec_common_flags} ${cpp03_flags}")  # C++03
-    add_libuavcan_test(libuavcan_test_optim uavcan_optim "${exec_common_flags} ${optim_flags}")  # Max optimization
+    add_libuavcan_test(libuavcan_test       uavcan       "")                 # Default
+    add_libuavcan_test(libuavcan_test_cpp03 uavcan_cpp03 "${cpp03_flags}")   # C++03
+    add_libuavcan_test(libuavcan_test_optim uavcan_optim "${optim_flags}")   # Max optimization
 else ()
     message(STATUS "Release build type: " ${CMAKE_BUILD_TYPE})
 endif ()

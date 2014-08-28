@@ -894,7 +894,7 @@ class UAVCAN_EXPORT YamlStreamer<Array<T, ArrayMode, MaxSize> >
         s << '[';
         for (typename ArrayType::SizeType i = 0; i < array.size(); i++)
         {
-            YamlStreamer<T>::stream(s, array.at(typename ArrayType::SizeType(i)), 0);
+            YamlStreamer<T>::stream(s, array.at(i), 0);
             if ((i + 1) < array.size())
             {
                 s << ", ";
