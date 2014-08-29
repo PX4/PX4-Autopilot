@@ -799,11 +799,18 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			mavlink_log_info(mavlink_fd, "[inav] GPS timeout");
 		}
 
-		/* check for timeout on vision topic */
+		/* check for timeout on vision position topic */
 		if (vision_valid && (t > (vision_p.timestamp_boot + vision_topic_timeout))) {
 			vision_valid = false;
-			warnx("VISION timeout");
-			mavlink_log_info(mavlink_fd, "[inav] VISION timeout");
+			warnx("VISION POS timeout");
+			mavlink_log_info(mavlink_fd, "[inav] VISION POS timeout");
+		}
+		
+		/* check for timeout on vision speed topic */
+		if (vision_valid && (t > (vision_s.timestamp_boot + vision_topic_timeout))) {
+			vision_valid = false;
+			warnx("VISION SPEED timeout");
+			mavlink_log_info(mavlink_fd, "[inav] VISION SPEED timeout");
 		}
 
 		/* check for sonar measurement timeout */
