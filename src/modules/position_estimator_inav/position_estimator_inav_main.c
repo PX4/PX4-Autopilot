@@ -82,7 +82,8 @@ static bool thread_running = false; /**< Deamon status flag */
 static int position_estimator_inav_task; /**< Handle of deamon task / thread */
 static bool verbose_mode = false;
 
-static const hrt_abstime vision_topic_timeout = 500000;	// Vision topic timeout = 0.5s
+static const hrt_abstime vision_p_topic_timeout = 500000;	// Vision position topic timeout = 0.5s
+static const hrt_abstime vision_s_topic_timeout = 500000;	// Vision speed topic timeout = 0.5s
 static const hrt_abstime gps_topic_timeout = 500000;		// GPS topic timeout = 0.5s
 static const hrt_abstime flow_topic_timeout = 1000000;	// optical flow topic timeout = 1s
 static const hrt_abstime sonar_timeout = 150000;	// sonar timeout = 150ms
@@ -641,6 +642,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (params.no_vision != CBRK_NO_VISION_KEY) {
 				/* vehicle vision position */
 				orb_check(vision_position_estimate_sub, &updated);
+				/* vehicle vision speed */
+				orb_check(vision_position_estimate_sub, &updated);
 
 				if (updated) {
 					orb_copy(ORB_ID(vision_position_estimate), vision_position_estimate_sub, &vision_p);
@@ -673,7 +676,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					corr_vision[0][1] = vision_s.vx - x_est[1];
 					corr_vision[1][1] = vision_s.vy - y_est[1];
 					corr_vision[2][1] = vision_s.vz - z_est[1];
-
 				}
 			}
 
@@ -800,19 +802,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* check for timeout on vision position topic */
-		if (vision_valid && (t > (vision_p.timestamp_boot + vision_topic_timeout))) {
+		if (vision_valid && (t > (vision_p.timestamp_boot + vision_p_topic_timeout))) {
 			vision_valid = false;
 			warnx("VISION POS timeout");
-			mavlink_log_info(mavlink_fd, "[inav] VISION POS timeout");
+			mavlink_log_info(mavlink_fd, "[inav] VISION POSITION timeout");
 		}
 		
-		/* check for timeout on vision speed topic */
-		if (vision_valid && (t > (vision_s.timestamp_boot + vision_topic_timeout))) {
-			vision_valid = false;
-			warnx("VISION SPEED timeout");
-			mavlink_log_info(mavlink_fd, "[inav] VISION SPEED timeout");
-		}
-
 		/* check for sonar measurement timeout */
 		if (sonar_valid && (t > (sonar_time + sonar_timeout))) {
 			corr_sonar = 0.0f;
