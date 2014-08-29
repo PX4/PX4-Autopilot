@@ -64,6 +64,9 @@ private:
 	int		_manual_control_sp_sub;	//manual control setpoint subscription
 	int		_armed_sub;				//arming status subscription
 
+	int 	_actuator_inputs_mc;	//topic on which the mc_att_controller publishes actuator inputs
+	int 	_actuator_inputs_fw;	//topic on which the fw_att_controller publishes actuator inputs
+
 	//handlers for publishers
 	orb_advert_t	_actuators_0_pub;		//input for the mixer (roll,pitch,yaw,thrust)
 	orb_advert_t 	_actuators_1_pub;
@@ -169,12 +172,22 @@ void VtolAttitudeControl::arming_status_poll()
 
 void VtolAttitudeControl::actuator_controls_mc_poll()
 {
+	bool updated;
+	orb_check(_actuator_inputs_mc, &updated);
 
+	if (updated) {
+		orb_copy(ORB_ID(actuator_controls_4),_actuator_inputs_mc , &_actuators_mc_in);
+	}
 }
 
 void VtolAttitudeControl::actuator_controls_fw_poll()
 {
+	bool updated;
+	orb_check(_actuator_inputs_fw, &updated);
 
+	if (updated) {
+		orb_copy(ORB_ID(actuator_controls_5),_actuator_inputs_fw , &_actuators_fw_in);
+	}
 }
 
 void VtolAttitudeControl::fill_mc_att_control_output()
@@ -240,6 +253,10 @@ void VtolAttitudeControl::task_main()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+
+	//check if these topics are declared
+	_actuator_inputs_mc = orb_subscribe(ORB_ID(actuator_controls_4));;
+	_actuator_inputs_fw = orb_subscribe(ORB_ID(actuator_controls_5));;
 
 
 	while(!_task_should_exit)
