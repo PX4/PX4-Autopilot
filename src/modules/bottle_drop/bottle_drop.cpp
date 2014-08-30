@@ -566,8 +566,8 @@ BottleDrop::task_main()
 						wind_direction_e = wind.windspeed_east / windspeed_norm;
 					}
 
-					x_drop = x_t - x * wind_direction_n;
-					y_drop = y_t - x * wind_direction_e;
+					x_drop = x_t + x * wind_direction_n;
+					y_drop = y_t + x * wind_direction_e;
 					map_projection_reproject(&ref, x_drop, y_drop, &_drop_position.lat, &_drop_position.lon);
 					_drop_position.alt = _target_position.alt + _alt_clearance;
 
