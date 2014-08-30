@@ -308,7 +308,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	bool sonar_valid = false;		// sonar is valid
 	bool flow_valid = false;		// flow is valid
 	bool flow_accurate = false;		// flow should be accurate (this flag not updated if flow_valid == false)
-	bool vision_valid = false;
+	bool vision_p_valid = false;		// vision position is valid
+	bool vision_s_valid = false;		// vision speed is valid
 
 	/* declare and safely initialize all structs */
 	struct actuator_controls_s actuator;
@@ -642,37 +643,53 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (params.no_vision != CBRK_NO_VISION_KEY) {
 				/* vehicle vision position */
 				orb_check(vision_position_estimate_sub, &updated);
-				/* vehicle vision speed */
-				orb_check(vision_position_estimate_sub, &updated);
 
 				if (updated) {
 					orb_copy(ORB_ID(vision_position_estimate), vision_position_estimate_sub, &vision_p);
-					orb_copy(ORB_ID(vision_speed_estimate), vision_speed_estimate_sub, &vision_s);
 
 					/* reset position estimate on first vision update */
-					if (!vision_valid) {
+					if (!vision_p_valid) {
 						x_est[0] = vision_p.x;
-						x_est[1] = vision_s.vx;
 						y_est[0] = vision_p.y;
-						y_est[1] = vision_s.vy;
+						
 						/* only reset the z estimate if the z weight parameter is not zero */ 
-						if (params.w_z_vision_p > MIN_VALID_W)
-						{
+						if (params.w_z_vision_p > MIN_VALID_W) {
 							z_est[0] = vision_p.z;
-							z_est[1] = vision_s.vz;
 						}
 						
-						vision_valid = true;
-						warnx("VISION estimate valid");
-						mavlink_log_info(mavlink_fd, "[inav] VISION estimate valid");
+						vision_p_valid = true;
+						warnx("VISION POSITION estimate valid");
+						mavlink_log_info(mavlink_fd, "[inav] VISION POSITION estimate valid");
 					}
 
 					/* calculate correction for position */
 					corr_vision[0][0] = vision_p.x - x_est[0];
 					corr_vision[1][0] = vision_p.y - y_est[0];
 					corr_vision[2][0] = vision_p.z - z_est[0];
-
-					/* calculate correction for velocity */
+				}
+				
+				/* vehicle vision speed */
+				orb_check(vision_speed_estimate_sub, &updated);
+				
+				if (updated) {
+					orb_copy(ORB_ID(vision_speed_estimate), vision_speed_estimate_sub, &vision_s);
+					
+					/* reset speed estimate on first vision update */
+					if (!vision_s_valid) {
+						x_est[1] = vision_s.vx;
+						y_est[1] = vision_s.vy;
+						
+						/* only reset the z estimate if the z weight parameter is not zero */ 
+						if (params.w_z_vision_s > MIN_VALID_W)  {
+							z_est[1] = vision_s.vz;
+						}
+						
+						vision_s_valid = true;
+						warnx("VISION SPEED estimate valid");
+						mavlink_log_info(mavlink_fd, "[inav] VISION SPEED estimate valid");
+					}
+					
+					/* calculate correction for speed */
 					corr_vision[0][1] = vision_s.vx - x_est[1];
 					corr_vision[1][1] = vision_s.vy - y_est[1];
 					corr_vision[2][1] = vision_s.vz - z_est[1];
@@ -802,10 +819,17 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* check for timeout on vision position topic */
-		if (vision_valid && (t > (vision_p.timestamp_boot + vision_p_topic_timeout))) {
-			vision_valid = false;
-			warnx("VISION POS timeout");
+		if (vision_p_valid && (t > (vision_p.timestamp_boot + vision_p_topic_timeout))) {
+			vision_p_valid = false;
+			warnx("VISION POSITION timeout");
 			mavlink_log_info(mavlink_fd, "[inav] VISION POSITION timeout");
+		}
+		
+		/* check for timeout on vision speed topic */
+		if (vision_s_valid && (t > (vision_s.timestamp_boot + vision_s_topic_timeout))) {
+			vision_s_valid = false;
+			warnx("VISION SPEED timeout");
+			mavlink_log_info(mavlink_fd, "[inav] VISION SPEED timeout");
 		}
 		
 		/* check for sonar measurement timeout */
@@ -829,13 +853,16 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		/* use GPS if it's valid and reference position initialized */
 		bool use_gps_xy = ref_inited && gps_valid && params.w_xy_gps_p > MIN_VALID_W;
 		bool use_gps_z = ref_inited && gps_valid && params.w_z_gps_p > MIN_VALID_W;
-		/* use VISION if it's valid and has a valid weight parameter */
-		bool use_vision_xy = vision_valid && params.w_xy_vision_p > MIN_VALID_W;
-		bool use_vision_z = vision_valid && params.w_z_vision_p > MIN_VALID_W;
+		/* use VISION POSITION if it's valid and has a valid weight parameter */
+		bool use_vision_p_xy = vision_p_valid && params.w_xy_vision_p > MIN_VALID_W;
+		bool use_vision_p_z = vision_p_valid && params.w_z_vision_p > MIN_VALID_W;
+		/* use VISION SPEED if it's valid and has a valid weight parameter */
+		bool use_vision_s_xy = vision_s_valid && params.w_xy_vision_s > MIN_VALID_W;
+		bool use_vision_s_z = vision_s_valid && params.w_z_vision_s > MIN_VALID_W;
 		/* use flow if it's valid and (accurate or no GPS available) */
 		bool use_flow = flow_valid && (flow_accurate || !use_gps_xy);
 
-		bool can_estimate_xy = (eph < max_eph_epv) || use_gps_xy || use_flow || use_vision_xy;
+		bool can_estimate_xy = (eph < max_eph_epv) || use_gps_xy || use_flow || use_vision_p_xy;
 
 		bool dist_bottom_valid = (t < sonar_valid_time + sonar_valid_timeout);
 
@@ -855,8 +882,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		float w_z_gps_p = params.w_z_gps_p * w_gps_z;
 
 		float w_xy_vision_p = params.w_xy_vision_p;
-		float w_xy_vision_v = params.w_xy_vision_v;
+		float w_xy_vision_s = params.w_xy_vision_s;
 		float w_z_vision_p = params.w_z_vision_p;
+		float w_z_vision_s = params.w_z_vision_s;
 
 		/* reduce GPS weight if optical flow is good */
 		if (use_flow && flow_accurate) {
@@ -903,15 +931,19 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		accel_bias_corr[1] = 0.0f;
 		accel_bias_corr[2] = 0.0f;
 
-		if (use_vision_xy) {
+		if (use_vision_p_xy) {
 			accel_bias_corr[0] -= corr_vision[0][0] * w_xy_vision_p * w_xy_vision_p;
-			accel_bias_corr[0] -= corr_vision[0][1] * w_xy_vision_v;
+			accel_bias_corr[0] -= corr_vision[0][1] * w_xy_vision_s;
 			accel_bias_corr[1] -= corr_vision[1][0] * w_xy_vision_p * w_xy_vision_p;
-			accel_bias_corr[1] -= corr_vision[1][1] * w_xy_vision_v;
+			accel_bias_corr[1] -= corr_vision[1][1] * w_xy_vision_s;
 		}
 
-		if (use_vision_z) {
+		if (use_vision_p_z) {
 			accel_bias_corr[2] -= corr_vision[2][0] * w_z_vision_p * w_z_vision_p;
+		}
+		
+		if (use_vision_s_z) {
+			accel_bias_corr[2] -= corr_vision[2][1] * w_z_vision_s * w_z_vision_s;
 		}
 
 		/* transform error vector from NED frame to body frame */
@@ -969,9 +1001,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			inertial_filter_correct(corr_gps[2][0], dt, z_est, 0, w_z_gps_p);
 		}
 
-		if (use_vision_z) {
+		if (use_vision_p_z) {
 			epv = fminf(epv, epv_vision);
 			inertial_filter_correct(corr_vision[2][0], dt, z_est, 0, w_z_vision_p);
+		}
+		
+		if (use_vision_s_z) {
+			inertial_filter_correct(corr_vision[2][1], dt, z_est, 1, w_z_vision_s);
 		}
 
 		if (!(isfinite(z_est[0]) && isfinite(z_est[1]))) {
@@ -1016,16 +1052,16 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				}
 			}
 
-			if (use_vision_xy) {
+			if (use_vision_p_xy) {
 				eph = fminf(eph, eph_vision);
 
 				inertial_filter_correct(corr_vision[0][0], dt, x_est, 0, w_xy_vision_p);
 				inertial_filter_correct(corr_vision[1][0], dt, y_est, 0, w_xy_vision_p);
-
-				if (w_xy_vision_v > MIN_VALID_W) {
-					inertial_filter_correct(corr_vision[0][1], dt, x_est, 1, w_xy_vision_v);
-					inertial_filter_correct(corr_vision[1][1], dt, y_est, 1, w_xy_vision_v);
-				}
+			}
+			
+			if (use_vision_s_xy) {
+				inertial_filter_correct(corr_vision[0][1], dt, x_est, 1, w_xy_vision_s);
+				inertial_filter_correct(corr_vision[1][1], dt, y_est, 1, w_xy_vision_s);
 			}
 
 			if (!(isfinite(x_est[0]) && isfinite(x_est[1]) && isfinite(y_est[0]) && isfinite(y_est[1]))) {
