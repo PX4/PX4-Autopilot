@@ -66,6 +66,9 @@ public:
 		_hgt_dem_prev(0.0f),
 		_TAS_dem_adj(0.0f),
 		_STEdotErrLast(0.0f),
+		_underspeed(false),
+		_detect_underspeed_enabled(true),
+		_badDescent(false),
 		_climbOutDem(false),
 		_SPE_dem(0.0f),
 		_SKE_dem(0.0f),
@@ -221,6 +224,10 @@ public:
 		_speedrate_p = speedrate_p;
 	}
 
+	void set_detect_underspeed_enabled(bool enabled) {
+		_detect_underspeed_enabled = enabled;
+	}
+
 private:
 
 	struct tecs_state _tecs_state;
@@ -322,6 +329,9 @@ private:
 
 	// Underspeed condition
 	bool _underspeed;
+
+	// Underspeed detection enabled
+	bool _detect_underspeed_enabled;
 
 	// Bad descent condition caused by unachievable airspeed demand
 	bool _badDescent;
