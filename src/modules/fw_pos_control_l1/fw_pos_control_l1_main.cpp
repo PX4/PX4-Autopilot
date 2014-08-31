@@ -1380,6 +1380,9 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		_mTecs.updateAltitudeSpeed(flightPathAngle, altitude, alt_sp, _airspeed.true_airspeed_m_s, v_sp, mode,
 				limitOverride);
 	} else {
+		/* No underspeed protection in landing mode */
+		_tecs.set_detect_underspeed_enabled(!(mode == TECS_MODE_LAND || mode == TECS_MODE_LAND_THROTTLELIM));
+
 		/* Using tecs library */
 		_tecs.update_pitch_throttle(_R_nb, _att.pitch, altitude, alt_sp, v_sp,
 					    _airspeed.indicated_airspeed_m_s, eas2tas,
