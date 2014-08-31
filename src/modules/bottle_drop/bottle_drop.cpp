@@ -392,11 +392,17 @@ BottleDrop::task_main()
 	param_t param_gproperties = param_find("BD_GPROPERTIES");
 	param_t param_turn_radius = param_find("BD_TURNRADIUS");
 	param_t param_precision = param_find("BD_PRECISION");
+	param_t param_cd = param_find("BD_OBJ_CD");
+	param_t param_mass = param_find("BD_OBJ_MASS");
+	param_t param_surface = param_find("BD_OBJ_SURFACE");
 
 
 	param_get(param_precision, &precision);
 	param_get(param_turn_radius, &turn_radius);
 	param_get(param_gproperties, &z_0);
+	param_get(param_cd, &cd);
+	param_get(param_mass, &M);
+	param_get(param_surface, &A);
 
 	int vehicle_global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 
@@ -419,10 +425,10 @@ BottleDrop::task_main()
 
 	struct wind_estimate_s wind;
 
-	/* wakeup source(s) */
+	// wakeup source(s)
 	struct pollfd fds[1];
 
-	/* Setup of loop */
+	// Setup of loop
 	fds[0].fd = _command_sub;
 	fds[0].events = POLLIN;
 

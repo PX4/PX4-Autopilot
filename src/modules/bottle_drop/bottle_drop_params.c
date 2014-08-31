@@ -41,6 +41,91 @@
 #include <nuttx/config.h>
 #include <systemlib/param/param.h>
 
+/**
+ * Ground drag property
+ *
+ * This parameter encodes the ground drag coefficient and the corresponding
+ * decrease in wind speed from the plane altitude to ground altitude.
+ *
+ * @unit unknown
+ * @min 0.001
+ * @max 0.1
+ * @group Payload drop
+ */
 PARAM_DEFINE_FLOAT(BD_GPROPERTIES, 0.03f);
-PARAM_DEFINE_FLOAT(BD_TURNRADIUS, 90.0f);
-PARAM_DEFINE_FLOAT(BD_PRECISION, 10.0f);
+
+/**
+ * Plane turn radius
+ *
+ * The planes known minimal turn radius - use a higher value
+ * to make the plane maneuver more distant from the actual drop
+ * position. This is to ensure the wings are level during the drop.
+ *
+ * @unit meter
+ * @min 30.0
+ * @max 500.0
+ * @group Payload drop
+ */
+PARAM_DEFINE_FLOAT(BD_TURNRADIUS, 120.0f);
+
+/**
+ * Drop precision
+ *
+ * If the system is closer than this distance on passing over the
+ * drop position, it will release the payload. This is a safeguard
+ * to prevent a drop out of the required accuracy.
+ *
+ * @unit meter
+ * @min 1.0
+ * @max 80.0
+ * @group Payload drop
+ */
+PARAM_DEFINE_FLOAT(BD_PRECISION, 30.0f);
+
+/**
+ * Payload drag coefficient of the dropped object
+ *
+ * The drag coefficient (cd) is the typical drag
+ * constant for air. It is in general object specific,
+ * but the closest primitive shape to the actual object
+ * should give good results:
+ * http://en.wikipedia.org/wiki/Drag_coefficient
+ *
+ * @unit meter
+ * @min 1.0
+ * @max 80.0
+ * @group Payload drop
+ */
+PARAM_DEFINE_FLOAT(BD_OBJ_CD, 0.86f);
+
+/**
+ * Payload mass
+ *
+ * A typical small toy ball:
+ *   0.025 kg
+ *
+ * OBC water bottle:
+ *   0.6 kg
+ *
+ * @unit kilogram
+ * @min 0.001
+ * @max 5.0
+ * @group Payload drop
+ */
+PARAM_DEFINE_FLOAT(BD_OBJ_MASS, 0.6f);
+
+/**
+ * Payload front surface area
+ *
+ * A typical small toy ball:
+ *   (0.045 * 0.045) / 4.0 * pi = 0.001590 m^2
+ *
+ * OBC water bottle:
+ *   (0.063 * 0.063) / 4.0 * pi = 0.003117 m^2
+ *
+ * @unit m^2
+ * @min 0.001
+ * @max 0.5
+ * @group Payload drop
+ */
+PARAM_DEFINE_FLOAT(BD_OBJ_SURFACE, 0.00311724531f);
