@@ -823,7 +823,7 @@ float FixedwingPositionControl::get_relative_landingalt(float land_setpoint_alt,
 	 * the measurement is valid
 	 * the estimated relative altitude (from global altitude estimate and landing waypoint) <= range_finder_use_relative_alt
 	 */
-	if (range_finder_use_relative_alt < 0 || !range_finder.valid || rel_alt_estimated > range_finder_use_relative_alt ) {
+	if (range_finder_use_relative_alt < 0 || !range_finder.valid || range_finder.distance > range_finder_use_relative_alt ) {
 		return rel_alt_estimated;
 	}
 
@@ -980,7 +980,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			/* apply minimum pitch (flare) and limit roll if close to touch down, altitude error is negative (going down) */
 			// XXX this could make a great param
 
-			float flare_pitch_angle_rad = -math::radians(5.0f);//math::radians(pos_sp_triplet.current.param1)
+			float flare_pitch_angle_rad = math::radians(5.0f);//math::radians(pos_sp_triplet.current.param1)
 			float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
 			float airspeed_land = 1.3f * _parameters.airspeed_min;
 			float airspeed_approach = 1.3f * _parameters.airspeed_min;
