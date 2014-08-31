@@ -707,12 +707,12 @@ SF0X::cycle()
 		int collect_ret = collect();
 
 		if (collect_ret == -EAGAIN) {
-			/* reschedule to grab the missing bits, time to transmit 10 bytes @9600 bps */
+			/* reschedule to grab the missing bits, time to transmit 8 bytes @ 9600 bps */
 			work_queue(HPWORK,
 				   &_work,
 				   (worker_t)&SF0X::cycle_trampoline,
 				   this,
-				   USEC2TICK(1100));
+				   USEC2TICK(1042 * 8));
 			return;
 		}
 
