@@ -569,6 +569,12 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_H1_virt, &(_parameters.land_H1_virt));
 	param_get(_parameter_handles.land_flare_alt_relative, &(_parameters.land_flare_alt_relative));
 	param_get(_parameter_handles.land_thrust_lim_alt_relative, &(_parameters.land_thrust_lim_alt_relative));
+
+	/* check if negative value for 2/3 of flare altitude is set for throttle cut */
+	if (_parameters.land_thrust_lim_alt_relative < 0.0f) {
+		_parameters.land_thrust_lim_alt_relative = 0.66f * _parameters.land_flare_alt_relative;
+	}
+
 	param_get(_parameter_handles.land_heading_hold_horizontal_distance, &(_parameters.land_heading_hold_horizontal_distance));
 
 	param_get(_parameter_handles.range_finder_rel_alt, &(_parameters.range_finder_rel_alt));
