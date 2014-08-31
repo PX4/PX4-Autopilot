@@ -823,7 +823,7 @@ float FixedwingPositionControl::get_relative_landingalt(float land_setpoint_alt,
 	 * the measurement is valid
 	 * the estimated relative altitude (from global altitude estimate and landing waypoint) <= range_finder_use_relative_alt
 	 */
-	if (range_finder_use_relative_alt < 0 || !range_finder.valid || rel_alt_estimated > range_finder_use_relative_alt ) {
+	if (range_finder_use_relative_alt < 0 || !range_finder.valid || range_finder.distance > range_finder_use_relative_alt ) {
 		return rel_alt_estimated;
 	}
 
