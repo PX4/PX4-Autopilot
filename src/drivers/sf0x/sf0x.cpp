@@ -593,13 +593,19 @@ SF0X::collect()
 		/* wipe out partially read content from last cycle(s), check for dot */
 		for (unsigned i = 0; i < (lend - 2); i++) {
 			if (_linebuf[i] == '\n') {
+				/* allocate temporary buffer */
 				char buf[sizeof(_linebuf)];
+				/* copy remainder of buffer (2nd measurement) to temporary buffer */
 				memcpy(buf, &_linebuf[i+1], (lend + 1) - (i + 1));
+				/* copy temporary buffer to beginning of line buffer,
+				 * effectively overwriting a previous temporary
+				 * measurement
+				 */
 				memcpy(_linebuf, buf, (lend + 1) - (i + 1));
 			}
 
 			/* we need a digit before the dot and a dot for a valid number */
-			if (i > 0 && _linebuf[i] == '.') {
+			if (i > 0 && ((_linebuf[i - 1] >= '0') && (_linebuf[i - 1] <= '9')) && (_linebuf[i] == '.')) {
 				valid = true;
 			}
 		}
