@@ -606,7 +606,7 @@ SF0X::collect()
 			si_units = strtod(_linebuf, &end);
 
 			/* we require at least four characters for a valid number */
-			if (end > _linebuf + 4) {
+			if (end > _linebuf + 3) {
 				valid = true;
 			} else {
 				si_units = -1.0f;
@@ -615,7 +615,7 @@ SF0X::collect()
 		}
 	}
 
-	debug("val (float): %8.4f, raw: %s, valid: %s\n", (double)si_units, _linebuf, ((valid) ? "OK" : "NO"));
+	debug("val (float): %8.4f, raw: %s, valid: %s", (double)si_units, _linebuf, ((valid) ? "OK" : "NO"));
 
 	/* done with this chunk, resetting - even if invalid */
 	_linebuf_index = 0;
