@@ -43,6 +43,7 @@
 #include <drivers/drv_hrt.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/ppm_decode.h>
+#include <rc/st24.h>
 
 #include "px4io.h"
 
@@ -51,10 +52,20 @@
 #define RC_CHANNEL_LOW_THRESH		-8000	/* 10% threshold */
 
 static bool	ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len);
+static bool	dsm_port_input(void);
 
 static perf_counter_t c_gather_dsm;
 static perf_counter_t c_gather_sbus;
 static perf_counter_t c_gather_ppm;
+
+static int _dsm_fd;
+
+bool dsm_port_input()
+{
+	/* get data from FD and attempt to parse with DSM and ST24 libs */
+
+	return false;
+}
 
 void
 controls_init(void)
@@ -65,7 +76,7 @@ controls_init(void)
 	system_state.rc_channels_timestamp_valid = 0;
 
 	/* DSM input (USART1) */
-	dsm_init("/dev/ttyS0");
+	_dsm_fd = dsm_init("/dev/ttyS0");
 
 	/* S.bus input (USART3) */
 	sbus_init("/dev/ttyS2");
@@ -175,6 +186,18 @@ controls_tick() {
 	}
 	perf_end(c_gather_ppm);
 
+	uint8_t st24_rssi, rx_count;
+	uint8_t st24_maxchans = 18;
+	bool st24_updated = st24_decode(0, &st24_rssi, &rx_count, r_raw_rc_values, st24_maxchans);
+	if (st24_updated) {
+
+		rssi = st24_rssi;
+
+		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_PPM;
+		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
+		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+	}
+
 	/* limit number of channels to allowable data size */
 	if (r_raw_rc_count > PX4IO_RC_INPUT_CHANNELS)
 		r_raw_rc_count = PX4IO_RC_INPUT_CHANNELS;
@@ -191,7 +214,7 @@ controls_tick() {
 	/*
 	 * If we received a new frame from any of the RC sources, process it.
 	 */
-	if (dsm_updated || sbus_updated || ppm_updated) {
+	if (dsm_updated || sbus_updated || ppm_updated || st24_updated) {
 
 		/* record a bitmask of channels assigned */
 		unsigned assigned_channels = 0;
