@@ -401,7 +401,7 @@ BottleDrop::task_main()
 	param_get(param_turn_radius, &turn_radius);
 	param_get(param_gproperties, &z_0);
 	param_get(param_cd, &cd);
-	param_get(param_mass, &M);
+	param_get(param_mass, &m);
 	param_get(param_surface, &A);
 
 	int vehicle_global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
