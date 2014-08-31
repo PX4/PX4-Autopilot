@@ -30,13 +30,12 @@ then
 	param set FW_RR_P 0.08
 	param set FW_R_LIM 50
 	param set FW_R_RMAX 0
-	param set FW_T_HRATE_P 0.01
-	param set FW_T_RLL2THR 15
-	param set FW_T_SRATE_P 0.01
-	param set FW_T_TIME_CONST 5
+	# Bottom of bay and nominal zero-pitch attitude differ
+	# the payload bay is pitched up about 7 degrees
+	param set SENS_BOARD_Y_OFF 7.0
 fi
 
-set MIXER FMU_Q
+set MIXER phantom
 
 # Provide ESC a constant 1000 us pulse
 set PWM_OUTPUTS 4

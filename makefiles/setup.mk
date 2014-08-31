@@ -49,6 +49,7 @@ export NUTTX_SRC	 = $(abspath $(PX4_BASE)/NuttX/nuttx)/
 export MAVLINK_SRC	 = $(abspath $(PX4_BASE)/mavlink/include/mavlink/v1.0)/
 export NUTTX_APP_SRC	 = $(abspath $(PX4_BASE)/NuttX/apps)/
 export MAVLINK_SRC	 = $(abspath $(PX4_BASE)/mavlink)/
+export UAVCAN_DIR	 = $(abspath $(PX4_BASE)/uavcan)/
 export ROMFS_SRC	 = $(abspath $(PX4_BASE)/ROMFS)/
 export IMAGE_DIR	 = $(abspath $(PX4_BASE)/Images)/
 export BUILD_DIR	 = $(abspath $(PX4_BASE)/Build)/

@@ -58,6 +58,7 @@
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/optical_flow.h>
@@ -105,15 +106,15 @@ public:
 	static void *start_helper(void *context);
 
 private:
-	perf_counter_t	_loop_perf;			/**< loop performance counter */
-
 	Mavlink	*_mavlink;
 
 	void handle_message(mavlink_message_t *msg);
 	void handle_message_command_long(mavlink_message_t *msg);
+	void handle_message_command_int(mavlink_message_t *msg);
 	void handle_message_optical_flow(mavlink_message_t *msg);
 	void handle_message_set_mode(mavlink_message_t *msg);
 	void handle_message_vicon_position_estimate(mavlink_message_t *msg);
+	void handle_message_vision_position_estimate(mavlink_message_t *msg);
 	void handle_message_quad_swarm_roll_pitch_yaw_thrust(mavlink_message_t *msg);
 	void handle_message_radio_status(mavlink_message_t *msg);
 	void handle_message_manual_control(mavlink_message_t *msg);
@@ -147,15 +148,18 @@ private:
 	orb_advert_t _att_sp_pub;
 	orb_advert_t _rates_sp_pub;
 	orb_advert_t _vicon_position_pub;
+	orb_advert_t _vision_position_pub;
 	orb_advert_t _telemetry_status_pub;
 	orb_advert_t _rc_pub;
 	orb_advert_t _manual_pub;
-	hrt_abstime _telemetry_heartbeat_time;
-	bool _radio_status_available;
 	int _control_mode_sub;
 	int _hil_frames;
 	uint64_t _old_timestamp;
 	bool _hil_local_proj_inited;
 	float _hil_local_alt0;
 	struct map_projection_reference_s _hil_local_proj_ref;
+
+	/* do not allow copying this class */
+	MavlinkReceiver(const MavlinkReceiver&);
+	MavlinkReceiver operator=(const MavlinkReceiver&);
 };

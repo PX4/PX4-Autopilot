@@ -26,15 +26,6 @@ then
 	param set FW_RR_P 0.1
 	param set FW_R_LIM 45
 	param set FW_R_RMAX 0
-	param set FW_T_CLMB_MAX 5
-	param set FW_T_HRATE_P 0.02
-	param set FW_T_PTCH_DAMP 0
-	param set FW_T_RLL2THR 15
-	param set FW_T_SINK_MAX 5
-	param set FW_T_SINK_MIN 2
-	param set FW_T_SRATE_P 0.01
-	param set FW_T_TIME_CONST 3
-	param set FW_T_VERT_ACC 7
 	param set FW_YR_FF 0.0
 	param set FW_YR_I 0
 	param set FW_YR_IMAX 0.2

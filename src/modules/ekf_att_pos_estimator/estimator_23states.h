@@ -172,8 +172,6 @@ public:
     unsigned covSkipCount; // Number of state prediction frames (IMU daya updates to skip before doing the covariance prediction
 
     // GPS input data variables
-    float gpsCourse;
-    float gpsVelD;
     double gpsLat;
     double gpsLon;
     float gpsHgt;

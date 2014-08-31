@@ -73,6 +73,8 @@ struct log_ATSP_s {
 
 /* --- IMU - IMU SENSORS --- */
 #define LOG_IMU_MSG 4
+#define LOG_IMU1_MSG 22
+#define LOG_IMU2_MSG 23
 struct log_IMU_s {
 	float acc_x;
 	float acc_y;
@@ -276,8 +278,8 @@ struct log_DIST_s {
 	uint8_t flags;
 };
 
-// ID 22 available
-// ID 23 available
+/* LOG IMU1 and IMU2 MSGs consume IDs 22 and 23 */
+
 
 /* --- PWR - ONBOARD POWER SYSTEM --- */
 #define LOG_PWR_MSG 24
@@ -331,12 +333,11 @@ struct log_GS1B_s {
 #define LOG_TECS_MSG 30
 struct log_TECS_s {
 	float altitudeSp;
-	float altitude;
+	float altitudeFiltered;
 	float flightPathAngleSp;
 	float flightPathAngle;
 	float flightPathAngleFiltered;
 	float airspeedSp;
-	float airspeed;
 	float airspeedFiltered;
 	float airspeedDerivativeSp;
 	float airspeedDerivative;
@@ -390,6 +391,20 @@ struct log_TEL_s {
 	uint64_t heartbeat_time;
 };
 
+/* --- VISN - VISION POSITION --- */
+#define LOG_VISN_MSG 38
+struct log_VISN_s {
+	float x;
+	float y;
+	float z;
+	float vx;
+	float vy;
+	float vz;
+	float qx;
+	float qy;
+	float qz;
+	float qw;
+};
 
 /********** SYSTEM MESSAGES, ID > 0x80 **********/
 
@@ -420,7 +435,9 @@ static const struct log_format_s log_formats[] = {
 	/* business-level messages, ID < 0x80 */
 	LOG_FORMAT(ATT, "fffffffff",		"Roll,Pitch,Yaw,RollRate,PitchRate,YawRate,GX,GY,GZ"),
 	LOG_FORMAT(ATSP, "ffff",		"RollSP,PitchSP,YawSP,ThrustSP"),
-	LOG_FORMAT(IMU, "fffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
+	LOG_FORMAT_S(IMU, IMU, "fffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
+	LOG_FORMAT_S(IMU1, IMU, "fffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
+	LOG_FORMAT_S(IMU2, IMU, "fffffffff",		"AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
 	LOG_FORMAT(SENS, "fffff",		"BaroPres,BaroAlt,BaroTemp,DiffPres,DiffPresFilt"),
 	LOG_FORMAT(LPOS, "ffffffffLLfBBBff",	"X,Y,Z,Dist,DistR,VX,VY,VZ,RLat,RLon,RAlt,PFlg,LFlg,GFlg,EPH,EPV"),
 	LOG_FORMAT(LPSP, "ffff",		"X,Y,Z,Yaw"),
@@ -446,11 +463,12 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(EST1, "ffffffffffffffff",	"s12,s13,s14,s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27"),
 	LOG_FORMAT(PWR, "fffBBBBB",		"Periph5V,Servo5V,RSSI,UsbOk,BrickOk,ServoOk,PeriphOC,HipwrOC"),
 	LOG_FORMAT(VICN, "ffffff",		"X,Y,Z,Roll,Pitch,Yaw"),
+	LOG_FORMAT(VISN, "ffffffffff",		"X,Y,Z,VX,VY,VZ,QuatX,QuatY,QuatZ,QuatW"),
 	LOG_FORMAT(GS0A, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(GS0B, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(GS1A, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(GS1B, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
-	LOG_FORMAT(TECS, "ffffffffffffffB",	"AltSP,Alt,FSP,F,FF,AsSP,As,AsF,AsDSP,AsD,TERSP,TER,EDRSP,EDR,M"),
+	LOG_FORMAT(TECS, "fffffffffffffB",	"ASP,AF,FSP,F,FF,AsSP,AsF,AsDSP,AsD,TERSP,TER,EDRSP,EDR,M"),
 	LOG_FORMAT(WIND, "ffff",	"X,Y,CovX,CovY"),
 
 	/* system-level messages, ID >= 0x80 */

@@ -179,6 +179,9 @@ private:
 	uint32_t	gpio_read(void);
 	int		gpio_ioctl(file *filp, int cmd, unsigned long arg);
 
+	/* do not allow to copy due to ptr data members */
+	PX4FMU(const PX4FMU&);
+	PX4FMU operator=(const PX4FMU&);
 };
 
 const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
@@ -242,6 +245,7 @@ PX4FMU::PX4FMU() :
 	_task(-1),
 	_armed_sub(-1),
 	_outputs_pub(-1),
+	_armed{},
 	_num_outputs(0),
 	_primary_pwm_device(false),
 	_task_should_exit(false),
@@ -252,6 +256,7 @@ PX4FMU::PX4FMU() :
 	_groups_subscribed(0),
 	_control_subs{-1},
 	_poll_fds_num(0),
+	_pwm_limit{},
 	_failsafe_pwm{0},
 	_disarmed_pwm{0},
 	_num_failsafe_set(0),
@@ -1267,7 +1272,9 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 	memcpy(values, buffer, count * 2);
 
 	for (uint8_t i = 0; i < count; i++) {
-		up_pwm_servo_set(i, values[i]);
+		if (values[i] != PWM_IGNORE_THIS_CHANNEL) {
+			up_pwm_servo_set(i, values[i]);
+		}
 	}
 
 	return count * 2;
@@ -1784,7 +1791,7 @@ fmu_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "id")) {
-		char id[12];
+		uint8_t id[12];
 		(void)get_board_serial(id);
 
 		errx(0, "Board serial:\n %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X",

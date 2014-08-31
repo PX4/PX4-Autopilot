@@ -161,6 +161,7 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock,
 static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg);
 
 void at24c_test(void);
+int at24c_nuke(void);
 
 /************************************************************************************
  * Private Data

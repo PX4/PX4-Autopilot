@@ -149,7 +149,8 @@ class SDLog2Parser:
                         break
                     if first_data_msg:
                         # build CSV columns and init data map
-                        self.__initCSV()
+                        if not self.__debug_out:
+                            self.__initCSV()
                         first_data_msg = False
                     self.__parseMsg(msg_descr)
             bytes_read += self.__ptr

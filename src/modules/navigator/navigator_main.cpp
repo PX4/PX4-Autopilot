@@ -105,17 +105,18 @@ Navigator::Navigator() :
 	_control_mode_sub(-1),
 	_onboard_mission_sub(-1),
 	_offboard_mission_sub(-1),
+	_param_update_sub(-1),
 	_pos_sp_triplet_pub(-1),
-	_vstatus({}),
-	_control_mode({}),
-	_global_pos({}),
-	_home_pos({}),
-	_mission_item({}),
-	_nav_caps({}),
-	_pos_sp_triplet({}),
+	_vstatus{},
+	_control_mode{},
+	_global_pos{},
+	_home_pos{},
+	_mission_item{},
+	_nav_caps{},
+	_pos_sp_triplet{},
 	_mission_item_valid(false),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
-	_geofence({}),
+	_geofence{},
 	_geofence_violation_warning_sent(false),
 	_fence_valid(false),
 	_inside_fence(true),
@@ -124,6 +125,8 @@ Navigator::Navigator() :
 	_loiter(this, "LOI"),
 	_rtl(this, "RTL"),
 	_offboard(this, "OFF"),
+	_can_loiter_at_sp(false),
+	_pos_sp_triplet_updated(false),
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD")
 {
@@ -350,6 +353,8 @@ Navigator::task_main()
 			case NAVIGATION_STATE_ACRO:
 			case NAVIGATION_STATE_ALTCTL:
 			case NAVIGATION_STATE_POSCTL:
+			case NAVIGATION_STATE_LAND:
+			case NAVIGATION_STATE_TERMINATION:
 				_navigation_mode = nullptr;
 				_can_loiter_at_sp = false;
 				break;
@@ -365,8 +370,6 @@ Navigator::task_main()
 			case NAVIGATION_STATE_AUTO_RTGS:
 				_navigation_mode = &_rtl; /* TODO: change this to something else */
 				break;
-			case NAVIGATION_STATE_LAND:
-			case NAVIGATION_STATE_TERMINATION:
 			case NAVIGATION_STATE_OFFBOARD:
 				_navigation_mode = &_offboard;
 				break;
@@ -455,7 +458,7 @@ void
 Navigator::publish_position_setpoint_triplet()
 {
 	/* update navigation state */
-	/* TODO: set nav_state */
+	_pos_sp_triplet.nav_state = _vstatus.nav_state;
 
 	/* lazily publish the position setpoint triplet only once available */
 	if (_pos_sp_triplet_pub > 0) {

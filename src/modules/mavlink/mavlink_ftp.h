@@ -38,9 +38,6 @@
  *
  * MAVLink remote file server.
  *
- * Messages are wrapped in ENCAPSULATED_DATA messages. Every message includes
- * a session ID and sequence number.
- *
  * A limited number of requests (currently 2) may be outstanding at a time.
  * Additional messages will be discarded.
  *
@@ -55,6 +52,7 @@
 #include <systemlib/err.h>
 
 #include "mavlink_messages.h"
+#include "mavlink_main.h"
 
 class MavlinkFTP
 {
@@ -73,16 +71,19 @@ private:
 
 	static MavlinkFTP	*_server;
 
+	/// @brief Trying to pack structures across differing compilers is questionable for Clients, so we pad the
+	/// structure ourselves to 32 bit alignment which should get us what we want.
 	struct RequestHeader
-	{
-		uint8_t		magic;
-		uint8_t		session;
-		uint8_t		opcode;
-		uint8_t		size;
-		uint32_t	crc32;
-		uint32_t	offset;
+        {
+		uint16_t	seqNumber;  ///< sequence number for message
+		uint8_t		session;    ///< Session id for read and write commands
+		uint8_t		opcode;     ///< Command opcode
+		uint8_t		size;       ///< Size of data
+		uint8_t		padding[3];
+		uint32_t	crc32;      ///< CRC for entire Request structure, with crc32 and padding set to 0
+		uint32_t	offset;     ///< Offsets for List and Read commands
 		uint8_t		data[];
-	};
+        };
 
 	enum Opcode : uint8_t
 	{
@@ -130,10 +131,11 @@ private:
 		};
 
 		bool		decode(Mavlink *mavlink, mavlink_message_t *fromMessage) {
-			if (fromMessage->msgid == MAVLINK_MSG_ID_ENCAPSULATED_DATA) {
+			if (fromMessage->msgid == MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL) {
+				_systemId = fromMessage->sysid;
 				_mavlink = mavlink;
-				mavlink_msg_encapsulated_data_decode(fromMessage, &_message);
-				return true;
+				mavlink_msg_file_transfer_protocol_decode(fromMessage, &_message);
+				return _message.target_system == _mavlink->get_system_id();
 			}
 			return false;
 		}
@@ -144,8 +146,14 @@ private:
 			// flat memory architecture, as we're operating between threads here.
 			mavlink_message_t msg;
 			msg.checksum = 0;
-			unsigned len = mavlink_msg_encapsulated_data_pack_chan(_mavlink->get_system_id(), _mavlink->get_component_id(),
-				_mavlink->get_channel(), &msg, sequence(), rawData());
+			unsigned len = mavlink_msg_file_transfer_protocol_pack_chan(_mavlink->get_system_id(),		// Sender system id
+										    _mavlink->get_component_id(),	// Sender component id
+										    _mavlink->get_channel(),		// Channel to send on
+										    &msg,				// Message to pack payload into
+										    0,					// Target network
+										    _systemId,				// Target system id
+										    0,					// Target component id
+										    rawData());				// Payload to pack into message
 
 			_mavlink->lockMessageBufferMutex();
 			bool success = _mavlink->message_buffer_write(&msg, len);
@@ -153,37 +161,38 @@ private:
 
 			if (!success) {
 				warnx("FTP TX ERR");
-			} 
-			// else {
-				// warnx("wrote: sys: %d, comp: %d, chan: %d, len: %d, checksum: %d",
-				// 	_mavlink->get_system_id(),
-				// 	_mavlink->get_component_id(),
-				// 	_mavlink->get_channel(),
-				// 	len,
-				// 	msg.checksum);
-			// }
+			}
+#ifdef MAVLINK_FTP_DEBUG
+			else {
+				warnx("wrote: sys: %d, comp: %d, chan: %d, len: %d, checksum: %d",
+				      _mavlink->get_system_id(),
+				      _mavlink->get_component_id(),
+				      _mavlink->get_channel(),
+				      len,
+				      msg.checksum);
+			}
+#endif
 		}
 
-		uint8_t		*rawData() { return &_message.data[0]; }
-		RequestHeader 	*header()  { return reinterpret_cast<RequestHeader *>(&_message.data[0]); }
+		uint8_t		*rawData() { return &_message.payload[0]; }
+		RequestHeader 	*header()  { return reinterpret_cast<RequestHeader *>(&_message.payload[0]); }
 		uint8_t         *requestData() { return &(header()->data[0]); }
 		unsigned	dataSize() { return header()->size + sizeof(RequestHeader); }
-		uint16_t	sequence() const { return _message.seqnr; }
 		mavlink_channel_t channel() { return _mavlink->get_channel(); }
 
 		char		*dataAsCString();
 
 	private:
 		Mavlink			*_mavlink;
-		mavlink_encapsulated_data_t _message;
+		mavlink_file_transfer_protocol_t _message;
+		uint8_t _systemId;
 
 	};
 
-	static const uint8_t	kProtocolMagic = 'f';
 	static const char	kDirentFile = 'F';
 	static const char	kDirentDir = 'D';
 	static const char	kDirentUnknown = 'U';
-	static const uint8_t	kMaxDataLength = MAVLINK_MSG_ENCAPSULATED_DATA_FIELD_DATA_LEN - sizeof(RequestHeader);
+	static const uint8_t	kMaxDataLength = MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN - sizeof(RequestHeader);
 
 	/// Request worker; runs on the low-priority work queue to service
 	/// remote requests.

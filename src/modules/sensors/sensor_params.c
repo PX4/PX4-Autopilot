@@ -194,16 +194,35 @@ PARAM_DEFINE_FLOAT(SENS_ACC_ZSCALE, 1.0f);
 /**
  * Differential pressure sensor offset
  *
+ * The offset (zero-reading) in Pascal
+ *
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_DPRES_OFF, 0.0f);
 
 /**
- * Differential pressure sensor analog enabled
+ * Differential pressure sensor analog scaling
+ *
+ * Pick the appropriate scaling from the datasheet.
+ * this number defines the (linear) conversion from voltage
+ * to Pascal (pa). For the MPXV7002DP this is 1000.
+ *
+ * NOTE: If the sensor always registers zero, try switching
+ * the static and dynamic tubes.
  *
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(SENS_DPRES_ANA, 0);
+PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0);
+
+/**
+ * QNH for barometer
+ *
+ * @min 500
+ * @max 1500
+ * @group Sensor Calibration
+ * @unit hPa
+ */
+PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
 
 
 /**
@@ -282,6 +301,19 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(SENS_EXT_MAG_ROT, 0);
+
+/**
+* Set usage of external magnetometer
+*
+*  * Set to 0 (default) to auto-detect (will try to get the external as primary)
+*  * Set to 1 to force the external magnetometer as primary
+*  * Set to 2 to force the internal magnetometer as primary
+*
+* @min 0
+* @max 2
+* @group Sensor Calibration
+*/
+PARAM_DEFINE_INT32(SENS_EXT_MAG, 0);
 
 
 /**

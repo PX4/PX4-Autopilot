@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +34,10 @@
 /**
  * @file vehicle_command.h
  * Definition of the vehicle command uORB topic.
+ *
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #ifndef TOPIC_VEHICLE_COMMAND_H_
@@ -52,6 +53,9 @@
  * but can contain additional ones.
  */
 enum VEHICLE_CMD {
+	VEHICLE_CMD_CUSTOM_0 = 0, /* test command */
+	VEHICLE_CMD_CUSTOM_1 = 1, /* test command */
+	VEHICLE_CMD_CUSTOM_2 = 2, /* test command */
 	VEHICLE_CMD_NAV_WAYPOINT = 16, /* Navigate to MISSION. |Hold time in decimal seconds. (ignored by fixed wing, time to stay at MISSION for rotary wing)| Acceptance radius in meters (if the sphere with this radius is hit, the MISSION counts as reached)| 0 to pass through the WP, if > 0 radius in meters to pass by WP. Positive value for clockwise orbit, negative value for counter-clockwise orbit. Allows trajectory control.| Desired yaw angle at MISSION (rotary wing)| Latitude| Longitude| Altitude|  */
 	VEHICLE_CMD_NAV_LOITER_UNLIM = 17, /* Loiter around this MISSION an unlimited amount of time |Empty| Empty| Radius around MISSION, in meters. If positive loiter clockwise, else counter-clockwise| Desired yaw angle.| Latitude| Longitude| Altitude|  */
 	VEHICLE_CMD_NAV_LOITER_TURNS = 18, /* Loiter around this MISSION for X turns |Turns| Empty| Radius around MISSION, in meters. If positive loiter clockwise, else counter-clockwise| Desired yaw angle.| Latitude| Longitude| Altitude|  */
@@ -76,6 +80,7 @@ enum VEHICLE_CMD {
 	VEHICLE_CMD_DO_REPEAT_RELAY = 182, /* Cycle a relay on and off for a desired number of cyles with a desired period. |Relay number| Cycle count| Cycle time (seconds, decimal)| Empty| Empty| Empty| Empty|  */
 	VEHICLE_CMD_DO_SET_SERVO = 183, /* Set a servo to a desired PWM value. |Servo number| PWM (microseconds, 1000 to 2000 typical)| Empty| Empty| Empty| Empty| Empty|  */
 	VEHICLE_CMD_DO_REPEAT_SERVO = 184, /* Cycle a between its nominal setting and a desired PWM for a desired number of cycles with a desired period. |Servo number| PWM (microseconds, 1000 to 2000 typical)| Cycle count| Cycle time (seconds)| Empty| Empty| Empty|  */
+	VEHICLE_CMD_DO_FLIGHTTERMINATION=185, /* Terminate flight immediately |Flight termination activated if > 0.5| Empty| Empty| Empty| Empty| Empty| Empty|  */
 	VEHICLE_CMD_DO_CONTROL_VIDEO = 200, /* Control onboard camera system. |Camera ID (-1 for all)| Transmission: 0: disabled, 1: enabled compressed, 2: enabled raw| Transmission mode: 0: video stream, >0: single images every n seconds (decimal)| Recording: 0: disabled, 1: enabled compressed, 2: enabled raw| Empty| Empty| Empty|  */
 	VEHICLE_CMD_DO_LAST = 240, /* NOP - This command is only used to mark the upper limit of the DO commands in the enumeration |Empty| Empty| Empty| Empty| Empty| Empty| Empty|  */
 	VEHICLE_CMD_PREFLIGHT_CALIBRATION = 241, /* Trigger calibration. This command will be only accepted if in pre-flight mode. |Gyro calibration: 0: no, 1: yes| Magnetometer calibration: 0: no, 1: yes| Ground pressure: 0: no, 1: yes| Radio calibration: 0: no, 1: yes| Accelerometer calibration: 0: no, 1: yes| Empty| Empty|  */
@@ -86,7 +91,8 @@ enum VEHICLE_CMD {
 	VEHICLE_CMD_MISSION_START = 300, /* start running a mission |first_item: the first mission item to run| last_item:  the last mission item to run (after this item is run, the mission ends)|  */
 	VEHICLE_CMD_COMPONENT_ARM_DISARM = 400, /* Arms / Disarms a component |1 to arm, 0 to disarm|  */
 	VEHICLE_CMD_START_RX_PAIR = 500, /* Starts receiver pairing |0:Spektrum| 0:Spektrum DSM2, 1:Spektrum DSMX|  */
-	VEHICLE_CMD_ENUM_END = 501, /*  | */
+	VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY = 30001, /**< Prepare a payload deployment in the flight plan */
+	VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY = 30002 /**< Control a pre-programmed payload deployment */
 };
 
 /**
@@ -114,8 +120,8 @@ struct vehicle_command_s {
 	float param2;			/**< Parameter 2, as defined by MAVLink VEHICLE_CMD enum.   */
 	float param3;			/**< Parameter 3, as defined by MAVLink VEHICLE_CMD enum.   */
 	float param4;			/**< Parameter 4, as defined by MAVLink VEHICLE_CMD enum.   */
-	float param5;			/**< Parameter 5, as defined by MAVLink VEHICLE_CMD enum.   */
-	float param6;			/**< Parameter 6, as defined by MAVLink VEHICLE_CMD enum.   */
+	double param5;			/**< Parameter 5, as defined by MAVLink VEHICLE_CMD enum.   */
+	double param6;			/**< Parameter 6, as defined by MAVLink VEHICLE_CMD enum.   */
 	float param7;			/**< Parameter 7, as defined by MAVLink VEHICLE_CMD enum.   */
 	enum VEHICLE_CMD command;		/**< Command ID, as defined MAVLink by VEHICLE_CMD enum.   */
 	uint8_t target_system;		/**< System which should execute the command  */

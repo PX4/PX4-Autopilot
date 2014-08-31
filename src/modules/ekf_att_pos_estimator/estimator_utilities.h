@@ -19,6 +19,12 @@ public:
     float y;
     float z;
 
+    Vector3f(float a=0.0f, float b=0.0f, float c=0.0f) :
+    x(a),
+    y(b),
+    z(c)
+    {}
+
     float length(void) const;
     void zero(void);
 };
@@ -62,6 +68,10 @@ struct ekf_status_report {
     bool posTimeout;
     bool hgtTimeout;
     bool imuTimeout;
+    bool onGround;
+    bool staticMode;
+    bool useCompass;
+    bool useAirspeed;
     uint32_t velFailTime;
     uint32_t posFailTime;
     uint32_t hgtFailTime;

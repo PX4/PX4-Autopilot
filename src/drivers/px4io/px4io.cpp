@@ -136,6 +136,15 @@ public:
 	virtual int		init();
 
 	/**
+	 * Initialize the PX4IO class.
+	 *
+	 * Retrieve relevant initial system parameters. Initialize PX4IO registers.
+	 *
+	 * @param disable_rc_handling set to true to forbid override / RC handling on IO
+	 */
+	int			init(bool disable_rc_handling);
+
+	/**
 	 * Detect if a PX4IO is connected.
 	 *
 	 * Only validate if there is a PX4IO to talk to.
@@ -453,6 +462,9 @@ private:
 	 */
 	void			io_handle_vservo(uint16_t vservo, uint16_t vrssi);
 
+	/* do not allow to copy this class due to ptr data members */
+	PX4IO(const PX4IO&);
+	PX4IO operator=(const PX4IO&);
 };
 
 namespace
@@ -496,6 +508,8 @@ PX4IO::PX4IO(device::Device *interface) :
 	_to_battery(0),
 	_to_servorail(0),
 	_to_safety(0),
+	_outputs{},
+	_servorail_status{},
 	_primary_pwm_device(false),
 	_lockdown_override(false),
 	_battery_amp_per_volt(90.0f / 5.0f), // this matches the 3DR current sensor
@@ -572,6 +586,12 @@ PX4IO::detect()
 	log("IO found");
 
 	return 0;
+}
+
+int
+PX4IO::init(bool rc_handling_disabled) {
+	_rc_handling_disabled = rc_handling_disabled;
+	return init();
 }
 
 int
@@ -772,6 +792,11 @@ PX4IO::init()
 
 		if (_rc_handling_disabled) {
 			ret = io_disable_rc_handling();
+
+			if (ret != OK) {
+				log("failed disabling RC handling");
+				return ret;
+			}
 
 		} else {
 			/* publish RC config to IO */
@@ -1144,6 +1169,12 @@ PX4IO::io_set_arming_state()
 		clear |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
 	}
 
+	if (armed.force_failsafe) {
+		set |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+	} else {
+		clear |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+	}
+
 	if (armed.ready_to_arm) {
 		set |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
 
@@ -1164,6 +1195,7 @@ PX4IO::io_set_arming_state()
 int
 PX4IO::disable_rc_handling()
 {
+	_rc_handling_disabled = true;
 	return io_disable_rc_handling();
 }
 
@@ -1383,7 +1415,7 @@ void
 PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 {
 	/* only publish if battery has a valid minimum voltage */
-	if (vbatt <= 3300) {
+	if (vbatt <= 4900) {
 		return;
 	}
 
@@ -1936,7 +1968,7 @@ PX4IO::print_status(bool extended_status)
 	printf("actuators");
 
 	for (unsigned i = 0; i < _max_actuators; i++)
-		printf(" %u", io_reg_get(PX4IO_PAGE_ACTUATORS, i));
+		printf(" %hi", int16_t(io_reg_get(PX4IO_PAGE_ACTUATORS, i)));
 
 	printf("\n");
 	printf("servos");
@@ -1997,7 +2029,7 @@ PX4IO::print_status(bool extended_status)
 		((features & PX4IO_P_SETUP_FEATURES_ADC_RSSI) ? " RSSI_ADC" : "")
 		);
 	uint16_t arming = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
-	printf("arming 0x%04x%s%s%s%s%s%s%s\n",
+	printf("arming 0x%04x%s%s%s%s%s%s%s%s\n",
 	       arming,
 	       ((arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)		? " FMU_ARMED" : " FMU_DISARMED"),
 	       ((arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)		? " IO_ARM_OK" : " IO_ARM_DENIED"),
@@ -2005,7 +2037,9 @@ PX4IO::print_status(bool extended_status)
 	       ((arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM)		? " FAILSAFE_CUSTOM" : ""),
 	       ((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)	? " INAIR_RESTART_OK" : ""),
 	       ((arming & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE)	? " ALWAYS_PWM_ENABLE" : ""),
-	       ((arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)		? " LOCKDOWN" : ""));
+	       ((arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)		? " LOCKDOWN" : ""),
+	       ((arming & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE)		? " FORCE_FAILSAFE" : "")
+	       );
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	printf("rates 0x%04x default %u alt %u relays 0x%04x\n",
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES),
@@ -2217,6 +2251,17 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, PX4IO_FORCE_SAFETY_MAGIC);
 		break;
 
+	case PWM_SERVO_SET_FORCE_FAILSAFE:
+		/* force failsafe mode instantly */
+		if (arg == 0) {
+			/* clear force failsafe flag */
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE, 0);
+		} else {
+			/* set force failsafe flag */
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE);
+		}
+		break;
+
 	case DSM_BIND_START:
 
 		/* only allow DSM2, DSM-X and DSM-X with more than 7 channels */
@@ -2419,7 +2464,7 @@ PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 		break;
 
 	case PX4IO_CHECK_CRC: {
-		/* check IO firmware CRC against passed value */		
+		/* check IO firmware CRC against passed value */
 		uint32_t io_crc = 0;
 		ret = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_CRC, (uint16_t *)&io_crc, 2);
 		if (ret != OK)
@@ -2589,22 +2634,23 @@ start(int argc, char *argv[])
 		errx(1, "driver alloc failed");
 	}
 
-	if (OK != g_dev->init()) {
-		delete g_dev;
-		g_dev = nullptr;
-		errx(1, "driver init failed");
-	}
+	bool rc_handling_disabled = false;
 
 	/* disable RC handling on request */
 	if (argc > 1) {
 		if (!strcmp(argv[1], "norc")) {
 
-			if (g_dev->disable_rc_handling())
-				warnx("Failed disabling RC handling");
+			rc_handling_disabled = true;
 
 		} else {
 			warnx("unknown argument: %s", argv[1]);
 		}
+	}
+
+	if (OK != g_dev->init(rc_handling_disabled)) {
+		delete g_dev;
+		g_dev = nullptr;
+		errx(1, "driver init failed");
 	}
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
@@ -2679,7 +2725,7 @@ checkcrc(int argc, char *argv[])
 	int fd = open(argv[1], O_RDONLY);
 	if (fd == -1) {
 		printf("open of %s failed - %d\n", argv[1], errno);
-		exit(1);			
+		exit(1);
 	}
 	const uint32_t app_size_max = 0xf000;
 	uint32_t fw_crc = 0;
@@ -2694,7 +2740,7 @@ checkcrc(int argc, char *argv[])
 	close(fd);
 	while (nbytes < app_size_max) {
 		uint8_t b = 0xff;
-		fw_crc = crc32part(&b, 1, fw_crc);			
+		fw_crc = crc32part(&b, 1, fw_crc);
 		nbytes++;
 	}
 
@@ -2707,7 +2753,7 @@ checkcrc(int argc, char *argv[])
 
 	if (ret != OK) {
 		printf("check CRC failed - %d\n", ret);
-		exit(1);			
+		exit(1);
 	}
 	printf("CRCs match\n");
 	exit(0);
@@ -2737,12 +2783,12 @@ bind(int argc, char *argv[])
 		pulses = DSMX_BIND_PULSES;
 	else if (!strcmp(argv[2], "dsmx8"))
 		pulses = DSMX8_BIND_PULSES;
-	else 
+	else
 		errx(1, "unknown parameter %s, use dsm2, dsmx or dsmx8", argv[2]);
 	// Test for custom pulse parameter
 	if (argc > 3)
 		pulses = atoi(argv[3]);
-	if (g_dev->system_status() & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) 
+	if (g_dev->system_status() & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
 		errx(1, "system must not be armed");
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
@@ -2944,7 +2990,7 @@ lockdown(int argc, char *argv[])
 				(void)g_dev->ioctl(0, PWM_SERVO_SET_DISABLE_LOCKDOWN, 0);
 				warnx("ACTUATORS ARE NOW SAFE IN HIL.");
 			}
-			
+
 		} else {
 			errx(1, "driver not loaded, exiting");
 		}

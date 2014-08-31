@@ -121,6 +121,9 @@ int blockLimitSymTest()
 
 float BlockLowPass::update(float input)
 {
+	if (!isfinite(getState())) {
+		setState(input);
+	}
 	float b = 2 * float(M_PI) * getFCut() * getDt();
 	float a = b / (1 + b);
 	setState(a * input + (1 - a)*getState());
@@ -293,7 +296,18 @@ int blockIntegralTrapTest()
 
 float BlockDerivative::update(float input)
 {
-	float output = _lowPass.update((input - getU()) / getDt());
+	float output;
+	if (_initialized) {
+		output = _lowPass.update((input - getU()) / getDt());
+	} else {
+		// if this is the first call to update
+		// we have no valid derivative
+		// and so we use the assumption the
+		// input value is not changing much,
+		// which is the best we can do here.
+		output = 0.0f;
+		_initialized = true;
+	}
 	setU(input);
 	return output;
 }

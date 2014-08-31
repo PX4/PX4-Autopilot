@@ -210,11 +210,14 @@ menuconfig:
 endif
 
 $(NUTTX_SRC):
+	$(Q) ($(PX4_BASE)/Tools/check_submodules.sh)
+
+$(UAVCAN_DIR):
 	$(Q) (./Tools/check_submodules.sh)
 
 .PHONY: checksubmodules
 checksubmodules:
-	$(Q) (./Tools/check_submodules.sh)
+	$(Q) ($(PX4_BASE)/Tools/check_submodules.sh)
 
 .PHONY: updatesubmodules
 updatesubmodules:

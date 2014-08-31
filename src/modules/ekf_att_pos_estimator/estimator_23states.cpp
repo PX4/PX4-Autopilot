@@ -5,47 +5,120 @@
 
 #define EKF_COVARIANCE_DIVERGED 1.0e8f
 
-AttPosEKF::AttPosEKF()
+AttPosEKF::AttPosEKF() :
+    covTimeStepMax(0.0f),
+    covDelAngMax(0.0f),
+    rngFinderPitch(0.0f),
+    a1(0.0f),
+    a2(0.0f),
+    a3(0.0f),
+    yawVarScale(0.0f),
+    windVelSigma(0.0f),
+    dAngBiasSigma(0.0f),
+    dVelBiasSigma(0.0f),
+    magEarthSigma(0.0f),
+    magBodySigma(0.0f),
+    gndHgtSigma(0.0f),
+    vneSigma(0.0f),
+    vdSigma(0.0f),
+    posNeSigma(0.0f),
+    posDSigma(0.0f),
+    magMeasurementSigma(0.0f),
+    airspeedMeasurementSigma(0.0f),
+    gyroProcessNoise(0.0f),
+    accelProcessNoise(0.0f),
+    EAS2TAS(1.0f),
+    magstate{},
+    resetMagState{},
+    KH{},
+    KHP{},
+    P{},
+    Kfusion{},
+    states{},
+    resetStates{},
+    storedStates{},
+    statetimeStamp{},
+    statesAtVelTime{},
+    statesAtPosTime{},
+    statesAtHgtTime{},
+    statesAtMagMeasTime{},
+    statesAtVtasMeasTime{},
+    statesAtRngTime{},
+    statesAtOptFlowTime{},
+    correctedDelAng(),
+    correctedDelVel(),
+    summedDelAng(),
+    summedDelVel(),
+    accNavMag(),
+    earthRateNED(),
+    angRate(),
+    lastGyroOffset(),
+    delAngTotal(),
+    Tbn(),
+    Tnb(),
+    accel(),
+    dVelIMU(),
+    dAngIMU(),
+    dtIMU(0),
+    fusionModeGPS(0),
+    innovVelPos{},
+    varInnovVelPos{},
+    velNED{},
+    accelGPSNED{},
+    posNE{},
+    hgtMea(0.0f),
+    baroHgtOffset(0.0f),
+    rngMea(0.0f),
+    innovMag{},
+    varInnovMag{},
+    magData{},
+    losData{},
+    innovVtas(0.0f),
+    innovRng(0.0f),
+    innovOptFlow{},
+    varInnovOptFlow{},
+    varInnovVtas(0.0f),
+    varInnovRng(0.0f),
+    VtasMeas(0.0f),
+    magDeclination(0.0f),
+    latRef(0.0f),
+    lonRef(-M_PI_F),
+    hgtRef(0.0f),
+    refSet(false),
+    magBias(),
+    covSkipCount(0),
+    gpsLat(0.0),
+    gpsLon(-M_PI),
+    gpsHgt(0.0f),
+    GPSstatus(0),
+    baroHgt(0.0f),
+    statesInitialised(false),
+    fuseVelData(false),
+    fusePosData(false),
+    fuseHgtData(false),
+    fuseMagData(false),
+    fuseVtasData(false),
+    fuseRngData(false),
+    fuseOptFlowData(false),
 
-    /* NOTE: DO NOT initialize class members here. Use ZeroVariables()
-     * instead to allow clean in-air re-initialization.
-     */
+    inhibitWindStates(true),
+    inhibitMagStates(true),
+    inhibitGndHgtState(true),
+
+    onGround(true),
+    staticMode(true),
+    useAirspeed(true),
+    useCompass(true),
+    useRangeFinder(false),
+    useOpticalFlow(false),
+
+    ekfDiverged(false),
+    lastReset(0),
+    current_ekf_state{},
+    last_ekf_error{},
+    numericalProtection(true),
+    storeIndex(0)
 {
-    summedDelAng.zero();
-    summedDelVel.zero();
-
-    fusionModeGPS = 0;
-    fuseVelData = false;
-    fusePosData = false;
-    fuseHgtData = false;
-    fuseMagData = false;
-    fuseVtasData = false;
-    onGround = true;
-    staticMode = true;
-    useAirspeed = true;
-    useCompass = true;
-    useRangeFinder = true;
-    useOpticalFlow = true;
-    numericalProtection = true;
-    refSet = false;
-    storeIndex = 0;
-    gpsHgt = 0.0f;
-    baroHgt = 0.0f;
-    GPSstatus = 0;
-    VtasMeas = 0.0f;
-    magDeclination = 0.0f;
-    dAngIMU.zero();
-    dVelIMU.zero();
-    velNED[0] = 0.0f;
-    velNED[1] = 0.0f;
-    velNED[2] = 0.0f;
-    accelGPSNED[0] = 0.0f;
-    accelGPSNED[1] = 0.0f;
-    accelGPSNED[2] = 0.0f;
-    delAngTotal.zero();
-    ekfDiverged = false;
-    lastReset = 0;
-
     memset(&last_ekf_error, 0, sizeof(last_ekf_error));
     memset(&current_ekf_state, 0, sizeof(current_ekf_state));
     ZeroVariables();
@@ -73,7 +146,7 @@ void AttPosEKF::UpdateStrapdownEquationsNED()
     float qUpdated[4];
     float quatMag;
     float deltaQuat[4];
-    const Vector3f gravityNED = {0.0,0.0,GRAVITY_MSS};
+    const Vector3f gravityNED(0.0f, 0.0f, GRAVITY_MSS);
 
 // Remove sensor bias errors
     correctedDelAng.x = dAngIMU.x - states[10];
@@ -959,10 +1032,16 @@ void AttPosEKF::FuseVelposNED()
             // apply a 5-sigma threshold
             current_ekf_state.velHealth = (sq(velInnov[0]) + sq(velInnov[1]) + sq(velInnov[2])) < 25.0f * (varInnovVelPos[0] + varInnovVelPos[1] + varInnovVelPos[2]);
             current_ekf_state.velTimeout = (millis() - current_ekf_state.velFailTime) > horizRetryTime;
-            if (current_ekf_state.velHealth || current_ekf_state.velTimeout)
-            {
+            if (current_ekf_state.velHealth || staticMode) {
                 current_ekf_state.velHealth = true;
                 current_ekf_state.velFailTime = millis();
+            } else if (current_ekf_state.velTimeout || !current_ekf_state.posHealth) {
+                // XXX check
+                current_ekf_state.velHealth = true;
+                ResetVelocity();
+                ResetStoredStates();
+                // do not fuse bad data
+                fuseVelData = false;
             }
             else
             {
@@ -983,6 +1062,17 @@ void AttPosEKF::FuseVelposNED()
             {
                 current_ekf_state.posHealth = true;
                 current_ekf_state.posFailTime = millis();
+
+                if (current_ekf_state.posTimeout) {
+                    ResetPosition();
+                    
+                    // XXX cross-check the state reset
+                    ResetStoredStates();
+
+                    // do not fuse position data on this time
+                    // step
+                    fusePosData = false;
+                }
             }
             else
             {
@@ -997,10 +1087,18 @@ void AttPosEKF::FuseVelposNED()
             // apply a 10-sigma threshold
             current_ekf_state.hgtHealth = sq(hgtInnov) < 100.0f*varInnovVelPos[5];
             current_ekf_state.hgtTimeout = (millis() - current_ekf_state.hgtFailTime) > hgtRetryTime;
-            if (current_ekf_state.hgtHealth || current_ekf_state.hgtTimeout)
+            if (current_ekf_state.hgtHealth || current_ekf_state.hgtTimeout || staticMode)
             {
                 current_ekf_state.hgtHealth = true;
                 current_ekf_state.hgtFailTime = millis();
+
+                // if we just reset from a timeout, do not fuse
+                // the height data, but reset height and stored states
+                if (current_ekf_state.hgtTimeout) {
+                    ResetHeight();
+                    ResetStoredStates();
+                    fuseHgtData = false;
+                }
             }
             else
             {
@@ -2206,7 +2304,7 @@ void AttPosEKF::calcLLH(float posNED[3], double &lat, double &lon, float &hgt, d
 
 void AttPosEKF::OnGroundCheck()
 {
-    onGround = (((sq(velNED[0]) + sq(velNED[1]) + sq(velNED[2])) < 4.0f) && (VtasMeas < 6.0f));
+    onGround = (((sq(velNED[0]) + sq(velNED[1]) + sq(velNED[2])) < 4.0f) && (VtasMeas < 8.0f));
     if (staticMode) {
         staticMode = (!refSet || (GPSstatus < GPS_FIX_3D));
     }
@@ -2280,7 +2378,7 @@ float AttPosEKF::ConstrainFloat(float val, float min, float max)
     }
 
     if (!isfinite(val)) {
-        ekf_debug("constrain: non-finite!");
+        //ekf_debug("constrain: non-finite!");
     }
 
     return ret;
@@ -2700,7 +2798,7 @@ int AttPosEKF::CheckAndBound(struct ekf_status_report *last_error)
         ResetHeight();
         ResetStoredStates();
 
-        ret = 3;
+        ret = 0;
     }
 
     // Reset the filter if gyro offsets are excessive
@@ -2806,12 +2904,18 @@ void AttPosEKF::InitializeDynamic(float (&initvelNED)[3], float declination)
     current_ekf_state.statesNaN = false;
 
     current_ekf_state.velHealth = true;
-    //current_ekf_state.posHealth = ?;
-    //current_ekf_state.hgtHealth = ?;
+    current_ekf_state.posHealth = true;
+    current_ekf_state.hgtHealth = true;
     
     current_ekf_state.velTimeout = false;
-    //current_ekf_state.posTimeout = ?;
-    //current_ekf_state.hgtTimeout = ?;
+    current_ekf_state.posTimeout = false;
+    current_ekf_state.hgtTimeout = false;
+
+    fuseVelData = false;
+    fusePosData = false;
+    fuseHgtData = false;
+    fuseMagData = false;
+    fuseVtasData = false;
 
     // Fill variables with valid data
     velNED[0] = initvelNED[0];
@@ -2920,6 +3024,8 @@ void AttPosEKF::ZeroVariables()
     correctedDelAng.zero();
     summedDelAng.zero();
     summedDelVel.zero();
+    dAngIMU.zero();
+    dVelIMU.zero();
     lastGyroOffset.zero();
 
     for (unsigned i = 0; i < data_buffer_size; i++) {
@@ -2947,6 +3053,10 @@ void AttPosEKF::GetFilterState(struct ekf_status_report *err)
         current_ekf_state.states[i] = states[i];
     }
     current_ekf_state.n_states = n_states;
+    current_ekf_state.onGround = onGround;
+    current_ekf_state.staticMode = staticMode;
+    current_ekf_state.useCompass = useCompass;
+    current_ekf_state.useAirspeed = useAirspeed;
 
     memcpy(err, &current_ekf_state, sizeof(*err));
 

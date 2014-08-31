@@ -32,39 +32,51 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_commands.cpp
- * Mavlink commands stream implementation.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @file vision_position_estimate.h
+ * Vision based position estimate
  */
 
-#include "mavlink_commands.h"
+#ifndef TOPIC_VISION_POSITION_ESTIMATE_H_
+#define TOPIC_VISION_POSITION_ESTIMATE_H_
 
-MavlinkCommandsStream::MavlinkCommandsStream(Mavlink *mavlink, mavlink_channel_t channel) : _channel(channel), _cmd_time(0)
-{
-	_cmd_sub = mavlink->add_orb_subscription(ORB_ID(vehicle_command));
-}
+#include <stdint.h>
+#include <stdbool.h>
+#include "../uORB.h"
 
-void
-MavlinkCommandsStream::update(const hrt_abstime t)
-{
-	struct vehicle_command_s cmd;
+/**
+ * @addtogroup topics
+ * @{
+ */
 
-	if (_cmd_sub->update(&_cmd_time, &cmd)) {
-		/* only send commands for other systems/components */
-		if (cmd.target_system != mavlink_system.sysid || cmd.target_component != mavlink_system.compid) {
-			mavlink_msg_command_long_send(_channel,
-						      cmd.target_system,
-						      cmd.target_component,
-						      cmd.command,
-						      cmd.confirmation,
-						      cmd.param1,
-						      cmd.param2,
-						      cmd.param3,
-						      cmd.param4,
-						      cmd.param5,
-						      cmd.param6,
-						      cmd.param7);
-		}
-	}
-}
+/**
+ * Vision based position estimate in NED frame
+ */
+struct vision_position_estimate {
+
+	unsigned id;				/**< ID of the estimator, commonly the component ID of the incoming message */
+
+	uint64_t timestamp_boot;		/**< time of this estimate, in microseconds since system start */
+	uint64_t timestamp_computer;		/**< timestamp provided by the companion computer, in us */
+
+	float x;				/**< X position in meters in NED earth-fixed frame */
+	float y;				/**< Y position in meters in NED earth-fixed frame */
+	float z;				/**< Z position in meters in NED earth-fixed frame (negative altitude) */
+
+	float vx;				/**< X velocity in meters per second in NED earth-fixed frame */
+	float vy;				/**< Y velocity in meters per second in NED earth-fixed frame */
+	float vz;				/**< Z velocity in meters per second in NED earth-fixed frame */
+
+	float q[4];				/**< Estimated attitude as quaternion */
+
+	// XXX Add covariances here
+
+};
+
+/**
+ * @}
+ */
+
+/* register this as object request broker structure */
+ORB_DECLARE(vision_position_estimate);
+
+#endif /* TOPIC_VISION_POSITION_ESTIMATE_H_ */

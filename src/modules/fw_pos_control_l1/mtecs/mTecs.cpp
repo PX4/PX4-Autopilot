@@ -59,6 +59,7 @@ mTecs::mTecs() :
 	_controlAltitude(this, "FPA", true),
 	_controlAirSpeed(this, "ACC"),
 	_flightPathAngleLowpass(this, "FPA_LP"),
+	_altitudeLowpass(this, "ALT_LP"),
 	_airspeedLowpass(this, "A_LP"),
 	_airspeedDerivative(this, "AD"),
 	_throttleSp(0.0f),
@@ -93,18 +94,22 @@ int mTecs::updateAltitudeSpeed(float flightPathAngle, float altitude, float alti
 	/* time measurement */
 	updateTimeMeasurement();
 
+	/* Filter altitude */
+	float altitudeFiltered = _altitudeLowpass.update(altitude);
+
+
 	/* calculate flight path angle setpoint from altitude setpoint */
-	float flightPathAngleSp = _controlAltitude.update(altitudeSp - altitude);
+	float flightPathAngleSp = _controlAltitude.update(altitudeSp - altitudeFiltered);
 
 	/* Debug output */
 	if (_counter % 10 == 0) {
 		debug("***");
-		debug("updateAltitudeSpeed: altitudeSp %.4f, altitude %.4f, flightPathAngleSp %.4f", (double)altitudeSp, (double)altitude, (double)flightPathAngleSp);
+		debug("updateAltitudeSpeed: altitudeSp %.4f, altitude %.4f, altitude filtered %.4f, flightPathAngleSp %.4f", (double)altitudeSp, (double)altitude, (double)altitudeFiltered, (double)flightPathAngleSp);
 	}
 
 	/* Write part of the status message */
 	_status.altitudeSp = altitudeSp;
-	_status.altitude = altitude;
+	_status.altitude_filtered = altitudeFiltered;
 
 
 	/* use flightpath angle setpoint for total energy control */
@@ -140,8 +145,7 @@ int mTecs::updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAng
 
 	/* Write part of the status message */
 	_status.airspeedSp = airspeedSp;
-	_status.airspeed = airspeed;
-	_status.airspeedFiltered = airspeedFiltered;
+	_status.airspeed_filtered = airspeedFiltered;
 
 
 	/* use longitudinal acceleration setpoint for total energy control */

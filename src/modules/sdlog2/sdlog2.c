@@ -76,6 +76,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/vision_position_estimate.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/battery_status.h>
@@ -934,6 +935,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_global_position_s global_pos;
 		struct position_setpoint_triplet_s triplet;
 		struct vehicle_vicon_position_s vicon_pos;
+		struct vision_position_estimate vision_pos;
 		struct optical_flow_s flow;
 		struct rc_channels_s rc;
 		struct differential_pressure_s diff_pres;
@@ -984,6 +986,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_EST1_s log_EST1;
 			struct log_PWR_s log_PWR;
 			struct log_VICN_s log_VICN;
+			struct log_VISN_s log_VISN;
 			struct log_GS0A_s log_GS0A;
 			struct log_GS0B_s log_GS0B;
 			struct log_GS1A_s log_GS1A;
@@ -1013,6 +1016,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int gps_pos_sub;
 		int sat_info_sub;
 		int vicon_pos_sub;
+		int vision_pos_sub;
 		int flow_sub;
 		int rc_sub;
 		int airspeed_sub;
@@ -1043,6 +1047,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	subs.triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	subs.vicon_pos_sub = orb_subscribe(ORB_ID(vehicle_vicon_position));
+	subs.vision_pos_sub = orb_subscribe(ORB_ID(vision_position_estimate));
 	subs.flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	subs.rc_sub = orb_subscribe(ORB_ID(rc_channels));
 	subs.airspeed_sub = orb_subscribe(ORB_ID(airspeed));
@@ -1073,6 +1078,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	hrt_abstime magnetometer_timestamp = 0;
 	hrt_abstime barometer_timestamp = 0;
 	hrt_abstime differential_pressure_timestamp = 0;
+	hrt_abstime gyro1_timestamp = 0;
+	hrt_abstime accelerometer1_timestamp = 0;
+	hrt_abstime magnetometer1_timestamp = 0;
+	hrt_abstime gyro2_timestamp = 0;
+	hrt_abstime accelerometer2_timestamp = 0;
+	hrt_abstime magnetometer2_timestamp = 0;
 
 	/* initialize calculated mean SNR */
 	float snr_mean = 0.0f;
@@ -1209,6 +1220,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* --- SENSOR COMBINED --- */
 		if (copy_if_updated(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor)) {
 			bool write_IMU = false;
+			bool write_IMU1 = false;
+			bool write_IMU2 = false;
 			bool write_SENS = false;
 
 			if (buf.sensor.timestamp != gyro_timestamp) {
@@ -1258,6 +1271,64 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_SENS.diff_pres = buf.sensor.differential_pressure_pa;
 				log_msg.body.log_SENS.diff_pres_filtered = buf.sensor.differential_pressure_filtered_pa;
 				LOGBUFFER_WRITE_AND_COUNT(SENS);
+			}
+
+			if (buf.sensor.accelerometer1_timestamp != accelerometer1_timestamp) {
+				accelerometer1_timestamp = buf.sensor.accelerometer1_timestamp;
+				write_IMU1 = true;
+			}
+
+			if (buf.sensor.gyro1_timestamp != gyro1_timestamp) {
+				gyro1_timestamp = buf.sensor.gyro1_timestamp;
+				write_IMU1 = true;
+			}
+
+			if (buf.sensor.magnetometer1_timestamp != magnetometer1_timestamp) {
+				magnetometer1_timestamp = buf.sensor.magnetometer1_timestamp;
+				write_IMU1 = true;
+			}
+
+			if (write_IMU1) {
+				log_msg.msg_type = LOG_IMU1_MSG;
+				log_msg.body.log_IMU.gyro_x = buf.sensor.gyro1_rad_s[0];
+				log_msg.body.log_IMU.gyro_y = buf.sensor.gyro1_rad_s[1];
+				log_msg.body.log_IMU.gyro_z = buf.sensor.gyro1_rad_s[2];
+				log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer1_m_s2[0];
+				log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer1_m_s2[1];
+				log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer1_m_s2[2];
+				log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer1_ga[0];
+				log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer1_ga[1];
+				log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer1_ga[2];
+				LOGBUFFER_WRITE_AND_COUNT(IMU);
+			}
+
+			if (buf.sensor.accelerometer2_timestamp != accelerometer2_timestamp) {
+				accelerometer2_timestamp = buf.sensor.accelerometer2_timestamp;
+				write_IMU2 = true;
+			}
+
+			if (buf.sensor.gyro2_timestamp != gyro2_timestamp) {
+				gyro2_timestamp = buf.sensor.gyro2_timestamp;
+				write_IMU2 = true;
+			}
+
+			if (buf.sensor.magnetometer2_timestamp != magnetometer2_timestamp) {
+				magnetometer2_timestamp = buf.sensor.magnetometer2_timestamp;
+				write_IMU2 = true;
+			}
+
+			if (write_IMU2) {
+				log_msg.msg_type = LOG_IMU2_MSG;
+				log_msg.body.log_IMU.gyro_x = buf.sensor.gyro2_rad_s[0];
+				log_msg.body.log_IMU.gyro_y = buf.sensor.gyro2_rad_s[1];
+				log_msg.body.log_IMU.gyro_z = buf.sensor.gyro2_rad_s[2];
+				log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer2_m_s2[0];
+				log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer2_m_s2[1];
+				log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer2_m_s2[2];
+				log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer2_ga[0];
+				log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer2_ga[1];
+				log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer2_ga[2];
+				LOGBUFFER_WRITE_AND_COUNT(IMU);
 			}
 
 		}
@@ -1366,17 +1437,20 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		/* --- GLOBAL POSITION SETPOINT --- */
 		if (copy_if_updated(ORB_ID(position_setpoint_triplet), subs.triplet_sub, &buf.triplet)) {
-			log_msg.msg_type = LOG_GPSP_MSG;
-			log_msg.body.log_GPSP.nav_state = 0;  /* TODO: Fix this */
-			log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * 1e7d);
-			log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * 1e7d);
-			log_msg.body.log_GPSP.alt = buf.triplet.current.alt;
-			log_msg.body.log_GPSP.yaw = buf.triplet.current.yaw;
-			log_msg.body.log_GPSP.type = buf.triplet.current.type;
-			log_msg.body.log_GPSP.loiter_radius = buf.triplet.current.loiter_radius;
-			log_msg.body.log_GPSP.loiter_direction = buf.triplet.current.loiter_direction;
-			log_msg.body.log_GPSP.pitch_min = buf.triplet.current.pitch_min;
-			LOGBUFFER_WRITE_AND_COUNT(GPSP);
+
+			if (buf.triplet.current.valid) {
+				log_msg.msg_type = LOG_GPSP_MSG;
+				log_msg.body.log_GPSP.nav_state = buf.triplet.nav_state;
+				log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * 1e7d);
+				log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * 1e7d);
+				log_msg.body.log_GPSP.alt = buf.triplet.current.alt;
+				log_msg.body.log_GPSP.yaw = buf.triplet.current.yaw;
+				log_msg.body.log_GPSP.type = buf.triplet.current.type;
+				log_msg.body.log_GPSP.loiter_radius = buf.triplet.current.loiter_radius;
+				log_msg.body.log_GPSP.loiter_direction = buf.triplet.current.loiter_direction;
+				log_msg.body.log_GPSP.pitch_min = buf.triplet.current.pitch_min;
+				LOGBUFFER_WRITE_AND_COUNT(GPSP);
+			}
 		}
 
 		/* --- VICON POSITION --- */
@@ -1389,6 +1463,22 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_VICN.roll = buf.vicon_pos.roll;
 			log_msg.body.log_VICN.yaw = buf.vicon_pos.yaw;
 			LOGBUFFER_WRITE_AND_COUNT(VICN);
+		}
+		
+		/* --- VISION POSITION --- */
+		if (copy_if_updated(ORB_ID(vision_position_estimate), subs.vision_pos_sub, &buf.vision_pos)) {
+			log_msg.msg_type = LOG_VISN_MSG;
+			log_msg.body.log_VISN.x = buf.vision_pos.x;
+			log_msg.body.log_VISN.y = buf.vision_pos.y;
+			log_msg.body.log_VISN.z = buf.vision_pos.z;
+			log_msg.body.log_VISN.vx = buf.vision_pos.vx;
+			log_msg.body.log_VISN.vy = buf.vision_pos.vy;
+			log_msg.body.log_VISN.vz = buf.vision_pos.vz;
+			log_msg.body.log_VISN.qx = buf.vision_pos.q[0];
+			log_msg.body.log_VISN.qy = buf.vision_pos.q[1];
+			log_msg.body.log_VISN.qz = buf.vision_pos.q[2];
+			log_msg.body.log_VISN.qw = buf.vision_pos.q[3];
+			LOGBUFFER_WRITE_AND_COUNT(VISN);
 		}
 
 		/* --- FLOW --- */
@@ -1528,13 +1618,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 		if (copy_if_updated(ORB_ID(tecs_status), subs.tecs_status_sub, &buf.tecs_status)) {
 			log_msg.msg_type = LOG_TECS_MSG;
 			log_msg.body.log_TECS.altitudeSp = buf.tecs_status.altitudeSp;
-			log_msg.body.log_TECS.altitude = buf.tecs_status.altitude;
+			log_msg.body.log_TECS.altitudeFiltered = buf.tecs_status.altitude_filtered;
 			log_msg.body.log_TECS.flightPathAngleSp = buf.tecs_status.flightPathAngleSp;
 			log_msg.body.log_TECS.flightPathAngle = buf.tecs_status.flightPathAngle;
 			log_msg.body.log_TECS.flightPathAngleFiltered = buf.tecs_status.flightPathAngleFiltered;
 			log_msg.body.log_TECS.airspeedSp = buf.tecs_status.airspeedSp;
-			log_msg.body.log_TECS.airspeed = buf.tecs_status.airspeed;
-			log_msg.body.log_TECS.airspeedFiltered = buf.tecs_status.airspeedFiltered;
+			log_msg.body.log_TECS.airspeedFiltered = buf.tecs_status.airspeed_filtered;
 			log_msg.body.log_TECS.airspeedDerivativeSp = buf.tecs_status.airspeedDerivativeSp;
 			log_msg.body.log_TECS.airspeedDerivative = buf.tecs_status.airspeedDerivative;
 			log_msg.body.log_TECS.totalEnergyRateSp = buf.tecs_status.totalEnergyRateSp;

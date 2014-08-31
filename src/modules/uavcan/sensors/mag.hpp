@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,34 +32,37 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_commands.h
- * Mavlink commands stream definition.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#ifndef MAVLINK_COMMANDS_H_
-#define MAVLINK_COMMANDS_H_
+#pragma once
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_command.h>
+#include "sensor_bridge.hpp"
+#include <drivers/drv_mag.h>
 
-class Mavlink;
-class MavlinkCommansStream;
+#include <uavcan/equipment/ahrs/Magnetometer.hpp>
 
-#include "mavlink_main.h"
-
-class MavlinkCommandsStream
+class UavcanMagnetometerBridge : public UavcanCDevSensorBridgeBase
 {
-private:
-	MavlinkOrbSubscription *_cmd_sub;
-	struct vehicle_command_s *_cmd;
-	mavlink_channel_t _channel;
-	uint64_t _cmd_time;
-
 public:
-	MavlinkCommandsStream(Mavlink *mavlink, mavlink_channel_t channel);
-	void update(const hrt_abstime t);
-};
+	static const char *const NAME;
 
-#endif /* MAVLINK_COMMANDS_H_ */
+	UavcanMagnetometerBridge(uavcan::INode& node);
+
+	const char *get_name() const override { return NAME; }
+
+	int init() override;
+
+private:
+	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
+
+	void mag_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::Magnetometer> &msg);
+
+	typedef uavcan::MethodBinder<UavcanMagnetometerBridge*,
+		void (UavcanMagnetometerBridge::*)
+			(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::Magnetometer>&)>
+		MagCbBinder;
+
+	uavcan::Subscriber<uavcan::equipment::ahrs::Magnetometer, MagCbBinder> _sub_mag;
+	mag_scale _scale = {};
+};

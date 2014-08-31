@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: 	Lorenz Meier
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -99,13 +98,21 @@ public:
 	/**
 	 * Start the sensors task.
 	 *
-	 * @return		OK on success.
+	 * @return	OK on success.
 	 */
 	int		start();
+
+	/**
+	 * Task status
+	 *
+	 * @return	true if the mainloop is running
+	 */
+	bool		task_running() { return _task_running; }
 
 private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
+	bool		_task_running;			/**< if true, task is running in its mainloop */
 	int		_control_task;			/**< task handle for sensor task */
 
 	int		_att_sub;			/**< vehicle attitude subscription */
@@ -138,6 +145,7 @@ private:
 	perf_counter_t	_nonfinite_output_perf;		/**< performance counter for non finite output */
 
 	bool		_setpoint_valid;		/**< flag if the position control setpoint is valid */
+	bool		_debug;				/**< if set to true, print debug output */
 
 	struct {
 		float tconst;
@@ -276,6 +284,7 @@ private:
 	 * Main sensor collection task.
 	 */
 	void		task_main();
+
 };
 
 namespace att_control
@@ -287,12 +296,13 @@ namespace att_control
 #endif
 static const int ERROR = -1;
 
-FixedwingAttitudeControl	*g_control;
+FixedwingAttitudeControl	*g_control = nullptr;
 }
 
 FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	_task_should_exit(false),
+	_task_running(false),
 	_control_task(-1),
 
 /* subscriptions */
@@ -315,7 +325,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control nonfinite input")),
 	_nonfinite_output_perf(perf_alloc(PC_COUNT, "fw att control nonfinite output")),
 /* states */
-	_setpoint_valid(false)
+	_setpoint_valid(false),
+	_debug(false)
 {
 	/* safely initialize structs */
 	_att = {};
@@ -520,7 +531,7 @@ FixedwingAttitudeControl::vehicle_accel_poll()
 	orb_check(_accel_sub, &accel_updated);
 
 	if (accel_updated) {
-		orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
+		orb_copy(ORB_ID(sensor_accel0), _accel_sub, &_accel);
 	}
 }
 
@@ -568,7 +579,7 @@ FixedwingAttitudeControl::task_main()
 	 */
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_accel_sub = orb_subscribe(ORB_ID(sensor_accel));
+	_accel_sub = orb_subscribe(ORB_ID(sensor_accel0));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -597,6 +608,8 @@ FixedwingAttitudeControl::task_main()
 	fds[0].events = POLLIN;
 	fds[1].fd = _att_sub;
 	fds[1].events = POLLIN;
+
+	_task_running = true;
 
 	while (!_task_should_exit) {
 
@@ -689,7 +702,8 @@ FixedwingAttitudeControl::task_main()
 						perf_count(_nonfinite_input_perf);
 					}
 				} else {
-					airspeed = _airspeed.true_airspeed_m_s;
+					/* prevent numerical drama by requiring 0.5 m/s minimal speed */
+					airspeed = math::max(0.5f, _airspeed.true_airspeed_m_s);
 				}
 
 				/*
@@ -774,7 +788,7 @@ FixedwingAttitudeControl::task_main()
 					speed_body_v = _att.R[0][1] * _global_pos.vel_n + _att.R[1][1] * _global_pos.vel_e + _att.R[2][1] * _global_pos.vel_d;
 					speed_body_w = _att.R[0][2] * _global_pos.vel_n + _att.R[1][2] * _global_pos.vel_e + _att.R[2][2] * _global_pos.vel_d;
 				} else	{
-					if (loop_counter % 10 == 0) {
+					if (_debug && loop_counter % 10 == 0) {
 						warnx("Did not get a valid R\n");
 					}
 				}
@@ -797,7 +811,7 @@ FixedwingAttitudeControl::task_main()
 						_roll_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
 
-						if (loop_counter % 10 == 0) {
+						if (_debug && loop_counter % 10 == 0) {
 							warnx("roll_u %.4f", (double)roll_u);
 						}
 					}
@@ -810,7 +824,7 @@ FixedwingAttitudeControl::task_main()
 					if (!isfinite(pitch_u)) {
 						_pitch_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
-						if (loop_counter % 10 == 0) {
+						if (_debug && loop_counter % 10 == 0) {
 							warnx("pitch_u %.4f, _yaw_ctrl.get_desired_rate() %.4f,"
 								" airspeed %.4f, airspeed_scaling %.4f,"
 								" roll_sp %.4f, pitch_sp %.4f,"
@@ -834,7 +848,7 @@ FixedwingAttitudeControl::task_main()
 					if (!isfinite(yaw_u)) {
 						_yaw_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
-						if (loop_counter % 10 == 0) {
+						if (_debug && loop_counter % 10 == 0) {
 							warnx("yaw_u %.4f", (double)yaw_u);
 						}
 					}
@@ -842,13 +856,13 @@ FixedwingAttitudeControl::task_main()
 					/* throttle passed through */
 					_actuators.control[3] = (isfinite(throttle_sp)) ? throttle_sp : 0.0f;
 					if (!isfinite(throttle_sp)) {
-						if (loop_counter % 10 == 0) {
+						if (_debug && loop_counter % 10 == 0) {
 							warnx("throttle_sp %.4f", (double)throttle_sp);
 						}
 					}
 				} else {
 					perf_count(_nonfinite_input_perf);
-					if (loop_counter % 10 == 0) {
+					if (_debug && loop_counter % 10 == 0) {
 						warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", (double)roll_sp, (double)pitch_sp);
 					}
 				}
@@ -921,6 +935,7 @@ FixedwingAttitudeControl::task_main()
 	warnx("exiting.\n");
 
 	_control_task = -1;
+	_task_running = false;
 	_exit(0);
 }
 
@@ -965,6 +980,14 @@ int fw_att_control_main(int argc, char *argv[])
 			att_control::g_control = nullptr;
 			err(1, "start failed");
 		}
+
+		/* avoid memory fragmentation by not exiting start handler until the task has fully started */
+		while (att_control::g_control == nullptr || !att_control::g_control->task_running()) {
+			usleep(50000);
+			printf(".");
+			fflush(stdout);
+		}
+		printf("\n");
 
 		exit(0);
 	}

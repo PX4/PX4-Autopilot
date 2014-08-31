@@ -59,4 +59,11 @@
 /** check publication block status */
 #define DEVIOCGPUBBLOCK	_DEVICEIOC(1)
 
+/**
+ * Return device ID, to enable matching of configuration parameters
+ * (such as compass offsets) to specific sensors
+ */
+#define DEVIOCGDEVICEID	_DEVICEIOC(2)
+
+
 #endif /* _DRV_DEVICE_H */

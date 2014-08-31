@@ -43,7 +43,6 @@ MODULES		+= modules/sensors
 #
 MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/bl_update
-MODULES		+= systemcmds/i2c
 MODULES		+= systemcmds/mixer
 MODULES		+= systemcmds/param
 MODULES		+= systemcmds/perf
@@ -107,6 +106,7 @@ LIBRARIES	+= lib/mathlib/CMSIS
 MODULES		+= lib/mathlib
 MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/ecl
+MODULES		+= lib/external_lgpl
 MODULES		+= lib/geo
 MODULES		+= lib/geo_lookup
 MODULES		+= lib/conversion
@@ -150,5 +150,4 @@ endef
 #                  command                 priority                   stack  entrypoint
 BUILTIN_COMMANDS := \
 	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
-	$(call _B, serdis,                 ,                          2048,  serdis_main                ) \
-	$(call _B, sysinfo,                ,                          2048,  sysinfo_main               )
+	$(call _B, serdis,                 ,                          2048,  serdis_main                )
