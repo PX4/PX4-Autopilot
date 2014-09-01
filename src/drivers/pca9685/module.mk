@@ -1,7 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2013 PX4 Development Team. All rights reserved.
-#   Author: Pavel Kirienko <pavel.kirienko@gmail.com>
+#   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,47 +32,11 @@
 ############################################################################
 
 #
-# UAVCAN <--> uORB bridge
-#
+# Driver for the PCA9685 I2C PWM controller
+# The chip is used on the adafruit I2C PWM converter,
+# which allows to control servos via I2C.
+# https://www.adafruit.com/product/815
 
-MODULE_COMMAND = uavcan
+MODULE_COMMAND	= pca9685
 
-MAXOPTIMIZATION = -Os
-
-# Main
-SRCS += uavcan_main.cpp              \
-        uavcan_clock.cpp             \
-        uavcan_params.c
-
-# Actuators
-SRCS += actuators/esc.cpp
-
-# Sensors
-SRCS += sensors/sensor_bridge.cpp   \
-        sensors/gnss.cpp            \
-        sensors/mag.cpp             \
-        sensors/baro.cpp
-
-#
-# libuavcan
-#
-include $(UAVCAN_DIR)/libuavcan/include.mk
-SRCS += $(LIBUAVCAN_SRC)
-INCLUDE_DIRS += $(LIBUAVCAN_INC)
-# Since actual compiler mode is C++11, the library will default to UAVCAN_CPP11, but it will fail to compile
-# because this platform lacks most of the standard library and STL. Hence we need to force C++03 mode.
-override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_CPP_VERSION=UAVCAN_CPP03 -DUAVCAN_NO_ASSERTIONS
-
-#
-# libuavcan drivers for STM32
-#
-include $(UAVCAN_DIR)/libuavcan_drivers/stm32/driver/include.mk
-SRCS += $(LIBUAVCAN_STM32_SRC)
-INCLUDE_DIRS += $(LIBUAVCAN_STM32_INC)
-override EXTRADEFINES := $(EXTRADEFINES) -DUAVCAN_STM32_NUTTX -DUAVCAN_STM32_NUM_IFACES=2
-
-#
-# Invoke DSDL compiler
-#
-$(info $(shell $(LIBUAVCAN_DSDLC) $(UAVCAN_DSDL_DIR)))
-INCLUDE_DIRS += dsdlc_generated
+SRCS		= pca9685.cpp

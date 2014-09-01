@@ -331,7 +331,7 @@ mag(int argc, char *argv[])
 
 	float len = sqrtf(buf.x * buf.x + buf.y * buf.y + buf.z * buf.z);
 
-	if (len < 1.0f || len > 3.0f) {
+	if (len < 0.25f || len > 3.0f) {
 		warnx("MAG scale error!");
 		return ERROR;
 	}
