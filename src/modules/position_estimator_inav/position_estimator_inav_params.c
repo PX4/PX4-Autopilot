@@ -116,7 +116,7 @@ PARAM_DEFINE_FLOAT(INAV_W_XY_GPS_V, 2.0f);
  * @max 10.0
  * @group Position Estimator INAV
  */
-PARAM_DEFINE_FLOAT(INAV_W_XY_VIS_P, 5.0f);
+PARAM_DEFINE_FLOAT(INAV_W_XY_VIS_P, 7.0f);
 
 /**
  * XY axis weight for vision velocity

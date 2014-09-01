@@ -235,8 +235,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	float eph_flow = 1.0f;
 
-	float eph_vision = 0.5f;
-	float epv_vision = 0.5f;
+	float eph_vision = 0.2f;
+	float epv_vision = 0.2f;
 
 	float x_est_prev[2], y_est_prev[2], z_est_prev[2];
 	memset(x_est_prev, 0, sizeof(x_est_prev));
