@@ -58,6 +58,7 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
+#include <drivers/drv_range_finder.h>
 #ifdef SENSOR_COMBINED_SUB
 #include <uORB/topics/sensor_combined.h>
 #endif
@@ -171,6 +172,7 @@ private:
 #else
 	int		_sensor_combined_sub;
 #endif
+	int		_distance_sub;			/**< distance measurement */
 	int		_airspeed_sub;			/**< airspeed subscription */
 	int		_baro_sub;			/**< barometer subscription */
 	int		_gps_sub;			/**< GPS subscription */
@@ -196,7 +198,8 @@ private:
 	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
 	struct vehicle_local_position_s			_local_pos;		/**< local vehicle position */
 	struct vehicle_gps_position_s			_gps;			/**< GPS position */
-	struct wind_estimate_s				_wind;			/**< Wind estimate */
+	struct wind_estimate_s				_wind;			/**< wind estimate */
+	struct range_finder_report			_distance;		/**< distance estimate */
 
 	struct gyro_scale				_gyro_offsets;
 	struct accel_scale				_accel_offsets;
@@ -226,6 +229,7 @@ private:
 	hrt_abstime					_filter_start_time;
 	hrt_abstime					_last_sensor_timestamp;
 	hrt_abstime					_last_run;
+	hrt_abstime					_distance_last_valid;
 	bool						_gyro_valid;
 	bool						_accel_valid;
 	bool						_mag_valid;
@@ -342,6 +346,7 @@ FixedwingEstimator::FixedwingEstimator() :
 #else
 	_sensor_combined_sub(-1),
 #endif
+	_distance_sub(-1),
 	_airspeed_sub(-1),
 	_baro_sub(-1),
 	_gps_sub(-1),
@@ -399,6 +404,7 @@ FixedwingEstimator::FixedwingEstimator() :
 	_filter_start_time(0),
 	_last_sensor_timestamp(0),
 	_last_run(0),
+	_distance_last_valid(0),
 	_gyro_valid(false),
 	_accel_valid(false),
 	_mag_valid(false),
@@ -549,6 +555,7 @@ FixedwingEstimator::parameters_update()
 		_ekf->gyroProcessNoise = _parameters.gyro_pnoise;
         	_ekf->accelProcessNoise = _parameters.acc_pnoise;
 		_ekf->airspeedMeasurementSigma = _parameters.eas_noise;
+		_ekf->rngFinderPitch = 0.0f; // XXX base on SENS_BOARD_Y_OFF
 	}
 
 	return OK;
@@ -704,6 +711,7 @@ FixedwingEstimator::task_main()
 	/*
 	 * do subscriptions
 	 */
+	_distance_sub = orb_subscribe(ORB_ID(sensor_range_finder));
 	_baro_sub = orb_subscribe(ORB_ID(sensor_baro0));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
@@ -753,6 +761,7 @@ FixedwingEstimator::task_main()
 	bool newHgtData = false;
 	bool newAdsData = false;
 	bool newDataMag = false;
+	bool newRangeData = false;
 
 	float posNED[3] = {0.0f, 0.0f, 0.0f}; // North, East Down position (m)
 
@@ -1114,6 +1123,19 @@ FixedwingEstimator::task_main()
 				newDataMag = false;
 			}
 
+			orb_check(_distance_sub, &newRangeData);
+
+			if (newRangeData) {
+				orb_copy(ORB_ID(sensor_range_finder), _distance_sub, &_distance);
+
+				if (_distance.valid) {
+					_ekf->rngMea = _distance.distance;
+					_distance_last_valid = _distance.timestamp;
+				} else {
+					newRangeData = false;
+				}
+			}
+
 			/*
 			 *    CHECK IF ITS THE RIGHT TIME TO RUN THINGS ALREADY
 			 */
@@ -1334,6 +1356,13 @@ FixedwingEstimator::task_main()
 						_ekf->fuseVtasData = false;
 					}
 
+					if (newRangeData) {
+						_ekf->fuseRngData = true;
+						_ekf->useRangeFinder = true;
+						_ekf->RecallStates(_ekf->statesAtRngTime, (IMUmsec - 500.0f));
+						_ekf->FuseRangeFinder();
+					}
+
 
 					// Output results
 					math::Quaternion q(_ekf->states[0], _ekf->states[1], _ekf->states[2], _ekf->states[3]);
@@ -1447,6 +1476,10 @@ FixedwingEstimator::task_main()
 							_global_pos.vel_d = _local_pos.vz;
 						}
 
+						/* terrain altitude */
+						_global_pos.terrain_alt = _ekf->states[22];
+						_global_pos.terrain_alt_valid = (_distance_last_valid > 0) &&
+						(hrt_elapsed_time(&_distance_last_valid) < 20 * 1000 * 1000);
 
 						_global_pos.yaw = _local_pos.yaw;
 
