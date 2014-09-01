@@ -668,6 +668,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					corr_vision[2][0] = vision_p.z - z_est[0];
 				}
 				
+				updated = false;
+				
 				/* vehicle vision speed */
 				orb_check(vision_speed_estimate_sub, &updated);
 				
@@ -866,6 +868,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		bool dist_bottom_valid = (t < sonar_valid_time + sonar_valid_timeout);
 
+		
 		if (dist_bottom_valid) {
 			/* surface distance prediction */
 			surface_offset += surface_offset_rate * dt;
@@ -895,6 +898,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		/* baro offset correction */
 		if (use_gps_z) {
 			float offs_corr = corr_gps[2][0] * w_z_gps_p * dt;
+			baro_offset += offs_corr;
+			corr_baro += offs_corr;
+		}
+		
+		if (use_vision_p_z) {
+			float offs_corr = corr_vision[2][0] * w_z_vision_p * dt;
 			baro_offset += offs_corr;
 			corr_baro += offs_corr;
 		}
@@ -946,7 +955,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 		
 		if (use_vision_s_z) {
-			accel_bias_corr[2] -= corr_vision[2][1] * w_z_vision_s * w_z_vision_s;
+			accel_bias_corr[2] -= corr_vision[2][1] * w_z_vision_s;
 		}
 
 		/* transform error vector from NED frame to body frame */
@@ -1000,16 +1009,19 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (use_gps_z) {
 			epv = fminf(epv, gps.epv);
-
+			
 			inertial_filter_correct(corr_gps[2][0], dt, z_est, 0, w_z_gps_p);
 		}
 
 		if (use_vision_p_z) {
 			epv = fminf(epv, epv_vision);
+			
 			inertial_filter_correct(corr_vision[2][0], dt, z_est, 0, w_z_vision_p);
 		}
 		
 		if (use_vision_s_z) {
+			epv = fminf(epv, epv_vision);
+			
 			inertial_filter_correct(corr_vision[2][1], dt, z_est, 1, w_z_vision_s);
 		}
 
@@ -1057,12 +1069,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (use_vision_p_xy) {
 				eph = fminf(eph, eph_vision);
-
+				
 				inertial_filter_correct(corr_vision[0][0], dt, x_est, 0, w_xy_vision_p);
 				inertial_filter_correct(corr_vision[1][0], dt, y_est, 0, w_xy_vision_p);
 			}
 			
 			if (use_vision_s_xy) {
+				eph = fminf(eph, eph_vision);
+				
 				inertial_filter_correct(corr_vision[0][1], dt, x_est, 1, w_xy_vision_s);
 				inertial_filter_correct(corr_vision[1][1], dt, y_est, 1, w_xy_vision_s);
 			}
