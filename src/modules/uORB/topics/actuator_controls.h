@@ -74,5 +74,7 @@ ORB_DECLARE(actuator_controls_0);
 ORB_DECLARE(actuator_controls_1);
 ORB_DECLARE(actuator_controls_2);
 ORB_DECLARE(actuator_controls_3);
+ORB_DECLARE(actuator_controls_4);
+ORB_DECLARE(actuator_controls_5);
 
 #endif
