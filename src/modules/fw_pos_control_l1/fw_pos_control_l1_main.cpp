@@ -88,7 +88,6 @@
 #include <launchdetection/LaunchDetector.h>
 #include <ecl/l1/ecl_l1_pos_controller.h>
 #include <external_lgpl/tecs/tecs.h>
-#include <drivers/drv_range_finder.h>
 #include "landingslope.h"
 #include "mtecs/mTecs.h"
 
@@ -143,7 +142,6 @@ private:
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_control_sub;		/**< notification of manual control updates */
 	int		_sensor_combined_sub;		/**< for body frame accelerations */
-	int		_range_finder_sub;		/**< range finder subscription */
 
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint */
 	orb_advert_t	_tecs_status_pub;		/**< TECS status publication */
@@ -158,7 +156,6 @@ private:
 	struct vehicle_global_position_s		_global_pos;			/**< global vehicle position */
 	struct position_setpoint_triplet_s		_pos_sp_triplet;		/**< triplet of mission items */
 	struct sensor_combined_s			_sensor_combined;		/**< for body frame accelerations */
-	struct range_finder_report 			_range_finder;			/**< range finder report */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -239,7 +236,6 @@ private:
 		float land_flare_alt_relative;
 		float land_thrust_lim_alt_relative;
 		float land_heading_hold_horizontal_distance;
-		float range_finder_rel_alt;
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -284,7 +280,6 @@ private:
 		param_t land_flare_alt_relative;
 		param_t land_thrust_lim_alt_relative;
 		param_t land_heading_hold_horizontal_distance;
-		param_t range_finder_rel_alt;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -311,12 +306,6 @@ private:
 	bool		vehicle_airspeed_poll();
 
 	/**
-	 * Check for range finder updates.
-	 */
-	bool		range_finder_poll();
-
-
-	/**
 	 * Check for position updates.
 	 */
 	void		vehicle_attitude_poll();
@@ -337,9 +326,9 @@ private:
 	void navigation_capabilities_publish();
 
 	/**
-	 * Get the relative alt either from the difference between estimate and waypoint or from the laser range finder
+	 * Return the terrain estimate during landing: uses the wp altitude value or the terrain estimate if available
 	 */
-	float get_relative_landingalt(float land_setpoint_alt, float current_alt, const struct range_finder_report &range_finder, float range_finder_use_relative_alt);
+	float get_terrain_altitude_landing(float land_setpoint_alt, const struct vehicle_global_position_s &global_pos);
 
 	/**
 	 * Control position.
@@ -411,7 +400,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_params_sub(-1),
 	_manual_control_sub(-1),
 	_sensor_combined_sub(-1),
-	_range_finder_sub(-1),
 
 /* publications */
 	_attitude_sp_pub(-1),
@@ -428,7 +416,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_global_pos(),
 	_pos_sp_triplet(),
 	_sensor_combined(),
-	_range_finder(),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
@@ -477,7 +464,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_flare_alt_relative = param_find("FW_LND_FLALT");
 	_parameter_handles.land_thrust_lim_alt_relative = param_find("FW_LND_TLALT");
 	_parameter_handles.land_heading_hold_horizontal_distance = param_find("FW_LND_HHDIST");
-	_parameter_handles.range_finder_rel_alt = param_find("FW_LND_RFRALT");
 
 	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
 	_parameter_handles.time_const_throt = 			param_find("FW_T_THRO_CONST");
@@ -577,8 +563,6 @@ FixedwingPositionControl::parameters_update()
 
 	param_get(_parameter_handles.land_heading_hold_horizontal_distance, &(_parameters.land_heading_hold_horizontal_distance));
 
-	param_get(_parameter_handles.range_finder_rel_alt, &(_parameters.range_finder_rel_alt));
-
 	_l1_control.set_l1_damping(_parameters.l1_damping);
 	_l1_control.set_l1_period(_parameters.l1_period);
 	_l1_control.set_l1_roll_limit(math::radians(_parameters.roll_limit));
@@ -667,20 +651,6 @@ FixedwingPositionControl::vehicle_airspeed_poll()
 	_tecs.enable_airspeed(_airspeed_valid);
 
 	return airspeed_updated;
-}
-
-bool
-FixedwingPositionControl::range_finder_poll()
-{
-	/* check if there is a range finder measurement */
-	bool range_finder_updated;
-	orb_check(_range_finder_sub, &range_finder_updated);
-
-	if (range_finder_updated) {
-		orb_copy(ORB_ID(sensor_range_finder), _range_finder_sub, &_range_finder);
-	}
-
-	return range_finder_updated;
 }
 
 void
@@ -820,21 +790,14 @@ void FixedwingPositionControl::navigation_capabilities_publish()
 	}
 }
 
-float FixedwingPositionControl::get_relative_landingalt(float land_setpoint_alt, float current_alt, const struct range_finder_report &range_finder, float range_finder_use_relative_alt)
+float FixedwingPositionControl::get_terrain_altitude_landing(float land_setpoint_alt, const struct vehicle_global_position_s &global_pos)
 {
-	float rel_alt_estimated = current_alt - land_setpoint_alt;
-
-	/* only use range finder if:
-	 * parameter (range_finder_use_relative_alt) > 0
-	 * the measurement is valid
-	 * the estimated relative altitude (from global altitude estimate and landing waypoint) <= range_finder_use_relative_alt
-	 */
-	if (range_finder_use_relative_alt < 0 || !range_finder.valid || range_finder.distance > range_finder_use_relative_alt ) {
-		return rel_alt_estimated;
+	if (global_pos.terrain_alt_valid &&
+			isfinite(global_pos.terrain_alt)) {
+		return global_pos.terrain_alt;
+	} else {
+		return land_setpoint_alt;
 	}
-
-	return range_finder.distance;
-
 }
 
 bool
@@ -991,15 +954,19 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			float airspeed_land = 1.3f * _parameters.airspeed_min;
 			float airspeed_approach = 1.3f * _parameters.airspeed_min;
 
+			/* Get an estimate of the terrain altitude if available, otherwise terrain_alt will be
+			 * equal to _pos_sp_triplet.current.alt */
+			float terrain_alt = get_terrain_altitude_landing(_pos_sp_triplet.current.alt, _global_pos);
+
 			/* Calculate distance (to landing waypoint) and altitude of last ordinary waypoint L */
-			float L_altitude_rel = _pos_sp_triplet.previous.valid ? _pos_sp_triplet.previous.alt - _pos_sp_triplet.current.alt : 0.0f;
+			float L_altitude_rel = _pos_sp_triplet.previous.valid ?
+				_pos_sp_triplet.previous.alt - terrain_alt : 0.0f;
 
 			float bearing_airplane_currwp = get_bearing_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
 			float landing_slope_alt_rel_desired = landingslope.getLandingSlopeRelativeAltitudeSave(wp_distance, bearing_lastwp_currwp, bearing_airplane_currwp);
 
-			float relative_alt = get_relative_landingalt(_pos_sp_triplet.current.alt, _global_pos.alt, _range_finder, _parameters.range_finder_rel_alt);
 
-			if ( (relative_alt < landingslope.flare_relative_alt()) || land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
+			if ( (_global_pos.alt < terrain_alt + landingslope.flare_relative_alt()) || land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
 
 				/* land with minimal speed */
 
@@ -1009,7 +976,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				/* kill the throttle if param requests it */
 				throttle_max = _parameters.throttle_max;
 
-				 if (relative_alt < landingslope.motor_lim_relative_alt() || land_motor_lim) {
+				 if (_global_pos.alt < terrain_alt + landingslope.motor_lim_relative_alt() || land_motor_lim) {
 					throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
 					if (!land_motor_lim) {
 						land_motor_lim  = true;
@@ -1027,12 +994,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					land_stayonground = true;
 				}
 
-				tecs_update_pitch_throttle(_pos_sp_triplet.current.alt + flare_curve_alt_rel,
+				tecs_update_pitch_throttle(terrain_alt + flare_curve_alt_rel,
 						calculate_target_airspeed(airspeed_land), eas2tas,
 						flare_pitch_angle_rad, math::radians(15.0f),
 						0.0f, throttle_max, throttle_land,
 						false, flare_pitch_angle_rad,
-						_pos_sp_triplet.current.alt + relative_alt, ground_speed,
+						_global_pos.alt, ground_speed,
 						land_motor_lim ? TECS_MODE_LAND_THROTTLELIM : TECS_MODE_LAND);
 
 				if (!land_noreturn_vertical) {
@@ -1053,8 +1020,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				  * if current position is below the slope continue at previous wp altitude
 				  * until the intersection with slope
 				  * */
-				float altitude_desired_rel = relative_alt;
-				if (relative_alt > landing_slope_alt_rel_desired || land_onslope) {
+				float altitude_desired_rel;
+				if (_global_pos.alt > terrain_alt + landing_slope_alt_rel_desired || land_onslope) {
 					/* stay on slope */
 					altitude_desired_rel = landing_slope_alt_rel_desired;
 					if (!land_onslope) {
@@ -1063,10 +1030,11 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					}
 				} else {
 					/* continue horizontally */
-					altitude_desired_rel =  _pos_sp_triplet.previous.valid ? L_altitude_rel : relative_alt;
+					altitude_desired_rel =  _pos_sp_triplet.previous.valid ? L_altitude_rel :
+						_global_pos.alt - terrain_alt;
 				}
 
-				tecs_update_pitch_throttle(_pos_sp_triplet.current.alt + altitude_desired_rel,
+				tecs_update_pitch_throttle(terrain_alt + altitude_desired_rel,
 						calculate_target_airspeed(airspeed_approach), eas2tas,
 						math::radians(_parameters.pitch_limit_min),
 						math::radians(_parameters.pitch_limit_max),
@@ -1075,7 +1043,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						_parameters.throttle_cruise,
 						false,
 						math::radians(_parameters.pitch_limit_min),
-						_pos_sp_triplet.current.alt + relative_alt,
+						_global_pos.alt,
 						ground_speed);
 			}
 
@@ -1221,7 +1189,6 @@ FixedwingPositionControl::task_main()
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	_range_finder_sub = orb_subscribe(ORB_ID(sensor_range_finder));
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_control_mode_sub, 200);
@@ -1295,7 +1262,6 @@ FixedwingPositionControl::task_main()
 			vehicle_setpoint_poll();
 			vehicle_sensor_combined_poll();
 			vehicle_airspeed_poll();
-			range_finder_poll();
 			// vehicle_baro_poll();
 
 			math::Vector<3> ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);
