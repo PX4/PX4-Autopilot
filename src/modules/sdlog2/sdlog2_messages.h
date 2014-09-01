@@ -468,7 +468,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(EST1, "ffffffffffffffff",	"s12,s13,s14,s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27"),
 	LOG_FORMAT(PWR, "fffBBBBB",		"Periph5V,Servo5V,RSSI,UsbOk,BrickOk,ServoOk,PeriphOC,HipwrOC"),
 	LOG_FORMAT(VICN, "ffffff",		"X,Y,Z,Roll,Pitch,Yaw"),
-	LOG_FORMAT(VISN, "fffffff",		"X,Y,Z,QuatX,QuatY,QuatZ,QuatW"),
+	LOG_FORMAT(VISN, "fffffff",		"X,Y,Z,QX,QY,QZ,QW"),
 	LOG_FORMAT(VISS, "fff",			"VX,VY,VZ"),
 	LOG_FORMAT(GS0A, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),
 	LOG_FORMAT(GS0B, "BBBBBBBBBBBBBBBB",	"s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15"),

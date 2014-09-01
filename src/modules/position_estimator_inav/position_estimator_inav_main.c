@@ -933,8 +933,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (use_vision_p_xy) {
 			accel_bias_corr[0] -= corr_vision[0][0] * w_xy_vision_p * w_xy_vision_p;
+			accel_bias_corr[1] -= corr_vision[1][0] * w_xy_vision_p * w_xy_vision_p;	
+		}
+		
+		if (use_vision_s_xy) {
 			accel_bias_corr[0] -= corr_vision[0][1] * w_xy_vision_s;
-			accel_bias_corr[1] -= corr_vision[1][0] * w_xy_vision_p * w_xy_vision_p;
 			accel_bias_corr[1] -= corr_vision[1][1] * w_xy_vision_s;
 		}
 
