@@ -62,6 +62,8 @@ void adjustUtc(uavcan::UtcDuration adjustment)
 	(void)adjustment;
 }
 
+uavcan::uint64_t getUtcUSecFromCanInterrupt();
+
 uavcan::uint64_t getUtcUSecFromCanInterrupt()
 {
 	return 0;

@@ -172,7 +172,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_request_data_stream(msg);
 		break;
 
-	case MAVLINK_MSG_ID_ENCAPSULATED_DATA:
+	case MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL:
 		MavlinkFTP::getServer()->handle_message(_mavlink, msg);
 		break;
 
