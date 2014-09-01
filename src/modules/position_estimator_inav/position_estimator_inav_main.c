@@ -248,7 +248,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int baro_init_cnt = 0;
 	int baro_init_num = 200;
 	float baro_offset = 0.0f;		// baro offset for reference altitude, initialized on start, then adjusted
-	float surface_offset = 0.0f;	// ground level offset from reference altitude
+	float vision_z_offset = 0.0f;		// vision.Z offset for reference altitude, initialized on start, then adjusted
+	float surface_offset = 0.0f;		// ground level offset from reference altitude
 	float surface_offset_rate = 0.0f;	// surface offset change rate
 	float alt_avg = 0.0f;
 	bool landed = true;
@@ -256,6 +257,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	hrt_abstime accel_timestamp = 0;
 	hrt_abstime baro_timestamp = 0;
+	//hrt_abstime vision_p_timestamp = 0;
 
 	bool ref_inited = false;
 	hrt_abstime ref_init_start = 0;
@@ -269,6 +271,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	uint16_t gps_updates = 0;
 	uint16_t attitude_updates = 0;
 	uint16_t flow_updates = 0;
+	uint16_t vision_p_updates = 0;
 
 	hrt_abstime updates_counter_start = hrt_absolute_time();
 	hrt_abstime pub_last = hrt_absolute_time();
@@ -646,26 +649,32 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				if (updated) {
 					orb_copy(ORB_ID(vision_position_estimate), vision_position_estimate_sub, &vision_p);
-
-					/* reset position estimate on first vision update */
-					if (!vision_p_valid) {
-						x_est[0] = vision_p.x;
-						y_est[0] = vision_p.y;
-						
-						/* only reset the z estimate if the z weight parameter is not zero */ 
-						if (params.w_z_vision_p > MIN_VALID_W) {
-							z_est[0] = vision_p.z;
+					
+					// XXX TODO: check timestamp
+					//if (vision_p.timestamp_computer != vision_p_timestamp) {
+						/* reset position estimate on first vision update */
+						if (!vision_p_valid) {
+							x_est[0] = vision_p.x;
+							y_est[0] = vision_p.y;
+							
+							/* only reset the z estimate if the z weight parameter is not zero */ 
+							if (params.w_z_vision_p > MIN_VALID_W) {
+								corr_vision[2][0] = vision_z_offset - vision_p.z - z_est[0];
+								//z_est[0] = vision_p.z;
+							}
+							
+							vision_p_valid = true;
+							warnx("VISION POSITION estimate valid");
+							mavlink_log_info(mavlink_fd, "[inav] VISION POSITION estimate valid");
 						}
-						
-						vision_p_valid = true;
-						warnx("VISION POSITION estimate valid");
-						mavlink_log_info(mavlink_fd, "[inav] VISION POSITION estimate valid");
-					}
 
-					/* calculate correction for position */
-					corr_vision[0][0] = vision_p.x - x_est[0];
-					corr_vision[1][0] = vision_p.y - y_est[0];
-					corr_vision[2][0] = vision_p.z - z_est[0];
+						/* calculate correction for position */
+						corr_vision[0][0] = vision_p.x - x_est[0];
+						corr_vision[1][0] = vision_p.y - y_est[0];
+						//corr_vision[2][0] = vision_p.z - z_est[0];
+					//}
+					//vision_p_timestamp = vision_p.timestamp_computer;
+					vision_p_updates++;
 				}
 				
 				updated = false;
@@ -1138,18 +1147,20 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (t > updates_counter_start + updates_counter_len) {
 				float updates_dt = (t - updates_counter_start) * 0.000001f;
 				warnx(
-					"updates rate: accelerometer = %.1f/s, baro = %.1f/s, gps = %.1f/s, attitude = %.1f/s, flow = %.1f/s",
+					"updates rate: accelerometer = %.1f/s, baro = %.1f/s, gps = %.1f/s, attitude = %.1f/s, flow = %.1f/s, vision_p = %.1f/s",
 					(double)(accel_updates / updates_dt),
 					(double)(baro_updates / updates_dt),
 					(double)(gps_updates / updates_dt),
 					(double)(attitude_updates / updates_dt),
-					(double)(flow_updates / updates_dt));
+					(double)(flow_updates / updates_dt),
+					(double)(vision_p_updates / updates_dt));
 				updates_counter_start = t;
 				accel_updates = 0;
 				baro_updates = 0;
 				gps_updates = 0;
 				attitude_updates = 0;
 				flow_updates = 0;
+				vision_p_updates = 0;
 			}
 		}
 
