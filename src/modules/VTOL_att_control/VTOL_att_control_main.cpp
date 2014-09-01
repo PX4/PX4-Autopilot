@@ -229,16 +229,17 @@ void VtolAttitudeControl::fill_mc_att_control_output()
 
 void VtolAttitudeControl::fill_fw_att_control_output()
 {
-	//have to do some modifications here:
+	//!!!TESTING:
+	//still have to do some modifications here:
 	//since we are using the same mixer for mc and fw, need to translate the desired torques coming from the fw controller
 	//example: the roll axis of a VTOL in mc mode is equal to the yaw axis in fw mode
 	//so if we want the VTOL to yaw in fw mode, we need to tell the mc mixer (which is used here) to actually roll.
-	_actuators_out_0.control[0] = _actuators_fw_in.control[0];
+	_actuators_out_0.control[0] = _actuators_fw_in.control[2];
 	_actuators_out_0.control[1] = _actuators_fw_in.control[1];
-	_actuators_out_0.control[2] = _actuators_fw_in.control[2];
+	_actuators_out_0.control[2] = _actuators_fw_in.control[0];
 	_actuators_out_0.control[3] = _actuators_fw_in.control[3];
-//	_actuators_out_1.control[0] = _actuators_fw_in.control[0];	//roll
-	//_actuators_out_1.control[1] = _actuators_fw_in.control[1];	//pitch
+	_actuators_out_1.control[0] = _actuators_fw_in.control[0];	//roll elevon
+	_actuators_out_1.control[1] = _actuators_fw_in.control[1];	//pitch elevon
 }
 
 
@@ -320,11 +321,17 @@ void VtolAttitudeControl::task_main()
 				{
 					fill_fw_att_control_output();
 
-					if (_actuators_1_pub > 0) {
+					if (_actuators_0_pub > 0) {
 						orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
 					} else
 					{
-						_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0);
+						_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0);
+					}
+					if (_actuators_1_pub > 0) {
+						orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_out_1);
+					} else
+					{
+						_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_out_1);
 					}
 				}
 		}
