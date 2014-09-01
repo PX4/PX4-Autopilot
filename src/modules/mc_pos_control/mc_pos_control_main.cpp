@@ -222,6 +222,11 @@ private:
 	void		reset_alt_sp();
 
 	/**
+	 * Check if position setpoint is too far from current position and adjust it if needed.
+	 */
+	void		limit_pos_sp_offset();
+
+	/**
 	 * Set position setpoint using manual control
 	 */
 	void		control_manual(float dt);
@@ -541,6 +546,29 @@ MulticopterPositionControl::reset_alt_sp()
 		_reset_alt_sp = false;
 		_pos_sp(2) = _pos(2) + (_vel(2) - _params.vel_ff(2) * _sp_move_rate(2)) / _params.pos_p(2);
 		mavlink_log_info(_mavlink_fd, "[mpc] reset alt sp: %.2f", -(double)_pos_sp(2));
+	}
+}
+
+void
+MulticopterPositionControl::limit_pos_sp_offset()
+{
+	math::Vector<3> pos_sp_offs;
+	pos_sp_offs.zero();
+
+	if (_control_mode.flag_control_position_enabled) {
+		pos_sp_offs(0) = (_pos_sp(0) - _pos(0)) / _params.sp_offs_max(0);
+		pos_sp_offs(1) = (_pos_sp(1) - _pos(1)) / _params.sp_offs_max(1);
+	}
+
+	if (_control_mode.flag_control_altitude_enabled) {
+		pos_sp_offs(2) = (_pos_sp(2) - _pos(2)) / _params.sp_offs_max(2);
+	}
+
+	float pos_sp_offs_norm = pos_sp_offs.length();
+
+	if (pos_sp_offs_norm > 1.0f) {
+		pos_sp_offs /= pos_sp_offs_norm;
+		_pos_sp = _pos + pos_sp_offs.emult(_params.sp_offs_max);
 	}
 }
 
