@@ -7,7 +7,7 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-set MIXER FMU_quad_x
+set MIXER FMU_quadshot
 
 set PWM_OUTPUTS 1234
 set PWM_MIN 1040
