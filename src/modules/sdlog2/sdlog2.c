@@ -1432,6 +1432,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_GPOS.vel_d = buf.global_pos.vel_d;
 			log_msg.body.log_GPOS.eph = buf.global_pos.eph;
 			log_msg.body.log_GPOS.epv = buf.global_pos.epv;
+			if (buf.global_pos.terrain_alt_valid) {
+				log_msg.body.log_GPOS.terrain_alt = buf.global_pos.terrain_alt;
+			} else {
+				log_msg.body.log_GPOS.terrain_alt = -1.0f;
+			}
 			LOGBUFFER_WRITE_AND_COUNT(GPOS);
 		}
 
@@ -1464,7 +1469,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_VICN.yaw = buf.vicon_pos.yaw;
 			LOGBUFFER_WRITE_AND_COUNT(VICN);
 		}
-		
+
 		/* --- VISION POSITION --- */
 		if (copy_if_updated(ORB_ID(vision_position_estimate), subs.vision_pos_sub, &buf.vision_pos)) {
 			log_msg.msg_type = LOG_VISN_MSG;
