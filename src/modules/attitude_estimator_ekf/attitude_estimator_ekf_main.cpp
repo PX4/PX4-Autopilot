@@ -457,7 +457,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						orb_copy(ORB_ID(vision_position_estimate), vision_sub, &vision);
 					}
 
-					if (vision.timestamp_boot > 0 && (hrt_elapsed_time(&vision.timestamp_boot) < 500000) && gps.eph > 3.0f) {
+					if (vision.timestamp_boot > 0 && (hrt_elapsed_time(&vision.timestamp_boot) < 500000)) {
 
 						math::Quaternion q(vision.q);
 						math::Matrix<3, 3> R = q.to_dcm();
