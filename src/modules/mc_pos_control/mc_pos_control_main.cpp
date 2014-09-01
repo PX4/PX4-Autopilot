@@ -180,6 +180,7 @@ private:
 
 	bool _reset_pos_sp;
 	bool _reset_alt_sp;
+	bool _mode_auto;
 
 	math::Vector<3> _pos;
 	math::Vector<3> _pos_sp;
@@ -292,7 +293,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_ref_timestamp(0),
 
 	_reset_pos_sp(true),
-	_reset_alt_sp(true)
+	_reset_alt_sp(true),
+	_mode_auto(false)
 {
 	memset(&_att, 0, sizeof(_att));
 	memset(&_att_sp, 0, sizeof(_att_sp));
@@ -684,6 +686,13 @@ MulticopterPositionControl::cross_sphere_line(const math::Vector<3>& sphere_c, f
 void
 MulticopterPositionControl::control_auto(float dt)
 {
+	if (!_mode_auto) {
+		_mode_auto = true;
+		/* reset position setpoint on AUTO mode activation */
+		reset_pos_sp();
+		reset_alt_sp();
+	}
+
 	bool updated;
 	orb_check(_pos_sp_triplet_sub, &updated);
 
@@ -807,9 +816,7 @@ MulticopterPositionControl::control_auto(float dt)
 		}
 
 	} else {
-		/* no waypoint, loiter, reset position setpoint if needed */
-		reset_pos_sp();
-		reset_alt_sp();
+		/* no waypoint, do nothing, setpoint was already reset */
 	}
 }
 
@@ -916,10 +923,12 @@ MulticopterPositionControl::task_main()
 			if (_control_mode.flag_control_manual_enabled) {
 				/* manual control */
 				control_manual(dt);
+				_mode_auto = false;
 
 			} else if (_control_mode.flag_control_offboard_enabled) {
 				/* offboard control */
 				control_offboard(dt);
+				_mode_auto = false;
 
 			} else {
 				/* AUTO */
@@ -1271,9 +1280,9 @@ MulticopterPositionControl::task_main()
 			/* position controller disabled, reset setpoints */
 			_reset_alt_sp = true;
 			_reset_pos_sp = true;
+			_mode_auto = false;
 			reset_int_z = true;
 			reset_int_xy = true;
-
 		}
 
 		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */
