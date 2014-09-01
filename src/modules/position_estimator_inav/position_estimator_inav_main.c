@@ -659,7 +659,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							
 							/* only reset the z estimate if the z weight parameter is not zero */ 
 							if (params.w_z_vision_p > MIN_VALID_W) {
-								corr_vision[2][0] = vision_z_offset - vision_p.z - z_est[0];
+								z_est[0] = vision_z_offset;
 								//z_est[0] = vision_p.z;
 							}
 							
@@ -671,6 +671,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						/* calculate correction for position */
 						corr_vision[0][0] = vision_p.x - x_est[0];
 						corr_vision[1][0] = vision_p.y - y_est[0];
+						corr_vision[2][0] = vision_z_offset - vision_p.z - z_est[0];
 						//corr_vision[2][0] = vision_p.z - z_est[0];
 					//}
 					//vision_p_timestamp = vision_p.timestamp_computer;
