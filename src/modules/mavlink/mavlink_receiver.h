@@ -112,6 +112,7 @@ private:
 	void handle_message_command_long(mavlink_message_t *msg);
 	void handle_message_command_int(mavlink_message_t *msg);
 	void handle_message_optical_flow(mavlink_message_t *msg);
+	void handle_message_hil_optical_flow(mavlink_message_t *msg);
 	void handle_message_set_mode(mavlink_message_t *msg);
 	void handle_message_vicon_position_estimate(mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
@@ -142,6 +143,7 @@ private:
 	orb_advert_t _battery_pub;
 	orb_advert_t _cmd_pub;
 	orb_advert_t _flow_pub;
+	orb_advert_t _range_pub;
 	orb_advert_t _offboard_control_sp_pub;
 	orb_advert_t _local_pos_sp_pub;
 	orb_advert_t _global_vel_sp_pub;

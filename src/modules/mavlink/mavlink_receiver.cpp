@@ -54,6 +54,7 @@
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
+#include <drivers/drv_range_finder.h>
 #include <time.h>
 #include <float.h>
 #include <unistd.h>
@@ -102,6 +103,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_battery_pub(-1),
 	_cmd_pub(-1),
 	_flow_pub(-1),
+	_range_pub(-1),
 	_offboard_control_sp_pub(-1),
 	_local_pos_sp_pub(-1),
 	_global_vel_sp_pub(-1),
@@ -198,6 +200,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 		case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
 			handle_message_hil_state_quaternion(msg);
+			break;
+
+		case MAVLINK_MSG_ID_HIL_OPTICAL_FLOW:
+			handle_message_hil_optical_flow(msg);
 			break;
 
 		default:
@@ -364,6 +370,52 @@ MavlinkReceiver::handle_message_optical_flow(mavlink_message_t *msg)
 }
 
 void
+MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
+{
+	/* optical flow */
+	mavlink_hil_optical_flow_t flow;
+	mavlink_msg_hil_optical_flow_decode(msg, &flow);
+
+	struct optical_flow_s f;
+	memset(&f, 0, sizeof(f));
+
+	f.timestamp = hrt_absolute_time();
+	f.flow_timestamp = flow.time_usec;
+	f.flow_raw_x = flow.flow_x;
+	f.flow_raw_y = flow.flow_y;
+	f.flow_comp_x_m = flow.flow_comp_m_x;
+	f.flow_comp_y_m = flow.flow_comp_m_y;
+	f.ground_distance_m = flow.ground_distance;
+	f.quality = flow.quality;
+	f.sensor_id = flow.sensor_id;
+
+	if (_flow_pub < 0) {
+		_flow_pub = orb_advertise(ORB_ID(optical_flow), &f);
+
+	} else {
+		orb_publish(ORB_ID(optical_flow), _flow_pub, &f);
+	}
+
+	struct range_finder_report r;
+	memset(&r, 0, sizeof(f));
+
+	r.timestamp = hrt_absolute_time();
+	r.error_count = 0;
+	r.type = RANGE_FINDER_TYPE_LASER;
+	r.distance = flow.ground_distance;
+	r.minimum_distance = 0.0f;
+	r.maximum_distance = 40.0f; // this is set to match the typical range of real sensors, could be made configurable
+	r.valid = (r.distance > r.minimum_distance) && (r.distance < r.maximum_distance);
+
+	if (_range_pub < 0) {
+		_range_pub = orb_advertise(ORB_ID(sensor_range_finder), &r);
+
+	} else {
+		orb_publish(ORB_ID(sensor_range_finder), _range_pub, &r);
+	}
+}
+
+void
 MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 {
 	mavlink_set_mode_t new_mode;
@@ -444,7 +496,7 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	vision_position.vx = 0.0f;
 	vision_position.vy = 0.0f;
 	vision_position.vz = 0.0f;
-	
+
 	math::Quaternion q;
 	q.from_euler(pos.roll, pos.pitch, pos.yaw);
 
