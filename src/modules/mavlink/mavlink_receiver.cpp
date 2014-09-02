@@ -396,6 +396,7 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 		orb_publish(ORB_ID(optical_flow), _flow_pub, &f);
 	}
 
+	/* Use distance value for range finder report */
 	struct range_finder_report r;
 	memset(&r, 0, sizeof(f));
 
@@ -409,7 +410,6 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 
 	if (_range_pub < 0) {
 		_range_pub = orb_advertise(ORB_ID(sensor_range_finder), &r);
-
 	} else {
 		orb_publish(ORB_ID(sensor_range_finder), _range_pub, &r);
 	}
