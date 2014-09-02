@@ -1370,7 +1370,7 @@ FixedwingEstimator::task_main()
 						_ekf->fuseRngData = true;
 						_ekf->useRangeFinder = true;
 						_ekf->RecallStates(_ekf->statesAtRngTime, (IMUmsec - 500.0f));
-						_ekf->FuseRangeFinder();
+						_ekf->GroundEKF();
 					}
 
 
@@ -1487,7 +1487,7 @@ FixedwingEstimator::task_main()
 						}
 
 						/* terrain altitude */
-						_global_pos.terrain_alt = _ekf->states[22];
+						_global_pos.terrain_alt = _ekf->hgtRef - _ekf->flowStates[1];
 						_global_pos.terrain_alt_valid = (_distance_last_valid > 0) &&
 						(hrt_elapsed_time(&_distance_last_valid) < 20 * 1000 * 1000);
 
