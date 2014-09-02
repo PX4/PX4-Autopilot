@@ -80,6 +80,14 @@ public:
         airspeedMeasurementSigma = 1.4f;
         gyroProcessNoise = 1.4544411e-2f;
         accelProcessNoise = 0.5f;
+
+        gndHgtSigma  = 0.1f; // terrain gradient 1-sigma
+        R_LOS = 0.03f; // optical flow measurement noise variance (rad/sec)^2
+        flowInnovGate = 3.0f; // number of standard deviations applied to the optical flow innovation consistency check
+        auxFlowInnovGate = 10.0f; // number of standard deviations applied to the optical flow innovation consistency check used by the auxiliary filter
+        rngInnovGate = 5.0f; // number of standard deviations applied to the rnage finder innovation consistency check
+        minFlowRng = 0.01f; //minimum range between ground and flow sensor
+        moCompR_LOS = 0.2; // scaler from sensor gyro rate to uncertainty in LOS rate
     }
 
     struct mag_state_struct {
@@ -116,13 +124,16 @@ public:
     float storedStates[n_states][data_buffer_size]; // state vectors stored for the last 50 time steps
     uint32_t statetimeStamp[data_buffer_size]; // time stamp for each state vector stored
 
+    // Times
+    uint64_t lastVelPosFusion;  // the time of the last velocity fusion, in the standard time unit of the filter
+
     float statesAtVelTime[n_states]; // States at the effective measurement time for posNE and velNED measurements
     float statesAtPosTime[n_states]; // States at the effective measurement time for posNE and velNED measurements
     float statesAtHgtTime[n_states]; // States at the effective measurement time for the hgtMea measurement
     float statesAtMagMeasTime[n_states]; // filter satates at the effective measurement time
     float statesAtVtasMeasTime[n_states]; // filter states at the effective measurement time
     float statesAtRngTime[n_states]; // filter states at the effective measurement time
-    float statesAtOptFlowTime[n_states]; // States at the effective optical flow measurement time
+    float statesAtFlowTime[n_states]; // States at the effective optical flow measurement time
 
     Vector3f correctedDelAng; // delta angles about the xyz body axes corrected for errors (rad)
     Vector3f correctedDelVel; // delta velocities along the XYZ body axes corrected for errors (m/s)
@@ -140,7 +151,16 @@ public:
     Vector3f accel; // acceleration vector in XYZ body axes measured by the IMU (m/s^2)
     Vector3f dVelIMU;
     Vector3f dAngIMU;
-    float dtIMU; // time lapsed since the last IMU measurement or covariance update (sec)
+    float dtIMU; // time lapsed since the last IMU measurement or covariance update (sec), this may have significant jitter
+    float dtIMUfilt; // average time between IMU measurements (sec)
+    float dtVelPos; // time lapsed since the last position / velocity fusion (seconds), this may have significant jitter
+    float dtVelPosFilt; // average time between position / velocity fusion steps
+    float dtHgtFilt; // average time between height measurement updates
+    float dtGpsFilt; // average time between gps measurement updates
+    float windSpdFiltNorth; // average wind speed north component
+    float windSpdFiltEast; // average wind speed east component
+    float windSpdFiltAltitude; // the last altitude used to filter wind speed
+    float windSpdFiltClimb; // filtered climb rate
     uint8_t fusionModeGPS; // 0 = GPS outputs 3D velocity, 1 = GPS outputs 2D velocity, 2 = GPS outputs no velocity
     float innovVelPos[6]; // innovation output
     float varInnovVelPos[6]; // innovation variance output
@@ -192,7 +212,8 @@ public:
 
     bool inhibitWindStates; // true when wind states and covariances are to remain constant
     bool inhibitMagStates;  // true when magnetic field states and covariances are to remain constant
-    bool inhibitGndHgtState; // true when the terrain ground height offset state and covariances are to remain constant
+    bool inhibitGndState; // true when the terrain ground height offset state and covariances are to remain constant
+    bool inhibitScaleState; // true when the focal length scale factor state and covariances are to remain constant
 
     bool onGround;    ///< boolean true when the flight vehicle is on the ground (not flying)
     bool staticMode;    ///< boolean true if no position feedback is fused
@@ -211,6 +232,30 @@ public:
 
     unsigned storeIndex;
 
+    // Optical Flow error estimation
+    float storedOmega[3][data_buffer_size]; // angular rate vector stored for the last 50 time steps used by optical flow eror estimators
+
+    // Two state EKF used to estimate focal length scale factor and terrain position
+    float Popt[2][2];                       // state covariance matrix
+    float flowStates[2];                    // flow states [scale factor, terrain position]
+    float prevPosN;                         // north position at last measurement
+    float prevPosE;                         // east position at last measurement
+    float auxFlowObsInnov[2];               // optical flow observation innovations from focal length scale factor estimator
+    float auxFlowObsInnovVar[2];            // innovation variance for optical flow observations from focal length scale factor estimator
+    float fScaleFactorVar;                  // optical flow sensor focal length scale factor variance
+    Mat3f Tnb_flow;                         // Transformation matrix from nav to body at the time fo the optical flow measurement
+    float R_LOS;                            // Optical flow observation noise variance (rad/sec)^2
+    float auxFlowTestRatio[2];              // ratio of X and Y flow observation innovations to fault threshold
+    float auxRngTestRatio;                  // ratio of range observation innovations to fault threshold
+    float flowInnovGate;                    // number of standard deviations used for the innovation consistency check
+    float auxFlowInnovGate;                 // number of standard deviations applied to the optical flow innovation consistency check
+    float rngInnovGate;                     // number of standard deviations used for the innovation consistency check
+    float minFlowRng;                       // minimum range over which to fuse optical flow measurements
+    float moCompR_LOS;                      // scaler from sensor gyro rate to uncertainty in LOS rate
+
+void updateDtGpsFilt(float dt);
+
+void updateDtHgtFilt(float dt);
 
 void  UpdateStrapdownEquationsNED();
 
@@ -225,6 +270,8 @@ void FuseAirspeed();
 void FuseRangeFinder();
 
 void FuseOptFlow();
+
+void GroundEKF();
 
 void zeroRows(float (&covMat)[n_states][n_states], uint8_t first, uint8_t last);
 
@@ -268,6 +315,10 @@ static void quat2Tnb(Mat3f &Tnb, const float (&quat)[4]);
 
 static float sq(float valIn);
 
+static float maxf(float valIn1, float valIn2);
+
+static float min(float valIn1, float valIn2);
+
 void OnGroundCheck();
 
 void CovarianceInit();
@@ -300,6 +351,8 @@ void InitializeDynamic(float (&initvelNED)[3], float declination);
 
 protected:
 
+void updateDtVelPosFilt(float dt);
+
 bool FilterHealthy();
 
 bool GyroOffsetsDiverged();
@@ -313,4 +366,6 @@ void AttitudeInit(float ax, float ay, float az, float mx, float my, float mz, fl
 };
 
 uint32_t millis();
+
+uint64_t getMicros();
 
