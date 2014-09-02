@@ -183,8 +183,8 @@ ORB_DEFINE(actuator_controls_1, struct actuator_controls_s);
 ORB_DEFINE(actuator_controls_2, struct actuator_controls_s);
 ORB_DEFINE(actuator_controls_3, struct actuator_controls_s);
 //Virtual control groups, used for VTOL operation
-ORB_DEFINE(actuator_controls_4, struct actuator_controls_s);
-ORB_DEFINE(actuator_controls_5, struct actuator_controls_s);
+ORB_DEFINE(actuator_controls_virtual_mc, struct actuator_controls_s);
+ORB_DEFINE(actuator_controls_virtual_fw, struct actuator_controls_s);
 
 #include "topics/actuator_armed.h"
 ORB_DEFINE(actuator_armed, struct actuator_armed_s);
