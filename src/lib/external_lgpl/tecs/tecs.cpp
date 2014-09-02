@@ -252,6 +252,11 @@ void TECS::_update_height_demand(float demand, float state)
 
 void TECS::_detect_underspeed(void)
 {
+	if (!_detect_underspeed_enabled) {
+		_underspeed = false;
+		return;
+	}
+
 	if (((_integ5_state < _TASmin * 0.9f) && (_throttle_dem >= _THRmaxf * 0.95f)) || ((_integ3_state < _hgt_dem_adj) && _underspeed)) {
 		_underspeed = true;
 
