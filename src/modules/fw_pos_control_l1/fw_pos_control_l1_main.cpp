@@ -160,12 +160,12 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	/* land states */
-	/* not in non-abort mode for landing yet */
 	bool land_noreturn_horizontal;
 	bool land_noreturn_vertical;
 	bool land_stayonground;
 	bool land_motor_lim;
 	bool land_onslope;
+	bool land_useterrain;
 
 	/* takeoff/launch states */
 	bool launch_detected;
@@ -425,6 +425,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	land_stayonground(false),
 	land_motor_lim(false),
 	land_onslope(false),
+	land_useterrain(false),
 	launch_detected(false),
 	usePreTakeoffThrust(false),
 	last_manual(false),
@@ -792,8 +793,14 @@ void FixedwingPositionControl::navigation_capabilities_publish()
 
 float FixedwingPositionControl::get_terrain_altitude_landing(float land_setpoint_alt, const struct vehicle_global_position_s &global_pos)
 {
-	if (global_pos.terrain_alt_valid &&
-			isfinite(global_pos.terrain_alt)) {
+	if (!isfinite(global_pos.terrain_alt)) {
+		return land_setpoint_alt;
+	}
+
+	/* Decide if the terrain estimation can be used, once we switched to using the terrain we stick with it
+	 * for the whole landing */
+	if (global_pos.terrain_alt_valid || land_useterrain) {
+		land_useterrain = true;
 		return global_pos.terrain_alt;
 	} else {
 		return land_setpoint_alt;
@@ -941,11 +948,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			/* Vertical landing control */
 			//xxx: using the tecs altitude controller for slope control for now
-
-//				/* do not go down too early */
-//				if (wp_distance > 50.0f) {
-//					altitude_error = (_global_triplet.current.alt + 25.0f) - _global_pos.alt;
-//				}
 			/* apply minimum pitch (flare) and limit roll if close to touch down, altitude error is negative (going down) */
 			// XXX this could make a great param
 
@@ -967,7 +969,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 
 			if ( (_global_pos.alt < terrain_alt + landingslope.flare_relative_alt()) || land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
-
 				/* land with minimal speed */
 
 //					/* force TECS to only control speed with pitch, altitude is only implicitely controlled now */
@@ -993,6 +994,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					flare_curve_alt_rel = 0.0f; // stay on ground
 					land_stayonground = true;
 				}
+				warnx("flare: alt %4.3f, sp %4.3f", (double)_global_pos.alt, (double)(terrain_alt + flare_curve_alt_rel));
 
 				tecs_update_pitch_throttle(terrain_alt + flare_curve_alt_rel,
 						calculate_target_airspeed(airspeed_land), eas2tas,
@@ -1033,6 +1035,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					altitude_desired_rel =  _pos_sp_triplet.previous.valid ? L_altitude_rel :
 						_global_pos.alt - terrain_alt;
 				}
+
+				warnx("approach: alt %4.3f, sp %4.3f", (double)_global_pos.alt, (double)(terrain_alt + altitude_desired_rel));
 
 				tecs_update_pitch_throttle(terrain_alt + altitude_desired_rel,
 						calculate_target_airspeed(airspeed_approach), eas2tas,
@@ -1326,6 +1330,7 @@ void FixedwingPositionControl::reset_landing_state()
 	land_stayonground = false;
 	land_motor_lim = false;
 	land_onslope = false;
+	land_useterrain = false;
 }
 
 void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_sp, float eas2tas,
