@@ -78,6 +78,17 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_A, 30.0f);
 PARAM_DEFINE_FLOAT(LAUN_CAT_T, 0.05f);
 
 /**
+ * Motor delay
+ *
+ * Delay between starting attitude control and powering up the thorttle (giving throttle control to the controller)
+ * Before this timespan is up the throttle will be set to LAUN_THR_PRE, set to 0 to deactivate
+ *
+ * @unit seconds
+ * @min 0
+ * @group Launch detection
+ */
+PARAM_DEFINE_FLOAT(LAUN_CAT_MDEL, 0.0f);
+/**
  * Throttle setting while detecting launch.
  *
  * The throttle is set to this value while the system is waiting for the take-off.

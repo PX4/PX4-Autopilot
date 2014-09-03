@@ -59,7 +59,7 @@ public:
 	void reset();
 
 	void update(float accel_x);
-	bool getLaunchDetected();
+	LaunchDetectionResult getLaunchDetected();
 	bool launchDetectionEnabled() { return (bool)launchdetection_on.get(); };
 
 	float getThrottlePreTakeoff() {return throttlePreTakeoff.get(); }
@@ -67,6 +67,12 @@ public:
 //	virtual bool getLaunchDetected();
 protected:
 private:
+	int activeLaunchDetectionMethodIndex; /**< holds a index to the launchMethod in the array launchMethods
+					       which detected a Launch. If no launchMethod has detected a launch yet the
+					       value is -1. Once one launchMetthod has detected a launch only this
+					       method is checked for further adavancing in the state machine (e.g. when
+					       to power up the motors) */
+
 	LaunchMethod* launchMethods[1];
 	control::BlockParamInt launchdetection_on;
 	control::BlockParamFloat throttlePreTakeoff;
