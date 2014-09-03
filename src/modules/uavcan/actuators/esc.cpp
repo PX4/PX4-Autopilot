@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file esc_controller.cpp
+ * @file esc.cpp
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include "esc_controller.hpp"
+#include "esc.hpp"
 #include <systemlib/err.h>
 
 UavcanEscController::UavcanEscController(uavcan::INode &node) :

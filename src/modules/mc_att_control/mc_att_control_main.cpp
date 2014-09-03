@@ -76,6 +76,12 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/geo/geo.h>
 
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+const int ERROR = -1;
+
 /**
  * Multicopter attitude control app start / stop handling function
  *
@@ -721,8 +727,11 @@ MulticopterAttitudeControl::task_main_trampoline(int argc, char *argv[])
 void
 MulticopterAttitudeControl::task_main()
 {
-	warnx("started");
-	fflush(stdout);
+	/* reserve the topic, advertise and publish */
+	_actuators_0_pub = orb_advertise_unique(ORB_ID(actuator_controls_0), &_actuators);
+	if (_actuators_0_pub == ERROR) {
+		_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_virtual_mc), &_actuators);
+	}
 
 	/*
 	 * do subscriptions
@@ -849,12 +858,9 @@ MulticopterAttitudeControl::task_main()
 
 
 				if (!_actuators_0_circuit_breaker_enabled) {
-					if (_actuators_0_pub > 0) {
-						orb_publish(ORB_ID(actuator_controls_virtual_mc), _actuators_0_pub, &_actuators);
 
-					} else {
-						_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_virtual_mc), &_actuators);
-					}
+					orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
+
 				}
 			}
 		}

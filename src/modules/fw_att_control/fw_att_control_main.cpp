@@ -151,6 +151,7 @@ private:
 	perf_counter_t	_nonfinite_output_perf;		/**< performance counter for non finite output */
 
 	bool		_setpoint_valid;		/**< flag if the position control setpoint is valid */
+	bool		_debug;				/**< if set to true, print debug output */
 
 	struct {
 		float tconst;
@@ -330,7 +331,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fw att control nonfinite input")),
 	_nonfinite_output_perf(perf_alloc(PC_COUNT, "fw att control nonfinite output")),
 /* states */
-	_setpoint_valid(false)
+	_setpoint_valid(false),
+	_debug(false)
 {
 	/* safely initialize structs */
 	_att = {};
@@ -577,7 +579,8 @@ FixedwingAttitudeControl::task_main()
 	/* reserve the topic, advertise and publish */
 	_actuators_0_pub = orb_advertise_unique(ORB_ID(actuator_controls_0), &_actuators);
 	if (_actuators_0_pub == ERROR) {
-	_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_virtual_fw), &_actuators);
+		_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_virtual_fw), &_actuators);
+
 	}
 
 	/*
@@ -753,7 +756,8 @@ FixedwingAttitudeControl::task_main()
 						perf_count(_nonfinite_input_perf);
 					}
 				} else {
-					airspeed = _airspeed.true_airspeed_m_s;
+					/* prevent numerical drama by requiring 0.5 m/s minimal speed */
+					airspeed = math::max(0.5f, _airspeed.true_airspeed_m_s);
 				}
 
 				/*
@@ -838,7 +842,7 @@ FixedwingAttitudeControl::task_main()
 					speed_body_v = _att.R[0][1] * _global_pos.vel_n + _att.R[1][1] * _global_pos.vel_e + _att.R[2][1] * _global_pos.vel_d;
 					speed_body_w = _att.R[0][2] * _global_pos.vel_n + _att.R[1][2] * _global_pos.vel_e + _att.R[2][2] * _global_pos.vel_d;
 				} else	{
-					if (loop_counter % 10 == 0) {
+					if (_debug && loop_counter % 10 == 0) {
 						warnx("Did not get a valid R\n");
 					}
 				}
@@ -861,7 +865,7 @@ FixedwingAttitudeControl::task_main()
 						_roll_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
 
-						if (loop_counter % 10 == 0) {
+						if (_debug && loop_counter % 10 == 0) {
 							warnx("roll_u %.4f", (double)roll_u);
 						}
 					}
@@ -874,7 +878,7 @@ FixedwingAttitudeControl::task_main()
 					if (!isfinite(pitch_u)) {
 						_pitch_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
-						if (loop_counter % 10 == 0) {
+						if (_debug && loop_counter % 10 == 0) {
 							warnx("pitch_u %.4f, _yaw_ctrl.get_desired_rate() %.4f,"
 								" airspeed %.4f, airspeed_scaling %.4f,"
 								" roll_sp %.4f, pitch_sp %.4f,"
@@ -898,7 +902,7 @@ FixedwingAttitudeControl::task_main()
 					if (!isfinite(yaw_u)) {
 						_yaw_ctrl.reset_integrator();
 						perf_count(_nonfinite_output_perf);
-						if (loop_counter % 10 == 0) {
+						if (_debug && loop_counter % 10 == 0) {
 							warnx("yaw_u %.4f", (double)yaw_u);
 						}
 					}
@@ -906,13 +910,13 @@ FixedwingAttitudeControl::task_main()
 					/* throttle passed through */
 					_actuators.control[3] = (isfinite(throttle_sp)) ? throttle_sp : 0.0f;
 					if (!isfinite(throttle_sp)) {
-						if (loop_counter % 10 == 0) {
+						if (_debug && loop_counter % 10 == 0) {
 							warnx("throttle_sp %.4f", (double)throttle_sp);
 						}
 					}
 				} else {
 					perf_count(_nonfinite_input_perf);
-					if (loop_counter % 10 == 0) {
+					if (_debug && loop_counter % 10 == 0) {
 						warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", (double)roll_sp, (double)pitch_sp);
 					}
 				}
@@ -954,8 +958,10 @@ FixedwingAttitudeControl::task_main()
 			_actuators.timestamp = hrt_absolute_time();
 			_actuators_airframe.timestamp = hrt_absolute_time();
 
+
 			/* publish the actuator controls */
 			orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators);
+
 			if (_actuators_1_pub > 0) {
 				/* publish the attitude setpoint */
 				orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_airframe);

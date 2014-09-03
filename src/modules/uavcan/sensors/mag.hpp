@@ -32,53 +32,37 @@
  ****************************************************************************/
 
 /**
- * @file gnss_receiver.hpp
- *
- * UAVCAN --> ORB bridge for GNSS messages:
- *     uavcan.equipment.gnss.Fix
- *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
- * @author Andrew Chambers <achamber@gmail.com>
  */
 
 #pragma once
 
-#include <drivers/drv_hrt.h>
+#include "sensor_bridge.hpp"
+#include <drivers/drv_mag.h>
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uavcan/equipment/ahrs/Magnetometer.hpp>
 
-#include <uavcan/uavcan.hpp>
-#include <uavcan/equipment/gnss/Fix.hpp>
-
-class UavcanGnssReceiver
+class UavcanMagnetometerBridge : public UavcanCDevSensorBridgeBase
 {
 public:
-	UavcanGnssReceiver(uavcan::INode& node);
+	static const char *const NAME;
 
-	int init();
+	UavcanMagnetometerBridge(uavcan::INode& node);
+
+	const char *get_name() const override { return NAME; }
+
+	int init() override;
 
 private:
-	/**
-	 * GNSS fix message will be reported via this callback.
-	 */
-	void gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
+	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
 
+	void mag_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::Magnetometer> &msg);
 
-	typedef uavcan::MethodBinder<UavcanGnssReceiver*,
-		void (UavcanGnssReceiver::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix>&)>
-		FixCbBinder;
+	typedef uavcan::MethodBinder<UavcanMagnetometerBridge*,
+		void (UavcanMagnetometerBridge::*)
+			(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::Magnetometer>&)>
+		MagCbBinder;
 
-	/*
-	 * libuavcan related things
-	 */
-	uavcan::INode													&_node;
-	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder>	_uavcan_sub_status;
-
-	/*
-	 * uORB
-	 */
-	struct vehicle_gps_position_s 	_report;					///< uORB topic for gnss position
-	orb_advert_t			_report_pub;					///< uORB pub for gnss position
-
+	uavcan::Subscriber<uavcan::equipment::ahrs::Magnetometer, MagCbBinder> _sub_mag;
+	mag_scale _scale = {};
 };

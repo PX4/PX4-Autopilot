@@ -77,4 +77,7 @@ ORB_DECLARE(actuator_controls_3);
 ORB_DECLARE(actuator_controls_virtual_mc);
 ORB_DECLARE(actuator_controls_virtual_fw);
 
+ORB_DECLARE(actuator_controls_virtual_mc);
+ORB_DECLARE(actuator_controls_virtual_fw);
+
 #endif

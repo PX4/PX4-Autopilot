@@ -141,6 +141,28 @@ typedef intptr_t	orb_advert_t;
 extern orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data) __EXPORT;
 
 /**
+ * Advertise as the publisher of a topic, fail if the topic already exists
+ *
+ * This performs the initial advertisement of a topic; it creates the topic
+ * node in /obj if required and publishes the initial data.
+ *
+ * Any number of advertisers may publish to a topic; publications are atomic
+ * but co-ordination between publishers is not provided by the ORB. 
+ *
+ * @param meta		The uORB metadata (usually from the ORB_ID() macro)
+ *			for the topic.
+ * @param data		A pointer to the initial data to be published.
+ *			For topics updated by interrupt handlers, the advertisement
+ *			must be performed from non-interrupt context.
+ * @return		ERROR on error, otherwise returns a handle
+ *			that can be used to publish to the topic.
+ *			If the topic in question is not known (due to an
+ *			ORB_DEFINE with no corresponding ORB_DECLARE)
+ *			this function will return -1 and set errno to ENOENT.
+ */
+extern orb_advert_t orb_advertise_unique(const struct orb_metadata *meta, const void *data) __EXPORT;
+
+/**
  * Publish new data to a topic.
  *
  * The data is atomically published to the topic and any waiting subscribers
