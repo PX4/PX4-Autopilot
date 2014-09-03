@@ -967,8 +967,11 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			float bearing_airplane_currwp = get_bearing_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
 			float landing_slope_alt_rel_desired = landingslope.getLandingSlopeRelativeAltitudeSave(wp_distance, bearing_lastwp_currwp, bearing_airplane_currwp);
 
-
-			if ( (_global_pos.alt < terrain_alt + landingslope.flare_relative_alt()) || land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
+			/* Check if we should start flaring with a vertical and a
+			 * horizontal limit (with some tolerance) */
+			if (((_global_pos.alt < terrain_alt + landingslope.flare_relative_alt()) &&
+						(wp_distance < landingslope.flare_length() + 5.0f)) ||
+					land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
 				/* land with minimal speed */
 
 //					/* force TECS to only control speed with pitch, altitude is only implicitely controlled now */
