@@ -685,6 +685,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_enable_datalink_loss = param_find("COM_DL_LOSS_EN");
 	param_t _param_datalink_loss_timeout = param_find("COM_DL_LOSS_T");
 	param_t _param_datalink_regain_timeout = param_find("COM_DL_REG_T");
+	param_t _param_onboard_sysid = param_find("COM_ONBSYSID");
 
 	/* welcome user */
 	warnx("starting");
@@ -879,12 +880,14 @@ int commander_thread_main(int argc, char *argv[])
 	uint64_t telemetry_last_heartbeat[TELEMETRY_STATUS_ORB_ID_NUM];
 	uint64_t telemetry_last_dl_loss[TELEMETRY_STATUS_ORB_ID_NUM];
 	bool telemetry_lost[TELEMETRY_STATUS_ORB_ID_NUM];
+	uint8_t	 telemetry_sysid[TELEMETRY_STATUS_ORB_ID_NUM];
 
 	for (int i = 0; i < TELEMETRY_STATUS_ORB_ID_NUM; i++) {
 		telemetry_subs[i] = orb_subscribe(telemetry_status_orb_id[i]);
 		telemetry_last_heartbeat[i] = 0;
 		telemetry_last_dl_loss[i] = 0;
 		telemetry_lost[i] = true;
+		telemetry_sysid[i] = 0;
 	}
 
 	/* Subscribe to global position */
@@ -971,6 +974,8 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t datalink_loss_enabled = false;
 	int32_t datalink_loss_timeout = 10;
 	int32_t datalink_regain_timeout = 0;
+	uint8_t onboard_sysid = 42;		/**< systemid of the onboard computer, telemetry from this sysid
+						  is not validated for the datalink loss check */
 
 	/* check which state machines for changes, clear "changed" flag */
 	bool arming_state_changed = false;
@@ -1033,6 +1038,7 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_enable_datalink_loss, &datalink_loss_enabled);
 			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
 			param_get(_param_datalink_regain_timeout, &datalink_regain_timeout);
+			param_get(_param_onboard_sysid, &onboard_sysid);
 		}
 
 		orb_check(sp_man_sub, &updated);
@@ -1079,6 +1085,7 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 				telemetry_last_heartbeat[i] = telemetry.heartbeat_time;
+				telemetry_sysid[i] = telemetry.system_id;
 			}
 		}
 
@@ -1562,10 +1569,17 @@ int commander_thread_main(int argc, char *argv[])
 
 					mavlink_log_critical(mavlink_fd, "data link %i regained", i);
 					telemetry_lost[i] = false;
-					have_link = true;
-				} else if (!telemetry_lost[i]) {
+
+					/* If this is not an onboard link/onboard computer:
+					 * set flag that we have a valid link */
+					if (telemetry_sysid[i] != onboard_sysid) {
+						have_link = true;
+					}
+				} else if (!telemetry_lost[i] && telemetry_sysid[i] != onboard_sysid) {
 					/* telemetry was healthy also in last iteration
-					 * we don't have to check a timeout */
+					 * we don't have to check a timeout,
+					 * telemetry from onboard computers is not accepted as a valid datalink
+					 */
 					have_link = true;
 				}
 
