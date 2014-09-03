@@ -78,7 +78,7 @@ public:
 
 	enum mission_altitude_mode {
 		MISSION_ALTMODE_ZOH = 0,
-		MISSION_ALTMODE_FOH =1
+		MISSION_ALTMODE_FOH = 1
 	};
 
 private:
