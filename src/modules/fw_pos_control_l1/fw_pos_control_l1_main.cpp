@@ -994,7 +994,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					flare_curve_alt_rel = 0.0f; // stay on ground
 					land_stayonground = true;
 				}
-				warnx("flare: alt %4.3f, sp %4.3f", (double)_global_pos.alt, (double)(terrain_alt + flare_curve_alt_rel));
 
 				tecs_update_pitch_throttle(terrain_alt + flare_curve_alt_rel,
 						calculate_target_airspeed(airspeed_land), eas2tas,
@@ -1035,8 +1034,6 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					altitude_desired_rel =  _pos_sp_triplet.previous.valid ? L_altitude_rel :
 						_global_pos.alt - terrain_alt;
 				}
-
-				warnx("approach: alt %4.3f, sp %4.3f", (double)_global_pos.alt, (double)(terrain_alt + altitude_desired_rel));
 
 				tecs_update_pitch_throttle(terrain_alt + altitude_desired_rel,
 						calculate_target_airspeed(airspeed_approach), eas2tas,
