@@ -999,7 +999,11 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			float relative_alt = get_relative_landingalt(_pos_sp_triplet.current.alt, _global_pos.alt, _range_finder, _parameters.range_finder_rel_alt);
 
-			if ( (relative_alt < landingslope.flare_relative_alt()) || land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
+			/* Check if we should start flaring with a vertical and a
+			 * horizontal limit (with some tolerance) */
+			if ( ((relative_alt < landingslope.flare_relative_alt()) &&
+						(wp_distance < landingslope.flare_length() + 5.0f)) ||
+					land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
 
 				/* land with minimal speed */
 
