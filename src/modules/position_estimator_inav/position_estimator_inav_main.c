@@ -899,17 +899,23 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			w_xy_gps_v *= params.w_gps_flow;
 		}
 
-		/* baro offset correction */
+		/* baro offset correction from GPS */
 		if (use_gps_z) {
 			float offs_corr = corr_gps[2][0] * w_z_gps_p * dt;
 			baro_offset += offs_corr;
 			corr_baro += offs_corr;
 		}
-		
+
 		if (use_vision_p_z) {
-			float offs_corr = -corr_vision[2][0] * params.w_z_baro * params.w_z_vision_p * dt;
-			vision_offset[2] += offs_corr;
-			corr_vision[2][0] += offs_corr;
+			/* baro offset correction from vision */
+			float baro_offs_corr = corr_vision[2][0] * w_z_vision_p * dt;
+			baro_offset += baro_offs_corr;
+			corr_baro += baro_offs_corr;
+
+			/* vision offset correction from baro */
+			float vision_offs_corr = corr_baro * params.w_z_baro * dt;
+			vision_offset[2] += vision_offs_corr;
+			corr_vision[2][0] += vision_offs_corr;
 		}
 
 		/* accelerometer bias correction for GPS (use buffered rotation matrix) */
