@@ -913,16 +913,16 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (use_vision_p_z) {
 			/* baro offset correction from vision */
-			  float baro_offs_corr = corr_vision[2][0] * w_z_vision_p * w_z_vision_p / params.w_z_baro * dt;
+			float baro_offs_corr = corr_vision[2][0] * w_z_vision_p * w_z_vision_p / params.w_z_baro * dt;
 
-			  /* vision offset correction from baro */
-			  float vision_offs_corr = corr_baro * params.w_z_baro * params.w_z_baro / w_z_vision_p * dt;
+			/* vision offset correction from baro */
+			float vision_offs_corr = corr_baro * params.w_z_baro * params.w_z_baro / w_z_vision_p * dt;
 
-			  /* apply offsets correction */
-			  baro_offset += baro_offs_corr;
-			  corr_baro += baro_offs_corr;
-			  vision_offset[2] += vision_offs_corr;
-			  corr_vision[2][0] += vision_offs_corr;
+			/* apply offsets correction */
+			baro_offset += baro_offs_corr;
+			corr_baro += baro_offs_corr;
+			vision_offset[2] += vision_offs_corr;
+			corr_vision[2][0] += vision_offs_corr;
 		}
 
 		/* accelerometer bias correction for GPS (use buffered rotation matrix) */
