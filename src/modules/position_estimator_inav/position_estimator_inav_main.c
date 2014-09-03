@@ -248,7 +248,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int baro_init_cnt = 0;
 	int baro_init_num = 200;
 	float baro_offset = 0.0f;		// baro offset for reference altitude, initialized on start, then adjusted
-	float vision_z_offset = 0.0f;		// vision.Z offset for reference altitude, initialized on start, then adjusted
+	float vision_offset[] = {0.0f, 0.0f, 0.0f};		// vision offset, initialized when vision become available, then adjusted
 	float surface_offset = 0.0f;		// ground level offset from reference altitude
 	float surface_offset_rate = 0.0f;	// surface offset change rate
 	float alt_avg = 0.0f;
@@ -654,14 +654,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					//if (vision_p.timestamp_computer != vision_p_timestamp) {
 						/* reset position estimate on first vision update */
 						if (!vision_p_valid) {
-							x_est[0] = vision_p.x;
-							y_est[0] = vision_p.y;
-							
-							/* only reset the z estimate if the z weight parameter is not zero */ 
-							if (params.w_z_vision_p > MIN_VALID_W) {
-								z_est[0] = vision_z_offset;
-								//z_est[0] = vision_p.z;
-							}
+							/* initialize vision offset */
+							vision_offset[0] = x_est[0] - vision_p.x;
+							vision_offset[1] = y_est[0] - vision_p.y;
+							vision_offset[2] = z_est[0] - vision_p.z;
 							
 							vision_p_valid = true;
 							warnx("VISION POSITION estimate valid");
@@ -669,10 +665,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						}
 
 						/* calculate correction for position */
-						corr_vision[0][0] = vision_p.x - x_est[0];
-						corr_vision[1][0] = vision_p.y - y_est[0];
-						corr_vision[2][0] = vision_z_offset - vision_p.z - z_est[0];
-						//corr_vision[2][0] = vision_p.z - z_est[0];
+						corr_vision[0][0] = vision_p.x + vision_offset[0] - x_est[0];
+						corr_vision[1][0] = vision_p.y + vision_offset[1] - y_est[0];
+						corr_vision[2][0] = vision_p.z + vision_offset[2] - z_est[0];
 					//}
 					//vision_p_timestamp = vision_p.timestamp_computer;
 					vision_p_updates++;
@@ -877,7 +872,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		bool can_estimate_xy = (eph < max_eph_epv) || use_gps_xy || use_flow || use_vision_p_xy || use_vision_v_xy;
 
 		bool dist_bottom_valid = (t < sonar_valid_time + sonar_valid_timeout);
-
 		
 		if (dist_bottom_valid) {
 			/* surface distance prediction */
@@ -912,11 +906,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			corr_baro += offs_corr;
 		}
 		
+		/*
+		// TODO add w_z_vision_corr parameter
 		if (use_vision_p_z) {
-			float offs_corr = corr_vision[2][0] * w_z_vision_p * dt;
-			baro_offset += offs_corr;
-			corr_baro += offs_corr;
+			float offs_corr = -corr_vision[2][0] * w_z_vision_corr * dt;
+			vision_offset[2] += offs_corr;
+			corr_vision[2][0] += offs_corr;
 		}
+		*/
 
 		/* accelerometer bias correction for GPS (use buffered rotation matrix) */
 		float accel_bias_corr[3] = { 0.0f, 0.0f, 0.0f };
